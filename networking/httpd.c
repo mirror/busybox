@@ -926,16 +926,16 @@ static void log_and_exit(void)
 static void send_headers(int responseNum)
 {
 	static const char RFC1123FMT[] ALIGN1 = "%a, %d %b %Y %H:%M:%S GMT";
+	/* Fixed size 29-byte string. Example: Sun, 06 Nov 1994 08:49:37 GMT */
+	char date_str[40]; /* using a bit larger buffer to paranoia reasons */
 
 	const char *responseString = "";
 	const char *infoString = NULL;
-	const char *mime_type;
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
 	const char *error_page = NULL;
 #endif
 	unsigned i;
 	time_t timer = time(NULL);
-	char tmp_str[80];
 	int len;
 
 	for (i = 0; i < ARRAY_SIZE(http_response_type); i++) {
@@ -948,25 +948,33 @@ static void send_headers(int responseNum)
 			break;
 		}
 	}
-	/* error message is HTML */
-	mime_type = responseNum == HTTP_OK ?
-				found_mime_type : "text/html";
 
 	if (verbose)
 		bb_error_msg("response:%u", responseNum);
 
-	/* emit the current date */
-	strftime(tmp_str, sizeof(tmp_str), RFC1123FMT, gmtime(&timer));
+	/* We use sprintf, not snprintf (it's less code).
+	 * iobuf[] is several kbytes long and all headers we generate
+	 * always fit into those kbytes.
+	 */
+
+	strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime(&timer));
 	len = sprintf(iobuf,
-			"HTTP/1.0 %d %s\r\nContent-type: %s\r\n"
-			"Date: %s\r\nConnection: close\r\n",
-			responseNum, responseString, mime_type, tmp_str);
+			"HTTP/1.0 %d %s\r\n"
+			"Content-type: %s\r\n"
+			"Date: %s\r\n"
+			"Connection: close\r\n",
+			responseNum, responseString,
+			/* if it's error message, then it's HTML */
+			(responseNum == HTTP_OK ? found_mime_type : "text/html"),
+			date_str
+	);
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	if (responseNum == HTTP_UNAUTHORIZED) {
 		len += sprintf(iobuf + len,
-				"WWW-Authenticate: Basic realm=\"%s\"\r\n",
-				g_realm);
+				"WWW-Authenticate: Basic realm=\"%.999s\"\r\n",
+				g_realm /* %.999s protects from overflowing iobuf[] */
+		);
 	}
 #endif
 	if (responseNum == HTTP_MOVED_TEMPORARILY) {
@@ -981,7 +989,8 @@ static void send_headers(int responseNum)
 				"Location: %s/%s%s\r\n",
 				found_moved_temporarily,
 				(g_query ? "?" : ""),
-				(g_query ? g_query : ""));
+				(g_query ? g_query : "")
+		);
 		if (len > IOBUF_SIZE-3)
 			len = IOBUF_SIZE-3;
 	}
@@ -1002,13 +1011,15 @@ static void send_headers(int responseNum)
 #endif
 
 	if (file_size != -1) {    /* file */
-		strftime(tmp_str, sizeof(tmp_str), RFC1123FMT, gmtime(&last_mod));
+		strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime(&last_mod));
 #if ENABLE_FEATURE_HTTPD_RANGES
 		if (responseNum == HTTP_PARTIAL_CONTENT) {
-			len += sprintf(iobuf + len, "Content-Range: bytes %"OFF_FMT"u-%"OFF_FMT"u/%"OFF_FMT"u\r\n",
+			len += sprintf(iobuf + len,
+				"Content-Range: bytes %"OFF_FMT"u-%"OFF_FMT"u/%"OFF_FMT"u\r\n",
 					range_start,
 					range_end,
-					file_size);
+					file_size
+			);
 			file_size = range_end - range_start + 1;
 		}
 #endif
@@ -1016,8 +1027,9 @@ static void send_headers(int responseNum)
 #if ENABLE_FEATURE_HTTPD_RANGES
 			"Accept-Ranges: bytes\r\n"
 #endif
-			"Last-Modified: %s\r\n%s %"OFF_FMT"u\r\n",
-				tmp_str,
+			"Last-Modified: %s\r\n"
+			"%s %"OFF_FMT"u\r\n",
+				date_str,
 				content_gzip ? "Transfer-length:" : "Content-length:",
 				file_size
 		);
@@ -1031,9 +1043,13 @@ static void send_headers(int responseNum)
 	if (infoString) {
 		len += sprintf(iobuf + len,
 				"<HTML><HEAD><TITLE>%d %s</TITLE></HEAD>\n"
-				"<BODY><H1>%d %s</H1>\n%s\n</BODY></HTML>\n",
+				"<BODY><H1>%d %s</H1>\n"
+				"%s\n"
+				"</BODY></HTML>\n",
 				responseNum, responseString,
-				responseNum, responseString, infoString);
+				responseNum, responseString,
+				infoString
+		);
 	}
 	if (DEBUG) {
 		iobuf[len] = '\0';
