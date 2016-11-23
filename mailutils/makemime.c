@@ -6,6 +6,13 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config MAKEMIME
+//config:	bool "makemime"
+//config:	default y
+//config:	help
+//config:	  Create MIME-formatted messages.
+
+//applet:IF_MAKEMIME(APPLET(makemime, BB_DIR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_MAKEMIME) += makemime.o mail.o
 

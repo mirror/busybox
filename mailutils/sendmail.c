@@ -6,6 +6,13 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config SENDMAIL
+//config:	bool "sendmail"
+//config:	default y
+//config:	help
+//config:	  Barebones sendmail.
+
+//applet:IF_SENDMAIL(APPLET(sendmail, BB_DIR_USR_SBIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_SENDMAIL) += sendmail.o mail.o
 

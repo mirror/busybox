@@ -9,6 +9,24 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config POPMAILDIR
+//config:	bool "popmaildir"
+//config:	default y
+//config:	help
+//config:	  Simple yet powerful POP3 mail popper. Delivers content
+//config:	  of remote mailboxes to local Maildir.
+//config:
+//config:config FEATURE_POPMAILDIR_DELIVERY
+//config:	bool "Allow message filters and custom delivery program"
+//config:	default y
+//config:	depends on POPMAILDIR
+//config:	help
+//config:	  Allow to use a custom program to filter the content
+//config:	  of the message before actual delivery (-F "prog [args...]").
+//config:	  Allow to use a custom program for message actual delivery
+//config:	  (-M "prog [args...]").
+
+//applet:IF_POPMAILDIR(APPLET(popmaildir, BB_DIR_USR_SBIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_POPMAILDIR) += popmaildir.o mail.o
 
