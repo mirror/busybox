@@ -57,14 +57,14 @@
 //config:config PING6
 //config:	bool "ping6"
 //config:	default y
-//config:	depends on FEATURE_IPV6 && PING
+//config:	depends on FEATURE_IPV6
 //config:	help
 //config:	  This will give you a ping that can talk IPv6.
 //config:
 //config:config FEATURE_FANCY_PING
 //config:	bool "Enable fancy ping output"
 //config:	default y
-//config:	depends on PING
+//config:	depends on PING || PING6
 //config:	help
 //config:	  Make the output from the ping applet include statistics, and at the
 //config:	  same time provide full support for ICMP packets.
@@ -907,15 +907,17 @@ static int common_ping_main(int opt, char **argv)
 #endif /* FEATURE_FANCY_PING */
 
 
+#if ENABLE_PING
 int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ping_main(int argc UNUSED_PARAM, char **argv)
 {
-#if !ENABLE_FEATURE_FANCY_PING
+# if !ENABLE_FEATURE_FANCY_PING
 	return common_ping_main(AF_UNSPEC, argv);
-#else
+# else
 	return common_ping_main(0, argv);
-#endif
+# endif
 }
+#endif
 
 #if ENABLE_PING6
 int ping6_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

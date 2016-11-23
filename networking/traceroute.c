@@ -219,14 +219,14 @@
 //config:config TRACEROUTE6
 //config:	bool "traceroute6"
 //config:	default y
-//config:	depends on FEATURE_IPV6 && TRACEROUTE
+//config:	depends on FEATURE_IPV6
 //config:	help
 //config:	  Utility to trace the route of IPv6 packets.
 //config:
 //config:config FEATURE_TRACEROUTE_VERBOSE
 //config:	bool "Enable verbose output"
 //config:	default y
-//config:	depends on TRACEROUTE
+//config:	depends on TRACEROUTE || TRACEROUTE6
 //config:	help
 //config:	  Add some verbosity to traceroute. This includes among other things
 //config:	  hostnames and ICMP response types.
@@ -234,7 +234,7 @@
 //config:config FEATURE_TRACEROUTE_USE_ICMP
 //config:	bool "Enable -I option (use ICMP instead of UDP)"
 //config:	default y
-//config:	depends on TRACEROUTE
+//config:	depends on TRACEROUTE || TRACEROUTE6
 //config:	help
 //config:	  Add option -I to use ICMP ECHO instead of UDP datagrams.
 
@@ -243,6 +243,7 @@
 //applet:IF_TRACEROUTE6(APPLET(traceroute6, BB_DIR_USR_BIN, BB_SUID_MAYBE))
 
 //kbuild:lib-$(CONFIG_TRACEROUTE) += traceroute.o
+//kbuild:lib-$(CONFIG_TRACEROUTE6) += traceroute.o
 
 //usage:#define traceroute_trivial_usage
 //usage:       "[-"IF_TRACEROUTE6("46")"FIlnrv] [-f 1ST_TTL] [-m MAXTTL] [-q PROBES] [-p PORT]\n"
@@ -1204,11 +1205,13 @@ common_traceroute_main(int op, char **argv)
 	return 0;
 }
 
+#if ENABLE_TRACEROUTE
 int traceroute_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int traceroute_main(int argc UNUSED_PARAM, char **argv)
 {
 	return common_traceroute_main(0, argv);
 }
+#endif
 
 #if ENABLE_TRACEROUTE6
 int traceroute6_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
