@@ -28,7 +28,6 @@
 //config:config HD
 //config:	bool "hd"
 //config:	default y
-//config:	depends on HEXDUMP
 //config:	help
 //config:	  hd is an alias to hexdump -C.
 
@@ -106,7 +105,9 @@ int hexdump_main(int argc, char **argv)
 	smallint rdump = 0;
 #endif
 
-	if (ENABLE_HD && !applet_name[2]) { /* we are "hd" */
+	if (ENABLE_HD
+	 && (!ENABLE_HEXDUMP || !applet_name[2])
+	) { /* we are "hd" */
 		ch = 'C';
 		goto hd_applet;
 	}
