@@ -20,6 +20,37 @@
  *
  *  Caveat: this versions of expand and unexpand don't accept tab lists.
  */
+//config:config EXPAND
+//config:	bool "expand"
+//config:	default y
+//config:	help
+//config:	  By default, convert all tabs to spaces.
+//config:
+//config:config FEATURE_EXPAND_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on EXPAND && LONG_OPTS
+//config:	help
+//config:	  Support long options for the expand applet.
+//config:
+//config:config UNEXPAND
+//config:	bool "unexpand"
+//config:	default y
+//config:	help
+//config:	  By default, convert only leading sequences of blanks to tabs.
+//config:
+//config:config FEATURE_UNEXPAND_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on UNEXPAND && LONG_OPTS
+//config:	help
+//config:	  Support long options for the unexpand applet.
+
+//applet:IF_EXPAND(APPLET(expand, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_UNEXPAND(APPLET_ODDNAME(unexpand, expand, BB_DIR_USR_BIN, BB_SUID_DROP, unexpand))
+
+//kbuild:lib-$(CONFIG_EXPAND) += expand.o
+//kbuild:lib-$(CONFIG_UNEXPAND) += expand.o
 
 //usage:#define expand_trivial_usage
 //usage:       "[-i] [-t N] [FILE]..."

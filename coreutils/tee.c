@@ -6,6 +6,23 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config TEE
+//config:	bool "tee"
+//config:	default y
+//config:	help
+//config:	  tee is used to read from standard input and write
+//config:	  to standard output and files.
+//config:
+//config:config FEATURE_TEE_USE_BLOCK_IO
+//config:	bool "Enable block I/O (larger/faster) instead of byte I/O"
+//config:	default y
+//config:	depends on TEE
+//config:	help
+//config:	  Enable this option for a faster tee, at expense of size.
+
+//applet:IF_TEE(APPLET(tee, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_TEE) += tee.o
 
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/tee.html */

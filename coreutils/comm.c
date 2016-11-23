@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config COMM
+//config:	bool "comm"
+//config:	default y
+//config:	help
+//config:	  comm is used to compare two files line by line and return
+//config:	  a three-column output.
+
+//applet:IF_COMM(APPLET(comm, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_COMM) += comm.o
 
 //usage:#define comm_trivial_usage
 //usage:       "[-123] FILE1 FILE2"

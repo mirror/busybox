@@ -18,8 +18,16 @@
    David MacKenzie <djm@gnu.ai.mit.edu>
 
    Special for busybox ported by Vladimir Oleynik <dzo@simtreas.ru> 2001
+*/
+//config:config STTY
+//config:	bool "stty"
+//config:	default y
+//config:	help
+//config:	  stty is used to change and print terminal line settings.
 
-   */
+//applet:IF_STTY(APPLET(stty, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_STTY) += stty.o
 
 //usage:#define stty_trivial_usage
 //usage:       "[-a|g] [-F DEVICE] [SETTING]..."

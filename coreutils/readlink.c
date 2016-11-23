@@ -6,6 +6,23 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config READLINK
+//config:	bool "readlink"
+//config:	default y
+//config:	help
+//config:	  This program reads a symbolic link and returns the name
+//config:	  of the file it points to
+//config:
+//config:config FEATURE_READLINK_FOLLOW
+//config:	bool "Enable canonicalization by following all symlinks (-f)"
+//config:	default y
+//config:	depends on READLINK
+//config:	help
+//config:	  Enable the readlink option (-f).
+
+//applet:IF_READLINK(APPLET(readlink, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_READLINK) += readlink.o
 
 //usage:#define readlink_trivial_usage
 //usage:	IF_FEATURE_READLINK_FOLLOW("[-fnv] ") "FILE"

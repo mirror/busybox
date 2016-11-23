@@ -19,11 +19,6 @@
  * Original copyright notice states:
  *     "This program is in the Public Domain."
  */
-
-//kbuild:lib-$(CONFIG_TEST)      += test.o test_ptr_hack.o
-//kbuild:lib-$(CONFIG_ASH)       += test.o test_ptr_hack.o
-//kbuild:lib-$(CONFIG_HUSH)      += test.o test_ptr_hack.o
-
 //config:config TEST
 //config:	bool "test"
 //config:	default y
@@ -38,6 +33,14 @@
 //config:	depends on TEST || ASH_BUILTIN_TEST || HUSH
 //config:	help
 //config:	  Enable 64-bit support in test.
+
+//applet:IF_TEST(APPLET_NOFORK([,  test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
+//applet:IF_TEST(APPLET_NOFORK([[, test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
+//applet:IF_TEST(APPLET_NOFORK(test, test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
+
+//kbuild:lib-$(CONFIG_TEST) += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_ASH) += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_HUSH) += test.o test_ptr_hack.o
 
 /* "test --help" is special-cased to ignore --help */
 //usage:#define test_trivial_usage NOUSAGE_STR

@@ -7,31 +7,30 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 compliant. */
 /* Hacked by Tito Ragusa (C) 2004 to handle usernames of whatever
  * length and to be more similar to GNU id.
  * -Z option support: by Yuichi Nakamura <ynakam@hitachisoft.jp>
  * Added -G option Tito Ragusa (C) 2008 for SUSv3.
  */
-
 //config:config ID
 //config:	bool "id"
 //config:	default y
 //config:	help
 //config:	  id displays the current user and group ID names.
-
+//config:
 //config:config GROUPS
 //config:	bool "groups"
 //config:	default y
 //config:	help
 //config:	  Print the group names associated with current user id.
 
+//applet:IF_GROUPS(APPLET_NOEXEC(groups, id, BB_DIR_USR_BIN, BB_SUID_DROP, groups))
+//applet:IF_ID(    APPLET_NOEXEC(id,     id, BB_DIR_USR_BIN, BB_SUID_DROP, id    ))
+
 //kbuild:lib-$(CONFIG_GROUPS) += id.o
 //kbuild:lib-$(CONFIG_ID)     += id.o
 
-//applet:IF_GROUPS(APPLET_NOEXEC(groups, id, BB_DIR_USR_BIN, BB_SUID_DROP, groups))
-//applet:IF_ID(    APPLET_NOEXEC(id,     id, BB_DIR_USR_BIN, BB_SUID_DROP, id    ))
+/* BB_AUDIT SUSv3 compliant. */
 
 //usage:#define id_trivial_usage
 //usage:       "[OPTIONS] [USER]"

@@ -6,10 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 compliant. */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/wc.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Rewritten to fix a number of problems and do some size optimizations.
@@ -36,6 +32,27 @@
  *
  * for which 'wc -c' should output '0'.
  */
+//config:config WC
+//config:	bool "wc"
+//config:	default y
+//config:	help
+//config:	  wc is used to print the number of bytes, words, and lines,
+//config:	  in specified files.
+//config:
+//config:config FEATURE_WC_LARGE
+//config:	bool "Support very large files in wc"
+//config:	default y
+//config:	depends on WC
+//config:	help
+//config:	  Use "unsigned long long" in wc for counter variables.
+
+//applet:IF_WC(APPLET(wc, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_WC) += wc.o
+
+/* BB_AUDIT SUSv3 compliant. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/wc.html */
+
 #include "libbb.h"
 #include "unicode.h"
 

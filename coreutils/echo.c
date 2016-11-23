@@ -9,10 +9,6 @@
  *
  * Original copyright notice is retained at the end of this file.
  */
-
-/* BB_AUDIT SUSv3 compliant -- unless configured as fancy echo. */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/echo.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Because of behavioral differences, implemented configurable SUSv3
@@ -22,6 +18,26 @@
  * 2) SUSv3 specifies that octal escapes are of the form \0{#{#{#}}}.
  *    The previous version did not allow 4-digit octals.
  */
+//config:config ECHO
+//config:	bool "echo (basic SuSv3 version taking no options)"
+//config:	default y
+//config:	help
+//config:	  echo is used to print a specified string to stdout.
+//config:
+//config:# this entry also appears in shell/Config.in, next to the echo builtin
+//config:config FEATURE_FANCY_ECHO
+//config:	bool "Enable echo options (-n and -e)"
+//config:	default y
+//config:	depends on ECHO || ASH_BUILTIN_ECHO || HUSH
+//config:	help
+//config:	  This adds options (-n and -e) to echo.
+
+//applet:IF_ECHO(APPLET_NOFORK(echo, echo, BB_DIR_BIN, BB_SUID_DROP, echo))
+
+//kbuild:lib-$(CONFIG_ECHO) += echo.o
+
+/* BB_AUDIT SUSv3 compliant -- unless configured as fancy echo. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/echo.html */
 
 //usage:#define echo_trivial_usage
 //usage:	IF_FEATURE_FANCY_ECHO("[-neE] ") "[ARG]..."

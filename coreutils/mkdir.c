@@ -6,18 +6,32 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 compliant */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/mkdir.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Fixed broken permission setting when -p was used; especially in
  * conjunction with -m.
  */
-
 /* Nov 28, 2006      Yoshinori Sato <ysato@users.sourceforge.jp>: Add SELinux Support.
  */
+//config:config MKDIR
+//config:	bool "mkdir"
+//config:	default y
+//config:	help
+//config:	  mkdir is used to create directories with the specified names.
+//config:
+//config:config FEATURE_MKDIR_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on MKDIR && LONG_OPTS
+//config:	help
+//config:	  Support long options for the mkdir applet.
+
+//applet:IF_MKDIR(APPLET_NOFORK(mkdir, mkdir, BB_DIR_BIN, BB_SUID_DROP, mkdir))
+
+//kbuild:lib-$(CONFIG_MKDIR) += mkdir.o
+
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/mkdir.html */
 
 //usage:#define mkdir_trivial_usage
 //usage:       "[OPTIONS] DIRECTORY..."

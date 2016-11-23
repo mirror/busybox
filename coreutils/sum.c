@@ -12,6 +12,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config SUM
+//config:	bool "sum"
+//config:	default y
+//config:	help
+//config:	  checksum and count the blocks in a file
+
+//applet:IF_SUM(APPLET(sum, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SUM) += sum.o
 
 //usage:#define sum_trivial_usage
 //usage:       "[-rs] [FILE]..."

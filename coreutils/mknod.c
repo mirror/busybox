@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config MKNOD
+//config:	bool "mknod"
+//config:	default y
+//config:	help
+//config:	  mknod is used to create FIFOs or block/character special
+//config:	  files with the specified names.
+
+//applet:IF_MKNOD(APPLET_NOEXEC(mknod, mknod, BB_DIR_BIN, BB_SUID_DROP, mknod))
+
+//kbuild:lib-$(CONFIG_MKNOD) += mknod.o
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 

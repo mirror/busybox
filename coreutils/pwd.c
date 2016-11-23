@@ -6,6 +6,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config PWD
+//config:	bool "pwd"
+//config:	default y
+//config:	help
+//config:	  pwd is used to print the current directory.
+
+//applet:IF_PWD(APPLET_NOFORK(pwd, pwd, BB_DIR_BIN, BB_SUID_DROP, pwd))
+
+//kbuild:lib-$(CONFIG_PWD) += pwd.o
 
 //usage:#define pwd_trivial_usage
 //usage:       ""
@@ -17,8 +26,6 @@
 //usage:       "/root\n"
 
 #include "libbb.h"
-
-/* This is a NOFORK applet. Be very careful! */
 
 static int logical_getcwd(void)
 {

@@ -9,6 +9,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config NOHUP
+//config:	bool "nohup"
+//config:	default y
+//config:	help
+//config:	  run a command immune to hangups, with output to a non-tty.
+
+//applet:IF_NOHUP(APPLET(nohup, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_NOHUP) += nohup.o
 
 //usage:#define nohup_trivial_usage
 //usage:       "PROG ARGS"

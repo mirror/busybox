@@ -7,6 +7,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config PRINTENV
+//config:	bool "printenv"
+//config:	default y
+//config:	help
+//config:	  printenv is used to print all or part of environment.
+
+//applet:IF_PRINTENV(APPLET_NOFORK(printenv, printenv, BB_DIR_BIN, BB_SUID_DROP, printenv))
+
+//kbuild:lib-$(CONFIG_PRINTENV) += printenv.o
 
 //usage:#define printenv_trivial_usage
 //usage:       "[VARIABLE]..."

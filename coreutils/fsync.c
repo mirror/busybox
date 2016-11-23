@@ -6,6 +6,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config FSYNC
+//config:	bool "fsync"
+//config:	default y
+//config:	help
+//config:	  fsync is used to flush file-related cached blocks to disk.
+
+//applet:IF_FSYNC(APPLET_NOFORK(fsync, fsync, BB_DIR_BIN, BB_SUID_DROP, fsync))
+
+//kbuild:lib-$(CONFIG_FSYNC) += fsync.o
 
 //usage:#define fsync_trivial_usage
 //usage:       "[-d] FILE..."

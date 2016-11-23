@@ -1,20 +1,26 @@
 /* vi: set sw=4 ts=4: */
 /*
  * tac implementation for busybox
+ * tac - concatenate and print files in reverse
  *
  * Copyright (C) 2003  Yang Xiaopeng  <yxp at hanwang.com.cn>
  * Copyright (C) 2007  Natanael Copa  <natanael.copa@gmail.com>
  * Copyright (C) 2007  Tito Ragusa    <farmatito@tiscali.it>
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
- *
  */
-
-/* tac - concatenate and print files in reverse */
-
 /* Based on Yang Xiaopeng's (yxp at hanwang.com.cn) patch
  * http://www.uclibc.org/lists/busybox/2003-July/008813.html
  */
+//config:config TAC
+//config:	bool "tac"
+//config:	default y
+//config:	help
+//config:	  tac is used to concatenate and print files in reverse.
+
+//applet:IF_TAC(APPLET_NOEXEC(tac, tac, BB_DIR_USR_BIN, BB_SUID_DROP, tac))
+
+//kbuild:lib-$(CONFIG_TAC) += tac.o
 
 //usage:#define tac_trivial_usage
 //usage:	"[FILE]..."

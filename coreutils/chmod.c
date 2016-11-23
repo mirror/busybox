@@ -9,6 +9,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config CHMOD
+//config:	bool "chmod"
+//config:	default y
+//config:	help
+//config:	  chmod is used to change the access permission of files.
+
+//applet:IF_CHMOD(APPLET_NOEXEC(chmod, chmod, BB_DIR_BIN, BB_SUID_DROP, chmod))
+
+//kbuild:lib-$(CONFIG_CHMOD) += chmod.o
 
 /* BB_AUDIT SUSv3 compliant */
 /* BB_AUDIT GNU defects - unsupported long options. */

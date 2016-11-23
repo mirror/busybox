@@ -6,9 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
-
 //config:config HOSTID
 //config:	bool "hostid"
 //config:	default y
@@ -19,6 +16,8 @@
 //applet:IF_HOSTID(APPLET_NOFORK(hostid, hostid, BB_DIR_USR_BIN, BB_SUID_DROP, hostid))
 
 //kbuild:lib-$(CONFIG_HOSTID) += hostid.o
+
+/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
 //usage:#define hostid_trivial_usage
 //usage:       ""

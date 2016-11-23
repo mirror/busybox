@@ -9,6 +9,15 @@
 
    Licensed under GPLv2 or later, see file LICENSE in this source tree.
 */
+//config:config FOLD
+//config:	bool "fold"
+//config:	default y
+//config:	help
+//config:	  Wrap text to fit a specific width.
+
+//applet:IF_FOLD(APPLET_NOEXEC(fold, fold, BB_DIR_USR_BIN, BB_SUID_DROP, fold))
+
+//kbuild:lib-$(CONFIG_FOLD) += fold.o
 
 //usage:#define fold_trivial_usage
 //usage:       "[-bs] [-w WIDTH] [FILE]..."

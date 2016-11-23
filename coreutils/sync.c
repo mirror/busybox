@@ -7,8 +7,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 //config:config SYNC
 //config:	bool "sync"
 //config:	default y
@@ -22,8 +20,11 @@
 //config:	  sync -d FILE... executes fdatasync() on each FILE.
 //config:	  sync -f FILE... executes syncfs() on each FILE.
 
-//kbuild:lib-$(CONFIG_SYNC) += sync.o
 //applet:IF_SYNC(APPLET_NOFORK(sync, sync, BB_DIR_BIN, BB_SUID_DROP, sync))
+
+//kbuild:lib-$(CONFIG_SYNC) += sync.o
+
+/* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
 //usage:#define sync_trivial_usage
 //usage:       ""IF_FEATURE_SYNC_FANCY("[-df] [FILE]...")

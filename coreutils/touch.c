@@ -6,19 +6,12 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 _NOT_ compliant -- options -a, -m not supported. */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/touch.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Previous version called open() and then utime().  While this will be
  * be necessary to implement -r and -t, it currently only makes things bigger.
  * Also, exiting on a failure was a bug.  All args should be processed.
  */
-
-#include "libbb.h"
-
 //config:config TOUCH
 //config:	bool "touch"
 //config:	default y
@@ -45,6 +38,9 @@
 
 //kbuild:lib-$(CONFIG_TOUCH) += touch.o
 
+/* BB_AUDIT SUSv3 _NOT_ compliant -- options -a, -m not supported. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/touch.html */
+
 //usage:#define touch_trivial_usage
 //usage:       "[-c]" IF_FEATURE_TOUCH_SUSV3(" [-d DATE] [-t DATE] [-r FILE]") " FILE..."
 //usage:#define touch_full_usage "\n\n"
@@ -66,8 +62,6 @@
 //usage:       "$ ls -l /tmp/foo\n"
 //usage:       "-rw-rw-r--    1 andersen andersen        0 Apr 15 01:11 /tmp/foo\n"
 
-/* This is a NOFORK applet. Be very careful! */
-
 /* coreutils implements:
  * -a   change only the access time
  * -c, --no-create
@@ -84,6 +78,8 @@
  * --time=WORD
  *      change the specified time: WORD is access, atime, or use
  */
+
+#include "libbb.h"
 
 int touch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int touch_main(int argc UNUSED_PARAM, char **argv)

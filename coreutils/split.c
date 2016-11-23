@@ -5,6 +5,25 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config SPLIT
+//config:	bool "split"
+//config:	default y
+//config:	help
+//config:	  split a file into pieces.
+//config:
+//config:config FEATURE_SPLIT_FANCY
+//config:	bool "Fancy extensions"
+//config:	default y
+//config:	depends on SPLIT
+//config:	help
+//config:	  Add support for features not required by SUSv3.
+//config:	  Supports additional suffixes 'b' for 512 bytes,
+//config:	  'g' for 1GiB for the -b option.
+
+//applet:IF_SPLIT(APPLET(split, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SPLIT) += split.o
+
 /* BB_AUDIT: SUSv3 compliant
  * SUSv3 requirements:
  * http://www.opengroup.org/onlinepubs/009695399/utilities/split.html

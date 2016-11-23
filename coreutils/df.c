@@ -7,10 +7,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 _NOT_ compliant -- option -t missing. */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/df.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Size reduction.  Removed floating point dependency.  Added error checking
@@ -21,6 +17,30 @@
  *
  * Implement -P and -B; better coreutils compat; cleanup
  */
+//config:config DF
+//config:	bool "df"
+//config:	default y
+//config:	help
+//config:	  df reports the amount of disk space used and available
+//config:	  on filesystems.
+//config:
+//config:config FEATURE_DF_FANCY
+//config:	bool "Enable -a, -i, -B"
+//config:	default y
+//config:	depends on DF
+//config:	help
+//config:	  This option enables -a, -i and -B.
+//config:
+//config:	    -a Show all filesystems
+//config:	    -i Inodes
+//config:	    -B <SIZE> Blocksize
+
+//applet:IF_DF(APPLET(df, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_DF) += df.o
+
+/* BB_AUDIT SUSv3 _NOT_ compliant -- option -t missing. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/df.html */
 
 //usage:#define df_trivial_usage
 //usage:	"[-Pk"

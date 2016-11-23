@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config WHOAMI
+//config:	bool "whoami"
+//config:	default y
+//config:	help
+//config:	  whoami is used to print the username of the current
+//config:	  user id (same as id -un).
+
+//applet:IF_WHOAMI(APPLET_NOFORK(whoami, whoami, BB_DIR_USR_BIN, BB_SUID_DROP, whoami))
+
+//kbuild:lib-$(CONFIG_WHOAMI) += whoami.o
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
@@ -15,8 +25,6 @@
 //usage:       "Print the user name associated with the current effective user id"
 
 #include "libbb.h"
-
-/* This is a NOFORK applet. Be very careful! */
 
 int whoami_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int whoami_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)

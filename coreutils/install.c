@@ -5,6 +5,22 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config INSTALL
+//config:	bool "install"
+//config:	default y
+//config:	help
+//config:	  Copy files and set attributes.
+//config:
+//config:config FEATURE_INSTALL_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on INSTALL && LONG_OPTS
+//config:	help
+//config:	  Support long options for the install applet.
+
+//applet:IF_INSTALL(APPLET(install, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_INSTALL) += install.o
 
 /* -v, -b, -c are ignored */
 //usage:#define install_trivial_usage

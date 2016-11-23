@@ -11,6 +11,27 @@
  * See SuS3 sort standard at:
  * http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
  */
+//config:config SORT
+//config:	bool "sort"
+//config:	default y
+//config:	help
+//config:	  sort is used to sort lines of text in specified files.
+//config:
+//config:config FEATURE_SORT_BIG
+//config:	bool "Full SuSv3 compliant sort (support -ktcsbdfiozgM)"
+//config:	default y
+//config:	depends on SORT
+//config:	help
+//config:	  Without this, sort only supports -r, -u, and an integer version
+//config:	  of -n. Selecting this adds sort keys, floating point support, and
+//config:	  more. This adds a little over 3k to a nonstatic build on x86.
+//config:
+//config:	  The SuSv3 sort standard is available at:
+//config:	  http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
+
+//applet:IF_SORT(APPLET_NOEXEC(sort, sort, BB_DIR_USR_BIN, BB_SUID_DROP, sort))
+
+//kbuild:lib-$(CONFIG_SORT) += sort.o
 
 //usage:#define sort_trivial_usage
 //usage:       "[-nru"

@@ -16,15 +16,13 @@
  *
  *----------------------------------------------------------------------
  */
-/* BB_AUDIT SUSv3 _NOT_ compliant -- missing options -b, -d, -l, -m, -p, -q, -r, -s, -t, -T, -u; Missing argument 'file'.  */
-
 //config:config WHO
 //config:      bool "who"
 //config:      default y
 //config:      depends on FEATURE_UTMP
 //config:      help
 //config:        who is used to show who is logged on.
-
+//config:
 //config:config USERS
 //config:      bool "users"
 //config:      default y
@@ -33,10 +31,12 @@
 //config:        Print users currently logged on.
 
 //applet:IF_USERS(APPLET_ODDNAME(users, who, BB_DIR_USR_BIN, BB_SUID_DROP, users))
-//applet:IF_WHO(  APPLET(  who, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_WHO(APPLET(who, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_USERS) += who.o
 //kbuild:lib-$(CONFIG_WHO) += who.o
+
+/* BB_AUDIT SUSv3 _NOT_ compliant -- missing options -b, -d, -l, -m, -p, -q, -r, -s, -t, -T, -u; Missing argument 'file'.  */
 
 //usage:#define users_trivial_usage
 //usage:       ""

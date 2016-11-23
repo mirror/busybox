@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config TTY
+//config:	bool "tty"
+//config:	default y
+//config:	help
+//config:	  tty is used to print the name of the current terminal to
+//config:	  standard output.
+
+//applet:IF_TTY(APPLET(tty, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_TTY) += tty.o
 
 /* BB_AUDIT SUSv4 compliant */
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/tty.html */

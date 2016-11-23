@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config DIRNAME
+//config:	bool "dirname"
+//config:	default y
+//config:	help
+//config:	  dirname is used to strip a non-directory suffix from
+//config:	  a file name.
+
+//applet:IF_DIRNAME(APPLET_NOFORK(dirname, dirname, BB_DIR_USR_BIN, BB_SUID_DROP, dirname))
+
+//kbuild:lib-$(CONFIG_DIRNAME) += dirname.o
 
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/dirname.html */

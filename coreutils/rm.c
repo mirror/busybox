@@ -6,14 +6,22 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 compliant */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/rm.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Size reduction.
  */
+//config:config RM
+//config:	bool "rm"
+//config:	default y
+//config:	help
+//config:	  rm is used to remove files or directories.
+
+//applet:IF_RM(APPLET_NOFORK(rm, rm, BB_DIR_BIN, BB_SUID_DROP, rm))
+
+//kbuild:lib-$(CONFIG_RM) += rm.o
+
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/rm.html */
 
 //usage:#define rm_trivial_usage
 //usage:       "[-irf] FILE..."

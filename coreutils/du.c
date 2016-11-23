@@ -8,10 +8,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 compliant (unless default blocksize set to 1k) */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/du.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Mostly rewritten for SUSv3 compliance and to fix bugs/defects.
@@ -22,6 +18,26 @@
  * 3) Added error checking of output.
  * 4) Fixed busybox bug #1284 involving long overflow with human_readable.
  */
+//config:config DU
+//config:	bool "du (default blocksize of 512 bytes)"
+//config:	default y
+//config:	help
+//config:	  du is used to report the amount of disk space used
+//config:	  for specified files.
+//config:
+//config:config FEATURE_DU_DEFAULT_BLOCKSIZE_1K
+//config:	bool "Use a default blocksize of 1024 bytes (1K)"
+//config:	default y
+//config:	depends on DU
+//config:	help
+//config:	  Use a blocksize of (1K) instead of the default 512b.
+
+//applet:IF_DU(APPLET(du, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_DU) += du.o
+
+/* BB_AUDIT SUSv3 compliant (unless default blocksize set to 1k) */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/du.html */
 
 //usage:#define du_trivial_usage
 //usage:       "[-aHLdclsx" IF_FEATURE_HUMAN_READABLE("hm") "k] [FILE]..."

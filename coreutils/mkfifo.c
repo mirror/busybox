@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config MKFIFO
+//config:	bool "mkfifo"
+//config:	default y
+//config:	help
+//config:	  mkfifo is used to create FIFOs (named pipes).
+//config:	  The 'mknod' program can also create FIFOs.
+
+//applet:IF_MKFIFO(APPLET_NOEXEC(mkfifo, mkfifo, BB_DIR_USR_BIN, BB_SUID_DROP, mkfifo))
+
+//kbuild:lib-$(CONFIG_MKFIFO) += mkfifo.o
 
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/mkfifo.html */

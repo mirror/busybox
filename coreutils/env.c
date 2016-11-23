@@ -11,16 +11,11 @@
  *
  * Modified for BusyBox by Erik Andersen <andersen@codepoet.org>
  */
-
-/* BB_AUDIT SUSv3 compliant */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/env.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Fixed bug involving exit return codes if execvp fails.  Also added
  * output error checking.
  */
-
 /*
  * Modified by Vladimir Oleynik <dzo@simtreas.ru> (C) 2003
  * - correct "-" option usage
@@ -28,8 +23,27 @@
  * - GNU long option support
  * - use xfunc_error_retval
  */
+//config:config ENV
+//config:	bool "env"
+//config:	default y
+//config:	help
+//config:	  env is used to set an environment variable and run
+//config:	  a command; without options it displays the current
+//config:	  environment.
+//config:
+//config:config FEATURE_ENV_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on ENV && LONG_OPTS
+//config:	help
+//config:	  Support long options for the env applet.
 
-/* This is a NOEXEC applet. Be very careful! */
+//applet:IF_ENV(APPLET_NOEXEC(env, env, BB_DIR_USR_BIN, BB_SUID_DROP, env))
+
+//kbuild:lib-$(CONFIG_ENV) += env.o
+
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/env.html */
 
 //usage:#define env_trivial_usage
 //usage:       "[-iu] [-] [name=value]... [PROG ARGS]"

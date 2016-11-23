@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config CHROOT
+//config:	bool "chroot"
+//config:	default y
+//config:	help
+//config:	  chroot is used to change the root directory and run a command.
+//config:	  The default command is `/bin/sh'.
+
+//applet:IF_CHROOT(APPLET(chroot, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CHROOT) += chroot.o
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 

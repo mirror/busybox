@@ -4,10 +4,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 compliant */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/uname.html */
-
 /* Option		Example
  * -s, --sysname	SunOS
  * -n, --nodename	rocky8
@@ -37,7 +33,6 @@
  * -a, --all: all of the above, in the order shown.
  *      If -p or -i is not known, don't show them
  */
-
 /* Busyboxed by Erik Andersen
  *
  * Before 2003: Glenn McGrath and Manuel Novoa III
@@ -47,6 +42,26 @@
  * Jan 2009:
  *  Fix handling of -a to not print "unknown", add -o and -i support.
  */
+//config:config UNAME
+//config:	bool "uname"
+//config:	default y
+//config:	help
+//config:	  uname is used to print system information.
+//config:
+//config:config UNAME_OSNAME
+//config:	string "Operating system name"
+//config:	default "GNU/Linux"
+//config:	depends on UNAME
+//config:	help
+//config:	  Sets the operating system name reported by uname -o.  The
+//config:	  default is "GNU/Linux".
+
+//applet:IF_UNAME(APPLET(uname, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_UNAME) += uname.o
+
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/uname.html */
 
 //usage:#define uname_trivial_usage
 //usage:       "[-amnrspvio]"

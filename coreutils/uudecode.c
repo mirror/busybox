@@ -10,6 +10,15 @@
  * Bugs: the spec doesn't mention anything about "`\n`\n" prior to the
  * "end" line
  */
+//config:config UUDECODE
+//config:	bool "uudecode"
+//config:	default y
+//config:	help
+//config:	  uudecode is used to decode a uuencoded file.
+
+//applet:IF_UUDECODE(APPLET(uudecode, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_UUDECODE) += uudecode.o
 
 //usage:#define uudecode_trivial_usage
 //usage:       "[-o OUTFILE] [INFILE]"

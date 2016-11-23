@@ -8,8 +8,7 @@
  * bugfixes and cleanup by Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
-*/
-
+ */
 /* This 'date' command supports only 2 time setting formats,
    all the GNU strftime stuff (its in libc, lets use it),
    setting time using UTC and displaying it, as well as
@@ -18,10 +17,6 @@
 
 /* Input parsing code is always bulky - used heavy duty libc stuff as
    much as possible, missed out a lot of bounds checking */
-
-//applet:IF_DATE(APPLET(date, BB_DIR_BIN, BB_SUID_DROP))
-
-//kbuild:lib-$(CONFIG_DATE) += date.o
 
 //config:config DATE
 //config:	bool "date"
@@ -62,6 +57,10 @@
 //config:	  With this option off, 'date DATE' is 'date -s DATE' support
 //config:	  the same format. With it on, 'date DATE' additionally supports
 //config:	  MMDDhhmm[[YY]YY][.ss] format.
+
+//applet:IF_DATE(APPLET(date, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_DATE) += date.o
 
 /* GNU coreutils 6.9 man page:
  * date [OPTION]... [+FORMAT]

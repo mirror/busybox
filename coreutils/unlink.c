@@ -5,16 +5,15 @@
  *
  * Licensed under GPLv2, see LICENSE in this source tree
  */
-
 //config:config UNLINK
 //config:	bool "unlink"
 //config:	default y
 //config:	help
 //config:	  unlink deletes a file by calling unlink()
 
-//kbuild:lib-$(CONFIG_UNLINK) += unlink.o
-
 //applet:IF_UNLINK(APPLET(unlink, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_UNLINK) += unlink.o
 
 //usage:#define unlink_trivial_usage
 //usage:	"FILE"

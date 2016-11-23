@@ -6,10 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 compliant */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/logname.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * SUSv3 specifies the string used is that returned from getlogin().
@@ -19,6 +15,18 @@
  * correct course of action wrt SUSv3 for a failing getlogin() is
  * a diagnostic message and an error return.
  */
+//config:config LOGNAME
+//config:	bool "logname"
+//config:	default y
+//config:	help
+//config:	  logname is used to print the current user's login name.
+
+//applet:IF_LOGNAME(APPLET_NOFORK(logname, logname, BB_DIR_USR_BIN, BB_SUID_DROP, logname))
+
+//kbuild:lib-$(CONFIG_LOGNAME) += logname.o
+
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/logname.html */
 
 //usage:#define logname_trivial_usage
 //usage:       ""

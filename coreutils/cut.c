@@ -8,6 +8,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config CUT
+//config:	bool "cut"
+//config:	default y
+//config:	help
+//config:	  cut is used to print selected parts of lines from
+//config:	  each file to stdout.
+
+//applet:IF_CUT(APPLET_NOEXEC(cut, cut, BB_DIR_USR_BIN, BB_SUID_DROP, cut))
+
+//kbuild:lib-$(CONFIG_CUT) += cut.o
 
 //usage:#define cut_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."

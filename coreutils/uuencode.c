@@ -7,6 +7,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config UUENCODE
+//config:	bool "uuencode"
+//config:	default y
+//config:	help
+//config:	  uuencode is used to uuencode a file.
+
+//applet:IF_UUENCODE(APPLET(uuencode, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_UUENCODE) += uuencode.o
 
 //usage:#define uuencode_trivial_usage
 //usage:       "[-m] [FILE] STORED_FILENAME"

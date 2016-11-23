@@ -6,21 +6,19 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 compliant */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/cat.html */
-
-//kbuild:lib-$(CONFIG_CAT)     += cat.o
-//kbuild:lib-$(CONFIG_MORE)    += cat.o # more uses it if stdout isn't a tty
-//kbuild:lib-$(CONFIG_LESS)    += cat.o # less too
-//kbuild:lib-$(CONFIG_CRONTAB) += cat.o # crontab -l
-
 //config:config CAT
 //config:	bool "cat"
 //config:	default y
 //config:	help
 //config:	  cat is used to concatenate files and print them to the standard
 //config:	  output. Enable this option if you wish to enable the 'cat' utility.
+
+//applet:IF_CAT(APPLET_NOFORK(cat, cat, BB_DIR_BIN, BB_SUID_DROP, cat))
+
+//kbuild:lib-$(CONFIG_CAT)     += cat.o
+
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/cat.html */
 
 //usage:#define cat_trivial_usage
 //usage:       "[FILE]..."

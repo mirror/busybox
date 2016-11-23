@@ -10,7 +10,27 @@
  * dos2unix filters reading input from stdin and writing output to stdout.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
-*/
+ */
+//config:config DOS2UNIX
+//config:	bool "dos2unix/unix2dos"
+//config:	default y
+//config:	help
+//config:	  dos2unix is used to convert a text file from DOS format to
+//config:	  UNIX format, and vice versa.
+//config:
+//config:config UNIX2DOS
+//config:	bool
+//config:	default y
+//config:	depends on DOS2UNIX
+//config:	help
+//config:	  unix2dos is used to convert a text file from UNIX format to
+//config:	  DOS format, and vice versa.
+
+//applet:IF_DOS2UNIX(APPLET_NOEXEC(dos2unix, dos2unix, BB_DIR_USR_BIN, BB_SUID_DROP, dos2unix))
+//applet:IF_UNIX2DOS(APPLET_NOEXEC(unix2dos, dos2unix, BB_DIR_USR_BIN, BB_SUID_DROP, unix2dos))
+
+//kbuild:lib-$(CONFIG_DOS2UNIX) += dos2unix.o
+//kbuild:lib-$(CONFIG_UNIX2DOS) += dos2unix.o
 
 //usage:#define dos2unix_trivial_usage
 //usage:       "[-ud] [FILE]"

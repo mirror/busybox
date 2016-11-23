@@ -6,6 +6,23 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config CHOWN
+//config:	bool "chown"
+//config:	default y
+//config:	help
+//config:	  chown is used to change the user and/or group ownership
+//config:	  of files.
+//config:
+//config:config FEATURE_CHOWN_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on CHOWN && LONG_OPTS
+//config:	help
+//config:	  Enable use of long options
+
+//applet:IF_CHOWN(APPLET_NOEXEC(chown, chown, BB_DIR_BIN, BB_SUID_DROP, chown))
+
+//kbuild:lib-$(CONFIG_CHOWN) += chown.o
 
 /* BB_AUDIT SUSv3 defects - none? */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/chown.html */

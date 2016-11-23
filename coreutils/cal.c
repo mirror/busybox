@@ -6,16 +6,24 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+ *
+ * Major size reduction... over 50% (>1.5k) on i386.
+ */
+//config:config CAL
+//config:	bool "cal"
+//config:	default y
+//config:	help
+//config:	  cal is used to display a monthly calendar.
+
+//applet:IF_CAL(APPLET(cal, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CAL) += cal.o
 
 /* BB_AUDIT SUSv3 compliant with -j and -y extensions (from util-linux). */
 /* BB_AUDIT BUG: The output of 'cal -j 1752' is incorrect.  The upstream
  * BB_AUDIT BUG: version in util-linux seems to be broken as well. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/cal.html */
-
-/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
- *
- * Major size reduction... over 50% (>1.5k) on i386.
- */
 
 //usage:#define cal_trivial_usage
 //usage:       "[-jy] [[MONTH] YEAR]"

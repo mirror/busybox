@@ -10,6 +10,17 @@
 /* See "Cat -v considered harmful" at
  * http://cm.bell-labs.com/cm/cs/doc/84/kp.ps.gz */
 
+//config:config CATV
+//config:	bool "catv"
+//config:	default y
+//config:	help
+//config:	  Display nonprinting characters as escape sequences (like some
+//config:	  implementations' cat -v option).
+
+//applet:IF_CATV(APPLET(catv, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CATV) += catv.o
+
 //usage:#define catv_trivial_usage
 //usage:       "[-etv] [FILE]..."
 //usage:#define catv_full_usage "\n\n"

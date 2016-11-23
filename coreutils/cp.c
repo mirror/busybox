@@ -7,13 +7,29 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/cp.html */
-
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Size reduction.
  */
+//config:config CP
+//config:	bool "cp"
+//config:	default y
+//config:	help
+//config:	  cp is used to copy files and directories.
+//config:
+//config:config FEATURE_CP_LONG_OPTIONS
+//config:	bool "Enable long options for cp"
+//config:	default y
+//config:	depends on CP && LONG_OPTS
+//config:	help
+//config:	  Enable long options for cp.
+//config:	  Also add support for --parents option.
+
+//applet:IF_CP(APPLET_NOEXEC(cp, cp, BB_DIR_BIN, BB_SUID_DROP, cp))
+
+//kbuild:lib-$(CONFIG_CP) += cp.o
+
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/cp.html */
 
 //usage:#define cp_trivial_usage
 //usage:       "[OPTIONS] SOURCE... DEST"

@@ -6,12 +6,27 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config HEAD
+//config:	bool "head"
+//config:	default y
+//config:	help
+//config:	  head is used to print the first specified number of lines
+//config:	  from files.
+//config:
+//config:config FEATURE_FANCY_HEAD
+//config:	bool "Enable head options (-c, -q, and -v)"
+//config:	default y
+//config:	depends on HEAD
+//config:	help
+//config:	  This enables the head options (-c, -q, and -v).
+
+//applet:IF_HEAD(APPLET_NOEXEC(head, head, BB_DIR_USR_BIN, BB_SUID_DROP, head))
+
+//kbuild:lib-$(CONFIG_HEAD) += head.o
 
 /* BB_AUDIT SUSv3 compliant */
 /* BB_AUDIT GNU compatible -c, -q, and -v options in 'fancy' configuration. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/head.html */
-
-//kbuild:lib-$(CONFIG_HEAD) += head.o
 
 //usage:#define head_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."

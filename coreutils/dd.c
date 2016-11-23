@@ -2,12 +2,10 @@
 /*
  * Mini dd implementation for busybox
  *
- *
  * Copyright (C) 2000,2001  Matt Kraai
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config DD
 //config:	bool "dd"
 //config:	default y
@@ -52,6 +50,10 @@
 //config:	depends on DD
 //config:	help
 //config:	  Enables support for status=noxfer/none option.
+
+//applet:IF_DD(APPLET_NOEXEC(dd, dd, BB_DIR_BIN, BB_SUID_DROP, dd))
+
+//kbuild:lib-$(CONFIG_DD) += dd.o
 
 //usage:#define dd_trivial_usage
 //usage:       "[if=FILE] [of=FILE] " IF_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n"

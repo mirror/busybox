@@ -5,7 +5,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config TRUNCATE
 //config:	bool "truncate"
 //config:	default y
@@ -13,8 +12,9 @@
 //config:	  truncate truncates files to a given size. If a file does
 //config:	  not exist, it is created unless told otherwise.
 
-//kbuild:lib-$(CONFIG_TRUNCATE) += truncate.o
 //applet:IF_TRUNCATE(APPLET_NOFORK(truncate, truncate, BB_DIR_USR_BIN, BB_SUID_DROP, truncate))
+
+//kbuild:lib-$(CONFIG_TRUNCATE) += truncate.o
 
 //usage:#define truncate_trivial_usage
 //usage:       "[-c] -s SIZE FILE..."

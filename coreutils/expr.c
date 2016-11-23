@@ -13,7 +13,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /* This program evaluates expressions.  Each token (operator, operand,
  * parenthesis) of the expression must be a separate argument.  The
  * parser used is a reasonably general one, though any incarnation of
@@ -21,9 +20,27 @@
  *
  * No parse tree is needed; a new node is evaluated immediately.
  * One function can handle multiple operators all of equal precedence,
- * provided they all associate ((x op x) op x). */
+ * provided they all associate ((x op x) op x).
+ */
+//config:config EXPR
+//config:	bool "expr"
+//config:	default y
+//config:	help
+//config:	  expr is used to calculate numbers and print the result
+//config:	  to standard output.
+//config:
+//config:config EXPR_MATH_SUPPORT_64
+//config:	bool "Extend Posix numbers support to 64 bit"
+//config:	default y
+//config:	depends on EXPR
+//config:	help
+//config:	  Enable 64-bit math support in the expr applet. This will make
+//config:	  the applet slightly larger, but will allow computation with very
+//config:	  large numbers.
 
-/* no getopt needed */
+//applet:IF_EXPR(APPLET(expr, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_EXPR) += expr.o
 
 //usage:#define expr_trivial_usage
 //usage:       "EXPRESSION"
