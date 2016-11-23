@@ -9,6 +9,57 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config LOADFONT
+//config:	bool "loadfont"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  This program loads a console font from standard input.
+//config:
+//config:config SETFONT
+//config:	bool "setfont"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Allows to load console screen map. Useful for i18n.
+//config:
+//config:config FEATURE_SETFONT_TEXTUAL_MAP
+//config:	bool "Support reading textual screen maps"
+//config:	default y
+//config:	depends on SETFONT
+//config:	help
+//config:	  Support reading textual screen maps.
+//config:
+//config:config DEFAULT_SETFONT_DIR
+//config:	string "Default directory for console-tools files"
+//config:	default ""
+//config:	depends on SETFONT
+//config:	help
+//config:	  Directory to use if setfont's params are simple filenames
+//config:	  (not /path/to/file or ./file). Default is "" (no default directory).
+//config:
+//config:comment "Common options for loadfont and setfont"
+//config:	depends on LOADFONT || SETFONT
+//config:
+//config:config FEATURE_LOADFONT_PSF2
+//config:	bool "Support for PSF2 console fonts"
+//config:	default y
+//config:	depends on LOADFONT || SETFONT
+//config:	help
+//config:	  Support PSF2 console fonts.
+//config:
+//config:config FEATURE_LOADFONT_RAW
+//config:	bool "Support for old (raw) console fonts"
+//config:	default y
+//config:	depends on LOADFONT || SETFONT
+//config:	help
+//config:	  Support old (raw) console fonts.
+
+//applet:IF_LOADFONT(APPLET(loadfont, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_SETFONT(APPLET(setfont, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_LOADFONT) += loadfont.o
+//kbuild:lib-$(CONFIG_SETFONT) += loadfont.o
 
 //usage:#define loadfont_trivial_usage
 //usage:       "< font"

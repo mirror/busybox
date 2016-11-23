@@ -7,9 +7,18 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+/* "Standard" version of this tool is in ncurses package */
 
-/* BTW, which "standard" package has this utility? It doesn't seem
- * to be ncurses, coreutils, console-tools... then what? */
+//config:config RESET
+//config:	bool "reset"
+//config:	default y
+//config:	help
+//config:	  This program is used to reset the terminal screen, if it
+//config:	  gets messed up.
+
+//applet:IF_RESET(APPLET(reset, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_RESET) += reset.o
 
 //usage:#define reset_trivial_usage
 //usage:       ""

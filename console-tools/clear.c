@@ -6,6 +6,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config CLEAR
+//config:	bool "clear"
+//config:	default y
+//config:	help
+//config:	  This program clears the terminal screen.
+
+//applet:IF_CLEAR(APPLET(clear, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CLEAR) += clear.o
 
 //usage:#define clear_trivial_usage
 //usage:       ""

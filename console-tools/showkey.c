@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config SHOWKEY
+//config:	bool "showkey"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Shows keys pressed.
+
+//applet:IF_SHOWKEY(APPLET(showkey, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SHOWKEY) += showkey.o
 
 //usage:#define showkey_trivial_usage
 //usage:       "[-a | -k | -s]"

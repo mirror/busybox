@@ -7,8 +7,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config DEALLOCVT
+//config:	bool "deallocvt"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  This program deallocates unused virtual consoles.
 
-/* no options, no getopt */
+//applet:IF_DEALLOCVT(APPLET(deallocvt, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_DEALLOCVT) += deallocvt.o
 
 //usage:#define deallocvt_trivial_usage
 //usage:       "[N]"

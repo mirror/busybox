@@ -7,6 +7,24 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config SETCONSOLE
+//config:	bool "setconsole"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  This program redirects the system console to another device,
+//config:	  like the current tty while logged in via telnet.
+//config:
+//config:config FEATURE_SETCONSOLE_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on SETCONSOLE && LONG_OPTS
+//config:	help
+//config:	  Support long options for the setconsole applet.
+
+//applet:IF_SETCONSOLE(APPLET(setconsole, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SETCONSOLE) += setconsole.o
 
 //usage:#define setconsole_trivial_usage
 //usage:       "[-r" IF_FEATURE_SETCONSOLE_LONG_OPTIONS("|--reset") "] [DEVICE]"

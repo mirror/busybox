@@ -8,6 +8,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config SETLOGCONS
+//config:	bool "setlogcons"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  This program redirects the output console of kernel messages.
+
+//applet:IF_SETLOGCONS(APPLET(setlogcons, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SETLOGCONS) += setlogcons.o
 
 //usage:#define setlogcons_trivial_usage
 //usage:       "[N]"

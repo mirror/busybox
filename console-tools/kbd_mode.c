@@ -8,6 +8,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config KBD_MODE
+//config:	bool "kbd_mode"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  This program reports and sets keyboard mode.
+
+//applet:IF_KBD_MODE(APPLET(kbd_mode, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_KBD_MODE) += kbd_mode.o
 
 //usage:#define kbd_mode_trivial_usage
 //usage:       "[-a|k|s|u] [-C TTY]"
