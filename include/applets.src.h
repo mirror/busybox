@@ -74,11 +74,6 @@ s     - suid type:
 
 INSERT
 
-//IF_E2FSCK(APPLET(e2fsck, BB_DIR_SBIN, BB_SUID_DROP))
-//IF_E2LABEL(APPLET_ODDNAME(e2label, tune2fs, BB_DIR_SBIN, BB_SUID_DROP, e2label))
-//IF_E2FSCK(APPLET_ODDNAME(fsck.ext2, e2fsck, BB_DIR_SBIN, BB_SUID_DROP, fsck_ext2))
-//IF_E2FSCK(APPLET_ODDNAME(fsck.ext3, e2fsck, BB_DIR_SBIN, BB_SUID_DROP, fsck_ext3))
-//IF_PARSE(APPLET(parse, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 #if !defined(PROTOTYPES) && !defined(NAME_MAIN) && !defined(MAKE_USAGE) \
 	&& !defined(MAKE_LINKS) && !defined(MAKE_SUID)

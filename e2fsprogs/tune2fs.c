@@ -15,6 +15,8 @@
 
 //applet:IF_TUNE2FS(APPLET(tune2fs, BB_DIR_SBIN, BB_SUID_DROP))
 
+//TODO alias to "tune2fs -L LABEL": //applet:IF_E2LABEL(APPLET_ODDNAME(e2label, tune2fs, BB_DIR_SBIN, BB_SUID_DROP, e2label))
+
 //kbuild:lib-$(CONFIG_TUNE2FS) += tune2fs.o
 
 //usage:#define tune2fs_trivial_usage
