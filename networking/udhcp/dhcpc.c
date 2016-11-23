@@ -18,6 +18,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+//applet:IF_UDHCPC(APPLET(udhcpc, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_UDHCPC) += common.o packet.o signalpipe.o socket.o
+//kbuild:lib-$(CONFIG_UDHCPC) += dhcpc.o
+//kbuild:lib-$(CONFIG_FEATURE_UDHCPC_ARPING) += arpping.o
+//kbuild:lib-$(CONFIG_FEATURE_UDHCP_RFC3397) += domain_codec.o
+
 #include <syslog.h>
 /* Override ENABLE_FEATURE_PIDFILE - ifupdown needs our pidfile to always exist */
 #define WANT_PIDFILE 1

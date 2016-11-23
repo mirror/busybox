@@ -9,6 +9,9 @@
  *                   Netbeat AG
  * Upstream has GPL v2 or later
  */
+//applet:IF_DHCPRELAY(APPLET(dhcprelay, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_DHCPRELAY) += dhcprelay.o
 
 //usage:#define dhcprelay_trivial_usage
 //usage:       "CLIENT_IFACE[,CLIENT_IFACE2]... SERVER_IFACE [SERVER_IP]"

@@ -20,6 +20,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+//applet:IF_UDHCPD(APPLET(udhcpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_UDHCPD) += common.o packet.o signalpipe.o socket.o
+//kbuild:lib-$(CONFIG_UDHCPD) += dhcpd.o arpping.o
+//kbuild:lib-$(CONFIG_FEATURE_UDHCP_RFC3397) += domain_codec.o
 
 //usage:#define udhcpd_trivial_usage
 //usage:       "[-fS] [-I ADDR]" IF_FEATURE_UDHCP_PORT(" [-P N]") " [CONFFILE]"
