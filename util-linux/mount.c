@@ -112,6 +112,14 @@
 //config:	help
 //config:	  Support mount -T (specifying an alternate fstab)
 
+/* On full-blown systems, requires suid for user mounts.
+ * But it's not unthinkable to have it available in non-suid flavor on some systems,
+ * for viewing mount table.
+ * Therefore we use BB_SUID_MAYBE instead of BB_SUID_REQUIRE: */
+//applet:IF_MOUNT(APPLET(mount, BB_DIR_BIN, IF_DESKTOP(BB_SUID_MAYBE) IF_NOT_DESKTOP(BB_SUID_DROP)))
+
+//kbuild:lib-$(CONFIG_MOUNT) += mount.o
+
 //usage:#define mount_trivial_usage
 //usage:       "[OPTIONS] [-o OPT] DEVICE NODE"
 //usage:#define mount_full_usage "\n\n"

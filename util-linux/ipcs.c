@@ -7,6 +7,17 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config IPCS
+//config:	bool "ipcs"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  The ipcs utility is used to provide information on the currently
+//config:	  allocated System V interprocess (IPC) objects in the system.
+
+//applet:IF_IPCS(APPLET(ipcs, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_IPCS) += ipcs.o
 
 //usage:#define ipcs_trivial_usage
 //usage:       "[[-smq] -i shmid] | [[-asmq] [-tcplu]]"

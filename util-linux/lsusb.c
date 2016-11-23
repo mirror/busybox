@@ -6,6 +6,19 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config LSUSB
+//config:	bool "lsusb"
+//config:	default y
+//config:	#select PLATFORM_LINUX
+//config:	help
+//config:	  lsusb is a utility for displaying information about USB buses in the
+//config:	  system and devices connected to them.
+//config:
+//config:	  This version uses sysfs (/sys/bus/usb/devices) only.
+
+//applet:IF_LSUSB(APPLET(lsusb, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_LSUSB) += lsusb.o
 
 //usage:#define lsusb_trivial_usage NOUSAGE_STR
 //usage:#define lsusb_full_usage ""

@@ -11,6 +11,38 @@
  * the GPL, and is (c) 1995-1999 by:
  *     Geert Uytterhoeven (Geert.Uytterhoeven@cs.kuleuven.ac.be)
  */
+//config:config FBSET
+//config:	bool "fbset"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  fbset is used to show or change the settings of a Linux frame buffer
+//config:	  device. The frame buffer device provides a simple and unique
+//config:	  interface to access a graphics display. Enable this option
+//config:	  if you wish to enable the 'fbset' utility.
+//config:
+//config:config FEATURE_FBSET_FANCY
+//config:	bool "Turn on extra fbset options"
+//config:	default y
+//config:	depends on FBSET
+//config:	help
+//config:	  This option enables extended fbset options, allowing one to set the
+//config:	  framebuffer size, color depth, etc. interface to access a graphics
+//config:	  display. Enable this option if you wish to enable extended fbset
+//config:	  options.
+//config:
+//config:config FEATURE_FBSET_READMODE
+//config:	bool "Turn on fbset readmode support"
+//config:	default y
+//config:	depends on FBSET
+//config:	help
+//config:	  This option allows fbset to read the video mode database stored by
+//config:	  default as /etc/fb.modes, which can be used to set frame buffer
+//config:	  device to pre-defined video modes.
+
+//applet:IF_FBSET(APPLET(fbset, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FBSET) += fbset.o
 
 //usage:#define fbset_trivial_usage
 //usage:       "[OPTIONS] [MODE]"

@@ -13,6 +13,19 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config MORE
+//config:	bool "more"
+//config:	default y
+//config:	help
+//config:	  more is a simple utility which allows you to read text one screen
+//config:	  sized page at a time. If you want to read text that is larger than
+//config:	  the screen, and you are using anything faster than a 300 baud modem,
+//config:	  you will probably find this utility very helpful. If you don't have
+//config:	  any need to reading text files, you can leave this disabled.
+
+//applet:IF_MORE(APPLET(more, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_MORE) += more.o
 
 //usage:#define more_trivial_usage
 //usage:       "[FILE]..."

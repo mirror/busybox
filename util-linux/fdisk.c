@@ -6,6 +6,86 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config FDISK
+//config:	bool "fdisk"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  The fdisk utility is used to divide hard disks into one or more
+//config:	  logical disks, which are generally called partitions. This utility
+//config:	  can be used to list and edit the set of partitions or BSD style
+//config:	  'disk slices' that are defined on a hard drive.
+//config:
+//config:config FDISK_SUPPORT_LARGE_DISKS
+//config:	bool "Support over 4GB disks"
+//config:	default y
+//config:	depends on FDISK
+//config:	depends on !LFS   # with LFS no special code is needed
+//config:	help
+//config:	  Enable this option to support large disks > 4GB.
+//config:
+//config:config FEATURE_FDISK_WRITABLE
+//config:	bool "Write support"
+//config:	default y
+//config:	depends on FDISK
+//config:	help
+//config:	  Enabling this option allows you to create or change a partition table
+//config:	  and write those changes out to disk. If you leave this option
+//config:	  disabled, you will only be able to view the partition table.
+//config:
+//config:config FEATURE_AIX_LABEL
+//config:	bool "Support AIX disklabels"
+//config:	default n
+//config:	depends on FDISK && FEATURE_FDISK_WRITABLE
+//config:	help
+//config:	  Enabling this option allows you to create or change AIX disklabels.
+//config:	  Most people can safely leave this option disabled.
+//config:
+//config:config FEATURE_SGI_LABEL
+//config:	bool "Support SGI disklabels"
+//config:	default n
+//config:	depends on FDISK && FEATURE_FDISK_WRITABLE
+//config:	help
+//config:	  Enabling this option allows you to create or change SGI disklabels.
+//config:	  Most people can safely leave this option disabled.
+//config:
+//config:config FEATURE_SUN_LABEL
+//config:	bool "Support SUN disklabels"
+//config:	default n
+//config:	depends on FDISK && FEATURE_FDISK_WRITABLE
+//config:	help
+//config:	  Enabling this option allows you to create or change SUN disklabels.
+//config:	  Most people can safely leave this option disabled.
+//config:
+//config:config FEATURE_OSF_LABEL
+//config:	bool "Support BSD disklabels"
+//config:	default n
+//config:	depends on FDISK && FEATURE_FDISK_WRITABLE
+//config:	help
+//config:	  Enabling this option allows you to create or change BSD disklabels
+//config:	  and define and edit BSD disk slices.
+//config:
+//config:config FEATURE_GPT_LABEL
+//config:	bool "Support GPT disklabels"
+//config:	default n
+//config:	depends on FDISK && FEATURE_FDISK_WRITABLE
+//config:	help
+//config:	  Enabling this option allows you to view GUID Partition Table
+//config:	  disklabels.
+//config:
+//config:config FEATURE_FDISK_ADVANCED
+//config:	bool "Support expert mode"
+//config:	default y
+//config:	depends on FDISK && FEATURE_FDISK_WRITABLE
+//config:	help
+//config:	  Enabling this option allows you to do terribly unsafe things like
+//config:	  define arbitrary drive geometry, move the beginning of data in a
+//config:	  partition, and similarly evil things. Unless you have a very good
+//config:	  reason you would be wise to leave this disabled.
+
+//applet:IF_FDISK(APPLET(fdisk, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FDISK) += fdisk.o
 
 /* Looks like someone forgot to add this to config system */
 //usage:#ifndef ENABLE_FEATURE_FDISK_BLKSIZE

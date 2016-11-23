@@ -8,6 +8,22 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config PIVOT_ROOT
+//config:	bool "pivot_root"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  The pivot_root utility swaps the mount points for the root filesystem
+//config:	  with some other mounted filesystem. This allows you to do all sorts
+//config:	  of wild and crazy things with your Linux system and is far more
+//config:	  powerful than 'chroot'.
+//config:
+//config:	  Note: This is for initrd in linux 2.4. Under initramfs (introduced
+//config:	  in linux 2.6) use switch_root instead.
+
+//applet:IF_PIVOT_ROOT(APPLET(pivot_root, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_PIVOT_ROOT) += pivot_root.o
 
 //usage:#define pivot_root_trivial_usage
 //usage:       "NEW_ROOT PUT_OLD"

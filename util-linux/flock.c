@@ -3,6 +3,15 @@
  *
  * This is free software, licensed under the GNU General Public License v2.
  */
+//config:config FLOCK
+//config:	bool "flock"
+//config:	default y
+//config:	help
+//config:	  Manage locks from shell scripts
+
+//applet:IF_FLOCK(APPLET(flock, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FLOCK) += flock.o
 
 //usage:#define flock_trivial_usage
 //usage:       "[-sxun] FD|{FILE [-c] PROG ARGS}"

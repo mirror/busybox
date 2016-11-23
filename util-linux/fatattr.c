@@ -16,6 +16,7 @@
 //config:	  fatattr lists or changes the file attributes on a fat file system.
 
 //applet:IF_FATATTR(APPLET(fatattr, BB_DIR_BIN, BB_SUID_DROP))
+
 //kbuild:lib-$(CONFIG_FATATTR) += fatattr.o
 
 //usage:#define fatattr_trivial_usage

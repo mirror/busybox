@@ -28,8 +28,28 @@
  *  Removed --version/-V and --help/-h
  *  Removed parse_error(), using bb_error_msg() from Busybox instead
  *  Replaced our_malloc with xmalloc and our_realloc with xrealloc
- *
  */
+//config:config GETOPT
+//config:	bool "getopt"
+//config:	default y
+//config:	help
+//config:	  The getopt utility is used to break up (parse) options in command
+//config:	  lines to make it easy to write complex shell scripts that also check
+//config:	  for legal (and illegal) options. If you want to write horribly
+//config:	  complex shell scripts, or use some horribly complex shell script
+//config:	  written by others, this utility may be for you. Most people will
+//config:	  wisely leave this disabled.
+//config:
+//config:config FEATURE_GETOPT_LONG
+//config:	bool "Support option -l"
+//config:	default y if LONG_OPTS
+//config:	depends on GETOPT
+//config:	help
+//config:	  Enable support for long options (option -l).
+
+//applet:IF_GETOPT(APPLET(getopt, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_GETOPT) += getopt.o
 
 //usage:#define getopt_trivial_usage
 //usage:       "[OPTIONS] [--] OPTSTRING PARAMS"

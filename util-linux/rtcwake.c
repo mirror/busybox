@@ -22,6 +22,16 @@
  * RTC uses a local timezone instead (maybe you dual-boot MS-Windows).
  * That flag should not be needed on systems with adjtime support.
  */
+//config:config RTCWAKE
+//config:	bool "rtcwake"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Enter a system sleep state until specified wakeup time.
+
+//applet:IF_RTCWAKE(APPLET(rtcwake, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_RTCWAKE) += rtcwake.o
 
 //usage:#define rtcwake_trivial_usage
 //usage:       "[-a | -l | -u] [-d DEV] [-m MODE] [-s SEC | -t TIME]"

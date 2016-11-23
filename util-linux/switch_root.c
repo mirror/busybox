@@ -5,6 +5,29 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config SWITCH_ROOT
+//config:	bool "switch_root"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  The switch_root utility is used from initramfs to select a new
+//config:	  root device. Under initramfs, you have to use this instead of
+//config:	  pivot_root. (Stop reading here if you don't care why.)
+//config:
+//config:	  Booting with initramfs extracts a gzipped cpio archive into rootfs
+//config:	  (which is a variant of ramfs/tmpfs). Because rootfs can't be moved
+//config:	  or unmounted*, pivot_root will not work from initramfs. Instead,
+//config:	  switch_root deletes everything out of rootfs (including itself),
+//config:	  does a mount --move that overmounts rootfs with the new root, and
+//config:	  then execs the specified init program.
+//config:
+//config:	  * Because the Linux kernel uses rootfs internally as the starting
+//config:	  and ending point for searching through the kernel's doubly linked
+//config:	  list of active mount points. That's why.
+
+//applet:IF_SWITCH_ROOT(APPLET(switch_root, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SWITCH_ROOT) += switch_root.o
 
 //usage:#define switch_root_trivial_usage
 //usage:       "[-c /dev/console] NEW_ROOT NEW_INIT [ARGS]"

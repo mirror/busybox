@@ -5,16 +5,15 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
-//applet:IF_REV(APPLET(rev, BB_DIR_BIN, BB_SUID_DROP))
-
-//kbuild:lib-$(CONFIG_REV) += rev.o
-
 //config:config REV
 //config:	bool "rev"
 //config:	default y
 //config:	help
 //config:	  Reverse lines of a file or files.
+
+//applet:IF_REV(APPLET(rev, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_REV) += rev.o
 
 //usage:#define rev_trivial_usage
 //usage:	"[FILE]..."

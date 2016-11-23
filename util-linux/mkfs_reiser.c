@@ -6,6 +6,17 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config MKFS_REISER
+//config:	bool "mkfs_reiser"
+//config:	default n
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Utility to create ReiserFS filesystems.
+//config:	  Note: this applet needs a lot of testing and polishing.
+
+//applet:IF_MKFS_REISER(APPLET_ODDNAME(mkfs.reiser, mkfs_reiser, BB_DIR_SBIN, BB_SUID_DROP, mkfs_reiser))
+
+//kbuild:lib-$(CONFIG_MKFS_REISER) += mkfs_reiser.o
 
 //usage:#define mkfs_reiser_trivial_usage
 //usage:       "[-f] [-l LABEL] BLOCKDEV [4K-BLOCKS]"

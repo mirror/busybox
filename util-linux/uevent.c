@@ -3,7 +3,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //config:config UEVENT
 //config:	bool "uevent"
 //config:	default y

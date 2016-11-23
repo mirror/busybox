@@ -6,6 +6,32 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config ACPID
+//config:	bool "acpid"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  acpid listens to ACPI events coming either in textual form from
+//config:	  /proc/acpi/event (though it is marked deprecated it is still widely
+//config:	  used and _is_ a standard) or in binary form from specified evdevs
+//config:	  (just use /dev/input/event*).
+//config:
+//config:	  It parses the event to retrieve ACTION and a possible PARAMETER.
+//config:	  It then spawns /etc/acpi/<ACTION>[/<PARAMETER>] either via run-parts
+//config:	  (if the resulting path is a directory) or directly as an executable.
+//config:
+//config:	  N.B. acpid relies on run-parts so have the latter installed.
+//config:
+//config:config FEATURE_ACPID_COMPAT
+//config:	bool "Accept and ignore redundant options"
+//config:	default y
+//config:	depends on ACPID
+//config:	help
+//config:	  Accept and ignore compatibility options -g -m -s -S -v.
+
+//applet:IF_ACPID(APPLET(acpid, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_ACPID) += acpid.o
 
 //usage:#define acpid_trivial_usage
 //usage:       "[-df] [-c CONFDIR] [-l LOGFILE] [-a ACTIONFILE] [-M MAPFILE] [-e PROC_EVENT_FILE] [-p PIDFILE]"

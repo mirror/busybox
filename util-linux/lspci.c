@@ -6,6 +6,19 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config LSPCI
+//config:	bool "lspci"
+//config:	default y
+//config:	#select PLATFORM_LINUX
+//config:	help
+//config:	  lspci is a utility for displaying information about PCI buses in the
+//config:	  system and devices connected to them.
+//config:
+//config:	  This version uses sysfs (/sys/bus/pci/devices) only.
+
+//applet:IF_LSPCI(APPLET(lspci, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_LSPCI) += lspci.o
 
 //usage:#define lspci_trivial_usage
 //usage:       "[-mk]"

@@ -7,6 +7,16 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  */
+//config:config SCRIPTREPLAY
+//config:	bool "scriptreplay"
+//config:	default y
+//config:	help
+//config:	  This program replays a typescript, using timing information
+//config:	  given by script -t.
+
+//applet:IF_SCRIPTREPLAY(APPLET(scriptreplay, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SCRIPTREPLAY) += scriptreplay.o
 
 //usage:#define scriptreplay_trivial_usage
 //usage:       "timingfile [typescript [divisor]]"

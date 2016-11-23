@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //config:config SWAPON
 //config:	bool "swapon"
 //config:	default y
