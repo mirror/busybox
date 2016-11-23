@@ -27,19 +27,33 @@
 //config:	  returning an appropriate exit code. The bash shell
 //config:	  has test built in, ash can build it in optionally.
 //config:
+//config:config TEST1
+//config:	bool "test as ["
+//config:	default y
+//config:	help
+//config:	  Provide test command in the "[ EXPR ]" form
+//config:
+//config:config TEST2
+//config:	bool "test as [["
+//config:	default y
+//config:	help
+//config:	  Provide test command in the "[[ EXPR ]]" form
+//config:
 //config:config FEATURE_TEST_64
 //config:	bool "Extend test to 64 bit"
 //config:	default y
-//config:	depends on TEST || ASH_BUILTIN_TEST || HUSH
+//config:	depends on TEST || TEST1 || TEST2 || ASH_BUILTIN_TEST || HUSH
 //config:	help
 //config:	  Enable 64-bit support in test.
 
-//applet:IF_TEST(APPLET_NOFORK([,  test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
-//applet:IF_TEST(APPLET_NOFORK([[, test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
 //applet:IF_TEST(APPLET_NOFORK(test, test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
+//applet:IF_TEST1(APPLET_NOFORK([,  test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
+//applet:IF_TEST2(APPLET_NOFORK([[, test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
 
 //kbuild:lib-$(CONFIG_TEST) += test.o test_ptr_hack.o
-//kbuild:lib-$(CONFIG_ASH) += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_TEST1) += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_TEST2) += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_ASH_BUILTIN_TEST) += test.o test_ptr_hack.o
 //kbuild:lib-$(CONFIG_HUSH) += test.o test_ptr_hack.o
 
 /* "test --help" is special-cased to ignore --help */
@@ -827,7 +841,9 @@ int test_main(int argc, char **argv)
 	const char *arg0;
 
 	arg0 = bb_basename(argv[0]);
-	if (arg0[0] == '[') {
+	if ((ENABLE_TEST1 || ENABLE_TEST2 || ENABLE_ASH_BUILTIN_TEST || ENABLE_HUSH)
+	 && (arg0[0] == '[')
+	) {
 		--argc;
 		if (!arg0[1]) { /* "[" ? */
 			if (NOT_LONE_CHAR(argv[argc], ']')) {

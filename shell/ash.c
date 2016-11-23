@@ -9282,9 +9282,9 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_SPEC_REG      ":"       , truecmd    },
 #if ENABLE_ASH_BUILTIN_TEST
 	{ BUILTIN_REGULAR       "["       , testcmd    },
-#if ENABLE_ASH_BASH_COMPAT
+# if ENABLE_ASH_BASH_COMPAT
 	{ BUILTIN_REGULAR       "[["      , testcmd    },
-#endif
+# endif
 #endif
 #if ENABLE_ASH_ALIAS
 	{ BUILTIN_REG_ASSG      "alias"   , aliascmd   },

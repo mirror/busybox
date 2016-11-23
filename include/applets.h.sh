@@ -5,13 +5,17 @@
 
 # CONFIG_applet names
 grep ^IF_ applets.h | grep -v IF_FEATURE_ | sed 's/IF_\([A-Z0-9._-]*\)(.*/\1/' \
-| grep -v MODPROBE_SMALL | sed 's/BB_SYSCTL/SYSCTL/' \
+| grep -v MODPROBE_SMALL \
+| sed 's/BB_SYSCTL/SYSCTL/' \
+| sed 's/TEST1/[/' \
+| sed 's/TEST2/[[/' \
 | sort | uniq \
 >applets_APP1
 
 # command line applet names
 grep ^IF_ applets.h | sed -e's/ //g' -e's/.*(\([a-z[][^,]*\),.*/\1/' \
-| grep -v '^bash$' | grep -v '^sh$' \
+| grep -v '^bash$' \
+| grep -v '^sh$' \
 | tr a-z A-Z \
 | sort | uniq \
 >applets_APP2
