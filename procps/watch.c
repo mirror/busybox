@@ -11,6 +11,17 @@
 /* BB_AUDIT SUSv3 N/A */
 /* BB_AUDIT GNU defects -- only option -n is supported. */
 
+//config:config WATCH
+//config:	bool "watch"
+//config:	default y
+//config:	help
+//config:	  watch is used to execute a program periodically, showing
+//config:	  output to the screen.
+
+//applet:IF_WATCH(APPLET(watch, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_WATCH) += watch.o
+
 //usage:#define watch_trivial_usage
 //usage:       "[-n SEC] [-t] PROG ARGS"
 //usage:#define watch_full_usage "\n\n"

@@ -6,6 +6,17 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config FUSER
+//config:	bool "fuser"
+//config:	default y
+//config:	help
+//config:	  fuser lists all PIDs (Process IDs) that currently have a given
+//config:	  file open. fuser can also list all PIDs that have a given network
+//config:	  (TCP or UDP) port open.
+
+//applet:IF_FUSER(APPLET(fuser, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FUSER) += fuser.o
 
 //usage:#define fuser_trivial_usage
 //usage:       "[OPTIONS] FILE or PORT/PROTO"

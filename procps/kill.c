@@ -7,6 +7,36 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config KILL
+//config:	bool "kill"
+//config:	default y
+//config:	help
+//config:	  The command kill sends the specified signal to the specified
+//config:	  process or process group. If no signal is specified, the TERM
+//config:	  signal is sent.
+//config:
+//config:config KILLALL
+//config:	bool "killall"
+//config:	default y
+//config:	depends on KILL
+//config:	help
+//config:	  killall sends a signal to all processes running any of the
+//config:	  specified commands. If no signal name is specified, SIGTERM is
+//config:	  sent.
+//config:
+//config:config KILLALL5
+//config:	bool "killall5"
+//config:	default y
+//config:	depends on KILL
+//config:
+
+//applet:IF_KILL(APPLET(kill, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_KILLALL(APPLET_ODDNAME(killall, kill, BB_DIR_USR_BIN, BB_SUID_DROP, killall))
+//applet:IF_KILLALL5(APPLET_ODDNAME(killall5, kill, BB_DIR_USR_SBIN, BB_SUID_DROP, killall5))
+
+//kbuild:lib-$(CONFIG_KILL) += kill.o
+//kbuild:lib-$(CONFIG_KILLALL) += kill.o
+//kbuild:lib-$(CONFIG_KILLALL5) += kill.o
 
 //usage:#define kill_trivial_usage
 //usage:       "[-l] [-SIG] PID..."

@@ -18,6 +18,16 @@
  *   options -p, -g, and -u are treated as mode switches for the
  *   following IDs (if any).  Multiple switches are allowed.
  */
+//config:config RENICE
+//config:	bool "renice"
+//config:	default y
+//config:	help
+//config:	  Renice alters the scheduling priority of one or more running
+//config:	  processes.
+
+//applet:IF_RENICE(APPLET(renice, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_RENICE) += renice.o
 
 //usage:#define renice_trivial_usage
 //usage:       "[-n] PRIORITY [[-p | -g | -u] ID...]..."

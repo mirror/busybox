@@ -8,6 +8,55 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config PS
+//config:	bool "ps"
+//config:	default y
+//config:	help
+//config:	  ps gives a snapshot of the current processes.
+//config:
+//config:config FEATURE_PS_WIDE
+//config:	bool "Enable wide output option (-w)"
+//config:	default y
+//config:	depends on PS && !DESKTOP
+//config:	help
+//config:	  Support argument 'w' for wide output.
+//config:	  If given once, 132 chars are printed, and if given more
+//config:	  than once, the length is unlimited.
+//config:
+//config:config FEATURE_PS_LONG
+//config:	bool "Enable long output option (-l)"
+//config:	default y
+//config:	depends on PS && !DESKTOP
+//config:	help
+//config:	  Support argument 'l' for long output.
+//config:	  Adds fields PPID, RSS, START, TIME & TTY
+//config:
+//config:config FEATURE_PS_TIME
+//config:	bool "Enable time and elapsed time output"
+//config:	default y
+//config:	depends on PS && DESKTOP
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Support -o time and -o etime output specifiers.
+//config:
+//config:config FEATURE_PS_ADDITIONAL_COLUMNS
+//config:	bool "Enable additional ps columns"
+//config:	default y
+//config:	depends on PS && DESKTOP
+//config:	help
+//config:	  Support -o rgroup, -o ruser, -o nice output specifiers.
+//config:
+//config:config FEATURE_PS_UNUSUAL_SYSTEMS
+//config:	bool "Support Linux prior to 2.4.0 and non-ELF systems"
+//config:	default n
+//config:	depends on FEATURE_PS_TIME
+//config:	help
+//config:	  Include support for measuring HZ on old kernels and non-ELF systems
+//config:	  (if you are on Linux 2.4.0+ and use ELF, you don't need this)
+
+//applet:IF_PS(APPLET(ps, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_PS) += ps.o
 
 //usage:#if ENABLE_DESKTOP
 //usage:

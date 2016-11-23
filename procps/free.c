@@ -6,8 +6,18 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config FREE
+//config:	bool "free"
+//config:	default y
+//config:	select PLATFORM_LINUX #sysinfo()
+//config:	help
+//config:	  free displays the total amount of free and used physical and swap
+//config:	  memory in the system, as well as the buffers used by the kernel.
+//config:	  The shared memory column should be ignored; it is obsolete.
 
-/* getopt not needed */
+//applet:IF_FREE(APPLET(free, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FREE) += free.o
 
 //usage:#define free_trivial_usage
 //usage:       "" IF_DESKTOP("[-b/k/m/g]")

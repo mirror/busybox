@@ -6,6 +6,23 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config PGREP
+//config:	bool "pgrep"
+//config:	default y
+//config:	help
+//config:	  Look for processes by name.
+//config:
+//config:config PKILL
+//config:	bool "pkill"
+//config:	default y
+//config:	help
+//config:	  Send signals to processes by name.
+
+//applet:IF_PGREP(APPLET(pgrep, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_PKILL(APPLET_ODDNAME(pkill, pgrep, BB_DIR_USR_BIN, BB_SUID_DROP, pkill))
+
+//kbuild:lib-$(CONFIG_PGREP) += pgrep.o
+//kbuild:lib-$(CONFIG_PKILL) += pgrep.o
 
 //usage:#define pgrep_trivial_usage
 //usage:       "[-flnovx] [-s SID|-P PPID|PATTERN]"

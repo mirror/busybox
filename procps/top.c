@@ -49,7 +49,6 @@
  * cp stat meminfo loadavg proc
  * chroot . ./top -bn1 >top1.out
  */
-
 //config:config TOP
 //config:	bool "top"
 //config:	default y
@@ -103,6 +102,10 @@
 //config:	depends on TOP
 //config:	help
 //config:	  Enable 's' in top (gives lots of memory info).
+
+//applet:IF_TOP(APPLET(top, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_TOP) += top.o
 
 #include "libbb.h"
 #include "common_bufsiz.h"

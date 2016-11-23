@@ -6,6 +6,32 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config PIDOF
+//config:	bool "pidof"
+//config:	default y
+//config:	help
+//config:	  Pidof finds the process id's (pids) of the named programs. It prints
+//config:	  those id's on the standard output.
+//config:
+//config:config FEATURE_PIDOF_SINGLE
+//config:	bool "Enable argument for single shot (-s)"
+//config:	default y
+//config:	depends on PIDOF
+//config:	help
+//config:	  Support argument '-s' for returning only the first pid found.
+//config:
+//config:config FEATURE_PIDOF_OMIT
+//config:	bool "Enable argument for omitting pids (-o)"
+//config:	default y
+//config:	depends on PIDOF
+//config:	help
+//config:	  Support argument '-o' for omitting the given pids in output.
+//config:	  The special pid %PPID can be used to name the parent process
+//config:	  of the pidof, in other words the calling shell or shell script.
+
+//applet:IF_PIDOF(APPLET(pidof, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_PIDOF) += pidof.o
 
 //usage:#if (ENABLE_FEATURE_PIDOF_SINGLE || ENABLE_FEATURE_PIDOF_OMIT)
 //usage:#define pidof_trivial_usage
