@@ -12,16 +12,15 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DOS2UNIX
-//config:	bool "dos2unix/unix2dos"
+//config:	bool "dos2unix"
 //config:	default y
 //config:	help
 //config:	  dos2unix is used to convert a text file from DOS format to
 //config:	  UNIX format, and vice versa.
 //config:
 //config:config UNIX2DOS
-//config:	bool
+//config:	bool "unix2dos"
 //config:	default y
-//config:	depends on DOS2UNIX
 //config:	help
 //config:	  unix2dos is used to convert a text file from UNIX format to
 //config:	  DOS format, and vice versa.
@@ -112,9 +111,12 @@ int dos2unix_main(int argc UNUSED_PARAM, char **argv)
 	int o, conv_type;
 
 	/* See if we are supposed to be doing dos2unix or unix2dos */
-	conv_type = CT_UNIX2DOS;
-	if (applet_name[0] == 'd') {
+	if (ENABLE_DOS2UNIX
+	 && (!ENABLE_UNIX2DOS || applet_name[0] == 'd')
+	) {
 		conv_type = CT_DOS2UNIX;
+	} else {
+		conv_type = CT_UNIX2DOS;
 	}
 
 	/* -u convert to unix, -d convert to dos */
