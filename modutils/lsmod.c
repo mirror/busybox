@@ -7,8 +7,27 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config LSMOD
+//config:	bool "lsmod"
+//config:	default n
+//config:	depends on !MODPROBE_SMALL
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  lsmod is used to display a list of loaded modules.
+//config:
+//config:config FEATURE_LSMOD_PRETTY_2_6_OUTPUT
+//config:	bool "Pretty output"
+//config:	default n
+//config:	depends on LSMOD
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  This option makes output format of lsmod adjusted to
+//config:	  the format of module-init-tools for Linux kernel 2.6.
+//config:	  Increases size somewhat.
 
 //applet:IF_LSMOD(APPLET(lsmod, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_LSMOD) += lsmod.o modutils.o
 
 //usage:#if !ENABLE_MODPROBE_SMALL
 //usage:#define lsmod_trivial_usage
