@@ -12,6 +12,16 @@
  *
  * modified for getopt32 by Arne Bernin <arne [at] alamut.de>
  */
+//config:config ARP
+//config:	bool "arp"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Manipulate the system ARP cache.
+
+//applet:IF_ARP(APPLET(arp, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_ARP) += arp.o interface.o
 
 //usage:#define arp_trivial_usage
 //usage:     "\n[-vn]	[-H HWTYPE] [-i IF] -a [HOSTNAME]"

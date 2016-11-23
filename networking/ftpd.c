@@ -11,6 +11,40 @@
  *
  * You have to run this daemon via inetd.
  */
+//config:config FTPD
+//config:	bool "ftpd"
+//config:	default y
+//config:	help
+//config:	  simple FTP daemon. You have to run it via inetd.
+//config:
+//config:config FEATURE_FTP_WRITE
+//config:	bool "Enable upload commands"
+//config:	default y
+//config:	depends on FTPD
+//config:	help
+//config:	  Enable all kinds of FTP upload commands (-w option)
+//config:
+//config:config FEATURE_FTPD_ACCEPT_BROKEN_LIST
+//config:	bool "Enable workaround for RFC-violating clients"
+//config:	default y
+//config:	depends on FTPD
+//config:	help
+//config:	  Some ftp clients (among them KDE's Konqueror) issue illegal
+//config:	  "LIST -l" requests. This option works around such problems.
+//config:	  It might prevent you from listing files starting with "-" and
+//config:	  it increases the code size by ~40 bytes.
+//config:	  Most other ftp servers seem to behave similar to this.
+//config:
+//config:config FEATURE_FTP_AUTHENTICATION
+//config:	bool "Enable authentication"
+//config:	default y
+//config:	depends on FTPD
+//config:	help
+//config:	  Enable basic system login as seen in telnet etc.
+
+//applet:IF_FTPD(APPLET(ftpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FTPD) += ftpd.o
 
 //usage:#define ftpd_trivial_usage
 //usage:       "[-wvS] [-t N] [-T N] [DIR]"

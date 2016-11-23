@@ -12,6 +12,30 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config FTPGET
+//config:	bool "ftpget"
+//config:	default y
+//config:	help
+//config:	  Retrieve a remote file via FTP.
+//config:
+//config:config FTPPUT
+//config:	bool "ftpput"
+//config:	default y
+//config:	help
+//config:	  Store a remote file via FTP.
+//config:
+//config:config FEATURE_FTPGETPUT_LONG_OPTIONS
+//config:	bool "Enable long options in ftpget/ftpput"
+//config:	default y
+//config:	depends on LONG_OPTS && (FTPGET || FTPPUT)
+//config:	help
+//config:	  Support long options for the ftpget/ftpput applet.
+
+//applet:IF_FTPGET(APPLET_ODDNAME(ftpget, ftpgetput, BB_DIR_USR_BIN, BB_SUID_DROP, ftpget))
+//applet:IF_FTPPUT(APPLET_ODDNAME(ftpput, ftpgetput, BB_DIR_USR_BIN, BB_SUID_DROP, ftpput))
+
+//kbuild:lib-$(CONFIG_FTPGET) += ftpgetput.o
+//kbuild:lib-$(CONFIG_FTPPUT) += ftpgetput.o
 
 //usage:#define ftpget_trivial_usage
 //usage:       "[OPTIONS] HOST [LOCAL_FILE] REMOTE_FILE"

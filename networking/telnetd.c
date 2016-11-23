@@ -20,6 +20,78 @@
  * Vladimir Oleynik <dzo@simtreas.ru> 2001
  * Set process group corrections, initial busybox port
  */
+//config:config TELNETD
+//config:	bool "telnetd"
+//config:	default y
+//config:	select FEATURE_SYSLOG
+//config:	help
+//config:	  A daemon for the TELNET protocol, allowing you to log onto the host
+//config:	  running the daemon. Please keep in mind that the TELNET protocol
+//config:	  sends passwords in plain text. If you can't afford the space for an
+//config:	  SSH daemon and you trust your network, you may say 'y' here. As a
+//config:	  more secure alternative, you should seriously consider installing the
+//config:	  very small Dropbear SSH daemon instead:
+//config:		http://matt.ucc.asn.au/dropbear/dropbear.html
+//config:
+//config:	  Note that for busybox telnetd to work you need several things:
+//config:	  First of all, your kernel needs:
+//config:		  CONFIG_UNIX98_PTYS=y
+//config:
+//config:	  Next, you need a /dev/pts directory on your root filesystem:
+//config:
+//config:		  $ ls -ld /dev/pts
+//config:		  drwxr-xr-x  2 root root 0 Sep 23 13:21 /dev/pts/
+//config:
+//config:	  Next you need the pseudo terminal master multiplexer /dev/ptmx:
+//config:
+//config:		  $ ls -la /dev/ptmx
+//config:		  crw-rw-rw-  1 root tty 5, 2 Sep 23 13:55 /dev/ptmx
+//config:
+//config:	  Any /dev/ttyp[0-9]* files you may have can be removed.
+//config:	  Next, you need to mount the devpts filesystem on /dev/pts using:
+//config:
+//config:		  mount -t devpts devpts /dev/pts
+//config:
+//config:	  You need to be sure that busybox has LOGIN and
+//config:	  FEATURE_SUID enabled. And finally, you should make
+//config:	  certain that Busybox has been installed setuid root:
+//config:
+//config:		chown root.root /bin/busybox
+//config:		chmod 4755 /bin/busybox
+//config:
+//config:	  with all that done, telnetd _should_ work....
+//config:
+//config:config FEATURE_TELNETD_STANDALONE
+//config:	bool "Support standalone telnetd (not inetd only)"
+//config:	default y
+//config:	depends on TELNETD
+//config:	help
+//config:	  Selecting this will make telnetd able to run standalone.
+//config:
+//config:config FEATURE_TELNETD_INETD_WAIT
+//config:	bool "Support -w SEC option (inetd wait mode)"
+//config:	default y
+//config:	depends on FEATURE_TELNETD_STANDALONE
+//config:	help
+//config:	  This option allows you to run telnetd in "inet wait" mode.
+//config:	  Example inetd.conf line (note "wait", not usual "nowait"):
+//config:
+//config:	  telnet stream tcp wait root /bin/telnetd telnetd -w10
+//config:
+//config:	  In this example, inetd passes _listening_ socket_ as fd 0
+//config:	  to telnetd when connection appears.
+//config:	  telnetd will wait for connections until all existing
+//config:	  connections are closed, and no new connections
+//config:	  appear during 10 seconds. Then it exits, and inetd continues
+//config:	  to listen for new connections.
+//config:
+//config:	  This option is rarely used. "tcp nowait" is much more usual
+//config:	  way of running tcp services, including telnetd.
+//config:	  You most probably want to say N here.
+
+//applet:IF_TELNETD(APPLET(telnetd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_TELNETD) += telnetd.o
 
 //usage:#define telnetd_trivial_usage
 //usage:       "[OPTIONS]"

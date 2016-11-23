@@ -6,6 +6,17 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config FAKEIDENTD
+//config:	bool "fakeidentd"
+//config:	default y
+//config:	select FEATURE_SYSLOG
+//config:	help
+//config:	  fakeidentd listens on the ident port and returns a predefined
+//config:	  fake value on any query.
+
+//applet:IF_FAKEIDENTD(APPLET(fakeidentd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FAKEIDENTD) += isrv_identd.o isrv.o
 
 //usage:#define fakeidentd_trivial_usage
 //usage:       "[-fiw] [-b ADDR] [STRING]"

@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config IFPLUGD
+//config:	bool "ifplugd"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Network interface plug detection daemon.
+
+//applet:IF_IFPLUGD(APPLET(ifplugd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_IFPLUGD) += ifplugd.o
 
 //usage:#define ifplugd_trivial_usage
 //usage:       "[OPTIONS]"

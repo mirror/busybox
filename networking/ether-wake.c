@@ -63,6 +63,16 @@
  *   doing so only works with adapters configured for unicast+broadcast Rx
  *   filter.  That configuration consumes more power.
  */
+//config:config ETHER_WAKE
+//config:	bool "ether-wake"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Send a magic packet to wake up sleeping machines.
+
+//applet:IF_ETHER_WAKE(APPLET_ODDNAME(ether-wake, ether_wake, BB_DIR_USR_SBIN, BB_SUID_DROP, ether_wake))
+
+//kbuild:lib-$(CONFIG_ETHER_WAKE) += ether-wake.o
 
 //usage:#define ether_wake_trivial_usage
 //usage:       "[-b] [-i IFACE] [-p aa:bb:cc:dd[:ee:ff]/a.b.c.d] MAC"

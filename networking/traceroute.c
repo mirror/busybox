@@ -209,6 +209,40 @@
  *  -- Van Jacobson (van@ee.lbl.gov)
  *     Tue Dec 20 03:50:13 PST 1988
  */
+//config:config TRACEROUTE
+//config:	bool "traceroute"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Utility to trace the route of IP packets.
+//config:
+//config:config TRACEROUTE6
+//config:	bool "traceroute6"
+//config:	default y
+//config:	depends on FEATURE_IPV6 && TRACEROUTE
+//config:	help
+//config:	  Utility to trace the route of IPv6 packets.
+//config:
+//config:config FEATURE_TRACEROUTE_VERBOSE
+//config:	bool "Enable verbose output"
+//config:	default y
+//config:	depends on TRACEROUTE
+//config:	help
+//config:	  Add some verbosity to traceroute. This includes among other things
+//config:	  hostnames and ICMP response types.
+//config:
+//config:config FEATURE_TRACEROUTE_USE_ICMP
+//config:	bool "Enable -I option (use ICMP instead of UDP)"
+//config:	default y
+//config:	depends on TRACEROUTE
+//config:	help
+//config:	  Add option -I to use ICMP ECHO instead of UDP datagrams.
+
+/* Needs socket(AF_INET, SOCK_RAW, IPPROTO_ICMP), therefore BB_SUID_MAYBE: */
+//applet:IF_TRACEROUTE(APPLET(traceroute, BB_DIR_USR_BIN, BB_SUID_MAYBE))
+//applet:IF_TRACEROUTE6(APPLET(traceroute6, BB_DIR_USR_BIN, BB_SUID_MAYBE))
+
+//kbuild:lib-$(CONFIG_TRACEROUTE) += traceroute.o
 
 //usage:#define traceroute_trivial_usage
 //usage:       "[-"IF_TRACEROUTE6("46")"FIlnrv] [-f 1ST_TTL] [-m MAXTTL] [-q PROBES] [-p PORT]\n"

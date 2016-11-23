@@ -40,6 +40,32 @@
  * purpose. It is provided "as is" without express or implied warranty.
  ***********************************************************************
  */
+//config:config NTPD
+//config:	bool "ntpd"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  The NTP client/server daemon.
+//config:
+//config:config FEATURE_NTPD_SERVER
+//config:	bool "Make ntpd usable as a NTP server"
+//config:	default y
+//config:	depends on NTPD
+//config:	help
+//config:	  Make ntpd usable as a NTP server. If you disable this option
+//config:	  ntpd will be usable only as a NTP client.
+//config:
+//config:config FEATURE_NTPD_CONF
+//config:	bool "Make ntpd understand /etc/ntp.conf"
+//config:	default y
+//config:	depends on NTPD
+//config:	help
+//config:	  Make ntpd look in /etc/ntp.conf for peers. Only "server address"
+//config:	  is supported.
+
+//applet:IF_NTPD(APPLET(ntpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_NTPD) += ntpd.o
 
 //usage:#define ntpd_trivial_usage
 //usage:	"[-dnqNw"IF_FEATURE_NTPD_SERVER("l -I IFACE")"] [-S PROG] [-p PEER]..."

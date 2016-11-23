@@ -8,6 +8,130 @@
  * Rani Assaf <rani@magic.metawire.com> 980929: resolve addresses
  * Bernhard Reutner-Fischer rewrote to use index_in_substr_array
  */
+//config:config IP
+//config:	bool "ip"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  The "ip" applet is a TCP/IP interface configuration and routing
+//config:	  utility. You generally don't need "ip" to use busybox with
+//config:	  TCP/IP.
+//config:
+//config:config FEATURE_IP_ADDRESS
+//config:	bool "ip address"
+//config:	default y
+//config:	depends on IP
+//config:	help
+//config:	  Address manipulation support for the "ip" applet.
+//config:
+//config:config FEATURE_IP_LINK
+//config:	bool "ip link"
+//config:	default y
+//config:	depends on IP
+//config:	help
+//config:	  Configure network devices with "ip".
+//config:
+//config:config FEATURE_IP_ROUTE
+//config:	bool "ip route"
+//config:	default y
+//config:	depends on IP
+//config:	help
+//config:	  Add support for routing table management to "ip".
+//config:
+//config:config FEATURE_IP_ROUTE_DIR
+//config:	string "ip route configuration directory"
+//config:	default "/etc/iproute2"
+//config:	depends on FEATURE_IP_ROUTE
+//config:	help
+//config:	  Location of the "ip" applet routing configuration.
+//config:
+//config:config FEATURE_IP_TUNNEL
+//config:	bool "ip tunnel"
+//config:	default y
+//config:	depends on IP
+//config:	help
+//config:	  Add support for tunneling commands to "ip".
+//config:
+//config:config FEATURE_IP_RULE
+//config:	bool "ip rule"
+//config:	default y
+//config:	depends on IP
+//config:	help
+//config:	  Add support for rule commands to "ip".
+//config:
+//config:config FEATURE_IP_NEIGH
+//config:	bool "ip neighbor"
+//config:	default y
+//config:	depends on IP
+//config:	help
+//config:	  Add support for neighbor commands to "ip".
+//config:
+//config:config FEATURE_IP_SHORT_FORMS
+//config:	bool "Support short forms of ip commands"
+//config:	default y
+//config:	depends on IP
+//config:	help
+//config:	  Also support short-form of ip <OBJECT> commands:
+//config:	  ip addr   -> ipaddr
+//config:	  ip link   -> iplink
+//config:	  ip route  -> iproute
+//config:	  ip tunnel -> iptunnel
+//config:	  ip rule   -> iprule
+//config:	  ip neigh  -> ipneigh
+//config:
+//config:	  Say N unless you desparately need the short form of the ip
+//config:	  object commands.
+//config:
+//config:config FEATURE_IP_RARE_PROTOCOLS
+//config:	bool "Support displaying rarely used link types"
+//config:	default n
+//config:	depends on IP
+//config:	help
+//config:	  If you are not going to use links of type "frad", "econet",
+//config:	  "bif" etc, you probably don't need to enable this.
+//config:	  Ethernet, wireless, infrared, ppp/slip, ip tunnelling
+//config:	  link types are supported without this option selected.
+//config:
+//config:config IPADDR
+//config:	bool
+//config:	default y
+//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_ADDRESS
+//config:
+//config:config IPLINK
+//config:	bool
+//config:	default y
+//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_LINK
+//config:
+//config:config IPROUTE
+//config:	bool
+//config:	default y
+//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_ROUTE
+//config:
+//config:config IPTUNNEL
+//config:	bool
+//config:	default y
+//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_TUNNEL
+//config:
+//config:config IPRULE
+//config:	bool
+//config:	default y
+//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_RULE
+//config:
+//config:config IPNEIGH
+//config:	bool
+//config:	default y
+//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_NEIGH
+
+//applet:#if ENABLE_FEATURE_IP_ADDRESS || ENABLE_FEATURE_IP_ROUTE || ENABLE_FEATURE_IP_LINK || ENABLE_FEATURE_IP_TUNNEL || ENABLE_FEATURE_IP_RULE
+//applet:IF_IP(APPLET(ip, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:#endif
+//applet:IF_IPADDR(APPLET(ipaddr, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_IPLINK(APPLET(iplink, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_IPROUTE(APPLET(iproute, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_IPRULE(APPLET(iprule, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_IPTUNNEL(APPLET(iptunnel, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_IP) += ip.o
 
 /* would need to make the " | " optional depending on more than one selected: */
 //usage:#define ip_trivial_usage

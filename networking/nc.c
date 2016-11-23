@@ -6,10 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-#include "libbb.h"
-#include "common_bufsiz.h"
-
 //config:config NC
 //config:	bool "nc"
 //config:	default y
@@ -43,6 +39,12 @@
 //config:	  -s ADDR, -n, -u, -v, -o FILE, -z options, but loses
 //config:	  busybox-specific extensions: -f FILE.
 
+//applet:IF_NC(APPLET(nc, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_NC) += nc.o
+
+#include "libbb.h"
+#include "common_bufsiz.h"
 #if ENABLE_NC_110_COMPAT
 # include "nc_bloaty.c"
 #else

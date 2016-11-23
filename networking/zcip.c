@@ -14,6 +14,22 @@
  * routed at the IP level, though various proxies or bridges can
  * certainly be used.  Its naming is built over multicast DNS.
  */
+//config:config ZCIP
+//config:	bool "zcip"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	select FEATURE_SYSLOG
+//config:	help
+//config:	  ZCIP provides ZeroConf IPv4 address selection, according to RFC 3927.
+//config:	  It's a daemon that allocates and defends a dynamically assigned
+//config:	  address on the 169.254/16 network, requiring no system administrator.
+//config:
+//config:	  See http://www.zeroconf.org for further details, and "zcip.script"
+//config:	  in the busybox examples.
+
+//applet:IF_ZCIP(APPLET(zcip, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_ZCIP) += zcip.o
 
 //#define DEBUG
 

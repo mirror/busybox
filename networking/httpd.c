@@ -98,6 +98,128 @@
  *
  */
  /* TODO: use TCP_CORK, parse_config() */
+//config:config HTTPD
+//config:	bool "httpd"
+//config:	default y
+//config:	help
+//config:	  Serve web pages via an HTTP server.
+//config:
+//config:config FEATURE_HTTPD_RANGES
+//config:	bool "Support 'Ranges:' header"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	  Makes httpd emit "Accept-Ranges: bytes" header and understand
+//config:	  "Range: bytes=NNN-[MMM]" header. Allows for resuming interrupted
+//config:	  downloads, seeking in multimedia players etc.
+//config:
+//config:config FEATURE_HTTPD_SETUID
+//config:	bool "Enable -u <user> option"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	  This option allows the server to run as a specific user
+//config:	  rather than defaulting to the user that starts the server.
+//config:	  Use of this option requires special privileges to change to a
+//config:	  different user.
+//config:
+//config:config FEATURE_HTTPD_BASIC_AUTH
+//config:	bool "Enable Basic http Authentication"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	  Utilizes password settings from /etc/httpd.conf for basic
+//config:	  authentication on a per url basis.
+//config:	  Example for httpd.conf file:
+//config:	  /adm:toor:PaSsWd
+//config:
+//config:config FEATURE_HTTPD_AUTH_MD5
+//config:	bool "Support MD5 crypted passwords for http Authentication"
+//config:	default y
+//config:	depends on FEATURE_HTTPD_BASIC_AUTH
+//config:	help
+//config:	  Enables encrypted passwords, and wildcard user/passwords
+//config:	  in httpd.conf file.
+//config:	  User '*' means 'any system user name is ok',
+//config:	  password of '*' means 'use system password for this user'
+//config:	  Examples:
+//config:	  /adm:toor:$1$P/eKnWXS$aI1aPGxT.dJD5SzqAKWrF0
+//config:	  /adm:root:*
+//config:	  /wiki:*:*
+//config:
+//config:config FEATURE_HTTPD_CGI
+//config:	bool "Support Common Gateway Interface (CGI)"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	  This option allows scripts and executables to be invoked
+//config:	  when specific URLs are requested.
+//config:
+//config:config FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+//config:	bool "Support for running scripts through an interpreter"
+//config:	default y
+//config:	depends on FEATURE_HTTPD_CGI
+//config:	help
+//config:	  This option enables support for running scripts through an
+//config:	  interpreter. Turn this on if you want PHP scripts to work
+//config:	  properly. You need to supply an additional line in your
+//config:	  httpd.conf file:
+//config:	  *.php:/path/to/your/php
+//config:
+//config:config FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
+//config:	bool "Set REMOTE_PORT environment variable for CGI"
+//config:	default y
+//config:	depends on FEATURE_HTTPD_CGI
+//config:	help
+//config:	  Use of this option can assist scripts in generating
+//config:	  references that contain a unique port number.
+//config:
+//config:config FEATURE_HTTPD_ENCODE_URL_STR
+//config:	bool "Enable -e option (useful for CGIs written as shell scripts)"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	  This option allows html encoding of arbitrary strings for display
+//config:	  by the browser. Output goes to stdout.
+//config:	  For example, httpd -e "<Hello World>" produces
+//config:	  "&#60Hello&#32World&#62".
+//config:
+//config:config FEATURE_HTTPD_ERROR_PAGES
+//config:	bool "Support for custom error pages"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	  This option allows you to define custom error pages in
+//config:	  the configuration file instead of the default HTTP status
+//config:	  error pages. For instance, if you add the line:
+//config:	        E404:/path/e404.html
+//config:	  in the config file, the server will respond the specified
+//config:	  '/path/e404.html' file instead of the terse '404 NOT FOUND'
+//config:	  message.
+//config:
+//config:config FEATURE_HTTPD_PROXY
+//config:	bool "Support for reverse proxy"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	  This option allows you to define URLs that will be forwarded
+//config:	  to another HTTP server. To setup add the following line to the
+//config:	  configuration file
+//config:	        P:/url/:http://hostname[:port]/new/path/
+//config:	  Then a request to /url/myfile will be forwarded to
+//config:	  http://hostname[:port]/new/path/myfile.
+//config:
+//config:config FEATURE_HTTPD_GZIP
+//config:	bool "Support for GZIP content encoding"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	  Makes httpd send files using GZIP content encoding if the
+//config:	  client supports it and a pre-compressed <file>.gz exists.
+
+//applet:IF_HTTPD(APPLET(httpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_HTTPD) += httpd.o
 
 //usage:#define httpd_trivial_usage
 //usage:       "[-ifv[v]]"

@@ -6,6 +6,7 @@
  *
  * Bernhard Reutner-Fischer adjusted for busybox
  */
+//kbuild:lib-$(CONFIG_TC) += tc.o
 
 //usage:#define tc_trivial_usage
 /* //usage: "[OPTIONS] OBJECT CMD [dev STRING]" */

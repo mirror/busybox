@@ -20,6 +20,35 @@
  * by Fernando Silveira <swrh@gmx.net>
  *
  */
+//config:config TELNET
+//config:	bool "telnet"
+//config:	default y
+//config:	help
+//config:	  Telnet is an interface to the TELNET protocol, but is also commonly
+//config:	  used to test other simple protocols.
+//config:
+//config:config FEATURE_TELNET_TTYPE
+//config:	bool "Pass TERM type to remote host"
+//config:	default y
+//config:	depends on TELNET
+//config:	help
+//config:	  Setting this option will forward the TERM environment variable to the
+//config:	  remote host you are connecting to. This is useful to make sure that
+//config:	  things like ANSI colors and other control sequences behave.
+//config:
+//config:config FEATURE_TELNET_AUTOLOGIN
+//config:	bool "Pass USER type to remote host"
+//config:	default y
+//config:	depends on TELNET
+//config:	help
+//config:	  Setting this option will forward the USER environment variable to the
+//config:	  remote host you are connecting to. This is useful when you need to
+//config:	  log into a machine without telling the username (autologin). This
+//config:	  option enables `-a' and `-l USER' arguments.
+
+//applet:IF_TELNET(APPLET(telnet, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_TELNET) += telnet.o
 
 //usage:#if ENABLE_FEATURE_TELNET_AUTOLOGIN
 //usage:#define telnet_trivial_usage

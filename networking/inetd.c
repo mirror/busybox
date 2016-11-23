@@ -153,6 +153,59 @@
  *                      setgid(specified group)
  *                      setuid()
  */
+//config:config INETD
+//config:	bool "inetd"
+//config:	default y
+//config:	select FEATURE_SYSLOG
+//config:	help
+//config:	  Internet superserver daemon
+//config:
+//config:config FEATURE_INETD_SUPPORT_BUILTIN_ECHO
+//config:	bool "Support echo service"
+//config:	default y
+//config:	depends on INETD
+//config:	help
+//config:	  Echo received data internal inetd service
+//config:
+//config:config FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
+//config:	bool "Support discard service"
+//config:	default y
+//config:	depends on INETD
+//config:	help
+//config:	  Internet /dev/null internal inetd service
+//config:
+//config:config FEATURE_INETD_SUPPORT_BUILTIN_TIME
+//config:	bool "Support time service"
+//config:	default y
+//config:	depends on INETD
+//config:	help
+//config:	  Return 32 bit time since 1900 internal inetd service
+//config:
+//config:config FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
+//config:	bool "Support daytime service"
+//config:	default y
+//config:	depends on INETD
+//config:	help
+//config:	  Return human-readable time internal inetd service
+//config:
+//config:config FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
+//config:	bool "Support chargen service"
+//config:	default y
+//config:	depends on INETD
+//config:	help
+//config:	  Familiar character generator internal inetd service
+//config:
+//config:config FEATURE_INETD_RPC
+//config:	bool "Support RPC services"
+//config:	default n  # very rarely used, and needs Sun RPC support in libc
+//config:	depends on INETD
+//config:	select FEATURE_HAVE_RPC
+//config:	help
+//config:	  Support Sun-RPC based services
+
+//applet:IF_INETD(APPLET(inetd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_INETD) += inetd.o
 
 //usage:#define inetd_trivial_usage
 //usage:       "[-fe] [-q N] [-R N] [CONFFILE]"

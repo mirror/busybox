@@ -24,6 +24,16 @@
  * Rewritten to fix several bugs, add additional error checking, and
  * remove ridiculous amounts of bloat.
  */
+//config:config ROUTE
+//config:	bool "route"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Route displays or manipulates the kernel's IP routing tables.
+
+//applet:IF_ROUTE(APPLET(route, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_ROUTE) += route.o
 
 //usage:#define route_trivial_usage
 //usage:       "[{add|del|delete}]"

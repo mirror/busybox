@@ -25,6 +25,57 @@
  * 2002-04-20
  * IPV6 support added by Bart Visscher <magick@linux-fan.com>
  */
+//config:config IFCONFIG
+//config:	bool "ifconfig"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Ifconfig is used to configure the kernel-resident network interfaces.
+//config:
+//config:config FEATURE_IFCONFIG_STATUS
+//config:	bool "Enable status reporting output (+7k)"
+//config:	default y
+//config:	depends on IFCONFIG
+//config:	help
+//config:	  If ifconfig is called with no arguments it will display the status
+//config:	  of the currently active interfaces.
+//config:
+//config:config FEATURE_IFCONFIG_SLIP
+//config:	bool "Enable slip-specific options \"keepalive\" and \"outfill\""
+//config:	default y
+//config:	depends on IFCONFIG
+//config:	help
+//config:	  Allow "keepalive" and "outfill" support for SLIP. If you're not
+//config:	  planning on using serial lines, leave this unchecked.
+//config:
+//config:config FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+//config:	bool "Enable options \"mem_start\", \"io_addr\", and \"irq\""
+//config:	default y
+//config:	depends on IFCONFIG
+//config:	help
+//config:	  Allow the start address for shared memory, start address for I/O,
+//config:	  and/or the interrupt line used by the specified device.
+//config:
+//config:config FEATURE_IFCONFIG_HW
+//config:	bool "Enable option \"hw\" (ether only)"
+//config:	default y
+//config:	depends on IFCONFIG
+//config:	help
+//config:	  Set the hardware address of this interface, if the device driver
+//config:	  supports  this  operation. Currently, we only support the 'ether'
+//config:	  class.
+//config:
+//config:config FEATURE_IFCONFIG_BROADCAST_PLUS
+//config:	bool "Set the broadcast automatically"
+//config:	default y
+//config:	depends on IFCONFIG
+//config:	help
+//config:	  Setting this will make ifconfig attempt to find the broadcast
+//config:	  automatically if the value '+' is used.
+
+//applet:IF_IFCONFIG(APPLET(ifconfig, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_IFCONFIG) += ifconfig.o interface.o
 
 //usage:#define ifconfig_trivial_usage
 //usage:	IF_FEATURE_IFCONFIG_STATUS("[-a]") " interface [address]"

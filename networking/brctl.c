@@ -12,6 +12,36 @@
 /* This applet currently uses only the ioctl interface and no sysfs at all.
  * At the time of this writing this was considered a feature.
  */
+//config:config BRCTL
+//config:	bool "brctl"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Manage ethernet bridges.
+//config:	  Supports addbr/delbr and addif/delif.
+//config:
+//config:config FEATURE_BRCTL_FANCY
+//config:	bool "Fancy options"
+//config:	default y
+//config:	depends on BRCTL
+//config:	help
+//config:	  Add support for extended option like:
+//config:	    setageing, setfd, sethello, setmaxage,
+//config:	    setpathcost, setportprio, setbridgeprio,
+//config:	    stp
+//config:	  This adds about 600 bytes.
+//config:
+//config:config FEATURE_BRCTL_SHOW
+//config:	bool "Support show"
+//config:	default y
+//config:	depends on BRCTL && FEATURE_BRCTL_FANCY
+//config:	help
+//config:	  Add support for option which prints the current config:
+//config:	    show
+
+//applet:IF_BRCTL(APPLET(brctl, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_BRCTL) += brctl.o
 
 //usage:#define brctl_trivial_usage
 //usage:       "COMMAND [BRIDGE [INTERFACE]]"

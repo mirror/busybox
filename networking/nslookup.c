@@ -10,6 +10,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config NSLOOKUP
+//config:	bool "nslookup"
+//config:	default y
+//config:	help
+//config:	  nslookup is a tool to query Internet name servers.
+
+//applet:IF_NSLOOKUP(APPLET(nslookup, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_NSLOOKUP) += nslookup.o
 
 //usage:#define nslookup_trivial_usage
 //usage:       "[HOST] [SERVER]"

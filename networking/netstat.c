@@ -13,6 +13,32 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config NETSTAT
+//config:	bool "netstat"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  netstat prints information about the Linux networking subsystem.
+//config:
+//config:config FEATURE_NETSTAT_WIDE
+//config:	bool "Enable wide netstat output"
+//config:	default y
+//config:	depends on NETSTAT
+//config:	help
+//config:	  Add support for wide columns. Useful when displaying IPv6 addresses
+//config:	  (-W option).
+//config:
+//config:config FEATURE_NETSTAT_PRG
+//config:	bool "Enable PID/Program name output"
+//config:	default y
+//config:	depends on NETSTAT
+//config:	help
+//config:	  Add support for -p flag to print out PID and program name.
+//config:	  +700 bytes of code.
+
+//applet:IF_NETSTAT(APPLET(netstat, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_NETSTAT) += netstat.o
 
 #include "libbb.h"
 #include "inet_common.h"

@@ -28,6 +28,25 @@
  *   with wrong source IP...
  * - don't know how to retrieve ORIGDST for udp.
  */
+//config:config TCPSVD
+//config:	bool "tcpsvd"
+//config:	default y
+//config:	help
+//config:	  tcpsvd listens on a TCP port and runs a program for each new
+//config:	  connection.
+//config:
+//config:config UDPSVD
+//config:	bool "udpsvd"
+//config:	default y
+//config:	help
+//config:	  udpsvd listens on an UDP port and runs a program for each new
+//config:	  connection.
+
+//applet:IF_TCPSVD(APPLET_ODDNAME(tcpsvd, tcpudpsvd, BB_DIR_USR_BIN, BB_SUID_DROP, tcpsvd))
+//applet:IF_UDPSVD(APPLET_ODDNAME(udpsvd, tcpudpsvd, BB_DIR_USR_BIN, BB_SUID_DROP, udpsvd))
+
+//kbuild:lib-$(CONFIG_TCPSVD) += tcpudp.o tcpudp_perhost.o
+//kbuild:lib-$(CONFIG_UDPSVD) += tcpudp.o tcpudp_perhost.o
 
 //usage:#define tcpsvd_trivial_usage
 //usage:       "[-hEv] [-c N] [-C N[:MSG]] [-b N] [-u USER] [-l NAME] IP PORT PROG"

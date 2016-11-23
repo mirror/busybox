@@ -40,6 +40,10 @@
 //config:	    new_interface_name  mac=00:80:C8:38:91:B5
 //config:	    new_interface_name  00:80:C8:38:91:B5
 
+//applet:IF_NAMEIF(APPLET(nameif, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_NAMEIF) += nameif.o
+
 //usage:#define nameif_trivial_usage
 //usage:	IF_NOT_FEATURE_NAMEIF_EXTENDED(
 //usage:		"[-s] [-c FILE] [IFNAME HWADDR]..."

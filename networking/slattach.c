@@ -12,6 +12,17 @@
  *
  * - The -F options allows disabling of RTS/CTS flow control.
  */
+//config:config SLATTACH
+//config:	bool "slattach"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  slattach is a small utility to attach network interfaces to serial
+//config:	  lines.
+
+//applet:IF_SLATTACH(APPLET(slattach, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SLATTACH) += slattach.o
 
 //usage:#define slattach_trivial_usage
 //usage:       "[-cehmLF] [-s SPEED] [-p PROTOCOL] DEVICE"
