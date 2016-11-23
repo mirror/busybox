@@ -7,12 +7,6 @@ menu "Coreutils"
 
 INSERT
 
-####config LENGTH
-####	bool "length"
-####	default y
-####	help
-####	  length is used to print out the length of a specified string.
-
 comment "Common options"
 
 config FEATURE_VERBOSE

@@ -10,8 +10,6 @@ lib-y:=
 
 INSERT
 
-#lib-$(CONFIG_LENGTH) += length.o
-
 lib-$(CONFIG_MORE)      += cat.o   # more uses it if stdout isn't a tty
 lib-$(CONFIG_LESS)      += cat.o   # less too
 lib-$(CONFIG_CRONTAB)   += cat.o   # crontab -l
