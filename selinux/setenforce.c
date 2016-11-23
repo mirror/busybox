@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config SETENFORCE
+//config:	bool "setenforce"
+//config:	default n
+//config:	depends on SELINUX
+//config:	help
+//config:	  Enable support to modify the mode SELinux is running in.
+
+//applet:IF_SETENFORCE(APPLET(setenforce, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SETENFORCE) += setenforce.o
 
 //usage:#define setenforce_trivial_usage
 //usage:       "[Enforcing | Permissive | 1 | 0]"

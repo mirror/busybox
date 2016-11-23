@@ -7,6 +7,23 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config CHCON
+//config:	bool "chcon"
+//config:	default n
+//config:	depends on SELINUX
+//config:	help
+//config:	  Enable support to change the security context of file.
+//config:
+//config:config FEATURE_CHCON_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on CHCON && LONG_OPTS
+//config:	help
+//config:	  Support long options for the chcon applet.
+
+//applet:IF_CHCON(APPLET(chcon, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CHCON) += chcon.o
 
 //usage:#define chcon_trivial_usage
 //usage:       "[OPTIONS] CONTEXT FILE..."

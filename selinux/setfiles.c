@@ -3,6 +3,37 @@
   policycoreutils was released under GPL 2.
   Port to BusyBox (c) 2007 by Yuichi Nakamura <ynakam@hitachisoft.jp>
 */
+//config:config SETFILES
+//config:	bool "setfiles"
+//config:	default n
+//config:	depends on SELINUX
+//config:	help
+//config:	  Enable support to modify to relabel files.
+//config:	  Notice: If you built libselinux with -D_FILE_OFFSET_BITS=64,
+//config:	  (It is default in libselinux's Makefile), you _must_ enable
+//config:	  CONFIG_LFS.
+//config:
+//config:config FEATURE_SETFILES_CHECK_OPTION
+//config:	bool "Enable check option"
+//config:	default n
+//config:	depends on SETFILES
+//config:	help
+//config:	  Support "-c" option (check the validity of the contexts against
+//config:	  the specified binary policy) for setfiles. Requires libsepol.
+//config:
+//config:config RESTORECON
+//config:	bool "restorecon"
+//config:	default n
+//config:	depends on SELINUX
+//config:	help
+//config:	  Enable support to relabel files. The feature is almost
+//config:	  the same as setfiles, but usage is a little different.
+
+//applet:IF_SETFILES(APPLET(setfiles, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_RESTORECON(APPLET_ODDNAME(restorecon, setfiles, BB_DIR_SBIN, BB_SUID_DROP, restorecon))
+
+//kbuild:lib-$(CONFIG_SETFILES) += setfiles.o
+//kbuild:lib-$(CONFIG_RESTORECON) += setfiles.o
 
 //usage:#define setfiles_trivial_usage
 //usage:       "[-dnpqsvW] [-e DIR]... [-o FILE] [-r alt_root_path]"

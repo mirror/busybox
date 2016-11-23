@@ -7,6 +7,17 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config SETSEBOOL
+//config:	bool "setsebool"
+//config:	default n
+//config:	depends on SELINUX
+//config:	help
+//config:	  Enable support for change boolean.
+//config:	  semanage and -P option is not supported yet.
+
+//applet:IF_SETSEBOOL(APPLET(setsebool, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SETSEBOOL) += setsebool.o
 
 //usage:#define setsebool_trivial_usage
 //usage:       "boolean value"
