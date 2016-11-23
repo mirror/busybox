@@ -48,16 +48,6 @@ config VERBOSE_RESOLUTION_ERRORS
 
 INSERT
 
-#config TC
-#	bool "tc"
-#	default y
-#	help
-#	  show / manipulate traffic control settings
-#
-#config FEATURE_TC_INGRESS
-#	def_bool n
-#	depends on TC
-
 source networking/udhcp/Config.in
 
 config IFUPDOWN_UDHCPC_CMD_OPTIONS

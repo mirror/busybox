@@ -6,7 +6,22 @@
  *
  * Bernhard Reutner-Fischer adjusted for busybox
  */
-//kbuild:lib-$(CONFIG_TC) += tc.o
+
+/* Was disabled in 2008 by Bernhard, not known why.
+--//config:#config TC
+--//config:#	bool "tc"
+--//config:#	default y
+--//config:#	help
+--//config:#	  Show / manipulate traffic control settings
+--//config:#
+--//config:#config FEATURE_TC_INGRESS
+--//config:#	default y
+--//config:#	depends on TC
+--
+--//applet:IF_TC(APPLET(tc, BB_DIR_SBIN, BB_SUID_DROP))
+--
+--//kbuild:lib-$(CONFIG_TC) += tc.o
+*/
 
 //usage:#define tc_trivial_usage
 /* //usage: "[OPTIONS] OBJECT CMD [dev STRING]" */
