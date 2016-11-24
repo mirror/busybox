@@ -18,8 +18,20 @@ int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
 	/* Known escape sequences for cursor and function keys.
 	 * See "Xterm Control Sequences"
 	 * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+	 * Array should be sorted from shortest to longest.
 	 */
 	static const char esccmds[] ALIGN1 = {
+		'\x7f'         |0x80,KEYCODE_ALT_BACKSPACE,
+		'\b'           |0x80,KEYCODE_ALT_BACKSPACE,
+		'd'            |0x80,KEYCODE_ALT_D   ,
+	/* lineedit mimics bash: Alt-f and Alt-b are forward/backward
+	 * word jumps. We cheat here and make them return ALT_LEFT/RIGHT
+	 * keycodes. This way, lineedit need no special code to handle them.
+	 * If we'll need to distinguish them, introduce new ALT_F/B keycodes,
+	 * and update lineedit to react to them.
+	 */
+		'f'            |0x80,KEYCODE_ALT_RIGHT,
+		'b'            |0x80,KEYCODE_ALT_LEFT,
 		'O','A'        |0x80,KEYCODE_UP      ,
 		'O','B'        |0x80,KEYCODE_DOWN    ,
 		'O','C'        |0x80,KEYCODE_RIGHT   ,

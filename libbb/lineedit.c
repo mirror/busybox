@@ -13,7 +13,6 @@
  *
  * This code is 'as is' with no warranty.
  */
-
 /*
  * Usage and known bugs:
  * Terminal key codes are not extensive, more needs to be added.
@@ -23,9 +22,6 @@
  * Ctrl-E also works as End.
  *
  * The following readline-like commands are not implemented:
- * ESC-b -- Move back one word
- * ESC-f -- Move forward one word
- * ESC-d -- Delete forward one word
  * CTL-t -- Transpose two characters
  *
  * lineedit does not know that the terminal escape sequences do not
@@ -2483,6 +2479,24 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 			while (cursor > 0 && !BB_isspace(command_ps[cursor-1]))
 				input_backspace();
 			break;
+		case KEYCODE_ALT_D: {
+			/* Delete word forward */
+			int nc, sc = cursor;
+			ctrl_right();
+			nc = cursor - sc;
+			input_backward(nc);
+			while (--nc >= 0)
+				input_delete(1);
+			break;
+		}
+		case KEYCODE_ALT_BACKSPACE: {
+			/* Delete word backward */
+			int sc = cursor;
+			ctrl_left();
+			while (sc-- > cursor)
+				input_delete(1);
+			break;
+		}
 #if ENABLE_FEATURE_REVERSE_SEARCH
 		case CTRL('R'):
 			ic = ic_raw = reverse_i_search();
@@ -2624,44 +2638,6 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 				/* insert mode --> command mode */
 				vi_cmdmode = 1;
 				input_backward(1);
-			}
-			/* Handle a few ESC-<key> combinations the same way
-			 * standard readline bindings (IOW: bash) do.
-			 * Often, Alt-<key> generates ESC-<key>.
-			 */
-			ic = lineedit_read_key(read_key_buffer, 50);
-			switch (ic) {
-				//case KEYCODE_LEFT: - bash doesn't do this
-				case 'b':
-					ctrl_left();
-					break;
-				//case KEYCODE_RIGHT: - bash doesn't do this
-				case 'f':
-					ctrl_right();
-					break;
-				//case KEYCODE_DELETE: - bash doesn't do this
-				case 'd':  /* Alt-D */
-				{
-					/* Delete word forward */
-					int nc, sc = cursor;
-					ctrl_right();
-					nc = cursor - sc;
-					input_backward(nc);
-					while (--nc >= 0)
-						input_delete(1);
-					break;
-				}
-				case '\b':   /* Alt-Backspace(?) */
-				case '\x7f': /* Alt-Backspace(?) */
-				//case 'w': - bash doesn't do this
-				{
-					/* Delete word backward */
-					int sc = cursor;
-					ctrl_left();
-					while (sc-- > cursor)
-						input_delete(1);
-					break;
-				}
 			}
 			break;
 #endif /* FEATURE_COMMAND_EDITING_VI */
