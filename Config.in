@@ -11,15 +11,18 @@ config HAVE_DOT_CONFIG
 
 menu "Busybox Settings"
 
-menu "General Configuration"
-
 config DESKTOP
 	bool "Enable options for full-blown desktop systems"
 	default y
 	help
 	  Enable options and features which are not essential.
-	  Select this only if you plan to use busybox on full-blown
-	  desktop machine with common Linux distro, not on an embedded box.
+	  Select this if you plan to use busybox on full-blown desktop machine
+	  with common Linux distro, which needs higher level of command-line
+	  compatibility.
+
+	  If you are preparing your build to be used on an embedded box
+	  where you have tighter control over the entire set of userspace
+	  tools, you can unselect this option for smaller code size. 
 
 config EXTRA_COMPAT
 	bool "Provide compatible behavior for rare corner cases (bigger code)"
@@ -199,9 +202,9 @@ config LAST_SUPPORTED_WCHAR
 	help
 	  Any character with Unicode value bigger than this is assumed
 	  to be non-printable on output device. Many applets replace
-	  such chars with substitution character.
+	  such characters with substitution character.
 
-	  The idea is that many valid printable Unicode chars are
+	  The idea is that many valid printable Unicode chars
 	  nevertheless are not displayed correctly. Think about
 	  combining charachers, double-wide hieroglyphs, obscure
 	  characters in dozens of ancient scripts...
@@ -497,9 +500,7 @@ config FEATURE_HAVE_RPC
 	#  This is automatically selected if any of enabled applets need it.
 	#  You do not need to select it manually.
 
-endmenu
-
-menu 'Build Options'
+comment 'Build Options'
 
 config STATIC
 	bool "Build BusyBox as a static binary (no shared libs)"
@@ -674,9 +675,73 @@ config EXTRA_LDLIBS
 	help
 	  Additional LDLIBS to pass to the linker with -l.
 
-endmenu
+comment 'Installation Options ("make install" behavior)'
 
-menu 'Debugging Options'
+choice
+	prompt "What kind of applet links to install"
+	default INSTALL_APPLET_SYMLINKS
+	help
+	  Choose what kind of links to applets are created by "make install".
+
+config INSTALL_APPLET_SYMLINKS
+	bool "as soft-links"
+	help
+	  Install applets as soft-links to the busybox binary. This needs some
+	  free inodes on the filesystem, but might help with filesystem
+	  generators that can't cope with hard-links.
+
+config INSTALL_APPLET_HARDLINKS
+	bool "as hard-links"
+	help
+	  Install applets as hard-links to the busybox binary. This might
+	  count on a filesystem with few inodes.
+
+config INSTALL_APPLET_SCRIPT_WRAPPERS
+	bool "as script wrappers"
+	help
+	  Install applets as script wrappers that call the busybox binary.
+
+config INSTALL_APPLET_DONT
+	bool "not installed"
+	help
+	  Do not install applet links. Useful when you plan to use
+	  busybox --install for installing links, or plan to use
+	  a standalone shell and thus don't need applet links.
+
+endchoice
+
+choice
+	prompt "/bin/sh applet link"
+	default INSTALL_SH_APPLET_SYMLINK
+	depends on INSTALL_APPLET_SCRIPT_WRAPPERS
+	help
+	  Choose how you install /bin/sh applet link.
+
+config INSTALL_SH_APPLET_SYMLINK
+	bool "as soft-link"
+	help
+	  Install /bin/sh applet as soft-link to the busybox binary.
+
+config INSTALL_SH_APPLET_HARDLINK
+	bool "as hard-link"
+	help
+	  Install /bin/sh applet as hard-link to the busybox binary.
+
+config INSTALL_SH_APPLET_SCRIPT_WRAPPER
+	bool "as script wrapper"
+	help
+	  Install /bin/sh applet as script wrapper that calls
+	  the busybox binary.
+
+endchoice
+
+config PREFIX
+	string "BusyBox installation prefix"
+	default "./_install"
+	help
+	  Define your directory to install BusyBox files/subdirs in.
+
+comment 'Debugging Options'
 
 config DEBUG
 	bool "Build BusyBox with extra Debugging symbols"
@@ -770,77 +835,7 @@ endchoice
 
 endmenu
 
-menu 'Installation Options ("make install" behavior)'
-
-choice
-	prompt "What kind of applet links to install"
-	default INSTALL_APPLET_SYMLINKS
-	help
-	  Choose what kind of links to applets are created by "make install".
-
-config INSTALL_APPLET_SYMLINKS
-	bool "as soft-links"
-	help
-	  Install applets as soft-links to the busybox binary. This needs some
-	  free inodes on the filesystem, but might help with filesystem
-	  generators that can't cope with hard-links.
-
-config INSTALL_APPLET_HARDLINKS
-	bool "as hard-links"
-	help
-	  Install applets as hard-links to the busybox binary. This might
-	  count on a filesystem with few inodes.
-
-config INSTALL_APPLET_SCRIPT_WRAPPERS
-	bool "as script wrappers"
-	help
-	  Install applets as script wrappers that call the busybox binary.
-
-config INSTALL_APPLET_DONT
-	bool "not installed"
-	help
-	  Do not install applet links. Useful when you plan to use
-	  busybox --install for installing links, or plan to use
-	  a standalone shell and thus don't need applet links.
-
-endchoice
-
-choice
-	prompt "/bin/sh applet link"
-	default INSTALL_SH_APPLET_SYMLINK
-	depends on INSTALL_APPLET_SCRIPT_WRAPPERS
-	help
-	  Choose how you install /bin/sh applet link.
-
-config INSTALL_SH_APPLET_SYMLINK
-	bool "as soft-link"
-	help
-	  Install /bin/sh applet as soft-link to the busybox binary.
-
-config INSTALL_SH_APPLET_HARDLINK
-	bool "as hard-link"
-	help
-	  Install /bin/sh applet as hard-link to the busybox binary.
-
-config INSTALL_SH_APPLET_SCRIPT_WRAPPER
-	bool "as script wrapper"
-	help
-	  Install /bin/sh applet as script wrapper that calls
-	  the busybox binary.
-
-endchoice
-
-config PREFIX
-	string "BusyBox installation prefix"
-	default "./_install"
-	help
-	  Define your directory to install BusyBox files/subdirs in.
-
-endmenu
-
 source libbb/Config.in
-
-endmenu
 
 comment "Applets"
 
