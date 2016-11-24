@@ -1746,6 +1746,7 @@ static int check_and_run_traps(void)
 				argv[2] = NULL;
 				save_rcode = G.last_exitcode;
 				builtin_eval(argv);
+//FIXME: shouldn't it be set to 128 + sig instead?
 				G.last_exitcode = save_rcode;
 				last_sig = sig;
 			} /* else: "" trap, ignoring signal */
@@ -2192,7 +2193,7 @@ static int get_user_input(struct in_str *i)
 
 	prompt_str = setup_prompt_string(i->promptmode);
 # if ENABLE_FEATURE_EDITING
-	do {
+	for (;;) {
 		reinit_unicode_for_hush();
 		G.flag_SIGINT = 0;
 		/* buglet: SIGINT will not make new prompt to appear _at once_,
@@ -2201,9 +2202,15 @@ static int get_user_input(struct in_str *i)
 				G.user_input_buf, CONFIG_FEATURE_EDITING_MAX_LEN-1,
 				/*timeout*/ -1
 		);
-		/* catch *SIGINT* etc (^C is handled by read_line_input) */
+		/* read_line_input intercepts ^C, "convert" it into SIGINT */
+		if (r == 0)
+			raise(SIGINT);
 		check_and_run_traps();
-	} while (r == 0 || G.flag_SIGINT); /* repeat if ^C or SIGINT */
+		if (r != 0 && !G.flag_SIGINT)
+			break;
+		/* ^C or SIGINT: repeat */
+		G.last_exitcode = 128 + SIGINT;
+	}
 	if (r < 0) {
 		/* EOF/error detected */
 		i->p = NULL;
@@ -2213,7 +2220,7 @@ static int get_user_input(struct in_str *i)
 	i->p = G.user_input_buf;
 	return (unsigned char)*i->p++;
 # else
-	do {
+	for (;;) {
 		G.flag_SIGINT = 0;
 		if (i->last_char == '\0' || i->last_char == '\n') {
 			/* Why check_and_run_traps here? Try this interactively:
@@ -2226,7 +2233,16 @@ static int get_user_input(struct in_str *i)
 		}
 		fflush_all();
 		r = fgetc(i->file);
-	} while (G.flag_SIGINT || r == '\0');
+		/* In !ENABLE_FEATURE_EDITING we don't use read_line_input,
+		 * no ^C masking happens during fgetc, no special code for ^C:
+		 * it generates SIGINT as usual.
+		 */
+		check_and_run_traps();
+		if (G.flag_SIGINT)
+			G.last_exitcode = 128 + SIGINT;
+		if (r != '\0')
+			break;
+	}
 	return r;
 # endif
 }

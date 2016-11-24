@@ -9876,6 +9876,7 @@ preadfd(void)
 				raise(SIGINT);
 				return 1;
 			}
+			exitstatus = 128 + SIGINT;
 			goto retry;
 		}
 		if (nr < 0) {
