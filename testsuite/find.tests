@@ -41,6 +41,33 @@ testing "find -exec exitcode 4" \
 	"1\n" \
 	"" ""
 SKIP=
+optional FEATURE_FIND_MAXDEPTH
+testing "find / -maxdepth 0 -name /" \
+	"find / -maxdepth 0 -name /" \
+	"/\n" \
+	"" ""
+testing "find // -maxdepth 0 -name /" \
+	"find // -maxdepth 0 -name /" \
+	"//\n" \
+	"" ""
+testing "find / -maxdepth 0 -name //" \
+	"find / -maxdepth 0 -name //" \
+	"" \
+	"" ""
+testing "find // -maxdepth 0 -name //" \
+	"find // -maxdepth 0 -name //" \
+	"" \
+	"" ""
+SKIP=
+
+testing "find ./// -name ." \
+	"find ./// -name ." \
+	".///\n" \
+	"" ""
+testing "find ./// -name .///" \
+	"find ./// -name .///" \
+	"" \
+	"" ""
 
 # testing "description" "command" "result" "infile" "stdin"
 
