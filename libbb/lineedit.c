@@ -2251,6 +2251,7 @@ static int32_t reverse_i_search(void)
  * Returns:
  * -1 on read errors or EOF, or on bare Ctrl-D,
  * 0  on ctrl-C (the line entered is still returned in 'command'),
+ * (in both cases the cursor remains on the input line, '\n' is not printed)
  * >0 length of input string, including terminating '\n'
  */
 int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize, int timeout)
@@ -2686,7 +2687,6 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 			 && ic_raw == initial_settings.c_cc[VINTR]
 			) {
 				/* Ctrl-C (usually) - stop gathering input */
-				goto_new_line();
 				command_len = 0;
 				break_out = -1; /* "do not append '\n'" */
 				break;

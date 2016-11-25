@@ -9869,7 +9869,8 @@ preadfd(void)
 		reinit_unicode_for_ash();
 		nr = read_line_input(line_input_state, cmdedit_prompt, buf, IBUFSIZ, timeout);
 		if (nr == 0) {
-			/* Ctrl+C pressed */
+			/* ^C pressed, "convert" to SIGINT */
+			write(STDOUT_FILENO, "^C", 2);
 			if (trap[SIGINT]) {
 				buf[0] = '\n';
 				buf[1] = '\0';
@@ -9877,6 +9878,7 @@ preadfd(void)
 				return 1;
 			}
 			exitstatus = 128 + SIGINT;
+			bb_putchar('\n');
 			goto retry;
 		}
 		if (nr < 0) {

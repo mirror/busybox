@@ -1756,8 +1756,6 @@ static int check_and_run_traps(void)
 		switch (sig) {
 		case SIGINT:
 			debug_printf_exec("%s: sig:%d default SIGINT handler\n", __func__, sig);
-			/* Builtin was ^C'ed, make it look prettier: */
-			bb_putchar('\n');
 			G.flag_SIGINT = 1;
 			last_sig = sig;
 			break;
@@ -2195,16 +2193,22 @@ static int get_user_input(struct in_str *i)
 # if ENABLE_FEATURE_EDITING
 	for (;;) {
 		reinit_unicode_for_hush();
-		G.flag_SIGINT = 0;
+		if (G.flag_SIGINT) {
+			/* There was ^C'ed, make it look prettier: */
+			bb_putchar('\n');
+			G.flag_SIGINT = 0;
+		}
 		/* buglet: SIGINT will not make new prompt to appear _at once_,
-		 * only after <Enter>. (^C will work) */
+		 * only after <Enter>. (^C works immediately) */
 		r = read_line_input(G.line_input_state, prompt_str,
 				G.user_input_buf, CONFIG_FEATURE_EDITING_MAX_LEN-1,
 				/*timeout*/ -1
 		);
-		/* read_line_input intercepts ^C, "convert" it into SIGINT */
-		if (r == 0)
+		/* read_line_input intercepts ^C, "convert" it to SIGINT */
+		if (r == 0) {
+			write(STDOUT_FILENO, "^C", 2);
 			raise(SIGINT);
+		}
 		check_and_run_traps();
 		if (r != 0 && !G.flag_SIGINT)
 			break;
@@ -2232,6 +2236,7 @@ static int get_user_input(struct in_str *i)
 			fputs(prompt_str, stdout);
 		}
 		fflush_all();
+//FIXME: here ^C or SIGINT will have effect only after <Enter>
 		r = fgetc(i->file);
 		/* In !ENABLE_FEATURE_EDITING we don't use read_line_input,
 		 * no ^C masking happens during fgetc, no special code for ^C:
