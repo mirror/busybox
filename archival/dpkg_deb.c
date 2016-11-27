@@ -22,14 +22,14 @@
 //kbuild:lib-$(CONFIG_DPKG_DEB) += dpkg_deb.o
 
 //usage:#define dpkg_deb_trivial_usage
-//usage:       "[-cefxX] FILE [argument]"
+//usage:       "[-cefxX] FILE [DIR]"
 //usage:#define dpkg_deb_full_usage "\n\n"
-//usage:       "Perform actions on Debian packages (.debs)\n"
-//usage:     "\n	-c	List contents of filesystem tree"
-//usage:     "\n	-e	Extract control files to [argument] directory"
-//usage:     "\n	-f	Display control field name starting with [argument]"
-//usage:     "\n	-x	Extract packages filesystem tree to directory"
-//usage:     "\n	-X	Verbose extract"
+//usage:       "Perform actions on Debian packages (.deb)\n"
+//usage:     "\n	-c	List files"
+//usage:     "\n	-f	Print control fields"
+//usage:     "\n	-e	Extract control files to DIR (default: ./DEBIAN)"
+//usage:     "\n	-x	Extract files to DIR (no default)"
+//usage:     "\n	-X	Verbose -x"
 //usage:
 //usage:#define dpkg_deb_example_usage
 //usage:       "$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
@@ -40,18 +40,17 @@
 #define DPKG_DEB_OPT_CONTENTS         1
 #define DPKG_DEB_OPT_CONTROL          2
 #define DPKG_DEB_OPT_FIELD            4
-#define DPKG_DEB_OPT_EXTRACT          8
-#define DPKG_DEB_OPT_EXTRACT_VERBOSE 16
+#define DPKG_DEB_OPT_EXTRACT_VERBOSE  8
+#define DPKG_DEB_OPT_EXTRACT         16
 
 int dpkg_deb_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dpkg_deb_main(int argc, char **argv)
+int dpkg_deb_main(int argc UNUSED_PARAM, char **argv)
 {
 	archive_handle_t *ar_archive;
 	archive_handle_t *tar_archive;
 	llist_t *control_tar_llist = NULL;
 	unsigned opt;
 	const char *extract_dir;
-	int need_args;
 
 	/* Setup the tar archive handle */
 	tar_archive = init_handle();
@@ -80,53 +79,45 @@ int dpkg_deb_main(int argc, char **argv)
 	llist_add_to(&control_tar_llist, (char*)"control.tar.xz");
 #endif
 
-	opt_complementary = "c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";
+	/* Must have 1 or 2 args */
+	opt_complementary = "-1:?2:c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";
 	opt = getopt32(argv, "cefXx");
 	argv += optind;
-	argc -= optind;
+	//argc -= optind;
 
-	if (opt & DPKG_DEB_OPT_CONTENTS) {
+	extract_dir = argv[1];
+	if (opt & DPKG_DEB_OPT_CONTENTS) { // -c
 		tar_archive->action_header = header_verbose_list;
+		if (extract_dir)
+			bb_show_usage();
 	}
-	extract_dir = NULL;
-	need_args = 1;
-	if (opt & DPKG_DEB_OPT_CONTROL) {
-		ar_archive->accept = control_tar_llist;
-		tar_archive->action_data = data_extract_all;
-		if (1 == argc) {
-			extract_dir = "./DEBIAN";
-		} else {
-			need_args++;
-		}
-	}
-	if (opt & DPKG_DEB_OPT_FIELD) {
-		/* Print the entire control file
-		 * it should accept a second argument which specifies a
-		 * specific field to print */
+	if (opt & DPKG_DEB_OPT_FIELD) { // -f
+		/* Print the entire control file */
+//TODO: standard tool accepts an optional list of fields to print
 		ar_archive->accept = control_tar_llist;
 		llist_add_to(&(tar_archive->accept), (char*)"./control");
 		tar_archive->filter = filter_accept_list;
 		tar_archive->action_data = data_extract_to_stdout;
+		if (extract_dir)
+			bb_show_usage();
 	}
-	if (opt & DPKG_DEB_OPT_EXTRACT) {
-		tar_archive->action_header = header_list;
-	}
-	if (opt & (DPKG_DEB_OPT_EXTRACT_VERBOSE | DPKG_DEB_OPT_EXTRACT)) {
+	if (opt & DPKG_DEB_OPT_CONTROL) { // -e
+		ar_archive->accept = control_tar_llist;
 		tar_archive->action_data = data_extract_all;
-		need_args = 2;
+		if (!extract_dir)
+			extract_dir = "./DEBIAN";
+	}
+	if (opt & (DPKG_DEB_OPT_EXTRACT_VERBOSE | DPKG_DEB_OPT_EXTRACT)) { // -Xx
+		if (opt & DPKG_DEB_OPT_EXTRACT_VERBOSE)
+			tar_archive->action_header = header_list;
+		tar_archive->action_data = data_extract_all;
+		if (!extract_dir)
+			bb_show_usage();
 	}
 
-	if (need_args != argc) {
-		bb_show_usage();
-	}
+	/* Standard tool supports "-" */
+	tar_archive->src_fd = ar_archive->src_fd = xopen_stdin(argv[0]);
 
-	tar_archive->src_fd = ar_archive->src_fd = xopen(argv[0], O_RDONLY);
-
-	/* Work out where to extract the files */
-	/* 2nd argument is a dir name */
-	if (argv[1]) {
-		extract_dir = argv[1];
-	}
 	if (extract_dir) {
 		mkdir(extract_dir, 0777); /* bb_make_directory(extract_dir, 0777, 0) */
 		xchdir(extract_dir);
