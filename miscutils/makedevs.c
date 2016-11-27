@@ -157,8 +157,11 @@ int makedevs_main(int argc, char **argv)
 
 		/* if mode != S_IFCHR and != S_IFBLK,
 		 * third param in mknod() ignored */
-		if (mknod(nodname, mode, makedev(Smajor, Sminor)))
+		if (mknod(nodname, mode, makedev(Smajor, Sminor)) != 0
+		 && errno != EEXIST
+		) {
 			bb_perror_msg("can't create '%s'", nodname);
+		}
 
 		/*if (nodname == basedev)*/ /* ex. /dev/hda - to /dev/hda1 ... */
 			nodname = buf;
@@ -279,7 +282,9 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 			for (i = start; i <= start + count; i++) {
 				sprintf(full_name_inc, count ? "%s%u" : "%s", full_name, i);
 				rdev = makedev(major, minor + (i - start) * increment);
-				if (mknod(full_name_inc, mode, rdev) < 0) {
+				if (mknod(full_name_inc, mode, rdev) != 0
+				  && errno != EEXIST
+				) {
 					bb_perror_msg("line %d: can't create node %s", linenum, full_name_inc);
 					ret = EXIT_FAILURE;
 				} else if (chown(full_name_inc, uid, gid) < 0) {
