@@ -94,11 +94,11 @@ gpt_print_wide36(uint16_t *s)
 	while (i < ARRAY_SIZE(buf)-1) {
 		if (s[i] == 0)
 			break;
-		buf[i] = (s[i] < 0x7f) ? s[i] : '?';
+		buf[i] = (0x20 <= s[i] && s[i] < 0x7f) ? s[i] : '?';
 		i++;
 	}
 	buf[i] = '\0';
-	fputs(printable_string(NULL, buf), stdout);
+	fputs(buf, stdout);
 #endif
 }
 
