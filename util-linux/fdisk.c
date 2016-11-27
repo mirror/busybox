@@ -121,6 +121,7 @@
 # define BLKGETSIZE64 _IOR(0x12,114,size_t)
 #endif
 #include "libbb.h"
+#include "unicode.h"
 
 #if BB_LITTLE_ENDIAN
 # define inline_if_little_endian ALWAYS_INLINE
