@@ -111,7 +111,7 @@ static int receive(/*int read_fd, */int file_fd)
 			 && blockBuf[blockLength - 3] == PAD
 			) {
 				while (blockLength
-			           && blockBuf[blockLength - 1] == PAD
+				    && blockBuf[blockLength - 1] == PAD
 				) {
 					blockLength--;
 				}

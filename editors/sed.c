@@ -892,7 +892,10 @@ static sed_cmd_t *branch_to(char *label)
 	sed_cmd_t *sed_cmd;
 
 	for (sed_cmd = G.sed_cmd_head; sed_cmd; sed_cmd = sed_cmd->next) {
-		if (sed_cmd->cmd == ':' && sed_cmd->string && !strcmp(sed_cmd->string, label)) {
+		if (sed_cmd->cmd == ':'
+		 && sed_cmd->string
+		 && strcmp(sed_cmd->string, label) == 0
+		) {
 			return sed_cmd;
 		}
 	}

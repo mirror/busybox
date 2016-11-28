@@ -264,7 +264,7 @@ const struct aftype* FAST_FUNC get_aftype(const char *name)
 
 	afp = aftypes;
 	while (*afp != NULL) {
-		if (!strcmp((*afp)->name, name))
+		if (strcmp((*afp)->name, name) == 0)
 			return (*afp);
 		afp++;
 	}
@@ -572,7 +572,7 @@ static int if_readlist_proc(char *target)
 		ife = add_interface(name);
 		get_dev_fields(s, ife, procnetdev_vsn);
 		ife->statistics_valid = 1;
-		if (target && !strcmp(target, name))
+		if (target && strcmp(target, name) == 0)
 			break;
 	}
 	if (ferror(fh)) {
@@ -781,7 +781,7 @@ const struct hwtype* FAST_FUNC get_hwtype(const char *name)
 
 	hwp = hwtypes;
 	while (*hwp != NULL) {
-		if (!strcmp((*hwp)->name, name))
+		if (strcmp((*hwp)->name, name) == 0)
 			return (*hwp);
 		hwp++;
 	}
@@ -877,7 +877,7 @@ static void ife_print6(struct interface *ptr)
 			addr6p[5], addr6p[6], addr6p[7], &if_idx, &plen, &scope,
 			&dad_status, devname) != EOF
 	) {
-		if (!strcmp(devname, ptr->name)) {
+		if (strcmp(devname, ptr->name) == 0) {
 			sprintf(addr6, "%s:%s:%s:%s:%s:%s:%s:%s",
 					addr6p[0], addr6p[1], addr6p[2], addr6p[3],
 					addr6p[4], addr6p[5], addr6p[6], addr6p[7]);

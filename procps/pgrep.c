@@ -168,7 +168,7 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 
 		if (ppid2match >= 0 && ppid2match != proc->ppid)
 			continue;
-		if (sid2match >= 0  && sid2match != proc->sid)
+		if (sid2match >= 0 && sid2match != proc->sid)
 			continue;
 
 		/* NB: OPT_INVERT is always 0 or 1 */

@@ -283,7 +283,7 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 				sprintf(full_name_inc, count ? "%s%u" : "%s", full_name, i);
 				rdev = makedev(major, minor + (i - start) * increment);
 				if (mknod(full_name_inc, mode, rdev) != 0
-				  && errno != EEXIST
+				 && errno != EEXIST
 				) {
 					bb_perror_msg("line %d: can't create node %s", linenum, full_name_inc);
 					ret = EXIT_FAILURE;

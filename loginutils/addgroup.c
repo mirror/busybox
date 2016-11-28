@@ -186,7 +186,7 @@ int addgroup_main(int argc UNUSED_PARAM, char **argv)
 		gr = xgetgrnam(argv[1]); /* unknown group: exit */
 		/* check if user is already in this group */
 		for (; *(gr->gr_mem) != NULL; (gr->gr_mem)++) {
-			if (!strcmp(argv[0], *(gr->gr_mem))) {
+			if (strcmp(argv[0], *(gr->gr_mem)) == 0) {
 				/* user is already in group: do nothing */
 				return EXIT_SUCCESS;
 			}

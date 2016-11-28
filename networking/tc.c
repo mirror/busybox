@@ -116,7 +116,7 @@ static int get_qdisc_handle(uint32_t *h, const char *str) {
 	char *p;
 
 	maj = TC_H_UNSPEC;
-	if (!strcmp(str, "none"))
+	if (strcmp(str, "none") == 0)
 		goto ok;
 	maj = strtoul(str, &p, 16);
 	if (p == str)
@@ -135,10 +135,10 @@ static int get_tc_classid(uint32_t *h, const char *str) {
 	char *p;
 
 	maj = TC_H_ROOT;
-	if (!strcmp(str, "root"))
+	if (strcmp(str, "root") == 0)
 		goto ok;
 	maj = TC_H_UNSPEC;
-	if (!strcmp(str, "none"))
+	if (strcmp(str, "none") == 0)
 		goto ok;
 	maj = strtoul(str, &p, 16);
 	if (p == str) {

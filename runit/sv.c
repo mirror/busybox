@@ -210,7 +210,7 @@ struct globals {
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 
-#define str_equal(s,t) (!strcmp((s), (t)))
+#define str_equal(s,t) (strcmp((s), (t)) == 0)
 
 
 static void fatal_cannot(const char *m1) NORETURN;

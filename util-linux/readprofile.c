@@ -174,7 +174,7 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 			bb_error_msg_and_die("%s(%i): wrong map line",
 					mapFile, maplineno);
 
-		if (!strcmp(fn_name, "_stext")) /* only elf works like this */ {
+		if (strcmp(fn_name, "_stext") == 0) /* only elf works like this */ {
 			add0 = fn_add;
 			break;
 		}
@@ -224,8 +224,9 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 		if (optBins) {
 			if (optVerbose || this > 0)
 				printf("  total\t\t\t\t%u\n", this);
-		} else if ((this || optAll)
-		        && (fn_len = next_add-fn_add) != 0
+		} else
+		if ((this || optAll)
+		 && (fn_len = next_add-fn_add) != 0
 		) {
 			if (optVerbose)
 				printf("%016llx %-40s %6u %8.4f\n", fn_add,
