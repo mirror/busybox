@@ -440,7 +440,6 @@ static void beep(void)
 static void put_prompt(void)
 {
 	fputs(cmdedit_prompt, stdout);
-	fflush_all();
 	cursor = 0;
 	cmdedit_y = cmdedit_prmt_len / cmdedit_termw; /* new quasireal y */
 	cmdedit_x = cmdedit_prmt_len % cmdedit_termw;
@@ -1978,16 +1977,15 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 }
 #endif
 
-static void cmdedit_setwidth(int redraw_flg)
+static void cmdedit_setwidth(void)
 {
-	get_terminal_width_height(STDIN_FILENO, &cmdedit_termw, NULL);
-	if (redraw_flg) {
-		/* new y for current cursor */
-		int new_y = (cursor + cmdedit_prmt_len) / cmdedit_termw;
-		/* redraw */
-		redraw((new_y >= cmdedit_y ? new_y : cmdedit_y), command_len - cursor);
-		fflush_all();
-	}
+	int new_y;
+
+	cmdedit_termw = get_terminal_width(STDIN_FILENO);
+	/* new y for current cursor */
+	new_y = (cursor + cmdedit_prmt_len) / cmdedit_termw;
+	/* redraw */
+	redraw((new_y >= cmdedit_y ? new_y : cmdedit_y), command_len - cursor);
 }
 
 static void win_changed(int nsig UNUSED_PARAM)
@@ -1995,7 +1993,8 @@ static void win_changed(int nsig UNUSED_PARAM)
 	if (S.ok_to_redraw) {
 		/* We are in read_key(), safe to redraw immediately */
 		int sv_errno = errno;
-		cmdedit_setwidth(/*redraw_flg:*/ 1);
+		cmdedit_setwidth();
+		fflush_all();
 		errno = sv_errno;
 	} else {
 		/* Signal main loop that redraw is necessary */
@@ -2011,6 +2010,7 @@ static int lineedit_read_key(char *read_key_buffer, int timeout)
 	int unicode_idx = 0;
 #endif
 
+	fflush_all();
 	while (1) {
 		/* Wait for input. TIMEOUT = -1 makes read_key wait even
 		 * on nonblocking stdin, TIMEOUT = 50 makes sure we won't
@@ -2152,7 +2152,6 @@ static int32_t reverse_i_search(void)
 		int h;
 		unsigned match_buf_len = strlen(match_buf);
 
-		fflush_all();
 //FIXME: correct timeout?
 		ic = lineedit_read_key(read_key_buffer, -1);
 
@@ -2282,7 +2281,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 		 * tty is still in "raw mode").
 		 */
 		parse_and_put_prompt(prompt);
-		/* fflush_all(); - done by parse_and_put_prompt */
+		fflush_all();
 		if (fgets(command, maxsize, stdin) == NULL)
 			len = -1; /* EOF or error */
 		else
@@ -2362,7 +2361,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	S.SIGWINCH_handler.sa_flags = SA_RESTART;
 	sigaction(SIGWINCH, &S.SIGWINCH_handler, &S.SIGWINCH_handler);
 
-	cmdedit_setwidth(/*redraw_flg:*/ 0); /* get initial window size */
+	cmdedit_termw = get_terminal_width(STDIN_FILENO);
 
 	read_key_buffer[0] = 0;
 	while (1) {
@@ -2380,10 +2379,9 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 		count = S.SIGWINCH_count;
 		if (S.SIGWINCH_saved != count) {
 			S.SIGWINCH_saved = count;
-			cmdedit_setwidth(/*redraw_flg:*/ 1);
+			cmdedit_setwidth();
 		}
 
-		fflush_all();
 		ic = ic_raw = lineedit_read_key(read_key_buffer, timeout);
 
 #if ENABLE_FEATURE_REVERSE_SEARCH
