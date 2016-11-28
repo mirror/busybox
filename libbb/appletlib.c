@@ -777,7 +777,7 @@ static int busybox_main(char **argv)
 			col += len2;
 			a += len2 - 1;
 		}
-		full_write2_str("\n\n");
+		full_write2_str("\n");
 		return 0;
 	}
 
