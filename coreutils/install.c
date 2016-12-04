@@ -209,16 +209,10 @@ int install_main(int argc, char **argv)
 			dest = last;
 			if (opts & OPT_MKDIR_LEADING) {
 				char *ddir = xstrdup(dest);
-				char *dn = dirname(ddir);
-				/* musl can return read-only "/" or "." string.
-				 * bb_make_directory needs writable string.
+				bb_make_directory(dirname(ddir), 0755, mkdir_flags);
+				/* errors are not checked. copy_file
+				 * will fail if dir is not created.
 				 */
-				if ((dn[0] != '/' && dn[0] != '.') || dn[1] != '\0') {
-					bb_make_directory(dn, 0755, mkdir_flags);
-					/* errors are not checked. copy_file
-					 * will fail if dir is not created.
-					 */
-				}
 				free(ddir);
 			}
 			if (isdir)
