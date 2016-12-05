@@ -166,26 +166,19 @@ Exit Codes
 //config:	help
 //config:	  Default directory for services.
 //config:	  Defaults to "/var/service"
+//config:
+//config:config SVC
+//config:	bool "svc"
+//config:	default y
+//config:	help
+//config:	  svc controls the state of services monitored by the runsv supervisor.
+//config:	  It is comaptible with daemontools command with the same name.
 
 //applet:IF_SV(APPLET(sv, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_SV(APPLET(svc, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_SV) += sv.o
-
-//usage:#define sv_trivial_usage
-//usage:       "[-v] [-w SEC] CMD SERVICE_DIR..."
-//usage:#define sv_full_usage "\n\n"
-//usage:       "Control services monitored by runsv supervisor.\n"
-//usage:       "Commands (only first character is enough):\n"
-//usage:       "\n"
-//usage:       "status: query service status\n"
-//usage:       "up: if service isn't running, start it. If service stops, restart it\n"
-//usage:       "once: like 'up', but if service stops, don't restart it\n"
-//usage:       "down: send TERM and CONT signals. If ./run exits, start ./finish\n"
-//usage:       "	if it exists. After it stops, don't restart service\n"
-//usage:       "exit: send TERM and CONT signals to service and log service. If they exit,\n"
-//usage:       "	runsv exits too\n"
-//usage:       "pause, cont, hup, alarm, interrupt, quit, 1, 2, term, kill: send\n"
-//usage:       "STOP, CONT, HUP, ALRM, INT, QUIT, USR1, USR2, TERM, KILL signal to service"
+//kbuild:lib-$(CONFIG_SVC) += sv.o
 
 #include <sys/file.h>
 #include "libbb.h"
@@ -452,8 +445,22 @@ static int control(const char *a)
 	return 1;
 }
 
-int sv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sv_main(int argc UNUSED_PARAM, char **argv)
+//usage:#define sv_trivial_usage
+//usage:       "[-v] [-w SEC] CMD SERVICE_DIR..."
+//usage:#define sv_full_usage "\n\n"
+//usage:       "Control services monitored by runsv supervisor.\n"
+//usage:       "Commands (only first character is enough):\n"
+//usage:       "\n"
+//usage:       "status: query service status\n"
+//usage:       "up: if service isn't running, start it. If service stops, restart it\n"
+//usage:       "once: like 'up', but if service stops, don't restart it\n"
+//usage:       "down: send TERM and CONT signals. If ./run exits, start ./finish\n"
+//usage:       "	if it exists. After it stops, don't restart service\n"
+//usage:       "exit: send TERM and CONT signals to service and log service. If they exit,\n"
+//usage:       "	runsv exits too\n"
+//usage:       "pause, cont, hup, alarm, interrupt, quit, 1, 2, term, kill: send\n"
+//usage:       "STOP, CONT, HUP, ALRM, INT, QUIT, USR1, USR2, TERM, KILL signal to service"
+static int sv(char **argv)
 {
 	char *x;
 	char *action;
@@ -634,3 +641,72 @@ int sv_main(int argc UNUSED_PARAM, char **argv)
 	}
 	return rc > 99 ? 99 : rc;
 }
+
+#if ENABLE_SV
+int sv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int sv_main(int argc UNUSED_PARAM, char **argv)
+{
+	return sv(argv);
+}
+#endif
+
+//usage:#define svc_trivial_usage
+//usage:       "[-udopchaitkx] SERVICE_DIR..."
+//usage:#define svc_full_usage "\n\n"
+//usage:       "Control services monitored by runsv supervisor"
+//usage:   "\n"
+//usage:   "\n""	-u	If service is not running, start it; restart if it stops"
+//usage:   "\n""	-d	If service is running, send TERM+CONT signals; do not restart it"
+//usage:   "\n""	-o	Once: if service is not running, start it; do not restart it"
+//usage:   "\n""	-pchaitk Send STOP, CONT, HUP, ALRM, INT, TERM, KILL signal to service"
+//usage:   "\n""	-x	Exit: runsv will exit as soon as the service is down"
+#if ENABLE_SVC
+int svc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int svc_main(int argc UNUSED_PARAM, char **argv)
+{
+	char command[2];
+	const char *optstring;
+	unsigned opts;
+
+	INIT_G();
+
+	optstring = "udopchaitkx";
+	opts = getopt32(argv, optstring);
+	argv += optind;
+	if (!argv[0] || !opts)
+		bb_show_usage();
+
+	argv -= 2;
+	if (optind > 2) {
+		argv--;
+		argv[2] = (char*)"--";
+	}
+	argv[0] = (char*)"sv";
+	argv[1] = command;
+	command[1] = '\0';
+
+	/* getopt32() was already called:
+	 * reset the libc getopt() function, which keeps internal state.
+	 */
+#ifdef __GLIBC__
+	optind = 0;
+#else /* BSD style */
+	optind = 1;
+	/* optreset = 1; */
+#endif
+
+	do {
+		if (opts & 1) {
+			int r;
+			command[0] = *optstring;
+			r = sv(argv);
+			if (r)
+				return 1;
+		}
+		optstring++;
+		opts >>= 1;
+	} while (opts);
+
+	return 0;
+}
+#endif
