@@ -175,7 +175,7 @@ Exit Codes
 //config:	  It is comaptible with daemontools command with the same name.
 
 //applet:IF_SV(APPLET(sv, BB_DIR_USR_BIN, BB_SUID_DROP))
-//applet:IF_SV(APPLET(svc, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_SVC(APPLET(svc, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_SV) += sv.o
 //kbuild:lib-$(CONFIG_SVC) += sv.o

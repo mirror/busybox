@@ -9,6 +9,8 @@
 
 /* lzop_main() uses bbunpack(), need this: */
 //kbuild:lib-$(CONFIG_LZOP) += bbunzip.o
+/* bzip2_main() too: */
+//kbuild:lib-$(CONFIG_BZIP2) += bbunzip.o
 
 /* Note: must be kept in sync with archival/lzop.c */
 enum {
@@ -190,7 +192,10 @@ int FAST_FUNC bbunpack(char **argv,
 	return exitcode;
 }
 
-#if ENABLE_UNCOMPRESS || ENABLE_BUNZIP2 || ENABLE_UNLZMA || ENABLE_UNXZ
+#if ENABLE_UNCOMPRESS \
+ || ENABLE_BUNZIP2 || ENABLE_BZCAT \
+ || ENABLE_UNLZMA || ENABLE_LZCAT || ENABLE_LZMA \
+ || ENABLE_UNXZ || ENABLE_XZCAT || ENABLE_XZ
 static
 char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 {

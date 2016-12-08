@@ -1191,8 +1191,16 @@ int bb_cat(char** argv);
 /* If shell needs them, they exist even if not enabled as applets */
 int echo_main(int argc, char** argv) IF_ECHO(MAIN_EXTERNALLY_VISIBLE);
 int printf_main(int argc, char **argv) IF_PRINTF(MAIN_EXTERNALLY_VISIBLE);
-int test_main(int argc, char **argv) IF_TEST(MAIN_EXTERNALLY_VISIBLE);
-int kill_main(int argc, char **argv) IF_KILL(MAIN_EXTERNALLY_VISIBLE);
+int test_main(int argc, char **argv)
+#if ENABLE_TEST || ENABLE_TEST1 || ENABLE_TEST2
+		MAIN_EXTERNALLY_VISIBLE
+#endif
+;
+int kill_main(int argc, char **argv)
+#if ENABLE_KILL || ENABLE_KILLALL || ENABLE_KILLALL5
+		MAIN_EXTERNALLY_VISIBLE
+#endif
+;
 /* Similar, but used by chgrp, not shell */
 int chown_main(int argc, char **argv) IF_CHOWN(MAIN_EXTERNALLY_VISIBLE);
 /* Used by ftpd */
