@@ -46,6 +46,7 @@
 //usage:     "\n		if it has changed"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #if ENABLE_FEATURE_SETFILES_CHECK_OPTION
 #include <sepol/sepol.h>
 #endif
