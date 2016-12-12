@@ -3113,7 +3113,18 @@ static const uint8_t syntax_index_table[] ALIGN1 = {
 # endif
 };
 
+#if 1
 # define SIT(c, syntax) ((S_I_T[syntax_index_table[c]] >> ((syntax)*4)) & 0xf)
+#else /* debug version, caught one signed char bug */
+# define SIT(c, syntax) \
+	({ \
+		if ((c) < 0 || (c) > (PEOF + ENABLE_ASH_ALIAS)) \
+			bb_error_msg_and_die("line:%d c:%d", __LINE__, (c)); \
+		if ((syntax) < 0 || (syntax) > (2 + ENABLE_SH_MATH_SUPPORT)) \
+			bb_error_msg_and_die("line:%d c:%d", __LINE__, (c)); \
+		((S_I_T[syntax_index_table[c]] >> ((syntax)*4)) & 0xf); \
+	})
+#endif
 
 #endif  /* !USE_SIT_FUNCTION */
 
@@ -5869,14 +5880,15 @@ memtodest(const char *p, size_t len, int syntax, int quotes)
 	do {
 		unsigned char c = *p++;
 		if (c) {
-			int n = SIT(c, syntax);
-			if ((quotes & QUOTES_ESC)
-			 && ((n == CCTL)
-			    ||  (((quotes & EXP_FULL) || syntax != BASESYNTAX)
-				&& n == CBACK)
-				)
-			) {
-				USTPUTC(CTLESC, q);
+			if (quotes & QUOTES_ESC) {
+				int n = SIT(c, syntax);
+				if (n == CCTL
+				 || (((quotes & EXP_FULL) || syntax != BASESYNTAX)
+				     && n == CBACK
+				    )
+				) {
+					USTPUTC(CTLESC, q);
+				}
 			}
 		} else if (!(quotes & QUOTES_KEEPNUL))
 			continue;
@@ -10051,7 +10063,7 @@ pgetc(void)
 		return g_parsefile->lastc[--g_parsefile->unget];
 
 	if (--g_parsefile->left_in_line >= 0)
-		c = (signed char)*g_parsefile->next_to_pgetc++;
+		c = (unsigned char)*g_parsefile->next_to_pgetc++;
 	else
 		c = preadbuffer();
 
