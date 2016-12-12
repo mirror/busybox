@@ -45,7 +45,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#ifndef major
+#if !defined(major) || defined(__GLIBC__)
 # include <sys/sysmacros.h>
 #endif
 #include <sys/wait.h>
