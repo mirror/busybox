@@ -33,6 +33,7 @@ while sleep 1; do
 		)
 		if test $? != 0; then
 			echo "Failed runtest in $dir"
+			grep ^FAIL -- "$dir/testsuite/runtest.log"
 			exit 1 # you may comment this out...
 			let fail++
 			continue

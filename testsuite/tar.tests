@@ -299,7 +299,7 @@ l4/V8LDoe90yiWJhOJvIypgEfxdyRThQkBVn/bI=
 "
 SKIP=
 
-optional UNICODE_SUPPORT FEATURE_TAR_GNU_EXTENSIONS
+optional UNICODE_SUPPORT FEATURE_TAR_GNU_EXTENSIONS FEATURE_SEAMLESS_BZ2
 testing "Pax-encoded UTF8 names and symlinks" '\
 tar xvf ../tar.utf8.tar.bz2 2>&1; echo $?
 export LANG=en_US.UTF-8
