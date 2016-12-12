@@ -1574,9 +1574,8 @@ static sighandler_t install_sighandler(int sig, sighandler_t handler)
 }
 
 static void hush_exit(int exitcode) NORETURN;
-static void fflush_and__exit(void) NORETURN;
-static void restore_ttypgrp_and__exit(void) NORETURN;
 
+static void restore_ttypgrp_and__exit(void) NORETURN;
 static void restore_ttypgrp_and__exit(void)
 {
 	/* xfunc has failed! die die die */
@@ -1584,6 +1583,8 @@ static void restore_ttypgrp_and__exit(void)
 	G.exiting = 1;
 	hush_exit(xfunc_error_retval);
 }
+
+#if ENABLE_HUSH_JOB
 
 /* Needed only on some libc:
  * It was observed that on exit(), fgetc'ed buffered data
@@ -1598,13 +1599,12 @@ static void restore_ttypgrp_and__exit(void)
  * and in `cmd` handling.
  * If set as die_func(), this makes xfunc_die() exit via _exit(), not exit():
  */
+static void fflush_and__exit(void) NORETURN;
 static void fflush_and__exit(void)
 {
 	fflush_all();
 	_exit(xfunc_error_retval);
 }
-
-#if ENABLE_HUSH_JOB
 
 /* After [v]fork, in child: do not restore tty pgrp on xfunc death */
 # define disable_restore_tty_pgrp_on_exit() (die_func = fflush_and__exit)

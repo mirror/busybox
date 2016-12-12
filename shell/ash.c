@@ -11373,13 +11373,13 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	smallint quotef;
 	smallint dblquote;
 	smallint oldstyle;
-	smallint prevsyntax; /* syntax before arithmetic */
+	IF_SH_MATH_SUPPORT(smallint prevsyntax;) /* syntax before arithmetic */
 #if ENABLE_ASH_EXPAND_PRMT
 	smallint pssyntax;   /* we are expanding a prompt string */
 #endif
 	int varnest;         /* levels of variables expansion */
-	int arinest;         /* levels of arithmetic expansion */
-	int parenlevel;      /* levels of parens in arithmetic */
+	IF_SH_MATH_SUPPORT(int arinest;)    /* levels of arithmetic expansion */
+	IF_SH_MATH_SUPPORT(int parenlevel;) /* levels of parens in arithmetic */
 	int dqvarnest;       /* levels of variables expansion within double quotes */
 
 	IF_ASH_BASH_COMPAT(smallint bash_dollar_squote = 0;)
@@ -11387,7 +11387,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	startlinno = g_parsefile->linno;
 	bqlist = NULL;
 	quotef = 0;
-	prevsyntax = 0;
+	IF_SH_MATH_SUPPORT(prevsyntax = 0;)
 #if ENABLE_ASH_EXPAND_PRMT
 	pssyntax = (syntax == PSSYNTAX);
 	if (pssyntax)
@@ -11395,8 +11395,8 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 #endif
 	dblquote = (syntax == DQSYNTAX);
 	varnest = 0;
-	arinest = 0;
-	parenlevel = 0;
+	IF_SH_MATH_SUPPORT(arinest = 0;)
+	IF_SH_MATH_SUPPORT(parenlevel = 0;)
 	dqvarnest = 0;
 
 	STARTSTACKSTR(out);
