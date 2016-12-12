@@ -47,25 +47,6 @@ struct fstrim_range {
 #define FITRIM		_IOWR('X', 121, struct fstrim_range)
 #endif
 
-static const struct suffix_mult fstrim_sfx[] = {
-	{ "KiB", 1024 },
-	{ "kiB", 1024 },
-	{ "K", 1024 },
-	{ "k", 1024 },
-	{ "MiB", 1048576 },
-	{ "miB", 1048576 },
-	{ "M", 1048576 },
-	{ "m", 1048576 },
-	{ "GiB", 1073741824 },
-	{ "giB", 1073741824 },
-	{ "G", 1073741824 },
-	{ "g", 1073741824 },
-	{ "KB", 1000 },
-	{ "MB", 1000000 },
-	{ "GB", 1000000000 },
-	{ "", 0 }
-};
-
 int fstrim_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fstrim_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -98,11 +79,11 @@ int fstrim_main(int argc UNUSED_PARAM, char **argv)
 	range.len = ULLONG_MAX;
 
 	if (opts & OPT_o)
-		range.start = xatoull_sfx(arg_o, fstrim_sfx);
+		range.start = xatoull_sfx(arg_o, kmg_i_suffixes);
 	if (opts & OPT_l)
-		range.len = xatoull_sfx(arg_l, fstrim_sfx);
+		range.len = xatoull_sfx(arg_l, kmg_i_suffixes);
 	if (opts & OPT_m)
-		range.minlen = xatoull_sfx(arg_m, fstrim_sfx);
+		range.minlen = xatoull_sfx(arg_m, kmg_i_suffixes);
 
 	mp = argv[optind];
 	if (find_block_device(mp)) {

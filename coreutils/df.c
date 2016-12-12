@@ -129,8 +129,19 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_MEGA)
 		df_disp_hr = 1024*1024;
 
-	if (opt & OPT_BSIZE)
-		df_disp_hr = xatoul_range(chp, 1, ULONG_MAX); /* disallow 0 */
+	if (opt & OPT_BSIZE) {
+		/* GNU coreutils 8.25 accepts "-BMiB" form too */
+		int i;
+		for (i = 0; kmg_i_suffixes[i].suffix[0]; i++) {
+			if (strcmp(kmg_i_suffixes[i].suffix, chp) == 0) {
+				df_disp_hr = kmg_i_suffixes[i].mult;
+				goto got_it;
+			}
+		}
+		/* Range used to disallow 0 */
+		df_disp_hr = xatoul_range_sfx(chp, 1, ULONG_MAX, kmg_i_suffixes);
+ got_it: ;
+	}
 
 	/* From the manpage of df from coreutils-6.10:
 	 * Disk space is shown in 1K blocks by default, unless the environment
@@ -203,6 +214,11 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 			bb_simple_perror_msg(mount_point);
 			goto set_error;
 		}
+		/* Some uclibc versions were seen to lose f_frsize
+		 * (kernel does return it, but then uclibc does not copy it)
+		 */
+		if (s.f_frsize == 0)
+			s.f_frsize = s.f_bsize;
 
 		if ((s.f_blocks > 0) || !mount_table || (opt & OPT_ALL)) {
 			if (opt & OPT_INODE) {
