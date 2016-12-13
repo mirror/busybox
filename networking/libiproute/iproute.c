@@ -66,6 +66,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	inet_prefix dst;
 	inet_prefix src;
 	int host_len = -1;
+	uint32_t tid;
 
 	if (n->nlmsg_type != RTM_NEWROUTE && n->nlmsg_type != RTM_DELROUTE) {
 		fprintf(stderr, "Not a route: %08x %08x %08x\n",
@@ -77,6 +78,14 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	len -= NLMSG_LENGTH(sizeof(*r));
 	if (len < 0)
 		bb_error_msg_and_die("wrong nlmsg len %d", len);
+
+	memset(tb, 0, sizeof(tb));
+	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
+
+	if (tb[RTA_TABLE])
+		tid = *(uint32_t *)RTA_DATA(tb[RTA_TABLE]);
+	else
+		tid = r->rtm_table;
 
 	if (r->rtm_family == AF_INET6)
 		host_len = 128;
@@ -107,7 +116,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 			}
 		}
 	} else {
-		if (G_filter.tb > 0 && G_filter.tb != r->rtm_table) {
+		if (G_filter.tb > 0 && G_filter.tb != tid) {
 			return 0;
 		}
 	}
@@ -136,10 +145,8 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 		return 0;
 	}
 
-	memset(tb, 0, sizeof(tb));
 	memset(&src, 0, sizeof(src));
 	memset(&dst, 0, sizeof(dst));
-	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
 
 	if (tb[RTA_SRC]) {
 		src.bitlen = r->rtm_src_len;
@@ -258,6 +265,10 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (tb[RTA_OIF]) {
 		printf("dev %s ", ll_index_to_name(*(int*)RTA_DATA(tb[RTA_OIF])));
 	}
+#if ENABLE_FEATURE_IP_RULE
+	if (tid && tid != RT_TABLE_MAIN && !G_filter.tb)
+		printf("table %s ", rtnl_rttable_n2a(tid));
+#endif
 
 	/* Todo: parse & show "proto kernel", "scope link" here */
 
@@ -419,7 +430,12 @@ IF_FEATURE_IP_RULE(ARG_table,)
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
 				invarg_1_to_2(*argv, "table");
-			req.r.rtm_table = tid;
+			if (tid < 256)
+				req.r.rtm_table = tid;
+			else {
+				req.r.rtm_table = RT_TABLE_UNSPEC;
+				addattr32(&req.n, sizeof(req), RTA_TABLE, tid);
+			}
 #endif
 		} else if (arg == ARG_dev || arg == ARG_oif) {
 			NEXT_ARG();

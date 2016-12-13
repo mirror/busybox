@@ -114,7 +114,9 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 		printf("iif %s ", (char*)RTA_DATA(tb[RTA_IIF]));
 	}
 
-	if (r->rtm_table)
+	if (tb[RTA_TABLE])
+		printf("lookup %s ", rtnl_rttable_n2a(*(uint32_t*)RTA_DATA(tb[RTA_TABLE])));
+	else if (r->rtm_table)
 		printf("lookup %s ", rtnl_rttable_n2a(r->rtm_table));
 
 	if (tb[RTA_FLOW]) {
@@ -256,7 +258,12 @@ static int iprule_modify(int cmd, char **argv)
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
 				invarg_1_to_2(*argv, "table ID");
-			req.r.rtm_table = tid;
+			if (tid < 256)
+				req.r.rtm_table = tid;
+			else {
+				req.r.rtm_table = RT_TABLE_UNSPEC;
+				addattr32(&req.n, sizeof(req), RTA_TABLE, tid);
+			}
 			table_ok = 1;
 		} else if (key == ARG_dev ||
 			   key == ARG_iif
