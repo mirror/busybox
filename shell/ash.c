@@ -57,6 +57,9 @@
 # error with backslash, even ones which do not need to be: "/a-b" -> "/a\-b"
 # error glob() should unbackslash them and match. uClibc does not unbackslash,
 # error fails to match dirname, subsequently not expanding <pattern> in it.
+// Testcase:
+// if (glob("/etc/polkit\\-1", 0, NULL, &pglob)) - this returns 0 on uclibc, no bug
+// if (glob("/etc/polkit\\-1/*", 0, NULL, &pglob)) printf("uclibc bug!\n");
 #endif
 
 #if !ENABLE_ASH_INTERNAL_GLOB
