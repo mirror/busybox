@@ -51,6 +51,14 @@
 # define ENABLE_ASH_INTERNAL_GLOB 1
 #endif
 
+#if !ENABLE_ASH_INTERNAL_GLOB && defined(__UCLIBC__)
+# error uClibc glob() is buggy, use ASH_INTERNAL_GLOB.
+# error The bug is: for "$PWD"/<pattern> ash will escape e.g. dashes in "$PWD"
+# error with backslash, even ones which do not need to be: "/a-b" -> "/a\-b"
+# error glob() should unbackslash them and match. uClibc does not unbackslash,
+# error fails to match dirname, subsequently not expanding <pattern> in it.
+#endif
+
 #if !ENABLE_ASH_INTERNAL_GLOB
 # include <glob.h>
 #endif
