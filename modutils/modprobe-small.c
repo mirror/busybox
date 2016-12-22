@@ -7,37 +7,9 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-//config:config MODPROBE_SMALL
-//config:	bool "Simplified modutils"
-//config:	default y
-//config:	select PLATFORM_LINUX
-//config:	help
-//config:	  Simplified modutils.
-//config:
-//config:	  With this option modprobe does not require modules.dep file
-//config:	  and does not use /etc/modules.conf file.
-//config:	  It scans module files in /lib/modules/`uname -r` and
-//config:	  determines dependencies and module alias names on the fly.
-//config:	  This may make module loading slower, most notably
-//config:	  when one needs to load module by alias (this requires
-//config:	  scanning through module _bodies_).
-//config:
-//config:	  At the first attempt to load a module by alias modprobe
-//config:	  will try to generate modules.dep.bb file in order to speed up
-//config:	  future loads by alias. Failure to do so (read-only /lib/modules,
-//config:	  etc) is not reported, and future modprobes will be slow too.
-//config:
-//config:	  NB: modules.dep.bb file format is not compatible
-//config:	  with modules.dep file as created/used by standard module tools.
-//config:
-//config:	  Additional module parameters can be stored in
-//config:	  /etc/modules/$module_name files.
-//config:
-//config:	  Apart from modprobe, other utilities are also provided:
-//config:	  - insmod is an alias to modprobe
-//config:	  - rmmod is an alias to modprobe -r
-//config:	  - depmod generates modules.dep.bb
-//config:
+
+/* config MODPROBE_SMALL is defined in Config.src to ensure better "make config" order */
+
 //config:config FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
 //config:	bool "Accept module options on modprobe command line"
 //config:	default y

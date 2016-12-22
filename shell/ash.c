@@ -117,7 +117,7 @@
 //config:
 //config:config ASH_INTERNAL_GLOB
 //config:	bool "Use internal glob() implementation"
-//config:	default n
+//config:	default y	# Y is bigger, but because of uclibc glob() bug, let Y be default for now
 //config:	depends on ASH
 //config:	help
 //config:	  Do not use glob() function from libc, use internal implementation.
@@ -218,11 +218,10 @@
 //config:
 //config:config ASH_MAIL
 //config:	bool "Check for new mail on interactive shells"
-//config:	default n
+//config:	default y
 //config:	depends on ASH
 //config:	help
 //config:	  Enable "check for new mail" function in the ash shell.
-//config:
 
 //applet:IF_ASH(APPLET(ash, BB_DIR_BIN, BB_SUID_DROP))
 //applet:IF_FEATURE_SH_IS_ASH(APPLET_ODDNAME(sh, ash, BB_DIR_BIN, BB_SUID_DROP, sh))

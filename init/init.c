@@ -83,7 +83,7 @@
 //config:
 //config:config FEATURE_INIT_COREDUMPS
 //config:	bool "Support dumping core for child processes (debugging only)"
-//config:	default y
+//config:	default n	# not Y because this is a debug option
 //config:	depends on INIT || LINUXRC
 //config:	help
 //config:	  If this option is enabled and the file /.init_enable_core
