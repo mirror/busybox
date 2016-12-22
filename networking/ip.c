@@ -17,24 +17,72 @@
 //config:	  utility. You generally don't need "ip" to use busybox with
 //config:	  TCP/IP.
 //config:
+//config:config IPADDR
+//config:	bool "ipaddr"
+//config:	default y
+//config:	select FEATURE_IP_ADDRESS
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Support short form of ip addr: ipaddr
+//config:
+//config:config IPLINK
+//config:	bool "iplink"
+//config:	default y
+//config:	select FEATURE_IP_LINK
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Support short form of ip link: iplink
+//config:
+//config:config IPROUTE
+//config:	bool "iproute"
+//config:	default y
+//config:	select FEATURE_IP_ROUTE
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Support short form of ip route: iproute
+//config:
+//config:config IPTUNNEL
+//config:	bool "iptunnel"
+//config:	default y
+//config:	select FEATURE_IP_TUNNEL
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Support short form of ip tunnel: iptunnel
+//config:
+//config:config IPRULE
+//config:	bool "iprule"
+//config:	default y
+//config:	select FEATURE_IP_RULE
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Support short form of ip rule: iprule
+//config:
+//config:config IPNEIGH
+//config:	bool "ipneigh"
+//config:	default y
+//config:	select FEATURE_IP_NEIGH
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Support short form of ip neigh: ipneigh
+//config:
 //config:config FEATURE_IP_ADDRESS
 //config:	bool "ip address"
 //config:	default y
-//config:	depends on IP
+//config:	depends on IP || IPADDR
 //config:	help
 //config:	  Address manipulation support for the "ip" applet.
 //config:
 //config:config FEATURE_IP_LINK
 //config:	bool "ip link"
 //config:	default y
-//config:	depends on IP
+//config:	depends on IP || IPLINK
 //config:	help
 //config:	  Configure network devices with "ip".
 //config:
 //config:config FEATURE_IP_ROUTE
 //config:	bool "ip route"
 //config:	default y
-//config:	depends on IP
+//config:	depends on IP || IPROUTE
 //config:	help
 //config:	  Add support for routing table management to "ip".
 //config:
@@ -48,83 +96,35 @@
 //config:config FEATURE_IP_TUNNEL
 //config:	bool "ip tunnel"
 //config:	default y
-//config:	depends on IP
+//config:	depends on IP || IPTUNNEL
 //config:	help
 //config:	  Add support for tunneling commands to "ip".
 //config:
 //config:config FEATURE_IP_RULE
 //config:	bool "ip rule"
 //config:	default y
-//config:	depends on IP
+//config:	depends on IP || IPRULE
 //config:	help
 //config:	  Add support for rule commands to "ip".
 //config:
 //config:config FEATURE_IP_NEIGH
 //config:	bool "ip neighbor"
 //config:	default y
-//config:	depends on IP
+//config:	depends on IP || IPNEIGH
 //config:	help
 //config:	  Add support for neighbor commands to "ip".
-//config:
-//config:config FEATURE_IP_SHORT_FORMS
-//config:	bool "Support short forms of ip commands"
-//config:	default y
-//config:	depends on IP
-//config:	help
-//config:	  Also support short-form of ip <OBJECT> commands:
-//config:	  ip addr   -> ipaddr
-//config:	  ip link   -> iplink
-//config:	  ip route  -> iproute
-//config:	  ip tunnel -> iptunnel
-//config:	  ip rule   -> iprule
-//config:	  ip neigh  -> ipneigh
-//config:
-//config:	  Say N unless you desparately need the short form of the ip
-//config:	  object commands.
 //config:
 //config:config FEATURE_IP_RARE_PROTOCOLS
 //config:	bool "Support displaying rarely used link types"
 //config:	default n
-//config:	depends on IP
+//config:	depends on IP || IPADDR || IPLINK || IPROUTE || IPTUNNEL || IPRULE || IPNEIGH
 //config:	help
 //config:	  If you are not going to use links of type "frad", "econet",
 //config:	  "bif" etc, you probably don't need to enable this.
 //config:	  Ethernet, wireless, infrared, ppp/slip, ip tunnelling
 //config:	  link types are supported without this option selected.
-//config:
-//config:config IPADDR
-//config:	bool
-//config:	default y
-//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_ADDRESS
-//config:
-//config:config IPLINK
-//config:	bool
-//config:	default y
-//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_LINK
-//config:
-//config:config IPROUTE
-//config:	bool
-//config:	default y
-//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_ROUTE
-//config:
-//config:config IPTUNNEL
-//config:	bool
-//config:	default y
-//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_TUNNEL
-//config:
-//config:config IPRULE
-//config:	bool
-//config:	default y
-//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_RULE
-//config:
-//config:config IPNEIGH
-//config:	bool
-//config:	default y
-//config:	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_NEIGH
 
-//applet:#if ENABLE_FEATURE_IP_ADDRESS || ENABLE_FEATURE_IP_ROUTE || ENABLE_FEATURE_IP_LINK || ENABLE_FEATURE_IP_TUNNEL || ENABLE_FEATURE_IP_RULE || ENABLE_FEATURE_IP_NEIGH
 //applet:IF_IP(APPLET(ip, BB_DIR_SBIN, BB_SUID_DROP))
-//applet:#endif
 //applet:IF_IPADDR(APPLET(ipaddr, BB_DIR_SBIN, BB_SUID_DROP))
 //applet:IF_IPLINK(APPLET(iplink, BB_DIR_SBIN, BB_SUID_DROP))
 //applet:IF_IPROUTE(APPLET(iproute, BB_DIR_SBIN, BB_SUID_DROP))
@@ -133,6 +133,12 @@
 //applet:IF_IPNEIGH(APPLET(ipneigh, BB_DIR_SBIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_IP) += ip.o
+//kbuild:lib-$(CONFIG_IPADDR) += ip.o
+//kbuild:lib-$(CONFIG_IPLINK) += ip.o
+//kbuild:lib-$(CONFIG_IPROUTE) += ip.o
+//kbuild:lib-$(CONFIG_IPRULE) += ip.o
+//kbuild:lib-$(CONFIG_IPTUNNEL) += ip.o
+//kbuild:lib-$(CONFIG_IPNEIGH) += ip.o
 
 /* would need to make the " | " optional depending on more than one selected: */
 //usage:#define ip_trivial_usage
@@ -218,62 +224,57 @@
 #include "libiproute/utils.h"
 #include "libiproute/ip_common.h"
 
-#if ENABLE_FEATURE_IP_ADDRESS \
- || ENABLE_FEATURE_IP_ROUTE \
- || ENABLE_FEATURE_IP_LINK \
- || ENABLE_FEATURE_IP_TUNNEL \
- || ENABLE_FEATURE_IP_RULE \
- || ENABLE_FEATURE_IP_NEIGH
-
-static int FAST_FUNC ip_print_help(char **argv UNUSED_PARAM)
-{
-	bb_show_usage();
-}
-
 typedef int FAST_FUNC (*ip_func_ptr_t)(char**);
 
+#if ENABLE_IPADDR \
+ || ENABLE_IPLINK \
+ || ENABLE_IPROUTE \
+ || ENABLE_IPRULE \
+ || ENABLE_IPTUNNEL \
+ || ENABLE_IPNEIGH
 static int ip_do(ip_func_ptr_t ip_func, char **argv)
 {
 	argv = ip_parse_common_args(argv + 1);
 	return ip_func(argv);
 }
+#endif
 
-#if ENABLE_FEATURE_IP_ADDRESS
+#if ENABLE_IPADDR
 int ipaddr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ipaddr_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_ipaddr, argv);
 }
 #endif
-#if ENABLE_FEATURE_IP_LINK
+#if ENABLE_IPLINK
 int iplink_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iplink_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_iplink, argv);
 }
 #endif
-#if ENABLE_FEATURE_IP_ROUTE
+#if ENABLE_IPROUTE
 int iproute_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iproute_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_iproute, argv);
 }
 #endif
-#if ENABLE_FEATURE_IP_RULE
+#if ENABLE_IPRULE
 int iprule_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iprule_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_iprule, argv);
 }
 #endif
-#if ENABLE_FEATURE_IP_TUNNEL
+#if ENABLE_IPTUNNEL
 int iptunnel_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iptunnel_main(int argc UNUSED_PARAM, char **argv)
 {
 	return ip_do(do_iptunnel, argv);
 }
 #endif
-#if ENABLE_FEATURE_IP_NEIGH
+#if ENABLE_IPNEIGH
 int ipneigh_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ipneigh_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -281,11 +282,16 @@ int ipneigh_main(int argc UNUSED_PARAM, char **argv)
 }
 #endif
 
+#if ENABLE_IP
+static int FAST_FUNC ip_print_help(char **argv UNUSED_PARAM)
+{
+	bb_show_usage();
+}
 
 int ip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ip_main(int argc UNUSED_PARAM, char **argv)
 {
-	static const char keywords[] ALIGN1 =
+	static const char keywords[] ALIGN1 = ""
 		IF_FEATURE_IP_ADDRESS("address\0")
 		IF_FEATURE_IP_ROUTE("route\0")
 		IF_FEATURE_IP_ROUTE("r\0")
@@ -310,10 +316,12 @@ int ip_main(int argc UNUSED_PARAM, char **argv)
 	int key;
 
 	argv = ip_parse_common_args(argv + 1);
-	key = *argv ? index_in_substrings(keywords, *argv++) : -1;
+	if (ARRAY_SIZE(ip_func_ptrs) > 1 && *argv)
+		key = index_in_substrings(keywords, *argv++);
+	else
+		key = -1;
 	ip_func = ip_func_ptrs[key + 1];
 
 	return ip_func(argv);
 }
-
-#endif /* any of ENABLE_FEATURE_IP_xxx is 1 */
+#endif
