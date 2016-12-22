@@ -1,17 +1,11 @@
-POST upload example:
-
-post_upload.htm
-===============
-<html>
-<body>
-<form action=/cgi-bin/post_upload.cgi method=post enctype=multipart/form-data>
-File to upload: <input type=file name=file1> <input type=submit>
-</form>
-
-
-post_upload.cgi
-===============
 #!/bin/sh
+
+# post_upload.htm example:
+# <html>
+# <body>
+# <form action=/cgi-bin/httpd_post_upload.cgi method=post enctype=multipart/form-data>
+# File to upload: <input type=file name=file1> <input type=submit>
+# </form>
 
 # POST upload format:
 # -----------------------------29995809218093749221856446032^M
