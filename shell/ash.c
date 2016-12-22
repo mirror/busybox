@@ -15,88 +15,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/*
- * The following should be set to reflect the type of system you have:
- *      JOBS -> 1 if you have Berkeley job control, 0 otherwise.
- *      define SYSV if you are running under System V.
- *      define DEBUG=1 to compile in debugging ('set -o debug' to turn on)
- *      define DEBUG=2 to compile in and turn on debugging.
- *
- * When debugging is on (DEBUG is 1 and "set -o debug" was executed),
- * debugging info will be written to ./trace and a quit signal
- * will generate a core dump.
- */
-#define DEBUG 0
-/* Tweak debug output verbosity here */
-#define DEBUG_TIME 0
-#define DEBUG_PID 1
-#define DEBUG_SIG 1
-#define DEBUG_INTONOFF 0
-
-#define PROFILE 0
-
-#define JOBS ENABLE_ASH_JOB_CONTROL
-
-#include <setjmp.h>
-#include <fnmatch.h>
-#include <sys/times.h>
-#include <sys/utsname.h> /* for setting $HOSTNAME */
-
-#include "busybox.h" /* for applet_names */
-
-#if defined(__ANDROID_API__) && __ANDROID_API__ <= 24
-/* Bionic at least up to version 24 has no glob() */
-# undef  ENABLE_ASH_INTERNAL_GLOB
-# define ENABLE_ASH_INTERNAL_GLOB 1
-#endif
-
-#if !ENABLE_ASH_INTERNAL_GLOB && defined(__UCLIBC__)
-# error uClibc glob() is buggy, use ASH_INTERNAL_GLOB.
-# error The bug is: for "$PWD"/<pattern> ash will escape e.g. dashes in "$PWD"
-# error with backslash, even ones which do not need to be: "/a-b" -> "/a\-b"
-# error glob() should unbackslash them and match. uClibc does not unbackslash,
-# error fails to match dirname, subsequently not expanding <pattern> in it.
-// Testcase:
-// if (glob("/etc/polkit\\-1", 0, NULL, &pglob)) - this returns 0 on uclibc, no bug
-// if (glob("/etc/polkit\\-1/*", 0, NULL, &pglob)) printf("uclibc bug!\n");
-#endif
-
-#if !ENABLE_ASH_INTERNAL_GLOB
-# include <glob.h>
-#endif
-
-#include "unicode.h"
-#include "shell_common.h"
-#if ENABLE_SH_MATH_SUPPORT
-# include "math.h"
-#endif
-#if ENABLE_ASH_RANDOM_SUPPORT
-# include "random.h"
-#else
-# define CLEAR_RANDOM_T(rnd) ((void)0)
-#endif
-
-#include "NUM_APPLETS.h"
-#if NUM_APPLETS == 1
-/* STANDALONE does not make sense, and won't compile */
-# undef CONFIG_FEATURE_SH_STANDALONE
-# undef ENABLE_FEATURE_SH_STANDALONE
-# undef IF_FEATURE_SH_STANDALONE
-# undef IF_NOT_FEATURE_SH_STANDALONE
-# define ENABLE_FEATURE_SH_STANDALONE 0
-# define IF_FEATURE_SH_STANDALONE(...)
-# define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
-#endif
-
-#ifndef PIPE_BUF
-# define PIPE_BUF 4096           /* amount of buffering in a pipe */
-#endif
-
-#if !BB_MMU
-# error "Do not even bother, ash will not run on NOMMU machine"
-#endif
-
 //config:config ASH
 //config:	bool "ash"
 //config:	default y
@@ -229,6 +147,87 @@
 
 //kbuild:lib-$(CONFIG_ASH) += ash.o ash_ptr_hack.o shell_common.o
 //kbuild:lib-$(CONFIG_ASH_RANDOM_SUPPORT) += random.o
+
+/*
+ * The following should be set to reflect the type of system you have:
+ *      JOBS -> 1 if you have Berkeley job control, 0 otherwise.
+ *      define SYSV if you are running under System V.
+ *      define DEBUG=1 to compile in debugging ('set -o debug' to turn on)
+ *      define DEBUG=2 to compile in and turn on debugging.
+ *
+ * When debugging is on (DEBUG is 1 and "set -o debug" was executed),
+ * debugging info will be written to ./trace and a quit signal
+ * will generate a core dump.
+ */
+#define DEBUG 0
+/* Tweak debug output verbosity here */
+#define DEBUG_TIME 0
+#define DEBUG_PID 1
+#define DEBUG_SIG 1
+#define DEBUG_INTONOFF 0
+
+#define PROFILE 0
+
+#define JOBS ENABLE_ASH_JOB_CONTROL
+
+#include <setjmp.h>
+#include <fnmatch.h>
+#include <sys/times.h>
+#include <sys/utsname.h> /* for setting $HOSTNAME */
+
+#include "busybox.h" /* for applet_names */
+
+#if defined(__ANDROID_API__) && __ANDROID_API__ <= 24
+/* Bionic at least up to version 24 has no glob() */
+# undef  ENABLE_ASH_INTERNAL_GLOB
+# define ENABLE_ASH_INTERNAL_GLOB 1
+#endif
+
+#if !ENABLE_ASH_INTERNAL_GLOB && defined(__UCLIBC__)
+# error uClibc glob() is buggy, use ASH_INTERNAL_GLOB.
+# error The bug is: for "$PWD"/<pattern> ash will escape e.g. dashes in "$PWD"
+# error with backslash, even ones which do not need to be: "/a-b" -> "/a\-b"
+# error glob() should unbackslash them and match. uClibc does not unbackslash,
+# error fails to match dirname, subsequently not expanding <pattern> in it.
+// Testcase:
+// if (glob("/etc/polkit\\-1", 0, NULL, &pglob)) - this returns 0 on uclibc, no bug
+// if (glob("/etc/polkit\\-1/*", 0, NULL, &pglob)) printf("uclibc bug!\n");
+#endif
+
+#if !ENABLE_ASH_INTERNAL_GLOB
+# include <glob.h>
+#endif
+
+#include "unicode.h"
+#include "shell_common.h"
+#if ENABLE_SH_MATH_SUPPORT
+# include "math.h"
+#endif
+#if ENABLE_ASH_RANDOM_SUPPORT
+# include "random.h"
+#else
+# define CLEAR_RANDOM_T(rnd) ((void)0)
+#endif
+
+#include "NUM_APPLETS.h"
+#if NUM_APPLETS == 1
+/* STANDALONE does not make sense, and won't compile */
+# undef CONFIG_FEATURE_SH_STANDALONE
+# undef ENABLE_FEATURE_SH_STANDALONE
+# undef IF_FEATURE_SH_STANDALONE
+# undef IF_NOT_FEATURE_SH_STANDALONE
+# define ENABLE_FEATURE_SH_STANDALONE 0
+# define IF_FEATURE_SH_STANDALONE(...)
+# define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
+#endif
+
+#ifndef PIPE_BUF
+# define PIPE_BUF 4096           /* amount of buffering in a pipe */
+#endif
+
+#if !BB_MMU
+# error "Do not even bother, ash will not run on NOMMU machine"
+#endif
 
 
 /* ============ Hash table sizes. Configurable. */
