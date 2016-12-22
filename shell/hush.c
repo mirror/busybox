@@ -82,35 +82,6 @@
  *              $ "export" i=`echo 'aaa  bbb'`; echo "$i"
  *              aaa
  */
-#if !(defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) \
-	|| defined(__APPLE__) \
-    )
-# include <malloc.h>   /* for malloc_trim */
-#endif
-#include <glob.h>
-/* #include <dmalloc.h> */
-#if ENABLE_HUSH_CASE
-# include <fnmatch.h>
-#endif
-#include <sys/utsname.h> /* for setting $HOSTNAME */
-
-#include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
-#include "unicode.h"
-#include "shell_common.h"
-#include "math.h"
-#include "match.h"
-#if ENABLE_HUSH_RANDOM_SUPPORT
-# include "random.h"
-#else
-# define CLEAR_RANDOM_T(rnd) ((void)0)
-#endif
-#ifndef F_DUPFD_CLOEXEC
-# define F_DUPFD_CLOEXEC F_DUPFD
-#endif
-#ifndef PIPE_BUF
-# define PIPE_BUF 4096  /* amount of buffering in a pipe */
-#endif
-
 //config:config HUSH
 //config:	bool "hush"
 //config:	default y
@@ -276,6 +247,35 @@
 //usage:# define bash_trivial_usage hush_trivial_usage
 //usage:# define bash_full_usage    hush_full_usage
 //usage:#endif
+
+#if !(defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) \
+	|| defined(__APPLE__) \
+    )
+# include <malloc.h>   /* for malloc_trim */
+#endif
+#include <glob.h>
+/* #include <dmalloc.h> */
+#if ENABLE_HUSH_CASE
+# include <fnmatch.h>
+#endif
+#include <sys/utsname.h> /* for setting $HOSTNAME */
+
+#include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
+#include "unicode.h"
+#include "shell_common.h"
+#include "math.h"
+#include "match.h"
+#if ENABLE_HUSH_RANDOM_SUPPORT
+# include "random.h"
+#else
+# define CLEAR_RANDOM_T(rnd) ((void)0)
+#endif
+#ifndef F_DUPFD_CLOEXEC
+# define F_DUPFD_CLOEXEC F_DUPFD
+#endif
+#ifndef PIPE_BUF
+# define PIPE_BUF 4096  /* amount of buffering in a pipe */
+#endif
 
 
 /* Build knobs */
