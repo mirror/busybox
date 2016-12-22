@@ -5,18 +5,15 @@ http://busybox.net/downloads/binaries/
 
 Build instructions:
 
-* Unpack wolfssl-3.6.8.zip
-* Build it:
-  ./configure --enable-static --disable-shared && make
-* Drop this directory into wolfssl-3.6.8/ssl_helper
-* Run ssl_helper.sh to compile and link the helper
-
 * Unpack wolfssl-3.9.8.tar.gz from https://github.com/wolfSSL/wolfssl/releases
+  to a wolfssl-3.9.8 subdirectory here.
 * Create configure:
-  ./autogen.sh
-* Build it: see 00cfg-wolfssl-3.9.8 shell script
-* Drop this directory into wolfssl-x.y.z/ssl_helper
-* Run ssl_helper.sh to compile and link the helper
+	(cd wolfssl-* && ./autogen.sh)
+* Build it: see
+	(cd wolfssl-* && ../00cfg-wolfssl-3.9.8)
+* Run
+	./ssl_helper.sh
+  to compile and link the helper
 
 Usage: "ssl_helper -d FILE_DESCRIPTOR" where FILE_DESCRIPTOR is open to the peer.
 
