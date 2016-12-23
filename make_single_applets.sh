@@ -26,6 +26,7 @@ allno="$cfg"
 for app in $apps; do
 	allno="`echo "$allno" | sed "s/^CONFIG_${app}=y\$/# CONFIG_${app} is not set/"`"
 done
+#echo "$allno" >.config_allno
 
 # Turn on each applet individually and build single-applet executable
 fail=0
@@ -37,6 +38,16 @@ for app in $apps; do
 	mv .config .config.SV
 	echo "CONFIG_${app}=y" >.config
 	echo "$allno" | sed "/^# CONFIG_${app} is not set\$/d" >>.config
+
+	if test x"${app}" != x"SH_IS_ASH"; then
+		# $allno has all choices for "sh" aliasing at off.
+		# "sh" aliasing defaults to "ash", not none.
+		# without this fix, "make oldconfig" sets it wrong,
+		# resulting in NUM_APPLETS = 2
+		sed '/CONFIG_SH_IS_NONE/d' -i .config
+		echo "CONFIG_SH_IS_NONE=y" >>.config
+	fi
+
 	if ! yes '' | make oldconfig >busybox_make_${app}.log 2>&1; then
 		: $((fail++))
 		echo "Config error for ${app}"
