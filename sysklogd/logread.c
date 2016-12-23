@@ -11,7 +11,8 @@
 //config:config LOGREAD
 //config:	bool "logread"
 //config:	default y
-//config:	depends on FEATURE_IPC_SYSLOG
+//WRONG: it should be compilable without SYSLOG=y:
+//WRONG:	depends on FEATURE_IPC_SYSLOG
 //config:	help
 //config:	  If you enabled Circular Buffer support, you almost
 //config:	  certainly want to enable this feature as well. This
