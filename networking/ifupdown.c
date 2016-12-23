@@ -51,41 +51,19 @@
 //config:	  This config option defines location of ifstate.
 //config:
 //config:config FEATURE_IFUPDOWN_IP
-//config:	bool "Use ip applet"
+//config:	bool "Use ip tool (else ifconfig/route is used)"
 //config:	default y
 //config:	depends on IFUP || IFDOWN
 //config:	help
 //config:	  Use the iproute "ip" command to implement "ifup" and "ifdown", rather
-//config:	  than the default of using the older 'ifconfig' and 'route' utilities.
+//config:	  than the default of using the older "ifconfig" and "route" utilities.
 //config:
-//config:config FEATURE_IFUPDOWN_IP_BUILTIN
-//config:	bool "Use busybox ip applet"
-//config:	default y
-//config:	depends on FEATURE_IFUPDOWN_IP
-//config:	select PLATFORM_LINUX
-//config:	select IP
-//config:	select FEATURE_IP_ADDRESS
-//config:	select FEATURE_IP_LINK
-//config:	select FEATURE_IP_ROUTE
-//config:	help
-//config:	  Use the busybox iproute "ip" applet to implement "ifupdown".
+//config:	  If Y: you must install either the full-blown iproute2 package
+//config:	  or enable "ip" applet in Busybox, or the "ifup" and "ifdown" applets
+//config:	  will not work.
 //config:
-//config:	  If left disabled, you must install the full-blown iproute2
-//config:	  utility or the  "ifup" and "ifdown" applets will not work.
-//config:
-//config:config FEATURE_IFUPDOWN_IFCONFIG_BUILTIN
-//config:	bool "Use busybox ifconfig and route applets"
-//config:	default n
-//config:	depends on (IFUP || IFDOWN) && !FEATURE_IFUPDOWN_IP
-//config:	select IFCONFIG
-//config:	select ROUTE
-//config:	help
-//config:	  Use the busybox iproute "ifconfig" and "route" applets to
-//config:	  implement the "ifup" and "ifdown" utilities.
-//config:
-//config:	  If left disabled, you must install the full-blown ifconfig
-//config:	  and route utilities, or the  "ifup" and "ifdown" applets will not
-//config:	  work.
+//config:	  If N: you must install either the full-blown ifconfig and route
+//config:	  utilities, or enable these applets in Busybox.
 //config:
 //config:config FEATURE_IFUPDOWN_IPV4
 //config:	bool "Support for IPv4"
