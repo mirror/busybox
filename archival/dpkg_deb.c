@@ -7,7 +7,7 @@
 
 //config:config DPKG_DEB
 //config:	bool "dpkg_deb"
-//config:	default n
+//config:	default y
 //config:	select FEATURE_SEAMLESS_GZ
 //config:	help
 //config:	  dpkg-deb unpacks and provides information about Debian archives.
