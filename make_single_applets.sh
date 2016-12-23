@@ -1,0 +1,57 @@
+#!/bin/sh
+# This script expects that the tree was built with the desired .config:
+# in particular, it expects that include/applets.h is generated already.
+#
+# The script will try to rebuild each enabled applet in isolation.
+# All other options which chose general bbox config, applet features, etc,
+# are not modified for the builds.
+
+makeopts="-j9"
+
+# The list of all applet config symbols
+test -f include/applets.h || { echo "No include/applets.h file"; exit 1; }
+apps="`
+grep ^IF_ include/applets.h \
+| grep -v ^IF_FEATURE_ \
+| sed 's/IF_\([A-Z0-9._-]*\)(.*/\1/' \
+| grep -v ^MODPROBE_SMALL \
+| sort | uniq
+`"
+
+# Take existing config
+test -f .config || { echo "No .config file"; exit 1; }
+cfg="`cat .config`"
+
+# Make a config with all applet symbols off
+allno="$cfg"
+for app in $apps; do
+	allno="`echo "$allno" | sed "s/^CONFIG_${app}=y\$/# CONFIG_${app} is not set/"`"
+done
+
+# Turn on each applet individually and build single-applet executable
+fail=0
+for app in $apps; do
+	# Only if it was indeed originally enabled...
+	{ echo "$cfg" | grep -q "^CONFIG_${app}=y\$"; } || continue
+
+	echo "Making ${app}..."
+	mv .config .config.SV
+	echo "CONFIG_${app}=y" >.config
+	echo "$allno" | sed "/^# CONFIG_${app} is not set\$/d" >>.config
+	if ! yes '' | make oldconfig >busybox_make_${app}.log 2>&1; then
+		: $((fail++))
+		echo "Config error for ${app}"
+		mv .config busybox_config_${app}
+	elif ! make $makeopts >busybox_make_${app}.log 2>&1; then
+		: $((fail++))
+		echo "Build error for ${app}"
+		mv .config busybox_config_${app}
+	else
+		mv busybox busybox_${app}
+		rm busybox_make_${app}.log
+	fi
+	mv .config.SV .config
+	#exit
+done
+echo "Failures: $fail"
+test $fail = 0 # set exitcode
