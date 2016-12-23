@@ -68,7 +68,9 @@
 //usage:	)
 
 #include <selinux/context.h>
-#include <selinux/flask.h>
+/* from deprecated <selinux/flask.h>: */
+#undef  SECCLASS_PROCESS
+#define SECCLASS_PROCESS 2
 
 #include "libbb.h"
 
