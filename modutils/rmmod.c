@@ -9,7 +9,7 @@
  */
 //config:config RMMOD
 //config:	bool "rmmod"
-//config:	default n
+//config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	  rmmod is used to unload specified modules from the kernel.
