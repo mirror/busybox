@@ -39,11 +39,11 @@ for app in $apps; do
 	echo "CONFIG_${app}=y" >.config
 	echo "$allno" | sed "/^# CONFIG_${app} is not set\$/d" >>.config
 
-	if test x"${app}" != x"SH_IS_ASH"; then
-		# $allno has all choices for "sh" aliasing at off.
+	if test x"${app}" != x"SH_IS_ASH" && test x"${app}" != x"SH_IS_HUSH"; then
+		# $allno has all choices for "sh" aliasing set to off.
 		# "sh" aliasing defaults to "ash", not none.
 		# without this fix, "make oldconfig" sets it wrong,
-		# resulting in NUM_APPLETS = 2
+		# resulting in NUM_APPLETS = 2 (the second applet is "sh")
 		sed '/CONFIG_SH_IS_NONE/d' -i .config
 		echo "CONFIG_SH_IS_NONE=y" >>.config
 	fi
@@ -52,7 +52,7 @@ for app in $apps; do
 		: $((fail++))
 		echo "Config error for ${app}"
 		mv .config busybox_config_${app}
-	elif ! make $makeopts >busybox_make_${app}.log 2>&1; then
+	elif ! make $makeopts >>busybox_make_${app}.log 2>&1; then
 		: $((fail++))
 		echo "Build error for ${app}"
 		mv .config busybox_config_${app}
