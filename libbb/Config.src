@@ -152,7 +152,7 @@ config FEATURE_TAB_COMPLETION
 
 config FEATURE_USERNAME_COMPLETION
 	bool "Username completion"
-	default n
+	default y
 	depends on FEATURE_TAB_COMPLETION
 	help
 	  Enable username completion.
