@@ -69,7 +69,9 @@
 #if ENABLE_SELINUX
 # include <selinux/selinux.h>  /* for is_selinux_enabled()  */
 # include <selinux/get_context_list.h> /* for get_default_context() */
-# include <selinux/flask.h> /* for security class definitions  */
+# /* from deprecated <selinux/flask.h>: */
+# undef  SECCLASS_CHR_FILE
+# define SECCLASS_CHR_FILE 10
 #endif
 
 #if ENABLE_PAM
