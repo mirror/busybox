@@ -5,34 +5,30 @@
 
 menu "Shells"
 
-INSERT
-
 
 choice
 	prompt "Choose which shell is aliased to 'sh' name"
-	default FEATURE_SH_IS_ASH
+	default SH_IS_ASH
 	help
 	  Choose which shell you want to be executed by 'sh' alias.
 	  The ash shell is the most bash compatible and full featured one.
 
 # note: cannot use "select ASH" here, it breaks "make allnoconfig"
-config FEATURE_SH_IS_ASH
-	depends on ASH
-	bool "ash"
+config SH_IS_ASH
 	depends on !NOMMU
+	bool "ash"
 
-config FEATURE_SH_IS_HUSH
-	depends on HUSH
+config SH_IS_HUSH
 	bool "hush"
 
-config FEATURE_SH_IS_NONE
+config SH_IS_NONE
 	bool "none"
 
 endchoice
 
 choice
 	prompt "Choose which shell is aliased to 'bash' name"
-	default FEATURE_BASH_IS_NONE
+	default BASH_IS_NONE
 	help
 	  Choose which shell you want to be executed by 'bash' alias.
 	  The ash shell is the most bash compatible and full featured one.
@@ -47,32 +43,33 @@ choice
 	  can't be used for running them because it won't recongnize
 	  "bash" as a supported applet name.
 
-config FEATURE_BASH_IS_ASH
-	depends on ASH
-	bool "ash"
+config BASH_IS_ASH
 	depends on !NOMMU
+	bool "ash"
 
-config FEATURE_BASH_IS_HUSH
-	depends on HUSH
+config BASH_IS_HUSH
 	bool "hush"
 
-config FEATURE_BASH_IS_NONE
+config BASH_IS_NONE
 	bool "none"
 
 endchoice
 
 
-config SH_MATH_SUPPORT
+INSERT
+
+
+config FEATURE_SH_MATH
 	bool "POSIX math support"
 	default y
-	depends on ASH || HUSH
+	depends on ASH || HUSH || SH_IS_ASH || BASH_IS_ASH || SH_IS_HUSH || BASH_IS_HUSH
 	help
 	  Enable math support in the shell via $((...)) syntax.
 
-config SH_MATH_SUPPORT_64
+config FEATURE_SH_MATH_64
 	bool "Extend POSIX math support to 64 bit"
 	default y
-	depends on SH_MATH_SUPPORT
+	depends on FEATURE_SH_MATH
 	help
 	  Enable 64-bit math support in the shell. This will make the shell
 	  slightly larger, but will allow computation with very large numbers.
@@ -81,14 +78,14 @@ config SH_MATH_SUPPORT_64
 config FEATURE_SH_EXTRA_QUIET
 	bool "Hide message on interactive shell startup"
 	default y
-	depends on HUSH || ASH
+	depends on ASH || HUSH || SH_IS_ASH || BASH_IS_ASH || SH_IS_HUSH || BASH_IS_HUSH
 	help
 	  Remove the busybox introduction when starting a shell.
 
 config FEATURE_SH_STANDALONE
 	bool "Standalone shell"
 	default n
-	depends on (HUSH || ASH)
+	depends on ASH || HUSH || SH_IS_ASH || BASH_IS_ASH || SH_IS_HUSH || BASH_IS_HUSH
 	help
 	  This option causes busybox shells to use busybox applets
 	  in preference to executables in the PATH whenever possible. For
@@ -121,7 +118,7 @@ config FEATURE_SH_STANDALONE
 config FEATURE_SH_NOFORK
 	bool "Run 'nofork' applets directly"
 	default n
-	depends on (HUSH || ASH)
+	depends on ASH || HUSH || SH_IS_ASH || BASH_IS_ASH || SH_IS_HUSH || BASH_IS_HUSH
 	help
 	  This option causes busybox shells to not execute typical
 	  fork/exec/wait sequence, but call <applet>_main directly,
@@ -139,7 +136,7 @@ config FEATURE_SH_NOFORK
 config FEATURE_SH_HISTFILESIZE
 	bool "Use $HISTFILESIZE"
 	default y
-	depends on HUSH || ASH
+	depends on ASH || HUSH || SH_IS_ASH || BASH_IS_ASH || SH_IS_HUSH || BASH_IS_HUSH
 	help
 	  This option makes busybox shells to use $HISTFILESIZE variable
 	  to set shell history size. Note that its max value is capped

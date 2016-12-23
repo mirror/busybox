@@ -55,6 +55,8 @@
 //kbuild:lib-$(CONFIG_TEST2) += test.o test_ptr_hack.o
 //kbuild:lib-$(CONFIG_ASH_BUILTIN_TEST) += test.o test_ptr_hack.o
 //kbuild:lib-$(CONFIG_HUSH) += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_SH_IS_HUSH) += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_BASH_IS_HUSH) += test.o test_ptr_hack.o
 
 /* "test --help" is special-cased to ignore --help */
 //usage:#define test_trivial_usage NOUSAGE_STR

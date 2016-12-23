@@ -10,12 +10,16 @@ lib-y:=
 
 INSERT
 
-lib-$(CONFIG_MORE)      += cat.o   # more uses it if stdout isn't a tty
-lib-$(CONFIG_LESS)      += cat.o   # less too
-lib-$(CONFIG_CRONTAB)   += cat.o   # crontab -l
-lib-$(CONFIG_ADDUSER)   += chown.o # used by adduser
-lib-$(CONFIG_ADDGROUP)  += chown.o # used by adduser
-lib-$(CONFIG_ASH)       += echo.o  # used by ash
-lib-$(CONFIG_HUSH)      += echo.o  # used by hush
-lib-$(CONFIG_FTPD)      += ls.o    # used by ftpd
+lib-$(CONFIG_MORE)          += cat.o   # more uses it if stdout isn't a tty
+lib-$(CONFIG_LESS)          += cat.o   # less too
+lib-$(CONFIG_CRONTAB)       += cat.o   # crontab -l
+lib-$(CONFIG_ADDUSER)       += chown.o # used by adduser
+lib-$(CONFIG_ADDGROUP)      += chown.o # used by adduser
+lib-$(CONFIG_ASH)           += echo.o  # used by ash
+lib-$(CONFIG_SH_IS_ASH)     += echo.o  # used by ash
+lib-$(CONFIG_BASH_IS_ASH)   += echo.o  # used by ash
+lib-$(CONFIG_HUSH)          += echo.o  # used by hush
+lib-$(CONFIG_SH_IS_HUSH)    += echo.o  # used by hush
+lib-$(CONFIG_BASH_IS_HUSH)  += echo.o  # used by hush
+lib-$(CONFIG_FTPD)          += ls.o    # used by ftpd
 lib-$(CONFIG_ASH_BUILTIN_PRINTF) += printf.o

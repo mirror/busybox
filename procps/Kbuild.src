@@ -9,3 +9,5 @@ lib-y:=
 INSERT
 
 lib-$(CONFIG_ASH) += kill.o  # used for built-in kill by ash
+lib-$(CONFIG_SH_IS_ASH) += kill.o  # used for built-in kill by ash
+lib-$(CONFIG_BASH_IS_ASH) += kill.o  # used for built-in kill by ash

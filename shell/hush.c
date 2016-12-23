@@ -99,7 +99,7 @@
 //config:config HUSH_BASH_COMPAT
 //config:	bool "bash-compatible extensions"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable bash-compatible extensions.
 //config:
@@ -113,14 +113,14 @@
 //config:config HUSH_HELP
 //config:	bool "help builtin"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable help builtin in hush. Code size + ~1 kbyte.
 //config:
 //config:config HUSH_INTERACTIVE
 //config:	bool "Interactive mode"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable interactive mode (prompt and command editing).
 //config:	  Without this, hush simply reads and executes commands
@@ -148,35 +148,35 @@
 //config:config HUSH_TICK
 //config:	bool "Process substitution"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable process substitution `command` and $(command) in hush.
 //config:
 //config:config HUSH_IF
 //config:	bool "Support if/then/elif/else/fi"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable if/then/elif/else/fi in hush.
 //config:
 //config:config HUSH_LOOPS
 //config:	bool "Support for, while and until loops"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable for, while and until loops in hush.
 //config:
 //config:config HUSH_CASE
 //config:	bool "Support case ... esac statement"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable case ... esac statement in hush. +400 bytes.
 //config:
 //config:config HUSH_FUNCTIONS
 //config:	bool "Support funcname() { commands; } syntax"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable support for shell functions in hush. +800 bytes.
 //config:
@@ -190,7 +190,7 @@
 //config:config HUSH_RANDOM_SUPPORT
 //config:	bool "Pseudorandom generator and $RANDOM variable"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable pseudorandom generator and dynamic variable "$RANDOM".
 //config:	  Each read of "$RANDOM" will generate a new pseudorandom value.
@@ -198,14 +198,14 @@
 //config:config HUSH_EXPORT_N
 //config:	bool "Support 'export -n' option"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  export -n unexports variables. It is a bash extension.
 //config:
 //config:config HUSH_MODE_X
 //config:	bool "Support 'hush -x' option and 'set -x' command"
 //config:	default y
-//config:	depends on HUSH
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  This instructs hush to print commands before execution.
 //config:	  Adds ~300 bytes.
@@ -216,14 +216,15 @@
 //config:	select HUSH
 //config:	help
 //config:	  msh is deprecated and will be removed, please migrate to hush.
-//config:
 
 //applet:IF_HUSH(APPLET(hush, BB_DIR_BIN, BB_SUID_DROP))
-//applet:IF_MSH(APPLET(msh, BB_DIR_BIN, BB_SUID_DROP))
-//applet:IF_FEATURE_SH_IS_HUSH(APPLET_ODDNAME(sh, hush, BB_DIR_BIN, BB_SUID_DROP, sh))
-//applet:IF_FEATURE_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, BB_DIR_BIN, BB_SUID_DROP, bash))
+//applet:IF_MSH(APPLET_ODDNAME(msh, hush, BB_DIR_BIN, BB_SUID_DROP, hush))
+//applet:IF_SH_IS_HUSH(APPLET_ODDNAME(sh, hush, BB_DIR_BIN, BB_SUID_DROP, hush))
+//applet:IF_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, BB_DIR_BIN, BB_SUID_DROP, hush))
 
 //kbuild:lib-$(CONFIG_HUSH) += hush.o match.o shell_common.o
+//kbuild:lib-$(CONFIG_SH_IS_HUSH) += hush.o match.o shell_common.o
+//kbuild:lib-$(CONFIG_BASH_IS_HUSH) += hush.o match.o shell_common.o
 //kbuild:lib-$(CONFIG_HUSH_RANDOM_SUPPORT) += random.o
 
 /* -i (interactive) and -s (read stdin) are also accepted,
@@ -235,18 +236,6 @@
 //usage:	"[-nxl] [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS]]"
 //usage:#define hush_full_usage "\n\n"
 //usage:	"Unix shell interpreter"
-
-//usage:#define msh_trivial_usage hush_trivial_usage
-//usage:#define msh_full_usage hush_full_usage
-
-//usage:#if ENABLE_FEATURE_SH_IS_HUSH
-//usage:# define sh_trivial_usage hush_trivial_usage
-//usage:# define sh_full_usage    hush_full_usage
-//usage:#endif
-//usage:#if ENABLE_FEATURE_BASH_IS_HUSH
-//usage:# define bash_trivial_usage hush_trivial_usage
-//usage:# define bash_full_usage    hush_full_usage
-//usage:#endif
 
 #if !(defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) \
 	|| defined(__APPLE__) \
@@ -4011,7 +4000,7 @@ static int i_peek_and_eat_bkslash_nl(struct in_str *input)
 	}
 }
 
-#if ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_DOLLAR_OPS
+#if ENABLE_HUSH_TICK || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_DOLLAR_OPS
 /* Subroutines for copying $(...) and `...` things */
 static int add_till_backquote(o_string *dest, struct in_str *input, int in_dquote);
 /* '...' */
@@ -4179,7 +4168,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 	}
 	return ch;
 }
-#endif /* ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_DOLLAR_OPS */
+#endif /* ENABLE_HUSH_TICK || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_DOLLAR_OPS */
 
 /* Return code: 0 for OK, 1 for syntax error */
 #if BB_MMU
@@ -4333,13 +4322,13 @@ static int parse_dollar(o_string *as_string,
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		break;
 	}
-#if ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_TICK
+#if ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_TICK
 	case '(': {
 		unsigned pos;
 
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
-# if ENABLE_SH_MATH_SUPPORT
+# if ENABLE_FEATURE_SH_MATH
 		if (i_peek_and_eat_bkslash_nl(input) == '(') {
 			ch = i_getch(input);
 			nommu_addchr(as_string, ch);
@@ -5217,7 +5206,7 @@ static char *encode_then_expand_string(const char *str, int process_bkslash, int
 	return exp_str;
 }
 
-#if ENABLE_SH_MATH_SUPPORT
+#if ENABLE_FEATURE_SH_MATH
 static arith_t expand_and_evaluate_arith(const char *arg, const char **errmsg_p)
 {
 	arith_state_t math_state;
@@ -5469,7 +5458,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 		}
 #endif
 		else if (exp_op == ':') {
-#if ENABLE_HUSH_BASH_COMPAT && ENABLE_SH_MATH_SUPPORT
+#if ENABLE_HUSH_BASH_COMPAT && ENABLE_FEATURE_SH_MATH
 			/* It's ${var:N[:M]} bashism.
 			 * Note that in encoded form it has TWO parts:
 			 * var:N<SPECIAL_VAR_SYMBOL>M<SPECIAL_VAR_SYMBOL>
@@ -5604,7 +5593,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 #if ENABLE_HUSH_TICK
 		o_string subst_result = NULL_O_STRING;
 #endif
-#if ENABLE_SH_MATH_SUPPORT
+#if ENABLE_FEATURE_SH_MATH
 		char arith_buf[sizeof(arith_t)*3 + 2];
 #endif
 
@@ -5698,7 +5687,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			val = subst_result.data;
 			goto store_val;
 #endif
-#if ENABLE_SH_MATH_SUPPORT
+#if ENABLE_FEATURE_SH_MATH
 		case '+': { /* <SPECIAL_VAR_SYMBOL>+cmd<SPECIAL_VAR_SYMBOL> */
 			arith_t res;
 

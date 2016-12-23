@@ -8,4 +8,4 @@ lib-y:=
 
 INSERT
 
-lib-$(CONFIG_SH_MATH_SUPPORT) += math.o
+lib-$(CONFIG_FEATURE_SH_MATH) += math.o
