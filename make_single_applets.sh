@@ -14,7 +14,6 @@ apps="`
 grep ^IF_ include/applets.h \
 | grep -v ^IF_FEATURE_ \
 | sed 's/IF_\([A-Z0-9._-]*\)(.*/\1/' \
-| grep -v ^MODPROBE_SMALL \
 | sort | uniq
 `"
 
@@ -46,6 +45,11 @@ for app in $apps; do
 		: $((fail++))
 		echo "Build error for ${app}"
 		mv .config busybox_config_${app}
+	elif ! grep -q '^#define NUM_APPLETS 1$' include/NUM_APPLETS.h; then
+		mv busybox busybox_${app}
+		: $((fail++))
+		echo "NUM_APPLETS != 1 for ${app}: `cat include/NUM_APPLETS.h`"
+		mv .config busybox_config_${app}
 	else
 		mv busybox busybox_${app}
 		rm busybox_make_${app}.log
@@ -53,5 +57,6 @@ for app in $apps; do
 	mv .config.SV .config
 	#exit
 done
+touch .config # or else next "make" can be confused
 echo "Failures: $fail"
 test $fail = 0 # set exitcode

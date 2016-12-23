@@ -25,11 +25,11 @@
 //config:	help
 //config:	  Check if the module is already loaded.
 
-//applet:IF_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, depmod))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(insmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, insmod))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(lsmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, lsmod))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(rmmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, rmmod))
+//applet:IF_MODPROBE(IF_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP)))
+//applet:IF_DEPMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, depmod)))
+//applet:IF_INSMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(insmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, insmod)))
+//applet:IF_LSMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(lsmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, lsmod)))
+//applet:IF_RMMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(rmmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, rmmod)))
 
 //kbuild:lib-$(CONFIG_MODPROBE_SMALL) += modprobe-small.o
 
@@ -930,7 +930,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(char *options;)
 
 	/* are we lsmod? -> just dump /proc/modules */
-	if ('l' == applet0) {
+	if (ENABLE_LSMOD && 'l' == applet0) {
 		xprint_and_close_file(xfopen_for_read("/proc/modules"));
 		return EXIT_SUCCESS;
 	}
@@ -940,14 +940,14 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	/* Prevent ugly corner cases with no modules at all */
 	modinfo = xzalloc(sizeof(modinfo[0]));
 
-	if ('i' != applet0) { /* not insmod */
+	if (!ENABLE_INSMOD || 'i' != applet0) { /* not insmod */
 		/* Goto modules directory */
 		xchdir(CONFIG_DEFAULT_MODULES_DIR);
 	}
 	uname(&uts); /* never fails */
 
 	/* depmod? */
-	if ('d' == applet0) {
+	if (ENABLE_DEPMOD && 'd' == applet0) {
 		/* Supported:
 		 * -n: print result to stdout
 		 * -a: process all modules (default)
@@ -986,11 +986,11 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 
 	/* are we rmmod? -> simulate modprobe -r */
-	if ('r' == applet0) {
+	if (ENABLE_RMMOD && 'r' == applet0) {
 		option_mask32 |= OPT_r;
 	}
 
-	if ('i' != applet0) { /* not insmod */
+	if (!ENABLE_INSMOD || 'i' != applet0) { /* not insmod */
 		/* Goto $VERSION directory */
 		xchdir(uts.release);
 	}
@@ -1014,7 +1014,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		argv[1] = NULL;
 #endif
 
-	if ('i' == applet0) { /* insmod */
+	if (ENABLE_INSMOD && 'i' == applet0) { /* insmod */
 		size_t len;
 		void *map;
 
@@ -1034,7 +1034,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* Try to load modprobe.dep.bb */
-	if ('r' != applet0) { /* not rmmod */
+	if (!ENABLE_RMMOD || 'r' != applet0) { /* not rmmod */
 		load_dep_bb();
 	}
 

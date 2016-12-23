@@ -4,8 +4,7 @@
 # enabling it. Run it after applets.h is generated.
 
 # CONFIG_applet names
-grep ^IF_ applets.h | grep -v IF_FEATURE_ | sed 's/IF_\([A-Z0-9._-]*\)(.*/\1/' \
-| grep -v MODPROBE_SMALL \
+grep ^IF_ applets.h | grep -v ^IF_FEATURE_ | sed 's/IF_\([A-Z0-9._-]*\)(.*/\1/' \
 | sort | uniq \
 >applets_APP1
 

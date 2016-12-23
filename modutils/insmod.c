@@ -9,14 +9,15 @@
 //config:config INSMOD
 //config:	bool "insmod"
 //config:	default n
-//config:	depends on !MODPROBE_SMALL
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	  insmod is used to load specified modules in the running kernel.
 
-//applet:IF_INSMOD(APPLET(insmod, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_INSMOD(IF_NOT_MODPROBE_SMALL(APPLET(insmod, BB_DIR_SBIN, BB_SUID_DROP)))
 
+//kbuild:ifneq ($(CONFIG_MODPROBE_SMALL),y)
 //kbuild:lib-$(CONFIG_INSMOD) += insmod.o modutils.o
+//kbuild:endif
 
 #include "libbb.h"
 #include "modutils.h"
