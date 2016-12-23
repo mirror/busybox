@@ -9,8 +9,12 @@
 
 /* lzop_main() uses bbunpack(), need this: */
 //kbuild:lib-$(CONFIG_LZOP) += bbunzip.o
+//kbuild:lib-$(CONFIG_LZOPCAT) += bbunzip.o
+//kbuild:lib-$(CONFIG_UNLZOP) += bbunzip.o
 /* bzip2_main() too: */
 //kbuild:lib-$(CONFIG_BZIP2) += bbunzip.o
+/* gzip_main() too: */
+//kbuild:lib-$(CONFIG_GZIP) += bbunzip.o
 
 /* Note: must be kept in sync with archival/lzop.c */
 enum {

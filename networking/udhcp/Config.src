@@ -16,7 +16,6 @@ config UDHCPD
 config DHCPRELAY
 	bool "dhcprelay"
 	default y
-	depends on UDHCPD
 	help
 	  dhcprelay listens for dhcp requests on one or more interfaces
 	  and forwards these requests to a different interface or dhcp
@@ -25,7 +24,6 @@ config DHCPRELAY
 config DUMPLEASES
 	bool "Lease display utility (dumpleases)"
 	default y
-	depends on UDHCPD
 	help
 	  dumpleases displays the leases written out by the udhcpd server.
 	  Lease times are stored in the file by time remaining in lease, or
