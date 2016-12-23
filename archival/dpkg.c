@@ -28,7 +28,7 @@
 
 //config:config DPKG
 //config:	bool "dpkg"
-//config:	default n
+//config:	default y
 //config:	select FEATURE_SEAMLESS_GZ
 //config:	help
 //config:	  dpkg is a medium-level tool to install, build, remove and manage
