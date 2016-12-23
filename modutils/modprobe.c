@@ -9,8 +9,7 @@
  */
 //config:config MODPROBE
 //config:	bool "modprobe"
-//config:	default n
-//config:	depends on !MODPROBE_SMALL
+//config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	  Handle the loading of modules, and their dependencies on a high
@@ -18,8 +17,8 @@
 //config:
 //config:config FEATURE_MODPROBE_BLACKLIST
 //config:	bool "Blacklist support"
-//config:	default n
-//config:	depends on MODPROBE
+//config:	default y
+//config:	depends on MODPROBE && !MODPROBE_SMALL
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	  Say 'y' here to enable support for the 'blacklist' command in
@@ -28,9 +27,11 @@
 //config:	  hardware autodetection scripts to load modules like evdev, frame
 //config:	  buffer drivers etc.
 
-//applet:IF_MODPROBE(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_MODPROBE(IF_NOT_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP)))
 
+//kbuild:ifneq ($(CONFIG_MODPROBE_SMALL),y)
 //kbuild:lib-$(CONFIG_MODPROBE) += modprobe.o modutils.o
+//kbuild:endif
 
 #include "libbb.h"
 #include "modutils.h"
