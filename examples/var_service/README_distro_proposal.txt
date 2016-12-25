@@ -98,10 +98,10 @@ It is not required that a specific clone should be used. Let evolution work.
 daemon: any long running background program. Common examples are sshd, getty,
 ntpd, dhcp client...
 
-service: same as "daemon"
+service: daemon controlled by a service monitor.
 
 service directory: a directory with an executable file (script) named "run"
-which (usually) execs daemon (possibly after some preparatory steps).
+which (usually) execs some daemon, possibly after some preparatory steps.
 It should start it not as a child or daemonized process, but by exec'ing it
 (inheriting the same PID and the place in the process tree).
 
@@ -116,7 +116,7 @@ whose directories disappeared.
 
 supervisor: a tool which monitors one service directory.
 It runs "run" script as its child. It restarts it if it dies.
-It can be instructed to start/top/signal its child.
+It can be instructed to start/stop/signal its child.
 In daemontools package, it is called "supervise". In runit, it is called
 "runsv". In s6, it is called "s6-supervise".
 
@@ -150,7 +150,9 @@ The less distros diverge, the easier users' lives are.
 
 System-wide service dirs reside in a distro-specific location.
 The recommended location is /var/service. (However, since it is not
-a mandatory location, avoid depending on it in your run scripts).
+a mandatory location, avoid depending on it in your run scripts.
+Void Linux wanted to have it somewhere in /run/*, and they solved this
+by making /var/service a symlink).
 
 The install location for service dirs is /etc/rc:
 when e.g. ntpd daemon is installed, it creates the /etc/rc/ntpd
@@ -182,10 +184,14 @@ of bad things may happen. This may be worked around by various
 heuristics in service monitor which give new service a few seconds
 of "grace time" to be fully populated; but this is not yet
 implemented in any of three packages.
+This also may be worked around by creating a .dotdir (a directory
+whose name starts with a dot), populating it, and then renaming;
+but packaging tools usually do not have an option to do this
+automatically - additional install stripting in packages will be needed.
 
 Daemons' output file descriptors are handled somewhat awkwardly
 by various daemontools implementations. For example, for runit tools,
-daemons' stdout goes to wherever runsdir's stdout was directied;
+daemons' stdout goes to wherever runsvdir's stdout was directied;
 stderr goes to runsvdir, which in turn "rotates" it on its command line
 (which is visible in ps output).
 
@@ -236,11 +242,11 @@ there is no guarantee in which order commands are sent to them.
 If DIR has no slash and is not "." or "..", it is assumed to be
 relative to the system-wide service directory.
 
-The "svok DIR" tool exits 0 if service is running, and nonzero if not.
+[Currently, "svc" exists only in daemontools and in busybox.
+This proposal asks developrs of other daemontools implementations
+to add "svc" command to their projects]
 
-The "svstat DIR1 DIR2..." prints one human-readable line for each directory,
-saying whether supervise is successfully running in that directory,
-and reporting the status information maintained by supervise.
+The "svok DIR" tool exits 0 if service is running, and nonzero if not.
 
 Other tools with different names and APIs may exist; however
 for portability scripts should use the above tools.
@@ -253,15 +259,16 @@ depending on the distro) its files to the "live" service directory,
 whereever it is located on this distro.
 
 Removal of the service should be done as follows:
-svc -d DIR [DIR/log], then remove the service directory
-(this makes service monitor SIGTERM per-directory supervisors
-(if they exist in the implementation))
+svc -d DIR [DIR/log], then remove the service directory:
+this makes service monitor SIGTERM per-directory supervisors
+(if they exist in the implementation).
 
 
 	Implementation details
 
-Top-level service monitor program name is not standardized.
-[svscan, runsvdir, s6-svscan ...]
+Top-level service monitor program name is not standardized
+[svscan, runsvdir, s6-svscan ...] - it does not need to be,
+as far as daemon packagers are concerned.
 
 It may run one per-directory supervisor, or two supervisors
 (one for DIR/ and one for DIR/log/); for memory-constrained systems
