@@ -39,8 +39,8 @@
 #include <fnmatch.h>
 #include <sys/syscall.h>
 
-extern int init_module(void *module, unsigned long len, const char *options);
-extern int delete_module(const char *module, unsigned flags);
+#define init_module(mod, len, opts) syscall(__NR_init_module, mod, len, opts)
+#define delete_module(mod, flags) syscall(__NR_delete_module, mod, flags)
 #ifdef __NR_finit_module
 # define finit_module(fd, uargs, flags) syscall(__NR_finit_module, fd, uargs, flags)
 #endif
