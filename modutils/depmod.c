@@ -16,11 +16,11 @@
 //config:	  and modules.symbols) that contain dependency information
 //config:	  for modprobe.
 
-//kbuild:ifneq ($(CONFIG_MODPROBE_SMALL),y)
 //applet:IF_DEPMOD(IF_NOT_MODPROBE_SMALL(APPLET(depmod, BB_DIR_SBIN, BB_SUID_DROP)))
-//kbuild:endif
 
+//kbuild:ifneq ($(CONFIG_MODPROBE_SMALL),y)
 //kbuild:lib-$(CONFIG_DEPMOD) += depmod.o modutils.o
+//kbuild:endif
 
 #include "libbb.h"
 #include "modutils.h"
