@@ -107,10 +107,10 @@
 #include "libbb.h"
 #include "common_bufsiz.h"
 
-/* Wants <limits.h> etc, thus included after libbb.h: */
 #ifdef __linux__
-#include <linux/types.h> /* for __be32 etc */
-#include <linux/netfilter_ipv4.h>
+/* from linux/netfilter_ipv4.h: */
+# undef  SO_ORIGINAL_DST
+# define SO_ORIGINAL_DST 80
 #endif
 
 // TODO: move into this file:
