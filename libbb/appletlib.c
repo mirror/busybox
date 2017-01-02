@@ -554,6 +554,7 @@ static inline void parse_config_file(void)
 
 
 # if ENABLE_FEATURE_SUID && NUM_APPLETS > 0
+#  if ENABLE_FEATURE_SUID_CONFIG
 /* check if u is member of group g */
 static int ingroup(uid_t u, gid_t g)
 {
@@ -568,6 +569,7 @@ static int ingroup(uid_t u, gid_t g)
 	}
 	return 0;
 }
+#  endif
 
 static void check_suid(int applet_no)
 {
