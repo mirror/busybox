@@ -48,7 +48,7 @@ ps tells me they did put X, dbus, NM and udev into runsvdir-supervised tree:
   654 ?        00:00:00     runsv
   659 ?        00:00:00       udevd
 
-Here is a link to Vod Linux's wiki:
+Here is a link to Void Linux's wiki:
 
     https://wiki.voidlinux.eu/Runit
 
@@ -187,11 +187,11 @@ implemented in any of three packages.
 This also may be worked around by creating a .dotdir (a directory
 whose name starts with a dot), populating it, and then renaming;
 but packaging tools usually do not have an option to do this
-automatically - additional install stripting in packages will be needed.
+automatically - additional install scripting in packages will be needed.
 
 Daemons' output file descriptors are handled somewhat awkwardly
 by various daemontools implementations. For example, for runit tools,
-daemons' stdout goes to wherever runsvdir's stdout was directied;
+daemons' stdout goes to wherever runsvdir's stdout was directed;
 stderr goes to runsvdir, which in turn "rotates" it on its command line
 (which is visible in ps output).
 
@@ -243,7 +243,7 @@ If DIR has no slash and is not "." or "..", it is assumed to be
 relative to the system-wide service directory.
 
 [Currently, "svc" exists only in daemontools and in busybox.
-This proposal asks developrs of other daemontools implementations
+This proposal asks developers of other daemontools implementations
 to add "svc" command to their projects]
 
 The "svok DIR" tool exits 0 if service is running, and nonzero if not.
@@ -256,7 +256,7 @@ To this end, first create and populate a new /etc/rc/DIR.
 
 Then "activate" it by running ??????? - this copies (or symlinks,
 depending on the distro) its files to the "live" service directory,
-whereever it is located on this distro.
+wherever it is located on this distro.
 
 Removal of the service should be done as follows:
 svc -d DIR [DIR/log], then remove the service directory:
@@ -275,9 +275,9 @@ It may run one per-directory supervisor, or two supervisors
 an implementation is possible which itself controls all services, without
 intermediate supervisors.
 [runsvdir runs one "runsv DIR" per DIR, runsv handles DIR/log/ if that exists]
-[svscan runs a pair of "superwise DIR" and "superwise DIR/log"]
+[svscan runs a pair of "supervise DIR" and "supervise DIR/log"]
 
-Directores are remembered by device+inode numbers, not names. Renaming a directory
+Directories are remembered by device+inode numbers, not names. Renaming a directory
 does not affect the running service (unless it is renamed to a .dotdir).
 
 Removal (or .dotdiring) of a directory sends SIGTERM to any running services.
