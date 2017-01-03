@@ -1284,6 +1284,8 @@ ash_msg_and_raise_error(const char *msg, ...)
 {
 	va_list ap;
 
+	exitstatus = 2;
+
 	va_start(ap, msg);
 	ash_vmsg_and_raise(EXERROR, msg, ap);
 	/* NOTREACHED */
@@ -9588,11 +9590,13 @@ evalcommand(union node *cmd, int flags)
 	}
 
 	if (status) {
+ bail:
+		exitstatus = status;
+
 		/* We have a redirection error. */
 		if (spclbltin > 0)
 			raise_exception(EXERROR);
- bail:
-		exitstatus = status;
+
 		goto out;
 	}
 
