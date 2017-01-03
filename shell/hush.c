@@ -1137,6 +1137,9 @@ static void syntax_error_unexpected_ch(unsigned lineno UNUSED_PARAM, int ch)
 	char msg[2];
 	msg[0] = ch;
 	msg[1] = '\0';
+#if HUSH_DEBUG >= 2
+	bb_error_msg("hush.c:%u", lineno);
+#endif
 	bb_error_msg("syntax error: unexpected %s", ch == EOF ? "EOF" : msg);
 }
 
@@ -4997,7 +5000,8 @@ static struct pipe *parse_stream(char **pstring,
 			 * if we see {, we call parse_group(..., end_trigger='}')
 			 * and it will match } earlier (not here). */
 			syntax_error_unexpected_ch(ch);
-			goto parse_error;
+			G.last_exitcode = 2;
+			goto parse_error1;
 		default:
 			if (HUSH_DEBUG)
 				bb_error_msg_and_die("BUG: unexpected %c\n", ch);
@@ -5005,6 +5009,8 @@ static struct pipe *parse_stream(char **pstring,
 	} /* while (1) */
 
  parse_error:
+	G.last_exitcode = 1;
+ parse_error1:
 	{
 		struct parse_context *pctx;
 		IF_HAS_KEYWORDS(struct parse_context *p2;)
@@ -5038,7 +5044,6 @@ static struct pipe *parse_stream(char **pstring,
 		} while (HAS_KEYWORDS && pctx);
 
 		o_free(&dest);
-		G.last_exitcode = 1;
 #if !BB_MMU
 		if (pstring)
 			*pstring = NULL;
