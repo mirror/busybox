@@ -6,28 +6,12 @@
 INSERT
 
 config UDHCPD
-	bool "udhcp server (udhcpd)"
+	bool "udhcpd (DHCP server)"
 	default y
 	select PLATFORM_LINUX
 	help
 	  udhcpd is a DHCP server geared primarily toward embedded systems,
 	  while striving to be fully functional and RFC compliant.
-
-config DHCPRELAY
-	bool "dhcprelay"
-	default y
-	help
-	  dhcprelay listens for dhcp requests on one or more interfaces
-	  and forwards these requests to a different interface or dhcp
-	  server.
-
-config DUMPLEASES
-	bool "Lease display utility (dumpleases)"
-	default y
-	help
-	  dumpleases displays the leases written out by the udhcpd server.
-	  Lease times are stored in the file by time remaining in lease, or
-	  by the absolute time that it expires in seconds from epoch.
 
 config FEATURE_UDHCPD_WRITE_LEASES_EARLY
 	bool "Rewrite the lease file at every new acknowledge"
@@ -61,8 +45,24 @@ config DHCPD_LEASES_FILE
 	  udhcpd stores addresses in a lease file. This is the absolute path
 	  of the file. Normally it is safe to leave it untouched.
 
+config DUMPLEASES
+	bool "dumpleases"
+	default y
+	help
+	  dumpleases displays the leases written out by the udhcpd.
+	  Lease times are stored in the file by time remaining in lease, or
+	  by the absolute time that it expires in seconds from epoch.
+
+config DHCPRELAY
+	bool "dhcprelay"
+	default y
+	help
+	  dhcprelay listens for dhcp requests on one or more interfaces
+	  and forwards these requests to a different interface or dhcp
+	  server.
+
 config UDHCPC
-	bool "udhcp client (udhcpc)"
+	bool "udhcpc (DHCP client)"
 	default y
 	select PLATFORM_LINUX
 	help
@@ -92,6 +92,15 @@ config FEATURE_UDHCPC_SANITIZEOPT
 	  (for example, if they start with dash or contain spaces),
 	  they will be replaced with string "bad" when exporting
 	  to the environment.
+
+config UDHCPC_DEFAULT_SCRIPT
+	string "Absolute path to config script"
+	default "/usr/share/udhcpc/default.script"
+	depends on UDHCPC
+	help
+	  This script is called after udhcpc receives an answer. See
+	  examples/udhcp for a working example. Normally it is safe
+	  to leave this untouched.
 
 config FEATURE_UDHCP_PORT
 	bool "Enable '-P port' option for udhcpd and udhcpc"
@@ -129,15 +138,6 @@ config FEATURE_UDHCP_8021Q
 	help
 	  If selected, both client and server will support passing of VLAN
 	  ID and priority via options 132 and 133 as per 802.1Q.
-
-config UDHCPC_DEFAULT_SCRIPT
-	string "Absolute path to config script"
-	default "/usr/share/udhcpc/default.script"
-	depends on UDHCPC
-	help
-	  This script is called after udhcpc receives an answer. See
-	  examples/udhcp for a working example. Normally it is safe
-	  to leave this untouched.
 
 config UDHCPC_SLACK_FOR_BUGGY_SERVERS
 	int "DHCP options slack buffer size"

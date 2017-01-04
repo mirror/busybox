@@ -12,7 +12,7 @@
  */
 
 //config:config UDHCPC6
-//config:	bool "udhcp client for DHCPv6 (udhcpc6)"
+//config:	bool "udhcpc6 (DHCPv6 client, NOT READY)"
 //config:	default n  # not yet ready
 //config:	depends on FEATURE_IPV6
 //config:	help
