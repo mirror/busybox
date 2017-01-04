@@ -17,9 +17,19 @@ choice
 config SH_IS_ASH
 	depends on !NOMMU
 	bool "ash"
+	help
+	  Choose ash to be the shell executed by 'sh' name.
+	  The ash code will be built into busybox. If you don't select
+	  "ash" choice (CONFIG_ASH), this shell may only be invoked by
+	  the name 'sh' (and not 'ash').
 
 config SH_IS_HUSH
 	bool "hush"
+	help
+	  Choose hush to be the shell executed by 'sh' name.
+	  The hush code will be built into busybox. If you don't select
+	  "hush" choice (CONFIG_HUSH), this shell may only be invoked by
+	  the name 'sh' (and not 'hush').
 
 config SH_IS_NONE
 	bool "none"
@@ -31,7 +41,8 @@ choice
 	default BASH_IS_NONE
 	help
 	  Choose which shell you want to be executed by 'bash' alias.
-	  The ash shell is the most bash compatible and full featured one.
+	  The ash shell is the most bash compatible and full featured one,
+	  although compatibility is far from being complete.
 
 	  Note that selecting this option does not switch on any bash
 	  compatibility code. It merely makes it possible to install
@@ -46,9 +57,19 @@ choice
 config BASH_IS_ASH
 	depends on !NOMMU
 	bool "ash"
+	help
+	  Choose ash to be the shell executed by 'bash' name.
+	  The ash code will be built into busybox. If you don't select
+	  "ash" choice (CONFIG_ASH), this shell may only be invoked by
+	  the name 'bash' (and not 'ash').
 
 config BASH_IS_HUSH
 	bool "hush"
+	help
+	  Choose hush to be the shell executed by 'bash' name.
+	  The hush code will be built into busybox. If you don't select
+	  "hush" choice (CONFIG_HUSH), this shell may only be invoked by
+	  the name 'bash' (and not 'hush').
 
 config BASH_IS_NONE
 	bool "none"
