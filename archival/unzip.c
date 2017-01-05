@@ -31,7 +31,7 @@
 //config:	depends on UNZIP
 //config:	help
 //config:	  If you know that you only need to deal with simple
-//config:	  ZIP files without deleted/updated files, SFX archves etc,
+//config:	  ZIP files without deleted/updated files, SFX archives etc,
 //config:	  you can reduce code size by unselecting this option.
 //config:	  To support less trivial ZIPs, say Y.
 
