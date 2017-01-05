@@ -31,11 +31,10 @@ rmdir foo
 rm foo.zip
 
 # File containing some damaged encrypted stream
+optional FEATURE_UNZIP_CDF
 testing "unzip (bad archive)" "uudecode; unzip bad.zip 2>&1; echo \$?" \
 "Archive:  bad.zip
-  inflating: ]3j½r«IK-%Ix
-unzip: corrupted data
-unzip: inflate error
+unzip: short read
 1
 " \
 "" "\
@@ -49,6 +48,7 @@ BDYAAAAMAAEADQAAADIADQAAAEEAAAASw73Ct1DKokohPXQiNzA+FAI1HCcW
 NzITNFBLBQUKAC4JAA04Cw0EOhZQSwUGAQAABAIAAgCZAAAAeQAAAAIALhM=
 ====
 "
+SKIP=
 
 rm *
 
