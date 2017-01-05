@@ -268,13 +268,11 @@ static uint32_t find_cdf_offset(void)
 
 static uint32_t read_next_cdf(uint32_t cdf_offset, cdf_header_t *cdf_ptr)
 {
-	off_t org;
 	uint32_t magic;
 
 	if (cdf_offset == BAD_CDF_OFFSET)
 		return cdf_offset;
 
-	org = xlseek(zip_fd, 0, SEEK_CUR);
 	dbg("Reading CDF at 0x%x", (unsigned)cdf_offset);
 	xlseek(zip_fd, cdf_offset, SEEK_SET);
 	xread(zip_fd, &magic, 4);
@@ -284,9 +282,6 @@ static uint32_t read_next_cdf(uint32_t cdf_offset, cdf_header_t *cdf_ptr)
 		return 0; /* EOF */
 	}
 	xread(zip_fd, cdf_ptr->raw, CDF_HEADER_LEN);
-	/* Caller doesn't need this: */
-	/* dbg("Returning file position to 0x%"OFF_FMT"x", org); */
-	/* xlseek(zip_fd, org, SEEK_SET); */
 
 	FIX_ENDIANNESS_CDF(*cdf_ptr);
 	dbg("  file_name_length:%u extra_field_length:%u file_comment_length:%u",
