@@ -2396,11 +2396,11 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		int proxy_fd;
 		len_and_sockaddr *lsa;
 
-		proxy_fd = socket(AF_INET, SOCK_STREAM, 0);
-		if (proxy_fd < 0)
-			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
 		lsa = host2sockaddr(proxy_entry->host_port, 80);
 		if (lsa == NULL)
+			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+		proxy_fd = socket(lsa->u.sa.sa_family, SOCK_STREAM, 0);
+		if (proxy_fd < 0)
 			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
 		if (connect(proxy_fd, &lsa->u.sa, lsa->len) < 0)
 			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
