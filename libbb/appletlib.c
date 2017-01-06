@@ -52,6 +52,32 @@
 
 #include "usage_compressed.h"
 
+
+/* "Do not compress usage text if uncompressed text is small
+ *  and we don't include bunzip2 code for other reasons"
+ *
+ * Useful for mass one-applet rebuild (bunzip2 code is ~2.7k).
+ *
+ * Unlike BUNZIP2, if FEATURE_SEAMLESS_BZ2 is on, bunzip2 code is built but
+ * still may be unused if none of the selected applets calls open_zipped()
+ * or its friends; we test for (FEATURE_SEAMLESS_BZ2 && <APPLET>) instead.
+ * For example, only if TAR and FEATURE_SEAMLESS_BZ2 are both selected,
+ * then bunzip2 code will be linked in anyway, and disabling help compression
+ * would be not optimal:
+ */
+#if UNPACKED_USAGE_LENGTH < 4*1024 \
+ && !(ENABLE_FEATURE_SEAMLESS_BZ2 && ENABLE_TAR) \
+ && !(ENABLE_FEATURE_SEAMLESS_BZ2 && ENABLE_MODPROBE) \
+ && !(ENABLE_FEATURE_SEAMLESS_BZ2 && ENABLE_INSMOD) \
+ && !(ENABLE_FEATURE_SEAMLESS_BZ2 && ENABLE_DEPMOD) \
+ && !(ENABLE_FEATURE_SEAMLESS_BZ2 && ENABLE_MAN) \
+ && !ENABLE_BUNZIP2 \
+ && !ENABLE_BZCAT
+# undef  ENABLE_FEATURE_COMPRESS_USAGE
+# define ENABLE_FEATURE_COMPRESS_USAGE 0
+#endif
+
+
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
 static const char usage_messages[] ALIGN1 = UNPACKED_USAGE;
 #else
