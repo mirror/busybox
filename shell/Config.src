@@ -80,6 +80,9 @@ endchoice
 INSERT
 
 
+comment "Options common to all shells"
+if ASH || HUSH || SH_IS_ASH || BASH_IS_ASH || SH_IS_HUSH || BASH_IS_HUSH
+
 config FEATURE_SH_MATH
 	bool "POSIX math support"
 	default y
@@ -163,5 +166,6 @@ config FEATURE_SH_HISTFILESIZE
 	  to set shell history size. Note that its max value is capped
 	  by "History size" setting in library tuning section.
 
+endif # Options common to all shells
 
 endmenu

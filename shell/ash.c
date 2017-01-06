@@ -26,6 +26,11 @@
 //config:	  shell (by Herbert Xu), which was created by porting the 'ash' shell
 //config:	  (written by Kenneth Almquist) from NetBSD.
 //config:
+//config:# ash options
+//config:# note: Don't remove !NOMMU part in the next line; it would break
+//config:# menuconfig's indenting.
+//config:if !NOMMU && (ASH || SH_IS_ASH || BASH_IS_ASH)
+//config:
 //config:config ASH_OPTIMIZE_FOR_SIZE
 //config:	bool "Optimize for size instead of speed"
 //config:	default y
@@ -140,6 +145,8 @@
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
 //config:	  Enable "check for new mail" function in the ash shell.
+//config:
+//config:endif # ash options
 
 //applet:IF_ASH(APPLET(ash, BB_DIR_BIN, BB_SUID_DROP))
 //applet:IF_SH_IS_ASH(APPLET_ODDNAME(sh, ash, BB_DIR_BIN, BB_SUID_DROP, ash))
