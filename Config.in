@@ -50,17 +50,6 @@ config USE_PORTABLE_CODE
 	  compiler other than gcc.
 	  If you do use gcc, this option may needlessly increase code size.
 
-config PLATFORM_LINUX
-	bool "Enable Linux-specific applets and features"
-	default y
-	help
-	  For the most part, busybox requires only POSIX compatibility
-	  from the target system, but some applets and features use
-	  Linux-specific interfaces.
-
-	  Answering 'N' here will disable such applets and hide the
-	  corresponding configuration options.
-
 config SHOW_USAGE
 	bool "Show applet usage messages"
 	default y
@@ -337,6 +326,17 @@ config FEATURE_HAVE_RPC
 	#help
 	#  This is automatically selected if any of enabled applets need it.
 	#  You do not need to select it manually.
+
+config PLATFORM_LINUX
+	bool #No description makes it a hidden option
+	default n
+	#help
+	#  For the most part, busybox requires only POSIX compatibility
+	#  from the target system, but some applets and features use
+	#  Linux-specific interfaces.
+	#
+	#  This is automatically selected if any applet or feature requires
+	#  Linux-specific interfaces. You do not need to select it manually.
 
 comment 'Build Options'
 
