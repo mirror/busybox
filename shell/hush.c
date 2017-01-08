@@ -44,12 +44,12 @@
  *      special variables (done: PWD, PPID, RANDOM)
  *      tilde expansion
  *      aliases
- *      kill %jobspec
  *      follow IFS rules more precisely, including update semantics
  *      builtins mandated by standards we don't support:
  *          [un]alias, command, fc, getopts, newgrp, readonly, times
  *      make complex ${var%...} constructs support optional
  *      make here documents optional
+ *      make trap, read, ulimit builtins optional
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
@@ -116,6 +116,34 @@
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable help builtin in hush. Code size + ~1 kbyte.
+//config:
+//config:config HUSH_PRINTF
+//config:	bool "printf builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable printf builtin in hush.
+//config:
+//config:config HUSH_KILL
+//config:	bool "kill builtin (for kill %jobspec)"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable kill builtin in hush.
+//config:
+//config:config HUSH_WAIT
+//config:	bool "wait builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable wait builtin in hush.
+//config:
+//config:config HUSH_TYPE
+//config:	bool "type builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable type builtin in hush.
 //config:
 //config:config HUSH_INTERACTIVE
 //config:	bool "Interactive mode"
@@ -860,7 +888,7 @@ static int builtin_local(char **argv) FAST_FUNC;
 #if HUSH_DEBUG
 static int builtin_memleak(char **argv) FAST_FUNC;
 #endif
-#if ENABLE_PRINTF
+#if ENABLE_HUSH_PRINTF
 static int builtin_printf(char **argv) FAST_FUNC;
 #endif
 static int builtin_pwd(char **argv) FAST_FUNC;
@@ -870,11 +898,18 @@ static int builtin_shift(char **argv) FAST_FUNC;
 static int builtin_source(char **argv) FAST_FUNC;
 static int builtin_test(char **argv) FAST_FUNC;
 static int builtin_trap(char **argv) FAST_FUNC;
+#if ENABLE_HUSH_TYPE
 static int builtin_type(char **argv) FAST_FUNC;
+#endif
 static int builtin_true(char **argv) FAST_FUNC;
 static int builtin_umask(char **argv) FAST_FUNC;
 static int builtin_unset(char **argv) FAST_FUNC;
+#if ENABLE_HUSH_KILL
+static int builtin_kill(char **argv) FAST_FUNC;
+#endif
+#if ENABLE_HUSH_WAIT
 static int builtin_wait(char **argv) FAST_FUNC;
+#endif
 #if ENABLE_HUSH_LOOPS
 static int builtin_break(char **argv) FAST_FUNC;
 static int builtin_continue(char **argv) FAST_FUNC;
@@ -929,6 +964,9 @@ static const struct built_in_command bltins1[] = {
 #if ENABLE_HUSH_JOB
 	BLTIN("jobs"     , builtin_jobs    , "List jobs"),
 #endif
+#if ENABLE_HUSH_KILL
+	BLTIN("kill"     , builtin_kill    , "Send signals to processes"),
+#endif
 #if ENABLE_HUSH_LOCAL
 	BLTIN("local"    , builtin_local   , "Set local variables"),
 #endif
@@ -946,18 +984,22 @@ static const struct built_in_command bltins1[] = {
 #endif
 	BLTIN("trap"     , builtin_trap    , "Trap signals"),
 	BLTIN("true"     , builtin_true    , NULL),
+#if ENABLE_HUSH_TYPE
 	BLTIN("type"     , builtin_type    , "Show command type"),
+#endif
 	BLTIN("ulimit"   , shell_builtin_ulimit  , "Control resource limits"),
 	BLTIN("umask"    , builtin_umask   , "Set file creation mask"),
 	BLTIN("unset"    , builtin_unset   , "Unset variables"),
+#if ENABLE_HUSH_WAIT
 	BLTIN("wait"     , builtin_wait    , "Wait for process"),
+#endif
 };
 /* For now, echo and test are unconditionally enabled.
  * Maybe make it configurable? */
 static const struct built_in_command bltins2[] = {
 	BLTIN("["        , builtin_test    , NULL),
 	BLTIN("echo"     , builtin_echo    , NULL),
-#if ENABLE_PRINTF
+#if ENABLE_HUSH_PRINTF
 	BLTIN("printf"   , builtin_printf  , NULL),
 #endif
 	BLTIN("pwd"      , builtin_pwd     , NULL),
@@ -8689,7 +8731,7 @@ static int FAST_FUNC builtin_echo(char **argv)
 	return run_applet_main(argv, echo_main);
 }
 
-#if ENABLE_PRINTF
+#if ENABLE_HUSH_PRINTF
 static int FAST_FUNC builtin_printf(char **argv)
 {
 	return run_applet_main(argv, printf_main);
@@ -9227,6 +9269,7 @@ static int FAST_FUNC builtin_trap(char **argv)
 	goto process_sig_list;
 }
 
+#if ENABLE_HUSH_TYPE
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/type.html */
 static int FAST_FUNC builtin_type(char **argv)
 {
@@ -9259,6 +9302,7 @@ static int FAST_FUNC builtin_type(char **argv)
 
 	return ret;
 }
+#endif
 
 #if ENABLE_HUSH_JOB
 static struct pipe *parse_jobspec(const char *str)
@@ -9526,6 +9570,87 @@ static int FAST_FUNC builtin_umask(char **argv)
 	return !rc; /* rc != 0 - success */
 }
 
+#if ENABLE_HUSH_KILL
+static int FAST_FUNC builtin_kill(char **argv)
+{
+	int ret = 0;
+
+	argv = skip_dash_dash(argv);
+	if (argv[0] && strcmp(argv[0], "-l") != 0) {
+		int i = 0;
+
+		do {
+			struct pipe *pi;
+			char *dst;
+			int j, n;
+
+			if (argv[i][0] != '%')
+				continue;
+			/*
+			 * "kill %N" - job kill
+			 * Converting to pgrp / pid kill
+			 */
+			pi = parse_jobspec(argv[i]);
+			if (!pi) {
+				/* Eat bad jobspec */
+				j = i;
+				do {
+					j++;
+					argv[j - 1] = argv[j];
+				} while (argv[j]);
+				ret = 1;
+				i--;
+				continue;
+			}
+			/*
+			 * In jobs started under job control, we signal
+			 * entire process group by kill -PGRP_ID.
+			 * This happens, f.e., in interactive shell.
+			 *
+			 * Otherwise, we signal each child via
+			 * kill PID1 PID2 PID3.
+			 * Testcases:
+			 * sh -c 'sleep 1|sleep 1 & kill %1'
+			 * sh -c 'true|sleep 2 & sleep 1; kill %1'
+			 * sh -c 'true|sleep 1 & sleep 2; kill %1'
+			 */
+			n = pi->num_cmds;
+			if (ENABLE_HUSH_JOB && G_interactive_fd)
+				n = 1;
+			dst = alloca(n * sizeof(int)*4);
+			argv[i] = dst;
+#if ENABLE_HUSH_JOB
+			if (G_interactive_fd)
+				dst += sprintf(dst, " -%u", (int)pi->pgrp);
+			else
+#endif
+			for (j = 0; j < n; j++) {
+				struct command *cmd = &pi->cmds[j];
+				/* Skip exited members of the job */
+				if (cmd->pid == 0)
+					continue;
+				/*
+				 * kill_main has matching code to expect
+				 * leading space. Needed to not confuse
+				 * negative pids with "kill -SIGNAL_NO" syntax
+				 */
+				dst += sprintf(dst, " %u", (int)cmd->pid);
+			}
+			*dst = '\0';
+		} while (argv[++i]);
+	}
+
+	if (argv[0] || ret == 0) {
+		argv--;
+		argv[0] = (char*)"kill"; /* why? think about "kill -- PID" */
+		/* kill_main also handles "killall" etc, so it does look at argv[0]! */
+		ret = run_applet_main(argv, kill_main);
+	}
+	return ret;
+}
+#endif
+
+#if ENABLE_HUSH_WAIT
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/wait.html */
 #if !ENABLE_HUSH_JOB
 # define wait_for_child_or_signal(pipe,pid) wait_for_child_or_signal(pid)
@@ -9686,6 +9811,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 
 	return ret;
 }
+#endif
 
 #if ENABLE_HUSH_LOOPS || ENABLE_HUSH_FUNCTIONS
 static unsigned parse_numeric_argv1(char **argv, unsigned def, unsigned def_min)
