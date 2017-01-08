@@ -286,6 +286,13 @@
 //config:	help
 //config:	  Enable umask builtin in hush.
 //config:
+//config:config HUSH_MEMLEAK
+//config:	bool "memleak builtin (debugging)"
+//config:	default n
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable umask builtin in hush.
+//config:
 //config:config MSH
 //config:	bool "msh (deprecated: aliased to hush)"
 //config:	default n
@@ -897,8 +904,10 @@ struct globals {
 # define G_traps ((char**)NULL)
 #endif
 	sigset_t pending_set;
-#if HUSH_DEBUG
+#if ENABLE_HUSH_MEMLEAK
 	unsigned long memleak_value;
+#endif
+#if HUSH_DEBUG
 	int debug_indent;
 #endif
 	struct sigaction sa;
@@ -940,7 +949,7 @@ static int builtin_history(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_LOCAL
 static int builtin_local(char **argv) FAST_FUNC;
 #endif
-#if HUSH_DEBUG
+#if ENABLE_HUSH_MEMLEAK
 static int builtin_memleak(char **argv) FAST_FUNC;
 #endif
 #if ENABLE_HUSH_PRINTF
@@ -1037,7 +1046,7 @@ static const struct built_in_command bltins1[] = {
 #if ENABLE_HUSH_LOCAL
 	BLTIN("local"    , builtin_local   , "Set local variables"),
 #endif
-#if HUSH_DEBUG
+#if ENABLE_HUSH_MEMLEAK
 	BLTIN("memleak"  , builtin_memleak , NULL),
 #endif
 #if ENABLE_HUSH_READ
@@ -9534,7 +9543,7 @@ static int FAST_FUNC builtin_jobs(char **argv UNUSED_PARAM)
 }
 #endif
 
-#if HUSH_DEBUG
+#if ENABLE_HUSH_MEMLEAK
 static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
 {
 	void *p;
