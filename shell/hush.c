@@ -187,13 +187,6 @@
 //config:	  Enable pseudorandom generator and dynamic variable "$RANDOM".
 //config:	  Each read of "$RANDOM" will generate a new pseudorandom value.
 //config:
-//config:config HUSH_EXPORT_N
-//config:	bool "Support 'export -n' option"
-//config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  export -n unexports variables. It is a bash extension.
-//config:
 //config:config HUSH_MODE_X
 //config:	bool "Support 'hush -x' option and 'set -x' command"
 //config:	default y
@@ -201,6 +194,20 @@
 //config:	help
 //config:	  This instructs hush to print commands before execution.
 //config:	  Adds ~300 bytes.
+//config:
+//config:config HUSH_EXPORT
+//config:	bool "export builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable export builtin in hush.
+//config:
+//config:config HUSH_EXPORT_N
+//config:	bool "Support 'export -n' option"
+//config:	default y
+//config:	depends on HUSH_EXPORT
+//config:	help
+//config:	  export -n unexports variables. It is a bash extension.
 //config:
 //config:config HUSH_HELP
 //config:	bool "help builtin"
@@ -917,7 +924,9 @@ static int builtin_echo(char **argv) FAST_FUNC;
 static int builtin_eval(char **argv) FAST_FUNC;
 static int builtin_exec(char **argv) FAST_FUNC;
 static int builtin_exit(char **argv) FAST_FUNC;
+#if ENABLE_HUSH_EXPORT
 static int builtin_export(char **argv) FAST_FUNC;
+#endif
 #if ENABLE_HUSH_JOB
 static int builtin_fg_bg(char **argv) FAST_FUNC;
 static int builtin_jobs(char **argv) FAST_FUNC;
@@ -1007,7 +1016,9 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("eval"     , builtin_eval    , "Construct and run shell command"),
 	BLTIN("exec"     , builtin_exec    , "Execute command, don't return to shell"),
 	BLTIN("exit"     , builtin_exit    , "Exit"),
+#if ENABLE_HUSH_EXPORT
 	BLTIN("export"   , builtin_export  , "Set environment variables"),
+#endif
 #if ENABLE_HUSH_JOB
 	BLTIN("fg"       , builtin_fg_bg   , "Bring job into the foreground"),
 #endif
@@ -8935,10 +8946,11 @@ static void print_escaped(const char *s)
 	} while (*s);
 }
 
-#if !ENABLE_HUSH_LOCAL
+#if ENABLE_HUSH_EXPORT || ENABLE_HUSH_LOCAL
+# if !ENABLE_HUSH_LOCAL
 #define helper_export_local(argv, exp, lvl) \
 	helper_export_local(argv, exp)
-#endif
+# endif
 static void helper_export_local(char **argv, int exp, int lvl)
 {
 	do {
@@ -8971,14 +8983,14 @@ static void helper_export_local(char **argv, int exp, int lvl)
 					continue;
 				}
 			}
-#if ENABLE_HUSH_LOCAL
+# if ENABLE_HUSH_LOCAL
 			if (exp == 0 /* local? */
 			 && var && var->func_nest_level == lvl
 			) {
 				/* "local x=abc; ...; local x" - ignore second local decl */
 				continue;
 			}
-#endif
+# endif
 			/* Exporting non-existing variable.
 			 * bash does not put it in environment,
 			 * but remembers that it is exported,
@@ -8994,7 +9006,9 @@ static void helper_export_local(char **argv, int exp, int lvl)
 		set_local_var(name, /*exp:*/ exp, /*lvl:*/ lvl, /*ro:*/ 0);
 	} while (*++argv);
 }
+#endif
 
+#if ENABLE_HUSH_EXPORT
 static int FAST_FUNC builtin_export(char **argv)
 {
 	unsigned opt_unexport;
@@ -9040,6 +9054,7 @@ static int FAST_FUNC builtin_export(char **argv)
 
 	return EXIT_SUCCESS;
 }
+#endif
 
 #if ENABLE_HUSH_LOCAL
 static int FAST_FUNC builtin_local(char **argv)
