@@ -34,7 +34,9 @@ rm foo.zip
 optional FEATURE_UNZIP_CDF
 testing "unzip (bad archive)" "uudecode; unzip bad.zip 2>&1; echo \$?" \
 "Archive:  bad.zip
-unzip: short read
+  inflating: ]3j½r«IK-%Ix
+unzip: corrupted data
+unzip: inflate error
 1
 " \
 "" "\
