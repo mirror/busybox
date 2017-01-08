@@ -49,7 +49,6 @@
  *          [un]alias, command, fc, getopts, newgrp, readonly, times
  *      make complex ${var%...} constructs support optional
  *      make here documents optional
- *      make trap, read, ulimit builtins optional
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
@@ -109,41 +108,6 @@
 //config:	depends on HUSH_BASH_COMPAT
 //config:	help
 //config:	  Enable {abc,def} extension.
-//config:
-//config:config HUSH_HELP
-//config:	bool "help builtin"
-//config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable help builtin in hush. Code size + ~1 kbyte.
-//config:
-//config:config HUSH_PRINTF
-//config:	bool "printf builtin"
-//config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable printf builtin in hush.
-//config:
-//config:config HUSH_KILL
-//config:	bool "kill builtin (for kill %jobspec)"
-//config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable kill builtin in hush.
-//config:
-//config:config HUSH_WAIT
-//config:	bool "wait builtin"
-//config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable wait builtin in hush.
-//config:
-//config:config HUSH_TYPE
-//config:	bool "type builtin"
-//config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable type builtin in hush.
 //config:
 //config:config HUSH_INTERACTIVE
 //config:	bool "Interactive mode"
@@ -209,7 +173,7 @@
 //config:	  Enable support for shell functions in hush. +800 bytes.
 //config:
 //config:config HUSH_LOCAL
-//config:	bool "Support local builtin"
+//config:	bool "local builtin"
 //config:	default y
 //config:	depends on HUSH_FUNCTIONS
 //config:	help
@@ -237,6 +201,62 @@
 //config:	help
 //config:	  This instructs hush to print commands before execution.
 //config:	  Adds ~300 bytes.
+//config:
+//config:config HUSH_HELP
+//config:	bool "help builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable help builtin in hush. Code size + ~1 kbyte.
+//config:
+//config:config HUSH_PRINTF
+//config:	bool "printf builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable printf builtin in hush.
+//config:
+//config:config HUSH_KILL
+//config:	bool "kill builtin (for kill %jobspec)"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable kill builtin in hush.
+//config:
+//config:config HUSH_WAIT
+//config:	bool "wait builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable wait builtin in hush.
+//config:
+//config:config HUSH_TRAP
+//config:	bool "trap builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable trap builtin in hush.
+//config:
+//config:config HUSH_ULIMIT
+//config:	bool "ulimit builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable ulimit builtin in hush.
+//config:
+//config:config HUSH_TYPE
+//config:	bool "type builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable type builtin in hush.
+//config:
+//config:config HUSH_READ
+//config:	bool "read builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable read builtin in hush.
 //config:
 //config:config MSH
 //config:	bool "msh (deprecated: aliased to hush)"
@@ -842,7 +862,12 @@ struct globals {
 #else
 # define G_fatal_sig_mask 0
 #endif
+#if ENABLE_HUSH_TRAP
 	char **traps; /* char *traps[NSIG] */
+# define G_traps G.traps
+#else
+# define G_traps ((char**)NULL)
+#endif
 	sigset_t pending_set;
 #if HUSH_DEBUG
 	unsigned long memleak_value;
@@ -892,12 +917,16 @@ static int builtin_memleak(char **argv) FAST_FUNC;
 static int builtin_printf(char **argv) FAST_FUNC;
 #endif
 static int builtin_pwd(char **argv) FAST_FUNC;
+#if ENABLE_HUSH_READ
 static int builtin_read(char **argv) FAST_FUNC;
+#endif
 static int builtin_set(char **argv) FAST_FUNC;
 static int builtin_shift(char **argv) FAST_FUNC;
 static int builtin_source(char **argv) FAST_FUNC;
 static int builtin_test(char **argv) FAST_FUNC;
+#if ENABLE_HUSH_TRAP
 static int builtin_trap(char **argv) FAST_FUNC;
+#endif
 #if ENABLE_HUSH_TYPE
 static int builtin_type(char **argv) FAST_FUNC;
 #endif
@@ -973,7 +1002,9 @@ static const struct built_in_command bltins1[] = {
 #if HUSH_DEBUG
 	BLTIN("memleak"  , builtin_memleak , NULL),
 #endif
+#if ENABLE_HUSH_READ
 	BLTIN("read"     , builtin_read    , "Input into variable"),
+#endif
 #if ENABLE_HUSH_FUNCTIONS
 	BLTIN("return"   , builtin_return  , "Return from a function"),
 #endif
@@ -982,12 +1013,16 @@ static const struct built_in_command bltins1[] = {
 #if ENABLE_HUSH_BASH_COMPAT
 	BLTIN("source"   , builtin_source  , "Run commands in a file"),
 #endif
+#if ENABLE_HUSH_TRAP
 	BLTIN("trap"     , builtin_trap    , "Trap signals"),
+#endif
 	BLTIN("true"     , builtin_true    , NULL),
 #if ENABLE_HUSH_TYPE
 	BLTIN("type"     , builtin_type    , "Show command type"),
 #endif
+#if ENABLE_HUSH_ULIMIT
 	BLTIN("ulimit"   , shell_builtin_ulimit  , "Control resource limits"),
+#endif
 	BLTIN("umask"    , builtin_umask   , "Set file creation mask"),
 	BLTIN("unset"    , builtin_unset   , "Unset variables"),
 #if ENABLE_HUSH_WAIT
@@ -1712,13 +1747,13 @@ static void hush_exit(int exitcode)
 #endif
 
 	fflush_all();
-	if (G.exiting <= 0 && G.traps && G.traps[0] && G.traps[0][0]) {
+	if (G.exiting <= 0 && G_traps && G_traps[0] && G_traps[0][0]) {
 		char *argv[3];
 		/* argv[0] is unused */
-		argv[1] = G.traps[0];
+		argv[1] = G_traps[0];
 		argv[2] = NULL;
 		G.exiting = 1; /* prevent EXIT trap recursion */
-		/* Note: G.traps[0] is not cleared!
+		/* Note: G_traps[0] is not cleared!
 		 * "trap" will still show it, if executed
 		 * in the handler */
 		builtin_eval(argv);
@@ -1769,14 +1804,14 @@ static int check_and_run_traps(void)
 		} while (sig < NSIG);
 		break;
  got_sig:
-		if (G.traps && G.traps[sig]) {
+		if (G_traps && G_traps[sig]) {
 			debug_printf_exec("%s: sig:%d handler:'%s'\n", __func__, sig, G.traps[sig]);
-			if (G.traps[sig][0]) {
+			if (G_traps[sig][0]) {
 				/* We have user-defined handler */
 				smalluint save_rcode;
 				char *argv[3];
 				/* argv[0] is unused */
-				argv[1] = G.traps[sig];
+				argv[1] = G_traps[sig];
 				argv[2] = NULL;
 				save_rcode = G.last_exitcode;
 				builtin_eval(argv);
@@ -5924,13 +5959,15 @@ static void switch_off_special_sigs(unsigned mask)
 		sig++;
 		if (!(mask & 1))
 			continue;
-		if (G.traps) {
-			if (G.traps[sig] && !G.traps[sig][0])
+#if ENABLE_HUSH_TRAP
+		if (G_traps) {
+			if (G_traps[sig] && !G_traps[sig][0])
 				/* trap is '', has to remain SIG_IGN */
 				continue;
-			free(G.traps[sig]);
-			G.traps[sig] = NULL;
+			free(G_traps[sig]);
+			G_traps[sig] = NULL;
 		}
+#endif
 		/* We are here only if no trap or trap was not '' */
 		install_sighandler(sig, SIG_DFL);
 	}
@@ -5947,7 +5984,7 @@ static void reset_traps_to_defaults(void)
 	/* This function is always called in a child shell
 	 * after fork (not vfork, NOMMU doesn't use this function).
 	 */
-	unsigned sig;
+	IF_HUSH_TRAP(unsigned sig;)
 	unsigned mask;
 
 	/* Child shells are not interactive.
@@ -5956,35 +5993,37 @@ static void reset_traps_to_defaults(void)
 	 * Same goes for SIGTERM, SIGHUP, SIGINT.
 	 */
 	mask = (G.special_sig_mask & SPECIAL_INTERACTIVE_SIGS) | G_fatal_sig_mask;
-	if (!G.traps && !mask)
+	if (!G_traps && !mask)
 		return; /* already no traps and no special sigs */
 
 	/* Switch off special sigs */
 	switch_off_special_sigs(mask);
-#if ENABLE_HUSH_JOB
+# if ENABLE_HUSH_JOB
 	G_fatal_sig_mask = 0;
-#endif
+# endif
 	G.special_sig_mask &= ~SPECIAL_INTERACTIVE_SIGS;
 	/* SIGQUIT,SIGCHLD and maybe SPECIAL_JOBSTOP_SIGS
 	 * remain set in G.special_sig_mask */
 
-	if (!G.traps)
+# if ENABLE_HUSH_TRAP
+	if (!G_traps)
 		return;
 
 	/* Reset all sigs to default except ones with empty traps */
 	for (sig = 0; sig < NSIG; sig++) {
-		if (!G.traps[sig])
+		if (!G_traps[sig])
 			continue; /* no trap: nothing to do */
-		if (!G.traps[sig][0])
+		if (!G_traps[sig][0])
 			continue; /* empty trap: has to remain SIG_IGN */
 		/* sig has non-empty trap, reset it: */
-		free(G.traps[sig]);
-		G.traps[sig] = NULL;
+		free(G_traps[sig]);
+		G_traps[sig] = NULL;
 		/* There is no signal for trap 0 (EXIT) */
 		if (sig == 0)
 			continue;
 		install_sighandler(sig, pick_sighandler(sig));
 	}
+# endif
 }
 
 #else /* !BB_MMU */
@@ -6024,10 +6063,10 @@ static void re_execute_shell(char ***to_free, const char *s,
 		cnt++;
 
 	empty_trap_mask = 0;
-	if (G.traps) {
+	if (G_traps) {
 		int sig;
 		for (sig = 1; sig < NSIG; sig++) {
-			if (G.traps[sig] && !G.traps[sig][0])
+			if (G_traps[sig] && !G_traps[sig][0])
 				empty_trap_mask |= 1LL << sig;
 		}
 	}
@@ -6220,6 +6259,7 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 		xmove_fd(channel[1], 1);
 		/* Prevent it from trying to handle ctrl-z etc */
 		IF_HUSH_JOB(G.run_list_level = 1;)
+# if ENABLE_HUSH_TRAP
 		/* Awful hack for `trap` or $(trap).
 		 *
 		 * http://www.opengroup.org/onlinepubs/009695399/utilities/trap.html
@@ -6263,6 +6303,7 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 			fflush_all(); /* important */
 			_exit(0);
 		}
+# endif
 # if BB_MMU
 		reset_traps_to_defaults();
 		parse_and_run_string(s);
@@ -8160,10 +8201,12 @@ static void install_sighandlers(unsigned mask)
 		if (old_handler == SIG_IGN) {
 			/* oops... restore back to IGN, and record this fact */
 			install_sighandler(sig, old_handler);
-			if (!G.traps)
-				G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
-			free(G.traps[sig]);
-			G.traps[sig] = xzalloc(1); /* == xstrdup(""); */
+#if ENABLE_HUSH_TRAP
+			if (!G_traps)
+				G_traps = xzalloc(sizeof(G_traps[0]) * NSIG);
+			free(G_traps[sig]);
+			G_traps[sig] = xzalloc(1); /* == xstrdup(""); */
+#endif
 		}
 	}
 }
@@ -8464,10 +8507,10 @@ int hush_main(int argc, char **argv)
 			if (empty_trap_mask != 0) {
 				int sig;
 				install_special_sighandlers();
-				G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
+				G_traps = xzalloc(sizeof(G_traps[0]) * NSIG);
 				for (sig = 1; sig < NSIG; sig++) {
 					if (empty_trap_mask & (1LL << sig)) {
-						G.traps[sig] = xzalloc(1); /* == xstrdup(""); */
+						G_traps[sig] = xzalloc(1); /* == xstrdup(""); */
 						install_sighandler(sig, SIG_IGN);
 					}
 				}
@@ -9114,6 +9157,7 @@ static int FAST_FUNC builtin_shift(char **argv)
 	return EXIT_FAILURE;
 }
 
+#if ENABLE_HUSH_READ
 /* Interruptibility of read builtin in bash
  * (tested on bash-4.2.8 by sending signals (not by ^C)):
  *
@@ -9178,23 +9222,25 @@ static int FAST_FUNC builtin_read(char **argv)
 
 	return (uintptr_t)r;
 }
+#endif
 
+#if ENABLE_HUSH_TRAP
 static int FAST_FUNC builtin_trap(char **argv)
 {
 	int sig;
 	char *new_cmd;
 
-	if (!G.traps)
-		G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
+	if (!G_traps)
+		G_traps = xzalloc(sizeof(G_traps[0]) * NSIG);
 
 	argv++;
 	if (!*argv) {
 		int i;
 		/* No args: print all trapped */
 		for (i = 0; i < NSIG; ++i) {
-			if (G.traps[i]) {
+			if (G_traps[i]) {
 				printf("trap -- ");
-				print_escaped(G.traps[i]);
+				print_escaped(G_traps[i]);
 				/* note: bash adds "SIG", but only if invoked
 				 * as "bash". If called as "sh", or if set -o posix,
 				 * then it prints short signal names.
@@ -9224,11 +9270,11 @@ static int FAST_FUNC builtin_trap(char **argv)
 				continue;
 			}
 
-			free(G.traps[sig]);
-			G.traps[sig] = xstrdup(new_cmd);
+			free(G_traps[sig]);
+			G_traps[sig] = xstrdup(new_cmd);
 
 			debug_printf("trap: setting SIG%s (%i) to '%s'\n",
-				get_signame(sig), sig, G.traps[sig]);
+				get_signame(sig), sig, G_traps[sig]);
 
 			/* There is no signal for 0 (EXIT) */
 			if (sig == 0)
@@ -9268,6 +9314,7 @@ static int FAST_FUNC builtin_trap(char **argv)
 	argv++;
 	goto process_sig_list;
 }
+#endif
 
 #if ENABLE_HUSH_TYPE
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/type.html */
