@@ -347,7 +347,7 @@
 
 #define ERR_PTR ((void*)(long)1)
 
-#define JOB_STATUS_FORMAT    "[%d] %-22s %.40s\n"
+#define JOB_STATUS_FORMAT    "[%u] %-22s %.40s\n"
 
 #define _SPECIAL_VARS_STR     "_*@$!?#"
 #define SPECIAL_VARS_STR     ("_*@$!?#" + 1)
@@ -563,7 +563,7 @@ struct pipe {
 	int alive_cmds;             /* number of commands running (not exited) */
 	int stopped_cmds;           /* number of commands alive, but stopped */
 #if ENABLE_HUSH_JOB
-	int jobid;                  /* job number */
+	unsigned jobid;             /* job number */
 	pid_t pgrp;                 /* process group ID for the job */
 	char *cmdtext;              /* name of job */
 #endif
@@ -740,7 +740,7 @@ struct globals {
 #endif
 #if ENABLE_HUSH_JOB
 	int run_list_level;
-	int last_jobid;
+	unsigned last_jobid;
 	pid_t saved_tty_pgrp;
 	struct pipe *job_list;
 # define G_saved_tty_pgrp (G.saved_tty_pgrp)
@@ -7043,7 +7043,7 @@ static void insert_bg_job(struct pipe *pi)
 	job->cmdtext = xstrdup(get_cmdtext(pi));
 
 	if (G_interactive_fd)
-		printf("[%d] %d %s\n", job->jobid, job->cmds[0].pid, job->cmdtext);
+		printf("[%u] %u %s\n", job->jobid, (unsigned)job->cmds[0].pid, job->cmdtext);
 	G.last_jobid = job->jobid;
 }
 
@@ -9264,11 +9264,21 @@ static int FAST_FUNC builtin_type(char **argv)
 static struct pipe *parse_jobspec(const char *str)
 {
 	struct pipe *pi;
-	int jobnum;
+	unsigned jobnum;
 
-	if (sscanf(str, "%%%d", &jobnum) != 1) {
-		bb_error_msg("bad argument '%s'", str);
-		return NULL;
+	if (sscanf(str, "%%%u", &jobnum) != 1) {
+		if (str[0] != '%'
+		 || (str[1] != '%' && str[1] != '+' && str[1] != '\0')
+		) {
+			bb_error_msg("bad argument '%s'", str);
+			return NULL;
+		}
+		/* It is "%%", "%+" or "%" - current job */
+		jobnum = G.last_jobid;
+		if (jobnum == 0) {
+			bb_error_msg("no current job");
+			return NULL;
+		}
 	}
 	for (pi = G.job_list; pi; pi = pi->next) {
 		if (pi->jobid == jobnum) {
@@ -9622,13 +9632,15 @@ static int FAST_FUNC builtin_wait(char **argv)
 #if ENABLE_HUSH_JOB
 			if (argv[0][0] == '%') {
 				struct pipe *wait_pipe;
+				ret = 127; /* bash compat for bad jobspecs */
 				wait_pipe = parse_jobspec(*argv);
 				if (wait_pipe) {
 					ret = job_exited_or_stopped(wait_pipe);
 					if (ret < 0)
 						ret = wait_for_child_or_signal(wait_pipe, 0);
-					continue;
 				}
+				/* else: parse_jobspec() already emitted error msg */
+				continue;
 			}
 #endif
 			/* mimic bash message */
