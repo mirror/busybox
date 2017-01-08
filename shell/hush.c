@@ -272,6 +272,13 @@
 //config:	help
 //config:	  Enable unset builtin in hush.
 //config:
+//config:config HUSH_UMASK
+//config:	bool "umask builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable umask builtin in hush.
+//config:
 //config:config MSH
 //config:	bool "msh (deprecated: aliased to hush)"
 //config:	default n
@@ -947,7 +954,9 @@ static int builtin_trap(char **argv) FAST_FUNC;
 static int builtin_type(char **argv) FAST_FUNC;
 #endif
 static int builtin_true(char **argv) FAST_FUNC;
+#if ENABLE_HUSH_UMASK
 static int builtin_umask(char **argv) FAST_FUNC;
+#endif
 #if ENABLE_HUSH_UNSET
 static int builtin_unset(char **argv) FAST_FUNC;
 #endif
@@ -1043,7 +1052,9 @@ static const struct built_in_command bltins1[] = {
 #if ENABLE_HUSH_ULIMIT
 	BLTIN("ulimit"   , shell_builtin_ulimit, "Control resource limits"),
 #endif
+#if ENABLE_HUSH_UMASK
 	BLTIN("umask"    , builtin_umask   , "Set file creation mask"),
+#endif
 #if ENABLE_HUSH_UNSET
 	BLTIN("unset"    , builtin_unset   , "Unset variables"),
 #endif
@@ -9610,6 +9621,7 @@ static int FAST_FUNC builtin_source(char **argv)
 	return G.last_exitcode;
 }
 
+#if ENABLE_HUSH_UMASK
 static int FAST_FUNC builtin_umask(char **argv)
 {
 	int rc;
@@ -9646,6 +9658,7 @@ static int FAST_FUNC builtin_umask(char **argv)
 
 	return !rc; /* rc != 0 - success */
 }
+#endif
 
 #if ENABLE_HUSH_KILL
 static int FAST_FUNC builtin_kill(char **argv)
