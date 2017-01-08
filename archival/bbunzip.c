@@ -25,7 +25,7 @@ enum {
 	OPT_QUIET      = 1 << 3,
 	OPT_DECOMPRESS = 1 << 4,
 	OPT_TEST       = 1 << 5,
-	SEAMLESS_MAGIC = (1 << 31) * SEAMLESS_COMPRESSION,
+	SEAMLESS_MAGIC = (1 << 31) * ENABLE_ZCAT * SEAMLESS_COMPRESSION,
 };
 
 static
