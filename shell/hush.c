@@ -8936,6 +8936,7 @@ static int FAST_FUNC builtin_exit(char **argv)
 	hush_exit(xatoi(argv[0]) & 0xff);
 }
 
+#if ENABLE_HUSH_EXPORT || ENABLE_HUSH_TRAP
 static void print_escaped(const char *s)
 {
 	if (*s == '\'')
@@ -8954,6 +8955,7 @@ static void print_escaped(const char *s)
 		putchar('"');
 	} while (*s);
 }
+#endif
 
 #if ENABLE_HUSH_EXPORT || ENABLE_HUSH_LOCAL
 # if !ENABLE_HUSH_LOCAL
