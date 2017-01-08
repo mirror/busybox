@@ -19,6 +19,15 @@
 //config:
 //config:	  Unless you have a specific application which requires bzip2, you
 //config:	  should probably say N here.
+//config:
+//config:config FEATURE_BZIP2_DECOMPRESS
+//config:	bool "Enable decompression"
+//config:	default y
+//config:	depends on BZIP2 || BUNZIP2 || BZCAT
+//config:	help
+//config:	  Enable -d (--decompress) and -t (--test) options for bzip2.
+//config:	  This will be automatically selected if bunzip2 or bzcat is
+//config:	  enabled.
 
 //applet:IF_BZIP2(APPLET(bzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_BZIP2) += bzip2.o
@@ -28,7 +37,10 @@
 //usage:#define bzip2_full_usage "\n\n"
 //usage:       "Compress FILEs (or stdin) with bzip2 algorithm\n"
 //usage:     "\n	-1..9	Compression level"
+//usage:	IF_FEATURE_BZIP2_DECOMPRESS(
 //usage:     "\n	-d	Decompress"
+//usage:     "\n	-t	Test file integrity"
+//usage:	)
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 
@@ -184,8 +196,8 @@ int bzip2_main(int argc UNUSED_PARAM, char **argv)
 
 	opt_complementary = "s2"; /* -s means -2 (compatibility) */
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-	opt = getopt32(argv, "cfv" IF_BUNZIP2("dt") "123456789qzs");
-#if ENABLE_BUNZIP2 /* bunzip2_main may not be visible... */
+	opt = getopt32(argv, "cfv" IF_FEATURE_BZIP2_DECOMPRESS("dt") "123456789qzs");
+#if ENABLE_FEATURE_BZIP2_DECOMPRESS /* bunzip2_main may not be visible... */
 	if (opt & 0x18) // -d and/or -t
 		return bunzip2_main(argc, argv);
 	opt >>= 5;
