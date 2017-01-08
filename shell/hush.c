@@ -258,6 +258,20 @@
 //config:	help
 //config:	  Enable read builtin in hush.
 //config:
+//config:config HUSH_SET
+//config:	bool "set builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable set builtin in hush.
+//config:
+//config:config HUSH_UNSET
+//config:	bool "unset builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable unset builtin in hush.
+//config:
 //config:config MSH
 //config:	bool "msh (deprecated: aliased to hush)"
 //config:	default n
@@ -920,7 +934,9 @@ static int builtin_pwd(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_READ
 static int builtin_read(char **argv) FAST_FUNC;
 #endif
+#if ENABLE_HUSH_SET
 static int builtin_set(char **argv) FAST_FUNC;
+#endif
 static int builtin_shift(char **argv) FAST_FUNC;
 static int builtin_source(char **argv) FAST_FUNC;
 static int builtin_test(char **argv) FAST_FUNC;
@@ -932,7 +948,9 @@ static int builtin_type(char **argv) FAST_FUNC;
 #endif
 static int builtin_true(char **argv) FAST_FUNC;
 static int builtin_umask(char **argv) FAST_FUNC;
+#if ENABLE_HUSH_UNSET
 static int builtin_unset(char **argv) FAST_FUNC;
+#endif
 #if ENABLE_HUSH_KILL
 static int builtin_kill(char **argv) FAST_FUNC;
 #endif
@@ -1008,7 +1026,9 @@ static const struct built_in_command bltins1[] = {
 #if ENABLE_HUSH_FUNCTIONS
 	BLTIN("return"   , builtin_return  , "Return from a function"),
 #endif
+#if ENABLE_HUSH_SET
 	BLTIN("set"      , builtin_set     , "Set/unset positional parameters"),
+#endif
 	BLTIN("shift"    , builtin_shift   , "Shift positional parameters"),
 #if ENABLE_HUSH_BASH_COMPAT
 	BLTIN("source"   , builtin_source  , "Run commands in a file"),
@@ -1021,10 +1041,12 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("type"     , builtin_type    , "Show command type"),
 #endif
 #if ENABLE_HUSH_ULIMIT
-	BLTIN("ulimit"   , shell_builtin_ulimit  , "Control resource limits"),
+	BLTIN("ulimit"   , shell_builtin_ulimit, "Control resource limits"),
 #endif
 	BLTIN("umask"    , builtin_umask   , "Set file creation mask"),
+#if ENABLE_HUSH_UNSET
 	BLTIN("unset"    , builtin_unset   , "Unset variables"),
+#endif
 #if ENABLE_HUSH_WAIT
 	BLTIN("wait"     , builtin_wait    , "Wait for process"),
 #endif
@@ -2107,10 +2129,12 @@ static int unset_local_var_len(const char *name, int name_len)
 	return EXIT_SUCCESS;
 }
 
+#if ENABLE_HUSH_UNSET
 static int unset_local_var(const char *name)
 {
 	return unset_local_var_len(name, strlen(name));
 }
+#endif
 
 static void unset_vars(char **strings)
 {
@@ -6712,6 +6736,7 @@ static struct function *new_function(char *name)
 	return funcp;
 }
 
+# if ENABLE_HUSH_UNSET
 static void unset_func(const char *name)
 {
 	struct function **funcpp = find_function_slot(name);
@@ -6727,13 +6752,14 @@ static void unset_func(const char *name)
 		if (funcp->body) {
 			free_pipe_list(funcp->body);
 			free(funcp->name);
-# if !BB_MMU
+#  if !BB_MMU
 			free(funcp->body_as_string);
-# endif
+#  endif
 		}
 		free(funcp);
 	}
 }
+# endif
 
 # if BB_MMU
 #define exec_function(to_free, funcp, argv) \
@@ -9016,6 +9042,7 @@ static int FAST_FUNC builtin_local(char **argv)
 }
 #endif
 
+#if ENABLE_HUSH_UNSET
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#unset */
 static int FAST_FUNC builtin_unset(char **argv)
 {
@@ -9043,16 +9070,18 @@ static int FAST_FUNC builtin_unset(char **argv)
 				ret = EXIT_FAILURE;
 			}
 		}
-#if ENABLE_HUSH_FUNCTIONS
+# if ENABLE_HUSH_FUNCTIONS
 		else {
 			unset_func(*argv);
 		}
-#endif
+# endif
 		argv++;
 	}
 	return ret;
 }
+#endif
 
+#if ENABLE_HUSH_SET
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#set
  * built-in 'set' handler
  * SUSv3 says:
@@ -9135,6 +9164,7 @@ static int FAST_FUNC builtin_set(char **argv)
 	bb_error_msg("set: %s: invalid option", arg);
 	return EXIT_FAILURE;
 }
+#endif
 
 static int FAST_FUNC builtin_shift(char **argv)
 {
