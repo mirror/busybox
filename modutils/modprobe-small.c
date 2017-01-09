@@ -58,8 +58,8 @@
 
 #define DEPFILE_BB CONFIG_DEFAULT_DEPMOD_FILE".bb"
 
-#define ONLY_APPLET (ENABLE_MODPROBE + ENABLE_DEPMOD + ENABLE_INSMOD \
-  + ENABLE_LSMOD + ENABLE_RMMOD <= 1)
+#define MOD_APPLET_CNT (ENABLE_MODPROBE + ENABLE_DEPMOD + ENABLE_INSMOD + ENABLE_LSMOD + ENABLE_RMMOD)
+#define ONLY_APPLET (MOD_APPLET_CNT <= 1)
 #define is_modprobe (ENABLE_MODPROBE && (ONLY_APPLET || applet_name[0] == 'm'))
 #define is_depmod   (ENABLE_DEPMOD   && (ONLY_APPLET || applet_name[0] == 'd'))
 #define is_insmod   (ENABLE_INSMOD   && (ONLY_APPLET || applet_name[0] == 'i'))
@@ -933,7 +933,9 @@ The following options are useful for people managing distributions:
 int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int modprobe_main(int argc UNUSED_PARAM, char **argv)
 {
+#if ENABLE_MODPROBE || ENABLE_INSMOD || ENABLE_RMMOD
 	int exitcode;
+#endif
 	struct utsname uts;
 	IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(char *options = NULL;)
 
@@ -954,7 +956,12 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	}
 	uname(&uts); /* never fails */
 
-	if (is_depmod) {
+	/* depmod? */
+	if ((MOD_APPLET_CNT == 2 && ENABLE_DEPMOD && ENABLE_LSMOD)
+	 /* ^^^^only depmod and lsmod is configured^^^^^^^^^^^^^^^ */
+	 /* note: we already know here it is not lsmod (handled before) */
+	 || is_depmod
+	) {
 		/* Supported:
 		 * -n: print result to stdout
 		 * -a: process all modules (default)
