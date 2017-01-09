@@ -9443,7 +9443,7 @@ static struct pipe *parse_jobspec(const char *str)
 			return pi;
 		}
 	}
-	bb_error_msg("%d: no such job", jobnum);
+	bb_error_msg("%u: no such job", jobnum);
 	return NULL;
 }
 
@@ -9691,9 +9691,9 @@ static int FAST_FUNC builtin_kill(char **argv)
 {
 	int ret = 0;
 
-	argv = skip_dash_dash(argv);
-	if (argv[0] && strcmp(argv[0], "-l") != 0) {
-		int i = 0;
+# if ENABLE_HUSH_JOB
+	if (argv[1] && strcmp(argv[1], "-l") != 0) {
+		int i = 1;
 
 		do {
 			struct pipe *pi;
@@ -9735,12 +9735,9 @@ static int FAST_FUNC builtin_kill(char **argv)
 				n = 1;
 			dst = alloca(n * sizeof(int)*4);
 			argv[i] = dst;
-#if ENABLE_HUSH_JOB
 			if (G_interactive_fd)
 				dst += sprintf(dst, " -%u", (int)pi->pgrp);
-			else
-#endif
-			for (j = 0; j < n; j++) {
+			else for (j = 0; j < n; j++) {
 				struct command *cmd = &pi->cmds[j];
 				/* Skip exited members of the job */
 				if (cmd->pid == 0)
@@ -9755,13 +9752,12 @@ static int FAST_FUNC builtin_kill(char **argv)
 			*dst = '\0';
 		} while (argv[++i]);
 	}
+# endif
 
-	if (argv[0] || ret == 0) {
-		argv--;
-		argv[0] = (char*)"kill"; /* why? think about "kill -- PID" */
-		/* kill_main also handles "killall" etc, so it does look at argv[0]! */
+	if (argv[1] || ret == 0) {
 		ret = run_applet_main(argv, kill_main);
 	}
+	/* else: ret = 1, "kill %bad_jobspec" case */
 	return ret;
 }
 #endif
