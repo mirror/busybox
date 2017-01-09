@@ -34,6 +34,18 @@
 //config:	  ZIP files without deleted/updated files, SFX archives etc,
 //config:	  you can reduce code size by unselecting this option.
 //config:	  To support less trivial ZIPs, say Y.
+//config:
+//config:config FEATURE_UNZIP_BZIP2
+//config:	bool "Support compression method 12 (bzip2)"
+//config:	default y
+//config:	depends on FEATURE_UNZIP_CDF && DESKTOP
+// FEATURE_UNZIP_CDF is needed, otherwise we can't find start of next file
+// DESKTOP is needed to get back uncompressed length
+//config:
+//config:config FEATURE_UNZIP_LZMA
+//config:	bool "Support compression method 14 (lzma)"
+//config:	default y
+//config:	depends on FEATURE_UNZIP_CDF && DESKTOP
 
 //applet:IF_UNZIP(APPLET(unzip, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_UNZIP) += unzip.o
@@ -319,32 +331,57 @@ static void unzip_create_leading_dirs(const char *fn)
 
 static void unzip_extract(zip_header_t *zip, int dst_fd)
 {
+	transformer_state_t xstate;
+
 	if (zip->fmt.method == 0) {
 		/* Method 0 - stored (not compressed) */
 		off_t size = zip->fmt.ucmpsize;
 		if (size)
 			bb_copyfd_exact_size(zip_fd, dst_fd, size);
-	} else {
+		return;
+	}
+
+	init_transformer_state(&xstate);
+	xstate.bytes_in = zip->fmt.cmpsize;
+	xstate.src_fd = zip_fd;
+	xstate.dst_fd = dst_fd;
+	if (zip->fmt.method == 8) {
 		/* Method 8 - inflate */
-		transformer_state_t xstate;
-		init_transformer_state(&xstate);
-		xstate.bytes_in = zip->fmt.cmpsize;
-		xstate.src_fd = zip_fd;
-		xstate.dst_fd = dst_fd;
 		if (inflate_unzip(&xstate) < 0)
 			bb_error_msg_and_die("inflate error");
 		/* Validate decompression - crc */
 		if (zip->fmt.crc32 != (xstate.crc32 ^ 0xffffffffL)) {
 			bb_error_msg_and_die("crc error");
 		}
-		/* Validate decompression - size */
-		if (zip->fmt.ucmpsize != xstate.bytes_out) {
-			/* Don't die. Who knows, maybe len calculation
-			 * was botched somewhere. After all, crc matched! */
-			bb_error_msg("bad length");
-		}
 	}
-	/* TODO? method 12: bzip2, method 14: LZMA */
+#if ENABLE_FEATURE_UNZIP_BZIP2
+	else if (zip->fmt.method == 12) {
+		/* Tested. Unpacker reads too much, but we use CDF
+		 * and will seek to the correct beginning of next file.
+		 */
+		xstate.bytes_out = unpack_bz2_stream(&xstate);
+		if (xstate.bytes_out < 0)
+			bb_error_msg_and_die("inflate error");
+	}
+#endif
+#if ENABLE_FEATURE_UNZIP_LZMA
+	else if (zip->fmt.method == 14) {
+		/* Not tested yet */
+		xstate.bytes_out = unpack_lzma_stream(&xstate);
+		if (xstate.bytes_out < 0)
+			bb_error_msg_and_die("inflate error");
+	}
+#endif
+	else {
+		bb_error_msg_and_die("unsupported method %u", zip->fmt.method);
+	}
+
+	/* Validate decompression - size */
+	if (zip->fmt.ucmpsize != xstate.bytes_out) {
+		/* Don't die. Who knows, maybe len calculation
+		 * was botched somewhere. After all, crc matched! */
+		bb_error_msg("bad length");
+	}
 }
 
 static void my_fgets80(char *buf80)
@@ -609,12 +646,6 @@ int unzip_main(int argc, char **argv)
 
 			xread(zip_fd, zip.raw, ZIP_HEADER_LEN);
 			FIX_ENDIANNESS_ZIP(zip);
-			if ((zip.fmt.method != 0)
-			 && (zip.fmt.method != 8)
-			) {
-				/* TODO? method 12: bzip2, method 14: LZMA */
-				bb_error_msg_and_die("unsupported method %d", zip.fmt.method);
-			}
 			if (zip.fmt.zip_flags & SWAP_LE16(0x0009)) {
 				bb_error_msg_and_die("zip flags 1 and 8 are not supported");
 			}
@@ -704,7 +735,11 @@ int unzip_main(int argc, char **argv)
 						dtbuf,
 						dst_fn);
 				} else {
-					unsigned long percents = zip.fmt.ucmpsize - zip.fmt.cmpsize;
+					char method6[7];
+					unsigned long percents;
+
+					sprintf(method6, "%6u", zip.fmt.method);
+					percents = zip.fmt.ucmpsize - zip.fmt.cmpsize;
 					if ((int32_t)percents < 0)
 						percents = 0; /* happens if ucmpsize < cmpsize */
 					percents = percents * 100;
@@ -714,21 +749,9 @@ int unzip_main(int argc, char **argv)
 					//      "--------  ------  ------- ---- ---------- ----- --------  ----"
 					printf(      "%8u  %s"        "%9u%4u%% " "%s "         "%08x  "  "%s\n",
 						(unsigned)zip.fmt.ucmpsize,
-						zip.fmt.method == 0 ? "Stored" : "Defl:N", /* Defl is method 8 */
-/* TODO: show other methods?
- *  1 - Shrunk
- *  2 - Reduced with compression factor 1
- *  3 - Reduced with compression factor 2
- *  4 - Reduced with compression factor 3
- *  5 - Reduced with compression factor 4
- *  6 - Imploded
- *  7 - Reserved for Tokenizing compression algorithm
- *  9 - Deflate64
- * 10 - PKWARE Data Compression Library Imploding
- * 11 - Reserved by PKWARE
- * 12 - BZIP2
- * 14 - LZMA
- */
+						zip.fmt.method == 0 ? "Stored"
+						: zip.fmt.method == 8 ? "Defl:N"
+						: method6,
 						(unsigned)zip.fmt.cmpsize,
 						(unsigned)percents,
 						dtbuf,
