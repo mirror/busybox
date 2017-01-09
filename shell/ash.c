@@ -12548,6 +12548,7 @@ dotcmd(int argc_ UNUSED_PARAM, char **argv_ UNUSED_PARAM)
 	int status = 0;
 	char *fullname;
 	char **argv;
+	char *args_need_save;
 	struct strlist *sp;
 	volatile struct shparam saveparam;
 
@@ -12567,7 +12568,8 @@ dotcmd(int argc_ UNUSED_PARAM, char **argv_ UNUSED_PARAM)
 	 */
 	fullname = find_dot_file(argv[0]);
 	argv++;
-	if (argv[0]) { /* . FILE ARGS, ARGS exist */
+	args_need_save = argv[0];
+	if (args_need_save) { /* . FILE ARGS, ARGS exist */
 		int argc;
 		saveparam = shellparam;
 		shellparam.malloced = 0;
@@ -12586,7 +12588,7 @@ dotcmd(int argc_ UNUSED_PARAM, char **argv_ UNUSED_PARAM)
 	status = cmdloop(0);
 	popfile();
 
-	if (argv[0]) {
+	if (args_need_save) {
 		freeparam(&shellparam);
 		shellparam = saveparam;
 	};
