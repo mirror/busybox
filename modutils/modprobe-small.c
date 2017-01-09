@@ -59,7 +59,12 @@
 #define DEPFILE_BB CONFIG_DEFAULT_DEPMOD_FILE".bb"
 
 #define MOD_APPLET_CNT (ENABLE_MODPROBE + ENABLE_DEPMOD + ENABLE_INSMOD + ENABLE_LSMOD + ENABLE_RMMOD)
-#define ONLY_APPLET (MOD_APPLET_CNT <= 1)
+
+/* Do not bother if MODPROBE_SMALL=y but no applets selected. */
+/* The rest of the file is in this if block. */
+#if MOD_APPLET_CNT > 0
+
+#define ONLY_APPLET (MOD_APPLET_CNT == 1)
 #define is_modprobe (ENABLE_MODPROBE && (ONLY_APPLET || applet_name[0] == 'm'))
 #define is_depmod   (ENABLE_DEPMOD   && (ONLY_APPLET || applet_name[0] == 'd'))
 #define is_insmod   (ENABLE_INSMOD   && (ONLY_APPLET || applet_name[0] == 'i'))
@@ -1063,3 +1068,5 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	return exitcode;
 #endif /* MODPROBE || INSMOD || RMMOD */
 }
+
+#endif /* MOD_APPLET_CNT > 0 */

@@ -28,6 +28,8 @@ for app in $apps; do
 done
 #echo "$allno" >.config_allno
 
+trap 'test -f .config.SV && mv .config.SV .config && touch .config' EXIT
+
 # Turn on each applet individually and build single-applet executable
 fail=0
 for app in $apps; do
@@ -54,16 +56,20 @@ for app in $apps; do
 		mv .config busybox_config_${app}
 	elif ! make $makeopts >>busybox_make_${app}.log 2>&1; then
 		: $((fail++))
+		grep -i -e error: -e warning: busybox_make_${app}.log
 		echo "Build error for ${app}"
 		mv .config busybox_config_${app}
 	elif ! grep -q '^#define NUM_APPLETS 1$' include/NUM_APPLETS.h; then
+		grep -i -e error: -e warning: busybox_make_${app}.log
 		mv busybox busybox_${app}
 		: $((fail++))
 		echo "NUM_APPLETS != 1 for ${app}: `cat include/NUM_APPLETS.h`"
 		mv .config busybox_config_${app}
 	else
+		grep -i -e error: -e warning: busybox_make_${app}.log \
+		|| rm busybox_make_${app}.log
 		mv busybox busybox_${app}
-		rm busybox_make_${app}.log
+		#mv .config busybox_config_${app}
 	fi
 	mv .config.SV .config
 	#exit
