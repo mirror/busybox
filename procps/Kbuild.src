@@ -7,6 +7,3 @@
 lib-y:=
 
 INSERT
-
-lib-$(CONFIG_ASH_JOB_CONTROL) += kill.o  # used for built-in kill by ash
-lib-$(CONFIG_HUSH_KILL) += kill.o  # used for built-in kill by hush
