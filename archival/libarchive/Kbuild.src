@@ -61,6 +61,7 @@ lib-$(CONFIG_FEATURE_UNZIP_LZMA)        += open_transformer.o decompress_unlzma.
 lib-$(CONFIG_UNXZ)                      += open_transformer.o decompress_unxz.o
 lib-$(CONFIG_XZCAT)                     += open_transformer.o decompress_unxz.o
 lib-$(CONFIG_XZ)                        += open_transformer.o decompress_unxz.o
+lib-$(CONFIG_FEATURE_UNZIP_XZ)          += open_transformer.o decompress_unxz.o
 lib-$(CONFIG_GUNZIP)                    += open_transformer.o decompress_gunzip.o
 lib-$(CONFIG_ZCAT)                      += open_transformer.o decompress_gunzip.o
 lib-$(CONFIG_UNCOMPRESS)                += open_transformer.o decompress_uncompress.o

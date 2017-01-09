@@ -46,6 +46,11 @@
 //config:	bool "Support compression method 14 (lzma)"
 //config:	default y
 //config:	depends on FEATURE_UNZIP_CDF && DESKTOP
+//config:
+//config:config FEATURE_UNZIP_XZ
+//config:	bool "Support compression method 95 (xz)"
+//config:	default y
+//config:	depends on FEATURE_UNZIP_CDF && DESKTOP
 
 //applet:IF_UNZIP(APPLET(unzip, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_UNZIP) += unzip.o
@@ -368,6 +373,14 @@ static void unzip_extract(zip_header_t *zip, int dst_fd)
 	else if (zip->fmt.method == 14) {
 		/* Not tested yet */
 		xstate.bytes_out = unpack_lzma_stream(&xstate);
+		if (xstate.bytes_out < 0)
+			bb_error_msg_and_die("inflate error");
+	}
+#endif
+#if ENABLE_FEATURE_UNZIP_XZ
+	else if (zip->fmt.method == 95) {
+		/* Not tested yet */
+		xstate.bytes_out = unpack_xz_stream(&xstate);
 		if (xstate.bytes_out < 0)
 			bb_error_msg_and_die("inflate error");
 	}
