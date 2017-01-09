@@ -291,7 +291,7 @@
 //config:	default n
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable umask builtin in hush.
+//config:	  Enable memleak builtin in hush.
 //config:
 //config:config MSH
 //config:	bool "msh (deprecated: aliased to hush)"
