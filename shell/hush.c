@@ -195,6 +195,20 @@
 //config:	  This instructs hush to print commands before execution.
 //config:	  Adds ~300 bytes.
 //config:
+//config:config HUSH_ECHO
+//config:	bool "echo builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable echo builtin in hush.
+//config:
+//config:config HUSH_PRINTF
+//config:	bool "printf builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	help
+//config:	  Enable printf builtin in hush.
+//config:
 //config:config HUSH_EXPORT
 //config:	bool "export builtin"
 //config:	default y
@@ -215,13 +229,6 @@
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable help builtin in hush. Code size + ~1 kbyte.
-//config:
-//config:config HUSH_PRINTF
-//config:	bool "printf builtin"
-//config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable printf builtin in hush.
 //config:
 //config:config HUSH_KILL
 //config:	bool "kill builtin (for kill %jobspec)"
@@ -934,7 +941,9 @@ struct globals {
 
 /* Function prototypes for builtins */
 static int builtin_cd(char **argv) FAST_FUNC;
+#if ENABLE_HUSH_ECHO
 static int builtin_echo(char **argv) FAST_FUNC;
+#endif
 static int builtin_eval(char **argv) FAST_FUNC;
 static int builtin_exec(char **argv) FAST_FUNC;
 static int builtin_exit(char **argv) FAST_FUNC;
@@ -1091,7 +1100,9 @@ static const struct built_in_command bltins1[] = {
  * Maybe make it configurable? */
 static const struct built_in_command bltins2[] = {
 	BLTIN("["        , builtin_test    , NULL),
+#if ENABLE_HUSH_ECHO
 	BLTIN("echo"     , builtin_echo    , NULL),
+#endif
 #if ENABLE_HUSH_PRINTF
 	BLTIN("printf"   , builtin_printf  , NULL),
 #endif
@@ -8832,12 +8843,12 @@ static int FAST_FUNC builtin_test(char **argv)
 {
 	return run_applet_main(argv, test_main);
 }
-
+#if ENABLE_HUSH_ECHO
 static int FAST_FUNC builtin_echo(char **argv)
 {
 	return run_applet_main(argv, echo_main);
 }
-
+#endif
 #if ENABLE_HUSH_PRINTF
 static int FAST_FUNC builtin_printf(char **argv)
 {
