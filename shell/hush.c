@@ -9730,9 +9730,7 @@ static int FAST_FUNC builtin_kill(char **argv)
 			 * sh -c 'true|sleep 2 & sleep 1; kill %1'
 			 * sh -c 'true|sleep 1 & sleep 2; kill %1'
 			 */
-			n = pi->num_cmds;
-			if (ENABLE_HUSH_JOB && G_interactive_fd)
-				n = 1;
+			n = G_interactive_fd ? 1 : pi->num_cmds;
 			dst = alloca(n * sizeof(int)*4);
 			argv[i] = dst;
 			if (G_interactive_fd)
