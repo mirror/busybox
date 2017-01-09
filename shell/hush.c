@@ -853,8 +853,13 @@ struct globals {
 	smallint exiting; /* used to prevent EXIT trap recursion */
 	/* These four support $?, $#, and $1 */
 	smalluint last_exitcode;
+#if ENABLE_HUSH_SET
 	/* are global_argv and global_argv[1..n] malloced? (note: not [0]) */
 	smalluint global_args_malloced;
+# define G_global_args_malloced (G.global_args_malloced)
+#else
+# define G_global_args_malloced 0
+#endif
 	/* how many non-NULL argv's we have. NB: $# + 1 */
 	int global_argc;
 	char **global_argv;
@@ -893,7 +898,7 @@ struct globals {
 	unsigned special_sig_mask;
 #if ENABLE_HUSH_JOB
 	unsigned fatal_sig_mask;
-# define G_fatal_sig_mask G.fatal_sig_mask
+# define G_fatal_sig_mask (G.fatal_sig_mask)
 #else
 # define G_fatal_sig_mask 0
 #endif
@@ -1476,7 +1481,7 @@ typedef struct save_arg_t {
 	char *sv_argv0;
 	char **sv_g_argv;
 	int sv_g_argc;
-	smallint sv_g_malloced;
+	IF_HUSH_SET(smallint sv_g_malloced;)
 } save_arg_t;
 
 static void save_and_replace_G_args(save_arg_t *sv, char **argv)
@@ -1486,11 +1491,11 @@ static void save_and_replace_G_args(save_arg_t *sv, char **argv)
 	sv->sv_argv0 = argv[0];
 	sv->sv_g_argv = G.global_argv;
 	sv->sv_g_argc = G.global_argc;
-	sv->sv_g_malloced = G.global_args_malloced;
+	IF_HUSH_SET(sv->sv_g_malloced = G.global_args_malloced;)
 
 	argv[0] = G.global_argv[0]; /* retain $0 */
 	G.global_argv = argv;
-	G.global_args_malloced = 0;
+	IF_HUSH_SET(G.global_args_malloced = 0;)
 
 	n = 1;
 	while (*++argv)
@@ -1500,19 +1505,19 @@ static void save_and_replace_G_args(save_arg_t *sv, char **argv)
 
 static void restore_G_args(save_arg_t *sv, char **argv)
 {
-	char **pp;
-
+#if ENABLE_HUSH_SET
 	if (G.global_args_malloced) {
 		/* someone ran "set -- arg1 arg2 ...", undo */
-		pp = G.global_argv;
+		char **pp = G.global_argv;
 		while (*++pp) /* note: does not free $0 */
 			free(*pp);
 		free(G.global_argv);
 	}
+#endif
 	argv[0] = sv->sv_argv0;
 	G.global_argv = sv->sv_g_argv;
 	G.global_argc = sv->sv_g_argc;
-	G.global_args_malloced = sv->sv_g_malloced;
+	IF_HUSH_SET(G.global_args_malloced = sv->sv_g_malloced;)
 }
 
 
@@ -9213,7 +9218,7 @@ static int FAST_FUNC builtin_shift(char **argv)
 		n = atoi(argv[0]);
 	}
 	if (n >= 0 && n < G.global_argc) {
-		if (G.global_args_malloced) {
+		if (G_global_args_malloced) {
 			int m = 1;
 			while (m <= n)
 				free(G.global_argv[m++]);
