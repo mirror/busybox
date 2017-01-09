@@ -2182,11 +2182,13 @@ static void unset_vars(char **strings)
 	free(strings);
 }
 
+#if ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_BASH_COMPAT || ENABLE_HUSH_READ
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
 	char *var = xasprintf("%s=%s", name, val);
 	set_local_var(var, /*flags:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 }
+#endif
 
 
 /*
