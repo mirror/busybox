@@ -13,15 +13,14 @@
 //config:config FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
 //config:	bool "Accept module options on modprobe command line"
 //config:	default y
-//config:	depends on MODPROBE_SMALL
-//config:	select PLATFORM_LINUX
+//config:	depends on MODPROBE_SMALL && (INSMOD || MODPROBE)
 //config:	help
 //config:	  Allow insmod and modprobe take module options from command line.
 //config:
 //config:config FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
 //config:	bool "Skip loading of already loaded modules"
 //config:	default y
-//config:	depends on MODPROBE_SMALL
+//config:	depends on MODPROBE_SMALL && (DEPMOD || INSMOD || MODPROBE)
 //config:	help
 //config:	  Check if the module is already loaded.
 
@@ -58,6 +57,14 @@
 #endif
 
 #define DEPFILE_BB CONFIG_DEFAULT_DEPMOD_FILE".bb"
+
+#define ONLY_APPLET (ENABLE_MODPROBE + ENABLE_DEPMOD + ENABLE_INSMOD \
+  + ENABLE_LSMOD + ENABLE_RMMOD <= 1)
+#define is_modprobe (ENABLE_MODPROBE && (ONLY_APPLET || applet_name[0] == 'm'))
+#define is_depmod   (ENABLE_DEPMOD   && (ONLY_APPLET || applet_name[0] == 'd'))
+#define is_insmod   (ENABLE_INSMOD   && (ONLY_APPLET || applet_name[0] == 'i'))
+#define is_lsmod    (ENABLE_LSMOD    && (ONLY_APPLET || applet_name[0] == 'l'))
+#define is_rmmod    (ENABLE_RMMOD    && (ONLY_APPLET || applet_name[0] == 'r'))
 
 enum {
 	OPT_q = (1 << 0), /* be quiet */
@@ -361,6 +368,8 @@ static FAST_FUNC int fileAction(const char *pathname,
 {
 	int cur;
 	const char *fname;
+	bool is_remove = (ENABLE_RMMOD && ONLY_APPLET)
+		|| ((ENABLE_RMMOD || ENABLE_MODPROBE) && (option_mask32 & OPT_r));
 
 	pathname += 2; /* skip "./" */
 	fname = bb_get_last_path_component_nostrip(pathname);
@@ -385,7 +394,7 @@ static FAST_FUNC int fileAction(const char *pathname,
 	if (parse_module(&modinfo[cur], pathname) != 0)
 		return TRUE; /* failed to open/read it, no point in trying loading */
 
-	if (!(option_mask32 & OPT_r)) {
+	if (!is_remove) {
 		if (load_module(pathname, module_load_options) == 0) {
 			/* Load was successful, there is nothing else to do.
 			 * This can happen ONLY for "top-level" module load,
@@ -666,7 +675,8 @@ static int process_module(char *name, const char *cmdline_options)
 	module_info **infovec;
 	module_info *info;
 	int infoidx;
-	int is_remove = (option_mask32 & OPT_r) != 0;
+	bool is_remove = (ENABLE_RMMOD && ONLY_APPLET)
+		|| ((ENABLE_RMMOD || ENABLE_MODPROBE) && (option_mask32 & OPT_r));
 	int exitcode = EXIT_SUCCESS;
 
 	dbg1_error_msg("process_module('%s','%s')", name, cmdline_options);
@@ -675,9 +685,8 @@ static int process_module(char *name, const char *cmdline_options)
 
 	dbg1_error_msg("already_loaded:%d is_remove:%d", already_loaded(name), is_remove);
 
-	if (applet_name[0] == 'r') {
-		/* rmmod.
-		 * Does not remove dependencies, no need to scan, just remove.
+	if (is_rmmod) {
+		/* Does not remove dependencies, no need to scan, just remove.
 		 * (compat note: this allows and strips .ko suffix)
 		 */
 		rmmod(name);
@@ -743,7 +752,7 @@ static int process_module(char *name, const char *cmdline_options)
 
 	if (!infovec) {
 		/* both dirscan and find_alias found nothing */
-		if (!is_remove && applet_name[0] != 'd') /* it wasn't rmmod or depmod */
+		if (!is_remove && !is_depmod) /* it wasn't rmmod or depmod */
 			bb_error_msg("module '%s' not found", name);
 //TODO: _and_die()? or should we continue (un)loading modules listed on cmdline?
 		goto ret;
@@ -926,11 +935,10 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 {
 	int exitcode;
 	struct utsname uts;
-	char applet0 = applet_name[0];
-	IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(char *options;)
+	IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(char *options = NULL;)
 
 	/* are we lsmod? -> just dump /proc/modules */
-	if (ENABLE_LSMOD && 'l' == applet0) {
+	if (is_lsmod) {
 		xprint_and_close_file(xfopen_for_read("/proc/modules"));
 		return EXIT_SUCCESS;
 	}
@@ -940,14 +948,13 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	/* Prevent ugly corner cases with no modules at all */
 	modinfo = xzalloc(sizeof(modinfo[0]));
 
-	if (!ENABLE_INSMOD || 'i' != applet0) { /* not insmod */
+	if (!is_insmod) {
 		/* Goto modules directory */
 		xchdir(CONFIG_DEFAULT_MODULES_DIR);
 	}
 	uname(&uts); /* never fails */
 
-	/* depmod? */
-	if (ENABLE_DEPMOD && 'd' == applet0) {
+	if (is_depmod) {
 		/* Supported:
 		 * -n: print result to stdout
 		 * -a: process all modules (default)
@@ -978,28 +985,28 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		return !wrote_dep_bb_ok;
 	}
 
-	/* insmod, modprobe, rmmod require at least one argument */
+#if ENABLE_MODPROBE || ENABLE_INSMOD || ENABLE_RMMOD
+	/* modprobe, insmod, rmmod require at least one argument */
 	opt_complementary = "-1";
 	/* only -q (quiet) and -r (rmmod),
 	 * the rest are accepted and ignored (compat) */
 	getopt32(argv, "qrfsvwb");
 	argv += optind;
 
-	/* are we rmmod? -> simulate modprobe -r */
-	if (ENABLE_RMMOD && 'r' == applet0) {
-		option_mask32 |= OPT_r;
-	}
-
-	if (!ENABLE_INSMOD || 'i' != applet0) { /* not insmod */
+	if (!is_insmod) {
 		/* Goto $VERSION directory */
 		xchdir(uts.release);
 	}
 
-#if ENABLE_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
+	/* are we rmmod? -> simulate modprobe -r, but don't bother the flag if
+	 * there're no other applets here */
+	if (is_rmmod) {
+		if (!ONLY_APPLET)
+			option_mask32 |= OPT_r;
+	} else if (!ENABLE_MODPROBE || !(option_mask32 & OPT_r)) {
+# if ENABLE_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
 	/* If not rmmod/-r, parse possible module options given on command line.
 	 * insmod/modprobe takes one module name, the rest are parameters. */
-	options = NULL;
-	if (!(option_mask32 & OPT_r)) {
 		char **arg = argv;
 		while (*++arg) {
 			/* Enclose options in quotes */
@@ -1008,13 +1015,12 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 			free(s);
 			*arg = NULL;
 		}
-	}
-#else
-	if (!(option_mask32 & OPT_r))
+# else
 		argv[1] = NULL;
-#endif
+# endif
+	}
 
-	if (ENABLE_INSMOD && 'i' == applet0) { /* insmod */
+	if (is_insmod) {
 		size_t len;
 		void *map;
 
@@ -1023,8 +1029,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		if (!map)
 			bb_perror_msg_and_die("can't read '%s'", *argv);
 		if (init_module(map, len,
-			IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(options ? options : "")
-			IF_NOT_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE("")
+			(IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(options ? options : ) "")
 			) != 0
 		) {
 			bb_error_msg_and_die("can't insert '%s': %s",
@@ -1034,7 +1039,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* Try to load modprobe.dep.bb */
-	if (!ENABLE_RMMOD || 'r' != applet0) { /* not rmmod */
+	if (!is_rmmod) {
 		load_dep_bb();
 	}
 
@@ -1049,4 +1054,5 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(free(options);)
 	}
 	return exitcode;
+#endif /* MODPROBE || INSMOD || RMMOD */
 }
