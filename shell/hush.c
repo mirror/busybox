@@ -9606,6 +9606,7 @@ static int FAST_FUNC builtin_source(char **argv)
 	char *arg_path, *filename;
 	FILE *input;
 	save_arg_t sv;
+	char *args_need_save;
 #if ENABLE_HUSH_FUNCTIONS
 	smallint sv_flg;
 #endif
@@ -9637,7 +9638,8 @@ static int FAST_FUNC builtin_source(char **argv)
 	/* "we are inside sourced file, ok to use return" */
 	G_flag_return_in_progress = -1;
 #endif
-	if (argv[1])
+	args_need_save = argv[1]; /* used as a boolean variable */
+	if (args_need_save)
 		save_and_replace_G_args(&sv, argv);
 
 	/* "false; . ./empty_line; echo Zero:$?" should print 0 */
@@ -9645,7 +9647,7 @@ static int FAST_FUNC builtin_source(char **argv)
 	parse_and_run_file(input);
 	fclose_and_forget(input);
 
-	if (argv[1])
+	if (args_need_save) /* can't use argv[1] instead: "shift" can mangle it */
 		restore_G_args(&sv, argv);
 #if ENABLE_HUSH_FUNCTIONS
 	G_flag_return_in_progress = sv_flg;
