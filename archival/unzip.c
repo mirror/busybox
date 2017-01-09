@@ -659,8 +659,9 @@ int unzip_main(int argc, char **argv)
 
 			xread(zip_fd, zip.raw, ZIP_HEADER_LEN);
 			FIX_ENDIANNESS_ZIP(zip);
-			if (zip.fmt.zip_flags & SWAP_LE16(0x0009)) {
-				bb_error_msg_and_die("zip flags 1 and 8 are not supported");
+			if (zip.fmt.zip_flags & SWAP_LE16(0x0008)) {
+				bb_error_msg_and_die("zip flag %s is not supported",
+					"8 (streaming)");
 			}
 		}
 #if ENABLE_FEATURE_UNZIP_CDF
@@ -704,7 +705,8 @@ int unzip_main(int argc, char **argv)
 
 		if (zip.fmt.zip_flags & SWAP_LE16(0x0001)) {
 			/* 0x0001 - encrypted */
-			bb_error_msg_and_die("zip flag 1 (encryption) is not supported");
+			bb_error_msg_and_die("zip flag %s is not supported",
+					"1 (encryption)");
 		}
 		dbg("File cmpsize:0x%x extra_len:0x%x ucmpsize:0x%x",
 			(unsigned)zip.fmt.cmpsize,
@@ -727,118 +729,123 @@ int unzip_main(int argc, char **argv)
 		if (find_list_entry(zreject, dst_fn)
 		 || (zaccept && !find_list_entry(zaccept, dst_fn))
 		) { /* Skip entry */
-			i = 'n';
-		} else {
-			if (listing) {
-				/* List entry */
-				char dtbuf[sizeof("mm-dd-yyyy hh:mm")];
-				sprintf(dtbuf, "%02u-%02u-%04u %02u:%02u",
-					(zip.fmt.moddate >> 5) & 0xf,  // mm: 0x01e0
-					(zip.fmt.moddate)      & 0x1f, // dd: 0x001f
-					(zip.fmt.moddate >> 9) + 1980, // yy: 0xfe00
-					(zip.fmt.modtime >> 11),       // hh: 0xf800
-					(zip.fmt.modtime >> 5) & 0x3f  // mm: 0x07e0
-					// seconds/2 not shown, encoded in -- 0x001f
-				);
-				if (!verbose) {
-					//      "  Length      Date    Time    Name\n"
-					//      "---------  ---------- -----   ----"
-					printf(       "%9u  " "%s   "         "%s\n",
-						(unsigned)zip.fmt.ucmpsize,
-						dtbuf,
-						dst_fn);
-				} else {
-					char method6[7];
-					unsigned long percents;
-
-					sprintf(method6, "%6u", zip.fmt.method);
-					percents = zip.fmt.ucmpsize - zip.fmt.cmpsize;
-					if ((int32_t)percents < 0)
-						percents = 0; /* happens if ucmpsize < cmpsize */
-					percents = percents * 100;
-					if (zip.fmt.ucmpsize)
-						percents /= zip.fmt.ucmpsize;
-					//      " Length   Method    Size  Cmpr    Date    Time   CRC-32   Name\n"
-					//      "--------  ------  ------- ---- ---------- ----- --------  ----"
-					printf(      "%8u  %s"        "%9u%4u%% " "%s "         "%08x  "  "%s\n",
-						(unsigned)zip.fmt.ucmpsize,
-						zip.fmt.method == 0 ? "Stored"
-						: zip.fmt.method == 8 ? "Defl:N"
-						: method6,
-						(unsigned)zip.fmt.cmpsize,
-						(unsigned)percents,
-						dtbuf,
-						zip.fmt.crc32,
-						dst_fn);
-					total_size += zip.fmt.cmpsize;
-				}
-				total_usize += zip.fmt.ucmpsize;
-				i = 'n';
-			} else if (dst_fd == STDOUT_FILENO) {
-				/* Extracting to STDOUT */
-				i = -1;
-			} else if (last_char_is(dst_fn, '/')) {
-				/* Extract directory */
-				if (stat(dst_fn, &stat_buf) == -1) {
-					if (errno != ENOENT) {
-						bb_perror_msg_and_die("can't stat '%s'", dst_fn);
-					}
-					if (!quiet) {
-						printf("   creating: %s\n", dst_fn);
-					}
-					unzip_create_leading_dirs(dst_fn);
-					if (bb_make_directory(dst_fn, dir_mode, FILEUTILS_IGNORE_CHMOD_ERR)) {
-						xfunc_die();
-					}
-				} else {
-					if (!S_ISDIR(stat_buf.st_mode)) {
-						bb_error_msg_and_die("'%s' exists but is not a %s",
-							dst_fn, "directory");
-					}
-				}
-				i = 'n';
-			} else {
-				/* Extract file */
- check_file:
-				if (stat(dst_fn, &stat_buf) == -1) {
-					/* File does not exist */
-					if (errno != ENOENT) {
-						bb_perror_msg_and_die("can't stat '%s'", dst_fn);
-					}
-					i = 'y';
-				} else {
-					/* File already exists */
-					if (overwrite == O_NEVER) {
-						i = 'n';
-					} else if (S_ISREG(stat_buf.st_mode)) {
-						/* File is regular file */
-						if (overwrite == O_ALWAYS) {
-							i = 'y';
-						} else {
-							printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
-							my_fgets80(key_buf);
-							i = key_buf[0];
-						}
-					} else {
-						/* File is not regular file */
-						bb_error_msg_and_die("'%s' exists but is not a %s",
-							dst_fn, "regular file");
-					}
-				}
-			}
+			goto skip_cmpsize;
 		}
 
-		switch (i) {
+		if (listing) {
+			/* List entry */
+			char dtbuf[sizeof("mm-dd-yyyy hh:mm")];
+			sprintf(dtbuf, "%02u-%02u-%04u %02u:%02u",
+				(zip.fmt.moddate >> 5) & 0xf,  // mm: 0x01e0
+				(zip.fmt.moddate)      & 0x1f, // dd: 0x001f
+				(zip.fmt.moddate >> 9) + 1980, // yy: 0xfe00
+				(zip.fmt.modtime >> 11),       // hh: 0xf800
+				(zip.fmt.modtime >> 5) & 0x3f  // mm: 0x07e0
+				// seconds/2 not shown, encoded in -- 0x001f
+			);
+			if (!verbose) {
+				//      "  Length      Date    Time    Name\n"
+				//      "---------  ---------- -----   ----"
+				printf(       "%9u  " "%s   "         "%s\n",
+					(unsigned)zip.fmt.ucmpsize,
+					dtbuf,
+					dst_fn);
+			} else {
+				char method6[7];
+				unsigned long percents;
+
+				sprintf(method6, "%6u", zip.fmt.method);
+				if (zip.fmt.method == 0) {
+					strcpy(method6, "Stored");
+				}
+				if (zip.fmt.method == 8) {
+					strcpy(method6, "Defl:N");
+					/* normal, maximum, fast, superfast */
+					IF_DESKTOP(method6[5] = "NXFS"[(zip.fmt.zip_flags >> 1) & 3];)
+				}
+				percents = zip.fmt.ucmpsize - zip.fmt.cmpsize;
+				if ((int32_t)percents < 0)
+					percents = 0; /* happens if ucmpsize < cmpsize */
+				percents = percents * 100;
+				if (zip.fmt.ucmpsize)
+					percents /= zip.fmt.ucmpsize;
+				//      " Length   Method    Size  Cmpr    Date    Time   CRC-32   Name\n"
+				//      "--------  ------  ------- ---- ---------- ----- --------  ----"
+				printf(      "%8u  %s"        "%9u%4u%% " "%s "         "%08x  "  "%s\n",
+					(unsigned)zip.fmt.ucmpsize,
+					method6,
+					(unsigned)zip.fmt.cmpsize,
+					(unsigned)percents,
+					dtbuf,
+					zip.fmt.crc32,
+					dst_fn);
+				total_size += zip.fmt.cmpsize;
+			}
+			total_usize += zip.fmt.ucmpsize;
+			goto skip_cmpsize;
+		}
+
+		if (dst_fd == STDOUT_FILENO) {
+			/* Extracting to STDOUT */
+			goto do_extract;
+		}
+		if (last_char_is(dst_fn, '/')) {
+			/* Extract directory */
+			if (stat(dst_fn, &stat_buf) == -1) {
+				if (errno != ENOENT) {
+					bb_perror_msg_and_die("can't stat '%s'", dst_fn);
+				}
+				if (!quiet) {
+					printf("   creating: %s\n", dst_fn);
+				}
+				unzip_create_leading_dirs(dst_fn);
+				if (bb_make_directory(dst_fn, dir_mode, FILEUTILS_IGNORE_CHMOD_ERR)) {
+					xfunc_die();
+				}
+			} else {
+				if (!S_ISDIR(stat_buf.st_mode)) {
+					bb_error_msg_and_die("'%s' exists but is not a %s",
+						dst_fn, "directory");
+				}
+			}
+			goto skip_cmpsize;
+		}
+ check_file:
+		/* Extract file */
+		if (stat(dst_fn, &stat_buf) == -1) {
+			/* File does not exist */
+			if (errno != ENOENT) {
+				bb_perror_msg_and_die("can't stat '%s'", dst_fn);
+			}
+			goto do_open_and_extract;
+		}
+		/* File already exists */
+		if (overwrite == O_NEVER) {
+			goto skip_cmpsize;
+		}
+		if (!S_ISREG(stat_buf.st_mode)) {
+			/* File is not regular file */
+			bb_error_msg_and_die("'%s' exists but is not a %s",
+				dst_fn, "regular file");
+		}
+		/* File is regular file */
+		if (overwrite == O_ALWAYS)
+			goto do_open_and_extract;
+		printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
+		my_fgets80(key_buf);
+
+		switch (key_buf[0]) {
 		case 'A':
 			overwrite = O_ALWAYS;
 		case 'y': /* Open file and fall into unzip */
+ do_open_and_extract:
 			unzip_create_leading_dirs(dst_fn);
 #if ENABLE_FEATURE_UNZIP_CDF
 			dst_fd = xopen3(dst_fn, O_WRONLY | O_CREAT | O_TRUNC, file_mode);
 #else
 			dst_fd = xopen(dst_fn, O_WRONLY | O_CREAT | O_TRUNC);
 #endif
-		case -1: /* Unzip */
+ do_extract:
 			if (!quiet) {
 				printf(/* zip.fmt.method == 0
 					? " extracting: %s\n"
@@ -853,8 +860,8 @@ int unzip_main(int argc, char **argv)
 
 		case 'N':
 			overwrite = O_NEVER;
-		case 'n':
-			/* Skip entry data */
+		case 'n': /* Skip entry data */
+ skip_cmpsize:
 			unzip_skip(zip.fmt.cmpsize);
 			break;
 
@@ -868,7 +875,7 @@ int unzip_main(int argc, char **argv)
 			goto check_file;
 
 		default:
-			printf("error: invalid response [%c]\n", (char)i);
+			printf("error: invalid response [%c]\n", (char)key_buf[0]);
 			goto check_file;
 		}
 
