@@ -278,9 +278,10 @@ unpack_lzma_stream(transformer_state_t *xstate)
 
 			if (state >= LZMA_NUM_LIT_STATES) {
 				int match_byte;
-				uint32_t pos = buffer_pos - rep0;
+				uint32_t pos;
 
-				while (pos >= header.dict_size)
+				pos = buffer_pos - rep0;
+				if ((int32_t)pos < 0)
 					pos += header.dict_size;
 				match_byte = buffer[pos];
 				do {
@@ -336,9 +337,11 @@ unpack_lzma_stream(transformer_state_t *xstate)
 					);
 					if (!rc_is_bit_1(rc, prob2)) {
 #if ENABLE_FEATURE_LZMA_FAST
-						uint32_t pos = buffer_pos - rep0;
+						uint32_t pos;
 						state = state < LZMA_NUM_LIT_STATES ? 9 : 11;
-						while (pos >= header.dict_size)
+
+						pos = buffer_pos - rep0;
+						if ((int32_t)pos < 0)
 							pos += header.dict_size;
 						previous_byte = buffer[pos];
 						goto one_byte1;
@@ -432,7 +435,7 @@ unpack_lzma_stream(transformer_state_t *xstate)
  IF_NOT_FEATURE_LZMA_FAST(string:)
 			do {
 				uint32_t pos = buffer_pos - rep0;
-				while (pos >= header.dict_size)
+				if ((int32_t)pos < 0)
 					pos += header.dict_size;
 				previous_byte = buffer[pos];
  IF_NOT_FEATURE_LZMA_FAST(one_byte2:)
