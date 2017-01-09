@@ -285,8 +285,7 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Looks like they want to do a kill. Do that */
 	while (arg) {
-#if ENABLE_ASH || ENABLE_SH_IS_ASH || ENABLE_BASH_IS_ASH \
- || ENABLE_HUSH_KILL
+#if ENABLE_ASH_JOB_CONTROL || ENABLE_HUSH_KILL
 		/*
 		 * We need to support shell's "hack formats" of
 		 * " -PRGP_ID" (yes, with a leading space)
