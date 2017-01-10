@@ -995,13 +995,13 @@ struct built_in_command {
 };
 
 static const struct built_in_command bltins1[] = {
-	BLTIN("."        , builtin_source  , "Run commands in a file"),
+	BLTIN("."        , builtin_source  , "Run commands in file"),
 	BLTIN(":"        , builtin_true    , NULL),
 #if ENABLE_HUSH_JOB
-	BLTIN("bg"       , builtin_fg_bg   , "Resume a job in the background"),
+	BLTIN("bg"       , builtin_fg_bg   , "Resume job in background"),
 #endif
 #if ENABLE_HUSH_LOOPS
-	BLTIN("break"    , builtin_break   , "Exit from a loop"),
+	BLTIN("break"    , builtin_break   , "Exit loop"),
 #endif
 	BLTIN("cd"       , builtin_cd      , "Change directory"),
 #if ENABLE_HUSH_LOOPS
@@ -1009,18 +1009,18 @@ static const struct built_in_command bltins1[] = {
 #endif
 	BLTIN("eval"     , builtin_eval    , "Construct and run shell command"),
 	BLTIN("exec"     , builtin_exec    , "Execute command, don't return to shell"),
-	BLTIN("exit"     , builtin_exit    , "Exit"),
+	BLTIN("exit"     , builtin_exit    , NULL),
 #if ENABLE_HUSH_EXPORT
 	BLTIN("export"   , builtin_export  , "Set environment variables"),
 #endif
 #if ENABLE_HUSH_JOB
-	BLTIN("fg"       , builtin_fg_bg   , "Bring job into the foreground"),
+	BLTIN("fg"       , builtin_fg_bg   , "Bring job into foreground"),
 #endif
 #if ENABLE_HUSH_HELP
 	BLTIN("help"     , builtin_help    , NULL),
 #endif
 #if MAX_HISTORY && ENABLE_FEATURE_EDITING
-	BLTIN("history"  , builtin_history , "Show command history"),
+	BLTIN("history"  , builtin_history , "Show history"),
 #endif
 #if ENABLE_HUSH_JOB
 	BLTIN("jobs"     , builtin_jobs    , "List jobs"),
@@ -1038,14 +1038,14 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("read"     , builtin_read    , "Input into variable"),
 #endif
 #if ENABLE_HUSH_FUNCTIONS
-	BLTIN("return"   , builtin_return  , "Return from a function"),
+	BLTIN("return"   , builtin_return  , "Return from function"),
 #endif
 #if ENABLE_HUSH_SET
-	BLTIN("set"      , builtin_set     , "Set/unset positional parameters"),
+	BLTIN("set"      , builtin_set     , "Set positional parameters"),
 #endif
 	BLTIN("shift"    , builtin_shift   , "Shift positional parameters"),
 #if ENABLE_HUSH_BASH_COMPAT
-	BLTIN("source"   , builtin_source  , "Run commands in a file"),
+	BLTIN("source"   , builtin_source  , NULL),
 #endif
 #if ENABLE_HUSH_TRAP
 	BLTIN("trap"     , builtin_trap    , "Trap signals"),
@@ -1067,6 +1067,9 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("wait"     , builtin_wait    , "Wait for process"),
 #endif
 };
+/* These builtins won't be used if we are on NOMMU and need to re-exec
+ * (it's cheaper to run an external program in this case):
+ */
 static const struct built_in_command bltins2[] = {
 #if ENABLE_HUSH_TEST
 	BLTIN("["        , builtin_test    , NULL),
