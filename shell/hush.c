@@ -197,6 +197,11 @@
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:
+//config:config HUSH_TEST
+//config:	bool "test builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:
 //config:config HUSH_HELP
 //config:	bool "help builtin"
 //config:	default y
@@ -942,7 +947,9 @@ static int builtin_set(char **argv) FAST_FUNC;
 #endif
 static int builtin_shift(char **argv) FAST_FUNC;
 static int builtin_source(char **argv) FAST_FUNC;
+#if ENABLE_HUSH_TEST
 static int builtin_test(char **argv) FAST_FUNC;
+#endif
 #if ENABLE_HUSH_TRAP
 static int builtin_trap(char **argv) FAST_FUNC;
 #endif
@@ -1061,7 +1068,9 @@ static const struct built_in_command bltins1[] = {
 #endif
 };
 static const struct built_in_command bltins2[] = {
+#if ENABLE_HUSH_TEST
 	BLTIN("["        , builtin_test    , NULL),
+#endif
 #if ENABLE_HUSH_ECHO
 	BLTIN("echo"     , builtin_echo    , NULL),
 #endif
@@ -1069,7 +1078,9 @@ static const struct built_in_command bltins2[] = {
 	BLTIN("printf"   , builtin_printf  , NULL),
 #endif
 	BLTIN("pwd"      , builtin_pwd     , NULL),
+#if ENABLE_HUSH_TEST
 	BLTIN("test"     , builtin_test    , NULL),
+#endif
 };
 
 
@@ -8791,6 +8802,7 @@ static int FAST_FUNC builtin_true(char **argv UNUSED_PARAM)
 	return 0;
 }
 
+#if ENABLE_HUSH_TEST || ENABLE_HUSH_ECHO || ENABLE_HUSH_PRINTF || ENABLE_HUSH_KILL
 static int run_applet_main(char **argv, int (*applet_main_func)(int argc, char **argv))
 {
 	int argc = 0;
@@ -8800,11 +8812,13 @@ static int run_applet_main(char **argv, int (*applet_main_func)(int argc, char *
 	}
 	return applet_main_func(argc, argv - argc);
 }
-
+#endif
+#if ENABLE_HUSH_TEST
 static int FAST_FUNC builtin_test(char **argv)
 {
 	return run_applet_main(argv, test_main);
 }
+#endif
 #if ENABLE_HUSH_ECHO
 static int FAST_FUNC builtin_echo(char **argv)
 {

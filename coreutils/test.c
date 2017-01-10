@@ -42,21 +42,20 @@
 //config:config FEATURE_TEST_64
 //config:	bool "Extend test to 64 bit"
 //config:	default y
-//config:	depends on TEST || TEST1 || TEST2 || ASH_BUILTIN_TEST || HUSH
+//config:	depends on TEST || TEST1 || TEST2 || ASH_TEST || HUSH_TEST
 //config:	help
 //config:	  Enable 64-bit support in test.
 
 //applet:IF_TEST(APPLET_NOFORK(test, test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
-//applet:IF_TEST1(APPLET_NOFORK([,  test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
-//applet:IF_TEST2(APPLET_NOFORK([[, test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
+//applet:IF_TEST1(APPLET_NOFORK([,   test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
+//applet:IF_TEST2(APPLET_NOFORK([[,  test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
 
-//kbuild:lib-$(CONFIG_TEST) += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_TEST)  += test.o test_ptr_hack.o
 //kbuild:lib-$(CONFIG_TEST1) += test.o test_ptr_hack.o
 //kbuild:lib-$(CONFIG_TEST2) += test.o test_ptr_hack.o
-//kbuild:lib-$(CONFIG_ASH_BUILTIN_TEST) += test.o test_ptr_hack.o
-//kbuild:lib-$(CONFIG_HUSH) += test.o test_ptr_hack.o
-//kbuild:lib-$(CONFIG_SH_IS_HUSH) += test.o test_ptr_hack.o
-//kbuild:lib-$(CONFIG_BASH_IS_HUSH) += test.o test_ptr_hack.o
+
+//kbuild:lib-$(CONFIG_ASH_TEST)  += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_HUSH_TEST) += test.o test_ptr_hack.o
 
 /* "test --help" is special-cased to ignore --help */
 //usage:#define test_trivial_usage NOUSAGE_STR
@@ -843,7 +842,7 @@ int test_main(int argc, char **argv)
 	const char *arg0;
 
 	arg0 = bb_basename(argv[0]);
-	if ((ENABLE_TEST1 || ENABLE_TEST2 || ENABLE_ASH_BUILTIN_TEST || ENABLE_HUSH)
+	if ((ENABLE_TEST1 || ENABLE_TEST2 || ENABLE_ASH_TEST || ENABLE_HUSH_TEST)
 	 && (arg0[0] == '[')
 	) {
 		--argc;

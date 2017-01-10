@@ -99,17 +99,17 @@
 //config:	  are checked for mtime changes, and "you have mail"
 //config:	  message is printed if change is detected.
 //config:
-//config:config ASH_BUILTIN_ECHO
+//config:config ASH_ECHO
 //config:	bool "echo builtin"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:
-//config:config ASH_BUILTIN_PRINTF
+//config:config ASH_PRINTF
 //config:	bool "printf builtin"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:
-//config:config ASH_BUILTIN_TEST
+//config:config ASH_TEST
 //config:	bool "test builtin"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
@@ -9292,13 +9292,13 @@ static int ulimitcmd(int, char **) FAST_FUNC;
 #define BUILTIN_SPEC_REG_ASSG   "7"
 
 /* Stubs for calling non-FAST_FUNC's */
-#if ENABLE_ASH_BUILTIN_ECHO
+#if ENABLE_ASH_ECHO
 static int FAST_FUNC echocmd(int argc, char **argv)   { return echo_main(argc, argv); }
 #endif
-#if ENABLE_ASH_BUILTIN_PRINTF
+#if ENABLE_ASH_PRINTF
 static int FAST_FUNC printfcmd(int argc, char **argv) { return printf_main(argc, argv); }
 #endif
-#if ENABLE_ASH_BUILTIN_TEST
+#if ENABLE_ASH_TEST
 static int FAST_FUNC testcmd(int argc, char **argv)   { return test_main(argc, argv); }
 #endif
 
@@ -9306,7 +9306,7 @@ static int FAST_FUNC testcmd(int argc, char **argv)   { return test_main(argc, a
 static const struct builtincmd builtintab[] = {
 	{ BUILTIN_SPEC_REG      "."       , dotcmd     },
 	{ BUILTIN_SPEC_REG      ":"       , truecmd    },
-#if ENABLE_ASH_BUILTIN_TEST
+#if ENABLE_ASH_TEST
 	{ BUILTIN_REGULAR       "["       , testcmd    },
 # if ENABLE_ASH_BASH_COMPAT
 	{ BUILTIN_REGULAR       "[["      , testcmd    },
@@ -9325,7 +9325,7 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_REGULAR       "command" , commandcmd },
 #endif
 	{ BUILTIN_SPEC_REG      "continue", breakcmd   },
-#if ENABLE_ASH_BUILTIN_ECHO
+#if ENABLE_ASH_ECHO
 	{ BUILTIN_REGULAR       "echo"    , echocmd    },
 #endif
 	{ BUILTIN_SPEC_REG      "eval"    , NULL       }, /*evalcmd() has a differing prototype*/
@@ -9354,7 +9354,7 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_NOSPEC        "let"     , letcmd     },
 #endif
 	{ BUILTIN_ASSIGN        "local"   , localcmd   },
-#if ENABLE_ASH_BUILTIN_PRINTF
+#if ENABLE_ASH_PRINTF
 	{ BUILTIN_REGULAR       "printf"  , printfcmd  },
 #endif
 	{ BUILTIN_NOSPEC        "pwd"     , pwdcmd     },
@@ -9366,7 +9366,7 @@ static const struct builtincmd builtintab[] = {
 #if ENABLE_ASH_BASH_COMPAT
 	{ BUILTIN_SPEC_REG      "source"  , dotcmd     },
 #endif
-#if ENABLE_ASH_BUILTIN_TEST
+#if ENABLE_ASH_TEST
 	{ BUILTIN_REGULAR       "test"    , testcmd    },
 #endif
 	{ BUILTIN_SPEC_REG      "times"   , timescmd   },
@@ -9385,15 +9385,15 @@ static const struct builtincmd builtintab[] = {
 /* Should match the above table! */
 #define COMMANDCMD (builtintab + \
 	/* . : */	2 + \
-	/* [ */		1 * ENABLE_ASH_BUILTIN_TEST + \
-	/* [[ */	1 * ENABLE_ASH_BUILTIN_TEST * ENABLE_ASH_BASH_COMPAT + \
+	/* [ */		1 * ENABLE_ASH_TEST + \
+	/* [[ */	1 * ENABLE_ASH_TEST * ENABLE_ASH_BASH_COMPAT + \
 	/* alias */	1 * ENABLE_ASH_ALIAS + \
 	/* bg */	1 * ENABLE_ASH_JOB_CONTROL + \
 	/* break cd cddir  */	3)
 #define EVALCMD (COMMANDCMD + \
 	/* command */	1 * ENABLE_ASH_CMDCMD + \
 	/* continue */	1 + \
-	/* echo */	1 * ENABLE_ASH_BUILTIN_ECHO + \
+	/* echo */	1 * ENABLE_ASH_ECHO + \
 	0)
 #define EXECCMD (EVALCMD + \
 	/* eval */	1)

@@ -16,9 +16,3 @@ lib-$(CONFIG_CRONTAB)       += cat.o   # crontab -l
 lib-$(CONFIG_ADDUSER)       += chown.o # used by adduser
 lib-$(CONFIG_ADDGROUP)      += chown.o # used by addgroup
 lib-$(CONFIG_FTPD)          += ls.o    # used by ftpd
-
-lib-$(CONFIG_ASH_BUILTIN_ECHO) += echo.o
-lib-$(CONFIG_HUSH_ECHO)     += echo.o
-
-lib-$(CONFIG_ASH_BUILTIN_PRINTF) += printf.o
-lib-$(CONFIG_HUSH_PRINTF)   += printf.o

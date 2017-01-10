@@ -49,6 +49,9 @@
 
 //kbuild:lib-$(CONFIG_PRINTF) += printf.o
 
+//kbuild:lib-$(CONFIG_ASH_PRINTF)  += printf.o
+//kbuild:lib-$(CONFIG_HUSH_PRINTF) += printf.o
+
 //usage:#define printf_trivial_usage
 //usage:       "FORMAT [ARG]..."
 //usage:#define printf_full_usage "\n\n"
@@ -417,7 +420,7 @@ int printf_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[1] && argv[1][0] == '-' && argv[1][1] == '-' && !argv[1][2])
 		argv++;
 	if (!argv[1]) {
-		if (ENABLE_ASH_BUILTIN_PRINTF
+		if (ENABLE_ASH_PRINTF
 		 && applet_name[0] != 'p'
 		) {
 			bb_error_msg("usage: printf FORMAT [ARGUMENT...]");

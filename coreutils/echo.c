@@ -28,11 +28,14 @@
 //config:config FEATURE_FANCY_ECHO
 //config:	bool "Enable -n and -e options"
 //config:	default y
-//config:	depends on ECHO || ASH_BUILTIN_ECHO || HUSH_ECHO
+//config:	depends on ECHO || ASH_ECHO || HUSH_ECHO
 
 //applet:IF_ECHO(APPLET_NOFORK(echo, echo, BB_DIR_BIN, BB_SUID_DROP, echo))
 
 //kbuild:lib-$(CONFIG_ECHO) += echo.o
+
+//kbuild:lib-$(CONFIG_ASH_ECHO)  += echo.o
+//kbuild:lib-$(CONFIG_HUSH_ECHO) += echo.o
 
 /* BB_AUDIT SUSv3 compliant -- unless configured as fancy echo. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/echo.html */
