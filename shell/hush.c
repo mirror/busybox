@@ -8832,30 +8832,36 @@ static int FAST_FUNC builtin_printf(char **argv)
 }
 #endif
 
+#if ENABLE_HUSH_HELP
+static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
+{
+	const struct built_in_command *x;
+
+	printf(
+		"Built-in commands:\n"
+		"------------------\n");
+	for (x = bltins1; x != &bltins1[ARRAY_SIZE(bltins1)]; x++) {
+		if (x->b_descr)
+			printf("%-10s%s\n", x->b_cmd, x->b_descr);
+	}
+	return EXIT_SUCCESS;
+}
+#endif
+
+#if MAX_HISTORY && ENABLE_FEATURE_EDITING
+static int FAST_FUNC builtin_history(char **argv UNUSED_PARAM)
+{
+	show_history(G.line_input_state);
+	return EXIT_SUCCESS;
+}
+#endif
+
 static char **skip_dash_dash(char **argv)
 {
 	argv++;
 	if (argv[0] && argv[0][0] == '-' && argv[0][1] == '-' && argv[0][2] == '\0')
 		argv++;
 	return argv;
-}
-
-static int FAST_FUNC builtin_eval(char **argv)
-{
-	int rcode = EXIT_SUCCESS;
-
-	argv = skip_dash_dash(argv);
-	if (*argv) {
-		char *str = expand_strvec_to_string(argv);
-		/* bash:
-		 * eval "echo Hi; done" ("done" is syntax error):
-		 * "echo Hi" will not execute too.
-		 */
-		parse_and_run_string(str);
-		free(str);
-		rcode = G.last_exitcode;
-	}
-	return rcode;
 }
 
 static int FAST_FUNC builtin_cd(char **argv)
@@ -8883,6 +8889,30 @@ static int FAST_FUNC builtin_cd(char **argv)
 	 */
 	set_pwd_var(/*exp:*/ 0);
 	return EXIT_SUCCESS;
+}
+
+static int FAST_FUNC builtin_pwd(char **argv UNUSED_PARAM)
+{
+	puts(get_cwd(0));
+	return EXIT_SUCCESS;
+}
+
+static int FAST_FUNC builtin_eval(char **argv)
+{
+	int rcode = EXIT_SUCCESS;
+
+	argv = skip_dash_dash(argv);
+	if (*argv) {
+		char *str = expand_strvec_to_string(argv);
+		/* bash:
+		 * eval "echo Hi; done" ("done" is syntax error):
+		 * "echo Hi" will not execute too.
+		 */
+		parse_and_run_string(str);
+		free(str);
+		rcode = G.last_exitcode;
+	}
+	return rcode;
 }
 
 static int FAST_FUNC builtin_exec(char **argv)
@@ -8929,6 +8959,147 @@ static int FAST_FUNC builtin_exit(char **argv)
 	/* bash: exit -2 == exit 254, no error msg */
 	hush_exit(xatoi(argv[0]) & 0xff);
 }
+
+#if ENABLE_HUSH_TYPE
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/type.html */
+static int FAST_FUNC builtin_type(char **argv)
+{
+	int ret = EXIT_SUCCESS;
+
+	while (*++argv) {
+		const char *type;
+		char *path = NULL;
+
+		if (0) {} /* make conditional compile easier below */
+		/*else if (find_alias(*argv))
+			type = "an alias";*/
+#if ENABLE_HUSH_FUNCTIONS
+		else if (find_function(*argv))
+			type = "a function";
+#endif
+		else if (find_builtin(*argv))
+			type = "a shell builtin";
+		else if ((path = find_in_path(*argv)) != NULL)
+			type = path;
+		else {
+			bb_error_msg("type: %s: not found", *argv);
+			ret = EXIT_FAILURE;
+			continue;
+		}
+
+		printf("%s is %s\n", *argv, type);
+		free(path);
+	}
+
+	return ret;
+}
+#endif
+
+#if ENABLE_HUSH_READ
+/* Interruptibility of read builtin in bash
+ * (tested on bash-4.2.8 by sending signals (not by ^C)):
+ *
+ * Empty trap makes read ignore corresponding signal, for any signal.
+ *
+ * SIGINT:
+ * - terminates non-interactive shell;
+ * - interrupts read in interactive shell;
+ * if it has non-empty trap:
+ * - executes trap and returns to command prompt in interactive shell;
+ * - executes trap and returns to read in non-interactive shell;
+ * SIGTERM:
+ * - is ignored (does not interrupt) read in interactive shell;
+ * - terminates non-interactive shell;
+ * if it has non-empty trap:
+ * - executes trap and returns to read;
+ * SIGHUP:
+ * - terminates shell (regardless of interactivity);
+ * if it has non-empty trap:
+ * - executes trap and returns to read;
+ */
+static int FAST_FUNC builtin_read(char **argv)
+{
+	const char *r;
+	char *opt_n = NULL;
+	char *opt_p = NULL;
+	char *opt_t = NULL;
+	char *opt_u = NULL;
+	const char *ifs;
+	int read_flags;
+
+	/* "!": do not abort on errors.
+	 * Option string must start with "sr" to match BUILTIN_READ_xxx
+	 */
+	read_flags = getopt32(argv, "!srn:p:t:u:", &opt_n, &opt_p, &opt_t, &opt_u);
+	if (read_flags == (uint32_t)-1)
+		return EXIT_FAILURE;
+	argv += optind;
+	ifs = get_local_var_value("IFS"); /* can be NULL */
+
+ again:
+	r = shell_builtin_read(set_local_var_from_halves,
+		argv,
+		ifs,
+		read_flags,
+		opt_n,
+		opt_p,
+		opt_t,
+		opt_u
+	);
+
+	if ((uintptr_t)r == 1 && errno == EINTR) {
+		unsigned sig = check_and_run_traps();
+		if (sig && sig != SIGINT)
+			goto again;
+	}
+
+	if ((uintptr_t)r > 1) {
+		bb_error_msg("%s", r);
+		r = (char*)(uintptr_t)1;
+	}
+
+	return (uintptr_t)r;
+}
+#endif
+
+#if ENABLE_HUSH_UMASK
+static int FAST_FUNC builtin_umask(char **argv)
+{
+	int rc;
+	mode_t mask;
+
+	rc = 1;
+	mask = umask(0);
+	argv = skip_dash_dash(argv);
+	if (argv[0]) {
+		mode_t old_mask = mask;
+
+		/* numeric umasks are taken as-is */
+		/* symbolic umasks are inverted: "umask a=rx" calls umask(222) */
+		if (!isdigit(argv[0][0]))
+			mask ^= 0777;
+		mask = bb_parse_mode(argv[0], mask);
+		if (!isdigit(argv[0][0]))
+			mask ^= 0777;
+		if ((unsigned)mask > 0777) {
+			mask = old_mask;
+			/* bash messages:
+			 * bash: umask: 'q': invalid symbolic mode operator
+			 * bash: umask: 999: octal number out of range
+			 */
+			bb_error_msg("%s: invalid mode '%s'", "umask", argv[0]);
+			rc = 0;
+		}
+	} else {
+		/* Mimic bash */
+		printf("%04o\n", (unsigned) mask);
+		/* fall through and restore mask which we set to 0 */
+	}
+	umask(mask);
+
+	return !rc; /* rc != 0 - success */
+}
+#endif
 
 #if ENABLE_HUSH_EXPORT || ENABLE_HUSH_TRAP
 static void print_escaped(const char *s)
@@ -9218,72 +9389,60 @@ static int FAST_FUNC builtin_shift(char **argv)
 	return EXIT_FAILURE;
 }
 
-#if ENABLE_HUSH_READ
-/* Interruptibility of read builtin in bash
- * (tested on bash-4.2.8 by sending signals (not by ^C)):
- *
- * Empty trap makes read ignore corresponding signal, for any signal.
- *
- * SIGINT:
- * - terminates non-interactive shell;
- * - interrupts read in interactive shell;
- * if it has non-empty trap:
- * - executes trap and returns to command prompt in interactive shell;
- * - executes trap and returns to read in non-interactive shell;
- * SIGTERM:
- * - is ignored (does not interrupt) read in interactive shell;
- * - terminates non-interactive shell;
- * if it has non-empty trap:
- * - executes trap and returns to read;
- * SIGHUP:
- * - terminates shell (regardless of interactivity);
- * if it has non-empty trap:
- * - executes trap and returns to read;
- */
-static int FAST_FUNC builtin_read(char **argv)
+static int FAST_FUNC builtin_source(char **argv)
 {
-	const char *r;
-	char *opt_n = NULL;
-	char *opt_p = NULL;
-	char *opt_t = NULL;
-	char *opt_u = NULL;
-	const char *ifs;
-	int read_flags;
-
-	/* "!": do not abort on errors.
-	 * Option string must start with "sr" to match BUILTIN_READ_xxx
-	 */
-	read_flags = getopt32(argv, "!srn:p:t:u:", &opt_n, &opt_p, &opt_t, &opt_u);
-	if (read_flags == (uint32_t)-1)
-		return EXIT_FAILURE;
-	argv += optind;
-	ifs = get_local_var_value("IFS"); /* can be NULL */
-
- again:
-	r = shell_builtin_read(set_local_var_from_halves,
-		argv,
-		ifs,
-		read_flags,
-		opt_n,
-		opt_p,
-		opt_t,
-		opt_u
-	);
-
-	if ((uintptr_t)r == 1 && errno == EINTR) {
-		unsigned sig = check_and_run_traps();
-		if (sig && sig != SIGINT)
-			goto again;
-	}
-
-	if ((uintptr_t)r > 1) {
-		bb_error_msg("%s", r);
-		r = (char*)(uintptr_t)1;
-	}
-
-	return (uintptr_t)r;
-}
+	char *arg_path, *filename;
+	FILE *input;
+	save_arg_t sv;
+	char *args_need_save;
+#if ENABLE_HUSH_FUNCTIONS
+	smallint sv_flg;
 #endif
+
+	argv = skip_dash_dash(argv);
+	filename = argv[0];
+	if (!filename) {
+		/* bash says: "bash: .: filename argument required" */
+		return 2; /* bash compat */
+	}
+	arg_path = NULL;
+	if (!strchr(filename, '/')) {
+		arg_path = find_in_path(filename);
+		if (arg_path)
+			filename = arg_path;
+	}
+	input = remember_FILE(fopen_or_warn(filename, "r"));
+	free(arg_path);
+	if (!input) {
+		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
+		/* POSIX: non-interactive shell should abort here,
+		 * not merely fail. So far no one complained :)
+		 */
+		return EXIT_FAILURE;
+	}
+
+#if ENABLE_HUSH_FUNCTIONS
+	sv_flg = G_flag_return_in_progress;
+	/* "we are inside sourced file, ok to use return" */
+	G_flag_return_in_progress = -1;
+#endif
+	args_need_save = argv[1]; /* used as a boolean variable */
+	if (args_need_save)
+		save_and_replace_G_args(&sv, argv);
+
+	/* "false; . ./empty_line; echo Zero:$?" should print 0 */
+	G.last_exitcode = 0;
+	parse_and_run_file(input);
+	fclose_and_forget(input);
+
+	if (args_need_save) /* can't use argv[1] instead: "shift" can mangle it */
+		restore_G_args(&sv, argv);
+#if ENABLE_HUSH_FUNCTIONS
+	G_flag_return_in_progress = sv_flg;
+#endif
+
+	return G.last_exitcode;
+}
 
 #if ENABLE_HUSH_TRAP
 static int FAST_FUNC builtin_trap(char **argv)
@@ -9377,41 +9536,6 @@ static int FAST_FUNC builtin_trap(char **argv)
 }
 #endif
 
-#if ENABLE_HUSH_TYPE
-/* http://www.opengroup.org/onlinepubs/9699919799/utilities/type.html */
-static int FAST_FUNC builtin_type(char **argv)
-{
-	int ret = EXIT_SUCCESS;
-
-	while (*++argv) {
-		const char *type;
-		char *path = NULL;
-
-		if (0) {} /* make conditional compile easier below */
-		/*else if (find_alias(*argv))
-			type = "an alias";*/
-#if ENABLE_HUSH_FUNCTIONS
-		else if (find_function(*argv))
-			type = "a function";
-#endif
-		else if (find_builtin(*argv))
-			type = "a shell builtin";
-		else if ((path = find_in_path(*argv)) != NULL)
-			type = path;
-		else {
-			bb_error_msg("type: %s: not found", *argv);
-			ret = EXIT_FAILURE;
-			continue;
-		}
-
-		printf("%s is %s\n", *argv, type);
-		free(path);
-	}
-
-	return ret;
-}
-#endif
-
 #if ENABLE_HUSH_JOB
 static struct pipe *parse_jobspec(const char *str)
 {
@@ -9439,6 +9563,23 @@ static struct pipe *parse_jobspec(const char *str)
 	}
 	bb_error_msg("%u: no such job", jobnum);
 	return NULL;
+}
+
+static int FAST_FUNC builtin_jobs(char **argv UNUSED_PARAM)
+{
+	struct pipe *job;
+	const char *status_string;
+
+	checkjobs(NULL, 0 /*(no pid to wait for)*/);
+	for (job = G.job_list; job; job = job->next) {
+		if (job->alive_cmds == job->stopped_cmds)
+			status_string = "Stopped";
+		else
+			status_string = "Running";
+
+		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->cmdtext);
+	}
+	return EXIT_SUCCESS;
 }
 
 /* built-in 'fg' and 'bg' handler */
@@ -9493,192 +9634,6 @@ static int FAST_FUNC builtin_fg_bg(char **argv)
 		return checkjobs_and_fg_shell(pi);
 	}
 	return EXIT_SUCCESS;
-}
-#endif
-
-#if ENABLE_HUSH_HELP
-static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
-{
-	const struct built_in_command *x;
-
-	printf(
-		"Built-in commands:\n"
-		"------------------\n");
-	for (x = bltins1; x != &bltins1[ARRAY_SIZE(bltins1)]; x++) {
-		if (x->b_descr)
-			printf("%-10s%s\n", x->b_cmd, x->b_descr);
-	}
-	return EXIT_SUCCESS;
-}
-#endif
-
-#if MAX_HISTORY && ENABLE_FEATURE_EDITING
-static int FAST_FUNC builtin_history(char **argv UNUSED_PARAM)
-{
-	show_history(G.line_input_state);
-	return EXIT_SUCCESS;
-}
-#endif
-
-#if ENABLE_HUSH_JOB
-static int FAST_FUNC builtin_jobs(char **argv UNUSED_PARAM)
-{
-	struct pipe *job;
-	const char *status_string;
-
-	checkjobs(NULL, 0 /*(no pid to wait for)*/);
-	for (job = G.job_list; job; job = job->next) {
-		if (job->alive_cmds == job->stopped_cmds)
-			status_string = "Stopped";
-		else
-			status_string = "Running";
-
-		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->cmdtext);
-	}
-	return EXIT_SUCCESS;
-}
-#endif
-
-#if ENABLE_HUSH_MEMLEAK
-static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
-{
-	void *p;
-	unsigned long l;
-
-# ifdef M_TRIM_THRESHOLD
-	/* Optional. Reduces probability of false positives */
-	malloc_trim(0);
-# endif
-	/* Crude attempt to find where "free memory" starts,
-	 * sans fragmentation. */
-	p = malloc(240);
-	l = (unsigned long)p;
-	free(p);
-	p = malloc(3400);
-	if (l < (unsigned long)p) l = (unsigned long)p;
-	free(p);
-
-
-# if 0  /* debug */
-	{
-		struct mallinfo mi = mallinfo();
-		printf("top alloc:0x%lx malloced:%d+%d=%d\n", l,
-			mi.arena, mi.hblkhd, mi.arena + mi.hblkhd);
-	}
-# endif
-
-	if (!G.memleak_value)
-		G.memleak_value = l;
-
-	l -= G.memleak_value;
-	if ((long)l < 0)
-		l = 0;
-	l /= 1024;
-	if (l > 127)
-		l = 127;
-
-	/* Exitcode is "how many kilobytes we leaked since 1st call" */
-	return l;
-}
-#endif
-
-static int FAST_FUNC builtin_pwd(char **argv UNUSED_PARAM)
-{
-	puts(get_cwd(0));
-	return EXIT_SUCCESS;
-}
-
-static int FAST_FUNC builtin_source(char **argv)
-{
-	char *arg_path, *filename;
-	FILE *input;
-	save_arg_t sv;
-	char *args_need_save;
-#if ENABLE_HUSH_FUNCTIONS
-	smallint sv_flg;
-#endif
-
-	argv = skip_dash_dash(argv);
-	filename = argv[0];
-	if (!filename) {
-		/* bash says: "bash: .: filename argument required" */
-		return 2; /* bash compat */
-	}
-	arg_path = NULL;
-	if (!strchr(filename, '/')) {
-		arg_path = find_in_path(filename);
-		if (arg_path)
-			filename = arg_path;
-	}
-	input = remember_FILE(fopen_or_warn(filename, "r"));
-	free(arg_path);
-	if (!input) {
-		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
-		/* POSIX: non-interactive shell should abort here,
-		 * not merely fail. So far no one complained :)
-		 */
-		return EXIT_FAILURE;
-	}
-
-#if ENABLE_HUSH_FUNCTIONS
-	sv_flg = G_flag_return_in_progress;
-	/* "we are inside sourced file, ok to use return" */
-	G_flag_return_in_progress = -1;
-#endif
-	args_need_save = argv[1]; /* used as a boolean variable */
-	if (args_need_save)
-		save_and_replace_G_args(&sv, argv);
-
-	/* "false; . ./empty_line; echo Zero:$?" should print 0 */
-	G.last_exitcode = 0;
-	parse_and_run_file(input);
-	fclose_and_forget(input);
-
-	if (args_need_save) /* can't use argv[1] instead: "shift" can mangle it */
-		restore_G_args(&sv, argv);
-#if ENABLE_HUSH_FUNCTIONS
-	G_flag_return_in_progress = sv_flg;
-#endif
-
-	return G.last_exitcode;
-}
-
-#if ENABLE_HUSH_UMASK
-static int FAST_FUNC builtin_umask(char **argv)
-{
-	int rc;
-	mode_t mask;
-
-	rc = 1;
-	mask = umask(0);
-	argv = skip_dash_dash(argv);
-	if (argv[0]) {
-		mode_t old_mask = mask;
-
-		/* numeric umasks are taken as-is */
-		/* symbolic umasks are inverted: "umask a=rx" calls umask(222) */
-		if (!isdigit(argv[0][0]))
-			mask ^= 0777;
-		mask = bb_parse_mode(argv[0], mask);
-		if (!isdigit(argv[0][0]))
-			mask ^= 0777;
-		if ((unsigned)mask > 0777) {
-			mask = old_mask;
-			/* bash messages:
-			 * bash: umask: 'q': invalid symbolic mode operator
-			 * bash: umask: 999: octal number out of range
-			 */
-			bb_error_msg("%s: invalid mode '%s'", "umask", argv[0]);
-			rc = 0;
-		}
-	} else {
-		/* Mimic bash */
-		printf("%04o\n", (unsigned) mask);
-		/* fall through and restore mask which we set to 0 */
-	}
-	umask(mask);
-
-	return !rc; /* rc != 0 - success */
 }
 #endif
 
@@ -9982,5 +9937,48 @@ static int FAST_FUNC builtin_return(char **argv)
 	 */
 	rc = parse_numeric_argv1(argv, G.last_exitcode, 0);
 	return rc;
+}
+#endif
+
+#if ENABLE_HUSH_MEMLEAK
+static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
+{
+	void *p;
+	unsigned long l;
+
+# ifdef M_TRIM_THRESHOLD
+	/* Optional. Reduces probability of false positives */
+	malloc_trim(0);
+# endif
+	/* Crude attempt to find where "free memory" starts,
+	 * sans fragmentation. */
+	p = malloc(240);
+	l = (unsigned long)p;
+	free(p);
+	p = malloc(3400);
+	if (l < (unsigned long)p) l = (unsigned long)p;
+	free(p);
+
+
+# if 0  /* debug */
+	{
+		struct mallinfo mi = mallinfo();
+		printf("top alloc:0x%lx malloced:%d+%d=%d\n", l,
+			mi.arena, mi.hblkhd, mi.arena + mi.hblkhd);
+	}
+# endif
+
+	if (!G.memleak_value)
+		G.memleak_value = l;
+
+	l -= G.memleak_value;
+	if ((long)l < 0)
+		l = 0;
+	l /= 1024;
+	if (l > 127)
+		l = 127;
+
+	/* Exitcode is "how many kilobytes we leaked since 1st call" */
+	return l;
 }
 #endif
