@@ -20,14 +20,10 @@
 
 //kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_EXT) += ext.o
 
-//config:
 //config:config FEATURE_VOLUMEID_EXT
 //config:	bool "Ext filesystem"
 //config:	default y
 //config:	depends on VOLUMEID
-//config:	help
-//config:	  TODO
-//config:
 
 #include "volume_id_internal.h"
 #include "bb_e2fs_defs.h"

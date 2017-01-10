@@ -82,7 +82,7 @@
 //config:	  the external modutils.
 //config:
 //config:config DEVFSD_FG_NP
-//config:	bool "Enables the -fg and -np options"
+//config:	bool "Enable the -fg and -np options"
 //config:	default y
 //config:	depends on DEVFSD
 //config:	help

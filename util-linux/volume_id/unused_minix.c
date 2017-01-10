@@ -20,14 +20,10 @@
 
 //kbuild:### lib-$(CONFIG_FEATURE_VOLUMEID_MINIX) += minix.o
 
-//config:
 //config:### config FEATURE_VOLUMEID_MINIX
 //config:###	bool "minix filesystem"
 //config:###	default y
 //config:###	depends on VOLUMEID
-//config:###	help
-//config:###	  TODO
-//config:
 
 #include "volume_id_internal.h"
 

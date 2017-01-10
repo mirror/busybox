@@ -40,11 +40,11 @@
 //config:	  in specified files.
 //config:
 //config:config FEATURE_WC_LARGE
-//config:	bool "Support very large files in wc"
+//config:	bool "Support very large counts"
 //config:	default y
 //config:	depends on WC
 //config:	help
-//config:	  Use "unsigned long long" in wc for counter variables.
+//config:	  Use "unsigned long long" for counter variables.
 
 //applet:IF_WC(APPLET(wc, BB_DIR_USR_BIN, BB_SUID_DROP))
 

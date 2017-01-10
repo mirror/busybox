@@ -14,11 +14,9 @@
 //config:	  from files.
 //config:
 //config:config FEATURE_FANCY_HEAD
-//config:	bool "Enable head options (-c, -q, and -v)"
+//config:	bool "Enable -c, -q, and -v"
 //config:	default y
 //config:	depends on HEAD
-//config:	help
-//config:	  This enables the head options (-c, -q, and -v).
 
 //applet:IF_HEAD(APPLET_NOEXEC(head, head, BB_DIR_USR_BIN, BB_SUID_DROP, head))
 

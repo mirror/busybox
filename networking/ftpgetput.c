@@ -28,8 +28,6 @@
 //config:	bool "Enable long options in ftpget/ftpput"
 //config:	default y
 //config:	depends on LONG_OPTS && (FTPGET || FTPPUT)
-//config:	help
-//config:	  Support long options for the ftpget/ftpput applet.
 
 //applet:IF_FTPGET(APPLET_ODDNAME(ftpget, ftpgetput, BB_DIR_USR_BIN, BB_SUID_DROP, ftpget))
 //applet:IF_FTPPUT(APPLET_ODDNAME(ftpput, ftpgetput, BB_DIR_USR_BIN, BB_SUID_DROP, ftpput))

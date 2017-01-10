@@ -31,7 +31,7 @@
 //config:	  probably say N here: most compilers come with their own ar utility.
 //config:
 //config:config FEATURE_AR_LONG_FILENAMES
-//config:	bool "Support for long filenames (not needed for debs)"
+//config:	bool "Support long filenames (not needed for debs)"
 //config:	default y
 //config:	depends on AR
 //config:	help

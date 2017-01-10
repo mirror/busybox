@@ -69,11 +69,9 @@
 //config:	  "blksize" and "tsize" options.
 //config:
 //config:config FEATURE_TFTP_PROGRESS_BAR
-//config:	bool "Enable tftp progress meter"
+//config:	bool "Enable progress bar"
 //config:	default y
 //config:	depends on TFTP && FEATURE_TFTP_BLOCKSIZE
-//config:	help
-//config:	  Show progress bar.
 //config:
 //config:config TFTP_DEBUG
 //config:	bool "Enable debug"

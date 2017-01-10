@@ -18,8 +18,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on CHCON && LONG_OPTS
-//config:	help
-//config:	  Support long options for the chcon applet.
 
 //applet:IF_CHCON(APPLET(chcon, BB_DIR_USR_BIN, BB_SUID_DROP))
 

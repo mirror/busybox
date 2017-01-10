@@ -20,14 +20,10 @@
 
 //kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_XFS) += xfs.o
 
-//config:
 //config:config FEATURE_VOLUMEID_XFS
 //config:	bool "xfs filesystem"
 //config:	default y
 //config:	depends on VOLUMEID
-//config:	help
-//config:	  TODO
-//config:
 
 #include "volume_id_internal.h"
 

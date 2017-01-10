@@ -20,14 +20,10 @@
 
 //kbuild:### lib-$(CONFIG_FEATURE_VOLUMEID_LSIRAID) += lsi_raid.o
 
-//config:
 //config:### config FEATURE_VOLUMEID_LSIRAID
 //config:###	bool "lsi raid"
 //config:###	default y
 //config:###	depends on VOLUMEID
-//config:###	help
-//config:###	  TODO
-//config:
 
 #include "volume_id_internal.h"
 

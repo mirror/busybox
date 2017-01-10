@@ -14,18 +14,18 @@
 //config:	  those id's on the standard output.
 //config:
 //config:config FEATURE_PIDOF_SINGLE
-//config:	bool "Enable argument for single shot (-s)"
+//config:	bool "Enable single shot (-s)"
 //config:	default y
 //config:	depends on PIDOF
 //config:	help
-//config:	  Support argument '-s' for returning only the first pid found.
+//config:	  Support '-s' for returning only the first pid found.
 //config:
 //config:config FEATURE_PIDOF_OMIT
-//config:	bool "Enable argument for omitting pids (-o)"
+//config:	bool "Enable omitting pids (-o PID)"
 //config:	default y
 //config:	depends on PIDOF
 //config:	help
-//config:	  Support argument '-o' for omitting the given pids in output.
+//config:	  Support '-o PID' for omitting the given pid(s) in output.
 //config:	  The special pid %PPID can be used to name the parent process
 //config:	  of the pidof, in other words the calling shell or shell script.
 

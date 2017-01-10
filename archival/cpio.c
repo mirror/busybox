@@ -29,7 +29,7 @@
 //config:	  should probably say N here.
 //config:
 //config:config FEATURE_CPIO_O
-//config:	bool "Support for archive creation"
+//config:	bool "Support archive creation"
 //config:	default y
 //config:	depends on CPIO
 //config:	help
@@ -37,7 +37,7 @@
 //config:	  format only.
 //config:
 //config:config FEATURE_CPIO_P
-//config:	bool "Support for passthrough mode"
+//config:	bool "Support passthrough mode"
 //config:	default y
 //config:	depends on FEATURE_CPIO_O
 //config:	help

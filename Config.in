@@ -22,7 +22,7 @@ config DESKTOP
 
 	  If you are preparing your build to be used on an embedded box
 	  where you have tighter control over the entire set of userspace
-	  tools, you can unselect this option for smaller code size. 
+	  tools, you can unselect this option for smaller code size.
 
 config EXTRA_COMPAT
 	bool "Provide compatible behavior for rare corner cases (bigger code)"
@@ -49,6 +49,26 @@ config USE_PORTABLE_CODE
 	  Use this option if you are trying to compile busybox with
 	  compiler other than gcc.
 	  If you do use gcc, this option may needlessly increase code size.
+
+#fixme: delete, create suboptions for applets which use this
+config FEATURE_AUTOWIDTH
+	bool "Calculate terminal & column widths"
+	default y
+	help
+	  This option allows utilities such as 'ls', 'telnet' etc
+	  to determine the width of the screen, which can allow them to
+	  display additional text or avoid wrapping text onto the next line.
+	  If you leave this disabled, your utilities will be especially
+	  primitive and will be unable to determine the current screen width.
+
+#fixme: delete, create suboptions for applets which use this
+config FEATURE_USE_TERMIOS
+	bool "Use termios for one-stroke input"
+	default y
+	help
+	  This option allows utilities such as 'top' to accept keyboard
+	  commands. Without this option, they simply refresh display
+	  after a fixed period.
 
 config SHOW_USAGE
 	bool "Show applet usage messages"
@@ -113,14 +133,14 @@ config INSTALL_NO_USR
 	  never to /usr/bin or /usr/sbin.
 
 config PAM
-	bool "Support for PAM (Pluggable Authentication Modules)"
+	bool "Support PAM (Pluggable Authentication Modules)"
 	default n
 	help
 	  Use PAM in some busybox applets (currently login and httpd) instead
 	  of direct access to password database.
 
 config LONG_OPTS
-	bool "Support for --long-options"
+	bool "Support --long-options"
 	default y
 	help
 	  Enable this if you want busybox applets to use the gnu --long-option
@@ -187,7 +207,7 @@ config PID_FILE_PATH
 	  specify a pidfile path.
 
 config FEATURE_SUID
-	bool "Support for SUID/SGID handling"
+	bool "Support SUID/SGID handling"
 	default y
 	help
 	  With this option you can install the busybox binary belonging
@@ -611,6 +631,8 @@ config DEBUG_SANITIZE
 	  catch bad memory accesses (e.g. buffer overflows), but will make
 	  the executable larger and slow down runtime a bit.
 
+	  This adds -fsanitize=foo options to gcc command line.
+
 	  If you aren't developing/testing busybox, say N here.
 
 config UNIT_TEST
@@ -625,7 +647,7 @@ config WERROR
 	bool "Abort compilation on any warning"
 	default n
 	help
-	  Selecting this will add -Werror to gcc command line.
+	  This adds -Werror to gcc command line.
 
 	  Most people should answer N.
 

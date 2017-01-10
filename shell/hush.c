@@ -99,8 +99,6 @@
 //config:	bool "bash-compatible extensions"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable bash-compatible extensions.
 //config:
 //config:config HUSH_BRACE_EXPANSION
 //config:	bool "Brace expansion"
@@ -123,8 +121,6 @@
 //config:	bool "Save command history to .hush_history"
 //config:	default y
 //config:	depends on HUSH_INTERACTIVE && FEATURE_EDITING_SAVEHISTORY
-//config:	help
-//config:	  Enable history saving in hush.
 //config:
 //config:config HUSH_JOB
 //config:	bool "Job control"
@@ -138,39 +134,35 @@
 //config:	  but no separate process group is formed.
 //config:
 //config:config HUSH_TICK
-//config:	bool "Process substitution"
+//config:	bool "Support process substitution"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable process substitution `command` and $(command) in hush.
+//config:	  Enable `command` and $(command).
 //config:
 //config:config HUSH_IF
 //config:	bool "Support if/then/elif/else/fi"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable if/then/elif/else/fi in hush.
 //config:
 //config:config HUSH_LOOPS
 //config:	bool "Support for, while and until loops"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable for, while and until loops in hush.
 //config:
 //config:config HUSH_CASE
 //config:	bool "Support case ... esac statement"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable case ... esac statement in hush. +400 bytes.
+//config:	  Enable case ... esac statement. +400 bytes.
 //config:
 //config:config HUSH_FUNCTIONS
 //config:	bool "Support funcname() { commands; } syntax"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable support for shell functions in hush. +800 bytes.
+//config:	  Enable support for shell functions. +800 bytes.
 //config:
 //config:config HUSH_LOCAL
 //config:	bool "local builtin"
@@ -199,22 +191,21 @@
 //config:	bool "echo builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable echo builtin in hush.
 //config:
 //config:config HUSH_PRINTF
 //config:	bool "printf builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable printf builtin in hush.
+//config:
+//config:config HUSH_HELP
+//config:	bool "help builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:
 //config:config HUSH_EXPORT
 //config:	bool "export builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable export builtin in hush.
 //config:
 //config:config HUSH_EXPORT_N
 //config:	bool "Support 'export -n' option"
@@ -223,82 +214,55 @@
 //config:	help
 //config:	  export -n unexports variables. It is a bash extension.
 //config:
-//config:config HUSH_HELP
-//config:	bool "help builtin"
-//config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable help builtin in hush. Code size + ~1 kbyte.
-//config:
 //config:config HUSH_KILL
-//config:	bool "kill builtin (for kill %jobspec)"
+//config:	bool "kill builtin (supports kill %jobspec)"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable kill builtin in hush.
 //config:
 //config:config HUSH_WAIT
 //config:	bool "wait builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable wait builtin in hush.
 //config:
 //config:config HUSH_TRAP
 //config:	bool "trap builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable trap builtin in hush.
-//config:
-//config:config HUSH_ULIMIT
-//config:	bool "ulimit builtin"
-//config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable ulimit builtin in hush.
 //config:
 //config:config HUSH_TYPE
 //config:	bool "type builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable type builtin in hush.
 //config:
 //config:config HUSH_READ
 //config:	bool "read builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable read builtin in hush.
 //config:
 //config:config HUSH_SET
 //config:	bool "set builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable set builtin in hush.
 //config:
 //config:config HUSH_UNSET
 //config:	bool "unset builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable unset builtin in hush.
+//config:
+//config:config HUSH_ULIMIT
+//config:	bool "ulimit builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:
 //config:config HUSH_UMASK
 //config:	bool "umask builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable umask builtin in hush.
 //config:
 //config:config HUSH_MEMLEAK
 //config:	bool "memleak builtin (debugging)"
 //config:	default n
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:	help
-//config:	  Enable memleak builtin in hush.
 //config:
 //config:config MSH
 //config:	bool "msh (deprecated: aliased to hush)"
@@ -1096,8 +1060,6 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("wait"     , builtin_wait    , "Wait for process"),
 #endif
 };
-/* For now, echo and test are unconditionally enabled.
- * Maybe make it configurable? */
 static const struct built_in_command bltins2[] = {
 	BLTIN("["        , builtin_test    , NULL),
 #if ENABLE_HUSH_ECHO

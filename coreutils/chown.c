@@ -17,8 +17,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on CHOWN && LONG_OPTS
-//config:	help
-//config:	  Enable use of long options
 
 //applet:IF_CHOWN(APPLET_NOEXEC(chown, chown, BB_DIR_BIN, BB_SUID_DROP, chown))
 

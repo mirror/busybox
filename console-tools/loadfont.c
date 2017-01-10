@@ -42,18 +42,14 @@
 //config:	depends on LOADFONT || SETFONT
 //config:
 //config:config FEATURE_LOADFONT_PSF2
-//config:	bool "Support for PSF2 console fonts"
+//config:	bool "Support PSF2 console fonts"
 //config:	default y
 //config:	depends on LOADFONT || SETFONT
-//config:	help
-//config:	  Support PSF2 console fonts.
 //config:
 //config:config FEATURE_LOADFONT_RAW
-//config:	bool "Support for old (raw) console fonts"
+//config:	bool "Support old (raw) console fonts"
 //config:	default y
 //config:	depends on LOADFONT || SETFONT
-//config:	help
-//config:	  Support old (raw) console fonts.
 
 //applet:IF_LOADFONT(APPLET(loadfont, BB_DIR_USR_SBIN, BB_SUID_DROP))
 //applet:IF_SETFONT(APPLET(setfont, BB_DIR_USR_SBIN, BB_SUID_DROP))

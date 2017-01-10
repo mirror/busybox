@@ -17,8 +17,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on ADDUSER && LONG_OPTS
-//config:	help
-//config:	  Support long options for the adduser applet.
 //config:
 //config:config FEATURE_CHECK_NAMES
 //config:	bool "Enable sanity check on user/group names in adduser and addgroup"

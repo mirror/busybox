@@ -21,7 +21,7 @@
 //config:	  Utility for deleting a group account.
 //config:
 //config:config FEATURE_DEL_USER_FROM_GROUP
-//config:	bool "Support for removing users from groups"
+//config:	bool "Support removing users from groups"
 //config:	default y
 //config:	depends on DELGROUP
 //config:	help

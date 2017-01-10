@@ -21,7 +21,6 @@
 
 //kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_NILFS) += nilfs.o
 
-//config:
 //config:config FEATURE_VOLUMEID_NILFS
 //config:	bool "nilfs filesystem"
 //config:	default y
@@ -37,7 +36,6 @@
 //config:	  SOX compliance logging, and so forth. It can serve as an alternative
 //config:	  filesystem for Linux desktop environment, or as a basis of advanced
 //config:	  storage appliances.
-//config:
 
 #include "volume_id_internal.h"
 

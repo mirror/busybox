@@ -39,8 +39,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on RUNCON && LONG_OPTS
-//config:	help
-//config:	  Support long options for the runcon applet.
 
 //applet:IF_RUNCON(APPLET(runcon, BB_DIR_USR_BIN, BB_SUID_DROP))
 

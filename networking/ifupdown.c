@@ -66,14 +66,14 @@
 //config:	  utilities, or enable these applets in Busybox.
 //config:
 //config:config FEATURE_IFUPDOWN_IPV4
-//config:	bool "Support for IPv4"
+//config:	bool "Support IPv4"
 //config:	default y
 //config:	depends on IFUP || IFDOWN
 //config:	help
 //config:	  If you want ifup/ifdown to talk IPv4, leave this on.
 //config:
 //config:config FEATURE_IFUPDOWN_IPV6
-//config:	bool "Support for IPv6"
+//config:	bool "Support IPv6"
 //config:	default y
 //config:	depends on (IFUP || IFDOWN) && FEATURE_IPV6
 //config:	help
@@ -81,7 +81,7 @@
 //config:
 //UNUSED:
 ////////:config FEATURE_IFUPDOWN_IPX
-////////:	bool "Support for IPX"
+////////:	bool "Support IPX"
 ////////:	default y
 ////////:	depends on IFUP || IFDOWN
 ////////:	help
@@ -97,7 +97,7 @@
 //config:	  a weird network setup you don't need it.
 //config:
 //config:config FEATURE_IFUPDOWN_EXTERNAL_DHCP
-//config:	bool "Support for external dhcp clients"
+//config:	bool "Support external DHCP clients"
 //config:	default n
 //config:	depends on IFUP || IFDOWN
 //config:	help

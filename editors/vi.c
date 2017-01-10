@@ -30,7 +30,7 @@
 //config:	  you may wish to use something else.
 //config:
 //config:config FEATURE_VI_MAX_LEN
-//config:	int "Maximum screen width in vi"
+//config:	int "Maximum screen width"
 //config:	range 256 16384
 //config:	default 4096
 //config:	depends on VI
@@ -39,7 +39,7 @@
 //config:	  Make it smaller than 4k only if you are very limited on memory.
 //config:
 //config:config FEATURE_VI_8BIT
-//config:	bool "Allow vi to display 8-bit chars (otherwise shows dots)"
+//config:	bool "Allow to display 8-bit chars (otherwise shows dots)"
 //config:	default n
 //config:	depends on VI
 //config:	help
@@ -53,7 +53,7 @@
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Enable a limited set of colon commands for vi. This does not
+//config:	  Enable a limited set of colon commands. This does not
 //config:	  provide an "ex" mode.
 //config:
 //config:config FEATURE_VI_YANKMARK
@@ -61,16 +61,14 @@
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  This will enable you to use yank and put, as well as mark in
-//config:	  busybox vi.
+//config:	  This will enable you to use yank and put, as well as mark.
 //config:
 //config:config FEATURE_VI_SEARCH
 //config:	bool "Enable search and replace cmds"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Select this if you wish to be able to do search and replace in
-//config:	  busybox vi.
+//config:	  Select this if you wish to be able to do search and replace.
 //config:
 //config:config FEATURE_VI_REGEX_SEARCH
 //config:	bool "Enable regex in search and replace"
@@ -84,16 +82,15 @@
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Selecting this option will make busybox vi signal aware. This will
-//config:	  make busybox vi support SIGWINCH to deal with Window Changes, catch
-//config:	  Ctrl-Z and Ctrl-C and alarms.
+//config:	  Selecting this option will make vi signal aware. This will support
+//config:	  SIGWINCH to deal with Window Changes, catch ^Z and ^C and alarms.
 //config:
 //config:config FEATURE_VI_DOT_CMD
 //config:	bool "Remember previous cmd and \".\" cmd"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Make busybox vi remember the last command and be able to repeat it.
+//config:	  Make vi remember the last command and be able to repeat it.
 //config:
 //config:config FEATURE_VI_READONLY
 //config:	bool "Enable -R option and \"view\" mode"
@@ -104,25 +101,23 @@
 //config:	  open a file in read-only mode.
 //config:
 //config:config FEATURE_VI_SETOPTS
-//config:	bool "Enable set-able options, ai ic showmatch"
+//config:	bool "Enable settable options, ai ic showmatch"
 //config:	default y
 //config:	depends on VI
 //config:	help
 //config:	  Enable the editor to set some (ai, ic, showmatch) options.
 //config:
 //config:config FEATURE_VI_SET
-//config:	bool "Support for :set"
+//config:	bool "Support :set"
 //config:	default y
 //config:	depends on VI
-//config:	help
-//config:	  Support for ":set".
 //config:
 //config:config FEATURE_VI_WIN_RESIZE
 //config:	bool "Handle window resize"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Make busybox vi behave nicely with terminals that get resized.
+//config:	  Behave nicely with terminals that get resized.
 //config:
 //config:config FEATURE_VI_ASK_TERMINAL
 //config:	bool "Use 'tell me cursor position' ESC sequence to measure window"
@@ -133,15 +128,16 @@
 //config:	  this option makes vi perform a last-ditch effort to find it:
 //config:	  position cursor to 999,999 and ask terminal to report real
 //config:	  cursor position using "ESC [ 6 n" escape sequence, then read stdin.
-//config:
 //config:	  This is not clean but helps a lot on serial lines and such.
+//config:
 //config:config FEATURE_VI_UNDO
-//config:	bool "Support undo command 'u'"
+//config:	bool "Support undo command \"u\""
 //config:	default y
 //config:	depends on VI
 //config:	help
 //config:	  Support the 'u' command to undo insertion, deletion, and replacement
 //config:	  of text.
+//config:
 //config:config FEATURE_VI_UNDO_QUEUE
 //config:	bool "Enable undo operation queuing"
 //config:	default y
@@ -152,6 +148,7 @@
 //config:	  reached, the contents of the queue are committed to the undo stack.
 //config:	  This increases the size of the undo code and allows some undo
 //config:	  operations (especially un-typing/backspacing) to be far more useful.
+//config:
 //config:config FEATURE_VI_UNDO_QUEUE_MAX
 //config:	int "Maximum undo character queue size"
 //config:	default 256

@@ -133,7 +133,7 @@ config FEATURE_CHECK_TAINTED_MODULE
 	  This option is required to support GPLONLY modules.
 
 config FEATURE_MODUTILS_ALIAS
-	bool "Support for module.aliases file"
+	bool "Support module.aliases file"
 	default y
 	depends on DEPMOD || MODPROBE
 	select PLATFORM_LINUX
@@ -150,7 +150,7 @@ config FEATURE_MODUTILS_ALIAS
 	  Say Y if unsure.
 
 config FEATURE_MODUTILS_SYMBOLS
-	bool "Support for module.symbols file"
+	bool "Support module.symbols file"
 	default y
 	depends on DEPMOD || MODPROBE
 	select PLATFORM_LINUX

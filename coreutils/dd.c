@@ -41,7 +41,7 @@
 //config:	default y
 //config:	depends on DD
 //config:	help
-//config:	  Enables support for writing a certain number of bytes in and out,
+//config:	  Enable support for writing a certain number of bytes in and out,
 //config:	  at a time, and performing conversions on the data stream.
 //config:
 //config:config FEATURE_DD_STATUS
@@ -49,7 +49,7 @@
 //config:	default y
 //config:	depends on DD
 //config:	help
-//config:	  Enables support for status=noxfer/none option.
+//config:	  Enable support for status=noxfer/none option.
 
 //applet:IF_DD(APPLET_NOEXEC(dd, dd, BB_DIR_BIN, BB_SUID_DROP, dd))
 

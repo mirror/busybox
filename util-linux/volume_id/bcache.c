@@ -10,14 +10,10 @@
 
 //kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_BCACHE) += bcache.o
 
-//config:
 //config:config FEATURE_VOLUMEID_BCACHE
 //config:	bool "bcache filesystem"
 //config:	default y
 //config:	depends on VOLUMEID
-//config:	help
-//config:	  TODO
-//config:
 
 #include "volume_id_internal.h"
 

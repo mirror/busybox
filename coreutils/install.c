@@ -15,8 +15,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on INSTALL && LONG_OPTS
-//config:	help
-//config:	  Support long options for the install applet.
 
 //applet:IF_INSTALL(APPLET(install, BB_DIR_USR_BIN, BB_SUID_DROP))
 

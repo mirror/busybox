@@ -11,19 +11,18 @@
 //config:	help
 //config:	  su is used to become another user during a login session.
 //config:	  Invoked without a username, su defaults to becoming the super user.
-//config:
-//config:	  Note that Busybox binary must be setuid root for this applet to
+//config:	  Note that busybox binary must be setuid root for this applet to
 //config:	  work properly.
 //config:
 //config:config FEATURE_SU_SYSLOG
-//config:	bool "Enable su to write to syslog"
+//config:	bool "Log to syslog all attempts to use su"
 //config:	default y
 //config:	depends on SU
 //config:
 //config:config FEATURE_SU_CHECKS_SHELLS
-//config:	bool "Enable su to check user's shell to be listed in /etc/shells"
-//config:	depends on SU
+//config:	bool "If user's shell is not in /etc/shells, disallow -s PROG"
 //config:	default y
+//config:	depends on SU
 
 //applet:/* Needs to be run by root or be suid root - needs to change uid and gid: */
 //applet:IF_SU(APPLET(su, BB_DIR_BIN, BB_SUID_REQUIRE))

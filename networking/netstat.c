@@ -21,7 +21,7 @@
 //config:	  netstat prints information about the Linux networking subsystem.
 //config:
 //config:config FEATURE_NETSTAT_WIDE
-//config:	bool "Enable wide netstat output"
+//config:	bool "Enable wide output"
 //config:	default y
 //config:	depends on NETSTAT
 //config:	help

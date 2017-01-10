@@ -89,8 +89,6 @@
 //config:	bool "Enable -perm: permissions matching"
 //config:	default y
 //config:	depends on FIND
-//config:	help
-//config:	  Enable searching based on file permissions.
 //config:
 //config:config FEATURE_FIND_TYPE
 //config:	bool "Enable -type: file type matching (file/dir/link/...)"
@@ -104,15 +102,11 @@
 //config:	bool "Enable -xdev: 'stay in filesystem'"
 //config:	default y
 //config:	depends on FIND
-//config:	help
-//config:	  This option allows find to restrict searches to a single filesystem.
 //config:
 //config:config FEATURE_FIND_MAXDEPTH
 //config:	bool "Enable -mindepth N and -maxdepth N"
 //config:	default y
 //config:	depends on FIND
-//config:	help
-//config:	  This option enables -mindepth N and -maxdepth N option.
 //config:
 //config:config FEATURE_FIND_NEWER
 //config:	bool "Enable -newer: compare file modification times"
@@ -126,8 +120,6 @@
 //config:	bool "Enable -inum: inode number matching"
 //config:	default y
 //config:	depends on FIND
-//config:	help
-//config:	  Support the 'find -inum' option for searching by inode number.
 //config:
 //config:config FEATURE_FIND_EXEC
 //config:	bool "Enable -exec: execute commands"
@@ -151,15 +143,11 @@
 //config:	bool "Enable -user: username/uid matching"
 //config:	default y
 //config:	depends on FIND
-//config:	help
-//config:	  Support the 'find -user' option for searching by username or uid.
 //config:
 //config:config FEATURE_FIND_GROUP
 //config:	bool "Enable -group: group/gid matching"
 //config:	default y
 //config:	depends on FIND
-//config:	help
-//config:	  Support the 'find -group' option for searching by group name or gid.
 //config:
 //config:config FEATURE_FIND_NOT
 //config:	bool "Enable the 'not' (!) operator"
@@ -188,8 +176,6 @@
 //config:	bool "Enable -size: file size matching"
 //config:	default y
 //config:	depends on FIND
-//config:	help
-//config:	  Support the 'find -size' option for searching by file size.
 //config:
 //config:config FEATURE_FIND_PRUNE
 //config:	bool "Enable -prune: exclude subdirectories"

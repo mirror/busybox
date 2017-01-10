@@ -35,8 +35,6 @@
 //config:	bool "Optimize for size instead of speed"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	  Compile ash for reduced size at the price of speed.
 //config:
 //config:config ASH_INTERNAL_GLOB
 //config:	bool "Use internal glob() implementation"
@@ -46,6 +44,23 @@
 //config:	  Do not use glob() function from libc, use internal implementation.
 //config:	  Use this if you are getting "glob.h: No such file or directory"
 //config:	  or similar build errors.
+//config:	  Note that as of now (2017-01), uclibc and musl glob() both have bugs
+//config:	  which would break ash if you select N here.
+//config:
+//config:config ASH_BASH_COMPAT
+//config:	bool "bash-compatible extensions"
+//config:	default y
+//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:
+//config:config ASH_JOB_CONTROL
+//config:	bool "Job control"
+//config:	default y
+//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:
+//config:config ASH_ALIAS
+//config:	bool "Alias support"
+//config:	default y
+//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:
 //config:config ASH_RANDOM_SUPPORT
 //config:	bool "Pseudorandom generator and $RANDOM variable"
@@ -63,88 +78,60 @@
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  "PS#" may contain volatile content, such as backquote commands.
+//config:	  $PS# may contain volatile content, such as backquote commands.
 //config:	  This option recreates the prompt string from the environment
 //config:	  variable each time it is displayed.
 //config:
-//config:config ASH_BASH_COMPAT
-//config:	bool "bash-compatible extensions"
-//config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	  Enable bash-compatible extensions.
-//config:
 //config:config ASH_IDLE_TIMEOUT
-//config:	bool "Idle timeout variable"
-//config:	default n
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	  Enables bash-like auto-logout after $TMOUT seconds of idle time.
-//config:
-//config:config ASH_JOB_CONTROL
-//config:	bool "Job control"
+//config:	bool "Idle timeout variable $TMOUT"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  Enable job control in the ash shell.
+//config:	  Enable bash-like auto-logout after $TMOUT seconds of idle time.
 //config:
-//config:config ASH_ALIAS
-//config:	bool "Alias support"
+//config:config ASH_MAIL
+//config:	bool "Check for new mail in interactive shell"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  Enable alias support in the ash shell.
-//config:
-//config:config ASH_GETOPTS
-//config:	bool "Builtin getopt to parse positional parameters"
-//config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	  Enable support for getopts builtin in ash.
+//config:	  Enable "check for new mail" function:
+//config:	  if set, $MAIL file and $MAILPATH list of files
+//config:	  are checked for mtime changes, and "you have mail"
+//config:	  message is printed if change is detected.
 //config:
 //config:config ASH_BUILTIN_ECHO
-//config:	bool "Builtin version of 'echo'"
+//config:	bool "echo builtin"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	  Enable support for echo builtin in ash.
 //config:
 //config:config ASH_BUILTIN_PRINTF
-//config:	bool "Builtin version of 'printf'"
+//config:	bool "printf builtin"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	  Enable support for printf builtin in ash.
 //config:
 //config:config ASH_BUILTIN_TEST
-//config:	bool "Builtin version of 'test'"
+//config:	bool "test builtin"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	  Enable support for test builtin in ash.
 //config:
 //config:config ASH_HELP
 //config:	bool "help builtin"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	  Enable help builtin in ash.
+//config:
+//config:config ASH_GETOPTS
+//config:	bool "getopts builtin"
+//config:	default y
+//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:
 //config:config ASH_CMDCMD
-//config:	bool "'command' command to override shell builtins"
+//config:	bool "command builtin"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  Enable support for the ash 'command' builtin, which allows
-//config:	  you to run the specified command with the specified arguments,
-//config:	  even when there is an ash builtin command with the same name.
-//config:
-//config:config ASH_MAIL
-//config:	bool "Check for new mail on interactive shells"
-//config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	  Enable "check for new mail" function in the ash shell.
+//config:	  Enable support for the 'command' builtin, which allows
+//config:	  you to run the specified command or builtin,
+//config:	  even when there is a function with the same name.
 //config:
 //config:endif # ash options
 

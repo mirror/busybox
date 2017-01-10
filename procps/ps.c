@@ -32,19 +32,10 @@
 //config:	  Adds fields PPID, RSS, START, TIME & TTY
 //config:
 //config:config FEATURE_PS_TIME
-//config:	bool "Enable time and elapsed time output"
+//config:	bool "Support -o time and -o etime output specifiers"
 //config:	default y
 //config:	depends on PS && DESKTOP
 //config:	select PLATFORM_LINUX
-//config:	help
-//config:	  Support -o time and -o etime output specifiers.
-//config:
-//config:config FEATURE_PS_ADDITIONAL_COLUMNS
-//config:	bool "Enable additional ps columns"
-//config:	default y
-//config:	depends on PS && DESKTOP
-//config:	help
-//config:	  Support -o rgroup, -o ruser, -o nice output specifiers.
 //config:
 //config:config FEATURE_PS_UNUSUAL_SYSTEMS
 //config:	bool "Support Linux prior to 2.4.0 and non-ELF systems"
@@ -53,6 +44,11 @@
 //config:	help
 //config:	  Include support for measuring HZ on old kernels and non-ELF systems
 //config:	  (if you are on Linux 2.4.0+ and use ELF, you don't need this)
+//config:
+//config:config FEATURE_PS_ADDITIONAL_COLUMNS
+//config:	bool "Support -o rgroup, -o ruser, -o nice specifiers"
+//config:	default y
+//config:	depends on PS && DESKTOP
 
 //applet:IF_PS(APPLET(ps, BB_DIR_BIN, BB_SUID_DROP))
 

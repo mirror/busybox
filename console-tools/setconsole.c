@@ -19,8 +19,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on SETCONSOLE && LONG_OPTS
-//config:	help
-//config:	  Support long options for the setconsole applet.
 
 //applet:IF_SETCONSOLE(APPLET(setconsole, BB_DIR_SBIN, BB_SUID_DROP))
 

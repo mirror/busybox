@@ -14,7 +14,7 @@
 //config:	  'last' displays a list of the last users that logged into the system.
 //config:
 //config:config FEATURE_LAST_FANCY
-//config:	bool "Turn on output of extra information"
+//config:	bool "Output extra information"
 //config:	default y
 //config:	depends on LAST
 //config:	help

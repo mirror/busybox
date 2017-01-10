@@ -40,7 +40,7 @@ config FEATURE_MOUNT_LOOP_CREATE
 	  if it does not find a free one.
 
 config FEATURE_MTAB_SUPPORT
-	bool "Support for the old /etc/mtab file"
+	bool "Support old /etc/mtab file"
 	default n
 	depends on MOUNT || UMOUNT
 	select FEATURE_MOUNT_FAKE

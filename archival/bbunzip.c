@@ -312,8 +312,6 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on (GUNZIP || ZCAT) && LONG_OPTS
-//config:	help
-//config:	  Enable use of long options.
 
 //applet:IF_GUNZIP(APPLET(gunzip, BB_DIR_BIN, BB_SUID_DROP))
 //applet:IF_ZCAT(APPLET_ODDNAME(zcat, gunzip, BB_DIR_BIN, BB_SUID_DROP, zcat))
@@ -522,7 +520,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //config:	  IOW: you'll get lzma applet, but it will always require -d option.
 //config:
 //config:config FEATURE_LZMA_FAST
-//config:	bool "Optimize unlzma for speed"
+//config:	bool "Optimize for speed"
 //config:	default n
 //config:	depends on UNLZMA || LZCAT || LZMA
 //config:	help

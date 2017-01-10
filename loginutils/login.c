@@ -24,7 +24,7 @@
 //config:	  will not be cleaned up.
 //config:
 //config:config LOGIN_SCRIPTS
-//config:	bool "Support for login scripts"
+//config:	bool "Support login scripts"
 //config:	depends on LOGIN
 //config:	default y
 //config:	help
@@ -32,7 +32,7 @@
 //config:	  just prior to switching from root to logged-in user.
 //config:
 //config:config FEATURE_NOLOGIN
-//config:	bool "Support for /etc/nologin"
+//config:	bool "Support /etc/nologin"
 //config:	default y
 //config:	depends on LOGIN
 //config:	help
@@ -40,7 +40,7 @@
 //config:	  If it exists, non-root logins are prohibited.
 //config:
 //config:config FEATURE_SECURETTY
-//config:	bool "Support for /etc/securetty"
+//config:	bool "Support /etc/securetty"
 //config:	default y
 //config:	depends on LOGIN
 //config:	help

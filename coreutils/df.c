@@ -29,11 +29,9 @@
 //config:	default y
 //config:	depends on DF
 //config:	help
-//config:	  This option enables -a, -i and -B.
-//config:
-//config:	    -a Show all filesystems
-//config:	    -i Inodes
-//config:	    -B <SIZE> Blocksize
+//config:	  -a Show all filesystems
+//config:	  -i Inodes
+//config:	  -B <SIZE> Blocksize
 
 //applet:IF_DF(APPLET(df, BB_DIR_BIN, BB_SUID_DROP))
 

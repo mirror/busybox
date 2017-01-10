@@ -45,7 +45,6 @@
 //config:	help
 //config:	  Enabling the -c options allows files to be checked
 //config:	  against pre-calculated hash values.
-//config:
 //config:	  -s and -w are useful options when verifying checksums.
 
 //applet:IF_MD5SUM(APPLET_NOEXEC(md5sum, md5_sha1_sum, BB_DIR_USR_BIN, BB_SUID_DROP, md5sum))

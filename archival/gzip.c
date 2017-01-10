@@ -48,11 +48,9 @@ aa:      85.1% -- replaced with aa.gz
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on GZIP && LONG_OPTS
-//config:	help
-//config:	  Enable use of long options, increases size by about 106 Bytes
 //config:
 //config:config GZIP_FAST
-//config:	int "Trade memory for gzip speed (0:small,slow - 2:fast,big)"
+//config:	int "Trade memory for speed (0:small,slow - 2:fast,big)"
 //config:	default 0
 //config:	range 0 2
 //config:	depends on GZIP

@@ -18,11 +18,11 @@
 //config:	  cp is used to copy files and directories.
 //config:
 //config:config FEATURE_CP_LONG_OPTIONS
-//config:	bool "Enable long options for cp"
+//config:	bool "Enable long options"
 //config:	default y
 //config:	depends on CP && LONG_OPTS
 //config:	help
-//config:	  Enable long options for cp.
+//config:	  Enable long options.
 //config:	  Also add support for --parents option.
 
 //applet:IF_CP(APPLET_NOEXEC(cp, cp, BB_DIR_BIN, BB_SUID_DROP, cp))

@@ -26,13 +26,12 @@
 //config:	  from files.
 //config:
 //config:config FEATURE_FANCY_TAIL
-//config:	bool "Enable extra tail options (-q, -s, -v, and -F)"
+//config:	bool "Enable -q, -s, -v, and -F options"
 //config:	default y
 //config:	depends on TAIL
 //config:	help
-//config:	  The options (-q, -s, -v and -F) are provided by GNU tail, but
-//config:	  are not specific in the SUSv3 standard.
-//config:
+//config:	  These options are provided by GNU tail, but
+//config:	  are not specific in the SUSv3 standard:
 //config:	    -q      Never output headers giving file names
 //config:	    -s SEC  Wait SEC seconds between reads with -f
 //config:	    -v      Always output headers giving file names

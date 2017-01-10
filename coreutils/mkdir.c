@@ -23,8 +23,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on MKDIR && LONG_OPTS
-//config:	help
-//config:	  Support long options for the mkdir applet.
 
 //applet:IF_MKDIR(APPLET_NOFORK(mkdir, mkdir, BB_DIR_BIN, BB_SUID_DROP, mkdir))
 

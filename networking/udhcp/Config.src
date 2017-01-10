@@ -123,7 +123,7 @@ config UDHCP_DEBUG
 	  are very verbose and useful for debugging only.
 
 config FEATURE_UDHCP_RFC3397
-	bool "Support for RFC3397 domain search (experimental)"
+	bool "Support RFC3397 domain search (experimental)"
 	default y
 	depends on UDHCPD || UDHCPC
 	help
@@ -132,7 +132,7 @@ config FEATURE_UDHCP_RFC3397
 	  and SIP servers option 120, specified in RFC 3361.
 
 config FEATURE_UDHCP_8021Q
-	bool "Support for 802.1Q VLAN parameters"
+	bool "Support 802.1Q VLAN parameters"
 	default y
 	depends on UDHCPD || UDHCPC
 	help

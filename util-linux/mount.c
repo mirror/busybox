@@ -90,7 +90,7 @@
 //config:
 //config:config FEATURE_MOUNT_FLAGS
 //config:	depends on MOUNT
-//config:	bool "Support lots of -o flags in mount"
+//config:	bool "Support lots of -o flags"
 //config:	default y
 //config:	help
 //config:	  Without this, mount only supports ro/rw/remount. With this, it

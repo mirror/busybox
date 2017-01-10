@@ -21,11 +21,11 @@
 //config:	  on, and the system load averages for the past 1, 5, and 15 minutes.
 //config:
 //config:config FEATURE_UPTIME_UTMP_SUPPORT
-//config:	bool "Support for showing the number of users"
+//config:	bool "Show the number of users"
 //config:	default y
 //config:	depends on UPTIME && FEATURE_UTMP
 //config:	help
-//config:	  Makes uptime display the number of users currently logged on.
+//config:	  Display the number of users currently logged on.
 
 //applet:IF_UPTIME(APPLET(uptime, BB_DIR_USR_BIN, BB_SUID_DROP))
 

@@ -30,8 +30,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on EXPAND && LONG_OPTS
-//config:	help
-//config:	  Support long options for the expand applet.
 //config:
 //config:config UNEXPAND
 //config:	bool "unexpand"
@@ -43,8 +41,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on UNEXPAND && LONG_OPTS
-//config:	help
-//config:	  Support long options for the unexpand applet.
 
 //applet:IF_EXPAND(APPLET(expand, BB_DIR_USR_BIN, BB_SUID_DROP))
 //applet:IF_UNEXPAND(APPLET_ODDNAME(unexpand, expand, BB_DIR_USR_BIN, BB_SUID_DROP, unexpand))

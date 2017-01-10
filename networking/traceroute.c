@@ -235,8 +235,6 @@
 //config:	bool "Enable -I option (use ICMP instead of UDP)"
 //config:	default y
 //config:	depends on TRACEROUTE || TRACEROUTE6
-//config:	help
-//config:	  Add option -I to use ICMP ECHO instead of UDP datagrams.
 
 /* Needs socket(AF_INET, SOCK_RAW, IPPROTO_ICMP), therefore BB_SUID_MAYBE: */
 //applet:IF_TRACEROUTE(APPLET(traceroute, BB_DIR_USR_BIN, BB_SUID_MAYBE))

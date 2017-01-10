@@ -25,7 +25,7 @@
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enables the -I and -i options to obtain detailed information
+//config:	  Enable the -I and -i options to obtain detailed information
 //config:	  directly from drives about their capabilities and supported ATA
 //config:	  feature set. If no device name is specified, hdparm will read
 //config:	  identify data from stdin. Enabling this option will add about 16k...
@@ -35,7 +35,7 @@
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enables the 'hdparm -R' option to register an IDE interface.
+//config:	  Enable the 'hdparm -R' option to register an IDE interface.
 //config:	  This is dangerous stuff, so you should probably say N.
 //config:
 //config:config FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
@@ -43,7 +43,7 @@
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enables the 'hdparm -U' option to un-register an IDE interface.
+//config:	  Enable the 'hdparm -U' option to un-register an IDE interface.
 //config:	  This is dangerous stuff, so you should probably say N.
 //config:
 //config:config FEATURE_HDPARM_HDIO_DRIVE_RESET
@@ -51,7 +51,7 @@
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enables the 'hdparm -w' option to perform a device reset.
+//config:	  Enable the 'hdparm -w' option to perform a device reset.
 //config:	  This is dangerous stuff, so you should probably say N.
 //config:
 //config:config FEATURE_HDPARM_HDIO_TRISTATE_HWIF
@@ -59,7 +59,7 @@
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enables the 'hdparm -x' option to tristate device for hotswap,
+//config:	  Enable the 'hdparm -x' option to tristate device for hotswap,
 //config:	  and the '-b' option to get/set bus state. This is dangerous
 //config:	  stuff, so you should probably say N.
 //config:
@@ -68,7 +68,7 @@
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enables the 'hdparm -d' option to get/set using_dma flag.
+//config:	  Enable the 'hdparm -d' option to get/set using_dma flag.
 
 //applet:IF_HDPARM(APPLET(hdparm, BB_DIR_SBIN, BB_SUID_DROP))
 

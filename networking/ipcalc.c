@@ -18,6 +18,11 @@
 //config:	  ipcalc takes an IP address and netmask and calculates the
 //config:	  resulting broadcast, network, and host range.
 //config:
+//config:config FEATURE_IPCALC_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on IPCALC && LONG_OPTS
+//config:
 //config:config FEATURE_IPCALC_FANCY
 //config:	bool "Fancy IPCALC, more options, adds 1 kbyte"
 //config:	default y
@@ -25,13 +30,6 @@
 //config:	help
 //config:	  Adds the options hostname, prefix and silent to the output of
 //config:	  "ipcalc".
-//config:
-//config:config FEATURE_IPCALC_LONG_OPTIONS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on IPCALC && LONG_OPTS
-//config:	help
-//config:	  Support long options for the ipcalc applet.
 
 //applet:IF_IPCALC(APPLET(ipcalc, BB_DIR_BIN, BB_SUID_DROP))
 

@@ -22,7 +22,7 @@
 //config:	  wish to enable the 'dmesg' utility.
 //config:
 //config:config FEATURE_DMESG_PRETTY
-//config:	bool "Pretty dmesg output"
+//config:	bool "Pretty output"
 //config:	default y
 //config:	depends on DMESG
 //config:	help

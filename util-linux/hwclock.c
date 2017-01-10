@@ -20,10 +20,6 @@
 //config:	bool "Support long options (--hctosys,...)"
 //config:	default y
 //config:	depends on HWCLOCK && LONG_OPTS
-//config:	help
-//config:	  By default, the hwclock utility only uses short options. If you
-//config:	  are overly fond of its long options, such as --hctosys, --utc, etc)
-//config:	  then enable this option.
 //config:
 //config:config FEATURE_HWCLOCK_ADJTIME_FHS
 //config:	bool "Use FHS /var/lib/hwclock/adjtime"

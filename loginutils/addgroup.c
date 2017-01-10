@@ -19,15 +19,13 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on ADDGROUP && LONG_OPTS
-//config:	help
-//config:	  Support long options for the addgroup applet.
 //config:
 //config:config FEATURE_ADDUSER_TO_GROUP
-//config:	bool "Support for adding users to groups"
+//config:	bool "Support adding users to groups"
 //config:	default y
 //config:	depends on ADDGROUP
 //config:	help
-//config:	  If  called  with two non-option arguments,
+//config:	  If called with two non-option arguments,
 //config:	  addgroup will add an existing user to an
 //config:	  existing group.
 

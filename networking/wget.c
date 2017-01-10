@@ -16,12 +16,15 @@
 //config:	  wget is a utility for non-interactive download of files from HTTP
 //config:	  and FTP servers.
 //config:
+//config:config FEATURE_WGET_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on WGET && LONG_OPTS
+//config:
 //config:config FEATURE_WGET_STATUSBAR
-//config:	bool "Enable a nifty process meter (+2k)"
+//config:	bool "Enable progress bar (+2k)"
 //config:	default y
 //config:	depends on WGET
-//config:	help
-//config:	  Enable the transfer progress bar for wget transfers.
 //config:
 //config:config FEATURE_WGET_AUTHENTICATION
 //config:	bool "Enable HTTP authentication"
@@ -29,13 +32,6 @@
 //config:	depends on WGET
 //config:	help
 //config:	  Support authenticated HTTP transfers.
-//config:
-//config:config FEATURE_WGET_LONG_OPTIONS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on WGET && LONG_OPTS
-//config:	help
-//config:	  Support long options for the wget applet.
 //config:
 //config:config FEATURE_WGET_TIMEOUT
 //config:	bool "Enable timeout option -T SEC"

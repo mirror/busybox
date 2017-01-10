@@ -6,7 +6,7 @@
 menu "Login/Password Management Utilities"
 
 config FEATURE_SHADOWPASSWDS
-	bool "Support for shadow passwords"
+	bool "Support shadow passwords"
 	default y
 	help
 	  Build support for shadow password in /etc/shadow. This file is only

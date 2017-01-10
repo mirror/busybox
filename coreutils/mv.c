@@ -21,8 +21,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on MV && LONG_OPTS
-//config:	help
-//config:	  Support long options for the mv applet.
 
 //applet:IF_MV(APPLET(mv, BB_DIR_BIN, BB_SUID_DROP))
 

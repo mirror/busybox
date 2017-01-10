@@ -37,22 +37,16 @@
 //config:	bool "Enable filetyping options (-p and -F)"
 //config:	default y
 //config:	depends on LS
-//config:	help
-//config:	  Enable the ls options (-p and -F).
 //config:
 //config:config FEATURE_LS_FOLLOWLINKS
 //config:	bool "Enable symlinks dereferencing (-L)"
 //config:	default y
 //config:	depends on LS
-//config:	help
-//config:	  Enable the ls option (-L).
 //config:
 //config:config FEATURE_LS_RECURSIVE
 //config:	bool "Enable recursion (-R)"
 //config:	default y
 //config:	depends on LS
-//config:	help
-//config:	  Enable the ls option (-R).
 //config:
 //config:config FEATURE_LS_SORTFILES
 //config:	bool "Sort the file names"

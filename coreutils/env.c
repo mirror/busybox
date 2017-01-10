@@ -35,8 +35,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on ENV && LONG_OPTS
-//config:	help
-//config:	  Support long options for the env applet.
 
 //applet:IF_ENV(APPLET_NOEXEC(env, env, BB_DIR_USR_BIN, BB_SUID_DROP, env))
 

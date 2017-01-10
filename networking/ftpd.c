@@ -15,7 +15,7 @@
 //config:	bool "ftpd"
 //config:	default y
 //config:	help
-//config:	  simple FTP daemon. You have to run it via inetd.
+//config:	  Simple FTP daemon. You have to run it via inetd.
 //config:
 //config:config FEATURE_FTPD_WRITE
 //config:	bool "Enable upload commands"

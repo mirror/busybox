@@ -8,7 +8,7 @@ menu "Process Utilities"
 INSERT
 
 config FEATURE_SHOW_THREADS
-	bool "Support for showing threads in ps/pstree/top"
+	bool "Support thread display in ps/pstree/top"
 	default y
 	depends on PS || TOP || PSTREE
 	help

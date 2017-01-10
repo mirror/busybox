@@ -8,7 +8,6 @@
 
 //kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_UBIFS) += ubifs.o
 
-//config:
 //config:config FEATURE_VOLUMEID_UBIFS
 //config:	bool "UBIFS filesystem"
 //config:	default y
@@ -16,7 +15,6 @@
 //config:	help
 //config:	  UBIFS (Unsorted Block Image File System) is a file
 //config:	  system for use with raw flash memory media.
-//config:
 
 #include "volume_id_internal.h"
 

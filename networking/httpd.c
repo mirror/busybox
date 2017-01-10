@@ -102,7 +102,7 @@
 //config:	bool "httpd"
 //config:	default y
 //config:	help
-//config:	  Serve web pages via an HTTP server.
+//config:	  HTTP server.
 //config:
 //config:config FEATURE_HTTPD_RANGES
 //config:	bool "Support 'Ranges:' header"
@@ -156,7 +156,7 @@
 //config:	  when specific URLs are requested.
 //config:
 //config:config FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-//config:	bool "Support for running scripts through an interpreter"
+//config:	bool "Support running scripts through an interpreter"
 //config:	default y
 //config:	depends on FEATURE_HTTPD_CGI
 //config:	help
@@ -185,7 +185,7 @@
 //config:	  "&#60Hello&#32World&#62".
 //config:
 //config:config FEATURE_HTTPD_ERROR_PAGES
-//config:	bool "Support for custom error pages"
+//config:	bool "Support custom error pages"
 //config:	default y
 //config:	depends on HTTPD
 //config:	help
@@ -198,7 +198,7 @@
 //config:	  message.
 //config:
 //config:config FEATURE_HTTPD_PROXY
-//config:	bool "Support for reverse proxy"
+//config:	bool "Support reverse proxy"
 //config:	default y
 //config:	depends on HTTPD
 //config:	help
@@ -210,7 +210,7 @@
 //config:	  http://hostname[:port]/new/path/myfile.
 //config:
 //config:config FEATURE_HTTPD_GZIP
-//config:	bool "Support for GZIP content encoding"
+//config:	bool "Support GZIP content encoding"
 //config:	default y
 //config:	depends on HTTPD
 //config:	help

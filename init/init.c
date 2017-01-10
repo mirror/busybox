@@ -104,13 +104,13 @@
 //config:	  sets TERM to "vt102" if one is found.
 //config:
 //config:config FEATURE_INIT_MODIFY_CMDLINE
-//config:	bool "Modify the command-line to \"init\""
+//config:	bool "Clear init's command line"
 //config:	default y
 //config:	depends on INIT || LINUXRC
 //config:	help
 //config:	  When launched as PID 1 and after parsing its arguments, init
 //config:	  wipes all the arguments but argv[0] and rewrites argv[0] to
-//config:	  contain only "init", so that its command-line appears solely as
+//config:	  contain only "init", so that its command line appears solely as
 //config:	  "init" in tools such as ps.
 //config:	  If this option is set to Y, init will keep its original behavior,
 //config:	  otherwise, all the arguments including argv[0] will be preserved,

@@ -27,25 +27,11 @@ config FEATURE_PRESERVE_HARDLINKS
 	help
 	  Allow cp and mv to preserve hard links.
 
-comment "Common options for ls, more and telnet"
-	depends on LS || MORE || TELNET
-
-config FEATURE_AUTOWIDTH
-	bool "Calculate terminal & column widths"
-	default y
-	depends on LS || MORE || TELNET
-	help
-	  This option allows utilities such as 'ls', 'more' and 'telnet'
-	  to determine the width of the screen, which can allow them to
-	  display additional text or avoid wrapping text onto the next line.
-	  If you leave this disabled, your utilities will be especially
-	  primitive and will be unable to determine the current screen width.
-
 comment "Common options for df, du, ls"
 	depends on DF || DU || LS
 
 config FEATURE_HUMAN_READABLE
-	bool "Support for human readable output (example 13k, 23M, 235G)"
+	bool "Support human readable output (example 13k, 23M, 235G)"
 	default y
 	depends on DF || DU || LS
 	help

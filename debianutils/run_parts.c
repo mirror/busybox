@@ -41,8 +41,6 @@
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on RUN_PARTS && LONG_OPTS
-//config:	help
-//config:	  Support long options for the run-parts applet.
 //config:
 //config:config FEATURE_RUN_PARTS_FANCY
 //config:	bool "Support additional arguments"

@@ -22,7 +22,7 @@
 //config:	  if you wish to enable the 'fbset' utility.
 //config:
 //config:config FEATURE_FBSET_FANCY
-//config:	bool "Turn on extra fbset options"
+//config:	bool "Enable extra options"
 //config:	default y
 //config:	depends on FBSET
 //config:	help
@@ -32,7 +32,7 @@
 //config:	  options.
 //config:
 //config:config FEATURE_FBSET_READMODE
-//config:	bool "Turn on fbset readmode support"
+//config:	bool "Enable readmode support"
 //config:	default y
 //config:	depends on FBSET
 //config:	help

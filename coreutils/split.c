@@ -9,7 +9,7 @@
 //config:	bool "split"
 //config:	default y
 //config:	help
-//config:	  split a file into pieces.
+//config:	  Split a file into pieces.
 //config:
 //config:config FEATURE_SPLIT_FANCY
 //config:	bool "Fancy extensions"
