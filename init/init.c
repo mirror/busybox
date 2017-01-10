@@ -17,7 +17,7 @@
 //config:	  init is the first program run when the system boots.
 //config:
 //config:config LINUXRC
-//config:	bool "Support running init from within an initrd (not initramfs)"
+//config:	bool "linuxrc: support running init from initrd (not initramfs)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help
@@ -74,12 +74,10 @@
 //config:	default y
 //config:	depends on INIT || LINUXRC
 //config:
-//config:config FEATURE_EXTRA_QUIET
-//config:	bool "Be _extra_ quiet on boot"
+//config:config FEATURE_INIT_QUIET
+//config:	bool "Be quiet on boot (no 'init started:' message)"
 //config:	default y
 //config:	depends on INIT || LINUXRC
-//config:	help
-//config:	  Prevent init from logging some messages to the console during boot.
 //config:
 //config:config FEATURE_INIT_COREDUMPS
 //config:	bool "Support dumping core for child processes (debugging only)"
@@ -1098,7 +1096,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[1])
 		xsetenv("RUNLEVEL", argv[1]);
 
-#if !ENABLE_FEATURE_EXTRA_QUIET
+#if !ENABLE_FEATURE_INIT_QUIET
 	/* Hello world */
 	message(L_CONSOLE | L_LOG, "init started: %s", bb_banner);
 #endif
