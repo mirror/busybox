@@ -141,6 +141,8 @@
 #endif
 
 
+#define SSL_SUPPORTED (ENABLE_FEATURE_WGET_OPENSSL || ENABLE_FEATURE_WGET_SSL_HELPER)
+
 struct host_info {
 	char *allocated;
 	const char *path;
@@ -151,7 +153,7 @@ struct host_info {
 };
 static const char P_FTP[] ALIGN1 = "ftp";
 static const char P_HTTP[] ALIGN1 = "http";
-#if ENABLE_FEATURE_WGET_OPENSSL || ENABLE_FEATURE_WGET_SSL_HELPER
+#if SSL_SUPPORTED
 static const char P_HTTPS[] ALIGN1 = "https";
 #endif
 
@@ -452,7 +454,7 @@ static void parse_url(const char *src_url, struct host_info *h)
 		if (strcmp(url, P_FTP) == 0) {
 			h->port = bb_lookup_port(P_FTP, "tcp", 21);
 		} else
-#if ENABLE_FEATURE_WGET_OPENSSL || ENABLE_FEATURE_WGET_SSL_HELPER
+#if SSL_SUPPORTED
 		if (strcmp(url, P_HTTPS) == 0) {
 			h->port = bb_lookup_port(P_HTTPS, "tcp", 443);
 			h->protocol = P_HTTPS;
@@ -1093,12 +1095,20 @@ static void download_one_url(const char *url)
 		}
 
 		fflush(sfp);
-		/* If we use SSL helper, keeping our end of the socket open for writing
-		 * makes our end (i.e. the same fd!) readable (EAGAIN instead of EOF)
-		 * even after child closes its copy of the fd.
-		 * This helps:
-		 */
-		shutdown(fileno(sfp), SHUT_WR);
+
+/* Tried doing this unconditionally.
+ * Cloudflare and nginx/1.11.5 are shocked to see SHUT_WR on non-HTTPS.
+ */
+#if SSL_SUPPORTED
+		if (target.protocol == P_HTTPS) {
+			/* If we use SSL helper, keeping our end of the socket open for writing
+			 * makes our end (i.e. the same fd!) readable (EAGAIN instead of EOF)
+			 * even after child closes its copy of the fd.
+			 * This helps:
+			 */
+			shutdown(fileno(sfp), SHUT_WR);
+		}
+#endif
 
 		/*
 		 * Retrieve HTTP response line and check for "200" status code.
