@@ -1083,6 +1083,9 @@ static const struct built_in_command bltins2[] = {
 #if ENABLE_HUSH_TEST
 	BLTIN("["        , builtin_test    , NULL),
 #endif
+#if BASH_TEST2
+	BLTIN("[["       , builtin_test    , NULL),
+#endif
 #if ENABLE_HUSH_ECHO
 	BLTIN("echo"     , builtin_echo    , NULL),
 #endif
