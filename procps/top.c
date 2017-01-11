@@ -726,7 +726,6 @@ static void clearmems(void)
 }
 
 #if ENABLE_FEATURE_USE_TERMIOS
-
 static void reset_term(void)
 {
 	if (!OPT_BATCH_MODE)
@@ -738,7 +737,6 @@ static void sig_catcher(int sig)
 	reset_term();
 	kill_myself_with_sig(sig);
 }
-
 #endif /* FEATURE_USE_TERMIOS */
 
 /*
@@ -1165,14 +1163,12 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 		} else {
 			G.lines = 24; /* default */
 			col = 79;
-#if ENABLE_FEATURE_USE_TERMIOS
 			/* We output to stdout, we need size of stdout (not stdin)! */
 			get_terminal_width_height(STDOUT_FILENO, &col, &G.lines);
 			if (G.lines < 5 || col < 10) {
 				sleep(interval);
 				continue;
 			}
-#endif
 			if (col > LINE_BUF_SIZE - 2)
 				col = LINE_BUF_SIZE - 2;
 		}
