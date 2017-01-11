@@ -3579,6 +3579,72 @@ static struct job *curjob; //lots
 /* number of presumed living untracked jobs */
 static int jobless; //4
 
+#if 0
+/* Bash has a feature: it restores termios after a successful wait for
+ * a foreground job which had at least one stopped or sigkilled member.
+ * The probable rationale is that SIGSTOP and SIGKILL can preclude task from
+ * properly restoring tty state. Should we do this too?
+ * A reproducer: ^Z an interactive python:
+ *
+ * # python
+ * Python 2.7.12 (...)
+ * >>> ^Z
+ *	{ python leaves tty in -icanon -echo state. We do survive that... }
+ *  [1]+  Stopped                    python
+ *	{ ...however, next program (python #2) does not survive it well: }
+ * # python
+ * Python 2.7.12 (...)
+ * >>> Traceback (most recent call last):
+ *	{ above, I typed "qwerty<CR>", but -echo state is still in effect }
+ *   File "<stdin>", line 1, in <module>
+ * NameError: name 'qwerty' is not defined
+ *
+ * The implementation below is modeled on bash code and seems to work.
+ * However, I'm not sure we should do this. For one: what if I'd fg
+ * the stopped python instead? It'll be confused by "restored" tty state.
+ */
+static struct termios shell_tty_info;
+static void
+get_tty_state(void)
+{
+	if (rootshell && ttyfd >= 0)
+		tcgetattr(ttyfd, &shell_tty_info);
+}
+static void
+set_tty_state(void)
+{
+	/* if (rootshell) - caller ensures this */
+	if (ttyfd >= 0)
+		tcsetattr(ttyfd, TCSADRAIN, &shell_tty_info);
+}
+static int
+job_signal_status(struct job *jp)
+{
+	int status;
+	unsigned i;
+	struct procstat *ps = jp->ps;
+	for (i = 0; i < jp->nprocs; i++) {
+		status = ps[i].ps_status;
+		if (WIFSIGNALED(status) || WIFSTOPPED(status))
+			return status;
+	}
+	return 0;
+}
+static void
+restore_tty_if_stopped_or_signaled(struct job *jp)
+{
+//TODO: check what happens if we come from waitforjob() in expbackq()
+	if (rootshell) {
+		int s = job_signal_status(jp);
+		if (s) /* WIFSIGNALED(s) || WIFSTOPPED(s) */
+			set_tty_state();
+	}
+}
+#else
+# define get_tty_state() ((void)0)
+# define restore_tty_if_stopped_or_signaled(jp) ((void)0)
+#endif
+
 static void
 set_curjob(struct job *jp, unsigned mode)
 {
@@ -3910,8 +3976,10 @@ restartjob(struct job *jp, int mode)
 		goto out;
 	jp->state = JOBRUNNING;
 	pgid = jp->ps[0].ps_pid;
-	if (mode == FORK_FG)
+	if (mode == FORK_FG) {
+		get_tty_state();
 		xtcsetpgrp(ttyfd, pgid);
+	}
 	killpg(pgid, SIGCONT);
 	ps = jp->ps;
 	i = jp->nprocs;
@@ -4445,7 +4513,7 @@ makejob(/*union node *node,*/ int nprocs)
 	memset(jp, 0, sizeof(*jp));
 #if JOBS
 	/* jp->jobctl is a bitfield.
-	 * "jp->jobctl |= jobctl" likely to give awful code */
+	 * "jp->jobctl |= doing_jobctl" likely to give awful code */
 	if (doing_jobctl)
 		jp->jobctl = 1;
 #endif
@@ -5040,6 +5108,8 @@ waitforjob(struct job *jp)
 #if JOBS
 	if (jp->jobctl) {
 		xtcsetpgrp(ttyfd, rootpid);
+		restore_tty_if_stopped_or_signaled(jp);
+
 		/*
 		 * This is truly gross.
 		 * If we're doing job control, then we did a TIOCSPGRP which
@@ -8852,13 +8922,15 @@ static int
 evalsubshell(union node *n, int flags)
 {
 	struct job *jp;
-	int backgnd = (n->type == NBACKGND);
+	int backgnd = (n->type == NBACKGND); /* FORK_BG(1) if yes, else FORK_FG(0) */
 	int status;
 
 	expredir(n->nredir.redirect);
 	if (!backgnd && (flags & EV_EXIT) && !may_have_traps)
 		goto nofork;
 	INT_OFF;
+	if (backgnd == FORK_FG)
+		get_tty_state();
 	jp = makejob(/*n,*/ 1);
 	if (forkshell(jp, n, backgnd) == 0) {
 		/* child */
@@ -8873,7 +8945,7 @@ evalsubshell(union node *n, int flags)
 	}
 	/* parent */
 	status = 0;
-	if (!backgnd)
+	if (backgnd == FORK_FG)
 		status = waitforjob(jp);
 	INT_ON;
 	return status;
@@ -8965,6 +9037,8 @@ evalpipe(union node *n, int flags)
 		pipelen++;
 	flags |= EV_EXIT;
 	INT_OFF;
+	if (n->npipe.pipe_backgnd == 0)
+		get_tty_state();
 	jp = makejob(/*n,*/ pipelen);
 	prevfd = -1;
 	for (lp = n->npipe.cmdlist; lp; lp = lp->next) {
@@ -9647,6 +9721,7 @@ evalcommand(union node *cmd, int flags)
 		if (!(flags & EV_EXIT) || may_have_traps) {
 			/* No, forking off a child is necessary */
 			INT_OFF;
+			get_tty_state();
 			jp = makejob(/*cmd,*/ 1);
 			if (forkshell(jp, cmd, FORK_FG) != 0) {
 				/* parent */
