@@ -748,11 +748,7 @@ static int busybox_main(char **argv)
 		int col;
 		unsigned output_width;
  help:
-		output_width = 80;
-		if (ENABLE_FEATURE_AUTOWIDTH) {
-			/* Obtain the terminal width */
-			output_width = get_terminal_width(2);
-		}
+		output_width = get_terminal_width(2);
 
 		dup2(1, 2);
 		full_write2_str(bb_banner); /* reuse const string */
