@@ -3392,12 +3392,13 @@ struct job {
 #if JOBS
 	int stopstatus;         /* status of a stopped job */
 #endif
-	uint32_t
-		nprocs: 16,     /* number of processes */
-		state: 8,
+	unsigned nprocs;        /* number of processes */
+
 #define JOBRUNNING      0       /* at least one proc running */
 #define JOBSTOPPED      1       /* all procs are stopped */
 #define JOBDONE         2       /* all procs are completed */
+	unsigned
+		state: 8,
 #if JOBS
 		sigint: 1,      /* job was killed by SIGINT */
 		jobctl: 1,      /* job running under job control */
