@@ -45,6 +45,11 @@
 //config:	  remote host you are connecting to. This is useful when you need to
 //config:	  log into a machine without telling the username (autologin). This
 //config:	  option enables `-a' and `-l USER' arguments.
+//config:
+//config:config FEATURE_TELNET_WIDTH
+//config:	bool "Enable window size autodetection"
+//config:	default y
+//config:	depends on TELNET
 
 //applet:IF_TELNET(APPLET(telnet, BB_DIR_USR_BIN, BB_SUID_DROP))
 
@@ -128,7 +133,7 @@ struct globals {
 #if ENABLE_FEATURE_TELNET_AUTOLOGIN
 	const char *autologin;
 #endif
-#if ENABLE_FEATURE_AUTOWIDTH
+#if ENABLE_FEATURE_TELNET_WIDTH
 	unsigned win_width, win_height;
 #endif
 	/* same buffer used both for network and console read/write */
@@ -401,7 +406,7 @@ static void put_iac_subopt_autologin(void)
 }
 #endif
 
-#if ENABLE_FEATURE_AUTOWIDTH
+#if ENABLE_FEATURE_TELNET_WIDTH
 static void put_iac_naws(byte c, int x, int y)
 {
 	if (G.iaclen + 9 > IACBUFSIZE)
@@ -538,7 +543,7 @@ static void to_new_environ(void)
 }
 #endif
 
-#if ENABLE_FEATURE_AUTOWIDTH
+#if ENABLE_FEATURE_TELNET_WIDTH
 static void to_naws(void)
 {
 	/* Tell server we will do NAWS */
@@ -561,7 +566,7 @@ static void telopt(byte c)
 	case TELOPT_NEW_ENVIRON:
 		to_new_environ(); break;
 #endif
-#if ENABLE_FEATURE_AUTOWIDTH
+#if ENABLE_FEATURE_TELNET_WIDTH
 	case TELOPT_NAWS:
 		to_naws();
 		put_iac_naws(c, G.win_width, G.win_height);
@@ -623,7 +628,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-#if ENABLE_FEATURE_AUTOWIDTH
+#if ENABLE_FEATURE_TELNET_WIDTH
 	get_terminal_width_height(0, &G.win_width, &G.win_height);
 #endif
 

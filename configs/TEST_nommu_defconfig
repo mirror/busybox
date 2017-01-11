@@ -266,11 +266,6 @@ CONFIG_YES=y
 CONFIG_FEATURE_PRESERVE_HARDLINKS=y
 
 #
-# Common options for ls, more and telnet
-#
-CONFIG_FEATURE_AUTOWIDTH=y
-
-#
 # Common options for df, du, ls
 #
 CONFIG_FEATURE_HUMAN_READABLE=y

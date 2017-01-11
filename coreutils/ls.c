@@ -48,6 +48,11 @@
 //config:	default y
 //config:	depends on LS
 //config:
+//config:config FEATURE_LS_WIDTH
+//config:	bool "Enable -w WIDTH and window size autodetection"
+//config:	default y
+//config:	depends on LS
+//config:
 //config:config FEATURE_LS_SORTFILES
 //config:	bool "Sort the file names"
 //config:	default y
@@ -101,7 +106,7 @@
 //usage:	IF_FEATURE_LS_SORTFILES("rSXv")
 //usage:	IF_FEATURE_LS_TIMESTAMPS("ctu")
 //usage:	IF_SELINUX("kKZ") "]"
-//usage:	IF_FEATURE_AUTOWIDTH(" [-w WIDTH]") " [FILE]..."
+//usage:	IF_FEATURE_LS_WIDTH(" [-w WIDTH]") " [FILE]..."
 //usage:#define ls_full_usage "\n\n"
 //usage:       "List directory contents\n"
 //usage:     "\n	-1	One column output"
@@ -147,7 +152,7 @@
 //usage:     "\n	-K	List security context in long format"
 //usage:     "\n	-Z	List security context and permission"
 //usage:	)
-//usage:	IF_FEATURE_AUTOWIDTH(
+//usage:	IF_FEATURE_LS_WIDTH(
 //usage:     "\n	-w N	Assume the terminal is N columns wide"
 //usage:	)
 //usage:	IF_FEATURE_LS_COLOR(
@@ -263,7 +268,7 @@ static const char ls_options[] ALIGN1 =
 	IF_SELINUX("KZ")                 /* 2, 26 */
 	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 28 */
 	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 29 */
-	IF_FEATURE_AUTOWIDTH("T:w:")     /* 2, 31 */
+	IF_FEATURE_LS_WIDTH("T:w:")     /* 2, 31 */
 	/* with --color, we use all 32 bits */;
 enum {
 	//OPT_C = (1 << 0),
@@ -298,7 +303,7 @@ enum {
 	OPTBIT_h = OPTBIT_L + 2 * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPTBIT_T = OPTBIT_h + 1 * ENABLE_FEATURE_HUMAN_READABLE,
 	OPTBIT_w, /* 30 */
-	OPTBIT_color = OPTBIT_T + 2 * ENABLE_FEATURE_AUTOWIDTH,
+	OPTBIT_color = OPTBIT_T + 2 * ENABLE_FEATURE_LS_WIDTH,
 
 	OPT_c = (1 << OPTBIT_c) * ENABLE_FEATURE_LS_TIMESTAMPS,
 	OPT_e = (1 << OPTBIT_e) * ENABLE_FEATURE_LS_TIMESTAMPS,
@@ -316,8 +321,8 @@ enum {
 	OPT_L = (1 << OPTBIT_L) * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPT_H = (1 << OPTBIT_H) * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPT_h = (1 << OPTBIT_h) * ENABLE_FEATURE_HUMAN_READABLE,
-	OPT_T = (1 << OPTBIT_T) * ENABLE_FEATURE_AUTOWIDTH,
-	OPT_w = (1 << OPTBIT_w) * ENABLE_FEATURE_AUTOWIDTH,
+	OPT_T = (1 << OPTBIT_T) * ENABLE_FEATURE_LS_WIDTH,
+	OPT_w = (1 << OPTBIT_w) * ENABLE_FEATURE_LS_WIDTH,
 	OPT_color = (1 << OPTBIT_color) * ENABLE_FEATURE_LS_COLOR,
 };
 
@@ -417,7 +422,7 @@ struct globals {
 #endif
 	smallint exit_code;
 	unsigned all_fmt;
-#if ENABLE_FEATURE_AUTOWIDTH
+#if ENABLE_FEATURE_LS_WIDTH
 	unsigned terminal_width;
 # define G_terminal_width (G.terminal_width)
 #else
@@ -433,7 +438,7 @@ struct globals {
 	setup_common_bufsiz(); \
 	/* we have to zero it out because of NOEXEC */ \
 	memset(&G, 0, sizeof(G)); \
-	IF_FEATURE_AUTOWIDTH(G_terminal_width = TERMINAL_WIDTH;) \
+	IF_FEATURE_LS_WIDTH(G_terminal_width = TERMINAL_WIDTH;) \
 	IF_FEATURE_LS_TIMESTAMPS(time(&G.current_time_t);) \
 } while (0)
 
@@ -1167,7 +1172,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_FEATURE_LS_SORTFILES)
 		G.all_fmt = SORT_NAME;
 
-#if ENABLE_FEATURE_AUTOWIDTH
+#if ENABLE_FEATURE_LS_WIDTH
 	/* obtain the terminal width */
 	G_terminal_width = get_terminal_width(STDIN_FILENO);
 	/* go one less... */
@@ -1190,9 +1195,9 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		":x-1:1-x" /* bylines/oneline (not in SuS, but in GNU coreutils 8.4) */
 		IF_FEATURE_LS_TIMESTAMPS(":c-u:u-c") /* mtime/atime */
 		/* -w NUM: */
-		IF_FEATURE_AUTOWIDTH(":w+");
+		IF_FEATURE_LS_WIDTH(":w+");
 	opt = getopt32(argv, ls_options
-		IF_FEATURE_AUTOWIDTH(, NULL, &G_terminal_width)
+		IF_FEATURE_LS_WIDTH(, NULL, &G_terminal_width)
 		IF_FEATURE_LS_COLOR(, &color_opt)
 	);
 	for (i = 0; opt_flags[i] != (1U << 31); i++) {
