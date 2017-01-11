@@ -18,6 +18,14 @@
 //config:	default y
 //config:	help
 //config:	  Analyze power consumption on Intel-based laptops
+//config:
+//config:config FEATURE_POWERTOP_INTERACTIVE
+//config:	bool "Accept keyboard commands"
+//config:	default y
+//config:	depends on POWERTOP
+//config:	help
+//config:	  Without this, powertop will only refresh display every 10 seconds.
+//config:	  No keyboard commands will work, only ^C to terminate.
 
 // XXX This should be configurable
 #define ENABLE_FEATURE_POWERTOP_PROCIRQ 1
@@ -82,7 +90,7 @@ struct globals {
 	ullong last_usage[MAX_CSTATE_COUNT];
 	ullong start_duration[MAX_CSTATE_COUNT];
 	ullong last_duration[MAX_CSTATE_COUNT];
-#if ENABLE_FEATURE_USE_TERMIOS
+#if ENABLE_FEATURE_POWERTOP_INTERACTIVE
 	struct termios init_settings;
 #endif
 };
@@ -91,7 +99,7 @@ struct globals {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
 
-#if ENABLE_FEATURE_USE_TERMIOS
+#if ENABLE_FEATURE_POWERTOP_INTERACTIVE
 static void reset_term(void)
 {
 	tcsetattr_stdin_TCSANOW(&G.init_settings);
@@ -682,7 +690,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 	ullong cur_usage[MAX_CSTATE_COUNT];
 	ullong cur_duration[MAX_CSTATE_COUNT];
 	char cstate_lines[MAX_CSTATE_COUNT + 2][64];
-#if ENABLE_FEATURE_USE_TERMIOS
+#if ENABLE_FEATURE_POWERTOP_INTERACTIVE
 	struct pollfd pfd[1];
 
 	pfd[0].fd = 0;
@@ -705,7 +713,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 
 	puts("Collecting data for "DEFAULT_SLEEP_STR" seconds");
 
-#if ENABLE_FEATURE_USE_TERMIOS
+#if ENABLE_FEATURE_POWERTOP_INTERACTIVE
 	/* Turn on unbuffered input; turn off echoing, ^C ^Z etc */
 	set_termios_to_raw(STDIN_FILENO, &G.init_settings, TERMIOS_CLEAR_ISIG);
 	bb_signals(BB_FATAL_SIGS, sig_handler);
@@ -735,7 +743,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 		int i;
 
 		G.cant_enable_timer_stats |= start_timer(); /* 1 on error */
-#if !ENABLE_FEATURE_USE_TERMIOS
+#if !ENABLE_FEATURE_POWERTOP_INTERACTIVE
 		sleep(DEFAULT_SLEEP);
 #else
 		if (safe_poll(pfd, 1, DEFAULT_SLEEP * 1000) > 0) {

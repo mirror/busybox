@@ -61,15 +61,6 @@ config FEATURE_AUTOWIDTH
 	  If you leave this disabled, your utilities will be especially
 	  primitive and will be unable to determine the current screen width.
 
-#fixme: delete, create suboptions for applets which use this
-config FEATURE_USE_TERMIOS
-	bool "Use termios for one-stroke input"
-	default y
-	help
-	  This option allows utilities such as 'top' to accept keyboard
-	  commands. Without this option, they simply refresh display
-	  after a fixed period.
-
 config SHOW_USAGE
 	bool "Show applet usage messages"
 	default y
