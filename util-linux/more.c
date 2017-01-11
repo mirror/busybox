@@ -43,7 +43,6 @@ struct globals {
 	unsigned terminal_width;
 	unsigned terminal_height;
 	struct termios initial_settings;
-	struct termios new_settings;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
@@ -101,12 +100,9 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 		return bb_cat(argv);
 
 	G.tty_fileno = fileno(tty);
-	tcgetattr(G.tty_fileno, &G.initial_settings);
-	G.new_settings = G.initial_settings;
-	G.new_settings.c_lflag &= ~(ICANON | ECHO);
-	G.new_settings.c_cc[VMIN] = 1;
-	G.new_settings.c_cc[VTIME] = 0;
-	tcsetattr_tty_TCSANOW(&G.new_settings);
+
+	/* Turn on unbuffered input; turn off echoing */
+	set_termios_to_raw(G.tty_fileno, &G.initial_settings, 0);
 	bb_signals(BB_FATAL_SIGS, gotsig);
 
 	do {

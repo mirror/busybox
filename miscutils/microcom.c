@@ -33,6 +33,7 @@
 // set raw tty mode
 static void xget1(int fd, struct termios *t, struct termios *oldt)
 {
+//TODO: use set_termios_to_raw()
 	tcgetattr(fd, oldt);
 	*t = *oldt;
 	cfmakeraw(t);

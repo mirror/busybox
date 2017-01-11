@@ -316,7 +316,7 @@ static void init_tty_attrs(int speed)
 	/* non-raw output; add CR to each NL */
 	G.tty_attrs.c_oflag = OPOST | ONLCR;
 
-	/* reads would block only if < 1 char is available */
+	/* reads will block only if < 1 char is available */
 	G.tty_attrs.c_cc[VMIN] = 1;
 	/* no timeout (reads block forever) */
 	G.tty_attrs.c_cc[VTIME] = 0;

@@ -1226,7 +1226,6 @@ void check2(void);
 int fsck_minix_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fsck_minix_main(int argc UNUSED_PARAM, char **argv)
 {
-	struct termios tmp;
 	int retcode = 0;
 
 	xfunc_error_retval = 8;
@@ -1271,10 +1270,7 @@ int fsck_minix_main(int argc UNUSED_PARAM, char **argv)
 	read_tables();
 
 	if (OPT_manual) {
-		tcgetattr(0, &sv_termios);
-		tmp = sv_termios;
-		tmp.c_lflag &= ~(ICANON | ECHO);
-		tcsetattr_stdin_TCSANOW(&tmp);
+		set_termios_to_raw(STDIN_FILENO, &sv_termios, 0);
 		termios_set = 1;
 	}
 

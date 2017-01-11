@@ -143,7 +143,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 			// Setting it to more than 1 breaks poll():
 			// it blocks even if there's data. !??
 			//tty.c_cc[VMIN] = nchars < 256 ? nchars : 255;
-			/* reads would block only if < 1 char is available */
+			/* reads will block only if < 1 char is available */
 			tty.c_cc[VMIN] = 1;
 			/* no timeout (reads block forever) */
 			tty.c_cc[VTIME] = 0;

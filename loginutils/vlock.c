@@ -105,12 +105,12 @@ int vlock_main(int argc UNUSED_PARAM, char **argv)
 	ioctl(STDIN_FILENO, VT_SETMODE, &vtm);
 #endif
 
+//TODO: use set_termios_to_raw()
 	tcgetattr(STDIN_FILENO, &oterm);
 	term = oterm;
-	term.c_iflag &= ~BRKINT;
-	term.c_iflag |= IGNBRK;
-	term.c_lflag &= ~ISIG;
-	term.c_lflag &= ~(ECHO | ECHOCTL);
+	term.c_iflag |= IGNBRK; /* ignore serial break (why? VTs don't have breaks, right?) */
+	term.c_iflag &= ~BRKINT; /* redundant? "dont translate break to SIGINT" */
+	term.c_lflag &= ~(ISIG | ECHO | ECHOCTL); /* ignore ^C ^Z, echo off */
 	tcsetattr_stdin_TCSANOW(&term);
 
 	while (1) {

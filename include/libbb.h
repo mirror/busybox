@@ -1438,6 +1438,10 @@ int get_terminal_width_height(int fd, unsigned *width, unsigned *height) FAST_FU
 int get_terminal_width(int fd) FAST_FUNC;
 
 int tcsetattr_stdin_TCSANOW(const struct termios *tp) FAST_FUNC;
+#define TERMIOS_CLEAR_ISIG (1 << 0)
+#define TERMIOS_RAW_CRNL   (1 << 1)
+#define TERMIOS_RAW_INPUT  (1 << 2)
+int set_termios_to_raw(int fd, struct termios *oldterm, int flags) FAST_FUNC;
 
 /* NB: "unsigned request" is crucial! "int request" will break some arches! */
 int ioctl_or_perror(int fd, unsigned request, void *argp, const char *fmt,...) __attribute__ ((format (printf, 4, 5))) FAST_FUNC;

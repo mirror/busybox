@@ -363,7 +363,6 @@ int conspy_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int conspy_main(int argc UNUSED_PARAM, char **argv)
 {
 	char tty_name[sizeof(DEV_TTY "NN")];
-	struct termios termbuf;
 	unsigned opts;
 	unsigned ttynum;
 	int poll_timeout_ms;
@@ -414,16 +413,14 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 
 	bb_signals(BB_FATAL_SIGS, cleanup);
 
-	// All characters must be passed through to us unaltered
 	G.kbd_fd = xopen(CURRENT_TTY, O_RDONLY);
-	tcgetattr(G.kbd_fd, &G.term_orig);
-	termbuf = G.term_orig;
-	termbuf.c_iflag &= ~(BRKINT|INLCR|ICRNL|IXON|IXOFF|IUCLC|IXANY|IMAXBEL);
-	//termbuf.c_oflag &= ~(OPOST); - no, we still want \n -> \r\n
-	termbuf.c_lflag &= ~(ISIG|ICANON|ECHO);
-	termbuf.c_cc[VMIN] = 1;
-	termbuf.c_cc[VTIME] = 0;
-	tcsetattr(G.kbd_fd, TCSANOW, &termbuf);
+
+	// All characters must be passed through to us unaltered
+	set_termios_to_raw(G.kbd_fd, &G.term_orig, 0
+		| TERMIOS_CLEAR_ISIG // no signals on ^C ^Z etc
+		| TERMIOS_RAW_INPUT  // turn off all input conversions
+	);
+	//Note: termios.c_oflag &= ~(OPOST); - no, we still want \n -> \r\n
 
 	poll_timeout_ms = 250;
 	while (1) {

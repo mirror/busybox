@@ -311,6 +311,43 @@ int FAST_FUNC tcsetattr_stdin_TCSANOW(const struct termios *tp)
 	return tcsetattr(STDIN_FILENO, TCSANOW, tp);
 }
 
+int FAST_FUNC set_termios_to_raw(int fd, struct termios *oldterm, int flags)
+{
+//TODO: lineedit, microcom and less might be adapted to use this too:
+// grep for "tcsetattr"
+
+	struct termios newterm;
+
+	tcgetattr(fd, oldterm);
+	newterm = *oldterm;
+
+	/* Turn off buffered input (ICANON)
+	 * Turn off echoing (ECHO)
+	 * and separate echoing of newline (ECHONL, normally off anyway)
+	 */
+	newterm.c_lflag &= ~(ICANON | ECHO | ECHONL);
+	if (flags & TERMIOS_CLEAR_ISIG) {
+		/* dont recognize INT/QUIT/SUSP chars */
+		newterm.c_lflag &= ~ISIG;
+	}
+	/* reads will block only if < 1 char is available */
+	newterm.c_cc[VMIN] = 1;
+	/* no timeout (reads block forever) */
+	newterm.c_cc[VTIME] = 0;
+	if (flags & TERMIOS_RAW_CRNL) {
+		/* dont convert CR to NL on input */
+		newterm.c_iflag &= ~(IXON | ICRNL);
+		/* dont convert NL to CR on output */
+		newterm.c_oflag &= ~(ONLCR);
+	}
+	if (flags & TERMIOS_RAW_INPUT) {
+		/* dont convert anything on input */
+		newterm.c_iflag &= ~(BRKINT|INLCR|ICRNL|IXON|IXOFF|IUCLC|IXANY|IMAXBEL);
+	}
+
+	return tcsetattr(fd, TCSANOW, &newterm);
+}
+
 pid_t FAST_FUNC safe_waitpid(pid_t pid, int *wstat, int options)
 {
 	pid_t r;

@@ -2325,7 +2325,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	/* ~ECHO, ~ECHONL: turn off echoing, including newline echoing */
 	/* ~ISIG: turn off INTR (ctrl-C), QUIT, SUSP */
 	new_settings.c_lflag &= ~(ICANON | ECHO | ECHONL | ISIG);
-	/* reads would block only if < 1 char is available */
+	/* reads will block only if < 1 char is available */
 	new_settings.c_cc[VMIN] = 1;
 	/* no timeout (reads block forever) */
 	new_settings.c_cc[VTIME] = 0;

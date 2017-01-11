@@ -263,6 +263,7 @@ int rx_main(int argc UNUSED_PARAM, char **argv)
 
 	termios_err = tcgetattr(read_fd, &tty);
 	if (termios_err == 0) {
+//TODO: use set_termios_to_raw()
 		orig_tty = tty;
 		cfmakeraw(&tty);
 		tcsetattr(read_fd, TCSAFLUSH, &tty);

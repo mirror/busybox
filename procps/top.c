@@ -1089,9 +1089,6 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 	unsigned interval;
 	char *str_interval, *str_iterations;
 	unsigned scan_mask = TOP_MASK;
-#if ENABLE_FEATURE_USE_TERMIOS
-	struct termios new_settings;
-#endif
 
 	INIT_G();
 
@@ -1141,11 +1138,8 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 	}
 #if ENABLE_FEATURE_USE_TERMIOS
 	else {
-		tcgetattr(0, (void *) &initial_settings);
-		memcpy(&new_settings, &initial_settings, sizeof(new_settings));
-		/* unbuffered input, turn off echo */
-		new_settings.c_lflag &= ~(ISIG | ICANON | ECHO | ECHONL);
-		tcsetattr_stdin_TCSANOW(&new_settings);
+		/* Turn on unbuffered input; turn off echoing, ^C ^Z etc */
+		set_termios_to_raw(STDIN_FILENO, &initial_settings, TERMIOS_CLEAR_ISIG);
 	}
 
 	bb_signals(BB_FATAL_SIGS, sig_catcher);

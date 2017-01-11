@@ -213,6 +213,7 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 		, signal_handler);
 
 #if ENABLE_FEATURE_CHAT_TTY_HIFI
+//TODO: use set_termios_to_raw()
 	tcgetattr(STDIN_FILENO, &tio);
 	tio0 = tio;
 	cfmakeraw(&tio);

@@ -683,7 +683,6 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 	ullong cur_duration[MAX_CSTATE_COUNT];
 	char cstate_lines[MAX_CSTATE_COUNT + 2][64];
 #if ENABLE_FEATURE_USE_TERMIOS
-	struct termios new_settings;
 	struct pollfd pfd[1];
 
 	pfd[0].fd = 0;
@@ -707,14 +706,11 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 	puts("Collecting data for "DEFAULT_SLEEP_STR" seconds");
 
 #if ENABLE_FEATURE_USE_TERMIOS
-	tcgetattr(0, (void *)&G.init_settings);
-	memcpy(&new_settings, &G.init_settings, sizeof(new_settings));
-	/* Turn on unbuffered input, turn off echoing */
-	new_settings.c_lflag &= ~(ISIG | ICANON | ECHO | ECHONL);
+	/* Turn on unbuffered input; turn off echoing, ^C ^Z etc */
+	set_termios_to_raw(STDIN_FILENO, &G.init_settings, TERMIOS_CLEAR_ISIG);
+	bb_signals(BB_FATAL_SIGS, sig_handler);
 	/* So we don't forget to reset term settings */
 	atexit(reset_term);
-	bb_signals(BB_FATAL_SIGS, sig_handler);
-	tcsetattr_stdin_TCSANOW(&new_settings);
 #endif
 
 	/* Collect initial data */
