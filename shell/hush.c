@@ -326,6 +326,15 @@
 #endif
 
 
+/* So far, all bash compat is controlled by one config option */
+/* Separate defines document which part of code implements what */
+#define BASH_PATTERN_SUBST ENABLE_HUSH_BASH_COMPAT
+#define BASH_SUBSTR        ENABLE_HUSH_BASH_COMPAT
+#define BASH_TEST2         ENABLE_HUSH_BASH_COMPAT
+#define BASH_SOURCE        ENABLE_HUSH_BASH_COMPAT
+#define BASH_HOSTNAME_VAR  ENABLE_HUSH_BASH_COMPAT
+
+
 /* Build knobs */
 #define LEAK_HUNTING 0
 #define BUILD_AS_NOMMU 0
@@ -411,7 +420,7 @@
 #define _SPECIAL_VARS_STR     "_*@$!?#"
 #define SPECIAL_VARS_STR     ("_*@$!?#" + 1)
 #define NUMERIC_SPECVARS_STR ("_*@$!?#" + 3)
-#if ENABLE_HUSH_BASH_COMPAT
+#if BASH_PATTERN_SUBST
 /* Support / and // replace ops */
 /* Note that // is stored as \ in "encoded" string representation */
 # define VAR_ENCODED_SUBST_OPS      "\\/%#:-=+?"
@@ -572,7 +581,7 @@ struct command {
 	smallint cmd_type;          /* CMD_xxx */
 #define CMD_NORMAL   0
 #define CMD_SUBSHELL 1
-#if ENABLE_HUSH_BASH_COMPAT
+#if BASH_TEST2
 /* used for "[[ EXPR ]]" */
 # define CMD_SINGLEWORD_NOGLOB 2
 #endif
@@ -947,7 +956,7 @@ static int builtin_set(char **argv) FAST_FUNC;
 #endif
 static int builtin_shift(char **argv) FAST_FUNC;
 static int builtin_source(char **argv) FAST_FUNC;
-#if ENABLE_HUSH_TEST
+#if ENABLE_HUSH_TEST || BASH_TEST2
 static int builtin_test(char **argv) FAST_FUNC;
 #endif
 #if ENABLE_HUSH_TRAP
@@ -1044,7 +1053,7 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("set"      , builtin_set     , "Set positional parameters"),
 #endif
 	BLTIN("shift"    , builtin_shift   , "Shift positional parameters"),
-#if ENABLE_HUSH_BASH_COMPAT
+#if BASH_SOURCE
 	BLTIN("source"   , builtin_source  , NULL),
 #endif
 #if ENABLE_HUSH_TRAP
@@ -2174,7 +2183,7 @@ static void unset_vars(char **strings)
 	free(strings);
 }
 
-#if ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_BASH_COMPAT || ENABLE_HUSH_READ
+#if BASH_HOSTNAME_VAR || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_READ
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
 	char *var = xasprintf("%s=%s", name, val);
@@ -3633,7 +3642,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 						(ctx->ctx_res_w == RES_SNTX));
 				return (ctx->ctx_res_w == RES_SNTX);
 			}
-# if ENABLE_HUSH_BASH_COMPAT
+# if BASH_TEST2
 			if (strcmp(word->data, "[[") == 0) {
 				command->cmd_type = CMD_SINGLEWORD_NOGLOB;
 			}
@@ -4231,7 +4240,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 {
 	int ch;
 	char dbl = end_ch & DOUBLE_CLOSE_CHAR_FLAG;
-# if ENABLE_HUSH_BASH_COMPAT
+# if BASH_SUBSTR || BASH_PATTERN_SUBST
 	char end_char2 = end_ch >> 8;
 # endif
 	end_ch &= (DOUBLE_CLOSE_CHAR_FLAG - 1);
@@ -4242,7 +4251,11 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 			syntax_error_unterm_ch(end_ch);
 			return 0;
 		}
-		if (ch == end_ch  IF_HUSH_BASH_COMPAT( || ch == end_char2)) {
+		if (ch == end_ch
+# if BASH_SUBSTR || BASH_PATTERN_SUBST
+			|| ch == end_char2
+# endif
+		) {
 			if (!dbl)
 				break;
 			/* we look for closing )) of $((EXPR)) */
@@ -4395,14 +4408,14 @@ static int parse_dollar(o_string *as_string,
 
 				/* Eat everything until closing '}' (or ':') */
 				end_ch = '}';
-				if (ENABLE_HUSH_BASH_COMPAT
+				if (BASH_SUBSTR
 				 && ch == ':'
 				 && !strchr(MINUS_PLUS_EQUAL_QUESTION, i_peek(input))
 				) {
 					/* It's ${var:N[:M]} thing */
 					end_ch = '}' * 0x100 + ':';
 				}
-				if (ENABLE_HUSH_BASH_COMPAT
+				if (BASH_PATTERN_SUBST
 				 && ch == '/'
 				) {
 					/* It's ${var/[/]pattern[/repl]} thing */
@@ -4429,7 +4442,9 @@ static int parse_dollar(o_string *as_string,
 					o_addchr(as_string, last_ch);
 				}
 
-				if (ENABLE_HUSH_BASH_COMPAT && (end_ch & 0xff00)) {
+				if ((BASH_SUBSTR || BASH_PATTERN_SUBST)
+					 && (end_ch & 0xff00)
+				) {
 					/* close the first block: */
 					o_addchr(dest, SPECIAL_VAR_SYMBOL);
 					/* while parsing N from ${var:N[:M]}
@@ -4440,7 +4455,7 @@ static int parse_dollar(o_string *as_string,
 						goto again;
 					}
 					/* got '}' */
-					if (end_ch == '}' * 0x100 + ':') {
+					if (BASH_SUBSTR && end_ch == '}' * 0x100 + ':') {
 						/* it's ${var:N} - emulate :999999999 */
 						o_addstr(dest, "999999999");
 					} /* else: it's ${var/[/]pattern} */
@@ -4515,7 +4530,7 @@ static int parse_dollar(o_string *as_string,
 }
 
 #if BB_MMU
-# if ENABLE_HUSH_BASH_COMPAT
+# if BASH_PATTERN_SUBST
 #define encode_string(as_string, dest, input, dquote_end, process_bkslash) \
 	encode_string(dest, input, dquote_end, process_bkslash)
 # else
@@ -4527,7 +4542,7 @@ static int parse_dollar(o_string *as_string,
 
 #else /* !MMU */
 
-# if ENABLE_HUSH_BASH_COMPAT
+# if BASH_PATTERN_SUBST
 /* all parameters are needed, no macro tricks */
 # else
 #define encode_string(as_string, dest, input, dquote_end, process_bkslash) \
@@ -4540,7 +4555,7 @@ static int encode_string(o_string *as_string,
 		int dquote_end,
 		int process_bkslash)
 {
-#if !ENABLE_HUSH_BASH_COMPAT
+#if !BASH_PATTERN_SUBST
 	const int process_bkslash = 1;
 #endif
 	int ch;
@@ -5183,7 +5198,7 @@ static struct pipe *parse_stream(char **pstring,
 /*** Execution routines ***/
 
 /* Expansion can recurse, need forward decls: */
-#if !ENABLE_HUSH_BASH_COMPAT
+#if !BASH_PATTERN_SUBST
 /* only ${var/pattern/repl} (its pattern part) needs additional mode */
 #define expand_string_to_string(str, do_unbackslash) \
 	expand_string_to_string(str)
@@ -5304,7 +5319,7 @@ static int expand_on_ifs(int *ended_with_ifs, o_string *output, int n, const cha
  * Returns malloced string.
  * As an optimization, we return NULL if expansion is not needed.
  */
-#if !ENABLE_HUSH_BASH_COMPAT
+#if !BASH_PATTERN_SUBST
 /* only ${var/pattern/repl} (its pattern part) needs additional mode */
 #define encode_then_expand_string(str, process_bkslash, do_unbackslash) \
 	encode_then_expand_string(str)
@@ -5358,7 +5373,7 @@ static arith_t expand_and_evaluate_arith(const char *arg, const char **errmsg_p)
 }
 #endif
 
-#if ENABLE_HUSH_BASH_COMPAT
+#if BASH_PATTERN_SUBST
 /* ${var/[/]pattern[/repl]} helpers */
 static char *strstr_pattern(char *val, const char *pattern, int *size)
 {
@@ -5410,7 +5425,7 @@ static char *replace_pattern(char *val, const char *pattern, const char *repl, c
 	debug_printf_varexp("result:'%s'\n", result);
 	return result;
 }
-#endif
+#endif /* BASH_PATTERN_SUBST */
 
 /* Helper:
  * Handles <SPECIAL_VAR_SYMBOL>varname...<SPECIAL_VAR_SYMBOL> construct.
@@ -5458,7 +5473,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			if (exp_op == ':') {
 				exp_op = *exp_word++;
 //TODO: try ${var:} and ${var:bogus} in non-bash config
-				if (ENABLE_HUSH_BASH_COMPAT
+				if (BASH_SUBSTR
 				 && (!exp_op || !strchr(MINUS_PLUS_EQUAL_QUESTION, exp_op))
 				) {
 					/* oops... it's ${var:N[:M]}, not ${var:?xxx} or some such */
@@ -5540,7 +5555,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				}
 			}
 		}
-#if ENABLE_HUSH_BASH_COMPAT
+#if BASH_PATTERN_SUBST
 		else if (exp_op == '/' || exp_op == '\\') {
 			/* It's ${var/[/]pattern[/repl]} thing.
 			 * Note that in encoded form it has TWO parts:
@@ -5587,9 +5602,9 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				free(repl);
 			}
 		}
-#endif
+#endif /* BASH_PATTERN_SUBST */
 		else if (exp_op == ':') {
-#if ENABLE_HUSH_BASH_COMPAT && ENABLE_FEATURE_SH_MATH
+#if BASH_SUBSTR && ENABLE_FEATURE_SH_MATH
 			/* It's ${var:N[:M]} bashism.
 			 * Note that in encoded form it has TWO parts:
 			 * var:N<SPECIAL_VAR_SYMBOL>M<SPECIAL_VAR_SYMBOL>
@@ -5625,7 +5640,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				}
 				debug_printf_varexp("val:'%s'\n", val);
 			} else
-#endif
+#endif /* HUSH_SUBSTR_EXPANSION && FEATURE_SH_MATH */
 			{
 				die_if_script("malformed ${%s:...}", var);
 				val = NULL;
@@ -5915,7 +5930,7 @@ static char **expand_strvec_to_strvec(char **argv)
 	return expand_variables(argv, EXP_FLAG_GLOB | EXP_FLAG_ESC_GLOB_CHARS);
 }
 
-#if ENABLE_HUSH_BASH_COMPAT
+#if BASH_TEST2
 static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
 {
 	return expand_variables(argv, EXP_FLAG_SINGLEWORD);
@@ -5930,7 +5945,7 @@ static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
  */
 static char *expand_string_to_string(const char *str, int do_unbackslash)
 {
-#if !ENABLE_HUSH_BASH_COMPAT
+#if !BASH_PATTERN_SUBST
 	const int do_unbackslash = 1;
 #endif
 	char *argv[2], **list;
@@ -7652,7 +7667,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		}
 
 		/* Expand the rest into (possibly) many strings each */
-#if ENABLE_HUSH_BASH_COMPAT
+#if BASH_TEST2
 		if (command->cmd_type == CMD_SINGLEWORD_NOGLOB) {
 			argv_expanded = expand_strvec_to_strvec_singleword_noglob(argv + command->assignment_cnt);
 		} else
@@ -8408,7 +8423,7 @@ int hush_main(int argc, char **argv)
 	/* Export PWD */
 	set_pwd_var(/*exp:*/ 1);
 
-#if ENABLE_HUSH_BASH_COMPAT
+#if BASH_HOSTNAME_VAR
 	/* Set (but not export) HOSTNAME unless already set */
 	if (!get_local_var_value("HOSTNAME")) {
 		struct utsname uts;
@@ -8816,7 +8831,7 @@ static int run_applet_main(char **argv, int (*applet_main_func)(int argc, char *
 	return applet_main_func(argc, argv - argc);
 }
 #endif
-#if ENABLE_HUSH_TEST
+#if ENABLE_HUSH_TEST || BASH_TEST2
 static int FAST_FUNC builtin_test(char **argv)
 {
 	return run_applet_main(argv, test_main);
