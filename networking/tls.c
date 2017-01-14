@@ -1,7 +1,7 @@
 /*
- * Licensed under GPLv2, see file LICENSE in this source tree.
- *
  * Copyright (C) 2017 Denys Vlasenko
+ *
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config TLS
 //config:	bool "tls (debugging)"
@@ -10,6 +10,11 @@
 //applet:IF_TLS(APPLET(tls, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_TLS) += tls.o
+//kbuild:lib-$(CONFIG_TLS) += tls_pstm.o
+//kbuild:lib-$(CONFIG_TLS) += tls_pstm_montgomery_reduce.o
+//kbuild:lib-$(CONFIG_TLS) += tls_pstm_mul_comba.o
+//kbuild:lib-$(CONFIG_TLS) += tls_pstm_sqr_comba.o
+//kbuild:lib-$(CONFIG_TLS) += tls_rsa.o
 ////kbuild:lib-$(CONFIG_TLS) += tls_ciphers.o
 ////kbuild:lib-$(CONFIG_TLS) += tls_aes.o
 ////kbuild:lib-$(CONFIG_TLS) += tls_aes_gcm.o
@@ -18,9 +23,7 @@
 //usage:       "HOST[:PORT]"
 //usage:#define tls_full_usage "\n\n"
 
-#include "libbb.h"
-//#include "tls_cryptoapi.h"
-//#include "tls_ciphers.h"
+#include "tls.h"
 
 #if 1
 # define dbg(...) fprintf(stderr, __VA_ARGS__)
@@ -28,23 +31,26 @@
 # define dbg(...) ((void)0)
 #endif
 
-#define RECORD_TYPE_CHANGE_CIPHER_SPEC 20
-#define RECORD_TYPE_ALERT              21
-#define RECORD_TYPE_HANDSHAKE          22
-#define RECORD_TYPE_APPLICATION_DATA   23
+#define RECORD_TYPE_CHANGE_CIPHER_SPEC  20
+#define RECORD_TYPE_ALERT               21
+#define RECORD_TYPE_HANDSHAKE           22
+#define RECORD_TYPE_APPLICATION_DATA    23
 
-#define HANDSHAKE_HELLO_REQUEST        0
-#define HANDSHAKE_CLIENT_HELLO         1
-#define HANDSHAKE_SERVER_HELLO         2
-#define HANDSHAKE_HELLO_VERIFY_REQUEST 3
-#define HANDSHAKE_NEW_SESSION_TICKET   4
-#define HANDSHAKE_CERTIFICATE          11
-#define HANDSHAKE_SERVER_KEY_EXCHANGE  12
-#define HANDSHAKE_CERTIFICATE_REQUEST  13
-#define HANDSHAKE_SERVER_HELLO_DONE    14
-#define HANDSHAKE_CERTIFICATE_VERIFY   15
-#define HANDSHAKE_CLIENT_KEY_EXCHANGE  16
-#define HANDSHAKE_FINISHED             20
+#define HANDSHAKE_HELLO_REQUEST         0
+#define HANDSHAKE_CLIENT_HELLO          1
+#define HANDSHAKE_SERVER_HELLO          2
+#define HANDSHAKE_HELLO_VERIFY_REQUEST  3
+#define HANDSHAKE_NEW_SESSION_TICKET    4
+#define HANDSHAKE_CERTIFICATE           11
+#define HANDSHAKE_SERVER_KEY_EXCHANGE   12
+#define HANDSHAKE_CERTIFICATE_REQUEST   13
+#define HANDSHAKE_SERVER_HELLO_DONE     14
+#define HANDSHAKE_CERTIFICATE_VERIFY    15
+#define HANDSHAKE_CLIENT_KEY_EXCHANGE   16
+#define HANDSHAKE_FINISHED              20
+
+#define SSL_HS_RANDOM_SIZE              32
+#define SSL_HS_RSA_PREMASTER_SIZE       48
 
 #define SSL_NULL_WITH_NULL_NULL                 0x0000
 #define SSL_RSA_WITH_NULL_MD5                   0x0001
@@ -112,6 +118,7 @@
 //TLS 1.2
 #define TLS_MAJ 3
 #define TLS_MIN 3
+//#define CIPHER_ID TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA // ok, recvs SERVER_KEY_EXCHANGE *** matrixssl uses this on my box
 //#define CIPHER_ID TLS_RSA_WITH_AES_256_CBC_SHA256 // ok, no SERVER_KEY_EXCHANGE
 // All GCMs:
 //#define CIPHER_ID TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 // SSL_ALERT_HANDSHAKE_FAILURE
@@ -123,9 +130,9 @@
 //#define CIPHER_ID TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384
 //#define CIPHER_ID TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256 // SSL_ALERT_HANDSHAKE_FAILURE
 //#define CIPHER_ID TLS_RSA_WITH_AES_256_GCM_SHA384 // ok, no SERVER_KEY_EXCHANGE
-#define CIPHER_ID TLS_RSA_WITH_AES_128_GCM_SHA256 // ok, no SERVER_KEY_EXCHANGE
+#define CIPHER_ID TLS_RSA_WITH_AES_128_GCM_SHA256 // ok, no SERVER_KEY_EXCHANGE *** select this?
 //#define CIPHER_ID TLS_DH_anon_WITH_AES_256_CBC_SHA // SSL_ALERT_HANDSHAKE_FAILURE
-// (tested b/c this one doesn't req server certs... no luck)
+//^^^^^^^^^^^^^^^^^^^^^^^ (tested b/c this one doesn't req server certs... no luck)
 //test TLS_RSA_WITH_AES_128_CBC_SHA, in tls 1.2 it's mandated to be always supported
 
 struct record_hdr {
@@ -137,8 +144,7 @@ struct record_hdr {
 typedef struct tls_state {
 	int fd;
 
-	uint8_t *pubkey;
-	int pubkey_len;
+	psRsaKey_t server_rsa_pub_key;
 
 	// RFC 5246
 	// |6.2.1. Fragmentation
@@ -169,6 +175,12 @@ typedef struct tls_state {
 	int tail;
 	uint8_t inbuf[18*1024];
 } tls_state_t;
+
+void tls_get_random(void *buf, unsigned len)
+{
+	if (len != open_read_close("/dev/urandom", buf, len))
+		xfunc_die();
+}
 
 static
 tls_state_t *new_tls_state(void)
@@ -286,7 +298,7 @@ static void send_client_hello(tls_state_t *tls)
 	hello.len24_lo  = (sizeof(hello) - sizeof(hello.xhdr) - 4);
 	hello.proto_maj = TLS_MAJ;
 	hello.proto_min = TLS_MIN;
-	open_read_close("/dev/urandom", hello.rand32, sizeof(hello.rand32));
+	tls_get_random(hello.rand32, sizeof(hello.rand32));
 	//hello.session_id_len = 0;
 	//hello.cipherid_len16_hi = 0;
 	hello.cipherid_len16_lo = 2 * 1;
@@ -407,7 +419,18 @@ static uint8_t *skip_der_item(uint8_t *der, uint8_t *end)
 	return new_der;
 }
 
-static void *find_key_in_der_cert(int *key_len, uint8_t *der, int len)
+static void der_binary_to_pstm(pstm_int *pstm_n, uint8_t *der, uint8_t *end)
+{
+        uint8_t *bin_ptr;
+        unsigned len = get_der_len(&bin_ptr, der, end);
+
+	dbg("binary bytes:%u, first:0x%02x\n", len, bin_ptr[0]);
+	pstm_init_for_read_unsigned_bin(/*pool:*/ NULL, pstm_n, len);
+	pstm_read_unsigned_bin(pstm_n, bin_ptr, len);
+	//return bin + len;
+}
+
+static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 {
 /* Certificate is a DER-encoded data structure. Each DER element has a length,
  * which makes it easy to skip over large compound elements of any complexity
@@ -504,19 +527,43 @@ static void *find_key_in_der_cert(int *key_len, uint8_t *der, int len)
 	der = skip_der_item(der, end); /* validity */
 	der = skip_der_item(der, end); /* subject */
 
-	/* enter "subjectPublicKeyInfo" */
+	/* enter subjectPublicKeyInfo */
 	der = enter_der_item(der, &end);
-
-	/* skip "subjectPublicKeyInfo.algorithm" */
+	{ /* check subjectPublicKeyInfo.algorithm */
+		static const uint8_t expected[] = {
+			0x30,0x0d, // SEQ 13 bytes
+			0x06,0x09, 0x2a,0x86,0x48,0x86,0xf7,0x0d,0x01,0x01,0x01, // OID RSA_KEY_ALG 42.134.72.134.247.13.1.1.1
+			//0x05,0x00, // NULL
+		};
+		if (memcmp(der, expected, sizeof(expected)) != 0)
+			bb_error_msg_and_die("not RSA key");
+	}
+	/* skip subjectPublicKeyInfo.algorithm */
 	der = skip_der_item(der, end);
-	/* enter "subjectPublicKeyInfo.publicKey" */
+	/* enter subjectPublicKeyInfo.publicKey */
 //	die_if_not_this_der_type(der, end, 0x03); /* must be BITSTRING */
 	der = enter_der_item(der, &end);
 
-	/* return a copy */
-	*key_len = end - der;
-	dbg("copying key bytes:%u, first:0x%02x\n", *key_len, der[0]);
-	return xmemdup(der, *key_len);
+	/* parse RSA key: */
+//based on getAsnRsaPubKey(), pkcs1ParsePrivBin() is also of note
+	dbg("key bytes:%u, first:0x%02x\n", (int)(end - der), der[0]);
+	if (end - der < 14) xfunc_die();
+	/* example format:
+	 * ignore bits: 00
+	 * SEQ 0x018a/394 bytes: 3082018a
+	 *   INTEGER 0x0181/385 bytes (modulus): 02820181 XX...XXX
+	 *   INTEGER 3 bytes (exponent): 0203 010001
+	 */
+	if (*der != 0) /* "ignore bits", should be 0 */
+		xfunc_die();
+	der++;
+	der = enter_der_item(der, &end); /* enter SEQ */
+	//memset(tls->server_rsa_pub_key, 0, sizeof(tls->server_rsa_pub_key));
+	der_binary_to_pstm(&tls->server_rsa_pub_key.N, der, end); /* modulus */
+	der = skip_der_item(der, end);
+	der_binary_to_pstm(&tls->server_rsa_pub_key.e, der, end); /* exponent */
+	tls->server_rsa_pub_key.size = pstm_unsigned_bin_size(&tls->server_rsa_pub_key.N);
+	dbg("server_rsa_pub_key.size:%d\n", tls->server_rsa_pub_key.size);
 }
 
 static void get_server_cert_or_die(tls_state_t *tls)
@@ -553,7 +600,107 @@ static void get_server_cert_or_die(tls_state_t *tls)
 	len = len1;
 
 	if (len)
-		tls->pubkey = find_key_in_der_cert(&tls->pubkey_len, certbuf + 10, len);
+		find_key_in_der_cert(tls, certbuf + 10, len);
+}
+
+static void send_client_key_exchange(tls_state_t *tls)
+{
+#if 0 //matrixssl code snippets:
+	int32 csRsaEncryptPub(psPool_t *pool, psPubKey_t *key,
+	                        unsigned char *in, uint32 inlen, unsigned char *out, uint32 outlen,
+	                        void *data)
+	{
+	        psAssert(key->type == PS_RSA);
+	        return psRsaEncryptPub(pool, (psRsaKey_t*)key->key, in, inlen, out, outlen,
+	                        data);
+	}
+...
+	/* pkaAfter.user is buffer len */
+	if ((rc = csRsaEncryptPub(pka->pool, &ssl->sec.cert->publicKey,
+			ssl->sec.premaster,	ssl->sec.premasterSize, pka->outbuf,
+			pka->user, pka->data)) < 0) {
+		if (rc == PS_PENDING) {
+			/* For these ClientKeyExchange paths, we do want to come
+				back through nowDoCkePka for a double pass so each
+				case can manage its own pkaAfter and to make sure
+				psX509FreeCert and sslCreateKeys() are hit below. */
+			return rc;
+		}
+		psTraceIntInfo("csRsaEncryptPub in CKE failed %d\n", rc);
+		return MATRIXSSL_ERROR;
+	}
+	/* RSA closed the pool on second pass */
+	pka->pool = NULL;
+	clearPkaAfter(ssl);
+...
+#ifdef USE_RSA_CIPHER_SUITE
+/*
+			Standard RSA suite
+*/
+			ssl->sec.premasterSize = SSL_HS_RSA_PREMASTER_SIZE;
+			ssl->sec.premaster = psMalloc(ssl->hsPool,
+									SSL_HS_RSA_PREMASTER_SIZE);
+			if (ssl->sec.premaster == NULL) {
+				return SSL_MEM_ERROR;
+			}
+
+			ssl->sec.premaster[0] = ssl->reqMajVer;
+			ssl->sec.premaster[1] = ssl->reqMinVer;
+			if (matrixCryptoGetPrngData(ssl->sec.premaster + 2,
+					SSL_HS_RSA_PREMASTER_SIZE - 2, ssl->userPtr) < 0) {
+				return MATRIXSSL_ERROR;
+			}
+
+			/* Shedule RSA encryption.  Put tmp pool under control of After */
+			pkaAfter->type = PKA_AFTER_RSA_ENCRYPT;
+			pkaAfter->outbuf = c;
+			pkaAfter->data = pkiData;
+			pkaAfter->pool = pkiPool;
+			pkaAfter->user = (uint32)(end - c); /* Available space */
+
+			c += keyLen;
+#endif
+#endif // 0
+
+	struct client_key_exchange {
+		struct record_hdr xhdr;
+		uint8_t type;
+		uint8_t len24_hi, len24_mid, len24_lo;
+		uint8_t keylen16_hi, keylen16_lo; /* exist for RSA, but not for some other key types */
+//had a bug when had no keylen: we:
+//write(3, "\x16\x03\x03\x01\x84\x10\x00\x01\x80\xXX\xXX\xXX\xXX\xXX\xXX...", 393) = 393
+//openssl:
+//write to 0xe9a090 [0xf9ac20] (395 bytes => 395 (0x18B))
+//0000 -      16  03  03  01  86  10  00  01 -82  01  80  xx  xx  xx  xx  xx
+		uint8_t key[384]; // size??
+	};
+	struct client_key_exchange record;
+	uint8_t premaster[SSL_HS_RSA_PREMASTER_SIZE];
+
+	memset(&record, 0, sizeof(record));
+	record.xhdr.type = RECORD_TYPE_HANDSHAKE;
+	record.xhdr.proto_maj = TLS_MAJ;
+	record.xhdr.proto_min = TLS_MIN;
+	record.xhdr.len16_hi = (sizeof(record) - sizeof(record.xhdr)) >> 8;
+	record.xhdr.len16_lo = (sizeof(record) - sizeof(record.xhdr)) & 0xff;
+	record.type = HANDSHAKE_CLIENT_KEY_EXCHANGE;
+	//record.len24_hi  = 0;
+	record.len24_mid = (sizeof(record) - sizeof(record.xhdr) - 4) >> 8;
+	record.len24_lo  = (sizeof(record) - sizeof(record.xhdr) - 4) & 0xff;
+	record.keylen16_hi = (sizeof(record) - sizeof(record.xhdr) - 6) >> 8;
+	record.keylen16_lo = (sizeof(record) - sizeof(record.xhdr) - 6) & 0xff;
+
+	tls_get_random(premaster, sizeof(premaster));
+	premaster[0] = TLS_MAJ;
+	premaster[1] = TLS_MIN;
+	psRsaEncryptPub(/*pool:*/ NULL,
+		/* psRsaKey_t* */ &tls->server_rsa_pub_key,
+		premaster, /*inlen:*/ sizeof(premaster),
+		record.key, sizeof(record.key),
+		data_param_ignored
+	);
+
+	xwrite(tls->fd, &record, sizeof(record));
 }
 
 static void tls_handshake(tls_state_t *tls)
@@ -614,6 +761,8 @@ static void tls_handshake(tls_state_t *tls)
 		// 459 bytes:
 		// 0c   00|01|c7 03|00|17|41|04|87|94|2e|2f|68|d0|c9|f4|97|a8|2d|ef|ed|67|ea|c6|f3|b3|56|47|5d|27|b6|bd|ee|70|25|30|5e|b0|8e|f6|21|5a...
 		//SvKey len=455^
+		// with TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA: 461 bytes:
+		// 0c   00|01|c9 03|00|17|41|04|cd|9b|b4|29|1f|f6|b0|c2|84|82|7f|29|6a|47|4e|ec|87|0b|c1|9c|69|e1|f8|c6|d0|53|e9|27|90|a5|c8|02|15|75...
 		dbg("got SERVER_KEY_EXCHANGE\n");
 		len = xread_tls_block(tls);
 		break;
@@ -624,6 +773,8 @@ static void tls_handshake(tls_state_t *tls)
 	case HANDSHAKE_SERVER_HELLO_DONE:
 		// 0e 000000 (len:0)
 		dbg("got SERVER_HELLO_DONE\n");
+		send_client_key_exchange(tls);
+		len = xread_tls_block(tls);
 		break;
 	default:
 		tls_error_die(tls);
