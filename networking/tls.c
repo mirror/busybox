@@ -128,7 +128,7 @@
 // (tested b/c this one doesn't req server certs... no luck)
 //test TLS_RSA_WITH_AES_128_CBC_SHA, in tls 1.2 it's mandated to be always supported
 
-struct transport_hdr {
+struct record_hdr {
 	uint8_t type;
 	uint8_t proto_maj, proto_min;
 	uint8_t len16_hi, len16_lo;
@@ -140,8 +140,6 @@ typedef struct tls_state {
 	uint8_t *pubkey;
 	int pubkey_len;
 
-	int insize;
-	int tail;
 	// RFC 5246
 	// |6.2.1. Fragmentation
 	// |  The record layer fragments information blocks into TLSPlaintext
@@ -167,6 +165,8 @@ typedef struct tls_state {
 	// |    The length MUST NOT exceed 2^14 + 1024.
 	//
 	// Since our buffer also contains 5-byte headers, make it a bit bigger:
+	int insize;
+	int tail;
 	uint8_t inbuf[18*1024];
 } tls_state_t;
 
@@ -220,6 +220,7 @@ static void tls_error_die(tls_state_t *tls)
 
 static int xread_tls_block(tls_state_t *tls)
 {
+	struct record_hdr *xhdr;
 	int len;
 	int total;
 	int target;
@@ -230,21 +231,28 @@ static int xread_tls_block(tls_state_t *tls)
 	total = tls->tail;
 	target = sizeof(tls->inbuf);
 	for (;;) {
-		if (total >= sizeof(struct transport_hdr) && target == sizeof(tls->inbuf)) {
-			struct transport_hdr *xhdr = (void*)tls->inbuf;
+		if (total >= sizeof(*xhdr) && target == sizeof(tls->inbuf)) {
+			xhdr = (void*)tls->inbuf;
 			target = sizeof(*xhdr) + (0x100 * xhdr->len16_hi + xhdr->len16_lo);
+			if (target >= sizeof(tls->inbuf)) {
+				/* malformed input (too long): yell and die */
+				tls->tail = 0;
+				tls->insize = total;
+				tls_error_die(tls);
+			}
+			// can also check type/proto_maj/proto_min here
 		}
 		/* if total >= target, we have a full packet (and possibly more)... */
-		if (target - total <= 0)
+		if (total - target >= 0)
 			break;
 		len = safe_read(tls->fd, tls->inbuf + total, sizeof(tls->inbuf) - total);
 		if (len <= 0)
 			bb_perror_msg_and_die("short read");
 		total += len;
 	}
-	tls->tail = -(target - total);
+	tls->tail = total - target;
 	tls->insize = target;
-	target -= sizeof(struct transport_hdr);
+	target -= sizeof(*xhdr);
 	dbg("got block len:%u\n", target);
 	return target;
 }
@@ -252,7 +260,7 @@ static int xread_tls_block(tls_state_t *tls)
 static void send_client_hello(tls_state_t *tls)
 {
 	struct client_hello {
-		struct transport_hdr xhdr;
+		struct record_hdr xhdr;
 		uint8_t type;
 		uint8_t len24_hi, len24_mid, len24_lo;
 		uint8_t proto_maj, proto_min;
@@ -270,18 +278,18 @@ static void send_client_hello(tls_state_t *tls)
 	hello.xhdr.type = RECORD_TYPE_HANDSHAKE;
 	hello.xhdr.proto_maj = TLS_MAJ;
 	hello.xhdr.proto_min = TLS_MIN;
-	hello.xhdr.len16_hi = (sizeof(hello) - sizeof(hello.xhdr)) >> 8;
+	//zero: hello.xhdr.len16_hi = (sizeof(hello) - sizeof(hello.xhdr)) >> 8;
 	hello.xhdr.len16_lo = (sizeof(hello) - sizeof(hello.xhdr));
 	hello.type = HANDSHAKE_CLIENT_HELLO;
-	hello.len24_mid = (sizeof(hello) - sizeof(hello.xhdr) - 4) >> 8;
+	//hello.len24_hi  = 0;
+	//zero: hello.len24_mid = (sizeof(hello) - sizeof(hello.xhdr) - 4) >> 8;
 	hello.len24_lo  = (sizeof(hello) - sizeof(hello.xhdr) - 4);
 	hello.proto_maj = TLS_MAJ;
 	hello.proto_min = TLS_MIN;
-	//fillrand(hello.rand32, sizeof(hello.rand32));
 	open_read_close("/dev/urandom", hello.rand32, sizeof(hello.rand32));
 	//hello.session_id_len = 0;
 	//hello.cipherid_len16_hi = 0;
-	hello.cipherid_len16_lo = 2;
+	hello.cipherid_len16_lo = 2 * 1;
 	hello.cipherid[0] = CIPHER_ID >> 8;
 	hello.cipherid[1] = CIPHER_ID & 0xff;
 	hello.comprtypes_len = 1;
@@ -293,7 +301,7 @@ static void send_client_hello(tls_state_t *tls)
 static void get_server_hello_or_die(tls_state_t *tls)
 {
 	struct server_hello {
-		struct transport_hdr xhdr;
+		struct record_hdr xhdr;
 		uint8_t type;
 		uint8_t len24_hi, len24_mid, len24_lo;
 		uint8_t proto_maj, proto_min;
@@ -319,8 +327,9 @@ static void get_server_hello_or_die(tls_state_t *tls)
 		tls_error_die(tls);
 	}
 	dbg("got HANDSHAKE\n");
-	// 02   000046 03|03   58|78|cf|c1 50|a5|49|ee|7e|29|48|71|fe|97|fa|e8|2d|19|87|72|90|84|9d|37|a3|f0|cb|6f|5f|e3|3c|2f |20  |d8|1a|78|96|52|d6|91|01|24|b3|d6|5b|b7|d0|6c|b3|e1|78|4e|3c|95|de|74|a0|ba|eb|a7|3a|ff|bd|a2|bf |00|9c |00|
-	// SvHl len=70 maj.min unixtime^^^ 28randbytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^ slen sid32bytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cipSel comprSel
+	// 74 bytes:
+	// 02  000046 03|03   58|78|cf|c1 50|a5|49|ee|7e|29|48|71|fe|97|fa|e8|2d|19|87|72|90|84|9d|37|a3|f0|cb|6f|5f|e3|3c|2f |20  |d8|1a|78|96|52|d6|91|01|24|b3|d6|5b|b7|d0|6c|b3|e1|78|4e|3c|95|de|74|a0|ba|eb|a7|3a|ff|bd|a2|bf |00|9c |00|
+	//SvHl len=70 maj.min unixtime^^^ 28randbytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^ slen sid32bytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cipSel comprSel
 	if (hp->type != HANDSHAKE_SERVER_HELLO
 	 || hp->len24_hi  != 0
 	 || hp->len24_mid != 0
@@ -359,8 +368,8 @@ static unsigned get_der_len(uint8_t **bodyp, uint8_t *der, uint8_t *end)
 			xfunc_die();
 		/* it's "ii 82 xx yy" */
 		len = 0x100*der[2] + der[3];
-		if (len < 0x80)
-			xfunc_die(); /* invalid DER: must use short len if can */
+//		if (len < 0x80)
+//			xfunc_die(); /* invalid DER: must use short len if can */
 
 		der += 2; /* skip [code]+[82]+[2byte_len] */
 	}
@@ -395,7 +404,9 @@ static uint8_t *skip_der_item(uint8_t *der, uint8_t *end)
 
 static void *find_key_in_der_cert(int *key_len, uint8_t *der, int len)
 {
-/* Example: partial decode of kernel.org certificate in DER format.
+/* Certificate is a DER-encoded data structure. Each DER element has a length,
+ * which makes it easy to skip over large compound elements of any complexity
+ * without parsing them. Example: partial decode of kernel.org certificate:
  *  SEQ 0x05ac/1452 bytes (Certificate): 308205ac
  *    SEQ 0x0494/1172 bytes (tbsCertificate): 30820494
  *      [ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED | 0] 3 bytes: a003
@@ -425,8 +436,7 @@ static void *find_key_in_der_cert(int *key_len, uint8_t *der, int len)
  *        SET 32 bytes: 3120
  *          SEQ 30 bytes: 301e
  *            OID 3 bytes: 0603 550403
- *            Printable string "Gandi Standard SSL CA 2": 1317
- *                              47616e6469205374616e646172642053534c2043412032
+ *            Printable string "Gandi Standard SSL CA 2": 1317 47616e6469205374616e646172642053534c2043412032
  *      SEQ 30 bytes (validity): 301e
  *        TIME "161011000000Z": 170d 3136313031313030303030305a
  *        TIME "191011235959Z": 170d 3139313031313233353935395a
@@ -452,10 +462,6 @@ static void *find_key_in_der_cert(int *key_len, uint8_t *der, int len)
  *      [ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED | 0x3] 0x01e5 bytes (X509v3 extensions): a38201e5
  *        SEQ 0x01e1 bytes: 308201e1
  *        ...
- * Certificate is a DER-encoded data structure. Each DER element has a length,
- * which makes it easy to skip over large compound elements of any complexity
- * without parsing them.
- *
  * Certificate is a sequence of three elements:
  *	tbsCertificate (SEQ)
  *	signatureAlgorithm (AlgorithmIdentifier)
@@ -475,7 +481,7 @@ static void *find_key_in_der_cert(int *key_len, uint8_t *der, int len)
  *	algorithm (AlgorithmIdentifier)
  *	publicKey (BIT STRING)
  *
- * Essentially, we want subjectPublicKeyInfo.publicKey
+ * We need Certificate.tbsCertificate.subjectPublicKeyInfo.publicKey
  */
 	uint8_t *end = der + len;
 
@@ -510,7 +516,7 @@ static void *find_key_in_der_cert(int *key_len, uint8_t *der, int len)
 
 static void get_server_cert_or_die(tls_state_t *tls)
 {
-	struct transport_hdr *xhdr;
+	struct record_hdr *xhdr;
 	uint8_t *certbuf;
 	int len, len1;
 
@@ -528,16 +534,15 @@ static void get_server_cert_or_die(tls_state_t *tls)
 	if (certbuf[0] != HANDSHAKE_CERTIFICATE)
 		tls_error_die(tls);
 	dbg("got CERTIFICATE\n");
-	// 0b   00|11|24 00|11|21 00|05|b0 30|82|05|ac|30|82|04|94|a0|03|02|01|02|02|11|00|9f|85|bf|66|4b|0c|dd|af|ca|50|86|79|50|1b|2b|e4|30|0d... (4392 bytes)
-	// Cert len=4388 ChainLen CertLen^ DER encoded X509 starts here. openssl x509 -in FILE -inform DER -noout -text
+	// 4392 bytes:
+	// 0b  00|11|24 00|11|21 00|05|b0 30|82|05|ac|30|82|04|94|a0|03|02|01|02|02|11|00|9f|85|bf|66|4b|0c|dd|af|ca|50|86|79|50|1b|2b|e4|30|0d...
+	//Cert len=4388 ChainLen CertLen^ DER encoded X509 starts here. openssl x509 -in FILE -inform DER -noout -text
 	len1 = get24be(certbuf + 1);
 	if (len1 > len - 4) tls_error_die(tls);
 	len = len1;
-
 	len1 = get24be(certbuf + 4);
 	if (len1 > len - 3) tls_error_die(tls);
 	len = len1;
-
 	len1 = get24be(certbuf + 7);
 	if (len1 > len - 3) tls_error_die(tls);
 	len = len1;
@@ -601,8 +606,9 @@ static void tls_handshake(tls_state_t *tls)
 	/* Next handshake type is not predetermined */
 	switch (tls->inbuf[5]) {
 	case HANDSHAKE_SERVER_KEY_EXCHANGE:
-		//0c    0001c7 03|00|17|41|04|87|94|2e|2f|68|d0|c9|f4|97|a8|2d|ef|ed|67|ea|c6|f3|b3|56|47|5d|27|b6|bd|ee|70|25|30|5e|b0|8e|f6|21|5a... 459 bytes
-		//SvKey len^^^
+		// 459 bytes:
+		// 0c   00|01|c7 03|00|17|41|04|87|94|2e|2f|68|d0|c9|f4|97|a8|2d|ef|ed|67|ea|c6|f3|b3|56|47|5d|27|b6|bd|ee|70|25|30|5e|b0|8e|f6|21|5a...
+		//SvKey len=455^
 		dbg("got SERVER_KEY_EXCHANGE\n");
 		len = xread_tls_block(tls);
 		break;
