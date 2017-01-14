@@ -421,8 +421,8 @@ static uint8_t *skip_der_item(uint8_t *der, uint8_t *end)
 
 static void der_binary_to_pstm(pstm_int *pstm_n, uint8_t *der, uint8_t *end)
 {
-        uint8_t *bin_ptr;
-        unsigned len = get_der_len(&bin_ptr, der, end);
+	uint8_t *bin_ptr;
+	unsigned len = get_der_len(&bin_ptr, der, end);
 
 	dbg("binary bytes:%u, first:0x%02x\n", len, bin_ptr[0]);
 	pstm_init_for_read_unsigned_bin(/*pool:*/ NULL, pstm_n, len);
