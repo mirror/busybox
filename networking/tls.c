@@ -348,7 +348,7 @@ static void get_server_hello_or_die(tls_state_t *tls)
 
 static unsigned get_der_len(uint8_t **bodyp, uint8_t *der, uint8_t *end)
 {
-	unsigned len;
+	unsigned len, len1;
 
 	if (end - der < 2)
 		xfunc_die();
@@ -358,24 +358,29 @@ static unsigned get_der_len(uint8_t **bodyp, uint8_t *der, uint8_t *end)
 	len = der[1]; /* maybe it's short len */
 	if (len >= 0x80) {
 		/* no */
-		if (len != 0x82) {
+		if (end - der < (int)(len - 0x7e)) /* need 3 or 4 bytes for 81, 82 */
+			xfunc_die();
+
+		len1 = der[2];
+		if (len == 0x81) {
+			/* it's "ii 81 xx" */
+		} else if (len == 0x82) {
+			/* it's "ii 82 xx yy" */
+			len1 = 0x100*len1 + der[3];
+			der += 1; /* skip [yy] */
+		} else {
 			/* 0x80 is "0 bytes of len", invalid DER: must use short len if can */
-			/* 0x81 is "1 byte of len", invalid DER */
 			/* >0x82 is "3+ bytes of len", should not happen realistically */
 			xfunc_die();
 		}
-		if (end - der < 4)
-			xfunc_die();
-		/* it's "ii 82 xx yy" */
-		len = 0x100*der[2] + der[3];
+		der += 1; /* skip [xx] */
+		len = len1;
 //		if (len < 0x80)
 //			xfunc_die(); /* invalid DER: must use short len if can */
-
-		der += 2; /* skip [code]+[82]+[2byte_len] */
 	}
-	der += 2; /* skip [code]+[1byte_len] */
+	der += 2; /* skip [code]+[1byte] */
 
-	if (end - der < len)
+	if (end - der < (int)len)
 		xfunc_die();
 	*bodyp = der;
 
