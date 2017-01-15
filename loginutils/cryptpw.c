@@ -35,7 +35,7 @@
 //usage:       "[OPTIONS] [PASSWORD] [SALT]"
 /* We do support -s, we just don't mention it */
 //usage:#define cryptpw_full_usage "\n\n"
-//usage:       "Crypt PASSWORD using crypt(3)\n"
+//usage:       "Print crypt(3) hashed PASSWORD\n"
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-P,--password-fd=N	Read password from fd N"
 /* //usage:  "\n	-s,--stdin		Use stdin; like -P0" */
@@ -92,7 +92,8 @@ to cryptpw. -a option (alias for -m) came from cryptpw.
 int cryptpw_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 {
-	char salt[MAX_PW_SALT_LEN];
+	/* Supports: cryptpw -m sha256 PASS 'rounds=999999999$SALT' */
+	char salt[MAX_PW_SALT_LEN + sizeof("rounds=999999999$")];
 	char *salt_ptr;
 	char *password;
 	const char *opt_m, *opt_S;
@@ -122,6 +123,7 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 
 	salt_ptr = crypt_make_pw_salt(salt, opt_m);
 	if (opt_S)
+		/* put user's data after the "$N$" prefix */
 		safe_strncpy(salt_ptr, opt_S, sizeof(salt) - (sizeof("$N$")-1));
 
 	xmove_fd(fd, STDIN_FILENO);
