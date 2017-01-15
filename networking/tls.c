@@ -269,6 +269,23 @@ static int xread_tls_block(tls_state_t *tls)
 	return target;
 }
 
+static int xread_tls_handshake_block(tls_state_t *tls, int min_len)
+{
+	struct record_hdr *xhdr;
+	int len = xread_tls_block(tls);
+
+	xhdr = (void*)tls->inbuf;
+	if (len < min_len
+	 || xhdr->type != RECORD_TYPE_HANDSHAKE
+	 || xhdr->proto_maj != TLS_MAJ
+	 || xhdr->proto_min != TLS_MIN
+	) {
+		tls_error_die(tls);
+	}
+	dbg("got HANDSHAKE\n");
+	return len;
+}
+
 static void send_client_hello(tls_state_t *tls)
 {
 	struct client_hello {
@@ -296,8 +313,8 @@ static void send_client_hello(tls_state_t *tls)
 	//hello.len24_hi  = 0;
 	//zero: hello.len24_mid = (sizeof(hello) - sizeof(hello.xhdr) - 4) >> 8;
 	hello.len24_lo  = (sizeof(hello) - sizeof(hello.xhdr) - 4);
-	hello.proto_maj = TLS_MAJ;
-	hello.proto_min = TLS_MIN;
+	hello.proto_maj = TLS_MAJ;	/* the "requested" version of the protocol, */
+	hello.proto_min = TLS_MIN;	/* can be higher than one in record headers */
 	tls_get_random(hello.rand32, sizeof(hello.rand32));
 	//hello.session_id_len = 0;
 	//hello.cipherid_len16_hi = 0;
@@ -325,20 +342,10 @@ static void get_server_hello_or_die(tls_state_t *tls)
 		/* extensions may follow, but only those which client offered in its Hello */
 	};
 	struct server_hello *hp;
-	int len;
 
-	len = xread_tls_block(tls);
+	xread_tls_handshake_block(tls, 74);
 
 	hp = (void*)tls->inbuf;
-	if (len != 74 /* TODO: if we accept extensions, should be < instead of != */
-	 || hp->xhdr.type != RECORD_TYPE_HANDSHAKE
-	 || hp->xhdr.proto_maj != TLS_MAJ
-	 || hp->xhdr.proto_min != TLS_MIN
-	) {
-		/* example: RECORD_TYPE_ALERT if server can't support our ciphers */
-		tls_error_die(tls);
-	}
-	dbg("got HANDSHAKE\n");
 	// 74 bytes:
 	// 02  000046 03|03   58|78|cf|c1 50|a5|49|ee|7e|29|48|71|fe|97|fa|e8|2d|19|87|72|90|84|9d|37|a3|f0|cb|6f|5f|e3|3c|2f |20  |d8|1a|78|96|52|d6|91|01|24|b3|d6|5b|b7|d0|6c|b3|e1|78|4e|3c|95|de|74|a0|ba|eb|a7|3a|ff|bd|a2|bf |00|9c |00|
 	//SvHl len=70 maj.min unixtime^^^ 28randbytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^ slen sid32bytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cipSel comprSel
@@ -572,16 +579,9 @@ static void get_server_cert_or_die(tls_state_t *tls)
 	uint8_t *certbuf;
 	int len, len1;
 
-	len = xread_tls_block(tls);
+	len = xread_tls_handshake_block(tls, 10);
+
 	xhdr = (void*)tls->inbuf;
-	if (len < sizeof(*xhdr) + 10
-	 || xhdr->type != RECORD_TYPE_HANDSHAKE
-	 || xhdr->proto_maj != TLS_MAJ
-	 || xhdr->proto_min != TLS_MIN
-	) {
-		tls_error_die(tls);
-	}
-	dbg("got HANDSHAKE\n");
 	certbuf = (void*)(xhdr + 1);
 	if (certbuf[0] != HANDSHAKE_CERTIFICATE)
 		tls_error_die(tls);
@@ -703,6 +703,15 @@ static void send_client_key_exchange(tls_state_t *tls)
 	xwrite(tls->fd, &record, sizeof(record));
 }
 
+static void send_change_cipher_spec(tls_state_t *tls)
+{
+	static const uint8_t rec[] = {
+		RECORD_TYPE_CHANGE_CIPHER_SPEC, TLS_MAJ, TLS_MIN, 00, 01,
+		01
+	};
+	xwrite(tls->fd, rec, sizeof(rec));
+}
+
 static void tls_handshake(tls_state_t *tls)
 {
 	// Client              RFC 5246                Server
@@ -754,29 +763,28 @@ static void tls_handshake(tls_state_t *tls)
 	// (for example, kernel.org does not even accept DH_anon cipher id)
 	get_server_cert_or_die(tls);
 
-	len = xread_tls_block(tls);
-	/* Next handshake type is not predetermined */
-	switch (tls->inbuf[5]) {
-	case HANDSHAKE_SERVER_KEY_EXCHANGE:
+	len = xread_tls_handshake_block(tls, 4);
+	if (tls->inbuf[5] == HANDSHAKE_SERVER_KEY_EXCHANGE) {
 		// 459 bytes:
 		// 0c   00|01|c7 03|00|17|41|04|87|94|2e|2f|68|d0|c9|f4|97|a8|2d|ef|ed|67|ea|c6|f3|b3|56|47|5d|27|b6|bd|ee|70|25|30|5e|b0|8e|f6|21|5a...
 		//SvKey len=455^
 		// with TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA: 461 bytes:
 		// 0c   00|01|c9 03|00|17|41|04|cd|9b|b4|29|1f|f6|b0|c2|84|82|7f|29|6a|47|4e|ec|87|0b|c1|9c|69|e1|f8|c6|d0|53|e9|27|90|a5|c8|02|15|75...
-		dbg("got SERVER_KEY_EXCHANGE\n");
-		len = xread_tls_block(tls);
-		break;
-	case HANDSHAKE_CERTIFICATE_REQUEST:
-		dbg("got CERTIFICATE_REQUEST\n");
-		len = xread_tls_block(tls);
-		break;
-	case HANDSHAKE_SERVER_HELLO_DONE:
+		dbg("got SERVER_KEY_EXCHANGE len:%u\n", len);
+//need to save it
+		xread_tls_handshake_block(tls, 4);
+	}
+//	if (tls->inbuf[5] == HANDSHAKE_CERTIFICATE_REQUEST) {
+//		dbg("got CERTIFICATE_REQUEST\n");
+//		xread_tls_handshake_block(tls, 4);
+//	}
+	if (tls->inbuf[5] == HANDSHAKE_SERVER_HELLO_DONE) {
 		// 0e 000000 (len:0)
 		dbg("got SERVER_HELLO_DONE\n");
 		send_client_key_exchange(tls);
-		len = xread_tls_block(tls);
-		break;
-	default:
+		send_change_cipher_spec(tls);
+//we now should be able to send encrypted... as soon as we grok AES.
+	} else {
 		tls_error_die(tls);
 	}
 }
