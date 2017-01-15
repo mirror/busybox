@@ -30,9 +30,12 @@ done
 
 trap 'test -f .config.SV && mv .config.SV .config && touch .config' EXIT
 
+
 # Turn on each applet individually and build single-applet executable
+# (give config names on command line to build only those)
+test $# = 0 && set -- $apps
 fail=0
-for app in $apps; do
+for app; do
 	# Only if it was indeed originally enabled...
 	{ echo "$cfg" | grep -q "^CONFIG_${app}=y\$"; } || continue
 
