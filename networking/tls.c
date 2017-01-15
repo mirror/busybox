@@ -286,85 +286,6 @@ static int xread_tls_handshake_block(tls_state_t *tls, int min_len)
 	return len;
 }
 
-static void send_client_hello(tls_state_t *tls)
-{
-	struct client_hello {
-		struct record_hdr xhdr;
-		uint8_t type;
-		uint8_t len24_hi, len24_mid, len24_lo;
-		uint8_t proto_maj, proto_min;
-		uint8_t rand32[32];
-		uint8_t session_id_len;
-		/* uint8_t session_id[]; */
-		uint8_t cipherid_len16_hi, cipherid_len16_lo;
-		uint8_t cipherid[2 * 1]; /* actually variable */
-		uint8_t comprtypes_len;
-		uint8_t comprtypes[1]; /* actually variable */
-	};
-	struct client_hello hello;
-
-	memset(&hello, 0, sizeof(hello));
-	hello.xhdr.type = RECORD_TYPE_HANDSHAKE;
-	hello.xhdr.proto_maj = TLS_MAJ;
-	hello.xhdr.proto_min = TLS_MIN;
-	//zero: hello.xhdr.len16_hi = (sizeof(hello) - sizeof(hello.xhdr)) >> 8;
-	hello.xhdr.len16_lo = (sizeof(hello) - sizeof(hello.xhdr));
-	hello.type = HANDSHAKE_CLIENT_HELLO;
-	//hello.len24_hi  = 0;
-	//zero: hello.len24_mid = (sizeof(hello) - sizeof(hello.xhdr) - 4) >> 8;
-	hello.len24_lo  = (sizeof(hello) - sizeof(hello.xhdr) - 4);
-	hello.proto_maj = TLS_MAJ;	/* the "requested" version of the protocol, */
-	hello.proto_min = TLS_MIN;	/* can be higher than one in record headers */
-	tls_get_random(hello.rand32, sizeof(hello.rand32));
-	//hello.session_id_len = 0;
-	//hello.cipherid_len16_hi = 0;
-	hello.cipherid_len16_lo = 2 * 1;
-	hello.cipherid[0] = CIPHER_ID >> 8;
-	hello.cipherid[1] = CIPHER_ID & 0xff;
-	hello.comprtypes_len = 1;
-	//hello.comprtypes[0] = 0;
-
-	xwrite(tls->fd, &hello, sizeof(hello));
-}
-
-static void get_server_hello_or_die(tls_state_t *tls)
-{
-	struct server_hello {
-		struct record_hdr xhdr;
-		uint8_t type;
-		uint8_t len24_hi, len24_mid, len24_lo;
-		uint8_t proto_maj, proto_min;
-		uint8_t rand32[32]; /* first 4 bytes are unix time in BE format */
-		uint8_t session_id_len;
-		uint8_t session_id[32];
-		uint8_t cipherid_hi, cipherid_lo;
-		uint8_t comprtype;
-		/* extensions may follow, but only those which client offered in its Hello */
-	};
-	struct server_hello *hp;
-
-	xread_tls_handshake_block(tls, 74);
-
-	hp = (void*)tls->inbuf;
-	// 74 bytes:
-	// 02  000046 03|03   58|78|cf|c1 50|a5|49|ee|7e|29|48|71|fe|97|fa|e8|2d|19|87|72|90|84|9d|37|a3|f0|cb|6f|5f|e3|3c|2f |20  |d8|1a|78|96|52|d6|91|01|24|b3|d6|5b|b7|d0|6c|b3|e1|78|4e|3c|95|de|74|a0|ba|eb|a7|3a|ff|bd|a2|bf |00|9c |00|
-	//SvHl len=70 maj.min unixtime^^^ 28randbytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^ slen sid32bytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cipSel comprSel
-	if (hp->type != HANDSHAKE_SERVER_HELLO
-	 || hp->len24_hi  != 0
-	 || hp->len24_mid != 0
-	 || hp->len24_lo  != 70
-	 || hp->proto_maj != TLS_MAJ
-	 || hp->proto_min != TLS_MIN
-	 || hp->session_id_len != 32
-	 || hp->cipherid_hi != (CIPHER_ID >> 8)
-	 || hp->cipherid_lo != (CIPHER_ID & 0xff)
-	 || hp->comprtype != 0
-	) {
-		tls_error_die(tls);
-	}
-	dbg("got SERVER_HELLO\n");
-}
-
 static unsigned get_der_len(uint8_t **bodyp, uint8_t *der, uint8_t *end)
 {
 	unsigned len, len1;
@@ -573,7 +494,104 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 	dbg("server_rsa_pub_key.size:%d\n", tls->server_rsa_pub_key.size);
 }
 
-static void get_server_cert_or_die(tls_state_t *tls)
+/*
+ * TLS Handshake routines
+ */
+static void send_client_hello(tls_state_t *tls)
+{
+	struct client_hello {
+		struct record_hdr xhdr;
+		uint8_t type;
+		uint8_t len24_hi, len24_mid, len24_lo;
+		uint8_t proto_maj, proto_min;
+		uint8_t rand32[32];
+		uint8_t session_id_len;
+		/* uint8_t session_id[]; */
+		uint8_t cipherid_len16_hi, cipherid_len16_lo;
+		uint8_t cipherid[2 * 1]; /* actually variable */
+		uint8_t comprtypes_len;
+		uint8_t comprtypes[1]; /* actually variable */
+	};
+	struct client_hello hello;
+
+	memset(&hello, 0, sizeof(hello));
+	hello.xhdr.type = RECORD_TYPE_HANDSHAKE;
+	hello.xhdr.proto_maj = TLS_MAJ;
+	hello.xhdr.proto_min = TLS_MIN;
+	//zero: hello.xhdr.len16_hi = (sizeof(hello) - sizeof(hello.xhdr)) >> 8;
+	hello.xhdr.len16_lo = (sizeof(hello) - sizeof(hello.xhdr));
+	hello.type = HANDSHAKE_CLIENT_HELLO;
+	//hello.len24_hi  = 0;
+	//zero: hello.len24_mid = (sizeof(hello) - sizeof(hello.xhdr) - 4) >> 8;
+	hello.len24_lo  = (sizeof(hello) - sizeof(hello.xhdr) - 4);
+	hello.proto_maj = TLS_MAJ;	/* the "requested" version of the protocol, */
+	hello.proto_min = TLS_MIN;	/* can be higher than one in record headers */
+	tls_get_random(hello.rand32, sizeof(hello.rand32));
+	//hello.session_id_len = 0;
+	//hello.cipherid_len16_hi = 0;
+	hello.cipherid_len16_lo = 2 * 1;
+	hello.cipherid[0] = CIPHER_ID >> 8;
+	hello.cipherid[1] = CIPHER_ID & 0xff;
+	hello.comprtypes_len = 1;
+	//hello.comprtypes[0] = 0;
+
+	xwrite(tls->fd, &hello, sizeof(hello));
+#if 0 /* dump */
+	for (;;) {
+		uint8_t buf[16*1024];
+		sleep(2);
+		len = recv(tls->fd, buf, sizeof(buf), 0); //MSG_DONTWAIT);
+		if (len < 0) {
+			if (errno == EAGAIN)
+				continue;
+			bb_perror_msg_and_die("recv");
+		}
+		if (len == 0)
+			break;
+		dump(buf, len);
+	}
+#endif
+}
+
+static void get_server_hello(tls_state_t *tls)
+{
+	struct server_hello {
+		struct record_hdr xhdr;
+		uint8_t type;
+		uint8_t len24_hi, len24_mid, len24_lo;
+		uint8_t proto_maj, proto_min;
+		uint8_t rand32[32]; /* first 4 bytes are unix time in BE format */
+		uint8_t session_id_len;
+		uint8_t session_id[32];
+		uint8_t cipherid_hi, cipherid_lo;
+		uint8_t comprtype;
+		/* extensions may follow, but only those which client offered in its Hello */
+	};
+	struct server_hello *hp;
+
+	xread_tls_handshake_block(tls, 74);
+
+	hp = (void*)tls->inbuf;
+	// 74 bytes:
+	// 02  000046 03|03   58|78|cf|c1 50|a5|49|ee|7e|29|48|71|fe|97|fa|e8|2d|19|87|72|90|84|9d|37|a3|f0|cb|6f|5f|e3|3c|2f |20  |d8|1a|78|96|52|d6|91|01|24|b3|d6|5b|b7|d0|6c|b3|e1|78|4e|3c|95|de|74|a0|ba|eb|a7|3a|ff|bd|a2|bf |00|9c |00|
+	//SvHl len=70 maj.min unixtime^^^ 28randbytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^_^^^ slen sid32bytes^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cipSel comprSel
+	if (hp->type != HANDSHAKE_SERVER_HELLO
+	 || hp->len24_hi  != 0
+	 || hp->len24_mid != 0
+	 || hp->len24_lo  != 70
+	 || hp->proto_maj != TLS_MAJ
+	 || hp->proto_min != TLS_MIN
+	 || hp->session_id_len != 32
+	 || hp->cipherid_hi != (CIPHER_ID >> 8)
+	 || hp->cipherid_lo != (CIPHER_ID & 0xff)
+	 || hp->comprtype != 0
+	) {
+		tls_error_die(tls);
+	}
+	dbg("got SERVER_HELLO\n");
+}
+
+static void get_server_cert(tls_state_t *tls)
 {
 	struct record_hdr *xhdr;
 	uint8_t *certbuf;
@@ -605,63 +623,6 @@ static void get_server_cert_or_die(tls_state_t *tls)
 
 static void send_client_key_exchange(tls_state_t *tls)
 {
-#if 0 //matrixssl code snippets:
-	int32 csRsaEncryptPub(psPool_t *pool, psPubKey_t *key,
-	                        unsigned char *in, uint32 inlen, unsigned char *out, uint32 outlen,
-	                        void *data)
-	{
-	        psAssert(key->type == PS_RSA);
-	        return psRsaEncryptPub(pool, (psRsaKey_t*)key->key, in, inlen, out, outlen,
-	                        data);
-	}
-...
-	/* pkaAfter.user is buffer len */
-	if ((rc = csRsaEncryptPub(pka->pool, &ssl->sec.cert->publicKey,
-			ssl->sec.premaster,	ssl->sec.premasterSize, pka->outbuf,
-			pka->user, pka->data)) < 0) {
-		if (rc == PS_PENDING) {
-			/* For these ClientKeyExchange paths, we do want to come
-				back through nowDoCkePka for a double pass so each
-				case can manage its own pkaAfter and to make sure
-				psX509FreeCert and sslCreateKeys() are hit below. */
-			return rc;
-		}
-		psTraceIntInfo("csRsaEncryptPub in CKE failed %d\n", rc);
-		return MATRIXSSL_ERROR;
-	}
-	/* RSA closed the pool on second pass */
-	pka->pool = NULL;
-	clearPkaAfter(ssl);
-...
-#ifdef USE_RSA_CIPHER_SUITE
-/*
-			Standard RSA suite
-*/
-			ssl->sec.premasterSize = SSL_HS_RSA_PREMASTER_SIZE;
-			ssl->sec.premaster = psMalloc(ssl->hsPool,
-									SSL_HS_RSA_PREMASTER_SIZE);
-			if (ssl->sec.premaster == NULL) {
-				return SSL_MEM_ERROR;
-			}
-
-			ssl->sec.premaster[0] = ssl->reqMajVer;
-			ssl->sec.premaster[1] = ssl->reqMinVer;
-			if (matrixCryptoGetPrngData(ssl->sec.premaster + 2,
-					SSL_HS_RSA_PREMASTER_SIZE - 2, ssl->userPtr) < 0) {
-				return MATRIXSSL_ERROR;
-			}
-
-			/* Shedule RSA encryption.  Put tmp pool under control of After */
-			pkaAfter->type = PKA_AFTER_RSA_ENCRYPT;
-			pkaAfter->outbuf = c;
-			pkaAfter->data = pkiData;
-			pkaAfter->pool = pkiPool;
-			pkaAfter->user = (uint32)(end - c); /* Available space */
-
-			c += keyLen;
-#endif
-#endif // 0
-
 	struct client_key_exchange {
 		struct record_hdr xhdr;
 		uint8_t type;
@@ -675,7 +636,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 		uint8_t key[384]; // size??
 	};
 	struct client_key_exchange record;
-	uint8_t premaster[SSL_HS_RSA_PREMASTER_SIZE];
+	uint8_t rsa_premaster[SSL_HS_RSA_PREMASTER_SIZE];
 
 	memset(&record, 0, sizeof(record));
 	record.xhdr.type = RECORD_TYPE_HANDSHAKE;
@@ -690,12 +651,16 @@ static void send_client_key_exchange(tls_state_t *tls)
 	record.keylen16_hi = (sizeof(record) - sizeof(record.xhdr) - 6) >> 8;
 	record.keylen16_lo = (sizeof(record) - sizeof(record.xhdr) - 6) & 0xff;
 
-	tls_get_random(premaster, sizeof(premaster));
-	premaster[0] = TLS_MAJ;
-	premaster[1] = TLS_MIN;
+	tls_get_random(rsa_premaster, sizeof(rsa_premaster));
+// RFC 5246
+// "Note: The version number in the PreMasterSecret is the version
+// offered by the client in the ClientHello.client_version, not the
+// version negotiated for the connection."
+	rsa_premaster[0] = TLS_MAJ;
+	rsa_premaster[1] = TLS_MIN;
 	psRsaEncryptPub(/*pool:*/ NULL,
 		/* psRsaKey_t* */ &tls->server_rsa_pub_key,
-		premaster, /*inlen:*/ sizeof(premaster),
+		rsa_premaster, /*inlen:*/ sizeof(rsa_premaster),
 		record.key, sizeof(record.key),
 		data_param_ignored
 	);
@@ -710,6 +675,88 @@ static void send_change_cipher_spec(tls_state_t *tls)
 		01
 	};
 	xwrite(tls->fd, rec, sizeof(rec));
+}
+
+static void send_client_finished(tls_state_t *tls)
+{
+// RFC 5246 on pseudorandom function (PRF):
+//
+// 5.  HMAC and the Pseudorandom Function
+//...
+// In this section, we define one PRF, based on HMAC.  This PRF with the
+// SHA-256 hash function is used for all cipher suites defined in this
+// document and in TLS documents published prior to this document when
+// TLS 1.2 is negotiated.
+//...
+//    P_hash(secret, seed) = HMAC_hash(secret, A(1) + seed) +
+//                           HMAC_hash(secret, A(2) + seed) +
+//                           HMAC_hash(secret, A(3) + seed) + ...
+// where + indicates concatenation.
+// A() is defined as:
+//    A(0) = seed
+//    A(i) = HMAC_hash(secret, A(i-1))
+// P_hash can be iterated as many times as necessary to produce the
+// required quantity of data.  For example, if P_SHA256 is being used to
+// create 80 bytes of data, it will have to be iterated three times
+// (through A(3)), creating 96 bytes of output data; the last 16 bytes
+// of the final iteration will then be discarded, leaving 80 bytes of
+// output data.
+//
+// TLS's PRF is created by applying P_hash to the secret as:
+//
+//    PRF(secret, label, seed) = P_<hash>(secret, label + seed)
+//
+// The label is an ASCII string.
+
+	tls->fd = 0;
+
+// 7.4.9.  Finished
+// A Finished message is always sent immediately after a change
+// cipher spec message to verify that the key exchange and
+// authentication processes were successful.  It is essential that a
+// change cipher spec message be received between the other handshake
+// messages and the Finished message.
+//...
+// The Finished message is the first one protected with the just
+// negotiated algorithms, keys, and secrets.  Recipients of Finished
+// messages MUST verify that the contents are correct.  Once a side
+// has sent its Finished message and received and validated the
+// Finished message from its peer, it may begin to send and receive
+// application data over the connection.
+//...
+// struct {
+//     opaque verify_data[verify_data_length];
+// } Finished;
+//
+// verify_data
+//    PRF(master_secret, finished_label, Hash(handshake_messages))
+//       [0..verify_data_length-1];
+//
+// finished_label
+//    For Finished messages sent by the client, the string
+//    "client finished".  For Finished messages sent by the server,
+//    the string "server finished".
+//
+// Hash denotes a Hash of the handshake messages.  For the PRF
+// defined in Section 5, the Hash MUST be the Hash used as the basis
+// for the PRF.  Any cipher suite which defines a different PRF MUST
+// also define the Hash to use in the Finished computation.
+//
+// In previous versions of TLS, the verify_data was always 12 octets
+// long.  In the current version of TLS, it depends on the cipher
+// suite.  Any cipher suite which does not explicitly specify
+// verify_data_length has a verify_data_length equal to 12.  This
+// includes all existing cipher suites.
+}
+
+static void get_change_cipher_spec(tls_state_t *tls)
+{
+	tls->fd = 0;
+}
+
+static void get_server_finished(tls_state_t *tls)
+{
+	tls->fd = 0;
 }
 
 static void tls_handshake(tls_state_t *tls)
@@ -734,23 +781,7 @@ static void tls_handshake(tls_state_t *tls)
 	int len;
 
 	send_client_hello(tls);
-#if 0 /* dump */
-	for (;;) {
-		uint8_t buf[16*1024];
-		sleep(2);
-		len = recv(tls->fd, buf, sizeof(buf), 0); //MSG_DONTWAIT);
-		if (len < 0) {
-			if (errno == EAGAIN)
-				continue;
-			bb_perror_msg_and_die("recv");
-		}
-		if (len == 0)
-			break;
-		dump(buf, len);
-	}
-#endif
-
-	get_server_hello_or_die(tls);
+	get_server_hello(tls);
 
 	//RFC 5246
 	// The server MUST send a Certificate message whenever the agreed-
@@ -761,7 +792,7 @@ static void tls_handshake(tls_state_t *tls)
 	//
 	// IOW: in practice, Certificate *always* follows.
 	// (for example, kernel.org does not even accept DH_anon cipher id)
-	get_server_cert_or_die(tls);
+	get_server_cert(tls);
 
 	len = xread_tls_handshake_block(tls, 4);
 	if (tls->inbuf[5] == HANDSHAKE_SERVER_KEY_EXCHANGE) {
@@ -776,6 +807,13 @@ static void tls_handshake(tls_state_t *tls)
 	}
 //	if (tls->inbuf[5] == HANDSHAKE_CERTIFICATE_REQUEST) {
 //		dbg("got CERTIFICATE_REQUEST\n");
+//RFC 5246: (in response to this,) "If no suitable certificate is available,
+// the client MUST send a certificate message containing no
+// certificates.  That is, the certificate_list structure has a
+// length of zero. ...
+// Client certificates are sent using the Certificate structure
+// defined in Section 7.4.2."
+// (i.e. the same format as server certs)
 //		xread_tls_handshake_block(tls, 4);
 //	}
 	if (tls->inbuf[5] == HANDSHAKE_SERVER_HELLO_DONE) {
@@ -784,6 +822,10 @@ static void tls_handshake(tls_state_t *tls)
 		send_client_key_exchange(tls);
 		send_change_cipher_spec(tls);
 //we now should be able to send encrypted... as soon as we grok AES.
+		send_client_finished(tls);
+		get_change_cipher_spec(tls);
+		get_server_finished(tls);
+//we now should receive encrypted, and application data can be sent/received
 	} else {
 		tls_error_die(tls);
 	}

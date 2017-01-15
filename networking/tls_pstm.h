@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2017 Denys Vlasenko
+ *
+ * Licensed under GPLv2, see file LICENSE in this source tree.
+ */
+/* The file is taken almost verbatim from matrixssl-3-7-2b-open/crypto/math/.
+ * Changes are flagged with ///bbox
+ */
+
 /**
  *	@file    pstm.h
  *	@version 33ef80f (HEAD, tag: MATRIXSSL-3-7-2-OPEN, tag: MATRIXSSL-3-7-2-COMM, origin/master, origin/HEAD, master)

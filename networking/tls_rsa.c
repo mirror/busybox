@@ -5,49 +5,55 @@
  */
 #include "tls.h"
 
+/* The code below is taken from parts of
+ *  matrixssl-3-7-2b-open/crypto/pubkey/pkcs.c
+ *  matrixssl-3-7-2b-open/crypto/pubkey/rsa.c
+ * and (so far) almost not modified. Changes are flagged with ///bbox
+ */
+
 #define pkcs1Pad(in, inlen, out, outlen, cryptType, userPtr) \
         pkcs1Pad(in, inlen, out, outlen, cryptType)
 static ///bbox
 int32 pkcs1Pad(unsigned char *in, uint32 inlen, unsigned char *out,
-                                           uint32 outlen, int32 cryptType, void *userPtr)
+					   uint32 outlen, int32 cryptType, void *userPtr)
 {
-        unsigned char   *c;
-        int32           randomLen;
+	unsigned char   *c;
+	int32           randomLen;
 
-        randomLen = outlen - 3 - inlen;
-        if (randomLen < 8) {
-                psTraceCrypto("pkcs1Pad failure\n");
-                return PS_LIMIT_FAIL;
-        }
-        c = out;
-        *c = 0x00;
-        c++;
-        *c = (unsigned char)cryptType;
-        c++;
-        if (cryptType == PUBKEY_TYPE) {
-                while (randomLen-- > 0) {
-                        *c++ = 0xFF;
-                }
-        } else {
-                if (matrixCryptoGetPrngData(c, (uint32)randomLen, userPtr) < 0) {
-                        return PS_PLATFORM_FAIL;
-                }
+	randomLen = outlen - 3 - inlen;
+	if (randomLen < 8) {
+		psTraceCrypto("pkcs1Pad failure\n");
+		return PS_LIMIT_FAIL;
+	}
+	c = out;
+	*c = 0x00;
+	c++;
+	*c = (unsigned char)cryptType;
+	c++;
+	if (cryptType == PUBKEY_TYPE) {
+		while (randomLen-- > 0) {
+			*c++ = 0xFF;
+		}
+	} else {
+		if (matrixCryptoGetPrngData(c, (uint32)randomLen, userPtr) < 0) {
+			return PS_PLATFORM_FAIL;
+		}
 /*
-                SECURITY:  Read through the random data and change all 0x0 to 0x01.
-                This is per spec that no random bytes should be 0
+		SECURITY:  Read through the random data and change all 0x0 to 0x01.
+		This is per spec that no random bytes should be 0
 */
-                while (randomLen-- > 0) {
-                        if (*c == 0x0) {
-                                *c = 0x01;
-                        }
-                        c++;
-                }
-        }
-        *c = 0x00;
-        c++;
-        memcpy(c, in, inlen);
+		while (randomLen-- > 0) {
+			if (*c == 0x0) {
+				*c = 0x01;
+			}
+			c++;
+		}
+	}
+	*c = 0x00;
+	c++;
+	memcpy(c, in, inlen);
 
-        return outlen;
+	return outlen;
 }
 
 #define psRsaCrypt(pool, in, inlen, out, outlen, key, type, data) \
@@ -173,31 +179,31 @@ done:
 }
 
 int32 psRsaEncryptPub(psPool_t *pool, psRsaKey_t *key,
-                                                unsigned char *in, uint32 inlen,
-                                                unsigned char *out, uint32 outlen, void *data)
+						unsigned char *in, uint32 inlen,
+						unsigned char *out, uint32 outlen, void *data)
 {
-        int32   err;
-        uint32  size;
+	int32	err;
+	uint32	size;
 
-        size = key->size;
-        if (outlen < size) {
-                psTraceCrypto("Error on bad outlen parameter to psRsaEncryptPub\n");
-                return PS_ARG_FAIL;
-        }
+	size = key->size;
+	if (outlen < size) {
+		psTraceCrypto("Error on bad outlen parameter to psRsaEncryptPub\n");
+		return PS_ARG_FAIL;
+	}
 
-        if ((err = pkcs1Pad(in, inlen, out, size, PRIVKEY_TYPE, data))
-                        < PS_SUCCESS) {
-                psTraceCrypto("Error padding psRsaEncryptPub. Likely data too long\n");
-                return err;
-        }
-        if ((err = psRsaCrypt(pool, out, size, out, (uint32*)&outlen, key,
-                        PUBKEY_TYPE, data)) < PS_SUCCESS) {
-                psTraceCrypto("Error performing psRsaEncryptPub\n");
-                return err;
-        }
-        if (outlen != size) {
-                psTraceCrypto("Encrypted size error in psRsaEncryptPub\n");
-                return PS_FAILURE;
-        }
-        return size;
+	if ((err = pkcs1Pad(in, inlen, out, size, PRIVKEY_TYPE, data))
+			< PS_SUCCESS) {
+		psTraceCrypto("Error padding psRsaEncryptPub. Likely data too long\n");
+		return err;
+	}
+	if ((err = psRsaCrypt(pool, out, size, out, (uint32*)&outlen, key,
+			PUBKEY_TYPE, data)) < PS_SUCCESS) {
+		psTraceCrypto("Error performing psRsaEncryptPub\n");
+		return err;
+	}
+	if (outlen != size) {
+		psTraceCrypto("Encrypted size error in psRsaEncryptPub\n");
+		return PS_FAILURE;
+	}
+	return size;
 }

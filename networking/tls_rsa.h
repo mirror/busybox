@@ -2,6 +2,8 @@
  * Copyright (C) 2017 Denys Vlasenko
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
+ *
+ * Selected few declarations for RSA.
  */
 
 typedef struct {

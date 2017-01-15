@@ -5,6 +5,10 @@
  */
 #include "tls.h"
 
+/* The file is taken almost verbatim from matrixssl-3-7-2b-open/crypto/math/.
+ * Changes are flagged with ///bbox
+ */
+
 /**
  *	@file    pstm_sqr_comba.c
  *	@version 33ef80f (HEAD, tag: MATRIXSSL-3-7-2-OPEN, tag: MATRIXSSL-3-7-2-COMM, origin/master, origin/HEAD, master)
@@ -466,13 +470,13 @@ static int32 pstm_sqr_comba_gen(psPool_t *pool, pstm_int *A, pstm_int *B,
 	if (paD != NULL) {
 		if (paDlen < (sizeof(pstm_digit) * pa)) {
 			paDfail = 1; /* have a paD, but it's not big enough */
-			dst = xzalloc(sizeof(pstm_digit) * pa);
+			dst = xzalloc(sizeof(pstm_digit) * pa);///bbox
 		} else {
 			dst = paD;
 			memset(dst, 0x0, paDlen);
 		}
 	} else {
-		dst = xzalloc(sizeof(pstm_digit) * pa);
+		dst = xzalloc(sizeof(pstm_digit) * pa);///bbox
 	}
 
 	for (ix = 0; ix < pa; ix++) {

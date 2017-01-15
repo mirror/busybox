@@ -5,6 +5,10 @@
  */
 #include "tls.h"
 
+/* The file is taken almost verbatim from matrixssl-3-7-2b-open/crypto/math/.
+ * Changes are flagged with ///bbox
+ */
+
 /**
  *	@file    pstm.c
  *	@version 33ef80f (HEAD, tag: MATRIXSSL-3-7-2-OPEN, tag: MATRIXSSL-3-7-2-COMM, origin/master, origin/HEAD, master)
@@ -51,12 +55,13 @@ static int32 pstm_mul_2d(pstm_int *a, int16 b, pstm_int *c);
  */
 int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size)
 {
+///bbox
 //	uint16		x;
 
 /*
 	alloc mem
  */
-	a->dp = xzalloc(sizeof (pstm_digit) * size);
+	a->dp = xzalloc(sizeof (pstm_digit) * size);///bbox
 	a->pool = pool;
 	a->used  = 0;
 	a->alloc = (int16)size;
@@ -77,11 +82,12 @@ int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size)
 */
 int32 pstm_init(psPool_t *pool, pstm_int * a)
 {
+///bbox
 //	int32		i;
 /*
 	allocate memory required and clear it
  */
-	a->dp = xzalloc(sizeof (pstm_digit) * PSTM_DEFAULT_INIT);
+	a->dp = xzalloc(sizeof (pstm_digit) * PSTM_DEFAULT_INIT);///bbox
 /*
 	set the digits to zero
  */
@@ -120,7 +126,7 @@ int32 pstm_grow(pstm_int * a, int16 size)
 		We store the return in a temporary variable in case the operation
 		failed we don't want to overwrite the dp member of a.
 */
-		tmp = xrealloc(a->dp, sizeof (pstm_digit) * size);
+		tmp = xrealloc(a->dp, sizeof (pstm_digit) * size);///bbox
 /*
 		reallocation succeeded so set a->dp
  */
@@ -1616,7 +1622,7 @@ int32 pstm_exptmod(psPool_t *pool, pstm_int *G, pstm_int *X, pstm_int *P,
 	Pre-allocated digit.  Used for mul, sqr, AND reduce
 */
 	paDlen = ((M[1].used + 3) * 2) * sizeof(pstm_digit);
-	paD = xzalloc(paDlen);
+	paD = xzalloc(paDlen);///bbox
 /*
  	compute the value at M[1<<(winsize-1)] by squaring M[1] (winsize-1) times
  */

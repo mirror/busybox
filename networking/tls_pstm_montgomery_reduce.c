@@ -5,6 +5,10 @@
  */
 #include "tls.h"
 
+/* The file is taken almost verbatim from matrixssl-3-7-2b-open/crypto/math/.
+ * Changes are flagged with ///bbox
+ */
+
 /**
  *	@file    pstm_montgomery_reduce.c
  *	@version 33ef80f (HEAD, tag: MATRIXSSL-3-7-2-OPEN, tag: MATRIXSSL-3-7-2-COMM, origin/master, origin/HEAD, master)
@@ -353,7 +357,7 @@ int32 pstm_montgomery_reduce(psPool_t *pool, pstm_int *a, pstm_int *m,
 		c = paD;
 		memset(c, 0x0, paDlen);
 	} else {
-		c = xzalloc(2*pa+1);
+		c = xzalloc(2*pa+1);///bbox
 	}
 	/* copy the input */
 	oldused = a->used;
