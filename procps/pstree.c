@@ -357,7 +357,9 @@ static void handle_thread(const char *comm, pid_t pid, pid_t ppid, uid_t uid)
 static void mread_proc(void)
 {
 	procps_status_t *p = NULL;
+#if ENABLE_FEATURE_SHOW_THREADS
 	pid_t parent = 0;
+#endif
 	int flags = PSSCAN_COMM | PSSCAN_PID | PSSCAN_PPID | PSSCAN_UIDGID | PSSCAN_TASKS;
 
 	while ((p = procps_scan(p, flags)) != NULL) {
@@ -368,7 +370,9 @@ static void mread_proc(void)
 #endif
 		{
 			add_proc(p->comm, p->pid, p->ppid, p->uid/*, 0*/);
+#if ENABLE_FEATURE_SHOW_THREADS
 			parent = p->pid;
+#endif
 		}
 	}
 }

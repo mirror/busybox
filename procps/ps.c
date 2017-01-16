@@ -608,7 +608,9 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	procps_status_t *p;
 	llist_t* opt_o = NULL;
 	char default_o[sizeof(DEFAULT_O_STR)];
+#if ENABLE_SELINUX || ENABLE_FEATURE_SHOW_THREADS
 	int opt;
+#endif
 	enum {
 		OPT_Z = (1 << 0),
 		OPT_o = (1 << 1),
@@ -638,7 +640,11 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	 * procps v3.2.7 supports -T and shows tids as SPID column,
 	 * it also supports -L where it shows tids as LWP column.
 	 */
-	opt = getopt32(argv, "Zo:*aAdefl"IF_FEATURE_SHOW_THREADS("T"), &opt_o);
+#if ENABLE_SELINUX || ENABLE_FEATURE_SHOW_THREADS
+	opt =
+#endif
+		getopt32(argv, "Zo:*aAdefl"IF_FEATURE_SHOW_THREADS("T"), &opt_o);
+
 	if (opt_o) {
 		do {
 			parse_o(llist_pop(&opt_o));

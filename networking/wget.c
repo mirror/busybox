@@ -1092,6 +1092,9 @@ static void download_one_url(const char *url)
 
 		fflush(sfp);
 
+/* Tried doing this unconditionally.
+ * Cloudflare and nginx/1.11.5 are shocked to see SHUT_WR on non-HTTPS.
+ */
 #if SSL_SUPPORTED
 		if (target.protocol == P_HTTPS) {
 			/* If we use SSL helper, keeping our end of the socket open for writing
