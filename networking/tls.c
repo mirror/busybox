@@ -60,6 +60,8 @@
 #define SSL_RSA_WITH_3DES_EDE_CBC_SHA           0x000A  /* 10 */
 #define TLS_RSA_WITH_AES_128_CBC_SHA            0x002F  /* 47 */
 #define TLS_RSA_WITH_AES_256_CBC_SHA            0x0035  /* 53 */
+#define TLS_RSA_WITH_NULL_SHA256                0x003B  /* 59 */
+
 #define TLS_EMPTY_RENEGOTIATION_INFO_SCSV       0x00FF
 
 #define TLS_RSA_WITH_IDEA_CBC_SHA               0x0007  /* 7 */
@@ -99,6 +101,7 @@
 #define TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256    0xC029  /* 49193 */
 #define TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384    0xC02A  /* 49194 */
 
+// RFC 5288 "AES Galois Counter Mode (GCM) Cipher Suites for TLS"
 #define TLS_RSA_WITH_AES_128_GCM_SHA256         0x009C  /* 156 */
 #define TLS_RSA_WITH_AES_256_GCM_SHA384         0x009D  /* 157 */
 #define TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 0xC02B  /* 49195 */
@@ -130,10 +133,16 @@
 //#define CIPHER_ID TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384
 //#define CIPHER_ID TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256 // SSL_ALERT_HANDSHAKE_FAILURE
 //#define CIPHER_ID TLS_RSA_WITH_AES_256_GCM_SHA384 // ok, no SERVER_KEY_EXCHANGE
-#define CIPHER_ID TLS_RSA_WITH_AES_128_GCM_SHA256 // ok, no SERVER_KEY_EXCHANGE *** select this?
+//#define CIPHER_ID TLS_RSA_WITH_AES_128_GCM_SHA256 // ok, no SERVER_KEY_EXCHANGE *** select this?
+#define CIPHER_ID TLS_RSA_WITH_NULL_SHA256 // for testing (does everything except encrypting)
 //#define CIPHER_ID TLS_DH_anon_WITH_AES_256_CBC_SHA // SSL_ALERT_HANDSHAKE_FAILURE
 //^^^^^^^^^^^^^^^^^^^^^^^ (tested b/c this one doesn't req server certs... no luck)
 //test TLS_RSA_WITH_AES_128_CBC_SHA, in tls 1.2 it's mandated to be always supported
+
+enum {
+	SHA256_INSIZE = 64,
+	SHA256_OUTSIZE = 32,
+};
 
 struct record_hdr {
 	uint8_t type;
@@ -150,6 +159,17 @@ typedef struct tls_state {
 
 	uint8_t client_and_server_rand32[2 * 32];
 	uint8_t master_secret[48];
+
+	uint8_t encrypt_on_write;
+	uint8_t client_write_MAC_key[SHA256_OUTSIZE];
+// RFC 5246
+// sequence number
+// Each connection state contains a sequence number, which is
+// maintained separately for read and write states.  The sequence
+// number MUST be set to zero whenever a connection state is made the
+// active state.  Sequence numbers are of type uint64 and may not
+// exceed 2^64-1.
+	uint64_t write_seq64_be;
 
 	// RFC 5246
 	// |6.2.1. Fragmentation
@@ -196,11 +216,81 @@ tls_state_t *new_tls_state(void)
 	return tls;
 }
 
-static void xwrite_and_hash(tls_state_t *tls, const void *buf, unsigned size)
+static void hmac_sha256(uint8_t out[SHA256_OUTSIZE], uint8_t *key, unsigned key_size, ...);
+
+static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size)
 {
+// rfc5246
+// 6.2.3.1.  Null or Standard Stream Cipher
+//
+// Stream ciphers (including BulkCipherAlgorithm.null; see Appendix A.6)
+// convert TLSCompressed.fragment structures to and from stream
+// TLSCiphertext.fragment structures.
+//
+//    stream-ciphered struct {
+//        opaque content[TLSCompressed.length];
+//        opaque MAC[SecurityParameters.mac_length];
+//    } GenericStreamCipher;
+//
+// The MAC is generated as:
+//
+//    MAC(MAC_write_key, seq_num +
+//                          TLSCompressed.type +
+//                          TLSCompressed.version +
+//                          TLSCompressed.length +
+//                          TLSCompressed.fragment);
+//
+// where "+" denotes concatenation.
+//
+// seq_num
+//    The sequence number for this record.
+//
+// MAC
+//    The MAC algorithm specified by SecurityParameters.mac_algorithm.
+//
+// Note that the MAC is computed before encryption.  The stream cipher
+// encrypts the entire block, including the MAC.
+//...
+// Appendix C.  Cipher Suite Definitions
+//...
+//                         Key      IV   Block
+// Cipher        Type    Material  Size  Size
+// ------------  ------  --------  ----  -----
+// NULL          Stream      0       0    N/A
+// RC4_128       Stream     16       0    N/A
+// 3DES_EDE_CBC  Block      24       8      8
+// AES_128_CBC   Block      16      16     16
+// AES_256_CBC   Block      32      16     16
+//
+// MAC       Algorithm    mac_length  mac_key_length
+// --------  -----------  ----------  --------------
+// NULL      N/A              0             0
+// MD5       HMAC-MD5        16            16
+// SHA       HMAC-SHA1       20            20
+// SHA256    HMAC-SHA256     32            32
+
+	uint8_t mac_hash[SHA256_OUTSIZE];
+	struct record_hdr *xhdr = buf;
+
+	if (tls->encrypt_on_write) {
+		hmac_sha256(mac_hash,
+			tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key),
+			&tls->write_seq64_be, sizeof(tls->write_seq64_be),
+			buf, size,
+		NULL);
+		tls->write_seq64_be = SWAP_BE64(1 + SWAP_BE64(tls->write_seq64_be));
+		xhdr->len16_lo += SHA256_OUTSIZE;
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FIXME
+	}
+
 	xwrite(tls->fd, buf, size);
-	/* hash does not include record headers */
-	if (size > 5)
+	if (tls->encrypt_on_write) {
+		xwrite(tls->fd, mac_hash, sizeof(mac_hash));
+		xhdr->len16_lo -= SHA256_OUTSIZE;
+	}
+
+	/* Handshake hash does not include record headers */
+	if (size > 5 && xhdr->type == RECORD_TYPE_HANDSHAKE)
 		sha256_hash(&tls->handshake_sha256_ctx, (uint8_t*)buf + 5, size - 5);
 }
 
@@ -311,21 +401,22 @@ static unsigned get_der_len(uint8_t **bodyp, uint8_t *der, uint8_t *end)
 
 	len = der[1]; /* maybe it's short len */
 	if (len >= 0x80) {
-		/* no */
-		if (end - der < (int)(len - 0x7e)) /* need 3 or 4 bytes for 81, 82 */
-			xfunc_die();
+		/* no, it's long */
 
-		len1 = der[2];
-		if (len == 0x81) {
-			/* it's "ii 81 xx" */
-		} else if (len == 0x82) {
-			/* it's "ii 82 xx yy" */
-			len1 = 0x100*len1 + der[3];
-			der += 1; /* skip [yy] */
-		} else {
+		if (len == 0x80 || end - der < (int)(len - 0x7e)) {
 			/* 0x80 is "0 bytes of len", invalid DER: must use short len if can */
+			/* need 3 or 4 bytes for 81, 82 */
+			xfunc_die();
+		}
+
+		len1 = der[2]; /* if (len == 0x81) it's "ii 81 xx", fetch xx */
+		if (len > 0x82) {
 			/* >0x82 is "3+ bytes of len", should not happen realistically */
 			xfunc_die();
+		}
+		if (len == 0x82) { /* it's "ii 82 xx yy" */
+			len1 = 0x100*len1 + der[3];
+			der += 1; /* skip [yy] */
 		}
 		der += 1; /* skip [xx] */
 		len = len1;
@@ -507,11 +598,6 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 	tls->server_rsa_pub_key.size = pstm_unsigned_bin_size(&tls->server_rsa_pub_key.N);
 	dbg("server_rsa_pub_key.size:%d\n", tls->server_rsa_pub_key.size);
 }
-
-enum {
-	SHA256_INSIZE = 64,
-	SHA256_OUTSIZE = 32,
-};
 
 static void hash_sha256(uint8_t out[SHA256_OUTSIZE], const void *data, unsigned size)
 {
@@ -734,6 +820,7 @@ static void get_server_hello(tls_state_t *tls)
 		/* extensions may follow, but only those which client offered in its Hello */
 	};
 	struct server_hello *hp;
+	uint8_t *cipherid;
 
 	xread_tls_handshake_block(tls, 74);
 
@@ -744,16 +831,34 @@ static void get_server_hello(tls_state_t *tls)
 	if (hp->type != HANDSHAKE_SERVER_HELLO
 	 || hp->len24_hi  != 0
 	 || hp->len24_mid != 0
-	 || hp->len24_lo  != 70
+	 /* hp->len24_lo checked later */
 	 || hp->proto_maj != TLS_MAJ
 	 || hp->proto_min != TLS_MIN
-	 || hp->session_id_len != 32
-	 || hp->cipherid_hi != (CIPHER_ID >> 8)
-	 || hp->cipherid_lo != (CIPHER_ID & 0xff)
-	 || hp->comprtype != 0
 	) {
 		tls_error_die(tls);
 	}
+
+	cipherid = &hp->cipherid_hi;
+	if (hp->session_id_len != 32) {
+		if (hp->session_id_len != 0)
+			tls_error_die(tls);
+
+		// session_id_len == 0: no session id
+		// "The server
+		// may return an empty session_id to indicate that the session will
+		// not be cached and therefore cannot be resumed."
+		cipherid -= 32;
+		hp->len24_lo += 32; /* what len would be if session id would be present */
+	}
+
+	if (hp->len24_lo < 70
+	 || cipherid[0]  != (CIPHER_ID >> 8)
+	 || cipherid[1]  != (CIPHER_ID & 0xff)
+	 || cipherid[2]  != 0 /* comprtype */
+	) {
+		tls_error_die(tls);
+	}
+
 	dbg("got SERVER_HELLO\n");
 	memcpy(tls->client_and_server_rand32 + 32, hp->rand32, sizeof(hp->rand32));
 }
@@ -844,11 +949,59 @@ static void send_client_key_exchange(tls_state_t *tls)
 //                          [0..47];
 // The master secret is always exactly 48 bytes in length.  The length
 // of the premaster secret will vary depending on key exchange method.
-	tls_prf_hmac_sha256(tls->master_secret, sizeof(tls->master_secret),
+	tls_prf_hmac_sha256(
+		tls->master_secret, sizeof(tls->master_secret),
 		rsa_premaster, sizeof(rsa_premaster),
 		"master secret",
 		tls->client_and_server_rand32, sizeof(tls->client_and_server_rand32)
 	);
+
+// RFC 5246
+// 6.3.  Key Calculation
+//
+// The Record Protocol requires an algorithm to generate keys required
+// by the current connection state (see Appendix A.6) from the security
+// parameters provided by the handshake protocol.
+//
+// The master secret is expanded into a sequence of secure bytes, which
+// is then split to a client write MAC key, a server write MAC key, a
+// client write encryption key, and a server write encryption key.  Each
+// of these is generated from the byte sequence in that order.  Unused
+// values are empty.  Some AEAD ciphers may additionally require a
+// client write IV and a server write IV (see Section 6.2.3.3).
+//
+// When keys and MAC keys are generated, the master secret is used as an
+// entropy source.
+//
+// To generate the key material, compute
+//
+//    key_block = PRF(SecurityParameters.master_secret,
+//                    "key expansion",
+//                    SecurityParameters.server_random +
+//                    SecurityParameters.client_random);
+//
+// until enough output has been generated.  Then, the key_block is
+// partitioned as follows:
+//
+//    client_write_MAC_key[SecurityParameters.mac_key_length]
+//    server_write_MAC_key[SecurityParameters.mac_key_length]
+//    client_write_key[SecurityParameters.enc_key_length]
+//    server_write_key[SecurityParameters.enc_key_length]
+//    client_write_IV[SecurityParameters.fixed_iv_length]
+//    server_write_IV[SecurityParameters.fixed_iv_length]
+    {
+	uint8_t tmp64[64];
+	/* make server_rand32 + client_rand32 */
+	memcpy(&tmp64[0] , &tls->client_and_server_rand32[32], 32);
+	memcpy(&tmp64[32], &tls->client_and_server_rand32[0] , 32);
+
+	tls_prf_hmac_sha256(
+		tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key),
+		tls->master_secret, sizeof(tls->master_secret),
+		"key expansion",
+		tmp64, 64
+	);
+    }
 }
 
 static void send_change_cipher_spec(tls_state_t *tls)
@@ -859,6 +1012,9 @@ static void send_change_cipher_spec(tls_state_t *tls)
 	};
 	/* Not "xwrite_and_hash": this is not a handshake message */
 	xwrite(tls->fd, rec, sizeof(rec));
+
+	tls->write_seq64_be = 0;
+	tls->encrypt_on_write = 1;
 }
 
 static void send_client_finished(tls_state_t *tls)
@@ -932,7 +1088,38 @@ static void send_client_finished(tls_state_t *tls)
 
 //(1) TODO: well, this should be encrypted on send, really.
 //(2) do we really need to also hash it?
+
 	xwrite_and_hash(tls, &record, sizeof(record));
+
+//s_client does this:
+//
+//write to 0x1d750b0 [0x1e74620] (6 bytes => 6 (0x6))
+//0000 - 14 03 03 00 01 01                                 ......           >> CHANGE_CIPHER_SPEC
+//
+//write to 0x1d750b0 [0x1e74620] (53 bytes => 53 (0x35))
+//0000 - 16 03 03 0030  14 00000c  [ed b9 e1 33 36 0b 76   ....0.......36.v >> FINISHED (0x14) [PRF 12 bytes|SHA256_OUTSIZE 32 bytes]
+//0010 - c0 d1 d4 0b a3|73 ec a8-fa b5 cb 12 b6 4c 2a b1   .....s.......L*.
+//0020 - fb 42 7f 73 0d 06 1c 87-56 f0 db df e6 6a 25 aa   .B.s....V....j%.
+//0030 - fc 42 38 cb 0b]                                   .B8..
+
+//we do this (as seen by s_server):
+//
+//read from 0x26b7650 [0x26ac383] (5 bytes => 5 (0x5))
+//0000 - 14 03 03 00 01                                    .....
+//read from 0x26b7650 [0x26ac388] (1 bytes => 1 (0x1))
+//0000 - 01                                                .                << CHANGE_CIPHER_SPEC
+//read from 0x26b7650 [0x26ac383] (5 bytes => 5 (0x5))
+//0000 - 16 03 03 0030                                     ....0
+//read from 0x26b7650 [0x26ac388] (48 bytes => 48 (0x30))
+//0000 - 14 00000c  [d1 6f 08 c3-ef ec 26 7c 17 76 ac 1c|  .....o....&|.v.. << FINISHED (0x14) [PRF 12 bytes|SHA256_OUTSIZE 32 bytes]
+//0010 - 0b 27 ae 1c 59 f8 cb af-de 25 25 7e 50 51 da dd   .'..Y....%%~PQ..
+//0020 - c2 9e d6 27 96 0b 72 05-63 54 89 00 0e d7 b1 10]  ...'..r.cT......
+//
+//write to 0x26b7650 [0x26b4d90] (7 bytes => 7 (0x7))
+//0000 - 15 03 03 00 02 02 33                              ......3
+//ERROR
+//140684206577528:error:1408C095:SSL routines:ssl3_get_finished:digest check failed:s3_both.c:273:
+//140684206577528:error:1409E0E5:SSL routines:ssl3_write_bytes:ssl handshake failure:s3_pkt.c:656:
 }
 
 static void get_change_cipher_spec(tls_state_t *tls)
@@ -1043,3 +1230,270 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 
 	return EXIT_SUCCESS;
 }
+
+//TODO: implement RFC 5746 (Renegotiation Indication Extension) - some servers will refuse to work with us otherwise
+
+/* Unencryped SHA256 example:
+ * $ openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
+ * $ openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL
+ * $ openssl s_client -connect 127.0.0.1:4433 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL-SHA256
+ *           s_client says:
+
+write to 0x1d750b0 [0x1e6f153] (99 bytes => 99 (0x63))
+0000 - 16 03 01 005e  01 00005a   0303 [4d ef 5c 82 3e   ....^...Z..M.\.> >> ClHello
+0010 - bf a6 ee f1 1e 04 d1 5c-99 20 86 13 e9 0a cf 58   .......\. .....X
+0020 - 75 b1 bd 7a e6 d6 44 f3-d3 a1 52] 00 0004 003b    u..z..D...R....; 003b = TLS_RSA_WITH_NULL_SHA256
+0030 - 00ff                                                                       TLS_EMPTY_RENEGOTIATION_INFO_SCSV
+             0100                                                             compr=none
+                   002d, 0023  0000, 000d  0020 [00 1e   .....-.#..... .. extlen, SessionTicketTLS 0 bytes, SignatureAlgorithms 32 bytes
+0040 - 06 01 06 02 06 03 05 01-05 02 05 03 04 01 04 02   ................
+0050 - 04 03 03 01 03 02 03 03-02 01 02 02 02 03] 000f   ................ Heart Beat 1 byte
+0060 - 0001  01                                          ...
+
+read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
+0000 - 16 03 03 00 3a                                    ....:
+read from 0x1d750b0 [0x1e6ac08] (58 bytes => 58 (0x3A))
+0000 - 02 000036   0303  [f2 61-ae c8 58 e3 51 42 32 93   ...6...a..X.QB2. << SvHello
+0010 - c5 62 e4 f5 06 93 81 65-aa f7 df 74 af 7c 98 b4   .b.....e...t.|..
+0020 - 3e a7 35 c3 25 69] 00,003b,00..................   >.5.%i..;....... - no session id! "The server
+									may return an empty session_id to indicate that the session will
+									not be cached and therefore cannot be resumed."
+									003b = TLS_RSA_WITH_NULL_SHA256 accepted, 00 - no compr
+                                     000e  ff01  0001                 extlen, 0xff01=RenegotiationInfo 1 byte
+0030 - 00, 0023 0000,                                                SessionTicketTLS 0 bytes
+                       000f 0001 01                     ..#.......       Heart Beat 1 byte
+
+read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
+0000 - 16 03 03 04 0b                                    .....
+read from 0x1d750b0 [0x1e6ac08] (1035 bytes => 1035 (0x40B))
+0000 - 0b 00 04 07 00 04 04 00-04 01 30 82 03 fd 30 82   ..........0...0. << Cert
+0010 - 02 65 a0 03 02 01 02 02-09 00 d9 d9 8d b8 94 ad   .e..............
+0020 - 2e 2b 30 0d 06 09 2a 86-48 86 f7 0d 01 01 0b 05   .+0...*.H.......
+0030 - 00 30 14 31 12 30 10 06-03 55 04 03 0c 09 6c 6f   .0.1.0...U....lo
+0040 - 63 61 6c 68 6f 73 74 30-20 17 0d 31 37 30 31 31   calhost0 ..17011
+0050 - 36 30 33 30 39 34 36 5a-18 0f 32 32 39 30 31 30   6030946Z..229010
+0060 - 33 31 30 33 30 39 34 36-5a 30 14 31 12 30 10 06   31030946Z0.1.0..
+0070 - 03 55 04 03 0c 09 6c 6f-63 61 6c 68 6f 73 74 30   .U....localhost0
+0080 - 82 01 a2 30 0d 06 09 2a-86 48 86 f7 0d 01 01 01   ...0...*.H......
+0090 - 05 00 03 82 01 8f 00 30-82 01 8a 02 82 01 81 00   .......0........
+00a0 - f5 a8 66 54 af fd 33 9e-fb 1d 2d d7 33 ff b9 99   ..fT..3...-.3...
+00b0 - 21 16 8a 65 75 1c 39 9d-0a c3 fc 8c 6d 63 de 7b   !..eu.9.....mc.{
+00c0 - d8 1e d8 20 a1 a9 d5 ab-2a 8e d1 4f b8 9a f4 f7   ... ....*..O....
+00d0 - 91 0d db 70 a8 59 d3 0d-8f 6f bb 51 a4 5c f1 c1   ...p.Y...o.Q.\..
+00e0 - ce 1e b5 58 3a 46 1b 2a-1f 7c 75 87 b4 9f ed d3   ...X:F.*.|u.....
+00f0 - 3d 9a cf a4 5b 96 5b 25-cf f5 33 1c c8 7a 8a 37   =...[.[%..3..z.7
+0100 - 69 2f 63 8c f9 a4 a5 40-06 c9 63 cf fd 35 5d d3   i/c....@..c..5].
+0110 - 8e e3 17 2f 8a ab 5e fd-6c 7e 5b 03 bb b6 3c e3   .../..^.l~[...<.
+0120 - 32 01 99 72 45 a7 a3 c3-11 d8 6c dc 50 a6 75 01   2..rE.....l.P.u.
+0130 - a2 81 85 56 5e be eb 8c-ad 44 05 cf 47 e0 3e 8b   ...V^....D..G.>.
+0140 - cd 6e 08 11 ee 5e 94 39-5d 8c a2 e3 b0 03 7f c2   .n...^.9].......
+0150 - f8 99 35 0b d1 c2 3c 37-49 a8 bb 70 8e e2 a6 c8   ..5...<7I..p....
+0160 - 5b 7d f5 d1 dc 6e ef fb-83 f7 4c ef 8c 85 e3 b9   [}...n....L.....
+0170 - fd 51 18 70 7e a5 03 b7-6d e5 c6 c2 d1 4d e2 16   .Q.p~...m....M..
+0180 - 42 c8 21 25 2a 27 af c4-4a c2 f0 b6 2f 72 46 33   B.!%*'..J.../rF3
+0190 - b1 89 d8 95 7a 9d 52 db-75 ae f4 a0 97 32 8c 5f   ....z.R.u....2._
+01a0 - 97 e7 5d 12 15 3f 85 8f-d1 9c ca a0 fd 59 cd c5   ..]..?.......Y..
+01b0 - 25 70 d3 97 62 04 af cb-19 1b 6e 24 c9 82 b8 25   %p..b.....n$...%
+01c0 - c3 5c bd d7 ee 08 17 6f-ea 99 24 2f c7 05 a8 40   .\.....o..$/...@
+01d0 - 24 d5 74 7b 5b 65 c5 ec-97 63 de d1 46 d2 c4 09   $.t{[e...c..F...
+01e0 - c2 22 23 99 ce 13 03 6f-b4 08 7f 3e 00 c6 fe 91   ."#....o...>....
+01f0 - bc c8 ba b2 32 c2 42 9d-89 de 04 d0 36 27 9e 8c   ....2.B.....6'..
+0200 - ad 79 3e d6 84 38 db cd-57 ad 68 05 85 0b 13 59   .y>..8..W.h....Y
+0210 - 11 5a 2b a4 d0 5f c3 ee-1a 02 69 d4 c5 bf 19 b5   .Z+.._....i.....
+0220 - 02 03 01 00 01 a3 50 30-4e 30 1d 06 03 55 1d 0e   ......P0N0...U..
+0230 - 04 16 04 14 08 87 29 ce-04 09 7f 11 33 80 ba 30   ......).....3..0
+0240 - b2 77 84 b4 73 6e 82 94-30 1f 06 03 55 1d 23 04   .w..sn..0...U.#.
+0250 - 18 30 16 80 14 08 87 29-ce 04 09 7f 11 33 80 ba   .0.....).....3..
+0260 - 30 b2 77 84 b4 73 6e 82-94 30 0c 06 03 55 1d 13   0.w..sn..0...U..
+0270 - 04 05 30 03 01 01 ff 30-0d 06 09 2a 86 48 86 f7   ..0....0...*.H..
+0280 - 0d 01 01 0b 05 00 03 82-01 81 00 22 c4 a8 6f 0a   ..........."..o.
+0290 - 40 a0 c4 92 ae 83 86 9c-42 f8 0a a8 c7 72 d2 5d   @.......B....r.]
+02a0 - de 78 f2 5a 38 e0 e6 0b-3c df af dd 6c 44 a9 0a   .x.Z8...<...lD..
+02b0 - 81 f3 0e 49 e5 07 da 40-0f 85 73 db d6 86 87 6a   ...I...@..s....j
+02c0 - b9 29 75 6a a9 dd fc 16-81 dc eb 25 3a c7 dc 3f   .)uj.......%:..?
+02d0 - c8 a3 2d bb 49 3e 08 72-e9 03 e6 2f ee 1e 17 9a   ..-.I>.r.../....
+02e0 - 9c f6 fd 3c 73 cf e4 2c-5d f1 a8 1c 93 f7 1d f7   ...<s..,].......
+02f0 - ae b2 96 bf ba bd d0 5d-3f 4e d3 54 5e 81 47 72   .......]?N.T^.Gr
+0300 - a1 35 39 db fa a7 54 96-f4 1f e5 5e c8 80 f8 1f   .59...T....^....
+0310 - 73 e5 09 14 ae e5 4a c2-f3 72 5c d8 52 6e d8 d2   s.....J..r\.Rn..
+0320 - e9 de 48 14 56 fc 32 ce-69 a3 68 a1 e9 f5 78 e8   ..H.V.2.i.h...x.
+0330 - ad 84 a8 c3 45 1a 3a 7d-54 db e3 ce 84 9e b1 d7   ....E.:}T.......
+0340 - 60 8e b2 e7 15 84 8e a5-0f c4 53 e4 b9 71 e7 46   `.........S..q.F
+0350 - 93 f7 af 00 bd 3d 36 9a-4e 8f eb e1 18 06 54 49   .....=6.N.....TI
+0360 - 4a 79 9f 3d db 9d d6 e7-57 b7 75 dd 26 ac b7 86   Jy.=....W.u.&...
+0370 - 19 f0 f9 b6 5e 35 36 a4-5a a7 b0 33 88 9e 7f c9   ....^56.Z..3....
+0380 - f3 3e cc 02 ce 49 3c 0e-25 42 27 bf 7b 38 db d8   .>...I<.%B'.{8..
+0390 - 3a 87 6f db 79 7a 54 c1-a3 6a 54 01 17 92 04 24   :.o.yzT..jT....$
+03a0 - 6c 66 1d 47 45 4e 3a af-fe 45 1d 2c 23 81 f6 cc   lf.GEN:..E.,#...
+03b0 - e1 0d 89 81 90 b6 3b 7d-49 8d 0f d5 d8 f6 d8 0c   ......;}I.......
+03c0 - 7e 47 1e fb b7 a0 7a 66-7a 1e f2 ba 4e 28 ed 36   ~G....zfz...N(.6
+03d0 - 6b b6 2b e5 9c 57 0e ba-df 44 1b 4d 5e a2 9e 3f   k.+..W...D.M^..?
+03e0 - 29 18 b6 7c 26 ea 6a d5-0d f1 e9 42 fa 08 0d 44   )..|&.j....B...D
+03f0 - 11 8a cd c5 a3 0a 22 43-d5 13 f9 a5 8a 06 f9 00   ......"C........
+0400 - 3c f7 86 4e e8 a5 d8 5b-92 37 f5                  <..N...[.7.
+depth=0 CN = localhost
+verify error:num=18:self signed certificate
+verify return:1
+depth=0 CN = localhost
+verify return:1
+
+read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
+0000 - 16 03 03 00 04                                    .....
+
+read from 0x1d750b0 [0x1e6ac08] (4 bytes => 4 (0x4))                      << SvDone
+0000 - 0e                                                .
+0004 - <SPACES/NULS>
+
+write to 0x1d750b0 [0x1e74620] (395 bytes => 395 (0x18B))                 >> ClDone
+0000 - 16 03 03 01 86 10 00 01-82 01 80 88 f0 87 5d b0   ..............].
+0010 - ea df 3b 4d e2 35 f3 99-e6 d4 29 87 36 86 ea 30   ..;M.5....).6..0
+0020 - 38 80 c7 37 66 7f 5b e7-23 38 7e 87 24 66 82 81   8..7f.[.#8~.$f..
+0030 - e4 ba 6c 2a 0c 92 a8 b9-39 c1 55 16 32 88 14 cd   ..l*....9.U.2...
+0040 - 95 8c 82 49 a1 c7 f9 9b-e5 8f f6 5e 7e ee 91 b3   ...I.......^~...
+0050 - 2c 92 e7 a3 02 f8 9f 56-04 45 39 df a7 d6 1a 16   ,......V.E9.....
+0060 - 67 5c a4 f8 87 8a c4 c8-6c 6f c6 f0 9b c9 b4 87   g\......lo......
+0070 - 36 43 c1 67 9f b3 aa 11-34 b0 c2 fc 1f d9 e1 ff   6C.g....4.......
+0080 - fb e1 89 db 91 58 ec cc-aa 16 19 9a 91 74 e2 46   .....X.......t.F
+0090 - 22 a7 a7 f7 9e 3c 97 82-2c e4 21 b3 fa ef ba 3f   "....<..,.!....?
+00a0 - 57 48 e4 b2 84 b7 c2 81-92 a9 f1 03 68 f4 e6 0c   WH..........h...
+00b0 - fd 54 87 f5 e9 a0 5d e6-5f 0e bd 80 86 27 ab 0e   .T....]._....'..
+00c0 - cf 92 4f bd fc 24 b9 54-72 5f 58 df 6b 2b 1d 97   ..O..$.Tr_X.k+..
+00d0 - 00 60 fe 95 b0 aa d6 c7-c1 3a f9 2e 7c 92 a9 6d   .`.......:..|..m
+00e0 - 28 a3 ef 3e c1 e6 2d 2d-e8 db 81 ea 51 02 3f 64   (..>..--....Q.?d
+00f0 - a8 66 14 c1 4b 17 1f 55-c6 5b 3b 38 c3 6a 61 a8   .f..K..U.[;8.ja.
+0100 - f7 ad 65 7d cb 14 6d b3-0f 76 19 25 8e ed bd 53   ..e}..m..v.%...S
+0110 - 35 a9 a1 34 00 9d 07 81-84 51 35 e0 83 83 e3 a6   5..4.....Q5.....
+0120 - c7 77 4c 61 e4 78 9c cb-f5 92 4e d6 dd c4 c2 2b   .wLa.x....N....+
+0130 - 75 9e 72 a6 7f 81 6a 1c-fc 4a 51 91 81 b4 cc 33   u.r...j..JQ....3
+0140 - 1c 8b 0a b6 94 8b 16 1b-86 2f 31 5e 31 e1 57 14   ........./1^1.W.
+0150 - 2e b5 09 5d cf 6f ea b2-94 e9 5c cc b9 fc 24 a0   ...].o....\...$.
+0160 - b7 f1 f4 9d 95 46 4f 08-5c 45 c6 2f 9f 7d 76 09   .....FO.\E./.}v.
+0170 - 6a af 50 2c 89 76 82 5f-e8 34 d8 4b 84 b6 34 18   j.P,.v._.4.K..4.
+0180 - 85 95 4a 3f 0f 28 88 3a-71 32 90                  ..J?.(.:q2.
+
+write to 0x1d750b0 [0x1e74620] (6 bytes => 6 (0x6))
+0000 - 14 03 03 00 01 01                                 ......           >> CHANGE_CIPHER_SPEC
+
+write to 0x1d750b0 [0x1e74620] (53 bytes => 53 (0x35))
+0000 - 16 03 03 0030  14 00000c  [ed b9 e1 33 36 0b 76   ....0.......36.v >> FINISHED (0x14) [PRF 12 bytes|SHA256_OUTSIZE 32 bytes]
+0010 - c0 d1 d4 0b a3|73 ec a8-fa b5 cb 12 b6 4c 2a b1   .....s.......L*.
+0020 - fb 42 7f 73 0d 06 1c 87-56 f0 db df e6 6a 25 aa   .B.s....V....j%.
+0030 - fc 42 38 cb 0b]                                    .B8..
+
+read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
+0000 - 16 03 03 00 aa                                    .....
+read from 0x1d750b0 [0x1e6ac08] (170 bytes => 170 (0xAA))
+0000 - 04 00 00 a6 00 00 1c 20-00 a0 dd f4 52 01 54 8d   ....... ....R.T. << NEW_SESSION_TICKET
+0010 - f8 a6 f9 2d 7d 19 20 5b-14 44 d3 2d 7b f2 ca e8   ...-}. [.D.-{...
+0020 - 01 4e 94 7b fe 12 59 3a-00 2e 7e cf 74 43 7a f7   .N.{..Y:..~.tCz.
+0030 - 9e cc 70 80 70 7c e3 a5-c6 9d 85 2c 36 19 4c 5c   ..p.p|.....,6.L\
+0040 - ba 3b c3 e5 69 dc f3 a4-47 38 11 c9 7d 1a b0 6e   .;..i...G8..}..n
+0050 - d8 49 a0 a8 e4 de 70 a8-d0 6b e4 7a b7 65 25 df   .I....p..k.z.e%.
+0060 - 1b 5f 64 0f 89 69 02 72-fe eb d3 7a af 51 78 0e   ._d..i.r...z.Qx.
+0070 - de 17 06 a5 f0 47 9d e0-04 d4 b1 1e be 7e ed bd   .....G.......~..
+0080 - 27 8f 5d e8 ac f6 45 aa-e0 12 93 41 5f a8 4b b9   '.]...E....A_.K.
+0090 - bd 43 8f a1 23 51 af 92-77 8f 38 23 3e 2e c2 f0   .C..#Q..w.8#>...
+00a0 - a3 74 fa 83 94 ce 19 8a-5b 5b                     .t......[[
+
+read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
+0000 - 14 03 03 00 01                                    .....            << CHANGE_CIPHER_SPEC
+read from 0x1d750b0 [0x1e6ac08] (1 bytes => 1 (0x1))
+0000 - 01                                                .
+
+read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
+0000 - 16 03 03 00 30                                    ....0
+read from 0x1d750b0 [0x1e6ac08] (48 bytes => 48 (0x30))
+0000 - 14 00000c  [06 86 0d 5c-92 0b 63 04 cc b4 f0 00   .......\..c..... << FINISHED (0x14) [PRF 12 bytes|SHA256_OUTSIZE 32 bytes]
+0010 -|49 d6 dd 56 73 e3 d2 e8-22 d6 bd 61 b2 b3 af f0   I..Vs..."..a....
+0020 - f5 00 8a 80 82 04 33 a7-50 8e ae 3b 4c 8c cf 4a]  ......3.P..;L..J
+---
+Certificate chain
+ 0 s:/CN=localhost
+   i:/CN=localhost
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIID/TCCAmWgAwIBAgIJANnZjbiUrS4rMA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
+BAMMCWxvY2FsaG9zdDAgFw0xNzAxMTYwMzA5NDZaGA8yMjkwMTAzMTAzMDk0Nlow
+FDESMBAGA1UEAwwJbG9jYWxob3N0MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIB
+igKCAYEA9ahmVK/9M577HS3XM/+5mSEWimV1HDmdCsP8jG1j3nvYHtggoanVqyqO
+0U+4mvT3kQ3bcKhZ0w2Pb7tRpFzxwc4etVg6RhsqH3x1h7Sf7dM9ms+kW5ZbJc/1
+MxzIeoo3aS9jjPmkpUAGyWPP/TVd047jFy+Kq179bH5bA7u2POMyAZlyRaejwxHY
+bNxQpnUBooGFVl6+64ytRAXPR+A+i81uCBHuXpQ5XYyi47ADf8L4mTUL0cI8N0mo
+u3CO4qbIW3310dxu7/uD90zvjIXjuf1RGHB+pQO3beXGwtFN4hZCyCElKievxErC
+8LYvckYzsYnYlXqdUtt1rvSglzKMX5fnXRIVP4WP0ZzKoP1ZzcUlcNOXYgSvyxkb
+biTJgrglw1y91+4IF2/qmSQvxwWoQCTVdHtbZcXsl2Pe0UbSxAnCIiOZzhMDb7QI
+fz4Axv6RvMi6sjLCQp2J3gTQNieejK15PtaEONvNV61oBYULE1kRWiuk0F/D7hoC
+adTFvxm1AgMBAAGjUDBOMB0GA1UdDgQWBBQIhynOBAl/ETOAujCyd4S0c26ClDAf
+BgNVHSMEGDAWgBQIhynOBAl/ETOAujCyd4S0c26ClDAMBgNVHRMEBTADAQH/MA0G
+CSqGSIb3DQEBCwUAA4IBgQAixKhvCkCgxJKug4acQvgKqMdy0l3eePJaOODmCzzf
+r91sRKkKgfMOSeUH2kAPhXPb1oaHarkpdWqp3fwWgdzrJTrH3D/Ioy27ST4IcukD
+5i/uHheanPb9PHPP5Cxd8agck/cd966ylr+6vdBdP07TVF6BR3KhNTnb+qdUlvQf
+5V7IgPgfc+UJFK7lSsLzclzYUm7Y0uneSBRW/DLOaaNooen1eOithKjDRRo6fVTb
+486EnrHXYI6y5xWEjqUPxFPkuXHnRpP3rwC9PTaaTo/r4RgGVElKeZ89253W51e3
+dd0mrLeGGfD5tl41NqRap7AziJ5/yfM+zALOSTwOJUInv3s429g6h2/beXpUwaNq
+VAEXkgQkbGYdR0VOOq/+RR0sI4H2zOENiYGQtjt9SY0P1dj22Ax+Rx77t6B6Znoe
+8rpOKO02a7Yr5ZxXDrrfRBtNXqKePykYtnwm6mrVDfHpQvoIDUQRis3FowoiQ9UT
++aWKBvkAPPeGTuil2FuSN/U=
+-----END CERTIFICATE-----
+subject=/CN=localhost
+issuer=/CN=localhost
+---
+No client certificate CA names sent
+---
+SSL handshake has read 1346 bytes and written 553 bytes
+---
+New, TLSv1/SSLv3, Cipher is NULL-SHA256
+Server public key is 3072 bit
+Secure Renegotiation IS supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+SSL-Session:
+    Protocol  : TLSv1.2
+    Cipher    : NULL-SHA256
+    Session-ID: 5D62B36950F3DEB571707CD1B815E9E275041B9DB70D7F3E25C4A6535B13B616
+    Session-ID-ctx:
+    Master-Key: 4D08108C59417E0A41656636C51BA5B83F4EFFF9F4C860987B47B31250E5D1816D00940DBCCC196C2D99C8462C889DF1
+    Key-Arg   : None
+    Krb5 Principal: None
+    PSK identity: None
+    PSK identity hint: None
+    TLS session ticket lifetime hint: 7200 (seconds)
+    TLS session ticket:
+    0000 - dd f4 52 01 54 8d f8 a6-f9 2d 7d 19 20 5b 14 44   ..R.T....-}. [.D
+    0010 - d3 2d 7b f2 ca e8 01 4e-94 7b fe 12 59 3a 00 2e   .-{....N.{..Y:..
+    0020 - 7e cf 74 43 7a f7 9e cc-70 80 70 7c e3 a5 c6 9d   ~.tCz...p.p|....
+    0030 - 85 2c 36 19 4c 5c ba 3b-c3 e5 69 dc f3 a4 47 38   .,6.L\.;..i...G8
+    0040 - 11 c9 7d 1a b0 6e d8 49-a0 a8 e4 de 70 a8 d0 6b   ..}..n.I....p..k
+    0050 - e4 7a b7 65 25 df 1b 5f-64 0f 89 69 02 72 fe eb   .z.e%.._d..i.r..
+    0060 - d3 7a af 51 78 0e de 17-06 a5 f0 47 9d e0 04 d4   .z.Qx......G....
+    0070 - b1 1e be 7e ed bd 27 8f-5d e8 ac f6 45 aa e0 12   ...~..'.]...E...
+    0080 - 93 41 5f a8 4b b9 bd 43-8f a1 23 51 af 92 77 8f   .A_.K..C..#Q..w.
+    0090 - 38 23 3e 2e c2 f0 a3 74-fa 83 94 ce 19 8a 5b 5b   8#>....t......[[
+
+    Start Time: 1484574330
+    Timeout   : 7200 (sec)
+    Verify return code: 18 (self signed certificate)
+---
+read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
+0000 - 17 03 03 00 21                                    ....!
+read from 0x1d750b0 [0x1e6ac08] (33 bytes => 33 (0x21))
+0000 - 0a 74 5b 50 02 13 75 a4-27 0a 40 b1 53 74 52 14   .t[P..u.'.@.StR.
+0010 - e7 1e 6a 6c c1 60 2e 93-7e a5 d9 43 1d 8e f6 08   ..jl.`..~..C....
+0020 - 69                                                i
+
+read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
+0000 - 17 03 03 00 21                                    ....!
+read from 0x1d750b0 [0x1e6ac08] (33 bytes => 33 (0x21))
+0000 - 0a 1b ce 44 98 4f 81 c5-28 7a cc 79 62 db d2 86   ...D.O..(z.yb...
+0010 - 6a 55 a4 c7 73 49 ef 3e-bd 03 99 76 df 65 2a a1   jU..sI.>...v.e*.
+0020 - b6                                                .
+
+read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
+0000 - 17 03 03 00 21                                    ....!
+read from 0x1d750b0 [0x1e6ac08] (33 bytes => 33 (0x21))
+0000 - 0a 67 66 34 ba 68 36 3c-ad 0a c1 f5 c0 5a 50 fe   .gf4.h6<.....ZP.
+0010 - 68 cd 04 65 e9 de 6e 98-f9 e2 41 1e 0b 9b 84 06   h..e..n...A.....
+0020 - 64                                                d
+*/
