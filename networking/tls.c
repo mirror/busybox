@@ -146,6 +146,11 @@ typedef struct tls_state {
 
 	psRsaKey_t server_rsa_pub_key;
 
+	sha256_ctx_t handshake_sha256_ctx;
+
+	uint8_t client_and_server_rand32[2 * 32];
+	uint8_t master_secret[48];
+
 	// RFC 5246
 	// |6.2.1. Fragmentation
 	// |  The record layer fragments information blocks into TLSPlaintext
@@ -187,7 +192,16 @@ tls_state_t *new_tls_state(void)
 {
 	tls_state_t *tls = xzalloc(sizeof(*tls));
 	tls->fd = -1;
+	sha256_begin(&tls->handshake_sha256_ctx);
 	return tls;
+}
+
+static void xwrite_and_hash(tls_state_t *tls, const void *buf, unsigned size)
+{
+	xwrite(tls->fd, buf, size);
+	/* hash does not include record headers */
+	if (size > 5)
+		sha256_hash(&tls->handshake_sha256_ctx, (uint8_t*)buf + 5, size - 5);
 }
 
 static unsigned get24be(const uint8_t *p)
@@ -494,6 +508,156 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 	dbg("server_rsa_pub_key.size:%d\n", tls->server_rsa_pub_key.size);
 }
 
+enum {
+	SHA256_INSIZE = 64,
+	SHA256_OUTSIZE = 32,
+};
+
+static void hash_sha256(uint8_t out[SHA256_OUTSIZE], const void *data, unsigned size)
+{
+	sha256_ctx_t ctx;
+	sha256_begin(&ctx);
+	sha256_hash(&ctx, data, size);
+	sha256_end(&ctx, out);
+}
+
+// RFC 2104: HMAC(key, text) based on a hash H (say, sha256) is:
+// ipad = [0x36 x INSIZE]
+// opad = [0x5c x INSIZE]
+// HMAC(key, text) = H((key XOR opad) + H((key XOR ipad) + text))
+//
+// H(key XOR opad) and H(key XOR ipad) can be precomputed
+// if we often need HMAC hmac with the same key.
+//
+// text is often given in disjoint pieces.
+static void hmac_sha256_precomputed_v(uint8_t out[SHA256_OUTSIZE],
+		sha256_ctx_t *hashed_key_xor_ipad,
+		sha256_ctx_t *hashed_key_xor_opad,
+		va_list va)
+{
+	uint8_t *text;
+
+	/* hashed_key_xor_ipad contains unclosed "H((key XOR ipad) +" state */
+	/* hashed_key_xor_opad contains unclosed "H((key XOR opad) +" state */
+
+	/* calculate out = H((key XOR ipad) + text) */
+	while ((text = va_arg(va, uint8_t*)) != NULL) {
+		unsigned text_size = va_arg(va, unsigned);
+		sha256_hash(hashed_key_xor_ipad, text, text_size);
+	}
+	sha256_end(hashed_key_xor_ipad, out);
+
+	/* out = H((key XOR opad) + out) */
+	sha256_hash(hashed_key_xor_opad, out, SHA256_OUTSIZE);
+	sha256_end(hashed_key_xor_opad, out);
+}
+
+static void hmac_sha256(uint8_t out[SHA256_OUTSIZE], uint8_t *key, unsigned key_size, ...)
+{
+	sha256_ctx_t hashed_key_xor_ipad;
+	sha256_ctx_t hashed_key_xor_opad;
+	uint8_t key_xor_ipad[SHA256_INSIZE];
+	uint8_t key_xor_opad[SHA256_INSIZE];
+	uint8_t tempkey[SHA256_OUTSIZE];
+	va_list va;
+	int i;
+
+	va_start(va, key_size);
+
+	// "The authentication key can be of any length up to INSIZE, the
+	// block length of the hash function.  Applications that use keys longer
+	// than INSIZE bytes will first hash the key using H and then use the
+	// resultant OUTSIZE byte string as the actual key to HMAC."
+	if (key_size > SHA256_INSIZE) {
+		hash_sha256(tempkey, key, key_size);
+		key = tempkey;
+		key_size = SHA256_OUTSIZE;
+	}
+
+	for (i = 0; i < key_size; i++) {
+		key_xor_ipad[i] = key[i] ^ 0x36;
+		key_xor_opad[i] = key[i] ^ 0x5c;
+	}
+	for (; i < SHA256_INSIZE; i++) {
+		key_xor_ipad[i] = 0x36;
+		key_xor_opad[i] = 0x5c;
+	}
+	sha256_begin(&hashed_key_xor_ipad);
+	sha256_hash(&hashed_key_xor_ipad, key_xor_ipad, SHA256_INSIZE);
+	sha256_begin(&hashed_key_xor_opad);
+	sha256_hash(&hashed_key_xor_opad, key_xor_opad, SHA256_INSIZE);
+
+	hmac_sha256_precomputed_v(out, &hashed_key_xor_ipad, &hashed_key_xor_opad, va);
+	va_end(va);
+}
+
+// RFC 5246:
+// 5.  HMAC and the Pseudorandom Function
+//...
+// In this section, we define one PRF, based on HMAC.  This PRF with the
+// SHA-256 hash function is used for all cipher suites defined in this
+// document and in TLS documents published prior to this document when
+// TLS 1.2 is negotiated.
+//...
+//    P_hash(secret, seed) = HMAC_hash(secret, A(1) + seed) +
+//                           HMAC_hash(secret, A(2) + seed) +
+//                           HMAC_hash(secret, A(3) + seed) + ...
+// where + indicates concatenation.
+// A() is defined as:
+//    A(0) = seed
+//    A(1) = HMAC_hash(secret, A(0)) = HMAC_hash(secret, seed)
+//    A(i) = HMAC_hash(secret, A(i-1))
+// P_hash can be iterated as many times as necessary to produce the
+// required quantity of data.  For example, if P_SHA256 is being used to
+// create 80 bytes of data, it will have to be iterated three times
+// (through A(3)), creating 96 bytes of output data; the last 16 bytes
+// of the final iteration will then be discarded, leaving 80 bytes of
+// output data.
+//
+// TLS's PRF is created by applying P_hash to the secret as:
+//
+//    PRF(secret, label, seed) = P_<hash>(secret, label + seed)
+//
+// The label is an ASCII string.
+static void tls_prf_hmac_sha256(
+		uint8_t *outbuf, unsigned outbuf_size,
+		uint8_t *secret, unsigned secret_size,
+		const char *label,
+		uint8_t *seed, unsigned seed_size)
+{
+	uint8_t a[SHA256_OUTSIZE];
+	uint8_t *out_p = outbuf;
+	unsigned label_size = strlen(label);
+
+	/* In P_hash() calculation, "seed" is "label + seed": */
+#define SEED   label, label_size, seed, seed_size
+#define SECRET secret, secret_size
+#define A      a, (int)(sizeof(a))
+
+	/* A(1) = HMAC_hash(secret, seed) */
+	hmac_sha256(a, SECRET, SEED, NULL);
+
+	for(;;) {
+		/* HMAC_hash(secret, A(1) + seed) */
+		if (outbuf_size <= SHA256_OUTSIZE) {
+			/* Last, possibly incomplete, block */
+			/* (use a[] as temp buffer) */
+			hmac_sha256(a, SECRET, A, SEED, NULL);
+			memcpy(out_p, a, outbuf_size);
+			return;
+		}
+		/* Not last block. Store directly to result buffer */
+		hmac_sha256(out_p, SECRET, A, SEED, NULL);
+		out_p += SHA256_OUTSIZE;
+		outbuf_size -= SHA256_OUTSIZE;
+		/* A(2) = HMAC_hash(secret, A(1)) */
+		hmac_sha256(a, SECRET, A, NULL);
+	}
+#undef A
+#undef SECRET
+#undef SEED
+}
+
 /*
  * TLS Handshake routines
  */
@@ -535,7 +699,9 @@ static void send_client_hello(tls_state_t *tls)
 	hello.comprtypes_len = 1;
 	//hello.comprtypes[0] = 0;
 
-	xwrite(tls->fd, &hello, sizeof(hello));
+	xwrite_and_hash(tls, &hello, sizeof(hello));
+	memcpy(tls->client_and_server_rand32, hello.rand32, sizeof(hello.rand32));
+
 #if 0 /* dump */
 	for (;;) {
 		uint8_t buf[16*1024];
@@ -589,6 +755,7 @@ static void get_server_hello(tls_state_t *tls)
 		tls_error_die(tls);
 	}
 	dbg("got SERVER_HELLO\n");
+	memcpy(tls->client_and_server_rand32 + 32, hp->rand32, sizeof(hp->rand32));
 }
 
 static void get_server_cert(tls_state_t *tls)
@@ -665,7 +832,23 @@ static void send_client_key_exchange(tls_state_t *tls)
 		data_param_ignored
 	);
 
-	xwrite(tls->fd, &record, sizeof(record));
+	xwrite_and_hash(tls, &record, sizeof(record));
+
+// RFC 5246
+// For all key exchange methods, the same algorithm is used to convert
+// the pre_master_secret into the master_secret.  The pre_master_secret
+// should be deleted from memory once the master_secret has been
+// computed.
+//      master_secret = PRF(pre_master_secret, "master secret",
+//                          ClientHello.random + ServerHello.random)
+//                          [0..47];
+// The master secret is always exactly 48 bytes in length.  The length
+// of the premaster secret will vary depending on key exchange method.
+	tls_prf_hmac_sha256(tls->master_secret, sizeof(tls->master_secret),
+		rsa_premaster, sizeof(rsa_premaster),
+		"master secret",
+		tls->client_and_server_rand32, sizeof(tls->client_and_server_rand32)
+	);
 }
 
 static void send_change_cipher_spec(tls_state_t *tls)
@@ -674,42 +857,12 @@ static void send_change_cipher_spec(tls_state_t *tls)
 		RECORD_TYPE_CHANGE_CIPHER_SPEC, TLS_MAJ, TLS_MIN, 00, 01,
 		01
 	};
+	/* Not "xwrite_and_hash": this is not a handshake message */
 	xwrite(tls->fd, rec, sizeof(rec));
 }
 
 static void send_client_finished(tls_state_t *tls)
 {
-// RFC 5246 on pseudorandom function (PRF):
-//
-// 5.  HMAC and the Pseudorandom Function
-//...
-// In this section, we define one PRF, based on HMAC.  This PRF with the
-// SHA-256 hash function is used for all cipher suites defined in this
-// document and in TLS documents published prior to this document when
-// TLS 1.2 is negotiated.
-//...
-//    P_hash(secret, seed) = HMAC_hash(secret, A(1) + seed) +
-//                           HMAC_hash(secret, A(2) + seed) +
-//                           HMAC_hash(secret, A(3) + seed) + ...
-// where + indicates concatenation.
-// A() is defined as:
-//    A(0) = seed
-//    A(i) = HMAC_hash(secret, A(i-1))
-// P_hash can be iterated as many times as necessary to produce the
-// required quantity of data.  For example, if P_SHA256 is being used to
-// create 80 bytes of data, it will have to be iterated three times
-// (through A(3)), creating 96 bytes of output data; the last 16 bytes
-// of the final iteration will then be discarded, leaving 80 bytes of
-// output data.
-//
-// TLS's PRF is created by applying P_hash to the secret as:
-//
-//    PRF(secret, label, seed) = P_<hash>(secret, label + seed)
-//
-// The label is an ASCII string.
-
-	tls->fd = 0;
-
 // 7.4.9.  Finished
 // A Finished message is always sent immediately after a change
 // cipher spec message to verify that the key exchange and
@@ -747,6 +900,39 @@ static void send_client_finished(tls_state_t *tls)
 // suite.  Any cipher suite which does not explicitly specify
 // verify_data_length has a verify_data_length equal to 12.  This
 // includes all existing cipher suites.
+	struct client_finished {
+		struct record_hdr xhdr;
+		uint8_t type;
+		uint8_t len24_hi, len24_mid, len24_lo;
+		uint8_t prf_result[12];
+	};
+	struct client_finished record;
+	uint8_t handshake_hash[SHA256_OUTSIZE];
+	sha256_ctx_t ctx;
+
+	memset(&record, 0, sizeof(record));
+	record.xhdr.type = RECORD_TYPE_HANDSHAKE;
+	record.xhdr.proto_maj = TLS_MAJ;
+	record.xhdr.proto_min = TLS_MIN;
+	record.xhdr.len16_hi = (sizeof(record) - sizeof(record.xhdr)) >> 8;
+	record.xhdr.len16_lo = (sizeof(record) - sizeof(record.xhdr)) & 0xff;
+	record.type = HANDSHAKE_FINISHED;
+	//record.len24_hi  = 0;
+	record.len24_mid = (sizeof(record) - sizeof(record.xhdr) - 4) >> 8;
+	record.len24_lo  = (sizeof(record) - sizeof(record.xhdr) - 4) & 0xff;
+//FIXME ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this code is repeatable
+
+	ctx = tls->handshake_sha256_ctx; /* struct copy */
+	sha256_end(&ctx, handshake_hash);
+	tls_prf_hmac_sha256(record.prf_result, sizeof(record.prf_result),
+			tls->master_secret, sizeof(tls->master_secret),
+			"client finished",
+			handshake_hash, sizeof(handshake_hash)
+	);
+
+//(1) TODO: well, this should be encrypted on send, really.
+//(2) do we really need to also hash it?
+	xwrite_and_hash(tls, &record, sizeof(record));
 }
 
 static void get_change_cipher_spec(tls_state_t *tls)
@@ -830,6 +1016,10 @@ static void tls_handshake(tls_state_t *tls)
 		tls_error_die(tls);
 	}
 }
+
+// To run a test server using openssl:
+// openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1
+// openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
 
 int tls_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tls_main(int argc UNUSED_PARAM, char **argv)

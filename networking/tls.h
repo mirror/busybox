@@ -59,7 +59,7 @@ void tls_get_random(void *buf, unsigned len);
 #define matrixCryptoGetPrngData(buf, len, userPtr) (tls_get_random(buf, len), PS_SUCCESS)
 
 #define psFree(p, pool)    free(p)
-#define psTraceCrypto(msg) bb_error_msg_and_die(msg)
+#define psTraceCrypto(...) bb_error_msg_and_die(__VA_ARGS__)
 
 /* Secure zerofill */
 #define memset_s(A,B,C,D) memset((A),(C),(D))

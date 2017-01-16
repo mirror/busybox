@@ -187,7 +187,7 @@ int32 psRsaEncryptPub(psPool_t *pool, psRsaKey_t *key,
 
 	size = key->size;
 	if (outlen < size) {
-		psTraceCrypto("Error on bad outlen parameter to psRsaEncryptPub\n");
+		psTraceCrypto("Error on bad outlen parameter to psRsaEncryptPub: outlen:%d < size:%d", outlen, size);
 		return PS_ARG_FAIL;
 	}
 
