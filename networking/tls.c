@@ -262,7 +262,6 @@ static void hash_sha256(uint8_t out[SHA256_OUTSIZE], const void *data, unsigned 
 	sha256_end(&ctx, out);
 }
 
-#if TLS_DEBUG >= 2
 /* Nondestructively see the current hash value */
 static void sha256_peek(sha256_ctx_t *ctx, void *buffer)
 {
@@ -270,6 +269,7 @@ static void sha256_peek(sha256_ctx_t *ctx, void *buffer)
         sha256_end(&ctx_copy, buffer);
 }
 
+#if TLS_DEBUG >= 2
 static void sha256_hash_dbg(const char *fmt, sha256_ctx_t *ctx, const void *buffer, size_t len)
 {
         uint8_t h[SHA256_OUTSIZE];
@@ -384,7 +384,7 @@ static void hmac_sha256(uint8_t out[SHA256_OUTSIZE], uint8_t *key, unsigned key_
 //    PRF(secret, label, seed) = P_<hash>(secret, label + seed)
 //
 // The label is an ASCII string.
-static void tls_prf_hmac_sha256(
+static void prf_hmac_sha256(
 		uint8_t *outbuf, unsigned outbuf_size,
 		uint8_t *secret, unsigned secret_size,
 		const char *label,
@@ -794,6 +794,35 @@ static int xread_tls_handshake_block(tls_state_t *tls, int min_len)
 	return len;
 }
 
+static void fill_handshake_record_hdr(struct record_hdr *xhdr, unsigned len)
+{
+	struct handshake_hdr {
+		struct record_hdr xhdr;
+		uint8_t type;
+		uint8_t len24_hi, len24_mid, len24_lo;
+	} *h = (void*)xhdr;
+
+	h->xhdr.type = RECORD_TYPE_HANDSHAKE;
+	h->xhdr.proto_maj = TLS_MAJ;
+	h->xhdr.proto_min = TLS_MIN;
+	len -= 5;
+	h->xhdr.len16_hi = len >> 8;
+	// can be optimized to do one store instead of four:
+	// uint32_t v = htonl(0x100*(RECORD_TYPE_HANDSHAKE + 0x100*(TLS_MAJ + 0x100*(TLS_MIN))))
+	//            | ((len >> 8) << 24); // little-endian specific, don't use in this form
+	// *(uint32_t *)xhdr = v;
+
+	h->xhdr.len16_lo = len & 0xff;
+
+	len -= 4;
+	h->len24_hi  = len >> 16;
+	h->len24_mid = len >> 8;
+	h->len24_lo  = len & 0xff;
+
+	memset(h + 1, 0, len);
+}
+
+//TODO: implement RFC 5746 (Renegotiation Indication Extension) - some servers will refuse to work with us otherwise
 static void send_client_hello(tls_state_t *tls)
 {
 	struct client_hello {
@@ -809,33 +838,25 @@ static void send_client_hello(tls_state_t *tls)
 		uint8_t comprtypes_len;
 		uint8_t comprtypes[1]; /* actually variable */
 	};
-	struct client_hello hello;
+	struct client_hello record;
 
-	memset(&hello, 0, sizeof(hello));
-	hello.xhdr.type = RECORD_TYPE_HANDSHAKE;
-	hello.xhdr.proto_maj = TLS_MAJ;
-	hello.xhdr.proto_min = TLS_MIN;
-	//zero: hello.xhdr.len16_hi = (sizeof(hello) - sizeof(hello.xhdr)) >> 8;
-	hello.xhdr.len16_lo = (sizeof(hello) - sizeof(hello.xhdr));
-	hello.type = HANDSHAKE_CLIENT_HELLO;
-	//hello.len24_hi  = 0;
-	//zero: hello.len24_mid = (sizeof(hello) - sizeof(hello.xhdr) - 4) >> 8;
-	hello.len24_lo  = (sizeof(hello) - sizeof(hello.xhdr) - 4);
-	hello.proto_maj = TLS_MAJ;	/* the "requested" version of the protocol, */
-	hello.proto_min = TLS_MIN;	/* can be higher than one in record headers */
-	tls_get_random(hello.rand32, sizeof(hello.rand32));
-	//hello.session_id_len = 0;
-	//hello.cipherid_len16_hi = 0;
-	hello.cipherid_len16_lo = 2 * 1;
-	hello.cipherid[0] = CIPHER_ID >> 8;
-	hello.cipherid[1] = CIPHER_ID & 0xff;
-	hello.comprtypes_len = 1;
-	//hello.comprtypes[0] = 0;
+	fill_handshake_record_hdr(&record.xhdr, sizeof(record));
+	record.type = HANDSHAKE_CLIENT_HELLO;
+	record.proto_maj = TLS_MAJ;	/* the "requested" version of the protocol, */
+	record.proto_min = TLS_MIN;	/* can be higher than one in record headers */
+	tls_get_random(record.rand32, sizeof(record.rand32));
+	/* record.session_id_len = 0; - already is */
+	/* record.cipherid_len16_hi = 0; */
+	record.cipherid_len16_lo = 2 * 1;
+	record.cipherid[0] = CIPHER_ID >> 8;
+	record.cipherid[1] = CIPHER_ID & 0xff;
+	record.comprtypes_len = 1;
+	/* record.comprtypes[0] = 0; */
 
-	//dbg (make it repeatable): memset(hello.rand32, 0x11, sizeof(hello.rand32));
+	//dbg (make it repeatable): memset(record.rand32, 0x11, sizeof(record.rand32));
 	dbg(">> HANDSHAKE_CLIENT_HELLO\n");
-	xwrite_and_hash(tls, &hello, sizeof(hello));
-	memcpy(tls->client_and_server_rand32, hello.rand32, sizeof(hello.rand32));
+	xwrite_and_hash(tls, &record, sizeof(record));
+	memcpy(tls->client_and_server_rand32, record.rand32, sizeof(record.rand32));
 }
 
 static void get_server_hello(tls_state_t *tls)
@@ -892,7 +913,7 @@ static void get_server_hello(tls_state_t *tls)
 		tls_error_die(tls);
 	}
 
-	dbg("got SERVER_HELLO\n");
+	dbg("<< SERVER_HELLO\n");
 	memcpy(tls->client_and_server_rand32 + 32, hp->rand32, sizeof(hp->rand32));
 }
 
@@ -908,7 +929,7 @@ static void get_server_cert(tls_state_t *tls)
 	certbuf = (void*)(xhdr + 1);
 	if (certbuf[0] != HANDSHAKE_CERTIFICATE)
 		tls_error_die(tls);
-	dbg("got CERTIFICATE\n");
+	dbg("<< CERTIFICATE\n");
 	// 4392 bytes:
 	// 0b  00|11|24 00|11|21 00|05|b0 30|82|05|ac|30|82|04|94|a0|03|02|01|02|02|11|00|9f|85|bf|66|4b|0c|dd|af|ca|50|86|79|50|1b|2b|e4|30|0d...
 	//Cert len=4388 ChainLen CertLen^ DER encoded X509 starts here. openssl x509 -in FILE -inform DER -noout -text
@@ -932,29 +953,22 @@ static void send_client_key_exchange(tls_state_t *tls)
 		struct record_hdr xhdr;
 		uint8_t type;
 		uint8_t len24_hi, len24_mid, len24_lo;
-		uint8_t keylen16_hi, keylen16_lo; /* exist for RSA, but not for some other key types */
-//had a bug when had no keylen: we:
-//write(3, "\x16\x03\x03\x01\x84\x10\x00\x01\x80\xXX\xXX\xXX\xXX\xXX\xXX...", 393) = 393
-//openssl:
-//write to 0xe9a090 [0xf9ac20] (395 bytes => 395 (0x18B))
-//0000 -      16  03  03  01  86  10  00  01 -82  01  80  xx  xx  xx  xx  xx
+		/* keylen16 exists for RSA (in TLS, not in SSL), but not for some other key types */
+		uint8_t keylen16_hi, keylen16_lo;
 		uint8_t key[4 * 1024]; // size??
 	};
 	struct client_key_exchange record;
 	uint8_t rsa_premaster[SSL_HS_RSA_PREMASTER_SIZE];
 	int len;
 
-	memset(&record, 0, sizeof(record));
-	record.xhdr.type = RECORD_TYPE_HANDSHAKE;
-	record.xhdr.proto_maj = TLS_MAJ;
-	record.xhdr.proto_min = TLS_MIN;
+	fill_handshake_record_hdr(&record.xhdr, sizeof(record) - sizeof(record.key));
 	record.type = HANDSHAKE_CLIENT_KEY_EXCHANGE;
 
 	tls_get_random(rsa_premaster, sizeof(rsa_premaster));
-// RFC 5246
-// "Note: The version number in the PreMasterSecret is the version
-// offered by the client in the ClientHello.client_version, not the
-// version negotiated for the connection."
+	// RFC 5246
+	// "Note: The version number in the PreMasterSecret is the version
+	// offered by the client in the ClientHello.client_version, not the
+	// version negotiated for the connection."
 	rsa_premaster[0] = TLS_MAJ;
 	rsa_premaster[1] = TLS_MIN;
 	len = psRsaEncryptPub(/*pool:*/ NULL,
@@ -963,10 +977,11 @@ static void send_client_key_exchange(tls_state_t *tls)
 		record.key, sizeof(record.key),
 		data_param_ignored
 	);
+	/* length fields need fixing */
 	record.keylen16_hi = len >> 8;
 	record.keylen16_lo = len & 0xff;
 	len += 2;
-	//record.len24_hi  = 0;
+	/* record.len24_hi  = 0; - already is */
 	record.len24_mid = len >> 8;
 	record.len24_lo  = len & 0xff;
 	len += 4;
@@ -986,7 +1001,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	//                          [0..47];
 	// The master secret is always exactly 48 bytes in length.  The length
 	// of the premaster secret will vary depending on key exchange method.
-	tls_prf_hmac_sha256(
+	prf_hmac_sha256(
 		tls->master_secret, sizeof(tls->master_secret),
 		rsa_premaster, sizeof(rsa_premaster),
 		"master secret",
@@ -1033,7 +1048,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 		memcpy(&tmp64[0] , &tls->client_and_server_rand32[32], 32);
 		memcpy(&tmp64[32], &tls->client_and_server_rand32[0] , 32);
 
-		tls_prf_hmac_sha256(
+		prf_hmac_sha256(
 			tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key),
 			tls->master_secret, sizeof(tls->master_secret),
 			"key expansion",
@@ -1107,23 +1122,12 @@ static void send_client_finished(tls_state_t *tls)
 	};
 	struct client_finished record;
 	uint8_t handshake_hash[SHA256_OUTSIZE];
-	sha256_ctx_t ctx;
 
-	memset(&record, 0, sizeof(record));
-	record.xhdr.type = RECORD_TYPE_HANDSHAKE;
-	record.xhdr.proto_maj = TLS_MAJ;
-	record.xhdr.proto_min = TLS_MIN;
-	record.xhdr.len16_hi = (sizeof(record) - sizeof(record.xhdr)) >> 8;
-	record.xhdr.len16_lo = (sizeof(record) - sizeof(record.xhdr)) & 0xff;
+	fill_handshake_record_hdr(&record.xhdr, sizeof(record));
 	record.type = HANDSHAKE_FINISHED;
-	//record.len24_hi  = 0;
-	record.len24_mid = (sizeof(record) - sizeof(record.xhdr) - 4) >> 8;
-	record.len24_lo  = (sizeof(record) - sizeof(record.xhdr) - 4) & 0xff;
-//FIXME ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this code is repeatable
 
-	ctx = tls->handshake_sha256_ctx; /* struct copy */
-	sha256_end(&ctx, handshake_hash);
-	tls_prf_hmac_sha256(record.prf_result, sizeof(record.prf_result),
+	sha256_peek(&tls->handshake_sha256_ctx, handshake_hash);
+	prf_hmac_sha256(record.prf_result, sizeof(record.prf_result),
 			tls->master_secret, sizeof(tls->master_secret),
 			"client finished",
 			handshake_hash, sizeof(handshake_hash)
@@ -1182,12 +1186,13 @@ static void tls_handshake(tls_state_t *tls)
 		//SvKey len=455^
 		// with TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA: 461 bytes:
 		// 0c   00|01|c9 03|00|17|41|04|cd|9b|b4|29|1f|f6|b0|c2|84|82|7f|29|6a|47|4e|ec|87|0b|c1|9c|69|e1|f8|c6|d0|53|e9|27|90|a5|c8|02|15|75...
-		dbg("got SERVER_KEY_EXCHANGE len:%u\n", len);
-//need to save it
+		dbg("<< SERVER_KEY_EXCHANGE len:%u\n", len);
+//probably need to save it
 		xread_tls_handshake_block(tls, 4);
 	}
+
 //	if (tls->inbuf[5] == HANDSHAKE_CERTIFICATE_REQUEST) {
-//		dbg("got CERTIFICATE_REQUEST\n");
+//		dbg("<< CERTIFICATE_REQUEST\n");
 //RFC 5246: (in response to this,) "If no suitable certificate is available,
 // the client MUST send a certificate message containing no
 // certificates.  That is, the certificate_list structure has a
@@ -1197,10 +1202,11 @@ static void tls_handshake(tls_state_t *tls)
 // (i.e. the same format as server certs)
 //		xread_tls_handshake_block(tls, 4);
 //	}
+
 	if (tls->inbuf[5] != HANDSHAKE_SERVER_HELLO_DONE)
 		tls_error_die(tls);
 	// 0e 000000 (len:0)
-	dbg("got SERVER_HELLO_DONE\n");
+	dbg("<< SERVER_HELLO_DONE\n");
 
 	send_client_key_exchange(tls);
 
@@ -1213,7 +1219,7 @@ static void tls_handshake(tls_state_t *tls)
 	len = xread_tls_block(tls);
 	if (len != 1 || memcmp(tls->inbuf, rec_CHANGE_CIPHER_SPEC, 6) != 0)
 		tls_error_die(tls);
-	dbg("got CHANGE_CIPHER_SPEC\n");
+	dbg("<< CHANGE_CIPHER_SPEC\n");
 	tls->decrypt_on_read = 1;
 	/* we now should receive encrypted */
 
@@ -1221,7 +1227,7 @@ static void tls_handshake(tls_state_t *tls)
 	len = xread_tls_block(tls);
 	if (len < 4 || tls->inbuf[5] != HANDSHAKE_FINISHED)
 		tls_error_die(tls);
-	dbg("got FINISHED\n");
+	dbg("<< FINISHED\n");
 	/* application data can be sent/received */
 }
 
@@ -1251,8 +1257,6 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 
 	return EXIT_SUCCESS;
 }
-
-//TODO: implement RFC 5746 (Renegotiation Indication Extension) - some servers will refuse to work with us otherwise
 
 /* Unencryped SHA256 example:
  * $ openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
