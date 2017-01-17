@@ -163,6 +163,7 @@ typedef struct tls_state {
 	uint8_t master_secret[48];
 
 	uint8_t encrypt_on_write;
+	uint8_t decrypt_on_read;
 	uint8_t client_write_MAC_key[SHA256_OUTSIZE];
 // RFC 5246
 // sequence number
@@ -1044,15 +1045,16 @@ static void send_client_key_exchange(tls_state_t *tls)
 	}
 }
 
+static const uint8_t rec_CHANGE_CIPHER_SPEC[] = {
+	RECORD_TYPE_CHANGE_CIPHER_SPEC, TLS_MAJ, TLS_MIN, 00, 01,
+	01
+};
+
 static void send_change_cipher_spec(tls_state_t *tls)
 {
-	static const uint8_t rec[] = {
-		RECORD_TYPE_CHANGE_CIPHER_SPEC, TLS_MAJ, TLS_MIN, 00, 01,
-		01
-	};
 	/* Not "xwrite_and_hash": this is not a handshake message */
 	dbg(">> CHANGE_CIPHER_SPEC\n");
-	xwrite(tls->fd, rec, sizeof(rec));
+	xwrite(tls->fd, rec_CHANGE_CIPHER_SPEC, sizeof(rec_CHANGE_CIPHER_SPEC));
 
 	/* tls->write_seq64_be = 0; - already is */
 	tls->encrypt_on_write = 1;
@@ -1138,16 +1140,6 @@ static void send_client_finished(tls_state_t *tls)
 	xwrite_and_hash(tls, &record, sizeof(record));
 }
 
-static void get_change_cipher_spec(tls_state_t *tls)
-{
-	tls->fd = 0;
-}
-
-static void get_server_finished(tls_state_t *tls)
-{
-	tls->fd = 0;
-}
-
 static void tls_handshake(tls_state_t *tls)
 {
 	// Client              RFC 5246                Server
@@ -1205,20 +1197,32 @@ static void tls_handshake(tls_state_t *tls)
 // (i.e. the same format as server certs)
 //		xread_tls_handshake_block(tls, 4);
 //	}
-	if (tls->inbuf[5] == HANDSHAKE_SERVER_HELLO_DONE) {
-		// 0e 000000 (len:0)
-		dbg("got SERVER_HELLO_DONE\n");
-		send_client_key_exchange(tls);
-		send_change_cipher_spec(tls);
-//we now should be able to send encrypted... as soon as we grok AES.
-		send_client_finished(tls);
-
-		get_change_cipher_spec(tls);
-		get_server_finished(tls);
-//we now should receive encrypted, and application data can be sent/received
-	} else {
+	if (tls->inbuf[5] != HANDSHAKE_SERVER_HELLO_DONE)
 		tls_error_die(tls);
-	}
+	// 0e 000000 (len:0)
+	dbg("got SERVER_HELLO_DONE\n");
+
+	send_client_key_exchange(tls);
+
+	send_change_cipher_spec(tls);
+	/* we now should send encrypted... as soon as we grok AES. */
+
+	send_client_finished(tls);
+
+	/* Get CHANGE_CIPHER_SPEC */
+	len = xread_tls_block(tls);
+	if (len != 1 || memcmp(tls->inbuf, rec_CHANGE_CIPHER_SPEC, 6) != 0)
+		tls_error_die(tls);
+	dbg("got CHANGE_CIPHER_SPEC\n");
+	tls->decrypt_on_read = 1;
+	/* we now should receive encrypted */
+
+	/* Get (encrypted) FINISHED from the server */
+	len = xread_tls_block(tls);
+	if (len < 4 || tls->inbuf[5] != HANDSHAKE_FINISHED)
+		tls_error_die(tls);
+	dbg("got FINISHED\n");
+	/* application data can be sent/received */
 }
 
 // To run a test server using openssl:
