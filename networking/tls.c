@@ -284,6 +284,145 @@ static void sha256_hash_dbg(const char *fmt, sha256_ctx_t *ctx, const void *buff
          sha256_hash(ctx, buffer, len)
 #endif /* not TLS_DEBUG >= 2 */
 
+// RFC 2104
+// HMAC(key, text) based on a hash H (say, sha256) is:
+// ipad = [0x36 x INSIZE]
+// opad = [0x5c x INSIZE]
+// HMAC(key, text) = H((key XOR opad) + H((key XOR ipad) + text))
+//
+// H(key XOR opad) and H(key XOR ipad) can be precomputed
+// if we often need HMAC hmac with the same key.
+//
+// text is often given in disjoint pieces.
+static void hmac_sha256_precomputed_v(uint8_t out[SHA256_OUTSIZE],
+		sha256_ctx_t *hashed_key_xor_ipad,
+		sha256_ctx_t *hashed_key_xor_opad,
+		va_list va)
+{
+	uint8_t *text;
+
+	/* hashed_key_xor_ipad contains unclosed "H((key XOR ipad) +" state */
+	/* hashed_key_xor_opad contains unclosed "H((key XOR opad) +" state */
+
+	/* calculate out = H((key XOR ipad) + text) */
+	while ((text = va_arg(va, uint8_t*)) != NULL) {
+		unsigned text_size = va_arg(va, unsigned);
+		sha256_hash(hashed_key_xor_ipad, text, text_size);
+	}
+	sha256_end(hashed_key_xor_ipad, out);
+
+	/* out = H((key XOR opad) + out) */
+	sha256_hash(hashed_key_xor_opad, out, SHA256_OUTSIZE);
+	sha256_end(hashed_key_xor_opad, out);
+}
+
+static void hmac_sha256(uint8_t out[SHA256_OUTSIZE], uint8_t *key, unsigned key_size, ...)
+{
+	sha256_ctx_t hashed_key_xor_ipad;
+	sha256_ctx_t hashed_key_xor_opad;
+	uint8_t key_xor_ipad[SHA256_INSIZE];
+	uint8_t key_xor_opad[SHA256_INSIZE];
+	uint8_t tempkey[SHA256_OUTSIZE];
+	va_list va;
+	int i;
+
+	va_start(va, key_size);
+
+	// "The authentication key can be of any length up to INSIZE, the
+	// block length of the hash function.  Applications that use keys longer
+	// than INSIZE bytes will first hash the key using H and then use the
+	// resultant OUTSIZE byte string as the actual key to HMAC."
+	if (key_size > SHA256_INSIZE) {
+		hash_sha256(tempkey, key, key_size);
+		key = tempkey;
+		key_size = SHA256_OUTSIZE;
+	}
+
+	for (i = 0; i < key_size; i++) {
+		key_xor_ipad[i] = key[i] ^ 0x36;
+		key_xor_opad[i] = key[i] ^ 0x5c;
+	}
+	for (; i < SHA256_INSIZE; i++) {
+		key_xor_ipad[i] = 0x36;
+		key_xor_opad[i] = 0x5c;
+	}
+	sha256_begin(&hashed_key_xor_ipad);
+	sha256_hash(&hashed_key_xor_ipad, key_xor_ipad, SHA256_INSIZE);
+	sha256_begin(&hashed_key_xor_opad);
+	sha256_hash(&hashed_key_xor_opad, key_xor_opad, SHA256_INSIZE);
+
+	hmac_sha256_precomputed_v(out, &hashed_key_xor_ipad, &hashed_key_xor_opad, va);
+	va_end(va);
+}
+
+// RFC 5246:
+// 5.  HMAC and the Pseudorandom Function
+//...
+// In this section, we define one PRF, based on HMAC.  This PRF with the
+// SHA-256 hash function is used for all cipher suites defined in this
+// document and in TLS documents published prior to this document when
+// TLS 1.2 is negotiated.
+//...
+//    P_hash(secret, seed) = HMAC_hash(secret, A(1) + seed) +
+//                           HMAC_hash(secret, A(2) + seed) +
+//                           HMAC_hash(secret, A(3) + seed) + ...
+// where + indicates concatenation.
+// A() is defined as:
+//    A(0) = seed
+//    A(1) = HMAC_hash(secret, A(0)) = HMAC_hash(secret, seed)
+//    A(i) = HMAC_hash(secret, A(i-1))
+// P_hash can be iterated as many times as necessary to produce the
+// required quantity of data.  For example, if P_SHA256 is being used to
+// create 80 bytes of data, it will have to be iterated three times
+// (through A(3)), creating 96 bytes of output data; the last 16 bytes
+// of the final iteration will then be discarded, leaving 80 bytes of
+// output data.
+//
+// TLS's PRF is created by applying P_hash to the secret as:
+//
+//    PRF(secret, label, seed) = P_<hash>(secret, label + seed)
+//
+// The label is an ASCII string.
+static void tls_prf_hmac_sha256(
+		uint8_t *outbuf, unsigned outbuf_size,
+		uint8_t *secret, unsigned secret_size,
+		const char *label,
+		uint8_t *seed, unsigned seed_size)
+{
+	uint8_t a[SHA256_OUTSIZE];
+	uint8_t *out_p = outbuf;
+	unsigned label_size = strlen(label);
+
+	/* In P_hash() calculation, "seed" is "label + seed": */
+#define SEED   label, label_size, seed, seed_size
+#define SECRET secret, secret_size
+#define A      a, (int)(sizeof(a))
+
+	/* A(1) = HMAC_hash(secret, seed) */
+	hmac_sha256(a, SECRET, SEED, NULL);
+//TODO: convert hmac_sha256 to precomputed
+
+	for(;;) {
+		/* HMAC_hash(secret, A(1) + seed) */
+		if (outbuf_size <= SHA256_OUTSIZE) {
+			/* Last, possibly incomplete, block */
+			/* (use a[] as temp buffer) */
+			hmac_sha256(a, SECRET, A, SEED, NULL);
+			memcpy(out_p, a, outbuf_size);
+			return;
+		}
+		/* Not last block. Store directly to result buffer */
+		hmac_sha256(out_p, SECRET, A, SEED, NULL);
+		out_p += SHA256_OUTSIZE;
+		outbuf_size -= SHA256_OUTSIZE;
+		/* A(2) = HMAC_hash(secret, A(1)) */
+		hmac_sha256(a, SECRET, A, NULL);
+	}
+#undef A
+#undef SECRET
+#undef SEED
+}
+
 static
 tls_state_t *new_tls_state(void)
 {
@@ -293,11 +432,13 @@ tls_state_t *new_tls_state(void)
 	return tls;
 }
 
-static void hmac_sha256(uint8_t out[SHA256_OUTSIZE], uint8_t *key, unsigned key_size, ...);
-
-static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size)
+static void tls_error_die(tls_state_t *tls)
 {
-// rfc5246
+	dump_tls_record(tls->inbuf, tls->insize + tls->tail);
+	xfunc_die();
+}
+
+// RFC 5246
 // 6.2.3.1.  Null or Standard Stream Cipher
 //
 // Stream ciphers (including BulkCipherAlgorithm.null; see Appendix A.6)
@@ -310,18 +451,14 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 //    } GenericStreamCipher;
 //
 // The MAC is generated as:
-//
 //    MAC(MAC_write_key, seq_num +
 //                          TLSCompressed.type +
 //                          TLSCompressed.version +
 //                          TLSCompressed.length +
 //                          TLSCompressed.fragment);
-//
 // where "+" denotes concatenation.
-//
 // seq_num
 //    The sequence number for this record.
-//
 // MAC
 //    The MAC algorithm specified by SecurityParameters.mac_algorithm.
 //
@@ -345,23 +482,26 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 // MD5       HMAC-MD5        16            16
 // SHA       HMAC-SHA1       20            20
 // SHA256    HMAC-SHA256     32            32
-
+static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size)
+{
 	uint8_t mac_hash[SHA256_OUTSIZE];
 	struct record_hdr *xhdr = buf;
 
 	if (tls->encrypt_on_write) {
+//TODO: convert hmac_sha256 to precomputed
 		hmac_sha256(mac_hash,
 			tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key),
 			&tls->write_seq64_be, sizeof(tls->write_seq64_be),
 			buf, size,
 		NULL);
 		tls->write_seq64_be = SWAP_BE64(1 + SWAP_BE64(tls->write_seq64_be));
+		/* Temporarily change for writing */
 		xhdr->len16_lo += SHA256_OUTSIZE;
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FIXME
 	}
 
 	xwrite(tls->fd, buf, size);
 	dbg("wrote %u bytes\n", size);
+
 	if (tls->encrypt_on_write) {
 		xwrite(tls->fd, mac_hash, sizeof(mac_hash));
 		dbg("wrote %u bytes of hash\n", (int)sizeof(mac_hash));
@@ -372,12 +512,6 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 	if (size > 5 && xhdr->type == RECORD_TYPE_HANDSHAKE) {
 		sha256_hash_dbg(">> sha256:%s", &tls->handshake_sha256_ctx, (uint8_t*)buf + 5, size - 5);
 	}
-}
-
-static void tls_error_die(tls_state_t *tls)
-{
-	dump_tls_record(tls->inbuf, tls->insize + tls->tail);
-	xfunc_die();
 }
 
 static int xread_tls_block(tls_state_t *tls)
@@ -417,7 +551,7 @@ static int xread_tls_block(tls_state_t *tls)
 	target -= sizeof(*xhdr);
 
 	/* RFC 5246 is not saying it explicitly, but sha256 hash
-	 * in our FINISHED packet must include hashes of incoming packets too!
+	 * in our FINISHED record must include data of incoming packets too!
 	 */
 	if (tls->inbuf[0] == RECORD_TYPE_HANDSHAKE) {
 		sha256_hash_dbg("<< sha256:%s", &tls->handshake_sha256_ctx, tls->inbuf + 5, target);
@@ -427,23 +561,9 @@ static int xread_tls_block(tls_state_t *tls)
 	return target;
 }
 
-static int xread_tls_handshake_block(tls_state_t *tls, int min_len)
-{
-	struct record_hdr *xhdr;
-	int len = xread_tls_block(tls);
-
-	xhdr = (void*)tls->inbuf;
-	if (len < min_len
-	 || xhdr->type != RECORD_TYPE_HANDSHAKE
-	 || xhdr->proto_maj != TLS_MAJ
-	 || xhdr->proto_min != TLS_MIN
-	) {
-		tls_error_die(tls);
-	}
-	dbg("got HANDSHAKE\n");
-	return len;
-}
-
+/*
+ * DER parsing routines
+ */
 static unsigned get_der_len(uint8_t **bodyp, uint8_t *der, uint8_t *end)
 {
 	unsigned len, len1;
@@ -653,147 +773,26 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 	dbg("server_rsa_pub_key.size:%d\n", tls->server_rsa_pub_key.size);
 }
 
-// RFC 2104: HMAC(key, text) based on a hash H (say, sha256) is:
-// ipad = [0x36 x INSIZE]
-// opad = [0x5c x INSIZE]
-// HMAC(key, text) = H((key XOR opad) + H((key XOR ipad) + text))
-//
-// H(key XOR opad) and H(key XOR ipad) can be precomputed
-// if we often need HMAC hmac with the same key.
-//
-// text is often given in disjoint pieces.
-static void hmac_sha256_precomputed_v(uint8_t out[SHA256_OUTSIZE],
-		sha256_ctx_t *hashed_key_xor_ipad,
-		sha256_ctx_t *hashed_key_xor_opad,
-		va_list va)
-{
-	uint8_t *text;
-
-	/* hashed_key_xor_ipad contains unclosed "H((key XOR ipad) +" state */
-	/* hashed_key_xor_opad contains unclosed "H((key XOR opad) +" state */
-
-	/* calculate out = H((key XOR ipad) + text) */
-	while ((text = va_arg(va, uint8_t*)) != NULL) {
-		unsigned text_size = va_arg(va, unsigned);
-		sha256_hash(hashed_key_xor_ipad, text, text_size);
-	}
-	sha256_end(hashed_key_xor_ipad, out);
-
-	/* out = H((key XOR opad) + out) */
-	sha256_hash(hashed_key_xor_opad, out, SHA256_OUTSIZE);
-	sha256_end(hashed_key_xor_opad, out);
-}
-
-static void hmac_sha256(uint8_t out[SHA256_OUTSIZE], uint8_t *key, unsigned key_size, ...)
-{
-	sha256_ctx_t hashed_key_xor_ipad;
-	sha256_ctx_t hashed_key_xor_opad;
-	uint8_t key_xor_ipad[SHA256_INSIZE];
-	uint8_t key_xor_opad[SHA256_INSIZE];
-	uint8_t tempkey[SHA256_OUTSIZE];
-	va_list va;
-	int i;
-
-	va_start(va, key_size);
-
-	// "The authentication key can be of any length up to INSIZE, the
-	// block length of the hash function.  Applications that use keys longer
-	// than INSIZE bytes will first hash the key using H and then use the
-	// resultant OUTSIZE byte string as the actual key to HMAC."
-	if (key_size > SHA256_INSIZE) {
-		hash_sha256(tempkey, key, key_size);
-		key = tempkey;
-		key_size = SHA256_OUTSIZE;
-	}
-
-	for (i = 0; i < key_size; i++) {
-		key_xor_ipad[i] = key[i] ^ 0x36;
-		key_xor_opad[i] = key[i] ^ 0x5c;
-	}
-	for (; i < SHA256_INSIZE; i++) {
-		key_xor_ipad[i] = 0x36;
-		key_xor_opad[i] = 0x5c;
-	}
-	sha256_begin(&hashed_key_xor_ipad);
-	sha256_hash(&hashed_key_xor_ipad, key_xor_ipad, SHA256_INSIZE);
-	sha256_begin(&hashed_key_xor_opad);
-	sha256_hash(&hashed_key_xor_opad, key_xor_opad, SHA256_INSIZE);
-
-	hmac_sha256_precomputed_v(out, &hashed_key_xor_ipad, &hashed_key_xor_opad, va);
-	va_end(va);
-}
-
-// RFC 5246:
-// 5.  HMAC and the Pseudorandom Function
-//...
-// In this section, we define one PRF, based on HMAC.  This PRF with the
-// SHA-256 hash function is used for all cipher suites defined in this
-// document and in TLS documents published prior to this document when
-// TLS 1.2 is negotiated.
-//...
-//    P_hash(secret, seed) = HMAC_hash(secret, A(1) + seed) +
-//                           HMAC_hash(secret, A(2) + seed) +
-//                           HMAC_hash(secret, A(3) + seed) + ...
-// where + indicates concatenation.
-// A() is defined as:
-//    A(0) = seed
-//    A(1) = HMAC_hash(secret, A(0)) = HMAC_hash(secret, seed)
-//    A(i) = HMAC_hash(secret, A(i-1))
-// P_hash can be iterated as many times as necessary to produce the
-// required quantity of data.  For example, if P_SHA256 is being used to
-// create 80 bytes of data, it will have to be iterated three times
-// (through A(3)), creating 96 bytes of output data; the last 16 bytes
-// of the final iteration will then be discarded, leaving 80 bytes of
-// output data.
-//
-// TLS's PRF is created by applying P_hash to the secret as:
-//
-//    PRF(secret, label, seed) = P_<hash>(secret, label + seed)
-//
-// The label is an ASCII string.
-static void tls_prf_hmac_sha256(
-		uint8_t *outbuf, unsigned outbuf_size,
-		uint8_t *secret, unsigned secret_size,
-		const char *label,
-		uint8_t *seed, unsigned seed_size)
-{
-	uint8_t a[SHA256_OUTSIZE];
-	uint8_t *out_p = outbuf;
-	unsigned label_size = strlen(label);
-
-	/* In P_hash() calculation, "seed" is "label + seed": */
-#define SEED   label, label_size, seed, seed_size
-#define SECRET secret, secret_size
-#define A      a, (int)(sizeof(a))
-
-	/* A(1) = HMAC_hash(secret, seed) */
-	hmac_sha256(a, SECRET, SEED, NULL);
-//TODO: convert hmac_sha256 to precomputed
-
-	for(;;) {
-		/* HMAC_hash(secret, A(1) + seed) */
-		if (outbuf_size <= SHA256_OUTSIZE) {
-			/* Last, possibly incomplete, block */
-			/* (use a[] as temp buffer) */
-			hmac_sha256(a, SECRET, A, SEED, NULL);
-			memcpy(out_p, a, outbuf_size);
-			return;
-		}
-		/* Not last block. Store directly to result buffer */
-		hmac_sha256(out_p, SECRET, A, SEED, NULL);
-		out_p += SHA256_OUTSIZE;
-		outbuf_size -= SHA256_OUTSIZE;
-		/* A(2) = HMAC_hash(secret, A(1)) */
-		hmac_sha256(a, SECRET, A, NULL);
-	}
-#undef A
-#undef SECRET
-#undef SEED
-}
-
 /*
  * TLS Handshake routines
  */
+static int xread_tls_handshake_block(tls_state_t *tls, int min_len)
+{
+	struct record_hdr *xhdr;
+	int len = xread_tls_block(tls);
+
+	xhdr = (void*)tls->inbuf;
+	if (len < min_len
+	 || xhdr->type != RECORD_TYPE_HANDSHAKE
+	 || xhdr->proto_maj != TLS_MAJ
+	 || xhdr->proto_min != TLS_MIN
+	) {
+		tls_error_die(tls);
+	}
+	dbg("got HANDSHAKE\n");
+	return len;
+}
+
 static void send_client_hello(tls_state_t *tls)
 {
 	struct client_hello {
@@ -1055,7 +1054,7 @@ static void send_change_cipher_spec(tls_state_t *tls)
 	dbg(">> CHANGE_CIPHER_SPEC\n");
 	xwrite(tls->fd, rec, sizeof(rec));
 
-	tls->write_seq64_be = 0;
+	/* tls->write_seq64_be = 0; - already is */
 	tls->encrypt_on_write = 1;
 }
 
