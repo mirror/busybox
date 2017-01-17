@@ -25,7 +25,9 @@
 
 #include "tls.h"
 
-#if 1
+#define TLS_DEBUG 2
+
+#if TLS_DEBUG
 # define dbg(...) fprintf(stderr, __VA_ARGS__)
 #else
 # define dbg(...) ((void)0)
@@ -201,11 +203,86 @@ typedef struct tls_state {
 	uint8_t inbuf[18*1024];
 } tls_state_t;
 
+
+static unsigned get24be(const uint8_t *p)
+{
+	return 0x100*(0x100*p[0] + p[1]) + p[2];
+}
+
+#if TLS_DEBUG
+static void dump_hex(const char *fmt, const void *vp, int len)
+{
+	char hexbuf[32 * 1024 + 4];
+	const uint8_t *p = vp;
+
+	bin2hex(hexbuf, (void*)p, len)[0] = '\0';
+	dbg(fmt, hexbuf);
+}
+
+static void dump_tls_record(const void *vp, int len)
+{
+	const uint8_t *p = vp;
+
+	while (len > 0) {
+		unsigned xhdr_len;
+		if (len < 5) {
+			dump_hex("< |%s|\n", p, len);
+			return;
+		}
+		xhdr_len = 0x100*p[3] + p[4];
+		dbg("< hdr_type:%u ver:%u.%u len:%u", p[0], p[1], p[2], xhdr_len);
+		p += 5;
+		len -= 5;
+		if (len >= 4 && p[-5] == RECORD_TYPE_HANDSHAKE) {
+			unsigned len24 = get24be(p + 1);
+			dbg(" type:%u len24:%u", p[0], len24);
+		}
+		if (xhdr_len > len)
+			xhdr_len = len;
+		dump_hex(" |%s|\n", p, xhdr_len);
+		p += xhdr_len;
+		len -= xhdr_len;
+	}
+}
+#endif
+
 void tls_get_random(void *buf, unsigned len)
 {
 	if (len != open_read_close("/dev/urandom", buf, len))
 		xfunc_die();
 }
+
+//TODO rename this to sha256_hash, and sha256_hash -> sha256_update
+static void hash_sha256(uint8_t out[SHA256_OUTSIZE], const void *data, unsigned size)
+{
+	sha256_ctx_t ctx;
+	sha256_begin(&ctx);
+	sha256_hash(&ctx, data, size);
+	sha256_end(&ctx, out);
+}
+
+#if TLS_DEBUG >= 2
+/* Nondestructively see the current hash value */
+static void sha256_peek(sha256_ctx_t *ctx, void *buffer)
+{
+	sha256_ctx_t ctx_copy = *ctx;
+        sha256_end(&ctx_copy, buffer);
+}
+
+static void sha256_hash_dbg(const char *fmt, sha256_ctx_t *ctx, const void *buffer, size_t len)
+{
+        uint8_t h[SHA256_OUTSIZE];
+
+	sha256_hash(ctx, buffer, len);
+	dump_hex(fmt, buffer, len);
+	dbg(" (%u) ", (int)len);
+	sha256_peek(ctx, h);
+	dump_hex("%s\n", h, SHA256_OUTSIZE);
+}
+#else
+# define sha256_hash_dbg(fmt, ctx, buffer, len) \
+         sha256_hash(ctx, buffer, len)
+#endif /* not TLS_DEBUG >= 2 */
 
 static
 tls_state_t *new_tls_state(void)
@@ -284,53 +361,22 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 	}
 
 	xwrite(tls->fd, buf, size);
+	dbg("wrote %u bytes\n", size);
 	if (tls->encrypt_on_write) {
 		xwrite(tls->fd, mac_hash, sizeof(mac_hash));
+		dbg("wrote %u bytes of hash\n", (int)sizeof(mac_hash));
 		xhdr->len16_lo -= SHA256_OUTSIZE;
 	}
 
 	/* Handshake hash does not include record headers */
-	if (size > 5 && xhdr->type == RECORD_TYPE_HANDSHAKE)
-		sha256_hash(&tls->handshake_sha256_ctx, (uint8_t*)buf + 5, size - 5);
-}
-
-static unsigned get24be(const uint8_t *p)
-{
-	return 0x100*(0x100*p[0] + p[1]) + p[2];
-}
-
-static void dump(const void *vp, int len)
-{
-	char hexbuf[32 * 1024 + 4];
-	const uint8_t *p = vp;
-
-	while (len > 0) {
-		unsigned xhdr_len;
-		if (len < 5) {
-			bin2hex(hexbuf, (void*)p, len)[0] = '\0';
-			dbg("< |%s|\n", hexbuf);
-			return;
-		}
-		xhdr_len = 0x100*p[3] + p[4];
-		dbg("< hdr_type:%u ver:%u.%u len:%u", p[0], p[1], p[2], xhdr_len);
-		p += 5;
-		len -= 5;
-		if (len >= 4 && p[-5] == RECORD_TYPE_HANDSHAKE) {
-			unsigned len24 = get24be(p + 1);
-			dbg(" type:%u len24:%u", p[0], len24);
-		}
-		if (xhdr_len > len)
-			xhdr_len = len;
-		bin2hex(hexbuf, (void*)p, xhdr_len)[0] = '\0';
-		dbg(" |%s|\n", hexbuf);
-		p += xhdr_len;
-		len -= xhdr_len;
+	if (size > 5 && xhdr->type == RECORD_TYPE_HANDSHAKE) {
+		sha256_hash_dbg(">> sha256:%s", &tls->handshake_sha256_ctx, (uint8_t*)buf + 5, size - 5);
 	}
 }
 
 static void tls_error_die(tls_state_t *tls)
 {
-	dump(tls->inbuf, tls->insize + tls->tail);
+	dump_tls_record(tls->inbuf, tls->insize + tls->tail);
 	xfunc_die();
 }
 
@@ -369,6 +415,14 @@ static int xread_tls_block(tls_state_t *tls)
 	tls->tail = total - target;
 	tls->insize = target;
 	target -= sizeof(*xhdr);
+
+	/* RFC 5246 is not saying it explicitly, but sha256 hash
+	 * in our FINISHED packet must include hashes of incoming packets too!
+	 */
+	if (tls->inbuf[0] == RECORD_TYPE_HANDSHAKE) {
+		sha256_hash_dbg("<< sha256:%s", &tls->handshake_sha256_ctx, tls->inbuf + 5, target);
+	}
+
 	dbg("got block len:%u\n", target);
 	return target;
 }
@@ -591,20 +645,12 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 		xfunc_die();
 	der++;
 	der = enter_der_item(der, &end); /* enter SEQ */
-	//memset(tls->server_rsa_pub_key, 0, sizeof(tls->server_rsa_pub_key));
+	/* memset(tls->server_rsa_pub_key, 0, sizeof(tls->server_rsa_pub_key)); - already is */
 	der_binary_to_pstm(&tls->server_rsa_pub_key.N, der, end); /* modulus */
 	der = skip_der_item(der, end);
 	der_binary_to_pstm(&tls->server_rsa_pub_key.e, der, end); /* exponent */
 	tls->server_rsa_pub_key.size = pstm_unsigned_bin_size(&tls->server_rsa_pub_key.N);
 	dbg("server_rsa_pub_key.size:%d\n", tls->server_rsa_pub_key.size);
-}
-
-static void hash_sha256(uint8_t out[SHA256_OUTSIZE], const void *data, unsigned size)
-{
-	sha256_ctx_t ctx;
-	sha256_begin(&ctx);
-	sha256_hash(&ctx, data, size);
-	sha256_end(&ctx, out);
 }
 
 // RFC 2104: HMAC(key, text) based on a hash H (say, sha256) is:
@@ -722,6 +768,7 @@ static void tls_prf_hmac_sha256(
 
 	/* A(1) = HMAC_hash(secret, seed) */
 	hmac_sha256(a, SECRET, SEED, NULL);
+//TODO: convert hmac_sha256 to precomputed
 
 	for(;;) {
 		/* HMAC_hash(secret, A(1) + seed) */
@@ -785,24 +832,10 @@ static void send_client_hello(tls_state_t *tls)
 	hello.comprtypes_len = 1;
 	//hello.comprtypes[0] = 0;
 
+	//dbg (make it repeatable): memset(hello.rand32, 0x11, sizeof(hello.rand32));
+	dbg(">> HANDSHAKE_CLIENT_HELLO\n");
 	xwrite_and_hash(tls, &hello, sizeof(hello));
 	memcpy(tls->client_and_server_rand32, hello.rand32, sizeof(hello.rand32));
-
-#if 0 /* dump */
-	for (;;) {
-		uint8_t buf[16*1024];
-		sleep(2);
-		len = recv(tls->fd, buf, sizeof(buf), 0); //MSG_DONTWAIT);
-		if (len < 0) {
-			if (errno == EAGAIN)
-				continue;
-			bb_perror_msg_and_die("recv");
-		}
-		if (len == 0)
-			break;
-		dump(buf, len);
-	}
-#endif
 }
 
 static void get_server_hello(tls_state_t *tls)
@@ -905,23 +938,17 @@ static void send_client_key_exchange(tls_state_t *tls)
 //openssl:
 //write to 0xe9a090 [0xf9ac20] (395 bytes => 395 (0x18B))
 //0000 -      16  03  03  01  86  10  00  01 -82  01  80  xx  xx  xx  xx  xx
-		uint8_t key[384]; // size??
+		uint8_t key[4 * 1024]; // size??
 	};
 	struct client_key_exchange record;
 	uint8_t rsa_premaster[SSL_HS_RSA_PREMASTER_SIZE];
+	int len;
 
 	memset(&record, 0, sizeof(record));
 	record.xhdr.type = RECORD_TYPE_HANDSHAKE;
 	record.xhdr.proto_maj = TLS_MAJ;
 	record.xhdr.proto_min = TLS_MIN;
-	record.xhdr.len16_hi = (sizeof(record) - sizeof(record.xhdr)) >> 8;
-	record.xhdr.len16_lo = (sizeof(record) - sizeof(record.xhdr)) & 0xff;
 	record.type = HANDSHAKE_CLIENT_KEY_EXCHANGE;
-	//record.len24_hi  = 0;
-	record.len24_mid = (sizeof(record) - sizeof(record.xhdr) - 4) >> 8;
-	record.len24_lo  = (sizeof(record) - sizeof(record.xhdr) - 4) & 0xff;
-	record.keylen16_hi = (sizeof(record) - sizeof(record.xhdr) - 6) >> 8;
-	record.keylen16_lo = (sizeof(record) - sizeof(record.xhdr) - 6) & 0xff;
 
 	tls_get_random(rsa_premaster, sizeof(rsa_premaster));
 // RFC 5246
@@ -930,78 +957,92 @@ static void send_client_key_exchange(tls_state_t *tls)
 // version negotiated for the connection."
 	rsa_premaster[0] = TLS_MAJ;
 	rsa_premaster[1] = TLS_MIN;
-	psRsaEncryptPub(/*pool:*/ NULL,
+	len = psRsaEncryptPub(/*pool:*/ NULL,
 		/* psRsaKey_t* */ &tls->server_rsa_pub_key,
 		rsa_premaster, /*inlen:*/ sizeof(rsa_premaster),
 		record.key, sizeof(record.key),
 		data_param_ignored
 	);
+	record.keylen16_hi = len >> 8;
+	record.keylen16_lo = len & 0xff;
+	len += 2;
+	//record.len24_hi  = 0;
+	record.len24_mid = len >> 8;
+	record.len24_lo  = len & 0xff;
+	len += 4;
+	record.xhdr.len16_hi = len >> 8;
+	record.xhdr.len16_lo = len & 0xff;
 
-	xwrite_and_hash(tls, &record, sizeof(record));
+	dbg(">> HANDSHAKE_CLIENT_KEY_EXCHANGE\n");
+	xwrite_and_hash(tls, &record, sizeof(record.xhdr) + len);
 
-// RFC 5246
-// For all key exchange methods, the same algorithm is used to convert
-// the pre_master_secret into the master_secret.  The pre_master_secret
-// should be deleted from memory once the master_secret has been
-// computed.
-//      master_secret = PRF(pre_master_secret, "master secret",
-//                          ClientHello.random + ServerHello.random)
-//                          [0..47];
-// The master secret is always exactly 48 bytes in length.  The length
-// of the premaster secret will vary depending on key exchange method.
+	// RFC 5246
+	// For all key exchange methods, the same algorithm is used to convert
+	// the pre_master_secret into the master_secret.  The pre_master_secret
+	// should be deleted from memory once the master_secret has been
+	// computed.
+	//      master_secret = PRF(pre_master_secret, "master secret",
+	//                          ClientHello.random + ServerHello.random)
+	//                          [0..47];
+	// The master secret is always exactly 48 bytes in length.  The length
+	// of the premaster secret will vary depending on key exchange method.
 	tls_prf_hmac_sha256(
 		tls->master_secret, sizeof(tls->master_secret),
 		rsa_premaster, sizeof(rsa_premaster),
 		"master secret",
 		tls->client_and_server_rand32, sizeof(tls->client_and_server_rand32)
 	);
+	dump_hex("master secret:%s\n", tls->master_secret, sizeof(tls->master_secret));
 
-// RFC 5246
-// 6.3.  Key Calculation
-//
-// The Record Protocol requires an algorithm to generate keys required
-// by the current connection state (see Appendix A.6) from the security
-// parameters provided by the handshake protocol.
-//
-// The master secret is expanded into a sequence of secure bytes, which
-// is then split to a client write MAC key, a server write MAC key, a
-// client write encryption key, and a server write encryption key.  Each
-// of these is generated from the byte sequence in that order.  Unused
-// values are empty.  Some AEAD ciphers may additionally require a
-// client write IV and a server write IV (see Section 6.2.3.3).
-//
-// When keys and MAC keys are generated, the master secret is used as an
-// entropy source.
-//
-// To generate the key material, compute
-//
-//    key_block = PRF(SecurityParameters.master_secret,
-//                    "key expansion",
-//                    SecurityParameters.server_random +
-//                    SecurityParameters.client_random);
-//
-// until enough output has been generated.  Then, the key_block is
-// partitioned as follows:
-//
-//    client_write_MAC_key[SecurityParameters.mac_key_length]
-//    server_write_MAC_key[SecurityParameters.mac_key_length]
-//    client_write_key[SecurityParameters.enc_key_length]
-//    server_write_key[SecurityParameters.enc_key_length]
-//    client_write_IV[SecurityParameters.fixed_iv_length]
-//    server_write_IV[SecurityParameters.fixed_iv_length]
-    {
-	uint8_t tmp64[64];
-	/* make server_rand32 + client_rand32 */
-	memcpy(&tmp64[0] , &tls->client_and_server_rand32[32], 32);
-	memcpy(&tmp64[32], &tls->client_and_server_rand32[0] , 32);
+	// RFC 5246
+	// 6.3.  Key Calculation
+	//
+	// The Record Protocol requires an algorithm to generate keys required
+	// by the current connection state (see Appendix A.6) from the security
+	// parameters provided by the handshake protocol.
+	//
+	// The master secret is expanded into a sequence of secure bytes, which
+	// is then split to a client write MAC key, a server write MAC key, a
+	// client write encryption key, and a server write encryption key.  Each
+	// of these is generated from the byte sequence in that order.  Unused
+	// values are empty.  Some AEAD ciphers may additionally require a
+	// client write IV and a server write IV (see Section 6.2.3.3).
+	//
+	// When keys and MAC keys are generated, the master secret is used as an
+	// entropy source.
+	//
+	// To generate the key material, compute
+	//
+	//    key_block = PRF(SecurityParameters.master_secret,
+	//                    "key expansion",
+	//                    SecurityParameters.server_random +
+	//                    SecurityParameters.client_random);
+	//
+	// until enough output has been generated.  Then, the key_block is
+	// partitioned as follows:
+	//
+	//    client_write_MAC_key[SecurityParameters.mac_key_length]
+	//    server_write_MAC_key[SecurityParameters.mac_key_length]
+	//    client_write_key[SecurityParameters.enc_key_length]
+	//    server_write_key[SecurityParameters.enc_key_length]
+	//    client_write_IV[SecurityParameters.fixed_iv_length]
+	//    server_write_IV[SecurityParameters.fixed_iv_length]
+	{
+		uint8_t tmp64[64];
+		/* make server_rand32 + client_rand32 */
+		memcpy(&tmp64[0] , &tls->client_and_server_rand32[32], 32);
+		memcpy(&tmp64[32], &tls->client_and_server_rand32[0] , 32);
 
-	tls_prf_hmac_sha256(
-		tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key),
-		tls->master_secret, sizeof(tls->master_secret),
-		"key expansion",
-		tmp64, 64
-	);
-    }
+		tls_prf_hmac_sha256(
+			tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key),
+			tls->master_secret, sizeof(tls->master_secret),
+			"key expansion",
+			tmp64, 64
+		);
+		dump_hex("client_write_MAC_key:%s\n",
+			tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key)
+		);
+	}
 }
 
 static void send_change_cipher_spec(tls_state_t *tls)
@@ -1011,14 +1052,13 @@ static void send_change_cipher_spec(tls_state_t *tls)
 		01
 	};
 	/* Not "xwrite_and_hash": this is not a handshake message */
+	dbg(">> CHANGE_CIPHER_SPEC\n");
 	xwrite(tls->fd, rec, sizeof(rec));
 
 	tls->write_seq64_be = 0;
 	tls->encrypt_on_write = 1;
 }
 
-static void send_client_finished(tls_state_t *tls)
-{
 // 7.4.9.  Finished
 // A Finished message is always sent immediately after a change
 // cipher spec message to verify that the key exchange and
@@ -1056,6 +1096,8 @@ static void send_client_finished(tls_state_t *tls)
 // suite.  Any cipher suite which does not explicitly specify
 // verify_data_length has a verify_data_length equal to 12.  This
 // includes all existing cipher suites.
+static void send_client_finished(tls_state_t *tls)
+{
 	struct client_finished {
 		struct record_hdr xhdr;
 		uint8_t type;
@@ -1085,41 +1127,16 @@ static void send_client_finished(tls_state_t *tls)
 			"client finished",
 			handshake_hash, sizeof(handshake_hash)
 	);
+	dump_hex("from secret: %s\n", tls->master_secret, sizeof(tls->master_secret));
+	dump_hex("from labelSeed: %s", "client finished", sizeof("client finished")-1);
+			dump_hex("%s\n", handshake_hash, sizeof(handshake_hash));
+	dump_hex("=> digest: %s\n", record.prf_result, sizeof(record.prf_result));
 
 //(1) TODO: well, this should be encrypted on send, really.
 //(2) do we really need to also hash it?
 
+	dbg(">> HANDSHAKE_FINISHED\n");
 	xwrite_and_hash(tls, &record, sizeof(record));
-
-//s_client does this:
-//
-//write to 0x1d750b0 [0x1e74620] (6 bytes => 6 (0x6))
-//0000 - 14 03 03 00 01 01                                 ......           >> CHANGE_CIPHER_SPEC
-//
-//write to 0x1d750b0 [0x1e74620] (53 bytes => 53 (0x35))
-//0000 - 16 03 03 0030  14 00000c  [ed b9 e1 33 36 0b 76   ....0.......36.v >> FINISHED (0x14) [PRF 12 bytes|SHA256_OUTSIZE 32 bytes]
-//0010 - c0 d1 d4 0b a3|73 ec a8-fa b5 cb 12 b6 4c 2a b1   .....s.......L*.
-//0020 - fb 42 7f 73 0d 06 1c 87-56 f0 db df e6 6a 25 aa   .B.s....V....j%.
-//0030 - fc 42 38 cb 0b]                                   .B8..
-
-//we do this (as seen by s_server):
-//
-//read from 0x26b7650 [0x26ac383] (5 bytes => 5 (0x5))
-//0000 - 14 03 03 00 01                                    .....
-//read from 0x26b7650 [0x26ac388] (1 bytes => 1 (0x1))
-//0000 - 01                                                .                << CHANGE_CIPHER_SPEC
-//read from 0x26b7650 [0x26ac383] (5 bytes => 5 (0x5))
-//0000 - 16 03 03 0030                                     ....0
-//read from 0x26b7650 [0x26ac388] (48 bytes => 48 (0x30))
-//0000 - 14 00000c  [d1 6f 08 c3-ef ec 26 7c 17 76 ac 1c|  .....o....&|.v.. << FINISHED (0x14) [PRF 12 bytes|SHA256_OUTSIZE 32 bytes]
-//0010 - 0b 27 ae 1c 59 f8 cb af-de 25 25 7e 50 51 da dd   .'..Y....%%~PQ..
-//0020 - c2 9e d6 27 96 0b 72 05-63 54 89 00 0e d7 b1 10]  ...'..r.cT......
-//
-//write to 0x26b7650 [0x26b4d90] (7 bytes => 7 (0x7))
-//0000 - 15 03 03 00 02 02 33                              ......3
-//ERROR
-//140684206577528:error:1408C095:SSL routines:ssl3_get_finished:digest check failed:s3_both.c:273:
-//140684206577528:error:1409E0E5:SSL routines:ssl3_write_bytes:ssl handshake failure:s3_pkt.c:656:
 }
 
 static void get_change_cipher_spec(tls_state_t *tls)
@@ -1196,6 +1213,7 @@ static void tls_handshake(tls_state_t *tls)
 		send_change_cipher_spec(tls);
 //we now should be able to send encrypted... as soon as we grok AES.
 		send_client_finished(tls);
+
 		get_change_cipher_spec(tls);
 		get_server_finished(tls);
 //we now should receive encrypted, and application data can be sent/received
@@ -1271,64 +1289,7 @@ read from 0x1d750b0 [0x1e6ac08] (1035 bytes => 1035 (0x40B))
 0020 - 2e 2b 30 0d 06 09 2a 86-48 86 f7 0d 01 01 0b 05   .+0...*.H.......
 0030 - 00 30 14 31 12 30 10 06-03 55 04 03 0c 09 6c 6f   .0.1.0...U....lo
 0040 - 63 61 6c 68 6f 73 74 30-20 17 0d 31 37 30 31 31   calhost0 ..17011
-0050 - 36 30 33 30 39 34 36 5a-18 0f 32 32 39 30 31 30   6030946Z..229010
-0060 - 33 31 30 33 30 39 34 36-5a 30 14 31 12 30 10 06   31030946Z0.1.0..
-0070 - 03 55 04 03 0c 09 6c 6f-63 61 6c 68 6f 73 74 30   .U....localhost0
-0080 - 82 01 a2 30 0d 06 09 2a-86 48 86 f7 0d 01 01 01   ...0...*.H......
-0090 - 05 00 03 82 01 8f 00 30-82 01 8a 02 82 01 81 00   .......0........
-00a0 - f5 a8 66 54 af fd 33 9e-fb 1d 2d d7 33 ff b9 99   ..fT..3...-.3...
-00b0 - 21 16 8a 65 75 1c 39 9d-0a c3 fc 8c 6d 63 de 7b   !..eu.9.....mc.{
-00c0 - d8 1e d8 20 a1 a9 d5 ab-2a 8e d1 4f b8 9a f4 f7   ... ....*..O....
-00d0 - 91 0d db 70 a8 59 d3 0d-8f 6f bb 51 a4 5c f1 c1   ...p.Y...o.Q.\..
-00e0 - ce 1e b5 58 3a 46 1b 2a-1f 7c 75 87 b4 9f ed d3   ...X:F.*.|u.....
-00f0 - 3d 9a cf a4 5b 96 5b 25-cf f5 33 1c c8 7a 8a 37   =...[.[%..3..z.7
-0100 - 69 2f 63 8c f9 a4 a5 40-06 c9 63 cf fd 35 5d d3   i/c....@..c..5].
-0110 - 8e e3 17 2f 8a ab 5e fd-6c 7e 5b 03 bb b6 3c e3   .../..^.l~[...<.
-0120 - 32 01 99 72 45 a7 a3 c3-11 d8 6c dc 50 a6 75 01   2..rE.....l.P.u.
-0130 - a2 81 85 56 5e be eb 8c-ad 44 05 cf 47 e0 3e 8b   ...V^....D..G.>.
-0140 - cd 6e 08 11 ee 5e 94 39-5d 8c a2 e3 b0 03 7f c2   .n...^.9].......
-0150 - f8 99 35 0b d1 c2 3c 37-49 a8 bb 70 8e e2 a6 c8   ..5...<7I..p....
-0160 - 5b 7d f5 d1 dc 6e ef fb-83 f7 4c ef 8c 85 e3 b9   [}...n....L.....
-0170 - fd 51 18 70 7e a5 03 b7-6d e5 c6 c2 d1 4d e2 16   .Q.p~...m....M..
-0180 - 42 c8 21 25 2a 27 af c4-4a c2 f0 b6 2f 72 46 33   B.!%*'..J.../rF3
-0190 - b1 89 d8 95 7a 9d 52 db-75 ae f4 a0 97 32 8c 5f   ....z.R.u....2._
-01a0 - 97 e7 5d 12 15 3f 85 8f-d1 9c ca a0 fd 59 cd c5   ..]..?.......Y..
-01b0 - 25 70 d3 97 62 04 af cb-19 1b 6e 24 c9 82 b8 25   %p..b.....n$...%
-01c0 - c3 5c bd d7 ee 08 17 6f-ea 99 24 2f c7 05 a8 40   .\.....o..$/...@
-01d0 - 24 d5 74 7b 5b 65 c5 ec-97 63 de d1 46 d2 c4 09   $.t{[e...c..F...
-01e0 - c2 22 23 99 ce 13 03 6f-b4 08 7f 3e 00 c6 fe 91   ."#....o...>....
-01f0 - bc c8 ba b2 32 c2 42 9d-89 de 04 d0 36 27 9e 8c   ....2.B.....6'..
-0200 - ad 79 3e d6 84 38 db cd-57 ad 68 05 85 0b 13 59   .y>..8..W.h....Y
-0210 - 11 5a 2b a4 d0 5f c3 ee-1a 02 69 d4 c5 bf 19 b5   .Z+.._....i.....
-0220 - 02 03 01 00 01 a3 50 30-4e 30 1d 06 03 55 1d 0e   ......P0N0...U..
-0230 - 04 16 04 14 08 87 29 ce-04 09 7f 11 33 80 ba 30   ......).....3..0
-0240 - b2 77 84 b4 73 6e 82 94-30 1f 06 03 55 1d 23 04   .w..sn..0...U.#.
-0250 - 18 30 16 80 14 08 87 29-ce 04 09 7f 11 33 80 ba   .0.....).....3..
-0260 - 30 b2 77 84 b4 73 6e 82-94 30 0c 06 03 55 1d 13   0.w..sn..0...U..
-0270 - 04 05 30 03 01 01 ff 30-0d 06 09 2a 86 48 86 f7   ..0....0...*.H..
-0280 - 0d 01 01 0b 05 00 03 82-01 81 00 22 c4 a8 6f 0a   ..........."..o.
-0290 - 40 a0 c4 92 ae 83 86 9c-42 f8 0a a8 c7 72 d2 5d   @.......B....r.]
-02a0 - de 78 f2 5a 38 e0 e6 0b-3c df af dd 6c 44 a9 0a   .x.Z8...<...lD..
-02b0 - 81 f3 0e 49 e5 07 da 40-0f 85 73 db d6 86 87 6a   ...I...@..s....j
-02c0 - b9 29 75 6a a9 dd fc 16-81 dc eb 25 3a c7 dc 3f   .)uj.......%:..?
-02d0 - c8 a3 2d bb 49 3e 08 72-e9 03 e6 2f ee 1e 17 9a   ..-.I>.r.../....
-02e0 - 9c f6 fd 3c 73 cf e4 2c-5d f1 a8 1c 93 f7 1d f7   ...<s..,].......
-02f0 - ae b2 96 bf ba bd d0 5d-3f 4e d3 54 5e 81 47 72   .......]?N.T^.Gr
-0300 - a1 35 39 db fa a7 54 96-f4 1f e5 5e c8 80 f8 1f   .59...T....^....
-0310 - 73 e5 09 14 ae e5 4a c2-f3 72 5c d8 52 6e d8 d2   s.....J..r\.Rn..
-0320 - e9 de 48 14 56 fc 32 ce-69 a3 68 a1 e9 f5 78 e8   ..H.V.2.i.h...x.
-0330 - ad 84 a8 c3 45 1a 3a 7d-54 db e3 ce 84 9e b1 d7   ....E.:}T.......
-0340 - 60 8e b2 e7 15 84 8e a5-0f c4 53 e4 b9 71 e7 46   `.........S..q.F
-0350 - 93 f7 af 00 bd 3d 36 9a-4e 8f eb e1 18 06 54 49   .....=6.N.....TI
-0360 - 4a 79 9f 3d db 9d d6 e7-57 b7 75 dd 26 ac b7 86   Jy.=....W.u.&...
-0370 - 19 f0 f9 b6 5e 35 36 a4-5a a7 b0 33 88 9e 7f c9   ....^56.Z..3....
-0380 - f3 3e cc 02 ce 49 3c 0e-25 42 27 bf 7b 38 db d8   .>...I<.%B'.{8..
-0390 - 3a 87 6f db 79 7a 54 c1-a3 6a 54 01 17 92 04 24   :.o.yzT..jT....$
-03a0 - 6c 66 1d 47 45 4e 3a af-fe 45 1d 2c 23 81 f6 cc   lf.GEN:..E.,#...
-03b0 - e1 0d 89 81 90 b6 3b 7d-49 8d 0f d5 d8 f6 d8 0c   ......;}I.......
-03c0 - 7e 47 1e fb b7 a0 7a 66-7a 1e f2 ba 4e 28 ed 36   ~G....zfz...N(.6
-03d0 - 6b b6 2b e5 9c 57 0e ba-df 44 1b 4d 5e a2 9e 3f   k.+..W...D.M^..?
-03e0 - 29 18 b6 7c 26 ea 6a d5-0d f1 e9 42 fa 08 0d 44   )..|&.j....B...D
+...".......".......".......".......".......".......".......".......".....
 03f0 - 11 8a cd c5 a3 0a 22 43-d5 13 f9 a5 8a 06 f9 00   ......"C........
 0400 - 3c f7 86 4e e8 a5 d8 5b-92 37 f5                  <..N...[.7.
 depth=0 CN = localhost
@@ -1413,28 +1374,7 @@ Certificate chain
 ---
 Server certificate
 -----BEGIN CERTIFICATE-----
-MIID/TCCAmWgAwIBAgIJANnZjbiUrS4rMA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
-BAMMCWxvY2FsaG9zdDAgFw0xNzAxMTYwMzA5NDZaGA8yMjkwMTAzMTAzMDk0Nlow
-FDESMBAGA1UEAwwJbG9jYWxob3N0MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIB
-igKCAYEA9ahmVK/9M577HS3XM/+5mSEWimV1HDmdCsP8jG1j3nvYHtggoanVqyqO
-0U+4mvT3kQ3bcKhZ0w2Pb7tRpFzxwc4etVg6RhsqH3x1h7Sf7dM9ms+kW5ZbJc/1
-MxzIeoo3aS9jjPmkpUAGyWPP/TVd047jFy+Kq179bH5bA7u2POMyAZlyRaejwxHY
-bNxQpnUBooGFVl6+64ytRAXPR+A+i81uCBHuXpQ5XYyi47ADf8L4mTUL0cI8N0mo
-u3CO4qbIW3310dxu7/uD90zvjIXjuf1RGHB+pQO3beXGwtFN4hZCyCElKievxErC
-8LYvckYzsYnYlXqdUtt1rvSglzKMX5fnXRIVP4WP0ZzKoP1ZzcUlcNOXYgSvyxkb
-biTJgrglw1y91+4IF2/qmSQvxwWoQCTVdHtbZcXsl2Pe0UbSxAnCIiOZzhMDb7QI
-fz4Axv6RvMi6sjLCQp2J3gTQNieejK15PtaEONvNV61oBYULE1kRWiuk0F/D7hoC
-adTFvxm1AgMBAAGjUDBOMB0GA1UdDgQWBBQIhynOBAl/ETOAujCyd4S0c26ClDAf
-BgNVHSMEGDAWgBQIhynOBAl/ETOAujCyd4S0c26ClDAMBgNVHRMEBTADAQH/MA0G
-CSqGSIb3DQEBCwUAA4IBgQAixKhvCkCgxJKug4acQvgKqMdy0l3eePJaOODmCzzf
-r91sRKkKgfMOSeUH2kAPhXPb1oaHarkpdWqp3fwWgdzrJTrH3D/Ioy27ST4IcukD
-5i/uHheanPb9PHPP5Cxd8agck/cd966ylr+6vdBdP07TVF6BR3KhNTnb+qdUlvQf
-5V7IgPgfc+UJFK7lSsLzclzYUm7Y0uneSBRW/DLOaaNooen1eOithKjDRRo6fVTb
-486EnrHXYI6y5xWEjqUPxFPkuXHnRpP3rwC9PTaaTo/r4RgGVElKeZ89253W51e3
-dd0mrLeGGfD5tl41NqRap7AziJ5/yfM+zALOSTwOJUInv3s429g6h2/beXpUwaNq
-VAEXkgQkbGYdR0VOOq/+RR0sI4H2zOENiYGQtjt9SY0P1dj22Ax+Rx77t6B6Znoe
-8rpOKO02a7Yr5ZxXDrrfRBtNXqKePykYtnwm6mrVDfHpQvoIDUQRis3FowoiQ9UT
-+aWKBvkAPPeGTuil2FuSN/U=
+...".......".......".......".......".......".......".......".......".....
 -----END CERTIFICATE-----
 subject=/CN=localhost
 issuer=/CN=localhost
