@@ -143,14 +143,25 @@
 //#define CIPHER_ID TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256 // SSL_ALERT_HANDSHAKE_FAILURE
 //#define CIPHER_ID TLS_RSA_WITH_AES_256_GCM_SHA384 // ok, no SERVER_KEY_EXCHANGE
 //#define CIPHER_ID TLS_RSA_WITH_AES_128_GCM_SHA256 // ok, no SERVER_KEY_EXCHANGE *** select this?
-#define CIPHER_ID TLS_RSA_WITH_NULL_SHA256 // for testing (does everything except encrypting)
 //#define CIPHER_ID TLS_DH_anon_WITH_AES_256_CBC_SHA // SSL_ALERT_HANDSHAKE_FAILURE
 //^^^^^^^^^^^^^^^^^^^^^^^ (tested b/c this one doesn't req server certs... no luck)
-//test TLS_RSA_WITH_AES_128_CBC_SHA, in tls 1.2 it's mandated to be always supported
+//test TLS_RSA_WITH_AES_128_CBC_SHA, in TLS 1.2 it's mandated to be always supported
+
+// works against "openssl s_server -cipher NULL"
+// and against wolfssl-3.9.10-stable/examples/server/server.c:
+//#define CIPHER_ID TLS_RSA_WITH_NULL_SHA256 // for testing (does everything except encrypting)
+// "works", meaning
+// "can send encrypted FINISHED to  wolfssl-3.9.10-stable/examples/server/server.c",
+// don't yet read its encrypted answers:
+#define CIPHER_ID TLS_RSA_WITH_AES_256_CBC_SHA256 // ok, no SERVER_KEY_EXCHANGE
 
 enum {
 	SHA256_INSIZE = 64,
 	SHA256_OUTSIZE = 32,
+
+	AES_BLOCKSIZE = 16,
+	AES128_KEYSIZE = 16,
+	AES256_KEYSIZE = 32,
 };
 
 struct record_hdr {
@@ -172,6 +183,9 @@ typedef struct tls_state {
 	uint8_t encrypt_on_write;
 	uint8_t decrypt_on_read;
 	uint8_t client_write_MAC_key[SHA256_OUTSIZE];
+	uint8_t server_write_MAC_key[SHA256_OUTSIZE];
+	uint8_t client_write_key[AES256_KEYSIZE];
+	uint8_t server_write_key[AES256_KEYSIZE];
 // RFC 5246
 // sequence number
 // Each connection state contains a sequence number, which is
@@ -208,7 +222,10 @@ typedef struct tls_state {
 	// Since our buffer also contains 5-byte headers, make it a bit bigger:
 	int insize;
 	int tail;
-	uint8_t inbuf[18*1024];
+//needed?
+	uint64_t align____;
+	uint8_t inbuf[20*1024];
+	uint8_t outbuf[20*1024];
 } tls_state_t;
 
 
@@ -512,13 +529,114 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 			NULL);
 	tls->write_seq64_be = SWAP_BE64(1 + SWAP_BE64(tls->write_seq64_be));
 
-	xhdr->len16_lo += SHA256_OUTSIZE;
-	xwrite(tls->fd, buf, size);
-	xhdr->len16_lo -= SHA256_OUTSIZE;
-	dbg("wrote %u bytes\n", size);
+	if (CIPHER_ID == TLS_RSA_WITH_NULL_SHA256) {
+		/* No encryption, only signing */
+		xhdr->len16_lo += SHA256_OUTSIZE;
+//FIXME: overflow into len16_hi?
+		xwrite(tls->fd, buf, size);
+		xhdr->len16_lo -= SHA256_OUTSIZE;
+		dbg("wrote %u bytes\n", size);
 
-	xwrite(tls->fd, mac_hash, sizeof(mac_hash));
-	dbg("wrote %u bytes of hash\n", (int)sizeof(mac_hash));
+		xwrite(tls->fd, mac_hash, sizeof(mac_hash));
+		dbg("wrote %u bytes of hash\n", (int)sizeof(mac_hash));
+		return;
+	}
+
+	// RFC 5246
+	// 6.2.3.2.  CBC Block Cipher
+	// For block ciphers (such as 3DES or AES), the encryption and MAC
+	// functions convert TLSCompressed.fragment structures to and from block
+	// TLSCiphertext.fragment structures.
+	//    struct {
+	//        opaque IV[SecurityParameters.record_iv_length];
+	//        block-ciphered struct {
+	//            opaque content[TLSCompressed.length];
+	//            opaque MAC[SecurityParameters.mac_length];
+	//            uint8 padding[GenericBlockCipher.padding_length];
+	//            uint8 padding_length;
+	//        };
+	//    } GenericBlockCipher;
+	//...
+	// IV
+	//    The Initialization Vector (IV) SHOULD be chosen at random, and
+	//    MUST be unpredictable.  Note that in versions of TLS prior to 1.1,
+	//    there was no IV field (...).  For block ciphers, the IV length is
+	//    of length SecurityParameters.record_iv_length, which is equal to the
+	//    SecurityParameters.block_size.
+	// padding
+	//    Padding that is added to force the length of the plaintext to be
+	//    an integral multiple of the block cipher's block length.
+	// padding_length
+	//    The padding length MUST be such that the total size of the
+	//    GenericBlockCipher structure is a multiple of the cipher's block
+	//    length.  Legal values range from zero to 255, inclusive.
+	//...
+	// Appendix C.  Cipher Suite Definitions
+	//...
+	//                         Key      IV   Block
+	// Cipher        Type    Material  Size  Size
+	// ------------  ------  --------  ----  -----
+	// NULL          Stream      0       0    N/A
+	// RC4_128       Stream     16       0    N/A
+	// 3DES_EDE_CBC  Block      24       8      8
+	// AES_128_CBC   Block      16      16     16
+	// AES_256_CBC   Block      32      16     16
+    {
+	psCipherContext_t ctx;
+	uint8_t *p;
+	uint8_t padding_length;
+
+	/* Build IV+content+MAC+padding in outbuf */
+	tls_get_random(tls->outbuf, AES_BLOCKSIZE); /* IV */
+	p = tls->outbuf + AES_BLOCKSIZE;
+	size -= sizeof(*xhdr);
+	dbg("before crypt: 5 hdr + %u data + %u hash bytes\n", size, sizeof(mac_hash));
+	p = mempcpy(p, buf + sizeof(*xhdr), size);  /* content */
+	p = mempcpy(p, mac_hash, sizeof(mac_hash)); /* MAC */
+	size += sizeof(mac_hash);
+	// RFC is talking nonsense:
+        //    Padding that is added to force the length of the plaintext to be
+        //    an integral multiple of the block cipher's block length.
+	// WRONG. _padding+padding_length_, not just _padding_,
+	// pads the data.
+	// IOW: padding_length is the last byte of padding[] array,
+	// contrary to what RFC depicts.
+	//
+	// What actually happens is that there is always padding.
+	// If you need one byte to reach BLOCKSIZE, this byte is 0x00.
+	// If you need two bytes, they are both 0x01.
+	// If you need three, they are 0x02,0x02,0x02. And so on.
+	// If you need no bytes to reach BLOCKSIZE, you have to pad a full
+	// BLOCKSIZE with bytes of value (BLOCKSIZE-1).
+	// It's ok to have more than minimum padding, but we do minimum.
+	padding_length = (~size) & (AES_BLOCKSIZE - 1);
+	do {
+		*p++ = padding_length;              /* padding */
+		size++;
+	} while ((size & (AES_BLOCKSIZE - 1)) != 0);
+
+	/* Encrypt content+MAC+padding in place */
+	psAesInit(&ctx, tls->outbuf, /* IV */
+			tls->client_write_key, sizeof(tls->client_write_key)
+	);
+	psAesEncrypt(&ctx,
+			tls->outbuf + AES_BLOCKSIZE, /* plaintext */
+			tls->outbuf + AES_BLOCKSIZE, /* ciphertext */
+			size
+	);
+
+	/* Write out */
+	dbg("writing 5 + %u IV + %u encrypted bytes, padding_length:0x%02x\n",
+			AES_BLOCKSIZE, size, padding_length);
+	size += AES_BLOCKSIZE;     /* + IV */
+	xhdr->len16_hi = size >> 8;
+	xhdr->len16_lo = size & 0xff;
+	xwrite(tls->fd, xhdr, sizeof(*xhdr));
+	xwrite(tls->fd, tls->outbuf, size);
+	dbg("wrote %u bytes\n", sizeof(*xhdr) + size);
+//restore xhdr->len16_hi = ;
+//restore xhdr->len16_lo = ;
+    }
 }
 
 static int xread_tls_block(tls_state_t *tls)
@@ -1048,20 +1166,39 @@ static void send_client_key_exchange(tls_state_t *tls)
 	//    server_write_key[SecurityParameters.enc_key_length]
 	//    client_write_IV[SecurityParameters.fixed_iv_length]
 	//    server_write_IV[SecurityParameters.fixed_iv_length]
+
+
+        //                         Key      IV   Block
+        // Cipher        Type    Material  Size  Size
+        // ------------  ------  --------  ----  -----
+        // NULL          Stream      0       0    N/A
+        // RC4_128       Stream     16       0    N/A
+        // 3DES_EDE_CBC  Block      24       8      8
+        // AES_128_CBC   Block      16      16     16
+        // AES_256_CBC   Block      32      16     16
+
 	{
 		uint8_t tmp64[64];
-		/* make server_rand32 + client_rand32 */
+
+		/* make "server_rand32 + client_rand32" */
 		memcpy(&tmp64[0] , &tls->client_and_server_rand32[32], 32);
 		memcpy(&tmp64[32], &tls->client_and_server_rand32[0] , 32);
 
 		prf_hmac_sha256(
-			tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key),
+			tls->client_write_MAC_key, 2 * (SHA256_OUTSIZE + AES256_KEYSIZE),
+			// also fills:
+			// server_write_MAC_key[SHA256_OUTSIZE]
+			// client_write_key[AES256_KEYSIZE]
+			// server_write_key[AES256_KEYSIZE]
 			tls->master_secret, sizeof(tls->master_secret),
 			"key expansion",
 			tmp64, 64
 		);
 		dump_hex("client_write_MAC_key:%s\n",
 			tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key)
+		);
+		dump_hex("client_write_key:%s\n",
+			tls->client_write_key, sizeof(tls->client_write_key)
 		);
 	}
 }
