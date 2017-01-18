@@ -494,16 +494,11 @@ static void tls_error_die(tls_state_t *tls)
 //                         Key      IV   Block
 // Cipher        Type    Material  Size  Size
 // ------------  ------  --------  ----  -----
-// NULL          Stream      0       0    N/A
-// RC4_128       Stream     16       0    N/A
-// 3DES_EDE_CBC  Block      24       8      8
 // AES_128_CBC   Block      16      16     16
 // AES_256_CBC   Block      32      16     16
 //
 // MAC       Algorithm    mac_length  mac_key_length
 // --------  -----------  ----------  --------------
-// NULL      N/A              0             0
-// MD5       HMAC-MD5        16            16
 // SHA       HMAC-SHA1       20            20
 // SHA256    HMAC-SHA256     32            32
 static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size)
@@ -576,9 +571,6 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 	//                         Key      IV   Block
 	// Cipher        Type    Material  Size  Size
 	// ------------  ------  --------  ----  -----
-	// NULL          Stream      0       0    N/A
-	// RC4_128       Stream     16       0    N/A
-	// 3DES_EDE_CBC  Block      24       8      8
 	// AES_128_CBC   Block      16      16     16
 	// AES_256_CBC   Block      32      16     16
     {
@@ -595,8 +587,8 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 	p = mempcpy(p, mac_hash, sizeof(mac_hash)); /* MAC */
 	size += sizeof(mac_hash);
 	// RFC is talking nonsense:
-        //    Padding that is added to force the length of the plaintext to be
-        //    an integral multiple of the block cipher's block length.
+	//    Padding that is added to force the length of the plaintext to be
+	//    an integral multiple of the block cipher's block length.
 	// WRONG. _padding+padding_length_, not just _padding_,
 	// pads the data.
 	// IOW: padding_length is the last byte of padding[] array,
@@ -1166,17 +1158,6 @@ static void send_client_key_exchange(tls_state_t *tls)
 	//    server_write_key[SecurityParameters.enc_key_length]
 	//    client_write_IV[SecurityParameters.fixed_iv_length]
 	//    server_write_IV[SecurityParameters.fixed_iv_length]
-
-
-        //                         Key      IV   Block
-        // Cipher        Type    Material  Size  Size
-        // ------------  ------  --------  ----  -----
-        // NULL          Stream      0       0    N/A
-        // RC4_128       Stream     16       0    N/A
-        // 3DES_EDE_CBC  Block      24       8      8
-        // AES_128_CBC   Block      16      16     16
-        // AES_256_CBC   Block      32      16     16
-
 	{
 		uint8_t tmp64[64];
 
