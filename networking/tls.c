@@ -181,7 +181,7 @@ typedef struct tls_state {
 	uint8_t master_secret[48];
 
 	uint8_t encrypt_on_write;
-	uint8_t decrypt_on_read;
+	int     min_encrypted_len_on_read;
 	uint8_t client_write_MAC_key[SHA256_OUTSIZE];
 	uint8_t server_write_MAC_key[SHA256_OUTSIZE];
 	uint8_t client_write_key[AES256_KEYSIZE];
@@ -634,7 +634,7 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 static int xread_tls_block(tls_state_t *tls)
 {
 	struct record_hdr *xhdr;
-	int len;
+	int sz;
 	int total;
 	int target;
 
@@ -658,24 +658,57 @@ static int xread_tls_block(tls_state_t *tls)
 		/* if total >= target, we have a full packet (and possibly more)... */
 		if (total - target >= 0)
 			break;
-		len = safe_read(tls->fd, tls->inbuf + total, sizeof(tls->inbuf) - total);
-		if (len <= 0)
+		sz = safe_read(tls->fd, tls->inbuf + total, sizeof(tls->inbuf) - total);
+		if (sz <= 0)
 			bb_perror_msg_and_die("short read");
-		total += len;
+		total += sz;
 	}
 	tls->tail = total - target;
 	tls->insize = target;
-	target -= sizeof(*xhdr);
+	sz = target - sizeof(*xhdr);
+
+	/* Needs to be decrypted? */
+	if (tls->min_encrypted_len_on_read) {
+		psCipherContext_t ctx;
+		uint8_t *p = tls->inbuf + sizeof(*xhdr);
+		int padding_len;
+
+		if (sz & (AES_BLOCKSIZE-1)
+		 || sz < tls->min_encrypted_len_on_read
+		) {
+			bb_error_msg_and_die("bad encrypted len:%u", sz);
+		}
+		/* Decrypt content+MAC+padding in place */
+		psAesInit(&ctx, p, /* IV */
+			tls->server_write_key, sizeof(tls->server_write_key)
+		);
+		psAesDecrypt(&ctx,
+			p + AES_BLOCKSIZE, /* ciphertext */
+			p + AES_BLOCKSIZE, /* plaintext */
+			sz
+		);
+		padding_len = p[sz - 1];
+		dbg("encrypted size:%u type:0x%02x padding_length:0x%02x\n", sz, p[AES_BLOCKSIZE], padding_len);
+		padding_len++;
+		sz -= AES_BLOCKSIZE + SHA256_OUTSIZE + padding_len;
+		if (sz < 0) {
+			bb_error_msg_and_die("bad padding size:%u", padding_len);
+		}
+		if (sz != 0) {
+			/* Skip IV */
+			memmove(tls->inbuf + 5, tls->inbuf + 5 + AES_BLOCKSIZE, sz);
+		}
+	}
 
 	/* RFC 5246 is not saying it explicitly, but sha256 hash
 	 * in our FINISHED record must include data of incoming packets too!
 	 */
 	if (tls->inbuf[0] == RECORD_TYPE_HANDSHAKE) {
-		sha256_hash_dbg("<< sha256:%s", &tls->handshake_sha256_ctx, tls->inbuf + 5, target);
+		sha256_hash_dbg("<< sha256:%s", &tls->handshake_sha256_ctx, tls->inbuf + 5, sz);
 	}
 
-	dbg("got block len:%u\n", target);
-	return target;
+	dbg("got block len:%u\n", sz);
+	return sz;
 }
 
 /*
@@ -1194,9 +1227,6 @@ static void send_change_cipher_spec(tls_state_t *tls)
 	/* Not "xwrite_and_hash": this is not a handshake message */
 	dbg(">> CHANGE_CIPHER_SPEC\n");
 	xwrite(tls->fd, rec_CHANGE_CIPHER_SPEC, sizeof(rec_CHANGE_CIPHER_SPEC));
-
-	/* tls->write_seq64_be = 0; - already is */
-	tls->encrypt_on_write = 1;
 }
 
 // 7.4.9.  Finished
@@ -1335,7 +1365,9 @@ static void tls_handshake(tls_state_t *tls)
 	send_client_key_exchange(tls);
 
 	send_change_cipher_spec(tls);
-	/* we now should send encrypted... as soon as we grok AES. */
+	/* from now on we should send encrypted */
+	/* tls->write_seq64_be = 0; - already is */
+	tls->encrypt_on_write = 1;
 
 	send_client_finished(tls);
 
@@ -1344,8 +1376,8 @@ static void tls_handshake(tls_state_t *tls)
 	if (len != 1 || memcmp(tls->inbuf, rec_CHANGE_CIPHER_SPEC, 6) != 0)
 		tls_error_die(tls);
 	dbg("<< CHANGE_CIPHER_SPEC\n");
-	tls->decrypt_on_read = 1;
-	/* we now should receive encrypted */
+	/* all incoming packets now should be encrypted and have IV + MAC + padding */
+	tls->min_encrypted_len_on_read = AES_BLOCKSIZE + SHA256_OUTSIZE + AES_BLOCKSIZE;
 
 	/* Get (encrypted) FINISHED from the server */
 	len = xread_tls_block(tls);
@@ -1356,8 +1388,13 @@ static void tls_handshake(tls_state_t *tls)
 }
 
 // To run a test server using openssl:
-// openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1
 // openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
+// openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1
+//
+// Unencryped SHA256 example:
+// openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
+// openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL
+// openssl s_client -connect 127.0.0.1:4433 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL-SHA256
 
 int tls_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tls_main(int argc UNUSED_PARAM, char **argv)
@@ -1381,12 +1418,8 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 
 	return EXIT_SUCCESS;
 }
-
 /* Unencryped SHA256 example:
- * $ openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
- * $ openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL
- * $ openssl s_client -connect 127.0.0.1:4433 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL-SHA256
- *           s_client says:
+ * s_client says:
 
 write to 0x1d750b0 [0x1e6f153] (99 bytes => 99 (0x63))
 0000 - 16 03 01 005e  01 00005a   0303 [4d ef 5c 82 3e   ....^...Z..M.\.> >> ClHello
