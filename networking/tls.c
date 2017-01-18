@@ -25,12 +25,20 @@
 
 #include "tls.h"
 
-#define TLS_DEBUG 2
+#define TLS_DEBUG      1
+#define TLS_DEBUG_HASH 0
+#define TLS_DEBUG_DER  0
 
 #if TLS_DEBUG
 # define dbg(...) fprintf(stderr, __VA_ARGS__)
 #else
 # define dbg(...) ((void)0)
+#endif
+
+#if TLS_DEBUG_DER
+# define dbg_der(...) fprintf(stderr, __VA_ARGS__)
+#else
+# define dbg_der(...) ((void)0)
 #endif
 
 #define RECORD_TYPE_CHANGE_CIPHER_SPEC  20
@@ -269,7 +277,7 @@ static void sha256_peek(sha256_ctx_t *ctx, void *buffer)
         sha256_end(&ctx_copy, buffer);
 }
 
-#if TLS_DEBUG >= 2
+#if TLS_DEBUG_HASH
 static void sha256_hash_dbg(const char *fmt, sha256_ctx_t *ctx, const void *buffer, size_t len)
 {
         uint8_t h[SHA256_OUTSIZE];
@@ -283,7 +291,7 @@ static void sha256_hash_dbg(const char *fmt, sha256_ctx_t *ctx, const void *buff
 #else
 # define sha256_hash_dbg(fmt, ctx, buffer, len) \
          sha256_hash(ctx, buffer, len)
-#endif /* not TLS_DEBUG >= 2 */
+#endif
 
 // RFC 2104
 // HMAC(key, text) based on a hash H (say, sha256) is:
@@ -424,8 +432,7 @@ static void prf_hmac_sha256(
 #undef SEED
 }
 
-static
-tls_state_t *new_tls_state(void)
+static tls_state_t *new_tls_state(void)
 {
 	tls_state_t *tls = xzalloc(sizeof(*tls));
 	tls->fd = -1;
@@ -488,31 +495,31 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 	uint8_t mac_hash[SHA256_OUTSIZE];
 	struct record_hdr *xhdr = buf;
 
-	if (tls->encrypt_on_write) {
+	if (!tls->encrypt_on_write) {
+		xwrite(tls->fd, buf, size);
+		dbg("wrote %u bytes\n", size);
+		/* Handshake hash does not include record headers */
+		if (size > 5 && xhdr->type == RECORD_TYPE_HANDSHAKE) {
+			sha256_hash_dbg(">> sha256:%s", &tls->handshake_sha256_ctx, (uint8_t*)buf + 5, size - 5);
+		}
+		return;
+	}
+
 //TODO: convert hmac_sha256 to precomputed
-		hmac_sha256(mac_hash,
+	hmac_sha256(mac_hash,
 			tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key),
 			&tls->write_seq64_be, sizeof(tls->write_seq64_be),
 			buf, size,
-		NULL);
-		tls->write_seq64_be = SWAP_BE64(1 + SWAP_BE64(tls->write_seq64_be));
-		/* Temporarily change for writing */
-		xhdr->len16_lo += SHA256_OUTSIZE;
-	}
+			NULL);
+	tls->write_seq64_be = SWAP_BE64(1 + SWAP_BE64(tls->write_seq64_be));
 
+	xhdr->len16_lo += SHA256_OUTSIZE;
 	xwrite(tls->fd, buf, size);
+	xhdr->len16_lo -= SHA256_OUTSIZE;
 	dbg("wrote %u bytes\n", size);
 
-	if (tls->encrypt_on_write) {
-		xwrite(tls->fd, mac_hash, sizeof(mac_hash));
-		dbg("wrote %u bytes of hash\n", (int)sizeof(mac_hash));
-		xhdr->len16_lo -= SHA256_OUTSIZE;
-	}
-
-	/* Handshake hash does not include record headers */
-	if (size > 5 && xhdr->type == RECORD_TYPE_HANDSHAKE) {
-		sha256_hash_dbg(">> sha256:%s", &tls->handshake_sha256_ctx, (uint8_t*)buf + 5, size - 5);
-	}
+	xwrite(tls->fd, mac_hash, sizeof(mac_hash));
+	dbg("wrote %u bytes of hash\n", (int)sizeof(mac_hash));
 }
 
 static int xread_tls_block(tls_state_t *tls)
@@ -611,7 +618,7 @@ static uint8_t *enter_der_item(uint8_t *der, uint8_t **endp)
 {
 	uint8_t *new_der;
 	unsigned len = get_der_len(&new_der, der, *endp);
-	dbg("entered der @%p:0x%02x len:%u inner_byte @%p:0x%02x\n", der, der[0], len, new_der, new_der[0]);
+	dbg_der("entered der @%p:0x%02x len:%u inner_byte @%p:0x%02x\n", der, der[0], len, new_der, new_der[0]);
 	/* Move "end" position to cover only this item */
 	*endp = new_der + len;
 	return new_der;
@@ -623,7 +630,7 @@ static uint8_t *skip_der_item(uint8_t *der, uint8_t *end)
 	unsigned len = get_der_len(&new_der, der, end);
 	/* Skip body */
 	new_der += len;
-	dbg("skipped der 0x%02x, next byte 0x%02x\n", der[0], new_der[0]);
+	dbg_der("skipped der 0x%02x, next byte 0x%02x\n", der[0], new_der[0]);
 	return new_der;
 }
 
@@ -632,7 +639,7 @@ static void der_binary_to_pstm(pstm_int *pstm_n, uint8_t *der, uint8_t *end)
 	uint8_t *bin_ptr;
 	unsigned len = get_der_len(&bin_ptr, der, end);
 
-	dbg("binary bytes:%u, first:0x%02x\n", len, bin_ptr[0]);
+	dbg_der("binary bytes:%u, first:0x%02x\n", len, bin_ptr[0]);
 	pstm_init_for_read_unsigned_bin(/*pool:*/ NULL, pstm_n, len);
 	pstm_read_unsigned_bin(pstm_n, bin_ptr, len);
 	//return bin + len;
@@ -854,7 +861,7 @@ static void send_client_hello(tls_state_t *tls)
 	/* record.comprtypes[0] = 0; */
 
 	//dbg (make it repeatable): memset(record.rand32, 0x11, sizeof(record.rand32));
-	dbg(">> HANDSHAKE_CLIENT_HELLO\n");
+	dbg(">> CLIENT_HELLO\n");
 	xwrite_and_hash(tls, &record, sizeof(record));
 	memcpy(tls->client_and_server_rand32, record.rand32, sizeof(record.rand32));
 }
@@ -988,7 +995,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	record.xhdr.len16_hi = len >> 8;
 	record.xhdr.len16_lo = len & 0xff;
 
-	dbg(">> HANDSHAKE_CLIENT_KEY_EXCHANGE\n");
+	dbg(">> CLIENT_KEY_EXCHANGE\n");
 	xwrite_and_hash(tls, &record, sizeof(record.xhdr) + len);
 
 	// RFC 5246
@@ -1114,13 +1121,13 @@ static void send_change_cipher_spec(tls_state_t *tls)
 // includes all existing cipher suites.
 static void send_client_finished(tls_state_t *tls)
 {
-	struct client_finished {
+	struct finished {
 		struct record_hdr xhdr;
 		uint8_t type;
 		uint8_t len24_hi, len24_mid, len24_lo;
 		uint8_t prf_result[12];
 	};
-	struct client_finished record;
+	struct finished record;
 	uint8_t handshake_hash[SHA256_OUTSIZE];
 
 	fill_handshake_record_hdr(&record.xhdr, sizeof(record));
@@ -1134,13 +1141,13 @@ static void send_client_finished(tls_state_t *tls)
 	);
 	dump_hex("from secret: %s\n", tls->master_secret, sizeof(tls->master_secret));
 	dump_hex("from labelSeed: %s", "client finished", sizeof("client finished")-1);
-			dump_hex("%s\n", handshake_hash, sizeof(handshake_hash));
+	dump_hex("%s\n", handshake_hash, sizeof(handshake_hash));
 	dump_hex("=> digest: %s\n", record.prf_result, sizeof(record.prf_result));
 
 //(1) TODO: well, this should be encrypted on send, really.
 //(2) do we really need to also hash it?
 
-	dbg(">> HANDSHAKE_FINISHED\n");
+	dbg(">> FINISHED\n");
 	xwrite_and_hash(tls, &record, sizeof(record));
 }
 
