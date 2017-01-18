@@ -3,17 +3,40 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+/* Interface glue between bbox code and minimally tweaked matrixssl
+ * code. All C files (matrixssl and bbox (ones which need TLS))
+ * include this file, and guaranteed to see a consistent API,
+ * defines, types, etc.
+ */
 #include "libbb.h"
 
-/* config tweaks */
-#define HAVE_NATIVE_INT64 1
-#undef  DISABLE_PSTM
+
+/* Config tweaks */
+#define HAVE_NATIVE_INT64
 #undef  USE_1024_KEY_SPEED_OPTIMIZATIONS
 #undef  USE_2048_KEY_SPEED_OPTIMIZATIONS
-//TODO: enable to use asm:
-//#if defined(__GNUC__) && defined(__i386__)   -> #define PSTM_32BIT and PSTM_X86
-//#if defined(__GNUC__) && defined(__x86_64__) -> #define PSTM_64BIT and PSTM_X86_64
-//ARM and MIPS also have these
+#define USE_AES
+#undef  USE_AES_CBC_EXTERNAL
+#undef  USE_AES_CCM
+#undef  USE_AES_GCM
+#undef  USE_3DES
+#undef  USE_ARC4
+#undef  USE_IDEA
+#undef  USE_RC2
+#undef  USE_SEED
+/* pstm: multiprecision numbers */
+#undef  DISABLE_PSTM
+#if defined(__GNUC__) && defined(__i386__)
+# define PSTM_32BIT
+# define PSTM_X86
+#endif
+//test this before enabling:
+//#if defined(__GNUC__) && defined(__x86_64__)
+//# define PSTM_64BIT
+//# define PSTM_X86_64
+//#endif
+//#if SOME_COND #define PSTM_MIPS, #define PSTM_32BIT
+//#if SOME_COND #define PSTM_ARM,  #define PSTM_32BIT
 
 
 #define PS_SUCCESS              0
@@ -65,9 +88,11 @@ void tls_get_random(void *buf, unsigned len);
 #define memset_s(A,B,C,D) memset((A),(C),(D))
 /* Constant time memory comparison */
 #define memcmpct(s1, s2, len) memcmp((s1), (s2), (len))
-#undef min
+#undef  min
 #define min(x, y) ((x) < (y) ? (x) : (y))
 
 
 #include "tls_pstm.h"
 #include "tls_rsa.h"
+#include "tls_symmetric.h"
+#include "tls_aes.h"

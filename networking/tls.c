@@ -15,8 +15,7 @@
 //kbuild:lib-$(CONFIG_TLS) += tls_pstm_mul_comba.o
 //kbuild:lib-$(CONFIG_TLS) += tls_pstm_sqr_comba.o
 //kbuild:lib-$(CONFIG_TLS) += tls_rsa.o
-////kbuild:lib-$(CONFIG_TLS) += tls_ciphers.o
-////kbuild:lib-$(CONFIG_TLS) += tls_aes.o
+//kbuild:lib-$(CONFIG_TLS) += tls_aes.o
 ////kbuild:lib-$(CONFIG_TLS) += tls_aes_gcm.o
 
 //usage:#define tls_trivial_usage
