@@ -27,11 +27,13 @@
 /* pstm: multiprecision numbers */
 #undef  DISABLE_PSTM
 #if defined(__GNUC__) && defined(__i386__)
+  /* PSTM_X86 works correctly. +25 bytes. */
 # define PSTM_32BIT
 # define PSTM_X86
 #endif
-//test this before enabling:
 //#if defined(__GNUC__) && defined(__x86_64__)
+//  /* PSTM_X86_64 works correctly, but +782 bytes. */
+//  /* Looks like most of the growth is because of PSTM_64BIT. */
 //# define PSTM_64BIT
 //# define PSTM_X86_64
 //#endif

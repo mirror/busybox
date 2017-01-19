@@ -582,7 +582,7 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 	tls_get_random(tls->outbuf, AES_BLOCKSIZE); /* IV */
 	p = tls->outbuf + AES_BLOCKSIZE;
 	size -= sizeof(*xhdr);
-	dbg("before crypt: 5 hdr + %u data + %u hash bytes\n", size, sizeof(mac_hash));
+	dbg("before crypt: 5 hdr + %u data + %u hash bytes\n", size, (int)sizeof(mac_hash));
 	p = mempcpy(p, buf + sizeof(*xhdr), size);  /* content */
 	p = mempcpy(p, mac_hash, sizeof(mac_hash)); /* MAC */
 	size += sizeof(mac_hash);
@@ -625,7 +625,7 @@ static void xwrite_and_hash(tls_state_t *tls, /*const*/ void *buf, unsigned size
 	xhdr->len16_lo = size & 0xff;
 	xwrite(tls->fd, xhdr, sizeof(*xhdr));
 	xwrite(tls->fd, tls->outbuf, size);
-	dbg("wrote %u bytes\n", sizeof(*xhdr) + size);
+	dbg("wrote %u bytes\n", (int)sizeof(*xhdr) + size);
 //restore xhdr->len16_hi = ;
 //restore xhdr->len16_lo = ;
     }
