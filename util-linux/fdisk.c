@@ -103,8 +103,8 @@
 //usage:	)
 //usage:     "\n	-b 2048		(for certain MO disks) use 2048-byte sectors"
 //usage:     "\n	-C CYLINDERS	Set number of cylinders/heads/sectors"
-//usage:     "\n	-H HEADS"
-//usage:     "\n	-S SECTORS"
+//usage:     "\n	-H HEADS	Typically 255"
+//usage:     "\n	-S SECTORS	Typically 63"
 
 #ifndef _LARGEFILE64_SOURCE
 /* For lseek64 */
