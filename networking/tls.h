@@ -66,8 +66,7 @@ typedef  int32_t  int32;
 typedef uint16_t uint16;
 typedef  int16_t  int16;
 
-//FIXME
-typedef char psPool_t;
+//typedef char psPool_t;
 
 //#ifdef PS_PUBKEY_OPTIMIZE_FOR_SMALLER_RAM
 #define PS_EXPTMOD_WINSIZE   3

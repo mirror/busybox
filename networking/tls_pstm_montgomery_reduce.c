@@ -6,7 +6,7 @@
 #include "tls.h"
 
 /* The file is taken almost verbatim from matrixssl-3-7-2b-open/crypto/math/.
- * Changes are flagged with ///bbox
+ * Changes are flagged with //bbox
  */
 
 /**
@@ -43,7 +43,7 @@
  */
 /******************************************************************************/
 
-///bbox
+//bbox
 //#include "../cryptoApi.h"
 #ifndef DISABLE_PSTM
 
@@ -357,7 +357,7 @@ int32 pstm_montgomery_reduce(psPool_t *pool, pstm_int *a, pstm_int *m,
 		c = paD;
 		memset(c, 0x0, paDlen);
 	} else {
-		c = xzalloc(2*pa+1);///bbox
+		c = xzalloc(2*pa+1);//bbox
 	}
 	/* copy the input */
 	oldused = a->used;

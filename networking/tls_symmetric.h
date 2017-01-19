@@ -6,7 +6,7 @@
 
 
 /* The part below is a section of matrixssl-3-7-2b-open/crypto/cryptolib.h
- * Changes are flagged with ///bbox
+ * Changes are flagged with //bbox
  * TODO:
  * Take a look at "roll %%cl" part... rotates by constant use fewer registers,
  * and on many Intel CPUs rotates by %cl are slower: they take 2 cycles, not 1.
@@ -299,7 +299,7 @@ x = (((uint64)((y)[0] & 255))<<56)|(((uint64)((y)[1] & 255))<<48)| \
 
 
 /* The part below is taken almost verbatim from matrixssl-3-7-2b-open/crypto/symmetric/.
- * Changes are flagged with ///bbox
+ * Changes are flagged with //bbox
  */
 
 /**

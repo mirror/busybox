@@ -6,7 +6,7 @@
 #include "tls.h"
 
 /* The file is taken almost verbatim from matrixssl-3-7-2b-open/crypto/math/.
- * Changes are flagged with ///bbox
+ * Changes are flagged with //bbox
  */
 
 /**
@@ -43,7 +43,7 @@
  */
 /******************************************************************************/
 
-///bbox
+//bbox
 //#include "../cryptoApi.h"
 #ifndef DISABLE_PSTM
 
@@ -55,21 +55,21 @@ static int32 pstm_mul_2d(pstm_int *a, int16 b, pstm_int *c);
  */
 int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size)
 {
-///bbox
+//bbox
 //	uint16		x;
 
 /*
 	alloc mem
  */
-	a->dp = xzalloc(sizeof (pstm_digit) * size);///bbox
-	a->pool = pool;
+	a->dp = xzalloc(sizeof (pstm_digit) * size);//bbox
+//bbox	a->pool = pool;
 	a->used  = 0;
 	a->alloc = (int16)size;
 	a->sign  = PSTM_ZPOS;
 /*
 	zero the digits
  */
-///bbox
+//bbox
 //	for (x = 0; x < size; x++) {
 //		a->dp[x] = 0;
 //	}
@@ -82,16 +82,16 @@ int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size)
 */
 int32 pstm_init(psPool_t *pool, pstm_int * a)
 {
-///bbox
+//bbox
 //	int32		i;
 /*
 	allocate memory required and clear it
  */
-	a->dp = xzalloc(sizeof (pstm_digit) * PSTM_DEFAULT_INIT);///bbox
+	a->dp = xzalloc(sizeof (pstm_digit) * PSTM_DEFAULT_INIT);//bbox
 /*
 	set the digits to zero
  */
-///bbox
+//bbox
 //	for (i = 0; i < PSTM_DEFAULT_INIT; i++) {
 //		a->dp[i] = 0;
 //	}
@@ -99,7 +99,7 @@ int32 pstm_init(psPool_t *pool, pstm_int * a)
 	set the used to zero, allocated digits to the default precision and sign
 	to positive
  */
-	a->pool = pool;
+//bbox	a->pool = pool;
 	a->used  = 0;
 	a->alloc = PSTM_DEFAULT_INIT;
 	a->sign  = PSTM_ZPOS;
@@ -126,7 +126,7 @@ int32 pstm_grow(pstm_int * a, int16 size)
 		We store the return in a temporary variable in case the operation
 		failed we don't want to overwrite the dp member of a.
 */
-		tmp = xrealloc(a->dp, sizeof (pstm_digit) * size);///bbox
+		tmp = xrealloc(a->dp, sizeof (pstm_digit) * size);//bbox
 /*
 		reallocation succeeded so set a->dp
  */
@@ -1622,7 +1622,7 @@ int32 pstm_exptmod(psPool_t *pool, pstm_int *G, pstm_int *X, pstm_int *P,
 	Pre-allocated digit.  Used for mul, sqr, AND reduce
 */
 	paDlen = ((M[1].used + 3) * 2) * sizeof(pstm_digit);
-	paD = xzalloc(paDlen);///bbox
+	paD = xzalloc(paDlen);//bbox
 /*
  	compute the value at M[1<<(winsize-1)] by squaring M[1] (winsize-1) times
  */
@@ -1941,6 +1941,9 @@ int32 pstm_cmp_d(pstm_int *a, pstm_digit b)
 	in cases where dQ > dP.  The values must be switched and a new qP must be
 	calculated using this function
 */
+//bbox: pool unused
+#define pstm_invmod_slow(pool, a, b, c) \
+        pstm_invmod_slow(      a, b, c)
 static int32 pstm_invmod_slow(psPool_t *pool, pstm_int * a, pstm_int * b,
 				pstm_int * c)
 {

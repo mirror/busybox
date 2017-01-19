@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 /* The file is taken almost verbatim from matrixssl-3-7-2b-open/crypto/math/.
- * Changes are flagged with ///bbox
+ * Changes are flagged with //bbox
  */
 
 /**
@@ -124,7 +124,7 @@
 typedef struct  {
 	int16	used, alloc, sign;
 	pstm_digit	*dp;
-	psPool_t	*pool;
+//bbox	psPool_t	*pool;
 } pstm_int;
 
 /******************************************************************************/
@@ -140,15 +140,27 @@ extern void pstm_set(pstm_int *a, pstm_digit b);
 
 extern void pstm_zero(pstm_int * a);
 
+//bbox: pool unused
+#define pstm_init(pool, a) \
+        pstm_init(      a)
 extern int32 pstm_init(psPool_t *pool, pstm_int * a);
 
+//bbox: pool unused
+#define pstm_init_size(pool, a, size) \
+        pstm_init_size(      a, size)
 extern int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size);
 
+//bbox: pool unused
+#define pstm_init_copy(pool, a, b, toSqr) \
+        pstm_init_copy(      a, b, toSqr)
 extern int32 pstm_init_copy(psPool_t *pool, pstm_int * a, pstm_int * b,
 				int16 toSqr);
 
 extern int16 pstm_count_bits (pstm_int * a);
 
+//bbox: pool unused
+#define pstm_init_for_read_unsigned_bin(pool, a, len) \
+        pstm_init_for_read_unsigned_bin(      a, len)
 extern int32 pstm_init_for_read_unsigned_bin(psPool_t *pool, pstm_int *a,
 				uint32 len);
 
@@ -178,9 +190,15 @@ extern void pstm_rshd(pstm_int *a, int16 x);
 
 extern int32 pstm_lshd(pstm_int * a, int16 b);
 
+//bbox: pool unused
+#define pstm_div(pool, a, b, c, d) \
+        pstm_div(      a, b, c, d)
 extern int32 pstm_div(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
 				pstm_int *d);
 
+//bbox: pool unused
+#define pstm_div_2d(pool, a, b, c, d) \
+        pstm_div_2d(      a, b, c, d)
 extern int32 pstm_div_2d(psPool_t *pool, pstm_int *a, int16 b, pstm_int *c,
 				pstm_int *d);
 
@@ -190,15 +208,27 @@ extern int32 s_pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c);
 
 extern int32 pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c);
 
+//bbox: pool unused
+#define pstm_sub_d(pool, a, b, c) \
+        pstm_sub_d(      a, b, c)
 extern int32 pstm_sub_d(psPool_t *pool, pstm_int *a, pstm_digit b, pstm_int *c);
 
 extern int32 pstm_mul_2(pstm_int * a, pstm_int * b);
 
+//bbox: pool unused
+#define pstm_mod(pool, a, b, c) \
+        pstm_mod(      a, b, c)
 extern int32 pstm_mod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c);
 
+//bbox: pool unused
+#define pstm_mulmod(pool, a, b, c, d) \
+        pstm_mulmod(      a, b, c, d)
 extern int32 pstm_mulmod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
 				pstm_int *d);
 
+//bbox: pool unused
+#define pstm_exptmod(pool, G, X, P, Y) \
+        pstm_exptmod(      G, X, P, Y)
 extern int32 pstm_exptmod(psPool_t *pool, pstm_int *G, pstm_int *X, pstm_int *P,
 				pstm_int *Y);
 
@@ -206,15 +236,21 @@ extern int32 pstm_2expt(pstm_int *a, int16 b);
 
 extern int32 pstm_add(pstm_int *a, pstm_int *b, pstm_int *c);
 
+//bbox: pool unused
+#define pstm_to_unsigned_bin(pool, a, b) \
+        pstm_to_unsigned_bin(      a, b)
 extern int32 pstm_to_unsigned_bin(psPool_t *pool, pstm_int *a,
 				unsigned char *b);
 
+//bbox: pool unused
+#define pstm_to_unsigned_bin_nr(pool, a, b) \
+        pstm_to_unsigned_bin_nr(      a, b)
 extern int32 pstm_to_unsigned_bin_nr(psPool_t *pool, pstm_int *a,
 				unsigned char *b);
 
 extern int32 pstm_montgomery_setup(pstm_int *a, pstm_digit *rho);
 
-///bbox: pool unused
+//bbox: pool unused
 #define pstm_montgomery_reduce(pool, a, m, mp, paD, paDlen) \
         pstm_montgomery_reduce(      a, m, mp, paD, paDlen)
 extern int32 pstm_montgomery_reduce(psPool_t *pool, pstm_int *a, pstm_int *m,
@@ -225,7 +261,7 @@ extern int32 pstm_montgomery_reduce(psPool_t *pool, pstm_int *a, pstm_int *m,
 extern int32 pstm_mul_comba(psPool_t *pool, pstm_int *A, pstm_int *B,
 				pstm_int *C, pstm_digit *paD, uint32 paDlen);
 
-///bbox: pool unused
+//bbox: pool unused
 #define pstm_sqr_comba(pool, A, B, paD, paDlen) \
         pstm_sqr_comba(      A, B, paD, paDlen)
 extern int32 pstm_sqr_comba(psPool_t *pool, pstm_int *A, pstm_int *B,
@@ -237,6 +273,9 @@ extern int32 pstm_montgomery_calc_normalization(pstm_int *a, pstm_int *b);
 
 extern int32 pstm_mul_d(pstm_int *a, pstm_digit b, pstm_int *c);
 
+//bbox: pool unused
+#define pstm_invmod(pool, a, b, c) \
+        pstm_invmod(      a, b, c)
 extern int32 pstm_invmod(psPool_t *pool, pstm_int * a, pstm_int * b,
 				pstm_int * c);
 

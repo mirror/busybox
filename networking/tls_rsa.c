@@ -8,12 +8,12 @@
 /* The code below is taken from parts of
  *  matrixssl-3-7-2b-open/crypto/pubkey/pkcs.c
  *  matrixssl-3-7-2b-open/crypto/pubkey/rsa.c
- * and (so far) almost not modified. Changes are flagged with ///bbox
+ * and (so far) almost not modified. Changes are flagged with //bbox
  */
 
 #define pkcs1Pad(in, inlen, out, outlen, cryptType, userPtr) \
         pkcs1Pad(in, inlen, out, outlen, cryptType)
-static ///bbox
+static //bbox
 int32 pkcs1Pad(unsigned char *in, uint32 inlen, unsigned char *out,
 					   uint32 outlen, int32 cryptType, void *userPtr)
 {
@@ -57,8 +57,8 @@ int32 pkcs1Pad(unsigned char *in, uint32 inlen, unsigned char *out,
 }
 
 #define psRsaCrypt(pool, in, inlen, out, outlen, key, type, data) \
-        psRsaCrypt(pool, in, inlen, out, outlen, key, type)
-static ///bbox
+        psRsaCrypt(      in, inlen, out, outlen, key, type)
+static //bbox
 int32 psRsaCrypt(psPool_t *pool, const unsigned char *in, uint32 inlen,
 			unsigned char *out, uint32 *outlen,	psRsaKey_t *key, int32 type,
 			void *data)
@@ -67,10 +67,11 @@ int32 psRsaCrypt(psPool_t *pool, const unsigned char *in, uint32 inlen,
 	int32			res;
 	uint32			x;
 
-	if (in == NULL || out == NULL || outlen == NULL || key == NULL) {
-		psTraceCrypto("NULL parameter error in psRsaCrypt\n");
-		return PS_ARG_FAIL;
-	}
+//bbox
+//	if (in == NULL || out == NULL || outlen == NULL || key == NULL) {
+//		psTraceCrypto("NULL parameter error in psRsaCrypt\n");
+//		return PS_ARG_FAIL;
+//	}
 
 	tmp.dp = tmpa.dp = tmpb.dp = NULL;
 
@@ -187,7 +188,8 @@ int32 psRsaEncryptPub(psPool_t *pool, psRsaKey_t *key,
 
 	size = key->size;
 	if (outlen < size) {
-		psTraceCrypto("Error on bad outlen parameter to psRsaEncryptPub: outlen:%d < size:%d", outlen, size);
+//bbox		psTraceCrypto("Error on bad outlen parameter to psRsaEncryptPub\n");
+		bb_error_msg_and_die("RSA crypt outlen:%d < size:%d", outlen, size);
 		return PS_ARG_FAIL;
 	}
 

@@ -6,7 +6,7 @@
 #include "tls.h"
 
 /* The file is taken almost verbatim from matrixssl-3-7-2b-open/crypto/symmetric/.
- * Changes are flagged with ///bbox
+ * Changes are flagged with //bbox
  */
 
 /**
@@ -43,7 +43,7 @@
  */
 /******************************************************************************/
 
-///vda
+//bbox
 //#include "../cryptoApi.h"
 
 #ifdef USE_AES
@@ -1084,10 +1084,11 @@ int32 psAesInit(psCipherContext_t *ctx, unsigned char *IV,
 {
 	int32		x, err;
 
-	if (IV == NULL || key == NULL || ctx == NULL) {
-		psTraceCrypto("psAesInit arg fail\n");
-		return PS_ARG_FAIL;
-	}
+//bbox
+//	if (IV == NULL || key == NULL || ctx == NULL) {
+//		psTraceCrypto("psAesInit arg fail\n");
+//		return PS_ARG_FAIL;
+//	}
 	memset(ctx, 0x0, sizeof(psCipherContext_t));
 /*
 	setup cipher
@@ -1112,10 +1113,13 @@ int32 psAesEncrypt(psCipherContext_t *ctx, unsigned char *pt,
 	uint32			i;
 	unsigned char	tmp[MAXBLOCKSIZE];
 
-	if (pt == NULL || ct == NULL || ctx == NULL || (len & 0x7) != 0) {
-		psTraceCrypto("Bad parameters to psAesEncrypt\n");
-		return PS_ARG_FAIL;
-	}
+//bbox
+//	if (pt == NULL || ct == NULL || ctx == NULL || (len & 0x7) != 0) {
+//		psTraceCrypto("Bad parameters to psAesEncrypt\n");
+//		return PS_ARG_FAIL;
+//	}
+	if ((len & 0x7) != 0)
+		bb_error_msg_and_die("AES len:%d", len);
 
 /*
 	is blocklen valid?
@@ -1159,10 +1163,13 @@ int32 psAesDecrypt(psCipherContext_t *ctx, unsigned char *ct,
 	uint32			i;
 	unsigned char	tmp[MAXBLOCKSIZE], tmp2[MAXBLOCKSIZE];
 
-	if (pt == NULL || ct == NULL || ctx == NULL || (len & 0x7) != 0) {
-		psTraceCrypto("Bad parameters to psAesDecrypt\n");
-		return PS_ARG_FAIL;
-	}
+//bbox
+//	if (pt == NULL || ct == NULL || ctx == NULL || (len & 0x7) != 0) {
+//		psTraceCrypto("Bad parameters to psAesDecrypt\n");
+//		return PS_ARG_FAIL;
+//	}
+	if ((len & 0x7) != 0)
+		bb_error_msg_and_die("AES len:%d", len);
 
 /*
 	is blocklen valid?
@@ -1221,14 +1228,15 @@ int32 psAesInitKey(const unsigned char *key, uint32 keylen, psAesKey_t *skey)
 	int32		i, j;
 	uint32		temp, *rk, *rrk;
 
-	if (key == NULL || skey == NULL) {
-		psTraceCrypto("Bad args to psAesInitKey\n");
-		return PS_ARG_FAIL;
-	}
+//bbox
+//	if (key == NULL || skey == NULL) {
+//		psTraceCrypto("Bad args to psAesInitKey\n");
+//		return PS_ARG_FAIL;
+//	}
 
 	if (keylen != 16 && keylen != 24 && keylen != 32) {
 		psTraceCrypto("Invalid AES key length\n");
-		///bbox return CRYPT_INVALID_KEYSIZE;
+		//bbox return CRYPT_INVALID_KEYSIZE;
 		//unreachable anyway
 		return PS_ARG_FAIL;
 	}
@@ -1398,9 +1406,10 @@ void psAesEncryptBlock(const unsigned char *pt, unsigned char *ct,
 	uint32	s0, s1, s2, s3, t0, t1, t2, t3, *rk;
 	int32	Nr, r;
 
-	if (pt == NULL || ct == NULL || skey == NULL) {
-		return;
-	}
+//bbox
+//	if (pt == NULL || ct == NULL || skey == NULL) {
+//		return;
+//	}
 
 	Nr = skey->Nr;
 	rk = skey->eK;
@@ -1562,9 +1571,10 @@ void psAesDecryptBlock(const unsigned char *ct, unsigned char *pt,
 	uint32		s0, s1, s2, s3, t0, t1, t2, t3, *rk;
 	int32		Nr, r;
 
-	if (pt == NULL || ct == NULL || skey == NULL) {
-		return;
-	}
+//bbox
+//	if (pt == NULL || ct == NULL || skey == NULL) {
+//		return;
+//	}
 
 	Nr = skey->Nr;
 	rk = skey->dK;
