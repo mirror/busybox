@@ -23,7 +23,7 @@
 //usage:#define tls_full_usage "\n\n"
 
 #include "tls.h"
-#include "common_bufsiz.h"
+//#include "common_bufsiz.h"
 
 #define TLS_DEBUG      1
 #define TLS_DEBUG_HASH 1
@@ -677,7 +677,8 @@ static int xread_tls_block(tls_state_t *tls)
 
  again:
 	dbg("insize:%u tail:%u\n", tls->insize, tls->tail);
-	memmove(tls->inbuf, tls->inbuf + tls->insize, tls->tail);
+	if (tls->tail != 0)
+		memmove(tls->inbuf, tls->inbuf + tls->insize, tls->tail);
 	errno = 0;
 	total = tls->tail;
 	target = sizeof(tls->inbuf);
@@ -702,7 +703,6 @@ static int xread_tls_block(tls_state_t *tls)
 				/* "Abrupt" EOF, no TLS shutdown (seen from kernel.org) */
 				dbg("EOF (without TLS shutdown) from peer\n");
 				tls->tail = 0;
-				tls->insize = 0;
 				goto end;
 			}
 			bb_perror_msg_and_die("short read, have only %d", total);
@@ -1061,6 +1061,8 @@ static void send_client_hello(tls_state_t *tls)
 	record->cipherid[1] = CIPHER_ID & 0xff;
 	record->comprtypes_len = 1;
 	record->comprtypes[0] = 0;
+
+//TODO: send options, at least SNI.
 
 	dbg(">> CLIENT_HELLO\n");
 	xwrite_and_update_handshake_hash(tls, sizeof(*record));
@@ -1453,6 +1455,9 @@ static void tls_xwrite(tls_state_t *tls, int len)
 // openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
 // openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL
 // openssl s_client -connect 127.0.0.1:4433 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL-SHA256
+//
+// Talk to kernel.org:
+// printf "GET / HTTP/1.1\r\nHost: kernel.org\r\n\r\n" | ./busybox tls kernel.org
 
 int tls_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tls_main(int argc UNUSED_PARAM, char **argv)
@@ -1478,8 +1483,8 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 	FD_SET(cfd, &readfds);
 	FD_SET(STDIN_FILENO, &readfds);
 
-#define iobuf bb_common_bufsiz1
-	setup_common_bufsiz();
+//#define iobuf bb_common_bufsiz1
+//	setup_common_bufsiz();
 	for (;;) {
 		int nread;
 
@@ -1492,12 +1497,14 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 			void *buf;
 
 			dbg("STDIN HAS DATA\n");
-			buf = tls_get_outbuf(tls, COMMON_BUFSIZE);
-			nread = safe_read(STDIN_FILENO, buf, COMMON_BUFSIZE);
+//TODO: growable buffer
+			buf = tls_get_outbuf(tls, 4 * 1024);
+			nread = safe_read(STDIN_FILENO, buf, 4 * 1024);
 			if (nread < 1) {
 //&& errno != EAGAIN
 				/* Close outgoing half-connection so they get EOF,
 				 * but leave incoming alone so we can see response */
+//TLS has no way to encode this, doubt it's ok to do it "raw"
 //				shutdown(cfd, SHUT_WR);
 				FD_CLR(STDIN_FILENO, &readfds);
 			}
@@ -1507,7 +1514,7 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 			dbg("NETWORK HAS DATA\n");
 			nread = xread_tls_block(tls);
 			if (nread < 1)
-//if eof, just close stdout, but not exit!
+//TODO: if eof, just close stdout, but not exit!
 				return EXIT_SUCCESS;
 			xwrite(STDOUT_FILENO, tls->inbuf + RECHDR_LEN, nread);
 		}
