@@ -21,11 +21,11 @@
 //kbuild:lib-$(CONFIG_RDATE) += rdate.o
 
 //usage:#define rdate_trivial_usage
-//usage:       "[-sp] HOST"
+//usage:       "[-s/-p] HOST"
 //usage:#define rdate_full_usage "\n\n"
-//usage:       "Get and possibly set system time from a remote HOST\n"
-//usage:     "\n	-s	Set system time (default)"
-//usage:     "\n	-p	Print time"
+//usage:       "Set and print time from HOST using RFC 868\n"
+//usage:     "\n	-s	Only set system time"
+//usage:     "\n	-p	Only print time"
 
 #include "libbb.h"
 
@@ -58,8 +58,22 @@ static time_t askremotedate(const char *host)
 	 * the RFC 868 time 2,208,988,800 corresponds to 00:00  1 Jan 1970 GMT
 	 * Subtract the RFC 868 time to get Linux epoch.
 	 */
+	nett = ntohl(nett) - RFC_868_BIAS;
 
-	return ntohl(nett) - RFC_868_BIAS;
+	if (sizeof(time_t) > 4) {
+		/* Now we have 32-bit lsb of a wider time_t
+		 * Imagine that  nett =   0x00000001,
+		 * current time  cur = 0x123ffffffff.
+		 * Assuming our time is not some 40 years off,
+		 * remote time must be 0x12400000001.
+		 * Need to adjust out time by (int32_t)(nett - cur).
+		 */
+		time_t cur = time(NULL);
+		int32_t adjust = (int32_t)(nett - (uint32_t)cur);
+		return cur + adjust;
+	}
+	/* This is not going to work, but what can we do */
+	return (time_t)nett;
 }
 
 int rdate_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -72,6 +86,13 @@ int rdate_main(int argc UNUSED_PARAM, char **argv)
 	flags = getopt32(argv, "sp");
 
 	remote_time = askremotedate(argv[optind]);
+
+	/* Manpages of various Unixes are confusing. What happens is:
+	 * (no opts) set and print time
+	 * -s: set time ("do not print the time")
+	 * -p: print time ("do not set, just print the remote time")
+	 * -sp: print time (that's what we do, not sure this is right)
+	 */
 
 	if (!(flags & 2)) { /* no -p (-s may be present) */
 		time_t current_time;
