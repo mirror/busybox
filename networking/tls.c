@@ -26,7 +26,7 @@
 //#include "common_bufsiz.h"
 
 #define TLS_DEBUG      1
-#define TLS_DEBUG_HASH 1
+#define TLS_DEBUG_HASH 0
 #define TLS_DEBUG_DER  0
 #define TLS_DEBUG_FIXED_SECRETS 0
 
@@ -40,6 +40,18 @@
 # define dbg_der(...) fprintf(stderr, __VA_ARGS__)
 #else
 # define dbg_der(...) ((void)0)
+#endif
+
+#if 0
+# define dump_raw_out(...) dump_hex(__VA_ARGS__)
+#else
+# define dump_raw_out(...) ((void)0)
+#endif
+
+#if 1
+# define dump_raw_in(...) dump_hex(__VA_ARGS__)
+#else
+# define dump_raw_in(...) ((void)0)
 #endif
 
 #define RECORD_TYPE_CHANGE_CIPHER_SPEC  20
@@ -482,49 +494,11 @@ static void *tls_get_outbuf(tls_state_t *tls, int len)
 	return tls->outbuf + OUTBUF_PFX;
 }
 
-// RFC 5246
-// 6.2.3.1.  Null or Standard Stream Cipher
-//
-// Stream ciphers (including BulkCipherAlgorithm.null; see Appendix A.6)
-// convert TLSCompressed.fragment structures to and from stream
-// TLSCiphertext.fragment structures.
-//
-//    stream-ciphered struct {
-//        opaque content[TLSCompressed.length];
-//        opaque MAC[SecurityParameters.mac_length];
-//    } GenericStreamCipher;
-//
-// The MAC is generated as:
-//    MAC(MAC_write_key, seq_num +
-//                          TLSCompressed.type +
-//                          TLSCompressed.version +
-//                          TLSCompressed.length +
-//                          TLSCompressed.fragment);
-// where "+" denotes concatenation.
-// seq_num
-//    The sequence number for this record.
-// MAC
-//    The MAC algorithm specified by SecurityParameters.mac_algorithm.
-//
-// Note that the MAC is computed before encryption.  The stream cipher
-// encrypts the entire block, including the MAC.
-//...
-// Appendix C.  Cipher Suite Definitions
-//...
-//                         Key      IV   Block
-// Cipher        Type    Material  Size  Size
-// ------------  ------  --------  ----  -----
-// AES_128_CBC   Block      16      16     16
-// AES_256_CBC   Block      32      16     16
-//
-// MAC       Algorithm    mac_length  mac_key_length
-// --------  -----------  ----------  --------------
-// SHA       HMAC-SHA1       20            20
-// SHA256    HMAC-SHA256     32            32
 static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 {
 	uint8_t *buf = tls->outbuf + OUTBUF_PFX;
 	struct record_hdr *xhdr;
+	uint8_t padding_length;
 
 	xhdr = (void*)(buf - RECHDR_LEN);
 	if (CIPHER_ID != TLS_RSA_WITH_NULL_SHA256)
@@ -549,17 +523,49 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 
 	size += SHA256_OUTSIZE;
 
+	// RFC 5246
+	// 6.2.3.1.  Null or Standard Stream Cipher
+	//
+	// Stream ciphers (including BulkCipherAlgorithm.null; see Appendix A.6)
+	// convert TLSCompressed.fragment structures to and from stream
+	// TLSCiphertext.fragment structures.
+	//
+	//    stream-ciphered struct {
+	//        opaque content[TLSCompressed.length];
+	//        opaque MAC[SecurityParameters.mac_length];
+	//    } GenericStreamCipher;
+	//
+	// The MAC is generated as:
+	//    MAC(MAC_write_key, seq_num +
+	//                          TLSCompressed.type +
+	//                          TLSCompressed.version +
+	//                          TLSCompressed.length +
+	//                          TLSCompressed.fragment);
+	// where "+" denotes concatenation.
+	// seq_num
+	//    The sequence number for this record.
+	// MAC
+	//    The MAC algorithm specified by SecurityParameters.mac_algorithm.
+	//
+	// Note that the MAC is computed before encryption.  The stream cipher
+	// encrypts the entire block, including the MAC.
+	//...
+	// Appendix C.  Cipher Suite Definitions
+	//...
+	// MAC       Algorithm    mac_length  mac_key_length
+	// --------  -----------  ----------  --------------
+	// SHA       HMAC-SHA1       20            20
+	// SHA256    HMAC-SHA256     32            32
 	if (CIPHER_ID == TLS_RSA_WITH_NULL_SHA256) {
 		/* No encryption, only signing */
 		xhdr->len16_hi = size >> 8;
 		xhdr->len16_lo = size & 0xff;
-		dump_hex(">> %s\n", xhdr, RECHDR_LEN + size);
+		dump_raw_out(">> %s\n", xhdr, RECHDR_LEN + size);
 		xwrite(tls->fd, xhdr, RECHDR_LEN + size);
 		dbg("wrote %u bytes (NULL crypt, SHA256 hash)\n", size);
 		return;
 	}
 
-	// RFC 5246
 	// 6.2.3.2.  CBC Block Cipher
 	// For block ciphers (such as 3DES or AES), the encryption and MAC
 	// functions convert TLSCompressed.fragment structures to and from block
@@ -595,10 +601,6 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	// ------------  ------  --------  ----  -----
 	// AES_128_CBC   Block      16      16     16
 	// AES_256_CBC   Block      32      16     16
-    {
-	psCipherContext_t ctx;
-	uint8_t *p;
-	uint8_t padding_length;
 
 	/* Build IV+content+MAC+padding in outbuf */
 	tls_get_random(buf - AES_BLOCKSIZE, AES_BLOCKSIZE); /* IV */
@@ -618,22 +620,23 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	// If you need no bytes to reach BLOCKSIZE, you have to pad a full
 	// BLOCKSIZE with bytes of value (BLOCKSIZE-1).
 	// It's ok to have more than minimum padding, but we do minimum.
-	p = buf + size;
 	padding_length = (~size) & (AES_BLOCKSIZE - 1);
 	do {
-		*p++ = padding_length;              /* padding */
-		size++;
+		buf[size++] = padding_length;              /* padding */
 	} while ((size & (AES_BLOCKSIZE - 1)) != 0);
 
 	/* Encrypt content+MAC+padding in place */
-	psAesInit(&ctx, buf - AES_BLOCKSIZE, /* IV */
+	{
+		psCipherContext_t ctx;
+		psAesInit(&ctx, buf - AES_BLOCKSIZE, /* IV */
 			tls->client_write_key, sizeof(tls->client_write_key)
-	);
-	psAesEncrypt(&ctx,
+		);
+		psAesEncrypt(&ctx,
 			buf, /* plaintext */
 			buf, /* ciphertext */
 			size
-	);
+		);
+	}
 
 	/* Write out */
 	dbg("writing 5 + %u IV + %u encrypted bytes, padding_length:0x%02x\n",
@@ -641,10 +644,9 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	size += AES_BLOCKSIZE;     /* + IV */
 	xhdr->len16_hi = size >> 8;
 	xhdr->len16_lo = size & 0xff;
-	dump_hex(">> %s\n", xhdr, RECHDR_LEN + size);
+	dump_raw_out(">> %s\n", xhdr, RECHDR_LEN + size);
 	xwrite(tls->fd, xhdr, RECHDR_LEN + size);
 	dbg("wrote %u bytes\n", (int)RECHDR_LEN + size);
-    }
 }
 
 static void xwrite_and_update_handshake_hash(tls_state_t *tls, unsigned size)
@@ -658,7 +660,7 @@ static void xwrite_and_update_handshake_hash(tls_state_t *tls, unsigned size)
 		xhdr->proto_min = TLS_MIN;
 		xhdr->len16_hi = size >> 8;
 		xhdr->len16_lo = size & 0xff;
-		dump_hex(">> %s\n", xhdr, RECHDR_LEN + size);
+		dump_raw_out(">> %s\n", xhdr, RECHDR_LEN + size);
 		xwrite(tls->fd, xhdr, RECHDR_LEN + size);
 		dbg("wrote %u bytes\n", (int)RECHDR_LEN + size);
 		/* Handshake hash does not include record headers */
@@ -677,10 +679,13 @@ static int xread_tls_block(tls_state_t *tls)
 
  again:
 	dbg("insize:%u tail:%u\n", tls->insize, tls->tail);
-	if (tls->tail != 0)
-		memmove(tls->inbuf, tls->inbuf + tls->insize, tls->tail);
-	errno = 0;
 	total = tls->tail;
+	if (total != 0) {
+		memmove(tls->inbuf, tls->inbuf + tls->insize, total);
+		//dbg("<< remaining at %d [%d] ", tls->insize, total);
+		//dump_raw_in("<< %s\n", tls->inbuf, total);
+	}
+	errno = 0;
 	target = sizeof(tls->inbuf);
 	for (;;) {
 		if (total >= RECHDR_LEN && target == sizeof(tls->inbuf)) {
@@ -692,7 +697,11 @@ static int xread_tls_block(tls_state_t *tls)
 				tls->insize = total;
 				tls_error_die(tls);
 			}
-			// can also check type/proto_maj/proto_min here
+			/* can also check type/proto_maj/proto_min here */
+			dbg("xhdr type:%d ver:%d.%d len:%d\n",
+				xhdr->type, xhdr->proto_maj, xhdr->proto_min,
+				0x100 * xhdr->len16_hi + xhdr->len16_lo
+			);
 		}
 		/* if total >= target, we have a full packet (and possibly more)... */
 		if (total - target >= 0)
@@ -707,12 +716,13 @@ static int xread_tls_block(tls_state_t *tls)
 			}
 			bb_perror_msg_and_die("short read, have only %d", total);
 		}
-		dbg("read():%d\n", sz);
+		dump_raw_in("<< %s\n", tls->inbuf + total, sz);
 		total += sz;
 	}
 	tls->tail = total - target;
 	tls->insize = target;
-	dbg("new insize:%u tail:%u\n", tls->insize, tls->tail);
+	//dbg("<< stashing at %d [%d] ", tls->insize, tls->tail);
+	//dump_hex("<< %s\n", tls->inbuf + tls->insize, tls->tail);
 
 	sz = target - RECHDR_LEN;
 
@@ -734,7 +744,7 @@ static int xread_tls_block(tls_state_t *tls)
 		psAesDecrypt(&ctx,
 			p + AES_BLOCKSIZE, /* ciphertext */
 			p + AES_BLOCKSIZE, /* plaintext */
-			sz
+			sz - AES_BLOCKSIZE
 		);
 		padding_len = p[sz - 1];
 		dbg("encrypted size:%u type:0x%02x padding_length:0x%02x\n", sz, p[AES_BLOCKSIZE], padding_len);
