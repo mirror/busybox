@@ -810,14 +810,15 @@ static int tls_xread_record(tls_state_t *tls)
 		dbg("encrypted size:%u type:0x%02x padding_length:0x%02x\n", sz, p[0], padding_len);
 		padding_len++;
 		sz -= SHA256_OUTSIZE + padding_len; /* drop MAC and padding */
-		if (sz < 0) {
-			bb_error_msg_and_die("bad padding size:%u", padding_len);
-		}
+		//if (sz < 0)
+		//	bb_error_msg_and_die("bad padding size:%u", padding_len);
 	} else {
 		/* if nonzero, then it's TLS_RSA_WITH_NULL_SHA256: drop MAC */
 		/* else: no encryption yet on input, subtract zero = NOP */
 		sz -= tls->min_encrypted_len_on_read;
 	}
+	if (sz < 0)
+		bb_error_msg_and_die("encrypted data too short");
 
 	//dump_hex("<< %s\n", tls->inbuf, RECHDR_LEN + sz);
 
