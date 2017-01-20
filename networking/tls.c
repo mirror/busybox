@@ -539,7 +539,7 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	xhdr->type = type;
 	xhdr->proto_maj = TLS_MAJ;
 	xhdr->proto_min = TLS_MIN;
-	/* fake unencrypted record header len for MAC calculation */
+	/* fake unencrypted record len for MAC calculation */
 	xhdr->len16_hi = size >> 8;
 	xhdr->len16_lo = size & 0xff;
 
@@ -634,7 +634,7 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	// AES_128_CBC   Block      16      16     16
 	// AES_256_CBC   Block      32      16     16
 
-	/* Build IV+content+MAC+padding in outbuf */
+	/* Fill IV and padding in outbuf */
 	tls_get_random(buf - AES_BLOCKSIZE, AES_BLOCKSIZE); /* IV */
 	dbg("before crypt: 5 hdr + %u data + %u hash bytes\n", size, SHA256_OUTSIZE);
 	// RFC is talking nonsense:
@@ -654,7 +654,7 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	// It's ok to have more than minimum padding, but we do minimum.
 	padding_length = (~size) & (AES_BLOCKSIZE - 1);
 	do {
-		buf[size++] = padding_length;              /* padding */
+		buf[size++] = padding_length; /* padding */
 	} while ((size & (AES_BLOCKSIZE - 1)) != 0);
 
 	/* Encrypt content+MAC+padding in place */
@@ -796,25 +796,22 @@ static int tls_xread_record(tls_state_t *tls)
 		) {
 			bb_error_msg_and_die("bad encrypted len:%u", sz);
 		}
-		/* Decrypt content+MAC+padding in place */
+		/* Decrypt content+MAC+padding, moving it over IV in the process */
 		psAesInit(&ctx, p, /* IV */
 			tls->server_write_key, sizeof(tls->server_write_key)
 		);
+		sz -= AES_BLOCKSIZE; /* we will overwrite IV now */
 		psAesDecrypt(&ctx,
 			p + AES_BLOCKSIZE, /* ciphertext */
-			p + AES_BLOCKSIZE, /* plaintext */
-			sz - AES_BLOCKSIZE
+			p,                 /* plaintext */
+			sz
 		);
 		padding_len = p[sz - 1];
-		dbg("encrypted size:%u type:0x%02x padding_length:0x%02x\n", sz, p[AES_BLOCKSIZE], padding_len);
+		dbg("encrypted size:%u type:0x%02x padding_length:0x%02x\n", sz, p[0], padding_len);
 		padding_len++;
-		sz -= AES_BLOCKSIZE + SHA256_OUTSIZE + padding_len;
+		sz -= SHA256_OUTSIZE + padding_len; /* drop MAC and padding */
 		if (sz < 0) {
 			bb_error_msg_and_die("bad padding size:%u", padding_len);
-		}
-		if (sz != 0) {
-			/* Skip IV */
-			memmove(tls->inbuf + RECHDR_LEN, tls->inbuf + RECHDR_LEN + AES_BLOCKSIZE, sz);
 		}
 	} else {
 		/* if nonzero, then it's TLS_RSA_WITH_NULL_SHA256: drop MAC */
@@ -828,8 +825,8 @@ static int tls_xread_record(tls_state_t *tls)
 	if (xhdr->type == RECORD_TYPE_ALERT && sz >= 2) {
 		uint8_t *p = tls->inbuf + RECHDR_LEN;
 		dbg("ALERT size:%d level:%d description:%d\n", sz, p[0], p[1]);
-		if (p[0] == 1) { /*warning */
-			if (p[1] == 0) { /* warning, close_notify: EOF */
+		if (p[0] == 1) { /* warning */
+			if (p[1] == 0) { /* "close_notify" warning: it's EOF */
 				dbg("EOF (TLS encoded) from peer\n");
 				sz = 0;
 				goto end;
