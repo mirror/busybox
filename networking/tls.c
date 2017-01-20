@@ -28,6 +28,7 @@
 #define TLS_DEBUG      1
 #define TLS_DEBUG_HASH 1
 #define TLS_DEBUG_DER  0
+#define TLS_DEBUG_FIXED_SECRETS 0
 
 #if TLS_DEBUG
 # define dbg(...) fprintf(stderr, __VA_ARGS__)
@@ -152,7 +153,6 @@
 // and against wolfssl-3.9.10-stable/examples/server/server.c:
 //#define CIPHER_ID TLS_RSA_WITH_NULL_SHA256 // for testing (does everything except encrypting)
 // works against wolfssl-3.9.10-stable/examples/server/server.c
-// (getting back and decrypt ok first application data message)
 #define CIPHER_ID TLS_RSA_WITH_AES_256_CBC_SHA256 // ok, no SERVER_KEY_EXCHANGE
 
 enum {
@@ -162,6 +162,8 @@ enum {
 	AES_BLOCKSIZE = 16,
 	AES128_KEYSIZE = 16,
 	AES256_KEYSIZE = 32,
+
+	RECHDR_LEN = 5,
 
 	MAX_TLS_RECORD = (1 << 14),
 	OUTBUF_PFX = 8 + AES_BLOCKSIZE, /* header + IV */
@@ -257,15 +259,15 @@ static void dump_tls_record(const void *vp, int len)
 
 	while (len > 0) {
 		unsigned xhdr_len;
-		if (len < 5) {
+		if (len < RECHDR_LEN) {
 			dump_hex("< |%s|\n", p, len);
 			return;
 		}
 		xhdr_len = 0x100*p[3] + p[4];
 		dbg("< hdr_type:%u ver:%u.%u len:%u", p[0], p[1], p[2], xhdr_len);
-		p += 5;
-		len -= 5;
-		if (len >= 4 && p[-5] == RECORD_TYPE_HANDSHAKE) {
+		p += RECHDR_LEN;
+		len -= RECHDR_LEN;
+		if (len >= 4 && p[-RECHDR_LEN] == RECORD_TYPE_HANDSHAKE) {
 			unsigned len24 = get24be(p + 1);
 			dbg(" type:%u len24:%u", p[0], len24);
 		}
@@ -524,9 +526,9 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	uint8_t *buf = tls->outbuf + OUTBUF_PFX;
 	struct record_hdr *xhdr;
 
-	xhdr = (void*)(buf - sizeof(*xhdr));
+	xhdr = (void*)(buf - RECHDR_LEN);
 	if (CIPHER_ID != TLS_RSA_WITH_NULL_SHA256)
-		xhdr = (void*)(buf - sizeof(*xhdr) - AES_BLOCKSIZE); /* place for IV */
+		xhdr = (void*)(buf - RECHDR_LEN - AES_BLOCKSIZE); /* place for IV */
 
 	xhdr->type = type;
 	xhdr->proto_maj = TLS_MAJ;
@@ -540,7 +542,7 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	hmac_sha256(buf + size,
 			tls->client_write_MAC_key, sizeof(tls->client_write_MAC_key),
 			&tls->write_seq64_be, sizeof(tls->write_seq64_be),
-			xhdr, sizeof(*xhdr),
+			xhdr, RECHDR_LEN,
 			buf, size,
 			NULL);
 	tls->write_seq64_be = SWAP_BE64(1 + SWAP_BE64(tls->write_seq64_be));
@@ -551,8 +553,8 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 		/* No encryption, only signing */
 		xhdr->len16_hi = size >> 8;
 		xhdr->len16_lo = size & 0xff;
-		dump_hex(">> %s\n", xhdr, sizeof(*xhdr) + size);
-		xwrite(tls->fd, xhdr, sizeof(*xhdr) + size);
+		dump_hex(">> %s\n", xhdr, RECHDR_LEN + size);
+		xwrite(tls->fd, xhdr, RECHDR_LEN + size);
 		dbg("wrote %u bytes (NULL crypt, SHA256 hash)\n", size);
 		return;
 	}
@@ -639,9 +641,9 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	size += AES_BLOCKSIZE;     /* + IV */
 	xhdr->len16_hi = size >> 8;
 	xhdr->len16_lo = size & 0xff;
-	dump_hex(">> %s\n", xhdr, sizeof(*xhdr) + size);
-	xwrite(tls->fd, xhdr, sizeof(*xhdr) + size);
-	dbg("wrote %u bytes\n", (int)sizeof(*xhdr) + size);
+	dump_hex(">> %s\n", xhdr, RECHDR_LEN + size);
+	xwrite(tls->fd, xhdr, RECHDR_LEN + size);
+	dbg("wrote %u bytes\n", (int)RECHDR_LEN + size);
     }
 }
 
@@ -649,16 +651,16 @@ static void xwrite_and_update_handshake_hash(tls_state_t *tls, unsigned size)
 {
 	if (!tls->encrypt_on_write) {
 		uint8_t *buf = tls->outbuf + OUTBUF_PFX;
-		struct record_hdr *xhdr = (void*)(buf - sizeof(*xhdr));
+		struct record_hdr *xhdr = (void*)(buf - RECHDR_LEN);
 
 		xhdr->type = RECORD_TYPE_HANDSHAKE;
 		xhdr->proto_maj = TLS_MAJ;
 		xhdr->proto_min = TLS_MIN;
 		xhdr->len16_hi = size >> 8;
 		xhdr->len16_lo = size & 0xff;
-		dump_hex(">> %s\n", xhdr, sizeof(*xhdr) + size);
-		xwrite(tls->fd, xhdr, sizeof(*xhdr) + size);
-		dbg("wrote %u bytes\n", (int)sizeof(*xhdr) + size);
+		dump_hex(">> %s\n", xhdr, RECHDR_LEN + size);
+		xwrite(tls->fd, xhdr, RECHDR_LEN + size);
+		dbg("wrote %u bytes\n", (int)RECHDR_LEN + size);
 		/* Handshake hash does not include record headers */
 		sha256_hash_dbg(">> sha256:%s", &tls->handshake_sha256_ctx, buf, size);
 		return;
@@ -673,15 +675,16 @@ static int xread_tls_block(tls_state_t *tls)
 	int total;
 	int target;
 
+ again:
 	dbg("insize:%u tail:%u\n", tls->insize, tls->tail);
 	memmove(tls->inbuf, tls->inbuf + tls->insize, tls->tail);
 	errno = 0;
 	total = tls->tail;
 	target = sizeof(tls->inbuf);
 	for (;;) {
-		if (total >= sizeof(*xhdr) && target == sizeof(tls->inbuf)) {
+		if (total >= RECHDR_LEN && target == sizeof(tls->inbuf)) {
 			xhdr = (void*)tls->inbuf;
-			target = sizeof(*xhdr) + (0x100 * xhdr->len16_hi + xhdr->len16_lo);
+			target = RECHDR_LEN + (0x100 * xhdr->len16_hi + xhdr->len16_lo);
 			if (target >= sizeof(tls->inbuf)) {
 				/* malformed input (too long): yell and die */
 				tls->tail = 0;
@@ -694,18 +697,29 @@ static int xread_tls_block(tls_state_t *tls)
 		if (total - target >= 0)
 			break;
 		sz = safe_read(tls->fd, tls->inbuf + total, sizeof(tls->inbuf) - total);
-		if (sz <= 0)
-			bb_perror_msg_and_die("short read");
+		if (sz <= 0) {
+			if (sz == 0 && total == 0) {
+				/* "Abrupt" EOF, no TLS shutdown (seen from kernel.org) */
+				dbg("EOF (without TLS shutdown) from peer\n");
+				tls->tail = 0;
+				tls->insize = 0;
+				goto end;
+			}
+			bb_perror_msg_and_die("short read, have only %d", total);
+		}
+		dbg("read():%d\n", sz);
 		total += sz;
 	}
 	tls->tail = total - target;
 	tls->insize = target;
-	sz = target - sizeof(*xhdr);
+	dbg("new insize:%u tail:%u\n", tls->insize, tls->tail);
+
+	sz = target - RECHDR_LEN;
 
 	/* Needs to be decrypted? */
 	if (tls->min_encrypted_len_on_read > SHA256_OUTSIZE) {
 		psCipherContext_t ctx;
-		uint8_t *p = tls->inbuf + sizeof(*xhdr);
+		uint8_t *p = tls->inbuf + RECHDR_LEN;
 		int padding_len;
 
 		if (sz & (AES_BLOCKSIZE-1)
@@ -731,7 +745,7 @@ static int xread_tls_block(tls_state_t *tls)
 		}
 		if (sz != 0) {
 			/* Skip IV */
-			memmove(tls->inbuf + 5, tls->inbuf + 5 + AES_BLOCKSIZE, sz);
+			memmove(tls->inbuf + RECHDR_LEN, tls->inbuf + RECHDR_LEN + AES_BLOCKSIZE, sz);
 		}
 	} else {
 		/* if nonzero, then it's TLS_RSA_WITH_NULL_SHA256: drop MAC */
@@ -739,13 +753,33 @@ static int xread_tls_block(tls_state_t *tls)
 		sz -= tls->min_encrypted_len_on_read;
 	}
 
+	//dump_hex("<< %s\n", tls->inbuf, RECHDR_LEN + sz);
+
+	xhdr = (void*)tls->inbuf;
+	if (xhdr->type == RECORD_TYPE_ALERT && sz >= 2) {
+		uint8_t *p = tls->inbuf + RECHDR_LEN;
+		dbg("ALERT size:%d level:%d description:%d\n", sz, p[0], p[1]);
+		if (p[0] == 1) { /*warning */
+			if (p[1] == 0) { /* warning, close_notify: EOF */
+				dbg("EOF (TLS encoded) from peer\n");
+				sz = 0;
+				goto end;
+			}
+			/* discard it, get next record */
+			goto again;
+		}
+		/* p[0] == 1: fatal error, others: not defined in protocol */
+		sz = 0;
+		goto end;
+	}
+
 	/* RFC 5246 is not saying it explicitly, but sha256 hash
 	 * in our FINISHED record must include data of incoming packets too!
 	 */
 	if (tls->inbuf[0] == RECORD_TYPE_HANDSHAKE) {
-		sha256_hash_dbg("<< sha256:%s", &tls->handshake_sha256_ctx, tls->inbuf + 5, sz);
+		sha256_hash_dbg("<< sha256:%s", &tls->handshake_sha256_ctx, tls->inbuf + RECHDR_LEN, sz);
 	}
-
+ end:
 	dbg("got block len:%u\n", sz);
 	return sz;
 }
@@ -1017,7 +1051,8 @@ static void send_client_hello(tls_state_t *tls)
 	record->proto_maj = TLS_MAJ;	/* the "requested" version of the protocol, */
 	record->proto_min = TLS_MIN;	/* can be higher than one in record headers */
 	tls_get_random(record->rand32, sizeof(record->rand32));
-memset(record->rand32, 0x11, sizeof(record->rand32));
+	if (TLS_DEBUG_FIXED_SECRETS)
+		memset(record->rand32, 0x11, sizeof(record->rand32));
 	memcpy(tls->client_and_server_rand32, record->rand32, sizeof(record->rand32));
 	record->session_id_len = 0;
 	record->cipherid_len16_hi = 0;
@@ -1027,7 +1062,6 @@ memset(record->rand32, 0x11, sizeof(record->rand32));
 	record->comprtypes_len = 1;
 	record->comprtypes[0] = 0;
 
-	//dbg (make it repeatable): memset(record.rand32, 0x11, sizeof(record.rand32));
 	dbg(">> CLIENT_HELLO\n");
 	xwrite_and_update_handshake_hash(tls, sizeof(*record));
 }
@@ -1135,7 +1169,8 @@ static void send_client_key_exchange(tls_state_t *tls)
 	int len;
 
 	tls_get_random(rsa_premaster, sizeof(rsa_premaster));
-memset(rsa_premaster, 0x44, sizeof(rsa_premaster));
+	if (TLS_DEBUG_FIXED_SECRETS)
+		memset(rsa_premaster, 0x44, sizeof(rsa_premaster));
 	// RFC 5246
 	// "Note: The version number in the PreMasterSecret is the version
 	// offered by the client in the ClientHello.client_version, not the
@@ -1348,7 +1383,7 @@ static void tls_handshake(tls_state_t *tls)
 	get_server_cert(tls);
 
 	len = xread_tls_handshake_block(tls, 4);
-	if (tls->inbuf[5] == HANDSHAKE_SERVER_KEY_EXCHANGE) {
+	if (tls->inbuf[RECHDR_LEN] == HANDSHAKE_SERVER_KEY_EXCHANGE) {
 		// 459 bytes:
 		// 0c   00|01|c7 03|00|17|41|04|87|94|2e|2f|68|d0|c9|f4|97|a8|2d|ef|ed|67|ea|c6|f3|b3|56|47|5d|27|b6|bd|ee|70|25|30|5e|b0|8e|f6|21|5a...
 		//SvKey len=455^
@@ -1359,7 +1394,7 @@ static void tls_handshake(tls_state_t *tls)
 		xread_tls_handshake_block(tls, 4);
 	}
 
-//	if (tls->inbuf[5] == HANDSHAKE_CERTIFICATE_REQUEST) {
+//	if (tls->inbuf[RECHDR_LEN] == HANDSHAKE_CERTIFICATE_REQUEST) {
 //		dbg("<< CERTIFICATE_REQUEST\n");
 //RFC 5246: (in response to this,) "If no suitable certificate is available,
 // the client MUST send a certificate message containing no
@@ -1371,7 +1406,7 @@ static void tls_handshake(tls_state_t *tls)
 //		xread_tls_handshake_block(tls, 4);
 //	}
 
-	if (tls->inbuf[5] != HANDSHAKE_SERVER_HELLO_DONE)
+	if (tls->inbuf[RECHDR_LEN] != HANDSHAKE_SERVER_HELLO_DONE)
 		tls_error_die(tls);
 	// 0e 000000 (len:0)
 	dbg("<< SERVER_HELLO_DONE\n");
@@ -1398,7 +1433,7 @@ static void tls_handshake(tls_state_t *tls)
 
 	/* Get (encrypted) FINISHED from the server */
 	len = xread_tls_block(tls);
-	if (len < 4 || tls->inbuf[5] != HANDSHAKE_FINISHED)
+	if (len < 4 || tls->inbuf[RECHDR_LEN] != HANDSHAKE_FINISHED)
 		tls_error_die(tls);
 	dbg("<< FINISHED\n");
 	/* application data can be sent/received */
@@ -1454,7 +1489,10 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 			bb_perror_msg_and_die("select");
 
 		if (FD_ISSET(STDIN_FILENO, &testfds)) {
-			void *buf = tls_get_outbuf(tls, COMMON_BUFSIZE);
+			void *buf;
+
+			dbg("STDIN HAS DATA\n");
+			buf = tls_get_outbuf(tls, COMMON_BUFSIZE);
 			nread = safe_read(STDIN_FILENO, buf, COMMON_BUFSIZE);
 			if (nread < 1) {
 //&& errno != EAGAIN
@@ -1466,196 +1504,14 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 			tls_xwrite(tls, nread);
 		}
 		if (FD_ISSET(cfd, &testfds)) {
+			dbg("NETWORK HAS DATA\n");
 			nread = xread_tls_block(tls);
 			if (nread < 1)
 //if eof, just close stdout, but not exit!
 				return EXIT_SUCCESS;
-			xwrite(STDOUT_FILENO, tls->inbuf + 5, nread);
+			xwrite(STDOUT_FILENO, tls->inbuf + RECHDR_LEN, nread);
 		}
 	}
 
 	return EXIT_SUCCESS;
 }
-/* Unencryped SHA256 example:
- * s_client says:
-
-write to 0x1d750b0 [0x1e6f153] (99 bytes => 99 (0x63))
-0000 - 16 03 01 005e  01 00005a   0303 [4d ef 5c 82 3e   ....^...Z..M.\.> >> ClHello
-0010 - bf a6 ee f1 1e 04 d1 5c-99 20 86 13 e9 0a cf 58   .......\. .....X
-0020 - 75 b1 bd 7a e6 d6 44 f3-d3 a1 52] 00 0004 003b    u..z..D...R....; 003b = TLS_RSA_WITH_NULL_SHA256
-0030 - 00ff                                                                       TLS_EMPTY_RENEGOTIATION_INFO_SCSV
-             0100                                                             compr=none
-                   002d, 0023  0000, 000d  0020 [00 1e   .....-.#..... .. extlen, SessionTicketTLS 0 bytes, SignatureAlgorithms 32 bytes
-0040 - 06 01 06 02 06 03 05 01-05 02 05 03 04 01 04 02   ................
-0050 - 04 03 03 01 03 02 03 03-02 01 02 02 02 03] 000f   ................ Heart Beat 1 byte
-0060 - 0001  01                                          ...
-
-read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
-0000 - 16 03 03 00 3a                                    ....:
-read from 0x1d750b0 [0x1e6ac08] (58 bytes => 58 (0x3A))
-0000 - 02 000036   0303  [f2 61-ae c8 58 e3 51 42 32 93   ...6...a..X.QB2. << SvHello
-0010 - c5 62 e4 f5 06 93 81 65-aa f7 df 74 af 7c 98 b4   .b.....e...t.|..
-0020 - 3e a7 35 c3 25 69] 00,003b,00..................   >.5.%i..;....... - no session id! "The server
-									may return an empty session_id to indicate that the session will
-									not be cached and therefore cannot be resumed."
-									003b = TLS_RSA_WITH_NULL_SHA256 accepted, 00 - no compr
-                                     000e  ff01  0001                 extlen, 0xff01=RenegotiationInfo 1 byte
-0030 - 00, 0023 0000,                                                SessionTicketTLS 0 bytes
-                       000f 0001 01                     ..#.......       Heart Beat 1 byte
-
-read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
-0000 - 16 03 03 04 0b                                    .....
-read from 0x1d750b0 [0x1e6ac08] (1035 bytes => 1035 (0x40B))
-0000 - 0b 00 04 07 00 04 04 00-04 01 30 82 03 fd 30 82   ..........0...0. << Cert
-0010 - 02 65 a0 03 02 01 02 02-09 00 d9 d9 8d b8 94 ad   .e..............
-0020 - 2e 2b 30 0d 06 09 2a 86-48 86 f7 0d 01 01 0b 05   .+0...*.H.......
-0030 - 00 30 14 31 12 30 10 06-03 55 04 03 0c 09 6c 6f   .0.1.0...U....lo
-0040 - 63 61 6c 68 6f 73 74 30-20 17 0d 31 37 30 31 31   calhost0 ..17011
-...".......".......".......".......".......".......".......".......".....
-03f0 - 11 8a cd c5 a3 0a 22 43-d5 13 f9 a5 8a 06 f9 00   ......"C........
-0400 - 3c f7 86 4e e8 a5 d8 5b-92 37 f5                  <..N...[.7.
-depth=0 CN = localhost
-verify error:num=18:self signed certificate
-verify return:1
-depth=0 CN = localhost
-verify return:1
-
-read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
-0000 - 16 03 03 00 04                                    .....
-
-read from 0x1d750b0 [0x1e6ac08] (4 bytes => 4 (0x4))                      << SvDone
-0000 - 0e                                                .
-0004 - <SPACES/NULS>
-
-write to 0x1d750b0 [0x1e74620] (395 bytes => 395 (0x18B))                 >> ClDone
-0000 - 16 03 03 01 86 10 00 01-82 01 80 88 f0 87 5d b0   ..............].
-0010 - ea df 3b 4d e2 35 f3 99-e6 d4 29 87 36 86 ea 30   ..;M.5....).6..0
-0020 - 38 80 c7 37 66 7f 5b e7-23 38 7e 87 24 66 82 81   8..7f.[.#8~.$f..
-0030 - e4 ba 6c 2a 0c 92 a8 b9-39 c1 55 16 32 88 14 cd   ..l*....9.U.2...
-0040 - 95 8c 82 49 a1 c7 f9 9b-e5 8f f6 5e 7e ee 91 b3   ...I.......^~...
-0050 - 2c 92 e7 a3 02 f8 9f 56-04 45 39 df a7 d6 1a 16   ,......V.E9.....
-0060 - 67 5c a4 f8 87 8a c4 c8-6c 6f c6 f0 9b c9 b4 87   g\......lo......
-0070 - 36 43 c1 67 9f b3 aa 11-34 b0 c2 fc 1f d9 e1 ff   6C.g....4.......
-0080 - fb e1 89 db 91 58 ec cc-aa 16 19 9a 91 74 e2 46   .....X.......t.F
-0090 - 22 a7 a7 f7 9e 3c 97 82-2c e4 21 b3 fa ef ba 3f   "....<..,.!....?
-00a0 - 57 48 e4 b2 84 b7 c2 81-92 a9 f1 03 68 f4 e6 0c   WH..........h...
-00b0 - fd 54 87 f5 e9 a0 5d e6-5f 0e bd 80 86 27 ab 0e   .T....]._....'..
-00c0 - cf 92 4f bd fc 24 b9 54-72 5f 58 df 6b 2b 1d 97   ..O..$.Tr_X.k+..
-00d0 - 00 60 fe 95 b0 aa d6 c7-c1 3a f9 2e 7c 92 a9 6d   .`.......:..|..m
-00e0 - 28 a3 ef 3e c1 e6 2d 2d-e8 db 81 ea 51 02 3f 64   (..>..--....Q.?d
-00f0 - a8 66 14 c1 4b 17 1f 55-c6 5b 3b 38 c3 6a 61 a8   .f..K..U.[;8.ja.
-0100 - f7 ad 65 7d cb 14 6d b3-0f 76 19 25 8e ed bd 53   ..e}..m..v.%...S
-0110 - 35 a9 a1 34 00 9d 07 81-84 51 35 e0 83 83 e3 a6   5..4.....Q5.....
-0120 - c7 77 4c 61 e4 78 9c cb-f5 92 4e d6 dd c4 c2 2b   .wLa.x....N....+
-0130 - 75 9e 72 a6 7f 81 6a 1c-fc 4a 51 91 81 b4 cc 33   u.r...j..JQ....3
-0140 - 1c 8b 0a b6 94 8b 16 1b-86 2f 31 5e 31 e1 57 14   ........./1^1.W.
-0150 - 2e b5 09 5d cf 6f ea b2-94 e9 5c cc b9 fc 24 a0   ...].o....\...$.
-0160 - b7 f1 f4 9d 95 46 4f 08-5c 45 c6 2f 9f 7d 76 09   .....FO.\E./.}v.
-0170 - 6a af 50 2c 89 76 82 5f-e8 34 d8 4b 84 b6 34 18   j.P,.v._.4.K..4.
-0180 - 85 95 4a 3f 0f 28 88 3a-71 32 90                  ..J?.(.:q2.
-
-write to 0x1d750b0 [0x1e74620] (6 bytes => 6 (0x6))
-0000 - 14 03 03 00 01 01                                 ......           >> CHANGE_CIPHER_SPEC
-
-write to 0x1d750b0 [0x1e74620] (53 bytes => 53 (0x35))
-0000 - 16 03 03 0030  14 00000c  [ed b9 e1 33 36 0b 76   ....0.......36.v >> FINISHED (0x14) [PRF 12 bytes|SHA256_OUTSIZE 32 bytes]
-0010 - c0 d1 d4 0b a3|73 ec a8-fa b5 cb 12 b6 4c 2a b1   .....s.......L*.
-0020 - fb 42 7f 73 0d 06 1c 87-56 f0 db df e6 6a 25 aa   .B.s....V....j%.
-0030 - fc 42 38 cb 0b]                                    .B8..
-
-read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
-0000 - 16 03 03 00 aa                                    .....
-read from 0x1d750b0 [0x1e6ac08] (170 bytes => 170 (0xAA))
-0000 - 04 00 00 a6 00 00 1c 20-00 a0 dd f4 52 01 54 8d   ....... ....R.T. << NEW_SESSION_TICKET
-0010 - f8 a6 f9 2d 7d 19 20 5b-14 44 d3 2d 7b f2 ca e8   ...-}. [.D.-{...
-0020 - 01 4e 94 7b fe 12 59 3a-00 2e 7e cf 74 43 7a f7   .N.{..Y:..~.tCz.
-0030 - 9e cc 70 80 70 7c e3 a5-c6 9d 85 2c 36 19 4c 5c   ..p.p|.....,6.L\
-0040 - ba 3b c3 e5 69 dc f3 a4-47 38 11 c9 7d 1a b0 6e   .;..i...G8..}..n
-0050 - d8 49 a0 a8 e4 de 70 a8-d0 6b e4 7a b7 65 25 df   .I....p..k.z.e%.
-0060 - 1b 5f 64 0f 89 69 02 72-fe eb d3 7a af 51 78 0e   ._d..i.r...z.Qx.
-0070 - de 17 06 a5 f0 47 9d e0-04 d4 b1 1e be 7e ed bd   .....G.......~..
-0080 - 27 8f 5d e8 ac f6 45 aa-e0 12 93 41 5f a8 4b b9   '.]...E....A_.K.
-0090 - bd 43 8f a1 23 51 af 92-77 8f 38 23 3e 2e c2 f0   .C..#Q..w.8#>...
-00a0 - a3 74 fa 83 94 ce 19 8a-5b 5b                     .t......[[
-
-read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
-0000 - 14 03 03 00 01                                    .....            << CHANGE_CIPHER_SPEC
-read from 0x1d750b0 [0x1e6ac08] (1 bytes => 1 (0x1))
-0000 - 01                                                .
-
-read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
-0000 - 16 03 03 00 30                                    ....0
-read from 0x1d750b0 [0x1e6ac08] (48 bytes => 48 (0x30))
-0000 - 14 00000c  [06 86 0d 5c-92 0b 63 04 cc b4 f0 00   .......\..c..... << FINISHED (0x14) [PRF 12 bytes|SHA256_OUTSIZE 32 bytes]
-0010 -|49 d6 dd 56 73 e3 d2 e8-22 d6 bd 61 b2 b3 af f0   I..Vs..."..a....
-0020 - f5 00 8a 80 82 04 33 a7-50 8e ae 3b 4c 8c cf 4a]  ......3.P..;L..J
----
-Certificate chain
- 0 s:/CN=localhost
-   i:/CN=localhost
----
-Server certificate
------BEGIN CERTIFICATE-----
-...".......".......".......".......".......".......".......".......".....
------END CERTIFICATE-----
-subject=/CN=localhost
-issuer=/CN=localhost
----
-No client certificate CA names sent
----
-SSL handshake has read 1346 bytes and written 553 bytes
----
-New, TLSv1/SSLv3, Cipher is NULL-SHA256
-Server public key is 3072 bit
-Secure Renegotiation IS supported
-Compression: NONE
-Expansion: NONE
-No ALPN negotiated
-SSL-Session:
-    Protocol  : TLSv1.2
-    Cipher    : NULL-SHA256
-    Session-ID: 5D62B36950F3DEB571707CD1B815E9E275041B9DB70D7F3E25C4A6535B13B616
-    Session-ID-ctx:
-    Master-Key: 4D08108C59417E0A41656636C51BA5B83F4EFFF9F4C860987B47B31250E5D1816D00940DBCCC196C2D99C8462C889DF1
-    Key-Arg   : None
-    Krb5 Principal: None
-    PSK identity: None
-    PSK identity hint: None
-    TLS session ticket lifetime hint: 7200 (seconds)
-    TLS session ticket:
-    0000 - dd f4 52 01 54 8d f8 a6-f9 2d 7d 19 20 5b 14 44   ..R.T....-}. [.D
-    0010 - d3 2d 7b f2 ca e8 01 4e-94 7b fe 12 59 3a 00 2e   .-{....N.{..Y:..
-    0020 - 7e cf 74 43 7a f7 9e cc-70 80 70 7c e3 a5 c6 9d   ~.tCz...p.p|....
-    0030 - 85 2c 36 19 4c 5c ba 3b-c3 e5 69 dc f3 a4 47 38   .,6.L\.;..i...G8
-    0040 - 11 c9 7d 1a b0 6e d8 49-a0 a8 e4 de 70 a8 d0 6b   ..}..n.I....p..k
-    0050 - e4 7a b7 65 25 df 1b 5f-64 0f 89 69 02 72 fe eb   .z.e%.._d..i.r..
-    0060 - d3 7a af 51 78 0e de 17-06 a5 f0 47 9d e0 04 d4   .z.Qx......G....
-    0070 - b1 1e be 7e ed bd 27 8f-5d e8 ac f6 45 aa e0 12   ...~..'.]...E...
-    0080 - 93 41 5f a8 4b b9 bd 43-8f a1 23 51 af 92 77 8f   .A_.K..C..#Q..w.
-    0090 - 38 23 3e 2e c2 f0 a3 74-fa 83 94 ce 19 8a 5b 5b   8#>....t......[[
-
-    Start Time: 1484574330
-    Timeout   : 7200 (sec)
-    Verify return code: 18 (self signed certificate)
----
-read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
-0000 - 17 03 03 00 21                                    ....!
-read from 0x1d750b0 [0x1e6ac08] (33 bytes => 33 (0x21))
-0000 - 0a 74 5b 50 02 13 75 a4-27 0a 40 b1 53 74 52 14   .t[P..u.'.@.StR.
-0010 - e7 1e 6a 6c c1 60 2e 93-7e a5 d9 43 1d 8e f6 08   ..jl.`..~..C....
-0020 - 69                                                i
-
-read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
-0000 - 17 03 03 00 21                                    ....!
-read from 0x1d750b0 [0x1e6ac08] (33 bytes => 33 (0x21))
-0000 - 0a 1b ce 44 98 4f 81 c5-28 7a cc 79 62 db d2 86   ...D.O..(z.yb...
-0010 - 6a 55 a4 c7 73 49 ef 3e-bd 03 99 76 df 65 2a a1   jU..sI.>...v.e*.
-0020 - b6                                                .
-
-read from 0x1d750b0 [0x1e6ac03] (5 bytes => 5 (0x5))
-0000 - 17 03 03 00 21                                    ....!
-read from 0x1d750b0 [0x1e6ac08] (33 bytes => 33 (0x21))
-0000 - 0a 67 66 34 ba 68 36 3c-ad 0a c1 f5 c0 5a 50 fe   .gf4.h6<.....ZP.
-0010 - 68 cd 04 65 e9 de 6e 98-f9 e2 41 1e 0b 9b 84 06   h..e..n...A.....
-0020 - 64                                                d
-*/

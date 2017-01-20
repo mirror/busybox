@@ -472,7 +472,7 @@ static void parse_url(const char *src_url, struct host_info *h)
 
 	// FYI:
 	// "Real" wget 'http://busybox.net?var=a/b' sends this request:
-	//   'GET /?var=a/b HTTP 1.0'
+	//   'GET /?var=a/b HTTP/1.0'
 	//   and saves 'index.html?var=a%2Fb' (we save 'b')
 	// wget 'http://busybox.net?login=john@doe':
 	//   request: 'GET /?login=john@doe HTTP/1.0'
