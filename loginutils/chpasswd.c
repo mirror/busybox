@@ -13,9 +13,9 @@
 //config:	  and uses this information to update a group of existing users.
 //config:
 //config:config FEATURE_DEFAULT_PASSWD_ALGO
-//config:	string "Default password encryption method (passwd -a, cryptpw -m parameter)"
+//config:	string "Default encryption method (passwd -a, cryptpw -m, chpasswd -c ALG)"
 //config:	default "des"
-//config:	depends on PASSWD || CRYPTPW
+//config:	depends on PASSWD || CRYPTPW || CHPASSWD
 //config:	help
 //config:	  Possible choices are "d[es]", "m[d5]", "s[ha256]" or "sha512".
 
@@ -29,13 +29,13 @@
 //usage:       "Read user:password from stdin and update /etc/passwd\n"
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-e,--encrypted		Supplied passwords are in encrypted form"
-//usage:     "\n	-m,--md5		Use MD5 encryption instead of DES"
-//usage:     "\n	-c,--crypt-method	Use the specified method to encrypt the passwords"
+//usage:     "\n	-m,--md5		Eencrypt using md5, not des"
+//usage:     "\n	-c,--crypt-method ALG	"CRYPT_METHODS_HELP_STR
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(
 //usage:     "\n	-e	Supplied passwords are in encrypted form"
-//usage:     "\n	-m	Use MD5 encryption instead of DES"
-//usage:     "\n	-c	Use the specified method to encrypt the passwords"
+//usage:     "\n	-m	Eencrypt using md5, not des"
+//usage:     "\n	-c ALG	"CRYPT_METHODS_HELP_STR
 //usage:	)
 
 #include "libbb.h"

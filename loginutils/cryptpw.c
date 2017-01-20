@@ -37,15 +37,15 @@
 //usage:#define cryptpw_full_usage "\n\n"
 //usage:       "Print crypt(3) hashed PASSWORD\n"
 //usage:	IF_LONG_OPTS(
-//usage:     "\n	-P,--password-fd=N	Read password from fd N"
+//usage:     "\n	-P,--password-fd N	Read password from fd N"
 /* //usage:  "\n	-s,--stdin		Use stdin; like -P0" */
-//usage:     "\n	-m,--method=TYPE	Encryption method"
-//usage:     "\n	-S,--salt=SALT"
+//usage:     "\n	-m,--method TYPE	"CRYPT_METHODS_HELP_STR
+//usage:     "\n	-S,--salt SALT"
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(
 //usage:     "\n	-P N	Read password from fd N"
 /* //usage:  "\n	-s	Use stdin; like -P0" */
-//usage:     "\n	-m TYPE	Encryption method TYPE"
+//usage:     "\n	-m TYPE	"CRYPT_METHODS_HELP_STR
 //usage:     "\n	-S SALT"
 //usage:	)
 
