@@ -228,6 +228,8 @@ struct record_hdr {
 typedef struct tls_state {
 	int fd;
 
+//TODO: store just the DER key here, parse/use/delete it when sending client key
+//this way it will stay key type agnostic here.
 	psRsaKey_t server_rsa_pub_key;
 
 	sha256_ctx_t handshake_sha256_ctx;
@@ -1066,7 +1068,7 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 /*
  * TLS Handshake routines
  */
-static int xread_tls_handshake_block(tls_state_t *tls, int min_len)
+static int tls_xread_handshake_block(tls_state_t *tls, int min_len)
 {
 	struct record_hdr *xhdr;
 	int len = tls_xread_record(tls);
@@ -1098,7 +1100,7 @@ static ALWAYS_INLINE void fill_handshake_record_hdr(void *buf, unsigned type, un
 }
 
 //TODO: implement RFC 5746 (Renegotiation Indication Extension) - some servers will refuse to work with us otherwise
-static void send_client_hello(tls_state_t *tls)
+static void send_client_hello(tls_state_t *tls, const char *sni)
 {
 	struct client_hello {
 		uint8_t type;
@@ -1111,28 +1113,58 @@ static void send_client_hello(tls_state_t *tls)
 		uint8_t cipherid[2 * 1]; /* actually variable */
 		uint8_t comprtypes_len;
 		uint8_t comprtypes[1]; /* actually variable */
+		/* Extensions (SNI shown):
+		 * hi,lo // len of all extensions
+		 *   0x00,0x00 // extension_type: "Server Name"
+		 *   0x00,0x0e // list len (there can be more than one SNI)
+		 *     0x00,0x0c // len of 1st Server Name Indication
+		 *       0x00    // name type: host_name
+		 *       0x00,0x09   // name len
+		 *       "localhost" // name
+		 */
 	};
-	struct client_hello *record = tls_get_outbuf(tls, sizeof(*record));
+	struct client_hello *record;
+	int len;
+	int sni_len = sni ? strnlen(sni, 127) : 0;
 
-	fill_handshake_record_hdr(record, HANDSHAKE_CLIENT_HELLO, sizeof(*record));
+	len = sizeof(*record);
+	if (sni_len)
+		len += 11 + strlen(sni);
+	record = tls_get_outbuf(tls, len);
+	memset(record, 0, len);
+	fill_handshake_record_hdr(record, HANDSHAKE_CLIENT_HELLO, len);
 	record->proto_maj = TLS_MAJ;	/* the "requested" version of the protocol, */
 	record->proto_min = TLS_MIN;	/* can be higher than one in record headers */
 	tls_get_random(record->rand32, sizeof(record->rand32));
 	if (TLS_DEBUG_FIXED_SECRETS)
 		memset(record->rand32, 0x11, sizeof(record->rand32));
 	memcpy(tls->client_and_server_rand32, record->rand32, sizeof(record->rand32));
-	record->session_id_len = 0;
-	record->cipherid_len16_hi = 0;
+	/* record->session_id_len = 0; - already is */
+	/* record->cipherid_len16_hi = 0; */
 	record->cipherid_len16_lo = 2 * 1;
 	record->cipherid[0] = CIPHER_ID >> 8;
 	record->cipherid[1] = CIPHER_ID & 0xff;
 	record->comprtypes_len = 1;
-	record->comprtypes[0] = 0;
+	/* record->comprtypes[0] = 0; */
 
-//TODO: send options, at least SNI.
+	if (sni_len) {
+		uint8_t *p = (void*)(record + 1);
+		//p[0] = 0;         //
+		p[1] = sni_len + 9; //ext_len
+		//p[2] = 0;             //
+		//p[3] = 0;             //extension_type
+		//p[4] = 0;         //
+		p[5] = sni_len + 5; //list len
+		//p[6] = 0;             //
+		p[7] = sni_len + 3;     //len of 1st SNI
+		//p[8] = 0;         //name type
+		//p[9] = 0;             //
+		p[10] = sni_len;        //name len
+		memcpy(&p[11], sni, sni_len);
+	}
 
 	dbg(">> CLIENT_HELLO\n");
-	xwrite_and_update_handshake_hash(tls, sizeof(*record));
+	xwrite_and_update_handshake_hash(tls, len);
 }
 
 static void get_server_hello(tls_state_t *tls)
@@ -1149,10 +1181,11 @@ static void get_server_hello(tls_state_t *tls)
 		uint8_t comprtype;
 		/* extensions may follow, but only those which client offered in its Hello */
 	};
+
 	struct server_hello *hp;
 	uint8_t *cipherid;
 
-	xread_tls_handshake_block(tls, 74);
+	tls_xread_handshake_block(tls, 74);
 
 	hp = (void*)tls->inbuf;
 	// 74 bytes:
@@ -1199,7 +1232,7 @@ static void get_server_cert(tls_state_t *tls)
 	uint8_t *certbuf;
 	int len, len1;
 
-	len = xread_tls_handshake_block(tls, 10);
+	len = tls_xread_handshake_block(tls, 10);
 
 	xhdr = (void*)tls->inbuf;
 	certbuf = (void*)(xhdr + 1);
@@ -1416,7 +1449,7 @@ static void send_client_finished(tls_state_t *tls)
 	xwrite_encrypted(tls, sizeof(*record), RECORD_TYPE_HANDSHAKE);
 }
 
-static void tls_handshake(tls_state_t *tls)
+static void tls_handshake(tls_state_t *tls, const char *sni)
 {
 	// Client              RFC 5246                Server
 	// (*) - optional messages, not always sent
@@ -1437,7 +1470,7 @@ static void tls_handshake(tls_state_t *tls)
 	// Application Data     <------>     Application Data
 	int len;
 
-	send_client_hello(tls);
+	send_client_hello(tls, sni);
 	get_server_hello(tls);
 
 	// RFC 5246
@@ -1451,7 +1484,7 @@ static void tls_handshake(tls_state_t *tls)
 	// (for example, kernel.org does not even accept DH_anon cipher id)
 	get_server_cert(tls);
 
-	len = xread_tls_handshake_block(tls, 4);
+	len = tls_xread_handshake_block(tls, 4);
 	if (tls->inbuf[RECHDR_LEN] == HANDSHAKE_SERVER_KEY_EXCHANGE) {
 		// 459 bytes:
 		// 0c   00|01|c7 03|00|17|41|04|87|94|2e|2f|68|d0|c9|f4|97|a8|2d|ef|ed|67|ea|c6|f3|b3|56|47|5d|27|b6|bd|ee|70|25|30|5e|b0|8e|f6|21|5a...
@@ -1460,7 +1493,7 @@ static void tls_handshake(tls_state_t *tls)
 		// 0c   00|01|c9 03|00|17|41|04|cd|9b|b4|29|1f|f6|b0|c2|84|82|7f|29|6a|47|4e|ec|87|0b|c1|9c|69|e1|f8|c6|d0|53|e9|27|90|a5|c8|02|15|75...
 		dbg("<< SERVER_KEY_EXCHANGE len:%u\n", len);
 //probably need to save it
-		xread_tls_handshake_block(tls, 4);
+		tls_xread_handshake_block(tls, 4);
 	}
 
 //	if (tls->inbuf[RECHDR_LEN] == HANDSHAKE_CERTIFICATE_REQUEST) {
@@ -1472,7 +1505,7 @@ static void tls_handshake(tls_state_t *tls)
 // Client certificates are sent using the Certificate structure
 // defined in Section 7.4.2."
 // (i.e. the same format as server certs)
-//		xread_tls_handshake_block(tls, 4);
+//		tls_xread_handshake_block(tls, 4);
 //	}
 
 	if (tls->inbuf[RECHDR_LEN] != HANDSHAKE_SERVER_HELLO_DONE)
@@ -1546,7 +1579,7 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 
 	tls = new_tls_state();
 	tls->fd = cfd;
-	tls_handshake(tls);
+	tls_handshake(tls, argv[1]);
 
 	/* Select loop copying stdin to cfd, and cfd to stdout */
 	FD_ZERO(&readfds);
