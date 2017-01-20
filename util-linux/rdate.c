@@ -95,10 +95,7 @@ int rdate_main(int argc UNUSED_PARAM, char **argv)
 	 */
 
 	if (!(flags & 2)) { /* no -p (-s may be present) */
-		time_t current_time;
-
-		time(&current_time);
-		if (current_time == remote_time)
+		if (time(NULL) == remote_time)
 			bb_error_msg("current time matches remote time");
 		else
 			if (stime(&remote_time) < 0)
