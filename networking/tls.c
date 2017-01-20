@@ -181,6 +181,42 @@ enum {
 	OUTBUF_PFX = 8 + AES_BLOCKSIZE, /* header + IV */
 	OUTBUF_SFX = SHA256_OUTSIZE + AES_BLOCKSIZE, /* MAC + padding */
 	MAX_OUTBUF = MAX_TLS_RECORD - OUTBUF_PFX - OUTBUF_SFX,
+
+	// RFC 5246
+	// | 6.2.1. Fragmentation
+	// |  The record layer fragments information blocks into TLSPlaintext
+	// |  records carrying data in chunks of 2^14 bytes or less.  Client
+	// |  message boundaries are not preserved in the record layer (i.e.,
+	// |  multiple client messages of the same ContentType MAY be coalesced
+	// |  into a single TLSPlaintext record, or a single message MAY be
+	// |  fragmented across several records)
+	// |...
+	// |  length
+	// |    The length (in bytes) of the following TLSPlaintext.fragment.
+	// |    The length MUST NOT exceed 2^14.
+	// |...
+	// | 6.2.2. Record Compression and Decompression
+	// |...
+	// |  Compression must be lossless and may not increase the content length
+	// |  by more than 1024 bytes.  If the decompression function encounters a
+	// |  TLSCompressed.fragment that would decompress to a length in excess of
+	// |  2^14 bytes, it MUST report a fatal decompression failure error.
+	// |...
+	// |  length
+	// |    The length (in bytes) of the following TLSCompressed.fragment.
+	// |    The length MUST NOT exceed 2^14 + 1024.
+	// |...
+	// | 6.2.3.  Record Payload Protection
+	// |  The encryption and MAC functions translate a TLSCompressed
+	// |  structure into a TLSCiphertext.  The decryption functions reverse
+	// |  the process.  The MAC of the record also includes a sequence
+	// |  number so that missing, extra, or repeated messages are
+	// |  detectable.
+	// |...
+	// |  length
+	// |    The length (in bytes) of the following TLSCiphertext.fragment.
+	// |    The length MUST NOT exceed 2^14 + 2048.
+	MAX_INBUF = (1 << 14) + 2048,
 };
 
 struct record_hdr {
@@ -218,36 +254,10 @@ typedef struct tls_state {
 	int outbuf_size;
 	uint8_t *outbuf;
 
-	// RFC 5246
-	// | 6.2.1. Fragmentation
-	// |  The record layer fragments information blocks into TLSPlaintext
-	// |  records carrying data in chunks of 2^14 bytes or less.  Client
-	// |  message boundaries are not preserved in the record layer (i.e.,
-	// |  multiple client messages of the same ContentType MAY be coalesced
-	// |  into a single TLSPlaintext record, or a single message MAY be
-	// |  fragmented across several records)
-	// |...
-	// |  length
-	// |    The length (in bytes) of the following TLSPlaintext.fragment.
-	// |    The length MUST NOT exceed 2^14.
-	// |...
-	// | 6.2.2. Record Compression and Decompression
-	// |...
-	// |  Compression must be lossless and may not increase the content length
-	// |  by more than 1024 bytes.  If the decompression function encounters a
-	// |  TLSCompressed.fragment that would decompress to a length in excess of
-	// |  2^14 bytes, it MUST report a fatal decompression failure error.
-	// |...
-	// |  length
-	// |    The length (in bytes) of the following TLSCompressed.fragment.
-	// |    The length MUST NOT exceed 2^14 + 1024.
-	//
-	// Since our buffer also contains 5-byte headers, make it a bit bigger:
-	int insize;
-	int tail;
-//needed?
-	uint64_t align____;
-	uint8_t inbuf[20*1024];
+	int inbuf_size;
+	int ofs_to_buffered;
+	int buffered_size;
+	uint8_t *inbuf;
 } tls_state_t;
 
 
@@ -483,9 +493,20 @@ static tls_state_t *new_tls_state(void)
 
 static void tls_error_die(tls_state_t *tls)
 {
-	dump_tls_record(tls->inbuf, tls->insize + tls->tail);
+	dump_tls_record(tls->inbuf, tls->ofs_to_buffered + tls->buffered_size);
 	bb_error_msg_and_die("TODO: useful diagnostic about %p", tls);
 }
+
+#if 0 //UNUSED
+static void tls_free_inbuf(tls_state_t *tls)
+{
+	if (tls->buffered_size == 0) {
+		free(tls->inbuf);
+		tls->inbuf_size = 0;
+		tls->inbuf = NULL;
+	}
+}
+#endif
 
 static void tls_free_outbuf(tls_state_t *tls)
 {
@@ -683,13 +704,13 @@ static void xwrite_and_update_handshake_hash(tls_state_t *tls, unsigned size)
 
 static int tls_has_buffered_record(tls_state_t *tls)
 {
-	int buffered = tls->tail;
+	int buffered = tls->buffered_size;
 	struct record_hdr *xhdr;
 	int rec_size;
 
 	if (buffered < RECHDR_LEN)
 		return 0;
-	xhdr = (void*)(tls->inbuf + tls->insize);
+	xhdr = (void*)(tls->inbuf + tls->ofs_to_buffered);
 	rec_size = RECHDR_LEN + (0x100 * xhdr->len16_hi + xhdr->len16_lo);
 	if (buffered < rec_size)
 		return 0;
@@ -704,23 +725,25 @@ static int tls_xread_record(tls_state_t *tls)
 	int target;
 
  again:
-	dbg("insize:%u tail:%u\n", tls->insize, tls->tail);
-	total = tls->tail;
+	dbg("ofs_to_buffered:%u buffered_size:%u\n", tls->ofs_to_buffered, tls->buffered_size);
+	total = tls->buffered_size;
 	if (total != 0) {
-		memmove(tls->inbuf, tls->inbuf + tls->insize, total);
-		//dbg("<< remaining at %d [%d] ", tls->insize, total);
+		memmove(tls->inbuf, tls->inbuf + tls->ofs_to_buffered, total);
+		//dbg("<< remaining at %d [%d] ", tls->ofs_to_buffered, total);
 		//dump_raw_in("<< %s\n", tls->inbuf, total);
 	}
 	errno = 0;
-	target = sizeof(tls->inbuf);
+	target = MAX_INBUF;
 	for (;;) {
-		if (total >= RECHDR_LEN && target == sizeof(tls->inbuf)) {
+		int rem;
+
+		if (total >= RECHDR_LEN && target == MAX_INBUF) {
 			xhdr = (void*)tls->inbuf;
 			target = RECHDR_LEN + (0x100 * xhdr->len16_hi + xhdr->len16_lo);
-			if (target >= sizeof(tls->inbuf)) {
+			if (target > MAX_INBUF) {
 				/* malformed input (too long): yell and die */
-				tls->tail = 0;
-				tls->insize = total;
+				tls->buffered_size = 0;
+				tls->ofs_to_buffered = total;
 				tls_error_die(tls);
 			}
 			/* can also check type/proto_maj/proto_min here */
@@ -732,12 +755,22 @@ static int tls_xread_record(tls_state_t *tls)
 		/* if total >= target, we have a full packet (and possibly more)... */
 		if (total - target >= 0)
 			break;
-		sz = safe_read(tls->fd, tls->inbuf + total, sizeof(tls->inbuf) - total);
+		/* input buffer is grown only as needed */
+		rem = tls->inbuf_size - total;
+		if (rem == 0) {
+			tls->inbuf_size += MAX_INBUF / 8;
+			if (tls->inbuf_size > MAX_INBUF)
+				tls->inbuf_size = MAX_INBUF;
+			dbg("inbuf_size:%d\n", tls->inbuf_size);
+			rem = tls->inbuf_size - total;
+			tls->inbuf = xrealloc(tls->inbuf, tls->inbuf_size);
+		}
+		sz = safe_read(tls->fd, tls->inbuf + total, rem);
 		if (sz <= 0) {
 			if (sz == 0 && total == 0) {
 				/* "Abrupt" EOF, no TLS shutdown (seen from kernel.org) */
 				dbg("EOF (without TLS shutdown) from peer\n");
-				tls->tail = 0;
+				tls->buffered_size = 0;
 				goto end;
 			}
 			bb_perror_msg_and_die("short read, have only %d", total);
@@ -745,10 +778,10 @@ static int tls_xread_record(tls_state_t *tls)
 		dump_raw_in("<< %s\n", tls->inbuf + total, sz);
 		total += sz;
 	}
-	tls->tail = total - target;
-	tls->insize = target;
-	//dbg("<< stashing at %d [%d] ", tls->insize, tls->tail);
-	//dump_hex("<< %s\n", tls->inbuf + tls->insize, tls->tail);
+	tls->buffered_size = total - target;
+	tls->ofs_to_buffered = target;
+	//dbg("<< stashing at %d [%d] ", tls->ofs_to_buffered, tls->buffered_size);
+	//dump_hex("<< %s\n", tls->inbuf + tls->ofs_to_buffered, tls->buffered_size);
 
 	sz = target - RECHDR_LEN;
 
@@ -1547,7 +1580,7 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 				 * doubt it's ok to do it "raw"
 				 */
 				FD_CLR(STDIN_FILENO, &readfds);
-				tls_free_outbuf(tls);
+				tls_free_outbuf(tls); /* mem usage optimization */
 			} else {
 				if (nread == inbuf_size) {
 					/* TLS has per record overhead, if input comes fast,
@@ -1570,6 +1603,7 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 				 */
 				//FD_CLR(cfd, &readfds);
 				//close(STDOUT_FILENO);
+				//tls_free_inbuf(tls); /* mem usage optimization */
 				//continue;
 				break;
 			}
