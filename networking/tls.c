@@ -48,7 +48,7 @@
 # define dump_raw_out(...) ((void)0)
 #endif
 
-#if 1
+#if 0
 # define dump_raw_in(...) dump_hex(__VA_ARGS__)
 #else
 # define dump_raw_in(...) ((void)0)
@@ -71,9 +71,6 @@
 #define HANDSHAKE_CERTIFICATE_VERIFY    15
 #define HANDSHAKE_CLIENT_KEY_EXCHANGE   16
 #define HANDSHAKE_FINISHED              20
-
-#define SSL_HS_RANDOM_SIZE              32
-#define SSL_HS_RSA_PREMASTER_SIZE       48
 
 #define SSL_NULL_WITH_NULL_NULL                 0x0000
 #define SSL_RSA_WITH_NULL_MD5                   0x0001
@@ -175,12 +172,15 @@ enum {
 	AES128_KEYSIZE = 16,
 	AES256_KEYSIZE = 32,
 
+	RSA_PREMASTER_SIZE = 48,
+
 	RECHDR_LEN = 5,
 
 	MAX_TLS_RECORD = (1 << 14),
+	/* 8 = 3+5. 3 extra bytes result in record data being 32-bit aligned */
 	OUTBUF_PFX = 8 + AES_BLOCKSIZE, /* header + IV */
 	OUTBUF_SFX = SHA256_OUTSIZE + AES_BLOCKSIZE, /* MAC + padding */
-	MAX_OTBUF = MAX_TLS_RECORD - OUTBUF_PFX - OUTBUF_SFX,
+	MAX_OUTBUF = MAX_TLS_RECORD - OUTBUF_PFX - OUTBUF_SFX,
 };
 
 struct record_hdr {
@@ -205,20 +205,21 @@ typedef struct tls_state {
 	uint8_t server_write_MAC_key[SHA256_OUTSIZE];
 	uint8_t client_write_key[AES256_KEYSIZE];
 	uint8_t server_write_key[AES256_KEYSIZE];
-// RFC 5246
-// sequence number
-// Each connection state contains a sequence number, which is
-// maintained separately for read and write states.  The sequence
-// number MUST be set to zero whenever a connection state is made the
-// active state.  Sequence numbers are of type uint64 and may not
-// exceed 2^64-1.
+
+	// RFC 5246
+	// sequence number
+	//   Each connection state contains a sequence number, which is
+	//   maintained separately for read and write states.  The sequence
+	//   number MUST be set to zero whenever a connection state is made the
+	//   active state.  Sequence numbers are of type uint64 and may not
+	//   exceed 2^64-1.
 	uint64_t write_seq64_be;
 
 	int outbuf_size;
 	uint8_t *outbuf;
 
 	// RFC 5246
-	// |6.2.1. Fragmentation
+	// | 6.2.1. Fragmentation
 	// |  The record layer fragments information blocks into TLSPlaintext
 	// |  records carrying data in chunks of 2^14 bytes or less.  Client
 	// |  message boundaries are not preserved in the record layer (i.e.,
@@ -290,6 +291,9 @@ static void dump_tls_record(const void *vp, int len)
 		len -= xhdr_len;
 	}
 }
+#else
+# define dump_hex(...) ((void)0)
+# define dump_tls_record(...) ((void)0)
 #endif
 
 void tls_get_random(void *buf, unsigned len)
@@ -480,12 +484,19 @@ static tls_state_t *new_tls_state(void)
 static void tls_error_die(tls_state_t *tls)
 {
 	dump_tls_record(tls->inbuf, tls->insize + tls->tail);
-	xfunc_die();
+	bb_error_msg_and_die("TODO: useful diagnostic about %p", tls);
+}
+
+static void tls_free_outbuf(tls_state_t *tls)
+{
+	free(tls->outbuf);
+	tls->outbuf_size = 0;
+	tls->outbuf = NULL;
 }
 
 static void *tls_get_outbuf(tls_state_t *tls, int len)
 {
-	if (len > MAX_OTBUF)
+	if (len > MAX_OUTBUF)
 		xfunc_die();
 	if (tls->outbuf_size < len + OUTBUF_PFX + OUTBUF_SFX) {
 		tls->outbuf_size = len + OUTBUF_PFX + OUTBUF_SFX;
@@ -670,7 +681,22 @@ static void xwrite_and_update_handshake_hash(tls_state_t *tls, unsigned size)
 	xwrite_encrypted(tls, size, RECORD_TYPE_HANDSHAKE);
 }
 
-static int xread_tls_block(tls_state_t *tls)
+static int tls_has_buffered_record(tls_state_t *tls)
+{
+	int buffered = tls->tail;
+	struct record_hdr *xhdr;
+	int rec_size;
+
+	if (buffered < RECHDR_LEN)
+		return 0;
+	xhdr = (void*)(tls->inbuf + tls->insize);
+	rec_size = RECHDR_LEN + (0x100 * xhdr->len16_hi + xhdr->len16_lo);
+	if (buffered < rec_size)
+		return 0;
+	return rec_size;
+}
+
+static int tls_xread_record(tls_state_t *tls)
 {
 	struct record_hdr *xhdr;
 	int sz;
@@ -1012,7 +1038,7 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 static int xread_tls_handshake_block(tls_state_t *tls, int min_len)
 {
 	struct record_hdr *xhdr;
-	int len = xread_tls_block(tls);
+	int len = tls_xread_record(tls);
 
 	xhdr = (void*)tls->inbuf;
 	if (len < min_len
@@ -1177,7 +1203,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	};
 //FIXME: better size estimate
 	struct client_key_exchange *record = tls_get_outbuf(tls, sizeof(*record));
-	uint8_t rsa_premaster[SSL_HS_RSA_PREMASTER_SIZE];
+	uint8_t rsa_premaster[RSA_PREMASTER_SIZE];
 	int len;
 
 	tls_get_random(rsa_premaster, sizeof(rsa_premaster));
@@ -1383,7 +1409,7 @@ static void tls_handshake(tls_state_t *tls)
 	send_client_hello(tls);
 	get_server_hello(tls);
 
-	//RFC 5246
+	// RFC 5246
 	// The server MUST send a Certificate message whenever the agreed-
 	// upon key exchange method uses certificates for authentication
 	// (this includes all key exchange methods defined in this document
@@ -1408,7 +1434,7 @@ static void tls_handshake(tls_state_t *tls)
 
 //	if (tls->inbuf[RECHDR_LEN] == HANDSHAKE_CERTIFICATE_REQUEST) {
 //		dbg("<< CERTIFICATE_REQUEST\n");
-//RFC 5246: (in response to this,) "If no suitable certificate is available,
+// RFC 5246: (in response to this,) "If no suitable certificate is available,
 // the client MUST send a certificate message containing no
 // certificates.  That is, the certificate_list structure has a
 // length of zero. ...
@@ -1433,7 +1459,7 @@ static void tls_handshake(tls_state_t *tls)
 	send_client_finished(tls);
 
 	/* Get CHANGE_CIPHER_SPEC */
-	len = xread_tls_block(tls);
+	len = tls_xread_record(tls);
 	if (len != 1 || memcmp(tls->inbuf, rec_CHANGE_CIPHER_SPEC, 6) != 0)
 		tls_error_die(tls);
 	dbg("<< CHANGE_CIPHER_SPEC\n");
@@ -1444,7 +1470,7 @@ static void tls_handshake(tls_state_t *tls)
 		tls->min_encrypted_len_on_read = AES_BLOCKSIZE + SHA256_OUTSIZE + AES_BLOCKSIZE;
 
 	/* Get (encrypted) FINISHED from the server */
-	len = xread_tls_block(tls);
+	len = tls_xread_record(tls);
 	if (len < 4 || tls->inbuf[RECHDR_LEN] != HANDSHAKE_FINISHED)
 		tls_error_die(tls);
 	dbg("<< FINISHED\n");
@@ -1473,8 +1499,11 @@ int tls_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tls_main(int argc UNUSED_PARAM, char **argv)
 {
 	tls_state_t *tls;
-	fd_set readfds, testfds;
+	fd_set readfds;
+	int inbuf_size;
+	const int INBUF_STEP = 4 * 1024;
 	int cfd;
+
 
 	// INIT_G();
 	// getopt32(argv, "myopts")
@@ -1493,13 +1522,12 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 	FD_SET(cfd, &readfds);
 	FD_SET(STDIN_FILENO, &readfds);
 
-//#define iobuf bb_common_bufsiz1
-//	setup_common_bufsiz();
+	inbuf_size = INBUF_STEP;
 	for (;;) {
+		fd_set testfds;
 		int nread;
 
 		testfds = readfds;
-
 		if (select(cfd + 1, &testfds, NULL, NULL, NULL) < 0)
 			bb_perror_msg_and_die("select");
 
@@ -1507,26 +1535,52 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 			void *buf;
 
 			dbg("STDIN HAS DATA\n");
-//TODO: growable buffer
-			buf = tls_get_outbuf(tls, 4 * 1024);
-			nread = safe_read(STDIN_FILENO, buf, 4 * 1024);
+			buf = tls_get_outbuf(tls, inbuf_size);
+			nread = safe_read(STDIN_FILENO, buf, inbuf_size);
 			if (nread < 1) {
-//&& errno != EAGAIN
+				/* We'd want to do this: */
 				/* Close outgoing half-connection so they get EOF,
-				 * but leave incoming alone so we can see response */
-//TLS has no way to encode this, doubt it's ok to do it "raw"
-//				shutdown(cfd, SHUT_WR);
+				 * but leave incoming alone so we can see response
+				 */
+				//shutdown(cfd, SHUT_WR);
+				/* But TLS has no way to encode this,
+				 * doubt it's ok to do it "raw"
+				 */
 				FD_CLR(STDIN_FILENO, &readfds);
+				tls_free_outbuf(tls);
+			} else {
+				if (nread == inbuf_size) {
+					/* TLS has per record overhead, if input comes fast,
+					 * read, encrypt and send bigger chunks
+					 */
+					inbuf_size += INBUF_STEP;
+					if (inbuf_size > MAX_OUTBUF)
+						inbuf_size = MAX_OUTBUF;
+				}
+				tls_xwrite(tls, nread);
 			}
-			tls_xwrite(tls, nread);
 		}
 		if (FD_ISSET(cfd, &testfds)) {
 			dbg("NETWORK HAS DATA\n");
-			nread = xread_tls_block(tls);
-			if (nread < 1)
-//TODO: if eof, just close stdout, but not exit!
-				return EXIT_SUCCESS;
+ read_record:
+			nread = tls_xread_record(tls);
+			if (nread < 1) {
+				/* TLS protocol has no real concept of one-sided shutdowns:
+				 * if we get "TLS EOF" from the peer, writes will fail too
+				 */
+				//FD_CLR(cfd, &readfds);
+				//close(STDOUT_FILENO);
+				//continue;
+				break;
+			}
+			if (tls->inbuf[0] != RECORD_TYPE_APPLICATION_DATA)
+				bb_error_msg_and_die("unexpected record type %d", tls->inbuf[0]);
 			xwrite(STDOUT_FILENO, tls->inbuf + RECHDR_LEN, nread);
+			/* We may already have a complete next record buffered,
+			 * can process it without network reads (and possible blocking)
+			 */
+			if (tls_has_buffered_record(tls))
+				goto read_record;
 		}
 	}
 
