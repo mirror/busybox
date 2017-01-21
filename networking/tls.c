@@ -226,23 +226,27 @@ struct record_hdr {
 };
 
 typedef struct tls_state {
-	int fd;
+	int     fd;
+
+	int     min_encrypted_len_on_read;
+	uint8_t encrypt_on_write;
+
+	uint8_t *outbuf;
+	int     outbuf_size;
+
+	int     inbuf_size;
+	int     ofs_to_buffered;
+	int     buffered_size;
+	uint8_t *inbuf;
 
 //TODO: store just the DER key here, parse/use/delete it when sending client key
 //this way it will stay key type agnostic here.
 	psRsaKey_t server_rsa_pub_key;
-
-	sha256_ctx_t handshake_sha256_ctx;
-
+// this is also unused after client key is sent
 	uint8_t client_and_server_rand32[2 * 32];
+// these two are unused after finished messages are exchanged:
+	sha256_ctx_t handshake_sha256_ctx;
 	uint8_t master_secret[48];
-
-	uint8_t encrypt_on_write;
-	int     min_encrypted_len_on_read;
-	uint8_t client_write_MAC_key[SHA256_OUTSIZE];
-	uint8_t server_write_MAC_key[SHA256_OUTSIZE];
-	uint8_t client_write_key[AES256_KEYSIZE];
-	uint8_t server_write_key[AES256_KEYSIZE];
 
 	// RFC 5246
 	// sequence number
@@ -251,15 +255,13 @@ typedef struct tls_state {
 	//   number MUST be set to zero whenever a connection state is made the
 	//   active state.  Sequence numbers are of type uint64 and may not
 	//   exceed 2^64-1.
+	/*uint64_t read_seq64_be;*/
 	uint64_t write_seq64_be;
 
-	int outbuf_size;
-	uint8_t *outbuf;
-
-	int inbuf_size;
-	int ofs_to_buffered;
-	int buffered_size;
-	uint8_t *inbuf;
+	uint8_t client_write_MAC_key[SHA256_OUTSIZE];
+	uint8_t server_write_MAC_key[SHA256_OUTSIZE];
+	uint8_t client_write_key[AES256_KEYSIZE];
+	uint8_t server_write_key[AES256_KEYSIZE];
 } tls_state_t;
 
 
