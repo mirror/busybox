@@ -152,7 +152,7 @@
 //usage:       " [COMMAND]"
 //usage:#define ip_full_usage "\n\n"
 //usage:       "ip [OPTIONS] OBJECT [COMMAND]\n"
-//usage:       "where OBJECT := "
+//usage:       "	OBJECT := "
 //usage:	IF_FEATURE_IP_ADDRESS("address|")
 //usage:	IF_FEATURE_IP_ROUTE("route|")
 //usage:	IF_FEATURE_IP_LINK("link|")
@@ -160,17 +160,17 @@
 //usage:	IF_FEATURE_IP_NEIGH("neigh|")
 //usage:	IF_FEATURE_IP_RULE("rule")
 //usage:       "\n"
-//usage:       "OPTIONS := -f[amily] inet|inet6|link | -o[neline]"
+//usage:       "	OPTIONS := -f[amily] inet|inet6|link | -o[neline]"
 //usage:
 //usage:#define ipaddr_trivial_usage
 //usage:       "add|del IFADDR dev STRING | show|flush [dev STRING] [to PREFIX]"
 //usage:#define ipaddr_full_usage "\n\n"
 //usage:       "ipaddr add|change|replace|delete IFADDR dev STRING\n"
 //usage:       "ipaddr show|flush [dev STRING] [scope SCOPE-ID]\n"
-//usage:       "	[to PREFIX] [label PATTERN]\n"
+//usage:       "		[to PREFIX] [label PATTERN]\n"
 //usage:       "	IFADDR := PREFIX | ADDR peer PREFIX\n"
-//usage:       "	[broadcast ADDR] [anycast ADDR]\n"
-//usage:       "	[label STRING] [scope SCOPE-ID]\n"
+//usage:       "		[broadcast ADDR] [anycast ADDR]\n"
+//usage:       "		[label STRING] [scope SCOPE-ID]\n"
 //usage:       "	SCOPE-ID := [host|link|global|NUMBER]"
 //usage:
 //usage:#define iplink_trivial_usage
@@ -200,9 +200,9 @@
 //usage:       "	SELECTOR := [from PREFIX] [to PREFIX] [tos TOS] [fwmark FWMARK]\n"
 //usage:       "			[dev STRING] [pref NUMBER]\n"
 //usage:       "	ACTION := [table TABLE_ID] [nat ADDRESS]\n"
-//usage:       "			[prohibit | reject | unreachable]\n"
+//usage:       "			[prohibit|reject|unreachable]\n"
 //usage:       "			[realms [SRCREALM/]DSTREALM]\n"
-//usage:       "	TABLE_ID := [local | main | default | NUMBER]"
+//usage:       "	TABLE_ID := [local|main|default|NUMBER]"
 //usage:
 //usage:#define iptunnel_trivial_usage
 //usage:       "add|change|del|show [NAME]\n"
