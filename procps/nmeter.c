@@ -24,7 +24,7 @@
 //usage:     "\n -d MSEC	Milliseconds between updates, default:1000, none:-1"
 //usage:     "\n"
 //usage:     "\nFormat specifiers:"
-//usage:     "\n %Nc or %[cN]	CPU. N - bar size (default:10)"
+//usage:     "\n %Nc or %[cN]	CPU. N - bar size (default 10)"
 //usage:     "\n		(displays: S:system U:user N:niced D:iowait I:irq i:softirq)"
 //usage:     "\n %[nINTERFACE]	Network INTERFACE"
 //usage:     "\n %m		Allocated memory"

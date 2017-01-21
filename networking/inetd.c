@@ -213,9 +213,9 @@
 //usage:       "Listen for network connections and launch programs\n"
 //usage:     "\n	-f	Run in foreground"
 //usage:     "\n	-e	Log to stderr"
-//usage:     "\n	-q N	Socket listen queue (default: 128)"
+//usage:     "\n	-q N	Socket listen queue (default 128)"
 //usage:     "\n	-R N	Pause services after N connects/min"
-//usage:     "\n		(default: 0 - disabled)"
+//usage:     "\n		(default 0 - disabled)"
 
 #include <syslog.h>
 #include <sys/resource.h> /* setrlimit */

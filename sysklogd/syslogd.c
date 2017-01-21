@@ -135,8 +135,8 @@
 //usage:	)
 //usage:     "\n	-O FILE		Log to FILE (default: /var/log/messages, stdout if -)"
 //usage:	IF_FEATURE_ROTATE_LOGFILE(
-//usage:     "\n	-s SIZE		Max size (KB) before rotation (default:200KB, 0=off)"
-//usage:     "\n	-b N		N rotated logs to keep (default:1, max=99, 0=purge)"
+//usage:     "\n	-s SIZE		Max size (KB) before rotation (default 200KB, 0=off)"
+//usage:     "\n	-b N		N rotated logs to keep (default 1, max 99, 0=purge)"
 //usage:	)
 //usage:     "\n	-l N		Log only messages more urgent than prio N (1-8)"
 //usage:     "\n	-S		Smaller output"
@@ -146,7 +146,7 @@
 //usage:	IF_FEATURE_SYSLOGD_CFG(
 //usage:     "\n	-f FILE		Use FILE as config (default:/etc/syslog.conf)"
 //usage:	)
-/* //usage:  "\n	-m MIN		Minutes between MARK lines (default:20, 0=off)" */
+/* //usage:  "\n	-m MIN		Minutes between MARK lines (default 20, 0=off)" */
 //usage:
 //usage:#define syslogd_example_usage
 //usage:       "$ syslogd -R masterlog:514\n"
