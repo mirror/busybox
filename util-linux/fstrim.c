@@ -23,9 +23,9 @@
 //usage:       "[OPTIONS] MOUNTPOINT"
 //usage:#define fstrim_full_usage "\n\n"
 //usage:	IF_LONG_OPTS(
-//usage:       "	-o,--offset=OFFSET	Offset in bytes to discard from"
-//usage:     "\n	-l,--length=LEN		Bytes to discard"
-//usage:     "\n	-m,--minimum=MIN	Minimum extent length"
+//usage:       "	-o,--offset OFFSET	Offset in bytes to discard from"
+//usage:     "\n	-l,--length LEN		Bytes to discard"
+//usage:     "\n	-m,--minimum MIN	Minimum extent length"
 //usage:     "\n	-v,--verbose		Print number of discarded bytes"
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(

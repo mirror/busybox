@@ -41,10 +41,10 @@
 //usage:     "\n	-a,--auto	Read clock mode from adjtime"
 //usage:     "\n	-l,--local	Clock is set to local time"
 //usage:     "\n	-u,--utc	Clock is set to UTC time"
-//usage:     "\n	-d,--device=DEV	Specify the RTC device"
-//usage:     "\n	-m,--mode=MODE	Set sleep state (default: standby)"
-//usage:     "\n	-s,--seconds=SEC Set timeout in SEC seconds from now"
-//usage:     "\n	-t,--time=TIME	Set timeout to TIME seconds from epoch"
+//usage:     "\n	-d,--device DEV	Specify the RTC device"
+//usage:     "\n	-m,--mode MODE	Set sleep state (default: standby)"
+//usage:     "\n	-s,--seconds SEC Set timeout in SEC seconds from now"
+//usage:     "\n	-t,--time TIME	Set timeout to TIME seconds from epoch"
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(
 //usage:     "\n	-a	Read clock mode from adjtime"

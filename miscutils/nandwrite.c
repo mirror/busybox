@@ -37,7 +37,7 @@
 //usage:     "\n	-s ADDR	Start address"
 
 //usage:#define nanddump_trivial_usage
-//usage:	"[-no]" IF_LONG_OPTS(" [--bb=padbad|skipbad]") " [-s ADDR] [-l LEN] [-f FILE] MTD_DEVICE"
+//usage:	"[-no]" IF_LONG_OPTS(" [--bb padbad|skipbad]") " [-s ADDR] [-l LEN] [-f FILE] MTD_DEVICE"
 //usage:#define nanddump_full_usage "\n\n"
 //usage:	"Dump MTD_DEVICE\n"
 //usage:     "\n	-n	Read without ecc"
@@ -46,7 +46,7 @@
 //usage:     "\n	-l LEN	Length"
 //usage:     "\n	-f FILE	Dump to file ('-' for stdout)"
 //usage:     IF_LONG_OPTS(
-//usage:     "\n	--bb=METHOD:"
+//usage:     "\n	--bb METHOD"
 //usage:     "\n		skipbad: skip bad blocks"
 //usage:     "\n		padbad: substitute bad blocks by 0xff (default)"
 //usage:     )
