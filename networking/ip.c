@@ -140,33 +140,11 @@
 //kbuild:lib-$(CONFIG_IPTUNNEL) += ip.o
 //kbuild:lib-$(CONFIG_IPNEIGH) += ip.o
 
-/* would need to make the " | " optional depending on more than one selected: */
-//usage:#define ip_trivial_usage
-//usage:       "[OPTIONS] "
-//usage:	IF_FEATURE_IP_ADDRESS("address|")
-//usage:	IF_FEATURE_IP_ROUTE("route|")
-//usage:	IF_FEATURE_IP_LINK("link|")
-//usage:	IF_FEATURE_IP_TUNNEL("tunnel|")
-//usage:	IF_FEATURE_IP_NEIGH("neigh|")
-//usage:	IF_FEATURE_IP_RULE("rule")
-//usage:       " [COMMAND]"
-//usage:#define ip_full_usage "\n\n"
-//usage:       "ip [OPTIONS] OBJECT [COMMAND]\n"
-//usage:       "	OBJECT := "
-//usage:	IF_FEATURE_IP_ADDRESS("address|")
-//usage:	IF_FEATURE_IP_ROUTE("route|")
-//usage:	IF_FEATURE_IP_LINK("link|")
-//usage:	IF_FEATURE_IP_TUNNEL("tunnel|")
-//usage:	IF_FEATURE_IP_NEIGH("neigh|")
-//usage:	IF_FEATURE_IP_RULE("rule")
-//usage:       "\n"
-//usage:       "	OPTIONS := -f[amily] inet|inet6|link | -o[neline]"
-//usage:
 //usage:#define ipaddr_trivial_usage
-//usage:       "add|del IFADDR dev STRING | show|flush [dev STRING] [to PREFIX]"
+//usage:       "add|del IFADDR dev IFACE | show|flush [dev IFACE] [to PREFIX]"
 //usage:#define ipaddr_full_usage "\n\n"
-//usage:       "ipaddr add|change|replace|delete IFADDR dev STRING\n"
-//usage:       "ipaddr show|flush [dev STRING] [scope SCOPE-ID]\n"
+//usage:       "ipaddr add|change|replace|delete IFADDR dev IFACE\n"
+//usage:       "ipaddr show|flush [dev IFACE] [scope SCOPE-ID]\n"
 //usage:       "		[to PREFIX] [label PATTERN]\n"
 //usage:       "	IFADDR := PREFIX | ADDR peer PREFIX\n"
 //usage:       "		[broadcast ADDR] [anycast ADDR]\n"
@@ -174,14 +152,14 @@
 //usage:       "	SCOPE-ID := [host|link|global|NUMBER]"
 //usage:
 //usage:#define iplink_trivial_usage
-//usage:       "{ set DEVICE [up|down] [arp on|off] } | show [DEVICE]"
+//usage:       "set IFACE [up|down] [arp on|off] | show [IFACE]"
 //usage:#define iplink_full_usage "\n\n"
-//usage:       "iplink set DEVICE [up|down]\n"
+//usage:       "iplink set IFACE [up|down]\n"
 //usage:       "	[arp on|off]\n"
 //usage:       "	[dynamic on|off]\n"
 //usage:       "	[multicast on|off]\n"
 //usage:       "	[mtu MTU]\n"
-//usage:       "iplink show [DEVICE]"
+//usage:       "iplink show [IFACE]"
 //usage:
 //usage:#define iproute_trivial_usage
 //usage:       "list|flush|add|del|change|append|replace|test ROUTE"
@@ -194,11 +172,10 @@
 //usage:       "	ROUTE := [TYPE] PREFIX [tos TOS] [proto RTPROTO] [metric METRIC]"
 //usage:
 //usage:#define iprule_trivial_usage
-//usage:       "[list|add|del] RULE"
+//usage:       "[list] | add|del SELECTOR ACTION"
 //usage:#define iprule_full_usage "\n\n"
-//usage:       "iprule [list|add|del] SELECTOR ACTION\n"
 //usage:       "	SELECTOR := [from PREFIX] [to PREFIX] [tos TOS] [fwmark FWMARK]\n"
-//usage:       "			[dev STRING] [pref NUMBER]\n"
+//usage:       "			[dev IFACE] [pref NUMBER]\n"
 //usage:       "	ACTION := [table TABLE_ID] [nat ADDRESS]\n"
 //usage:       "			[prohibit|reject|unreachable]\n"
 //usage:       "			[realms [SRCREALM/]DSTREALM]\n"
@@ -216,8 +193,53 @@
 //usage:
 //usage:#define ipneigh_trivial_usage
 //usage:       "show|flush [to PREFIX] [dev DEV] [nud STATE]"
-//usage:#define ipneigh_full_usage "\n\n"
-//usage:       "ipneigh show|flush [to PREFIX] [dev DEV] [nud STATE]"
+//usage:#define ipneigh_full_usage ""
+//usage:
+//usage:#if ENABLE_FEATURE_IP_ADDRESS || ENABLE_FEATURE_IP_ROUTE
+//usage:# define IP_BAR_LINK   "|"
+//usage:#else
+//usage:# define IP_BAR_LINK   ""
+//usage:#endif
+//usage:#if ENABLE_FEATURE_IP_ADDRESS || ENABLE_FEATURE_IP_ROUTE || ENABLE_FEATURE_IP_LINK
+//usage:# define IP_BAR_TUNNEL "|"
+//usage:#else
+//usage:# define IP_BAR_TUNNEL ""
+//usage:#endif
+//usage:#if ENABLE_FEATURE_IP_ADDRESS || ENABLE_FEATURE_IP_ROUTE || ENABLE_FEATURE_IP_LINK || ENABLE_FEATURE_IP_TUNNEL
+//usage:# define IP_BAR_NEIGH  "|"
+//usage:#else
+//usage:# define IP_BAR_NEIGH  ""
+//usage:#endif
+//usage:#if ENABLE_FEATURE_IP_ADDRESS || ENABLE_FEATURE_IP_ROUTE || ENABLE_FEATURE_IP_LINK || ENABLE_FEATURE_IP_TUNNEL || ENABLE_FEATURE_IP_NEIGH
+//usage:# define IP_BAR_RULE   "|"
+//usage:#else
+//usage:# define IP_BAR_RULE   ""
+//usage:#endif
+//usage:
+//usage:#define ip_trivial_usage
+//usage:       "[OPTIONS] "
+//usage:	IF_FEATURE_IP_ADDRESS("address")
+//usage:	IF_FEATURE_IP_ROUTE(  IF_FEATURE_IP_ADDRESS("|")"route")
+//usage:	IF_FEATURE_IP_LINK(   IP_BAR_LINK  "link")
+//usage:	IF_FEATURE_IP_TUNNEL( IP_BAR_TUNNEL"tunnel")
+//usage:	IF_FEATURE_IP_NEIGH(  IP_BAR_NEIGH "neigh")
+//usage:	IF_FEATURE_IP_RULE(   IP_BAR_RULE  "rule")
+//usage:       " [COMMAND]"
+//usage:#define ip_full_usage "\n\n"
+//usage:       "OPTIONS := -f[amily] inet|inet6|link | -o[neline]\n"
+//usage:       "COMMAND :="
+//usage:	IF_FEATURE_IP_ADDRESS("\n"
+//usage:	"ip addr "ipaddr_trivial_usage)
+//usage:	IF_FEATURE_IP_ROUTE("\n"
+//usage:	"ip route "iproute_trivial_usage)
+//usage:	IF_FEATURE_IP_LINK("\n"
+//usage:	"ip link "iplink_trivial_usage)
+//usage:	IF_FEATURE_IP_TUNNEL("\n"
+//usage:	"ip tunnel "iptunnel_trivial_usage)
+//usage:	IF_FEATURE_IP_NEIGH("\n"
+//usage:	"ip neigh "ipneigh_trivial_usage)
+//usage:	IF_FEATURE_IP_RULE("\n"
+//usage:	"ip rule "iprule_trivial_usage)
 
 #include "libbb.h"
 

@@ -27,22 +27,22 @@
 /* //usage: "[OPTIONS] OBJECT CMD [dev STRING]" */
 //usage:	"OBJECT CMD [dev STRING]"
 //usage:#define tc_full_usage "\n\n"
-//usage:	"OBJECT: {qdisc|class|filter}\n"
-//usage:	"CMD: {add|del|change|replace|show}\n"
+//usage:	"OBJECT: qdisc|class|filter\n"
+//usage:	"CMD: add|del|change|replace|show\n"
 //usage:	"\n"
-//usage:	"qdisc [ handle QHANDLE ] [ root |"IF_FEATURE_TC_INGRESS(" ingress |")" parent CLASSID ]\n"
-/* //usage: "[ estimator INTERVAL TIME_CONSTANT ]\n" */
-//usage:	"	[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n"
-//usage:	"	QDISC_KIND := { [p|b]fifo | tbf | prio | cbq | red | etc. }\n"
-//usage:	"qdisc show [ dev STRING ]"IF_FEATURE_TC_INGRESS(" [ingress]")"\n"
-//usage:	"class [ classid CLASSID ] [ root | parent CLASSID ]\n"
-//usage:	"	[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n"
-//usage:	"class show [ dev STRING ] [ root | parent CLASSID ]\n"
-//usage:	"filter [ pref PRIO ] [ protocol PROTO ]\n"
-/* //usage: "\t[ estimator INTERVAL TIME_CONSTANT ]\n" */
-//usage:	"	[ root | classid CLASSID ] [ handle FILTERID ]\n"
-//usage:	"	[ [ FILTER_TYPE ] [ help | OPTIONS ] ]\n"
-//usage:	"filter show [ dev STRING ] [ root | parent CLASSID ]"
+//usage:	"qdisc [handle QHANDLE] [root|"IF_FEATURE_TC_INGRESS("ingress|")"parent CLASSID]\n"
+/* //usage: "[estimator INTERVAL TIME_CONSTANT]\n" */
+//usage:	"	[[QDISC_KIND] [help|OPTIONS]]\n"
+//usage:	"	QDISC_KIND := [p|b]fifo|tbf|prio|cbq|red|etc.\n"
+//usage:	"qdisc show [dev STRING]"IF_FEATURE_TC_INGRESS(" [ingress]")"\n"
+//usage:	"class [classid CLASSID] [root|parent CLASSID]\n"
+//usage:	"	[[QDISC_KIND] [help|OPTIONS] ]\n"
+//usage:	"class show [ dev STRING ] [root|parent CLASSID]\n"
+//usage:	"filter [pref PRIO] [protocol PROTO]\n"
+/* //usage: "\t[estimator INTERVAL TIME_CONSTANT]\n" */
+//usage:	"	[root|classid CLASSID] [handle FILTERID]\n"
+//usage:	"	[[FILTER_TYPE] [help|OPTIONS]]\n"
+//usage:	"filter show [dev STRING] [root|parent CLASSID]"
 
 #include "libbb.h"
 #include "common_bufsiz.h"
