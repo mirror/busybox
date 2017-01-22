@@ -130,8 +130,8 @@
 //usage:     "\n	-n	List numeric UIDs and GIDs instead of names"
 //usage:     "\n	-s	List allocated blocks"
 //usage:	IF_FEATURE_LS_TIMESTAMPS(
-//usage:     "\n	-c	List ctime"
-//usage:     "\n	-u	List atime"
+//usage:     "\n	-lc	List ctime"
+//usage:     "\n	-lu	List atime"
 //usage:	)
 //usage:	IF_FEATURE_LS_TIMESTAMPS(IF_LONG_OPTS(
 //usage:     "\n	--full-time	List full date and time"
@@ -243,7 +243,7 @@ LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
                   LIST_DATE_TIME | LIST_SYMLINK,
 };
 
-/* -Cadil1  Std options, busybox always supports */
+/* -Cadi1l  Std options, busybox always supports */
 /* -gnsxA   Std options, busybox always supports */
 /* -Q       GNU option, busybox always supports */
 /* -k       SELinux option, busybox always supports (ignores if !SELinux) */
@@ -256,7 +256,7 @@ LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
 /* -T WIDTH Ignored (we don't use tabs on output) */
 /* -Z       SELinux mandated option, busybox optionally supports */
 static const char ls_options[] ALIGN1 =
-	"Cadil1gnsxQAk"      /* 13 opts, total 13 */
+	"Cadi1lgnsxQAk"      /* 13 opts, total 13 */
 	IF_FEATURE_LS_TIMESTAMPS("ctu")  /* 3, 16 */
 	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 20 */
 	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 22 */
@@ -271,8 +271,8 @@ enum {
 	//OPT_a = (1 << 1),
 	//OPT_d = (1 << 2),
 	//OPT_i = (1 << 3),
-	OPT_l = (1 << 4),
-	//OPT_1 = (1 << 5),
+	//OPT_1 = (1 << 4),
+	OPT_l = (1 << 5),
 	OPT_g = (1 << 6),
 	//OPT_n = (1 << 7),
 	//OPT_s = (1 << 8),
@@ -329,10 +329,10 @@ static const uint32_t opt_flags[] = {
 	DISP_HIDDEN | DISP_DOT,      /* a */
 	DISP_NOLIST,                 /* d */
 	LIST_INO,                    /* i */
-	LIST_LONG | STYLE_LONG,      /* l */
 	STYLE_SINGLE,                /* 1 */
+	LIST_LONG | STYLE_LONG,      /* l - by keeping it after -1, "ls -l -1" ignores -1 */
 	LIST_LONG | STYLE_LONG,      /* g (don't show owner) - handled via OPT_g. assumes l */
-	LIST_ID_NUMERIC | LIST_LONG | STYLE_LONG, /* n (assumes l) */
+	LIST_LONG | STYLE_LONG | LIST_ID_NUMERIC, /* n (assumes l) */
 	LIST_BLOCKS,                 /* s */
 	DISP_ROWS | STYLE_COLUMNAR,  /* x */
 	0,                           /* Q (quote filename) - handled via OPT_Q */
@@ -1215,6 +1215,10 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 			G.all_fmt |= flags;
 		}
 	}
+	if (opt & OPT_dirs_first)
+		G.all_fmt |= SORT_DIRS_FIRST;
+	if (opt & OPT_full_time)
+		G.all_fmt |= LIST_FULLTIME;
 
 #if ENABLE_FEATURE_LS_COLOR
 	/* set G_show_color = 1/0 */
@@ -1240,10 +1244,6 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #endif
-	if (opt & OPT_dirs_first)
-		G.all_fmt |= SORT_DIRS_FIRST;
-	if (opt & OPT_full_time)
-		G.all_fmt |= LIST_FULLTIME;
 
 	/* sort out which command line options take precedence */
 	if (ENABLE_FEATURE_LS_RECURSIVE && (G.all_fmt & DISP_NOLIST))
