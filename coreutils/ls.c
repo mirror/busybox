@@ -130,17 +130,20 @@
 //usage:     "\n	-i	List inode numbers"
 //usage:     "\n	-n	List numeric UIDs and GIDs instead of names"
 //usage:     "\n	-s	List allocated blocks"
-//usage:	IF_FEATURE_LS_TIMESTAMPS(
-//usage:     "\n	-e	List full date and time"
-//usage:	)
+//usage:	IF_FEATURE_LS_TIMESTAMPS(IF_LONG_OPTS(
+//usage:     "\n	--full-time	List full date and time"
+//usage:	))
 //usage:	IF_FEATURE_HUMAN_READABLE(
 //usage:     "\n	-h	List sizes in human readable format (1K 243M 2G)"
 //usage:	)
 //usage:	IF_FEATURE_LS_SORTFILES(
-//usage:     "\n	-r	Sort in reverse order"
+//usage:	IF_LONG_OPTS(
+//usage:     "\n	--group-directories-first"
+//usage:	)
 //usage:     "\n	-S	Sort by size"
 //usage:     "\n	-X	Sort by extension"
 //usage:     "\n	-v	Sort by version"
+//usage:     "\n	-r	Reverse sort order"
 //usage:	)
 //usage:	IF_FEATURE_LS_TIMESTAMPS(
 //usage:     "\n	-c	With -l: sort by ctime"
@@ -149,7 +152,6 @@
 //usage:	)
 //usage:	IF_SELINUX(
 //usage:     "\n	-k	List security context"
-//usage:     "\n	-K	List security context in long format"
 //usage:     "\n	-Z	List security context and permission"
 //usage:	)
 //usage:	IF_FEATURE_LS_WIDTH(
@@ -230,16 +232,16 @@ TIME_MASK       = (3 << 21) * ENABLE_FEATURE_LS_TIMESTAMPS,
 
 /* how will the files be sorted (CONFIG_FEATURE_LS_SORTFILES) */
 SORT_REVERSE    = 1 << 23,
+SORT_DIRS_FIRST = 1 << 24,
 
 SORT_NAME       = 0,            /* sort by file name */
-SORT_SIZE       = 1 << 24,      /* sort by file size */
-SORT_ATIME      = 2 << 24,      /* sort by last access time */
-SORT_CTIME      = 3 << 24,      /* sort by last change time */
-SORT_MTIME      = 4 << 24,      /* sort by last modification time */
-SORT_VERSION    = 5 << 24,      /* sort by version */
-SORT_EXT        = 6 << 24,      /* sort by file name extension */
-SORT_DIR        = 7 << 24,      /* sort by file or directory */
-SORT_MASK       = (7 << 24) * ENABLE_FEATURE_LS_SORTFILES,
+SORT_SIZE       = 1 << 25,      /* sort by file size */
+SORT_ATIME      = 2 << 25,      /* sort by last access time */
+SORT_CTIME      = 3 << 25,      /* sort by last change time */
+SORT_MTIME      = 4 << 25,      /* sort by last modification time */
+SORT_VERSION    = 5 << 25,      /* sort by version */
+SORT_EXT        = 6 << 25,      /* sort by file name extension */
+SORT_MASK       = (7 << 25) * ENABLE_FEATURE_LS_SORTFILES,
 
 LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
                   LIST_DATE_TIME | LIST_SYMLINK,
@@ -249,26 +251,24 @@ LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
 /* -gnsxA   Std options, busybox always supports */
 /* -Q       GNU option, busybox always supports */
 /* -k       SELinux option, busybox always supports (ignores if !SELinux) */
-/*          Std has -k which means "show sizes in kbytes" */
+/*          Std has -k which means "for -s, show sizes in kbytes" */
+/*          Seems to only affect "POSIXLY_CORRECT=1 ls -sk" */
+/*          since otherwise -s shows kbytes anyway */
 /* -LHRctur Std options, busybox optionally supports */
 /* -Fp      Std options, busybox optionally supports */
 /* -SXvhTw  GNU options, busybox optionally supports */
 /* -T WIDTH Ignored (we don't use tabs on output) */
-/* -KZ      SELinux mandated options, busybox optionally supports */
-/*          (coreutils 8.4 has no -K, remove it?) */
-/* -e       I think we made this one up (looks similar to GNU --full-time) */
-/* We already used up all 32 bits, if we need to add more, candidates for removal: */
-/* -K, -T, -e (add --full-time instead) */
+/* -Z       SELinux mandated option, busybox optionally supports */
 static const char ls_options[] ALIGN1 =
 	"Cadil1gnsxQAk"      /* 13 opts, total 13 */
-	IF_FEATURE_LS_TIMESTAMPS("cetu") /* 4, 17 */
-	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 21 */
-	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 23 */
-	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 24 */
-	IF_SELINUX("KZ")                 /* 2, 26 */
-	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 28 */
-	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 29 */
-	IF_FEATURE_LS_WIDTH("T:w:")     /* 2, 31 */
+	IF_FEATURE_LS_TIMESTAMPS("ctu")  /* 3, 16 */
+	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 20 */
+	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 22 */
+	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 23 */
+	IF_SELINUX("Z")                  /* 1, 24 */
+	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 26 */
+	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 27 */
+	IF_FEATURE_LS_WIDTH("T:w:")     /* 2, 29 */
 	/* with --color, we use all 32 bits */;
 enum {
 	//OPT_C = (1 << 0),
@@ -286,27 +286,26 @@ enum {
 	//OPT_k = (1 << 12),
 
 	OPTBIT_c = 13,
-	OPTBIT_e,
 	OPTBIT_t,
 	OPTBIT_u,
-	OPTBIT_S = OPTBIT_c + 4 * ENABLE_FEATURE_LS_TIMESTAMPS,
-	OPTBIT_X, /* 18 */
+	OPTBIT_S = OPTBIT_c + 3 * ENABLE_FEATURE_LS_TIMESTAMPS,
+	OPTBIT_X, /* 17 */
 	OPTBIT_r,
 	OPTBIT_v,
 	OPTBIT_F = OPTBIT_S + 4 * ENABLE_FEATURE_LS_SORTFILES,
-	OPTBIT_p, /* 22 */
+	OPTBIT_p, /* 21 */
 	OPTBIT_R = OPTBIT_F + 2 * ENABLE_FEATURE_LS_FILETYPES,
-	OPTBIT_K = OPTBIT_R + 1 * ENABLE_FEATURE_LS_RECURSIVE,
-	OPTBIT_Z, /* 25 */
-	OPTBIT_L = OPTBIT_K + 2 * ENABLE_SELINUX,
-	OPTBIT_H, /* 27 */
+	OPTBIT_Z = OPTBIT_R + 1 * ENABLE_FEATURE_LS_RECURSIVE,
+	OPTBIT_L = OPTBIT_Z + 2 * ENABLE_SELINUX,
+	OPTBIT_H, /* 25 */
 	OPTBIT_h = OPTBIT_L + 2 * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPTBIT_T = OPTBIT_h + 1 * ENABLE_FEATURE_HUMAN_READABLE,
-	OPTBIT_w, /* 30 */
-	OPTBIT_color = OPTBIT_T + 2 * ENABLE_FEATURE_LS_WIDTH,
+	OPTBIT_w, /* 28 */
+	OPTBIT_color      = OPTBIT_T + 2 * ENABLE_FEATURE_LS_WIDTH,
+	OPTBIT_dirs_first = OPTBIT_color + 1 * ENABLE_FEATURE_LS_COLOR,
+	OPTBIT_full_time,
 
 	OPT_c = (1 << OPTBIT_c) * ENABLE_FEATURE_LS_TIMESTAMPS,
-	OPT_e = (1 << OPTBIT_e) * ENABLE_FEATURE_LS_TIMESTAMPS,
 	OPT_t = (1 << OPTBIT_t) * ENABLE_FEATURE_LS_TIMESTAMPS,
 	OPT_u = (1 << OPTBIT_u) * ENABLE_FEATURE_LS_TIMESTAMPS,
 	OPT_S = (1 << OPTBIT_S) * ENABLE_FEATURE_LS_SORTFILES,
@@ -316,14 +315,15 @@ enum {
 	OPT_F = (1 << OPTBIT_F) * ENABLE_FEATURE_LS_FILETYPES,
 	OPT_p = (1 << OPTBIT_p) * ENABLE_FEATURE_LS_FILETYPES,
 	OPT_R = (1 << OPTBIT_R) * ENABLE_FEATURE_LS_RECURSIVE,
-	OPT_K = (1 << OPTBIT_K) * ENABLE_SELINUX,
 	OPT_Z = (1 << OPTBIT_Z) * ENABLE_SELINUX,
 	OPT_L = (1 << OPTBIT_L) * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPT_H = (1 << OPTBIT_H) * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPT_h = (1 << OPTBIT_h) * ENABLE_FEATURE_HUMAN_READABLE,
 	OPT_T = (1 << OPTBIT_T) * ENABLE_FEATURE_LS_WIDTH,
 	OPT_w = (1 << OPTBIT_w) * ENABLE_FEATURE_LS_WIDTH,
-	OPT_color = (1 << OPTBIT_color) * ENABLE_FEATURE_LS_COLOR,
+	OPT_color      = (1 << OPTBIT_color     ) * ENABLE_FEATURE_LS_COLOR,
+	OPT_dirs_first = (1 << OPTBIT_dirs_first) * ENABLE_LONG_OPTS,
+	OPT_full_time  = (1 << OPTBIT_full_time ) * ENABLE_LONG_OPTS,
 };
 
 /* TODO: simple toggles may be stored as OPT_xxx bits instead */
@@ -343,7 +343,6 @@ static const uint32_t opt_flags[] = {
 	ENABLE_SELINUX * (LIST_CONTEXT|STYLE_SINGLE), /* k (ignored if !SELINUX) */
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	TIME_CHANGE | (ENABLE_FEATURE_LS_SORTFILES * SORT_CTIME), /* c */
-	LIST_FULLTIME,               /* e */
 	ENABLE_FEATURE_LS_SORTFILES * SORT_MTIME, /* t */
 	TIME_ACCESS | (ENABLE_FEATURE_LS_SORTFILES * SORT_ATIME), /* u */
 #endif
@@ -361,7 +360,6 @@ static const uint32_t opt_flags[] = {
 	DISP_RECURSIVE,              /* R */
 #endif
 #if ENABLE_SELINUX
-	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME|STYLE_SINGLE, /* K */
 	LIST_MODEBITS|LIST_ID_NAME|LIST_CONTEXT|STYLE_SINGLE, /* Z */
 #endif
 	(1U << 31)
@@ -634,21 +632,22 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 	}
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	if (G.all_fmt & (LIST_FULLTIME|LIST_DATE_TIME)) {
-		char *filetime;
 		const time_t *ttime = &dn->dn_mtime;
 		if (G.all_fmt & TIME_ACCESS)
 			ttime = &dn->dn_atime;
 		if (G.all_fmt & TIME_CHANGE)
 			ttime = &dn->dn_ctime;
-		filetime = ctime(ttime);
-		/* filetime's format: "Wed Jun 30 21:49:08 1993\n" */
-		if (G.all_fmt & LIST_FULLTIME) { /* -e */
-			/* Note: coreutils 8.4 ls --full-time prints:
+		if (G.all_fmt & LIST_FULLTIME) { /* --full-time */
+			/* coreutils 8.4 ls --full-time prints:
 			 * 2009-07-13 17:49:27.000000000 +0200
 			 */
-			column += printf("%.24s ", filetime);
+			char buf[sizeof("YYYY-mm-dd HH:MM:SS TIMEZONE")];
+			strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S %z", localtime(ttime));
+			column += printf("%s ", buf);
 		} else { /* LIST_DATE_TIME */
-			/* G.current_time_t ~== time(NULL) */
+			/* G.current_time_t is ~== time(NULL) */
+			char *filetime = ctime(ttime);
+			/* filetime's format: "Wed Jun 30 21:49:08 1993\n" */
 			time_t age = G.current_time_t - *ttime;
 			if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
 				/* less than 6 months old */
@@ -943,6 +942,12 @@ static int sortcmp(const void *a, const void *b)
 	dif = 0; /* assume SORT_NAME */
 	// TODO: use pre-initialized function pointer
 	// instead of branch forest
+	if (G.all_fmt & SORT_DIRS_FIRST) {
+		dif = S_ISDIR(d2->dn_mode) - S_ISDIR(d1->dn_mode);
+		if (dif != 0)
+			goto maybe_invert_and_ret;
+	}
+
 	if (sort_opts == SORT_SIZE) {
 		dif = (d2->dn_size - d1->dn_size);
 	} else
@@ -954,9 +959,6 @@ static int sortcmp(const void *a, const void *b)
 	} else
 	if (sort_opts == SORT_MTIME) {
 		dif = (d2->dn_mtime - d1->dn_mtime);
-	} else
-	if (sort_opts == SORT_DIR) {
-		dif = S_ISDIR(d2->dn_mode) - S_ISDIR(d1->dn_mode);
 	} else
 #if defined(HAVE_STRVERSCMP) && HAVE_STRVERSCMP == 1
 	if (sort_opts == SORT_VERSION) {
@@ -982,7 +984,7 @@ static int sortcmp(const void *a, const void *b)
 			dif = 1 | (int)((uoff_t)dif >> BITS_TO_SHIFT);
 		}
 	}
-
+ maybe_invert_and_ret:
 	return (G.all_fmt & SORT_REVERSE) ? -(int)dif : (int)dif;
 }
 
@@ -1157,7 +1159,10 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	 * (and substrings: "--color=alwa" work too)
 	 */
 	static const char ls_longopts[] ALIGN1 =
-		"color\0" Optional_argument "\xff"; /* no short equivalent */
+		"color\0" Optional_argument "\xff" /* no short equivalent */
+		"group-directories-first\0" No_argument "\xfe"
+		"full-time\0" No_argument "\xfd"
+	;
 	static const char color_str[] ALIGN1 =
 		"always\0""yes\0""force\0"
 		"auto\0""tty\0""if-tty\0";
@@ -1182,8 +1187,8 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	/* process options */
 	IF_FEATURE_LS_COLOR(applet_long_options = ls_longopts;)
 	opt_complementary =
-		/* -e implies -l */
-		IF_FEATURE_LS_TIMESTAMPS("el")
+		/* --full-time implies -l */
+		IF_FEATURE_LS_TIMESTAMPS(IF_LONG_OPTS("\xfd""l"))
 		/* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ls.html:
 		 * in some pairs of opts, only last one takes effect:
 		 */
@@ -1200,6 +1205,15 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_LS_WIDTH(, NULL, &G_terminal_width)
 		IF_FEATURE_LS_COLOR(, &color_opt)
 	);
+#if 0 /* option bits debug */
+	bb_error_msg("opt:0x%08x H:%x color:%x dirs:%x", opt, OPT_H, OPT_color, OPT_dirs_first);
+	if (opt & OPT_c         ) bb_error_msg("-c");
+	if (opt & OPT_H         ) bb_error_msg("-H");
+	if (opt & OPT_color     ) bb_error_msg("--color");
+	if (opt & OPT_dirs_first) bb_error_msg("--group-directories-first");
+	if (opt & OPT_full_time ) bb_error_msg("--full-time");
+	exit(0);
+#endif
 	for (i = 0; opt_flags[i] != (1U << 31); i++) {
 		if (opt & (1 << i)) {
 			uint32_t flags = opt_flags[i];
@@ -1239,6 +1253,10 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #endif
+	if (opt & OPT_dirs_first)
+		G.all_fmt |= SORT_DIRS_FIRST;
+	if (opt & OPT_full_time)
+		G.all_fmt |= LIST_FULLTIME;
 
 	/* sort out which command line options take precedence */
 	if (ENABLE_FEATURE_LS_RECURSIVE && (G.all_fmt & DISP_NOLIST))
