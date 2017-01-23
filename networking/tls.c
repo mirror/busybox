@@ -22,6 +22,16 @@
 #define TLS_DEBUG_HASH 0
 #define TLS_DEBUG_DER  0
 #define TLS_DEBUG_FIXED_SECRETS 0
+#if 0
+# define dump_raw_out(...) dump_hex(__VA_ARGS__)
+#else
+# define dump_raw_out(...) ((void)0)
+#endif
+#if 0
+# define dump_raw_in(...) dump_hex(__VA_ARGS__)
+#else
+# define dump_raw_in(...) ((void)0)
+#endif
 
 #if TLS_DEBUG
 # define dbg(...) fprintf(stderr, __VA_ARGS__)
@@ -33,18 +43,6 @@
 # define dbg_der(...) fprintf(stderr, __VA_ARGS__)
 #else
 # define dbg_der(...) ((void)0)
-#endif
-
-#if 0
-# define dump_raw_out(...) dump_hex(__VA_ARGS__)
-#else
-# define dump_raw_out(...) ((void)0)
-#endif
-
-#if 0
-# define dump_raw_in(...) dump_hex(__VA_ARGS__)
-#else
-# define dump_raw_in(...) ((void)0)
 #endif
 
 #define RECORD_TYPE_CHANGE_CIPHER_SPEC  20
@@ -154,8 +152,18 @@
 // works against "openssl s_server -cipher NULL"
 // and against wolfssl-3.9.10-stable/examples/server/server.c:
 //#define CIPHER_ID TLS_RSA_WITH_NULL_SHA256 // for testing (does everything except encrypting)
+
 // works against wolfssl-3.9.10-stable/examples/server/server.c
-#define CIPHER_ID TLS_RSA_WITH_AES_256_CBC_SHA256 // ok, no SERVER_KEY_EXCHANGE
+// works for kernel.org
+// does not work for cdn.kernel.org (e.g. downloading an actual tarball, not a web page)
+//  getting alert 40 "handshake failure" at once
+//  with GNU Wget 1.18, they agree on TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (0xC02F) cipher
+//  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES256-SHA256
+//  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES256-GCM-SHA384
+//  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-SHA256
+//  ok:   openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-GCM-SHA256
+//  ok:   openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-SHA
+#define CIPHER_ID TLS_RSA_WITH_AES_256_CBC_SHA256 // no SERVER_KEY_EXCHANGE from peer
 
 enum {
 	RSA_PREMASTER_SIZE = 48,
@@ -445,6 +453,18 @@ static void prf_hmac_sha256(
 #undef SEED
 }
 
+static void bad_record_die(tls_state_t *tls, const char *expected, int len)
+{
+	bb_error_msg_and_die("got bad TLS record (len:%d) while expecting %s", len, expected);
+	if (len > 0) {
+		uint8_t *p = tls->inbuf;
+		while (len > 0)
+			fprintf(stderr, " %02x", *p++);
+		fputc('\n', stderr);
+	}
+	xfunc_die();
+}
+
 static void tls_error_die(tls_state_t *tls)
 {
 	dump_tls_record(tls->inbuf, tls->ofs_to_buffered + tls->buffered_size);
@@ -671,6 +691,18 @@ static int tls_has_buffered_record(tls_state_t *tls)
 	return rec_size;
 }
 
+static const char *alert_text(int code)
+{
+	switch (code) {
+	case 20:  return "bad MAC";
+	case 50:  return "decode error";
+	case 51:  return "decrypt error";
+	case 40:  return "handshake failure";
+	case 112: return "unrecognized name";
+	}
+	return itoa(code);
+}
+
 static int tls_xread_record(tls_state_t *tls)
 {
 	struct record_hdr *xhdr;
@@ -780,16 +812,28 @@ static int tls_xread_record(tls_state_t *tls)
 	if (xhdr->type == RECORD_TYPE_ALERT && sz >= 2) {
 		uint8_t *p = tls->inbuf + RECHDR_LEN;
 		dbg("ALERT size:%d level:%d description:%d\n", sz, p[0], p[1]);
+		if (p[0] == 2) { /* fatal */
+			bb_error_msg_and_die("TLS %s from peer (alert code %d): %s",
+				"error",
+				p[1], alert_text(p[1])
+			);
+		}
 		if (p[0] == 1) { /* warning */
 			if (p[1] == 0) { /* "close_notify" warning: it's EOF */
 				dbg("EOF (TLS encoded) from peer\n");
 				sz = 0;
 				goto end;
 			}
+//This possibly needs to be cached and shown only if
+//a fatal alert follows
+//			bb_error_msg("TLS %s from peer (alert code %d): %s",
+//				"warning",
+//				p[1], alert_text(p[1])
+//			);
 			/* discard it, get next record */
 			goto again;
 		}
-		/* p[0] == 1: fatal error, others: not defined in protocol */
+		/* p[0] not 1 or 2: not defined in protocol */
 		sz = 0;
 		goto end;
 	}
@@ -1031,7 +1075,7 @@ static int tls_xread_handshake_block(tls_state_t *tls, int min_len)
 	 || xhdr->proto_maj != TLS_MAJ
 	 || xhdr->proto_min != TLS_MIN
 	) {
-		tls_error_die(tls);
+		bad_record_die(tls, "handshake record", len);
 	}
 	dbg("got HANDSHAKE\n");
 	return len;
@@ -1051,7 +1095,6 @@ static ALWAYS_INLINE void fill_handshake_record_hdr(void *buf, unsigned type, un
 	h->len24_lo  = len & 0xff;
 }
 
-//TODO: implement RFC 5746 (Renegotiation Indication Extension) - some servers will refuse to work with us otherwise
 static void send_client_hello(tls_state_t *tls, const char *sni)
 {
 	struct client_hello {
@@ -1062,18 +1105,27 @@ static void send_client_hello(tls_state_t *tls, const char *sni)
 		uint8_t session_id_len;
 		/* uint8_t session_id[]; */
 		uint8_t cipherid_len16_hi, cipherid_len16_lo;
-		uint8_t cipherid[2 * 1]; /* actually variable */
+		uint8_t cipherid[2 * 2]; /* actually variable */
 		uint8_t comprtypes_len;
 		uint8_t comprtypes[1]; /* actually variable */
 		/* Extensions (SNI shown):
 		 * hi,lo // len of all extensions
-		 *   0x00,0x00 // extension_type: "Server Name"
-		 *   0x00,0x0e // list len (there can be more than one SNI)
-		 *     0x00,0x0c // len of 1st Server Name Indication
-		 *       0x00    // name type: host_name
-		 *       0x00,0x09   // name len
+		 *   00,00 // extension_type: "Server Name"
+		 *   00,0e // list len (there can be more than one SNI)
+		 *     00,0c // len of 1st Server Name Indication
+		 *       00    // name type: host_name
+		 *       00,09   // name len
 		 *       "localhost" // name
 		 */
+// GNU Wget 1.18 to cdn.kernel.org sends these extensions:
+// 0055
+//   0005 0005 0100000000 - status_request
+//   0000 0013 0011 00 000e 63646e 2e 6b65726e656c 2e 6f7267 - server_name
+//   ff01 0001 00 - renegotiation_info
+//   0023 0000 - session_ticket
+//   000a 0008 0006001700180019 - supported_groups
+//   000b 0002 0100 - ec_point_formats
+//   000d 0016 00140401040305010503060106030301030302010203 - signature_algorithms
 	};
 	struct client_hello *record;
 	int len;
@@ -1084,6 +1136,7 @@ static void send_client_hello(tls_state_t *tls, const char *sni)
 		len += 11 + strlen(sni);
 	record = tls_get_outbuf(tls, len);
 	memset(record, 0, len);
+
 	fill_handshake_record_hdr(record, HANDSHAKE_CLIENT_HELLO, len);
 	record->proto_maj = TLS_MAJ;	/* the "requested" version of the protocol, */
 	record->proto_min = TLS_MIN;	/* can be higher than one in record headers */
@@ -1092,10 +1145,16 @@ static void send_client_hello(tls_state_t *tls, const char *sni)
 		memset(record->rand32, 0x11, sizeof(record->rand32));
 	memcpy(tls->hsd->client_and_server_rand32, record->rand32, sizeof(record->rand32));
 	/* record->session_id_len = 0; - already is */
+
 	/* record->cipherid_len16_hi = 0; */
-	record->cipherid_len16_lo = 2 * 1;
-	record->cipherid[0] = CIPHER_ID >> 8;
+	record->cipherid_len16_lo = 2 * 2;
+	if ((CIPHER_ID >> 8) != 0)
+		record->cipherid[0] = CIPHER_ID >> 8;
 	record->cipherid[1] = CIPHER_ID & 0xff;
+	/* RFC 5746 Renegotiation Indication Extension - some servers will refuse to work with us otherwise */
+	/*record->cipherid[2] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV >> 8; - zero */
+	record->cipherid[3] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV & 0xff;
+
 	record->comprtypes_len = 1;
 	/* record->comprtypes[0] = 0; */
 
@@ -1136,8 +1195,9 @@ static void get_server_hello(tls_state_t *tls)
 
 	struct server_hello *hp;
 	uint8_t *cipherid;
+	int len;
 
-	tls_xread_handshake_block(tls, 74);
+	len = tls_xread_handshake_block(tls, 74);
 
 	hp = (void*)tls->inbuf;
 	// 74 bytes:
@@ -1150,7 +1210,7 @@ static void get_server_hello(tls_state_t *tls)
 	 || hp->proto_maj != TLS_MAJ
 	 || hp->proto_min != TLS_MIN
 	) {
-		tls_error_die(tls);
+		bad_record_die(tls, "'server hello'", len);
 	}
 
 	cipherid = &hp->cipherid_hi;
