@@ -194,16 +194,8 @@ SPLIT_DIR       = 1,
 SPLIT_SUBDIR    = 2,
 
 /* Bits in G.all_fmt: */
-LIST_LONG       = 1 << 0, /* long listing (-l and equivalents) */
-
 /* what files will be displayed */
-DISP_DIRNAME    = 1 << 1,       /* 2 or more items? label directories */
-
-/* what is the overall style of the listing */
-STYLE_COLUMNAR  = 1 << 2,       /* many records per line */
-STYLE_LONG      = 2 << 2,       /* one record per line, extended info */
-STYLE_SINGLE    = 3 << 2,       /* one record per line */
-STYLE_MASK      = STYLE_SINGLE,
+DISP_DIRNAME    = 1 << 9,       /* 2 or more items? label directories */
 };
 
 /* -Cadi1l  Std options, busybox always supports */
@@ -231,11 +223,11 @@ static const char ls_options[] ALIGN1 =
 	IF_FEATURE_LS_WIDTH("T:w:")      /* 2, 29 */
 ;
 enum {
-	//OPT_C = (1 << 0),
+	OPT_C = (1 << 0),
 	OPT_a = (1 << 1),
 	OPT_d = (1 << 2),
 	OPT_i = (1 << 3),
-	//OPT_1 = (1 << 4),
+	OPT_1 = (1 << 4),
 	OPT_l = (1 << 5),
 	OPT_g = (1 << 6),
 	OPT_n = (1 << 7),
@@ -287,23 +279,6 @@ enum {
 	OPT_dirs_first = (1 << OPTBIT_dirs_first) * ENABLE_LONG_OPTS,
 	OPT_color      = (1 << OPTBIT_color     ) * ENABLE_FEATURE_LS_COLOR,
 };
-
-/* TODO: simple toggles may be stored as OPT_xxx bits instead */
-static const uint8_t opt_flags[] = {
-	STYLE_COLUMNAR,              /* C */
-	0,                           /* a */
-	0,                           /* d */
-	0,                           /* i */
-	STYLE_SINGLE,                /* 1 */
-	LIST_LONG | STYLE_LONG,      /* l - by keeping it after -1, "ls -l -1" ignores -1 */
-	LIST_LONG | STYLE_LONG,      /* g (don't show owner) - handled via OPT_g. assumes l */
-	LIST_LONG | STYLE_LONG,      /* n (numeris uid/gid)  - handled via OPT_n. assumes l */
-	0,                           /* s */
-	STYLE_COLUMNAR,              /* x */
-	0xff
-	/* options after -x are not processed through opt_flags */
-};
-
 
 /*
  * a directory entry and its stat info
@@ -465,8 +440,8 @@ static unsigned calc_name_len(const char *name)
 }
 
 /* Return the number of used columns.
- * Note that only STYLE_COLUMNAR uses return value.
- * STYLE_SINGLE and STYLE_LONG don't care.
+ * Note that only columnar output uses return value.
+ * -l and -1 modes don't care.
  * coreutils 7.2 also supports:
  * ls -b (--escape) = octal escapes (although it doesn't look like working)
  * ls -N (--literal) = not escape at all
@@ -499,13 +474,14 @@ static unsigned print_name(const char *name)
 }
 
 /* Return the number of used columns.
- * Note that only STYLE_COLUMNAR uses return value,
- * STYLE_SINGLE and STYLE_LONG don't care.
+ * Note that only columnar output uses return value,
+ * -l and -1 modes don't care.
  */
 static NOINLINE unsigned display_single(const struct dnode *dn)
 {
 	unsigned column = 0;
 	char *lpath;
+	int opt;
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
 	struct stat statbuf;
 	char append;
@@ -514,27 +490,28 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 #if ENABLE_FEATURE_LS_FILETYPES
 	append = append_char(dn->dn_mode);
 #endif
+	opt = option_mask32;
 
 	/* Do readlink early, so that if it fails, error message
 	 * does not appear *inside* the "ls -l" line */
 	lpath = NULL;
-	if (G.all_fmt & LIST_LONG)
+	if (opt & OPT_l)
 		if (S_ISLNK(dn->dn_mode))
 			lpath = xmalloc_readlink_or_warn(dn->fullname);
 
-	if (option_mask32 & OPT_i) /* show inode# */
+	if (opt & OPT_i) /* show inode# */
 		column += printf("%7llu ", (long long) dn->dn_ino);
 //TODO: -h should affect -s too:
-	if (option_mask32 & OPT_s) /* show allocated blocks */
+	if (opt & OPT_s) /* show allocated blocks */
 		column += printf("%6"OFF_FMT"u ", (off_t) (dn->dn_blocks >> 1));
-	if (G.all_fmt & LIST_LONG) {
+	if (opt & OPT_l) {
 		/* long listing: show mode */
 		column += printf("%-10s ", (char *) bb_mode_string(dn->dn_mode));
 		/* long listing: show number of links */
 		column += printf("%4lu ", (long) dn->dn_nlink);
 		/* long listing: show user/group */
-		if (option_mask32 & OPT_n) {
-			if (option_mask32 & OPT_g)
+		if (opt & OPT_n) {
+			if (opt & OPT_g)
 				column += printf("%-8u ", (int) dn->dn_gid);
 			else
 				column += printf("%-8u %-8u ",
@@ -543,7 +520,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		}
 #if ENABLE_FEATURE_LS_USERNAME
 		else {
-			if (option_mask32 & OPT_g) {
+			if (opt & OPT_g) {
 				column += printf("%-8.8s ",
 					get_cached_groupname(dn->dn_gid));
 			} else {
@@ -555,11 +532,11 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 #endif
 #if ENABLE_SELINUX
 	}
-	if (option_mask32 & OPT_Z) {
+	if (opt & OPT_Z) {
 		column += printf("%-32s ", dn->sid ? dn->sid : "?");
 		freecon(dn->sid);
 	}
-	if (G.all_fmt & LIST_LONG) {
+	if (opt & OPT_l) {
 #endif
 		/* long listing: show size */
 		if (S_ISBLK(dn->dn_mode) || S_ISCHR(dn->dn_mode)) {
@@ -567,7 +544,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 					dn->dn_rdev_maj,
 					dn->dn_rdev_min);
 		} else {
-			if (option_mask32 & OPT_h) {
+			if (opt & OPT_h) {
 				column += printf("%"HUMAN_READABLE_MAX_WIDTH_STR"s ",
 					/* print size, show one fractional, use suffixes */
 					make_human_readable_str(dn->dn_size, 1, 0)
@@ -578,7 +555,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		}
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 		/* long listing: show {m,c,a}time */
-		if (option_mask32 & OPT_full_time) { /* --full-time */
+		if (opt & OPT_full_time) { /* --full-time */
 			/* coreutils 8.4 ls --full-time prints:
 			 * 2009-07-13 17:49:27.000000000 +0200
 			 * we don't show fractional seconds.
@@ -624,7 +601,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 	if (lpath) {
 		printf(" -> ");
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
-		if ((option_mask32 & (OPT_F|OPT_p))
+		if ((opt & (OPT_F|OPT_p))
 		 || G_show_color
 		) {
 			mode_t mode = dn->dn_mode_stat;
@@ -648,7 +625,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		}
 	}
 #if ENABLE_FEATURE_LS_FILETYPES
-	if (option_mask32 & (OPT_F|OPT_p)) {
+	if (opt & (OPT_F|OPT_p)) {
 		if (append) {
 			putchar(append);
 			column++;
@@ -664,9 +641,9 @@ static void display_files(struct dnode **dn, unsigned nfiles)
 	unsigned i, ncols, nrows, row, nc;
 	unsigned column;
 	unsigned nexttab;
-	unsigned column_width = 0; /* used only by STYLE_COLUMNAR */
+	unsigned column_width = 0; /* used only by coulmnal output */
 
-	if (G.all_fmt & STYLE_LONG) { /* STYLE_LONG or STYLE_SINGLE */
+	if (option_mask32 & (OPT_l|OPT_1)) {
 		ncols = 1;
 	} else {
 		/* find the longest file name, use that as the column width */
@@ -1043,9 +1020,7 @@ static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 		}
 		subdnp = scan_one_dir((*dn)->fullname, &nfiles);
 #if ENABLE_DESKTOP
-		if ((G.all_fmt & STYLE_MASK) == STYLE_LONG
-		 || (option_mask32 & OPT_s)
-		) {
+		if (option_mask32 & (OPT_s|OPT_l)) {
 			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
 		}
 #endif
@@ -1124,8 +1099,10 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	/* process options */
 	IF_FEATURE_LS_COLOR(applet_long_options = ls_longopts;)
 	opt_complementary =
+		/* -n and -g imply -l */
+		"nl:gl"
 		/* --full-time implies -l */
-		IF_FEATURE_LS_TIMESTAMPS(IF_LONG_OPTS("\xff""l"))
+		IF_FEATURE_LS_TIMESTAMPS(IF_LONG_OPTS(":\xff""l"))
 		/* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ls.html:
 		 * in some pairs of opts, only last one takes effect:
 		 */
@@ -1139,7 +1116,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		/* -w NUM: */
 		IF_FEATURE_LS_WIDTH(":w+");
 	opt = getopt32(argv, ls_options
-		IF_FEATURE_LS_WIDTH(, NULL, &G_terminal_width)
+		IF_FEATURE_LS_WIDTH(, /*-T*/ NULL, /*-w*/ &G_terminal_width)
 		IF_FEATURE_LS_COLOR(, &color_opt)
 	);
 #if 0 /* option bits debug */
@@ -1152,16 +1129,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_full_time ) bb_error_msg("--full-time");
 	exit(0);
 #endif
-	for (i = 0; opt_flags[i] != 0xff; i++) {
-		if (opt & (1 << i)) {
-			uint32_t flags = opt_flags[i];
 
-			if (flags & STYLE_MASK)
-				G.all_fmt &= ~STYLE_MASK;
-
-			G.all_fmt |= flags;
-		}
-	}
 #if ENABLE_SELINUX
 	if (opt & OPT_Z) {
 		if (!is_selinux_enabled())
@@ -1197,7 +1165,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	/* sort out which command line options take precedence */
 	if (ENABLE_FEATURE_LS_RECURSIVE && (opt & OPT_d))
 		option_mask32 &= ~OPT_R;	/* no recurse if listing only dir */
-	if ((G.all_fmt & STYLE_MASK) != STYLE_LONG) { /* not -l? */
+	if (!(opt & OPT_l)) { /* not -l? */
 		if (ENABLE_FEATURE_LS_TIMESTAMPS && ENABLE_FEATURE_LS_SORTFILES) {
 			/* when to sort by time? -t[cu] sorts by time even with -l */
 			/* (this is achieved by opt_flags[] element for -t) */
@@ -1210,8 +1178,8 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* choose a display format if one was not already specified by an option */
-	if (!(G.all_fmt & STYLE_MASK))
-		G.all_fmt |= (isatty(STDOUT_FILENO) ? STYLE_COLUMNAR : STYLE_SINGLE);
+	if (!(option_mask32 & (OPT_l|OPT_1|OPT_x|OPT_C)))
+		option_mask32 |= (isatty(STDOUT_FILENO) ? OPT_C : OPT_1);
 
 	argv += optind;
 	if (!argv[0])
@@ -1226,9 +1194,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	do {
 		cur = my_stat(*argv, *argv,
 			/* follow links on command line unless -l, -s or -F: */
-			!((G.all_fmt & STYLE_MASK) == STYLE_LONG
-			  || (option_mask32 & (OPT_s|OPT_F))
-			)
+			!(option_mask32 & (OPT_l|OPT_s|OPT_F))
 			/* ... or if -H: */
 			|| (option_mask32 & OPT_H)
 			/* ... or if -L, but my_stat always follows links if -L */
