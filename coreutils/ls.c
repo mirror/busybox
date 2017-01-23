@@ -197,32 +197,27 @@ SPLIT_SUBDIR    = 2,
 
 /* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
 /* what file information will be listed */
-LIST_LOPT       = 1 << 1, /* long listing (-l and equivalents) */
-LIST_ID_NAME    = 1 << 2,
-LIST_ID_NUMERIC = 1 << 3,
-LIST_FULLTIME   = 1 << 5,
-LIST_FILETYPE   = 1 << 6, /* show / suffix for dirs */
-LIST_CLASSIFY   = 1 << 7, /* requires LIST_FILETYPE, also show *,|,@,= suffixes */
-
-LIST_LONG       = LIST_LOPT | LIST_ID_NAME,
+LIST_LONG       = 1 << 0, /* long listing (-l and equivalents) */
+LIST_FILETYPE   = 1 << 1, /* show / suffix for dirs */
+LIST_CLASSIFY   = 1 << 2, /* requires LIST_FILETYPE, also show *,|,@,= suffixes */
 
 /* what files will be displayed */
-DISP_DIRNAME    = 1 << 8,       /* 2 or more items? label directories */
-DISP_NOLIST     = 1 << 9,       /* show directory as itself, not contents */
-DISP_RECURSIVE  = 1 << 10,      /* show directory and everything below it */
-DISP_ROWS       = 1 << 11,      /* print across rows */
+DISP_DIRNAME    = 1 << 3,       /* 2 or more items? label directories */
+DISP_NOLIST     = 1 << 4,       /* show directory as itself, not contents */
+DISP_RECURSIVE  = 1 << 5,       /* show directory and everything below it */
+DISP_ROWS       = 1 << 6,       /* print across rows */
 
 /* what is the overall style of the listing */
-STYLE_COLUMNAR  = 1 << 12,      /* many records per line */
-STYLE_LONG      = 2 << 12,      /* one record per line, extended info */
-STYLE_SINGLE    = 3 << 12,      /* one record per line */
+STYLE_COLUMNAR  = 1 << 7,       /* many records per line */
+STYLE_LONG      = 2 << 8,       /* one record per line, extended info */
+STYLE_SINGLE    = 3 << 9,       /* one record per line */
 STYLE_MASK      = STYLE_SINGLE,
 };
 
 /* -Cadi1l  Std options, busybox always supports */
 /* -gnsxA   Std options, busybox always supports */
 /* -Q       GNU option, busybox always supports */
-/* -k       Std options, busybox always supports (by ignoring) */
+/* -k       Std option, busybox always supports (by ignoring) */
 /*          It means "for -s, show sizes in kbytes" */
 /*          Seems to only affect "POSIXLY_CORRECT=1 ls -sk" */
 /*          since otherwise -s shows kbytes anyway */
@@ -251,7 +246,7 @@ enum {
 	//OPT_1 = (1 << 4),
 	OPT_l = (1 << 5),
 	OPT_g = (1 << 6),
-	//OPT_n = (1 << 7),
+	OPT_n = (1 << 7),
 	OPT_s = (1 << 8),
 	//OPT_x = (1 << 9),
 	OPT_A = (1 << 10),
@@ -310,7 +305,7 @@ static const uint32_t opt_flags[] = {
 	STYLE_SINGLE,                /* 1 */
 	LIST_LONG | STYLE_LONG,      /* l - by keeping it after -1, "ls -l -1" ignores -1 */
 	LIST_LONG | STYLE_LONG,      /* g (don't show owner) - handled via OPT_g. assumes l */
-	LIST_LONG | STYLE_LONG | LIST_ID_NUMERIC, /* n (assumes l) */
+	LIST_LONG | STYLE_LONG,      /* n (numeris uid/gid)  - handled via OPT_n. assumes l */
 	0,                           /* s */
 	DISP_ROWS | STYLE_COLUMNAR,  /* x */
 	0,                           /* A */
@@ -542,7 +537,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 	/* Do readlink early, so that if it fails, error message
 	 * does not appear *inside* the "ls -l" line */
 	lpath = NULL;
-	if (G.all_fmt & LIST_LOPT)
+	if (G.all_fmt & LIST_LONG)
 		if (S_ISLNK(dn->dn_mode))
 			lpath = xmalloc_readlink_or_warn(dn->fullname);
 
@@ -551,39 +546,40 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 //TODO: -h should affect -s too:
 	if (option_mask32 & OPT_s) /* show allocated blocks */
 		column += printf("%6"OFF_FMT"u ", (off_t) (dn->dn_blocks >> 1));
-	if (G.all_fmt & LIST_LOPT) {
+	if (G.all_fmt & LIST_LONG) {
 		/* long listing: show mode */
 		column += printf("%-10s ", (char *) bb_mode_string(dn->dn_mode));
 		/* long listing: show number of links */
 		column += printf("%4lu ", (long) dn->dn_nlink);
-	}
-	if (G.all_fmt & LIST_ID_NUMERIC) {
-		if (option_mask32 & OPT_g)
-			column += printf("%-8u ", (int) dn->dn_gid);
-		else
-			column += printf("%-8u %-8u ",
-					(int) dn->dn_uid,
-					(int) dn->dn_gid);
-	}
-#if ENABLE_FEATURE_LS_USERNAME
-	else if (G.all_fmt & LIST_ID_NAME) {
-		if (option_mask32 & OPT_g) {
-			column += printf("%-8.8s ",
-				get_cached_groupname(dn->dn_gid));
-		} else {
-			column += printf("%-8.8s %-8.8s ",
-				get_cached_username(dn->dn_uid),
-				get_cached_groupname(dn->dn_gid));
+		/* long listing: show user/group */
+		if (option_mask32 & OPT_n) {
+			if (option_mask32 & OPT_g)
+				column += printf("%-8u ", (int) dn->dn_gid);
+			else
+				column += printf("%-8u %-8u ",
+						(int) dn->dn_uid,
+						(int) dn->dn_gid);
 		}
-	}
+#if ENABLE_FEATURE_LS_USERNAME
+		else {
+			if (option_mask32 & OPT_g) {
+				column += printf("%-8.8s ",
+					get_cached_groupname(dn->dn_gid));
+			} else {
+				column += printf("%-8.8s %-8.8s ",
+					get_cached_username(dn->dn_uid),
+					get_cached_groupname(dn->dn_gid));
+			}
+		}
 #endif
 #if ENABLE_SELINUX
+	}
 	if (option_mask32 & OPT_Z) {
 		column += printf("%-32s ", dn->sid ? dn->sid : "?");
 		freecon(dn->sid);
 	}
+	if (G.all_fmt & LIST_LONG) {
 #endif
-	if (G.all_fmt & LIST_LOPT) {
 		/* long listing: show size */
 		if (S_ISBLK(dn->dn_mode) || S_ISCHR(dn->dn_mode)) {
 			column += printf("%4u, %3u ",
@@ -601,7 +597,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		}
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 		/* long listing: show {m,c,a}time */
-		if (G.all_fmt & LIST_FULLTIME) { /* --full-time */
+		if (option_mask32 & OPT_full_time) { /* --full-time */
 			/* coreutils 8.4 ls --full-time prints:
 			 * 2009-07-13 17:49:27.000000000 +0200
 			 * we don't show fractional seconds.
@@ -1187,8 +1183,6 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 			option_mask32 &= ~OPT_Z;
 	}
 #endif
-	if (opt & OPT_full_time)
-		G.all_fmt |= LIST_FULLTIME;
 
 #if ENABLE_FEATURE_LS_COLOR
 	/* set G_show_color = 1/0 */
@@ -1219,7 +1213,6 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_FEATURE_LS_RECURSIVE && (G.all_fmt & DISP_NOLIST))
 		G.all_fmt &= ~DISP_RECURSIVE;	/* no recurse if listing only dir */
 	if ((G.all_fmt & STYLE_MASK) != STYLE_LONG) { /* not -l? */
-		G.all_fmt &= ~(LIST_ID_NUMERIC|LIST_ID_NAME);
 		if (ENABLE_FEATURE_LS_TIMESTAMPS && ENABLE_FEATURE_LS_SORTFILES) {
 			/* when to sort by time? -t[cu] sorts by time even with -l */
 			/* (this is achieved by opt_flags[] element for -t) */
