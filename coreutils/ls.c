@@ -111,7 +111,7 @@
 //usage:     "\n	-1	One column output"
 //usage:     "\n	-a	Include entries which start with ."
 //usage:     "\n	-A	Like -a, but exclude . and .."
-//usage:     "\n	-C	List by columns"
+////usage:     "\n	-C	List by columns" - don't show, this is a default anyway
 //usage:     "\n	-x	List by lines"
 //usage:     "\n	-d	List directory entries instead of contents"
 //usage:	IF_FEATURE_LS_FOLLOWLINKS(
@@ -198,12 +198,11 @@ LIST_LONG       = 1 << 0, /* long listing (-l and equivalents) */
 
 /* what files will be displayed */
 DISP_DIRNAME    = 1 << 1,       /* 2 or more items? label directories */
-DISP_ROWS       = 1 << 2,       /* print across rows */
 
 /* what is the overall style of the listing */
-STYLE_COLUMNAR  = 1 << 3,       /* many records per line */
-STYLE_LONG      = 2 << 3,       /* one record per line, extended info */
-STYLE_SINGLE    = 3 << 3,       /* one record per line */
+STYLE_COLUMNAR  = 1 << 2,       /* many records per line */
+STYLE_LONG      = 2 << 2,       /* one record per line, extended info */
+STYLE_SINGLE    = 3 << 2,       /* one record per line */
 STYLE_MASK      = STYLE_SINGLE,
 };
 
@@ -241,7 +240,7 @@ enum {
 	OPT_g = (1 << 6),
 	OPT_n = (1 << 7),
 	OPT_s = (1 << 8),
-	//OPT_x = (1 << 9),
+	OPT_x = (1 << 9),
 	OPT_A = (1 << 10),
 	//OPT_k = (1 << 11),
 
@@ -300,7 +299,7 @@ static const uint8_t opt_flags[] = {
 	LIST_LONG | STYLE_LONG,      /* g (don't show owner) - handled via OPT_g. assumes l */
 	LIST_LONG | STYLE_LONG,      /* n (numeris uid/gid)  - handled via OPT_n. assumes l */
 	0,                           /* s */
-	DISP_ROWS | STYLE_COLUMNAR,  /* x */
+	STYLE_COLUMNAR,              /* x */
 	0xff
 	/* options after -x are not processed through opt_flags */
 };
@@ -698,7 +697,7 @@ static void display_files(struct dnode **dn, unsigned nfiles)
 	for (row = 0; row < nrows; row++) {
 		for (nc = 0; nc < ncols; nc++) {
 			/* reach into the array based on the column and row */
-			if (G.all_fmt & DISP_ROWS)
+			if (option_mask32 & OPT_x)
 				i = (row * ncols) + nc;	/* display across row */
 			else
 				i = (nc * nrows) + row;	/* display by column */
