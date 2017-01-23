@@ -198,7 +198,6 @@ SPLIT_SUBDIR    = 2,
 
 /* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
 /* what file information will be listed */
-LIST_BLOCKS     = 1 << 1,
 LIST_MODEBITS   = 1 << 2,
 LIST_NLINKS     = 1 << 3,
 LIST_ID_NAME    = 1 << 4,
@@ -210,23 +209,21 @@ LIST_FULLTIME   = 1 << 9,
 LIST_SYMLINK    = 1 << 10,
 LIST_FILETYPE   = 1 << 11, /* show / suffix for dirs */
 LIST_CLASSIFY   = 1 << 12, /* requires LIST_FILETYPE, also show *,|,@,= suffixes */
-LIST_MASK       = (LIST_CLASSIFY << 1) - 1,
+
+LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
+                  LIST_DATE_TIME | LIST_SYMLINK,
 
 /* what files will be displayed */
 DISP_DIRNAME    = 1 << 13,      /* 2 or more items? label directories */
 DISP_NOLIST     = 1 << 16,      /* show directory as itself, not contents */
 DISP_RECURSIVE  = 1 << 17,      /* show directory and everything below it */
 DISP_ROWS       = 1 << 18,      /* print across rows */
-DISP_MASK       = ((DISP_ROWS << 1) - 1) & ~(DISP_DIRNAME - 1),
 
 /* what is the overall style of the listing */
 STYLE_COLUMNAR  = 1 << 19,      /* many records per line */
 STYLE_LONG      = 2 << 19,      /* one record per line, extended info */
 STYLE_SINGLE    = 3 << 19,      /* one record per line */
 STYLE_MASK      = STYLE_SINGLE,
-
-LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
-                  LIST_DATE_TIME | LIST_SYMLINK,
 };
 
 /* -Cadi1l  Std options, busybox always supports */
@@ -262,7 +259,7 @@ enum {
 	OPT_l = (1 << 5),
 	OPT_g = (1 << 6),
 	//OPT_n = (1 << 7),
-	//OPT_s = (1 << 8),
+	OPT_s = (1 << 8),
 	//OPT_x = (1 << 9),
 	OPT_A = (1 << 10),
 	//OPT_k = (1 << 11),
@@ -321,7 +318,7 @@ static const uint32_t opt_flags[] = {
 	LIST_LONG | STYLE_LONG,      /* l - by keeping it after -1, "ls -l -1" ignores -1 */
 	LIST_LONG | STYLE_LONG,      /* g (don't show owner) - handled via OPT_g. assumes l */
 	LIST_LONG | STYLE_LONG | LIST_ID_NUMERIC, /* n (assumes l) */
-	LIST_BLOCKS,                 /* s */
+	0,                           /* s */
 	DISP_ROWS | STYLE_COLUMNAR,  /* x */
 	0,                           /* A */
 	ENABLE_SELINUX * (LIST_CONTEXT|STYLE_SINGLE), /* k (ignored if !SELINUX) */
@@ -559,7 +556,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 	if (option_mask32 & OPT_i) /* list inodes */
 		column += printf("%7llu ", (long long) dn->dn_ino);
 //TODO: -h should affect -s too:
-	if (G.all_fmt & LIST_BLOCKS)
+	if (option_mask32 & OPT_s) /* list allocated blocks */
 		column += printf("%6"OFF_FMT"u ", (off_t) (dn->dn_blocks >> 1));
 	if (G.all_fmt & LIST_MODEBITS)
 		column += printf("%-10s ", (char *) bb_mode_string(dn->dn_mode));
@@ -704,10 +701,11 @@ static void display_files(struct dnode **dn, unsigned nfiles)
 			if (column_width < len)
 				column_width = len;
 		}
-		column_width += 2 +
-			IF_SELINUX( ((G.all_fmt & LIST_CONTEXT) ? 33 : 0) + )
-				((option_mask32 & OPT_i) ? 8 : 0) /* inode# width */
-				+ ((G.all_fmt & LIST_BLOCKS) ? 5 : 0);
+		column_width += 2
+			IF_SELINUX(+ ((G.all_fmt & LIST_CONTEXT) ? 33 : 0))
+			+ ((option_mask32 & OPT_i) ? 8 : 0) /* inode# width */
+			+ ((option_mask32 & OPT_s) ? 5 : 0) /* "alloc block" width */
+		;
 		ncols = (unsigned)G_terminal_width / column_width;
 	}
 
@@ -1069,8 +1067,11 @@ static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 		}
 		subdnp = scan_one_dir((*dn)->fullname, &nfiles);
 #if ENABLE_DESKTOP
-		if ((G.all_fmt & STYLE_MASK) == STYLE_LONG || (G.all_fmt & LIST_BLOCKS))
+		if ((G.all_fmt & STYLE_MASK) == STYLE_LONG
+		 || (option_mask32 & OPT_s)
+		) {
 			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
+		}
 #endif
 		if (nfiles > 0) {
 			/* list all files at this level */
@@ -1247,8 +1248,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		cur = my_stat(*argv, *argv,
 			/* follow links on command line unless -l, -s or -F: */
 			!((G.all_fmt & STYLE_MASK) == STYLE_LONG
-			  || (G.all_fmt & LIST_BLOCKS)
-			  || (option_mask32 & OPT_F)
+			  || (option_mask32 & (OPT_s|OPT_F))
 			)
 			/* ... or if -H: */
 			|| (option_mask32 & OPT_H)
