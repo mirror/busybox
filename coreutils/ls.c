@@ -137,7 +137,7 @@
 //usage:     "\n	--full-time	List full date and time"
 //usage:	))
 //usage:	IF_FEATURE_HUMAN_READABLE(
-//usage:     "\n	-h	List sizes in human readable format (1K 243M 2G)"
+//usage:     "\n	-h	Human readable sizes (1K 243M 2G)"
 //usage:	)
 //usage:	IF_FEATURE_LS_SORTFILES(
 //usage:	IF_LONG_OPTS(
@@ -158,7 +158,7 @@
 //usage:     "\n	-Z	List security context and permission"
 //usage:	)
 //usage:	IF_FEATURE_LS_WIDTH(
-//usage:     "\n	-w N	Assume the terminal is N columns wide"
+//usage:     "\n	-w N	Format N columns wide"
 //usage:	)
 //usage:	IF_FEATURE_LS_COLOR(
 //usage:     "\n	--color[={always,never,auto}]	Control coloring"
@@ -228,17 +228,6 @@ STYLE_LONG      = 2 << 19,      /* one record per line, extended info */
 STYLE_SINGLE    = 3 << 19,      /* one record per line */
 STYLE_MASK      = STYLE_SINGLE,
 
-/* how will the files be sorted (CONFIG_FEATURE_LS_SORTFILES) */
-SORT_REVERSE    = 1 << 23,
-SORT_DIRS_FIRST = 1 << 24,
-
-SORT_NAME       = 0,            /* sort by file name */
-SORT_SIZE       = 1 << 25,      /* sort by file size */
-SORT_TIME       = 2 << 25,      /* sort by {a,m,c}time */
-SORT_VERSION    = 3 << 25,      /* sort by version */
-SORT_EXT        = 4 << 25,      /* sort by file name extension */
-SORT_MASK       = (7 << 25) * ENABLE_FEATURE_LS_SORTFILES,
-
 LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
                   LIST_DATE_TIME | LIST_SYMLINK,
 };
@@ -256,12 +245,13 @@ LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
 /* -T WIDTH Ignored (we don't use tabs on output) */
 /* -Z       SELinux mandated option, busybox optionally supports */
 static const char ls_options[] ALIGN1 =
-	"Cadi1lgnsxQAk"      /* 13 opts, total 13 */
-	IF_FEATURE_LS_TIMESTAMPS("ctu")  /* 3, 16 */
-	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 20 */
-	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 22 */
-	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 23 */
-	IF_SELINUX("Z")                  /* 1, 24 */
+	"Cadi1lgnsxAk"       /* 12 opts, total 12 */
+	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 14 */
+	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 15 */
+	IF_SELINUX("Z")                  /* 1, 16 */
+	"Q"                              /* 1, 17 */
+	IF_FEATURE_LS_TIMESTAMPS("ctu")  /* 3, 20 */
+	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 24 */
 	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 26 */
 	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 27 */
 	IF_FEATURE_LS_WIDTH("T:w:")      /* 2, 29 */
@@ -277,22 +267,22 @@ enum {
 	//OPT_n = (1 << 7),
 	//OPT_s = (1 << 8),
 	//OPT_x = (1 << 9),
-	OPT_Q = (1 << 10),
-	//OPT_A = (1 << 11),
-	//OPT_k = (1 << 12),
+	//OPT_A = (1 << 10),
+	//OPT_k = (1 << 11),
 
-	OPTBIT_c = 13,
-	OPTBIT_t,
-	OPTBIT_u,
-	OPTBIT_S = OPTBIT_c + 3 * ENABLE_FEATURE_LS_TIMESTAMPS,
-	OPTBIT_X, /* 17 */
-	OPTBIT_r,
-	OPTBIT_v,
-	OPTBIT_F = OPTBIT_S + 4 * ENABLE_FEATURE_LS_SORTFILES,
-	OPTBIT_p, /* 21 */
+	OPTBIT_F = 12,
+	OPTBIT_p, /* 13 */
 	OPTBIT_R = OPTBIT_F + 2 * ENABLE_FEATURE_LS_FILETYPES,
 	OPTBIT_Z = OPTBIT_R + 1 * ENABLE_FEATURE_LS_RECURSIVE,
-	OPTBIT_L = OPTBIT_Z + 2 * ENABLE_SELINUX,
+	OPTBIT_Q = OPTBIT_Z + 1 * ENABLE_SELINUX,
+	OPTBIT_c, /* 17 */
+	OPTBIT_t, /* 18 */
+	OPTBIT_u, /* 19 */
+	OPTBIT_S = OPTBIT_c + 3 * ENABLE_FEATURE_LS_TIMESTAMPS,
+	OPTBIT_X, /* 21 */
+	OPTBIT_r, /* 22 */
+	OPTBIT_v, /* 23 */
+	OPTBIT_L = OPTBIT_S + 4 * ENABLE_FEATURE_LS_SORTFILES,
 	OPTBIT_H, /* 25 */
 	OPTBIT_h = OPTBIT_L + 2 * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPTBIT_T = OPTBIT_h + 1 * ENABLE_FEATURE_HUMAN_READABLE,
@@ -302,6 +292,11 @@ enum {
 	OPTBIT_color, /* 31 */
 	/* with long opts, we use all 32 bits */
 
+	OPT_F = (1 << OPTBIT_F) * ENABLE_FEATURE_LS_FILETYPES,
+	OPT_p = (1 << OPTBIT_p) * ENABLE_FEATURE_LS_FILETYPES,
+	OPT_R = (1 << OPTBIT_R) * ENABLE_FEATURE_LS_RECURSIVE,
+	OPT_Z = (1 << OPTBIT_Z) * ENABLE_SELINUX,
+	OPT_Q = (1 << OPTBIT_Q),
 	OPT_c = (1 << OPTBIT_c) * ENABLE_FEATURE_LS_TIMESTAMPS,
 	OPT_t = (1 << OPTBIT_t) * ENABLE_FEATURE_LS_TIMESTAMPS,
 	OPT_u = (1 << OPTBIT_u) * ENABLE_FEATURE_LS_TIMESTAMPS,
@@ -309,10 +304,6 @@ enum {
 	OPT_X = (1 << OPTBIT_X) * ENABLE_FEATURE_LS_SORTFILES,
 	OPT_r = (1 << OPTBIT_r) * ENABLE_FEATURE_LS_SORTFILES,
 	OPT_v = (1 << OPTBIT_v) * ENABLE_FEATURE_LS_SORTFILES,
-	OPT_F = (1 << OPTBIT_F) * ENABLE_FEATURE_LS_FILETYPES,
-	OPT_p = (1 << OPTBIT_p) * ENABLE_FEATURE_LS_FILETYPES,
-	OPT_R = (1 << OPTBIT_R) * ENABLE_FEATURE_LS_RECURSIVE,
-	OPT_Z = (1 << OPTBIT_Z) * ENABLE_SELINUX,
 	OPT_L = (1 << OPTBIT_L) * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPT_H = (1 << OPTBIT_H) * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPT_h = (1 << OPTBIT_h) * ENABLE_FEATURE_HUMAN_READABLE,
@@ -335,20 +326,8 @@ static const uint32_t opt_flags[] = {
 	LIST_LONG | STYLE_LONG | LIST_ID_NUMERIC, /* n (assumes l) */
 	LIST_BLOCKS,                 /* s */
 	DISP_ROWS | STYLE_COLUMNAR,  /* x */
-	0,                           /* Q (quote filename) - handled via OPT_Q */
 	DISP_HIDDEN,                 /* A */
 	ENABLE_SELINUX * (LIST_CONTEXT|STYLE_SINGLE), /* k (ignored if !SELINUX) */
-#if ENABLE_FEATURE_LS_TIMESTAMPS
-	0,                           /* c - handled via OPT_c */
-	(ENABLE_FEATURE_LS_SORTFILES * SORT_TIME), /* t */
-	0,                           /* u - handled via OPT_u */
-#endif
-#if ENABLE_FEATURE_LS_SORTFILES
-	SORT_SIZE,                   /* S */
-	SORT_EXT,                    /* X */
-	SORT_REVERSE,                /* r */
-	SORT_VERSION,                /* v */
-#endif
 #if ENABLE_FEATURE_LS_FILETYPES
 	LIST_FILETYPE | LIST_CLASSIFY, /* F */
 	LIST_FILETYPE,               /* p */
@@ -930,30 +909,30 @@ static int sortcmp(const void *a, const void *b)
 {
 	struct dnode *d1 = *(struct dnode **)a;
 	struct dnode *d2 = *(struct dnode **)b;
-	unsigned sort_opts = G.all_fmt & SORT_MASK;
+	unsigned opt = option_mask32;
 	off_t dif;
 
-	dif = 0; /* assume SORT_NAME */
+	dif = 0; /* assume sort by name */
 	// TODO: use pre-initialized function pointer
 	// instead of branch forest
-	if (G.all_fmt & SORT_DIRS_FIRST) {
+	if (opt & OPT_dirs_first) {
 		dif = S_ISDIR(d2->dn_mode) - S_ISDIR(d1->dn_mode);
 		if (dif != 0)
 			goto maybe_invert_and_ret;
 	}
 
-	if (sort_opts == SORT_SIZE) {
+	if (opt & OPT_S) { /* sort by size */
 		dif = (d2->dn_size - d1->dn_size);
 	} else
-	if (sort_opts == SORT_TIME) {
+	if (opt & OPT_t) { /* sort by time */
 		dif = (d2->dn_time - d1->dn_time);
 	} else
 #if defined(HAVE_STRVERSCMP) && HAVE_STRVERSCMP == 1
-	if (sort_opts == SORT_VERSION) {
+	if (opt & OPT_v) { /* sort by version */
 		dif = strverscmp(d1->name, d2->name);
 	} else
 #endif
-	if (sort_opts == SORT_EXT) {
+	if (opt & OPT_X) { /* sort by extension */
 		dif = strcmp(strchrnul(d1->name, '.'), strchrnul(d2->name, '.'));
 	}
 	if (dif == 0) {
@@ -962,18 +941,17 @@ static int sortcmp(const void *a, const void *b)
 			dif = strcoll(d1->name, d2->name);
 		else
 			dif = strcmp(d1->name, d2->name);
-	}
-
-	/* Make dif fit into an int */
-	if (sizeof(dif) > sizeof(int)) {
-		enum { BITS_TO_SHIFT = 8 * (sizeof(dif) - sizeof(int)) };
-		/* shift leaving only "int" worth of bits */
-		if (dif != 0) {
+	} else {
+		/* Make dif fit into an int */
+		if (sizeof(dif) > sizeof(int)) {
+			enum { BITS_TO_SHIFT = 8 * (sizeof(dif) - sizeof(int)) };
+			/* shift leaving only "int" worth of bits */
+			/* (this requires dif != 0, and here it is nonzero) */
 			dif = 1 | (int)((uoff_t)dif >> BITS_TO_SHIFT);
 		}
 	}
  maybe_invert_and_ret:
-	return (G.all_fmt & SORT_REVERSE) ? -(int)dif : (int)dif;
+	return (opt & OPT_r) ? -(int)dif : (int)dif;
 }
 
 static void dnsort(struct dnode **dn, int size)
@@ -1162,9 +1140,6 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 
 	init_unicode();
 
-	if (ENABLE_FEATURE_LS_SORTFILES)
-		G.all_fmt = SORT_NAME;
-
 #if ENABLE_FEATURE_LS_WIDTH
 	/* obtain the terminal width */
 	G_terminal_width = get_terminal_width(STDIN_FILENO);
@@ -1209,14 +1184,10 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 
 			if (flags & STYLE_MASK)
 				G.all_fmt &= ~STYLE_MASK;
-			if (flags & SORT_MASK)
-				G.all_fmt &= ~SORT_MASK;
 
 			G.all_fmt |= flags;
 		}
 	}
-	if (opt & OPT_dirs_first)
-		G.all_fmt |= SORT_DIRS_FIRST;
 	if (opt & OPT_full_time)
 		G.all_fmt |= LIST_FULLTIME;
 
@@ -1256,7 +1227,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 			/* without -l, bare -c or -u enable sort too */
 			/* (with -l, bare -c or -u just select which time to show) */
 			if (opt & (OPT_c|OPT_u)) {
-				G.all_fmt = (G.all_fmt & ~SORT_MASK) | SORT_TIME;
+				option_mask32 |= OPT_t;
 			}
 		}
 	}
