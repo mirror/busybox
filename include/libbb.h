@@ -355,6 +355,27 @@ extern char *skip_dev_pfx(const char *tty_name) FAST_FUNC;
 
 extern char *strrstr(const char *haystack, const char *needle) FAST_FUNC;
 
+/* dmalloc will redefine these to it's own implementation. It is safe
+ * to have the prototypes here unconditionally.  */
+void *malloc_or_warn(size_t size) FAST_FUNC RETURNS_MALLOC;
+void *xmalloc(size_t size) FAST_FUNC RETURNS_MALLOC;
+void *xzalloc(size_t size) FAST_FUNC RETURNS_MALLOC;
+void *xrealloc(void *old, size_t size) FAST_FUNC;
+/* After v = xrealloc_vector(v, SHIFT, idx) it's ok to use
+ * at least v[idx] and v[idx+1], for all idx values.
+ * SHIFT specifies how many new elements are added (1:2, 2:4, ..., 8:256...)
+ * when all elements are used up. New elements are zeroed out.
+ * xrealloc_vector(v, SHIFT, idx) *MUST* be called with consecutive IDXs -
+ * skipping an index is a bad bug - it may miss a realloc!
+ */
+#define xrealloc_vector(vector, shift, idx) \
+	xrealloc_vector_helper((vector), (sizeof((vector)[0]) << 8) + (shift), (idx))
+void* xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, int idx) FAST_FUNC;
+char *xstrdup(const char *s) FAST_FUNC RETURNS_MALLOC;
+char *xstrndup(const char *s, int n) FAST_FUNC RETURNS_MALLOC;
+void *xmemdup(const void *s, int n) FAST_FUNC RETURNS_MALLOC;
+
+
 //TODO: supply a pointer to char[11] buffer (avoid statics)?
 extern const char *bb_mode_string(mode_t mode) FAST_FUNC;
 extern int is_directory(const char *name, int followLinks) FAST_FUNC;
@@ -692,6 +713,52 @@ struct hostent *xgethostbyname(const char *name) FAST_FUNC;
 // Also mount.c and inetd.c are using gethostbyname(),
 // + inet_common.c has additional IPv4-only stuff
 
+#define SHA256_INSIZE  64
+#define SHA256_OUTSIZE 32
+#define AES_BLOCKSIZE  16
+#define AES128_KEYSIZE 16
+#define AES256_KEYSIZE 32
+struct tls_handshake_data; /* opaque */
+typedef struct tls_state {
+	int     ofd;
+	int     ifd;
+
+	int     min_encrypted_len_on_read;
+	uint8_t encrypt_on_write;
+
+	uint8_t *outbuf;
+	int     outbuf_size;
+
+	int     inbuf_size;
+	int     ofs_to_buffered;
+	int     buffered_size;
+	uint8_t *inbuf;
+
+	struct tls_handshake_data *hsd;
+
+	// RFC 5246
+	// sequence number
+	//   Each connection state contains a sequence number, which is
+	//   maintained separately for read and write states.  The sequence
+	//   number MUST be set to zero whenever a connection state is made the
+	//   active state.  Sequence numbers are of type uint64 and may not
+	//   exceed 2^64-1.
+	/*uint64_t read_seq64_be;*/
+	uint64_t write_seq64_be;
+
+	uint8_t client_write_MAC_key[SHA256_OUTSIZE];
+	uint8_t server_write_MAC_key[SHA256_OUTSIZE];
+	uint8_t client_write_key[AES256_KEYSIZE];
+	uint8_t server_write_key[AES256_KEYSIZE];
+} tls_state_t;
+
+static inline tls_state_t *new_tls_state(void)
+{
+	tls_state_t *tls = xzalloc(sizeof(*tls));
+	return tls;
+}
+void tls_handshake(tls_state_t *tls, const char *sni) FAST_FUNC;
+void tls_run_copy_loop(tls_state_t *tls) FAST_FUNC;
 
 void socket_want_pktinfo(int fd) FAST_FUNC;
 ssize_t send_to_from(int fd, void *buf, size_t len, int flags,
@@ -705,9 +772,6 @@ ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
 
 uint16_t inet_cksum(uint16_t *addr, int len) FAST_FUNC;
 
-char *xstrdup(const char *s) FAST_FUNC RETURNS_MALLOC;
-char *xstrndup(const char *s, int n) FAST_FUNC RETURNS_MALLOC;
-void *xmemdup(const void *s, int n) FAST_FUNC RETURNS_MALLOC;
 void overlapping_strcpy(char *dst, const char *src) FAST_FUNC;
 char *safe_strncpy(char *dst, const char *src, size_t size) FAST_FUNC;
 char *strncpy_IFNAMSIZ(char *dst, const char *src) FAST_FUNC;
@@ -752,24 +816,6 @@ enum {
 	VISIBLE_SHOW_TABS = 1 << 1,
 };
 void visible(unsigned ch, char *buf, int flags) FAST_FUNC;
-
-/* dmalloc will redefine these to it's own implementation. It is safe
- * to have the prototypes here unconditionally.  */
-void *malloc_or_warn(size_t size) FAST_FUNC RETURNS_MALLOC;
-void *xmalloc(size_t size) FAST_FUNC RETURNS_MALLOC;
-void *xzalloc(size_t size) FAST_FUNC RETURNS_MALLOC;
-void *xrealloc(void *old, size_t size) FAST_FUNC;
-/* After v = xrealloc_vector(v, SHIFT, idx) it's ok to use
- * at least v[idx] and v[idx+1], for all idx values.
- * SHIFT specifies how many new elements are added (1:2, 2:4, ..., 8:256...)
- * when all elements are used up. New elements are zeroed out.
- * xrealloc_vector(v, SHIFT, idx) *MUST* be called with consecutive IDXs -
- * skipping an index is a bad bug - it may miss a realloc!
- */
-#define xrealloc_vector(vector, shift, idx) \
-	xrealloc_vector_helper((vector), (sizeof((vector)[0]) << 8) + (shift), (idx))
-void* xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, int idx) FAST_FUNC;
-
 
 extern ssize_t safe_read(int fd, void *buf, size_t count) FAST_FUNC;
 extern ssize_t nonblock_immune_read(int fd, void *buf, size_t count) FAST_FUNC;

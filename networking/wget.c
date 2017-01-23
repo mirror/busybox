@@ -47,18 +47,26 @@
 //config:	  FEATURE_WGET_LONG_OPTIONS is also enabled, the --timeout option
 //config:	  will work in addition to -T.
 //config:
+//config:config FEATURE_WGET_HTTPS
+//config:	bool "Support HTTPS using internal TLS code"
+//config:	default y
+//config:	depends on WGET
+//config:	select TLS
+//config:	help
+//config:	  wget will use internal TLS code to connect to https:// URLs.
+//config:	  Note:
+//config:	  On NOMMU machines, ssl_helper applet should be available
+//config:	  in the $PATH for this to work. Make sure to select that applet.
+//config:
 //config:config FEATURE_WGET_OPENSSL
 //config:	bool "Try to connect to HTTPS using openssl"
 //config:	default y
 //config:	depends on WGET
 //config:	help
-//config:	  Choose how wget establishes SSL connection for https:// URLs.
-//config:
-//config:	  Busybox itself contains no SSL code. wget will spawn
-//config:	  a helper program to talk over HTTPS.
+//config:	  Try to use openssl to handle HTTPS.
 //config:
 //config:	  OpenSSL has a simple SSL client for debug purposes.
-//config:	  If you select "openssl" helper, wget will effectively run:
+//config:	  If you select this option, wget will effectively run:
 //config:	  "openssl s_client -quiet -connect hostname:443
 //config:	  -servername hostname 2>/dev/null" and pipe its data
 //config:	  through it. -servername is not used if hostname is numeric.
@@ -71,24 +79,9 @@
 //config:	  openssl is also a big binary, often dynamically linked
 //config:	  against ~15 libraries.
 //config:
-//config:config FEATURE_WGET_SSL_HELPER
-//config:	bool "Try to connect to HTTPS using ssl_helper"
-//config:	default y
-//config:	depends on WGET
-//config:	help
-//config:	  Choose how wget establishes SSL connection for https:// URLs.
-//config:
-//config:	  Busybox itself contains no SSL code. wget will spawn
-//config:	  a helper program to talk over HTTPS.
-//config:
-//config:	  ssl_helper is a tool which can be built statically
-//config:	  from busybox sources against a small embedded SSL library.
-//config:	  Please see networking/ssl_helper/README.
-//config:	  It does not require double host resolution and emits
-//config:	  error messages to stderr.
-//config:
-//config:	  Precompiled static binary may be available at
-//config:	  http://busybox.net/downloads/binaries/
+//config:	  If openssl can't be executed, internal TLS code will be used
+//config:	  (if you enabled it); if openssl can be executed but fails later,
+//config:	  wget can't detect this, and download will fail.
 
 //applet:IF_WGET(APPLET(wget, BB_DIR_USR_BIN, BB_SUID_DROP))
 
@@ -137,7 +130,7 @@
 #endif
 
 
-#define SSL_SUPPORTED (ENABLE_FEATURE_WGET_OPENSSL || ENABLE_FEATURE_WGET_SSL_HELPER)
+#define SSL_SUPPORTED (ENABLE_FEATURE_WGET_OPENSSL || ENABLE_FEATURE_WGET_HTTPS)
 
 struct host_info {
 	char *allocated;
@@ -657,7 +650,7 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 	char *servername;
 	int sp[2];
 	int pid;
-	IF_FEATURE_WGET_SSL_HELPER(volatile int child_failed = 0;)
+	IF_FEATURE_WGET_HTTPS(volatile int child_failed = 0;)
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sp) != 0)
 		/* Kernel can have AF_UNIX support disabled */
@@ -702,7 +695,7 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 
 		BB_EXECVP(argv[0], argv);
 		xmove_fd(3, 2);
-# if ENABLE_FEATURE_WGET_SSL_HELPER
+# if ENABLE_FEATURE_WGET_HTTPS
 		child_failed = 1;
 		xfunc_die();
 # else
@@ -715,7 +708,7 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 	free(servername);
 	free(allocated);
 	close(sp[1]);
-# if ENABLE_FEATURE_WGET_SSL_HELPER
+# if ENABLE_FEATURE_WGET_HTTPS
 	if (child_failed) {
 		close(sp[0]);
 		return -1;
@@ -725,38 +718,51 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 }
 #endif
 
-/* See networking/ssl_helper/README how to build one */
-#if ENABLE_FEATURE_WGET_SSL_HELPER
-static void spawn_https_helper_small(int network_fd)
+#if ENABLE_FEATURE_WGET_HTTPS
+static void spawn_ssl_client(const char *host, int network_fd)
 {
 	int sp[2];
 	int pid;
+	char *servername, *p;
+
+	servername = xstrdup(host);
+	p = strrchr(servername, ':');
+	if (p) *p = '\0';
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sp) != 0)
 		/* Kernel can have AF_UNIX support disabled */
 		bb_perror_msg_and_die("socketpair");
 
+	fflush_all();
 	pid = BB_MMU ? xfork() : xvfork();
 	if (pid == 0) {
 		/* Child */
-		char *argv[3];
-
 		close(sp[0]);
 		xmove_fd(sp[1], 0);
 		xdup2(0, 1);
-		xmove_fd(network_fd, 3);
-		/*
-		 * A simple ssl/tls helper
-		 */
-		argv[0] = (char*)"ssl_helper";
-		argv[1] = (char*)"-d3";
-		argv[2] = NULL;
-		BB_EXECVP(argv[0], argv);
-		bb_perror_msg_and_die("can't execute '%s'", argv[0]);
+		if (BB_MMU) {
+			tls_state_t *tls = new_tls_state();
+			tls->ifd = tls->ofd = network_fd;
+			tls_handshake(tls, servername);
+			tls_run_copy_loop(tls);
+			exit(0);
+		} else {
+			char *argv[5];
+			xmove_fd(network_fd, 3);
+			argv[0] = (char*)"ssl_client";
+			argv[1] = (char*)"-s3";
+			//TODO: if (!is_ip_address(servername))...
+			argv[2] = (char*)"-n";
+			argv[3] = servername;
+			argv[4] = NULL;
+			BB_EXECVP(argv[0], argv);
+			bb_perror_msg_and_die("can't execute '%s'", argv[0]);
+		}
 		/* notreached */
 	}
 
 	/* Parent */
+	free(servername);
 	close(sp[1]);
 	xmove_fd(sp[0], network_fd);
 }
@@ -1005,16 +1011,16 @@ static void download_one_url(const char *url)
 
 		/* Open socket to http(s) server */
 #if ENABLE_FEATURE_WGET_OPENSSL
-		/* openssl (and maybe ssl_helper) support is configured */
+		/* openssl (and maybe internal TLS) support is configured */
 		if (target.protocol == P_HTTPS) {
 			/* openssl-based helper
 			 * Inconvenient API since we can't give it an open fd
 			 */
 			int fd = spawn_https_helper_openssl(server.host, server.port);
-# if ENABLE_FEATURE_WGET_SSL_HELPER
-			if (fd < 0) { /* no openssl? try ssl_helper */
+# if ENABLE_FEATURE_WGET_HTTPS
+			if (fd < 0) { /* no openssl? try internal */
 				sfp = open_socket(lsa);
-				spawn_https_helper_small(fileno(sfp));
+				spawn_ssl_client(server.host, fileno(sfp));
 				goto socket_opened;
 			}
 # else
@@ -1027,11 +1033,11 @@ static void download_one_url(const char *url)
 		}
 		sfp = open_socket(lsa);
  socket_opened:
-#elif ENABLE_FEATURE_WGET_SSL_HELPER
-		/* Only ssl_helper support is configured */
+#elif ENABLE_FEATURE_WGET_HTTPS
+		/* Only internal TLS support is configured */
 		sfp = open_socket(lsa);
 		if (target.protocol == P_HTTPS)
-			spawn_https_helper_small(fileno(sfp));
+			spawn_ssl_client(server.host, fileno(sfp));
 #else
 		/* ssl (https) support is not configured */
 		sfp = open_socket(lsa);

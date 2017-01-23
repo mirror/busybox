@@ -4,10 +4,8 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config TLS
-//config:	bool "tls (debugging)"
+//config:	bool #No description makes it a hidden option
 //config:	default n
-
-//applet:IF_TLS(APPLET(tls, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_TLS) += tls.o
 //kbuild:lib-$(CONFIG_TLS) += tls_pstm.o
@@ -18,12 +16,7 @@
 //kbuild:lib-$(CONFIG_TLS) += tls_aes.o
 ////kbuild:lib-$(CONFIG_TLS) += tls_aes_gcm.o
 
-//usage:#define tls_trivial_usage
-//usage:       "HOST[:PORT]"
-//usage:#define tls_full_usage "\n\n"
-
 #include "tls.h"
-//#include "common_bufsiz.h"
 
 #define TLS_DEBUG      1
 #define TLS_DEBUG_HASH 0
@@ -165,13 +158,6 @@
 #define CIPHER_ID TLS_RSA_WITH_AES_256_CBC_SHA256 // ok, no SERVER_KEY_EXCHANGE
 
 enum {
-	SHA256_INSIZE = 64,
-	SHA256_OUTSIZE = 32,
-
-	AES_BLOCKSIZE = 16,
-	AES128_KEYSIZE = 16,
-	AES256_KEYSIZE = 32,
-
 	RSA_PREMASTER_SIZE = 48,
 
 	RECHDR_LEN = 5,
@@ -225,20 +211,7 @@ struct record_hdr {
 	uint8_t len16_hi, len16_lo;
 };
 
-typedef struct tls_state {
-	int     fd;
-
-	int     min_encrypted_len_on_read;
-	uint8_t encrypt_on_write;
-
-	uint8_t *outbuf;
-	int     outbuf_size;
-
-	int     inbuf_size;
-	int     ofs_to_buffered;
-	int     buffered_size;
-	uint8_t *inbuf;
-
+struct tls_handshake_data {
 //TODO: store just the DER key here, parse/use/delete it when sending client key
 //this way it will stay key type agnostic here.
 	psRsaKey_t server_rsa_pub_key;
@@ -247,22 +220,7 @@ typedef struct tls_state {
 // these two are unused after finished messages are exchanged:
 	sha256_ctx_t handshake_sha256_ctx;
 	uint8_t master_secret[48];
-
-	// RFC 5246
-	// sequence number
-	//   Each connection state contains a sequence number, which is
-	//   maintained separately for read and write states.  The sequence
-	//   number MUST be set to zero whenever a connection state is made the
-	//   active state.  Sequence numbers are of type uint64 and may not
-	//   exceed 2^64-1.
-	/*uint64_t read_seq64_be;*/
-	uint64_t write_seq64_be;
-
-	uint8_t client_write_MAC_key[SHA256_OUTSIZE];
-	uint8_t server_write_MAC_key[SHA256_OUTSIZE];
-	uint8_t client_write_key[AES256_KEYSIZE];
-	uint8_t server_write_key[AES256_KEYSIZE];
-} tls_state_t;
+};
 
 
 static unsigned get24be(const uint8_t *p)
@@ -487,14 +445,6 @@ static void prf_hmac_sha256(
 #undef SEED
 }
 
-static tls_state_t *new_tls_state(void)
-{
-	tls_state_t *tls = xzalloc(sizeof(*tls));
-	tls->fd = -1;
-	sha256_begin(&tls->handshake_sha256_ctx);
-	return tls;
-}
-
 static void tls_error_die(tls_state_t *tls)
 {
 	dump_tls_record(tls->inbuf, tls->ofs_to_buffered + tls->buffered_size);
@@ -597,7 +547,7 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 		xhdr->len16_hi = size >> 8;
 		xhdr->len16_lo = size & 0xff;
 		dump_raw_out(">> %s\n", xhdr, RECHDR_LEN + size);
-		xwrite(tls->fd, xhdr, RECHDR_LEN + size);
+		xwrite(tls->ofd, xhdr, RECHDR_LEN + size);
 		dbg("wrote %u bytes (NULL crypt, SHA256 hash)\n", size);
 		return;
 	}
@@ -681,7 +631,7 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	xhdr->len16_hi = size >> 8;
 	xhdr->len16_lo = size & 0xff;
 	dump_raw_out(">> %s\n", xhdr, RECHDR_LEN + size);
-	xwrite(tls->fd, xhdr, RECHDR_LEN + size);
+	xwrite(tls->ofd, xhdr, RECHDR_LEN + size);
 	dbg("wrote %u bytes\n", (int)RECHDR_LEN + size);
 }
 
@@ -697,10 +647,10 @@ static void xwrite_and_update_handshake_hash(tls_state_t *tls, unsigned size)
 		xhdr->len16_hi = size >> 8;
 		xhdr->len16_lo = size & 0xff;
 		dump_raw_out(">> %s\n", xhdr, RECHDR_LEN + size);
-		xwrite(tls->fd, xhdr, RECHDR_LEN + size);
+		xwrite(tls->ofd, xhdr, RECHDR_LEN + size);
 		dbg("wrote %u bytes\n", (int)RECHDR_LEN + size);
 		/* Handshake hash does not include record headers */
-		sha256_hash_dbg(">> sha256:%s", &tls->handshake_sha256_ctx, buf, size);
+		sha256_hash_dbg(">> sha256:%s", &tls->hsd->handshake_sha256_ctx, buf, size);
 		return;
 	}
 	xwrite_encrypted(tls, size, RECORD_TYPE_HANDSHAKE);
@@ -769,7 +719,7 @@ static int tls_xread_record(tls_state_t *tls)
 			rem = tls->inbuf_size - total;
 			tls->inbuf = xrealloc(tls->inbuf, tls->inbuf_size);
 		}
-		sz = safe_read(tls->fd, tls->inbuf + total, rem);
+		sz = safe_read(tls->ifd, tls->inbuf + total, rem);
 		if (sz <= 0) {
 			if (sz == 0 && total == 0) {
 				/* "Abrupt" EOF, no TLS shutdown (seen from kernel.org) */
@@ -848,7 +798,7 @@ static int tls_xread_record(tls_state_t *tls)
 	 * in our FINISHED record must include data of incoming packets too!
 	 */
 	if (tls->inbuf[0] == RECORD_TYPE_HANDSHAKE) {
-		sha256_hash_dbg("<< sha256:%s", &tls->handshake_sha256_ctx, tls->inbuf + RECHDR_LEN, sz);
+		sha256_hash_dbg("<< sha256:%s", &tls->hsd->handshake_sha256_ctx, tls->inbuf + RECHDR_LEN, sz);
 	}
  end:
 	dbg("got block len:%u\n", sz);
@@ -1059,12 +1009,12 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 		xfunc_die();
 	der++;
 	der = enter_der_item(der, &end); /* enter SEQ */
-	/* memset(tls->server_rsa_pub_key, 0, sizeof(tls->server_rsa_pub_key)); - already is */
-	der_binary_to_pstm(&tls->server_rsa_pub_key.N, der, end); /* modulus */
+	/* memset(tls->hsd->server_rsa_pub_key, 0, sizeof(tls->hsd->server_rsa_pub_key)); - already is */
+	der_binary_to_pstm(&tls->hsd->server_rsa_pub_key.N, der, end); /* modulus */
 	der = skip_der_item(der, end);
-	der_binary_to_pstm(&tls->server_rsa_pub_key.e, der, end); /* exponent */
-	tls->server_rsa_pub_key.size = pstm_unsigned_bin_size(&tls->server_rsa_pub_key.N);
-	dbg("server_rsa_pub_key.size:%d\n", tls->server_rsa_pub_key.size);
+	der_binary_to_pstm(&tls->hsd->server_rsa_pub_key.e, der, end); /* exponent */
+	tls->hsd->server_rsa_pub_key.size = pstm_unsigned_bin_size(&tls->hsd->server_rsa_pub_key.N);
+	dbg("server_rsa_pub_key.size:%d\n", tls->hsd->server_rsa_pub_key.size);
 }
 
 /*
@@ -1140,7 +1090,7 @@ static void send_client_hello(tls_state_t *tls, const char *sni)
 	tls_get_random(record->rand32, sizeof(record->rand32));
 	if (TLS_DEBUG_FIXED_SECRETS)
 		memset(record->rand32, 0x11, sizeof(record->rand32));
-	memcpy(tls->client_and_server_rand32, record->rand32, sizeof(record->rand32));
+	memcpy(tls->hsd->client_and_server_rand32, record->rand32, sizeof(record->rand32));
 	/* record->session_id_len = 0; - already is */
 	/* record->cipherid_len16_hi = 0; */
 	record->cipherid_len16_lo = 2 * 1;
@@ -1225,7 +1175,7 @@ static void get_server_hello(tls_state_t *tls)
 	}
 
 	dbg("<< SERVER_HELLO\n");
-	memcpy(tls->client_and_server_rand32 + 32, hp->rand32, sizeof(hp->rand32));
+	memcpy(tls->hsd->client_and_server_rand32 + 32, hp->rand32, sizeof(hp->rand32));
 }
 
 static void get_server_cert(tls_state_t *tls)
@@ -1282,7 +1232,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	rsa_premaster[0] = TLS_MAJ;
 	rsa_premaster[1] = TLS_MIN;
 	len = psRsaEncryptPub(/*pool:*/ NULL,
-		/* psRsaKey_t* */ &tls->server_rsa_pub_key,
+		/* psRsaKey_t* */ &tls->hsd->server_rsa_pub_key,
 		rsa_premaster, /*inlen:*/ sizeof(rsa_premaster),
 		record->key, sizeof(record->key),
 		data_param_ignored
@@ -1310,12 +1260,12 @@ static void send_client_key_exchange(tls_state_t *tls)
 	// The master secret is always exactly 48 bytes in length.  The length
 	// of the premaster secret will vary depending on key exchange method.
 	prf_hmac_sha256(
-		tls->master_secret, sizeof(tls->master_secret),
+		tls->hsd->master_secret, sizeof(tls->hsd->master_secret),
 		rsa_premaster, sizeof(rsa_premaster),
 		"master secret",
-		tls->client_and_server_rand32, sizeof(tls->client_and_server_rand32)
+		tls->hsd->client_and_server_rand32, sizeof(tls->hsd->client_and_server_rand32)
 	);
-	dump_hex("master secret:%s\n", tls->master_secret, sizeof(tls->master_secret));
+	dump_hex("master secret:%s\n", tls->hsd->master_secret, sizeof(tls->hsd->master_secret));
 
 	// RFC 5246
 	// 6.3.  Key Calculation
@@ -1354,8 +1304,8 @@ static void send_client_key_exchange(tls_state_t *tls)
 		uint8_t tmp64[64];
 
 		/* make "server_rand32 + client_rand32" */
-		memcpy(&tmp64[0] , &tls->client_and_server_rand32[32], 32);
-		memcpy(&tmp64[32], &tls->client_and_server_rand32[0] , 32);
+		memcpy(&tmp64[0] , &tls->hsd->client_and_server_rand32[32], 32);
+		memcpy(&tmp64[32], &tls->hsd->client_and_server_rand32[0] , 32);
 
 		prf_hmac_sha256(
 			tls->client_write_MAC_key, 2 * (SHA256_OUTSIZE + AES256_KEYSIZE),
@@ -1363,7 +1313,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 			// server_write_MAC_key[SHA256_OUTSIZE]
 			// client_write_key[AES256_KEYSIZE]
 			// server_write_key[AES256_KEYSIZE]
-			tls->master_secret, sizeof(tls->master_secret),
+			tls->hsd->master_secret, sizeof(tls->hsd->master_secret),
 			"key expansion",
 			tmp64, 64
 		);
@@ -1384,7 +1334,7 @@ static const uint8_t rec_CHANGE_CIPHER_SPEC[] = {
 static void send_change_cipher_spec(tls_state_t *tls)
 {
 	dbg(">> CHANGE_CIPHER_SPEC\n");
-	xwrite(tls->fd, rec_CHANGE_CIPHER_SPEC, sizeof(rec_CHANGE_CIPHER_SPEC));
+	xwrite(tls->ofd, rec_CHANGE_CIPHER_SPEC, sizeof(rec_CHANGE_CIPHER_SPEC));
 }
 
 // 7.4.9.  Finished
@@ -1436,13 +1386,13 @@ static void send_client_finished(tls_state_t *tls)
 
 	fill_handshake_record_hdr(record, HANDSHAKE_FINISHED, sizeof(*record));
 
-	sha256_peek(&tls->handshake_sha256_ctx, handshake_hash);
+	sha256_peek(&tls->hsd->handshake_sha256_ctx, handshake_hash);
 	prf_hmac_sha256(record->prf_result, sizeof(record->prf_result),
-			tls->master_secret, sizeof(tls->master_secret),
+			tls->hsd->master_secret, sizeof(tls->hsd->master_secret),
 			"client finished",
 			handshake_hash, sizeof(handshake_hash)
 	);
-	dump_hex("from secret: %s\n", tls->master_secret, sizeof(tls->master_secret));
+	dump_hex("from secret: %s\n", tls->hsd->master_secret, sizeof(tls->hsd->master_secret));
 	dump_hex("from labelSeed: %s", "client finished", sizeof("client finished")-1);
 	dump_hex("%s\n", handshake_hash, sizeof(handshake_hash));
 	dump_hex("=> digest: %s\n", record->prf_result, sizeof(record->prf_result));
@@ -1451,7 +1401,7 @@ static void send_client_finished(tls_state_t *tls)
 	xwrite_encrypted(tls, sizeof(*record), RECORD_TYPE_HANDSHAKE);
 }
 
-static void tls_handshake(tls_state_t *tls, const char *sni)
+void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 {
 	// Client              RFC 5246                Server
 	// (*) - optional messages, not always sent
@@ -1471,6 +1421,9 @@ static void tls_handshake(tls_state_t *tls, const char *sni)
 	//                      <-------             Finished
 	// Application Data     <------>     Application Data
 	int len;
+
+	tls->hsd = xzalloc(sizeof(*tls->hsd));
+	sha256_begin(&tls->hsd->handshake_sha256_ctx);
 
 	send_client_hello(tls, sni);
 	get_server_hello(tls);
@@ -1541,6 +1494,12 @@ static void tls_handshake(tls_state_t *tls, const char *sni)
 		tls_error_die(tls);
 	dbg("<< FINISHED\n");
 	/* application data can be sent/received */
+
+	/* free handshake data */
+//	if (PARANOIA)
+//		memset(tls->hsd, 0, sizeof(*tls->hsd));
+	free(tls->hsd);
+	tls->hsd = NULL;
 }
 
 static void tls_xwrite(tls_state_t *tls, int len)
@@ -1557,35 +1516,17 @@ static void tls_xwrite(tls_state_t *tls, int len)
 // openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
 // openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL
 // openssl s_client -connect 127.0.0.1:4433 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL-SHA256
-//
-// Talk to kernel.org:
-// printf "GET / HTTP/1.1\r\nHost: kernel.org\r\n\r\n" | ./busybox tls kernel.org
 
-int tls_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tls_main(int argc UNUSED_PARAM, char **argv)
+void FAST_FUNC tls_run_copy_loop(tls_state_t *tls)
 {
-	tls_state_t *tls;
 	fd_set readfds;
 	int inbuf_size;
 	const int INBUF_STEP = 4 * 1024;
-	int cfd;
 
-
-	// INIT_G();
-	// getopt32(argv, "myopts")
-
-	if (!argv[1])
-		bb_show_usage();
-
-	cfd = create_and_connect_stream_or_die(argv[1], 443);
-
-	tls = new_tls_state();
-	tls->fd = cfd;
-	tls_handshake(tls, argv[1]);
-
-	/* Select loop copying stdin to cfd, and cfd to stdout */
+//TODO: convert to poll
+	/* Select loop copying stdin to ofd, and ifd to stdout */
 	FD_ZERO(&readfds);
-	FD_SET(cfd, &readfds);
+	FD_SET(tls->ifd, &readfds);
 	FD_SET(STDIN_FILENO, &readfds);
 
 	inbuf_size = INBUF_STEP;
@@ -1594,7 +1535,7 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 		int nread;
 
 		testfds = readfds;
-		if (select(cfd + 1, &testfds, NULL, NULL, NULL) < 0)
+		if (select(tls->ifd + 1, &testfds, NULL, NULL, NULL) < 0)
 			bb_perror_msg_and_die("select");
 
 		if (FD_ISSET(STDIN_FILENO, &testfds)) {
@@ -1608,7 +1549,7 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 				/* Close outgoing half-connection so they get EOF,
 				 * but leave incoming alone so we can see response
 				 */
-				//shutdown(cfd, SHUT_WR);
+				//shutdown(tls->ofd, SHUT_WR);
 				/* But TLS has no way to encode this,
 				 * doubt it's ok to do it "raw"
 				 */
@@ -1626,7 +1567,7 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 				tls_xwrite(tls, nread);
 			}
 		}
-		if (FD_ISSET(cfd, &testfds)) {
+		if (FD_ISSET(tls->ifd, &testfds)) {
 			dbg("NETWORK HAS DATA\n");
  read_record:
 			nread = tls_xread_record(tls);
@@ -1634,7 +1575,7 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 				/* TLS protocol has no real concept of one-sided shutdowns:
 				 * if we get "TLS EOF" from the peer, writes will fail too
 				 */
-				//FD_CLR(cfd, &readfds);
+				//FD_CLR(tls->ifd, &readfds);
 				//close(STDOUT_FILENO);
 				//tls_free_inbuf(tls); /* mem usage optimization */
 				//continue;
@@ -1650,6 +1591,4 @@ int tls_main(int argc UNUSED_PARAM, char **argv)
 				goto read_record;
 		}
 	}
-
-	return EXIT_SUCCESS;
 }
