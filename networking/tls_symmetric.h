@@ -27,30 +27,32 @@
 
 static ALWAYS_INLINE unsigned ROL(unsigned word, int i)
 {
- if (__builtin_constant_p(i)) //box
+ if (__builtin_constant_p(i)) { //box
    // Rotates by constant use fewer registers,
    // and on many Intel CPUs rotates by %cl take 2 cycles, not 1.
-   asm ("roll %2,%0" //box
+   asm ("roll %2,%0"
 	  :"=r" (word)
 	  :"0" (word),"i" (i));
- else  //box
-   asm ("roll %%cl,%0"
+   return word;
+ } //box
+ asm ("roll %%cl,%0"
 	  :"=r" (word)
 	  :"0" (word),"c" (i));
-   return word;
+ return word;
 }
 
 static ALWAYS_INLINE unsigned ROR(unsigned word, int i)
 {
- if (__builtin_constant_p(i)) //box
-   asm ("rorl %2,%0" //box
+ if (__builtin_constant_p(i)) { //box
+   asm ("rorl %2,%0"
 	  :"=r" (word)
 	  :"0" (word),"i" (i));
- else //box
-   asm ("rorl %%cl,%0"
+   return word;
+ } //box
+ asm ("rorl %%cl,%0"
 	  :"=r" (word)
 	  :"0" (word),"c" (i));
-   return word;
+ return word;
 }
 
 /******************************************************************************/

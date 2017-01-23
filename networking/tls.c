@@ -18,7 +18,7 @@
 
 #include "tls.h"
 
-#define TLS_DEBUG      1
+#define TLS_DEBUG      0
 #define TLS_DEBUG_HASH 0
 #define TLS_DEBUG_DER  0
 #define TLS_DEBUG_FIXED_SECRETS 0
