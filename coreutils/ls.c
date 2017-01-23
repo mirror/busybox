@@ -198,31 +198,27 @@ SPLIT_SUBDIR    = 2,
 
 /* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
 /* what file information will be listed */
-LIST_MODEBITS   = 1 << 2,
-LIST_NLINKS     = 1 << 3,
-LIST_ID_NAME    = 1 << 4,
-LIST_ID_NUMERIC = 1 << 5,
-LIST_CONTEXT    = 1 << 6,
-LIST_SIZE       = 1 << 7,
-LIST_DATE_TIME  = 1 << 8,
-LIST_FULLTIME   = 1 << 9,
-LIST_SYMLINK    = 1 << 10,
-LIST_FILETYPE   = 1 << 11, /* show / suffix for dirs */
-LIST_CLASSIFY   = 1 << 12, /* requires LIST_FILETYPE, also show *,|,@,= suffixes */
+LIST_MODEBITS   = 1 << 0,
+LIST_LOPT       = 1 << 1, /* long listing (-l and equivalents) */
+LIST_ID_NAME    = 1 << 2,
+LIST_ID_NUMERIC = 1 << 3,
+LIST_CONTEXT    = 1 << 4,
+LIST_FULLTIME   = 1 << 5,
+LIST_FILETYPE   = 1 << 6, /* show / suffix for dirs */
+LIST_CLASSIFY   = 1 << 7, /* requires LIST_FILETYPE, also show *,|,@,= suffixes */
 
-LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
-                  LIST_DATE_TIME | LIST_SYMLINK,
+LIST_LONG       = LIST_LOPT | LIST_MODEBITS | LIST_ID_NAME,
 
 /* what files will be displayed */
-DISP_DIRNAME    = 1 << 13,      /* 2 or more items? label directories */
-DISP_NOLIST     = 1 << 16,      /* show directory as itself, not contents */
-DISP_RECURSIVE  = 1 << 17,      /* show directory and everything below it */
-DISP_ROWS       = 1 << 18,      /* print across rows */
+DISP_DIRNAME    = 1 << 8,       /* 2 or more items? label directories */
+DISP_NOLIST     = 1 << 9,       /* show directory as itself, not contents */
+DISP_RECURSIVE  = 1 << 10,      /* show directory and everything below it */
+DISP_ROWS       = 1 << 11,      /* print across rows */
 
 /* what is the overall style of the listing */
-STYLE_COLUMNAR  = 1 << 19,      /* many records per line */
-STYLE_LONG      = 2 << 19,      /* one record per line, extended info */
-STYLE_SINGLE    = 3 << 19,      /* one record per line */
+STYLE_COLUMNAR  = 1 << 12,      /* many records per line */
+STYLE_LONG      = 2 << 12,      /* one record per line, extended info */
+STYLE_SINGLE    = 3 << 12,      /* one record per line */
 STYLE_MASK      = STYLE_SINGLE,
 };
 
@@ -549,18 +545,18 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 	/* Do readlink early, so that if it fails, error message
 	 * does not appear *inside* the "ls -l" line */
 	lpath = NULL;
-	if (G.all_fmt & LIST_SYMLINK)
+	if (G.all_fmt & LIST_LOPT)
 		if (S_ISLNK(dn->dn_mode))
 			lpath = xmalloc_readlink_or_warn(dn->fullname);
 
-	if (option_mask32 & OPT_i) /* list inodes */
+	if (option_mask32 & OPT_i) /* show inode# */
 		column += printf("%7llu ", (long long) dn->dn_ino);
 //TODO: -h should affect -s too:
-	if (option_mask32 & OPT_s) /* list allocated blocks */
+	if (option_mask32 & OPT_s) /* show allocated blocks */
 		column += printf("%6"OFF_FMT"u ", (off_t) (dn->dn_blocks >> 1));
 	if (G.all_fmt & LIST_MODEBITS)
 		column += printf("%-10s ", (char *) bb_mode_string(dn->dn_mode));
-	if (G.all_fmt & LIST_NLINKS)
+	if (G.all_fmt & LIST_LOPT) /* long listing: show number of links */
 		column += printf("%4lu ", (long) dn->dn_nlink);
 	if (G.all_fmt & LIST_ID_NUMERIC) {
 		if (option_mask32 & OPT_g)
@@ -582,7 +578,8 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		}
 	}
 #endif
-	if (G.all_fmt & LIST_SIZE) {
+	if (G.all_fmt & LIST_LOPT) {
+		/* long listing: show size */
 		if (S_ISBLK(dn->dn_mode) || S_ISCHR(dn->dn_mode)) {
 			column += printf("%4u, %3u ",
 					dn->dn_rdev_maj,
@@ -597,23 +594,22 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 				column += printf("%9"OFF_FMT"u ", dn->dn_size);
 			}
 		}
-	}
 #if ENABLE_FEATURE_LS_TIMESTAMPS
-	if (G.all_fmt & (LIST_FULLTIME|LIST_DATE_TIME)) {
-		const time_t *ttime = &dn->dn_time;
+		/* long listing: show {m,c,a}time */
 		if (G.all_fmt & LIST_FULLTIME) { /* --full-time */
 			/* coreutils 8.4 ls --full-time prints:
 			 * 2009-07-13 17:49:27.000000000 +0200
 			 * we don't show fractional seconds.
 			 */
 			char buf[sizeof("YYYY-mm-dd HH:MM:SS TIMEZONE")];
-			strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S %z", localtime(ttime));
+			strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S %z",
+					localtime(&dn->dn_time));
 			column += printf("%s ", buf);
-		} else { /* LIST_DATE_TIME */
+		} else { /* ordinary time format */
 			/* G.current_time_t is ~== time(NULL) */
-			char *filetime = ctime(ttime);
+			char *filetime = ctime(&dn->dn_time);
 			/* filetime's format: "Wed Jun 30 21:49:08 1993\n" */
-			time_t age = G.current_time_t - *ttime;
+			time_t age = G.current_time_t - dn->dn_time;
 			if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
 				/* less than 6 months old */
 				/* "mmm dd hh:mm " */
@@ -626,8 +622,8 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 			}
 			column += 13;
 		}
-	}
 #endif
+	}
 #if ENABLE_SELINUX
 	if (G.all_fmt & LIST_CONTEXT) {
 		column += printf("%-32s ", dn->sid ? dn->sid : "unknown");
