@@ -198,7 +198,6 @@ SPLIT_SUBDIR    = 2,
 
 /* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
 /* what file information will be listed */
-LIST_INO        = 1 << 0,
 LIST_BLOCKS     = 1 << 1,
 LIST_MODEBITS   = 1 << 2,
 LIST_NLINKS     = 1 << 3,
@@ -258,7 +257,7 @@ enum {
 	//OPT_C = (1 << 0),
 	OPT_a = (1 << 1),
 	//OPT_d = (1 << 2),
-	//OPT_i = (1 << 3),
+	OPT_i = (1 << 3),
 	//OPT_1 = (1 << 4),
 	OPT_l = (1 << 5),
 	OPT_g = (1 << 6),
@@ -317,7 +316,7 @@ static const uint32_t opt_flags[] = {
 	STYLE_COLUMNAR,              /* C */
 	0,                           /* a */
 	DISP_NOLIST,                 /* d */
-	LIST_INO,                    /* i */
+	0,                           /* i */
 	STYLE_SINGLE,                /* 1 */
 	LIST_LONG | STYLE_LONG,      /* l - by keeping it after -1, "ls -l -1" ignores -1 */
 	LIST_LONG | STYLE_LONG,      /* g (don't show owner) - handled via OPT_g. assumes l */
@@ -557,7 +556,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		if (S_ISLNK(dn->dn_mode))
 			lpath = xmalloc_readlink_or_warn(dn->fullname);
 
-	if (G.all_fmt & LIST_INO)
+	if (option_mask32 & OPT_i) /* list inodes */
 		column += printf("%7llu ", (long long) dn->dn_ino);
 //TODO: -h should affect -s too:
 	if (G.all_fmt & LIST_BLOCKS)
@@ -707,8 +706,8 @@ static void display_files(struct dnode **dn, unsigned nfiles)
 		}
 		column_width += 2 +
 			IF_SELINUX( ((G.all_fmt & LIST_CONTEXT) ? 33 : 0) + )
-				((G.all_fmt & LIST_INO) ? 8 : 0) +
-				((G.all_fmt & LIST_BLOCKS) ? 5 : 0);
+				((option_mask32 & OPT_i) ? 8 : 0) /* inode# width */
+				+ ((G.all_fmt & LIST_BLOCKS) ? 5 : 0);
 		ncols = (unsigned)G_terminal_width / column_width;
 	}
 
