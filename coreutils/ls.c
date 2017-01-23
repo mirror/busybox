@@ -215,8 +215,6 @@ LIST_MASK       = (LIST_CLASSIFY << 1) - 1,
 
 /* what files will be displayed */
 DISP_DIRNAME    = 1 << 13,      /* 2 or more items? label directories */
-DISP_HIDDEN     = 1 << 14,      /* show filenames starting with . */
-DISP_DOT        = 1 << 15,      /* show . and .. */
 DISP_NOLIST     = 1 << 16,      /* show directory as itself, not contents */
 DISP_RECURSIVE  = 1 << 17,      /* show directory and everything below it */
 DISP_ROWS       = 1 << 18,      /* print across rows */
@@ -258,7 +256,7 @@ static const char ls_options[] ALIGN1 =
 ;
 enum {
 	//OPT_C = (1 << 0),
-	//OPT_a = (1 << 1),
+	OPT_a = (1 << 1),
 	//OPT_d = (1 << 2),
 	//OPT_i = (1 << 3),
 	//OPT_1 = (1 << 4),
@@ -267,7 +265,7 @@ enum {
 	//OPT_n = (1 << 7),
 	//OPT_s = (1 << 8),
 	//OPT_x = (1 << 9),
-	//OPT_A = (1 << 10),
+	OPT_A = (1 << 10),
 	//OPT_k = (1 << 11),
 
 	OPTBIT_F = 12,
@@ -317,7 +315,7 @@ enum {
 /* TODO: simple toggles may be stored as OPT_xxx bits instead */
 static const uint32_t opt_flags[] = {
 	STYLE_COLUMNAR,              /* C */
-	DISP_HIDDEN | DISP_DOT,      /* a */
+	0,                           /* a */
 	DISP_NOLIST,                 /* d */
 	LIST_INO,                    /* i */
 	STYLE_SINGLE,                /* 1 */
@@ -326,7 +324,7 @@ static const uint32_t opt_flags[] = {
 	LIST_LONG | STYLE_LONG | LIST_ID_NUMERIC, /* n (assumes l) */
 	LIST_BLOCKS,                 /* s */
 	DISP_ROWS | STYLE_COLUMNAR,  /* x */
-	DISP_HIDDEN,                 /* A */
+	0,                           /* A */
 	ENABLE_SELINUX * (LIST_CONTEXT|STYLE_SINGLE), /* k (ignored if !SELINUX) */
 #if ENABLE_FEATURE_LS_FILETYPES
 	LIST_FILETYPE | LIST_CLASSIFY, /* F */
@@ -990,13 +988,13 @@ static struct dnode **scan_one_dir(const char *path, unsigned *nfiles_p)
 
 		/* are we going to list the file- it may be . or .. or a hidden file */
 		if (entry->d_name[0] == '.') {
-			if ((!entry->d_name[1] || (entry->d_name[1] == '.' && !entry->d_name[2]))
-			 && !(G.all_fmt & DISP_DOT)
+			if (!(option_mask32 & (OPT_a|OPT_A)))
+				continue; /* skip all dotfiles if no -a/-A */
+			if (!(option_mask32 & OPT_a)
+			 && (!entry->d_name[1] || (entry->d_name[1] == '.' && !entry->d_name[2]))
 			) {
-				continue;
+				continue; /* if only -A, skip . and .. but show other dotfiles */
 			}
-			if (!(G.all_fmt & DISP_HIDDEN))
-				continue;
 		}
 		fullname = concat_path_file(path, entry->d_name);
 		cur = my_stat(fullname, bb_basename(fullname), 0);
@@ -1220,7 +1218,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_FEATURE_LS_RECURSIVE && (G.all_fmt & DISP_NOLIST))
 		G.all_fmt &= ~DISP_RECURSIVE;	/* no recurse if listing only dir */
 	if ((G.all_fmt & STYLE_MASK) != STYLE_LONG) { /* not -l? */
-		G.all_fmt &= ~(LIST_ID_NUMERIC|LIST_ID_NAME|LIST_FULLTIME);
+		G.all_fmt &= ~(LIST_ID_NUMERIC|LIST_ID_NAME);
 		if (ENABLE_FEATURE_LS_TIMESTAMPS && ENABLE_FEATURE_LS_SORTFILES) {
 			/* when to sort by time? -t[cu] sorts by time even with -l */
 			/* (this is achieved by opt_flags[] element for -t) */
