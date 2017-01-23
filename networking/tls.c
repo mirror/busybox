@@ -112,7 +112,7 @@
 #define TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256    0xC029  /* 49193 */
 #define TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384    0xC02A  /* 49194 */
 
-// RFC 5288 "AES Galois Counter Mode (GCM) Cipher Suites for TLS"
+/* RFC 5288 "AES Galois Counter Mode (GCM) Cipher Suites for TLS" */
 #define TLS_RSA_WITH_AES_128_GCM_SHA256         0x009C  /* 156 */
 #define TLS_RSA_WITH_AES_256_GCM_SHA384         0x009D  /* 157 */
 #define TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 0xC02B  /* 49195 */
@@ -125,16 +125,13 @@
 #define TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384    0xC032  /* 49202 */
 
 //Tested against kernel.org:
-//TLS 1.1
-//#define TLS_MAJ 3
-//#define TLS_MIN 2
-//#define CIPHER_ID TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA // ok, recvs SERVER_KEY_EXCHANGE
 //TLS 1.2
 #define TLS_MAJ 3
 #define TLS_MIN 3
 //#define CIPHER_ID TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA // ok, recvs SERVER_KEY_EXCHANGE *** matrixssl uses this on my box
 //#define CIPHER_ID TLS_RSA_WITH_AES_256_CBC_SHA256 // ok, no SERVER_KEY_EXCHANGE
-// All GCMs:
+//#define CIPHER_ID TLS_DH_anon_WITH_AES_256_CBC_SHA // SSL_ALERT_HANDSHAKE_FAILURE
+//^^^^^^^^^^^^^^^^^^^^^^^ (tested b/c this one doesn't req server certs... no luck, server refuses it)
 //#define CIPHER_ID TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 // SSL_ALERT_HANDSHAKE_FAILURE
 //#define CIPHER_ID TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 // SSL_ALERT_HANDSHAKE_FAILURE
 //#define CIPHER_ID TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 // ok, recvs SERVER_KEY_EXCHANGE
@@ -145,9 +142,6 @@
 //#define CIPHER_ID TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256 // SSL_ALERT_HANDSHAKE_FAILURE
 //#define CIPHER_ID TLS_RSA_WITH_AES_256_GCM_SHA384 // ok, no SERVER_KEY_EXCHANGE
 //#define CIPHER_ID TLS_RSA_WITH_AES_128_GCM_SHA256 // ok, no SERVER_KEY_EXCHANGE *** select this?
-//#define CIPHER_ID TLS_DH_anon_WITH_AES_256_CBC_SHA // SSL_ALERT_HANDSHAKE_FAILURE
-//^^^^^^^^^^^^^^^^^^^^^^^ (tested b/c this one doesn't req server certs... no luck)
-//test TLS_RSA_WITH_AES_128_CBC_SHA, in TLS 1.2 it's mandated to be always supported
 
 // works against "openssl s_server -cipher NULL"
 // and against wolfssl-3.9.10-stable/examples/server/server.c:
@@ -163,6 +157,7 @@
 //  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-SHA256
 //  ok:   openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-GCM-SHA256
 //  ok:   openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-SHA
+//        (TLS_RSA_WITH_AES_128_CBC_SHA - in TLS 1.2 it's mandated to be always supported)
 #define CIPHER_ID TLS_RSA_WITH_AES_256_CBC_SHA256 // no SERVER_KEY_EXCHANGE from peer
 
 enum {
@@ -220,14 +215,12 @@ struct record_hdr {
 };
 
 struct tls_handshake_data {
+	sha256_ctx_t handshake_sha256_ctx;
+	uint8_t client_and_server_rand32[2 * 32];
+	uint8_t master_secret[48];
 //TODO: store just the DER key here, parse/use/delete it when sending client key
 //this way it will stay key type agnostic here.
 	psRsaKey_t server_rsa_pub_key;
-// this is also unused after client key is sent
-	uint8_t client_and_server_rand32[2 * 32];
-// these two are unused after finished messages are exchanged:
-	sha256_ctx_t handshake_sha256_ctx;
-	uint8_t master_secret[48];
 };
 
 
@@ -612,8 +605,8 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	tls_get_random(buf - AES_BLOCKSIZE, AES_BLOCKSIZE); /* IV */
 	dbg("before crypt: 5 hdr + %u data + %u hash bytes\n", size, SHA256_OUTSIZE);
 	// RFC is talking nonsense:
-	//    Padding that is added to force the length of the plaintext to be
-	//    an integral multiple of the block cipher's block length.
+	//    "Padding that is added to force the length of the plaintext to be
+	//    an integral multiple of the block cipher's block length."
 	// WRONG. _padding+padding_length_, not just _padding_,
 	// pads the data.
 	// IOW: padding_length is the last byte of padding[] array,
