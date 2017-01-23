@@ -192,10 +192,6 @@ TERMINAL_WIDTH  = 80,           /* use 79 if terminal has linefold bug */
 SPLIT_FILE      = 0,
 SPLIT_DIR       = 1,
 SPLIT_SUBDIR    = 2,
-
-/* Bits in G.all_fmt: */
-/* what files will be displayed */
-DISP_DIRNAME    = 1 << 9,       /* 2 or more items? label directories */
 };
 
 /* -Cadi1l  Std options, busybox always supports */
@@ -330,7 +326,7 @@ struct globals {
 # define G_show_color 0
 #endif
 	smallint exit_code;
-	unsigned all_fmt;
+	smallint show_dirname;
 #if ENABLE_FEATURE_LS_WIDTH
 	unsigned terminal_width;
 # define G_terminal_width (G.terminal_width)
@@ -1010,9 +1006,7 @@ static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 	struct dnode **subdnp;
 
 	for (; *dn; dn++) {
-		if ((G.all_fmt & DISP_DIRNAME)
-		 || (option_mask32 & OPT_R)
-		) {
+		if (G.show_dirname || (option_mask32 & OPT_R)) {
 			if (!first)
 				bb_putchar('\n');
 			first = 0;
@@ -1186,7 +1180,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		*--argv = (char*)".";
 
 	if (argv[1])
-		G.all_fmt |= DISP_DIRNAME; /* 2 or more items? label directories */
+		G.show_dirname = 1; /* 2 or more items? label directories */
 
 	/* stuff the command line file names into a dnode array */
 	dn = NULL;
