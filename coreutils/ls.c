@@ -198,14 +198,12 @@ LIST_LONG       = 1 << 0, /* long listing (-l and equivalents) */
 
 /* what files will be displayed */
 DISP_DIRNAME    = 1 << 1,       /* 2 or more items? label directories */
-DISP_NOLIST     = 1 << 2,       /* show directory as itself, not contents */
-DISP_RECURSIVE  = 1 << 3,       /* show directory and everything below it */
-DISP_ROWS       = 1 << 4,       /* print across rows */
+DISP_ROWS       = 1 << 2,       /* print across rows */
 
 /* what is the overall style of the listing */
-STYLE_COLUMNAR  = 1 << 5,       /* many records per line */
-STYLE_LONG      = 2 << 5,       /* one record per line, extended info */
-STYLE_SINGLE    = 3 << 5,       /* one record per line */
+STYLE_COLUMNAR  = 1 << 3,       /* many records per line */
+STYLE_LONG      = 2 << 3,       /* one record per line, extended info */
+STYLE_SINGLE    = 3 << 3,       /* one record per line */
 STYLE_MASK      = STYLE_SINGLE,
 };
 
@@ -236,7 +234,7 @@ static const char ls_options[] ALIGN1 =
 enum {
 	//OPT_C = (1 << 0),
 	OPT_a = (1 << 1),
-	//OPT_d = (1 << 2),
+	OPT_d = (1 << 2),
 	OPT_i = (1 << 3),
 	//OPT_1 = (1 << 4),
 	OPT_l = (1 << 5),
@@ -292,10 +290,10 @@ enum {
 };
 
 /* TODO: simple toggles may be stored as OPT_xxx bits instead */
-static const uint32_t opt_flags[] = {
+static const uint8_t opt_flags[] = {
 	STYLE_COLUMNAR,              /* C */
 	0,                           /* a */
-	DISP_NOLIST,                 /* d */
+	0,                           /* d */
 	0,                           /* i */
 	STYLE_SINGLE,                /* 1 */
 	LIST_LONG | STYLE_LONG,      /* l - by keeping it after -1, "ls -l -1" ignores -1 */
@@ -303,20 +301,8 @@ static const uint32_t opt_flags[] = {
 	LIST_LONG | STYLE_LONG,      /* n (numeris uid/gid)  - handled via OPT_n. assumes l */
 	0,                           /* s */
 	DISP_ROWS | STYLE_COLUMNAR,  /* x */
-	0,                           /* A */
-	0,                           /* k (ignored) */
-#if ENABLE_FEATURE_LS_FILETYPES
-	0,                           /* F */
-	0,                           /* p */
-#endif
-#if ENABLE_FEATURE_LS_RECURSIVE
-	DISP_RECURSIVE,              /* R */
-#endif
-#if ENABLE_SELINUX
-	0,                           /* Z */
-#endif
-	(1U << 31)
-	/* options after Z are not processed through opt_flags */
+	0xff
+	/* options after -x are not processed through opt_flags */
 };
 
 
@@ -1048,7 +1034,9 @@ static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 	struct dnode **subdnp;
 
 	for (; *dn; dn++) {
-		if (G.all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
+		if ((G.all_fmt & DISP_DIRNAME)
+		 || (option_mask32 & OPT_R)
+		) {
 			if (!first)
 				bb_putchar('\n');
 			first = 0;
@@ -1067,7 +1055,7 @@ static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 			sort_and_display_files(subdnp, nfiles);
 
 			if (ENABLE_FEATURE_LS_RECURSIVE
-			 && (G.all_fmt & DISP_RECURSIVE)
+			 && (option_mask32 & OPT_R)
 			) {
 				struct dnode **dnd;
 				unsigned dndirs;
@@ -1165,7 +1153,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_full_time ) bb_error_msg("--full-time");
 	exit(0);
 #endif
-	for (i = 0; opt_flags[i] != (1U << 31); i++) {
+	for (i = 0; opt_flags[i] != 0xff; i++) {
 		if (opt & (1 << i)) {
 			uint32_t flags = opt_flags[i];
 
@@ -1208,8 +1196,8 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* sort out which command line options take precedence */
-	if (ENABLE_FEATURE_LS_RECURSIVE && (G.all_fmt & DISP_NOLIST))
-		G.all_fmt &= ~DISP_RECURSIVE;	/* no recurse if listing only dir */
+	if (ENABLE_FEATURE_LS_RECURSIVE && (opt & OPT_d))
+		option_mask32 &= ~OPT_R;	/* no recurse if listing only dir */
 	if ((G.all_fmt & STYLE_MASK) != STYLE_LONG) { /* not -l? */
 		if (ENABLE_FEATURE_LS_TIMESTAMPS && ENABLE_FEATURE_LS_SORTFILES) {
 			/* when to sort by time? -t[cu] sorts by time even with -l */
@@ -1270,7 +1258,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 			break;
 	}
 
-	if (G.all_fmt & DISP_NOLIST) {
+	if (option_mask32 & OPT_d) {
 		sort_and_display_files(dnp, nfiles);
 	} else {
 		dnd = splitdnarray(dnp, SPLIT_DIR);
