@@ -154,7 +154,6 @@
 //usage:	)
 //usage:     "\n	-r	Reverse sort order"
 //usage:	IF_SELINUX(
-//usage:     "\n	-k	List security context"
 //usage:     "\n	-Z	List security context and permission"
 //usage:	)
 //usage:	IF_FEATURE_LS_WIDTH(
@@ -198,16 +197,14 @@ SPLIT_SUBDIR    = 2,
 
 /* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
 /* what file information will be listed */
-LIST_MODEBITS   = 1 << 0,
 LIST_LOPT       = 1 << 1, /* long listing (-l and equivalents) */
 LIST_ID_NAME    = 1 << 2,
 LIST_ID_NUMERIC = 1 << 3,
-LIST_CONTEXT    = 1 << 4,
 LIST_FULLTIME   = 1 << 5,
 LIST_FILETYPE   = 1 << 6, /* show / suffix for dirs */
 LIST_CLASSIFY   = 1 << 7, /* requires LIST_FILETYPE, also show *,|,@,= suffixes */
 
-LIST_LONG       = LIST_LOPT | LIST_MODEBITS | LIST_ID_NAME,
+LIST_LONG       = LIST_LOPT | LIST_ID_NAME,
 
 /* what files will be displayed */
 DISP_DIRNAME    = 1 << 8,       /* 2 or more items? label directories */
@@ -225,8 +222,8 @@ STYLE_MASK      = STYLE_SINGLE,
 /* -Cadi1l  Std options, busybox always supports */
 /* -gnsxA   Std options, busybox always supports */
 /* -Q       GNU option, busybox always supports */
-/* -k       SELinux option, busybox always supports (ignores if !SELinux) */
-/*          Std has -k which means "for -s, show sizes in kbytes" */
+/* -k       Std options, busybox always supports (by ignoring) */
+/*          It means "for -s, show sizes in kbytes" */
 /*          Seems to only affect "POSIXLY_CORRECT=1 ls -sk" */
 /*          since otherwise -s shows kbytes anyway */
 /* -LHRctur Std options, busybox optionally supports */
@@ -317,7 +314,7 @@ static const uint32_t opt_flags[] = {
 	0,                           /* s */
 	DISP_ROWS | STYLE_COLUMNAR,  /* x */
 	0,                           /* A */
-	ENABLE_SELINUX * (LIST_CONTEXT|STYLE_SINGLE), /* k (ignored if !SELINUX) */
+	0,                           /* k (ignored) */
 #if ENABLE_FEATURE_LS_FILETYPES
 	LIST_FILETYPE | LIST_CLASSIFY, /* F */
 	LIST_FILETYPE,               /* p */
@@ -326,7 +323,7 @@ static const uint32_t opt_flags[] = {
 	DISP_RECURSIVE,              /* R */
 #endif
 #if ENABLE_SELINUX
-	LIST_MODEBITS|LIST_ID_NAME|LIST_CONTEXT|STYLE_SINGLE, /* Z */
+	0,                           /* Z */
 #endif
 	(1U << 31)
 	/* options after Z are not processed through opt_flags */
@@ -554,10 +551,12 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 //TODO: -h should affect -s too:
 	if (option_mask32 & OPT_s) /* show allocated blocks */
 		column += printf("%6"OFF_FMT"u ", (off_t) (dn->dn_blocks >> 1));
-	if (G.all_fmt & LIST_MODEBITS)
+	if (G.all_fmt & LIST_LOPT) {
+		/* long listing: show mode */
 		column += printf("%-10s ", (char *) bb_mode_string(dn->dn_mode));
-	if (G.all_fmt & LIST_LOPT) /* long listing: show number of links */
+		/* long listing: show number of links */
 		column += printf("%4lu ", (long) dn->dn_nlink);
+	}
 	if (G.all_fmt & LIST_ID_NUMERIC) {
 		if (option_mask32 & OPT_g)
 			column += printf("%-8u ", (int) dn->dn_gid);
@@ -576,6 +575,12 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 				get_cached_username(dn->dn_uid),
 				get_cached_groupname(dn->dn_gid));
 		}
+	}
+#endif
+#if ENABLE_SELINUX
+	if (option_mask32 & OPT_Z) {
+		column += printf("%-32s ", dn->sid ? dn->sid : "?");
+		freecon(dn->sid);
 	}
 #endif
 	if (G.all_fmt & LIST_LOPT) {
@@ -624,12 +629,6 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		}
 #endif
 	}
-#if ENABLE_SELINUX
-	if (G.all_fmt & LIST_CONTEXT) {
-		column += printf("%-32s ", dn->sid ? dn->sid : "unknown");
-		freecon(dn->sid);
-	}
-#endif
 
 #if ENABLE_FEATURE_LS_COLOR
 	if (G_show_color) {
@@ -698,7 +697,7 @@ static void display_files(struct dnode **dn, unsigned nfiles)
 				column_width = len;
 		}
 		column_width += 2
-			IF_SELINUX(+ ((G.all_fmt & LIST_CONTEXT) ? 33 : 0))
+			+ ((option_mask32 & OPT_Z) ? 33 : 0) /* context width */
 			+ ((option_mask32 & OPT_i) ? 8 : 0) /* inode# width */
 			+ ((option_mask32 & OPT_s) ? 5 : 0) /* "alloc block" width */
 		;
@@ -752,7 +751,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 
 	if ((option_mask32 & OPT_L) || force_follow) {
 #if ENABLE_SELINUX
-		if (is_selinux_enabled())  {
+		if (option_mask32 & OPT_Z) {
 			getfilecon(fullname, &cur->sid);
 		}
 #endif
@@ -765,7 +764,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 		cur->dn_mode_stat = statbuf.st_mode;
 	} else {
 #if ENABLE_SELINUX
-		if (is_selinux_enabled()) {
+		if (option_mask32 & OPT_Z) {
 			lgetfilecon(fullname, &cur->sid);
 		}
 #endif
@@ -1182,6 +1181,12 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 			G.all_fmt |= flags;
 		}
 	}
+#if ENABLE_SELINUX
+	if (opt & OPT_Z) {
+		if (!is_selinux_enabled())
+			option_mask32 &= ~OPT_Z;
+	}
+#endif
 	if (opt & OPT_full_time)
 		G.all_fmt |= LIST_FULLTIME;
 
