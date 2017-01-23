@@ -194,23 +194,18 @@ SPLIT_DIR       = 1,
 SPLIT_SUBDIR    = 2,
 
 /* Bits in G.all_fmt: */
-
-/* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
-/* what file information will be listed */
 LIST_LONG       = 1 << 0, /* long listing (-l and equivalents) */
-LIST_FILETYPE   = 1 << 1, /* show / suffix for dirs */
-LIST_CLASSIFY   = 1 << 2, /* requires LIST_FILETYPE, also show *,|,@,= suffixes */
 
 /* what files will be displayed */
-DISP_DIRNAME    = 1 << 3,       /* 2 or more items? label directories */
-DISP_NOLIST     = 1 << 4,       /* show directory as itself, not contents */
-DISP_RECURSIVE  = 1 << 5,       /* show directory and everything below it */
-DISP_ROWS       = 1 << 6,       /* print across rows */
+DISP_DIRNAME    = 1 << 1,       /* 2 or more items? label directories */
+DISP_NOLIST     = 1 << 2,       /* show directory as itself, not contents */
+DISP_RECURSIVE  = 1 << 3,       /* show directory and everything below it */
+DISP_ROWS       = 1 << 4,       /* print across rows */
 
 /* what is the overall style of the listing */
-STYLE_COLUMNAR  = 1 << 7,       /* many records per line */
-STYLE_LONG      = 2 << 8,       /* one record per line, extended info */
-STYLE_SINGLE    = 3 << 9,       /* one record per line */
+STYLE_COLUMNAR  = 1 << 5,       /* many records per line */
+STYLE_LONG      = 2 << 5,       /* one record per line, extended info */
+STYLE_SINGLE    = 3 << 5,       /* one record per line */
 STYLE_MASK      = STYLE_SINGLE,
 };
 
@@ -311,8 +306,8 @@ static const uint32_t opt_flags[] = {
 	0,                           /* A */
 	0,                           /* k (ignored) */
 #if ENABLE_FEATURE_LS_FILETYPES
-	LIST_FILETYPE | LIST_CLASSIFY, /* F */
-	LIST_FILETYPE,               /* p */
+	0,                           /* F */
+	0,                           /* p */
 #endif
 #if ENABLE_FEATURE_LS_RECURSIVE
 	DISP_RECURSIVE,              /* R */
@@ -449,11 +444,12 @@ static char bold(mode_t mode)
 #if ENABLE_FEATURE_LS_FILETYPES
 static char append_char(mode_t mode)
 {
-	if (!(G.all_fmt & LIST_FILETYPE))
+	if (!(option_mask32 & (OPT_F|OPT_p)))
 		return '\0';
+
 	if (S_ISDIR(mode))
 		return '/';
-	if (!(G.all_fmt & LIST_CLASSIFY))
+	if (!(option_mask32 & OPT_F))
 		return '\0';
 	if (S_ISREG(mode) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		return '*';
@@ -643,7 +639,9 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 	if (lpath) {
 		printf(" -> ");
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
-		if ((G.all_fmt & LIST_FILETYPE) || G_show_color) {
+		if ((option_mask32 & (OPT_F|OPT_p))
+		 || G_show_color
+		) {
 			mode_t mode = dn->dn_mode_stat;
 			if (!mode)
 				if (stat(dn->fullname, &statbuf) == 0)
@@ -665,7 +663,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		}
 	}
 #if ENABLE_FEATURE_LS_FILETYPES
-	if (G.all_fmt & LIST_FILETYPE) {
+	if (option_mask32 & (OPT_F|OPT_p)) {
 		if (append) {
 			putchar(append);
 			column++;
