@@ -7,7 +7,7 @@
 # Licensed under GPLv2, see file LICENSE in this source tree.
 #
 
-local BASE="${1:-/usr/lib/modules}"
+BASE="${1:-/usr/lib/modules}"
 
 find "$BASE" -name '*.ko.gz' | while read I ; do
 	N=`basename "$I" '.ko.gz'`

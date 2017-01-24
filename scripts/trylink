@@ -46,8 +46,7 @@ try() {
 }
 
 check_cc() {
-    local tempname="$(mktemp tmp.XXXXXXXXXX)"
-    local r
+    tempname="$(mktemp tmp.XXXXXXXXXX)"
     echo "int main(int argc,char**argv){return argv?argc:0;}" >"$tempname".c
     # Can use "-o /dev/null", but older gcc tend to *unlink it* on failure! :(
     # Was using "-xc /dev/null", but we need a valid C program.
@@ -55,14 +54,13 @@ check_cc() {
     # '... -D"BB_VER=KBUILD_STR(1.N.M)" ...'
     # and we need shell to process quotes!
     $CC $CFLAGS $LDFLAGS $1 "$tempname".c -o "$tempname" >/dev/null 2>&1
-    r=$?
+    exitcode=$?
     rm -f "$tempname" "$tempname".c "$tempname".o
-    return $r
+    return $exitcode
 }
 
 check_libc_is_glibc() {
-    local tempname="$(mktemp tmp.XXXXXXXXXX)"
-    local r
+    tempname="$(mktemp tmp.XXXXXXXXXX)"
     echo "\
 	#include <stdlib.h>
 	/* Apparently uclibc defines __GLIBC__ (compat trick?). Oh well. */
@@ -71,9 +69,9 @@ check_libc_is_glibc() {
 	#endif
 	" >"$tempname".c
     ! $CC $CFLAGS "$tempname".c -c -o "$tempname".o >/dev/null 2>&1
-    r=$?
+    exitcode=$?
     rm -f "$tempname" "$tempname".c "$tempname".o
-    return $r
+    return $exitcode
 }
 
 EXE="$1"

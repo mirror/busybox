@@ -20,7 +20,9 @@ chk() { status "CHK" "$@"; }
 generate()
 {
 	# NB: data to be inserted at INSERT line is coming on stdin
-	local src="$1" dst="$2" header="$3"
+	src="$1"
+	dst="$2"
+	header="$3"
 	#chk "${dst}"
 	{
 		# Need to use printf: different shells have inconsistent

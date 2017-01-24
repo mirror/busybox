@@ -12,12 +12,12 @@ total_failed=0
 # Option -e will make testcase stop on the first failed command.
 run_applet_testcase()
 {
-	local applet="$1"
-	local testcase="$2"
+	applet="$1"
+	testcase="$2"
 
-	local status=0
-	local uc_applet=$(echo "$applet" | tr a-z A-Z)
-	local testname="$testcase"
+	status=0
+	uc_applet=$(echo "$applet" | tr a-z A-Z)
+	testname="$testcase"
 
 	testname="${testname##*/}" # take basename
 	if grep "^# CONFIG_$uc_applet is not set$" "$bindir/.config" >/dev/null; then
