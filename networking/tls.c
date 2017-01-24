@@ -484,21 +484,24 @@ static void prf_hmac(tls_state_t *tls,
 
 static void bad_record_die(tls_state_t *tls, const char *expected, int len)
 {
-	bb_error_msg_and_die("got bad TLS record (len:%d) while expecting %s", len, expected);
+	bb_error_msg("got bad TLS record (len:%d) while expecting %s", len, expected);
 	if (len > 0) {
 		uint8_t *p = tls->inbuf;
-		while (len > 0)
+		while (len > 0) {
 			fprintf(stderr, " %02x", *p++);
+			len--;
+		}
 		fputc('\n', stderr);
 	}
 	xfunc_die();
 }
 
-static void tls_error_die(tls_state_t *tls)
+static void tls_error_die(tls_state_t *tls, int line)
 {
 	dump_tls_record(tls->inbuf, tls->ofs_to_buffered + tls->buffered_size);
-	bb_error_msg_and_die("TODO: useful diagnostic about %p", tls);
+	bb_error_msg_and_die("tls error at line %d cipher:%04x", line, tls->cipher_id);
 }
+#define tls_error_die(tls) tls_error_die(tls, __LINE__)
 
 #if 0 //UNUSED
 static void tls_free_inbuf(tls_state_t *tls)
@@ -1343,6 +1346,26 @@ static void get_server_cert(tls_state_t *tls)
 		find_key_in_der_cert(tls, certbuf + 10, len);
 }
 
+static void send_empty_client_cert(tls_state_t *tls)
+{
+	struct client_empty_cert {
+		uint8_t type;
+		uint8_t len24_hi, len24_mid, len24_lo;
+		uint8_t cert_chain_len24_hi, cert_chain_len24_mid, cert_chain_len24_lo;
+	};
+	struct client_empty_cert *record;
+
+	record = tls_get_outbuf(tls, sizeof(*record));
+//FIXME: can just memcpy a ready-made one.
+	fill_handshake_record_hdr(record, HANDSHAKE_CERTIFICATE, sizeof(*record));
+	record->cert_chain_len24_hi = 0;
+	record->cert_chain_len24_mid = 0;
+	record->cert_chain_len24_lo = 0;
+
+	dbg(">> CERTIFICATE\n");
+	xwrite_and_update_handshake_hash(tls, sizeof(*record));
+}
+
 static void send_client_key_exchange(tls_state_t *tls)
 {
 	struct client_key_exchange {
@@ -1584,23 +1607,25 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 		// 0c   00|01|c9 03|00|17|41|04|cd|9b|b4|29|1f|f6|b0|c2|84|82|7f|29|6a|47|4e|ec|87|0b|c1|9c|69|e1|f8|c6|d0|53|e9|27|90|a5|c8|02|15|75...
 		dbg("<< SERVER_KEY_EXCHANGE len:%u\n", len);
 //probably need to save it
-		tls_xread_handshake_block(tls, 4);
+		len = tls_xread_handshake_block(tls, 4);
 	}
 
-//	if (tls->inbuf[RECHDR_LEN] == HANDSHAKE_CERTIFICATE_REQUEST) {
-//		dbg("<< CERTIFICATE_REQUEST\n");
-// RFC 5246: (in response to this,) "If no suitable certificate is available,
-// the client MUST send a certificate message containing no
-// certificates.  That is, the certificate_list structure has a
-// length of zero. ...
-// Client certificates are sent using the Certificate structure
-// defined in Section 7.4.2."
-// (i.e. the same format as server certs)
-//		tls_xread_handshake_block(tls, 4);
-//	}
+	if (tls->inbuf[RECHDR_LEN] == HANDSHAKE_CERTIFICATE_REQUEST) {
+		dbg("<< CERTIFICATE_REQUEST\n");
+		// RFC 5246: "If no suitable certificate is available,
+		// the client MUST send a certificate message containing no
+		// certificates.  That is, the certificate_list structure has a
+		// length of zero. ...
+		// Client certificates are sent using the Certificate structure
+		// defined in Section 7.4.2."
+		// (i.e. the same format as server certs)
+		send_empty_client_cert(tls);
+		len = tls_xread_handshake_block(tls, 4);
+	}
 
-	if (tls->inbuf[RECHDR_LEN] != HANDSHAKE_SERVER_HELLO_DONE)
-		tls_error_die(tls);
+	if (tls->inbuf[RECHDR_LEN] != HANDSHAKE_SERVER_HELLO_DONE) {
+		bad_record_die(tls, "'server hello done'", len);
+	}
 	// 0e 000000 (len:0)
 	dbg("<< SERVER_HELLO_DONE\n");
 
@@ -1616,7 +1641,7 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 	/* Get CHANGE_CIPHER_SPEC */
 	len = tls_xread_record(tls);
 	if (len != 1 || memcmp(tls->inbuf, rec_CHANGE_CIPHER_SPEC, 6) != 0)
-		tls_error_die(tls);
+		bad_record_die(tls, "switch to encrypted traffic", len);
 	dbg("<< CHANGE_CIPHER_SPEC\n");
 	if (tls->cipher_id == TLS_RSA_WITH_NULL_SHA256)
 		tls->min_encrypted_len_on_read = tls->MAC_size;
