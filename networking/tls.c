@@ -53,15 +53,14 @@
 //  ok:   openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-SHA
 //        (TLS_RSA_WITH_AES_128_CBC_SHA - in TLS 1.2 it's mandated to be always supported)
 #define CIPHER_ID1  TLS_RSA_WITH_AES_256_CBC_SHA256 // no SERVER_KEY_EXCHANGE from peer
-// Does not work yet:
-//#define CIPHER_ID2  TLS_RSA_WITH_AES_128_CBC_SHA
-#define CIPHER_ID2  0
+// Works with "wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.9.5.tar.xz"
+#define CIPHER_ID2  TLS_RSA_WITH_AES_128_CBC_SHA
 
 
-#define TLS_DEBUG      1
-#define TLS_DEBUG_HASH 1
-#define TLS_DEBUG_DER  1
-#define TLS_DEBUG_FIXED_SECRETS 1
+#define TLS_DEBUG      0
+#define TLS_DEBUG_HASH 0
+#define TLS_DEBUG_DER  0
+#define TLS_DEBUG_FIXED_SECRETS 0
 #if 0
 # define dump_raw_out(...) dump_hex(__VA_ARGS__)
 #else
@@ -340,40 +339,40 @@ static void hash_handshake(tls_state_t *tls, const char *fmt, const void *buffer
 // if we often need HMAC hmac with the same key.
 //
 // text is often given in disjoint pieces.
-static unsigned hmac_sha_precomputed_v(uint8_t *out,
-		md5sha_ctx_t *hashed_key_xor_ipad,
-		md5sha_ctx_t *hashed_key_xor_opad,
+typedef struct hmac_precomputed {
+	md5sha_ctx_t hashed_key_xor_ipad;
+	md5sha_ctx_t hashed_key_xor_opad;
+} hmac_precomputed_t;
+
+static unsigned hmac_sha_precomputed_v(
+		hmac_precomputed_t *pre,
+		uint8_t *out,
 		va_list va)
 {
 	uint8_t *text;
 	unsigned len;
 
-	/* hashed_key_xor_ipad contains unclosed "H((key XOR ipad) +" state */
-	/* hashed_key_xor_opad contains unclosed "H((key XOR opad) +" state */
+	/* pre->hashed_key_xor_ipad contains unclosed "H((key XOR ipad) +" state */
+	/* pre->hashed_key_xor_opad contains unclosed "H((key XOR opad) +" state */
 
 	/* calculate out = H((key XOR ipad) + text) */
 	while ((text = va_arg(va, uint8_t*)) != NULL) {
 		unsigned text_size = va_arg(va, unsigned);
-		md5sha_hash(hashed_key_xor_ipad, text, text_size);
+		md5sha_hash(&pre->hashed_key_xor_ipad, text, text_size);
 	}
-	len = sha_end(hashed_key_xor_ipad, out);
+	len = sha_end(&pre->hashed_key_xor_ipad, out);
 
 	/* out = H((key XOR opad) + out) */
-	md5sha_hash(hashed_key_xor_opad, out, len);
-	return sha_end(hashed_key_xor_opad, out);
+	md5sha_hash(&pre->hashed_key_xor_opad, out, len);
+	return sha_end(&pre->hashed_key_xor_opad, out);
 }
 
-static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_size, ...)
+static void hmac_sha256_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size)
 {
-	md5sha_ctx_t hashed_key_xor_ipad;
-	md5sha_ctx_t hashed_key_xor_opad;
 	uint8_t key_xor_ipad[SHA_INSIZE];
 	uint8_t key_xor_opad[SHA_INSIZE];
 	uint8_t tempkey[SHA256_OUTSIZE];
-	va_list va;
 	unsigned i;
-
-	va_start(va, key_size);
 
 	// "The authentication key can be of any length up to INSIZE, the
 	// block length of the hash function.  Applications that use keys longer
@@ -381,10 +380,7 @@ static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_
 	// resultant OUTSIZE byte string as the actual key to HMAC."
 	if (key_size > SHA_INSIZE) {
 		md5sha_ctx_t ctx;
-		if (tls->MAC_size == SHA256_OUTSIZE)
-			sha256_begin(&ctx);
-		else
-			sha1_begin(&ctx);
+		sha256_begin(&ctx);
 		md5sha_hash(&ctx, key, key_size);
 		key_size = sha_end(&ctx, tempkey);
 	}
@@ -398,19 +394,77 @@ static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_
 		key_xor_opad[i] = 0x5c;
 	}
 
-	if (tls->MAC_size == SHA256_OUTSIZE) {
-		sha256_begin(&hashed_key_xor_ipad);
-		sha256_begin(&hashed_key_xor_opad);
-	} else {
-		sha1_begin(&hashed_key_xor_ipad);
-		sha1_begin(&hashed_key_xor_opad);
-	}
-	md5sha_hash(&hashed_key_xor_ipad, key_xor_ipad, SHA_INSIZE);
-	md5sha_hash(&hashed_key_xor_opad, key_xor_opad, SHA_INSIZE);
+	sha256_begin(&pre->hashed_key_xor_ipad);
+	sha256_begin(&pre->hashed_key_xor_opad);
+	md5sha_hash(&pre->hashed_key_xor_ipad, key_xor_ipad, SHA_INSIZE);
+	md5sha_hash(&pre->hashed_key_xor_opad, key_xor_opad, SHA_INSIZE);
+}
+// TODO: ^^^ vvv merge?
+static void hmac_sha1_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size)
+{
+	uint8_t key_xor_ipad[SHA_INSIZE];
+	uint8_t key_xor_opad[SHA_INSIZE];
+	uint8_t tempkey[SHA1_OUTSIZE];
+	unsigned i;
 
-	i = hmac_sha_precomputed_v(out, &hashed_key_xor_ipad, &hashed_key_xor_opad, va);
+	// "The authentication key can be of any length up to INSIZE, the
+	// block length of the hash function.  Applications that use keys longer
+	// than INSIZE bytes will first hash the key using H and then use the
+	// resultant OUTSIZE byte string as the actual key to HMAC."
+	if (key_size > SHA_INSIZE) {
+		md5sha_ctx_t ctx;
+		sha1_begin(&ctx);
+		md5sha_hash(&ctx, key, key_size);
+		key_size = sha_end(&ctx, tempkey);
+	}
+
+	for (i = 0; i < key_size; i++) {
+		key_xor_ipad[i] = key[i] ^ 0x36;
+		key_xor_opad[i] = key[i] ^ 0x5c;
+	}
+	for (; i < SHA_INSIZE; i++) {
+		key_xor_ipad[i] = 0x36;
+		key_xor_opad[i] = 0x5c;
+	}
+
+	sha1_begin(&pre->hashed_key_xor_ipad);
+	sha1_begin(&pre->hashed_key_xor_opad);
+	md5sha_hash(&pre->hashed_key_xor_ipad, key_xor_ipad, SHA_INSIZE);
+	md5sha_hash(&pre->hashed_key_xor_opad, key_xor_opad, SHA_INSIZE);
+}
+
+static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_size, ...)
+{
+	hmac_precomputed_t pre;
+	va_list va;
+	unsigned len;
+
+	va_start(va, key_size);
+
+	if (tls->MAC_size == SHA256_OUTSIZE)
+		hmac_sha256_begin(&pre, key, key_size);
+	else
+		hmac_sha1_begin(&pre, key, key_size);
+
+	len = hmac_sha_precomputed_v(&pre, out, va);
+
 	va_end(va);
-	return i;
+	return len;
+}
+
+static unsigned hmac_sha256(/*tls_state_t *tls,*/ uint8_t *out, uint8_t *key, unsigned key_size, ...)
+{
+	hmac_precomputed_t pre;
+	va_list va;
+	unsigned len;
+
+	va_start(va, key_size);
+
+	hmac_sha256_begin(&pre, key, key_size);
+	len = hmac_sha_precomputed_v(&pre, out, va);
+
+	va_end(va);
+	return len;
 }
 
 // RFC 5246:
@@ -420,6 +474,9 @@ static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_
 // SHA-256 hash function is used for all cipher suites defined in this
 // document and in TLS documents published prior to this document when
 // TLS 1.2 is negotiated.
+// ^^^^^^^^^^^^^ IMPORTANT!
+//               PRF uses sha256 regardless of cipher (at least for all ciphers
+//               defined by RFC5246). It's not sha1 for AES_128_CBC_SHA!
 //...
 //    P_hash(secret, seed) = HMAC_hash(secret, A(1) + seed) +
 //                           HMAC_hash(secret, A(2) + seed) +
@@ -441,7 +498,7 @@ static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_
 //    PRF(secret, label, seed) = P_<hash>(secret, label + seed)
 //
 // The label is an ASCII string.
-static void prf_hmac(tls_state_t *tls,
+static void prf_hmac_sha256(/*tls_state_t *tls,*/
 		uint8_t *outbuf, unsigned outbuf_size,
 		uint8_t *secret, unsigned secret_size,
 		const char *label,
@@ -450,7 +507,7 @@ static void prf_hmac(tls_state_t *tls,
 	uint8_t a[TLS_MAX_MAC_SIZE];
 	uint8_t *out_p = outbuf;
 	unsigned label_size = strlen(label);
-	unsigned MAC_size = tls->MAC_size;
+	unsigned MAC_size = SHA256_OUTSIZE;///tls->MAC_size;
 
 	/* In P_hash() calculation, "seed" is "label + seed": */
 #define SEED   label, label_size, seed, seed_size
@@ -458,7 +515,7 @@ static void prf_hmac(tls_state_t *tls,
 #define A      a, MAC_size
 
 	/* A(1) = HMAC_hash(secret, seed) */
-	hmac(tls, a, SECRET, SEED, NULL);
+	hmac_sha256(/*tls,*/ a, SECRET, SEED, NULL);
 //TODO: convert hmac to precomputed
 
 	for(;;) {
@@ -466,16 +523,16 @@ static void prf_hmac(tls_state_t *tls,
 		if (outbuf_size <= MAC_size) {
 			/* Last, possibly incomplete, block */
 			/* (use a[] as temp buffer) */
-			hmac(tls, a, SECRET, A, SEED, NULL);
+			hmac_sha256(/*tls,*/ a, SECRET, A, SEED, NULL);
 			memcpy(out_p, a, outbuf_size);
 			return;
 		}
 		/* Not last block. Store directly to result buffer */
-		hmac(tls, out_p, SECRET, A, SEED, NULL);
+		hmac_sha256(/*tls,*/ out_p, SECRET, A, SEED, NULL);
 		out_p += MAC_size;
 		outbuf_size -= MAC_size;
 		/* A(2) = HMAC_hash(secret, A(1)) */
-		hmac(tls, a, SECRET, A, NULL);
+		hmac_sha256(/*tls,*/ a, SECRET, A, NULL);
 	}
 #undef A
 #undef SECRET
@@ -823,9 +880,10 @@ static int tls_xread_record(tls_state_t *tls)
 		int padding_len;
 
 		if (sz & (AES_BLOCKSIZE-1)
-		 || sz < tls->min_encrypted_len_on_read
+		 || sz < (int)tls->min_encrypted_len_on_read
 		) {
-			bb_error_msg_and_die("bad encrypted len:%u", sz);
+			bb_error_msg_and_die("bad encrypted len:%u < %u",
+				sz, tls->min_encrypted_len_on_read);
 		}
 		/* Decrypt content+MAC+padding, moving it over IV in the process */
 		psAesInit(&ctx, p, /* IV */
@@ -1301,13 +1359,17 @@ static void get_server_hello(tls_state_t *tls)
 	if (cipher == TLS_RSA_WITH_AES_128_CBC_SHA) {
 		tls->key_size = AES128_KEYSIZE;
 		tls->MAC_size = SHA1_OUTSIZE;
-		sha1_begin(&tls->hsd->handshake_hash_ctx);
 	}
 	else { /* TLS_RSA_WITH_AES_256_CBC_SHA256 */
 		tls->key_size = AES256_KEYSIZE;
 		tls->MAC_size = SHA256_OUTSIZE;
-		sha256_begin(&tls->hsd->handshake_hash_ctx);
 	}
+	/* Handshake hash eventually destined to FINISHED record
+	 * is sha256 regardless of cipher
+	 * (at least for all ciphers defined by RFC5246).
+	 * It's not sha1 for AES_128_CBC_SHA - only MAC is sha1, not this hash.
+	 */
+	sha256_begin(&tls->hsd->handshake_hash_ctx);
 	hash_handshake(tls, ">> client hello hash:%s",
 		tls->hsd->saved_client_hello, tls->hsd->saved_client_hello_size
 	);
@@ -1389,6 +1451,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	// version negotiated for the connection."
 	rsa_premaster[0] = TLS_MAJ;
 	rsa_premaster[1] = TLS_MIN;
+	dump_hex("premaster:%s\n", rsa_premaster, sizeof(rsa_premaster));
 	len = psRsaEncryptPub(/*pool:*/ NULL,
 		/* psRsaKey_t* */ &tls->hsd->server_rsa_pub_key,
 		rsa_premaster, /*inlen:*/ sizeof(rsa_premaster),
@@ -1417,7 +1480,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	//                          [0..47];
 	// The master secret is always exactly 48 bytes in length.  The length
 	// of the premaster secret will vary depending on key exchange method.
-	prf_hmac(tls,
+	prf_hmac_sha256(/*tls,*/
 		tls->hsd->master_secret, sizeof(tls->hsd->master_secret),
 		rsa_premaster, sizeof(rsa_premaster),
 		"master secret",
@@ -1465,7 +1528,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 		memcpy(&tmp64[0] , &tls->hsd->client_and_server_rand32[32], 32);
 		memcpy(&tmp64[32], &tls->hsd->client_and_server_rand32[0] , 32);
 
-		prf_hmac(tls,
+		prf_hmac_sha256(/*tls,*/
 			tls->client_write_MAC_key, 2 * (tls->MAC_size + tls->key_size),
 			// also fills:
 			// server_write_MAC_key[]
@@ -1548,7 +1611,7 @@ static void send_client_finished(tls_state_t *tls)
 	fill_handshake_record_hdr(record, HANDSHAKE_FINISHED, sizeof(*record));
 
 	len = get_handshake_hash(tls, handshake_hash);
-	prf_hmac(tls,
+	prf_hmac_sha256(/*tls,*/
 		record->prf_result, sizeof(record->prf_result),
 		tls->hsd->master_secret, sizeof(tls->hsd->master_secret),
 		"client finished",
@@ -1645,9 +1708,14 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 	dbg("<< CHANGE_CIPHER_SPEC\n");
 	if (tls->cipher_id == TLS_RSA_WITH_NULL_SHA256)
 		tls->min_encrypted_len_on_read = tls->MAC_size;
-	else
-		/* all incoming packets now should be encrypted and have IV + MAC + padding */
-		tls->min_encrypted_len_on_read = AES_BLOCKSIZE + tls->MAC_size + AES_BLOCKSIZE;
+	else {
+		unsigned mac_blocks = (unsigned)(tls->MAC_size + AES_BLOCKSIZE-1) / AES_BLOCKSIZE;
+		/* all incoming packets now should be encrypted and have
+		 * at least IV + (MAC padded to blocksize):
+		 */
+		tls->min_encrypted_len_on_read = AES_BLOCKSIZE + (mac_blocks * AES_BLOCKSIZE);
+		dbg("min_encrypted_len_on_read: %u", tls->min_encrypted_len_on_read);
+	}
 
 	/* Get (encrypted) FINISHED from the server */
 	len = tls_xread_record(tls);
