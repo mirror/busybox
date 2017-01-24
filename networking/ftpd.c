@@ -47,20 +47,26 @@
 //kbuild:lib-$(CONFIG_FTPD) += ftpd.o
 
 //usage:#define ftpd_trivial_usage
-//usage:       "[-wvS] [-t N] [-T N] [DIR]"
+//usage:       "[-wvS]"IF_FEATURE_FTPD_AUTHENTICATION(" [-a USER]")" [-t N] [-T N] [DIR]"
 //usage:#define ftpd_full_usage "\n\n"
-//usage:       "Anonymous FTP server\n"
-//usage:       "\n"
-//usage:       "ftpd should be used as an inetd service.\n"
-//usage:       "ftpd's line for inetd.conf:\n"
+//usage:	IF_NOT_FEATURE_FTPD_AUTHENTICATION(
+//usage:       "Anonymous FTP server. Accesses by clients occur under ftpd's UID.\n"
+//usage:	)
+//usage:	IF_FEATURE_FTPD_AUTHENTICATION(
+//usage:       "FTP server. "
+//usage:	)
+//usage:       "Chroots to DIR, if this fails (run by non-root), cds to it.\n"
+//usage:       "Should be used as inetd service, inetd.conf line:\n"
 //usage:       "	21 stream tcp nowait root ftpd ftpd /files/to/serve\n"
-//usage:       "It also can be ran from tcpsvd:\n"
+//usage:       "Can be run from tcpsvd:\n"
 //usage:       "	tcpsvd -vE 0.0.0.0 21 ftpd /files/to/serve\n"
 //usage:     "\n	-w	Allow upload"
 //usage:     "\n	-v	Log errors to stderr. -vv: verbose log"
 //usage:     "\n	-S	Log errors to syslog. -SS: verbose log"
+//usage:	IF_FEATURE_FTPD_AUTHENTICATION(
+//usage:     "\n	-a USER	Enable 'anonymous' login and map it to USER"
+//usage:	)
 //usage:     "\n	-t,-T	Idle and absolute timeouts"
-//usage:     "\n	DIR	Change root to this directory"
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -1154,6 +1160,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 {
 #if ENABLE_FEATURE_FTPD_AUTHENTICATION
 	struct passwd *pw = NULL;
+	char *anon_opt = NULL;
 #endif
 	unsigned abs_timeout;
 	unsigned verbose_S;
@@ -1166,12 +1173,18 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	G.timeout = 2 * 60;
 	opt_complementary = "vv:SS";
 #if BB_MMU
-	opts = getopt32(argv,    "vS" IF_FEATURE_FTPD_WRITE("w") "t:+T:+", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
+	opts = getopt32(argv,    "vS"
+		IF_FEATURE_FTPD_WRITE("w") "t:+T:+" IF_FEATURE_FTPD_AUTHENTICATION("a:"),
+		&G.timeout, &abs_timeout, IF_FEATURE_FTPD_AUTHENTICATION(&anon_opt,)
+		&G.verbose, &verbose_S);
 #else
-	opts = getopt32(argv, "l1AvS" IF_FEATURE_FTPD_WRITE("w") "t:+T:+", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
+	opts = getopt32(argv, "l1AvS"
+		IF_FEATURE_FTPD_WRITE("w") "t:+T:+" IF_FEATURE_FTPD_AUTHENTICATION("a:"),
+		&G.timeout, &abs_timeout, IF_FEATURE_FTPD_AUTHENTICATION(&anon_opt,)
+		&G.verbose, &verbose_S);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
-/* TODO: pass --group-directories-first? would be nice, but ls doesn't do that yet */
+/* TODO: pass --group-directories-first? */
 		if (fchdir(3) != 0)
 			_exit(127);
 		/* memset(&G, 0, sizeof(G)); - ls_main does it */
@@ -1234,7 +1247,12 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_FTPD_AUTHENTICATION
 	while (1) {
 		uint32_t cmdval = cmdio_get_cmd_and_arg();
-			if (cmdval == const_USER) {
+		if (cmdval == const_USER) {
+			if (anon_opt && strcmp(G.ftp_arg, "anonymous") == 0) {
+				pw = getpwnam(anon_opt);
+				if (pw)
+					break; /* does not even ask for password */
+			}
 			pw = getpwnam(G.ftp_arg);
 			cmdio_write_raw(STR(FTP_GIVEPWORD)" Please specify password\r\n");
 		} else if (cmdval == const_PASS) {
