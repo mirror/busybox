@@ -94,20 +94,21 @@
 /* Since we ignore these opts, we don't show them in --help */
 /* //usage:    "	[--no-check-certificate] [--no-cache] [--passive-ftp] [-t TRIES]" */
 /* //usage:    "	[-nv] [-nc] [-nH] [-np]" */
-//usage:       "	[-U|--user-agent AGENT]" IF_FEATURE_WGET_TIMEOUT(" [-T SEC]") " URL..."
+//usage:       "	[-S|--server-response] [-U|--user-agent AGENT]" IF_FEATURE_WGET_TIMEOUT(" [-T SEC]") " URL..."
 //usage:	)
 //usage:	IF_NOT_FEATURE_WGET_LONG_OPTIONS(
-//usage:       "[-cq] [-O FILE] [-Y on/off] [-P DIR] [-U AGENT]"
+//usage:       "[-cq] [-O FILE] [-Y on/off] [-P DIR] [-S] [-U AGENT]"
 //usage:			IF_FEATURE_WGET_TIMEOUT(" [-T SEC]") " URL..."
 //usage:	)
 //usage:#define wget_full_usage "\n\n"
 //usage:       "Retrieve files via HTTP or FTP\n"
 //usage:	IF_FEATURE_WGET_LONG_OPTIONS(
-//usage:     "\n	--spider	Spider mode - only check file existence"
+//usage:     "\n	--spider	Only check URL existence: $? is 0 if exists"
 //usage:	)
 //usage:     "\n	-c		Continue retrieval of aborted transfer"
 //usage:     "\n	-q		Quiet"
 //usage:     "\n	-P DIR		Save to DIR (default .)"
+//usage:     "\n	-S    		Show server response"
 //usage:	IF_FEATURE_WGET_TIMEOUT(
 //usage:     "\n	-T SEC		Network read timeout is SEC seconds"
 //usage:	)
@@ -223,16 +224,17 @@ struct globals {
 enum {
 	WGET_OPT_CONTINUE   = (1 << 0),
 	WGET_OPT_QUIET      = (1 << 1),
-	WGET_OPT_OUTNAME    = (1 << 2),
-	WGET_OPT_PREFIX     = (1 << 3),
-	WGET_OPT_PROXY      = (1 << 4),
-	WGET_OPT_USER_AGENT = (1 << 5),
-	WGET_OPT_NETWORK_READ_TIMEOUT = (1 << 6),
-	WGET_OPT_RETRIES    = (1 << 7),
-	WGET_OPT_nsomething = (1 << 8),
-	WGET_OPT_HEADER     = (1 << 9) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
-	WGET_OPT_POST_DATA  = (1 << 10) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
-	WGET_OPT_SPIDER     = (1 << 11) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	WGET_OPT_SERVER_RESPONSE = (1 << 2),
+	WGET_OPT_OUTNAME    = (1 << 3),
+	WGET_OPT_PREFIX     = (1 << 4),
+	WGET_OPT_PROXY      = (1 << 5),
+	WGET_OPT_USER_AGENT = (1 << 6),
+	WGET_OPT_NETWORK_READ_TIMEOUT = (1 << 7),
+	WGET_OPT_RETRIES    = (1 << 8),
+	WGET_OPT_nsomething = (1 << 9),
+	WGET_OPT_HEADER     = (1 << 10) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	WGET_OPT_POST_DATA  = (1 << 11) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	WGET_OPT_SPIDER     = (1 << 12) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
 };
 
 enum {
@@ -386,7 +388,7 @@ static FILE *open_socket(len_and_sockaddr *lsa)
 }
 
 /* Returns '\n' if it was seen, else '\0'. Trims at first '\r' or '\n' */
-static char fgets_and_trim(FILE *fp)
+static char fgets_and_trim(FILE *fp, const char *fmt)
 {
 	char c;
 	char *buf_ptr;
@@ -404,6 +406,9 @@ static char fgets_and_trim(FILE *fp)
 
 	log_io("< %s", G.wget_buf);
 
+	if (fmt && (option_mask32 & WGET_OPT_SERVER_RESPONSE))
+		fprintf(stderr, fmt, G.wget_buf);
+
 	return c;
 }
 
@@ -414,12 +419,15 @@ static int ftpcmd(const char *s1, const char *s2, FILE *fp)
 		if (!s2)
 			s2 = "";
 		fprintf(fp, "%s%s\r\n", s1, s2);
+		/* With --server-response, wget also shows its ftp commands */
+		if (option_mask32 & WGET_OPT_SERVER_RESPONSE)
+			fprintf(stderr, "--> %s%s\n\n", s1, s2);
 		fflush(fp);
 		log_io("> %s%s", s1, s2);
 	}
 
 	do {
-		fgets_and_trim(fp);
+		fgets_and_trim(fp, "%s\n");
 	} while (!isdigit(G.wget_buf[0]) || G.wget_buf[3] != ' ');
 
 	G.wget_buf[3] = '\0';
@@ -516,7 +524,7 @@ static char *gethdr(FILE *fp)
 	int c;
 
 	/* retrieve header line */
-	c = fgets_and_trim(fp);
+	c = fgets_and_trim(fp, "  %s\n");
 
 	/* end of the headers? */
 	if (G.wget_buf[0] == '\0')
@@ -884,9 +892,9 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 		if (!G.chunked)
 			break;
 
-		fgets_and_trim(dfp); /* Eat empty line */
+		fgets_and_trim(dfp, NULL); /* Eat empty line */
  get_clen:
-		fgets_and_trim(dfp);
+		fgets_and_trim(dfp, NULL);
 		G.content_len = STRTOOFF(G.wget_buf, NULL, 16);
 		/* FIXME: error check? */
 		if (G.content_len == 0)
@@ -1116,7 +1124,7 @@ static void download_one_url(const char *url)
 		 * Retrieve HTTP response line and check for "200" status code.
 		 */
  read_response:
-		fgets_and_trim(sfp);
+		fgets_and_trim(sfp, "  %s\n");
 
 		str = G.wget_buf;
 		str = skip_non_whitespace(str);
@@ -1301,6 +1309,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		/* name, has_arg, val */
 		"continue\0"         No_argument       "c"
 		"quiet\0"            No_argument       "q"
+		"server-response\0"  No_argument       "S"
 		"output-document\0"  Required_argument "O"
 		"directory-prefix\0" Required_argument "P"
 		"proxy\0"            Required_argument "Y"
@@ -1343,7 +1352,7 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 #endif
 	opt_complementary = "-1" /* at least one URL */
 		IF_FEATURE_WGET_LONG_OPTIONS(":\xff::"); /* --header is a list */
-	getopt32(argv, "cqO:P:Y:U:T:+"
+	getopt32(argv, "cqSO:P:Y:U:T:+"
 		/*ignored:*/ "t:"
 		/*ignored:*/ "n::"
 		/* wget has exactly four -n<letter> opts, all of which we can ignore:
