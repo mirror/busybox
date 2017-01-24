@@ -166,7 +166,7 @@ static uint8_t *hash_file(const char *filename, unsigned sha3_width)
 	} context;
 	uint8_t *hash_value;
 	void FAST_FUNC (*update)(void*, const void*, size_t);
-	void FAST_FUNC (*final)(void*, void*);
+	unsigned FAST_FUNC (*final)(void*, void*);
 	char hash_algo;
 
 	src_fd = open_or_warn_stdin(filename);

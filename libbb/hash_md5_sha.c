@@ -458,7 +458,7 @@ void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
  * endian byte order, so that a byte-wise output yields to the wanted
  * ASCII representation of the message digest.
  */
-void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
+unsigned FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 {
 	/* MD5 stores total in LE, need to swap on BE arches: */
 	common64_end(ctx, /*swap_needed:*/ BB_BIG_ENDIAN);
@@ -472,6 +472,7 @@ void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 	}
 
 	memcpy(resbuf, ctx->hash, sizeof(ctx->hash[0]) * 4);
+	return sizeof(ctx->hash[0]) * 4;
 }
 
 
@@ -865,7 +866,7 @@ void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 #endif /* NEED_SHA512 */
 
 /* Used also for sha256 */
-void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
+unsigned FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 {
 	unsigned hash_size;
 
@@ -879,11 +880,13 @@ void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 		for (i = 0; i < hash_size; ++i)
 			ctx->hash[i] = SWAP_BE32(ctx->hash[i]);
 	}
-	memcpy(resbuf, ctx->hash, sizeof(ctx->hash[0]) * hash_size);
+	hash_size *= sizeof(ctx->hash[0]);
+	memcpy(resbuf, ctx->hash, hash_size);
+	return hash_size;
 }
 
 #if NEED_SHA512
-void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
+unsigned FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 {
 	unsigned bufpos = ctx->total64[0] & 127;
 
@@ -915,6 +918,7 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 			ctx->hash[i] = SWAP_BE64(ctx->hash[i]);
 	}
 	memcpy(resbuf, ctx->hash, sizeof(ctx->hash));
+	return sizeof(ctx->hash);
 }
 #endif /* NEED_SHA512 */
 
@@ -1450,7 +1454,7 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len)
 #endif
 }
 
-void FAST_FUNC sha3_end(sha3_ctx_t *ctx, void *resbuf)
+unsigned FAST_FUNC sha3_end(sha3_ctx_t *ctx, void *resbuf)
 {
 	/* Padding */
 	uint8_t *buf = (uint8_t*)ctx->state;
@@ -1475,4 +1479,5 @@ void FAST_FUNC sha3_end(sha3_ctx_t *ctx, void *resbuf)
 
 	/* Output */
 	memcpy(resbuf, ctx->state, 64);
+	return 64;
 }

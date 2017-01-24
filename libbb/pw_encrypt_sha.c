@@ -18,9 +18,10 @@ static char *
 NOINLINE
 sha_crypt(/*const*/ char *key_data, /*const*/ char *salt_data)
 {
+#undef sha_end
 	void (*sha_begin)(void *ctx) FAST_FUNC;
 	void (*sha_hash)(void *ctx, const void *buffer, size_t len) FAST_FUNC;
-	void (*sha_end)(void *ctx, void *resbuf) FAST_FUNC;
+	unsigned (*sha_end)(void *ctx, void *resbuf) FAST_FUNC;
 	int _32or64;
 
 	char *result, *resptr;

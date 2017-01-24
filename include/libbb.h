@@ -713,18 +713,19 @@ struct hostent *xgethostbyname(const char *name) FAST_FUNC;
 // Also mount.c and inetd.c are using gethostbyname(),
 // + inet_common.c has additional IPv4-only stuff
 
-#define SHA256_INSIZE  64
-#define SHA256_OUTSIZE 32
-#define AES_BLOCKSIZE  16
-#define AES128_KEYSIZE 16
-#define AES256_KEYSIZE 32
+
+#define TLS_MAX_MAC_SIZE 32
+#define TLS_MAX_KEY_SIZE 32
 struct tls_handshake_data; /* opaque */
 typedef struct tls_state {
-	int     ofd;
-	int     ifd;
+	int ofd;
+	int ifd;
 
-	int     min_encrypted_len_on_read;
-	uint8_t encrypt_on_write;
+	int      min_encrypted_len_on_read;
+	uint16_t cipher_id;
+	uint8_t  encrypt_on_write;
+	unsigned MAC_size;
+	unsigned key_size;
 
 	uint8_t *outbuf;
 	int     outbuf_size;
@@ -746,10 +747,12 @@ typedef struct tls_state {
 	/*uint64_t read_seq64_be;*/
 	uint64_t write_seq64_be;
 
-	uint8_t client_write_MAC_key[SHA256_OUTSIZE];
-	uint8_t server_write_MAC_key[SHA256_OUTSIZE];
-	uint8_t client_write_key[AES256_KEYSIZE];
-	uint8_t server_write_key[AES256_KEYSIZE];
+	uint8_t *client_write_key;
+	uint8_t *server_write_key;
+	uint8_t client_write_MAC_key[TLS_MAX_MAC_SIZE];
+	uint8_t server_write_MAC_k__[TLS_MAX_MAC_SIZE];
+	uint8_t client_write_k__[TLS_MAX_KEY_SIZE];
+	uint8_t server_write_k__[TLS_MAX_KEY_SIZE];
 } tls_state_t;
 
 static inline tls_state_t *new_tls_state(void)
@@ -759,6 +762,7 @@ static inline tls_state_t *new_tls_state(void)
 }
 void tls_handshake(tls_state_t *tls, const char *sni) FAST_FUNC;
 void tls_run_copy_loop(tls_state_t *tls) FAST_FUNC;
+
 
 void socket_want_pktinfo(int fd) FAST_FUNC;
 ssize_t send_to_from(int fd, void *buf, size_t len, int flags,
@@ -1799,19 +1803,23 @@ typedef struct sha3_ctx_t {
 } sha3_ctx_t;
 void md5_begin(md5_ctx_t *ctx) FAST_FUNC;
 void md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
-void md5_end(md5_ctx_t *ctx, void *resbuf) FAST_FUNC;
+unsigned md5_end(md5_ctx_t *ctx, void *resbuf) FAST_FUNC;
 void sha1_begin(sha1_ctx_t *ctx) FAST_FUNC;
 #define sha1_hash md5_hash
-void sha1_end(sha1_ctx_t *ctx, void *resbuf) FAST_FUNC;
+unsigned sha1_end(sha1_ctx_t *ctx, void *resbuf) FAST_FUNC;
 void sha256_begin(sha256_ctx_t *ctx) FAST_FUNC;
 #define sha256_hash md5_hash
 #define sha256_end  sha1_end
 void sha512_begin(sha512_ctx_t *ctx) FAST_FUNC;
 void sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
-void sha512_end(sha512_ctx_t *ctx, void *resbuf) FAST_FUNC;
+unsigned sha512_end(sha512_ctx_t *ctx, void *resbuf) FAST_FUNC;
 void sha3_begin(sha3_ctx_t *ctx) FAST_FUNC;
 void sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
-void sha3_end(sha3_ctx_t *ctx, void *resbuf) FAST_FUNC;
+unsigned sha3_end(sha3_ctx_t *ctx, void *resbuf) FAST_FUNC;
+/* TLS benefits from knowing that sha1 and sha256 share these. Give them "agnostic" names too */
+typedef struct md5_ctx_t md5sha_ctx_t;
+#define md5sha_hash md5_hash
+#define sha_end sha1_end
 
 extern uint32_t *global_crc32_table;
 uint32_t *crc32_filltable(uint32_t *tbl256, int endian) FAST_FUNC;
