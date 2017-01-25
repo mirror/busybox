@@ -125,7 +125,7 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 		free(bigbuf);
 	}
 
-	sprintf(buf, "\"  \" %u/1 \"%%_p\" \"\n\"", cols); // "  ASCII\n"
+	sprintf(buf, "\"  \"%u/1 \"%%_p\"\"\n\"", cols); // "  ASCII\n"
 	bb_dump_add(dumper, buf);
 
 	return bb_dump_dump(dumper, argv);

@@ -127,8 +127,8 @@ int hexdump_main(int argc, char **argv)
 		if (ch == 'C') {
  hd_applet:
 			bb_dump_add(dumper, "\"%08.8_Ax\n\""); // final address line after dump
-			//------------------- "address  "  8 * "xx "      "  " 8 * "xx "
-			bb_dump_add(dumper, "\"%08.8_ax  \"8/1 \"%02x \" \"  \"8/1 \"%02x \"");
+			//------------------- "address  "   8 * "xx "    "  "  8 * "xx "
+			bb_dump_add(dumper, "\"%08.8_ax  \"8/1 \"%02x \"\"  \"8/1 \"%02x \"");
 			//------------------- "  |ASCII...........|\n"
 			bb_dump_add(dumper, "\"  |\"16/1 \"%_p\"\"|\n\"");
 		}
