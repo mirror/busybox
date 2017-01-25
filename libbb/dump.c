@@ -14,12 +14,12 @@
 #include "libbb.h"
 #include "dump.h"
 
-static const char index_str[] ALIGN1 = ".#-+ 0123456789";
+static const char dot_flags_width_chars[] ALIGN1 = ".#-+ 0123456789";
 
 static const char size_conv_str[] ALIGN1 =
 "\x1\x4\x4\x4\x4\x4\x4\x8\x8\x8\x8\010cdiouxXeEfgG";
 
-static const char lcc[] ALIGN1 = "diouxX";
+static const char int_convs[] ALIGN1 = "diouxX";
 
 
 typedef struct priv_dumper_t {
@@ -71,7 +71,7 @@ static NOINLINE int bb_dump_size(FS *fs)
 			 * skip any special chars -- save precision in
 			 * case it's a %s format.
 			 */
-			while (strchr(index_str + 1, *++fmt))
+			while (strchr(dot_flags_width_chars + 1, *++fmt))
 				continue;
 			if (*fmt == '.' && isdigit(*++fmt)) {
 				prec = atoi(fmt);
@@ -82,14 +82,15 @@ static NOINLINE int bb_dump_size(FS *fs)
 			if (!p) {
 				if (*fmt == 's') {
 					bcnt += prec;
-				} else if (*fmt == '_') {
+				}
+				if (*fmt == '_') {
 					++fmt;
 					if ((*fmt == 'c') || (*fmt == 'p') || (*fmt == 'u')) {
 						bcnt += 1;
 					}
 				}
 			} else {
-				bcnt += size_conv_str[p - (size_conv_str + 12)];
+				bcnt += p[-12];
 			}
 		}
 		cur_size += bcnt * fu->reps;
@@ -99,32 +100,30 @@ static NOINLINE int bb_dump_size(FS *fs)
 
 static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 {
-	enum { NOTOKAY, USEBCNT, USEPREC } sokay;
 	FU *fu;
-	PR *pr;
-	char *p1, *p2, *p3;
-	char savech, *fmtp;
-	const char *byte_count_str;
-	int nconv, prec = 0;
 
 	for (fu = fs->nextfu; fu; fu = fu->nextfu) {
+		PR *pr;
+		char *p1, *p2, *p3;
+		char *fmtp;
+		int nconv = 0;
 		/*
 		 * break each format unit into print units; each
 		 * conversion character gets its own.
 		 */
-		for (nconv = 0, fmtp = fu->fmt; *fmtp; ) {
-			/* NOSTRICT */
-			/* DBU:[dvae@cray.com] zalloc so that forward ptrs start out NULL*/
-			pr = xzalloc(sizeof(PR));
+		for (fmtp = fu->fmt; *fmtp; ) {
+			unsigned len;
+			const char *prec;
+			const char *byte_count_str;
+
+			/* DBU:[dvae@cray.com] zalloc so that forward ptrs start out NULL */
+			pr = xzalloc(sizeof(*pr));
 			if (!fu->nextpr)
 				fu->nextpr = pr;
 
 			/* skip preceding text and up to the next % sign */
-			for (p1 = fmtp; *p1 && *p1 != '%'; ++p1)
-				continue;
-
-			/* only text in the string */
-			if (!*p1) {
+			p1 = strchr(fmtp, '%');
+			if (!p1) { /* only text in the string */
 				pr->fmt = fmtp;
 				pr->flags = F_TEXT;
 				break;
@@ -134,22 +133,20 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 			 * get precision for %s -- if have a byte count, don't
 			 * need it.
 			 */
+			prec = NULL;
 			if (fu->bcnt) {
-				sokay = USEBCNT;
 				/* skip to conversion character */
-				for (++p1; strchr(index_str, *p1); ++p1)
+				while (strchr(dot_flags_width_chars, *++p1))
 					continue;
 			} else {
 				/* skip any special chars, field width */
-				while (strchr(index_str + 1, *++p1))
+				while (strchr(dot_flags_width_chars + 1, *++p1))
 					continue;
 				if (*p1 == '.' && isdigit(*++p1)) {
-					sokay = USEPREC;
-					prec = atoi(p1);
+					prec = p1;
 					while (isdigit(*++p1))
 						continue;
-				} else
-					sokay = NOTOKAY;
+				}
 			}
 
 			p2 = p1 + 1; /* set end pointer */
@@ -174,63 +171,63 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 				}
 				/* Unlike the original, output the remainder of the format string. */
 				pr->bcnt = *byte_count_str;
-			} else if (*p1 == 'l') {
+			} else
+			if (*p1 == 'l') { /* %ld etc */
+				const char *e;
+
 				++p2;
 				++p1;
  DO_INT_CONV:
-				{
-					const char *e;
-					e = strchr(lcc, *p1);
-					if (!e) {
-						goto DO_BAD_CONV_CHAR;
-					}
-					pr->flags = F_INT;
-					if (e > lcc + 1) {
-						pr->flags = F_UINT;
-					}
-					byte_count_str = "\004\002\001";
-					goto DO_BYTE_COUNT;
-				}
-				/* NOTREACHED */
-			} else if (strchr(lcc, *p1)) {
+				e = strchr(int_convs, *p1); /* "diouxX"? */
+				if (!e)
+					goto DO_BAD_CONV_CHAR;
+				pr->flags = F_INT;
+				if (e > int_convs + 1) /* not d or i? */
+					pr->flags = F_UINT;
+				byte_count_str = "\004\002\001";
+				goto DO_BYTE_COUNT;
+			} else
+			if (strchr(int_convs, *p1)) { /* %d etc */
 				goto DO_INT_CONV;
-			} else if (strchr("eEfgG", *p1)) {
+			} else
+			if (strchr("eEfgG", *p1)) { /* floating point */
 				pr->flags = F_DBL;
 				byte_count_str = "\010\004";
 				goto DO_BYTE_COUNT;
-			} else if (*p1 == 's') {
+			} else
+			if (*p1 == 's') {
 				pr->flags = F_STR;
-				if (sokay == USEBCNT) {
-					pr->bcnt = fu->bcnt;
-				} else if (sokay == USEPREC) {
-					pr->bcnt = prec;
-				} else {   /* NOTOKAY */
-					bb_error_msg_and_die("%%s requires a precision or a byte count");
+				pr->bcnt = fu->bcnt;
+				if (fu->bcnt == 0) {
+					if (!prec)
+						bb_error_msg_and_die("%%s needs precision or byte count");
+					pr->bcnt = atoi(prec);
 				}
-			} else if (*p1 == '_') {
-				++p2;
+			} else
+			if (*p1 == '_') {
+				p2++;  /* move past a in "%_a" */
 				switch (p1[1]) {
-				case 'A':
+				case 'A':	/* %_A[dox]: print address and the end */
 					dumper->endfu = fu;
 					fu->flags |= F_IGNORE;
 					/* FALLTHROUGH */
-				case 'a':
+				case 'a':	/* %_a[dox]: current address */
 					pr->flags = F_ADDRESS;
-					++p2;
+					p2++;  /* move past x in "%_ax" */
 					if ((p1[2] != 'd') && (p1[2] != 'o') && (p1[2] != 'x')) {
 						goto DO_BAD_CONV_CHAR;
 					}
 					*p1 = p1[2];
 					break;
-				case 'c':
+				case 'c':	/* %_c: chars, \ooo, \n \r \t etc */
 					pr->flags = F_C;
 					/* *p1 = 'c';   set in conv_c */
 					goto DO_BYTE_COUNT_1;
-				case 'p':
+				case 'p':	/* %_p: chars, dots for nonprintable */
 					pr->flags = F_P;
 					*p1 = 'c';
 					goto DO_BYTE_COUNT_1;
-				case 'u':
+				case 'u':	/* %_p: chars, 'nul', 'esc' etc for nonprintable */
 					pr->flags = F_U;
 					/* *p1 = 'c';   set in conv_u */
 					goto DO_BYTE_COUNT_1;
@@ -246,13 +243,8 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 			 * copy to PR format string, set conversion character
 			 * pointer, update original.
 			 */
-			savech = *p2;
-			p1[1] = '\0';
-			pr->fmt = xstrdup(fmtp);
-			*p2 = savech;
-			//Too early! xrealloc can move pr->fmt!
-			//pr->cchar = pr->fmt + (p1 - fmtp);
-
+			len = (p1 - fmtp) + 1;
+			pr->fmt = xstrndup(fmtp, len);
 			/* DBU:[dave@cray.com] w/o this, trailing fmt text, space is lost.
 			 * Skip subsequent text and up to the next % sign and tack the
 			 * additional text onto fmt: eg. if fmt is "%x is a HEX number",
@@ -260,16 +252,17 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 			 */
 			for (p3 = p2; *p3 && *p3 != '%'; p3++)
 				continue;
-			if (p3 > p2) {
-				savech = *p3;
-				*p3 = '\0';
-				pr->fmt = xrealloc(pr->fmt, strlen(pr->fmt) + (p3-p2) + 1);
-				strcat(pr->fmt, p2);
-				*p3 = savech;
-				p2 = p3;
+			if ((p3 - p2) != 0) {
+				char *d;
+				pr->fmt = d = xrealloc(pr->fmt, len + (p3 - p2) + 1);
+				d += len;
+				do {
+					*d++ = *p2++;
+				} while (p2 != p3);
+				*d = '\0';
+				/* now p2 = p3 */
 			}
-
-			pr->cchar = pr->fmt + (p1 - fmtp);
+			pr->cchar = pr->fmt + len - 1; /* must be after realloc! */
 			fmtp = p2;
 
 			/* only one conversion character if byte count */
@@ -281,7 +274,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 		 * if format unit byte count not specified, figure it out
 		 * so can adjust rep count later.
 		 */
-		if (!fu->bcnt)
+		if (fu->bcnt == 0)
 			for (pr = fu->nextpr; pr; pr = pr->nextpr)
 				fu->bcnt += pr->bcnt;
 	}
@@ -303,16 +296,18 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 			fu->reps += (dumper->blocksize - fs->bcnt) / fu->bcnt;
 		}
 		if (fu->reps > 1 && fu->nextpr) {
+			PR *pr;
+			char *p1, *p2;
+
 			for (pr = fu->nextpr;; pr = pr->nextpr)
 				if (!pr->nextpr)
 					break;
-			for (p1 = pr->fmt, p2 = NULL; *p1; ++p1)
+			p2 = NULL;
+			for (p1 = pr->fmt; *p1; ++p1)
 				p2 = isspace(*p1) ? p1 : NULL;
 			if (p2)
 				pr->nospace = p2;
 		}
-		if (!fu->nextfu)
-			break;
 	}
 }
 
@@ -356,6 +351,7 @@ static NOINLINE int next(priv_dumper_t *dumper)
 			if (dumper->next__done)
 				return 0; /* no next file */
 			dumper->next__done = 1;
+//why stat of stdin is specially prohibited?
 			statok = 0;
 		}
 		if (dumper->pub.dump_skip)
@@ -760,6 +756,11 @@ void FAST_FUNC bb_dump_add(dumper_t* pub_dumper, const char *fmt)
 			if (!isspace(*p)) {
 				bb_error_msg_and_die("bad format {%s}", fmt);
 			}
+// Above check prohibits formats such as '/1"%02x"' - it requires space after 1.
+// Other than this, formats can be pretty much jammed together:
+// "%07_ax:"8/2 "%04x|""\n"
+// but this space is required. The check *can* be removed, but
+// keeping it to stay compat with util-linux hexdump.
 			tfu->bcnt = atoi(savep);
 			/* skip trailing white space */
 			p = skip_whitespace(p + 1);
