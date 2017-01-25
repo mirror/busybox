@@ -129,7 +129,7 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 		}
 		// for -g3, this results in B B BS B B BS... B = "xxxxxx xxxxxx .....xx"
 		// todo: can be more clever and use
-		// one "cols-1/B" format instead of many "B B B..." formats
+		// one 'bytes-1/1 "%02x"' format instead of many "B B B..." formats
 		//bb_error_msg("ADDED:'%s'", bigbuf);
 		bb_dump_add(dumper, bigbuf);
 		free(bigbuf);
@@ -138,6 +138,8 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opt & OPT_p)) {
 		sprintf(buf, "\"  \"%u/1 \"%%_p\"\"\n\"", cols); // "  ASCII\n"
 		bb_dump_add(dumper, buf);
+	} else {
+		bb_dump_add(dumper, "\"\n\"");
 	}
 
 	return bb_dump_dump(dumper, argv);
