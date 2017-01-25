@@ -61,12 +61,12 @@
 //usage:       "Can be run from tcpsvd:\n"
 //usage:       "	tcpsvd -vE 0.0.0.0 21 ftpd /files/to/serve\n"
 //usage:     "\n	-w	Allow upload"
-//usage:     "\n	-v	Log errors to stderr. -vv: verbose log"
-//usage:     "\n	-S	Log errors to syslog. -SS: verbose log"
 //usage:	IF_FEATURE_FTPD_AUTHENTICATION(
 //usage:     "\n	-a USER	Enable 'anonymous' login and map it to USER"
 //usage:	)
-//usage:     "\n	-t,-T	Idle and absolute timeouts"
+//usage:     "\n	-v	Log errors to stderr. -vv: verbose log"
+//usage:     "\n	-S	Log errors to syslog. -SS: verbose log"
+//usage:     "\n	-t,-T N	Idle and absolute timeout"
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -701,7 +701,7 @@ popen_ls(const char *opt)
 		dup(STDOUT_FILENO); /* copy will become STDIN_FILENO */
 #if BB_MMU
 		/* memset(&G, 0, sizeof(G)); - ls_main does it */
-		exit(ls_main(ARRAY_SIZE(argv) - 1, (char**) argv));
+		exit(ls_main(/*argc_unused*/ 0, (char**) argv));
 #else
 		cur_fd = xopen(".", O_RDONLY | O_DIRECTORY);
 		/* On NOMMU, we want to execute a child - copy of ourself
@@ -1152,11 +1152,7 @@ enum {
 };
 
 int ftpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-#if !BB_MMU
-int ftpd_main(int argc, char **argv)
-#else
 int ftpd_main(int argc UNUSED_PARAM, char **argv)
-#endif
 {
 #if ENABLE_FEATURE_FTPD_AUTHENTICATION
 	struct passwd *pw = NULL;
@@ -1184,11 +1180,10 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		&G.verbose, &verbose_S);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
-/* TODO: pass --group-directories-first? */
 		if (fchdir(3) != 0)
 			_exit(127);
 		/* memset(&G, 0, sizeof(G)); - ls_main does it */
-		return ls_main(argc, argv);
+		return ls_main(/*argc_unused*/ 0, argv);
 	}
 #endif
 	if (G.verbose < verbose_S)

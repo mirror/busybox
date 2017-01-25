@@ -1045,7 +1045,7 @@ static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 
 
 int ls_main(int argc UNUSED_PARAM, char **argv)
-{
+{	/*      ^^^^^^^^^^^^^^^^^ note: if FTPD, argc can be wrong, see ftpd.c */
 	struct dnode **dnd;
 	struct dnode **dnf;
 	struct dnode **dnp;
@@ -1174,6 +1174,11 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	/* choose a display format if one was not already specified by an option */
 	if (!(option_mask32 & (OPT_l|OPT_1|OPT_x|OPT_C)))
 		option_mask32 |= (isatty(STDOUT_FILENO) ? OPT_C : OPT_1);
+
+	if (ENABLE_FTPD && applet_name[0] == 'f') {
+		/* ftpd secret backdoor. dirs first are much nicer */
+		option_mask32 |= OPT_dirs_first;
+	}
 
 	argv += optind;
 	if (!argv[0])
