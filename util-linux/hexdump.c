@@ -47,6 +47,7 @@
 //usage:     "\n	-d		Two-byte decimal display"
 //usage:     "\n	-e FORMAT_STRING"
 //usage:     "\n	-f FORMAT_FILE"
+// exactly the same help text lines in hexdump and xxd:
 //usage:     "\n	-n LENGTH	Interpret only LENGTH bytes of input"
 //usage:     "\n	-o		Two-byte octal display"
 //usage:     "\n	-s OFFSET	Skip OFFSET bytes"
@@ -83,11 +84,11 @@ static void bb_dump_addfile(dumper_t *dumper, char *name)
 }
 
 static const char *const add_strings[] = {
-	"\"%07.7_ax \" 16/1 \"%03o \" \"\\n\"",   /* b */
-	"\"%07.7_ax \" 16/1 \"%3_c \" \"\\n\"",   /* c */
-	"\"%07.7_ax \" 8/2 \"  %05u \" \"\\n\"",  /* d */
-	"\"%07.7_ax \" 8/2 \" %06o \" \"\\n\"",   /* o */
-	"\"%07.7_ax \" 8/2 \"   %04x \" \"\\n\"", /* x */
+	"\"%07.7_ax \"16/1 \"%03o \"\"\n\"",   /* b */
+	"\"%07.7_ax \"16/1 \"%3_c \"\"\n\"",   /* c */
+	"\"%07.7_ax \"8/2 \"  %05u \"\"\n\"",  /* d */
+	"\"%07.7_ax \"8/2 \" %06o \"\"\n\"",   /* o */
+	"\"%07.7_ax \"8/2 \"   %04x \"\"\n\"", /* x */
 };
 
 static const char add_first[] ALIGN1 = "\"%07.7_Ax\n\"";
@@ -125,9 +126,11 @@ int hexdump_main(int argc, char **argv)
 		/* Save a little bit of space below by omitting the 'else's. */
 		if (ch == 'C') {
  hd_applet:
-			bb_dump_add(dumper, "\"%08.8_Ax\n\"");
-			bb_dump_add(dumper, "\"%08.8_ax  \" 8/1 \"%02x \" \"  \" 8/1 \"%02x \" ");
-			bb_dump_add(dumper, "\"  |\" 16/1 \"%_p\" \"|\\n\"");
+			bb_dump_add(dumper, "\"%08.8_Ax\n\""); // final address line after dump
+			//------------------- "address  "  8 * "xx "      "  " 8 * "xx "
+			bb_dump_add(dumper, "\"%08.8_ax  \"8/1 \"%02x \" \"  \"8/1 \"%02x \"");
+			//------------------- "  |ASCII...........|\n"
+			bb_dump_add(dumper, "\"  |\"16/1 \"%_p\"\"|\n\"");
 		}
 		if (ch == 'e') {
 			bb_dump_add(dumper, optarg);
@@ -158,7 +161,7 @@ int hexdump_main(int argc, char **argv)
 
 	if (!dumper->fshead) {
 		bb_dump_add(dumper, add_first);
-		bb_dump_add(dumper, "\"%07.7_ax \" 8/2 \"%04x \" \"\\n\"");
+		bb_dump_add(dumper, "\"%07.7_ax \"8/2 \"%04x \"\"\n\"");
 	}
 
 	argv += optind;

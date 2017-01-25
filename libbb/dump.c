@@ -165,16 +165,14 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 				byte_count_str = "\001";
  DO_BYTE_COUNT:
 				if (fu->bcnt) {
-					do {
-						if (fu->bcnt == *byte_count_str) {
+					for (;;) {
+						if (fu->bcnt == *byte_count_str)
 							break;
-						}
-					} while (*++byte_count_str);
+						if (*++byte_count_str == 0)
+							bb_error_msg_and_die("bad byte count for conversion character %s", p1);
+					}
 				}
 				/* Unlike the original, output the remainder of the format string. */
-				if (!*byte_count_str) {
-					bb_error_msg_and_die("bad byte count for conversion character %s", p1);
-				}
 				pr->bcnt = *byte_count_str;
 			} else if (*p1 == 'l') {
 				++p2;
