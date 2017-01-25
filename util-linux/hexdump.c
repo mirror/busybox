@@ -41,20 +41,21 @@
 //usage:       "[-bcCdefnosvx" IF_FEATURE_HEXDUMP_REVERSE("R") "] [FILE]..."
 //usage:#define hexdump_full_usage "\n\n"
 //usage:       "Display FILEs (or stdin) in a user specified format\n"
-//usage:     "\n	-b		One-byte octal display"
-//usage:     "\n	-c		One-byte character display"
-//usage:     "\n	-C		Canonical hex+ASCII, 16 bytes per line"
-//usage:     "\n	-d		Two-byte decimal display"
-//usage:     "\n	-e FORMAT_STRING"
+//usage:     "\n	-b		1-byte octal display"
+//usage:     "\n	-c		1-byte character display"
+//usage:     "\n	-d		2-byte decimal display"
+//usage:     "\n	-o		2-byte octal display"
+//usage:     "\n	-x		2-byte hex display"
+//usage:     "\n	-C		hex+ASCII 16 bytes per line"
+//usage:     "\n	-v		Show all (no dup folding)"
+//usage:     "\n	-e FORMAT_STR	Example: '16/1 \"%02x|\"\"\\n\"'"
 //usage:     "\n	-f FORMAT_FILE"
 // exactly the same help text lines in hexdump and xxd:
-//usage:     "\n	-n LENGTH	Interpret only LENGTH bytes of input"
-//usage:     "\n	-o		Two-byte octal display"
+//usage:     "\n	-n LENGTH	Show only first LENGTH bytes"
 //usage:     "\n	-s OFFSET	Skip OFFSET bytes"
-//usage:     "\n	-v		Display all input data"
-//usage:     "\n	-x		Two-byte hexadecimal display"
 //usage:	IF_FEATURE_HEXDUMP_REVERSE(
 //usage:     "\n	-R		Reverse of 'hexdump -Cv'")
+// TODO: NONCOMPAT!!! move -R to xxd -r
 //usage:
 //usage:#define hd_trivial_usage
 //usage:       "FILE..."

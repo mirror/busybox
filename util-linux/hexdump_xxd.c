@@ -46,9 +46,11 @@
 //usage:       "Hex dump FILE (or stdin)\n"
 //usage:     "\n	-g N		Bytes per group"
 //usage:     "\n	-c N		Bytes per line"
+//usage:     "\n	-p		Show only hex bytes, assumes -c30"
 // exactly the same help text lines in hexdump and xxd:
-//usage:     "\n	-l LENGTH	Interpret only LENGTH bytes of input"
+//usage:     "\n	-l LENGTH	Show only first LENGTH bytes"
 //usage:     "\n	-s OFFSET	Skip OFFSET bytes"
+// TODO: implement -r (see hexdump -R)
 
 #include "libbb.h"
 #include "dump.h"
@@ -70,11 +72,12 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 #define OPT_l (1 << 0)
 #define OPT_s (1 << 1)
 #define OPT_a (1 << 2)
+#define OPT_p (1 << 3)
 	opt_complementary = "?1"; /* 1 argument max */
-	opt = getopt32(argv, "l:s:ag:+c:+", &opt_l, &opt_s, &bytes, &cols);
+	opt = getopt32(argv, "l:s:apg:+c:+", &opt_l, &opt_s, &bytes, &cols);
 	argv += optind;
 
-//	dumper->dump_vflag = ALL; // default
+	dumper->dump_vflag = ALL;
 //	if (opt & OPT_a)
 //		dumper->dump_vflag = SKIPNUL; ..does not exist
 	if (opt & OPT_l) {
@@ -93,9 +96,16 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 		//BUGGY for /proc/version (unseekable?)
 	}
 
-	bb_dump_add(dumper, "\"%08.8_ax: \""); // "address: "
-	if (cols == 0)
-		cols = 16;
+	if (opt & OPT_p) {
+		if (cols == 0)
+			cols = 30;
+		bytes = cols; /* -p ignores -gN */
+	} else {
+		if (cols == 0)
+			cols = 16;
+		bb_dump_add(dumper, "\"%08.8_ax: \""); // "address: "
+	}
+
 	if (bytes < 1 || bytes >= cols) {
 		sprintf(buf, "%u/1 \"%%02x\"", cols); // cols * "xx"
 		bb_dump_add(dumper, buf);
@@ -109,7 +119,7 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 #define BS "/1 \"%02x \""
 #define B  "/1 \"%02x\""
 		unsigned i;
-		char *bigbuf = xmalloc(1 + cols * (sizeof(BS)-1));
+		char *bigbuf = xmalloc(cols * (sizeof(BS)-1));
 		char *p = bigbuf;
 		for (i = 1; i <= cols; i++) {
 			if (i == cols || i % bytes)
@@ -125,8 +135,10 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 		free(bigbuf);
 	}
 
-	sprintf(buf, "\"  \"%u/1 \"%%_p\"\"\n\"", cols); // "  ASCII\n"
-	bb_dump_add(dumper, buf);
+	if (!(opt & OPT_p)) {
+		sprintf(buf, "\"  \"%u/1 \"%%_p\"\"\n\"", cols); // "  ASCII\n"
+		bb_dump_add(dumper, buf);
+	}
 
 	return bb_dump_dump(dumper, argv);
 }
