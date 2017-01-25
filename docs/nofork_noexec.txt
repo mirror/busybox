@@ -33,6 +33,7 @@ roughly are:
 * do not expect shared global variables/buffers to be in their
   "initialized" state. Examples: xfunc_error_retval can be != 1,
   bb_common_bufsiz1 can be scribbled over, ...
+  (although usually xfunc_error_retval's state is not a problem).
 * do not expect that stdio wasn't used before. Calling set[v]buf()
   can be disastrous.
 * ...
@@ -81,18 +82,37 @@ are probably not worth the effort.
 Any NOFORK applet is also a NOEXEC applet.
 
 
+	Calling NOFORK applets
+
+API to call NOFORK applets is two functions:
+
+	run_nofork_applet(appno, argv)
+	spawn_and_wait(argv) // only if FEATURE_PREFER_APPLETS=y
+
+First one is directly used by shells if FEATURE_SH_NOFORK=y.
+Second one is used by many applets, but main users are xargs and find.
+It itself calls run_nofork_applet(), if argv[0] turned out to be a name
+of a NOFORK applet.
+
+run_nofork_applet() saves/inits/restores option parsing, xfunc_error_retval,
+applet_name. Thus, for example, caller does not need to worry about
+option_mask32 getting trashed.
+
+
 	Relevant CONFIG options
 
 FEATURE_PREFER_APPLETS
   BB_EXECVP(cmd, argv) will try to exec /proc/self/exe
-    if command's name matches some applet name
-  applet tables will contain NOFORK/NOEXEC bits
+  if command's name matches some applet name;
   spawn_and_wait(argv) will do NOFORK/NOEXEC tricks
 
-FEATURE_SH_STANDALONE (needs FEATURE_PREFER_APPLETS=y)
-  shells will try to exec /proc/self/exe if command's name matches
-    some applet name
-  shells will do NOEXEC trick on NOEXEC applets
+//TODO: the above two things probably should have separate options?
 
-FEATURE_SH_NOFORK (needs FEATURE_PREFER_APPLETS=y)
+FEATURE_SH_STANDALONE
+  shells will try to exec /proc/self/exe if command's name matches
+  some applet name; shells will do NOEXEC trick on NOEXEC applets
+
+//TODO: split (same as for PREFER_APPLETS)
+
+FEATURE_SH_NOFORK
   shells will do NOFORK trick on NOFORK applets

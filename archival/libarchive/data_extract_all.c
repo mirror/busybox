@@ -127,8 +127,9 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	if (hard_link) {
 		res = link(hard_link, dst_name);
 		if (res != 0 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
+			/* shared message */
 			bb_perror_msg("can't create %slink "
-					"from %s to %s", "hard",
+					"%s to %s", "hard",
 					dst_name,
 					hard_link);
 		}
@@ -181,8 +182,9 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		if (res != 0
 		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
 		) {
+			/* shared message */
 			bb_perror_msg("can't create %slink "
-				"from %s to %s", "sym",
+				"%s to %s", "sym",
 				dst_name,
 				file_header->link_target);
 		}
