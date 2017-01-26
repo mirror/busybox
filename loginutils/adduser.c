@@ -64,7 +64,7 @@
 //usage:     "\n	-h DIR		Home directory"
 //usage:     "\n	-g GECOS	GECOS field"
 //usage:     "\n	-s SHELL	Login shell"
-//usage:     "\n	-G GRP		Add user to existing group"
+//usage:     "\n	-G GRP		Group"
 //usage:     "\n	-S		Create a system user"
 //usage:     "\n	-D		Don't assign a password"
 //usage:     "\n	-H		Don't create home directory"
