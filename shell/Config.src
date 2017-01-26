@@ -121,23 +121,11 @@ config FEATURE_SH_STANDALONE
 	  for use as a rescue shell, in the event that you screw up your system.
 
 	  This is implemented by re-execing /proc/self/exe (typically)
-	  with right parameters. Some selected applets ("NOFORK" applets)
-	  can even be executed without creating new process.
-	  Instead, busybox will call <applet>_main() internally.
+	  with right parameters.
 
-	  However, this causes problems in chroot jails without mounted /proc
-	  and with ps/top (command name can be shown as 'exe' for applets
-	  started this way).
-# untrue?
-#	  Note that this will *also* cause applets to take precedence
-#	  over shell builtins of the same name. So turning this on will
-#	  eliminate any performance gained by turning on the builtin "echo"
-#	  and "test" commands in ash.
-# untrue?
-#	  Note that when using this option, the shell will attempt to directly
-#	  run '/bin/busybox'. If you do not have the busybox binary sitting in
-#	  that exact location with that exact name, this option will not work at
-#	  all.
+	  However, there are drawbacks: it is problematic in chroot jails without
+	  mounted /proc, and ps/top may show command name as 'exe' for applets
+	  started this way.
 
 config FEATURE_SH_NOFORK
 	bool "Run 'nofork' applets directly"
