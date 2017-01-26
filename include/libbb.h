@@ -1093,10 +1093,19 @@ pid_t wait_any_nohang(int *wstat) FAST_FUNC;
  */
 int wait4pid(pid_t pid) FAST_FUNC;
 int wait_for_exitstatus(pid_t pid) FAST_FUNC;
+/************************************************************************/
+/* spawn_and_wait/run_nofork_applet/run_applet_no_and_exit need to work */
+/* carefully together to reinit some global state while not disturbing  */
+/* other. Be careful if you change them. Consult docs/nofork_noexec.txt */
+/************************************************************************/
 /* Same as wait4pid(spawn(argv)), but with NOFORK/NOEXEC if configured: */
 int spawn_and_wait(char **argv) FAST_FUNC;
 /* Does NOT check that applet is NOFORK, just blindly runs it */
 int run_nofork_applet(int applet_no, char **argv) FAST_FUNC;
+#ifndef BUILD_INDIVIDUAL
+extern int find_applet_by_name(const char *name) FAST_FUNC;
+extern void run_applet_no_and_exit(int a, char **argv) NORETURN FAST_FUNC;
+#endif
 
 /* Helpers for daemonization.
  *
@@ -1302,11 +1311,6 @@ const struct aftype *get_aftype(const char *name) FAST_FUNC;
 const struct hwtype *get_hwtype(const char *name) FAST_FUNC;
 const struct hwtype *get_hwntype(int type) FAST_FUNC;
 
-
-#ifndef BUILD_INDIVIDUAL
-extern int find_applet_by_name(const char *name) FAST_FUNC;
-extern void run_applet_no_and_exit(int a, char **argv) NORETURN FAST_FUNC;
-#endif
 
 #ifdef HAVE_MNTENT_H
 extern int match_fstype(const struct mntent *mt, const char *fstypes) FAST_FUNC;

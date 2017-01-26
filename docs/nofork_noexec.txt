@@ -99,6 +99,13 @@ applet_name. Thus, for example, caller does not need to worry about
 option_mask32 getting trashed.
 
 
+	Calling NOEXEC applets
+
+It's the same trusty spawn_and_wait(argv). If FEATURE_PREFER_APPLETS=y,
+it does NOEXEC trick. It resets xfunc_error_retval = 1 and
+logmode = LOGMODE_STDIO in the child.
+
+
 	Relevant CONFIG options
 
 FEATURE_PREFER_APPLETS

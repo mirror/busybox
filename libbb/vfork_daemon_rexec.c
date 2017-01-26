@@ -183,26 +183,28 @@ int FAST_FUNC spawn_and_wait(char **argv)
 #if ENABLE_FEATURE_PREFER_APPLETS
 	int a = find_applet_by_name(argv[0]);
 
-	if (a >= 0 && (APPLET_IS_NOFORK(a)
-# if BB_MMU
-			|| APPLET_IS_NOEXEC(a) /* NOEXEC trick needs fork() */
-# endif
-	)) {
-# if BB_MMU
+	if (a >= 0) {
 		if (APPLET_IS_NOFORK(a))
-# endif
-		{
 			return run_nofork_applet(a, argv);
+# if BB_MMU /* NOEXEC needs fork(), thus this is done only on MMU machines: */
+		if (APPLET_IS_NOEXEC(a)) {
+			fflush_all();
+			rc = fork();
+			if (rc) /* parent or error */
+				return wait4pid(rc);
+
+			/* child */
+			/* reset some state and run without execing */
+
+			/* msg_eol = "\n"; - no caller needs this reinited yet */
+			logmode = LOGMODE_STDIO;
+			/* die_func = NULL; - needed if the caller is a shell,
+			 * init, or a NOFORK applet. But none of those call us
+			 * as of yet (and that should probably always stay true).
+			 */
+			/* xfunc_error_retval and applet_name are init by: */
+			run_applet_no_and_exit(a, argv);
 		}
-# if BB_MMU
-		/* MMU only */
-		/* a->noexec is true */
-		rc = fork();
-		if (rc) /* parent or error */
-			return wait4pid(rc);
-		/* child */
-		xfunc_error_retval = EXIT_FAILURE;
-		run_applet_no_and_exit(a, argv);
 # endif
 	}
 #endif /* FEATURE_PREFER_APPLETS */
