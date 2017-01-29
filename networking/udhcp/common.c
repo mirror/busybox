@@ -86,7 +86,7 @@ const struct dhcp_optflag dhcp_optflags[] = {
 };
 
 /* Used for converting options from incoming packets to env variables
- * for udhcpc stript, and for setting options for udhcpd via
+ * for udhcpc script, and for setting options for udhcpd via
  * "opt OPTION_NAME OPTION_VALUE" directives in udhcpd.conf file.
  */
 /* Must match dhcp_optflags[] order */
