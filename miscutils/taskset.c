@@ -8,7 +8,7 @@
 
 //config:config TASKSET
 //config:	bool "taskset"
-//config:	default n  # doesn't build on some non-x86 targets (m68k)
+//config:	default y
 //config:	help
 //config:	  Retrieve or set a processes's CPU affinity.
 //config:	  This requires sched_{g,s}etaffinity support in your libc.
@@ -18,15 +18,15 @@
 //config:	default y
 //config:	depends on TASKSET
 //config:	help
-//config:	  Add code for fancy output. This merely silences a compiler-warning
-//config:	  and adds about 135 Bytes. May be needed for machines with alot
-//config:	  of CPUs.
+//config:	  Needed for machines with more than 32-64 CPUs:
+//config:	  affinity parameter 0xHHHHHHHHHHHHHHHHHHHH can be arbitrarily long
+//config:	  in this case. Otherwise, it is limited to sizeof(long).
 
 //applet:IF_TASKSET(APPLET(taskset, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_TASKSET) += taskset.o
 
 //usage:#define taskset_trivial_usage
-//usage:       "[-p] [MASK] [PID | PROG ARGS]"
+//usage:       "[-p] [HEXMASK] [PID | PROG ARGS]"
 //usage:#define taskset_full_usage "\n\n"
 //usage:       "Set or get CPU affinity\n"
 //usage:     "\n	-p	Operate on an existing PID"
@@ -42,71 +42,80 @@
 //usage:       "$ taskset -p 1\n"
 //usage:       "pid 1's current affinity mask: 3\n"
 /*
- Not yet implemented:
+ * Not yet implemented:
  * -a/--all-tasks (affect all threads)
+ *	needs to get TIDs from /proc/PID/task/ and use _them_ as "pid" in sched_setaffinity(pid)
  * -c/--cpu-list  (specify CPUs via "1,3,5-7")
  */
 
 #include <sched.h>
 #include "libbb.h"
 
+typedef unsigned long ul;
+#define SZOF_UL (unsigned)(sizeof(ul))
+#define BITS_UL (unsigned)(sizeof(ul)*8)
+#define MASK_UL (unsigned)(sizeof(ul)*8 - 1)
+
 #if ENABLE_FEATURE_TASKSET_FANCY
 #define TASKSET_PRINTF_MASK "%s"
 /* craft a string from the mask */
-static char *from_cpuset(cpu_set_t *mask)
+static char *from_mask(const ul *mask, unsigned sz_in_bytes)
 {
-	int i;
-	char *ret = NULL;
-	char *str = xzalloc((CPU_SETSIZE / 4) + 1); /* we will leak it */
-
-	for (i = CPU_SETSIZE - 4; i >= 0; i -= 4) {
-		int val = 0;
-		int off;
-		for (off = 0; off <= 3; ++off)
-			if (CPU_ISSET(i + off, mask))
-				val |= 1 << off;
-		if (!ret && val)
-			ret = str;
-		*str++ = bb_hexdigits_upcase[val] | 0x20;
+	char *str = xzalloc((sz_in_bytes+1) * 2); /* we will leak it */
+	char *p = str;
+	for (;;) {
+		ul v = *mask++;
+		if (SZOF_UL == 4)
+			p += sprintf(p, "%08lx", v);
+		if (SZOF_UL == 8)
+			p += sprintf(p, "%016lx", v);
+		if (SZOF_UL == 16)
+			p += sprintf(p, "%032lx", v); /* :) */
+		sz_in_bytes -= SZOF_UL;
+		if ((int)sz_in_bytes <= 0)
+			break;
 	}
-	return ret;
+	while (str[0] == '0' && str[1])
+		str++;
+	return str;
 }
 #else
-#define TASKSET_PRINTF_MASK "%llx"
-static unsigned long long from_cpuset(cpu_set_t *mask)
+#define TASKSET_PRINTF_MASK "%lx"
+static unsigned long long from_mask(ul *mask, unsigned sz_in_bytes UNUSED_PARAM)
 {
-	BUILD_BUG_ON(CPU_SETSIZE < 8*sizeof(int));
-
-	/* Take the least significant bits. Assume cpu_set_t is
-	 * implemented as an array of unsigned long or unsigned
-	 * int.
-	 */
-	if (CPU_SETSIZE < 8*sizeof(long))
-		return *(unsigned*)mask;
-	if (CPU_SETSIZE < 8*sizeof(long long))
-		return *(unsigned long*)mask;
-# if BB_BIG_ENDIAN
-	if (sizeof(long long) > sizeof(long)) {
-		/* We can put two long in the long long, but they have to
-		 * be swapped: the least significant word comes first in the
-		 * array */
-		unsigned long *p = (void*)mask;
-		return p[0] + ((unsigned long long)p[1] << (8*sizeof(long)));
-	}
-# endif
-	return *(unsigned long long*)mask;
+	return *mask;
 }
 #endif
 
+static unsigned long *get_aff(int pid, unsigned *sz)
+{
+	int r;
+	unsigned long *mask = NULL;
+	unsigned sz_in_bytes = *sz;
+
+	for (;;) {
+		mask = xrealloc(mask, sz_in_bytes);
+		r = sched_getaffinity(pid, sz_in_bytes, (void*)mask);
+		if (r == 0)
+			break;
+		sz_in_bytes *= 2;
+		if (errno == EINVAL && (int)sz_in_bytes > 0)
+			continue;
+		bb_perror_msg_and_die("can't %cet pid %d's affinity", 'g', pid);
+	}
+	//bb_error_msg("get mask[0]:%lx sz_in_bytes:%d", mask[0], sz_in_bytes);
+	*sz = sz_in_bytes;
+	return mask;
+}
 
 int taskset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int taskset_main(int argc UNUSED_PARAM, char **argv)
 {
-	cpu_set_t mask;
+	ul *mask;
+	unsigned mask_size_in_bytes;
 	pid_t pid = 0;
 	unsigned opt_p;
 	const char *current_new;
-	char *pid_str;
 	char *aff = aff; /* for compiler */
 
 	/* NB: we mimic util-linux's taskset: -p does not take
@@ -119,7 +128,7 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 
 	if (opt_p) {
-		pid_str = *argv++;
+		char *pid_str = *argv++;
 		if (*argv) { /* "-p <aff> <pid> ...rest.is.ignored..." */
 			aff = pid_str;
 			pid_str = *argv; /* NB: *argv != NULL in this case */
@@ -132,13 +141,14 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 			bb_show_usage();
 	}
 
+	mask_size_in_bytes = SZOF_UL;
+	mask = NULL;
 	current_new = "current\0new";
-	if (opt_p) {
  print_aff:
-		if (sched_getaffinity(pid, sizeof(mask), &mask) < 0)
-			bb_perror_msg_and_die("can't %cet pid %d's affinity", 'g', pid);
+	mask = get_aff(pid, &mask_size_in_bytes);
+	if (opt_p) {
 		printf("pid %d's %s affinity mask: "TASKSET_PRINTF_MASK"\n",
-				pid, current_new, from_cpuset(&mask));
+				pid, current_new, from_mask(mask, mask_size_in_bytes));
 		if (!*argv) {
 			/* Either it was just "-p <pid>",
 			 * or it was "-p <aff> <pid>" and we came here
@@ -148,72 +158,63 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 		*argv = NULL;
 		current_new += 8; /* "new" */
 	}
+	memset(mask, 0, mask_size_in_bytes);
 
-	/* Affinity was specified, translate it into cpu_set_t */
-	CPU_ZERO(&mask);
+	/* Affinity was specified, translate it into mask */
+	/* it is always in hex, skip "0x" if it exists */
+	if (aff[0] == '0' && (aff[1]|0x20) == 'x')
+		aff += 2;
+
 	if (!ENABLE_FEATURE_TASKSET_FANCY) {
-		unsigned i;
-		unsigned long long m;
-
 		/* Do not allow zero mask: */
-		m = xstrtoull_range(aff, 0, 1, ULLONG_MAX);
-		i = 0;
-		do {
-			if (m & 1)
-				CPU_SET(i, &mask);
-			i++;
-			m >>= 1;
-		} while (m != 0);
+		mask[0] = xstrtoul_range(aff, 16, 1, ULONG_MAX);
 	} else {
 		unsigned i;
-		char *last_byte;
-		char *bin;
-		uint8_t bit_in_byte;
+		char *last_char;
 
-		/* Cheap way to get "long enough" buffer */
-		bin = xstrdup(aff);
+		i = 0; /* bit pos in mask[] */
 
-		if (aff[0] != '0' || (aff[1]|0x20) != 'x') {
-/* TODO: decimal/octal masks are still limited to 2^64 */
-			unsigned long long m = xstrtoull_range(aff, 0, 1, ULLONG_MAX);
-			bin += strlen(bin);
-			last_byte = bin - 1;
-			while (m) {
-				*--bin = m & 0xff;
-				m >>= 8;
-			}
-		} else {
-			/* aff is "0x.....", we accept very long masks in this form */
-			last_byte = hex2bin(bin, aff + 2, INT_MAX);
-			if (!last_byte) {
- bad_aff:
+		/* aff is ASCII hex string, accept very long masks in this form.
+		 * Process hex string AABBCCDD... to ulong mask[]
+		 * from the rightmost nibble, which is least-significant.
+		 * Bits not fitting into mask[] are ignored: (example: 1234
+		 * in 12340000000000000000000000000000000000000ff)
+		 */
+		last_char = strchrnul(aff, '\0');
+		while (last_char > aff) {
+			char c;
+			ul val;
+
+			last_char--;
+			c = *last_char;
+			if (isdigit(c))
+				val = c - '0';
+			else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
+				val = (c|0x20) - ('a' - 10);
+			else
 				bb_error_msg_and_die("bad affinity '%s'", aff);
-			}
-			last_byte--; /* now points to the last byte */
-		}
 
-		i = 0;
-		bit_in_byte = 1;
-		while (last_byte >= bin) {
-			if (bit_in_byte & *last_byte) {
-				if (i >= CPU_SETSIZE)
-					goto bad_aff;
-				CPU_SET(i, &mask);
+			if (i < mask_size_in_bytes * 8) {
+				mask[i / BITS_UL] |= val << (i & MASK_UL);
 				//bb_error_msg("bit %d set", i);
 			}
-			i++;
-			/* bit_in_byte is uint8_t! & 0xff is implied */
-			bit_in_byte = (bit_in_byte << 1);
-			if (!bit_in_byte) {
-				bit_in_byte = 1;
-				last_byte--;
-			}
+			/* else:
+			 * We can error out here, but we don't.
+			 * For one, kernel itself ignores bits in mask[]
+			 * which do not map to any CPUs.
+			 * If mask has one 32-bit long,
+			 * but you have only 8 CPUs, all bits beyond first 8
+			 * are ignored, silently.
+			 * No point in making bits past 31th to be errors.
+			 */
+			i += 4;
 		}
 	}
 
 	/* Set pid's or our own (pid==0) affinity */
-	if (sched_setaffinity(pid, sizeof(mask), &mask))
+	if (sched_setaffinity(pid, mask_size_in_bytes, (void*)mask))
 		bb_perror_msg_and_die("can't %cet pid %d's affinity", 's', pid);
+	//bb_error_msg("set mask[0]:%lx", mask[0]);
 
 	if (!argv[0]) /* "-p <aff> <pid> [...ignored...]" */
 		goto print_aff; /* print new affinity and exit */
