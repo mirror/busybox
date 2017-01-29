@@ -1312,8 +1312,8 @@ const struct hwtype *get_hwtype(const char *name) FAST_FUNC;
 const struct hwtype *get_hwntype(int type) FAST_FUNC;
 
 
+extern int fstype_matches(const char *fstype, const char *comma_list) FAST_FUNC;
 #ifdef HAVE_MNTENT_H
-extern int match_fstype(const struct mntent *mt, const char *fstypes) FAST_FUNC;
 extern struct mntent *find_mount_point(const char *name, int subdir_too) FAST_FUNC;
 #endif
 extern void erase_mtab(const char * name) FAST_FUNC;

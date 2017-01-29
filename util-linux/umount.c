@@ -125,8 +125,8 @@ int umount_main(int argc UNUSED_PARAM, char **argv)
 	} else {
 		setup_common_bufsiz();
 		while (getmntent_r(fp, &me, bb_common_bufsiz1, COMMON_BUFSIZE)) {
-			/* Match fstype if passed */
-			if (!match_fstype(&me, fstype))
+			/* Match fstype (fstype==NULL matches always) */
+			if (!fstype_matches(me.mnt_type, fstype))
 				continue;
 			m = xzalloc(sizeof(*m));
 			m->next = mtl;

@@ -12,34 +12,30 @@
 
 #include "libbb.h"
 
-#ifdef HAVE_MNTENT_H
-
-int FAST_FUNC match_fstype(const struct mntent *mt, const char *t_fstype)
+int FAST_FUNC fstype_matches(const char *fstype, const char *comma_list)
 {
 	int match = 1;
 
-	if (!t_fstype)
+	if (!comma_list)
 		return match;
 
-	if (t_fstype[0] == 'n' && t_fstype[1] == 'o') {
+	if (comma_list[0] == 'n' && comma_list[1] == 'o') {
 		match--;
-		t_fstype += 2;
+		comma_list += 2;
 	}
 
 	while (1) {
-		char *after_mnt_type = is_prefixed_with(t_fstype, mt->mnt_type);
+		char *after_mnt_type = is_prefixed_with(comma_list, fstype);
 		if (after_mnt_type
 		 && (*after_mnt_type == '\0' || *after_mnt_type == ',')
 		) {
 			return match;
 		}
-		t_fstype = strchr(t_fstype, ',');
-		if (!t_fstype)
+		comma_list = strchr(comma_list, ',');
+		if (!comma_list)
 			break;
-		t_fstype++;
+		comma_list++;
 	}
 
 	return !match;
 }
-
-#endif /* HAVE_MNTENT_H */

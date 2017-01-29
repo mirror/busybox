@@ -2312,7 +2312,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 				bb_error_msg_and_die(bb_msg_you_must_be_root);
 
 			// Does type match? (NULL matches always)
-			if (!match_fstype(mtcur, fstype))
+			if (!fstype_matches(mtcur->mnt_type, fstype))
 				continue;
 
 			// Skip noauto and swap anyway
