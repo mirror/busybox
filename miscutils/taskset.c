@@ -143,7 +143,7 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 
 	mask_size_in_bytes = SZOF_UL;
 	mask = NULL;
-	current_new = "current\0new";
+	current_new = "current";
  print_aff:
 	mask = get_aff(pid, &mask_size_in_bytes);
 	if (opt_p) {
@@ -156,7 +156,7 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 			return EXIT_SUCCESS;
 		}
 		*argv = NULL;
-		current_new += 8; /* "new" */
+		current_new = "new";
 	}
 	memset(mask, 0, mask_size_in_bytes);
 
