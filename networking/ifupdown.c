@@ -106,7 +106,8 @@
 //config:	  Otherwise, if udhcpc applet is enabled, it is used.
 //config:	  Otherwise, ifup/ifdown will have no support for DHCP.
 
-//applet:IF_IFUP(APPLET_ODDNAME(ifup, ifupdown, BB_DIR_SBIN, BB_SUID_DROP, ifup))
+//                 APPLET_ODDNAME:name    main      location     suid_type     help
+//applet:IF_IFUP(  APPLET_ODDNAME(ifup,   ifupdown, BB_DIR_SBIN, BB_SUID_DROP, ifup))
 //applet:IF_IFDOWN(APPLET_ODDNAME(ifdown, ifupdown, BB_DIR_SBIN, BB_SUID_DROP, ifdown))
 
 //kbuild:lib-$(CONFIG_IFUP) += ifupdown.o

@@ -45,11 +45,12 @@
 //config:	help
 //config:	  Update a UBI volume.
 
-//applet:IF_UBIATTACH(APPLET_ODDNAME(ubiattach, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubiattach))
-//applet:IF_UBIDETACH(APPLET_ODDNAME(ubidetach, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubidetach))
-//applet:IF_UBIMKVOL(APPLET_ODDNAME(ubimkvol, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubimkvol))
-//applet:IF_UBIRMVOL(APPLET_ODDNAME(ubirmvol, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubirmvol))
-//applet:IF_UBIRSVOL(APPLET_ODDNAME(ubirsvol, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubirsvol))
+//                       APPLET_ODDNAME:name       main       location         suid_type     help
+//applet:IF_UBIATTACH(   APPLET_ODDNAME(ubiattach, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubiattach))
+//applet:IF_UBIDETACH(   APPLET_ODDNAME(ubidetach, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubidetach))
+//applet:IF_UBIMKVOL(    APPLET_ODDNAME(ubimkvol,  ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubimkvol))
+//applet:IF_UBIRMVOL(    APPLET_ODDNAME(ubirmvol,  ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubirmvol))
+//applet:IF_UBIRSVOL(    APPLET_ODDNAME(ubirsvol,  ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubirsvol))
 //applet:IF_UBIUPDATEVOL(APPLET_ODDNAME(ubiupdatevol, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubiupdatevol))
 
 //kbuild:lib-$(CONFIG_UBIATTACH) += ubi_tools.o

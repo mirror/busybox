@@ -19,6 +19,7 @@
 //config:       help
 //config:         Remove shells from /etc/shells.
 
+//                       APPLET_ODDNAME:name          main              location         suid_type     help
 //applet:IF_ADD_SHELL(   APPLET_ODDNAME(add-shell   , add_remove_shell, BB_DIR_USR_SBIN, BB_SUID_DROP, add_shell   ))
 //applet:IF_REMOVE_SHELL(APPLET_ODDNAME(remove-shell, add_remove_shell, BB_DIR_USR_SBIN, BB_SUID_DROP, remove_shell))
 

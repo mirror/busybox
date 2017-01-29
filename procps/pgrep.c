@@ -19,6 +19,7 @@
 //config:	  Send signals to processes by name.
 
 //applet:IF_PGREP(APPLET(pgrep, BB_DIR_USR_BIN, BB_SUID_DROP))
+//                APPLET_ODDNAME:name   main   location        suid_type     help
 //applet:IF_PKILL(APPLET_ODDNAME(pkill, pgrep, BB_DIR_USR_BIN, BB_SUID_DROP, pkill))
 
 //kbuild:lib-$(CONFIG_PGREP) += pgrep.o

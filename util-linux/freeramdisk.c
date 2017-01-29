@@ -33,6 +33,7 @@
 //config:	  ramdisk. If you have no use for freeing memory from a ramdisk, leave
 //config:	  this disabled.
 
+//                  APPLET_ODDNAME:name     main         location    suid_type     help
 //applet:IF_FDFLUSH(APPLET_ODDNAME(fdflush, freeramdisk, BB_DIR_BIN, BB_SUID_DROP, fdflush))
 //applet:IF_FREERAMDISK(APPLET(freeramdisk, BB_DIR_SBIN, BB_SUID_DROP))
 

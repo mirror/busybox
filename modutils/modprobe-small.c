@@ -25,10 +25,11 @@
 //config:	  Check if the module is already loaded.
 
 //applet:IF_MODPROBE(IF_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP)))
+//                                   APPLET_ODDNAME:name    main      location     suid_type     help
 //applet:IF_DEPMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, depmod)))
 //applet:IF_INSMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(insmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, insmod)))
-//applet:IF_LSMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(lsmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, lsmod)))
-//applet:IF_RMMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(rmmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, rmmod)))
+//applet:IF_LSMOD(IF_MODPROBE_SMALL( APPLET_ODDNAME(lsmod,  modprobe, BB_DIR_SBIN, BB_SUID_DROP, lsmod)))
+//applet:IF_RMMOD(IF_MODPROBE_SMALL( APPLET_ODDNAME(rmmod,  modprobe, BB_DIR_SBIN, BB_SUID_DROP, rmmod)))
 
 //kbuild:lib-$(CONFIG_MODPROBE_SMALL) += modprobe-small.o
 

@@ -23,6 +23,7 @@
 //config:	help
 //config:	  lpq is a print spool queue examination and manipulation program.
 
+//              APPLET_ODDNAME:name main  location        suid_type     help
 //applet:IF_LPQ(APPLET_ODDNAME(lpq, lpqr, BB_DIR_USR_BIN, BB_SUID_DROP, lpq))
 //applet:IF_LPR(APPLET_ODDNAME(lpr, lpqr, BB_DIR_USR_BIN, BB_SUID_DROP, lpr))
 

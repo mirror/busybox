@@ -22,6 +22,7 @@
 //config:	help
 //config:	  Alias to "hostname -d".
 
+//                        APPLET_ODDNAME:name           main      location    suid_type     help
 //applet:IF_DNSDOMAINNAME(APPLET_ODDNAME(dnsdomainname, hostname, BB_DIR_BIN, BB_SUID_DROP, dnsdomainname))
 //applet:IF_HOSTNAME(APPLET(hostname, BB_DIR_BIN, BB_SUID_DROP))
 

@@ -31,6 +31,7 @@
 //config:	  Alias to "setarch linux64".
 
 //applet:IF_SETARCH(APPLET(setarch, BB_DIR_BIN, BB_SUID_DROP))
+//                  APPLET_ODDNAME:name     main     location    suid_type     help
 //applet:IF_LINUX32(APPLET_ODDNAME(linux32, setarch, BB_DIR_BIN, BB_SUID_DROP, linux32))
 //applet:IF_LINUX64(APPLET_ODDNAME(linux64, setarch, BB_DIR_BIN, BB_SUID_DROP, linux64))
 

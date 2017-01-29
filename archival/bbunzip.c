@@ -314,6 +314,7 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //config:	depends on (GUNZIP || ZCAT) && LONG_OPTS
 
 //applet:IF_GUNZIP(APPLET(gunzip, BB_DIR_BIN, BB_SUID_DROP))
+//               APPLET_ODDNAME:name  main    location    suid_type     help
 //applet:IF_ZCAT(APPLET_ODDNAME(zcat, gunzip, BB_DIR_BIN, BB_SUID_DROP, zcat))
 #if ENABLE_FEATURE_GZIP_DECOMPRESS
 static
@@ -425,6 +426,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //config:	  Alias to "bunzip2 -c".
 
 //applet:IF_BUNZIP2(APPLET(bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
+//                APPLET_ODDNAME:name   main     location        suid_type     help
 //applet:IF_BZCAT(APPLET_ODDNAME(bzcat, bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP, bzcat))
 #if ENABLE_FEATURE_BZIP2_DECOMPRESS
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -467,26 +469,6 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "[FILE]..."
 //usage:#define lzcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
-//usage:
-//usage:#define unxz_trivial_usage
-//usage:       "[-cf] [FILE]..."
-//usage:#define unxz_full_usage "\n\n"
-//usage:       "Decompress FILE (or stdin)\n"
-//usage:     "\n	-c	Write to stdout"
-//usage:     "\n	-f	Force"
-//usage:
-//usage:#define xz_trivial_usage
-//usage:       "-d [-cf] [FILE]..."
-//usage:#define xz_full_usage "\n\n"
-//usage:       "Decompress FILE (or stdin)\n"
-//usage:     "\n	-d	Decompress"
-//usage:     "\n	-c	Write to stdout"
-//usage:     "\n	-f	Force"
-//usage:
-//usage:#define xzcat_trivial_usage
-//usage:       "[FILE]..."
-//usage:#define xzcat_full_usage "\n\n"
-//usage:       "Decompress to stdout"
 
 //config:config UNLZMA
 //config:	bool "unlzma"
@@ -528,8 +510,9 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //config:	  a 1K bigger binary.
 
 //applet:IF_UNLZMA(APPLET(unlzma, BB_DIR_USR_BIN, BB_SUID_DROP))
+//                APPLET_ODDNAME:name   main    location        suid_type     help
 //applet:IF_LZCAT(APPLET_ODDNAME(lzcat, unlzma, BB_DIR_USR_BIN, BB_SUID_DROP, lzcat))
-//applet:IF_LZMA(APPLET_ODDNAME(lzma, unlzma, BB_DIR_USR_BIN, BB_SUID_DROP, lzma))
+//applet:IF_LZMA( APPLET_ODDNAME(lzma,  unlzma, BB_DIR_USR_BIN, BB_SUID_DROP, lzma))
 //kbuild:lib-$(CONFIG_UNLZMA) += bbunzip.o
 //kbuild:lib-$(CONFIG_LZCAT) += bbunzip.o
 //kbuild:lib-$(CONFIG_LZMA) += bbunzip.o
@@ -553,6 +536,26 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 
+//usage:#define unxz_trivial_usage
+//usage:       "[-cf] [FILE]..."
+//usage:#define unxz_full_usage "\n\n"
+//usage:       "Decompress FILE (or stdin)\n"
+//usage:     "\n	-c	Write to stdout"
+//usage:     "\n	-f	Force"
+//usage:
+//usage:#define xz_trivial_usage
+//usage:       "-d [-cf] [FILE]..."
+//usage:#define xz_full_usage "\n\n"
+//usage:       "Decompress FILE (or stdin)\n"
+//usage:     "\n	-d	Decompress"
+//usage:     "\n	-c	Write to stdout"
+//usage:     "\n	-f	Force"
+//usage:
+//usage:#define xzcat_trivial_usage
+//usage:       "[FILE]..."
+//usage:#define xzcat_full_usage "\n\n"
+//usage:       "Decompress to stdout"
+
 //config:config UNXZ
 //config:	bool "unxz"
 //config:	default y
@@ -573,8 +576,9 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 //config:	  IOW: you'll get xz applet, but it will always require -d option.
 
 //applet:IF_UNXZ(APPLET(unxz, BB_DIR_USR_BIN, BB_SUID_DROP))
+//                APPLET_ODDNAME:name   main  location        suid_type     help
 //applet:IF_XZCAT(APPLET_ODDNAME(xzcat, unxz, BB_DIR_USR_BIN, BB_SUID_DROP, xzcat))
-//applet:IF_XZ(APPLET_ODDNAME(xz, unxz, BB_DIR_USR_BIN, BB_SUID_DROP, xz))
+//applet:IF_XZ(   APPLET_ODDNAME(xz,    unxz, BB_DIR_USR_BIN, BB_SUID_DROP, xz))
 //kbuild:lib-$(CONFIG_UNXZ) += bbunzip.o
 //kbuild:lib-$(CONFIG_XZCAT) += bbunzip.o
 //kbuild:lib-$(CONFIG_XZ) += bbunzip.o

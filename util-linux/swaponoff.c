@@ -41,7 +41,8 @@
 //config:	help
 //config:	  This option enables the 'swapoff' utility.
 
-//applet:IF_SWAPON(APPLET_ODDNAME(swapon, swap_on_off, BB_DIR_SBIN, BB_SUID_DROP, swapon))
+//                  APPLET_ODDNAME:name     main         location     suid_type     help
+//applet:IF_SWAPON( APPLET_ODDNAME(swapon,  swap_on_off, BB_DIR_SBIN, BB_SUID_DROP, swapon))
 //applet:IF_SWAPOFF(APPLET_ODDNAME(swapoff, swap_on_off, BB_DIR_SBIN, BB_SUID_DROP, swapoff))
 
 //kbuild:lib-$(CONFIG_SWAPON) += swaponoff.o

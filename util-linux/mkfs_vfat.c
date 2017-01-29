@@ -21,7 +21,8 @@
 //config:	help
 //config:	  Alias to "mkdosfs".
 
-//applet:IF_MKDOSFS(APPLET_ODDNAME(mkdosfs, mkfs_vfat, BB_DIR_SBIN, BB_SUID_DROP, mkfs_vfat))
+//                    APPLET_ODDNAME:name       main       location     suid_type     help
+//applet:IF_MKDOSFS(  APPLET_ODDNAME(mkdosfs,   mkfs_vfat, BB_DIR_SBIN, BB_SUID_DROP, mkfs_vfat))
 //applet:IF_MKFS_VFAT(APPLET_ODDNAME(mkfs.vfat, mkfs_vfat, BB_DIR_SBIN, BB_SUID_DROP, mkfs_vfat))
 
 //kbuild:lib-$(CONFIG_MKDOSFS) += mkfs_vfat.o

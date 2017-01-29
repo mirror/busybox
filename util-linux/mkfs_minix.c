@@ -80,6 +80,7 @@
 //config:	  this. If you enabled 'mkfs_minix' then you almost certainly want to
 //config:	  be using the version 2 filesystem support.
 
+//                     APPLET_ODDNAME:name        main        location     suid_type     help
 //applet:IF_MKFS_MINIX(APPLET_ODDNAME(mkfs.minix, mkfs_minix, BB_DIR_SBIN, BB_SUID_DROP, mkfs_minix))
 
 //kbuild:lib-$(CONFIG_MKFS_MINIX) += mkfs_minix.o

@@ -30,6 +30,7 @@
 //config:      help
 //config:        Print users currently logged on.
 
+//                APPLET_ODDNAME:name   main location        suid_type     help
 //applet:IF_USERS(APPLET_ODDNAME(users, who, BB_DIR_USR_BIN, BB_SUID_DROP, users))
 //applet:IF_WHO(APPLET(who, BB_DIR_USR_BIN, BB_SUID_DROP))
 

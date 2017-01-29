@@ -17,7 +17,8 @@
 //config:	  The flash_unlock binary from mtd-utils as of git head 5ec0c10d0. This
 //config:	  utility unlocks part or all of the flash device.
 
-//applet:IF_FLASH_LOCK(APPLET_ODDNAME(flash_lock, flash_lock_unlock, BB_DIR_USR_SBIN, BB_SUID_DROP, flash_lock))
+//                       APPLET_ODDNAME:name          main               location         suid_type     help
+//applet:IF_FLASH_LOCK(  APPLET_ODDNAME(flash_lock,   flash_lock_unlock, BB_DIR_USR_SBIN, BB_SUID_DROP, flash_lock))
 //applet:IF_FLASH_UNLOCK(APPLET_ODDNAME(flash_unlock, flash_lock_unlock, BB_DIR_USR_SBIN, BB_SUID_DROP, flash_unlock))
 
 //kbuild:lib-$(CONFIG_FLASH_LOCK) += flash_lock_unlock.o

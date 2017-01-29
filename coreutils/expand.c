@@ -43,6 +43,7 @@
 //config:	depends on UNEXPAND && LONG_OPTS
 
 //applet:IF_EXPAND(APPLET(expand, BB_DIR_USR_BIN, BB_SUID_DROP))
+//                   APPLET_ODDNAME:name      main    location        suid_type     help
 //applet:IF_UNEXPAND(APPLET_ODDNAME(unexpand, expand, BB_DIR_USR_BIN, BB_SUID_DROP, unexpand))
 
 //kbuild:lib-$(CONFIG_EXPAND) += expand.o

@@ -33,7 +33,8 @@
 //config:	  the script it was called from.
 
 //applet:IF_KILL(APPLET(kill, BB_DIR_BIN, BB_SUID_DROP))
-//applet:IF_KILLALL(APPLET_ODDNAME(killall, kill, BB_DIR_USR_BIN, BB_SUID_DROP, killall))
+//                   APPLET_ODDNAME:name      main  location         suid_type     help
+//applet:IF_KILLALL( APPLET_ODDNAME(killall,  kill, BB_DIR_USR_BIN,  BB_SUID_DROP, killall))
 //applet:IF_KILLALL5(APPLET_ODDNAME(killall5, kill, BB_DIR_USR_SBIN, BB_SUID_DROP, killall5))
 
 //kbuild:lib-$(CONFIG_KILL) += kill.o

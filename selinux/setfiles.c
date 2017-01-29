@@ -30,6 +30,7 @@
 //config:	  the same as setfiles, but usage is a little different.
 
 //applet:IF_SETFILES(APPLET(setfiles, BB_DIR_SBIN, BB_SUID_DROP))
+//                     APPLET_ODDNAME:name        main      location     suid_type     help
 //applet:IF_RESTORECON(APPLET_ODDNAME(restorecon, setfiles, BB_DIR_SBIN, BB_SUID_DROP, restorecon))
 
 //kbuild:lib-$(CONFIG_SETFILES) += setfiles.o
