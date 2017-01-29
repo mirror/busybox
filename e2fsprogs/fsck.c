@@ -1071,7 +1071,7 @@ int fsck_main(int argc UNUSED_PARAM, char **argv)
 	new_args(); /* G.args[G.num_args - 1] is the last, NULL element */
 
 	if (!notitle)
-		puts("fsck (busybox "BB_VER", "BB_BT")");
+		puts("fsck (busybox "BB_VER")");
 
 	/* Even plain "fsck /dev/hda1" needs fstab to get fs type,
 	 * so we are scanning it anyway */

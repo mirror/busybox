@@ -1457,7 +1457,7 @@ static void colon(char *buf)
 		}
 #endif /* FEATURE_VI_SEARCH */
 	} else if (strncmp(cmd, "version", i) == 0) {  // show software version
-		status_line(BB_VER " " BB_BT);
+		status_line(BB_VER);
 	} else if (strncmp(cmd, "write", i) == 0  // write text to file
 	        || strncmp(cmd, "wq", i) == 0
 	        || strncmp(cmd, "wn", i) == 0
