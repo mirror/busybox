@@ -43,7 +43,7 @@ comment "Options common to multiple modutils"
 config FEATURE_2_4_MODULES
 	bool "Support version 2.2/2.4 Linux kernels"
 	default n
-	depends on INSMOD || RMMOD || LSMOD
+	depends on (INSMOD || RMMOD || LSMOD) && !MODPROBE_SMALL
 	select PLATFORM_LINUX
 	help
 	  Support module loading for 2.2.x and 2.4.x Linux kernels.
@@ -53,7 +53,7 @@ config FEATURE_2_4_MODULES
 config FEATURE_INSMOD_TRY_MMAP
 	bool "Try to load module from a mmap'ed area"
 	default n
-	depends on INSMOD || MODPROBE_SMALL
+	depends on INSMOD && !MODPROBE_SMALL
 	select PLATFORM_LINUX
 	help
 	  This option causes module loading code to try to mmap
@@ -135,7 +135,7 @@ config FEATURE_CHECK_TAINTED_MODULE
 config FEATURE_MODUTILS_ALIAS
 	bool "Support module.aliases file"
 	default y
-	depends on DEPMOD || MODPROBE
+	depends on (DEPMOD || MODPROBE) && !MODPROBE_SMALL
 	select PLATFORM_LINUX
 	help
 	  Generate and parse modules.alias containing aliases for bus
@@ -152,7 +152,7 @@ config FEATURE_MODUTILS_ALIAS
 config FEATURE_MODUTILS_SYMBOLS
 	bool "Support module.symbols file"
 	default y
-	depends on DEPMOD || MODPROBE
+	depends on (DEPMOD || MODPROBE) && !MODPROBE_SMALL
 	select PLATFORM_LINUX
 	help
 	  Generate and parse modules.symbols containing aliases for
