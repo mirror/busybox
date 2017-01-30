@@ -34,7 +34,7 @@
 //usage:#define lsmod_trivial_usage
 //usage:       ""
 //usage:#define lsmod_full_usage "\n\n"
-//usage:       "List the currently loaded kernel modules"
+//usage:       "List loaded kernel modules"
 //usage:#endif
 
 #include "libbb.h"

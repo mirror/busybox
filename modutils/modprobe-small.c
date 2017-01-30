@@ -893,46 +893,23 @@ The following options are useful for people managing distributions:
 //usage:#define lsmod_trivial_usage
 //usage:       ""
 //usage:#define lsmod_full_usage "\n\n"
-//usage:       "List the currently loaded kernel modules"
+//usage:       "List loaded kernel modules"
 
 //usage:#define insmod_trivial_usage
-//usage:	IF_FEATURE_2_4_MODULES("[OPTIONS] MODULE ")
-//usage:	IF_NOT_FEATURE_2_4_MODULES("FILE ")
-//usage:	"[SYMBOL=VALUE]..."
+//usage:	"FILE" IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(" [SYMBOL=VALUE]...")
 //usage:#define insmod_full_usage "\n\n"
 //usage:       "Load kernel module"
-//usage:	IF_FEATURE_2_4_MODULES( "\n"
-//usage:     "\n	-f	Force module to load into the wrong kernel version"
-//usage:     "\n	-k	Make module autoclean-able"
-//usage:     "\n	-v	Verbose"
-//usage:     "\n	-q	Quiet"
-//usage:     "\n	-L	Lock: prevent simultaneous loads"
-//usage:	IF_FEATURE_INSMOD_LOAD_MAP(
-//usage:     "\n	-m	Output load map to stdout"
-//usage:	)
-//usage:     "\n	-x	Don't export externs"
-//usage:	)
 
 //usage:#define rmmod_trivial_usage
-//usage:       "[-wfa] [MODULE]..."
+//usage:       "MODULE..."
 //usage:#define rmmod_full_usage "\n\n"
-//usage:       "Unload kernel modules\n"
-//usage:     "\n	-w	Wait until the module is no longer used"
-//usage:     "\n	-f	Force unload"
-//usage:     "\n	-a	Remove all unused modules (recursively)"
-//usage:
-//usage:#define rmmod_example_usage
-//usage:       "$ rmmod tulip\n"
+//usage:       "Unload kernel modules"
 
 //usage:#define modprobe_trivial_usage
-//usage:	"[-qfwrsv] MODULE [SYMBOL=VALUE]..."
+//usage:	"[-rq] MODULE" IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(" [SYMBOL=VALUE]...")
 //usage:#define modprobe_full_usage "\n\n"
-//usage:       "	-r	Remove MODULE (stacks) or do autoclean"
+//usage:       "	-r	Remove MODULE"
 //usage:     "\n	-q	Quiet"
-//usage:     "\n	-v	Verbose"
-//usage:     "\n	-f	Force"
-//usage:     "\n	-w	Wait for unload"
-//usage:     "\n	-s	Report via syslog instead of stderr"
 
 //usage:#endif
 
@@ -964,7 +941,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 
 	/* depmod? */
 	if ((MOD_APPLET_CNT == 2 && ENABLE_DEPMOD && ENABLE_LSMOD)
-	 /* ^^^^only depmod and lsmod is configured^^^^^^^^^^^^^^^ */
+	 /* ^^^"only depmod and lsmod is configured"^^^^^^^^^^^^^^ */
 	 /* note: we already know here it is not lsmod (handled before) */
 	 || is_depmod
 	) {
