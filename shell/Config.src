@@ -123,9 +123,9 @@ config FEATURE_SH_STANDALONE
 	  This is implemented by re-execing /proc/self/exe (typically)
 	  with right parameters.
 
-	  However, there are drawbacks: it is problematic in chroot jails without
-	  mounted /proc, and ps/top may show command name as 'exe' for applets
-	  started this way.
+	  However, there are drawbacks: it is problematic in chroot jails
+	  without mounted /proc, and ps/top may show command name as 'exe'
+	  for applets started this way.
 
 config FEATURE_SH_NOFORK
 	bool "Run 'nofork' applets directly"

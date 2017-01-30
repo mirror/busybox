@@ -58,6 +58,39 @@
 //config:	  On NOMMU machines, ssl_helper applet should be available
 //config:	  in the $PATH for this to work. Make sure to select that applet.
 //config:
+//config:	  Note: currently, TLS code only makes TLS I/O work, it
+//config:	  does *not* check that the peer is who it claims to be, etc.
+//config:	  IOW: it uses peer-supplied public keys to establish encryption
+//config:	  and signing keys, then encrypts and signs outgoing data and
+//config:	  decrypts incoming data.
+//config:	  It does not check signature hashes on the incoming data:
+//config:	  this means that attackers manipulating TCP packets can
+//config:	  send altered data and we unknowingly receive garbage.
+//config:	  (This check might be relatively easy to add).
+//config:	  It does not check public key's certificate:
+//config:	  this means that the peer may be an attacker impersonating
+//config:	  the server we think we are talking to.
+//config:
+//config:	  If you think this is unacceptable, consider this. As more and more
+//config:	  servers switch to HTTPS-only operation, without such "crippled"
+//config:	  TLS code it is *impossible* to simply download a kernel source
+//config:	  from kernel.org. Which can in real world translate into
+//config:	  "my small automatic tooling to build cross-compilers from sources
+//config:	  no longer works, I need to additionally keep a local copy
+//config:	  of ~4 megabyte source tarball of a SSL library and ~2 megabyte
+//config:	  source of wget, need to compile and built both before I can
+//config:	  download anything. All this despite the fact that the build
+//config:	  is done in a QEMU sandbox on a machine with absolutely nothing
+//config:	  worth stealing, so I don't care if someone would go to a lot
+//config:	  of trouble to intercept my HTTPS download to send me an altered
+//config:	  kernel tarball".
+//config:
+//config:	  If you still think this is unacceptable, send patches.
+//config:
+//config:	  If you still think this is unacceptable, do not want to send
+//config:	  patches, but do want to waste bandwidth expaining how wrong
+//config:	  it is, you will be ignored.
+//config:
 //config:config FEATURE_WGET_OPENSSL
 //config:	bool "Try to connect to HTTPS using openssl"
 //config:	default y
