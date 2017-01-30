@@ -26,7 +26,7 @@
 //kbuild:lib-$(CONFIG_TASKSET) += taskset.o
 
 //usage:#define taskset_trivial_usage
-//usage:       "[-p] [HEXMASK] [PID | PROG ARGS]"
+//usage:       "[-p] [HEXMASK] PID | PROG ARGS"
 //usage:#define taskset_full_usage "\n\n"
 //usage:       "Set or get CPU affinity\n"
 //usage:     "\n	-p	Operate on an existing PID"
@@ -116,7 +116,7 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 	pid_t pid = 0;
 	unsigned opt_p;
 	const char *current_new;
-	char *aff = aff; /* for compiler */
+	char *aff;
 
 	/* NB: we mimic util-linux's taskset: -p does not take
 	 * an argument, i.e., "-pN" is NOT valid, only "-p N"!
@@ -127,29 +127,28 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 	opt_p = getopt32(argv, "+p");
 	argv += optind;
 
+	aff = *argv++;
 	if (opt_p) {
-		char *pid_str = *argv++;
+		char *pid_str = aff;
 		if (*argv) { /* "-p <aff> <pid> ...rest.is.ignored..." */
-			aff = pid_str;
 			pid_str = *argv; /* NB: *argv != NULL in this case */
 		}
 		/* else it was just "-p <pid>", and *argv == NULL */
 		pid = xatoul_range(pid_str, 1, ((unsigned)(pid_t)ULONG_MAX) >> 1);
 	} else {
-		aff = *argv++; /* <aff> <cmd...> */
+		/* <aff> <cmd...> */
 		if (!*argv)
 			bb_show_usage();
 	}
 
 	mask_size_in_bytes = SZOF_UL;
-	mask = NULL;
 	current_new = "current";
  print_aff:
 	mask = get_aff(pid, &mask_size_in_bytes);
 	if (opt_p) {
 		printf("pid %d's %s affinity mask: "TASKSET_PRINTF_MASK"\n",
 				pid, current_new, from_mask(mask, mask_size_in_bytes));
-		if (!*argv) {
+		if (*argv == NULL) {
 			/* Either it was just "-p <pid>",
 			 * or it was "-p <aff> <pid>" and we came here
 			 * for the second time (see goto below) */
@@ -166,8 +165,7 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 		aff += 2;
 
 	if (!ENABLE_FEATURE_TASKSET_FANCY) {
-		/* Do not allow zero mask: */
-		mask[0] = xstrtoul_range(aff, 16, 1, ULONG_MAX);
+		mask[0] = xstrtoul(aff, 16);
 	} else {
 		unsigned i;
 		char *last_char;
@@ -201,8 +199,8 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 			/* else:
 			 * We can error out here, but we don't.
 			 * For one, kernel itself ignores bits in mask[]
-			 * which do not map to any CPUs.
-			 * If mask has one 32-bit long,
+			 * which do not map to any CPUs:
+			 * if mask[] has one 32-bit long element,
 			 * but you have only 8 CPUs, all bits beyond first 8
 			 * are ignored, silently.
 			 * No point in making bits past 31th to be errors.
