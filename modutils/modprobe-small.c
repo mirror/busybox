@@ -24,12 +24,12 @@
 //config:	help
 //config:	  Check if the module is already loaded.
 
+//applet:IF_LSMOD(   IF_MODPROBE_SMALL(APPLET(lsmod,    BB_DIR_SBIN, BB_SUID_DROP)))
 //applet:IF_MODPROBE(IF_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP)))
 //                                   APPLET_ODDNAME:name    main      location     suid_type     help
 //applet:IF_DEPMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, depmod)))
 //applet:IF_INSMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(insmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, insmod)))
-//applet:IF_LSMOD(IF_MODPROBE_SMALL( APPLET_ODDNAME(lsmod,  modprobe, BB_DIR_SBIN, BB_SUID_DROP, lsmod)))
-//applet:IF_RMMOD(IF_MODPROBE_SMALL( APPLET_ODDNAME(rmmod,  modprobe, BB_DIR_SBIN, BB_SUID_DROP, rmmod)))
+//applet:IF_RMMOD( IF_MODPROBE_SMALL(APPLET_ODDNAME(rmmod,  modprobe, BB_DIR_SBIN, BB_SUID_DROP, rmmod)))
 
 //kbuild:lib-$(CONFIG_MODPROBE_SMALL) += modprobe-small.o
 
@@ -59,7 +59,27 @@
 
 #define DEPFILE_BB CONFIG_DEFAULT_DEPMOD_FILE".bb"
 
-#define MOD_APPLET_CNT (ENABLE_MODPROBE + ENABLE_DEPMOD + ENABLE_INSMOD + ENABLE_LSMOD + ENABLE_RMMOD)
+//usage:#if ENABLE_MODPROBE_SMALL
+
+//usage:#define lsmod_trivial_usage
+//usage:       ""
+//usage:#define lsmod_full_usage "\n\n"
+//usage:       "List loaded kernel modules"
+
+//usage:#endif
+
+#if ENABLE_LSMOD
+int lsmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
+{
+	xprint_and_close_file(xfopen_for_read("/proc/modules"));
+	return EXIT_SUCCESS;
+}
+#endif
+
+/* Num of applets that use modprobe_main() entry point. */
+/* lsmod is not here. */
+#define MOD_APPLET_CNT (ENABLE_MODPROBE + ENABLE_DEPMOD + ENABLE_INSMOD + ENABLE_RMMOD)
 
 /* Do not bother if MODPROBE_SMALL=y but no applets selected. */
 /* The rest of the file is in this if block. */
@@ -69,7 +89,6 @@
 #define is_modprobe (ENABLE_MODPROBE && (ONLY_APPLET || applet_name[0] == 'm'))
 #define is_depmod   (ENABLE_DEPMOD   && (ONLY_APPLET || applet_name[0] == 'd'))
 #define is_insmod   (ENABLE_INSMOD   && (ONLY_APPLET || applet_name[0] == 'i'))
-#define is_lsmod    (ENABLE_LSMOD    && (ONLY_APPLET || applet_name[0] == 'l'))
 #define is_rmmod    (ENABLE_RMMOD    && (ONLY_APPLET || applet_name[0] == 'r'))
 
 enum {
@@ -890,11 +909,6 @@ The following options are useful for people managing distributions:
 //usage:#define depmod_trivial_usage NOUSAGE_STR
 //usage:#define depmod_full_usage ""
 
-//usage:#define lsmod_trivial_usage
-//usage:       ""
-//usage:#define lsmod_full_usage "\n\n"
-//usage:       "List loaded kernel modules"
-
 //usage:#define insmod_trivial_usage
 //usage:	"FILE" IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(" [SYMBOL=VALUE]...")
 //usage:#define insmod_full_usage "\n\n"
@@ -922,12 +936,6 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	struct utsname uts;
 	IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(char *options = NULL;)
 
-	/* are we lsmod? -> just dump /proc/modules */
-	if (is_lsmod) {
-		xprint_and_close_file(xfopen_for_read("/proc/modules"));
-		return EXIT_SUCCESS;
-	}
-
 	INIT_G();
 
 	/* Prevent ugly corner cases with no modules at all */
@@ -940,11 +948,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	uname(&uts); /* never fails */
 
 	/* depmod? */
-	if ((MOD_APPLET_CNT == 2 && ENABLE_DEPMOD && ENABLE_LSMOD)
-	 /* ^^^"only depmod and lsmod is configured"^^^^^^^^^^^^^^ */
-	 /* note: we already know here it is not lsmod (handled before) */
-	 || is_depmod
-	) {
+	if (is_depmod) {
 		/* Supported:
 		 * -n: print result to stdout
 		 * -a: process all modules (default)
