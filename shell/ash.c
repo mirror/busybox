@@ -7160,6 +7160,57 @@ addfname(const char *name)
 	exparg.lastp = &sp->next;
 }
 
+/* Avoid glob() (and thus, stat() et al) for words like "echo" */
+static int
+hasmeta(const char *p)
+{
+	static const char chars[] ALIGN1 = {
+		'*', '?', '[', '\\', CTLQUOTEMARK, CTLESC, 0
+	};
+
+	for (;;) {
+		p = strpbrk(p, chars);
+		if (!p)
+			break;
+		switch ((unsigned char) *p) {
+		case CTLQUOTEMARK:
+			for (;;) {
+				p++;
+				if (*p == CTLQUOTEMARK)
+					break;
+				if (*p == CTLESC)
+					p++;
+				if (*p == '\0') /* huh? */
+					return 0;
+			}
+			break;
+		case '\\':
+		case CTLESC:
+			p++;
+			if (*p == '\0')
+				return 0;
+			break;
+		case '[':
+			if (!strchr(p + 1, ']')) {
+				/* It's not a properly closed [] pattern,
+				 * but other metas may follow. Continue checking.
+				 * my[file* _is_ globbed by bash
+				 * and matches filenames like "my[file1".
+				 */
+				break;
+			}
+			/* fallthrough */
+		default:
+		/* case '*': */
+		/* case '?': */
+			return 1;
+		}
+		p++;
+	}
+
+	return 0;
+}
+
 /* If we want to use glob() from libc... */
 #if !ENABLE_ASH_INTERNAL_GLOB
 
@@ -7186,20 +7237,9 @@ expandmeta(struct strlist *str /*, int flag*/)
 		if (fflag)
 			goto nometa;
 
-		/* Avoid glob() (and thus, stat() et al) for words like "echo" */
-		p = str->text;
-		while (*p) {
-			if (*p == '*')
-				goto need_glob;
-			if (*p == '?')
-				goto need_glob;
-			if (*p == '[')
-				goto need_glob;
-			p++;
-		}
-		goto nometa;
+		if (!hasmeta(str->text))
+			goto nometa;
 
- need_glob:
 		INT_OFF;
 		p = preglob(str->text, RMESCAPE_ALLOC | RMESCAPE_HEAP);
 // GLOB_NOMAGIC (GNU): if no *?[ chars in pattern, return it even if no match
@@ -7436,9 +7476,6 @@ expsort(struct strlist *str)
 static void
 expandmeta(struct strlist *str /*, int flag*/)
 {
-	static const char metachars[] ALIGN1 = {
-		'*', '?', '[', 0
-	};
 	/* TODO - EXP_REDIR */
 
 	while (str) {
@@ -7449,7 +7486,7 @@ expandmeta(struct strlist *str /*, int flag*/)
 
 		if (fflag)
 			goto nometa;
-		if (!strpbrk(str->text, metachars))
+		if (!hasmeta(str->text))
 			goto nometa;
 		savelastp = exparg.lastp;
 
