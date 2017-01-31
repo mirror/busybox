@@ -112,7 +112,7 @@
 //usage:
 //usage:#define modprobe_trivial_usage
 //usage:	"[-alrqvsD" IF_FEATURE_MODPROBE_BLACKLIST("b") "]"
-//usage:	" MODULE [SYMBOL=VALUE]..."
+//usage:	" MODULE" IF_FEATURE_CMDLINE_MODULE_OPTIONS(" [SYMBOL=VALUE]...")
 //usage:#define modprobe_full_usage "\n\n"
 //usage:       "	-a	Load multiple MODULEs"
 //usage:     "\n	-l	List (MODULE is a pattern)"
@@ -174,7 +174,9 @@ static const char modprobe_longopts[] ALIGN1 =
 
 struct globals {
 	llist_t *probes; /* MEs of module(s) requested on cmdline */
+#if ENABLE_FEATURE_CMDLINE_MODULE_OPTIONS
 	char *cmdline_mopts; /* module options from cmdline */
+#endif
 	int num_unresolved_deps;
 	/* bool. "Did we have 'symbol:FOO' requested on cmdline?" */
 	smallint need_symbols;
@@ -458,8 +460,10 @@ static int do_modprobe(struct module_entry *m)
 		options = m2->options;
 		m2->options = NULL;
 		options = parse_and_add_kcmdline_module_options(options, m2->modname);
+#if ENABLE_FEATURE_CMDLINE_MODULE_OPTIONS
 		if (m == m2)
 			options = gather_options_str(options, G.cmdline_mopts);
+#endif
 
 		if (option_mask32 & OPT_SHOW_DEPS) {
 			printf(options ? "insmod %s/%s/%s %s\n"
@@ -626,7 +630,9 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		/* First argument is module name, rest are parameters */
 		DBG("probing just module %s", *argv);
 		add_probe(argv[0]);
+#if ENABLE_FEATURE_CMDLINE_MODULE_OPTIONS
 		G.cmdline_mopts = parse_cmdline_module_options(argv, /*quote_spaces:*/ 1);
+#endif
 	}
 
 	/* Happens if all requested modules are already loaded */

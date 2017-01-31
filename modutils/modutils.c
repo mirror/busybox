@@ -120,6 +120,7 @@ char* FAST_FUNC filename2modname(const char *filename, char *modname)
 	return modname;
 }
 
+#if ENABLE_FEATURE_CMDLINE_MODULE_OPTIONS
 char* FAST_FUNC parse_cmdline_module_options(char **argv, int quote_spaces)
 {
 	char *options;
@@ -155,6 +156,7 @@ char* FAST_FUNC parse_cmdline_module_options(char **argv, int quote_spaces)
 	/* if (optlen != 0) options[optlen-1] = '\0'; */
 	return options;
 }
+#endif
 
 #if ENABLE_FEATURE_INSMOD_TRY_MMAP
 void* FAST_FUNC try_to_mmap_module(const char *filename, size_t *image_size_p)

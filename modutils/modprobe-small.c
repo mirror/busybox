@@ -10,13 +10,6 @@
 
 /* config MODPROBE_SMALL is defined in Config.src to ensure better "make config" order */
 
-//config:config FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
-//config:	bool "Accept module options on modprobe command line"
-//config:	default y
-//config:	depends on MODPROBE_SMALL && (INSMOD || MODPROBE)
-//config:	help
-//config:	  Allow insmod and modprobe take module options from command line.
-//config:
 //config:config FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
 //config:	bool "Skip loading of already loaded modules"
 //config:	default y
@@ -690,7 +683,7 @@ static int rmmod(const char *filename)
  * NB: also called by depmod with bogus name "/",
  * just in order to force modprobe.dep.bb creation.
 */
-#if !ENABLE_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
+#if !ENABLE_FEATURE_CMDLINE_MODULE_OPTIONS
 #define process_module(a,b) process_module(a)
 #define cmdline_options ""
 #endif
@@ -735,7 +728,7 @@ static int process_module(char *name, const char *cmdline_options)
 		options = xmalloc_open_read_close(opt_filename, NULL);
 		if (options)
 			replace(options, '\n', ' ');
-#if ENABLE_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
+#if ENABLE_FEATURE_CMDLINE_MODULE_OPTIONS
 		if (cmdline_options) {
 			/* NB: cmdline_options always have one leading ' '
 			 * (see main()), we remove it here */
@@ -910,7 +903,7 @@ The following options are useful for people managing distributions:
 //usage:#define depmod_full_usage ""
 
 //usage:#define insmod_trivial_usage
-//usage:	"FILE" IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(" [SYMBOL=VALUE]...")
+//usage:	"FILE" IF_FEATURE_CMDLINE_MODULE_OPTIONS(" [SYMBOL=VALUE]...")
 //usage:#define insmod_full_usage "\n\n"
 //usage:       "Load kernel module"
 
@@ -920,7 +913,7 @@ The following options are useful for people managing distributions:
 //usage:       "Unload kernel modules"
 
 //usage:#define modprobe_trivial_usage
-//usage:	"[-rq] MODULE" IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(" [SYMBOL=VALUE]...")
+//usage:	"[-rq] MODULE" IF_FEATURE_CMDLINE_MODULE_OPTIONS(" [SYMBOL=VALUE]...")
 //usage:#define modprobe_full_usage "\n\n"
 //usage:       "	-r	Remove MODULE"
 //usage:     "\n	-q	Quiet"
@@ -934,7 +927,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	int exitcode;
 #endif
 	struct utsname uts;
-	IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(char *options = NULL;)
+	IF_FEATURE_CMDLINE_MODULE_OPTIONS(char *options = NULL;)
 
 	INIT_G();
 
@@ -998,7 +991,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		if (!ONLY_APPLET)
 			option_mask32 |= OPT_r;
 	} else if (!ENABLE_MODPROBE || !(option_mask32 & OPT_r)) {
-# if ENABLE_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
+# if ENABLE_FEATURE_CMDLINE_MODULE_OPTIONS
 	/* If not rmmod/-r, parse possible module options given on command line.
 	 * insmod/modprobe takes one module name, the rest are parameters. */
 		char **arg = argv;
@@ -1023,7 +1016,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		if (!map)
 			bb_perror_msg_and_die("can't read '%s'", *argv);
 		if (init_module(map, len,
-			(IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(options ? options : ) "")
+			(IF_FEATURE_CMDLINE_MODULE_OPTIONS(options ? options : ) "")
 			) != 0
 		) {
 			bb_error_msg_and_die("can't insert '%s': %s",
@@ -1045,7 +1038,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	} while (*++argv);
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(free(options);)
+		IF_FEATURE_CMDLINE_MODULE_OPTIONS(free(options);)
 	}
 	return exitcode;
 #endif /* MODPROBE || INSMOD || RMMOD */

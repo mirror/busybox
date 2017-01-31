@@ -37,6 +37,14 @@ INSERT
 
 comment "Options common to multiple modutils"
 
+config FEATURE_CMDLINE_MODULE_OPTIONS
+	bool "Accept module options on modprobe command line"
+	default y
+	depends on INSMOD || MODPROBE
+	help
+	  Allow insmod and modprobe take module options from the applets'
+	  command line.
+
 config FEATURE_2_4_MODULES
 	bool "Support version 2.2/2.4 Linux kernels"
 	default n
