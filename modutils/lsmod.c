@@ -18,7 +18,6 @@
 //config:	bool "Pretty output"
 //config:	default y
 //config:	depends on LSMOD && !MODPROBE_SMALL
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	  This option makes output format of lsmod adjusted to
 //config:	  the format of module-init-tools for Linux kernel 2.6.

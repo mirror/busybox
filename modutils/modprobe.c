@@ -19,7 +19,6 @@
 //config:	bool "Blacklist support"
 //config:	default y
 //config:	depends on MODPROBE && !MODPROBE_SMALL
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	  Say 'y' here to enable support for the 'blacklist' command in
 //config:	  modprobe.conf. This prevents the alias resolver to resolve

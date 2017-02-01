@@ -8,7 +8,6 @@ menu "Linux Module Utilities"
 config MODPROBE_SMALL
 	bool "Simplified modutils"
 	default y
-	select PLATFORM_LINUX
 	help
 	  Build smaller (~1.5 kbytes), simplified module tools.
 
@@ -42,7 +41,6 @@ config FEATURE_2_4_MODULES
 	bool "Support version 2.2/2.4 Linux kernels"
 	default n
 	depends on (INSMOD || RMMOD || LSMOD) && !MODPROBE_SMALL
-	select PLATFORM_LINUX
 	help
 	  Support module loading for 2.2.x and 2.4.x Linux kernels.
 	  This increases size considerably. Say N unless you plan
@@ -52,7 +50,6 @@ config FEATURE_INSMOD_TRY_MMAP
 	bool "Try to load module from a mmap'ed area"
 	default n
 	depends on INSMOD && !MODPROBE_SMALL
-	select PLATFORM_LINUX
 	help
 	  This option causes module loading code to try to mmap
 	  module first. If it does not work (for example,
@@ -69,7 +66,6 @@ config FEATURE_INSMOD_VERSION_CHECKING
 	bool "Enable module version checking"
 	default n
 	depends on FEATURE_2_4_MODULES && (INSMOD || MODPROBE)
-	select PLATFORM_LINUX
 	help
 	  Support checking of versions for modules. This is used to
 	  ensure that the kernel and module are made for each other.
@@ -78,7 +74,6 @@ config FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 	bool "Add module symbols to kernel symbol table"
 	default n
 	depends on FEATURE_2_4_MODULES && (INSMOD || MODPROBE)
-	select PLATFORM_LINUX
 	help
 	  By adding module symbols to the kernel symbol table, Oops messages
 	  occuring within kernel modules can be properly debugged. By enabling
@@ -90,7 +85,6 @@ config FEATURE_INSMOD_LOADINKMEM
 	bool "In kernel memory optimization (uClinux only)"
 	default n
 	depends on FEATURE_2_4_MODULES && (INSMOD || MODPROBE)
-	select PLATFORM_LINUX
 	help
 	  This is a special uClinux only memory optimization that lets insmod
 	  load the specified kernel module directly into kernel space, reducing
@@ -101,7 +95,6 @@ config FEATURE_INSMOD_LOAD_MAP
 	bool "Enable insmod load map (-m) option"
 	default n
 	depends on FEATURE_2_4_MODULES && INSMOD
-	select PLATFORM_LINUX
 	help
 	  Enabling this, one would be able to get a load map
 	  output on stdout. This makes kernel module debugging
@@ -113,7 +106,6 @@ config FEATURE_INSMOD_LOAD_MAP_FULL
 	bool "Symbols in load map"
 	default y
 	depends on FEATURE_INSMOD_LOAD_MAP && !MODPROBE_SMALL
-	select PLATFORM_LINUX
 	help
 	  Without this option, -m will only output section
 	  load map. With this option, -m will also output
@@ -123,7 +115,6 @@ config FEATURE_CHECK_TAINTED_MODULE
 	bool "Support tainted module checking with new kernels"
 	default y
 	depends on (LSMOD || FEATURE_2_4_MODULES) && !MODPROBE_SMALL
-	select PLATFORM_LINUX
 	help
 	  Support checking for tainted modules. These are usually binary
 	  only modules that will make the linux-kernel list ignore your
@@ -134,7 +125,6 @@ config FEATURE_MODUTILS_ALIAS
 	bool "Support module.aliases file"
 	default y
 	depends on (DEPMOD || MODPROBE) && !MODPROBE_SMALL
-	select PLATFORM_LINUX
 	help
 	  Generate and parse modules.alias containing aliases for bus
 	  identifiers:
@@ -151,7 +141,6 @@ config FEATURE_MODUTILS_SYMBOLS
 	bool "Support module.symbols file"
 	default y
 	depends on (DEPMOD || MODPROBE) && !MODPROBE_SMALL
-	select PLATFORM_LINUX
 	help
 	  Generate and parse modules.symbols containing aliases for
 	  symbol_request() kernel calls, such as:
