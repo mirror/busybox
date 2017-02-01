@@ -404,7 +404,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 		if (c >= 32)
 			break;
 		on_off->opt_char = *s;
-		on_off->switch_on = (1 << c);
+		on_off->switch_on = (1U << c);
 		if (*++s == ':') {
 			on_off->optarg = va_arg(p, void **);
 			if (s[1] == '+' || s[1] == '*') {
@@ -454,7 +454,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 			if (c >= 32)
 				break;
 			on_off->opt_char = l_o->val;
-			on_off->switch_on = (1 << c);
+			on_off->switch_on = (1U << c);
 			if (l_o->has_arg != no_argument)
 				on_off->optarg = va_arg(p, void **);
 			c++;

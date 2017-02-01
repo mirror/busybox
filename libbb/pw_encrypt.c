@@ -30,7 +30,7 @@ static int i64c(int i)
 int FAST_FUNC crypt_make_salt(char *p, int cnt /*, int x */)
 {
 	/* was: x += ... */
-	int x = getpid() + monotonic_us();
+	unsigned x = getpid() + monotonic_us();
 	do {
 		/* x = (x*1664525 + 1013904223) % 2^32 generator is lame
 		 * (low-order bit is not "random", etc...),

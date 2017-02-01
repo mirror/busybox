@@ -24,7 +24,7 @@ uint32_t* FAST_FUNC crc32_filltable(uint32_t *crc_table, int endian)
 {
 	uint32_t polynomial = endian ? 0x04c11db7 : 0xedb88320;
 	uint32_t c;
-	int i, j;
+	unsigned i, j;
 
 	if (!crc_table)
 		crc_table = xmalloc(256 * sizeof(uint32_t));

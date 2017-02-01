@@ -94,7 +94,7 @@ static int receive(/*int read_fd, */int file_fd)
 		int blockBegin;
 		int blockNo, blockNoOnesCompl;
 		int cksum_or_crc;
-		int expected;
+		unsigned expected;
 		int i, j;
 
 		blockBegin = read_byte(timeout);
