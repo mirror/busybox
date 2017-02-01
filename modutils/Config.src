@@ -45,30 +45,21 @@ config FEATURE_CMDLINE_MODULE_OPTIONS
 	  Allow insmod and modprobe take module options from the applets'
 	  command line.
 
+config FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
+	bool "Skip loading of already loaded modules"
+	default y
+	depends on MODPROBE_SMALL && (DEPMOD || INSMOD || MODPROBE)
+	help
+	  Check if the module is already loaded.
+
 config FEATURE_2_4_MODULES
 	bool "Support version 2.2/2.4 Linux kernels"
 	default n
-	depends on (INSMOD || RMMOD || LSMOD) && !MODPROBE_SMALL
+	depends on (INSMOD || LSMOD || MODPROBE || RMMOD) && !MODPROBE_SMALL
 	help
 	  Support module loading for 2.2.x and 2.4.x Linux kernels.
 	  This increases size considerably. Say N unless you plan
 	  to run ancient kernels.
-
-config FEATURE_INSMOD_TRY_MMAP
-	bool "Try to load module from a mmap'ed area"
-	default n
-	depends on INSMOD && !MODPROBE_SMALL
-	help
-	  This option causes module loading code to try to mmap
-	  module first. If it does not work (for example,
-	  it does not work for compressed modules), module will be read
-	  (and unpacked if needed) into a memory block allocated by malloc.
-
-	  The only case when mmap works but malloc does not is when
-	  you are trying to load a big module on a very memory-constrained
-	  machine. Malloc will momentarily need 2x as much memory as mmap.
-
-	  Choosing N saves about 250 bytes of code (on 32-bit x86).
 
 config FEATURE_INSMOD_VERSION_CHECKING
 	bool "Enable module version checking"
@@ -113,7 +104,7 @@ config FEATURE_INSMOD_LOAD_MAP
 config FEATURE_INSMOD_LOAD_MAP_FULL
 	bool "Symbols in load map"
 	default y
-	depends on FEATURE_INSMOD_LOAD_MAP && !MODPROBE_SMALL
+	depends on FEATURE_INSMOD_LOAD_MAP
 	help
 	  Without this option, -m will only output section
 	  load map. With this option, -m will also output
@@ -128,6 +119,22 @@ config FEATURE_CHECK_TAINTED_MODULE
 	  only modules that will make the linux-kernel list ignore your
 	  support request.
 	  This option is required to support GPLONLY modules.
+
+config FEATURE_INSMOD_TRY_MMAP
+	bool "Try to load module from a mmap'ed area"
+	default n
+	depends on (INSMOD || MODPROBE) && !MODPROBE_SMALL
+	help
+	  This option causes module loading code to try to mmap
+	  module first. If it does not work (for example,
+	  it does not work for compressed modules), module will be read
+	  (and unpacked if needed) into a memory block allocated by malloc.
+
+	  The only case when mmap works but malloc does not is when
+	  you are trying to load a big module on a very memory-constrained
+	  machine. Malloc will momentarily need 2x as much memory as mmap.
+
+	  Choosing N saves about 250 bytes of code (on 32-bit x86).
 
 config FEATURE_MODUTILS_ALIAS
 	bool "Support module.aliases file"

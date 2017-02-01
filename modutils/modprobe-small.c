@@ -8,14 +8,8 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-/* config MODPROBE_SMALL is defined in Config.src to ensure better "make config" order */
-
-//config:config FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
-//config:	bool "Skip loading of already loaded modules"
-//config:	default y
-//config:	depends on MODPROBE_SMALL && (DEPMOD || INSMOD || MODPROBE)
-//config:	help
-//config:	  Check if the module is already loaded.
+/* modprobe-small configs are defined in Config.src to ensure better
+ * "make config" order */
 
 //applet:IF_LSMOD(   IF_MODPROBE_SMALL(APPLET(lsmod,    BB_DIR_SBIN, BB_SUID_DROP)))
 //applet:IF_MODPROBE(IF_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP)))
