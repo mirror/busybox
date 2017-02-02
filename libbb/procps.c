@@ -370,6 +370,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			| PSSCAN_TTY | PSSCAN_NICE
 			| PSSCAN_CPU)
 		) {
+			int s_idx;
 			char *cp, *comm1;
 			int tty;
 #if !ENABLE_FEATURE_FAST_TOP
@@ -468,17 +469,20 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 #if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
 			sp->niceness = tasknice;
 #endif
-
-			if (sp->vsz == 0 && sp->state[0] != 'Z')
+			sp->state[1] = ' ';
+			sp->state[2] = ' ';
+			s_idx = 1;
+			if (sp->vsz == 0 && sp->state[0] != 'Z') {
+				/* not sure what the purpose of this flag */
 				sp->state[1] = 'W';
-			else
-				sp->state[1] = ' ';
-			if (tasknice < 0)
-				sp->state[2] = '<';
-			else if (tasknice) /* > 0 */
-				sp->state[2] = 'N';
-			else
-				sp->state[2] = ' ';
+				s_idx = 2;
+			}
+			if (tasknice != 0) {
+				if (tasknice < 0)
+					sp->state[s_idx] = '<';
+				else /* > 0 */
+					sp->state[s_idx] = 'N';
+			}
 		}
 
 #if ENABLE_FEATURE_TOPMEM
