@@ -12686,7 +12686,7 @@ dotcmd(int argc_ UNUSED_PARAM, char **argv_ UNUSED_PARAM)
 	fullname = find_dot_file(argv[0]);
 	argv++;
 	args_need_save = argv[0];
-	if (args_need_save) { /* . FILE ARGS, ARGS exist */
+	if (args_need_save) { /* ". FILE ARGS", and ARGS are not empty */
 		int argc;
 		saveparam = shellparam;
 		shellparam.malloced = 0;
@@ -13480,7 +13480,7 @@ procargs(char **argv)
 #if DEBUG == 2
 	debug = 1;
 #endif
-	/* POSIX 1003.2: first arg after -c cmd is $0, remainder $1... */
+	/* POSIX 1003.2: first arg after "-c CMD" is $0, remainder $1... */
 	if (xminusc) {
 		minusc = *xargv++;
 		if (*xargv)
@@ -13661,9 +13661,11 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 			if (!hp) {
 				hp = lookupvar("HOME");
 				if (hp) {
+					INT_OFF;
 					hp = concat_path_file(hp, ".ash_history");
 					setvar0("HISTFILE", hp);
 					free((char*)hp);
+					INT_ON;
 					hp = lookupvar("HISTFILE");
 				}
 			}
