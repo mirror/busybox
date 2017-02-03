@@ -1312,7 +1312,7 @@ static void get_server_hello(tls_state_t *tls)
 	unsigned cipher;
 	int len, len24;
 
-	len = tls_xread_handshake_block(tls, 74);
+	len = tls_xread_handshake_block(tls, 74 - 32);
 
 	hp = (void*)tls->inbuf;
 	// 74 bytes:
@@ -1332,7 +1332,7 @@ static void get_server_hello(tls_state_t *tls)
 	len24 = hp->len24_lo;
 	if (hp->session_id_len != 32) {
 		if (hp->session_id_len != 0)
-			tls_error_die(tls);
+			bad_record_die(tls, "'server hello'", len);
 
 		// session_id_len == 0: no session id
 		// "The server
@@ -1347,7 +1347,7 @@ static void get_server_hello(tls_state_t *tls)
 //	 || cipherid[1]  != (CIPHER_ID & 0xff)
 //	 || cipherid[2]  != 0 /* comprtype */
 	) {
-		tls_error_die(tls);
+		bad_record_die(tls, "'server hello'", len);
 	}
 	dbg("<< SERVER_HELLO\n");
 
