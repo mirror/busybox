@@ -1147,7 +1147,7 @@ static void send_headers(int responseNum)
 			"Last-Modified: %s\r\n"
 			"%s %"OFF_FMT"u\r\n",
 				date_str,
-				content_gzip ? "Transfer-length:" : "Content-length:",
+				content_gzip ? "Transfer-Length:" : "Content-Length:",
 				file_size
 		);
 	}
@@ -2276,14 +2276,14 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 
 #if ENABLE_FEATURE_HTTPD_CGI || ENABLE_FEATURE_HTTPD_PROXY
 			/* Try and do our best to parse more lines */
-			if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
+			if ((STRNCASECMP(iobuf, "Content-Length:") == 0)) {
 				/* extra read only for POST */
 				if (prequest != request_GET
 # if ENABLE_FEATURE_HTTPD_CGI
 				 && prequest != request_HEAD
 # endif
 				) {
-					tptr = skip_whitespace(iobuf + sizeof("Content-length:") - 1);
+					tptr = skip_whitespace(iobuf + sizeof("Content-Length:") - 1);
 					if (!tptr[0])
 						send_headers_and_exit(HTTP_BAD_REQUEST);
 					/* not using strtoul: it ignores leading minus! */
