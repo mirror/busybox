@@ -5,6 +5,46 @@
  */
 #include "tls.h"
 
+static
+int32 psAesInitKey(const unsigned char *key, uint32 keylen, psAesKey_t *skey);
+static
+void psAesEncryptBlock(const unsigned char *pt, unsigned char *ct,
+		psAesKey_t *skey);
+static
+void psAesDecryptBlock(const unsigned char *ct, unsigned char *pt,
+		psAesKey_t *skey);
+static
+int32 psAesInit(psCipherContext_t *ctx, unsigned char *IV,
+		const unsigned char *key, uint32 keylen);
+static
+int32 psAesEncrypt(psCipherContext_t *ctx, const unsigned char *pt,
+		unsigned char *ct, uint32 len);
+static
+int32 psAesDecrypt(psCipherContext_t *ctx, const unsigned char *ct,
+		unsigned char *pt, uint32 len);
+
+void aes_cbc_encrypt(const void *key, int klen, void *iv, const void *data, size_t len, void *dst)
+{
+	psCipherContext_t ctx;
+	psAesInit(&ctx, iv, key, klen);
+	psAesEncrypt(&ctx,
+		data, /* plaintext */
+		dst,  /* ciphertext */
+		len
+	);
+}
+
+void aes_cbc_decrypt(const void *key, int klen, void *iv, const void *data, size_t len, void *dst)
+{
+	psCipherContext_t ctx;
+	psAesInit(&ctx, iv, key, klen);
+	psAesDecrypt(&ctx,
+		data, /* ciphertext */
+		dst,  /* plaintext */
+		len
+	);
+}
+
 /* The file is taken almost verbatim from matrixssl-3-7-2b-open/crypto/symmetric/.
  * Changes are flagged with //bbox
  */
@@ -1079,8 +1119,9 @@ static uint32 setup_mix2(uint32 temp)
 	Software implementation of AES CBC APIs
  */
 #ifndef USE_AES_CBC_EXTERNAL
+static //bbox
 int32 psAesInit(psCipherContext_t *ctx, unsigned char *IV,
-				  unsigned char *key, uint32 keylen)
+				  const unsigned char *key, uint32 keylen)
 {
 	int32		x, err;
 
@@ -1106,7 +1147,8 @@ int32 psAesInit(psCipherContext_t *ctx, unsigned char *IV,
 	return PS_SUCCESS;
 }
 
-int32 psAesEncrypt(psCipherContext_t *ctx, unsigned char *pt,
+static //bbox
+int32 psAesEncrypt(psCipherContext_t *ctx, const unsigned char *pt,
 					 unsigned char *ct, uint32 len)
 {
 	int32			x;
@@ -1156,7 +1198,8 @@ int32 psAesEncrypt(psCipherContext_t *ctx, unsigned char *pt,
 	return len;
 }
 
-int32 psAesDecrypt(psCipherContext_t *ctx, unsigned char *ct,
+static //bbox
+int32 psAesDecrypt(psCipherContext_t *ctx, const unsigned char *ct,
 					 unsigned char *pt, uint32 len)
 {
 	int32			x;
@@ -1223,6 +1266,7 @@ int32 psAesDecrypt(psCipherContext_t *ctx, unsigned char *ct,
 	skey: The key in as scheduled by this function.
 */
 
+static //bbox
 int32 psAesInitKey(const unsigned char *key, uint32 keylen, psAesKey_t *skey)
 {
 	int32		i, j;
@@ -1390,6 +1434,7 @@ int32 psAesInitKey(const unsigned char *key, uint32 keylen, psAesKey_t *skey)
 
 
 #ifdef USE_BURN_STACK
+static //bbox
 void psAesEncryptBlock(const unsigned char *pt, unsigned char *ct,
 				psAesKey_t *skey)
 {
@@ -1399,6 +1444,7 @@ void psAesEncryptBlock(const unsigned char *pt, unsigned char *ct,
 static void _aes_ecb_encrypt(const unsigned char *pt, unsigned char *ct,
 				psAesKey_t *skey)
 #else
+static //bbox
 void psAesEncryptBlock(const unsigned char *pt, unsigned char *ct,
 				psAesKey_t *skey)
 #endif /* USE_BURN_STACK */
@@ -1555,6 +1601,7 @@ void psAesEncryptBlock(const unsigned char *pt, unsigned char *ct,
 }
 
 #ifdef USE_BURN_STACK
+static //bbox
 void psAesDecryptBlock(const unsigned char *ct, unsigned char *pt,
 				psAesKey_t *skey)
 {
@@ -1564,6 +1611,7 @@ void psAesDecryptBlock(const unsigned char *ct, unsigned char *pt,
 static void _aes_ecb_decrypt(const unsigned char *ct, unsigned char *pt,
 				psAesKey_t *skey)
 #else
+static //bbox
 void psAesDecryptBlock(const unsigned char *ct, unsigned char *pt,
 				psAesKey_t *skey)
 #endif /* USE_BURN_STACK */

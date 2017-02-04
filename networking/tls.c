@@ -722,17 +722,12 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	} while ((size & (AES_BLOCKSIZE - 1)) != 0);
 
 	/* Encrypt content+MAC+padding in place */
-	{
-		psCipherContext_t ctx;
-		psAesInit(&ctx, buf - AES_BLOCKSIZE, /* IV */
-			tls->client_write_key, tls->key_size /* selects 128/256 */
-		);
-		psAesEncrypt(&ctx,
-			buf, /* plaintext */
-			buf, /* ciphertext */
-			size
-		);
-	}
+	aes_cbc_encrypt(
+		tls->client_write_key, tls->key_size, /* selects 128/256 */
+		buf - AES_BLOCKSIZE, /* IV */
+		buf, size, /* plaintext */
+		buf /* ciphertext */
+	);
 
 	/* Write out */
 	dbg("writing 5 + %u IV + %u encrypted bytes, padding_length:0x%02x\n",
@@ -875,7 +870,6 @@ static int tls_xread_record(tls_state_t *tls)
 
 	/* Needs to be decrypted? */
 	if (tls->min_encrypted_len_on_read > tls->MAC_size) {
-		psCipherContext_t ctx;
 		uint8_t *p = tls->inbuf + RECHDR_LEN;
 		int padding_len;
 
@@ -886,14 +880,12 @@ static int tls_xread_record(tls_state_t *tls)
 				sz, tls->min_encrypted_len_on_read);
 		}
 		/* Decrypt content+MAC+padding, moving it over IV in the process */
-		psAesInit(&ctx, p, /* IV */
-			tls->server_write_key, tls->key_size /* selects 128/256 */
-		);
 		sz -= AES_BLOCKSIZE; /* we will overwrite IV now */
-		psAesDecrypt(&ctx,
-			p + AES_BLOCKSIZE, /* ciphertext */
-			p,                 /* plaintext */
-			sz
+		aes_cbc_decrypt(
+			tls->server_write_key, tls->key_size, /* selects 128/256 */
+			p, /* IV */
+			p + AES_BLOCKSIZE, sz, /* ciphertext */
+			p /* plaintext */
 		);
 		padding_len = p[sz - 1];
 		dbg("encrypted size:%u type:0x%02x padding_length:0x%02x\n", sz, p[0], padding_len);
