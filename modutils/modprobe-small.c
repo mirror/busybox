@@ -934,11 +934,11 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	/* Prevent ugly corner cases with no modules at all */
 	modinfo = xzalloc(sizeof(modinfo[0]));
 
-	if (!is_insmod) {
+	if (is_depmod || is_modprobe) {
 		/* Goto modules directory */
 		xchdir(CONFIG_DEFAULT_MODULES_DIR);
+		uname(&uts); /* never fails */
 	}
-	uname(&uts); /* never fails */
 
 	/* depmod? */
 	if (is_depmod) {
@@ -980,7 +980,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	getopt32(argv, "qrfsvwb");
 	argv += optind;
 
-	if (!is_insmod) {
+	if (is_modprobe) {
 		/* Goto $VERSION directory */
 		xchdir(uts.release);
 	}
