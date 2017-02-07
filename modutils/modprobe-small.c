@@ -928,7 +928,9 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	/* Prevent ugly corner cases with no modules at all */
 	modinfo = xzalloc(sizeof(modinfo[0]));
 
-	if (is_depmod || is_modprobe) {
+	if ((MOD_APPLET_CNT == 2 && ENABLE_DEPMOD && ENABLE_MODPROBE)
+	 || is_depmod || is_modprobe
+	) {
 		/* Goto modules directory */
 		xchdir(CONFIG_DEFAULT_MODULES_DIR);
 		uname(&uts); /* never fails */
