@@ -863,25 +863,28 @@ Usage: rmmod [-fhswvV] modulename ...
     should eventually fall to zero).
 
 # modprobe
-Usage: modprobe [-v] [-V] [-C config-file] [-n] [-i] [-q] [-b]
-    [-o <modname>] [ --dump-modversions ] <modname> [parameters...]
+Usage: modprobe [-v] [-V] [-C config-file] [-d <dirname> ] [-n] [-i] [-q]
+    [-b] [-o <modname>] [ --dump-modversions ] <modname> [parameters...]
 modprobe -r [-n] [-i] [-v] <modulename> ...
 modprobe -l -t <dirname> [ -a <modulename> ...]
 
 # depmod --help
-depmod 3.4 -- part of module-init-tools
-depmod -[aA] [-n -e -v -q -V -r -u]
+depmod 3.13 -- part of module-init-tools
+depmod -[aA] [-n -e -v -q -V -r -u -w -m]
       [-b basedirectory] [forced_version]
-depmod [-n -e -v -q -r -u] [-F kernelsyms] module1.ko module2.ko ...
+depmod [-n -e -v -q -r -u -w] [-F kernelsyms] module1.ko module2.ko ...
 If no arguments (except options) are given, "depmod -a" is assumed.
 depmod will output a dependency list suitable for the modprobe utility.
 Options:
     -a, --all           Probe all modules
     -A, --quick         Only does the work if there's a new module
-    -n, --show          Write the dependency file on stdout only
     -e, --errsyms       Report not supplied symbols
+    -m, --map           Create the legacy map files
+    -n, --show          Write the dependency file on stdout only
+    -P, --symbol-prefix Architecture symbol prefix
     -V, --version       Print the release version
     -v, --verbose       Enable verbose mode
+    -w, --warn          Warn on duplicates
     -h, --help          Print this usage message
 The following options are useful for people managing distributions:
     -b basedirectory
@@ -890,6 +893,9 @@ The following options are useful for people managing distributions:
     -F kernelsyms
     --filesyms kernelsyms
                         Use the file instead of the current kernel symbols
+    -E Module.symvers
+    --symvers Module.symvers
+                        Use Module.symvers file to check symbol versions
 */
 
 //usage:#if ENABLE_MODPROBE_SMALL
@@ -951,10 +957,12 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		 * -e: report any symbols which a module needs
 		 *  which are not supplied by other modules or the kernel
 		 * -F FILE: System.map (symbols for -e)
-		 * -q, -r, -u: noop?
+		 * -q, -r, -u: noop
 		 * Not supported:
 		 * -b BASEDIR: (TODO!) modules are in
 		 *  $BASEDIR/lib/modules/$VERSION
+		 * -m: create legacy "modules.*map" files (deprecated; in
+		 *  kmod's depmod, prints a warning message and continues)
 		 * -v: human readable deps to stdout
 		 * -V: version (don't want to support it - people may depend
 		 *  on it as an indicator of "standard" depmod)
