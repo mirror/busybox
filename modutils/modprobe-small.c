@@ -893,8 +893,11 @@ The following options are useful for people managing distributions:
 
 //usage:#if ENABLE_MODPROBE_SMALL
 
-//usage:#define depmod_trivial_usage NOUSAGE_STR
-//usage:#define depmod_full_usage ""
+//usage:#define depmod_trivial_usage "[-n]"
+//usage:#define depmod_full_usage "\n\n"
+//usage:       "Generate modules.dep.bb"
+//usage:     "\n"
+//usage:     "\n	-n	Dry run: print file to stdout"
 
 //usage:#define insmod_trivial_usage
 //usage:	"FILE" IF_FEATURE_CMDLINE_MODULE_OPTIONS(" [SYMBOL=VALUE]...")
