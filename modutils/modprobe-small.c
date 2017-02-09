@@ -79,6 +79,7 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #define is_rmmod    (ENABLE_RMMOD    && (ONLY_APPLET || applet_name[0] == 'r'))
 
 enum {
+	DEPMOD_OPT_n = (1 << 0), /* dry-run, print to stdout */
 	OPT_q = (1 << 0), /* be quiet */
 	OPT_r = (1 << 1), /* module removal instead of loading */
 };
@@ -477,7 +478,7 @@ static int start_dep_bb_writeout(void)
 	int fd;
 
 	/* depmod -n: write result to stdout */
-	if (applet_name[0] == 'd' && (option_mask32 & 1))
+	if (is_depmod && (option_mask32 & DEPMOD_OPT_n))
 		return STDOUT_FILENO;
 
 	fd = open(DEPFILE_BB".new", O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, 0644);
