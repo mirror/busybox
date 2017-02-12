@@ -150,7 +150,7 @@ static char *sane_address(char *str)
 	trim(str);
 	s = str;
 	while (*s) {
-		if (!isalnum(*s) && !strchr("_-.@", *s)) {
+		if (!isalnum(*s) && !strchr("+_-.@", *s)) {
 			bb_error_msg("bad address '%s'", str);
 			/* returning "": */
 			str[0] = '\0';
