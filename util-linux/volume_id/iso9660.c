@@ -50,7 +50,7 @@ struct iso_volume_descriptor {
 struct high_sierra_volume_descriptor {
 	uint8_t		foo[8];
 	uint8_t		type;
-	uint8_t		id[4];
+	uint8_t		id[5];
 	uint8_t		version;
 } PACKED;
 
