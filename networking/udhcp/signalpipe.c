@@ -48,28 +48,29 @@ void FAST_FUNC udhcp_sp_setup(void)
 		, signal_handler);
 }
 
-/* Quick little function to setup the rfds. Will return the
- * max_fd for use with select. Limited in that you can only pass
- * one extra fd */
-int FAST_FUNC udhcp_sp_fd_set(fd_set *rfds, int extra_fd)
+/* Quick little function to setup the pfds.
+ * Limited in that you can only pass one extra fd.
+ */
+void FAST_FUNC udhcp_sp_fd_set(struct pollfd pfds[2], int extra_fd)
 {
-	FD_ZERO(rfds);
-	FD_SET(signal_pipe.rd, rfds);
+	pfds[0].fd = signal_pipe.rd;
+	pfds[0].events = POLLIN;
+	pfds[1].fd = -1;
 	if (extra_fd >= 0) {
 		close_on_exec_on(extra_fd);
-		FD_SET(extra_fd, rfds);
+		pfds[1].fd = extra_fd;
+		pfds[1].events = POLLIN;
 	}
-	return signal_pipe.rd > extra_fd ? signal_pipe.rd : extra_fd;
 }
 
 /* Read a signal from the signal pipe. Returns 0 if there is
  * no signal, -1 on error (and sets errno appropriately), and
  * your signal on success */
-int FAST_FUNC udhcp_sp_read(const fd_set *rfds)
+int FAST_FUNC udhcp_sp_read(struct pollfd pfds[2])
 {
 	unsigned char sig;
 
-	if (!FD_ISSET(signal_pipe.rd, rfds))
+	if (!pfds[0].revents)
 		return 0;
 
 	if (safe_read(signal_pipe.rd, &sig, 1) != 1)

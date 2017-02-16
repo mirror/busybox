@@ -300,8 +300,8 @@ int udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 		uint32_t dest_nip, int dest_port) FAST_FUNC;
 
 void udhcp_sp_setup(void) FAST_FUNC;
-int udhcp_sp_fd_set(fd_set *rfds, int extra_fd) FAST_FUNC;
-int udhcp_sp_read(const fd_set *rfds) FAST_FUNC;
+void udhcp_sp_fd_set(struct pollfd *pfds, int extra_fd) FAST_FUNC;
+int udhcp_sp_read(struct pollfd *pfds) FAST_FUNC;
 
 int udhcp_read_interface(const char *interface, int *ifindex, uint32_t *nip, uint8_t *mac) FAST_FUNC;
 
