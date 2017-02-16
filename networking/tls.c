@@ -1740,26 +1740,23 @@ static void tls_xwrite(tls_state_t *tls, int len)
 
 void FAST_FUNC tls_run_copy_loop(tls_state_t *tls)
 {
-	fd_set readfds;
 	int inbuf_size;
 	const int INBUF_STEP = 4 * 1024;
+	struct pollfd pfds[2];
 
-//TODO: convert to poll
-	/* Select loop copying stdin to ofd, and ifd to stdout */
-	FD_ZERO(&readfds);
-	FD_SET(tls->ifd, &readfds);
-	FD_SET(STDIN_FILENO, &readfds);
+	pfds[0].fd = STDIN_FILENO;
+	pfds[0].events = POLLIN;
+	pfds[1].fd = tls->ifd;
+	pfds[1].events = POLLIN;
 
 	inbuf_size = INBUF_STEP;
 	for (;;) {
-		fd_set testfds;
 		int nread;
 
-		testfds = readfds;
-		if (select(tls->ifd + 1, &testfds, NULL, NULL, NULL) < 0)
-			bb_perror_msg_and_die("select");
+		if (safe_poll(pfds, 2, -1) < 0)
+			bb_perror_msg_and_die("poll");
 
-		if (FD_ISSET(STDIN_FILENO, &testfds)) {
+		if (pfds[0].revents) {
 			void *buf;
 
 			dbg("STDIN HAS DATA\n");
@@ -1774,7 +1771,7 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls)
 				/* But TLS has no way to encode this,
 				 * doubt it's ok to do it "raw"
 				 */
-				FD_CLR(STDIN_FILENO, &readfds);
+				pfds[0].fd = -1;
 				tls_free_outbuf(tls); /* mem usage optimization */
 			} else {
 				if (nread == inbuf_size) {
@@ -1788,7 +1785,7 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls)
 				tls_xwrite(tls, nread);
 			}
 		}
-		if (FD_ISSET(tls->ifd, &testfds)) {
+		if (pfds[1].revents) {
 			dbg("NETWORK HAS DATA\n");
  read_record:
 			nread = tls_xread_record(tls);
@@ -1796,7 +1793,7 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls)
 				/* TLS protocol has no real concept of one-sided shutdowns:
 				 * if we get "TLS EOF" from the peer, writes will fail too
 				 */
-				//FD_CLR(tls->ifd, &readfds);
+				//pfds[1].fd = -1;
 				//close(STDOUT_FILENO);
 				//tls_free_inbuf(tls); /* mem usage optimization */
 				//continue;
