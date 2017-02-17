@@ -582,11 +582,10 @@ void oprint(int direction, unsigned char *p, unsigned bc);
 #endif
 
 /* readwrite:
- handle stdin/stdout/network I/O.  Bwahaha!! -- the select loop from hell.
+ handle stdin/stdout/network I/O.  Bwahaha!! -- the i/o loop from hell.
  In this instance, return what might become our exit status. */
 static int readwrite(void)
 {
-	int rr;
 	char *zp = zp; /* gcc */  /* stdin buf ptr */
 	char *np = np;            /* net-in buf ptr */
 	unsigned rzleft;
@@ -594,45 +593,41 @@ static int readwrite(void)
 	unsigned netretry;              /* net-read retry counter */
 	unsigned fds_open;
 
-	/* if you don't have all this FD_* macro hair in sys/types.h, you'll have to
-	 either find it or do your own bit-bashing: *ding1 |= (1 << fd), etc... */
-	fd_set ding1;                   /* for select loop */
-	fd_set ding2;
-	FD_ZERO(&ding1);
-	FD_SET(netfd, &ding1);
-	FD_SET(STDIN_FILENO, &ding1);
-	fds_open = 2;
+	struct pollfd pfds[2];
+	pfds[0].fd = STDIN_FILENO;
+	pfds[0].events = POLLIN;
+	pfds[1].fd = netfd;
+	pfds[1].events = POLLIN;
 
+	fds_open = 2;
 	netretry = 2;
 	rzleft = rnleft = 0;
 	if (o_interval)
 		sleep(o_interval);                /* pause *before* sending stuff, too */
 
-	/* and now the big ol' select shoveling loop ... */
+	/* and now the big ol' shoveling loop ... */
 	/* nc 1.10 has "while (FD_ISSET(netfd)" here */
 	while (fds_open) {
+		int rr;
+		int poll_tmout_ms;
 		unsigned wretry = 8200;               /* net-write sanity counter */
 
-		ding2 = ding1;                        /* FD_COPY ain't portable... */
-	/* some systems, notably linux, crap into their select timers on return, so
-	 we create a expendable copy and give *that* to select.  */
+		poll_tmout_ms = -1;
 		if (o_wait) {
-			struct timeval tmp_timer;
-			tmp_timer.tv_sec = o_wait;
-			tmp_timer.tv_usec = 0;
-		/* highest possible fd is netfd (3) */
-			rr = select(netfd+1, &ding2, NULL, NULL, &tmp_timer);
-		} else
-			rr = select(netfd+1, &ding2, NULL, NULL, NULL);
+			poll_tmout_ms = INT_MAX;
+			if (o_wait < INT_MAX / 1000)
+				poll_tmout_ms = o_wait * 1000;
+		}
+		rr = poll(pfds, 2, poll_tmout_ms);
 		if (rr < 0 && errno != EINTR) {                /* might have gotten ^Zed, etc */
-			holler_perror("select");
+			holler_perror("poll");
 			close(netfd);
 			return 1;
 		}
 	/* if we have a timeout AND stdin is closed AND we haven't heard anything
 	 from the net during that time, assume it's dead and close it too. */
 		if (rr == 0) {
-			if (!FD_ISSET(STDIN_FILENO, &ding1)) {
+			if (!pfds[0].revents) {
 				netretry--;                        /* we actually try a coupla times. */
 				if (!netretry) {
 					if (o_verbose > 1)         /* normally we don't care */
@@ -641,19 +636,17 @@ static int readwrite(void)
 					return 0;                  /* not an error! */
 				}
 			}
-		} /* select timeout */
-	/* xxx: should we check the exception fds too?  The read fds seem to give
-	 us the right info, and none of the examples I found bothered. */
+		} /* timeout */
 
 	/* Ding!!  Something arrived, go check all the incoming hoppers, net first */
-		if (FD_ISSET(netfd, &ding2)) {                /* net: ding! */
+		if (pfds[1].revents) {                /* net: ding! */
 			rr = read(netfd, bigbuf_net, BIGSIZ);
 			if (rr <= 0) {
 				if (rr < 0 && o_verbose > 1) {
 					/* nc 1.10 doesn't do this */
 					bb_perror_msg("net read");
 				}
-				FD_CLR(netfd, &ding1);                /* net closed */
+				pfds[1].fd = -1;                   /* don't poll for netfd anymore */
 				fds_open--;
 				rzleft = 0;                        /* can't write anymore: broken pipe */
 			} else {
@@ -669,12 +662,12 @@ Debug("got %d from the net, errno %d", rr, errno);
 			goto shovel;
 
 	/* okay, suck more stdin */
-		if (FD_ISSET(STDIN_FILENO, &ding2)) {                /* stdin: ding! */
+		if (pfds[0].revents) {                /* stdin: ding! */
 			rr = read(STDIN_FILENO, bigbuf_in, BIGSIZ);
 	/* Considered making reads here smaller for UDP mode, but 8192-byte
 	 mobygrams are kinda fun and exercise the reassembler. */
 			if (rr <= 0) {                        /* at end, or fukt, or ... */
-				FD_CLR(STDIN_FILENO, &ding1); /* disable stdin */
+				pfds[0].fd = -1;              /* disable stdin */
 				/*close(STDIN_FILENO); - not really necessary */
 				/* Let peer know we have no more data */
 				/* nc 1.10 doesn't do this: */
@@ -718,7 +711,7 @@ Debug("wrote %d to net, errno %d", rr, errno);
 		} /* rzleft */
 		if (o_interval) {                        /* cycle between slow lines, or ... */
 			sleep(o_interval);
-			continue;                        /* ...with hairy select loop... */
+			continue;                        /* ...with hairy loop... */
 		}
 		if (rzleft || rnleft) {                  /* shovel that shit till they ain't */
 			wretry--;                        /* none left, and get another load */
