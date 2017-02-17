@@ -56,6 +56,8 @@ int reset_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #if ENABLE_STTY
 		return stty_main(2, (char**)args);
 #else
+		/* Make sure stdout gets drained before we execvp */
+		fflush_all();
 		execvp("stty", (char**)args);
 #endif
 	}
