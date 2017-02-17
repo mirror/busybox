@@ -1453,7 +1453,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		if (tv > 0) {
 			log1("waiting on select %u seconds", tv);
 			timestamp_before_wait = (unsigned)monotonic_sec();
-			retval = poll(pfds, 2, tv * 1000);
+			retval = poll(pfds, 2, tv < INT_MAX/1000 ? tv * 1000 : INT_MAX);
 			if (retval < 0) {
 				/* EINTR? A signal was caught, don't panic */
 				if (errno == EINTR) {
