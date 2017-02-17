@@ -51,8 +51,8 @@ lib-$(CONFIG_LZOP)                      += lzo1x_1.o lzo1x_1o.o lzo1x_d.o
 lib-$(CONFIG_UNLZOP)                    += lzo1x_1.o lzo1x_1o.o lzo1x_d.o
 lib-$(CONFIG_LZOPCAT)                   += lzo1x_1.o lzo1x_1o.o lzo1x_d.o
 lib-$(CONFIG_LZOP_COMPR_HIGH)           += lzo1x_9x.o
-lib-$(CONFIG_BUNZIP2)                   += open_transformer.o decompress_bunzip2.o
-lib-$(CONFIG_BZCAT)                     += open_transformer.o decompress_bunzip2.o
+# 'bzip2 -d', bunzip2 or bzcat selects FEATURE_BZIP2_DECOMPRESS
+lib-$(CONFIG_FEATURE_BZIP2_DECOMPRESS)  += open_transformer.o decompress_bunzip2.o
 lib-$(CONFIG_FEATURE_UNZIP_BZIP2)       += open_transformer.o decompress_bunzip2.o
 lib-$(CONFIG_UNLZMA)                    += open_transformer.o decompress_unlzma.o
 lib-$(CONFIG_LZCAT)                     += open_transformer.o decompress_unlzma.o
@@ -62,8 +62,8 @@ lib-$(CONFIG_UNXZ)                      += open_transformer.o decompress_unxz.o
 lib-$(CONFIG_XZCAT)                     += open_transformer.o decompress_unxz.o
 lib-$(CONFIG_XZ)                        += open_transformer.o decompress_unxz.o
 lib-$(CONFIG_FEATURE_UNZIP_XZ)          += open_transformer.o decompress_unxz.o
-lib-$(CONFIG_GUNZIP)                    += open_transformer.o decompress_gunzip.o
-lib-$(CONFIG_ZCAT)                      += open_transformer.o decompress_gunzip.o
+# 'gzip -d', gunzip or zcat selects FEATURE_GZIP_DECOMPRESS
+lib-$(CONFIG_FEATURE_GZIP_DECOMPRESS)   += open_transformer.o decompress_gunzip.o
 lib-$(CONFIG_UNCOMPRESS)                += open_transformer.o decompress_uncompress.o
 lib-$(CONFIG_UNZIP)                     += open_transformer.o decompress_gunzip.o unsafe_prefix.o
 lib-$(CONFIG_RPM2CPIO)                  += open_transformer.o decompress_gunzip.o get_header_cpio.o
