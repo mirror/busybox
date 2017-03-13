@@ -463,17 +463,18 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 		xchroot(root);
 	}
 
+	/* nice should be done before xsetuid */
+	if (opt & OPT_n) {
+		errno = 0;
+		if (nice(xatoi(nicestr)) == -1)
+			bb_perror_msg_and_die("nice");
+	}
+
 	if (opt & OPT_u) {
 		if (setgroups(1, &ugid.gid) == -1)
 			bb_perror_msg_and_die("setgroups");
 		xsetgid(ugid.gid);
 		xsetuid(ugid.uid);
-	}
-
-	if (opt & OPT_n) {
-		errno = 0;
-		if (nice(xatoi(nicestr)) == -1)
-			bb_perror_msg_and_die("nice");
 	}
 
 	if (opt & OPT_0)
