@@ -532,11 +532,11 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			if (write_and_stats(ibuf, n, obs, outfile))
 				goto out_status;
 		}
+	}
 
-		if (G.flags & FLAG_FSYNC) {
-			if (fsync(ofd) < 0)
-				goto die_outfile;
-		}
+	if (G.flags & FLAG_FSYNC) {
+		if (fsync(ofd) < 0)
+			goto die_outfile;
 	}
 
 	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {
