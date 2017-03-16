@@ -78,22 +78,24 @@ int FAST_FUNC del_loop(const char *device)
 	return rc;
 }
 
-/* Returns 0 if mounted RW, 1 if mounted read-only, <0 for error.
-   *device is loop device to use, or if *device==NULL finds a loop device to
-   mount it on and sets *device to a strdup of that loop device name.  This
-   search will re-use an existing loop device already bound to that
-   file/offset if it finds one.
+/* Returns opened fd to the loop device, <0 on error.
+ * *device is loop device to use, or if *device==NULL finds a loop device to
+ * mount it on and sets *device to a strdup of that loop device name.  This
+ * search will re-use an existing loop device already bound to that
+ * file/offset if it finds one.
  */
-int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offset, int ro)
+int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offset, unsigned flags)
 {
 	char dev[LOOP_NAMESIZE];
 	char *try;
 	bb_loop_info loopinfo;
 	struct stat statbuf;
-	int i, dfd, ffd, mode, rc = -1;
+	int i, dfd, ffd, mode, rc;
+
+	rc = dfd = -1;
 
 	/* Open the file.  Barf if this doesn't work.  */
-	mode = ro ? O_RDONLY : O_RDWR;
+	mode = (flags & BB_LO_FLAGS_READ_ONLY) ? O_RDONLY : O_RDWR;
  open_ffd:
 	ffd = open(file, mode);
 	if (ffd < 0) {
@@ -144,20 +146,35 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 
 		/* If device is free, claim it.  */
 		if (rc && errno == ENXIO) {
-			memset(&loopinfo, 0, sizeof(loopinfo));
-			safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
-			loopinfo.lo_offset = offset;
 			/* Associate free loop device with file.  */
 			if (ioctl(dfd, LOOP_SET_FD, ffd) == 0) {
-				if (ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo) == 0)
-					rc = 0;
-				else
+				memset(&loopinfo, 0, sizeof(loopinfo));
+				safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
+				loopinfo.lo_offset = offset;
+				/*
+				 * Used by mount to set LO_FLAGS_AUTOCLEAR.
+				 * LO_FLAGS_READ_ONLY is not set because RO is controlled by open type of the file.
+				 * Note that closing LO_FLAGS_AUTOCLEARed dfd before mount
+				 * is wrong (would free the loop device!)
+				 */
+				loopinfo.lo_flags = (flags & ~BB_LO_FLAGS_READ_ONLY);
+				rc = ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo);
+				if (rc != 0 && (loopinfo.lo_flags & BB_LO_FLAGS_AUTOCLEAR)) {
+					/* Old kernel, does not support LO_FLAGS_AUTOCLEAR? */
+					/* (this code path is not tested) */
+					loopinfo.lo_flags -= BB_LO_FLAGS_AUTOCLEAR;
+					rc = ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo);
+				}
+				if (rc != 0) {
 					ioctl(dfd, LOOP_CLR_FD, 0);
+				}
 			}
 		} else {
 			rc = -1;
 		}
-		close(dfd);
+		if (rc != 0) {
+			close(dfd);
+		}
  try_again:
 		if (*device) break;
 	}
@@ -165,7 +182,7 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 	if (rc == 0) {
 		if (!*device)
 			*device = xstrdup(dev);
-		return (mode == O_RDONLY); /* 1:ro, 0:rw */
+		return dfd;
 	}
 	return rc;
 }

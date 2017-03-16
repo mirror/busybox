@@ -127,11 +127,36 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 			d = *argv++;
 
 		if (argv[0]) {
-			if (set_loop(&d, argv[0], offset, (opt & OPT_r)) < 0)
+			if (set_loop(&d, argv[0], offset, (opt & OPT_r) ? BB_LO_FLAGS_READ_ONLY : 0) < 0)
 				bb_simple_perror_msg_and_die(argv[0]);
 			return EXIT_SUCCESS;
 		}
 	}
+
+	/* TODO: util-linux 2.28 shows this when run w/o params:
+	 * NAME       SIZELIMIT OFFSET AUTOCLEAR RO BACK-FILE     DIO
+	 * /dev/loop0         0      0         1  0 /PATH/TO/FILE   0
+	 *
+	 * implemented by reading /sys:
+	 *
+	 * open("/sys/block", O_RDONLY|O_NONBLOCK|O_DIRECTORY|O_CLOEXEC) = 3
+	 * newfstatat(3, "loop0/loop/backing_file", {st_mode=S_IFREG|0444, st_size=4096, ...}, 0) = 0
+	 * stat("/dev/loop0", {st_mode=S_IFBLK|0660, st_rdev=makedev(7, 0), ...}) = 0
+	 * open("/sys/dev/block/7:0/loop/offset", O_RDONLY|O_CLOEXEC) = 5
+	 * read(5, "0\n", 4096)                    = 2
+	 * open("/sys/dev/block/7:0/loop/sizelimit", O_RDONLY|O_CLOEXEC) = 5
+	 * read(5, "0\n", 4096)                    = 2
+	 * open("/sys/dev/block/7:0/loop/offset", O_RDONLY|O_CLOEXEC) = 5
+	 * read(5, "0\n", 4096)                    = 2
+	 * open("/sys/dev/block/7:0/loop/autoclear", O_RDONLY|O_CLOEXEC) = 5
+	 * read(5, "1\n", 4096)                    = 2
+	 * open("/sys/dev/block/7:0/ro", O_RDONLY|O_CLOEXEC)     = 5
+	 * read(5, "0\n", 4096)                    = 2
+	 * open("/sys/dev/block/7:0/loop/backing_file", O_RDONLY|O_CLOEXEC) = 5
+	 * read(5, "/PATH/TO/FILE", 4096) = 37
+	 * open("/sys/dev/block/7:0/loop/dio", O_RDONLY|O_CLOEXEC) = 5
+	 * read(5, "0\n", 4096)                    = 2
+	 */
 
 	bb_show_usage(); /* does not return */
 	/*return EXIT_FAILURE;*/

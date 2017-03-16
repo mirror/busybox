@@ -1329,10 +1329,15 @@ extern int get_linux_version_code(void) FAST_FUNC;
 
 extern char *query_loop(const char *device) FAST_FUNC;
 extern int del_loop(const char *device) FAST_FUNC;
-/* If *devname is not NULL, use that name, otherwise try to find free one,
+/*
+ * If *devname is not NULL, use that name, otherwise try to find free one,
  * malloc and return it in *devname.
- * return value: 1: read-only loopdev was setup, 0: rw, < 0: error */
-extern int set_loop(char **devname, const char *file, unsigned long long offset, int ro) FAST_FUNC;
+ * return value is the opened fd to the loop device, or < on error
+ */
+extern int set_loop(char **devname, const char *file, unsigned long long offset, unsigned flags) FAST_FUNC;
+/* These constants match linux/loop.h (without BB_ prefix): */
+#define BB_LO_FLAGS_READ_ONLY 1
+#define BB_LO_FLAGS_AUTOCLEAR 4
 
 /* Like bb_ask below, but asks on stdin with no timeout.  */
 char *bb_ask_stdin(const char * prompt) FAST_FUNC;
