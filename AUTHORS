@@ -178,3 +178,6 @@ Mike Frysinger <vapier@gentoo.org>
 
 Jie Zhang <jie.zhang@analog.com>
     fixed two bugs in msh and hush (exitcode of killed processes)
+
+Maxime Coste <mawww@kakoune.org>
+    paste implementation
