@@ -36,11 +36,12 @@ static void paste_files(FILE** files, int file_cnt, char* delims, int del_cnt)
 {
 	char *line;
 	char delim;
-	int del_idx = 0;
 	int active_files = file_cnt;
 	int i;
 
 	while (active_files > 0) {
+		int del_idx = 0;
+
 		for (i = 0; i < file_cnt; ++i) {
 			if (files[i] == NULL)
 				continue;
@@ -70,10 +71,11 @@ static void paste_files_separate(FILE** files, char* delims, int del_cnt)
 {
 	char *line, *next_line;
 	char delim;
-	int del_idx = 0;
 	int i;
 
 	for (i = 0; files[i]; ++i) {
+		int del_idx = 0;
+
 		line = NULL;
 		while ((next_line = xmalloc_fgetline(files[i])) != NULL) {
 			if (line) {
