@@ -20,7 +20,7 @@
 //usage:#define paste_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define paste_full_usage "\n\n"
-//usage:       "Paste lines from each input file, seperated with tab\n"
+//usage:       "Paste lines from each input file, separated with tab\n"
 //usage:     "\n	-d LIST	Use delimiters from LIST, not tab"
 //usage:     "\n	-s      Serial: one file at a time"
 //usage:
