@@ -141,10 +141,12 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 
 	// If a new console specified, redirect stdin/stdout/stderr to it
 	if (console) {
-		close(0);
-		xopen(console, O_RDWR);
-		xdup2(0, 1);
-		xdup2(0, 2);
+		int fd = open_or_warn(console, O_RDWR);
+		if (fd >= 0) {
+			xmove_fd(fd, 0);
+			xdup2(0, 1);
+			xdup2(0, 2);
+		}
 	}
 
 	// Exec real init
