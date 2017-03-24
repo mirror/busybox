@@ -127,7 +127,7 @@ int paste_main(int argc UNUSED_PARAM, char **argv)
 		(--argv)[0] = (char*) "-";
 	for (i = 0; argv[i]; ++i) {
 		argv[i] = (void*) fopen_or_warn_stdin(argv[i]);
-	    	if (!argv[i])
+		if (!argv[i])
 			xfunc_die();
 	}
 

@@ -1624,7 +1624,7 @@ int32 pstm_exptmod(psPool_t *pool, pstm_int *G, pstm_int *X, pstm_int *P,
 	paDlen = ((M[1].used + 3) * 2) * sizeof(pstm_digit);
 	paD = xzalloc(paDlen);//bbox
 /*
- 	compute the value at M[1<<(winsize-1)] by squaring M[1] (winsize-1) times
+	compute the value at M[1<<(winsize-1)] by squaring M[1] (winsize-1) times
  */
 	if (pstm_init_copy(pool, &M[1 << (winsize - 1)], &M[1], 1) != PSTM_OKAY) {
 		err = PS_MEM_FAIL;

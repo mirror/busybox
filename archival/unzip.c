@@ -239,7 +239,7 @@ static uint32_t find_cdf_offset(void)
 		end = 0;
 
 	dbg("Looking for cdf_offset starting from 0x%"OFF_FMT"x", end);
- 	xlseek(zip_fd, end, SEEK_SET);
+	xlseek(zip_fd, end, SEEK_SET);
 	buf = xzalloc(PEEK_FROM_END);
 	full_read(zip_fd, buf, PEEK_FROM_END);
 
