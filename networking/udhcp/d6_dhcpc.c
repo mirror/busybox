@@ -623,7 +623,8 @@ static NOINLINE int send_d6_renew(uint32_t xid, struct in6_addr *server_ipv6, st
 		return d6_send_kernel_packet(
 			&packet, (opt_ptr - (uint8_t*) &packet),
 			our_cur_ipv6, CLIENT_PORT6,
-			server_ipv6, SERVER_PORT6
+			server_ipv6, SERVER_PORT6,
+			client_config.ifindex
 		);
 	return d6_mcast_from_client_config_ifindex(&packet, opt_ptr);
 }
@@ -645,15 +646,14 @@ static int send_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cu
 	return d6_send_kernel_packet(
 		&packet, (opt_ptr - (uint8_t*) &packet),
 		our_cur_ipv6, CLIENT_PORT6,
-		server_ipv6, SERVER_PORT6
+		server_ipv6, SERVER_PORT6,
+		client_config.ifindex
 	);
 }
 
 /* Returns -1 on errors that are fatal for the socket, -2 for those that aren't */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int d6_recv_raw_packet(struct in6_addr *peer_ipv6
-	UNUSED_PARAM
-	, struct d6_packet *d6_pkt, int fd)
+static NOINLINE int d6_recv_raw_packet(struct in6_addr *peer_ipv6, struct d6_packet *d6_pkt, int fd)
 {
 	int bytes;
 	struct ip6_udp_d6_packet packet;
@@ -701,6 +701,9 @@ static NOINLINE int d6_recv_raw_packet(struct in6_addr *peer_ipv6
 //		log1("packet with bad UDP checksum received, ignoring");
 //		return -2;
 //	}
+
+	if (peer_ipv6)
+		*peer_ipv6 = packet.ip6.ip6_src; /* struct copy */
 
 	log1("received %s", "a packet");
 	d6_dump_packet(&packet.data);
