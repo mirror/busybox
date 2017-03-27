@@ -152,8 +152,8 @@ static char** new_env(void)
 /* put all the parameters into the environment */
 static void option_to_env(uint8_t *option, uint8_t *option_end)
 {
-	/* "length minus 4" */
 	char *dlist, *ptr;
+	/* "length minus 4" */
 	int len_m4 = option_end - option - 4;
 	int olen, ooff;
 	while (len_m4 >= 0) {
