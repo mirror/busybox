@@ -86,6 +86,19 @@ enum {
 	IF_FEATURE_UDHCP_PORT(   OPT_P = 1 << OPTBIT_P,)
 };
 
+static const char opt_req[] = {
+	(D6_OPT_ORO >> 8), (D6_OPT_ORO & 0xff),
+	0, 6,
+	(D6_OPT_DNS_SERVERS >> 8), (D6_OPT_DNS_SERVERS & 0xff),
+	(D6_OPT_DOMAIN_LIST >> 8), (D6_OPT_DOMAIN_LIST & 0xff),
+	(D6_OPT_CLIENT_FQDN >> 8), (D6_OPT_CLIENT_FQDN & 0xff)
+};
+
+static const char opt_fqdn_req[] = {
+	(D6_OPT_CLIENT_FQDN >> 8), (D6_OPT_CLIENT_FQDN & 0xff),
+	0, 2,
+	0, 0
+};
 
 /*** Utility functions ***/
 
@@ -107,8 +120,8 @@ static void *d6_find_option(uint8_t *option, uint8_t *option_end, unsigned code)
 		/* Does its code match? */
 		if (option[1] == code)
 			return option; /* yes! */
-		option += option[3] + 4;
 		len_m4 -= option[3] + 4;
+		option += option[3] + 4;
 	}
 	return NULL;
 }
@@ -140,7 +153,9 @@ static char** new_env(void)
 static void option_to_env(uint8_t *option, uint8_t *option_end)
 {
 	/* "length minus 4" */
+	char *dlist, *ptr;
 	int len_m4 = option_end - option - 4;
+	int olen, ooff;
 	while (len_m4 >= 0) {
 		uint32_t v32;
 		char ipv6str[sizeof("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")];
@@ -217,9 +232,54 @@ static void option_to_env(uint8_t *option, uint8_t *option_end)
 
 			sprint_nip6(ipv6str, option + 4 + 4 + 1);
 			*new_env() = xasprintf("ipv6prefix=%s/%u", ipv6str, (unsigned)(option[4 + 4]));
+			break;
+		case D6_OPT_DNS_SERVERS:
+			olen = ((option[2] << 8) | option[3]) / 16;
+			dlist = ptr = malloc (4 + olen * 40 - 1);
+
+			memcpy (ptr, "dns=", 4);
+			ptr += 4;
+			ooff = 0;
+
+			while (olen--) {
+				sprint_nip6(ptr, option + 4 + ooff);
+				ptr += 39;
+				ooff += 16;
+				if (olen)
+					*ptr++ = ' ';
+			}
+
+			*new_env() = dlist;
+
+			break;
+		case D6_OPT_DOMAIN_LIST:
+			dlist = dname_dec(option + 4, (option[2] << 8) | option[3], "search=");
+			if (!dlist)
+				break;
+			*new_env() = dlist;
+			break;
+		case D6_OPT_CLIENT_FQDN:
+			// Work around broken ISC DHCPD6
+			if (option[4] & 0xf8) {
+				olen = ((option[2] << 8) | option[3]);
+				dlist = xmalloc(olen);
+//fixme:
+//- explain
+//- add len error check
+//- merge two allocs into one
+				memcpy(dlist, option + 4, olen);
+				*new_env() = xasprintf("fqdn=%s", dlist);
+				free(dlist);
+				break;
+			}
+			dlist = dname_dec(option + 5, ((option[2] << 8) | option[3]) - 1, "fqdn=");
+			if (!dlist)
+				break;
+			*new_env() = dlist;
+			break;
 		}
-		option += 4 + option[3];
 		len_m4 -= 4 + option[3];
+		option += 4 + option[3];
 	}
 }
 
@@ -423,6 +483,10 @@ static NOINLINE int send_d6_discover(uint32_t xid, struct in6_addr *requested_ip
 	}
 	opt_ptr = d6_store_blob(opt_ptr, client6_data.ia_na, len);
 
+	/* Request additional options */
+	opt_ptr = d6_store_blob(opt_ptr, &opt_req, sizeof(opt_req));
+	opt_ptr = d6_store_blob(opt_ptr, &opt_fqdn_req, sizeof(opt_fqdn_req));
+
 	/* Add options:
 	 * "param req" option according to -O, options specified with -x
 	 */
@@ -475,6 +539,10 @@ static NOINLINE int send_d6_select(uint32_t xid)
 	opt_ptr = d6_store_blob(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
 	/* IA NA (contains requested IP) */
 	opt_ptr = d6_store_blob(opt_ptr, client6_data.ia_na, client6_data.ia_na->len + 2+2);
+
+	/* Request additional options */
+	opt_ptr = d6_store_blob(opt_ptr, &opt_req, sizeof(opt_req));
+	opt_ptr = d6_store_blob(opt_ptr, &opt_fqdn_req, sizeof(opt_fqdn_req));
 
 	/* Add options:
 	 * "param req" option according to -O, options specified with -x
@@ -1306,7 +1374,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				struct d6_option *option, *iaaddr;
  type_is_ok:
 				option = d6_find_option(packet.d6_options, packet_end, D6_OPT_STATUS_CODE);
-				if (option && option->data[4] != 0) {
+				if (option && (option->data[0] | option->data[1]) != 0) {
 					/* return to init state */
 					bb_error_msg("received DHCP NAK (%u)", option->data[4]);
 					d6_run_script(&packet, "nak");

@@ -81,8 +81,13 @@ struct d6_option {
 #define D6_OPT_RECONF_MSG    19
 #define D6_OPT_RECONF_ACCEPT 20
 
+#define D6_OPT_DNS_SERVERS   23
+#define D6_OPT_DOMAIN_LIST   24
+
 #define D6_OPT_IA_PD         25
 #define D6_OPT_IAPREFIX      26
+
+#define D6_OPT_CLIENT_FQDN   39
 
 /*** Other shared functions ***/
 
