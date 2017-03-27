@@ -311,7 +311,7 @@ static int d6_mcast_from_client_config_ifindex(struct d6_packet *packet, uint8_t
 
 	return d6_send_raw_packet(
 		packet, (end - (uint8_t*) packet),
-		/*src*/ NULL, CLIENT_PORT6,
+		/*src*/ &client6_data.ll_ip6, CLIENT_PORT6,
 		/*dst*/ (struct in6_addr*)FF02__1_2, SERVER_PORT6, MAC_BCAST_ADDR,
 		client_config.ifindex
 	);
@@ -1003,9 +1003,9 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		udhcp_str2optset(optstr, &client_config.options);
 	}
 
-	if (udhcp_read_interface(client_config.interface,
+	if (d6_read_interface(client_config.interface,
 			&client_config.ifindex,
-			NULL,
+			&client6_data.ll_ip6,
 			client_config.client_mac)
 	) {
 		return 1;
@@ -1106,13 +1106,14 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			 * or if the status of the bridge changed).
 			 * Refresh ifindex and client_mac:
 			 */
-			if (udhcp_read_interface(client_config.interface,
+			if (d6_read_interface(client_config.interface,
 					&client_config.ifindex,
-					NULL,
+					&client6_data.ll_ip6,
 					client_config.client_mac)
 			) {
 				goto ret0; /* iface is gone? */
 			}
+
 			memcpy(clientid_mac_ptr, client_config.client_mac, 6);
 
 			/* We will restart the wait in any case */

@@ -91,9 +91,13 @@ struct client6_data_t {
 	struct d6_option *ia_na;
 	char **env_ptr;
 	unsigned env_idx;
+	/* link-local IPv6 address */
+	struct in6_addr ll_ip6;
 };
 
 #define client6_data (*(struct client6_data_t*)(&bb_common_bufsiz1[COMMON_BUFSIZE - sizeof(struct client6_data_t)]))
+
+int FAST_FUNC d6_read_interface(const char *interface, int *ifindex, struct in6_addr *nip6, uint8_t *mac);
 
 int FAST_FUNC d6_listen_socket(int port, const char *inf);
 
