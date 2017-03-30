@@ -54,12 +54,13 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 		OPT_f = 0x8,
 		OPT_s = 0x10,
 		OPT_w = 0x20,
+		OPT_i = 0x40,
 	};
 
 	skip_fields = skip_chars = 0;
 	max_chars = INT_MAX;
 
-	opt = getopt32(argv, "cduf:+s:+w:+", &skip_fields, &skip_chars, &max_chars);
+	opt = getopt32(argv, "cduf:+s:+w:+i", &skip_fields, &skip_chars, &max_chars);
 	argv += optind;
 
 	input_filename = argv[0];
@@ -106,7 +107,12 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 				++cur_compare;
 			}
 
-			if (!old_line || strncmp(old_compare, cur_compare, max_chars)) {
+			if (!old_line)
+				break;
+			if ((opt & OPT_i)
+				? strncasecmp(old_compare, cur_compare, max_chars)
+				: strncmp(old_compare, cur_compare, max_chars)
+			) {
 				break;
 			}
 
