@@ -26,6 +26,7 @@
 //usage:     "\n	-c	Prefix lines by the number of occurrences"
 //usage:     "\n	-d	Only print duplicate lines"
 //usage:     "\n	-u	Only print unique lines"
+//usage:     "\n	-i	Ignore case"
 //usage:     "\n	-f N	Skip first N fields"
 //usage:     "\n	-s N	Skip first N chars (after any skipped fields)"
 //usage:     "\n	-w N	Compare N characters in line"
