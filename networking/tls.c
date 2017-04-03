@@ -367,11 +367,12 @@ static unsigned hmac_sha_precomputed_v(
 	return sha_end(&pre->hashed_key_xor_opad, out);
 }
 
-static void hmac_sha256_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size)
+typedef void md5sha_begin_func(md5sha_ctx_t *ctx) FAST_FUNC;
+static void hmac_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size, md5sha_begin_func *begin)
 {
 	uint8_t key_xor_ipad[SHA_INSIZE];
 	uint8_t key_xor_opad[SHA_INSIZE];
-	uint8_t tempkey[SHA256_OUTSIZE];
+	uint8_t tempkey[SHA1_OUTSIZE < SHA256_OUTSIZE ? SHA256_OUTSIZE : SHA1_OUTSIZE];
 	unsigned i;
 
 	// "The authentication key can be of any length up to INSIZE, the
@@ -380,7 +381,7 @@ static void hmac_sha256_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned ke
 	// resultant OUTSIZE byte string as the actual key to HMAC."
 	if (key_size > SHA_INSIZE) {
 		md5sha_ctx_t ctx;
-		sha256_begin(&ctx);
+		begin(&ctx);
 		md5sha_hash(&ctx, key, key_size);
 		key_size = sha_end(&ctx, tempkey);
 	}
@@ -394,41 +395,8 @@ static void hmac_sha256_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned ke
 		key_xor_opad[i] = 0x5c;
 	}
 
-	sha256_begin(&pre->hashed_key_xor_ipad);
-	sha256_begin(&pre->hashed_key_xor_opad);
-	md5sha_hash(&pre->hashed_key_xor_ipad, key_xor_ipad, SHA_INSIZE);
-	md5sha_hash(&pre->hashed_key_xor_opad, key_xor_opad, SHA_INSIZE);
-}
-// TODO: ^^^ vvv merge?
-static void hmac_sha1_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size)
-{
-	uint8_t key_xor_ipad[SHA_INSIZE];
-	uint8_t key_xor_opad[SHA_INSIZE];
-	uint8_t tempkey[SHA1_OUTSIZE];
-	unsigned i;
-
-	// "The authentication key can be of any length up to INSIZE, the
-	// block length of the hash function.  Applications that use keys longer
-	// than INSIZE bytes will first hash the key using H and then use the
-	// resultant OUTSIZE byte string as the actual key to HMAC."
-	if (key_size > SHA_INSIZE) {
-		md5sha_ctx_t ctx;
-		sha1_begin(&ctx);
-		md5sha_hash(&ctx, key, key_size);
-		key_size = sha_end(&ctx, tempkey);
-	}
-
-	for (i = 0; i < key_size; i++) {
-		key_xor_ipad[i] = key[i] ^ 0x36;
-		key_xor_opad[i] = key[i] ^ 0x5c;
-	}
-	for (; i < SHA_INSIZE; i++) {
-		key_xor_ipad[i] = 0x36;
-		key_xor_opad[i] = 0x5c;
-	}
-
-	sha1_begin(&pre->hashed_key_xor_ipad);
-	sha1_begin(&pre->hashed_key_xor_opad);
+	begin(&pre->hashed_key_xor_ipad);
+	begin(&pre->hashed_key_xor_opad);
 	md5sha_hash(&pre->hashed_key_xor_ipad, key_xor_ipad, SHA_INSIZE);
 	md5sha_hash(&pre->hashed_key_xor_opad, key_xor_opad, SHA_INSIZE);
 }
@@ -441,11 +409,11 @@ static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_
 
 	va_start(va, key_size);
 
-	if (tls->MAC_size == SHA256_OUTSIZE)
-		hmac_sha256_begin(&pre, key, key_size);
-	else
-		hmac_sha1_begin(&pre, key, key_size);
-
+	hmac_begin(&pre, key, key_size,
+			(tls->MAC_size == SHA256_OUTSIZE)
+				? sha256_begin
+				: sha1_begin
+	);
 	len = hmac_sha_precomputed_v(&pre, out, va);
 
 	va_end(va);
@@ -460,7 +428,7 @@ static unsigned hmac_sha256(/*tls_state_t *tls,*/ uint8_t *out, uint8_t *key, un
 
 	va_start(va, key_size);
 
-	hmac_sha256_begin(&pre, key, key_size);
+	hmac_begin(&pre, key, key_size, sha256_begin);
 	len = hmac_sha_precomputed_v(&pre, out, va);
 
 	va_end(va);
