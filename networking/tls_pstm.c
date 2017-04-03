@@ -47,7 +47,7 @@
 //#include "../cryptoApi.h"
 #ifndef DISABLE_PSTM
 
-static int32 pstm_mul_2d(pstm_int *a, int16 b, pstm_int *c);
+static int32 pstm_mul_2d(pstm_int *a, int b, pstm_int *c); //bbox: was int16 b
 
 /******************************************************************************/
 /*
@@ -64,7 +64,7 @@ int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size)
 	a->dp = xzalloc(sizeof (pstm_digit) * size);//bbox
 //bbox	a->pool = pool;
 	a->used  = 0;
-	a->alloc = (int16)size;
+	a->alloc = size;
 	a->sign  = PSTM_ZPOS;
 /*
 	zero the digits
@@ -111,9 +111,9 @@ int32 pstm_init(psPool_t *pool, pstm_int * a)
 /*
 	Grow as required
  */
-int32 pstm_grow(pstm_int * a, int16 size)
+int32 pstm_grow(pstm_int * a, int size)
 {
-	int16			i;
+	int			i; //bbox: was int16
 	pstm_digit		*tmp;
 
 /*
@@ -298,7 +298,7 @@ void pstm_zero(pstm_int * a)
  */
 int32 pstm_cmp_mag(pstm_int * a, pstm_int * b)
 {
-	int16		n;
+	int		n; //bbox: was int16
 	pstm_digit	*tmpa, *tmpb;
 
 /*
@@ -406,7 +406,7 @@ int32 pstm_read_unsigned_bin(pstm_int *a, unsigned char *b, int32 c)
 			c -= excess;
 			b += excess;
 		}
-		a->used = (int16)((c + sizeof(pstm_digit) - 1)/sizeof(pstm_digit));
+		a->used = ((c + sizeof(pstm_digit) - 1)/sizeof(pstm_digit));
 		if (a->alloc < a->used) {
 			if (pstm_grow(a, a->used) != PSTM_OKAY) {
 				return PSTM_MEM;
@@ -460,9 +460,9 @@ int32 pstm_read_unsigned_bin(pstm_int *a, unsigned char *b, int32 c)
 /******************************************************************************/
 /*
 */
-int16 pstm_count_bits (pstm_int * a)
+int pstm_count_bits (pstm_int * a)
 {
-	int16     r;
+	int     r; //bbox: was int16
 	pstm_digit q;
 
 	if (a->used == 0) {
@@ -500,9 +500,9 @@ void pstm_set(pstm_int *a, pstm_digit b)
 /*
 	Right shift
 */
-void pstm_rshd(pstm_int *a, int16 x)
+void pstm_rshd(pstm_int *a, int x)
 {
-	int16 y;
+	int y; //bbox: was int16
 
 	/* too many digits just zero and return */
 	if (x >= a->used) {
@@ -529,9 +529,9 @@ void pstm_rshd(pstm_int *a, int16 x)
 /*
 	Shift left a certain amount of digits.
  */
-int32 pstm_lshd(pstm_int * a, int16 b)
+int32 pstm_lshd(pstm_int * a, int b)
 {
-	int16	x;
+	int	x; //bbox: was int16
 	int32	res;
 
 /*
@@ -582,9 +582,9 @@ int32 pstm_lshd(pstm_int * a, int16 b)
 /*
 	computes a = 2**b
 */
-int32 pstm_2expt(pstm_int *a, int16 b)
+int32 pstm_2expt(pstm_int *a, int b)
 {
-	int16     z;
+	int     z; //bbox: was int16
 
    /* zero a as per default */
 	pstm_zero (a);
@@ -619,7 +619,7 @@ int32 pstm_2expt(pstm_int *a, int16 b)
 int32 pstm_mul_2(pstm_int * a, pstm_int * b)
 {
 	int32	res;
-	int16	x, oldused;
+	int	x, oldused; //bbox: was int16
 
 /*
 	grow to accomodate result
@@ -684,7 +684,7 @@ int32 pstm_mul_2(pstm_int * a, pstm_int * b)
 */
 int32 s_pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c)
 {
-	int16		oldbused, oldused;
+	int		oldbused, oldused; //bbox: was int16
 	int32		x;
 	pstm_word	t;
 
@@ -724,7 +724,7 @@ int32 s_pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c)
 */
 static int32 s_pstm_add(pstm_int *a, pstm_int *b, pstm_int *c)
 {
-	int16				x, y, oldused;
+	int				x, y, oldused; //bbox: was int16
 	register pstm_word	t, adp, bdp;
 
 	y = a->used;
@@ -781,8 +781,8 @@ static int32 s_pstm_add(pstm_int *a, pstm_int *b, pstm_int *c)
 */
 int32 pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c)
 {
-	int32     res;
-	int16     sa, sb;
+	int32	res;
+	int	sa, sb; //bbox: was int16
 
 	sa = a->sign;
 	sb = b->sign;
@@ -881,7 +881,7 @@ int32 pstm_montgomery_setup(pstm_int *a, pstm_digit *rho)
 int32 pstm_montgomery_calc_normalization(pstm_int *a, pstm_int *b)
 {
 	int32     x;
-	int16     bits;
+	int	bits; //bbox: was int16
 
 	/* how many bits of last digit does b use */
 	bits = pstm_count_bits (b) % DIGIT_BIT;
@@ -916,10 +916,10 @@ int32 pstm_montgomery_calc_normalization(pstm_int *a, pstm_int *b)
 /*
 	c = a * 2**d
 */
-static int32 pstm_mul_2d(pstm_int *a, int16 b, pstm_int *c)
+static int32 pstm_mul_2d(pstm_int *a, int b, pstm_int *c)
 {
 	pstm_digit	carry, carrytmp, shift;
-	int16		x;
+	int		x; //bbox: was int16
 
 	/* copy it */
 	if (pstm_copy(a, c) != PSTM_OKAY) {
@@ -961,9 +961,9 @@ static int32 pstm_mul_2d(pstm_int *a, int16 b, pstm_int *c)
 /*
 	c = a mod 2**d
 */
-static int32 pstm_mod_2d(pstm_int *a, int16 b, pstm_int *c)
+static int32 pstm_mod_2d(pstm_int *a, int b, pstm_int *c) //bbox: was int16 b
 {
-	int16	x;
+	int	x; //bbox: was int16
 
 	/* zero if count less than or equal to zero */
 	if (b <= 0) {
@@ -1001,7 +1001,7 @@ int32 pstm_mul_d(pstm_int *a, pstm_digit b, pstm_int *c)
 {
 	pstm_word	w;
 	int32		res;
-	int16		x, oldused;
+	int		x, oldused; //bbox: was int16
 
 	if (c->alloc < a->used + 1) {
 		if ((res = pstm_grow (c, a->used + 1)) != PSTM_OKAY) {
@@ -1032,12 +1032,12 @@ int32 pstm_mul_d(pstm_int *a, pstm_digit b, pstm_int *c)
 /*
 	c = a / 2**b
 */
-int32 pstm_div_2d(psPool_t *pool, pstm_int *a, int16 b, pstm_int *c,
+int32 pstm_div_2d(psPool_t *pool, pstm_int *a, int b, pstm_int *c,
 					pstm_int *d)
 {
 	pstm_digit	D, r, rr;
 	int32		res;
-	int16		x;
+	int		x; //bbox: was int16
 	pstm_int	t;
 
 	/* if the shift count is <= 0 then we do no work */
@@ -1120,7 +1120,7 @@ LBL_DONE:
 */
 int32 pstm_div_2(pstm_int * a, pstm_int * b)
 {
-	int16	x, oldused;
+	int	x, oldused; //bbox: was int16
 
 	if (b->alloc < a->used) {
 		if (pstm_grow(b, a->used) != PSTM_OKAY) {
@@ -1166,9 +1166,9 @@ int32 pstm_div_2(pstm_int * a, pstm_int * b)
 /*
 	Creates "a" then copies b into it
  */
-int32 pstm_init_copy(psPool_t *pool, pstm_int * a, pstm_int * b, int16 toSqr)
+int32 pstm_init_copy(psPool_t *pool, pstm_int * a, pstm_int * b, int toSqr)
 {
-	int16	x;
+	int	x; //bbox: was int16
 	int32	res;
 
 	if (a == b) {
@@ -1279,7 +1279,7 @@ int32 pstm_div(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
 {
 	pstm_int	q, x, y, t1, t2;
 	int32		res;
-	int16		n, t, i, norm, neg;
+	int		n, t, i, norm, neg; //bbox: was int16
 
 	/* is divisor zero ? */
 	if (pstm_iszero (b) == 1) {
@@ -1531,7 +1531,7 @@ int32 pstm_mulmod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
 			pstm_int *d)
 {
 	int32		res;
-	int16		size;
+	int		size; //bbox: was int16
 	pstm_int	tmp;
 
 /*
@@ -1567,7 +1567,7 @@ int32 pstm_exptmod(psPool_t *pool, pstm_int *G, pstm_int *X, pstm_int *P,
 	pstm_digit	buf, mp;
 	pstm_digit	*paD;
 	int32		err, bitbuf;
-	int16		bitcpy, bitcnt, mode, digidx, x, y, winsize;
+	int		bitcpy, bitcnt, mode, digidx, x, y, winsize; //bbox: was int16
 	uint32		paDlen;
 
 	/* set window size from what user set as optimization */
@@ -1804,7 +1804,7 @@ LBL_RES:pstm_clear(&res);
 int32 pstm_add(pstm_int *a, pstm_int *b, pstm_int *c)
 {
 	int32	res;
-	int16	sa, sb;
+	int	sa, sb; //bbox: was int16
 
 	/* get sign of both inputs */
 	sa = a->sign;
@@ -1817,7 +1817,7 @@ int32 pstm_add(pstm_int *a, pstm_int *b, pstm_int *c)
 		if ((res = s_pstm_add (a, b, c)) != PSTM_OKAY) {
 			return res;
 		}
-  } else {
+	} else {
 /*
 		one positive, the other negative
 		subtract the one with the greater magnitude from the one of the lesser
@@ -1842,7 +1842,7 @@ int32 pstm_add(pstm_int *a, pstm_int *b, pstm_int *c)
 /*
 	reverse an array, used for radix code
 */
-static void pstm_reverse (unsigned char *s, int16 len)
+static void pstm_reverse (unsigned char *s, int len) //bbox: was int16 len
 {
 	int32     ix, iy;
 	unsigned char t;
@@ -1865,7 +1865,7 @@ static void pstm_reverse (unsigned char *s, int16 len)
 int32 pstm_to_unsigned_bin_nr(psPool_t *pool, pstm_int *a, unsigned char *b)
 {
 	int32     res;
-	int16     x;
+	int     x; //bbox: was int16
 	pstm_int  t = { 0 };
 
 	if ((res = pstm_init_copy(pool, &t, a, 0)) != PSTM_OKAY) {
@@ -1890,7 +1890,7 @@ int32 pstm_to_unsigned_bin_nr(psPool_t *pool, pstm_int *a, unsigned char *b)
 int32 pstm_to_unsigned_bin(psPool_t *pool, pstm_int *a, unsigned char *b)
 {
 	int32     res;
-	int16     x;
+	int	x; //bbox: was int16
 	pstm_int  t = { 0 };
 
 	if ((res = pstm_init_copy(pool, &t, a, 0)) != PSTM_OKAY) {

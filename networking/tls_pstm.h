@@ -122,7 +122,7 @@
 #define PSTM_MAX_SIZE	4096
 
 typedef struct  {
-	int16	used, alloc, sign;
+	int	used, alloc, sign; //bbox: was int16
 	pstm_digit	*dp;
 //bbox	psPool_t	*pool;
 } pstm_int;
@@ -154,9 +154,9 @@ extern int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size);
 #define pstm_init_copy(pool, a, b, toSqr) \
         pstm_init_copy(      a, b, toSqr)
 extern int32 pstm_init_copy(psPool_t *pool, pstm_int * a, pstm_int * b,
-				int16 toSqr);
+				int toSqr); //bbox: was int16 toSqr
 
-extern int16 pstm_count_bits (pstm_int * a);
+extern int pstm_count_bits (pstm_int * a); //bbox: was returning int16
 
 //bbox: pool unused
 #define pstm_init_for_read_unsigned_bin(pool, a, len) \
@@ -178,7 +178,7 @@ extern void pstm_clear_multi(pstm_int *mp0, pstm_int *mp1, pstm_int *mp2,
 				pstm_int *mp3, pstm_int *mp4, pstm_int *mp5, pstm_int *mp6,
 				pstm_int *mp7);
 
-extern int32 pstm_grow(pstm_int * a, int16 size);
+extern int32 pstm_grow(pstm_int * a, int size); //bbox: was int16 size
 
 extern void pstm_clamp(pstm_int * a);
 
@@ -186,9 +186,9 @@ extern int32 pstm_cmp(pstm_int * a, pstm_int * b);
 
 extern int32 pstm_cmp_mag(pstm_int * a, pstm_int * b);
 
-extern void pstm_rshd(pstm_int *a, int16 x);
+extern void pstm_rshd(pstm_int *a, int x); //bbox: was int16 x
 
-extern int32 pstm_lshd(pstm_int * a, int16 b);
+extern int32 pstm_lshd(pstm_int * a, int b); //bbox: was int16 b
 
 //bbox: pool unused
 #define pstm_div(pool, a, b, c, d) \
@@ -199,8 +199,8 @@ extern int32 pstm_div(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
 //bbox: pool unused
 #define pstm_div_2d(pool, a, b, c, d) \
         pstm_div_2d(      a, b, c, d)
-extern int32 pstm_div_2d(psPool_t *pool, pstm_int *a, int16 b, pstm_int *c,
-				pstm_int *d);
+extern int32 pstm_div_2d(psPool_t *pool, pstm_int *a, int b, pstm_int *c,
+				pstm_int *d); //bbox: was int16 b
 
 extern int32 pstm_div_2(pstm_int * a, pstm_int * b);
 
@@ -232,7 +232,7 @@ extern int32 pstm_mulmod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
 extern int32 pstm_exptmod(psPool_t *pool, pstm_int *G, pstm_int *X, pstm_int *P,
 				pstm_int *Y);
 
-extern int32 pstm_2expt(pstm_int *a, int16 b);
+extern int32 pstm_2expt(pstm_int *a, int b); //bbox: was int16 b
 
 extern int32 pstm_add(pstm_int *a, pstm_int *b, pstm_int *c);
 

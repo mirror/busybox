@@ -475,7 +475,7 @@ static void prf_hmac_sha256(/*tls_state_t *tls,*/
 	uint8_t a[TLS_MAX_MAC_SIZE];
 	uint8_t *out_p = outbuf;
 	unsigned label_size = strlen(label);
-	unsigned MAC_size = SHA256_OUTSIZE;///tls->MAC_size;
+	unsigned MAC_size = SHA256_OUTSIZE;
 
 	/* In P_hash() calculation, "seed" is "label + seed": */
 #define SEED   label, label_size, seed, seed_size
@@ -486,7 +486,7 @@ static void prf_hmac_sha256(/*tls_state_t *tls,*/
 	hmac_sha256(/*tls,*/ a, SECRET, SEED, NULL);
 //TODO: convert hmac to precomputed
 
-	for(;;) {
+	for (;;) {
 		/* HMAC_hash(secret, A(1) + seed) */
 		if (outbuf_size <= MAC_size) {
 			/* Last, possibly incomplete, block */
