@@ -39,7 +39,7 @@
 
 // works against "openssl s_server -cipher NULL"
 // and against wolfssl-3.9.10-stable/examples/server/server.c:
-//#define CIPHER_ID TLS_RSA_WITH_NULL_SHA256 // for testing (does everything except encrypting)
+//#define CIPHER_ID1 TLS_RSA_WITH_NULL_SHA256 // for testing (does everything except encrypting)
 
 // works against wolfssl-3.9.10-stable/examples/server/server.c
 // works for kernel.org
@@ -565,8 +565,11 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	uint8_t padding_length;
 
 	xhdr = (void*)(buf - RECHDR_LEN);
-	if (tls->cipher_id != TLS_RSA_WITH_NULL_SHA256)
+	if (CIPHER_ID1 != TLS_RSA_WITH_NULL_SHA256 /* if "no encryption" can't be selected */
+	 || tls->cipher_id != TLS_RSA_WITH_NULL_SHA256 /* or if it wasn't selected */
+	) {
 		xhdr = (void*)(buf - RECHDR_LEN - AES_BLOCKSIZE); /* place for IV */
+	}
 
 	xhdr->type = type;
 	xhdr->proto_maj = TLS_MAJ;
@@ -620,7 +623,9 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	// --------  -----------  ----------  --------------
 	// SHA       HMAC-SHA1       20            20
 	// SHA256    HMAC-SHA256     32            32
-	if (tls->cipher_id == TLS_RSA_WITH_NULL_SHA256) {
+	if (CIPHER_ID1 == TLS_RSA_WITH_NULL_SHA256
+	 && tls->cipher_id == TLS_RSA_WITH_NULL_SHA256
+	) {
 		/* No encryption, only signing */
 		xhdr->len16_hi = size >> 8;
 		xhdr->len16_lo = size & 0xff;
@@ -1666,9 +1671,11 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 	if (len != 1 || memcmp(tls->inbuf, rec_CHANGE_CIPHER_SPEC, 6) != 0)
 		bad_record_die(tls, "switch to encrypted traffic", len);
 	dbg("<< CHANGE_CIPHER_SPEC\n");
-	if (tls->cipher_id == TLS_RSA_WITH_NULL_SHA256)
+	if (CIPHER_ID1 == TLS_RSA_WITH_NULL_SHA256
+	 && tls->cipher_id == TLS_RSA_WITH_NULL_SHA256
+	) {
 		tls->min_encrypted_len_on_read = tls->MAC_size;
-	else {
+	} else {
 		unsigned mac_blocks = (unsigned)(tls->MAC_size + AES_BLOCKSIZE-1) / AES_BLOCKSIZE;
 		/* all incoming packets now should be encrypted and have
 		 * at least IV + (MAC padded to blocksize):
