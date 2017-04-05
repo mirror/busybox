@@ -1271,6 +1271,16 @@ int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 void bb_displayroutes(int noresolve, int netstatfmt) FAST_FUNC;
 #endif
 
+struct number_state {
+	unsigned width;
+	unsigned start;
+	unsigned inc;
+	const char *sep;
+	const char *empty_str;
+	smallint all, nonempty;
+};
+void print_numbered_lines(struct number_state *ns, const char *filename) FAST_FUNC;
+
 
 /* Networking */
 /* This structure defines protocol families and their handlers. */
