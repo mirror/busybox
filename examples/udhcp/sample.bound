@@ -18,11 +18,18 @@ then
 	metric=0
 	for i in $router
 	do
+		if [ "$subnet" = "255.255.255.255" ]; then
+			# special case for /32 subnets:
+			# /32 instructs kernel to always use routing for all outgoing packets
+			# (they can never be sent to local subnet - there is no local subnet for /32).
+			# Used in datacenters, avoids the need for private ip-addresses between two hops.
+			/sbin/ip route add $i dev $interface
+		fi
 		/sbin/route add default gw $i dev $interface metric $((metric++))
 	done
 fi
 
-# Only replace resolv.conf is we have at least one DNS server
+# Only replace resolv.conf if we have at least one DNS server
 if [ -n "$dns" ]
 then
 	echo -n > $RESOLV_CONF
