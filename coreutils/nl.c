@@ -8,9 +8,9 @@
 //config:	help
 //config:	  nl is used to number lines of files.
 
-//applet:IF_UNIQ(APPLET(nl, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_NL(APPLET(nl, BB_DIR_USR_BIN, BB_SUID_DROP))
 
-//kbuild:lib-$(CONFIG_UNIQ) += nl.o
+//kbuild:lib-$(CONFIG_NL) += nl.o
 
 //usage:#define nl_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
@@ -56,7 +56,6 @@ void FAST_FUNC print_numbered_lines(struct number_state *ns, const char *filenam
 int nl_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nl_main(int argc UNUSED_PARAM, char **argv)
 {
-	unsigned opt;
 	struct number_state ns;
 	const char *opt_b = "t";
 	enum {
@@ -83,10 +82,10 @@ int nl_main(int argc UNUSED_PARAM, char **argv)
 	ns.start = 1;
 	ns.inc = 1;
 	ns.sep = "\t";
-	opt = getopt32(argv, "pw:+s:v:+i:+b:", &ns.width, &ns.sep, &ns.start, &ns.inc, &opt_b);
+	getopt32(argv, "pw:+s:v:+i:+b:", &ns.width, &ns.sep, &ns.start, &ns.inc, &opt_b);
 	ns.all = (opt_b[0] == 'a');
 	ns.nonempty = (opt_b[0] == 't');
-	ns.empty_str = xasprintf("%*s\n", ns.width + strlen(ns.sep), "");
+	ns.empty_str = xasprintf("%*s\n", ns.width + (int)strlen(ns.sep), "");
 
 	argv += optind;
 	if (!*argv)
