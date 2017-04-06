@@ -252,6 +252,15 @@ static int FAST_FUNC config_file_action(const char *filename,
 	if (base[0] == '.')
 		goto error;
 
+	/* "man modprobe.d" from kmod version 22 suggests
+	 * that we shouldn't recurse into /etc/modprobe.d/dir/
+	 * _subdirectories_:
+	 */
+	if (depth > 1)
+		return SKIP; /* stop recursing */
+//TODO: instead, can use dirAction in recursive_action() to SKIP dirs
+//on depth == 1 level. But that's more code...
+
 	/* In dir recursion, skip files that do not end with a ".conf"
 	 * depth==0: read_config("modules.{symbols,alias}") must work,
 	 * "include FILE_NOT_ENDING_IN_CONF" must work too.

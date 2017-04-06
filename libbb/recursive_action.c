@@ -30,23 +30,36 @@ static int FAST_FUNC true_action(const char *fileName UNUSED_PARAM,
 	return TRUE;
 }
 
-/* fileAction return value of 0 on any file in directory will make
- * recursive_action() return 0, but it doesn't stop directory traversal
+/* fileName is (l)stat'ed (depending on ACTION_FOLLOWLINKS[_L0]).
+ *
+ * If it is a file: fileAction in run on it, its return value is returned.
+ *
+ * In case we are in a recursive invocation (see below):
+ * normally, fileAction should return 1 (TRUE) to indicate that
+ * everything is okay and processing should continue.
+ * fileAction return value of 0 (FALSE) on any file in directory will make
+ * recursive_action() also return 0, but it doesn't stop directory traversal
  * (fileAction/dirAction will be called on each file).
  *
- * If !ACTION_RECURSE, dirAction is called on the directory and its
+ * [TODO: maybe introduce -1 to mean "stop traversal NOW and return"]
+ *
+ * If it is a directory:
+ *
+ * If !ACTION_RECURSE, dirAction is called and its
  * return value is returned from recursive_action(). No recursion.
  *
- * If ACTION_RECURSE, recursive_action() is called on each directory.
+ * If ACTION_RECURSE, directory is opened, and recursive_action() is called
+ * on each file/subdirectory.
  * If any one of these calls returns 0, current recursive_action() returns 0.
+ *
+ * If !ACTION_DEPTHFIRST, dirAction is called before recurse.
+ * Return value of 0 (FALSE) is an error: prevents recursion,
+ * the warning is printed (unless ACTION_QUIET) and recursive_action() returns 0.
+ * Return value of 2 (SKIP) prevents recursion, instead recursive_action()
+ * returns 1 (TRUE, no error).
  *
  * If ACTION_DEPTHFIRST, dirAction is called after recurse.
  * If it returns 0, the warning is printed and recursive_action() returns 0.
- *
- * If !ACTION_DEPTHFIRST, dirAction is called before we recurse.
- * Return value of 0 (FALSE) or 2 (SKIP) prevents recursion
- * into that directory, instead recursive_action() returns 0 (if FALSE)
- * or 1 (if SKIP)
  *
  * ACTION_FOLLOWLINKS mainly controls handling of links to dirs.
  * 0: lstat(statbuf). Calls fileAction on link name even if points to dir.
@@ -105,7 +118,7 @@ int FAST_FUNC recursive_action(const char *fileName,
 
 	if (!(flags & ACTION_DEPTHFIRST)) {
 		status = dirAction(fileName, &statbuf, userData, depth);
-		if (!status)
+		if (status == FALSE)
 			goto done_nak_warn;
 		if (status == SKIP)
 			return TRUE;
@@ -121,24 +134,23 @@ int FAST_FUNC recursive_action(const char *fileName,
 	status = TRUE;
 	while ((next = readdir(dir)) != NULL) {
 		char *nextFile;
+		int s;
 
 		nextFile = concat_subpath_file(fileName, next->d_name);
 		if (nextFile == NULL)
 			continue;
+
 		/* process every file (NB: ACTION_RECURSE is set in flags) */
-		if (!recursive_action(nextFile, flags, fileAction, dirAction,
-						userData, depth + 1))
+		s = recursive_action(nextFile, flags, fileAction, dirAction,
+						userData, depth + 1);
+		if (s == FALSE)
 			status = FALSE;
-//		s = recursive_action(nextFile, flags, fileAction, dirAction,
-//						userData, depth + 1);
 		free(nextFile);
-//#define RECURSE_RESULT_ABORT 3
+//#define RECURSE_RESULT_ABORT -1
 //		if (s == RECURSE_RESULT_ABORT) {
 //			closedir(dir);
 //			return s;
 //		}
-//		if (s == FALSE)
-//			status = FALSE;
 	}
 	closedir(dir);
 
