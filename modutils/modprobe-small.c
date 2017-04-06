@@ -765,9 +765,12 @@ static int process_module(char *name, const char *cmdline_options)
 
 	if (!infovec) {
 		/* both dirscan and find_alias found nothing */
-		if (!is_remove && !is_depmod) /* it wasn't rmmod or depmod */
+		if (!is_remove && !is_depmod) { /* it wasn't rmmod or depmod */
 			bb_error_msg("module '%s' not found", name);
 //TODO: _and_die()? or should we continue (un)loading modules listed on cmdline?
+			/* "modprobe non-existing-module; echo $?" must print 1 */
+			exitcode = EXIT_FAILURE;
+		}
 		goto ret;
 	}
 
