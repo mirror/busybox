@@ -154,8 +154,8 @@
 //usage:#define iplink_trivial_usage
 //usage:       "set IFACE [up|down] [arp on|off] | show [IFACE]"
 //usage:#define iplink_full_usage "\n\n"
-//usage:       "iplink set IFACE [up|down] [arp on|off] [multicast on|off] [mtu MTU]\n"
-//usage:       "	[name NAME] [qlen NUM] [address MAC]\n"
+//usage:       "iplink set IFACE [up|down] [arp on|off] [multicast on|off] [promisc on|off]\n"
+//usage:       "	[mtu NUM] [name NAME] [qlen NUM] [address MAC]\n"
 //usage:       "iplink show [IFACE]"
 //usage:
 //usage:#define iproute_trivial_usage

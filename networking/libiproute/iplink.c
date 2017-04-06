@@ -210,10 +210,10 @@ static int do_set(char **argv)
 	/* If you add stuff here, update iplink_full_usage */
 	static const char keywords[] ALIGN1 =
 		"up\0""down\0""name\0""mtu\0""qlen\0""multicast\0"
-		"arp\0""address\0"
+		"arp\0""promisc\0""address\0"
 		"dev\0" /* must be last */;
 	enum { ARG_up = 0, ARG_down, ARG_name, ARG_mtu, ARG_qlen, ARG_multicast,
-		ARG_arp, ARG_addr,
+		ARG_arp, ARG_promisc, ARG_addr,
 		ARG_dev };
 	enum { PARM_on = 0, PARM_off };
 	smalluint key;
@@ -237,6 +237,7 @@ static int do_set(char **argv)
 				duparg("mtu", *argv);
 			mtu = get_unsigned(*argv, "mtu");
 		} else if (key == ARG_qlen) {
+//TODO: txqueuelen, txqlen are synonyms to qlen
 			NEXT_ARG();
 			if (qlen != -1)
 				duparg("qlen", *argv);
@@ -273,6 +274,14 @@ static int do_set(char **argv)
 					flags &= ~IFF_NOARP;
 				else
 					flags |= IFF_NOARP;
+			} else if (key == ARG_promisc) {
+				if (param < 0)
+					die_must_be_on_off("promisc");
+				mask |= IFF_PROMISC;
+				if (param == PARM_on)
+					flags |= IFF_PROMISC;
+				else
+					flags &= ~IFF_PROMISC;
 			}
 		}
 
@@ -285,15 +294,6 @@ static int do_set(char **argv)
 			if (len < 0)
 				return -1;
 			addattr_l(&req->n, sizeof(*req), IFLA_BROADCAST, abuf, len);
-		} else if (matches(*argv, "txqueuelen") == 0 ||
-				strcmp(*argv, "qlen") == 0 ||
-				matches(*argv, "txqlen") == 0) {
-			NEXT_ARG();
-			if (qlen != -1)
-				duparg("txqueuelen", *argv);
-			if (get_integer(&qlen,  *argv, 0))
-				invarg_1_to_2(*argv, "txqueuelen");
-			addattr_l(&req->n, sizeof(*req), IFLA_TXQLEN, &qlen, 4);
                 } else if (strcmp(*argv, "netns") == 0) {
                         NEXT_ARG();
                         if (netns != -1)
@@ -313,15 +313,6 @@ static int do_set(char **argv)
 				req->i.ifi_flags &= ~IFF_ALLMULTI;
 			} else
 				return on_off("allmulticast", *argv);
-		} else if (strcmp(*argv, "promisc") == 0) {
-			NEXT_ARG();
-			req->i.ifi_change |= IFF_PROMISC;
-			if (strcmp(*argv, "on") == 0) {
-				req->i.ifi_flags |= IFF_PROMISC;
-			} else if (strcmp(*argv, "off") == 0) {
-				req->i.ifi_flags &= ~IFF_PROMISC;
-			} else
-				return on_off("promisc", *argv);
 		} else if (strcmp(*argv, "trailers") == 0) {
 			NEXT_ARG();
 			req->i.ifi_change |= IFF_NOTRAILERS;
