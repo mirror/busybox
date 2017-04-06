@@ -162,11 +162,42 @@
 //usage:       "list|flush|add|del|change|append|replace|test ROUTE"
 //usage:#define iproute_full_usage "\n\n"
 //usage:       "iproute list|flush SELECTOR\n"
-//usage:       "iproute get ADDRESS [from ADDRESS iif STRING]\n"
-//usage:       "	[oif STRING] [tos TOS]\n"
-//usage:       "iproute add|del|change|append|replace|test ROUTE\n"
 //usage:       "	SELECTOR := [root PREFIX] [match PREFIX] [proto RTPROTO]\n"
-//usage:       "	ROUTE := [TYPE] PREFIX [tos TOS] [proto RTPROTO] [metric METRIC]"
+//usage:       "	PREFIX := default|ADDRESS/MASK\n"
+//usage:       "iproute get ADDRESS [from ADDRESS iif IFACE]\n"
+//usage:       "	[oif IFACE] [tos TOS]\n"
+//usage:       "iproute add|del|change|append|replace|test ROUTE\n"
+//usage:       "	ROUTE := NODE_SPEC [INFO_SPEC]\n"
+//usage:       "	NODE_SPEC := PREFIX"IF_FEATURE_IP_RULE(" [table TABLE_ID]")" [proto RTPROTO] [scope SCOPE] [metric METRIC]\n"
+//usage:       "	INFO_SPEC := NH OPTIONS\n"
+//usage:       "	NH := [via [inet|inet6] ADDRESS] [dev IFACE] [src ADDRESS] [onlink]\n"
+//usage:       "	OPTIONS := [mtu NUM]"
+//upstream man ip-route:
+//======================
+//ip route { show | flush } SELECTOR
+//ip route save SELECTOR
+//ip route restore
+//ip route get ADDRESS [ from ADDRESS iif STRING  ] [ oif STRING ] [ tos TOS ]
+//ip route { add | del | change | append | replace } ROUTE
+//SELECTOR := [ root PREFIX ] [ match PREFIX ] [ exact PREFIX ] [ table TABLE_ID ] [ proto RTPROTO ] [ type TYPE ] [ scope SCOPE ]
+//ROUTE := NODE_SPEC [ INFO_SPEC ]
+//NODE_SPEC := [ TYPE ] PREFIX [ tos TOS ] [ table TABLE_ID ] [ proto RTPROTO ] [ scope SCOPE ] [ metric METRIC ]
+//INFO_SPEC := NH OPTIONS FLAGS [ nexthop NH ] ...
+//NH := [ encap ENCAP ] [ via [ FAMILY ] ADDRESS ] [ dev STRING ] [ weight NUMBER ] NHFLAGS
+// ..............................................................^ I guess [src ADDRESS] should be here
+//FAMILY := [ inet | inet6 | ipx | dnet | mpls | bridge | link ]
+//OPTIONS := FLAGS [ mtu NUMBER ] [ advmss NUMBER ] [ as [ to ] ADDRESS ] rtt TIME ] [ rttvar TIME ] [ reordering NUMBER ] [ window NUMBER ] [ cwnd NUMBER ] [ ssthresh REALM ] [ realms REALM ]
+//        [ rto_min TIME ] [ initcwnd NUMBER ] [ initrwnd NUMBER ] [ features FEATURES ] [ quickack BOOL ] [ congctl NAME ] [ pref PREF ] [ expires TIME ]
+//TYPE := [ unicast | local | broadcast | multicast | throw | unreachable | prohibit | blackhole | nat ]
+//TABLE_ID := [ local | main | default | all | NUMBER ]
+//SCOPE := [ host | link | global | NUMBER ]
+//NHFLAGS := [ onlink | pervasive ]
+//RTPROTO := [ kernel | boot | static | NUMBER ]
+//FEATURES := [ ecn | ]
+//PREF := [ low | medium | high ]
+//ENCAP := [ MPLS | IP ]
+//ENCAP_MPLS := mpls [ LABEL ]
+//ENCAP_IP := ip id TUNNEL_ID dst REMOTE_IP [ tos TOS ] [ ttl TTL ]
 //usage:
 //usage:#define iprule_trivial_usage
 //usage:       "[list] | add|del SELECTOR ACTION"
