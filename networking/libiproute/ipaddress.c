@@ -593,9 +593,13 @@ static int default_scope(inet_prefix *lcl)
 /* Return value becomes exitcode. It's okay to not return at all */
 static int ipaddr_modify(int cmd, int flags, char **argv)
 {
+	/* If you add stuff here, update ipaddr_full_usage */
 	static const char option[] ALIGN1 =
 		"peer\0""remote\0""broadcast\0""brd\0"
 		"anycast\0""scope\0""dev\0""label\0""local\0";
+#define option_peer      option
+#define option_broadcast (option           + sizeof("peer") + sizeof("remote"))
+#define option_anycast   (option_broadcast + sizeof("broadcast") + sizeof("brd"))
 	struct rtnl_handle rth;
 	struct {
 		struct nlmsghdr  n;
@@ -627,7 +631,7 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 
 		if (arg <= 1) { /* peer, remote */
 			if (peer_len) {
-				duparg("peer", *argv);
+				duparg(option_peer, *argv);
 			}
 			get_prefix(&peer, *argv, req.ifa.ifa_family);
 			peer_len = peer.bytelen;
@@ -639,7 +643,7 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 		} else if (arg <= 3) { /* broadcast, brd */
 			inet_prefix addr;
 			if (brd_len) {
-				duparg("broadcast", *argv);
+				duparg(option_broadcast, *argv);
 			}
 			if (LONE_CHAR(*argv, '+')) {
 				brd_len = -1;
@@ -655,7 +659,7 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 		} else if (arg == 4) { /* anycast */
 			inet_prefix addr;
 			if (any_len) {
-				duparg("anycast", *argv);
+				duparg(option_anycast, *argv);
 			}
 			get_addr(&addr, *argv, req.ifa.ifa_family);
 			if (req.ifa.ifa_family == AF_UNSPEC) {

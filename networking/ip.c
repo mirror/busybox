@@ -140,17 +140,17 @@
 //kbuild:lib-$(CONFIG_IPTUNNEL) += ip.o
 //kbuild:lib-$(CONFIG_IPNEIGH) += ip.o
 
+//--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
 //usage:#define ipaddr_trivial_usage
 //usage:       "add|del IFADDR dev IFACE | show|flush [dev IFACE] [to PREFIX]"
 //usage:#define ipaddr_full_usage "\n\n"
 //usage:       "ipaddr add|change|replace|delete IFADDR dev IFACE\n"
-//usage:       "ipaddr show|flush [dev IFACE] [scope SCOPE-ID]\n"
-//usage:       "		[to PREFIX] [label PATTERN]\n"
-//usage:       "	IFADDR := PREFIX | ADDR peer PREFIX\n"
-//usage:       "		[broadcast ADDR] [anycast ADDR]\n"
+//usage:       "	IFADDR := PREFIX | ADDR peer PREFIX [broadcast ADDR] [anycast ADDR]\n"
 //usage:       "		[label STRING] [scope SCOPE-ID]\n"
+//usage:       "ipaddr show|flush [dev IFACE] [scope SCOPE-ID] [to PREFIX] [label PATTERN]\n"
 //usage:       "	SCOPE-ID := [host|link|global|NUMBER]"
 //usage:
+//--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
 //usage:#define iplink_trivial_usage
 //usage:       "set IFACE [up|down] [arp on|off] | show [IFACE]"
 //usage:#define iplink_full_usage "\n\n"
@@ -158,19 +158,20 @@
 //usage:       "	[mtu NUM] [name NAME] [qlen NUM] [address MAC]\n"
 //usage:       "iplink show [IFACE]"
 //usage:
+//--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
 //usage:#define iproute_trivial_usage
 //usage:       "list|flush|add|del|change|append|replace|test ROUTE"
 //usage:#define iproute_full_usage "\n\n"
 //usage:       "iproute list|flush SELECTOR\n"
 //usage:       "	SELECTOR := [root PREFIX] [match PREFIX] [proto RTPROTO]\n"
-//usage:       "	PREFIX := default|ADDRESS/MASK\n"
-//usage:       "iproute get ADDRESS [from ADDRESS iif IFACE]\n"
+//usage:       "	PREFIX := default|ADDR/MASK\n"
+//usage:       "iproute get ADDR [from ADDR iif IFACE]\n"
 //usage:       "	[oif IFACE] [tos TOS]\n"
 //usage:       "iproute add|del|change|append|replace|test ROUTE\n"
 //usage:       "	ROUTE := NODE_SPEC [INFO_SPEC]\n"
 //usage:       "	NODE_SPEC := PREFIX"IF_FEATURE_IP_RULE(" [table TABLE_ID]")" [proto RTPROTO] [scope SCOPE] [metric METRIC]\n"
 //usage:       "	INFO_SPEC := NH OPTIONS\n"
-//usage:       "	NH := [via [inet|inet6] ADDRESS] [dev IFACE] [src ADDRESS] [onlink]\n"
+//usage:       "	NH := [via [inet|inet6] ADDR] [dev IFACE] [src ADDR] [onlink]\n"
 //usage:       "	OPTIONS := [mtu [lock] NUM] [advmss [lock] NUM]"
 //upstream man ip-route:
 //======================
@@ -199,16 +200,18 @@
 //ENCAP_MPLS := mpls [ LABEL ]
 //ENCAP_IP := ip id TUNNEL_ID dst REMOTE_IP [ tos TOS ] [ ttl TTL ]
 //usage:
+//--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
 //usage:#define iprule_trivial_usage
 //usage:       "[list] | add|del SELECTOR ACTION"
 //usage:#define iprule_full_usage "\n\n"
 //usage:       "	SELECTOR := [from PREFIX] [to PREFIX] [tos TOS] [fwmark FWMARK]\n"
 //usage:       "			[dev IFACE] [pref NUMBER]\n"
-//usage:       "	ACTION := [table TABLE_ID] [nat ADDRESS]\n"
+//usage:       "	ACTION := [table TABLE_ID] [nat ADDR]\n"
 //usage:       "			[prohibit|reject|unreachable]\n"
 //usage:       "			[realms [SRCREALM/]DSTREALM]\n"
 //usage:       "	TABLE_ID := [local|main|default|NUMBER]"
 //usage:
+//--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
 //usage:#define iptunnel_trivial_usage
 //usage:       "add|change|del|show [NAME]\n"
 //usage:       "	[mode ipip|gre|sit]\n"
