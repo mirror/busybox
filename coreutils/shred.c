@@ -66,16 +66,21 @@ int shred_main(int argc UNUSED_PARAM, char **argv)
 
 	for (;;) {
 		struct stat sb;
+		const char *fname;
 		unsigned i;
-		int fd = -1;
+		int fd;
 
+		fname = *argv++;
+		if (!fname)
+			break;
+		fd = -1;
 		if (opt & OPT_f) {
-			fd = open(*argv, O_WRONLY);
+			fd = open(fname, O_WRONLY);
 			if (fd < 0)
-				chmod(*argv, 0666);
+				chmod(fname, 0666);
 		}
 		if (fd < 0)
-			fd = xopen(*argv, O_WRONLY);
+			fd = xopen(fname, O_WRONLY);
 
 		if (fstat(fd, &sb) == 0 && sb.st_size > 0) {
 			off_t size = sb.st_size;
@@ -91,13 +96,10 @@ int shred_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if (opt & OPT_u) {
 				ftruncate(fd, 0);
-				xunlink(*argv);
+				xunlink(fname);
 			}
 			xclose(fd);
 		}
-		argv++;
-		if (!*argv)
-			break;
 	}
 
 	return EXIT_SUCCESS;
