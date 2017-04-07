@@ -26,10 +26,6 @@ extern char _SL_;
 #define SPRINT_BSIZE 64
 #define SPRINT_BUF(x)  char x[SPRINT_BSIZE]
 
-extern void incomplete_command(void) NORETURN;
-
-#define NEXT_ARG() do { if (!*++argv) incomplete_command(); } while (0)
-
 typedef struct {
 	uint8_t family;
 	uint8_t bytelen;
@@ -56,36 +52,40 @@ struct ipx_addr {
 	uint8_t  ipx_node[IPX_NODE_LEN];
 };
 
-extern uint32_t get_addr32(char *name);
-extern int get_addr_1(inet_prefix *dst, char *arg, int family);
-/*extern void get_prefix_1(inet_prefix *dst, char *arg, int family);*/
-extern int get_addr(inet_prefix *dst, char *arg, int family);
-extern void get_prefix(inet_prefix *dst, char *arg, int family);
+char** next_arg(char **argv) FAST_FUNC;
+#define NEXT_ARG() do { argv = next_arg(argv); } while (0)
 
-extern unsigned get_unsigned(char *arg, const char *errmsg);
-extern uint32_t get_u32(char *arg, const char *errmsg);
-extern uint16_t get_u16(char *arg, const char *errmsg);
+uint32_t get_addr32(char *name) FAST_FUNC;
+int get_addr_1(inet_prefix *dst, char *arg, int family) FAST_FUNC;
+/*void get_prefix_1(inet_prefix *dst, char *arg, int family) FAST_FUNC;*/
+int get_addr(inet_prefix *dst, char *arg, int family) FAST_FUNC;
+void get_prefix(inet_prefix *dst, char *arg, int family) FAST_FUNC;
 
-extern const char *rt_addr_n2a(int af, void *addr);
+unsigned get_unsigned(char *arg, const char *errmsg) FAST_FUNC;
+uint32_t get_u32(char *arg, const char *errmsg) FAST_FUNC;
+uint16_t get_u16(char *arg, const char *errmsg) FAST_FUNC;
+
+const char *rt_addr_n2a(int af, void *addr) FAST_FUNC;
 #ifdef RESOLVE_HOSTNAMES
-extern const char *format_host(int af, int len, void *addr);
+const char *format_host(int af, int len, void *addr) FAST_FUNC;
 #else
 #define format_host(af, len, addr) \
 	rt_addr_n2a(af, addr)
 #endif
 
-void invarg_1_to_2(const char *, const char *) NORETURN;
-void duparg(const char *, const char *) NORETURN;
-void duparg2(const char *, const char *) NORETURN;
-int inet_addr_match(const inet_prefix *a, const inet_prefix *b, int bits);
+void invarg_1_to_2(const char *, const char *) FAST_FUNC NORETURN;
+void duparg(const char *, const char *) FAST_FUNC NORETURN;
+void duparg2(const char *, const char *) FAST_FUNC NORETURN;
 
-const char *dnet_ntop(int af, const void *addr, char *str, size_t len);
-int dnet_pton(int af, const char *src, void *addr);
+int inet_addr_match(const inet_prefix *a, const inet_prefix *b, int bits) FAST_FUNC;
 
-const char *ipx_ntop(int af, const void *addr, char *str, size_t len);
-int ipx_pton(int af, const char *src, void *addr);
+//const char *dnet_ntop(int af, const void *addr, char *str, size_t len);
+//int dnet_pton(int af, const char *src, void *addr);
 
-unsigned get_hz(void);
+//const char *ipx_ntop(int af, const void *addr, char *str, size_t len);
+//int ipx_pton(int af, const char *src, void *addr);
+
+unsigned get_hz(void) FAST_FUNC;
 
 POP_SAVED_FUNCTION_VISIBILITY
 
