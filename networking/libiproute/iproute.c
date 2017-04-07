@@ -336,6 +336,12 @@ static int iproute_modify(int cmd, unsigned flags, char **argv)
 		"mtu\0""advmss\0"
 		"scope\0""protocol\0"IF_FEATURE_IP_RULE("table\0")
 		"dev\0""oif\0""to\0""metric\0""onlink\0";
+#define keyword_via    (keywords       + sizeof("src"))
+#define keyword_mtu    (keyword_via    + sizeof("via"))
+#define keyword_advmss (keyword_mtu    + sizeof("mtu"))
+#define keyword_scope  (keyword_advmss + sizeof("advmss"))
+#define keyword_proto  (keyword_scope  + sizeof("scope"))
+#define keyword_table  (keyword_proto  + sizeof("protocol"))
 	enum {
 		ARG_src,
 		ARG_via,
@@ -417,7 +423,7 @@ IF_FEATURE_IP_RULE(ARG_table,)
 				mxlock |= (1 << RTAX_MTU);
 				NEXT_ARG();
 			}
-			mtu = get_unsigned(*argv, "mtu");
+			mtu = get_unsigned(*argv, keyword_mtu);
 			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_MTU, mtu);
 		} else if (arg == ARG_advmss) {
 			unsigned mss;
@@ -426,20 +432,20 @@ IF_FEATURE_IP_RULE(ARG_table,)
 				mxlock |= (1 << RTAX_ADVMSS);
 				NEXT_ARG();
 			}
-			mss = get_unsigned(*argv, "advmss");
+			mss = get_unsigned(*argv, keyword_advmss);
 			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_ADVMSS, mss);
 		} else if (arg == ARG_scope) {
 			uint32_t scope;
 			NEXT_ARG();
 			if (rtnl_rtscope_a2n(&scope, *argv))
-				invarg_1_to_2(*argv, "scope");
+				invarg_1_to_2(*argv, keyword_scope);
 			req.r.rtm_scope = scope;
 			scope_ok = 1;
 		} else if (arg == ARG_protocol) {
 			uint32_t prot;
 			NEXT_ARG();
 			if (rtnl_rtprot_a2n(&prot, *argv))
-				invarg_1_to_2(*argv, "protocol");
+				invarg_1_to_2(*argv, keyword_proto);
 			req.r.rtm_protocol = prot;
 			ok |= proto_ok;
 #if ENABLE_FEATURE_IP_RULE
@@ -447,7 +453,7 @@ IF_FEATURE_IP_RULE(ARG_table,)
 			uint32_t tid;
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
-				invarg_1_to_2(*argv, "table");
+				invarg_1_to_2(*argv, keyword_table);
 			if (tid < 256)
 				req.r.rtm_table = tid;
 			else {
@@ -1083,9 +1089,15 @@ static int iproute_get(char **argv)
 int FAST_FUNC do_iproute(char **argv)
 {
 	static const char ip_route_commands[] ALIGN1 =
-	/*0-3*/	"add\0""append\0""change\0""chg\0"
-	/*4-7*/	"delete\0""get\0""list\0""show\0"
-	/*8..*/	"prepend\0""replace\0""test\0""flush\0";
+		"a\0""add\0""append\0""change\0""chg\0"
+		"delete\0""get\0""list\0""show\0"
+		"prepend\0""replace\0""test\0""flush\0"
+	;
+	enum {
+		CMD_a = 0, CMD_add, CMD_append, CMD_change, CMD_chg,
+		CMD_delete, CMD_get, CMD_list, CMD_show,
+		CMD_prepend, CMD_replace, CMD_test, CMD_flush,
+	};
 	int command_num;
 	unsigned flags = 0;
 	int cmd = RTM_NEWROUTE;
@@ -1100,38 +1112,39 @@ int FAST_FUNC do_iproute(char **argv)
 	command_num = index_in_substrings(ip_route_commands, *argv);
 
 	switch (command_num) {
-		case 0: /* add */
+		case CMD_a:
+		case CMD_add:
 			flags = NLM_F_CREATE|NLM_F_EXCL;
 			break;
-		case 1: /* append */
+		case CMD_append:
 			flags = NLM_F_CREATE|NLM_F_APPEND;
 			break;
-		case 2: /* change */
-		case 3: /* chg */
+		case CMD_change:
+		case CMD_chg:
 			flags = NLM_F_REPLACE;
 			break;
-		case 4: /* delete */
+		case CMD_delete:
 			cmd = RTM_DELROUTE;
 			break;
-		case 5: /* get */
-			return iproute_get(argv+1);
-		case 6: /* list */
-		case 7: /* show */
-			return iproute_list_or_flush(argv+1, 0);
-		case 8: /* prepend */
+		case CMD_get:
+			return iproute_get(argv + 1);
+		case CMD_list:
+		case CMD_show:
+			return iproute_list_or_flush(argv + 1, 0);
+		case CMD_prepend:
 			flags = NLM_F_CREATE;
 			break;
-		case 9: /* replace */
+		case CMD_replace:
 			flags = NLM_F_CREATE|NLM_F_REPLACE;
 			break;
-		case 10: /* test */
+		case CMD_test:
 			flags = NLM_F_EXCL;
 			break;
-		case 11: /* flush */
-			return iproute_list_or_flush(argv+1, 1);
+		case CMD_flush:
+			return iproute_list_or_flush(argv + 1, 1);
 		default:
 			invarg_1_to_2(*argv, applet_name);
 	}
 
-	return iproute_modify(cmd, flags, argv+1);
+	return iproute_modify(cmd, flags, argv + 1);
 }
