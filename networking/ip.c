@@ -144,11 +144,12 @@
 //usage:#define ipaddr_trivial_usage
 //usage:       "add|del IFADDR dev IFACE | show|flush [dev IFACE] [to PREFIX]"
 //usage:#define ipaddr_full_usage "\n\n"
-//usage:       "ipaddr add|change|replace|delete IFADDR dev IFACE\n"
-//usage:       "	IFADDR := PREFIX | ADDR peer PREFIX [broadcast ADDR] [anycast ADDR]\n"
-//usage:       "		[label STRING] [scope SCOPE-ID]\n"
-//usage:       "ipaddr show|flush [dev IFACE] [scope SCOPE-ID] [to PREFIX] [label PATTERN]\n"
-//usage:       "	SCOPE-ID := [host|link|global|NUMBER]"
+//usage:       "ipaddr add|change|replace|delete dev IFACE IFADDR\n"
+//usage:       "	IFADDR := PREFIX | ADDR peer PREFIX [broadcast ADDR|+|-]\n"
+//usage:       "		[anycast ADDR] [label STRING] [scope SCOPE]\n"
+//usage:       "	PREFIX := ADDR[/MASK]\n"
+//usage:       "	SCOPE := [host|link|global|NUMBER]\n"
+//usage:       "ipaddr show|flush [dev IFACE] [scope SCOPE] [to PREFIX] [label PATTERN]"
 //usage:
 //--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
 //usage:#define iplink_trivial_usage
@@ -164,7 +165,7 @@
 //usage:#define iproute_full_usage "\n\n"
 //usage:       "iproute list|flush SELECTOR\n"
 //usage:       "	SELECTOR := [root PREFIX] [match PREFIX] [proto RTPROTO]\n"
-//usage:       "	PREFIX := default|ADDR/MASK\n"
+//usage:       "	PREFIX := default|ADDR[/MASK]\n"
 //usage:       "iproute get ADDR [from ADDR iif IFACE]\n"
 //usage:       "	[oif IFACE] [tos TOS]\n"
 //usage:       "iproute add|del|change|append|replace|test ROUTE\n"
