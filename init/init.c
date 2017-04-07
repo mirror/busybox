@@ -73,6 +73,10 @@
 //config:	bool "Enable init to write to syslog"
 //config:	default y
 //config:	depends on INIT || LINUXRC
+//config:	help
+//config:	  If selected, some init messages are sent to syslog.
+//config:	  Otherwise, they are sent to VT #5 if linux virtual tty is detected
+//config:	  (if not, no separate logging is done).
 //config:
 //config:config FEATURE_INIT_QUIET
 //config:	bool "Be quiet on boot (no 'init started:' message)"
@@ -212,7 +216,9 @@ struct init_action {
 
 static struct init_action *init_action_list = NULL;
 
+#if !ENABLE_FEATURE_INIT_SYSLOG
 static const char *log_console = VC_5;
+#endif
 
 enum {
 	L_LOG = 0x1,
@@ -251,17 +257,16 @@ static void message(int where, const char *fmt, ...)
 	msg[l++] = '\n';
 	msg[l] = '\0';
 #else
-	{
-		static int log_fd = -1;
-
-		msg[l++] = '\n';
-		msg[l] = '\0';
+	msg[l++] = '\n';
+	msg[l] = '\0';
+	if (where & L_LOG) {
 		/* Take full control of the log tty, and never close it.
 		 * It's mine, all mine!  Muhahahaha! */
+		static int log_fd = -1;
+
 		if (log_fd < 0) {
-			if (!log_console) {
-				log_fd = STDERR_FILENO;
-			} else {
+			log_fd = STDERR_FILENO;
+			if (log_console) {
 				log_fd = device_open(log_console, O_WRONLY | O_NONBLOCK | O_NOCTTY);
 				if (log_fd < 0) {
 					bb_error_msg("can't log to %s", log_console);
@@ -271,11 +276,9 @@ static void message(int where, const char *fmt, ...)
 				}
 			}
 		}
-		if (where & L_LOG) {
-			full_write(log_fd, msg, l);
-			if (log_fd == STDERR_FILENO)
-				return; /* don't print dup messages */
-		}
+		full_write(log_fd, msg, l);
+		if (log_fd == STDERR_FILENO)
+			return; /* don't print dup messages */
 	}
 #endif
 
@@ -325,8 +328,9 @@ static void console_init(void)
 		 * if TERM is set to linux (the default) */
 		if (!s || strcmp(s, "linux") == 0)
 			putenv((char*)"TERM=vt102");
-		if (!ENABLE_FEATURE_INIT_SYSLOG)
-			log_console = NULL;
+# if !ENABLE_FEATURE_INIT_SYSLOG
+		log_console = NULL;
+# endif
 	} else
 #endif
 	if (!s)
@@ -541,8 +545,8 @@ static pid_t run(const struct init_action *a)
 	}
 
 	/* Log the process name and args */
-	message(L_LOG, "starting pid %d, tty '%s': '%s'",
-			getpid(), a->terminal, a->command);
+	message(L_LOG, "starting pid %u, tty '%s': '%s'",
+			(int)getpid(), a->terminal, a->command);
 
 	/* Now run it.  The new program will take over this PID,
 	 * so nothing further in init.c should be run. */
@@ -757,7 +761,7 @@ static void run_shutdown_and_kill_processes(void)
 
 	/* Send signals to every process _except_ pid 1 */
 	kill(-1, SIGTERM);
-	message(L_CONSOLE | L_LOG, "Sent SIG%s to all processes", "TERM");
+	message(L_CONSOLE, "Sent SIG%s to all processes", "TERM");
 	sync();
 	sleep(1);
 
