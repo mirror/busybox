@@ -17,9 +17,9 @@
 //kbuild:lib-$(CONFIG_CKSUM) += cksum.o
 
 //usage:#define cksum_trivial_usage
-//usage:       "FILES..."
+//usage:       "FILE..."
 //usage:#define cksum_full_usage "\n\n"
-//usage:       "Calculate the CRC32 checksums of FILES"
+//usage:       "Calculate the CRC32 checksums of FILEs"
 
 #include "libbb.h"
 #include "common_bufsiz.h"
