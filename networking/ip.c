@@ -171,7 +171,7 @@
 //usage:       "	NODE_SPEC := PREFIX"IF_FEATURE_IP_RULE(" [table TABLE_ID]")" [proto RTPROTO] [scope SCOPE] [metric METRIC]\n"
 //usage:       "	INFO_SPEC := NH OPTIONS\n"
 //usage:       "	NH := [via [inet|inet6] ADDRESS] [dev IFACE] [src ADDRESS] [onlink]\n"
-//usage:       "	OPTIONS := [mtu NUM]"
+//usage:       "	OPTIONS := [mtu [lock] NUM] [advmss [lock] NUM]"
 //upstream man ip-route:
 //======================
 //ip route { show | flush } SELECTOR

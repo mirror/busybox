@@ -322,17 +322,25 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	return 0;
 }
 
+static int str_is_lock(const char *str)
+{
+	return strcmp(str, "lock") == 0;
+}
+
 /* Return value becomes exitcode. It's okay to not return at all */
 static int iproute_modify(int cmd, unsigned flags, char **argv)
 {
 	/* If you add stuff here, update iproute_full_usage */
 	static const char keywords[] ALIGN1 =
-		"src\0""via\0""mtu\0""scope\0""protocol\0"IF_FEATURE_IP_RULE("table\0")
+		"src\0""via\0"
+		"mtu\0""advmss\0"
+		"scope\0""protocol\0"IF_FEATURE_IP_RULE("table\0")
 		"dev\0""oif\0""to\0""metric\0""onlink\0";
 	enum {
 		ARG_src,
 		ARG_via,
 		ARG_mtu,
+		ARG_advmss,
 		ARG_scope,
 		ARG_protocol,
 IF_FEATURE_IP_RULE(ARG_table,)
@@ -405,12 +413,21 @@ IF_FEATURE_IP_RULE(ARG_table,)
 		} else if (arg == ARG_mtu) {
 			unsigned mtu;
 			NEXT_ARG();
-			if (strcmp(*argv, "lock") == 0) {
+			if (str_is_lock(*argv)) {
 				mxlock |= (1 << RTAX_MTU);
 				NEXT_ARG();
 			}
 			mtu = get_unsigned(*argv, "mtu");
 			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_MTU, mtu);
+		} else if (arg == ARG_advmss) {
+			unsigned mss;
+			NEXT_ARG();
+			if (str_is_lock(*argv)) {
+				mxlock |= (1 << RTAX_ADVMSS);
+				NEXT_ARG();
+			}
+			mss = get_unsigned(*argv, "advmss");
+			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_ADVMSS, mss);
 		} else if (arg == ARG_scope) {
 			uint32_t scope;
 			NEXT_ARG();
@@ -505,16 +522,6 @@ IF_FEATURE_IP_RULE(ARG_table,)
 			if (get_unsigned(&hoplimit, *argv, 0))
 				invarg("\"hoplimit\" value is invalid\n", *argv);
 			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_HOPLIMIT, hoplimit);
-		} else if (strcmp(*argv, "advmss") == 0) {
-			unsigned mss;
-			NEXT_ARG();
-			if (strcmp(*argv, "lock") == 0) {
-				mxlock |= (1<<RTAX_ADVMSS);
-				NEXT_ARG();
-			}
-			if (get_unsigned(&mss, *argv, 0))
-				invarg("\"mss\" value is invalid\n", *argv);
-			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_ADVMSS, mss);
 		} else if (matches(*argv, "reordering") == 0) {
 			unsigned reord;
 			NEXT_ARG();
