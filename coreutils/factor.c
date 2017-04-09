@@ -47,33 +47,37 @@ typedef unsigned long half_t;
 /* Returns such x that x+1 > sqrt(N) */
 static inline half_t isqrt(wide_t N)
 {
-	wide_t x;
-	unsigned c;
+	wide_t mask_2bits;
+	half_t x;
 
 // Never called with N < 1
 //	if (N == 0)
 //		return 0;
-//
-	/* Count leading zeros */
-	c = 0;
-	while (!(N & TOPMOST_WIDE_BIT)) {
-		c++;
-		N <<= 1;
-	}
-	N >>= c;
 
-	/* Make x > sqrt(n) */
-	x = (wide_t)1 << ((WIDE_BITS + 1 - c) / 2);
-	dbg("x:%llx", x);
+	/* First approximation x > sqrt(N) - half as many bits:
+	 * 1xxxxx -> 111 (six bits to three)
+	 * 01xxxx -> 111
+	 * 001xxx -> 011
+	 * 0001xx -> 011 and so on.
+	 */
+	x = HALF_MAX;
+	mask_2bits = TOPMOST_WIDE_BIT | (TOPMOST_WIDE_BIT >> 1);
+	while (mask_2bits && !(N & mask_2bits)) {
+		x >>= 1;
+		mask_2bits >>= 2;
+	}
+	dbg("x:%"HALF_FMT"x", x);
+
 	for (;;) {
-		wide_t y = (x + N/x) / 2;
-		dbg("y:%llx y^2:%llx (y+1)^2:%llx]", y, y*y, (y+1)*(y+1));
-		if (y >= x) {
-			/* Handle degenerate case N = 0xffffffffff...fffffff */
-			if (y == (wide_t)HALF_MAX + 1)
-				y--;
-			dbg("isqrt(%llx)=%llx"HALF_FMT, N, y);
-			return y;
+		half_t y = (x + N/x) / 2;
+		dbg("y:%x y^2:%llx", y, (wide_t)y * y);
+		/*
+		 * "real" y may be one bit wider: 0x100000000 and get truncated to 0.
+		 * In this case, "real" y is > x. The first check below is for this case:
+		 */
+		if (y == 0 || y >= x) {
+			dbg("isqrt(%llx)=%"HALF_FMT"x", N, x);
+			return x;
 		}
 		x = y;
 	}
@@ -92,6 +96,8 @@ static NOINLINE void factorize(wide_t N)
 	half_t factor;
 	half_t max_factor;
 	unsigned count3;
+	unsigned count5;
+	unsigned count7;
 
 	if (N < 4)
 		goto end;
@@ -103,6 +109,8 @@ static NOINLINE void factorize(wide_t N)
 
 	max_factor = isqrt_odd(N);
 	count3 = 3;
+	count5 = 6;
+	count7 = 9;
 	factor = 3;
 	for (;;) {
 		/* The division is the most costly part of the loop.
@@ -123,11 +131,18 @@ static NOINLINE void factorize(wide_t N)
 		 * ^ ^   ^  ^     ^  ^     ^  _     ^  ^     _  ^     ^  ^     ^
 		 * (^ = primes, _ = would-be-primes-if-not-divisible-by-5)
 		 */
-		--count3;
-		if (count3 == 0) {
+		count7--;
+		count5--;
+		count3--;
+		if (count3 && count5 && count7)
+			continue;
+		if (count3 == 0)
 			count3 = 3;
-			goto next_factor;
-		}
+		if (count5 == 0)
+			count5 = 5;
+		if (count7 == 0)
+			count7 = 7;
+		goto next_factor;
 	}
  end:
 	if (N > 1)
