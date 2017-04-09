@@ -1,6 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ * Copyright (C) 2017 Denys Vlasenko <vda.linux@googlemail.com>
+ *
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config NL
 //config:	bool "nl"
