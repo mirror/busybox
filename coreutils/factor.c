@@ -107,9 +107,12 @@ static NOINLINE void factorize(wide_t N)
 	factor = 3;
 	factor2 = 3 * 3;
 	for (;;) {
-		while ((N % factor) == 0) {
+		/* The division is the most costly part of the loop.
+		 * On 64bit CPUs, takes at best 12 cycles, often ~20.
+		 */
+		while ((N % factor) == 0) { /* not likely */
 			N = N / factor;
-			printf(" %u"HALF_FMT"", factor);
+			printf(" %u"HALF_FMT, factor);
 			max_factor = isqrt_odd(N);
 		}
  next_factor:
@@ -122,8 +125,8 @@ static NOINLINE void factorize(wide_t N)
 		factor += 2;
 		/* Rudimentary wheel sieving: skip multiples of 3:
 		 * Every third odd number is divisible by three and thus isn't a prime:
-		 * 5 7 9 11 13 15 17 19 21 23 25 27 29 31 33 35 37...
-		 * ^ ^   ^  ^     ^  ^     ^  _     ^  ^     _  ^
+		 * 5 7 9 11 13 15 17 19 21 23 25 27 29 31 33 35 37 39 41 43 45 47...
+		 * ^ ^   ^  ^     ^  ^     ^  _     ^  ^     _  ^     ^  ^     ^
 		 * (^ = primes, _ = would-be-primes-if-not-divisible-by-5)
 		 */
 		--count3;
