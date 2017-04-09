@@ -54,7 +54,7 @@ static inline half_t isqrt(wide_t N)
 //	if (N == 0)
 //		return 0;
 
-	/* First approximation x > sqrt(N) - half as many bits:
+	/* First approximation of x+1 > sqrt(N) - all-ones, half as many bits:
 	 * 1xxxxx -> 111 (six bits to three)
 	 * 01xxxx -> 111
 	 * 001xxx -> 011
@@ -125,7 +125,7 @@ static NOINLINE void factorize(wide_t N)
 		if (factor >= max_factor)
 			break;
 		factor += 2;
-		/* Rudimentary wheel sieving: skip multiples of 3:
+		/* Rudimentary wheel sieving: skip multiples of 3, 5 and 7:
 		 * Every third odd number is divisible by three and thus isn't a prime:
 		 * 5 7 9 11 13 15 17 19 21 23 25 27 29 31 33 35 37 39 41 43 45 47...
 		 * ^ ^   ^  ^     ^  ^     ^  _     ^  ^     _  ^     ^  ^     ^
