@@ -89,7 +89,6 @@ static NOINLINE half_t isqrt_odd(wide_t N)
 
 static NOINLINE void factorize(wide_t N)
 {
-	wide_t factor2;
 	half_t factor;
 	half_t max_factor;
 	unsigned count3;
@@ -105,7 +104,6 @@ static NOINLINE void factorize(wide_t N)
 	max_factor = isqrt_odd(N);
 	count3 = 3;
 	factor = 3;
-	factor2 = 3 * 3;
 	for (;;) {
 		/* The division is the most costly part of the loop.
 		 * On 64bit CPUs, takes at best 12 cycles, often ~20.
@@ -118,10 +116,6 @@ static NOINLINE void factorize(wide_t N)
  next_factor:
 		if (factor >= max_factor)
 			break;
-		/* (f + 2)^2 = f^2 + 4*f + 4 = f^2 + 4*(f+1) */
-		factor2 = factor2 + 4 * (factor + 1);
-		/* overflow is impossible due to max_factor check */
-		/* (factor2 > N) is impossible due to max_factor check */
 		factor += 2;
 		/* Rudimentary wheel sieving: skip multiples of 3:
 		 * Every third odd number is divisible by three and thus isn't a prime:
