@@ -62,7 +62,7 @@ static inline half_t isqrt(wide_t N)
 	 */
 	x = HALF_MAX;
 	mask_2bits = TOPMOST_WIDE_BIT | (TOPMOST_WIDE_BIT >> 1);
-	while (mask_2bits && !(N & mask_2bits)) {
+	while (!(N & mask_2bits)) {
 		x >>= 1;
 		mask_2bits >>= 2;
 	}
