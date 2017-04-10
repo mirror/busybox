@@ -47,25 +47,27 @@ typedef unsigned long half_t;
 /* Returns such x that x+1 > sqrt(N) */
 static inline half_t isqrt(wide_t N)
 {
-	wide_t mask_2bits;
 	half_t x;
 
-// Never called with N < 1
-//	if (N == 0)
-//		return 0;
+	// Never called with N < 1
+	//if (N == 0)
+	//	return 0;
 
+	x = HALF_MAX;
 	/* First approximation of x+1 > sqrt(N) - all-ones, half as many bits:
 	 * 1xxxxx -> 111 (six bits to three)
 	 * 01xxxx -> 111
 	 * 001xxx -> 011
 	 * 0001xx -> 011 and so on.
 	 */
-	x = HALF_MAX;
-	mask_2bits = TOPMOST_WIDE_BIT | (TOPMOST_WIDE_BIT >> 1);
-	while (!(N & mask_2bits)) {
-		x >>= 1;
-		mask_2bits >>= 2;
-	}
+	// It is actually not performance-critical at all.
+	// Can simply start Newton loop with very conservative x=0xffffffff.
+	//wide_t mask_2bits;
+	//mask_2bits = TOPMOST_WIDE_BIT | (TOPMOST_WIDE_BIT >> 1);
+	//while (!(N & mask_2bits)) {
+	//	x >>= 1;
+	//	mask_2bits >>= 2;
+	//}
 	dbg("x:%"HALF_FMT"x", x);
 
 	for (;;) {
