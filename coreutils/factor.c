@@ -118,7 +118,7 @@ static NOINLINE void factorize(wide_t N)
 		 */
 		while ((N % factor) == 0) { /* not likely */
 			N = N / factor;
-			printf(" %u"HALF_FMT, factor);
+			printf(" %"HALF_FMT"u", factor);
 			max_factor = isqrt_odd(N);
 		}
  next_factor:
