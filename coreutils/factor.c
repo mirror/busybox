@@ -96,9 +96,27 @@ static NOINLINE void factorize(wide_t N)
 {
 	half_t factor;
 	half_t max_factor;
-	unsigned count3;
-	unsigned count5;
-	unsigned count7;
+	// unsigned count3;
+	// unsigned count5;
+	// unsigned count7;
+	// ^^^^^^^^^^^^^^^ commented-out simple siving code (easier to grasp).
+	// Faster sieving, using one word for potentially up to 6 counters:
+	// count upwards in each mask, counter "triggers" when it sets its mask to "100[0]..."
+	// 10987654321098765432109876543210 - bits 31-0 in 32-bit word
+	//    17777713333311111777775555333 - bit masks for counters for primes 3,5,7,11,13,17
+	//         100000100001000010001001 - value for adding 1 to each mask
+	//    10000010000010000100001000100 - value for checking that any mask reached msb
+	enum {
+		SHIFT_3 = 1 << 0,
+		SHIFT_5 = 1 << 3,
+		SHIFT_7 = 1 << 7,
+		INCREMENT_EACH = SHIFT_3 | SHIFT_5 | SHIFT_7,
+		MULTIPLE_OF_3 = 1 << 2,
+		MULTIPLE_OF_5 = 1 << 6,
+		MULTIPLE_OF_7 = 1 << 11,
+		MULTIPLE_3_5_7 = MULTIPLE_OF_3 | MULTIPLE_OF_5 | MULTIPLE_OF_7,
+	};
+	unsigned sieve_word;
 
 	if (N < 4)
 		goto end;
@@ -119,9 +137,14 @@ static NOINLINE void factorize(wide_t N)
 	 * 589959129 - about 100 million iterations.
 	 */
 	max_factor = isqrt_odd(N);
-	count3 = 3;
-	count5 = 6;
-	count7 = 9;
+	// count3 = 3;
+	// count5 = 6;
+	// count7 = 9;
+	sieve_word = 0
+		+ (MULTIPLE_OF_3 - 3 * SHIFT_3)
+		+ (MULTIPLE_OF_5 - 6 * SHIFT_5)
+		+ (MULTIPLE_OF_7 - 9 * SHIFT_7)
+	;
 	factor = 3;
 	for (;;) {
 		/* The division is the most costly part of the loop.
@@ -143,10 +166,13 @@ static NOINLINE void factorize(wide_t N)
 		 * (^ = primes, _ = would-be-primes-if-not-divisible-by-5)
 		 * The numbers with space under them are excluded by sieve 3.
 		 */
-		count7--;
-		count5--;
-		count3--;
-		if (count3 && count5 && count7)
+		// count7--;
+		// count5--;
+		// count3--;
+		// if (count3 && count5 && count7)
+		// 	continue;
+		sieve_word += INCREMENT_EACH;
+		if (!(sieve_word & MULTIPLE_3_5_7))
 			continue;
 		/*
 		 * "factor" is multiple of 3 33% of the time (count3 reached 0),
@@ -154,15 +180,18 @@ static NOINLINE void factorize(wide_t N)
 		 * else, multiple of 7 7.6% of the time.
 		 * Cumulatively, with 3,5,7 sieving we are here 54.3% of the time.
 		 */
-		if (count3 == 0) {
-			count3 = 3;
-		}
-		if (count5 == 0) {
-			count5 = 5;
-		}
-		if (count7 == 0) {
-			count7 = 7;
-		}
+		// if (count3 == 0)
+		// 	count3 = 3;
+		if (sieve_word & MULTIPLE_OF_3)
+			sieve_word -= SHIFT_3 * 3;
+		// if (count5 == 0)
+		// 	count5 = 5;
+		if (sieve_word & MULTIPLE_OF_5)
+			sieve_word -= SHIFT_5 * 5;
+		// if (count7 == 0)
+		// 	count7 = 7;
+		if (sieve_word & MULTIPLE_OF_7)
+			sieve_word -= SHIFT_7 * 7;
 		goto next_factor;
 	}
  end:
