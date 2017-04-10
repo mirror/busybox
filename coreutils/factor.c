@@ -86,8 +86,9 @@ static inline half_t isqrt(wide_t N)
 static NOINLINE half_t isqrt_odd(wide_t N)
 {
 	half_t s = isqrt(N);
-	if (s && !(s & 1)) /* even? */
-		s--;
+	/* Subtract 1 from even s, odd s won't change: */
+	/* (doesnt work for zero, but we know that s != 0 here) */
+	s = (s - 1) | 1;
 	return s;
 }
 
@@ -107,6 +108,16 @@ static NOINLINE void factorize(wide_t N)
 		N >>= 1;
 	}
 
+	/* The code needs to be optimized for the case where
+	 * there are large prime factors. For example,
+	 * this is not hard:
+	 * 8262075252869367027 = 3 7 17 23 47 101 113 127 131 137 823
+	 * (the largest factor to test is only ~sqrt(823) = 28)
+	 * but this is:
+	 * 18446744073709551601 = 53 348051774975651917
+	 * the last factor requires testing up to
+	 * 589959129 - about 100 million iterations.
+	 */
 	max_factor = isqrt_odd(N);
 	count3 = 3;
 	count5 = 6;
@@ -130,18 +141,28 @@ static NOINLINE void factorize(wide_t N)
 		 * 5 7 9 11 13 15 17 19 21 23 25 27 29 31 33 35 37 39 41 43 45 47...
 		 * ^ ^   ^  ^     ^  ^     ^  _     ^  ^     _  ^     ^  ^     ^
 		 * (^ = primes, _ = would-be-primes-if-not-divisible-by-5)
+		 * The numbers with space under them are excluded by sieve 3.
 		 */
 		count7--;
 		count5--;
 		count3--;
 		if (count3 && count5 && count7)
 			continue;
-		if (count3 == 0)
+		/*
+		 * "factor" is multiple of 3 33% of the time (count3 reached 0),
+		 * else, multiple of 5 13% of the time,
+		 * else, multiple of 7 7.6% of the time.
+		 * Cumulatively, with 3,5,7 sieving we are here 54.3% of the time.
+		 */
+		if (count3 == 0) {
 			count3 = 3;
-		if (count5 == 0)
+		}
+		if (count5 == 0) {
 			count5 = 5;
-		if (count7 == 0)
+		}
+		if (count7 == 0) {
 			count7 = 7;
+		}
 		goto next_factor;
 	}
  end:
