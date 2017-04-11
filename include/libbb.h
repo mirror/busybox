@@ -1178,6 +1178,28 @@ extern uint32_t option_mask32;
 extern uint32_t getopt32(char **argv, const char *applet_opts, ...) FAST_FUNC;
 
 
+/* BSD-derived getopt() functions require that optind be set to 1 in
+ * order to reset getopt() state.  This used to be generally accepted
+ * way of resetting getopt().  However, glibc's getopt()
+ * has additional getopt() state beyond optind (specifically, glibc
+ * extensions ('+' and '-' at the start of the string), and requires
+ * that optind be set to zero to reset its state.  BSD-derived versions
+ * of getopt() misbehaved if optind is set to 0 in order to reset getopt(),
+ * and glibc's getopt() used to coredump if optind is set 1 in order
+ * to reset getopt().
+ * Then BSD introduced additional variable "optreset" which
+ * be set to 1 in order to reset getopt().  Sigh.  Standards, anyone?
+ *
+ * By ~2008, OpenBSD 3.4 was changed to survive glibc-like optind = 0
+ * (to interpret it as if optreset was set).
+ */
+#ifdef __GLIBC__
+#define GETOPT_RESET() (optind = 0)
+#else /* BSD style */
+#define GETOPT_RESET() (optind = 1)
+#endif
+
+
 /* Having next pointer as a first member allows easy creation
  * of "llist-compatible" structs, and using llist_FOO functions
  * on them.

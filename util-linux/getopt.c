@@ -246,12 +246,7 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 
 	/* We used it already in main() in getopt32(),
 	 * we *must* reset getopt(3): */
-#ifdef __GLIBC__
-	optind = 0;
-#else /* BSD style */
-	optind = 1;
-	/* optreset = 1; */
-#endif
+	GETOPT_RESET();
 
 	while (1) {
 #if ENABLE_FEATURE_GETOPT_LONG

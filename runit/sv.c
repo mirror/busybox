@@ -688,12 +688,7 @@ int svc_main(int argc UNUSED_PARAM, char **argv)
 	/* getopt32() was already called:
 	 * reset the libc getopt() function, which keeps internal state.
 	 */
-#ifdef __GLIBC__
-	optind = 0;
-#else /* BSD style */
-	optind = 1;
-	/* optreset = 1; */
-#endif
+	GETOPT_RESET();
 
 	do {
 		if (opts & 1) {

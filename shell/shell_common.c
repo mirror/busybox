@@ -401,13 +401,7 @@ shell_builtin_ulimit(char **argv)
 	/* In case getopt was already called:
 	 * reset the libc getopt() function, which keeps internal state.
 	 */
-#ifdef __GLIBC__
-	optind = 0;
-#else /* BSD style */
-	optind = 1;
-	/* optreset = 1; */
-#endif
-	/* optarg = NULL; opterr = 0; optopt = 0; - do we need this?? */
+	GETOPT_RESET();
 
 	argc = 1;
 	while (argv[argc])

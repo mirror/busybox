@@ -576,13 +576,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	 * run_nofork_applet() does this, but we might end up here
 	 * also via gunzip_main() -> gzip_main(). Play safe.
 	 */
-#ifdef __GLIBC__
-	optind = 0;
-#else /* BSD style */
-	optind = 1;
-	/* optreset = 1; */
-#endif
-	/* optarg = NULL; opterr = 0; optopt = 0; - do we need this?? */
+	GETOPT_RESET();
 
 	/* Note: just "getopt() <= 0" will not work well for
 	 * "fake" short options, like this one:
