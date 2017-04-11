@@ -342,6 +342,8 @@ extern int *const bb_errno;
 uint64_t bb_bswap_64(uint64_t x) FAST_FUNC;
 #endif
 
+unsigned long FAST_FUNC isqrt(unsigned long long N);
+
 unsigned long long monotonic_ns(void) FAST_FUNC;
 unsigned long long monotonic_us(void) FAST_FUNC;
 unsigned long long monotonic_ms(void) FAST_FUNC;

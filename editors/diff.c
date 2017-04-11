@@ -295,17 +295,6 @@ static int search(const int *c, int k, int y, const struct cand *list)
 	}
 }
 
-static unsigned isqrt(unsigned n)
-{
-	unsigned x = 1;
-	while (1) {
-		const unsigned y = x;
-		x = ((n / x) + x) >> 1;
-		if (x <= (y + 1) && x >= (y - 1))
-			return x;
-	}
-}
-
 static void stone(const int *a, int n, const int *b, int *J, int pref)
 {
 	const unsigned isq = isqrt(n);

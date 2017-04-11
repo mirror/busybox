@@ -44,24 +44,7 @@ typedef unsigned long half_t;
 #error Cant find an integer type which is half as wide as ullong
 #endif
 
-/* Returns such x that x+1 > sqrt(N) */
-static inline half_t isqrt(wide_t N)
-{
-	half_t x;
-	unsigned shift;
-
-	shift = WIDE_BITS - 2;
-	x = 0;
-	do {
-		x = (x << 1) + 1;
-		if ((wide_t)x * x > (N >> shift))
-			x--; /* whoops, that +1 was too much */
-		shift -= 2;
-	} while ((int)shift >= 0);
-	return x;
-}
-
-static NOINLINE half_t isqrt_odd(wide_t N)
+static half_t isqrt_odd(wide_t N)
 {
 	half_t s = isqrt(N);
 	/* Subtract 1 from even s, odd s won't change: */
