@@ -48,41 +48,17 @@ typedef unsigned long half_t;
 static inline half_t isqrt(wide_t N)
 {
 	half_t x;
+	unsigned shift;
 
-	// Never called with N < 1
-	//if (N == 0)
-	//	return 0;
-
-	x = HALF_MAX;
-	/* First approximation of x+1 > sqrt(N) - all-ones, half as many bits:
-	 * 1xxxxx -> 111 (six bits to three)
-	 * 01xxxx -> 111
-	 * 001xxx -> 011
-	 * 0001xx -> 011 and so on.
-	 */
-	// It is actually not performance-critical at all.
-	// Can simply start Newton loop with very conservative x=0xffffffff.
-	//wide_t mask_2bits;
-	//mask_2bits = TOPMOST_WIDE_BIT | (TOPMOST_WIDE_BIT >> 1);
-	//while (!(N & mask_2bits)) {
-	//	x >>= 1;
-	//	mask_2bits >>= 2;
-	//}
-	dbg("x:%"HALF_FMT"x", x);
-
-	for (;;) {
-		half_t y = (x + N/x) / 2;
-		dbg("y:%x y^2:%llx", y, (wide_t)y * y);
-		/*
-		 * "real" y may be one bit wider: 0x100000000 and get truncated to 0.
-		 * In this case, "real" y is > x. The first check below is for this case:
-		 */
-		if (y == 0 || y >= x) {
-			dbg("isqrt(%llx)=%"HALF_FMT"x", N, x);
-			return x;
-		}
-		x = y;
-	}
+	shift = WIDE_BITS - 2;
+	x = 0;
+	do {
+		x = (x << 1) + 1;
+		if ((wide_t)x * x > (N >> shift))
+			x--; /* whoops, that +1 was too much */
+		shift -= 2;
+	} while ((int)shift >= 0);
+	return x;
 }
 
 static NOINLINE half_t isqrt_odd(wide_t N)
