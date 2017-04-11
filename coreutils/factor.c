@@ -27,8 +27,6 @@
 #endif
 
 typedef unsigned long long wide_t;
-#define WIDE_BITS (unsigned)(sizeof(wide_t)*8)
-#define TOPMOST_WIDE_BIT ((wide_t)1 << (WIDE_BITS-1))
 
 #if ULLONG_MAX == (UINT_MAX * UINT_MAX + 2 * UINT_MAX)
 /* "unsigned" is half as wide as ullong */
@@ -164,23 +162,6 @@ static NOINLINE void factorize(wide_t N)
 int factor_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int factor_main(int argc UNUSED_PARAM, char **argv)
 {
-#if 0 /* test isqrt() correctness */
-	wide_t n = argv[1] ? bb_strtoull(argv[1], NULL, 0) : time(NULL);
-	for (;;) {
-		half_t h;
-		if (--n == 0)
-			--n;
-		h = isqrt(n);
-		if (!(n & 0xff))
-			printf("isqrt(%llx)=%"HALF_FMT"x\n", n, h);
-		if ((wide_t)h * h > n)
-			return 1;
-		h++;
-		if (h != 0 && (wide_t)h * h <= n)
-			return 1;
-	}
-#endif
-
 	//// coreutils has undocumented option ---debug (three dashes)
 	//getopt32(argv, "");
 	//argv += optind;
