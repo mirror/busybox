@@ -3345,11 +3345,9 @@ unaliascmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int i;
 
-	while ((i = nextopt("a")) != '\0') {
-		if (i == 'a') {
-			rmaliases();
-			return 0;
-		}
+	while (nextopt("a") != '\0') {
+		rmaliases();
+		return 0;
 	}
 	for (i = 0; *argptr; argptr++) {
 		if (unalias(*argptr)) {
@@ -9354,7 +9352,14 @@ truecmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 static int FAST_FUNC
 execcmd(int argc UNUSED_PARAM, char **argv)
 {
-	if (argv[1]) {
+	optionarg = NULL;
+	while (nextopt("a:") != '\0')
+		/* nextopt() sets optionarg to "-a ARGV0" */;
+
+	argv = argptr;
+	if (argv[0]) {
+		char *prog;
+
 		iflag = 0;              /* exit on error */
 		mflag = 0;
 		optschanged();
@@ -9370,7 +9375,10 @@ execcmd(int argc UNUSED_PARAM, char **argv)
 		/*setsignal(SIGTSTP); - unnecessary because of mflag=0 */
 		/*setsignal(SIGTTOU); - unnecessary because of mflag=0 */
 
-		shellexec(argv[1], argv + 1, pathval(), 0);
+		prog = argv[0];
+		if (optionarg)
+			argv[0] = optionarg;
+		shellexec(prog, argv, pathval(), 0);
 		/* NOTREACHED */
 	}
 	return 0;
