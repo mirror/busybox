@@ -1247,7 +1247,7 @@ extern void bb_logenv_override(void) FAST_FUNC;
 
 
 /* Applets which are useful from another applets */
-int bb_cat(char** argv);
+int bb_cat(char** argv) FAST_FUNC;
 /* If shell needs them, they exist even if not enabled as applets */
 int echo_main(int argc, char** argv) IF_ECHO(MAIN_EXTERNALLY_VISIBLE);
 int printf_main(int argc, char **argv) IF_PRINTF(MAIN_EXTERNALLY_VISIBLE);

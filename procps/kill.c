@@ -201,7 +201,7 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 		pid_t sid;
 		procps_status_t* p = NULL;
 		/* compat: exitcode 2 is "no one was signaled" */
-		int ret = 2;
+		errors = 2;
 
 		/* Find out our session id */
 		sid = getsid(pid);
@@ -229,7 +229,7 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 				arg = *args++;
 				if (arg[0] != '-' || arg[1] != 'o') {
 					bb_error_msg("bad option '%s'", arg);
-					ret = 1;
+					errors = 1;
 					goto resume;
 				}
 				arg += 2;
@@ -238,21 +238,21 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 				omit = bb_strtoi(arg, NULL, 10);
 				if (errno) {
 					bb_error_msg("invalid number '%s'", arg);
-					ret = 1;
+					errors = 1;
 					goto resume;
 				}
 				if (p->pid == omit)
 					goto dont_kill;
 			}
 			kill(p->pid, signo);
-			ret = 0;
+			errors = 0;
  dont_kill: ;
 		}
  resume:
 		/* And let them continue */
 		if (signo != SIGSTOP && signo != SIGCONT)
 			kill(-1, SIGCONT);
-		return ret;
+		return errors;
 	}
 
 #if ENABLE_KILL || ENABLE_KILLALL
