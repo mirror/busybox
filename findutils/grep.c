@@ -39,7 +39,7 @@
 //config:config FEATURE_GREP_CONTEXT
 //config:	bool "Enable before and after context flags (-A, -B and -C)"
 //config:	default y
-//config:	depends on GREP || EGREP
+//config:	depends on GREP || EGREP || FGREP
 //config:	help
 //config:	  Print the specified number of leading (-B) and/or trailing (-A)
 //config:	  context surrounding our matching lines.
