@@ -1486,6 +1486,7 @@ int check_securetty(const char *short_tty) FAST_FUNC;
 #else
 static ALWAYS_INLINE int check_securetty(const char *short_tty UNUSED_PARAM) { return 1; }
 #endif
+#define CHECKPASS_PW_HAS_EMPTY_PASSWORD 2
 int check_password(const struct passwd *pw, const char *plaintext) FAST_FUNC;
 int ask_and_check_password_extended(const struct passwd *pw, int timeout, const char *prompt) FAST_FUNC;
 int ask_and_check_password(const struct passwd *pw) FAST_FUNC;

@@ -88,7 +88,7 @@ int FAST_FUNC check_password(const struct passwd *pw, const char *plaintext)
 
 
 /* Ask the user for a password.
- * Return 1 without asking if PW has an empty password.
+ * Return CHECKPASS_PW_HAS_EMPTY_PASSWORD without asking if PW has an empty password.
  * Return -1 on EOF, error while reading input, or timeout.
  * Return 1 if the user gives the correct password for entry PW,
  * 0 if not.
@@ -105,7 +105,7 @@ int FAST_FUNC ask_and_check_password_extended(const struct passwd *pw,
 
 	pw_pass = get_passwd(pw, buffer);
 	if (!pw_pass[0]) /* empty password field? */
-		return 1;
+		return CHECKPASS_PW_HAS_EMPTY_PASSWORD;
 
 	plaintext = bb_ask(STDIN_FILENO, timeout, prompt);
 	if (!plaintext) {

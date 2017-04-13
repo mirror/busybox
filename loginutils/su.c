@@ -23,6 +23,11 @@
 //config:	bool "If user's shell is not in /etc/shells, disallow -s PROG"
 //config:	default y
 //config:	depends on SU
+//config:
+//config:config FEATURE_SU_BLANK_PW_NEEDS_SECURE_TTY
+//config:	bool "Disallow blank passwords from TTYs other than specified in /etc/securetty"
+//config:	default n
+//config:	depends on SU
 
 //applet:/* Needs to be run by root or be suid root - needs to change uid and gid: */
 //applet:IF_SU(APPLET(su, BB_DIR_BIN, BB_SUID_REQUIRE))
@@ -79,6 +84,7 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 	char user_buf[64];
 #endif
 	const char *old_user;
+	int r;
 
 	/* Note: we don't use "'+': stop at first non-option" idiom here.
 	 * For su, "SCRIPT ARGS" or "-c CMD ARGS" do not stop option parsing:
@@ -99,6 +105,11 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 		argv++;
 	}
 
+	tty = xmalloc_ttyname(STDIN_FILENO);
+	if (!tty)
+		tty = "none";
+	tty = skip_dev_pfx(tty);
+
 	if (ENABLE_FEATURE_SU_SYSLOG) {
 		/* The utmp entry (via getlogin) is probably the best way to
 		 * identify the user, especially if someone su's from a su-shell.
@@ -112,20 +123,26 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 			pw = getpwuid(cur_uid);
 			old_user = pw ? xstrdup(pw->pw_name) : "";
 		}
-		tty = xmalloc_ttyname(2);
-		if (!tty) {
-			tty = "none";
-		}
 		openlog(applet_name, 0, LOG_AUTH);
 	}
 
 	pw = xgetpwnam(opt_username);
 
-	if (cur_uid == 0 || ask_and_check_password(pw) > 0) {
+	r = 1;
+	if (cur_uid != 0)
+		r = ask_and_check_password(pw);
+	if (r > 0) {
+		if (ENABLE_FEATURE_SU_BLANK_PW_NEEDS_SECURE_TTY
+		 && r == CHECKPASS_PW_HAS_EMPTY_PASSWORD
+		 && !check_securetty(tty)
+		) {
+			goto fail;
+		}
 		if (ENABLE_FEATURE_SU_SYSLOG)
 			syslog(LOG_NOTICE, "%c %s %s:%s",
 				'+', tty, old_user, opt_username);
 	} else {
+ fail:
 		if (ENABLE_FEATURE_SU_SYSLOG)
 			syslog(LOG_NOTICE, "%c %s %s:%s",
 				'-', tty, old_user, opt_username);
