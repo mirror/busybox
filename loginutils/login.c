@@ -486,7 +486,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		if (opt & LOGIN_OPT_f)
 			break; /* -f USER: success without asking passwd */
 
-		if (pw->pw_uid == 0 && !check_securetty(short_tty))
+		if (pw->pw_uid == 0 && !is_tty_secure(short_tty))
 			goto auth_failed;
 
 		/* Don't check the password if password entry is empty (!) */

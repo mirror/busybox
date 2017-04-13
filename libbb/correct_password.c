@@ -63,7 +63,7 @@ static const char *get_passwd(const struct passwd *pw, char buffer[SHADOW_BUFSIZ
 }
 
 /*
- * Return 1 if PW has an empty password.
+ * Return CHECKPASS_PW_HAS_EMPTY_PASSWORD if PW has an empty password.
  * Return 1 if the user gives the correct password for entry PW,
  * 0 if not.
  * NULL pw means "just fake it for login with bad username"
@@ -77,7 +77,7 @@ int FAST_FUNC check_password(const struct passwd *pw, const char *plaintext)
 
 	pw_pass = get_passwd(pw, buffer);
 	if (!pw_pass[0]) { /* empty password field? */
-		return 1;
+		return CHECKPASS_PW_HAS_EMPTY_PASSWORD;
 	}
 
 	encrypted = pw_encrypt(plaintext, /*salt:*/ pw_pass, 1);

@@ -1482,9 +1482,9 @@ extern void selinux_or_die(void) FAST_FUNC;
 void setup_environment(const char *shell, int flags, const struct passwd *pw) FAST_FUNC;
 void nuke_str(char *str) FAST_FUNC;
 #if ENABLE_FEATURE_SECURETTY && !ENABLE_PAM
-int check_securetty(const char *short_tty) FAST_FUNC;
+int is_tty_secure(const char *short_tty) FAST_FUNC;
 #else
-static ALWAYS_INLINE int check_securetty(const char *short_tty UNUSED_PARAM) { return 1; }
+static ALWAYS_INLINE int is_tty_secure(const char *short_tty UNUSED_PARAM) { return 1; }
 #endif
 #define CHECKPASS_PW_HAS_EMPTY_PASSWORD 2
 int check_password(const struct passwd *pw, const char *plaintext) FAST_FUNC;

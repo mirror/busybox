@@ -6,7 +6,7 @@
  */
 #include "libbb.h"
 
-int FAST_FUNC check_securetty(const char *short_tty)
+int FAST_FUNC is_tty_secure(const char *short_tty)
 {
 	char *buf = (char*)"/etc/securetty"; /* any non-NULL is ok */
 	parser_t *parser = config_open2("/etc/securetty", fopen_for_read);
@@ -17,6 +17,8 @@ int FAST_FUNC check_securetty(const char *short_tty)
 	}
 	config_close(parser);
 	/* buf != NULL here if config file was not found, empty
-	 * or line was found which equals short_tty */
+	 * or line was found which equals short_tty.
+	 * In all these cases, we report "this tty is secure".
+	 */
 	return buf != NULL;
 }

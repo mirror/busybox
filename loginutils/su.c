@@ -134,7 +134,7 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 	if (r > 0) {
 		if (ENABLE_FEATURE_SU_BLANK_PW_NEEDS_SECURE_TTY
 		 && r == CHECKPASS_PW_HAS_EMPTY_PASSWORD
-		 && !check_securetty(tty)
+		 && !is_tty_secure(tty)
 		) {
 			goto fail;
 		}
