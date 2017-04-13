@@ -107,8 +107,8 @@ static NOINLINE void factorize(wide_t N)
 		+ (MULTIPLE_OF_5 - 6 * SHIFT_5)
 		+ (MULTIPLE_OF_7 - 9 * SHIFT_7)
 		//+ (MULTIPLE_OF_11 - 15 * SHIFT_11)
-		//+ (MULTIPLE_OF_11 - 18 * SHIFT_13)
-		//+ (MULTIPLE_OF_11 - 24 * SHIFT_17)
+		//+ (MULTIPLE_OF_13 - 18 * SHIFT_13)
+		//+ (MULTIPLE_OF_17 - 24 * SHIFT_17)
 	;
 	factor = 3;
 	for (;;) {
