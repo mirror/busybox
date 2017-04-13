@@ -6,6 +6,7 @@
  */
 #include "libbb.h"
 
+#if ENABLE_FEATURE_SECURETTY && !ENABLE_PAM
 int FAST_FUNC is_tty_secure(const char *short_tty)
 {
 	char *buf = (char*)"/etc/securetty"; /* any non-NULL is ok */
@@ -22,3 +23,4 @@ int FAST_FUNC is_tty_secure(const char *short_tty)
 	 */
 	return buf != NULL;
 }
+#endif
