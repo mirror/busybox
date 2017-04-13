@@ -58,7 +58,7 @@ static NOINLINE void factorize(wide_t N)
 	// unsigned count3;
 	// unsigned count5;
 	// unsigned count7;
-	// ^^^^^^^^^^^^^^^ commented-out simple siving code (easier to grasp).
+	// ^^^^^^^^^^^^^^^ commented-out simple sieving code (easier to grasp).
 	// Faster sieving, using one word for potentially up to 6 counters:
 	// count upwards in each mask, counter "triggers" when it sets its mask to "100[0]..."
 	// 10987654321098765432109876543210 - bits 31-0 in 32-bit word
@@ -94,6 +94,8 @@ static NOINLINE void factorize(wide_t N)
 	 * 18446744073709551601 = 53 348051774975651917
 	 * the last factor requires testing up to
 	 * 589959129 - about 100 million iterations.
+	 * The slowest case (largest prime) for N < 2^64 is
+	 * factor 18446744073709551557 (0xffffffffffffffc5).
 	 */
 	max_factor = isqrt_odd(N);
 	// count3 = 3;
