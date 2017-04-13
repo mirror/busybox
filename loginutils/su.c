@@ -25,7 +25,7 @@
 //config:	depends on SU
 //config:
 //config:config FEATURE_SU_BLANK_PW_NEEDS_SECURE_TTY
-//config:	bool "Disallow blank passwords from TTYs other than specified in /etc/securetty"
+//config:	bool "Allow blank passwords only on TTYs in /etc/securetty"
 //config:	default n
 //config:	depends on SU
 
