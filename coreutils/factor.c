@@ -73,7 +73,7 @@ static NOINLINE void factorize(wide_t N)
 		MULTIPLE_OF_3 = 1 << 2,
 		MULTIPLE_OF_5 = 1 << 6,
 		MULTIPLE_OF_7 = 1 << 11,
-		MULTIPLE_3_5_7 = MULTIPLE_OF_3 | MULTIPLE_OF_5 | MULTIPLE_OF_7,
+		MULTIPLE_DETECTED = MULTIPLE_OF_3 | MULTIPLE_OF_5 | MULTIPLE_OF_7,
 	};
 	unsigned sieve_word;
 
@@ -102,9 +102,13 @@ static NOINLINE void factorize(wide_t N)
 	// count5 = 6;
 	// count7 = 9;
 	sieve_word = 0
+		/* initial count for SHIFT_n is (n-1)/2*3: */
 		+ (MULTIPLE_OF_3 - 3 * SHIFT_3)
 		+ (MULTIPLE_OF_5 - 6 * SHIFT_5)
 		+ (MULTIPLE_OF_7 - 9 * SHIFT_7)
+		//+ (MULTIPLE_OF_11 - 15 * SHIFT_11)
+		//+ (MULTIPLE_OF_11 - 18 * SHIFT_13)
+		//+ (MULTIPLE_OF_11 - 24 * SHIFT_17)
 	;
 	factor = 3;
 	for (;;) {
@@ -133,7 +137,7 @@ static NOINLINE void factorize(wide_t N)
 		// if (count3 && count5 && count7)
 		// 	continue;
 		sieve_word += INCREMENT_EACH;
-		if (!(sieve_word & MULTIPLE_3_5_7))
+		if (!(sieve_word & MULTIPLE_DETECTED))
 			continue;
 		/*
 		 * "factor" is multiple of 3 33% of the time (count3 reached 0),
