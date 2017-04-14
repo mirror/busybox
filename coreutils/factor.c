@@ -14,7 +14,7 @@
 //kbuild:lib-$(CONFIG_FACTOR) += factor.o
 
 //usage:#define factor_trivial_usage
-//usage:       "NUMBER..."
+//usage:       "[NUMBER]..."
 //usage:#define factor_full_usage "\n\n"
 //usage:       "Print prime factors"
 
@@ -165,6 +165,20 @@ static NOINLINE void factorize(wide_t N)
 	bb_putchar('\n');
 }
 
+static void factorize_numstr(const char *numstr)
+{
+	wide_t N;
+
+	/* Leading + is ok (coreutils compat) */
+	if (*numstr == '+')
+		numstr++;
+	N = bb_strtoull(numstr, NULL, 10);
+	if (errno)
+		bb_show_usage();
+	printf("%llu:", N);
+	factorize(N);
+}
+
 int factor_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int factor_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -173,24 +187,32 @@ int factor_main(int argc UNUSED_PARAM, char **argv)
 	//argv += optind;
 	argv++;
 
-	if (!*argv)
-		//TODO: read from stdin
-		bb_show_usage();
+	if (!*argv) {
+		/* Read from stdin, several numbers per line are accepted */
+		for (;;) {
+			char *numstr, *line;
+			line = xmalloc_fgetline(stdin);
+			if (!line)
+				return EXIT_SUCCESS;
+			numstr = line;
+			for (;;) {
+				char *end;
+				numstr = skip_whitespace(numstr);
+				if (!numstr[0])
+					break;
+				end = skip_non_whitespace(numstr);
+				if (*end != '\0');
+					*end++ = '\0';
+				factorize_numstr(numstr);
+				numstr = end;
+			}
+			free(line);
+		}
+	}
 
 	do {
-		wide_t N;
-		const char *numstr;
-
-		/* Coreutils compat */
-		numstr = skip_whitespace(*argv);
-		if (*numstr == '+')
-			numstr++;
-
-		N = bb_strtoull(numstr, NULL, 10);
-		if (errno)
-			bb_show_usage();
-		printf("%llu:", N);
-		factorize(N);
+		/* Leading spaces are ok (coreutils compat) */
+		factorize_numstr(skip_whitespace(*argv));
 	} while (*++argv);
 
 	return EXIT_SUCCESS;
