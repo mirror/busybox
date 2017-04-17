@@ -2,7 +2,7 @@
 /*
  * dos2unix for BusyBox
  *
- * dos2unix '\n' convertor 0.5.0
+ * dos2unix '\n' converter 0.5.0
  * based on Unix2Dos 0.9.0 by Peter Hanecak (made 19.2.1997)
  * Copyright 1997,.. by Peter Hanecak <hanecak@megaloman.sk>.
  * All rights reserved.

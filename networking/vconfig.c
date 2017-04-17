@@ -138,7 +138,7 @@ int vconfig_main(int argc, char **argv)
 		/* I suppose one could try to combine some of the function calls below,
 		 * since ifr.u.flag, ifr.u.VID, and ifr.u.skb_priority are all same-sized
 		 * (unsigned) int members of a unions.  But because of the range checking,
-		 * doing so wouldn't save that much space and would also make maintainence
+		 * doing so wouldn't save that much space and would also make maintenance
 		 * more of a pain.
 		 */
 		if (ifr.cmd == SET_VLAN_FLAG_CMD) {

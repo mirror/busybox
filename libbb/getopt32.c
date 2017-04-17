@@ -128,7 +128,7 @@ const char *opt_complementary
  "abc"  If groups of two or more chars are specified, the first char
         is the main option and the other chars are secondary options.
         Their flags will be turned on if the main option is found even
-        if they are not specifed on the command line.  For example:
+        if they are not specified on the command line.  For example:
 
         opt_complementary = "abc";
         flags = getopt32(argv, "abcd")

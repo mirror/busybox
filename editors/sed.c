@@ -337,7 +337,7 @@ static int get_address(const char *my_str, int *linenum, regex_t ** regex)
 
 	if (isdigit(*my_str)) {
 		*linenum = strtol(my_str, (char**)&pos, 10);
-		/* endstr shouldnt ever equal NULL */
+		/* endstr shouldn't ever equal NULL */
 	} else if (*my_str == '$') {
 		*linenum = -1;
 		pos++;
@@ -444,7 +444,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 			free(fname);
 			break;
 		}
-		/* Ignore case (gnu exension) */
+		/* Ignore case (gnu extension) */
 		case 'i':
 		case 'I':
 			cflags |= REG_ICASE;
@@ -587,7 +587,7 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 		free(match);
 		free(replace);
 	}
-	/* if it wasnt a single-letter command that takes no arguments
+	/* if it wasn't a single-letter command that takes no arguments
 	 * then it must be an invalid command.
 	 */
 	else if (idx >= IDX_nul) { /* not d,D,g,G,h,H,l,n,N,p,P,q,x,=,{,} */
@@ -751,7 +751,7 @@ static void do_subst_w_backrefs(char *line, char *replace)
 				continue;
 			}
 			/* I _think_ it is impossible to get '\' to be
-			 * the last char in replace string. Thus we dont check
+			 * the last char in replace string. Thus we don't check
 			 * for replace[i] == NUL. (counterexample anyone?) */
 			/* if we find a backslash escaped character, print the character */
 			pipe_putc(replace[i]);

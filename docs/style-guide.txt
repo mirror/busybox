@@ -329,7 +329,7 @@ With "const int" compiler may fail to optimize it out and will reserve
 a real storage in rodata for it! (Hopefully, newer gcc will get better
 at it...).  With "define", you have slight risk of polluting namespace
 (#define doesn't allow you to redefine the name in the inner scopes),
-and complex "define" are evaluated each time they uesd, not once
+and complex "define" are evaluated each time they used, not once
 at declarations like enums. Also, the preprocessor does _no_ type checking
 whatsoever, making it much more error prone.
 

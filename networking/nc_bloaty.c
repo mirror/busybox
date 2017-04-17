@@ -459,7 +459,7 @@ create new one, and bind() it. TODO */
 	 so I don't feel bad.
 	 The *real* question is why BFD sockets wasn't designed to allow listens for
 	 connections *from* specific hosts/ports, instead of requiring the caller to
-	 accept the connection and then reject undesireable ones by closing.
+	 accept the connection and then reject undesirable ones by closing.
 	 In other words, we need a TCP MSG_PEEK. */
 	/* bbox: removed most of it */
 		lcladdr = xmalloc_sockaddr2dotted(&ouraddr->u.sa);
@@ -502,7 +502,7 @@ static int udptest(void)
 	/* use the tcp-ping trick: try connecting to a normally refused port, which
 	 causes us to block for the time that SYN gets there and RST gets back.
 	 Not completely reliable, but it *does* mostly work. */
-	/* Set a temporary connect timeout, so packet filtration doesnt cause
+	/* Set a temporary connect timeout, so packet filtration doesn't cause
 	 us to hang forever, and hit it */
 		o_wait = 5;                     /* enough that we'll notice?? */
 		rr = xsocket(ouraddr->u.sa.sa_family, SOCK_STREAM, 0);

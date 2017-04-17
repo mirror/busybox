@@ -478,7 +478,7 @@ static void sendping_tail(void (*sp)(int), int size_pkt)
 	} else { /* -c NN, and all NN are sent (and no deadline) */
 		/* Wait for the last ping to come back.
 		 * -W timeout: wait for a response in seconds.
-		 * Affects only timeout in absense of any responses,
+		 * Affects only timeout in absence of any responses,
 		 * otherwise ping waits for two RTTs. */
 		unsigned expire = timeout;
 
@@ -712,7 +712,7 @@ static void ping4(len_and_sockaddr *lsa)
 
 	if (opt_ttl != 0) {
 		setsockopt_int(pingsock, IPPROTO_IP, IP_TTL, opt_ttl);
-		/* above doesnt affect packets sent to bcast IP, so... */
+		/* above doesn't affect packets sent to bcast IP, so... */
 		setsockopt_int(pingsock, IPPROTO_IP, IP_MULTICAST_TTL, opt_ttl);
 	}
 

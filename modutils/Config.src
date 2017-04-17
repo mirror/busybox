@@ -75,7 +75,7 @@ config FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 	depends on FEATURE_2_4_MODULES && (INSMOD || MODPROBE)
 	help
 	  By adding module symbols to the kernel symbol table, Oops messages
-	  occuring within kernel modules can be properly debugged. By enabling
+	  occurring within kernel modules can be properly debugged. By enabling
 	  this feature, module symbols will always be added to the kernel symbol
 	  table for proper debugging support. If you are not interested in
 	  Oops messages from kernel modules, say N.

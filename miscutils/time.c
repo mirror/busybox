@@ -397,7 +397,7 @@ static void run_command(char *const *cmd, resource_t *resp)
 	}
 
 	/* Have signals kill the child but not self (if possible).  */
-//TODO: just block all sigs? and reenable them in the very end in main?
+//TODO: just block all sigs? and re-enable them in the very end in main?
 	interrupt_signal = signal(SIGINT, SIG_IGN);
 	quit_signal = signal(SIGQUIT, SIG_IGN);
 

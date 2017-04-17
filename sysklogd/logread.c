@@ -24,7 +24,7 @@
 //config:	default y
 //config:	depends on LOGREAD
 //config:	help
-//config:	  'logread' ouput to slow serial terminals can have
+//config:	  'logread' output to slow serial terminals can have
 //config:	  side effects on syslog because of the semaphore.
 //config:	  This option make logread to double buffer copy
 //config:	  from circular buffer, minimizing semaphore
@@ -159,7 +159,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 					cur, shbuf_tail, shbuf_size);
 
 		if (!(follow & 1)) { /* not -f */
-			/* if -F, "convert" it to -f, so that we dont
+			/* if -F, "convert" it to -f, so that we don't
 			 * dump the entire buffer on each iteration
 			 */
 			follow >>= 1;

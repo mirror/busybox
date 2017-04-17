@@ -104,7 +104,7 @@ static void modinfo(const char *path, const char *version,
 			char *after_pattern;
 
 			ptr = memchr(ptr, *pattern, len - (ptr - (char*)the_module));
-			if (ptr == NULL) /* no occurance left, done */
+			if (ptr == NULL) /* no occurrence left, done */
 				break;
 			after_pattern = is_prefixed_with(ptr, pattern);
 			if (after_pattern && *after_pattern == '=') {

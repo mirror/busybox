@@ -35,7 +35,7 @@
 #include "libbb.h"
 #include "unicode.h"
 
-/* We often use "unsigned" intead of "int", it's easier to div on most CPUs */
+/* We often use "unsigned" instead of "int", it's easier to div on most CPUs */
 
 #define	THURSDAY		4		/* for reformation */
 #define	SATURDAY		6		/* 1 Jan 1 was a Saturday */

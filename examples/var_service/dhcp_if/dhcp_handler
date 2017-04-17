@@ -21,7 +21,7 @@
 # ntpsrv=10.34.32.125 10.34.255.7
 #
 # renew: lease is renewed. Environment is similar to "bound".
-# The IP address does not change, however, the other DHCP paramaters,
+# The IP address does not change, however, the other DHCP parameters,
 # such as the default gateway, subnet mask, and dns server may change.
 #
 # nak: udhcpc received a NAK message.

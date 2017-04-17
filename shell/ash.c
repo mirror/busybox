@@ -3849,7 +3849,7 @@ setjobctl(int on)
 		}
 		/* fd is a tty at this point */
 		fd = fcntl(fd, F_DUPFD, 10);
-		if (ofd >= 0) /* if it is "/dev/tty", close. If 0/1/2, dont */
+		if (ofd >= 0) /* if it is "/dev/tty", close. If 0/1/2, don't */
 			close(ofd);
 		if (fd < 0)
 			goto out; /* F_DUPFD failed */
@@ -6310,7 +6310,7 @@ static char *evalvar(char *p, int flags, struct strlist *var_str_list);
  * $@ like $* since no splitting will be performed.
  *
  * var_str_list (can be NULL) is a list of "VAR=val" strings which take precedence
- * over shell varables. Needed for "A=a B=$A; echo $B" case - we use it
+ * over shell variables. Needed for "A=a B=$A; echo $B" case - we use it
  * for correct expansion of "B=$A" word.
  */
 static void
@@ -6520,8 +6520,8 @@ scanright(char *startp, char *rmesc, char *rmescend,
 		if (try2optimize) {
 			/* Maybe we can optimize this:
 			 * if pattern ends with unescaped *, we can avoid checking
-			 * shorter strings: if "foo*" doesnt match "raw_value_of_v",
-			 * it wont match truncated "raw_value_of_" strings too.
+			 * shorter strings: if "foo*" doesn't match "raw_value_of_v",
+			 * it won't match truncated "raw_value_of_" strings too.
 			 */
 			unsigned plen = strlen(pattern);
 			/* Does it end with "*"? */
@@ -7248,7 +7248,7 @@ expandmeta(struct strlist *str /*, int flag*/)
 // Which means you need to unescape the string, right? Not so fast:
 // if there _is_ a file named "file\?" (with backslash), it is returned
 // as "file\?" too (whichever pattern you used to find it, say, "file*").
-// You DONT KNOW by looking at the result whether you need to unescape it.
+// You DON'T KNOW by looking at the result whether you need to unescape it.
 //
 // Worse, globbing of "file\?" in a directory with two files, "file?" and "file\?",
 // returns "file\?" - which is WRONG: "file\?" pattern matches "file?" file.
@@ -13088,7 +13088,7 @@ exportcmd(int argc UNUSED_PARAM, char **argv)
 	}
 	flag_off = ~flag_off;
 
-	/*if (opt_p_not_specified) - bash doesnt check this. Try "export -p NAME" */
+	/*if (opt_p_not_specified) - bash doesn't check this. Try "export -p NAME" */
 	{
 		aptr = argptr;
 		name = *aptr;

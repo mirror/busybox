@@ -683,7 +683,7 @@ prog
 -E
     no special environment. Do not set up TCP-related environment variables.
 -v
-    verbose. Print verbose messsages to standard output.
+    verbose. Print verbose messages to standard output.
 -vv
     more verbose. Print more verbose messages to standard output.
     * no difference between -v and -vv in busyboxed version

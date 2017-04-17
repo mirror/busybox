@@ -141,7 +141,7 @@ int renice_main(int argc UNUSED_PARAM, char **argv)
 		retval = EXIT_FAILURE;
 	}
 
-	/* No need to check for errors outputing to stderr since, if it
+	/* No need to check for errors outputting to stderr since, if it
 	 * was used, the HAD_ERROR label was reached and retval was set. */
 
 	return retval;

@@ -529,8 +529,8 @@ static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statb
 	/*
 	 * Check to see if we are dealing with a hard link.
 	 * If so -
-	 * Treat the first occurance of a given dev/inode as a file while
-	 * treating any additional occurances as hard links.  This is done
+	 * Treat the first occurrence of a given dev/inode as a file while
+	 * treating any additional occurrences as hard links.  This is done
 	 * by adding the file information to the HardLinkInfo linked list.
 	 */
 	tbInfo->hlInfo = NULL;

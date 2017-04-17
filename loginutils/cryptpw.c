@@ -64,7 +64,7 @@ OPTIONS
     $1$.
 -R, --rounds=NUMBER
     Use NUMBER rounds. This argument is ignored if the method
-    choosen does not support variable rounds. For the OpenBSD Blowfish
+    chosen does not support variable rounds. For the OpenBSD Blowfish
     method this is the logarithm of the number of rounds.
 -m, --method=TYPE
     Compute the password using the TYPE method. If TYPE is 'help'

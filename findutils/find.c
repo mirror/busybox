@@ -182,7 +182,7 @@
 //config:	default y
 //config:	depends on FIND
 //config:	help
-//config:	  If the file is a directory, dont descend into it. Useful for
+//config:	  If the file is a directory, don't descend into it. Useful for
 //config:	  exclusion .svn and CVS directories.
 //config:
 //config:config FEATURE_FIND_DELETE

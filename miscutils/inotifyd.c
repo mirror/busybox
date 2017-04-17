@@ -12,7 +12,7 @@
  * Use as follows:
  * # inotifyd /user/space/agent dir/or/file/being/watched[:mask] ...
  *
- * When a filesystem event matching the specified mask is occured on specified file (or directory)
+ * When a filesystem event matching the specified mask is occurred on specified file (or directory)
  * a userspace agent is spawned and given the following parameters:
  * $1. actual event(s)
  * $2. file (or directory) name

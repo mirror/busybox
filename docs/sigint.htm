@@ -45,7 +45,7 @@ intention.
 
 </td></tr><tr><th valign=top align=left>Required knowledge: </th>
 <td valign=top align=left>You have to know what it means to catch SIGINT or SIGQUIT and how
-processes are waiting for other processes (childs) they spawned.
+processes are waiting for other processes (children) they spawned.
 
 
 </td></tr></table>
@@ -366,7 +366,7 @@ signal, it has to take care of communicating the signal status
 itself.
 
 <p>Some programs don't do this. On SIGINT, they do cleanup and exit
-immediatly, but the calling shell isn't told about the non-normal exit
+immediately, but the calling shell isn't told about the non-normal exit
 and it will call the next program in the script.
 
 <p>As a result, the user hits SIGINT and while one program exits, the
@@ -446,7 +446,7 @@ handlers, so it is portable.
 <code>trap</code> command. Here, the same as for C programs apply.  If
 the intention of SIGINT is to end your program, you have to exit in a
 way that the calling programs "sees" that you have been killed.  If
-you don't catch SIGINT, this happend automatically, but of you catch
+you don't catch SIGINT, this happened automatically, but of you catch
 SIGINT, i.e. to do cleanup work, you have to end the program by
 killing yourself, not by calling exit.
 
@@ -466,7 +466,7 @@ files (which isn't really portable in C, though).
 bourne shell. Every language implementation that lets you catch SIGINT
 should also give you the option to reset the signal and kill yourself.
 
-<P>It is always desireable to exit the right way, even if you don't
+<P>It is always desirable to exit the right way, even if you don't
 expect your usual callers to depend on it, some unusual one will come
 along. This proper exit status will be needed for WCE and will not
 hurt when the calling shell uses IUE or WUE.
@@ -565,7 +565,7 @@ comments the scripts echo.
 <th>What happens when a shellscript called emacs, the user did not use
 <code>C-c</code> and the script has additional commands in it?</th>
 <th>What happens if a non-interactive child catches SIGINT?</th>
-<th>To behave properly, childs must do what?</th>
+<th>To behave properly, children must do what?</th>
 </tr>
 
 <tr valign=top align=left>

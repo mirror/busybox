@@ -183,7 +183,7 @@ So there's a step that needs to be sort of atomic but can't be as a shell
 script.  (You can work around this with static linking or very carefully laid
 out paths and sequencing, but it's brittle, ugly, and non-obvious.)
 
-2) The "find | rm" bit will acually delete everything because the mount points
+2) The "find | rm" bit will actually delete everything because the mount points
 still show up (even if their contents don't), and rm -rf will then happily zap
 that.  So the first line is an oversimplification of what you need to do _not_
 to descend into other filesystems and delete their contents.

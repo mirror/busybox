@@ -267,7 +267,7 @@ struct globals {
 /* flines[] are lines read from stdin, each in malloc'ed buffer.
  * Line numbers are stored as uint32_t prepended to each line.
  * Pointer is adjusted so that flines[i] points directly past
- * line number. Accesor: */
+ * line number. Accessor: */
 #define MEMPTR(p) ((char*)(p) - 4)
 #define LINENO(p) (*(uint32_t*)((p) - 4))
 

@@ -191,7 +191,7 @@ static void handle_accept(isrv_state_t *state, int fd)
 	DPRINTF("new_peer(%d)", newfd);
 	n = state->new_peer(state, newfd);
 	if (n)
-		remove_peer(state, n); /* unsuccesful peer start */
+		remove_peer(state, n); /* unsuccessful peer start */
 }
 
 static void handle_fd_set(isrv_state_t *state, fd_set *fds, int (*h)(int, void **))

@@ -18,7 +18,7 @@
  * known difference between busybox dpkg and the official dpkg that i don't
  * consider important, its worth keeping a note of differences anyway, just to
  * make it easier to maintain.
- *  - the first value for the confflile: field isnt placed on a new line.
+ *  - the first value for the confflile: field isn't placed on a new line.
  *  - when installing a package the status: field is placed at the end of the
  *      section, rather than just after the package: field.
  *
@@ -110,7 +110,7 @@ typedef struct common_node_s {
 	edge_t **edge;
 } common_node_t;
 
-/* Currently it doesnt store packages that have state-status of not-installed
+/* Currently it doesn't store packages that have state-status of not-installed
  * So it only really has to be the size of the maximum number of packages
  * likely to be installed at any one time, so there is a bit of leeway here */
 #define STATUS_HASH_PRIME 8191
@@ -205,7 +205,7 @@ static int search_name_hashtable(const char *key)
 	return probe_address;
 }
 
-/* this DOESNT add the key to the hashtable
+/* this DOESN'T add the key to the hashtable
  * TODO make it consistent with search_name_hashtable
  */
 static unsigned search_status_hashtable(const char *key)
@@ -467,7 +467,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 			version = strchr(field2, '(');
 			if (version == NULL) {
 				edge->operator = VER_ANY;
-				/* Get the versions hash number, adding it if the number isnt already in there */
+				/* Get the versions hash number, adding it if the number isn't already in there */
 				edge->version = search_name_hashtable("ANY");
 			} else {
 				/* Skip leading ' ' or '(' */
@@ -496,7 +496,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 
 				/* Truncate version at trailing ' ' or ')' */
 				version[strcspn(version, " )")] = '\0';
-				/* Get the versions hash number, adding it if the number isnt already in there */
+				/* Get the versions hash number, adding it if the number isn't already in there */
 				edge->version = search_name_hashtable(version);
 			}
 
@@ -562,7 +562,7 @@ static int read_package_field(const char *package_buffer, char **field_name, cha
 					offset_name_end = offset;
 					offset_value_start = next_offset;
 				}
-				/* TODO: Name might still have trailing spaces if ':' isnt
+				/* TODO: Name might still have trailing spaces if ':' isn't
 				 * immediately after name */
 				break;
 			case '\n':
@@ -776,7 +776,7 @@ static void index_status_file(const char *filename)
 		const unsigned package_num = fill_package_struct(control_buffer);
 		if (package_num != -1) {
 			status_node = xmalloc(sizeof(status_node_t));
-			/* fill_package_struct doesnt handle the status field */
+			/* fill_package_struct doesn't handle the status field */
 			status_line = strstr(control_buffer, "Status:");
 			if (status_line != NULL) {
 				status_line += 7;
@@ -850,7 +850,7 @@ static void write_status_file(deb_file_t **deb_file)
 		if (status_hashtable[status_num] != NULL) {
 			const char *status_from_hashtable = name_hashtable[status_hashtable[status_num]->status];
 			if (strcmp(status_from_file, status_from_hashtable) != 0) {
-				/* New status isnt exactly the same as old status */
+				/* New status isn't exactly the same as old status */
 				const int state_status = get_status(status_num, 3);
 				if ((strcmp("installed", name_hashtable[state_status]) == 0)
 				 || (strcmp("unpacked", name_hashtable[state_status]) == 0)
@@ -919,7 +919,7 @@ static void write_status_file(deb_file_t **deb_file)
 				}
 			}
 		}
-		/* If the package from the status file wasnt handle above, do it now*/
+		/* If the package from the status file wasn't handle above, do it now*/
 		if (!write_flag) {
 			fprintf(new_status_file, "%s\n\n", control_buffer);
 		}
@@ -946,7 +946,7 @@ static void write_status_file(deb_file_t **deb_file)
 		if (errno != ENOENT)
 			bb_error_msg_and_die("can't create backup status file");
 		/* Its ok if renaming the status file fails because status
-		 * file doesnt exist, maybe we are starting from scratch */
+		 * file doesn't exist, maybe we are starting from scratch */
 		bb_error_msg("no status file found, creating new one");
 	}
 
@@ -1061,7 +1061,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count
 	}
 
 
-	/* Check dependendcies */
+	/* Check dependentcies */
 	for (i = 0; i < PACKAGE_HASH_PRIME; i++) {
 		int status_num = 0;
 		int number_of_alternatives = 0;
@@ -1244,7 +1244,7 @@ static void run_package_script_or_die(const char *package_name, const char *scri
 
 	script_path = xasprintf("/var/lib/dpkg/info/%s.%s", package_name, script_type);
 
-	/* If the file doesnt exist is isnt fatal */
+	/* If the file doesn't exist it isn't fatal */
 	result = access(script_path, F_OK) ? EXIT_SUCCESS : system(script_path);
 	free(script_path);
 	if (result)
@@ -1839,7 +1839,7 @@ int dpkg_main(int argc UNUSED_PARAM, char **argv)
 				) {
 					status_node = xmalloc(sizeof(status_node_t));
 					status_node->package = deb_file[deb_count]->package;
-					/* reinstreq isnt changed to "ok" until the package control info
+					/* reinstreq isn't changed to "ok" until the package control info
 					 * is written to the status file*/
 					status_node->status = search_name_hashtable("install reinstreq not-installed");
 					status_hashtable[status_num] = status_node;

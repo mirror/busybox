@@ -167,7 +167,7 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
  * On x86, even though code does set hw clock within <1ms of exact
  * whole seconds, apparently hw clock (at least on some machines)
  * doesn't reset internal fractional seconds to 0,
- * making all this a pointless excercise.
+ * making all this a pointless exercise.
  */
 	/* If we see that we are N usec away from whole second,
 	 * we'll sleep for N-ADJ usecs. ADJ corrects for the fact

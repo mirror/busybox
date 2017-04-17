@@ -393,7 +393,7 @@ struct globals {
 	 * too big and we will step. I observed it with -6.
 	 *
 	 * OTOH, setting precision_sec far too small would result in futile
-	 * attempts to syncronize to an unachievable precision.
+	 * attempts to synchronize to an unachievable precision.
 	 *
 	 * -6 is 1/64 sec, -7 is 1/128 sec and so on.
 	 * -8 is 1/256 ~= 0.003906 (worked well for me --vda)
@@ -754,7 +754,7 @@ reset_peer_stats(peer_t *p, double offset)
 	bool small_ofs = fabs(offset) < STEP_THRESHOLD;
 
 	/* Used to set p->filter_datapoint[i].d_dispersion = MAXDISP
-	 * and clear reachable bits, but this proved to be too agressive:
+	 * and clear reachable bits, but this proved to be too aggressive:
 	 * after step (tested with suspending laptop for ~30 secs),
 	 * this caused all previous data to be considered invalid,
 	 * making us needing to collect full ~8 datapoints per peer
@@ -1715,7 +1715,7 @@ update_local_clock(peer_t *p)
 	 * It looks like Linux kernel's PLL is far too gentle in changing
 	 * tmx.freq in response to clock offset. Offset keeps growing
 	 * and eventually we fall back to smaller poll intervals.
-	 * We can make correction more agressive (about x2) by supplying
+	 * We can make correction more aggressive (about x2) by supplying
 	 * PLL time constant which is one less than the real one.
 	 * To be on a safe side, let's do it only if offset is significantly
 	 * larger than jitter.

@@ -169,7 +169,7 @@ static char* find_keyword(char *ptr, size_t len, const char *word)
 
 		/* search for the first char in word */
 		ptr = memchr(ptr, word[0], len);
-		if (ptr == NULL) /* no occurance left, done */
+		if (ptr == NULL) /* no occurrence left, done */
 			break;
 		after_word = is_prefixed_with(ptr, word);
 		if (after_word)
@@ -411,7 +411,7 @@ static FAST_FUNC int fileAction(const char *pathname,
 		if (load_module(pathname, module_load_options) == 0) {
 			/* Load was successful, there is nothing else to do.
 			 * This can happen ONLY for "top-level" module load,
-			 * not a dep, because deps dont do dirscan. */
+			 * not a dep, because deps don't do dirscan. */
 			exit(EXIT_SUCCESS);
 		}
 	}

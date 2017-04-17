@@ -29,7 +29,7 @@ pwd=`$pwd`
 testing "readlink -f on a file" "readlink -f ./$TESTFILE" "$pwd/$TESTFILE\n" "" ""
 testing "readlink -f on a link" "readlink -f ./$TESTLINK" "$pwd/$TESTFILE\n" "" ""
 testing "readlink -f on an invalid link" "readlink -f ./$FAILLINK" "" "" ""
-testing "readlink -f on a wierd dir" "readlink -f $TESTDIR/../$TESTFILE" "$pwd/$TESTFILE\n" "" ""
+testing "readlink -f on a weird dir" "readlink -f $TESTDIR/../$TESTFILE" "$pwd/$TESTFILE\n" "" ""
 
 
 # clean up

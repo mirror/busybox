@@ -1908,7 +1908,7 @@ static int check_and_run_traps(void)
 			G.count_SIGCHLD++;
 //bb_error_msg("[%d] check_and_run_traps: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
 			/* Note:
-			 * We dont do 'last_sig = sig' here -> NOT returning this sig.
+			 * We don't do 'last_sig = sig' here -> NOT returning this sig.
 			 * This simplifies wait builtin a bit.
 			 */
 			break;
@@ -1917,7 +1917,7 @@ static int check_and_run_traps(void)
 			debug_printf_exec("%s: sig:%d default handling is to ignore\n", __func__, sig);
 			/* SIGTERM, SIGQUIT, SIGTTIN, SIGTTOU, SIGTSTP */
 			/* Note:
-			 * We dont do 'last_sig = sig' here -> NOT returning this sig.
+			 * We don't do 'last_sig = sig' here -> NOT returning this sig.
 			 * Example: wait is not interrupted by TERM
 			 * in interactive shell, because TERM is ignored.
 			 */
@@ -2280,7 +2280,7 @@ static void reinit_unicode_for_hush(void)
  *	AT\
  *	H\
  *	\
- * It excercises a lot of corner cases.
+ * It exercises a lot of corner cases.
  */
 static void cmdedit_update_prompt(void)
 {
@@ -5235,7 +5235,7 @@ static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len
 			/* And now we want to add { or } and continue:
 			 *  o_addchr(o, c);
 			 *  continue;
-			 * luckily, just falling throught achieves this.
+			 * luckily, just falling through achieves this.
 			 */
 		}
 #endif
@@ -5830,7 +5830,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			arg++;
 			/* Can't just stuff it into output o_string,
 			 * expanded result may need to be globbed
-			 * and $IFS-splitted */
+			 * and $IFS-split */
 			debug_printf_subst("SUBST '%s' first_ch %x\n", arg, first_ch);
 			G.last_exitcode = process_command_subs(&subst_result, arg);
 			debug_printf_subst("SUBST RES:%d '%s'\n", G.last_exitcode, subst_result.data);
@@ -7320,7 +7320,7 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 			/* There are still running processes in the fg_pipe */
 			return -1;
 		}
-		/* It wasnt in fg_pipe, look for process in bg pipes */
+		/* It wasn't in fg_pipe, look for process in bg pipes */
 	}
 
 #if ENABLE_HUSH_JOB

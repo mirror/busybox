@@ -137,7 +137,7 @@ anchor:
 	if (type != 2) /* TAG_ID_AVDP */
 		goto found;
 
-	/* get desriptor list address and block count */
+	/* get descriptor list address and block count */
 	count = le32_to_cpu(vd->type.anchor.length) / bs;
 	loc = le32_to_cpu(vd->type.anchor.location);
 	dbg("0x%x descriptors starting at logical secor 0x%x", count, loc);

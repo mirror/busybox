@@ -308,7 +308,7 @@ static int get_next_block(bunzip_data *bd)
 		base = hufGroup->base - 1;
 		limit = hufGroup->limit - 1;
 
-		/* Calculate permute[].  Concurently, initialize temp[] and limit[]. */
+		/* Calculate permute[].  Concurrently, initialize temp[] and limit[]. */
 		pp = 0;
 		for (i = minLen; i <= maxLen; i++) {
 			int k;

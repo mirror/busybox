@@ -1460,7 +1460,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					already_waited_sec += (unsigned)monotonic_sec() - timestamp_before_wait;
 					continue;
 				}
-				/* Else: an error occured, panic! */
+				/* Else: an error occurred, panic! */
 				bb_perror_msg_and_die("select");
 			}
 		}

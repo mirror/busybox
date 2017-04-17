@@ -55,7 +55,7 @@
  *
  *    - 2003/03/18 - Tsippy Mendelson <tsippy.mendelson at intel dot com> and
  *                   Shmulik Hen <shmulik.hen at intel dot com>
- *       - Moved setting the slave's mac address and openning it, from
+ *       - Moved setting the slave's mac address and opening it, from
  *         the application to the driver. This enables support of modes
  *         that need to use the unique mac address of each slave.
  *         The driver also takes care of closing the slave and restoring its
