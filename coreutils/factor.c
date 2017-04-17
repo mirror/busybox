@@ -201,7 +201,7 @@ int factor_main(int argc UNUSED_PARAM, char **argv)
 				if (!numstr[0])
 					break;
 				end = skip_non_whitespace(numstr);
-				if (*end != '\0');
+				if (*end != '\0')
 					*end++ = '\0';
 				factorize_numstr(numstr);
 				numstr = end;
