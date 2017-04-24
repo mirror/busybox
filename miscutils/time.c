@@ -21,10 +21,11 @@
 //kbuild:lib-$(CONFIG_TIME) += time.o
 
 //usage:#define time_trivial_usage
-//usage:       "[-v] PROG ARGS"
+//usage:       "[-vp] PROG ARGS"
 //usage:#define time_full_usage "\n\n"
 //usage:       "Run PROG, display resource usage when it exits\n"
 //usage:     "\n	-v	Verbose"
+//usage:     "\n	-p	POSIX output format"
 
 #include "libbb.h"
 #include <sys/resource.h> /* getrusage */
