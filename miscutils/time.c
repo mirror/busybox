@@ -26,6 +26,7 @@
 //usage:       "Run PROG, display resource usage when it exits\n"
 //usage:     "\n	-v	Verbose"
 //usage:     "\n	-p	POSIX output format"
+//usage:     "\n	-f FMT	Custom format"
 //usage:     "\n	-o FILE	Write result to FILE"
 //usage:     "\n	-a	Append (else overwrite)"
 
@@ -415,7 +416,8 @@ int time_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int time_main(int argc UNUSED_PARAM, char **argv)
 {
 	resource_t res;
-	const char *output_format = default_format;
+	/* $TIME has lowest prio (-v,-p,-f FMT overrride it) */
+	const char *output_format = getenv("TIME") ? : default_format;
 	char *output_filename;
 	int output_fd;
 	int opt;
@@ -425,11 +427,12 @@ int time_main(int argc UNUSED_PARAM, char **argv)
 		OPT_p = (1 << 1),
 		OPT_a = (1 << 2),
 		OPT_o = (1 << 3),
+		OPT_f = (1 << 4),
 	};
 
 	opt_complementary = "-1"; /* at least one arg */
 	/* "+": stop on first non-option */
-	opt = getopt32(argv, "+vpao:", &output_filename);
+	opt = getopt32(argv, "+vpao:f:", &output_filename, &output_format);
 	argv += optind;
 	if (opt & OPT_v)
 		output_format = long_format;
