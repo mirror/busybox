@@ -2816,8 +2816,15 @@ static int readit(void) // read (maybe cursor) key from stdin
 	int c;
 
 	fflush_all();
-	c = read_key(STDIN_FILENO, readbuffer, /*timeout off:*/ -2);
+
+	// Wait for input. TIMEOUT = -1 makes read_key wait even
+	// on nonblocking stdin.
+	// Note: read_key sets errno to 0 on success.
+ again:
+	c = read_key(STDIN_FILENO, readbuffer, /*timeout:*/ -1);
 	if (c == -1) { // EOF/error
+		if (errno == EAGAIN) // paranoia
+			goto again;
 		go_bottom_and_clear_to_eol();
 		cookmode(); // terminal to "cooked"
 		bb_error_msg_and_die("can't read user input");
