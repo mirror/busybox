@@ -54,7 +54,9 @@ static const char udhcpc6_longopts[] ALIGN1 =
 	"request-option\0" Required_argument "O"
 	"no-default-options\0" No_argument   "o"
 	"foreground\0"     No_argument       "f"
+	USE_FOR_MMU(
 	"background\0"     No_argument       "b"
+	)
 ///	IF_FEATURE_UDHCPC_ARPING("arping\0"	No_argument       "a")
 	IF_FEATURE_UDHCP_PORT("client-port\0"	Required_argument "P")
 	;
