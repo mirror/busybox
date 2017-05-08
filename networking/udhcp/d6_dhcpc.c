@@ -1072,6 +1072,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		/* now it looks similar to udhcpd's config file line:
 		 * "optname optval", using the common routine: */
 		udhcp_str2optset(optstr, &client_config.options);
+		if (colon)
+			*colon = ':'; /* restore it for NOMMU reexec */
 	}
 
 	if (d6_read_interface(client_config.interface,
