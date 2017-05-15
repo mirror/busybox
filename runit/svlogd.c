@@ -137,9 +137,9 @@ log message, you can use a pattern like this instead
 //kbuild:lib-$(CONFIG_SVLOGD) += svlogd.o
 
 //usage:#define svlogd_trivial_usage
-//usage:       "[-ttv] [-r C] [-R CHARS] [-l MATCHLEN] [-b BUFLEN] DIR..."
+//usage:       "[-tttv] [-r C] [-R CHARS] [-l MATCHLEN] [-b BUFLEN] DIR..."
 //usage:#define svlogd_full_usage "\n\n"
-//usage:       "Continuously read log data from stdin and write to rotated log files in DIRs"
+//usage:       "Read log data from stdin and write to rotated log files in DIRs"
 //usage:   "\n"
 //usage:   "\n""DIR/config file modifies behavior:"
 //usage:   "\n""sSIZE - when to rotate logs"
@@ -339,17 +339,18 @@ static unsigned pmatch(const char *p, const char *s, unsigned len)
 /*** ex fmt_ptime.[ch] ***/
 
 /* NUL terminated */
-static void fmt_time_human_30nul(char *s)
+static void fmt_time_human_30nul(char *s, char dt_delim)
 {
 	struct tm *ptm;
 	struct timeval tv;
 
 	gettimeofday(&tv, NULL);
 	ptm = gmtime(&tv.tv_sec);
-	sprintf(s, "%04u-%02u-%02u_%02u:%02u:%02u.%06u000",
+	sprintf(s, "%04u-%02u-%02u%c%02u:%02u:%02u.%06u000",
 		(unsigned)(1900 + ptm->tm_year),
 		(unsigned)(ptm->tm_mon + 1),
 		(unsigned)(ptm->tm_mday),
+		dt_delim,
 		(unsigned)(ptm->tm_hour),
 		(unsigned)(ptm->tm_min),
 		(unsigned)(ptm->tm_sec),
@@ -1160,8 +1161,8 @@ int svlogd_main(int argc, char **argv)
 		if (timestamp) {
 			if (timestamp == 1)
 				fmt_time_bernstein_25(stamp);
-			else /* 2: */
-				fmt_time_human_30nul(stamp);
+			else /* 2+: */
+				fmt_time_human_30nul(stamp, timestamp == 2 ? '_' : 'T');
 			printlen += 26;
 			printptr -= 26;
 			memcpy(printptr, stamp, 25);
