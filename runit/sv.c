@@ -25,7 +25,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* Taken from http://smarden.sunsite.dk/runit/sv.8.html:
+/* Taken from http://smarden.org/runit/sv.8.html:
 
 sv - control and manage services monitored by runsv
 
@@ -36,17 +36,13 @@ The sv program reports the current status and controls the state of services
 monitored by the runsv(8) supervisor.
 
 services consists of one or more arguments, each argument naming a directory
-service used by runsv(8). If service doesn't start with a dot or slash,
-it is searched in the default services directory /var/service/, otherwise
-relative to the current directory.
+service used by runsv(8). If service doesn't start with a dot or slash and
+doesn't end with a slash, it is searched in the default services directory
+/var/service/, otherwise relative to the current directory.
 
 command is one of up, down, status, once, pause, cont, hup, alarm, interrupt,
-1, 2, term, kill, or exit, or start, stop, restart, shutdown, force-stop,
-force-reload, force-restart, force-shutdown.
-
-The sv program can be sym-linked to /etc/init.d/ to provide an LSB init
-script interface. The service to be controlled then is specified by the
-base name of the "init script".
+1, 2, term, kill, or exit, or start, stop, reload, restart, shutdown,
+force-stop, force-reload, force-restart, force-shutdown, try-restart.
 
 status
     Report the current status of the service, and the appendant log service
@@ -66,9 +62,9 @@ exit
     If the service is running, send it the TERM signal, and the CONT signal.
     Do not restart the service. If the service is down, and no log service
     exists, runsv(8) exits. If the service is down and a log service exists,
-    send the TERM signal to the log service. If the log service is down,
-    runsv(8) exits. This command is ignored if it is given to an appendant
-    log service.
+    runsv(8) closes the standard input of the log service and waits for it to
+    terminate. If the log service is down, runsv(8) exits. This command is
+    ignored if it is given to an appendant log service.
 
 sv actually looks only at the first character of above commands.
 
@@ -85,6 +81,8 @@ start
 stop
     Same as down, but wait up to 7 seconds for the service to become down.
     Then report the status or timeout.
+reload
+    Same as hup, and additionally report the status afterwards.
 restart
     Send the commands term, cont, and up to the service, and wait up to
     7 seconds for the service to restart. Then report the status or timeout.
@@ -112,6 +110,9 @@ force-shutdown
     Same as exit, but wait up to 7 seconds for the runsv(8) process to
     terminate. Then report the status, and on timeout send the service
     the kill command.
+try-restart
+    if the service is running, send it the term and cont commands, and wait up to
+    7 seconds for the service to restart. Then report the status or timeout.
 
 Additional Commands
 
@@ -126,8 +127,8 @@ check
 Options
 
 -v
-    wait up to 7 seconds for the command to take effect.
-    Then report the status or timeout.
+    If the command is up, down, term, once, cont, or exit, then wait up to 7
+    seconds for the command to take effect. Then report the status or timeout.
 -w sec
     Override the default timeout of 7 seconds with sec seconds. Implies -v.
 
@@ -192,6 +193,7 @@ struct globals {
 /* "Bernstein" time format: unix + 0x400000000000000aULL */
 	uint64_t tstart, tnow;
 	svstatus_t svstatus;
+	unsigned islog;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define acts         (G.acts        )
@@ -200,6 +202,7 @@ struct globals {
 #define tstart       (G.tstart      )
 #define tnow         (G.tnow        )
 #define svstatus     (G.svstatus    )
+#define islog        (G.islog       )
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 
@@ -215,7 +218,7 @@ static void fatal_cannot(const char *m1)
 
 static void out(const char *p, const char *m1)
 {
-	printf("%s%s: %s", p, *service, m1);
+	printf("%s%s%s: %s", p, *service, islog ? "/log" : "", m1);
 	if (errno) {
 		printf(": %s", strerror(errno));
 	}
@@ -300,15 +303,14 @@ static unsigned svstatus_print(const char *m)
 	}
 	pid = SWAP_LE32(svstatus.pid_le32);
 	timestamp = SWAP_BE64(svstatus.time_be64);
-	if (pid) {
-		switch (svstatus.run_or_finish) {
+	switch (svstatus.run_or_finish) {
+		case 0: printf("down: "); break;
 		case 1: printf("run: "); break;
 		case 2: printf("finish: "); break;
-		}
-		printf("%s: (pid %d) ", m, pid);
-	} else {
-		printf("down: %s: ", m);
 	}
+	printf("%s: ", m);
+	if (svstatus.run_or_finish)
+		printf("(pid %d) ", pid);
 	diff = tnow - timestamp;
 	printf("%us", (diff < 0 ? 0 : diff));
 	if (pid) {
@@ -331,16 +333,21 @@ static int status(const char *unused UNUSED_PARAM)
 		return 0;
 
 	r = svstatus_print(*service);
+	islog = 1;
 	if (chdir("log") == -1) {
 		if (errno != ENOENT) {
-			printf("; log: "WARN"can't change to log service directory: %s",
-					strerror(errno));
-		}
-	} else if (svstatus_get()) {
+			printf("; ");
+			warn("can't change directory");
+		} else
+			bb_putchar('\n');
+	} else {
 		printf("; ");
-		svstatus_print("log");
+		if (svstatus_get()) {
+			r = svstatus_print("log");
+			bb_putchar('\n');
+		}
 	}
-	bb_putchar('\n'); /* will also flush the output */
+	islog = 0;
 	return r;
 }
 
@@ -379,35 +386,53 @@ static int check(const char *a)
 	r = svstatus_get();
 	if (r == -1)
 		return -1;
-	if (r == 0) {
-		if (*a == 'x')
-			return 1;
-		return -1;
-	}
-	pid_le32 = svstatus.pid_le32;
-	switch (*a) {
-	case 'x':
-		return 0;
-	case 'u':
-		if (!pid_le32 || svstatus.run_or_finish != 1) return 0;
-		if (!checkscript()) return 0;
-		break;
-	case 'd':
-		if (pid_le32) return 0;
-		break;
-	case 'c':
-		if (pid_le32 && !checkscript()) return 0;
-		break;
-	case 't':
-		if (!pid_le32 && svstatus.want == 'd') break;
-		timestamp = SWAP_BE64(svstatus.time_be64);
-		if ((tstart > timestamp) || !pid_le32 || svstatus.got_term || !checkscript())
+	while (*a) {
+		if (r == 0) {
+			if (*a == 'x')
+				return 1;
+			return -1;
+		}
+		pid_le32 = svstatus.pid_le32;
+		switch (*a) {
+		case 'x':
 			return 0;
-		break;
-	case 'o':
-		timestamp = SWAP_BE64(svstatus.time_be64);
-		if ((!pid_le32 && tstart > timestamp) || (pid_le32 && svstatus.want != 'd'))
-			return 0;
+		case 'u':
+			if (!pid_le32 || svstatus.run_or_finish != 1)
+				return 0;
+			if (!checkscript())
+				return 0;
+			break;
+		case 'd':
+			if (pid_le32 || svstatus.run_or_finish != 0)
+				return 0;
+			break;
+		case 'C':
+			if (pid_le32 && !checkscript())
+				return 0;
+			break;
+		case 't':
+		case 'k':
+			if (!pid_le32 && svstatus.want == 'd')
+				break;
+			timestamp = SWAP_BE64(svstatus.time_be64);
+			if ((tstart > timestamp) || !pid_le32 || svstatus.got_term || !checkscript())
+				return 0;
+			break;
+		case 'o':
+			timestamp = SWAP_BE64(svstatus.time_be64);
+			if ((!pid_le32 && tstart > timestamp) || (pid_le32 && svstatus.want != 'd'))
+				return 0;
+			break;
+		case 'p':
+			if (pid_le32 && !svstatus.paused)
+				return 0;
+			break;
+		case 'c':
+			if (pid_le32 && svstatus.paused)
+				return 0;
+			break;
+		}
+		++a;
 	}
 	printf(OK);
 	svstatus_print(*service);
@@ -419,14 +444,10 @@ static int control(const char *a)
 {
 	int fd, r, l;
 
-/* Is it an optimization?
-   It causes problems with "sv o SRV; ...; sv d SRV"
-   ('d' is not passed to SRV because its .want == 'd'):
 	if (svstatus_get() <= 0)
 		return -1;
-	if (svstatus.want == *a)
+	if (svstatus.want == *a && (*a != 'd' || svstatus.got_term == 1))
 		return 0;
-*/
 	fd = open("supervise/control", O_WRONLY|O_NDELAY);
 	if (fd == -1) {
 		if (errno != ENODEV)
@@ -516,17 +537,23 @@ static int sv(char **argv)
 		acts = "tc";
 		kll = 1;
 		break;
+	case 't':
+		if (str_equal(action, "try-restart")) {
+			acts = "tc";
+			break;
+		}
 	case 'c':
 		if (str_equal(action, "check")) {
 			act = NULL;
-			acts = "c";
+			acts = "C";
 			break;
 		}
-	case 'u': case 'd': case 'o': case 't': case 'p': case 'h':
+	case 'u': case 'd': case 'o': case 'p': case 'h':
 	case 'a': case 'i': case 'k': case 'q': case '1': case '2':
 		action[1] = '\0';
 		acts = action;
-		if (!verbose) cbk = NULL;
+		if (!verbose)
+			cbk = NULL;
 		break;
 	case 's':
 		if (str_equal(action, "shutdown")) {
@@ -548,6 +575,10 @@ static int sv(char **argv)
 	case 'r':
 		if (str_equal(action, "restart")) {
 			acts = "tcu";
+			break;
+		}
+		if (str_equal(action, "reload")) {
+			acts = "h";
 			break;
 		}
 		bb_show_usage();
@@ -578,7 +609,9 @@ static int sv(char **argv)
 
 	service = argv;
 	while ((x = *service) != NULL) {
-		if (x[0] != '/' && x[0] != '.') {
+		if (x[0] != '/' && x[0] != '.'
+		 && x[0] != '\0' && x[strlen(x) - 1] != '/'
+		) {
 			if (chdir(varservice) == -1)
 				goto chdir_failed_0;
 		}
