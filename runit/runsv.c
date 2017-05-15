@@ -134,9 +134,13 @@ static void fatal2x_cannot(const char *m1, const char *m2)
 	bb_error_msg_and_die("%s: fatal: can't %s%s", dir, m1, m2);
 	/* was exiting 111 */
 }
+static void warn2_cannot(const char *m1, const char *m2)
+{
+	bb_perror_msg("%s: warning: can't %s%s", dir, m1, m2);
+}
 static void warn_cannot(const char *m)
 {
-	bb_perror_msg("%s: warning: cannot %s", dir, m);
+	warn2_cannot(m, "");
 }
 
 static void s_child(int sig_no UNUSED_PARAM)
@@ -165,10 +169,25 @@ static void update_status(struct svdir *s)
 	ssize_t sz;
 	int fd;
 	svstatus_t status;
+	const char *fstatus ="log/supervise/status";
+	const char *fstatusnew ="log/supervise/status.new";
+	const char *f_stat ="log/supervise/stat";
+	const char *fstatnew ="log/supervise/stat.new";
+	const char *fpid ="log/supervise/pid";
+	const char *fpidnew ="log/supervise/pid.new";
+
+	if (!s->islog) {
+		fstatus += 4;
+		fstatusnew += 4;
+		f_stat += 4;
+		fstatnew += 4;
+		fpid += 4;
+		fpidnew += 4;
+	}
 
 	/* pid */
 	if (pidchanged) {
-		fd = open_trunc_or_warn("supervise/pid.new");
+		fd = open_trunc_or_warn(fpidnew);
 		if (fd < 0)
 			return;
 		if (s->pid) {
@@ -177,14 +196,13 @@ static void update_status(struct svdir *s)
 			write(fd, spid, size);
 		}
 		close(fd);
-		if (rename_or_warn("supervise/pid.new",
-				s->islog ? "log/supervise/pid" : "log/supervise/pid"+4))
+		if (rename_or_warn(fpidnew, fpid))
 			return;
 		pidchanged = 0;
 	}
 
 	/* stat */
-	fd = open_trunc_or_warn("supervise/stat.new");
+	fd = open_trunc_or_warn(fstatnew);
 	if (fd < -1)
 		return;
 
@@ -220,8 +238,7 @@ static void update_status(struct svdir *s)
 		close(fd);
 	}
 
-	rename_or_warn("supervise/stat.new",
-		s->islog ? "log/supervise/stat" : "log/supervise/stat"+4);
+	rename_or_warn(fstatnew, f_stat);
 
 	/* supervise compatibility */
 	memset(&status, 0, sizeof(status));
@@ -237,18 +254,17 @@ static void update_status(struct svdir *s)
 	if (s->ctrl & C_TERM)
 		status.got_term = 1;
 	status.run_or_finish = s->state;
-	fd = open_trunc_or_warn("supervise/status.new");
+	fd = open_trunc_or_warn(fstatusnew);
 	if (fd < 0)
 		return;
 	sz = write(fd, &status, sizeof(status));
 	close(fd);
 	if (sz != sizeof(status)) {
-		warn_cannot("write supervise/status.new");
-		unlink("supervise/status.new");
+		warn2_cannot("write ", fstatusnew);
+		unlink(fstatusnew);
 		return;
 	}
-	rename_or_warn("supervise/status.new",
-		s->islog ? "log/supervise/status" : "log/supervise/status"+4);
+	rename_or_warn(fstatusnew, fstatus);
 }
 
 static unsigned custom(struct svdir *s, char c)
@@ -266,26 +282,26 @@ static unsigned custom(struct svdir *s, char c)
 		if (st.st_mode & S_IXUSR) {
 			pid = vfork();
 			if (pid == -1) {
-				warn_cannot("vfork for control/?");
+				warn2_cannot("vfork for ", a);
 				return 0;
 			}
 			if (pid == 0) {
 				/* child */
 				if (haslog && dup2(logpipe.wr, 1) == -1)
-					warn_cannot("setup stdout for control/?");
+					warn2_cannot("setup stdout for ", a);
 				execl(a, a, (char *) NULL);
-				fatal_cannot("run control/?");
+				fatal2_cannot("run ", a);
 			}
 			/* parent */
 			if (safe_waitpid(pid, &w, 0) == -1) {
-				warn_cannot("wait for child control/?");
+				warn2_cannot("wait for child ", a);
 				return 0;
 			}
 			return WEXITSTATUS(w) == 0;
 		}
 	} else {
 		if (errno != ENOENT)
-			warn_cannot("stat control/?");
+			warn2_cannot("stat ", a);
 	}
 	return 0;
 }
@@ -387,13 +403,13 @@ static int ctrl(struct svdir *s, char c)
 	case 'd': /* down */
 		s->sd_want = W_DOWN;
 		update_status(s);
-		if (s->pid && s->state != S_FINISH)
+		if (s->state == S_RUN)
 			stopservice(s);
 		break;
 	case 'u': /* up */
 		s->sd_want = W_UP;
 		update_status(s);
-		if (s->pid == 0)
+		if (s->state == S_DOWN)
 			startservice(s);
 		break;
 	case 'x': /* exit */
@@ -403,22 +419,22 @@ static int ctrl(struct svdir *s, char c)
 		update_status(s);
 		/* FALLTHROUGH */
 	case 't': /* sig term */
-		if (s->pid && s->state != S_FINISH)
+		if (s->state == S_RUN)
 			stopservice(s);
 		break;
 	case 'k': /* sig kill */
-		if (s->pid && !custom(s, c))
+		if ((s->state == S_RUN) && !custom(s, c))
 			kill(s->pid, SIGKILL);
 		s->state = S_DOWN;
 		break;
 	case 'p': /* sig pause */
-		if (s->pid && !custom(s, c))
+		if ((s->state == S_RUN) && !custom(s, c))
 			kill(s->pid, SIGSTOP);
 		s->ctrl |= C_PAUSE;
 		update_status(s);
 		break;
 	case 'c': /* sig cont */
-		if (s->pid && !custom(s, c))
+		if ((s->state == S_RUN) && !custom(s, c))
 			kill(s->pid, SIGCONT);
 		s->ctrl &= ~C_PAUSE;
 		update_status(s);
@@ -426,7 +442,7 @@ static int ctrl(struct svdir *s, char c)
 	case 'o': /* once */
 		s->sd_want = W_DOWN;
 		update_status(s);
-		if (!s->pid)
+		if (s->state == S_DOWN)
 			startservice(s);
 		break;
 	case 'a': /* sig alarm */
@@ -450,9 +466,24 @@ static int ctrl(struct svdir *s, char c)
 	}
 	return 1;
  sendsig:
-	if (s->pid && !custom(s, c))
+	if ((s->state == S_RUN) && !custom(s, c))
 		kill(s->pid, sig);
 	return 1;
+}
+
+static void open_control(const char *f, struct svdir *s)
+{
+	struct stat st;
+	mkfifo(f, 0600);
+	if (stat(f, &st) == -1)
+		fatal2_cannot("stat ", f);
+	if (!S_ISFIFO(st.st_mode))
+		bb_error_msg_and_die("%s: fatal: %s exists but is not a fifo", dir, f);
+	s->fdcontrol = xopen(f, O_RDONLY|O_NDELAY);
+	close_on_exec_on(s->fdcontrol);
+	s->fdcontrolwrite = xopen(f, O_WRONLY|O_NDELAY);
+	close_on_exec_on(s->fdcontrolwrite);
+	update_status(s);
 }
 
 int runsv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -554,19 +585,9 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 		close_on_exec_on(svd[1].fdlock);
 	}
 
-	mkfifo("log/supervise/control"+4, 0600);
-	svd[0].fdcontrol = xopen("log/supervise/control"+4, O_RDONLY|O_NDELAY);
-	close_on_exec_on(svd[0].fdcontrol);
-	svd[0].fdcontrolwrite = xopen("log/supervise/control"+4, O_WRONLY|O_NDELAY);
-	close_on_exec_on(svd[0].fdcontrolwrite);
-	update_status(&svd[0]);
+	open_control("log/supervise/control"+4, &svd[0]);
 	if (haslog) {
-		mkfifo("log/supervise/control", 0600);
-		svd[1].fdcontrol = xopen("log/supervise/control", O_RDONLY|O_NDELAY);
-		close_on_exec_on(svd[1].fdcontrol);
-		svd[1].fdcontrolwrite = xopen("log/supervise/control", O_WRONLY|O_NDELAY);
-		close_on_exec_on(svd[1].fdcontrolwrite);
-		update_status(&svd[1]);
+		open_control("log/supervise/control", &svd[1]);
 	}
 	mkfifo("log/supervise/ok"+4, 0600);
 	fd = xopen("log/supervise/ok"+4, O_RDONLY|O_NDELAY);
