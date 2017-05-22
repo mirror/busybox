@@ -204,15 +204,17 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 		c = buffer[bufpos];
 		if (c == '\0')
 			continue;
-		if (backslash) {
-			backslash = 0;
-			if (c != '\n')
-				goto put;
-			continue;
-		}
-		if (!(read_flags & BUILTIN_READ_RAW) && c == '\\') {
-			backslash = 1;
-			continue;
+		if (!(read_flags & BUILTIN_READ_RAW)) {
+			if (backslash) {
+				backslash = 0;
+				if (c != '\n')
+					goto put;
+				continue;
+			}
+			if (c == '\\') {
+				backslash = 1;
+				continue;
+			}
 		}
 		if (c == '\n')
 			break;

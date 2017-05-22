@@ -9038,6 +9038,9 @@ static int FAST_FUNC builtin_type(char **argv)
  * - terminates shell (regardless of interactivity);
  * if it has non-empty trap:
  * - executes trap and returns to read;
+ * SIGCHLD from children:
+ * - does not interrupt read regardless of interactivity:
+ *   try: sleep 1 & read x; echo $x
  */
 static int FAST_FUNC builtin_read(char **argv)
 {
@@ -9071,7 +9074,7 @@ static int FAST_FUNC builtin_read(char **argv)
 
 	if ((uintptr_t)r == 1 && errno == EINTR) {
 		unsigned sig = check_and_run_traps();
-		if (sig && sig != SIGINT)
+		if (sig != SIGINT)
 			goto again;
 	}
 

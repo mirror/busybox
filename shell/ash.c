@@ -13268,6 +13268,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	/* "read -s" needs to save/restore termios, can't allow ^C
 	 * to jump out of it.
 	 */
+ again:
 	INT_OFF;
 	r = shell_builtin_read(setvar0,
 		argptr,
@@ -13279,6 +13280,12 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		opt_u
 	);
 	INT_ON;
+
+	if ((uintptr_t)r == 1 && errno == EINTR) {
+		/* to get SIGCHLD: sleep 1 & read x; echo $x */
+		if (pending_sig == 0)
+			goto again;
+	}
 
 	if ((uintptr_t)r > 1)
 		ash_msg_and_raise_error(r);
