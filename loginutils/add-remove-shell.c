@@ -43,10 +43,7 @@
 #define REMOVE_SHELL (ENABLE_REMOVE_SHELL && (!ENABLE_ADD_SHELL || applet_name[0] == 'r'))
 #define ADD_SHELL    (ENABLE_ADD_SHELL && (!ENABLE_REMOVE_SHELL || applet_name[0] == 'a'))
 
-/* NB: we use the _address_, not the value, of this string
- * as a "special value of pointer" in the code.
- */
-static const char dont_add[] ALIGN1 = "\n";
+#define dont_add ((char*)(uintptr_t)1)
 
 int add_remove_shell_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
@@ -54,6 +51,9 @@ int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
 	FILE *orig_fp;
 	char *orig_fn;
 	char *new_fn;
+	struct stat sb;
+
+	sb.st_mode = 0666;
 
 	argv++;
 
@@ -61,6 +61,8 @@ int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
 	if (!orig_fn)
 		return EXIT_FAILURE;
 	orig_fp = fopen_for_read(orig_fn);
+	if (orig_fp)
+		xfstat(fileno(orig_fp), &sb, orig_fn);
 
 	new_fn = xasprintf("%s.tmp", orig_fn);
 	/*
@@ -71,13 +73,9 @@ int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
 	 * after which it should revert to O_TRUNC.
 	 * For now, I settle for O_TRUNC instead.
 	 */
-	xmove_fd(xopen(new_fn, O_WRONLY | O_CREAT | O_TRUNC), STDOUT_FILENO);
-
-	/* TODO:
-	struct stat sb;
-	xfstat(fileno(orig_fp), &sb);
+	xmove_fd(xopen3(new_fn, O_WRONLY | O_CREAT | O_TRUNC, sb.st_mode), STDOUT_FILENO);
+	/* TODO?
 	xfchown(STDOUT_FILENO, sb.st_uid, sb.st_gid);
-	xfchmod(STDOUT_FILENO, sb.st_mode);
 	*/
 
 	if (orig_fp) {
@@ -95,7 +93,7 @@ int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
 					}
 					/* we are add-shell */
 					/* mark this name as "do not add" */
-					*cpp = (char*)dont_add;
+					*cpp = dont_add;
 				}
 				cpp++;
 			}
