@@ -1067,16 +1067,18 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	 * 'auto', 'tty', 'if-tty'
 	 * (and substrings: "--color=alwa" work too)
 	 */
-	static const char ls_longopts[] ALIGN1 =
-		"full-time\0" No_argument "\xff"
-		"group-directories-first\0" No_argument "\xfe"
-		"color\0" Optional_argument "\xfd"
-	;
 	static const char color_str[] ALIGN1 =
 		"always\0""yes\0""force\0"
 		"auto\0""tty\0""if-tty\0";
 	/* need to initialize since --color has _an optional_ argument */
 	const char *color_opt = color_str; /* "always" */
+#endif
+#if ENABLE_LONG_OPTS
+	static const char ls_longopts[] ALIGN1 =
+		"full-time\0" No_argument "\xff"
+		"group-directories-first\0" No_argument "\xfe"
+		"color\0" Optional_argument "\xfd"
+	;
 #endif
 
 	INIT_G();
@@ -1091,7 +1093,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* process options */
-	IF_FEATURE_LS_COLOR(applet_long_options = ls_longopts;)
+	IF_LONG_OPTS(applet_long_options = ls_longopts;)
 	opt_complementary =
 		/* -n and -g imply -l */
 		"nl:gl"
