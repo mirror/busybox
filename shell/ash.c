@@ -8163,7 +8163,6 @@ static int
 describe_command(char *command, const char *path, int describe_command_verbose)
 {
 	struct cmdentry entry;
-	struct tblentry *cmdp;
 #if ENABLE_ASH_ALIAS
 	const struct alias *ap;
 #endif
@@ -8193,15 +8192,8 @@ describe_command(char *command, const char *path, int describe_command_verbose)
 		goto out;
 	}
 #endif
-	/* Then check if it is a tracked alias */
-	cmdp = cmdlookup(command, 0);
-	if (cmdp != NULL) {
-		entry.cmdtype = cmdp->cmdtype;
-		entry.u = cmdp->param;
-	} else {
-		/* Finally use brute force */
-		find_command(command, &entry, DO_ABS, path);
-	}
+	/* Brute force */
+	find_command(command, &entry, DO_ABS, path);
 
 	switch (entry.cmdtype) {
 	case CMDNORMAL: {
@@ -8216,9 +8208,7 @@ describe_command(char *command, const char *path, int describe_command_verbose)
 			} while (--j >= 0);
 		}
 		if (describe_command_verbose) {
-			out1fmt(" is%s %s",
-				(cmdp ? " a tracked alias for" : nullstr), p
-			);
+			out1fmt(" is %s", p);
 		} else {
 			out1str(p);
 		}
