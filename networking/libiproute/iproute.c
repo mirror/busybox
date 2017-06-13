@@ -28,7 +28,7 @@ struct filter_t {
 	int flushe;
 	struct rtnl_handle *rth;
 	//int protocol, protocolmask; - write-only fields?!
-	//int scope, scopemask; - unused
+	int scope, scopemask;
 	//int type; - read-only
 	//int typemask; - unused
 	//int tos, tosmask; - unused
@@ -120,6 +120,8 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 			return 0;
 		}
 	}
+	if ((G_filter.scope ^ r->rtm_scope) & G_filter.scopemask)
+		return 0;
 	if (G_filter.rdst.family
 	 && (r->rtm_family != G_filter.rdst.family || G_filter.rdst.bitlen > r->rtm_dst_len)
 	) {
@@ -270,7 +272,11 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 		printf("table %s ", rtnl_rttable_n2a(tid));
 #endif
 
-	/* Todo: parse & show "proto kernel", "scope link" here */
+	/* Todo: parse & show "proto kernel" here */
+	if (!(r->rtm_flags & RTM_F_CLONED)) {
+		if ((r->rtm_scope != RT_SCOPE_UNIVERSE) && G_filter.scopemask != -1)
+			printf("scope %s ", rtnl_rtscope_n2a(r->rtm_scope));
+	}
 
 	if (tb[RTA_PREFSRC] && /*G_filter.rprefsrc.bitlen - always 0*/ 0 != host_len) {
 		/* Do not use format_host(). It is our local addr
@@ -761,10 +767,11 @@ static int iproute_list_or_flush(char **argv, int flush)
 	char *id = NULL;
 	char *od = NULL;
 	static const char keywords[] ALIGN1 =
+		/* If you add stuff here, update iproute_full_usage */
 		/* "ip route list/flush" parameters: */
 		"protocol\0" "dev\0"   "oif\0"   "iif\0"
 		"via\0"      "table\0" "cache\0"
-		"from\0"     "to\0"
+		"from\0"     "to\0"    "scope\0"
 		/* and possible further keywords */
 		"all\0"
 		"root\0"
@@ -775,7 +782,7 @@ static int iproute_list_or_flush(char **argv, int flush)
 	enum {
 		KW_proto, KW_dev,   KW_oif,  KW_iif,
 		KW_via,   KW_table, KW_cache,
-		KW_from,  KW_to,
+		KW_from,  KW_to,    KW_scope,
 		/* */
 		KW_all,
 		KW_root,
@@ -834,6 +841,17 @@ static int iproute_list_or_flush(char **argv, int flush)
 			/* The command 'ip route flush cache' is used by OpenSWAN.
 			 * Assuming it's a synonym for 'ip route flush table cache' */
 			G_filter.tb = -1;
+		} else if (arg == KW_scope) {
+			uint32_t scope;
+			NEXT_ARG();
+			G_filter.scopemask = -1;
+			if (rtnl_rtscope_a2n(&scope, *argv)) {
+				if (strcmp(*argv, "all") != 0)
+					invarg_1_to_2(*argv, "scope");
+				scope = RT_SCOPE_NOWHERE;
+				G_filter.scopemask = 0;
+			}
+			G_filter.scope = scope;
 		} else if (arg == KW_from) {
 			NEXT_ARG();
 			parm = index_in_substrings(keywords, *argv);
