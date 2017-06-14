@@ -9,12 +9,13 @@
 //config:config UNSHARE
 //config:	bool "unshare"
 //config:	default y
-//config:	depends on LONG_OPTS && !NOMMU
+//config:	depends on !NOMMU
 //config:	select PLATFORM_LINUX
+//config:	select LONG_OPTS
 //config:	help
 //config:	  Run program with some namespaces unshared from parent.
 
-// depends on LONG_OPTS: it is awkward to exclude code which handles --propagation
+// needs LONG_OPTS: it is awkward to exclude code which handles --propagation
 // and --setgroups based on LONG_OPTS, so instead applet requires LONG_OPTS.
 // depends on !NOMMU: we need fork()
 
@@ -32,7 +33,7 @@
 //usage:     "\n	-p,--pid[=FILE]		Unshare PID namespace"
 //usage:     "\n	-U,--user[=FILE]	Unshare user namespace"
 //usage:     "\n	-f,--fork		Fork before execing PROG"
-//usage:     "\n	-r,--map-root-user	Map current user to root (implies -u)"
+//usage:     "\n	-r,--map-root-user	Map current user to root (implies -U)"
 //usage:     "\n	--mount-proc[=DIR]	Mount /proc filesystem first (implies -m)"
 //usage:     "\n	--propagation slave|shared|private|unchanged"
 //usage:     "\n				Modify mount propagation in mount namespace"
