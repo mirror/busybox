@@ -84,7 +84,7 @@ aa:      85.1% -- replaced with aa.gz
 //kbuild:lib-$(CONFIG_GZIP) += gzip.o
 
 //usage:#define gzip_trivial_usage
-//usage:       "[-cf" IF_FEATURE_GZIP_DECOMPRESS("dt") IF_FEATURE_GZIP_LEVELS("123456789") "] [FILE]..."
+//usage:       "[-cfk" IF_FEATURE_GZIP_DECOMPRESS("dt") IF_FEATURE_GZIP_LEVELS("123456789") "] [FILE]..."
 //usage:#define gzip_full_usage "\n\n"
 //usage:       "Compress FILEs (or stdin)\n"
 //usage:	IF_FEATURE_GZIP_LEVELS(
@@ -96,6 +96,7 @@ aa:      85.1% -- replaced with aa.gz
 //usage:	)
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
+//usage:     "\n	-k	Keep input files"
 //usage:
 //usage:#define gzip_example_usage
 //usage:       "$ ls -la /tmp/busybox*\n"
@@ -2219,13 +2220,13 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = gzip_longopts;
 #endif
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-	opt = getopt32(argv, "cfv" IF_FEATURE_GZIP_DECOMPRESS("dt") "qn123456789");
+	opt = getopt32(argv, "cfkv" IF_FEATURE_GZIP_DECOMPRESS("dt") "qn123456789");
 #if ENABLE_FEATURE_GZIP_DECOMPRESS /* gunzip_main may not be visible... */
-	if (opt & 0x18) // -d and/or -t
+	if (opt & 0x30) // -d and/or -t
 		return gunzip_main(argc, argv);
 #endif
 #if ENABLE_FEATURE_GZIP_LEVELS
-	opt >>= ENABLE_FEATURE_GZIP_DECOMPRESS ? 7 : 5; /* drop cfv[dt]qn bits */
+	opt >>= ENABLE_FEATURE_GZIP_DECOMPRESS ? 8 : 6; /* drop cfkv[dt]qn bits */
 	if (opt == 0)
 		opt = 1 << 6; /* default: 6 */
 	opt = ffs(opt >> 4); /* Maps -1..-4 to [0], -5 to [1] ... -9 to [5] */
@@ -2234,7 +2235,7 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	max_lazy_match	 = gzip_level_config[opt].lazy2 * 2;
 	nice_match	 = gzip_level_config[opt].nice2 * 2;
 #endif
-	option_mask32 &= 0x7; /* retain only -cfv */
+	option_mask32 &= 0xf; /* retain only -cfkv */
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	ALLOC(uch, G1.l_buf, INBUFSIZ);

@@ -43,6 +43,7 @@
 //usage:	)
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
+//usage:     "\n	-k	Keep input files"
 
 #include "libbb.h"
 #include "bb_archive.h"
@@ -196,13 +197,13 @@ int bzip2_main(int argc UNUSED_PARAM, char **argv)
 
 	opt_complementary = "s2"; /* -s means -2 (compatibility) */
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-	opt = getopt32(argv, "cfv" IF_FEATURE_BZIP2_DECOMPRESS("dt") "123456789qzs");
+	opt = getopt32(argv, "cfkv" IF_FEATURE_BZIP2_DECOMPRESS("dt") "123456789qzs");
 #if ENABLE_FEATURE_BZIP2_DECOMPRESS /* bunzip2_main may not be visible... */
-	if (opt & 0x18) // -d and/or -t
+	if (opt & 0x30) // -d and/or -t
 		return bunzip2_main(argc, argv);
-	opt >>= 5;
+	opt >>= 6;
 #else
-	opt >>= 3;
+	opt >>= 4;
 #endif
 	opt = (uint8_t)opt; /* isolate bits for -1..-8 */
 	opt |= 0x100; /* if nothing else, assume -9 */
@@ -213,6 +214,6 @@ int bzip2_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	argv += optind;
-	option_mask32 &= 0x7; /* ignore all except -cfv */
+	option_mask32 &= 0xf; /* ignore all except -cfkv */
 	return bbunpack(argv, compressStream, append_ext, "bz2");
 }

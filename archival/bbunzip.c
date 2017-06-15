@@ -21,10 +21,11 @@ enum {
 	OPT_STDOUT     = 1 << 0,
 	OPT_FORCE      = 1 << 1,
 	/* only some decompressors: */
-	OPT_VERBOSE    = 1 << 2,
-	OPT_QUIET      = 1 << 3,
-	OPT_DECOMPRESS = 1 << 4,
-	OPT_TEST       = 1 << 5,
+	OPT_KEEP       = 1 << 2,
+	OPT_VERBOSE    = 1 << 3,
+	OPT_QUIET      = 1 << 4,
+	OPT_DECOMPRESS = 1 << 5,
+	OPT_TEST       = 1 << 6,
 	SEAMLESS_MAGIC = (1 << 31) * ENABLE_ZCAT * SEAMLESS_COMPRESSION,
 };
 
@@ -182,8 +183,11 @@ int FAST_FUNC bbunpack(char **argv,
 				}
 				/* Delete _source_ file */
 				del = filename;
+				if (option_mask32 & OPT_KEEP) /* ... unless -k */
+					del = NULL;
 			}
-			xunlink(del);
+			if (del)
+				xunlink(del);
  free_name:
 			if (new_name != filename)
 				free(new_name);
@@ -240,7 +244,16 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 int uncompress_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uncompress_main(int argc UNUSED_PARAM, char **argv)
 {
+// (N)compress 4.2.4.4:
+// -d If given, decompression is done instead
+// -c Write output on stdout, don't remove original
+// -b Parameter limits the max number of bits/code
+// -f Forces output file to be generated
+// -v Write compression statistics
+// -V Output vesion and compile options
+// -r Recursive. If a filename is a directory, descend into it and compress everything
 	getopt32(argv, "cf");
+
 	argv += optind;
 
 	return bbunpack(argv, unpack_Z_stream, make_new_name_generic, "Z");
@@ -273,11 +286,12 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
  * Ken Turkowski, Dave Mack and Peter Jannesen.
  */
 //usage:#define gunzip_trivial_usage
-//usage:       "[-cft] [FILE]..."
+//usage:       "[-cfkt] [FILE]..."
 //usage:#define gunzip_full_usage "\n\n"
 //usage:       "Decompress FILEs (or stdin)\n"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
+//usage:     "\n	-k	Keep input files"
 //usage:     "\n	-t	Test file integrity"
 //usage:
 //usage:#define gunzip_example_usage
@@ -372,7 +386,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_GUNZIP_LONG_OPTIONS
 	applet_long_options = gunzip_longopts;
 #endif
-	getopt32(argv, "cfvqdtn");
+	getopt32(argv, "cfkvqdtn");
 	argv += optind;
 
 	/* If called as zcat...
@@ -394,11 +408,12 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //usage:#define bunzip2_trivial_usage
-//usage:       "[-cf] [FILE]..."
+//usage:       "[-cfk] [FILE]..."
 //usage:#define bunzip2_full_usage "\n\n"
 //usage:       "Decompress FILEs (or stdin)\n"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
+//usage:     "\n	-k	Keep input files"
 //usage:#define bzcat_trivial_usage
 //usage:       "[FILE]..."
 //usage:#define bzcat_full_usage "\n\n"
@@ -432,7 +447,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 {
-	getopt32(argv, "cfvqdt");
+	getopt32(argv, "cfkvqdt");
 	argv += optind;
 	if (ENABLE_BZCAT && applet_name[2] == 'c') /* bzcat */
 		option_mask32 |= OPT_STDOUT;
@@ -451,19 +466,21 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //usage:#define unlzma_trivial_usage
-//usage:       "[-cf] [FILE]..."
+//usage:       "[-cfk] [FILE]..."
 //usage:#define unlzma_full_usage "\n\n"
 //usage:       "Decompress FILE (or stdin)\n"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
+//usage:     "\n	-k	Keep input files"
 //usage:
 //usage:#define lzma_trivial_usage
-//usage:       "-d [-cf] [FILE]..."
+//usage:       "-d [-cfk] [FILE]..."
 //usage:#define lzma_full_usage "\n\n"
 //usage:       "Decompress FILE (or stdin)\n"
 //usage:     "\n	-d	Decompress"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
+//usage:     "\n	-k	Keep input files"
 //usage:
 //usage:#define lzcat_trivial_usage
 //usage:       "[FILE]..."
@@ -520,7 +537,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlzma_main(int argc UNUSED_PARAM, char **argv)
 {
-	IF_LZMA(int opts =) getopt32(argv, "cfvqdt");
+	IF_LZMA(int opts =) getopt32(argv, "cfkvqdt");
 # if ENABLE_LZMA
 	/* lzma without -d or -t? */
 	if (applet_name[2] == 'm' && !(opts & (OPT_DECOMPRESS|OPT_TEST)))
@@ -537,19 +554,21 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 
 
 //usage:#define unxz_trivial_usage
-//usage:       "[-cf] [FILE]..."
+//usage:       "[-cfk] [FILE]..."
 //usage:#define unxz_full_usage "\n\n"
 //usage:       "Decompress FILE (or stdin)\n"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
+//usage:     "\n	-k	Keep input files"
 //usage:
 //usage:#define xz_trivial_usage
-//usage:       "-d [-cf] [FILE]..."
+//usage:       "-d [-cfk] [FILE]..."
 //usage:#define xz_full_usage "\n\n"
 //usage:       "Decompress FILE (or stdin)\n"
 //usage:     "\n	-d	Decompress"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
+//usage:     "\n	-k	Keep input files"
 //usage:
 //usage:#define xzcat_trivial_usage
 //usage:       "[FILE]..."
@@ -586,7 +605,7 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unxz_main(int argc UNUSED_PARAM, char **argv)
 {
-	IF_XZ(int opts =) getopt32(argv, "cfvqdt");
+	IF_XZ(int opts =) getopt32(argv, "cfkvqdt");
 # if ENABLE_XZ
 	/* xz without -d or -t? */
 	if (applet_name[2] == '\0' && !(opts & (OPT_DECOMPRESS|OPT_TEST)))
