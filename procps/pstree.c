@@ -34,7 +34,7 @@
 
 struct child;
 
-#ifdef ENABLE_FEATURE_SHOW_THREADS
+#if ENABLE_FEATURE_SHOW_THREADS
 /* For threads, we add {...} around the comm, so we need two extra bytes */
 # define COMM_DISP_LEN (COMM_LEN + 2)
 #else

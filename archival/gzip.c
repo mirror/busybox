@@ -275,7 +275,7 @@ enum {
  * input file length plus MIN_LOOKAHEAD.
  */
 
-#ifndef ENABLE_FEATURE_GZIP_LEVELS
+#if !ENABLE_FEATURE_GZIP_LEVELS
 
 	max_chain_length = 4096,
 /* To speed up deflation, hash chains are never searched beyond this length.
@@ -314,7 +314,7 @@ enum {
 
 struct globals {
 
-#ifdef ENABLE_FEATURE_GZIP_LEVELS
+#if ENABLE_FEATURE_GZIP_LEVELS
 	unsigned max_chain_length;
 	unsigned max_lazy_match;
 	unsigned good_match;
@@ -2196,7 +2196,7 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 #endif
 {
 	unsigned opt;
-#ifdef ENABLE_FEATURE_GZIP_LEVELS
+#if ENABLE_FEATURE_GZIP_LEVELS
 	static const struct {
 		uint8_t good;
 		uint8_t chain_shift;
@@ -2224,7 +2224,7 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & 0x18) // -d and/or -t
 		return gunzip_main(argc, argv);
 #endif
-#ifdef ENABLE_FEATURE_GZIP_LEVELS
+#if ENABLE_FEATURE_GZIP_LEVELS
 	opt >>= ENABLE_FEATURE_GZIP_DECOMPRESS ? 7 : 5; /* drop cfv[dt]qn bits */
 	if (opt == 0)
 		opt = 1 << 6; /* default: 6 */
