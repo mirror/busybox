@@ -89,6 +89,9 @@ struct d6_option {
 
 #define D6_OPT_CLIENT_FQDN   39
 
+#define D6_OPT_TZ_POSIX      41
+#define D6_OPT_TZ_NAME       42
+
 /*** Other shared functions ***/
 
 struct client6_data_t {

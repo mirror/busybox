@@ -93,7 +93,7 @@ static const char opt_req[] = {
 	0, 6,
 	(D6_OPT_DNS_SERVERS >> 8), (D6_OPT_DNS_SERVERS & 0xff),
 	(D6_OPT_DOMAIN_LIST >> 8), (D6_OPT_DOMAIN_LIST & 0xff),
-	(D6_OPT_CLIENT_FQDN >> 8), (D6_OPT_CLIENT_FQDN & 0xff)
+	(D6_OPT_CLIENT_FQDN >> 8), (D6_OPT_CLIENT_FQDN & 0xff),
 };
 
 static const char opt_fqdn_req[] = {
@@ -136,12 +136,6 @@ static void *d6_copy_option(uint8_t *option, uint8_t *option_end, unsigned code)
 	return xmemdup(opt, opt[3] + 4);
 }
 
-static void *d6_store_blob(void *dst, const void *src, unsigned len)
-{
-	memcpy(dst, src, len);
-	return dst + len;
-}
-
 
 /*** Script execution code ***/
 
@@ -154,15 +148,19 @@ static char** new_env(void)
 /* put all the parameters into the environment */
 static void option_to_env(uint8_t *option, uint8_t *option_end)
 {
-	char *dlist, *ptr;
+	char *dlist;
 	/* "length minus 4" */
 	int len_m4 = option_end - option - 4;
-	int olen, ooff;
+	int addrs, option_offset;
 	while (len_m4 >= 0) {
 		uint32_t v32;
 		char ipv6str[sizeof("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")];
 
 		if (option[0] != 0 || option[2] != 0)
+			break;
+
+		/* Check if option-length exceeds size of option */
+		if (option[3] > len_m4)
 			break;
 
 		switch (option[1]) {
@@ -174,7 +172,7 @@ static void option_to_env(uint8_t *option, uint8_t *option_end)
 			break;
 		//case D6_OPT_IA_TA:
 		case D6_OPT_IAADDR:
-/*   0                   1                   2                   3
+/*  0                   1                   2                   3
  *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  * |          OPTION_IAADDR        |          option-len           |
@@ -236,22 +234,25 @@ static void option_to_env(uint8_t *option, uint8_t *option_end)
 			*new_env() = xasprintf("ipv6prefix=%s/%u", ipv6str, (unsigned)(option[4 + 4]));
 			break;
 		case D6_OPT_DNS_SERVERS:
-			olen = ((option[2] << 8) | option[3]) / 16;
-			dlist = ptr = malloc (4 + olen * 40 - 1);
+			/* Make sure payload-size is a multiple of 16 */
+			if ((option[3] & 0x0f) != 0)
+				break;
 
-			memcpy (ptr, "dns=", 4);
-			ptr += 4;
-			ooff = 0;
+			/* Get the number of addresses on the option */
+			addrs = option[3] >> 4;
 
-			while (olen--) {
-				sprint_nip6(ptr, option + 4 + ooff);
-				ptr += 39;
-				ooff += 16;
-				if (olen)
-					*ptr++ = ' ';
+			/* Setup environment variable */
+			*new_env() = dlist = xmalloc(4 + addrs * 40 - 1);
+			dlist = stpcpy(dlist, "dns=");
+			option_offset = 0;
+
+			while (addrs--) {
+				sprint_nip6(dlist, option + 4 + option_offset);
+				dlist += 39;
+				option_offset += 16;
+				if (addrs)
+					*dlist++ = ' ';
 			}
-
-			*new_env() = dlist;
 
 			break;
 		case D6_OPT_DOMAIN_LIST:
@@ -261,23 +262,30 @@ static void option_to_env(uint8_t *option, uint8_t *option_end)
 			*new_env() = dlist;
 			break;
 		case D6_OPT_CLIENT_FQDN:
-			// Work around broken ISC DHCPD6
+			if (option[3] == 0)
+				break;
+			/* Work around broken ISC DHCPD6.
+			 * ISC DHCPD6 does not implement RFC 4704 correctly: It says the first
+			 * byte of option-payload should contain flags where the bits 7-3 are
+			 * reserved for future use and MUST be zero. Instead ISC DHCPD6 just
+			 * writes the entire FQDN as string to option-payload. We assume a
+			 * broken server here if any of the reserved bits are set.
+			 */
 			if (option[4] & 0xf8) {
-				olen = ((option[2] << 8) | option[3]);
-				dlist = xmalloc(olen);
-//fixme:
-//- explain
-//- add len error check
-//- merge two allocs into one
-				memcpy(dlist, option + 4, olen);
-				*new_env() = xasprintf("fqdn=%s", dlist);
-				free(dlist);
+				*new_env() = xasprintf("fqdn=%.*s", (int)option[3], (char*)option + 4);
 				break;
 			}
-			dlist = dname_dec(option + 5, ((option[2] << 8) | option[3]) - 1, "fqdn=");
+			dlist = dname_dec(option + 5, (/*(option[2] << 8) |*/ option[3]) - 1, "fqdn=");
 			if (!dlist)
 				break;
 			*new_env() = dlist;
+			break;
+		/* RFC 4833 Timezones */
+		case D6_OPT_TZ_POSIX:
+			*new_env() = xasprintf("tz=%.*s", (int)option[3], (char*)option + 4);
+			break;
+		case D6_OPT_TZ_NAME:
+			*new_env() = xasprintf("tz_name=%.*s", (int)option[3], (char*)option + 4);
 			break;
 		}
 		len_m4 -= 4 + option[3];
@@ -346,7 +354,7 @@ static uint8_t *init_d6_packet(struct d6_packet *packet, char type, uint32_t xid
 	packet->d6_msg_type = type;
 
 	clientid = (void*)client_config.clientid;
-	return d6_store_blob(packet->d6_options, clientid, clientid->len + 2+2);
+	return mempcpy(packet->d6_options, clientid, clientid->len + 2+2);
 }
 
 static uint8_t *add_d6_client_options(uint8_t *ptr)
@@ -483,11 +491,11 @@ static NOINLINE int send_d6_discover(uint32_t xid, struct in6_addr *requested_ip
 		iaaddr->len = 16+4+4;
 		memcpy(iaaddr->data, requested_ipv6, 16);
 	}
-	opt_ptr = d6_store_blob(opt_ptr, client6_data.ia_na, len);
+	opt_ptr = mempcpy(opt_ptr, client6_data.ia_na, len);
 
 	/* Request additional options */
-	opt_ptr = d6_store_blob(opt_ptr, &opt_req, sizeof(opt_req));
-	opt_ptr = d6_store_blob(opt_ptr, &opt_fqdn_req, sizeof(opt_fqdn_req));
+	opt_ptr = mempcpy(opt_ptr, &opt_req, sizeof(opt_req));
+	opt_ptr = mempcpy(opt_ptr, &opt_fqdn_req, sizeof(opt_fqdn_req));
 
 	/* Add options:
 	 * "param req" option according to -O, options specified with -x
@@ -538,13 +546,13 @@ static NOINLINE int send_d6_select(uint32_t xid)
 	opt_ptr = init_d6_packet(&packet, D6_MSG_REQUEST, xid);
 
 	/* server id */
-	opt_ptr = d6_store_blob(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
+	opt_ptr = mempcpy(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
 	/* IA NA (contains requested IP) */
-	opt_ptr = d6_store_blob(opt_ptr, client6_data.ia_na, client6_data.ia_na->len + 2+2);
+	opt_ptr = mempcpy(opt_ptr, client6_data.ia_na, client6_data.ia_na->len + 2+2);
 
 	/* Request additional options */
-	opt_ptr = d6_store_blob(opt_ptr, &opt_req, sizeof(opt_req));
-	opt_ptr = d6_store_blob(opt_ptr, &opt_fqdn_req, sizeof(opt_fqdn_req));
+	opt_ptr = mempcpy(opt_ptr, &opt_req, sizeof(opt_req));
+	opt_ptr = mempcpy(opt_ptr, &opt_fqdn_req, sizeof(opt_fqdn_req));
 
 	/* Add options:
 	 * "param req" option according to -O, options specified with -x
@@ -611,9 +619,9 @@ static NOINLINE int send_d6_renew(uint32_t xid, struct in6_addr *server_ipv6, st
 	opt_ptr = init_d6_packet(&packet, DHCPREQUEST, xid);
 
 	/* server id */
-	opt_ptr = d6_store_blob(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
+	opt_ptr = mempcpy(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
 	/* IA NA (contains requested IP) */
-	opt_ptr = d6_store_blob(opt_ptr, client6_data.ia_na, client6_data.ia_na->len + 2+2);
+	opt_ptr = mempcpy(opt_ptr, client6_data.ia_na, client6_data.ia_na->len + 2+2);
 
 	/* Add options:
 	 * "param req" option according to -O, options specified with -x
@@ -640,9 +648,9 @@ static int send_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cu
 	/* Fill in: msg type, client id */
 	opt_ptr = init_d6_packet(&packet, D6_MSG_RELEASE, random_xid());
 	/* server id */
-	opt_ptr = d6_store_blob(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
+	opt_ptr = mempcpy(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
 	/* IA NA (contains our current IP) */
-	opt_ptr = d6_store_blob(opt_ptr, client6_data.ia_na, client6_data.ia_na->len + 2+2);
+	opt_ptr = mempcpy(opt_ptr, client6_data.ia_na, client6_data.ia_na->len + 2+2);
 
 	bb_error_msg("sending %s", "release");
 	return d6_send_kernel_packet(
