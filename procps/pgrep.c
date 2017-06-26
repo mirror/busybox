@@ -26,10 +26,11 @@
 //kbuild:lib-$(CONFIG_PKILL) += pgrep.o
 
 //usage:#define pgrep_trivial_usage
-//usage:       "[-flnovx] [-s SID|-P PPID|PATTERN]"
+//usage:       "[-flanovx] [-s SID|-P PPID|PATTERN]"
 //usage:#define pgrep_full_usage "\n\n"
 //usage:       "Display process(es) selected by regex PATTERN\n"
 //usage:     "\n	-l	Show command name too"
+//usage:     "\n	-a	Show command line too"
 //usage:     "\n	-f	Match against entire command line"
 //usage:     "\n	-n	Show the newest process only"
 //usage:     "\n	-o	Show the oldest process only"
@@ -55,13 +56,14 @@
 #include "xregex.h"
 
 /* Idea taken from kill.c */
-#define pgrep (ENABLE_PGREP && applet_name[1] == 'g')
-#define pkill (ENABLE_PKILL && applet_name[1] == 'k')
+#define pgrep (ENABLE_PGREP && (!ENABLE_PKILL || applet_name[1] == 'g'))
+#define pkill (ENABLE_PKILL && (!ENABLE_PGREP || applet_name[1] == 'k'))
 
 enum {
-	/* "vlfxons:P:" */
+	/* "vlafxons:+P:+" */
 	OPTBIT_V = 0, /* must be first, we need OPT_INVERT = 0/1 */
 	OPTBIT_L,
+	OPTBIT_A,
 	OPTBIT_F,
 	OPTBIT_X,
 	OPTBIT_O,
@@ -72,6 +74,7 @@ enum {
 
 #define OPT_INVERT	(opt & (1 << OPTBIT_V))
 #define OPT_LIST	(opt & (1 << OPTBIT_L))
+#define OPT_LISTFULL	(opt & (1 << OPTBIT_A))
 #define OPT_FULL	(opt & (1 << OPTBIT_F))
 #define OPT_ANCHOR	(opt & (1 << OPTBIT_X))
 #define OPT_FIRST	(opt & (1 << OPTBIT_O))
@@ -82,7 +85,7 @@ enum {
 static void act(unsigned pid, char *cmd, int signo)
 {
 	if (pgrep) {
-		if (option_mask32 & (1 << OPTBIT_L)) /* OPT_LIST */
+		if (option_mask32 & ((1 << OPTBIT_L)|(1 << OPTBIT_A))) /* -l or -a */
 			printf("%u %s\n", pid, cmd);
 		else
 			printf("%u\n", pid);
@@ -124,7 +127,7 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 	/* Parse remaining options */
 	ppid2match = -1;
 	sid2match = -1;
-	opt = getopt32(argv, "vlfxons:+P:+", &sid2match, &ppid2match);
+	opt = getopt32(argv, "vlafxons:+P:+", &sid2match, &ppid2match);
 	argv += optind;
 
 	if (pkill && OPT_LIST) { /* -l: print the whole signal list */
@@ -152,6 +155,7 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 	proc = NULL;
 	while ((proc = procps_scan(proc, scan_mask)) != NULL) {
 		char *cmd;
+		int cmdlen;
 
 		if (proc->pid == pid)
 			continue;
@@ -161,11 +165,15 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 		if (sid2match >= 0 && sid2match != proc->sid)
 			continue;
 
+		cmdlen = -1;
 		cmd = proc->argv0;
 		if (!cmd) {
 			cmd = proc->comm;
 		} else {
 			int i = proc->argv_len;
+
+			if (!OPT_LISTFULL)
+				cmdlen = strlen(cmd); /* not -a: find first NUL */
 			/*
 			 * "sleep 11" looks like "sleep""\0""11""\0" in argv0.
 			 * Make sure last "\0" does not get converted to " ":
@@ -190,6 +198,8 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 				cmd_last = xstrdup(cmd);
 				continue;
 			}
+			if (cmdlen >= 0)
+				cmd[cmdlen] = '\0';
 			act(proc->pid, cmd, signo);
 			if (OPT_FIRST)
 				break;
