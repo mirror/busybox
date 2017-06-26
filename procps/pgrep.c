@@ -156,21 +156,27 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 		if (proc->pid == pid)
 			continue;
 
+		if (ppid2match >= 0 && ppid2match != proc->ppid)
+			continue;
+		if (sid2match >= 0 && sid2match != proc->sid)
+			continue;
+
 		cmd = proc->argv0;
 		if (!cmd) {
 			cmd = proc->comm;
 		} else {
 			int i = proc->argv_len;
+			/*
+			 * "sleep 11" looks like "sleep""\0""11""\0" in argv0.
+			 * Make sure last "\0" does not get converted to " ":
+			 */
+			if (i && cmd[i-1] == '\0')
+				i--;
 			while (--i >= 0) {
 				if ((unsigned char)cmd[i] < ' ')
 					cmd[i] = ' ';
 			}
 		}
-
-		if (ppid2match >= 0 && ppid2match != proc->ppid)
-			continue;
-		if (sid2match >= 0 && sid2match != proc->sid)
-			continue;
 
 		/* NB: OPT_INVERT is always 0 or 1 */
 		if (!argv[0]
