@@ -2458,12 +2458,8 @@ putprompt(const char *s)
 }
 #endif
 
-#if ENABLE_ASH_EXPAND_PRMT
 /* expandstr() needs parsing machinery, so it is far away ahead... */
 static const char *expandstr(const char *ps);
-#else
-#define expandstr(s) s
-#endif
 
 static void
 setprompt_if(smallint do_set, int whichprompt)
@@ -12449,7 +12445,6 @@ parseheredoc(void)
 /*
  * called by editline -- any expansions to the prompt should be added here.
  */
-#if ENABLE_ASH_EXPAND_PRMT
 static const char *
 expandstr(const char *ps)
 {
@@ -12475,7 +12470,6 @@ expandstr(const char *ps)
 	expandarg(&n, NULL, EXP_QUOTED);
 	return stackblock();
 }
-#endif
 
 /*
  * Execute a command or commands contained in a string.
