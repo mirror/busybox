@@ -98,8 +98,12 @@ static const char opt_req[] = {
 
 static const char opt_fqdn_req[] = {
 	(D6_OPT_CLIENT_FQDN >> 8), (D6_OPT_CLIENT_FQDN & 0xff),
-	0, 2,
-	0, 0
+	0, 2, /* optlen */
+	0, /* flags: */
+	/* S=0: server SHOULD NOT perform AAAA RR updates */
+	/* O=0: client MUST set this bit to 0 */
+	/* N=0: server SHOULD perform updates (PTR RR only in our case, since S=0) */
+	0 /* empty DNS-encoded name */
 };
 
 /*** Utility functions ***/
