@@ -75,12 +75,6 @@ void FAST_FUNC replace(char *s, char what, char with)
 	}
 }
 
-char* FAST_FUNC replace_underscores(char *s)
-{
-	replace(s, '-', '_');
-	return s;
-}
-
 int FAST_FUNC string_to_llist(char *string, llist_t **llist, const char *delim)
 {
 	char *tok;
