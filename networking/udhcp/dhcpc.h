@@ -12,6 +12,7 @@ struct client_config_t {
 	IF_FEATURE_UDHCP_PORT(uint16_t port;)
 	int ifindex;                    /* Index number of the interface to use */
 	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TODO: DHCPv6 has 16-bit option numbers
 	const char *interface;          /* The name of the interface to use */
 	char *pidfile;                  /* Optionally store the process ID */
 	const char *script;             /* User script to run at dhcp events */

@@ -1346,7 +1346,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		char *optstr = llist_pop(&list_O);
 		unsigned n = bb_strtou(optstr, NULL, 0);
 		if (errno || n > 254) {
-			n = udhcp_option_idx(optstr);
+			n = udhcp_option_idx(optstr, dhcp_option_strings);
 			n = dhcp_optflags[n].code;
 		}
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
@@ -1366,7 +1366,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			*colon = ' ';
 		/* now it looks similar to udhcpd's config file line:
 		 * "optname optval", using the common routine: */
-		udhcp_str2optset(optstr, &client_config.options);
+		udhcp_str2optset(optstr, &client_config.options, dhcp_optflags, dhcp_option_strings);
 		if (colon)
 			*colon = ':'; /* restore it for NOMMU reexec */
 	}

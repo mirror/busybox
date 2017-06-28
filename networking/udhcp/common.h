@@ -93,8 +93,10 @@ enum {
 	OPTION_BIN,
 	OPTION_STATIC_ROUTES,
 	OPTION_6RD,
-#if ENABLE_FEATURE_UDHCP_RFC3397
+#if ENABLE_FEATURE_UDHCP_RFC3397 || ENABLE_FEATURE_UDHCPC6_RFC3646 || ENABLE_FEATURE_UDHCPC6_RFC4704
 	OPTION_DNS_STRING,  /* RFC1035 compressed domain name list */
+#endif
+#if ENABLE_FEATURE_UDHCP_RFC3397
 	OPTION_SIP_SERVERS,
 #endif
 
@@ -189,17 +191,21 @@ struct option_set {
 	struct option_set *next;
 };
 
+#if ENABLE_UDHCPC || ENABLE_UDHCPD
 extern const struct dhcp_optflag dhcp_optflags[];
 extern const char dhcp_option_strings[] ALIGN1;
+#endif
 extern const uint8_t dhcp_option_lengths[] ALIGN1;
 
-unsigned FAST_FUNC udhcp_option_idx(const char *name);
+unsigned FAST_FUNC udhcp_option_idx(const char *name, const char *option_strings);
 
 uint8_t *udhcp_get_option(struct dhcp_packet *packet, int code) FAST_FUNC;
 int udhcp_end_option(uint8_t *optionptr) FAST_FUNC;
 void udhcp_add_binary_option(struct dhcp_packet *packet, uint8_t *addopt) FAST_FUNC;
+#if ENABLE_UDHCPC || ENABLE_UDHCPD
 void udhcp_add_simple_option(struct dhcp_packet *packet, uint8_t code, uint32_t data) FAST_FUNC;
-#if ENABLE_FEATURE_UDHCP_RFC3397
+#endif
+#if ENABLE_FEATURE_UDHCP_RFC3397 || ENABLE_FEATURE_UDHCPC6_RFC3646 || ENABLE_FEATURE_UDHCPC6_RFC4704
 char *dname_dec(const uint8_t *cstr, int clen, const char *pre) FAST_FUNC;
 uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) FAST_FUNC;
 #endif
@@ -284,7 +290,10 @@ void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;
 /* 2nd param is "uint32_t*" */
 int FAST_FUNC udhcp_str2nip(const char *str, void *arg);
 /* 2nd param is "struct option_set**" */
-int FAST_FUNC udhcp_str2optset(const char *str, void *arg);
+int FAST_FUNC udhcp_str2optset(const char *str,
+		void *arg,
+		const struct dhcp_optflag *optflags,
+		const char *option_strings);
 
 void udhcp_init_header(struct dhcp_packet *packet, char type) FAST_FUNC;
 

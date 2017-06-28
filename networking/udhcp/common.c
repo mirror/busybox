@@ -14,6 +14,7 @@ const uint8_t MAC_BCAST_ADDR[6] ALIGN2 = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
+#if ENABLE_UDHCPC || ENABLE_UDHCPD
 /* Supported options are easily added here.
  * See RFC2132 for more options.
  * OPTION_REQ: these options are requested by udhcpc (unless -o).
@@ -136,6 +137,7 @@ const char dhcp_option_strings[] ALIGN1 =
 	"msstaticroutes""\0"/* DHCP_MS_STATIC_ROUTES */
 	"wpad" "\0"        /* DHCP_WPAD           */
 	;
+#endif
 
 /* Lengths of the option types in binary form.
  * Used by:
@@ -190,21 +192,26 @@ static void log_option(const char *pfx, const uint8_t *opt)
 # define log_option(pfx, opt) ((void)0)
 #endif
 
-unsigned FAST_FUNC udhcp_option_idx(const char *name)
+unsigned FAST_FUNC udhcp_option_idx(const char *name, const char *option_strings)
 {
-	int n = index_in_strings(dhcp_option_strings, name);
+	int n = index_in_strings(option_strings, name);
 	if (n >= 0)
 		return n;
 
 	{
-		char buf[sizeof(dhcp_option_strings)];
-		char *d = buf;
-		const char *s = dhcp_option_strings;
-		while (s < dhcp_option_strings + sizeof(dhcp_option_strings) - 2) {
+		char *buf, *d;
+		const char *s;
+
+		s = option_strings;
+		while (*s)
+			s += strlen(s) + 1;
+
+		d = buf = xzalloc(s - option_strings);
+		s = option_strings;
+		while (!(*s == '\0' && s[1] == '\0')) {
 			*d++ = (*s == '\0' ? ' ' : *s);
 			s++;
 		}
-		*d = '\0';
 		bb_error_msg_and_die("unknown option '%s', known options: %s", name, buf);
 	}
 }
@@ -315,6 +322,7 @@ void FAST_FUNC udhcp_add_binary_option(struct dhcp_packet *packet, uint8_t *addo
 	optionptr[end + len] = DHCP_END;
 }
 
+#if ENABLE_UDHCPC || ENABLE_UDHCPD
 /* Add an one to four byte option to a packet */
 void FAST_FUNC udhcp_add_simple_option(struct dhcp_packet *packet, uint8_t code, uint32_t data)
 {
@@ -338,6 +346,7 @@ void FAST_FUNC udhcp_add_simple_option(struct dhcp_packet *packet, uint8_t code,
 
 	bb_error_msg("can't add option 0x%02x", code);
 }
+#endif
 
 /* Find option 'code' in opt_list */
 struct option_set* FAST_FUNC udhcp_find_option(struct option_set *opt_list, uint8_t code)
@@ -451,7 +460,7 @@ static NOINLINE void attach_option(
 	free(allocated);
 }
 
-int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
+int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg, const struct dhcp_optflag *optflags, const char *option_strings)
 {
 	struct option_set **opt_list = arg;
 	char *opt, *val;
@@ -478,7 +487,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 		bin_optflag.code = optcode;
 		optflag = &bin_optflag;
 	} else {
-		optflag = &dhcp_optflags[udhcp_option_idx(opt)];
+		optflag = &optflags[udhcp_option_idx(opt, option_strings)];
 	}
 
 	retval = 0;
