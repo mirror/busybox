@@ -2484,10 +2484,10 @@ setprompt_if(smallint do_set, int whichprompt)
 	}
 #if ENABLE_ASH_EXPAND_PRMT
 	pushstackmark(&smark, stackblocksize());
-#endif
 	putprompt(expandstr(prompt));
-#if ENABLE_ASH_EXPAND_PRMT
 	popstackmark(&smark);
+#else
+	putprompt(prompt);
 #endif
 }
 
@@ -11534,9 +11534,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	smallint dblquote;
 	smallint oldstyle;
 	IF_FEATURE_SH_MATH(smallint prevsyntax;) /* syntax before arithmetic */
-#if ENABLE_ASH_EXPAND_PRMT
 	smallint pssyntax;   /* we are expanding a prompt string */
-#endif
 	int varnest;         /* levels of variables expansion */
 	IF_FEATURE_SH_MATH(int arinest;)    /* levels of arithmetic expansion */
 	IF_FEATURE_SH_MATH(int parenlevel;) /* levels of parens in arithmetic */
@@ -11548,11 +11546,9 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	bqlist = NULL;
 	quotef = 0;
 	IF_FEATURE_SH_MATH(prevsyntax = 0;)
-#if ENABLE_ASH_EXPAND_PRMT
 	pssyntax = (syntax == PSSYNTAX);
 	if (pssyntax)
 		syntax = DQSYNTAX;
-#endif
 	dblquote = (syntax == DQSYNTAX);
 	varnest = 0;
 	IF_FEATURE_SH_MATH(arinest = 0;)
@@ -11606,12 +11602,10 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			} else if (c == '\n') {
 				nlprompt();
 			} else {
-#if ENABLE_ASH_EXPAND_PRMT
 				if (c == '$' && pssyntax) {
 					USTPUTC(CTLESC, out);
 					USTPUTC('\\', out);
 				}
-#endif
 				/* Backslash is retained if we are in "str" and next char isn't special */
 				if (dblquote
 				 && c != '\\'
