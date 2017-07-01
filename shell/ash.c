@@ -12967,7 +12967,7 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	exitcode = 0;
 	while (*ap) {
 		signo = get_signum(*ap);
-		if (signo < 0) {
+		if (signo < 0 || signo >= NSIG) {
 			/* Mimic bash message exactly */
 			ash_msg("%s: invalid signal specification", *ap);
 			exitcode = 1;
