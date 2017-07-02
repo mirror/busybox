@@ -295,7 +295,9 @@ int FAST_FUNC udhcp_str2optset(const char *str,
 		const struct dhcp_optflag *optflags,
 		const char *option_strings);
 
+#if ENABLE_UDHCPC || ENABLE_UDHCPD
 void udhcp_init_header(struct dhcp_packet *packet, char type) FAST_FUNC;
+#endif
 
 int udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd) FAST_FUNC;
 

@@ -331,9 +331,9 @@
 /* Separate defines document which part of code implements what */
 #define BASH_PATTERN_SUBST ENABLE_HUSH_BASH_COMPAT
 #define BASH_SUBSTR        ENABLE_HUSH_BASH_COMPAT
-#define BASH_TEST2         ENABLE_HUSH_BASH_COMPAT
 #define BASH_SOURCE        ENABLE_HUSH_BASH_COMPAT
 #define BASH_HOSTNAME_VAR  ENABLE_HUSH_BASH_COMPAT
+#define BASH_TEST2         (ENABLE_HUSH_BASH_COMPAT && ENABLE_HUSH_TEST)
 
 
 /* Build knobs */
@@ -1457,7 +1457,7 @@ static void restore_redirected_FILEs(void)
 		fl = fl->next;
 	}
 }
-#if ENABLE_FEATURE_SH_STANDALONE
+#if ENABLE_FEATURE_SH_STANDALONE && BB_MMU
 static void close_all_FILE_list(void)
 {
 	struct FILE_list *fl = G.FILE_list;
@@ -8575,8 +8575,9 @@ int hush_main(int argc, char **argv)
 			optarg++;
 			empty_trap_mask = bb_strtoull(optarg, &optarg, 16);
 			if (empty_trap_mask != 0) {
-				int sig;
+				IF_HUSH_TRAP(int sig;)
 				install_special_sighandlers();
+# if ENABLE_HUSH_TRAP
 				G_traps = xzalloc(sizeof(G_traps[0]) * NSIG);
 				for (sig = 1; sig < NSIG; sig++) {
 					if (empty_trap_mask & (1LL << sig)) {
@@ -8584,6 +8585,7 @@ int hush_main(int argc, char **argv)
 						install_sighandler(sig, SIG_IGN);
 					}
 				}
+# endif
 			}
 # if ENABLE_HUSH_LOOPS
 			optarg++;

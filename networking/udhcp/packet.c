@@ -12,6 +12,7 @@
 #include <netinet/if_ether.h>
 #include <netpacket/packet.h>
 
+#if ENABLE_UDHCPC || ENABLE_UDHCPD
 void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 {
 	memset(packet, 0, sizeof(*packet));
@@ -29,6 +30,7 @@ void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 		packet->options[0] = DHCP_END;
 	udhcp_add_simple_option(packet, DHCP_MESSAGE_TYPE, type);
 }
+#endif
 
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
 void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
