@@ -62,7 +62,8 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
 
 	opt_complementary = "-1";
 	applet_long_options = setpriv_longopts;
-	opts = getopt32(argv, "");
+	opts = getopt32(argv, "+");
+
 	if (opts) {
 		if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0))
 			bb_simple_perror_msg_and_die("prctl: NO_NEW_PRIVS");
