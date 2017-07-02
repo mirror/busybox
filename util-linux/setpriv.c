@@ -51,6 +51,12 @@
 #define PR_SET_NO_NEW_PRIVS 38
 #endif
 
+enum {
+	OPTBIT_NNP,
+
+	OPT_NNP = (1 << OPTBIT_NNP),
+};
+
 int setpriv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setpriv_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -60,15 +66,17 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
 		;
 	int opts;
 
-	opt_complementary = "-1";
 	applet_long_options = setpriv_longopts;
 	opts = getopt32(argv, "+");
 
-	if (opts) {
+	argv += optind;
+
+	if (opts & OPT_NNP) {
 		if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0))
 			bb_simple_perror_msg_and_die("prctl: NO_NEW_PRIVS");
 	}
 
-	argv += optind;
+	if (!argv[0])
+		bb_show_usage();
 	BB_EXECVP_or_die(argv);
 }
