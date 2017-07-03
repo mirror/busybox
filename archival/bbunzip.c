@@ -7,14 +7,19 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
+//kbuild:lib-$(CONFIG_ZCAT) += bbunzip.o
+//kbuild:lib-$(CONFIG_GUNZIP) += bbunzip.o
+//kbuild:lib-$(CONFIG_BZCAT) += bbunzip.o
+//kbuild:lib-$(CONFIG_BUNZIP2) += bbunzip.o
+
 /* lzop_main() uses bbunpack(), need this: */
 //kbuild:lib-$(CONFIG_LZOP) += bbunzip.o
 //kbuild:lib-$(CONFIG_LZOPCAT) += bbunzip.o
 //kbuild:lib-$(CONFIG_UNLZOP) += bbunzip.o
 /* bzip2_main() too: */
-//kbuild:lib-$(CONFIG_FEATURE_BZIP2_DECOMPRESS) += bbunzip.o
+//kbuild:lib-$(CONFIG_BZIP2) += bbunzip.o
 /* gzip_main() too: */
-//kbuild:lib-$(CONFIG_FEATURE_GZIP_DECOMPRESS) += bbunzip.o
+//kbuild:lib-$(CONFIG_GZIP) += bbunzip.o
 
 /* Note: must be kept in sync with archival/lzop.c */
 enum {
@@ -443,7 +448,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //applet:IF_BUNZIP2(APPLET(bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                APPLET_ODDNAME:name   main     location        suid_type     help
 //applet:IF_BZCAT(APPLET_ODDNAME(bzcat, bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP, bzcat))
-#if ENABLE_FEATURE_BZIP2_DECOMPRESS
+#if ENABLE_FEATURE_BZIP2_DECOMPRESS || ENABLE_BUNZIP2
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 {

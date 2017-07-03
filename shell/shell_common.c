@@ -405,9 +405,7 @@ shell_builtin_ulimit(char **argv)
 	 */
 	GETOPT_RESET();
 
-	argc = 1;
-	while (argv[argc])
-		argc++;
+	argc = string_array_len(argv);
 
 	opts = 0;
 	while (1) {

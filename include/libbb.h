@@ -778,6 +778,8 @@ ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
 
 uint16_t inet_cksum(uint16_t *addr, int len) FAST_FUNC;
 
+/* 0 if argv[0] is NULL: */
+unsigned string_array_len(char **argv) FAST_FUNC;
 void overlapping_strcpy(char *dst, const char *src) FAST_FUNC;
 char *safe_strncpy(char *dst, const char *src, size_t size) FAST_FUNC;
 char *strncpy_IFNAMSIZ(char *dst, const char *src) FAST_FUNC;

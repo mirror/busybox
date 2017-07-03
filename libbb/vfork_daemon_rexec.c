@@ -16,6 +16,7 @@
  */
 
 #include "busybox.h" /* uses applet tables */
+#include "NUM_APPLETS.h"
 
 /* This does a fork/exec in one call, using vfork().  Returns PID of new child,
  * -1 for failure.  Runs argv[0], searching path if that has no / in it. */
@@ -156,7 +157,7 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 int FAST_FUNC spawn_and_wait(char **argv)
 {
 	int rc;
-#if ENABLE_FEATURE_PREFER_APPLETS
+#if ENABLE_FEATURE_PREFER_APPLETS && (NUM_APPLETS > 1)
 	int a = find_applet_by_name(argv[0]);
 
 	if (a >= 0) {

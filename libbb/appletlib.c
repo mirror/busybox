@@ -78,6 +78,17 @@
 #endif
 
 
+unsigned FAST_FUNC string_array_len(char **argv)
+{
+	char **start = argv;
+
+	while (*argv)
+		argv++;
+
+	return argv - start;
+}
+
+
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
 static const char usage_messages[] ALIGN1 = UNPACKED_USAGE;
 #else
@@ -868,10 +879,7 @@ static int busybox_main(char **argv)
 # if NUM_APPLETS > 0
 void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 {
-	int argc = 1;
-
-	while (argv[argc])
-		argc++;
+	int argc = string_array_len(argv);
 
 	/* Reinit some shared global data */
 	xfunc_error_retval = EXIT_FAILURE;
@@ -993,7 +1001,11 @@ int main(int argc UNUSED_PARAM, char **argv)
 	}
 	/* applet_names in this case is just "applet\0\0" */
 	lbb_prepare(applet_names IF_FEATURE_INDIVIDUAL(, argv));
+# if ENABLE_BUILD_LIBBUSYBOX
+	return SINGLE_APPLET_MAIN(string_array_len(argv), argv);
+# else
 	return SINGLE_APPLET_MAIN(argc, argv);
+# endif
 
 #elif !ENABLE_BUSYBOX && NUM_APPLETS == 0
 
