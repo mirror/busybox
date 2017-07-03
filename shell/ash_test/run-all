@@ -59,9 +59,9 @@ do_test()
 if [ $# -lt 1 ]; then
     # All sub directories
     modules=`ls -d ash-*`
-    # If you want to test ash against hush and msh testsuites
-    # (have to copy hush_test and msh_test dirs to current dir first):
-    #modules=`ls -d ash-* hush_test/hush-* msh_test/msh-*`
+    # If you want to test ash against hush testsuite
+    # (have to copy hush_test dir to current dir first):
+    #modules=`ls -d ash-* hush_test/hush-*`
 
     for module in $modules; do
 	do_test $module

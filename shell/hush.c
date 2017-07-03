@@ -268,17 +268,9 @@
 //config:	bool "memleak builtin (debugging)"
 //config:	default n
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
-//config:
-//config:config MSH
-//config:	bool "msh (deprecated: aliased to hush)"
-//config:	default n
-//config:	select HUSH
-//config:	help
-//config:	  msh is deprecated and will be removed, please migrate to hush.
 
 //applet:IF_HUSH(APPLET(hush, BB_DIR_BIN, BB_SUID_DROP))
 //                       APPLET_ODDNAME:name  main  location    suid_type     help
-//applet:IF_MSH(         APPLET_ODDNAME(msh,  hush, BB_DIR_BIN, BB_SUID_DROP, hush))
 //applet:IF_SH_IS_HUSH(  APPLET_ODDNAME(sh,   hush, BB_DIR_BIN, BB_SUID_DROP, hush))
 //applet:IF_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, BB_DIR_BIN, BB_SUID_DROP, hush))
 
@@ -8806,16 +8798,6 @@ int hush_main(int argc, char **argv)
  final_return:
 	hush_exit(G.last_exitcode);
 }
-
-
-#if ENABLE_MSH
-int msh_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int msh_main(int argc, char **argv)
-{
-	bb_error_msg("msh is deprecated, please use hush instead");
-	return hush_main(argc, argv);
-}
-#endif
 
 
 /*
