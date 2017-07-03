@@ -1513,8 +1513,11 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 	} /* for (;;) */
 }
 
-#if !BB_MMU
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO \
+ || ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
+# if !BB_MMU
 static const char *const cat_args[] = { "cat", NULL };
+# endif
 #endif
 
 /*
@@ -1525,14 +1528,14 @@ static const char *const cat_args[] = { "cat", NULL };
 /* ARGSUSED */
 static void FAST_FUNC echo_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
-#if BB_MMU
+# if BB_MMU
 	while (1) {
 		ssize_t sz = safe_read(s, line, LINE_SIZE);
 		if (sz <= 0)
 			break;
 		xwrite(s, line, sz);
 	}
-#else
+# else
 	/* We are after vfork here! */
 	/* move network socket to stdin/stdout */
 	xmove_fd(s, STDIN_FILENO);
@@ -1542,7 +1545,7 @@ static void FAST_FUNC echo_stream(int s, servtab_t *sep UNUSED_PARAM)
 	xopen(bb_dev_null, O_WRONLY);
 	BB_EXECVP("cat", (char**)cat_args);
 	/* on failure we return to main, which does exit(EXIT_FAILURE) */
-#endif
+# endif
 }
 static void FAST_FUNC echo_dg(int s, servtab_t *sep)
 {
@@ -1566,10 +1569,10 @@ static void FAST_FUNC echo_dg(int s, servtab_t *sep)
 /* ARGSUSED */
 static void FAST_FUNC discard_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
-#if BB_MMU
+# if BB_MMU
 	while (safe_read(s, line, LINE_SIZE) > 0)
 		continue;
-#else
+# else
 	/* We are after vfork here! */
 	/* move network socket to stdin */
 	xmove_fd(s, STDIN_FILENO);
@@ -1580,7 +1583,7 @@ static void FAST_FUNC discard_stream(int s, servtab_t *sep UNUSED_PARAM)
 	xdup2(STDOUT_FILENO, STDERR_FILENO);
 	BB_EXECVP("cat", (char**)cat_args);
 	/* on failure we return to main, which does exit(EXIT_FAILURE) */
-#endif
+# endif
 }
 /* ARGSUSED */
 static void FAST_FUNC discard_dg(int s, servtab_t *sep UNUSED_PARAM)

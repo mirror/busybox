@@ -1,6 +1,10 @@
 #!/bin/sh
 
+run_testsuite=false
 run_testsuite=true
+
+run_single_test=false
+run_single_test=true
 
 test -d "$1" || { echo "'$1' is not a directory"; exit 1; }
 test -x "$1/scripts/randomtest" || { echo "No scripts/randomtest in '$1'"; exit 1; }
@@ -39,6 +43,28 @@ while sleep 1; do
 			continue
 		fi
 		tail -n10 -- "$dir/testsuite/runtest.log"
+	fi
+	if $run_single_test; then
+		(
+			cd -- "$dir" || exit 1
+			echo "Running make_single_applets.sh in $dir..."
+
+			if grep -q '# CONFIG_FEATURE_TFTP_GET is not set' .config \
+			&& grep -q '# CONFIG_FEATURE_TFTP_PUT is not set' .config \
+			; then
+				# If both off, tftp[d] is ifdefed out and test fails.
+				# Enable one:
+				sed 's/# CONFIG_FEATURE_TFTP_GET is not set/CONFIG_FEATURE_TFTP_GET=y/' -i .config
+			fi
+
+			./make_single_applets.sh
+		)
+		if test $? != 0; then
+			echo "Failed make_single_applets.sh in $dir"
+			exit 1 # you may comment this out...
+			let fail++
+			continue
+		fi
 	fi
 	rm -rf -- "$dir"
 	let cnt++

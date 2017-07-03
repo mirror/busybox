@@ -1486,8 +1486,6 @@ typedef struct save_arg_t {
 
 static void save_and_replace_G_args(save_arg_t *sv, char **argv)
 {
-	int n;
-
 	sv->sv_argv0 = argv[0];
 	sv->sv_g_argv = G.global_argv;
 	sv->sv_g_argc = G.global_argc;
@@ -1497,10 +1495,7 @@ static void save_and_replace_G_args(save_arg_t *sv, char **argv)
 	G.global_argv = argv;
 	IF_HUSH_SET(G.global_args_malloced = 0;)
 
-	n = 1;
-	while (*++argv)
-		n++;
-	G.global_argc = n;
+	G.global_argc = 1 + string_array_len(argv + 1);
 }
 
 static void restore_G_args(save_arg_t *sv, char **argv)
@@ -6817,13 +6812,11 @@ static void exec_function(char ***to_free,
 		char **argv)
 {
 # if BB_MMU
-	int n = 1;
+	int n;
 
 	argv[0] = G.global_argv[0];
 	G.global_argv = argv;
-	while (*++argv)
-		n++;
-	G.global_argc = n;
+	G.global_argc = n = 1 + string_array_len(argv + 1);
 	/* On MMU, funcp->body is always non-NULL */
 	n = run_list(funcp->body);
 	fflush_all();
@@ -8829,12 +8822,8 @@ static int FAST_FUNC builtin_true(char **argv UNUSED_PARAM)
 #if ENABLE_HUSH_TEST || ENABLE_HUSH_ECHO || ENABLE_HUSH_PRINTF || ENABLE_HUSH_KILL
 static int run_applet_main(char **argv, int (*applet_main_func)(int argc, char **argv))
 {
-	int argc = 0;
-	while (*argv) {
-		argc++;
-		argv++;
-	}
-	return applet_main_func(argc, argv - argc);
+	int argc = string_array_len(argv);
+	return applet_main_func(argc, argv);
 }
 #endif
 #if ENABLE_HUSH_TEST || BASH_TEST2
@@ -9381,10 +9370,7 @@ static int FAST_FUNC builtin_set(char **argv)
 	/* This realloc's G.global_argv */
 	G.global_argv = pp = add_strings_to_strings(g_argv, argv, /*dup:*/ 1);
 
-	n = 1;
-	while (*++pp)
-		n++;
-	G.global_argc = n;
+	G.global_argc = 1 + string_array_len(pp + 1);
 
 	return EXIT_SUCCESS;
 
