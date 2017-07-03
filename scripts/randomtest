@@ -82,6 +82,9 @@ if test x"$LIBC" = x"uclibc"; then
 	| grep -v CONFIG_BLKDISCARD \
 	| grep -v CONFIG_NSENTER \
 	| grep -v CONFIG_UNSHARE \
+	| grep -v CONFIG_FALLOCATE \
+	| grep -v CONFIG_UDHCPC6 \
+	| grep -v CONFIG_ASH_INTERNAL_GLOB \
 	>.config.new
 	mv .config.new .config
 	echo 'CONFIG_STATIC=y' >>.config
@@ -96,6 +99,9 @@ if test x"$LIBC" = x"uclibc"; then
 	echo '# CONFIG_BLKDISCARD is not set' >>.config
 	echo '# CONFIG_NSENTER is not set' >>.config
 	echo '# CONFIG_UNSHARE is not set' >>.config
+	echo '# CONFIG_FALLOCATE is not set' >>.config
+	echo '# CONFIG_UDHCPC6 is not set' >>.config
+	echo 'CONFIG_ASH_INTERNAL_GLOB=y' >>.config
 fi
 
 # If STATIC, remove some things.
