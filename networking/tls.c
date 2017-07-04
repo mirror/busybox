@@ -1199,11 +1199,11 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 	};
 	struct client_hello *record;
 	int len;
-	int sni_len = sni ? strnlen(sni, 127) : 0;
+	int sni_len = sni ? strnlen(sni, 127 - 9) : 0;
 
 	len = sizeof(*record);
 	if (sni_len)
-		len += 11 + strlen(sni);
+		len += 11 + sni_len;
 	record = tls_get_outbuf(tls, len);
 	memset(record, 0, len);
 
