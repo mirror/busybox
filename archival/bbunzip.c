@@ -448,7 +448,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //applet:IF_BUNZIP2(APPLET(bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                APPLET_ODDNAME:name   main     location        suid_type     help
 //applet:IF_BZCAT(APPLET_ODDNAME(bzcat, bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP, bzcat))
-#if ENABLE_FEATURE_BZIP2_DECOMPRESS || ENABLE_BUNZIP2
+#if ENABLE_FEATURE_BZIP2_DECOMPRESS || ENABLE_BUNZIP2 || ENABLE_BZCAT
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 {
