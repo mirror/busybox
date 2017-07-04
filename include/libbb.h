@@ -1033,6 +1033,15 @@ void die_if_bad_username(const char* name) FAST_FUNC;
 #else
 #define die_if_bad_username(name) ((void)(name))
 #endif
+/*
+ * Returns (-1) terminated malloced result of getgroups().
+ * Reallocs group_array (useful for repeated calls).
+ * ngroups is an initial size of array. It is rounded up to 32 for realloc.
+ * ngroups is updated on return.
+ * ngroups can be NULL: bb_getgroups(NULL, NULL) is valid usage.
+ * Dies on errors (on Linux, only xrealloc can cause this, not internal getgroups call).
+ */
+gid_t *bb_getgroups(int *ngroups, gid_t *group_array) FAST_FUNC;
 
 #if ENABLE_FEATURE_UTMP
 void FAST_FUNC write_new_utmp(pid_t pid, int new_type, const char *tty_name, const char *username, const char *hostname);

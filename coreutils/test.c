@@ -563,25 +563,10 @@ static int binop(void)
 	/*return 1; - NOTREACHED */
 }
 
-
 static void initialize_group_array(void)
 {
-	int n;
-
-	/* getgroups may be expensive, try to use it only once */
-	ngroups = 32;
-	do {
-		/* FIXME: ash tries so hard to not die on OOM,
-		 * and we spoil it with just one xrealloc here */
-		/* We realloc, because test_main can be entered repeatedly by shell.
-		 * Testcase (ash): 'while true; do test -x some_file; done'
-		 * and watch top. (some_file must have owner != you) */
-		n = ngroups;
-		group_array = xrealloc(group_array, n * sizeof(gid_t));
-		ngroups = getgroups(n, group_array);
-	} while (ngroups > n);
+	group_array = bb_getgroups(&ngroups, NULL);
 }
-
 
 /* Return non-zero if GID is one that we have in our groups list. */
 //XXX: FIXME: duplicate of existing libbb function?
@@ -610,13 +595,9 @@ static int is_a_group_member(gid_t gid)
 /* Do the same thing access(2) does, but use the effective uid and gid,
    and don't make the mistake of telling root that any file is
    executable. */
-static int test_eaccess(char *path, int mode)
+static int test_eaccess(struct stat *st, int mode)
 {
-	struct stat st;
 	unsigned int euid = geteuid();
-
-	if (stat(path, &st) < 0)
-		return -1;
 
 	if (euid == 0) {
 		/* Root can read or write any file. */
@@ -625,16 +606,16 @@ static int test_eaccess(char *path, int mode)
 
 		/* Root can execute any file that has any one of the execute
 		 * bits set. */
-		if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
+		if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
 			return 0;
 	}
 
-	if (st.st_uid == euid)  /* owner */
+	if (st->st_uid == euid)  /* owner */
 		mode <<= 6;
-	else if (is_a_group_member(st.st_gid))
+	else if (is_a_group_member(st->st_gid))
 		mode <<= 3;
 
-	if (st.st_mode & mode)
+	if (st->st_mode & mode)
 		return 0;
 
 	return -1;
@@ -667,7 +648,7 @@ static int filstat(char *nm, enum token mode)
 			i = W_OK;
 		if (mode == FILEX)
 			i = X_OK;
-		return test_eaccess(nm, i) == 0;
+		return test_eaccess(&s, i) == 0;
 	}
 	if (is_file_type(mode)) {
 		if (mode == FILREG)
