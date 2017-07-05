@@ -7613,7 +7613,9 @@ expandhere(union node *arg, int fd)
 static int
 patmatch(char *pattern, const char *string)
 {
-	return pmatch(preglob(pattern, 0), string);
+	char *p = preglob(pattern, 0);
+	//bb_error_msg("fnmatch(pattern:'%s',str:'%s')", p, string);
+	return pmatch(p, string);
 }
 
 /*

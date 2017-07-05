@@ -5969,7 +5969,7 @@ static char *expand_string_to_string(const char *str, int do_unbackslash)
 	return (char*)list;
 }
 
-/* Used for "eval" builtin */
+/* Used for "eval" builtin and case string */
 static char* expand_strvec_to_string(char **argv)
 {
 	char **list;
@@ -8053,6 +8053,7 @@ static int run_list(struct pipe *pi)
 		if (rword == RES_CASE) {
 			debug_printf_exec("CASE cond_code:%d\n", cond_code);
 			case_word = expand_strvec_to_string(pi->cmds->argv);
+			unbackslash(case_word);
 			continue;
 		}
 		if (rword == RES_MATCH) {
@@ -8064,9 +8065,10 @@ static int run_list(struct pipe *pi)
 			/* all prev words didn't match, does this one match? */
 			argv = pi->cmds->argv;
 			while (*argv) {
-				char *pattern = expand_string_to_string(*argv, /*unbackslash:*/ 1);
+				char *pattern = expand_string_to_string(*argv, /*unbackslash:*/ 0);
 				/* TODO: which FNM_xxx flags to use? */
 				cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
+				debug_printf_exec("fnmatch(pattern:'%s',str:'%s'):%d\n", pattern, case_word, cond_code);
 				free(pattern);
 				if (cond_code == 0) { /* match! we will execute this branch */
 					free(case_word);
