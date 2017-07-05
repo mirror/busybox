@@ -5939,12 +5939,17 @@ rmescapes(char *str, int flag)
 				 * (for example, glibc <= 2.22).
 				 *
 				 * Lets add "\" only on the chars which need it.
+				 * Testcases for less obvious chars are shown.
 				 */
 				if (*p == '*'
 				 || *p == '?'
 				 || *p == '['
-				/* || *p == ']' maybe also this? */
-				 || *p == '\\'
+				 || *p == '\\' /* case '\' in \\ ) echo ok;; *) echo WRONG;; esac */
+				 || *p == ']' /* case ']' in [a\]] ) echo ok;; *) echo WRONG;; esac */
+				 || *p == '-' /* case '-' in [a\-c]) echo ok;; *) echo WRONG;; esac */
+				 || *p == '!' /* case '!' in [\!] ) echo ok;; *) echo WRONG;; esac */
+				/* Some libc support [^negate], that's why "^" also needs love */
+				 || *p == '^' /* case '^' in [\^] ) echo ok;; *) echo WRONG;; esac */
 				) {
 					*q++ = '\\';
 				}
