@@ -5931,7 +5931,7 @@ rmescapes(char *str, int flag)
 				 * superfluous escapes (\z where z has no
 				 * special meaning anyway). But this causes
 				 * bugs such as string of one greek letter rho
-				 * (unicode-encoded as two bytes 'cf,81")
+				 * (unicode-encoded as two bytes "cf,81")
 				 * getting encoded as "cf,CTLESC,81"
 				 * and here, converted to "cf,\,81" -
 				 * which does not go well with some flavors
