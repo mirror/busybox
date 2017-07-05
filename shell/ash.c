@@ -5935,7 +5935,8 @@ rmescapes(char *str, int flag)
 				 * getting encoded as "cf,CTLESC,81"
 				 * and here, converted to "cf,\,81" -
 				 * which does not go well with some flavors
-				 * of fnmatch() in unicode locales.
+				 * of fnmatch() in unicode locales
+				 * (for example, glibc <= 2.22).
 				 *
 				 * Lets add "\" only on the chars which need it.
 				 */
