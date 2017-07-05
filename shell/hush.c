@@ -5189,7 +5189,7 @@ static struct pipe *parse_stream(char **pstring,
 /*** Execution routines ***/
 
 /* Expansion can recurse, need forward decls: */
-#if !BASH_PATTERN_SUBST
+#if !BASH_PATTERN_SUBST && !ENABLE_HUSH_CASE
 /* only ${var/pattern/repl} (its pattern part) needs additional mode */
 #define expand_string_to_string(str, do_unbackslash) \
 	expand_string_to_string(str)
@@ -5317,6 +5317,9 @@ static int expand_on_ifs(int *ended_with_ifs, o_string *output, int n, const cha
 #endif
 static char *encode_then_expand_string(const char *str, int process_bkslash, int do_unbackslash)
 {
+#if !BASH_PATTERN_SUBST
+	const int do_unbackslash = 1;
+#endif
 	char *exp_str;
 	struct in_str input;
 	o_string dest = NULL_O_STRING;
@@ -5936,7 +5939,7 @@ static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
  */
 static char *expand_string_to_string(const char *str, int do_unbackslash)
 {
-#if !BASH_PATTERN_SUBST
+#if !BASH_PATTERN_SUBST && !ENABLE_HUSH_CASE
 	const int do_unbackslash = 1;
 #endif
 	char *argv[2], **list;
