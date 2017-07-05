@@ -1938,10 +1938,6 @@ int dpkg_main(int argc UNUSED_PARAM, char **argv)
 		for (i = 0; i < STATUS_HASH_PRIME; i++) {
 			free(status_hashtable[i]);
 		}
-
-		free(status_hashtable);
-		free(package_hashtable);
-		free(name_hashtable);
 	}
 
 	return EXIT_SUCCESS;
