@@ -5913,6 +5913,7 @@ rmescapes(char *str, int flag)
 	while (*p) {
 		if ((unsigned char)*p == CTLQUOTEMARK) {
 // Note: both inquotes and protect_against_glob only affect whether
+// CTLESC,<ch> gets converted to <ch> or to \<ch>
 			inquotes = ~inquotes;
 			p++;
 			protect_against_glob = globbing;
@@ -5925,7 +5926,27 @@ rmescapes(char *str, int flag)
 				ash_msg_and_raise_error("CTLESC at EOL (shouldn't happen)");
 #endif
 			if (protect_against_glob) {
-				*q++ = '\\';
+				/*
+				 * We used to trust glob() and fnmatch() to eat
+				 * superfluous escapes (\z where z has no
+				 * special meaning anyway). But this causes
+				 * bugs such as string of one greek letter rho
+				 * (unicode-encoded as two bytes 'cf,81")
+				 * getting encoded as "cf,CTLESC,81"
+				 * and here, converted to "cf,\,81" -
+				 * which does not go well with some flavors
+				 * of fnmatch() in unicode locales.
+				 *
+				 * Lets add "\" only on the chars which need it.
+				 */
+				if (*p == '*'
+				 || *p == '?'
+				 || *p == '['
+				/* || *p == ']' maybe also this? */
+				 || *p == '\\'
+				) {
+					*q++ = '\\';
+				}
 			}
 		} else if (*p == '\\' && !inquotes) {
 			/* naked back slash */
