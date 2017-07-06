@@ -62,6 +62,10 @@
 #define PR_SET_NO_NEW_PRIVS 38
 #endif
 
+#ifndef PR_GET_NO_NEW_PRIVS
+#define PR_GET_NO_NEW_PRIVS 39
+#endif
+
 enum {
 	IF_FEATURE_SETPRIV_DUMP(OPTBIT_DUMP,)
 	OPTBIT_NNP,
@@ -76,12 +80,16 @@ static int dump(void)
 	uid_t ruid, euid, suid;
 	gid_t rgid, egid, sgid;
 	gid_t *gids;
-	int ngids;
+	int ngids, nnp;
 
 	getresuid(&ruid, &euid, &suid); /* never fails in Linux */
 	getresgid(&rgid, &egid, &sgid); /* never fails in Linux */
 	ngids = 0;
 	gids = bb_getgroups(&ngids, NULL); /* never fails in Linux */
+
+	nnp = prctl(PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
+	if (nnp < 0)
+		bb_simple_perror_msg_and_die("prctl: GET_NO_NEW_PRIVS");
 
 	printf("uid: %u\n", (unsigned)ruid);
 	printf("euid: %u\n", (unsigned)euid);
@@ -99,7 +107,7 @@ static int dump(void)
 			fmt = ",%u";
 		}
 	}
-	bb_putchar('\n');
+	printf("\nno_new_privs: %d\n", nnp);
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(gids);
