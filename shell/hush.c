@@ -9377,7 +9377,18 @@ static int FAST_FUNC builtin_shift(char **argv)
 	int n = 1;
 	argv = skip_dash_dash(argv);
 	if (argv[0]) {
-		n = atoi(argv[0]);
+		n = bb_strtou(argv[0], NULL, 10);
+		if (errno || n < 0) {
+			/* shared string with ash.c */
+			bb_error_msg("Illegal number: %s", argv[0]);
+			/*
+			 * ash aborts in this case.
+			 * bash prints error message and set $? to 1.
+			 * Interestingly, for "shift 99999" bash does not
+			 * print error message, but does set $? to 1
+			 * (and does no shifting at all).
+			 */
+		}
 	}
 	if (n >= 0 && n < G.global_argc) {
 		if (G_global_args_malloced) {

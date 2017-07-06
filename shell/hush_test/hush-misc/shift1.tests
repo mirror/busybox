@@ -1,5 +1,5 @@
 $THIS_SH -c 'shift;    echo "$@"' 0 1 2 3 4
-# We do complain on -1, but then we abort. bash executes echo.
+#We complain on -1 and continue.
 $THIS_SH -c 'shift -1; echo "$@"' 0 1 2 3 4
 $THIS_SH -c 'shift  0; echo "$@"' 0 1 2 3 4
 $THIS_SH -c 'shift  1; echo "$@"' 0 1 2 3 4
