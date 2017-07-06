@@ -1,9 +1,12 @@
-echo hello >greeting
-cat <<EOF &&
-$(cat greeting)
-EOF
-{
-	echo $?
-	cat greeting
-} >/dev/null
-rm greeting
+f=1
+  cat <<- EOF-f""
+		exit EOF-f
+"
+echo $f
+echo `echo Hello World`
+		moo	 
+ EOF-f
+EOF-f   f
+EOF-f 
+EOF-f
+echo Ok
