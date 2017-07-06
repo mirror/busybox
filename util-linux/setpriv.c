@@ -94,6 +94,11 @@
 #define PR_GET_NO_NEW_PRIVS 39
 #endif
 
+#ifndef PR_CAP_AMBIENT
+#define PR_CAP_AMBIENT 47
+#define PR_CAP_AMBIENT_IS_SET 1
+#endif
+
 enum {
 	IF_FEATURE_SETPRIV_DUMP(OPTBIT_DUMP,)
 	OPTBIT_NNP,
@@ -250,6 +255,27 @@ static int dump(void)
 		}
 	}
 	if (!fmt[0])
+		printf("[none]");
+
+	printf("\nAmbient capabilities: ");
+	fmt = "";
+	for (i = 0; cap_valid(i); i++) {
+		int ret = prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, (unsigned long) i, 0UL, 0UL);
+		if (ret < 0)
+			bb_simple_perror_msg_and_die("prctl: CAP_AMBIENT_IS_SET");
+		if (ret) {
+#  if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
+			if (i < ARRAY_SIZE(capabilities))
+				printf("%s%s", fmt, capabilities[i]);
+			else
+#  endif
+				printf("%scap_%u", fmt, i);
+			fmt = ",";
+		}
+	}
+	if (i == 0)
+		printf("[unsupported]");
+	else if (!fmt[0])
 		printf("[none]");
 
 	printf("\nCapability bounding set: ");
