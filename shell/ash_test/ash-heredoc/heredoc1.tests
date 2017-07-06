@@ -1,3 +1,9 @@
-# We used to SEGV on this:
-
-<<EOF; then <W
+cat <<000; cat <<www; cat <<eee
+000
+qwe
+asd
+www
+123
+456
+eee
+echo Ok
