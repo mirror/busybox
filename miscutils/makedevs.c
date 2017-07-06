@@ -262,9 +262,7 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 			if (chmod(full_name, mode) < 0)
 				goto chmod_fail;
 		} else {
-			dev_t rdev;
 			unsigned i;
-			char *full_name_inc;
 
 			if (type == 'p') {
 				mode |= S_IFIFO;
@@ -278,26 +276,29 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 			}
 
-			full_name_inc = xmalloc(strlen(full_name) + sizeof(int)*3 + 2);
-			if (count)
+			if (count != 0)
 				count--;
-			for (i = start; i <= start + count; i++) {
-				sprintf(full_name_inc, count ? "%s%u" : "%s", full_name, i);
-				rdev = makedev(major, minor + (i - start) * increment);
-				if (mknod(full_name_inc, mode, rdev) != 0
+			for (i = 0; i <= count; i++) {
+				dev_t rdev;
+				char *nameN = full_name;
+				if (count != 0)
+					nameN = xasprintf("%s%u", full_name, start + i);
+				rdev = makedev(major, minor + i * increment);
+				if (mknod(nameN, mode, rdev) != 0
 				 && errno != EEXIST
 				) {
-					bb_perror_msg("line %d: can't create node %s", linenum, full_name_inc);
+					bb_perror_msg("line %d: can't create node %s", linenum, nameN);
 					ret = EXIT_FAILURE;
-				} else if (chown(full_name_inc, uid, gid) < 0) {
-					bb_perror_msg("line %d: can't chown %s", linenum, full_name_inc);
+				} else if (chown(nameN, uid, gid) < 0) {
+					bb_perror_msg("line %d: can't chown %s", linenum, nameN);
 					ret = EXIT_FAILURE;
-				} else if (chmod(full_name_inc, mode) < 0) {
-					bb_perror_msg("line %d: can't chmod %s", linenum, full_name_inc);
+				} else if (chmod(nameN, mode) < 0) {
+					bb_perror_msg("line %d: can't chmod %s", linenum, nameN);
 					ret = EXIT_FAILURE;
 				}
+				if (count != 0)
+					free(nameN);
 			}
-			free(full_name_inc);
 		}
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
