@@ -208,17 +208,17 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 		unsigned count = 0;
 		unsigned increment = 0;
 		unsigned start = 0;
-		char name[41];
 		char user[41];
 		char group[41];
-		char *full_name = name;
+		char *full_name;
+		int name_len;
 		uid_t uid;
 		gid_t gid;
 
 		linenum = parser->lineno;
 
-		if ((2 > sscanf(line, "%40s %c %o %40s %40s %u %u %u %u %u",
-					name, &type, &mode, user, group,
+		if ((1 > sscanf(line, "%*s%n %c %o %40s %40s %u %u %u %u %u",
+					&name_len, &type, &mode, user, group,
 					&major, &minor, &start, &increment, &count))
 		 || ((unsigned)(major | minor | start | count | increment) > 255)
 		) {
@@ -229,9 +229,11 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 
 		gid = (*group) ? get_ug_id(group, xgroup2gid) : getgid();
 		uid = (*user) ? get_ug_id(user, xuname2uid) : getuid();
+		line[name_len] = '\0';
+		full_name = line;
 		/* We are already in the right root dir,
 		 * so make absolute paths relative */
-		if ('/' == *full_name)
+		if ('/' == full_name[0])
 			full_name++;
 
 		if (type == 'd') {
