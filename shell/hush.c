@@ -5619,8 +5619,12 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				goto arith_err;
 			debug_printf_varexp("len:'%s'=%lld\n", exp_word, (long long)len);
 			if (len >= 0) { /* bash compat: len < 0 is illegal */
-				if (beg < 0) /* bash compat */
-					beg = 0;
+				if (beg < 0) {
+					/* negative beg counts from the end */
+					beg = (arith_t)strlen(val) + beg;
+					if (beg < 0) /* ${v: -999999} is "" */
+						beg = len = 0;
+				}
 				debug_printf_varexp("from val:'%s'\n", val);
 				if (len == 0 || !val || beg >= strlen(val)) {
  arith_err:
