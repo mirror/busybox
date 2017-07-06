@@ -23,6 +23,26 @@
 //config:	help
 //config:	  Enables the "--dump" switch to print out the current privilege
 //config:	  state. This is helpful for diagnosing problems.
+//config:
+//config:config FEATURE_SETPRIV_CAPABILITIES
+//config:	bool "Support capabilities"
+//config:	default y
+//config:	depends on SETPRIV
+//config:	help
+//config:	  Capabilities can be used to grant processes additional rights
+//config:	  without the necessity to always execute as the root user.
+//config:	  Enabling this option enables "--dump" to show information on
+//config:	  capabilities.
+//config:
+//config:config FEATURE_SETPRIV_CAPABILITY_NAMES
+//config:	bool "Support capability names"
+//config:	default y
+//config:	depends on SETPRIV && FEATURE_SETPRIV_CAPABILITIES
+//config:	help
+//config:	  Capabilities can be either referenced via a human-readble name,
+//config:	  e.g. "net_admin", or using their index, e.g. "cap_12". Enabling
+//config:	  this option allows using the human-readable names in addition to
+//config:	  the index-based names.
 
 //applet:IF_SETPRIV(APPLET(setpriv, BB_DIR_BIN, BB_SUID_DROP))
 
@@ -55,6 +75,10 @@
 // --selinux-label <label>  set SELinux label
 // --apparmor-profile <pr>  set AppArmor profile
 
+#if ENABLE_FEATURE_SETPRIV_CAPABILITIES
+#include <linux/capability.h>
+#include <sys/capability.h>
+#endif
 #include <sys/prctl.h>
 #include "libbb.h"
 
@@ -74,13 +98,106 @@ enum {
 	OPT_NNP  = (1 << OPTBIT_NNP),
 };
 
+#if ENABLE_FEATURE_SETPRIV_CAPABILITIES
+struct caps {
+	struct __user_cap_header_struct header;
+	cap_user_data_t data;
+	int u32s;
+};
+
+#if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
+static const char *const capabilities[] = {
+	"chown",
+	"dac_override",
+	"dac_read_search",
+	"fowner",
+	"fsetid",
+	"kill",
+	"setgid",
+	"setuid",
+	"setpcap",
+	"linux_immutable",
+	"net_bind_service",
+	"net_broadcast",
+	"net_admin",
+	"net_raw",
+	"ipc_lock",
+	"ipc_owner",
+	"sys_module",
+	"sys_rawio",
+	"sys_chroot",
+	"sys_ptrace",
+	"sys_pacct",
+	"sys_admin",
+	"sys_boot",
+	"sys_nice",
+	"sys_resource",
+	"sys_time",
+	"sys_tty_config",
+	"mknod",
+	"lease",
+	"audit_write",
+	"audit_control",
+	"setfcap",
+	"mac_override",
+	"mac_admin",
+	"syslog",
+	"wake_alarm",
+	"block_suspend",
+	"audit_read",
+};
+#endif /* FEATURE_SETPRIV_CAPABILITY_NAMES */
+
+#endif /* FEATURE_SETPRIV_CAPABILITIES */
+
 #if ENABLE_FEATURE_SETPRIV_DUMP
+# if ENABLE_FEATURE_SETPRIV_CAPABILITIES
+static void getcaps(struct caps *caps)
+{
+	int versions[] = {
+		_LINUX_CAPABILITY_U32S_3,
+		_LINUX_CAPABILITY_U32S_2,
+		_LINUX_CAPABILITY_U32S_1,
+	};
+	int i;
+
+	caps->header.pid = 0;
+	for (i = 0; i < ARRAY_SIZE(versions); i++) {
+		caps->header.version = versions[i];
+		if (capget(&caps->header, NULL) == 0)
+			goto got_it;
+	}
+	bb_simple_perror_msg_and_die("capget");
+ got_it:
+
+	switch (caps->header.version) {
+		case _LINUX_CAPABILITY_VERSION_1:
+			caps->u32s = _LINUX_CAPABILITY_U32S_1;
+			break;
+		case _LINUX_CAPABILITY_VERSION_2:
+			caps->u32s = _LINUX_CAPABILITY_U32S_2;
+			break;
+		case _LINUX_CAPABILITY_VERSION_3:
+			caps->u32s = _LINUX_CAPABILITY_U32S_3;
+			break;
+		default:
+			bb_error_msg_and_die("unsupported capability version");
+	}
+
+	caps->data = xmalloc(sizeof(caps->data[0]) * caps->u32s);
+	if (capget(&caps->header, caps->data) < 0)
+		bb_simple_perror_msg_and_die("capget");
+}
+# endif /* FEATURE_SETPRIV_CAPABILITIES */
+
 static int dump(void)
 {
+	IF_FEATURE_SETPRIV_CAPABILITIES(struct caps caps;)
+	const char *fmt;
 	uid_t ruid, euid, suid;
 	gid_t rgid, egid, sgid;
 	gid_t *gids;
-	int ngids, nnp;
+	int i, ngids, nnp;
 
 	getresuid(&ruid, &euid, &suid); /* never fails in Linux */
 	getresgid(&rgid, &egid, &sgid); /* never fails in Linux */
@@ -100,8 +217,7 @@ static int dump(void)
 	if (ngids == 0) {
 		printf("[none]");
 	} else {
-		const char *fmt = ",%u" + 1;
-		int i;
+		fmt = ",%u" + 1;
 		for (i = 0; i < ngids; i++) {
 			printf(fmt, (unsigned)gids[i]);
 			fmt = ",%u";
@@ -109,8 +225,35 @@ static int dump(void)
 	}
 	printf("\nno_new_privs: %d\n", nnp);
 
-	if (ENABLE_FEATURE_CLEAN_UP)
+# if ENABLE_FEATURE_SETPRIV_CAPABILITIES
+	getcaps(&caps);
+	printf("Inheritable capabilities: ");
+	fmt = "";
+	for (i = 0; cap_valid(i); i++) {
+		unsigned idx = CAP_TO_INDEX(i);
+		if (idx >= caps.u32s) {
+			printf("\nindex: %u u32s: %u capability: %u\n", idx, caps.u32s, i);
+			bb_error_msg_and_die("unsupported capability");
+		}
+		if (caps.data[idx].inheritable & CAP_TO_MASK(i)) {
+#  if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
+			if (i < ARRAY_SIZE(capabilities))
+				printf("%s%s", fmt, capabilities[i]);
+			else
+#  endif
+				printf("%scap_%u", fmt, i);
+			fmt = ",";
+		}
+	}
+	if (!fmt[0])
+		printf("[none]");
+	bb_putchar('\n');
+# endif
+
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		IF_FEATURE_SETPRIV_CAPABILITIES(free(caps.data);)
 		free(gids);
+	}
 	return EXIT_SUCCESS;
 }
 #endif /* FEATURE_SETPRIV_DUMP */
