@@ -56,6 +56,9 @@
 //usage:     "\n-d,--dump		Show current capabilities"
 //usage:	)
 //usage:     "\n--nnp,--no-new-privs	Ignore setuid/setgid bits and file capabilities"
+//usage:	IF_FEATURE_SETPRIV_CAPABILITIES(
+//usage:     "\n--inh-caps CAP[,CAP...]	Set inheritable capabilities"
+//usage:	)
 
 //setpriv from util-linux 2.28:
 // -d, --dump               show current state (and do not exec anything)
@@ -101,9 +104,11 @@
 
 enum {
 	IF_FEATURE_SETPRIV_DUMP(OPTBIT_DUMP,)
+	IF_FEATURE_SETPRIV_CAPABILITIES(OPTBIT_INH,)
 	OPTBIT_NNP,
 
 	IF_FEATURE_SETPRIV_DUMP(OPT_DUMP = (1 << OPTBIT_DUMP),)
+	IF_FEATURE_SETPRIV_CAPABILITIES(OPT_INH  = (1 << OPTBIT_INH),)
 	OPT_NNP  = (1 << OPTBIT_NNP),
 };
 
@@ -159,8 +164,7 @@ static const char *const capabilities[] = {
 
 #endif /* FEATURE_SETPRIV_CAPABILITIES */
 
-#if ENABLE_FEATURE_SETPRIV_DUMP
-# if ENABLE_FEATURE_SETPRIV_CAPABILITIES
+#if ENABLE_FEATURE_SETPRIV_CAPABILITIES
 static void getcaps(struct caps *caps)
 {
 	int versions[] = {
@@ -197,8 +201,9 @@ static void getcaps(struct caps *caps)
 	if (capget(&caps->header, caps->data) < 0)
 		bb_simple_perror_msg_and_die("capget");
 }
-# endif /* FEATURE_SETPRIV_CAPABILITIES */
+#endif /* FEATURE_SETPRIV_CAPABILITIES */
 
+#if ENABLE_FEATURE_SETPRIV_DUMP
 static int dump(void)
 {
 	IF_FEATURE_SETPRIV_CAPABILITIES(struct caps caps;)
@@ -215,7 +220,7 @@ static int dump(void)
 
 	nnp = prctl(PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
 	if (nnp < 0)
-		bb_simple_perror_msg_and_die("prctl: GET_NO_NEW_PRIVS");
+		bb_perror_msg_and_die("prctl: %s", "GET_NO_NEW_PRIVS");
 
 	printf("uid: %u\n", (unsigned)ruid);
 	printf("euid: %u\n", (unsigned)euid);
@@ -262,7 +267,7 @@ static int dump(void)
 	for (i = 0; cap_valid(i); i++) {
 		int ret = prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, (unsigned long) i, 0UL, 0UL);
 		if (ret < 0)
-			bb_simple_perror_msg_and_die("prctl: CAP_AMBIENT_IS_SET");
+			bb_perror_msg_and_die("prctl: %s", "CAP_AMBIENT_IS_SET");
 		if (ret) {
 #  if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
 			if (i < ARRAY_SIZE(capabilities))
@@ -283,7 +288,7 @@ static int dump(void)
 	for (i = 0; cap_valid(i); i++) {
 		int ret = prctl(PR_CAPBSET_READ, (unsigned long) i, 0UL, 0UL, 0UL);
 		if (ret < 0)
-			bb_simple_perror_msg_and_die("prctl: CAPBSET_READ");
+			bb_perror_msg_and_die("prctl: %s", "CAPBSET_READ");
 		if (ret) {
 #  if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
 			if (i < ARRAY_SIZE(capabilities))
@@ -307,20 +312,94 @@ static int dump(void)
 }
 #endif /* FEATURE_SETPRIV_DUMP */
 
+#if ENABLE_FEATURE_SETPRIV_CAPABILITIES
+static void parse_cap(unsigned long *index, int *add, const char *cap)
+{
+	unsigned long i;
+
+	switch (cap[0]) {
+	case '-':
+		*add = 0;
+		break;
+	case '+':
+		*add = 1;
+		break;
+	default:
+		bb_error_msg_and_die("invalid capability '%s'", cap);
+		break;
+	}
+
+	cap++;
+	if ((sscanf(cap, "cap_%lu", &i)) == 1) {
+		if (!cap_valid(i))
+			bb_error_msg_and_die("unsupported capability '%s'", cap);
+		*index = i;
+		return;
+	}
+
+# if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
+	for (i = 0; i < ARRAY_SIZE(capabilities); i++) {
+		if (strcmp(capabilities[i], cap) != 0)
+			continue;
+
+		if (!cap_valid(i))
+			bb_error_msg_and_die("unsupported capability '%s'", cap);
+		*index = i;
+		return;
+	}
+# endif
+
+	bb_error_msg_and_die("unknown capability '%s'", cap);
+}
+
+static void set_inh_caps(char *capstring)
+{
+	struct caps caps;
+
+	getcaps(&caps);
+
+	capstring = strtok(capstring, ",");
+	while (capstring) {
+		unsigned long cap;
+		int add;
+
+		parse_cap(&cap, &add, capstring);
+		if (CAP_TO_INDEX(cap) >= caps.u32s)
+			bb_error_msg_and_die("invalid capability cap");
+		if (add)
+			caps.data[CAP_TO_INDEX(cap)].inheritable |= CAP_TO_MASK(cap);
+		else
+			caps.data[CAP_TO_INDEX(cap)].inheritable &= ~CAP_TO_MASK(cap);
+		capstring = strtok(NULL, ",");
+	}
+
+	if ((capset(&caps.header, caps.data)) < 0)
+		bb_perror_msg_and_die("capset");
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(caps.data);
+}
+#endif /* FEATURE_SETPRIV_CAPABILITIES */
+
 int setpriv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setpriv_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const char setpriv_longopts[] ALIGN1 =
 		IF_FEATURE_SETPRIV_DUMP(
-		"dump\0"         No_argument	"d"
+		"dump\0"         No_argument		"d"
 		)
-		"nnp\0"          No_argument	"\xff"
-		"no-new-privs\0" No_argument	"\xff"
+		"nnp\0"          No_argument		"\xff"
+		"no-new-privs\0" No_argument		"\xff"
+		IF_FEATURE_SETPRIV_CAPABILITIES(
+		"inh-caps\0"     Required_argument	"\xfe"
+		)
 		;
 	int opts;
+	IF_FEATURE_SETPRIV_CAPABILITIES(char *inh_caps;)
 
 	applet_long_options = setpriv_longopts;
-	opts = getopt32(argv, "+"IF_FEATURE_SETPRIV_DUMP("d"));
+	opts = getopt32(argv, "+"IF_FEATURE_SETPRIV_DUMP("d")
+			IF_FEATURE_SETPRIV_CAPABILITIES("\xfe:", &inh_caps));
 	argv += optind;
 
 #if ENABLE_FEATURE_SETPRIV_DUMP
@@ -332,8 +411,13 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	if (opts & OPT_NNP) {
 		if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0))
-			bb_simple_perror_msg_and_die("prctl: NO_NEW_PRIVS");
+			bb_perror_msg_and_die("prctl: %s", "SET_NO_NEW_PRIVS");
 	}
+
+#if ENABLE_FEATURE_SETPRIV_CAPABILITIES
+	if (opts & OPT_INH)
+		set_inh_caps(inh_caps);
+#endif
 
 	if (!argv[0])
 		bb_show_usage();
