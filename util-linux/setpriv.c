@@ -82,6 +82,10 @@
 #include <sys/prctl.h>
 #include "libbb.h"
 
+#ifndef PR_CAPBSET_READ
+#define PR_CAPBSET_READ 23
+#endif
+
 #ifndef PR_SET_NO_NEW_PRIVS
 #define PR_SET_NO_NEW_PRIVS 38
 #endif
@@ -236,6 +240,25 @@ static int dump(void)
 			bb_error_msg_and_die("unsupported capability");
 		}
 		if (caps.data[idx].inheritable & CAP_TO_MASK(i)) {
+#  if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
+			if (i < ARRAY_SIZE(capabilities))
+				printf("%s%s", fmt, capabilities[i]);
+			else
+#  endif
+				printf("%scap_%u", fmt, i);
+			fmt = ",";
+		}
+	}
+	if (!fmt[0])
+		printf("[none]");
+
+	printf("\nCapability bounding set: ");
+	fmt = "";
+	for (i = 0; cap_valid(i); i++) {
+		int ret = prctl(PR_CAPBSET_READ, (unsigned long) i, 0UL, 0UL, 0UL);
+		if (ret < 0)
+			bb_simple_perror_msg_and_die("prctl: CAPBSET_READ");
+		if (ret) {
 #  if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
 			if (i < ARRAY_SIZE(capabilities))
 				printf("%s%s", fmt, capabilities[i]);
