@@ -7723,6 +7723,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			unset_vars(new_env);
 			add_vars(old_vars);
 /* clean_up_and_ret0: */
+
+//FIXME: this restores stdio fds, but does not close other redirects!
+//Example: after "echo TEST 9>/dev/null" fd#9 is not closed!
+//The squirreling code needs rework to remember all fds, not just 0,1,2.
 			restore_redirects(squirrel);
  clean_up_and_ret1:
 			free(argv_expanded);
