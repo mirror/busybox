@@ -81,7 +81,14 @@
 
 #if ENABLE_FEATURE_SETPRIV_CAPABILITIES
 #include <linux/capability.h>
-#include <sys/capability.h>
+// #include <sys/capability.h>
+// This header is in libcap, but the functions are in libc.
+// Comment in the header says this above capset/capget:
+/* system calls - look to libc for function to system call mapping */
+extern int capset(cap_user_header_t header, cap_user_data_t data);
+extern int capget(cap_user_header_t header, const cap_user_data_t data);
+// so for bbox, let's just repeat the declarations.
+// This way, libcap needs not be installed in build environment.
 #endif
 #include <sys/prctl.h>
 #include "libbb.h"
