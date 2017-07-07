@@ -57,7 +57,8 @@
 //usage:	)
 //usage:     "\n--nnp,--no-new-privs	Ignore setuid/setgid bits and file capabilities"
 //usage:	IF_FEATURE_SETPRIV_CAPABILITIES(
-//usage:     "\n--inh-caps CAP[,CAP...]	Set inheritable capabilities"
+//usage:     "\n--inh-caps CAP,CAP	Set inheritable capabilities"
+//usage:     "\n--ambient-caps CAP,CAP	Set ambient capabilities"
 //usage:	)
 
 //setpriv from util-linux 2.28:
@@ -100,15 +101,19 @@
 #ifndef PR_CAP_AMBIENT
 #define PR_CAP_AMBIENT 47
 #define PR_CAP_AMBIENT_IS_SET 1
+#define PR_CAP_AMBIENT_RAISE 2
+#define PR_CAP_AMBIENT_LOWER 3
 #endif
 
 enum {
 	IF_FEATURE_SETPRIV_DUMP(OPTBIT_DUMP,)
 	IF_FEATURE_SETPRIV_CAPABILITIES(OPTBIT_INH,)
+	IF_FEATURE_SETPRIV_CAPABILITIES(OPTBIT_AMB,)
 	OPTBIT_NNP,
 
 	IF_FEATURE_SETPRIV_DUMP(OPT_DUMP = (1 << OPTBIT_DUMP),)
 	IF_FEATURE_SETPRIV_CAPABILITIES(OPT_INH  = (1 << OPTBIT_INH),)
+	IF_FEATURE_SETPRIV_CAPABILITIES(OPT_AMB  = (1 << OPTBIT_AMB),)
 	OPT_NNP  = (1 << OPTBIT_NNP),
 };
 
@@ -313,16 +318,14 @@ static int dump(void)
 #endif /* FEATURE_SETPRIV_DUMP */
 
 #if ENABLE_FEATURE_SETPRIV_CAPABILITIES
-static void parse_cap(unsigned long *index, int *add, const char *cap)
+static void parse_cap(unsigned long *index, const char *cap)
 {
 	unsigned long i;
 
 	switch (cap[0]) {
 	case '-':
-		*add = 0;
 		break;
 	case '+':
-		*add = 1;
 		break;
 	default:
 		bb_error_msg_and_die("invalid capability '%s'", cap);
@@ -361,12 +364,12 @@ static void set_inh_caps(char *capstring)
 	capstring = strtok(capstring, ",");
 	while (capstring) {
 		unsigned long cap;
-		int add;
 
-		parse_cap(&cap, &add, capstring);
+		parse_cap(&cap, capstring);
 		if (CAP_TO_INDEX(cap) >= caps.u32s)
 			bb_error_msg_and_die("invalid capability cap");
-		if (add)
+
+		if (capstring[0] == '+')
 			caps.data[CAP_TO_INDEX(cap)].inheritable |= CAP_TO_MASK(cap);
 		else
 			caps.data[CAP_TO_INDEX(cap)].inheritable &= ~CAP_TO_MASK(cap);
@@ -378,6 +381,26 @@ static void set_inh_caps(char *capstring)
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(caps.data);
+}
+
+static void set_ambient_caps(char *string)
+{
+	char *cap;
+
+	cap = strtok(string, ",");
+	while (cap) {
+		unsigned long index;
+
+		parse_cap(&index, cap);
+		if (cap[0] == '+') {
+			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, index, 0, 0) < 0)
+				bb_perror_msg("cap_ambient_raise");
+		} else {
+			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, index, 0, 0) < 0)
+				bb_perror_msg("cap_ambient_lower");
+		}
+		cap = strtok(NULL, ",");
+	}
 }
 #endif /* FEATURE_SETPRIV_CAPABILITIES */
 
@@ -392,14 +415,15 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
 		"no-new-privs\0" No_argument		"\xff"
 		IF_FEATURE_SETPRIV_CAPABILITIES(
 		"inh-caps\0"     Required_argument	"\xfe"
+		"ambient-caps\0" Required_argument	"\xfd"
 		)
 		;
 	int opts;
-	IF_FEATURE_SETPRIV_CAPABILITIES(char *inh_caps;)
+	IF_FEATURE_SETPRIV_CAPABILITIES(char *inh_caps, *ambient_caps;)
 
 	applet_long_options = setpriv_longopts;
 	opts = getopt32(argv, "+"IF_FEATURE_SETPRIV_DUMP("d")
-			IF_FEATURE_SETPRIV_CAPABILITIES("\xfe:", &inh_caps));
+			IF_FEATURE_SETPRIV_CAPABILITIES("\xfe:\xfd:", &inh_caps, &ambient_caps));
 	argv += optind;
 
 #if ENABLE_FEATURE_SETPRIV_DUMP
@@ -417,6 +441,8 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_SETPRIV_CAPABILITIES
 	if (opts & OPT_INH)
 		set_inh_caps(inh_caps);
+	if (opts & OPT_AMB)
+		set_ambient_caps(ambient_caps);
 #endif
 
 	if (!argv[0])
