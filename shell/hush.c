@@ -402,6 +402,7 @@
 #define debug_printf_expand(...) do {} while (0)
 #define debug_printf_varexp(...) do {} while (0)
 #define debug_printf_glob(...)   do {} while (0)
+#define debug_printf_redir(...)  do {} while (0)
 #define debug_printf_list(...)   do {} while (0)
 #define debug_printf_subst(...)  do {} while (0)
 #define debug_printf_clean(...)  do {} while (0)
@@ -1146,6 +1147,10 @@ static const struct built_in_command bltins2[] = {
 # define DEBUG_GLOB 0
 #endif
 
+#ifndef debug_printf_redir
+# define debug_printf_redir(...) (indent(), fdprintf(2, __VA_ARGS__))
+#endif
+
 #ifndef debug_printf_list
 # define debug_printf_list(...) (indent(), fdprintf(2, __VA_ARGS__))
 #endif
@@ -1381,12 +1386,30 @@ static void free_strings(char **strings)
 	free(strings);
 }
 
-
-static int xdup_and_close(int fd, int F_DUPFD_maybe_CLOEXEC)
+static int fcntl_F_DUPFD(int fd, int avoid_fd)
 {
-	/* We avoid taking stdio fds. Mimicking ash: use fds above 9 */
-	int newfd = fcntl(fd, F_DUPFD_maybe_CLOEXEC, 10);
+	int newfd;
+ repeat:
+	newfd = fcntl(fd, F_DUPFD, avoid_fd + 1);
 	if (newfd < 0) {
+		if (errno == EBUSY)
+			goto repeat;
+		if (errno == EINTR)
+			goto repeat;
+	}
+	return newfd;
+}
+
+static int xdup_and_close(int fd, int F_DUPFD_maybe_CLOEXEC, int avoid_fd)
+{
+	int newfd;
+ repeat:
+	newfd = fcntl(fd, F_DUPFD_maybe_CLOEXEC, avoid_fd + 1);
+	if (newfd < 0) {
+		if (errno == EBUSY)
+			goto repeat;
+		if (errno == EINTR)
+			goto repeat;
 		/* fd was not open? */
 		if (errno == EBADF)
 			return fd;
@@ -1424,13 +1447,14 @@ static void fclose_and_forget(FILE *fp)
 	}
 	fclose(fp);
 }
-static int save_FILEs_on_redirect(int fd)
+static int save_FILEs_on_redirect(int fd, int avoid_fd)
 {
 	struct FILE_list *fl = G.FILE_list;
 	while (fl) {
 		if (fd == fl->fd) {
 			/* We use it only on script files, they are all CLOEXEC */
-			fl->fd = xdup_and_close(fd, F_DUPFD_CLOEXEC);
+			fl->fd = xdup_and_close(fd, F_DUPFD_CLOEXEC, avoid_fd);
+			debug_printf_redir("redirect_fd %d: matches a script fd, moving it to %d\n", fd, fl->fd);
 			return 1;
 		}
 		fl = fl->next;
@@ -1443,6 +1467,7 @@ static void restore_redirected_FILEs(void)
 	while (fl) {
 		int should_be = fileno(fl->fp);
 		if (fl->fd != should_be) {
+			debug_printf_redir("restoring script fd from %d to %d\n", fl->fd, should_be);
 			xmove_fd(fl->fd, should_be);
 			fl->fd = should_be;
 		}
@@ -6518,77 +6543,108 @@ static void setup_heredoc(struct redir_struct *redir)
 	wait(NULL); /* wait till child has died */
 }
 
+struct squirrel {
+	int orig_fd;
+	int moved_to;
+	/* moved_to = n: fd was moved to n; restore back to orig_fd after redir */
+	/* moved_to = -1: fd was opened by redirect; close orig_fd after redir */
+};
+
+static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
+{
+	int i = 0;
+
+	if (sq) while (sq[i].orig_fd >= 0) {
+		/* If we collide with an already moved fd... */
+		if (fd == sq[i].moved_to) {
+			sq[i].moved_to = fcntl_F_DUPFD(sq[i].moved_to, avoid_fd);
+			debug_printf_redir("redirect_fd %d: already busy, moving to %d\n", fd, sq[i].moved_to);
+			if (sq[i].moved_to < 0) /* what? */
+				xfunc_die();
+			return sq;
+		}
+		if (fd == sq[i].orig_fd) {
+			/* Example: echo Hello >/dev/null 1>&2 */
+			debug_printf_redir("redirect_fd %d: already moved\n", fd);
+			return sq;
+		}
+		i++;
+	}
+
+	sq = xrealloc(sq, (i + 2) * sizeof(sq[0]));
+	sq[i].orig_fd = fd;
+	/* If this fd is open, we move and remember it; if it's closed, moved_to = -1 */
+	sq[i].moved_to = fcntl_F_DUPFD(fd, avoid_fd);
+	debug_printf_redir("redirect_fd %d: previous fd is moved to %d (-1 if it was closed)\n", fd, sq[i].moved_to);
+	if (sq[i].moved_to < 0 && errno != EBADF)
+		xfunc_die();
+	sq[i+1].orig_fd = -1; /* end marker */
+	return sq;
+}
+
 /* fd: redirect wants this fd to be used (e.g. 3>file).
  * Move all conflicting internally used fds,
  * and remember them so that we can restore them later.
  */
-static int save_fds_on_redirect(int fd, int squirrel[3])
+static int save_fds_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 {
-	if (squirrel) {
-		/* Handle redirects of fds 0,1,2 */
-
-		/* If we collide with an already moved stdio fd... */
-		if (fd == squirrel[0]) {
-			squirrel[0] = xdup_and_close(squirrel[0], F_DUPFD);
-			return 1;
-		}
-		if (fd == squirrel[1]) {
-			squirrel[1] = xdup_and_close(squirrel[1], F_DUPFD);
-			return 1;
-		}
-		if (fd == squirrel[2]) {
-			squirrel[2] = xdup_and_close(squirrel[2], F_DUPFD);
-			return 1;
-		}
-		/* If we are about to redirect stdio fd, and did not yet move it... */
-		if (fd <= 2 && squirrel[fd] < 0) {
-			/* We avoid taking stdio fds */
-			squirrel[fd] = fcntl(fd, F_DUPFD, 10);
-			if (squirrel[fd] < 0 && errno != EBADF)
-				xfunc_die();
-			return 0; /* "we did not close fd" */
-		}
-	}
+	if (avoid_fd < 9) /* the important case here is that it can be -1 */
+		avoid_fd = 9;
 
 #if ENABLE_HUSH_INTERACTIVE
 	if (fd != 0 && fd == G.interactive_fd) {
-		G.interactive_fd = xdup_and_close(G.interactive_fd, F_DUPFD_CLOEXEC);
-		return 1;
+		G.interactive_fd = xdup_and_close(G.interactive_fd, F_DUPFD_CLOEXEC, avoid_fd);
+		debug_printf_redir("redirect_fd %d: matches interactive_fd, moving it to %d\n", fd, G.interactive_fd);
+		return 1; /* "we closed fd" */
 	}
 #endif
-
 	/* Are we called from setup_redirects(squirrel==NULL)? Two cases:
 	 * (1) Redirect in a forked child. No need to save FILEs' fds,
 	 * we aren't going to use them anymore, ok to trash.
-	 * (2) "exec 3>FILE". Bummer. We can save FILEs' fds,
-	 * but how are we doing to use them?
+	 * (2) "exec 3>FILE". Bummer. We can save script FILEs' fds,
+	 * but how are we doing to restore them?
 	 * "fileno(fd) = new_fd" can't be done.
 	 */
-	if (!squirrel)
+	if (!sqp)
 		return 0;
 
-	return save_FILEs_on_redirect(fd);
+	/* If this one of script's fds? */
+	if (save_FILEs_on_redirect(fd, avoid_fd))
+		return 1; /* yes. "we closed fd" */
+
+	/* Check whether it collides with any open fds (e.g. stdio), save fds as needed */
+	*sqp = add_squirrel(*sqp, fd, avoid_fd);
+	return 0; /* "we did not close fd" */
 }
 
-static void restore_redirects(int squirrel[3])
+static void restore_redirects(struct squirrel *sq)
 {
-	int i, fd;
-	for (i = 0; i <= 2; i++) {
-		fd = squirrel[i];
-		if (fd != -1) {
-			/* We simply die on error */
-			xmove_fd(fd, i);
+
+	if (sq) {
+		int i = 0;
+		while (sq[i].orig_fd >= 0) {
+			if (sq[i].moved_to >= 0) {
+				/* We simply die on error */
+				debug_printf_redir("restoring redirected fd from %d to %d\n", sq[i].moved_to, sq[i].orig_fd);
+				xmove_fd(sq[i].moved_to, sq[i].orig_fd);
+			} else {
+				/* cmd1 9>FILE; cmd2_should_see_fd9_closed */
+				debug_printf_redir("restoring redirected fd %d: closing it\n", sq[i].orig_fd);
+				close(sq[i].orig_fd);
+			}
+			i++;
 		}
+		free(sq);
 	}
 
-	/* Moved G.interactive_fd stays on new fd, not doing anything for it */
+	/* If moved, G.interactive_fd stays on new fd, not restoring it */
 
 	restore_redirected_FILEs();
 }
 
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
  * and stderr if they are redirected. */
-static int setup_redirects(struct command *prog, int squirrel[])
+static int setup_redirects(struct command *prog, struct squirrel **sqp)
 {
 	int openfd, mode;
 	struct redir_struct *redir;
@@ -6596,7 +6652,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 	for (redir = prog->redirects; redir; redir = redir->next) {
 		if (redir->rd_type == REDIRECT_HEREDOC2) {
 			/* "rd_fd<<HERE" case */
-			save_fds_on_redirect(redir->rd_fd, squirrel);
+			save_fds_on_redirect(redir->rd_fd, /*avoid:*/ 0, sqp);
 			/* for REDIRECT_HEREDOC2, rd_filename holds _contents_
 			 * of the heredoc */
 			debug_printf_parse("set heredoc '%s'\n",
@@ -6635,7 +6691,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 		}
 
 		if (openfd != redir->rd_fd) {
-			int closed = save_fds_on_redirect(redir->rd_fd, squirrel);
+			int closed = save_fds_on_redirect(redir->rd_fd, /*avoid:*/ openfd, sqp);
 			if (openfd == REDIRFD_CLOSE) {
 				/* "rd_fd >&-" means "close me" */
 				if (!closed) {
@@ -7497,14 +7553,14 @@ static int checkjobs_and_fg_shell(struct pipe *fg_pipe)
 static int redirect_and_varexp_helper(char ***new_env_p,
 		struct variable **old_vars_p,
 		struct command *command,
-		int squirrel[3],
+		struct squirrel **sqp,
 		char **argv_expanded)
 {
 	/* setup_redirects acts on file descriptors, not FILEs.
 	 * This is perfect for work that comes after exec().
 	 * Is it really safe for inline use?  Experimentally,
 	 * things seem to work. */
-	int rcode = setup_redirects(command, squirrel);
+	int rcode = setup_redirects(command, sqp);
 	if (rcode == 0) {
 		char **new_env = expand_assignments(command->argv, command->assignment_cnt);
 		*new_env_p = new_env;
@@ -7524,8 +7580,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 	struct command *command;
 	char **argv_expanded;
 	char **argv;
-	/* it is not always needed, but we aim to smaller code */
-	int squirrel[] = { -1, -1, -1 };
+	struct squirrel *squirrel = NULL;
 	int rcode;
 
 	debug_printf_exec("run_pipe start: members:%d\n", pi->num_cmds);
@@ -7582,7 +7637,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		/* { list } */
 		debug_printf("non-subshell group\n");
 		rcode = 1; /* exitcode if redir failed */
-		if (setup_redirects(command, squirrel) == 0) {
+		if (setup_redirects(command, &squirrel) == 0) {
 			debug_printf_exec(": run_list\n");
 			rcode = run_list(command->group) & 0xff;
 		}
@@ -7609,7 +7664,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			/* Ensure redirects take effect (that is, create files).
 			 * Try "a=t >file" */
 #if 0 /* A few cases in testsuite fail with this code. FIXME */
-			rcode = redirect_and_varexp_helper(&new_env, /*old_vars:*/ NULL, command, squirrel, /*argv_expanded:*/ NULL);
+			rcode = redirect_and_varexp_helper(&new_env, /*old_vars:*/ NULL, command, &squirrel, /*argv_expanded:*/ NULL);
 			/* Set shell variables */
 			if (new_env) {
 				argv = new_env;
@@ -7631,7 +7686,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 
 #else /* Older, bigger, but more correct code */
 
-			rcode = setup_redirects(command, squirrel);
+			rcode = setup_redirects(command, &squirrel);
 			restore_redirects(squirrel);
 			/* Set shell variables */
 			if (G_x_mode)
@@ -7694,7 +7749,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 					goto clean_up_and_ret1;
 				}
 			}
-			rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, squirrel, argv_expanded);
+			rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, &squirrel, argv_expanded);
 			if (rcode == 0) {
 				if (!funcp) {
 					debug_printf_exec(": builtin '%s' '%s'...\n",
@@ -7723,10 +7778,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			unset_vars(new_env);
 			add_vars(old_vars);
 /* clean_up_and_ret0: */
-
-//FIXME: this restores stdio fds, but does not close other redirects!
-//Example: after "echo TEST 9>/dev/null" fd#9 is not closed!
-//The squirreling code needs rework to remember all fds, not just 0,1,2.
 			restore_redirects(squirrel);
  clean_up_and_ret1:
 			free(argv_expanded);
@@ -7739,7 +7790,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		if (ENABLE_FEATURE_SH_NOFORK) {
 			int n = find_applet_by_name(argv_expanded[0]);
 			if (n >= 0 && APPLET_IS_NOFORK(n)) {
-				rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, squirrel, argv_expanded);
+				rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, &squirrel, argv_expanded);
 				if (rcode == 0) {
 					debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
 						argv_expanded[0], argv_expanded[1]);
@@ -8694,7 +8745,7 @@ int hush_main(int argc, char **argv)
 			G_saved_tty_pgrp = 0;
 
 		/* try to dup stdin to high fd#, >= 255 */
-		G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+		G_interactive_fd = fcntl_F_DUPFD(STDIN_FILENO, 254);
 		if (G_interactive_fd < 0) {
 			/* try to dup to any fd */
 			G_interactive_fd = dup(STDIN_FILENO);
@@ -8767,7 +8818,7 @@ int hush_main(int argc, char **argv)
 #elif ENABLE_HUSH_INTERACTIVE
 	/* No job control compiled in, only prompt/line editing */
 	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
-		G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+		G_interactive_fd = fcntl_F_DUPFD(STDIN_FILENO, 254);
 		if (G_interactive_fd < 0) {
 			/* try to dup to any fd */
 			G_interactive_fd = dup(STDIN_FILENO);

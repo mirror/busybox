@@ -1,2 +1,1 @@
-./redir_to_bad_fd.tests: line 2: 10: Bad file descriptor
-OK
+hush: can't duplicate file descriptor: Bad file descriptor
