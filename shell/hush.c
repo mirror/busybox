@@ -7401,6 +7401,10 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 				printf(JOB_STATUS_FORMAT, pi->jobid,
 						"Done", pi->cmdtext);
 			delete_finished_bg_job(pi);
+//bash deletes finished jobs from job table only in interactive mode, after "jobs" cmd,
+//or if pid of a new process matches one of the old ones
+//(see cleanup_dead_jobs(), delete_old_job(), J_NOTIFIED in bash source).
+//Testcase script: "(exit 3) & sleep 1; wait %1; echo $?" prints 3 in bash.
 		}
 	} else {
 		/* child stopped */
@@ -9899,6 +9903,15 @@ static int FAST_FUNC builtin_wait(char **argv)
 					ret = job_exited_or_stopped(wait_pipe);
 					if (ret < 0)
 						ret = wait_for_child_or_signal(wait_pipe, 0);
+//bash immediately deletes finished jobs from job table only in interactive mode,
+//we _always_ delete them at once. If we'd start doing that, this (and more)
+//would be necessary to avoid accumulating dead jobs:
+# if 0
+					else {
+						if (!wait_pipe->alive_cmds)
+							delete_finished_bg_job(wait_pipe);
+					}
+# endif
 				}
 				/* else: parse_jobspec() already emitted error msg */
 				continue;
