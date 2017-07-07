@@ -832,6 +832,7 @@ struct globals {
 	smallint exiting; /* used to prevent EXIT trap recursion */
 	/* These four support $?, $#, and $1 */
 	smalluint last_exitcode;
+	smalluint last_bg_pid_exitcode;
 #if ENABLE_HUSH_SET
 	/* are global_argv and global_argv[1..n] malloced? (note: not [0]) */
 	smalluint global_args_malloced;
@@ -7387,10 +7388,13 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
  found_pi_and_prognum:
 	if (dead) {
 		/* child exited */
-		pi->cmds[i].pid = 0;
-		pi->cmds[i].cmd_exitcode = WEXITSTATUS(status);
+		int rcode = WEXITSTATUS(status);
 		if (WIFSIGNALED(status))
-			pi->cmds[i].cmd_exitcode = 128 + WTERMSIG(status);
+			rcode = 128 + WTERMSIG(status);
+		pi->cmds[i].cmd_exitcode = rcode;
+		if (G.last_bg_pid == pi->cmds[i].pid)
+			G.last_bg_pid_exitcode = rcode;
+		pi->cmds[i].pid = 0;
 		pi->alive_cmds--;
 		if (!pi->alive_cmds) {
 			if (G_interactive_fd)
@@ -8215,6 +8219,7 @@ static int run_list(struct pipe *pi)
 #endif
 			/* Last command's pid goes to $! */
 			G.last_bg_pid = pi->cmds[pi->num_cmds - 1].pid;
+			G.last_bg_pid_exitcode = 0;
 			debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
 /* Check pi->pi_inverted? "! sleep 1 & echo $?": bash says 1. dash and ash says 0 */
 			rcode = EXIT_SUCCESS;
@@ -9909,6 +9914,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 		ret = waitpid(pid, &status, WNOHANG);
 		if (ret < 0) {
 			/* No */
+			ret = 127;
 			if (errno == ECHILD) {
 				if (G.last_bg_pid > 0 && pid == G.last_bg_pid) {
 					/* "wait $!" but last bg task has already exited. Try:
@@ -9916,7 +9922,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 					 * In bash it prints exitcode 0, then 3.
 					 * In dash, it is 127.
 					 */
-					/* ret = G.last_bg_pid_exitstatus - FIXME */
+					ret = G.last_bg_pid_exitcode;
 				} else {
 					/* Example: "wait 1". mimic bash message */
 					bb_error_msg("wait: pid %d is not a child of this shell", (int)pid);
@@ -9925,7 +9931,6 @@ static int FAST_FUNC builtin_wait(char **argv)
 				/* ??? */
 				bb_perror_msg("wait %s", *argv);
 			}
-			ret = 127;
 			continue; /* bash checks all argv[] */
 		}
 		if (ret == 0) {
