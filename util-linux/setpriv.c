@@ -124,7 +124,7 @@ struct caps {
 	int u32s;
 };
 
-#if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
+# if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
 static const char *const capabilities[] = {
 	"chown",
 	"dac_override",
@@ -165,17 +165,14 @@ static const char *const capabilities[] = {
 	"block_suspend",
 	"audit_read",
 };
-#endif /* FEATURE_SETPRIV_CAPABILITY_NAMES */
+# endif /* FEATURE_SETPRIV_CAPABILITY_NAMES */
 
-#endif /* FEATURE_SETPRIV_CAPABILITIES */
-
-#if ENABLE_FEATURE_SETPRIV_CAPABILITIES
 static void getcaps(struct caps *caps)
 {
-	int versions[] = {
-		_LINUX_CAPABILITY_U32S_3,
-		_LINUX_CAPABILITY_U32S_2,
-		_LINUX_CAPABILITY_U32S_1,
+	static const uint8_t versions[] = {
+		_LINUX_CAPABILITY_U32S_3, /* = 2 (fits into byte) */
+		_LINUX_CAPABILITY_U32S_2, /* = 2 */
+		_LINUX_CAPABILITY_U32S_1, /* = 1 */
 	};
 	int i;
 
@@ -205,6 +202,91 @@ static void getcaps(struct caps *caps)
 	caps->data = xmalloc(sizeof(caps->data[0]) * caps->u32s);
 	if (capget(&caps->header, caps->data) < 0)
 		bb_simple_perror_msg_and_die("capget");
+}
+
+static void parse_cap(unsigned long *index, const char *cap)
+{
+	unsigned long i;
+
+	switch (cap[0]) {
+	case '-':
+		break;
+	case '+':
+		break;
+	default:
+		bb_error_msg_and_die("invalid capability '%s'", cap);
+		break;
+	}
+
+	cap++;
+	if ((sscanf(cap, "cap_%lu", &i)) == 1) {
+		if (!cap_valid(i))
+			bb_error_msg_and_die("unsupported capability '%s'", cap);
+		*index = i;
+		return;
+	}
+
+# if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
+	for (i = 0; i < ARRAY_SIZE(capabilities); i++) {
+		if (strcmp(capabilities[i], cap) != 0)
+			continue;
+
+		if (!cap_valid(i))
+			bb_error_msg_and_die("unsupported capability '%s'", cap);
+		*index = i;
+		return;
+	}
+# endif
+
+	bb_error_msg_and_die("unknown capability '%s'", cap);
+}
+
+static void set_inh_caps(char *capstring)
+{
+	struct caps caps;
+
+	getcaps(&caps);
+
+	capstring = strtok(capstring, ",");
+	while (capstring) {
+		unsigned long cap;
+
+		parse_cap(&cap, capstring);
+		if (CAP_TO_INDEX(cap) >= caps.u32s)
+			bb_error_msg_and_die("invalid capability cap");
+
+		if (capstring[0] == '+')
+			caps.data[CAP_TO_INDEX(cap)].inheritable |= CAP_TO_MASK(cap);
+		else
+			caps.data[CAP_TO_INDEX(cap)].inheritable &= ~CAP_TO_MASK(cap);
+		capstring = strtok(NULL, ",");
+	}
+
+	if ((capset(&caps.header, caps.data)) < 0)
+		bb_perror_msg_and_die("capset");
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(caps.data);
+}
+
+static void set_ambient_caps(char *string)
+{
+	char *cap;
+
+	cap = strtok(string, ",");
+	while (cap) {
+		unsigned long index;
+
+		parse_cap(&index, cap);
+		if (cap[0] == '+') {
+			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, index, 0, 0) < 0)
+				bb_perror_msg("cap_ambient_raise");
+		} else {
+			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, index, 0, 0) < 0)
+				bb_perror_msg("cap_ambient_lower");
+		}
+		cap = strtok(NULL, ",");
+	}
 }
 #endif /* FEATURE_SETPRIV_CAPABILITIES */
 
@@ -316,93 +398,6 @@ static int dump(void)
 	return EXIT_SUCCESS;
 }
 #endif /* FEATURE_SETPRIV_DUMP */
-
-#if ENABLE_FEATURE_SETPRIV_CAPABILITIES
-static void parse_cap(unsigned long *index, const char *cap)
-{
-	unsigned long i;
-
-	switch (cap[0]) {
-	case '-':
-		break;
-	case '+':
-		break;
-	default:
-		bb_error_msg_and_die("invalid capability '%s'", cap);
-		break;
-	}
-
-	cap++;
-	if ((sscanf(cap, "cap_%lu", &i)) == 1) {
-		if (!cap_valid(i))
-			bb_error_msg_and_die("unsupported capability '%s'", cap);
-		*index = i;
-		return;
-	}
-
-# if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
-	for (i = 0; i < ARRAY_SIZE(capabilities); i++) {
-		if (strcmp(capabilities[i], cap) != 0)
-			continue;
-
-		if (!cap_valid(i))
-			bb_error_msg_and_die("unsupported capability '%s'", cap);
-		*index = i;
-		return;
-	}
-# endif
-
-	bb_error_msg_and_die("unknown capability '%s'", cap);
-}
-
-static void set_inh_caps(char *capstring)
-{
-	struct caps caps;
-
-	getcaps(&caps);
-
-	capstring = strtok(capstring, ",");
-	while (capstring) {
-		unsigned long cap;
-
-		parse_cap(&cap, capstring);
-		if (CAP_TO_INDEX(cap) >= caps.u32s)
-			bb_error_msg_and_die("invalid capability cap");
-
-		if (capstring[0] == '+')
-			caps.data[CAP_TO_INDEX(cap)].inheritable |= CAP_TO_MASK(cap);
-		else
-			caps.data[CAP_TO_INDEX(cap)].inheritable &= ~CAP_TO_MASK(cap);
-		capstring = strtok(NULL, ",");
-	}
-
-	if ((capset(&caps.header, caps.data)) < 0)
-		bb_perror_msg_and_die("capset");
-
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(caps.data);
-}
-
-static void set_ambient_caps(char *string)
-{
-	char *cap;
-
-	cap = strtok(string, ",");
-	while (cap) {
-		unsigned long index;
-
-		parse_cap(&index, cap);
-		if (cap[0] == '+') {
-			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, index, 0, 0) < 0)
-				bb_perror_msg("cap_ambient_raise");
-		} else {
-			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, index, 0, 0) < 0)
-				bb_perror_msg("cap_ambient_lower");
-		}
-		cap = strtok(NULL, ",");
-	}
-}
-#endif /* FEATURE_SETPRIV_CAPABILITIES */
 
 int setpriv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setpriv_main(int argc UNUSED_PARAM, char **argv)
