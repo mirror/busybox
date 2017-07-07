@@ -291,6 +291,19 @@ static void set_ambient_caps(char *string)
 #endif /* FEATURE_SETPRIV_CAPABILITIES */
 
 #if ENABLE_FEATURE_SETPRIV_DUMP
+# if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
+static void printf_cap(const char *pfx, unsigned cap_no)
+{
+	if (cap_no < ARRAY_SIZE(capabilities)) {
+		printf("%s%s", pfx, capabilities[cap_no]);
+		return;
+	}
+	printf("%scap_%u", pfx, cap_no);
+}
+# else
+#  define printf_cap(pfx, cap_no) printf("%scap_%u", (pfx), (cap_no))
+# endif
+
 static int dump(void)
 {
 	IF_FEATURE_SETPRIV_CAPABILITIES(struct caps caps;)
@@ -337,12 +350,7 @@ static int dump(void)
 			bb_error_msg_and_die("unsupported capability");
 		}
 		if (caps.data[idx].inheritable & CAP_TO_MASK(i)) {
-#  if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
-			if (i < ARRAY_SIZE(capabilities))
-				printf("%s%s", fmt, capabilities[i]);
-			else
-#  endif
-				printf("%scap_%u", fmt, i);
+			printf_cap(fmt, i);
 			fmt = ",";
 		}
 	}
@@ -356,12 +364,7 @@ static int dump(void)
 		if (ret < 0)
 			bb_perror_msg_and_die("prctl: %s", "CAP_AMBIENT_IS_SET");
 		if (ret) {
-#  if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
-			if (i < ARRAY_SIZE(capabilities))
-				printf("%s%s", fmt, capabilities[i]);
-			else
-#  endif
-				printf("%scap_%u", fmt, i);
+			printf_cap(fmt, i);
 			fmt = ",";
 		}
 	}
@@ -377,12 +380,7 @@ static int dump(void)
 		if (ret < 0)
 			bb_perror_msg_and_die("prctl: %s", "CAPBSET_READ");
 		if (ret) {
-#  if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
-			if (i < ARRAY_SIZE(capabilities))
-				printf("%s%s", fmt, capabilities[i]);
-			else
-#  endif
-				printf("%scap_%u", fmt, i);
+			printf_cap(fmt, i);
 			fmt = ",";
 		}
 	}
