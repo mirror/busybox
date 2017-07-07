@@ -180,7 +180,7 @@ int FAST_FUNC spawn_and_wait(char **argv)
 			 * as of yet (and that should probably always stay true).
 			 */
 			/* xfunc_error_retval and applet_name are init by: */
-			run_applet_no_and_exit(a, argv);
+			run_applet_no_and_exit(a, argv[0], argv);
 		}
 # endif
 	}

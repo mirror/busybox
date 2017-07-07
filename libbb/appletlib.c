@@ -877,13 +877,17 @@ static int busybox_main(char **argv)
 # endif
 
 # if NUM_APPLETS > 0
-void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
+void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **argv)
 {
 	int argc = string_array_len(argv);
 
 	/* Reinit some shared global data */
 	xfunc_error_retval = EXIT_FAILURE;
-	applet_name = bb_get_last_path_component_nostrip(argv[0]);
+	/*
+	 * We do not use argv[0]: do not want to repeat massaging of
+	 * "-/sbin/halt" -> "halt", for example.
+	 */
+	applet_name = name;
 
 	/* Special case. POSIX says "test --help"
 	 * should be no different from e.g. "test --foo".
@@ -927,7 +931,7 @@ static NORETURN void run_applet_and_exit(const char *name, char **argv)
 	{
 		int applet = find_applet_by_name(name);
 		if (applet >= 0)
-			run_applet_no_and_exit(applet, argv);
+			run_applet_no_and_exit(applet, name, argv);
 	}
 #  endif
 

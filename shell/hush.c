@@ -7063,7 +7063,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 				/* Do not leak open fds from opened script files etc */
 				close_all_FILE_list();
 				debug_printf_exec("running applet '%s'\n", argv[0]);
-				run_applet_no_and_exit(a, argv);
+				run_applet_no_and_exit(a, argv[0], argv);
 			}
 # endif
 			/* Re-exec ourselves */

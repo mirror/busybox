@@ -1117,7 +1117,7 @@ int spawn_and_wait(char **argv) FAST_FUNC;
 int run_nofork_applet(int applet_no, char **argv) FAST_FUNC;
 #ifndef BUILD_INDIVIDUAL
 extern int find_applet_by_name(const char *name) FAST_FUNC;
-extern void run_applet_no_and_exit(int a, char **argv) NORETURN FAST_FUNC;
+extern void run_applet_no_and_exit(int a, const char *name, char **argv) NORETURN FAST_FUNC;
 #endif
 
 /* Helpers for daemonization.
