@@ -35,8 +35,21 @@
 //usage:     "\nUse 500ms to specify period in milliseconds"
 
 #include "libbb.h"
-#include "linux/types.h" /* for __u32 */
-#include "linux/watchdog.h"
+#include <linux/types.h> /* for __u32 */
+#include <linux/watchdog.h>
+
+#ifndef WDIOC_SETOPTIONS
+# define WDIOC_SETOPTIONS 0x5704
+#endif
+#ifndef WDIOC_SETTIMEOUT
+# define WDIOC_SETTIMEOUT 0x5706
+#endif
+#ifndef WDIOC_GETTIMEOUT
+# define WDIOC_GETTIMEOUT 0x5707
+#endif
+#ifndef WDIOS_ENABLECARD
+# define WDIOS_ENABLECARD 2
+#endif
 
 #define OPT_FOREGROUND  (1 << 0)
 #define OPT_STIMER      (1 << 1)
@@ -73,8 +86,9 @@ static void watchdog_open(const char* device)
 }
 
 int watchdog_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int watchdog_main(int argc, char **argv)
+int watchdog_main(int argc UNUSED_PARAM, char **argv)
 {
+	static const int enable = WDIOS_ENABLECARD;
 	static const struct suffix_mult suffixes[] = {
 		{ "ms", 1 },
 		{ "", 1000 },
@@ -99,6 +113,8 @@ int watchdog_main(int argc, char **argv)
 	if (!(opts & OPT_FOREGROUND))
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 
+	/* maybe bb_logenv_override(); here for LOGGING=syslog to work? */
+
 	if (opts & OPT_HTIMER)
 		htimer_duration = xatou_sfx(ht_arg, suffixes);
 	stimer_duration = htimer_duration / 2;
@@ -107,22 +123,12 @@ int watchdog_main(int argc, char **argv)
 
 	bb_signals(BB_FATAL_SIGS, shutdown_on_signal);
 
-	watchdog_open(argv[argc - 1]);
+	watchdog_open(argv[optind]);
 
 	/* WDIOC_SETTIMEOUT takes seconds, not milliseconds */
 	htimer_duration = htimer_duration / 1000;
-#ifndef WDIOC_SETTIMEOUT
-# error WDIOC_SETTIMEOUT is not defined, cannot compile watchdog applet
-#else
-# if defined WDIOC_SETOPTIONS && defined WDIOS_ENABLECARD
-	{
-		static const int enable = WDIOS_ENABLECARD;
-		ioctl_or_warn(3, WDIOC_SETOPTIONS, (void*) &enable);
-	}
-# endif
+	ioctl_or_warn(3, WDIOC_SETOPTIONS, (void*) &enable);
 	ioctl_or_warn(3, WDIOC_SETTIMEOUT, &htimer_duration);
-#endif
-
 #if 0
 	ioctl_or_warn(3, WDIOC_GETTIMEOUT, &htimer_duration);
 	printf("watchdog: SW timer is %dms, HW timer is %ds\n",
