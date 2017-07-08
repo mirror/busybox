@@ -42,15 +42,34 @@
 #define OPT_STIMER      (1 << 1)
 #define OPT_HTIMER      (1 << 2)
 
-static void watchdog_shutdown(int sig UNUSED_PARAM)
+static void shutdown_watchdog(void)
 {
 	static const char V = 'V';
-
-	remove_pidfile(CONFIG_PID_FILE_PATH "/watchdog.pid");
 	write(3, &V, 1);  /* Magic, see watchdog-api.txt in kernel */
-	if (ENABLE_FEATURE_CLEAN_UP)
-		close(3);
+	close(3);
+}
+
+static void shutdown_on_signal(int sig UNUSED_PARAM)
+{
+	remove_pidfile(CONFIG_PID_FILE_PATH "/watchdog.pid");
+	shutdown_watchdog();
 	_exit(EXIT_SUCCESS);
+}
+
+static void watchdog_open(const char* device)
+{
+	/* Use known fd # - avoid needing global 'int fd' */
+	xmove_fd(xopen(device, O_WRONLY), 3);
+
+	/* If the watchdog driver can do something other than cause a reboot
+	 * on a timeout, then it's possible this program may be starting from
+	 * a state when the watchdog hadn't been previously stopped with
+	 * the magic write followed by a close.  In this case the driver may
+	 * not start properly, so always do the proper stop first just in case.
+	 */
+	shutdown_watchdog();
+
+	xmove_fd(xopen(device, O_WRONLY), 3);
 }
 
 int watchdog_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -86,10 +105,9 @@ int watchdog_main(int argc, char **argv)
 	if (opts & OPT_STIMER)
 		stimer_duration = xatou_sfx(st_arg, suffixes);
 
-	bb_signals(BB_FATAL_SIGS, watchdog_shutdown);
+	bb_signals(BB_FATAL_SIGS, shutdown_on_signal);
 
-	/* Use known fd # - avoid needing global 'int fd' */
-	xmove_fd(xopen(argv[argc - 1], O_WRONLY), 3);
+	watchdog_open(argv[argc - 1]);
 
 	/* WDIOC_SETTIMEOUT takes seconds, not milliseconds */
 	htimer_duration = htimer_duration / 1000;
