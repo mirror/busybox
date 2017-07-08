@@ -512,13 +512,12 @@ static void load_crontab(const char *fileName)
 					if (strcmp(e->name, tokens[0] + 1) == 0) {
 						/*
 						 * tokens[1] is only the first word of command,
+						 * can'r use it.
 						 * find the entire command in unmodified string:
 						 */
-						tokens[5] = strstr(
-							skip_non_whitespace(skip_whitespace(parser->data)),
-							/* ^^^^ avoids mishandling e.g. "@daily aily PARAM" */
-							tokens[1]
-						);
+						tokens[5] = skip_whitespace(
+							skip_non_whitespace(
+							skip_whitespace(parser->data)));
 						if (e->tokens[0]) {
 							char *et = (char*)e->tokens;
 							/* minute is "0" for all specials */
