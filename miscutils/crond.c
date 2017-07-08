@@ -35,6 +35,22 @@
 //config:	help
 //config:	  Command output will be sent to corresponding user via email.
 //config:
+//config:config FEATURE_CROND_SPECIAL_TIMES
+//config:	bool "Support special times (@reboot, @daily, etc) in crontabs"
+//config:	default y
+//config:	depends on CROND
+//config:	help
+//config:	  string        meaning
+//config:	  ------        -------
+//config:	  @reboot       Run once, at startup
+//config:	  @yearly       Run once a year:  "0 0 1 1 *"
+//config:	  @annually     Same as @yearly:  "0 0 1 1 *"
+//config:	  @monthly      Run once a month: "0 0 1 * *"
+//config:	  @weekly       Run once a week:  "0 0 * * 0"
+//config:	  @daily        Run once a day:   "0 0 * * *"
+//config:	  @midnight     Same as @daily:   "0 0 * * *"
+//config:	  @hourly       Run once an hour: "0 * * * *"
+//config:
 //config:config FEATURE_CROND_DIR
 //config:	string "crond spool directory"
 //config:	default "/var/spool/cron"
@@ -74,6 +90,7 @@
 
 #define CRON_DIR        CONFIG_FEATURE_CROND_DIR
 #define CRONTABS        CONFIG_FEATURE_CROND_DIR "/crontabs"
+#define CRON_REBOOT     CONFIG_PID_FILE_PATH "/crond.reboot"
 #ifndef SENDMAIL
 # define SENDMAIL       "sendmail"
 #endif
@@ -101,6 +118,8 @@ typedef struct CronLine {
 	struct CronLine *cl_next;
 	char *cl_cmd;                   /* shell command */
 	pid_t cl_pid;                   /* >0:running, <0:needs to be started in this minute, 0:dormant */
+#define START_ME_REBOOT -2
+#define START_ME_NORMAL -1
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 	int cl_empty_mail_size;         /* size of mail header only, 0 if no mailfile */
 	char *cl_mailto;                /* whom to mail results, may be NULL */
@@ -452,6 +471,59 @@ static void load_crontab(const char *fileName)
 				shell = xstrdup(&tokens[0][6]);
 				continue;
 			}
+#if ENABLE_FEATURE_CROND_SPECIAL_TIMES
+			if (tokens[0][0] == '@') {
+				/*
+				 * "@daily /a/script/to/run PARAM1 PARAM2..."
+				 */
+				typedef struct SpecialEntry {
+					const char *name;
+					const char tokens[8];
+				} SpecialEntry;
+				static const SpecialEntry SpecAry[] = {
+					/*              hour  day   month weekday */
+					{ "yearly",     "0\0" "1\0" "1\0" "*" },
+					{ "annually",   "0\0" "1\0" "1\0" "*" },
+					{ "monthly",    "0\0" "1\0" "*\0" "*" },
+					{ "weekly",     "0\0" "*\0" "*\0" "0" },
+					{ "daily",      "0\0" "*\0" "*\0" "*" },
+					{ "midnight",   "0\0" "*\0" "*\0" "*" },
+					{ "hourly",     "*\0" "*\0" "*\0" "*" },
+					{ "reboot",     ""                    },
+				};
+				const SpecialEntry *e = SpecAry;
+
+				if (n < 2)
+					continue;
+				for (;;) {
+					if (strcmp(e->name, tokens[0] + 1) == 0) {
+						/*
+						 * tokens[1] is only the first word of command,
+						 * find the entire command in unmodified string:
+						 */
+						tokens[5] = strstr(
+							skip_non_whitespace(skip_whitespace(parser->data)),
+							/* ^^^^ avoids mishandling e.g. "@daily aily PARAM" */
+							tokens[1]
+						);
+						if (e->tokens[0]) {
+							char *et = (char*)e->tokens;
+							/* minute is "0" for all specials */
+							tokens[0] = (char*)"0";
+							tokens[1] = et;
+							tokens[2] = et + 2;
+							tokens[3] = et + 4;
+							tokens[4] = et + 6;
+						}
+						goto got_it;
+					}
+					if (!e->tokens[0])
+						break;
+					e++;
+				}
+				continue; /* bad line (unrecognized '@foo') */
+			}
+#endif
 //TODO: handle HOME= too? "man crontab" says:
 //name = value
 //
@@ -468,18 +540,30 @@ static void load_crontab(const char *fileName)
 			/* check if a minimum of tokens is specified */
 			if (n < 6)
 				continue;
+ IF_FEATURE_CROND_SPECIAL_TIMES(
+  got_it:
+ )
 			*pline = line = xzalloc(sizeof(*line));
-			/* parse date ranges */
-			ParseField(file->cf_username, line->cl_Mins, 60, 0, NULL, tokens[0]);
-			ParseField(file->cf_username, line->cl_Hrs, 24, 0, NULL, tokens[1]);
-			ParseField(file->cf_username, line->cl_Days, 32, 0, NULL, tokens[2]);
-			ParseField(file->cf_username, line->cl_Mons, 12, -1, MonAry, tokens[3]);
-			ParseField(file->cf_username, line->cl_Dow, 7, 0, DowAry, tokens[4]);
-			/*
-			 * fix days and dow - if one is not "*" and the other
-			 * is "*", the other is set to 0, and vise-versa
-			 */
-			FixDayDow(line);
+#if ENABLE_FEATURE_CROND_SPECIAL_TIMES
+			if (tokens[0][0] == '@') { /* "@reboot" line */
+				file->cf_wants_starting = 1;
+				line->cl_pid = START_ME_REBOOT; /* wants to start */
+				/* line->cl_Mins/Hrs/etc stay zero: never match any time */
+			} else
+#endif
+			{
+				/* parse date ranges */
+				ParseField(file->cf_username, line->cl_Mins, 60, 0, NULL, tokens[0]);
+				ParseField(file->cf_username, line->cl_Hrs, 24, 0, NULL, tokens[1]);
+				ParseField(file->cf_username, line->cl_Days, 32, 0, NULL, tokens[2]);
+				ParseField(file->cf_username, line->cl_Mons, 12, -1, MonAry, tokens[3]);
+				ParseField(file->cf_username, line->cl_Dow, 7, 0, DowAry, tokens[4]);
+				/*
+				 * fix days and dow - if one is not "*" and the other
+				 * is "*", the other is set to 0, and vise-versa
+				 */
+				FixDayDow(line);
+			}
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 			/* copy mailto (can be NULL) */
 			line->cl_mailto = xstrdup(mailTo);
@@ -664,7 +748,7 @@ fork_job(const char *user, int mailFd, CronLine *line, bool run_sendmail)
 	return pid;
 }
 
-static void start_one_job(const char *user, CronLine *line)
+static pid_t start_one_job(const char *user, CronLine *line)
 {
 	char mailFile[128];
 	int mailFd = -1;
@@ -698,6 +782,8 @@ static void start_one_job(const char *user, CronLine *line)
 			free(mailFile2);
 		}
 	}
+
+	return line->cl_pid;
 }
 
 /*
@@ -748,7 +834,7 @@ static void process_finished_job(const char *user, CronLine *line)
 
 #else /* !ENABLE_FEATURE_CROND_CALL_SENDMAIL */
 
-static void start_one_job(const char *user, CronLine *line)
+static pid_t start_one_job(const char *user, CronLine *line)
 {
 	const char *shell;
 	struct passwd *pas;
@@ -782,6 +868,7 @@ static void start_one_job(const char *user, CronLine *line)
 		pid = 0;
 	}
 	line->cl_pid = pid;
+	return pid;
 }
 
 #define process_finished_job(user, line)  ((line)->cl_pid = 0)
@@ -825,7 +912,7 @@ static void flag_starting_jobs(time_t t1, time_t t2)
 						log8("user %s: process already running: %s",
 							file->cf_username, line->cl_cmd);
 					} else if (line->cl_pid == 0) {
-						line->cl_pid = -1;
+						line->cl_pid = START_ME_NORMAL;
 						file->cf_wants_starting = 1;
 					}
 				}
@@ -834,7 +921,20 @@ static void flag_starting_jobs(time_t t1, time_t t2)
 	}
 }
 
-static void start_jobs(void)
+#if ENABLE_FEATURE_CROND_SPECIAL_TIMES
+static int touch_reboot_file(void)
+{
+	int fd = open(CRON_REBOOT, O_WRONLY | O_CREAT | O_EXCL | O_TRUNC, 0000);
+	if (fd >= 0) {
+		close(fd);
+		return 1;
+	}
+	/* File (presumably) exists - this is not the first run after reboot */
+	return 0;
+}
+#endif
+
+static void start_jobs(int wants_start)
 {
 	CronFile *file;
 	CronLine *line;
@@ -846,11 +946,10 @@ static void start_jobs(void)
 		file->cf_wants_starting = 0;
 		for (line = file->cf_lines; line; line = line->cl_next) {
 			pid_t pid;
-			if (line->cl_pid >= 0)
+			if (line->cl_pid != wants_start)
 				continue;
 
-			start_one_job(file->cf_username, line);
-			pid = line->cl_pid;
+			pid = start_one_job(file->cf_username, line);
 			log8("USER %s pid %3d cmd %s",
 				file->cf_username, (int)pid, line->cl_cmd);
 			if (pid < 0) {
@@ -950,6 +1049,10 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 	log8("crond (busybox "BB_VER") started, log level %d", G.log_level);
 	rescan_crontab_dir();
 	write_pidfile(CONFIG_PID_FILE_PATH "/crond.pid");
+#if ENABLE_FEATURE_CROND_SPECIAL_TIMES
+	if (touch_reboot_file())
+		start_jobs(START_ME_REBOOT); /* start @reboot entries, if any */
+#endif
 
 	/* Main loop */
 	t2 = time(NULL);
@@ -1002,7 +1105,7 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 		} else if (dt > 0) {
 			/* Usual case: time advances forward, as expected */
 			flag_starting_jobs(t1, t2);
-			start_jobs();
+			start_jobs(START_ME_NORMAL);
 			sleep_time = 60;
 			if (check_completions() > 0) {
 				/* some jobs are still running */
