@@ -16,7 +16,7 @@
 //config:
 //config:config FEATURE_BEEP_FREQ
 //config:	int "default frequency"
-//config:	range 0 2147483647
+//config:	range 20 50000	# allowing 0 here breaks the build
 //config:	default 4000
 //config:	depends on BEEP
 //config:	help
