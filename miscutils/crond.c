@@ -471,6 +471,19 @@ static void load_crontab(const char *fileName)
 				shell = xstrdup(&tokens[0][6]);
 				continue;
 			}
+//TODO: handle HOME= too? "man crontab" says:
+//name = value
+//
+//where the spaces around the equal-sign (=) are optional, and any subsequent
+//non-leading spaces in value will be part of the value assigned to name.
+//The value string may be placed in quotes (single or double, but matching)
+//to preserve leading or trailing blanks.
+//
+//Several environment variables are set up automatically by the cron(8) daemon.
+//SHELL is set to /bin/sh, and LOGNAME and HOME are set from the /etc/passwd
+//line of the crontab's owner. HOME and SHELL may be overridden by settings
+//in the crontab; LOGNAME may not.
+
 #if ENABLE_FEATURE_CROND_SPECIAL_TIMES
 			if (tokens[0][0] == '@') {
 				/*
@@ -524,19 +537,6 @@ static void load_crontab(const char *fileName)
 				continue; /* bad line (unrecognized '@foo') */
 			}
 #endif
-//TODO: handle HOME= too? "man crontab" says:
-//name = value
-//
-//where the spaces around the equal-sign (=) are optional, and any subsequent
-//non-leading spaces in value will be part of the value assigned to name.
-//The value string may be placed in quotes (single or double, but matching)
-//to preserve leading or trailing blanks.
-//
-//Several environment variables are set up automatically by the cron(8) daemon.
-//SHELL is set to /bin/sh, and LOGNAME and HOME are set from the /etc/passwd
-//line of the crontab's owner. HOME and SHELL may be overridden by settings
-//in the crontab; LOGNAME may not.
-
 			/* check if a minimum of tokens is specified */
 			if (n < 6)
 				continue;
