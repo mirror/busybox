@@ -53,7 +53,7 @@ static void shuffle_lines(char **lines, unsigned numlines)
 		/* RAND_MAX can be as small as 32767 */
 		if (i > RAND_MAX)
 			r ^= rand() << 15;
-		r %= i;
+		r %= i + 1;
 		tmp = lines[i];
 		lines[i] = lines[r];
 		lines[r] = tmp;
