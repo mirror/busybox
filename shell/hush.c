@@ -7217,7 +7217,7 @@ static const char *get_cmdtext(struct pipe *pi)
 	return pi->cmdtext;
 }
 
-static void insert_bg_job(struct pipe *pi)
+static void insert_job_into_table(struct pipe *pi)
 {
 	struct pipe *job, **jobp;
 	int i;
@@ -7249,7 +7249,7 @@ static void insert_bg_job(struct pipe *pi)
 	G.last_jobid = job->jobid;
 }
 
-static void remove_bg_job(struct pipe *pi)
+static void remove_job_from_table(struct pipe *pi)
 {
 	struct pipe *prev_pipe;
 
@@ -7268,9 +7268,9 @@ static void remove_bg_job(struct pipe *pi)
 }
 
 /* Remove a backgrounded job */
-static void delete_finished_bg_job(struct pipe *pi)
+static void delete_finished_job(struct pipe *pi)
 {
-	remove_bg_job(pi);
+	remove_job_from_table(pi);
 	free_pipe(pi);
 }
 #endif /* JOB */
@@ -7359,7 +7359,7 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 				if (G_interactive_fd) {
 #if ENABLE_HUSH_JOB
 					if (fg_pipe->alive_cmds != 0)
-						insert_bg_job(fg_pipe);
+						insert_job_into_table(fg_pipe);
 #endif
 					return rcode;
 				}
@@ -7400,7 +7400,7 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 			if (G_interactive_fd)
 				printf(JOB_STATUS_FORMAT, pi->jobid,
 						"Done", pi->cmdtext);
-			delete_finished_bg_job(pi);
+			delete_finished_job(pi);
 //bash deletes finished jobs from job table only in interactive mode, after "jobs" cmd,
 //or if pid of a new process matches one of the old ones
 //(see cleanup_dead_jobs(), delete_old_job(), J_NOTIFIED in bash source).
@@ -8219,7 +8219,7 @@ static int run_list(struct pipe *pi)
 			 * I'm NOT treating inner &'s as jobs */
 #if ENABLE_HUSH_JOB
 			if (G.run_list_level == 1)
-				insert_bg_job(pi);
+				insert_job_into_table(pi);
 #endif
 			/* Last command's pid goes to $! */
 			G.last_bg_pid = pi->cmds[pi->num_cmds - 1].pid;
@@ -9702,14 +9702,14 @@ static int FAST_FUNC builtin_fg_bg(char **argv)
 	i = kill(- pi->pgrp, SIGCONT);
 	if (i < 0) {
 		if (errno == ESRCH) {
-			delete_finished_bg_job(pi);
+			delete_finished_job(pi);
 			return EXIT_SUCCESS;
 		}
 		bb_perror_msg("kill (SIGCONT)");
 	}
 
 	if (argv[0][0] == 'f') {
-		remove_bg_job(pi);
+		remove_job_from_table(pi); /* FG job shouldn't be in job table */
 		return checkjobs_and_fg_shell(pi);
 	}
 	return EXIT_SUCCESS;
@@ -9909,7 +9909,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 # if 0
 					else {
 						if (!wait_pipe->alive_cmds)
-							delete_finished_bg_job(wait_pipe);
+							delete_finished_job(wait_pipe);
 					}
 # endif
 				}
