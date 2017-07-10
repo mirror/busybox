@@ -681,8 +681,21 @@ static void check_suid(int applet_no)
 		if (geteuid())
 			bb_error_msg_and_die("must be suid to work properly");
 	} else if (APPLET_SUID(applet_no) == BB_SUID_DROP) {
-		xsetgid(rgid);  /* drop all privileges */
-		xsetuid(ruid);
+		/*
+		 * Drop all privileges.
+		 *
+		 * Don't check for errors: in normal use, they are impossible,
+		 * and in special cases, exiting is harmful. Example:
+		 * 'unshare --user' when user's shell is also from busybox.
+		 *
+		 * 'unshare --user' creates a new user namespace without any
+		 * uid mappings. Thus, busybox binary is setuid nobody:nogroup
+		 * within the namespace, as that is the only user. However,
+		 * since no uids are mapped, calls to setgid/setuid
+		 * fail (even though they would do nothing).
+		 */
+		setgid(rgid);
+		setuid(ruid);
 	}
 #  if ENABLE_FEATURE_SUID_CONFIG
  ret: ;
