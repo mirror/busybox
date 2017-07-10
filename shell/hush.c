@@ -3527,9 +3527,8 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 	if (r->flag & FLAG_START) {
 		struct parse_context *old;
 
-		old = xmalloc(sizeof(*old));
+		old = xmemdup(ctx, sizeof(*ctx));
 		debug_printf_parse("push stack %p\n", old);
-		*old = *ctx;   /* physical copy */
 		initialize_context(ctx);
 		ctx->stack = old;
 	} else if (/*ctx->ctx_res_w == RES_NONE ||*/ !(ctx->old_flag & (1 << r->res))) {
@@ -7222,19 +7221,18 @@ static void insert_job_into_table(struct pipe *pi)
 	struct pipe *job, **jobp;
 	int i;
 
-	/* Linear search for the ID of the job to use */
-	pi->jobid = 1;
-	for (job = G.job_list; job; job = job->next)
-		if (job->jobid >= pi->jobid)
-			pi->jobid = job->jobid + 1;
-
-	/* Add job to the list of running jobs */
+	/* Find the end of the list, and find next job ID to use */
+	i = 0;
 	jobp = &G.job_list;
-	while ((job = *jobp) != NULL)
+	while ((job = *jobp) != NULL) {
+		if (job->jobid > i)
+			i = job->jobid;
 		jobp = &job->next;
-	job = *jobp = xmalloc(sizeof(*job));
+	}
+	pi->jobid = i + 1;
 
-	*job = *pi; /* physical copy */
+	/* Create a new job struct at the end */
+	job = *jobp = xmemdup(pi, sizeof(*pi));
 	job->next = NULL;
 	job->cmds = xzalloc(sizeof(pi->cmds[0]) * pi->num_cmds);
 	/* Cannot copy entire pi->cmds[] vector! This causes double frees */
@@ -7267,7 +7265,6 @@ static void remove_job_from_table(struct pipe *pi)
 		G.last_jobid = 0;
 }
 
-/* Remove a backgrounded job */
 static void delete_finished_job(struct pipe *pi)
 {
 	remove_job_from_table(pi);
@@ -9904,8 +9901,8 @@ static int FAST_FUNC builtin_wait(char **argv)
 					if (ret < 0)
 						ret = wait_for_child_or_signal(wait_pipe, 0);
 //bash immediately deletes finished jobs from job table only in interactive mode,
-//we _always_ delete them at once. If we'd start doing that, this (and more)
-//would be necessary to avoid accumulating dead jobs:
+//we _always_ delete them at once. If we'd start keeping some dead jobs, this
+//(and more) would be necessary to avoid accumulating dead jobs:
 # if 0
 					else {
 						if (!wait_pipe->alive_cmds)
