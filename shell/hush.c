@@ -49,6 +49,7 @@
  *          [un]alias, command, fc, getopts, newgrp, readonly, times
  *      make complex ${var%...} constructs support optional
  *      make here documents optional
+ *      set -e (some ash testsuite entries use it, want to adopt those)
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
@@ -8421,6 +8422,22 @@ static int set_mode(int state, char mode, const char *o_opt)
 			G.o_opt[idx] = state;
 			break;
 		}
+/* TODO: set -e
+Exit if pipe, list, or compound command exits with a non-zero status.
+Shell does not exit if failed command is part of condition in
+if/while, part of && or || list except the last command, any command
+in a pipe but the last, or if the command's return value is being
+inverted with !. If a compound command other than a subshell returns a
+non-zero status because a command failed while -e was being ignored, the
+shell does not exit. A trap on ERR, if set, is executed before the shell
+exits [ERR is a bashism].
+
+If a compound command or function executes in a context where -e is
+ignored, none of the commands executed within are affected by the -e
+setting. If a compound command or function sets -e while executing in a
+context where -e is ignored, that setting does not have any effect until
+the compound command or the command containing the function call completes.
+*/
 	default:
 		return EXIT_FAILURE;
 	}
