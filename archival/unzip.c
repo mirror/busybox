@@ -346,6 +346,12 @@ static void unzip_extract(zip_header_t *zip, int dst_fd)
 		return;
 	}
 
+// NB: to support symlinks, need to extract symlink target. A-la:
+// xstate.mem_output_size_max = zip->fmt.ucmpsize;
+// ...unpack...
+// if (xstate.mem_output_buf) { success, xstate.mem_output_size is the size }
+// Although archives I've seen have fmt.method == 0 for symlinks.
+
 	init_transformer_state(&xstate);
 	xstate.bytes_in = zip->fmt.cmpsize;
 	xstate.src_fd = zip_fd;
@@ -685,6 +691,20 @@ int unzip_main(int argc, char **argv)
 				zip.fmt.cmpsize  = cdf.fmt.cmpsize;
 				zip.fmt.ucmpsize = cdf.fmt.ucmpsize;
 			}
+// Seen in some zipfiles: central directory 9 byte extra field contains
+// a subfield with ID 0x5455 and 5 data bytes, which is a Unix-style UTC mtime.
+// Local header version:
+//  u16 0x5455 ("UT")
+//  u16 size (1 + 4 * n)
+//  u8  flags: bit 0:mtime is present, bit 1:atime is present, bit 2:ctime is present
+//  u32 mtime
+//  u32 atime
+//  u32 ctime
+// Central header version:
+//  u16 0x5455 ("UT")
+//  u16 size (5 (or 1?))
+//  u8  flags: bit 0:mtime is present, bit 1:atime is present, bit 2:ctime is present
+//  u32 mtime (CDF does not store atime/ctime)
 # else
 			/* CDF has the same data as local header, no need to read the latter...
 			 * ...not really. An archive was seen with cdf.extra_len == 6 but
@@ -699,6 +719,7 @@ int unzip_main(int argc, char **argv)
 			if ((cdf.fmt.version_made_by >> 8) == 3) {
 				/* This archive is created on Unix */
 				dir_mode = file_mode = (cdf.fmt.external_attributes >> 16);
+//TODO: if (S_ISLNK(file_mode)) this is a symlink
 			}
 		}
 #endif
