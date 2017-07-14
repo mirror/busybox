@@ -7237,10 +7237,41 @@ static const char *get_cmdtext(struct pipe *pi)
 	return pi->cmdtext;
 }
 
+static void remove_job_from_table(struct pipe *pi)
+{
+	struct pipe *prev_pipe;
+
+	if (pi == G.job_list) {
+		G.job_list = pi->next;
+	} else {
+		prev_pipe = G.job_list;
+		while (prev_pipe->next != pi)
+			prev_pipe = prev_pipe->next;
+		prev_pipe->next = pi->next;
+	}
+	G.last_jobid = 0;
+	if (G.job_list)
+		G.last_jobid = G.job_list->jobid;
+}
+
+static void delete_finished_job(struct pipe *pi)
+{
+	remove_job_from_table(pi);
+	free_pipe(pi);
+}
+
+static void clean_up_last_dead_job(void)
+{
+	if (G.job_list && !G.job_list->alive_cmds)
+		delete_finished_job(G.job_list);
+}
+
 static void insert_job_into_table(struct pipe *pi)
 {
 	struct pipe *job, **jobp;
 	int i;
+
+	clean_up_last_dead_job();
 
 	/* Find the end of the list, and find next job ID to use */
 	i = 0;
@@ -7266,30 +7297,6 @@ static void insert_job_into_table(struct pipe *pi)
 	if (G_interactive_fd)
 		printf("[%u] %u %s\n", job->jobid, (unsigned)job->cmds[0].pid, job->cmdtext);
 	G.last_jobid = job->jobid;
-}
-
-static void remove_job_from_table(struct pipe *pi)
-{
-	struct pipe *prev_pipe;
-
-	if (pi == G.job_list) {
-		G.job_list = pi->next;
-	} else {
-		prev_pipe = G.job_list;
-		while (prev_pipe->next != pi)
-			prev_pipe = prev_pipe->next;
-		prev_pipe->next = pi->next;
-	}
-	if (G.job_list)
-		G.last_jobid = G.job_list->jobid;
-	else
-		G.last_jobid = 0;
-}
-
-static void delete_finished_job(struct pipe *pi)
-{
-	remove_job_from_table(pi);
-	free_pipe(pi);
 }
 #endif /* JOB */
 
@@ -7415,14 +7422,22 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 		pi->cmds[i].pid = 0;
 		pi->alive_cmds--;
 		if (!pi->alive_cmds) {
-			if (G_interactive_fd)
+			if (G_interactive_fd) {
 				printf(JOB_STATUS_FORMAT, pi->jobid,
 						"Done", pi->cmdtext);
-			delete_finished_job(pi);
-//bash deletes finished jobs from job table only in interactive mode, after "jobs" cmd,
-//or if pid of a new process matches one of the old ones
-//(see cleanup_dead_jobs(), delete_old_job(), J_NOTIFIED in bash source).
-//Testcase script: "(exit 3) & sleep 1; wait %1; echo $?" prints 3 in bash.
+				delete_finished_job(pi);
+			} else {
+/*
+ * bash deletes finished jobs from job table only in interactive mode,
+ * after "jobs" cmd, or if pid of a new process matches one of the old ones
+ * (see cleanup_dead_jobs(), delete_old_job(), J_NOTIFIED in bash source).
+ * Testcase script: "(exit 3) & sleep 1; wait %1; echo $?" prints 3 in bash.
+ * We only retain one "dead" job, if it's the single job on the list.
+ * This covers most of real-world scenarios where this is useful.
+ */
+				if (pi != G.job_list)
+					delete_finished_job(pi);
+			}
 		}
 	} else {
 		/* child stopped */
@@ -9696,6 +9711,9 @@ static int FAST_FUNC builtin_jobs(char **argv UNUSED_PARAM)
 
 		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->cmdtext);
 	}
+
+	clean_up_last_dead_job();
+
 	return EXIT_SUCCESS;
 }
 
@@ -9939,17 +9957,12 @@ static int FAST_FUNC builtin_wait(char **argv)
 				wait_pipe = parse_jobspec(*argv);
 				if (wait_pipe) {
 					ret = job_exited_or_stopped(wait_pipe);
-					if (ret < 0)
+					if (ret < 0) {
 						ret = wait_for_child_or_signal(wait_pipe, 0);
-//bash immediately deletes finished jobs from job table only in interactive mode,
-//we _always_ delete them at once. If we'd start keeping some dead jobs, this
-//(and more) would be necessary to avoid accumulating dead jobs:
-# if 0
-					else {
-						if (!wait_pipe->alive_cmds)
-							delete_finished_job(wait_pipe);
+					} else {
+						/* waiting on "last dead job" removes it */
+						clean_up_last_dead_job();
 					}
-# endif
 				}
 				/* else: parse_jobspec() already emitted error msg */
 				continue;
