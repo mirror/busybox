@@ -58,7 +58,7 @@ static NOINLINE int bb_dump_size(FS *fs)
 	const char *p;
 	int prec;
 
-	/* figure out the data block bb_dump_size needed for each format unit */
+	/* figure out the data block size needed for each format unit */
 	for (cur_size = 0, fu = fs->nextfu; fu; fu = fu->nextfu) {
 		if (fu->bcnt) {
 			cur_size += fu->bcnt * fu->reps;
@@ -320,7 +320,7 @@ static void do_skip(priv_dumper_t *dumper, const char *fname, int statok)
 		if (!(S_ISCHR(sbuf.st_mode) || S_ISBLK(sbuf.st_mode) || S_ISFIFO(sbuf.st_mode))
 		 && dumper->pub.dump_skip >= sbuf.st_size
 		) {
-			/* If bb_dump_size valid and pub.dump_skip >= size */
+			/* If st_size is valid and pub.dump_skip >= st_size */
 			dumper->pub.dump_skip -= sbuf.st_size;
 			dumper->address += sbuf.st_size;
 			return;
@@ -339,12 +339,14 @@ static NOINLINE int next(priv_dumper_t *dumper)
 	int statok;
 
 	for (;;) {
-		if (*dumper->argv) {
+		char *fname = *dumper->argv;
+
+		if (fname) {
+			dumper->argv++;
 			dumper->next__done = statok = 1;
-			if (!(freopen(*dumper->argv, "r", stdin))) {
-				bb_simple_perror_msg(*dumper->argv);
+			if (!freopen(fname, "r", stdin)) {
+				bb_simple_perror_msg(fname);
 				dumper->exitval = 1;
-				++dumper->argv;
 				continue;
 			}
 		} else {
@@ -355,9 +357,7 @@ static NOINLINE int next(priv_dumper_t *dumper)
 			statok = 0;
 		}
 		if (dumper->pub.dump_skip)
-			do_skip(dumper, statok ? *dumper->argv : "stdin", statok);
-		if (*dumper->argv)
-			++dumper->argv;
+			do_skip(dumper, statok ? fname : "stdin", statok);
 		if (!dumper->pub.dump_skip)
 			return 1;
 	}
@@ -670,7 +670,7 @@ int FAST_FUNC bb_dump_dump(dumper_t *pub_dumper, char **argv)
 	FS *tfs;
 	int blocksize;
 
-	/* figure out the data block bb_dump_size */
+	/* figure out the data block size */
 	blocksize = 0;
 	tfs = dumper->pub.fshead;
 	while (tfs) {
