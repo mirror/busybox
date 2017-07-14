@@ -101,26 +101,31 @@
  * to achieve "cat -v" effect. The actual effect would be "users pissed off
  * by gratuitous incompatibility".
  */
-#define CATV_OPT_e (1<<0)
-#define CATV_OPT_t (1<<1)
-#define CATV_OPT_v (1<<2)
+#define CAT_OPT_e (1<<0)
+#define CAT_OPT_t (1<<1)
+#define CAT_OPT_v (1<<2)
+/* -A occupies bit (1<<3) */
+#define CAT_OPT_n ((1<<4) * ENABLE_FEATURE_CATN)
+#define CAT_OPT_b ((1<<5) * ENABLE_FEATURE_CATN)
 static int catv(unsigned opts, char **argv)
 {
 	int retval = EXIT_SUCCESS;
 	int fd;
-
-	BUILD_BUG_ON(CATV_OPT_e != VISIBLE_ENDLINE);
-	BUILD_BUG_ON(CATV_OPT_t != VISIBLE_SHOW_TABS);
-#if 0 /* These consts match, we can just pass "opts" to visible() */
-	if (opts & CATV_OPT_e)
-		flags |= VISIBLE_ENDLINE;
-	if (opts & CATV_OPT_t)
-		flags |= VISIBLE_SHOW_TABS;
+#if ENABLE_FEATURE_CATN
+	unsigned lineno = 0;
+	unsigned eol_char = (opts & (CAT_OPT_n|CAT_OPT_b)) ? '\n' : 0x100;
+	unsigned skip_num_on = (opts & CAT_OPT_b) ? '\n' : 0x100;
+	bool eol_seen = 1;
 #endif
 
-	/* Read from stdin if there's nothing else to do. */
-	if (!argv[0])
-		*--argv = (char*)"-";
+	BUILD_BUG_ON(CAT_OPT_e != VISIBLE_ENDLINE);
+	BUILD_BUG_ON(CAT_OPT_t != VISIBLE_SHOW_TABS);
+#if 0 /* These consts match, we can just pass "opts" to visible() */
+	if (opts & CAT_OPT_e)
+		flags |= VISIBLE_ENDLINE;
+	if (opts & CAT_OPT_t)
+		flags |= VISIBLE_SHOW_TABS;
+#endif
 
 #define read_buf bb_common_bufsiz1
 	setup_common_bufsiz();
@@ -141,6 +146,11 @@ static int catv(unsigned opts, char **argv)
 			for (i = 0; i < res; i++) {
 				unsigned char c = read_buf[i];
 				char buf[sizeof("M-^c")];
+#if ENABLE_FEATURE_CATN
+				if (eol_seen && c != skip_num_on)
+					printf("%6u  ", ++lineno);
+				eol_seen = (c == eol_char);
+#endif
 				visible(c, buf, opts);
 				fputs(buf, stdout);
 			}
@@ -151,12 +161,13 @@ static int catv(unsigned opts, char **argv)
 
 	fflush_stdout_and_exit(retval);
 }
+#undef CAT_OPT_n
+#undef CAT_OPT_b
 #endif
 
 int cat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cat_main(int argc UNUSED_PARAM, char **argv)
 {
-	struct number_state ns;
 	unsigned opts;
 
 	IF_FEATURE_CATV(opt_complementary = "Aetv"; /* -A == -vet */)
@@ -164,10 +175,13 @@ int cat_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, IF_FEATURE_CATV("etvA") IF_FEATURE_CATN("nb") "u");
 	argv += optind;
 
+	/* Read from stdin if there's nothing else to do. */
+	if (!argv[0])
+		*--argv = (char*)"-";
+
 #if ENABLE_FEATURE_CATV
 	if (opts & 7)
 		return catv(opts, argv);
-//BUG: -v,-e,-t,-A ignore -nb
 	opts >>= 4;
 #endif
 
@@ -175,8 +189,8 @@ int cat_main(int argc UNUSED_PARAM, char **argv)
 # define CAT_OPT_n (1<<0)
 # define CAT_OPT_b (1<<1)
 	if (opts & (CAT_OPT_n|CAT_OPT_b)) { /* -n or -b */
-		if (!*argv)
-			*--argv = (char*)"-";
+		struct number_state ns;
+
 		ns.width = 6;
 		ns.start = 1;
 		ns.inc = 1;

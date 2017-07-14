@@ -35,26 +35,6 @@
 
 #include "libbb.h"
 
-void FAST_FUNC print_numbered_lines(struct number_state *ns, const char *filename)
-{
-	FILE *fp = fopen_or_warn_stdin(filename);
-	unsigned N = ns->start;
-	char *line;
-
-	while ((line = xmalloc_fgetline(fp)) != NULL) {
-		if (ns->all
-		 || (ns->nonempty && line[0])
-		) {
-			printf("%*u%s%s\n", ns->width, N, ns->sep, line);
-			N += ns->inc;
-		} else if (ns->empty_str)
-			fputs(ns->empty_str, stdout);
-		free(line);
-	}
-
-	fclose(fp);
-}
-
 int nl_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nl_main(int argc UNUSED_PARAM, char **argv)
 {

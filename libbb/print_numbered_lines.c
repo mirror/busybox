@@ -24,6 +24,7 @@ void FAST_FUNC print_numbered_lines(struct number_state *ns, const char *filenam
 			fputs(ns->empty_str, stdout);
 		free(line);
 	}
+	ns->start = N;
 
 	fclose(fp);
 }
