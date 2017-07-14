@@ -84,7 +84,7 @@ int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
 		while ((line = xmalloc_fgetline(orig_fp)) != NULL) {
 			char **cpp = argv;
 			while (*cpp) {
-				if (strcmp(*cpp, line) == 0) {
+				if (*cpp != dont_add && strcmp(*cpp, line) == 0) {
 					/* Old file has this shell name */
 					if (REMOVE_SHELL) {
 						/* we are remove-shell */
