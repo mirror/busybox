@@ -133,9 +133,8 @@ enum {
 	/* end of input flags */
 	FLAG_TWOBUFS = (1 << 6) * ENABLE_FEATURE_DD_IBS_OBS,
 	FLAG_COUNT   = 1 << 7,
-	FLAG_STATUS  = 1 << 8,
-	FLAG_STATUS_NONE = 1 << 9,
-	FLAG_STATUS_NOXFER = 1 << 10,
+	FLAG_STATUS_NONE = 1 << 8,
+	FLAG_STATUS_NOXFER = 1 << 9,
 };
 
 static void dd_output_status(int UNUSED_PARAM cur_signal)
@@ -396,7 +395,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			n = index_in_strings(status_words, val);
 			if (n < 0)
 				bb_error_msg_and_die(bb_msg_invalid_arg_to, val, "status");
-			G.flags |= FLAG_STATUS << n;
+			G.flags |= FLAG_STATUS_NONE << n;
 			/*continue;*/
 		}
 #endif
