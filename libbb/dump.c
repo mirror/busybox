@@ -311,20 +311,18 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 	}
 }
 
-static void do_skip(priv_dumper_t *dumper, const char *fname, int statok)
+static void do_skip(priv_dumper_t *dumper, const char *fname)
 {
 	struct stat sbuf;
 
-	if (statok) {
-		xfstat(STDIN_FILENO, &sbuf, fname);
-		if (!(S_ISCHR(sbuf.st_mode) || S_ISBLK(sbuf.st_mode) || S_ISFIFO(sbuf.st_mode))
-		 && dumper->pub.dump_skip >= sbuf.st_size
-		) {
-			/* If st_size is valid and pub.dump_skip >= st_size */
-			dumper->pub.dump_skip -= sbuf.st_size;
-			dumper->address += sbuf.st_size;
-			return;
-		}
+	xfstat(STDIN_FILENO, &sbuf, fname);
+	if (S_ISREG(sbuf.st_mode)
+	 && dumper->pub.dump_skip >= sbuf.st_size
+	) {
+		/* If st_size is valid and pub.dump_skip >= st_size */
+		dumper->pub.dump_skip -= sbuf.st_size;
+		dumper->address += sbuf.st_size;
+		return;
 	}
 	if (fseeko(stdin, dumper->pub.dump_skip, SEEK_SET)) {
 		bb_simple_perror_msg_and_die(fname);
@@ -336,14 +334,11 @@ static void do_skip(priv_dumper_t *dumper, const char *fname, int statok)
 
 static NOINLINE int next(priv_dumper_t *dumper)
 {
-	int statok;
-
 	for (;;) {
-		char *fname = *dumper->argv;
+		const char *fname = *dumper->argv;
 
 		if (fname) {
 			dumper->argv++;
-			dumper->next__done = statok = 1;
 			if (!freopen(fname, "r", stdin)) {
 				bb_simple_perror_msg(fname);
 				dumper->exitval = 1;
@@ -352,13 +347,11 @@ static NOINLINE int next(priv_dumper_t *dumper)
 		} else {
 			if (dumper->next__done)
 				return 0; /* no next file */
-			dumper->next__done = 1;
-//why stat of stdin is specially prohibited?
-			statok = 0;
 		}
+		dumper->next__done = 1;
 		if (dumper->pub.dump_skip)
-			do_skip(dumper, statok ? fname : "stdin", statok);
-		if (!dumper->pub.dump_skip)
+			do_skip(dumper, fname ? fname : "stdin");
+		if (dumper->pub.dump_skip == 0)
 			return 1;
 	}
 	/* NOTREACHED */
