@@ -339,10 +339,12 @@ static NOINLINE int next(priv_dumper_t *dumper)
 
 		if (fname) {
 			dumper->argv++;
-			if (!freopen(fname, "r", stdin)) {
-				bb_simple_perror_msg(fname);
-				dumper->exitval = 1;
-				continue;
+			if (NOT_LONE_DASH(fname)) {
+				if (!freopen(fname, "r", stdin)) {
+					bb_simple_perror_msg(fname);
+					dumper->exitval = 1;
+					continue;
+				}
 			}
 		} else {
 			if (dumper->next__done)
