@@ -49,7 +49,6 @@
  *          [un]alias, command, fc, getopts, newgrp, readonly, times
  *      make complex ${var%...} constructs support optional
  *      make here documents optional
- *      set -e (some ash testsuite entries use it, want to adopt those)
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
@@ -286,7 +285,7 @@
  * therefore we don't show them either.
  */
 //usage:#define hush_trivial_usage
-//usage:	"[-nxl] [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS]]"
+//usage:	"[-enxl] [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS]]"
 //usage:#define hush_full_usage "\n\n"
 //usage:	"Unix shell interpreter"
 
@@ -747,6 +746,7 @@ struct function {
 static const char o_opt_strings[] ALIGN1 =
 	"pipefail\0"
 	"noexec\0"
+	"errexit\0"
 #if ENABLE_HUSH_MODE_X
 	"xtrace\0"
 #endif
@@ -754,6 +754,7 @@ static const char o_opt_strings[] ALIGN1 =
 enum {
 	OPT_O_PIPEFAIL,
 	OPT_O_NOEXEC,
+	OPT_O_ERREXIT,
 #if ENABLE_HUSH_MODE_X
 	OPT_O_XTRACE,
 #endif
@@ -810,6 +811,25 @@ struct globals {
 #else
 # define G_saved_tty_pgrp 0
 #endif
+	/* How deeply are we in context where "set -e" is ignored */
+	int errexit_depth;
+	/* "set -e" rules (do we follow them correctly?):
+	 * Exit if pipe, list, or compound command exits with a non-zero status.
+	 * Shell does not exit if failed command is part of condition in
+	 * if/while, part of && or || list except the last command, any command
+	 * in a pipe but the last, or if the command's return value is being
+	 * inverted with !. If a compound command other than a subshell returns a
+	 * non-zero status because a command failed while -e was being ignored, the
+	 * shell does not exit. A trap on ERR, if set, is executed before the shell
+	 * exits [ERR is a bashism].
+	 *
+	 * If a compound command or function executes in a context where -e is
+	 * ignored, none of the commands executed within are affected by the -e
+	 * setting. If a compound command or function sets -e while executing in a
+	 * context where -e is ignored, that setting does not have any effect until
+	 * the compound command or the command containing the function call completes.
+	 */
+
 	char o_opt[NUM_OPT_O];
 #if ENABLE_HUSH_MODE_X
 # define G_x_mode (G.o_opt[OPT_O_XTRACE])
@@ -5159,7 +5179,7 @@ static struct pipe *parse_stream(char **pstring,
 			 * and it will match } earlier (not here). */
 			syntax_error_unexpected_ch(ch);
 			G.last_exitcode = 2;
-			goto parse_error1;
+			goto parse_error2;
 		default:
 			if (HUSH_DEBUG)
 				bb_error_msg_and_die("BUG: unexpected %c\n", ch);
@@ -5168,7 +5188,7 @@ static struct pipe *parse_stream(char **pstring,
 
  parse_error:
 	G.last_exitcode = 1;
- parse_error1:
+ parse_error2:
 	{
 		struct parse_context *pctx;
 		IF_HAS_KEYWORDS(struct parse_context *p2;)
@@ -8021,6 +8041,7 @@ static int run_list(struct pipe *pi)
 	/* Go through list of pipes, (maybe) executing them. */
 	for (; pi; pi = IF_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
 		int r;
+		int sv_errexit_depth;
 
 		if (G.flag_SIGINT)
 			break;
@@ -8030,6 +8051,13 @@ static int run_list(struct pipe *pi)
 		IF_HAS_KEYWORDS(rword = pi->res_word;)
 		debug_printf_exec(": rword=%d cond_code=%d last_rword=%d\n",
 				rword, cond_code, last_rword);
+
+		sv_errexit_depth = G.errexit_depth;
+		if (IF_HAS_KEYWORDS(rword == RES_IF || rword == RES_ELIF ||)
+		    pi->followup != PIPE_SEQ
+		) {
+			G.errexit_depth++;
+		}
 #if ENABLE_HUSH_LOOPS
 		if ((rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR)
 		 && loop_top == NULL /* avoid bumping G.depth_of_loop twice */
@@ -8243,6 +8271,14 @@ static int run_list(struct pipe *pi)
 			check_and_run_traps();
 		}
 
+		/* Handle "set -e" */
+		if (rcode != 0 && G.o_opt[OPT_O_ERREXIT]) {
+			debug_printf_exec("ERREXIT:1 errexit_depth:%d\n", G.errexit_depth);
+			if (G.errexit_depth == 0)
+				hush_exit(rcode);
+		}
+		G.errexit_depth = sv_errexit_depth;
+
 		/* Analyze how result affects subsequent commands */
 #if ENABLE_HUSH_IF
 		if (rword == RES_IF || rword == RES_ELIF)
@@ -8422,22 +8458,9 @@ static int set_mode(int state, char mode, const char *o_opt)
 			G.o_opt[idx] = state;
 			break;
 		}
-/* TODO: set -e
-Exit if pipe, list, or compound command exits with a non-zero status.
-Shell does not exit if failed command is part of condition in
-if/while, part of && or || list except the last command, any command
-in a pipe but the last, or if the command's return value is being
-inverted with !. If a compound command other than a subshell returns a
-non-zero status because a command failed while -e was being ignored, the
-shell does not exit. A trap on ERR, if set, is executed before the shell
-exits [ERR is a bashism].
-
-If a compound command or function executes in a context where -e is
-ignored, none of the commands executed within are affected by the -e
-setting. If a compound command or function sets -e while executing in a
-context where -e is ignored, that setting does not have any effect until
-the compound command or the command containing the function call completes.
-*/
+	case 'e':
+		G.o_opt[OPT_O_ERREXIT] = state;
+		break;
 	default:
 		return EXIT_FAILURE;
 	}
@@ -8564,7 +8587,7 @@ int hush_main(int argc, char **argv)
 	flags = (argv[0] && argv[0][0] == '-') ? OPT_login : 0;
 	builtin_argc = 0;
 	while (1) {
-		opt = getopt(argc, argv, "+c:xinsl"
+		opt = getopt(argc, argv, "+c:exinsl"
 #if !BB_MMU
 				"<:$:R:V:"
 # if ENABLE_HUSH_FUNCTIONS
@@ -8682,6 +8705,7 @@ int hush_main(int argc, char **argv)
 #endif
 		case 'n':
 		case 'x':
+		case 'e':
 			if (set_mode(1, opt, NULL) == 0) /* no error */
 				break;
 		default:
