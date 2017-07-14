@@ -9967,7 +9967,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 			/* No */
 			ret = 127;
 			if (errno == ECHILD) {
-				if (G.last_bg_pid > 0 && pid == G.last_bg_pid) {
+				if (pid == G.last_bg_pid) {
 					/* "wait $!" but last bg task has already exited. Try:
 					 * (sleep 1; exit 3) & sleep 2; echo $?; wait $!; echo $?
 					 * In bash it prints exitcode 0, then 3.
