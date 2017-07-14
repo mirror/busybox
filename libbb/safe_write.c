@@ -13,9 +13,17 @@ ssize_t FAST_FUNC safe_write(int fd, const void *buf, size_t count)
 {
 	ssize_t n;
 
-	do {
+	for (;;) {
 		n = write(fd, buf, count);
-	} while (n < 0 && errno == EINTR);
+		if (n >= 0 || errno != EINTR)
+			break;
+		/* Some callers set errno=0, are upset when they see EINTR.
+		 * Returning EINTR is wrong since we retry write(),
+		 * the "error" was transient.
+		 */
+		errno = 0;
+		/* repeat the write() */
+	}
 
 	return n;
 }
