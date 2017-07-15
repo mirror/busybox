@@ -12,10 +12,14 @@ config HAVE_DOT_CONFIG
 menu "Busybox Settings"
 
 config DESKTOP
-	bool "Enable options for full-blown desktop systems"
+	bool "Enable compatibility for full-blown desktop systems"
 	default y
 	help
-	  Enable options and features which are not essential.
+	  Enable applet options and features which are not essential.
+	  Many applet options have dedicated config options to (de)select them
+	  under that applet; this options enables those options which have no
+	  individual config item for them.
+
 	  Select this if you plan to use busybox on full-blown desktop machine
 	  with common Linux distro, which needs higher level of command-line
 	  compatibility.
@@ -42,13 +46,12 @@ config INCLUDE_SUSv2
 	  will be supported in head, tail, and fold. (Note: should
 	  affect renice too.)
 
-config USE_PORTABLE_CODE
-	bool "Avoid using GCC-specific code constructs"
-	default n
+config LONG_OPTS
+	bool "Support --long-options"
+	default y
 	help
-	  Use this option if you are trying to compile busybox with
-	  compiler other than gcc.
-	  If you do use gcc, this option may needlessly increase code size.
+	  Enable this if you want busybox applets to use the gnu --long-option
+	  style, in addition to single character -a -b -c style options.
 
 config SHOW_USAGE
 	bool "Show applet usage messages"
@@ -84,40 +87,8 @@ config FEATURE_COMPRESS_USAGE
 	  and have very little memory, this might not be a win. Otherwise,
 	  you probably want this.
 
-config BUSYBOX
-	bool "Include busybox applet"
-	default y
-	help
-	  The busybox applet provides general help regarding busybox and
-	  allows the included applets to be listed.  It's also required
-	  if applet links are to be installed at runtime. If you unselect
-	  this option, running busybox without any arguments will give
-	  just a cryptic error message:
-
-	  $ busybox
-	  busybox: applet not found
-
-	  Running "busybox APPLET [ARGS...]" will still work, of course.
-
-config FEATURE_INSTALLER
-	bool "Support --install [-s] to install applet links at runtime"
-	default y
-	depends on BUSYBOX
-	help
-	  Enable 'busybox --install [-s]' support. This will allow you to use
-	  busybox at runtime to create hard links or symlinks for all the
-	  applets that are compiled into busybox.
-
-config INSTALL_NO_USR
-	bool "Don't use /usr"
-	default n
-	help
-	  Disable use of /usr. busybox --install and "make install"
-	  will install applets only to /bin and /sbin,
-	  never to /usr/bin or /usr/sbin.
-
 config LFS
-	bool "Build with Large File Support (for accessing files > 2 GB)"
+	bool "Support files > 2 GB"
 	default y
 	help
 	  If you want to build BusyBox with large file support, then enable
@@ -125,7 +96,7 @@ config LFS
 	  library lacks large file support for large files. Some of the
 	  programs that can benefit from large file support include dd, gzip,
 	  cp, mount, tar, and many others. If you want to access files larger
-	  than 2 Gigabytes, enable this option. Otherwise, leave it set to 'N'.
+	  than 2 Gigabytes, enable this option.
 
 config PAM
 	bool "Support PAM (Pluggable Authentication Modules)"
@@ -133,13 +104,6 @@ config PAM
 	help
 	  Use PAM in some busybox applets (currently login and httpd) instead
 	  of direct access to password database.
-
-config LONG_OPTS
-	bool "Support --long-options"
-	default y
-	help
-	  Enable this if you want busybox applets to use the gnu --long-option
-	  style, in addition to single character -a -b -c style options.
 
 config FEATURE_DEVPTS
 	bool "Use the devpts filesystem for Unix98 PTYs"
@@ -189,8 +153,40 @@ config PID_FILE_PATH
 	  this value.  The option has no effect on applets that require you to
 	  specify a pidfile path.
 
+config BUSYBOX
+	bool "Include busybox applet"
+	default y
+	help
+	  The busybox applet provides general help regarding busybox and
+	  allows the included applets to be listed.  It's also required
+	  if applet links are to be installed at runtime. If you unselect
+	  this option, running busybox without any arguments will give
+	  just a cryptic error message:
+
+	  $ busybox
+	  busybox: applet not found
+
+	  Running "busybox APPLET [ARGS...]" will still work, of course.
+
+config FEATURE_INSTALLER
+	bool "Support --install [-s] to install applet links at runtime"
+	default y
+	depends on BUSYBOX
+	help
+	  Enable 'busybox --install [-s]' support. This will allow you to use
+	  busybox at runtime to create hard links or symlinks for all the
+	  applets that are compiled into busybox.
+
+config INSTALL_NO_USR
+	bool "Don't use /usr"
+	default n
+	help
+	  Disable use of /usr. busybox --install and "make install"
+	  will install applets only to /bin and /sbin,
+	  never to /usr/bin or /usr/sbin.
+
 config FEATURE_SUID
-	bool "Support SUID/SGID handling"
+	bool "Drop SUID state for most applets"
 	default y
 	help
 	  With this option you can install the busybox binary belonging
@@ -198,16 +194,16 @@ config FEATURE_SUID
 	  root-level operations even when run by ordinary users
 	  (for example, mounting of user mounts in fstab needs this).
 
-	  Busybox will automatically drop privileges for applets
-	  that don't need root access.
+	  With this option enabled, Busybox drops privileges for applets
+	  that don't need root access, before entering their main() function.
 
-	  If you are really paranoid and don't want to do this, build two
-	  busybox binaries with different applets in them (and the appropriate
-	  symlinks pointing to each binary), and only set the suid bit on the
-	  one that needs it.
+	  If you are really paranoid and don't want even initial busybox code
+	  to run under root for evey applet, build two busybox binaries with
+	  different applets in them (and the appropriate symlinks pointing
+	  to each binary), and only set the suid bit on the one that needs it.
 
-	  The applets which require root rights (need suid bit or
-	  to be run by root) and will refuse to execute otherwise:
+	  Some applets which require root rights (need suid bit on the binary
+	  or to be run by root) and will refuse to execute otherwise:
 	  crontab, login, passwd, su, vlock, wall.
 
 	  The applets which will use root rights if they have them
@@ -215,16 +211,16 @@ config FEATURE_SUID
 	  without root right nevertheless:
 	  findfs, ping[6], traceroute[6], mount.
 
-	  Note that if you DONT select this option, but DO make busybox
+	  Note that if you DO NOT select this option, but DO make busybox
 	  suid root, ALL applets will run under root, which is a huge
 	  security hole (think "cp /some/file /etc/passwd").
 
 config FEATURE_SUID_CONFIG
-	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
+	bool "Enable SUID configuration via /etc/busybox.conf"
 	default y
 	depends on FEATURE_SUID
 	help
-	  Allow the SUID / SGID state of an applet to be determined at runtime
+	  Allow the SUID/SGID state of an applet to be determined at runtime
 	  by checking /etc/busybox.conf. (This is sort of a poor man's sudo.)
 	  The format of this file is as follows:
 
@@ -244,7 +240,7 @@ config FEATURE_SUID_CONFIG
 
 	  [SUID]
 	  su = ssx root.0 # applet su can be run by anyone and runs with
-	                  # euid=0/egid=0
+	                  # euid=0,egid=0
 	  su = ssx        # exactly the same
 
 	  mount = sx- root.disk # applet mount can be run by root and members
@@ -280,8 +276,9 @@ config FEATURE_PREFER_APPLETS
 	  call 'exec' to try and find an applicable busybox applet before
 	  searching the PATH. This is typically done by exec'ing
 	  /proc/self/exe.
+
 	  This may affect shell, find -exec, xargs and similar applets.
-	  They will use applets even if /bin/<applet> -> busybox link
+	  They will use applets even if /bin/APPLET -> busybox link
 	  is missing (or is not a link to busybox). However, this causes
 	  problems in chroot jails without mounted /proc and with ps/top
 	  (command name can be shown as 'exe' for applets started this way).
@@ -308,6 +305,7 @@ config SELINUX
 	  will not compile.  Specifially, libselinux 1.28 or better is
 	  directly required by busybox. If the installation is located in a
 	  non-standard directory, provide it by invoking make as follows:
+
 		CFLAGS=-I<libselinux-include-path> \
 		LDFLAGS=-L<libselinux-lib-path> \
 		make
@@ -512,6 +510,14 @@ config EXTRA_LDLIBS
 	default ""
 	help
 	  Additional LDLIBS to pass to the linker with -l.
+
+config USE_PORTABLE_CODE
+	bool "Avoid using GCC-specific code constructs"
+	default n
+	help
+	  Use this option if you are trying to compile busybox with
+	  compiler other than gcc.
+	  If you do use gcc, this option may needlessly increase code size.
 
 comment 'Installation Options ("make install" behavior)'
 
