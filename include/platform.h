@@ -247,6 +247,12 @@ typedef uint64_t bb__aliased_uint64_t FIX_ALIASING;
 } while (0)
 #endif
 
+/* Unaligned, fixed-endian accessors */
+#define get_unaligned_le32(buf) ({ uint32_t v; move_from_unaligned32(v, buf); SWAP_LE32(v); })
+#define get_unaligned_be32(buf) ({ uint32_t v; move_from_unaligned32(v, buf); SWAP_BE32(v); })
+#define put_unaligned_le32(val, buf) move_to_unaligned32(buf, SWAP_LE32(val))
+#define put_unaligned_be32(val, buf) move_to_unaligned32(buf, SWAP_BE32(val))
+
 
 /* ---- Size-saving "small" ints (arch-dependent) ----------- */
 
