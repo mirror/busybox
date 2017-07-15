@@ -229,7 +229,7 @@ asm(                               \
 static int32 pstm_mul_comba_gen(psPool_t *pool, pstm_int *A, pstm_int *B,
 			pstm_int *C, pstm_digit *paD, uint32 paDlen)
 {
-	int16		paDfail, pa;
+	int		paDfail, pa; //bbox: was int16
 	int32       ix, iy, iz, tx, ty;
 	pstm_digit	c0, c1, c2, *tmpx, *tmpy, *dst;
 

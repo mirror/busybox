@@ -345,7 +345,7 @@ int32 pstm_montgomery_reduce(psPool_t *pool, pstm_int *a, pstm_int *m,
 {
 	pstm_digit	*c, *_c, *tmpm, mu;
 	int32		oldused, x, y;
-	int16		pa;
+	int		pa; //bbox: was int16
 
 	pa = m->used;
 	if (pa > a->alloc) {

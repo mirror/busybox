@@ -2127,7 +2127,7 @@ int32 pstm_invmod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c)
 {
 	pstm_int	x, y, u, v, B, D;
 	int32		res;
-	uint16		neg, sanity;
+	int		neg, sanity; //bbox: was uint16
 
 	/* 2. [modified] b must be odd   */
 	if (pstm_iseven (b) == 1) {

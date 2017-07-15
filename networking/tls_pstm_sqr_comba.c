@@ -447,7 +447,7 @@ asm(                               \
 static int32 pstm_sqr_comba_gen(psPool_t *pool, pstm_int *A, pstm_int *B,
 			pstm_digit *paD, uint32 paDlen)
 {
-	int16		paDfail, pa;
+	int		paDfail, pa; //bbox: was int16
 	int32       ix, iz;
 	pstm_digit  c0, c1, c2, *dst;
 #ifdef PSTM_ISO
