@@ -1,4 +1,3 @@
-# UNFIXED BUG: hush thinks that ; && || & have the same precedence.
 # According to this doc, && || have higher precedence than ; &.
 # See example below.
 # Precedence of ; is not a problem in practice. Precedence of & is.
