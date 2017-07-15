@@ -386,29 +386,26 @@ config BUILD_LIBBUSYBOX
 	  Build a shared library libbusybox.so.N.N.N which contains all
 	  busybox code.
 
-	  This feature allows every applet to be built as a tiny
-	  separate executable. Enabling it for "one big busybox binary"
-	  approach serves no purpose and increases code size.
-	  You should almost certainly say "no" to this.
+	  This feature allows every applet to be built as a really tiny
+	  separate executable linked against the library:
 
-### config FEATURE_FULL_LIBBUSYBOX
-###	bool "Feature-complete libbusybox"
-###	default n if !FEATURE_SHARED_BUSYBOX
-###	depends on BUILD_LIBBUSYBOX
-###	help
-###	  Build a libbusybox with the complete feature-set, disregarding
-###	  the actually selected config.
-###
-###	  Normally, libbusybox will only contain the features which are
-###	  used by busybox itself. If you plan to write a separate
-###	  standalone application which uses libbusybox say 'Y'.
-###
-###	  Note: libbusybox is GPL, not LGPL, and exports no stable API that
-###	  might act as a copyright barrier. We can and will modify the
-###	  exported function set between releases (even minor version number
-###	  changes), and happily break out-of-tree features.
-###
-###	  Say 'N' if in doubt.
+	  $ size 0_lib/l*
+	    text  data	 bss     dec    hex filename
+	     939   212	  28    1179    49b 0_lib/last
+	     939   212	  28    1179    49b 0_lib/less
+	  919138  8328  1556  929022  e2cfe 0_lib/libbusybox.so.1.N.M
+
+	  This is useful on NOMMU systems which are not capable
+	  of sharing executables, but are capable of sharing code
+	  in dynamic libraries.
+
+config FEATURE_LIBBUSYBOX_STATIC
+	bool "Pull in all external references into libbusybox"
+	default n
+	depends on BUILD_LIBBUSYBOX
+	help
+	  Make libbusybox library independent, not using or requiring
+	  any other shared libraries.
 
 config FEATURE_INDIVIDUAL
 	bool "Produce a binary for each applet, linked against libbusybox"

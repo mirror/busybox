@@ -91,7 +91,9 @@ fi
 
 START_GROUP="-Wl,--start-group"
 END_GROUP="-Wl,--end-group"
-INFO_OPTS="-Wl,--warn-common -Wl,-Map,$EXE.map -Wl,--verbose"
+INFO_OPTS() {
+	echo "-Wl,--warn-common -Wl,-Map,$EXE.map -Wl,--verbose"
+}
 
 # gold may not support --sort-common (yet)
 SORT_COMMON="-Wl,--sort-common"
@@ -194,7 +196,7 @@ if ! test -f busybox_ldscript; then
 	    $GC_SECTIONS \
 	    $START_GROUP $O_FILES $A_FILES $END_GROUP \
 	    $l_list \
-	    $INFO_OPTS \
+	    `INFO_OPTS` \
     || {
 	cat $EXE.out
 	exit 1
@@ -225,7 +227,7 @@ else
 	    -Wl,-T,busybox_ldscript \
 	    $START_GROUP $O_FILES $A_FILES $END_GROUP \
 	    $l_list \
-	    $INFO_OPTS \
+	    `INFO_OPTS` \
     || {
 	cat $EXE.out
 	exit 1
@@ -244,10 +246,14 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
     }
     ln -s "libbusybox.so.$BB_VER" "$sharedlib_dir"/libbusybox.so 2>/dev/null
 
+    # Yes, "ld -shared -static" is a thing. It's a shared library which is itself static.
+    LBB_STATIC=""
+    test "$CONFIG_FEATURE_LIBBUSYBOX_STATIC" = y && LBB_STATIC="-Wl,-static"
+
     EXE="$sharedlib_dir/libbusybox.so.${BB_VER}_unstripped"
     try $CC $CFLAGS $LDFLAGS \
 	    -o $EXE \
-	    -shared -fPIC \
+	    -shared -fPIC $LBB_STATIC \
 	    -Wl,--enable-new-dtags \
 	    -Wl,-z,combreloc \
 	    -Wl,-soname="libbusybox.so.$BB_VER" \
@@ -256,7 +262,7 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
 	    $SORT_SECTION \
 	    $START_GROUP $A_FILES $END_GROUP \
 	    $l_list \
-	    $INFO_OPTS \
+	    `INFO_OPTS` \
     || {
 	echo "Linking $EXE failed"
 	cat $EXE.out
@@ -277,7 +283,7 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
 	    $START_GROUP $O_FILES $END_GROUP \
 	    -L"$sharedlib_dir" -lbusybox \
 	    $l_list \
-	    $INFO_OPTS \
+	    `INFO_OPTS` \
     || {
 	echo "Linking $EXE failed"
 	cat $EXE.out
