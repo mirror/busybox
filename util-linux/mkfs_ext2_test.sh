@@ -47,7 +47,7 @@ test_mke2fs() {
 kilobytes=60
 while true; do
     test_mke2fs || exit 1
-    : $((kilobytes++))
+    kilobytes=$((kilobytes+1))
     test $kilobytes = 200 && break
 done
 
@@ -56,7 +56,7 @@ done
 kilobytes=$((1 * 8*1024 - 50))
 while true; do
     test_mke2fs || exit 1
-    : $((kilobytes++))
+    kilobytes=$((kilobytes+1))
     test $kilobytes = $((1 * 8*1024 + 300)) && break
 done
 
@@ -65,7 +65,7 @@ done
 kilobytes=$((2 * 8*1024 - 50))
 while true; do
     test_mke2fs || exit 1
-    : $((kilobytes++))
+    kilobytes=$((kilobytes+1))
     test $kilobytes = $((2 * 8*1024 + 400)) && break
 done
 
@@ -74,7 +74,7 @@ done
 kilobytes=$((3 * 8*1024 - 50))
 while true; do
     test_mke2fs || exit 1
-    : $((kilobytes++))
+    kilobytes=$((kilobytes+1))
     test $kilobytes = $((3 * 8*1024 + 500)) && break
 done
 
@@ -83,7 +83,7 @@ done
 kilobytes=$((4 * 8*1024 - 50))
 while true; do
     test_mke2fs || exit 1
-    : $((kilobytes++))
+    kilobytes=$((kilobytes+1))
     test $kilobytes = $((4 * 8*1024 + 600)) && break
 done
 
@@ -92,7 +92,7 @@ done
 kilobytes=$((5 * 8*1024 - 50))
 while true; do
     test_mke2fs || exit 1
-    : $((kilobytes++))
+    kilobytes=$((kilobytes+1))
     test $kilobytes = $((5 * 8*1024 + 700)) && break
 done
 exit
