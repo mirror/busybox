@@ -3,7 +3,7 @@
 # see scripts/kbuild/config-language.txt.
 #
 
-menu "Busybox Library Tuning"
+comment "Library Tuning"
 
 INSERT
 
@@ -66,7 +66,7 @@ config FEATURE_FAST_TOP
 	bool "Faster /proc scanning code (+100 bytes)"
 	default n  # all "fast or small" options default to small
 	help
-	  This option makes top (and ps) ~20% faster (or 20% less CPU hungry),
+	  This option makes top and ps ~20% faster (or 20% less CPU hungry),
 	  but code size is slightly bigger.
 
 config FEATURE_ETC_NETWORKS
@@ -302,13 +302,17 @@ config FEATURE_VERBOSE_CP_MESSAGE
 	default n
 	help
 	  Error messages with this feature enabled:
+
 	    $ cp file /does_not_exist/file
 	    cp: cannot create '/does_not_exist/file': Path does not exist
 	    $ cp file /vmlinuz/file
 	    cp: cannot stat '/vmlinuz/file': Path has non-directory component
+
 	  If this feature is not enabled, they will be, respectively:
+
 	    cp: cannot create '/does_not_exist/file': No such file or directory
 	    cp: cannot stat '/vmlinuz/file': Not a directory
+
 	  This will cost you ~60 bytes.
 
 config FEATURE_USE_SENDFILE
@@ -376,7 +380,4 @@ config FEATURE_HWIB
 	bool "Support infiniband HW"
 	default y
 	help
-	  Support for printing infiniband addresses in
-	  network applets.
-
-endmenu
+	  Support for printing infiniband addresses in network applets.

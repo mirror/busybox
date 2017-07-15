@@ -19,6 +19,7 @@
 //config:
 //config:	  At link time, "text" is padded to a full page. At runtime, all "text"
 //config:	  pages are mapped RO and executable.
+//config:
 //config:	  "Data" starts on the next page boundary, but is not padded
 //config:	  to a full page at the end. "Bss" starts wherever "data" ends.
 //config:	  At runtime, "data" pages are mapped RW and they are file-backed
