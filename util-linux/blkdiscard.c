@@ -28,6 +28,13 @@
 #include "libbb.h"
 #include <linux/fs.h>
 
+#ifndef BLKDISCARD
+#define BLKDISCARD 0x1277
+#endif
+#ifndef BLKSECDISCARD
+#define BLKSECDISCARD 0x127d
+#endif
+
 int blkdiscard_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int blkdiscard_main(int argc UNUSED_PARAM, char **argv)
 {
