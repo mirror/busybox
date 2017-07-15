@@ -388,11 +388,10 @@ config BUILD_LIBBUSYBOX
 
 	  This feature allows every applet to be built as a really tiny
 	  separate executable linked against the library:
-
 	  $ size 0_lib/l*
-	    text  data	 bss     dec    hex filename
-	     939   212	  28    1179    49b 0_lib/last
-	     939   212	  28    1179    49b 0_lib/less
+	    text  data   bss     dec    hex filename
+	     939   212    28    1179    49b 0_lib/last
+	     939   212    28    1179    49b 0_lib/less
 	  919138  8328  1556  929022  e2cfe 0_lib/libbusybox.so.1.N.M
 
 	  This is useful on NOMMU systems which are not capable
