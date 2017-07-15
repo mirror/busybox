@@ -26,8 +26,10 @@
 #undef  USE_SEED
 /* pstm: multiprecision numbers */
 #undef  DISABLE_PSTM
-#if defined(__GNUC__) && defined(__i386__)
+#if defined(__GNUC__) && defined(__i386__) && ENABLE_STATIC
   /* PSTM_X86 works correctly. +25 bytes. */
+  /* Only enabled on static build since tls_pstm_mul_comba.c::MULADD
+   * and tls_pstm_sqr_comba.c::SQRADD2 need too many registers, choke when ebx is not available */
 # define PSTM_32BIT
 # define PSTM_X86
 #endif
