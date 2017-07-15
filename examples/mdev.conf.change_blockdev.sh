@@ -14,7 +14,7 @@ env | sort
 
 while sleep 1; test $cnt != 0; do
 	echo "Trying to reread partition table on $DEVNAME ($cnt)"
-	: $((cnt--))
+	cnt=$((cnt-1))
 	# If device node doesn't exist, it means the device was removed.
 	# Stop trying.
 	test -e "$DEVNAME" || { echo "$DEVNAME doesn't exist, aborting"; exit 1; }

@@ -30,7 +30,7 @@ test x"$router" != x"" || exec env - sleep "$ping_time"
 failcnt=0
 while true; do
 	ping $ping_opts "$router" && exec env - sleep "$ping_time"
-	: $((failcnt++))
+	failcnt=$((failcnt+1))
 	msg "Failed to ping $router, fail count:$failcnt"
 	test $failcnt -ge $max_fail && break
 	env - sleep "$retry_time"
