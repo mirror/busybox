@@ -54,18 +54,18 @@ for app; do
 	fi
 
 	if ! yes '' | make oldconfig >busybox_make_${app}.log 2>&1; then
-		: $((fail++))
+		fail=$((fail+1))
 		echo "Config error for ${app}"
 		mv .config busybox_config_${app}
 	elif ! make $makeopts >>busybox_make_${app}.log 2>&1; then
-		: $((fail++))
+		fail=$((fail+1))
 		grep -i -e error: -e warning: busybox_make_${app}.log
 		echo "Build error for ${app}"
 		mv .config busybox_config_${app}
 	elif ! grep -q '^#define NUM_APPLETS 1$' include/NUM_APPLETS.h; then
 		grep -i -e error: -e warning: busybox_make_${app}.log
 		mv busybox busybox_${app}
-		: $((fail++))
+		fail=$((fail+1))
 		echo "NUM_APPLETS != 1 for ${app}: `cat include/NUM_APPLETS.h`"
 		mv .config busybox_config_${app}
 	else
