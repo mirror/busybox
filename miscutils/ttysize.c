@@ -25,7 +25,7 @@
 //usage:#define ttysize_trivial_usage
 //usage:       "[w] [h]"
 //usage:#define ttysize_full_usage "\n\n"
-//usage:       "Print dimension(s) of stdin's terminal, on error return 80x25"
+//usage:       "Print dimensions of stdin tty, or 80x24"
 
 #include "libbb.h"
 
@@ -37,7 +37,10 @@ int ttysize_main(int argc UNUSED_PARAM, char **argv)
 
 	w = 80;
 	h = 24;
-	if (!ioctl(0, TIOCGWINSZ, &wsz)) {
+	if (ioctl(0, TIOCGWINSZ, &wsz) == 0
+	 || ioctl(1, TIOCGWINSZ, &wsz) == 0
+	 || ioctl(2, TIOCGWINSZ, &wsz) == 0
+	) {
 		w = wsz.ws_col;
 		h = wsz.ws_row;
 	}
