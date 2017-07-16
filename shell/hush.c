@@ -3378,18 +3378,15 @@ static void done_pipe(struct parse_context *ctx, pipe_style type)
 	ctx->ctx_inverted = 0;
 	ctx->pipe->res_word = ctx->ctx_res_w;
 #endif
-	if (type != PIPE_BG || ctx->list_head == ctx->pipe) {
- no_conv:
-		ctx->pipe->followup = type;
-	} else {
-		/* Necessary since && and || have more precedence than &:
+	if (type == PIPE_BG && ctx->list_head != ctx->pipe) {
+		/* Necessary since && and || have precedence over &:
 		 * "cmd1 && cmd2 &" must spawn both cmds, not only cmd2,
 		 * in a backgrounded subshell.
 		 */
 		struct pipe *pi;
 		struct command *command;
 
-		/* Is this actually the case? */
+		/* Is this actually this construct, all pipes end with && or ||? */
 		pi = ctx->list_head;
 		while (pi != ctx->pipe) {
 			if (pi->followup != PIPE_AND && pi->followup != PIPE_OR)
@@ -3408,11 +3405,16 @@ static void done_pipe(struct parse_context *ctx, pipe_style type)
 			command->cmd_type = CMD_NORMAL;
 		command->group = ctx->list_head;
 #if !BB_MMU
-//TODO: is this correct?!
-		command->group_as_string = xstrdup(ctx->as_string.data);
+		command->group_as_string = xstrndup(
+			    ctx->as_string.data,
+			    ctx->as_string.length - 1 /* do not copy last char, "&" */
+		);
 #endif
 		/* Replace all pipes in ctx with one newly created */
 		ctx->list_head = ctx->pipe = pi;
+	} else {
+ no_conv:
+		ctx->pipe->followup = type;
 	}
 
 	/* Without this check, even just <enter> on command line generates
@@ -4855,7 +4857,9 @@ static struct pipe *parse_stream(char **pstring,
 					 * Really, ask yourself, why
 					 * "cmd && <newline>" doesn't start
 					 * cmd but waits for more input?
-					 * No reason...)
+					 * The only reason is that it might be
+					 * a "cmd1 && <nl> cmd2 &" construct,
+					 * cmd1 may need to run in BG).
 					 */
 					struct pipe *pi = ctx.list_head;
 					if (pi->num_cmds != 0       /* check #1 */
