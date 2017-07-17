@@ -5723,32 +5723,34 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			if (errmsg)
 				goto arith_err;
 			debug_printf_varexp("len:'%s'=%lld\n", exp_word, (long long)len);
-			if (len >= 0) {
-				if (beg < 0) {
-					/* negative beg counts from the end */
-					beg = (arith_t)strlen(val) + beg;
-					if (beg < 0) /* ${v: -999999} is "" */
-						beg = len = 0;
-				}
-				debug_printf_varexp("from val:'%s'\n", val);
-				if (len == 0 || !val || beg >= strlen(val)) {
- arith_err:
-					val = NULL;
-				} else {
-					/* Paranoia. What if user entered 9999999999999
-					 * which fits in arith_t but not int? */
-					if (len >= INT_MAX)
-						len = INT_MAX;
-					val = to_be_freed = xstrndup(val + beg, len);
-				}
-				debug_printf_varexp("val:'%s'\n", val);
-			} else
-//TODO: in bash, len=-n means strlen()-n
-#endif /* HUSH_SUBSTR_EXPANSION && FEATURE_SH_MATH */
-			{
-				die_if_script("malformed ${%s:...}", var);
-				val = NULL;
+			if (beg < 0) {
+				/* negative beg counts from the end */
+				beg = (arith_t)strlen(val) + beg;
+				if (beg < 0) /* ${v: -999999} is "" */
+					beg = len = 0;
 			}
+			debug_printf_varexp("from val:'%s'\n", val);
+			if (len < 0) {
+				/* in bash, len=-n means strlen()-n */
+				len = (arith_t)strlen(val) - beg + len;
+				if (len < 0) /* bash compat */
+					die_if_script("%s: substring expression < 0", var);
+			}
+			if (len == 0 || !val || beg >= strlen(val)) {
+ arith_err:
+				val = NULL;
+			} else {
+				/* Paranoia. What if user entered 9999999999999
+				 * which fits in arith_t but not int? */
+				if (len >= INT_MAX)
+					len = INT_MAX;
+				val = to_be_freed = xstrndup(val + beg, len);
+			}
+			debug_printf_varexp("val:'%s'\n", val);
+#else /* not (HUSH_SUBSTR_EXPANSION && FEATURE_SH_MATH) */
+			die_if_script("malformed ${%s:...}", var);
+			val = NULL;
+#endif
 		} else { /* one of "-=+?" */
 			/* Standard-mandated substitution ops:
 			 * ${var?word} - indicate error if unset
