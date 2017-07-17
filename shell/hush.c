@@ -2057,25 +2057,20 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 
 /* str holds "NAME=VAL" and is expected to be malloced.
  * We take ownership of it.
- * flg_export:
- *  0: do not change export flag
- *     (if creating new variable, flag will be 0)
- *  1: set export flag and putenv the variable
- * -1: clear export flag and unsetenv the variable
- * flg_read_only is set only when we handle -R var=val
  */
-static int set_local_var(char *str,
-		int flg_export UNUSED_PARAM,
-		int local_lvl UNUSED_PARAM,
-		int flg_read_only UNUSED_PARAM)
+#define SETFLAG_EXPORT   (1 << 0)
+#define SETFLAG_UNEXPORT (1 << 1)
+#define SETFLAG_MAKE_RO  (1 << 2)
+#define SETFLAG_LOCAL_SHIFT    3
+static int set_local_var(char *str, unsigned flags)
 {
 	struct variable **var_pp;
 	struct variable *cur;
 	char *free_me = NULL;
 	char *eq_sign;
 	int name_len;
+	IF_HUSH_LOCAL(unsigned local_lvl = (flags >> SETFLAG_LOCAL_SHIFT);)
 
-	//bb_error_msg("set_local_var('%s',%d,%d,%d)", str, flg_export, local_lvl, flg_read_only);
 	eq_sign = strchr(str, '=');
 	if (!eq_sign) { /* not expected to ever happen? */
 		free(str);
@@ -2096,7 +2091,7 @@ static int set_local_var(char *str,
 			free(str);
 			return -1;
 		}
-		if (flg_export == -1) { // "&& cur->flg_export" ?
+		if (flags & SETFLAG_UNEXPORT) { // && cur->flg_export ?
 			debug_printf_env("%s: unsetenv '%s'\n", __func__, str);
 			*eq_sign = '\0';
 			unsetenv(str);
@@ -2120,7 +2115,7 @@ static int set_local_var(char *str,
 			 * z=z
 			 */
 			if (cur->flg_export)
-				flg_export = 1;
+				flags |= SETFLAG_EXPORT;
 			break;
 		}
 #endif
@@ -2151,9 +2146,7 @@ static int set_local_var(char *str,
 
 	/* Not found - create new variable struct */
 	cur = xzalloc(sizeof(*cur));
-#if ENABLE_HUSH_LOCAL
-	cur->func_nest_level = local_lvl;
-#endif
+	IF_HUSH_LOCAL(cur->func_nest_level = local_lvl;)
 	cur->next = *var_pp;
 	*var_pp = cur;
 
@@ -2161,16 +2154,16 @@ static int set_local_var(char *str,
 	cur->varstr = str;
  exp:
 #if !BB_MMU || ENABLE_HUSH_READONLY
-	if (flg_read_only != 0) {
-		cur->flg_read_only = flg_read_only;
+	if (flags & SETFLAG_MAKE_RO) {
+		cur->flg_read_only = 1;
 	}
 #endif
-	if (flg_export == 1)
+	if (flags & SETFLAG_EXPORT)
 		cur->flg_export = 1;
 	if (name_len == 4 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
 		cmdedit_update_prompt();
 	if (cur->flg_export) {
-		if (flg_export == -1) {
+		if (flags & SETFLAG_UNEXPORT) {
 			cur->flg_export = 0;
 			/* unsetenv was already done */
 		} else {
@@ -2187,10 +2180,9 @@ static int set_local_var(char *str,
 }
 
 /* Used at startup and after each cd */
-static void set_pwd_var(int exp)
+static void set_pwd_var(unsigned flag)
 {
-	set_local_var(xasprintf("PWD=%s", get_cwd(/*force:*/ 1)),
-		/*exp:*/ exp, /*lvl:*/ 0, /*ro:*/ 0);
+	set_local_var(xasprintf("PWD=%s", get_cwd(/*force:*/ 1)), flag);
 }
 
 static int unset_local_var_len(const char *name, int name_len)
@@ -2248,7 +2240,7 @@ static void unset_vars(char **strings)
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
 	char *var = xasprintf("%s=%s", name, val);
-	set_local_var(var, /*flags:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
+	set_local_var(var, /*flag:*/ 0);
 }
 #endif
 
@@ -2299,7 +2291,7 @@ static struct variable *set_vars_and_save_old(char **strings)
 				var_p->next = old;
 				old = var_p;
 			}
-			set_local_var(*s, /*exp:*/ 1, /*lvl:*/ 0, /*ro:*/ 0);
+			set_local_var(*s, SETFLAG_EXPORT);
 		}
 		s++;
 	}
@@ -5805,7 +5797,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 						val = NULL;
 					} else {
 						char *new_var = xasprintf("%s=%s", var, val);
-						set_local_var(new_var, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
+						set_local_var(new_var, /*flag:*/ 0);
 					}
 				}
 			}
@@ -7775,7 +7767,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			if (new_env) {
 				argv = new_env;
 				while (*argv) {
-					set_local_var(*argv, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
+					set_local_var(*argv, /*flag:*/ 0);
 					/* Do we need to flag set_local_var() errors?
 					 * "assignment to readonly var" and "putenv error"
 					 */
@@ -7803,7 +7795,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 					fprintf(stderr, " %s", p);
 				debug_printf_exec("set shell var:'%s'->'%s'\n",
 						*argv, p);
-				set_local_var(p, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
+				set_local_var(p, /*flag:*/ 0);
 				/* Do we need to flag set_local_var() errors?
 				 * "assignment to readonly var" and "putenv error"
 				 */
@@ -8215,7 +8207,7 @@ static int run_list(struct pipe *pi)
 			}
 			/* Insert next value from for_lcur */
 			/* note: *for_lcur already has quotes removed, $var expanded, etc */
-			set_local_var(xasprintf("%s=%s", pi->cmds[0].argv[0], *for_lcur++), /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
+			set_local_var(xasprintf("%s=%s", pi->cmds[0].argv[0], *for_lcur++), /*flag:*/ 0);
 			continue;
 		}
 		if (rword == RES_IN) {
@@ -8600,7 +8592,7 @@ int hush_main(int argc, char **argv)
 	putenv(shell_ver->varstr);
 
 	/* Export PWD */
-	set_pwd_var(/*exp:*/ 1);
+	set_pwd_var(SETFLAG_EXPORT);
 
 #if BASH_HOSTNAME_VAR
 	/* Set (but not export) HOSTNAME unless already set */
@@ -8770,7 +8762,7 @@ int hush_main(int argc, char **argv)
 		}
 		case 'R':
 		case 'V':
-			set_local_var(xstrdup(optarg), /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ opt == 'R');
+			set_local_var(xstrdup(optarg), opt == 'R' ? SETFLAG_MAKE_RO : 0);
 			break;
 # if ENABLE_HUSH_FUNCTIONS
 		case 'F': {
@@ -9073,7 +9065,7 @@ static int FAST_FUNC builtin_cd(char **argv)
 	 * Note: do not enforce exporting. If PWD was unset or unexported,
 	 * set it again, but do not export. bash does the same.
 	 */
-	set_pwd_var(/*exp:*/ 0);
+	set_pwd_var(/*flag:*/ 0);
 	return EXIT_SUCCESS;
 }
 
@@ -9312,10 +9304,7 @@ static void print_escaped(const char *s)
 #endif
 
 #if ENABLE_HUSH_EXPORT || ENABLE_HUSH_LOCAL || ENABLE_HUSH_READONLY
-static int helper_export_local(char **argv,
-		int exp UNUSED_PARAM,
-		int ro UNUSED_PARAM,
-		int lvl UNUSED_PARAM)
+static int helper_export_local(char **argv, unsigned flags)
 {
 	do {
 		char *name = *argv;
@@ -9329,7 +9318,7 @@ static int helper_export_local(char **argv,
 			vpp = get_ptr_to_local_var(name, name_end - name);
 			var = vpp ? *vpp : NULL;
 
-			if (exp == -1) { /* unexporting? */
+			if (flags & SETFLAG_UNEXPORT) {
 				/* export -n NAME (without =VALUE) */
 				if (var) {
 					var->flg_export = 0;
@@ -9338,7 +9327,7 @@ static int helper_export_local(char **argv,
 				} /* else: export -n NOT_EXISTING_VAR: no-op */
 				continue;
 			}
-			if (exp == 1) { /* exporting? */
+			if (flags & SETFLAG_EXPORT) {
 				/* export NAME (without =VALUE) */
 				if (var) {
 					var->flg_export = 1;
@@ -9349,9 +9338,8 @@ static int helper_export_local(char **argv,
 			}
 # if ENABLE_HUSH_LOCAL
 			/* Is this "local" bltin? */
-			if (exp == 0
-			IF_HUSH_READONLY(&& ro == 0) /* in !READONLY config, always true */
-			) {
+			if (!(flags & (SETFLAG_EXPORT|SETFLAG_UNEXPORT|SETFLAG_MAKE_RO))) {
+				unsigned lvl = flags >> SETFLAG_LOCAL_SHIFT;
 				if (var && var->func_nest_level == lvl) {
 					/* "local x=abc; ...; local x" - ignore second local decl */
 					continue;
@@ -9376,7 +9364,7 @@ static int helper_export_local(char **argv,
 			/* (Un)exporting/making local NAME=VALUE */
 			name = xstrdup(name);
 		}
-		set_local_var(name, /*exp:*/ exp, /*lvl:*/ lvl, /*ro:*/ ro);
+		set_local_var(name, flags);
 	} while (*++argv);
 	return EXIT_SUCCESS;
 }
@@ -9424,7 +9412,7 @@ static int FAST_FUNC builtin_export(char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	return helper_export_local(argv, /*exp:*/ (opt_unexport ? -1 : 1), /*ro:*/ 0, /*lvl:*/ 0);
+	return helper_export_local(argv, opt_unexport ? SETFLAG_UNEXPORT : SETFLAG_EXPORT);
 }
 #endif
 
@@ -9436,14 +9424,15 @@ static int FAST_FUNC builtin_local(char **argv)
 		return EXIT_FAILURE; /* bash compat */
 	}
 	argv++;
-	return helper_export_local(argv, /*exp:*/ 0, /*ro:*/ 0, /*lvl:*/ G.func_nest_level);
+	return helper_export_local(argv, G.func_nest_level << SETFLAG_LOCAL_SHIFT);
 }
 #endif
 
 #if ENABLE_HUSH_READONLY
 static int FAST_FUNC builtin_readonly(char **argv)
 {
-	if (*++argv == NULL) {
+	argv++;
+	if (*argv == NULL) {
 		/* bash: readonly [-p]: list all readonly VARs
 		 * (-p has no effect in bash)
 		 */
@@ -9456,7 +9445,7 @@ static int FAST_FUNC builtin_readonly(char **argv)
 		}
 		return EXIT_SUCCESS;
 	}
-	return helper_export_local(argv, /*exp:*/ 0, /*ro:*/ 1, /*lvl:*/ 0);
+	return helper_export_local(argv, SETFLAG_MAKE_RO);
 }
 #endif
 
