@@ -6612,7 +6612,6 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	char *loc;
 	char *rmesc, *rmescend;
 	char *str;
-	IF_BASH_SUBSTR(int pos, len, orig_len;)
 	int amount, resetloc;
 	IF_BASH_PATTERN_SUBST(int workloc;)
 	IF_BASH_PATTERN_SUBST(char *repl = NULL;)
@@ -6641,14 +6640,23 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		/* NOTREACHED */
 
 #if BASH_SUBSTR
-	case VSSUBSTR:
-//TODO: support more general format ${v:EXPR:EXPR},
-// where EXPR follows $(()) rules
-		loc = str = stackblock() + strloc;
-		/* Read POS in ${var:POS:LEN} */
-		pos = atoi(loc); /* number(loc) errors out on "1:4" */
-		len = str - startp - 1;
+	case VSSUBSTR: {
+		int pos, len, orig_len;
+		char *colon;
 
+		loc = str = stackblock() + strloc;
+
+# if !ENABLE_FEATURE_SH_MATH
+#  define ash_arith number
+# endif
+		/* Read POS in ${var:POS:LEN} */
+		colon = strchr(loc, ':');
+		if (colon) *colon = '\0';
+		pos = ash_arith(loc);
+		if (colon) *colon = ':';
+
+		/* Read LEN in ${var:POS:LEN} */
+		len = str - startp - 1;
 		/* *loc != '\0', guaranteed by parser */
 		if (quotes) {
 			char *ptr;
@@ -6662,26 +6670,21 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 			}
 		}
 		orig_len = len;
-
 		if (*loc++ == ':') {
 			/* ${var::LEN} */
-			len = number(loc);
+			len = ash_arith(loc);
 		} else {
 			/* Skip POS in ${var:POS:LEN} */
 			len = orig_len;
 			while (*loc && *loc != ':') {
-				/* TODO?
-				 * bash complains on: var=qwe; echo ${var:1a:123}
-				if (!isdigit(*loc))
-					ash_msg_and_raise_error(msg_illnum, str);
-				 */
 				loc++;
 			}
 			if (*loc++ == ':') {
-				len = number(loc);
+				len = ash_arith(loc);
 			}
-//TODO: number() chokes on "-n". In bash, LEN=-n means strlen()-n
 		}
+#  undef ash_arith
+
 		if (pos < 0) {
 			/* ${VAR:$((-n)):l} starts n chars from the end */
 			pos = orig_len + pos;
@@ -6689,12 +6692,16 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		if ((unsigned)pos >= orig_len) {
 			/* apart from obvious ${VAR:999999:l},
 			 * covers ${VAR:$((-9999999)):l} - result is ""
-			 * (bash-compat)
+			 * (bash compat)
 			 */
 			pos = 0;
 			len = 0;
 		}
-		if (len > (orig_len - pos))
+		if (len < 0) {
+			/* ${VAR:N:-M} sets LEN to strlen()-M */
+			len = (orig_len - pos) + len;
+		}
+		if ((unsigned)len > (orig_len - pos))
 			len = orig_len - pos;
 
 		for (str = startp; pos; str++, pos--) {
@@ -6710,6 +6717,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		amount = loc - expdest;
 		STADJUST(amount, expdest);
 		return loc;
+	}
 #endif /* BASH_SUBSTR */
 	}
 
@@ -6754,6 +6762,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 #if BASH_PATTERN_SUBST
 	workloc = expdest - (char *)stackblock();
 	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
+		int len;
 		char *idx, *end;
 
 		if (!repl) {
