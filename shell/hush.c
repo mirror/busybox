@@ -48,7 +48,7 @@
  *      tilde expansion
  *      aliases
  *      builtins mandated by standards we don't support:
- *          [un]alias, command, fc, getopts, readonly, times:
+ *          [un]alias, command, fc, getopts, times:
  *          command -v CMD: print "/path/to/CMD"
  *              prints "CMD" for builtins
  *              prints "alias ALIAS='EXPANSION'" for aliases
@@ -57,8 +57,7 @@
  *          command [-p] CMD: run CMD, even if a function CMD also exists
  *              (can use this to override standalone shell as well)
  *              -p: use default $PATH
- *          readonly VAR[=VAL]...: make VARs readonly
- *          readonly [-p]: list all such VARs (-p has no effect in bash)
+ *          command BLTIN: disables special-ness (e.g. errors do not abort)
  *          getopts: getopt() for shells
  *          times: print getrusage(SELF/CHILDREN).ru_utime/ru_stime
  *          fc -l[nr] [BEG] [END]: list range of commands in history
@@ -238,6 +237,12 @@
 //config:	depends on HUSH_EXPORT
 //config:	help
 //config:	  export -n unexports variables. It is a bash extension.
+//config:
+//config:config HUSH_READONLY
+//config:	bool "readonly builtin"
+//config:	default y
+//config:	help
+//config:	  Enable support for read-only variables.
 //config:
 //config:config HUSH_KILL
 //config:	bool "kill builtin (supports kill %jobspec)"
@@ -964,6 +969,9 @@ static int builtin_exit(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_EXPORT
 static int builtin_export(char **argv) FAST_FUNC;
 #endif
+#if ENABLE_HUSH_READONLY
+static int builtin_readonly(char **argv) FAST_FUNC;
+#endif
 #if ENABLE_HUSH_JOB
 static int builtin_fg_bg(char **argv) FAST_FUNC;
 static int builtin_jobs(char **argv) FAST_FUNC;
@@ -1081,6 +1089,9 @@ static const struct built_in_command bltins1[] = {
 #endif
 #if ENABLE_HUSH_READ
 	BLTIN("read"     , builtin_read    , "Input into variable"),
+#endif
+#if ENABLE_HUSH_READONLY
+	BLTIN("readonly" , builtin_readonly, "Make variables read-only"),
 #endif
 #if ENABLE_HUSH_FUNCTIONS
 	BLTIN("return"   , builtin_return  , "Return from function"),
@@ -2052,19 +2063,10 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
  * -1: clear export flag and unsetenv the variable
  * flg_read_only is set only when we handle -R var=val
  */
-#if !BB_MMU && ENABLE_HUSH_LOCAL
-/* all params are used */
-#elif BB_MMU && ENABLE_HUSH_LOCAL
-#define set_local_var(str, flg_export, local_lvl, flg_read_only) \
-	set_local_var(str, flg_export, local_lvl)
-#elif BB_MMU && !ENABLE_HUSH_LOCAL
-#define set_local_var(str, flg_export, local_lvl, flg_read_only) \
-	set_local_var(str, flg_export)
-#elif !BB_MMU && !ENABLE_HUSH_LOCAL
-#define set_local_var(str, flg_export, local_lvl, flg_read_only) \
-	set_local_var(str, flg_export, flg_read_only)
-#endif
-static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_only)
+static int set_local_var(char *str,
+		int flg_export UNUSED_PARAM,
+		int local_lvl UNUSED_PARAM,
+		int flg_read_only UNUSED_PARAM)
 {
 	struct variable **var_pp;
 	struct variable *cur;
@@ -2088,9 +2090,7 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 
 		/* We found an existing var with this name */
 		if (cur->flg_read_only) {
-#if !BB_MMU
 			if (!flg_read_only)
-#endif
 				bb_error_msg("%s: readonly variable", str);
 			free(str);
 			return -1;
@@ -2158,10 +2158,12 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 
  set_str_and_exp:
 	cur->varstr = str;
-#if !BB_MMU
-	cur->flg_read_only = flg_read_only;
-#endif
  exp:
+#if !BB_MMU || ENABLE_HUSH_READONLY
+	if (flg_read_only != 0) {
+		cur->flg_read_only = flg_read_only;
+	}
+#endif
 	if (flg_export == 1)
 		cur->flg_export = 1;
 	if (name_len == 4 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
@@ -9308,12 +9310,11 @@ static void print_escaped(const char *s)
 }
 #endif
 
-#if ENABLE_HUSH_EXPORT || ENABLE_HUSH_LOCAL
-# if !ENABLE_HUSH_LOCAL
-#define helper_export_local(argv, exp, lvl) \
-	helper_export_local(argv, exp)
-# endif
-static void helper_export_local(char **argv, int exp, int lvl)
+#if ENABLE_HUSH_EXPORT || ENABLE_HUSH_LOCAL || ENABLE_HUSH_READONLY
+static int helper_export_local(char **argv,
+		int exp UNUSED_PARAM,
+		int ro UNUSED_PARAM,
+		int lvl UNUSED_PARAM)
 {
 	do {
 		char *name = *argv;
@@ -9346,7 +9347,7 @@ static void helper_export_local(char **argv, int exp, int lvl)
 				}
 			}
 # if ENABLE_HUSH_LOCAL
-			if (exp == 0 /* local? */
+			if (exp == 0 && ro == 0 /* local? */
 			 && var && var->func_nest_level == lvl
 			) {
 				/* "local x=abc; ...; local x" - ignore second local decl */
@@ -9357,16 +9358,23 @@ static void helper_export_local(char **argv, int exp, int lvl)
 			 * bash does not put it in environment,
 			 * but remembers that it is exported,
 			 * and does put it in env when it is set later.
-			 * We just set it to "" and export. */
+			 * We just set it to "" and export.
+			 */
 			/* Or, it's "local NAME" (without =VALUE).
-			 * bash sets the value to "". */
+			 * bash sets the value to "".
+			 */
+			/* Or, it's "readonly NAME" (without =VALUE).
+			 * bash remembers NAME and disallows its creation
+			 * in the future.
+			 */
 			name = xasprintf("%s=", name);
 		} else {
 			/* (Un)exporting/making local NAME=VALUE */
 			name = xstrdup(name);
 		}
-		set_local_var(name, /*exp:*/ exp, /*lvl:*/ lvl, /*ro:*/ 0);
+		set_local_var(name, /*exp:*/ exp, /*lvl:*/ lvl, /*ro:*/ ro);
 	} while (*++argv);
+	return EXIT_SUCCESS;
 }
 #endif
 
@@ -9412,9 +9420,7 @@ static int FAST_FUNC builtin_export(char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	helper_export_local(argv, (opt_unexport ? -1 : 1), 0);
-
-	return EXIT_SUCCESS;
+	return helper_export_local(argv, /*exp:*/ (opt_unexport ? -1 : 1), /*ro:*/ 0, /*lvl:*/ 0);
 }
 #endif
 
@@ -9425,10 +9431,31 @@ static int FAST_FUNC builtin_local(char **argv)
 		bb_error_msg("%s: not in a function", argv[0]);
 		return EXIT_FAILURE; /* bash compat */
 	}
-	helper_export_local(argv, 0, G.func_nest_level);
-	return EXIT_SUCCESS;
+	argv++;
+	return helper_export_local(argv, /*exp:*/ 0, /*ro:*/ 0, /*lvl:*/ G.func_nest_level);
 }
 #endif
+
+#if ENABLE_HUSH_READONLY
+static int FAST_FUNC builtin_readonly(char **argv)
+{
+	if (*++argv == NULL) {
+		/* bash: readonly [-p]: list all readonly VARs
+		 * (-p has no effect in bash)
+		 */
+		struct variable *e;
+		for (e = G.top_var; e; e = e->next) {
+			if (e->flg_read_only) {
+//TODO: quote value: readonly VAR='VAL'
+				printf("readonly %s\n", e->varstr);
+			}
+		}
+		return EXIT_SUCCESS;
+	}
+	return helper_export_local(argv, /*exp:*/ 0, /*ro:*/ 1, /*lvl:*/ 0);
+}
+#endif
+
 
 #if ENABLE_HUSH_UNSET
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#unset */
