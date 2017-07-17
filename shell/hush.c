@@ -9347,11 +9347,14 @@ static int helper_export_local(char **argv,
 				}
 			}
 # if ENABLE_HUSH_LOCAL
-			if (exp == 0 && ro == 0 /* local? */
-			 && var && var->func_nest_level == lvl
+			/* Is this "local" bltin? */
+			if (exp == 0
+			IF_HUSH_READONLY(&& ro == 0) /* in !READONLY config, always true */
 			) {
-				/* "local x=abc; ...; local x" - ignore second local decl */
-				continue;
+				if (var && var->func_nest_level == lvl) {
+					/* "local x=abc; ...; local x" - ignore second local decl */
+					continue;
+				}
 			}
 # endif
 			/* Exporting non-existing variable.
