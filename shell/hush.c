@@ -41,14 +41,29 @@
  *
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
- *      special variables (done: PWD, PPID, RANDOM)
- *      tilde expansion
- *      aliases
- *      follow IFS rules more precisely, including update semantics
- *      builtins mandated by standards we don't support:
- *          [un]alias, command, fc, getopts, newgrp, readonly, times
  *      make complex ${var%...} constructs support optional
  *      make here documents optional
+ *      special variables (done: PWD, PPID, RANDOM)
+ *      follow IFS rules more precisely, including update semantics
+ *      tilde expansion
+ *      aliases
+ *      builtins mandated by standards we don't support:
+ *          [un]alias, command, fc, getopts, readonly, times:
+ *          command -v CMD: print "/path/to/CMD"
+ *              prints "CMD" for builtins
+ *              prints "alias ALIAS='EXPANSION'" for aliases
+ *              prints nothing and sets $? to 1 if not found
+ *          command -V CMD: print "CMD is /path/CMD|a shell builtin|etc"
+ *          command [-p] CMD: run CMD, even if a function CMD also exists
+ *              (can use this to override standalone shell as well)
+ *              -p: use default $PATH
+ *          readonly VAR[=VAL]...: make VARs readonly
+ *          readonly [-p]: list all such VARs (-p has no effect in bash)
+ *          getopts: getopt() for shells
+ *          times: print getrusage(SELF/CHILDREN).ru_utime/ru_stime
+ *          fc -l[nr] [BEG] [END]: list range of commands in history
+ *          fc [-e EDITOR] [BEG] [END]: edit/rerun range of commands
+ *          fc -s [PAT=REP] [CMD]: rerun CMD, replacing PAT with REP
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
@@ -64,8 +79,13 @@
  *          The EXPR is evaluated according to ARITHMETIC EVALUATION.
  *          This is exactly equivalent to let "EXPR".
  *      $[EXPR]: synonym for $((EXPR))
+ *      indirect expansion: ${!VAR}
+ *      substring op on @: ${@:n:m}
  *
  * Won't do:
+ *      Some builtins mandated by standards:
+ *          newgrp [GRP]: not a builtin in bash but a suid binary
+ *              which spawns a new shell with new group ID
  *      In bash, export builtin is special, its arguments are assignments
  *          and therefore expansion of them should be "one-word" expansion:
  *              $ export i=`echo 'a  b'` # export has one arg: "i=a  b"
@@ -5703,7 +5723,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			if (errmsg)
 				goto arith_err;
 			debug_printf_varexp("len:'%s'=%lld\n", exp_word, (long long)len);
-			if (len >= 0) { /* bash compat: len < 0 is illegal */
+			if (len >= 0) {
 				if (beg < 0) {
 					/* negative beg counts from the end */
 					beg = (arith_t)strlen(val) + beg;
@@ -5723,6 +5743,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				}
 				debug_printf_varexp("val:'%s'\n", val);
 			} else
+//TODO: in bash, len=-n means strlen()-n
 #endif /* HUSH_SUBSTR_EXPANSION && FEATURE_SH_MATH */
 			{
 				die_if_script("malformed ${%s:...}", var);

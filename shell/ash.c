@@ -6680,6 +6680,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 			if (*loc++ == ':') {
 				len = number(loc);
 			}
+//TODO: number() chokes on "-n". In bash, LEN=-n means strlen()-n
 		}
 		if (pos < 0) {
 			/* ${VAR:$((-n)):l} starts n chars from the end */
