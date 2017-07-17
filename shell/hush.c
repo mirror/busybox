@@ -5736,7 +5736,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				if (len < 0) /* bash compat */
 					die_if_script("%s: substring expression < 0", var);
 			}
-			if (len == 0 || !val || beg >= strlen(val)) {
+			if (len <= 0 || !val || beg >= strlen(val)) {
  arith_err:
 				val = NULL;
 			} else {
