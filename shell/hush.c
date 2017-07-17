@@ -241,6 +241,7 @@
 //config:config HUSH_READONLY
 //config:	bool "readonly builtin"
 //config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
 //config:	  Enable support for read-only variables.
 //config:
