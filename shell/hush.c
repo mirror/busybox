@@ -2074,6 +2074,7 @@ static int set_local_var(char *str,
 	char *eq_sign;
 	int name_len;
 
+	//bb_error_msg("set_local_var('%s',%d,%d,%d)", str, flg_export, local_lvl, flg_read_only);
 	eq_sign = strchr(str, '=');
 	if (!eq_sign) { /* not expected to ever happen? */
 		free(str);
@@ -2090,8 +2091,7 @@ static int set_local_var(char *str,
 
 		/* We found an existing var with this name */
 		if (cur->flg_read_only) {
-			if (!flg_read_only)
-				bb_error_msg("%s: readonly variable", str);
+			bb_error_msg("%s: readonly variable", str);
 			free(str);
 			return -1;
 		}
@@ -9458,7 +9458,6 @@ static int FAST_FUNC builtin_readonly(char **argv)
 	return helper_export_local(argv, /*exp:*/ 0, /*ro:*/ 1, /*lvl:*/ 0);
 }
 #endif
-
 
 #if ENABLE_HUSH_UNSET
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#unset */
