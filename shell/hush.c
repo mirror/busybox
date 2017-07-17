@@ -7767,10 +7767,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			if (new_env) {
 				argv = new_env;
 				while (*argv) {
-					set_local_var(*argv, /*flag:*/ 0);
-					/* Do we need to flag set_local_var() errors?
-					 * "assignment to readonly var" and "putenv error"
-					 */
+					if (set_local_var(*argv, /*flag:*/ 0)) {
+						/* assignment to readonly var / putenv error? */
+						rcode = 1;
+					}
 					argv++;
 				}
 			}
@@ -7795,10 +7795,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 					fprintf(stderr, " %s", p);
 				debug_printf_exec("set shell var:'%s'->'%s'\n",
 						*argv, p);
-				set_local_var(p, /*flag:*/ 0);
-				/* Do we need to flag set_local_var() errors?
-				 * "assignment to readonly var" and "putenv error"
-				 */
+				if (set_local_var(p, /*flag:*/ 0)) {
+					/* assignment to readonly var / putenv error? */
+					rcode = 1;
+				}
 				argv++;
 			}
 			if (G_x_mode)
@@ -9336,6 +9336,13 @@ static int helper_export_local(char **argv, unsigned flags)
 					continue;
 				}
 			}
+			if (flags & SETFLAG_MAKE_RO) {
+				/* readonly NAME (without =VALUE) */
+				if (var) {
+					var->flg_read_only = 1;
+					continue;
+				}
+			}
 # if ENABLE_HUSH_LOCAL
 			/* Is this "local" bltin? */
 			if (!(flags & (SETFLAG_EXPORT|SETFLAG_UNEXPORT|SETFLAG_MAKE_RO))) {
@@ -9364,7 +9371,8 @@ static int helper_export_local(char **argv, unsigned flags)
 			/* (Un)exporting/making local NAME=VALUE */
 			name = xstrdup(name);
 		}
-		set_local_var(name, flags);
+		if (set_local_var(name, flags))
+			return EXIT_FAILURE;
 	} while (*++argv);
 	return EXIT_SUCCESS;
 }

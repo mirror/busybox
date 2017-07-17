@@ -1,0 +1,12 @@
+readonly a=A
+readonly b=B
+Ok:0
+hush: a=A: readonly variable
+Fail:1
+hush: a=A: readonly variable
+Fail:1
+hush: a=A: readonly variable
+Fail:1
+Visible:0
+hush: a: readonly variable
+Fail:1
