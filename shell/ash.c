@@ -11926,7 +11926,7 @@ parsesub: {
 #if ENABLE_FEATURE_SH_MATH
 			PARSEARITH();
 #else
-			raise_error_syntax("you disabled math support for $((arith)) syntax");
+			raise_error_syntax("support for $((arith)) is disabled");
 #endif
 		} else {
 			pungetc();
