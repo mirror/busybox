@@ -305,7 +305,7 @@ static char **print_formatted(char *f, char **argv, int *conv_err)
 				}
 				break;
 			}
-			if (strchr("-+ #", *f)) {
+			if (*f && strchr("-+ #", *f)) {
 				++f;
 				++direc_length;
 			}
@@ -348,7 +348,7 @@ static char **print_formatted(char *f, char **argv, int *conv_err)
 				static const char format_chars[] ALIGN1 = "diouxXfeEgGcs";
 				char *p = strchr(format_chars, *f);
 				/* needed - try "printf %" without it */
-				if (p == NULL) {
+				if (p == NULL || *f == '\0') {
 					bb_error_msg("%s: invalid format", direc_start);
 					/* causes main() to exit with error */
 					return saved_argv - 1;
