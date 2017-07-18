@@ -20,8 +20,7 @@
 //config:	default y
 //config:	depends on !NOMMU
 //config:	help
-//config:	  Tha 'ash' shell adds about 60k in the default configuration and is
-//config:	  the most complete and most pedantically correct shell included with
+//config:	  The most complete and most pedantically correct shell included with
 //config:	  busybox. This shell is actually a derivative of the Debian 'dash'
 //config:	  shell (by Herbert Xu), which was created by porting the 'ash' shell
 //config:	  (written by Kenneth Almquist) from NetBSD.
