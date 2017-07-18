@@ -2287,7 +2287,18 @@ static struct variable *set_vars_and_save_old(char **strings)
 			if (var_pp) {
 				var_p = *var_pp;
 				if (var_p->flg_read_only) {
+					char **p;
 					bb_error_msg("%s: readonly variable", *s);
+					/*
+					 * "VAR=V BLTIN" unsets VARs after BLTIN completes.
+					 * If VAR is readonly, leaving it in the list
+					 * after asssignment error (msg above)
+					 * causes doubled error message later, on unset.
+					 */
+					debug_printf_env("removing/freeing '%s' element\n", *s);
+					free(*s);
+					p = s;
+					do { *p = p[1]; p++; } while (*p);
 					goto next;
 				}
 				/* Remove variable from global linked list */
