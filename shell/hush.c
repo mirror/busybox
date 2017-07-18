@@ -2089,6 +2089,8 @@ static int set_local_var(char *str, unsigned flags)
 		if (cur->flg_read_only) {
 			bb_error_msg("%s: readonly variable", str);
 			free(str);
+//NOTE: in bash, assignment in "export READONLY_VAR=Z" fails, and sets $?=1,
+//but export per se succeeds (does put the var in env). We don't mimic that.
 			return -1;
 		}
 		if (flags & SETFLAG_UNEXPORT) { // && cur->flg_export ?
@@ -2283,8 +2285,12 @@ static struct variable *set_vars_and_save_old(char **strings)
 		if (eq) {
 			var_pp = get_ptr_to_local_var(*s, eq - *s);
 			if (var_pp) {
-				/* Remove variable from global linked list */
 				var_p = *var_pp;
+				if (var_p->flg_read_only) {
+					bb_error_msg("%s: readonly variable", *s);
+					goto next;
+				}
+				/* Remove variable from global linked list */
 				debug_printf_env("%s: removing '%s'\n", __func__, var_p->varstr);
 				*var_pp = var_p->next;
 				/* Add it to returned list */
@@ -2293,6 +2299,7 @@ static struct variable *set_vars_and_save_old(char **strings)
 			}
 			set_local_var(*s, SETFLAG_EXPORT);
 		}
+ next:
 		s++;
 	}
 	return old;

@@ -5,8 +5,10 @@ hush: a=A: readonly variable
 Fail:1
 hush: a=A: readonly variable
 Fail:1
-hush: a=A: readonly variable
+hush: a=Z: readonly variable
 Fail:1
-Visible:0
+hush: a=Z: readonly variable
+b=B
+^^^a is not exported
 hush: a: readonly variable
 Fail:1
