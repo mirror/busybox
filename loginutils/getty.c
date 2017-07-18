@@ -22,7 +22,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config GETTY
-//config:	bool "getty"
+//config:	bool "getty (10 kb)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help

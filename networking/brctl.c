@@ -13,7 +13,7 @@
  * At the time of this writing this was considered a feature.
  */
 //config:config BRCTL
-//config:	bool "brctl"
+//config:	bool "brctl (4.7 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

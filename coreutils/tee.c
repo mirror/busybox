@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config TEE
-//config:	bool "tee"
+//config:	bool "tee (4.3 kb)"
 //config:	default y
 //config:	help
 //config:	  tee is used to read from standard input and write

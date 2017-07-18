@@ -28,7 +28,7 @@
  * rewrite  14-11-2008 vda
  */
 //config:config TIMEOUT
-//config:	bool "timeout"
+//config:	bool "timeout (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	  Runs a program and watches it. If it does not terminate in

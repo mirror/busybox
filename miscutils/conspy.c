@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CONSPY
-//config:	bool "conspy"
+//config:	bool "conspy (10 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

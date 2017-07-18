@@ -31,7 +31,7 @@
  *        -p; else /tmp [deprecated]
  */
 //config:config MKTEMP
-//config:	bool "mktemp"
+//config:	bool "mktemp (4 kb)"
 //config:	default y
 //config:	help
 //config:	  mktemp is used to create unique temporary files

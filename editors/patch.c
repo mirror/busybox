@@ -23,7 +23,7 @@
  */
 
 //config:config PATCH
-//config:	bool "patch"
+//config:	bool "patch (9.1 kb)"
 //config:	default y
 //config:	help
 //config:	  Apply a unified diff formatted patch.

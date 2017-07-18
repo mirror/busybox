@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config SHOWKEY
-//config:	bool "showkey"
+//config:	bool "showkey (4.7 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

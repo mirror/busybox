@@ -4,7 +4,7 @@
  *  Copyright (C) 2008, BusyBox Team. -solar 4/26/08
  */
 //config:config DEVMEM
-//config:	bool "devmem"
+//config:	bool "devmem (2.5 kb)"
 //config:	default y
 //config:	help
 //config:	  devmem is a small program that reads and writes from physical

@@ -13,7 +13,7 @@
  * - The -F options allows disabling of RTS/CTS flow control.
  */
 //config:config SLATTACH
-//config:	bool "slattach"
+//config:	bool "slattach (6.1 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

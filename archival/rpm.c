@@ -8,7 +8,7 @@
  */
 
 //config:config RPM
-//config:	bool "rpm"
+//config:	bool "rpm (33 kb)"
 //config:	default y
 //config:	help
 //config:	  Mini RPM applet - queries and extracts RPM packages.

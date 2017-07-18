@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config SWAPON
-//config:	bool "swapon"
+//config:	bool "swapon (4.9 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
@@ -35,7 +35,7 @@
 //config:	  Enable support for setting swap device priority in swapon.
 //config:
 //config:config SWAPOFF
-//config:	bool "swapoff"
+//config:	bool "swapoff (4.3 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

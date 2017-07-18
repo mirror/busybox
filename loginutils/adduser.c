@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config ADDUSER
-//config:	bool "adduser"
+//config:	bool "adduser (15 kb)"
 //config:	default y
 //config:	help
 //config:	  Utility for creating a new user account.

@@ -8,7 +8,7 @@
  */
 
 //config:config MESG
-//config:	bool "mesg"
+//config:	bool "mesg (1.2 kb)"
 //config:	default y
 //config:	help
 //config:	  Mesg controls access to your terminal by others. It is typically

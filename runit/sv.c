@@ -154,7 +154,7 @@ Exit Codes
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 
 //config:config SV
-//config:	bool "sv"
+//config:	bool "sv (7.8 kb)"
 //config:	default y
 //config:	help
 //config:	  sv reports the current status and controls the state of services
@@ -169,7 +169,7 @@ Exit Codes
 //config:	  Defaults to "/var/service"
 //config:
 //config:config SVC
-//config:	bool "svc"
+//config:	bool "svc (7.8 kb)"
 //config:	default y
 //config:	help
 //config:	  svc controls the state of services monitored by the runsv supervisor.

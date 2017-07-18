@@ -8,19 +8,19 @@
  */
 
 //config:config HALT
-//config:	bool "halt"
+//config:	bool "halt (3.7 kb)"
 //config:	default y
 //config:	help
 //config:	  Stop all processes and halt the system.
 //config:
 //config:config POWEROFF
-//config:	bool "poweroff"
+//config:	bool "poweroff (3.7 kb)"
 //config:	default y
 //config:	help
 //config:	  Stop all processes and power off the system.
 //config:
 //config:config REBOOT
-//config:	bool "reboot"
+//config:	bool "reboot (3.7 kb)"
 //config:	default y
 //config:	help
 //config:	  Stop all processes and reboot the system.

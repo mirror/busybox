@@ -21,7 +21,7 @@
  *
  */
 //config:config TELNET
-//config:	bool "telnet"
+//config:	bool "telnet (8.7 kb)"
 //config:	default y
 //config:	help
 //config:	  Telnet is an interface to the TELNET protocol, but is also commonly

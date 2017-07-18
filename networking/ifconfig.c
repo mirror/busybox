@@ -26,7 +26,7 @@
  * IPV6 support added by Bart Visscher <magick@linux-fan.com>
  */
 //config:config IFCONFIG
-//config:	bool "ifconfig"
+//config:	bool "ifconfig (12 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

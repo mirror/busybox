@@ -8,7 +8,7 @@
  */
 
 //config:config RPM2CPIO
-//config:	bool "rpm2cpio"
+//config:	bool "rpm2cpio (20 kb)"
 //config:	default y
 //config:	help
 //config:	  Converts a RPM file into a CPIO archive.

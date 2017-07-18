@@ -8,7 +8,7 @@
  *
  */
 //config:config SCRIPTREPLAY
-//config:	bool "scriptreplay"
+//config:	bool "scriptreplay (2.6 kb)"
 //config:	default y
 //config:	help
 //config:	  This program replays a typescript, using timing information

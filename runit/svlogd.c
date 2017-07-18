@@ -125,7 +125,7 @@ log message, you can use a pattern like this instead
 */
 
 //config:config SVLOGD
-//config:	bool "svlogd"
+//config:	bool "svlogd (15 kb)"
 //config:	default y
 //config:	help
 //config:	  svlogd continuously reads log data from its standard input, optionally

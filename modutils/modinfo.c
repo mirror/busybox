@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config MODINFO
-//config:	bool "modinfo"
+//config:	bool "modinfo (25 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

@@ -9,7 +9,7 @@
  */
 
 //config:config FSTRIM
-//config:	bool "fstrim"
+//config:	bool "fstrim (5.5 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

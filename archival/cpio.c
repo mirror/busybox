@@ -15,7 +15,7 @@
 #include "bb_archive.h"
 
 //config:config CPIO
-//config:	bool "cpio"
+//config:	bool "cpio (14 kb)"
 //config:	default y
 //config:	help
 //config:	  cpio is an archival utility program used to create, modify, and

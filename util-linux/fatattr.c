@@ -9,7 +9,7 @@
  * Public License
  */
 //config:config FATATTR
-//config:	bool "fatattr"
+//config:	bool "fatattr (1.9 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

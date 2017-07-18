@@ -12,7 +12,7 @@
  * Size reduction.
  */
 //config:config CP
-//config:	bool "cp"
+//config:	bool "cp (9.7 kb)"
 //config:	default y
 //config:	help
 //config:	  cp is used to copy files and directories.

@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config REFORMIME
-//config:	bool "reformime"
+//config:	bool "reformime (7.5 kb)"
 //config:	default y
 //config:	help
 //config:	  Parse MIME-formatted messages.

@@ -29,14 +29,14 @@
  * - don't know how to retrieve ORIGDST for udp.
  */
 //config:config TCPSVD
-//config:	bool "tcpsvd"
+//config:	bool "tcpsvd (13 kb)"
 //config:	default y
 //config:	help
 //config:	  tcpsvd listens on a TCP port and runs a program for each new
 //config:	  connection.
 //config:
 //config:config UDPSVD
-//config:	bool "udpsvd"
+//config:	bool "udpsvd (13 kb)"
 //config:	default y
 //config:	help
 //config:	  udpsvd listens on an UDP port and runs a program for each new

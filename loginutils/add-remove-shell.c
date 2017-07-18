@@ -8,13 +8,13 @@
  * for details.
  */
 //config:config ADD_SHELL
-//config:       bool "add-shell"
+//config:       bool "add-shell (2.8 kb)"
 //config:       default y if DESKTOP
 //config:       help
 //config:         Add shells to /etc/shells.
 //config:
 //config:config REMOVE_SHELL
-//config:       bool "remove-shell"
+//config:       bool "remove-shell (2.7 kb)"
 //config:       default y if DESKTOP
 //config:       help
 //config:         Remove shells from /etc/shells.

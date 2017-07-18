@@ -13,13 +13,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FTPGET
-//config:	bool "ftpget"
+//config:	bool "ftpget (8 kb)"
 //config:	default y
 //config:	help
 //config:	  Retrieve a remote file via FTP.
 //config:
 //config:config FTPPUT
-//config:	bool "ftpput"
+//config:	bool "ftpput (7.7 kb)"
 //config:	default y
 //config:	help
 //config:	  Store a remote file via FTP.

@@ -19,19 +19,19 @@
  */
 
 //config:config GREP
-//config:	bool "grep"
+//config:	bool "grep (8.5 kb)"
 //config:	default y
 //config:	help
 //config:	  grep is used to search files for a specified pattern.
 //config:
 //config:config EGREP
-//config:	bool "egrep"
+//config:	bool "egrep (7.6 kb)"
 //config:	default y
 //config:	help
 //config:	  Alias to "grep -E"
 //config:
 //config:config FGREP
-//config:	bool "fgrep"
+//config:	bool "fgrep (7.6 kb)"
 //config:	default y
 //config:	help
 //config:	  Alias to "grep -F"

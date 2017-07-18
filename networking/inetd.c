@@ -154,7 +154,7 @@
  *                      setuid()
  */
 //config:config INETD
-//config:	bool "inetd"
+//config:	bool "inetd (18 kb)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help

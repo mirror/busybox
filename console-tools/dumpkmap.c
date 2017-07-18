@@ -8,7 +8,7 @@
  *
  */
 //config:config DUMPKMAP
-//config:	bool "dumpkmap"
+//config:	bool "dumpkmap (1.3 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

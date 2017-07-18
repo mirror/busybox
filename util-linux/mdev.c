@@ -9,7 +9,7 @@
  */
 
 //config:config MDEV
-//config:	bool "mdev"
+//config:	bool "mdev (16 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

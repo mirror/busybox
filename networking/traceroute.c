@@ -210,14 +210,14 @@
  *     Tue Dec 20 03:50:13 PST 1988
  */
 //config:config TRACEROUTE
-//config:	bool "traceroute"
+//config:	bool "traceroute (11 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	  Utility to trace the route of IP packets.
 //config:
 //config:config TRACEROUTE6
-//config:	bool "traceroute6"
+//config:	bool "traceroute6 (12 kb)"
 //config:	default y
 //config:	depends on FEATURE_IPV6
 //config:	help

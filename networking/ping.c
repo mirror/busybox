@@ -47,7 +47,7 @@
 #endif
 
 //config:config PING
-//config:	bool "ping"
+//config:	bool "ping (9.5 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
@@ -55,7 +55,7 @@
 //config:	  elicit an ICMP ECHO_RESPONSE from a host or gateway.
 //config:
 //config:config PING6
-//config:	bool "ping6"
+//config:	bool "ping6 (10 kb)"
 //config:	default y
 //config:	depends on FEATURE_IPV6
 //config:	help

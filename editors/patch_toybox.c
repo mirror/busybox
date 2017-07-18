@@ -26,7 +26,7 @@
 USE_PATCH(NEWTOY(patch, USE_TOYBOX_DEBUG("x")"up#i:R", TOYFLAG_USR|TOYFLAG_BIN))
 
 config PATCH
-	bool "patch"
+	bool "patch (9.1 kb)"
 	default y
 	help
 	  usage: patch [-i file] [-p depth] [-Ru]

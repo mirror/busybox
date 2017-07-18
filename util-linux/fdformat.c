@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FDFORMAT
-//config:	bool "fdformat"
+//config:	bool "fdformat (4.5 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

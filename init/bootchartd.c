@@ -8,7 +8,7 @@
 //kbuild:lib-$(CONFIG_BOOTCHARTD) += bootchartd.o
 
 //config:config BOOTCHARTD
-//config:	bool "bootchartd"
+//config:	bool "bootchartd (10 kb)"
 //config:	default y
 //config:	help
 //config:	  bootchartd is commonly used to profile the boot process

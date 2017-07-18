@@ -8,7 +8,7 @@
  *
  */
 //config:config RAIDAUTORUN
-//config:	bool "raidautorun"
+//config:	bool "raidautorun (1.4 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

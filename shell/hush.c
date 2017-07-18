@@ -101,7 +101,7 @@
  *              aaa
  */
 //config:config HUSH
-//config:	bool "hush"
+//config:	bool "hush (64 kb)"
 //config:	default y
 //config:	help
 //config:	  hush is a small shell (25k). It handles the normal flow control

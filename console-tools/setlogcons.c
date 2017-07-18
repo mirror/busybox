@@ -9,7 +9,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SETLOGCONS
-//config:	bool "setlogcons"
+//config:	bool "setlogcons (1.8 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

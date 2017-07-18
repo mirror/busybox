@@ -9,7 +9,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config PIVOT_ROOT
-//config:	bool "pivot_root"
+//config:	bool "pivot_root (898 bytes)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

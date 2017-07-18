@@ -11,7 +11,7 @@
  */
 
 //config:config WHOIS
-//config:	bool "whois"
+//config:	bool "whois (6.6 kb)"
 //config:	default y
 //config:	help
 //config:	  whois is a client for the whois directory service

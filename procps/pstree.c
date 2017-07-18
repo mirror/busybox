@@ -11,7 +11,7 @@
  */
 
 //config:config PSTREE
-//config:	bool "pstree"
+//config:	bool "pstree (9.4 kb)"
 //config:	default y
 //config:	help
 //config:	  Display a tree of processes.

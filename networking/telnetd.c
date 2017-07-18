@@ -21,7 +21,7 @@
  * Set process group corrections, initial busybox port
  */
 //config:config TELNETD
-//config:	bool "telnetd"
+//config:	bool "telnetd (12 kb)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help

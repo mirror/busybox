@@ -16,7 +16,7 @@
  */
 
 //config:config XARGS
-//config:	bool "xargs"
+//config:	bool "xargs (6.7 kb)"
 //config:	default y
 //config:	help
 //config:	  xargs is used to execute a specified command for

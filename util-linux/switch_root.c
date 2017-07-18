@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config SWITCH_ROOT
-//config:	bool "switch_root"
+//config:	bool "switch_root (5.2 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

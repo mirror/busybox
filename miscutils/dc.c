@@ -3,7 +3,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DC
-//config:	bool "dc"
+//config:	bool "dc (4.2 kb)"
 //config:	default y
 //config:	help
 //config:	  Dc is a reverse-polish desk calculator which supports unlimited

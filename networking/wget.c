@@ -10,7 +10,7 @@
  */
 
 //config:config WGET
-//config:	bool "wget"
+//config:	bool "wget (35 kb)"
 //config:	default y
 //config:	help
 //config:	  wget is a utility for non-interactive download of files from HTTP

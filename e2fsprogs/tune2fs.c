@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config TUNE2FS
-//config:	bool "tune2fs"
+//config:	bool "tune2fs (4.4 kb)"
 //config:	default n  # off: it is too limited compared to upstream version
 //config:	help
 //config:	  tune2fs allows the system administrator to adjust various tunable

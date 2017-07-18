@@ -9,7 +9,7 @@
  */
 
 //config:config PWDX
-//config:	bool "pwdx"
+//config:	bool "pwdx (3.5 kb)"
 //config:	default y
 //config:	help
 //config:	  Report current working directory of a process

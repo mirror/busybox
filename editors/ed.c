@@ -8,7 +8,7 @@
  */
 
 //config:config ED
-//config:	bool "ed"
+//config:	bool "ed (25 kb)"
 //config:	default y
 //config:	help
 //config:	  The original 1970's Unix text editor, from the days of teletypes.

@@ -57,7 +57,7 @@
  */
 
 //config:config SED
-//config:	bool "sed"
+//config:	bool "sed (12 kb)"
 //config:	default y
 //config:	help
 //config:	  sed is used to perform text transformations on a file

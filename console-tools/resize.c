@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config RESIZE
-//config:	bool "resize"
+//config:	bool "resize (756 bytes)"
 //config:	default y
 //config:	help
 //config:	  This program is used to (re)set the width and height of your current

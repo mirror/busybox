@@ -43,7 +43,7 @@
  *  Fix handling of -a to not print "unknown", add -o and -i support.
  */
 //config:config UNAME
-//config:	bool "uname"
+//config:	bool "uname (3.7 kb)"
 //config:	default y
 //config:	help
 //config:	  uname is used to print system information.

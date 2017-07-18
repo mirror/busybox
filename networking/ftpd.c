@@ -12,7 +12,7 @@
  * You have to run this daemon via inetd.
  */
 //config:config FTPD
-//config:	bool "ftpd"
+//config:	bool "ftpd (30 kb)"
 //config:	default y
 //config:	help
 //config:	  Simple FTP daemon. You have to run it via inetd.

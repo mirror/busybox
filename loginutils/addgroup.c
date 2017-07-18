@@ -10,7 +10,7 @@
  *
  */
 //config:config ADDGROUP
-//config:	bool "addgroup"
+//config:	bool "addgroup (8.2 kb)"
 //config:	default y
 //config:	help
 //config:	  Utility for creating a new group account.

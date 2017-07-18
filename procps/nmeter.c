@@ -7,7 +7,7 @@
  */
 
 //config:config NMETER
-//config:	bool "nmeter"
+//config:	bool "nmeter (10 kb)"
 //config:	default y
 //config:	help
 //config:	  Prints selected system stats continuously, one line per update.

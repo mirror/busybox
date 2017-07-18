@@ -6,7 +6,7 @@
  */
 
 //config:config FSFREEZE
-//config:	bool "fsfreeze"
+//config:	bool "fsfreeze (3.6 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	select LONG_OPTS

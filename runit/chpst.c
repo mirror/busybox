@@ -28,33 +28,33 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 
 //config:config CHPST
-//config:	bool "chpst"
+//config:	bool "chpst (8.7 kb)"
 //config:	default y
 //config:	help
 //config:	  chpst changes the process state according to the given options, and
 //config:	  execs specified program.
 //config:
 //config:config SETUIDGID
-//config:	bool "setuidgid"
+//config:	bool "setuidgid (4.2 kb)"
 //config:	default y
 //config:	help
 //config:	  Sets soft resource limits as specified by options
 //config:
 //config:config ENVUIDGID
-//config:	bool "envuidgid"
+//config:	bool "envuidgid (3.6 kb)"
 //config:	default y
 //config:	help
 //config:	  Sets $UID to account's uid and $GID to account's gid
 //config:
 //config:config ENVDIR
-//config:	bool "envdir"
+//config:	bool "envdir (2.5 kb)"
 //config:	default y
 //config:	help
 //config:	  Sets various environment variables as specified by files
 //config:	  in the given directory
 //config:
 //config:config SOFTLIMIT
-//config:	bool "softlimit"
+//config:	bool "softlimit (4.3 kb)"
 //config:	default y
 //config:	help
 //config:	  Sets soft resource limits as specified by options

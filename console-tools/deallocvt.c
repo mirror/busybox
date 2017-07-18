@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DEALLOCVT
-//config:	bool "deallocvt"
+//config:	bool "deallocvt (1.9 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

@@ -38,7 +38,7 @@ aa:      85.1% -- replaced with aa.gz
 */
 
 //config:config GZIP
-//config:	bool "gzip"
+//config:	bool "gzip (19 kb)"
 //config:	default y
 //config:	help
 //config:	  gzip is used to compress files.

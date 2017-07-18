@@ -9,7 +9,7 @@
  *
  */
 //config:config RDEV
-//config:	bool "rdev"
+//config:	bool "rdev (1.4 kb)"
 //config:	default y
 //config:	help
 //config:	  Print the device node associated with the filesystem mounted at '/'.

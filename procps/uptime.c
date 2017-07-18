@@ -12,7 +12,7 @@
  * Added FEATURE_UPTIME_UTMP_SUPPORT flag.
  */
 //config:config UPTIME
-//config:	bool "uptime"
+//config:	bool "uptime (632 bytes)"
 //config:	default y
 //config:	select PLATFORM_LINUX #sysinfo()
 //config:	help

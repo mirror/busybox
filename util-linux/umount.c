@@ -8,7 +8,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config UMOUNT
-//config:	bool "umount"
+//config:	bool "umount (4.5 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

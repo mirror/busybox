@@ -14,7 +14,7 @@
 //kbuild:lib-$(CONFIG_POWERTOP) += powertop.o
 
 //config:config POWERTOP
-//config:	bool "powertop"
+//config:	bool "powertop (9.1 kb)"
 //config:	default y
 //config:	help
 //config:	  Analyze power consumption on Intel-based laptops

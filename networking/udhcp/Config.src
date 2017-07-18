@@ -46,7 +46,7 @@ config DHCPD_LEASES_FILE
 	  of the file. Normally it is safe to leave it untouched.
 
 config DUMPLEASES
-	bool "dumpleases"
+	bool "dumpleases (6.4 kb)"
 	default y
 	help
 	  dumpleases displays the leases written out by the udhcpd.
@@ -54,7 +54,7 @@ config DUMPLEASES
 	  by the absolute time that it expires in seconds from epoch.
 
 config DHCPRELAY
-	bool "dhcprelay"
+	bool "dhcprelay (5.8 kb)"
 	default y
 	help
 	  dhcprelay listens for dhcp requests on one or more interfaces

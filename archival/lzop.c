@@ -26,19 +26,19 @@
 */
 
 //config:config LZOP
-//config:	bool "lzop"
+//config:	bool "lzop (13 kb)"
 //config:	default y
 //config:	help
 //config:	  Lzop compression/decompresion.
 //config:
 //config:config UNLZOP
-//config:	bool "unlzop"
+//config:	bool "unlzop (13 kb)"
 //config:	default n  # INCOMPAT: upstream lzop does not provide such tool
 //config:	help
 //config:	  Lzop decompresion.
 //config:
 //config:config LZOPCAT
-//config:	bool "lzopcat"
+//config:	bool "lzopcat (13 kb)"
 //config:	default n  # INCOMPAT: upstream lzop does not provide such tool
 //config:	help
 //config:	  Alias to "unlzop -c".

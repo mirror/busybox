@@ -57,7 +57,7 @@ Misc options:
         -v,--verbose            Verbose
 */
 //config:config START_STOP_DAEMON
-//config:	bool "start-stop-daemon"
+//config:	bool "start-stop-daemon (12 kb)"
 //config:	default y
 //config:	help
 //config:	  start-stop-daemon is used to control the creation and

@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config NOHUP
-//config:	bool "nohup"
+//config:	bool "nohup (2 kb)"
 //config:	default y
 //config:	help
 //config:	  run a command immune to hangups, with output to a non-tty.

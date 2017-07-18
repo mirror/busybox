@@ -11,13 +11,13 @@
  */
 
 //config:config HOSTNAME
-//config:	bool "hostname"
+//config:	bool "hostname (5.6 kb)"
 //config:	default y
 //config:	help
 //config:	  Show or set the system's host name.
 //config:
 //config:config DNSDOMAINNAME
-//config:	bool "dnsdomainname"
+//config:	bool "dnsdomainname (3.6 kb)"
 //config:	default y
 //config:	help
 //config:	  Alias to "hostname -d".

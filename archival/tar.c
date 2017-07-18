@@ -42,7 +42,7 @@
  */
 
 //config:config TAR
-//config:	bool "tar"
+//config:	bool "tar (40 kb)"
 //config:	default y
 //config:	help
 //config:	  tar is an archiving program. It's commonly used with gzip to

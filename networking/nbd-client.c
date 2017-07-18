@@ -12,7 +12,7 @@
 //kbuild:lib-$(CONFIG_NBDCLIENT) += nbd-client.o
 
 //config:config NBDCLIENT
-//config:	bool "nbd-client"
+//config:	bool "nbd-client (4.6 kb)"
 //config:	default y
 //config:	help
 //config:	  Network block device client

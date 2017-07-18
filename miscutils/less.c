@@ -22,7 +22,7 @@
  */
 
 //config:config LESS
-//config:	bool "less"
+//config:	bool "less (15 kb)"
 //config:	default y
 //config:	help
 //config:	  'less' is a pager, meaning that it displays text files. It possesses

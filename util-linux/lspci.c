@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LSPCI
-//config:	bool "lspci"
+//config:	bool "lspci (5.7 kb)"
 //config:	default y
 //config:	#select PLATFORM_LINUX
 //config:	help

@@ -10,7 +10,7 @@
 /* "Standard" version of this tool is in ncurses package */
 
 //config:config RESET
-//config:	bool "reset"
+//config:	bool "reset (275 bytes)"
 //config:	default y
 //config:	help
 //config:	  This program is used to reset the terminal screen, if it

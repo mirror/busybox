@@ -99,7 +99,7 @@
  */
  /* TODO: use TCP_CORK, parse_config() */
 //config:config HTTPD
-//config:	bool "httpd"
+//config:	bool "httpd (32 kb)"
 //config:	default y
 //config:	help
 //config:	  HTTP server.

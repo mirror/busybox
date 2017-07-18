@@ -21,7 +21,7 @@
  */
 
 //config:config VI
-//config:	bool "vi"
+//config:	bool "vi (22 kb)"
 //config:	default y
 //config:	help
 //config:	  'vi' is a text editor. More specifically, it is the One True

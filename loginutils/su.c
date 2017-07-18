@@ -5,7 +5,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SU
-//config:	bool "su"
+//config:	bool "su (19 kb)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help

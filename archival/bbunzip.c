@@ -237,7 +237,7 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 //usage:     "\n	-f	Overwrite"
 
 //config:config UNCOMPRESS
-//config:	bool "uncompress"
+//config:	bool "uncompress (7.1 kb)"
 //config:	default n  # ancient
 //config:	help
 //config:	  uncompress is used to decompress archives created by compress.
@@ -312,7 +312,7 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "Decompress to stdout"
 
 //config:config GUNZIP
-//config:	bool "gunzip"
+//config:	bool "gunzip (12 kb)"
 //config:	default y
 //config:	select FEATURE_GZIP_DECOMPRESS
 //config:	help
@@ -321,7 +321,7 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //config:	  an archive, without decompressing it.
 //config:
 //config:config ZCAT
-//config:	bool "zcat"
+//config:	bool "zcat (25 kb)"
 //config:	default y
 //config:	select FEATURE_GZIP_DECOMPRESS
 //config:	help
@@ -425,7 +425,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "Decompress to stdout"
 
 //config:config BUNZIP2
-//config:	bool "bunzip2"
+//config:	bool "bunzip2 (8.8 kb)"
 //config:	default y
 //config:	select FEATURE_BZIP2_DECOMPRESS
 //config:	help
@@ -439,7 +439,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //config:	  should probably say N here.
 //config:
 //config:config BZCAT
-//config:	bool "bzcat"
+//config:	bool "bzcat (8.8 kb)"
 //config:	default y
 //config:	select FEATURE_BZIP2_DECOMPRESS
 //config:	help
@@ -493,7 +493,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "Decompress to stdout"
 
 //config:config UNLZMA
-//config:	bool "unlzma"
+//config:	bool "unlzma (8.6 kb)"
 //config:	default y
 //config:	help
 //config:	  unlzma is a compression utility using the Lempel-Ziv-Markov chain
@@ -505,7 +505,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //config:	  On an x86 system, this applet adds about 4K.
 //config:
 //config:config LZCAT
-//config:	bool "lzcat"
+//config:	bool "lzcat (8.5 kb)"
 //config:	default y
 //config:	help
 //config:	  unlzma is a compression utility using the Lempel-Ziv-Markov chain
@@ -581,13 +581,13 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "Decompress to stdout"
 
 //config:config UNXZ
-//config:	bool "unxz"
+//config:	bool "unxz (13 kb)"
 //config:	default y
 //config:	help
 //config:	  unxz is a unlzma successor.
 //config:
 //config:config XZCAT
-//config:	bool "xzcat"
+//config:	bool "xzcat (13 kb)"
 //config:	default y
 //config:	help
 //config:	  Alias to "unxz -c".

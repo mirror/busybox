@@ -15,7 +15,7 @@
  * 3) Save some space by using strcmp().  Calling strncmp() here was silly.
  */
 //config:config BASENAME
-//config:	bool "basename"
+//config:	bool "basename (371 bytes)"
 //config:	default y
 //config:	help
 //config:	  basename is used to strip the directory and suffix from filenames,

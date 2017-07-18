@@ -27,7 +27,7 @@
  */
 
 //config:config DPKG
-//config:	bool "dpkg"
+//config:	bool "dpkg (44 kb)"
 //config:	default y
 //config:	select FEATURE_SEAMLESS_GZ
 //config:	help

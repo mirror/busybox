@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config REALPATH
-//config:	bool "realpath"
+//config:	bool "realpath (1.1 kb)"
 //config:	default y
 //config:	help
 //config:	  Return the canonicalized absolute pathname.

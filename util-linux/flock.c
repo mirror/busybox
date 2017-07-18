@@ -4,7 +4,7 @@
  * This is free software, licensed under the GNU General Public License v2.
  */
 //config:config FLOCK
-//config:	bool "flock"
+//config:	bool "flock (6.1 kb)"
 //config:	default y
 //config:	help
 //config:	  Manage locks from shell scripts

@@ -7,7 +7,7 @@
  */
 
 //config:config WALL
-//config:	bool "wall"
+//config:	bool "wall (2.5 kb)"
 //config:	default y
 //config:	depends on FEATURE_UTMP
 //config:	help

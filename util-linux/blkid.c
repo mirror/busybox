@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config BLKID
-//config:	bool "blkid"
+//config:	bool "blkid (11 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	select VOLUMEID

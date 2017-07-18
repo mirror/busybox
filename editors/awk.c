@@ -8,7 +8,7 @@
  */
 
 //config:config AWK
-//config:	bool "awk"
+//config:	bool "awk (22 kb)"
 //config:	default y
 //config:	help
 //config:	  Awk is used as a pattern scanning and processing language. This is

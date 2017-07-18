@@ -28,7 +28,7 @@
  * ls sorts listing now, and supports almost all options.
  */
 //config:config LS
-//config:	bool "ls"
+//config:	bool "ls (14 kb)"
 //config:	default y
 //config:	help
 //config:	  ls is used to list the contents of directories.

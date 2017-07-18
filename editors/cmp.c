@@ -11,7 +11,7 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/cmp.html */
 
 //config:config CMP
-//config:	bool "cmp"
+//config:	bool "cmp (5.4 kb)"
 //config:	default y
 //config:	help
 //config:	  cmp is used to compare two files and returns the result

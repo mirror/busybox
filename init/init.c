@@ -10,7 +10,7 @@
  */
 
 //config:config INIT
-//config:	bool "init"
+//config:	bool "init (9.3 kb)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help

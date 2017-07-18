@@ -8,7 +8,7 @@
  *
  */
 //config:config SETPRIV
-//config:	bool "setpriv"
+//config:	bool "setpriv (3.4 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	select LONG_OPTS

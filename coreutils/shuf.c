@@ -8,7 +8,7 @@
  */
 
 //config:config SHUF
-//config:	bool "shuf"
+//config:	bool "shuf (5.4 kb)"
 //config:	default y
 //config:	help
 //config:	  Generate random permutations

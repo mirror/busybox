@@ -7,7 +7,7 @@
  */
 
 //config:config TASKSET
-//config:	bool "taskset"
+//config:	bool "taskset (4.1 kb)"
 //config:	default y
 //config:	help
 //config:	  Retrieve or set a processes's CPU affinity.

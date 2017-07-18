@@ -12,7 +12,7 @@
 //kbuild:lib-$(CONFIG_MPSTAT) += mpstat.o
 
 //config:config MPSTAT
-//config:	bool "mpstat"
+//config:	bool "mpstat (10 kb)"
 //config:	default y
 //config:	help
 //config:	  Per-processor statistics

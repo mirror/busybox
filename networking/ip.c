@@ -9,7 +9,7 @@
  * Bernhard Reutner-Fischer rewrote to use index_in_substr_array
  */
 //config:config IP
-//config:	bool "ip"
+//config:	bool "ip (34 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
@@ -18,7 +18,7 @@
 //config:	  TCP/IP.
 //config:
 //config:config IPADDR
-//config:	bool "ipaddr"
+//config:	bool "ipaddr (14 kb)"
 //config:	default y
 //config:	select FEATURE_IP_ADDRESS
 //config:	select PLATFORM_LINUX
@@ -26,7 +26,7 @@
 //config:	  Support short form of ip addr: ipaddr
 //config:
 //config:config IPLINK
-//config:	bool "iplink"
+//config:	bool "iplink (16 kb)"
 //config:	default y
 //config:	select FEATURE_IP_LINK
 //config:	select PLATFORM_LINUX
@@ -34,7 +34,7 @@
 //config:	  Support short form of ip link: iplink
 //config:
 //config:config IPROUTE
-//config:	bool "iproute"
+//config:	bool "iproute (15 kb)"
 //config:	default y
 //config:	select FEATURE_IP_ROUTE
 //config:	select PLATFORM_LINUX
@@ -42,7 +42,7 @@
 //config:	  Support short form of ip route: iproute
 //config:
 //config:config IPTUNNEL
-//config:	bool "iptunnel"
+//config:	bool "iptunnel (9.6 kb)"
 //config:	default y
 //config:	select FEATURE_IP_TUNNEL
 //config:	select PLATFORM_LINUX
@@ -50,7 +50,7 @@
 //config:	  Support short form of ip tunnel: iptunnel
 //config:
 //config:config IPRULE
-//config:	bool "iprule"
+//config:	bool "iprule (10 kb)"
 //config:	default y
 //config:	select FEATURE_IP_RULE
 //config:	select PLATFORM_LINUX
@@ -58,7 +58,7 @@
 //config:	  Support short form of ip rule: iprule
 //config:
 //config:config IPNEIGH
-//config:	bool "ipneigh"
+//config:	bool "ipneigh (8.3 kb)"
 //config:	default y
 //config:	select FEATURE_IP_NEIGH
 //config:	select PLATFORM_LINUX

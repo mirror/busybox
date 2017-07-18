@@ -21,7 +21,7 @@
  *  Caveat: this versions of expand and unexpand don't accept tab lists.
  */
 //config:config EXPAND
-//config:	bool "expand"
+//config:	bool "expand (5.8 kb)"
 //config:	default y
 //config:	help
 //config:	  By default, convert all tabs to spaces.
@@ -32,7 +32,7 @@
 //config:	depends on EXPAND && LONG_OPTS
 //config:
 //config:config UNEXPAND
-//config:	bool "unexpand"
+//config:	bool "unexpand (6 kb)"
 //config:	default y
 //config:	help
 //config:	  By default, convert only leading sequences of blanks to tabs.

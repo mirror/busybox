@@ -18,7 +18,7 @@
  */
 
 //config:config AR
-//config:	bool "ar"
+//config:	bool "ar (9.5 kb)"
 //config:	default n  # needs to be improved to be able to replace binutils ar
 //config:	help
 //config:	  ar is an archival utility program used to create, modify, and

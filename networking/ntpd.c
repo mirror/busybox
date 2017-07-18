@@ -41,7 +41,7 @@
  ***********************************************************************
  */
 //config:config NTPD
-//config:	bool "ntpd"
+//config:	bool "ntpd (17 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

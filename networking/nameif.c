@@ -11,7 +11,7 @@
  */
 
 //config:config NAMEIF
-//config:	bool "nameif"
+//config:	bool "nameif (6.6 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	select FEATURE_SYSLOG

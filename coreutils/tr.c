@@ -19,7 +19,7 @@
  * TODO: graph, print
  */
 //config:config TR
-//config:	bool "tr"
+//config:	bool "tr (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	  tr is used to squeeze, and/or delete characters from standard

@@ -32,7 +32,7 @@
  * Paul Mundt <lethal@linux-sh.org>.
  */
 //config:config READPROFILE
-//config:	bool "readprofile"
+//config:	bool "readprofile (7.2 kb)"
 //config:	default y
 //config:	#select PLATFORM_LINUX
 //config:	help

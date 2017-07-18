@@ -17,7 +17,7 @@
  *----------------------------------------------------------------------
  */
 //config:config WHO
-//config:      bool "who"
+//config:      bool "who (3.7 kb)"
 //config:      default y
 //config:      depends on FEATURE_UTMP
 //config:      help
@@ -25,14 +25,14 @@
 //config:
 // procps-ng has this variation of "who":
 //config:config W
-//config:      bool "w"
+//config:      bool "w (3.7 kb)"
 //config:      default y
 //config:      depends on FEATURE_UTMP
 //config:      help
 //config:        w is used to show who is logged on.
 //config:
 //config:config USERS
-//config:      bool "users"
+//config:      bool "users (3.2 kb)"
 //config:      default y
 //config:      depends on FEATURE_UTMP
 //config:      help

@@ -98,7 +98,7 @@
  *         set version to 1.1.0
  */
 //config:config IFENSLAVE
-//config:	bool "ifenslave"
+//config:	bool "ifenslave (13 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

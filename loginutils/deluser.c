@@ -9,13 +9,13 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config DELUSER
-//config:	bool "deluser"
+//config:	bool "deluser (8.4 kb)"
 //config:	default y
 //config:	help
 //config:	  Utility for deleting a user account.
 //config:
 //config:config DELGROUP
-//config:	bool "delgroup"
+//config:	bool "delgroup (5.6 kb)"
 //config:	default y
 //config:	help
 //config:	  Utility for deleting a group account.

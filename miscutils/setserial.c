@@ -9,7 +9,7 @@
  */
 
 //config:config SETSERIAL
-//config:	bool "setserial"
+//config:	bool "setserial (6.6 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

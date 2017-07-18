@@ -11,7 +11,7 @@
 //kbuild:lib-$(CONFIG_CTTYHACK) += cttyhack.o
 
 //config:config CTTYHACK
-//config:	bool "cttyhack"
+//config:	bool "cttyhack (2.5 kb)"
 //config:	default y
 //config:	help
 //config:	  One common problem reported on the mailing list is the "can't

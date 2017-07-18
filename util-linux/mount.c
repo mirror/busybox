@@ -18,7 +18,7 @@
 //
 
 //config:config MOUNT
-//config:	bool "mount"
+//config:	bool "mount (30 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

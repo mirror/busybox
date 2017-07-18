@@ -17,7 +17,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config KLOGD
-//config:	bool "klogd"
+//config:	bool "klogd (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	  klogd is a utility which intercepts and logs all

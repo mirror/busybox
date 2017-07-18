@@ -19,7 +19,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config TFTP
-//config:	bool "tftp"
+//config:	bool "tftp (12 kb)"
 //config:	default y
 //config:	help
 //config:	  This enables the Trivial File Transfer Protocol client program. TFTP
@@ -27,7 +27,7 @@
 //config:	  for a network-enabled bootloader.
 //config:
 //config:config TFTPD
-//config:	bool "tftpd"
+//config:	bool "tftpd (10 kb)"
 //config:	default y
 //config:	help
 //config:	  This enables the Trivial File Transfer Protocol server program.

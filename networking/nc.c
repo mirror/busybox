@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config NC
-//config:	bool "nc"
+//config:	bool "nc (11 kb)"
 //config:	default y
 //config:	help
 //config:	  A simple Unix utility which reads and writes data across network

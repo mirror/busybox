@@ -8,7 +8,7 @@
  */
 
 //config:config LSOF
-//config:	bool "lsof"
+//config:	bool "lsof (3.6 kb)"
 //config:	default y
 //config:	help
 //config:	  Show open files in the format of:

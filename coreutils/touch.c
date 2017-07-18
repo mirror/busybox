@@ -13,7 +13,7 @@
  * Also, exiting on a failure was a bug.  All args should be processed.
  */
 //config:config TOUCH
-//config:	bool "touch"
+//config:	bool "touch (5.8 kb)"
 //config:	default y
 //config:	help
 //config:	  touch is used to create or change the access and/or

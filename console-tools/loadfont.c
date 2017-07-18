@@ -10,14 +10,14 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config LOADFONT
-//config:	bool "loadfont"
+//config:	bool "loadfont (5.4 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	  This program loads a console font from standard input.
 //config:
 //config:config SETFONT
-//config:	bool "setfont"
+//config:	bool "setfont (26 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

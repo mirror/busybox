@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see LICENSE in this source tree
  */
 //config:config UNLINK
-//config:	bool "unlink"
+//config:	bool "unlink (3.5 kb)"
 //config:	default y
 //config:	help
 //config:	  unlink deletes a file by calling unlink()

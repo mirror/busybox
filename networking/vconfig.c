@@ -10,7 +10,7 @@
 /* BB_AUDIT SUSv3 N/A */
 
 //config:config VCONFIG
-//config:	bool "vconfig"
+//config:	bool "vconfig (2.5 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

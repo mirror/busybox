@@ -8,17 +8,6 @@ grep ^IF_ include/applets.h \
 | sort | uniq
 `"
 
-# Take existing config
-test -f .config || { echo "No .config file"; exit 1; }
-cfg="`cat .config`"
-
-# Make a config with all applet symbols off
-allno="$cfg"
-for app in $apps; do
-	allno="`echo "$allno" | sed "s/^CONFIG_${app}=y\$/# CONFIG_${app} is not set/"`"
-done
-#echo "$allno" >.config_allno
-
 test $# = 0 && set -- $apps
 
 mintext=999999999
@@ -43,4 +32,45 @@ for app; do
 	test -f "$b" || continue
 	eval "text=\$text_${app}"
 	echo "$app adds $((text-mintext))"
+done
+
+grep ^IF_ include/applets.h \
+| grep -v ^IF_FEATURE_ \
+| sed 's/, .*//' \
+| sed 's/\t//g' \
+| sed 's/ //g' \
+| sed 's/(APPLET(/(/' \
+| sed 's/(APPLET_[A-Z]*(/(/' \
+| sed 's/(IF_[A-Z_]*(/(/' \
+| sed 's/IF_\([A-Z0-9._-]*\)(\(.*\)/\1 \2/' \
+| sort | uniq \
+| while read app name; do
+	b="busybox_${app}"
+	test -f "$b" || continue
+
+	file=`grep -lF "bool \"$name" $(find -name '*.c') | xargs`
+	# so far all such items are in .c files; if need to check Config.* files:
+	#test "$file" || file=`grep -lF "bool \"$name" $(find -name 'Config.*') |  xargs`
+	test "$file" || continue
+	#echo "FILE:'$file'"
+
+	eval "text=\$text_${app}"
+	sz=$((text-mintext))
+	sz_kb=$((sz/1000))
+	sz_frac=$(( (sz - sz_kb*1000) ))
+	sz_f=$((sz_frac / 100))
+
+	echo -n "sed 's/bool \"$name *(*[0-9tinykbytes .]*)*\"/"
+	if test "$sz_kb" -ge 10; then
+		echo -n "bool \"$name (${sz_kb} kb)\""
+	elif test "$sz_kb" -gt 0 -a "$sz_f" = 0; then
+		echo -n "bool \"$name (${sz_kb} kb)\""
+	elif test "$sz_kb" -gt 0; then
+		echo -n "bool \"$name ($sz_kb.${sz_f} kb)\""
+	elif test "$sz" -ge 200; then
+		echo -n "bool \"$name ($sz bytes)\""
+	else
+		echo -n "bool \"$name (tiny)\""
+	fi
+	echo "/' -i $file"
 done

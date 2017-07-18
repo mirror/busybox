@@ -8,7 +8,7 @@
  */
 
 //config:config BZIP2
-//config:	bool "bzip2"
+//config:	bool "bzip2 (18 kb)"
 //config:	default y
 //config:	help
 //config:	  bzip2 is a compression utility using the Burrows-Wheeler block

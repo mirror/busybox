@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config INSMOD
-//config:	bool "insmod"
+//config:	bool "insmod (22 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

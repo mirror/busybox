@@ -77,7 +77,7 @@
  */
 
 //config:config DIFF
-//config:	bool "diff"
+//config:	bool "diff (13 kb)"
 //config:	default y
 //config:	help
 //config:	  diff compares two files or directories and outputs the

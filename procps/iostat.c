@@ -8,7 +8,7 @@
  */
 
 //config:config IOSTAT
-//config:	bool "iostat"
+//config:	bool "iostat (7.4 kb)"
 //config:	default y
 //config:	help
 //config:	  Report CPU and I/O statistics

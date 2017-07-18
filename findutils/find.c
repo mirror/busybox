@@ -54,7 +54,7 @@
  */
 
 //config:config FIND
-//config:	bool "find"
+//config:	bool "find (14 kb)"
 //config:	default y
 //config:	help
 //config:	  find is used to search your system to find specified files.
