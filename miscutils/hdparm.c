@@ -17,8 +17,7 @@
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	  Get/Set hard drive parameters. Primarily intended for ATA
-//config:	  drives. Adds about 13k (or around 30k if you enable the
-//config:	  FEATURE_HDPARM_GET_IDENTITY option)....
+//config:	  drives.
 //config:
 //config:config FEATURE_HDPARM_GET_IDENTITY
 //config:	bool "Support obtaining detailed information directly from drives"
