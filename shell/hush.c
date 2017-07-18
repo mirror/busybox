@@ -1068,7 +1068,7 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("export"   , builtin_export  , "Set environment variables"),
 #endif
 #if ENABLE_HUSH_JOB
-	BLTIN("fg"       , builtin_fg_bg   , "Bring job into foreground"),
+	BLTIN("fg"       , builtin_fg_bg   , "Bring job to foreground"),
 #endif
 #if ENABLE_HUSH_HELP
 	BLTIN("help"     , builtin_help    , NULL),
@@ -1121,7 +1121,7 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("unset"    , builtin_unset   , "Unset variables"),
 #endif
 #if ENABLE_HUSH_WAIT
-	BLTIN("wait"     , builtin_wait    , "Wait for process"),
+	BLTIN("wait"     , builtin_wait    , "Wait for process to finish"),
 #endif
 };
 /* These builtins won't be used if we are on NOMMU and need to re-exec
