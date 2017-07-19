@@ -171,7 +171,9 @@ static int dump_procs(FILE *fp, int look_for_login_process)
 			p++;
 			strchrnul(p, ')')[0] = '\0';
 			/* Is it gdm, kdm or a getty? */
-			if (((p[0] == 'g' || p[0] == 'k' || p[0] == 'x') && p[1] == 'd' && p[2] == 'm')
+			if (((p[0] == 'g' || p[0] == 'k' || p[0] == 'x')
+			     && p[1] == 'd' && p[2] == 'm' && p[3] == '\0'
+			    )
 			 || strstr(p, "getty")
 			) {
 				found_login_process = 1;
