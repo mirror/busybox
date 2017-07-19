@@ -178,7 +178,7 @@ endif
 # SUBARCH is subsequently ignored.
 
 ifneq ($(CROSS_COMPILE),)
-SUBARCH := $(shell echo $(CROSS_COMPILE) | cut -d- -f1)
+SUBARCH := $(shell echo $(CROSS_COMPILE) | cut -d- -f1 | sed 's:^.*/::g')
 else
 SUBARCH := $(shell uname -m)
 endif
