@@ -16,6 +16,16 @@ testing "od -b" \
 	"" "HELLO"
 SKIP=
 
+optional DESKTOP
+testing "od -f" \
+	"od -f" \
+"\
+0000000   0.0000000e+00   0.0000000e+00
+0000010
+" \
+	"" "\x00\x00\x00\x00\x00\x00\x00\x00"
+SKIP=
+
 optional DESKTOP LONG_OPTS
 testing "od -b --traditional" \
 	"od -b --traditional" \

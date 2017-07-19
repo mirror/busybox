@@ -665,7 +665,7 @@ decode_one_format(const char *s_orig, const char *s, struct tspec *tspec)
 		fmt = FLOATING_POINT;
 		++s;
 		p = strchr(FDL, *s);
-		if (!p) {
+		if (!p || *p == '\0') {
 			size = sizeof(double);
 			if (isdigit(s[0])) {
 				size = bb_strtou(s, &end, 0);
@@ -686,6 +686,7 @@ decode_one_format(const char *s_orig, const char *s, struct tspec *tspec)
 			};
 
 			size = FDL_sizeof[p - FDL];
+			s++; /* skip F/D/L */
 		}
 
 		size_spec = fp_type_size[size];
