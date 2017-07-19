@@ -11,7 +11,6 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  This option enables the 'swapon' utility.
 //config:	  Once you have created some swap space using 'mkswap', you also need
 //config:	  to enable your swap space with the 'swapon' utility. The 'swapoff'
 //config:	  utility is used, typically at system shutdown, to disable any swap
@@ -38,8 +37,6 @@
 //config:	bool "swapoff (4.3 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
-//config:	help
-//config:	  This option enables the 'swapoff' utility.
 
 //                  APPLET_ODDNAME:name     main         location     suid_type     help
 //applet:IF_SWAPON( APPLET_ODDNAME(swapon,  swap_on_off, BB_DIR_SBIN, BB_SUID_DROP, swapon))
