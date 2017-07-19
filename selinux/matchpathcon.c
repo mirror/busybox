@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config MATCHPATHCON
-//config:	bool "matchpathcon"
+//config:	bool "matchpathcon (6.1 kb)"
 //config:	default n
 //config:	depends on SELINUX
 //config:	help

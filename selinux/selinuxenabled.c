@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config SELINUXENABLED
-//config:	bool "selinuxenabled"
+//config:	bool "selinuxenabled (321 bytes)"
 //config:	default n
 //config:	depends on SELINUX
 //config:	help

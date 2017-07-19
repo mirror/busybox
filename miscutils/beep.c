@@ -8,7 +8,7 @@
  *
  */
 //config:config BEEP
-//config:	bool "beep"
+//config:	bool "beep (3 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

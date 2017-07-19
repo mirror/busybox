@@ -58,7 +58,7 @@
 //config:
 //can't use "ARCH" for this applet, all hell breaks loose in build system :)
 //config:config BB_ARCH
-//config:	bool "arch"
+//config:	bool "arch (1.6 kb)"
 //config:	default y
 //config:	help
 //config:	  Same as uname -m.

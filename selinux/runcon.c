@@ -29,7 +29,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config RUNCON
-//config:	bool "runcon"
+//config:	bool "runcon (6.6 kb)"
 //config:	default n
 //config:	depends on SELINUX
 //config:	help

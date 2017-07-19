@@ -11,7 +11,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config NSLOOKUP
-//config:	bool "nslookup"
+//config:	bool "nslookup (4.5 kb)"
 //config:	default y
 //config:	help
 //config:	  nslookup is a tool to query Internet name servers.

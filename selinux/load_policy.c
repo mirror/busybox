@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config LOAD_POLICY
-//config:	bool "load_policy"
+//config:	bool "load_policy (1.6 kb)"
 //config:	default n
 //config:	depends on SELINUX
 //config:	help

@@ -8,7 +8,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config CHCON
-//config:	bool "chcon"
+//config:	bool "chcon (8.9 kb)"
 //config:	default n
 //config:	depends on SELINUX
 //config:	help

@@ -2,7 +2,7 @@
 /* This file was released into the public domain by Paul Fox.
  */
 //config:config BBCONFIG
-//config:	bool "bbconfig"
+//config:	bool "bbconfig (9.7 kb)"
 //config:	default n
 //config:	help
 //config:	  The bbconfig applet will print the config file with which

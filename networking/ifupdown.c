@@ -18,7 +18,7 @@
  */
 
 //config:config IFUP
-//config:	bool "ifup"
+//config:	bool "ifup (17 kb)"
 //config:	default y
 //config:	help
 //config:	  Activate the specified interfaces. This applet makes use
@@ -34,7 +34,7 @@
 //config:	  via busybox or via standalone utilities.
 //config:
 //config:config IFDOWN
-//config:	bool "ifdown"
+//config:	bool "ifdown (15 kb)"
 //config:	default y
 //config:	help
 //config:	  Deactivate the specified interfaces.

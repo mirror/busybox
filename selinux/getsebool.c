@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config GETSEBOOL
-//config:	bool "getsebool"
+//config:	bool "getsebool (5.5 kb)"
 //config:	default n
 //config:	depends on SELINUX
 //config:	help

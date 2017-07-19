@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config GETENFORCE
-//config:	bool "getenforce"
+//config:	bool "getenforce (1.7 kb)"
 //config:	default n
 //config:	depends on SELINUX
 //config:	help

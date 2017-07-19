@@ -8,7 +8,7 @@
  */
 
 //config:config NSENTER
-//config:	bool "nsenter"
+//config:	bool "nsenter (8.6 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

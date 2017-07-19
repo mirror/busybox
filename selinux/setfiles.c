@@ -4,7 +4,7 @@
   Port to BusyBox (c) 2007 by Yuichi Nakamura <ynakam@hitachisoft.jp>
 */
 //config:config SETFILES
-//config:	bool "setfiles"
+//config:	bool "setfiles (13 kb)"
 //config:	default n
 //config:	depends on SELINUX
 //config:	help
@@ -22,7 +22,7 @@
 //config:	  the specified binary policy) for setfiles. Requires libsepol.
 //config:
 //config:config RESTORECON
-//config:	bool "restorecon"
+//config:	bool "restorecon (12 kb)"
 //config:	default n
 //config:	depends on SELINUX
 //config:	help

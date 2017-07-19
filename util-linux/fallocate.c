@@ -6,7 +6,7 @@
  */
 
 //config:config FALLOCATE
-//config:	bool "fallocate"
+//config:	bool "fallocate (5 kb)"
 //config:	default y
 //config:	help
 //config:	  Preallocate space for files.

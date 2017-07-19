@@ -9,14 +9,14 @@
  */
 
 //config:config NANDWRITE
-//config:	bool "nandwrite"
+//config:	bool "nandwrite (5.9 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	  Write to the specified MTD device, with bad blocks awareness
 //config:
 //config:config NANDDUMP
-//config:	bool "nanddump"
+//config:	bool "nanddump (6.3 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
