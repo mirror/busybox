@@ -398,7 +398,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 	 * Normally, "zcat" is just "gunzip -c".
 	 * But if seamless magic is enabled, then we are much more clever.
 	 */
-	if (ENABLE_ZCAT && applet_name[1] == 'c')
+	if (ENABLE_ZCAT && (!ENABLE_GUNZIP || applet_name[1] == 'c'))
 		option_mask32 |= OPT_STDOUT | SEAMLESS_MAGIC;
 
 	return bbunpack(argv, unpack_gz_stream, make_new_name_gunzip, /*unused:*/ NULL);
@@ -454,7 +454,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 {
 	getopt32(argv, "cfkvqdt");
 	argv += optind;
-	if (ENABLE_BZCAT && applet_name[2] == 'c') /* bzcat */
+	if (ENABLE_BZCAT && (!ENABLE_BUNZIP2 || applet_name[2] == 'c')) /* bzcat */
 		option_mask32 |= OPT_STDOUT;
 
 	return bbunpack(argv, unpack_bz2_stream, make_new_name_generic, "bz2");
