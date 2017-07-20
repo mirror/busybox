@@ -318,6 +318,12 @@ static uint32_t read_next_cdf(uint32_t cdf_offset, cdf_header_t *cdf)
 };
 #endif
 
+static void die_if_bad_fnamesize(unsigned sz)
+{
+	if (sz > 0xfff) /* more than 4k?! no funny business please */
+		bb_error_msg_and_die("bad archive");
+}
+
 static void unzip_skip(off_t skip)
 {
 	if (skip != 0)
@@ -340,8 +346,7 @@ static void unzip_extract_symlink(zip_header_t *zip, const char *dst_fn)
 {
 	char *target;
 
-	if (zip->fmt.ucmpsize > 0xfff) /* no funny business please */
-		bb_error_msg_and_die("bad archive");
+	die_if_bad_fnamesize(zip->fmt.ucmpsize);
 
 	if (zip->fmt.method == 0) {
 		/* Method 0 - stored (not compressed) */
@@ -784,6 +789,7 @@ int unzip_main(int argc, char **argv)
 
 		/* Read filename */
 		free(dst_fn);
+		die_if_bad_fnamesize(zip.fmt.filename_len);
 		dst_fn = xzalloc(zip.fmt.filename_len + 1);
 		xread(zip_fd, dst_fn, zip.fmt.filename_len);
 		/* Skip extra header bytes */
