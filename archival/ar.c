@@ -25,8 +25,6 @@
 //config:	  extract contents from archives. In practice, it is used exclusively
 //config:	  for object module archives used by compilers.
 //config:
-//config:	  On an x86 system, the ar applet adds about 1K.
-//config:
 //config:	  Unless you have a specific application which requires ar, you should
 //config:	  probably say N here: most compilers come with their own ar utility.
 //config:

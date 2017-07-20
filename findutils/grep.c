@@ -28,13 +28,13 @@
 //config:	bool "egrep (7.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Alias to "grep -E"
+//config:	  Alias to "grep -E".
 //config:
 //config:config FGREP
 //config:	bool "fgrep (7.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Alias to "grep -F"
+//config:	  Alias to "grep -F".
 //config:
 //config:config FEATURE_GREP_CONTEXT
 //config:	bool "Enable before and after context flags (-A, -B and -C)"

@@ -59,7 +59,7 @@
 //config:	default y
 //config:	depends on FEATURE_IPV6
 //config:	help
-//config:	  This will give you a ping that can talk IPv6.
+//config:	  Alias to "ping -6".
 //config:
 //config:config FEATURE_FANCY_PING
 //config:	bool "Enable fancy ping output"

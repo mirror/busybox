@@ -20,7 +20,7 @@
 //config:	depends on AWK
 //config:	help
 //config:	  Enable math functions of the Awk programming language.
-//config:	  NOTE: This will require libm to be present for linking.
+//config:	  NOTE: This requires libm to be present for linking.
 //config:
 //config:config FEATURE_AWK_GNU_EXTENSIONS
 //config:	bool "Enable a few GNU extensions"

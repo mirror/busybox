@@ -501,20 +501,11 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //config:	  is generally considerably better than that achieved by the bzip2
 //config:	  compressors.
 //config:
-//config:	  The BusyBox unlzma applet is limited to decompression only.
-//config:	  On an x86 system, this applet adds about 4K.
-//config:
 //config:config LZCAT
 //config:	bool "lzcat (8.5 kb)"
 //config:	default y
 //config:	help
-//config:	  unlzma is a compression utility using the Lempel-Ziv-Markov chain
-//config:	  compression algorithm, and range coding. Compression
-//config:	  is generally considerably better than that achieved by the bzip2
-//config:	  compressors.
-//config:
-//config:	  The BusyBox unlzma applet is limited to decompression only.
-//config:	  On an x86 system, this applet adds about 4K.
+//config:	  Alias to "unlzma -c".
 //config:
 //config:config LZMA
 //config:	bool "lzma -d"
@@ -522,14 +513,6 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //config:	help
 //config:	  Enable this option if you want commands like "lzma -d" to work.
 //config:	  IOW: you'll get lzma applet, but it will always require -d option.
-//config:
-//config:config FEATURE_LZMA_FAST
-//config:	bool "Optimize for speed"
-//config:	default n
-//config:	depends on UNLZMA || LZCAT || LZMA
-//config:	help
-//config:	  This option reduces decompression time by about 25% at the cost of
-//config:	  a 1K bigger binary.
 
 //applet:IF_UNLZMA(APPLET(unlzma, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                APPLET_ODDNAME:name   main    location        suid_type     help

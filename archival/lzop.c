@@ -41,7 +41,7 @@
 //config:	bool "lzopcat (13 kb)"
 //config:	default n  # INCOMPAT: upstream lzop does not provide such tool
 //config:	help
-//config:	  Alias to "unlzop -c".
+//config:	  Alias to "lzop -dc".
 //config:
 //config:config LZOP_COMPR_HIGH
 //config:	bool "lzop compression levels 7,8,9 (not very useful)"

@@ -61,7 +61,7 @@
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  This will enable you to use yank and put, as well as mark.
+//config:	  This enables you to use yank and put, as well as mark.
 //config:
 //config:config FEATURE_VI_SEARCH
 //config:	bool "Enable search and replace cmds"
