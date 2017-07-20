@@ -334,6 +334,7 @@ static void unzip_create_leading_dirs(const char *fn)
 	free(name);
 }
 
+#if ENABLE_FEATURE_UNZIP_CDF
 static void unzip_extract_symlink(zip_header_t *zip, const char *dst_fn)
 {
 	char *target;
@@ -365,6 +366,7 @@ static void unzip_extract_symlink(zip_header_t *zip, const char *dst_fn)
 		bb_perror_msg_and_die("can't create symlink '%s'", dst_fn);
 	free(target);
 }
+#endif
 
 static void unzip_extract(zip_header_t *zip, int dst_fd)
 {
@@ -437,6 +439,19 @@ static void my_fgets80(char *buf80)
 	}
 }
 
+static int get_lstat_mode(const char *dst_fn)
+{
+	struct stat stat_buf;
+	if (lstat(dst_fn, &stat_buf) == -1) {
+		if (errno != ENOENT) {
+			bb_perror_msg_and_die("can't stat '%s'", dst_fn);
+		}
+		/* File does not exist */
+		return -1;
+	}
+	return stat_buf.st_mode;
+}
+
 int unzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unzip_main(int argc, char **argv)
 {
@@ -459,7 +474,6 @@ int unzip_main(int argc, char **argv)
 	char *base_dir = NULL;
 	int i, opt;
 	char key_buf[80]; /* must match size used by my_fgets80 */
-	struct stat stat_buf;
 
 /* -q, -l and -v: UnZip 5.52 of 28 February 2005, by Info-ZIP:
  *
@@ -836,11 +850,11 @@ int unzip_main(int argc, char **argv)
 			goto do_extract;
 		}
 		if (last_char_is(dst_fn, '/')) {
+			int mode;
+
 			/* Extract directory */
-			if (stat(dst_fn, &stat_buf) == -1) {
-				if (errno != ENOENT) {
-					bb_perror_msg_and_die("can't stat '%s'", dst_fn);
-				}
+			mode = get_lstat_mode(dst_fn);
+			if (mode == -1) { /* ENOENT */
 				if (!quiet) {
 					printf("   creating: %s\n", dst_fn);
 				}
@@ -849,7 +863,7 @@ int unzip_main(int argc, char **argv)
 					xfunc_die();
 				}
 			} else {
-				if (!S_ISDIR(stat_buf.st_mode)) {
+				if (!S_ISDIR(mode)) {
 					bb_error_msg_and_die("'%s' exists but is not a %s",
 						dst_fn, "directory");
 				}
@@ -857,30 +871,33 @@ int unzip_main(int argc, char **argv)
 			goto skip_cmpsize;
 		}
  check_file:
-		/* Extract file */
-		if (lstat(dst_fn, &stat_buf) == -1) {
-			/* File does not exist */
-			if (errno != ENOENT) {
-				bb_perror_msg_and_die("can't stat '%s'", dst_fn);
+		/* Does target file already exist? */
+		{
+			int mode = get_lstat_mode(dst_fn);
+			if (mode == -1) {
+				/* ENOENT: does not exist */
+				goto do_open_and_extract;
 			}
-			goto do_open_and_extract;
+			if (overwrite == O_NEVER) {
+				goto skip_cmpsize;
+			}
+			if (!S_ISREG(mode)) {
+ fishy:
+				bb_error_msg_and_die("'%s' exists but is not a %s",
+					dst_fn, "regular file");
+			}
+			if (overwrite == O_ALWAYS) {
+				goto do_open_and_extract;
+			}
+			printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
+			my_fgets80(key_buf);
+			/* User input could take a long time. Is it still a regular file? */
+			mode = get_lstat_mode(dst_fn);
+			if (!S_ISREG(mode))
+				goto fishy;
 		}
-		/* File already exists */
-		if (overwrite == O_NEVER) {
-			goto skip_cmpsize;
-		}
-		if (!S_ISREG(stat_buf.st_mode)) {
-			/* File is not regular file */
-			bb_error_msg_and_die("'%s' exists but is not a %s",
-				dst_fn, "regular file");
-		}
-		/* File is regular file */
-		if (overwrite == O_ALWAYS)
-			goto do_open_and_extract;
-		printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
-		my_fgets80(key_buf);
-//TODO: redo lstat + ISREG check! user input could have taken a long time!
 
+		/* Extract (or skip) it */
 		switch (key_buf[0]) {
 		case 'A':
 			overwrite = O_ALWAYS;
@@ -888,10 +905,15 @@ int unzip_main(int argc, char **argv)
  do_open_and_extract:
 			unzip_create_leading_dirs(dst_fn);
 #if ENABLE_FEATURE_UNZIP_CDF
-			if (!S_ISLNK(file_mode))
-				dst_fd = xopen3(dst_fn, O_WRONLY | O_CREAT | O_TRUNC, file_mode);
+			dst_fd = -1;
+			if (!S_ISLNK(file_mode)) {
+				dst_fd = xopen3(dst_fn,
+					O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW,
+					file_mode);
+			}
 #else
-			dst_fd = xopen(dst_fn, O_WRONLY | O_CREAT | O_TRUNC);
+			/* O_NOFOLLOW defends against symlink attacks */
+			dst_fd = xopen(dst_fn, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW);
 #endif
  do_extract:
 			if (!quiet) {
@@ -901,7 +923,7 @@ int unzip_main(int argc, char **argv)
 			}
 #if ENABLE_FEATURE_UNZIP_CDF
 			if (S_ISLNK(file_mode)) {
-				if (dst_fd != STDOUT_FILENO) /* no -p */
+				if (dst_fd != STDOUT_FILENO) /* not -p? */
 					unzip_extract_symlink(&zip, dst_fn);
 			} else
 #endif
