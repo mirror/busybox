@@ -62,6 +62,7 @@
 //usage:     "\n	-l	List contents (with -q for short form)"
 //usage:     "\n	-n	Never overwrite files (default: ask)"
 //usage:     "\n	-o	Overwrite"
+//usage:     "\n	-j	Do not restore paths"
 //usage:     "\n	-p	Print to stdout"
 //usage:     "\n	-q	Quiet"
 //usage:     "\n	-x FILE	Exclude FILEs"
@@ -455,13 +456,16 @@ static int get_lstat_mode(const char *dst_fn)
 int unzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unzip_main(int argc, char **argv)
 {
-	enum { O_PROMPT, O_NEVER, O_ALWAYS };
-
+	enum {
+		OPT_l = (1 << 0),
+		OPT_x = (1 << 1),
+		OPT_j = (1 << 2),
+	};
+	unsigned opts;
 	smallint quiet = 0;
 	IF_NOT_FEATURE_UNZIP_CDF(const) smallint verbose = 0;
-	smallint listing = 0;
+	enum { O_PROMPT, O_NEVER, O_ALWAYS };
 	smallint overwrite = O_PROMPT;
-	smallint x_opt_seen;
 	uint32_t cdf_offset;
 	unsigned long total_usize;
 	unsigned long total_size;
@@ -472,7 +476,7 @@ int unzip_main(int argc, char **argv)
 	llist_t *zaccept = NULL;
 	llist_t *zreject = NULL;
 	char *base_dir = NULL;
-	int i, opt;
+	int i;
 	char key_buf[80]; /* must match size used by my_fgets80 */
 
 /* -q, -l and -v: UnZip 5.52 of 28 February 2005, by Info-ZIP:
@@ -516,16 +520,16 @@ int unzip_main(int argc, char **argv)
  *    204372                   1 file
  */
 
-	x_opt_seen = 0;
+	opts = 0;
 	/* '-' makes getopt return 1 for non-options */
-	while ((opt = getopt(argc, argv, "-d:lnopqxv")) != -1) {
-		switch (opt) {
+	while ((i = getopt(argc, argv, "-d:lnopqxjv")) != -1) {
+		switch (i) {
 		case 'd':  /* Extract to base directory */
 			base_dir = optarg;
 			break;
 
 		case 'l': /* List */
-			listing = 1;
+			opts |= OPT_l;
 			break;
 
 		case 'n': /* Never overwrite existing files */
@@ -545,11 +549,15 @@ int unzip_main(int argc, char **argv)
 
 		case 'v': /* Verbose list */
 			IF_FEATURE_UNZIP_CDF(verbose++;)
-			listing = 1;
+			opts |= OPT_l;
 			break;
 
 		case 'x':
-			x_opt_seen = 1;
+			opts |= OPT_x;
+			break;
+
+		case 'j':
+			opts |= OPT_j;
 			break;
 
 		case 1:
@@ -558,7 +566,7 @@ int unzip_main(int argc, char **argv)
 				/* +5: space for ".zip" and NUL */
 				src_fn = xmalloc(strlen(optarg) + 5);
 				strcpy(src_fn, optarg);
-			} else if (!x_opt_seen) {
+			} else if (!(opts & OPT_x)) {
 				/* Include files */
 				llist_add_to(&zaccept, optarg);
 			} else {
@@ -626,7 +634,7 @@ int unzip_main(int argc, char **argv)
 	if (quiet <= 1) { /* not -qq */
 		if (quiet == 0)
 			printf("Archive:  %s\n", src_fn);
-		if (listing) {
+		if (opts & OPT_l) {
 			puts(verbose ?
 				" Length   Method    Size  Cmpr    Date    Time   CRC-32   Name\n"
 				"--------  ------  ------- ---- ---------- ----- --------  ----"
@@ -778,12 +786,18 @@ int unzip_main(int argc, char **argv)
 		free(dst_fn);
 		dst_fn = xzalloc(zip.fmt.filename_len + 1);
 		xread(zip_fd, dst_fn, zip.fmt.filename_len);
-
 		/* Skip extra header bytes */
 		unzip_skip(zip.fmt.extra_len);
 
 		/* Guard against "/abspath", "/../" and similar attacks */
 		overlapping_strcpy(dst_fn, strip_unsafe_prefix(dst_fn));
+
+		if (opts & OPT_j) /* Strip paths? */
+			overlapping_strcpy(dst_fn, bb_basename(dst_fn));
+
+		/* Did this strip everything ("DIR/" case)? Then skip */
+		if (!dst_fn[0])
+			goto skip_cmpsize;
 
 		/* Filter zip entries */
 		if (find_list_entry(zreject, dst_fn)
@@ -792,7 +806,7 @@ int unzip_main(int argc, char **argv)
 			goto skip_cmpsize;
 		}
 
-		if (listing) {
+		if (opts & OPT_l) {
 			/* List entry */
 			char dtbuf[sizeof("mm-dd-yyyy hh:mm")];
 			sprintf(dtbuf, "%02u-%02u-%04u %02u:%02u",
@@ -960,7 +974,7 @@ int unzip_main(int argc, char **argv)
 		total_entries++;
 	}
 
-	if (listing && quiet <= 1) {
+	if ((opts & OPT_l) && quiet <= 1) {
 		if (!verbose) {
 			//	"  Length      Date    Time    Name\n"
 			//	"---------  ---------- -----   ----"
