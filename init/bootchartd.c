@@ -192,7 +192,7 @@ static char *make_tempdir(void)
 	if (!tempdir) {
 #ifdef __linux__
 		/* /tmp is not writable (happens when we are used as init).
-		 * Try to mount a tmpfs, them cd and lazily unmount it.
+		 * Try to mount a tmpfs, then cd and lazily unmount it.
 		 * Since we unmount it at once, we can mount it anywhere.
 		 * Try a few locations which are likely ti exist.
 		 */
