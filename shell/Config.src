@@ -145,6 +145,13 @@ config FEATURE_SH_NOFORK
 	  This feature is relatively new. Use with care. Report bugs
 	  to project mailing list.
 
+config FEATURE_SH_READ_FRAC
+	bool "read -t N.NNN support (+110 bytes)"
+	default y
+	depends on ASH || HUSH || SH_IS_ASH || BASH_IS_ASH || SH_IS_HUSH || BASH_IS_HUSH
+	help
+	  Enable support for fractional second timeout in read builtin.
+
 config FEATURE_SH_HISTFILESIZE
 	bool "Use $HISTFILESIZE"
 	default y

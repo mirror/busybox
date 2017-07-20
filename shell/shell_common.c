@@ -57,9 +57,10 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	const char *opt_u
 )
 {
+	struct pollfd pfd[1];
+#define fd (pfd[0].fd) /* -u FD */
 	unsigned err;
 	unsigned end_ms; /* -t TIMEOUT */
-	int fd; /* -u FD */
 	int nchars; /* -n NUM */
 	char **pp;
 	char *buffer;
@@ -88,43 +89,61 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 			return "invalid count";
 		/* note: "-n 0": off (bash 3.2 does this too) */
 	}
+
 	end_ms = 0;
-	if (opt_t) {
+	if (opt_t && !ENABLE_FEATURE_SH_READ_FRAC) {
 		end_ms = bb_strtou(opt_t, NULL, 10);
-		if (errno || end_ms > UINT_MAX / 2048)
+		if (errno)
 			return "invalid timeout";
+		if (end_ms > UINT_MAX / 2048) /* be safely away from overflow */
+			end_ms = UINT_MAX / 2048;
 		end_ms *= 1000;
-#if 0 /* even bash has no -t N.NNN support */
-		ts.tv_sec = bb_strtou(opt_t, &p, 10);
-		ts.tv_usec = 0;
-		/* EINVAL means number is ok, but not terminated by NUL */
-		if (*p == '.' && errno == EINVAL) {
-			char *p2;
-			if (*++p) {
-				int scale;
-				ts.tv_usec = bb_strtou(p, &p2, 10);
-				if (errno)
-					return "invalid timeout";
-				scale = p2 - p;
-				/* normalize to usec */
-				if (scale > 6)
-					return "invalid timeout";
-				while (scale++ < 6)
-					ts.tv_usec *= 10;
-			}
-		} else if (ts.tv_sec < 0 || errno) {
-			return "invalid timeout";
-		}
-		if (!(ts.tv_sec | ts.tv_usec)) { /* both are 0? */
-			return "invalid timeout";
-		}
-#endif /* if 0 */
 	}
+	if (opt_t && ENABLE_FEATURE_SH_READ_FRAC) {
+		/* bash 4.3 (maybe earlier) supports -t N.NNNNNN */
+		char *p;
+		/* Eat up to three fractional digits */
+		int frac_digits = 3 + 1;
+
+		end_ms = bb_strtou(opt_t, &p, 10);
+		if (end_ms > UINT_MAX / 2048) /* be safely away from overflow */
+			end_ms = UINT_MAX / 2048;
+
+		if (errno) {
+			/* EINVAL = number is ok, but not NUL terminated */
+			if (errno != EINVAL || *p != '.')
+				return "invalid timeout";
+			/* Do not check the rest: bash allows "0.123456xyz" */
+			while (*++p && --frac_digits) {
+				end_ms *= 10;
+				end_ms += (*p - '0');
+				if ((unsigned char)(*p - '0') > 9)
+					return "invalid timeout";
+			}
+		}
+		while (--frac_digits > 0) {
+			end_ms *= 10;
+		}
+	}
+
 	fd = STDIN_FILENO;
 	if (opt_u) {
 		fd = bb_strtou(opt_u, NULL, 10);
 		if (fd < 0 || errno)
 			return "invalid file descriptor";
+	}
+
+	if (opt_t && end_ms == 0) {
+		/* "If timeout is 0, read returns immediately, without trying
+		 * to read any data. The exit status is 0 if input is available
+		 * on the specified file descriptor, non-zero otherwise."
+		 * bash seems to ignore -p PROMPT for this use case.
+		 */
+		int r;
+		pfd[0].events = POLLIN;
+		r = poll(pfd, 1, /*timeout:*/ 0);
+		/* Return 0 only if poll returns 1 ("one fd ready"), else return 1: */
+		return (const char *)(uintptr_t)(r <= 0);
 	}
 
 	if (opt_p && isatty(fd)) {
@@ -161,21 +180,24 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	retval = (const char *)(uintptr_t)0;
 	startword = 1;
 	backslash = 0;
-	if (end_ms) /* NB: end_ms stays nonzero: */
-		end_ms = ((unsigned)monotonic_ms() + end_ms) | 1;
+	if (opt_t)
+		end_ms += (unsigned)monotonic_ms();
 	buffer = NULL;
 	bufpos = 0;
 	do {
 		char c;
-		struct pollfd pfd[1];
 		int timeout;
 
 		if ((bufpos & 0xff) == 0)
 			buffer = xrealloc(buffer, bufpos + 0x101);
 
 		timeout = -1;
-		if (end_ms) {
+		if (opt_t) {
 			timeout = end_ms - (unsigned)monotonic_ms();
+			/* ^^^^^^^^^^^^^ all values are unsigned,
+			 * wrapping math is used here, good even if
+			 * 32-bit unix time wrapped (year 2038+).
+			 */
 			if (timeout <= 0) { /* already late? */
 				retval = (const char *)(uintptr_t)1;
 				goto ret;
@@ -187,9 +209,8 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 		 * regardless of SA_RESTART-ness of that signal!
 		 */
 		errno = 0;
-		pfd[0].fd = fd;
 		pfd[0].events = POLLIN;
-		if (poll(pfd, 1, timeout) != 1) {
+		if (poll(pfd, 1, timeout) <= 0) {
 			/* timed out, or EINTR */
 			err = errno;
 			retval = (const char *)(uintptr_t)1;
@@ -272,6 +293,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 
 	errno = err;
 	return retval;
+#undef fd
 }
 
 /* ulimit builtin */
