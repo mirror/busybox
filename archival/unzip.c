@@ -334,6 +334,38 @@ static void unzip_create_leading_dirs(const char *fn)
 	free(name);
 }
 
+static void unzip_extract_symlink(zip_header_t *zip, const char *dst_fn)
+{
+	char *target;
+
+	if (zip->fmt.ucmpsize > 0xfff) /* no funny business please */
+		bb_error_msg_and_die("bad archive");
+
+	if (zip->fmt.method == 0) {
+		/* Method 0 - stored (not compressed) */
+		target = xzalloc(zip->fmt.ucmpsize + 1);
+		xread(zip_fd, target, zip->fmt.ucmpsize);
+	} else {
+#if 1
+		bb_error_msg_and_die("compressed symlink is not supported");
+#else
+		transformer_state_t xstate;
+		init_transformer_state(&xstate);
+		xstate.mem_output_size_max = zip->fmt.ucmpsize;
+		/* ...unpack... */
+		if (!xstate.mem_output_buf)
+			WTF();
+		target = xstate.mem_output_buf;
+		target = xrealloc(target, xstate.mem_output_size + 1);
+		target[xstate.mem_output_size] = '\0';
+#endif
+	}
+//TODO: libbb candidate
+	if (symlink(target, dst_fn))
+		bb_perror_msg_and_die("can't create symlink '%s'", dst_fn);
+	free(target);
+}
+
 static void unzip_extract(zip_header_t *zip, int dst_fd)
 {
 	transformer_state_t xstate;
@@ -345,12 +377,6 @@ static void unzip_extract(zip_header_t *zip, int dst_fd)
 			bb_copyfd_exact_size(zip_fd, dst_fd, size);
 		return;
 	}
-
-// NB: to support symlinks, need to extract symlink target. A-la:
-// xstate.mem_output_size_max = zip->fmt.ucmpsize;
-// ...unpack...
-// if (xstate.mem_output_buf) { success, xstate.mem_output_size is the size }
-// Although archives I've seen have fmt.method == 0 for symlinks.
 
 	init_transformer_state(&xstate);
 	xstate.bytes_in = zip->fmt.cmpsize;
@@ -719,7 +745,6 @@ int unzip_main(int argc, char **argv)
 			if ((cdf.fmt.version_made_by >> 8) == 3) {
 				/* This archive is created on Unix */
 				dir_mode = file_mode = (cdf.fmt.external_attributes >> 16);
-//TODO: if (S_ISLNK(file_mode)) this is a symlink
 			}
 		}
 #endif
@@ -833,7 +858,7 @@ int unzip_main(int argc, char **argv)
 		}
  check_file:
 		/* Extract file */
-		if (stat(dst_fn, &stat_buf) == -1) {
+		if (lstat(dst_fn, &stat_buf) == -1) {
 			/* File does not exist */
 			if (errno != ENOENT) {
 				bb_perror_msg_and_die("can't stat '%s'", dst_fn);
@@ -854,6 +879,7 @@ int unzip_main(int argc, char **argv)
 			goto do_open_and_extract;
 		printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
 		my_fgets80(key_buf);
+//TODO: redo lstat + ISREG check! user input could have taken a long time!
 
 		switch (key_buf[0]) {
 		case 'A':
@@ -862,7 +888,8 @@ int unzip_main(int argc, char **argv)
  do_open_and_extract:
 			unzip_create_leading_dirs(dst_fn);
 #if ENABLE_FEATURE_UNZIP_CDF
-			dst_fd = xopen3(dst_fn, O_WRONLY | O_CREAT | O_TRUNC, file_mode);
+			if (!S_ISLNK(file_mode))
+				dst_fd = xopen3(dst_fn, O_WRONLY | O_CREAT | O_TRUNC, file_mode);
 #else
 			dst_fd = xopen(dst_fn, O_WRONLY | O_CREAT | O_TRUNC);
 #endif
@@ -872,10 +899,18 @@ int unzip_main(int argc, char **argv)
 					? " extracting: %s\n"
 					: */ "  inflating: %s\n", dst_fn);
 			}
-			unzip_extract(&zip, dst_fd);
-			if (dst_fd != STDOUT_FILENO) {
-				/* closing STDOUT is potentially bad for future business */
-				close(dst_fd);
+#if ENABLE_FEATURE_UNZIP_CDF
+			if (S_ISLNK(file_mode)) {
+				if (dst_fd != STDOUT_FILENO) /* no -p */
+					unzip_extract_symlink(&zip, dst_fn);
+			} else
+#endif
+			{
+				unzip_extract(&zip, dst_fd);
+				if (dst_fd != STDOUT_FILENO) {
+					/* closing STDOUT is potentially bad for future business */
+					close(dst_fd);
+				}
 			}
 			break;
 
