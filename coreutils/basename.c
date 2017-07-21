@@ -47,25 +47,24 @@
 /* This is a NOFORK applet. Be very careful! */
 
 int basename_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int basename_main(int argc, char **argv)
+int basename_main(int argc UNUSED_PARAM, char **argv)
 {
 	size_t m, n;
 	char *s;
 
 	if (argv[1] && strcmp(argv[1], "--") == 0) {
 		argv++;
-		argc--;
 	}
-
-	if ((unsigned)(argc-2) >= 2) {
+	if (!argv[1])
 		bb_show_usage();
-	}
 
 	/* It should strip slash: /abc/def/ -> def */
 	s = bb_get_last_path_component_strip(*++argv);
 
 	m = strlen(s);
 	if (*++argv) {
+		if (argv[1])
+			bb_show_usage();
 		n = strlen(*argv);
 		if ((m > n) && (strcmp(s+m-n, *argv) == 0)) {
 			m -= n;
