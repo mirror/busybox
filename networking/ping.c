@@ -104,7 +104,7 @@
 //usage:     "\n			(can exit earlier with -c CNT)"
 //usage:     "\n	-q		Quiet, only display output at start"
 //usage:     "\n			and when finished"
-//usage:     "\n	-p		Pattern to use for payload"
+//usage:     "\n	-p HEXBYTE	Pattern to use for payload"
 //usage:
 //usage:# define ping6_trivial_usage
 //usage:       "[OPTIONS] HOST"
@@ -115,7 +115,7 @@
 //usage:     "\n	-I IFACE/IP	Source interface or IP address"
 //usage:     "\n	-q		Quiet, only display output at start"
 //usage:     "\n			and when finished"
-//usage:     "\n	-p		Pattern to use for payload"
+//usage:     "\n	-p HEXBYTE	Pattern to use for payload"
 //usage:
 //usage:#endif
 //usage:
