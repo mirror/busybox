@@ -66,8 +66,9 @@
 //config:	default y
 //config:	depends on PING || PING6
 //config:	help
-//config:	Make the output from the ping applet include statistics, and at the
-//config:	same time provide full support for ICMP packets.
+//config:	With this option off, ping will say "HOST is alive!"
+//config:	or terminate with SIGALRM in 5 seconds otherwise.
+//config:	No command-line options will be recognized.
 
 /* Needs socket(AF_INET, SOCK_RAW, IPPROTO_ICMP), therefore BB_SUID_MAYBE: */
 //applet:IF_PING(APPLET(ping, BB_DIR_BIN, BB_SUID_MAYBE))
@@ -236,8 +237,6 @@ static void ping4(len_and_sockaddr *lsa)
 				break;
 		}
 	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		close(pingsock);
 }
 
 #if ENABLE_PING6
@@ -280,8 +279,6 @@ static void ping6(len_and_sockaddr *lsa)
 				break;
 		}
 	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		close(pingsock);
 }
 #endif
 
@@ -331,6 +328,8 @@ static int common_ping_main(sa_family_t af, char **argv)
 	else
 #endif
 		ping4(lsa);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(pingsock);
 	printf("%s is alive!\n", G.hostname);
 	return EXIT_SUCCESS;
 }
