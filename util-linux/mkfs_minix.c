@@ -67,18 +67,18 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  The minix filesystem is a nice, small, compact, read-write filesystem
-//config:	  with little overhead. If you wish to be able to create minix
-//config:	  filesystems this utility will do the job for you.
+//config:	The minix filesystem is a nice, small, compact, read-write filesystem
+//config:	with little overhead. If you wish to be able to create minix
+//config:	filesystems this utility will do the job for you.
 //config:
 //config:config FEATURE_MINIX2
 //config:	bool "Support Minix fs v2 (fsck_minix/mkfs_minix)"
 //config:	default y
 //config:	depends on FSCK_MINIX || MKFS_MINIX
 //config:	help
-//config:	  If you wish to be able to create version 2 minix filesystems, enable
-//config:	  this. If you enabled 'mkfs_minix' then you almost certainly want to
-//config:	  be using the version 2 filesystem support.
+//config:	If you wish to be able to create version 2 minix filesystems, enable
+//config:	this. If you enabled 'mkfs_minix' then you almost certainly want to
+//config:	be using the version 2 filesystem support.
 
 //                     APPLET_ODDNAME:name        main        location     suid_type     help
 //applet:IF_MKFS_MINIX(APPLET_ODDNAME(mkfs.minix, mkfs_minix, BB_DIR_SBIN, BB_SUID_DROP, mkfs_minix))

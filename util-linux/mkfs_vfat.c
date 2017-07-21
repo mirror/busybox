@@ -12,14 +12,14 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Utility to create FAT32 filesystems.
+//config:	Utility to create FAT32 filesystems.
 //config:
 //config:config MKFS_VFAT
 //config:	bool "mkfs.vfat (6.8 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Alias to "mkdosfs".
+//config:	Alias to "mkdosfs".
 
 //                    APPLET_ODDNAME:name       main       location     suid_type     help
 //applet:IF_MKDOSFS(  APPLET_ODDNAME(mkdosfs,   mkfs_vfat, BB_DIR_SBIN, BB_SUID_DROP, mkfs_vfat))

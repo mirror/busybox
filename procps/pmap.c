@@ -9,10 +9,10 @@
  */
 
 //config:config PMAP
-//config:       bool "pmap (6 kb)"
-//config:       default y
-//config:       help
-//config:         Display processes' memory mappings.
+//config:	bool "pmap (6 kb)"
+//config:	default y
+//config:	help
+//config:	Display processes' memory mappings.
 
 //applet:IF_PMAP(APPLET(pmap, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_PMAP) += pmap.o

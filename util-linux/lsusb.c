@@ -11,10 +11,10 @@
 //config:	default y
 //config:	#select PLATFORM_LINUX
 //config:	help
-//config:	  lsusb is a utility for displaying information about USB buses in the
-//config:	  system and devices connected to them.
+//config:	lsusb is a utility for displaying information about USB buses in the
+//config:	system and devices connected to them.
 //config:
-//config:	  This version uses sysfs (/sys/bus/usb/devices) only.
+//config:	This version uses sysfs (/sys/bus/usb/devices) only.
 
 //applet:IF_LSUSB(APPLET(lsusb, BB_DIR_USR_BIN, BB_SUID_DROP))
 

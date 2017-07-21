@@ -23,28 +23,28 @@
 //config:	bool "test (3.6 kb)"
 //config:	default y
 //config:	help
-//config:	  test is used to check file types and compare values,
-//config:	  returning an appropriate exit code. The bash shell
-//config:	  has test built in, ash can build it in optionally.
+//config:	test is used to check file types and compare values,
+//config:	returning an appropriate exit code. The bash shell
+//config:	has test built in, ash can build it in optionally.
 //config:
 //config:config TEST1
 //config:	bool "test as ["
 //config:	default y
 //config:	help
-//config:	  Provide test command in the "[ EXPR ]" form
+//config:	Provide test command in the "[ EXPR ]" form
 //config:
 //config:config TEST2
 //config:	bool "test as [["
 //config:	default y
 //config:	help
-//config:	  Provide test command in the "[[ EXPR ]]" form
+//config:	Provide test command in the "[[ EXPR ]]" form
 //config:
 //config:config FEATURE_TEST_64
 //config:	bool "Extend test to 64 bit"
 //config:	default y
 //config:	depends on TEST || TEST1 || TEST2 || ASH_TEST || HUSH_TEST
 //config:	help
-//config:	  Enable 64-bit support in test.
+//config:	Enable 64-bit support in test.
 
 //applet:IF_TEST(APPLET_NOFORK(test, test, BB_DIR_USR_BIN, BB_SUID_DROP, test))
 //applet:IF_TEST1(APPLET_NOFORK([,   test, BB_DIR_USR_BIN, BB_SUID_DROP, test))

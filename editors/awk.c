@@ -11,27 +11,27 @@
 //config:	bool "awk (22 kb)"
 //config:	default y
 //config:	help
-//config:	  Awk is used as a pattern scanning and processing language. This is
-//config:	  the BusyBox implementation of that programming language.
+//config:	Awk is used as a pattern scanning and processing language. This is
+//config:	the BusyBox implementation of that programming language.
 //config:
 //config:config FEATURE_AWK_LIBM
 //config:	bool "Enable math functions (requires libm)"
 //config:	default y
 //config:	depends on AWK
 //config:	help
-//config:	  Enable math functions of the Awk programming language.
-//config:	  NOTE: This requires libm to be present for linking.
+//config:	Enable math functions of the Awk programming language.
+//config:	NOTE: This requires libm to be present for linking.
 //config:
 //config:config FEATURE_AWK_GNU_EXTENSIONS
 //config:	bool "Enable a few GNU extensions"
 //config:	default y
 //config:	depends on AWK
 //config:	help
-//config:	  Enable a few features from gawk:
-//config:	  * command line option -e AWK_PROGRAM
-//config:	  * simultaneous use of -f and -e on the command line.
-//config:	    This enables the use of awk library files.
-//config:	    Ex: awk -f mylib.awk -e '{print myfunction($1);}' ...
+//config:	Enable a few features from gawk:
+//config:	* command line option -e AWK_PROGRAM
+//config:	* simultaneous use of -f and -e on the command line.
+//config:	This enables the use of awk library files.
+//config:	Example: awk -f mylib.awk -e '{print myfunction($1);}' ...
 
 //applet:IF_AWK(APPLET_NOEXEC(awk, awk, BB_DIR_USR_BIN, BB_SUID_DROP, awk))
 

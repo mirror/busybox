@@ -12,8 +12,8 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  This program redirects the system console to another device,
-//config:	  like the current tty while logged in via telnet.
+//config:	This program redirects the system console to another device,
+//config:	like the current tty while logged in via telnet.
 //config:
 //config:config FEATURE_SETCONSOLE_LONG_OPTIONS
 //config:	bool "Enable long options"

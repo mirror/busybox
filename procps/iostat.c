@@ -11,7 +11,7 @@
 //config:	bool "iostat (7.4 kb)"
 //config:	default y
 //config:	help
-//config:	  Report CPU and I/O statistics
+//config:	Report CPU and I/O statistics
 
 //applet:IF_IOSTAT(APPLET(iostat, BB_DIR_BIN, BB_SUID_DROP))
 

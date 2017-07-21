@@ -7,8 +7,8 @@
 //config:	bool "devmem (2.5 kb)"
 //config:	default y
 //config:	help
-//config:	  devmem is a small program that reads and writes from physical
-//config:	  memory using /dev/mem.
+//config:	devmem is a small program that reads and writes from physical
+//config:	memory using /dev/mem.
 
 //applet:IF_DEVMEM(APPLET(devmem, BB_DIR_SBIN, BB_SUID_DROP))
 

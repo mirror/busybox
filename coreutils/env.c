@@ -27,9 +27,9 @@
 //config:	bool "env (3.8 kb)"
 //config:	default y
 //config:	help
-//config:	  env is used to set an environment variable and run
-//config:	  a command; without options it displays the current
-//config:	  environment.
+//config:	env is used to set an environment variable and run
+//config:	a command; without options it displays the current
+//config:	environment.
 //config:
 //config:config FEATURE_ENV_LONG_OPTIONS
 //config:	bool "Enable long options"

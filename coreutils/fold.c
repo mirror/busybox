@@ -13,7 +13,7 @@
 //config:	bool "fold (4.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Wrap text to fit a specific width.
+//config:	Wrap text to fit a specific width.
 
 //applet:IF_FOLD(APPLET_NOEXEC(fold, fold, BB_DIR_USR_BIN, BB_SUID_DROP, fold))
 

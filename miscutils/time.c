@@ -12,9 +12,9 @@
 //config:	bool "time (7 kb)"
 //config:	default y
 //config:	help
-//config:	  The time command runs the specified program with the given arguments.
-//config:	  When the command finishes, time writes a message to standard output
-//config:	  giving timing statistics about this program run.
+//config:	The time command runs the specified program with the given arguments.
+//config:	When the command finishes, time writes a message to standard output
+//config:	giving timing statistics about this program run.
 
 //applet:IF_TIME(APPLET(time, BB_DIR_USR_BIN, BB_SUID_DROP))
 

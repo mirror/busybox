@@ -11,7 +11,7 @@
 //config:	bool "uuencode (4.6 kb)"
 //config:	default y
 //config:	help
-//config:	  uuencode is used to uuencode a file.
+//config:	uuencode is used to uuencode a file.
 
 //applet:IF_UUENCODE(APPLET(uuencode, BB_DIR_USR_BIN, BB_SUID_DROP))
 

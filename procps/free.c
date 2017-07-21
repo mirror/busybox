@@ -11,9 +11,9 @@
 //config:	default y
 //config:	select PLATFORM_LINUX #sysinfo()
 //config:	help
-//config:	  free displays the total amount of free and used physical and swap
-//config:	  memory in the system, as well as the buffers used by the kernel.
-//config:	  The shared memory column should be ignored; it is obsolete.
+//config:	free displays the total amount of free and used physical and swap
+//config:	memory in the system, as well as the buffers used by the kernel.
+//config:	The shared memory column should be ignored; it is obsolete.
 
 //applet:IF_FREE(APPLET(free, BB_DIR_USR_BIN, BB_SUID_DROP))
 

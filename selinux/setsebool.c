@@ -12,8 +12,8 @@
 //config:	default n
 //config:	depends on SELINUX
 //config:	help
-//config:	  Enable support for change boolean.
-//config:	  semanage and -P option is not supported yet.
+//config:	Enable support for change boolean.
+//config:	semanage and -P option is not supported yet.
 
 //applet:IF_SETSEBOOL(APPLET(setsebool, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

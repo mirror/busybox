@@ -24,27 +24,27 @@
 //config:	bool "telnet (8.7 kb)"
 //config:	default y
 //config:	help
-//config:	  Telnet is an interface to the TELNET protocol, but is also commonly
-//config:	  used to test other simple protocols.
+//config:	Telnet is an interface to the TELNET protocol, but is also commonly
+//config:	used to test other simple protocols.
 //config:
 //config:config FEATURE_TELNET_TTYPE
 //config:	bool "Pass TERM type to remote host"
 //config:	default y
 //config:	depends on TELNET
 //config:	help
-//config:	  Setting this option will forward the TERM environment variable to the
-//config:	  remote host you are connecting to. This is useful to make sure that
-//config:	  things like ANSI colors and other control sequences behave.
+//config:	Setting this option will forward the TERM environment variable to the
+//config:	remote host you are connecting to. This is useful to make sure that
+//config:	things like ANSI colors and other control sequences behave.
 //config:
 //config:config FEATURE_TELNET_AUTOLOGIN
 //config:	bool "Pass USER type to remote host"
 //config:	default y
 //config:	depends on TELNET
 //config:	help
-//config:	  Setting this option will forward the USER environment variable to the
-//config:	  remote host you are connecting to. This is useful when you need to
-//config:	  log into a machine without telling the username (autologin). This
-//config:	  option enables `-a' and `-l USER' arguments.
+//config:	Setting this option will forward the USER environment variable to the
+//config:	remote host you are connecting to. This is useful when you need to
+//config:	log into a machine without telling the username (autologin). This
+//config:	option enables `-a' and `-l USER' arguments.
 //config:
 //config:config FEATURE_TELNET_WIDTH
 //config:	bool "Enable window size autodetection"

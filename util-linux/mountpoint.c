@@ -12,7 +12,7 @@
 //config:	bool "mountpoint (4.5 kb)"
 //config:	default y
 //config:	help
-//config:	  mountpoint checks if the directory is a mountpoint.
+//config:	mountpoint checks if the directory is a mountpoint.
 
 //applet:IF_MOUNTPOINT(APPLET(mountpoint, BB_DIR_BIN, BB_SUID_DROP))
 

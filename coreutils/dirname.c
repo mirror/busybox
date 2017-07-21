@@ -10,8 +10,8 @@
 //config:	bool "dirname (289 bytes)"
 //config:	default y
 //config:	help
-//config:	  dirname is used to strip a non-directory suffix from
-//config:	  a file name.
+//config:	dirname is used to strip a non-directory suffix from
+//config:	a file name.
 
 //applet:IF_DIRNAME(APPLET_NOFORK(dirname, dirname, BB_DIR_USR_BIN, BB_SUID_DROP, dirname))
 

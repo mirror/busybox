@@ -19,7 +19,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Receive files using the Xmodem protocol.
+//config:	Receive files using the Xmodem protocol.
 
 //applet:IF_RX(APPLET(rx, BB_DIR_USR_BIN, BB_SUID_DROP))
 

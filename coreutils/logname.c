@@ -19,7 +19,7 @@
 //config:	bool "logname (894 bytes)"
 //config:	default y
 //config:	help
-//config:	  logname is used to print the current user's login name.
+//config:	logname is used to print the current user's login name.
 
 //applet:IF_LOGNAME(APPLET_NOFORK(logname, logname, BB_DIR_USR_BIN, BB_SUID_DROP, logname))
 

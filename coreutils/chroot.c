@@ -10,8 +10,8 @@
 //config:	bool "chroot (3.7 kb)"
 //config:	default y
 //config:	help
-//config:	  chroot is used to change the root directory and run a command.
-//config:	  The default command is `/bin/sh'.
+//config:	chroot is used to change the root directory and run a command.
+//config:	The default command is `/bin/sh'.
 
 //applet:IF_CHROOT(APPLET(chroot, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

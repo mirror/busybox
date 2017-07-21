@@ -9,7 +9,7 @@
 //config:	default n
 //config:	depends on SELINUX
 //config:	help
-//config:	  Enable support to load SELinux policy.
+//config:	Enable support to load SELinux policy.
 
 //applet:IF_LOAD_POLICY(APPLET(load_policy, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

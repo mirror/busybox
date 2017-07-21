@@ -11,8 +11,8 @@
 //config:	default n
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Utility to create ReiserFS filesystems.
-//config:	  Note: this applet needs a lot of testing and polishing.
+//config:	Utility to create ReiserFS filesystems.
+//config:	Note: this applet needs a lot of testing and polishing.
 
 //applet:IF_MKFS_REISER(APPLET_ODDNAME(mkfs.reiser, mkfs_reiser, BB_DIR_SBIN, BB_SUID_DROP, mkfs_reiser))
 

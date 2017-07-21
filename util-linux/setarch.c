@@ -11,24 +11,24 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  The linux32 utility is used to create a 32bit environment for the
-//config:	  specified program (usually a shell). It only makes sense to have
-//config:	  this util on a system that supports both 64bit and 32bit userland
-//config:	  (like amd64/x86, ppc64/ppc, sparc64/sparc, etc...).
+//config:	The linux32 utility is used to create a 32bit environment for the
+//config:	specified program (usually a shell). It only makes sense to have
+//config:	this util on a system that supports both 64bit and 32bit userland
+//config:	(like amd64/x86, ppc64/ppc, sparc64/sparc, etc...).
 //config:
 //config:config LINUX32
 //config:	bool "linux32 (3.2 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Alias to "setarch linux32".
+//config:	Alias to "setarch linux32".
 //config:
 //config:config LINUX64
 //config:	bool "linux64 (3.2 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Alias to "setarch linux64".
+//config:	Alias to "setarch linux64".
 
 //applet:IF_SETARCH(APPLET(setarch, BB_DIR_BIN, BB_SUID_DROP))
 //                  APPLET_ODDNAME:name     main     location    suid_type     help

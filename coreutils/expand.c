@@ -24,7 +24,7 @@
 //config:	bool "expand (5.8 kb)"
 //config:	default y
 //config:	help
-//config:	  By default, convert all tabs to spaces.
+//config:	By default, convert all tabs to spaces.
 //config:
 //config:config FEATURE_EXPAND_LONG_OPTIONS
 //config:	bool "Enable long options"
@@ -35,7 +35,7 @@
 //config:	bool "unexpand (6 kb)"
 //config:	default y
 //config:	help
-//config:	  By default, convert only leading sequences of blanks to tabs.
+//config:	By default, convert only leading sequences of blanks to tabs.
 //config:
 //config:config FEATURE_UNEXPAND_LONG_OPTIONS
 //config:	bool "Enable long options"

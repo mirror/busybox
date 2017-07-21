@@ -11,7 +11,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Shows keys pressed.
+//config:	Shows keys pressed.
 
 //applet:IF_SHOWKEY(APPLET(showkey, BB_DIR_USR_BIN, BB_SUID_DROP))
 

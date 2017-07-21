@@ -29,7 +29,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Route displays or manipulates the kernel's IP routing tables.
+//config:	Route displays or manipulates the kernel's IP routing tables.
 
 //applet:IF_ROUTE(APPLET(route, BB_DIR_SBIN, BB_SUID_DROP))
 

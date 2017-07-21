@@ -30,8 +30,8 @@
 //config:	bool "inotifyd (3.5 kb)"
 //config:	default n  # doesn't build on Knoppix 5
 //config:	help
-//config:	  Simple inotify daemon. Reports filesystem changes. Requires
-//config:	  kernel >= 2.6.13
+//config:	Simple inotify daemon. Reports filesystem changes. Requires
+//config:	kernel >= 2.6.13
 
 //applet:IF_INOTIFYD(APPLET(inotifyd, BB_DIR_SBIN, BB_SUID_DROP))
 

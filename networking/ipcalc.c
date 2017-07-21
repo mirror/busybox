@@ -15,8 +15,8 @@
 //config:	bool "ipcalc (4.3 kb)"
 //config:	default y
 //config:	help
-//config:	  ipcalc takes an IP address and netmask and calculates the
-//config:	  resulting broadcast, network, and host range.
+//config:	ipcalc takes an IP address and netmask and calculates the
+//config:	resulting broadcast, network, and host range.
 //config:
 //config:config FEATURE_IPCALC_LONG_OPTIONS
 //config:	bool "Enable long options"
@@ -28,8 +28,8 @@
 //config:	default y
 //config:	depends on IPCALC
 //config:	help
-//config:	  Adds the options hostname, prefix and silent to the output of
-//config:	  "ipcalc".
+//config:	Adds the options hostname, prefix and silent to the output of
+//config:	"ipcalc".
 
 //applet:IF_IPCALC(APPLET(ipcalc, BB_DIR_BIN, BB_SUID_DROP))
 

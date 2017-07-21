@@ -73,7 +73,7 @@
 //config:	bool "lpd (5.3 kb)"
 //config:	default y
 //config:	help
-//config:	  lpd is a print spooling daemon.
+//config:	lpd is a print spooling daemon.
 
 //applet:IF_LPD(APPLET(lpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

@@ -9,7 +9,7 @@
 //config:	bool "unlink (3.5 kb)"
 //config:	default y
 //config:	help
-//config:	  unlink deletes a file by calling unlink()
+//config:	unlink deletes a file by calling unlink()
 
 //applet:IF_UNLINK(APPLET(unlink, BB_DIR_USR_BIN, BB_SUID_DROP))
 

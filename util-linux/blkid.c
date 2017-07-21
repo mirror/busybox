@@ -12,16 +12,16 @@
 //config:	select PLATFORM_LINUX
 //config:	select VOLUMEID
 //config:	help
-//config:	  Lists labels and UUIDs of all filesystems.
-//config:	  WARNING:
-//config:	  With all submodules selected, it will add ~8k to busybox.
+//config:	Lists labels and UUIDs of all filesystems.
+//config:	WARNING:
+//config:	With all submodules selected, it will add ~8k to busybox.
 //config:
 //config:config FEATURE_BLKID_TYPE
 //config:	bool "Print filesystem type"
 //config:	default n
 //config:	depends on BLKID
 //config:	help
-//config:	  Show TYPE="filesystem type"
+//config:	Show TYPE="filesystem type"
 
 //applet:IF_BLKID(APPLET(blkid, BB_DIR_SBIN, BB_SUID_DROP))
 

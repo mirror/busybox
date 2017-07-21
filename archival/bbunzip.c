@@ -240,8 +240,8 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 //config:	bool "uncompress (7.1 kb)"
 //config:	default n  # ancient
 //config:	help
-//config:	  uncompress is used to decompress archives created by compress.
-//config:	  Not much used anymore, replaced by gzip/gunzip.
+//config:	uncompress is used to decompress archives created by compress.
+//config:	Not much used anymore, replaced by gzip/gunzip.
 
 //applet:IF_UNCOMPRESS(APPLET(uncompress, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_UNCOMPRESS) += bbunzip.o
@@ -316,16 +316,16 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //config:	default y
 //config:	select FEATURE_GZIP_DECOMPRESS
 //config:	help
-//config:	  gunzip is used to decompress archives created by gzip.
-//config:	  You can use the `-t' option to test the integrity of
-//config:	  an archive, without decompressing it.
+//config:	gunzip is used to decompress archives created by gzip.
+//config:	You can use the `-t' option to test the integrity of
+//config:	an archive, without decompressing it.
 //config:
 //config:config ZCAT
 //config:	bool "zcat (25 kb)"
 //config:	default y
 //config:	select FEATURE_GZIP_DECOMPRESS
 //config:	help
-//config:	  Alias to "gunzip -c".
+//config:	Alias to "gunzip -c".
 //config:
 //config:config FEATURE_GUNZIP_LONG_OPTIONS
 //config:	bool "Enable long options"
@@ -429,21 +429,21 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //config:	default y
 //config:	select FEATURE_BZIP2_DECOMPRESS
 //config:	help
-//config:	  bunzip2 is a compression utility using the Burrows-Wheeler block
-//config:	  sorting text compression algorithm, and Huffman coding. Compression
-//config:	  is generally considerably better than that achieved by more
-//config:	  conventional LZ77/LZ78-based compressors, and approaches the
-//config:	  performance of the PPM family of statistical compressors.
+//config:	bunzip2 is a compression utility using the Burrows-Wheeler block
+//config:	sorting text compression algorithm, and Huffman coding. Compression
+//config:	is generally considerably better than that achieved by more
+//config:	conventional LZ77/LZ78-based compressors, and approaches the
+//config:	performance of the PPM family of statistical compressors.
 //config:
-//config:	  Unless you have a specific application which requires bunzip2, you
-//config:	  should probably say N here.
+//config:	Unless you have a specific application which requires bunzip2, you
+//config:	should probably say N here.
 //config:
 //config:config BZCAT
 //config:	bool "bzcat (8.8 kb)"
 //config:	default y
 //config:	select FEATURE_BZIP2_DECOMPRESS
 //config:	help
-//config:	  Alias to "bunzip2 -c".
+//config:	Alias to "bunzip2 -c".
 
 //applet:IF_BUNZIP2(APPLET(bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                APPLET_ODDNAME:name   main     location        suid_type     help
@@ -496,23 +496,23 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //config:	bool "unlzma (8.6 kb)"
 //config:	default y
 //config:	help
-//config:	  unlzma is a compression utility using the Lempel-Ziv-Markov chain
-//config:	  compression algorithm, and range coding. Compression
-//config:	  is generally considerably better than that achieved by the bzip2
-//config:	  compressors.
+//config:	unlzma is a compression utility using the Lempel-Ziv-Markov chain
+//config:	compression algorithm, and range coding. Compression
+//config:	is generally considerably better than that achieved by the bzip2
+//config:	compressors.
 //config:
 //config:config LZCAT
 //config:	bool "lzcat (8.5 kb)"
 //config:	default y
 //config:	help
-//config:	  Alias to "unlzma -c".
+//config:	Alias to "unlzma -c".
 //config:
 //config:config LZMA
 //config:	bool "lzma -d"
 //config:	default y
 //config:	help
-//config:	  Enable this option if you want commands like "lzma -d" to work.
-//config:	  IOW: you'll get lzma applet, but it will always require -d option.
+//config:	Enable this option if you want commands like "lzma -d" to work.
+//config:	IOW: you'll get lzma applet, but it will always require -d option.
 
 //applet:IF_UNLZMA(APPLET(unlzma, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                APPLET_ODDNAME:name   main    location        suid_type     help
@@ -567,20 +567,20 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 //config:	bool "unxz (13 kb)"
 //config:	default y
 //config:	help
-//config:	  unxz is a unlzma successor.
+//config:	unxz is a unlzma successor.
 //config:
 //config:config XZCAT
 //config:	bool "xzcat (13 kb)"
 //config:	default y
 //config:	help
-//config:	  Alias to "unxz -c".
+//config:	Alias to "unxz -c".
 //config:
 //config:config XZ
 //config:	bool "xz -d"
 //config:	default y
 //config:	help
-//config:	  Enable this option if you want commands like "xz -d" to work.
-//config:	  IOW: you'll get xz applet, but it will always require -d option.
+//config:	Enable this option if you want commands like "xz -d" to work.
+//config:	IOW: you'll get xz applet, but it will always require -d option.
 
 //applet:IF_UNXZ(APPLET(unxz, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                APPLET_ODDNAME:name   main  location        suid_type     help

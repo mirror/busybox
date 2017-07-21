@@ -13,7 +13,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  fatattr lists or changes the file attributes on a fat file system.
+//config:	fatattr lists or changes the file attributes on a fat file system.
 
 //applet:IF_FATATTR(APPLET(fatattr, BB_DIR_BIN, BB_SUID_DROP))
 

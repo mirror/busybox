@@ -12,14 +12,14 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Utility to create EXT2 filesystems.
+//config:	Utility to create EXT2 filesystems.
 //config:
 //config:config MKFS_EXT2
 //config:	bool "mkfs.ext2 (9.8 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Alias to "mke2fs".
+//config:	Alias to "mke2fs".
 
 //                    APPLET_ODDNAME:name       main       location     suid_type     help
 //applet:IF_MKE2FS(   APPLET_ODDNAME(mke2fs,    mkfs_ext2, BB_DIR_SBIN, BB_SUID_DROP, mkfs_ext2))

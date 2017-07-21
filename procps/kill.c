@@ -11,26 +11,26 @@
 //config:	bool "kill (2.6 kb)"
 //config:	default y
 //config:	help
-//config:	  The command kill sends the specified signal to the specified
-//config:	  process or process group. If no signal is specified, the TERM
-//config:	  signal is sent.
+//config:	The command kill sends the specified signal to the specified
+//config:	process or process group. If no signal is specified, the TERM
+//config:	signal is sent.
 //config:
 //config:config KILLALL
 //config:	bool "killall (5.6 kb)"
 //config:	default y
 //config:	help
-//config:	  killall sends a signal to all processes running any of the
-//config:	  specified commands. If no signal name is specified, SIGTERM is
-//config:	  sent.
+//config:	killall sends a signal to all processes running any of the
+//config:	specified commands. If no signal name is specified, SIGTERM is
+//config:	sent.
 //config:
 //config:config KILLALL5
 //config:	bool "killall5 (5.3 kb)"
 //config:	default y
 //config:	help
-//config:	  The SystemV killall command. killall5 sends a signal
-//config:	  to all processes except kernel threads and the processes
-//config:	  in its own session, so it won't kill the shell that is running
-//config:	  the script it was called from.
+//config:	The SystemV killall command. killall5 sends a signal
+//config:	to all processes except kernel threads and the processes
+//config:	in its own session, so it won't kill the shell that is running
+//config:	the script it was called from.
 
 //applet:IF_KILL(APPLET(kill, BB_DIR_BIN, BB_SUID_DROP))
 //                   APPLET_ODDNAME:name      main  location         suid_type     help

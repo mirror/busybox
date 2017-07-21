@@ -11,10 +11,10 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  The fdisk utility is used to divide hard disks into one or more
-//config:	  logical disks, which are generally called partitions. This utility
-//config:	  can be used to list and edit the set of partitions or BSD style
-//config:	  'disk slices' that are defined on a hard drive.
+//config:	The fdisk utility is used to divide hard disks into one or more
+//config:	logical disks, which are generally called partitions. This utility
+//config:	can be used to list and edit the set of partitions or BSD style
+//config:	'disk slices' that are defined on a hard drive.
 //config:
 //config:config FDISK_SUPPORT_LARGE_DISKS
 //config:	bool "Support over 4GB disks"
@@ -27,59 +27,59 @@
 //config:	default y
 //config:	depends on FDISK
 //config:	help
-//config:	  Enabling this option allows you to create or change a partition table
-//config:	  and write those changes out to disk. If you leave this option
-//config:	  disabled, you will only be able to view the partition table.
+//config:	Enabling this option allows you to create or change a partition table
+//config:	and write those changes out to disk. If you leave this option
+//config:	disabled, you will only be able to view the partition table.
 //config:
 //config:config FEATURE_AIX_LABEL
 //config:	bool "Support AIX disklabels"
 //config:	default n
 //config:	depends on FDISK && FEATURE_FDISK_WRITABLE
 //config:	help
-//config:	  Enabling this option allows you to create or change AIX disklabels.
-//config:	  Most people can safely leave this option disabled.
+//config:	Enabling this option allows you to create or change AIX disklabels.
+//config:	Most people can safely leave this option disabled.
 //config:
 //config:config FEATURE_SGI_LABEL
 //config:	bool "Support SGI disklabels"
 //config:	default n
 //config:	depends on FDISK && FEATURE_FDISK_WRITABLE
 //config:	help
-//config:	  Enabling this option allows you to create or change SGI disklabels.
-//config:	  Most people can safely leave this option disabled.
+//config:	Enabling this option allows you to create or change SGI disklabels.
+//config:	Most people can safely leave this option disabled.
 //config:
 //config:config FEATURE_SUN_LABEL
 //config:	bool "Support SUN disklabels"
 //config:	default n
 //config:	depends on FDISK && FEATURE_FDISK_WRITABLE
 //config:	help
-//config:	  Enabling this option allows you to create or change SUN disklabels.
-//config:	  Most people can safely leave this option disabled.
+//config:	Enabling this option allows you to create or change SUN disklabels.
+//config:	Most people can safely leave this option disabled.
 //config:
 //config:config FEATURE_OSF_LABEL
 //config:	bool "Support BSD disklabels"
 //config:	default n
 //config:	depends on FDISK && FEATURE_FDISK_WRITABLE
 //config:	help
-//config:	  Enabling this option allows you to create or change BSD disklabels
-//config:	  and define and edit BSD disk slices.
+//config:	Enabling this option allows you to create or change BSD disklabels
+//config:	and define and edit BSD disk slices.
 //config:
 //config:config FEATURE_GPT_LABEL
 //config:	bool "Support GPT disklabels"
 //config:	default n
 //config:	depends on FDISK && FEATURE_FDISK_WRITABLE
 //config:	help
-//config:	  Enabling this option allows you to view GUID Partition Table
-//config:	  disklabels.
+//config:	Enabling this option allows you to view GUID Partition Table
+//config:	disklabels.
 //config:
 //config:config FEATURE_FDISK_ADVANCED
 //config:	bool "Support expert mode"
 //config:	default y
 //config:	depends on FDISK && FEATURE_FDISK_WRITABLE
 //config:	help
-//config:	  Enabling this option allows you to do terribly unsafe things like
-//config:	  define arbitrary drive geometry, move the beginning of data in a
-//config:	  partition, and similarly evil things. Unless you have a very good
-//config:	  reason you would be wise to leave this disabled.
+//config:	Enabling this option allows you to do terribly unsafe things like
+//config:	define arbitrary drive geometry, move the beginning of data in a
+//config:	partition, and similarly evil things. Unless you have a very good
+//config:	reason you would be wise to leave this disabled.
 
 //applet:IF_FDISK(APPLET(fdisk, BB_DIR_SBIN, BB_SUID_DROP))
 

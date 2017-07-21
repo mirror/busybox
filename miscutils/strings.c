@@ -10,8 +10,8 @@
 //config:	bool "strings (4.3 kb)"
 //config:	default y
 //config:	help
-//config:	  strings prints the printable character sequences for each file
-//config:	  specified.
+//config:	strings prints the printable character sequences for each file
+//config:	specified.
 
 //applet:IF_STRINGS(APPLET(strings, BB_DIR_USR_BIN, BB_SUID_DROP))
 

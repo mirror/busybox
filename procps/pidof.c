@@ -10,24 +10,24 @@
 //config:	bool "pidof (6.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Pidof finds the process id's (pids) of the named programs. It prints
-//config:	  those id's on the standard output.
+//config:	Pidof finds the process id's (pids) of the named programs. It prints
+//config:	those id's on the standard output.
 //config:
 //config:config FEATURE_PIDOF_SINGLE
 //config:	bool "Enable single shot (-s)"
 //config:	default y
 //config:	depends on PIDOF
 //config:	help
-//config:	  Support '-s' for returning only the first pid found.
+//config:	Support '-s' for returning only the first pid found.
 //config:
 //config:config FEATURE_PIDOF_OMIT
 //config:	bool "Enable omitting pids (-o PID)"
 //config:	default y
 //config:	depends on PIDOF
 //config:	help
-//config:	  Support '-o PID' for omitting the given pid(s) in output.
-//config:	  The special pid %PPID can be used to name the parent process
-//config:	  of the pidof, in other words the calling shell or shell script.
+//config:	Support '-o PID' for omitting the given pid(s) in output.
+//config:	The special pid %PPID can be used to name the parent process
+//config:	of the pidof, in other words the calling shell or shell script.
 
 //applet:IF_PIDOF(APPLET(pidof, BB_DIR_BIN, BB_SUID_DROP))
 

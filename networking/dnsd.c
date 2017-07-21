@@ -20,7 +20,7 @@
 //config:	bool "dnsd (9.8 kb)"
 //config:	default y
 //config:	help
-//config:	  Small and static DNS server daemon.
+//config:	Small and static DNS server daemon.
 
 //applet:IF_DNSD(APPLET(dnsd, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

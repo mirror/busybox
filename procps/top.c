@@ -53,63 +53,63 @@
 //config:	bool "top (17 kb)"
 //config:	default y
 //config:	help
-//config:	  The top program provides a dynamic real-time view of a running
-//config:	  system.
+//config:	The top program provides a dynamic real-time view of a running
+//config:	system.
 //config:
 //config:config FEATURE_TOP_INTERACTIVE
 //config:	bool "Accept keyboard commands"
 //config:	default y
 //config:	depends on TOP
 //config:	help
-//config:	  Without this, top will only refresh display every 5 seconds.
-//config:	  No keyboard commands will work, only ^C to terminate.
+//config:	Without this, top will only refresh display every 5 seconds.
+//config:	No keyboard commands will work, only ^C to terminate.
 //config:
 //config:config FEATURE_TOP_CPU_USAGE_PERCENTAGE
 //config:	bool "Show CPU per-process usage percentage"
 //config:	default y
 //config:	depends on TOP
 //config:	help
-//config:	  Make top display CPU usage for each process.
-//config:	  This adds about 2k.
+//config:	Make top display CPU usage for each process.
+//config:	This adds about 2k.
 //config:
 //config:config FEATURE_TOP_CPU_GLOBAL_PERCENTS
 //config:	bool "Show CPU global usage percentage"
 //config:	default y
 //config:	depends on FEATURE_TOP_CPU_USAGE_PERCENTAGE
 //config:	help
-//config:	  Makes top display "CPU: NN% usr NN% sys..." line.
-//config:	  This adds about 0.5k.
+//config:	Makes top display "CPU: NN% usr NN% sys..." line.
+//config:	This adds about 0.5k.
 //config:
 //config:config FEATURE_TOP_SMP_CPU
 //config:	bool "SMP CPU usage display ('c' key)"
 //config:	default y
 //config:	depends on FEATURE_TOP_CPU_GLOBAL_PERCENTS
 //config:	help
-//config:	  Allow 'c' key to switch between individual/cumulative CPU stats
-//config:	  This adds about 0.5k.
+//config:	Allow 'c' key to switch between individual/cumulative CPU stats
+//config:	This adds about 0.5k.
 //config:
 //config:config FEATURE_TOP_DECIMALS
 //config:	bool "Show 1/10th of a percent in CPU/mem statistics"
 //config:	default y
 //config:	depends on FEATURE_TOP_CPU_USAGE_PERCENTAGE
 //config:	help
-//config:	  Show 1/10th of a percent in CPU/mem statistics.
-//config:	  This adds about 0.3k.
+//config:	Show 1/10th of a percent in CPU/mem statistics.
+//config:	This adds about 0.3k.
 //config:
 //config:config FEATURE_TOP_SMP_PROCESS
 //config:	bool "Show CPU process runs on ('j' field)"
 //config:	default y
 //config:	depends on TOP
 //config:	help
-//config:	  Show CPU where process was last found running on.
-//config:	  This is the 'j' field.
+//config:	Show CPU where process was last found running on.
+//config:	This is the 'j' field.
 //config:
 //config:config FEATURE_TOPMEM
 //config:	bool "Topmem command ('s' key)"
 //config:	default y
 //config:	depends on TOP
 //config:	help
-//config:	  Enable 's' in top (gives lots of memory info).
+//config:	Enable 's' in top (gives lots of memory info).
 
 //applet:IF_TOP(APPLET(top, BB_DIR_USR_BIN, BB_SUID_DROP))
 

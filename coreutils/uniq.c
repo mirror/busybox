@@ -10,7 +10,7 @@
 //config:	bool "uniq (4.8 kb)"
 //config:	default y
 //config:	help
-//config:	  uniq is used to remove duplicate lines from a sorted file.
+//config:	uniq is used to remove duplicate lines from a sorted file.
 
 //applet:IF_UNIQ(APPLET(uniq, BB_DIR_USR_BIN, BB_SUID_DROP))
 

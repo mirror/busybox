@@ -15,7 +15,7 @@
 //config:	bool "mpstat (10 kb)"
 //config:	default y
 //config:	help
-//config:	  Per-processor statistics
+//config:	Per-processor statistics
 
 #include "libbb.h"
 #include <sys/utsname.h>  /* struct utsname */

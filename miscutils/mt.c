@@ -6,9 +6,9 @@
 //config:	bool "mt (2.6 kb)"
 //config:	default y
 //config:	help
-//config:	  mt is used to control tape devices. You can use the mt utility
-//config:	  to advance or rewind a tape past a specified number of archive
-//config:	  files on the tape.
+//config:	mt is used to control tape devices. You can use the mt utility
+//config:	to advance or rewind a tape past a specified number of archive
+//config:	files on the tape.
 
 //applet:IF_MT(APPLET(mt, BB_DIR_BIN, BB_SUID_DROP))
 

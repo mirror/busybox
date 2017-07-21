@@ -10,8 +10,8 @@
 //config:	bool "mkfifo (3.7 kb)"
 //config:	default y
 //config:	help
-//config:	  mkfifo is used to create FIFOs (named pipes).
-//config:	  The 'mknod' program can also create FIFOs.
+//config:	mkfifo is used to create FIFOs (named pipes).
+//config:	The 'mknod' program can also create FIFOs.
 
 //applet:IF_MKFIFO(APPLET_NOEXEC(mkfifo, mkfifo, BB_DIR_USR_BIN, BB_SUID_DROP, mkfifo))
 

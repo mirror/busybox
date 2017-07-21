@@ -17,27 +17,27 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Manage ethernet bridges.
-//config:	  Supports addbr/delbr and addif/delif.
+//config:	Manage ethernet bridges.
+//config:	Supports addbr/delbr and addif/delif.
 //config:
 //config:config FEATURE_BRCTL_FANCY
 //config:	bool "Fancy options"
 //config:	default y
 //config:	depends on BRCTL
 //config:	help
-//config:	  Add support for extended option like:
-//config:	    setageing, setfd, sethello, setmaxage,
-//config:	    setpathcost, setportprio, setbridgeprio,
-//config:	    stp
-//config:	  This adds about 600 bytes.
+//config:	Add support for extended option like:
+//config:		setageing, setfd, sethello, setmaxage,
+//config:		setpathcost, setportprio, setbridgeprio,
+//config:		stp
+//config:	This adds about 600 bytes.
 //config:
 //config:config FEATURE_BRCTL_SHOW
 //config:	bool "Support show"
 //config:	default y
 //config:	depends on BRCTL && FEATURE_BRCTL_FANCY
 //config:	help
-//config:	  Add support for option which prints the current config:
-//config:	    show
+//config:	Add support for option which prints the current config:
+//config:		show
 
 //applet:IF_BRCTL(APPLET(brctl, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

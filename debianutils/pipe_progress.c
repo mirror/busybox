@@ -10,7 +10,7 @@
 //config:	bool "pipe_progress (225 bytes)"
 //config:	default y
 //config:	help
-//config:	  Display a dot to indicate pipe activity.
+//config:	Display a dot to indicate pipe activity.
 
 //applet:IF_PIPE_PROGRESS(APPLET(pipe_progress, BB_DIR_BIN, BB_SUID_DROP))
 

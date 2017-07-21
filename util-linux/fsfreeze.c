@@ -11,7 +11,7 @@
 //config:	select PLATFORM_LINUX
 //config:	select LONG_OPTS
 //config:	help
-//config:	  Halt new accesses and flush writes on a mounted filesystem.
+//config:	Halt new accesses and flush writes on a mounted filesystem.
 
 //applet:IF_FSFREEZE(APPLET(fsfreeze, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

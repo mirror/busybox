@@ -89,12 +89,12 @@
 //config:	bool "fsck_minix"
 //config:	default y
 //config:	help
-//config:	  The minix filesystem is a nice, small, compact, read-write filesystem
-//config:	  with little overhead. It is not a journaling filesystem however and
-//config:	  can experience corruption if it is not properly unmounted or if the
-//config:	  power goes off in the middle of a write. This utility allows you to
-//config:	  check for and attempt to repair any corruption that occurs to a minix
-//config:	  filesystem.
+//config:	The minix filesystem is a nice, small, compact, read-write filesystem
+//config:	with little overhead. It is not a journaling filesystem however and
+//config:	can experience corruption if it is not properly unmounted or if the
+//config:	power goes off in the middle of a write. This utility allows you to
+//config:	check for and attempt to repair any corruption that occurs to a minix
+//config:	filesystem.
 
 //applet:IF_FSCK_MINIX(APPLET_ODDNAME(fsck.minix, fsck_minix, BB_DIR_SBIN, BB_SUID_DROP, fsck_minix))
 

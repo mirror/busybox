@@ -10,9 +10,9 @@
 //config:	bool "fuser (7 kb)"
 //config:	default y
 //config:	help
-//config:	  fuser lists all PIDs (Process IDs) that currently have a given
-//config:	  file open. fuser can also list all PIDs that have a given network
-//config:	  (TCP or UDP) port open.
+//config:	fuser lists all PIDs (Process IDs) that currently have a given
+//config:	file open. fuser can also list all PIDs that have a given network
+//config:	(TCP or UDP) port open.
 
 //applet:IF_FUSER(APPLET(fuser, BB_DIR_USR_BIN, BB_SUID_DROP))
 

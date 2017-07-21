@@ -16,16 +16,16 @@
 //config:	bool "stat (10 kb)"
 //config:	default y
 //config:	help
-//config:	  display file or filesystem status.
+//config:	display file or filesystem status.
 //config:
 //config:config FEATURE_STAT_FORMAT
 //config:	bool "Enable custom formats (-c)"
 //config:	default y
 //config:	depends on STAT
 //config:	help
-//config:	  Without this, stat will not support the '-c format' option where
-//config:	  users can pass a custom format string for output. This adds about
-//config:	  7k to a nonstatic build on amd64.
+//config:	Without this, stat will not support the '-c format' option where
+//config:	users can pass a custom format string for output. This adds about
+//config:	7k to a nonstatic build on amd64.
 //config:
 //config:config FEATURE_STAT_FILESYSTEM
 //config:	bool "Enable display of filesystem status (-f)"
@@ -33,8 +33,8 @@
 //config:	depends on STAT
 //config:	select PLATFORM_LINUX # statfs()
 //config:	help
-//config:	  Without this, stat will not support the '-f' option to display
-//config:	  information about filesystem status.
+//config:	Without this, stat will not support the '-f' option to display
+//config:	information about filesystem status.
 
 //applet:IF_STAT(APPLET(stat, BB_DIR_BIN, BB_SUID_DROP))
 

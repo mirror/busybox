@@ -25,8 +25,8 @@
 //config:	bool "less (15 kb)"
 //config:	default y
 //config:	help
-//config:	  'less' is a pager, meaning that it displays text files. It possesses
-//config:	  a wide array of features, and is an improvement over 'more'.
+//config:	'less' is a pager, meaning that it displays text files. It possesses
+//config:	a wide array of features, and is an improvement over 'more'.
 //config:
 //config:config FEATURE_LESS_MAXLINES
 //config:	int "Max number of input lines less will try to eat"
@@ -38,64 +38,64 @@
 //config:	default y
 //config:	depends on LESS
 //config:	help
-//config:	  This option adds the capability to search for matching left and right
-//config:	  brackets, facilitating programming.
+//config:	This option adds the capability to search for matching left and right
+//config:	brackets, facilitating programming.
 //config:
 //config:config FEATURE_LESS_FLAGS
 //config:	bool "Enable -m/-M"
 //config:	default y
 //config:	depends on LESS
 //config:	help
-//config:	  The -M/-m flag enables a more sophisticated status line.
+//config:	The -M/-m flag enables a more sophisticated status line.
 //config:
 //config:config FEATURE_LESS_TRUNCATE
 //config:	bool "Enable -S"
 //config:	default y
 //config:	depends on LESS
 //config:	help
-//config:	  The -S flag causes long lines to be truncated rather than
-//config:	  wrapped.
+//config:	The -S flag causes long lines to be truncated rather than
+//config:	wrapped.
 //config:
 //config:config FEATURE_LESS_MARKS
 //config:	bool "Enable marks"
 //config:	default y
 //config:	depends on LESS
 //config:	help
-//config:	  Marks enable positions in a file to be stored for easy reference.
+//config:	Marks enable positions in a file to be stored for easy reference.
 //config:
 //config:config FEATURE_LESS_REGEXP
 //config:	bool "Enable regular expressions"
 //config:	default y
 //config:	depends on LESS
 //config:	help
-//config:	  Enable regular expressions, allowing complex file searches.
+//config:	Enable regular expressions, allowing complex file searches.
 //config:
 //config:config FEATURE_LESS_WINCH
 //config:	bool "Enable automatic resizing on window size changes"
 //config:	default y
 //config:	depends on LESS
 //config:	help
-//config:	  Makes less track window size changes.
+//config:	Makes less track window size changes.
 //config:
 //config:config FEATURE_LESS_ASK_TERMINAL
 //config:	bool "Use 'tell me cursor position' ESC sequence to measure window"
 //config:	default y
 //config:	depends on FEATURE_LESS_WINCH
 //config:	help
-//config:	  Makes less track window size changes.
-//config:	  If terminal size can't be retrieved and $LINES/$COLUMNS are not set,
-//config:	  this option makes less perform a last-ditch effort to find it:
-//config:	  position cursor to 999,999 and ask terminal to report real
-//config:	  cursor position using "ESC [ 6 n" escape sequence, then read stdin.
-//config:	  This is not clean but helps a lot on serial lines and such.
+//config:	Makes less track window size changes.
+//config:	If terminal size can't be retrieved and $LINES/$COLUMNS are not set,
+//config:	this option makes less perform a last-ditch effort to find it:
+//config:	position cursor to 999,999 and ask terminal to report real
+//config:	cursor position using "ESC [ 6 n" escape sequence, then read stdin.
+//config:	This is not clean but helps a lot on serial lines and such.
 //config:
 //config:config FEATURE_LESS_DASHCMD
 //config:	bool "Enable flag changes ('-' command)"
 //config:	default y
 //config:	depends on LESS
 //config:	help
-//config:	  This enables the ability to change command-line flags within
-//config:	  less itself ('-' keyboard command).
+//config:	This enables the ability to change command-line flags within
+//config:	less itself ('-' keyboard command).
 //config:
 //config:config FEATURE_LESS_LINENUMS
 //config:	bool "Enable -N (dynamic switching of line numbers)"

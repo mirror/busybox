@@ -10,7 +10,7 @@
 //config:	bool "nice (1.8 kb)"
 //config:	default y
 //config:	help
-//config:	  nice runs a program with modified scheduling priority.
+//config:	nice runs a program with modified scheduling priority.
 
 //applet:IF_NICE(APPLET(nice, BB_DIR_BIN, BB_SUID_DROP))
 

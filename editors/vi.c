@@ -24,10 +24,10 @@
 //config:	bool "vi (22 kb)"
 //config:	default y
 //config:	help
-//config:	  'vi' is a text editor. More specifically, it is the One True
-//config:	  text editor <grin>. It does, however, have a rather steep
-//config:	  learning curve. If you are not already comfortable with 'vi'
-//config:	  you may wish to use something else.
+//config:	'vi' is a text editor. More specifically, it is the One True
+//config:	text editor <grin>. It does, however, have a rather steep
+//config:	learning curve. If you are not already comfortable with 'vi'
+//config:	you may wish to use something else.
 //config:
 //config:config FEATURE_VI_MAX_LEN
 //config:	int "Maximum screen width"
@@ -35,77 +35,77 @@
 //config:	default 4096
 //config:	depends on VI
 //config:	help
-//config:	  Contrary to what you may think, this is not eating much.
-//config:	  Make it smaller than 4k only if you are very limited on memory.
+//config:	Contrary to what you may think, this is not eating much.
+//config:	Make it smaller than 4k only if you are very limited on memory.
 //config:
 //config:config FEATURE_VI_8BIT
 //config:	bool "Allow to display 8-bit chars (otherwise shows dots)"
 //config:	default n
 //config:	depends on VI
 //config:	help
-//config:	  If your terminal can display characters with high bit set,
-//config:	  you may want to enable this. Note: vi is not Unicode-capable.
-//config:	  If your terminal combines several 8-bit bytes into one character
-//config:	  (as in Unicode mode), this will not work properly.
+//config:	If your terminal can display characters with high bit set,
+//config:	you may want to enable this. Note: vi is not Unicode-capable.
+//config:	If your terminal combines several 8-bit bytes into one character
+//config:	(as in Unicode mode), this will not work properly.
 //config:
 //config:config FEATURE_VI_COLON
 //config:	bool "Enable \":\" colon commands (no \"ex\" mode)"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Enable a limited set of colon commands. This does not
-//config:	  provide an "ex" mode.
+//config:	Enable a limited set of colon commands. This does not
+//config:	provide an "ex" mode.
 //config:
 //config:config FEATURE_VI_YANKMARK
 //config:	bool "Enable yank/put commands and mark cmds"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  This enables you to use yank and put, as well as mark.
+//config:	This enables you to use yank and put, as well as mark.
 //config:
 //config:config FEATURE_VI_SEARCH
 //config:	bool "Enable search and replace cmds"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Select this if you wish to be able to do search and replace.
+//config:	Select this if you wish to be able to do search and replace.
 //config:
 //config:config FEATURE_VI_REGEX_SEARCH
 //config:	bool "Enable regex in search and replace"
 //config:	default n   # Uses GNU regex, which may be unavailable. FIXME
 //config:	depends on FEATURE_VI_SEARCH
 //config:	help
-//config:	  Use extended regex search.
+//config:	Use extended regex search.
 //config:
 //config:config FEATURE_VI_USE_SIGNALS
 //config:	bool "Catch signals"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Selecting this option will make vi signal aware. This will support
-//config:	  SIGWINCH to deal with Window Changes, catch ^Z and ^C and alarms.
+//config:	Selecting this option will make vi signal aware. This will support
+//config:	SIGWINCH to deal with Window Changes, catch ^Z and ^C and alarms.
 //config:
 //config:config FEATURE_VI_DOT_CMD
 //config:	bool "Remember previous cmd and \".\" cmd"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Make vi remember the last command and be able to repeat it.
+//config:	Make vi remember the last command and be able to repeat it.
 //config:
 //config:config FEATURE_VI_READONLY
 //config:	bool "Enable -R option and \"view\" mode"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Enable the read-only command line option, which allows the user to
-//config:	  open a file in read-only mode.
+//config:	Enable the read-only command line option, which allows the user to
+//config:	open a file in read-only mode.
 //config:
 //config:config FEATURE_VI_SETOPTS
 //config:	bool "Enable settable options, ai ic showmatch"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Enable the editor to set some (ai, ic, showmatch) options.
+//config:	Enable the editor to set some (ai, ic, showmatch) options.
 //config:
 //config:config FEATURE_VI_SET
 //config:	bool "Support :set"
@@ -117,37 +117,37 @@
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Behave nicely with terminals that get resized.
+//config:	Behave nicely with terminals that get resized.
 //config:
 //config:config FEATURE_VI_ASK_TERMINAL
 //config:	bool "Use 'tell me cursor position' ESC sequence to measure window"
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  If terminal size can't be retrieved and $LINES/$COLUMNS are not set,
-//config:	  this option makes vi perform a last-ditch effort to find it:
-//config:	  position cursor to 999,999 and ask terminal to report real
-//config:	  cursor position using "ESC [ 6 n" escape sequence, then read stdin.
-//config:	  This is not clean but helps a lot on serial lines and such.
+//config:	If terminal size can't be retrieved and $LINES/$COLUMNS are not set,
+//config:	this option makes vi perform a last-ditch effort to find it:
+//config:	position cursor to 999,999 and ask terminal to report real
+//config:	cursor position using "ESC [ 6 n" escape sequence, then read stdin.
+//config:	This is not clean but helps a lot on serial lines and such.
 //config:
 //config:config FEATURE_VI_UNDO
 //config:	bool "Support undo command \"u\""
 //config:	default y
 //config:	depends on VI
 //config:	help
-//config:	  Support the 'u' command to undo insertion, deletion, and replacement
-//config:	  of text.
+//config:	Support the 'u' command to undo insertion, deletion, and replacement
+//config:	of text.
 //config:
 //config:config FEATURE_VI_UNDO_QUEUE
 //config:	bool "Enable undo operation queuing"
 //config:	default y
 //config:	depends on FEATURE_VI_UNDO
 //config:	help
-//config:	  The vi undo functions can use an intermediate queue to greatly lower
-//config:	  malloc() calls and overhead. When the maximum size of this queue is
-//config:	  reached, the contents of the queue are committed to the undo stack.
-//config:	  This increases the size of the undo code and allows some undo
-//config:	  operations (especially un-typing/backspacing) to be far more useful.
+//config:	The vi undo functions can use an intermediate queue to greatly lower
+//config:	malloc() calls and overhead. When the maximum size of this queue is
+//config:	reached, the contents of the queue are committed to the undo stack.
+//config:	This increases the size of the undo code and allows some undo
+//config:	operations (especially un-typing/backspacing) to be far more useful.
 //config:
 //config:config FEATURE_VI_UNDO_QUEUE_MAX
 //config:	int "Maximum undo character queue size"
@@ -155,13 +155,13 @@
 //config:	range 32 65536
 //config:	depends on FEATURE_VI_UNDO_QUEUE
 //config:	help
-//config:	  This option sets the number of bytes used at runtime for the queue.
-//config:	  Smaller values will create more undo objects and reduce the amount
-//config:	  of typed or backspaced characters that are grouped into one undo
-//config:	  operation; larger values increase the potential size of each undo
-//config:	  and will generally malloc() larger objects and less frequently.
-//config:	  Unless you want more (or less) frequent "undo points" while typing,
-//config:	  you should probably leave this unchanged.
+//config:	This option sets the number of bytes used at runtime for the queue.
+//config:	Smaller values will create more undo objects and reduce the amount
+//config:	of typed or backspaced characters that are grouped into one undo
+//config:	operation; larger values increase the potential size of each undo
+//config:	and will generally malloc() larger objects and less frequently.
+//config:	Unless you want more (or less) frequent "undo points" while typing,
+//config:	you should probably leave this unchanged.
 
 //applet:IF_VI(APPLET(vi, BB_DIR_BIN, BB_SUID_DROP))
 

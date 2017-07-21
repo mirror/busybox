@@ -10,20 +10,20 @@
 //config:	bool "makedevs (9.3 kb)"
 //config:	default y
 //config:	help
-//config:	  'makedevs' is a utility used to create a batch of devices with
-//config:	  one command.
+//config:	'makedevs' is a utility used to create a batch of devices with
+//config:	one command.
 //config:
-//config:	  There are two choices for command line behaviour, the interface
-//config:	  as used by LEAF/Linux Router Project, or a device table file.
+//config:	There are two choices for command line behaviour, the interface
+//config:	as used by LEAF/Linux Router Project, or a device table file.
 //config:
-//config:	  'leaf' is traditionally what busybox follows, it allows multiple
-//config:	  devices of a particluar type to be created per command.
-//config:	  e.g. /dev/hda[0-9]
-//config:	  Device properties are passed as command line arguments.
+//config:	'leaf' is traditionally what busybox follows, it allows multiple
+//config:	devices of a particluar type to be created per command.
+//config:	e.g. /dev/hda[0-9]
+//config:	Device properties are passed as command line arguments.
 //config:
-//config:	  'table' reads device properties from a file or stdin, allowing
-//config:	  a batch of unrelated devices to be made with one command.
-//config:	  User/group names are allowed as an alternative to uid/gid.
+//config:	'table' reads device properties from a file or stdin, allowing
+//config:	a batch of unrelated devices to be made with one command.
+//config:	User/group names are allowed as an alternative to uid/gid.
 //config:
 //config:choice
 //config:	prompt "Choose makedevs behaviour"

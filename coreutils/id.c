@@ -16,13 +16,13 @@
 //config:	bool "id (6.7 kb)"
 //config:	default y
 //config:	help
-//config:	  id displays the current user and group ID names.
+//config:	id displays the current user and group ID names.
 //config:
 //config:config GROUPS
 //config:	bool "groups (6.5 kb)"
 //config:	default y
 //config:	help
-//config:	  Print the group names associated with current user id.
+//config:	Print the group names associated with current user id.
 
 //applet:IF_GROUPS(APPLET_NOEXEC(groups, id, BB_DIR_USR_BIN, BB_SUID_DROP, groups))
 //applet:IF_ID(    APPLET_NOEXEC(id,     id, BB_DIR_USR_BIN, BB_SUID_DROP, id    ))

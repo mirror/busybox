@@ -11,15 +11,15 @@
 //config:	default y
 //config:	depends on FEATURE_WTMP
 //config:	help
-//config:	  'last' displays a list of the last users that logged into the system.
+//config:	'last' displays a list of the last users that logged into the system.
 //config:
 //config:config FEATURE_LAST_FANCY
 //config:	bool "Output extra information"
 //config:	default y
 //config:	depends on LAST
 //config:	help
-//config:	  'last' displays detailed information about the last users that
-//config:	  logged into the system (mimics sysvinit last). +900 bytes.
+//config:	'last' displays detailed information about the last users that
+//config:	logged into the system (mimics sysvinit last). +900 bytes.
 
 //applet:IF_LAST(APPLET(last, BB_DIR_USR_BIN, BB_SUID_DROP))
 

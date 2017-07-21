@@ -14,21 +14,21 @@
 //WRONG: it should be compilable without SYSLOG=y:
 //WRONG:	depends on FEATURE_IPC_SYSLOG
 //config:	help
-//config:	  If you enabled Circular Buffer support, you almost
-//config:	  certainly want to enable this feature as well. This
-//config:	  utility will allow you to read the messages that are
-//config:	  stored in the syslogd circular buffer.
+//config:	If you enabled Circular Buffer support, you almost
+//config:	certainly want to enable this feature as well. This
+//config:	utility will allow you to read the messages that are
+//config:	stored in the syslogd circular buffer.
 //config:
 //config:config FEATURE_LOGREAD_REDUCED_LOCKING
 //config:	bool "Double buffering"
 //config:	default y
 //config:	depends on LOGREAD
 //config:	help
-//config:	  'logread' output to slow serial terminals can have
-//config:	  side effects on syslog because of the semaphore.
-//config:	  This option make logread to double buffer copy
-//config:	  from circular buffer, minimizing semaphore
-//config:	  contention at some minor memory expense.
+//config:	'logread' output to slow serial terminals can have
+//config:	side effects on syslog because of the semaphore.
+//config:	This option make logread to double buffer copy
+//config:	from circular buffer, minimizing semaphore
+//config:	contention at some minor memory expense.
 //config:
 
 //applet:IF_LOGREAD(APPLET(logread, BB_DIR_SBIN, BB_SUID_DROP))

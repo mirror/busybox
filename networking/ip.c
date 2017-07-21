@@ -13,9 +13,9 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  The "ip" applet is a TCP/IP interface configuration and routing
-//config:	  utility. You generally don't need "ip" to use busybox with
-//config:	  TCP/IP.
+//config:	The "ip" applet is a TCP/IP interface configuration and routing
+//config:	utility. You generally don't need "ip" to use busybox with
+//config:	TCP/IP.
 //config:
 //config:config IPADDR
 //config:	bool "ipaddr (14 kb)"
@@ -23,7 +23,7 @@
 //config:	select FEATURE_IP_ADDRESS
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Support short form of ip addr: ipaddr
+//config:	Support short form of ip addr: ipaddr
 //config:
 //config:config IPLINK
 //config:	bool "iplink (16 kb)"
@@ -31,7 +31,7 @@
 //config:	select FEATURE_IP_LINK
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Support short form of ip link: iplink
+//config:	Support short form of ip link: iplink
 //config:
 //config:config IPROUTE
 //config:	bool "iproute (15 kb)"
@@ -39,7 +39,7 @@
 //config:	select FEATURE_IP_ROUTE
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Support short form of ip route: iproute
+//config:	Support short form of ip route: iproute
 //config:
 //config:config IPTUNNEL
 //config:	bool "iptunnel (9.6 kb)"
@@ -47,7 +47,7 @@
 //config:	select FEATURE_IP_TUNNEL
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Support short form of ip tunnel: iptunnel
+//config:	Support short form of ip tunnel: iptunnel
 //config:
 //config:config IPRULE
 //config:	bool "iprule (10 kb)"
@@ -55,7 +55,7 @@
 //config:	select FEATURE_IP_RULE
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Support short form of ip rule: iprule
+//config:	Support short form of ip rule: iprule
 //config:
 //config:config IPNEIGH
 //config:	bool "ipneigh (8.3 kb)"
@@ -63,66 +63,66 @@
 //config:	select FEATURE_IP_NEIGH
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Support short form of ip neigh: ipneigh
+//config:	Support short form of ip neigh: ipneigh
 //config:
 //config:config FEATURE_IP_ADDRESS
 //config:	bool "ip address"
 //config:	default y
 //config:	depends on IP || IPADDR
 //config:	help
-//config:	  Address manipulation support for the "ip" applet.
+//config:	Address manipulation support for the "ip" applet.
 //config:
 //config:config FEATURE_IP_LINK
 //config:	bool "ip link"
 //config:	default y
 //config:	depends on IP || IPLINK
 //config:	help
-//config:	  Configure network devices with "ip".
+//config:	Configure network devices with "ip".
 //config:
 //config:config FEATURE_IP_ROUTE
 //config:	bool "ip route"
 //config:	default y
 //config:	depends on IP || IPROUTE
 //config:	help
-//config:	  Add support for routing table management to "ip".
+//config:	Add support for routing table management to "ip".
 //config:
 //config:config FEATURE_IP_ROUTE_DIR
 //config:	string "ip route configuration directory"
 //config:	default "/etc/iproute2"
 //config:	depends on FEATURE_IP_ROUTE
 //config:	help
-//config:	  Location of the "ip" applet routing configuration.
+//config:	Location of the "ip" applet routing configuration.
 //config:
 //config:config FEATURE_IP_TUNNEL
 //config:	bool "ip tunnel"
 //config:	default y
 //config:	depends on IP || IPTUNNEL
 //config:	help
-//config:	  Add support for tunneling commands to "ip".
+//config:	Add support for tunneling commands to "ip".
 //config:
 //config:config FEATURE_IP_RULE
 //config:	bool "ip rule"
 //config:	default y
 //config:	depends on IP || IPRULE
 //config:	help
-//config:	  Add support for rule commands to "ip".
+//config:	Add support for rule commands to "ip".
 //config:
 //config:config FEATURE_IP_NEIGH
 //config:	bool "ip neighbor"
 //config:	default y
 //config:	depends on IP || IPNEIGH
 //config:	help
-//config:	  Add support for neighbor commands to "ip".
+//config:	Add support for neighbor commands to "ip".
 //config:
 //config:config FEATURE_IP_RARE_PROTOCOLS
 //config:	bool "Support displaying rarely used link types"
 //config:	default n
 //config:	depends on IP || IPADDR || IPLINK || IPROUTE || IPTUNNEL || IPRULE || IPNEIGH
 //config:	help
-//config:	  If you are not going to use links of type "frad", "econet",
-//config:	  "bif" etc, you probably don't need to enable this.
-//config:	  Ethernet, wireless, infrared, ppp/slip, ip tunnelling
-//config:	  link types are supported without this option selected.
+//config:	If you are not going to use links of type "frad", "econet",
+//config:	"bif" etc, you probably don't need to enable this.
+//config:	Ethernet, wireless, infrared, ppp/slip, ip tunnelling
+//config:	link types are supported without this option selected.
 
 //applet:IF_IP(APPLET(ip, BB_DIR_SBIN, BB_SUID_DROP))
 //applet:IF_IPADDR(APPLET(ipaddr, BB_DIR_SBIN, BB_SUID_DROP))

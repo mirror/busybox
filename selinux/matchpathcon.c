@@ -10,8 +10,8 @@
 //config:	default n
 //config:	depends on SELINUX
 //config:	help
-//config:	  Enable support to get default security context of the
-//config:	  specified path from the file contexts configuration.
+//config:	Enable support to get default security context of the
+//config:	specified path from the file contexts configuration.
 
 //applet:IF_MATCHPATHCON(APPLET(matchpathcon, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

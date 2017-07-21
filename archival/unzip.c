@@ -20,20 +20,20 @@
 //config:	bool "unzip (24 kb)"
 //config:	default y
 //config:	help
-//config:	  unzip will list or extract files from a ZIP archive,
-//config:	  commonly found on DOS/WIN systems. The default behavior
-//config:	  (with no options) is to extract the archive into the
-//config:	  current directory.
+//config:	unzip will list or extract files from a ZIP archive,
+//config:	commonly found on DOS/WIN systems. The default behavior
+//config:	(with no options) is to extract the archive into the
+//config:	current directory.
 //config:
 //config:config FEATURE_UNZIP_CDF
 //config:	bool "Read and use Central Directory data"
 //config:	default y
 //config:	depends on UNZIP
 //config:	help
-//config:	  If you know that you only need to deal with simple
-//config:	  ZIP files without deleted/updated files, SFX archives etc,
-//config:	  you can reduce code size by unselecting this option.
-//config:	  To support less trivial ZIPs, say Y.
+//config:	If you know that you only need to deal with simple
+//config:	ZIP files without deleted/updated files, SFX archives etc,
+//config:	you can reduce code size by unselecting this option.
+//config:	To support less trivial ZIPs, say Y.
 //config:
 //config:config FEATURE_UNZIP_BZIP2
 //config:	bool "Support compression method 12 (bzip2)"

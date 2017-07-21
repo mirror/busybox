@@ -11,7 +11,7 @@
 //config:	default y
 //config:	depends on FEATURE_UTMP
 //config:	help
-//config:	  Write a message to all users that are logged in.
+//config:	Write a message to all users that are logged in.
 
 /* Needs to be run by root or be suid root - needs to write to /dev/TTY: */
 //applet:IF_WALL(APPLET(wall, BB_DIR_USR_BIN, BB_SUID_REQUIRE))

@@ -11,10 +11,10 @@
 //config:	default y
 //config:	#select PLATFORM_LINUX
 //config:	help
-//config:	  lspci is a utility for displaying information about PCI buses in the
-//config:	  system and devices connected to them.
+//config:	lspci is a utility for displaying information about PCI buses in the
+//config:	system and devices connected to them.
 //config:
-//config:	  This version uses sysfs (/sys/bus/pci/devices) only.
+//config:	This version uses sysfs (/sys/bus/pci/devices) only.
 
 //applet:IF_LSPCI(APPLET(lspci, BB_DIR_USR_BIN, BB_SUID_DROP))
 

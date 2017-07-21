@@ -18,30 +18,30 @@
 //config:	bool "cpio (14 kb)"
 //config:	default y
 //config:	help
-//config:	  cpio is an archival utility program used to create, modify, and
-//config:	  extract contents from archives.
-//config:	  cpio has 110 bytes of overheads for every stored file.
+//config:	cpio is an archival utility program used to create, modify, and
+//config:	extract contents from archives.
+//config:	cpio has 110 bytes of overheads for every stored file.
 //config:
-//config:	  This implementation of cpio can extract cpio archives created in the
-//config:	  "newc" or "crc" format.
+//config:	This implementation of cpio can extract cpio archives created in the
+//config:	"newc" or "crc" format.
 //config:
-//config:	  Unless you have a specific application which requires cpio, you
-//config:	  should probably say N here.
+//config:	Unless you have a specific application which requires cpio, you
+//config:	should probably say N here.
 //config:
 //config:config FEATURE_CPIO_O
 //config:	bool "Support archive creation"
 //config:	default y
 //config:	depends on CPIO
 //config:	help
-//config:	  This implementation of cpio can create cpio archives in the "newc"
-//config:	  format only.
+//config:	This implementation of cpio can create cpio archives in the "newc"
+//config:	format only.
 //config:
 //config:config FEATURE_CPIO_P
 //config:	bool "Support passthrough mode"
 //config:	default y
 //config:	depends on FEATURE_CPIO_O
 //config:	help
-//config:	  Passthrough mode. Rarely used.
+//config:	Passthrough mode. Rarely used.
 
 //applet:IF_CPIO(APPLET(cpio, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_CPIO) += cpio.o

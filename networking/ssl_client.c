@@ -8,7 +8,7 @@
 //config:	default y
 //config:	select TLS
 //config:	help
-//config:	  This tool pipes data to/from a socket, TLS-encrypting it.
+//config:	This tool pipes data to/from a socket, TLS-encrypting it.
 
 //applet:IF_SSL_CLIENT(APPLET(ssl_client, BB_DIR_USR_BIN, BB_SUID_DROP))
 

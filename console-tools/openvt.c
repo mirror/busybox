@@ -12,8 +12,8 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  This program is used to start a command on an unused
-//config:	  virtual terminal.
+//config:	This program is used to start a command on an unused
+//config:	virtual terminal.
 
 //applet:IF_OPENVT(APPLET(openvt, BB_DIR_USR_BIN, BB_SUID_DROP))
 

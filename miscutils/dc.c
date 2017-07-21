@@ -6,16 +6,16 @@
 //config:	bool "dc (4.2 kb)"
 //config:	default y
 //config:	help
-//config:	  Dc is a reverse-polish desk calculator which supports unlimited
-//config:	  precision arithmetic.
+//config:	Dc is a reverse-polish desk calculator which supports unlimited
+//config:	precision arithmetic.
 //config:
 //config:config FEATURE_DC_LIBM
 //config:	bool "Enable power and exp functions (requires libm)"
 //config:	default y
 //config:	depends on DC
 //config:	help
-//config:	  Enable power and exp functions.
-//config:	  NOTE: This will require libm to be present for linking.
+//config:	Enable power and exp functions.
+//config:	NOTE: This will require libm to be present for linking.
 
 //applet:IF_DC(APPLET(dc, BB_DIR_USR_BIN, BB_SUID_DROP))
 

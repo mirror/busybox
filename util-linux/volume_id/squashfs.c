@@ -13,10 +13,10 @@
 //config:	default y
 //config:	depends on VOLUMEID && FEATURE_BLKID_TYPE
 //config:	help
-//config:	  Squashfs is a compressed read-only filesystem for Linux. Squashfs is
-//config:	  intended for general read-only filesystem use and in constrained block
-//config:	  device/memory systems (e.g. embedded systems) where low overhead is
-//config:	  needed.
+//config:	Squashfs is a compressed read-only filesystem for Linux. Squashfs is
+//config:	intended for general read-only filesystem use and in constrained block
+//config:	device/memory systems (e.g. embedded systems) where low overhead is
+//config:	needed.
 
 #include "volume_id_internal.h"
 

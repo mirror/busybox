@@ -11,8 +11,8 @@
 //config:	bool "lsof (3.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Show open files in the format of:
-//config:	  PID <TAB> /path/to/executable <TAB> /path/to/opened/file
+//config:	Show open files in the format of:
+//config:	PID <TAB> /path/to/executable <TAB> /path/to/opened/file
 
 //applet:IF_LSOF(APPLET(lsof, BB_DIR_USR_BIN, BB_SUID_DROP))
 

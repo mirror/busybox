@@ -22,7 +22,7 @@
 //config:	bool "echo (basic SuSv3 version taking no options)"
 //config:	default y
 //config:	help
-//config:	  echo is used to print a specified string to stdout.
+//config:	echo is used to print a specified string to stdout.
 //config:
 //config:# this entry also appears in shell/Config.in, next to the echo builtin
 //config:config FEATURE_FANCY_ECHO

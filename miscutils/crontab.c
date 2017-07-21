@@ -13,10 +13,10 @@
 //config:	bool "crontab (9.7 kb)"
 //config:	default y
 //config:	help
-//config:	  Crontab manipulates the crontab for a particular user. Only
-//config:	  the superuser may specify a different user and/or crontab directory.
-//config:	  Note that Busybox binary must be setuid root for this applet to
-//config:	  work properly.
+//config:	Crontab manipulates the crontab for a particular user. Only
+//config:	the superuser may specify a different user and/or crontab directory.
+//config:	Note that Busybox binary must be setuid root for this applet to
+//config:	work properly.
 
 /* Needs to be run by root or be suid root - needs to change /var/spool/cron* files: */
 //applet:IF_CRONTAB(APPLET(crontab, BB_DIR_USR_BIN, BB_SUID_REQUIRE))

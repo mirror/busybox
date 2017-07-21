@@ -13,58 +13,58 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  mdev is a mini-udev implementation for dynamically creating device
-//config:	  nodes in the /dev directory.
+//config:	mdev is a mini-udev implementation for dynamically creating device
+//config:	nodes in the /dev directory.
 //config:
-//config:	  For more information, please see docs/mdev.txt
+//config:	For more information, please see docs/mdev.txt
 //config:
 //config:config FEATURE_MDEV_CONF
 //config:	bool "Support /etc/mdev.conf"
 //config:	default y
 //config:	depends on MDEV
 //config:	help
-//config:	  Add support for the mdev config file to control ownership and
-//config:	  permissions of the device nodes.
+//config:	Add support for the mdev config file to control ownership and
+//config:	permissions of the device nodes.
 //config:
-//config:	  For more information, please see docs/mdev.txt
+//config:	For more information, please see docs/mdev.txt
 //config:
 //config:config FEATURE_MDEV_RENAME
 //config:	bool "Support subdirs/symlinks"
 //config:	default y
 //config:	depends on FEATURE_MDEV_CONF
 //config:	help
-//config:	  Add support for renaming devices and creating symlinks.
+//config:	Add support for renaming devices and creating symlinks.
 //config:
-//config:	  For more information, please see docs/mdev.txt
+//config:	For more information, please see docs/mdev.txt
 //config:
 //config:config FEATURE_MDEV_RENAME_REGEXP
 //config:	bool "Support regular expressions substitutions when renaming device"
 //config:	default y
 //config:	depends on FEATURE_MDEV_RENAME
 //config:	help
-//config:	  Add support for regular expressions substitutions when renaming
-//config:	  device.
+//config:	Add support for regular expressions substitutions when renaming
+//config:	device.
 //config:
 //config:config FEATURE_MDEV_EXEC
 //config:	bool "Support command execution at device addition/removal"
 //config:	default y
 //config:	depends on FEATURE_MDEV_CONF
 //config:	help
-//config:	  This adds support for an optional field to /etc/mdev.conf for
-//config:	  executing commands when devices are created/removed.
+//config:	This adds support for an optional field to /etc/mdev.conf for
+//config:	executing commands when devices are created/removed.
 //config:
-//config:	  For more information, please see docs/mdev.txt
+//config:	For more information, please see docs/mdev.txt
 //config:
 //config:config FEATURE_MDEV_LOAD_FIRMWARE
 //config:	bool "Support loading of firmwares"
 //config:	default y
 //config:	depends on MDEV
 //config:	help
-//config:	  Some devices need to load firmware before they can be usable.
+//config:	Some devices need to load firmware before they can be usable.
 //config:
-//config:	  These devices will request userspace look up the files in
-//config:	  /lib/firmware/ and if it exists, send it to the kernel for
-//config:	  loading into the hardware.
+//config:	These devices will request userspace look up the files in
+//config:	/lib/firmware/ and if it exists, send it to the kernel for
+//config:	loading into the hardware.
 
 //applet:IF_MDEV(APPLET(mdev, BB_DIR_SBIN, BB_SUID_DROP))
 

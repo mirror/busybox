@@ -25,9 +25,9 @@
 //config:	default y
 //config:	depends on VOLUMEID
 //config:	help
-//config:	  exFAT (extended FAT) is a proprietary file system designed especially
-//config:	  for flash drives. It has many features from NTFS, but with less
-//config:	  overhead. exFAT is used on most SDXC cards for consumer electronics.
+//config:	exFAT (extended FAT) is a proprietary file system designed especially
+//config:	for flash drives. It has many features from NTFS, but with less
+//config:	overhead. exFAT is used on most SDXC cards for consumer electronics.
 
 #include "volume_id_internal.h"
 

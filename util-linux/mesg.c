@@ -11,20 +11,20 @@
 //config:	bool "mesg (1.2 kb)"
 //config:	default y
 //config:	help
-//config:	  Mesg controls access to your terminal by others. It is typically
-//config:	  used to allow or disallow other users to write to your terminal
+//config:	Mesg controls access to your terminal by others. It is typically
+//config:	used to allow or disallow other users to write to your terminal
 //config:
 //config:config FEATURE_MESG_ENABLE_ONLY_GROUP
 //config:	bool "Enable writing to tty only by group, not by everybody"
 //config:	default y
 //config:	depends on MESG
 //config:	help
-//config:	  Usually, ttys are owned by group "tty", and "write" tool is
-//config:	  setgid to this group. This way, "mesg y" only needs to enable
-//config:	  "write by owning group" bit in tty mode.
+//config:	Usually, ttys are owned by group "tty", and "write" tool is
+//config:	setgid to this group. This way, "mesg y" only needs to enable
+//config:	"write by owning group" bit in tty mode.
 //config:
-//config:	  If you set this option to N, "mesg y" will enable writing
-//config:	  by anybody at all. This is not recommended.
+//config:	If you set this option to N, "mesg y" will enable writing
+//config:	by anybody at all. This is not recommended.
 
 //applet:IF_MESG(APPLET(mesg, BB_DIR_USR_BIN, BB_SUID_DROP))
 

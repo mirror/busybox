@@ -11,8 +11,8 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Set/set program io scheduling class and priority
-//config:	  Requires kernel >= 2.6.13
+//config:	Set/set program io scheduling class and priority
+//config:	Requires kernel >= 2.6.13
 
 //applet:IF_IONICE(APPLET(ionice, BB_DIR_BIN, BB_SUID_DROP))
 

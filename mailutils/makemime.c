@@ -10,7 +10,7 @@
 //config:	bool "makemime (5.9 kb)"
 //config:	default y
 //config:	help
-//config:	  Create MIME-formatted messages.
+//config:	Create MIME-formatted messages.
 
 //applet:IF_MAKEMIME(APPLET(makemime, BB_DIR_BIN, BB_SUID_DROP))
 

@@ -11,7 +11,7 @@
 //config:	bool "rpm2cpio (20 kb)"
 //config:	default y
 //config:	help
-//config:	  Converts a RPM file into a CPIO archive.
+//config:	Converts a RPM file into a CPIO archive.
 
 //applet:IF_RPM2CPIO(APPLET(rpm2cpio, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_RPM2CPIO) += rpm2cpio.o

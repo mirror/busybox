@@ -8,42 +8,42 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Attach MTD device to an UBI device.
+//config:	Attach MTD device to an UBI device.
 //config:
 //config:config UBIDETACH
 //config:	bool "ubidetach (4.6 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Detach MTD device from an UBI device.
+//config:	Detach MTD device from an UBI device.
 //config:
 //config:config UBIMKVOL
 //config:	bool "ubimkvol (5.8 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Create a UBI volume.
+//config:	Create a UBI volume.
 //config:
 //config:config UBIRMVOL
 //config:	bool "ubirmvol (5.2 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Delete a UBI volume.
+//config:	Delete a UBI volume.
 //config:
 //config:config UBIRSVOL
 //config:	bool "ubirsvol (4.6 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Resize a UBI volume.
+//config:	Resize a UBI volume.
 //config:
 //config:config UBIUPDATEVOL
 //config:	bool "ubiupdatevol (5.6 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Update a UBI volume.
+//config:	Update a UBI volume.
 
 //                       APPLET_ODDNAME:name       main       location         suid_type     help
 //applet:IF_UBIATTACH(   APPLET_ODDNAME(ubiattach, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubiattach))

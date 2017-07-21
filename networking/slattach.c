@@ -17,8 +17,8 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  slattach is a small utility to attach network interfaces to serial
-//config:	  lines.
+//config:	slattach is a small utility to attach network interfaces to serial
+//config:	lines.
 
 //applet:IF_SLATTACH(APPLET(slattach, BB_DIR_SBIN, BB_SUID_DROP))
 

@@ -11,10 +11,10 @@
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help
-//config:	    The logger utility allows you to send arbitrary text
-//config:	    messages to the system log (i.e. the 'syslogd' utility) so
-//config:	    they can be logged. This is generally used to help locate
-//config:	    problems that occur within programs and scripts.
+//config:	The logger utility allows you to send arbitrary text
+//config:	messages to the system log (i.e. the 'syslogd' utility) so
+//config:	they can be logged. This is generally used to help locate
+//config:	problems that occur within programs and scripts.
 
 //applet:IF_LOGGER(APPLET(logger, BB_DIR_USR_BIN, BB_SUID_DROP))
 

@@ -9,8 +9,8 @@
 //config:	bool "which (3.7 kb)"
 //config:	default y
 //config:	help
-//config:	  which is used to find programs in your PATH and
-//config:	  print out their pathnames.
+//config:	which is used to find programs in your PATH and
+//config:	print out their pathnames.
 
 //applet:IF_WHICH(APPLET(which, BB_DIR_USR_BIN, BB_SUID_DROP))
 

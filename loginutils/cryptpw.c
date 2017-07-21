@@ -13,16 +13,16 @@
 //config:	bool "cryptpw (14 kb)"
 //config:	default y
 //config:	help
-//config:	  Encrypts the given password with the crypt(3) libc function
-//config:	  using the given salt.
+//config:	Encrypts the given password with the crypt(3) libc function
+//config:	using the given salt.
 //config:
 //config:config MKPASSWD
 //config:	bool "mkpasswd (15 kb)"
 //config:	default y
 //config:	help
-//config:	  Encrypts the given password with the crypt(3) libc function
-//config:	  using the given salt. Debian has this utility under mkpasswd
-//config:	  name. Busybox provides mkpasswd as an alias for cryptpw.
+//config:	Encrypts the given password with the crypt(3) libc function
+//config:	using the given salt. Debian has this utility under mkpasswd
+//config:	name. Busybox provides mkpasswd as an alias for cryptpw.
 
 //applet:IF_CRYPTPW(APPLET(cryptpw, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                   APPLET_ODDNAME:name      main     location        suid_type     help

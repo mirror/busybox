@@ -11,8 +11,8 @@
 //config:	bool "Support RTMIN[+n] and RTMAX[-n] signal names"
 //config:	default y
 //config:	help
-//config:	  Support RTMIN[+n] and RTMAX[-n] signal names
-//config:	  in kill, killall etc. This costs ~250 bytes.
+//config:	Support RTMIN[+n] and RTMAX[-n] signal names
+//config:	in kill, killall etc. This costs ~250 bytes.
 
 #include "libbb.h"
 

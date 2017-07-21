@@ -8,16 +8,16 @@
  * for details.
  */
 //config:config ADD_SHELL
-//config:       bool "add-shell (2.8 kb)"
-//config:       default y if DESKTOP
-//config:       help
-//config:         Add shells to /etc/shells.
+//config:	bool "add-shell (2.8 kb)"
+//config:	default y if DESKTOP
+//config:	help
+//config:	Add shells to /etc/shells.
 //config:
 //config:config REMOVE_SHELL
-//config:       bool "remove-shell (2.7 kb)"
-//config:       default y if DESKTOP
-//config:       help
-//config:         Remove shells from /etc/shells.
+//config:	bool "remove-shell (2.7 kb)"
+//config:	default y if DESKTOP
+//config:	help
+//config:	Remove shells from /etc/shells.
 
 //                       APPLET_ODDNAME:name          main              location         suid_type     help
 //applet:IF_ADD_SHELL(   APPLET_ODDNAME(add-shell   , add_remove_shell, BB_DIR_USR_SBIN, BB_SUID_DROP, add_shell   ))

@@ -14,8 +14,8 @@
 //config:	bool "yes (956 bytes)"
 //config:	default y
 //config:	help
-//config:	  yes is used to repeatedly output a specific string, or
-//config:	  the default string `y'.
+//config:	yes is used to repeatedly output a specific string, or
+//config:	the default string `y'.
 
 //applet:IF_YES(APPLET_NOFORK(yes, yes, BB_DIR_USR_BIN, BB_SUID_DROP, yes))
 

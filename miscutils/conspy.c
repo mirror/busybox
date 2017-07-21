@@ -14,10 +14,10 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  A text-mode VNC like program for Linux virtual terminals.
-//config:	  example:  conspy NUM      shared access to console num
-//config:	  or        conspy -nd NUM  screenshot of console num
-//config:	  or        conspy -cs NUM  poor man's GNU screen like
+//config:	A text-mode VNC like program for Linux virtual terminals.
+//config:	example:  conspy NUM      shared access to console num
+//config:	or        conspy -nd NUM  screenshot of console num
+//config:	or        conspy -cs NUM  poor man's GNU screen like
 
 //applet:IF_CONSPY(APPLET(conspy, BB_DIR_BIN, BB_SUID_DROP))
 

@@ -16,16 +16,16 @@
 //config:	default y
 //config:	select PLATFORM_LINUX #sysinfo()
 //config:	help
-//config:	  uptime gives a one line display of the current time, how long
-//config:	  the system has been running, how many users are currently logged
-//config:	  on, and the system load averages for the past 1, 5, and 15 minutes.
+//config:	uptime gives a one line display of the current time, how long
+//config:	the system has been running, how many users are currently logged
+//config:	on, and the system load averages for the past 1, 5, and 15 minutes.
 //config:
 //config:config FEATURE_UPTIME_UTMP_SUPPORT
 //config:	bool "Show the number of users"
 //config:	default y
 //config:	depends on UPTIME && FEATURE_UTMP
 //config:	help
-//config:	  Display the number of users currently logged on.
+//config:	Display the number of users currently logged on.
 
 //applet:IF_UPTIME(APPLET(uptime, BB_DIR_USR_BIN, BB_SUID_DROP))
 

@@ -10,7 +10,7 @@
 //config:	bool "ln (4.5 kb)"
 //config:	default y
 //config:	help
-//config:	  ln is used to create hard or soft links between files.
+//config:	ln is used to create hard or soft links between files.
 
 //applet:IF_LN(APPLET_NOEXEC(ln, ln, BB_DIR_BIN, BB_SUID_DROP, ln))
 

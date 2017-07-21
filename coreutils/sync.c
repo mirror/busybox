@@ -11,14 +11,14 @@
 //config:	bool "sync (769 bytes)"
 //config:	default y
 //config:	help
-//config:	  sync is used to flush filesystem buffers.
+//config:	sync is used to flush filesystem buffers.
 //config:config FEATURE_SYNC_FANCY
 //config:	bool "Enable -d and -f flags (requires syncfs(2) in libc)"
 //config:	default y
 //config:	depends on SYNC
 //config:	help
-//config:	  sync -d FILE... executes fdatasync() on each FILE.
-//config:	  sync -f FILE... executes syncfs() on each FILE.
+//config:	sync -d FILE... executes fdatasync() on each FILE.
+//config:	sync -f FILE... executes syncfs() on each FILE.
 
 //applet:IF_SYNC(APPLET_NOFORK(sync, sync, BB_DIR_BIN, BB_SUID_DROP, sync))
 

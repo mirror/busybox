@@ -11,39 +11,39 @@
 //config:	bool "halt (3.7 kb)"
 //config:	default y
 //config:	help
-//config:	  Stop all processes and halt the system.
+//config:	Stop all processes and halt the system.
 //config:
 //config:config POWEROFF
 //config:	bool "poweroff (3.7 kb)"
 //config:	default y
 //config:	help
-//config:	  Stop all processes and power off the system.
+//config:	Stop all processes and power off the system.
 //config:
 //config:config REBOOT
 //config:	bool "reboot (3.7 kb)"
 //config:	default y
 //config:	help
-//config:	  Stop all processes and reboot the system.
+//config:	Stop all processes and reboot the system.
 //config:
 //config:config FEATURE_CALL_TELINIT
 //config:	bool "Call telinit on shutdown and reboot"
 //config:	default y
 //config:	depends on (HALT || POWEROFF || REBOOT) && !INIT
 //config:	help
-//config:	  Call an external program (normally telinit) to facilitate
-//config:	  a switch to a proper runlevel.
+//config:	Call an external program (normally telinit) to facilitate
+//config:	a switch to a proper runlevel.
 //config:
-//config:	  This option is only available if you selected halt and friends,
-//config:	  but did not select init.
+//config:	This option is only available if you selected halt and friends,
+//config:	but did not select init.
 //config:
 //config:config TELINIT_PATH
 //config:	string "Path to telinit executable"
 //config:	default "/sbin/telinit"
 //config:	depends on FEATURE_CALL_TELINIT
 //config:	help
-//config:	  When busybox halt and friends have to call external telinit
-//config:	  to facilitate proper shutdown, this path is to be used when
-//config:	  locating telinit executable.
+//config:	When busybox halt and friends have to call external telinit
+//config:	to facilitate proper shutdown, this path is to be used when
+//config:	locating telinit executable.
 
 //applet:IF_HALT(APPLET(halt, BB_DIR_SBIN, BB_SUID_DROP))
 //                   APPLET_ODDNAME:name      main  location     suid_type     help

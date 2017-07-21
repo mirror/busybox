@@ -14,13 +14,13 @@
 //config:	bool "hostname (5.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Show or set the system's host name.
+//config:	Show or set the system's host name.
 //config:
 //config:config DNSDOMAINNAME
 //config:	bool "dnsdomainname (3.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Alias to "hostname -d".
+//config:	Alias to "hostname -d".
 
 //                        APPLET_ODDNAME:name           main      location    suid_type     help
 //applet:IF_DNSDOMAINNAME(APPLET_ODDNAME(dnsdomainname, hostname, BB_DIR_BIN, BB_SUID_DROP, dnsdomainname))

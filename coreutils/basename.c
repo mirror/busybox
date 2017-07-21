@@ -18,9 +18,9 @@
 //config:	bool "basename (371 bytes)"
 //config:	default y
 //config:	help
-//config:	  basename is used to strip the directory and suffix from filenames,
-//config:	  leaving just the filename itself. Enable this option if you wish
-//config:	  to enable the 'basename' utility.
+//config:	basename is used to strip the directory and suffix from filenames,
+//config:	leaving just the filename itself. Enable this option if you wish
+//config:	to enable the 'basename' utility.
 
 //applet:IF_BASENAME(APPLET_NOFORK(basename, basename, BB_DIR_USR_BIN, BB_SUID_DROP, basename))
 

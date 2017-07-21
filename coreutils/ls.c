@@ -31,7 +31,7 @@
 //config:	bool "ls (14 kb)"
 //config:	default y
 //config:	help
-//config:	  ls is used to list the contents of directories.
+//config:	ls is used to list the contents of directories.
 //config:
 //config:config FEATURE_LS_FILETYPES
 //config:	bool "Enable filetyping options (-p and -F)"
@@ -58,39 +58,39 @@
 //config:	default y
 //config:	depends on LS
 //config:	help
-//config:	  Allow ls to sort file names alphabetically.
+//config:	Allow ls to sort file names alphabetically.
 //config:
 //config:config FEATURE_LS_TIMESTAMPS
 //config:	bool "Show file timestamps"
 //config:	default y
 //config:	depends on LS
 //config:	help
-//config:	  Allow ls to display timestamps for files.
+//config:	Allow ls to display timestamps for files.
 //config:
 //config:config FEATURE_LS_USERNAME
 //config:	bool "Show username/groupnames"
 //config:	default y
 //config:	depends on LS
 //config:	help
-//config:	  Allow ls to display username/groupname for files.
+//config:	Allow ls to display username/groupname for files.
 //config:
 //config:config FEATURE_LS_COLOR
 //config:	bool "Allow use of color to identify file types"
 //config:	default y
 //config:	depends on LS && LONG_OPTS
 //config:	help
-//config:	  This enables the --color option to ls.
+//config:	This enables the --color option to ls.
 //config:
 //config:config FEATURE_LS_COLOR_IS_DEFAULT
 //config:	bool "Produce colored ls output by default"
 //config:	default y
 //config:	depends on FEATURE_LS_COLOR
 //config:	help
-//config:	  Saying yes here will turn coloring on by default,
-//config:	  even if no "--color" option is given to the ls command.
-//config:	  This is not recommended, since the colors are not
-//config:	  configurable, and the output may not be legible on
-//config:	  many output screens.
+//config:	Saying yes here will turn coloring on by default,
+//config:	even if no "--color" option is given to the ls command.
+//config:	This is not recommended, since the colors are not
+//config:	configurable, and the output may not be legible on
+//config:	many output screens.
 
 //applet:IF_LS(APPLET_NOEXEC(ls, ls, BB_DIR_BIN, BB_SUID_DROP, ls))
 

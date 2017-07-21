@@ -104,15 +104,15 @@
 //config:	bool "hush (64 kb)"
 //config:	default y
 //config:	help
-//config:	  hush is a small shell. It handles the normal flow control
-//config:	  constructs such as if/then/elif/else/fi, for/in/do/done, while loops,
-//config:	  case/esac. Redirections, here documents, $((arithmetic))
-//config:	  and functions are supported.
+//config:	hush is a small shell. It handles the normal flow control
+//config:	constructs such as if/then/elif/else/fi, for/in/do/done, while loops,
+//config:	case/esac. Redirections, here documents, $((arithmetic))
+//config:	and functions are supported.
 //config:
-//config:	  It will compile and work on no-mmu systems.
+//config:	It will compile and work on no-mmu systems.
 //config:
-//config:	  It does not handle select, aliases, tilde expansion,
-//config:	  &>file and >&file redirection of stdout+stderr.
+//config:	It does not handle select, aliases, tilde expansion,
+//config:	&>file and >&file redirection of stdout+stderr.
 //config:
 //config:config HUSH_BASH_COMPAT
 //config:	bool "bash-compatible extensions"
@@ -124,17 +124,17 @@
 //config:	default y
 //config:	depends on HUSH_BASH_COMPAT
 //config:	help
-//config:	  Enable {abc,def} extension.
+//config:	Enable {abc,def} extension.
 //config:
 //config:config HUSH_INTERACTIVE
 //config:	bool "Interactive mode"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable interactive mode (prompt and command editing).
-//config:	  Without this, hush simply reads and executes commands
-//config:	  from stdin just like a shell script from a file.
-//config:	  No prompt, no PS1/PS2 magic shell variables.
+//config:	Enable interactive mode (prompt and command editing).
+//config:	Without this, hush simply reads and executes commands
+//config:	from stdin just like a shell script from a file.
+//config:	No prompt, no PS1/PS2 magic shell variables.
 //config:
 //config:config HUSH_SAVEHISTORY
 //config:	bool "Save command history to .hush_history"
@@ -146,18 +146,18 @@
 //config:	default y
 //config:	depends on HUSH_INTERACTIVE
 //config:	help
-//config:	  Enable job control: Ctrl-Z backgrounds, Ctrl-C interrupts current
-//config:	  command (not entire shell), fg/bg builtins work. Without this option,
-//config:	  "cmd &" still works by simply spawning a process and immediately
-//config:	  prompting for next command (or executing next command in a script),
-//config:	  but no separate process group is formed.
+//config:	Enable job control: Ctrl-Z backgrounds, Ctrl-C interrupts current
+//config:	command (not entire shell), fg/bg builtins work. Without this option,
+//config:	"cmd &" still works by simply spawning a process and immediately
+//config:	prompting for next command (or executing next command in a script),
+//config:	but no separate process group is formed.
 //config:
 //config:config HUSH_TICK
 //config:	bool "Support process substitution"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable `command` and $(command).
+//config:	Enable `command` and $(command).
 //config:
 //config:config HUSH_IF
 //config:	bool "Support if/then/elif/else/fi"
@@ -174,37 +174,37 @@
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable case ... esac statement. +400 bytes.
+//config:	Enable case ... esac statement. +400 bytes.
 //config:
 //config:config HUSH_FUNCTIONS
 //config:	bool "Support funcname() { commands; } syntax"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable support for shell functions. +800 bytes.
+//config:	Enable support for shell functions. +800 bytes.
 //config:
 //config:config HUSH_LOCAL
 //config:	bool "local builtin"
 //config:	default y
 //config:	depends on HUSH_FUNCTIONS
 //config:	help
-//config:	  Enable support for local variables in functions.
+//config:	Enable support for local variables in functions.
 //config:
 //config:config HUSH_RANDOM_SUPPORT
 //config:	bool "Pseudorandom generator and $RANDOM variable"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable pseudorandom generator and dynamic variable "$RANDOM".
-//config:	  Each read of "$RANDOM" will generate a new pseudorandom value.
+//config:	Enable pseudorandom generator and dynamic variable "$RANDOM".
+//config:	Each read of "$RANDOM" will generate a new pseudorandom value.
 //config:
 //config:config HUSH_MODE_X
 //config:	bool "Support 'hush -x' option and 'set -x' command"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  This instructs hush to print commands before execution.
-//config:	  Adds ~300 bytes.
+//config:	This instructs hush to print commands before execution.
+//config:	Adds ~300 bytes.
 //config:
 //config:config HUSH_ECHO
 //config:	bool "echo builtin"
@@ -236,14 +236,14 @@
 //config:	default y
 //config:	depends on HUSH_EXPORT
 //config:	help
-//config:	  export -n unexports variables. It is a bash extension.
+//config:	export -n unexports variables. It is a bash extension.
 //config:
 //config:config HUSH_READONLY
 //config:	bool "readonly builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
-//config:	  Enable support for read-only variables.
+//config:	Enable support for read-only variables.
 //config:
 //config:config HUSH_KILL
 //config:	bool "kill builtin (supports kill %jobspec)"

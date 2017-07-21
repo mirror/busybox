@@ -11,10 +11,10 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  The hwclock utility is used to read and set the hardware clock
-//config:	  on a system. This is primarily used to set the current time on
-//config:	  shutdown in the hardware clock, so the hardware will keep the
-//config:	  correct time when Linux is _not_ running.
+//config:	The hwclock utility is used to read and set the hardware clock
+//config:	on a system. This is primarily used to set the current time on
+//config:	shutdown in the hardware clock, so the hardware will keep the
+//config:	correct time when Linux is _not_ running.
 //config:
 //config:config FEATURE_HWCLOCK_LONG_OPTIONS
 //config:	bool "Support long options (--hctosys,...)"
@@ -26,12 +26,12 @@
 //config:	default n  # util-linux-ng in Fedora 13 still uses /etc/adjtime
 //config:	depends on HWCLOCK
 //config:	help
-//config:	  Starting with FHS 2.3, the adjtime state file is supposed to exist
-//config:	  at /var/lib/hwclock/adjtime instead of /etc/adjtime. If you wish
-//config:	  to use the FHS behavior, answer Y here, otherwise answer N for the
-//config:	  classic /etc/adjtime path.
+//config:	Starting with FHS 2.3, the adjtime state file is supposed to exist
+//config:	at /var/lib/hwclock/adjtime instead of /etc/adjtime. If you wish
+//config:	to use the FHS behavior, answer Y here, otherwise answer N for the
+//config:	classic /etc/adjtime path.
 //config:
-//config:	  pathname.com/fhs/pub/fhs-2.3.html#VARLIBHWCLOCKSTATEDIRECTORYFORHWCLO
+//config:	pathname.com/fhs/pub/fhs-2.3.html#VARLIBHWCLOCKSTATEDIRECTORYFORHWCLO
 
 //applet:IF_HWCLOCK(APPLET(hwclock, BB_DIR_SBIN, BB_SUID_DROP))
 

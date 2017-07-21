@@ -9,7 +9,7 @@
 //config:	bool "blkdiscard (5.3 kb)"
 //config:	default y
 //config:	help
-//config:	  blkdiscard discards sectors on a given device.
+//config:	blkdiscard discards sectors on a given device.
 
 //kbuild:lib-$(CONFIG_BLKDISCARD) += blkdiscard.o
 //applet:IF_BLKDISCARD(APPLET(blkdiscard, BB_DIR_USR_BIN, BB_SUID_DROP))

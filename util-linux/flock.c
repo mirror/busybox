@@ -7,7 +7,7 @@
 //config:	bool "flock (6.1 kb)"
 //config:	default y
 //config:	help
-//config:	  Manage locks from shell scripts
+//config:	Manage locks from shell scripts
 
 //applet:IF_FLOCK(APPLET(flock, BB_DIR_USR_BIN, BB_SUID_DROP))
 

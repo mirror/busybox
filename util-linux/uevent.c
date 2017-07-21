@@ -8,8 +8,8 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  uevent is a netlink listener for kernel uevent notifications
-//config:	  sent via netlink. It is usually used for dynamic device creation.
+//config:	uevent is a netlink listener for kernel uevent notifications
+//config:	sent via netlink. It is usually used for dynamic device creation.
 
 //applet:IF_UEVENT(APPLET(uevent, BB_DIR_SBIN, BB_SUID_DROP))
 

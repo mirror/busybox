@@ -13,7 +13,7 @@
 ////config:	bool "Uniform config file parser debugging applet: parse"
 ////config:	default n
 ////config:	help
-////config:	  Typical usage of parse API:
+////config:	Typical usage of parse API:
 ////config:		char *t[3];
 ////config:		parser_t *p = config_open(filename);
 ////config:		while (config_read(p, t, 3, 0, delimiters, flags)) { // 1..3 tokens

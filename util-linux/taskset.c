@@ -10,17 +10,17 @@
 //config:	bool "taskset (4.1 kb)"
 //config:	default y
 //config:	help
-//config:	  Retrieve or set a processes's CPU affinity.
-//config:	  This requires sched_{g,s}etaffinity support in your libc.
+//config:	Retrieve or set a processes's CPU affinity.
+//config:	This requires sched_{g,s}etaffinity support in your libc.
 //config:
 //config:config FEATURE_TASKSET_FANCY
 //config:	bool "Fancy output"
 //config:	default y
 //config:	depends on TASKSET
 //config:	help
-//config:	  Needed for machines with more than 32-64 CPUs:
-//config:	  affinity parameter 0xHHHHHHHHHHHHHHHHHHHH can be arbitrarily long
-//config:	  in this case. Otherwise, it is limited to sizeof(long).
+//config:	Needed for machines with more than 32-64 CPUs:
+//config:	affinity parameter 0xHHHHHHHHHHHHHHHHHHHH can be arbitrarily long
+//config:	in this case. Otherwise, it is limited to sizeof(long).
 
 //applet:IF_TASKSET(APPLET(taskset, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_TASKSET) += taskset.o

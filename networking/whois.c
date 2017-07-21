@@ -14,7 +14,7 @@
 //config:	bool "whois (6.6 kb)"
 //config:	default y
 //config:	help
-//config:	  whois is a client for the whois directory service
+//config:	whois is a client for the whois directory service
 
 //applet:IF_WHOIS(APPLET(whois, BB_DIR_USR_BIN, BB_SUID_DROP))
 

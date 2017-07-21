@@ -17,26 +17,26 @@
  *----------------------------------------------------------------------
  */
 //config:config WHO
-//config:      bool "who (3.7 kb)"
-//config:      default y
-//config:      depends on FEATURE_UTMP
-//config:      help
-//config:        who is used to show who is logged on.
+//config:	bool "who (3.7 kb)"
+//config:	default y
+//config:	depends on FEATURE_UTMP
+//config:	help
+//config:	Print users currently logged on.
 //config:
 // procps-ng has this variation of "who":
 //config:config W
-//config:      bool "w (3.7 kb)"
-//config:      default y
-//config:      depends on FEATURE_UTMP
-//config:      help
-//config:        w is used to show who is logged on.
+//config:	bool "w (3.7 kb)"
+//config:	default y
+//config:	depends on FEATURE_UTMP
+//config:	help
+//config:	Print users currently logged on.
 //config:
 //config:config USERS
-//config:      bool "users (3.2 kb)"
-//config:      default y
-//config:      depends on FEATURE_UTMP
-//config:      help
-//config:        Print users currently logged on.
+//config:	bool "users (3.2 kb)"
+//config:	default y
+//config:	depends on FEATURE_UTMP
+//config:	help
+//config:	Print users currently logged on.
 
 //                APPLET_ODDNAME:name   main location        suid_type     help
 //applet:IF_USERS(APPLET_ODDNAME(users, who, BB_DIR_USR_BIN, BB_SUID_DROP, users))

@@ -22,8 +22,8 @@
 //config:	bool "renice (3.8 kb)"
 //config:	default y
 //config:	help
-//config:	  Renice alters the scheduling priority of one or more running
-//config:	  processes.
+//config:	Renice alters the scheduling priority of one or more running
+//config:	processes.
 
 //applet:IF_RENICE(APPLET(renice, BB_DIR_USR_BIN, BB_SUID_DROP))
 

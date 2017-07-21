@@ -13,10 +13,10 @@
 //config:	default y
 //config:	depends on VOLUMEID
 //config:	help
-//config:	  F2FS (aka Flash-Friendly File System) is a log-structured file system,
-//config:	  which is adapted to newer forms of storage. F2FS also remedies some
-//config:	  known issues of the older log structured file systems, such as high
-//config:	  cleaning overhead.
+//config:	F2FS (aka Flash-Friendly File System) is a log-structured file system,
+//config:	which is adapted to newer forms of storage. F2FS also remedies some
+//config:	known issues of the older log structured file systems, such as high
+//config:	cleaning overhead.
 
 #include "volume_id_internal.h"
 

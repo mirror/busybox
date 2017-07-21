@@ -14,29 +14,29 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  This program loads a console font from standard input.
+//config:	This program loads a console font from standard input.
 //config:
 //config:config SETFONT
 //config:	bool "setfont (26 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Allows to load console screen map. Useful for i18n.
+//config:	Allows to load console screen map. Useful for i18n.
 //config:
 //config:config FEATURE_SETFONT_TEXTUAL_MAP
 //config:	bool "Support reading textual screen maps"
 //config:	default y
 //config:	depends on SETFONT
 //config:	help
-//config:	  Support reading textual screen maps.
+//config:	Support reading textual screen maps.
 //config:
 //config:config DEFAULT_SETFONT_DIR
 //config:	string "Default directory for console-tools files"
 //config:	default ""
 //config:	depends on SETFONT
 //config:	help
-//config:	  Directory to use if setfont's params are simple filenames
-//config:	  (not /path/to/file or ./file). Default is "" (no default directory).
+//config:	Directory to use if setfont's params are simple filenames
+//config:	(not /path/to/file or ./file). Default is "" (no default directory).
 //config:
 //config:comment "Common options for loadfont and setfont"
 //config:	depends on LOADFONT || SETFONT

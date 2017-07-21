@@ -12,17 +12,17 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  When you want to remove a mounted filesystem from its current mount
-//config:	  point, for example when you are shutting down the system, the
-//config:	  'umount' utility is the tool to use. If you enabled the 'mount'
-//config:	  utility, you almost certainly also want to enable 'umount'.
+//config:	When you want to remove a mounted filesystem from its current mount
+//config:	point, for example when you are shutting down the system, the
+//config:	'umount' utility is the tool to use. If you enabled the 'mount'
+//config:	utility, you almost certainly also want to enable 'umount'.
 //config:
 //config:config FEATURE_UMOUNT_ALL
 //config:	bool "Support option -a"
 //config:	default y
 //config:	depends on UMOUNT
 //config:	help
-//config:	  Support -a option to unmount all currently mounted filesystems.
+//config:	Support -a option to unmount all currently mounted filesystems.
 
 //applet:IF_UMOUNT(APPLET(umount, BB_DIR_BIN, BB_SUID_DROP))
 

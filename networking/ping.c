@@ -51,23 +51,23 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  ping uses the ICMP protocol's mandatory ECHO_REQUEST datagram to
-//config:	  elicit an ICMP ECHO_RESPONSE from a host or gateway.
+//config:	ping uses the ICMP protocol's mandatory ECHO_REQUEST datagram to
+//config:	elicit an ICMP ECHO_RESPONSE from a host or gateway.
 //config:
 //config:config PING6
 //config:	bool "ping6 (10 kb)"
 //config:	default y
 //config:	depends on FEATURE_IPV6
 //config:	help
-//config:	  Alias to "ping -6".
+//config:	Alias to "ping -6".
 //config:
 //config:config FEATURE_FANCY_PING
 //config:	bool "Enable fancy ping output"
 //config:	default y
 //config:	depends on PING || PING6
 //config:	help
-//config:	  Make the output from the ping applet include statistics, and at the
-//config:	  same time provide full support for ICMP packets.
+//config:	Make the output from the ping applet include statistics, and at the
+//config:	same time provide full support for ICMP packets.
 
 /* Needs socket(AF_INET, SOCK_RAW, IPPROTO_ICMP), therefore BB_SUID_MAYBE: */
 //applet:IF_PING(APPLET(ping, BB_DIR_BIN, BB_SUID_MAYBE))

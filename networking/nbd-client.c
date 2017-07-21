@@ -15,7 +15,7 @@
 //config:	bool "nbd-client (4.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Network block device client
+//config:	Network block device client
 
 #define NBD_SET_SOCK          _IO(0xab, 0)
 #define NBD_SET_BLKSIZE       _IO(0xab, 1)

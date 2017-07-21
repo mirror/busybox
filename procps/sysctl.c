@@ -14,7 +14,7 @@
 //config:	bool "sysctl (6.9 kb)"
 //config:	default y
 //config:	help
-//config:	  Configure kernel parameters at runtime.
+//config:	Configure kernel parameters at runtime.
 
 //applet:IF_BB_SYSCTL(APPLET(sysctl, BB_DIR_SBIN, BB_SUID_DROP))
 

@@ -9,7 +9,7 @@
 //config:	bool "install (12 kb)"
 //config:	default y
 //config:	help
-//config:	  Copy files and set attributes.
+//config:	Copy files and set attributes.
 //config:
 //config:config FEATURE_INSTALL_LONG_OPTIONS
 //config:	bool "Enable long options"

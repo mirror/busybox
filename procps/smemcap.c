@@ -16,8 +16,8 @@
 //config:	bool "smemcap (2.5 kb)"
 //config:	default y
 //config:	help
-//config:	  smemcap is a tool for capturing process data for smem,
-//config:	  a memory usage statistic tool.
+//config:	smemcap is a tool for capturing process data for smem,
+//config:	a memory usage statistic tool.
 
 #include "libbb.h"
 #include "bb_archive.h"

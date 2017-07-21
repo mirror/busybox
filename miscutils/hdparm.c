@@ -16,58 +16,58 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Get/Set hard drive parameters. Primarily intended for ATA
-//config:	  drives.
+//config:	Get/Set hard drive parameters. Primarily intended for ATA
+//config:	drives.
 //config:
 //config:config FEATURE_HDPARM_GET_IDENTITY
 //config:	bool "Support obtaining detailed information directly from drives"
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enable the -I and -i options to obtain detailed information
-//config:	  directly from drives about their capabilities and supported ATA
-//config:	  feature set. If no device name is specified, hdparm will read
-//config:	  identify data from stdin. Enabling this option will add about 16k...
+//config:	Enable the -I and -i options to obtain detailed information
+//config:	directly from drives about their capabilities and supported ATA
+//config:	feature set. If no device name is specified, hdparm will read
+//config:	identify data from stdin. Enabling this option will add about 16k...
 //config:
 //config:config FEATURE_HDPARM_HDIO_SCAN_HWIF
 //config:	bool "Register an IDE interface (DANGEROUS)"
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enable the 'hdparm -R' option to register an IDE interface.
-//config:	  This is dangerous stuff, so you should probably say N.
+//config:	Enable the 'hdparm -R' option to register an IDE interface.
+//config:	This is dangerous stuff, so you should probably say N.
 //config:
 //config:config FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 //config:	bool "Un-register an IDE interface (DANGEROUS)"
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enable the 'hdparm -U' option to un-register an IDE interface.
-//config:	  This is dangerous stuff, so you should probably say N.
+//config:	Enable the 'hdparm -U' option to un-register an IDE interface.
+//config:	This is dangerous stuff, so you should probably say N.
 //config:
 //config:config FEATURE_HDPARM_HDIO_DRIVE_RESET
 //config:	bool "Perform device reset (DANGEROUS)"
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enable the 'hdparm -w' option to perform a device reset.
-//config:	  This is dangerous stuff, so you should probably say N.
+//config:	Enable the 'hdparm -w' option to perform a device reset.
+//config:	This is dangerous stuff, so you should probably say N.
 //config:
 //config:config FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 //config:	bool "Tristate device for hotswap (DANGEROUS)"
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enable the 'hdparm -x' option to tristate device for hotswap,
-//config:	  and the '-b' option to get/set bus state. This is dangerous
-//config:	  stuff, so you should probably say N.
+//config:	Enable the 'hdparm -x' option to tristate device for hotswap,
+//config:	and the '-b' option to get/set bus state. This is dangerous
+//config:	stuff, so you should probably say N.
 //config:
 //config:config FEATURE_HDPARM_HDIO_GETSET_DMA
 //config:	bool "Get/set using_dma flag"
 //config:	default y
 //config:	depends on HDPARM
 //config:	help
-//config:	  Enable the 'hdparm -d' option to get/set using_dma flag.
+//config:	Enable the 'hdparm -d' option to get/set using_dma flag.
 
 //applet:IF_HDPARM(APPLET(hdparm, BB_DIR_SBIN, BB_SUID_DROP))
 

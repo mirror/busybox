@@ -13,7 +13,7 @@
 //config:	bool "addgroup (8.2 kb)"
 //config:	default y
 //config:	help
-//config:	  Utility for creating a new group account.
+//config:	Utility for creating a new group account.
 //config:
 //config:config FEATURE_ADDGROUP_LONG_OPTIONS
 //config:	bool "Enable long options"
@@ -25,9 +25,9 @@
 //config:	default y
 //config:	depends on ADDGROUP
 //config:	help
-//config:	  If called with two non-option arguments,
-//config:	  addgroup will add an existing user to an
-//config:	  existing group.
+//config:	If called with two non-option arguments,
+//config:	addgroup will add an existing user to an
+//config:	existing group.
 
 //applet:IF_ADDGROUP(APPLET(addgroup, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

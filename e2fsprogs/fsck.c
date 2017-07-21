@@ -37,9 +37,9 @@
 //config:	bool "fsck (6.7 kb)"
 //config:	default y
 //config:	help
-//config:	  fsck is used to check and optionally repair one or more filesystems.
-//config:	  In actuality, fsck is simply a front-end for the various file system
-//config:	  checkers (fsck.fstype) available under Linux.
+//config:	fsck is used to check and optionally repair one or more filesystems.
+//config:	In actuality, fsck is simply a front-end for the various file system
+//config:	checkers (fsck.fstype) available under Linux.
 
 //applet:IF_FSCK(APPLET(fsck, BB_DIR_SBIN, BB_SUID_DROP))
 

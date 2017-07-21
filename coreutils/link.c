@@ -9,7 +9,7 @@
 //config:	bool "link (3.1 kb)"
 //config:	default y
 //config:	help
-//config:	  link creates hard links between files.
+//config:	link creates hard links between files.
 
 //applet:IF_LINK(APPLET_NOFORK(link, link, BB_DIR_BIN, BB_SUID_DROP, link))
 

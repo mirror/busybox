@@ -8,7 +8,7 @@
 //config:	bool "nl (4.3 kb)"
 //config:	default y
 //config:	help
-//config:	  nl is used to number lines of files.
+//config:	nl is used to number lines of files.
 
 //applet:IF_NL(APPLET(nl, BB_DIR_USR_BIN, BB_SUID_DROP))
 

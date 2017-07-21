@@ -10,13 +10,13 @@
 //config:	bool "pgrep (6.8 kb)"
 //config:	default y
 //config:	help
-//config:	  Look for processes by name.
+//config:	Look for processes by name.
 //config:
 //config:config PKILL
 //config:	bool "pkill (7.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Send signals to processes by name.
+//config:	Send signals to processes by name.
 
 //applet:IF_PGREP(APPLET(pgrep, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                APPLET_ODDNAME:name   main   location        suid_type     help

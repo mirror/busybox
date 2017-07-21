@@ -17,15 +17,15 @@
 //config:	bool "powertop (9.1 kb)"
 //config:	default y
 //config:	help
-//config:	  Analyze power consumption on Intel-based laptops
+//config:	Analyze power consumption on Intel-based laptops
 //config:
 //config:config FEATURE_POWERTOP_INTERACTIVE
 //config:	bool "Accept keyboard commands"
 //config:	default y
 //config:	depends on POWERTOP
 //config:	help
-//config:	  Without this, powertop will only refresh display every 10 seconds.
-//config:	  No keyboard commands will work, only ^C to terminate.
+//config:	Without this, powertop will only refresh display every 10 seconds.
+//config:	No keyboard commands will work, only ^C to terminate.
 
 // XXX This should be configurable
 #define ENABLE_FEATURE_POWERTOP_PROCIRQ 1

@@ -13,12 +13,12 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  The watchdog utility is used with hardware or software watchdog
-//config:	  device drivers. It opens the specified watchdog device special file
-//config:	  and periodically writes a magic character to the device. If the
-//config:	  watchdog applet ever fails to write the magic character within a
-//config:	  certain amount of time, the watchdog device assumes the system has
-//config:	  hung, and will cause the hardware to reboot.
+//config:	The watchdog utility is used with hardware or software watchdog
+//config:	device drivers. It opens the specified watchdog device special file
+//config:	and periodically writes a magic character to the device. If the
+//config:	watchdog applet ever fails to write the magic character within a
+//config:	certain amount of time, the watchdog device assumes the system has
+//config:	hung, and will cause the hardware to reboot.
 
 //applet:IF_WATCHDOG(APPLET(watchdog, BB_DIR_SBIN, BB_SUID_DROP))
 

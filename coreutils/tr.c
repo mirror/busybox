@@ -22,27 +22,27 @@
 //config:	bool "tr (5.5 kb)"
 //config:	default y
 //config:	help
-//config:	  tr is used to squeeze, and/or delete characters from standard
-//config:	  input, writing to standard output.
+//config:	tr is used to squeeze, and/or delete characters from standard
+//config:	input, writing to standard output.
 //config:
 //config:config FEATURE_TR_CLASSES
 //config:	bool "Enable character classes (such as [:upper:])"
 //config:	default y
 //config:	depends on TR
 //config:	help
-//config:	  Enable character classes, enabling commands such as:
-//config:	  tr [:upper:] [:lower:] to convert input into lowercase.
+//config:	Enable character classes, enabling commands such as:
+//config:	tr [:upper:] [:lower:] to convert input into lowercase.
 //config:
 //config:config FEATURE_TR_EQUIV
 //config:	bool "Enable equivalence classes"
 //config:	default y
 //config:	depends on TR
 //config:	help
-//config:	  Enable equivalence classes, which essentially add the enclosed
-//config:	  character to the current set. For instance, tr [=a=] xyz would
-//config:	  replace all instances of 'a' with 'xyz'. This option is mainly
-//config:	  useful for cases when no other way of expressing a character
-//config:	  is possible.
+//config:	Enable equivalence classes, which essentially add the enclosed
+//config:	character to the current set. For instance, tr [=a=] xyz would
+//config:	replace all instances of 'a' with 'xyz'. This option is mainly
+//config:	useful for cases when no other way of expressing a character
+//config:	is possible.
 
 //applet:IF_TR(APPLET(tr, BB_DIR_USR_BIN, BB_SUID_DROP))
 

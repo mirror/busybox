@@ -46,22 +46,22 @@
 //config:	bool "uname (3.7 kb)"
 //config:	default y
 //config:	help
-//config:	  uname is used to print system information.
+//config:	uname is used to print system information.
 //config:
 //config:config UNAME_OSNAME
 //config:	string "Operating system name"
 //config:	default "GNU/Linux"
 //config:	depends on UNAME
 //config:	help
-//config:	  Sets the operating system name reported by uname -o.  The
-//config:	  default is "GNU/Linux".
+//config:	Sets the operating system name reported by uname -o.  The
+//config:	default is "GNU/Linux".
 //config:
 //can't use "ARCH" for this applet, all hell breaks loose in build system :)
 //config:config BB_ARCH
 //config:	bool "arch (1.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Same as uname -m.
+//config:	Same as uname -m.
 
 //applet:IF_UNAME(APPLET(uname, BB_DIR_BIN, BB_SUID_DROP))
 //                  APPLET_ODDNAME:name  main   location    suid_type     help

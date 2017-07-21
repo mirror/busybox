@@ -16,29 +16,29 @@
 //config:	select PLATFORM_LINUX
 //config:	select FEATURE_SYSLOG
 //config:	help
-//config:	  nameif is used to rename network interface by its MAC address.
-//config:	  Renamed interfaces MUST be in the down state.
-//config:	  It is possible to use a file (default: /etc/mactab)
-//config:	  with list of new interface names and MACs.
-//config:	  Maximum interface name length: IFNAMSIZ = 16
-//config:	  File fields are separated by space or tab.
-//config:	  File format:
-//config:	  # Comment
-//config:	  new_interface_name    XX:XX:XX:XX:XX:XX
+//config:	nameif is used to rename network interface by its MAC address.
+//config:	Renamed interfaces MUST be in the down state.
+//config:	It is possible to use a file (default: /etc/mactab)
+//config:	with list of new interface names and MACs.
+//config:	Maximum interface name length: IFNAMSIZ = 16
+//config:	File fields are separated by space or tab.
+//config:	File format:
+//config:		# Comment
+//config:		new_interface_name  XX:XX:XX:XX:XX:XX
 //config:
 //config:config FEATURE_NAMEIF_EXTENDED
 //config:	bool "Extended nameif"
 //config:	default y
 //config:	depends on NAMEIF
 //config:	help
-//config:	  This extends the nameif syntax to support the bus_info, driver,
-//config:	  phyaddr selectors. The syntax is compatible to the normal nameif.
-//config:	  File format:
-//config:	    new_interface_name  driver=asix bus=usb-0000:00:08.2-3
-//config:	    new_interface_name  bus=usb-0000:00:08.2-3 00:80:C8:38:91:B5
-//config:	    new_interface_name  phy_address=2 00:80:C8:38:91:B5
-//config:	    new_interface_name  mac=00:80:C8:38:91:B5
-//config:	    new_interface_name  00:80:C8:38:91:B5
+//config:	This extends the nameif syntax to support the bus_info, driver,
+//config:	phyaddr selectors. The syntax is compatible to the normal nameif.
+//config:	File format:
+//config:		new_interface_name  driver=asix bus=usb-0000:00:08.2-3
+//config:		new_interface_name  bus=usb-0000:00:08.2-3 00:80:C8:38:91:B5
+//config:		new_interface_name  phy_address=2 00:80:C8:38:91:B5
+//config:		new_interface_name  mac=00:80:C8:38:91:B5
+//config:		new_interface_name  00:80:C8:38:91:B5
 
 //applet:IF_NAMEIF(APPLET(nameif, BB_DIR_SBIN, BB_SUID_DROP))
 

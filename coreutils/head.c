@@ -10,8 +10,8 @@
 //config:	bool "head (3.7 kb)"
 //config:	default y
 //config:	help
-//config:	  head is used to print the first specified number of lines
-//config:	  from files.
+//config:	head is used to print the first specified number of lines
+//config:	from files.
 //config:
 //config:config FEATURE_FANCY_HEAD
 //config:	bool "Enable -c, -q, and -v"

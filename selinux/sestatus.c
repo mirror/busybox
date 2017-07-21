@@ -12,7 +12,7 @@
 //config:	default n
 //config:	depends on SELINUX
 //config:	help
-//config:	  Displays the status of SELinux.
+//config:	Displays the status of SELinux.
 
 //applet:IF_SESTATUS(APPLET(sestatus, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

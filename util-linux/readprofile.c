@@ -36,7 +36,7 @@
 //config:	default y
 //config:	#select PLATFORM_LINUX
 //config:	help
-//config:	  This allows you to parse /proc/profile for basic profiling.
+//config:	This allows you to parse /proc/profile for basic profiling.
 
 //applet:IF_READPROFILE(APPLET(readprofile, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

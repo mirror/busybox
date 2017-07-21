@@ -8,7 +8,7 @@
 //config:	bool "shred (5 kb)"
 //config:	default y
 //config:	help
-//config:	  Overwrite a file to hide its contents, and optionally delete it
+//config:	Overwrite a file to hide its contents, and optionally delete it
 
 //applet:IF_SHRED(APPLET(shred, BB_DIR_USR_BIN, BB_SUID_DROP))
 

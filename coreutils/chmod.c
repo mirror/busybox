@@ -13,7 +13,7 @@
 //config:	bool "chmod (5.1 kb)"
 //config:	default y
 //config:	help
-//config:	  chmod is used to change the access permission of files.
+//config:	chmod is used to change the access permission of files.
 
 //applet:IF_CHMOD(APPLET_NOEXEC(chmod, chmod, BB_DIR_BIN, BB_SUID_DROP, chmod))
 

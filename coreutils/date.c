@@ -22,16 +22,16 @@
 //config:	bool "date (7.1 kb)"
 //config:	default y
 //config:	help
-//config:	  date is used to set the system date or display the
-//config:	  current time in the given format.
+//config:	date is used to set the system date or display the
+//config:	current time in the given format.
 //config:
 //config:config FEATURE_DATE_ISOFMT
 //config:	bool "Enable ISO date format output (-I)"
 //config:	default y
 //config:	depends on DATE
 //config:	help
-//config:	  Enable option (-I) to output an ISO-8601 compliant
-//config:	  date/time string.
+//config:	Enable option (-I) to output an ISO-8601 compliant
+//config:	date/time string.
 //config:
 //config:# defaults to "no": stat's nanosecond field is a bit non-portable
 //config:config FEATURE_DATE_NANO
@@ -40,23 +40,23 @@
 //config:	depends on DATE  # syscall(__NR_clock_gettime)
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Support %[num]N format specifier. Adds ~250 bytes of code.
+//config:	Support %[num]N format specifier. Adds ~250 bytes of code.
 //config:
 //config:config FEATURE_DATE_COMPAT
 //config:	bool "Support weird 'date MMDDhhmm[[YY]YY][.ss]' format"
 //config:	default y
 //config:	depends on DATE
 //config:	help
-//config:	  System time can be set by 'date -s DATE' and simply 'date DATE',
-//config:	  but formats of DATE string are different. 'date DATE' accepts
-//config:	  a rather weird MMDDhhmm[[YY]YY][.ss] format with completely
-//config:	  unnatural placement of year between minutes and seconds.
-//config:	  date -s (and other commands like touch -d) use more sensible
-//config:	  formats (for one, ISO format YYYY-MM-DD hh:mm:ss.ssssss).
+//config:	System time can be set by 'date -s DATE' and simply 'date DATE',
+//config:	but formats of DATE string are different. 'date DATE' accepts
+//config:	a rather weird MMDDhhmm[[YY]YY][.ss] format with completely
+//config:	unnatural placement of year between minutes and seconds.
+//config:	date -s (and other commands like touch -d) use more sensible
+//config:	formats (for one, ISO format YYYY-MM-DD hh:mm:ss.ssssss).
 //config:
-//config:	  With this option off, 'date DATE' is 'date -s DATE' support
-//config:	  the same format. With it on, 'date DATE' additionally supports
-//config:	  MMDDhhmm[[YY]YY][.ss] format.
+//config:	With this option off, 'date DATE' is 'date -s DATE' support
+//config:	the same format. With it on, 'date DATE' additionally supports
+//config:	MMDDhhmm[[YY]YY][.ss] format.
 
 //applet:IF_DATE(APPLET(date, BB_DIR_BIN, BB_SUID_DROP))
 

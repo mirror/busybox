@@ -17,7 +17,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Manipulate the system ARP cache.
+//config:	Manipulate the system ARP cache.
 
 //applet:IF_ARP(APPLET(arp, BB_DIR_SBIN, BB_SUID_DROP))
 

@@ -9,8 +9,8 @@
 //config:	bool "chrt (4.4 kb)"
 //config:	default y
 //config:	help
-//config:	  manipulate real-time attributes of a process.
-//config:	  This requires sched_{g,s}etparam support in your libc.
+//config:	manipulate real-time attributes of a process.
+//config:	This requires sched_{g,s}etparam support in your libc.
 
 //applet:IF_CHRT(APPLET(chrt, BB_DIR_USR_BIN, BB_SUID_DROP))
 

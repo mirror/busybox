@@ -21,63 +21,63 @@
 //config:	bool "ifup (17 kb)"
 //config:	default y
 //config:	help
-//config:	  Activate the specified interfaces. This applet makes use
-//config:	  of either "ifconfig" and "route" or the "ip" command to actually
-//config:	  configure network interfaces. Therefore, you will probably also want
-//config:	  to enable either IFCONFIG and ROUTE, or enable
-//config:	  FEATURE_IFUPDOWN_IP and the various IP options. Of
-//config:	  course you could use non-busybox versions of these programs, so
-//config:	  against my better judgement (since this will surely result in plenty
-//config:	  of support questions on the mailing list), I do not force you to
-//config:	  enable these additional options. It is up to you to supply either
-//config:	  "ifconfig", "route" and "run-parts" or the "ip" command, either
-//config:	  via busybox or via standalone utilities.
+//config:	Activate the specified interfaces. This applet makes use
+//config:	of either "ifconfig" and "route" or the "ip" command to actually
+//config:	configure network interfaces. Therefore, you will probably also want
+//config:	to enable either IFCONFIG and ROUTE, or enable
+//config:	FEATURE_IFUPDOWN_IP and the various IP options. Of
+//config:	course you could use non-busybox versions of these programs, so
+//config:	against my better judgement (since this will surely result in plenty
+//config:	of support questions on the mailing list), I do not force you to
+//config:	enable these additional options. It is up to you to supply either
+//config:	"ifconfig", "route" and "run-parts" or the "ip" command, either
+//config:	via busybox or via standalone utilities.
 //config:
 //config:config IFDOWN
 //config:	bool "ifdown (15 kb)"
 //config:	default y
 //config:	help
-//config:	  Deactivate the specified interfaces.
+//config:	Deactivate the specified interfaces.
 //config:
 //config:config IFUPDOWN_IFSTATE_PATH
 //config:	string "Absolute path to ifstate file"
 //config:	default "/var/run/ifstate"
 //config:	depends on IFUP || IFDOWN
 //config:	help
-//config:	  ifupdown keeps state information in a file called ifstate.
-//config:	  Typically it is located in /var/run/ifstate, however
-//config:	  some distributions tend to put it in other places
-//config:	  (debian, for example, uses /etc/network/run/ifstate).
-//config:	  This config option defines location of ifstate.
+//config:	ifupdown keeps state information in a file called ifstate.
+//config:	Typically it is located in /var/run/ifstate, however
+//config:	some distributions tend to put it in other places
+//config:	(debian, for example, uses /etc/network/run/ifstate).
+//config:	This config option defines location of ifstate.
 //config:
 //config:config FEATURE_IFUPDOWN_IP
 //config:	bool "Use ip tool (else ifconfig/route is used)"
 //config:	default y
 //config:	depends on IFUP || IFDOWN
 //config:	help
-//config:	  Use the iproute "ip" command to implement "ifup" and "ifdown", rather
-//config:	  than the default of using the older "ifconfig" and "route" utilities.
+//config:	Use the iproute "ip" command to implement "ifup" and "ifdown", rather
+//config:	than the default of using the older "ifconfig" and "route" utilities.
 //config:
-//config:	  If Y: you must install either the full-blown iproute2 package
-//config:	  or enable "ip" applet in Busybox, or the "ifup" and "ifdown" applets
-//config:	  will not work.
+//config:	If Y: you must install either the full-blown iproute2 package
+//config:	or enable "ip" applet in Busybox, or the "ifup" and "ifdown" applets
+//config:	will not work.
 //config:
-//config:	  If N: you must install either the full-blown ifconfig and route
-//config:	  utilities, or enable these applets in Busybox.
+//config:	If N: you must install either the full-blown ifconfig and route
+//config:	utilities, or enable these applets in Busybox.
 //config:
 //config:config FEATURE_IFUPDOWN_IPV4
 //config:	bool "Support IPv4"
 //config:	default y
 //config:	depends on IFUP || IFDOWN
 //config:	help
-//config:	  If you want ifup/ifdown to talk IPv4, leave this on.
+//config:	If you want ifup/ifdown to talk IPv4, leave this on.
 //config:
 //config:config FEATURE_IFUPDOWN_IPV6
 //config:	bool "Support IPv6"
 //config:	default y
 //config:	depends on (IFUP || IFDOWN) && FEATURE_IPV6
 //config:	help
-//config:	  If you need support for IPv6, turn this option on.
+//config:	If you need support for IPv6, turn this option on.
 //config:
 //UNUSED:
 ////////:config FEATURE_IFUPDOWN_IPX
@@ -93,18 +93,18 @@
 //config:	default y
 //config:	depends on IFUP || IFDOWN
 //config:	help
-//config:	  This enables support for the "mapping" stanza, unless you have
-//config:	  a weird network setup you don't need it.
+//config:	This enables support for the "mapping" stanza, unless you have
+//config:	a weird network setup you don't need it.
 //config:
 //config:config FEATURE_IFUPDOWN_EXTERNAL_DHCP
 //config:	bool "Support external DHCP clients"
 //config:	default n
 //config:	depends on IFUP || IFDOWN
 //config:	help
-//config:	  This enables support for the external dhcp clients. Clients are
-//config:	  tried in the following order: dhcpcd, dhclient, pump and udhcpc.
-//config:	  Otherwise, if udhcpc applet is enabled, it is used.
-//config:	  Otherwise, ifup/ifdown will have no support for DHCP.
+//config:	This enables support for the external dhcp clients. Clients are
+//config:	tried in the following order: dhcpcd, dhclient, pump and udhcpc.
+//config:	Otherwise, if udhcpc applet is enabled, it is used.
+//config:	Otherwise, ifup/ifdown will have no support for DHCP.
 
 //                 APPLET_ODDNAME:name    main      location     suid_type     help
 //applet:IF_IFUP(  APPLET_ODDNAME(ifup,   ifupdown, BB_DIR_SBIN, BB_SUID_DROP, ifup))

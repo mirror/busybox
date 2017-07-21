@@ -10,8 +10,8 @@
 //config:	bool "mknod (4 kb)"
 //config:	default y
 //config:	help
-//config:	  mknod is used to create FIFOs or block/character special
-//config:	  files with the specified names.
+//config:	mknod is used to create FIFOs or block/character special
+//config:	files with the specified names.
 
 //applet:IF_MKNOD(APPLET_NOEXEC(mknod, mknod, BB_DIR_BIN, BB_SUID_DROP, mknod))
 

@@ -26,19 +26,19 @@
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help
-//config:	  getty lets you log in on a tty. It is normally invoked by init.
+//config:	getty lets you log in on a tty. It is normally invoked by init.
 //config:
-//config:	  Note that you can save a few bytes by disabling it and
-//config:	  using login applet directly.
-//config:	  If you need to reset tty attributes before calling login,
-//config:	  this script approximates getty:
+//config:	Note that you can save a few bytes by disabling it and
+//config:	using login applet directly.
+//config:	If you need to reset tty attributes before calling login,
+//config:	this script approximates getty:
 //config:
-//config:	  exec </dev/$1 >/dev/$1 2>&1 || exit 1
-//config:	  reset
-//config:	  stty sane; stty ispeed 38400; stty ospeed 38400
-//config:	  printf "%s login: " "`hostname`"
-//config:	  read -r login
-//config:	  exec /bin/login "$login"
+//config:	exec </dev/$1 >/dev/$1 2>&1 || exit 1
+//config:	reset
+//config:	stty sane; stty ispeed 38400; stty ospeed 38400
+//config:	printf "%s login: " "`hostname`"
+//config:	read -r login
+//config:	exec /bin/login "$login"
 
 //applet:IF_GETTY(APPLET(getty, BB_DIR_SBIN, BB_SUID_DROP))
 

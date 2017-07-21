@@ -11,7 +11,7 @@
 //config:	default n
 //config:	depends on SELINUX
 //config:	help
-//config:	  Enable support to modify the mode SELinux is running in.
+//config:	Enable support to modify the mode SELinux is running in.
 
 //applet:IF_SETENFORCE(APPLET(setenforce, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

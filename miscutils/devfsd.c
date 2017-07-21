@@ -59,56 +59,55 @@
 //config:	select PLATFORM_LINUX
 //config:	select FEATURE_SYSLOG
 //config:	help
-//config:	  This is deprecated and should NOT be used anymore.
-//config:	  Use linux >= 2.6 (optionally with hotplug) and mdev instead!
-//config:	  See docs/mdev.txt for detailed instructions on how to use mdev
-//config:	  instead.
+//config:	This is deprecated and should NOT be used anymore.
+//config:	Use linux >= 2.6 (optionally with hotplug) and mdev instead!
+//config:	See docs/mdev.txt for detailed instructions on how to use mdev
+//config:	instead.
 //config:
-//config:	  Provides compatibility with old device names on a devfs systems.
-//config:	  You should set it to true if you have devfs enabled.
-//config:	  The following keywords in devsfd.conf are supported:
-//config:	  "CLEAR_CONFIG", "INCLUDE", "OPTIONAL_INCLUDE", "RESTORE",
-//config:	  "PERMISSIONS", "EXECUTE", "COPY", "IGNORE",
-//config:	  "MKOLDCOMPAT", "MKNEWCOMPAT","RMOLDCOMPAT", "RMNEWCOMPAT".
+//config:	Provides compatibility with old device names on a devfs systems.
+//config:	You should set it to true if you have devfs enabled.
+//config:	The following keywords in devsfd.conf are supported:
+//config:	"CLEAR_CONFIG", "INCLUDE", "OPTIONAL_INCLUDE", "RESTORE",
+//config:	"PERMISSIONS", "EXECUTE", "COPY", "IGNORE",
+//config:	"MKOLDCOMPAT", "MKNEWCOMPAT","RMOLDCOMPAT", "RMNEWCOMPAT".
 //config:
-//config:	  But only if they are written UPPERCASE!!!!!!!!
+//config:	But only if they are written UPPERCASE!!!!!!!!
 //config:
 //config:config DEVFSD_MODLOAD
 //config:	bool "Adds support for MODLOAD keyword in devsfd.conf"
 //config:	default y
 //config:	depends on DEVFSD
 //config:	help
-//config:	  This actually doesn't work with busybox modutils but needs
-//config:	  the external modutils.
+//config:	This actually doesn't work with busybox modutils but needs
+//config:	the external modutils.
 //config:
 //config:config DEVFSD_FG_NP
 //config:	bool "Enable the -fg and -np options"
 //config:	default y
 //config:	depends on DEVFSD
 //config:	help
-//config:	  -fg  Run the daemon in the foreground.
-//config:	  -np  Exit after parsing the configuration file.
-//config:	       Do not poll for events.
+//config:	-fg  Run the daemon in the foreground.
+//config:	-np  Exit after parsing config. Do not poll for events.
 //config:
 //config:config DEVFSD_VERBOSE
 //config:	bool "Increases logging (and size)"
 //config:	default y
 //config:	depends on DEVFSD
 //config:	help
-//config:	  Increases logging to stderr or syslog.
+//config:	Increases logging to stderr or syslog.
 //config:
 //config:config FEATURE_DEVFS
 //config:	bool "Use devfs names for all devices (obsolete)"
 //config:	default n
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  This is obsolete and should NOT be used anymore.
-//config:	  Use linux >= 2.6 (optionally with hotplug) and mdev instead!
+//config:	This is obsolete and should NOT be used anymore.
+//config:	Use linux >= 2.6 (optionally with hotplug) and mdev instead!
 //config:
-//config:	  For legacy systems -- if there is no way around devfsd -- this
-//config:	  tells busybox to look for names like /dev/loop/0 instead of
-//config:	  /dev/loop0. If your /dev directory has normal names instead of
-//config:	  devfs names, you don't want this.
+//config:	For legacy systems -- if there is no way around devfsd -- this
+//config:	tells busybox to look for names like /dev/loop/0 instead of
+//config:	/dev/loop0. If your /dev directory has normal names instead of
+//config:	devfs names, you don't want this.
 
 //applet:IF_DEVFSD(APPLET(devfsd, BB_DIR_SBIN, BB_SUID_DROP))
 

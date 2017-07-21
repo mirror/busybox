@@ -9,8 +9,8 @@
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help
-//config:	  sulogin is invoked when the system goes into single user
-//config:	  mode (this is done through an entry in inittab).
+//config:	sulogin is invoked when the system goes into single user
+//config:	mode (this is done through an entry in inittab).
 
 //applet:IF_SULOGIN(APPLET(sulogin, BB_DIR_SBIN, BB_SUID_DROP))
 

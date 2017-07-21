@@ -13,7 +13,7 @@
 //config:	select PLATFORM_LINUX
 //config:	select LONG_OPTS
 //config:	help
-//config:	  Run program with some namespaces unshared from parent.
+//config:	Run program with some namespaces unshared from parent.
 
 // needs LONG_OPTS: it is awkward to exclude code which handles --propagation
 // and --setgroups based on LONG_OPTS, so instead applet requires LONG_OPTS.

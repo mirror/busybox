@@ -11,8 +11,8 @@
 //config:	default n
 //config:	depends on SELINUX
 //config:	help
-//config:	  Enable support for this command to be used within shell scripts
-//config:	  to determine if selinux is enabled.
+//config:	Enable support for this command to be used within shell scripts
+//config:	to determine if selinux is enabled.
 
 //applet:IF_SELINUXENABLED(APPLET(selinuxenabled, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

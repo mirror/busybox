@@ -14,7 +14,7 @@
 //config:	bool "pstree (9.4 kb)"
 //config:	default y
 //config:	help
-//config:	  Display a tree of processes.
+//config:	Display a tree of processes.
 
 //applet:IF_PSTREE(APPLET(pstree, BB_DIR_USR_BIN, BB_SUID_DROP))
 

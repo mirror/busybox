@@ -19,47 +19,47 @@
 //config:	bool "xargs (6.7 kb)"
 //config:	default y
 //config:	help
-//config:	  xargs is used to execute a specified command for
-//config:	  every item from standard input.
+//config:	xargs is used to execute a specified command for
+//config:	every item from standard input.
 //config:
 //config:config FEATURE_XARGS_SUPPORT_CONFIRMATION
 //config:	bool "Enable -p: prompt and confirmation"
 //config:	default y
 //config:	depends on XARGS
 //config:	help
-//config:	  Support -p: prompt the user whether to run each command
-//config:	  line and read a line from the terminal.
+//config:	Support -p: prompt the user whether to run each command
+//config:	line and read a line from the terminal.
 //config:
 //config:config FEATURE_XARGS_SUPPORT_QUOTES
 //config:	bool "Enable single and double quotes and backslash"
 //config:	default y
 //config:	depends on XARGS
 //config:	help
-//config:	  Support quoting in the input.
+//config:	Support quoting in the input.
 //config:
 //config:config FEATURE_XARGS_SUPPORT_TERMOPT
 //config:	bool "Enable -x: exit if -s or -n is exceeded"
 //config:	default y
 //config:	depends on XARGS
 //config:	help
-//config:	  Support -x: exit if the command size (see the -s or -n option)
-//config:	  is exceeded.
+//config:	Support -x: exit if the command size (see the -s or -n option)
+//config:	is exceeded.
 //config:
 //config:config FEATURE_XARGS_SUPPORT_ZERO_TERM
 //config:	bool "Enable -0: NUL-terminated input"
 //config:	default y
 //config:	depends on XARGS
 //config:	help
-//config:	  Support -0: input items are terminated by a NUL character
-//config:	  instead of whitespace, and the quotes and backslash
-//config:	  are not special.
+//config:	Support -0: input items are terminated by a NUL character
+//config:	instead of whitespace, and the quotes and backslash
+//config:	are not special.
 //config:
 //config:config FEATURE_XARGS_SUPPORT_REPL_STR
 //config:	bool "Enable -I STR: string to replace"
 //config:	default y
 //config:	depends on XARGS
 //config:	help
-//config:	  Support -I STR and -i[STR] options.
+//config:	Support -I STR and -i[STR] options.
 
 //applet:IF_XARGS(APPLET_NOEXEC(xargs, xargs, BB_DIR_USR_BIN, BB_SUID_DROP, xargs))
 

@@ -10,8 +10,8 @@
 //config:	bool "hostid (247 bytes)"
 //config:	default y
 //config:	help
-//config:	  hostid prints the numeric identifier (in hexadecimal) for
-//config:	  the current host.
+//config:	hostid prints the numeric identifier (in hexadecimal) for
+//config:	the current host.
 
 //applet:IF_HOSTID(APPLET_NOFORK(hostid, hostid, BB_DIR_USR_BIN, BB_SUID_DROP, hostid))
 

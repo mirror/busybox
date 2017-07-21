@@ -10,34 +10,34 @@
 //config:	bool "nc (11 kb)"
 //config:	default y
 //config:	help
-//config:	  A simple Unix utility which reads and writes data across network
-//config:	  connections.
+//config:	A simple Unix utility which reads and writes data across network
+//config:	connections.
 //config:
 //config:config NC_SERVER
 //config:	bool "Netcat server options (-l)"
 //config:	default y
 //config:	depends on NC
 //config:	help
-//config:	  Allow netcat to act as a server.
+//config:	Allow netcat to act as a server.
 //config:
 //config:config NC_EXTRA
 //config:	bool "Netcat extensions (-eiw and -f FILE)"
 //config:	default y
 //config:	depends on NC
 //config:	help
-//config:	  Add -e (support for executing the rest of the command line after
-//config:	  making or receiving a successful connection), -i (delay interval for
-//config:	  lines sent), -w (timeout for initial connection).
+//config:	Add -e (support for executing the rest of the command line after
+//config:	making or receiving a successful connection), -i (delay interval for
+//config:	lines sent), -w (timeout for initial connection).
 //config:
 //config:config NC_110_COMPAT
 //config:	bool "Netcat 1.10 compatibility (+2.5k)"
 //config:	default n  # off specially for Rob
 //config:	depends on NC
 //config:	help
-//config:	  This option makes nc closely follow original nc-1.10.
-//config:	  The code is about 2.5k bigger. It enables
-//config:	  -s ADDR, -n, -u, -v, -o FILE, -z options, but loses
-//config:	  busybox-specific extensions: -f FILE.
+//config:	This option makes nc closely follow original nc-1.10.
+//config:	The code is about 2.5k bigger. It enables
+//config:	-s ADDR, -n, -u, -v, -o FILE, -z options, but loses
+//config:	busybox-specific extensions: -f FILE.
 
 //applet:IF_NC(APPLET(nc, BB_DIR_USR_BIN, BB_SUID_DROP))
 

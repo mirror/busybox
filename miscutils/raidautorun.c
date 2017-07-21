@@ -12,8 +12,8 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  raidautorun tells the kernel md driver to
-//config:	  search and start RAID arrays.
+//config:	raidautorun tells the kernel md driver to
+//config:	search and start RAID arrays.
 
 //applet:IF_RAIDAUTORUN(APPLET(raidautorun, BB_DIR_SBIN, BB_SUID_DROP))
 

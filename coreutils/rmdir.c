@@ -10,15 +10,15 @@
 //config:	bool "rmdir (3.4 kb)"
 //config:	default y
 //config:	help
-//config:	  rmdir is used to remove empty directories.
+//config:	rmdir is used to remove empty directories.
 //config:
 //config:config FEATURE_RMDIR_LONG_OPTIONS
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on RMDIR && LONG_OPTS
 //config:	help
-//config:	  Support long options for the rmdir applet, including
-//config:	  --ignore-fail-on-non-empty for compatibility with GNU rmdir.
+//config:	Support long options for the rmdir applet, including
+//config:	--ignore-fail-on-non-empty for compatibility with GNU rmdir.
 
 //applet:IF_RMDIR(APPLET_NOFORK(rmdir, rmdir, BB_DIR_BIN, BB_SUID_DROP, rmdir))
 

@@ -17,15 +17,15 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Used to eject cdroms. (defaults to /dev/cdrom)
+//config:	Used to eject cdroms. (defaults to /dev/cdrom)
 //config:
 //config:config FEATURE_EJECT_SCSI
 //config:	bool "SCSI support"
 //config:	default y
 //config:	depends on EJECT
 //config:	help
-//config:	  Add the -s option to eject, this allows to eject SCSI-Devices and
-//config:	  usb-storage devices.
+//config:	Add the -s option to eject, this allows to eject SCSI-Devices and
+//config:	usb-storage devices.
 
 //applet:IF_EJECT(APPLET(eject, BB_DIR_USR_BIN, BB_SUID_DROP))
 

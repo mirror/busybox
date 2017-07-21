@@ -12,7 +12,7 @@
 //config:	default n
 //config:	depends on SELINUX
 //config:	help
-//config:	  Enable support to change the security context of file.
+//config:	Enable support to change the security context of file.
 //config:
 //config:config FEATURE_CHCON_LONG_OPTIONS
 //config:	bool "Enable long options"

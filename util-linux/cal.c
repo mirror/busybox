@@ -14,7 +14,7 @@
 //config:	bool "cal (6.5 kb)"
 //config:	default y
 //config:	help
-//config:	  cal is used to display a monthly calendar.
+//config:	cal is used to display a monthly calendar.
 
 //applet:IF_CAL(APPLET(cal, BB_DIR_USR_BIN, BB_SUID_DROP))
 

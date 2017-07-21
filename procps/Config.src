@@ -12,7 +12,7 @@ config FEATURE_SHOW_THREADS
 	default y
 	depends on PS || TOP || PSTREE
 	help
-	  Enables the ps -T option, showing of threads in pstree,
-	  and 'h' command in top.
+	Enables the ps -T option, showing of threads in pstree,
+	and 'h' command in top.
 
 endmenu

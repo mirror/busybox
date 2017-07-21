@@ -36,15 +36,15 @@
 //config:	bool "wc (4.4 kb)"
 //config:	default y
 //config:	help
-//config:	  wc is used to print the number of bytes, words, and lines,
-//config:	  in specified files.
+//config:	wc is used to print the number of bytes, words, and lines,
+//config:	in specified files.
 //config:
 //config:config FEATURE_WC_LARGE
 //config:	bool "Support very large counts"
 //config:	default y
 //config:	depends on WC
 //config:	help
-//config:	  Use "unsigned long long" for counter variables.
+//config:	Use "unsigned long long" for counter variables.
 
 //applet:IF_WC(APPLET(wc, BB_DIR_USR_BIN, BB_SUID_DROP))
 

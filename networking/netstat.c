@@ -18,23 +18,23 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  netstat prints information about the Linux networking subsystem.
+//config:	netstat prints information about the Linux networking subsystem.
 //config:
 //config:config FEATURE_NETSTAT_WIDE
 //config:	bool "Enable wide output"
 //config:	default y
 //config:	depends on NETSTAT
 //config:	help
-//config:	  Add support for wide columns. Useful when displaying IPv6 addresses
-//config:	  (-W option).
+//config:	Add support for wide columns. Useful when displaying IPv6 addresses
+//config:	(-W option).
 //config:
 //config:config FEATURE_NETSTAT_PRG
 //config:	bool "Enable PID/Program name output"
 //config:	default y
 //config:	depends on NETSTAT
 //config:	help
-//config:	  Add support for -p flag to print out PID and program name.
-//config:	  +700 bytes of code.
+//config:	Add support for -p flag to print out PID and program name.
+//config:	+700 bytes of code.
 
 //applet:IF_NETSTAT(APPLET(netstat, BB_DIR_BIN, BB_SUID_DROP))
 

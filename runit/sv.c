@@ -157,23 +157,23 @@ Exit Codes
 //config:	bool "sv (7.8 kb)"
 //config:	default y
 //config:	help
-//config:	  sv reports the current status and controls the state of services
-//config:	  monitored by the runsv supervisor.
+//config:	sv reports the current status and controls the state of services
+//config:	monitored by the runsv supervisor.
 //config:
 //config:config SV_DEFAULT_SERVICE_DIR
 //config:	string "Default directory for services"
 //config:	default "/var/service"
 //config:	depends on SV
 //config:	help
-//config:	  Default directory for services.
-//config:	  Defaults to "/var/service"
+//config:	Default directory for services.
+//config:	Defaults to "/var/service"
 //config:
 //config:config SVC
 //config:	bool "svc (7.8 kb)"
 //config:	default y
 //config:	help
-//config:	  svc controls the state of services monitored by the runsv supervisor.
-//config:	  It is comaptible with daemontools command with the same name.
+//config:	svc controls the state of services monitored by the runsv supervisor.
+//config:	It is comaptible with daemontools command with the same name.
 
 //applet:IF_SV(APPLET(sv, BB_DIR_USR_BIN, BB_SUID_DROP))
 //applet:IF_SVC(APPLET(svc, BB_DIR_USR_BIN, BB_SUID_DROP))

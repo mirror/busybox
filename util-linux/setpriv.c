@@ -13,36 +13,36 @@
 //config:	select PLATFORM_LINUX
 //config:	select LONG_OPTS
 //config:	help
-//config:	  Run a program with different Linux privilege settings.
-//config:	  Requires kernel >= 3.5
+//config:	Run a program with different Linux privilege settings.
+//config:	Requires kernel >= 3.5
 //config:
 //config:config FEATURE_SETPRIV_DUMP
 //config:	bool "Support dumping current privilege state"
 //config:	default y
 //config:	depends on SETPRIV
 //config:	help
-//config:	  Enables the "--dump" switch to print out the current privilege
-//config:	  state. This is helpful for diagnosing problems.
+//config:	Enables the "--dump" switch to print out the current privilege
+//config:	state. This is helpful for diagnosing problems.
 //config:
 //config:config FEATURE_SETPRIV_CAPABILITIES
 //config:	bool "Support capabilities"
 //config:	default y
 //config:	depends on SETPRIV
 //config:	help
-//config:	  Capabilities can be used to grant processes additional rights
-//config:	  without the necessity to always execute as the root user.
-//config:	  Enabling this option enables "--dump" to show information on
-//config:	  capabilities.
+//config:	Capabilities can be used to grant processes additional rights
+//config:	without the necessity to always execute as the root user.
+//config:	Enabling this option enables "--dump" to show information on
+//config:	capabilities.
 //config:
 //config:config FEATURE_SETPRIV_CAPABILITY_NAMES
 //config:	bool "Support capability names"
 //config:	default y
 //config:	depends on SETPRIV && FEATURE_SETPRIV_CAPABILITIES
 //config:	help
-//config:	  Capabilities can be either referenced via a human-readble name,
-//config:	  e.g. "net_admin", or using their index, e.g. "cap_12". Enabling
-//config:	  this option allows using the human-readable names in addition to
-//config:	  the index-based names.
+//config:	Capabilities can be either referenced via a human-readble name,
+//config:	e.g. "net_admin", or using their index, e.g. "cap_12". Enabling
+//config:	this option allows using the human-readable names in addition to
+//config:	the index-based names.
 
 //applet:IF_SETPRIV(APPLET(setpriv, BB_DIR_BIN, BB_SUID_DROP))
 

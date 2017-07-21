@@ -31,8 +31,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //config:	bool "runsv (7.2 kb)"
 //config:	default y
 //config:	help
-//config:	  runsv starts and monitors a service and optionally an appendant log
-//config:	  service.
+//config:	runsv starts and monitors a service and optionally an appendant log
+//config:	service.
 
 //applet:IF_RUNSV(APPLET(runsv, BB_DIR_USR_BIN, BB_SUID_DROP))
 

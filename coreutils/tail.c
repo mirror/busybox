@@ -22,20 +22,20 @@
 //config:	bool "tail (7.1 kb)"
 //config:	default y
 //config:	help
-//config:	  tail is used to print the last specified number of lines
-//config:	  from files.
+//config:	tail is used to print the last specified number of lines
+//config:	from files.
 //config:
 //config:config FEATURE_FANCY_TAIL
 //config:	bool "Enable -q, -s, -v, and -F options"
 //config:	default y
 //config:	depends on TAIL
 //config:	help
-//config:	  These options are provided by GNU tail, but
-//config:	  are not specific in the SUSv3 standard:
-//config:	    -q      Never output headers giving file names
-//config:	    -s SEC  Wait SEC seconds between reads with -f
-//config:	    -v      Always output headers giving file names
-//config:	    -F      Same as -f, but keep retrying
+//config:	These options are provided by GNU tail, but
+//config:	are not specified in the SUSv3 standard:
+//config:		-q      Never output headers giving file names
+//config:		-s SEC  Wait SEC seconds between reads with -f
+//config:		-v      Always output headers giving file names
+//config:		-F      Same as -f, but keep retrying
 
 //applet:IF_TAIL(APPLET(tail, BB_DIR_USR_BIN, BB_SUID_DROP))
 

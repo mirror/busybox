@@ -45,9 +45,9 @@
 //config:	bool "tar (40 kb)"
 //config:	default y
 //config:	help
-//config:	  tar is an archiving program. It's commonly used with gzip to
-//config:	  create compressed archives. It's probably the most widely used
-//config:	  UNIX archive program.
+//config:	tar is an archiving program. It's commonly used with gzip to
+//config:	create compressed archives. It's probably the most widely used
+//config:	UNIX archive program.
 //config:
 //config:config FEATURE_TAR_LONG_OPTIONS
 //config:	bool "Enable long options"
@@ -64,35 +64,35 @@
 //config:	default y
 //config:	depends on TAR && (FEATURE_SEAMLESS_Z || FEATURE_SEAMLESS_GZ || FEATURE_SEAMLESS_BZ2 || FEATURE_SEAMLESS_LZMA || FEATURE_SEAMLESS_XZ)
 //config:	help
-//config:	  With this option tar can automatically detect compressed
-//config:	  tarballs. Currently it works only on files (not pipes etc).
+//config:	With this option tar can automatically detect compressed
+//config:	tarballs. Currently it works only on files (not pipes etc).
 //config:
 //config:config FEATURE_TAR_FROM
 //config:	bool "Enable -X (exclude from) and -T (include from) options)"
 //config:	default y
 //config:	depends on TAR
 //config:	help
-//config:	  If you enable this option you'll be able to specify
-//config:	  a list of files to include or exclude from an archive.
+//config:	If you enable this option you'll be able to specify
+//config:	a list of files to include or exclude from an archive.
 //config:
 //config:config FEATURE_TAR_OLDGNU_COMPATIBILITY
 //config:	bool "Support old tar header format"
 //config:	default y
 //config:	depends on TAR || DPKG
 //config:	help
-//config:	  This option is required to unpack archives created in
-//config:	  the old GNU format; help to kill this old format by
-//config:	  repacking your ancient archives with the new format.
+//config:	This option is required to unpack archives created in
+//config:	the old GNU format; help to kill this old format by
+//config:	repacking your ancient archives with the new format.
 //config:
 //config:config FEATURE_TAR_OLDSUN_COMPATIBILITY
 //config:	bool "Enable untarring of tarballs with checksums produced by buggy Sun tar"
 //config:	default y
 //config:	depends on TAR || DPKG
 //config:	help
-//config:	  This option is required to unpack archives created by some old
-//config:	  version of Sun's tar (it was calculating checksum using signed
-//config:	  arithmetic). It is said to be fixed in newer Sun tar, but "old"
-//config:	  tarballs still exist.
+//config:	This option is required to unpack archives created by some old
+//config:	version of Sun's tar (it was calculating checksum using signed
+//config:	arithmetic). It is said to be fixed in newer Sun tar, but "old"
+//config:	tarballs still exist.
 //config:
 //config:config FEATURE_TAR_GNU_EXTENSIONS
 //config:	bool "Support GNU tar extensions (long filenames)"
@@ -104,18 +104,18 @@
 //config:	default y
 //config:	depends on TAR && FEATURE_TAR_LONG_OPTIONS
 //config:	help
-//config:	  If you enable this option you'll be able to instruct tar to send
-//config:	  the contents of each extracted file to the standard input of an
-//config:	  external program.
+//config:	If you enable this option you'll be able to instruct tar to send
+//config:	the contents of each extracted file to the standard input of an
+//config:	external program.
 //config:
 //config:config FEATURE_TAR_UNAME_GNAME
 //config:	bool "Enable use of user and group names"
 //config:	default y
 //config:	depends on TAR
 //config:	help
-//config:	  Enable use of user and group names in tar. This affects contents
-//config:	  listings (-t) and preserving permissions when unpacking (-p).
-//config:	  +200 bytes.
+//config:	Enable use of user and group names in tar. This affects contents
+//config:	listings (-t) and preserving permissions when unpacking (-p).
+//config:	+200 bytes.
 //config:
 //config:config FEATURE_TAR_NOPRESERVE_TIME
 //config:	bool "Enable -m (do not preserve time) GNU option"
@@ -127,8 +127,8 @@
 //config:	default n
 //config:	depends on TAR && SELINUX
 //config:	help
-//config:	  With this option busybox supports restoring SELinux labels
-//config:	  when extracting files from tar archives.
+//config:	With this option busybox supports restoring SELinux labels
+//config:	when extracting files from tar archives.
 
 //applet:IF_TAR(APPLET(tar, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_TAR) += tar.o

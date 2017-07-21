@@ -13,8 +13,8 @@
 //config:	bool "wget (35 kb)"
 //config:	default y
 //config:	help
-//config:	  wget is a utility for non-interactive download of files from HTTP
-//config:	  and FTP servers.
+//config:	wget is a utility for non-interactive download of files from HTTP
+//config:	and FTP servers.
 //config:
 //config:config FEATURE_WGET_LONG_OPTIONS
 //config:	bool "Enable long options"
@@ -31,21 +31,21 @@
 //config:	default y
 //config:	depends on WGET
 //config:	help
-//config:	  Support authenticated HTTP transfers.
+//config:	Support authenticated HTTP transfers.
 //config:
 //config:config FEATURE_WGET_TIMEOUT
 //config:	bool "Enable timeout option -T SEC"
 //config:	default y
 //config:	depends on WGET
 //config:	help
-//config:	  Supports network read and connect timeouts for wget,
-//config:	  so that wget will give up and timeout, through the -T
-//config:	  command line option.
+//config:	Supports network read and connect timeouts for wget,
+//config:	so that wget will give up and timeout, through the -T
+//config:	command line option.
 //config:
-//config:	  Currently only connect and network data read timeout are
-//config:	  supported (i.e., timeout is not applied to the DNS query). When
-//config:	  FEATURE_WGET_LONG_OPTIONS is also enabled, the --timeout option
-//config:	  will work in addition to -T.
+//config:	Currently only connect and network data read timeout are
+//config:	supported (i.e., timeout is not applied to the DNS query). When
+//config:	FEATURE_WGET_LONG_OPTIONS is also enabled, the --timeout option
+//config:	will work in addition to -T.
 //config:
 //config:config FEATURE_WGET_HTTPS
 //config:	bool "Support HTTPS using internal TLS code"
@@ -53,68 +53,68 @@
 //config:	depends on WGET
 //config:	select TLS
 //config:	help
-//config:	  wget will use internal TLS code to connect to https:// URLs.
-//config:	  Note:
-//config:	  On NOMMU machines, ssl_helper applet should be available
-//config:	  in the $PATH for this to work. Make sure to select that applet.
+//config:	wget will use internal TLS code to connect to https:// URLs.
+//config:	Note:
+//config:	On NOMMU machines, ssl_helper applet should be available
+//config:	in the $PATH for this to work. Make sure to select that applet.
 //config:
-//config:	  Note: currently, TLS code only makes TLS I/O work, it
-//config:	  does *not* check that the peer is who it claims to be, etc.
-//config:	  IOW: it uses peer-supplied public keys to establish encryption
-//config:	  and signing keys, then encrypts and signs outgoing data and
-//config:	  decrypts incoming data.
-//config:	  It does not check signature hashes on the incoming data:
-//config:	  this means that attackers manipulating TCP packets can
-//config:	  send altered data and we unknowingly receive garbage.
-//config:	  (This check might be relatively easy to add).
-//config:	  It does not check public key's certificate:
-//config:	  this means that the peer may be an attacker impersonating
-//config:	  the server we think we are talking to.
+//config:	Note: currently, TLS code only makes TLS I/O work, it
+//config:	does *not* check that the peer is who it claims to be, etc.
+//config:	IOW: it uses peer-supplied public keys to establish encryption
+//config:	and signing keys, then encrypts and signs outgoing data and
+//config:	decrypts incoming data.
+//config:	It does not check signature hashes on the incoming data:
+//config:	this means that attackers manipulating TCP packets can
+//config:	send altered data and we unknowingly receive garbage.
+//config:	(This check might be relatively easy to add).
+//config:	It does not check public key's certificate:
+//config:	this means that the peer may be an attacker impersonating
+//config:	the server we think we are talking to.
 //config:
-//config:	  If you think this is unacceptable, consider this. As more and more
-//config:	  servers switch to HTTPS-only operation, without such "crippled"
-//config:	  TLS code it is *impossible* to simply download a kernel source
-//config:	  from kernel.org. Which can in real world translate into
-//config:	  "my small automatic tooling to build cross-compilers from sources
-//config:	  no longer works, I need to additionally keep a local copy
-//config:	  of ~4 megabyte source tarball of a SSL library and ~2 megabyte
-//config:	  source of wget, need to compile and built both before I can
-//config:	  download anything. All this despite the fact that the build
-//config:	  is done in a QEMU sandbox on a machine with absolutely nothing
-//config:	  worth stealing, so I don't care if someone would go to a lot
-//config:	  of trouble to intercept my HTTPS download to send me an altered
-//config:	  kernel tarball".
+//config:	If you think this is unacceptable, consider this. As more and more
+//config:	servers switch to HTTPS-only operation, without such "crippled"
+//config:	TLS code it is *impossible* to simply download a kernel source
+//config:	from kernel.org. Which can in real world translate into
+//config:	"my small automatic tooling to build cross-compilers from sources
+//config:	no longer works, I need to additionally keep a local copy
+//config:	of ~4 megabyte source tarball of a SSL library and ~2 megabyte
+//config:	source of wget, need to compile and built both before I can
+//config:	download anything. All this despite the fact that the build
+//config:	is done in a QEMU sandbox on a machine with absolutely nothing
+//config:	worth stealing, so I don't care if someone would go to a lot
+//config:	of trouble to intercept my HTTPS download to send me an altered
+//config:	kernel tarball".
 //config:
-//config:	  If you still think this is unacceptable, send patches.
+//config:	If you still think this is unacceptable, send patches.
 //config:
-//config:	  If you still think this is unacceptable, do not want to send
-//config:	  patches, but do want to waste bandwidth expaining how wrong
-//config:	  it is, you will be ignored.
+//config:	If you still think this is unacceptable, do not want to send
+//config:	patches, but do want to waste bandwidth expaining how wrong
+//config:	it is, you will be ignored.
 //config:
 //config:config FEATURE_WGET_OPENSSL
 //config:	bool "Try to connect to HTTPS using openssl"
 //config:	default y
 //config:	depends on WGET
 //config:	help
-//config:	  Try to use openssl to handle HTTPS.
+//config:	Try to use openssl to handle HTTPS.
 //config:
-//config:	  OpenSSL has a simple SSL client for debug purposes.
-//config:	  If you select this option, wget will effectively run:
-//config:	  "openssl s_client -quiet -connect hostname:443
-//config:	  -servername hostname 2>/dev/null" and pipe its data
-//config:	  through it. -servername is not used if hostname is numeric.
-//config:	  Note inconvenient API: host resolution is done twice,
-//config:	  and there is no guarantee openssl's idea of IPv6 address
-//config:	  format is the same as ours.
-//config:	  Another problem is that s_client prints debug information
-//config:	  to stderr, and it needs to be suppressed. This means
-//config:	  all error messages get suppressed too.
-//config:	  openssl is also a big binary, often dynamically linked
-//config:	  against ~15 libraries.
+//config:	OpenSSL has a simple SSL client for debug purposes.
+//config:	If you select this option, wget will effectively run:
+//config:	"openssl s_client -quiet -connect hostname:443
+//config:	-servername hostname 2>/dev/null" and pipe its data
+//config:	through it. -servername is not used if hostname is numeric.
+//config:	Note inconvenient API: host resolution is done twice,
+//config:	and there is no guarantee openssl's idea of IPv6 address
+//config:	format is the same as ours.
+//config:	Another problem is that s_client prints debug information
+//config:	to stderr, and it needs to be suppressed. This means
+//config:	all error messages get suppressed too.
+//config:	openssl is also a big binary, often dynamically linked
+//config:	against ~15 libraries.
 //config:
-//config:	  If openssl can't be executed, internal TLS code will be used
-//config:	  (if you enabled it); if openssl can be executed but fails later,
-//config:	  wget can't detect this, and download will fail.
+//config:	If openssl can't be executed, internal TLS code will be used
+//config:	(if you enabled it); if openssl can be executed but fails later,
+//config:	wget can't detect this, and download will fail.
 
 //applet:IF_WGET(APPLET(wget, BB_DIR_USR_BIN, BB_SUID_DROP))
 

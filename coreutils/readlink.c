@@ -10,15 +10,15 @@
 //config:	bool "readlink (3.6 kb)"
 //config:	default y
 //config:	help
-//config:	  This program reads a symbolic link and returns the name
-//config:	  of the file it points to
+//config:	This program reads a symbolic link and returns the name
+//config:	of the file it points to
 //config:
 //config:config FEATURE_READLINK_FOLLOW
 //config:	bool "Enable canonicalization by following all symlinks (-f)"
 //config:	default y
 //config:	depends on READLINK
 //config:	help
-//config:	  Enable the readlink option (-f).
+//config:	Enable the readlink option (-f).
 
 //applet:IF_READLINK(APPLET(readlink, BB_DIR_USR_BIN, BB_SUID_DROP))
 

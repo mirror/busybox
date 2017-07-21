@@ -12,7 +12,7 @@
 //config:	bool "pwdx (3.5 kb)"
 //config:	default y
 //config:	help
-//config:	  Report current working directory of a process
+//config:	Report current working directory of a process
 
 //applet:IF_PWDX(APPLET(pwdx, BB_DIR_USR_BIN, BB_SUID_DROP))
 

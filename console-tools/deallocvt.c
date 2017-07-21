@@ -12,7 +12,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  This program deallocates unused virtual consoles.
+//config:	This program deallocates unused virtual consoles.
 
 //applet:IF_DEALLOCVT(APPLET(deallocvt, BB_DIR_USR_BIN, BB_SUID_DROP))
 

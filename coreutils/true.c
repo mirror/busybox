@@ -10,7 +10,7 @@
 //config:	bool "true (tiny)"
 //config:	default y
 //config:	help
-//config:	  true returns an exit code of TRUE (0).
+//config:	true returns an exit code of TRUE (0).
 
 //applet:IF_TRUE(APPLET_NOFORK(true, true, BB_DIR_BIN, BB_SUID_DROP, true))
 

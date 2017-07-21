@@ -80,9 +80,9 @@
 //config:	bool "diff (13 kb)"
 //config:	default y
 //config:	help
-//config:	  diff compares two files or directories and outputs the
-//config:	  differences between them in a form that can be given to
-//config:	  the patch command.
+//config:	diff compares two files or directories and outputs the
+//config:	differences between them in a form that can be given to
+//config:	the patch command.
 //config:
 //config:config FEATURE_DIFF_LONG_OPTIONS
 //config:	bool "Enable long options"
@@ -94,8 +94,8 @@
 //config:	default y
 //config:	depends on DIFF
 //config:	help
-//config:	  This option enables support for directory and subdirectory
-//config:	  comparison.
+//config:	This option enables support for directory and subdirectory
+//config:	comparison.
 
 //kbuild:lib-$(CONFIG_DIFF) += diff.o
 

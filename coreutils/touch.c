@@ -16,23 +16,23 @@
 //config:	bool "touch (5.8 kb)"
 //config:	default y
 //config:	help
-//config:	  touch is used to create or change the access and/or
-//config:	  modification timestamp of specified files.
+//config:	touch is used to create or change the access and/or
+//config:	modification timestamp of specified files.
 //config:
 //config:config FEATURE_TOUCH_NODEREF
 //config:	bool "Add support for -h"
 //config:	default y
 //config:	depends on TOUCH
 //config:	help
-//config:	  Enable touch to have the -h option.
-//config:	  This requires libc support for lutimes() function.
+//config:	Enable touch to have the -h option.
+//config:	This requires libc support for lutimes() function.
 //config:
 //config:config FEATURE_TOUCH_SUSV3
 //config:	bool "Add support for SUSV3 features (-d -t -r)"
 //config:	default y
 //config:	depends on TOUCH
 //config:	help
-//config:	  Enable touch to use a reference file or a given date/time argument.
+//config:	Enable touch to use a reference file or a given date/time argument.
 
 //applet:IF_TOUCH(APPLET_NOFORK(touch, touch, BB_DIR_BIN, BB_SUID_DROP, touch))
 

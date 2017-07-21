@@ -10,8 +10,8 @@
 //config:	bool "comm (3.9 kb)"
 //config:	default y
 //config:	help
-//config:	  comm is used to compare two files line by line and return
-//config:	  a three-column output.
+//config:	comm is used to compare two files line by line and return
+//config:	a three-column output.
 
 //applet:IF_COMM(APPLET(comm, BB_DIR_USR_BIN, BB_SUID_DROP))
 

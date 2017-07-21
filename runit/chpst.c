@@ -31,33 +31,33 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //config:	bool "chpst (8.7 kb)"
 //config:	default y
 //config:	help
-//config:	  chpst changes the process state according to the given options, and
-//config:	  execs specified program.
+//config:	chpst changes the process state according to the given options, and
+//config:	execs specified program.
 //config:
 //config:config SETUIDGID
 //config:	bool "setuidgid (4.2 kb)"
 //config:	default y
 //config:	help
-//config:	  Sets soft resource limits as specified by options
+//config:	Sets soft resource limits as specified by options
 //config:
 //config:config ENVUIDGID
 //config:	bool "envuidgid (3.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Sets $UID to account's uid and $GID to account's gid
+//config:	Sets $UID to account's uid and $GID to account's gid
 //config:
 //config:config ENVDIR
 //config:	bool "envdir (2.5 kb)"
 //config:	default y
 //config:	help
-//config:	  Sets various environment variables as specified by files
-//config:	  in the given directory
+//config:	Sets various environment variables as specified by files
+//config:	in the given directory
 //config:
 //config:config SOFTLIMIT
 //config:	bool "softlimit (4.3 kb)"
 //config:	default y
 //config:	help
-//config:	  Sets soft resource limits as specified by options
+//config:	Sets soft resource limits as specified by options
 
 //applet:IF_CHPST(APPLET(chpst, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                    APPLET_ODDNAME:name       main   location        suid_type     help

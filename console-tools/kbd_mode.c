@@ -13,7 +13,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  This program reports and sets keyboard mode.
+//config:	This program reports and sets keyboard mode.
 
 //applet:IF_KBD_MODE(APPLET(kbd_mode, BB_DIR_BIN, BB_SUID_DROP))
 

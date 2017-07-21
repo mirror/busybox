@@ -10,12 +10,12 @@
 //config:	default y
 //config:	select FEATURE_SEAMLESS_GZ
 //config:	help
-//config:	  dpkg-deb unpacks and provides information about Debian archives.
+//config:	dpkg-deb unpacks and provides information about Debian archives.
 //config:
-//config:	  This implementation of dpkg-deb cannot pack archives.
+//config:	This implementation of dpkg-deb cannot pack archives.
 //config:
-//config:	  Unless you have a specific application which requires dpkg-deb,
-//config:	  say N here.
+//config:	Unless you have a specific application which requires dpkg-deb,
+//config:	say N here.
 
 //applet:IF_DPKG_DEB(APPLET_ODDNAME(dpkg-deb, dpkg_deb, BB_DIR_USR_BIN, BB_SUID_DROP, dpkg_deb))
 

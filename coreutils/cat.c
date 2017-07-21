@@ -10,22 +10,22 @@
 //config:	bool "cat (5.6 kb)"
 //config:	default y
 //config:	help
-//config:	  cat is used to concatenate files and print them to the standard
-//config:	  output. Enable this option if you wish to enable the 'cat' utility.
+//config:	cat is used to concatenate files and print them to the standard
+//config:	output. Enable this option if you wish to enable the 'cat' utility.
 //config:
 //config:config FEATURE_CATN
 //config:	bool "Enable -n and -b options"
 //config:	default y
 //config:	depends on CAT
 //config:	help
-//config:	  -n numbers all output lines while -b numbers nonempty output lines.
+//config:	-n numbers all output lines while -b numbers nonempty output lines.
 //config:
 //config:config FEATURE_CATV
 //config:	bool "cat -v[etA]"
 //config:	default y
 //config:	depends on CAT
 //config:	help
-//config:	  Display nonprinting characters as escape sequences
+//config:	Display nonprinting characters as escape sequences
 
 //applet:IF_CAT(APPLET(cat, BB_DIR_BIN, BB_SUID_DROP))
 

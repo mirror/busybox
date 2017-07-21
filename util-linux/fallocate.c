@@ -9,7 +9,7 @@
 //config:	bool "fallocate (5 kb)"
 //config:	default y
 //config:	help
-//config:	  Preallocate space for files.
+//config:	Preallocate space for files.
 
 //applet:IF_FALLOCATE(APPLET(fallocate, BB_DIR_USR_BIN, BB_SUID_DROP))
 

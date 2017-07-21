@@ -11,7 +11,7 @@
 //config:	default n
 //config:	depends on SELINUX
 //config:	help
-//config:	  Enable support to get the current mode of SELinux.
+//config:	Enable support to get the current mode of SELinux.
 
 //applet:IF_GETENFORCE(APPLET(getenforce, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

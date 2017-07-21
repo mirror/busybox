@@ -21,17 +21,17 @@
 //config:	bool "df (7.5 kb)"
 //config:	default y
 //config:	help
-//config:	  df reports the amount of disk space used and available
-//config:	  on filesystems.
+//config:	df reports the amount of disk space used and available
+//config:	on filesystems.
 //config:
 //config:config FEATURE_DF_FANCY
 //config:	bool "Enable -a, -i, -B"
 //config:	default y
 //config:	depends on DF
 //config:	help
-//config:	  -a Show all filesystems
-//config:	  -i Inodes
-//config:	  -B <SIZE> Blocksize
+//config:	-a Show all filesystems
+//config:	-i Inodes
+//config:	-B <SIZE> Blocksize
 
 //applet:IF_DF(APPLET(df, BB_DIR_BIN, BB_SUID_DROP))
 

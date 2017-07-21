@@ -13,8 +13,8 @@
 //config:	default y
 //config:	depends on VOLUMEID
 //config:	help
-//config:	  UBIFS (Unsorted Block Image File System) is a file
-//config:	  system for use with raw flash memory media.
+//config:	UBIFS (Unsorted Block Image File System) is a file
+//config:	system for use with raw flash memory media.
 
 #include "volume_id_internal.h"
 

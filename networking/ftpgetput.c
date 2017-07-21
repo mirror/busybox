@@ -16,13 +16,13 @@
 //config:	bool "ftpget (8 kb)"
 //config:	default y
 //config:	help
-//config:	  Retrieve a remote file via FTP.
+//config:	Retrieve a remote file via FTP.
 //config:
 //config:config FTPPUT
 //config:	bool "ftpput (7.7 kb)"
 //config:	default y
 //config:	help
-//config:	  Store a remote file via FTP.
+//config:	Store a remote file via FTP.
 //config:
 //config:config FEATURE_FTPGETPUT_LONG_OPTIONS
 //config:	bool "Enable long options in ftpget/ftpput"

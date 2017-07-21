@@ -31,7 +31,7 @@
 //config:	bool "volname (1.7 kb)"
 //config:	default y
 //config:	help
-//config:	  Prints a CD-ROM volume name.
+//config:	Prints a CD-ROM volume name.
 
 //applet:IF_VOLNAME(APPLET(volname, BB_DIR_USR_BIN, BB_SUID_DROP))
 

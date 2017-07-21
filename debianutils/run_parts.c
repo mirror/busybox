@@ -26,16 +26,16 @@
 //config:	bool "run-parts (5.6 kb)"
 //config:	default y
 //config:	help
-//config:	  run-parts is a utility designed to run all the scripts in a directory.
+//config:	run-parts is a utility designed to run all the scripts in a directory.
 //config:
-//config:	  It is useful to set up a directory like cron.daily, where you need to
-//config:	  execute all the scripts in that directory.
+//config:	It is useful to set up a directory like cron.daily, where you need to
+//config:	execute all the scripts in that directory.
 //config:
-//config:	  In this implementation of run-parts some features (such as report
-//config:	  mode) are not implemented.
+//config:	In this implementation of run-parts some features (such as report
+//config:	mode) are not implemented.
 //config:
-//config:	  Unless you know that run-parts is used in some of your scripts
-//config:	  you can safely say N here.
+//config:	Unless you know that run-parts is used in some of your scripts
+//config:	you can safely say N here.
 //config:
 //config:config FEATURE_RUN_PARTS_LONG_OPTIONS
 //config:	bool "Enable long options"
@@ -47,9 +47,9 @@
 //config:	default y
 //config:	depends on RUN_PARTS
 //config:	help
-//config:	  Support additional options:
-//config:	  -l --list print the names of the all matching files (not
-//config:	            limited to executables), but don't actually run them.
+//config:	Support additional options:
+//config:	-l --list print the names of the all matching files (not
+//config:	limited to executables), but don't actually run them.
 
 //applet:IF_RUN_PARTS(APPLET_ODDNAME(run-parts, run_parts, BB_DIR_BIN, BB_SUID_DROP, run_parts))
 

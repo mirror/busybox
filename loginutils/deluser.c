@@ -12,21 +12,21 @@
 //config:	bool "deluser (8.4 kb)"
 //config:	default y
 //config:	help
-//config:	  Utility for deleting a user account.
+//config:	Utility for deleting a user account.
 //config:
 //config:config DELGROUP
 //config:	bool "delgroup (5.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Utility for deleting a group account.
+//config:	Utility for deleting a group account.
 //config:
 //config:config FEATURE_DEL_USER_FROM_GROUP
 //config:	bool "Support removing users from groups"
 //config:	default y
 //config:	depends on DELGROUP
 //config:	help
-//config:	  If called with two non-option arguments, deluser
-//config:	  or delgroup will remove an user from a specified group.
+//config:	If called with two non-option arguments, deluser
+//config:	or delgroup will remove an user from a specified group.
 
 //applet:IF_DELUSER(APPLET(deluser, BB_DIR_USR_SBIN, BB_SUID_DROP))
 //applet:IF_DELGROUP(APPLET_ODDNAME(delgroup, deluser, BB_DIR_USR_SBIN, BB_SUID_DROP, delgroup))

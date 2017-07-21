@@ -11,8 +11,8 @@
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help
-//config:	  fakeidentd listens on the ident port and returns a predefined
-//config:	  fake value on any query.
+//config:	fakeidentd listens on the ident port and returns a predefined
+//config:	fake value on any query.
 
 //applet:IF_FAKEIDENTD(APPLET(fakeidentd, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

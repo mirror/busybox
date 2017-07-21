@@ -7,20 +7,20 @@
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help
-//config:	  passwd changes passwords for user and group accounts. A normal user
-//config:	  may only change the password for his/her own account, the super user
-//config:	  may change the password for any account. The administrator of a group
-//config:	  may change the password for the group.
+//config:	passwd changes passwords for user and group accounts. A normal user
+//config:	may only change the password for his/her own account, the super user
+//config:	may change the password for any account. The administrator of a group
+//config:	may change the password for the group.
 //config:
-//config:	  Note that Busybox binary must be setuid root for this applet to
-//config:	  work properly.
+//config:	Note that Busybox binary must be setuid root for this applet to
+//config:	work properly.
 //config:
 //config:config FEATURE_PASSWD_WEAK_CHECK
 //config:	bool "Check new passwords for weakness"
 //config:	default y
 //config:	depends on PASSWD
 //config:	help
-//config:	  With this option passwd will refuse new passwords which are "weak".
+//config:	With this option passwd will refuse new passwords which are "weak".
 
 //applet:/* Needs to be run by root or be suid root - needs to change /etc/{passwd,shadow}: */
 //applet:IF_PASSWD(APPLET(passwd, BB_DIR_USR_BIN, BB_SUID_REQUIRE))

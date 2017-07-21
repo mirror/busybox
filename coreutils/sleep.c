@@ -16,29 +16,29 @@
 //config:	bool "sleep (1.7 kb)"
 //config:	default y
 //config:	help
-//config:	  sleep is used to pause for a specified number of seconds.
-//config:	  It comes in 3 versions:
-//config:	  - small: takes one integer parameter
-//config:	  - fancy: takes multiple integer arguments with suffixes:
-//config:	    sleep 1d 2h 3m 15s
-//config:	  - fancy with fractional numbers:
-//config:	    sleep 2.3s 4.5h sleeps for 16202.3 seconds
-//config:	  Last one is "the most compatible" with coreutils sleep,
-//config:	  but it adds around 1k of code.
+//config:	sleep is used to pause for a specified number of seconds.
+//config:	It comes in 3 versions:
+//config:	- small: takes one integer parameter
+//config:	- fancy: takes multiple integer arguments with suffixes:
+//config:		sleep 1d 2h 3m 15s
+//config:	- fancy with fractional numbers:
+//config:		sleep 2.3s 4.5h sleeps for 16202.3 seconds
+//config:	Last one is "the most compatible" with coreutils sleep,
+//config:	but it adds around 1k of code.
 //config:
 //config:config FEATURE_FANCY_SLEEP
 //config:	bool "Enable multiple arguments and s/m/h/d suffixes"
 //config:	default y
 //config:	depends on SLEEP
 //config:	help
-//config:	  Allow sleep to pause for specified minutes, hours, and days.
+//config:	Allow sleep to pause for specified minutes, hours, and days.
 //config:
 //config:config FEATURE_FLOAT_SLEEP
 //config:	bool "Enable fractional arguments"
 //config:	default y
 //config:	depends on FEATURE_FANCY_SLEEP
 //config:	help
-//config:	  Allow for fractional numeric parameters.
+//config:	Allow for fractional numeric parameters.
 
 /* Do not make this applet NOFORK. It breaks ^C-ing of pauses in shells */
 //applet:IF_SLEEP(APPLET(sleep, BB_DIR_BIN, BB_SUID_DROP))

@@ -12,15 +12,15 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Run program with namespaces of other processes.
+//config:	Run program with namespaces of other processes.
 //config:
 //config:config FEATURE_NSENTER_LONG_OPTS
 //config:	bool "Enable long options"
 //config:	default y
 //config:	depends on NSENTER && LONG_OPTS
 //config:	help
-//config:	  Support long options for the nsenter applet. This makes
-//config:	  the busybox implementation more compatible with upstream.
+//config:	Support long options for the nsenter applet. This makes
+//config:	the busybox implementation more compatible with upstream.
 
 //applet:IF_NSENTER(APPLET(nsenter, BB_DIR_USR_BIN, BB_SUID_DROP))
 

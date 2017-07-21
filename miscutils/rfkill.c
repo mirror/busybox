@@ -12,12 +12,12 @@
 //config:	default n # doesn't build on Ubuntu 9.04
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Enable/disable wireless devices.
+//config:	Enable/disable wireless devices.
 //config:
-//config:	  rfkill list : list all wireless devices
-//config:	  rfkill list bluetooth : list all bluetooth devices
-//config:	  rfkill list 1 : list device corresponding to the given index
-//config:	  rfkill block|unblock wlan : block/unblock all wlan(wifi) devices
+//config:	rfkill list : list all wireless devices
+//config:	rfkill list bluetooth : list all bluetooth devices
+//config:	rfkill list 1 : list device corresponding to the given index
+//config:	rfkill block|unblock wlan : block/unblock all wlan(wifi) devices
 //config:
 
 //applet:IF_RFKILL(APPLET(rfkill, BB_DIR_USR_SBIN, BB_SUID_DROP))

@@ -10,15 +10,15 @@
 //config:	bool "tee (4.3 kb)"
 //config:	default y
 //config:	help
-//config:	  tee is used to read from standard input and write
-//config:	  to standard output and files.
+//config:	tee is used to read from standard input and write
+//config:	to standard output and files.
 //config:
 //config:config FEATURE_TEE_USE_BLOCK_IO
 //config:	bool "Enable block I/O (larger/faster) instead of byte I/O"
 //config:	default y
 //config:	depends on TEE
 //config:	help
-//config:	  Enable this option for a faster tee, at expense of size.
+//config:	Enable this option for a faster tee, at expense of size.
 
 //applet:IF_TEE(APPLET(tee, BB_DIR_USR_BIN, BB_SUID_DROP))
 

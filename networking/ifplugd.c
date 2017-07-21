@@ -11,7 +11,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Network interface plug detection daemon.
+//config:	Network interface plug detection daemon.
 
 //applet:IF_IFPLUGD(APPLET(ifplugd, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

@@ -26,17 +26,17 @@
 //config:	bool "expr (6.1 kb)"
 //config:	default y
 //config:	help
-//config:	  expr is used to calculate numbers and print the result
-//config:	  to standard output.
+//config:	expr is used to calculate numbers and print the result
+//config:	to standard output.
 //config:
 //config:config EXPR_MATH_SUPPORT_64
 //config:	bool "Extend Posix numbers support to 64 bit"
 //config:	default y
 //config:	depends on EXPR
 //config:	help
-//config:	  Enable 64-bit math support in the expr applet. This will make
-//config:	  the applet slightly larger, but will allow computation with very
-//config:	  large numbers.
+//config:	Enable 64-bit math support in the expr applet. This will make
+//config:	the applet slightly larger, but will allow computation with very
+//config:	large numbers.
 
 //applet:IF_EXPR(APPLET(expr, BB_DIR_USR_BIN, BB_SUID_DROP))
 

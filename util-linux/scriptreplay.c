@@ -11,8 +11,8 @@
 //config:	bool "scriptreplay (2.6 kb)"
 //config:	default y
 //config:	help
-//config:	  This program replays a typescript, using timing information
-//config:	  given by script -t.
+//config:	This program replays a typescript, using timing information
+//config:	given by script -t.
 
 //applet:IF_SCRIPTREPLAY(APPLET(scriptreplay, BB_DIR_BIN, BB_SUID_DROP))
 

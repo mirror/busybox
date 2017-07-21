@@ -11,23 +11,23 @@
 //config:	bool "bzip2 (18 kb)"
 //config:	default y
 //config:	help
-//config:	  bzip2 is a compression utility using the Burrows-Wheeler block
-//config:	  sorting text compression algorithm, and Huffman coding. Compression
-//config:	  is generally considerably better than that achieved by more
-//config:	  conventional LZ77/LZ78-based compressors, and approaches the
-//config:	  performance of the PPM family of statistical compressors.
+//config:	bzip2 is a compression utility using the Burrows-Wheeler block
+//config:	sorting text compression algorithm, and Huffman coding. Compression
+//config:	is generally considerably better than that achieved by more
+//config:	conventional LZ77/LZ78-based compressors, and approaches the
+//config:	performance of the PPM family of statistical compressors.
 //config:
-//config:	  Unless you have a specific application which requires bzip2, you
-//config:	  should probably say N here.
+//config:	Unless you have a specific application which requires bzip2, you
+//config:	should probably say N here.
 //config:
 //config:config FEATURE_BZIP2_DECOMPRESS
 //config:	bool "Enable decompression"
 //config:	default y
 //config:	depends on BZIP2 || BUNZIP2 || BZCAT
 //config:	help
-//config:	  Enable -d (--decompress) and -t (--test) options for bzip2.
-//config:	  This will be automatically selected if bunzip2 or bzcat is
-//config:	  enabled.
+//config:	Enable -d (--decompress) and -t (--test) options for bzip2.
+//config:	This will be automatically selected if bunzip2 or bzcat is
+//config:	enabled.
 
 //applet:IF_BZIP2(APPLET(bzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_BZIP2) += bzip2.o

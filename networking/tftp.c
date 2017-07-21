@@ -22,19 +22,19 @@
 //config:	bool "tftp (12 kb)"
 //config:	default y
 //config:	help
-//config:	  This enables the Trivial File Transfer Protocol client program. TFTP
-//config:	  is usually used for simple, small transfers such as a root image
-//config:	  for a network-enabled bootloader.
+//config:	This enables the Trivial File Transfer Protocol client program. TFTP
+//config:	is usually used for simple, small transfers such as a root image
+//config:	for a network-enabled bootloader.
 //config:
 //config:config TFTPD
 //config:	bool "tftpd (10 kb)"
 //config:	default y
 //config:	help
-//config:	  This enables the Trivial File Transfer Protocol server program.
-//config:	  It expects that stdin is a datagram socket and a packet
-//config:	  is already pending on it. It will exit after one transfer.
-//config:	  In other words: it should be run from inetd in nowait mode,
-//config:	  or from udpsvd. Example: "udpsvd -E 0 69 tftpd DIR"
+//config:	This enables the Trivial File Transfer Protocol server program.
+//config:	It expects that stdin is a datagram socket and a packet
+//config:	is already pending on it. It will exit after one transfer.
+//config:	In other words: it should be run from inetd in nowait mode,
+//config:	or from udpsvd. Example: "udpsvd -E 0 69 tftpd DIR"
 //config:
 //config:comment "Common options for tftp/tftpd"
 //config:	depends on TFTP || TFTPD
@@ -44,29 +44,29 @@
 //config:	default y
 //config:	depends on TFTP || TFTPD
 //config:	help
-//config:	  Add support for the GET command within the TFTP client. This allows
-//config:	  a client to retrieve a file from a TFTP server.
-//config:	  Also enable upload support in tftpd, if tftpd is selected.
+//config:	Add support for the GET command within the TFTP client. This allows
+//config:	a client to retrieve a file from a TFTP server.
+//config:	Also enable upload support in tftpd, if tftpd is selected.
 //config:
-//config:	  Note: this option does _not_ make tftpd capable of download
-//config:	  (the usual operation people need from it)!
+//config:	Note: this option does _not_ make tftpd capable of download
+//config:	(the usual operation people need from it)!
 //config:
 //config:config FEATURE_TFTP_PUT
 //config:	bool "Enable 'tftp put' and/or tftpd download code"
 //config:	default y
 //config:	depends on TFTP || TFTPD
 //config:	help
-//config:	  Add support for the PUT command within the TFTP client. This allows
-//config:	  a client to transfer a file to a TFTP server.
-//config:	  Also enable download support in tftpd, if tftpd is selected.
+//config:	Add support for the PUT command within the TFTP client. This allows
+//config:	a client to transfer a file to a TFTP server.
+//config:	Also enable download support in tftpd, if tftpd is selected.
 //config:
 //config:config FEATURE_TFTP_BLOCKSIZE
 //config:	bool "Enable 'blksize' and 'tsize' protocol options"
 //config:	default y
 //config:	depends on TFTP || TFTPD
 //config:	help
-//config:	  Allow tftp to specify block size, and tftpd to understand
-//config:	  "blksize" and "tsize" options.
+//config:	Allow tftp to specify block size, and tftpd to understand
+//config:	"blksize" and "tsize" options.
 //config:
 //config:config FEATURE_TFTP_PROGRESS_BAR
 //config:	bool "Enable progress bar"
@@ -78,8 +78,8 @@
 //config:	default n
 //config:	depends on TFTP || TFTPD
 //config:	help
-//config:	  Make tftp[d] print debugging messages on stderr.
-//config:	  This is useful if you are diagnosing a bug in tftp[d].
+//config:	Make tftp[d] print debugging messages on stderr.
+//config:	This is useful if you are diagnosing a bug in tftp[d].
 
 //applet:#if ENABLE_FEATURE_TFTP_GET || ENABLE_FEATURE_TFTP_PUT
 //applet:IF_TFTP(APPLET(tftp, BB_DIR_USR_BIN, BB_SUID_DROP))

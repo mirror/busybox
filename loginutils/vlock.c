@@ -19,10 +19,10 @@
 //config:	bool "vlock (17 kb)"
 //config:	default y
 //config:	help
-//config:	  Build the "vlock" applet which allows you to lock (virtual) terminals.
+//config:	Build the "vlock" applet which allows you to lock (virtual) terminals.
 //config:
-//config:	  Note that Busybox binary must be setuid root for this applet to
-//config:	  work properly.
+//config:	Note that Busybox binary must be setuid root for this applet to
+//config:	work properly.
 
 //applet:/* Needs to be run by root or be suid root - needs to change uid and gid: */
 //applet:IF_VLOCK(APPLET(vlock, BB_DIR_USR_BIN, BB_SUID_REQUIRE))

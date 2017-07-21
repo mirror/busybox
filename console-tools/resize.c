@@ -10,18 +10,18 @@
 //config:	bool "resize (756 bytes)"
 //config:	default y
 //config:	help
-//config:	  This program is used to (re)set the width and height of your current
-//config:	  terminal.
+//config:	This program is used to (re)set the width and height of your current
+//config:	terminal.
 //config:
 //config:config FEATURE_RESIZE_PRINT
 //config:	bool "Print environment variables"
 //config:	default y
 //config:	depends on RESIZE
 //config:	help
-//config:	  Prints the newly set size (number of columns and rows) of
-//config:	  the terminal.
-//config:	  E.g.:
-//config:	  COLUMNS=80;LINES=44;export COLUMNS LINES;
+//config:	Prints the newly set size (number of columns and rows) of
+//config:	the terminal.
+//config:	E.g.:
+//config:	COLUMNS=80;LINES=44;export COLUMNS LINES;
 
 //applet:IF_RESIZE(APPLET(resize, BB_DIR_USR_BIN, BB_SUID_DROP))
 

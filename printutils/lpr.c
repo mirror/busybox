@@ -15,13 +15,13 @@
 //config:	bool "lpr (10 kb)"
 //config:	default y
 //config:	help
-//config:	  lpr sends files (or standard input) to a print spooling daemon.
+//config:	lpr sends files (or standard input) to a print spooling daemon.
 //config:
 //config:config LPQ
 //config:	bool "lpq (10 kb)"
 //config:	default y
 //config:	help
-//config:	  lpq is a print spool queue examination and manipulation program.
+//config:	lpq is a print spool queue examination and manipulation program.
 
 //              APPLET_ODDNAME:name main  location        suid_type     help
 //applet:IF_LPQ(APPLET_ODDNAME(lpq, lpqr, BB_DIR_USR_BIN, BB_SUID_DROP, lpq))

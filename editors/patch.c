@@ -26,7 +26,7 @@
 //config:	bool "patch (9.1 kb)"
 //config:	default y
 //config:	help
-//config:	  Apply a unified diff formatted patch.
+//config:	Apply a unified diff formatted patch.
 
 //applet:IF_PATCH(APPLET(patch, BB_DIR_USR_BIN, BB_SUID_DROP))
 

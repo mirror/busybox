@@ -14,31 +14,31 @@
 //config:	default n  # not yet ready
 //config:	depends on FEATURE_IPV6
 //config:	help
-//config:	  udhcpc6 is a DHCPv6 client
+//config:	udhcpc6 is a DHCPv6 client
 //config:
 //config:config FEATURE_UDHCPC6_RFC3646
 //config:	bool "Support RFC 3646 (DNS server and search list)"
 //config:	default y
 //config:	depends on UDHCPC6
 //config:	help
-//config:	  List of DNS servers and domain search list can be requested with
-//config:	  "-O dns" and "-O search". If server gives these values,
-//config:	  they will be set in environment variables "dns" and "search".
+//config:	List of DNS servers and domain search list can be requested with
+//config:	"-O dns" and "-O search". If server gives these values,
+//config:	they will be set in environment variables "dns" and "search".
 //config:
 //config:config FEATURE_UDHCPC6_RFC4704
 //config:	bool "Support RFC 4704 (Client FQDN)"
 //config:	default y
 //config:	depends on UDHCPC6
 //config:	help
-//config:	  You can request FQDN to be given by server using "-O fqdn".
+//config:	You can request FQDN to be given by server using "-O fqdn".
 //config:
 //config:config FEATURE_UDHCPC6_RFC4833
 //config:	bool "Support RFC 4833 (Timezones)"
 //config:	default y
 //config:	depends on UDHCPC6
 //config:	help
-//config:	  You can request POSIX timezone with "-O tz" and timezone name
-//config:	  with "-O timezone".
+//config:	You can request POSIX timezone with "-O tz" and timezone name
+//config:	with "-O timezone".
 
 //applet:IF_UDHCPC6(APPLET(udhcpc6, BB_DIR_USR_BIN, BB_SUID_DROP))
 

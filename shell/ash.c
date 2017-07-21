@@ -20,10 +20,10 @@
 //config:	default y
 //config:	depends on !NOMMU
 //config:	help
-//config:	  The most complete and most pedantically correct shell included with
-//config:	  busybox. This shell is actually a derivative of the Debian 'dash'
-//config:	  shell (by Herbert Xu), which was created by porting the 'ash' shell
-//config:	  (written by Kenneth Almquist) from NetBSD.
+//config:	The most complete and most pedantically correct shell included with
+//config:	busybox. This shell is actually a derivative of the Debian 'dash'
+//config:	shell (by Herbert Xu), which was created by porting the 'ash' shell
+//config:	(written by Kenneth Almquist) from NetBSD.
 //config:
 //config:# ash options
 //config:# note: Don't remove !NOMMU part in the next line; it would break
@@ -40,11 +40,11 @@
 //config:	default y	# Y is bigger, but because of uclibc glob() bug, let Y be default for now
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  Do not use glob() function from libc, use internal implementation.
-//config:	  Use this if you are getting "glob.h: No such file or directory"
-//config:	  or similar build errors.
-//config:	  Note that as of now (2017-01), uclibc and musl glob() both have bugs
-//config:	  which would break ash if you select N here.
+//config:	Do not use glob() function from libc, use internal implementation.
+//config:	Use this if you are getting "glob.h: No such file or directory"
+//config:	or similar build errors.
+//config:	Note that as of now (2017-01), uclibc and musl glob() both have bugs
+//config:	which would break ash if you select N here.
 //config:
 //config:config ASH_BASH_COMPAT
 //config:	bool "bash-compatible extensions"
@@ -66,37 +66,37 @@
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  Enable pseudorandom generator and dynamic variable "$RANDOM".
-//config:	  Each read of "$RANDOM" will generate a new pseudorandom value.
-//config:	  You can reset the generator by using a specified start value.
-//config:	  After "unset RANDOM" the generator will switch off and this
-//config:	  variable will no longer have special treatment.
+//config:	Enable pseudorandom generator and dynamic variable "$RANDOM".
+//config:	Each read of "$RANDOM" will generate a new pseudorandom value.
+//config:	You can reset the generator by using a specified start value.
+//config:	After "unset RANDOM" the generator will switch off and this
+//config:	variable will no longer have special treatment.
 //config:
 //config:config ASH_EXPAND_PRMT
 //config:	bool "Expand prompt string"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  $PS# may contain volatile content, such as backquote commands.
-//config:	  This option recreates the prompt string from the environment
-//config:	  variable each time it is displayed.
+//config:	$PS# may contain volatile content, such as backquote commands.
+//config:	This option recreates the prompt string from the environment
+//config:	variable each time it is displayed.
 //config:
 //config:config ASH_IDLE_TIMEOUT
 //config:	bool "Idle timeout variable $TMOUT"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  Enable bash-like auto-logout after $TMOUT seconds of idle time.
+//config:	Enable bash-like auto-logout after $TMOUT seconds of idle time.
 //config:
 //config:config ASH_MAIL
 //config:	bool "Check for new mail in interactive shell"
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  Enable "check for new mail" function:
-//config:	  if set, $MAIL file and $MAILPATH list of files
-//config:	  are checked for mtime changes, and "you have mail"
-//config:	  message is printed if change is detected.
+//config:	Enable "check for new mail" function:
+//config:	if set, $MAIL file and $MAILPATH list of files
+//config:	are checked for mtime changes, and "you have mail"
+//config:	message is printed if change is detected.
 //config:
 //config:config ASH_ECHO
 //config:	bool "echo builtin"
@@ -128,9 +128,9 @@
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	  Enable support for the 'command' builtin, which allows
-//config:	  you to run the specified command or builtin,
-//config:	  even when there is a function with the same name.
+//config:	Enable support for the 'command' builtin, which allows
+//config:	you to run the specified command or builtin,
+//config:	even when there is a function with the same name.
 //config:
 //config:endif # ash options
 

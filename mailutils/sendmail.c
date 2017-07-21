@@ -10,7 +10,7 @@
 //config:	bool "sendmail (14 kb)"
 //config:	default y
 //config:	help
-//config:	  Barebones sendmail.
+//config:	Barebones sendmail.
 
 //applet:IF_SENDMAIL(APPLET(sendmail, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

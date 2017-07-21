@@ -14,15 +14,15 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  tunctl creates or deletes tun devices.
+//config:	tunctl creates or deletes tun devices.
 //config:
 //config:config FEATURE_TUNCTL_UG
 //config:	bool "Support owner:group assignment"
 //config:	default y
 //config:	depends on TUNCTL
 //config:	help
-//config:	  Allow to specify owner and group of newly created interface.
-//config:	  340 bytes of pure bloat. Say no here.
+//config:	Allow to specify owner and group of newly created interface.
+//config:	340 bytes of pure bloat. Say no here.
 
 //applet:IF_TUNCTL(APPLET(tunctl, BB_DIR_SBIN, BB_SUID_DROP))
 

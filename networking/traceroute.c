@@ -214,22 +214,22 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Utility to trace the route of IP packets.
+//config:	Utility to trace the route of IP packets.
 //config:
 //config:config TRACEROUTE6
 //config:	bool "traceroute6 (12 kb)"
 //config:	default y
 //config:	depends on FEATURE_IPV6
 //config:	help
-//config:	  Utility to trace the route of IPv6 packets.
+//config:	Utility to trace the route of IPv6 packets.
 //config:
 //config:config FEATURE_TRACEROUTE_VERBOSE
 //config:	bool "Enable verbose output"
 //config:	default y
 //config:	depends on TRACEROUTE || TRACEROUTE6
 //config:	help
-//config:	  Add some verbosity to traceroute. This includes among other things
-//config:	  hostnames and ICMP response types.
+//config:	Add some verbosity to traceroute. This includes among other things
+//config:	hostnames and ICMP response types.
 //config:
 //config:config FEATURE_TRACEROUTE_USE_ICMP
 //config:	bool "Enable -I option (use ICMP instead of UDP)"

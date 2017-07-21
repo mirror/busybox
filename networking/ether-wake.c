@@ -68,7 +68,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Send a magic packet to wake up sleeping machines.
+//config:	Send a magic packet to wake up sleeping machines.
 
 //applet:IF_ETHER_WAKE(APPLET_ODDNAME(ether-wake, ether_wake, BB_DIR_USR_SBIN, BB_SUID_DROP, ether_wake))
 

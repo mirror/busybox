@@ -27,7 +27,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  Enter a system sleep state until specified wakeup time.
+//config:	Enter a system sleep state until specified wakeup time.
 
 //applet:IF_RTCWAKE(APPLET(rtcwake, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

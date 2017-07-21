@@ -10,7 +10,7 @@
 //config:	bool "nmeter (10 kb)"
 //config:	default y
 //config:	help
-//config:	  Prints selected system stats continuously, one line per update.
+//config:	Prints selected system stats continuously, one line per update.
 
 //applet:IF_NMETER(APPLET(nmeter, BB_DIR_USR_BIN, BB_SUID_DROP))
 

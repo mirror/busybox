@@ -22,28 +22,28 @@
 //config:	bool "grep (8.5 kb)"
 //config:	default y
 //config:	help
-//config:	  grep is used to search files for a specified pattern.
+//config:	grep is used to search files for a specified pattern.
 //config:
 //config:config EGREP
 //config:	bool "egrep (7.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Alias to "grep -E".
+//config:	Alias to "grep -E".
 //config:
 //config:config FGREP
 //config:	bool "fgrep (7.6 kb)"
 //config:	default y
 //config:	help
-//config:	  Alias to "grep -F".
+//config:	Alias to "grep -F".
 //config:
 //config:config FEATURE_GREP_CONTEXT
 //config:	bool "Enable before and after context flags (-A, -B and -C)"
 //config:	default y
 //config:	depends on GREP || EGREP || FGREP
 //config:	help
-//config:	  Print the specified number of leading (-B) and/or trailing (-A)
-//config:	  context surrounding our matching lines.
-//config:	  Print the specified number of context lines (-C).
+//config:	Print the specified number of leading (-B) and/or trailing (-A)
+//config:	context surrounding our matching lines.
+//config:	Print the specified number of context lines (-C).
 
 //applet:IF_GREP(APPLET(grep, BB_DIR_BIN, BB_SUID_DROP))
 //                APPLET_ODDNAME:name   main  location    suid_type     help

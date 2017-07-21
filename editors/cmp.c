@@ -14,8 +14,8 @@
 //config:	bool "cmp (5.4 kb)"
 //config:	default y
 //config:	help
-//config:	  cmp is used to compare two files and returns the result
-//config:	  to standard output.
+//config:	cmp is used to compare two files and returns the result
+//config:	to standard output.
 
 //kbuild:lib-$(CONFIG_CMP) += cmp.o
 

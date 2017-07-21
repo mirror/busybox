@@ -13,50 +13,50 @@
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help
-//config:	  Crond is a background daemon that parses individual crontab
-//config:	  files and executes commands on behalf of the users in question.
-//config:	  This is a port of dcron from slackware. It uses files of the
-//config:	  format /var/spool/cron/crontabs/<username> files, for example:
-//config:	      $ cat /var/spool/cron/crontabs/root
-//config:	      # Run daily cron jobs at 4:40 every day:
-//config:	      40 4 * * * /etc/cron/daily > /dev/null 2>&1
+//config:	Crond is a background daemon that parses individual crontab
+//config:	files and executes commands on behalf of the users in question.
+//config:	This is a port of dcron from slackware. It uses files of the
+//config:	format /var/spool/cron/crontabs/<username> files, for example:
+//config:		$ cat /var/spool/cron/crontabs/root
+//config:		# Run daily cron jobs at 4:40 every day:
+//config:		40 4 * * * /etc/cron/daily > /dev/null 2>&1
 //config:
 //config:config FEATURE_CROND_D
 //config:	bool "Support option -d to redirect output to stderr"
 //config:	depends on CROND
 //config:	default y
 //config:	help
-//config:	  -d N sets loglevel (0:most verbose) and directs all output to stderr.
+//config:	-d N sets loglevel (0:most verbose) and directs all output to stderr.
 //config:
 //config:config FEATURE_CROND_CALL_SENDMAIL
 //config:	bool "Report command output via email (using sendmail)"
 //config:	default y
 //config:	depends on CROND
 //config:	help
-//config:	  Command output will be sent to corresponding user via email.
+//config:	Command output will be sent to corresponding user via email.
 //config:
 //config:config FEATURE_CROND_SPECIAL_TIMES
 //config:	bool "Support special times (@reboot, @daily, etc) in crontabs"
 //config:	default y
 //config:	depends on CROND
 //config:	help
-//config:	  string        meaning
-//config:	  ------        -------
-//config:	  @reboot       Run once, at startup
-//config:	  @yearly       Run once a year:  "0 0 1 1 *"
-//config:	  @annually     Same as @yearly:  "0 0 1 1 *"
-//config:	  @monthly      Run once a month: "0 0 1 * *"
-//config:	  @weekly       Run once a week:  "0 0 * * 0"
-//config:	  @daily        Run once a day:   "0 0 * * *"
-//config:	  @midnight     Same as @daily:   "0 0 * * *"
-//config:	  @hourly       Run once an hour: "0 * * * *"
+//config:	string        meaning
+//config:	------        -------
+//config:	@reboot       Run once, at startup
+//config:	@yearly       Run once a year:  "0 0 1 1 *"
+//config:	@annually     Same as @yearly:  "0 0 1 1 *"
+//config:	@monthly      Run once a month: "0 0 1 * *"
+//config:	@weekly       Run once a week:  "0 0 * * 0"
+//config:	@daily        Run once a day:   "0 0 * * *"
+//config:	@midnight     Same as @daily:   "0 0 * * *"
+//config:	@hourly       Run once an hour: "0 * * * *"
 //config:
 //config:config FEATURE_CROND_DIR
 //config:	string "crond spool directory"
 //config:	default "/var/spool/cron"
 //config:	depends on CROND || CRONTAB
 //config:	help
-//config:	  Location of crond spool.
+//config:	Location of crond spool.
 
 //applet:IF_CROND(APPLET(crond, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

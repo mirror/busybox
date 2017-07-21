@@ -9,7 +9,7 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	  fdformat is used to low-level format a floppy disk.
+//config:	fdformat is used to low-level format a floppy disk.
 
 //applet:IF_FDFORMAT(APPLET(fdformat, BB_DIR_USR_SBIN, BB_SUID_DROP))
 
