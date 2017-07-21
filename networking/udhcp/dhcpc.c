@@ -1001,14 +1001,14 @@ static int udhcp_raw_socket(int ifindex)
 	int fd;
 	struct sockaddr_ll sock;
 
-	log1("opening raw socket on ifindex %d", ifindex); //log2?
+	log2("opening raw socket on ifindex %d", ifindex);
 
 	fd = xsocket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
 	/* ^^^^^
 	 * SOCK_DGRAM: remove link-layer headers on input (SOCK_RAW keeps them)
 	 * ETH_P_IP: want to receive only packets with IPv4 eth type
 	 */
-	log1("got raw socket fd"); //log2?
+	log2("got raw socket fd");
 
 	sock.sll_family = AF_PACKET;
 	sock.sll_protocol = htons(ETH_P_IP);

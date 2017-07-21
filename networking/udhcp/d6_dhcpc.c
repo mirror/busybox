@@ -877,10 +877,10 @@ static int d6_raw_socket(int ifindex)
 	};
 #endif
 
-	log1("opening raw socket on ifindex %d", ifindex); //log2?
+	log2("opening raw socket on ifindex %d", ifindex);
 
 	fd = xsocket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IPV6));
-	log1("got raw socket fd %d", fd); //log2?
+	log2("got raw socket fd %d", fd);
 
 	sock.sll_family = AF_PACKET;
 	sock.sll_protocol = htons(ETH_P_IPV6);
