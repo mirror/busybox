@@ -1742,7 +1742,7 @@ number(const char *s)
 }
 
 /*
- * Produce a possibly single quoted string suitable as input to the shell.
+ * Produce a single quoted string suitable as input to the shell.
  * The return string is allocated on the stack.
  */
 static char *
@@ -1784,6 +1784,47 @@ single_quote(const char *s)
 	USTPUTC('\0', p);
 
 	return stackblock();
+}
+
+/*
+ * Produce a possibly single quoted string suitable as input to the shell.
+ * If 'conditional' is nonzero, quoting is only done if the string contains
+ * non-shellsafe characters, or is identical to a shell keyword (reserved
+ * word); if it is zero, quoting is always done.
+ * If quoting was done, the return string is allocated on the stack,
+ * otherwise a pointer to the original string is returned.
+ */
+static const char *
+maybe_single_quote(const char *s)
+{
+	const char *p = s;
+
+	while (*p) {
+		/* Assuming ACSII */
+		/* quote ctrl_chars space !"#$%&'()* */
+		if (*p < '+')
+			goto need_quoting;
+		/* quote ;<=>? */
+		if (*p >= ';' && *p <= '?')
+			goto need_quoting;
+		/* quote `[\ */
+		if (*p == '`')
+			goto need_quoting;
+		if (*p == '[')
+			goto need_quoting;
+		if (*p == '\\')
+			goto need_quoting;
+		/* quote {|}~ DEL and high bytes */
+		if (*p > 'z')
+			goto need_quoting;
+		/* Not quoting these: +,-./ 0-9 :@ A-Z ]^_ a-z */
+		/* TODO: maybe avoid quoting % */
+		p++;
+	}
+	return s;
+
+ need_quoting:
+	return single_quote(s);
 }
 
 
@@ -9700,18 +9741,36 @@ evalcommand(union node *cmd, int flags)
 
 	/* Print the command if xflag is set. */
 	if (xflag) {
-		int n;
-		const char *p = " %s" + 1;
+		const char *pfx = "";
 
-		fdprintf(preverrout_fd, p, expandstr(ps4val()));
+		fdprintf(preverrout_fd, "%s", expandstr(ps4val()));
+
 		sp = varlist.list;
-		for (n = 0; n < 2; n++) {
-			while (sp) {
-				fdprintf(preverrout_fd, p, sp->text);
-				sp = sp->next;
-				p = " %s";
-			}
-			sp = arglist.list;
+		while (sp) {
+			char *varval = sp->text;
+			char *eq = strchrnul(varval, '=');
+			if (*eq)
+				eq++;
+			fdprintf(preverrout_fd, "%s%.*s%s",
+				pfx,
+				(int)(eq - varval), varval,
+				maybe_single_quote(eq)
+			);
+			sp = sp->next;
+			pfx = " ";
+		}
+
+		sp = arglist.list;
+		while (sp) {
+			fdprintf(preverrout_fd, "%s%s",
+				pfx,
+				/* always quote if matches reserved word: */
+				findkwd(sp->text)
+				? single_quote(sp->text)
+				: maybe_single_quote(sp->text)
+			);
+			sp = sp->next;
+			pfx = " ";
 		}
 		safe_write(preverrout_fd, "\n", 1);
 	}
