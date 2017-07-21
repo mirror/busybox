@@ -153,6 +153,7 @@ struct globals {
 	const char *log_filename;
 	const char *crontab_dir_name; /* = CRONTABS; */
 	CronFile *cron_files;
+	char *default_shell;
 #if SETENV_LEAKS
 	char *env_var_user;
 	char *env_var_home;
@@ -700,7 +701,7 @@ fork_job(const char *user, int mailFd, CronLine *line, bool run_sendmail)
 		goto err;
 	}
 
-	shell = line->cl_shell ? line->cl_shell : DEFAULT_SHELL;
+	shell = line->cl_shell ? line->cl_shell : G.default_shell;
 	prog = run_sendmail ? SENDMAIL : shell;
 
 	set_env_vars(pas, shell);
@@ -846,7 +847,7 @@ static pid_t start_one_job(const char *user, CronLine *line)
 	}
 
 	/* Prepare things before vfork */
-	shell = line->cl_shell ? line->cl_shell : DEFAULT_SHELL;
+	shell = line->cl_shell ? line->cl_shell : G.default_shell;
 	set_env_vars(pas, shell);
 
 	/* Fork as the user in question and run program */
@@ -1045,6 +1046,10 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 
 	reopen_logfile_to_stderr();
 	xchdir(G.crontab_dir_name);
+	/* $SHELL, or current UID's shell, or DEFAULT_SHELL */
+	/* Useful on Android where DEFAULT_SHELL /bin/sh may not exist */
+	G.default_shell = xstrdup(get_shell_name());
+
 	log8("crond (busybox "BB_VER") started, log level %d", G.log_level);
 	rescan_crontab_dir();
 	write_pidfile(CONFIG_PID_FILE_PATH "/crond.pid");
