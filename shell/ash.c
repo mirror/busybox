@@ -2315,10 +2315,10 @@ setvar(const char *name, const char *val, int flags)
 
 	INT_OFF;
 	nameeq = ckmalloc(namelen + vallen + 2);
-	p = memcpy(nameeq, name, namelen) + namelen;
+	p = mempcpy(nameeq, name, namelen);
 	if (val) {
 		*p++ = '=';
-		p = memcpy(p, val, vallen) + vallen;
+		p = mempcpy(p, val, vallen);
 	}
 	*p = '\0';
 	setvareq(nameeq, flags | VNOSAVE);
