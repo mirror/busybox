@@ -155,15 +155,18 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 	proc = NULL;
 	while ((proc = procps_scan(proc, scan_mask)) != NULL) {
 		char *cmd;
-		int cmdlen;
+		int cmdlen, match;
 
 		if (proc->pid == pid)
 			continue;
 
-		if (ppid2match >= 0 && ppid2match != proc->ppid)
-			continue;
-		if (sid2match >= 0 && sid2match != proc->sid)
-			continue;
+		if (!OPT_INVERT) {
+			/* Quickly reject -sN -PN mismatches... unless -v */
+			if (ppid2match >= 0 && ppid2match != proc->ppid)
+				continue;
+			if (sid2match >= 0 && sid2match != proc->sid)
+				continue;
+		}
 
 		cmdlen = -1;
 		cmd = proc->argv0;
@@ -186,12 +189,36 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 
+		if (OPT_INVERT) {
+			/* "pgrep -v -P1 firefox" means "not (ppid=1 AND name=firefox)"
+			 * or equivalently "ppid!=1 OR name!=firefox".
+			 * Check the first condition and if true, skip matching.
+			 */
+			if (ppid2match >= 0 && ppid2match != proc->ppid)
+				goto got_it;
+			if (sid2match >= 0 && sid2match != proc->sid)
+				goto got_it;
+		}
+
+		match = !argv[0]; /* if no PATTERN, then it's a match, else... */
+		if (!match) {
+ again:
+			match = (regexec(&re_buffer, cmd, 1, re_match, 0) == 0);
+			if (!match && cmd != proc->comm) {
+				/* if argv[] did not match, try comm */
+				cmdlen = -1;
+				cmd = proc->comm;
+				goto again;
+			}
+			if (match && OPT_ANCHOR) {
+				/* -x requires full string match */
+				match = (re_match[0].rm_so == 0 && cmd[re_match[0].rm_eo] == '\0');
+			}
+		}
+
 		/* NB: OPT_INVERT is always 0 or 1 */
-		if (!argv[0]
-		 || (regexec(&re_buffer, cmd, 1, re_match, 0) == 0 /* match found */
-		    && (!OPT_ANCHOR || (re_match[0].rm_so == 0 && re_match[0].rm_eo == (regoff_t)strlen(cmd)))
-		    ) ^ OPT_INVERT
-		) {
+		if (match ^ OPT_INVERT) {
+ got_it:
 			matched_pid = proc->pid;
 			if (OPT_LAST) {
 				free(cmd_last);
