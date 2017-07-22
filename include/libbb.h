@@ -1485,6 +1485,9 @@ extern void selinux_or_die(void) FAST_FUNC;
  *   HOME=pw->pw_dir
  *   SHELL=shell
  * else does nothing
+ *
+ * NB: CHANGEENV and CLEARENV use setenv() - this leaks memory!
+ * If setup_environment() is used is vforked child, this leaks memory _in parent too_!
  */
 #define SETUP_ENV_CHANGEENV (1 << 0)
 #define SETUP_ENV_CLEARENV  (1 << 1)
