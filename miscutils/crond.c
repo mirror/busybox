@@ -79,9 +79,9 @@
 #include "common_bufsiz.h"
 #include <syslog.h>
 
-/* glibc frees previous setenv'ed value when we do next setenv()
- * of the same variable. uclibc does not do this! */
-#if (defined(__GLIBC__) && !defined(__UCLIBC__)) /* || OTHER_SAFE_LIBC... */
+#if 0
+/* If libc tracks and reuses setenv()-allocated memory, ok to set this to 0 */
+/* Neither glibc nor uclibc do that! */
 # define SETENV_LEAKS 0
 #else
 # define SETENV_LEAKS 1
