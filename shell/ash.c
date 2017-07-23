@@ -1761,7 +1761,7 @@ single_quote(const char *s)
 		q = p = makestrspace(len + 3, p);
 
 		*q++ = '\'';
-		q = (char *)mempcpy(q, s, len) + len;
+		q = (char *)mempcpy(q, s, len);
 		*q++ = '\'';
 		s += len;
 
