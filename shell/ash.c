@@ -1658,7 +1658,7 @@ static char *
 stack_nputstr(const char *s, size_t n, char *p)
 {
 	p = makestrspace(n, p);
-	p = (char *)memcpy(p, s, n) + n;
+	p = (char *)mempcpy(p, s, n);
 	return p;
 }
 
@@ -1761,7 +1761,7 @@ single_quote(const char *s)
 		q = p = makestrspace(len + 3, p);
 
 		*q++ = '\'';
-		q = (char *)memcpy(q, s, len) + len;
+		q = (char *)mempcpy(q, s, len) + len;
 		*q++ = '\'';
 		s += len;
 
@@ -1775,7 +1775,7 @@ single_quote(const char *s)
 		q = p = makestrspace(len + 3, p);
 
 		*q++ = '"';
-		q = (char *)memcpy(q, s - len, len) + len;
+		q = (char *)mempcpy(q, s - len, len);
 		*q++ = '"';
 
 		STADJUST(q - p, p);
@@ -2453,8 +2453,7 @@ path_advance(const char **path, const char *name)
 		growstackblock();
 	q = stackblock();
 	if (p != start) {
-		memcpy(q, start, p - start);
-		q += p - start;
+		q = mempcpy(q, start, p - start);
 		*q++ = '/';
 	}
 	strcpy(q, name);
@@ -5949,7 +5948,7 @@ rmescapes(char *str, int flag)
 		}
 		q = r;
 		if (len > 0) {
-			q = (char *)memcpy(q, str, len) + len;
+			q = (char *)mempcpy(q, str, len);
 		}
 	}
 
