@@ -1788,9 +1788,6 @@ single_quote(const char *s)
 
 /*
  * Produce a possibly single quoted string suitable as input to the shell.
- * If 'conditional' is nonzero, quoting is only done if the string contains
- * non-shellsafe characters, or is identical to a shell keyword (reserved
- * word); if it is zero, quoting is always done.
  * If quoting was done, the return string is allocated on the stack,
  * otherwise a pointer to the original string is returned.
  */
