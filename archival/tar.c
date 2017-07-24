@@ -22,24 +22,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-/* TODO: security with -C DESTDIR option can be enhanced.
- * Consider tar file created via:
- * $ tar cvf bug.tar anything.txt
- * $ ln -s /tmp symlink
- * $ tar --append -f bug.tar symlink
- * $ rm symlink
- * $ mkdir symlink
- * $ tar --append -f bug.tar symlink/evil.py
- *
- * This will result in an archive which contains:
- * $ tar --list -f bug.tar
- * anything.txt
- * symlink
- * symlink/evil.py
- *
- * Untarring it puts evil.py in '/tmp' even if the -C DESTDIR is given.
- * This doesn't feel right, and IIRC GNU tar doesn't do that.
- */
 
 //config:config TAR
 //config:	bool "tar (40 kb)"
@@ -294,6 +276,23 @@ static void chksum_and_xwrite(int fd, struct tar_header_t* hp)
 
 	/* Now write the header out to disk */
 	xwrite(fd, hp, sizeof(*hp));
+}
+
+static void replace_symlink_placeholders(llist_t *list)
+{
+	while (list) {
+		char *target;
+
+		target = list->data + strlen(list->data) + 1;
+		if (symlink(target, list->data)) {
+			/* shared message */
+			bb_error_msg_and_die("can't create %slink '%s' to '%s'",
+				"sym",
+				list->data, target
+			);
+		}
+		list = list->link;
+	}
 }
 
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
@@ -1251,6 +1250,8 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 
 	while (get_header_tar(tar_handle) == EXIT_SUCCESS)
 		bb_got_signal = EXIT_SUCCESS; /* saw at least one header, good */
+
+	replace_symlink_placeholders(tar_handle->symlink_placeholders);
 
 	/* Check that every file that should have been extracted was */
 	while (tar_handle->accept) {

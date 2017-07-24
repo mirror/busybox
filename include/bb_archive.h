@@ -64,6 +64,9 @@ typedef struct archive_handle_t {
 	/* Currently processed file's header */
 	file_header_t *file_header;
 
+	/* List of symlink placeholders */
+	llist_t *symlink_placeholders;
+
 	/* Process the header component, e.g. tar -t */
 	void FAST_FUNC (*action_header)(const file_header_t *);
 
@@ -188,6 +191,7 @@ char get_header_ar(archive_handle_t *archive_handle) FAST_FUNC;
 char get_header_cpio(archive_handle_t *archive_handle) FAST_FUNC;
 char get_header_tar(archive_handle_t *archive_handle) FAST_FUNC;
 char get_header_tar_gz(archive_handle_t *archive_handle) FAST_FUNC;
+char get_header_tar_xz(archive_handle_t *archive_handle) FAST_FUNC;
 char get_header_tar_bz2(archive_handle_t *archive_handle) FAST_FUNC;
 char get_header_tar_lzma(archive_handle_t *archive_handle) FAST_FUNC;
 char get_header_tar_xz(archive_handle_t *archive_handle) FAST_FUNC;
