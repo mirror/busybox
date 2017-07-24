@@ -2662,9 +2662,8 @@ static void o_delchr(o_string *o)
 static void o_addblock(o_string *o, const char *str, int len)
 {
 	o_grow_by(o, len);
-	memcpy(&o->data[o->length], str, len);
+	((char*)mempcpy(&o->data[o->length], str, len))[0] = '\0';
 	o->length += len;
-	o->data[o->length] = '\0';
 }
 
 static void o_addstr(o_string *o, const char *str)
@@ -5519,17 +5518,15 @@ static char *replace_pattern(char *val, const char *pattern, const char *repl, c
 			break;
 
 		result = xrealloc(result, res_len + (s - val) + repl_len + 1);
-		memcpy(result + res_len, val, s - val);
-		res_len += s - val;
-		strcpy(result + res_len, repl);
-		res_len += repl_len;
+		strcpy(mempcpy(result + res_len, val, s - val), repl);
+		res_len += (s - val) + repl_len;
 		debug_printf_varexp("val:'%s' s:'%s' result:'%s'\n", val, s, result);
 
 		val = s + size;
 		if (exp_op == '/')
 			break;
 	}
-	if (val[0] && result) {
+	if (*val && result) {
 		result = xrealloc(result, res_len + strlen(val) + 1);
 		strcpy(result + res_len, val);
 		debug_printf_varexp("val:'%s' result:'%s'\n", val, result);
