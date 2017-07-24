@@ -6643,8 +6643,18 @@ struct squirrel {
 	/* moved_to = -1: fd was opened by redirect; close orig_fd after redir */
 };
 
+static struct squirrel *append_squirrel(struct squirrel *sq, int i, int orig, int moved)
+{
+	sq = xrealloc(sq, (i + 2) * sizeof(sq[0]));
+	sq[i].orig_fd = orig;
+	sq[i].moved_to = moved;
+	sq[i+1].orig_fd = -1; /* end marker */
+	return sq;
+}
+
 static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 {
+	int moved_to;
 	int i = 0;
 
 	if (sq) while (sq[i].orig_fd >= 0) {
@@ -6664,15 +6674,12 @@ static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 		i++;
 	}
 
-	sq = xrealloc(sq, (i + 2) * sizeof(sq[0]));
-	sq[i].orig_fd = fd;
 	/* If this fd is open, we move and remember it; if it's closed, moved_to = -1 */
-	sq[i].moved_to = fcntl_F_DUPFD(fd, avoid_fd);
-	debug_printf_redir("redirect_fd %d: previous fd is moved to %d (-1 if it was closed)\n", fd, sq[i].moved_to);
-	if (sq[i].moved_to < 0 && errno != EBADF)
+	moved_to = fcntl_F_DUPFD(fd, avoid_fd);
+	debug_printf_redir("redirect_fd %d: previous fd is moved to %d (-1 if it was closed)\n", fd, moved_to);
+	if (moved_to < 0 && errno != EBADF)
 		xfunc_die();
-	sq[i+1].orig_fd = -1; /* end marker */
-	return sq;
+	return append_squirrel(sq, i, fd, moved_to);
 }
 
 /* fd: redirect wants this fd to be used (e.g. 3>file).
@@ -6777,6 +6784,19 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 				 * (though zsh doesn't!)
 				 */
 				return 1;
+			}
+			if (openfd == redir->rd_fd && sqp) {
+				/* open() gave us precisely the fd we wanted.
+				 * This means that this fd was not busy
+				 * (not opened to anywhere).
+				 * Remember to close it on restore:
+				 */
+				struct squirrel *sq = *sqp;
+				int i = 0;
+			        if (sq) while (sq[i].orig_fd >= 0)
+					i++;
+				*sqp = append_squirrel(sq, i, openfd, -1); /* -1 = "it was closed" */
+				debug_printf_redir("redir to previously closed fd %d\n", openfd);
 			}
 		} else {
 			/* "rd_fd<*>rd_dup" or "rd_fd<*>-" cases */
