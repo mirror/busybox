@@ -56,7 +56,7 @@ int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t
 			close(fd);
 			return -1;
 		}
-		log1("adapter index %d", ifr->ifr_ifindex);
+		log2("ifindex %d", ifr->ifr_ifindex);
 		*ifindex = ifr->ifr_ifindex;
 	}
 

@@ -28,8 +28,8 @@ int FAST_FUNC d6_read_interface(const char *interface, int *ifindex, struct in6_
 		if (ifa->ifa_addr->sa_family == AF_PACKET) {
 			struct sockaddr_ll *sll = (struct sockaddr_ll*)(ifa->ifa_addr);
 			memcpy(mac, sll->sll_addr, 6);
-			log1("MAC %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-			log1("adapter index %d", sll->sll_ifindex);
+			log2("MAC %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+			log2("ifindex %d", sll->sll_ifindex);
 			*ifindex = sll->sll_ifindex;
 			retval &= (0xf - (1<<0));
 		}
