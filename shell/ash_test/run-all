@@ -2,10 +2,24 @@
 
 TOPDIR=`pwd`
 
-test -x ash || {
-    echo "No ./ash - creating a link to ../../busybox"
-    ln -s ../../busybox ash
-}
+if test ! -x ash; then
+	if test ! -x ../../busybox; then
+		echo "Can't run tests. Put ash binary into this directory (`pwd`)"
+		exit 1
+	fi
+	echo "No ./ash - creating a link to ../../busybox"
+	ln -s ../../busybox ash
+fi
+if test ! -f .config; then
+	if test ! -f ../../.config; then
+		echo "Missing .config file"
+		exit 1
+	fi
+	cp ../../.config . || exit 1
+fi
+
+eval $(sed -e '/^#/d' -e '/^$/d' -e 's:^:export :' .config)
+
 test -x printenv || gcc -O2 -o printenv printenv.c || exit $?
 test -x recho    || gcc -O2 -o recho    recho.c    || exit $?
 test -x zecho    || gcc -O2 -o zecho    zecho.c    || exit $?
