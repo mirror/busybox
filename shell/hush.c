@@ -4466,6 +4466,8 @@ static int parse_dollar(o_string *as_string,
 	case '@': /* args */
 		goto make_one_char_var;
 	case '{': {
+		char len_single_ch;
+
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 
 		ch = i_getch(input); /* eat '{' */
@@ -4485,6 +4487,7 @@ static int parse_dollar(o_string *as_string,
 			return 0;
 		}
 		nommu_addchr(as_string, ch);
+		len_single_ch = ch;
 		ch |= quote_mask;
 
 		/* It's possible to just call add_till_closing_bracket() at this point.
@@ -4509,9 +4512,18 @@ static int parse_dollar(o_string *as_string,
 				/* handle parameter expansions
 				 * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
 				 */
-				if (!strchr(VAR_SUBST_OPS, ch)) /* ${var<bad_char>... */
-					goto bad_dollar_syntax;
-
+				if (!strchr(VAR_SUBST_OPS, ch)) { /* ${var<bad_char>... */
+					if (len_single_ch != '#'
+					/*|| !strchr(SPECIAL_VARS_STR, ch) - disallow errors like ${#+} ? */
+					 || i_peek(input) != '}'
+					) {
+						goto bad_dollar_syntax;
+					}
+					/* else: it's "length of C" ${#C} op,
+					 * where C is a single char
+					 * special var name, e.g. ${#!}.
+					 */
+				}
 				/* Eat everything until closing '}' (or ':') */
 				end_ch = '}';
 				if (BASH_SUBSTR
@@ -4568,6 +4580,7 @@ static int parse_dollar(o_string *as_string,
 				}
 				break;
 			}
+			len_single_ch = 0; /* it can't be ${#C} op */
 		}
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		break;
@@ -5559,10 +5572,10 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	first_char = arg[0] = arg0 & 0x7f;
 	exp_op = 0;
 
-	if (first_char == '#' && arg[1] /* ${#... but not ${#} */
-	 && (!exp_saveptr               /* and (not ${#<op_char>...} */
-	    || (arg[1] == '?' && arg[2] == '\0') /* or ${#?} - "len of $?") */
-	    )
+	if (first_char == '#' && arg[1] /* ${#...} but not ${#} */
+	 && (!exp_saveptr               /* and ( not(${#<op_char>...}) */
+	    || (arg[2] == '\0' && strchr(SPECIAL_VARS_STR, arg[1])) /* or ${#C} "len of $C" ) */
+	    )		/* NB: skipping ^^^specvar check mishandles ${#::2} */
 	) {
 		/* It must be length operator: ${#var} */
 		var++;

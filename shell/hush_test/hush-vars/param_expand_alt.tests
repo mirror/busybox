@@ -6,7 +6,7 @@
 # now some funky ones.
 # ${V+word} "if V unset, then substitute nothing, else substitute word"
 # ${V:+word} "if V unset or '', then substitute nothing, else substitute word"
-# bash doesn't accept ${#+}. ash prints 0 (not $#).
+# bash doesn't accept ${#+}. ash prints 0 (not $#): "len of $+"
 echo _${#+}_ _${#:+}_
 # Forms with non-empty word work as expected in both ash and bash.
 echo _${#+z}_ _${#:+z}_
