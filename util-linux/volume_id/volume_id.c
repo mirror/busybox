@@ -42,7 +42,6 @@
 #define ENABLE_FEATURE_VOLUMEID_VIARAID       0
 
 /* These filesystems also have no label or uuid: */
-#define ENABLE_FEATURE_VOLUMEID_MINIX         0
 #define ENABLE_FEATURE_VOLUMEID_HPFS          0
 #define ENABLE_FEATURE_VOLUMEID_UFS           0
 
