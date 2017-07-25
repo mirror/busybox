@@ -12981,13 +12981,18 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		return 0;
 	}
 
+	/* Why the second check?
+	 * "trap NUM [sig2]..." is the same as "trap - NUM [sig2]..."
+	 * In this case, NUM is signal no, not an action.
+	 */
 	action = NULL;
-	if (ap[1])
+	if (ap[1] && !is_number(ap[0]))
 		action = *ap++;
+
 	exitcode = 0;
 	while (*ap) {
 		signo = get_signum(*ap);
-		if (signo < 0 || signo >= NSIG) {
+		if (signo < 0) {
 			/* Mimic bash message exactly */
 			ash_msg("%s: invalid signal specification", *ap);
 			exitcode = 1;

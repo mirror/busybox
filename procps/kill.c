@@ -188,7 +188,7 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 		arg = *++argv;
 	} /* else it must be -SIG */
 	signo = get_signum(arg);
-	if (signo < 0) { /* || signo > MAX_SIGNUM ? */
+	if (signo < 0) {
 		bb_error_msg("bad signal name '%s'", arg);
 		return EXIT_FAILURE;
 	}

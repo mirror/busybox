@@ -143,7 +143,7 @@ int FAST_FUNC get_signum(const char *name)
 	unsigned i;
 
 	i = bb_strtou(name, NULL, 10);
-	if (!errno)
+	if (!errno && i < NSIG) /* for shells, we allow 0 too */
 		return i;
 	if (strncasecmp(name, "SIG", 3) == 0)
 		name += 3;

@@ -9745,7 +9745,7 @@ static int FAST_FUNC builtin_trap(char **argv)
 			sighandler_t handler;
 
 			sig = get_signum(*argv++);
-			if (sig < 0 || sig >= NSIG) {
+			if (sig < 0) {
 				ret = EXIT_FAILURE;
 				/* Mimic bash message exactly */
 				bb_error_msg("trap: %s: invalid signal specification", argv[-1]);
