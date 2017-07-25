@@ -5559,8 +5559,10 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	first_char = arg[0] = arg0 & 0x7f;
 	exp_op = 0;
 
-	if (first_char == '#'      /* ${#... */
-	 && arg[1] && !exp_saveptr /* not ${#} and not ${#<op_char>...} */
+	if (first_char == '#' && arg[1] /* ${#... but not ${#} */
+	 && (!exp_saveptr               /* and (not ${#<op_char>...} */
+	    || (arg[1] == '?' && arg[2] == '\0') /* or ${#?} - "len of $?") */
+	    )
 	) {
 		/* It must be length operator: ${#var} */
 		var++;
@@ -5797,7 +5799,11 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 					/* mimic bash message */
 					die_if_script("%s: %s",
 						var,
-						exp_word[0] ? exp_word : "parameter null or not set"
+						exp_word[0]
+						? exp_word
+						: "parameter null or not set"
+						/* ash has more specific messages, a-la: */
+						/*: (exp_save == ':' ? "parameter null or not set" : "parameter not set")*/
 					);
 //TODO: how interactive bash aborts expansion mid-command?
 				} else {

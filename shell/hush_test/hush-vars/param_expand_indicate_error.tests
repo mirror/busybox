@@ -5,7 +5,7 @@
 "$THIS_SH" -c 'echo ${:?}'
 
 # then some funky ones
-# note: bash prints 1 - treats it as "length of $#"? We print 0
+# note: bash prints 1 - treats it as "length of $#"
 "$THIS_SH" -c 'echo ${#?}'
 # bash prints 0
 "$THIS_SH" -c 'echo ${#:?}'
