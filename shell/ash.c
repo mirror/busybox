@@ -6128,7 +6128,9 @@ struct backcmd {                /* result of evalbackcmd */
 };
 
 /* These forward decls are needed to use "eval" code for backticks handling: */
-#define EV_EXIT 01              /* exit after evaluating tree */
+/* flags in argument to evaltree */
+#define EV_EXIT    01           /* exit after evaluating tree */
+#define EV_TESTED  02           /* exit status is checked; ignore -e flag */
 static int evaltree(union node *, int);
 
 static void FAST_FUNC
@@ -8344,10 +8346,6 @@ commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 /*static int funcstringsize;    // size of strings in node */
 static void *funcblock;         /* block to allocate function from */
 static char *funcstring_end;    /* end of block to allocate strings from */
-
-/* flags in argument to evaltree */
-#define EV_EXIT    01           /* exit after evaluating tree */
-#define EV_TESTED  02           /* exit status is checked; ignore -e flag */
 
 static const uint8_t nodesize[N_NUMBER] ALIGN1 = {
 	[NCMD     ] = SHELL_ALIGN(sizeof(struct ncmd)),
@@ -12491,6 +12489,12 @@ expandstr(const char *ps)
 	return stackblock();
 }
 
+static inline int
+parser_eof(void)
+{
+	return tokpushback && lasttoken == TEOF;
+}
+
 /*
  * Execute a command or commands contained in a string.
  */
@@ -12526,7 +12530,7 @@ evalstring(char *s, int flags)
 	while ((n = parsecmd(0)) != NODE_EOF) {
 		int i;
 
-		i = evaltree(n, flags);
+		i = evaltree(n, flags & ~(parser_eof() ? 0 : EV_EXIT));
 		if (n)
 			status = i;
 		popstackmark(&smark);
@@ -13671,7 +13675,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		// if (!sflag) g_parsefile->pf_fd = -1;
 		// ^^ not necessary since now we special-case fd 0
 		// in is_hidden_fd() to not be considered "hidden fd"
-		evalstring(minusc, 0);
+		evalstring(minusc, sflag ? 0 : EV_EXIT);
 	}
 
 	if (sflag || minusc == NULL) {
