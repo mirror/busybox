@@ -1,8 +1,8 @@
 # check invalid options are rejected
-# bash: in posix mode, aborts if non-interactive
-unset -
+# bash: in posix mode, aborts if non-interactive; using subshell to avoid that
+(unset -)
 echo $?
-unset -m a b c
+(unset -m a b c)
 echo $?
 
 # check funky usage
@@ -33,7 +33,8 @@ echo ___
 f=f g=g
 VAR_RO=1
 readonly VAR_RO
-unset VAR_RO
+(unset VAR_RO)
 echo $? $f $g
-unset f VAR_RO g
-echo $? $f $g
+# not testing "do variables survive error halfway through unset" since unset aborts
+# unset f VAR_RO g
+#echo $? $f $g

@@ -10,4 +10,4 @@ Fail:2
 ./readonly0.tests: export: line 27: a: is read only
 Fail:2
 
-Fail:1
+./readonly0.tests: unset: line 44: a: is read only

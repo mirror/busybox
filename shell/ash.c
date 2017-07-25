@@ -2269,11 +2269,22 @@ setvareq(char *s, int flags)
 		if (!(vp->flags & (VTEXTFIXED|VSTACK)))
 			free((char*)vp->var_text);
 
+		if (((flags & (VEXPORT|VREADONLY|VSTRFIXED|VUNSET)) | (vp->flags & VSTRFIXED)) == VUNSET) {
+			*vpp = vp->next;
+			free(vp);
+ out_free:
+			if ((flags & (VTEXTFIXED|VSTACK|VNOSAVE)) == VNOSAVE)
+				free(s);
+			return;
+		}
+
 		flags |= vp->flags & ~(VTEXTFIXED|VSTACK|VNOSAVE|VUNSET);
 	} else {
 		/* variable s is not found */
 		if (flags & VNOSET)
 			return;
+		if ((flags & (VEXPORT|VREADONLY|VSTRFIXED|VUNSET)) == VUNSET)
+			goto out_free;
 		vp = ckzalloc(sizeof(*vp));
 		vp->next = *vpp;
 		/*vp->func = NULL; - ckzalloc did it */
@@ -2331,43 +2342,10 @@ setvar0(const char *name, const char *val)
 /*
  * Unset the specified variable.
  */
-static int
+static void
 unsetvar(const char *s)
 {
-	struct var **vpp;
-	struct var *vp;
-	int retval;
-
-	vpp = findvar(hashvar(s), s);
-	vp = *vpp;
-	retval = 2;
-	if (vp) {
-		int flags = vp->flags;
-
-		retval = 1;
-		if (flags & VREADONLY)
-			goto out;
-#if ENABLE_ASH_RANDOM_SUPPORT
-		vp->flags &= ~VDYNAMIC;
-#endif
-		if (flags & VUNSET)
-			goto ok;
-		if ((flags & VSTRFIXED) == 0) {
-			INT_OFF;
-			if ((flags & (VTEXTFIXED|VSTACK)) == 0)
-				free((char*)vp->var_text);
-			*vpp = vp->next;
-			free(vp);
-			INT_ON;
-		} else {
-			setvar0(s, NULL);
-			vp->flags &= ~VEXPORT;
-		}
- ok:
-		retval = 0;
-	}
- out:
-	return retval;
+	setvar0(s, NULL);
 }
 
 /*
@@ -13218,7 +13196,6 @@ unsetcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	char **ap;
 	int i;
 	int flag = 0;
-	int ret = 0;
 
 	while ((i = nextopt("vf")) != 0) {
 		flag = i;
@@ -13226,15 +13203,13 @@ unsetcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 	for (ap = argptr; *ap; ap++) {
 		if (flag != 'f') {
-			i = unsetvar(*ap);
-			ret |= i;
-			if (!(i & 2))
-				continue;
+			unsetvar(*ap);
+			continue;
 		}
 		if (flag != 'v')
 			unsetfunc(*ap);
 	}
-	return ret & 1;
+	return 0;
 }
 
 static const unsigned char timescmd_str[] ALIGN1 = {
