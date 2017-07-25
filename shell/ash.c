@@ -5711,7 +5711,7 @@ ash_arith(const char *s)
 #define RMESCAPE_SLASH  0x20    /* Stop globbing after slash */
 
 /* Add CTLESC when necessary. */
-#define QUOTES_ESC     (EXP_FULL | EXP_CASE | EXP_QPAT | EXP_REDIR)
+#define QUOTES_ESC     (EXP_FULL | EXP_CASE | EXP_QPAT)
 /* Do not skip NUL characters. */
 #define QUOTES_KEEPNUL EXP_TILDE
 
@@ -7608,10 +7608,6 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
 		exparg.lastp = &exparg.list;
 		expandmeta(exparg.list /*, flag*/);
 	} else {
-		if (flag & EXP_REDIR) { /*XXX - for now, just remove escapes */
-			rmescapes(p, 0);
-			TRACE(("expandarg: rmescapes:'%s'\n", p));
-		}
 		sp = stzalloc(sizeof(*sp));
 		sp->text = p;
 		*exparg.lastp = sp;
