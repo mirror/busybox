@@ -114,6 +114,7 @@ typedef union {
 
 #define FIX_ENDIANNESS_ZIP(zip) \
 do { if (BB_BIG_ENDIAN) { \
+	(zip).fmt.method        = SWAP_LE16((zip).fmt.method      ); \
 	(zip).fmt.crc32         = SWAP_LE32((zip).fmt.crc32       ); \
 	(zip).fmt.cmpsize       = SWAP_LE32((zip).fmt.cmpsize     ); \
 	(zip).fmt.ucmpsize      = SWAP_LE32((zip).fmt.ucmpsize    ); \
