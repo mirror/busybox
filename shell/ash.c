@@ -9228,7 +9228,7 @@ poplocalvars(int keep)
 /*
  * Create a new localvar environment.
  */
-static void
+static struct localvar_list *
 pushlocalvars(void)
 {
 	struct localvar_list *ll;
@@ -9239,6 +9239,15 @@ pushlocalvars(void)
 	ll->next = localvar_stack;
 	localvar_stack = ll;
 	INT_ON;
+
+	return ll->next;
+}
+
+static void
+unwindlocalvars(struct localvar_list *stop)
+{
+	while (localvar_stack != stop)
+		poplocalvars(0);
 }
 
 static int
@@ -9619,6 +9628,7 @@ evalcommand(union node *cmd, int flags)
 	static const struct builtincmd null_bltin = {
 		"\0\0", bltincmd /* why three NULs? */
 	};
+	struct localvar_list *localvar_stop;
 	struct stackmark smark;
 	union node *argp;
 	struct arglist arglist;
@@ -9640,7 +9650,7 @@ evalcommand(union node *cmd, int flags)
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
 	setstackmark(&smark);
-	pushlocalvars();
+	localvar_stop = pushlocalvars();
 	back_exitstatus = 0;
 
 	cmdentry.cmdtype = CMDBUILTIN;
@@ -9827,7 +9837,6 @@ evalcommand(union node *cmd, int flags)
 				/* parent */
 				status = waitforjob(jp);
 				INT_ON;
-				poplocalvars(0);
 				TRACE(("forked child exited with %d\n", status));
 				break;
 			}
@@ -9874,6 +9883,7 @@ evalcommand(union node *cmd, int flags)
  out:
 	if (cmd->ncmd.redirect)
 		popredir(/*drop:*/ cmd_is_exec, /*restore:*/ cmd_is_exec);
+	unwindlocalvars(localvar_stop);
 	if (lastarg) {
 		/* dsl: I think this is intended to be used to support
 		 * '_' in 'vi' command mode during line editing...
@@ -13607,8 +13617,7 @@ reset(void)
 		popredir(/*drop:*/ 0, /*restore:*/ 0);
 
 	/* from var.c: */
-	while (localvar_stack)
-		poplocalvars(0);
+	unwindlocalvars(NULL);
 }
 
 #if PROFILE
