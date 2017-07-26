@@ -2224,7 +2224,7 @@ reinit_unicode_for_ash(void)
 /*
  * Search the environment of a builtin command.
  */
-static inline const char *
+static ALWAYS_INLINE const char *
 bltinlookup(const char *name)
 {
 	return lookupvar(name);
