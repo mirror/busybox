@@ -9200,7 +9200,8 @@ poplocalvars(void)
 			memcpy(optlist, lvp->text, sizeof(optlist));
 			free((char*)lvp->text);
 			optschanged();
-		} else if ((lvp->flags & (VUNSET|VSTRFIXED)) == VUNSET) {
+		} else if (lvp->flags == VUNSET) {
+			vp->flags &= ~(VSTRFIXED|VREADONLY);
 			unsetvar(vp->var_text);
 		} else {
 			if (vp->var_func)
