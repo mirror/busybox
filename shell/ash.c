@@ -1250,7 +1250,6 @@ static struct parsefile basepf;        /* top level input file */
 static struct parsefile *g_parsefile = &basepf;  /* current input file */
 static int startlinno;                 /* line # where last token started */
 static char *commandname;              /* currently executing command */
-static struct strlist *cmdenviron;     /* environment for builtin command */
 
 
 /* ============ Message printing */
@@ -2225,15 +2224,9 @@ reinit_unicode_for_ash(void)
 /*
  * Search the environment of a builtin command.
  */
-static const char *
+static inline const char *
 bltinlookup(const char *name)
 {
-	struct strlist *sp;
-
-	for (sp = cmdenviron; sp; sp = sp->next) {
-		if (varcmp(sp->text, name) == 0)
-			return var_end(sp->text);
-	}
 	return lookupvar(name);
 }
 
@@ -9179,7 +9172,7 @@ static struct localvar_list *localvar_stack;
  * Interrupts must be off.
  */
 static void
-poplocalvars(void)
+poplocalvars(int keep)
 {
 	struct localvar_list *ll;
 	struct localvar *lvp, *next;
@@ -9196,7 +9189,23 @@ poplocalvars(void)
 		next = lvp->next;
 		vp = lvp->vp;
 		TRACE(("poplocalvar %s\n", vp ? vp->var_text : "-"));
-		if (vp == NULL) {       /* $- saved */
+		if (keep) {
+			int bits = VSTRFIXED;
+
+			if (lvp->flags != VUNSET) {
+				if (vp->var_text == lvp->text)
+					bits |= VTEXTFIXED;
+				else if (!(lvp->flags & (VTEXTFIXED|VSTACK)))
+					free((char*)lvp->text);
+			}
+
+			vp->flags &= ~bits;
+			vp->flags |= (lvp->flags & bits);
+
+			if ((vp->flags &
+			     (VEXPORT|VREADONLY|VSTRFIXED|VUNSET)) == VUNSET)
+				unsetvar(vp->var_text);
+		} else if (vp == NULL) {	/* $- saved */
 			memcpy(optlist, lvp->text, sizeof(optlist));
 			free((char*)lvp->text);
 			optschanged();
@@ -9260,7 +9269,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 #endif
 	pushlocalvars();
 	evaltree(func->n.narg.next, flags & EV_TESTED);
-	poplocalvars();
+	poplocalvars(0);
  funcdone:
 	INT_OFF;
 	funcnest--;
@@ -9631,6 +9640,7 @@ evalcommand(union node *cmd, int flags)
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
 	setstackmark(&smark);
+	pushlocalvars();
 	back_exitstatus = 0;
 
 	cmdentry.cmdtype = CMDBUILTIN;
@@ -9683,6 +9693,8 @@ evalcommand(union node *cmd, int flags)
 
 		spp = varlist.lastp;
 		expandarg(argp, &varlist, EXP_VARTILDE);
+
+		mklocal((*spp)->text);
 
 		/*
 		 * Modify the command lookup path, if a PATH= assignment
@@ -9815,6 +9827,7 @@ evalcommand(union node *cmd, int flags)
 				/* parent */
 				status = waitforjob(jp);
 				INT_ON;
+				poplocalvars(0);
 				TRACE(("forked child exited with %d\n", status));
 				break;
 			}
@@ -9827,17 +9840,10 @@ evalcommand(union node *cmd, int flags)
 		/* NOTREACHED */
 	} /* default */
 	case CMDBUILTIN:
-		cmdenviron = varlist.list;
-		if (cmdenviron) {
-			struct strlist *list = cmdenviron;
-			int i = VNOSET;
-			if (spclbltin > 0 || argc == 0) {
-				i = 0;
-				if (cmd_is_exec && argc > 1)
-					i = VEXPORT;
-			}
-			listsetvar(list, i);
-		}
+		poplocalvars(spclbltin > 0 || argc == 0);
+		if (cmd_is_exec && argc > 1)
+			listsetvar(varlist.list, VEXPORT);
+
 		/* Tight loop with builtins only:
 		 * "while kill -0 $child; do true; done"
 		 * will never exit even if $child died, unless we do this
@@ -9855,7 +9861,7 @@ evalcommand(union node *cmd, int flags)
 		goto readstatus;
 
 	case CMDFUNCTION:
-		listsetvar(varlist.list, 0);
+		poplocalvars(1);
 		/* See above for the rationale */
 		dowait(DOWAIT_NONBLOCK, NULL);
 		if (evalfun(cmdentry.u.func, argc, argv, flags))
@@ -12714,11 +12720,12 @@ dotcmd(int argc_ UNUSED_PARAM, char **argv_ UNUSED_PARAM)
 	char *fullname;
 	char **argv;
 	char *args_need_save;
-	struct strlist *sp;
 	volatile struct shparam saveparam;
 
-	for (sp = cmdenviron; sp; sp = sp->next)
-		setvareq(ckstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
+//???
+//	struct strlist *sp;
+//	for (sp = cmdenviron; sp; sp = sp->next)
+//		setvareq(ckstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
 
 	nextopt(nullstr); /* handle possible "--" */
 	argv = argptr;
@@ -13601,7 +13608,7 @@ reset(void)
 
 	/* from var.c: */
 	while (localvar_stack)
-		poplocalvars();
+		poplocalvars(0);
 }
 
 #if PROFILE
