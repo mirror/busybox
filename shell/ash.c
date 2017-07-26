@@ -9539,7 +9539,7 @@ static const struct builtincmd builtintab[] = {
 #if ENABLE_FEATURE_SH_MATH
 	{ BUILTIN_NOSPEC        "let"     , letcmd     },
 #endif
-	{ BUILTIN_ASSIGN        "local"   , localcmd   },
+	{ BUILTIN_SPEC_REG_ASSG "local"   , localcmd   },
 #if ENABLE_ASH_PRINTF
 	{ BUILTIN_REGULAR       "printf"  , printfcmd  },
 #endif
@@ -9849,9 +9849,11 @@ evalcommand(union node *cmd, int flags)
 		/* NOTREACHED */
 	} /* default */
 	case CMDBUILTIN:
-		poplocalvars(spclbltin > 0 || argc == 0);
-		if (cmd_is_exec && argc > 1)
-			listsetvar(varlist.list, VEXPORT);
+		if (spclbltin > 0 || argc == 0) {
+			poplocalvars(1);
+			if (cmd_is_exec && argc > 1)
+				listsetvar(varlist.list, VEXPORT);
+		}
 
 		/* Tight loop with builtins only:
 		 * "while kill -0 $child; do true; done"
