@@ -2237,14 +2237,15 @@ bltinlookup(const char *name)
  * will go away.
  * Called with interrupts off.
  */
-static void
+static struct var *
 setvareq(char *s, int flags)
 {
 	struct var *vp, **vpp;
 
 	vpp = hashvar(s);
 	flags |= (VEXPORT & (((unsigned) (1 - aflag)) - 1));
-	vp = *findvar(vpp, s);
+	vpp = findvar(vpp, s);
+	vp = *vpp;
 	if (vp) {
 		if ((vp->flags & (VREADONLY|VDYNAMIC)) == VREADONLY) {
 			const char *n;
@@ -2257,7 +2258,7 @@ setvareq(char *s, int flags)
 		}
 
 		if (flags & VNOSET)
-			return;
+			goto out;
 
 		if (vp->var_func && !(flags & VNOFUNC))
 			vp->var_func(var_end(s));
@@ -2271,14 +2272,14 @@ setvareq(char *s, int flags)
  out_free:
 			if ((flags & (VTEXTFIXED|VSTACK|VNOSAVE)) == VNOSAVE)
 				free(s);
-			return;
+			goto out;
 		}
 
 		flags |= vp->flags & ~(VTEXTFIXED|VSTACK|VNOSAVE|VUNSET);
 	} else {
 		/* variable s is not found */
 		if (flags & VNOSET)
-			return;
+			goto out;
 		if ((flags & (VEXPORT|VREADONLY|VSTRFIXED|VUNSET)) == VUNSET)
 			goto out_free;
 		vp = ckzalloc(sizeof(*vp));
@@ -2290,13 +2291,16 @@ setvareq(char *s, int flags)
 		s = ckstrdup(s);
 	vp->var_text = s;
 	vp->flags = flags;
+
+ out:
+	return vp;
 }
 
 /*
  * Set the value of a variable.  The flags argument is ored with the
  * flags of the variable.  If val is NULL, the variable is unset.
  */
-static void
+static struct var *
 setvar(const char *name, const char *val, int flags)
 {
 	const char *q;
@@ -2304,6 +2308,7 @@ setvar(const char *name, const char *val, int flags)
 	char *nameeq;
 	size_t namelen;
 	size_t vallen;
+	struct var *vp;
 
 	q = endofname(name);
 	p = strchrnul(q, '=');
@@ -2325,8 +2330,10 @@ setvar(const char *name, const char *val, int flags)
 		p = mempcpy(p, val, vallen);
 	}
 	*p = '\0';
-	setvareq(nameeq, flags | VNOSAVE);
+	vp = setvareq(nameeq, flags | VNOSAVE);
 	INT_ON;
+
+	return vp;
 }
 
 static void FAST_FUNC
@@ -9336,10 +9343,9 @@ mklocal(char *name)
 		if (vp == NULL) {
 			/* variable did not exist yet */
 			if (eq)
-				setvareq(name, VSTRFIXED);
+				vp = setvareq(name, VSTRFIXED);
 			else
-				setvar(name, NULL, VSTRFIXED);
-			vp = *vpp;      /* the new variable */
+				vp = setvar(name, NULL, VSTRFIXED);
 			lvp->flags = VUNSET;
 		} else {
 			lvp->text = vp->var_text;
