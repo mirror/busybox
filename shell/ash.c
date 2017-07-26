@@ -6304,19 +6304,15 @@ expari(int flag)
 #endif
 
 /* argstr needs it */
-static char *evalvar(char *p, int flags, struct strlist *var_str_list);
+static char *evalvar(char *p, int flags);
 
 /*
  * Perform variable and command substitution.  If EXP_FULL is set, output CTLESC
  * characters to allow for further processing.  Otherwise treat
  * $@ like $* since no splitting will be performed.
- *
- * var_str_list (can be NULL) is a list of "VAR=val" strings which take precedence
- * over shell variables. Needed for "A=a B=$A; echo $B" case - we use it
- * for correct expansion of "B=$A" word.
  */
 static void
-argstr(char *p, int flags, struct strlist *var_str_list)
+argstr(char *p, int flags)
 {
 	static const char spclchars[] ALIGN1 = {
 		'=',
@@ -6409,7 +6405,7 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 			inquotes ^= EXP_QUOTED;
 			/* "$@" syntax adherence hack */
 			if (inquotes && !memcmp(p, dolatstr + 1, DOLATSTRLEN - 1)) {
-				p = evalvar(p + 1, flags | inquotes, /* var_str_list: */ NULL) + 1;
+				p = evalvar(p + 1, flags | inquotes) + 1;
 				goto start;
 			}
  addquote:
@@ -6435,7 +6431,7 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 			goto addquote;
 		case CTLVAR:
 			TRACE(("argstr: evalvar('%s')\n", p));
-			p = evalvar(p, flags | inquotes, var_str_list);
+			p = evalvar(p, flags | inquotes);
 			TRACE(("argstr: evalvar:'%s'\n", (char *)stackblock()));
 			goto start;
 		case CTLBACKQ:
@@ -6577,7 +6573,7 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 
 static const char *
 subevalvar(char *p, char *varname, int strloc, int subtype,
-		int startloc, int varflags, int flag, struct strlist *var_str_list)
+		int startloc, int varflags, int flag)
 {
 	struct nodelist *saveargbackq = argbackq;
 	int quotes = flag & QUOTES_ESC;
@@ -6595,8 +6591,8 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	//		p, varname, strloc, subtype, startloc, varflags, quotes);
 
 	argstr(p, EXP_TILDE | (subtype != VSASSIGN && subtype != VSQUESTION ?
-			(flag & (EXP_QUOTED | EXP_QPAT) ? EXP_QPAT : EXP_CASE) : 0),
-			var_str_list);
+			(flag & (EXP_QUOTED | EXP_QPAT) ? EXP_QPAT : EXP_CASE) : 0)
+	);
 	STPUTC('\0', expdest);
 	argbackq = saveargbackq;
 	startp = (char *)stackblock() + startloc;
@@ -6873,7 +6869,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
  * ash -c 'echo ${#1#}'  name:'1=#'
  */
 static NOINLINE ssize_t
-varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int *quotedp)
+varvalue(char *name, int varflags, int flags, int *quotedp)
 {
 	const char *p;
 	int num;
@@ -6965,31 +6961,6 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int 
 		goto value;
 	default:
 		/* NB: name has form "VAR=..." */
-
-		/* "A=a B=$A" case: var_str_list is a list of "A=a" strings
-		 * which should be considered before we check variables. */
-		if (var_str_list) {
-			unsigned name_len = (strchrnul(name, '=') - name) + 1;
-			p = NULL;
-			do {
-				char *str, *eq;
-				str = var_str_list->text;
-				eq = strchr(str, '=');
-				if (!eq) /* stop at first non-assignment */
-					break;
-				eq++;
-				if (name_len == (unsigned)(eq - str)
-				 && strncmp(str, name, name_len) == 0
-				) {
-					p = eq;
-					/* goto value; - WRONG! */
-					/* think "A=1 A=2 B=$A" */
-				}
-				var_str_list = var_str_list->next;
-			} while (var_str_list);
-			if (p)
-				goto value;
-		}
 		p = lookupvar(name);
  value:
 		if (!p)
@@ -7019,7 +6990,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int 
  * input string.
  */
 static char *
-evalvar(char *p, int flag, struct strlist *var_str_list)
+evalvar(char *p, int flag)
 {
 	char varflags;
 	char subtype;
@@ -7043,7 +7014,7 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
 	p = strchr(p, '=') + 1; //TODO: use var_end(p)?
 
  again:
-	varlen = varvalue(var, varflags, flag, var_str_list, &quoted);
+	varlen = varvalue(var, varflags, flag, &quoted);
 	if (varflags & VSNUL)
 		varlen--;
 
@@ -7057,8 +7028,7 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
 		if (varlen < 0) {
 			argstr(
 				p,
-				flag | EXP_TILDE | EXP_WORD,
-				var_str_list
+				flag | EXP_TILDE | EXP_WORD
 			);
 			goto end;
 		}
@@ -7070,7 +7040,7 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
 			goto record;
 
 		subevalvar(p, var, 0, subtype, startloc, varflags,
-			   flag & ~QUOTES_ESC, var_str_list);
+			   flag & ~QUOTES_ESC);
 		varflags &= ~VSNUL;
 		/*
 		 * Remove any recorded regions beyond
@@ -7123,7 +7093,7 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
 		STPUTC('\0', expdest);
 		patloc = expdest - (char *)stackblock();
 		if (NULL == subevalvar(p, /* varname: */ NULL, patloc, subtype,
-				startloc, varflags, flag, var_str_list)) {
+				startloc, varflags, flag)) {
 			int amount = expdest - (
 				(char *)stackblock() + patloc - 1
 			);
@@ -7547,8 +7517,7 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
 	argbackq = arg->narg.backquote;
 	STARTSTACKSTR(expdest);
 	TRACE(("expandarg: argstr('%s',flags:%x)\n", arg->narg.text, flag));
-	argstr(arg->narg.text, flag,
-			/* var_str_list: */ arglist ? arglist->list : NULL);
+	argstr(arg->narg.text, flag);
 	p = _STPUTC('\0', expdest);
 	expdest = p - 1;
 	if (arglist == NULL) {
@@ -7615,8 +7584,7 @@ casematch(union node *pattern, char *val)
 	setstackmark(&smark);
 	argbackq = pattern->narg.backquote;
 	STARTSTACKSTR(expdest);
-	argstr(pattern->narg.text, EXP_TILDE | EXP_CASE,
-			/* var_str_list: */ NULL);
+	argstr(pattern->narg.text, EXP_TILDE | EXP_CASE);
 	STACKSTRNUL(expdest);
 	ifsfree();
 	result = patmatch(stackblock(), val);
