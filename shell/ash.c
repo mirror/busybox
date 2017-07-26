@@ -214,6 +214,9 @@
 #include "shell_common.h"
 #if ENABLE_FEATURE_SH_MATH
 # include "math.h"
+#else
+typedef long arith_t;
+# define ARITH_FMT "%ld"
 #endif
 #if ENABLE_ASH_RANDOM_SUPPORT
 # include "random.h"
@@ -621,8 +624,8 @@ fmtstr(char *outbuf, size_t length, const char *fmt, ...)
 	va_list ap;
 	int ret;
 
-	va_start(ap, fmt);
 	INT_OFF;
+	va_start(ap, fmt);
 	ret = vsnprintf(outbuf, length, fmt, ap);
 	va_end(ap);
 	INT_ON;
@@ -2345,7 +2348,7 @@ setvar0(const char *name, const char *val)
 static void
 unsetvar(const char *s)
 {
-	setvar0(s, NULL);
+	setvar(s, NULL, 0);
 }
 
 /*
@@ -5697,19 +5700,20 @@ static struct arglist exparg;
 
 /*
  * Our own itoa().
+ * cvtnum() is used even if math support is off (to prepare $? values and such).
  */
-#if !ENABLE_FEATURE_SH_MATH
-/* cvtnum() is used even if math support is off (to prepare $? values and such) */
-typedef long arith_t;
-# define ARITH_FMT "%ld"
-#endif
 static int
 cvtnum(arith_t num)
 {
 	int len;
 
-	expdest = makestrspace(sizeof(arith_t)*3 + 2, expdest);
-	len = fmtstr(expdest, sizeof(arith_t)*3 + 2, ARITH_FMT, num);
+	/* 32-bit and wider ints require buffer size of bytes*3 (or less) */
+	len = sizeof(arith_t) * 3;
+	/* If narrower: worst case, 1-byte ints: need 5 bytes: "-127<NUL>" */
+	if (sizeof(arith_t) < 4) len += 2;
+
+	expdest = makestrspace(len, expdest);
+	len = fmtstr(expdest, len, ARITH_FMT, num);
 	STADJUST(len, expdest);
 	return len;
 }
