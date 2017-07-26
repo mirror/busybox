@@ -9167,7 +9167,12 @@ optschanged(void)
 #endif
 }
 
-static struct localvar *localvars;
+struct localvar_list {
+	struct localvar_list *next;
+	struct localvar *lv;
+};
+
+static struct localvar_list *localvar_stack;
 
 /*
  * Called after a function returns.
@@ -9176,11 +9181,19 @@ static struct localvar *localvars;
 static void
 poplocalvars(void)
 {
-	struct localvar *lvp;
+	struct localvar_list *ll;
+	struct localvar *lvp, *next;
 	struct var *vp;
 
-	while ((lvp = localvars) != NULL) {
-		localvars = lvp->next;
+	INT_OFF;
+	ll = localvar_stack;
+	localvar_stack = ll->next;
+
+	next = ll->lv;
+	free(ll);
+
+	while ((lvp = next) != NULL) {
+		next = lvp->next;
 		vp = lvp->vp;
 		TRACE(("poplocalvar %s\n", vp ? vp->var_text : "-"));
 		if (vp == NULL) {       /* $- saved */
@@ -9199,19 +9212,34 @@ poplocalvars(void)
 		}
 		free(lvp);
 	}
+	INT_ON;
+}
+
+/*
+ * Create a new localvar environment.
+ */
+static void
+pushlocalvars(void)
+{
+	struct localvar_list *ll;
+
+	INT_OFF;
+	ll = ckzalloc(sizeof(*ll));
+	/*ll->lv = NULL; - zalloc did it */
+	ll->next = localvar_stack;
+	localvar_stack = ll;
+	INT_ON;
 }
 
 static int
 evalfun(struct funcnode *func, int argc, char **argv, int flags)
 {
 	volatile struct shparam saveparam;
-	struct localvar *volatile savelocalvars;
 	struct jmploc *volatile savehandler;
 	struct jmploc jmploc;
 	int e;
 
 	saveparam = shellparam;
-	savelocalvars = localvars;
 	savehandler = exception_handler;
 	e = setjmp(jmploc.loc);
 	if (e) {
@@ -9219,7 +9247,6 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	}
 	INT_OFF;
 	exception_handler = &jmploc;
-	localvars = NULL;
 	shellparam.malloced = 0;
 	func->count++;
 	funcnest++;
@@ -9230,13 +9257,13 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	shellparam.optind = 1;
 	shellparam.optoff = -1;
 #endif
+	pushlocalvars();
 	evaltree(func->n.narg.next, flags & EV_TESTED);
+	poplocalvars();
  funcdone:
 	INT_OFF;
 	funcnest--;
 	freefunc(func);
-	poplocalvars();
-	localvars = savelocalvars;
 	freeparam(&shellparam);
 	shellparam = saveparam;
 	exception_handler = savehandler;
@@ -9265,7 +9292,7 @@ mklocal(char *name)
 	 * x=0; f() { local x=1; echo $x; local x; echo $x; }; f; echo $x
 	 * x=0; f() { local x=1; echo $x; local x=2; echo $x; }; f; echo $x
 	 */
-	lvp = localvars;
+	lvp = localvar_stack->lv;
 	while (lvp) {
 		if (lvp->vp && varcmp(lvp->vp->var_text, name) == 0) {
 			if (eq)
@@ -9310,8 +9337,8 @@ mklocal(char *name)
 		}
 	}
 	lvp->vp = vp;
-	lvp->next = localvars;
-	localvars = lvp;
+	lvp->next = localvar_stack->lv;
+	localvar_stack->lv = lvp;
  ret:
 	INT_ON;
 }
@@ -9324,7 +9351,7 @@ localcmd(int argc UNUSED_PARAM, char **argv)
 {
 	char *name;
 
-	if (!funcnest)
+	if (!localvar_stack)
 		ash_msg_and_raise_error("not in a function");
 
 	argv = argptr;
@@ -13570,6 +13597,10 @@ reset(void)
 	/* from redir.c: */
 	while (redirlist)
 		popredir(/*drop:*/ 0, /*restore:*/ 0);
+
+	/* from var.c: */
+	while (localvar_stack)
+		poplocalvars();
 }
 
 #if PROFILE
