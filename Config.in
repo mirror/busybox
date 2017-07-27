@@ -3,13 +3,13 @@
 # see scripts/kbuild/config-language.txt.
 #
 
-mainmenu "BusyBox Configuration"
+mainmenu "Configuration"
 
 config HAVE_DOT_CONFIG
 	bool
 	default y
 
-menu "Busybox Settings"
+menu "Settings"
 
 config DESKTOP
 	bool "Enable compatibility for full-blown desktop systems"
@@ -57,7 +57,7 @@ config SHOW_USAGE
 	bool "Show applet usage messages"
 	default y
 	help
-	Enabling this option, BusyBox applets will show terse help messages
+	Enabling this option, applets will show terse help messages
 	when invoked with wrong arguments.
 	If you do not want to show any (helpful) usage message when
 	issuing wrong command syntax, you can say 'N' here,
@@ -68,18 +68,16 @@ config FEATURE_VERBOSE_USAGE
 	default y
 	depends on SHOW_USAGE
 	help
-	All BusyBox applets will show verbose help messages when
-	busybox is invoked with --help. This will add a lot of text to the
-	busybox binary. In the default configuration, this will add about
-	13k, but it can add much more depending on your configuration.
+	All applets will show verbose help messages when invoked with --help.
+	This will add a lot of text to the binary.
 
 config FEATURE_COMPRESS_USAGE
 	bool "Store applet usage messages in compressed form"
 	default y
 	depends on SHOW_USAGE
 	help
-	Store usage messages in .bz compressed form, uncompress them
-	on-the-fly when <applet> --help is called.
+	Store usage messages in .bz2 compressed form, uncompress them
+	on-the-fly when "APPLET --help" is run.
 
 	If you have a really tiny busybox with few applets enabled (and
 	bunzip2 isn't one of them), the overhead of the decompressor might
@@ -91,25 +89,24 @@ config LFS
 	bool "Support files > 2 GB"
 	default y
 	help
-	If you want to build BusyBox with large file support, then enable
-	this option. This will have no effect if your kernel or your C
+	If you need to work with large files, enable this option.
+	This will have no effect if your kernel or your C
 	library lacks large file support for large files. Some of the
 	programs that can benefit from large file support include dd, gzip,
-	cp, mount, tar, and many others. If you want to access files larger
-	than 2 Gigabytes, enable this option.
+	cp, mount, tar.
 
 config PAM
 	bool "Support PAM (Pluggable Authentication Modules)"
 	default n
 	help
-	Use PAM in some busybox applets (currently login and httpd) instead
+	Use PAM in some applets (currently login and httpd) instead
 	of direct access to password database.
 
 config FEATURE_DEVPTS
 	bool "Use the devpts filesystem for Unix98 PTYs"
 	default y
 	help
-	Enable if you want BusyBox to use Unix98 PTY support. If enabled,
+	Enable if you want to use Unix98 PTY support. If enabled,
 	busybox will use /dev/ptmx for the master side of the pseudoterminal
 	and /dev/pts/<number> for the slave side. Otherwise, BSD style
 	/dev/ttyp<number> will be used. To use this option, you should have
@@ -157,9 +154,9 @@ config BUSYBOX
 	bool "Include busybox applet"
 	default y
 	help
-	The busybox applet provides general help regarding busybox and
-	allows the included applets to be listed.  It's also required
-	if applet links are to be installed at runtime. If you unselect
+	The busybox applet provides general help message and allows
+	the included applets to be listed.  It also provides
+	optional --install command to create applet links. If you unselect
 	this option, running busybox without any arguments will give
 	just a cryptic error message:
 
@@ -181,7 +178,7 @@ config INSTALL_NO_USR
 	bool "Don't use /usr"
 	default n
 	help
-	Disable use of /usr. busybox --install and "make install"
+	Disable use of /usr. "busybox --install" and "make install"
 	will install applets only to /bin and /sbin,
 	never to /usr/bin or /usr/sbin.
 
@@ -194,11 +191,11 @@ config FEATURE_SUID
 	root-level operations even when run by ordinary users
 	(for example, mounting of user mounts in fstab needs this).
 
-	With this option enabled, Busybox drops privileges for applets
+	With this option enabled, busybox drops privileges for applets
 	that don't need root access, before entering their main() function.
 
 	If you are really paranoid and don't want even initial busybox code
-	to run under root for evey applet, build two busybox binaries with
+	to run under root for every applet, build two busybox binaries with
 	different applets in them (and the appropriate symlinks pointing
 	to each binary), and only set the suid bit on the one that needs it.
 
@@ -284,14 +281,14 @@ config FEATURE_PREFER_APPLETS
 	(command name can be shown as 'exe' for applets started this way).
 
 config BUSYBOX_EXEC_PATH
-	string "Path to BusyBox executable"
+	string "Path to busybox executable"
 	default "/proc/self/exe"
 	help
-	When Busybox applets need to run other busybox applets, BusyBox
+	When applets need to run other applets, busybox
 	sometimes needs to exec() itself. When the /proc filesystem is
 	mounted, /proc/self/exe always points to the currently running
 	executable. If you haven't got /proc, set this to wherever you
-	want to run BusyBox from.
+	want to run busybox from.
 
 config SELINUX
 	bool "Support NSA Security Enhanced Linux"
@@ -354,21 +351,17 @@ config PLATFORM_LINUX
 comment 'Build Options'
 
 config STATIC
-	bool "Build BusyBox as a static binary (no shared libs)"
+	bool "Build static binary (no shared libs)"
 	default n
 	help
-	If you want to build a static BusyBox binary, which does not
-	use or require any shared libraries, then enable this option.
-	This can cause BusyBox to be considerably larger, so you should
-	leave this option false unless you have a good reason (i.e.
-	your target platform does not support shared libraries, or
-	you are building an initrd which doesn't need anything but
-	BusyBox, etc).
-
-	Most people will leave this set to 'N'.
+	If you want to build a static binary, which does not use
+	or require any shared libraries, enable this option.
+	Static binaries are larger, but do not require functioning
+	dynamic libraries to be present, which is important if used
+	as a system rescue tool.
 
 config PIE
-	bool "Build BusyBox as a position independent executable"
+	bool "Build position independent executable"
 	default n
 	depends on !STATIC
 	help
@@ -466,10 +459,10 @@ config FEATURE_SHARED_BUSYBOX
 ###	Say 'N' unless you know what you are doing.
 
 config CROSS_COMPILER_PREFIX
-	string "Cross Compiler prefix"
+	string "Cross compiler prefix"
 	default ""
 	help
-	If you want to build BusyBox with a cross compiler, then you
+	If you want to build busybox with a cross compiler, then you
 	will need to set this to the cross-compiler prefix, for example,
 	"i386-uclibc-".
 
@@ -482,11 +475,11 @@ config SYSROOT
 	string "Path to sysroot"
 	default ""
 	help
-	If you want to build BusyBox with a cross compiler, then you
+	If you want to build busybox with a cross compiler, then you
 	might also need to specify where /usr/include and /usr/lib
 	will be found.
 
-	For example, BusyBox can be built against an installed
+	For example, busybox can be built against an installed
 	Android NDK, platform version 9, for ARM ABI with
 
 	CONFIG_SYSROOT=/opt/android-ndk/platforms/android-9/arch-arm
@@ -580,21 +573,22 @@ config INSTALL_SH_APPLET_SCRIPT_WRAPPER
 endchoice
 
 config PREFIX
-	string "BusyBox installation prefix"
+	string "Destination path for 'make install'"
 	default "./_install"
 	help
-	Define your directory to install BusyBox files/subdirs in.
+	Where "make install" should install busybox binary and links.
 
 comment 'Debugging Options'
 
 config DEBUG
-	bool "Build BusyBox with extra Debugging symbols"
+	bool "Build with debug information"
 	default n
 	help
-	Say Y here if you wish to examine BusyBox internals while applets are
-	running. This increases the size of the binary considerably, and
-	should only be used when doing development. If you are doing
-	development and want to debug BusyBox, answer Y.
+	Say Y here to compile with debug information.
+	This increases the size of the binary considerably, and
+	should only be used when doing development.
+
+	This adds -g option to gcc command line.
 
 	Most people should answer N.
 
@@ -608,6 +602,8 @@ config DEBUG_PESSIMIZE
 	stepping through it with a debugger. This switches it off, resulting
 	in a much bigger executable that more closely matches the source
 	code.
+
+	This replaces -Os/-O2 with -O0 in gcc command line.
 
 config DEBUG_SANITIZE
 	bool "Enable runtime sanitizers (ASAN/LSAN/USAN/etc...)"
@@ -626,7 +622,7 @@ config UNIT_TEST
 	default n
 	help
 	Say Y here if you want to build unit tests (both the framework and
-	test cases) as a Busybox applet. This results in bigger code, so you
+	test cases) as an applet. This results in bigger code, so you
 	probably don't want this option in production builds.
 
 config WERROR
@@ -641,8 +637,8 @@ choice
 	prompt "Additional debugging library"
 	default NO_DEBUG_LIB
 	help
-	Using an additional debugging library will make BusyBox become
-	considerable larger and will cause it to run more slowly. You
+	Using an additional debugging library will make busybox become
+	considerably larger and will cause it to run more slowly. You
 	should always leave this option disabled for production use.
 
 	dmalloc support:
@@ -663,7 +659,7 @@ choice
 	This enables compiling with Electric-fence support. Electric
 	fence is another very useful malloc debugging library which uses
 	your computer's virtual memory hardware to detect illegal memory
-	accesses. This support will make BusyBox be considerable larger
+	accesses. This support will make busybox be considerably larger
 	and run slower, so you should leave this option disabled unless
 	you are hunting a hard to find memory problem.
 
