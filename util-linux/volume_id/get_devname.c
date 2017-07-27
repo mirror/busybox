@@ -11,6 +11,7 @@
 //kbuild:lib-$(CONFIG_BLKID) += get_devname.o
 //kbuild:lib-$(CONFIG_FINDFS) += get_devname.o
 //kbuild:lib-$(CONFIG_FEATURE_MOUNT_LABEL) += get_devname.o
+//kbuild:lib-$(CONFIG_FEATURE_SWAPONOFF_LABEL) += get_devname.o
 
 #include <sys/mount.h> /* BLKGETSIZE64 */
 #if !defined(BLKGETSIZE64)

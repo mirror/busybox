@@ -37,6 +37,15 @@
 //config:	bool "swapoff (4.3 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
+//config:
+//config:config FEATURE_SWAPONOFF_LABEL
+//config:	bool "Support specifying devices by label or UUID"
+//config:	default y
+//config:	depends on SWAPON || SWAPOFF
+//config:	select VOLUMEID
+//config:	help
+//config:	This allows for specifying a device by label or uuid, rather than by
+//config:	name. This feature utilizes the same functionality as blkid/findfs.
 
 //                  APPLET_ODDNAME:name     main         location     suid_type     help
 //applet:IF_SWAPON( APPLET_ODDNAME(swapon,  swap_on_off, BB_DIR_SBIN, BB_SUID_DROP, swapon))
@@ -72,7 +81,7 @@
 # include <sys/swap.h>
 #endif
 
-#if ENABLE_FEATURE_MOUNT_LABEL
+#if ENABLE_FEATURE_SWAPONOFF_LABEL
 # include "volume_id.h"
 #else
 # define resolve_mount_spec(fsname) ((void)0)

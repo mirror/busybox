@@ -64,7 +64,6 @@
 //config:	help
 //config:	This allows for specifying a device by label or uuid, rather than by
 //config:	name. This feature utilizes the same functionality as blkid/findfs.
-//config:	This also enables label or uuid support for swapon.
 //config:
 //config:config FEATURE_MOUNT_NFS
 //config:	bool "Support mounting NFS file systems on Linux < 2.6.23"
