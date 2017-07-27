@@ -124,7 +124,7 @@
 //config:	different user.
 //config:
 //config:config FEATURE_HTTPD_BASIC_AUTH
-//config:	bool "Enable Basic http Authentication"
+//config:	bool "Enable HTTP authentication"
 //config:	default y
 //config:	depends on HTTPD
 //config:	help
@@ -134,7 +134,7 @@
 //config:	/adm:toor:PaSsWd
 //config:
 //config:config FEATURE_HTTPD_AUTH_MD5
-//config:	bool "Support MD5 crypted passwords for http Authentication"
+//config:	bool "Support MD5-encrypted passwords in HTTP authentication"
 //config:	default y
 //config:	depends on FEATURE_HTTPD_BASIC_AUTH
 //config:	help

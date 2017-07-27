@@ -161,39 +161,57 @@
 //config:	Internet superserver daemon
 //config:
 //config:config FEATURE_INETD_SUPPORT_BUILTIN_ECHO
-//config:	bool "Support echo service"
+//config:	bool "Support echo service on port 7"
 //config:	default y
 //config:	depends on INETD
 //config:	help
-//config:	Echo received data internal inetd service
+//config:	Internal service which echoes data back.
+//config:	Activated by configuration lines like these:
+//config:		echo stream tcp nowait root internal
+//config:		echo dgram  udp wait   root internal
 //config:
 //config:config FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
-//config:	bool "Support discard service"
+//config:	bool "Support discard service on port 8"
 //config:	default y
 //config:	depends on INETD
 //config:	help
-//config:	Internet /dev/null internal inetd service
+//config:	Internal service which discards all input.
+//config:	Activated by configuration lines like these:
+//config:		discard stream tcp nowait root internal
+//config:		discard dgram  udp wait   root internal
 //config:
 //config:config FEATURE_INETD_SUPPORT_BUILTIN_TIME
-//config:	bool "Support time service"
+//config:	bool "Support time service on port 37"
 //config:	default y
 //config:	depends on INETD
 //config:	help
-//config:	Return 32 bit time since 1900 internal inetd service
+//config:	Internal service which returns big-endian 32-bit number
+//config:	of seconds passed since 1900-01-01. The number wraps around
+//config:	on overflow.
+//config:	Activated by configuration lines like these:
+//config:		time stream tcp nowait root internal
+//config:		time dgram  udp wait   root internal
 //config:
 //config:config FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
-//config:	bool "Support daytime service"
+//config:	bool "Support daytime service on port 13"
 //config:	default y
 //config:	depends on INETD
 //config:	help
-//config:	Return human-readable time internal inetd service
+//config:	Internal service which returns human-readable time.
+//config:	Activated by configuration lines like these:
+//config:		daytime stream tcp nowait root internal
+//config:		daytime dgram  udp wait   root internal
 //config:
 //config:config FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
-//config:	bool "Support chargen service"
+//config:	bool "Support chargen service on port 19"
 //config:	default y
 //config:	depends on INETD
 //config:	help
-//config:	Familiar character generator internal inetd service
+//config:	Internal service which generates endless stream
+//config:	of all ASCII chars beetween space and char 126.
+//config:	Activated by configuration lines like these:
+//config:		chargen stream tcp nowait root internal
+//config:		chargen dgram  udp wait   root internal
 //config:
 //config:config FEATURE_INETD_RPC
 //config:	bool "Support RPC services"
@@ -216,6 +234,7 @@
 //usage:     "\n	-q N	Socket listen queue (default 128)"
 //usage:     "\n	-R N	Pause services after N connects/min"
 //usage:     "\n		(default 0 - disabled)"
+//usage:     "\n	Default CONFFILE is /etc/inetd.conf"
 
 #include <syslog.h>
 #include <sys/resource.h> /* setrlimit */
