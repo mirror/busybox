@@ -10,7 +10,7 @@
  */
 
 //config:config UDHCPC6
-//config:	bool "udhcpc6 (DHCPv6 client, EXPERIMENTAL)"
+//config:	bool "udhcpc6"
 //config:	default n  # not yet ready
 //config:	depends on FEATURE_IPV6
 //config:	help

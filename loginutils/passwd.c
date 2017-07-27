@@ -12,7 +12,7 @@
 //config:	may change the password for any account. The administrator of a group
 //config:	may change the password for the group.
 //config:
-//config:	Note that Busybox binary must be setuid root for this applet to
+//config:	Note that busybox binary must be setuid root for this applet to
 //config:	work properly.
 //config:
 //config:config FEATURE_PASSWD_WEAK_CHECK

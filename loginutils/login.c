@@ -9,7 +9,7 @@
 //config:	help
 //config:	login is used when signing onto a system.
 //config:
-//config:	Note that Busybox binary must be setuid root for this applet to
+//config:	Note that busybox binary must be setuid root for this applet to
 //config:	work properly.
 //config:
 //config:config LOGIN_SESSION_AS_CHILD

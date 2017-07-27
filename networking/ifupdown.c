@@ -59,11 +59,11 @@
 //config:	than the default of using the older "ifconfig" and "route" utilities.
 //config:
 //config:	If Y: you must install either the full-blown iproute2 package
-//config:	or enable "ip" applet in Busybox, or the "ifup" and "ifdown" applets
+//config:	or enable "ip" applet in busybox, or the "ifup" and "ifdown" applets
 //config:	will not work.
 //config:
 //config:	If N: you must install either the full-blown ifconfig and route
-//config:	utilities, or enable these applets in Busybox.
+//config:	utilities, or enable these applets in busybox.
 //config:
 //config:config FEATURE_IFUPDOWN_IPV4
 //config:	bool "Support IPv4"

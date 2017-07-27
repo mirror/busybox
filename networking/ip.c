@@ -14,8 +14,10 @@
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	The "ip" applet is a TCP/IP interface configuration and routing
-//config:	utility. You generally don't need "ip" to use busybox with
-//config:	TCP/IP.
+//config:	utility.
+//config:	Short forms (enabled below) are busybox-specific extensions.
+//config:	The standard "ip" utility does not provide them. If you are
+//config:	trying to be portable, it's better to use "ip CMD" forms.
 //config:
 //config:config IPADDR
 //config:	bool "ipaddr (14 kb)"
@@ -23,7 +25,7 @@
 //config:	select FEATURE_IP_ADDRESS
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	Support short form of ip addr: ipaddr
+//config:	Short form of "ip addr"
 //config:
 //config:config IPLINK
 //config:	bool "iplink (16 kb)"
@@ -31,7 +33,7 @@
 //config:	select FEATURE_IP_LINK
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	Support short form of ip link: iplink
+//config:	Short form of "ip link"
 //config:
 //config:config IPROUTE
 //config:	bool "iproute (15 kb)"
@@ -39,7 +41,7 @@
 //config:	select FEATURE_IP_ROUTE
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	Support short form of ip route: iproute
+//config:	Short form of "ip route"
 //config:
 //config:config IPTUNNEL
 //config:	bool "iptunnel (9.6 kb)"
@@ -47,7 +49,7 @@
 //config:	select FEATURE_IP_TUNNEL
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	Support short form of ip tunnel: iptunnel
+//config:	Short form of "ip tunnel"
 //config:
 //config:config IPRULE
 //config:	bool "iprule (10 kb)"
@@ -55,7 +57,7 @@
 //config:	select FEATURE_IP_RULE
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	Support short form of ip rule: iprule
+//config:	Short form of "ip rule"
 //config:
 //config:config IPNEIGH
 //config:	bool "ipneigh (8.3 kb)"
@@ -63,7 +65,7 @@
 //config:	select FEATURE_IP_NEIGH
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	Support short form of ip neigh: ipneigh
+//config:	Short form of "ip neigh"
 //config:
 //config:config FEATURE_IP_ADDRESS
 //config:	bool "ip address"

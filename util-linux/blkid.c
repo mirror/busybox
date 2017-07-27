@@ -13,8 +13,6 @@
 //config:	select VOLUMEID
 //config:	help
 //config:	Lists labels and UUIDs of all filesystems.
-//config:	WARNING:
-//config:	With all submodules selected, it will add ~8k to busybox.
 //config:
 //config:config FEATURE_BLKID_TYPE
 //config:	bool "Print filesystem type"

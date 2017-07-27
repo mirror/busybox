@@ -56,7 +56,7 @@
 //config:	For more information, please see docs/mdev.txt
 //config:
 //config:config FEATURE_MDEV_LOAD_FIRMWARE
-//config:	bool "Support loading of firmwares"
+//config:	bool "Support loading of firmware"
 //config:	default y
 //config:	depends on MDEV
 //config:	help

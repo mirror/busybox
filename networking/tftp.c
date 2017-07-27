@@ -22,15 +22,20 @@
 //config:	bool "tftp (12 kb)"
 //config:	default y
 //config:	help
-//config:	This enables the Trivial File Transfer Protocol client program. TFTP
-//config:	is usually used for simple, small transfers such as a root image
+//config:	Trivial File Transfer Protocol client. TFTP is usually used
+//config:	for simple, small transfers such as a root image
 //config:	for a network-enabled bootloader.
+//config:
+//config:config FEATURE_TFTP_PROGRESS_BAR
+//config:	bool "Enable progress bar"
+//config:	default y
+//config:	depends on TFTP
 //config:
 //config:config TFTPD
 //config:	bool "tftpd (10 kb)"
 //config:	default y
 //config:	help
-//config:	This enables the Trivial File Transfer Protocol server program.
+//config:	Trivial File Transfer Protocol server.
 //config:	It expects that stdin is a datagram socket and a packet
 //config:	is already pending on it. It will exit after one transfer.
 //config:	In other words: it should be run from inetd in nowait mode,
@@ -67,11 +72,6 @@
 //config:	help
 //config:	Allow tftp to specify block size, and tftpd to understand
 //config:	"blksize" and "tsize" options.
-//config:
-//config:config FEATURE_TFTP_PROGRESS_BAR
-//config:	bool "Enable progress bar"
-//config:	default y
-//config:	depends on TFTP && FEATURE_TFTP_BLOCKSIZE
 //config:
 //config:config TFTP_DEBUG
 //config:	bool "Enable debug"

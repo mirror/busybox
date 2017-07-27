@@ -14,8 +14,6 @@
 //config:	select VOLUMEID
 //config:	help
 //config:	Prints the name of a filesystem with given label or UUID.
-//config:	WARNING:
-//config:	With all submodules selected, it will add ~8k to busybox.
 
 /* Benefits from suid root: better access to /dev/BLOCKDEVs: */
 //applet:IF_FINDFS(APPLET(findfs, BB_DIR_SBIN, BB_SUID_MAYBE))

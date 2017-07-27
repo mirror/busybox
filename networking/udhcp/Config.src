@@ -3,25 +3,13 @@
 # see scripts/kbuild/config-language.txt.
 #
 
-INSERT
-
 config UDHCPD
-	bool "udhcpd (DHCP server)"
+	bool "udhcpd"
 	default y
 	select PLATFORM_LINUX
 	help
 	udhcpd is a DHCP server geared primarily toward embedded systems,
 	while striving to be fully functional and RFC compliant.
-
-config FEATURE_UDHCPD_WRITE_LEASES_EARLY
-	bool "Rewrite the lease file at every new acknowledge"
-	default y
-	depends on UDHCPD
-	help
-	If selected, udhcpd will write a new file with leases every
-	time a new lease has been accepted, thus eliminating the need
-	to send SIGUSR1 for the initial writing or updating. Any timed
-	rewriting remains undisturbed.
 
 config FEATURE_UDHCPD_BASE_IP_ON_MAC
 	bool "Select IP address based on client MAC"
@@ -36,6 +24,16 @@ config FEATURE_UDHCPD_BASE_IP_ON_MAC
 	which let their lease expire, and makes consecutive DHCPOFFERS
 	for the same client to (almost always) contain the same
 	IP address.
+
+config FEATURE_UDHCPD_WRITE_LEASES_EARLY
+	bool "Rewrite lease file at every new acknowledge"
+	default y
+	depends on UDHCPD
+	help
+	If selected, udhcpd will write a new file with leases every
+	time a new lease has been accepted, thus eliminating the need
+	to send SIGUSR1 for the initial writing or updating. Any timed
+	rewriting remains undisturbed.
 
 config DHCPD_LEASES_FILE
 	string "Absolute path to lease file"
@@ -57,12 +55,12 @@ config DHCPRELAY
 	bool "dhcprelay (5.8 kb)"
 	default y
 	help
-	dhcprelay listens for dhcp requests on one or more interfaces
-	and forwards these requests to a different interface or dhcp
+	dhcprelay listens for DHCP requests on one or more interfaces
+	and forwards these requests to a different interface or DHCP
 	server.
 
 config UDHCPC
-	bool "udhcpc (DHCP client)"
+	bool "udhcpc"
 	default y
 	select PLATFORM_LINUX
 	help
@@ -102,42 +100,31 @@ config UDHCPC_DEFAULT_SCRIPT
 	examples/udhcp for a working example. Normally it is safe
 	to leave this untouched.
 
+# udhcpc6 config is inserted here:
+INSERT
+
+comment "Common options for DHCP applets"
+        depends on UDHCPD || UDHCPC || UDHCPC6 || DHCPRELAY
+
 config FEATURE_UDHCP_PORT
 	bool "Enable '-P port' option for udhcpd and udhcpc"
 	default n
-	depends on UDHCPD || UDHCPC
+	depends on UDHCPD || UDHCPC || UDHCPC6
 	help
 	At the cost of ~300 bytes, enables -P port option.
 	This feature is typically not needed.
 
 config UDHCP_DEBUG
-	int "Maximum verbosity level for udhcp applets (0..9)"
+	int "Maximum verbosity level (0..9)"
 	default 9
 	range 0 9
-	depends on UDHCPD || UDHCPC || DHCPRELAY
+	depends on UDHCPD || UDHCPC || UDHCPC6 || DHCPRELAY
 	help
 	Verbosity can be increased with multiple -v options.
 	This option controls how high it can be cranked up.
 
 	Bigger values result in bigger code. Levels above 1
 	are very verbose and useful for debugging only.
-
-config FEATURE_UDHCP_RFC3397
-	bool "Support RFC3397 domain search (experimental)"
-	default y
-	depends on UDHCPD || UDHCPC
-	help
-	If selected, both client and server will support passing of domain
-	search lists via option 119, specified in RFC 3397,
-	and SIP servers option 120, specified in RFC 3361.
-
-config FEATURE_UDHCP_8021Q
-	bool "Support 802.1Q VLAN parameters"
-	default y
-	depends on UDHCPD || UDHCPC
-	help
-	If selected, both client and server will support passing of VLAN
-	ID and priority via options 132 and 133 as per 802.1Q.
 
 config UDHCPC_SLACK_FOR_BUGGY_SERVERS
 	int "DHCP options slack buffer size"
@@ -149,10 +136,10 @@ config UDHCPC_SLACK_FOR_BUGGY_SERVERS
 	field larger than we expect (which might also be considered a
 	buffer overflow attempt). These packets are normally discarded.
 	If circumstances beyond your control force you to support such
-	servers, this may help. The upper limit (924) makes dhcpc accept
+	servers, this may help. The upper limit (924) makes udhcpc accept
 	even 1500 byte packets (maximum-sized ethernet packets).
 
-	This option does not make dhcp[cd] emit non-standard
+	This option does not make udhcp[cd] emit non-standard
 	sized packets.
 
 	Known buggy DHCP servers:
@@ -161,3 +148,20 @@ config UDHCPC_SLACK_FOR_BUGGY_SERVERS
 		maximum size of entire IP packet, and sends packets
 		which are 28 bytes too large.
 	Seednet (ISP) VDSL: sends packets 2 bytes too large.
+
+config FEATURE_UDHCP_RFC3397
+	bool "Support RFC 3397 domain search options"
+	default y
+	depends on UDHCPD || UDHCPC
+	help
+	If selected, both client and server will support passing of domain
+	search lists via option 119, specified in RFC 3397,
+	and SIP servers option 120, specified in RFC 3361.
+
+config FEATURE_UDHCP_8021Q
+	bool "Support 802.1Q VLAN parameters options"
+	default y
+	depends on UDHCPD || UDHCPC
+	help
+	If selected, both client and server will support passing of VLAN
+	ID and priority via options 132 and 133 as per 802.1Q.

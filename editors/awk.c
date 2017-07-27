@@ -11,8 +11,7 @@
 //config:	bool "awk (22 kb)"
 //config:	default y
 //config:	help
-//config:	Awk is used as a pattern scanning and processing language. This is
-//config:	the BusyBox implementation of that programming language.
+//config:	Awk is used as a pattern scanning and processing language.
 //config:
 //config:config FEATURE_AWK_LIBM
 //config:	bool "Enable math functions (requires libm)"

@@ -15,7 +15,7 @@
 //config:	help
 //config:	Crontab manipulates the crontab for a particular user. Only
 //config:	the superuser may specify a different user and/or crontab directory.
-//config:	Note that Busybox binary must be setuid root for this applet to
+//config:	Note that busybox binary must be setuid root for this applet to
 //config:	work properly.
 
 /* Needs to be run by root or be suid root - needs to change /var/spool/cron* files: */

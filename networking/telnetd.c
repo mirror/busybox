@@ -54,7 +54,7 @@
 //config:
 //config:	You need to be sure that busybox has LOGIN and
 //config:	FEATURE_SUID enabled. And finally, you should make
-//config:	certain that Busybox has been installed setuid root:
+//config:	certain that busybox has been installed setuid root:
 //config:
 //config:		chown root.root /bin/busybox
 //config:		chmod 4755 /bin/busybox

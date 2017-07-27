@@ -18,11 +18,12 @@
 //config:	Simple FTP daemon. You have to run it via inetd.
 //config:
 //config:config FEATURE_FTPD_WRITE
-//config:	bool "Enable upload commands"
+//config:	bool "Enable -w (upload commands)"
 //config:	default y
 //config:	depends on FTPD
 //config:	help
-//config:	Enable all kinds of FTP upload commands (-w option)
+//config:	Enable -w option. "ftpd -w" will accept upload commands
+//config:	such as STOR, STOU, APPE, DELE, MKD, RMD, rename commands.
 //config:
 //config:config FEATURE_FTPD_ACCEPT_BROKEN_LIST
 //config:	bool "Enable workaround for RFC-violating clients"
@@ -40,7 +41,13 @@
 //config:	default y
 //config:	depends on FTPD
 //config:	help
-//config:	Enable basic system login as seen in telnet etc.
+//config:	Require login, and change to logged in user's UID:GID before
+//config:	accessing any files. Option "-a USER" allows "anonymous"
+//config:	logins (treats them as if USER logged in).
+//config:
+//config:	If this option is not selected, ftpd runs with the rights
+//config:	of the user it was started under, and does not require login.
+//config:	Take care to not launch it under root.
 
 //applet:IF_FTPD(APPLET(ftpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
 

@@ -26,8 +26,7 @@
 //config:	tree. The 'mount' utility is used to graft a filesystem onto a
 //config:	particular part of the tree. A filesystem can either live on a block
 //config:	device, or it can be accessible over the network, as is the case with
-//config:	NFS filesystems. Most people using BusyBox will also want to enable
-//config:	the 'mount' utility.
+//config:	NFS filesystems.
 //config:
 //config:config FEATURE_MOUNT_FAKE
 //config:	bool "Support option -f"
