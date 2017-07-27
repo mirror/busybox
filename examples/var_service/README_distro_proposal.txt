@@ -90,8 +90,8 @@ There are several reimplementations of daemontools:
   (busybox has it included)
 - s6: by Laurent Bercot, http://skarnet.org/software/s6/
 
-
 It is not required that a specific clone should be used. Let evolution work.
+
 
 	Terminology
 

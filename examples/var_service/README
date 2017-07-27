@@ -98,7 +98,7 @@ restart) each other.
 
     var_service/dhcp_if
 
-controls a udhcpc instance which provides dhpc-assigned IP
+controls a udhcpc instance which provides DHCP-assigned IP
 address on interface named "if". Copy/rename this directory as needed to run
 udhcpc on other interfaces (var_service/dhcp_if/run script uses _foo suffix
 of the parent directory as interface name).
@@ -164,9 +164,9 @@ This is achieved very simply by having
 	sv o .
 at the very beginning of fw/run script, not at the end.
 
-Therefore, any "sv u /var/run/service/fw" command by any other
-script "undoes" o(ne-shot) command if fw still runs, thus
-runsv will rerun it; or start it in a normal way if fw is not running.
+Therefore, any "sv u fw" command by any other script "undoes" o(ne-shot)
+command if fw still runs, thus runsv will rerun it; or start it
+in a normal way if fw is not running.
 
 This mechanism is the reason why fw is a service, not just a script.
 
@@ -198,7 +198,8 @@ PID TIME COMMAND
 568 0:00     svlogd -tt /var/log/service/dhcp_eth0
 850 0:00     udhcpc -vv --foreground --interface=eth0
                 --pidfile=/var/service/dhcp_eth0/udhcpc.pid
-                --script=/var/service/dhcp_eth0/dhcp_handler -x hostname bbox
+                --script=/var/service/dhcp_eth0/dhcp_handler
+                -x hostname bbox
 563 0:00   runsv ntpd
 573 0:01     svlogd -tt /var/log/service/ntpd
 845 0:00     busybox ntpd -dddnNl -S ./ntp.script -p 10.x.x.x -p 10.x.x.x
@@ -233,4 +234,5 @@ PID TIME COMMAND
 622 0:00     busybox httpd -p80 -vvv -f -h /home/httpd_root
 577 0:00   runsv supplicant_wlan0
 627 0:00     svlogd -tt /var/log/service/supplicant_wlan0
-638 0:03     wpa_supplicant -i wlan0 -c /var/service/supplicant_wlan0/wpa_supplicant.conf -d
+638 0:03     wpa_supplicant -i wlan0
+                -c /var/service/supplicant_wlan0/wpa_supplicant.conf -d
