@@ -41,7 +41,7 @@ static time_t askremotedate(const char *host)
 	uint32_t nett;
 	int fd;
 
-	/* Add a timeout for dead or inaccessible servers */
+	/* Timeout for dead or inaccessible servers */
 	alarm(10);
 	signal(SIGALRM, socket_timeout);
 
@@ -53,9 +53,8 @@ static time_t askremotedate(const char *host)
 		close(fd);
 
 	/* Convert from network byte order to local byte order.
-	 * RFC 868 time is the number of seconds
-	 * since 00:00 (midnight) 1 January 1900 GMT
-	 * the RFC 868 time 2,208,988,800 corresponds to 00:00  1 Jan 1970 GMT
+	 * RFC 868 time is seconds since 1900-01-01 00:00 GMT.
+	 * RFC 868 time 2,208,988,800 corresponds to 1970-01-01 00:00 GMT.
 	 * Subtract the RFC 868 time to get Linux epoch.
 	 */
 	nett = ntohl(nett) - RFC_868_BIAS;
@@ -66,7 +65,7 @@ static time_t askremotedate(const char *host)
 		 * current time  cur = 0x123ffffffff.
 		 * Assuming our time is not some 40 years off,
 		 * remote time must be 0x12400000001.
-		 * Need to adjust out time by (int32_t)(nett - cur).
+		 * Need to adjust our time by (int32_t)(nett - cur).
 		 */
 		time_t cur = time(NULL);
 		int32_t adjust = (int32_t)(nett - (uint32_t)cur);
