@@ -41,7 +41,7 @@
 //config:	wisely leave this disabled.
 //config:
 //config:config FEATURE_GETOPT_LONG
-//config:	bool "Support option -l"
+//config:	bool "Support -l LONGOPTs"
 //config:	default y if LONG_OPTS
 //config:	depends on GETOPT
 //config:	help

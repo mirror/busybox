@@ -29,14 +29,14 @@
 //config:	NFS filesystems.
 //config:
 //config:config FEATURE_MOUNT_FAKE
-//config:	bool "Support option -f"
+//config:	bool "Support -f (fake mount)"
 //config:	default y
 //config:	depends on MOUNT
 //config:	help
 //config:	Enable support for faking a file system mount.
 //config:
 //config:config FEATURE_MOUNT_VERBOSE
-//config:	bool "Support option -v"
+//config:	bool "Support -v (verbose)"
 //config:	default y
 //config:	depends on MOUNT
 //config:	help
@@ -98,7 +98,7 @@
 //config:
 //config:config FEATURE_MOUNT_FSTAB
 //config:	depends on MOUNT
-//config:	bool "Support /etc/fstab and -a"
+//config:	bool "Support /etc/fstab and -a (mount all)"
 //config:	default y
 //config:	help
 //config:	Support mount all and looking for files in /etc/fstab.

@@ -18,7 +18,7 @@
 //config:	utility, you almost certainly also want to enable 'umount'.
 //config:
 //config:config FEATURE_UMOUNT_ALL
-//config:	bool "Support option -a"
+//config:	bool "Support -a (unmount all)"
 //config:	default y
 //config:	depends on UMOUNT
 //config:	help

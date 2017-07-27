@@ -22,7 +22,7 @@
 //config:		40 4 * * * /etc/cron/daily > /dev/null 2>&1
 //config:
 //config:config FEATURE_CROND_D
-//config:	bool "Support option -d to redirect output to stderr"
+//config:	bool "Support -d (redirect output to stderr)"
 //config:	depends on CROND
 //config:	default y
 //config:	help
