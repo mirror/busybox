@@ -193,9 +193,9 @@ static NOINLINE int searchLines(const char *str, int num1, int num2)
 
 /*
  * Parse a line number argument if it is present.  This is a sum
- * or difference of numbers, '.', '$', 'x, or a search string.
- * Returns pointer which stopped the scan if successful (whether or not
- * there was a number).
+ * or difference of numbers, ".", "$", "'c", or a search string.
+ * Returns pointer which stopped the scan if successful
+ * (whether or not there was a number).
  * Returns NULL if there was a parsing error, with a message output.
  * Whether there was a number is returned indirectly, as is the number.
  */
@@ -227,12 +227,13 @@ static const char* getNum(const char *cp, smallint *retHaveNum, int *retNum)
 
 			case '\'':
 				cp++;
-				if ((*cp < 'a') || (*cp > 'z')) {
+				if ((unsigned)(*cp - 'a') >= 26) {
 					bb_error_msg("bad mark name");
 					return NULL;
 				}
 				haveNum = TRUE;
-				num = marks[*cp++ - 'a'];
+				num = marks[(unsigned)(*cp - 'a')];
+				cp++;
 				break;
 
 			case '/':
@@ -365,7 +366,7 @@ static void addLines(int num)
 			 * Now we exit to ed prompt. Is in important? */
 			return;
 		}
-		if ((buf[0] == '.') && (buf[1] == '\n') && (buf[2] == '\0'))
+		if (buf[0] == '.' && buf[1] == '\n' && buf[2] == '\0')
 			return;
 		if (!insertLine(num++, buf, len))
 			return;
@@ -791,7 +792,7 @@ static void doCommands(void)
 		len = read_line_input(NULL, ": ", buf, sizeof(buf), /*timeout*/ -1);
 		if (len <= 0)
 			return;
-		while (len && isblank(buf[--len]))
+		while (len && isspace(buf[--len]))
 			buf[len] = '\0';
 
 		if ((curNum == 0) && (lastNum > 0)) {
@@ -801,7 +802,7 @@ static void doCommands(void)
 
 		have1 = FALSE;
 		have2 = FALSE;
-		/* Don't pass &have1, &num1 to getNum() since this forces
+		/* Don't pass &haveN, &numN to getNum() since this forces
 		 * compiler to keep them on stack, not in registers,
 		 * which is usually quite suboptimal.
 		 * Using intermediate variables shrinks code by ~150 bytes.
@@ -811,7 +812,6 @@ static void doCommands(void)
 			continue;
 		have1 = h;
 		num1 = n;
-
 		cp = skip_whitespace(cp);
 		if (*cp == ',') {
 			cp = getNum(cp + 1, &h, &n);
@@ -845,7 +845,7 @@ static void doCommands(void)
 			break;
 
 		case 'f':
-			if (*cp && !isblank(*cp)) {
+			if (*cp != '\0' && *cp != ' ') {
 				bb_error_msg("bad file command");
 				break;
 			}
@@ -862,16 +862,18 @@ static void doCommands(void)
 			break;
 
 		case 'i':
+			if (!have1 && lastNum == 0)
+				num1 = 1;
 			addLines(num1);
 			break;
 
 		case 'k':
 			cp = skip_whitespace(cp);
-			if ((*cp < 'a') || (*cp > 'z') || cp[1]) {
+			if ((unsigned)(*cp - 'a') >= 26 || cp[1]) {
 				bb_error_msg("bad mark name");
 				break;
 			}
-			marks[*cp - 'a'] = num2;
+			marks[(unsigned)(*cp - 'a')] = num2;
 			break;
 
 		case 'l':
@@ -900,7 +902,7 @@ static void doCommands(void)
 			break;
 
 		case 'r':
-			if (*cp && !isblank(*cp)) {
+			if (*cp != '\0' && *cp != ' ') {
 				bb_error_msg("bad read command");
 				break;
 			}
@@ -922,20 +924,22 @@ static void doCommands(void)
 			break;
 
 		case 'w':
-			if (*cp && !isblank(*cp)) {
+			if (*cp != '\0' && *cp != ' ') {
 				bb_error_msg("bad write command");
 				break;
 			}
 			cp = skip_whitespace(cp);
+			if (*cp == '\0') {
+				cp = fileName;
+				if (!cp) {
+					bb_error_msg("no file name specified");
+					break;
+				}
+			}
 			if (!have1) {
 				num1 = 1;
 				num2 = lastNum;
-			}
-			if (*cp == '\0')
-				cp = fileName;
-			if (cp == NULL) {
-				bb_error_msg("no file name specified");
-				break;
+				dirty = FALSE;
 			}
 			writeLines(cp, num1, num2);
 			break;
