@@ -78,13 +78,6 @@ static int bad_nums(int num1, int num2, const char *for_what)
 	return 0;
 }
 
-static char *skip_blank(const char *cp)
-{
-	while (isblank(*cp))
-		cp++;
-	return (char *)cp;
-}
-
 /*
  * Return a pointer to the specified line number.
  */
@@ -138,15 +131,13 @@ static int findString(const LINE *lp, const char *str, int len, int offset)
 	const char *cp, *ncp;
 
 	cp = &lp->data[offset];
-	left = lp->len - offset;
+	left = lp->len - offset - len;
 
-	while (left >= len) {
-		ncp = memchr(cp, *str, left);
+	while (left >= 0) {
+		ncp = memchr(cp, str[0], left + 1);
 		if (ncp == NULL)
 			return -1;
 		left -= (ncp - cp);
-		if (left < len)
-			return -1;
 		cp = ncp;
 		if (memcmp(cp, str, len) == 0)
 			return (cp - lp->data);
@@ -203,25 +194,23 @@ static NOINLINE int searchLines(const char *str, int num1, int num2)
 /*
  * Parse a line number argument if it is present.  This is a sum
  * or difference of numbers, '.', '$', 'x, or a search string.
- * Returns TRUE if successful (whether or not there was a number).
- * Returns FALSE if there was a parsing error, with a message output.
+ * Returns pointer which stopped the scan if successful (whether or not
+ * there was a number).
+ * Returns NULL if there was a parsing error, with a message output.
  * Whether there was a number is returned indirectly, as is the number.
- * The character pointer which stopped the scan is also returned.
  */
-static int getNum(const char **retcp, smallint *retHaveNum, int *retNum)
+static const char* getNum(const char *cp, smallint *retHaveNum, int *retNum)
 {
-	const char *cp;
 	char *endStr, str[USERSIZE];
 	int value, num;
 	smallint haveNum, minus;
 
-	cp = *retcp;
 	value = 0;
 	haveNum = FALSE;
 	minus = 0;
 
 	while (TRUE) {
-		cp = skip_blank(cp);
+		cp = skip_whitespace(cp);
 
 		switch (*cp) {
 			case '.':
@@ -240,7 +229,7 @@ static int getNum(const char **retcp, smallint *retHaveNum, int *retNum)
 				cp++;
 				if ((*cp < 'a') || (*cp > 'z')) {
 					bb_error_msg("bad mark name");
-					return FALSE;
+					return NULL;
 				}
 				haveNum = TRUE;
 				num = marks[*cp++ - 'a'];
@@ -256,16 +245,15 @@ static int getNum(const char **retcp, smallint *retHaveNum, int *retNum)
 					cp = "";
 				num = searchLines(str, curNum, lastNum);
 				if (num == 0)
-					return FALSE;
+					return NULL;
 				haveNum = TRUE;
 				break;
 
 			default:
 				if (!isdigit(*cp)) {
-					*retcp = cp;
 					*retHaveNum = haveNum;
 					*retNum = value;
-					return TRUE;
+					return cp;
 				}
 				num = 0;
 				while (isdigit(*cp))
@@ -276,7 +264,7 @@ static int getNum(const char **retcp, smallint *retHaveNum, int *retNum)
 
 		value += (minus ? -num : num);
 
-		cp = skip_blank(cp);
+		cp = skip_whitespace(cp);
 
 		switch (*cp) {
 			case '-':
@@ -290,10 +278,9 @@ static int getNum(const char **retcp, smallint *retHaveNum, int *retNum)
 				break;
 
 			default:
-				*retcp = cp;
 				*retHaveNum = haveNum;
 				*retNum = value;
-				return TRUE;
+				return cp;
 		}
 	}
 }
@@ -789,12 +776,13 @@ static void subCommand(const char *cmd, int num1, int num2)
  */
 static void doCommands(void)
 {
-	const char *cp;
-	char *endbuf, buf[USERSIZE];
-	int len, num1, num2;
-	smallint have1, have2;
-
 	while (TRUE) {
+		char buf[USERSIZE];
+		const char *cp;
+		int len;
+		int n, num1, num2;
+		smallint h, have1, have2;
+
 		/* Returns:
 		 * -1 on read errors or EOF, or on bare Ctrl-D.
 		 * 0  on ctrl-C,
@@ -803,32 +791,36 @@ static void doCommands(void)
 		len = read_line_input(NULL, ": ", buf, sizeof(buf), /*timeout*/ -1);
 		if (len <= 0)
 			return;
-		endbuf = &buf[len - 1];
-		while ((endbuf > buf) && isblank(endbuf[-1]))
-			endbuf--;
-		*endbuf = '\0';
-
-		cp = skip_blank(buf);
-		have1 = FALSE;
-		have2 = FALSE;
+		while (len && isblank(buf[--len]))
+			buf[len] = '\0';
 
 		if ((curNum == 0) && (lastNum > 0)) {
 			curNum = 1;
 			curLine = lines.next;
 		}
 
-		if (!getNum(&cp, &have1, &num1))
+		have1 = FALSE;
+		have2 = FALSE;
+		/* Don't pass &have1, &num1 to getNum() since this forces
+		 * compiler to keep them on stack, not in registers,
+		 * which is usually quite suboptimal.
+		 * Using intermediate variables shrinks code by ~150 bytes.
+		 */
+		cp = getNum(skip_whitespace(buf), &h, &n);
+		if (!cp)
 			continue;
+		have1 = h;
+		num1 = n;
 
-		cp = skip_blank(cp);
-
+		cp = skip_whitespace(cp);
 		if (*cp == ',') {
-			cp++;
-			if (!getNum(&cp, &have2, &num2))
+			cp = getNum(cp + 1, &h, &n);
+			if (!cp)
 				continue;
+			num2 = n;
 			if (!have1)
 				num1 = 1;
-			if (!have2)
+			if (!h)
 				num2 = lastNum;
 			have1 = TRUE;
 			have2 = TRUE;
@@ -857,7 +849,7 @@ static void doCommands(void)
 				bb_error_msg("bad file command");
 				break;
 			}
-			cp = skip_blank(cp);
+			cp = skip_whitespace(cp);
 			if (*cp == '\0') {
 				if (fileName)
 					printf("\"%s\"\n", fileName);
@@ -874,7 +866,7 @@ static void doCommands(void)
 			break;
 
 		case 'k':
-			cp = skip_blank(cp);
+			cp = skip_whitespace(cp);
 			if ((*cp < 'a') || (*cp > 'z') || cp[1]) {
 				bb_error_msg("bad mark name");
 				break;
@@ -891,7 +883,7 @@ static void doCommands(void)
 			break;
 
 		case 'q':
-			cp = skip_blank(cp);
+			cp = skip_whitespace(cp);
 			if (have1 || *cp) {
 				bb_error_msg("bad quit command");
 				break;
@@ -902,7 +894,7 @@ static void doCommands(void)
 			/* read error/EOF - no way to continue */
 			if (len < 0)
 				return;
-			cp = skip_blank(buf);
+			cp = skip_whitespace(buf);
 			if ((*cp | 0x20) == 'y') /* Y or y */
 				return;
 			break;
@@ -912,7 +904,7 @@ static void doCommands(void)
 				bb_error_msg("bad read command");
 				break;
 			}
-			cp = skip_blank(cp);
+			cp = skip_whitespace(cp);
 			if (*cp == '\0') {
 				bb_error_msg("no file name");
 				break;
@@ -934,7 +926,7 @@ static void doCommands(void)
 				bb_error_msg("bad write command");
 				break;
 			}
-			cp = skip_blank(cp);
+			cp = skip_whitespace(cp);
 			if (!have1) {
 				num1 = 1;
 				num2 = lastNum;
