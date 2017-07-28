@@ -6137,6 +6137,19 @@ struct backcmd {                /* result of evalbackcmd */
 #define EV_TESTED  02           /* exit status is checked; ignore -e flag */
 static int evaltree(union node *, int);
 
+/* An evaltree() which is known to never return.
+ * Used to use an alias:
+ * static int evaltreenr(union node *, int) __attribute__((alias("evaltree"),__noreturn__));
+ * but clang was reported to "transfer" noreturn-ness to evaltree() as well.
+ */
+static ALWAYS_INLINE NORETURN void
+evaltreenr(union node *n, int flags)
+{
+	evaltree(n, flags);
+	bb_unreachable(abort());
+	/* NOTREACHED */
+}
+
 static void FAST_FUNC
 evalbackcmd(union node *n, struct backcmd *result)
 {
@@ -6173,7 +6186,7 @@ evalbackcmd(union node *n, struct backcmd *result)
  */
 		eflag = 0;
 		ifsfree();
-		evaltree(n, EV_EXIT); /* actually evaltreenr... */
+		evaltreenr(n, EV_EXIT);
 		/* NOTREACHED */
 	}
 	/* parent */
@@ -8795,11 +8808,6 @@ evaltree(union node *n, int flags)
 	TRACE(("leaving evaltree (no interrupts)\n"));
 	return exitstatus;
 }
-
-#if !defined(__alpha__) || (defined(__GNUC__) && __GNUC__ >= 3)
-static
-#endif
-int evaltreenr(union node *, int) __attribute__ ((alias("evaltree"),__noreturn__));
 
 static int
 skiploop(void)

@@ -45,6 +45,13 @@
 
 #define UNUSED_PARAM __attribute__ ((__unused__))
 #define NORETURN __attribute__ ((__noreturn__))
+
+#if __GNUC_PREREQ(4,5)
+# define bb_unreachable(altcode) __builtin_unreachable()
+#else
+# define bb_unreachable(altcode) altcode
+#endif
+
 /* "The malloc attribute is used to tell the compiler that a function
  * may be treated as if any non-NULL pointer it returns cannot alias
  * any other pointer valid when the function returns. This will often
