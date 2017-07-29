@@ -5435,33 +5435,13 @@ redirect(union node *redir, int flags)
 	int newfd;
 	int copied_fd2 = -1;
 
-	if (!redir) {
+	if (!redir)
 		return;
-	}
-
 	sv = NULL;
-	sv_pos = 0;
 	INT_OFF;
-	if (flags & REDIR_PUSH) {
-		union node *tmp = redir;
-		do {
-			sv_pos++;
-#if BASH_REDIR_OUTPUT
-			if (tmp->nfile.type == NTO2)
-				sv_pos++;
-#endif
-			tmp = tmp->nfile.next;
-		} while (tmp);
-		sv = ckmalloc(sizeof(*sv) + sv_pos * sizeof(sv->two_fd[0]));
-		sv->next = redirlist;
-		sv->pair_count = sv_pos;
-		redirlist = sv;
-		while (sv_pos > 0) {
-			sv_pos--;
-			sv->two_fd[sv_pos].orig = sv->two_fd[sv_pos].copy = EMPTY;
-		}
-	}
-
+	if (flags & REDIR_PUSH)
+		sv = redirlist;
+	sv_pos = 0;
 	do {
 		int right_fd = -1;
 		fd = redir->nfile.fd;
@@ -5583,6 +5563,34 @@ redirectsafe(union node *redir, int flags)
 	return err;
 }
 
+static struct redirtab*
+pushredir(union node *redir)
+{
+	struct redirtab *sv;
+	int i;
+
+	if (!redir)
+		return redirlist;
+
+	i = 0;
+	do {
+		i++;
+#if BASH_REDIR_OUTPUT
+		if (redir->nfile.type == NTO2)
+			i++;
+#endif
+		redir = redir->nfile.next;
+	} while (redir);
+
+	sv = ckzalloc(sizeof(*sv) + i * sizeof(sv->two_fd[0]));
+	sv->pair_count = i;
+	while (--i >= 0)
+		sv->two_fd[i].orig = sv->two_fd[i].copy = EMPTY;
+	sv->next = redirlist;
+	redirlist = sv;
+	return sv->next;
+}
+
 /*
  * Undo the effects of the last redirection.
  */
@@ -5616,6 +5624,13 @@ popredir(int drop, int restore)
 	redirlist = rp->next;
 	free(rp);
 	INT_ON;
+}
+
+static void
+unwindredir(struct redirtab *stop)
+{
+	while (redirlist != stop)
+		popredir(/*drop:*/ 0, /*restore:*/ 0);
 }
 
 
@@ -8727,6 +8742,7 @@ evaltree(union node *n, int flags)
 		goto setstatus;
 	case NREDIR:
 		expredir(n->nredir.redirect);
+		pushredir(n->nredir.redirect);
 		status = redirectsafe(n->nredir.redirect, REDIR_PUSH);
 		if (!status) {
 			status = evaltree(n->nredir.n, flags & EV_TESTED);
@@ -9622,6 +9638,7 @@ evalcommand(union node *cmd, int flags)
 		"\0\0", bltincmd /* why three NULs? */
 	};
 	struct localvar_list *localvar_stop;
+	struct redirtab *redir_stop;
 	struct stackmark smark;
 	union node *argp;
 	struct arglist arglist;
@@ -9687,6 +9704,7 @@ evalcommand(union node *cmd, int flags)
 
 	preverrout_fd = 2;
 	expredir(cmd->ncmd.redirect);
+	redir_stop = pushredir(cmd->ncmd.redirect);
 	status = redirectsafe(cmd->ncmd.redirect, REDIR_PUSH | REDIR_SAVEFD2);
 
 	path = vpath.var_text;
@@ -9878,6 +9896,7 @@ evalcommand(union node *cmd, int flags)
  out:
 	if (cmd->ncmd.redirect)
 		popredir(/*drop:*/ cmd_is_exec, /*restore:*/ cmd_is_exec);
+	unwindredir(redir_stop);
 	unwindlocalvars(localvar_stop);
 	if (lastarg) {
 		/* dsl: I think this is intended to be used to support
@@ -13584,8 +13603,7 @@ reset(void)
 	popallfiles();
 
 	/* from redir.c: */
-	while (redirlist)
-		popredir(/*drop:*/ 0, /*restore:*/ 0);
+	unwindredir(NULL);
 
 	/* from var.c: */
 	unwindlocalvars(NULL);
