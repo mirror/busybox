@@ -9991,6 +9991,7 @@ static smallint checkkwd;
 #define CHKALIAS        0x1
 #define CHKKWD          0x2
 #define CHKNL           0x4
+#define CHKEOFMARK      0x8
 
 /*
  * Push a string back onto the input at this current parsefile level.
@@ -10301,31 +10302,6 @@ pgetc_without_PEOA(void)
 #else
 # define pgetc_without_PEOA() pgetc()
 #endif
-
-/*
- * Read a line from the script.
- */
-static char *
-pfgets(char *line, int len)
-{
-	char *p = line;
-	int nleft = len;
-	int c;
-
-	while (--nleft > 0) {
-		c = pgetc_without_PEOA();
-		if (c == PEOF) {
-			if (p == line)
-				return NULL;
-			break;
-		}
-		*p++ = c;
-		if (c == '\n')
-			break;
-	}
-	*p = '\0';
-	return line;
-}
 
 /*
  * Undo a call to pgetc.  Only two characters may be pushed back.
@@ -10960,8 +10936,6 @@ raise_error_unexpected_syntax(int token)
 	/* NOTREACHED */
 }
 
-#define EOFMARKLEN 79
-
 /* parsing is heavily cross-recursive, need these forward decls */
 static union node *andor(void);
 static union node *pipeline(void);
@@ -11141,43 +11115,22 @@ fixredir(union node *n, const char *text, int err)
 	}
 }
 
-/*
- * Returns true if the text contains nothing to expand (no dollar signs
- * or backquotes).
- */
-static int
-noexpand(const char *text)
-{
-	unsigned char c;
-
-	while ((c = *text++) != '\0') {
-		if (c == CTLQUOTEMARK)
-			continue;
-		if (c == CTLESC)
-			text++;
-		else if (SIT(c, BASESYNTAX) == CCTL)
-			return 0;
-	}
-	return 1;
-}
-
 static void
 parsefname(void)
 {
 	union node *n = redirnode;
 
+	if (n->type == NHERE)
+		checkkwd = CHKEOFMARK;
 	if (readtoken() != TWORD)
 		raise_error_unexpected_syntax(-1);
 	if (n->type == NHERE) {
 		struct heredoc *here = heredoc;
 		struct heredoc *p;
-		int i;
 
 		if (quoteflag == 0)
 			n->type = NXHERE;
 		TRACE(("Here document %d\n", n->type));
-		if (!noexpand(wordtext) || (i = strlen(wordtext)) == 0 || i > EOFMARKLEN)
-			raise_error_syntax("illegal eof marker for << redirection");
 		rmescapes(wordtext, 0);
 		here->eofmark = wordtext;
 		here->next = NULL;
@@ -11593,7 +11546,6 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	/* c parameter is an unsigned char or PEOF or PEOA */
 	char *out;
 	size_t len;
-	char line[EOFMARKLEN + 1];
 	struct nodelist *bqlist;
 	smallint quotef;
 	smallint dblquote;
@@ -11816,6 +11768,9 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
  */
 checkend: {
 	if (eofmark) {
+		int markloc;
+		char *p;
+
 #if ENABLE_ASH_ALIAS
 		if (c == PEOA)
 			c = pgetc_without_PEOA();
@@ -11825,27 +11780,42 @@ checkend: {
 				c = pgetc_without_PEOA();
 			}
 		}
-		if (c == *eofmark) {
-			if (pfgets(line, sizeof(line)) != NULL) {
-				char *p, *q;
-				int cc;
 
-				p = line;
-				for (q = eofmark + 1;; p++, q++) {
-					cc = *p;
-					if (cc == '\n')
-						cc = 0;
-					if (!*q || cc != *q)
-						break;
-				}
-				if (cc == *q) {
-					c = PEOF;
-					nlnoprompt();
-				} else {
-					pushstring(line, NULL);
+		markloc = out - (char *)stackblock();
+		for (p = eofmark; STPUTC(c, out), *p; p++) {
+			if (c != *p)
+				goto more_heredoc;
+
+			c = pgetc_without_PEOA();
+		}
+
+		if (c == '\n' || c == PEOF) {
+			c = PEOF;
+			g_parsefile->linno++;
+			needprompt = doprompt;
+		} else {
+			int len_here;
+
+ more_heredoc:
+			p = (char *)stackblock() + markloc + 1;
+			len_here = out - p;
+
+			if (len_here) {
+				len_here -= (c >= PEOF);
+				c = p[-1];
+
+				if (len_here) {
+					char *str;
+
+					str = alloca(len_here + 1);
+					*(char *)mempcpy(str, p, len_here) = '\0';
+
+					pushstring(str, NULL);
 				}
 			}
 		}
+
+		STADJUST((char *)stackblock() + markloc - out, out);
 	}
 	goto checkend_return;
 }
@@ -11939,7 +11909,8 @@ parsesub: {
 	int typeloc;
 
 	c = pgetc_eatbnl();
-	if (c > 255 /* PEOA or PEOF */
+	if ((checkkwd & CHKEOFMARK)
+	 || c > 255 /* PEOA or PEOF */
 	 || (c != '(' && c != '{' && !is_name(c) && !is_special(c))
 	) {
 #if BASH_DOLLAR_SQUOTE
