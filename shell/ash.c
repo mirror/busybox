@@ -2494,7 +2494,9 @@ static const char *expandstr(const char *ps, int syntax_type);
 #define DQSYNTAX   1    /* in double quotes */
 #define SQSYNTAX   2    /* in single quotes */
 #define ARISYNTAX  3    /* in arithmetic */
-#define PSSYNTAX   4    /* prompt. never passed to SIT() */
+#if ENABLE_ASH_EXPAND_PRMT
+# define PSSYNTAX  4    /* prompt. never passed to SIT() */
+#endif
 /* PSSYNTAX expansion is identical to DQSYNTAX, except keeping '\$' as '\$' */
 
 /*
@@ -11594,9 +11596,13 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	bqlist = NULL;
 	quotef = 0;
 	IF_FEATURE_SH_MATH(prevsyntax = 0;)
+#if ENABLE_ASH_EXPAND_PRMT
 	pssyntax = (syntax == PSSYNTAX);
 	if (pssyntax)
 		syntax = DQSYNTAX;
+#else
+	pssyntax = 0; /* constant */
+#endif
 	dblquote = (syntax == DQSYNTAX);
 	varnest = 0;
 	IF_FEATURE_SH_MATH(arinest = 0;)
@@ -11650,7 +11656,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			} else if (c == '\n') {
 				nlprompt();
 			} else {
-				if (c == '$' && pssyntax) {
+				if (pssyntax && c == '$') {
 					USTPUTC(CTLESC, out);
 					USTPUTC('\\', out);
 				}
