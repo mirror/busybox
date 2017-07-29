@@ -340,6 +340,11 @@ static void func_pgid(char *buf, int size, const procps_status_t *ps)
 	sprintf(buf, "%*u", size, ps->pgid);
 }
 
+static void func_sid(char *buf, int size, const procps_status_t *ps)
+{
+	sprintf(buf, "%*u", size, ps->sid);
+}
+
 static void put_lu(char *buf, int size, unsigned long u)
 {
 	char buf4[5];
@@ -458,6 +463,7 @@ static const ps_out_t out_spec[] = {
 	{ 6                  , "tty"   ,"TT"     ,func_tty   ,PSSCAN_TTY     },
 	{ 4                  , "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ     },
 /* Not mandated, but useful: */
+	{ 5                  , "sid"   ,"SID"    ,func_sid   ,PSSCAN_SID     },
 	{ 4                  , "stat"  ,"STAT"   ,func_state ,PSSCAN_STATE   },
 	{ 4                  , "rss"   ,"RSS"    ,func_rss   ,PSSCAN_RSS     },
 #if ENABLE_SELINUX
