@@ -429,11 +429,6 @@ static void func_label(char *buf, int size, const procps_status_t *ps)
 #endif
 
 /*
-static void func_nice(char *buf, int size, const procps_status_t *ps)
-{
-	ps->???
-}
-
 static void func_pcpu(char *buf, int size, const procps_status_t *ps)
 {
 }
