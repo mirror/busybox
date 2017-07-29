@@ -5558,6 +5558,28 @@ redirect(union node *redir, int flags)
 		preverrout_fd = copied_fd2;
 }
 
+static int
+redirectsafe(union node *redir, int flags)
+{
+	int err;
+	volatile int saveint;
+	struct jmploc *volatile savehandler = exception_handler;
+	struct jmploc jmploc;
+
+	SAVE_INT(saveint);
+	/* "echo 9>/dev/null; echo >&9; echo result: $?" - result should be 1, not 2! */
+	err = setjmp(jmploc.loc); // huh?? was = setjmp(jmploc.loc) * 2;
+	if (!err) {
+		exception_handler = &jmploc;
+		redirect(redir, flags);
+	}
+	exception_handler = savehandler;
+	if (err && exception_type != EXERROR)
+		longjmp(exception_handler->loc, 1);
+	RESTORE_INT(saveint);
+	return err;
+}
+
 /*
  * Undo the effects of the last redirection.
  */
@@ -5591,32 +5613,6 @@ popredir(int drop, int restore)
 	redirlist = rp->next;
 	free(rp);
 	INT_ON;
-}
-
-/*
- * Undo all redirections.  Called on error or interrupt.
- */
-
-static int
-redirectsafe(union node *redir, int flags)
-{
-	int err;
-	volatile int saveint;
-	struct jmploc *volatile savehandler = exception_handler;
-	struct jmploc jmploc;
-
-	SAVE_INT(saveint);
-	/* "echo 9>/dev/null; echo >&9; echo result: $?" - result should be 1, not 2! */
-	err = setjmp(jmploc.loc); // huh?? was = setjmp(jmploc.loc) * 2;
-	if (!err) {
-		exception_handler = &jmploc;
-		redirect(redir, flags);
-	}
-	exception_handler = savehandler;
-	if (err && exception_type != EXERROR)
-		longjmp(exception_handler->loc, 1);
-	RESTORE_INT(saveint);
-	return err;
 }
 
 
