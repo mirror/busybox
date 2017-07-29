@@ -167,9 +167,6 @@
 /* Some libc's forget to declare these, do it ourself */
 
 extern char **environ;
-#if defined(__GLIBC__) && __GLIBC__ < 2
-int vdprintf(int d, const char *format, va_list ap);
-#endif
 /* klogctl is in libc's klog.h, but we cheat and not #include that */
 int klogctl(int type, char *b, int len);
 #ifndef PATH_MAX

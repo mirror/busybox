@@ -224,8 +224,6 @@ Minor stuff:
 ---
   support start-stop-daemon -d <chdir-path>
 ---
-vdprintf() -> similar sized functionality
----
 
 (TODO list after discussion 11.05.2009)
 
