@@ -2488,8 +2488,18 @@ putprompt(const char *s)
 #endif
 
 /* expandstr() needs parsing machinery, so it is far away ahead... */
-static const char *expandstr(const char *ps);
+static const char *expandstr(const char *ps, int syntax_type);
+/* Values for syntax param */
+#define BASESYNTAX 0    /* not in quotes */
+#define DQSYNTAX   1    /* in double quotes */
+#define SQSYNTAX   2    /* in single quotes */
+#define ARISYNTAX  3    /* in arithmetic */
+#define PSSYNTAX   4    /* prompt. never passed to SIT() */
+/* PSSYNTAX expansion is identical to DQSYNTAX, except keeping '\$' as '\$' */
 
+/*
+ * called by editline -- any expansions to the prompt should be added here.
+ */
 static void
 setprompt_if(smallint do_set, int whichprompt)
 {
@@ -2513,7 +2523,7 @@ setprompt_if(smallint do_set, int whichprompt)
 	}
 #if ENABLE_ASH_EXPAND_PRMT
 	pushstackmark(&smark, stackblocksize());
-	putprompt(expandstr(prompt));
+	putprompt(expandstr(prompt, PSSYNTAX));
 	popstackmark(&smark);
 #else
 	putprompt(prompt);
@@ -2838,13 +2848,6 @@ enum {
 /* c in SIT(c, syntax) must be an *unsigned char* or PEOA or PEOF,
  * caller must ensure proper cast on it if c is *char_ptr!
  */
-/* Values for syntax param */
-#define BASESYNTAX 0    /* not in quotes */
-#define DQSYNTAX   1    /* in double quotes */
-#define SQSYNTAX   2    /* in single quotes */
-#define ARISYNTAX  3    /* in arithmetic */
-#define PSSYNTAX   4    /* prompt. never passed to SIT() */
-
 #if USE_SIT_FUNCTION
 
 static int
@@ -9709,7 +9712,7 @@ evalcommand(union node *cmd, int flags)
 	if (xflag) {
 		const char *pfx = "";
 
-		fdprintf(preverrout_fd, "%s", expandstr(ps4val()));
+		fdprintf(preverrout_fd, "%s", expandstr(ps4val(), DQSYNTAX));
 
 		sp = varlist.list;
 		while (sp) {
@@ -11522,6 +11525,15 @@ decode_dollar_squote(void)
 }
 #endif
 
+/* Used by expandstr to get here-doc like behaviour. */
+#define FAKEEOFMARK ((char*)(uintptr_t)1)
+
+static ALWAYS_INLINE int
+realeofmark(const char *eofmark)
+{
+	return eofmark && eofmark != FAKEEOFMARK;
+}
+
 /*
  * If eofmark is NULL, read a word or a redirection symbol.  If eofmark
  * is not NULL, read a here document.  In the latter case, eofmark is the
@@ -11767,7 +11779,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
  * we are at the end of the here document, this routine sets the c to PEOF.
  */
 checkend: {
-	if (eofmark) {
+	if (realeofmark(eofmark)) {
 		int markloc;
 		char *p;
 
@@ -12472,22 +12484,18 @@ parseheredoc(void)
 }
 
 
-/*
- * called by editline -- any expansions to the prompt should be added here.
- */
 static const char *
-expandstr(const char *ps)
+expandstr(const char *ps, int syntax_type)
 {
 	union node n;
 	int saveprompt;
 
-	/* XXX Fix (char *) cast. It _is_ a bug. ps is variable's value,
-	 * and token processing _can_ alter it (delete NULs etc). */
+	/* XXX Fix (char *) cast. */
 	setinputstring((char *)ps);
 
 	saveprompt = doprompt;
 	doprompt = 0;
-	readtoken1(pgetc(), PSSYNTAX, nullstr, 0);
+	readtoken1(pgetc(), syntax_type, FAKEEOFMARK, 0);
 	doprompt = saveprompt;
 
 	popfile();
@@ -13548,7 +13556,7 @@ procargs(char **argv)
 static void
 read_profile(const char *name)
 {
-	name = expandstr(name);
+	name = expandstr(name, DQSYNTAX);
 	if (setinputfile(name, INPUT_PUSH_FILE | INPUT_NOFILE_OK) < 0)
 		return;
 	cmdloop(0);
