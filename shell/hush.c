@@ -1454,11 +1454,11 @@ static int fcntl_F_DUPFD(int fd, int avoid_fd)
 	return newfd;
 }
 
-static int xdup_and_close(int fd, int F_DUPFD_maybe_CLOEXEC, int avoid_fd)
+static int xdup_CLOEXEC_and_close(int fd, int avoid_fd)
 {
 	int newfd;
  repeat:
-	newfd = fcntl(fd, F_DUPFD_maybe_CLOEXEC, avoid_fd + 1);
+	newfd = fcntl(fd, F_DUPFD_CLOEXEC, avoid_fd + 1);
 	if (newfd < 0) {
 		if (errno == EBUSY)
 			goto repeat;
@@ -1469,6 +1469,8 @@ static int xdup_and_close(int fd, int F_DUPFD_maybe_CLOEXEC, int avoid_fd)
 			return fd;
 		xfunc_die();
 	}
+	if (F_DUPFD_CLOEXEC == F_DUPFD) /* if old libc (w/o F_DUPFD_CLOEXEC) */
+		fcntl(newfd, F_SETFD, FD_CLOEXEC);
 	close(fd);
 	return newfd;
 }
@@ -1507,7 +1509,7 @@ static int save_FILEs_on_redirect(int fd, int avoid_fd)
 	while (fl) {
 		if (fd == fl->fd) {
 			/* We use it only on script files, they are all CLOEXEC */
-			fl->fd = xdup_and_close(fd, F_DUPFD_CLOEXEC, avoid_fd);
+			fl->fd = xdup_CLOEXEC_and_close(fd, avoid_fd);
 			debug_printf_redir("redirect_fd %d: matches a script fd, moving it to %d\n", fd, fl->fd);
 			return 1;
 		}
@@ -6711,18 +6713,42 @@ static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 	return append_squirrel(sq, i, fd, moved_to);
 }
 
+static struct squirrel *add_squirrel_closed(struct squirrel *sq, int fd)
+{
+	int i;
+
+	i = 0;
+	if (sq) while (sq[i].orig_fd >= 0) {
+		/* If we collide with an already moved fd... */
+		if (fd == sq[i].orig_fd) {
+			/* Examples:
+			 * "echo 3>FILE 3>&- 3>FILE"
+			 * "echo 3>&- 3>FILE"
+			 * No need for last redirect to insert
+			 * another "need to close 3" indicator.
+			 */
+			debug_printf_redir("redirect_fd %d: already moved or closed\n", fd);
+			return sq;
+		}
+		i++;
+	}
+
+	debug_printf_redir("redirect_fd %d: previous fd was closed\n", fd);
+	return append_squirrel(sq, i, fd, -1);
+}
+
 /* fd: redirect wants this fd to be used (e.g. 3>file).
  * Move all conflicting internally used fds,
  * and remember them so that we can restore them later.
  */
-static int save_fds_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
+static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 {
 	if (avoid_fd < 9) /* the important case here is that it can be -1 */
 		avoid_fd = 9;
 
 #if ENABLE_HUSH_INTERACTIVE
 	if (fd != 0 && fd == G.interactive_fd) {
-		G.interactive_fd = xdup_and_close(G.interactive_fd, F_DUPFD_CLOEXEC, avoid_fd);
+		G.interactive_fd = xdup_CLOEXEC_and_close(G.interactive_fd, avoid_fd);
 		debug_printf_redir("redirect_fd %d: matches interactive_fd, moving it to %d\n", fd, G.interactive_fd);
 		return 1; /* "we closed fd" */
 	}
@@ -6748,7 +6774,6 @@ static int save_fds_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 
 static void restore_redirects(struct squirrel *sq)
 {
-
 	if (sq) {
 		int i = 0;
 		while (sq[i].orig_fd >= 0) {
@@ -6775,13 +6800,15 @@ static void restore_redirects(struct squirrel *sq)
  * and stderr if they are redirected. */
 static int setup_redirects(struct command *prog, struct squirrel **sqp)
 {
-	int openfd, mode;
 	struct redir_struct *redir;
 
 	for (redir = prog->redirects; redir; redir = redir->next) {
+		int newfd;
+		int closed;
+
 		if (redir->rd_type == REDIRECT_HEREDOC2) {
 			/* "rd_fd<<HERE" case */
-			save_fds_on_redirect(redir->rd_fd, /*avoid:*/ 0, sqp);
+			save_fd_on_redirect(redir->rd_fd, /*avoid:*/ 0, sqp);
 			/* for REDIRECT_HEREDOC2, rd_filename holds _contents_
 			 * of the heredoc */
 			debug_printf_parse("set heredoc '%s'\n",
@@ -6793,6 +6820,8 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 		if (redir->rd_dup == REDIRFD_TO_FILE) {
 			/* "rd_fd<*>file" case (<*> is <,>,>>,<>) */
 			char *p;
+			int mode;
+
 			if (redir->rd_filename == NULL) {
 				/*
 				 * Examples:
@@ -6804,9 +6833,9 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 			}
 			mode = redir_table[redir->rd_type].mode;
 			p = expand_string_to_string(redir->rd_filename, /*unbackslash:*/ 1);
-			openfd = open_or_warn(p, mode);
+			newfd = open_or_warn(p, mode);
 			free(p);
-			if (openfd < 0) {
+			if (newfd < 0) {
 				/* Error message from open_or_warn can be lost
 				 * if stderr has been redirected, but bash
 				 * and ash both lose it as well
@@ -6814,40 +6843,46 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 				 */
 				return 1;
 			}
-			if (openfd == redir->rd_fd && sqp) {
+			if (newfd == redir->rd_fd && sqp) {
 				/* open() gave us precisely the fd we wanted.
 				 * This means that this fd was not busy
 				 * (not opened to anywhere).
 				 * Remember to close it on restore:
 				 */
-				struct squirrel *sq = *sqp;
-				int i = 0;
-			        if (sq) while (sq[i].orig_fd >= 0)
-					i++;
-				*sqp = append_squirrel(sq, i, openfd, -1); /* -1 = "it was closed" */
-				debug_printf_redir("redir to previously closed fd %d\n", openfd);
+				*sqp = add_squirrel_closed(*sqp, newfd);
+				debug_printf_redir("redir to previously closed fd %d\n", newfd);
 			}
 		} else {
-			/* "rd_fd<*>rd_dup" or "rd_fd<*>-" cases */
-			openfd = redir->rd_dup;
+			/* "rd_fd>&rd_dup" or "rd_fd>&-" case */
+			newfd = redir->rd_dup;
 		}
 
-		if (openfd != redir->rd_fd) {
-			int closed = save_fds_on_redirect(redir->rd_fd, /*avoid:*/ openfd, sqp);
-			if (openfd == REDIRFD_CLOSE) {
-				/* "rd_fd >&-" means "close me" */
-				if (!closed) {
-					/* ^^^ optimization: saving may already
-					 * have closed it. If not... */
-					close(redir->rd_fd);
-				}
-			} else {
-				xdup2(openfd, redir->rd_fd);
-				if (redir->rd_dup == REDIRFD_TO_FILE)
-					/* "rd_fd > FILE" */
-					close(openfd);
-				/* else: "rd_fd > rd_dup" */
+		if (newfd == redir->rd_fd)
+			continue;
+
+		/* if "N>FILE": move newfd to redir->rd_fd */
+		/* if "N>&M": dup newfd to redir->rd_fd */
+		/* if "N>&-": close redir->rd_fd (newfd is REDIRFD_CLOSE) */
+
+		closed = save_fd_on_redirect(redir->rd_fd, /*avoid:*/ newfd, sqp);
+		if (newfd == REDIRFD_CLOSE) {
+			/* "N>&-" means "close me" */
+			if (!closed) {
+				/* ^^^ optimization: saving may already
+				 * have closed it. If not... */
+				close(redir->rd_fd);
 			}
+			/* Sometimes we do another close on restore, getting EBADF.
+			 * Consider "echo 3>FILE 3>&-"
+			 * first redirect remembers "need to close 3",
+			 * and second redirect closes 3! Restore code then closes 3 again.
+			 */
+		} else {
+			xdup2(newfd, redir->rd_fd);
+			if (redir->rd_dup == REDIRFD_TO_FILE)
+				/* "rd_fd > FILE" */
+				close(newfd);
+			/* else: "rd_fd > rd_dup" */
 		}
 	}
 	return 0;
