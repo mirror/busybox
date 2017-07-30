@@ -2030,7 +2030,7 @@ struct redirtab;
 struct globals_var {
 	struct shparam shellparam;      /* $@ current positional parameters */
 	struct redirtab *redirlist;
-	int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
+	int preverrout_fd;   /* stderr fd: usually 2, unless redirect moved it */
 	struct var *vartab[VTABSIZE];
 	struct var varinit[ARRAY_SIZE(varinit_data)];
 };
@@ -5426,16 +5426,13 @@ is_hidden_fd(struct redirtab *rp, int fd)
  */
 /* flags passed to redirect */
 #define REDIR_PUSH    01        /* save previous values of file descriptors */
-#define REDIR_SAVEFD2 03        /* set preverrout */
 static void
 redirect(union node *redir, int flags)
 {
 	struct redirtab *sv;
 	int sv_pos;
-	int i;
 	int fd;
 	int newfd;
-	int copied_fd2 = -1;
 
 	if (!redir)
 		return;
@@ -5479,37 +5476,38 @@ redirect(union node *redir, int flags)
 			 * to the same fd as right side fd in N>&M */
 			int minfd = right_fd < 10 ? 10 : right_fd + 1;
 #if defined(F_DUPFD_CLOEXEC)
-			i = fcntl(fd, F_DUPFD_CLOEXEC, minfd);
+			int copy = fcntl(fd, F_DUPFD_CLOEXEC, minfd);
 #else
-			i = fcntl(fd, F_DUPFD, minfd);
+			int copy = fcntl(fd, F_DUPFD, minfd);
 #endif
-			if (i == -1) {
-				i = errno;
-				if (i != EBADF) {
+			if (copy == -1) {
+				int e = errno;
+				if (e != EBADF) {
 					/* Strange error (e.g. "too many files" EMFILE?) */
 					if (newfd >= 0)
 						close(newfd);
-					errno = i;
+					errno = e;
 					ash_msg_and_raise_perror("%d", fd);
 					/* NOTREACHED */
 				}
 				/* EBADF: it is not open - good, remember to close it */
  remember_to_close:
-				i = CLOSED;
+				copy = CLOSED;
 			} else { /* fd is open, save its copy */
 #if !defined(F_DUPFD_CLOEXEC)
-				fcntl(i, F_SETFD, FD_CLOEXEC);
+				fcntl(copy, F_SETFD, FD_CLOEXEC);
 #endif
 				/* "exec fd>&-" should not close fds
 				 * which point to script file(s).
 				 * Force them to be restored afterwards */
 				if (is_hidden_fd(sv, fd))
-					i |= COPYFD_RESTORE;
+					copy |= COPYFD_RESTORE;
 			}
-			if (fd == 2)
-				copied_fd2 = i;
+			/* if we move stderr, let "set -x" code know */
+			if (fd == preverrout_fd)
+				preverrout_fd = copy;
 			sv->two_fd[sv_pos].orig = fd;
-			sv->two_fd[sv_pos].copy = i;
+			sv->two_fd[sv_pos].copy = copy;
 			sv_pos++;
 		}
 		if (newfd < 0) {
@@ -5537,10 +5535,16 @@ redirect(union node *redir, int flags)
 		}
 #endif
 	} while ((redir = redir->nfile.next) != NULL);
-
 	INT_ON;
-	if ((flags & REDIR_SAVEFD2) && copied_fd2 >= 0)
-		preverrout_fd = copied_fd2;
+
+//dash:#define REDIR_SAVEFD2 03        /* set preverrout */
+#define REDIR_SAVEFD2 0
+	// dash has a bug: since REDIR_SAVEFD2=3 and REDIR_PUSH=1, this test
+	// triggers for pure REDIR_PUSH too. Thus, this is done almost always,
+	// not only for calls with flags containing REDIR_SAVEFD2.
+	// We do this unconditionally (see code above).
+	//if ((flags & REDIR_SAVEFD2) && copied_fd2 >= 0)
+	//	preverrout_fd = copied_fd2;
 }
 
 static int
@@ -9655,9 +9659,7 @@ evalcommand(union node *cmd, int flags)
 	int spclbltin;
 	int status;
 	char **nargv;
-	struct builtincmd *bcmd;
 	smallint cmd_is_exec;
-	smallint pseudovarflag = 0;
 
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
@@ -9674,21 +9676,24 @@ evalcommand(union node *cmd, int flags)
 
 	argc = 0;
 	if (cmd->ncmd.args) {
+		struct builtincmd *bcmd;
+		smallint pseudovarflag;
+
 		bcmd = find_builtin(cmd->ncmd.args->narg.text);
 		pseudovarflag = bcmd && IS_BUILTIN_ASSIGN(bcmd);
-	}
 
-	for (argp = cmd->ncmd.args; argp; argp = argp->narg.next) {
-		struct strlist **spp;
+		for (argp = cmd->ncmd.args; argp; argp = argp->narg.next) {
+			struct strlist **spp;
 
-		spp = arglist.lastp;
-		if (pseudovarflag && isassignment(argp->narg.text))
-			expandarg(argp, &arglist, EXP_VARTILDE);
-		else
-			expandarg(argp, &arglist, EXP_FULL | EXP_TILDE);
+			spp = arglist.lastp;
+			if (pseudovarflag && isassignment(argp->narg.text))
+				expandarg(argp, &arglist, EXP_VARTILDE);
+			else
+				expandarg(argp, &arglist, EXP_FULL | EXP_TILDE);
 
-		for (sp = *spp; sp; sp = sp->next)
-			argc++;
+			for (sp = *spp; sp; sp = sp->next)
+				argc++;
+		}
 	}
 
 	/* Reserve one extra spot at the front for shellexec. */
@@ -9704,9 +9709,9 @@ evalcommand(union node *cmd, int flags)
 	if (iflag && funcnest == 0 && argc > 0)
 		lastarg = nargv[-1];
 
-	preverrout_fd = 2;
 	expredir(cmd->ncmd.redirect);
 	redir_stop = pushredir(cmd->ncmd.redirect);
+	preverrout_fd = 2;
 	status = redirectsafe(cmd->ncmd.redirect, REDIR_PUSH | REDIR_SAVEFD2);
 
 	path = vpath.var_text;
