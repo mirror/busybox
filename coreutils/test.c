@@ -879,18 +879,48 @@ int test_main(int argc, char **argv)
 			res = (argv[0][0] == '\0');
 			goto ret_special;
 		}
-		if (argv[2] && !argv[3]) {
-			check_operator(argv[1]);
-			if (last_operator->op_type == BINOP) {
-				/* "test [!] arg1 <binary_op> arg2" */
-				args = argv;
-				res = (binop() == 0);
+		if (argv[2]) {
+			if (!argv[3]) {
+				/*
+				 * http://pubs.opengroup.org/onlinepubs/009695399/utilities/test.html
+				 * """ 3 arguments:
+				 * If $2 is a binary primary, perform the binary test of $1 and $3.
+				 * """
+				 */
+				check_operator(argv[1]);
+				if (last_operator->op_type == BINOP) {
+					/* "test [!] arg1 <binary_op> arg2" */
+					args = argv;
+					res = (binop() == 0);
  ret_special:
-				/* If there was leading "!" op... */
-				res ^= negate;
-				goto ret;
+					/* If there was leading "!" op... */
+					res ^= negate;
+					goto ret;
+				}
+				/* """If $1 is '(' and $3 is ')', perform the unary test of $2."""
+				 * Looks like this works without additional coding.
+				 */
+				goto check_negate;
+			}
+			/* argv[3] exists (at least 4 args), is it exactly 4 args? */
+			if (!argv[4]) {
+				/*
+				 * """ 4 arguments:
+				 * If $1 is '!', negate the three-argument test of $2, $3, and $4.
+				 * If $1 is '(' and $4 is ')', perform the two-argument test of $2 and $3.
+				 * """
+				 * Example why code below is necessary: test '(' ! -e ')'
+				 */
+				if (LONE_CHAR(argv[0], '(')
+				 && LONE_CHAR(argv[3], ')')
+				) {
+					/* "test [!] ( x y )" */
+					argv[3] = NULL;
+					argv++;
+				}
 			}
 		}
+ check_negate:
 		if (LONE_CHAR(argv[0], '!')) {
 			argv++;
 			negate ^= 1;
