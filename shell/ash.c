@@ -4642,6 +4642,10 @@ cmdputs(const char *s)
 			/* These can only happen inside quotes */
 			cc[0] = c;
 			str = cc;
+//FIXME:
+// $ true $$ &
+// $ <cr>
+// [1]+  Done    true ${\$}   <<=== BUG: ${\$} is not a valid way to write $$ (${$} would be ok)
 			c = '\\';
 			break;
 		default:
@@ -4823,7 +4827,10 @@ cmdtxt(union node *n)
 		cmdputs(utoa(n->nfile.fd));
 		cmdputs(p);
 		if (n->type == NTOFD || n->type == NFROMFD) {
-			cmdputs(utoa(n->ndup.dupfd));
+			if (n->ndup.dupfd >= 0)
+				cmdputs(utoa(n->ndup.dupfd));
+			else
+				cmdputs("-");
 			break;
 		}
 		n = n->nfile.fname;
