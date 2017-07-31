@@ -6804,7 +6804,7 @@ static void restore_redirects(struct squirrel *sq)
 }
 
 #if ENABLE_FEATURE_SH_STANDALONE && BB_MMU
-static void close_saved_fds_and_FILE_list(void)
+static void close_saved_fds_and_FILE_fds(void)
 {
 	if (G_interactive_fd)
 		close(G_interactive_fd);
@@ -7090,13 +7090,35 @@ static void exec_function(char ***to_free,
 	argv[0] = G.global_argv[0];
 	G.global_argv = argv;
 	G.global_argc = n = 1 + string_array_len(argv + 1);
-//?	close_saved_fds_and_FILE_list();
+
+// Example when we are here: "cmd | func"
+// func will run with saved-redirect fds open.
+// $ f() { echo /proc/self/fd/*; }
+// $ true | f
+// /proc/self/fd/0 /proc/self/fd/1 /proc/self/fd/2 /proc/self/fd/255 /proc/self/fd/3
+// stdio^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ G_interactive_fd^ DIR fd for glob
+// Same in script:
+// $ . ./SCRIPT
+// /proc/self/fd/0 /proc/self/fd/1 /proc/self/fd/2 /proc/self/fd/255 /proc/self/fd/3 /proc/self/fd/4
+// stdio^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ G_interactive_fd^ opened ./SCRIPT DIR fd for glob
+// They are CLOEXEC so external programs won't see them, but
+// for "more correctness" we might want to close those extra fds here:
+//?	close_saved_fds_and_FILE_fds();
+
+	/* "we are in function, ok to use return" */
+	G_flag_return_in_progress = -1;
+	IF_HUSH_LOCAL(G.func_nest_level++;)
+
+	G_flag_return_in_progress = -1;
 	/* On MMU, funcp->body is always non-NULL */
 	n = run_list(funcp->body);
 	fflush_all();
 	_exit(n);
 # else
-//?	close_saved_fds_and_FILE_list();
+//?	close_saved_fds_and_FILE_fds();
+
+//TODO: check whether "true | func_with_return" works
+
 	re_execute_shell(to_free,
 			funcp->body_as_string,
 			G.global_argv[0],
@@ -7116,9 +7138,7 @@ static int run_function(const struct function *funcp, char **argv)
 	/* "we are in function, ok to use return" */
 	sv_flg = G_flag_return_in_progress;
 	G_flag_return_in_progress = -1;
-# if ENABLE_HUSH_LOCAL
-	G.func_nest_level++;
-# endif
+	IF_HUSH_LOCAL(G.func_nest_level++;)
 
 	/* On MMU, funcp->body is always non-NULL */
 # if !BB_MMU
@@ -7182,7 +7202,7 @@ static void exec_builtin(char ***to_free,
 #if BB_MMU
 	int rcode;
 	fflush_all();
-//?	close_saved_fds_and_FILE_list();
+//?	close_saved_fds_and_FILE_fds();
 	rcode = x->b_function(argv);
 	fflush_all();
 	_exit(rcode);
@@ -7342,7 +7362,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 				 * Testcase: interactive "ls -l /proc/self/fd"
 				 * should not show tty fd open.
 				 */
-				close_saved_fds_and_FILE_list();
+				close_saved_fds_and_FILE_fds();
 //FIXME: should also close saved redir fds
 				debug_printf_exec("running applet '%s'\n", argv[0]);
 				run_applet_no_and_exit(a, argv[0], argv);
@@ -9252,6 +9272,14 @@ static int FAST_FUNC builtin_exec(char **argv)
 	 * tty pgrp then, only top-level shell process does that */
 	if (G_saved_tty_pgrp && getpid() == G.root_pid)
 		tcsetpgrp(G_interactive_fd, G_saved_tty_pgrp);
+
+	/* Saved-redirect fds, script fds and G_interactive_fd are still
+	 * open here. However, they are all CLOEXEC, and execv below
+	 * closes them. Try interactive "exec ls -l /proc/self/fd",
+	 * it should show no extra open fds in the "ls" process.
+	 * If we'd try to run builtins/NOEXECs, this would need improving.
+	 */
+	//close_saved_fds_and_FILE_fds();
 
 	/* TODO: if exec fails, bash does NOT exit! We do.
 	 * We'll need to undo trap cleanup (it's inside execvp_or_die)
