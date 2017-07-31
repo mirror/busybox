@@ -7109,7 +7109,6 @@ static void exec_function(char ***to_free,
 	G_flag_return_in_progress = -1;
 	IF_HUSH_LOCAL(G.func_nest_level++;)
 
-	G_flag_return_in_progress = -1;
 	/* On MMU, funcp->body is always non-NULL */
 	n = run_list(funcp->body);
 	fflush_all();
