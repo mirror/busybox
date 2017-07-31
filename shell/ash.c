@@ -328,7 +328,6 @@ struct globals_misc {
 #define EXERROR 1       /* a generic error */
 #define EXEXIT 4        /* exit the shell */
 
-	smallint isloginsh;
 	char nullstr[1];        /* zero length string */
 
 	char optlist[NOPTS];
@@ -397,7 +396,6 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define pending_int       (G_misc.pending_int      )
 #define got_sigchld       (G_misc.got_sigchld      )
 #define pending_sig       (G_misc.pending_sig      )
-#define isloginsh   (G_misc.isloginsh  )
 #define nullstr     (G_misc.nullstr    )
 #define optlist     (G_misc.optlist    )
 #define sigmode     (G_misc.sigmode    )
@@ -10721,7 +10719,7 @@ setoption(int flag, int val)
 	/* NOTREACHED */
 }
 static int
-options(int cmdline)
+options(int cmdline, int *login_sh)
 {
 	char *p;
 	int val;
@@ -10762,11 +10760,14 @@ options(int cmdline)
 				if (*argptr)
 					argptr++;
 			} else if (cmdline && (c == 'l')) { /* -l or +l == --login */
-				isloginsh = 1;
+				if (login_sh)
+					*login_sh = 1;
 			/* bash does not accept +-login, we also won't */
 			} else if (cmdline && val && (c == '-')) { /* long options */
-				if (strcmp(p, "login") == 0)
-					isloginsh = 1;
+				if (strcmp(p, "login") == 0) {
+					if (login_sh)
+						*login_sh = 1;
+				}
 				break;
 			} else {
 				setoption(c, val);
@@ -10850,7 +10851,7 @@ setcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		return showvars(nullstr, 0, VUNSET);
 
 	INT_OFF;
-	retval = options(/*cmdline:*/ 0);
+	retval = options(/*cmdline:*/ 0, NULL);
 	if (retval == 0) { /* if no parse error... */
 		optschanged();
 		if (*argptr != NULL) {
@@ -13602,21 +13603,23 @@ init(void)
 /*
  * Process the shell command line arguments.
  */
-static void
+static int
 procargs(char **argv)
 {
 	int i;
 	const char *xminusc;
 	char **xargv;
+	int login_sh;
 
 	xargv = argv;
+	login_sh = xargv[0] && xargv[0][0] == '-';
 	arg0 = xargv[0];
 	/* if (xargv[0]) - mmm, this is always true! */
 		xargv++;
 	for (i = 0; i < NOPTS; i++)
 		optlist[i] = 2;
 	argptr = xargv;
-	if (options(/*cmdline:*/ 1)) {
+	if (options(/*cmdline:*/ 1, &login_sh)) {
 		/* it already printed err message */
 		raise_exception(EXERROR);
 	}
@@ -13660,6 +13663,8 @@ procargs(char **argv)
 		xargv++;
 	}
 	optschanged();
+
+	return login_sh;
 }
 
 /*
@@ -13720,6 +13725,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	volatile smallint state;
 	struct jmploc jmploc;
 	struct stackmark smark;
+	int login_sh;
 
 	/* Initialize global data */
 	INIT_G_misc();
@@ -13768,15 +13774,13 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 
 	init();
 	setstackmark(&smark);
-	procargs(argv);
+	login_sh = procargs(argv);
 #if DEBUG
 	TRACE(("Shell args: "));
 	trace_puts_args(argv);
 #endif
 
-	if (argv[0] && argv[0][0] == '-')
-		isloginsh = 1;
-	if (isloginsh) {
+	if (login_sh) {
 		const char *hp;
 
 		state = 1;
