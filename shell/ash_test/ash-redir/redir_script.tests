@@ -20,10 +20,15 @@ eval "find_fds $fds"
 
 # Shell should not lose that fd. Did it?
 find_fds
-test x"$fds1" = x"$fds" && { echo "Ok: script fd is not closed"; exit 0; }
+test x"$fds1" = x"$fds" \
+&& { echo "Ok: script fd is not closed"; exit 0; }
+
+# One legit way to handle it is to move script fd. For example, if we see that fd 10 moved to fd 11:
+test x"$fds1" = x" 10>&- 3>&-" && \
+test x"$fds"  = x" 11>&- 3>&-" \
+&& { echo "Ok: script fd is not closed"; exit 0; }
 
 echo "Bug: script fd is closed"
 echo "fds1:$fds1"
 echo "fds2:$fds"
 exit 1
-

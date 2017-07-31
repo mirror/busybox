@@ -5192,7 +5192,7 @@ stoppedjobs(void)
 #undef EMPTY
 #undef CLOSED
 #define EMPTY -2                /* marks an unused slot in redirtab */
-#define CLOSED -3               /* marks a slot of previously-closed fd */
+#define CLOSED -1               /* marks a slot of previously-closed fd */
 
 /*
  * Handle here documents.  Normally we fork off a process to write the
@@ -5349,74 +5349,158 @@ dup2_or_raise(int from, int to)
 	}
 	return newfd;
 }
+static int
+fcntl_F_DUPFD(int fd, int avoid_fd)
+{
+	int newfd;
+ repeat:
+	newfd = fcntl(fd, F_DUPFD, avoid_fd + 1);
+	if (newfd < 0) {
+		if (errno == EBUSY)
+			goto repeat;
+		if (errno == EINTR)
+			goto repeat;
+	}
+	return newfd;
+}
+static int
+xdup_CLOEXEC_and_close(int fd, int avoid_fd)
+{
+	int newfd;
+ repeat:
+	newfd = fcntl(fd, F_DUPFD, avoid_fd + 1);
+	if (newfd < 0) {
+		if (errno == EBUSY)
+			goto repeat;
+		if (errno == EINTR)
+			goto repeat;
+		/* fd was not open? */
+		if (errno == EBADF)
+			return fd;
+		ash_msg_and_raise_perror("%d", newfd);
+	}
+	fcntl(newfd, F_SETFD, FD_CLOEXEC);
+	close(fd);
+	return newfd;
+}
 
 /* Struct def and variable are moved down to the first usage site */
-struct two_fd_t {
-	int orig, copy;
+struct squirrel {
+	int orig_fd;
+	int moved_to;
 };
 struct redirtab {
 	struct redirtab *next;
 	int pair_count;
-	struct two_fd_t two_fd[];
+	struct squirrel two_fd[];
 };
 #define redirlist (G_var.redirlist)
-enum {
-	COPYFD_RESTORE = (int)~(INT_MAX),
-};
 
-static int
-need_to_remember(struct redirtab *rp, int fd)
+static void
+add_squirrel_closed(struct redirtab *sq, int fd)
 {
 	int i;
 
-	if (!rp) /* remembering was not requested */
-		return 0;
+	if (!sq)
+		return;
 
-	for (i = 0; i < rp->pair_count; i++) {
-		if (rp->two_fd[i].orig == fd) {
-			/* already remembered */
-			return 0;
+	for (i = 0; sq->two_fd[i].orig_fd != EMPTY; i++) {
+		/* If we collide with an already moved fd... */
+		if (fd == sq->two_fd[i].orig_fd) {
+			/* Examples:
+			 * "echo 3>FILE 3>&- 3>FILE"
+			 * "echo 3>&- 3>FILE"
+			 * No need for last redirect to insert
+			 * another "need to close 3" indicator.
+			 */
+			TRACE(("redirect_fd %d: already moved or closed\n", fd));
+			return;
 		}
 	}
-	return 1;
+	TRACE(("redirect_fd %d: previous fd was closed\n", fd));
+	sq->two_fd[i].orig_fd = fd;
+	sq->two_fd[i].moved_to = CLOSED;
 }
 
-/* "hidden" fd is a fd used to read scripts, or a copy of such */
 static int
-is_hidden_fd(struct redirtab *rp, int fd)
+save_fd_on_redirect(int fd, int avoid_fd, struct redirtab *sq)
 {
-	int i;
-	struct parsefile *pf;
+	int i, new_fd;
 
-	if (fd == -1)
+	if (avoid_fd < 9) /* the important case here is that it can be -1 */
+		avoid_fd = 9;
+
+#if JOBS
+	if (fd == ttyfd) {
+		/* Testcase: "ls -l /proc/$$/fd 10>&-" should work */
+		ttyfd = xdup_CLOEXEC_and_close(ttyfd, avoid_fd);
+		TRACE(("redirect_fd %d: matches ttyfd, moving it to %d\n", fd, ttyfd));
+		return 1; /* "we closed fd" */
+	}
+#endif
+	/* Are we called from redirect(0)? E.g. redirect
+	 * in a forked child. No need to save fds,
+	 * we aren't going to use them anymore, ok to trash.
+	 */
+	if (!sq)
 		return 0;
-	/* Check open scripts' fds */
-	pf = g_parsefile;
-	while (pf) {
-		/* We skip pf_fd == 0 case because of the following case:
-		 * $ ash  # running ash interactively
-		 * $ . ./script.sh
-		 * and in script.sh: "exec 9>&0".
-		 * Even though top-level pf_fd _is_ 0,
-		 * it's still ok to use it: "read" builtin uses it,
-		 * why should we cripple "exec" builtin?
-		 */
-		if (pf->pf_fd > 0 && fd == pf->pf_fd) {
-			return 1;
+
+	/* If this one of script's fds? */
+	if (fd != 0) {
+		struct parsefile *pf = g_parsefile;
+		while (pf) {
+			/* We skip fd == 0 case because of the following:
+			 * $ ash  # running ash interactively
+			 * $ . ./script.sh
+			 * and in script.sh: "exec 9>&0".
+			 * Even though top-level pf_fd _is_ 0,
+			 * it's still ok to use it: "read" builtin uses it,
+			 * why should we cripple "exec" builtin?
+			 */
+			if (fd == pf->pf_fd) {
+				pf->pf_fd = xdup_CLOEXEC_and_close(fd, avoid_fd);
+				return 1; /* "we closed fd" */
+			}
+			pf = pf->prev;
 		}
-		pf = pf->prev;
 	}
 
-	if (!rp)
-		return 0;
-	/* Check saved fds of redirects */
-	fd |= COPYFD_RESTORE;
-	for (i = 0; i < rp->pair_count; i++) {
-		if (rp->two_fd[i].copy == fd) {
-			return 1;
+	/* Check whether it collides with any open fds (e.g. stdio), save fds as needed */
+
+	/* First: do we collide with some already moved fds? */
+	for (i = 0; sq->two_fd[i].orig_fd != EMPTY; i++) {
+		/* If we collide with an already moved fd... */
+		if (fd == sq->two_fd[i].moved_to) {
+			new_fd = fcntl_F_DUPFD(fd, avoid_fd);
+			sq->two_fd[i].moved_to = new_fd;
+			TRACE(("redirect_fd %d: already busy, moving to %d\n", fd, new_fd));
+			if (new_fd < 0) /* what? */
+				xfunc_die();
+			return 0; /* "we did not close fd" */
+		}
+		if (fd == sq->two_fd[i].orig_fd) {
+			/* Example: echo Hello >/dev/null 1>&2 */
+			TRACE(("redirect_fd %d: already moved\n", fd));
+			return 0; /* "we did not close fd" */
 		}
 	}
-	return 0;
+
+	/* If this fd is open, we move and remember it; if it's closed, new_fd = CLOSED (-1) */
+	new_fd = fcntl_F_DUPFD(fd, avoid_fd);
+	TRACE(("redirect_fd %d: previous fd is moved to %d (-1 if it was closed)\n", fd, new_fd));
+	if (new_fd < 0) {
+		if (errno != EBADF)
+			xfunc_die();
+		/* new_fd = CLOSED; - already is -1 */
+	}
+	sq->two_fd[i].moved_to = new_fd;
+	sq->two_fd[i].orig_fd = fd;
+
+	/* if we move stderr, let "set -x" code know */
+	if (fd == preverrout_fd)
+		preverrout_fd = new_fd;
+
+	return 0; /* "we did not close fd" */
 }
 
 /*
@@ -5431,109 +5515,80 @@ redirect(union node *redir, int flags)
 {
 	struct redirtab *sv;
 	int sv_pos;
-	int fd;
-	int newfd;
 
 	if (!redir)
 		return;
+
+	sv_pos = 0;
 	sv = NULL;
 	INT_OFF;
 	if (flags & REDIR_PUSH)
 		sv = redirlist;
-	sv_pos = 0;
 	do {
-		int right_fd = -1;
+		int fd;
+		int newfd;
+		int close_fd;
+		int closed;
+
 		fd = redir->nfile.fd;
 		if (redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD) {
-			right_fd = redir->ndup.dupfd;
-			//bb_error_msg("doing %d > %d", fd, right_fd);
-			/* redirect from/to same file descriptor? */
-			if (right_fd == fd)
-				continue;
-			/* "echo >&10" and 10 is a fd opened to a sh script? */
-			if (is_hidden_fd(sv, right_fd)) {
-				errno = EBADF; /* as if it is closed */
-				ash_msg_and_raise_perror("%d", right_fd);
-			}
-			newfd = -1;
+			//bb_error_msg("doing %d > %d", fd, newfd);
+			newfd = redir->ndup.dupfd;
+			close_fd = -1;
 		} else {
 			newfd = openredirect(redir); /* always >= 0 */
 			if (fd == newfd) {
-				/* Descriptor wasn't open before redirect.
-				 * Mark it for close in the future */
-				if (need_to_remember(sv, fd)) {
-					goto remember_to_close;
-				}
+				/* open() gave us precisely the fd we wanted.
+				 * This means that this fd was not busy
+				 * (not opened to anywhere).
+				 * Remember to close it on restore:
+				 */
+				add_squirrel_closed(sv, fd);
 				continue;
 			}
+			close_fd = newfd;
 		}
-#if BASH_REDIR_OUTPUT
- redirect_more:
-#endif
-		if (need_to_remember(sv, fd)) {
-			/* Copy old descriptor */
-			/* Careful to not accidentally "save"
-			 * to the same fd as right side fd in N>&M */
-			int minfd = right_fd < 10 ? 10 : right_fd + 1;
-#if defined(F_DUPFD_CLOEXEC)
-			int copy = fcntl(fd, F_DUPFD_CLOEXEC, minfd);
-#else
-			int copy = fcntl(fd, F_DUPFD, minfd);
-#endif
-			if (copy == -1) {
-				int e = errno;
-				if (e != EBADF) {
-					/* Strange error (e.g. "too many files" EMFILE?) */
-					if (newfd >= 0)
-						close(newfd);
-					errno = e;
-					ash_msg_and_raise_perror("%d", fd);
-					/* NOTREACHED */
-				}
-				/* EBADF: it is not open - good, remember to close it */
- remember_to_close:
-				copy = CLOSED;
-			} else { /* fd is open, save its copy */
-#if !defined(F_DUPFD_CLOEXEC)
-				fcntl(copy, F_SETFD, FD_CLOEXEC);
-#endif
-				/* "exec fd>&-" should not close fds
-				 * which point to script file(s).
-				 * Force them to be restored afterwards */
-				if (is_hidden_fd(sv, fd))
-					copy |= COPYFD_RESTORE;
+
+		if (fd == newfd)
+			continue;
+
+		/* if "N>FILE": move newfd to fd */
+		/* if "N>&M": dup newfd to fd */
+		/* if "N>&-": close fd (newfd is -1) */
+
+ IF_BASH_REDIR_OUTPUT(redirect_more:)
+
+		closed = save_fd_on_redirect(fd, /*avoid:*/ newfd, sv);
+		if (newfd == -1) {
+			/* "N>&-" means "close me" */
+			if (!closed) {
+				/* ^^^ optimization: saving may already
+				 * have closed it. If not... */
+				close(fd);
 			}
-			/* if we move stderr, let "set -x" code know */
-			if (fd == preverrout_fd)
-				preverrout_fd = copy;
-			sv->two_fd[sv_pos].orig = fd;
-			sv->two_fd[sv_pos].copy = copy;
-			sv_pos++;
-		}
-		if (newfd < 0) {
-			/* NTOFD/NFROMFD: copy redir->ndup.dupfd to fd */
-			if (redir->ndup.dupfd < 0) { /* "fd>&-" */
-				/* Don't want to trigger debugging */
-				if (fd != -1)
-					close(fd);
-			} else {
-				dup2_or_raise(redir->ndup.dupfd, fd);
-			}
-		} else if (fd != newfd) { /* move newfd to fd */
+		} else {
+///TODO: if _newfd_ is a script fd or saved fd, then simulate EBADF!
+//if (newfd == ttyfd) {
+//	errno = EBADF;
+//	ash_msg_and_raise_perror("A %d", newfd);
+//}
+//if (newfd == g_parsefile->pf_fd) {
+//	errno = EBADF;
+//	ash_msg_and_raise_perror("B %d", newfd);
+//}
 			dup2_or_raise(newfd, fd);
+			if (close_fd >= 0) /* "N>FILE" or ">&FILE" or heredoc? */
+				close(close_fd);
 #if BASH_REDIR_OUTPUT
-			if (!(redir->nfile.type == NTO2 && fd == 2))
+			if (redir->nfile.type == NTO2 && fd == 1) {
+				/* ">&FILE". we already redirected to 1, now copy 1 to 2 */
+				fd = 2;
+				newfd = 1;
+				close_fd = -1;
+				goto redirect_more;
+			}
 #endif
-				close(newfd);
 		}
-#if BASH_REDIR_OUTPUT
-		if (redir->nfile.type == NTO2 && fd == 1) {
-			/* We already redirected it to fd 1, now copy it to 2 */
-			newfd = 1;
-			fd = 2;
-			goto redirect_more;
-		}
-#endif
 	} while ((redir = redir->nfile.next) != NULL);
 	INT_ON;
 
@@ -5542,7 +5597,7 @@ redirect(union node *redir, int flags)
 	// dash has a bug: since REDIR_SAVEFD2=3 and REDIR_PUSH=1, this test
 	// triggers for pure REDIR_PUSH too. Thus, this is done almost always,
 	// not only for calls with flags containing REDIR_SAVEFD2.
-	// We do this unconditionally (see code above).
+	// We do this unconditionally (see save_fd_on_redirect()).
 	//if ((flags & REDIR_SAVEFD2) && copied_fd2 >= 0)
 	//	preverrout_fd = copied_fd2;
 }
@@ -5557,7 +5612,7 @@ redirectsafe(union node *redir, int flags)
 
 	SAVE_INT(saveint);
 	/* "echo 9>/dev/null; echo >&9; echo result: $?" - result should be 1, not 2! */
-	err = setjmp(jmploc.loc); // huh?? was = setjmp(jmploc.loc) * 2;
+	err = setjmp(jmploc.loc); /* was = setjmp(jmploc.loc) * 2; */
 	if (!err) {
 		exception_handler = &jmploc;
 		redirect(redir, flags);
@@ -5591,7 +5646,7 @@ pushredir(union node *redir)
 	sv = ckzalloc(sizeof(*sv) + i * sizeof(sv->two_fd[0]));
 	sv->pair_count = i;
 	while (--i >= 0)
-		sv->two_fd[i].orig = sv->two_fd[i].copy = EMPTY;
+		sv->two_fd[i].orig_fd = sv->two_fd[i].moved_to = EMPTY;
 	sv->next = redirlist;
 	redirlist = sv;
 	return sv->next;
@@ -5601,7 +5656,7 @@ pushredir(union node *redir)
  * Undo the effects of the last redirection.
  */
 static void
-popredir(int drop, int restore)
+popredir(int drop)
 {
 	struct redirtab *rp;
 	int i;
@@ -5611,20 +5666,19 @@ popredir(int drop, int restore)
 	INT_OFF;
 	rp = redirlist;
 	for (i = 0; i < rp->pair_count; i++) {
-		int fd = rp->two_fd[i].orig;
-		int copy = rp->two_fd[i].copy;
+		int fd = rp->two_fd[i].orig_fd;
+		int copy = rp->two_fd[i].moved_to;
 		if (copy == CLOSED) {
 			if (!drop)
 				close(fd);
 			continue;
 		}
 		if (copy != EMPTY) {
-			if (!drop || (restore && (copy & COPYFD_RESTORE))) {
-				copy &= ~COPYFD_RESTORE;
+			if (!drop) {
 				/*close(fd);*/
 				dup2_or_raise(copy, fd);
 			}
-			close(copy & ~COPYFD_RESTORE);
+			close(copy);
 		}
 	}
 	redirlist = rp->next;
@@ -5636,7 +5690,7 @@ static void
 unwindredir(struct redirtab *stop)
 {
 	while (redirlist != stop)
-		popredir(/*drop:*/ 0, /*restore:*/ 0);
+		popredir(/*drop:*/ 0);
 }
 
 
@@ -7715,7 +7769,7 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) const char *cmd, char **argv, c
 			clearenv();
 			while (*envp)
 				putenv(*envp++);
-			popredir(/*drop:*/ 1, /*restore:*/ 0);
+			popredir(/*drop:*/ 1);
 			run_applet_no_and_exit(applet_no, cmd, argv);
 		}
 		/* re-exec ourselves with the new arguments */
@@ -8754,7 +8808,7 @@ evaltree(union node *n, int flags)
 			status = evaltree(n->nredir.n, flags & EV_TESTED);
 		}
 		if (n->nredir.redirect)
-			popredir(/*drop:*/ 0, /*restore:*/ 0 /* not sure */);
+			popredir(/*drop:*/ 0);
 		goto setstatus;
 	case NCMD:
 		evalfn = evalcommand;
@@ -9902,7 +9956,7 @@ evalcommand(union node *cmd, int flags)
 
  out:
 	if (cmd->ncmd.redirect)
-		popredir(/*drop:*/ cmd_is_exec, /*restore:*/ cmd_is_exec);
+		popredir(/*drop:*/ cmd_is_exec);
 	unwindredir(redir_stop);
 	unwindlocalvars(localvar_stop);
 	if (lastarg) {
@@ -13727,7 +13781,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		 * Testcase: ash -c 'exec 1>&0' must not complain. */
 		// if (!sflag) g_parsefile->pf_fd = -1;
 		// ^^ not necessary since now we special-case fd 0
-		// in is_hidden_fd() to not be considered "hidden fd"
+		// in save_fd_on_redirect()
 		evalstring(minusc, sflag ? 0 : EV_EXIT);
 	}
 
