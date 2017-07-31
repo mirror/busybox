@@ -6803,6 +6803,15 @@ static void restore_redirects(struct squirrel *sq)
 	restore_redirected_FILEs();
 }
 
+#if ENABLE_FEATURE_SH_STANDALONE && BB_MMU
+static void close_saved_fds_and_FILE_list(void)
+{
+	if (G_interactive_fd)
+		close(G_interactive_fd);
+	close_all_FILE_list();
+}
+#endif
+
 static int internally_opened_fd(int fd, struct squirrel *sq)
 {
 	int i;
@@ -7325,8 +7334,12 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 		if (a >= 0) {
 # if BB_MMU /* see above why on NOMMU it is not allowed */
 			if (APPLET_IS_NOEXEC(a)) {
-				/* Do not leak open fds from opened script files etc */
-				close_all_FILE_list();
+				/* Do not leak open fds from opened script files etc.
+				 * Testcase: interactive "ls -l /proc/self/fd"
+				 * should not show tty fd open.
+				 */
+				close_saved_fds_and_FILE_list();
+///FIXME: should also close saved redir fds
 				debug_printf_exec("running applet '%s'\n", argv[0]);
 				run_applet_no_and_exit(a, argv[0], argv);
 			}
