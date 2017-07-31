@@ -7090,11 +7090,13 @@ static void exec_function(char ***to_free,
 	argv[0] = G.global_argv[0];
 	G.global_argv = argv;
 	G.global_argc = n = 1 + string_array_len(argv + 1);
+//?	close_saved_fds_and_FILE_list();
 	/* On MMU, funcp->body is always non-NULL */
 	n = run_list(funcp->body);
 	fflush_all();
 	_exit(n);
 # else
+//?	close_saved_fds_and_FILE_list();
 	re_execute_shell(to_free,
 			funcp->body_as_string,
 			G.global_argv[0],
@@ -7180,6 +7182,7 @@ static void exec_builtin(char ***to_free,
 #if BB_MMU
 	int rcode;
 	fflush_all();
+//?	close_saved_fds_and_FILE_list();
 	rcode = x->b_function(argv);
 	fflush_all();
 	_exit(rcode);
@@ -7301,6 +7304,16 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 		goto skip;
 #endif
 
+#if ENABLE_HUSH_FUNCTIONS
+	/* Check if the command matches any functions (this goes before bltins) */
+	{
+		const struct function *funcp = find_function(argv[0]);
+		if (funcp) {
+			exec_function(&nommu_save->argv_from_re_execing, funcp, argv);
+		}
+	}
+#endif
+
 	/* Check if the command matches any of the builtins.
 	 * Depending on context, this might be redundant.  But it's
 	 * easier to waste a few CPU cycles than it is to figure out
@@ -7317,15 +7330,6 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 			exec_builtin(&nommu_save->argv_from_re_execing, x, argv);
 		}
 	}
-#if ENABLE_HUSH_FUNCTIONS
-	/* Check if the command matches any functions */
-	{
-		const struct function *funcp = find_function(argv[0]);
-		if (funcp) {
-			exec_function(&nommu_save->argv_from_re_execing, funcp, argv);
-		}
-	}
-#endif
 
 #if ENABLE_FEATURE_SH_STANDALONE
 	/* Check if the command matches any busybox applets */
@@ -7339,7 +7343,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 				 * should not show tty fd open.
 				 */
 				close_saved_fds_and_FILE_list();
-///FIXME: should also close saved redir fds
+//FIXME: should also close saved redir fds
 				debug_printf_exec("running applet '%s'\n", argv[0]);
 				run_applet_no_and_exit(a, argv[0], argv);
 			}
@@ -7976,12 +7980,13 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			return G.last_exitcode;
 		}
 
-		x = find_builtin(argv_expanded[0]);
 #if ENABLE_HUSH_FUNCTIONS
-		funcp = NULL;
-		if (!x)
-			funcp = find_function(argv_expanded[0]);
+		/* Check if argv[0] matches any functions (this goes before bltins) */
+		funcp = find_function(argv_expanded[0]);
 #endif
+		x = NULL;
+		if (!funcp)
+			x = find_builtin(argv_expanded[0]);
 		if (x || funcp) {
 			if (!funcp) {
 				if (x->b_function == builtin_exec && argv_expanded[1] == NULL) {
