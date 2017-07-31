@@ -1546,6 +1546,16 @@ static void close_all_FILE_list(void)
 	}
 }
 #endif
+static int fd_in_FILEs(int fd)
+{
+	struct FILE_list *fl = G.FILE_list;
+	while (fl) {
+		if (fl->fd == fd)
+			return 1;
+		fl = fl->next;
+	}
+	return 0;
+}
 
 
 /* Helpers for setting new $n and restoring them back
@@ -6686,9 +6696,9 @@ static struct squirrel *append_squirrel(struct squirrel *sq, int i, int orig, in
 static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 {
 	int moved_to;
-	int i = 0;
+	int i;
 
-	if (sq) while (sq[i].orig_fd >= 0) {
+	if (sq) for (i = 0; sq[i].orig_fd >= 0; i++) {
 		/* If we collide with an already moved fd... */
 		if (fd == sq[i].moved_to) {
 			sq[i].moved_to = fcntl_F_DUPFD(sq[i].moved_to, avoid_fd);
@@ -6702,7 +6712,6 @@ static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 			debug_printf_redir("redirect_fd %d: already moved\n", fd);
 			return sq;
 		}
-		i++;
 	}
 
 	/* If this fd is open, we move and remember it; if it's closed, moved_to = -1 */
@@ -6717,8 +6726,7 @@ static struct squirrel *add_squirrel_closed(struct squirrel *sq, int fd)
 {
 	int i;
 
-	i = 0;
-	if (sq) while (sq[i].orig_fd >= 0) {
+	if (sq) for (i = 0; sq[i].orig_fd >= 0; i++) {
 		/* If we collide with an already moved fd... */
 		if (fd == sq[i].orig_fd) {
 			/* Examples:
@@ -6730,7 +6738,6 @@ static struct squirrel *add_squirrel_closed(struct squirrel *sq, int fd)
 			debug_printf_redir("redirect_fd %d: already moved or closed\n", fd);
 			return sq;
 		}
-		i++;
 	}
 
 	debug_printf_redir("redirect_fd %d: previous fd was closed\n", fd);
@@ -6747,7 +6754,8 @@ static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 		avoid_fd = 9;
 
 #if ENABLE_HUSH_INTERACTIVE
-	if (fd != 0 && fd == G.interactive_fd) {
+	if (fd == G.interactive_fd) {
+		/* Testcase: "ls -l /proc/$$/fd 255>&-" should work */
 		G.interactive_fd = xdup_CLOEXEC_and_close(G.interactive_fd, avoid_fd);
 		debug_printf_redir("redirect_fd %d: matches interactive_fd, moving it to %d\n", fd, G.interactive_fd);
 		return 1; /* "we closed fd" */
@@ -6775,8 +6783,8 @@ static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 static void restore_redirects(struct squirrel *sq)
 {
 	if (sq) {
-		int i = 0;
-		while (sq[i].orig_fd >= 0) {
+		int i;
+		for (i = 0; sq[i].orig_fd >= 0; i++) {
 			if (sq[i].moved_to >= 0) {
 				/* We simply die on error */
 				debug_printf_redir("restoring redirected fd from %d to %d\n", sq[i].moved_to, sq[i].orig_fd);
@@ -6786,7 +6794,6 @@ static void restore_redirects(struct squirrel *sq)
 				debug_printf_redir("restoring redirected fd %d: closing it\n", sq[i].orig_fd);
 				close(sq[i].orig_fd);
 			}
-			i++;
 		}
 		free(sq);
 	}
@@ -6794,6 +6801,25 @@ static void restore_redirects(struct squirrel *sq)
 	/* If moved, G.interactive_fd stays on new fd, not restoring it */
 
 	restore_redirected_FILEs();
+}
+
+static int internally_opened_fd(int fd, struct squirrel *sq)
+{
+	int i;
+
+#if ENABLE_HUSH_INTERACTIVE
+	if (fd == G.interactive_fd)
+		return 1;
+#endif
+	/* If this one of script's fds? */
+	if (fd_in_FILEs(fd))
+		return 1;
+
+	if (sq) for (i = 0; sq[i].orig_fd >= 0; i++) {
+		if (fd == sq[i].moved_to)
+			return 1;
+	}
+	return 0;
 }
 
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
@@ -6878,6 +6904,12 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 			 * and second redirect closes 3! Restore code then closes 3 again.
 			 */
 		} else {
+			/* if newfd is a script fd or saved fd, simulate EBADF */
+			if (internally_opened_fd(newfd, sqp ? *sqp : NULL)) {
+				//errno = EBADF;
+				//bb_perror_msg_and_die("can't duplicate file descriptor");
+				newfd = -1; /* same effect as code above */
+			}
 			xdup2(newfd, redir->rd_fd);
 			if (redir->rd_dup == REDIRFD_TO_FILE)
 				/* "rd_fd > FILE" */

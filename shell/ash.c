@@ -5503,6 +5503,31 @@ save_fd_on_redirect(int fd, int avoid_fd, struct redirtab *sq)
 	return 0; /* "we did not close fd" */
 }
 
+static int
+internally_opened_fd(int fd, struct redirtab *sq)
+{
+	int i;
+#if JOBS
+	if (fd == ttyfd)
+		return 1;
+#endif
+	/* If this one of script's fds? */
+	if (fd != 0) {
+		struct parsefile *pf = g_parsefile;
+		while (pf) {
+			if (fd == pf->pf_fd)
+				return 1;
+			pf = pf->prev;
+		}
+	}
+
+	if (sq)	for (i = 0; i < sq->pair_count && sq->two_fd[i].orig_fd != EMPTY; i++) {
+		if (fd == sq->two_fd[i].moved_to)
+			return 1;
+	}
+	return 0;
+}
+
 /*
  * Process a list of redirection commands.  If the REDIR_PUSH flag is set,
  * old file descriptors are stashed away so that the redirection can be
@@ -5567,15 +5592,11 @@ redirect(union node *redir, int flags)
 				close(fd);
 			}
 		} else {
-///TODO: if _newfd_ is a script fd or saved fd, then simulate EBADF!
-//if (newfd == ttyfd) {
-//	errno = EBADF;
-//	ash_msg_and_raise_perror("A %d", newfd);
-//}
-//if (newfd == g_parsefile->pf_fd) {
-//	errno = EBADF;
-//	ash_msg_and_raise_perror("B %d", newfd);
-//}
+			/* if newfd is a script fd or saved fd, simulate EBADF */
+			if (internally_opened_fd(newfd, sv)) {
+				errno = EBADF;
+				ash_msg_and_raise_perror("%d", newfd);
+			}
 			dup2_or_raise(newfd, fd);
 			if (close_fd >= 0) /* "N>FILE" or ">&FILE" or heredoc? */
 				close(close_fd);
