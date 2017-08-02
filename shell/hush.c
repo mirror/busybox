@@ -2415,14 +2415,14 @@ static int get_user_input(struct in_str *i)
 				/*timeout*/ -1
 		);
 		/* read_line_input intercepts ^C, "convert" it to SIGINT */
-		if (r == 0) {
-			write(STDOUT_FILENO, "^C", 2);
+		if (r == 0)
 			raise(SIGINT);
-		}
 		check_and_run_traps();
 		if (r != 0 && !G.flag_SIGINT)
 			break;
 		/* ^C or SIGINT: repeat */
+		/* bash prints ^C even on real SIGINT (non-kbd generated) */
+		write(STDOUT_FILENO, "^C", 2);
 		G.last_exitcode = 128 + SIGINT;
 	}
 	if (r < 0) {
