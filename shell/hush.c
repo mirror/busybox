@@ -1272,7 +1272,7 @@ static void xxfree(void *ptr)
  * HUSH_DEBUG >= 2 prints line number in this file where it was detected.
  */
 #if HUSH_DEBUG < 2
-# define die_if_script(lineno, ...)             die_if_script(__VA_ARGS__)
+# define msg_and_die_if_script(lineno, ...)     msg_and_die_if_script(__VA_ARGS__)
 # define syntax_error(lineno, msg)              syntax_error(msg)
 # define syntax_error_at(lineno, msg)           syntax_error_at(msg)
 # define syntax_error_unterm_ch(lineno, ch)     syntax_error_unterm_ch(ch)
@@ -1280,7 +1280,16 @@ static void xxfree(void *ptr)
 # define syntax_error_unexpected_ch(lineno, ch) syntax_error_unexpected_ch(ch)
 #endif
 
-static void die_if_script(unsigned lineno, const char *fmt, ...)
+static void die_if_script(void)
+{
+	if (!G_interactive_fd) {
+		if (G.last_exitcode) /* sometines it's 2, not 1 (bash compat) */
+			xfunc_error_retval = G.last_exitcode;
+		xfunc_die();
+	}
+}
+
+static void msg_and_die_if_script(unsigned lineno, const char *fmt, ...)
 {
 	va_list p;
 
@@ -1290,8 +1299,7 @@ static void die_if_script(unsigned lineno, const char *fmt, ...)
 	va_start(p, fmt);
 	bb_verror_msg(fmt, p, NULL);
 	va_end(p);
-	if (!G_interactive_fd)
-		xfunc_die();
+	die_if_script();
 }
 
 static void syntax_error(unsigned lineno UNUSED_PARAM, const char *msg)
@@ -1300,16 +1308,20 @@ static void syntax_error(unsigned lineno UNUSED_PARAM, const char *msg)
 		bb_error_msg("syntax error: %s", msg);
 	else
 		bb_error_msg("syntax error");
+	die_if_script();
 }
 
 static void syntax_error_at(unsigned lineno UNUSED_PARAM, const char *msg)
 {
 	bb_error_msg("syntax error at '%s'", msg);
+	die_if_script();
 }
 
 static void syntax_error_unterm_str(unsigned lineno UNUSED_PARAM, const char *s)
 {
 	bb_error_msg("syntax error: unterminated %s", s);
+//? source4.tests fails: in bash, echo ${^} in script does not terminate the script
+//	die_if_script();
 }
 
 static void syntax_error_unterm_ch(unsigned lineno, char ch)
@@ -1327,17 +1339,18 @@ static void syntax_error_unexpected_ch(unsigned lineno UNUSED_PARAM, int ch)
 	bb_error_msg("hush.c:%u", lineno);
 #endif
 	bb_error_msg("syntax error: unexpected %s", ch == EOF ? "EOF" : msg);
+	die_if_script();
 }
 
 #if HUSH_DEBUG < 2
-# undef die_if_script
+# undef msg_and_die_if_script
 # undef syntax_error
 # undef syntax_error_at
 # undef syntax_error_unterm_ch
 # undef syntax_error_unterm_str
 # undef syntax_error_unexpected_ch
 #else
-# define die_if_script(...)             die_if_script(__LINE__, __VA_ARGS__)
+# define msg_and_die_if_script(...)     msg_and_die_if_script(__LINE__, __VA_ARGS__)
 # define syntax_error(msg)              syntax_error(__LINE__, msg)
 # define syntax_error_at(msg)           syntax_error_at(__LINE__, msg)
 # define syntax_error_unterm_ch(ch)     syntax_error_unterm_ch(__LINE__, ch)
@@ -1800,7 +1813,7 @@ static void restore_ttypgrp_and__exit(void)
  *	echo END_OF_SCRIPT
  * lseeks fd in input FILE object from EOF to "e" in "echo END_OF_SCRIPT".
  * This makes "echo END_OF_SCRIPT" executed twice.
- * Similar problems can be seen with die_if_script() -> xfunc_die()
+ * Similar problems can be seen with msg_and_die_if_script() -> xfunc_die()
  * and in `cmd` handling.
  * If set as die_func(), this makes xfunc_die() exit via _exit(), not exit():
  */
@@ -3383,7 +3396,7 @@ static int done_command(struct parse_context *ctx)
 #if 0	/* Instead we emit error message at run time */
 	if (ctx->pending_redirect) {
 		/* For example, "cmd >" (no filename to redirect to) */
-		die_if_script("syntax error: %s", "invalid redirect");
+		syntax_error("invalid redirect");
 		ctx->pending_redirect = NULL;
 	}
 #endif
@@ -3949,7 +3962,7 @@ static int parse_redirect(struct parse_context *ctx,
 #if 0		/* Instead we emit error message at run time */
 		if (ctx->pending_redirect) {
 			/* For example, "cmd > <file" */
-			die_if_script("syntax error: %s", "invalid redirect");
+			syntax_error("invalid redirect");
 		}
 #endif
 		/* Set ctx->pending_redirect, so we know what to do at the
@@ -5021,10 +5034,16 @@ static struct pipe *parse_stream(char **pstring,
 				else
 					o_free_unsafe(&ctx.as_string);
 #endif
-				debug_leave();
+				if (ch != ';' && IS_NULL_PIPE(ctx.list_head)) {
+					/* Example: bare "{ }", "()" */
+					G.last_exitcode = 2; /* bash compat */
+					syntax_error_unexpected_ch(ch);
+					goto parse_error2;
+				}
 				debug_printf_parse("parse_stream return %p: "
 						"end_trigger char found\n",
 						ctx.list_head);
+				debug_leave();
 				return ctx.list_head;
 			}
 		}
@@ -5282,8 +5301,8 @@ static struct pipe *parse_stream(char **pstring,
 			/* proper use of this character is caught by end_trigger:
 			 * if we see {, we call parse_group(..., end_trigger='}')
 			 * and it will match } earlier (not here). */
-			syntax_error_unexpected_ch(ch);
 			G.last_exitcode = 2;
+			syntax_error_unexpected_ch(ch);
 			goto parse_error2;
 		default:
 			if (HUSH_DEBUG)
@@ -5513,7 +5532,7 @@ static arith_t expand_and_evaluate_arith(const char *arg, const char **errmsg_p)
 	if (errmsg_p)
 		*errmsg_p = math_state.errmsg;
 	if (math_state.errmsg)
-		die_if_script(math_state.errmsg);
+		msg_and_die_if_script(math_state.errmsg);
 	return res;
 }
 #endif
@@ -5780,7 +5799,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				/* in bash, len=-n means strlen()-n */
 				len = (arith_t)strlen(val) - beg + len;
 				if (len < 0) /* bash compat */
-					die_if_script("%s: substring expression < 0", var);
+					msg_and_die_if_script("%s: substring expression < 0", var);
 			}
 			if (len <= 0 || !val || beg >= strlen(val)) {
  arith_err:
@@ -5794,7 +5813,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			}
 			debug_printf_varexp("val:'%s'\n", val);
 #else /* not (HUSH_SUBSTR_EXPANSION && FEATURE_SH_MATH) */
-			die_if_script("malformed ${%s:...}", var);
+			msg_and_die_if_script("malformed ${%s:...}", var);
 			val = NULL;
 #endif
 		} else { /* one of "-=+?" */
@@ -5831,7 +5850,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 					exp_word = to_be_freed;
 				if (exp_op == '?') {
 					/* mimic bash message */
-					die_if_script("%s: %s",
+					msg_and_die_if_script("%s: %s",
 						var,
 						exp_word[0]
 						? exp_word
@@ -5848,7 +5867,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 					/* ${var=[word]} or ${var:=[word]} */
 					if (isdigit(var[0]) || var[0] == '#') {
 						/* mimic bash message */
-						die_if_script("$%s: cannot assign in this way", var);
+						msg_and_die_if_script("$%s: cannot assign in this way", var);
 						val = NULL;
 					} else {
 						char *new_var = xasprintf("%s=%s", var, val);
@@ -6862,7 +6881,7 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 				 * "cmd >" (no filename)
 				 * "cmd > <file" (2nd redirect starts too early)
 				 */
-				die_if_script("syntax error: %s", "invalid redirect");
+				syntax_error("invalid redirect");
 				continue;
 			}
 			mode = redir_table[redir->rd_type].mode;
