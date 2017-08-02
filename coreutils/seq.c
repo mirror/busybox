@@ -12,7 +12,8 @@
 //config:	help
 //config:	print a sequence of numbers
 
-//applet:IF_SEQ(APPLET_NOFORK(seq, seq, BB_DIR_USR_BIN, BB_SUID_DROP, seq))
+//applet:IF_SEQ(APPLET_NOEXEC(seq, seq, BB_DIR_USR_BIN, BB_SUID_DROP, seq))
+/* was NOFORK, but then "seq 1 999999999" can't be ^C'ed if run by hush */
 
 //kbuild:lib-$(CONFIG_SEQ) += seq.o
 
@@ -26,7 +27,7 @@
 
 #include "libbb.h"
 
-/* This is a NOFORK applet. Be very careful! */
+/* This is a NOEXEC applet. Be very careful! */
 
 int seq_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int seq_main(int argc, char **argv)

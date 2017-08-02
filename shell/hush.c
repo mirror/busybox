@@ -7363,6 +7363,8 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 				 */
 				close_saved_fds_and_FILE_fds();
 //FIXME: should also close saved redir fds
+				/* Without this, "rm -i FILE" can't be ^C'ed: */
+				switch_off_special_sigs(G.special_sig_mask);
 				debug_printf_exec("running applet '%s'\n", argv[0]);
 				run_applet_no_and_exit(a, argv[0], argv);
 			}
@@ -8045,6 +8047,24 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			add_vars(old_vars);
 /* clean_up_and_ret0: */
 			restore_redirects(squirrel);
+			/*
+			 * Try "usleep 99999999" + ^C + "echo $?"
+			 * with FEATURE_SH_NOFORK=y.
+			 */
+			if (!funcp) {
+				/* It was builtin or nofork.
+				 * if this would be a real fork/execed program,
+				 * it should have died if a fatal sig was received.
+				 * But OTOH, there was no separate process,
+				 * the sig was sent to _shell_, not to non-existing
+				 * child.
+				 * Let's just handle ^C only, this one is obvious:
+				 * we aren't ok with exitcode 0 when ^C was pressed
+				 * during builtin/nofork.
+				 */
+				if (sigismember(&G.pending_set, SIGINT))
+					rcode = 128 + SIGINT;
+			}
  clean_up_and_ret1:
 			free(argv_expanded);
 			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
@@ -8060,6 +8080,14 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				if (rcode == 0) {
 					debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
 						argv_expanded[0], argv_expanded[1]);
+					/*
+					 * Note: signals (^C) can't interrupt here.
+					 * We remember them and they will be acted upon
+					 * after applet returns.
+					 * This makes applets which can run for a long time
+					 * and/or wait for user input ineligible for NOFORK:
+					 * for example, "yes" or "rm" (rm -i waits for input).
+					 */
 					rcode = run_nofork_applet(n, argv_expanded);
 				}
 				goto clean_up_and_ret;
@@ -8491,7 +8519,7 @@ static int run_list(struct pipe *pi)
 			G.last_bg_pid = pi->cmds[pi->num_cmds - 1].pid;
 			G.last_bg_pid_exitcode = 0;
 			debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
-/* Check pi->pi_inverted? "! sleep 1 & echo $?": bash says 1. dash and ash says 0 */
+/* Check pi->pi_inverted? "! sleep 1 & echo $?": bash says 1. dash and ash say 0 */
 			rcode = EXIT_SUCCESS;
 			goto check_traps;
 		} else {
@@ -10178,6 +10206,7 @@ static int wait_for_child_or_signal(struct pipe *waitfor_pipe, pid_t waitfor_pid
 		/* So, did we get a signal? */
 		sig = check_and_run_traps();
 		if (sig /*&& sig != SIGCHLD - always true */) {
+			/* Do this for any (non-ignored) signal, not only for ^C */
 			ret = 128 + sig;
 			break;
 		}

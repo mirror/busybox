@@ -17,7 +17,8 @@
 //config:	yes is used to repeatedly output a specific string, or
 //config:	the default string 'y'.
 
-//applet:IF_YES(APPLET_NOFORK(yes, yes, BB_DIR_USR_BIN, BB_SUID_DROP, yes))
+//applet:IF_YES(APPLET_NOEXEC(yes, yes, BB_DIR_USR_BIN, BB_SUID_DROP, yes))
+/* was NOFORK, but then yes can't be ^C'ed if run by hush */
 
 //kbuild:lib-$(CONFIG_YES) += yes.o
 

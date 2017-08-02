@@ -16,7 +16,8 @@
 //config:	help
 //config:	rm is used to remove files or directories.
 
-//applet:IF_RM(APPLET_NOFORK(rm, rm, BB_DIR_BIN, BB_SUID_DROP, rm))
+//applet:IF_RM(APPLET_NOEXEC(rm, rm, BB_DIR_BIN, BB_SUID_DROP, rm))
+/* was NOFORK, but then "rm -i FILE" can't be ^C'ed if run by hush */
 
 //kbuild:lib-$(CONFIG_RM) += rm.o
 
@@ -36,7 +37,7 @@
 
 #include "libbb.h"
 
-/* This is a NOFORK applet. Be very careful! */
+/* This is a NOEXEC applet. Be very careful! */
 
 int rm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rm_main(int argc UNUSED_PARAM, char **argv)
