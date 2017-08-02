@@ -56,7 +56,7 @@ main (argc, argv)
       if (**argv == **envp && strncmp (*envp, *argv, len) == 0)
 	{
 	  eval = *envp + len;
-	  /* If the environment variable doesn't have an `=', ignore it. */
+	  /* If the environment variable doesn't have an '=', ignore it. */
 	  if (*eval == '=')
 	    {
 	      puts (eval + 1);

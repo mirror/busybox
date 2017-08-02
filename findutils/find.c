@@ -15,7 +15,7 @@
  * # find file.txt -exec 'echo {}' '{}  {}' ';'
  * find: echo file.txt: No such file or directory
  * # find file.txt -exec 'echo' '{}  {}' '; '
- * find: missing argument to `-exec'
+ * find: missing argument to '-exec'
  * # find file.txt -exec 'echo {}' '{}  {}' ';' junk
  * find: paths must precede expression
  * # find file.txt -exec 'echo {}' '{}  {}' ';' junk ';'

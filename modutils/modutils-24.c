@@ -2269,8 +2269,8 @@ static int add_symbols_from(struct obj_file *f,
 
 #ifdef SYMBOL_PREFIX
 		/* Prepend SYMBOL_PREFIX to the symbol's name (the
-		   kernel exports `C names', but module object files
-		   reference `linker names').  */
+		   kernel exports 'C names', but module object files
+		   reference 'linker names').  */
 		size_t extra = sizeof SYMBOL_PREFIX;
 		size_t name_size = strlen(name) + extra;
 		if (name_size > name_alloced_size) {

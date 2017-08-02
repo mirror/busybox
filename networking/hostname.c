@@ -114,7 +114,7 @@ static void do_sethostname(char *s, int isfile)
  *  { bbox: not supported }
  * -F, --file filename
  *  Read the host name from the specified file. Comments (lines
- *  starting with a `#') are ignored.
+ *  starting with a '#') are ignored.
  */
 int hostname_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hostname_main(int argc UNUSED_PARAM, char **argv)

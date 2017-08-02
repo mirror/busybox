@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * adjtimex.c - read, and possibly modify, the Linux kernel `timex' variables.
+ * adjtimex.c - read, and possibly modify, the Linux kernel 'timex' variables.
  *
  * Originally written: October 1997
  * Last hack: March 2001

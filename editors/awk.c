@@ -230,7 +230,7 @@ typedef struct tsplitter_s {
  */
 #define	TC_LENGTH	(1 << 20)
 #define	TC_GETLINE	(1 << 21)
-#define	TC_FUNCDECL	(1 << 22)		/* `function' `func' */
+#define	TC_FUNCDECL	(1 << 22)		/* 'function' 'func' */
 #define	TC_BEGIN	(1 << 23)
 #define	TC_END		(1 << 24)
 #define	TC_EOF		(1 << 25)

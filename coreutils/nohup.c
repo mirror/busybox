@@ -31,12 +31,12 @@
 
 /* Compat info: nohup (GNU coreutils 6.8) does this:
 # nohup true
-nohup: ignoring input and appending output to `nohup.out'
+nohup: ignoring input and appending output to 'nohup.out'
 # nohup true 1>/dev/null
 nohup: ignoring input and redirecting stderr to stdout
 # nohup true 2>zz
 # cat zz
-nohup: ignoring input and appending output to `nohup.out'
+nohup: ignoring input and appending output to 'nohup.out'
 # nohup true 2>zz 1>/dev/null
 # cat zz
 nohup: ignoring input

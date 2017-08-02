@@ -66,7 +66,7 @@
  * date [OPTION]... [+FORMAT]
  * date [-u|--utc|--universal] [MMDDhhmm[[CC]YY][.ss]]
  * -d, --date=STRING
- *      display time described by STRING, not `now'
+ *      display time described by STRING, not 'now'
  * -f, --file=DATEFILE
  *      like --date once for each line of DATEFILE
  * -r, --reference=FILE

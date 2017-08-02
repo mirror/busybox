@@ -26,7 +26,7 @@ int fgetsetflags(const char *name, unsigned long *get_flags, unsigned long set_f
 #define fgetflags(name, flags) fgetsetflags(name, flags, 0)
 #define fsetflags(name, flags) fgetsetflags(name, NULL, flags)
 
-/* Must be 1 for compatibility with `int long_format'. */
+/* Must be 1 for compatibility with 'int long_format'. */
 #define PFOPT_LONG  1
 /* Print file attributes on an ext2 file system */
 void print_e2flags(FILE *f, unsigned long flags, unsigned options);
