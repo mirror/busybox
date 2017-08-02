@@ -2411,8 +2411,7 @@ static int get_user_input(struct in_str *i)
 		/* buglet: SIGINT will not make new prompt to appear _at once_,
 		 * only after <Enter>. (^C works immediately) */
 		r = read_line_input(G.line_input_state, prompt_str,
-				G.user_input_buf, CONFIG_FEATURE_EDITING_MAX_LEN-1,
-				/*timeout*/ -1
+				G.user_input_buf, CONFIG_FEATURE_EDITING_MAX_LEN-1
 		);
 		/* read_line_input intercepts ^C, "convert" it to SIGINT */
 		if (r == 0)

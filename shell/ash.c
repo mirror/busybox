@@ -10185,8 +10185,8 @@ preadfd(void)
 	if (!iflag || g_parsefile->pf_fd != STDIN_FILENO)
 		nr = nonblock_immune_read(g_parsefile->pf_fd, buf, IBUFSIZ - 1);
 	else {
-		int timeout = -1;
 # if ENABLE_ASH_IDLE_TIMEOUT
+		int timeout = -1;
 		if (iflag) {
 			const char *tmout_var = lookupvar("TMOUT");
 			if (tmout_var) {
@@ -10195,12 +10195,13 @@ preadfd(void)
 					timeout = -1;
 			}
 		}
+		line_input_state->timeout = timeout;
 # endif
 # if ENABLE_FEATURE_TAB_COMPLETION
 		line_input_state->path_lookup = pathval();
 # endif
 		reinit_unicode_for_ash();
-		nr = read_line_input(line_input_state, cmdedit_prompt, buf, IBUFSIZ, timeout);
+		nr = read_line_input(line_input_state, cmdedit_prompt, buf, IBUFSIZ);
 		if (nr == 0) {
 			/* ^C pressed, "convert" to SIGINT */
 			write(STDOUT_FILENO, "^C", 2);

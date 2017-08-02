@@ -1267,6 +1267,7 @@ line_input_t* FAST_FUNC new_line_input_t(int flags)
 {
 	line_input_t *n = xzalloc(sizeof(*n));
 	n->flags = flags;
+	n->timeout = -1;
 #if MAX_HISTORY > 0
 	n->max_history = MAX_HISTORY;
 #endif
@@ -2130,7 +2131,7 @@ enum {
  * Backspace deletes last matched char.
  * Control keys exit search and return to normal editing (at current history line).
  */
-static int32_t reverse_i_search(void)
+static int32_t reverse_i_search(int timeout)
 {
 	char match_buf[128]; /* for user input */
 	char read_key_buffer[KEYCODE_BUFFER_SIZE];
@@ -2152,8 +2153,8 @@ static int32_t reverse_i_search(void)
 		int h;
 		unsigned match_buf_len = strlen(match_buf);
 
-//FIXME: correct timeout?
-		ic = lineedit_read_key(read_key_buffer, -1);
+//FIXME: correct timeout? (i.e. count it down?)
+		ic = lineedit_read_key(read_key_buffer, timeout);
 
 		switch (ic) {
 		case CTRL('R'): /* searching for the next match */
@@ -2256,9 +2257,10 @@ static int32_t reverse_i_search(void)
  * (in both cases the cursor remains on the input line, '\n' is not printed)
  * >0 length of input string, including terminating '\n'
  */
-int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize, int timeout)
+int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize)
 {
 	int len;
+	int timeout;
 #if ENABLE_FEATURE_TAB_COMPLETION
 	smallint lastWasTab = 0;
 #endif
@@ -2297,8 +2299,15 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 		maxsize = MAX_LINELEN;
 	S.maxsize = maxsize;
 
-	/* With zero flags, no other fields are ever used */
-	state = st ? st : (line_input_t*) &const_int_0;
+	timeout = -1;
+	/* Make state->flags == 0 if st is NULL.
+	 * With zeroed flags, no other fields are ever referenced.
+	 */
+	state = (line_input_t*) &const_int_0;
+	if (st) {
+		state = st;
+		timeout = st->timeout;
+	}
 #if MAX_HISTORY > 0
 # if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	if (state->hist_file)
@@ -2510,7 +2519,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 		}
 #if ENABLE_FEATURE_REVERSE_SEARCH
 		case CTRL('R'):
-			ic = ic_raw = reverse_i_search();
+			ic = ic_raw = reverse_i_search(timeout);
 			goto again;
 #endif
 

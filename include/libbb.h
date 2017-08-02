@@ -1639,9 +1639,9 @@ enum {
  * buffer[0] is used as a counter of buffered chars and must be 0
  * on first call.
  * timeout:
- * -2: do not poll for input;
- * -1: poll(-1) (i.e. block);
- * >=0: poll for TIMEOUT milliseconds, return -1/EAGAIN on timeout
+ * -2: do not poll(-1) for input - read() it, return on EAGAIN at once
+ * -1: poll(-1) (i.e. block even on NONBLOCKed fd)
+ * >=0: poll() for TIMEOUT milliseconds, return -1/EAGAIN on timeout
  */
 int64_t read_key(int fd, char *buffer, int timeout) FAST_FUNC;
 void read_key_ungets(char *buffer, const char *str, unsigned len) FAST_FUNC;
@@ -1657,6 +1657,7 @@ unsigned size_from_HISTFILESIZE(const char *hp) FAST_FUNC;
 # endif
 typedef struct line_input_t {
 	int flags;
+	int timeout;
 	const char *path_lookup;
 # if MAX_HISTORY
 	int cnt_history;
@@ -1692,7 +1693,7 @@ line_input_t *new_line_input_t(int flags) FAST_FUNC;
  * 0  on ctrl-C (the line entered is still returned in 'command'),
  * >0 length of input string, including terminating '\n'
  */
-int read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize, int timeout) FAST_FUNC;
+int read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize) FAST_FUNC;
 void show_history(const line_input_t *st) FAST_FUNC;
 # if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
 void save_history(line_input_t *st);
@@ -1700,7 +1701,7 @@ void save_history(line_input_t *st);
 #else
 #define MAX_HISTORY 0
 int read_line_input(const char* prompt, char* command, int maxsize) FAST_FUNC;
-#define read_line_input(state, prompt, command, maxsize, timeout) \
+#define read_line_input(state, prompt, command, maxsize) \
 	read_line_input(prompt, command, maxsize)
 #endif
 
