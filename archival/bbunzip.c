@@ -317,7 +317,7 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //config:	select FEATURE_GZIP_DECOMPRESS
 //config:	help
 //config:	gunzip is used to decompress archives created by gzip.
-//config:	You can use the `-t' option to test the integrity of
+//config:	You can use the '-t' option to test the integrity of
 //config:	an archive, without decompressing it.
 //config:
 //config:config ZCAT

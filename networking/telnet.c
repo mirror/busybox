@@ -44,7 +44,7 @@
 //config:	Setting this option will forward the USER environment variable to the
 //config:	remote host you are connecting to. This is useful when you need to
 //config:	log into a machine without telling the username (autologin). This
-//config:	option enables `-a' and `-l USER' arguments.
+//config:	option enables '-a' and '-l USER' arguments.
 //config:
 //config:config FEATURE_TELNET_WIDTH
 //config:	bool "Enable window size autodetection"

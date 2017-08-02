@@ -19,7 +19,7 @@
 //config:	default y
 //config:	depends on DD
 //config:	help
-//config:	Sending a SIGUSR1 signal to a running `dd' process makes it
+//config:	Sending a SIGUSR1 signal to a running 'dd' process makes it
 //config:	print to standard error the number of records read and written
 //config:	so far, then to resume copying.
 //config:
