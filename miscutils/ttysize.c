@@ -18,7 +18,7 @@
 //config:	error, but returns default 80x24.
 //config:	Usage in shell scripts: width=`ttysize w`.
 
-//applet:IF_TTYSIZE(APPLET(ttysize, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_TTYSIZE(APPLET_NOFORK(ttysize, ttysize, BB_DIR_USR_BIN, BB_SUID_DROP, ttysize))
 
 //kbuild:lib-$(CONFIG_TTYSIZE) += ttysize.o
 

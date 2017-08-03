@@ -92,6 +92,7 @@ struct nofork_save_area {
 	void (*die_func)(void);
 	const char *applet_name;
 	uint32_t option_mask32;
+	smallint logmode;
 	uint8_t xfunc_error_retval;
 };
 static void save_nofork_data(struct nofork_save_area *save)
@@ -100,6 +101,7 @@ static void save_nofork_data(struct nofork_save_area *save)
 	save->die_func = die_func;
 	save->applet_name = applet_name;
 	save->option_mask32 = option_mask32;
+	save->logmode = logmode;
 	save->xfunc_error_retval = xfunc_error_retval;
 }
 static void restore_nofork_data(struct nofork_save_area *save)
@@ -108,6 +110,7 @@ static void restore_nofork_data(struct nofork_save_area *save)
 	die_func = save->die_func;
 	applet_name = save->applet_name;
 	option_mask32 = save->option_mask32;
+	logmode = save->logmode;
 	xfunc_error_retval = save->xfunc_error_retval;
 }
 
@@ -118,8 +121,8 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 
 	save_nofork_data(&old);
 
+	logmode = LOGMODE_STDIO;
 	xfunc_error_retval = EXIT_FAILURE;
-
 	/* In case getopt() or getopt32() was already called:
 	 * reset the libc getopt() function, which keeps internal state.
 	 */
@@ -146,7 +149,6 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 
 	/* Restoring some globals */
 	restore_nofork_data(&old);
-
 	/* Other globals can be simply reset to defaults */
 	GETOPT_RESET();
 

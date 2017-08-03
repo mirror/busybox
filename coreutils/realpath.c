@@ -13,7 +13,7 @@
 //config:	Return the canonicalized absolute pathname.
 //config:	This isn't provided by GNU shellutils, but where else does it belong.
 
-//applet:IF_REALPATH(APPLET(realpath, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_REALPATH(APPLET_NOFORK(realpath, realpath, BB_DIR_USR_BIN, BB_SUID_DROP, realpath))
 
 //kbuild:lib-$(CONFIG_REALPATH) += realpath.o
 
@@ -36,6 +36,7 @@ int realpath_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	do {
+		/* NOFORK: only one alloc is allowed; must free */
 		char *resolved_path = xmalloc_realpath(*argv);
 		if (resolved_path != NULL) {
 			puts(resolved_path);

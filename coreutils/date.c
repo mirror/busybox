@@ -58,7 +58,7 @@
 //config:	the same format. With it on, 'date DATE' additionally supports
 //config:	MMDDhhmm[[YY]YY][.ss] format.
 
-//applet:IF_DATE(APPLET(date, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_DATE(APPLET_NOEXEC(date, date, BB_DIR_BIN, BB_SUID_DROP, date))
 
 //kbuild:lib-$(CONFIG_DATE) += date.o
 
@@ -152,12 +152,6 @@ enum {
 	OPT_HINT      = (1 << 6) * ENABLE_FEATURE_DATE_ISOFMT, /* D */
 };
 
-static void maybe_set_utc(int opt)
-{
-	if (opt & OPT_UTC)
-		putenv((char*)"TZ=UTC0");
-}
-
 #if ENABLE_LONG_OPTS
 static const char date_longopts[] ALIGN1 =
 		"rfc-822\0"   No_argument       "R"
@@ -169,6 +163,19 @@ static const char date_longopts[] ALIGN1 =
 		"reference\0" Required_argument "r"
 		;
 #endif
+
+/* We are a NOEXEC applet.
+ * Obstacles to NOFORK:
+ * - we change env
+ * - xasprintf result not freed
+ * - after xasprintf we use other xfuncs
+ */
+
+static void maybe_set_utc(int opt)
+{
+	if (opt & OPT_UTC)
+		putenv((char*)"TZ=UTC0");
+}
 
 int date_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int date_main(int argc UNUSED_PARAM, char **argv)

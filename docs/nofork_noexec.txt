@@ -98,7 +98,7 @@ It itself calls run_nofork_applet(), if argv[0] turned out to be a name
 of a NOFORK applet.
 
 run_nofork_applet() saves/inits/restores option parsing, xfunc_error_retval,
-applet_name. Thus, for example, caller does not need to worry about
+logmode, applet_name. Thus, for example, caller does not need to worry about
 option_mask32 getting trashed.
 
 

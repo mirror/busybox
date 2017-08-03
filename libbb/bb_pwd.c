@@ -31,9 +31,9 @@ struct group* FAST_FUNC xgetgrnam(const char *name)
 	return gr;
 }
 
-
 struct passwd* FAST_FUNC xgetpwuid(uid_t uid)
 {
+	/* Note: used in nofork applets (whoami), be careful not to leak anything */
 	struct passwd *pw = getpwuid(uid);
 	if (!pw)
 		bb_error_msg_and_die("unknown uid %u", (unsigned)uid);
@@ -50,6 +50,7 @@ struct group* FAST_FUNC xgetgrgid(gid_t gid)
 
 char* FAST_FUNC xuid2uname(uid_t uid)
 {
+	/* Note: used in nofork applets (whoami), be careful not to leak anything */
 	struct passwd *pw = xgetpwuid(uid);
 	return pw->pw_name;
 }

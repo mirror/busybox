@@ -32,10 +32,10 @@
 //config:	in its own session, so it won't kill the shell that is running
 //config:	the script it was called from.
 
-//applet:IF_KILL(APPLET(kill, BB_DIR_BIN, BB_SUID_DROP))
-//                   APPLET_ODDNAME:name      main  location         suid_type     help
-//applet:IF_KILLALL( APPLET_ODDNAME(killall,  kill, BB_DIR_USR_BIN,  BB_SUID_DROP, killall))
-//applet:IF_KILLALL5(APPLET_ODDNAME(killall5, kill, BB_DIR_USR_SBIN, BB_SUID_DROP, killall5))
+//applet:IF_KILL(    APPLET_NOFORK(kill,     kill, BB_DIR_BIN,      BB_SUID_DROP, kill))
+//                   APPLET_NOFORK:name      main  location         suid_type     help
+//applet:IF_KILLALL( APPLET_NOFORK(killall,  kill, BB_DIR_USR_BIN,  BB_SUID_DROP, killall))
+//applet:IF_KILLALL5(APPLET_NOFORK(killall5, kill, BB_DIR_USR_SBIN, BB_SUID_DROP, killall5))
 
 //kbuild:lib-$(CONFIG_KILL) += kill.o
 //kbuild:lib-$(CONFIG_KILLALL) += kill.o
@@ -87,7 +87,7 @@
  * + we can't use xfunc here
  * + we can't use applet_name
  * + we can't use bb_show_usage
- * (Above doesn't apply for killall[5] cases)
+ * (doesn't apply for killall[5], still should be careful b/c NOFORK)
  *
  * kill %n gets translated into kill ' -<process group>' by shell (note space!)
  * This is needed to avoid collision with kill -9 ... syntax

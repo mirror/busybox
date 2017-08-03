@@ -23,7 +23,7 @@
 //config:	E.g.:
 //config:	COLUMNS=80;LINES=44;export COLUMNS LINES;
 
-//applet:IF_RESIZE(APPLET(resize, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_RESIZE(APPLET_NOEXEC(resize, resize, BB_DIR_USR_BIN, BB_SUID_DROP, resize))
 
 //kbuild:lib-$(CONFIG_RESIZE) += resize.o
 

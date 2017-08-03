@@ -14,7 +14,7 @@
 //config:	help
 //config:	Report current working directory of a process
 
-//applet:IF_PWDX(APPLET(pwdx, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_PWDX(APPLET_NOFORK(pwdx, pwdx, BB_DIR_USR_BIN, BB_SUID_DROP, pwdx))
 
 //kbuild:lib-$(CONFIG_PWDX) += pwdx.o
 
@@ -50,6 +50,7 @@ int pwdx_main(int argc UNUSED_PARAM, char **argv)
 
 		sprintf(buf, "/proc/%u/cwd", pid);
 
+		/* NOFORK: only one alloc is allowed; must free */
 		s = xmalloc_readlink(buf);
 		// "pwdx /proc/1" says "/proc/1: DIR", not "1: DIR"
 		printf("%s: %s\n", *argv, s ? s : strerror(errno == ENOENT ? ESRCH : errno));

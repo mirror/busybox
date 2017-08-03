@@ -1,11 +1,10 @@
 Why an applet can't be NOFORK or NOEXEC?
 
 Why can't be NOFORK:
-daemon: runs indefinitely
 interactive: may wait for user input, ^C has to work
 spawner: "tool PROG ARGS" which changes program's environment - must fork
 changes state: e.g. environment, signal handlers
-runner: sometimes may run for long time, and/or works with network:
+runner: sometimes may run for long(ish) time, and/or works with network:
 	^C has to work (cat BIGFILE, chmod -R, ftpget, nc)
 
 "runners" can become eligible after hush is taught ^C to interrupt NOFORKs!
@@ -15,9 +14,12 @@ suid: runs under different uid - must fork+exec
 
 Why shouldn't be NOFORK/NOEXEC:
 complex: no immediately obvious reason why NOFORK wouldn't work,
-	but does some non-obvoius operations (example: fuser, lsof, losetup).
-	for NOFORK, nested xmallocs (typical in complex code) is a problem.
+	but does some non-obvoius operations (example: fuser, lsof, losetup);
+	nested xmallocs (typical in complex code) is a problem for NOFORK
 rare: not used often enough to bother optimizing (example: poweroff)
+longterm: often runs for a long time (many seconds), execing would make
+	memory footprint smaller
+daemon: runs indefinitely
 
 [ - NOFORK
 [[ - NOFORK
@@ -31,7 +33,7 @@ arch - NOFORK
 arp
 arping - runner
 ash - interactive
-awk - noexec, runner
+awk - noexec. runner
 base64 - runner
 basename - NOFORK
 beep
@@ -44,63 +46,63 @@ bunzip2 - runner
 busybox
 bzcat - runner
 bzip2 - runner
-cal
+cal - runner: cal -n9999
 cat - runner
 chat
 chattr - runner
-chgrp - noexec, runner
-chmod - noexec, runner
-chown - noexec, runner
+chgrp - noexec. runner
+chmod - noexec. runner
+chown - noexec. runner
 chpasswd - runner (list of "user:password"s from stdin)
 chpst - spawner
 chroot - spawner
 chrt - spawner
 chvt
-cksum - noexec, runner
+cksum - noexec. runner
 clear - NOFORK
 cmp - runner
 comm - runner
 conspy - interactive
-cp - noexec, runner
+cp - noexec. runner
 cpio - runner
 crond - daemon
 crontab
 cryptpw
 cttyhack - spawner
-cut - noexec, runner
-date
+cut - noexec. runner
+date - noexec. nofork candidate(needs to stop messing up env, free xasprintf result, not use xfuncs after xasprintf)
 dc - runner (eats stdin if no params)
-dd - noexec, runner
+dd - noexec. runner
 deallocvt
 delgroup
 deluser
 depmod
-devmem
-df
+devmem - runner, complex (access to device memory may hang)
+df - complex (nested allocs)
 dhcprelay - daemon
 diff - runner
 dirname - NOFORK
-dmesg
+dmesg - runner
 dnsd - daemon
-dnsdomainname
-dos2unix - noexec, runner
+dnsdomainname - DNS resolution may trigger, need ^C
+dos2unix - noexec. runner
 dpkg - runner
-du
+du - runner
 dumpkmap
 dumpleases
 echo - NOFORK
 ed - interactive
 egrep - runner
 eject
-env - noexec, changes state (env)
+env - noexec. changes state (env)
 envdir - spawner
 envuidgid - spawner
 expand - runner
-expr
+expr - complex (nested allocs)
 factor - runner (eats stdin if no params)
 fakeidentd - daemon
 false - NOFORK
-fatattr
+fatattr - complex (xopen+xioctl can leak fd)
 fbset
 fbsplash - runner, interactive
 fdflush
@@ -108,15 +110,15 @@ fdformat - runner
 fdisk - interactive
 fgconsole
 fgrep - runner
-find - noexec, runner
+find - noexec. runner
 findfs - suid
 flash_eraseall
 flash_lock
 flash_unlock
 flashcp
 flock
-fold - noexec, runner
-free
+fold - noexec. runner
+free - nofork candidate(struct globals, needs to close /proc/meminfo fd)
 freeramdisk
 fsck - interactive
 fsck.minix
@@ -134,12 +136,12 @@ groups - noexec
 gunzip - runner
 gzip - runner
 halt - rare
-hd - noexec, runner
+hd - noexec. runner
 hdparm - complex, rare
-head - noexec, runner
-hexdump - noexec, runner
+head - noexec. runner
+hexdump - noexec. runner
 hostid - NOFORK
-hostname
+hostname - DNS resolution may trigger, need ^C
 httpd - daemon
 hush - interactive
 hwclock
@@ -169,11 +171,11 @@ iproute
 iprule
 iptunnel
 kbd_mode
-kill
-killall
-killall5
+kill - NOFORK
+killall - NOFORK
+killall5 - NOFORK
 klogd - daemon
-last
+last - runner (I've got 1300 lines of output when tried it)
 less - interactive
 link - NOFORK
 linux32 - spawner
@@ -189,7 +191,7 @@ losetup - complex
 lpd - daemon
 lpq - runner
 lpr - runner
-ls - noexec, runner
+ls - noexec. runner
 lsattr
 lsmod
 lsof - complex
@@ -203,7 +205,7 @@ lzopcat - runner
 makedevs
 makemime - runner
 man - spawner, interactive
-md5sum - noexec, runner
+md5sum - noexec. runner
 mdev - daemon
 mesg
 microcom - interactive, complex
@@ -225,11 +227,11 @@ mount - suid
 mountpoint
 mpstat
 mt
-mv
+mv - runner (can be noexec?)
 nameif
 nbd-client
 nc - runner
-netstat
+netstat - runner with -c
 nice - spawner
 nl - runner
 nmeter - runner
@@ -240,40 +242,40 @@ od - runner
 openvt - spawner
 partprobe
 passwd - suid
-paste - noexec, runner
+paste - noexec. runner
 patch
-pgrep
-pidof
+pgrep - nofork candidate(xregcomp, procps_scan - are they ok?)
+pidof - nofork candidate(uses find_pid_by_name, is that ok?)
 ping - suid, runner
 ping6 - suid, runner
 pipe_progress
 pivot_root
-pkill
+pkill - nofork candidate(xregcomp, procps_scan - are they ok?)
 pmap
 popmaildir - runner
 poweroff - rare
-powertop - interactive
+powertop - interactive, longterm
 printenv - NOFORK
 printf - NOFORK
 ps
 pscan
 pstree
 pwd - NOFORK
-pwdx
+pwdx - NOFORK
 raidautorun
 rdate
 rdev
-readlink
+readlink - NOFORK
 readprofile
-realpath
+realpath - NOFORK
 reboot - rare
 reformime - runner
 remove-shell
-renice
+renice - nofork candidate(uses getpwnam, is that ok?)
 reset - spawner (execs "stty")
-resize
+resize - noexec. changes state (signal handlers)
 rev - runner
-rm - noexec, rm -i interactive
+rm - noexec. rm -i interactive
 rmdir - NOFORK
 rmmod
 route
@@ -289,7 +291,7 @@ script
 scriptreplay
 sed - runner
 sendmail - runner
-seq - noexec, runner
+seq - noexec. runner
 setarch - spawner
 setconsole
 setfont
@@ -300,22 +302,22 @@ setserial
 setsid - spawner
 setuidgid
 sh - interactive
-sha1sum - noexec, runner
-sha256sum - noexec, runner
-sha3sum - noexec, runner
-sha512sum - noexec, runner
+sha1sum - noexec. runner
+sha256sum - noexec. runner
+sha3sum - noexec. runner
+sha512sum - noexec. runner
 showkey - interactive
 shred - runner
-shuf - noexec, runner
+shuf - noexec. runner
 slattach
 sleep - runner
 smemcap - runner
 softlimit - spawner
-sort - noexec, runner
+sort - noexec. runner
 split - runner
 ssl_client - network
 start-stop-daemon
-stat
+stat - nofork candidate(needs fewer allocs)
 strings - runner
 stty
 su - suid, spawner
@@ -326,11 +328,11 @@ svc
 svlogd - daemon
 swapoff - rare
 swapon - rare
-switch_root - spawner, rare, change state
+switch_root - spawner, rare, changes state
 sync - NOFORK
 sysctl
 syslogd - daemon
-tac - noexec, runner
+tac - noexec. runner
 tail - runner
 tar - runner
 taskset - spawner
@@ -341,9 +343,9 @@ telnetd - daemon
 test - NOFORK
 tftp - runner
 tftpd - daemon
-time - spawner, change state (signals)
-timeout - spawner, change state (signals)
-top - interactive
+time - spawner, changes state (signals)
+timeout - spawner, changes state (signals)
+top - interactive, longterm
 touch - NOFORK
 tr - runner
 traceroute - suid, runner
@@ -351,7 +353,7 @@ traceroute6 - suid, runner
 true - NOFORK
 truncate - NOFORK
 tty - NOFORK
-ttysize
+ttysize - NOFORK
 tunctl
 tune2fs
 ubiattach
@@ -370,14 +372,14 @@ uname - NOFORK
 uncompress - runner
 unexpand - runner
 uniq - runner
-unix2dos - noexec, runner
+unix2dos - noexec. runner
 unlink - NOFORK
 unlzma - runner
 unlzop - runner
 unxz - runner
 unzip - runner
-uptime
-users
+uptime - nofork candidate(is getutxent ok?)
+users - nofork candidate(is getutxent ok?)
 usleep - NOFORK
 uudecode - runner
 uuencode - runner
@@ -395,10 +397,10 @@ which - NOFORK
 who
 whoami - NOFORK
 whois
-xargs - noexec, spawner
-xxd - noexec, runner
+xargs - noexec. spawner
+xxd - noexec. runner
 xz - runner
 xzcat - runner
-yes - noexec, runner
+yes - noexec. runner
 zcat - runner
 zcip - daemon

@@ -20,7 +20,7 @@
 //config:	help
 //config:	Enable the readlink option (-f).
 
-//applet:IF_READLINK(APPLET(readlink, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_READLINK(APPLET_NOFORK(readlink, readlink, BB_DIR_USR_BIN, BB_SUID_DROP, readlink))
 
 //kbuild:lib-$(CONFIG_READLINK) += readlink.o
 
@@ -85,6 +85,7 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opt & 4)) /* not -v */
 		logmode = LOGMODE_NONE;
 
+	/* NOFORK: only one alloc is allowed; must free */
 	if (opt & 1) { /* -f */
 		buf = xmalloc_realpath(fname);
 	} else {
@@ -94,9 +95,7 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 	if (!buf)
 		return EXIT_FAILURE;
 	printf((opt & 2) ? "%s" : "%s\n", buf);
-
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(buf);
+	free(buf);
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }
