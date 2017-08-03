@@ -9918,11 +9918,13 @@ evalcommand(union node *cmd, int flags)
 		if (applet_no >= 0 && APPLET_IS_NOFORK(applet_no)) {
 			listsetvar(varlist.list, VEXPORT|VSTACK);
 			/* run <applet>_main() */
+//FIXME: do we need INT_OFF / INT_ON here?
+//wouldn't open files and allocations leak on ^C otherwise?
 			status = run_nofork_applet(applet_no, argv);
 			break;
 		}
 #endif
-		/* Can we avoid forking off? For example, very last command
+		/* Can we avoid forking? For example, very last command
 		 * in a script or a subshell does not need forking,
 		 * we can just exec it.
 		 */
