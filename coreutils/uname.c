@@ -183,7 +183,7 @@ int uname_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		strcpy(uname_info.processor, unknown_str);
 		strcpy(uname_info.platform, unknown_str);
 		strcpy(uname_info.os, CONFIG_UNAME_OSNAME);
-# if 0
+# if ENABLE_FEDORA_COMPAT
 		/* Fedora does something like this */
 		strcpy(uname_info.processor, uname_info.name.machine);
 		strcpy(uname_info.platform, uname_info.name.machine);

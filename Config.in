@@ -37,6 +37,19 @@ config EXTRA_COMPAT
 	some GNU extensions in libc. You probably only need this option
 	if you plan to run busybox on desktop.
 
+config FEDORA_COMPAT
+	bool "Building for Fedora distribution"
+	default n
+	help
+	This option makes some tools behave like they do on Fedora.
+
+	At the time of this writing (2017-08) this only affects uname:
+	normally, uname -p (processor) and uname -i (platform)
+	are shown as "unknown", but with this option uname -p
+	shows the same string as uname -m (machine type),
+	and so does uname -i unless machine type is i486/i586/i686 -
+	then uname -i shows "i386".
+
 config INCLUDE_SUSv2
 	bool "Enable obsolete features removed before SUSv3"
 	default y
