@@ -143,6 +143,8 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 		applet_name = tmp_argv[0];
 		/* Finally we can call NOFORK applet's main() */
 		rc = applet_main[applet_no](argc, tmp_argv);
+		/* Important for shells: `which CMD` was failing */
+		fflush_all();
 	} else {
 		/* xfunc died in NOFORK applet */
 	}

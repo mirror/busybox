@@ -80,7 +80,7 @@ do_test()
 		case $? in
 			0)  echo " ok";;
 			77) echo " skip (feature disabled)";;
-			*)  echo " fail"; tret=1;;
+			*)  echo " fail ($?)"; tret=1;;
 		esac
 	done
 	exit ${tret}
