@@ -47,7 +47,7 @@
 //config:	help
 //config:	Enable support for long options (option -l).
 
-//applet:IF_GETOPT(APPLET(getopt, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_GETOPT(APPLET_NOEXEC(getopt, getopt, BB_DIR_BIN, BB_SUID_DROP, getopt))
 
 //kbuild:lib-$(CONFIG_GETOPT) += getopt.o
 

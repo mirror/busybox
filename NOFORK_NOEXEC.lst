@@ -129,7 +129,7 @@ ftpd - daemon
 ftpget - runner
 ftpput - runner
 fuser - complex
-getopt
+getopt - noexec. complex (many allocs)
 getty - interactive
 grep - runner
 groups - noexec
@@ -160,16 +160,16 @@ insmod
 install - runner
 ionice - spawner
 iostat - runner
-ip
-ipaddr
-ipcalc
-ipcrm
-ipcs
-iplink
-ipneigh
-iproute
-iprule
-iptunnel
+ip - noexec candidate
+ipaddr - noexec candidate
+ipcalc - noexec candidate
+ipcrm - noexec candidate
+ipcs - noexec candidate
+iplink - noexec candidate
+ipneigh - noexec candidate
+iproute - noexec candidate
+iprule - noexec candidate
+iptunnel - noexec candidate
 kbd_mode
 kill - NOFORK
 killall - NOFORK
@@ -257,8 +257,8 @@ poweroff - rare
 powertop - interactive, longterm
 printenv - NOFORK
 printf - NOFORK
-ps
-pscan
+ps - noexec candidate
+pscan - longterm
 pstree
 pwd - NOFORK
 pwdx - NOFORK
