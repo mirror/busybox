@@ -13,7 +13,7 @@
 //config:	tty is used to print the name of the current terminal to
 //config:	standard output.
 
-//applet:IF_TTY(APPLET(tty, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_TTY(APPLET_NOFORK(tty, tty, BB_DIR_USR_BIN, BB_SUID_DROP, tty))
 
 //kbuild:lib-$(CONFIG_TTY) += tty.o
 

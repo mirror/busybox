@@ -1,0 +1,404 @@
+Why an applet can't be NOFORK or NOEXEC?
+
+Why can't be NOFORK:
+daemon: runs indefinitely
+interactive: may wait for user input, ^C has to work
+spawner: "tool PROG ARGS" which changes program's environment - must fork
+changes state: e.g. environment, signal handlers
+runner: sometimes may run for long time, and/or works with network:
+	^C has to work (cat BIGFILE, chmod -R, ftpget, nc)
+
+"runners" can become eligible after hush is taught ^C to interrupt NOFORKs!
+
+Why can't be NOEXEC:
+suid: runs under different uid - must fork+exec
+
+Why shouldn't be NOFORK/NOEXEC:
+complex: no immediately obvious reason why NOFORK wouldn't work,
+	but does some non-obvoius operations (example: fuser, lsof, losetup).
+	for NOFORK, nested xmallocs (typical in complex code) is a problem.
+rare: not used often enough to bother optimizing (example: poweroff)
+
+[ - NOFORK
+[[ - NOFORK
+acpid - daemon
+add-shell
+addgroup
+adduser
+adjtimex
+ar - runner
+arch - NOFORK
+arp
+arping - runner
+ash - interactive
+awk - noexec, runner
+base64 - runner
+basename - NOFORK
+beep
+blkdiscard
+blkid
+blockdev
+bootchartd - daemon
+brctl
+bunzip2 - runner
+busybox
+bzcat - runner
+bzip2 - runner
+cal
+cat - runner
+chat
+chattr - runner
+chgrp - noexec, runner
+chmod - noexec, runner
+chown - noexec, runner
+chpasswd - runner (list of "user:password"s from stdin)
+chpst - spawner
+chroot - spawner
+chrt - spawner
+chvt
+cksum - noexec, runner
+clear - NOFORK
+cmp - runner
+comm - runner
+conspy - interactive
+cp - noexec, runner
+cpio - runner
+crond - daemon
+crontab
+cryptpw
+cttyhack - spawner
+cut - noexec, runner
+date
+dc - runner (eats stdin if no params)
+dd - noexec, runner
+deallocvt
+delgroup
+deluser
+depmod
+devmem
+df
+dhcprelay - daemon
+diff - runner
+dirname - NOFORK
+dmesg
+dnsd - daemon
+dnsdomainname
+dos2unix - noexec, runner
+dpkg - runner
+du
+dumpkmap
+dumpleases
+echo - NOFORK
+ed - interactive
+egrep - runner
+eject
+env - noexec, changes state (env)
+envdir - spawner
+envuidgid - spawner
+expand - runner
+expr
+factor - runner (eats stdin if no params)
+fakeidentd - daemon
+false - NOFORK
+fatattr
+fbset
+fbsplash - runner, interactive
+fdflush
+fdformat - runner
+fdisk - interactive
+fgconsole
+fgrep - runner
+find - noexec, runner
+findfs - suid
+flash_eraseall
+flash_lock
+flash_unlock
+flashcp
+flock
+fold - noexec, runner
+free
+freeramdisk
+fsck - interactive
+fsck.minix
+fsfreeze
+fstrim
+fsync - NOFORK
+ftpd - daemon
+ftpget - runner
+ftpput - runner
+fuser - complex
+getopt
+getty - interactive
+grep - runner
+groups - noexec
+gunzip - runner
+gzip - runner
+halt - rare
+hd - noexec, runner
+hdparm - complex, rare
+head - noexec, runner
+hexdump - noexec, runner
+hostid - NOFORK
+hostname
+httpd - daemon
+hush - interactive
+hwclock
+i2cdetect
+i2cdump
+i2cget
+i2cset
+id - noexec
+ifconfig
+ifenslave
+ifplugd - daemon
+inetd - daemon
+init - daemon
+inotifyd - daemon
+insmod
+install - runner
+ionice - spawner
+iostat - runner
+ip
+ipaddr
+ipcalc
+ipcrm
+ipcs
+iplink
+ipneigh
+iproute
+iprule
+iptunnel
+kbd_mode
+kill
+killall
+killall5
+klogd - daemon
+last
+less - interactive
+link - NOFORK
+linux32 - spawner
+linux64 - spawner
+linuxrc - daemon
+ln - noexec
+loadfont
+loadkmap
+logger - runner
+login - suid, interactive
+logname - NOFORK
+losetup - complex
+lpd - daemon
+lpq - runner
+lpr - runner
+ls - noexec, runner
+lsattr
+lsmod
+lsof - complex
+lspci
+lsscsi
+lsusb
+lzcat - runner
+lzma - runner
+lzop - runner
+lzopcat - runner
+makedevs
+makemime - runner
+man - spawner, interactive
+md5sum - noexec, runner
+mdev - daemon
+mesg
+microcom - interactive, complex
+mkdir - NOFORK
+mkdosfs
+mke2fs
+mkfifo - noexec
+mkfs.ext2
+mkfs.minix
+mkfs.vfat
+mknod - noexec
+mkpasswd
+mkswap
+mktemp
+modinfo
+modprobe
+more - interactive
+mount - suid
+mountpoint
+mpstat
+mt
+mv
+nameif
+nbd-client
+nc - runner
+netstat
+nice - spawner
+nl - runner
+nmeter - runner
+nohup - spawner
+nproc - NOFORK
+ntpd - daemon
+od - runner
+openvt - spawner
+partprobe
+passwd - suid
+paste - noexec, runner
+patch
+pgrep
+pidof
+ping - suid, runner
+ping6 - suid, runner
+pipe_progress
+pivot_root
+pkill
+pmap
+popmaildir - runner
+poweroff - rare
+powertop - interactive
+printenv - NOFORK
+printf - NOFORK
+ps
+pscan
+pstree
+pwd - NOFORK
+pwdx
+raidautorun
+rdate
+rdev
+readlink
+readprofile
+realpath
+reboot - rare
+reformime - runner
+remove-shell
+renice
+reset - spawner (execs "stty")
+resize
+rev - runner
+rm - noexec, rm -i interactive
+rmdir - NOFORK
+rmmod
+route
+rpm - runner
+rpm2cpio - runner
+rtcwake - complex, rare
+run-parts
+runlevel
+runsv - daemon
+runsvdir - daemon
+rx - runner
+script
+scriptreplay
+sed - runner
+sendmail - runner
+seq - noexec, runner
+setarch - spawner
+setconsole
+setfont
+setkeycodes
+setlogcons
+setpriv - spawner
+setserial
+setsid - spawner
+setuidgid
+sh - interactive
+sha1sum - noexec, runner
+sha256sum - noexec, runner
+sha3sum - noexec, runner
+sha512sum - noexec, runner
+showkey - interactive
+shred - runner
+shuf - noexec, runner
+slattach
+sleep - runner
+smemcap - runner
+softlimit - spawner
+sort - noexec, runner
+split - runner
+ssl_client - network
+start-stop-daemon
+stat
+strings - runner
+stty
+su - suid, spawner
+sulogin - spawner
+sum - runner
+sv
+svc
+svlogd - daemon
+swapoff - rare
+swapon - rare
+switch_root - spawner, rare, change state
+sync - NOFORK
+sysctl
+syslogd - daemon
+tac - noexec, runner
+tail - runner
+tar - runner
+taskset - spawner
+tcpsvd - daemon
+tee - runner
+telnet - interactive
+telnetd - daemon
+test - NOFORK
+tftp - runner
+tftpd - daemon
+time - spawner, change state (signals)
+timeout - spawner, change state (signals)
+top - interactive
+touch - NOFORK
+tr - runner
+traceroute - suid, runner
+traceroute6 - suid, runner
+true - NOFORK
+truncate - NOFORK
+tty - NOFORK
+ttysize
+tunctl
+tune2fs
+ubiattach
+ubidetach
+ubimkvol
+ubirename
+ubirmvol
+ubirsvol
+ubiupdatevol
+udhcpc - daemon
+udhcpd - daemon
+udpsvd - daemon
+uevent - daemon
+umount
+uname - NOFORK
+uncompress - runner
+unexpand - runner
+uniq - runner
+unix2dos - noexec, runner
+unlink - NOFORK
+unlzma - runner
+unlzop - runner
+unxz - runner
+unzip - runner
+uptime
+users
+usleep - NOFORK
+uudecode - runner
+uuencode - runner
+vconfig
+vi - interactive
+vlock - suid
+volname - runner
+w
+wall - suid
+watch - runner
+watchdog - daemon
+wc - runner
+wget - runner
+which - NOFORK
+who
+whoami - NOFORK
+whois
+xargs - noexec, spawner
+xxd - noexec, runner
+xz - runner
+xzcat - runner
+yes - noexec, runner
+zcat - runner
+zcip - daemon

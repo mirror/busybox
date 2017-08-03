@@ -11,7 +11,7 @@
 //config:	help
 //config:	unlink deletes a file by calling unlink()
 
-//applet:IF_UNLINK(APPLET(unlink, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_UNLINK(APPLET_NOFORK(unlink, unlink, BB_DIR_USR_BIN, BB_SUID_DROP, unlink))
 
 //kbuild:lib-$(CONFIG_UNLINK) += unlink.o
 

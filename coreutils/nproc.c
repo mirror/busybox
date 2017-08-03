@@ -9,7 +9,7 @@
 //config:	help
 //config:	Print number of CPUs
 
-//applet:IF_NPROC(APPLET(nproc, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_NPROC(APPLET_NOFORK(nproc, nproc, BB_DIR_USR_BIN, BB_SUID_DROP, nproc))
 
 //kbuild:lib-$(CONFIG_NPROC) += nproc.o
 

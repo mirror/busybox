@@ -63,9 +63,9 @@
 //config:	help
 //config:	Same as uname -m.
 
-//applet:IF_UNAME(APPLET(uname, BB_DIR_BIN, BB_SUID_DROP))
-//                  APPLET_ODDNAME:name  main   location    suid_type     help
-//applet:IF_BB_ARCH(APPLET_ODDNAME(arch, uname, BB_DIR_BIN, BB_SUID_DROP, arch))
+//                  APPLET_NOFORK:name   main   location    suid_type     help
+//applet:IF_UNAME(APPLET_NOFORK(  uname, uname, BB_DIR_BIN, BB_SUID_DROP, uname))
+//applet:IF_BB_ARCH(APPLET_NOFORK(arch,  uname, BB_DIR_BIN, BB_SUID_DROP, arch))
 
 //kbuild:lib-$(CONFIG_UNAME)   += uname.o
 //kbuild:lib-$(CONFIG_BB_ARCH) += uname.o

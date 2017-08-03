@@ -12,7 +12,7 @@
 //config:	which is used to find programs in your PATH and
 //config:	print out their pathnames.
 
-//applet:IF_WHICH(APPLET(which, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_WHICH(APPLET_NOFORK(which, which, BB_DIR_USR_BIN, BB_SUID_DROP, which))
 
 //kbuild:lib-$(CONFIG_WHICH) += which.o
 
@@ -56,6 +56,8 @@ int which_main(int argc UNUSED_PARAM, char **argv)
 			char *p;
 
 			path = tmp = xstrdup(env_path);
+//NOFORK FIXME: nested xmallocs (one is inside find_executable())
+//can leak memory on failure
 			while ((p = find_executable(*argv, &tmp)) != NULL) {
 				missing = 0;
 				puts(p);

@@ -12,7 +12,7 @@
 //config:	help
 //config:	This program clears the terminal screen.
 
-//applet:IF_CLEAR(APPLET(clear, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_CLEAR(APPLET_NOFORK(clear, clear, BB_DIR_USR_BIN, BB_SUID_DROP, clear))
 
 //kbuild:lib-$(CONFIG_CLEAR) += clear.o
 
