@@ -9919,10 +9919,26 @@ evalcommand(union node *cmd, int flags)
 		int applet_no = (- cmdentry.u.index - 2);
 		if (applet_no >= 0 && APPLET_IS_NOFORK(applet_no)) {
 			listsetvar(varlist.list, VEXPORT|VSTACK);
-			/* run <applet>_main() */
-//FIXME: do we need INT_OFF / INT_ON here?
-//wouldn't open files and allocations leak on ^C otherwise?
+			/*
+			 * Run <applet>_main().
+			 * Signals (^C) can't interrupt here.
+			 * Otherwise we can mangle stdio or malloc internal state.
+			 * This makes applets which can run for a long time
+			 * and/or wait for user input ineligible for NOFORK:
+			 * for example, "yes" or "rm" (rm -i waits for input).
+			 */
+			INT_OFF;
 			status = run_nofork_applet(applet_no, argv);
+			/*
+			 * Try enabling NOFORK for "yes" applet.
+			 * ^C _will_ stop it (write returns EINTR),
+			 * but this causes stdout FILE to be stuck
+			 * and needing clearerr(). What if other applets
+			 * also can get EINTRs? Do we need to switch
+			 * our signals to SA_RESTART?
+			 */
+			/*clearerr(stdout);*/
+			INT_ON;
 			break;
 		}
 #endif
