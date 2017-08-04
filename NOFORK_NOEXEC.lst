@@ -66,21 +66,21 @@ chgrp - noexec. runner
 chmod - noexec. runner
 chown - noexec. runner
 chpasswd - runner (list of "user:password"s from stdin)
-chpst - spawner
-chroot - spawner
-chrt - spawner
+chpst - noexec candidate, spawner
+chroot - noexec candidate, spawner
+chrt - noexec candidate, spawner
 chvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
 cksum - noexec. runner
 clear - NOFORK
 cmp - runner
 comm - runner
-conspy - interactive
+conspy - interactive, longterm
 cp - noexec. runner
 cpio - runner
 crond - daemon
 crontab
 cryptpw - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. Can be noexec.
-cttyhack - spawner
+cttyhack - noexec candidate, spawner
 cut - noexec. runner
 date - noexec. nofork candidate(needs to stop messing up env, free xasprintf result, not use xfuncs after xasprintf)
 dc - runner (eats stdin if no params)
@@ -90,7 +90,7 @@ delgroup
 deluser
 depmod - complex, rare
 devmem - runner, complex (access to device memory may hang)
-df - complex (nested allocs)
+df - leaks: nested allocs
 dhcprelay - daemon
 diff - runner
 dirname - NOFORK
@@ -106,15 +106,15 @@ echo - NOFORK
 ed - interactive, longterm
 egrep - longterm runner ("CMD | egrep ..."  may run indefinitely, better to exec to conserve memory)
 eject - leaks: open+ioctl_or_perror_and_die, changes state (moves fds)
-env - noexec. changes state (env)
-envdir - spawner
-envuidgid - spawner
+env - noexec. spawner, changes state (env)
+envdir - noexec candidate, spawner
+envuidgid - noexec candidate, spawner
 expand - runner
-expr - complex (nested allocs)
+expr - leaks: nested allocs
 factor - runner (eats stdin if no params)
 fakeidentd - daemon
 false - NOFORK
-fatattr - complex (xopen+xioctl can leak fd)
+fatattr - leaks: open+xioctl, complex
 fbset - leaks: open+xfunc, complex, rare
 fbsplash - runner, longterm
 fdflush - leaks: open+ioctl_or_perror_and_die, needs ^C (floppy may be unresponsive), rare
@@ -134,14 +134,14 @@ free - nofork candidate(struct globals, needs to close /proc/meminfo fd)
 freeramdisk - leaks: open+ioctl_or_perror_and_die
 fsck - interactive, longterm
 fsck.minix
-fsfreeze
-fstrim
+fsfreeze - noexec candidate (it's very simple), leaks: open+xioctl
+fstrim - noexec candidate (it's very simple), leaks: open+xioctl
 fsync - NOFORK
 ftpd - daemon
 ftpget - runner
 ftpput - runner
 fuser - complex
-getopt - noexec. complex (many allocs)
+getopt - noexec. leaks: many allocs
 getty - interactive, longterm
 grep - longterm runner ("CMD | grep ..."  may run indefinitely, better to exec to conserve memory)
 groups - noexec
@@ -156,7 +156,7 @@ hostid - NOFORK
 hostname - DNS resolution may trigger, need ^C
 httpd - daemon
 hush - interactive, longterm
-hwclock
+hwclock - talks to hardware (xioctl(RTC_RD_TIME)) - needs ^C
 i2cdetect
 i2cdump
 i2cget
@@ -293,9 +293,9 @@ rmmod - noexec
 route
 rpm - runner
 rpm2cpio - runner
-rtcwake - complex, rare
+rtcwake - puts system to sleep, optimizing this for speed is pointless
 run-parts
-runlevel
+runlevel - noexec. can be nofork if "endutxent()" is called unconditionally, but too rare to bother?
 runsv - daemon
 runsvdir - daemon
 rx - runner
@@ -400,10 +400,10 @@ vlock - suid
 volname - runner
 w
 wall - suid
-watch - runner
+watch - longterm
 watchdog - daemon
 wc - runner
-wget - runner
+wget - longterm
 which - NOFORK
 who
 whoami - NOFORK
