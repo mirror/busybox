@@ -966,7 +966,9 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		tar_handle->ah_flags |= ARCHIVE_DONT_RESTORE_PERM;
 
 	/* Prepend '-' to the first argument if required */
-	opt_complementary = "--:" // first arg is options
+	if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0')
+		argv[1] = xasprintf("-%s", argv[1]);
+	opt_complementary =
 		"tt:vv:" // count -t,-v
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS && ENABLE_FEATURE_TAR_FROM
 		"\xff::" // --exclude=PATTERN is a list

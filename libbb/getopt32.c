@@ -171,16 +171,6 @@ const char *opt_complementary
 
 Special characters:
 
- "--"   A double dash at the beginning of opt_complementary means the
-        argv[1] string should always be treated as options, even if it isn't
-        prefixed with a "-".  This is useful for special syntax in applets
-        such as "ar" and "tar":
-        tar xvf foo.tar
-
-        NB: getopt32() will leak a small amount of memory if you use
-        this option! Do not use it if there is a possibility of recursive
-        getopt32() calls.
-
  "-N"   A dash as the first char in a opt_complementary group followed
         by a single digit (0-9) means that at least N non-option
         arguments must be present on the command line
@@ -337,6 +327,8 @@ const char *applet_long_options;
 
 uint32_t option_mask32;
 
+/* Please keep getopt32 free from xmalloc */
+
 uint32_t FAST_FUNC
 getopt32(char **argv, const char *applet_opts, ...)
 {
@@ -354,12 +346,10 @@ getopt32(char **argv, const char *applet_opts, ...)
 	struct option *long_options = (struct option *) &bb_null_long_options;
 #endif
 	unsigned trigger;
-	char **pargv;
 	int min_arg = 0;
 	int max_arg = -1;
 
 #define SHOW_USAGE_IF_ERROR     1
-#define FIRST_ARGV_IS_OPT       2
 
 	int spec_flgs = 0;
 
@@ -467,12 +457,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 			continue;
 		}
 		if (*s == '-') {
-			if (c < '0' || c > '9') {
-				if (c == '-') {
-					spec_flgs |= FIRST_ARGV_IS_OPT;
-					s++;
-				}
-			} else {
+			if (c >= '0' && c <= '9') {
 				min_arg = c - '0';
 				s++;
 			}
@@ -534,21 +519,6 @@ getopt32(char **argv, const char *applet_opts, ...)
 	}
 	opt_complementary = NULL;
 	va_end(p);
-
-	if (spec_flgs & FIRST_ARGV_IS_OPT) {
-		pargv = argv + 1;
-		if (*pargv) {
-			if (pargv[0][0] != '-' && pargv[0][0] != '\0') {
-				/* Can't use alloca: opts with params will
-				 * return pointers to stack!
-				 * NB: we leak these allocations... */
-				char *pp = xmalloc(strlen(*pargv) + 2);
-				*pp = '-';
-				strcpy(pp + 1, *pargv);
-				*pargv = pp;
-			}
-		}
-	}
 
 	/* In case getopt32 was already called:
 	 * reset the libc getopt() function, which keeps internal state.
