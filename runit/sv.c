@@ -718,15 +718,16 @@ int svc_main(int argc UNUSED_PARAM, char **argv)
 	argv[1] = command;
 	command[1] = '\0';
 
-	/* getopt32() was already called:
-	 * reset the libc getopt() function, which keeps internal state.
-	 */
-	GETOPT_RESET();
-
 	do {
 		if (opts & 1) {
 			int r;
+
 			command[0] = *optstring;
+
+			/* getopt() was already called by getopt32():
+			 * reset the libc getopt() function's internal state.
+			 */
+			GETOPT_RESET();
 			r = sv(argv);
 			if (r)
 				return 1;
