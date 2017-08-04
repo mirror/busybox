@@ -1110,15 +1110,14 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* all args are options; -n NUM */
-	opt_complementary = "-"; /* options can be specified w/o dash */
+	make_all_argv_opts(argv); /* options can be specified w/o dash */
 	col = getopt32(argv, "d:n:b"IF_FEATURE_TOPMEM("m"), &str_interval, &str_iterations);
 #if ENABLE_FEATURE_TOPMEM
 	if (col & OPT_m) /* -m (busybox specific) */
 		scan_mask = TOPMEM_MASK;
 #endif
 	if (col & OPT_d) {
-		/* work around for "-d 1" -> "-d -1" done by getopt32
-		 * (opt_complementary == "-" does this) */
+		/* work around for "-d 1" -> "-d -1" done by make_all_argv_opts() */
 		if (str_interval[0] == '-')
 			str_interval++;
 		/* Need to limit it to not overflow poll timeout */

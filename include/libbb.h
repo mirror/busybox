@@ -1183,7 +1183,9 @@ extern const char *opt_complementary;
 extern const char *applet_long_options;
 #endif
 extern uint32_t option_mask32;
-extern uint32_t getopt32(char **argv, const char *applet_opts, ...) FAST_FUNC;
+uint32_t getopt32(char **argv, const char *applet_opts, ...) FAST_FUNC;
+/* For top, ps. Some argv[i] are replaced by malloced "-opt" strings */
+void make_all_argv_opts(char **argv) FAST_FUNC;
 /* BSD-derived getopt() functions require that optind be set to 1 in
  * order to reset getopt() state.  This used to be generally accepted
  * way of resetting getopt().  However, glibc's getopt()

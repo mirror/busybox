@@ -6,11 +6,12 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
 # include <getopt.h>
 #endif
 #include "libbb.h"
+
+//kbuild:lib-y += getopt32.o
 
 /*      Documentation
 
@@ -169,21 +170,6 @@ const char *opt_complementary
         if (verbose_level) printf("verbose level is %d\n", verbose_level);
 
 Special characters:
-
- "-"    A group consisting of just a dash forces all arguments
-        to be treated as options, even if they have no leading dashes.
-        Next char in this case can't be a digit (0-9), use ':' or end of line.
-        Example:
-
-        opt_complementary = "-:w-x:x-w"; // "-w-x:x-w" would also work,
-        getopt32(argv, "wx");            // but is less readable
-
-        This makes it possible to use options without a dash (./program w x)
-        as well as with a dash (./program -x).
-
-        NB: getopt32() will leak a small amount of memory if you use
-        this option! Do not use it if there is a possibility of recursive
-        getopt32() calls.
 
  "--"   A double dash at the beginning of opt_complementary means the
         argv[1] string should always be treated as options, even if it isn't
@@ -373,8 +359,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	int max_arg = -1;
 
 #define SHOW_USAGE_IF_ERROR     1
-#define ALL_ARGV_IS_OPTS        2
-#define FIRST_ARGV_IS_OPT       4
+#define FIRST_ARGV_IS_OPT       2
 
 	int spec_flgs = 0;
 
@@ -486,8 +471,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 				if (c == '-') {
 					spec_flgs |= FIRST_ARGV_IS_OPT;
 					s++;
-				} else
-					spec_flgs |= ALL_ARGV_IS_OPTS;
+				}
 			} else {
 				min_arg = c - '0';
 				s++;
@@ -551,9 +535,9 @@ getopt32(char **argv, const char *applet_opts, ...)
 	opt_complementary = NULL;
 	va_end(p);
 
-	if (spec_flgs & (FIRST_ARGV_IS_OPT | ALL_ARGV_IS_OPTS)) {
+	if (spec_flgs & FIRST_ARGV_IS_OPT) {
 		pargv = argv + 1;
-		while (*pargv) {
+		if (*pargv) {
 			if (pargv[0][0] != '-' && pargv[0][0] != '\0') {
 				/* Can't use alloca: opts with params will
 				 * return pointers to stack!
@@ -563,9 +547,6 @@ getopt32(char **argv, const char *applet_opts, ...)
 				strcpy(pp + 1, *pargv);
 				*pargv = pp;
 			}
-			if (!(spec_flgs & ALL_ARGV_IS_OPTS))
-				break;
-			pargv++;
 		}
 	}
 

@@ -715,7 +715,8 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 # if ENABLE_FEATURE_PS_WIDE
 	/* -w is a bit complicated */
 	int w_count = 0;
-	opt_complementary = "-:ww";
+	make_all_argv_opts(argv);
+	opt_complementary = "ww";
 	opts = getopt32(argv, IF_SELINUX("Z")IF_FEATURE_SHOW_THREADS("T")IF_FEATURE_PS_LONG("l")
 					"w", &w_count);
 	/* if w is given once, GNU ps sets the width to 132,
@@ -731,7 +732,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	}
 # else
 	/* -w is not supported, only -Z and/or -T */
-	opt_complementary = "-";
+	make_all_argv_opts(argv);
 	opts = getopt32(argv, IF_SELINUX("Z")IF_FEATURE_SHOW_THREADS("T")IF_FEATURE_PS_LONG("l"));
 # endif
 
