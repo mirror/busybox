@@ -11,8 +11,8 @@ runner: sometimes may run for long(ish) time, and/or works with network:
 	^C has to work (cat BIGFILE, chmod -R, ftpget, nc)
 
 "runners" can become eligible after shell is taught ^C to interrupt NOFORKs,
-need to be inspected that they do not fall into alloc+xfunc, open+xfunc
-categories.
+need to be inspected that they do not fall into alloc+xfunc, open+xfunc,
+leak categories.
 
 Why can't be NOEXEC:
 suid: runs under different uid - must fork+exec
@@ -23,7 +23,15 @@ daemon: runs indefinitely; these are also always fit "rare" category
 longterm: often runs for a long time (many seconds), execing would make
 	memory footprint smaller
 complex: no immediately obvious reason why NOFORK wouldn't work,
-	but does some non-obvoius operations (example: fuser, lsof, losetup)
+	but does some non-obvoius operations (example: fuser, lsof, losetup);
+	detailed audit often turns out that it's a leaker
+
+Interesting example of "interactive" applet which is nevertheless can be
+(and is) NOEXEC is "rm". Yes, "rm -i" is interactive - but it's not that typical
+for users to keep it waiting for many minutes, whereas running "rm" in shell
+is very typical, and speeding up this common use via NOEXEC is useful.
+IOW: rm is "interactive", but not "longterm".
+
 
 [ - NOFORK
 [[ - NOFORK
@@ -34,9 +42,9 @@ adduser
 adjtimex
 ar - runner
 arch - NOFORK
-arp
+arp - complex, rare
 arping - runner
-ash - interactive
+ash - interactive, longterm
 awk - noexec. runner
 base64 - runner
 basename - NOFORK
@@ -52,7 +60,7 @@ bzcat - runner
 bzip2 - runner
 cal - runner: cal -n9999
 cat - runner
-chat
+chat - needs ^C to work
 chattr - runner
 chgrp - noexec. runner
 chmod - noexec. runner
@@ -77,10 +85,10 @@ cut - noexec. runner
 date - noexec. nofork candidate(needs to stop messing up env, free xasprintf result, not use xfuncs after xasprintf)
 dc - runner (eats stdin if no params)
 dd - noexec. runner
-deallocvt
+deallocvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
 delgroup
 deluser
-depmod
+depmod - complex, rare
 devmem - runner, complex (access to device memory may hang)
 df - complex (nested allocs)
 dhcprelay - daemon
@@ -88,16 +96,16 @@ diff - runner
 dirname - NOFORK
 dmesg - runner
 dnsd - daemon
-dnsdomainname - DNS resolution may trigger, need ^C
+dnsdomainname - needs ^C (may talk to DNS servers, which may be down)
 dos2unix - noexec. runner
 dpkg - runner
 du - runner
-dumpkmap
+dumpkmap - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
 dumpleases
 echo - NOFORK
-ed - interactive
-egrep - runner
-eject
+ed - interactive, longterm
+egrep - longterm runner ("CMD | egrep ..."  may run indefinitely, better to exec to conserve memory)
+eject - leaks: open+ioctl_or_perror_and_die, changes state (moves fds)
 env - noexec. changes state (env)
 envdir - spawner
 envuidgid - spawner
@@ -107,24 +115,24 @@ factor - runner (eats stdin if no params)
 fakeidentd - daemon
 false - NOFORK
 fatattr - complex (xopen+xioctl can leak fd)
-fbset
-fbsplash - runner, interactive
-fdflush
-fdformat - runner
-fdisk - interactive
-fgconsole
-fgrep - runner
+fbset - leaks: open+xfunc, complex, rare
+fbsplash - runner, longterm
+fdflush - leaks: open+ioctl_or_perror_and_die, needs ^C (floppy may be unresponsive), rare
+fdformat - needs ^C (floppy may be unresponsive), longterm, rare
+fdisk - interactive, longterm
+fgconsole - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
+fgrep - longterm runner ("CMD | fgrep ..."  may run indefinitely, better to exec to conserve memory)
 find - noexec. runner
 findfs - suid
 flash_eraseall
 flash_lock
 flash_unlock
 flashcp
-flock
+flock - spawner, changes state (file locks)
 fold - noexec. runner
 free - nofork candidate(struct globals, needs to close /proc/meminfo fd)
-freeramdisk
-fsck - interactive
+freeramdisk - leaks: open+ioctl_or_perror_and_die
+fsck - interactive, longterm
 fsck.minix
 fsfreeze
 fstrim
@@ -134,8 +142,8 @@ ftpget - runner
 ftpput - runner
 fuser - complex
 getopt - noexec. complex (many allocs)
-getty - interactive
-grep - runner
+getty - interactive, longterm
+grep - longterm runner ("CMD | grep ..."  may run indefinitely, better to exec to conserve memory)
 groups - noexec
 gunzip - runner
 gzip - runner
@@ -147,7 +155,7 @@ hexdump - noexec. runner
 hostid - NOFORK
 hostname - DNS resolution may trigger, need ^C
 httpd - daemon
-hush - interactive
+hush - interactive, longterm
 hwclock
 i2cdetect
 i2cdump
@@ -180,39 +188,39 @@ killall - NOFORK
 killall5 - NOFORK
 klogd - daemon
 last - runner (I've got 1300 lines of output when tried it)
-less - interactive
+less - interactive, longterm
 link - NOFORK
 linux32 - spawner
 linux64 - spawner
 linuxrc - daemon
 ln - noexec
 loadfont
-loadkmap
+loadkmap - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
 logger - runner
-login - suid, interactive
+login - suid, interactive, longterm
 logname - NOFORK
 losetup - complex
 lpd - daemon
 lpq - runner
 lpr - runner
 ls - noexec. runner
-lsattr
+lsattr - runner. noexec candidate (ls is, why not this one?)
 lsmod - noexec
 lsof - complex
-lspci
-lsscsi
-lsusb
+lspci - noexec candidate, too rare to bother for nofork
+lsscsi - noexec candidate, too rare to bother for nofork
+lsusb - noexec candidate, too rare to bother for nofork
 lzcat - runner
 lzma - runner
 lzop - runner
 lzopcat - runner
 makedevs
 makemime - runner
-man - spawner, interactive
+man - spawner, interactive, longterm
 md5sum - noexec. runner
 mdev - daemon
 mesg
-microcom - interactive, complex
+microcom - interactive, longterm
 mkdir - NOFORK
 mkdosfs
 mke2fs
@@ -223,10 +231,10 @@ mkfs.vfat
 mknod - noexec
 mkpasswd
 mkswap
-mktemp
+mktemp - leaks: xstrdup+concat_path_file
 modinfo - noexec
 modprobe - noexec
-more - interactive
+more - interactive, longterm
 mount - suid
 mountpoint
 mpstat
@@ -305,12 +313,11 @@ setpriv - spawner
 setserial
 setsid - spawner
 setuidgid
-sh - interactive
 sha1sum - noexec. runner
 sha256sum - noexec. runner
 sha3sum - noexec. runner
 sha512sum - noexec. runner
-showkey - interactive
+showkey - interactive, longterm
 shred - runner
 shuf - noexec. runner
 slattach
@@ -342,7 +349,7 @@ tar - runner
 taskset - spawner
 tcpsvd - daemon
 tee - runner
-telnet - interactive
+telnet - interactive, longterm
 telnetd - daemon
 test - NOFORK
 tftp - runner
@@ -359,7 +366,7 @@ truncate - NOFORK
 tty - NOFORK
 ttysize - NOFORK
 tunctl
-tune2fs
+tune2fs - leaks: open+xfunc
 ubiattach
 ubidetach
 ubimkvol
@@ -387,8 +394,8 @@ users - nofork candidate(is getutxent ok?)
 usleep - NOFORK
 uudecode - runner
 uuencode - runner
-vconfig
-vi - interactive
+vconfig - leaks: xsocket+ioctl_or_perror_and_die
+vi - interactive, longterm
 vlock - suid
 volname - runner
 w

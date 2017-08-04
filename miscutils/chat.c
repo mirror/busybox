@@ -82,8 +82,8 @@
 //usage:       "EXPECT [SEND [EXPECT [SEND...]]]"
 //usage:#define chat_full_usage "\n\n"
 //usage:       "Useful for interacting with a modem connected to stdin/stdout.\n"
-//usage:       "A script consists of one or more \"expect-send\" pairs of strings,\n"
-//usage:       "each pair is a pair of arguments. Example:\n"
+//usage:       "A script consists of \"expect-send\" argument pairs.\n"
+//usage:       "Example:\n"
 //usage:       "chat '' ATZ OK ATD123456 CONNECT '' ogin: pppuser word: ppppass '~'"
 
 #include "libbb.h"

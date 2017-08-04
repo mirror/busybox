@@ -67,8 +67,12 @@ int freeramdisk_main(int argc UNUSED_PARAM, char **argv)
 	fd = xopen(single_argv(argv), O_RDWR);
 
 	// Act like freeramdisk, fdflush, or both depending on configuration.
-	ioctl_or_perror_and_die(fd, (ENABLE_FREERAMDISK && applet_name[1] == 'r')
-			|| !ENABLE_FDFLUSH ? BLKFLSBUF : FDFLUSH, NULL, "%s", argv[1]);
+	ioctl_or_perror_and_die(fd,
+		((ENABLE_FREERAMDISK && applet_name[1] == 'r') || !ENABLE_FDFLUSH)
+				? BLKFLSBUF
+				: FDFLUSH,
+		NULL, "%s", argv[1]
+	);
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
 
