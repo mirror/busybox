@@ -38,6 +38,13 @@ int usleep_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 	}
 
+	/* Safe wrt NOFORK? (noforks are not allowed to run for
+	 * a long time). Try "usleep 99999999" + ^C + "echo $?"
+	 * in hush with FEATURE_SH_NOFORK=y.
+	 * At least on uclibc, usleep() thanslates to nanosleep()
+	 * which returns early on any signal (even caught one),
+	 * and uclibc does not loop back on EINTR.
+	 */
 	usleep(xatou(argv[1]));
 
 	return EXIT_SUCCESS;
