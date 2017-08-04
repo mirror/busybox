@@ -12,7 +12,7 @@
 //config:	help
 //config:	Show information about a Linux Kernel module
 
-//applet:IF_MODINFO(APPLET(modinfo, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_MODINFO(APPLET_NOEXEC(modinfo, modinfo, BB_DIR_SBIN, BB_SUID_DROP, modinfo))
 
 //kbuild:lib-$(CONFIG_MODINFO) += modinfo.o modutils.o
 

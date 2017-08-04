@@ -26,7 +26,7 @@
 //config:	hardware autodetection scripts to load modules like evdev, frame
 //config:	buffer drivers etc.
 
-//applet:IF_MODPROBE(IF_NOT_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP)))
+//applet:IF_MODPROBE(IF_NOT_MODPROBE_SMALL(APPLET_NOEXEC(modprobe, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe)))
 
 //kbuild:ifneq ($(CONFIG_MODPROBE_SMALL),y)
 //kbuild:lib-$(CONFIG_MODPROBE) += modprobe.o modutils.o

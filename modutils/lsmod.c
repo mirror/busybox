@@ -23,7 +23,7 @@
 //config:	the format of module-init-tools for Linux kernel 2.6.
 //config:	Increases size somewhat.
 
-//applet:IF_LSMOD(IF_NOT_MODPROBE_SMALL(APPLET(lsmod, BB_DIR_SBIN, BB_SUID_DROP)))
+//applet:IF_LSMOD(IF_NOT_MODPROBE_SMALL(APPLET_NOEXEC(lsmod, lsmod, BB_DIR_SBIN, BB_SUID_DROP, lsmod)))
 
 //kbuild:ifneq ($(CONFIG_MODPROBE_SMALL),y)
 //kbuild:lib-$(CONFIG_LSMOD) += lsmod.o modutils.o

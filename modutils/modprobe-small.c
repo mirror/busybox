@@ -11,12 +11,15 @@
 /* modprobe-small configs are defined in Config.src to ensure better
  * "make config" order */
 
-//applet:IF_LSMOD(   IF_MODPROBE_SMALL(APPLET(lsmod,    BB_DIR_SBIN, BB_SUID_DROP)))
-//applet:IF_MODPROBE(IF_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP)))
-//                                   APPLET_ODDNAME:name    main      location     suid_type     help
-//applet:IF_DEPMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, depmod)))
-//applet:IF_INSMOD(IF_MODPROBE_SMALL(APPLET_ODDNAME(insmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, insmod)))
-//applet:IF_RMMOD( IF_MODPROBE_SMALL(APPLET_ODDNAME(rmmod,  modprobe, BB_DIR_SBIN, BB_SUID_DROP, rmmod)))
+//applet:IF_LSMOD(   IF_MODPROBE_SMALL(APPLET_NOEXEC( lsmod,    lsmod,    BB_DIR_SBIN, BB_SUID_DROP, lsmod   )))
+//applet:IF_MODPROBE(IF_MODPROBE_SMALL(APPLET_NOEXEC( modprobe, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe)))
+//                                     APPLET_ODDNAME:name      main      location     suid_type     help
+//applet:IF_DEPMOD(  IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod,   modprobe, BB_DIR_SBIN, BB_SUID_DROP, depmod  )))
+//applet:IF_INSMOD(  IF_MODPROBE_SMALL(APPLET_NOEXEC( insmod,   modprobe, BB_DIR_SBIN, BB_SUID_DROP, insmod  )))
+//applet:IF_RMMOD(   IF_MODPROBE_SMALL(APPLET_NOEXEC( rmmod,    modprobe, BB_DIR_SBIN, BB_SUID_DROP, rmmod   )))
+/* noexec speeds up boot with many modules loaded (need SH_STANDALONE=y) */
+/* I measured about ~5 times faster insmod */
+/* depmod is not noexec, it runs longer and benefits from memory trimming via exec */
 
 //kbuild:lib-$(CONFIG_MODPROBE_SMALL) += modprobe-small.o
 

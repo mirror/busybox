@@ -156,7 +156,7 @@ ifplugd - daemon
 inetd - daemon
 init - daemon
 inotifyd - daemon
-insmod
+insmod - noexec
 install - runner
 ionice - spawner
 iostat - runner
@@ -193,7 +193,7 @@ lpq - runner
 lpr - runner
 ls - noexec. runner
 lsattr
-lsmod
+lsmod - noexec
 lsof - complex
 lspci
 lsscsi
@@ -220,8 +220,8 @@ mknod - noexec
 mkpasswd
 mkswap
 mktemp
-modinfo
-modprobe
+modinfo - noexec
+modprobe - noexec
 more - interactive
 mount - suid
 mountpoint
@@ -277,7 +277,7 @@ resize - noexec. changes state (signal handlers)
 rev - runner
 rm - noexec. rm -i interactive
 rmdir - NOFORK
-rmmod
+rmmod - noexec
 route
 rpm - runner
 rpm2cpio - runner
