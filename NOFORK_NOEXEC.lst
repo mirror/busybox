@@ -135,7 +135,7 @@ freeramdisk - leaks: open+ioctl_or_perror_and_die
 fsck - interactive, longterm
 fsck.minix
 fsfreeze - noexec candidate (it's very simple), leaks: open+xioctl
-fstrim - noexec candidate (it's very simple), leaks: open+xioctl
+fstrim - noexec candidate (it's very simple), leaks: open+xioctl, find_block_device -> readdir+xstrdup
 fsync - NOFORK
 ftpd - daemon
 ftpget - runner
@@ -153,7 +153,7 @@ hdparm - complex, rare
 head - noexec. runner
 hexdump - noexec. runner
 hostid - NOFORK
-hostname - DNS resolution may trigger, need ^C
+hostname - needs ^C (may talk to DNS servers, which may be down)
 httpd - daemon
 hush - interactive, longterm
 hwclock - talks to hardware (xioctl(RTC_RD_TIME)) - needs ^C
@@ -222,40 +222,40 @@ mdev - daemon
 mesg
 microcom - interactive, longterm
 mkdir - NOFORK
-mkdosfs
-mke2fs
+mkdosfs - needs ^C
+mke2fs - needs ^C
 mkfifo - noexec
-mkfs.ext2
-mkfs.minix
-mkfs.vfat
+mkfs.ext2 - needs ^C
+mkfs.minix - needs ^C
+mkfs.vfat - needs ^C
 mknod - noexec
-mkpasswd
-mkswap
+mkpasswd - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. Can be noexec.
+mkswap - needs ^C
 mktemp - noexec. leaks: xstrdup+concat_path_file
 modinfo - noexec
 modprobe - noexec
 more - interactive, longterm
 mount - suid
-mountpoint
-mpstat
-mt
+mountpoint - noexec candidate, leaks: option -n "print dev name": find_block_device -> readdir+xstrdup
+mpstat - noexec candidate (it's a measuring tool, putting less load by itself is good), complex
+mt - rare
 mv - runner (can be noexec?)
 nameif
 nbd-client
 nc - runner
 netstat - runner with -c
-nice - spawner
+nice - noexec candidate, spawner
 nl - runner
-nmeter - runner
-nohup - spawner
+nmeter - longterm
+nohup - noexec candidate (maybe free concat_path_file result?), spawner
 nproc - NOFORK
 ntpd - daemon
 od - runner
 openvt - spawner
-partprobe
+partprobe - noexec candidate (simple), leaks: open+ioctl_or_perror_and_die(BLKRRPART)
 passwd - suid
 paste - noexec. runner
-patch
+patch - needs ^C
 pgrep - nofork candidate(xregcomp, procps_scan - are they ok?)
 pidof - nofork candidate(uses find_pid_by_name, is that ok?)
 ping - suid, runner
@@ -263,7 +263,7 @@ ping6 - suid, runner
 pipe_progress
 pivot_root
 pkill - nofork candidate(xregcomp, procps_scan - are they ok?)
-pmap
+pmap - noexec candidate, leaks: open+xstrdup
 popmaildir - runner
 poweroff - rare
 powertop - interactive, longterm
@@ -275,8 +275,8 @@ pstree
 pwd - NOFORK
 pwdx - NOFORK
 raidautorun
-rdate
-rdev
+rdate - needs ^C (may talk to DNS servers, which may be down)
+rdev - leaks: find_block_device -> readdir+xstrdup
 readlink - NOFORK
 readprofile
 realpath - NOFORK
@@ -284,16 +284,16 @@ reboot - rare
 reformime - runner
 remove-shell
 renice - nofork candidate(uses getpwnam, is that ok?)
-reset - spawner (execs "stty")
+reset - noexec candidate, spawner (execs "stty")
 resize - noexec. changes state (signal handlers)
 rev - runner
 rm - noexec. rm -i interactive
 rmdir - NOFORK
 rmmod - noexec
-route
+route - needs ^C (may talk to DNS servers, which may be down)
 rpm - runner
 rpm2cpio - runner
-rtcwake - puts system to sleep, optimizing this for speed is pointless
+rtcwake - longterm: puts system to sleep, optimizing this for speed is pointless
 run-parts
 runlevel - noexec. can be nofork if "endutxent()" is called unconditionally, but too rare to bother?
 runsv - daemon
@@ -321,27 +321,27 @@ showkey - interactive, longterm
 shred - runner
 shuf - noexec. runner
 slattach
-sleep - runner
+sleep - runner, longterm
 smemcap - runner
-softlimit - spawner
+softlimit - noexec candidate, spawner
 sort - noexec. runner
 split - runner
-ssl_client - network
+ssl_client - longterm
 start-stop-daemon
 stat - nofork candidate(needs fewer allocs)
 strings - runner
-stty
+stty - noexec/nofork candidate. has no allocs or opens except xmove_fd(xopen("-F DEVICE"),STDIN). tcsetattr(STDIN) is not a problem: it would work the same across processes sharing this fd
 su - suid, spawner
 sulogin - spawner
 sum - runner
-sv
-svc
+sv - noexec candidate, needs ^C (uses usleep(420000))
+svc - noexec candidate, needs ^C (uses usleep(420000))
 svlogd - daemon
 swapoff - rare
 swapon - rare
 switch_root - spawner, rare, changes state
 sync - NOFORK
-sysctl
+sysctl - noexec candidate, leaks: xstrdup+xmalloc_read
 syslogd - daemon
 tac - noexec. runner
 tail - runner
