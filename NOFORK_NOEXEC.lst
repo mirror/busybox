@@ -51,7 +51,7 @@ basename - NOFORK
 beep
 blkdiscard
 blkid
-blockdev
+blockdev - noexec candidate (rather simple), leaks fd
 bootchartd - daemon
 brctl
 bunzip2 - runner
@@ -69,7 +69,7 @@ chpasswd - runner (list of "user:password"s from stdin)
 chpst - noexec candidate, spawner
 chroot - noexec candidate, spawner
 chrt - noexec candidate, spawner
-chvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
+chvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
 cksum - noexec. runner
 clear - NOFORK
 cmp - runner
@@ -78,14 +78,14 @@ conspy - interactive, longterm
 cp - noexec. runner
 cpio - runner
 crond - daemon
-crontab
-cryptpw - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. Can be noexec.
+crontab 0 leaks: open+xasprintf
+cryptpw - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. noexec candidate.
 cttyhack - noexec candidate, spawner
 cut - noexec. runner
 date - noexec. nofork candidate(needs to stop messing up env, free xasprintf result, not use xfuncs after xasprintf)
 dc - runner (eats stdin if no params)
 dd - noexec. runner
-deallocvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
+deallocvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
 delgroup
 deluser
 depmod - complex, rare
@@ -100,8 +100,8 @@ dnsdomainname - needs ^C (may talk to DNS servers, which may be down)
 dos2unix - noexec. runner
 dpkg - runner
 du - runner
-dumpkmap - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
-dumpleases
+dumpkmap - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
+dumpleases - leaks: open+xread
 echo - NOFORK
 ed - interactive, longterm
 egrep - longterm runner ("CMD | egrep ..."  may run indefinitely, better to exec to conserve memory)
@@ -120,7 +120,7 @@ fbsplash - runner, longterm
 fdflush - leaks: open+ioctl_or_perror_and_die, needs ^C (floppy may be unresponsive), rare
 fdformat - needs ^C (floppy may be unresponsive), longterm, rare
 fdisk - interactive, longterm
-fgconsole - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
+fgconsole - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
 fgrep - longterm runner ("CMD | fgrep ..."  may run indefinitely, better to exec to conserve memory)
 find - noexec. runner
 findfs - suid
@@ -133,7 +133,7 @@ fold - noexec. runner
 free - nofork candidate(struct globals, needs to close /proc/meminfo fd)
 freeramdisk - leaks: open+ioctl_or_perror_and_die
 fsck - interactive, longterm
-fsck.minix
+fsck.minix - needs ^C
 fsfreeze - noexec candidate (it's very simple), leaks: open+xioctl
 fstrim - noexec candidate (it's very simple), leaks: open+xioctl, find_block_device -> readdir+xstrdup
 fsync - NOFORK
@@ -162,8 +162,8 @@ i2cdump
 i2cget
 i2cset
 id - noexec
-ifconfig
-ifenslave
+ifconfig - leaks: xsocket+ioctl_or_perror_and_die
+ifenslave - leaks: xsocket+bb_perror_msg_and_die
 ifplugd - daemon
 inetd - daemon
 init - daemon
@@ -182,7 +182,7 @@ ipneigh - noexec candidate
 iproute - noexec candidate
 iprule - noexec candidate
 iptunnel - noexec candidate
-kbd_mode
+kbd_mode - leaks: xopen_nonblocking+xioctl
 kill - NOFORK
 killall - NOFORK
 killall5 - NOFORK
@@ -194,8 +194,8 @@ linux32 - spawner
 linux64 - spawner
 linuxrc - daemon
 ln - noexec
-loadfont
-loadkmap - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
+loadfont - leaks: config_open+bb_error_msg_and_die("map format")
+loadkmap - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
 logger - runner
 login - suid, interactive, longterm
 logname - NOFORK
@@ -219,7 +219,7 @@ makemime - runner
 man - spawner, interactive, longterm
 md5sum - noexec. runner
 mdev - daemon
-mesg
+mesg - NOFORK
 microcom - interactive, longterm
 mkdir - NOFORK
 mkdosfs - needs ^C
@@ -229,7 +229,7 @@ mkfs.ext2 - needs ^C
 mkfs.minix - needs ^C
 mkfs.vfat - needs ^C
 mknod - noexec
-mkpasswd - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. Can be noexec.
+mkpasswd - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. noexec candidate.
 mkswap - needs ^C
 mktemp - noexec. leaks: xstrdup+concat_path_file
 modinfo - noexec
@@ -239,8 +239,8 @@ mount - suid
 mountpoint - noexec candidate, leaks: option -n "print dev name": find_block_device -> readdir+xstrdup
 mpstat - noexec candidate (it's a measuring tool, putting less load by itself is good), complex
 mt - rare
-mv - runner (can be noexec?)
-nameif
+mv - noexec candidate, runner
+nameif - leaks: config_open2+ioctl_or_perror_and_die
 nbd-client
 nc - runner
 netstat - runner with -c
@@ -260,8 +260,8 @@ pgrep - nofork candidate(xregcomp, procps_scan - are they ok?)
 pidof - nofork candidate(uses find_pid_by_name, is that ok?)
 ping - suid, runner
 ping6 - suid, runner
-pipe_progress
-pivot_root
+pipe_progress - longterm
+pivot_root - nofork candidate? the code is trivial
 pkill - nofork candidate(xregcomp, procps_scan - are they ok?)
 pmap - noexec candidate, leaks: open+xstrdup
 popmaildir - runner
@@ -378,7 +378,7 @@ udhcpc - daemon
 udhcpd - daemon
 udpsvd - daemon
 uevent - daemon
-umount
+umount - noexec candidate, leaks: nested xmalloc
 uname - NOFORK
 uncompress - runner
 unexpand - runner
@@ -398,16 +398,16 @@ vconfig - leaks: xsocket+ioctl_or_perror_and_die
 vi - interactive, longterm
 vlock - suid
 volname - runner
-w
+w - nofork candidate(is getutxent ok?)
 wall - suid
 watch - longterm
 watchdog - daemon
 wc - runner
 wget - longterm
 which - NOFORK
-who
+who - nofork candidate(is getutxent ok?)
 whoami - NOFORK
-whois
+whois - needs ^C
 xargs - noexec. spawner
 xxd - noexec. runner
 xz - runner
