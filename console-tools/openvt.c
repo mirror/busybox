@@ -99,7 +99,7 @@ static int find_free_vtno(void)
 	/*xfunc_error_retval = 3; - do we need compat? */
 	if (ioctl(fd, VT_OPENQRY, &vtno) != 0 || vtno <= 0)
 		bb_perror_msg_and_die("can't find open VT");
-// Not really needed, grep for DAEMON_ONLY_SANITIZE
+// Not really needed, grep for DAEMON_CLOSE_EXTRA_FDS
 //	if (fd > 2)
 //		close(fd);
 	return vtno;
@@ -155,7 +155,7 @@ int openvt_main(int argc UNUSED_PARAM, char **argv)
 	/* Grab new VT */
 	sprintf(vtname, VC_FORMAT, vtno);
 	/* (Try to) clean up stray open fds above fd 2 */
-	bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS | DAEMON_ONLY_SANITIZE, NULL);
+	bb_daemon_helper(DAEMON_CLOSE_EXTRA_FDS);
 	close(STDIN_FILENO);
 	/*setsid(); - BAD IDEA: after we exit, child is SIGHUPed... */
 	xopen(vtname, O_RDWR);

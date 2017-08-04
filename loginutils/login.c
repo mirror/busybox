@@ -350,8 +350,8 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	/* Mandatory paranoia for suid applet:
 	 * ensure that fd# 0,1,2 are opened (at least to /dev/null)
 	 * and any extra open fd's are closed.
-	 * (The name of the function is misleading. Not daemonizing here.) */
-	bb_daemonize_or_rexec(DAEMON_ONLY_SANITIZE | DAEMON_CLOSE_EXTRA_FDS, NULL);
+	 */
+	bb_daemon_helper(DAEMON_CLOSE_EXTRA_FDS);
 
 	username[0] = '\0';
 	opt = getopt32(argv, "f:h:p", &opt_user, &opt_host);

@@ -198,9 +198,8 @@ int lpd_main(int argc UNUSED_PARAM, char *argv[])
 				q = p; // next line
 			}
 			// helper should not talk over network.
-			// this call reopens stdio fds to "/dev/null"
-			// (no daemonization is done)
-			bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO | DAEMON_ONLY_SANITIZE, NULL);
+			// this call reopens stdio fds to "/dev/null".
+			bb_daemon_helper(DAEMON_DEVNULL_STDIO);
 			BB_EXECVP_or_die(argv);
 		}
 

@@ -1169,6 +1169,7 @@ enum {
 #endif
 void bb_daemonize_or_rexec(int flags, char **argv) FAST_FUNC;
 void bb_sanitize_stdio(void) FAST_FUNC;
+#define bb_daemon_helper(arg) bb_daemonize_or_rexec((arg) | DAEMON_ONLY_SANITIZE, NULL)
 /* Clear dangerous stuff, set PATH. Return 1 if was run by different user. */
 int sanitize_env_if_suid(void) FAST_FUNC;
 

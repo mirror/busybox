@@ -516,6 +516,11 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		/* DAEMON_DEVNULL_STDIO is superfluous -
 		 * it's always done by bb_daemonize() */
 #else
+		/* Daemons usually call bb_daemonize_or_rexec(), but SSD can do
+		 * without: SSD is not itself a daemon, it _execs_ a daemon.
+		 * The usual NOMMU problem of "child can't run indefinitely,
+		 * it must exec" does not bite us: we exec anyway.
+		 */
 		pid_t pid = xvfork();
 		if (pid != 0) {
 			/* parent */
@@ -525,12 +530,8 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		}
 		/* Child */
 		setsid(); /* detach from controlling tty */
-		/* Redirect stdio to /dev/null, close extra FDs.
-		 * We do not actually daemonize because of DAEMON_ONLY_SANITIZE */
-		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO
-			+ DAEMON_CLOSE_EXTRA_FDS
-			+ DAEMON_ONLY_SANITIZE,
-			NULL /* argv, unused */ );
+		/* Redirect stdio to /dev/null, close extra FDs */
+		bb_daemon_helper(DAEMON_DEVNULL_STDIO + DAEMON_CLOSE_EXTRA_FDS);
 #endif
 	}
 	if (opt & OPT_MAKEPID) {

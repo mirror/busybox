@@ -209,6 +209,9 @@ pid_t FAST_FUNC fork_or_rexec(char **argv)
 	/* Maybe we are already re-execed and come here again? */
 	if (re_execed)
 		return 0;
+
+	/* fflush_all(); ? - so far all callers had no buffered output to flush */
+
 	pid = xvfork();
 	if (pid) /* parent */
 		return pid;
@@ -245,8 +248,11 @@ void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 		fd = dup(fd); /* have 0,1,2 open at least to /dev/null */
 
 	if (!(flags & DAEMON_ONLY_SANITIZE)) {
+
+		/* fflush_all(); - add it in fork_or_rexec() if necessary */
+
 		if (fork_or_rexec(argv))
-			exit(EXIT_SUCCESS); /* parent */
+			_exit(EXIT_SUCCESS); /* parent */
 		/* if daemonizing, detach from stdio & ctty */
 		setsid();
 		dup2(fd, 0);
@@ -258,7 +264,7 @@ void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 			 * Prevent this: stop being a session leader.
 			 */
 			if (fork_or_rexec(argv))
-				exit(EXIT_SUCCESS); /* parent */
+				_exit(EXIT_SUCCESS); /* parent */
 		}
 	}
 	while (fd > 2) {
