@@ -334,8 +334,8 @@ stty - noexec. nofork candidate: has no allocs or opens except xmove_fd(xopen("-
 su - suid, spawner
 sulogin - noexec. spawner
 sum - runner
-sv - noexec candidate, needs ^C (uses usleep(420000))
-svc - noexec candidate, needs ^C (uses usleep(420000))
+sv - noexec. needs ^C (uses usleep(420000))
+svc - noexec. needs ^C (uses usleep(420000))
 svlogd - daemon
 swapoff - rare
 swapon - rare
