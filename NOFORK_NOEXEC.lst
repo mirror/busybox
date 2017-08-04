@@ -2,26 +2,28 @@ Why an applet can't be NOFORK or NOEXEC?
 
 Why can't be NOFORK:
 interactive: may wait for user input, ^C has to work
-spawner: "tool PROG ARGS" which changes program's environment - must fork
+spawner: "tool PROG ARGS" which changes program state and execs - must fork
 changes state: e.g. environment, signal handlers
 alloc+xfunc: xmalloc, then xfunc - leaks memory if xfunc dies
 open+xfunc: opens fd, then calls xfunc - fd is leaked if xfunc dies
+leaks: does not free allocated memory or opened fds
 runner: sometimes may run for long(ish) time, and/or works with network:
 	^C has to work (cat BIGFILE, chmod -R, ftpget, nc)
 
-"runners" can become eligible after shell is taught ^C to interrupt NOFORKs!
+"runners" can become eligible after shell is taught ^C to interrupt NOFORKs,
+need to be inspected that they do not fall into alloc+xfunc, open+xfunc
+categories.
 
 Why can't be NOEXEC:
 suid: runs under different uid - must fork+exec
 
 Why shouldn't be NOFORK/NOEXEC:
-complex: no immediately obvious reason why NOFORK wouldn't work,
-	but does some non-obvoius operations (example: fuser, lsof, losetup);
-	nested xmallocs (typical in complex code) is a problem for NOFORK
-rare: not used often enough to bother optimizing (example: poweroff)
+rare: not started often enough to bother optimizing (example: poweroff)
+daemon: runs indefinitely; these are also always fit "rare" category
 longterm: often runs for a long time (many seconds), execing would make
 	memory footprint smaller
-daemon: runs indefinitely
+complex: no immediately obvious reason why NOFORK wouldn't work,
+	but does some non-obvoius operations (example: fuser, lsof, losetup)
 
 [ - NOFORK
 [[ - NOFORK
@@ -59,7 +61,7 @@ chpasswd - runner (list of "user:password"s from stdin)
 chpst - spawner
 chroot - spawner
 chrt - spawner
-chvt
+chvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. Can be noexec.
 cksum - noexec. runner
 clear - NOFORK
 cmp - runner
@@ -69,7 +71,7 @@ cp - noexec. runner
 cpio - runner
 crond - daemon
 crontab
-cryptpw
+cryptpw - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. Can be noexec.
 cttyhack - spawner
 cut - noexec. runner
 date - noexec. nofork candidate(needs to stop messing up env, free xasprintf result, not use xfuncs after xasprintf)
