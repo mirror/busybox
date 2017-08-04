@@ -25,7 +25,7 @@
 //config:	help
 //config:	stty is used to change and print terminal line settings.
 
-//applet:IF_STTY(APPLET(stty, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_STTY(APPLET_NOEXEC(stty, stty, BB_DIR_BIN, BB_SUID_DROP, stty))
 
 //kbuild:lib-$(CONFIG_STTY) += stty.o
 
