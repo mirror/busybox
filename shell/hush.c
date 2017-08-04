@@ -1979,6 +1979,9 @@ static int check_and_run_traps(void)
 			break;
 #if ENABLE_HUSH_JOB
 		case SIGHUP: {
+//TODO: why are we doing this? ash and dash don't do this,
+//they have no handler for SIGHUP at all,
+//they rely on kernel to send SIGHUP+SIGCONT to orphaned process groups
 			struct pipe *job;
 			debug_printf_exec("%s: sig:%d default SIGHUP handler\n", __func__, sig);
 			/* bash is observed to signal whole process groups,
@@ -8646,6 +8649,10 @@ static void install_sighandlers(unsigned mask)
 		 */
 		if (sig == SIGCHLD)
 			continue;
+		/* bash re-enables SIGHUP which is SIG_IGNed on entry.
+		 * Try: "trap '' HUP; bash; echo RET" and type "kill -HUP $$"
+		 */
+		//if (sig == SIGHUP) continue; - TODO?
 		if (old_handler == SIG_IGN) {
 			/* oops... restore back to IGN, and record this fact */
 			install_sighandler(sig, old_handler);

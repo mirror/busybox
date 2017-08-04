@@ -64,15 +64,27 @@ This poses much more serious limitations on what applet can do:
 * do not use shared global data, or save/restore shared global data
   (e.g. bb_common_bufsiz1) prior to returning.
   - getopt32() is ok to use. You do not need to save/restore option_mask32,
-    it is already done by core code.
+    xfunc_error_retval, and logmode - it is already done by core code.
 * if you allocate memory, you can use xmalloc() only on the very first
   allocation. All other allocations should use malloc[_or_warn]().
   After first allocation, you cannot use any xfuncs.
   Otherwise, failing xfunc will return to caller applet
   without freeing malloced data!
-* All allocated data, opened files, signal handlers, termios settings,
-  O_NONBLOCK flags etc should be freed/closed/restored prior to return.
-* ...
+* the same applies to other resources, such as open fds: no xfuncs after
+  acquiring them!
+* All allocated data, opened files, signal handlers, termios settings
+  etc should be freed/closed/restored prior to return.
+
+Currently, ash shell signal handling is implemented in a way that signals
+have non-SA_RESTARTed handlers. This means that system calls can
+return EINTR. An example of such problem is "yes" applet:
+it is implemented so that it has a writing loop, this loop is exited on
+any write error, and in the case of user pressing ^C the error was EINTR.
+The problem is, the error causes stdout FILE* object to get into error
+state, needing clearerr() - or else subsequent shell output will also
+not work. ("yes" has been downgraded to NOEXEC, since hush signal handling
+does not have this problem - which makes "yes" to not exit on ^C (bug).
+But stray EINTRs can be seen in any NOFORK under ash, until ash is fixed).
 
 NOFORK applets give the most of speed advantage, but are trickiest
 to implement. In order to minimize amount of bugs and maintenance,
@@ -81,6 +93,8 @@ are small and easy to audit, and those which are more likely to be
 frequently executed from shell/find/xargs, particularly in shell
 script loops. Applets which mess with signal handlers, termios etc
 are probably not worth the effort.
+
+Applets which must be interruptible by ^C in shells can not be NOFORKs.
 
 Any NOFORK applet is also a NOEXEC applet.
 
@@ -94,7 +108,7 @@ API to call NOFORK applets is two functions:
 
 First one is directly used by shells if FEATURE_SH_NOFORK=y.
 Second one is used by many applets, but main users are xargs and find.
-It itself calls run_nofork_applet(), if argv[0] turned out to be a name
+It itself calls run_nofork_applet(), if argv[0] is a name
 of a NOFORK applet.
 
 run_nofork_applet() saves/inits/restores option parsing, xfunc_error_retval,

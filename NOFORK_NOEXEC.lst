@@ -4,10 +4,12 @@ Why can't be NOFORK:
 interactive: may wait for user input, ^C has to work
 spawner: "tool PROG ARGS" which changes program's environment - must fork
 changes state: e.g. environment, signal handlers
+alloc+xfunc: xmalloc, then xfunc - leaks memory if xfunc dies
+open+xfunc: opens fd, then calls xfunc - fd is leaked if xfunc dies
 runner: sometimes may run for long(ish) time, and/or works with network:
 	^C has to work (cat BIGFILE, chmod -R, ftpget, nc)
 
-"runners" can become eligible after hush is taught ^C to interrupt NOFORKs!
+"runners" can become eligible after shell is taught ^C to interrupt NOFORKs!
 
 Why can't be NOEXEC:
 suid: runs under different uid - must fork+exec

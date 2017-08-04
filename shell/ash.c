@@ -3536,9 +3536,12 @@ setsignal(int signo)
 #endif
 		}
 	}
-//TODO: if !rootshell, we reset SIGQUIT to DFL,
-//whereas we have to restore it to what shell got on entry
-//from the parent. See comment above
+	/* if !rootshell, we reset SIGQUIT to DFL,
+	 * whereas we have to restore it to what shell got on entry.
+	 * This is handled by the fact that if signal was IGNored on entry,
+	 * then cur_act is S_HARD_IGN and we never change its sigaction
+	 * (see code below).
+	 */
 
 	if (signo == SIGCHLD)
 		new_act = S_CATCH;
@@ -3566,6 +3569,8 @@ setsignal(int signo)
 	if (cur_act == S_HARD_IGN || cur_act == new_act)
 		return;
 
+	*t = new_act;
+
 	act.sa_handler = SIG_DFL;
 	switch (new_act) {
 	case S_CATCH:
@@ -3575,16 +3580,13 @@ setsignal(int signo)
 		act.sa_handler = SIG_IGN;
 		break;
 	}
-
 	/* flags and mask matter only if !DFL and !IGN, but we do it
 	 * for all cases for more deterministic behavior:
 	 */
-	act.sa_flags = 0;
+	act.sa_flags = 0; //TODO: why not SA_RESTART?
 	sigfillset(&act.sa_mask);
 
 	sigaction_set(signo, &act);
-
-	*t = new_act;
 }
 
 /* mode flags for set_curjob */
@@ -13429,7 +13431,9 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	INT_ON;
 
 	if ((uintptr_t)r == 1 && errno == EINTR) {
-		/* to get SIGCHLD: sleep 1 & read x; echo $x */
+		/* To get SIGCHLD: sleep 1 & read x; echo $x
+		 * Correct behavior is to not exit "read"
+		 */
 		if (pending_sig == 0)
 			goto again;
 	}
@@ -13544,13 +13548,14 @@ exitshell(void)
 	/* NOTREACHED */
 }
 
-static void
+/* Don't inline: conserve stack of caller from having our locals too */
+static NOINLINE void
 init(void)
 {
 	/* we will never free this */
 	basepf.next_to_pgetc = basepf.buf = ckmalloc(IBUFSIZ);
 
-	sigmode[SIGCHLD - 1] = S_DFL;
+	sigmode[SIGCHLD - 1] = S_DFL; /* ensure we install handler even if it is SIG_IGNed */
 	setsignal(SIGCHLD);
 
 	/* bash re-enables SIGHUP which is SIG_IGNed on entry.
@@ -13561,7 +13566,6 @@ init(void)
 	{
 		char **envp;
 		const char *p;
-		struct stat st1, st2;
 
 		initvar();
 		for (envp = environ; envp && *envp; envp++) {
@@ -13587,6 +13591,7 @@ init(void)
 #endif
 		p = lookupvar("PWD");
 		if (p) {
+			struct stat st1, st2;
 			if (p[0] != '/' || stat(p, &st1) || stat(".", &st2)
 			 || st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino
 			) {
