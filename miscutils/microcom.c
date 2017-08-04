@@ -74,6 +74,7 @@ int microcom_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opts;
 
 	// fetch options
+	opt_complementary = "=1";
 	opts = getopt32(argv, "Xs:+d:+t:+", &speed, &delay, &timeout);
 //	argc -= optind;
 	argv += optind;
