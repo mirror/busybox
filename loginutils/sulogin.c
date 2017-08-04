@@ -12,7 +12,7 @@
 //config:	sulogin is invoked when the system goes into single user
 //config:	mode (this is done through an entry in inittab).
 
-//applet:IF_SULOGIN(APPLET(sulogin, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_SULOGIN(APPLET_NOEXEC(sulogin, sulogin, BB_DIR_SBIN, BB_SUID_DROP, sulogin))
 
 //kbuild:lib-$(CONFIG_SULOGIN) += sulogin.o
 
@@ -34,7 +34,7 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Note: sulogin is not a suid app. It is meant to be run by init
 	 * for single user / emergency mode. init starts it as root.
-	 * Normal users (potentially malisious ones) can only run it under
+	 * Normal users (potentially malicious ones) can only run it under
 	 * their UID, therefore no paranoia here is warranted:
 	 * $LD_LIBRARY_PATH in env, TTY = /dev/sda
 	 * are no more dangerous here than in e.g. cp applet.

@@ -12,7 +12,7 @@
 //config:	help
 //config:	nice runs a program with modified scheduling priority.
 
-//applet:IF_NICE(APPLET(nice, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_NICE(APPLET_NOEXEC(nice, nice, BB_DIR_BIN, BB_SUID_DROP, nice))
 
 //kbuild:lib-$(CONFIG_NICE) += nice.o
 

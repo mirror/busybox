@@ -20,7 +20,7 @@ suid: runs under different uid - must fork+exec
 Why shouldn't be NOFORK/NOEXEC:
 rare: not started often enough to bother optimizing (example: poweroff)
 daemon: runs indefinitely; these are also always fit "rare" category
-longterm: often runs for a long time (many seconds), execing would make
+longterm: often runs for a long time (many seconds), execing makes
 	memory footprint smaller
 complex: no immediately obvious reason why NOFORK wouldn't work,
 	but does some non-obvoius operations (example: fuser, lsof, losetup);
@@ -66,9 +66,9 @@ chgrp - noexec. runner
 chmod - noexec. runner
 chown - noexec. runner
 chpasswd - runner (list of "user:password"s from stdin)
-chpst - noexec candidate, spawner
-chroot - noexec candidate, spawner
-chrt - noexec candidate, spawner
+chpst - noexec. spawner
+chroot - noexec. spawner
+chrt - noexec. spawner
 chvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
 cksum - noexec. runner
 clear - NOFORK
@@ -80,7 +80,7 @@ cpio - runner
 crond - daemon
 crontab 0 leaks: open+xasprintf
 cryptpw - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. noexec candidate.
-cttyhack - noexec candidate, spawner
+cttyhack - noexec. spawner
 cut - noexec. runner
 date - noexec. nofork candidate(needs to stop messing up env, free xasprintf result, not use xfuncs after xasprintf)
 dc - runner (eats stdin if no params)
@@ -107,8 +107,8 @@ ed - interactive, longterm
 egrep - longterm runner ("CMD | egrep ..."  may run indefinitely, better to exec to conserve memory)
 eject - leaks: open+ioctl_or_perror_and_die, changes state (moves fds)
 env - noexec. spawner, changes state (env)
-envdir - noexec candidate, spawner
-envuidgid - noexec candidate, spawner
+envdir - noexec. spawner
+envuidgid - noexec. spawner
 expand - runner
 expr - leaks: nested allocs
 factor - runner (eats stdin if no params)
@@ -128,7 +128,7 @@ flash_eraseall
 flash_lock
 flash_unlock
 flashcp
-flock - spawner, changes state (file locks)
+flock - spawner, changes state (file locks), let's play safe and not be noexec
 fold - noexec. runner
 free - nofork candidate(struct globals, needs to close /proc/meminfo fd)
 freeramdisk - leaks: open+ioctl_or_perror_and_die
@@ -170,7 +170,7 @@ init - daemon
 inotifyd - daemon
 insmod - noexec
 install - runner
-ionice - spawner
+ionice - noexec. spawner
 iostat - runner
 ip - noexec candidate
 ipaddr - noexec candidate
@@ -190,8 +190,8 @@ klogd - daemon
 last - runner (I've got 1300 lines of output when tried it)
 less - interactive, longterm
 link - NOFORK
-linux32 - spawner
-linux64 - spawner
+linux32 - noexec. spawner
+linux64 - noexec. spawner
 linuxrc - daemon
 ln - noexec
 loadfont - leaks: config_open+bb_error_msg_and_die("map format")
@@ -247,11 +247,11 @@ netstat - runner with -c
 nice - noexec candidate, spawner
 nl - runner
 nmeter - longterm
-nohup - noexec candidate (maybe free concat_path_file result?), spawner
+nohup - noexec. spawner
 nproc - NOFORK
 ntpd - daemon
 od - runner
-openvt - spawner
+openvt - longterm: spawns a child and waits for it
 partprobe - noexec candidate (simple), leaks: open+ioctl_or_perror_and_die(BLKRRPART)
 passwd - suid
 paste - noexec. runner
@@ -304,15 +304,15 @@ scriptreplay
 sed - runner
 sendmail - runner
 seq - noexec. runner
-setarch - spawner
+setarch - noexec. spawner
 setconsole
 setfont
 setkeycodes
 setlogcons
-setpriv - spawner
+setpriv - spawner, changes state, let's play safe and not be noexec
 setserial
-setsid - spawner
-setuidgid
+setsid - spawner, uses fork_or_rexec() [not audted to work in noexec], let's play safe and not be noexec
+setuidgid - noexec. spawner
 sha1sum - noexec. runner
 sha256sum - noexec. runner
 sha3sum - noexec. runner
@@ -323,7 +323,7 @@ shuf - noexec. runner
 slattach
 sleep - runner, longterm
 smemcap - runner
-softlimit - noexec candidate, spawner
+softlimit - noexec. spawner
 sort - noexec. runner
 split - runner
 ssl_client - longterm
@@ -332,21 +332,21 @@ stat - nofork candidate(needs fewer allocs)
 strings - runner
 stty - noexec/nofork candidate. has no allocs or opens except xmove_fd(xopen("-F DEVICE"),STDIN). tcsetattr(STDIN) is not a problem: it would work the same across processes sharing this fd
 su - suid, spawner
-sulogin - spawner
+sulogin - noexec. spawner
 sum - runner
 sv - noexec candidate, needs ^C (uses usleep(420000))
 svc - noexec candidate, needs ^C (uses usleep(420000))
 svlogd - daemon
 swapoff - rare
 swapon - rare
-switch_root - spawner, rare, changes state
+switch_root - spawner, rare, changes state (oh yes), execing may be important to free binary's inode
 sync - NOFORK
 sysctl - noexec candidate, leaks: xstrdup+xmalloc_read
 syslogd - daemon
 tac - noexec. runner
 tail - runner
 tar - runner
-taskset - spawner
+taskset - noexec. spawner
 tcpsvd - daemon
 tee - runner
 telnet - interactive, longterm
@@ -354,8 +354,8 @@ telnetd - daemon
 test - NOFORK
 tftp - runner
 tftpd - daemon
-time - spawner, changes state (signals)
-timeout - spawner, changes state (signals)
+time - spawner, longterm, changes state (signals)
+timeout - spawner, longterm, changes state (signals)
 top - interactive, longterm
 touch - NOFORK
 tr - runner

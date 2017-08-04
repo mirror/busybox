@@ -22,7 +22,7 @@
 //config:	affinity parameter 0xHHHHHHHHHHHHHHHHHHHH can be arbitrarily long
 //config:	in this case. Otherwise, it is limited to sizeof(long).
 
-//applet:IF_TASKSET(APPLET(taskset, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_TASKSET(APPLET_NOEXEC(taskset, taskset, BB_DIR_USR_BIN, BB_SUID_DROP, taskset))
 //kbuild:lib-$(CONFIG_TASKSET) += taskset.o
 
 //usage:#define taskset_trivial_usage
