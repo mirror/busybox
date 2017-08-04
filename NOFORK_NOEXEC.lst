@@ -231,7 +231,7 @@ mkfs.vfat
 mknod - noexec
 mkpasswd
 mkswap
-mktemp - leaks: xstrdup+concat_path_file
+mktemp - noexec. leaks: xstrdup+concat_path_file
 modinfo - noexec
 modprobe - noexec
 more - interactive, longterm

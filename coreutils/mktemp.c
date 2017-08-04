@@ -36,7 +36,7 @@
 //config:	help
 //config:	mktemp is used to create unique temporary files
 
-//applet:IF_MKTEMP(APPLET(mktemp, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_MKTEMP(APPLET_NOEXEC(mktemp, mktemp, BB_DIR_BIN, BB_SUID_DROP, mktemp))
 
 //kbuild:lib-$(CONFIG_MKTEMP) += mktemp.o
 
