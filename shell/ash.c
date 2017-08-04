@@ -188,6 +188,7 @@
 #define    BASH_PIPEFAIL        ENABLE_ASH_BASH_COMPAT
 #define    BASH_HOSTNAME_VAR    ENABLE_ASH_BASH_COMPAT
 #define    BASH_SHLVL_VAR       ENABLE_ASH_BASH_COMPAT
+#define    BASH_XTRACEFD        ENABLE_ASH_BASH_COMPAT
 
 #if defined(__ANDROID_API__) && __ANDROID_API__ <= 24
 /* Bionic at least up to version 24 has no glob() */
@@ -9792,6 +9793,15 @@ evalcommand(union node *cmd, int flags)
 	expredir(cmd->ncmd.redirect);
 	redir_stop = pushredir(cmd->ncmd.redirect);
 	preverrout_fd = 2;
+	if (BASH_XTRACEFD && xflag) {
+		/* NB: bash closes fd == $BASH_XTRACEFD when it is changed.
+		 * we do not emulate this. We only use its value.
+		 */
+		const char *xtracefd = lookupvar("BASH_XTRACEFD");
+		if (xtracefd && is_number(xtracefd))
+			preverrout_fd = atoi(xtracefd);
+
+	}
 	status = redirectsafe(cmd->ncmd.redirect, REDIR_PUSH | REDIR_SAVEFD2);
 
 	path = vpath.var_text;
