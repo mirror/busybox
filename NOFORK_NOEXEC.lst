@@ -261,7 +261,7 @@ pidof - nofork candidate(uses find_pid_by_name, is that ok?)
 ping - suid, runner
 ping6 - suid, runner
 pipe_progress - longterm
-pivot_root - nofork candidate? the code is trivial
+pivot_root - NOFORK
 pkill - nofork candidate(xregcomp, procps_scan - are they ok?)
 pmap - noexec candidate, leaks: open+xstrdup
 popmaildir - runner
