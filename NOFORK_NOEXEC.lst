@@ -252,7 +252,7 @@ nproc - NOFORK
 ntpd - daemon
 od - runner
 openvt - longterm: spawns a child and waits for it
-partprobe - noexec candidate (simple), leaks: open+ioctl_or_perror_and_die(BLKRRPART)
+partprobe - noexec. leaks: open+ioctl_or_perror_and_die(BLKRRPART)
 passwd - suid
 paste - noexec. runner
 patch - needs ^C

@@ -11,7 +11,7 @@
 //config:	help
 //config:	Ask kernel to rescan partition table.
 
-//applet:IF_PARTPROBE(APPLET(partprobe, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_PARTPROBE(APPLET_NOEXEC(partprobe, partprobe, BB_DIR_USR_SBIN, BB_SUID_DROP, partprobe))
 
 //kbuild:lib-$(CONFIG_PARTPROBE) += partprobe.o
 
