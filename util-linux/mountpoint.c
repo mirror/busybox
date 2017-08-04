@@ -14,7 +14,7 @@
 //config:	help
 //config:	mountpoint checks if the directory is a mountpoint.
 
-//applet:IF_MOUNTPOINT(APPLET(mountpoint, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_MOUNTPOINT(APPLET_NOEXEC(mountpoint, mountpoint, BB_DIR_BIN, BB_SUID_DROP, mountpoint))
 
 //kbuild:lib-$(CONFIG_MOUNTPOINT) += mountpoint.o
 

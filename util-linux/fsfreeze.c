@@ -13,7 +13,7 @@
 //config:	help
 //config:	Halt new accesses and flush writes on a mounted filesystem.
 
-//applet:IF_FSFREEZE(APPLET(fsfreeze, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_FSFREEZE(APPLET_NOEXEC(fsfreeze, fsfreeze, BB_DIR_USR_SBIN, BB_SUID_DROP, fsfreeze))
 
 //kbuild:lib-$(CONFIG_FSFREEZE) += fsfreeze.o
 

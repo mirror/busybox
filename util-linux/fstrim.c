@@ -15,7 +15,7 @@
 //config:	help
 //config:	Discard unused blocks on a mounted filesystem.
 
-//applet:IF_FSTRIM(APPLET(fstrim, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_FSTRIM(APPLET_NOEXEC(fstrim, fstrim, BB_DIR_SBIN, BB_SUID_DROP, fstrim))
 
 //kbuild:lib-$(CONFIG_FSTRIM) += fstrim.o
 

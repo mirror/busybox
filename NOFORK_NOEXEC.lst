@@ -51,7 +51,7 @@ basename - NOFORK
 beep
 blkdiscard
 blkid
-blockdev - noexec candidate (rather simple), leaks fd
+blockdev - noexec. leaks fd
 bootchartd - daemon
 brctl
 bunzip2 - runner
@@ -134,8 +134,8 @@ free - nofork candidate(struct globals, needs to close /proc/meminfo fd)
 freeramdisk - leaks: open+ioctl_or_perror_and_die
 fsck - interactive, longterm
 fsck.minix - needs ^C
-fsfreeze - noexec candidate (it's very simple), leaks: open+xioctl
-fstrim - noexec candidate (it's very simple), leaks: open+xioctl, find_block_device -> readdir+xstrdup
+fsfreeze - noexec. leaks: open+xioctl
+fstrim - noexec. leaks: open+xioctl, find_block_device -> readdir+xstrdup
 fsync - NOFORK
 ftpd - daemon
 ftpget - runner
@@ -236,7 +236,7 @@ modinfo - noexec
 modprobe - noexec
 more - interactive, longterm
 mount - suid
-mountpoint - noexec candidate, leaks: option -n "print dev name": find_block_device -> readdir+xstrdup
+mountpoint - noexec. leaks: option -n "print dev name": find_block_device -> readdir+xstrdup
 mpstat - noexec candidate (it's a measuring tool, putting less load by itself is good), complex
 mt - rare
 mv - noexec candidate, runner
