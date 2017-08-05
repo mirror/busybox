@@ -378,7 +378,7 @@ udhcpc - daemon
 udhcpd - daemon
 udpsvd - daemon
 uevent - daemon
-umount - noexec candidate, leaks: nested xmalloc
+umount - noexec. leaks: nested xmalloc
 uname - NOFORK
 uncompress - runner
 unexpand - runner

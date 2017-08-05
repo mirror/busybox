@@ -24,7 +24,18 @@
 //config:	help
 //config:	Support -a option to unmount all currently mounted filesystems.
 
-//applet:IF_UMOUNT(APPLET(umount, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_UMOUNT(APPLET_NOEXEC(umount, umount, BB_DIR_BIN, BB_SUID_DROP, umount))
+/*
+ * On one hand, in some weird situations you'd want umount
+ * to not do anything surprising, to behave as a usual fork+execed executable.
+ *
+ * OTOH, there can be situations where execing would not succeed, or even hang
+ * (say, if executable is on a filesystem which is in trouble and accesses to it
+ * block in kernel).
+ * In this case, you might be actually happy if your standalone bbox shell
+ * does not fork+exec, but only forks and calls umount_main() which it already has!
+ * Let's go with NOEXEC.
+ */
 
 //kbuild:lib-$(CONFIG_UMOUNT) += umount.o
 
