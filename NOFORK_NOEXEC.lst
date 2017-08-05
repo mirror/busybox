@@ -79,7 +79,7 @@ cp - noexec. runner
 cpio - runner
 crond - daemon
 crontab 0 leaks: open+xasprintf
-cryptpw - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. noexec candidate.
+cryptpw - noexec. changes state: with --password-fd=N, moves N to stdin
 cttyhack - noexec. spawner
 cut - noexec. runner
 date - noexec. nofork candidate(needs to stop messing up env, free xasprintf result, not use xfuncs after xasprintf)
@@ -229,7 +229,7 @@ mkfs.ext2 - needs ^C
 mkfs.minix - needs ^C
 mkfs.vfat - needs ^C
 mknod - noexec
-mkpasswd - changes state: with --password-fd=N, moves N to stdin. Also, "rare" category. noexec candidate.
+mkpasswd - noexec. changes state: with --password-fd=N, moves N to stdin
 mkswap - needs ^C
 mktemp - noexec. leaks: xstrdup+concat_path_file
 modinfo - noexec
