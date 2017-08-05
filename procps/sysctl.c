@@ -21,17 +21,17 @@
 //kbuild:lib-$(CONFIG_BB_SYSCTL) += sysctl.o
 
 //usage:#define sysctl_trivial_usage
-//usage:       "[OPTIONS] [KEY[=VALUE]]..."
+//usage:       "-p [-enq] [FILE...] / [-enqaw] [KEY[=VALUE]]..."
 //usage:#define sysctl_full_usage "\n\n"
 //usage:       "Show/set kernel parameters\n"
+//usage:     "\n	-p	Set values from FILEs (default /etc/sysctl.conf)"
 //usage:     "\n	-e	Don't warn about unknown keys"
 //usage:     "\n	-n	Don't show key names"
+//usage:     "\n	-q      Quiet"
 //usage:     "\n	-a	Show all values"
 /* Same as -a, no need to show it */
 /* //usage:     "\n	-A	Show all values in table form" */
 //usage:     "\n	-w	Set values"
-//usage:     "\n	-p FILE	Set values from FILE (default /etc/sysctl.conf)"
-//usage:     "\n	-q      Set values silently"
 //usage:
 //usage:#define sysctl_example_usage
 //usage:       "sysctl [-n] [-e] variable...\n"
@@ -48,7 +48,7 @@ enum {
 	FLAG_TABLE_FORMAT    = 1 << 2, /* not implemented */
 	FLAG_SHOW_ALL        = 1 << 3,
 	FLAG_PRELOAD_FILE    = 1 << 4,
-/* TODO: procps 3.2.8 seems to not require -w for KEY=VAL to work: */
+	/* NB: procps 3.2.8 does not require -w for KEY=VAL to work, it only rejects non-KEY=VAL form */
 	FLAG_WRITE           = 1 << 5,
 	FLAG_QUIET           = 1 << 6,
 };
@@ -104,6 +104,7 @@ static int sysctl_act_on_setting(char *setting)
 	int fd, retval = EXIT_SUCCESS;
 	char *cptr, *outname;
 	char *value = value; /* for compiler */
+	bool writing = (option_mask32 & FLAG_WRITE);
 
 	outname = xstrdup(setting);
 
@@ -114,8 +115,10 @@ static int sysctl_act_on_setting(char *setting)
 		cptr++;
 	}
 
-	if (option_mask32 & FLAG_WRITE) {
-		cptr = strchr(setting, '=');
+	cptr = strchr(setting, '=');
+	if (cptr)
+		writing = 1;
+	if (writing) {
 		if (cptr == NULL) {
 			bb_error_msg("error: '%s' must be of the form name=value",
 				outname);
@@ -147,7 +150,7 @@ static int sysctl_act_on_setting(char *setting)
 			break;
 		default:
 			bb_perror_msg("error %sing key '%s'",
-					option_mask32 & FLAG_WRITE ?
+					writing ?
 						"sett" : "read",
 					outname);
 			break;
@@ -156,7 +159,7 @@ static int sysctl_act_on_setting(char *setting)
 		goto end;
 	}
 
-	if (option_mask32 & FLAG_WRITE) {
+	if (writing) {
 //TODO: procps 3.2.7 writes "value\n", note trailing "\n"
 		xwrite_str(fd, value);
 		close(fd);
@@ -238,22 +241,27 @@ static int sysctl_handle_preload_file(const char *filename)
 {
 	char *token[2];
 	parser_t *parser;
+	int parse_flags;
 
 	parser = config_open(filename);
 	/* Must do it _after_ config_open(): */
 	xchdir("/proc/sys");
-	/* xchroot("/proc/sys") - if you are paranoid */
 
 //TODO: ';' is comment char too
-//TODO: comment may be only at line start. "var=1 #abc" - "1 #abc" is the value
-// (but _whitespace_ from ends should be trimmed first (and we do it right))
-//TODO: "var==1" is mishandled (must use "=1" as a value, but uses "1")
-// can it be fixed by removing PARSE_COLLAPSE bit?
-	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) {
+//TODO: <space><tab><space>#comment is also comment, not strictly 1st char only
+	parse_flags = 0;
+	parse_flags &= ~PARSE_COLLAPSE;   // NO (var==val is not var=val) - treat consecutive delimiters as one
+	parse_flags &= ~PARSE_TRIM;       // NO - trim leading and trailing delimiters
+	parse_flags |= PARSE_GREEDY;      // YES - last token takes entire remainder of the line
+	parse_flags &= ~PARSE_MIN_DIE;    // NO - die if < min tokens found
+	parse_flags &= ~PARSE_EOL_COMMENTS; // NO (only first char) - comments are recognized even if not first char
+	while (config_read(parser, token, 2, 2, "#=", parse_flags)) {
 		char *tp;
+		trim(token[0]);
+		trim(token[1]);
 		sysctl_dots_to_slashes(token[0]);
 		tp = xasprintf("%s=%s", token[0], token[1]);
-		sysctl_act_recursive(tp);
+		sysctl_act_on_setting(tp);
 		free(tp);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
@@ -273,12 +281,19 @@ int sysctl_main(int argc UNUSED_PARAM, char **argv)
 	option_mask32 = opt;
 
 	if (opt & FLAG_PRELOAD_FILE) {
+		int cur_dir_fd;
 		option_mask32 |= FLAG_WRITE;
-		/* xchdir("/proc/sys") is inside */
-		return sysctl_handle_preload_file(*argv ? *argv : "/etc/sysctl.conf");
+		if (!*argv)
+			*--argv = (char*)"/etc/sysctl.conf";
+		cur_dir_fd = xopen(".", O_RDONLY | O_DIRECTORY);
+		do {
+			/* xchdir("/proc/sys") is inside */
+			sysctl_handle_preload_file(*argv);
+			xfchdir(cur_dir_fd); /* files can be relative, must restore cwd */
+		} while (*++argv);
+		return 0; /* procps-ng 3.3.10 does not flag parse errors */
 	}
 	xchdir("/proc/sys");
-	/* xchroot("/proc/sys") - if you are paranoid */
 	if (opt & (FLAG_TABLE_FORMAT | FLAG_SHOW_ALL)) {
 		return sysctl_act_recursive(".");
 	}

@@ -5,13 +5,13 @@
 
 . ./testing.sh
 
-COLLAPSE=$(( 0x00010000))
-TRIM=$((     0x00020000))
-GREEDY=$((   0x00040000))
-MIN_DIE=$((  0x00100000))
-KEEP_COPY=$((0x00200000))
-ESCAPE=$((   0x00400000))
-NORMAL=$((   COLLAPSE | TRIM | GREEDY))
+COLLAPSE=$((    0x00010000))
+TRIM=$((        0x00020000))
+GREEDY=$((      0x00040000))
+MIN_DIE=$((     0x00100000))
+KEEP_COPY=$((   0x00200000))
+EOL_COMMENTS=$((0x00400000))
+NORMAL=$((   COLLAPSE | TRIM | GREEDY | EOL_COMMENTS))
 
 # testing "description" "command" "result" "infile" "stdin"
 
@@ -26,6 +26,34 @@ testing "parse notrim" \
 	"[][sda][0:0][644 @echo @echo TEST ]\n" \
 	"-" \
 	" sda 0:0 644 @echo @echo TEST \n"
+
+testing "parse comments" \
+	"parse -n 4 -m 3 -f $((NORMAL - EOL_COMMENTS)) -" \
+	"[sda][0:0][644][@echo @echo TEST #this is not eaten]\n" \
+	"-" \
+	"\
+# sda 0:0 644 @echo @echo TEST - this gets eaten
+ sda 0:0 644 @echo @echo TEST #this is not eaten
+"
+
+testing "parse bad comment" \
+	"parse -n 2 -m 2 -d '#=' -f $((GREEDY)) - 2>&1" \
+	"\
+[var][val]
+parse: bad line 3: 1 tokens found, 2 needed
+[  #this][ok]
+[  #this][=ok]
+[  #this][=ok=ok=ok=]
+" \
+	"-" \
+	"\
+# this gets eaten
+var=val
+  #this causes error msg
+  #this=ok
+  #this==ok
+  #this==ok=ok=ok=
+"
 
 FILE=__parse
 cat >$FILE <<EOF
@@ -96,6 +124,8 @@ cat >$FILE.res <<EOF
 [option][dns][129.219.13.81]
 [option][domain][local]
 [option][lease][864000]
+[option][msstaticroutes][10.0.0.0/8][10.127.0.1]
+[option][staticroutes][10.0.0.0/8][10.127.0.1,][10.11.12.0/24][10.11.12.1]
 [option][0x08][01020304]
 EOF
 

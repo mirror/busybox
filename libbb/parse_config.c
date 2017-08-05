@@ -201,10 +201,10 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 		/* Combine remaining arguments? */
 		if ((t != (ntokens-1)) || !(flags & PARSE_GREEDY)) {
 			/* Vanilla token, find next delimiter */
-			line += strcspn(line, delims[0] ? delims : delims + 1);
+			line += strcspn(line, (delims[0] && (flags & PARSE_EOL_COMMENTS)) ? delims : delims + 1);
 		} else {
 			/* Combining, find comment char if any */
-			line = strchrnul(line, PARSE_EOL_COMMENTS ? delims[0] : '\0');
+			line = strchrnul(line, (flags & PARSE_EOL_COMMENTS) ? delims[0] : '\0');
 
 			/* Trim any extra delimiters from the end */
 			if (flags & PARSE_TRIM) {
@@ -214,10 +214,10 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 		}
 
 		/* Token not terminated? */
-		if (*line == delims[0])
-			*line = '\0';
+		if ((flags & PARSE_EOL_COMMENTS) && *line == delims[0])
+			*line = '\0'; /* ends with comment char: this line is done */
 		else if (*line != '\0')
-			*line++ = '\0';
+			*line++ = '\0'; /* token is done, continue parsing line */
 
 #if 0 /* unused so far */
 		if (flags & PARSE_ESCAPE) {
