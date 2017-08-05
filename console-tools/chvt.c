@@ -14,7 +14,7 @@
 //config:	This program is used to change to another terminal.
 //config:	Example: chvt 4 (change to terminal /dev/tty4)
 
-//applet:IF_CHVT(APPLET(chvt, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_CHVT(APPLET_NOEXEC(chvt, chvt, BB_DIR_USR_BIN, BB_SUID_DROP, chvt))
 
 //kbuild:lib-$(CONFIG_CHVT) += chvt.o
 

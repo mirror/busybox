@@ -13,7 +13,7 @@
 //config:	help
 //config:	This program prints active (foreground) console number.
 
-//applet:IF_FGCONSOLE(APPLET(fgconsole, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_FGCONSOLE(APPLET_NOEXEC(fgconsole, fgconsole, BB_DIR_USR_BIN, BB_SUID_DROP, fgconsole))
 
 //kbuild:lib-$(CONFIG_FGCONSOLE) += fgconsole.o
 

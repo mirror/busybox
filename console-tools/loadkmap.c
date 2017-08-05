@@ -14,7 +14,7 @@
 //config:	This program loads a keyboard translation table from
 //config:	standard input.
 
-//applet:IF_LOADKMAP(APPLET(loadkmap, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_LOADKMAP(APPLET_NOEXEC(loadkmap, loadkmap, BB_DIR_SBIN, BB_SUID_DROP, loadkmap))
 
 //kbuild:lib-$(CONFIG_LOADKMAP) += loadkmap.o
 

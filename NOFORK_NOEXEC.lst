@@ -69,7 +69,7 @@ chpasswd - runner (list of "user:password"s from stdin)
 chpst - noexec. spawner
 chroot - noexec. spawner
 chrt - noexec. spawner
-chvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
+chvt - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 cksum - noexec. runner
 clear - NOFORK
 cmp - runner
@@ -85,7 +85,7 @@ cut - noexec. runner
 date - noexec. nofork candidate(needs to stop messing up env, free xasprintf result, not use xfuncs after xasprintf)
 dc - runner (eats stdin if no params)
 dd - noexec. runner
-deallocvt - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
+deallocvt - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 delgroup
 deluser
 depmod - complex, rare
@@ -100,7 +100,7 @@ dnsdomainname - needs ^C (may talk to DNS servers, which may be down)
 dos2unix - noexec. runner
 dpkg - runner
 du - runner
-dumpkmap - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
+dumpkmap - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 dumpleases - leaks: open+xread
 echo - NOFORK
 ed - interactive, longterm
@@ -120,7 +120,7 @@ fbsplash - runner, longterm
 fdflush - leaks: open+ioctl_or_perror_and_die, needs ^C (floppy may be unresponsive), rare
 fdformat - needs ^C (floppy may be unresponsive), longterm, rare
 fdisk - interactive, longterm
-fgconsole - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
+fgconsole - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 fgrep - longterm runner ("CMD | fgrep ..."  may run indefinitely, better to exec to conserve memory)
 find - noexec. runner
 findfs - suid
@@ -195,7 +195,7 @@ linux64 - noexec. spawner
 linuxrc - daemon
 ln - noexec
 loadfont - leaks: config_open+bb_error_msg_and_die("map format")
-loadkmap - leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds. Also, "rare" category. noexec candidate.
+loadkmap - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 logger - runner
 login - suid, interactive, longterm
 logname - NOFORK

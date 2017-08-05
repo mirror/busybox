@@ -15,7 +15,7 @@
 //config:	This program dumps the kernel's keyboard translation table to
 //config:	stdout, in binary format. You can then use loadkmap to load it.
 
-//applet:IF_DUMPKMAP(APPLET(dumpkmap, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_DUMPKMAP(APPLET_NOEXEC(dumpkmap, dumpkmap, BB_DIR_BIN, BB_SUID_DROP, dumpkmap))
 
 //kbuild:lib-$(CONFIG_DUMPKMAP) += dumpkmap.o
 

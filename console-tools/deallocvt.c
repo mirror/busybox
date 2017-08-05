@@ -14,7 +14,7 @@
 //config:	help
 //config:	This program deallocates unused virtual consoles.
 
-//applet:IF_DEALLOCVT(APPLET(deallocvt, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_DEALLOCVT(APPLET_NOEXEC(deallocvt, deallocvt, BB_DIR_USR_BIN, BB_SUID_DROP, deallocvt))
 
 //kbuild:lib-$(CONFIG_DEALLOCVT) += deallocvt.o
 
