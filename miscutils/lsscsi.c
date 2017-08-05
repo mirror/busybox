@@ -16,7 +16,7 @@
 //config:
 //config:	This version uses sysfs (/sys/bus/scsi/devices) only.
 
-//applet:IF_LSSCSI(APPLET(lsscsi, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_LSSCSI(APPLET_NOEXEC(lsscsi, lsscsi, BB_DIR_USR_BIN, BB_SUID_DROP, lsscsi))
 
 //kbuild:lib-$(CONFIG_LSSCSI) += lsscsi.o
 

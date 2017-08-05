@@ -16,7 +16,7 @@
 //config:
 //config:	This version uses sysfs (/sys/bus/usb/devices) only.
 
-//applet:IF_LSUSB(APPLET(lsusb, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_LSUSB(APPLET_NOEXEC(lsusb, lsusb, BB_DIR_USR_BIN, BB_SUID_DROP, lsusb))
 
 //kbuild:lib-$(CONFIG_LSUSB) += lsusb.o
 

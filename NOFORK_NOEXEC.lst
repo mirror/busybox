@@ -207,9 +207,9 @@ ls - noexec. runner
 lsattr - noexec. runner
 lsmod - noexec
 lsof - complex
-lspci - noexec candidate, too rare to bother for nofork
-lsscsi - noexec candidate, too rare to bother for nofork
-lsusb - noexec candidate, too rare to bother for nofork
+lspci - noexec. too rare to bother for nofork
+lsscsi - noexec. too rare to bother for nofork
+lsusb - noexec. too rare to bother for nofork
 lzcat - runner
 lzma - runner
 lzop - runner
