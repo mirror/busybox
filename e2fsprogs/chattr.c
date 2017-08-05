@@ -20,9 +20,12 @@
 //kbuild:lib-$(CONFIG_CHATTR) += chattr.o e2fs_lib.o
 
 //usage:#define chattr_trivial_usage
-//usage:       "[-R] [-+=AacDdijsStTu] [-v VERSION] [FILE]..."
+//usage:       "[-R] [-v VERSION] [-+=AacDdijsStTu] FILE..."
 //usage:#define chattr_full_usage "\n\n"
 //usage:       "Change ext2 file attributes\n"
+//usage:     "\n	-R	Recurse"
+//usage:     "\n	-v VER	Set version/generation number"
+//-V, -f accepted but ignored
 //usage:     "\nModifiers:"
 //usage:     "\n	-,+,=	Remove/add/set attributes"
 //usage:     "\nAttributes:"
@@ -37,8 +40,6 @@
 //usage:     "\n	S	Write synchronously"
 //usage:     "\n	t	Disable tail-merging of partial blocks with other files"
 //usage:     "\n	u	Allow file to be undeleted"
-//usage:     "\n	-R	Recurse"
-//usage:     "\n	-v VER	Set version/generation number"
 
 #include "libbb.h"
 #include "e2fs_lib.h"
@@ -52,7 +53,7 @@ struct globals {
 	unsigned long version;
 	unsigned long af;
 	unsigned long rf;
-	smallint flags;
+	int flags;
 	smallint recursive;
 };
 
@@ -64,10 +65,11 @@ static unsigned long get_flag(char c)
 	bb_show_usage();
 }
 
-static int decode_arg(const char *arg, struct globals *gp)
+static char** decode_arg(char **argv, struct globals *gp)
 {
 	unsigned long *fl;
-	char opt = *arg++;
+	const char *arg = *argv;
+	char opt = *arg;
 
 	fl = &gp->af;
 	if (opt == '-') {
@@ -75,15 +77,43 @@ static int decode_arg(const char *arg, struct globals *gp)
 		fl = &gp->rf;
 	} else if (opt == '+') {
 		gp->flags |= OPT_ADD;
-	} else if (opt == '=') {
+	} else { /* if (opt == '=') */
 		gp->flags |= OPT_SET;
-	} else
-		return 0;
+	}
 
-	while (*arg)
-		*fl |= get_flag(*arg++);
+	while (*++arg) {
+		if (opt == '-') {
+//e2fsprogs-1.43.1 accepts:
+// "-RRR", "-RRRv VER" and even "-ARRRva VER" and "-vvv V1 V2 V3"
+// but not "-vVER".
+// IOW: options are parsed as part of "remove attrs" strings,
+// if "v" is seen, next argv[] is VER, even if more opts/attrs follow in this argv[]!
+			if (*arg == 'R') {
+				gp->recursive = 1;
+				continue;
+			}
+			if (*arg == 'V') {
+				/*"verbose and print program version" (nop for now) */;
+				continue;
+			}
+			if (*arg == 'f') {
+				/*"suppress most error messages" (nop) */;
+				continue;
+			}
+			if (*arg == 'v') {
+				if (!*++argv)
+					bb_show_usage();
+				gp->version = xatoul(*argv);
+				gp->flags |= OPT_SET_VER;
+				continue;
+			}
+//TODO: "-p PROJECT_NUM" ?
+			/* not a known option, try as an attribute */
+		}
+		*fl |= get_flag(*arg);
+	}
 
-	return 1;
+	return argv;
 }
 
 static void change_attributes(const char *name, struct globals *gp);
@@ -133,7 +163,7 @@ static void change_attributes(const char *name, struct globals *gp)
 			fsflags &= ~gp->rf;
 		/*if (gp->flags & OPT_ADD) - not needed, af is zero otherwise */
 			fsflags |= gp->af;
-		/* What is this? And why it's not done for SET case? */
+// What is this? And why it's not done for SET case?
 		if (!S_ISDIR(st.st_mode))
 			fsflags &= ~EXT2_DIRSYNC_FL;
 	}
@@ -149,36 +179,22 @@ int chattr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chattr_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct globals g;
-	char *arg;
 
 	memset(&g, 0, sizeof(g));
 
 	/* parse the args */
-	while ((arg = *++argv)) {
-		/* take care of -R and -v <version> */
-		if (arg[0] == '-'
-		 && (arg[1] == 'R' || arg[1] == 'v')
-		 && !arg[2]
-		) {
-			if (arg[1] == 'R') {
-				g.recursive = 1;
-				continue;
-			}
-			/* arg[1] == 'v' */
-			if (!*++argv)
-				bb_show_usage();
-			g.version = xatoul(*argv);
-			g.flags |= OPT_SET_VER;
-			continue;
-		}
-
-		if (!decode_arg(arg, &g))
+	for (;;) {
+		char *arg = *++argv;
+		if (!arg)
+			bb_show_usage();
+		if (arg[0] != '-' && arg[0] != '+' && arg[0] != '=')
 			break;
+
+		argv = decode_arg(argv, &g);
 	}
+	/* note: on loop exit, remaining argv[] is never empty */
 
 	/* run sanity checks on all the arguments given us */
-	if (!*argv)
-		bb_show_usage();
 	if ((g.flags & OPT_SET) && (g.flags & (OPT_ADD|OPT_REM)))
 		bb_error_msg_and_die("= is incompatible with - and +");
 	if (g.rf & g.af)
