@@ -341,7 +341,7 @@ swapoff - rare
 swapon - rare
 switch_root - spawner, rare, changes state (oh yes), execing may be important to free binary's inode
 sync - NOFORK
-sysctl - noexec candidate, leaks: xstrdup+xmalloc_read
+sysctl - noexec. leaks: xstrdup+xmalloc_read
 syslogd - daemon
 tac - noexec. runner
 tail - runner

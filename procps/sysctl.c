@@ -16,7 +16,7 @@
 //config:	help
 //config:	Configure kernel parameters at runtime.
 
-//applet:IF_BB_SYSCTL(APPLET(sysctl, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_BB_SYSCTL(APPLET_NOEXEC(sysctl, sysctl, BB_DIR_SBIN, BB_SUID_DROP, sysctl))
 
 //kbuild:lib-$(CONFIG_BB_SYSCTL) += sysctl.o
 
