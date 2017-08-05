@@ -13,7 +13,7 @@
 //config:	tune2fs allows the system administrator to adjust various tunable
 //config:	filesystem parameters on Linux ext2/ext3 filesystems.
 
-//applet:IF_TUNE2FS(APPLET(tune2fs, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_TUNE2FS(APPLET_NOEXEC(tune2fs, tune2fs, BB_DIR_SBIN, BB_SUID_DROP, tune2fs))
 
 //TODO alias to "tune2fs -L LABEL": //applet:IF_E2LABEL(APPLET_ODDNAME(e2label, tune2fs, BB_DIR_SBIN, BB_SUID_DROP, e2label))
 

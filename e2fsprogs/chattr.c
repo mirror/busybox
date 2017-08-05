@@ -15,7 +15,7 @@
 //config:	help
 //config:	chattr changes the file attributes on a second extended file system.
 
-//applet:IF_CHATTR(APPLET(chattr, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_CHATTR(APPLET_NOEXEC(chattr, chattr, BB_DIR_BIN, BB_SUID_DROP, chattr))
 
 //kbuild:lib-$(CONFIG_CHATTR) += chattr.o e2fs_lib.o
 

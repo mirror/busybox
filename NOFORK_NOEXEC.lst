@@ -61,7 +61,7 @@ bzip2 - runner
 cal - runner: cal -n9999
 cat - runner
 chat - needs ^C to work
-chattr - runner
+chattr - noexec. runner
 chgrp - noexec. runner
 chmod - noexec. runner
 chown - noexec. runner
@@ -204,7 +204,7 @@ lpd - daemon
 lpq - runner
 lpr - runner
 ls - noexec. runner
-lsattr - runner. noexec candidate (ls is, why not this one?)
+lsattr - noexec. runner
 lsmod - noexec
 lsof - complex
 lspci - noexec candidate, too rare to bother for nofork
@@ -366,7 +366,7 @@ truncate - NOFORK
 tty - NOFORK
 ttysize - NOFORK
 tunctl
-tune2fs - leaks: open+xfunc
+tune2fs - noexec. leaks: open+xfunc
 ubiattach
 ubidetach
 ubimkvol
