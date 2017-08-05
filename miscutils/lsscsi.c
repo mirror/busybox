@@ -37,9 +37,8 @@ static char *get_line(const char *filename, char *buf, unsigned *bufsize_p)
 	if (sz < 0)
 		sz = 0;
 	buf[sz] = '\0';
-	trim(buf);
 
-	sz = strlen(buf) + 1;
+	sz = (trim(buf) - buf) + 1;
 	bufsize -= sz;
 	buf += sz;
 	buf[0] = '\0';

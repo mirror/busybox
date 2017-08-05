@@ -347,7 +347,7 @@ unsigned long long monotonic_ms(void) FAST_FUNC;
 unsigned monotonic_sec(void) FAST_FUNC;
 
 extern void chomp(char *s) FAST_FUNC;
-extern void trim(char *s) FAST_FUNC;
+extern char *trim(char *s) FAST_FUNC;
 extern char *skip_whitespace(const char *) FAST_FUNC;
 extern char *skip_non_whitespace(const char *) FAST_FUNC;
 extern char *skip_dev_pfx(const char *tty_name) FAST_FUNC;

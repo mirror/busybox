@@ -166,9 +166,8 @@ static char *angle_address(char *str)
 {
 	char *s, *e;
 
-	trim(str);
-	e = last_char_is(str, '>');
-	if (e) {
+	e = trim(str);
+	if (e != str && e[-1] == '>') {
 		s = strrchr(str, '<');
 		if (s) {
 			*e = '\0';

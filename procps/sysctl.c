@@ -257,12 +257,16 @@ static int sysctl_handle_preload_file(const char *filename)
 	parse_flags &= ~PARSE_EOL_COMMENTS; // NO (only first char) - comments are recognized even if not first char
 	while (config_read(parser, token, 2, 2, "#=", parse_flags)) {
 		char *tp;
-		trim(token[0]);
+
 		trim(token[1]);
+		tp = trim(token[0]);
 		sysctl_dots_to_slashes(token[0]);
-		tp = xasprintf("%s=%s", token[0], token[1]);
-		sysctl_act_on_setting(tp);
-		free(tp);
+		/* ^^^converted in-place. tp still points to NUL */
+		/* now, add "=TOKEN1" */
+		*tp++ = '=';
+		overlapping_strcpy(tp, token[1]);
+
+		sysctl_act_on_setting(token[0]);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		config_close(parser);

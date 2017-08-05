@@ -10,9 +10,10 @@
 
 #include "libbb.h"
 
-void FAST_FUNC trim(char *s)
+char* FAST_FUNC trim(char *s)
 {
 	size_t len = strlen(s);
+	size_t old = len;
 
 	/* trim trailing whitespace */
 	while (len && isspace(s[len-1]))
@@ -26,5 +27,12 @@ void FAST_FUNC trim(char *s)
 			memmove(s, nws, len);
 		}
 	}
-	s[len] = '\0';
+
+	s += len;
+	/* If it was a "const char*" which does not need trimming,
+	 * avoid superfluous store */
+	if (old != len)
+		*s = '\0';
+
+	return s;
 }
