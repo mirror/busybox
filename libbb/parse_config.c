@@ -161,12 +161,17 @@ mintokens > 0 make config_read() print error message if less than mintokens
 #undef config_read
 int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const char *delims)
 {
-	char *line;
+	char *line, *p;
 	int ntokens, mintokens;
 	int t;
+	char alt_comment_ch;
 
 	if (!parser)
 		return 0;
+
+	alt_comment_ch = '\0';
+	if (flags & PARSE_ALT_COMMENTS)
+		alt_comment_ch = *delims++;
 
 	ntokens = (uint8_t)flags;
 	mintokens = (uint8_t)(flags >> 8);
@@ -184,7 +189,10 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 	if (flags & PARSE_TRIM)
 		line += strspn(line, delims + 1);
 
-	if (line[0] == '\0' || line[0] == delims[0])
+	p = line;
+	if (flags & PARSE_WS_COMMENTS)
+		p = skip_whitespace(p);
+	if (p[0] == '\0' || p[0] == delims[0] || p[0] == alt_comment_ch)
 		goto again;
 
 	if (flags & PARSE_KEEP_COPY) {

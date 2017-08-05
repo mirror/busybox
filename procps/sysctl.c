@@ -247,15 +247,16 @@ static int sysctl_handle_preload_file(const char *filename)
 	/* Must do it _after_ config_open(): */
 	xchdir("/proc/sys");
 
-//TODO: ';' is comment char too
-//TODO: <space><tab><space>#comment is also comment, not strictly 1st char only
 	parse_flags = 0;
 	parse_flags &= ~PARSE_COLLAPSE;   // NO (var==val is not var=val) - treat consecutive delimiters as one
 	parse_flags &= ~PARSE_TRIM;       // NO - trim leading and trailing delimiters
 	parse_flags |= PARSE_GREEDY;      // YES - last token takes entire remainder of the line
 	parse_flags &= ~PARSE_MIN_DIE;    // NO - die if < min tokens found
 	parse_flags &= ~PARSE_EOL_COMMENTS; // NO (only first char) - comments are recognized even if not first char
-	while (config_read(parser, token, 2, 2, "#=", parse_flags)) {
+	parse_flags |= PARSE_ALT_COMMENTS;// YES - two comment chars: ';' and '#'
+	/* <space><tab><space>#comment is also comment, not strictly 1st char only */
+	parse_flags |= PARSE_WS_COMMENTS; // YES - comments are recognized even if there is whitespace before
+	while (config_read(parser, token, 2, 2, ";#=", parse_flags)) {
 		char *tp;
 
 		trim(token[1]);

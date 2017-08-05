@@ -1403,6 +1403,11 @@ enum {
 	// keep a copy of current line
 	PARSE_KEEP_COPY = 0x00200000 * ENABLE_FEATURE_CROND_D,
 	PARSE_EOL_COMMENTS = 0x00400000, // comments are recognized even if they aren't the first char
+	PARSE_ALT_COMMENTS = 0x00800000, // delim[0] and delim[1] are two different allowed comment chars
+	// (so far, delim[0] will only work as comment char for full-line comment)
+	// (IOW: it works as if PARSE_EOL_COMMENTS is not set. sysctl applet is okay with this)
+	PARSE_WS_COMMENTS  = 0x01000000, // comments are recognized even if there is whitespace before
+	// ("line start><space><tab><space>#comment" is also comment, not only "line start>#comment")
 	// NORMAL is:
 	// * remove leading and trailing delimiters and collapse
 	//   multiple delimiters into one
