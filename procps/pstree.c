@@ -9,14 +9,13 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //config:config PSTREE
 //config:	bool "pstree (9.4 kb)"
 //config:	default y
 //config:	help
 //config:	Display a tree of processes.
 
-//applet:IF_PSTREE(APPLET(pstree, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_PSTREE(APPLET_NOEXEC(pstree, pstree, BB_DIR_USR_BIN, BB_SUID_DROP, pstree))
 
 //kbuild:lib-$(CONFIG_PSTREE) += pstree.o
 

@@ -269,9 +269,9 @@ poweroff - rare
 powertop - interactive, longterm
 printenv - NOFORK
 printf - NOFORK
-ps - noexec candidate
+ps - looks for AT_CLKTCK elf aux vector, therefore can't be noexec
 pscan - longterm
-pstree
+pstree - noexec
 pwd - NOFORK
 pwdx - NOFORK
 raidautorun

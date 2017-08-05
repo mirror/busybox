@@ -15,7 +15,7 @@
 //config:	ps gives a snapshot of the current processes.
 //config:
 //config:config FEATURE_PS_WIDE
-//config:	bool "Enable wide output option (-w)"
+//config:	bool "Enable wide output (-w)"
 //config:	default y
 //config:	depends on PS && !DESKTOP
 //config:	help
@@ -24,7 +24,7 @@
 //config:	than once, the length is unlimited.
 //config:
 //config:config FEATURE_PS_LONG
-//config:	bool "Enable long output option (-l)"
+//config:	bool "Enable long output (-l)"
 //config:	default y
 //config:	depends on PS && !DESKTOP
 //config:	help
@@ -32,10 +32,15 @@
 //config:	Adds fields PPID, RSS, START, TIME & TTY
 //config:
 //config:config FEATURE_PS_TIME
-//config:	bool "Support -o time and -o etime output specifiers"
+//config:	bool "Enable -o time and -o etime specifiers"
 //config:	default y
 //config:	depends on PS && DESKTOP
 //config:	select PLATFORM_LINUX
+//config:
+//config:config FEATURE_PS_ADDITIONAL_COLUMNS
+//config:	bool "Enable -o rgroup, -o ruser, -o nice specifiers"
+//config:	default y
+//config:	depends on PS && DESKTOP
 //config:
 //config:config FEATURE_PS_UNUSUAL_SYSTEMS
 //config:	bool "Support Linux prior to 2.4.0 and non-ELF systems"
@@ -44,13 +49,9 @@
 //config:	help
 //config:	Include support for measuring HZ on old kernels and non-ELF systems
 //config:	(if you are on Linux 2.4.0+ and use ELF, you don't need this)
-//config:
-//config:config FEATURE_PS_ADDITIONAL_COLUMNS
-//config:	bool "Support -o rgroup, -o ruser, -o nice specifiers"
-//config:	default y
-//config:	depends on PS && DESKTOP
 
 //applet:IF_PS(APPLET(ps, BB_DIR_BIN, BB_SUID_DROP))
+/* can't be NOEXEC: uses ELF aux vector. To have it, we must be a normal, execed process */
 
 //kbuild:lib-$(CONFIG_PS) += ps.o
 
@@ -202,6 +203,7 @@ struct globals {
 
 #if ENABLE_FEATURE_PS_TIME
 /* for ELF executables, notes are pushed before environment and args */
+/* try "LD_SHOW_AUXV=1 /bin/true" */
 static uintptr_t find_elf_note(uintptr_t findme)
 {
 	uintptr_t *ep = (uintptr_t *) environ;
@@ -217,7 +219,7 @@ static uintptr_t find_elf_note(uintptr_t findme)
 	return -1;
 }
 
-#if ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS
+# if ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS
 static unsigned get_HZ_by_waiting(void)
 {
 	struct timeval tv1, tv2;
@@ -260,13 +262,13 @@ static unsigned get_HZ_by_waiting(void)
 
 	return r;
 }
-#else
+# else
 static inline unsigned get_HZ_by_waiting(void)
 {
 	/* Better method? */
 	return 100;
 }
-#endif
+# endif
 
 static unsigned get_kernel_HZ(void)
 {
