@@ -15,14 +15,26 @@
 //config:	help
 //config:	This program redirects the output console of kernel messages.
 
-//applet:IF_SETLOGCONS(APPLET(setlogcons, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_SETLOGCONS(APPLET_NOEXEC(setlogcons, setlogcons, BB_DIR_USR_SBIN, BB_SUID_DROP, setlogcons))
 
 //kbuild:lib-$(CONFIG_SETLOGCONS) += setlogcons.o
 
 //usage:#define setlogcons_trivial_usage
 //usage:       "[N]"
 //usage:#define setlogcons_full_usage "\n\n"
-//usage:       "Redirect the kernel output to console N. Default:0 (current console)"
+//usage:       "Pin kernel output to VT console N. Default:0 (do not pin)"
+
+// Comment from kernel source:
+/* ...
+ * By default, the kernel messages are always printed on the current virtual
+ * console. However, the user may modify that default with the
+ * TIOCL_SETKMSGREDIRECT ioctl call.
+ *
+ * This function sets the kernel message console to be @new. It returns the old
+ * virtual console number. The virtual terminal number 0 (both as parameter and
+ * return value) means no redirection (i.e. always printed on the currently
+ * active console).
+ */
 
 #include "libbb.h"
 
@@ -33,8 +45,8 @@ int setlogcons_main(int argc UNUSED_PARAM, char **argv)
 		char fn;
 		char subarg;
 	} arg = {
-		11, /* redirect kernel messages */
-		0   /* to specified console (current as default) */
+		11, /* redirect kernel messages (TIOCL_SETKMSGREDIRECT) */
+		0
 	};
 
 	if (argv[1])
