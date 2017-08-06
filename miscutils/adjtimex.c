@@ -90,13 +90,14 @@ int adjtimex_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	char *opt_o, *opt_f, *opt_p, *opt_t;
 	struct timex txc;
-	int i, ret;
+	int ret;
 	const char *descript;
+
+	memset(&txc, 0, sizeof(txc));
 
 	opt_complementary = "=0"; /* no valid non-option parameters */
 	opt = getopt32(argv, "qo:f:p:t:",
 			&opt_o, &opt_f, &opt_p, &opt_t);
-	txc.modes = 0;
 	//if (opt & 0x1) // -q
 	if (opt & 0x2) { // -o
 		txc.offset = xatol(opt_o);
@@ -116,14 +117,13 @@ int adjtimex_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	ret = adjtimex(&txc);
-
-	if (ret < 0) {
+	if (ret < 0)
 		bb_perror_nomsg_and_die();
-	}
 
 	if (!(opt & OPT_quiet)) {
 		const char *sep;
 		const char *name;
+		int i;
 
 		printf(
 			"    mode:         %d\n"
@@ -132,8 +132,9 @@ int adjtimex_main(int argc UNUSED_PARAM, char **argv)
 			"    maxerror:     %ld\n"
 			"    esterror:     %ld\n"
 			"    status:       %d (",
-		txc.modes, txc.offset, txc.freq, txc.maxerror,
-		txc.esterror, txc.status);
+			txc.modes, txc.offset, txc.freq, txc.maxerror,
+			txc.esterror, txc.status
+		);
 
 		/* representative output of next code fragment:
 		 * "PLL | PPSTIME"
@@ -159,9 +160,11 @@ int adjtimex_main(int argc UNUSED_PARAM, char **argv)
 			"    time.tv_sec:  %ld\n"
 			"    time.tv_usec: %ld\n"
 			"    return value: %d (%s)\n",
-		txc.constant,
-		txc.precision, txc.tolerance, txc.tick,
-		(long)txc.time.tv_sec, (long)txc.time.tv_usec, ret, descript);
+			txc.constant,
+			txc.precision, txc.tolerance, txc.tick,
+			(long)txc.time.tv_sec, (long)txc.time.tv_usec,
+			ret, descript
+		);
 	}
 
 	return 0;
