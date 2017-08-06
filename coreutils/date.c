@@ -59,6 +59,7 @@
 //config:	MMDDhhmm[[YY]YY][.ss] format.
 
 //applet:IF_DATE(APPLET_NOEXEC(date, date, BB_DIR_BIN, BB_SUID_DROP, date))
+/* bb_common_bufsiz1 usage here is safe wrt NOEXEC: not expecting it to be zeroed. */
 
 //kbuild:lib-$(CONFIG_DATE) += date.o
 

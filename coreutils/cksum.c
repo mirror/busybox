@@ -13,6 +13,7 @@
 //config:	cksum is used to calculate the CRC32 checksum of a file.
 
 //applet:IF_CKSUM(APPLET_NOEXEC(cksum, cksum, BB_DIR_USR_BIN, BB_SUID_DROP, cksum))
+/* bb_common_bufsiz1 usage here is safe wrt NOEXEC: not expecting it to be zeroed. */
 
 //kbuild:lib-$(CONFIG_CKSUM) += cksum.o
 

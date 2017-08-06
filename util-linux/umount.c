@@ -35,6 +35,8 @@
  * In this case, you might be actually happy if your standalone bbox shell
  * does not fork+exec, but only forks and calls umount_main() which it already has!
  * Let's go with NOEXEC.
+ *
+ * bb_common_bufsiz1 usage here is safe wrt NOEXEC: not expecting it to be zeroed.
  */
 
 //kbuild:lib-$(CONFIG_UMOUNT) += umount.o

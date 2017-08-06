@@ -785,6 +785,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	G.device_name = bb_msg_standard_input; \
 	G.max_col = 80; \
 	G.current_col = 0; /* we are noexec, must clear */ \

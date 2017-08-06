@@ -24,6 +24,7 @@
 //config:	COLUMNS=80;LINES=44;export COLUMNS LINES;
 
 //applet:IF_RESIZE(APPLET_NOEXEC(resize, resize, BB_DIR_USR_BIN, BB_SUID_DROP, resize))
+/* bb_common_bufsiz1 usage here is safe wrt NOEXEC: not expecting it to be zeroed. */
 
 //kbuild:lib-$(CONFIG_RESIZE) += resize.o
 
@@ -63,6 +64,7 @@ int resize_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	 */
 
 	tcgetattr(STDERR_FILENO, old_termios_p); /* fiddle echo */
+//TODO: die if the above fails?
 	memcpy(&new, old_termios_p, sizeof(new));
 	new.c_cflag |= (CLOCAL | CREAD);
 	new.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);

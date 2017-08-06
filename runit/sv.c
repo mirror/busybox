@@ -193,7 +193,7 @@ struct globals {
 /* "Bernstein" time format: unix + 0x400000000000000aULL */
 	uint64_t tstart, tnow;
 	svstatus_t svstatus;
-	unsigned islog;
+	smallint islog;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define acts         (G.acts        )
@@ -203,7 +203,13 @@ struct globals {
 #define tnow         (G.tnow        )
 #define svstatus     (G.svstatus    )
 #define islog        (G.islog       )
-#define INIT_G() do { setup_common_bufsiz(); } while (0)
+#define INIT_G() do { \
+	setup_common_bufsiz(); \
+	/* need to zero out, we are NOEXEC */ \
+	rc = EXIT_SUCCESS; \
+	islog = 0; \
+	/* other fields need not be zero */ \
+} while (0)
 
 
 #define str_equal(s,t) (strcmp((s), (t)) == 0)

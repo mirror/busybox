@@ -16,6 +16,7 @@
 //config:	stdout, in binary format. You can then use loadkmap to load it.
 
 //applet:IF_DUMPKMAP(APPLET_NOEXEC(dumpkmap, dumpkmap, BB_DIR_BIN, BB_SUID_DROP, dumpkmap))
+/* bb_common_bufsiz1 usage here is safe wrt NOEXEC: not expecting it to be zeroed. */
 
 //kbuild:lib-$(CONFIG_DUMPKMAP) += dumpkmap.o
 
@@ -47,8 +48,6 @@ int dumpkmap_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct kbentry ke;
 	int i, j, fd;
-#define flags bb_common_bufsiz1
-	setup_common_bufsiz();
 
 	/* When user accidentally runs "dumpkmap FILE"
 	 * instead of "dumpkmap >FILE", we'd dump binary stuff to tty.
@@ -60,19 +59,8 @@ int dumpkmap_main(int argc UNUSED_PARAM, char **argv)
 
 	fd = get_console_fd_or_die();
 
-#if 0
-	write(STDOUT_FILENO, "bkeymap", 7);
-	/* Here we want to set everything to 0 except for indexes:
-	 * [0-2] [4-6] [8-10] [12]
-	 */
-	/*memset(flags, 0x00, MAX_NR_KEYMAPS); - already is */
-	memset(flags, 0x01, 13);
-	flags[3] = flags[7] = flags[11] = 0;
-	/* dump flags */
-	write(STDOUT_FILENO, flags, MAX_NR_KEYMAPS);
-#define flags7 flags
-#else
-	/* Same effect */
+#define flags bb_common_bufsiz1
+	setup_common_bufsiz();
 	/*                     0 1 2 3 4 5 6 7 8 9 a b c=12 */
 	memcpy(flags, "bkeymap\1\1\1\0\1\1\1\0\1\1\1\0\1",
 	/* Can use sizeof, or sizeof-1. sizeof is even, using that */
@@ -80,7 +68,6 @@ int dumpkmap_main(int argc UNUSED_PARAM, char **argv)
 	);
 	write(STDOUT_FILENO, flags, 7 + MAX_NR_KEYMAPS);
 #define flags7 (flags + 7)
-#endif
 
 	for (i = 0; i < 13; i++) {
 		if (flags7[i]) {
