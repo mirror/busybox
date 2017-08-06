@@ -266,8 +266,10 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 		printf("%6u %-40s %8.4f\n",
 			total, "total", total/(double)(fn_add-add0));
 
-	fclose(map);
-	free(buf);
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		fclose(map);
+		free(buf);
+	}
 
 	return EXIT_SUCCESS;
 }

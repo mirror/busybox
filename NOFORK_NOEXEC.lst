@@ -48,7 +48,7 @@ ash - interactive, longterm
 awk - noexec. runner
 base64 - runner
 basename - NOFORK
-beep
+beep - longterm: beep -r 999999999
 blkdiscard - noexec. leaks: open+xioctl
 blkid - noexec
 blockdev - noexec. leaks fd
@@ -127,7 +127,7 @@ findfs - suid
 flash_eraseall
 flash_lock
 flash_unlock
-flashcp
+flashcp - needs ^C. flash writing may be slow, better to free memory memory by execing
 flock - spawner, changes state (file locks), let's play safe and not be noexec
 fold - noexec. runner
 free - nofork candidate(struct globals, needs to close /proc/meminfo fd)
@@ -278,7 +278,7 @@ raidautorun - noexec. very simple. leaks: open+xioctl
 rdate - needs ^C (may talk to DNS servers, which may be down)
 rdev - leaks: find_block_device -> readdir+xstrdup
 readlink - NOFORK
-readprofile
+readprofile - reads /boot/System.map and /proc/profile, better to free more memory memory by execing?
 realpath - NOFORK
 reboot - rare
 reformime - runner
