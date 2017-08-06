@@ -305,7 +305,7 @@ sed - runner
 sendmail - runner
 seq - noexec. runner
 setarch - noexec. spawner
-setconsole
+setconsole - noexec
 setfont
 setkeycodes - noexec
 setlogcons - noexec

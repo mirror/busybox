@@ -20,7 +20,7 @@
 //config:	default y
 //config:	depends on SETCONSOLE && LONG_OPTS
 
-//applet:IF_SETCONSOLE(APPLET(setconsole, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_SETCONSOLE(APPLET_NOEXEC(setconsole, setconsole, BB_DIR_SBIN, BB_SUID_DROP, setconsole))
 
 //kbuild:lib-$(CONFIG_SETCONSOLE) += setconsole.o
 
