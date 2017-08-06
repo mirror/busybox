@@ -127,7 +127,7 @@ findfs - suid
 flash_eraseall
 flash_lock
 flash_unlock
-flashcp - needs ^C. flash writing may be slow, better to free memory memory by execing
+flashcp - needs ^C. flash writing may be slow, better to free memory by execing
 flock - spawner, changes state (file locks), let's play safe and not be noexec
 fold - noexec. runner
 free - nofork candidate(struct globals, needs to close /proc/meminfo fd)
@@ -214,7 +214,7 @@ lzcat - runner
 lzma - runner
 lzop - runner
 lzopcat - runner
-makedevs
+makedevs - noexec
 makemime - runner
 man - spawner, interactive, longterm
 md5sum - noexec. runner
@@ -278,7 +278,7 @@ raidautorun - noexec. very simple. leaks: open+xioctl
 rdate - needs ^C (may talk to DNS servers, which may be down)
 rdev - leaks: find_block_device -> readdir+xstrdup
 readlink - NOFORK
-readprofile - reads /boot/System.map and /proc/profile, better to free more memory memory by execing?
+readprofile - reads /boot/System.map and /proc/profile, better to free more memory by execing?
 realpath - NOFORK
 reboot - rare
 reformime - runner

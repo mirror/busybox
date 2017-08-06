@@ -38,7 +38,7 @@
 //config:
 //config:endchoice
 
-//applet:IF_MAKEDEVS(APPLET(makedevs, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_MAKEDEVS(APPLET_NOEXEC(makedevs, makedevs, BB_DIR_SBIN, BB_SUID_DROP, makedevs))
 
 //kbuild:lib-$(CONFIG_MAKEDEVS) += makedevs.o
 
