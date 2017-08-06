@@ -205,10 +205,8 @@ struct globals {
 #define islog        (G.islog       )
 #define INIT_G() do { \
 	setup_common_bufsiz(); \
-	/* need to zero out, we are NOEXEC */ \
-	rc = EXIT_SUCCESS; \
-	islog = 0; \
-	/* other fields need not be zero */ \
+	/* need to zero out, svc calls sv() repeatedly */ \
+	memset(&G, 0, sizeof(G)); \
 } while (0)
 
 
@@ -706,8 +704,6 @@ int svc_main(int argc UNUSED_PARAM, char **argv)
 	char command[2];
 	const char *optstring;
 	unsigned opts;
-
-	INIT_G();
 
 	optstring = "udopchaitkx";
 	opts = getopt32(argv, optstring);
