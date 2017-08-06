@@ -79,6 +79,7 @@ Misc options:
 //config:	-N|--nicelevel N
 
 //applet:IF_START_STOP_DAEMON(APPLET_ODDNAME(start-stop-daemon, start_stop_daemon, BB_DIR_SBIN, BB_SUID_DROP, start_stop_daemon))
+/* not NOEXEC: uses bb_common_bufsiz1 */
 
 //kbuild:lib-$(CONFIG_START_STOP_DAEMON) += start_stop_daemon.o
 
@@ -409,11 +410,11 @@ static const char start_stop_daemon_longopts[] ALIGN1 =
 	"quiet\0"        No_argument       "q"
 	"test\0"         No_argument       "t"
 	"make-pidfile\0" No_argument       "m"
-#if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
+# if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 	"oknodo\0"       No_argument       "o"
 	"verbose\0"      No_argument       "v"
 	"nicelevel\0"    Required_argument "N"
-#endif
+# endif
 	"startas\0"      Required_argument "a"
 	"name\0"         Required_argument "n"
 	"signal\0"       Required_argument "s"
@@ -421,9 +422,9 @@ static const char start_stop_daemon_longopts[] ALIGN1 =
 	"chuid\0"        Required_argument "c"
 	"exec\0"         Required_argument "x"
 	"pidfile\0"      Required_argument "p"
-#if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
+# if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 	"retry\0"        Required_argument "R"
-#endif
+# endif
 	;
 #endif
 

@@ -327,7 +327,7 @@ softlimit - noexec. spawner
 sort - noexec. runner
 split - runner
 ssl_client - longterm
-start-stop-daemon
+start-stop-daemon - not noexec: uses bb_common_bufsiz1
 stat - nofork candidate(needs fewer allocs)
 strings - runner
 stty - noexec. nofork candidate: has no allocs or opens except xmove_fd(xopen("-F DEVICE"),STDIN). tcsetattr(STDIN) is not a problem: it would work the same across processes sharing this fd
