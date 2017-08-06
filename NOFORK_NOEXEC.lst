@@ -50,7 +50,7 @@ base64 - runner
 basename - NOFORK
 beep
 blkdiscard
-blkid
+blkid - noexec
 blockdev - noexec. leaks fd
 bootchartd - daemon
 brctl - noexec

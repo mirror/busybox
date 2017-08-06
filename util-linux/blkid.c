@@ -16,12 +16,12 @@
 //config:
 //config:config FEATURE_BLKID_TYPE
 //config:	bool "Print filesystem type"
-//config:	default n
+//config:	default y
 //config:	depends on BLKID
 //config:	help
 //config:	Show TYPE="filesystem type"
 
-//applet:IF_BLKID(APPLET(blkid, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_BLKID(APPLET_NOEXEC(blkid, blkid, BB_DIR_SBIN, BB_SUID_DROP, blkid))
 
 //kbuild:lib-$(CONFIG_BLKID) += blkid.o
 
