@@ -274,7 +274,7 @@ pscan - longterm
 pstree - noexec
 pwd - NOFORK
 pwdx - NOFORK
-raidautorun
+raidautorun - noexec. very simple. leaks: open+xioctl
 rdate - needs ^C (may talk to DNS servers, which may be down)
 rdev - leaks: find_block_device -> readdir+xstrdup
 readlink - NOFORK
@@ -294,7 +294,7 @@ route - needs ^C (may talk to DNS servers, which may be down)
 rpm - runner
 rpm2cpio - runner
 rtcwake - longterm: puts system to sleep, optimizing this for speed is pointless
-run-parts
+run-parts - longterm
 runlevel - noexec. can be nofork if "endutxent()" is called unconditionally, but too rare to bother?
 runsv - daemon
 runsvdir - daemon

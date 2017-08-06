@@ -15,7 +15,7 @@
 //config:	raidautorun tells the kernel md driver to
 //config:	search and start RAID arrays.
 
-//applet:IF_RAIDAUTORUN(APPLET(raidautorun, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_RAIDAUTORUN(APPLET_NOEXEC(raidautorun, raidautorun, BB_DIR_SBIN, BB_SUID_DROP, raidautorun))
 
 //kbuild:lib-$(CONFIG_RAIDAUTORUN) += raidautorun.o
 
