@@ -19,9 +19,9 @@
 //config:	help
 //config:	Remove shells from /etc/shells.
 
-//                       APPLET_ODDNAME:name          main              location         suid_type     help
-//applet:IF_ADD_SHELL(   APPLET_ODDNAME(add-shell   , add_remove_shell, BB_DIR_USR_SBIN, BB_SUID_DROP, add_shell   ))
-//applet:IF_REMOVE_SHELL(APPLET_ODDNAME(remove-shell, add_remove_shell, BB_DIR_USR_SBIN, BB_SUID_DROP, remove_shell))
+//                       APPLET_NOEXEC:name          main              location         suid_type     help
+//applet:IF_ADD_SHELL(   APPLET_NOEXEC(add-shell   , add_remove_shell, BB_DIR_USR_SBIN, BB_SUID_DROP, add_shell   ))
+//applet:IF_REMOVE_SHELL(APPLET_NOEXEC(remove-shell, add_remove_shell, BB_DIR_USR_SBIN, BB_SUID_DROP, remove_shell))
 
 //kbuild:lib-$(CONFIG_ADD_SHELL)    += add-remove-shell.o
 //kbuild:lib-$(CONFIG_REMOVE_SHELL) += add-remove-shell.o
@@ -63,6 +63,7 @@ int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
 	orig_fp = fopen_for_read(orig_fn);
 	if (orig_fp)
 		xfstat(fileno(orig_fp), &sb, orig_fn);
+
 
 	new_fn = xasprintf("%s.tmp", orig_fn);
 	/*

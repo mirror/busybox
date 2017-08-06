@@ -36,9 +36,9 @@ IOW: rm is "interactive", but not "longterm".
 [ - NOFORK
 [[ - NOFORK
 acpid - daemon
-add-shell
-addgroup
-adduser
+add-shell - noexec. leaks: open+xfunc
+addgroup - noexec. leaks
+adduser - noexec. leaks
 adjtimex - NOFORK
 ar - runner
 arch - NOFORK
@@ -86,8 +86,8 @@ date - noexec. nofork candidate(needs to stop messing up env, free xasprintf res
 dc - runner (eats stdin if no params)
 dd - noexec. runner
 deallocvt - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
-delgroup
-deluser
+delgroup - noexec. leaks
+deluser - noexec. leaks
 depmod - complex, rare
 devmem - runner, complex (access to device memory may hang)
 df - leaks: nested allocs
@@ -282,7 +282,7 @@ readprofile - reads /boot/System.map and /proc/profile, better to free more memo
 realpath - NOFORK
 reboot - rare
 reformime - runner
-remove-shell
+remove-shell - noexec. leaks: open+xfunc
 renice - nofork candidate(uses getpwnam, is that ok?)
 reset - noexec. spawner (execs "stty")
 resize - noexec. changes state (signal handlers)

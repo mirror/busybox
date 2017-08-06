@@ -53,7 +53,7 @@
 //config:	help
 //config:	Last valid system uid or gid for adduser and addgroup
 
-//applet:IF_ADDUSER(APPLET(adduser, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_ADDUSER(APPLET_NOEXEC(adduser, adduser, BB_DIR_USR_SBIN, BB_SUID_DROP, adduser))
 
 //kbuild:lib-$(CONFIG_ADDUSER) += adduser.o
 

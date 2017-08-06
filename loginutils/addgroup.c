@@ -29,7 +29,7 @@
 //config:	addgroup will add an existing user to an
 //config:	existing group.
 
-//applet:IF_ADDGROUP(APPLET(addgroup, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_ADDGROUP(APPLET_NOEXEC(addgroup, addgroup, BB_DIR_USR_SBIN, BB_SUID_DROP, addgroup))
 
 //kbuild:lib-$(CONFIG_ADDGROUP) += addgroup.o
 
