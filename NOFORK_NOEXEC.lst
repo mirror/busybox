@@ -194,7 +194,7 @@ linux32 - noexec. spawner
 linux64 - noexec. spawner
 linuxrc - daemon
 ln - noexec
-loadfont - leaks: config_open+bb_error_msg_and_die("map format")
+loadfont - noexec. leaks: config_open+bb_error_msg_and_die("map format")
 loadkmap - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 logger - runner
 login - suid, interactive, longterm
@@ -306,7 +306,7 @@ sendmail - runner
 seq - noexec. runner
 setarch - noexec. spawner
 setconsole - noexec
-setfont
+setfont - noexec. leaks a lot of stuff
 setkeycodes - noexec
 setlogcons - noexec
 setpriv - spawner, changes state, let's play safe and not be noexec

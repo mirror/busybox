@@ -51,30 +51,11 @@
 //config:	default y
 //config:	depends on LOADFONT || SETFONT
 
-//applet:IF_LOADFONT(APPLET(loadfont, BB_DIR_USR_SBIN, BB_SUID_DROP))
-//applet:IF_SETFONT(APPLET(setfont, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_LOADFONT(APPLET_NOEXEC(loadfont, loadfont, BB_DIR_USR_SBIN, BB_SUID_DROP, loadfont))
+//applet:IF_SETFONT(APPLET_NOEXEC(setfont, setfont, BB_DIR_USR_SBIN, BB_SUID_DROP, setfont))
 
 //kbuild:lib-$(CONFIG_LOADFONT) += loadfont.o
 //kbuild:lib-$(CONFIG_SETFONT) += loadfont.o
-
-//usage:#define loadfont_trivial_usage
-//usage:       "< font"
-//usage:#define loadfont_full_usage "\n\n"
-//usage:       "Load a console font from stdin"
-/* //usage:     "\n	-C TTY	Affect TTY instead of /dev/tty" */
-//usage:
-//usage:#define loadfont_example_usage
-//usage:       "$ loadfont < /etc/i18n/fontname\n"
-//usage:
-//usage:#define setfont_trivial_usage
-//usage:       "FONT [-m MAPFILE] [-C TTY]"
-//usage:#define setfont_full_usage "\n\n"
-//usage:       "Load a console font\n"
-//usage:     "\n	-m MAPFILE	Load console screen map"
-//usage:     "\n	-C TTY		Affect TTY instead of /dev/tty"
-//usage:
-//usage:#define setfont_example_usage
-//usage:       "$ setfont -m koi8-r /etc/i18n/fontname\n"
 
 #include "libbb.h"
 #include <sys/kd.h>
@@ -352,6 +333,14 @@ static void do_load(int fd, unsigned char *buffer, size_t len)
 
 
 #if ENABLE_LOADFONT
+//usage:#define loadfont_trivial_usage
+//usage:       "< font"
+//usage:#define loadfont_full_usage "\n\n"
+//usage:       "Load a console font from stdin"
+/* //usage:     "\n	-C TTY	Affect TTY instead of /dev/tty" */
+//usage:
+//usage:#define loadfont_example_usage
+//usage:       "$ loadfont < /etc/i18n/fontname\n"
 int loadfont_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int loadfont_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -380,11 +369,9 @@ int loadfont_main(int argc UNUSED_PARAM, char **argv)
 }
 #endif
 
+
 #if ENABLE_SETFONT
-
-/*
-kbd-1.12:
-
+/* kbd-1.12:
 setfont [-O font+umap.orig] [-o font.orig] [-om cmap.orig]
 [-ou umap.orig] [-N] [font.new ...] [-m cmap] [-u umap] [-C console]
 [-hNN] [-v] [-V]
@@ -414,8 +401,17 @@ setfont [-O font+umap.orig] [-o font.orig] [-om cmap.orig]
 -v     Verbose
 -V     Version
 */
+//usage:#define setfont_trivial_usage
+//usage:       "FONT [-m MAPFILE] [-C TTY]"
+//usage:#define setfont_full_usage "\n\n"
+//usage:       "Load a console font\n"
+//usage:     "\n	-m MAPFILE	Load console screen map"
+//usage:     "\n	-C TTY		Affect TTY instead of /dev/tty"
+//usage:
+//usage:#define setfont_example_usage
+//usage:       "$ setfont -m koi8-r /etc/i18n/fontname\n"
 
-#if ENABLE_FEATURE_SETFONT_TEXTUAL_MAP
+# if ENABLE_FEATURE_SETFONT_TEXTUAL_MAP
 static int ctoi(char *s)
 {
 	if (s[0] == '\'' && s[1] != '\0' && s[2] == '\'' && s[3] == '\0')
@@ -429,7 +425,7 @@ static int ctoi(char *s)
 		return -1;
 	return xstrtoul(s, 0);
 }
-#endif
+# endif
 
 int setfont_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setfont_main(int argc UNUSED_PARAM, char **argv)
@@ -480,7 +476,7 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 			if (len == 2*E_TABSZ)
 				mode = PIO_UNISCRNMAP;
 		}
-#if ENABLE_FEATURE_SETFONT_TEXTUAL_MAP
+# if ENABLE_FEATURE_SETFONT_TEXTUAL_MAP
 		// assume textual Unicode console maps:
 		// 0x00 U+0000  #  NULL (NUL)
 		// 0x01 U+0001  #  START OF HEADING (SOH)
@@ -527,7 +523,7 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 			}
 #undef unicodes
 		}
-#endif // ENABLE_FEATURE_SETFONT_TEXTUAL_MAP
+# endif // ENABLE_FEATURE_SETFONT_TEXTUAL_MAP
 
 		// do set screen map
 		xioctl(fd, mode, map);
