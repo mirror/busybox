@@ -299,8 +299,8 @@ runlevel - noexec. can be nofork if "endutxent()" is called unconditionally, but
 runsv - daemon
 runsvdir - daemon
 rx - runner
-script
-scriptreplay
+script - longterm: pumps script output from slave pty
+scriptreplay - longterm: plays back "script" saved output, sleeping as necessary.
 sed - runner
 sendmail - runner
 seq - noexec. runner

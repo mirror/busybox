@@ -5,7 +5,6 @@
  * pascal.bellard@ads-lu.com
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
- *
  */
 //config:config SCRIPTREPLAY
 //config:	bool "scriptreplay (2.6 kb)"
@@ -19,7 +18,7 @@
 //kbuild:lib-$(CONFIG_SCRIPTREPLAY) += scriptreplay.o
 
 //usage:#define scriptreplay_trivial_usage
-//usage:       "timingfile [typescript [divisor]]"
+//usage:       "TIMINGFILE [TYPESCRIPT [DIVISOR]]"
 //usage:#define scriptreplay_full_usage "\n\n"
 //usage:       "Play back typescripts, using timing information"
 

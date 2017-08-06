@@ -21,15 +21,23 @@
 //kbuild:lib-$(CONFIG_SCRIPT) += script.o
 
 //usage:#define script_trivial_usage
-//usage:       "[-afq" IF_SCRIPTREPLAY("t") "] [-c PROG] [OUTFILE]"
+//usage:       "[-afqt] [-c PROG] [OUTFILE]"
 //usage:#define script_full_usage "\n\n"
 //usage:       "	-a	Append output"
 //usage:     "\n	-c PROG	Run PROG, not shell"
 //usage:     "\n	-f	Flush output after each write"
 //usage:     "\n	-q	Quiet"
-//usage:	IF_SCRIPTREPLAY(
 //usage:     "\n	-t	Send timing to stderr"
-//usage:	)
+
+//util-linux-2.28:
+//-t[FILE]
+//-e: return exit code of the child
+
+//FYI (reported as bbox bug #2749):
+// > script -q -c 'echo -e -n "1\n2\n3\n"' /dev/null </dev/null >123.txt
+// > The output file on full-blown ubuntu system contains 6 bytes.
+// > Output on Busybox system (arm-linux) contains extra '\r' byte in each line.
+//however, in my test, "script" from util-linux-2.28 seems to also add '\r' bytes.
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -64,14 +72,14 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		"command\0" Required_argument "c"
 		"flush\0"   No_argument       "f"
 		"quiet\0"   No_argument       "q"
-		IF_SCRIPTREPLAY("timing\0" No_argument "t")
+		"timing\0"  No_argument       "t"
 		;
 
 	applet_long_options = getopt_longopts;
 #endif
 
 	opt_complementary = "?1"; /* max one arg */
-	opt = getopt32(argv, "ac:fq" IF_SCRIPTREPLAY("t") , &shell_arg);
+	opt = getopt32(argv, "ac:fqt", &shell_arg);
 	//argc -= optind;
 	argv += optind;
 	if (argv[0]) {
@@ -120,7 +128,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		/* parent */
 		struct pollfd pfd[2];
 		int outfd, count, loop;
-		double oldtime = ENABLE_SCRIPTREPLAY ? time(NULL) : 0;
+		double oldtime = time(NULL);
 		smallint fd_count = 2;
 #define buf bb_common_bufsiz1
 		setup_common_bufsiz();
@@ -151,7 +159,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 					goto restore;
 				}
 				if (count > 0) {
-					if (ENABLE_SCRIPTREPLAY && (opt & OPT_t)) {
+					if (opt & OPT_t) {
 						struct timeval tv;
 						double newtime;
 
