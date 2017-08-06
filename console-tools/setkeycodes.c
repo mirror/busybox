@@ -16,17 +16,16 @@
 //config:	This program loads entries into the kernel's scancode-to-keycode
 //config:	map, allowing unusual keyboards to generate usable keycodes.
 
-//applet:IF_SETKEYCODES(APPLET(setkeycodes, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_SETKEYCODES(APPLET_NOEXEC(setkeycodes, setkeycodes, BB_DIR_USR_BIN, BB_SUID_DROP, setkeycodes))
 
 //kbuild:lib-$(CONFIG_SETKEYCODES) += setkeycodes.o
 
 //usage:#define setkeycodes_trivial_usage
-//usage:       "SCANCODE KEYCODE..."
+//usage:       "{ SCANCODE KEYCODE }..."
 //usage:#define setkeycodes_full_usage "\n\n"
-//usage:       "Set entries into the kernel's scancode-to-keycode map,\n"
+//usage:       "Modify kernel's scancode-to-keycode map,\n"
 //usage:       "allowing unusual keyboards to generate usable keycodes.\n\n"
-//usage:       "SCANCODE may be either xx or e0xx (hexadecimal),\n"
-//usage:       "and KEYCODE is given in decimal."
+//usage:       "SCANCODE is either xx or e0xx (hexadecimal), KEYCODE is decimal."
 //usage:
 //usage:#define setkeycodes_example_usage
 //usage:       "$ setkeycodes e030 127\n"
@@ -45,7 +44,6 @@ int setkeycodes_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setkeycodes_main(int argc, char **argv)
 {
 	int fd;
-	struct kbkeycode a;
 
 	if (!(argc & 1) /* if even */ || argc < 2) {
 		bb_show_usage();
@@ -54,7 +52,10 @@ int setkeycodes_main(int argc, char **argv)
 	fd = get_console_fd_or_die();
 
 	while (argv[1]) {
-		int sc = xstrtoul_range(argv[1], 16, 0, 0xe07f);
+		struct kbkeycode a;
+		int sc;
+
+		sc = xstrtoul_range(argv[1], 16, 0, 0xe07f);
 		if (sc >= 0xe000) {
 			sc -= 0xe000;
 			sc += 0x0080;

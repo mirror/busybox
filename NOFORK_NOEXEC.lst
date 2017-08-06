@@ -307,7 +307,7 @@ seq - noexec. runner
 setarch - noexec. spawner
 setconsole
 setfont
-setkeycodes
+setkeycodes - noexec
 setlogcons - noexec
 setpriv - spawner, changes state, let's play safe and not be noexec
 setserial - noexec
