@@ -22,7 +22,7 @@
 //usage:#define kbd_mode_trivial_usage
 //usage:       "[-a|k|s|u] [-C TTY]"
 //usage:#define kbd_mode_full_usage "\n\n"
-//usage:       "Report or set the keyboard mode\n"
+//usage:       "Report or set VT console keyboard mode\n"
 //usage:     "\n	-a	Default (ASCII)"
 //usage:     "\n	-k	Medium-raw (keycode)"
 //usage:     "\n	-s	Raw (scancode)"
@@ -43,15 +43,20 @@ int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 	};
 	int fd;
 	unsigned opt;
-//TODO? kbd-2.0.3 without -C tries in sequence:
-//fd#0, /dev/tty, /dev/tty0.
-//Also, it checks KDGKBTYPE before doing KDGKBMODE
-//maybe we can use get_console_fd_or_die()?
-	const char *tty_name = CURRENT_TTY;
+	const char *tty_name;
 
 	opt = getopt32(argv, "sakuC:", &tty_name);
-	fd = xopen_nonblocking(tty_name);
-	opt &= 0xf; /* clear -C bit, see (*) */
+	if (opt & 0x10) {
+		opt &= 0xf; /* clear -C bit, see (*) */
+		fd = xopen_nonblocking(tty_name);
+	} else {
+		/* kbd-2.0.3 tries in sequence:
+		 * fd#0, /dev/tty, /dev/tty0.
+		 * get_console_fd_or_die: /dev/console, /dev/tty0, /dev/tty.
+		 * kbd-2.0.3 checks KDGKBTYPE, get_console_fd_or_die checks too.
+		 */
+		fd = get_console_fd_or_die();
+	}
 
 	if (!opt) { /* print current setting */
 		const char *mode = "unknown";
@@ -79,6 +84,7 @@ int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 		 * #define K_OFF           0x04
 		 * (looks like "-ak" together would cause the same effect as -u)
 		 */
+		opt &= 0xf; /* clear -C bit */
 		opt = opt & UNICODE ? 3 : opt >> 1;
 		/* double cast prevents warnings about widening conversion */
 		xioctl(fd, KDSKBMODE, (void*)(ptrdiff_t)opt);
