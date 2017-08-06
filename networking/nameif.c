@@ -40,7 +40,7 @@
 //config:		new_interface_name  mac=00:80:C8:38:91:B5
 //config:		new_interface_name  00:80:C8:38:91:B5
 
-//applet:IF_NAMEIF(APPLET(nameif, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_NAMEIF(APPLET_NOEXEC(nameif, nameif, BB_DIR_SBIN, BB_SUID_DROP, nameif))
 
 //kbuild:lib-$(CONFIG_NAMEIF) += nameif.o
 

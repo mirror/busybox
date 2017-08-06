@@ -8,6 +8,7 @@
  */
 
 //applet:IF_MPSTAT(APPLET(mpstat, BB_DIR_BIN, BB_SUID_DROP))
+/* shouldn't be noexec: "mpstat INTERVAL" runs indefinitely */
 
 //kbuild:lib-$(CONFIG_MPSTAT) += mpstat.o
 

@@ -237,10 +237,10 @@ modprobe - noexec
 more - interactive, longterm
 mount - suid
 mountpoint - noexec. leaks: option -n "print dev name": find_block_device -> readdir+xstrdup
-mpstat - noexec candidate (it's a measuring tool, putting less load by itself is good), complex
+mpstat - longterm: "mpstat 1" runs indefinitely
 mt - rare
 mv - noexec candidate, runner
-nameif - leaks: config_open2+ioctl_or_perror_and_die
+nameif - noexec. openlog(), leaks: config_open2+ioctl_or_perror_and_die
 nbd-client
 nc - runner
 netstat - runner with -c
