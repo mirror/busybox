@@ -366,7 +366,7 @@ struct globals_misc {
 #define S_DFL      1            /* default signal handling (SIG_DFL) */
 #define S_CATCH    2            /* signal is caught */
 #define S_IGN      3            /* signal is ignored (SIG_IGN) */
-#define S_HARD_IGN 4            /* signal is ignored permanently */
+#define S_HARD_IGN 4            /* signal is ignored permanently (it was SIG_IGN on entry to shell) */
 
 	/* indicates specified signal received */
 	uint8_t gotsig[NSIG - 1]; /* offset by 1: "signal" 0 is meaningless */
@@ -3565,6 +3565,12 @@ setsignal(int signo)
 			) {
 				cur_act = S_IGN;   /* don't hard ignore these */
 			}
+		}
+		if (act.sa_handler == SIG_DFL && new_act == S_DFL) {
+			/* installing SIG_DFL over SIG_DFL is a no-op */
+			/* saves one sigaction call in each "sh -c SCRIPT" invocation */
+			*t = S_DFL;
+			return;
 		}
 	}
 	if (cur_act == S_HARD_IGN || cur_act == new_act)
