@@ -24,7 +24,7 @@
 //config:	Allow to specify owner and group of newly created interface.
 //config:	340 bytes of pure bloat. Say no here.
 
-//applet:IF_TUNCTL(APPLET(tunctl, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_TUNCTL(APPLET_NOEXEC(tunctl, tunctl, BB_DIR_SBIN, BB_SUID_DROP, tunctl))
 
 //kbuild:lib-$(CONFIG_TUNCTL) += tunctl.o
 

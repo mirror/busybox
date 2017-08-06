@@ -182,7 +182,7 @@ ipneigh - noexec candidate
 iproute - noexec candidate
 iprule - noexec candidate
 iptunnel - noexec candidate
-kbd_mode - leaks: xopen_nonblocking+xioctl
+kbd_mode - noexec. leaks: xopen_nonblocking+xioctl
 kill - NOFORK
 killall - NOFORK
 killall5 - NOFORK
@@ -365,7 +365,7 @@ true - NOFORK
 truncate - NOFORK
 tty - NOFORK
 ttysize - NOFORK
-tunctl
+tunctl - noexec
 tune2fs - noexec. leaks: open+xfunc
 ubiattach
 ubidetach
