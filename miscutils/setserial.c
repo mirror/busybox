@@ -15,7 +15,7 @@
 //config:	help
 //config:	Retrieve or set Linux serial port.
 
-//applet:IF_SETSERIAL(APPLET(setserial, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_SETSERIAL(APPLET_NOEXEC(setserial, setserial, BB_DIR_BIN, BB_SUID_DROP, setserial))
 
 //kbuild:lib-$(CONFIG_SETSERIAL) += setserial.o
 
@@ -746,14 +746,15 @@ int setserial_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, "bGavzgq");
 	argv += optind;
 
-	if (!argv[1]) /* one arg only? */
-		opts |= OPT_LIST_OF_DEVS;
+	if (!argv[1]) /* one arg only? (nothing to change?) */
+		opts |= OPT_LIST_OF_DEVS; /* force display */
 
 	if (!(opts & OPT_LIST_OF_DEVS)) {
 		serial_set(argv, opts);
 		argv[1] = NULL;
 	}
 
+	/* -v effect: "after setting params, do not be silent, show them" */
 	if (opts & (OPT_VERBOSE | OPT_LIST_OF_DEVS)) {
 		do {
 			serial_get(*argv, opts & OPT_MODE_MASK);

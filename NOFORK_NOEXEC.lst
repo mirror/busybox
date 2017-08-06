@@ -310,7 +310,7 @@ setfont
 setkeycodes
 setlogcons
 setpriv - spawner, changes state, let's play safe and not be noexec
-setserial
+setserial - noexec
 setsid - spawner, uses fork_or_rexec() [not audited to work in noexec], let's play safe and not be noexec
 setuidgid - noexec. spawner
 sha1sum - noexec. runner
