@@ -25,10 +25,14 @@
 //kbuild:lib-$(CONFIG_SETCONSOLE) += setconsole.o
 
 //usage:#define setconsole_trivial_usage
-//usage:       "[-r" IF_FEATURE_SETCONSOLE_LONG_OPTIONS("|--reset") "] [DEVICE]"
+//usage:       "[-r] [DEVICE]"
 //usage:#define setconsole_full_usage "\n\n"
 //usage:       "Redirect system console output to DEVICE (default: /dev/tty)\n"
 //usage:     "\n	-r	Reset output to /dev/console"
+
+/* It was a bbox-specific invention, but SUSE does have a similar utility.
+ * SUSE has no -r option, though.
+ */
 
 #include "libbb.h"
 
@@ -38,12 +42,6 @@ int setconsole_main(int argc UNUSED_PARAM, char **argv)
 	const char *device = CURRENT_TTY;
 	bool reset;
 
-#if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
-	static const char setconsole_longopts[] ALIGN1 =
-		"reset\0" No_argument "r"
-		;
-	applet_long_options = setconsole_longopts;
-#endif
 	/* at most one non-option argument */
 	opt_complementary = "?1";
 	reset = getopt32(argv, "r");
