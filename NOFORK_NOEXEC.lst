@@ -49,7 +49,7 @@ awk - noexec. runner
 base64 - runner
 basename - NOFORK
 beep
-blkdiscard
+blkdiscard - noexec. leaks: open+xioctl
 blkid - noexec
 blockdev - noexec. leaks fd
 bootchartd - daemon

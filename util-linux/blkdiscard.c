@@ -11,8 +11,9 @@
 //config:	help
 //config:	blkdiscard discards sectors on a given device.
 
+//applet:IF_BLKDISCARD(APPLET_NOEXEC(blkdiscard, blkdiscard, BB_DIR_USR_BIN, BB_SUID_DROP, blkdiscard))
+
 //kbuild:lib-$(CONFIG_BLKDISCARD) += blkdiscard.o
-//applet:IF_BLKDISCARD(APPLET(blkdiscard, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //usage:#define blkdiscard_trivial_usage
 //usage:       "[-o OFS] [-l LEN] [-s] DEVICE"
@@ -44,7 +45,6 @@ int blkdiscard_main(int argc UNUSED_PARAM, char **argv)
 	uint64_t offset; /* Leaving these two variables out does not  */
 	uint64_t length; /* shrink code size and hampers readability. */
 	uint64_t range[2];
-//	struct stat st;
 	int fd;
 
 	enum {
