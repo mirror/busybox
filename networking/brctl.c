@@ -39,7 +39,7 @@
 //config:	Add support for option which prints the current config:
 //config:		show
 
-//applet:IF_BRCTL(APPLET(brctl, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_BRCTL(APPLET_NOEXEC(brctl, brctl, BB_DIR_USR_SBIN, BB_SUID_DROP, brctl))
 
 //kbuild:lib-$(CONFIG_BRCTL) += brctl.o
 

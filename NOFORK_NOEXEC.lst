@@ -53,7 +53,7 @@ blkdiscard
 blkid
 blockdev - noexec. leaks fd
 bootchartd - daemon
-brctl
+brctl - noexec
 bunzip2 - runner
 busybox
 bzcat - runner
