@@ -295,8 +295,8 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 
 	sock_fd = xsocket(AF_PACKET, SOCK_DGRAM, 0);
 
-	// Drop suid root privileges
-	// Need to remove SUID_NEVER from applets.h for this to work
+	// If you ever change BB_SUID_DROP to BB_SUID_REQUIRE,
+	// drop suid root privileges here:
 	//xsetuid(getuid());
 
 	{

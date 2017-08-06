@@ -147,17 +147,17 @@ Placement / Directory
 
 Find the appropriate directory for your new applet.
 
-Add the kbuild snippet to the .c file:
-
-//kbuild:lib-$(CONFIG_MU) += mu.o
-
 Add the config snippet to the .c file:
 
 //config:config MU
 //config:	bool "MU"
 //config:	default y
 //config:	help
-//config:	  Returns an indeterminate value.
+//config:	Returns an indeterminate value.
+
+Add the kbuild snippet to the .c file:
+
+//kbuild:lib-$(CONFIG_MU) += mu.o
 
 
 Usage String(s)
@@ -168,8 +168,9 @@ This should look like the following:
 
 //usage:#define mu_trivial_usage
 //usage:	"[-abcde] FILE..."
-//usage:#define mu_full_usage
-//usage:	"Returns an indeterminate value\n"
+//usage:#define mu_full_usage "\n\n"
+//usage:	"Returns an indeterminate value"
+//usage:     "\n"
 //usage:     "\n	-a	First function"
 //usage:     "\n	-b	Second function"
 //usage:	...

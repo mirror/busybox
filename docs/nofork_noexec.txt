@@ -10,18 +10,38 @@ of reimplemented Unix commands, and we can do the same trick
 for speeding up busybox shells, and more. NOEXEC and NOFORK applets
 are exactly those applets which are eligible for these tricks.
 
-Applet will be subject to NOFORK/NOEXEC tricks if it is marked as such
-in applets.h. FEATURE_PREFER_APPLETS is a config option which
-globally enables usage of NOFORK/NOEXEC tricks.
-If it is enabled, FEATURE_SH_STANDALONE can be enabled too,
-and then shells will use NOFORK/NOEXEC tricks for ordinary commands.
-NB: shell builtins use these tricks regardless of FEATURE_SH_STANDALONE
-or FEATURE_PREFER_APPLETS.
+Applet will be subject to NOFORK/NOEXEC tricks only if it is marked
+as such in applets.src.h or in their inline "//applet:" directives.
 
 In C, if you want to call a program and wait for it, use
 spawn_and_wait(argv), BB_EXECVP(prog,argv) or BB_EXECLP(prog,argv0,...).
 They check whether program name is an applet name and optionally
 do NOFORK/NOEXEC thing depending on configuration.
+
+
+	Relevant CONFIG options
+
+FEATURE_PREFER_APPLETS
+  Globally enables NOFORK/NOEXEC tricks for such programs as xargs
+  and find:
+  BB_EXECVP(cmd, argv) will try to exec /proc/self/exe
+  if command's name matches some applet name;
+  spawn_and_wait(argv) will do NOFORK/NOEXEC tricks
+
+//TODO: the above two things probably should have separate options?
+
+FEATURE_SH_STANDALONE
+  shells will try to exec /proc/self/exe if command's name matches
+  some applet name; shells will do NOEXEC trick on NOEXEC applets
+
+//TODO: split (same as for PREFER_APPLETS)
+
+FEATURE_SH_NOFORK
+  shells will do NOFORK trick on NOFORK applets
+
+NB: shell builtins use these tricks regardless of FEATURE_SH_STANDALONE,
+FEATURE_PREFER_APPLETS or FEATURE_SH_NOFORK. In effect, builtins
+are "always NOFORK".
 
 
 	NOEXEC
@@ -121,22 +141,3 @@ option_mask32 getting trashed.
 It's the same trusty spawn_and_wait(argv). If FEATURE_PREFER_APPLETS=y,
 it does NOEXEC trick. It resets xfunc_error_retval = 1 and
 logmode = LOGMODE_STDIO in the child.
-
-
-	Relevant CONFIG options
-
-FEATURE_PREFER_APPLETS
-  BB_EXECVP(cmd, argv) will try to exec /proc/self/exe
-  if command's name matches some applet name;
-  spawn_and_wait(argv) will do NOFORK/NOEXEC tricks
-
-//TODO: the above two things probably should have separate options?
-
-FEATURE_SH_STANDALONE
-  shells will try to exec /proc/self/exe if command's name matches
-  some applet name; shells will do NOEXEC trick on NOEXEC applets
-
-//TODO: split (same as for PREFER_APPLETS)
-
-FEATURE_SH_NOFORK
-  shells will do NOFORK trick on NOFORK applets
