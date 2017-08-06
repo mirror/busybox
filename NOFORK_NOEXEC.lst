@@ -241,7 +241,7 @@ mpstat - longterm: "mpstat 1" runs indefinitely
 mt - rare
 mv - noexec candidate, runner
 nameif - noexec. openlog(), leaks: config_open2+ioctl_or_perror_and_die
-nbd-client
+nbd-client - noexec
 nc - runner
 netstat - runner with -c
 nice - noexec. spawner
