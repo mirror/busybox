@@ -78,7 +78,7 @@ conspy - interactive, longterm
 cp - noexec. runner
 cpio - runner
 crond - daemon
-crontab 0 leaks: open+xasprintf
+crontab - longterm (runs $EDITOR), leaks: open+xasprintf
 cryptpw - noexec. changes state: with --password-fd=N, moves N to stdin
 cttyhack - noexec. spawner
 cut - noexec. runner
@@ -311,7 +311,7 @@ setkeycodes
 setlogcons
 setpriv - spawner, changes state, let's play safe and not be noexec
 setserial
-setsid - spawner, uses fork_or_rexec() [not audted to work in noexec], let's play safe and not be noexec
+setsid - spawner, uses fork_or_rexec() [not audited to work in noexec], let's play safe and not be noexec
 setuidgid - noexec. spawner
 sha1sum - noexec. runner
 sha256sum - noexec. runner
@@ -320,7 +320,7 @@ sha512sum - noexec. runner
 showkey - interactive, longterm
 shred - runner
 shuf - noexec. runner
-slattach
+slattach - longterm (may sleep forever), uses bb_common_bufsiz1
 sleep - runner, longterm
 smemcap - runner
 softlimit - noexec. spawner

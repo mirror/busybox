@@ -313,7 +313,7 @@ int FAST_FUNC tcsetattr_stdin_TCSANOW(const struct termios *tp)
 
 int FAST_FUNC set_termios_to_raw(int fd, struct termios *oldterm, int flags)
 {
-//TODO: lineedit, microcom and less might be adapted to use this too:
+//TODO: lineedit, microcom, slattach, less might be adapted to use this too:
 // grep for "tcsetattr"
 
 	struct termios newterm;
