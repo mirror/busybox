@@ -15,7 +15,7 @@
 //config:	help
 //config:	This program reports and sets keyboard mode.
 
-//applet:IF_KBD_MODE(APPLET(kbd_mode, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_KBD_MODE(APPLET_NOEXEC(kbd_mode, kbd_mode, BB_DIR_BIN, BB_SUID_DROP, kbd_mode))
 
 //kbuild:lib-$(CONFIG_KBD_MODE) += kbd_mode.o
 
@@ -27,7 +27,7 @@
 //usage:     "\n	-k	Medium-raw (keycode)"
 //usage:     "\n	-s	Raw (scancode)"
 //usage:     "\n	-u	Unicode (utf-8)"
-//usage:     "\n	-C TTY	Affect TTY instead of /dev/tty"
+//usage:     "\n	-C TTY	Affect TTY"
 
 #include "libbb.h"
 #include <linux/kd.h>
@@ -84,7 +84,6 @@ int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 		 * #define K_OFF           0x04
 		 * (looks like "-ak" together would cause the same effect as -u)
 		 */
-		opt &= 0xf; /* clear -C bit */
 		opt = opt & UNICODE ? 3 : opt >> 1;
 		/* double cast prevents warnings about widening conversion */
 		xioctl(fd, KDSKBMODE, (void*)(ptrdiff_t)opt);
