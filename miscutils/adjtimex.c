@@ -18,7 +18,7 @@
 //config:	Adjtimex reads and optionally sets adjustment parameters for
 //config:	the Linux clock adjustment algorithm.
 
-//applet:IF_ADJTIMEX(APPLET(adjtimex, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_ADJTIMEX(APPLET_NOFORK(adjtimex, adjtimex, BB_DIR_SBIN, BB_SUID_DROP, adjtimex))
 
 //kbuild:lib-$(CONFIG_ADJTIMEX) += adjtimex.o
 
@@ -115,6 +115,11 @@ int adjtimex_main(int argc UNUSED_PARAM, char **argv)
 		txc.tick = xatol(opt_t);
 		txc.modes |= ADJ_TICK;
 	}
+
+	/* It's NOFORK applet because the code is very simple:
+	 * just some printf. No opens, no allocs.
+	 * If you need to make it more complex, feel free to downgrade to NOEXEC
+	 */
 
 	ret = adjtimex(&txc);
 	if (ret < 0)

@@ -39,7 +39,7 @@ acpid - daemon
 add-shell
 addgroup
 adduser
-adjtimex
+adjtimex - NOFORK
 ar - runner
 arch - NOFORK
 arp - complex, rare
