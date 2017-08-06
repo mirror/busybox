@@ -210,35 +210,35 @@ struct serial_struct {
 #endif
 
 //usage:#define setserial_trivial_usage
-//usage:	"[-gabGvzV] DEVICE [PARAMETER [ARG]]..."
+//usage:	"[-abGvz] { DEVICE [PARAMETER [ARG]]... | -g DEVICE... }"
 //usage:#define setserial_full_usage "\n\n"
-//usage:	"Request or set Linux serial port information\n"
-//usage:	"\n"
-//usage:	"	-g	Interpret parameters as list of devices for reporting\n"
-//usage:	"	-a	Print all available information\n"
-//usage:	"	-b	Print summary information\n"
-//usage:	"	-G	Print in form which can be fed back\n"
-//usage:	"		to setserial as command line parameters\n"
-//usage:	"	-z	Zero out serial flags before setting\n"
-//usage:	"	-v	Verbose\n"
-//usage:	"\n"
-//usage:	"Parameters: (* = takes an argument, ^ = can be turned off by preceding ^)\n"
-//usage:	"	*port, *irq, *divisor, *uart, *baud_base, *close_delay, *closing_wait,\n"
-//usage:	"	^fourport, ^auto_irq, ^skip_test, ^sak, ^session_lockout, ^pgrp_lockout,\n"
-//usage:	"	^callout_nohup, ^split_termios, ^hup_notify, ^low_latency, autoconfig,\n"
-//usage:	"	spd_normal, spd_hi, spd_vhi, spd_shi, spd_warp, spd_cust\n"
-//usage:	"\n"
-//usage:	"UART types:\n"
-//usage:	"	unknown, 8250, 16450, 16550, 16550A, Cirrus, 16650, 16650V2, 16750,\n"
-//usage:	"	16950, 16954, 16654, 16850, RSA, NS16550A, XSCALE, RM9000, OCTEON, AR7,\n"
-//usage:	"	U6_16550A"
+//usage:	"Print or set serial port parameters"
+//usage:   "\n"
+//usage:   "\n""	-a	Print all"
+//usage:   "\n""	-b	Print summary"
+//usage:   "\n""	-G	Print as setserial PARAMETERs"
+//usage:   "\n""	-v	Verbose"
+//usage:   "\n""	-z	Zero out serial flags before setting"
+//usage:   "\n""	-g	All args are device names"
+//usage:   "\n"
+//usage:   "\n""PARAMETERs: (* = takes ARG, ^ = can be turned off by preceding ^)"
+//usage:   "\n""	*port, *irq, *divisor, *uart, *baud_base, *close_delay, *closing_wait,"
+//usage:   "\n""	^fourport, ^auto_irq, ^skip_test, ^sak, ^session_lockout, ^pgrp_lockout,"
+//usage:   "\n""	^callout_nohup, ^split_termios, ^hup_notify, ^low_latency, autoconfig,"
+//usage:   "\n""	spd_normal, spd_hi, spd_vhi, spd_shi, spd_warp, spd_cust"
+//usage:   "\n""ARG for uart:"
+//usage:   "\n""	unknown, 8250, 16450, 16550, 16550A, Cirrus, 16650, 16650V2, 16750,"
+//usage:   "\n""	16950, 16954, 16654, 16850, RSA, NS16550A, XSCALE, RM9000, OCTEON, AR7,"
+//usage:   "\n""	U6_16550A"
 
+// option string is "bGavzgq". "q" is accepted but ignored.
 #define OPT_PRINT_SUMMARY       (1 << 0)
 #define OPT_PRINT_FEDBACK       (1 << 1)
 #define OPT_PRINT_ALL           (1 << 2)
 #define OPT_VERBOSE             (1 << 3)
 #define OPT_ZERO                (1 << 4)
-#define OPT_GET                 (1 << 5)
+#define OPT_LIST_OF_DEVS        (1 << 5)
+/*#define OPT_QUIET             (1 << 6)*/
 
 #define OPT_MODE_MASK \
 	(OPT_PRINT_ALL | OPT_PRINT_SUMMARY | OPT_PRINT_FEDBACK)
@@ -362,7 +362,7 @@ static bool cmd_is_flag(int cmd)
 	return (cmd >= CMD_FLAG_FIRST && cmd <= CMD_FLAG_LAST);
 }
 
-static bool cmd_need_arg(int cmd)
+static bool cmd_needs_arg(int cmd)
 {
 	return (cmd >= CMD_PORT && cmd <= CMD_WAIT);
 }
@@ -652,11 +652,9 @@ static int find_cmd(const char *cmd)
 static void serial_set(char **arg, int opts)
 {
 	struct serial_struct serinfo;
-	int cmd;
-	const char *word;
 	int fd;
 
-	fd = serial_open(*arg++, /*quiet:*/ false);
+	fd = serial_open(*arg, /*quiet:*/ false);
 	if (fd < 0)
 		exit(201);
 
@@ -665,17 +663,20 @@ static void serial_set(char **arg, int opts)
 	if (opts & OPT_ZERO)
 		serinfo.flags = 0;
 
-	while (*arg) {
+	while (*++arg) {
+		const char *word;
 		int invert;
+		int cmd;
 
-		word = *arg++;
-		invert = (*word == '^');
+		word = *arg;
+		invert = (word[0] == '^');
 		word += invert;
 
 		cmd = find_cmd(word);
 
-		if (*arg == NULL && cmd_need_arg(cmd))
-			bb_error_msg_and_die(bb_msg_requires_arg, word);
+		if (cmd_needs_arg(cmd))
+			if (*++arg == NULL)
+				bb_error_msg_and_die(bb_msg_requires_arg, word);
 
 		if (invert && !cmd_is_flag(cmd))
 			bb_error_msg_and_die("can't invert %s", word);
@@ -705,25 +706,25 @@ static void serial_set(char **arg, int opts)
 				serinfo.flags |= setbits[cmd];
 			break;
 		case CMD_PORT:
-			serinfo.port = get_numeric(*arg++);
+			serinfo.port = get_numeric(*arg);
 			break;
 		case CMD_IRQ:
-			serinfo.irq = get_numeric(*arg++);
+			serinfo.irq = get_numeric(*arg);
 			break;
 		case CMD_DIVISOR:
-			serinfo.custom_divisor = get_numeric(*arg++);
+			serinfo.custom_divisor = get_numeric(*arg);
 			break;
 		case CMD_UART:
-			serinfo.type = get_uart(*arg++);
+			serinfo.type = get_uart(*arg);
 			break;
 		case CMD_BASE:
-			serinfo.baud_base = get_numeric(*arg++);
+			serinfo.baud_base = get_numeric(*arg);
 			break;
 		case CMD_DELAY:
-			serinfo.close_delay = get_numeric(*arg++);
+			serinfo.close_delay = get_numeric(*arg);
 			break;
 		case CMD_WAIT:
-			serinfo.closing_wait = get_wait(*arg++);
+			serinfo.closing_wait = get_wait(*arg);
 			break;
 		case CMD_AUTOCONFIG:
 			serial_ctl(fd, CTL_SET | CTL_CONFIG | CTL_GET, &serinfo);
@@ -742,21 +743,21 @@ int setserial_main(int argc UNUSED_PARAM, char **argv)
 	int opts;
 
 	opt_complementary = "-1:b-aG:G-ab:a-bG";
-	opts = getopt32(argv, "bGavzg");
+	opts = getopt32(argv, "bGavzgq");
 	argv += optind;
 
 	if (!argv[1]) /* one arg only? */
-		opts |= OPT_GET;
+		opts |= OPT_LIST_OF_DEVS;
 
-	if (!(opts & OPT_GET)) {
+	if (!(opts & OPT_LIST_OF_DEVS)) {
 		serial_set(argv, opts);
 		argv[1] = NULL;
 	}
 
-	if (opts & (OPT_VERBOSE | OPT_GET)) {
+	if (opts & (OPT_VERBOSE | OPT_LIST_OF_DEVS)) {
 		do {
-			serial_get(*argv++, opts & OPT_MODE_MASK);
-		} while (*argv);
+			serial_get(*argv, opts & OPT_MODE_MASK);
+		} while (*++argv);
 	}
 
 	return EXIT_SUCCESS;
