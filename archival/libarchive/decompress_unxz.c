@@ -37,7 +37,6 @@ static uint32_t xz_crc32(const uint8_t *buf, size_t size, uint32_t crc)
  || !defined(put_unaligned_be32)
 # error get_unaligned_le32 accessors are not defined
 #endif
-#define get_le32(p) (*(uint32_t*)(p))
 
 #include "unxz/xz_dec_bcj.c"
 #include "unxz/xz_dec_lzma2.c"
