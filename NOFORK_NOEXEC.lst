@@ -92,8 +92,8 @@ deallocvt - noexec. leaks: get_console_fd_or_die() may open a new fd, or return 
 delgroup - noexec. leaks
 deluser - noexec. leaks
 depmod - longterm(ish)
-devmem - runner, complex (access to device memory may hang)
-df - leaks: nested allocs
+devmem - hardware (access to device memory may hang)
+df - noexec. leaks: nested allocs
 dhcprelay - daemon
 diff - runner
 dirname - NOFORK

@@ -33,7 +33,7 @@
 //config:	-i Inodes
 //config:	-B <SIZE> Blocksize
 
-//applet:IF_DF(APPLET(df, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_DF(APPLET_NOEXEC(df, df, BB_DIR_BIN, BB_SUID_DROP, df))
 
 //kbuild:lib-$(CONFIG_DF) += df.o
 
