@@ -14,61 +14,12 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "busybox.h" /* uses applet tables */
 #include "NUM_APPLETS.h"
 
-/* This does a fork/exec in one call, using vfork().  Returns PID of new child,
- * -1 for failure.  Runs argv[0], searching path if that has no / in it. */
-pid_t FAST_FUNC spawn(char **argv)
-{
-	/* Compiler should not optimize stores here */
-	volatile int failed;
-	pid_t pid;
-
-	fflush_all();
-
-	/* Be nice to nommu machines. */
-	failed = 0;
-	pid = vfork();
-	if (pid < 0) /* error */
-		return pid;
-	if (!pid) { /* child */
-		/* This macro is ok - it doesn't do NOEXEC/NOFORK tricks */
-		BB_EXECVP(argv[0], argv);
-
-		/* We are (maybe) sharing a stack with blocked parent,
-		 * let parent know we failed and then exit to unblock parent
-		 * (but don't run atexit() stuff, which would screw up parent.)
-		 */
-		failed = errno;
-		/* mount, for example, does not want the message */
-		/*bb_perror_msg("can't execute '%s'", argv[0]);*/
-		_exit(111);
-	}
-	/* parent */
-	/* Unfortunately, this is not reliable: according to standards
-	 * vfork() can be equivalent to fork() and we won't see value
-	 * of 'failed'.
-	 * Interested party can wait on pid and learn exit code.
-	 * If 111 - then it (most probably) failed to exec */
-	if (failed) {
-		safe_waitpid(pid, NULL, 0); /* prevent zombie */
-		errno = failed;
-		return -1;
-	}
-	return pid;
-}
-
-/* Die with an error message if we can't spawn a child process. */
-pid_t FAST_FUNC xspawn(char **argv)
-{
-	pid_t pid = spawn(argv);
-	if (pid < 0)
-		bb_simple_perror_msg_and_die(*argv);
-	return pid;
-}
-
+/*
+ * NOFORK support
+ */
 #if ENABLE_FEATURE_PREFER_APPLETS \
  || ENABLE_FEATURE_SH_NOFORK
 static jmp_buf die_jmp;
@@ -127,10 +78,10 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 	 * reset the libc getopt() function, which keeps internal state.
 	 */
 	GETOPT_RESET();
+//?	applet_long_options = NULL;
+//?	opt_complementary = NULL;
 
-	argc = 1;
-	while (argv[argc])
-		argc++;
+	argc = string_array_len(argv);
 
 	/* If xfunc "dies" in NOFORK applet, die_func longjmp's here instead */
 	die_func = jump;
@@ -153,11 +104,16 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 	restore_nofork_data(&old);
 	/* Other globals can be simply reset to defaults */
 	GETOPT_RESET();
+//?	applet_long_options = NULL;
+//?	opt_complementary = NULL;
 
 	return rc & 0xff; /* don't confuse people with "exitcodes" >255 */
 }
 #endif /* FEATURE_PREFER_APPLETS || FEATURE_SH_NOFORK */
 
+/*
+ * NOEXEC support
+ */
 #if (NUM_APPLETS > 1) && (ENABLE_FEATURE_PREFER_APPLETS || ENABLE_FEATURE_SH_STANDALONE)
 void FAST_FUNC run_noexec_applet_and_exit(int a, const char *name, char **argv)
 {
@@ -167,16 +123,73 @@ void FAST_FUNC run_noexec_applet_and_exit(int a, const char *name, char **argv)
 	xfunc_error_retval = EXIT_FAILURE;
 	die_func = NULL;
 	GETOPT_RESET();
+//?	applet_long_options = NULL;
+//?	opt_complementary = NULL;
 
 //TODO: think pidof, pgrep, pkill!
 //set_task_comm() makes our pidof find NOEXECs (e.g. "yes >/dev/null"),
 //but one from procps-ng-3.3.10 needs more!
 //Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
 	set_task_comm(name);
-	/* xfunc_error_retval and applet_name are init by: */
+	/* applet_name is set by this function: */
 	run_applet_no_and_exit(a, name, argv);
 }
 #endif
+
+/*
+ * Higher-level code, hiding optional NOFORK/NOEXEC trickery.
+ */
+
+/* This does a fork/exec in one call, using vfork().  Returns PID of new child,
+ * -1 for failure.  Runs argv[0], searching path if that has no / in it. */
+pid_t FAST_FUNC spawn(char **argv)
+{
+	/* Compiler should not optimize stores here */
+	volatile int failed;
+	pid_t pid;
+
+	fflush_all();
+
+	/* Be nice to nommu machines. */
+	failed = 0;
+	pid = vfork();
+	if (pid < 0) /* error */
+		return pid;
+	if (!pid) { /* child */
+		/* This macro is ok - it doesn't do NOEXEC/NOFORK tricks */
+		BB_EXECVP(argv[0], argv);
+
+		/* We are (maybe) sharing a stack with blocked parent,
+		 * let parent know we failed and then exit to unblock parent
+		 * (but don't run atexit() stuff, which would screw up parent.)
+		 */
+		failed = errno;
+		/* mount, for example, does not want the message */
+		/*bb_perror_msg("can't execute '%s'", argv[0]);*/
+		_exit(111);
+	}
+	/* parent */
+	/* Unfortunately, this is not reliable: according to standards
+	 * vfork() can be equivalent to fork() and we won't see value
+	 * of 'failed'.
+	 * Interested party can wait on pid and learn exit code.
+	 * If 111 - then it (most probably) failed to exec */
+	if (failed) {
+		safe_waitpid(pid, NULL, 0); /* prevent zombie */
+		errno = failed;
+		return -1;
+	}
+	return pid;
+}
+
+/* Die with an error message if we can't spawn a child process. */
+pid_t FAST_FUNC xspawn(char **argv)
+{
+	pid_t pid = spawn(argv);
+	if (pid < 0)
+		bb_simple_perror_msg_and_die(*argv);
+	return pid;
+}
 
 int FAST_FUNC spawn_and_wait(char **argv)
 {

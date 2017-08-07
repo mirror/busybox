@@ -124,7 +124,7 @@ fatattr - noexec. leaks: open+xioctl, complex
 fbset - hardware, leaks: open+xfunc
 fbsplash - runner, longterm
 fdflush - hardware, leaks: open+ioctl_or_perror_and_die
-fdformat - hardware, needs ^C (floppy may be unresponsive), longterm
+fdformat - hardware, longterm
 fdisk - interactive, longterm
 fgconsole - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 fgrep - longterm runner ("CMD | fgrep ..."  may run indefinitely, better to exec to conserve memory)
@@ -413,7 +413,7 @@ wget - longterm
 which - NOFORK
 who - noexec. nofork candidate(is getutxent ok?)
 whoami - NOFORK
-whois - needs ^C
+whois - talks to network
 xargs - noexec. spawner
 xxd - noexec. runner
 xz - runner
