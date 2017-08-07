@@ -175,6 +175,8 @@ int FAST_FUNC spawn_and_wait(char **argv)
 				return wait4pid(rc);
 
 			/* child */
+//TODO: prctl(PR_SET_NAME, (long)argv[0], 0, 0, 0);? [think pidof, pgrep, pkill]
+//Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
 			/* reset some state and run without execing */
 
 			/* msg_eol = "\n"; - no caller needs this reinited yet */

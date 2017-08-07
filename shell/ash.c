@@ -7803,6 +7803,8 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) const char *cmd, char **argv, c
 			while (*envp)
 				putenv(*envp++);
 			popredir(/*drop:*/ 1);
+//TODO: prctl(PR_SET_NAME, (long)argv[0], 0, 0, 0);? [think pidof, pgrep, pkill]
+//Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
 			run_applet_no_and_exit(applet_no, cmd, argv);
 		}
 		/* re-exec ourselves with the new arguments */

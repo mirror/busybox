@@ -7387,6 +7387,8 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 				/* Without this, "rm -i FILE" can't be ^C'ed: */
 				switch_off_special_sigs(G.special_sig_mask);
 				debug_printf_exec("running applet '%s'\n", argv[0]);
+//TODO: prctl(PR_SET_NAME, (long)argv[0], 0, 0, 0);? [think pidof, pgrep, pkill]
+//Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
 				run_applet_no_and_exit(a, argv[0], argv);
 			}
 # endif

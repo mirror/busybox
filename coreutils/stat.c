@@ -36,7 +36,7 @@
 //config:	Without this, stat will not support the '-f' option to display
 //config:	information about filesystem status.
 
-//applet:IF_STAT(APPLET(stat, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_STAT(APPLET_NOEXEC(stat, stat, BB_DIR_BIN, BB_SUID_DROP, stat))
 
 //kbuild:lib-$(CONFIG_STAT) += stat.o
 

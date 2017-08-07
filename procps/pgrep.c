@@ -18,9 +18,13 @@
 //config:	help
 //config:	Send signals to processes by name.
 
-//applet:IF_PGREP(APPLET(pgrep, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_PGREP(APPLET_ODDNAME(pgrep, pgrep, BB_DIR_USR_BIN, BB_SUID_DROP, pgrep))
 //                APPLET_ODDNAME:name   main   location        suid_type     help
 //applet:IF_PKILL(APPLET_ODDNAME(pkill, pgrep, BB_DIR_USR_BIN, BB_SUID_DROP, pkill))
+/* can't be noexec: can find _itself_ under wrong name, since after fork only,
+ * /proc/PID/cmdline and comm are wrong! Can fix comm (prctl(PR_SET_NAME)),
+ * but cmdline?
+ */
 
 //kbuild:lib-$(CONFIG_PGREP) += pgrep.o
 //kbuild:lib-$(CONFIG_PKILL) += pgrep.o
