@@ -12,8 +12,10 @@
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
-//config:	This program redirects the system console to another device,
+//config:	Redirect writes to /dev/console to another device,
 //config:	like the current tty while logged in via telnet.
+//config:	This does not redirect kernel log, only writes
+//config:	from user space.
 //config:
 //config:config FEATURE_SETCONSOLE_LONG_OPTIONS
 //config:	bool "Enable long options"
@@ -27,8 +29,10 @@
 //usage:#define setconsole_trivial_usage
 //usage:       "[-r] [DEVICE]"
 //usage:#define setconsole_full_usage "\n\n"
-//usage:       "Redirect system console output to DEVICE (default: /dev/tty)\n"
-//usage:     "\n	-r	Reset output to /dev/console"
+//usage:       "Make writes to /dev/console appear on DEVICE (default: /dev/tty)."
+//usage:   "\n""Does not redirect kernel log output or reads from /dev/console."
+//usage:   "\n"
+//usage:   "\n""	-r	Reset: writes to /dev/console go to kernel log tty(s)"
 
 /* It was a bbox-specific invention, but SUSE does have a similar utility.
  * SUSE has no -r option, though.
@@ -40,7 +44,7 @@ int setconsole_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setconsole_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *device = CURRENT_TTY;
-	bool reset;
+	int reset;
 
 	/* at most one non-option argument */
 	opt_complementary = "?1";
@@ -54,6 +58,9 @@ int setconsole_main(int argc UNUSED_PARAM, char **argv)
 			device = DEV_CONSOLE;
 	}
 
+//TODO: fails if TIOCCONS redir is already active to some tty.
+//I think SUSE version first does TIOCCONS on /dev/console fd (iow: resets)
+//then TIOCCONS to new tty?
 	xioctl(xopen(device, O_WRONLY), TIOCCONS, NULL);
 	return EXIT_SUCCESS;
 }
