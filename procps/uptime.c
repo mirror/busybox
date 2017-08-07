@@ -27,7 +27,7 @@
 //config:	help
 //config:	Display the number of users currently logged on.
 
-//applet:IF_UPTIME(APPLET(uptime, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_UPTIME(APPLET_NOEXEC(uptime, uptime, BB_DIR_USR_BIN, BB_SUID_DROP, uptime))
 
 //kbuild:lib-$(CONFIG_UPTIME) += uptime.o
 

@@ -38,10 +38,10 @@
 //config:	help
 //config:	Print users currently logged on.
 
-//                APPLET_ODDNAME:name   main location        suid_type     help
-//applet:IF_USERS(APPLET_ODDNAME(users, who, BB_DIR_USR_BIN, BB_SUID_DROP, users))
-//applet:IF_W(    APPLET_ODDNAME(w,     who, BB_DIR_USR_BIN, BB_SUID_DROP, w))
-//applet:IF_WHO(  APPLET(        who,        BB_DIR_USR_BIN, BB_SUID_DROP))
+//                APPLET_NOEXEC:name   main location        suid_type     help
+//applet:IF_USERS(APPLET_NOEXEC(users, who, BB_DIR_USR_BIN, BB_SUID_DROP, users))
+//applet:IF_W(    APPLET_NOEXEC(w,     who, BB_DIR_USR_BIN, BB_SUID_DROP, w))
+//applet:IF_WHO(  APPLET_NOEXEC(who,   who, BB_DIR_USR_BIN, BB_SUID_DROP, who))
 
 //kbuild:lib-$(CONFIG_USERS) += who.o
 //kbuild:lib-$(CONFIG_W)     += who.o

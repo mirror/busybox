@@ -4,9 +4,9 @@ Why can't be NOFORK:
 interactive: may wait for user input, ^C has to work
 spawner: "tool PROG ARGS" which changes program state and execs - must fork
 changes state: e.g. environment, signal handlers
-alloc+xfunc: xmalloc, then xfunc - leaks memory if xfunc dies
-open+xfunc: opens fd, then calls xfunc - fd is leaked if xfunc dies
 leaks: does not free allocated memory or opened fds
+	alloc+xfunc: xmalloc, then xfunc - leaks memory if xfunc dies
+	open+xfunc: opens fd, then calls xfunc - fd is leaked if xfunc dies
 runner: sometimes may run for long(ish) time, and/or works with network:
 	^C has to work (cat BIGFILE, chmod -R, ftpget, nc)
 
@@ -25,6 +25,8 @@ longterm: often runs for a long time (many seconds), execing makes
 complex: no immediately obvious reason why NOFORK wouldn't work,
 	but does some non-obvoius operations (example: fuser, lsof, losetup);
 	detailed audit often turns out that it's a leaker
+hardware: performs unusual hardware ops which may take long,
+	or even hang due to hardware or firmware bugs
 
 Interesting example of "interactive" applet which is nevertheless can be
 (and is) NOEXEC is "rm". Yes, "rm -i" is interactive - but it's not that typical
@@ -42,8 +44,8 @@ adduser - noexec. leaks
 adjtimex - NOFORK
 ar - runner
 arch - NOFORK
-arp - complex, rare
-arping - runner
+arp - runner, needs ^C: arp -n talks to DNS servers
+arping - longterm
 ash - interactive, longterm
 awk - noexec. runner
 base64 - runner
@@ -87,7 +89,7 @@ dd - noexec. runner
 deallocvt - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 delgroup - noexec. leaks
 deluser - noexec. leaks
-depmod - complex, rare
+depmod - longterm(ish)
 devmem - runner, complex (access to device memory may hang)
 df - leaks: nested allocs
 dhcprelay - daemon
@@ -114,19 +116,19 @@ factor - runner (eats stdin if no params)
 fakeidentd - daemon
 false - NOFORK
 fatattr - leaks: open+xioctl, complex
-fbset - leaks: open+xfunc, complex, rare
+fbset - hardware, leaks: open+xfunc
 fbsplash - runner, longterm
-fdflush - leaks: open+ioctl_or_perror_and_die, needs ^C (floppy may be unresponsive), rare
-fdformat - needs ^C (floppy may be unresponsive), longterm, rare
+fdflush - hardware, leaks: open+ioctl_or_perror_and_die
+fdformat - hardware, needs ^C (floppy may be unresponsive), longterm
 fdisk - interactive, longterm
 fgconsole - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 fgrep - longterm runner ("CMD | fgrep ..."  may run indefinitely, better to exec to conserve memory)
 find - noexec. runner
 findfs - suid
-flash_eraseall - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
-flash_lock - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
-flash_unlock - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
-flashcp - needs ^C. could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
+flash_eraseall - hardware
+flash_lock - hardware
+flash_unlock - hardware
+flashcp - hardware
 flock - spawner, changes state (file locks), let's play safe and not be noexec
 fold - noexec. runner
 free - nofork candidate(struct globals, needs to close /proc/meminfo fd)
@@ -148,18 +150,18 @@ gunzip - runner
 gzip - runner
 halt - rare
 hd - noexec. runner
-hdparm - complex, rare
+hdparm - hardware
 head - noexec. runner
 hexdump - noexec. runner
 hostid - NOFORK
 hostname - needs ^C (may talk to DNS servers, which may be down)
 httpd - daemon
 hush - interactive, longterm
-hwclock - talks to hardware (xioctl(RTC_RD_TIME)) - needs ^C
-i2cdetect
-i2cdump
-i2cget
-i2cset
+hwclock - hardware (xioctl(RTC_RD_TIME))
+i2cdetect - hardware
+i2cdump - hardware
+i2cget - hardware
+i2cset - hardware
 id - noexec
 ifconfig - leaks: xsocket+ioctl_or_perror_and_die
 ifenslave - leaks: xsocket+bb_perror_msg_and_die
@@ -237,7 +239,7 @@ more - interactive, longterm
 mount - suid
 mountpoint - noexec. leaks: option -n "print dev name": find_block_device -> readdir+xstrdup
 mpstat - longterm: "mpstat 1" runs indefinitely
-mt - rare
+mt - hardware
 mv - noexec candidate, runner
 nameif - noexec. openlog(), leaks: config_open2+ioctl_or_perror_and_die
 nbd-client - noexec
@@ -257,8 +259,8 @@ paste - noexec. runner
 patch - needs ^C
 pgrep - nofork candidate(xregcomp, procps_scan - are they ok?)
 pidof - nofork candidate(uses find_pid_by_name, is that ok?)
-ping - suid, runner
-ping6 - suid, runner
+ping - suid, longterm
+ping6 - suid, longterm
 pipe_progress - longterm
 pivot_root - NOFORK
 pkill - nofork candidate(xregcomp, procps_scan - are they ok?)
@@ -282,7 +284,7 @@ realpath - NOFORK
 reboot - rare
 reformime - runner
 remove-shell - noexec. leaks: open+xfunc
-renice - nofork candidate(uses getpwnam, is that ok?)
+renice - noexec. nofork candidate(uses getpwnam, is that ok?)
 reset - noexec. spawner (execs "stty")
 resize - noexec. changes state (signal handlers)
 rev - runner
@@ -358,21 +360,21 @@ timeout - spawner, longterm, changes state (signals)
 top - interactive, longterm
 touch - NOFORK
 tr - runner
-traceroute - suid, runner
-traceroute6 - suid, runner
+traceroute - suid, longterm
+traceroute6 - suid, longterm
 true - NOFORK
 truncate - NOFORK
 tty - NOFORK
 ttysize - NOFORK
 tunctl - noexec
 tune2fs - noexec. leaks: open+xfunc
-ubiattach - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
-ubidetach - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
-ubimkvol - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
-ubirename - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
-ubirmvol - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
-ubirsvol - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
-ubiupdatevol - could be noexec, but I feel flash ops are risky (prone to hw/fw/sw bugs)
+ubiattach - hardware
+ubidetach - hardware
+ubimkvol - hardware
+ubirename - hardware
+ubirmvol - hardware
+ubirsvol - hardware
+ubiupdatevol - hardware
 udhcpc - daemon
 udhcpd - daemon
 udpsvd - daemon
@@ -388,8 +390,8 @@ unlzma - runner
 unlzop - runner
 unxz - runner
 unzip - runner
-uptime - nofork candidate(is getutxent ok?)
-users - nofork candidate(is getutxent ok?)
+uptime - noexec. nofork candidate(is getutxent ok?)
+users - noexec. nofork candidate(is getutxent ok?)
 usleep - NOFORK
 uudecode - runner
 uuencode - runner
@@ -397,14 +399,14 @@ vconfig - leaks: xsocket+ioctl_or_perror_and_die
 vi - interactive, longterm
 vlock - suid
 volname - runner
-w - nofork candidate(is getutxent ok?)
+w - noexec. nofork candidate(is getutxent ok?)
 wall - suid
 watch - longterm
 watchdog - daemon
 wc - runner
 wget - longterm
 which - NOFORK
-who - nofork candidate(is getutxent ok?)
+who - noexec. nofork candidate(is getutxent ok?)
 whoami - NOFORK
 whois - needs ^C
 xargs - noexec. spawner

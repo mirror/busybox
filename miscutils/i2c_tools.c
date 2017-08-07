@@ -42,6 +42,7 @@
 //applet:IF_I2CSET(APPLET(i2cset, BB_DIR_USR_SBIN, BB_SUID_DROP))
 //applet:IF_I2CDUMP(APPLET(i2cdump, BB_DIR_USR_SBIN, BB_SUID_DROP))
 //applet:IF_I2CDETECT(APPLET(i2cdetect, BB_DIR_USR_SBIN, BB_SUID_DROP))
+/* not NOEXEC: if hw operation stalls, use less memory in "hung" process */
 
 //kbuild:lib-$(CONFIG_I2CGET) += i2c_tools.o
 //kbuild:lib-$(CONFIG_I2CSET) += i2c_tools.o

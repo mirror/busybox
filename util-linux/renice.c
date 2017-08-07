@@ -25,7 +25,7 @@
 //config:	Renice alters the scheduling priority of one or more running
 //config:	processes.
 
-//applet:IF_RENICE(APPLET(renice, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_RENICE(APPLET_NOEXEC(renice, renice, BB_DIR_USR_BIN, BB_SUID_DROP, renice))
 
 //kbuild:lib-$(CONFIG_RENICE) += renice.o
 
