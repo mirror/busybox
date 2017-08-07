@@ -117,7 +117,7 @@ expr - leaks: nested allocs
 factor - runner (eats stdin if no params)
 fakeidentd - daemon
 false - NOFORK
-fatattr - leaks: open+xioctl, complex
+fatattr - noexec. leaks: open+xioctl, complex
 fbset - hardware, leaks: open+xfunc
 fbsplash - runner, longterm
 fdflush - hardware, leaks: open+ioctl_or_perror_and_die
