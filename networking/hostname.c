@@ -22,9 +22,9 @@
 //config:	help
 //config:	Alias to "hostname -d".
 
-//                        APPLET_ODDNAME:name           main      location    suid_type     help
-//applet:IF_DNSDOMAINNAME(APPLET_ODDNAME(dnsdomainname, hostname, BB_DIR_BIN, BB_SUID_DROP, dnsdomainname))
-//applet:IF_HOSTNAME(APPLET(hostname, BB_DIR_BIN, BB_SUID_DROP))
+//                        APPLET_NOEXEC:name           main      location    suid_type     help
+//applet:IF_DNSDOMAINNAME(APPLET_NOEXEC(dnsdomainname, hostname, BB_DIR_BIN, BB_SUID_DROP, dnsdomainname))
+//applet:IF_HOSTNAME(     APPLET_NOEXEC(hostname,      hostname, BB_DIR_BIN, BB_SUID_DROP, hostname     ))
 
 //kbuild: lib-$(CONFIG_HOSTNAME) += hostname.o
 //kbuild: lib-$(CONFIG_DNSDOMAINNAME) += hostname.o

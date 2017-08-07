@@ -99,7 +99,7 @@ diff - runner
 dirname - NOFORK
 dmesg - runner
 dnsd - daemon
-dnsdomainname - needs ^C (may talk to DNS servers, which may be down)
+dnsdomainname - noexec. needs ^C (may talk to DNS servers, which may be down)
 dos2unix - noexec. runner
 dpkg - runner
 du - runner
@@ -156,7 +156,7 @@ hdparm - hardware
 head - noexec. runner
 hexdump - noexec. runner
 hostid - NOFORK
-hostname - needs ^C (may talk to DNS servers, which may be down)
+hostname - noexec. needs ^C (may talk to DNS servers, which may be down)
 httpd - daemon
 hush - interactive, longterm
 hwclock - hardware (xioctl(RTC_RD_TIME))
