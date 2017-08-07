@@ -298,7 +298,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	} else
 
 //usage:#define ubiupdatevol_trivial_usage
-//usage:       "[-t | [-s SIZE] IMG_FILE] UBI_DEVICE"
+//usage:       "-t UBI_DEVICE | [-s SIZE] UBI_DEVICE IMG_FILE"
 //usage:#define ubiupdatevol_full_usage "\n\n"
 //usage:       "Update UBI volume\n"
 //usage:     "\n	-t	Truncate to zero size"
@@ -313,7 +313,6 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 			xioctl(fd, UBI_IOCVOLUP, &bytes64);
 		}
 		else {
-			struct stat st;
 			unsigned ubinum, volnum;
 			unsigned leb_size;
 			ssize_t len;
@@ -327,12 +326,15 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 			sprintf(path_sys_class_ubi_ubi, "%u_%u/usable_eb_size", ubinum, volnum);
 			leb_size = get_num_from_file(path, MAX_SANE_ERASEBLOCK, "Can't get usable eraseblock size from '%s'");
 
-			if (!(opts & OPTION_s)) {
+			if (!(opts & OPTION_t)) {
 				if (!*argv)
 					bb_show_usage();
 				xmove_fd(xopen(*argv, O_RDONLY), STDIN_FILENO);
-				xfstat(STDIN_FILENO, &st, *argv);
-				size_bytes = st.st_size;
+				if (!(opts & OPTION_s)) {
+					struct stat st;
+					xfstat(STDIN_FILENO, &st, *argv);
+					size_bytes = st.st_size;
+				}
 			}
 
 			bytes64 = size_bytes;
