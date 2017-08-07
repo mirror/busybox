@@ -7,6 +7,9 @@ changes state: e.g. environment, signal handlers
 leaks: does not free allocated memory or opened fds
 	alloc+xfunc: xmalloc, then xfunc - leaks memory if xfunc dies
 	open+xfunc: opens fd, then calls xfunc - fd is leaked if xfunc dies
+talks to network/serial/etc: it's not known how long the delay can be,
+	it's reasonable to expect it might be many seconds
+	(even if usually it is not), so ^C has to work
 runner: sometimes may run for long(ish) time, and/or works with network:
 	^C has to work (cat BIGFILE, chmod -R, ftpget, nc)
 
@@ -46,7 +49,7 @@ adduser - noexec. leaks
 adjtimex - NOFORK
 ar - runner
 arch - NOFORK
-arp - runner, needs ^C: arp -n talks to DNS servers
+arp - talks to network: arp -n queries DNS
 arping - longterm
 ash - interactive, longterm
 awk - noexec. runner
@@ -62,13 +65,13 @@ bunzip2 - runner
 bzcat - runner
 bzip2 - runner
 cal - runner: cal -n9999
-cat - runner
-chat - needs ^C to work
+cat - runner: cat HUGEFILE
+chat - longterm (when used as intended - talking to modem over stdin/out)
 chattr - noexec. runner
 chgrp - noexec. runner
 chmod - noexec. runner
 chown - noexec. runner
-chpasswd - longterm (list of "user:password"s from stdin)
+chpasswd - longterm? (list of "user:password"s from stdin)
 chpst - noexec. spawner
 chroot - noexec. spawner
 chrt - noexec. spawner
@@ -99,7 +102,7 @@ diff - runner
 dirname - NOFORK
 dmesg - runner
 dnsd - daemon
-dnsdomainname - noexec. needs ^C (may talk to DNS servers, which may be down)
+dnsdomainname - noexec. talks to network (may query DNS)
 dos2unix - noexec. runner
 dpkg - runner
 du - runner
@@ -156,7 +159,7 @@ hdparm - hardware
 head - noexec. runner
 hexdump - noexec. runner
 hostid - NOFORK
-hostname - noexec. needs ^C (may talk to DNS servers, which may be down)
+hostname - noexec. talks to network (hostname -d may query DNS)
 httpd - daemon
 hush - interactive, longterm
 hwclock - hardware (xioctl(RTC_RD_TIME))
@@ -177,7 +180,7 @@ ionice - noexec. spawner
 iostat - longterm: "iostat 1" runs indefinitely
 ip - noexec candidate
 ipaddr - noexec candidate
-ipcalc - noexec candidate
+ipcalc - noexec. ipcalc -h talks to network
 ipcrm - noexec candidate
 ipcs - noexec candidate
 iplink - noexec candidate
@@ -278,8 +281,8 @@ pstree - noexec
 pwd - NOFORK
 pwdx - NOFORK
 raidautorun - noexec. very simple. leaks: open+xioctl
-rdate - needs ^C (may talk to DNS servers, which may be down)
-rdev - leaks: find_block_device -> readdir+xstrdup
+rdate - talks to network
+rdev - noexec. leaks: find_block_device -> readdir+xstrdup
 readlink - NOFORK
 readprofile - reads /boot/System.map and /proc/profile, better to free more memory by execing?
 realpath - NOFORK
@@ -293,7 +296,7 @@ rev - runner
 rm - noexec. rm -i interactive
 rmdir - NOFORK
 rmmod - noexec
-route - needs ^C (may talk to DNS servers, which may be down)
+route - talks to network (may query DNS to convert IPs to names)
 rpm - runner
 rpm2cpio - runner
 rtcwake - longterm: puts system to sleep, optimizing this for speed is pointless

@@ -31,7 +31,7 @@
 //config:	Adds the options hostname, prefix and silent to the output of
 //config:	"ipcalc".
 
-//applet:IF_IPCALC(APPLET(ipcalc, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_IPCALC(APPLET_NOEXEC(ipcalc, ipcalc, BB_DIR_BIN, BB_SUID_DROP, ipcalc))
 
 //kbuild:lib-$(CONFIG_IPCALC) += ipcalc.o
 

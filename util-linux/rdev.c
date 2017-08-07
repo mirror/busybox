@@ -14,7 +14,7 @@
 //config:	help
 //config:	Print the device node associated with the filesystem mounted at '/'.
 
-//applet:IF_RDEV(APPLET(rdev, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_RDEV(APPLET_NOEXEC(rdev, rdev, BB_DIR_USR_SBIN, BB_SUID_DROP, rdev))
 
 //kbuild:lib-$(CONFIG_RDEV) += rdev.o
 
