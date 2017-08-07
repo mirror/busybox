@@ -924,8 +924,6 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **ar
 {
 	int argc = string_array_len(argv);
 
-	/* Reinit some shared global data */
-	xfunc_error_retval = EXIT_FAILURE;
 	/*
 	 * We do not use argv[0]: do not want to repeat massaging of
 	 * "-/sbin/halt" -> "halt", for example.

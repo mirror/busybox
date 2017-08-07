@@ -158,6 +158,26 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 }
 #endif /* FEATURE_PREFER_APPLETS || FEATURE_SH_NOFORK */
 
+#if (NUM_APPLETS > 1) && (ENABLE_FEATURE_PREFER_APPLETS || ENABLE_FEATURE_SH_STANDALONE)
+void FAST_FUNC run_noexec_applet_and_exit(int a, const char *name, char **argv)
+{
+	/* reset some state and run without execing */
+	/* msg_eol = "\n"; - no caller needs this reinited yet */
+	logmode = LOGMODE_STDIO;
+	xfunc_error_retval = EXIT_FAILURE;
+	die_func = NULL;
+	GETOPT_RESET();
+
+//TODO: think pidof, pgrep, pkill!
+//set_task_comm() makes our pidof find NOEXECs (e.g. "yes >/dev/null"),
+//but one from procps-ng-3.3.10 needs more!
+//Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
+	set_task_comm(name);
+	/* xfunc_error_retval and applet_name are init by: */
+	run_applet_no_and_exit(a, name, argv);
+}
+#endif
+
 int FAST_FUNC spawn_and_wait(char **argv)
 {
 	int rc;
@@ -175,22 +195,7 @@ int FAST_FUNC spawn_and_wait(char **argv)
 				return wait4pid(rc);
 
 			/* child */
-			/* reset some state and run without execing */
-			GETOPT_RESET();
-
-			/* msg_eol = "\n"; - no caller needs this reinited yet */
-			logmode = LOGMODE_STDIO;
-			/* die_func = NULL; - needed if the caller is a shell,
-			 * init, or a NOFORK applet. But none of those call us
-			 * as of yet (and that should probably always stay true).
-			 */
-//TODO: think pidof, pgrep, pkill!
-//set_task_comm() makes our pidof find NOEXECs (e.g. "yes >/dev/null"),
-//but one from procps-ng-3.3.10 needs more!
-//Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
-			set_task_comm(argv[0]);
-			/* xfunc_error_retval and applet_name are init by: */
-			run_applet_no_and_exit(a, argv[0], argv);
+			run_noexec_applet_and_exit(a, argv[0], argv);
 		}
 # endif
 	}

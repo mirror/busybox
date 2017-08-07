@@ -1112,9 +1112,10 @@ int wait_for_exitstatus(pid_t pid) FAST_FUNC;
 int spawn_and_wait(char **argv) FAST_FUNC;
 /* Does NOT check that applet is NOFORK, just blindly runs it */
 int run_nofork_applet(int applet_no, char **argv) FAST_FUNC;
+void run_noexec_applet_and_exit(int a, const char *name, char **argv) NORETURN FAST_FUNC;
 #ifndef BUILD_INDIVIDUAL
-extern int find_applet_by_name(const char *name) FAST_FUNC;
-extern void run_applet_no_and_exit(int a, const char *name, char **argv) NORETURN FAST_FUNC;
+int find_applet_by_name(const char *name) FAST_FUNC;
+void run_applet_no_and_exit(int a, const char *name, char **argv) NORETURN FAST_FUNC;
 #endif
 #if defined(__linux__)
 void set_task_comm(const char *comm) FAST_FUNC;

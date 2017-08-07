@@ -7386,14 +7386,8 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 //FIXME: should also close saved redir fds
 				/* Without this, "rm -i FILE" can't be ^C'ed: */
 				switch_off_special_sigs(G.special_sig_mask);
-				GETOPT_RESET();
-//TODO: think pidof, pgrep, pkill!
-//set_task_comm() makes our pidof find NOEXECs (e.g. "yes >/dev/null"),
-//but one from procps-ng-3.3.10 needs more!
-//Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
-				set_task_comm(argv[0]);
 				debug_printf_exec("running applet '%s'\n", argv[0]);
-				run_applet_no_and_exit(a, argv[0], argv);
+				run_noexec_applet_and_exit(a, argv[0], argv);
 			}
 # endif
 			/* Re-exec ourselves */
