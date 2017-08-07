@@ -105,7 +105,7 @@
 //config:	Userspace application to bind several interfaces
 //config:	to a logical interface (use with kernel bonding driver).
 
-//applet:IF_IFENSLAVE(APPLET(ifenslave, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_IFENSLAVE(APPLET_NOEXEC(ifenslave, ifenslave, BB_DIR_SBIN, BB_SUID_DROP, ifenslave))
 
 //kbuild:lib-$(CONFIG_IFENSLAVE) += ifenslave.o interface.o
 
