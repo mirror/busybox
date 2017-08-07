@@ -113,10 +113,10 @@
 //usage:       "[-cdf] MASTER_IFACE SLAVE_IFACE..."
 //usage:#define ifenslave_full_usage "\n\n"
 //usage:       "Configure network interfaces for parallel routing\n"
-//usage:     "\n	-c,--change-active	Change active slave"
-//usage:     "\n	-d,--detach		Remove slave interface from bonding device"
-//usage:     "\n	-f,--force		Force, even if interface is not Ethernet"
-/* //usage:  "\n	-r,--receive-slave	Create a receive-only slave" */
+//usage:     "\n	-c	Change active slave"
+//usage:     "\n	-d	Remove slave interface from bonding device"
+//usage:     "\n	-f	Force, even if interface is not Ethernet"
+/* //usage:  "\n	-r	Create a receive-only slave" */
 //usage:
 //usage:#define ifenslave_example_usage
 //usage:       "To create a bond device, simply follow these three steps:\n"
