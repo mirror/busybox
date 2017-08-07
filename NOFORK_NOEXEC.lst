@@ -134,7 +134,7 @@ flashcp - hardware
 flock - spawner, changes state (file locks), let's play safe and not be noexec
 fold - noexec. runner
 free - noexec. nofork candidate(struct globals, needs to close /proc/meminfo fd)
-freeramdisk - leaks: open+ioctl_or_perror_and_die
+freeramdisk - noexec. leaks: open+ioctl_or_perror_and_die
 fsck - interactive, longterm
 fsck.minix - needs ^C
 fsfreeze - noexec. leaks: open+xioctl
