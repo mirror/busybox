@@ -68,8 +68,8 @@
 //applet:IF_SED(APPLET(sed, BB_DIR_BIN, BB_SUID_DROP))
 
 //usage:#define sed_trivial_usage
-//usage:       "[-inrE] [-f FILE]... [-e CMD]... [FILE]...\n"
-//usage:       "or: sed [-inrE] CMD [FILE]..."
+//usage:       "[-i[SFX]] [-nrE] [-f FILE]... [-e CMD]... [FILE]...\n"
+//usage:       "or: sed [-i[SFX]] [-nrE] CMD [FILE]..."
 //usage:#define sed_full_usage "\n\n"
 //usage:       "	-e CMD	Add CMD to sed commands to be executed"
 //usage:     "\n	-f FILE	Add FILE contents to sed commands to be executed"

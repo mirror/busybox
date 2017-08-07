@@ -21,16 +21,17 @@
 //kbuild:lib-$(CONFIG_SCRIPT) += script.o
 
 //usage:#define script_trivial_usage
-//usage:       "[-afqt] [-c PROG] [OUTFILE]"
+//usage:       "[-afq] [-t[FILE]] [-c PROG] [OUTFILE]"
 //usage:#define script_full_usage "\n\n"
-//usage:       "	-a	Append output"
+//usage:       "Default OUTFILE is 'typescript'"
+//usage:     "\n"
+//usage:     "\n	-a	Append output"
 //usage:     "\n	-c PROG	Run PROG, not shell"
 //usage:     "\n	-f	Flush output after each write"
 //usage:     "\n	-q	Quiet"
-//usage:     "\n	-t	Send timing to stderr"
+//usage:     "\n	-t[FILE] Send timing to stderr or FILE"
 
 //util-linux-2.28:
-//-t[FILE]
 //-e: return exit code of the child
 
 //FYI (reported as bbox bug #2749):
@@ -54,6 +55,8 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 	char pty_line[GETPTY_BUFSIZE];
 	struct termios tt, rtt;
 	struct winsize win;
+	FILE *timing_fp;
+	const char *str_t = NULL;
 	const char *fname = "typescript";
 	const char *shell;
 	char shell_opt[] = "-i";
@@ -72,14 +75,14 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		"command\0" Required_argument "c"
 		"flush\0"   No_argument       "f"
 		"quiet\0"   No_argument       "q"
-		"timing\0"  No_argument       "t"
+		"timing\0"  Optional_argument "t"
 		;
 
 	applet_long_options = getopt_longopts;
 #endif
 
 	opt_complementary = "?1"; /* max one arg */
-	opt = getopt32(argv, "ac:fqt", &shell_arg);
+	opt = getopt32(argv, "ac:fqt::", &shell_arg, &str_t);
 	//argc -= optind;
 	argv += optind;
 	if (argv[0]) {
@@ -94,6 +97,10 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 	}
 	if (!(opt & OPT_q)) {
 		printf("Script started, file is %s\n", fname);
+	}
+	timing_fp = stderr;
+	if (str_t) {
+		timing_fp = xfopen_for_write(str_t);
 	}
 
 	shell = get_shell_name();
@@ -130,6 +137,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		int outfd, count, loop;
 		double oldtime = time(NULL);
 		smallint fd_count = 2;
+
 #define buf bb_common_bufsiz1
 		setup_common_bufsiz();
 
@@ -165,7 +173,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 
 						gettimeofday(&tv, NULL);
 						newtime = tv.tv_sec + (double) tv.tv_usec / 1000000;
-						fprintf(stderr, "%f %u\n", newtime - oldtime, count);
+						fprintf(timing_fp, "%f %u\n", newtime - oldtime, count);
 						oldtime = newtime;
 					}
 					full_write(STDOUT_FILENO, buf, count);
