@@ -55,7 +55,6 @@ blockdev - noexec. leaks fd
 bootchartd - daemon
 brctl - noexec
 bunzip2 - runner
-busybox
 bzcat - runner
 bzip2 - runner
 cal - runner: cal -n9999

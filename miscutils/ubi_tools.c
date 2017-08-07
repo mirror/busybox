@@ -67,12 +67,21 @@
 #endif
 #include <mtd/ubi-user.h>
 
-#define do_attach (ENABLE_UBIATTACH && applet_name[3] == 'a')
-#define do_detach (ENABLE_UBIDETACH && applet_name[3] == 'd')
-#define do_mkvol  (ENABLE_UBIMKVOL  && applet_name[3] == 'm')
-#define do_rmvol  (ENABLE_UBIRMVOL  && applet_name[4] == 'm')
-#define do_rsvol  (ENABLE_UBIRSVOL  && applet_name[4] == 's')
-#define do_update (ENABLE_UBIUPDATEVOL && applet_name[3] == 'u')
+#define UBI_APPLET_CNT (0 \
+	+ ENABLE_UBIATTACH \
+	+ ENABLE_UBIDETACH \
+	+ ENABLE_UBIMKVOL \
+	+ ENABLE_UBIRMVOL \
+	+ ENABLE_UBIRSVOL \
+	+ ENABLE_UBIUPDATEVOL \
+	)
+
+#define do_attach (ENABLE_UBIATTACH    && (UBI_APPLET_CNT == 1 || applet_name[4] == 't'))
+#define do_detach (ENABLE_UBIDETACH    && (UBI_APPLET_CNT == 1 || applet_name[4] == 'e'))
+#define do_mkvol  (ENABLE_UBIMKVOL     && (UBI_APPLET_CNT == 1 || applet_name[4] == 'k'))
+#define do_rmvol  (ENABLE_UBIRMVOL     && (UBI_APPLET_CNT == 1 || applet_name[4] == 'm'))
+#define do_rsvol  (ENABLE_UBIRSVOL     && (UBI_APPLET_CNT == 1 || applet_name[4] == 's'))
+#define do_update (ENABLE_UBIUPDATEVOL && (UBI_APPLET_CNT == 1 || applet_name[4] == 'p'))
 
 static unsigned get_num_from_file(const char *path, unsigned max, const char *errmsg)
 {
