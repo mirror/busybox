@@ -15,9 +15,9 @@
 //config:	file or block device, and to query the status of a loop device. This
 //config:	version does not currently support enabling data encryption.
 
-//kbuild:lib-$(CONFIG_LOSETUP) += losetup.o
+//applet:IF_LOSETUP(APPLET_NOEXEC(losetup, losetup, BB_DIR_SBIN, BB_SUID_DROP, losetup))
 
-//applet:IF_LOSETUP(APPLET(losetup, BB_DIR_SBIN, BB_SUID_DROP))
+//kbuild:lib-$(CONFIG_LOSETUP) += losetup.o
 
 //usage:#define losetup_trivial_usage
 //usage:       "[-r] [-o OFS] {-f|LOOPDEV} FILE - associate loop devices\n"

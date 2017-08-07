@@ -165,8 +165,8 @@ i2cdump - hardware
 i2cget - hardware
 i2cset - hardware
 id - noexec
-ifconfig - leaks: xsocket+ioctl_or_perror_and_die
-ifenslave - leaks: xsocket+bb_perror_msg_and_die
+ifconfig - hardware? (mem_start NN io_addr NN irq NN), leaks: xsocket+ioctl_or_perror_and_die
+ifenslave - noexec. leaks: xsocket+bb_perror_msg_and_die
 ifplugd - daemon
 inetd - daemon
 init - daemon
@@ -202,7 +202,7 @@ loadkmap - noexec. leaks: get_console_fd_or_die() may open a new fd, or return o
 logger - runner
 login - suid, interactive, longterm
 logname - NOFORK
-losetup - complex
+losetup - noexec. complex
 lpd - daemon
 lpq - runner
 lpr - runner
@@ -400,7 +400,7 @@ uuencode - runner
 vconfig - leaks: xsocket+ioctl_or_perror_and_die
 vi - interactive, longterm
 vlock - suid
-volname - runner
+volname - hardware (reads CDROM, this can take long-ish if need to spin up)
 w - noexec. nofork candidate(is getutxent ok?)
 wall - suid
 watch - longterm
