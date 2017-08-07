@@ -7803,8 +7803,11 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) const char *cmd, char **argv, c
 			while (*envp)
 				putenv(*envp++);
 			popredir(/*drop:*/ 1);
-//TODO: prctl(PR_SET_NAME, (long)argv[0], 0, 0, 0);? [think pidof, pgrep, pkill]
+//TODO: think pidof, pgrep, pkill!
+//set_task_comm() makes our pidof find NOEXECs (e.g. "yes >/dev/null"),
+//but one from procps-ng-3.3.10 needs more!
 //Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
+			set_task_comm(argv[0]);
 			run_applet_no_and_exit(applet_no, cmd, argv);
 		}
 		/* re-exec ourselves with the new arguments */

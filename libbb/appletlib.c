@@ -911,6 +911,14 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 }
 # endif
 
+#if defined(__linux__) && (NUM_APPLETS > 1)
+void FAST_FUNC set_task_comm(const char *comm)
+{
+	/* okay if too long (truncates) */
+	prctl(PR_SET_NAME, (long)comm, 0, 0, 0);
+}
+#endif
+
 # if NUM_APPLETS > 0
 void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **argv)
 {
@@ -1064,15 +1072,14 @@ int main(int argc UNUSED_PARAM, char **argv)
 		applet_name++;
 	applet_name = bb_basename(applet_name);
 
-# if defined(__linux__)
 	/* If we are a result of execv("/proc/self/exe"), fix ugly comm of "exe" */
 	if (ENABLE_FEATURE_SH_STANDALONE
 	 || ENABLE_FEATURE_PREFER_APPLETS
 	 || !BB_MMU
 	) {
-		prctl(PR_SET_NAME, (long)applet_name, 0, 0, 0);
+		if (NUM_APPLETS > 1)
+			set_task_comm(applet_name);
 	}
-# endif
 
 	parse_config_file(); /* ...maybe, if FEATURE_SUID_CONFIG */
 	run_applet_and_exit(applet_name, argv);

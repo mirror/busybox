@@ -175,8 +175,6 @@ int FAST_FUNC spawn_and_wait(char **argv)
 				return wait4pid(rc);
 
 			/* child */
-//TODO: prctl(PR_SET_NAME, (long)argv[0], 0, 0, 0);? [think pidof, pgrep, pkill]
-//Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
 			/* reset some state and run without execing */
 
 			/* msg_eol = "\n"; - no caller needs this reinited yet */
@@ -185,6 +183,11 @@ int FAST_FUNC spawn_and_wait(char **argv)
 			 * init, or a NOFORK applet. But none of those call us
 			 * as of yet (and that should probably always stay true).
 			 */
+//TODO: think pidof, pgrep, pkill!
+//set_task_comm() makes our pidof find NOEXECs (e.g. "yes >/dev/null"),
+//but one from procps-ng-3.3.10 needs more!
+//Rewrite /proc/PID/cmdline? (need to save argv0 and length at init for this to work!)
+			set_task_comm(argv[0]);
 			/* xfunc_error_retval and applet_name are init by: */
 			run_applet_no_and_exit(a, argv[0], argv);
 		}
