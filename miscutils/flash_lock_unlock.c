@@ -20,6 +20,7 @@
 //                       APPLET_ODDNAME:name          main               location         suid_type     help
 //applet:IF_FLASH_LOCK(  APPLET_ODDNAME(flash_lock,   flash_lock_unlock, BB_DIR_USR_SBIN, BB_SUID_DROP, flash_lock))
 //applet:IF_FLASH_UNLOCK(APPLET_ODDNAME(flash_unlock, flash_lock_unlock, BB_DIR_USR_SBIN, BB_SUID_DROP, flash_unlock))
+/* not NOEXEC: if flash operation stalls, use less memory in "hung" process */
 
 //kbuild:lib-$(CONFIG_FLASH_LOCK) += flash_lock_unlock.o
 //kbuild:lib-$(CONFIG_FLASH_UNLOCK) += flash_lock_unlock.o

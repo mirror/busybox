@@ -14,6 +14,7 @@
 //config:	Utility to rename UBI volumes
 
 //applet:IF_UBIRENAME(APPLET(ubirename, BB_DIR_USR_SBIN, BB_SUID_DROP))
+/* not NOEXEC: if flash operation stalls, use less memory in "hung" process */
 
 //kbuild:lib-$(CONFIG_UBIRENAME) += ubirename.o
 
@@ -80,9 +81,12 @@ int ubirename_main(int argc, char **argv)
 	argv += 2;
 	while (argv[0]) {
 		rnvol->ents[n].vol_id = ubi_get_volid_by_name(ubi_devnum, argv[0]);
-		rnvol->ents[n].name_len = strlen(argv[1]);
+
+		/* strnlen avoids overflow of 16-bit field (paranoia) */
+		rnvol->ents[n].name_len = strnlen(argv[1], sizeof(rnvol->ents[n].name));
 		if (rnvol->ents[n].name_len >= sizeof(rnvol->ents[n].name))
 			bb_error_msg_and_die("new name '%s' is too long", argv[1]);
+
 		strcpy(rnvol->ents[n].name, argv[1]);
 		n++;
 		argv += 2;

@@ -17,6 +17,7 @@
 //config:	This utility is used to erase the whole MTD device.
 
 //applet:IF_FLASH_ERASEALL(APPLET(flash_eraseall, BB_DIR_USR_SBIN, BB_SUID_DROP))
+/* not NOEXEC: if flash operation stalls, use less memory in "hung" process */
 
 //kbuild:lib-$(CONFIG_FLASH_ERASEALL) += flash_eraseall.o
 

@@ -35,6 +35,7 @@ int FAST_FUNC ubi_get_volid_by_name(unsigned ubi_devnum, const char *vol_name)
 		if (open_read_close(fname, buf, sizeof(buf)) <= 0)
 			continue;
 
+		buf[UBI_MAX_VOLUME_NAME] = '\0';
 		strchrnul(buf, '\n')[0] = '\0';
 		if (strcmp(vol_name, buf) == 0)
 			return i;

@@ -14,6 +14,7 @@
 //config:	This utility is used to copy images into a MTD device.
 
 //applet:IF_FLASHCP(APPLET(flashcp, BB_DIR_USR_SBIN, BB_SUID_DROP))
+/* not NOEXEC: if flash operation stalls, use less memory in "hung" process */
 
 //kbuild:lib-$(CONFIG_FLASHCP) += flashcp.o
 
