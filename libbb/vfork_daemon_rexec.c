@@ -176,6 +176,7 @@ int FAST_FUNC spawn_and_wait(char **argv)
 
 			/* child */
 			/* reset some state and run without execing */
+			GETOPT_RESET();
 
 			/* msg_eol = "\n"; - no caller needs this reinited yet */
 			logmode = LOGMODE_STDIO;

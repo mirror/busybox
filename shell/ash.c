@@ -7803,6 +7803,7 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) const char *cmd, char **argv, c
 			while (*envp)
 				putenv(*envp++);
 			popredir(/*drop:*/ 1);
+			GETOPT_RESET();
 //TODO: think pidof, pgrep, pkill!
 //set_task_comm() makes our pidof find NOEXECs (e.g. "yes >/dev/null"),
 //but one from procps-ng-3.3.10 needs more!
