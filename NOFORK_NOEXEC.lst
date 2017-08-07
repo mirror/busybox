@@ -68,7 +68,7 @@ chattr - noexec. runner
 chgrp - noexec. runner
 chmod - noexec. runner
 chown - noexec. runner
-chpasswd - runner (list of "user:password"s from stdin)
+chpasswd - longterm (list of "user:password"s from stdin)
 chpst - noexec. spawner
 chroot - noexec. spawner
 chrt - noexec. spawner
@@ -86,7 +86,7 @@ cryptpw - noexec. changes state: with --password-fd=N, moves N to stdin
 cttyhack - noexec. spawner
 cut - noexec. runner
 date - noexec. nofork candidate(needs to stop messing up env, free xasprintf result, not use xfuncs after xasprintf)
-dc - runner (eats stdin if no params)
+dc - longterm (eats stdin if no params)
 dd - noexec. runner
 deallocvt - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
 delgroup - noexec. leaks
@@ -104,7 +104,7 @@ dos2unix - noexec. runner
 dpkg - runner
 du - runner
 dumpkmap - noexec. leaks: get_console_fd_or_die() may open a new fd, or return one of stdio fds
-dumpleases - leaks: open+xread
+dumpleases - noexec. leaks: open+xread
 echo - NOFORK
 ed - interactive, longterm
 egrep - longterm runner ("CMD | egrep ..."  may run indefinitely, better to exec to conserve memory)
@@ -114,7 +114,7 @@ envdir - noexec. spawner
 envuidgid - noexec. spawner
 expand - runner
 expr - noexec. leaks: nested allocs
-factor - runner (eats stdin if no params)
+factor - longterm (eats stdin if no params)
 fakeidentd - daemon
 false - NOFORK
 fatattr - noexec. leaks: open+xioctl, complex
