@@ -27,7 +27,8 @@
 //usage:     "\n"
 //usage:     "\n	-a	Append output"
 //usage:     "\n	-c PROG	Run PROG, not shell"
-//usage:     "\n	-f	Flush output after each write"
+/* Accepted but has no effect (we never buffer output) */
+/*//usage:     "\n	-f	Flush output after each write"*/
 //usage:     "\n	-q	Quiet"
 //usage:     "\n	-t[FILE] Send timing to stderr or FILE"
 
@@ -178,9 +179,10 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 					}
 					full_write(STDOUT_FILENO, buf, count);
 					full_write(outfd, buf, count);
-					if (opt & OPT_f) {
-						fsync(outfd);
-					}
+					// If we'd be using (buffered) FILE i/o, we'd need this:
+					//if (opt & OPT_f) {
+					//	fflush(outfd);
+					//}
 				}
 			}
 			if (pfd[1].revents) {
