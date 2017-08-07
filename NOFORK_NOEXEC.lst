@@ -108,12 +108,12 @@ dumpleases - leaks: open+xread
 echo - NOFORK
 ed - interactive, longterm
 egrep - longterm runner ("CMD | egrep ..."  may run indefinitely, better to exec to conserve memory)
-eject - leaks: open+ioctl_or_perror_and_die, changes state (moves fds)
+eject - hardware, leaks: open+ioctl_or_perror_and_die, changes state (moves fds)
 env - noexec. spawner, changes state (env)
 envdir - noexec. spawner
 envuidgid - noexec. spawner
 expand - runner
-expr - leaks: nested allocs
+expr - noexec. leaks: nested allocs
 factor - runner (eats stdin if no params)
 fakeidentd - daemon
 false - NOFORK

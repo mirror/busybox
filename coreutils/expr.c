@@ -38,7 +38,7 @@
 //config:	the applet slightly larger, but will allow computation with very
 //config:	large numbers.
 
-//applet:IF_EXPR(APPLET(expr, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_EXPR(APPLET_NOEXEC(expr, expr, BB_DIR_USR_BIN, BB_SUID_DROP, expr))
 
 //kbuild:lib-$(CONFIG_EXPR) += expr.o
 
@@ -118,7 +118,10 @@ struct globals {
 	char **args;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
-#define INIT_G() do { setup_common_bufsiz(); } while (0)
+#define INIT_G() do { \
+	setup_common_bufsiz(); \
+	/* NB: noexec applet - globals not zeroed */ \
+} while (0)
 
 /* forward declarations */
 static VALUE *eval(void);
