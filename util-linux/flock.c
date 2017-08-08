@@ -38,13 +38,13 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 	};
 
 #if ENABLE_LONG_OPTS
-	static const char getopt_longopts[] ALIGN1 =
+	static const char flock_longopts[] ALIGN1 =
 		"shared\0"      No_argument       "s"
 		"exclusive\0"   No_argument       "x"
 		"unlock\0"      No_argument       "u"
 		"nonblock\0"    No_argument       "n"
 		;
-	applet_long_options = getopt_longopts;
+	applet_long_options = flock_longopts;
 #endif
 	opt_complementary = "-1";
 

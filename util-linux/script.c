@@ -71,7 +71,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 	};
 
 #if ENABLE_LONG_OPTS
-	static const char getopt_longopts[] ALIGN1 =
+	static const char script_longopts[] ALIGN1 =
 		"append\0"  No_argument       "a"
 		"command\0" Required_argument "c"
 		"flush\0"   No_argument       "f"
@@ -79,7 +79,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		"timing\0"  Optional_argument "t"
 		;
 
-	applet_long_options = getopt_longopts;
+	applet_long_options = script_longopts;
 #endif
 
 	opt_complementary = "?1"; /* max one arg */

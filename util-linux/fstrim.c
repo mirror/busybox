@@ -63,13 +63,13 @@ int fstrim_main(int argc UNUSED_PARAM, char **argv)
 	};
 
 #if ENABLE_LONG_OPTS
-	static const char getopt_longopts[] ALIGN1 =
+	static const char fstrim_longopts[] ALIGN1 =
 		"offset\0"    Required_argument    "o"
 		"length\0"    Required_argument    "l"
 		"minimum\0"   Required_argument    "m"
 		"verbose\0"   No_argument          "v"
 		;
-	applet_long_options = getopt_longopts;
+	applet_long_options = fstrim_longopts;
 #endif
 
 	opt_complementary = "=1"; /* exactly one non-option arg: the mountpoint */

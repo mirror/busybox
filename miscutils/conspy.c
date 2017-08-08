@@ -367,7 +367,7 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 	unsigned ttynum;
 	int poll_timeout_ms;
 #if ENABLE_LONG_OPTS
-	static const char getopt_longopts[] ALIGN1 =
+	static const char conspy_longopts[] ALIGN1 =
 		"viewonly\0"     No_argument "v"
 		"createdevice\0" No_argument "c"
 		"neverquit\0"    No_argument "Q"
@@ -378,7 +378,7 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 		"framebuffer\0"  No_argument "F"
 		;
 
-	applet_long_options = getopt_longopts;
+	applet_long_options = conspy_longopts;
 #endif
 #define keybuf bb_common_bufsiz1
 	setup_common_bufsiz();
