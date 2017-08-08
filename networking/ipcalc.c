@@ -130,8 +130,11 @@ int ipcalc_main(int argc UNUSED_PARAM, char **argv)
 #define ipaddr    (s_ipaddr.s_addr)
 	char *ipstr;
 
-	opt_complementary = "-1:?2"; /* minimum 1 arg, maximum 2 args */
-	opt = GETOPT32(argv, "mbn" IF_FEATURE_IPCALC_FANCY("phs") LONGOPTS);
+	opt = GETOPT32(argv, "^"
+			"mbn" IF_FEATURE_IPCALC_FANCY("phs")
+			"\0" "-1:?2"/*min 1, max 2 args*/
+			LONGOPTS
+	);
 	argv += optind;
 	if (opt & SILENT)
 		logmode = LOGMODE_NONE; /* suppress error_msg() output */

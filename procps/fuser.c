@@ -299,8 +299,7 @@ int fuser_main(int argc UNUSED_PARAM, char **argv)
 		break;
 	}
 
-	opt_complementary = "-1"; /* at least one param */
-	getopt32(argv, OPTION_STRING);
+	getopt32(argv, "^" OPTION_STRING "\0" "-1"/*at least one arg*/);
 	argv += optind;
 
 	pp = argv;

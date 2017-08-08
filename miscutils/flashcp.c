@@ -69,8 +69,7 @@ int flashcp_main(int argc UNUSED_PARAM, char **argv)
 	RESERVE_CONFIG_UBUFFER(buf, BUFSIZE);
 	RESERVE_CONFIG_UBUFFER(buf2, BUFSIZE);
 
-	opt_complementary = "=2"; /* exactly 2 non-option args: file, dev */
-	/*opts =*/ getopt32(argv, "v");
+	/*opts =*/ getopt32(argv, "^" "v" "\0" "=2"/*exactly 2 non-option args: file,dev*/);
 	argv += optind;
 //	filename = *argv++;
 //	devicename = *argv;

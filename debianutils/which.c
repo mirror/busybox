@@ -37,8 +37,7 @@ int which_main(int argc UNUSED_PARAM, char **argv)
 	if (!env_path)
 		env_path = bb_default_root_path;
 
-	opt_complementary = "-1"; /* at least one argument */
-	getopt32(argv, "a");
+	getopt32(argv, "^" "a" "\0" "-1"/*at least one arg*/);
 	argv += optind;
 
 	do {

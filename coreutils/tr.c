@@ -298,8 +298,8 @@ int tr_main(int argc UNUSED_PARAM, char **argv)
 	 * In POSIX locale, these are the same.
 	 */
 
-	opt_complementary = "-1";
-	opts = getopt32(argv, "+Ccds"); /* '+': stop at first non-option */
+	/* '+': stop at first non-option */
+	opts = getopt32(argv, "^+" "Ccds" "\0" "-1");
 	argv += optind;
 
 	str1_length = expand(*argv++, &str1);

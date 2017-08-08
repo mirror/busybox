@@ -610,17 +610,23 @@ int setfiles_main(int argc UNUSED_PARAM, char **argv)
 
 	set_matchpathcon_flags(matchpathcon_flags);
 
-	opt_complementary = "vv:v--p:p--v:v--q:q--v";
 	/* Option order must match OPT_x definitions! */
 	if (applet_name[0] == 'r') { /* restorecon */
-		flags = getopt32(argv, "de:*f:ilnpqrsvo:FWR",
-			&exclude_dir, &input_filename, &out_filename, &verbose);
+		flags = getopt32(argv, "^"
+			"de:*f:ilnpqrsvo:FWR",
+			"\0" "vv:v--p:p--v:v--q:q--v";
+			&exclude_dir, &input_filename, &out_filename,
+			&verbose
+		);
 	} else { /* setfiles */
-		flags = getopt32(argv, "de:*f:ilnpqr:svo:FW"
-				IF_FEATURE_SETFILES_CHECK_OPTION("c:"),
+		flags = getopt32(argv, "^"
+			"de:*f:ilnpqr:svo:FW"
+			IF_FEATURE_SETFILES_CHECK_OPTION("c:"),
+			"\0" "vv:v--p:p--v:v--q:q--v";
 			&exclude_dir, &input_filename, &rootpath, &out_filename,
-				IF_FEATURE_SETFILES_CHECK_OPTION(&policyfile,)
-			&verbose);
+			IF_FEATURE_SETFILES_CHECK_OPTION(&policyfile,)
+			&verbose
+		);
 	}
 	argv += optind;
 

@@ -174,9 +174,10 @@ int expand_main(int argc UNUSED_PARAM, char **argv)
 				, &opt_t
 		);
 	} else {
-		/* -t NUM sets also -a */
-		opt_complementary = "ta";
-		opt = getopt32long(argv, "ft:a",
+		opt = getopt32long(argv, "^"
+				"ft:a"
+				"\0"
+				"ta" /* -t NUM sets -a */,
 				"first-only\0"       No_argument       "i"
 				"tabs\0"             Required_argument "t"
 				"all\0"              No_argument       "a"

@@ -99,8 +99,9 @@ int crontab_main(int argc UNUSED_PARAM, char **argv)
 		OPT_ler = OPT_l + OPT_e + OPT_r,
 	};
 
-	opt_complementary = "?1:dr"; /* max one argument; -d implies -r */
-	opt_ler = getopt32(argv, "u:c:lerd", &user_name, &crontab_dir);
+	opt_ler = getopt32(argv, "^" "u:c:lerd" "\0" "?1:dr"/*max one arg; -d implies -r*/,
+				&user_name, &crontab_dir
+	);
 	argv += optind;
 
 	if (sanitize_env_if_suid()) { /* Clears dangerous stuff, sets PATH */

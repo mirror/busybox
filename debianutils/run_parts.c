@@ -181,8 +181,9 @@ int run_parts_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	/* We require exactly one argument: the directory name */
-	opt_complementary = "=1";
-	GETOPT32(argv, "a:*u:" LONGOPTS, &arg_list, &umask_p);
+	GETOPT32(argv, "^" "a:*u:" "\0" "=1" LONGOPTS,
+			&arg_list, &umask_p
+	);
 
 	umask(xstrtou_range(umask_p, 8, 0, 07777));
 

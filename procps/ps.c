@@ -718,9 +718,11 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	/* -w is a bit complicated */
 	int w_count = 0;
 	make_all_argv_opts(argv);
-	opt_complementary = "ww";
-	opts = getopt32(argv, IF_SELINUX("Z")IF_FEATURE_SHOW_THREADS("T")IF_FEATURE_PS_LONG("l")
-					"w", &w_count);
+	opts = getopt32(argv, "^"
+		IF_SELINUX("Z")IF_FEATURE_SHOW_THREADS("T")IF_FEATURE_PS_LONG("l")"w"
+		"\0" "ww",
+		&w_count
+	);
 	/* if w is given once, GNU ps sets the width to 132,
 	 * if w is given more than once, it is "unlimited"
 	 */

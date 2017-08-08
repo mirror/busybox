@@ -95,9 +95,10 @@ int adjtimex_main(int argc UNUSED_PARAM, char **argv)
 
 	memset(&txc, 0, sizeof(txc));
 
-	opt_complementary = "=0"; /* no valid non-option parameters */
-	opt = getopt32(argv, "qo:f:p:t:",
-			&opt_o, &opt_f, &opt_p, &opt_t);
+	opt = getopt32(argv, "^" "qo:f:p:t:"
+			"\0" "=0"/*no valid non-option args*/,
+			&opt_o, &opt_f, &opt_p, &opt_t
+	);
 	//if (opt & 0x1) // -q
 	if (opt & 0x2) { // -o
 		txc.offset = xatol(opt_o);

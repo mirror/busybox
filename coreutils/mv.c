@@ -55,8 +55,10 @@ int mv_main(int argc, char **argv)
 	 * If more than one of -f, -i, -n is specified , only the final one
 	 * takes effect (it unsets previous options).
 	 */
-	opt_complementary = "-2:f-in:i-fn:n-fi";
-	flags = getopt32long(argv, "finv",
+	flags = getopt32long(argv, "^"
+			"finv"
+			"\0"
+			"-2:f-in:i-fn:n-fi",
 			"interactive\0" No_argument "i"
 			"force\0"       No_argument "f"
 			"no-clobber\0"  No_argument "n"

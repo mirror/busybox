@@ -126,9 +126,12 @@ int runcon_main(int argc UNUSED_PARAM, char **argv)
 
 	selinux_or_die();
 
-	opt_complementary = "-1";
-	opts = getopt32long(argv, "r:t:u:l:ch", runcon_longopts,
-				&role, &type, &user, &range);
+	opts = getopt32long(argv, "^"
+			"r:t:u:l:ch"
+			"\0" "-1",
+			runcon_longopts,
+			&role, &type, &user, &range
+	);
 	argv += optind;
 
 	if (!(opts & OPTS_CONTEXT_COMPONENT)) {

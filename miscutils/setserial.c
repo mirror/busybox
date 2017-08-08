@@ -742,8 +742,7 @@ int setserial_main(int argc UNUSED_PARAM, char **argv)
 {
 	int opts;
 
-	opt_complementary = "-1:b-aG:G-ab:a-bG";
-	opts = getopt32(argv, "bGavzgq");
+	opts = getopt32(argv, "^" "bGavzgq" "\0" "-1:b-aG:G-ab:a-bG");
 	argv += optind;
 
 	if (!argv[1]) /* one arg only? (nothing to change?) */

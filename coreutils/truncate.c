@@ -50,8 +50,7 @@ int truncate_main(int argc UNUSED_PARAM, char **argv)
 		OPT_SIZE = (1 << 1),
 	};
 
-	opt_complementary = "s:-1";
-	opts = getopt32(argv, "cs:", &size_str);
+	opts = getopt32(argv, "^" "cs:" "\0" "s:-1", &size_str);
 
 	if (!(opts & OPT_NOCREATE))
 		flags |= O_CREAT;

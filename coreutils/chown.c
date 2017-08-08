@@ -55,7 +55,7 @@
 /* This is a NOEXEC applet. Be very careful! */
 
 
-#define OPT_STR     ("Rh" IF_DESKTOP("vcfLHP"))
+#define OPT_STR     "Rh" IF_DESKTOP("vcfLHP")
 #define BIT_RECURSE 1
 #define OPT_RECURSE (opt & 1)
 #define OPT_NODEREF (opt & 2)
@@ -127,11 +127,10 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	int opt, flags;
 	struct param_t param;
 
-	opt_complementary = "-2";
 #if ENABLE_FEATURE_CHOWN_LONG_OPTIONS
-	opt = getopt32long(argv, OPT_STR, chown_longopts);
+	opt = getopt32long(argv, "^" OPT_STR "\0" "=2", chown_longopts);
 #else
-	opt = getopt32(argv, OPT_STR);
+	opt = getopt32(argv, "^" OPT_STR "\0" "=2");
 #endif
 	argv += optind;
 

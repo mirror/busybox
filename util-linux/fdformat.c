@@ -66,8 +66,7 @@ int fdformat_main(int argc UNUSED_PARAM, char **argv)
 	struct floppy_struct param;
 	struct format_descr descr;
 
-	opt_complementary = "=1"; /* must have 1 param */
-	verify = !getopt32(argv, "n");
+	verify = !getopt32(argv, "^" "n" "\0" "=1");
 	argv += optind;
 
 	xstat(*argv, &st);

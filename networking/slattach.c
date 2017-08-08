@@ -128,8 +128,9 @@ int slattach_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	/* Parse command line options */
-	opt_complementary = "=1";
-	opt = getopt32(argv, "p:s:c:ehmLF", &proto, &baud_str, &extcmd);
+	opt = getopt32(argv, "^" "p:s:c:ehmLF" "\0" "=1",
+				&proto, &baud_str, &extcmd
+	);
 	/*argc -= optind;*/
 	argv += optind;
 

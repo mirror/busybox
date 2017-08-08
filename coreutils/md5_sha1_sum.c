@@ -258,15 +258,14 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK) {
-		/* -s and -w require -c */
-		opt_complementary = "s?c:w?c";
 		/* -b "binary", -t "text" are ignored (shaNNNsum compat) */
+		/* -s and -w require -c */
 #if ENABLE_SHA3SUM
 		if (applet_name[3] == HASH_SHA3)
-			flags = getopt32(argv, "scwbta:+", &sha3_width);
+			flags = getopt32(argv, "^" "scwbta:+" "\0" "s?c:w?c", &sha3_width);
 		else
 #endif
-			flags = getopt32(argv, "scwbt");
+			flags = getopt32(argv, "^" "scwbt" "\0" "s?c:w?c");
 	} else {
 #if ENABLE_SHA3SUM
 		if (applet_name[3] == HASH_SHA3)

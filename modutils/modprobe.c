@@ -133,7 +133,7 @@
  */
 #define MODPROBE_OPTS  "alrDb"
 /* -a and -D _are_ in fact compatible */
-#define MODPROBE_COMPLEMENTARY ("q-v:v-q:l--arD:r--alD:a--lr:D--rl")
+#define MODPROBE_COMPLEMENTARY "q-v:v-q:l--arD:r--alD:a--lr:D--rl"
 //#define MODPROBE_OPTS  "acd:lnrt:C:b"
 //#define MODPROBE_COMPLEMENTARY "q-v:v-q:l--acr:a--lr:r--al"
 enum {
@@ -566,8 +566,10 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	opt_complementary = MODPROBE_COMPLEMENTARY;
-	opt = getopt32long(argv, INSMOD_OPTS MODPROBE_OPTS, modprobe_longopts INSMOD_ARGS);
+	opt = getopt32long(argv, "^" INSMOD_OPTS MODPROBE_OPTS "\0" MODPROBE_COMPLEMENTARY,
+			modprobe_longopts
+			INSMOD_ARGS
+	);
 	argv += optind;
 
 	/* Goto modules location */

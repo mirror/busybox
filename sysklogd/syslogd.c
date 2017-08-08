@@ -1109,8 +1109,7 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	/* No non-option params */
-	opt_complementary = "=0";
-	opts = getopt32(argv, OPTION_STR, OPTION_PARAM);
+	opts = getopt32(argv, "^"OPTION_STR"\0""=0", OPTION_PARAM);
 #if ENABLE_FEATURE_REMOTE_LOG
 	while (remoteAddrList) {
 		remoteHost_t *rh = xzalloc(sizeof(*rh));

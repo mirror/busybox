@@ -25,8 +25,7 @@
 int unlink_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlink_main(int argc UNUSED_PARAM, char **argv)
 {
-	opt_complementary = "=1"; /* must have exactly 1 param */
-	getopt32(argv, "");
+	getopt32(argv, "^" "" "\0" "=1");
 	argv += optind;
 	xunlink(argv[0]);
 	return 0;

@@ -83,10 +83,13 @@ int tunctl_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	};
 
-	opt_complementary = "=0:t--d:d--t"; // no arguments; t ^ d
-	opts = getopt32(argv, "f:t:d:" IF_FEATURE_TUNCTL_UG("u:g:b"),
+	opts = getopt32(argv, "^"
+			"f:t:d:" IF_FEATURE_TUNCTL_UG("u:g:b")
+			"\0"
+			"=0:t--d:d--t", // no arguments; t ^ d
 			&opt_device, &opt_name, &opt_name
-			IF_FEATURE_TUNCTL_UG(, &opt_user, &opt_group));
+			IF_FEATURE_TUNCTL_UG(, &opt_user, &opt_group)
+	);
 
 	// select device
 	memset(&ifr, 0, sizeof(ifr));
@@ -153,9 +156,12 @@ int tunctl_main(int argc UNUSED_PARAM, char **argv)
 		OPT_d = 1 << 2, // delete named interface
 	};
 
-	opt_complementary = "=0:t--d:d--t"; // no arguments; t ^ d
-	opts = getopt32(argv, "f:t:d:u:g:b", // u, g, b accepted and ignored
-			&opt_device, &opt_name, &opt_name, NULL, NULL);
+	opts = getopt32(argv, "^"
+			"f:t:d:u:g:b" // u, g, b accepted and ignored
+			"\0"
+			"=0:t--d:d--t", // no arguments; t ^ d
+			&opt_device, &opt_name, &opt_name, NULL, NULL
+	);
 
 	// set interface name
 	memset(&ifr, 0, sizeof(ifr));

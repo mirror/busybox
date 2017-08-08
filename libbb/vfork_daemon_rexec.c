@@ -98,7 +98,6 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 	 * (getopt32() does it itself, but getopt() doesn't (and can't))
 	 */
 	GETOPT_RESET();
-	/* opt_complementary = NULL; - cleared by each getopt32() call anyway */
 
 	argc = string_array_len(argv);
 
@@ -123,7 +122,6 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 	restore_nofork_data(&old);
 	/* Other globals can be simply reset to defaults */
 	GETOPT_RESET();
-	/* opt_complementary = NULL; - cleared by each getopt32() call anyway */
 
 	return rc & 0xff; /* don't confuse people with "exitcodes" >255 */
 }
@@ -138,7 +136,6 @@ void FAST_FUNC run_noexec_applet_and_exit(int a, const char *name, char **argv)
 	xfunc_error_retval = EXIT_FAILURE;
 	die_func = NULL;
 	GETOPT_RESET();
-	/* opt_complementary = NULL; - cleared by each getopt32() call anyway */
 
 //TODO: think pidof, pgrep, pkill!
 //set_task_comm() makes our pidof find NOEXECs (e.g. "yes >/dev/null"),

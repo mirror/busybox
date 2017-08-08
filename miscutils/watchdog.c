@@ -101,8 +101,9 @@ int watchdog_main(int argc UNUSED_PARAM, char **argv)
 	char *st_arg;
 	char *ht_arg;
 
-	opt_complementary = "=1"; /* must have exactly 1 argument */
-	opts = getopt32(argv, "Ft:T:", &st_arg, &ht_arg);
+	opts = getopt32(argv, "^" "Ft:T:" "\0" "=1"/*must have exactly 1 arg*/,
+				&st_arg, &ht_arg
+	);
 
 	/* We need to daemonize *before* opening the watchdog as many drivers
 	 * will only allow one process at a time to do so.  Since daemonizing

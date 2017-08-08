@@ -269,8 +269,9 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		OPT_v = 1 << 16, // verbose
 	};
 
-	opt_complementary = "-1";//:b+:f+:F+:h+:r+:R+:s+:S+:vv:c--l:l--c";
-	opts = getopt32(argv, "Ab:cCf:F:h:Ii:l:m:n:r:R:s:S:v",
+	opts = getopt32(argv, "^"
+		"Ab:cCf:F:h:Ii:l:m:n:r:R:s:S:v"
+		"\0" "-1", //:b+:f+:F+:h+:r+:R+:s+:S+:vv:c--l:l--c
 		NULL, NULL, NULL, NULL, NULL,
 		NULL, NULL, &volume_label, NULL, NULL, NULL, NULL);
 	argv += optind;

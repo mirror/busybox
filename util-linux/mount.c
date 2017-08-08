@@ -2205,10 +2205,14 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 
 	// Parse remaining options
 	// Max 2 params; -o is a list, -v is a counter
-	opt_complementary = "?2" IF_FEATURE_MOUNT_VERBOSE("vv");
-	opt = getopt32(argv, OPTION_STR, &lst_o, &fstype, &O_optmatch
-			IF_FEATURE_MOUNT_OTHERTAB(, &fstabname)
-			IF_FEATURE_MOUNT_VERBOSE(, &verbose));
+	opt = getopt32(argv, "^"
+		OPTION_STR
+		"\0" "?2"IF_FEATURE_MOUNT_VERBOSE("vv"),
+		&lst_o, &fstype, &O_optmatch
+		IF_FEATURE_MOUNT_OTHERTAB(, &fstabname)
+		IF_FEATURE_MOUNT_VERBOSE(, &verbose)
+	);
+
 	while (lst_o) append_mount_options(&cmdopts, llist_pop(&lst_o)); // -o
 	if (opt & OPT_r) append_mount_options(&cmdopts, "ro"); // -r
 	if (opt & OPT_w) append_mount_options(&cmdopts, "rw"); // -w

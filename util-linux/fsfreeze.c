@@ -39,8 +39,9 @@ int fsfreeze_main(int argc UNUSED_PARAM, char **argv)
 	/* exactly one non-option arg: the mountpoint */
 	/* one of opts is required */
 	/* opts are mutually exclusive */
-	opt_complementary = "=1:""\xff:\xfe:""\xff--\xfe:\xfe--\xff";
-	opts = getopt32long(argv, "",
+	opts = getopt32long(argv, "^"
+		"" /* no opts */
+		"\0" "=1:""\xff:\xfe:""\xff--\xfe:\xfe--\xff",
 		"freeze\0"   No_argument "\xff"
 		"unfreeze\0" No_argument "\xfe"
 	);

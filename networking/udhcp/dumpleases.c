@@ -54,8 +54,12 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	init_unicode();
 
-	opt_complementary = "=0:a--r:r--a";
-	opt = getopt32long(argv, "arf:d", dumpleases_longopts, &file);
+	opt = getopt32long(argv, "^"
+			"arf:d"
+			"\0" "=0:a--r:r--a",
+			dumpleases_longopts,
+			&file
+	);
 
 	fd = xopen(file, O_RDONLY);
 

@@ -97,9 +97,8 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 	struct statfs stfs;
 	dev_t rootdev;
 
-	// Parse args (-c console)
-	opt_complementary = "-2"; // minimum 2 params
-	getopt32(argv, "+c:", &console); // '+': stop at first non-option
+	// Parse args (-c console). '+': stop at first non-option
+	getopt32(argv, "^+" "c:" "\0" "-2" /* minimum 2 args */, &console);
 	argv += optind;
 	newroot = *argv++;
 

@@ -163,13 +163,16 @@ int chcon_main(int argc UNUSED_PARAM, char **argv)
 	char *fname;
 	int i, errors = 0;
 
-	opt_complementary = "-1"  /* at least 1 param */
-		":?"  /* error if exclusivity constraints are violated */
+	getopt32long(argv, "^"
+		"Rchfu:r:t:l:v"
+		"\0"
+		"-1" /* at least 1 arg */
+		":?" /* error if exclusivity constraints are violated */
 #if ENABLE_LONG_OPTS
 		":\xff--urtl:u--\xff:r--\xff:t--\xff:l--\xff"
 #endif
-		":f--v:v--f";  /* 'verbose' and 'quiet' are exclusive */
-	getopt32long(argv, "Rchfu:r:t:l:v", chcon_longopts,
+		":f--v:v--f"  /* 'verbose' and 'quiet' are exclusive */
+		, chcon_longopts,
 		&user, &role, &type, &range, &reference_file
 	);
 	argv += optind;

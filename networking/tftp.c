@@ -761,15 +761,16 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	/* -p or -g is mandatory, and they are mutually exclusive */
-	opt_complementary = "" IF_FEATURE_TFTP_GET("g:") IF_FEATURE_TFTP_PUT("p:")
-			IF_GETPUT("g--p:p--g:");
-
-	IF_GETPUT(opt =) getopt32(argv,
+	IF_GETPUT(opt =) getopt32(argv, "^"
 			IF_FEATURE_TFTP_GET("g") IF_FEATURE_TFTP_PUT("p")
-				"l:r:" IF_FEATURE_TFTP_BLOCKSIZE("b:"),
+			"l:r:" IF_FEATURE_TFTP_BLOCKSIZE("b:")
+			"\0"
+			/* -p or -g is mandatory, and they are mutually exclusive */
+			IF_FEATURE_TFTP_GET("g:") IF_FEATURE_TFTP_PUT("p:")
+			IF_GETPUT("g--p:p--g:"),
 			&local_file, &remote_file
-			IF_FEATURE_TFTP_BLOCKSIZE(, &blksize_str));
+			IF_FEATURE_TFTP_BLOCKSIZE(, &blksize_str)
+	);
 	argv += optind;
 
 # if ENABLE_FEATURE_TFTP_BLOCKSIZE

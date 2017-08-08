@@ -82,8 +82,7 @@ int fallocate_main(int argc UNUSED_PARAM, char **argv)
 	int fd;
 
 	/* exactly one non-option arg */
-	opt_complementary = "=1";
-	opts = getopt32(argv, "l:o:", &str_l, &str_o);
+	opts = getopt32(argv, "^" "l:o:" "\0" "=1", &str_l, &str_o);
 	if (!(opts & 1))
 		bb_show_usage();
 

@@ -75,8 +75,11 @@ int pscan_main(int argc UNUSED_PARAM, char **argv)
 	unsigned rtt_4;
 	unsigned start, diff;
 
-	opt_complementary = "=1"; /* exactly one non-option */
-	opt = getopt32(argv, "cbp:P:t:T:", &opt_min_port, &opt_max_port, &opt_timeout, &opt_min_rtt);
+	opt = getopt32(argv, "^"
+		"cbp:P:t:T:"
+		"\0" "=1", /* exactly one non-option */
+		&opt_min_port, &opt_max_port, &opt_timeout, &opt_min_rtt
+	);
 	argv += optind;
 	max_port = xatou_range(opt_max_port, 1, 65535);
 	port = xatou_range(opt_min_port, 1, max_port);

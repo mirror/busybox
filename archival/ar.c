@@ -243,10 +243,13 @@ int ar_main(int argc UNUSED_PARAM, char **argv)
 	/* prepend '-' to the first argument if required */
 	if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0')
 		argv[1] = xasprintf("-%s", argv[1]);
-	/* -1: at least one param is reqd */
-	/* one of p,t,x[,r] is required */
-	opt_complementary = "-1:p:t:x"IF_FEATURE_AR_CREATE(":r");
-	opt = getopt32(argv, "voc""ptx"IF_FEATURE_AR_CREATE("r"));
+	opt = getopt32(argv, "^"
+		"voc""ptx"IF_FEATURE_AR_CREATE("r")
+		"\0"
+		/* -1: at least one arg is reqd */
+		/* one of p,t,x[,r] is required */
+		"-1:p:t:x"IF_FEATURE_AR_CREATE(":r")
+	);
 	argv += optind;
 
 	t = opt / FIRST_CMD;

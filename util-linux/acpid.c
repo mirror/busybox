@@ -264,8 +264,12 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	opt_complementary = "df:e--e";
-	opts = getopt32(argv, "c:de:fl:a:M:" IF_FEATURE_PIDFILE("p:") IF_FEATURE_ACPID_COMPAT("g:m:s:S:v"),
+	opts = getopt32(argv, "^"
+		"c:de:fl:a:M:"
+		IF_FEATURE_PIDFILE("p:")
+		IF_FEATURE_ACPID_COMPAT("g:m:s:S:v")
+		"\0"
+		"df:e--e",
 		&opt_dir, &opt_input, &opt_logfile, &opt_action, &opt_map
 		IF_FEATURE_PIDFILE(, &opt_pidfile)
 		IF_FEATURE_ACPID_COMPAT(, NULL, NULL, NULL, NULL)

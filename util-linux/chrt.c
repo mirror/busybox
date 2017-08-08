@@ -77,8 +77,7 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 	int policy = SCHED_RR;
 
 	/* only one policy accepted */
-	opt_complementary = "r--fo:f--ro:o--rf";
-	opt = getopt32(argv, "+mprfo");
+	opt = getopt32(argv, "^+" "mprfo" "\0" "r--fo:f--ro:o--rf");
 	if (opt & OPT_m) { /* print min/max and exit */
 		show_min_max(SCHED_FIFO);
 		show_min_max(SCHED_RR);

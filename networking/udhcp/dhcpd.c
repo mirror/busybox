@@ -814,11 +814,12 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_UDHCP_PORT(SERVER_PORT = 67;)
 	IF_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
 
+	opt = getopt32(argv, "^"
+		"fSI:va:"IF_FEATURE_UDHCP_PORT("P:")
+		"\0"
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
-	opt_complementary = "vv";
+		"vv"
 #endif
-	opt = getopt32(argv, "fSI:va:"
-		IF_FEATURE_UDHCP_PORT("P:")
 		, &str_I
 		, &str_a
 		IF_FEATURE_UDHCP_PORT(, &str_P)

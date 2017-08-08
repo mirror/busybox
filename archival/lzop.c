@@ -1138,7 +1138,7 @@ int lzop_main(int argc UNUSED_PARAM, char **argv)
 	/* -U is "anti -k", invert bit for bbunpack(): */
 	option_mask32 ^= OPT_KEEP;
 	/* -k disables -U (if any): */
-	/* opt_complementary = "k-U"; - nope, only handles -Uk, not -kU */
+	/* opt_complementary "k-U"? - nope, only handles -Uk, not -kU */
 	if (option_mask32 & OPT_k)
 		option_mask32 |= OPT_KEEP;
 

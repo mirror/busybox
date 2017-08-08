@@ -62,8 +62,7 @@ int comm_main(int argc UNUSED_PARAM, char **argv)
 	int i;
 	int order;
 
-	opt_complementary = "=2";
-	getopt32(argv, "123");
+	getopt32(argv, "^" "123" "\0" "=2");
 	argv += optind;
 
 	for (i = 0; i < 2; ++i) {

@@ -45,9 +45,8 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 		"nonblock\0"    No_argument       "n"
 		;
 #endif
-	opt_complementary = "-1";
 
-	opt = getopt32long(argv, "+sxnu", flock_longopts);
+	opt = getopt32long(argv, "^+" "sxnu" "\0" "-1", flock_longopts);
 	argv += optind;
 
 	if (argv[1]) {

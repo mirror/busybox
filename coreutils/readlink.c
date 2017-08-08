@@ -71,8 +71,7 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_READLINK_FOLLOW(
 		unsigned opt;
 		/* We need exactly one non-option argument.  */
-		opt_complementary = "=1";
-		opt = getopt32(argv, "fnvsq");
+		opt = getopt32(argv, "^" "fnvsq" "\0" "=1");
 		fname = argv[optind];
 	)
 	IF_NOT_FEATURE_READLINK_FOLLOW(

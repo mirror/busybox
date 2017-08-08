@@ -167,8 +167,7 @@ int whois_main(int argc UNUSED_PARAM, char **argv)
 	int port = 43;
 	const char *host = "whois.iana.org";
 
-	opt_complementary = "-1";
-	getopt32(argv, "ih:p:+", &host, &port);
+	getopt32(argv, "^" "ih:p:+" "\0" "-1", &host, &port);
 	argv += optind;
 
 	do {

@@ -37,8 +37,8 @@ int setsid_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 
-	opt_complementary = "-1"; /* at least one arg */
-	opt = getopt32(argv, "+c"); /* +: stop on first non-opt */
+	/* +: stop on first non-opt */
+	opt = getopt32(argv, "^+" "c" "\0" "-1"/* at least one arg */);
 	argv += optind;
 
 	/* setsid() is allowed only when we are not a process group leader.

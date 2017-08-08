@@ -94,7 +94,7 @@
 */
 
 /* These are sort types */
-static const char OPT_STR[] ALIGN1 = "ngMucszbrdfimS:T:o:k:*t:";
+#define OPT_STR "ngMucszbrdfimS:T:o:k:*t:"
 enum {
 	FLAG_n  = 1,            /* Numeric sort */
 	FLAG_g  = 2,            /* Sort using strtod() */
@@ -378,9 +378,11 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 	xfunc_error_retval = 2;
 
 	/* Parse command line options */
-	/* -o and -t can be given at most once */
-	opt_complementary = "o--o:t--t"; /* -t, -o: at most one of each */
-	opts = getopt32(argv, OPT_STR, &str_ignored, &str_ignored, &str_o, &lst_k, &str_t);
+	opts = getopt32(argv, "^"
+			OPT_STR
+			"\0" "o--o:t--t"/*-t, -o: at most one of each*/,
+			&str_ignored, &str_ignored, &str_o, &lst_k, &str_t
+	);
 	/* global b strips leading and trailing spaces */
 	if (opts & FLAG_b)
 		option_mask32 |= FLAG_bb;

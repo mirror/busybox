@@ -1232,8 +1232,7 @@ int fsck_minix_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	opt_complementary = "=1:ar"; /* one argument; -a assumes -r */
-	getopt32(argv, OPTION_STR);
+	getopt32(argv, "^" OPTION_STR "\0" "=1:ar" /* one arg; -a assumes -r */);
 	argv += optind;
 	device_name = argv[0];
 

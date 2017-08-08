@@ -62,8 +62,7 @@ int ln_main(int argc, char **argv)
 	struct stat statbuf;
 	int (*link_func)(const char *, const char *);
 
-	opt_complementary = "-1"; /* min one arg */
-	opts = getopt32(argv, "sfnbS:vT", &suffix);
+	opts = getopt32(argv, "^" "sfnbS:vT" "\0" "-1", &suffix);
 
 	last = argv[argc - 1];
 	argv += optind;

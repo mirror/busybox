@@ -53,8 +53,7 @@ int blkdiscard_main(int argc UNUSED_PARAM, char **argv)
 		OPT_SECURE = (1 << 2),
 	};
 
-	opt_complementary = "=1";
-	opts = getopt32(argv, "o:l:s", &offset_str, &length_str);
+	opts = getopt32(argv, "^" "o:l:s" "\0" "=1", &offset_str, &length_str);
 	argv += optind;
 
 	fd = xopen(argv[0], O_RDWR|O_EXCL);

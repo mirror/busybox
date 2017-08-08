@@ -195,9 +195,11 @@ int bzip2_main(int argc UNUSED_PARAM, char **argv)
 	 * --best        alias for -9
 	 */
 
-	opt_complementary = "s2"; /* -s means -2 (compatibility) */
-	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-	opt = getopt32(argv, "cfkv" IF_FEATURE_BZIP2_DECOMPRESS("dt") "123456789qzs");
+	opt = getopt32(argv, "^"
+		/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
+		"cfkv" IF_FEATURE_BZIP2_DECOMPRESS("dt") "123456789qzs"
+		"\0" "s2" /* -s means -2 (compatibility) */
+	);
 #if ENABLE_FEATURE_BZIP2_DECOMPRESS /* bunzip2_main may not be visible... */
 	if (opt & 0x30) // -d and/or -t
 		return bunzip2_main(argc, argv);

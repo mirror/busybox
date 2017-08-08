@@ -81,8 +81,7 @@ int rdate_main(int argc UNUSED_PARAM, char **argv)
 	time_t remote_time;
 	unsigned flags;
 
-	opt_complementary = "-1";
-	flags = getopt32(argv, "sp");
+	flags = getopt32(argv, "^" "sp" "\0" "-1");
 
 	remote_time = askremotedate(argv[optind]);
 

@@ -256,13 +256,17 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	G.fp0 = xfdopen_for_read(3);
 
 	// parse options
-	// -v is a counter, -H and -S are mutually exclusive, -a is a list
-	opt_complementary = "vv:H--S:S--H";
 	// N.B. since -H and -S are mutually exclusive they do not interfere in opt_connect
 	// -a is for ssmtp (http://downloads.openwrt.org/people/nico/man/man8/ssmtp.8.html) compatibility,
 	// it is still under development.
-	opts = getopt32(argv, "tf:o:iw:+H:S:a:*:v", &opt_from, NULL,
-			&timeout, &opt_connect, &opt_connect, &list, &verbose);
+	opts = getopt32(argv, "^"
+			"tf:o:iw:+H:S:a:*:v"
+			"\0"
+			// -v is a counter, -H and -S are mutually exclusive, -a is a list
+			"vv:H--S:S--H",
+			&opt_from, NULL,
+			&timeout, &opt_connect, &opt_connect, &list, &verbose
+	);
 	//argc -= optind;
 	argv += optind;
 

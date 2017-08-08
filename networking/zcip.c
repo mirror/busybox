@@ -253,8 +253,9 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 #define QUIT       (opts & 2)
 	// Parse commandline: prog [options] ifname script
 	// exactly 2 args; -v accumulates and implies -f
-	opt_complementary = "=2:vv:vf";
-	opts = getopt32(argv, "fqr:l:v", &r_opt, &l_opt, &verbose);
+	opts = getopt32(argv, "^" "fqr:l:v" "\0" "=2:vv:vf",
+				&r_opt, &l_opt, &verbose
+	);
 #if !BB_MMU
 	// on NOMMU reexec early (or else we will rerun things twice)
 	if (!FOREGROUND)

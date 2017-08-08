@@ -306,9 +306,9 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 		/* Dad also sets quit_on_reply.
 		 * Advert also sets unsolicited.
 		 */
-		opt_complementary = "=1:Df:AU";
-		opt = getopt32(argv, "DUAqfbc:+w:I:s:",
-				&count, &str_timeout, &device, &source);
+		opt = getopt32(argv, "^" "DUAqfbc:+w:I:s:" "\0" "=1:Df:AU",
+				&count, &str_timeout, &device, &source
+		);
 		if (opt & 0x80) /* -w: timeout */
 			timeout_us = xatou_range(str_timeout, 0, INT_MAX/2000000) * 1000000 + 500000;
 		//if (opt & 0x200) /* -s: source */

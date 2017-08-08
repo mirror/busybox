@@ -137,7 +137,7 @@ static const struct namespace_descr ns_list[] = {
  * we are forced to use "fake" letters for them.
  * '+': stop at first non-option.
  */
-static const char opt_str[] ALIGN1 = "+muinpU""fr""\xfd::""\xfe:""\xff:";
+#define OPT_STR "+muinpU""fr""\xfd::""\xfe:""\xff:"
 static const char unshare_longopts[] ALIGN1 =
 	"mount\0"		Optional_argument	"\xf0"
 	"uts\0"			Optional_argument	"\xf1"
@@ -210,7 +210,7 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 	prop_str = PRIVATE_STR;
 	setgrp_str = NULL;
 
-	opt_complementary =
+	opts = getopt32long(argv, "^" OPT_STR "\0"
 		"\xf0""m" /* long opts (via their "fake chars") imply short opts */
 		":\xf1""u"
 		":\xf2""i"
@@ -219,15 +219,14 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 		":\xf5""U"
 		":ru"	   /* --map-root-user or -r implies -u */
 		":\xfd""m" /* --mount-proc implies -m */
-	;
-	opts = getopt32long(argv, opt_str, unshare_longopts,
-			&proc_mnt_target, &prop_str, &setgrp_str,
-			&ns_ctx_list[NS_MNT_POS].path,
-			&ns_ctx_list[NS_UTS_POS].path,
-			&ns_ctx_list[NS_IPC_POS].path,
-			&ns_ctx_list[NS_NET_POS].path,
-			&ns_ctx_list[NS_PID_POS].path,
-			&ns_ctx_list[NS_USR_POS].path
+		, unshare_longopts,
+		&proc_mnt_target, &prop_str, &setgrp_str,
+		&ns_ctx_list[NS_MNT_POS].path,
+		&ns_ctx_list[NS_UTS_POS].path,
+		&ns_ctx_list[NS_IPC_POS].path,
+		&ns_ctx_list[NS_NET_POS].path,
+		&ns_ctx_list[NS_PID_POS].path,
+		&ns_ctx_list[NS_USR_POS].path
 	);
 	argv += optind;
 	//bb_error_msg("opts:0x%x", opts);

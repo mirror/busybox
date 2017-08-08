@@ -167,8 +167,7 @@ int sestatus_main(int argc UNUSED_PARAM, char **argv)
 	const char *pol_path;
 	int rc;
 
-	opt_complementary = "?0";  /* no arguments are required. */
-	opts = getopt32(argv, "vb");
+	opts = getopt32(argv, "^" "vb" "\0" "=0"/*no arguments*/);
 
 	/* SELinux status: line */
 	rc = is_selinux_enabled();

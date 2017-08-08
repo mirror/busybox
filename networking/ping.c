@@ -340,7 +340,8 @@ static int common_ping_main(sa_family_t af, char **argv)
 
 /* Full(er) version */
 
-#define OPT_STRING ("qvc:+s:t:+w:+W:+I:np:4" IF_PING6("6"))
+/* -c NUM, -t NUM, -w NUM, -W NUM */
+#define OPT_STRING "qvc:+s:t:+w:+W:+I:np:4"IF_PING6("6")
 enum {
 	OPT_QUIET = 1 << 0,
 	OPT_VERBOSE = 1 << 1,
@@ -863,9 +864,12 @@ static int common_ping_main(int opt, char **argv)
 
 	INIT_G();
 
-	/* exactly one argument needed; -v and -q don't mix; -c NUM, -t NUM, -w NUM, -W NUM */
-	opt_complementary = "=1:q--v:v--q";
-	opt |= getopt32(argv, OPT_STRING, &pingcount, &str_s, &opt_ttl, &deadline, &timeout, &str_I, &str_p);
+	opt |= getopt32(argv, "^"
+			OPT_STRING
+			/* exactly one arg; -v and -q don't mix */
+			"\0" "=1:q--v:v--q",
+			&pingcount, &str_s, &opt_ttl, &deadline, &timeout, &str_I, &str_p
+	);
 	if (opt & OPT_s)
 		datalen = xatou16(str_s); // -s
 	if (opt & OPT_I) { // -I

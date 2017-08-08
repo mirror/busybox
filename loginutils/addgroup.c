@@ -152,11 +152,12 @@ int addgroup_main(int argc UNUSED_PARAM, char **argv)
 	}
 	/* Syntax:
 	 *  addgroup group
-	 *  addgroup -g num group
+	 *  addgroup --gid num group
 	 *  addgroup user group
 	 * Check for min, max and missing args */
-	opt_complementary = "-1:?2";
-	opts = getopt32long(argv, "g:S", addgroup_longopts, &gid);
+	opts = getopt32long(argv, "^" "g:S" "\0" "-1:?2", addgroup_longopts,
+				&gid
+	);
 	/* move past the commandline options */
 	argv += optind;
 	//argc -= optind;

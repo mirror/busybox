@@ -1037,9 +1037,10 @@ int svlogd_main(int argc, char **argv)
 
 	INIT_G();
 
-	opt_complementary = "tt:vv";
-	opt = getopt32(argv, "r:R:l:b:tv",
-			&r, &replace, &l, &b, &timestamp, &verbose);
+	opt = getopt32(argv, "^"
+			"r:R:l:b:tv" "\0" "tt:vv",
+			&r, &replace, &l, &b, &timestamp, &verbose
+	);
 	if (opt & 1) { // -r
 		repl = r[0];
 		if (!repl || r[1])

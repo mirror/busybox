@@ -1387,9 +1387,8 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 #endif
-	opt_complementary = "-1" /* at least one URL */
-		IF_FEATURE_WGET_LONG_OPTIONS(":\xff::"); /* --header is a list */
-	GETOPT32(argv, "cqSO:P:Y:U:T:+"
+	GETOPT32(argv, "^"
+		"cqSO:P:Y:U:T:+"
 		/*ignored:*/ "t:"
 		/*ignored:*/ "n::"
 		/* wget has exactly four -n<letter> opts, all of which we can ignore:
@@ -1400,6 +1399,9 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 		 * "n::" above says that we accept -n[ARG].
 		 * Specifying "n:" would be a bug: "-n ARG" would eat ARG!
 		 */
+		"\0"
+		"-1" /* at least one URL */
+		IF_FEATURE_WGET_LONG_OPTIONS(":\xff::") /* --header is a list */
 		LONGOPTS
 		, &G.fname_out, &G.dir_prefix,
 		&G.proxy_flag, &G.user_agent,

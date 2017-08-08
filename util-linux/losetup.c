@@ -57,8 +57,7 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 		OPT_r = (1 << 4), /* must be last */
 	};
 
-	opt_complementary = "?2:d--ofar:a--ofr";
-	opt = getopt32(argv, "do:far", &opt_o);
+	opt = getopt32(argv, "^" "do:far" "\0" "?2:d--ofar:a--ofr", &opt_o);
 	argv += optind;
 
 	/* LOOPDEV */

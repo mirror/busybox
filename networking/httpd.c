@@ -2636,17 +2636,19 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	home_httpd = xrealloc_getcwd_or_warn(NULL);
-	/* -v counts, -i implies -f */
-	opt_complementary = "vv:if";
 	/* We do not "absolutize" path given by -h (home) opt.
 	 * If user gives relative path in -h,
 	 * $SCRIPT_FILENAME will not be set. */
-	opt = getopt32(argv, "c:d:h:"
+	opt = getopt32(argv, "^"
+			"c:d:h:"
 			IF_FEATURE_HTTPD_ENCODE_URL_STR("e:")
 			IF_FEATURE_HTTPD_BASIC_AUTH("r:")
 			IF_FEATURE_HTTPD_AUTH_MD5("m:")
 			IF_FEATURE_HTTPD_SETUID("u:")
-			"p:ifv",
+			"p:ifv"
+			"\0"
+			/* -v counts, -i implies -f */
+			"vv:if",
 			&opt_c_configFile, &url_for_decode, &home_httpd
 			IF_FEATURE_HTTPD_ENCODE_URL_STR(, &url_for_encode)
 			IF_FEATURE_HTTPD_BASIC_AUTH(, &g_realm)

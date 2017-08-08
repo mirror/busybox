@@ -988,10 +988,9 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_MODPROBE || ENABLE_INSMOD || ENABLE_RMMOD
 	/* modprobe, insmod, rmmod require at least one argument */
-	opt_complementary = "-1";
 	/* only -q (quiet) and -r (rmmod),
 	 * the rest are accepted and ignored (compat) */
-	getopt32(argv, "qrfsvwb");
+	getopt32(argv, "^" "qrfsvwb" "\0" "-1");
 	argv += optind;
 
 	if (is_modprobe) {

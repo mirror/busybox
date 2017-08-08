@@ -47,8 +47,7 @@ int setconsole_main(int argc UNUSED_PARAM, char **argv)
 	int reset;
 
 	/* at most one non-option argument */
-	opt_complementary = "?1";
-	reset = getopt32(argv, "r");
+	reset = getopt32(argv, "^" "r" "\0" "?1");
 
 	argv += 1 + reset;
 	if (*argv) {

@@ -253,8 +253,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	opt_complementary = "-1"; /* at least one argument */
-	opt = getopt32(argv, "+aw");
+	opt = getopt32(argv, "^+" "aw" "\0" "-1"/*at least one arg*/);
 	argv += optind;
 
 	sec_list = xstrdup("0p:1:1p:2:3:3p:4:5:6:7:8:9");

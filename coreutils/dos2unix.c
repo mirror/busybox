@@ -120,8 +120,7 @@ int dos2unix_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* -u convert to unix, -d convert to dos */
-	opt_complementary = "u--d:d--u"; /* mutually exclusive */
-	o = getopt32(argv, "du");
+	o = getopt32(argv, "^" "du" "\0" "u--d:d--u"); /* mutually exclusive */
 
 	/* Do the conversion requested by an argument else do the default
 	 * conversion depending on our name.  */

@@ -82,8 +82,7 @@ int flash_eraseall_main(int argc UNUSED_PARAM, char **argv)
 	unsigned int flags;
 	char *mtd_name;
 
-	opt_complementary = "=1";
-	flags = getopt32(argv, "jNq");
+	flags = getopt32(argv, "^" "jNq" "\0" "=1");
 
 	mtd_name = argv[optind];
 	fd = xopen(mtd_name, O_RDWR);

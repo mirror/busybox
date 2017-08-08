@@ -206,18 +206,18 @@ SPLIT_SUBDIR    = 2,
 /* -SXvhTw  GNU options, busybox optionally supports */
 /* -T WIDTH Ignored (we don't use tabs on output) */
 /* -Z       SELinux mandated option, busybox optionally supports */
-static const char ls_options[] ALIGN1 =
-	"Cadi1lgnsxAk"       /* 12 opts, total 12 */
-	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 14 */
-	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 15 */
-	IF_SELINUX("Z")                  /* 1, 16 */
-	"Q"                              /* 1, 17 */
-	IF_FEATURE_LS_TIMESTAMPS("ctu")  /* 3, 20 */
-	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 24 */
-	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 26 */
-	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 27 */
+#define ls_options \
+	"Cadi1lgnsxAk"       /* 12 opts, total 12 */ \
+	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 14 */ \
+	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 15 */ \
+	IF_SELINUX("Z")                  /* 1, 16 */ \
+	"Q"                              /* 1, 17 */ \
+	IF_FEATURE_LS_TIMESTAMPS("ctu")  /* 3, 20 */ \
+	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 24 */ \
+	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 26 */ \
+	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 27 */ \
 	IF_FEATURE_LS_WIDTH("T:w:")      /* 2, 29 */
-;
+
 enum {
 	OPT_C = (1 << 0),
 	OPT_a = (1 << 1),
@@ -1093,24 +1093,26 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* process options */
-	opt_complementary =
-		/* -n and -g imply -l */
-		"nl:gl"
-		/* --full-time implies -l */
-		IF_FEATURE_LS_TIMESTAMPS(IF_LONG_OPTS(":\xff""l"))
-		/* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ls.html:
-		 * in some pairs of opts, only last one takes effect:
-		 */
-		IF_FEATURE_LS_TIMESTAMPS(IF_FEATURE_LS_SORTFILES(":t-S:S-t")) /* time/size */
-		// ":m-l:l-m" - we don't have -m
-		IF_FEATURE_LS_FOLLOWLINKS(":H-L:L-H")
-		":C-xl:x-Cl:l-xC" /* bycols/bylines/long */
-		":C-1:1-C" /* bycols/oneline */
-		":x-1:1-x" /* bylines/oneline (not in SuS, but in GNU coreutils 8.4) */
-		IF_FEATURE_LS_TIMESTAMPS(":c-u:u-c") /* mtime/atime */
-		/* -w NUM: */
-		IF_FEATURE_LS_WIDTH(":w+");
-	opt = getopt32long(argv, ls_options, ls_longopts
+	opt = getopt32long(argv, "^"
+		ls_options
+			"\0"
+			/* -n and -g imply -l */
+			"nl:gl"
+			/* --full-time implies -l */
+			IF_FEATURE_LS_TIMESTAMPS(IF_LONG_OPTS(":\xff""l"))
+			/* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ls.html:
+			 * in some pairs of opts, only last one takes effect:
+			 */
+			IF_FEATURE_LS_TIMESTAMPS(IF_FEATURE_LS_SORTFILES(":t-S:S-t")) /* time/size */
+			// ":m-l:l-m" - we don't have -m
+			IF_FEATURE_LS_FOLLOWLINKS(":H-L:L-H")
+			":C-xl:x-Cl:l-xC" /* bycols/bylines/long */
+			":C-1:1-C" /* bycols/oneline */
+			":x-1:1-x" /* bylines/oneline (not in SuS, but in GNU coreutils 8.4) */
+			IF_FEATURE_LS_TIMESTAMPS(":c-u:u-c") /* mtime/atime */
+			/* -w NUM: */
+			IF_FEATURE_LS_WIDTH(":w+")
+		, ls_longopts
 		IF_FEATURE_LS_WIDTH(, /*-T*/ NULL, /*-w*/ &G_terminal_width)
 		IF_FEATURE_LS_COLOR(, &color_opt)
 	);

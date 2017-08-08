@@ -80,8 +80,10 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		;
 #endif
 
-	opt_complementary = "?1"; /* max one arg */
-	opt = getopt32long(argv, "ac:fqt::", script_longopts, &shell_arg, &str_t);
+	opt = getopt32long(argv, "^" "ac:fqt::" "\0" "?1"/* max one arg */,
+				script_longopts,
+				&shell_arg, &str_t
+	);
 	//argc -= optind;
 	argv += optind;
 	if (argv[0]) {

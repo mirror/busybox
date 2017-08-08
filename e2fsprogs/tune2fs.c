@@ -71,8 +71,7 @@ int tune2fs_main(int argc UNUSED_PARAM, char **argv)
 	struct ext2_super_block *sb;
 	int fd;
 
-	opt_complementary = "=1";
-	opts = getopt32(argv, "L:c:i:C:", &label, &str_c, &str_i, &str_C);
+	opts = getopt32(argv, "^" "L:c:i:C:" "\0" "=1", &label, &str_c, &str_i, &str_C);
 	if (!opts)
 		bb_show_usage();
 	argv += optind; // argv[0] -- device

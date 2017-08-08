@@ -192,12 +192,16 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 	char *filename;
 	char *isofmt_arg = NULL;
 
-	opt_complementary = "d--s:s--d"
-		IF_FEATURE_DATE_ISOFMT(":R--I:I--R");
-	opt = getopt32long(argv, "Rs:ud:r:"
-			IF_FEATURE_DATE_ISOFMT("I::D:"), date_longopts,
+	opt = getopt32long(argv, "^"
+			"Rs:ud:r:"
+			IF_FEATURE_DATE_ISOFMT("I::D:")
+			"\0"
+			"d--s:s--d"
+			IF_FEATURE_DATE_ISOFMT(":R--I:I--R"),
+			date_longopts,
 			&date_str, &date_str, &filename
-			IF_FEATURE_DATE_ISOFMT(, &isofmt_arg, &fmt_str2dt));
+			IF_FEATURE_DATE_ISOFMT(, &isofmt_arg, &fmt_str2dt)
+	);
 	argv += optind;
 	maybe_set_utc(opt);
 

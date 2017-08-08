@@ -28,8 +28,7 @@
 int pwdx_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int pwdx_main(int argc UNUSED_PARAM, char **argv)
 {
-	opt_complementary = "-1";
-	getopt32(argv, "");
+	getopt32(argv, "^" "" "\0" "-1");
 	argv += optind;
 
 	do {

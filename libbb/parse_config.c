@@ -42,8 +42,9 @@ int parse_main(int argc UNUSED_PARAM, char **argv)
 	int mintokens = 0, ntokens = 128;
 	unsigned noout;
 
-	opt_complementary = "-1";
-	noout = 1 & getopt32(argv, "xn:+m:+d:f:+", &ntokens, &mintokens, &delims, &flags);
+	noout = 1 & getopt32(argv, "^" "xn:+m:+d:f:+" "\0" "-1",
+				&ntokens, &mintokens, &delims, &flags
+	);
 	//argc -= optind;
 	argv += optind;
 

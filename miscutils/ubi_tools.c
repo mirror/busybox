@@ -145,20 +145,17 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 #define OPTION_a  (1 << 5)
 #define OPTION_t  (1 << 6)
 	if (do_mkvol) {
-		opt_complementary = "-1";
-		opts = getopt32(argv, "md:+n:+N:s:a:+t:O:+",
+		opts = getopt32(argv, "^" "md:+n:+N:s:a:+t:O:+" "\0" "-1",
 				&dev_num, &vol_id,
 				&vol_name, &size_bytes_str, &alignment, &type,
 				&vid_hdr_offset
 			);
 	} else
 	if (do_update) {
-		opt_complementary = "-1";
-		opts = getopt32(argv, "s:at", &size_bytes_str);
+		opts = getopt32(argv, "^" "s:at" "\0" "-1", &size_bytes_str);
 		opts *= OPTION_s;
 	} else {
-		opt_complementary = "-1";
-		opts = getopt32(argv, "m:+d:+n:+N:s:a:+t:",
+		opts = getopt32(argv, "^" "m:+d:+n:+N:s:a:+t:" "\0" "-1",
 				&mtd_num, &dev_num, &vol_id,
 				&vol_name, &size_bytes_str, &alignment, &type
 		);

@@ -117,8 +117,7 @@ int who_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	const char *fmt = "%s";
 
-	opt_complementary = "=0";
-	opt = getopt32(argv, do_who ? "aH" : "");
+	opt = getopt32(argv, do_who ? "^" "aH" "\0" "=0": "^" "" "\0" "=0");
 	if ((opt & 2) || do_w) /* -H or we are w */
 		puts("USER\t\tTTY\t\tIDLE\tTIME\t\t HOST");
 

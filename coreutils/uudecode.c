@@ -120,8 +120,7 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 	char *outname = NULL;
 	char *line;
 
-	opt_complementary = "?1"; /* 1 argument max */
-	getopt32(argv, "o:", &outname);
+	getopt32(argv, "^" "o:" "\0" "?1"/* 1 arg max*/, &outname);
 	argv += optind;
 
 	if (!argv[0])
@@ -196,8 +195,7 @@ int base64_main(int argc UNUSED_PARAM, char **argv)
 	FILE *src_stream;
 	unsigned opts;
 
-	opt_complementary = "?1"; /* 1 argument max */
-	opts = getopt32(argv, "d");
+	opts = getopt32(argv, "^" "d" "\0" "?1"/* 1 arg max*/);
 	argv += optind;
 
 	if (!argv[0])

@@ -973,18 +973,6 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	/* Prepend '-' to the first argument if required */
 	if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0')
 		argv[1] = xasprintf("-%s", argv[1]);
-	opt_complementary =
-		"tt:vv:" // count -t,-v
-#if ENABLE_FEATURE_TAR_LONG_OPTIONS && ENABLE_FEATURE_TAR_FROM
-		"\xff::" // --exclude=PATTERN is a list
-#endif
-		IF_FEATURE_TAR_CREATE("c:") "t:x:" // at least one of these is reqd
-		IF_FEATURE_TAR_CREATE("c--tx:t--cx:x--ct") // mutually exclusive
-		IF_NOT_FEATURE_TAR_CREATE("t--x:x--t") // mutually exclusive
-#if ENABLE_FEATURE_TAR_LONG_OPTIONS
-		":\xf9+" // --strip-components=NUM
-#endif
-	;
 #if ENABLE_DESKTOP
 	/* Lie to buildroot when it starts asking stupid questions. */
 	if (argv[1] && strcmp(argv[1], "--version") == 0) {
@@ -1021,7 +1009,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #endif
-	opt = GETOPT32(argv,
+	opt = GETOPT32(argv, "^"
 		"txC:f:Oopvk"
 		IF_FEATURE_TAR_CREATE(   "ch"    )
 		IF_FEATURE_SEAMLESS_BZ2( "j"     )
@@ -1032,6 +1020,17 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_SEAMLESS_Z(   "Z"     )
 		IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 		IF_FEATURE_TAR_LONG_OPTIONS("\xf9:") // --strip-components
+		"\0"
+		"tt:vv:" // count -t,-v
+#if ENABLE_FEATURE_TAR_LONG_OPTIONS && ENABLE_FEATURE_TAR_FROM
+		"\xff::" // --exclude=PATTERN is a list
+#endif
+		IF_FEATURE_TAR_CREATE("c:") "t:x:" // at least one of these is reqd
+		IF_FEATURE_TAR_CREATE("c--tx:t--cx:x--ct") // mutually exclusive
+		IF_NOT_FEATURE_TAR_CREATE("t--x:x--t") // mutually exclusive
+#if ENABLE_FEATURE_TAR_LONG_OPTIONS
+		":\xf9+" // --strip-components=NUM
+#endif
 		LONGOPTS
 		, &base_dir // -C dir
 		, &tar_filename // -f filename

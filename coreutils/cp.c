@@ -73,15 +73,17 @@ int cp_main(int argc, char **argv)
 #endif
 	};
 
-	// Need at least two arguments
-	// Soft- and hardlinking doesn't mix
-	// -P and -d are the same (-P is POSIX, -d is GNU)
-	// -r and -R are the same
-	// -R (and therefore -r) turns on -d (coreutils does this)
-	// -a = -pdR
-	opt_complementary = "-2:l--s:s--l:Pd:rRd:Rd:apdR";
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
-	flags = getopt32long(argv, FILEUTILS_CP_OPTSTR,
+	flags = getopt32long(argv, "^"
+		FILEUTILS_CP_OPTSTR
+		"\0"
+		// Need at least two arguments
+		// Soft- and hardlinking doesn't mix
+		// -P and -d are the same (-P is POSIX, -d is GNU)
+		// -r and -R are the same
+		// -R (and therefore -r) turns on -d (coreutils does this)
+		// -a = -pdR
+		"-2:l--s:s--l:Pd:rRd:Rd:apdR",
 		"archive\0"        No_argument "a"
 		"force\0"          No_argument "f"
 		"interactive\0"    No_argument "i"

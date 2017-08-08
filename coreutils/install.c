@@ -140,13 +140,16 @@ int install_main(int argc, char **argv)
 #endif
 	};
 
-	opt_complementary = "t--d:d--t:s--d:d--s" IF_FEATURE_INSTALL_LONG_OPTIONS(IF_SELINUX(":Z--\xff:\xff--Z"));
 	/* -c exists for backwards compatibility, it's needed */
 	/* -b is ignored ("make a backup of each existing destination file") */
-	opts = GETOPT32(argv, "cvb" "Ddpsg:m:o:t:" IF_SELINUX("Z:"),
-			LONGOPTS
-			&gid_str, &mode_str, &uid_str, &last
-			IF_SELINUX(, &scontext)
+	opts = GETOPT32(argv, "^"
+		"cvb" "Ddpsg:m:o:t:" IF_SELINUX("Z:")
+		"\0"
+		"t--d:d--t:s--d:d--s"
+		IF_FEATURE_INSTALL_LONG_OPTIONS(IF_SELINUX(":Z--\xff:\xff--Z")),
+		LONGOPTS
+		&gid_str, &mode_str, &uid_str, &last
+		IF_SELINUX(, &scontext)
 	);
 	argc -= optind;
 	argv += optind;

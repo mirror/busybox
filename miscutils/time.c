@@ -430,9 +430,10 @@ int time_main(int argc UNUSED_PARAM, char **argv)
 		OPT_f = (1 << 4),
 	};
 
-	opt_complementary = "-1"; /* at least one arg */
 	/* "+": stop on first non-option */
-	opt = getopt32(argv, "+vpao:f:", &output_filename, &output_format);
+	opt = getopt32(argv, "^+" "vpao:f:" "\0" "-1"/*at least one arg*/,
+				&output_filename, &output_format
+	);
 	argv += optind;
 	if (opt & OPT_v)
 		output_format = long_format;

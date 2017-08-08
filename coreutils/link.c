@@ -27,8 +27,7 @@
 int link_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int link_main(int argc UNUSED_PARAM, char **argv)
 {
-	opt_complementary = "=2"; /* exactly 2 params */
-	getopt32(argv, "");
+	getopt32(argv, "^" "" "\0" "=2");
 	argv += optind;
 	if (link(argv[0], argv[1]) != 0) {
 		/* shared message */

@@ -43,8 +43,7 @@ int mountpoint_main(int argc UNUSED_PARAM, char **argv)
 	char *arg;
 	int rc, opt;
 
-	opt_complementary = "=1"; /* must have one argument */
-	opt = getopt32(argv, "qdxn");
+	opt = getopt32(argv, "^" "qdxn" "\0" "=1");
 #define OPT_q (1)
 #define OPT_d (2)
 #define OPT_x (4)

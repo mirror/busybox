@@ -125,9 +125,9 @@ int popmaildir_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	// parse options
-	opt_complementary = "-1:dd";
-	opts = getopt32(argv,
-		"bdmVcasTkt:+" "R:+Z:L:+H:+" IF_FEATURE_POPMAILDIR_DELIVERY("M:F:"),
+	opts = getopt32(argv, "^"
+		"bdmVcasTkt:+" "R:+Z:L:+H:+" IF_FEATURE_POPMAILDIR_DELIVERY("M:F:")
+		"\0" "-1:dd",
 		&timeout, NULL, NULL, NULL, &opt_nlines
 		IF_FEATURE_POPMAILDIR_DELIVERY(, &delivery, &delivery) // we treat -M and -F the same
 	);

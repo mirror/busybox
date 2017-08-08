@@ -180,8 +180,7 @@ int mkfs_reiser_main(int argc UNUSED_PARAM, char **argv)
 
 	// using global "option_mask32" instead of local "opts":
 	// we are register starved here
-	opt_complementary = "-1";
-	/*opts =*/ getopt32(argv, "b:+j:s:o:t:B:h:u:l:fqd",
+	/*opts =*/ getopt32(argv, "^" "b:+j:s:o:t:B:h:u:l:fqd" "\0" "-1",
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &label);
 	argv += optind; // argv[0] -- device
 

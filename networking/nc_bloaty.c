@@ -787,11 +787,15 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
  e_found:
 
 	// -g -G -t -r deleted, unimplemented -a deleted too
-	opt_complementary = "?2:vv:ll"; /* max 2 params; -v and -l are counters; -w N */
-	getopt32(argv, "np:s:uvw:+" IF_NC_SERVER("lk")
-			IF_NC_EXTRA("i:o:z"),
-			&str_p, &str_s, &o_wait
-			IF_NC_EXTRA(, &str_i, &str_o), &o_verbose IF_NC_SERVER(, &cnt_l));
+	getopt32(argv, "^"
+		"np:s:uvw:+"/* -w N */ IF_NC_SERVER("lk")
+		IF_NC_EXTRA("i:o:z")
+			"\0"
+			"?2:vv:ll", /* max 2 params; -v and -l are counters */
+		&str_p, &str_s, &o_wait
+		IF_NC_EXTRA(, &str_i, &str_o)
+			, &o_verbose IF_NC_SERVER(, &cnt_l)
+	);
 	argv += optind;
 #if ENABLE_NC_EXTRA
 	if (option_mask32 & OPT_i) /* line-interval time */

@@ -70,8 +70,11 @@ int shuf_main(int argc, char **argv)
 	unsigned numlines;
 	char eol;
 
-	opt_complementary = "e--i:i--e"; /* mutually exclusive */
-	opts = getopt32(argv, OPT_STR, &opt_i_str, &opt_n_str, &opt_o_str);
+	opts = getopt32(argv, "^"
+			OPT_STR
+			"\0" "e--i:i--e"/* mutually exclusive */,
+			&opt_i_str, &opt_n_str, &opt_o_str
+	);
 
 	argc -= optind;
 	argv += optind;

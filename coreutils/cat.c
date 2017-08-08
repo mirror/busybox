@@ -170,9 +170,11 @@ int cat_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opts;
 
-	IF_FEATURE_CATV(opt_complementary = "Aetv"; /* -A == -vet */)
-	/* -u is ignored ("unbuffered") */
-	opts = getopt32(argv, IF_FEATURE_CATV("etvA") IF_FEATURE_CATN("nb") "u");
+	opts = getopt32(argv, IF_FEATURE_CATV("^")
+		/* -u is ignored ("unbuffered") */
+		IF_FEATURE_CATV("etvA")IF_FEATURE_CATN("nb")"u"
+		IF_FEATURE_CATV("\0" "Aetv" /* -A == -vet */)
+	);
 	argv += optind;
 
 	/* Read from stdin if there's nothing else to do. */

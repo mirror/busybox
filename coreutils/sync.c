@@ -59,8 +59,7 @@ int sync_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 		OPT_SYNCFS   = (1 << 1),
 	};
 
-	opt_complementary = "d--f:f--d";
-	opts = getopt32(argv, "df");
+	opts = getopt32(argv, "^" "df" "\0" "d--f:f--d");
 	argv += optind;
 
 	/* Handle the no-argument case. */

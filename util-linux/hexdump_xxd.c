@@ -73,8 +73,9 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 #define OPT_s (1 << 1)
 #define OPT_a (1 << 2)
 #define OPT_p (1 << 3)
-	opt_complementary = "?1"; /* 1 argument max */
-	opt = getopt32(argv, "l:s:apg:+c:+", &opt_l, &opt_s, &bytes, &cols);
+	opt = getopt32(argv, "^" "l:s:apg:+c:+" "\0" "?1" /* 1 argument max */,
+			&opt_l, &opt_s, &bytes, &cols
+	);
 	argv += optind;
 
 	dumper->dump_vflag = ALL;

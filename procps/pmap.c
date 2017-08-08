@@ -96,8 +96,7 @@ int pmap_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opts;
 	int ret;
 
-	opt_complementary = "-1"; /* min one arg */
-	opts = getopt32(argv, "xq");
+	opts = getopt32(argv, "^" "xq" "\0" "-1"); /* min one arg */
 	argv += optind;
 
 	ret = 0;

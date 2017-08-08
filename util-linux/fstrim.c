@@ -71,8 +71,9 @@ int fstrim_main(int argc UNUSED_PARAM, char **argv)
 		;
 #endif
 
-	opt_complementary = "=1"; /* exactly one non-option arg: the mountpoint */
-	opts = getopt32long(argv, "o:l:m:v", fstrim_longopts, &arg_o, &arg_l, &arg_m);
+	opts = getopt32long(argv, "^" "o:l:m:v" "\0" "=1", fstrim_longopts,
+			&arg_o, &arg_l, &arg_m
+	);
 
 	memset(&range, 0, sizeof(range));
 	range.len = ULLONG_MAX;

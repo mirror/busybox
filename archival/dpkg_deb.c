@@ -80,8 +80,9 @@ int dpkg_deb_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* Must have 1 or 2 args */
-	opt_complementary = "-1:?2:c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";
-	opt = getopt32(argv, "cefXx");
+	opt = getopt32(argv, "^" "cefXx"
+			"\0" "-1:?2:c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX"
+	);
 	argv += optind;
 	//argc -= optind;
 

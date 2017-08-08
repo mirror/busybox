@@ -348,8 +348,7 @@ int loadfont_main(int argc UNUSED_PARAM, char **argv)
 	unsigned char *buffer;
 
 	// no arguments allowed!
-	opt_complementary = "=0";
-	getopt32(argv, "");
+	getopt32(argv, "^" "" "\0" "=0");
 
 	/*
 	 * We used to look at the length of the input file
@@ -437,8 +436,7 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 	char *mapfilename;
 	const char *tty_name = CURRENT_TTY;
 
-	opt_complementary = "=1";
-	opts = getopt32(argv, "m:C:", &mapfilename, &tty_name);
+	opts = getopt32(argv, "^" "m:C:" "\0" "=1", &mapfilename, &tty_name);
 	argv += optind;
 
 	fd = xopen_nonblocking(tty_name);

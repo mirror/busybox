@@ -119,9 +119,8 @@ int mkswap_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	opt_complementary = "-1"; /* at least one param */
 	/* TODO: -p PAGESZ, -U UUID */
-	getopt32(argv, "L:", &label);
+	getopt32(argv, "^" "L:" "\0" "-1"/*at least one arg*/, &label);
 	argv += optind;
 
 	fd = xopen(argv[0], O_WRONLY);

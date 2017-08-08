@@ -361,11 +361,12 @@ int ftpgetput_main(int argc UNUSED_PARAM, char **argv)
 	/*
 	 * Decipher the command line
 	 */
-	opt_complementary = "-2:vv:cc"; /* must have 2 to 3 params; -v and -c count */
+	/* must have 2 to 3 params; -v and -c count */
+#define OPTSTRING "^cvu:p:P:" "\0" "-2:?3:vv:cc"
 #if ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS
-	getopt32long(argv, "cvu:p:P:", ftpgetput_longopts,
+	getopt32long(argv, OPTSTRING, ftpgetput_longopts,
 #else
-	getopt32(argv, "cvu:p:P:",
+	getopt32(argv, OPTSTRING,
 #endif
 			&user, &password, &port, &verbose_flag, &do_continue
 	);

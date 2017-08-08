@@ -123,8 +123,7 @@ int chmod_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* Parse options */
-	opt_complementary = "-2";
-	getopt32(argv, ("-"OPT_STR) + 1); /* Reuse string */
+	getopt32(argv, "^" OPT_STR "\0" "-2");
 	argv += optind;
 
 	/* Restore option-like mode if needed */

@@ -1174,17 +1174,20 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	abs_timeout = 1 * 60 * 60;
 	verbose_S = 0;
 	G.timeout = 2 * 60;
-	opt_complementary = "vv:SS";
 #if BB_MMU
-	opts = getopt32(argv,    "vS"
-		IF_FEATURE_FTPD_WRITE("w") "t:+T:+" IF_FEATURE_FTPD_AUTHENTICATION("a:"),
+	opts = getopt32(argv, "^"    "vS"
+		IF_FEATURE_FTPD_WRITE("w") "t:+T:+" IF_FEATURE_FTPD_AUTHENTICATION("a:")
+		"\0" "vv:SS",
 		&G.timeout, &abs_timeout, IF_FEATURE_FTPD_AUTHENTICATION(&anon_opt,)
-		&G.verbose, &verbose_S);
+		&G.verbose, &verbose_S
+	);
 #else
-	opts = getopt32(argv, "l1AvS"
-		IF_FEATURE_FTPD_WRITE("w") "t:+T:+" IF_FEATURE_FTPD_AUTHENTICATION("a:"),
+	opts = getopt32(argv, "^" "l1AvS"
+		IF_FEATURE_FTPD_WRITE("w") "t:+T:+" IF_FEATURE_FTPD_AUTHENTICATION("a:")
+		"\0" "vv:SS",
 		&G.timeout, &abs_timeout, IF_FEATURE_FTPD_AUTHENTICATION(&anon_opt,)
-		&G.verbose, &verbose_S);
+		&G.verbose, &verbose_S
+	);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
 		if (fchdir(3) != 0)

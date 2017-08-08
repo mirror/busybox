@@ -1507,13 +1507,15 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	/* do normal option parsing */
 	opt_e = opt_f = NULL;
 	opt_i = NULL;
-	opt_complementary = "nn"; /* count -n */
 	/* -i must be first, to match OPT_in_place definition */
 	/* -E is a synonym of -r:
 	 * GNU sed 4.2.1 mentions it in neither --help
 	 * nor manpage, but does recognize it.
 	 */
-	opt = getopt32long(argv, "i::rEne:*f:*", sed_longopts,
+	opt = getopt32long(argv, "^"
+			"i::rEne:*f:*"
+			"\0" "nn"/*count -n*/,
+			sed_longopts,
 			&opt_i, &opt_e, &opt_f,
 			&G.be_quiet); /* counter for -n */
 	//argc -= optind;

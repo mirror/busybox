@@ -1185,9 +1185,6 @@ void make_all_argv_opts(char **argv) FAST_FUNC;
 char* single_argv(char **argv) FAST_FUNC;
 extern const char *const bb_argv_dash[]; /* { "-", NULL } */
 extern uint32_t option_mask32;
-//TODO: get rid of this global variable. How about a trick where optstring can be
-// "^optchars""\0""complementary" (the leading "^" is an indicator)?
-extern const char *opt_complementary;
 uint32_t getopt32(char **argv, const char *applet_opts, ...) FAST_FUNC;
 # define No_argument "\0"
 # define Required_argument "\001"

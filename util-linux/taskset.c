@@ -123,8 +123,7 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 	 * Indeed, util-linux-2.13-pre7 uses:
 	 * getopt_long(argc, argv, "+pchV", ...), not "...p:..." */
 
-	opt_complementary = "-1"; /* at least 1 arg */
-	opt_p = getopt32(argv, "+p");
+	opt_p = getopt32(argv, "^+" "p" "\0" "-1" /* at least 1 arg */);
 	argv += optind;
 
 	aff = *argv++;

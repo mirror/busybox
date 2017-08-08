@@ -248,10 +248,9 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	opt_complementary = "-1";
 	opt_s_argv[0] = NULL;
 	opt_s_argv[2] = NULL;
-	getopt32(argv, "Ps:", &opt_s_argv[0]);
+	getopt32(argv, "^" "Ps:" "\0" "-1", &opt_s_argv[0]);
 	argv += optind;
 
 	i_am_init = (getpid() == 1);

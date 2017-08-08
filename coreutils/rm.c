@@ -46,8 +46,7 @@ int rm_main(int argc UNUSED_PARAM, char **argv)
 	int flags = 0;
 	unsigned opt;
 
-	opt_complementary = "f-i:i-f";
-	opt = getopt32(argv, "fiRrv");
+	opt = getopt32(argv, "^" "fiRrv" "\0" "f-i:i-f");
 	argv += optind;
 	if (opt & 1)
 		flags |= FILEUTILS_FORCE;

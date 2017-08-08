@@ -1101,13 +1101,14 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	client_config.script = CONFIG_UDHCPC_DEFAULT_SCRIPT;
 
 	/* Parse command line */
-	/* O,x: list; -T,-t,-A take numeric param */
-	IF_UDHCP_VERBOSE(opt_complementary = "vv";)
-	opt = getopt32long(argv, "i:np:qRr:s:T:+t:+SA:+O:*ox:*f"
+	opt = getopt32long(argv, "^"
+		/* O,x: list; -T,-t,-A take numeric param */
+		"i:np:qRr:s:T:+t:+SA:+O:*ox:*f"
 		USE_FOR_MMU("b")
 		///IF_FEATURE_UDHCPC_ARPING("a")
 		IF_FEATURE_UDHCP_PORT("P:")
 		"v"
+		"\0" IF_UDHCP_VERBOSE("vv") /* -v is a counter */
 		, udhcpc6_longopts
 		, &client_config.interface, &client_config.pidfile, &str_r /* i,p */
 		, &client_config.script /* s */

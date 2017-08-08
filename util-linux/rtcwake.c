@@ -155,9 +155,9 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 		"time\0"    Required_argument "t"
 		;
 #endif
-	/* Must have -s or -t, exclusive */
-	opt_complementary = "s:t:s--t:t--s";
-	opt = getopt32long(argv, "alud:m:s:t:", rtcwake_longopts,
+	opt = getopt32long(argv,
+			/* Must have -s or -t, exclusive */
+			"^alud:m:s:t:" "\0" "s:t:s--t:t--s", rtcwake_longopts,
 			&rtcname, &suspend, &opt_seconds, &opt_time);
 
 	/* this is the default

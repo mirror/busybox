@@ -984,8 +984,8 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	/* exactly 2 params; collect multiple -L <label>; -U N */
-	opt_complementary = "=2";
-	GETOPT32(argv, "abdiL:*NqrsS:tTU:+wupBE" LONGOPTS,
+	GETOPT32(argv, "^" "abdiL:*NqrsS:tTU:+wupBE" "\0" "=2"
+			LONGOPTS,
 			&L_arg, &s_start, &opt_U_context);
 	argv += optind;
 	while (L_arg)

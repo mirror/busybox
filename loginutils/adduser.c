@@ -201,12 +201,15 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	pw.pw_shell = (char *)get_shell_name();
 	pw.pw_dir = NULL;
 
-	/* at least one and at most two non-option args */
-	/* disable interactive passwd for system accounts */
-	opt_complementary = "-1:?2:SD";
-	opts = getopt32long(argv, "h:g:s:G:DSHu:k:", adduser_longopts,
+	opts = getopt32long(argv, "^"
+			"h:g:s:G:DSHu:k:"
+			/* at least one and at most two non-option args */
+			/* disable interactive passwd for system accounts */
+			"\0" "-1:?2:SD",
+			adduser_longopts,
 			&pw.pw_dir, &pw.pw_gecos, &pw.pw_shell,
-			&usegroup, &uid, &skel);
+			&usegroup, &uid, &skel
+	);
 	if (opts & OPT_UID)
 		pw.pw_uid = xatou_range(uid, 0, CONFIG_LAST_ID);
 

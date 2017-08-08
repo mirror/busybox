@@ -115,15 +115,18 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 
 	init_unicode();
 
-#if ENABLE_FEATURE_HUMAN_READABLE && ENABLE_FEATURE_DF_FANCY
-	opt_complementary = "k-mB:m-Bk:B-km";
-#elif ENABLE_FEATURE_HUMAN_READABLE
-	opt_complementary = "k-m:m-k";
-#endif
-	opt = getopt32(argv, "kPT"
+	opt = getopt32(argv, "^"
+			"kPT"
 			IF_FEATURE_DF_FANCY("aiB:")
 			IF_FEATURE_HUMAN_READABLE("hm")
-			IF_FEATURE_DF_FANCY(, &chp));
+			"\0"
+#if ENABLE_FEATURE_HUMAN_READABLE && ENABLE_FEATURE_DF_FANCY
+			"k-mB:m-Bk:B-km"
+#elif ENABLE_FEATURE_HUMAN_READABLE
+			"k-m:m-k"
+#endif
+			IF_FEATURE_DF_FANCY(, &chp)
+	);
 	if (opt & OPT_MEGA)
 		df_disp_hr = 1024*1024;
 

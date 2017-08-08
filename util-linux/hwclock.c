@@ -343,8 +343,11 @@ int hwclock_main(int argc UNUSED_PARAM, char **argv)
 	/* Initialize "timezone" (libc global variable) */
 	tzset();
 
-	opt_complementary = "r--wst:w--rst:s--wrt:t--rsw:l--u:u--l";
-	opt = getopt32long(argv, "lurswtf:", hwclock_longopts, &rtcname);
+	opt = getopt32long(argv,
+		"^lurswtf:" "\0" "r--wst:w--rst:s--wrt:t--rsw:l--u:u--l",
+		hwclock_longopts,
+		&rtcname
+	);
 
 	/* If -u or -l wasn't given check if we are using utc */
 	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME))

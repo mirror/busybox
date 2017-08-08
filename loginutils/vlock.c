@@ -66,8 +66,7 @@ int vlock_main(int argc UNUSED_PARAM, char **argv)
 	struct passwd *pw;
 
 	pw = xgetpwuid(getuid());
-	opt_complementary = "=0"; /* no params! */
-	getopt32(argv, "a");
+	getopt32(argv, "^" "a" "\0" "=0"/* no args!*/);
 
 	/* Ignore some signals so that we don't get killed by them */
 	bb_signals(0

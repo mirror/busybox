@@ -123,13 +123,12 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 	const char *opt_s = "0", *opt_f = "-", *opt_l, *opt_bb;
 
 	if (IS_NANDDUMP) {
-		opt_complementary = "=1";
-		opts = getopt32long(argv, "ons:f:l:",
+		opts = getopt32long(argv, "^" "ons:f:l:" "\0" "=1",
 				"bb\0" Required_argument "\xff", /* no short equivalent */
-				&opt_s, &opt_f, &opt_l, &opt_bb);
+				&opt_s, &opt_f, &opt_l, &opt_bb
+		);
 	} else { /* nandwrite */
-		opt_complementary = "-1:?2";
-		opts = getopt32(argv, "pns:", &opt_s);
+		opts = getopt32(argv, "^" "pns:" "\0" "-1:?2", &opt_s);
 	}
 	argv += optind;
 

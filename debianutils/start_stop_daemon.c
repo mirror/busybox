@@ -451,15 +451,17 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	/* -K or -S is required; they are mutually exclusive */
-	/* -p is required if -m is given */
-	/* -xpun (at least one) is required if -K is given */
-	/* -xa (at least one) is required if -S is given */
-	/* -q turns off -v */
-	opt_complementary = "K:S:K--S:S--K:m?p:K?xpun:S?xa"
-		IF_FEATURE_START_STOP_DAEMON_FANCY("q-v");
-	opt = GETOPT32(argv, "KSbqtma:n:s:u:c:x:p:"
-		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:"),
+	opt = GETOPT32(argv, "^"
+		"KSbqtma:n:s:u:c:x:p:"
+		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:")
+			/* -K or -S is required; they are mutually exclusive */
+			/* -p is required if -m is given */
+			/* -xpun (at least one) is required if -K is given */
+			/* -xa (at least one) is required if -S is given */
+			/* -q turns off -v */
+			"\0"
+			"K:S:K--S:S--K:m?p:K?xpun:S?xa"
+			IF_FEATURE_START_STOP_DAEMON_FANCY("q-v"),
 		LONGOPTS
 		&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile
 		IF_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
