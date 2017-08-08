@@ -42,7 +42,8 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	const char *opt_n,
 	const char *opt_p,
 	const char *opt_t,
-	const char *opt_u
+	const char *opt_u,
+	const char *opt_d
 );
 
 int FAST_FUNC

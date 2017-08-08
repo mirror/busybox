@@ -189,6 +189,8 @@
 #define    BASH_HOSTNAME_VAR    ENABLE_ASH_BASH_COMPAT
 #define    BASH_SHLVL_VAR       ENABLE_ASH_BASH_COMPAT
 #define    BASH_XTRACEFD        ENABLE_ASH_BASH_COMPAT
+#define    BASH_READ_D          ENABLE_ASH_BASH_COMPAT
+#define IF_BASH_READ_D              IF_ASH_BASH_COMPAT
 
 #if defined(__ANDROID_API__) && __ANDROID_API__ <= 24
 /* Bionic at least up to version 24 has no glob() */
@@ -13402,10 +13404,10 @@ letcmd(int argc UNUSED_PARAM, char **argv)
  *      -p PROMPT       Display PROMPT on stderr (if input is from tty)
  *      -t SECONDS      Timeout after SECONDS (tty or pipe only)
  *      -u FD           Read from given FD instead of fd 0
+ *      -d DELIM        End on DELIM char, not newline
  * This uses unbuffered input, which may be avoidable in some cases.
  * TODO: bash also has:
  *      -a ARRAY        Read into array[0],[1],etc
- *      -d DELIM        End on DELIM char, not newline
  *      -e              Use line editing (tty only)
  */
 static int FAST_FUNC
@@ -13415,11 +13417,12 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	char *opt_p = NULL;
 	char *opt_t = NULL;
 	char *opt_u = NULL;
+	char *opt_d = NULL; /* optimized out if !BASH */
 	int read_flags = 0;
 	const char *r;
 	int i;
 
-	while ((i = nextopt("p:u:rt:n:s")) != '\0') {
+	while ((i = nextopt("p:u:rt:n:sd:")) != '\0') {
 		switch (i) {
 		case 'p':
 			opt_p = optionarg;
@@ -13439,6 +13442,11 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		case 'u':
 			opt_u = optionarg;
 			break;
+#if BASH_READ_D
+		case 'd':
+			opt_d = optionarg;
+			break;
+#endif
 		default:
 			break;
 		}
@@ -13456,7 +13464,8 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		opt_n,
 		opt_p,
 		opt_t,
-		opt_u
+		opt_u,
+		opt_d
 	);
 	INT_ON;
 
