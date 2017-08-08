@@ -34,14 +34,6 @@
 # include <malloc.h> /* for mallopt */
 #endif
 
-#include <sys/prctl.h>
-#ifndef PR_SET_NAME
-#define PR_SET_NAME 15
-#endif
-#ifndef PR_GET_NAME
-#define PR_GET_NAME 16
-#endif
-
 /* Declare <applet>_main() */
 #define PROTOTYPES
 #include "applets.h"
@@ -910,14 +902,6 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 	run_applet_and_exit(applet_name, argv);
 }
 # endif
-
-#if defined(__linux__) && (NUM_APPLETS > 1)
-void FAST_FUNC set_task_comm(const char *comm)
-{
-	/* okay if too long (truncates) */
-	prctl(PR_SET_NAME, (long)comm, 0, 0, 0);
-}
-#endif
 
 # if NUM_APPLETS > 0
 void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **argv)
