@@ -194,9 +194,8 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 
 	opt_complementary = "d--s:s--d"
 		IF_FEATURE_DATE_ISOFMT(":R--I:I--R");
-	IF_LONG_OPTS(applet_long_options = date_longopts;)
-	opt = getopt32(argv, "Rs:ud:r:"
-			IF_FEATURE_DATE_ISOFMT("I::D:"),
+	opt = getopt32long(argv, "Rs:ud:r:"
+			IF_FEATURE_DATE_ISOFMT("I::D:"), date_longopts,
 			&date_str, &date_str, &filename
 			IF_FEATURE_DATE_ISOFMT(, &isofmt_arg, &fmt_str2dt));
 	argv += optind;

@@ -68,9 +68,8 @@ int deluser_main(int argc, char **argv)
 #else
 	int opt_delhome = 0;
 	if (do_deluser) {
-		applet_long_options =
-			"remove-home\0" No_argument "\xff";
-		opt_delhome = getopt32(argv, "");
+		opt_delhome = getopt32long(argv, "",
+				"remove-home\0" No_argument "\xff");
 		argv += opt_delhome;
 		argc -= opt_delhome;
 	}

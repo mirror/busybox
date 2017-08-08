@@ -81,7 +81,7 @@ int cp_main(int argc, char **argv)
 	// -a = -pdR
 	opt_complementary = "-2:l--s:s--l:Pd:rRd:Rd:apdR";
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
-	applet_long_options =
+	flags = getopt32long(argv, FILEUTILS_CP_OPTSTR,
 		"archive\0"        No_argument "a"
 		"force\0"          No_argument "f"
 		"interactive\0"    No_argument "i"
@@ -94,9 +94,10 @@ int cp_main(int argc, char **argv)
 		"update\0"         No_argument "u"
 		"remove-destination\0" No_argument "\xff"
 		"parents\0"        No_argument "\xfe"
-		;
-#endif
+	);
+#else
 	flags = getopt32(argv, FILEUTILS_CP_OPTSTR);
+#endif
 	/* Options of cp from GNU coreutils 6.10:
 	 * -a, --archive
 	 * -f, --force

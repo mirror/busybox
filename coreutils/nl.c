@@ -57,14 +57,13 @@ int nl_main(int argc UNUSED_PARAM, char **argv)
 		"starting-line-number\0"Required_argument "v"
 		"number-width\0"	Required_argument "w"
 	;
-
-	applet_long_options = nl_longopts;
 #endif
 	ns.width = 6;
 	ns.start = 1;
 	ns.inc = 1;
 	ns.sep = "\t";
-	getopt32(argv, "pw:+s:v:+i:+b:", &ns.width, &ns.sep, &ns.start, &ns.inc, &opt_b);
+	getopt32long(argv, "pw:+s:v:+i:+b:", nl_longopts,
+			&ns.width, &ns.sep, &ns.start, &ns.inc, &opt_b);
 	ns.all = (opt_b[0] == 'a');
 	ns.nonempty = (opt_b[0] == 't');
 	ns.empty_str = xasprintf("%*s\n", ns.width + (int)strlen(ns.sep), "");

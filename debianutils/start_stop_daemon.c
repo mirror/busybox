@@ -426,6 +426,11 @@ static const char start_stop_daemon_longopts[] ALIGN1 =
 	"retry\0"        Required_argument "R"
 # endif
 	;
+# define GETOPT32 getopt32long
+# define LONGOPTS start_stop_daemon_longopts,
+#else
+# define GETOPT32 getopt32
+# define LONGOPTS
 #endif
 
 int start_stop_daemon_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -446,10 +451,6 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-#if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
-	applet_long_options = start_stop_daemon_longopts;
-#endif
-
 	/* -K or -S is required; they are mutually exclusive */
 	/* -p is required if -m is given */
 	/* -xpun (at least one) is required if -K is given */
@@ -457,8 +458,9 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	/* -q turns off -v */
 	opt_complementary = "K:S:K--S:S--K:m?p:K?xpun:S?xa"
 		IF_FEATURE_START_STOP_DAEMON_FANCY("q-v");
-	opt = getopt32(argv, "KSbqtma:n:s:u:c:x:p:"
+	opt = GETOPT32(argv, "KSbqtma:n:s:u:c:x:p:"
 		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:"),
+		LONGOPTS
 		&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile
 		IF_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
 		/* We accept and ignore -R <param> / --retry <param> */

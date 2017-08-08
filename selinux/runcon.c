@@ -34,11 +34,6 @@
 //config:	depends on SELINUX
 //config:	help
 //config:	Enable support to run command in specified security context.
-//config:
-//config:config FEATURE_RUNCON_LONG_OPTIONS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on RUNCON && LONG_OPTS
 
 //applet:IF_RUNCON(APPLET(runcon, BB_DIR_USR_BIN, BB_SUID_DROP))
 
@@ -50,20 +45,11 @@
 //usage:#define runcon_full_usage "\n\n"
 //usage:       "Run PROG in a different security context\n"
 //usage:     "\n	CONTEXT		Complete security context\n"
-//usage:	IF_FEATURE_RUNCON_LONG_OPTIONS(
-//usage:     "\n	-c,--compute	Compute process transition context before modifying"
-//usage:     "\n	-t,--type TYPE	Type (for same role as parent)"
-//usage:     "\n	-u,--user USER	User identity"
-//usage:     "\n	-r,--role ROLE	Role"
-//usage:     "\n	-l,--range RNG	Levelrange"
-//usage:	)
-//usage:	IF_NOT_FEATURE_RUNCON_LONG_OPTIONS(
 //usage:     "\n	-c	Compute process transition context before modifying"
 //usage:     "\n	-t TYPE	Type (for same role as parent)"
 //usage:     "\n	-u USER	User identity"
 //usage:     "\n	-r ROLE	Role"
 //usage:     "\n	-l RNG	Levelrange"
-//usage:	)
 
 #include <selinux/context.h>
 /* from deprecated <selinux/flask.h>: */
@@ -108,7 +94,7 @@ static context_t runcon_compute_new_context(char *user, char *role, char *type, 
 	return con;
 }
 
-#if ENABLE_FEATURE_RUNCON_LONG_OPTIONS
+#if ENABLE_LONG_OPTS
 static const char runcon_longopts[] ALIGN1 =
 	"user\0"    Required_argument "u"
 	"role\0"    Required_argument "r"
@@ -140,11 +126,9 @@ int runcon_main(int argc UNUSED_PARAM, char **argv)
 
 	selinux_or_die();
 
-#if ENABLE_FEATURE_RUNCON_LONG_OPTIONS
-	applet_long_options = runcon_longopts;
-#endif
 	opt_complementary = "-1";
-	opts = getopt32(argv, "r:t:u:l:ch", &role, &type, &user, &range);
+	opts = getopt32long(argv, "r:t:u:l:ch", runcon_longopts,
+				&role, &type, &user, &range);
 	argv += optind;
 
 	if (!(opts & OPTS_CONTEXT_COMPONENT)) {

@@ -360,9 +360,8 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	char *cpio_owner;
 	IF_FEATURE_CPIO_O(const char *cpio_fmt = "";)
 	unsigned opt;
-
 #if ENABLE_LONG_OPTS
-	applet_long_options =
+	const char *long_opts =
 		"extract\0"      No_argument       "i"
 		"list\0"         No_argument       "t"
 #if ENABLE_FEATURE_CPIO_O
@@ -390,9 +389,9 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	/* -L makes sense only with -o or -p */
 
 #if !ENABLE_FEATURE_CPIO_O
-	opt = getopt32(argv, OPTION_STR, &cpio_filename, &cpio_owner);
+	opt = getopt32long(argv, OPTION_STR, long_opts, &cpio_filename, &cpio_owner);
 #else
-	opt = getopt32(argv, OPTION_STR "oH:" IF_FEATURE_CPIO_P("p"),
+	opt = getopt32long(argv, OPTION_STR "oH:" IF_FEATURE_CPIO_P("p"), long_opts,
 		       &cpio_filename, &cpio_owner, &cpio_fmt);
 #endif
 	argv += optind;

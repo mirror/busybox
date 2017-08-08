@@ -103,6 +103,11 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		"date\0"              Required_argument "d"
 		IF_FEATURE_TOUCH_NODEREF("no-dereference\0" No_argument "h")
 	;
+#  define GETOPT32 getopt32long
+#  define LONGOPTS ,touch_longopts
+# else
+#  define GETOPT32 getopt32
+#  define LONGOPTS
 # endif
 	char *reference_file = NULL;
 	char *date_str = NULL;
@@ -112,17 +117,17 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 # define reference_file NULL
 # define date_str       NULL
 # define timebuf        ((struct timeval*)NULL)
+# define GETOPT32 getopt32
+# define LONGOPTS
 #endif
 
-#if ENABLE_FEATURE_TOUCH_SUSV3 && ENABLE_LONG_OPTS
-	applet_long_options = touch_longopts;
-#endif
 	/* -d and -t both set time. In coreutils,
 	 * accepted data format differs a bit between -d and -t.
 	 * We accept the same formats for both */
-	opts = getopt32(argv, "c" IF_FEATURE_TOUCH_SUSV3("r:d:t:")
+	opts = GETOPT32(argv, "c" IF_FEATURE_TOUCH_SUSV3("r:d:t:")
 				IF_FEATURE_TOUCH_NODEREF("h")
 				/*ignored:*/ "fma"
+				LONGOPTS
 				IF_FEATURE_TOUCH_SUSV3(, &reference_file)
 				IF_FEATURE_TOUCH_SUSV3(, &date_str)
 				IF_FEATURE_TOUCH_SUSV3(, &date_str)

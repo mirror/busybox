@@ -127,11 +127,12 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	int opt, flags;
 	struct param_t param;
 
-#if ENABLE_FEATURE_CHOWN_LONG_OPTIONS
-	applet_long_options = chown_longopts;
-#endif
 	opt_complementary = "-2";
+#if ENABLE_FEATURE_CHOWN_LONG_OPTIONS
+	opt = getopt32long(argv, OPT_STR, chown_longopts);
+#else
 	opt = getopt32(argv, OPT_STR);
+#endif
 	argv += optind;
 
 	/* This matches coreutils behavior (almost - see below) */

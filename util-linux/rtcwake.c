@@ -154,11 +154,11 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 		"seconds\0" Required_argument "s"
 		"time\0"    Required_argument "t"
 		;
-	applet_long_options = rtcwake_longopts;
 #endif
 	/* Must have -s or -t, exclusive */
 	opt_complementary = "s:t:s--t:t--s";
-	opt = getopt32(argv, "alud:m:s:t:", &rtcname, &suspend, &opt_seconds, &opt_time);
+	opt = getopt32long(argv, "alud:m:s:t:", rtcwake_longopts,
+			&rtcname, &suspend, &opt_seconds, &opt_time);
 
 	/* this is the default
 	if (opt & RTCWAKE_OPT_AUTO)

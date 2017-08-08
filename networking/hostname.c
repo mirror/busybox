@@ -132,8 +132,9 @@ int hostname_main(int argc UNUSED_PARAM, char **argv)
 	char *buf;
 	char *hostname_str;
 
-#if ENABLE_LONG_OPTS
-	applet_long_options =
+	/* dnsdomainname from net-tools 1.60, hostname 1.100 (2001-04-14),
+	 * supports hostname's options too (not just -v as manpage says) */
+	opts = getopt32(argv, "dfisF:v", &hostname_str,
 		"domain\0"     No_argument "d"
 		"fqdn\0"       No_argument "f"
 	//Enable if seen in active use in some distro:
@@ -142,12 +143,7 @@ int hostname_main(int argc UNUSED_PARAM, char **argv)
 	//	"short\0"      No_argument "s"
 	//	"verbose\0"    No_argument "v"
 		"file\0"       No_argument "F"
-		;
-
-#endif
-	/* dnsdomainname from net-tools 1.60, hostname 1.100 (2001-04-14),
-	 * supports hostname's options too (not just -v as manpage says) */
-	opts = getopt32(argv, "dfisF:v", &hostname_str);
+	);
 	argv += optind;
 	buf = safe_gethostname();
 	if (ENABLE_DNSDOMAINNAME) {

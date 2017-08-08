@@ -106,14 +106,14 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 		"salt\0"        Required_argument "S"
 		"method\0"      Required_argument "m"
 	;
-	applet_long_options = mkpasswd_longopts;
 #endif
 	fd = STDIN_FILENO;
 	opt_m = CONFIG_FEATURE_DEFAULT_PASSWD_ALGO;
 	opt_S = NULL;
 	/* at most two non-option arguments; -P NUM */
 	opt_complementary = "?2";
-	getopt32(argv, "sP:+S:m:a:", &fd, &opt_S, &opt_m, &opt_m);
+	getopt32long(argv, "sP:+S:m:a:", mkpasswd_longopts,
+			&fd, &opt_S, &opt_m, &opt_m);
 	argv += optind;
 
 	/* have no idea how to handle -s... */

@@ -62,8 +62,7 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
 	opt_complementary = "m--ec:e--mc:c--em";
-	IF_LONG_OPTS(applet_long_options = chpasswd_longopts;)
-	opt = getopt32(argv, "emc:", &algo);
+	opt = getopt32long(argv, "emc:", chpasswd_longopts, &algo);
 
 	while ((name = xmalloc_fgetline(stdin)) != NULL) {
 		char *free_me;

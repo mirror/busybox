@@ -45,14 +45,15 @@ static void jump(void)
 {
 	/* Special case. We arrive here if NOFORK applet
 	 * calls xfunc, which then decides to die.
-	 * We don't die, but jump instead back to caller.
+	 * We don't die, but instead jump back to caller.
 	 * NOFORK applets still cannot carelessly call xfuncs:
 	 * p = xmalloc(10);
 	 * q = xmalloc(10); // BUG! if this dies, we leak p!
 	 */
 	/* | 0x100 allows to pass zero exitcode (longjmp can't pass 0).
 	 * This works because exitcodes are bytes,
-	 * run_nofork_applet() ensures that by "& 0xff" */
+	 * run_nofork_applet() ensures that by "& 0xff"
+	 */
 	longjmp(die_jmp, xfunc_error_retval | 0x100);
 }
 
@@ -92,12 +93,12 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 
 	logmode = LOGMODE_STDIO;
 	xfunc_error_retval = EXIT_FAILURE;
-	/* In case getopt() or getopt32() was already called:
+	/* In case getopt() was already called:
 	 * reset the libc getopt() function, which keeps internal state.
+	 * (getopt32() does it itself, but getopt() doesn't (and can't))
 	 */
 	GETOPT_RESET();
-//?	applet_long_options = NULL;
-//?	opt_complementary = NULL;
+	/* opt_complementary = NULL; - cleared by each getopt32() call anyway */
 
 	argc = string_array_len(argv);
 
@@ -122,8 +123,7 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 	restore_nofork_data(&old);
 	/* Other globals can be simply reset to defaults */
 	GETOPT_RESET();
-//?	applet_long_options = NULL;
-//?	opt_complementary = NULL;
+	/* opt_complementary = NULL; - cleared by each getopt32() call anyway */
 
 	return rc & 0xff; /* don't confuse people with "exitcodes" >255 */
 }
@@ -138,8 +138,7 @@ void FAST_FUNC run_noexec_applet_and_exit(int a, const char *name, char **argv)
 	xfunc_error_retval = EXIT_FAILURE;
 	die_func = NULL;
 	GETOPT_RESET();
-//?	applet_long_options = NULL;
-//?	opt_complementary = NULL;
+	/* opt_complementary = NULL; - cleared by each getopt32() call anyway */
 
 //TODO: think pidof, pgrep, pkill!
 //set_task_comm() makes our pidof find NOEXECs (e.g. "yes >/dev/null"),

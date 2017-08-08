@@ -1365,6 +1365,11 @@ IF_DESKTOP(	"no-clobber\0"       No_argument       "\xf0")
 IF_DESKTOP(	"no-host-directories\0" No_argument    "\xf0")
 IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 		;
+# define GETOPT32 getopt32long
+# define LONGOPTS ,wget_longopts
+#else
+# define GETOPT32 getopt32
+# define LONGOPTS
 #endif
 
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
@@ -1381,11 +1386,10 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 	G.user_agent = "Wget"; /* "User-Agent" header field */
 
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
-	applet_long_options = wget_longopts;
 #endif
 	opt_complementary = "-1" /* at least one URL */
 		IF_FEATURE_WGET_LONG_OPTIONS(":\xff::"); /* --header is a list */
-	getopt32(argv, "cqSO:P:Y:U:T:+"
+	GETOPT32(argv, "cqSO:P:Y:U:T:+"
 		/*ignored:*/ "t:"
 		/*ignored:*/ "n::"
 		/* wget has exactly four -n<letter> opts, all of which we can ignore:
@@ -1396,6 +1400,7 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 		 * "n::" above says that we accept -n[ARG].
 		 * Specifying "n:" would be a bug: "-n ARG" would eat ARG!
 		 */
+		LONGOPTS
 		, &G.fname_out, &G.dir_prefix,
 		&G.proxy_flag, &G.user_agent,
 		IF_FEATURE_WGET_TIMEOUT(&G.timeout_seconds) IF_NOT_FEATURE_WGET_TIMEOUT(NULL),

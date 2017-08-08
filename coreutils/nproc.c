@@ -28,7 +28,6 @@ int nproc_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	unsigned long mask[1024];
 	unsigned i, count = 0;
 
-	//applet_long_options = ...;
 	//getopt32(argv, "");
 
 	//if --all, count /sys/devices/system/cpu/cpuN dirs, else:

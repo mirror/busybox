@@ -1180,19 +1180,24 @@ void bb_sanitize_stdio(void) FAST_FUNC;
 int sanitize_env_if_suid(void) FAST_FUNC;
 
 
-char* single_argv(char **argv) FAST_FUNC;
-extern const char *const bb_argv_dash[]; /* "-", NULL */
-extern const char *opt_complementary;
-#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
-#define No_argument "\0"
-#define Required_argument "\001"
-#define Optional_argument "\002"
-extern const char *applet_long_options;
-#endif
-extern uint32_t option_mask32;
-uint32_t getopt32(char **argv, const char *applet_opts, ...) FAST_FUNC;
 /* For top, ps. Some argv[i] are replaced by malloced "-opt" strings */
 void make_all_argv_opts(char **argv) FAST_FUNC;
+char* single_argv(char **argv) FAST_FUNC;
+extern const char *const bb_argv_dash[]; /* { "-", NULL } */
+extern uint32_t option_mask32;
+//TODO: get rid of this global variable. How about a trick where optstring can be
+// "^optchars""\0""complementary" (the leading "^" is an indicator)?
+extern const char *opt_complementary;
+uint32_t getopt32(char **argv, const char *applet_opts, ...) FAST_FUNC;
+# define No_argument "\0"
+# define Required_argument "\001"
+# define Optional_argument "\002"
+#if ENABLE_LONG_OPTS
+uint32_t getopt32long(char **argv, const char *optstring, const char *longopts, ...) FAST_FUNC;
+#else
+#define getopt32long(argv,optstring,longopts,...) \
+	getopt32(argv,optstring,##__VA_ARGS__)
+#endif
 /* BSD-derived getopt() functions require that optind be set to 1 in
  * order to reset getopt() state.  This used to be generally accepted
  * way of resetting getopt().  However, glibc's getopt()

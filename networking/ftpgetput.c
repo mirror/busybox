@@ -361,12 +361,14 @@ int ftpgetput_main(int argc UNUSED_PARAM, char **argv)
 	/*
 	 * Decipher the command line
 	 */
-#if ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS
-	applet_long_options = ftpgetput_longopts;
-#endif
 	opt_complementary = "-2:vv:cc"; /* must have 2 to 3 params; -v and -c count */
-	getopt32(argv, "cvu:p:P:", &user, &password, &port,
-					&verbose_flag, &do_continue);
+#if ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS
+	getopt32long(argv, "cvu:p:P:", ftpgetput_longopts,
+#else
+	getopt32(argv, "cvu:p:P:",
+#endif
+			&user, &password, &port, &verbose_flag, &do_continue
+	);
 	argv += optind;
 
 	/* We want to do exactly _one_ DNS lookup, since some

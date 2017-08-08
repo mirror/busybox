@@ -159,10 +159,15 @@ static const char runparts_longopts[] ALIGN1 =
 	"reverse\0" No_argument       "\xf0"
 	"test\0"    No_argument       "\xf1"
 	"exit-on-error\0" No_argument "\xf2"
-#if ENABLE_FEATURE_RUN_PARTS_FANCY
+# if ENABLE_FEATURE_RUN_PARTS_FANCY
 	"list\0"    No_argument       "\xf3"
-#endif
+# endif
 	;
+# define GETOPT32 getopt32long
+# define LONGOPTS ,runparts_longopts
+#else
+# define GETOPT32 getopt32
+# define LONGOPTS
 #endif
 
 int run_parts_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -175,12 +180,9 @@ int run_parts_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-#if ENABLE_FEATURE_RUN_PARTS_LONG_OPTIONS
-	applet_long_options = runparts_longopts;
-#endif
 	/* We require exactly one argument: the directory name */
 	opt_complementary = "=1";
-	getopt32(argv, "a:*u:", &arg_list, &umask_p);
+	GETOPT32(argv, "a:*u:" LONGOPTS, &arg_list, &umask_p);
 
 	umask(xstrtou_range(umask_p, 8, 0, 07777));
 

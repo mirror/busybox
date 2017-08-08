@@ -51,12 +51,11 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 		"decimal\0"   No_argument       "d"
 		;
 
-	applet_long_options = dumpleases_longopts;
 #endif
 	init_unicode();
 
 	opt_complementary = "=0:a--r:r--a";
-	opt = getopt32(argv, "arf:d", &file);
+	opt = getopt32long(argv, "arf:d", dumpleases_longopts, &file);
 
 	fd = xopen(file, O_RDONLY);
 

@@ -108,6 +108,11 @@ int get_prefix(unsigned long netmask);
 		"silent\0"    No_argument "s" // don’t ever display error messages
 # endif
 		;
+# define GETOPT32 getopt32long
+# define LONGOPTS ,ipcalc_longopts
+#else
+# define GETOPT32 getopt32
+# define LONGOPTS
 #endif
 
 int ipcalc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -125,11 +130,8 @@ int ipcalc_main(int argc UNUSED_PARAM, char **argv)
 #define ipaddr    (s_ipaddr.s_addr)
 	char *ipstr;
 
-#if ENABLE_FEATURE_IPCALC_LONG_OPTIONS
-	applet_long_options = ipcalc_longopts;
-#endif
 	opt_complementary = "-1:?2"; /* minimum 1 arg, maximum 2 args */
-	opt = getopt32(argv, "mbn" IF_FEATURE_IPCALC_FANCY("phs"));
+	opt = GETOPT32(argv, "mbn" IF_FEATURE_IPCALC_FANCY("phs") LONGOPTS);
 	argv += optind;
 	if (opt & SILENT)
 		logmode = LOGMODE_NONE; /* suppress error_msg() output */

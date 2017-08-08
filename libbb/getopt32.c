@@ -6,7 +6,7 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 # include <getopt.h>
 #endif
 #include "libbb.h"
@@ -99,17 +99,18 @@ getopt32(char **argv, const char *applet_opts, ...)
  "!"    Report bad option, missing required options,
         inconsistent options with all-ones return value (instead of abort).
 
-const char *applet_long_options
+uint32_t
+getopt32long(char **argv, const char *applet_opts, const char *logopts...)
 
-        This struct allows you to define long options:
+        This allows you to define long options:
 
         static const char applet_longopts[] ALIGN1 =
                 //"name\0"  has_arg     val
                 "verbose\0" No_argument "v"
                 ;
-        applet_long_options = applet_longopts;
+        opt = getopt32long(argv, applet_opts, applet_longopts, ...);
 
-        The last member of struct option (val) typically is set to
+        The last element (val) typically is set to
         matching short option from applet_opts. If there is no matching
         char in applet_opts, then:
         - return bit has next position after short options
@@ -317,20 +318,21 @@ typedef struct {
 	int *counter;
 } t_complementary;
 
-/* You can set applet_long_options for parse called long options */
-#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
+uint32_t option_mask32;
+
+#if ENABLE_LONG_OPTS
 static const struct option bb_null_long_options[1] = {
 	{ 0, 0, 0, 0 }
 };
-const char *applet_long_options;
+#else
+#define vgetopt32(argv,applet_opts,applet_long_options,p) \
+	vgetopt32(argv,applet_opts,p)
 #endif
-
-uint32_t option_mask32;
 
 /* Please keep getopt32 free from xmalloc */
 
-uint32_t FAST_FUNC
-getopt32(char **argv, const char *applet_opts, ...)
+static uint32_t
+vgetopt32(char **argv, const char *applet_opts, const char *applet_long_options, va_list p)
 {
 	int argc;
 	unsigned flags = 0;
@@ -340,8 +342,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	int c;
 	const unsigned char *s;
 	t_complementary *on_off;
-	va_list p;
-#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	const struct option *l_o;
 	struct option *long_options = (struct option *) &bb_null_long_options;
 #endif
@@ -355,8 +356,6 @@ getopt32(char **argv, const char *applet_opts, ...)
 
 	/* skip 0: some applets cheat: they do not actually HAVE argv[0] */
 	argc = 1 + string_array_len(argv + 1);
-
-	va_start(p, applet_opts);
 
 	on_off = complementary;
 	memset(on_off, 0, sizeof(complementary));
@@ -394,7 +393,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 		c++;
 	}
 
-#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	if (applet_long_options) {
 		const char *optstr;
 		unsigned i, count;
@@ -433,12 +432,8 @@ getopt32(char **argv, const char *applet_opts, ...)
 			c++;
  next_long: ;
 		}
-		/* Make it unnecessary to clear applet_long_options
-		 * by hand after each call to getopt32
-		 */
-		applet_long_options = NULL;
 	}
-#endif /* ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG */
+#endif /* ENABLE_LONG_OPTS */
 
 	for (s = (const unsigned char *)opt_complementary; s && *s; s++) {
 		t_complementary *pair;
@@ -517,9 +512,9 @@ getopt32(char **argv, const char *applet_opts, ...)
 		}
 		s--;
 	}
-	opt_complementary = NULL;
-	va_end(p);
 
+	/* Make it unnecessary to clear it by hand after each getopt32 call */
+	opt_complementary = NULL;
 	/* In case getopt32 was already called:
 	 * reset the libc getopt() function, which keeps internal state.
 	 * run_nofork_applet() does this, but we might end up here
@@ -531,7 +526,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	 * "fake" short options, like this one:
 	 * wget $'-\203' "Test: test" http://kernel.org/
 	 * (supposed to act as --header, but doesn't) */
-#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	while ((c = getopt_long(argc, argv, applet_opts,
 			long_options, NULL)) != -1) {
 #else
@@ -592,3 +587,29 @@ getopt32(char **argv, const char *applet_opts, ...)
 		bb_show_usage();
 	return (int32_t)-1;
 }
+
+uint32_t FAST_FUNC
+getopt32(char **argv, const char *applet_opts, ...)
+{
+	uint32_t opt;
+	va_list p;
+
+	va_start(p, applet_opts);
+	opt = vgetopt32(argv, applet_opts, NULL, p);
+	va_end(p);
+	return opt;
+}
+
+#if ENABLE_LONG_OPTS
+uint32_t FAST_FUNC
+getopt32long(char **argv, const char *applet_opts, const char *longopts, ...)
+{
+	uint32_t opt;
+	va_list p;
+
+	va_start(p, longopts);
+	opt = vgetopt32(argv, applet_opts, longopts, p);
+	va_end(p);
+	return opt;
+}
+#endif

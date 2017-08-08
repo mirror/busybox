@@ -124,11 +124,9 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 
 	if (IS_NANDDUMP) {
 		opt_complementary = "=1";
-#if ENABLE_LONG_OPTS
-		applet_long_options =
-			"bb\0" Required_argument "\xff"; /* no short equivalent */
-#endif
-		opts = getopt32(argv, "ons:f:l:", &opt_s, &opt_f, &opt_l, &opt_bb);
+		opts = getopt32long(argv, "ons:f:l:",
+				"bb\0" Required_argument "\xff", /* no short equivalent */
+				&opt_s, &opt_f, &opt_l, &opt_bb);
 	} else { /* nandwrite */
 		opt_complementary = "-1:?2";
 		opts = getopt32(argv, "pns:", &opt_s);

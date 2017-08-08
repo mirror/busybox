@@ -13,14 +13,6 @@
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	Run program with namespaces of other processes.
-//config:
-//config:config FEATURE_NSENTER_LONG_OPTS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on NSENTER && LONG_OPTS
-//config:	help
-//config:	Support long options for the nsenter applet. This makes
-//config:	the busybox implementation more compatible with upstream.
 
 //applet:IF_NSENTER(APPLET(nsenter, BB_DIR_USR_BIN, BB_SUID_DROP))
 
@@ -28,22 +20,6 @@
 
 //usage:#define nsenter_trivial_usage
 //usage:       "[OPTIONS] [PROG [ARGS]]"
-//usage:#if ENABLE_FEATURE_NSENTER_LONG_OPTS
-//usage:#define nsenter_full_usage "\n"
-//usage:     "\n	-t,--target PID		Target process to get namespaces from"
-//usage:     "\n	-m,--mount[=FILE]	Enter mount namespace"
-//usage:     "\n	-u,--uts[=FILE]		Enter UTS namespace (hostname etc)"
-//usage:     "\n	-i,--ipc[=FILE]		Enter System V IPC namespace"
-//usage:     "\n	-n,--net[=FILE]		Enter network namespace"
-//usage:     "\n	-p,--pid[=FILE]		Enter pid namespace"
-//usage:     "\n	-U,--user[=FILE]	Enter user namespace"
-//usage:     "\n	-S,--setuid UID		Set uid in entered namespace"
-//usage:     "\n	-G,--setgid GID		Set gid in entered namespace"
-//usage:     "\n	--preserve-credentials	Don't touch uids or gids"
-//usage:     "\n	-r,--root[=DIR]		Set root directory"
-//usage:     "\n	-w,--wd[=DIR]		Set working directory"
-//usage:     "\n	-F,--no-fork		Don't fork before exec'ing PROG"
-//usage:#else
 //usage:#define nsenter_full_usage "\n"
 //usage:     "\n	-t PID		Target process to get namespaces from"
 //usage:     "\n	-m[FILE]	Enter mount namespace"
@@ -54,10 +30,12 @@
 //usage:     "\n	-U[FILE]	Enter user namespace"
 //usage:     "\n	-S UID		Set uid in entered namespace"
 //usage:     "\n	-G GID		Set gid in entered namespace"
+//usage:	IF_LONG_OPTS(
+//usage:     "\n	--preserve-credentials	Don't touch uids or gids"
+//usage:	)
 //usage:     "\n	-r[DIR]		Set root directory"
 //usage:     "\n	-w[DIR]		Set working directory"
 //usage:     "\n	-F		Don't fork before exec'ing PROG"
-//usage:#endif
 
 #include <sched.h>
 #ifndef CLONE_NEWUTS
@@ -101,7 +79,7 @@ enum {
 	OPT_root	= 1 << 9,
 	OPT_wd		= 1 << 10,
 	OPT_nofork	= 1 << 11,
-	OPT_prescred	= (1 << 12) * ENABLE_FEATURE_NSENTER_LONG_OPTS,
+	OPT_prescred	= (1 << 12) * ENABLE_LONG_OPTS,
 };
 enum {
 	NS_USR_POS = 0,
@@ -130,7 +108,7 @@ static const struct namespace_descr ns_list[] = {
  */
 static const char opt_str[] ALIGN1 = "U::i::u::n::p::m::""t+S+G+r::w::F";
 
-#if ENABLE_FEATURE_NSENTER_LONG_OPTS
+#if ENABLE_LONG_OPTS
 static const char nsenter_longopts[] ALIGN1 =
 	"user\0"			Optional_argument	"U"
 	"ipc\0"				Optional_argument	"i"
@@ -190,8 +168,7 @@ int nsenter_main(int argc UNUSED_PARAM, char **argv)
 
 	memset(ns_ctx_list, 0, sizeof(ns_ctx_list));
 
-	IF_FEATURE_NSENTER_LONG_OPTS(applet_long_options = nsenter_longopts);
-	opts = getopt32(argv, opt_str,
+	opts = getopt32long(argv, opt_str, nsenter_longopts,
 			&ns_ctx_list[NS_USR_POS].path,
 			&ns_ctx_list[NS_IPC_POS].path,
 			&ns_ctx_list[NS_UTS_POS].path,

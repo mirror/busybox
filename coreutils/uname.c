@@ -147,8 +147,7 @@ int uname_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			"operating-system\0"  No_argument       "o"
 		;
 # endif
-		IF_LONG_OPTS(applet_long_options = uname_longopts);
-		toprint = getopt32(argv, options);
+		toprint = getopt32long(argv, options, uname_longopts);
 		if (argv[optind]) { /* coreutils-6.9 compat */
 			bb_show_usage();
 		}

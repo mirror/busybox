@@ -1103,12 +1103,12 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	/* Parse command line */
 	/* O,x: list; -T,-t,-A take numeric param */
 	IF_UDHCP_VERBOSE(opt_complementary = "vv";)
-	IF_LONG_OPTS(applet_long_options = udhcpc6_longopts;)
-	opt = getopt32(argv, "i:np:qRr:s:T:+t:+SA:+O:*ox:*f"
+	opt = getopt32long(argv, "i:np:qRr:s:T:+t:+SA:+O:*ox:*f"
 		USE_FOR_MMU("b")
 		///IF_FEATURE_UDHCPC_ARPING("a")
 		IF_FEATURE_UDHCP_PORT("P:")
 		"v"
+		, udhcpc6_longopts
 		, &client_config.interface, &client_config.pidfile, &str_r /* i,p */
 		, &client_config.script /* s */
 		, &discover_timeout, &discover_retries, &tryagain_timeout /* T,t,A */

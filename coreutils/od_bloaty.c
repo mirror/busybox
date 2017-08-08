@@ -61,8 +61,8 @@ enum {
 	OPT_traditional = (1 << 18) * ENABLE_LONG_OPTS,
 };
 
-#define OD_GETOPT32() getopt32(argv, \
-	"A:N:abcdfhij:lot:*vxsS:w:+:", \
+#define OD_GETOPT32() getopt32long(argv, \
+	"A:N:abcdfhij:lot:*vxsS:w:+:", od_longopts, \
 	/* -w with optional param */ \
 	/* -S was -s and also had optional parameter */ \
 	/* but in coreutils 6.3 it was renamed and now has */ \
@@ -1213,9 +1213,6 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	address_pad_len_char = '7';
 
 	/* Parse command line */
-#if ENABLE_LONG_OPTS
-	applet_long_options = od_longopts;
-#endif
 	opt = OD_GETOPT32();
 	argv += optind;
 	if (opt & OPT_A) {

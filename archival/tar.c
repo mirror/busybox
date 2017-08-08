@@ -940,6 +940,11 @@ static const char tar_longopts[] ALIGN1 =
 	"exclude\0"             Required_argument "\xff"
 # endif
 	;
+# define GETOPT32 getopt32long
+# define LONGOPTS ,tar_longopts
+#else
+# define GETOPT32 getopt32
+# define LONGOPTS
 #endif
 
 int tar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -980,9 +985,6 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		":\xf9+" // --strip-components=NUM
 #endif
 	;
-#if ENABLE_FEATURE_TAR_LONG_OPTIONS
-	applet_long_options = tar_longopts;
-#endif
 #if ENABLE_DESKTOP
 	/* Lie to buildroot when it starts asking stupid questions. */
 	if (argv[1] && strcmp(argv[1], "--version") == 0) {
@@ -1019,7 +1021,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #endif
-	opt = getopt32(argv,
+	opt = GETOPT32(argv,
 		"txC:f:Oopvk"
 		IF_FEATURE_TAR_CREATE(   "ch"    )
 		IF_FEATURE_SEAMLESS_BZ2( "j"     )
@@ -1030,6 +1032,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_SEAMLESS_Z(   "Z"     )
 		IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 		IF_FEATURE_TAR_LONG_OPTIONS("\xf9:") // --strip-components
+		LONGOPTS
 		, &base_dir // -C dir
 		, &tar_filename // -f filename
 		IF_FEATURE_TAR_FROM(, &(tar_handle->accept)) // T

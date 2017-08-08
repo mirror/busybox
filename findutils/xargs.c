@@ -495,13 +495,8 @@ int xargs_main(int argc, char **argv)
 
 	INIT_G();
 
-#if ENABLE_DESKTOP && ENABLE_LONG_OPTS
-	/* For example, Fedora's build system uses --no-run-if-empty */
-	applet_long_options =
-		"no-run-if-empty\0" No_argument "r"
-		;
-#endif
-	opt = getopt32(argv, OPTION_STR,
+	opt = getopt32long(argv, OPTION_STR,
+		"no-run-if-empty\0" No_argument "r",
 		&max_args, &max_chars, &G.eof_str, &G.eof_str
 		IF_FEATURE_XARGS_SUPPORT_REPL_STR(, &G.repl_str, &G.repl_str)
 	);

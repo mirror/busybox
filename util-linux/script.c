@@ -78,12 +78,10 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		"quiet\0"   No_argument       "q"
 		"timing\0"  Optional_argument "t"
 		;
-
-	applet_long_options = script_longopts;
 #endif
 
 	opt_complementary = "?1"; /* max one arg */
-	opt = getopt32(argv, "ac:fqt::", &shell_arg, &str_t);
+	opt = getopt32long(argv, "ac:fqt::", script_longopts, &shell_arg, &str_t);
 	//argc -= optind;
 	argv += optind;
 	if (argv[0]) {

@@ -967,6 +967,11 @@ static const char diff_longopts[] ALIGN1 =
 	"starting-file\0"            Required_argument "S"
 	"minimal\0"                  No_argument       "d"
 	;
+# define GETOPT32 getopt32long
+# define LONGOPTS ,diff_longopts
+#else
+# define GETOPT32 getopt32
+# define LONGOPTS
 #endif
 
 int diff_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -980,10 +985,7 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 
 	/* exactly 2 params; collect multiple -L <label>; -U N */
 	opt_complementary = "=2";
-#if ENABLE_FEATURE_DIFF_LONG_OPTIONS
-	applet_long_options = diff_longopts;
-#endif
-	getopt32(argv, "abdiL:*NqrsS:tTU:+wupBE",
+	GETOPT32(argv, "abdiL:*NqrsS:tTU:+wupBE" LONGOPTS,
 			&L_arg, &s_start, &opt_U_context);
 	argv += optind;
 	while (L_arg)

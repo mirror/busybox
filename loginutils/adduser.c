@@ -10,13 +10,9 @@
 //config:config ADDUSER
 //config:	bool "adduser (15 kb)"
 //config:	default y
+//config:	select LONG_OPTS
 //config:	help
 //config:	Utility for creating a new user account.
-//config:
-//config:config FEATURE_ADDUSER_LONG_OPTIONS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on ADDUSER && LONG_OPTS
 //config:
 //config:config FEATURE_CHECK_NAMES
 //config:	bool "Enable sanity check on user/group names in adduser and addgroup"
@@ -148,15 +144,7 @@ static int addgroup_wrapper(struct passwd *p, const char *group_name)
 		/* Add user to his own group with the first free gid
 		 * found in passwd_study.
 		 */
-#if ENABLE_FEATURE_ADDGROUP_LONG_OPTIONS || !ENABLE_ADDGROUP
-		/* We try to use --gid, not -g, because "standard" addgroup
-		 * has no short option -g, it has only long --gid.
-		 */
 		argv[1] = (char*)"--gid";
-#else
-		/* Breaks if system in fact does NOT use busybox addgroup */
-		argv[1] = (char*)"-g";
-#endif
 		argv[2] = utoa(p->pw_gid);
 		argv[3] = (char*)"--";
 		argv[4] = p->pw_name;
@@ -174,7 +162,7 @@ static void passwd_wrapper(const char *login_name)
 	bb_error_msg_and_die("can't execute passwd, you must set password manually");
 }
 
-#if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS
+//FIXME: upstream adduser has no short options! NOT COMPATIBLE!
 static const char adduser_longopts[] ALIGN1 =
 		"home\0"                Required_argument "h"
 		"gecos\0"               Required_argument "g"
@@ -187,7 +175,6 @@ static const char adduser_longopts[] ALIGN1 =
 		"uid\0"                 Required_argument "u"
 		"skel\0"                Required_argument "k"
 		;
-#endif
 
 /*
  * adduser will take a login_name as its first parameter.
@@ -204,10 +191,6 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	char *uid;
 	const char *skel = "/etc/skel";
 
-#if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS
-	applet_long_options = adduser_longopts;
-#endif
-
 	/* got root? */
 	if (geteuid()) {
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
@@ -221,7 +204,9 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	/* at least one and at most two non-option args */
 	/* disable interactive passwd for system accounts */
 	opt_complementary = "-1:?2:SD";
-	opts = getopt32(argv, "h:g:s:G:DSHu:k:", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup, &uid, &skel);
+	opts = getopt32long(argv, "h:g:s:G:DSHu:k:", adduser_longopts,
+			&pw.pw_dir, &pw.pw_gecos, &pw.pw_shell,
+			&usegroup, &uid, &skel);
 	if (opts & OPT_UID)
 		pw.pw_uid = xatou_range(uid, 0, CONFIG_LAST_ID);
 

@@ -42,8 +42,8 @@
 //config:
 //config:config FEATURE_GETOPT_LONG
 //config:	bool "Support -l LONGOPTs"
-//config:	default y if LONG_OPTS
-//config:	depends on GETOPT
+//config:	default y
+//config:	depends on GETOPT && LONG_OPTS
 //config:	help
 //config:	Enable support for long options (option -l).
 
@@ -54,20 +54,6 @@
 //usage:#define getopt_trivial_usage
 //usage:       "[OPTIONS] [--] OPTSTRING PARAMS"
 //usage:#define getopt_full_usage "\n\n"
-//usage:	IF_LONG_OPTS(
-//usage:	IF_FEATURE_GETOPT_LONG(
-//usage:       "	-a,--alternative		Allow long options starting with single -\n"
-//usage:       "	-l,--longoptions LOPT[,...]	Long options to recognize\n"
-//usage:	)
-//usage:       "	-n,--name PROGNAME		The name under which errors are reported"
-//usage:     "\n	-o,--options OPTSTRING		Short options to recognize"
-//usage:     "\n	-q,--quiet			No error messages on unrecognized options"
-//usage:     "\n	-Q,--quiet-output		No normal output"
-//usage:     "\n	-s,--shell SHELL		Set shell quoting conventions"
-//usage:     "\n	-T,--test			Version test (exits with 4)"
-//usage:     "\n	-u,--unquoted			Don't quote output"
-//usage:	)
-//usage:	IF_NOT_LONG_OPTS(
 //usage:	IF_FEATURE_GETOPT_LONG(
 //usage:       "	-a		Allow long options starting with single -\n"
 //usage:       "	-l LOPT[,...]	Long options to recognize\n"
@@ -79,7 +65,6 @@
 //usage:     "\n	-s SHELL	Set shell quoting conventions"
 //usage:     "\n	-T		Version test (exits with 4)"
 //usage:     "\n	-u		Don't quote output"
-//usage:	)
 //usage:	IF_FEATURE_GETOPT_LONG( /* example uses -l, needs FEATURE_GETOPT_LONG */
 //usage:     "\n"
 //usage:     "\nExample:"
@@ -411,8 +396,7 @@ int getopt_main(int argc, char **argv)
 #if !ENABLE_FEATURE_GETOPT_LONG
 	opt = getopt32(argv, "+o:n:qQs:Tu", &optstr, &name, &s_arg);
 #else
-	applet_long_options = getopt_longopts;
-	opt = getopt32(argv, "+o:n:qQs:Tual:*",
+	opt = getopt32long(argv, "+o:n:qQs:Tual:*", getopt_longopts,
 					&optstr, &name, &s_arg, &l_arg);
 	/* Effectuate the read options for the applet itself */
 	while (l_arg) {

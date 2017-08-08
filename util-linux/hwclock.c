@@ -16,11 +16,6 @@
 //config:	shutdown in the hardware clock, so the hardware will keep the
 //config:	correct time when Linux is _not_ running.
 //config:
-//config:config FEATURE_HWCLOCK_LONG_OPTIONS
-//config:	bool "Support long options (--hctosys,...)"
-//config:	default y
-//config:	depends on HWCLOCK && LONG_OPTS
-//config:
 //config:config FEATURE_HWCLOCK_ADJTIME_FHS
 //config:	bool "Use FHS /var/lib/hwclock/adjtime"
 //config:	default n  # util-linux-ng in Fedora 13 still uses /etc/adjtime
@@ -293,12 +288,12 @@ static void set_system_clock_timezone(int utc)
 }
 
 //usage:#define hwclock_trivial_usage
-//usage:	IF_FEATURE_HWCLOCK_LONG_OPTIONS(
-//usage:       "[-r|--show] [-s|--hctosys] [-w|--systohc] [-t|--systz]"
-//usage:       " [-l|--localtime] [-u|--utc]"
+//usage:	IF_LONG_OPTS(
+//usage:       "[-r|--show] [-s|--hctosys] [-w|--systohc] [--systz]"
+//usage:       " [--localtime] [-u|--utc]"
 //usage:       " [-f|--rtc FILE]"
 //usage:	)
-//usage:	IF_NOT_FEATURE_HWCLOCK_LONG_OPTIONS(
+//usage:	IF_NOT_LONG_OPTS(
 //usage:       "[-r] [-s] [-w] [-t] [-l] [-u] [-f FILE]"
 //usage:	)
 //usage:#define hwclock_full_usage "\n\n"
@@ -306,11 +301,17 @@ static void set_system_clock_timezone(int utc)
 //usage:     "\n	-r	Show hardware clock time"
 //usage:     "\n	-s	Set system time from hardware clock"
 //usage:     "\n	-w	Set hardware clock from system time"
-//usage:     "\n	-t	Set in-kernel timezone, correct system time"
+//usage:	IF_LONG_OPTS(
+//usage:     "\n	--systz	Set in-kernel timezone, correct system time"
+//usage:	)
 //usage:     "\n		if hardware clock is in local time"
 //usage:     "\n	-u	Assume hardware clock is kept in UTC"
-//usage:     "\n	-l	Assume hardware clock is kept in local time"
+//usage:	IF_LONG_OPTS(
+//usage:     "\n	--localtime	Assume hardware clock is kept in local time"
+//usage:	)
 //usage:     "\n	-f FILE	Use specified device (e.g. /dev/rtc2)"
+
+//TODO: get rid of incompatible -t and -l aliases to --systz and --localtime
 
 #define HWCLOCK_OPT_LOCALTIME   0x01
 #define HWCLOCK_OPT_UTC         0x02
@@ -327,7 +328,7 @@ int hwclock_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	int utc;
 
-#if ENABLE_FEATURE_HWCLOCK_LONG_OPTIONS
+#if ENABLE_LONG_OPTS
 	static const char hwclock_longopts[] ALIGN1 =
 		"localtime\0" No_argument "l" /* short opt is non-standard */
 		"utc\0"       No_argument "u"
@@ -337,14 +338,13 @@ int hwclock_main(int argc UNUSED_PARAM, char **argv)
 		"systz\0"     No_argument "t" /* short opt is non-standard */
 		"rtc\0"       Required_argument "f"
 		;
-	applet_long_options = hwclock_longopts;
 #endif
 
 	/* Initialize "timezone" (libc global variable) */
 	tzset();
 
 	opt_complementary = "r--wst:w--rst:s--wrt:t--rsw:l--u:u--l";
-	opt = getopt32(argv, "lurswtf:", &rtcname);
+	opt = getopt32long(argv, "lurswtf:", hwclock_longopts, &rtcname);
 
 	/* If -u or -l wasn't given check if we are using utc */
 	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME))

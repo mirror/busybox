@@ -566,9 +566,8 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	IF_LONG_OPTS(applet_long_options = modprobe_longopts;)
 	opt_complementary = MODPROBE_COMPLEMENTARY;
-	opt = getopt32(argv, INSMOD_OPTS MODPROBE_OPTS INSMOD_ARGS);
+	opt = getopt32long(argv, INSMOD_OPTS MODPROBE_OPTS, modprobe_longopts INSMOD_ARGS);
 	argv += optind;
 
 	/* Goto modules location */

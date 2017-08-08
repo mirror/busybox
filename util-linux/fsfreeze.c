@@ -36,15 +36,14 @@ int fsfreeze_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opts;
 	int fd;
 
-	applet_long_options =
-		"freeze\0"   No_argument "\xff"
-		"unfreeze\0" No_argument "\xfe"
-	;
 	/* exactly one non-option arg: the mountpoint */
 	/* one of opts is required */
 	/* opts are mutually exclusive */
 	opt_complementary = "=1:""\xff:\xfe:""\xff--\xfe:\xfe--\xff";
-	opts = getopt32(argv, "");
+	opts = getopt32long(argv, "",
+		"freeze\0"   No_argument "\xff"
+		"unfreeze\0" No_argument "\xfe"
+	);
 
 	fd = xopen(argv[optind], O_RDONLY);
 	/* Works with NULL arg on linux-4.8.0 */

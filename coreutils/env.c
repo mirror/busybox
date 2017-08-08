@@ -30,11 +30,6 @@
 //config:	env is used to set an environment variable and run
 //config:	a command; without options it displays the current
 //config:	environment.
-//config:
-//config:config FEATURE_ENV_LONG_OPTIONS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on ENV && LONG_OPTS
 
 //applet:IF_ENV(APPLET_NOEXEC(env, env, BB_DIR_USR_BIN, BB_SUID_DROP, env))
 
@@ -53,23 +48,17 @@
 
 #include "libbb.h"
 
-#if ENABLE_FEATURE_ENV_LONG_OPTIONS
-static const char env_longopts[] ALIGN1 =
-	"ignore-environment\0" No_argument       "i"
-	"unset\0"              Required_argument "u"
-	;
-#endif
-
 int env_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int env_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opts;
 	llist_t *unset_env = NULL;
 
-#if ENABLE_FEATURE_ENV_LONG_OPTIONS
-	applet_long_options = env_longopts;
-#endif
-	opts = getopt32(argv, "+iu:+", &unset_env);
+	opts = getopt32long(argv, "+iu:+",
+			"ignore-environment\0" No_argument       "i"
+			"unset\0"              Required_argument "u"
+			, &unset_env
+	);
 	argv += optind;
 	if (argv[0] && LONE_DASH(argv[0])) {
 		opts |= 1;

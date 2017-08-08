@@ -44,11 +44,10 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 		"unlock\0"      No_argument       "u"
 		"nonblock\0"    No_argument       "n"
 		;
-	applet_long_options = flock_longopts;
 #endif
 	opt_complementary = "-1";
 
-	opt = getopt32(argv, "+sxnu");
+	opt = getopt32long(argv, "+sxnu", flock_longopts);
 	argv += optind;
 
 	if (argv[1]) {

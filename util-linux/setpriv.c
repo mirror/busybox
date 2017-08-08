@@ -421,9 +421,12 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
 	int opts;
 	IF_FEATURE_SETPRIV_CAPABILITIES(char *inh_caps, *ambient_caps;)
 
-	applet_long_options = setpriv_longopts;
-	opts = getopt32(argv, "+"IF_FEATURE_SETPRIV_DUMP("d")
-			IF_FEATURE_SETPRIV_CAPABILITIES("\xfe:\xfd:", &inh_caps, &ambient_caps));
+	opts = getopt32long(argv,
+		"+"IF_FEATURE_SETPRIV_DUMP("d")
+		IF_FEATURE_SETPRIV_CAPABILITIES("\xfe:\xfd:"),
+		setpriv_longopts
+		IF_FEATURE_SETPRIV_CAPABILITIES(, &inh_caps, &ambient_caps)
+	);
 	argv += optind;
 
 #if ENABLE_FEATURE_SETPRIV_DUMP

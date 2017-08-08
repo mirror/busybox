@@ -111,10 +111,9 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 			"no-backup-if-mismatch\0" No_argument       "\xff" /*ignored*/
 # endif
 			;
-		applet_long_options = patch_longopts;
 #endif
 		/* -f,-E,-g are ignored */
-		opt = getopt32(argv, "p:i:RN""fEg:", &p, &i, NULL);
+		opt = getopt32long(argv, "p:i:RN""fEg:", patch_longopts, &p, &i, NULL);
 		if (opt & OPT_R)
 			plus = '-';
 		patch_level = xatoi(p); /* can be negative! */

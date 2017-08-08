@@ -1093,7 +1093,6 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* process options */
-	IF_LONG_OPTS(applet_long_options = ls_longopts;)
 	opt_complementary =
 		/* -n and -g imply -l */
 		"nl:gl"
@@ -1111,7 +1110,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_LS_TIMESTAMPS(":c-u:u-c") /* mtime/atime */
 		/* -w NUM: */
 		IF_FEATURE_LS_WIDTH(":w+");
-	opt = getopt32(argv, ls_options
+	opt = getopt32long(argv, ls_options, ls_longopts
 		IF_FEATURE_LS_WIDTH(, /*-T*/ NULL, /*-w*/ &G_terminal_width)
 		IF_FEATURE_LS_COLOR(, &color_opt)
 	);

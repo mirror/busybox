@@ -2216,11 +2216,12 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	SET_PTR_TO_GLOBALS((char *)xzalloc(sizeof(struct globals)+sizeof(struct globals2))
 			+ sizeof(struct globals));
 
-#if ENABLE_FEATURE_GZIP_LONG_OPTIONS
-	applet_long_options = gzip_longopts;
-#endif
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
+#if ENABLE_FEATURE_GZIP_LONG_OPTIONS
+	opt = getopt32long(argv, "cfkv" IF_FEATURE_GZIP_DECOMPRESS("dt") "qn123456789", gzip_longopts);
+#else
 	opt = getopt32(argv, "cfkv" IF_FEATURE_GZIP_DECOMPRESS("dt") "qn123456789");
+#endif
 #if ENABLE_FEATURE_GZIP_DECOMPRESS /* gunzip_main may not be visible... */
 	if (opt & 0x30) // -d and/or -t
 		return gunzip_main(argc, argv);

@@ -11,14 +11,6 @@
 //config:	default y
 //config:	help
 //config:	rmdir is used to remove empty directories.
-//config:
-//config:config FEATURE_RMDIR_LONG_OPTIONS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on RMDIR && LONG_OPTS
-//config:	help
-//config:	Support long options for the rmdir applet, including
-//config:	--ignore-fail-on-non-empty for compatibility with GNU rmdir.
 
 //applet:IF_RMDIR(APPLET_NOFORK(rmdir, rmdir, BB_DIR_BIN, BB_SUID_DROP, rmdir))
 
@@ -31,12 +23,9 @@
 //usage:       "[OPTIONS] DIRECTORY..."
 //usage:#define rmdir_full_usage "\n\n"
 //usage:       "Remove DIRECTORY if it is empty\n"
-//usage:	IF_FEATURE_RMDIR_LONG_OPTIONS(
-//usage:     "\n	-p|--parents	Include parents"
-//usage:     "\n	--ignore-fail-on-non-empty"
-//usage:	)
-//usage:	IF_NOT_FEATURE_RMDIR_LONG_OPTIONS(
 //usage:     "\n	-p	Include parents"
+//usage:	IF_LONG_OPTS(
+//usage:     "\n	--ignore-fail-on-non-empty"
 //usage:	)
 //usage:
 //usage:#define rmdir_example_usage
@@ -49,7 +38,7 @@
 
 #define PARENTS          (1 << 0)
 #define VERBOSE          ((1 << 1) * ENABLE_FEATURE_VERBOSE)
-#define IGNORE_NON_EMPTY (1 << 2)
+#define IGNORE_NON_EMPTY ((1 << 2) * ENABLE_LONG_OPTS)
 
 int rmdir_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rmdir_main(int argc UNUSED_PARAM, char **argv)
@@ -58,8 +47,7 @@ int rmdir_main(int argc UNUSED_PARAM, char **argv)
 	int flags;
 	char *path;
 
-#if ENABLE_FEATURE_RMDIR_LONG_OPTIONS
-	static const char rmdir_longopts[] ALIGN1 =
+	flags = getopt32long(argv, "pv",
 		"parents\0"                  No_argument "p"
 		/* Debian etch: many packages fail to be purged or installed
 		 * because they desperately want this option: */
@@ -67,10 +55,7 @@ int rmdir_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_VERBOSE(
 		"verbose\0"                  No_argument "v"
 		)
-		;
-	applet_long_options = rmdir_longopts;
-#endif
-	flags = getopt32(argv, "pv");
+	);
 	argv += optind;
 
 	if (!*argv) {
@@ -86,7 +71,7 @@ int rmdir_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			if (rmdir(path) < 0) {
-#if ENABLE_FEATURE_RMDIR_LONG_OPTIONS
+#if ENABLE_LONG_OPTS
 				if ((flags & IGNORE_NON_EMPTY) && errno == ENOTEMPTY)
 					break;
 #endif

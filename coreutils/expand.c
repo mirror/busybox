@@ -26,21 +26,11 @@
 //config:	help
 //config:	By default, convert all tabs to spaces.
 //config:
-//config:config FEATURE_EXPAND_LONG_OPTIONS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on EXPAND && LONG_OPTS
-//config:
 //config:config UNEXPAND
 //config:	bool "unexpand (6 kb)"
 //config:	default y
 //config:	help
 //config:	By default, convert only leading sequences of blanks to tabs.
-//config:
-//config:config FEATURE_UNEXPAND_LONG_OPTIONS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on UNEXPAND && LONG_OPTS
 
 //applet:IF_EXPAND(APPLET(expand, BB_DIR_USR_BIN, BB_SUID_DROP))
 //                   APPLET_ODDNAME:name      main    location        suid_type     help
@@ -53,29 +43,16 @@
 //usage:       "[-i] [-t N] [FILE]..."
 //usage:#define expand_full_usage "\n\n"
 //usage:       "Convert tabs to spaces, writing to stdout\n"
-//usage:	IF_FEATURE_EXPAND_LONG_OPTIONS(
-//usage:     "\n	-i,--initial	Don't convert tabs after non blanks"
-//usage:     "\n	-t,--tabs N	Tabstops every N chars"
-//usage:	)
-//usage:	IF_NOT_FEATURE_EXPAND_LONG_OPTIONS(
 //usage:     "\n	-i	Don't convert tabs after non blanks"
 //usage:     "\n	-t	Tabstops every N chars"
-//usage:	)
 
 //usage:#define unexpand_trivial_usage
 //usage:       "[-fa][-t N] [FILE]..."
 //usage:#define unexpand_full_usage "\n\n"
 //usage:       "Convert spaces to tabs, writing to stdout\n"
-//usage:	IF_FEATURE_UNEXPAND_LONG_OPTIONS(
-//usage:     "\n	-a,--all	Convert all blanks"
-//usage:     "\n	-f,--first-only	Convert only leading blanks"
-//usage:     "\n	-t,--tabs N	Tabstops every N chars"
-//usage:	)
-//usage:	IF_NOT_FEATURE_UNEXPAND_LONG_OPTIONS(
 //usage:     "\n	-a	Convert all blanks"
 //usage:     "\n	-f	Convert only leading blanks"
 //usage:     "\n	-t N	Tabstops every N chars"
-//usage:	)
 
 #include "libbb.h"
 #include "unicode.h"
@@ -188,31 +165,23 @@ int expand_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	int exit_status = EXIT_SUCCESS;
 
-#if ENABLE_FEATURE_EXPAND_LONG_OPTIONS
-	static const char expand_longopts[] ALIGN1 =
-		/* name, has_arg, val */
-		"initial\0"          No_argument       "i"
-		"tabs\0"             Required_argument "t"
-	;
-#endif
-#if ENABLE_FEATURE_UNEXPAND_LONG_OPTIONS
-	static const char unexpand_longopts[] ALIGN1 =
-		/* name, has_arg, val */
-		"first-only\0"       No_argument       "i"
-		"tabs\0"             Required_argument "t"
-		"all\0"              No_argument       "a"
-	;
-#endif
 	init_unicode();
 
 	if (ENABLE_EXPAND && (!ENABLE_UNEXPAND || applet_name[0] == 'e')) {
-		IF_FEATURE_EXPAND_LONG_OPTIONS(applet_long_options = expand_longopts);
-		opt = getopt32(argv, "it:", &opt_t);
+		opt = getopt32long(argv, "it:",
+				"initial\0"          No_argument       "i"
+				"tabs\0"             Required_argument "t"
+				, &opt_t
+		);
 	} else {
-		IF_FEATURE_UNEXPAND_LONG_OPTIONS(applet_long_options = unexpand_longopts);
 		/* -t NUM sets also -a */
 		opt_complementary = "ta";
-		opt = getopt32(argv, "ft:a", &opt_t);
+		opt = getopt32long(argv, "ft:a",
+				"first-only\0"       No_argument       "i"
+				"tabs\0"             Required_argument "t"
+				"all\0"              No_argument       "a"
+				, &opt_t
+		);
 		/* -f --first-only is the default */
 		if (!(opt & OPT_ALL)) opt |= OPT_INITIAL;
 	}

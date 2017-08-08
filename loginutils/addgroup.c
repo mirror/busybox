@@ -12,13 +12,9 @@
 //config:config ADDGROUP
 //config:	bool "addgroup (8.2 kb)"
 //config:	default y
+//config:	select LONG_OPTS
 //config:	help
 //config:	Utility for creating a new group account.
-//config:
-//config:config FEATURE_ADDGROUP_LONG_OPTIONS
-//config:	bool "Enable long options"
-//config:	default y
-//config:	depends on ADDGROUP && LONG_OPTS
 //config:
 //config:config FEATURE_ADDUSER_TO_GROUP
 //config:	bool "Support adding users to groups"
@@ -131,12 +127,11 @@ static void new_group(char *group, gid_t gid)
 #endif
 }
 
-#if ENABLE_FEATURE_ADDGROUP_LONG_OPTIONS
+//FIXME: upstream addgroup has no short options! NOT COMPATIBLE!
 static const char addgroup_longopts[] ALIGN1 =
 		"gid\0"                 Required_argument "g"
 		"system\0"              No_argument       "S"
 		;
-#endif
 
 /*
  * addgroup will take a login_name as its first parameter.
@@ -155,16 +150,13 @@ int addgroup_main(int argc UNUSED_PARAM, char **argv)
 	if (geteuid()) {
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
-#if ENABLE_FEATURE_ADDGROUP_LONG_OPTIONS
-	applet_long_options = addgroup_longopts;
-#endif
 	/* Syntax:
 	 *  addgroup group
 	 *  addgroup -g num group
 	 *  addgroup user group
 	 * Check for min, max and missing args */
 	opt_complementary = "-1:?2";
-	opts = getopt32(argv, "g:S", &gid);
+	opts = getopt32long(argv, "g:S", addgroup_longopts, &gid);
 	/* move past the commandline options */
 	argv += optind;
 	//argc -= optind;

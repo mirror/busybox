@@ -55,12 +55,17 @@ static const char install_longopts[] ALIGN1 =
 	"target-directory\0"	Required_argument "t"
 /* autofs build insists of using -b --suffix=.orig */
 /* TODO? (short option for --suffix is -S) */
-#if ENABLE_SELINUX
+# if ENABLE_SELINUX
 	"context\0"             Required_argument "Z"
 	"preserve_context\0"    No_argument       "\xff"
 	"preserve-context\0"    No_argument       "\xff"
-#endif
+# endif
 	;
+# define GETOPT32 getopt32long
+# define LONGOPTS install_longopts,
+#else
+# define GETOPT32 getopt32
+# define LONGOPTS
 #endif
 
 
@@ -135,15 +140,14 @@ int install_main(int argc, char **argv)
 #endif
 	};
 
-#if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
-	applet_long_options = install_longopts;
-#endif
 	opt_complementary = "t--d:d--t:s--d:d--s" IF_FEATURE_INSTALL_LONG_OPTIONS(IF_SELINUX(":Z--\xff:\xff--Z"));
 	/* -c exists for backwards compatibility, it's needed */
 	/* -b is ignored ("make a backup of each existing destination file") */
-	opts = getopt32(argv, "cvb" "Ddpsg:m:o:t:" IF_SELINUX("Z:"),
+	opts = GETOPT32(argv, "cvb" "Ddpsg:m:o:t:" IF_SELINUX("Z:"),
+			LONGOPTS
 			&gid_str, &mode_str, &uid_str, &last
-			IF_SELINUX(, &scontext));
+			IF_SELINUX(, &scontext)
+	);
 	argc -= optind;
 	argv += optind;
 

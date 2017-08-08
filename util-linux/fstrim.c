@@ -69,11 +69,10 @@ int fstrim_main(int argc UNUSED_PARAM, char **argv)
 		"minimum\0"   Required_argument    "m"
 		"verbose\0"   No_argument          "v"
 		;
-	applet_long_options = fstrim_longopts;
 #endif
 
 	opt_complementary = "=1"; /* exactly one non-option arg: the mountpoint */
-	opts = getopt32(argv, "o:l:m:v", &arg_o, &arg_l, &arg_m);
+	opts = getopt32long(argv, "o:l:m:v", fstrim_longopts, &arg_o, &arg_l, &arg_m);
 
 	memset(&range, 0, sizeof(range));
 	range.len = ULLONG_MAX;
