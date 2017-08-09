@@ -632,16 +632,16 @@ int ipcs_main(int argc UNUSED_PARAM, char **argv)
 		flags |= flag_msg | flag_shm | flag_sem;
 	bb_putchar('\n');
 
+	if (flags & flag_msg) {
+		do_msg();
+		bb_putchar('\n');
+	}
 	if (flags & flag_shm) {
 		do_shm();
 		bb_putchar('\n');
 	}
 	if (flags & flag_sem) {
 		do_sem();
-		bb_putchar('\n');
-	}
-	if (flags & flag_msg) {
-		do_msg();
 		bb_putchar('\n');
 	}
 	fflush_stdout_and_exit(EXIT_SUCCESS);
