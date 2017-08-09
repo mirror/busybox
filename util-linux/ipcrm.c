@@ -19,15 +19,6 @@
 
 //kbuild:lib-$(CONFIG_IPCRM) += ipcrm.o
 
-//usage:#define ipcrm_trivial_usage
-//usage:       "[-MQS key] [-mqs id]"
-//usage:#define ipcrm_full_usage "\n\n"
-//usage:       "Upper-case options MQS remove an object by shmkey value.\n"
-//usage:       "Lower-case options remove an object by shmid value.\n"
-//usage:     "\n	-mM	Remove memory segment after last detach"
-//usage:     "\n	-qQ	Remove message queue"
-//usage:     "\n	-sS	Remove semaphore"
-
 #include "libbb.h"
 
 /* X/OPEN tells us to use <sys/{types,ipc,sem}.h> for semctl() */
@@ -94,6 +85,14 @@ static int remove_ids(type_id type, char **argv)
 }
 #endif /* IPCRM_LEGACY */
 
+//usage:#define ipcrm_trivial_usage
+//usage:       "[-MQS key] [-mqs id]"
+//usage:#define ipcrm_full_usage "\n\n"
+//usage:       "Upper-case options MQS remove an object by shmkey value.\n"
+//usage:       "Lower-case options remove an object by shmid value.\n"
+//usage:     "\n	-mM	Remove memory segment after last detach"
+//usage:     "\n	-qQ	Remove message queue"
+//usage:     "\n	-sS	Remove semaphore"
 
 int ipcrm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ipcrm_main(int argc, char **argv)
@@ -137,28 +136,20 @@ int ipcrm_main(int argc, char **argv)
 #endif /* IPCRM_LEGACY */
 
 	/* process new syntax to conform with SYSV ipcrm */
-	while ((c = getopt(argc, argv, "q:m:s:Q:M:S:h?")) != -1) {
+	while ((c = getopt(argc, argv, "q:m:s:Q:M:S:")) != -1) {
 		int result;
-		int id = 0;
-		int iskey = isupper(c);
-
+		int id;
+		int iskey;
 		/* needed to delete semaphores */
 		union semun arg;
 
+		if (c == '?') /* option not in the string */
+			bb_show_usage();
+
+		id = 0;
 		arg.val = 0;
 
-		if ((c == '?') || (c == 'h')) {
-			bb_show_usage();
-		}
-
-		/* we don't need case information any more */
-		c = tolower(c);
-
-		/* make sure the option is in range: allowed are q, m, s */
-		if (c != 'q' && c != 'm' && c != 's') {
-			bb_show_usage();
-		}
-
+		iskey = !(c & 0x20); /* uppercase? */
 		if (iskey) {
 			/* keys are in hex or decimal */
 			key_t key = xstrtoul(optarg, 0);
@@ -169,6 +160,7 @@ int ipcrm_main(int argc, char **argv)
 				continue;
 			}
 
+			c |= 0x20; /* lowercase. c is 'q', 'm' or 's' now */
 			/* convert key to id */
 			id = ((c == 'q') ? msgget(key, 0) :
 				(c == 'm') ? shmget(key, 0, 0) : semget(key, 0, 0));
