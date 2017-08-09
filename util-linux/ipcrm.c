@@ -15,7 +15,7 @@
 //config:	communication (IPC) objects and the associated data structures
 //config:	from the system.
 
-//applet:IF_IPCRM(APPLET(ipcrm, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_IPCRM(APPLET_NOEXEC(ipcrm, ipcrm, BB_DIR_USR_BIN, BB_SUID_DROP, ipcrm))
 
 //kbuild:lib-$(CONFIG_IPCRM) += ipcrm.o
 

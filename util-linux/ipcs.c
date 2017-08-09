@@ -15,25 +15,9 @@
 //config:	The ipcs utility is used to provide information on the currently
 //config:	allocated System V interprocess (IPC) objects in the system.
 
-//applet:IF_IPCS(APPLET(ipcs, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_IPCS(APPLET_NOEXEC(ipcs, ipcs, BB_DIR_USR_BIN, BB_SUID_DROP, ipcs))
 
 //kbuild:lib-$(CONFIG_IPCS) += ipcs.o
-
-//usage:#define ipcs_trivial_usage
-//usage:       "[[-smq] -i shmid] | [[-asmq] [-tcplu]]"
-//usage:#define ipcs_full_usage "\n\n"
-//usage:       "	-i	Show specific resource"
-//usage:     "\nResource specification:"
-//usage:     "\n	-m	Shared memory segments"
-//usage:     "\n	-q	Message queues"
-//usage:     "\n	-s	Semaphore arrays"
-//usage:     "\n	-a	All (default)"
-//usage:     "\nOutput format:"
-//usage:     "\n	-t	Time"
-//usage:     "\n	-c	Creator"
-//usage:     "\n	-p	Pid"
-//usage:     "\n	-l	Limits"
-//usage:     "\n	-u	Summary"
 
 /* X/OPEN tells us to use <sys/{types,ipc,sem}.h> for semctl() */
 /* X/OPEN tells us to use <sys/{types,ipc,msg}.h> for msgctl() */
@@ -584,6 +568,22 @@ static void print_sem(int semid)
 	}
 	bb_putchar('\n');
 }
+
+//usage:#define ipcs_trivial_usage
+//usage:       "[[-smq] -i shmid] | [[-asmq] [-tcplu]]"
+//usage:#define ipcs_full_usage "\n\n"
+//usage:       "	-i	Show specific resource"
+//usage:     "\nResource specification:"
+//usage:     "\n	-m	Shared memory segments"
+//usage:     "\n	-q	Message queues"
+//usage:     "\n	-s	Semaphore arrays"
+//usage:     "\n	-a	All (default)"
+//usage:     "\nOutput format:"
+//usage:     "\n	-t	Time"
+//usage:     "\n	-c	Creator"
+//usage:     "\n	-p	Pid"
+//usage:     "\n	-l	Limits"
+//usage:     "\n	-u	Summary"
 
 int ipcs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ipcs_main(int argc UNUSED_PARAM, char **argv)
