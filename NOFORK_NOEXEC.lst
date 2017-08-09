@@ -39,6 +39,14 @@ for users to keep it waiting for many minutes, whereas running "rm" in shell
 is very typical, and speeding up this common use via NOEXEC is useful.
 IOW: rm is "interactive", but not "longterm".
 
+Interesting example of an applet which can be NOFORK but if not,
+then should not be NOEXEC, is "usleep". As NOFORK, it amount to simply
+nanosleep()ing in the calling program (usually shell). No memory wasted.
+But if ran as NOEXEC, it would create a potentially long-term process,
+which would be taking more memory because it did not exec
+and did not free much of the copied memory of the parent
+(COW helps with this only as long as parent doesn't modify its memory).
+
 
 [ - NOFORK
 [[ - NOFORK
@@ -181,8 +189,8 @@ iostat - longterm: "iostat 1" runs indefinitely
 ip - noexec candidate
 ipaddr - noexec candidate
 ipcalc - noexec. ipcalc -h talks to network
-ipcrm - noexec candidate
-ipcs - noexec candidate
+ipcrm - noexec
+ipcs - noexec
 iplink - noexec candidate
 ipneigh - noexec candidate
 iproute - noexec candidate
@@ -327,7 +335,7 @@ showkey - interactive, longterm
 shred - runner
 shuf - noexec. runner
 slattach - longterm (may sleep forever), uses bb_common_bufsiz1
-sleep - runner, longterm
+sleep - longterm. Could be nofork, if not the problem of "killall sleep" not killing it.
 smemcap - runner
 softlimit - noexec. spawner
 sort - noexec. runner
@@ -397,7 +405,7 @@ unxz - runner
 unzip - runner
 uptime - noexec. nofork candidate(is getutxent ok?)
 users - noexec. nofork candidate(is getutxent ok?)
-usleep - NOFORK
+usleep - NOFORK. But what about "killall usleep"?
 uudecode - runner
 uuencode - runner
 vconfig - noexec. leaks: xsocket+ioctl_or_perror_and_die
