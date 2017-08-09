@@ -34,6 +34,11 @@ enum {
 	BUILTIN_READ_SILENT = 1 << 0,
 	BUILTIN_READ_RAW    = 1 << 1,
 };
+//TODO? do not provide bashisms if not asked for:
+//#if !ENABLE_HUSH_BASH_COMPAT && !ENABLE_ASH_BASH_COMPAT
+//#define shell_builtin_read(setvar,argv,ifs,read_flags,n,p,t,u,d)
+//	shell_builtin_read(setvar,argv,ifs,read_flags)
+//#endif
 const char* FAST_FUNC
 shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	char       **argv,

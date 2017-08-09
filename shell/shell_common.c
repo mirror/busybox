@@ -65,6 +65,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	int nchars; /* -n NUM */
 	char **pp;
 	char *buffer;
+	char delim;
 	struct termios tty, old_tty;
 	const char *retval;
 	int bufpos; /* need to be able to hold -1 */
@@ -185,6 +186,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 		end_ms += (unsigned)monotonic_ms();
 	buffer = NULL;
 	bufpos = 0;
+	delim = opt_d ? *opt_d : '\n';
 	do {
 		char c;
 		int timeout;
@@ -238,10 +240,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 				continue;
 			}
 		}
-		if (opt_d) {
-			if (c == *opt_d)
-				break;
-		} else if (c == '\n')
+		if (c == delim) /* '\n' or -d CHAR */
 			break;
 
 		/* $IFS splitting. NOT done if we run "read"
