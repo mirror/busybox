@@ -16,18 +16,6 @@
 //applet:IF_RPM(APPLET(rpm, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_RPM) += rpm.o
 
-//usage:#define rpm_trivial_usage
-//usage:       "-i PACKAGE.rpm; rpm -qp[ildc] PACKAGE.rpm"
-//usage:#define rpm_full_usage "\n\n"
-//usage:       "Manipulate RPM packages\n"
-//usage:     "\nCommands:"
-//usage:     "\n	-i	Install package"
-//usage:     "\n	-qp	Query package"
-//usage:     "\n	-qpi	Show information"
-//usage:     "\n	-qpl	List contents"
-//usage:     "\n	-qpd	List documents"
-//usage:     "\n	-qpc	List config files"
-
 #include "libbb.h"
 #include "common_bufsiz.h"
 #include "bb_archive.h"
@@ -91,8 +79,9 @@ typedef struct {
 
 struct globals {
 	void *map;
-	rpm_index **mytags;
+	rpm_index *mytags;
 	int tagcount;
+	unsigned mapsize, pagesize;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
@@ -128,105 +117,122 @@ static void extract_cpio(int fd, const char *source_rpm)
 		continue;
 }
 
-static rpm_index **rpm_gettags(int fd, int *num_tags)
+static rpm_index *rpm_gettags(int fd)
 {
-	/* We should never need more than 200 (shrink via realloc later) */
-	rpm_index **tags = xzalloc(200 * sizeof(tags[0]));
-	int pass, tagindex = 0;
+	rpm_index *tags;
+	unsigned pass, idx;
+	unsigned storepos;
 
-	xlseek(fd, 96, SEEK_CUR); /* Seek past the unused lead */
+	storepos = xlseek(fd, 96, SEEK_CUR); /* Seek past the unused lead */
 
+	G.tagcount = 0;
+	tags = NULL;
+	idx = 0;
 	/* 1st pass is the signature headers, 2nd is the main stuff */
 	for (pass = 0; pass < 2; pass++) {
 		struct rpm_header header;
-		rpm_index *tmpindex;
-		int storepos;
+		unsigned cnt;
 
 		xread(fd, &header, sizeof(header));
 		if (header.magic_and_ver != htonl(RPM_HEADER_MAGICnVER))
 			return NULL; /* Invalid magic, or not version 1 */
 		header.size = ntohl(header.size);
-		header.entries = ntohl(header.entries);
-		storepos = xlseek(fd, 0, SEEK_CUR) + header.entries * 16;
+		cnt = ntohl(header.entries);
+		storepos += sizeof(header) + cnt * 16;
 
-		while (header.entries--) {
-			tmpindex = tags[tagindex++] = xmalloc(sizeof(*tmpindex));
-			xread(fd, tmpindex, sizeof(*tmpindex));
-			tmpindex->tag = ntohl(tmpindex->tag);
-			tmpindex->type = ntohl(tmpindex->type);
-			tmpindex->count = ntohl(tmpindex->count);
-			tmpindex->offset = storepos + ntohl(tmpindex->offset);
+		G.tagcount += cnt;
+		tags = xrealloc(tags, G.tagcount * sizeof(tags[0]));
+		xread(fd, &tags[idx], sizeof(tags[0]) * cnt);
+		while (cnt--) {
+			rpm_index *tag = &tags[idx];
+			tag->tag = ntohl(tag->tag);
+			tag->type = ntohl(tag->type);
+			tag->count = ntohl(tag->count);
+			tag->offset = storepos + ntohl(tag->offset);
 			if (pass == 0)
-				tmpindex->tag -= 743;
+				tag->tag -= 743;
+			idx++;
 		}
-		storepos = xlseek(fd, header.size, SEEK_CUR); /* Seek past store */
 		/* Skip padding to 8 byte boundary after reading signature headers */
 		if (pass == 0)
-			xlseek(fd, (-storepos) & 0x7, SEEK_CUR);
+			while (header.size & 7)
+				header.size++;
+		/* Seek past store */
+		storepos = xlseek(fd, header.size, SEEK_CUR);
 	}
-	/* realloc tags to save space */
-	tags = xrealloc(tags, tagindex * sizeof(tags[0]));
-	*num_tags = tagindex;
-	/* All done, leave the file at the start of the gzipped cpio archive */
+
+	/* Map the store */
+	storepos = (storepos + G.pagesize) & -(int)G.pagesize;
+	/* remember size for munmap */
+	G.mapsize = storepos;
+	/* some NOMMU systems prefer MAP_PRIVATE over MAP_SHARED */
+	G.map = mmap(0, storepos, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (G.map == MAP_FAILED)
+		return NULL; /* error */
+
 	return tags;
 }
 
 static int bsearch_rpmtag(const void *key, const void *item)
 {
 	int *tag = (int *)key;
-	rpm_index **tmp = (rpm_index **) item;
-	return (*tag - tmp[0]->tag);
+	rpm_index *tmp = (rpm_index *) item;
+	return (*tag - tmp->tag);
 }
 
 static int rpm_getcount(int tag)
 {
-	rpm_index **found;
-	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
+	rpm_index *found;
+	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(G.mytags[0]), bsearch_rpmtag);
 	if (!found)
 		return 0;
-	return found[0]->count;
+	return found->count;
 }
 
 static char *rpm_getstr(int tag, int itemindex)
 {
-	rpm_index **found;
-	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
-	if (!found || itemindex >= found[0]->count)
+	rpm_index *found;
+	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(G.mytags[0]), bsearch_rpmtag);
+	if (!found || itemindex >= found->count)
 		return NULL;
-	if (found[0]->type == RPM_STRING_TYPE
-	 || found[0]->type == RPM_I18NSTRING_TYPE
-	 || found[0]->type == RPM_STRING_ARRAY_TYPE
+	if (found->type == RPM_STRING_TYPE
+	 || found->type == RPM_I18NSTRING_TYPE
+	 || found->type == RPM_STRING_ARRAY_TYPE
 	) {
 		int n;
-		char *tmpstr = (char *) G.map + found[0]->offset;
+		char *tmpstr = (char *) G.map + found->offset;
 		for (n = 0; n < itemindex; n++)
 			tmpstr = tmpstr + strlen(tmpstr) + 1;
 		return tmpstr;
 	}
 	return NULL;
 }
+static char *rpm_getstr0(int tag)
+{
+	return rpm_getstr(tag, 0);
+}
 
 static int rpm_getint(int tag, int itemindex)
 {
-	rpm_index **found;
+	rpm_index *found;
 	char *tmpint;
 
 	/* gcc throws warnings here when sizeof(void*)!=sizeof(int) ...
 	 * it's ok to ignore it because tag won't be used as a pointer */
-	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
-	if (!found || itemindex >= found[0]->count)
+	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(G.mytags[0]), bsearch_rpmtag);
+	if (!found || itemindex >= found->count)
 		return -1;
 
-	tmpint = (char *) G.map + found[0]->offset;
-	if (found[0]->type == RPM_INT32_TYPE) {
+	tmpint = (char *) G.map + found->offset;
+	if (found->type == RPM_INT32_TYPE) {
 		tmpint += itemindex*4;
 		return ntohl(*(int32_t*)tmpint);
 	}
-	if (found[0]->type == RPM_INT16_TYPE) {
+	if (found->type == RPM_INT16_TYPE) {
 		tmpint += itemindex*2;
 		return ntohs(*(int16_t*)tmpint);
 	}
-	if (found[0]->type == RPM_INT8_TYPE) {
+	if (found->type == RPM_INT8_TYPE) {
 		tmpint += itemindex;
 		return *(int8_t*)tmpint;
 	}
@@ -273,11 +279,71 @@ static void loop_through_files(int filetag, void (*fileaction)(char *filename, i
 	}
 }
 
+#if 0 //DEBUG
+static void print_all_tags(void)
+{
+	unsigned i = 0;
+	while (i < G.tagcount) {
+		rpm_index *tag = &G.mytags[i];
+		if (tag->type == RPM_STRING_TYPE
+		 || tag->type == RPM_I18NSTRING_TYPE
+		 || tag->type == RPM_STRING_ARRAY_TYPE
+		) {
+			unsigned n;
+			char *str = (char *) G.map + tag->offset;
+
+			printf("tag[%u] %08x type %08x offset %08x count %d '%s'\n",
+				i, tag->tag, tag->type, tag->offset, tag->count, str
+			);
+			for (n = 1; n < tag->count; n++) {
+				str += strlen(str) + 1;
+				printf("\t'%s'\n", str);
+			}
+		}
+		i++;
+	}
+}
+#else
+#define print_all_tags() ((void)0)
+#endif
+
+//usage:#define rpm_trivial_usage
+//usage:       "-i PACKAGE.rpm; rpm -qp[ildc] PACKAGE.rpm"
+//usage:#define rpm_full_usage "\n\n"
+//usage:       "Manipulate RPM packages\n"
+//usage:     "\nCommands:"
+//usage:     "\n	-i	Install package"
+//usage:     "\n	-qp	Query package"
+//usage:     "\n	-qpi	Show information"
+//usage:     "\n	-qpl	List contents"
+//usage:     "\n	-qpd	List documents"
+//usage:     "\n	-qpc	List config files"
+
+/* RPM version 4.13.0.1:
+ * Unlike -q, -i seems to imply -p: -i, -ip and -pi work the same.
+ * OTOH, with -q order is important: "-piq FILE.rpm" works as -qp, not -qpi
+ * (IOW: shows only package name, not package info).
+ * "-iq ARG" works as -q: treats ARG as package name, not a file.
+ *
+ * "man rpm" on -l option and options implying it:
+ * -l, --list		List files in package.
+ * -c, --configfiles	List only configuration files (implies -l).
+ * -d, --docfiles	List only documentation files (implies -l).
+ * -L, --licensefiles	List only license files (implies -l).
+ * --dump	Dump file information as follows (implies -l):
+ *		path size mtime digest mode owner group isconfig isdoc rdev symlink
+ * -s, --state	Display the states of files in the package (implies -l).
+ *		The state of each file is one of normal, not installed, or replaced.
+ *
+ * Looks like we can switch to getopt32 here: in practice, people
+ * do place -q first if they intend to use it (misinterpreting "-piq" wouldn't matter).
+ */
 int rpm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rpm_main(int argc, char **argv)
 {
 	int opt, func = 0;
-	const unsigned pagesize = getpagesize();
+
+	G.pagesize = getpagesize();
 
 	while ((opt = getopt(argc, argv, "iqpldc")) != -1) {
 		switch (opt) {
@@ -289,17 +355,17 @@ int rpm_main(int argc, char **argv)
 			if (func) bb_show_usage();
 			func = rpm_query;
 			break;
-		case 'p': /* Query a package */
+		case 'p': /* Query a package (IOW: .rpm file, we are not querying RPMDB) */
 			func |= rpm_query_package;
 			break;
 		case 'l': /* List files in a package */
 			func |= rpm_query_list;
 			break;
-		case 'd': /* List doc files in a package (implies list) */
+		case 'd': /* List doc files in a package (implies -l) */
 			func |= rpm_query_list;
 			func |= rpm_query_list_doc;
 			break;
-		case 'c': /* List config files in a package (implies list) */
+		case 'c': /* List config files in a package (implies -l) */
 			func |= rpm_query_list;
 			func |= rpm_query_list_config;
 			break;
@@ -313,24 +379,22 @@ int rpm_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	while (*argv) {
+	for (;;) {
 		int rpm_fd;
-		unsigned mapsize;
 		const char *source_rpm;
 
-		rpm_fd = xopen(*argv++, O_RDONLY);
-		G.mytags = rpm_gettags(rpm_fd, &G.tagcount);
+		rpm_fd = xopen(*argv, O_RDONLY);
+		G.mytags = rpm_gettags(rpm_fd);
 		if (!G.mytags)
-			bb_error_msg_and_die("error reading rpm header");
-		mapsize = xlseek(rpm_fd, 0, SEEK_CUR);
-		mapsize = (mapsize + pagesize) & -(int)pagesize;
-		/* Some NOMMU systems prefer MAP_PRIVATE over MAP_SHARED */
-		G.map = mmap(0, mapsize, PROT_READ, MAP_PRIVATE, rpm_fd, 0);
-//FIXME: error check?
+			bb_error_msg_and_die("error reading rpm header from '%s'", *argv);
 
-		source_rpm = rpm_getstr(TAG_SOURCERPM, 0);
+		print_all_tags();
+
+		source_rpm = rpm_getstr0(TAG_SOURCERPM);
 
 		if (func & rpm_install) {
+			/* -i (and not -qi) */
+
 			/* Backup any config files */
 			loop_through_files(TAG_BASENAMES, fileaction_dobackup);
 			/* Extact the archive */
@@ -338,10 +402,13 @@ int rpm_main(int argc, char **argv)
 			/* Set the correct file uid/gid's */
 			loop_through_files(TAG_BASENAMES, fileaction_setowngrp);
 		}
-		else if ((func & (rpm_query|rpm_query_package)) == (rpm_query|rpm_query_package)) {
+		else
+		if ((func & (rpm_query|rpm_query_package)) == (rpm_query|rpm_query_package)) {
+			/* -qp */
+
 			if (!(func & (rpm_query_info|rpm_query_list))) {
 				/* If just a straight query, just give package name */
-				printf("%s-%s-%s\n", rpm_getstr(TAG_NAME, 0), rpm_getstr(TAG_VERSION, 0), rpm_getstr(TAG_RELEASE, 0));
+				printf("%s-%s-%s\n", rpm_getstr0(TAG_NAME), rpm_getstr0(TAG_VERSION), rpm_getstr0(TAG_RELEASE));
 			}
 			if (func & rpm_query_info) {
 				/* Do the nice printout */
@@ -350,30 +417,33 @@ int rpm_main(int argc, char **argv)
 				char bdatestring[50];
 				const char *p;
 
-				printf("%-12s: %s\n", "Name"        , rpm_getstr(TAG_NAME, 0));
+				printf("%-12s: %s\n", "Name"        , rpm_getstr0(TAG_NAME));
 				/* TODO compat: add "Epoch" here */
-				printf("%-12s: %s\n", "Version"     , rpm_getstr(TAG_VERSION, 0));
-				printf("%-12s: %s\n", "Release"     , rpm_getstr(TAG_RELEASE, 0));
+				printf("%-12s: %s\n", "Version"     , rpm_getstr0(TAG_VERSION));
+				printf("%-12s: %s\n", "Release"     , rpm_getstr0(TAG_RELEASE));
 				/* add "Architecture" */
-				printf("%-12s: %s\n", "Install Date", "(not installed)");
-				printf("%-12s: %s\n", "Group"       , rpm_getstr(TAG_GROUP, 0));
+				/* printf("%-12s: %s\n", "Install Date", "(not installed)"); - we don't know */
+				printf("%-12s: %s\n", "Group"       , rpm_getstr0(TAG_GROUP));
 				printf("%-12s: %d\n", "Size"        , rpm_getint(TAG_SIZE, 0));
-				printf("%-12s: %s\n", "License"     , rpm_getstr(TAG_LICENSE, 0));
+				printf("%-12s: %s\n", "License"     , rpm_getstr0(TAG_LICENSE));
 				/* add "Signature" */
 				printf("%-12s: %s\n", "Source RPM"  , source_rpm ? source_rpm : "(none)");
 				bdate_time = rpm_getint(TAG_BUILDTIME, 0);
 				bdate_ptm = localtime(&bdate_time);
 				strftime(bdatestring, 50, "%a %d %b %Y %T %Z", bdate_ptm);
 				printf("%-12s: %s\n", "Build Date"  , bdatestring);
-				printf("%-12s: %s\n", "Build Host"  , rpm_getstr(TAG_BUILDHOST, 0));
-				p = rpm_getstr(TAG_PREFIXS, 0);
+				printf("%-12s: %s\n", "Build Host"  , rpm_getstr0(TAG_BUILDHOST));
+				p = rpm_getstr0(TAG_PREFIXS);
 				printf("%-12s: %s\n", "Relocations" , p ? p : "(not relocatable)");
 				/* add "Packager" */
-				p = rpm_getstr(TAG_VENDOR, 0);
-				printf("%-12s: %s\n", "Vendor"      , p ? p : "(none)");
-				printf("%-12s: %s\n", "URL"         , rpm_getstr(TAG_URL, 0));
-				printf("%-12s: %s\n", "Summary"     , rpm_getstr(TAG_SUMMARY, 0));
-				printf("Description :\n%s\n", rpm_getstr(TAG_DESCRIPTION, 0));
+				p = rpm_getstr0(TAG_VENDOR);
+				if (p) /* rpm 4.13.0.1 does not show "(none)" for Vendor: */
+				printf("%-12s: %s\n", "Vendor"      , p);
+				p = rpm_getstr0(TAG_URL);
+				if (p) /* rpm 4.13.0.1 does not show "(none)"/"(null)" for URL: */
+				printf("%-12s: %s\n", "URL"         , p);
+				printf("%-12s: %s\n", "Summary"     , rpm_getstr0(TAG_SUMMARY));
+				printf("Description :\n%s\n", rpm_getstr0(TAG_DESCRIPTION));
 			}
 			if (func & rpm_query_list) {
 				int count, it, flags;
@@ -396,10 +466,16 @@ int rpm_main(int argc, char **argv)
 						rpm_getstr(TAG_BASENAMES, it));
 				}
 			}
+		} else {
+			/* Unsupported (help text shows what we support) */
+			bb_show_usage();
 		}
-		munmap(G.map, mapsize);
+		if (!*++argv)
+			break;
+		munmap(G.map, G.mapsize);
 		free(G.mytags);
 		close(rpm_fd);
 	}
+
 	return 0;
 }

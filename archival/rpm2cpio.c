@@ -75,11 +75,14 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	/* Skip the main header */
 	skip_header();
 
-	//if (SEAMLESS_COMPRESSION)
+	//if (SEAMLESS_COMPRESSION) - we do this at the end instead.
 	//	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
 	//	signal(SIGCHLD, check_errors_in_children);
 
-	/* This works, but doesn't report uncompress errors (they happen in child) */
+//TODO: look for rpm tag RPMTAG_PAYLOADCOMPRESSOR (dec 1125, hex 0x465),
+// if the value is "lzma", set up decompressor without detection
+// (lzma can't be detected).
+
 	setup_unzip_on_fd(rpm_fd, /*fail_if_not_compressed:*/ 1);
 	if (bb_copyfd_eof(rpm_fd, STDOUT_FILENO) < 0)
 		bb_error_msg_and_die("error unpacking");
