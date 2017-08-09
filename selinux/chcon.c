@@ -21,7 +21,9 @@
 //usage:#define chcon_trivial_usage
 //usage:       "[OPTIONS] CONTEXT FILE..."
 //usage:       "\n	chcon [OPTIONS] [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE..."
+//usage:	IF_LONG_OPTS(
 //usage:       "\n	chcon [OPTIONS] --reference=RFILE FILE..."
+//usage:	)
 //usage:
 //usage:#define chcon_full_usage "\n\n"
 //usage:       "Change the security context of each FILE to CONTEXT\n"
