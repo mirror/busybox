@@ -400,7 +400,7 @@ users - noexec. nofork candidate(is getutxent ok?)
 usleep - NOFORK
 uudecode - runner
 uuencode - runner
-vconfig - leaks: xsocket+ioctl_or_perror_and_die
+vconfig - noexec. leaks: xsocket+ioctl_or_perror_and_die
 vi - interactive, longterm
 vlock - suid
 volname - hardware (reads CDROM, this can take long-ish if need to spin up)
