@@ -260,6 +260,11 @@ typedef uint64_t bb__aliased_uint64_t FIX_ALIASING;
 #define put_unaligned_le32(val, buf) move_to_unaligned32(buf, SWAP_LE32(val))
 #define put_unaligned_be32(val, buf) move_to_unaligned32(buf, SWAP_BE32(val))
 
+/* unxz needs an aligned fixed-endian accessor.
+ * (however, the compiler does not realize it's aligned, the cast is still necessary)
+ */
+#define get_le32(u32p) ({ uint32_t v = *(bb__aliased_uint32_t*)(u32p); SWAP_LE32(v); })
+
 
 /* ---- Size-saving "small" ints (arch-dependent) ----------- */
 
