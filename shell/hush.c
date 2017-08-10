@@ -48,7 +48,7 @@
  *      tilde expansion
  *      aliases
  *      builtins mandated by standards we don't support:
- *          [un]alias, command, fc, getopts:
+ *          [un]alias, command, fc:
  *          command -v CMD: print "/path/to/CMD"
  *              prints "CMD" for builtins
  *              prints "alias ALIAS='EXPANSION'" for aliases
@@ -58,7 +58,6 @@
  *              (can use this to override standalone shell as well)
  *              -p: use default $PATH
  *          command BLTIN: disables special-ness (e.g. errors do not abort)
- *          getopts: getopt() for shells
  *          fc -l[nr] [BEG] [END]: list range of commands in history
  *          fc [-e EDITOR] [BEG] [END]: edit/rerun range of commands
  *          fc -s [PAT=REP] [CMD]: rerun CMD, replacing PAT with REP
@@ -291,6 +290,11 @@
 //config:
 //config:config HUSH_UMASK
 //config:	bool "umask builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:
+//config:config HUSH_GETOPTS
+//config:	bool "getopts builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:
@@ -983,6 +987,9 @@ static int builtin_readonly(char **argv) FAST_FUNC;
 static int builtin_fg_bg(char **argv) FAST_FUNC;
 static int builtin_jobs(char **argv) FAST_FUNC;
 #endif
+#if ENABLE_HUSH_GETOPTS
+static int builtin_getopts(char **argv) FAST_FUNC;
+#endif
 #if ENABLE_HUSH_HELP
 static int builtin_help(char **argv) FAST_FUNC;
 #endif
@@ -1078,6 +1085,9 @@ static const struct built_in_command bltins1[] = {
 #endif
 #if ENABLE_HUSH_JOB
 	BLTIN("fg"       , builtin_fg_bg   , "Bring job to foreground"),
+#endif
+#if ENABLE_HUSH_GETOPTS
+	BLTIN("getopts"  , builtin_getopts , NULL),
 #endif
 #if ENABLE_HUSH_HELP
 	BLTIN("help"     , builtin_help    , NULL),
@@ -9858,6 +9868,69 @@ static int FAST_FUNC builtin_shift(char **argv)
 	}
 	return EXIT_FAILURE;
 }
+
+#if ENABLE_HUSH_GETOPTS
+static int FAST_FUNC builtin_getopts(char **argv)
+{
+/*
+TODO:
+if a character is followed by a colon, the option is expected to have
+an argument, which should be separated from it by white space.
+When an option requires an argument, getopts places that argument into
+the variable OPTARG.
+
+If an invalid option is seen, getopts places ? into VAR and, if
+not silent, prints an error message and unsets OPTARG. If
+getopts is silent, the option character found is placed in
+OPTARG and no diagnostic message is printed.
+
+If a required argument is not found, and getopts is not silent,
+a question mark (?) is placed in VAR, OPTARG is unset, and a
+diagnostic message is printed.  If getopts is silent, then a
+colon (:) is placed in VAR and OPTARG is set to the option
+character found.
+
+Test that VAR is a valid variable name?
+*/
+	char cbuf[2];
+	const char *cp, *optstring, *var;
+	int c, exitcode;
+
+	optstring = *++argv;
+	if (!optstring || !(var = *++argv)) {
+		bb_error_msg("usage: getopts OPTSTRING VAR [ARGS]");
+		return EXIT_FAILURE;
+	}
+
+	cp = get_local_var_value("OPTERR");
+	opterr = cp ? atoi(cp) : 1;
+	cp = get_local_var_value("OPTIND");
+	optind = cp ? atoi(cp) : 0;
+
+	/* getopts stops on first non-option. Add "+" to force that */
+	/*if (optstring[0] != '+')*/ {
+		char *s = alloca(strlen(optstring) + 2);
+		sprintf(s, "+%s", optstring);
+		optstring = s;
+	}
+
+	if (argv[1])
+		argv[0] = G.global_argv[0]; /* for error messages */
+	else
+		argv = G.global_argv;
+	c = getopt(string_array_len(argv), argv, optstring);
+	exitcode = EXIT_SUCCESS;
+	if (c < 0) { /* -1: end of options */
+		exitcode = EXIT_FAILURE;
+		c = '?';
+	}
+	cbuf[0] = c;
+	cbuf[1] = '\0';
+	set_local_var_from_halves(var, cbuf);
+	set_local_var_from_halves("OPTIND", utoa(optind));
+	return exitcode;
+}
+#endif
 
 static int FAST_FUNC builtin_source(char **argv)
 {
