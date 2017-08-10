@@ -145,12 +145,6 @@ static unsigned long get_uptime(void)
 #endif
 
 #if ENABLE_DESKTOP
-
-#include <sys/times.h> /* for times() */
-#ifndef AT_CLKTCK
-# define AT_CLKTCK 17
-#endif
-
 /* TODO:
  * http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ps.html
  * specifies (for XSI-conformant systems) following default columns
@@ -187,7 +181,9 @@ struct globals {
 	char *buffer;
 	unsigned terminal_width;
 #if ENABLE_FEATURE_PS_TIME
+# if ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS || !defined(__linux__)
 	unsigned kernel_HZ;
+# endif
 	unsigned long seconds_since_boot;
 #endif
 } FIX_ALIASING;
@@ -198,92 +194,15 @@ struct globals {
 #define need_flags         (G.need_flags        )
 #define buffer             (G.buffer            )
 #define terminal_width     (G.terminal_width    )
-#define kernel_HZ          (G.kernel_HZ         )
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 #if ENABLE_FEATURE_PS_TIME
-/* for ELF executables, notes are pushed before environment and args */
-/* try "LD_SHOW_AUXV=1 /bin/true" */
-static uintptr_t find_elf_note(uintptr_t findme)
-{
-	uintptr_t *ep = (uintptr_t *) environ;
-
-	while (*ep++)
-		continue;
-	while (*ep) {
-		if (ep[0] == findme) {
-			return ep[1];
-		}
-		ep += 2;
-	}
-	return -1;
-}
-
-# if ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS
-static unsigned get_HZ_by_waiting(void)
-{
-	struct timeval tv1, tv2;
-	unsigned t1, t2, r, hz;
-	unsigned cnt = cnt; /* for compiler */
-	int diff;
-
-	r = 0;
-
-	/* Wait for times() to reach new tick */
-	t1 = times(NULL);
-	do {
-		t2 = times(NULL);
-	} while (t2 == t1);
-	gettimeofday(&tv2, NULL);
-
-	do {
-		t1 = t2;
-		tv1.tv_usec = tv2.tv_usec;
-
-		/* Wait exactly one times() tick */
-		do {
-			t2 = times(NULL);
-		} while (t2 == t1);
-		gettimeofday(&tv2, NULL);
-
-		/* Calculate ticks per sec, rounding up to even */
-		diff = tv2.tv_usec - tv1.tv_usec;
-		if (diff <= 0) diff += 1000000;
-		hz = 1000000u / (unsigned)diff;
-		hz = (hz+1) & ~1;
-
-		/* Count how many same hz values we saw */
-		if (r != hz) {
-			r = hz;
-			cnt = 0;
-		}
-		cnt++;
-	} while (cnt < 3); /* exit if saw 3 same values */
-
-	return r;
-}
+# if ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS || !defined(__linux__)
+#  define get_kernel_HZ() (G.kernel_HZ)
 # else
-static inline unsigned get_HZ_by_waiting(void)
-{
-	/* Better method? */
-	return 100;
-}
+    /* non-ancient Linux standardized on 100 for "times" freq */
+#  define get_kernel_HZ() ((unsigned)100)
 # endif
-
-static unsigned get_kernel_HZ(void)
-{
-	if (kernel_HZ)
-		return kernel_HZ;
-
-	/* Works for ELF only, Linux 2.4.0+ */
-	kernel_HZ = find_elf_note(AT_CLKTCK);
-	if (kernel_HZ == (unsigned)-1)
-		kernel_HZ = get_HZ_by_waiting();
-
-	G.seconds_since_boot = get_uptime();
-
-	return kernel_HZ;
-}
 #endif
 
 /* Print value to buf, max size+1 chars (including trailing '\0') */
@@ -375,26 +294,21 @@ static void func_tty(char *buf, int size, const procps_status_t *ps)
 }
 
 #if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
-
 static void func_rgroup(char *buf, int size, const procps_status_t *ps)
 {
 	safe_strncpy(buf, get_cached_groupname(ps->rgid), size+1);
 }
-
 static void func_ruser(char *buf, int size, const procps_status_t *ps)
 {
 	safe_strncpy(buf, get_cached_username(ps->ruid), size+1);
 }
-
 static void func_nice(char *buf, int size, const procps_status_t *ps)
 {
 	sprintf(buf, "%*d", size, ps->niceness);
 }
-
 #endif
 
 #if ENABLE_FEATURE_PS_TIME
-
 static void func_etime(char *buf, int size, const procps_status_t *ps)
 {
 	/* elapsed time [[dd-]hh:]mm:ss; here only mm:ss */
@@ -402,13 +316,11 @@ static void func_etime(char *buf, int size, const procps_status_t *ps)
 	unsigned ss;
 
 	mm = ps->start_time / get_kernel_HZ();
-	/* must be after get_kernel_HZ()! */
 	mm = G.seconds_since_boot - mm;
 	ss = mm % 60;
 	mm /= 60;
 	snprintf(buf, size+1, "%3lu:%02u", mm, ss);
 }
-
 static void func_time(char *buf, int size, const procps_status_t *ps)
 {
 	/* cumulative time [[dd-]hh:]mm:ss; here only mm:ss */
@@ -420,7 +332,6 @@ static void func_time(char *buf, int size, const procps_status_t *ps)
 	mm /= 60;
 	snprintf(buf, size+1, "%3lu:%02u", mm, ss);
 }
-
 #endif
 
 #if ENABLE_SELINUX
@@ -627,6 +538,10 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	};
 
 	INIT_G();
+	G.seconds_since_boot = get_uptime();
+#if ENABLE_FEATURE_PS_TIME && (ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS || !defined(__linux__))
+	G.kernel_HZ = bb_clk_tck(); /* this is sysconf(_SC_CLK_TCK) */
+#endif
 
 	// POSIX:
 	// -a  Write information for all processes associated with terminals
