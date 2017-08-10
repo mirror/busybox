@@ -353,6 +353,7 @@ int rpm_main(int argc, char **argv)
 {
 	int opt, func = 0;
 
+	INIT_G();
 	G.pagesize = getpagesize();
 
 	while ((opt = getopt(argc, argv, "iqpldc")) != -1) {
@@ -515,6 +516,7 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	const char *str;
 	int rpm_fd;
 
+	INIT_G();
 	G.pagesize = getpagesize();
 
 	rpm_fd = rpm_gettags(argv[1]);
