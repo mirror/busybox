@@ -368,9 +368,15 @@ static void unzip_extract_symlink(zip_header_t *zip, const char *dst_fn)
 		target[xstate.mem_output_size] = '\0';
 #endif
 	}
+	if (!unsafe_symlink_target(target)) {
 //TODO: libbb candidate
-	if (symlink(target, dst_fn))
-		bb_perror_msg_and_die("can't create symlink '%s'", dst_fn);
+		if (symlink(target, dst_fn)) {
+			/* shared message */
+			bb_perror_msg_and_die("can't create %slink '%s' to '%s'",
+				"sym", dst_fn, target
+			);
+		}
+	}
 	free(target);
 }
 #endif

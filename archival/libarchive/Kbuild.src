@@ -12,6 +12,8 @@ COMMON_FILES:= \
 	data_extract_all.o \
 	data_extract_to_stdout.o \
 \
+	unsafe_symlink_target.o \
+\
 	filter_accept_all.o \
 	filter_accept_list.o \
 	filter_accept_reject_list.o \

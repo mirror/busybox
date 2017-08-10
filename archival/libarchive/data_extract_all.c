@@ -129,9 +129,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		if (res != 0 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
 			/* shared message */
 			bb_perror_msg("can't create %slink '%s' to '%s'",
-					"hard",
-					dst_name,
-					hard_link
+				"hard",	dst_name, hard_link
 			);
 		}
 		/* Hardlinks have no separate mode/ownership, skip chown/chmod */
@@ -181,7 +179,9 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 //TODO: what if file_header->link_target == NULL (say, corrupted tarball?)
 
 		/* To avoid a directory traversal attack via symlinks,
-		 * for certain link targets postpone creation of symlinks.
+		 * do not restore symlinks with ".." components
+		 * or symlinks starting with "/", unless a magic
+		 * envvar is set.
 		 *
 		 * For example, consider a .tar created via:
 		 *  $ tar cvf bug.tar anything.txt
@@ -199,24 +199,17 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		 *
 		 * Untarring bug.tar would otherwise place evil.py in '/tmp'.
 		 */
-		if (file_header->link_target[0] == '/'
-		 || strstr(file_header->link_target, "..")
-		) {
-			llist_add_to(&archive_handle->symlink_placeholders,
-				xasprintf("%s%c%s", file_header->name, '\0', file_header->link_target)
-			);
-			break;
-		}
-		res = symlink(file_header->link_target, dst_name);
-		if (res != 0
-		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
-		) {
-			/* shared message */
-			bb_perror_msg("can't create %slink '%s' to '%s'",
-				"sym",
-				dst_name,
-				file_header->link_target
-			);
+		if (!unsafe_symlink_target(file_header->link_target)) {
+			res = symlink(file_header->link_target, dst_name);
+			if (res != 0
+			 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
+			) {
+				/* shared message */
+				bb_perror_msg("can't create %slink '%s' to '%s'",
+					"sym",
+					dst_name, file_header->link_target
+				);
+			}
 		}
 		break;
 	case S_IFSOCK:

@@ -371,7 +371,10 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			int r = symlink(lpath, dest);
 			free(lpath);
 			if (r < 0) {
-				bb_perror_msg("can't create symlink '%s'", dest);
+				/* shared message */
+				bb_perror_msg("can't create %slink '%s' to '%s'",
+					"sym", dest, lpath
+				);
 				return -1;
 			}
 			if (flags & FILEUTILS_PRESERVE_STATUS)

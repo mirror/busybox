@@ -278,23 +278,6 @@ static void chksum_and_xwrite(int fd, struct tar_header_t* hp)
 	xwrite(fd, hp, sizeof(*hp));
 }
 
-static void replace_symlink_placeholders(llist_t *list)
-{
-	while (list) {
-		char *target;
-
-		target = list->data + strlen(list->data) + 1;
-		if (symlink(target, list->data)) {
-			/* shared message */
-			bb_error_msg_and_die("can't create %slink '%s' to '%s'",
-				"sym",
-				list->data, target
-			);
-		}
-		list = list->link;
-	}
-}
-
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 static void writeLongname(int fd, int type, const char *name, int dir)
 {
@@ -1254,8 +1237,6 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 
 	while (get_header_tar(tar_handle) == EXIT_SUCCESS)
 		bb_got_signal = EXIT_SUCCESS; /* saw at least one header, good */
-
-	replace_symlink_placeholders(tar_handle->symlink_placeholders);
 
 	/* Check that every file that should have been extracted was */
 	while (tar_handle->accept) {
