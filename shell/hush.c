@@ -48,7 +48,7 @@
  *      tilde expansion
  *      aliases
  *      builtins mandated by standards we don't support:
- *          [un]alias, command, fc, getopts, times:
+ *          [un]alias, command, fc, getopts:
  *          command -v CMD: print "/path/to/CMD"
  *              prints "CMD" for builtins
  *              prints "alias ALIAS='EXPANSION'" for aliases
@@ -59,7 +59,6 @@
  *              -p: use default $PATH
  *          command BLTIN: disables special-ness (e.g. errors do not abort)
  *          getopts: getopt() for shells
- *          times: print getrusage(SELF/CHILDREN).ru_utime/ru_stime
  *          fc -l[nr] [BEG] [END]: list range of commands in history
  *          fc [-e EDITOR] [BEG] [END]: edit/rerun range of commands
  *          fc -s [PAT=REP] [CMD]: rerun CMD, replacing PAT with REP
@@ -265,6 +264,11 @@
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:
+//config:config HUSH_TIMES
+//config:	bool "times builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:
 //config:config HUSH_READ
 //config:	bool "read builtin"
 //config:	default y
@@ -325,6 +329,7 @@
 #if ENABLE_HUSH_CASE
 # include <fnmatch.h>
 #endif
+#include <sys/times.h>
 #include <sys/utsname.h> /* for setting $HOSTNAME */
 
 #include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
@@ -1011,6 +1016,9 @@ static int builtin_trap(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_TYPE
 static int builtin_type(char **argv) FAST_FUNC;
 #endif
+#if ENABLE_HUSH_TIMES
+static int builtin_times(char **argv) FAST_FUNC;
+#endif
 static int builtin_true(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_UMASK
 static int builtin_umask(char **argv) FAST_FUNC;
@@ -1104,6 +1112,9 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("shift"    , builtin_shift   , "Shift positional parameters"),
 #if BASH_SOURCE
 	BLTIN("source"   , builtin_source  , NULL),
+#endif
+#if ENABLE_HUSH_TIMES
+	BLTIN("times"    , builtin_times   , NULL),
 #endif
 #if ENABLE_HUSH_TRAP
 	BLTIN("trap"     , builtin_trap    , "Trap signals"),
@@ -10404,6 +10415,41 @@ static int FAST_FUNC builtin_return(char **argv)
 	 */
 	rc = parse_numeric_argv1(argv, G.last_exitcode, 0);
 	return rc;
+}
+#endif
+
+#if ENABLE_HUSH_TIMES
+static int FAST_FUNC builtin_times(char **argv UNUSED_PARAM)
+{
+	static const uint8_t times_tbl[] ALIGN1 = {
+		' ',  offsetof(struct tms, tms_utime),
+		'\n', offsetof(struct tms, tms_stime),
+		' ',  offsetof(struct tms, tms_cutime),
+		'\n', offsetof(struct tms, tms_cstime),
+		0
+	};
+	const uint8_t *p;
+	unsigned clk_tck;
+	struct tms buf;
+
+	clk_tck = bb_clk_tck();
+
+	times(&buf);
+	p = times_tbl;
+	do {
+		unsigned sec, frac;
+		unsigned long t;
+		t = *(clock_t *)(((char *) &buf) + p[1]);
+		sec = t / clk_tck;
+		frac = t % clk_tck;
+		printf("%um%u.%03us%c",
+			sec / 60, sec % 60,
+			(frac * 1000) / clk_tck,
+			p[0]);
+		p += 2;
+	} while (*p);
+
+	return EXIT_SUCCESS;
 }
 #endif
 

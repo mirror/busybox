@@ -13351,21 +13351,23 @@ static const unsigned char timescmd_str[] ALIGN1 = {
 static int FAST_FUNC
 timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	unsigned long clk_tck, s, t;
+	unsigned clk_tck;
 	const unsigned char *p;
 	struct tms buf;
 
 	clk_tck = bb_clk_tck();
-	times(&buf);
 
+	times(&buf);
 	p = timescmd_str;
 	do {
+		unsigned sec, frac;
+		unsigned long t;
 		t = *(clock_t *)(((char *) &buf) + p[1]);
-		s = t / clk_tck;
-		t = t % clk_tck;
-		out1fmt("%lum%lu.%03lus%c",
-			s / 60, s % 60,
-			(t * 1000) / clk_tck,
+		sec = t / clk_tck;
+		frac = t % clk_tck;
+		out1fmt("%um%u.%03us%c",
+			sec / 60, sec % 60,
+			(frac * 1000) / clk_tck,
 			p[0]);
 		p += 2;
 	} while (*p);
