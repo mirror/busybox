@@ -117,14 +117,15 @@ static void extract_cpio(int fd, const char *source_rpm)
 		continue;
 }
 
-static rpm_index *rpm_gettags(int fd)
+static int rpm_gettags(const char *filename)
 {
 	rpm_index *tags;
+	int fd;
 	unsigned pass, idx;
 	unsigned storepos;
 
+	fd = xopen(filename, O_RDONLY);
 	storepos = xlseek(fd, 96, SEEK_CUR); /* Seek past the unused lead */
-
 	G.tagcount = 0;
 	tags = NULL;
 	idx = 0;
@@ -135,13 +136,13 @@ static rpm_index *rpm_gettags(int fd)
 
 		xread(fd, &header, sizeof(header));
 		if (header.magic_and_ver != htonl(RPM_HEADER_MAGICnVER))
-			return NULL; /* Invalid magic, or not version 1 */
+			bb_error_msg_and_die("invalid RPM header magic in '%s'", filename);
 		header.size = ntohl(header.size);
 		cnt = ntohl(header.entries);
 		storepos += sizeof(header) + cnt * 16;
 
 		G.tagcount += cnt;
-		tags = xrealloc(tags, G.tagcount * sizeof(tags[0]));
+		tags = xrealloc(tags, sizeof(tags[0]) * G.tagcount);
 		xread(fd, &tags[idx], sizeof(tags[0]) * cnt);
 		while (cnt--) {
 			rpm_index *tag = &tags[idx];
@@ -160,6 +161,7 @@ static rpm_index *rpm_gettags(int fd)
 		/* Seek past store */
 		storepos = xlseek(fd, header.size, SEEK_CUR);
 	}
+	G.mytags = tags;
 
 	/* Map the store */
 	storepos = (storepos + G.pagesize) & -(int)G.pagesize;
@@ -168,9 +170,9 @@ static rpm_index *rpm_gettags(int fd)
 	/* some NOMMU systems prefer MAP_PRIVATE over MAP_SHARED */
 	G.map = mmap(0, storepos, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (G.map == MAP_FAILED)
-		return NULL; /* error */
+		bb_perror_msg_and_die("mmap '%s'", filename);
 
-	return tags;
+	return fd;
 }
 
 static int bsearch_rpmtag(const void *key, const void *item)
@@ -383,11 +385,7 @@ int rpm_main(int argc, char **argv)
 		int rpm_fd;
 		const char *source_rpm;
 
-		rpm_fd = xopen(*argv, O_RDONLY);
-		G.mytags = rpm_gettags(rpm_fd);
-		if (!G.mytags)
-			bb_error_msg_and_die("error reading rpm header from '%s'", *argv);
-
+		rpm_fd = rpm_gettags(*argv);
 		print_all_tags();
 
 		source_rpm = rpm_getstr0(TAG_SOURCERPM);
