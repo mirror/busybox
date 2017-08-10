@@ -308,28 +308,55 @@ static void func_nice(char *buf, int size, const procps_status_t *ps)
 #endif
 
 #if ENABLE_FEATURE_PS_TIME
+static void format_time(char *buf, int size, unsigned long tt)
+{
+	unsigned ff;
+
+	/* Used to show "14453:50" if tt is large. Ugly.
+	 * procps-ng 3.3.10 uses "[[dd-]hh:]mm:ss" format.
+	 * TODO: switch to that?
+	 */
+
+	/* Formatting for 5-char TIME column.
+	 * NB: "size" is not always 5: ELAPSED is wider (7),
+	 * not taking advantage of that (yet?).
+	 */
+	ff = tt % 60;
+	tt /= 60;
+	if (tt < 60) {
+		snprintf(buf, size+1, "%2u:%02u", (unsigned)tt, ff);
+		return;
+	}
+	ff = tt % 60;
+	tt /= 60;
+	if (tt < 24) {
+		snprintf(buf, size+1, "%2uh%02u", (unsigned)tt, ff);
+		return;
+	}
+	ff = tt % 24;
+	tt /= 24;
+	if (tt < 100) {
+		snprintf(buf, size+1, "%2ud%02u", (unsigned)tt, ff);
+		return;
+	}
+	snprintf(buf, size+1, "%4lud", tt);
+}
 static void func_etime(char *buf, int size, const procps_status_t *ps)
 {
 	/* elapsed time [[dd-]hh:]mm:ss; here only mm:ss */
 	unsigned long mm;
-	unsigned ss;
 
 	mm = ps->start_time / get_kernel_HZ();
 	mm = G.seconds_since_boot - mm;
-	ss = mm % 60;
-	mm /= 60;
-	snprintf(buf, size+1, "%3lu:%02u", mm, ss);
+	format_time(buf, size, mm);
 }
 static void func_time(char *buf, int size, const procps_status_t *ps)
 {
 	/* cumulative time [[dd-]hh:]mm:ss; here only mm:ss */
 	unsigned long mm;
-	unsigned ss;
 
 	mm = (ps->utime + ps->stime) / get_kernel_HZ();
-	ss = mm % 60;
-	mm /= 60;
-	snprintf(buf, size+1, "%3lu:%02u", mm, ss);
+	format_time(buf, size, mm);
 }
 #endif
 
@@ -365,7 +392,7 @@ static const ps_out_t out_spec[] = {
 //	{ 5                  , "pcpu"  ,"%CPU"   ,func_pcpu  ,PSSCAN_        },
 #endif
 #if ENABLE_FEATURE_PS_TIME
-	{ 6                  , "time"  ,"TIME"   ,func_time  ,PSSCAN_STIME | PSSCAN_UTIME },
+	{ 5                  , "time"  ,"TIME"   ,func_time  ,PSSCAN_STIME | PSSCAN_UTIME },
 #endif
 	{ 6                  , "tty"   ,"TT"     ,func_tty   ,PSSCAN_TTY     },
 	{ 4                  , "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ     },
