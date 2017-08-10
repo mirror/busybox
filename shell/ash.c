@@ -2099,7 +2099,9 @@ extern struct globals_var *const ash_ptr_to_globals_var;
 static void FAST_FUNC
 getoptsreset(const char *value)
 {
-	shellparam.optind = number(value) ?: 1;
+	shellparam.optind = 1;
+	if (is_number(value))
+		shellparam.optind = number(value) ?: 1;
 	shellparam.optoff = -1;
 }
 #endif
