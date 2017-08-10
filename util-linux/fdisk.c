@@ -2848,7 +2848,7 @@ xselect(void)
 			if (dos_compatible_flag) {
 				sector_offset = g_sectors;
 				puts("Warning: setting sector offset for DOS "
-					"compatiblity");
+					"compatibility");
 			}
 			update_units();
 			break;
