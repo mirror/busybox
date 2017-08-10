@@ -225,18 +225,8 @@ static transformer_state_t *setup_transformer_on_fd(int fd, int fail_if_not_comp
 	return xstate;
 }
 
-/* Used by e.g. rpm which gives us a fd without filename,
- * thus we can't guess the format from filename's extension.
- */
-int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
+static void fork_transformer_and_free(transformer_state_t *xstate)
 {
-	transformer_state_t *xstate = setup_transformer_on_fd(fd, fail_if_not_compressed);
-
-	if (!xstate || !xstate->xformer) {
-		free(xstate);
-		return 1;
-	}
-
 # if BB_MMU
 	fork_transformer_with_no_sig(xstate->src_fd, xstate->xformer);
 # else
@@ -249,8 +239,34 @@ int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
 	fork_transformer_with_sig(xstate->src_fd, xstate->xformer, xstate->xformer_prog);
 # endif
 	free(xstate);
+}
+
+/* Used by e.g. rpm which gives us a fd without filename,
+ * thus we can't guess the format from filename's extension.
+ */
+int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
+{
+	transformer_state_t *xstate = setup_transformer_on_fd(fd, fail_if_not_compressed);
+
+	if (!xstate->xformer) {
+		free(xstate);
+		return 1;
+	}
+
+	fork_transformer_and_free(xstate);
 	return 0;
 }
+#if ENABLE_FEATURE_SEAMLESS_LZMA
+/* ...and custom version for LZMA */
+void FAST_FUNC setup_lzma_on_fd(int fd)
+{
+	transformer_state_t *xstate = xzalloc(sizeof(*xstate));
+	xstate->src_fd = fd;
+	xstate->xformer = unpack_lzma_stream;
+	USE_FOR_NOMMU(xstate->xformer_prog = "unlzma";)
+	fork_transformer_and_free(xstate);
+}
+#endif
 
 static transformer_state_t *open_transformer(const char *fname, int fail_if_not_compressed)
 {

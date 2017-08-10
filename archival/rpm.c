@@ -56,6 +56,8 @@
 #define TAG_DIRINDEXES          1116
 #define TAG_BASENAMES           1117
 #define TAG_DIRNAMES            1118
+#define TAG_PAYLOADCOMPRESSOR   1125
+
 
 #define RPMFILE_CONFIG          (1 << 0)
 #define RPMFILE_DOC             (1 << 1)
@@ -510,6 +512,7 @@ int rpm_main(int argc, char **argv)
 int rpm2cpio_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 {
+	const char *str;
 	int rpm_fd;
 
 	G.pagesize = getpagesize();
@@ -520,11 +523,17 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	//	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
 	//	signal(SIGCHLD, check_errors_in_children);
 
-//TODO: look for rpm tag RPMTAG_PAYLOADCOMPRESSOR (dec 1125, hex 0x465),
-// if the value is "lzma", set up decompressor without detection
-// (lzma can't be detected).
+	if (ENABLE_FEATURE_SEAMLESS_LZMA
+	 && (str = rpm_getstr0(TAG_PAYLOADCOMPRESSOR)) != NULL
+	 && strcmp(str, "lzma") == 0
+	) {
+		// lzma compression can't be detected
+		// set up decompressor without detection
+		setup_lzma_on_fd(rpm_fd);
+	} else {
+		setup_unzip_on_fd(rpm_fd, /*fail_if_not_compressed:*/ 1);
+	}
 
-	setup_unzip_on_fd(rpm_fd, /*fail_if_not_compressed:*/ 1);
 	if (bb_copyfd_eof(rpm_fd, STDOUT_FILENO) < 0)
 		bb_error_msg_and_die("error unpacking");
 
