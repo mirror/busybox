@@ -124,7 +124,13 @@ static int rpm_gettags(const char *filename)
 	unsigned pass, idx;
 	unsigned storepos;
 
-	fd = xopen(filename, O_RDONLY);
+	if (!filename) { /* rpm2cpio w/o filename? */
+		filename = bb_msg_standard_output;
+		fd = 0;
+	} else {
+		fd = xopen(filename, O_RDONLY);
+	}
+
 	storepos = xlseek(fd, 96, SEEK_CUR); /* Seek past the unused lead */
 	G.tagcount = 0;
 	tags = NULL;
@@ -500,55 +506,15 @@ int rpm_main(int argc, char **argv)
 //usage:#define rpm2cpio_full_usage "\n\n"
 //usage:       "Output a cpio archive of the rpm file"
 
-enum { rpm_fd = STDIN_FILENO };
-
-static unsigned skip_header(void)
-{
-	struct rpm_header header;
-	unsigned len;
-
-	xread(rpm_fd, &header, sizeof(header));
-//	if (strncmp((char *) &header.magic, RPM_HEADER_MAGIC_STR, 3) != 0) {
-//		bb_error_msg_and_die("invalid RPM header magic");
-//	}
-//	if (header.version != 1) {
-//		bb_error_msg_and_die("unsupported RPM header version");
-//	}
-	if (header.magic_and_ver != htonl(RPM_HEADER_MAGICnVER)) {
-		bb_error_msg_and_die("invalid RPM header magic or unsupported version");
-		// ": %x != %x", header.magic_and_ver, htonl(RPM_HEADER_MAGICnVER));
-	}
-
-	/* Seek past index entries, and past store */
-	len = 16 * ntohl(header.entries) + ntohl(header.size);
-	seek_by_jump(rpm_fd, len);
-
-	return sizeof(header) + len;
-}
-
 /* No getopt required */
 int rpm2cpio_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 {
-	struct rpm_lead lead;
-	unsigned pos;
+	int rpm_fd;
 
-	if (argv[1]) {
-		xmove_fd(xopen(argv[1], O_RDONLY), rpm_fd);
-	}
-	xread(rpm_fd, &lead, sizeof(lead));
+	G.pagesize = getpagesize();
 
-	/* Just check the magic, the rest is irrelevant */
-	if (lead.magic != htonl(RPM_LEAD_MAGIC)) {
-		bb_error_msg_and_die("invalid RPM magic");
-	}
-
-	/* Skip the signature header, align to 8 bytes */
-	pos = skip_header();
-	seek_by_jump(rpm_fd, (-(int)pos) & 7);
-
-	/* Skip the main header */
-	skip_header();
+	rpm_fd = rpm_gettags(argv[1]);
 
 	//if (SEAMLESS_COMPRESSION) - we do this at the end instead.
 	//	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
