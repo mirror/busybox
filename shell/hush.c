@@ -9877,11 +9877,6 @@ static int FAST_FUNC builtin_getopts(char **argv)
 /* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/getopts.html
 
 TODO:
-If an invalid option is seen, getopts places ? into VAR and, if
-not silent, prints an error message and unsets OPTARG. If
-getopts is silent, the option character found is placed in
-OPTARG and no diagnostic message is printed.
-
 If a required argument is not found, and getopts is not silent,
 a question mark (?) is placed in VAR, OPTARG is unset, and a
 diagnostic message is printed.  If getopts is silent, then a
@@ -9902,11 +9897,16 @@ Test that VAR is a valid variable name?
 		return EXIT_FAILURE;
 	}
 
-	cp = get_local_var_value("OPTERR");
-	opterr = cp ? atoi(cp) : 1;
+	if (optstring[0] == ':') {
+		opterr = 0;
+	} else {
+		cp = get_local_var_value("OPTERR");
+		opterr = cp ? atoi(cp) : 1;
+	}
 	cp = get_local_var_value("OPTIND");
 	optind = cp ? atoi(cp) : 0;
 	optarg = NULL;
+	cbuf[1] = '\0';
 
 	/* getopts stops on first non-option. Add "+" to force that */
 	/*if (optstring[0] != '+')*/ {
@@ -9920,24 +9920,38 @@ Test that VAR is a valid variable name?
 	else
 		argv = G.global_argv;
 	c = getopt(string_array_len(argv), argv, optstring);
+
+	/* Set OPTARG */
+	/* Always set or unset, never left as-is, even on exit/error:
+	 * "If no option was found, or if the option that was found
+	 * does not have an option-argument, OPTARG shall be unset."
+	 */
+	cp = optarg;
+	if (c == '?') {
+		/* If ":optstring" and unknown option is seen,
+		 * it is stored to OPTARG.
+		 */
+		if (optstring[1] == ':') {
+			cbuf[0] = optopt;
+			cp = cbuf;
+		}
+	}
+	if (cp)
+		set_local_var_from_halves("OPTARG", cp);
+	else
+		unset_local_var("OPTARG");
+
+	/* Convert -1 to "?" */
 	exitcode = EXIT_SUCCESS;
 	if (c < 0) { /* -1: end of options */
 		exitcode = EXIT_FAILURE;
 		c = '?';
 	}
+
+	/* Set OPTIND */
 	cbuf[0] = c;
-	cbuf[1] = '\0';
 	set_local_var_from_halves(var, cbuf);
 	set_local_var_from_halves("OPTIND", utoa(optind));
-
-	/* Always set or unset, never left as-is, even on exit/error:
-	 * "If no option was found, or if the option that was found
-	 * does not have an option-argument, OPTARG shall be unset."
-	 */
-	if (optarg)
-		set_local_var_from_halves("OPTARG", optarg);
-	else
-		unset_local_var("OPTARG");
 
 	return exitcode;
 }
