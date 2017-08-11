@@ -6741,7 +6741,8 @@ static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 	int moved_to;
 	int i;
 
-	if (sq) for (i = 0; sq[i].orig_fd >= 0; i++) {
+	i = 0;
+	if (sq) for (; sq[i].orig_fd >= 0; i++) {
 		/* If we collide with an already moved fd... */
 		if (fd == sq[i].moved_to) {
 			sq[i].moved_to = fcntl_F_DUPFD(sq[i].moved_to, avoid_fd);
@@ -6769,7 +6770,8 @@ static struct squirrel *add_squirrel_closed(struct squirrel *sq, int fd)
 {
 	int i;
 
-	if (sq) for (i = 0; sq[i].orig_fd >= 0; i++) {
+	i = 0;
+	if (sq) for (; sq[i].orig_fd >= 0; i++) {
 		/* If we collide with an already moved fd... */
 		if (fd == sq[i].orig_fd) {
 			/* Examples:
