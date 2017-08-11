@@ -4,5 +4,4 @@ var=QWERTY
 while getopts "we" var; do
 	echo "var:'$var' OPTIND:$OPTIND"
 done
-# unfortunately, "rc:0" is shown since while's overall exitcode is "success"
 echo "exited: var:'$var' OPTIND:$OPTIND"

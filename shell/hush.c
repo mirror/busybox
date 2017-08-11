@@ -9874,11 +9874,6 @@ static int FAST_FUNC builtin_getopts(char **argv)
 {
 /*
 TODO:
-if a character is followed by a colon, the option is expected to have
-an argument, which should be separated from it by white space.
-When an option requires an argument, getopts places that argument into
-the variable OPTARG.
-
 If an invalid option is seen, getopts places ? into VAR and, if
 not silent, prints an error message and unsets OPTARG. If
 getopts is silent, the option character found is placed in
@@ -9906,6 +9901,7 @@ Test that VAR is a valid variable name?
 	opterr = cp ? atoi(cp) : 1;
 	cp = get_local_var_value("OPTIND");
 	optind = cp ? atoi(cp) : 0;
+	optarg = NULL;
 
 	/* getopts stops on first non-option. Add "+" to force that */
 	/*if (optstring[0] != '+')*/ {
@@ -9924,6 +9920,10 @@ Test that VAR is a valid variable name?
 		exitcode = EXIT_FAILURE;
 		c = '?';
 	}
+	if (optarg)
+		set_local_var_from_halves("OPTARG", optarg);
+	else
+		unset_local_var("OPTARG");
 	cbuf[0] = c;
 	cbuf[1] = '\0';
 	set_local_var_from_halves(var, cbuf);
