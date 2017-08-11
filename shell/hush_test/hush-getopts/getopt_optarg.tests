@@ -4,6 +4,7 @@ var=QWERTY
 OPTARG=ASDFGH
 while getopts "w:et" var; do
 	echo "var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
+	OPTARG=ASDFGH
 done
 echo "exited: var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
 
@@ -12,5 +13,6 @@ echo "*** OPTIND=0, optstring:'w:et' args:$*"
 OPTIND=0
 while getopts "w:et" var; do
 	echo "var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
+	OPTARG=ASDFGH
 done
 echo "exited: var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"

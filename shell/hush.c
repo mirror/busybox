@@ -9872,7 +9872,8 @@ static int FAST_FUNC builtin_shift(char **argv)
 #if ENABLE_HUSH_GETOPTS
 static int FAST_FUNC builtin_getopts(char **argv)
 {
-/*
+/* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/getopts.html
+
 TODO:
 If an invalid option is seen, getopts places ? into VAR and, if
 not silent, prints an error message and unsets OPTARG. If
@@ -9886,6 +9887,8 @@ colon (:) is placed in VAR and OPTARG is set to the option
 character found.
 
 Test that VAR is a valid variable name?
+
+"Whenever the shell is invoked, OPTIND shall be initialized to 1"
 */
 	char cbuf[2];
 	const char *cp, *optstring, *var;
@@ -9920,14 +9923,20 @@ Test that VAR is a valid variable name?
 		exitcode = EXIT_FAILURE;
 		c = '?';
 	}
-	if (optarg)
-		set_local_var_from_halves("OPTARG", optarg);
-	else
-		unset_local_var("OPTARG");
 	cbuf[0] = c;
 	cbuf[1] = '\0';
 	set_local_var_from_halves(var, cbuf);
 	set_local_var_from_halves("OPTIND", utoa(optind));
+
+	/* Always set or unset, never left as-is, even on exit/error:
+	 * "If no option was found, or if the option that was found
+	 * does not have an option-argument, OPTARG shall be unset."
+	 */
+	if (optarg)
+		set_local_var_from_halves("OPTARG", optarg);
+	else
+		unset_local_var("OPTARG");
+
 	return exitcode;
 }
 #endif
