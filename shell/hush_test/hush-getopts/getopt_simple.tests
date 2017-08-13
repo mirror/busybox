@@ -10,6 +10,8 @@
 # We check that loop does not stop on unknown option (sets "?"),
 # stops on _first_ non-option argument.
 
+(
+
 echo "*** no OPTIND, optstring:'ab' args:-a -b c"
 var=QWERTY
 while getopts "ab" var -a -b c; do
@@ -73,3 +75,7 @@ while getopts "ab" var -a -c -b d; do
 	echo "var:'$var' OPTIND:$OPTIND"
 done
 echo "exited: rc:$? var:'$var' OPTIND:$OPTIND"
+
+) 2>&1 \
+| sed	-e 's/ unrecognized option: / invalid option -- /' \
+	-e 's/ illegal option -- / invalid option -- /' \

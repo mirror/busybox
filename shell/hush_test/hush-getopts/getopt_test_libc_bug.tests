@@ -1,9 +1,11 @@
 # This test can fail with libc with buggy getopt() implementation.
 # If getopt() wants to parse multi-option args (-abc),
-# it needs to remember a position withit current arg.
+# it needs to remember a position within current arg.
 #
 # If this position is kept as a POINTER, not an offset,
 # and if argv[] ADDRESSES (not contents!) change, it blows up.
+
+(
 
 echo "*** optstring:'ac' args:-a -b -c -d e"
 getopts "ac" var -a -b -c -d e; echo "1 rc:$? var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
@@ -24,7 +26,7 @@ VAR111=NEWVAL; getopts "ac" var -a -b -c -d e; echo "3 rc:$? var:'$var' OPTIND:$
 VAR222=NEWVAL; getopts "ac" var -a -b -c -d e; echo "4 rc:$? var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
 VAR333=NEWVAL; getopts "ac" var -a -b -c -d e; echo "5 rc:$? var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
 
-# Sligntly different attempts to force reallocations
+# Slightly different attempts to force reallocations
 
 echo
 echo "*** optstring:'ac' args:-a -b -c -d e"
@@ -36,3 +38,7 @@ export VAR222; getopts "ac" var -a -b -c -d e; echo "4 rc:$? var:'$var' OPTIND:$
 export VAR333; getopts "ac" var -a -b -c -d e; echo "5 rc:$? var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
 
 # All copies of code above should generate identical output
+
+) 2>&1 \
+| sed	-e 's/ unrecognized option: / invalid option -- /' \
+	-e 's/ illegal option -- / invalid option -- /' \

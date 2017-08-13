@@ -11,6 +11,8 @@
 # and OPTARG shall be set to the option character found.
 # """
 
+(
+
 echo "*** optstring:':ac' args:-a -b -c"
 getopts ":ac" var -a -b -c; echo "1 rc:$? var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
 getopts ":ac" var -a -b -c; echo "2 rc:$? var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
@@ -21,3 +23,7 @@ getopts ":ac" var -a -b -c; echo "4 rc:$? var:'$var' OPTIND:$OPTIND OPTARG:'$OPT
 # Nevertheless, let's verify that calling it yet another time doesn't do
 # anything weird:
 getopts ":ac" var -a -b -c; echo "5 rc:$? var:'$var' OPTIND:$OPTIND OPTARG:'$OPTARG'"
+
+) 2>&1 \
+| sed	-e 's/ unrecognized option: / invalid option -- /' \
+	-e 's/ illegal option -- / invalid option -- /' \
