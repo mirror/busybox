@@ -217,7 +217,6 @@
 //config:	bool "Support RPC services"
 //config:	default n  # very rarely used, and needs Sun RPC support in libc
 //config:	depends on INETD
-//config:	select FEATURE_HAVE_RPC
 //config:	help
 //config:	Support Sun-RPC based services
 

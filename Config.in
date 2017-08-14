@@ -343,13 +343,6 @@ config FEATURE_SYSLOG
 	#This option is auto-selected when you select any applet which may
 	#send its output to syslog. You do not need to select it manually.
 
-config FEATURE_HAVE_RPC
-	bool #No description makes it a hidden option
-	default n
-	#help
-	#This is automatically selected if any of enabled applets need it.
-	#You do not need to select it manually.
-
 config PLATFORM_LINUX
 	bool #No description makes it a hidden option
 	default n
