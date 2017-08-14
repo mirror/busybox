@@ -1229,6 +1229,10 @@ struct strpush {
 	int unget;
 };
 
+/*
+ * The parsefile structure pointed to by the global variable parsefile
+ * contains information about the current file being read.
+ */
 struct parsefile {
 	struct parsefile *prev; /* preceding file on stack */
 	int linno;              /* current line */
@@ -1902,10 +1906,6 @@ nextopt(const char *optstring)
 
 /* ============ Shell variables */
 
-/*
- * The parsefile structure pointed to by the global variable parsefile
- * contains information about the current file being read.
- */
 struct shparam {
 	int nparam;             /* # of positional parameters (without $0) */
 #if ENABLE_ASH_GETOPTS
@@ -13603,6 +13603,7 @@ init(void)
 {
 	/* we will never free this */
 	basepf.next_to_pgetc = basepf.buf = ckmalloc(IBUFSIZ);
+	basepf.linno = 1;
 
 	sigmode[SIGCHLD - 1] = S_DFL; /* ensure we install handler even if it is SIG_IGNed */
 	setsignal(SIGCHLD);
