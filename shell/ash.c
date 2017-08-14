@@ -12119,7 +12119,7 @@ parsesub: {
 				STPUTC(c, out);
 				c = pgetc_eatbnl();
 			} while (isdigit(c));
-		} else if (is_special(c)) {
+		} else {
 			/* $[{[#]]<specialchar>[}] */
 			int cc = c;
 
@@ -12137,10 +12137,16 @@ parsesub: {
 					cc = '#';
 				}
 			}
+
+			if (!is_special(cc)) {
+				if (subtype == VSLENGTH)
+					subtype = 0;
+				goto badsub;
+			}
+
 			USTPUTC(cc, out);
-		} else {
-			goto badsub;
 		}
+
 		if (c != '}' && subtype == VSLENGTH) {
 			/* ${#VAR didn't end with } */
 			goto badsub;
