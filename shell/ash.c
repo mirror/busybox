@@ -10948,6 +10948,7 @@ getopts(char *optstr, char *optvar, char **optfirst)
 		p = *optnext;
 		if (p == NULL || *p != '-' || *++p == '\0') {
  atend:
+			unsetvar("OPTARG");
 			p = NULL;
 			done = 1;
 			goto out;
@@ -10960,7 +10961,11 @@ getopts(char *optstr, char *optvar, char **optfirst)
 	c = *p++;
 	for (q = optstr; *q != c;) {
 		if (*q == '\0') {
-			if (optstr[0] == ':') {
+			/* OPTERR is a bashism */
+			const char *cp = lookupvar("OPTERR");
+			if ((cp && LONE_CHAR(cp, '0'))
+			 || (optstr[0] == ':')
+			) {
 				sbuf[0] = c;
 				/*sbuf[1] = '\0'; - already is */
 				setvar0("OPTARG", sbuf);
@@ -10977,7 +10982,11 @@ getopts(char *optstr, char *optvar, char **optfirst)
 
 	if (*++q == ':') {
 		if (*p == '\0' && (p = *optnext) == NULL) {
-			if (optstr[0] == ':') {
+			/* OPTERR is a bashism */
+			const char *cp = lookupvar("OPTERR");
+			if ((cp && LONE_CHAR(cp, '0'))
+			 || (optstr[0] == ':')
+			) {
 				sbuf[0] = c;
 				/*sbuf[1] = '\0'; - already is */
 				setvar0("OPTARG", sbuf);
