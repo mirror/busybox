@@ -9948,7 +9948,7 @@ Test that VAR is a valid variable name?
 		c = '?';
 	}
 
-	/* Set OPTIND */
+	/* Set VAR and OPTIND */
 	cbuf[0] = c;
 	set_local_var_from_halves(var, cbuf);
 	set_local_var_from_halves("OPTIND", utoa(optind));

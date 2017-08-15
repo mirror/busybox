@@ -7704,8 +7704,9 @@ static int
 patmatch(char *pattern, const char *string)
 {
 	char *p = preglob(pattern, 0);
-	//bb_error_msg("fnmatch(pattern:'%s',str:'%s')", p, string);
-	return pmatch(p, string);
+	int r = pmatch(p, string);
+	//bb_error_msg("!fnmatch(pattern:'%s',str:'%s',0):%d", p, string, r);
+	return r;
 }
 
 /*
