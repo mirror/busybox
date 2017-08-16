@@ -77,14 +77,14 @@ static int pencode(char *s)
 		;
 	if (*s) {
 		*s = '\0';
-		fac = decode(save, facilitynames);
+		fac = decode(save, bb_facilitynames);
 		if (fac < 0)
 			bb_error_msg_and_die("unknown %s name: %s", "facility", save);
 		*s++ = '.';
 	} else {
 		s = save;
 	}
-	lev = decode(s, prioritynames);
+	lev = decode(s, bb_prioritynames);
 	if (lev < 0)
 		bb_error_msg_and_die("unknown %s name: %s", "priority", save);
 	return ((lev & LOG_PRIMASK) | (fac & LOG_FACMASK));

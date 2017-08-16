@@ -447,7 +447,7 @@ static void parse_syslogdcfg(const char *file)
 				primap = 0xff; /* all 8 log levels enabled */
 			else {
 				uint8_t priority;
-				code = find_by_name(t, prioritynames);
+				code = find_by_name(t, bb_prioritynames);
 				if (!code)
 					goto cfgerr;
 				primap = 0;
@@ -480,7 +480,7 @@ static void parse_syslogdcfg(const char *file)
 					next_facility = strchr(t, ',');
 					if (next_facility)
 						*next_facility++ = '\0';
-					code = find_by_name(t, facilitynames);
+					code = find_by_name(t, bb_facilitynames);
 					if (!code)
 						goto cfgerr;
 					/* "mark" is not a real facility, skip it */
@@ -797,9 +797,9 @@ static void parse_fac_prio_20(int pri, char *res20)
 {
 	const CODE *c_pri, *c_fac;
 
-	c_fac = find_by_val(LOG_FAC(pri) << 3, facilitynames);
+	c_fac = find_by_val(LOG_FAC(pri) << 3, bb_facilitynames);
 	if (c_fac) {
-		c_pri = find_by_val(LOG_PRI(pri), prioritynames);
+		c_pri = find_by_val(LOG_PRI(pri), bb_prioritynames);
 		if (c_pri) {
 			snprintf(res20, 20, "%s.%s", c_fac->c_name, c_pri->c_name);
 			return;

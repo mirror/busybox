@@ -43,6 +43,17 @@ typedef struct _code {
  */
 #endif
 
+/* musl decided to be funny and it implements these as giant defines
+ * of the form: ((CODE *)(const CODE []){ ... })
+ * Which works, but causes _every_ function using them
+ * to have a copy on stack (at least with gcc-6.3.0).
+ * If we reference them just once, this saves 150 bytes.
+ * The pointers themselves are optimized out
+ * (no size change on uclibc).
+ */
+static const CODE *const bb_prioritynames = prioritynames;
+static const CODE *const bb_facilitynames = facilitynames;
+
 #if ENABLE_SYSLOGD
 #include "syslogd.c"
 #endif
