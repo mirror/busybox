@@ -173,7 +173,10 @@ struct globals {
 
 	/* Bigger stuff */
 	struct termios sv_termios;
-	char superblock_buffer[BLOCK_SIZE];
+	union {
+		char superblock_buffer[BLOCK_SIZE];
+		struct minix_superblock Super;
+	} u;
 	char add_zone_ind_blk[BLOCK_SIZE];
 	char add_zone_dind_blk[BLOCK_SIZE];
 	IF_FEATURE_MINIX2(char add_zone_tind_blk[BLOCK_SIZE];)
@@ -207,7 +210,7 @@ struct globals {
 #define name_depth         (G.name_depth         )
 #define name_component     (G.name_component     )
 #define sv_termios         (G.sv_termios         )
-#define superblock_buffer  (G.superblock_buffer )
+#define superblock_buffer  (G.u.superblock_buffer)
 #define add_zone_ind_blk   (G.add_zone_ind_blk   )
 #define add_zone_dind_blk  (G.add_zone_dind_blk  )
 #define add_zone_tind_blk  (G.add_zone_tind_blk  )
@@ -247,7 +250,7 @@ enum {
 #define Inode1 (((struct minix1_inode *) inode_buffer)-1)
 #define Inode2 (((struct minix2_inode *) inode_buffer)-1)
 
-#define Super (*(struct minix_superblock *)(superblock_buffer))
+#define Super (G.u.Super)
 
 #if ENABLE_FEATURE_MINIX2
 # define ZONES    ((unsigned)(version2 ? Super.s_zones : Super.s_nzones))
