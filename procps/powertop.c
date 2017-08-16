@@ -8,11 +8,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
-//applet:IF_POWERTOP(APPLET(powertop, BB_DIR_USR_SBIN, BB_SUID_DROP))
-
-//kbuild:lib-$(CONFIG_POWERTOP) += powertop.o
-
 //config:config POWERTOP
 //config:	bool "powertop (9.1 kb)"
 //config:	default y
@@ -26,6 +21,10 @@
 //config:	help
 //config:	Without this, powertop will only refresh display every 10 seconds.
 //config:	No keyboard commands will work, only ^C to terminate.
+
+//applet:IF_POWERTOP(APPLET(powertop, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_POWERTOP) += powertop.o
 
 // XXX This should be configurable
 #define ENABLE_FEATURE_POWERTOP_PROCIRQ 1
@@ -718,7 +717,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 	set_termios_to_raw(STDIN_FILENO, &G.init_settings, TERMIOS_CLEAR_ISIG);
 	bb_signals(BB_FATAL_SIGS, sig_handler);
 	/* So we don't forget to reset term settings */
-	atexit(reset_term);
+	die_func = reset_term;
 #endif
 
 	/* Collect initial data */
@@ -855,6 +854,9 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 	} /* for (;;) */
 
 	bb_putchar('\n');
+#if ENABLE_FEATURE_POWERTOP_INTERACTIVE
+	reset_term();
+#endif
 
 	return EXIT_SUCCESS;
 }

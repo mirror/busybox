@@ -1521,7 +1521,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	//argc -= optind;
 	argv += optind;
 	if (opt & OPT_in_place) { // -i
-		atexit(cleanup_outname);
+		die_func = cleanup_outname;
 	}
 	if (opt & (2|4))
 		G.regex_type |= REG_EXTENDED; // -r or -E

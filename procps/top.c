@@ -1146,6 +1146,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 	else {
 		/* Turn on unbuffered input; turn off echoing, ^C ^Z etc */
 		set_termios_to_raw(STDIN_FILENO, &initial_settings, TERMIOS_CLEAR_ISIG);
+		die_func = reset_term;
 	}
 
 	bb_signals(BB_FATAL_SIGS, sig_catcher);
