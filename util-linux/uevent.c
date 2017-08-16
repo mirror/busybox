@@ -32,7 +32,10 @@
 #define env ((char **)bb_common_bufsiz1)
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
 enum {
-	MAX_ENV = COMMON_BUFSIZE / sizeof(env[0]) - 1,
+	MAX_ENV = COMMON_BUFSIZE / sizeof(char*) - 1,
+	/* sizeof(env[0]) instead of sizeof(char*)
+	 * makes gcc-6.3.0 emit "strict-aliasing" warning.
+	 */
 };
 
 #ifndef SO_RCVBUFFORCE
