@@ -70,7 +70,11 @@
 #endif
 
 
-#define OPTSTR_AWK \
+/* "+": stop on first non-option:
+ * $ awk 'BEGIN { for(i=1; i<ARGC; ++i) { print i ": " ARGV[i] }}' -argz
+ * 1: -argz
+ */
+#define OPTSTR_AWK "+" \
 	"F:v:*f:*" \
 	IF_FEATURE_AWK_GNU_EXTENSIONS("e:*") \
 	"W:"
