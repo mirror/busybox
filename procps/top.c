@@ -116,7 +116,6 @@
 //kbuild:lib-$(CONFIG_TOP) += top.o
 
 #include "libbb.h"
-#include "common_bufsiz.h"
 
 
 typedef struct top_status_t {
@@ -154,6 +153,8 @@ typedef int (*cmp_funcp)(top_status_t *P, top_status_t *Q);
 
 enum { SORT_DEPTH = 3 };
 
+/* Screens wider than this are unlikely */
+enum { LINE_BUF_SIZE = 512 - 64 };
 
 struct globals {
 	top_status_t *top;
@@ -192,10 +193,9 @@ struct globals {
 #if ENABLE_FEATURE_TOP_INTERACTIVE
 	char kbd_input[KEYCODE_BUFFER_SIZE];
 #endif
-	char line_buf[80];
-}; //FIX_ALIASING; - large code growth
-enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
-#define G (*(struct globals*)bb_common_bufsiz1)
+	char line_buf[LINE_BUF_SIZE];
+};
+#define G (*ptr_to_globals)
 #define top              (G.top               )
 #define ntop             (G.ntop              )
 #define sort_field       (G.sort_field        )
@@ -213,8 +213,7 @@ enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
 #define total_pcpu       (G.total_pcpu        )
 #define line_buf         (G.line_buf          )
 #define INIT_G() do { \
-	setup_common_bufsiz(); \
-	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	BUILD_BUG_ON(LINE_BUF_SIZE <= 80); \
 } while (0)
 
