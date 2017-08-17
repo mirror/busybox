@@ -44,7 +44,7 @@
 //config:	Setting this option will forward the USER environment variable to the
 //config:	remote host you are connecting to. This is useful when you need to
 //config:	log into a machine without telling the username (autologin). This
-//config:	option enables '-a' and '-l USER' arguments.
+//config:	option enables '-a' and '-l USER' options.
 //config:
 //config:config FEATURE_TELNET_WIDTH
 //config:	bool "Enable window size autodetection"
@@ -643,8 +643,10 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 #if ENABLE_FEATURE_TELNET_AUTOLOGIN
-	if (1 & getopt32(argv, "al:", &G.autologin))
+	if (1 == getopt32(argv, "al:", &G.autologin)) {
+		/* Only -a without -l USER picks $USER from envvar */
 		G.autologin = getenv("USER");
+	}
 	argv += optind;
 #else
 	argv++;
