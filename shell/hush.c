@@ -9897,12 +9897,13 @@ Test that VAR is a valid variable name?
 		return EXIT_FAILURE;
 	}
 
-	if (optstring[0] == ':') {
-		opterr = 0;
-	} else {
+	c = 0;
+	if (optstring[0] != ':') {
 		cp = get_local_var_value("OPTERR");
-		opterr = cp ? atoi(cp) : 1;
+		/* 0 if "OPTERR=0", 1 otherwise */
+		c = (!cp || NOT_LONE_CHAR(cp, '0'));
 	}
+	opterr = c;
 	cp = get_local_var_value("OPTIND");
 	optind = cp ? atoi(cp) : 0;
 	optarg = NULL;
