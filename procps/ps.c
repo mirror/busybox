@@ -50,9 +50,12 @@
 //config:	Include support for measuring HZ on old kernels and non-ELF systems
 //config:	(if you are on Linux 2.4.0+ and use ELF, you don't need this)
 
-//applet:IF_PS(APPLET_NOEXEC(ps, ps, BB_DIR_BIN, BB_SUID_DROP, ps))
+//                 APPLET_NOEXEC:name    main location    suid_type     help
+//applet:IF_PS(    APPLET_NOEXEC(ps,     ps,  BB_DIR_BIN, BB_SUID_DROP, ps))
+//applet:IF_MINIPS(APPLET_NOEXEC(minips, ps,  BB_DIR_BIN, BB_SUID_DROP, ps))
 
 //kbuild:lib-$(CONFIG_PS) += ps.o
+//kbuild:lib-$(CONFIG_MINIPS) += ps.o
 
 //usage:#if ENABLE_DESKTOP
 //usage:

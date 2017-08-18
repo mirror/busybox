@@ -470,6 +470,7 @@ libs-y		:= \
 		coreutils/ \
 		coreutils/libcoreutils/ \
 		debianutils/ \
+		klibc-utils/ \
 		e2fsprogs/ \
 		editors/ \
 		findutils/ \

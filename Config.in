@@ -691,6 +691,7 @@ source archival/Config.in
 source coreutils/Config.in
 source console-tools/Config.in
 source debianutils/Config.in
+source klibc-utils/Config.in
 source editors/Config.in
 source findutils/Config.in
 source init/Config.in

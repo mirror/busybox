@@ -115,6 +115,9 @@ lib-y:=
 include debianutils/Kbuild
 lib-all-y += $(patsubst %,debianutils/%,$(sort $(lib-y)))
 lib-y:=
+include klibc-utils/Kbuild
+lib-all-y += $(patsubst %,klibc-utils/%,$(sort $(lib-y)))
+lib-y:=
 include runit/Kbuild
 lib-all-y += $(patsubst %,runit/%,$(sort $(lib-y)))
 lib-y:=
