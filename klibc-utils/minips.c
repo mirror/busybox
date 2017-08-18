@@ -9,4 +9,4 @@
 //config:	help
 //config:	Alias to "ps".
 
-/* applet abd kbuild hooks are in ps.c */
+/* applet and kbuild hooks are in ps.c */

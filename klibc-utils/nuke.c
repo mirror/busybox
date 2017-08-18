@@ -16,7 +16,7 @@
 //usage:#define nuke_trivial_usage
 //usage:       "DIR..."
 //usage:#define nuke_full_usage "\n\n"
-//usage:       "Resursively remove DIRs"
+//usage:       "Remove DIRs"
 
 #include "libbb.h"
 
