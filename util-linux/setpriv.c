@@ -235,7 +235,7 @@ static void parse_cap(unsigned long *index, const char *cap)
 
 # if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
 	for (i = 0; i < ARRAY_SIZE(capabilities); i++) {
-		if (strcmp(capabilities[i], cap) != 0)
+		if (strcasecmp(capabilities[i], cap) != 0)
 			continue;
 
 		if (!cap_valid(i))
