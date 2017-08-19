@@ -17,7 +17,7 @@
 //config:config FEATURE_PS_WIDE
 //config:	bool "Enable wide output (-w)"
 //config:	default y
-//config:	depends on PS && !DESKTOP
+//config:	depends on (PS || MINIPS) && !DESKTOP
 //config:	help
 //config:	Support argument 'w' for wide output.
 //config:	If given once, 132 chars are printed, and if given more
@@ -26,7 +26,7 @@
 //config:config FEATURE_PS_LONG
 //config:	bool "Enable long output (-l)"
 //config:	default y
-//config:	depends on PS && !DESKTOP
+//config:	depends on (PS || MINIPS) && !DESKTOP
 //config:	help
 //config:	Support argument 'l' for long output.
 //config:	Adds fields PPID, RSS, START, TIME & TTY
@@ -34,13 +34,8 @@
 //config:config FEATURE_PS_TIME
 //config:	bool "Enable -o time and -o etime specifiers"
 //config:	default y
-//config:	depends on PS && DESKTOP
+//config:	depends on (PS || MINIPS) && DESKTOP
 //config:	select PLATFORM_LINUX
-//config:
-//config:config FEATURE_PS_ADDITIONAL_COLUMNS
-//config:	bool "Enable -o rgroup, -o ruser, -o nice specifiers"
-//config:	default y
-//config:	depends on PS && DESKTOP
 //config:
 //config:config FEATURE_PS_UNUSUAL_SYSTEMS
 //config:	bool "Support Linux prior to 2.4.0 and non-ELF systems"
@@ -49,6 +44,11 @@
 //config:	help
 //config:	Include support for measuring HZ on old kernels and non-ELF systems
 //config:	(if you are on Linux 2.4.0+ and use ELF, you don't need this)
+//config:
+//config:config FEATURE_PS_ADDITIONAL_COLUMNS
+//config:	bool "Enable -o rgroup, -o ruser, -o nice specifiers"
+//config:	default y
+//config:	depends on (PS || MINIPS) && DESKTOP
 
 //                 APPLET_NOEXEC:name    main location    suid_type     help
 //applet:IF_PS(    APPLET_NOEXEC(ps,     ps,  BB_DIR_BIN, BB_SUID_DROP, ps))
