@@ -211,7 +211,7 @@ static void getcaps(struct caps *caps)
 		bb_simple_perror_msg_and_die("capget");
 }
 
-static void parse_cap(unsigned long *index, const char *cap)
+static unsigned long parse_cap(const char *cap)
 {
 	unsigned long i;
 
@@ -229,8 +229,7 @@ static void parse_cap(unsigned long *index, const char *cap)
 	if ((sscanf(cap, "cap_%lu", &i)) == 1) {
 		if (!cap_valid(i))
 			bb_error_msg_and_die("unsupported capability '%s'", cap);
-		*index = i;
-		return;
+		return i;
 	}
 
 # if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
@@ -240,8 +239,7 @@ static void parse_cap(unsigned long *index, const char *cap)
 
 		if (!cap_valid(i))
 			bb_error_msg_and_die("unsupported capability '%s'", cap);
-		*index = i;
-		return;
+		return i;
 	}
 # endif
 
@@ -258,7 +256,7 @@ static void set_inh_caps(char *capstring)
 	while (capstring) {
 		unsigned long cap;
 
-		parse_cap(&cap, capstring);
+		cap = parse_cap(capstring);
 		if (CAP_TO_INDEX(cap) >= caps.u32s)
 			bb_error_msg_and_die("invalid capability cap");
 
@@ -284,7 +282,7 @@ static void set_ambient_caps(char *string)
 	while (cap) {
 		unsigned long index;
 
-		parse_cap(&index, cap);
+		index = parse_cap(cap);
 		if (cap[0] == '+') {
 			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, index, 0, 0) < 0)
 				bb_perror_msg("cap_ambient_raise");
@@ -421,8 +419,8 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
 	int opts;
 	IF_FEATURE_SETPRIV_CAPABILITIES(char *inh_caps, *ambient_caps;)
 
-	opts = getopt32long(argv,
-		"+"IF_FEATURE_SETPRIV_DUMP("d")
+	opts = getopt32long(argv, "+"
+		IF_FEATURE_SETPRIV_DUMP("d")
 		IF_FEATURE_SETPRIV_CAPABILITIES("\xfe:\xfd:"),
 		setpriv_longopts
 		IF_FEATURE_SETPRIV_CAPABILITIES(, &inh_caps, &ambient_caps)
