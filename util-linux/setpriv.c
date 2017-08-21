@@ -5,7 +5,6 @@
  * Copyright (C) 2017 by  <assafgordon@gmail.com>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
- *
  */
 //config:config SETPRIV
 //config:	bool "setpriv (3.4 kb)"
@@ -131,49 +130,6 @@ struct caps {
 	int u32s;
 };
 
-# if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
-static const char *const capabilities[] = {
-	"chown",
-	"dac_override",
-	"dac_read_search",
-	"fowner",
-	"fsetid",
-	"kill",
-	"setgid",
-	"setuid",
-	"setpcap",
-	"linux_immutable",
-	"net_bind_service",
-	"net_broadcast",
-	"net_admin",
-	"net_raw",
-	"ipc_lock",
-	"ipc_owner",
-	"sys_module",
-	"sys_rawio",
-	"sys_chroot",
-	"sys_ptrace",
-	"sys_pacct",
-	"sys_admin",
-	"sys_boot",
-	"sys_nice",
-	"sys_resource",
-	"sys_time",
-	"sys_tty_config",
-	"mknod",
-	"lease",
-	"audit_write",
-	"audit_control",
-	"setfcap",
-	"mac_override",
-	"mac_admin",
-	"syslog",
-	"wake_alarm",
-	"block_suspend",
-	"audit_read",
-};
-# endif /* FEATURE_SETPRIV_CAPABILITY_NAMES */
-
 static void getcaps(struct caps *caps)
 {
 	static const uint8_t versions[] = {
@@ -211,10 +167,8 @@ static void getcaps(struct caps *caps)
 		bb_simple_perror_msg_and_die("capget");
 }
 
-static unsigned long parse_cap(const char *cap)
+static unsigned parse_cap(const char *cap)
 {
-	unsigned long i;
-
 	switch (cap[0]) {
 	case '-':
 		break;
@@ -226,24 +180,7 @@ static unsigned long parse_cap(const char *cap)
 	}
 
 	cap++;
-	if ((sscanf(cap, "cap_%lu", &i)) == 1) {
-		if (!cap_valid(i))
-			bb_error_msg_and_die("unsupported capability '%s'", cap);
-		return i;
-	}
-
-# if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
-	for (i = 0; i < ARRAY_SIZE(capabilities); i++) {
-		if (strcasecmp(capabilities[i], cap) != 0)
-			continue;
-
-		if (!cap_valid(i))
-			bb_error_msg_and_die("unsupported capability '%s'", cap);
-		return i;
-	}
-# endif
-
-	bb_error_msg_and_die("unknown capability '%s'", cap);
+	return cap_name_to_number(cap);
 }
 
 static void set_inh_caps(char *capstring)
@@ -254,7 +191,7 @@ static void set_inh_caps(char *capstring)
 
 	capstring = strtok(capstring, ",");
 	while (capstring) {
-		unsigned long cap;
+		unsigned cap;
 
 		cap = parse_cap(capstring);
 		if (CAP_TO_INDEX(cap) >= caps.u32s)
@@ -280,7 +217,7 @@ static void set_ambient_caps(char *string)
 
 	cap = strtok(string, ",");
 	while (cap) {
-		unsigned long index;
+		unsigned index;
 
 		index = parse_cap(cap);
 		if (cap[0] == '+') {
@@ -296,16 +233,7 @@ static void set_ambient_caps(char *string)
 #endif /* FEATURE_SETPRIV_CAPABILITIES */
 
 #if ENABLE_FEATURE_SETPRIV_DUMP
-# if ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
-static void printf_cap(const char *pfx, unsigned cap_no)
-{
-	if (cap_no < ARRAY_SIZE(capabilities)) {
-		printf("%s%s", pfx, capabilities[cap_no]);
-		return;
-	}
-	printf("%scap_%u", pfx, cap_no);
-}
-# else
+# if !ENABLE_FEATURE_SETPRIV_CAPABILITY_NAMES
 #  define printf_cap(pfx, cap_no) printf("%scap_%u", (pfx), (cap_no))
 # endif
 

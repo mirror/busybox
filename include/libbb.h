@@ -1473,6 +1473,12 @@ extern void run_shell(const char *shell, int loginshell, const char **args) NORE
  */
 const char *get_shell_name(void) FAST_FUNC;
 
+unsigned cap_name_to_number(const char *cap) FAST_FUNC;
+void printf_cap(const char *pfx, unsigned cap_no) FAST_FUNC;
+
+unsigned cap_name_to_number(const char *name) FAST_FUNC;
+void printf_cap(const char *pfx, unsigned cap_no) FAST_FUNC;
+
 #if ENABLE_SELINUX
 extern void renew_current_security_context(void) FAST_FUNC;
 extern void set_current_security_context(security_context_t sid) FAST_FUNC;
