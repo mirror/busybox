@@ -26,20 +26,46 @@
 //config:	list of active mount points. That's why.
 
 //applet:IF_SWITCH_ROOT(APPLET(switch_root, BB_DIR_SBIN, BB_SUID_DROP))
+//                      APPLET_ODDNAME:name      main         location     suid_type     help
+//applet:IF_RUN_INIT(   APPLET_ODDNAME(run-init, switch_root, BB_DIR_SBIN, BB_SUID_DROP, run_init))
 
 //kbuild:lib-$(CONFIG_SWITCH_ROOT) += switch_root.o
+//kbuild:lib-$(CONFIG_RUN_INIT)    += switch_root.o
 
 //usage:#define switch_root_trivial_usage
-//usage:       "[-c /dev/console] NEW_ROOT NEW_INIT [ARGS]"
+//usage:       "[-c CONSOLE_DEV] NEW_ROOT NEW_INIT [ARGS]"
 //usage:#define switch_root_full_usage "\n\n"
 //usage:       "Free initramfs and switch to another root fs:\n"
 //usage:       "chroot to NEW_ROOT, delete all in /, move NEW_ROOT to /,\n"
 //usage:       "execute NEW_INIT. PID must be 1. NEW_ROOT must be a mountpoint.\n"
 //usage:     "\n	-c DEV	Reopen stdio to DEV after switch"
 
+//usage:#define run_init_trivial_usage
+//usage:       "[-d CAP,CAP...] [-c CONSOLE_DEV] NEW_ROOT NEW_INIT [ARGS]"
+//usage:#define run_init_full_usage "\n\n"
+//usage:       "Free initramfs and switch to another root fs:\n"
+//usage:       "chroot to NEW_ROOT, delete all in /, move NEW_ROOT to /,\n"
+//usage:       "execute NEW_INIT. PID must be 1. NEW_ROOT must be a mountpoint.\n"
+//usage:     "\n	-c DEV	Reopen stdio to DEV after switch"
+//usage:     "\n	-d CAPS	Drop capabilities"
+
 #include <sys/vfs.h>
 #include <sys/mount.h>
+#if ENABLE_RUN_INIT
+# include <sys/prctl.h>
+# include <linux/capability.h>
+// #include <sys/capability.h>
+// This header is in libcap, but the functions are in libc.
+// Comment in the header says this above capset/capget:
+/* system calls - look to libc for function to system call mapping */
+extern int capset(cap_user_header_t header, cap_user_data_t data);
+extern int capget(cap_user_header_t header, const cap_user_data_t data);
+// so for bbox, let's just repeat the declarations.
+// This way, libcap needs not be installed in build environment.
+#endif
+
 #include "libbb.h"
+
 // Make up for header deficiencies
 #ifndef RAMFS_MAGIC
 # define RAMFS_MAGIC ((unsigned)0x858458f6)
@@ -89,6 +115,84 @@ static void delete_contents(const char *directory, dev_t rootdev)
 	}
 }
 
+#if ENABLE_RUN_INIT
+DEFINE_STRUCT_CAPS;
+
+static void drop_capset(int cap_idx)
+{
+	struct caps caps;
+
+	/* Get the current capability mask */
+	getcaps(&caps);
+
+	/* Drop the bit */
+	caps.data[CAP_TO_INDEX(cap_idx)].inheritable &= ~CAP_TO_MASK(cap_idx);
+
+	/* And drop the capability. */
+	if (capset(&caps.header, caps.data) != 0)
+		bb_perror_msg_and_die("capset");
+}
+
+static void drop_bounding_set(int cap_idx)
+{
+	int ret;
+
+	ret = prctl(PR_CAPBSET_READ, cap_idx, 0, 0, 0);
+	if (ret < 0)
+		bb_perror_msg_and_die("prctl: %s", "PR_CAPBSET_READ");
+
+	if (ret == 1) {
+		ret = prctl(PR_CAPBSET_DROP, cap_idx, 0, 0, 0);
+		if (ret != 0)
+			bb_perror_msg_and_die("prctl: %s", "PR_CAPBSET_DROP");
+	}
+}
+
+static void drop_usermodehelper(const char *filename, int cap_idx)
+{
+	unsigned lo, hi;
+	char buf[sizeof(int)*3 * 2 + 8];
+	int fd;
+	int ret;
+
+	ret = open_read_close(filename, buf, sizeof(buf) - 1);
+	if (ret < 0)
+		return; /* assuming files do not exist */
+
+	buf[ret] = '\0';
+	ret = sscanf(buf, "%u %u", &lo, &hi);
+	if (ret != 2)
+		bb_perror_msg_and_die("can't parse file '%s'", filename);
+
+	if (cap_idx < 32)
+		lo &= ~(1 << cap_idx);
+	else
+		hi &= ~(1 << (cap_idx - 32));
+
+	fd = xopen(filename, O_WRONLY);
+	fdprintf(fd, "%u %u", lo, hi);
+	close(fd);
+}
+
+static void drop_capabilities(char *string)
+{
+	char *cap;
+
+	cap = strtok(string, ",");
+	while (cap) {
+		unsigned cap_idx;
+
+		cap_idx = cap_name_to_number(cap);
+		drop_usermodehelper("/proc/sys/kernel/usermodehelper/bset", cap_idx);
+		drop_usermodehelper("/proc/sys/kernel/usermodehelper/inheritable", cap_idx);
+		drop_bounding_set(cap_idx);
+		drop_capset(cap_idx);
+		bb_error_msg("dropped capability: %s", cap);
+		cap = strtok(NULL, ",");
+	}
+}
+#endif
+
 int switch_root_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int switch_root_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -98,7 +202,25 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 	dev_t rootdev;
 
 	// Parse args (-c console). '+': stop at first non-option
-	getopt32(argv, "^+" "c:" "\0" "-2" /* minimum 2 args */, &console);
+	if (ENABLE_SWITCH_ROOT && (!ENABLE_RUN_INIT || applet_name[0] == 's')) {
+		getopt32(argv, "^+"
+			"c:"
+			"\0" "-2" /* minimum 2 args */,
+			&console
+		);
+	} else {
+#if ENABLE_RUN_INIT
+		char *cap_list = NULL;
+		getopt32(argv, "^+"
+			"c:d:"
+			"\0" "-2" /* minimum 2 args */,
+			&console,
+			&cap_list
+		);
+		if (cap_list)
+			drop_capabilities(cap_list);
+#endif
+	}
 	argv += optind;
 	newroot = *argv++;
 

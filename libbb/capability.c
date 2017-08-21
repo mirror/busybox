@@ -6,6 +6,14 @@
 //kbuild:lib-$(CONFIG_PLATFORM_LINUX) += capability.o
 
 #include <linux/capability.h>
+// #include <sys/capability.h>
+// This header is in libcap, but the functions are in libc.
+// Comment in the header says this above capset/capget:
+/* system calls - look to libc for function to system call mapping */
+extern int capset(cap_user_header_t header, cap_user_data_t data);
+extern int capget(cap_user_header_t header, const cap_user_data_t data);
+// so for bbox, let's just repeat the declarations.
+// This way, libcap needs not be installed in build environment.
 #include "libbb.h"
 
 static const char *const capabilities[] = {
@@ -76,4 +84,43 @@ void FAST_FUNC printf_cap(const char *pfx, unsigned cap_no)
 		return;
 	}
 	printf("%scap_%u", pfx, cap_no);
+}
+
+DEFINE_STRUCT_CAPS;
+
+void FAST_FUNC getcaps(void *arg)
+{
+	static const uint8_t versions[] = {
+		_LINUX_CAPABILITY_U32S_3, /* = 2 (fits into byte) */
+		_LINUX_CAPABILITY_U32S_2, /* = 2 */
+		_LINUX_CAPABILITY_U32S_1, /* = 1 */
+	};
+	int i;
+	struct caps *caps = arg;
+
+	caps->header.pid = 0;
+	for (i = 0; i < ARRAY_SIZE(versions); i++) {
+		caps->header.version = versions[i];
+		if (capget(&caps->header, NULL) == 0)
+			goto got_it;
+	}
+	bb_simple_perror_msg_and_die("capget");
+ got_it:
+
+	switch (caps->header.version) {
+		case _LINUX_CAPABILITY_VERSION_1:
+			caps->u32s = _LINUX_CAPABILITY_U32S_1;
+			break;
+		case _LINUX_CAPABILITY_VERSION_2:
+			caps->u32s = _LINUX_CAPABILITY_U32S_2;
+			break;
+		case _LINUX_CAPABILITY_VERSION_3:
+			caps->u32s = _LINUX_CAPABILITY_U32S_3;
+			break;
+		default:
+			bb_error_msg_and_die("unsupported capability version");
+	}
+
+	if (capget(&caps->header, caps->data) != 0)
+		bb_simple_perror_msg_and_die("capget");
 }

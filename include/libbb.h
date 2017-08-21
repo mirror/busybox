@@ -1475,6 +1475,15 @@ const char *get_shell_name(void) FAST_FUNC;
 
 unsigned cap_name_to_number(const char *cap) FAST_FUNC;
 void printf_cap(const char *pfx, unsigned cap_no) FAST_FUNC;
+void drop_capability(int cap_ordinal) FAST_FUNC;
+/* Structures inside "struct caps" are Linux-specific and libcap-specific: */
+#define DEFINE_STRUCT_CAPS \
+struct caps { \
+	struct __user_cap_header_struct header; \
+	unsigned u32s; \
+	struct __user_cap_data_struct data[2]; \
+}
+void getcaps(void *caps) FAST_FUNC;
 
 unsigned cap_name_to_number(const char *name) FAST_FUNC;
 void printf_cap(const char *pfx, unsigned cap_no) FAST_FUNC;

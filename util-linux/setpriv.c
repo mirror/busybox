@@ -124,48 +124,7 @@ enum {
 };
 
 #if ENABLE_FEATURE_SETPRIV_CAPABILITIES
-struct caps {
-	struct __user_cap_header_struct header;
-	cap_user_data_t data;
-	int u32s;
-};
-
-static void getcaps(struct caps *caps)
-{
-	static const uint8_t versions[] = {
-		_LINUX_CAPABILITY_U32S_3, /* = 2 (fits into byte) */
-		_LINUX_CAPABILITY_U32S_2, /* = 2 */
-		_LINUX_CAPABILITY_U32S_1, /* = 1 */
-	};
-	int i;
-
-	caps->header.pid = 0;
-	for (i = 0; i < ARRAY_SIZE(versions); i++) {
-		caps->header.version = versions[i];
-		if (capget(&caps->header, NULL) == 0)
-			goto got_it;
-	}
-	bb_simple_perror_msg_and_die("capget");
- got_it:
-
-	switch (caps->header.version) {
-		case _LINUX_CAPABILITY_VERSION_1:
-			caps->u32s = _LINUX_CAPABILITY_U32S_1;
-			break;
-		case _LINUX_CAPABILITY_VERSION_2:
-			caps->u32s = _LINUX_CAPABILITY_U32S_2;
-			break;
-		case _LINUX_CAPABILITY_VERSION_3:
-			caps->u32s = _LINUX_CAPABILITY_U32S_3;
-			break;
-		default:
-			bb_error_msg_and_die("unsupported capability version");
-	}
-
-	caps->data = xmalloc(sizeof(caps->data[0]) * caps->u32s);
-	if (capget(&caps->header, caps->data) < 0)
-		bb_simple_perror_msg_and_die("capget");
-}
+DEFINE_STRUCT_CAPS;
 
 static unsigned parse_cap(const char *cap)
 {
@@ -195,7 +154,7 @@ static void set_inh_caps(char *capstring)
 
 		cap = parse_cap(capstring);
 		if (CAP_TO_INDEX(cap) >= caps.u32s)
-			bb_error_msg_and_die("invalid capability cap");
+			bb_error_msg_and_die("invalid capability '%s'", capstring);
 
 		if (capstring[0] == '+')
 			caps.data[CAP_TO_INDEX(cap)].inheritable |= CAP_TO_MASK(cap);
@@ -204,11 +163,8 @@ static void set_inh_caps(char *capstring)
 		capstring = strtok(NULL, ",");
 	}
 
-	if ((capset(&caps.header, caps.data)) < 0)
+	if (capset(&caps.header, caps.data) != 0)
 		bb_perror_msg_and_die("capset");
-
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(caps.data);
 }
 
 static void set_ambient_caps(char *string)
@@ -322,10 +278,9 @@ static int dump(void)
 	bb_putchar('\n');
 # endif
 
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		IF_FEATURE_SETPRIV_CAPABILITIES(free(caps.data);)
+	if (ENABLE_FEATURE_CLEAN_UP)
 		free(gids);
-	}
+
 	return EXIT_SUCCESS;
 }
 #endif /* FEATURE_SETPRIV_DUMP */
