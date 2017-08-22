@@ -567,9 +567,11 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	};
 
 	INIT_G();
+#if ENABLE_FEATURE_PS_TIME
 	G.seconds_since_boot = get_uptime();
-#if ENABLE_FEATURE_PS_TIME && (ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS || !defined(__linux__))
+# if ENABLE_FEATURE_PS_UNUSUAL_SYSTEMS || !defined(__linux__)
 	G.kernel_HZ = bb_clk_tck(); /* this is sysconf(_SC_CLK_TCK) */
+# endif
 #endif
 
 	// POSIX:
