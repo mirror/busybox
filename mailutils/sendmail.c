@@ -189,8 +189,9 @@ static void rcptto(const char *s)
 // send to a list of comma separated addresses
 static void rcptto_list(const char *list)
 {
-	char *str = xstrdup(list);
-	char *s = str;
+	char *free_me = xstrdup(list);
+	char *str = free_me;
+	char *s = free_me;
 	char prev = 0;
 	int in_quote = 0;
 
@@ -208,7 +209,7 @@ static void rcptto_list(const char *list)
 	}
 	if (prev != ',')
 		rcptto(angle_address(str));
-	free(str);
+	free(free_me);
 }
 
 int sendmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
