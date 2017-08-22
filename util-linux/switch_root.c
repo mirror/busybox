@@ -24,6 +24,8 @@
 //config:	* Because the Linux kernel uses rootfs internally as the starting
 //config:	and ending point for searching through the kernel's doubly linked
 //config:	list of active mount points. That's why.
+//config:
+// RUN_INIT config item is in klibc-utils
 
 //applet:IF_SWITCH_ROOT(APPLET(switch_root, BB_DIR_SBIN, BB_SUID_DROP))
 //                      APPLET_ODDNAME:name      main         location     suid_type     help
@@ -31,23 +33,6 @@
 
 //kbuild:lib-$(CONFIG_SWITCH_ROOT) += switch_root.o
 //kbuild:lib-$(CONFIG_RUN_INIT)    += switch_root.o
-
-//usage:#define switch_root_trivial_usage
-//usage:       "[-c CONSOLE_DEV] NEW_ROOT NEW_INIT [ARGS]"
-//usage:#define switch_root_full_usage "\n\n"
-//usage:       "Free initramfs and switch to another root fs:\n"
-//usage:       "chroot to NEW_ROOT, delete all in /, move NEW_ROOT to /,\n"
-//usage:       "execute NEW_INIT. PID must be 1. NEW_ROOT must be a mountpoint.\n"
-//usage:     "\n	-c DEV	Reopen stdio to DEV after switch"
-
-//usage:#define run_init_trivial_usage
-//usage:       "[-d CAP,CAP...] [-c CONSOLE_DEV] NEW_ROOT NEW_INIT [ARGS]"
-//usage:#define run_init_full_usage "\n\n"
-//usage:       "Free initramfs and switch to another root fs:\n"
-//usage:       "chroot to NEW_ROOT, delete all in /, move NEW_ROOT to /,\n"
-//usage:       "execute NEW_INIT. PID must be 1. NEW_ROOT must be a mountpoint.\n"
-//usage:     "\n	-c DEV	Reopen stdio to DEV after switch"
-//usage:     "\n	-d CAPS	Drop capabilities"
 
 #include <sys/vfs.h>
 #include <sys/mount.h>
@@ -122,13 +107,8 @@ static void drop_capset(int cap_idx)
 {
 	struct caps caps;
 
-	/* Get the current capability mask */
 	getcaps(&caps);
-
-	/* Drop the bit */
 	caps.data[CAP_TO_INDEX(cap_idx)].inheritable &= ~CAP_TO_MASK(cap_idx);
-
-	/* And drop the capability. */
 	if (capset(&caps.header, caps.data) != 0)
 		bb_perror_msg_and_die("capset");
 }
@@ -199,10 +179,18 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 	char *newroot, *console = NULL;
 	struct stat st;
 	struct statfs stfs;
+	unsigned dry_run = 0;
 	dev_t rootdev;
 
-	// Parse args (-c console). '+': stop at first non-option
+	// Parse args. '+': stop at first non-option
 	if (ENABLE_SWITCH_ROOT && (!ENABLE_RUN_INIT || applet_name[0] == 's')) {
+//usage:#define switch_root_trivial_usage
+//usage:       "[-c CONSOLE_DEV] NEW_ROOT NEW_INIT [ARGS]"
+//usage:#define switch_root_full_usage "\n\n"
+//usage:       "Free initramfs and switch to another root fs:\n"
+//usage:       "chroot to NEW_ROOT, delete all in /, move NEW_ROOT to /,\n"
+//usage:       "execute NEW_INIT. PID must be 1. NEW_ROOT must be a mountpoint.\n"
+//usage:     "\n	-c DEV	Reopen stdio to DEV after switch"
 		getopt32(argv, "^+"
 			"c:"
 			"\0" "-2" /* minimum 2 args */,
@@ -210,13 +198,23 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 		);
 	} else {
 #if ENABLE_RUN_INIT
+//usage:#define run_init_trivial_usage
+//usage:       "[-d CAP,CAP...] [-n] [-c CONSOLE_DEV] NEW_ROOT NEW_INIT [ARGS]"
+//usage:#define run_init_full_usage "\n\n"
+//usage:       "Free initramfs and switch to another root fs:\n"
+//usage:       "chroot to NEW_ROOT, delete all in /, move NEW_ROOT to /,\n"
+//usage:       "execute NEW_INIT. PID must be 1. NEW_ROOT must be a mountpoint.\n"
+//usage:     "\n	-c DEV	Reopen stdio to DEV after switch"
+//usage:     "\n	-d CAPS	Drop capabilities"
+//usage:     "\n	-n	Dry run"
 		char *cap_list = NULL;
-		getopt32(argv, "^+"
-			"c:d:"
+		dry_run = getopt32(argv, "^+"
+			"c:d:n"
 			"\0" "-2" /* minimum 2 args */,
 			&console,
 			&cap_list
 		);
+		dry_run >>= 2; // -n
 		if (cap_list)
 			drop_capabilities(cap_list);
 #endif
@@ -239,7 +237,7 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 	// we mean it. I could make this a CONFIG option, but I would get email
 	// from all the people who WILL destroy their filesystems.
 	if (stat("/init", &st) != 0 || !S_ISREG(st.st_mode)) {
-		bb_error_msg_and_die("/init is not a regular file");
+		bb_error_msg_and_die("'%s' is not a regular file", "/init");
 	}
 	statfs("/", &stfs); // this never fails
 	if ((unsigned)stfs.f_type != RAMFS_MAGIC
@@ -248,13 +246,15 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die("root filesystem is not ramfs/tmpfs");
 	}
 
-	// Zap everything out of rootdev
-	delete_contents("/", rootdev);
+	if (!dry_run) {
+		// Zap everything out of rootdev
+		delete_contents("/", rootdev);
 
-	// Overmount / with newdir and chroot into it
-	if (mount(".", "/", NULL, MS_MOVE, NULL)) {
-		// For example, fails when newroot is not a mountpoint
-		bb_perror_msg_and_die("error moving root");
+		// Overmount / with newdir and chroot into it
+		if (mount(".", "/", NULL, MS_MOVE, NULL)) {
+			// For example, fails when newroot is not a mountpoint
+			bb_perror_msg_and_die("error moving root");
+		}
 	}
 	xchroot(".");
 	// The chdir is needed to recalculate "." and ".." links
@@ -270,8 +270,17 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 
-	// Exec real init
-	execv(argv[0], argv);
+	if (dry_run) {
+		// Does NEW_INIT look like it can be executed?
+		//xstat(argv[0], &st);
+		//if (!S_ISREG(st.st_mode))
+		//	bb_perror_msg_and_die("'%s' is not a regular file", argv[0]);
+		if (access(argv[0], X_OK) == 0)
+			return 0;
+	} else {
+		// Exec NEW_INIT
+		execv(argv[0], argv);
+	}
 	bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 }
 

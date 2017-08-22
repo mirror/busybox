@@ -679,7 +679,7 @@ int setfiles_main(int argc UNUSED_PARAM, char **argv)
 			bb_show_usage();
 		xstat(argv[0], &sb);
 		if (!S_ISREG(sb.st_mode)) {
-			bb_error_msg_and_die("spec file %s is not a regular file", argv[0]);
+			bb_error_msg_and_die("'%s' is not a regular file", argv[0]);
 		}
 		/* Load the file contexts configuration and check it. */
 		rc = matchpathcon_init(argv[0]);
