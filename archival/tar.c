@@ -953,9 +953,6 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	if (getuid() != 0)
 		tar_handle->ah_flags |= ARCHIVE_DONT_RESTORE_PERM;
 
-	/* Prepend '-' to the first argument if required */
-	if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0')
-		argv[1] = xasprintf("-%s", argv[1]);
 #if ENABLE_DESKTOP
 	/* Lie to buildroot when it starts asking stupid questions. */
 	if (argv[1] && strcmp(argv[1], "--version") == 0) {
@@ -992,6 +989,9 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #endif
+	/* Prepend '-' to the first argument if required */
+	if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0')
+		argv[1] = xasprintf("-%s", argv[1]);
 	opt = GETOPT32(argv, "^"
 		"txC:f:Oopvk"
 		IF_FEATURE_TAR_CREATE(   "ch"    )
