@@ -234,7 +234,7 @@ static void fork_transformer_and_free(transformer_state_t *xstate)
 	 * an external unzipper that wants
 	 * file position at the start of the file.
 	 */
-	xlseek(fd, - xstate->signature_skipped, SEEK_CUR);
+	xlseek(xstate->src_fd, - xstate->signature_skipped, SEEK_CUR);
 	xstate->signature_skipped = 0;
 	fork_transformer_with_sig(xstate->src_fd, xstate->xformer, xstate->xformer_prog);
 # endif
