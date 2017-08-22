@@ -88,37 +88,6 @@ struct globals {
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
 
-static void extract_cpio(int fd, const char *source_rpm)
-{
-	archive_handle_t *archive_handle;
-
-	if (source_rpm != NULL) {
-		/* Binary rpm (it was built from some SRPM), install to root */
-		xchdir("/");
-	} /* else: SRPM, install to current dir */
-
-	/* Initialize */
-	archive_handle = init_handle();
-	archive_handle->seek = seek_by_read;
-	archive_handle->action_data = data_extract_all;
-#if 0 /* For testing (rpm -i only lists the files in internal cpio): */
-	archive_handle->action_header = header_list;
-	archive_handle->action_data = data_skip;
-#endif
-	archive_handle->ah_flags = ARCHIVE_RESTORE_DATE | ARCHIVE_CREATE_LEADING_DIRS
-		/* compat: overwrite existing files.
-		 * try "rpm -i foo.src.rpm" few times in a row -
-		 * standard rpm will not complain.
-		 */
-		| ARCHIVE_REPLACE_VIA_RENAME;
-	archive_handle->src_fd = fd;
-	/*archive_handle->offset = 0; - init_handle() did it */
-
-	setup_unzip_on_fd(archive_handle->src_fd, /*fail_if_not_compressed:*/ 1);
-	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
-		continue;
-}
-
 static int rpm_gettags(const char *filename)
 {
 	rpm_index *tags;
@@ -190,15 +159,6 @@ static int bsearch_rpmtag(const void *key, const void *item)
 	return (*tag - tmp->tag);
 }
 
-static int rpm_getcount(int tag)
-{
-	rpm_index *found;
-	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(G.mytags[0]), bsearch_rpmtag);
-	if (!found)
-		return 0;
-	return found->count;
-}
-
 static char *rpm_getstr(int tag, int itemindex)
 {
 	rpm_index *found;
@@ -221,6 +181,8 @@ static char *rpm_getstr0(int tag)
 {
 	return rpm_getstr(tag, 0);
 }
+
+#if ENABLE_RPM
 
 static int rpm_getint(int tag, int itemindex)
 {
@@ -247,6 +209,15 @@ static int rpm_getint(int tag, int itemindex)
 		return *(int8_t*)tmpint;
 	}
 	return -1;
+}
+
+static int rpm_getcount(int tag)
+{
+	rpm_index *found;
+	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(G.mytags[0]), bsearch_rpmtag);
+	if (!found)
+		return 0;
+	return found->count;
 }
 
 static void fileaction_dobackup(char *filename, int fileref)
@@ -316,6 +287,37 @@ static void print_all_tags(void)
 #else
 #define print_all_tags() ((void)0)
 #endif
+
+static void extract_cpio(int fd, const char *source_rpm)
+{
+	archive_handle_t *archive_handle;
+
+	if (source_rpm != NULL) {
+		/* Binary rpm (it was built from some SRPM), install to root */
+		xchdir("/");
+	} /* else: SRPM, install to current dir */
+
+	/* Initialize */
+	archive_handle = init_handle();
+	archive_handle->seek = seek_by_read;
+	archive_handle->action_data = data_extract_all;
+#if 0 /* For testing (rpm -i only lists the files in internal cpio): */
+	archive_handle->action_header = header_list;
+	archive_handle->action_data = data_skip;
+#endif
+	archive_handle->ah_flags = ARCHIVE_RESTORE_DATE | ARCHIVE_CREATE_LEADING_DIRS
+		/* compat: overwrite existing files.
+		 * try "rpm -i foo.src.rpm" few times in a row -
+		 * standard rpm will not complain.
+		 */
+		| ARCHIVE_REPLACE_VIA_RENAME;
+	archive_handle->src_fd = fd;
+	/*archive_handle->offset = 0; - init_handle() did it */
+
+	setup_unzip_on_fd(archive_handle->src_fd, /*fail_if_not_compressed:*/ 1);
+	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
+		continue;
+}
 
 //usage:#define rpm_trivial_usage
 //usage:       "-i PACKAGE.rpm; rpm -qp[ildc] PACKAGE.rpm"
@@ -487,6 +489,8 @@ int rpm_main(int argc, char **argv)
 	return 0;
 }
 
+#endif /* RPM */
+
 /*
  * Mini rpm2cpio implementation for busybox
  *
@@ -508,6 +512,8 @@ int rpm_main(int argc, char **argv)
 //usage:       "PACKAGE.rpm"
 //usage:#define rpm2cpio_full_usage "\n\n"
 //usage:       "Output a cpio archive of the rpm file"
+
+#if ENABLE_RPM2CPIO
 
 /* No getopt required */
 int rpm2cpio_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -549,3 +555,5 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	}
 	return EXIT_SUCCESS;
 }
+
+#endif /* RPM2CPIO */
