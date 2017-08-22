@@ -227,9 +227,12 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 	xstat("/", &st);
 	rootdev = st.st_dev;
 	xstat(".", &st);
-	if (st.st_dev == rootdev || getpid() != 1) {
+	if (st.st_dev == rootdev) {
 		// Show usage, it says new root must be a mountpoint
-		// and we must be PID 1
+		bb_show_usage();
+	}
+	if (!dry_run && getpid() != 1) {
+		// Show usage, it says we must be PID 1
 		bb_show_usage();
 	}
 
