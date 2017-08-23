@@ -387,6 +387,12 @@ testing "sed 's///w FILE'" \
 	"" \
 	"123\nqwe\nasd\n"
 
+testing "sed uses previous regexp" \
+	"sed '/w/p;//q'" \
+	"q\nw\nw\n" \
+	"" \
+	"q\nw\ne\nr\n"
+
 # testing "description" "commands" "result" "infile" "stdin"
 
 exit $FAILCOUNT

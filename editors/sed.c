@@ -350,10 +350,16 @@ static int get_address(const char *my_str, int *linenum, regex_t ** regex)
 		if (*my_str == '\\')
 			delimiter = *++pos;
 		next = index_of_next_unescaped_regexp_delim(delimiter, ++pos);
-		temp = copy_parsing_escapes(pos, next);
-		*regex = xzalloc(sizeof(regex_t));
-		xregcomp(*regex, temp, G.regex_type);
-		free(temp);
+		if (next != 0) {
+			temp = copy_parsing_escapes(pos, next);
+			G.previous_regex_ptr = *regex = xzalloc(sizeof(regex_t));
+			xregcomp(*regex, temp, G.regex_type);
+			free(temp);
+		} else {
+			*regex = G.previous_regex_ptr;
+			if (!G.previous_regex_ptr)
+				bb_error_msg_and_die("no previous regexp");
+		}
 		/* Move position to next character after last delimiter */
 		pos += (next+1);
 	}
