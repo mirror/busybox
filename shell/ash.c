@@ -4994,7 +4994,7 @@ forkchild(struct job *jp, union node *n, int mode)
 		if (jp->nprocs == 0) {
 			close(0);
 			if (open(bb_dev_null, O_RDONLY) != 0)
-				ash_msg_and_raise_error("can't open '%s'", bb_dev_null);
+				ash_msg_and_raise_perror("can't open '%s'", bb_dev_null);
 		}
 	}
 	if (oldlvl == 0) {
@@ -5083,7 +5083,7 @@ forkshell(struct job *jp, union node *n, int mode)
 		TRACE(("Fork failed, errno=%d", errno));
 		if (jp)
 			freejob(jp);
-		ash_msg_and_raise_error("can't fork");
+		ash_msg_and_raise_perror("can't fork");
 	}
 	if (pid == 0) {
 		CLEAR_RANDOM_T(&random_gen); /* or else $RANDOM repeats in child */
@@ -5226,7 +5226,7 @@ openhere(union node *redir)
 	size_t len = 0;
 
 	if (pipe(pip) < 0)
-		ash_msg_and_raise_error("pipe call failed");
+		ash_msg_and_raise_perror("can't create pipe");
 	if (redir->type == NHERE) {
 		len = strlen(redir->nhere.doc->narg.text);
 		if (len <= PIPE_BUF) {
@@ -6288,7 +6288,7 @@ evalbackcmd(union node *n, struct backcmd *result)
 	}
 
 	if (pipe(pip) < 0)
-		ash_msg_and_raise_error("pipe call failed");
+		ash_msg_and_raise_perror("can't create pipe");
 	jp = makejob(/*n,*/ 1);
 	if (forkshell(jp, n, FORK_NOJOB) == 0) {
 		/* child */
@@ -9180,7 +9180,7 @@ evalpipe(union node *n, int flags)
 		if (lp->next) {
 			if (pipe(pip) < 0) {
 				close(prevfd);
-				ash_msg_and_raise_error("pipe call failed");
+				ash_msg_and_raise_perror("can't create pipe");
 			}
 		}
 		if (forkshell(jp, lp->n, n->npipe.pipe_backgnd) == 0) {
