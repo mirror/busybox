@@ -14,7 +14,6 @@
  * xargs is described in the Single Unix Specification v3 at
  * http://www.opengroup.org/onlinepubs/007904975/utilities/xargs.html
  */
-
 //config:config XARGS
 //config:	bool "xargs (6.7 kb)"
 //config:	default y
@@ -105,6 +104,7 @@ struct globals {
 #define INIT_G() do { \
 	setup_common_bufsiz(); \
 	G.eof_str = NULL; /* need to clear by hand because we are NOEXEC applet */ \
+	G.idx = 0; \
 	IF_FEATURE_XARGS_SUPPORT_REPL_STR(G.repl_str = "{}";) \
 	IF_FEATURE_XARGS_SUPPORT_REPL_STR(G.eol_ch = '\n';) \
 } while (0)
@@ -141,7 +141,7 @@ static int xargs_exec(void)
 static void store_param(char *s)
 {
 	/* Grow by 256 elements at once */
-	if (!(G.idx & 0xff)) { /* G.idx == N*256 */
+	if (!(G.idx & 0xff)) { /* G.idx == N*256? */
 		/* Enlarge, make G.args[(N+1)*256 - 1] last valid idx */
 		G.args = xrealloc(G.args, sizeof(G.args[0]) * (G.idx + 0x100));
 	}
@@ -476,8 +476,9 @@ enum {
 	IF_FEATURE_XARGS_SUPPORT_REPL_STR(    "I:i::")
 
 int xargs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int xargs_main(int argc, char **argv)
+int xargs_main(int argc UNUSED_PARAM, char **argv)
 {
+	int initial_idx;
 	int i;
 	int child_error = 0;
 	char *max_args;
@@ -513,11 +514,11 @@ int xargs_main(int argc, char **argv)
 	}
 
 	argv += optind;
-	argc -= optind;
+	//argc -= optind;
 	if (!argv[0]) {
 		/* default behavior is to echo all the filenames */
 		*--argv = (char*)"echo";
-		argc++;
+		//argc++;
 	}
 
 	/*
@@ -572,7 +573,6 @@ int xargs_main(int argc, char **argv)
 		 */
 		G.args = NULL;
 		G.argv = argv;
-		argc = 0;
 		read_args = process_stdin_with_replace;
 		/* Make -I imply -r. GNU findutils seems to do the same: */
 		/* (otherwise "echo -n | xargs -I% echo %" would SEGV) */
@@ -580,30 +580,27 @@ int xargs_main(int argc, char **argv)
 	} else
 #endif
 	{
-		/* Allocate pointers for execvp.
+		/* Store the command to be executed, part 1.
 		 * We can statically allocate (argc + n_max_arg + 1) elements
 		 * and do not bother with resizing args[], but on 64-bit machines
 		 * this results in args[] vector which is ~8 times bigger
 		 * than n_max_chars! That is, with n_max_chars == 20k,
 		 * args[] will take 160k (!), which will most likely be
 		 * almost entirely unused.
-		 *
-		 * See store_param() for matching 256-step growth logic
 		 */
-		G.args = xmalloc(sizeof(G.args[0]) * ((argc + 0xff) & ~0xff));
-		/* Store the command to be executed, part 1 */
 		for (i = 0; argv[i]; i++)
-			G.args[i] = argv[i];
+			store_param(argv[i]);
 	}
 
+	initial_idx = G.idx;
 	while (1) {
 		char *rem;
 
-		G.idx = argc;
+		G.idx = initial_idx;
 		rem = read_args(n_max_chars, n_max_arg, buf);
 		store_param(NULL);
 
-		if (!G.args[argc]) {
+		if (!G.args[initial_idx]) { /* not even one ARG was added? */
 			if (*rem != '\0')
 				bb_error_msg_and_die("argument line too long");
 			if (opt & OPT_NO_EMPTY)
