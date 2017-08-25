@@ -64,6 +64,11 @@
 //config:	bool "Enable -P N: processes to run in parallel"
 //config:	default y
 //config:	depends on XARGS
+//config:
+//config:config FEATURE_XARGS_SUPPORT_ARGS_FILE
+//config:	bool "Enable -a FILE: use FILE instead of stdin"
+//config:	default y
+//config:	depends on XARGS
 
 //applet:IF_XARGS(APPLET_NOEXEC(xargs, xargs, BB_DIR_USR_BIN, BB_SUID_DROP, xargs))
 
@@ -517,6 +522,9 @@ static int xargs_ask_confirmation(void)
 //usage:	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(
 //usage:     "\n	-0	Input is separated by NUL characters"
 //usage:	)
+//usage:	IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(
+//usage:     "\n	-a FILE	Read from FILE instead of stdin"
+//usage:	)
 //usage:     "\n	-t	Print the command on stderr before execution"
 //usage:     "\n	-e[STR]	STR stops input processing"
 //usage:     "\n	-n N	Pass no more than N args to PROG"
@@ -565,7 +573,8 @@ enum {
 	IF_FEATURE_XARGS_SUPPORT_TERMOPT(     "x") \
 	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(   "0") \
 	IF_FEATURE_XARGS_SUPPORT_REPL_STR(    "I:i::") \
-	IF_FEATURE_XARGS_SUPPORT_PARALLEL(    "P:+")
+	IF_FEATURE_XARGS_SUPPORT_PARALLEL(    "P:+") \
+	IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(   "a:")
 
 int xargs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int xargs_main(int argc UNUSED_PARAM, char **argv)
@@ -584,6 +593,7 @@ int xargs_main(int argc UNUSED_PARAM, char **argv)
 #else
 #define read_args process_stdin
 #endif
+	IF_FEATURE_XARGS_SUPPORT_PARALLEL(char *opt_a = NULL;)
 
 	INIT_G();
 
@@ -592,11 +602,17 @@ int xargs_main(int argc UNUSED_PARAM, char **argv)
 		&max_args, &max_chars, &G.eof_str, &G.eof_str
 		IF_FEATURE_XARGS_SUPPORT_REPL_STR(, &G.repl_str, &G.repl_str)
 		IF_FEATURE_XARGS_SUPPORT_PARALLEL(, &G.max_procs)
+		IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(, &opt_a)
 	);
 
 #if ENABLE_FEATURE_XARGS_SUPPORT_PARALLEL
 	if (G.max_procs <= 0) /* -P0 means "run lots of them" */
 		G.max_procs = 100; /* let's not go crazy high */
+#endif
+
+#if ENABLE_FEATURE_XARGS_SUPPORT_ARGS_FILE
+	if (opt_a)
+		xmove_fd(xopen(opt_a, O_RDONLY), 0);
 #endif
 
 	/* -E ""? You may wonder why not just omit -E?
