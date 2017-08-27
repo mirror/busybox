@@ -184,6 +184,10 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 	if (is_killall5 && arg[0] == 'o')
 		goto do_it_now;
 
+	/* "--" separates options from args. Testcase: "kill -- -123" */
+	if (!is_killall5 && arg[0] == '-' && arg[1] == '\0')
+		goto do_it_sooner;
+
 	if (argv[1] && arg[0] == 's' && arg[1] == '\0') { /* -s SIG? */
 		arg = *++argv;
 	} /* else it must be -SIG */
@@ -192,6 +196,7 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg("bad signal name '%s'", arg);
 		return EXIT_FAILURE;
 	}
+ do_it_sooner:
 	arg = *++argv;
 
  do_it_now:
