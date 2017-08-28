@@ -61,7 +61,6 @@
  */
 
 #include "libbb.h"
-#include "common_bufsiz.h"
 
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
