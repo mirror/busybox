@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2017 Denys Vlasenko <vda.linux@googlemail.com>
  *
- * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config NUKE
 //config:	bool "nuke"
