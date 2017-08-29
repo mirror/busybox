@@ -454,19 +454,20 @@ static void confirm_action(int bus_addr, int mode, int data_addr, int pec)
 
 #if ENABLE_I2CGET
 //usage:#define i2cget_trivial_usage
-//usage:       "[-f] [-y] BUS CHIP-ADDRESS [DATA-ADDRESS [MODE]]"
+//usage:       "[-fy] BUS CHIP-ADDRESS [DATA-ADDRESS [MODE]]"
 //usage:#define i2cget_full_usage "\n\n"
-//usage:       "Read from I2C/SMBus chip registers\n"
-//usage:     "\n	I2CBUS	i2c bus number"
-//usage:     "\n	ADDRESS	0x03 - 0x77"
+//usage:       "Read from I2C/SMBus chip registers"
+//usage:     "\n"
+//usage:     "\n	I2CBUS	I2C bus number"
+//usage:     "\n	ADDRESS	0x03-0x77"
 //usage:     "\nMODE is:"
-//usage:     "\n	b	read byte data (default)"
-//usage:     "\n	w	read word data"
-//usage:     "\n	c	write byte/read byte"
+//usage:     "\n	b	Read byte data (default)"
+//usage:     "\n	w	Read word data"
+//usage:     "\n	c	Write byte/read byte"
 //usage:     "\n	Append p for SMBus PEC"
 //usage:     "\n"
-//usage:     "\n	-f	force access"
-//usage:     "\n	-y	disable interactive mode"
+//usage:     "\n	-f	Force access"
+//usage:     "\n	-y	Disable interactive mode"
 int i2cget_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int i2cget_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -536,23 +537,24 @@ int i2cget_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_I2CSET
 //usage:#define i2cset_trivial_usage
-//usage:       "[-f] [-y] [-m MASK] BUS CHIP-ADDR DATA-ADDR [VALUE] ... [MODE]"
+//usage:       "[-fy] [-m MASK] BUS CHIP-ADDRESS DATA-ADDRESS [VALUE] ... [MODE]"
 //usage:#define i2cset_full_usage "\n\n"
-//usage:       "Set I2C registers\n"
-//usage:     "\n	I2CBUS	i2c bus number"
-//usage:     "\n	ADDRESS	0x03 - 0x77"
+//usage:       "Set I2C registers"
+//usage:     "\n"
+//usage:     "\n	I2CBUS	I2C bus number"
+//usage:     "\n	ADDRESS	0x03-0x77"
 //usage:     "\nMODE is:"
-//usage:     "\n	c	byte, no value"
-//usage:     "\n	b	byte data (default)"
-//usage:     "\n	w	word data"
+//usage:     "\n	c	Byte, no value"
+//usage:     "\n	b	Byte data (default)"
+//usage:     "\n	w	Word data"
 //usage:     "\n	i	I2C block data"
 //usage:     "\n	s	SMBus block data"
 //usage:     "\n	Append p for SMBus PEC"
 //usage:     "\n"
-//usage:     "\n	-f	force access"
-//usage:     "\n	-y	disable interactive mode"
-//usage:     "\n	-r	read back and compare the result"
-//usage:     "\n	-m MASK	mask specifying which bits to write"
+//usage:     "\n	-f	Force access"
+//usage:     "\n	-y	Disable interactive mode"
+//usage:     "\n	-r	Read back and compare the result"
+//usage:     "\n	-m MASK	Mask specifying which bits to write"
 int i2cset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int i2cset_main(int argc, char **argv)
 {
@@ -895,23 +897,24 @@ static void dump_word_data(int bus_fd, unsigned first, unsigned last)
 }
 
 //usage:#define i2cdump_trivial_usage
-//usage:       "[-f] [-r FIRST-LAST] [-y] BUS ADDR [MODE]"
+//usage:       "[-fy] [-r FIRST-LAST] BUS ADDR [MODE]"
 //usage:#define i2cdump_full_usage "\n\n"
-//usage:       "Examine I2C registers\n"
-//usage:     "\n	I2CBUS	i2c bus number"
-//usage:     "\n	ADDRESS	0x03 - 0x77"
+//usage:       "Examine I2C registers"
+//usage:     "\n"
+//usage:     "\n	I2CBUS	I2C bus number"
+//usage:     "\n	ADDRESS	0x03-0x77"
 //usage:     "\nMODE is:"
-//usage:     "\n	b	byte (default)"
-//usage:     "\n	w	word"
-//usage:     "\n	W	word on even register addresses"
+//usage:     "\n	b	Byte (default)"
+//usage:     "\n	w	Word"
+//usage:     "\n	W	Word on even register addresses"
 //usage:     "\n	i	I2C block"
 //usage:     "\n	s	SMBus block"
-//usage:     "\n	c	consecutive byte"
+//usage:     "\n	c	Consecutive byte"
 //usage:     "\n	Append p for SMBus PEC"
 //usage:     "\n"
-//usage:     "\n	-f	force access"
-//usage:     "\n	-y	disable interactive mode"
-//usage:     "\n	-r	limit the number of registers being accessed"
+//usage:     "\n	-f	Force access"
+//usage:     "\n	-y	Disable interactive mode"
+//usage:     "\n	-r	Limit the number of registers being accessed"
 int i2cdump_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -1208,8 +1211,8 @@ static void will_skip(const char *cmd)
 //usage:#define i2cdetect_full_usage "\n\n"
 //usage:       "Detect I2C chips"
 //usage:     "\n"
-//usage:     "\n	-l	Print list of installed buses"
-//usage:     "\n	-F BUS#	Print list of functionalities on this bus"
+//usage:     "\n	-l	List installed buses"
+//usage:     "\n	-F BUS#	List functionalities on this bus"
 //usage:     "\n	-y	Disable interactive mode"
 //usage:     "\n	-a	Force scanning of non-regular addresses"
 //usage:     "\n	-q	Use smbus quick write commands for probing (default)"
