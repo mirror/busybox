@@ -1,3 +1,5 @@
+(
+
 # check invalid options are rejected
 # bash: in posix mode, aborts if non-interactive
 unset -
@@ -37,3 +39,7 @@ unset VAR_RO
 echo $? $f $g
 unset f VAR_RO g
 echo $? $f $g
+
+) 2>&1 \
+| sed   -e 's/ unrecognized option: / invalid option -- /' \
+        -e 's/ illegal option -- / invalid option -- /' \
