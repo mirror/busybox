@@ -173,14 +173,14 @@ static void set_ambient_caps(char *string)
 
 	cap = strtok(string, ",");
 	while (cap) {
-		unsigned index;
+		unsigned idx;
 
-		index = parse_cap(cap);
+		idx = parse_cap(cap);
 		if (cap[0] == '+') {
-			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, index, 0, 0) < 0)
+			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, idx, 0, 0) < 0)
 				bb_perror_msg("cap_ambient_raise");
 		} else {
-			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, index, 0, 0) < 0)
+			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, idx, 0, 0) < 0)
 				bb_perror_msg("cap_ambient_lower");
 		}
 		cap = strtok(NULL, ",");
