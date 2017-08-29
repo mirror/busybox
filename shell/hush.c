@@ -2218,7 +2218,8 @@ static int set_local_var(char *str, unsigned flags)
 	if (name_len == 4 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
 		cmdedit_update_prompt();
 #if ENABLE_HUSH_GETOPTS
-	if (strncmp(cur->varstr, "OPTIND=", 7) == 0)
+	/* defoptindvar is a "OPTIND=..." constant string */
+	if (strncmp(cur->varstr, defoptindvar, 7) == 0)
 		G.getopt_count = 0;
 #endif
 	if (cur->flg_export) {
