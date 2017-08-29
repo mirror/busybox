@@ -9956,7 +9956,7 @@ Test that VAR is a valid variable name?
 	 * until we get Nth result (or failure).
 	 * (N == G.getopt_count is reset to 0 whenever OPTIND is [un]set).
 	 */
-	optind = 0; /* reset getopt() state */
+	GETOPT_RESET();
 	count = 0;
 	n = string_array_len(argv);
 	do {
@@ -9971,6 +9971,7 @@ Test that VAR is a valid variable name?
 	/* Set OPTIND. Prevent resetting of the magic counter! */
 	set_local_var_from_halves("OPTIND", utoa(optind));
 	G.getopt_count = count; /* "next time, give me N+1'th result" */
+	GETOPT_RESET(); /* just in case */
 
 	/* Set OPTARG */
 	/* Always set or unset, never left as-is, even on exit/error:

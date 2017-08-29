@@ -425,8 +425,8 @@ shell_builtin_ulimit(char **argv)
 	 * ulimit 123 -c2 -l 456
 	 */
 
-	/* In case getopt was already called:
-	 * reset the libc getopt() function, which keeps internal state.
+	/* In case getopt() was already called:
+	 * reset libc getopt() internal state.
 	 */
 	GETOPT_RESET();
 
