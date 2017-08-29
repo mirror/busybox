@@ -8,7 +8,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config I2CGET
 //config:	bool "i2cget (5.6 kb)"
 //config:	default y
@@ -63,13 +62,31 @@
 #include "libbb.h"
 
 #include <linux/i2c.h>
-#include <linux/i2c-dev.h>
 
 #define I2CDUMP_NUM_REGS		256
 
 #define I2CDETECT_MODE_AUTO		0
 #define I2CDETECT_MODE_QUICK		1
 #define I2CDETECT_MODE_READ		2
+
+/* linux/i2c-dev.h from i2c-tools overwrites the one from linux uapi
+ * and defines symbols already defined by linux/i2c.h.
+ * Also, it defines a bunch of static inlines which we would rather NOT
+ * inline. What a mess.
+ * We need only these definitions from linux/i2c-dev.h:
+ */
+#define I2C_SLAVE			0x0703
+#define I2C_SLAVE_FORCE			0x0706
+#define I2C_FUNCS			0x0705
+#define I2C_PEC				0x0708
+#define I2C_SMBUS			0x0720
+struct i2c_smbus_ioctl_data {
+	__u8 read_write;
+	__u8 command;
+	__u32 size;
+	union i2c_smbus_data *data;
+};
+/* end linux/i2c-dev.h */
 
 /*
  * This is needed for ioctl_or_perror_and_die() since it only accepts pointers.
@@ -1187,18 +1204,17 @@ static void will_skip(const char *cmd)
 }
 
 //usage:#define i2cdetect_trivial_usage
-//usage:       "[-F I2CBUS] [-l] [-y] [-a] [-q|-r] I2CBUS [FIRST LAST]"
+//usage:       "-l | -F I2CBUS | [-ya] [-q|-r] I2CBUS [FIRST LAST]"
 //usage:#define i2cdetect_full_usage "\n\n"
-//usage:       "Detect I2C chips.\n"
-//usage:     "\n	I2CBUS	i2c bus number"
-//usage:     "\n	FIRST and LAST limit the probing range"
+//usage:       "Detect I2C chips"
 //usage:     "\n"
-//usage:     "\n	-l	output list of installed busses"
-//usage:     "\n	-y	disable interactive mode"
-//usage:     "\n	-a	force scanning of non-regular addresses"
-//usage:     "\n	-q	use smbus quick write commands for probing (default)"
-//usage:     "\n	-r	use smbus read byte commands for probing"
-//usage:     "\n	-F	display list of functionalities"
+//usage:     "\n	-l	Print list of installed buses"
+//usage:     "\n	-F BUS#	Print list of functionalities on this bus"
+//usage:     "\n	-y	Disable interactive mode"
+//usage:     "\n	-a	Force scanning of non-regular addresses"
+//usage:     "\n	-q	Use smbus quick write commands for probing (default)"
+//usage:     "\n	-r	Use smbus read byte commands for probing"
+//usage:     "\n	FIRST and LAST limit probing range"
 int i2cdetect_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -1213,7 +1229,8 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, "^"
 			"yaqrFl"
 			"\0"
-			"q--r:r--q:"/*mutually exclusive*/ "?3"/*up to 3 args*/
+			"q--r:r--q:"/*mutually exclusive*/
+			"?3"/*up to 3 args*/
 	);
 	argv += optind;
 
