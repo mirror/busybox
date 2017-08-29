@@ -907,6 +907,9 @@ struct globals {
 	unsigned depth_break_continue;
 	unsigned depth_of_loop;
 #endif
+#if ENABLE_HUSH_GETOPTS
+	unsigned getopt_count;
+#endif
 	const char *ifs;
 	const char *cwd;
 	struct variable *top_var;
@@ -2214,6 +2217,10 @@ static int set_local_var(char *str, unsigned flags)
 		cur->flg_export = 1;
 	if (name_len == 4 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
 		cmdedit_update_prompt();
+#if ENABLE_HUSH_GETOPTS
+	if (strncmp(cur->varstr, "OPTIND=", 7) == 0)
+		G.getopt_count = 0;
+#endif
 	if (cur->flg_export) {
 		if (flags & SETFLAG_UNEXPORT) {
 			cur->flg_export = 0;
@@ -2244,6 +2251,10 @@ static int unset_local_var_len(const char *name, int name_len)
 
 	if (!name)
 		return EXIT_SUCCESS;
+#if ENABLE_HUSH_GETOPTS
+	if (name_len == 6 && strncmp(name, "OPTIND", 6) == 0)
+		G.getopt_count = 0;
+#endif
 	var_pp = &G.top_var;
 	while ((cur = *var_pp) != NULL) {
 		if (strncmp(cur->varstr, name, name_len) == 0 && cur->varstr[name_len] == '=') {
@@ -9889,7 +9900,8 @@ Test that VAR is a valid variable name?
 */
 	char cbuf[2];
 	const char *cp, *optstring, *var;
-	int c, exitcode;
+	int c, n, exitcode, my_opterr;
+	unsigned count;
 
 	optstring = *++argv;
 	if (!optstring || !(var = *++argv)) {
@@ -9897,17 +9909,18 @@ Test that VAR is a valid variable name?
 		return EXIT_FAILURE;
 	}
 
-	c = 0;
+	if (argv[1])
+		argv[0] = G.global_argv[0]; /* for error messages in getopt() */
+	else
+		argv = G.global_argv;
+	cbuf[1] = '\0';
+
+	my_opterr = 0;
 	if (optstring[0] != ':') {
 		cp = get_local_var_value("OPTERR");
 		/* 0 if "OPTERR=0", 1 otherwise */
-		c = (!cp || NOT_LONE_CHAR(cp, '0'));
+		my_opterr = (!cp || NOT_LONE_CHAR(cp, '0'));
 	}
-	opterr = c;
-	cp = get_local_var_value("OPTIND");
-	optind = cp ? atoi(cp) : 0;
-	optarg = NULL;
-	cbuf[1] = '\0';
 
 	/* getopts stops on first non-option. Add "+" to force that */
 	/*if (optstring[0] != '+')*/ {
@@ -9916,11 +9929,47 @@ Test that VAR is a valid variable name?
 		optstring = s;
 	}
 
-	if (argv[1])
-		argv[0] = G.global_argv[0]; /* for error messages */
-	else
-		argv = G.global_argv;
-	c = getopt(string_array_len(argv), argv, optstring);
+	/* Naively, now we should just
+	 *	cp = get_local_var_value("OPTIND");
+	 *	optind = cp ? atoi(cp) : 0;
+	 *	optarg = NULL;
+	 *	opterr = my_opterr;
+	 *	c = getopt(string_array_len(argv), argv, optstring);
+	 * and be done? Not so fast...
+	 * Unlike normal getopt() usage in C programs, here
+	 * each successive call will (usually) have the same argv[] CONTENTS,
+	 * but not the ADDRESSES. Worse yet, it's possible that between
+	 * invocations of "getopts", there will be calls to shell builtins
+	 * which use getopt() internally. Example:
+	 *	while getopts "abc" RES -a -bc -abc de; do
+	 *		unset -ff func
+	 *	done
+	 * This would not work correctly: getopt() call inside "unset"
+	 * modifies internal libc state which is tracking position in
+	 * multi-option strings ("-abc"). At best, it can skip options
+	 * or return the same option infinitely. With glibc implementation
+	 * of getopt(), it would use outright invalid pointers and return
+	 * garbage even _without_ "unset" mangling internal state.
+	 *
+	 * We resort to resetting getopt() state and calling it N times,
+	 * until we get Nth result (or failure).
+	 * (N == G.getopt_count is reset to 0 whenever OPTIND is [un]set).
+	 */
+	optind = 0; /* reset getopt() state */
+	count = 0;
+	n = string_array_len(argv);
+	do {
+		optarg = NULL;
+		opterr = (count < G.getopt_count) ? 0 : my_opterr;
+		c = getopt(n, argv, optstring);
+		if (c < 0)
+			break;
+		count++;
+	} while (count <= G.getopt_count);
+
+	/* Set OPTIND. Prevent resetting of the magic counter! */
+	set_local_var_from_halves("OPTIND", utoa(optind));
+	G.getopt_count = count; /* "next time, give me N+1'th result" */
 
 	/* Set OPTARG */
 	/* Always set or unset, never left as-is, even on exit/error:
@@ -9949,10 +9998,9 @@ Test that VAR is a valid variable name?
 		c = '?';
 	}
 
-	/* Set VAR and OPTIND */
+	/* Set VAR */
 	cbuf[0] = c;
 	set_local_var_from_halves(var, cbuf);
-	set_local_var_from_halves("OPTIND", utoa(optind));
 
 	return exitcode;
 }
