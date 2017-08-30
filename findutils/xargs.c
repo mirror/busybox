@@ -593,7 +593,7 @@ int xargs_main(int argc UNUSED_PARAM, char **argv)
 #else
 #define read_args process_stdin
 #endif
-	IF_FEATURE_XARGS_SUPPORT_PARALLEL(char *opt_a = NULL;)
+	IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(char *opt_a = NULL;)
 
 	INIT_G();
 
