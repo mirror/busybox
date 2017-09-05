@@ -238,10 +238,18 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 			, *argv
 		);
 		if (key >= 0) {
+			bool onoff;
 			// cache directive value
 			char *arg = *++argv;
+
+			if (!arg) {
+#if ENABLE_FEATURE_CHAT_TTY_HIFI
+				tcsetattr(STDIN_FILENO, TCSAFLUSH, &tio0);
+#endif
+				bb_show_usage();
+			}
 			// OFF -> 0, anything else -> 1
-			bool onoff = (0 != strcmp("OFF", arg));
+			onoff = (0 != strcmp("OFF", arg));
 			// process directive
 			if (DIR_HANGUP == key) {
 				// turn SIGHUP on/off
