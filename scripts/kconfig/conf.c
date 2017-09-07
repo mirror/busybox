@@ -118,6 +118,8 @@ static void conf_askvalue(struct symbol *sym, const char *def)
 				printf("%s", line);
 				return;
 			}
+		default: // placate compiler
+			break;
 		}
 	}
 
