@@ -76,12 +76,49 @@ static void conf_askvalue(struct symbol *sym, const char *def)
 
 	line[0] = '\n';
 	line[1] = 0;
+	line[2] = 0;
 
 	if (!sym_is_changable(sym)) {
 		printf("%s\n", def);
-		line[0] = '\n';
-		line[1] = 0;
 		return;
+	}
+
+	// If autoconf run (allnoconfig and such), reset bool and tristates:
+	// "select ITEM" sets ITEM=y and then parent item might have been
+	// reset to "n" later. Try to set ITEM to "n" on the second run.
+	if (type == S_BOOLEAN || type == S_TRISTATE) {
+		switch (input_mode) {
+		case set_yes:
+			if (sym_tristate_within_range(sym, yes)) {
+				line[0] = 'y';
+				line[1] = '\n';
+				printf("%s", line);
+				return;
+			}
+		case set_mod:
+			if (type == S_TRISTATE) {
+				if (sym_tristate_within_range(sym, mod)) {
+					line[0] = 'm';
+					line[1] = '\n';
+					printf("%s", line);
+					return;
+				}
+			} else {
+				if (sym_tristate_within_range(sym, yes)) {
+					line[0] = 'y';
+					line[1] = '\n';
+					printf("%s", line);
+					return;
+				}
+			}
+		case set_no:
+			if (sym_tristate_within_range(sym, no)) {
+				line[0] = 'n';
+				line[1] = '\n';
+				printf("%s", line);
+				return;
+			}
+		}
 	}
 
 	switch (input_mode) {
@@ -590,6 +627,19 @@ int main(int ac, char **av)
 	if (input_mode != ask_silent) {
 		rootEntry = &rootmenu;
 		conf(&rootmenu);
+		// If autoconf run (allnoconfig and such), run it twice:
+		// "select ITEM" sets ITEM=y and then parent item
+		// is reset to "n" later. Second run sets ITEM to "n".
+		// Example: ADDUSER selects LONG_OPTS.
+		// allnoconfig must set _both_ to "n".
+		// Before, LONG_OPTS remained "y".
+		if (input_mode == set_no
+		 || input_mode == set_mod
+		 || input_mode == set_yes
+		) {
+			rootEntry = &rootmenu;
+			conf(&rootmenu);
+		}
 		if (input_mode == ask_all) {
 			input_mode = ask_silent;
 			valid_stdin = 1;
