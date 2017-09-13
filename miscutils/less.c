@@ -139,7 +139,7 @@
 #define HIGHLIGHT   ESC"[7m"
 #define NORMAL      ESC"[0m"
 /* The escape code to home and clear to the end of screen */
-#define CLEAR       ESC"[H\033[J"
+#define CLEAR       ESC"[H"ESC"[J"
 /* The escape code to clear to the end of line */
 #define CLEAR_2_EOL ESC"[K"
 
