@@ -38,11 +38,27 @@ struct globals {
 /* Hopefully there aren't arches with PAGE_SIZE > 64k */
 #define G_mapsize (64*1024)
 
-static void format_line(char *hex, uint8_t *data, off_t offset)
+/* "12ef5670 (nn )*16 abcdef_1_3_5_7_9\n" */
+#define LINEBUF_SIZE (8 + 1 + 3*16 + 16 + 1 /*paranoia:*/ + 14)
+
+static int format_line(char *hex, uint8_t *data, off_t offset)
 {
-	char *text = hex + 16*3;
+	int ofs_pos;
+	char *text;
 	uint8_t *end, *end1;
 
+#if 1
+	/* Can be more than 4Gb, thus >8 chars, thus use a variable - don't assume 8! */
+	ofs_pos = sprintf(hex, "%08"OFF_FMT"x ", offset);
+#else
+	if (offset <= 0xffff)
+		ofs_pos = sprintf(hex, "%04"OFF_FMT"x ", offset);
+	else
+		ofs_pos = sprintf(hex, "%08"OFF_FMT"x ", offset);
+#endif
+	hex += ofs_pos;
+
+	text = hex + 16*3;
 	end1 = data + 15;
 	if ((G.size - offset) > 0) {
 		end = end1;
@@ -66,6 +82,8 @@ static void format_line(char *hex, uint8_t *data, off_t offset)
 		data++;
 	}
 	*text = '\0';
+
+	return ofs_pos;
 }
 
 static void redraw(void)
@@ -78,11 +96,11 @@ static void redraw(void)
 	offset = 0;
 	i = 0;
 	while (i < G.height) {
-		char buf[16*4 + 8];
+		char buf[LINEBUF_SIZE];
 		format_line(buf, data, offset);
 		printf(
-			"\r\n%08"OFF_FMT"x %s" + (!i)*2, /* print \r\n only on 2nd line and later */
-			offset, buf
+			"\r\n%s" + (!i)*2, /* print \r\n only on 2nd line and later */
+			buf
 		);
 		data += 16;
 		offset += 16;
@@ -92,22 +110,22 @@ static void redraw(void)
 
 static void redraw_cur_line(void)
 {
-	off_t offset;
-	int len;
-	char buf[16*4 + 8];
+	char buf[LINEBUF_SIZE];
 	uint8_t *data;
+	off_t offset;
+	int column;
 
-	len = (0xf & (uintptr_t)G.current_byte);
-	data = G.current_byte - len;
+	column = (0xf & (uintptr_t)G.current_byte);
+	data = G.current_byte - column;
 	offset = G.offset + (data - G.addr);
-	format_line(buf, data, offset);
-	printf(
-		"\r%08"OFF_FMT"x %s",
-		offset, buf
-	);
-	printf(
-		"\r%08"OFF_FMT"x %.*s",
-		offset, (len*3 + G.half), buf
+
+	column = column*3 + G.half;
+	column += format_line(buf, data, offset);
+	printf("%s"
+		"\r"
+		"%.*s",
+		buf + column,
+		column, buf
 	);
 }
 
@@ -216,7 +234,7 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 
 	printf(CLEAR);
 	redraw();
-	printf(HOME "%08x ", 0);
+	printf(ESC"[1;10H"); /* position on 1st hex byte in first line */
 
 //TODO: //PgUp/PgDown; Home/End: start/end of line; '<'/'>': start/end of file
 	//Backspace: undo
@@ -228,10 +246,6 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 //TODO: go to end-of-screen on exit (for this, sighandler should interrupt read_key())
 //TODO: detect window resize
 //TODO: read-only mode if open(O_RDWR) fails? hide cursor in this case?
-
-//TODO: smarter redraw: if down-arrow is pressed on last visible line,
-//emit LF, then print the tail of next line, then CR, then beginning -
-//which makes cursor end up exactly where it should be! Same for up-arrow.
 
 	for (;;) {
 		char read_key_buffer[KEYCODE_BUFFER_SIZE];
@@ -320,10 +334,11 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if ((0xf & (uintptr_t)G.current_byte) == 0) {
 				/* leftmost pos, wrap to prev line */
-				if (G.current_byte == G.addr)
+				if (G.current_byte == G.addr) {
 					move_mapping_lower();
-				if ((G.current_byte - G.addr) < 16)
-					break; /* first line, don't do anything */
+					if (G.current_byte == G.addr)
+						break; /* first line, don't do anything */
+				}
 				G.half = 1;
 				G.current_byte--;
 				printf(ESC"[46C"); /* cursor right 3*15 + 1 chars */
