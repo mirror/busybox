@@ -38,8 +38,8 @@ struct globals {
 /* Hopefully there aren't arches with PAGE_SIZE > 64k */
 #define G_mapsize (64*1024)
 
-/* "12ef5670 (nn )*16 abcdef_1_3_5_7_9\n" */
-#define LINEBUF_SIZE (8 + 1 + 3*16 + 16 + 1 /*paranoia:*/ + 14)
+/* "12ef5670 (xx )*16 _1_3_5_7_9abcdef\n"NUL */
+#define LINEBUF_SIZE (8 + 1 + 3*16 + 16 + 1 + 1 /*paranoia:*/ + 13)
 
 static int format_line(char *hex, uint8_t *data, off_t offset)
 {
@@ -165,7 +165,7 @@ static void move_mapping_further(void)
 	pagesize = getpagesize(); /* constant on most arches */
 	pos = G.current_byte - G.addr;
 	if (pos >= pagesize) {
-		/* Move offset up until current position is in 1st page */
+		/* move offset up until current position is in 1st page */
 		do {
 			G.offset += pagesize;
 			if (G.offset == 0) { /* whoops */
@@ -188,7 +188,7 @@ static void move_mapping_lower(void)
 	pagesize = getpagesize(); /* constant on most arches */
 	pos = G.current_byte - G.addr;
 
-	/* Move offset down until current position is in last page */
+	/* move offset down until current position is in last page */
 	pos += pagesize;
 	while (pos < G_mapsize) {
 		pos += pagesize;
@@ -218,10 +218,15 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	getopt32(argv, "");
-	argv += optind;
-
 	get_terminal_width_height(-1, NULL, &G.height);
+	if (1) {
+		/* reduce number of write() syscalls while PgUp/Down: fully buffered output */
+		unsigned sz = (G.height | 0xf) * LINEBUF_SIZE;
+		setvbuf(stdout, xmalloc(sz), _IOFBF, sz);
+	}
+
+	getopt32(argv, "^" "" "\0" "=1"/*one arg*/);
+	argv += optind;
 
 	G.fd = xopen(*argv, O_RDWR);
 	G.size = xlseek(G.fd, 0, SEEK_END);
