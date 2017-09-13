@@ -347,6 +347,8 @@ struct globals {
 	IF_FEATURE_LS_TIMESTAMPS(time(&G.current_time_t);) \
 } while (0)
 
+#define ESC "\033"
+
 
 /*** Output code ***/
 
@@ -586,12 +588,12 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		if (!mode)
 			if (lstat(dn->fullname, &statbuf) == 0)
 				mode = statbuf.st_mode;
-		printf("\033[%u;%um", bold(mode), fgcolor(mode));
+		printf(ESC"[%u;%um", bold(mode), fgcolor(mode));
 	}
 #endif
 	column += print_name(dn->name);
 	if (G_show_color) {
-		printf("\033[0m");
+		printf(ESC"[m");
 	}
 
 	if (lpath) {
@@ -609,7 +611,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 # endif
 # if ENABLE_FEATURE_LS_COLOR
 			if (G_show_color) {
-				printf("\033[%u;%um", bold(mode), fgcolor(mode));
+				printf(ESC"[%u;%um", bold(mode), fgcolor(mode));
 			}
 # endif
 		}
@@ -617,7 +619,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 		column += print_name(lpath) + 4;
 		free(lpath);
 		if (G_show_color) {
-			printf("\033[0m");
+			printf(ESC"[m");
 		}
 	}
 #if ENABLE_FEATURE_LS_FILETYPES

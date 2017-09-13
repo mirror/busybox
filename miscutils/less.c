@@ -137,7 +137,7 @@
 #define ESC "\033"
 /* The escape codes for highlighted and normal text */
 #define HIGHLIGHT   ESC"[7m"
-#define NORMAL      ESC"[0m"
+#define NORMAL      ESC"[m"
 /* The escape code to home and clear to the end of screen */
 #define CLEAR       ESC"[H"ESC"[J"
 /* The escape code to clear to the end of line */
@@ -1042,7 +1042,7 @@ static void reinitialize(void)
 	open_file_and_read_lines();
 #if ENABLE_FEATURE_LESS_ASK_TERMINAL
 	if (G.winsize_err)
-		printf("\033[999;999H" "\033[6n");
+		printf(ESC"[999;999H" ESC"[6n");
 #endif
 	buffer_fill_and_print();
 }

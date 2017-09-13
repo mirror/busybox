@@ -51,6 +51,8 @@
 /* Max filename length of entry in /sys/devices subsystem */
 #define BIG_SYSNAME_LEN    16
 
+#define ESC "\033"
+
 typedef unsigned long long ullong;
 
 struct line {
@@ -776,8 +778,8 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 			}
 		}
 
-		/* Clear the screen */
-		printf("\033[H\033[J");
+		/* Home; clear screen */
+		printf(ESC"[H" ESC"[J");
 
 		/* Clear C-state lines */
 		memset(&cstate_lines, 0, sizeof(cstate_lines));

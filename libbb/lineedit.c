@@ -2868,7 +2868,7 @@ int main(int argc, char **argv)
 #if ENABLE_FEATURE_EDITING_FANCY_PROMPT
 		"\\[\\033[32;1m\\]\\u@\\[\\x1b[33;1m\\]\\h:"
 		"\\[\\033[34;1m\\]\\w\\[\\033[35;1m\\] "
-		"\\!\\[\\e[36;1m\\]\\$ \\[\\E[0m\\]";
+		"\\!\\[\\e[36;1m\\]\\$ \\[\\E[m\\]";
 #else
 		"% ";
 #endif

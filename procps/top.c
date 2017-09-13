@@ -117,6 +117,7 @@
 
 #include "libbb.h"
 
+#define ESC "\033"
 
 typedef struct top_status_t {
 	unsigned long vsz;
@@ -580,7 +581,7 @@ static unsigned long display_header(int scr_width, int *lines_rem_p)
 		meminfo[MI_BUFFERS],
 		meminfo[MI_CACHED]);
 	/* Go to top & clear to the end of screen */
-	printf(OPT_BATCH_MODE ? "%s\n" : "\033[H\033[J%s\n", scrbuf);
+	printf(OPT_BATCH_MODE ? "%s\n" : ESC"[H" ESC"[J" "%s\n", scrbuf);
 	(*lines_rem_p)--;
 
 	/* Display CPU time split as percentage of total time.
@@ -618,7 +619,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 #endif
 
 	/* what info of the processes is shown */
-	printf(OPT_BATCH_MODE ? "%.*s" : "\033[7m%.*s\033[0m", scr_width,
+	printf(OPT_BATCH_MODE ? "%.*s" : ESC"[7m" "%.*s" ESC"[m", scr_width,
 		"  PID  PPID USER     STAT   VSZ %VSZ"
 		IF_FEATURE_TOP_SMP_PROCESS(" CPU")
 		IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(" %CPU")
@@ -802,7 +803,7 @@ static void display_topmem_header(int scr_width, int *lines_rem_p)
 		meminfo[MI_ANONPAGES],
 		meminfo[MI_MAPPED],
 		meminfo[MI_MEMFREE]);
-	printf(OPT_BATCH_MODE ? "%.*s\n" : "\033[H\033[J%.*s\n", scr_width, line_buf);
+	printf(OPT_BATCH_MODE ? "%.*s\n" : ESC"[H" ESC"[J" "%.*s\n", scr_width, line_buf);
 
 	snprintf(line_buf, LINE_BUF_SIZE,
 		" slab:%lu buf:%lu cache:%lu dirty:%lu write:%lu",
@@ -844,7 +845,7 @@ static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
 	cp[6] = ch;
 	do *cp++ = ch; while (*cp == ' ');
 
-	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width, line_buf);
+	printf(OPT_BATCH_MODE ? "%.*s" : ESC"[7m" "%.*s" ESC"[m", scr_width, line_buf);
 	lines_rem--;
 
 	if (lines_rem > ntop - G_scroll_ofs)

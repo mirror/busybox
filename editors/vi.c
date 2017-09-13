@@ -224,24 +224,25 @@ enum {
  * See "Xterm Control Sequences"
  * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
  */
+#define ESC "\033"
 /* Inverse/Normal text */
-#define ESC_BOLD_TEXT "\033[7m"
-#define ESC_NORM_TEXT "\033[0m"
+#define ESC_BOLD_TEXT ESC"[7m"
+#define ESC_NORM_TEXT ESC"[m"
 /* Bell */
 #define ESC_BELL "\007"
 /* Clear-to-end-of-line */
-#define ESC_CLEAR2EOL "\033[K"
+#define ESC_CLEAR2EOL ESC"[K"
 /* Clear-to-end-of-screen.
  * (We use default param here.
  * Full sequence is "ESC [ <num> J",
  * <num> is 0/1/2 = "erase below/above/all".)
  */
-#define ESC_CLEAR2EOS "\033[J"
+#define ESC_CLEAR2EOS ESC"[J"
 /* Cursor to given coordinate (1,1: top left) */
-#define ESC_SET_CURSOR_POS "\033[%u;%uH"
+#define ESC_SET_CURSOR_POS ESC"[%u;%uH"
 //UNUSED
 ///* Cursor up and down */
-//#define ESC_CURSOR_UP "\033[A"
+//#define ESC_CURSOR_UP   ESC"[A"
 //#define ESC_CURSOR_DOWN "\n"
 
 #if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
@@ -696,14 +697,14 @@ int vi_main(int argc, char **argv)
 	save_argc = argc;
 	optind = 0;
 	// "Save cursor, use alternate screen buffer, clear screen"
-	write1("\033[?1049h");
+	write1(ESC"[?1049h");
 	while (1) {
 		edit_file(argv[optind]); /* param might be NULL */
 		if (++optind >= argc)
 			break;
 	}
 	// "Use normal screen buffer, restore cursor"
-	write1("\033[?1049l");
+	write1(ESC"[?1049l");
 	//-----------------------------------------------------------
 
 	return 0;
@@ -772,7 +773,7 @@ static void edit_file(char *fn)
 #if ENABLE_FEATURE_VI_ASK_TERMINAL
 	if (G.get_rowcol_error /* TODO? && no input on stdin */) {
 		uint64_t k;
-		write1("\033[999;999H" "\033[6n");
+		write1(ESC"[999;999H" ESC"[6n");
 		fflush_all();
 		k = read_key(STDIN_FILENO, readbuffer, /*timeout_ms:*/ 100);
 		if ((int32_t)k == KEYCODE_CURSOR_POS) {
@@ -4454,7 +4455,7 @@ static void crash_dummy()
 				sleeptime = 0;  // how fast to type
 			}
 		}
-		strcat(readbuffer, "\033");
+		strcat(readbuffer, ESC);
 	}
 	readbuffer[0] = strlen(readbuffer + 1);
  cd1:

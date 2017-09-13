@@ -37,6 +37,8 @@
 
 #include "libbb.h"
 
+#define ESC "\033"
+
 // procps 2.0.18:
 // watch [-d] [-n seconds]
 //   [--differences[=cumulative]] [--interval=seconds] command
@@ -77,7 +79,7 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 	header = NULL;
 	while (1) {
 		/* home; clear to the end of screen */
-		printf("\033[H""\033[J");
+		printf(ESC"[H" ESC"[J");
 		if (!(opt & 0x2)) { // no -t
 			const unsigned time_len = sizeof("1234-67-90 23:56:89");
 
