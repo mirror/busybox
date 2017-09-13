@@ -236,7 +236,7 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 	redraw();
 	printf(ESC"[1;10H"); /* position on 1st hex byte in first line */
 
-//TODO: //PgUp/PgDown; Home/End: start/end of line; '<'/'>': start/end of file
+//TODO: //Home/End: start/end of line; '<'/'>': start/end of file
 	//Backspace: undo
 	//Enter: goto specified position
 	//Ctrl-L: redraw
@@ -249,12 +249,14 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 
 	for (;;) {
 		char read_key_buffer[KEYCODE_BUFFER_SIZE];
+		unsigned cnt;
 		int32_t key;
 		uint8_t byte;
 
 		fflush_all();
 		key = read_key(STDIN_FILENO, read_key_buffer, -1);
 
+		cnt = 1;
 		switch (key) {
 		case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
 		case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
@@ -307,7 +309,10 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 				putchar(' ');
 			}
 			break;
+		case KEYCODE_PAGEDOWN:
+			cnt = G.height;
 		case KEYCODE_DOWN:
+ k_down:
 			G.current_byte += 16;
 			if (G.current_byte >= G.eof_byte) {
 				move_mapping_further();
@@ -324,6 +329,8 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 				row--;
 				redraw_cur_line();
 			}
+			if (--cnt)
+				goto k_down;
 			break;
 
 		case KEYCODE_LEFT:
@@ -348,7 +355,10 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			G.current_byte--;
 			printf(ESC"[2D");
 			break;
+		case KEYCODE_PAGEUP:
+			cnt = G.height;
 		case KEYCODE_UP:
+ k_up:
 			if ((G.current_byte - G.addr) < 16) {
 				move_mapping_lower();
 				if ((G.current_byte - G.addr) < 16)
@@ -364,6 +374,8 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 				printf(ESC"M"); /* scroll up */
 				redraw_cur_line();
 			}
+			if (--cnt)
+				goto k_up;
 			break;
 		}
 	}
