@@ -17,7 +17,8 @@
 
 #define ESC		"\033"
 #define HOME		ESC"[H"
-#define CLEAR		ESC"[H"ESC"[J"
+#define CLEAR		ESC"[J"
+#define CLEAR_TILL_EOL	ESC"[K"
 #define SET_ALT_SCR	ESC"[?1049h"
 #define POP_ALT_SCR	ESC"[?1049l"
 
@@ -30,7 +31,7 @@ struct globals {
 	int fd;
 	unsigned height;
 	unsigned row;
-	uint8_t *addr;
+	uint8_t *baseaddr;
 	uint8_t *current_byte;
 	uint8_t *eof_byte;
 	off_t size;
@@ -117,14 +118,15 @@ static void redraw(void)
 {
 	uint8_t *data;
 	off_t offset;
-	unsigned i;
+	unsigned i, pos;
 
-	data = G.addr;
-	offset = 0;
-	i = 0;
+	printf(HOME CLEAR);
+	data = G.baseaddr;
+	offset = G.offset;
+	pos = i = 0;
 	while (i < G.height) {
 		char buf[LINEBUF_SIZE];
-		format_line(buf, data, offset);
+		pos = format_line(buf, data, offset);
 		printf(
 			"\r\n%s" + (!i)*2, /* print \r\n only on 2nd line and later */
 			buf
@@ -133,6 +135,7 @@ static void redraw(void)
 		offset += 16;
 		i++;
 	}
+	printf(ESC"[1;%uH", pos + 1); /* position on 1st hex byte in first line */
 }
 
 static void redraw_cur_line(void)
@@ -144,7 +147,7 @@ static void redraw_cur_line(void)
 
 	column = (0xf & (uintptr_t)G.current_byte);
 	data = G.current_byte - column;
-	offset = G.offset + (data - G.addr);
+	offset = G.offset + (data - G.baseaddr);
 
 	column = column*3 + G.half;
 	column += format_line(buf, data, offset);
@@ -158,28 +161,28 @@ static void redraw_cur_line(void)
 
 static void remap(unsigned cur_pos)
 {
-	if (G.addr)
-		munmap(G.addr, G_mapsize);
+	if (G.baseaddr)
+		munmap(G.baseaddr, G_mapsize);
 
-	G.addr = mmap(NULL,
+	G.baseaddr = mmap(NULL,
 		G_mapsize,
 		PROT_READ | PROT_WRITE,
 		MAP_SHARED,
 		G.fd,
 		G.offset
 	);
-	if (G.addr == MAP_FAILED) {
+	if (G.baseaddr == MAP_FAILED) {
 		restore_term();
 		bb_perror_msg_and_die("mmap");
 	}
 
-	G.current_byte = G.addr + cur_pos;
+	G.current_byte = G.baseaddr + cur_pos;
 
-	G.eof_byte = G.addr + G_mapsize;
+	G.eof_byte = G.baseaddr + G_mapsize;
 	if ((G.size - G.offset) < G_mapsize) {
 		/* mapping covers tail of the file */
 		/* we do have a mapped byte which is past eof */
-		G.eof_byte = G.addr + (G.size - G.offset);
+		G.eof_byte = G.baseaddr + (G.size - G.offset);
 	}
 }
 static void move_mapping_further(void)
@@ -191,7 +194,7 @@ static void move_mapping_further(void)
 		return; /* can't move mapping even further, it's at the end already */
 
 	pagesize = getpagesize(); /* constant on most arches */
-	pos = G.current_byte - G.addr;
+	pos = G.current_byte - G.baseaddr;
 	if (pos >= pagesize) {
 		/* move offset up until current position is in 1st page */
 		do {
@@ -214,7 +217,7 @@ static void move_mapping_lower(void)
 		return; /* we are at 0 already */
 
 	pagesize = getpagesize(); /* constant on most arches */
-	pos = G.current_byte - G.addr;
+	pos = G.current_byte - G.baseaddr;
 
 	/* move offset down until current position is in last page */
 	pos += pagesize;
@@ -252,18 +255,15 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 	G.size = xlseek(G.fd, 0, SEEK_END);
 
 	/* TERMIOS_RAW_CRNL suppresses \n -> \r\n translation, helps with down-arrow */
+	printf(SET_ALT_SCR);
 	set_termios_to_raw(STDIN_FILENO, &G.orig_termios, TERMIOS_RAW_CRNL);
 	bb_signals(BB_FATAL_SIGS, sig_catcher);
 
 	remap(0);
-
-	printf(SET_ALT_SCR);
 	redraw();
-	printf(ESC"[1;10H"); /* position on 1st hex byte in first line */
 
 //TODO: //Home/End: start/end of line; '<'/'>': start/end of file
 	//Backspace: undo
-	//Enter: goto specified position
 	//Ctrl-L: redraw
 	//Ctrl-Z: suspend
 	//'/', Ctrl-S: search
@@ -367,9 +367,9 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if ((0xf & (uintptr_t)G.current_byte) == 0) {
 				/* leftmost pos, wrap to prev line */
-				if (G.current_byte == G.addr) {
+				if (G.current_byte == G.baseaddr) {
 					move_mapping_lower();
-					if (G.current_byte == G.addr)
+					if (G.current_byte == G.baseaddr)
 						break; /* first line, don't do anything */
 				}
 				G.half = 1;
@@ -385,9 +385,9 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			cnt = G.height;
 		case KEYCODE_UP:
  k_up:
-			if ((G.current_byte - G.addr) < 16) {
+			if ((G.current_byte - G.baseaddr) < 16) {
 				move_mapping_lower();
-				if ((G.current_byte - G.addr) < 16)
+				if ((G.current_byte - G.baseaddr) < 16)
 					break;
 			}
 			G.current_byte -= 16;
@@ -403,6 +403,35 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			if (--cnt)
 				goto k_up;
 			break;
+
+		case '\n':
+		case '\r':
+			/* [Enter]: goto specified position */
+			{
+				char buf[sizeof(G.offset)*3 + 4];
+				printf(ESC"[999;1H" CLEAR_TILL_EOL); /* go to last line */
+				if (read_line_input(NULL, "Go to (dec,0Xhex,0oct): ", buf, sizeof(buf)) >= 0) {
+					off_t t;
+					unsigned pgmask;
+
+					t = bb_strtoull(buf, NULL, 0);
+					if (t >= G.size)
+						t = G.size - 1;
+					pgmask = getpagesize() - 1;
+					cnt = t & pgmask;
+					t = t & ~(off_t)pgmask;
+					if (t < 0)
+						cnt = t = 0;
+					G.offset = t;
+					remap(0);
+					redraw();
+					cnt /= 16;
+					if (cnt)
+						goto k_down;
+					break;
+				}
+				/* EOF/error on input: fall through to exiting */
+			}
 		case CTRL('X'):
 			restore_term();
 			return EXIT_SUCCESS;

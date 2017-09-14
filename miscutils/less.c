@@ -281,9 +281,9 @@ static void set_tty_cooked(void)
 
 /* Move the cursor to a position (x,y), where (0,0) is the
    top-left corner of the console */
-static void move_cursor(int line, int row)
+static void move_cursor(int line, int col)
 {
-	printf(ESC"[%u;%uH", line, row);
+	printf(ESC"[%u;%uH", line, col);
 }
 
 static void clear_line(void)
