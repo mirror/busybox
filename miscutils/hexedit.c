@@ -274,7 +274,7 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 
 	for (;;) {
 		unsigned cnt;
-		int32_t key = key; // for compiler
+		int32_t key = key; /* for compiler */
 		uint8_t byte;
 
 		fflush_all();
@@ -286,11 +286,12 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			key = CTRL('X');
 
 		cnt = 1;
+		if ((unsigned)(key - 'A') <= 'Z' - 'A')
+			key |= 0x20; /* convert A-Z to a-z */
 		switch (key) {
-		case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
 		case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-			/* lowercase, then convert to '0'+10...15 */
-			key = (key | 0x20) - ('a' - '0' - 10);
+			/* convert to '0'+10...15 */
+			key = key - ('a' - '0' - 10);
 			/* fall through */
 		case '0': case '1': case '2': case '3': case '4':
 		case '5': case '6': case '7': case '8': case '9':
