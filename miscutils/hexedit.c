@@ -15,19 +15,28 @@
 
 #include "libbb.h"
 
-#define ESC	"\033"
-#define HOME	ESC"[H"
-#define CLEAR	ESC"[H"ESC"[J"
+#define ESC		"\033"
+#define HOME		ESC"[H"
+#define CLEAR		ESC"[H"ESC"[J"
+#define SET_ALT_SCR	ESC"[?1049h"
+#define POP_ALT_SCR	ESC"[?1049l"
+
+#undef CTRL
+#define CTRL(c)  ((c) & (uint8_t)~0x60)
 
 struct globals {
 	smallint half;
+	smallint in_read_key;
 	int fd;
 	unsigned height;
+	unsigned row;
 	uint8_t *addr;
 	uint8_t *current_byte;
 	uint8_t *eof_byte;
 	off_t size;
 	off_t offset;
+	/* needs to be zero-inited, thus keeping it in G: */
+	char read_key_buffer[KEYCODE_BUFFER_SIZE];
 	struct termios orig_termios;
 };
 #define G (*ptr_to_globals)
@@ -40,6 +49,24 @@ struct globals {
 
 /* "12ef5670 (xx )*16 _1_3_5_7_9abcdef\n"NUL */
 #define LINEBUF_SIZE (8 + 1 + 3*16 + 16 + 1 + 1 /*paranoia:*/ + 13)
+
+static void restore_term(void)
+{
+	tcsetattr_stdin_TCSANOW(&G.orig_termios);
+	printf(POP_ALT_SCR);
+	fflush_all();
+}
+
+static void sig_catcher(int sig)
+{
+	if (!G.in_read_key) {
+		/* now it's not safe to do I/O, just inform the main loop */
+		bb_got_signal = sig;
+		return;
+	}
+	restore_term();
+	kill_myself_with_sig(sig);
+}
 
 static int format_line(char *hex, uint8_t *data, off_t offset)
 {
@@ -141,9 +168,10 @@ static void remap(unsigned cur_pos)
 		G.fd,
 		G.offset
 	);
-	if (G.addr == MAP_FAILED)
-//TODO: restore termios?
+	if (G.addr == MAP_FAILED) {
+		restore_term();
 		bb_perror_msg_and_die("mmap");
+	}
 
 	G.current_byte = G.addr + cur_pos;
 
@@ -201,12 +229,6 @@ static void move_mapping_lower(void)
 	remap(pos);
 }
 
-static void sig_catcher(int sig)
-{
-	tcsetattr_stdin_TCSANOW(&G.orig_termios);
-	kill_myself_with_sig(sig);
-}
-
 //usage:#define hexedit_trivial_usage
 //usage:	"FILE"
 //usage:#define hexedit_full_usage "\n\n"
@@ -214,8 +236,6 @@ static void sig_catcher(int sig)
 int hexedit_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hexedit_main(int argc UNUSED_PARAM, char **argv)
 {
-	unsigned row = 0;
-
 	INIT_G();
 
 	get_terminal_width_height(-1, NULL, &G.height);
@@ -237,7 +257,7 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 
 	remap(0);
 
-	printf(CLEAR);
+	printf(SET_ALT_SCR);
 	redraw();
 	printf(ESC"[1;10H"); /* position on 1st hex byte in first line */
 
@@ -245,21 +265,22 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 	//Backspace: undo
 	//Enter: goto specified position
 	//Ctrl-L: redraw
-	//Ctrl-X: save and exit (maybe also Q?)
 	//Ctrl-Z: suspend
 	//'/', Ctrl-S: search
-//TODO: go to end-of-screen on exit (for this, sighandler should interrupt read_key())
 //TODO: detect window resize
-//TODO: read-only mode if open(O_RDWR) fails? hide cursor in this case?
 
 	for (;;) {
-		char read_key_buffer[KEYCODE_BUFFER_SIZE];
 		unsigned cnt;
-		int32_t key;
+		int32_t key = key; // for compiler
 		uint8_t byte;
 
 		fflush_all();
-		key = read_key(STDIN_FILENO, read_key_buffer, -1);
+		G.in_read_key = 1;
+		if (!bb_got_signal)
+			key = read_key(STDIN_FILENO, G.read_key_buffer, -1);
+		G.in_read_key = 0;
+		if (bb_got_signal)
+			key = CTRL('X');
 
 		cnt = 1;
 		switch (key) {
@@ -329,9 +350,9 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			}
  down:
 			putchar('\n'); /* down one line, possibly scroll screen */
-			row++;
-			if (row >= G.height) {
-				row--;
+			G.row++;
+			if (G.row >= G.height) {
+				G.row--;
 				redraw_cur_line();
 			}
 			if (--cnt)
@@ -371,8 +392,8 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			}
 			G.current_byte -= 16;
  up:
-			if (row != 0) {
-				row--;
+			if (G.row != 0) {
+				G.row--;
 				printf(ESC"[A"); /* up (won't scroll) */
 			} else {
 				//printf(ESC"[T"); /* scroll up */ - not implemented on Linux VT!
@@ -382,8 +403,12 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			if (--cnt)
 				goto k_up;
 			break;
-		}
-	}
+		case CTRL('X'):
+			restore_term();
+			return EXIT_SUCCESS;
+		} /* switch */
+	} /* for (;;) */
 
+	/* not reached */
 	return EXIT_SUCCESS;
 }

@@ -1103,7 +1103,7 @@ static int64_t getch_nowait(void)
 			goto again;
 		}
 		/* EOF/error (ssh session got killed etc) */
-		less_exit(0);
+		less_exit(EXIT_SUCCESS);
 	}
 	set_tty_cooked();
 	return key64;
