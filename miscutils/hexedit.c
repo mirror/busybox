@@ -159,7 +159,8 @@ static void redraw_cur_line(void)
 	);
 }
 
-static void remap(unsigned cur_pos)
+/* if remappers return 0, no change was done */
+static int remap(unsigned cur_pos)
 {
 	if (G.baseaddr)
 		munmap(G.baseaddr, G_mapsize);
@@ -184,14 +185,15 @@ static void remap(unsigned cur_pos)
 		/* we do have a mapped byte which is past eof */
 		G.eof_byte = G.baseaddr + (G.size - G.offset);
 	}
+	return 1;
 }
-static void move_mapping_further(void)
+static int move_mapping_further(void)
 {
 	unsigned pos;
 	unsigned pagesize;
 
 	if ((G.size - G.offset) < G_mapsize)
-		return; /* can't move mapping even further, it's at the end already */
+		return 0; /* can't move mapping even further, it's at the end already */
 
 	pagesize = getpagesize(); /* constant on most arches */
 	pos = G.current_byte - G.baseaddr;
@@ -205,16 +207,17 @@ static void move_mapping_further(void)
 			}
 			pos -= pagesize;
 		} while (pos >= pagesize);
-		remap(pos);
+		return remap(pos);
 	}
+	return 0;
 }
-static void move_mapping_lower(void)
+static int move_mapping_lower(void)
 {
 	unsigned pos;
 	unsigned pagesize;
 
 	if (G.offset == 0)
-		return; /* we are at 0 already */
+		return 0; /* we are at 0 already */
 
 	pagesize = getpagesize(); /* constant on most arches */
 	pos = G.current_byte - G.baseaddr;
@@ -229,7 +232,7 @@ static void move_mapping_lower(void)
 	}
 	pos -= pagesize;
 
-	remap(pos);
+	return remap(pos);
 }
 
 //usage:#define hexedit_trivial_usage
@@ -292,9 +295,8 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 		case '0': case '1': case '2': case '3': case '4':
 		case '5': case '6': case '7': case '8': case '9':
 			if (G.current_byte == G.eof_byte) {
-				move_mapping_further();
-				if (G.current_byte == G.eof_byte) {
-					/* extend the file */
+				if (!move_mapping_further()) {
+					/* already at EOF; extend the file */
 					if (++G.size <= 0 /* overflow? */
 					 || ftruncate(G.fd, G.size) != 0 /* error extending? (e.g. block dev) */
 					) {
@@ -343,7 +345,7 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			if (G.current_byte >= G.eof_byte) {
 				move_mapping_further();
 				if (G.current_byte > G.eof_byte) {
-					/* eof - don't allow going past it */
+					/* _after_ eof - don't allow this */
 					G.current_byte -= 16;
 					break;
 				}
@@ -368,8 +370,7 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			if ((0xf & (uintptr_t)G.current_byte) == 0) {
 				/* leftmost pos, wrap to prev line */
 				if (G.current_byte == G.baseaddr) {
-					move_mapping_lower();
-					if (G.current_byte == G.baseaddr)
+					if (!move_mapping_lower())
 						break; /* first line, don't do anything */
 				}
 				G.half = 1;
@@ -386,9 +387,8 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 		case KEYCODE_UP:
  k_up:
 			if ((G.current_byte - G.baseaddr) < 16) {
-				move_mapping_lower();
-				if ((G.current_byte - G.baseaddr) < 16)
-					break;
+				if (!move_mapping_lower())
+					break; /* already at 0, stop */
 			}
 			G.current_byte -= 16;
  up:
