@@ -424,9 +424,11 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 					if (t < 0)
 						cnt = t = 0;
 					G.offset = t;
-					remap(0);
+					remap(cnt & 0xf);
 					redraw();
-					cnt /= 16;
+					if (cnt & 0xf)
+						printf(ESC"[%uC", (cnt & 0xf) * 3); /* cursor right 3*i */
+					cnt >>= 4;
 					if (cnt)
 						goto k_down;
 					break;
