@@ -31,6 +31,7 @@ struct globals {
 	int fd;
 	unsigned height;
 	unsigned row;
+	unsigned pagesize;
 	uint8_t *baseaddr;
 	uint8_t *current_byte;
 	uint8_t *eof_byte;
@@ -45,8 +46,17 @@ struct globals {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
 
-/* Hopefully there aren't arches with PAGE_SIZE > 64k */
-#define G_mapsize (64*1024)
+//TODO: move to libbb
+#if defined(__x86_64__) || defined(i386)
+# define G_pagesize 4096
+# define INIT_PAGESIZE() ((void)0)
+#else
+# define G_pagesize (G.pagesize)
+# define INIT_PAGESIZE() ((void)(G.pagesize = getpagesize()))
+#endif
+
+/* hopefully there aren't arches with PAGE_SIZE > 64k */
+#define G_mapsize  (64*1024)
 
 /* "12ef5670 (xx )*16 _1_3_5_7_9abcdef\n"NUL */
 #define LINEBUF_SIZE (8 + 1 + 3*16 + 16 + 1 + 1 /*paranoia:*/ + 13)
@@ -86,7 +96,7 @@ static int format_line(char *hex, uint8_t *data, off_t offset)
 #endif
 	hex += ofs_pos;
 
-	text = hex + 16*3;
+	text = hex + 16 * 3;
 	end1 = data + 15;
 	if ((G.size - offset) > 0) {
 		end = end1;
@@ -114,28 +124,36 @@ static int format_line(char *hex, uint8_t *data, off_t offset)
 	return ofs_pos;
 }
 
-static void redraw(void)
+static void redraw(unsigned cursor)
 {
 	uint8_t *data;
 	off_t offset;
 	unsigned i, pos;
 
 	printf(HOME CLEAR);
-	data = G.baseaddr;
-	offset = G.offset;
+
+	/* if cursor is past end of screen, how many lines to move down? */
+	i = (cursor / 16) - G.height + 1;
+	if ((int)i < 0)
+		i = 0;
+
+	data = G.baseaddr + i * 16;
+	offset = G.offset + i * 16;
+	cursor -= i * 16;
 	pos = i = 0;
 	while (i < G.height) {
 		char buf[LINEBUF_SIZE];
 		pos = format_line(buf, data, offset);
 		printf(
-			"\r\n%s" + (!i)*2, /* print \r\n only on 2nd line and later */
+			"\r\n%s" + (!i) * 2, /* print \r\n only on 2nd line and later */
 			buf
 		);
 		data += 16;
 		offset += 16;
 		i++;
 	}
-	printf(ESC"[1;%uH", pos + 1); /* position on 1st hex byte in first line */
+
+	printf(ESC"[%u;%uH", 1 + cursor / 16, 1 + pos + (cursor & 0xf) * 3);
 }
 
 static void redraw_cur_line(void)
@@ -195,7 +213,7 @@ static int move_mapping_further(void)
 	if ((G.size - G.offset) < G_mapsize)
 		return 0; /* can't move mapping even further, it's at the end already */
 
-	pagesize = getpagesize(); /* constant on most arches */
+	pagesize = G_pagesize; /* constant on most arches */
 	pos = G.current_byte - G.baseaddr;
 	if (pos >= pagesize) {
 		/* move offset up until current position is in 1st page */
@@ -219,7 +237,7 @@ static int move_mapping_lower(void)
 	if (G.offset == 0)
 		return 0; /* we are at 0 already */
 
-	pagesize = getpagesize(); /* constant on most arches */
+	pagesize = G_pagesize; /* constant on most arches */
 	pos = G.current_byte - G.baseaddr;
 
 	/* move offset down until current position is in last page */
@@ -243,6 +261,7 @@ int hexedit_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hexedit_main(int argc UNUSED_PARAM, char **argv)
 {
 	INIT_G();
+	INIT_PAGESIZE();
 
 	get_terminal_width_height(-1, NULL, &G.height);
 	if (1) {
@@ -263,7 +282,7 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 	bb_signals(BB_FATAL_SIGS, sig_catcher);
 
 	remap(0);
-	redraw();
+	redraw(0);
 
 //TODO: //Home/End: start/end of line; '<'/'>': start/end of file
 	//Backspace: undo
@@ -411,26 +430,27 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 			{
 				char buf[sizeof(G.offset)*3 + 4];
 				printf(ESC"[999;1H" CLEAR_TILL_EOL); /* go to last line */
-				if (read_line_input(NULL, "Go to (dec,0Xhex,0oct): ", buf, sizeof(buf)) >= 0) {
+				if (read_line_input(NULL, "Go to (dec,0Xhex,0oct): ", buf, sizeof(buf)) > 0) {
 					off_t t;
 					unsigned pgmask;
 
 					t = bb_strtoull(buf, NULL, 0);
 					if (t >= G.size)
 						t = G.size - 1;
-					pgmask = getpagesize() - 1;
+					pgmask = G_pagesize - 1;
 					cnt = t & pgmask;
 					t = t & ~(off_t)pgmask;
 					if (t < 0)
 						cnt = t = 0;
+					if (t != 0 && cnt < 0x1ff) {
+						/* very close to end of page, possibly to EOF */
+						/* move one page lower */
+						t -= G_pagesize;
+						cnt += G_pagesize;
+					}
 					G.offset = t;
-					remap(cnt & 0xf);
-					redraw();
-					if (cnt & 0xf)
-						printf(ESC"[%uC", (cnt & 0xf) * 3); /* cursor right 3*i */
-					cnt >>= 4;
-					if (cnt)
-						goto k_down;
+					remap(cnt);
+					redraw(cnt);
 					break;
 				}
 				/* EOF/error on input: fall through to exiting */
