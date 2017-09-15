@@ -1824,15 +1824,9 @@ int less_main(int argc, char **argv)
 	G.kbd_fd_orig_flags = ndelay_on(tty_fd);
 	kbd_fd = tty_fd; /* save in a global */
 
-	tcgetattr(kbd_fd, &term_orig);
-	term_less = term_orig;
-	term_less.c_lflag &= ~(ICANON | ECHO);
-	term_less.c_iflag &= ~(IXON | ICRNL);
-	/*term_less.c_oflag &= ~ONLCR;*/
-	term_less.c_cc[VMIN] = 1;
-	term_less.c_cc[VTIME] = 0;
+	get_termios_and_make_raw(tty_fd, &term_less, &term_orig, TERMIOS_RAW_CRNL);
 
-	IF_FEATURE_LESS_ASK_TERMINAL(G.winsize_err =) get_terminal_width_height(kbd_fd, &width, &max_displayed_line);
+	IF_FEATURE_LESS_ASK_TERMINAL(G.winsize_err =) get_terminal_width_height(tty_fd, &width, &max_displayed_line);
 	/* 20: two tabstops + 4 */
 	if (width < 20 || max_displayed_line < 3)
 		return bb_cat(argv);

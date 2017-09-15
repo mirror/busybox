@@ -2259,7 +2259,7 @@ static int32_t reverse_i_search(int timeout)
  */
 int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize)
 {
-	int len;
+	int len, n;
 	int timeout;
 #if ENABLE_FEATURE_TAB_COMPLETION
 	smallint lastWasTab = 0;
@@ -2274,9 +2274,10 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 
 	INIT_S();
 
-	if (tcgetattr(STDIN_FILENO, &initial_settings) < 0
-	 || (initial_settings.c_lflag & (ECHO|ICANON)) == ICANON
-	) {
+	n = get_termios_and_make_raw(STDIN_FILENO, &new_settings, &initial_settings, 0
+		| TERMIOS_CLEAR_ISIG /* turn off INTR (ctrl-C), QUIT, SUSP */
+	);
+	if (n != 0 || (initial_settings.c_lflag & (ECHO|ICANON)) == ICANON) {
 		/* Happens when e.g. stty -echo was run before.
 		 * But if ICANON is not set, we don't come here.
 		 * (example: interactive python ^Z-backgrounded,
@@ -2329,18 +2330,6 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 #endif
 #define command command_must_not_be_used
 
-	new_settings = initial_settings;
-	/* ~ICANON: unbuffered input (most c_cc[] are disabled, VMIN/VTIME are enabled) */
-	/* ~ECHO, ~ECHONL: turn off echoing, including newline echoing */
-	/* ~ISIG: turn off INTR (ctrl-C), QUIT, SUSP */
-	new_settings.c_lflag &= ~(ICANON | ECHO | ECHONL | ISIG);
-	/* reads will block only if < 1 char is available */
-	new_settings.c_cc[VMIN] = 1;
-	/* no timeout (reads block forever) */
-	new_settings.c_cc[VTIME] = 0;
-	/* Should be not needed if ISIG is off: */
-	/* Turn off CTRL-C */
-	/* new_settings.c_cc[VINTR] = _POSIX_VDISABLE; */
 	tcsetattr_stdin_TCSANOW(&new_settings);
 
 #if ENABLE_USERNAME_OR_HOMEDIR

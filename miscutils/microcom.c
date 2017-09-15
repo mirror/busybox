@@ -33,15 +33,11 @@
 // set raw tty mode
 static void xget1(int fd, struct termios *t, struct termios *oldt)
 {
-//TODO: use set_termios_to_raw()
-	tcgetattr(fd, oldt);
-	*t = *oldt;
-	cfmakeraw(t);
-//	t->c_lflag &= ~(ISIG|ICANON|ECHO|IEXTEN);
-//	t->c_iflag &= ~(BRKINT|IXON|ICRNL);
-//	t->c_oflag &= ~(ONLCR);
-//	t->c_cc[VMIN]  = 1;
-//	t->c_cc[VTIME] = 0;
+	get_termios_and_make_raw(fd, t, oldt, 0
+		| TERMIOS_CLEAR_ISIG /* ^C is ASCII char 3, not "interrupt me!" */
+		| TERMIOS_RAW_INPUT /* pass all chars verbatim, no special handling or translating CR->NL */
+		| TERMIOS_RAW_CRNL  /* dont convert NL<->CR on output too */
+	);
 }
 
 static int xset1(int fd, struct termios *tio, const char *device)
