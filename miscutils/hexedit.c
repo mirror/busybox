@@ -432,28 +432,27 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 				printf(ESC"[999;1H" CLEAR_TILL_EOL); /* go to last line */
 				if (read_line_input(NULL, "Go to (dec,0Xhex,0oct): ", buf, sizeof(buf)) > 0) {
 					off_t t;
-					unsigned pgmask;
+					unsigned cursor;
 
 					t = bb_strtoull(buf, NULL, 0);
 					if (t >= G.size)
 						t = G.size - 1;
-					pgmask = G_pagesize - 1;
-					cnt = t & pgmask;
-					t = t & ~(off_t)pgmask;
+					cursor = t & (G_pagesize - 1);
+					t -= cursor;
 					if (t < 0)
-						cnt = t = 0;
-					if (t != 0 && cnt < 0x1ff) {
+						cursor = t = 0;
+					if (t != 0 && cursor < 0x1ff) {
 						/* very close to end of page, possibly to EOF */
 						/* move one page lower */
 						t -= G_pagesize;
-						cnt += G_pagesize;
+						cursor += G_pagesize;
 					}
 					G.offset = t;
-					remap(cnt);
-					redraw(cnt);
+					remap(cursor);
+					redraw(cursor);
 					break;
 				}
-				/* EOF/error on input: fall through to exiting */
+				/* ^C/EOF/error: fall through to exiting */
 			}
 		case CTRL('X'):
 			restore_term();
