@@ -348,8 +348,8 @@ int FAST_FUNC get_termios_and_make_raw(int fd, struct termios *newterm, struct t
 		newterm->c_iflag &= ~(IXON | ICRNL);
 		/* dont convert NL to CR+NL on output */
 		newterm->c_oflag &= ~(ONLCR);
-		/* Maybe clear more c_oflag bits? usually, only OPOST and ONLCR are set.
-		 * OPOST  Enable implementation-defined output processing (is this reqd for all other bits to work?)
+		/* Maybe clear more c_oflag bits? Usually, only OPOST and ONLCR are set.
+		 * OPOST  Enable output processing (reqd for OLCUC and *NL* bits to work)
 		 * OLCUC  Map lowercase characters to uppercase on output.
 		 * OCRNL  Map CR to NL on output.
 		 * ONOCR  Don't output CR at column 0.
@@ -358,7 +358,7 @@ int FAST_FUNC get_termios_and_make_raw(int fd, struct termios *newterm, struct t
 	}
 	if (flags & TERMIOS_RAW_INPUT) {
 		/* IXOFF=0: disable sending XON/XOFF if input buf is full */
-		/* IXON=0: XON/XOFF chars are treated as normal chars */
+		/* IXON=0: input XON/XOFF chars are not special */
 		/* dont convert anything on input */
 		newterm->c_iflag &= ~(IXOFF|IXON|IXANY|BRKINT|INLCR|ICRNL|IUCLC|IMAXBEL);
 	}
