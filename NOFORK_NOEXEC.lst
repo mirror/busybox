@@ -187,16 +187,16 @@ insmod - noexec
 install - runner
 ionice - noexec. spawner
 iostat - longterm: "iostat 1" runs indefinitely
-ip - noexec candidate
-ipaddr - noexec candidate
+ip - noexec
+ipaddr - noexec
 ipcalc - noexec. ipcalc -h talks to network
 ipcrm - noexec
 ipcs - noexec
-iplink - noexec candidate
-ipneigh - noexec candidate
-iproute - noexec candidate
-iprule - noexec candidate
-iptunnel - noexec candidate
+iplink - noexec
+ipneigh - noexec
+iproute - noexec
+iprule - noexec
+iptunnel - noexec
 kbd_mode - noexec. leaks: xopen_nonblocking+xioctl
 kill - NOFORK
 killall - NOFORK
