@@ -148,6 +148,9 @@
 #ifndef CRDLY
 # define CRDLY 0
 #endif
+#ifndef CMSPAR
+# define CMSPAR 0
+#endif
 #ifndef CRTSCTS
 # define CRTSCTS 0
 #endif
@@ -352,6 +355,9 @@ static const char mode_name[] ALIGN1 =
 #endif
 	MI_ENTRY("parenb",   control,     REV,               PARENB,     0 )
 	MI_ENTRY("parodd",   control,     REV,               PARODD,     0 )
+#if CMSPAR
+	MI_ENTRY("cmspar",   control,     REV,               CMSPAR,     0 )
+#endif
 	MI_ENTRY("cs5",      control,     0,                 CS5,     CSIZE)
 	MI_ENTRY("cs6",      control,     0,                 CS6,     CSIZE)
 	MI_ENTRY("cs7",      control,     0,                 CS7,     CSIZE)
@@ -476,6 +482,10 @@ static const char mode_name[] ALIGN1 =
 #if ECHOKE
 	MI_ENTRY("echoke",   local,       SANE_SET   | REV,  ECHOKE,     0 )
 	MI_ENTRY("crtkill",  local,       OMIT       | REV,  ECHOKE,     0 )
+#endif
+	MI_ENTRY("flusho",   local,       SANE_UNSET | REV,  FLUSHO,     0 )
+#ifdef EXTPROC
+	MI_ENTRY("extproc",  local,       SANE_UNSET | REV,  EXTPROC,    0 )
 #endif
 	;
 
@@ -509,6 +519,9 @@ static const struct mode_info mode_info[] = {
 #endif
 	MI_ENTRY("parenb",   control,     REV,               PARENB,     0 )
 	MI_ENTRY("parodd",   control,     REV,               PARODD,     0 )
+#if CMSPAR
+	MI_ENTRY("cmspar",   control,     REV,               CMSPAR,     0 )
+#endif
 	MI_ENTRY("cs5",      control,     0,                 CS5,     CSIZE)
 	MI_ENTRY("cs6",      control,     0,                 CS6,     CSIZE)
 	MI_ENTRY("cs7",      control,     0,                 CS7,     CSIZE)
@@ -633,6 +646,10 @@ static const struct mode_info mode_info[] = {
 #if ECHOKE
 	MI_ENTRY("echoke",   local,       SANE_SET   | REV,  ECHOKE,     0 )
 	MI_ENTRY("crtkill",  local,       OMIT       | REV,  ECHOKE,     0 )
+#endif
+	MI_ENTRY("flusho",   local,       SANE_UNSET | REV,  FLUSHO,     0 )
+#ifdef EXTPROC
+	MI_ENTRY("extproc",  local,       SANE_UNSET | REV,  EXTPROC,    0 )
 #endif
 };
 
@@ -836,10 +853,11 @@ static void wrapf(const char *message, ...)
 		G.current_col++;
 		if (buf[0] != '\n') {
 			if (G.current_col + buflen >= G.max_col) {
-				bb_putchar('\n');
 				G.current_col = 0;
-			} else
+				bb_putchar('\n');
+			} else {
 				bb_putchar(' ');
+			}
 		}
 	}
 	fputs(buf, stdout);
