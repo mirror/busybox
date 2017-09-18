@@ -17,13 +17,12 @@
  *	License along with this library; if not, write to the Free Software
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-
-//kbuild:### lib-$(CONFIG_FEATURE_VOLUMEID_PROMISERAID) += promise_raid.o
-
 //config:### config FEATURE_VOLUMEID_PROMISERAID
 //config:###	bool "promise raid"
 //config:###	default y
 //config:###	depends on VOLUMEID
+
+//kbuild:### lib-$(CONFIG_FEATURE_VOLUMEID_PROMISERAID) += promise_raid.o
 
 #include "volume_id_internal.h"
 

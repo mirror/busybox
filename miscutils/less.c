@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /*
  * TODO:
  * - Add more regular expression support - search modifiers, certain matches, etc.
@@ -20,7 +19,6 @@
  * - the inp file pointer is used so that keyboard input works after
  *   redirected input has been read from stdin
  */
-
 //config:config LESS
 //config:	bool "less (15 kb)"
 //config:	default y

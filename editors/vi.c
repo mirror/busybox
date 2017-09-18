@@ -5,7 +5,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /*
  * Things To Do:
  *	EXINIT
@@ -19,7 +18,6 @@
  *	":r !cmd"  and  "!cmd"  to filter text through an external command
  *	An "ex" line oriented mode- maybe using "cmdedit"
  */
-
 //config:config VI
 //config:	bool "vi (22 kb)"
 //config:	default y

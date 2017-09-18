@@ -17,7 +17,6 @@
  *
  * (C) 2006 Jac Goudsmit added -o option
  */
-
 //config:config GREP
 //config:	bool "grep (8.5 kb)"
 //config:	default y

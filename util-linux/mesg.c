@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config MESG
 //config:	bool "mesg (1.2 kb)"
 //config:	default y

@@ -25,7 +25,6 @@
  * bugs that need to be fixed
  *  - (unknown, please let me know when you find any)
  */
-
 //config:config DPKG
 //config:	bool "dpkg (44 kb)"
 //config:	default y
@@ -38,6 +37,7 @@
 //config:	you should use the official dpkg if possible.
 
 //applet:IF_DPKG(APPLET(dpkg, BB_DIR_USR_BIN, BB_SUID_DROP))
+
 //kbuild:lib-$(CONFIG_DPKG) += dpkg.o
 
 //usage:#define dpkg_trivial_usage

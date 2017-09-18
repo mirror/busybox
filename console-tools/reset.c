@@ -7,8 +7,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-/* "Standard" version of this tool is in ncurses package */
-
 //config:config RESET
 //config:	bool "reset (275 bytes)"
 //config:	default y
@@ -24,6 +22,8 @@
 //usage:       ""
 //usage:#define reset_full_usage "\n\n"
 //usage:       "Reset the screen"
+
+/* "Standard" version of this tool is in ncurses package */
 
 #include "libbb.h"
 

@@ -24,28 +24,6 @@
  * This version is an adaptation of ping.c from busybox.
  * The code was modified by Bart Visscher <magick@linux-fan.com>
  */
-
-#include <net/if.h>
-#include <netinet/ip_icmp.h>
-#include "libbb.h"
-#include "common_bufsiz.h"
-
-#ifdef __BIONIC__
-/* should be in netinet/ip_icmp.h */
-# define ICMP_DEST_UNREACH    3  /* Destination Unreachable  */
-# define ICMP_SOURCE_QUENCH   4  /* Source Quench    */
-# define ICMP_REDIRECT        5  /* Redirect (change route)  */
-# define ICMP_ECHO            8  /* Echo Request      */
-# define ICMP_TIME_EXCEEDED  11  /* Time Exceeded    */
-# define ICMP_PARAMETERPROB  12  /* Parameter Problem    */
-# define ICMP_TIMESTAMP      13  /* Timestamp Request    */
-# define ICMP_TIMESTAMPREPLY 14  /* Timestamp Reply    */
-# define ICMP_INFO_REQUEST   15  /* Information Request    */
-# define ICMP_INFO_REPLY     16  /* Information Reply    */
-# define ICMP_ADDRESS        17  /* Address Mask Request    */
-# define ICMP_ADDRESSREPLY   18  /* Address Mask Reply    */
-#endif
-
 //config:config PING
 //config:	bool "ping (9.5 kb)"
 //config:	default y
@@ -135,6 +113,27 @@
 //usage:       "--- ip6-localhost ping statistics ---\n"
 //usage:       "1 packets transmitted, 1 packets received, 0% packet loss\n"
 //usage:       "round-trip min/avg/max = 20.1/20.1/20.1 ms\n"
+
+#include <net/if.h>
+#include <netinet/ip_icmp.h>
+#include "libbb.h"
+#include "common_bufsiz.h"
+
+#ifdef __BIONIC__
+/* should be in netinet/ip_icmp.h */
+# define ICMP_DEST_UNREACH    3  /* Destination Unreachable  */
+# define ICMP_SOURCE_QUENCH   4  /* Source Quench    */
+# define ICMP_REDIRECT        5  /* Redirect (change route)  */
+# define ICMP_ECHO            8  /* Echo Request      */
+# define ICMP_TIME_EXCEEDED  11  /* Time Exceeded    */
+# define ICMP_PARAMETERPROB  12  /* Parameter Problem    */
+# define ICMP_TIMESTAMP      13  /* Timestamp Request    */
+# define ICMP_TIMESTAMPREPLY 14  /* Timestamp Reply    */
+# define ICMP_INFO_REQUEST   15  /* Information Request    */
+# define ICMP_INFO_REPLY     16  /* Information Reply    */
+# define ICMP_ADDRESS        17  /* Address Mask Request    */
+# define ICMP_ADDRESSREPLY   18  /* Address Mask Reply    */
+#endif
 
 #if ENABLE_PING6
 # include <netinet/icmp6.h>

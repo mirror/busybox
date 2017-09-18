@@ -6,7 +6,6 @@
  * See README and LICENSE files in bz/ directory for more information
  * about bzip2 library code.
  */
-
 //config:config BZIP2
 //config:	bool "bzip2 (18 kb)"
 //config:	default y
@@ -30,6 +29,7 @@
 //config:	enabled.
 
 //applet:IF_BZIP2(APPLET(bzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
+
 //kbuild:lib-$(CONFIG_BZIP2) += bzip2.o
 
 //usage:#define bzip2_trivial_usage

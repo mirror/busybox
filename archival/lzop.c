@@ -24,7 +24,6 @@
 
    "Minimalized" for busybox by Alain Knaff
 */
-
 //config:config LZOP
 //config:	bool "lzop (13 kb)"
 //config:	default y
@@ -56,6 +55,7 @@
 //                  APPLET_ODDNAME:name     main  location        suid_type     help
 //applet:IF_UNLZOP( APPLET_ODDNAME(unlzop,  lzop, BB_DIR_USR_BIN, BB_SUID_DROP, unlzop))
 //applet:IF_LZOPCAT(APPLET_ODDNAME(lzopcat, lzop, BB_DIR_USR_BIN, BB_SUID_DROP, lzopcat))
+
 //kbuild:lib-$(CONFIG_LZOP) += lzop.o
 //kbuild:lib-$(CONFIG_UNLZOP) += lzop.o
 //kbuild:lib-$(CONFIG_LZOPCAT) += lzop.o

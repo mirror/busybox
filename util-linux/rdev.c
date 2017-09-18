@@ -6,7 +6,6 @@
  *   Grant Erickson <gerickson@nuovations.com>
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
- *
  */
 //config:config RDEV
 //config:	bool "rdev (1.4 kb)"

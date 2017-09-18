@@ -7,7 +7,6 @@
  * Licensed under GPLv2 or later, see the LICENSE file in this source tree
  * for details.
  */
-
 //config:config PMAP
 //config:	bool "pmap (6 kb)"
 //config:	default y
@@ -15,6 +14,7 @@
 //config:	Display processes' memory mappings.
 
 //applet:IF_PMAP(APPLET(pmap, BB_DIR_USR_BIN, BB_SUID_DROP))
+
 //kbuild:lib-$(CONFIG_PMAP) += pmap.o
 
 //usage:#define pmap_trivial_usage

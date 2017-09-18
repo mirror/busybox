@@ -4,12 +4,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-#include "libbb.h"
-
-//applet:IF_CTTYHACK(APPLET_NOEXEC(cttyhack, cttyhack, BB_DIR_BIN, BB_SUID_DROP, cttyhack))
-
-//kbuild:lib-$(CONFIG_CTTYHACK) += cttyhack.o
-
 //config:config CTTYHACK
 //config:	bool "cttyhack (2.5 kb)"
 //config:	default y
@@ -54,6 +48,10 @@
 //config:
 //config:	# getty 115200 $(cttyhack)
 
+//applet:IF_CTTYHACK(APPLET_NOEXEC(cttyhack, cttyhack, BB_DIR_BIN, BB_SUID_DROP, cttyhack))
+
+//kbuild:lib-$(CONFIG_CTTYHACK) += cttyhack.o
+
 //usage:#define cttyhack_trivial_usage
 //usage:       "[PROG ARGS]"
 //usage:#define cttyhack_full_usage "\n\n"
@@ -64,6 +62,8 @@
 //usage:     "\n	$ exec cttyhack sh"
 //usage:     "\nStarting interactive shell from boot shell script:"
 //usage:     "\n	setsid cttyhack sh"
+
+#include "libbb.h"
 
 #if !defined(__linux__) && !defined(TIOCGSERIAL) && !ENABLE_WERROR
 # warning cttyhack will not be able to detect a controlling tty on this system

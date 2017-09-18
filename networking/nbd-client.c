@@ -3,19 +3,19 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-#include "libbb.h"
-#include <netinet/tcp.h>
-#include <linux/fs.h>
-
-//applet:IF_NBDCLIENT(APPLET_NOEXEC(nbd-client, nbdclient, BB_DIR_USR_SBIN, BB_SUID_DROP, nbdclient))
-
-//kbuild:lib-$(CONFIG_NBDCLIENT) += nbd-client.o
-
 //config:config NBDCLIENT
 //config:	bool "nbd-client (4.6 kb)"
 //config:	default y
 //config:	help
 //config:	Network block device client
+
+//applet:IF_NBDCLIENT(APPLET_NOEXEC(nbd-client, nbdclient, BB_DIR_USR_SBIN, BB_SUID_DROP, nbdclient))
+
+//kbuild:lib-$(CONFIG_NBDCLIENT) += nbd-client.o
+
+#include "libbb.h"
+#include <netinet/tcp.h>
+#include <linux/fs.h>
 
 #define NBD_SET_SOCK          _IO(0xab, 0)
 #define NBD_SET_BLKSIZE       _IO(0xab, 1)

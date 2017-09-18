@@ -16,7 +16,6 @@
  * between different systems
  * http://www.unix-systems.org/single_unix_specification_v2/xcu/ar.html
  */
-
 //config:config AR
 //config:	bool "ar (9.5 kb)"
 //config:	default n  # needs to be improved to be able to replace binutils ar
@@ -46,6 +45,7 @@
 //config:	This enables archive creation (-c and -r) with busybox ar.
 
 //applet:IF_AR(APPLET(ar, BB_DIR_USR_BIN, BB_SUID_DROP))
+
 //kbuild:lib-$(CONFIG_AR) += ar.o
 
 //usage:#define ar_trivial_usage

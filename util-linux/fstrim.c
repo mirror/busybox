@@ -7,7 +7,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config FSTRIM
 //config:	bool "fstrim (5.5 kb)"
 //config:	default y

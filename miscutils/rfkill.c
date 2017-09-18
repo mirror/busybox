@@ -1,12 +1,11 @@
 /* vi: set sw=4 ts=4: */
 /*
-* rfkill implementation for busybox
-*
-* Copyright (C) 2010  Malek Degachi <malek-degachi@laposte.net>
-*
-* Licensed under GPLv2 or later, see file LICENSE in this source tree.
-*/
-
+ * rfkill implementation for busybox
+ *
+ * Copyright (C) 2010  Malek Degachi <malek-degachi@laposte.net>
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ */
 //config:config RFKILL
 //config:	bool "rfkill (5.3 kb)"
 //config:	default n # doesn't build on Ubuntu 9.04

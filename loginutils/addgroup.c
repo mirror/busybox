@@ -7,7 +7,6 @@
  * Copyright (C) 2007 by Tito Ragusa <farmatito@tiscali.it>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
- *
  */
 //config:config ADDGROUP
 //config:	bool "addgroup (8.2 kb)"

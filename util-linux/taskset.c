@@ -5,7 +5,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config TASKSET
 //config:	bool "taskset (4.1 kb)"
 //config:	default y
@@ -23,6 +22,7 @@
 //config:	in this case. Otherwise, it is limited to sizeof(long).
 
 //applet:IF_TASKSET(APPLET_NOEXEC(taskset, taskset, BB_DIR_USR_BIN, BB_SUID_DROP, taskset))
+
 //kbuild:lib-$(CONFIG_TASKSET) += taskset.o
 
 //usage:#define taskset_trivial_usage

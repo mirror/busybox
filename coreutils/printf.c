@@ -48,7 +48,6 @@
 //applet:IF_PRINTF(APPLET_NOFORK(printf, printf, BB_DIR_USR_BIN, BB_SUID_DROP, printf))
 
 //kbuild:lib-$(CONFIG_PRINTF) += printf.o
-
 //kbuild:lib-$(CONFIG_ASH_PRINTF)  += printf.o
 //kbuild:lib-$(CONFIG_HUSH_PRINTF) += printf.o
 

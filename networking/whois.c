@@ -9,7 +9,6 @@
  * Add ipv6 support
  * Add proxy support
  */
-
 //config:config WHOIS
 //config:	bool "whois (6.6 kb)"
 //config:	default y

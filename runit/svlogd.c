@@ -123,7 +123,6 @@ log message, you can use a pattern like this instead
 
 -*: *: pid *
 */
-
 //config:config SVLOGD
 //config:	bool "svlogd (15 kb)"
 //config:	default y

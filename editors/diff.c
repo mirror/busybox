@@ -12,7 +12,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /*
  * The following code uses an algorithm due to Harold Stone,
  * which finds a pair of longest identical subsequences in
@@ -75,7 +74,6 @@
  * 3*(number of k-candidates installed), typically about
  * 6n words for files of length n.
  */
-
 //config:config DIFF
 //config:	bool "diff (13 kb)"
 //config:	default y
@@ -97,9 +95,9 @@
 //config:	This option enables support for directory and subdirectory
 //config:	comparison.
 
-//kbuild:lib-$(CONFIG_DIFF) += diff.o
-
 //applet:IF_DIFF(APPLET(diff, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_DIFF) += diff.o
 
 //usage:#define diff_trivial_usage
 //usage:       "[-abBdiNqrTstw] [-L LABEL] [-S FILE] [-U LINES] FILE1 FILE2"

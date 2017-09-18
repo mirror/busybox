@@ -9,7 +9,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config HOSTNAME
 //config:	bool "hostname (5.6 kb)"
 //config:	default y

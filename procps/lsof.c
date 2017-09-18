@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //config:config LSOF
 //config:	bool "lsof (3.6 kb)"
 //config:	default y

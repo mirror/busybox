@@ -7,10 +7,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 N/A */
-/* BB_AUDIT GNU defects -- only option -n is supported. */
-
 //config:config WATCH
 //config:	bool "watch (4.1 kb)"
 //config:	default y
@@ -34,6 +30,9 @@
 //usage:       "Mon Dec 17 10:31:40 GMT 2000\n"
 //usage:       "Mon Dec 17 10:31:42 GMT 2000\n"
 //usage:       "Mon Dec 17 10:31:44 GMT 2000"
+
+/* BB_AUDIT SUSv3 N/A */
+/* BB_AUDIT GNU defects -- only option -n is supported. */
 
 #include "libbb.h"
 

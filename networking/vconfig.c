@@ -6,9 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 N/A */
-
 //config:config VCONFIG
 //config:	bool "vconfig (2.5 kb)"
 //config:	default y
@@ -33,6 +30,8 @@
 
 #include "libbb.h"
 #include <net/if.h>
+
+/* BB_AUDIT SUSv3 N/A */
 
 /* Stuff from linux/if_vlan.h, kernel version 2.4.23 */
 enum vlan_ioctl_cmds {

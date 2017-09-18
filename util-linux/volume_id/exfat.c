@@ -17,9 +17,6 @@
  *	License along with this library; if not, write to the Free Software
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-
-//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_EXFAT) += exfat.o
-
 //config:config FEATURE_VOLUMEID_EXFAT
 //config:	bool "exFAT filesystem"
 //config:	default y
@@ -28,6 +25,8 @@
 //config:	exFAT (extended FAT) is a proprietary file system designed especially
 //config:	for flash drives. It has many features from NTFS, but with less
 //config:	overhead. exFAT is used on most SDXC cards for consumer electronics.
+
+//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_EXFAT) += exfat.o
 
 #include "volume_id_internal.h"
 

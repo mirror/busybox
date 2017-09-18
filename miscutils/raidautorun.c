@@ -5,7 +5,6 @@
  * Copyright (C) 2006 Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
- *
  */
 //config:config RAIDAUTORUN
 //config:	bool "raidautorun (1.4 kb)"

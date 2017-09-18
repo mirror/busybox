@@ -7,13 +7,12 @@
  * Based on code fragments from bcache-tools by Kent Overstreet:
  * http://evilpiepirate.org/git/bcache-tools.git
  */
-
-//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_BCACHE) += bcache.o
-
 //config:config FEATURE_VOLUMEID_BCACHE
 //config:	bool "bcache filesystem"
 //config:	default y
 //config:	depends on VOLUMEID
+
+//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_BCACHE) += bcache.o
 
 #include "volume_id_internal.h"
 

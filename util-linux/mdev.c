@@ -7,7 +7,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //config:config MDEV
 //config:	bool "mdev (16 kb)"
 //config:	default y

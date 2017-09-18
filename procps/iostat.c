@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //config:config IOSTAT
 //config:	bool "iostat (7.4 kb)"
 //config:	default y

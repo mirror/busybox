@@ -7,7 +7,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config SETSERIAL
 //config:	bool "setserial (6.6 kb)"
 //config:	default y

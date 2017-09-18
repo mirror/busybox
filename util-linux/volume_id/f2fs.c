@@ -5,9 +5,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
-//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_F2FS) += f2fs.o
-
 //config:config FEATURE_VOLUMEID_F2FS
 //config:	bool "f2fs filesystem"
 //config:	default y
@@ -17,6 +14,8 @@
 //config:	which is adapted to newer forms of storage. F2FS also remedies some
 //config:	known issues of the older log structured file systems, such as high
 //config:	cleaning overhead.
+
+//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_F2FS) += f2fs.o
 
 #include "volume_id_internal.h"
 

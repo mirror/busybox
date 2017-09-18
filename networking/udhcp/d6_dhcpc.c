@@ -8,7 +8,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //config:config UDHCPC6
 //config:	bool "udhcpc6"
 //config:	default n  # not yet ready

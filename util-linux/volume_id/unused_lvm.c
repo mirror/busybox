@@ -17,13 +17,12 @@
  *	License along with this library; if not, write to the Free Software
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-
-//kbuild:### lib-$(CONFIG_FEATURE_VOLUMEID_LVM) += lvm.o
-
 //config:### config FEATURE_VOLUMEID_LVM
 //config:###	bool "lvm"
 //config:###	default y
 //config:###	depends on VOLUMEID
+
+//kbuild:### lib-$(CONFIG_FEATURE_VOLUMEID_LVM) += lvm.o
 
 #include "volume_id_internal.h"
 

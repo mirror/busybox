@@ -6,10 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* BB_AUDIT SUSv3 (virtually) compliant -- uses nicer GNU format for -l. */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/cmp.html */
-
 //config:config CMP
 //config:	bool "cmp (5.4 kb)"
 //config:	default y
@@ -17,9 +13,9 @@
 //config:	cmp is used to compare two files and returns the result
 //config:	to standard output.
 
-//kbuild:lib-$(CONFIG_CMP) += cmp.o
-
 //applet:IF_CMP(APPLET(cmp, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CMP) += cmp.o
 
 //usage:#define cmp_trivial_usage
 //usage:       "[-l] [-s] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]]") "]"
@@ -28,6 +24,9 @@
 //usage:     "\n	-l	Write the byte numbers (decimal) and values (octal)"
 //usage:     "\n		for all differing bytes"
 //usage:     "\n	-s	Quiet"
+
+/* BB_AUDIT SUSv3 (virtually) compliant -- uses nicer GNU format for -l. */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/cmp.html */
 
 #include "libbb.h"
 

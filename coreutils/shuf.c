@@ -6,15 +6,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config SHUF
 //config:	bool "shuf (5.4 kb)"
 //config:	default y
 //config:	help
 //config:	Generate random permutations
 
-//kbuild:lib-$(CONFIG_SHUF) += shuf.o
 //applet:IF_SHUF(APPLET_NOEXEC(shuf, shuf, BB_DIR_USR_BIN, BB_SUID_DROP, shuf))
+
+//kbuild:lib-$(CONFIG_SHUF) += shuf.o
 
 //usage:#define shuf_trivial_usage
 //usage:       "[-e|-i L-H] [-n NUM] [-o FILE] [-z] [FILE|ARG...]"

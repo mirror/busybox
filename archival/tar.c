@@ -22,7 +22,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config TAR
 //config:	bool "tar (40 kb)"
 //config:	default y
@@ -113,6 +112,7 @@
 //config:	when extracting files from tar archives.
 
 //applet:IF_TAR(APPLET(tar, BB_DIR_BIN, BB_SUID_DROP))
+
 //kbuild:lib-$(CONFIG_TAR) += tar.o
 
 #include <fnmatch.h>

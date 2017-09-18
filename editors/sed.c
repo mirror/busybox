@@ -12,7 +12,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 /* Code overview.
  *
  * Files are laid out to avoid unnecessary function declarations.  So for
@@ -29,7 +28,6 @@
  *
  * sed_main() is where external code calls into this, with a command line.
  */
-
 /* Supported features and commands in this version of sed:
  *
  * - comments ('#')
@@ -55,7 +53,6 @@
  * http://pubs.opengroup.org/onlinepubs/9699919799/utilities/sed.html
  * http://sed.sourceforge.net/sedfaq3.html
  */
-
 //config:config SED
 //config:	bool "sed (12 kb)"
 //config:	default y
@@ -63,9 +60,9 @@
 //config:	sed is used to perform text transformations on a file
 //config:	or input from a pipeline.
 
-//kbuild:lib-$(CONFIG_SED) += sed.o
-
 //applet:IF_SED(APPLET(sed, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SED) += sed.o
 
 //usage:#define sed_trivial_usage
 //usage:       "[-i[SFX]] [-nrE] [-f FILE]... [-e CMD]... [FILE]...\n"

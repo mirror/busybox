@@ -2,11 +2,6 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-//applet:IF_BOOTCHARTD(APPLET(bootchartd, BB_DIR_SBIN, BB_SUID_DROP))
-
-//kbuild:lib-$(CONFIG_BOOTCHARTD) += bootchartd.o
-
 //config:config BOOTCHARTD
 //config:	bool "bootchartd (10 kb)"
 //config:	default y
@@ -45,6 +40,10 @@
 //config:	help
 //config:	Enable reading and parsing of $PWD/bootchartd.conf
 //config:	and /etc/bootchartd.conf files.
+
+//applet:IF_BOOTCHARTD(APPLET(bootchartd, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_BOOTCHARTD) += bootchartd.o
 
 #include "libbb.h"
 #include "common_bufsiz.h"

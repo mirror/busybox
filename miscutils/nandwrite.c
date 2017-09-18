@@ -7,7 +7,6 @@
  *
  * TODO: add support for large (>4GB) MTD devices
  */
-
 //config:config NANDWRITE
 //config:	bool "nandwrite (5.9 kb)"
 //config:	default y

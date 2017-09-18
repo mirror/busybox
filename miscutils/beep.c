@@ -5,7 +5,6 @@
  * Copyright (C) 2009 Bernhard Reutner-Fischer
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
- *
  */
 //config:config BEEP
 //config:	bool "beep (3 kb)"

@@ -7,17 +7,16 @@
  the GNU General Public License version 2 or later, incorporated
  herein by reference.
 */
-
-//applet:IF_SMEMCAP(APPLET(smemcap, BB_DIR_USR_BIN, BB_SUID_DROP))
-
-//kbuild:lib-$(CONFIG_SMEMCAP) += smemcap.o
-
 //config:config SMEMCAP
 //config:	bool "smemcap (2.5 kb)"
 //config:	default y
 //config:	help
 //config:	smemcap is a tool for capturing process data for smem,
 //config:	a memory usage statistic tool.
+
+//applet:IF_SMEMCAP(APPLET(smemcap, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SMEMCAP) += smemcap.o
 
 #include "libbb.h"
 #include "bb_archive.h"

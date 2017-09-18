@@ -9,7 +9,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 /* findutils-4.1.20:
  *
  * # find file.txt -exec 'echo {}' '{}  {}' ';'
@@ -44,7 +43,6 @@
  * # find t z t z '(' -name '*t*' -o -name '*z*' ')' -o -print
  * (no output)
  */
-
 /* Testing script
  * ./busybox find "$@" | tee /tmp/bb_find
  * echo ==================
@@ -52,7 +50,6 @@
  * echo ==================
  * diff -u /tmp/std_find /tmp/bb_find && echo Identical
  */
-
 //config:config FIND
 //config:	bool "find (14 kb)"
 //config:	default y

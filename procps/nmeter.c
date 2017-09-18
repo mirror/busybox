@@ -5,7 +5,6 @@
  *
  * Contact me: vda.linux@googlemail.com
  */
-
 //config:config NMETER
 //config:	bool "nmeter (10 kb)"
 //config:	default y

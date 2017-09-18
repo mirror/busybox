@@ -10,10 +10,6 @@
  * Doesn't check CRC's
  * Only supports new ASCII and CRC formats
  */
-#include "libbb.h"
-#include "common_bufsiz.h"
-#include "bb_archive.h"
-
 //config:config CPIO
 //config:	bool "cpio (14 kb)"
 //config:	default y
@@ -44,6 +40,7 @@
 //config:	Passthrough mode. Rarely used.
 
 //applet:IF_CPIO(APPLET(cpio, BB_DIR_BIN, BB_SUID_DROP))
+
 //kbuild:lib-$(CONFIG_CPIO) += cpio.o
 
 //usage:#define cpio_trivial_usage
@@ -141,6 +138,10 @@
       --sparse               Write files with blocks of zeros as sparse files
   -u, --unconditional        Replace all files unconditionally
  */
+
+#include "libbb.h"
+#include "common_bufsiz.h"
+#include "bb_archive.h"
 
 enum {
 	OPT_EXTRACT            = (1 << 0),

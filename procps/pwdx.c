@@ -7,7 +7,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //config:config PWDX
 //config:	bool "pwdx (3.5 kb)"
 //config:	default y

@@ -8,7 +8,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //config:config INIT
 //config:	bool "init (9.3 kb)"
 //config:	default y

@@ -4,7 +4,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //config:config FALLOCATE
 //config:	bool "fallocate (5 kb)"
 //config:	default y

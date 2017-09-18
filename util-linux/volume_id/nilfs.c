@@ -18,9 +18,6 @@
  *	License along with this library; if not, write to the Free Software
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-
-//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_NILFS) += nilfs.o
-
 //config:config FEATURE_VOLUMEID_NILFS
 //config:	bool "nilfs filesystem"
 //config:	default y
@@ -36,6 +33,8 @@
 //config:	SOX compliance logging, and so forth. It can serve as an alternative
 //config:	filesystem for Linux desktop environment, or as a basis of advanced
 //config:	storage appliances.
+
+//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_NILFS) += nilfs.o
 
 #include "volume_id_internal.h"
 

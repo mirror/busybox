@@ -4,9 +4,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-#include "libbb.h"
-#include "bb_archive.h"
-
 //kbuild:lib-$(CONFIG_ZCAT) += bbunzip.o
 //kbuild:lib-$(CONFIG_GUNZIP) += bbunzip.o
 //kbuild:lib-$(CONFIG_BZCAT) += bbunzip.o
@@ -20,6 +17,9 @@
 //kbuild:lib-$(CONFIG_BZIP2) += bbunzip.o
 /* gzip_main() too: */
 //kbuild:lib-$(CONFIG_GZIP) += bbunzip.o
+
+#include "libbb.h"
+#include "bb_archive.h"
 
 /* Note: must be kept in sync with archival/lzop.c */
 enum {
