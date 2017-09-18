@@ -2196,7 +2196,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			if (STRNCASECMP(iobuf, "Range:") == 0) {
 				/* We know only bytes=NNN-[MMM] */
 				char *s = skip_whitespace(iobuf + sizeof("Range:")-1);
-				if (is_prefixed_with(s, "bytes=") == 0) {
+				if (is_prefixed_with(s, "bytes=")) {
 					s += sizeof("bytes=")-1;
 					range_start = BB_STRTOOFF(s, &s, 10);
 					if (s[0] != '-' || range_start < 0) {
