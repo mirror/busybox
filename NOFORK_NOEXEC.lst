@@ -166,6 +166,7 @@ hd - noexec. runner
 hdparm - hardware
 head - noexec. runner
 hexdump - noexec. runner
+hexedit - interactive, longterm
 hostid - NOFORK
 hostname - noexec. talks to network (hostname -d may query DNS)
 httpd - daemon
@@ -235,6 +236,7 @@ md5sum - noexec. runner
 mdev - daemon
 mesg - NOFORK
 microcom - interactive, longterm
+minips - noexec
 mkdir - NOFORK
 mkdosfs - needs ^C
 mke2fs - needs ^C
@@ -264,6 +266,7 @@ nmeter - longterm
 nohup - noexec. spawner
 nproc - NOFORK
 ntpd - daemon
+nuke - noexec
 od - runner
 openvt - longterm: spawns a child and waits for it
 partprobe - noexec. leaks: open+ioctl_or_perror_and_die(BLKRRPART)
@@ -300,6 +303,7 @@ remove-shell - noexec. leaks: open+xfunc
 renice - noexec. nofork candidate(uses getpwnam, is that ok?)
 reset - noexec. spawner (execs "stty")
 resize - noexec. changes state (signal handlers)
+resume - noexec
 rev - runner
 rm - noexec. rm -i interactive
 rmdir - NOFORK
@@ -308,6 +312,7 @@ route - talks to network (may query DNS to convert IPs to names)
 rpm - runner
 rpm2cpio - runner
 rtcwake - longterm: puts system to sleep, optimizing this for speed is pointless
+run-init - spawner, rare, changes state (oh yes), execing may be important to free binary's inode
 run-parts - longterm
 runlevel - noexec. can be nofork if "endutxent()" is called unconditionally, but too rare to bother?
 runsv - daemon
@@ -320,6 +325,7 @@ sendmail - runner
 seq - noexec. runner
 setarch - noexec. spawner
 setconsole - noexec
+setfattr - noexec
 setfont - noexec. leaks a lot of stuff
 setkeycodes - noexec
 setlogcons - noexec
