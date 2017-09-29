@@ -41,7 +41,7 @@ void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 		return;
 
 	bb_error_msg(
-		//"op %x"
+		//" op %x"
 		//" htype %x"
 		" hlen %x"
 		//" hops %x"
@@ -52,7 +52,6 @@ void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 		" yiaddr %x"
 		" siaddr %x"
 		" giaddr %x"
-		//" chaddr %s"
 		//" sname %s"
 		//" file %s"
 		//" cookie %x"
@@ -68,14 +67,13 @@ void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 		, packet->yiaddr
 		, packet->siaddr_nip
 		, packet->gateway_nip
-		//, packet->chaddr[16]
 		//, packet->sname[64]
 		//, packet->file[128]
 		//, packet->cookie
 		//, packet->options[]
 	);
 	*bin2hex(buf, (void *) packet->chaddr, sizeof(packet->chaddr)) = '\0';
-	bb_error_msg("chaddr %s", buf);
+	bb_error_msg(" chaddr %s", buf);
 }
 #endif
 

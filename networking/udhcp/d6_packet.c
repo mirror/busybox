@@ -18,7 +18,7 @@ void FAST_FUNC d6_dump_packet(struct d6_packet *packet)
 		return;
 
 	bb_error_msg(
-		"xid %x"
+		" xid %x"
 		, packet->d6_xid32
 	);
 	//*bin2hex(buf, (void *) packet->chaddr, sizeof(packet->chaddr)) = '\0';

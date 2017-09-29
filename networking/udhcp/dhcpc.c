@@ -1534,6 +1534,13 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			 */
 					if (send_renew(xid, server_addr, requested_ip) >= 0) {
 						timeout >>= 1;
+//TODO: the timeout to receive an answer for our renew should not be selected
+//with "timeout = lease_seconds / 2; ...; timeout = timeout / 2": it is often huge.
+//Waiting e.g. 4*3600 seconds for a reply does not make sense
+//(if reply isn't coming, we keep an open socket for hours),
+//it should be something like 10 seconds.
+//Also, it's probably best to try sending renew in kernel mode a few (3-5) times
+//and fall back to raw mode if it does not work.
 						continue;
 					}
 					/* else: error sending.
