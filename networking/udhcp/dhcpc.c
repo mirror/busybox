@@ -694,10 +694,16 @@ static int raw_bcast_from_client_config_ifindex(struct dhcp_packet *packet, uint
 
 static int bcast_or_ucast(struct dhcp_packet *packet, uint32_t ciaddr, uint32_t server)
 {
-	if (server)
+	if (server) {
+		/* Without MSG_DONTROUTE, the packet was seen routed over
+		 * _other interface_ if server ID is bogus (example: 1.1.1.1).
+		 */
 		return udhcp_send_kernel_packet(packet,
 			ciaddr, CLIENT_PORT,
-			server, SERVER_PORT);
+			server, SERVER_PORT,
+			/*send_flags: "to hosts only on directly connected networks" */ MSG_DONTROUTE
+		);
+	}
 	return raw_bcast_from_client_config_ifindex(packet, ciaddr);
 }
 
@@ -735,7 +741,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
 static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcp_packet packet;
-	struct in_addr addr;
+	struct in_addr temp_addr;
 
 /*
  * RFC 2131 4.3.2 DHCPREQUEST message
@@ -766,8 +772,8 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 	 */
 	add_client_options(&packet);
 
-	addr.s_addr = requested;
-	bb_error_msg("sending select for %s", inet_ntoa(addr));
+	temp_addr.s_addr = requested;
+	bb_error_msg("sending select for %s", inet_ntoa(temp_addr));
 	return raw_bcast_from_client_config_ifindex(&packet, INADDR_ANY);
 }
 
@@ -776,6 +782,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
+	struct in_addr temp_addr;
 
 /*
  * RFC 2131 4.3.2 DHCPREQUEST message
@@ -806,7 +813,8 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	 */
 	add_client_options(&packet);
 
-	bb_error_msg("sending %s", "renew");
+	temp_addr.s_addr = server;
+	bb_error_msg("sending renew to %s", inet_ntoa(temp_addr));
 	return bcast_or_ucast(&packet, ciaddr, server);
 }
 
@@ -1524,11 +1532,17 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			 * Anyway, it does recover by eventually failing through
 			 * into INIT_SELECTING state.
 			 */
-					send_renew(xid, server_addr, requested_ip);
-					timeout >>= 1;
-					continue;
+					if (send_renew(xid, server_addr, requested_ip) >= 0) {
+						timeout >>= 1;
+						continue;
+					}
+					/* else: error sending.
+					 * example: ENETUNREACH seen with server
+					 * which gave us bogus server ID 1.1.1.1
+					 * which wasn't reachable (and probably did not exist).
+					 */
 				}
-				/* Timed out, enter rebinding state */
+				/* Timed out or error, enter rebinding state */
 				log1("entering rebinding state");
 				state = REBINDING;
 				/* fall right through */
