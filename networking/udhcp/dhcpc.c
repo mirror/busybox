@@ -1010,9 +1010,14 @@ static int udhcp_raw_socket(int ifindex)
 	 */
 	log2("got raw socket fd");
 
+	memset(&sock, 0, sizeof(sock)); /* let's be deterministic */
 	sock.sll_family = AF_PACKET;
 	sock.sll_protocol = htons(ETH_P_IP);
 	sock.sll_ifindex = ifindex;
+	/*sock.sll_hatype = ARPHRD_???;*/
+	/*sock.sll_pkttype = PACKET_???;*/
+	/*sock.sll_halen = ???;*/
+	/*sock.sll_addr[8] = ???;*/
 	xbind(fd, (struct sockaddr *) &sock, sizeof(sock));
 
 #if 0 /* Several users reported breakage when BPF filter is used */
