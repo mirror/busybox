@@ -162,6 +162,17 @@
 #ifndef HAVE_XTABS
 # define XTABS TAB3
 #endif
+/*
+ * Use '%m' to append error string on platforms that support it,
+ * '%s' and strerror() on those that don't.
+ */
+#ifdef HAVE_PRINTF_PERCENTM
+# define STRERROR_FMT    "%m"
+# define STRERROR_ERRNO  /*nothing*/
+#else
+# define STRERROR_FMT    "%s"
+# define STRERROR_ERRNO  ,strerror(errno)
+#endif
 
 
 /* Some libc's forget to declare these, do it ourself */

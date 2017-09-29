@@ -1038,7 +1038,7 @@ static void colon(char *buf)
 		}
 		if (cnt < 0) {
 			if (cnt == -1)
-				status_line_bold("Write error: %s", strerror(errno));
+				status_line_bold("Write error: "STRERROR_FMT STRERROR_ERRNO);
 		} else {
 			modified_count = 0;
 			last_modified_count = -1;
@@ -3131,7 +3131,7 @@ static void status_line_bold(const char *format, ...)
 
 static void status_line_bold_errno(const char *fn)
 {
-	status_line_bold("'%s' %s", fn, strerror(errno));
+	status_line_bold("'%s' "STRERROR_FMT, fn STRERROR_ERRNO);
 }
 
 // format status buffer
@@ -4066,7 +4066,7 @@ static void do_cmd(int c)
 			cnt = file_write(current_filename, text, end - 1);
 			if (cnt < 0) {
 				if (cnt == -1)
-					status_line_bold("Write error: %s", strerror(errno));
+					status_line_bold("Write error: "STRERROR_FMT STRERROR_ERRNO);
 			} else if (cnt == (end - 1 - text + 1)) {
 				editing = 0;
 			}

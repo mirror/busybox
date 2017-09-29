@@ -104,7 +104,7 @@ int matchpathcon_main(int argc UNUSED_PARAM, char **argv)
 			freecon(con);
 			continue;
 		}
-		printf("actual context unknown: %s, should be ", strerror(errno));
+		printf("actual context unknown: "STRERROR_FMT", should be " STRERROR_ERRNO);
 		error += print_matchpathcon(path, 1);
 	}
 	matchpathcon_fini();

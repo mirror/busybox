@@ -948,7 +948,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		if (bytes < 0) {
 			/* bytes can also be -2 ("bad packet data") */
 			if (bytes == -1 && errno != EINTR) {
-				log1("read error: %s, reopening socket", strerror(errno));
+				log1("read error: "STRERROR_FMT", reopening socket" STRERROR_ERRNO);
 				close(server_socket);
 				server_socket = -1;
 			}

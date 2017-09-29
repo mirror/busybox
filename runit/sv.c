@@ -224,7 +224,7 @@ static void out(const char *p, const char *m1)
 {
 	printf("%s%s%s: %s", p, *service, islog ? "/log" : "", m1);
 	if (errno) {
-		printf(": %s", strerror(errno));
+		printf(": "STRERROR_FMT STRERROR_ERRNO);
 	}
 	bb_putchar('\n'); /* will also flush the output */
 }

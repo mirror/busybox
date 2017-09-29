@@ -391,8 +391,10 @@ static int open_stdio_to_tty(const char* tty_name)
 		/* fd can be only < 0 or 0: */
 		fd = device_open(tty_name, O_RDWR);
 		if (fd) {
-			message(L_LOG | L_CONSOLE, "can't open %s: %s",
-				tty_name, strerror(errno));
+			message(L_LOG | L_CONSOLE, "can't open %s: "STRERROR_FMT,
+				tty_name
+				STRERROR_ERRNO
+			);
 			return 0; /* failure */
 		}
 		dup2(STDIN_FILENO, STDOUT_FILENO);
@@ -469,7 +471,7 @@ static void init_exec(const char *command)
 	}
 	/* Here command never contains the dash, cmd[0] might */
 	BB_EXECVP(command, cmd);
-	message(L_LOG | L_CONSOLE, "can't run '%s': %s", command, strerror(errno));
+	message(L_LOG | L_CONSOLE, "can't run '%s': "STRERROR_FMT, command STRERROR_ERRNO);
 	/* returns if execvp fails */
 }
 

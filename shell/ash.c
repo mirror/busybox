@@ -1312,16 +1312,9 @@ ash_msg_and_raise_error(const char *msg, ...)
 }
 
 /*
- * Use '%m' to append error string on platforms that support it, '%s' and
- * strerror() on those that don't.
- *
  * 'fmt' must be a string literal.
  */
-#ifdef HAVE_PRINTF_PERCENTM
-#define ash_msg_and_raise_perror(fmt, ...) ash_msg_and_raise_error(fmt ": %m", ##__VA_ARGS__)
-#else
-#define ash_msg_and_raise_perror(fmt, ...) ash_msg_and_raise_error(fmt ": %s", ##__VA_ARGS__, strerror(errno))
-#endif
+#define ash_msg_and_raise_perror(fmt, ...) ash_msg_and_raise_error(fmt ": "STRERROR_FMT, ##__VA_ARGS__ STRERROR_ERRNO)
 
 static void raise_error_syntax(const char *) NORETURN;
 static void

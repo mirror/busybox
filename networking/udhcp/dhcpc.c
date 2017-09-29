@@ -1631,7 +1631,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				len = udhcp_recv_raw_packet(&packet, sockfd);
 			if (len == -1) {
 				/* Error is severe, reopen socket */
-				bb_error_msg("read error: %s, reopening socket", strerror(errno));
+				bb_error_msg("read error: "STRERROR_FMT", reopening socket" STRERROR_ERRNO);
 				sleep(discover_timeout); /* 3 seconds by default */
 				change_listen_mode(listen_mode); /* just close and reopen */
 			}
