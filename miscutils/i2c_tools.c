@@ -562,14 +562,19 @@ int i2cset_main(int argc, char **argv)
 			      opt_m = (1 << 2), opt_r = (1 << 3);
 
 	int bus_num, bus_addr, data_addr, mode = I2C_SMBUS_BYTE, pec = 0;
-	int val, blen = 0, mask = 0, fd, status;
+	int val, blen, mask, fd, status;
 	unsigned char block[I2C_SMBUS_BLOCK_MAX];
 	char *opt_m_arg = NULL;
 	unsigned opts;
 
-	opts = getopt32(argv, "^" "fym:r" "\0" "-3"/*from 3 to ? args*/, &opt_m_arg);
+	opts = getopt32(argv, "^"
+		"fym:r"
+		"\0" "-3", /* minimum 3 args */
+		&opt_m_arg
+	);
 	argv += optind;
 	argc -= optind;
+	argc--; /* now argv[argc] is last arg */
 
 	bus_num = i2c_bus_lookup(argv[0]);
 	bus_addr = i2c_parse_bus_addr(argv[1]);
@@ -579,20 +584,26 @@ int i2cset_main(int argc, char **argv)
 		if (!argv[4] && argv[3][0] != 'c') {
 			mode = I2C_SMBUS_BYTE_DATA; /* Implicit b */
 		} else {
-			switch (argv[argc-1][0]) {
-			case 'c': /* Already set */			break;
-			case 'b': mode = I2C_SMBUS_BYTE_DATA;		break;
-			case 'w': mode = I2C_SMBUS_WORD_DATA;		break;
-			case 's': mode = I2C_SMBUS_BLOCK_DATA;		break;
-			case 'i': mode = I2C_SMBUS_I2C_BLOCK_DATA;	break;
+			switch (argv[argc][0]) {
+			case 'c': /* Already set */
+				break;
+			case 'b': mode = I2C_SMBUS_BYTE_DATA;
+				break;
+			case 'w': mode = I2C_SMBUS_WORD_DATA;
+				break;
+			case 's': mode = I2C_SMBUS_BLOCK_DATA;
+				break;
+			case 'i': mode = I2C_SMBUS_I2C_BLOCK_DATA;
+				break;
 			default:
 				bb_error_msg("invalid mode");
 				bb_show_usage();
 			}
 
-			pec = argv[argc-1][1] == 'p';
-			if (mode == I2C_SMBUS_BLOCK_DATA ||
-					mode == I2C_SMBUS_I2C_BLOCK_DATA) {
+			pec = (argv[argc][1] == 'p');
+			if (mode == I2C_SMBUS_BLOCK_DATA
+			 || mode == I2C_SMBUS_I2C_BLOCK_DATA
+			) {
 				if (pec && mode == I2C_SMBUS_I2C_BLOCK_DATA)
 					bb_error_msg_and_die(
 						"PEC not supported for I2C "
@@ -606,6 +617,8 @@ int i2cset_main(int argc, char **argv)
 	}
 
 	/* Prepare the value(s) to be written according to current mode. */
+	mask = 0;
+	blen = 0;
 	switch (mode) {
 	case I2C_SMBUS_BYTE_DATA:
 		val = xstrtou_range(argv[3], 0, 0, 0xff);
@@ -615,8 +628,9 @@ int i2cset_main(int argc, char **argv)
 		break;
 	case I2C_SMBUS_BLOCK_DATA:
 	case I2C_SMBUS_I2C_BLOCK_DATA:
-		for (blen = 3; blen < (argc - 1); blen++)
-			block[blen] = xstrtou_range(argv[blen], 0, 0, 0xff);
+		for (blen = 3; blen < argc; blen++)
+			block[blen - 3] = xstrtou_range(argv[blen], 0, 0, 0xff);
+		blen -= 3;
 		val = -1;
 		break;
 	default:
