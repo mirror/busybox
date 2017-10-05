@@ -15,7 +15,7 @@
 //config:	memory in the system, as well as the buffers used by the kernel.
 //config:	The shared memory column should be ignored; it is obsolete.
 
-//applet:IF_FREE(APPLET_NOEXEC(free, free, BB_DIR_USR_BIN, BB_SUID_DROP, free))
+//applet:IF_FREE(APPLET_NOFORK(free, free, BB_DIR_USR_BIN, BB_SUID_DROP, free))
 
 //kbuild:lib-$(CONFIG_FREE) += free.o
 
@@ -40,25 +40,21 @@
 struct globals {
 	unsigned mem_unit;
 #if ENABLE_DESKTOP
-	unsigned unit_steps;
-# define G_unit_steps G.unit_steps
+	uint8_t unit_steps;
+# define G_unit_steps g->unit_steps
 #else
 # define G_unit_steps 10
 #endif
-} FIX_ALIASING;
-#define G (*(struct globals*)bb_common_bufsiz1)
-#define INIT_G() do { \
-	setup_common_bufsiz(); \
-	/* NB: noexec applet - globals not zeroed */ \
-} while (0)
+};
+/* Because of NOFORK, "globals" are not in global data */
 
-
-static unsigned long long scale(unsigned long d)
+static unsigned long long scale(struct globals *g, unsigned long d)
 {
-	return ((unsigned long long)d * G.mem_unit) >> G_unit_steps;
+	return ((unsigned long long)d * g->mem_unit) >> G_unit_steps;
 }
 
-static unsigned long parse_cached_kb(void)
+/* NOINLINE reduces main() stack usage, which makes code smaller (on x86 at least) */
+static NOINLINE unsigned long parse_cached_kb(void)
 {
 	char buf[60]; /* actual lines we expect are ~30 chars or less */
 	FILE *fp;
@@ -69,8 +65,8 @@ static unsigned long parse_cached_kb(void)
 		if (sscanf(buf, "Cached: %lu %*s\n", &cached) == 1)
 			break;
 	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		fclose(fp);
+	/* Have to close because of NOFORK */
+	fclose(fp);
 
 	return cached;
 }
@@ -78,10 +74,9 @@ static unsigned long parse_cached_kb(void)
 int free_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 {
+	struct globals G;
 	struct sysinfo info;
 	unsigned long long cached;
-
-	INIT_G();
 
 #if ENABLE_DESKTOP
 	G.unit_steps = 10;
@@ -123,12 +118,12 @@ int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 #define FIELDS_2 (FIELDS_6 + 4*6)
 
 	printf(FIELDS_6,
-		scale(info.totalram),                //total
-		scale(info.totalram - info.freeram), //used
-		scale(info.freeram),                 //free
-		scale(info.sharedram),               //shared
-		scale(info.bufferram),               //buffers
-		scale(cached)                        //cached
+		scale(&G, info.totalram),                //total
+		scale(&G, info.totalram - info.freeram), //used
+		scale(&G, info.freeram),                 //free
+		scale(&G, info.sharedram),               //shared
+		scale(&G, info.bufferram),               //buffers
+		scale(&G, cached)                        //cached
 	);
 	/* Show alternate, more meaningful busy/free numbers by counting
 	 * buffer cache as free memory. */
@@ -136,15 +131,15 @@ int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 	cached += info.freeram;
 	cached += info.bufferram;
 	printf(FIELDS_2,
-		scale(info.totalram - cached), //used
-		scale(cached)                  //free
+		scale(&G, info.totalram - cached), //used
+		scale(&G, cached)                  //free
 	);
 #if BB_MMU
 	printf("Swap:  ");
 	printf(FIELDS_3,
-		scale(info.totalswap),                 //total
-		scale(info.totalswap - info.freeswap), //used
-		scale(info.freeswap)                   //free
+		scale(&G, info.totalswap),                 //total
+		scale(&G, info.totalswap - info.freeswap), //used
+		scale(&G, info.freeswap)                   //free
 	);
 #endif
 	return EXIT_SUCCESS;
