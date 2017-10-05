@@ -36,8 +36,8 @@
 //config:# defaults to "no": stat's nanosecond field is a bit non-portable
 //config:config FEATURE_DATE_NANO
 //config:	bool "Support %[num]N nanosecond format specifier"
-//config:	default n
-//config:	depends on DATE  # syscall(__NR_clock_gettime)
+//config:	default n  # syscall(__NR_clock_gettime)
+//config:	depends on DATE
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	Support %[num]N format specifier. Adds ~250 bytes of code.
@@ -203,6 +203,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 			IF_FEATURE_DATE_ISOFMT(, &isofmt_arg, &fmt_str2dt)
 	);
 	argv += optind;
+
 	maybe_set_utc(opt);
 
 	if (ENABLE_FEATURE_DATE_ISOFMT && (opt & OPT_TIMESPEC)) {
@@ -300,8 +301,6 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		if (date_str[0] != '@')
 			tm_time.tm_isdst = -1;
 		ts.tv_sec = validate_tm_time(date_str, &tm_time);
-
-		maybe_set_utc(opt);
 
 		/* if setting time, set it */
 		if ((opt & OPT_SET) && stime(&ts.tv_sec) < 0) {
