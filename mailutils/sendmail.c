@@ -150,7 +150,13 @@ static char *sane_address(char *str)
 	trim(str);
 	s = str;
 	while (*s) {
-		if (!isalnum(*s) && !strchr("+_-.@", *s)) {
+		/* Standard allows these chars in username without quoting:
+		 * /!#$%&'*+-=?^_`{|}~
+		 * and allows dot (.) with some restrictions.
+		 * I chose to only allow a saner subset.
+		 * I propose to expand it only on user's request.
+		 */
+		if (!isalnum(*s) && !strchr("=+_-.@", *s)) {
 			bb_error_msg("bad address '%s'", str);
 			/* returning "": */
 			str[0] = '\0';
