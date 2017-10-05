@@ -6,13 +6,7 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-/* Aug 13, 2003
- * Fix a bug reported by junkio@cox.net involving the mode_chars index.
- */
 #include <assert.h>
-#include <sys/stat.h>
-
 #include "libbb.h"
 
 #if ( S_ISUID != 04000 ) || ( S_ISGID != 02000 ) || ( S_ISVTX != 01000 ) \
