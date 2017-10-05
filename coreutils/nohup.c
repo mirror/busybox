@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* nohup - invoke a utility immune to hangups.
+/*
+ * nohup - invoke a utility immune to hangups.
  *
  * Busybox version based on nohup specification at
  * http://www.opengroup.org/onlinepubs/007904975/utilities/nohup.html

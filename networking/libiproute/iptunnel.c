@@ -10,7 +10,6 @@
  * Rani Assaf <rani@magic.metawire.com> 980930: do not allow key for ipip/sit
  * Phil Karn <karn@ka9q.ampr.org>       990408: "pmtudisc" flag
  */
-
 #include <netinet/ip.h>
 #include <net/if.h>
 #include <net/if_arp.h>

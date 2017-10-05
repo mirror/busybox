@@ -8,7 +8,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /*
  * ZCIP just manages the 169.254.*.* addresses.  That network is not
  * routed at the IP level, though various proxies or bridges can

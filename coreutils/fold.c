@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* fold -- wrap each input line to fit in specified width.
+/*
+ * fold -- wrap each input line to fit in specified width.
  *
  * Written by David MacKenzie, djm@gnu.ai.mit.edu.
  * Copyright (C) 91, 1995-2002 Free Software Foundation, Inc.

@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* unlink for busybox
+/*
+ * unlink for busybox
  *
  * Copyright (C) 2014 Isaac Dunham <ibid.ag@gmail.com>
  *

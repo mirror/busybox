@@ -18,7 +18,6 @@
  * <jam@ltsp.org>
  * Modified 2004/02/11 to add ability to pass the USER variable to remote host
  * by Fernando Silveira <swrh@gmx.net>
- *
  */
 //config:config TELNET
 //config:	bool "telnet (8.7 kb)"

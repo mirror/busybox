@@ -7,13 +7,11 @@
  *
  * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  */
-
 #include <net/if_arp.h>
 
 #include "libbb.h"
 #include "rt_names.h"
 #include "utils.h"
-
 
 const char* FAST_FUNC ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int blen)
 {

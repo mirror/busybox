@@ -1,18 +1,17 @@
 /* vi: set sw=4 ts=4: */
-/* ifconfig
+/*
+ * ifconfig
  *
  * Similar to the standard Unix ifconfig, but with only the necessary
  * parts for AF_INET, and without any printing of if info (for now).
  *
  * Bjorn Wesen, Axis Communications AB
  *
- *
  * Authors of the original ifconfig was:
  *              Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /*
  * Heavily modified by Manuel Novoa III       Mar 6, 2001
  *

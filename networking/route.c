@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* route
+/*
+ * route
  *
  * Similar to the standard Unix route, but with only the necessary
  * parts for AF_INET and AF_INET6
@@ -18,7 +19,6 @@
  *
  * IPV6 support added by Bart Visscher <magick@linux-fan.com>
  */
-
 /* 2004/03/09  Manuel Novoa III <mjn3@codepoet.org>
  *
  * Rewritten to fix several bugs, add additional error checking, and

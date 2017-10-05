@@ -7,7 +7,6 @@
  * Changes:
  * Laszlo Valko <valko@linux.karinthy.hu> 990223: address label must be zero terminated
  */
-
 #include <fnmatch.h>
 #include <net/if.h>
 #include <net/if_arp.h>

@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
+/*
+ * Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Now does proper error checking on output and returns a failure exit code
  * if one or more paths cannot be resolved.

@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* printf - format and print data
+/*
+ * printf - format and print data
  *
  * Copyright 1999 Dave Cinege
  * Portions copyright (C) 1990-1996 Free Software Foundation, Inc.

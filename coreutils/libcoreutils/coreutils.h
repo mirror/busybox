@@ -2,7 +2,6 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #ifndef COREUTILS_H
 #define COREUTILS_H 1
 

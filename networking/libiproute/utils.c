@@ -8,7 +8,6 @@
  *
  * Rani Assaf <rani@magic.metawire.com> 980929: resolve addresses
  */
-
 #include "libbb.h"
 #include "utils.h"
 #include "inet_common.h"

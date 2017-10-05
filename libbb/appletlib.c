@@ -11,7 +11,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /* We are trying to not use printf, this benefits the case when selected
  * applets are really simple. Example:
  *

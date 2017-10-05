@@ -1,5 +1,5 @@
 /* vi: set sw=4 ts=4: */
-/*----------------------------------------------------------------------
+/*
  * Mini who is used to display user name, login time,
  * idle time and host name.
  *
@@ -13,8 +13,6 @@
  * Copyright (c) 2002 AYR Networks, Inc.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
- *
- *----------------------------------------------------------------------
  */
 //config:config WHO
 //config:	bool "who (3.7 kb)"

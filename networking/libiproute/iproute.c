@@ -9,7 +9,6 @@
  * Rani Assaf <rani@magic.metawire.com> 980929: resolve addresses
  * Kunihiro Ishiguro <kunihiro@zebra.org> 001102: rtnh_ifindex was not initialized
  */
-
 #include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "common_bufsiz.h"
 #include "rt_names.h"

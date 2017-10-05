@@ -2,7 +2,7 @@
 /*
  * Mini tr implementation for busybox
  *
- ** Copyright (c) 1987,1997, Prentice Hall   All rights reserved.
+ * Copyright (c) 1987,1997, Prentice Hall   All rights reserved.
  *
  * The name of Prentice Hall may not be used to endorse or promote
  * products derived from this software without specific prior

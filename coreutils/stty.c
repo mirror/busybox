@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* stty -- change and print terminal line settings
+/*
+ * stty -- change and print terminal line settings
  * Copyright (C) 1990-1999 Free Software Foundation, Inc.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.

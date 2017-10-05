@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* nc: mini-netcat - built from the ground up for LRP
+/*
+ * nc: mini-netcat - built from the ground up for LRP
  *
  * Copyright (C) 1998, 1999  Charles P. Wright
  * Copyright (C) 1998  Dave Cinege
