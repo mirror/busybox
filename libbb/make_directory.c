@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /* Mar 5, 2003    Manuel Novoa III
  *
  * This is the main work function for the 'mkdir' applet.  As such, it
@@ -21,7 +20,6 @@
  * To set specific permissions on 'path', pass the appropriate 'mode'
  * val.  Otherwise, pass -1 to get default permissions.
  */
-
 #include "libbb.h"
 
 /* This function is used from NOFORK applets. It must not allocate anything */

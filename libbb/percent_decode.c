@@ -2,7 +2,6 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 //kbuild:lib-y += percent_decode.o
 
 #include "libbb.h"

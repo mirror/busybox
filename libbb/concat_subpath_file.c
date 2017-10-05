@@ -6,14 +6,13 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+#include "libbb.h"
 
 /*
    This function make special for recursive actions with usage
    concat_path_file(path, filename)
    and skipping "." and ".." directory entries
 */
-
-#include "libbb.h"
 
 char* FAST_FUNC concat_subpath_file(const char *path, const char *f)
 {

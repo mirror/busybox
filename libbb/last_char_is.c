@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 
 /* Find out if the last character of a string matches the one given.

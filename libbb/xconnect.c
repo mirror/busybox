@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 #include <sys/types.h>
 #include <sys/socket.h> /* netinet/in.h needs it */
 #include <netinet/in.h>

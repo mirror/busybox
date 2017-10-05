@@ -27,7 +27,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
 #include "libbb.h"
 
 void FAST_FUNC setup_environment(const char *shell, int flags, const struct passwd *pw)

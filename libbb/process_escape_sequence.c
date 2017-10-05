@@ -7,7 +7,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 
 #define WANT_HEX_ESCAPES 1

@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* Port to Busybox Copyright (C) 2006 Jesse Dutton <jessedutton@gmail.com>
+/*
+ * Port to Busybox Copyright (C) 2006 Jesse Dutton <jessedutton@gmail.com>
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  *

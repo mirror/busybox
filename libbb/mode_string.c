@@ -10,8 +10,6 @@
 /* Aug 13, 2003
  * Fix a bug reported by junkio@cox.net involving the mode_chars index.
  */
-
-
 #include <assert.h>
 #include <sys/stat.h>
 

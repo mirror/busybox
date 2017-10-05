@@ -4,7 +4,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /* Seems silly to copyright a global variable.  ;-)  Oh well.
  *
  * At least one applet (cmp) returns a value different from the typical
@@ -12,7 +11,6 @@
  * by the applet.  I suppose we could use a wrapper function to set it, but
  * that too seems silly.
  */
-
 #include "libbb.h"
 
 uint8_t xfunc_error_retval = EXIT_FAILURE;

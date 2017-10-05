@@ -7,7 +7,6 @@
  *
  * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  */
-
 #include <sys/socket.h>
 #include <sys/uio.h>
 

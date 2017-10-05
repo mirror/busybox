@@ -1,14 +1,13 @@
 /* vi: set sw=4 ts=4: */
 /* Small bzip2 deflate implementation, by Rob Landley (rob@landley.net).
-
-   Based on bzip2 decompression code by Julian R Seward (jseward@acm.org),
-   which also acknowledges contributions by Mike Burrows, David Wheeler,
-   Peter Fenwick, Alistair Moffat, Radford Neal, Ian H. Witten,
-   Robert Sedgewick, and Jon L. Bentley.
-
-   Licensed under GPLv2 or later, see file LICENSE in this source tree.
-*/
-
+ *
+ * Based on bzip2 decompression code by Julian R Seward (jseward@acm.org),
+ * which also acknowledges contributions by Mike Burrows, David Wheeler,
+ * Peter Fenwick, Alistair Moffat, Radford Neal, Ian H. Witten,
+ * Robert Sedgewick, and Jon L. Bentley.
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ */
 /*
 	Size and speed optimizations by Manuel Novoa III  (mjn3@codepoet.org).
 
@@ -38,7 +37,6 @@
 
 	Manuel
  */
-
 #include "libbb.h"
 #include "bb_archive.h"
 

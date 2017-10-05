@@ -8,7 +8,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 /* We need to have separate xfuncs.c and xfuncs_printf.c because
  * with current linkers, even with section garbage collection,
  * if *.o module references any of XXXprintf functions, you pull in
@@ -21,7 +20,6 @@
  *
  * TODO: move xmalloc() and xatonum() here.
  */
-
 #include "libbb.h"
 
 /* Turn on nonblocking I/O on a fd */

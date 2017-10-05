@@ -8,7 +8,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 /* We need to have separate xfuncs.c and xfuncs_printf.c because
  * with current linkers, even with section garbage collection,
  * if *.o module references any of XXXprintf functions, you pull in
@@ -19,7 +18,6 @@
  * which do not pull in printf, directly or indirectly.
  * xfunc_printf.c contains those which do.
  */
-
 #include "libbb.h"
 
 

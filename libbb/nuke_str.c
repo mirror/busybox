@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 //kbuild:lib-y += nuke_str.o
 
 #include "libbb.h"

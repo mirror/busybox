@@ -6,13 +6,12 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+#include "libbb.h"
 
 /* A number of applets need to open a file for reading, where the filename
  * is a command line arg.  Since often that arg is '-' (meaning stdin),
  * we avoid testing everywhere by consolidating things in this routine.
  */
-
-#include "libbb.h"
 
 FILE* FAST_FUNC fopen_or_warn_stdin(const char *filename)
 {

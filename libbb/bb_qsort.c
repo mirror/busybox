@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 
 int /* not FAST_FUNC! */ bb_pstrcmp(const void *a, const void *b)

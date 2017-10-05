@@ -5,7 +5,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 
 /* Some systems (eg Hurd) do not have MAXSYMLINKS definition,

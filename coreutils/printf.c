@@ -1,41 +1,39 @@
 /* vi: set sw=4 ts=4: */
 /* printf - format and print data
-
-   Copyright 1999 Dave Cinege
-   Portions copyright (C) 1990-1996 Free Software Foundation, Inc.
-
-   Licensed under GPLv2 or later, see file LICENSE in this source tree.
-*/
-
+ *
+ * Copyright 1999 Dave Cinege
+ * Portions copyright (C) 1990-1996 Free Software Foundation, Inc.
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ */
 /* Usage: printf format [argument...]
-
-   A front end to the printf function that lets it be used from the shell.
-
-   Backslash escapes:
-
-   \" = double quote
-   \\ = backslash
-   \a = alert (bell)
-   \b = backspace
-   \c = produce no further output
-   \f = form feed
-   \n = new line
-   \r = carriage return
-   \t = horizontal tab
-   \v = vertical tab
-   \0ooo = octal number (ooo is 0 to 3 digits)
-   \xhhh = hexadecimal number (hhh is 1 to 3 digits)
-
-   Additional directive:
-
-   %b = print an argument string, interpreting backslash escapes
-
-   The 'format' argument is re-used as many times as necessary
-   to convert all of the given arguments.
-
-   David MacKenzie <djm@gnu.ai.mit.edu>
-*/
-
+ *
+ * A front end to the printf function that lets it be used from the shell.
+ *
+ * Backslash escapes:
+ *
+ * \" = double quote
+ * \\ = backslash
+ * \a = alert (bell)
+ * \b = backspace
+ * \c = produce no further output
+ * \f = form feed
+ * \n = new line
+ * \r = carriage return
+ * \t = horizontal tab
+ * \v = vertical tab
+ * \0ooo = octal number (ooo is 0 to 3 digits)
+ * \xhhh = hexadecimal number (hhh is 1 to 3 digits)
+ *
+ * Additional directive:
+ *
+ * %b = print an argument string, interpreting backslash escapes
+ *
+ * The 'format' argument is re-used as many times as necessary
+ * to convert all of the given arguments.
+ *
+ * David MacKenzie <djm@gnu.ai.mit.edu>
+ */
 /* 19990508 Busy Boxed! Dave Cinege */
 
 //config:config PRINTF

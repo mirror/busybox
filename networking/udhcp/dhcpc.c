@@ -1,7 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
  * udhcp client
- *
  * Russ Dill <Russ.Dill@asu.edu> July 2001
  *
  * This program is free software; you can redistribute it and/or modify

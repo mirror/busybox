@@ -6,7 +6,6 @@
  *
  * Ported to Busybox by:  Curt Brune <curt@cumulusnetworks.com>
  */
-
 #include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "common_bufsiz.h"
 #include "rt_names.h"

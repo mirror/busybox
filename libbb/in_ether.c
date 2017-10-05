@@ -2,7 +2,6 @@
 /*
  * Utility routines.
  */
-
 //kbuild:lib-$(CONFIG_ARP) += in_ether.o
 //kbuild:lib-$(CONFIG_IFCONFIG) += in_ether.o
 //kbuild:lib-$(CONFIG_IFENSLAVE) += in_ether.o

@@ -6,13 +6,11 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+#include "libbb.h"
 
 /* Attempt to fflush(stdout), and exit with an error code if stdout is
  * in an error state.
  */
-
-#include "libbb.h"
-
 void FAST_FUNC fflush_stdout_and_exit(int retval)
 {
 	xfunc_error_retval = retval;

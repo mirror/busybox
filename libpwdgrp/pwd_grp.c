@@ -28,7 +28,6 @@
  *    implemented, if you need a particular missing function it should be
  *    easy to write it by using the internal common code.
  */
-
 #include "libbb.h"
 
 struct const_passdb {

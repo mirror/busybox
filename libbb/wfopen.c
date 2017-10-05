@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 
 FILE* FAST_FUNC fopen_or_warn(const char *path, const char *mode)

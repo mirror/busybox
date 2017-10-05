@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 #if ENABLE_FEATURE_USE_SENDFILE
 # include <sys/sendfile.h>

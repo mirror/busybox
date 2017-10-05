@@ -1,18 +1,18 @@
 /* vi: set sw=4 ts=4: */
 /*
- *  ifup/ifdown for busybox
- *  Copyright (c) 2002 Glenn McGrath
- *  Copyright (c) 2003-2004 Erik Andersen <andersen@codepoet.org>
+ * ifup/ifdown for busybox
+ * Copyright (c) 2002 Glenn McGrath
+ * Copyright (c) 2003-2004 Erik Andersen <andersen@codepoet.org>
  *
- *  Based on ifupdown v 0.6.4 by Anthony Towns
- *  Copyright (c) 1999 Anthony Towns <aj@azure.humbug.org.au>
+ * Based on ifupdown v 0.6.4 by Anthony Towns
+ * Copyright (c) 1999 Anthony Towns <aj@azure.humbug.org.au>
  *
- *  Changes to upstream version
- *  Remove checks for kernel version, assume kernel version 2.2.0 or better.
- *  Lines in the interfaces file cannot wrap.
- *  To adhere to the FHS, the default state file is /var/run/ifstate
- *  (defined via CONFIG_IFUPDOWN_IFSTATE_PATH) and can be overridden by build
- *  configuration.
+ * Changes to upstream version
+ * Remove checks for kernel version, assume kernel version 2.2.0 or better.
+ * Lines in the interfaces file cannot wrap.
+ * To adhere to the FHS, the default state file is /var/run/ifstate
+ * (defined via CONFIG_IFUPDOWN_IFSTATE_PATH) and can be overridden by build
+ * configuration.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */

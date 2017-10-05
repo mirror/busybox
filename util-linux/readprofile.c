@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- *  readprofile.c - used to read /proc/profile
+ * readprofile.c - used to read /proc/profile
  *
- *  Copyright (C) 1994,1996 Alessandro Rubini (rubini@ipvvis.unipv.it)
+ * Copyright (C) 1994,1996 Alessandro Rubini (rubini@ipvvis.unipv.it)
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */

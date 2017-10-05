@@ -7,7 +7,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 
 void FAST_FUNC chomp(char *s)

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
-
-/* RFC1035 domain compression routines (C) 2007 Gabriel Somlo <somlo at cmu.edu>
+/*
+ * RFC1035 domain compression routines (C) 2007 Gabriel Somlo <somlo at cmu.edu>
  *
  * Loosely based on the isc-dhcpd implementation by dhankins@isc.org
  *

@@ -7,7 +7,6 @@
  *
  * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  */
-
 #include <net/if.h>  /* struct ifreq and co. */
 
 #include "libbb.h"

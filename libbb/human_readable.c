@@ -22,7 +22,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 
 const char* FAST_FUNC make_human_readable_str(unsigned long long val,

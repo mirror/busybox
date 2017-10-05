@@ -30,7 +30,6 @@
  *          20001008 - Bernd Eckenfels, Patch from RH for setting mtu
  *			(default AF was wrong)
  */
-
 #include "libbb.h"
 #include "inet_common.h"
 #include <net/if.h>

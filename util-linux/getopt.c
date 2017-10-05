@@ -1,11 +1,10 @@
 /* vi: set sw=4 ts=4: */
 /*
  * getopt.c - Enhanced implementation of BSD getopt(1)
- *   Copyright (c) 1997, 1998, 1999, 2000  Frodo Looijaard <frodol@dds.nl>
+ * Copyright (c) 1997, 1998, 1999, 2000  Frodo Looijaard <frodol@dds.nl>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /*
  * Version 1.0-b4: Tue Sep 23 1997. First public release.
  * Version 1.0: Wed Nov 19 1997.

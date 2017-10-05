@@ -1,24 +1,24 @@
 /* vi: set sw=4 ts=4: */
 /* stty -- change and print terminal line settings
-   Copyright (C) 1990-1999 Free Software Foundation, Inc.
-
-   Licensed under GPLv2 or later, see file LICENSE in this source tree.
-*/
+ * Copyright (C) 1990-1999 Free Software Foundation, Inc.
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ */
 /* Usage: stty [-ag] [-F device] [setting...]
-
-   Options:
-   -a Write all current settings to stdout in human-readable form.
-   -g Write all current settings to stdout in stty-readable form.
-   -F Open and use the specified device instead of stdin
-
-   If no args are given, write to stdout the baud rate and settings that
-   have been changed from their defaults.  Mode reading and changes
-   are done on the specified device, or stdin if none was specified.
-
-   David MacKenzie <djm@gnu.ai.mit.edu>
-
-   Special for busybox ported by Vladimir Oleynik <dzo@simtreas.ru> 2001
-*/
+ *
+ * Options:
+ * -a Write all current settings to stdout in human-readable form.
+ * -g Write all current settings to stdout in stty-readable form.
+ * -F Open and use the specified device instead of stdin
+ *
+ * If no args are given, write to stdout the baud rate and settings that
+ * have been changed from their defaults.  Mode reading and changes
+ * are done on the specified device, or stdin if none was specified.
+ *
+ * David MacKenzie <djm@gnu.ai.mit.edu>
+ *
+ * Special for busybox ported by Vladimir Oleynik <dzo@simtreas.ru> 2001
+ */
 //config:config STTY
 //config:	bool "stty (8.6 kb)"
 //config:	default y

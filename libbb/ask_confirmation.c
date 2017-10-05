@@ -6,12 +6,11 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+#include "libbb.h"
 
 /* Read a line from stdin.  If the first non-whitespace char is 'y' or 'Y',
  * return 1.  Otherwise return 0.
  */
-#include "libbb.h"
-
 int FAST_FUNC bb_ask_confirmation(void)
 {
 	char first = 0;

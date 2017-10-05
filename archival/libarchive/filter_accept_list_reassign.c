@@ -1,10 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*
- *  Copyright (C) 2002 by Glenn McGrath
+ * Copyright (C) 2002 by Glenn McGrath
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 #include "bb_archive.h"
 

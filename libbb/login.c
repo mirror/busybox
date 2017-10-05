@@ -8,7 +8,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 /* After libbb.h, since it needs sys/types.h on some systems */
 #include <sys/utsname.h>

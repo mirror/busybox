@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 
 void FAST_FUNC fputc_printable(int ch, FILE *file)

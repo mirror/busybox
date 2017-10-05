@@ -7,14 +7,13 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+#include "libbb.h"
 
 /* Concatenate path and filename to new allocated buffer.
  * Add '/' only as needed (no duplicate // are produced).
  * If path is NULL, it is assumed to be "/".
  * filename should not be NULL.
  */
-
-#include "libbb.h"
 
 char* FAST_FUNC concat_path_file(const char *path, const char *filename)
 {

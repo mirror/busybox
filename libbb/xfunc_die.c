@@ -6,11 +6,10 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+#include "libbb.h"
 
 /* Keeping it separate allows to NOT pull in stdio for VERY small applets.
  * Try building busybox with only "true" enabled... */
-
-#include "libbb.h"
 
 void (*die_func)(void);
 

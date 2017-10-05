@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /*
  * SUSv2 guarantees that "Host names are limited to 255 bytes"
  * POSIX.1-2001 guarantees that "Host names (not including the terminating
@@ -23,7 +22,6 @@
  * Host software MUST handle host names of up to 63 characters and
  * SHOULD handle host names of up to 255 characters.
  */
-
 #include "libbb.h"
 #include <sys/utsname.h>
 

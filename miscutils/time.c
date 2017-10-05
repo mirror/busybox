@@ -1,13 +1,14 @@
 /* vi: set sw=4 ts=4: */
-/* 'time' utility to display resource usage of processes.
-   Copyright (C) 1990, 91, 92, 93, 96 Free Software Foundation, Inc.
-
-   Licensed under GPLv2, see file LICENSE in this source tree.
-*/
+/*
+ * 'time' utility to display resource usage of processes.
+ * Copyright (C) 1990, 91, 92, 93, 96 Free Software Foundation, Inc.
+ *
+ * Licensed under GPLv2, see file LICENSE in this source tree.
+ */
 /* Originally written by David Keppel <pardo@cs.washington.edu>.
-   Heavily modified by David MacKenzie <djm@gnu.ai.mit.edu>.
-   Heavily modified for busybox by Erik Andersen <andersen@codepoet.org>
-*/
+ * Heavily modified by David MacKenzie <djm@gnu.ai.mit.edu>.
+ * Heavily modified for busybox by Erik Andersen <andersen@codepoet.org>
+ */
 //config:config TIME
 //config:	bool "time (7 kb)"
 //config:	default y

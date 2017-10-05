@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
 
 /* On exit: errno = 0 only if there was non-empty, '\0' terminated value
