@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* Copyright (C) 2014 Tito Ragusa <farmatito@tiscali.it>
+/*
+ * Copyright (C) 2014 Tito Ragusa <farmatito@tiscali.it>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */

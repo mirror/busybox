@@ -1,10 +1,10 @@
 /* vi: set sw=4 ts=4: */
-/* uncompress for busybox -- (c) 2002 Robert Griebl
+/*
+ * uncompress for busybox -- (c) 2002 Robert Griebl
  *
  * based on the original compress42.c source
  * (see disclaimer below)
  */
-
 /* (N)compress42.c - File compression ala IEEE Computer, Mar 1992.
  *
  * Authors:
@@ -21,9 +21,7 @@
  * marc@suse.de : a small security fix for a buffer overflow
  *
  * [... History snipped ...]
- *
  */
-
 #include "libbb.h"
 #include "bb_archive.h"
 

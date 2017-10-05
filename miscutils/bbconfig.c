@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* This file was released into the public domain by Paul Fox.
+/*
+ * This file was released into the public domain by Paul Fox.
  */
 //config:config BBCONFIG
 //config:	bool "bbconfig (9.7 kb)"

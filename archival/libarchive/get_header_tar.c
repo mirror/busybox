@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* Licensed under GPLv2 or later, see file LICENSE in this source tree.
+/*
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  * FIXME:
  *    In privileged mode if uname and gname map to a uid and gid then use the

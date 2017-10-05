@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* Copyright 2001 Glenn McGrath.
+/*
+ * Copyright 2001 Glenn McGrath.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */

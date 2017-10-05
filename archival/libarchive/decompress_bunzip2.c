@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* Small bzip2 deflate implementation, by Rob Landley (rob@landley.net).
+/*
+ * Small bzip2 deflate implementation, by Rob Landley (rob@landley.net).
  *
  * Based on bzip2 decompression code by Julian R Seward (jseward@acm.org),
  * which also acknowledges contributions by Mike Burrows, David Wheeler,

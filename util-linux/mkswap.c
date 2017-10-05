@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* mkswap.c - format swap device (Linux v1 only)
+/*
+ * mkswap.c - format swap device (Linux v1 only)
  *
  * Copyright 2006 Rob Landley <rob@landley.net>
  *

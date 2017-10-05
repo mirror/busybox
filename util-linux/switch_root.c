@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* Copyright 2005 Rob Landley <rob@landley.net>
+/*
+ * Copyright 2005 Rob Landley <rob@landley.net>
  *
  * Switch from rootfs to another filesystem as the root of the mount tree.
  *

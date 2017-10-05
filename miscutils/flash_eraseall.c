@@ -1,5 +1,6 @@
 /* vi: set sw=4 ts=4: */
-/* eraseall.c -- erase the whole of a MTD device
+/*
+ * eraseall.c -- erase the whole of a MTD device
  *
  * Ported to busybox from mtd-utils.
  *
