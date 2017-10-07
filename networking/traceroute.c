@@ -311,6 +311,9 @@
 # ifndef SOL_IPV6
 #  define SOL_IPV6 IPPROTO_IPV6
 # endif
+# if defined(IPV6_PKTINFO) && !defined(IPV6_RECVPKTINFO)
+#  define IPV6_RECVPKTINFO IPV6_PKTINFO
+# endif
 #endif
 
 #include "libbb.h"
@@ -911,12 +914,7 @@ common_traceroute_main(int op, char **argv)
 #if ENABLE_TRACEROUTE6
 	if (af == AF_INET6) {
 		xmove_fd(xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6), rcvsock);
-# ifdef IPV6_RECVPKTINFO
 		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO);
-		setsockopt_1(rcvsock, SOL_IPV6, IPV6_2292PKTINFO);
-# else
-		setsockopt_1(rcvsock, SOL_IPV6, IPV6_PKTINFO);
-# endif
 	} else
 #endif
 	{

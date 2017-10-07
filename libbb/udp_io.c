@@ -8,6 +8,10 @@
  */
 #include "libbb.h"
 
+#if defined(IPV6_PKTINFO) && !defined(IPV6_RECVPKTINFO)
+# define IPV6_RECVPKTINFO IPV6_PKTINFO
+#endif
+
 /*
  * This asks kernel to let us know dst addr/port of incoming packets
  * We don't check for errors here. Not supported == won't be used
@@ -18,8 +22,8 @@ socket_want_pktinfo(int fd UNUSED_PARAM)
 #ifdef IP_PKTINFO
 	setsockopt_1(fd, IPPROTO_IP, IP_PKTINFO);
 #endif
-#if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
-	setsockopt_1(fd, IPPROTO_IPV6, IPV6_PKTINFO);
+#if ENABLE_FEATURE_IPV6 && defined(IPV6_RECVPKTINFO)
+	setsockopt_1(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO);
 #endif
 }
 
