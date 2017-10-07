@@ -639,11 +639,28 @@ static void load_regexes_from_file(llist_t *fopt)
 }
 
 static int FAST_FUNC file_action_grep(const char *filename,
-			struct stat *statbuf UNUSED_PARAM,
+			struct stat *statbuf,
 			void* matched,
 			int depth UNUSED_PARAM)
 {
-	FILE *file = fopen_for_read(filename);
+	FILE *file;
+
+	/* If we are given a link to a directory, we should bail out now, rather
+	 * than trying to open the "file" and hoping getline gives us nothing,
+	 * since that is not portable across operating systems (FreeBSD for
+	 * example will return the raw directory contents). */
+	if (S_ISLNK(statbuf->st_mode)) {
+		struct stat sb;
+		if (stat(filename, &sb) != 0) {
+			if (!SUPPRESS_ERR_MSGS)
+				bb_simple_perror_msg(filename);
+			return 0;
+		}
+		if (S_ISDIR(sb.st_mode))
+			return 1;
+	}
+
+	file = fopen_for_read(filename);
 	if (file == NULL) {
 		if (!SUPPRESS_ERR_MSGS)
 			bb_simple_perror_msg(filename);
