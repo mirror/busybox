@@ -323,6 +323,14 @@
 # define IPPROTO_IP 0
 #endif
 
+/* Some operating systems, like GNU/Hurd, don't define SOL_RAW, but do have
+ * IPPROTO_RAW. Since the IPPROTO definitions are also valid to use for
+ * setsockopt (and take the same value as their corresponding SOL definitions,
+ * if they exist), we can just fall back on IPPROTO_RAW. */
+#ifndef SOL_RAW
+# define SOL_RAW IPPROTO_RAW
+#endif
+
 
 #define OPT_STRING \
 	"FIlnrdvxt:i:m:p:q:s:w:z:f:" \

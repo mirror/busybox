@@ -135,6 +135,14 @@
 # define ICMP_ADDRESSREPLY   18  /* Address Mask Reply    */
 #endif
 
+/* Some operating systems, like GNU/Hurd, don't define SOL_RAW, but do have
+ * IPPROTO_RAW. Since the IPPROTO definitions are also valid to use for
+ * setsockopt (and take the same value as their corresponding SOL definitions,
+ * if they exist), we can just fall back on IPPROTO_RAW. */
+#ifndef SOL_RAW
+# define SOL_RAW IPPROTO_RAW
+#endif
+
 #if ENABLE_PING6
 # include <netinet/icmp6.h>
 /* I see RENUMBERED constants in bits/in.h - !!?
