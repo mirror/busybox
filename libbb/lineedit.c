@@ -37,11 +37,6 @@
  *
  * Unicode in PS1 is not fully supported: prompt length calulation is wrong,
  * resulting in line wrap problems with long (multi-line) input.
- *
- * Multi-line PS1 (e.g. PS1="\n[\w]\n$ ") has problems with history
- * browsing: up/down arrows result in scrolling.
- * It stems from simplistic "cmdedit_y = cmdedit_prmt_len / cmdedit_termw"
- * calculation of how many lines the prompt takes.
  */
 #include "busybox.h"
 #include "NUM_APPLETS.h"
@@ -133,7 +128,7 @@ struct lineedit_statics {
 
 	unsigned cmdedit_x;        /* real x (col) terminal position */
 	unsigned cmdedit_y;        /* pseudoreal y (row) terminal position */
-	unsigned cmdedit_prmt_len; /* length of prompt (without colors etc) */
+	unsigned cmdedit_prmt_len; /* on-screen length of last/sole prompt line */
 
 	unsigned cursor;
 	int command_len; /* must be signed */
@@ -143,6 +138,7 @@ struct lineedit_statics {
 	CHAR_T *command_ps;
 
 	const char *cmdedit_prompt;
+	const char *prompt_last_line;  /* last/sole prompt line */
 
 #if ENABLE_USERNAME_OR_HOMEDIR
 	char *user_buf;
@@ -185,6 +181,7 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 #define command_len      (S.command_len     )
 #define command_ps       (S.command_ps      )
 #define cmdedit_prompt   (S.cmdedit_prompt  )
+#define prompt_last_line (S.prompt_last_line)
 #define user_buf         (S.user_buf        )
 #define home_pwd_buf     (S.home_pwd_buf    )
 #define matches          (S.matches         )
@@ -437,13 +434,19 @@ static void beep(void)
 	bb_putchar('\007');
 }
 
-static void put_prompt(void)
+/* Full or last/sole prompt line, reset edit cursor, calculate terminal cursor.
+ * cmdedit_y is always calculated for the last/sole prompt line.
+ */
+static void put_prompt_custom(bool is_full)
 {
-	fputs(cmdedit_prompt, stdout);
+	fputs((is_full ? cmdedit_prompt : prompt_last_line), stdout);
 	cursor = 0;
 	cmdedit_y = cmdedit_prmt_len / cmdedit_termw; /* new quasireal y */
 	cmdedit_x = cmdedit_prmt_len % cmdedit_termw;
 }
+
+#define put_prompt_last_line() put_prompt_custom(0)
+#define put_prompt()           put_prompt_custom(1)
 
 /* Move back one character */
 /* (optimized for slow terminals) */
@@ -509,7 +512,7 @@ static void input_backward(unsigned num)
 		printf("\r" ESC"[%uA", cmdedit_y);
 		cmdedit_y = 0;
 		sv_cursor = cursor;
-		put_prompt(); /* sets cursor to 0 */
+		put_prompt_last_line(); /* sets cursor to 0 */
 		while (cursor < sv_cursor)
 			put_cur_glyph_and_inc_cursor();
 	} else {
@@ -530,17 +533,26 @@ static void input_backward(unsigned num)
 	}
 }
 
-/* draw prompt, editor line, and clear tail */
-static void redraw(int y, int back_cursor)
+/* See redraw and draw_full below */
+static void draw_custom(int y, int back_cursor, bool is_full)
 {
 	if (y > 0) /* up y lines */
 		printf(ESC"[%uA", y);
 	bb_putchar('\r');
-	put_prompt();
+	put_prompt_custom(is_full);
 	put_till_end_and_adv_cursor();
 	printf(SEQ_CLEAR_TILL_END_OF_SCREEN);
 	input_backward(back_cursor);
 }
+
+/* Move y lines up, draw last/sole prompt line, editor line[s], and clear tail.
+ * goal: redraw the prompt+input+cursor in-place, overwriting the previous */
+#define redraw(y, back_cursor) draw_custom((y), (back_cursor), 0)
+
+/* Like above, but without moving up, and while using all the prompt lines.
+ * goal: draw a full prompt+input+cursor unrelated to a previous position.
+ * note: cmdedit_y always ends up relating to the last/sole prompt line */
+#define draw_full(back_cursor) draw_custom(0, (back_cursor), 1)
 
 /* Delete the char in front of the cursor, optionally saving it
  * for later putback */
@@ -1106,7 +1118,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 			int sav_cursor = cursor;
 			goto_new_line();
 			showfiles();
-			redraw(0, command_len - sav_cursor);
+			draw_full(command_len - sav_cursor);
 		}
 		return;
 	}
@@ -1782,14 +1794,37 @@ static void ask_terminal(void)
 #define ask_terminal() ((void)0)
 #endif
 
+/* Note about multi-line PS1 (e.g. "\n\w \u@\h\n> ") and prompt redrawing:
+ *
+ * If the prompt has any newlines, after we print it once we use only its last
+ * line to redraw in-place, which makes it simpler to calculate how many lines
+ * we should move the cursor up to align the redraw (cmdedit_y). The earlier
+ * prompt lines just stay on screen and we redraw below them.
+ *
+ * Use cases for all prompt lines beyond the initial draw:
+ * - After clear-screen (^L) or after displaying tab-completion choices, we
+ *   print the full prompt, as it isn't redrawn in-place.
+ * - During terminal resize we could try to redraw all lines, but we don't,
+ *   because it requires delicate alignment, it's good enough with only the
+ *   last line, and doing it wrong is arguably worse than not doing it at all.
+ *
+ * Terminology wise, if it doesn't mention "full", then it means the last/sole
+ * prompt line. We use the prompt (last/sole line) while redrawing in-place,
+ * and the full where we need a fresh one unrelated to an earlier position.
+ *
+ * If PS1 is not multiline, the last/sole line and the full are the same string.
+ */
+
 /* Called just once at read_line_input() init time */
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
 static void parse_and_put_prompt(const char *prmt_ptr)
 {
 	const char *p;
-	cmdedit_prompt = prmt_ptr;
+	cmdedit_prompt = prompt_last_line = prmt_ptr;
 	p = strrchr(prmt_ptr, '\n');
-	cmdedit_prmt_len = unicode_strwidth(p ? p+1 : prmt_ptr);
+	if (p)
+		prompt_last_line = p + 1;
+	cmdedit_prmt_len = unicode_strwidth(prompt_last_line);
 	put_prompt();
 }
 #else
@@ -1973,7 +2008,11 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 	if (cwd_buf != (char *)bb_msg_unknown)
 		free(cwd_buf);
 # endif
-	cmdedit_prompt = prmt_mem_ptr;
+	/* see comment (above this function) about multiline prompt redrawing */
+	cmdedit_prompt = prompt_last_line = prmt_mem_ptr;
+	prmt_ptr = strrchr(cmdedit_prompt, '\n');
+	if (prmt_ptr)
+		prompt_last_line = prmt_ptr + 1;
 	put_prompt();
 }
 #endif
@@ -2145,7 +2184,7 @@ static int32_t reverse_i_search(int timeout)
 	match_buf[0] = '\0';
 
 	/* Save and replace the prompt */
-	saved_prompt = cmdedit_prompt;
+	saved_prompt = prompt_last_line;
 	saved_prmt_len = cmdedit_prmt_len;
 	goto set_prompt;
 
@@ -2218,10 +2257,10 @@ static int32_t reverse_i_search(int timeout)
 					cursor = match - matched_history_line;
 //FIXME: cursor position for Unicode case
 
-					free((char*)cmdedit_prompt);
+					free((char*)prompt_last_line);
  set_prompt:
-					cmdedit_prompt = xasprintf("(reverse-i-search)'%s': ", match_buf);
-					cmdedit_prmt_len = unicode_strwidth(cmdedit_prompt);
+					prompt_last_line = xasprintf("(reverse-i-search)'%s': ", match_buf);
+					cmdedit_prmt_len = unicode_strwidth(prompt_last_line);
 					goto do_redraw;
 				}
 			}
@@ -2241,8 +2280,8 @@ static int32_t reverse_i_search(int timeout)
 	if (matched_history_line)
 		command_len = load_string(matched_history_line);
 
-	free((char*)cmdedit_prompt);
-	cmdedit_prompt = saved_prompt;
+	free((char*)prompt_last_line);
+	prompt_last_line = saved_prompt;
 	cmdedit_prmt_len = saved_prmt_len;
 	redraw(cmdedit_y, command_len - cursor);
 
@@ -2451,8 +2490,9 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 		case CTRL('L'):
 		vi_case(CTRL('L')|VI_CMDMODE_BIT:)
 			/* Control-l -- clear screen */
-			printf(ESC"[H"); /* cursor to top,left */
-			redraw(0, command_len - cursor);
+			/* cursor to top,left; clear to the end of screen */
+			printf(ESC"[H" ESC"[J");
+			draw_full(command_len - cursor);
 			break;
 #if MAX_HISTORY > 0
 		case CTRL('N'):
