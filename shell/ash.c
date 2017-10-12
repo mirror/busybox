@@ -12656,7 +12656,24 @@ expandstr(const char *ps, int syntax_type)
 
 	saveprompt = doprompt;
 	doprompt = 0;
-	readtoken1(pgetc(), syntax_type, FAKEEOFMARK, 0);
+
+	/* readtoken1() might die horribly.
+	 * Try a prompt with syntacticallyt wrong command:
+	 * PS1='$(date "+%H:%M:%S) > '
+	 */
+	{
+		volatile int saveint;
+		struct jmploc *volatile savehandler = exception_handler;
+		struct jmploc jmploc;
+		SAVE_INT(saveint);
+		if (setjmp(jmploc.loc) == 0) {
+			exception_handler = &jmploc;
+			readtoken1(pgetc(), syntax_type, FAKEEOFMARK, 0);
+		}
+		exception_handler = savehandler;
+		RESTORE_INT(saveint);
+	}
+
 	doprompt = saveprompt;
 
 	popfile();
