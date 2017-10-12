@@ -12742,7 +12742,7 @@ evalstring(char *s, int flags)
 
 	exception_handler = savehandler;
 	if (ex)
-                longjmp(exception_handler->loc, ex);
+		longjmp(exception_handler->loc, ex);
 
 	return status;
 }
@@ -13556,8 +13556,8 @@ umaskcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		}
 	} else {
 		char *modestr = *argptr;
-                /* numeric umasks are taken as-is */
-                /* symbolic umasks are inverted: "umask a=rx" calls umask(222) */
+		/* numeric umasks are taken as-is */
+		/* symbolic umasks are inverted: "umask a=rx" calls umask(222) */
 		if (!isdigit(modestr[0]))
 			mask ^= 0777;
 		mask = bb_parse_mode(modestr, mask);
