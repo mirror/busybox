@@ -12658,7 +12658,7 @@ expandstr(const char *ps, int syntax_type)
 	doprompt = 0;
 
 	/* readtoken1() might die horribly.
-	 * Try a prompt with syntacticallyt wrong command:
+	 * Try a prompt with syntactically wrong command:
 	 * PS1='$(date "+%H:%M:%S) > '
 	 */
 	{
