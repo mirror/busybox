@@ -14,6 +14,11 @@
 #include "rt_names.h"
 #include "utils.h"
 
+#include <linux/version.h>
+/* RTA_TABLE is not a define, can't test with ifdef. */
+/* As a proxy, test which kernels toolchain expects: */
+#define HAVE_RTA_TABLE (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19))
+
 #ifndef RTAX_RTTVAR
 #define RTAX_RTTVAR RTAX_HOPS
 #endif
@@ -81,9 +86,11 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	memset(tb, 0, sizeof(tb));
 	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
 
+#if HAVE_RTA_TABLE
 	if (tb[RTA_TABLE])
 		tid = *(uint32_t *)RTA_DATA(tb[RTA_TABLE]);
 	else
+#endif
 		tid = r->rtm_table;
 
 	if (r->rtm_family == AF_INET6)
@@ -459,12 +466,13 @@ IF_FEATURE_IP_RULE(ARG_table,)
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
 				invarg_1_to_2(*argv, keyword_table);
-			if (tid < 256)
-				req.r.rtm_table = tid;
-			else {
+#if HAVE_RTA_TABLE
+			if (tid > 255) {
 				req.r.rtm_table = RT_TABLE_UNSPEC;
 				addattr32(&req.n, sizeof(req), RTA_TABLE, tid);
-			}
+			} else
+#endif
+				req.r.rtm_table = tid;
 #endif
 		} else if (arg == ARG_dev || arg == ARG_oif) {
 			NEXT_ARG();

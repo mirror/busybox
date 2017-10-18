@@ -24,6 +24,11 @@
 #include "rt_names.h"
 #include "utils.h"
 
+#include <linux/version.h>
+/* RTA_TABLE is not a define, can't test with ifdef. */
+/* As a proxy, test which kernels toolchain expects: */
+#define HAVE_RTA_TABLE (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19))
+
 /* If you add stuff here, update iprule_full_usage */
 static const char keywords[] ALIGN1 =
 	"from\0""to\0""preference\0""order\0""priority\0"
@@ -120,9 +125,12 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 		printf("iif %s ", (char*)RTA_DATA(tb[RTA_IIF]));
 	}
 
+#if HAVE_RTA_TABLE
 	if (tb[RTA_TABLE])
 		printf("lookup %s ", rtnl_rttable_n2a(*(uint32_t*)RTA_DATA(tb[RTA_TABLE])));
-	else if (r->rtm_table)
+	else
+#endif
+	if (r->rtm_table)
 		printf("lookup %s ", rtnl_rttable_n2a(r->rtm_table));
 
 	if (tb[FRA_SUPPRESS_PREFIXLEN]) {
@@ -266,12 +274,15 @@ static int iprule_modify(int cmd, char **argv)
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
 				invarg_1_to_2(*argv, "table ID");
-			if (tid < 256)
-				req.r.rtm_table = tid;
-			else {
+
+#if HAVE_RTA_TABLE
+			if (tid > 255) {
 				req.r.rtm_table = RT_TABLE_UNSPEC;
 				addattr32(&req.n, sizeof(req), RTA_TABLE, tid);
-			}
+			} else
+#endif
+				req.r.rtm_table = tid;
+
 			table_ok = 1;
 		} else if (key == ARG_suppress_prefixlength) {
 			int prefix_length;
