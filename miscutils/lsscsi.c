@@ -25,6 +25,8 @@
 
 #include "libbb.h"
 
+static const char scsi_dir[] ALIGN1 = "/sys/bus/scsi/devices";
+
 static char *get_line(const char *filename, char *buf, unsigned *bufsize_p)
 {
 	unsigned bufsize = *bufsize_p;
@@ -53,7 +55,7 @@ int lsscsi_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	struct dirent *de;
 	DIR *dir;
 
-	xchdir("/sys/bus/scsi/devices");
+	xchdir(scsi_dir);
 
 	dir = xopendir(".");
 	while ((de = readdir(dir)) != NULL) {
@@ -112,7 +114,10 @@ int lsscsi_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		);
 		/* TODO: also output device column, e.g. "/dev/sdX" */
 
-		xchdir("..");
+		/* chdir("..") may not work as expected,
+		 * since we might have followed a symlink.
+		 */
+		xchdir(scsi_dir);
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP)
