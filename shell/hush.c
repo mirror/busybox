@@ -5140,14 +5140,23 @@ static struct pipe *parse_stream(char **pstring,
 		case '#':
 			if (dest.length == 0 && !dest.has_quoted_part) {
 				/* skip "#comment" */
+				/* note: we do not add it to &ctx.as_string */
+/* TODO: in bash:
+ * comment inside $() goes to the next \n, even inside quoted string (!):
+ * cmd "$(cmd2 #comment)" - syntax error
+ * cmd "`cmd2 #comment`" - ok
+ * We accept both (comment ends where command subst ends, in both cases).
+ */
 				while (1) {
 					ch = i_peek(input);
-					if (ch == EOF || ch == '\n')
+					if (ch == '\n') {
+						nommu_addchr(&ctx.as_string, '\n');
 						break;
-					i_getch(input);
-					/* note: we do not add it to &ctx.as_string */
+					}
+					ch = i_getch(input);
+					if (ch == EOF)
+						break;
 				}
-				nommu_addchr(&ctx.as_string, '\n');
 				continue; /* back to top of while (1) */
 			}
 			break;
