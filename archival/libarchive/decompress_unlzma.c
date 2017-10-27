@@ -450,8 +450,12 @@ unpack_lzma_stream(transformer_state_t *xstate)
  IF_NOT_FEATURE_LZMA_FAST(string:)
 			do {
 				uint32_t pos = buffer_pos - rep0;
-				if ((int32_t)pos < 0)
+				if ((int32_t)pos < 0) {
 					pos += header.dict_size;
+					/* bug 10436 has an example file where this triggers: */
+					if ((int32_t)pos < 0)
+						goto bad;
+				}
 				previous_byte = buffer[pos];
  IF_NOT_FEATURE_LZMA_FAST(one_byte2:)
 				buffer[buffer_pos++] = previous_byte;
