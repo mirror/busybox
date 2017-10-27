@@ -442,11 +442,16 @@ int time_main(int argc UNUSED_PARAM, char **argv)
 		output_format = posix_format;
 	output_fd = STDERR_FILENO;
 	if (opt & OPT_o) {
+#ifndef O_CLOEXEC
+# define O_CLOEXEC 0
+#endif
 		output_fd = xopen(output_filename,
 			(opt & OPT_a) /* append? */
 			? (O_CREAT | O_WRONLY | O_CLOEXEC | O_APPEND)
 			: (O_CREAT | O_WRONLY | O_CLOEXEC | O_TRUNC)
 		);
+		if (!O_CLOEXEC)
+			close_on_exec_on(output_fd);
 	}
 
 	run_command(argv, &res);
