@@ -709,6 +709,9 @@ packet_ok(int read_len, len_and_sockaddr *from_lsa,
 
 # if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose) {
+#  ifndef MAXHOSTNAMELEN
+#   define MAXHOSTNAMELEN 80
+#  endif
 		unsigned char *p;
 		char pa1[MAXHOSTNAMELEN];
 		char pa2[MAXHOSTNAMELEN];

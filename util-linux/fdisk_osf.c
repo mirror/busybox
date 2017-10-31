@@ -709,6 +709,9 @@ sync_disks(void)
 static void
 xbsd_write_bootstrap(void)
 {
+#ifndef MAXPATHLEN
+# define MAXPATHLEN 1024
+#endif
 	char path[MAXPATHLEN];
 	const char *bootdir = BSD_LINUX_BOOTDIR;
 	const char *dkbasename;
