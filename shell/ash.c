@@ -10863,9 +10863,17 @@ showvars(const char *sep_prefix, int on, int off)
 		const char *p;
 		const char *q;
 
-		p = strchrnul(*ep, '=');
+		p = endofname(*ep);
+/* Used to have simple "p = strchrnul(*ep, '=')" here instead, but this
+ * makes "export -p" to have output not suitable for "eval":
+ * import os
+ * os.environ["test-test"]="test"
+ * if os.fork() == 0:
+ *   os.execv("ash", [ 'ash', '-c', 'eval $(export -p); echo OK' ])  # fixes this
+ * os.execv("ash", [ 'ash', '-c', 'env | grep test-test' ])
+ */
 		q = nullstr;
-		if (*p)
+		if (*p == '=')
 			q = single_quote(++p);
 		out1fmt("%s%s%.*s%s\n", sep_prefix, sep, (int)(p - *ep), *ep, q);
 	}
@@ -13639,8 +13647,18 @@ init(void)
 
 		initvar();
 		for (envp = environ; envp && *envp; envp++) {
-			p = endofname(*envp);
-			if (p != *envp && *p == '=') {
+/* Used to have
+ *			p = endofname(*envp);
+ *			if (p != *envp && *p == '=') {
+ * here to weed out badly-named variables, but this breaks
+ * scenarios where people do want them passed to children:
+ * import os
+ * os.environ["test-test"]="test"
+ * if os.fork() == 0:
+ *   os.execv("ash", [ 'ash', '-c', 'eval $(export -p); echo OK' ])  # fixes this
+ * os.execv("ash", [ 'ash', '-c', 'env | grep test-test' ])  # breaks this
+ */
+			if (strchr(*envp, '=')) {
 				setvareq(*envp, VEXPORT|VTEXTFIXED);
 			}
 		}
