@@ -2380,8 +2380,11 @@ listsetvar(struct strlist *list_set_var, int flags)
 /*
  * Generate a list of variables satisfying the given conditions.
  */
+#if !ENABLE_FEATURE_SH_NOFORK
+# define listvars(on, off, lp, end) listvars(on, off, end)
+#endif
 static char **
-listvars(int on, int off, char ***end)
+listvars(int on, int off, struct strlist *lp, char ***end)
 {
 	struct var **vpp;
 	struct var *vp;
@@ -2394,12 +2397,40 @@ listvars(int on, int off, char ***end)
 	do {
 		for (vp = *vpp; vp; vp = vp->next) {
 			if ((vp->flags & mask) == on) {
+#if ENABLE_FEATURE_SH_NOFORK
+				/* If variable with the same name is both
+				 * exported and temporarily set for a command:
+				 *  export ZVAR=5
+				 *  ZVAR=6 printenv
+				 * then "ZVAR=6" will be both in vartab and
+				 * lp lists. Do not pass it twice to printenv.
+				 */
+				struct strlist *lp1 = lp;
+				while (lp1) {
+					if (strcmp(lp1->text, vp->var_text) == 0)
+						goto skip;
+					lp1 = lp1->next;
+				}
+#endif
 				if (ep == stackstrend())
 					ep = growstackstr();
 				*ep++ = (char*)vp->var_text;
+#if ENABLE_FEATURE_SH_NOFORK
+ skip: ;
+#endif
 			}
 		}
 	} while (++vpp < vartab + VTABSIZE);
+
+#if ENABLE_FEATURE_SH_NOFORK
+	while (lp) {
+		if (ep == stackstrend())
+			ep = growstackstr();
+		*ep++ = lp->text;
+		lp = lp->next;
+	}
+#endif
+
 	if (ep == stackstrend())
 		ep = growstackstr();
 	if (end)
@@ -7860,7 +7891,7 @@ static void shellexec(char *prog, char **argv, const char *path, int idx)
 	int exerrno;
 	int applet_no = -1; /* used only by FEATURE_SH_STANDALONE */
 
-	envp = listvars(VEXPORT, VUNSET, /*end:*/ NULL);
+	envp = listvars(VEXPORT, VUNSET, /*strlist:*/ NULL, /*end:*/ NULL);
 	if (strchr(prog, '/') != NULL
 #if ENABLE_FEATURE_SH_STANDALONE
 	 || (applet_no = find_applet_by_name(prog)) >= 0
@@ -9930,7 +9961,11 @@ evalcommand(union node *cmd, int flags)
 		/* find_command() encodes applet_no as (-2 - applet_no) */
 		int applet_no = (- cmdentry.u.index - 2);
 		if (applet_no >= 0 && APPLET_IS_NOFORK(applet_no)) {
-			listsetvar(varlist.list, VEXPORT|VSTACK);
+			char **sv_environ;
+
+			INT_OFF;
+			sv_environ = environ;
+			environ = listvars(VEXPORT, VUNSET, varlist.list, /*end:*/ NULL);
 			/*
 			 * Run <applet>_main().
 			 * Signals (^C) can't interrupt here.
@@ -9939,8 +9974,8 @@ evalcommand(union node *cmd, int flags)
 			 * and/or wait for user input ineligible for NOFORK:
 			 * for example, "yes" or "rm" (rm -i waits for input).
 			 */
-			INT_OFF;
 			status = run_nofork_applet(applet_no, argv);
+			environ = sv_environ;
 			/*
 			 * Try enabling NOFORK for "yes" applet.
 			 * ^C _will_ stop it (write returns EINTR),
@@ -10854,7 +10889,7 @@ showvars(const char *sep_prefix, int on, int off)
 	const char *sep;
 	char **ep, **epend;
 
-	ep = listvars(on, off, &epend);
+	ep = listvars(on, off, /*strlist:*/ NULL, &epend);
 	qsort(ep, epend - ep, sizeof(char *), vpcmp);
 
 	sep = *sep_prefix ? " " : sep_prefix;
