@@ -56,7 +56,7 @@
 //kbuild:lib-$(CONFIG_UNZIP) += unzip.o
 
 //usage:#define unzip_trivial_usage
-//usage:       "[-lnopq] FILE[.zip] [FILE]... [-x FILE...] [-d DIR]"
+//usage:       "[-lnojpq] FILE[.zip] [FILE]... [-x FILE...] [-d DIR]"
 //usage:#define unzip_full_usage "\n\n"
 //usage:       "Extract FILEs from ZIP archive\n"
 //usage:     "\n	-l	List contents (with -q for short form)"
