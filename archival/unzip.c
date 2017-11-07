@@ -805,13 +805,6 @@ int unzip_main(int argc, char **argv)
 		/* Guard against "/abspath", "/../" and similar attacks */
 		overlapping_strcpy(dst_fn, strip_unsafe_prefix(dst_fn));
 
-		if (opts & OPT_j) /* Strip paths? */
-			overlapping_strcpy(dst_fn, bb_basename(dst_fn));
-
-		/* Did this strip everything ("DIR/" case)? Then skip */
-		if (!dst_fn[0])
-			goto skip_cmpsize;
-
 		/* Filter zip entries */
 		if (find_list_entry(zreject, dst_fn)
 		 || (zaccept && !find_list_entry(zaccept, dst_fn))
@@ -876,6 +869,14 @@ int unzip_main(int argc, char **argv)
 			/* Extracting to STDOUT */
 			goto do_extract;
 		}
+
+		/* Strip paths (after -l: unzip -lj a.zip lists full names) */
+		if (opts & OPT_j)
+			overlapping_strcpy(dst_fn, bb_basename(dst_fn));
+		/* Did this strip everything ("DIR/" case)? Then skip */
+		if (!dst_fn[0])
+			goto skip_cmpsize;
+
 		if (last_char_is(dst_fn, '/')) {
 			int mode;
 
