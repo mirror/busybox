@@ -2401,6 +2401,8 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	bb_error_msg("cur_history:%d cnt_history:%d", state->cur_history, state->cnt_history);
 #endif
 
+	/* Get width (before printing prompt) */
+	cmdedit_termw = get_terminal_width(STDIN_FILENO);
 	/* Print out the command prompt, optionally ask where cursor is */
 	parse_and_put_prompt(prompt);
 	ask_terminal();
@@ -2409,8 +2411,6 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	S.SIGWINCH_handler.sa_handler = win_changed;
 	S.SIGWINCH_handler.sa_flags = SA_RESTART;
 	sigaction(SIGWINCH, &S.SIGWINCH_handler, &S.SIGWINCH_handler);
-
-	cmdedit_termw = get_terminal_width(STDIN_FILENO);
 
 	read_key_buffer[0] = 0;
 	while (1) {
