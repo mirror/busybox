@@ -339,7 +339,7 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (opts & OPT_map_root) {
-		char uidmap_buf[sizeof("%u 0 1") + sizeof(int)*3];
+		char uidmap_buf[sizeof("0 %u 1") + sizeof(int)*3];
 
 		/*
 		 * Since Linux 3.19 unprivileged writing of /proc/self/gid_map
@@ -348,9 +348,9 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 		 * in that user namespace.
 		 */
 		xopen_xwrite_close(PATH_PROC_SETGROUPS, "deny");
-		sprintf(uidmap_buf, "%u 0 1", (unsigned)reuid);
+		sprintf(uidmap_buf, "0 %u 1", (unsigned)reuid);
 		xopen_xwrite_close(PATH_PROC_UIDMAP, uidmap_buf);
-		sprintf(uidmap_buf, "%u 0 1", (unsigned)regid);
+		sprintf(uidmap_buf, "0 %u 1", (unsigned)regid);
 		xopen_xwrite_close(PATH_PROC_GIDMAP, uidmap_buf);
 	} else
 	if (setgrp_str) {
