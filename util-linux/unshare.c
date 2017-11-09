@@ -217,7 +217,7 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 		":\xf3""n"
 		":\xf4""p"
 		":\xf5""U"
-		":ru"	   /* --map-root-user or -r implies -u */
+		":rU"	   /* --map-root-user or -r implies -U */
 		":\xfd""m" /* --mount-proc implies -m */
 		, unshare_longopts,
 		&proc_mnt_target, &prop_str, &setgrp_str,
