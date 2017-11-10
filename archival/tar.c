@@ -757,8 +757,9 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	IF_FEATURE_TAR_CREATE("h")
 //usage:	IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 //usage:	"vO] "
-//usage:	IF_FEATURE_TAR_FROM("[-X FILE] [-T FILE] ")
-//usage:	"[-f TARFILE] [-C DIR] [FILE]..."
+//usage:	"[-f TARFILE] [-C DIR] "
+//usage:	IF_FEATURE_TAR_FROM("[-T FILE] [-X FILE] "IF_FEATURE_TAR_LONG_OPTIONS("[--exclude PATTERN] "))
+//usage:	"[FILE]..."
 //usage:#define tar_full_usage "\n\n"
 //usage:	IF_FEATURE_TAR_CREATE("Create, extract, ")
 //usage:	IF_NOT_FEATURE_TAR_CREATE("Extract ")
@@ -769,8 +770,8 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	)
 //usage:     "\n	x	Extract"
 //usage:     "\n	t	List"
-//usage:     "\n	f	Name of TARFILE ('-' for stdin/out)"
-//usage:     "\n	C	Change to DIR before operation"
+//usage:     "\n	f FILE	Name of TARFILE ('-' for stdin/out)"
+//usage:     "\n	C DIR	Change to DIR before operation"
 //usage:     "\n	v	Verbose"
 //usage:	IF_FEATURE_SEAMLESS_Z(
 //usage:     "\n	Z	(De)compress using compress"
@@ -795,11 +796,11 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:     "\n	m	Don't restore mtime"
 //usage:	)
 //usage:	IF_FEATURE_TAR_FROM(
+//usage:     "\n	T FILE	File with names to include"
+//usage:     "\n	X FILE	File with glob patterns to exclude"
 //usage:	IF_FEATURE_TAR_LONG_OPTIONS(
-//usage:     "\n	exclude	File to exclude"
+//usage:     "\n	--exclude PATTERN	Glob pattern to exclude"
 //usage:	)
-//usage:     "\n	X	File with names to exclude"
-//usage:     "\n	T	File with names to include"
 //usage:	)
 //usage:
 //usage:#define tar_example_usage
