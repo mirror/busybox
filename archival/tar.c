@@ -751,7 +751,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 #endif
 
 //usage:#define tar_trivial_usage
-//usage:	"-[" IF_FEATURE_TAR_CREATE("c") "xt"
+//usage:	IF_FEATURE_TAR_CREATE("c|") "x|t [-"
 //usage:	IF_FEATURE_SEAMLESS_Z("Z")
 //usage:	IF_FEATURE_SEAMLESS_GZ("z")
 //usage:	IF_FEATURE_SEAMLESS_XZ("J")
@@ -773,34 +773,34 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	)
 //usage:     "\n	x	Extract"
 //usage:     "\n	t	List"
-//usage:     "\n	f FILE	Name of TARFILE ('-' for stdin/out)"
-//usage:     "\n	C DIR	Change to DIR before operation"
-//usage:     "\n	v	Verbose"
+//usage:     "\n	-f FILE	Name of TARFILE ('-' for stdin/out)"
+//usage:     "\n	-C DIR	Change to DIR before operation"
+//usage:     "\n	-v	Verbose"
 //usage:	IF_FEATURE_SEAMLESS_Z(
-//usage:     "\n	Z	(De)compress using compress"
+//usage:     "\n	-Z	(De)compress using compress"
 //usage:	)
 //usage:	IF_FEATURE_SEAMLESS_GZ(
-//usage:     "\n	z	(De)compress using gzip"
+//usage:     "\n	-z	(De)compress using gzip"
 //usage:	)
 //usage:	IF_FEATURE_SEAMLESS_XZ(
-//usage:     "\n	J	(De)compress using xz"
+//usage:     "\n	-J	(De)compress using xz"
 //usage:	)
 //usage:	IF_FEATURE_SEAMLESS_BZ2(
-//usage:     "\n	j	(De)compress using bzip2"
+//usage:     "\n	-j	(De)compress using bzip2"
 //usage:	)
 //usage:	IF_FEATURE_SEAMLESS_LZMA(
-//usage:     "\n	a	(De)compress using lzma"
+//usage:     "\n	-a	(De)compress using lzma"
 //usage:	)
-//usage:     "\n	O	Extract to stdout"
+//usage:     "\n	-O	Extract to stdout"
 //usage:	IF_FEATURE_TAR_CREATE(
-//usage:     "\n	h	Follow symlinks"
+//usage:     "\n	-h	Follow symlinks"
 //usage:	)
 //usage:	IF_FEATURE_TAR_NOPRESERVE_TIME(
-//usage:     "\n	m	Don't restore mtime"
+//usage:     "\n	-m	Don't restore mtime"
 //usage:	)
 //usage:	IF_FEATURE_TAR_FROM(
-//usage:     "\n	T FILE	File with names to include"
-//usage:     "\n	X FILE	File with glob patterns to exclude"
+//usage:     "\n	-T FILE	File with names to include"
+//usage:     "\n	-X FILE	File with glob patterns to exclude"
 //usage:	IF_FEATURE_TAR_LONG_OPTIONS(
 //usage:     "\n	--exclude PATTERN	Glob pattern to exclude"
 //usage:	)
@@ -967,11 +967,12 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		puts("tar (busybox) " BB_VER);
 		return 0;
 	}
-	if (argv[1] && argv[1][0] != '-') {
+#endif
+	if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {
 		/* Compat:
 		 * 1st argument without dash handles options with parameters
 		 * differently from dashed one: it takes *next argv[i]*
-		 * as paramenter even if there are more chars in 1st argument:
+		 * as parameter even if there are more chars in 1st argument:
 		 *  "tar fx TARFILE" - "x" is not taken as f's param
 		 *  but is interpreted as -x option
 		 *  "tar -xf TARFILE" - dashed equivalent of the above
@@ -991,11 +992,9 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 			}
 			*f = 'f';
 		}
-	}
-#endif
-	/* Prepend '-' to the first argument if required */
-	if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0')
+		/* Prepend '-' to the first argument  */
 		argv[1] = xasprintf("-%s", argv[1]);
+	}
 	opt = GETOPT32(argv, "^"
 		"txC:f:Oopvk"
 		IF_FEATURE_TAR_CREATE(   "ch"    )
