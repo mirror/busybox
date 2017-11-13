@@ -49,7 +49,7 @@
 //config:	tarballs. Currently it works only on files (not pipes etc).
 //config:
 //config:config FEATURE_TAR_FROM
-//config:	bool "Enable -X (exclude from) and -T (include from) options)"
+//config:	bool "Enable -X (exclude from) and -T (include from) options"
 //config:	default y
 //config:	depends on TAR
 //config:	help
@@ -156,7 +156,9 @@ typedef struct TarBallInfo {
 	int tarFd;                      /* Open-for-write file descriptor
 	                                 * for the tarball */
 	int verboseFlag;                /* Whether to print extra stuff or not */
+# if ENABLE_FEATURE_TAR_FROM
 	const llist_t *excludeList;     /* List of files to not include */
+# endif
 	HardLinkInfo *hlInfoHead;       /* Hard Link Tracking Information */
 	HardLinkInfo *hlInfo;           /* Hard Link Info for the current file */
 //TODO: save only st_dev + st_ino
@@ -278,7 +280,7 @@ static void chksum_and_xwrite(int fd, struct tar_header_t* hp)
 	xwrite(fd, hp, sizeof(*hp));
 }
 
-#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+# if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 static void writeLongname(int fd, int type, const char *name, int dir)
 {
 	static const struct {
@@ -318,7 +320,7 @@ static void writeLongname(int fd, int type, const char *name, int dir)
 	memset(&header, 0, size);
 	xwrite(fd, &header, size);
 }
-#endif
+# endif
 
 /* Write out a tar header for the specified file/directory/whatever */
 static int writeTarHeader(struct TarBallInfo *tbInfo,
@@ -347,30 +349,30 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		header.typeflag = LNKTYPE;
 		strncpy(header.linkname, tbInfo->hlInfo->name,
 				sizeof(header.linkname));
-#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+# if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 		/* Write out long linkname if needed */
 		if (header.linkname[sizeof(header.linkname)-1])
 			writeLongname(tbInfo->tarFd, GNULONGLINK,
 					tbInfo->hlInfo->name, 0);
-#endif
+# endif
 	} else if (S_ISLNK(statbuf->st_mode)) {
 		char *lpath = xmalloc_readlink_or_warn(fileName);
 		if (!lpath)
 			return FALSE;
 		header.typeflag = SYMTYPE;
 		strncpy(header.linkname, lpath, sizeof(header.linkname));
-#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+# if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 		/* Write out long linkname if needed */
 		if (header.linkname[sizeof(header.linkname)-1])
 			writeLongname(tbInfo->tarFd, GNULONGLINK, lpath, 0);
-#else
+# else
 		/* If it is larger than 100 bytes, bail out */
 		if (header.linkname[sizeof(header.linkname)-1]) {
 			free(lpath);
 			bb_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
 			return FALSE;
 		}
-#endif
+# endif
 		free(lpath);
 	} else if (S_ISDIR(statbuf->st_mode)) {
 		header.typeflag = DIRTYPE;
@@ -400,9 +402,9 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		 * It always does unless off_t is wider than 64 bits.
 		 */
 		else if (ENABLE_FEATURE_TAR_GNU_EXTENSIONS
-#if ULLONG_MAX > 0xffffffffffffffffLL /* 2^64-1 */
+# if ULLONG_MAX > 0xffffffffffffffffLL /* 2^64-1 */
 		 && (filesize <= 0x3fffffffffffffffffffffffLL)
-#endif
+# endif
 		) {
 			/* GNU tar uses "base-256 encoding" for very large numbers.
 			 * Encoding is binary, with highest bit always set as a marker
@@ -429,13 +431,13 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		return FALSE;
 	}
 
-#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+# if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	/* Write out long name if needed */
 	/* (we, like GNU tar, output long linkname *before* long name) */
 	if (header.name[sizeof(header.name)-1])
 		writeLongname(tbInfo->tarFd, GNULONGNAME,
 				header_name, S_ISDIR(statbuf->st_mode));
-#endif
+# endif
 
 	/* Now write the header out to disk */
 	chksum_and_xwrite(tbInfo->tarFd, &header);
@@ -457,7 +459,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	return TRUE;
 }
 
-#if ENABLE_FEATURE_TAR_FROM
+# if ENABLE_FEATURE_TAR_FROM
 static int exclude_file(const llist_t *excluded_files, const char *file)
 {
 	while (excluded_files) {
@@ -483,9 +485,9 @@ static int exclude_file(const llist_t *excluded_files, const char *file)
 
 	return 0;
 }
-#else
-# define exclude_file(excluded_files, file) 0
-#endif
+# else
+#  define exclude_file(excluded_files, file) 0
+# endif
 
 static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statbuf,
 			void *userData, int depth UNUSED_PARAM)
@@ -538,12 +540,12 @@ static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statb
 	if (exclude_file(tbInfo->excludeList, header_name))
 		return SKIP;
 
-#if !ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+# if !ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	if (strlen(header_name) >= NAME_SIZE) {
 		bb_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
 		return TRUE;
 	}
-#endif
+# endif
 
 	/* Is this a regular file? */
 	if (tbInfo->hlInfo == NULL && S_ISREG(statbuf->st_mode)) {
@@ -590,7 +592,7 @@ static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statb
 	return TRUE;
 }
 
-#if SEAMLESS_COMPRESSION
+# if SEAMLESS_COMPRESSION
 /* Don't inline: vfork scares gcc and pessimizes code */
 static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 {
@@ -598,13 +600,13 @@ static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 
 	// On Linux, vfork never unpauses parent early, although standard
 	// allows for that. Do we want to waste bytes checking for it?
-# define WAIT_FOR_CHILD 0
+#  define WAIT_FOR_CHILD 0
 	volatile int vfork_exec_errno = 0;
 	struct fd_pair gzipDataPipe;
-# if WAIT_FOR_CHILD
+#  if WAIT_FOR_CHILD
 	struct fd_pair gzipStatusPipe;
 	xpiped_pair(gzipStatusPipe);
-# endif
+#  endif
 	xpiped_pair(gzipDataPipe);
 
 	signal(SIGPIPE, SIG_IGN); /* we only want EPIPE on errors */
@@ -615,12 +617,12 @@ static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 		/* child */
 		/* NB: close _first_, then move fds! */
 		close(gzipDataPipe.wr);
-# if WAIT_FOR_CHILD
+#  if WAIT_FOR_CHILD
 		close(gzipStatusPipe.rd);
 		/* gzipStatusPipe.wr will close only on exec -
 		 * parent waits for this close to happen */
 		fcntl(gzipStatusPipe.wr, F_SETFD, FD_CLOEXEC);
-# endif
+#  endif
 		xmove_fd(gzipDataPipe.rd, 0);
 		xmove_fd(tar_fd, 1);
 		/* exec gzip/bzip2 program/applet */
@@ -632,7 +634,7 @@ static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 	/* parent */
 	xmove_fd(gzipDataPipe.wr, tar_fd);
 	close(gzipDataPipe.rd);
-# if WAIT_FOR_CHILD
+#  if WAIT_FOR_CHILD
 	close(gzipStatusPipe.wr);
 	while (1) {
 		char buf;
@@ -644,55 +646,52 @@ static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 			continue;	/* try it again */
 	}
 	close(gzipStatusPipe.rd);
-# endif
+#  endif
 	if (vfork_exec_errno) {
 		errno = vfork_exec_errno;
 		bb_perror_msg_and_die("can't execute '%s'", gzip);
 	}
 }
-#endif /* SEAMLESS_COMPRESSION */
+# endif /* SEAMLESS_COMPRESSION */
 
 
-#if !SEAMLESS_COMPRESSION
+# if !SEAMLESS_COMPRESSION
 /* Do not pass gzip flag to writeTarFile() */
-#define writeTarFile(tar_fd, verboseFlag, recurseFlags, include, exclude, gzip) \
-	writeTarFile(tar_fd, verboseFlag, recurseFlags, include, exclude)
-#endif
+#define writeTarFile(tbInfo, recurseFlags, filelist, gzip) \
+	writeTarFile(tbInfo, recurseFlags, filelist)
+# endif
 /* gcc 4.2.1 inlines it, making code bigger */
-static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
-	int recurseFlags, const llist_t *include,
-	const llist_t *exclude, const char *gzip)
+static NOINLINE int writeTarFile(
+	struct TarBallInfo *tbInfo,
+	int recurseFlags,
+	const llist_t *filelist,
+	const char *gzip)
 {
 	int errorFlag = FALSE;
-	struct TarBallInfo tbInfo;
 
-	tbInfo.hlInfoHead = NULL;
-	tbInfo.tarFd = tar_fd;
-	tbInfo.verboseFlag = verboseFlag;
+	/*tbInfo->hlInfoHead = NULL; - already is */
 
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
-	xfstat(tbInfo.tarFd, &tbInfo.tarFileStatBuf, "can't stat tar file");
+	xfstat(tbInfo->tarFd, &tbInfo->tarFileStatBuf, "can't stat tar file");
 
-#if SEAMLESS_COMPRESSION
+# if SEAMLESS_COMPRESSION
 	if (gzip)
-		vfork_compressor(tbInfo.tarFd, gzip);
-#endif
-
-	tbInfo.excludeList = exclude;
+		vfork_compressor(tbInfo->tarFd, gzip);
+# endif
 
 	/* Read the directory/files and iterate over them one at a time */
-	while (include) {
-		if (!recursive_action(include->data, recurseFlags,
-				writeFileToTarball, writeFileToTarball, &tbInfo, 0)
+	while (filelist) {
+		if (!recursive_action(filelist->data, recurseFlags,
+				writeFileToTarball, writeFileToTarball, tbInfo, 0)
 		) {
 			errorFlag = TRUE;
 		}
-		include = include->link;
+		filelist = filelist->link;
 	}
 	/* Write two empty blocks to the end of the archive */
 	memset(block_buf, 0, 2*TAR_BLOCK_SIZE);
-	xwrite(tbInfo.tarFd, block_buf, 2*TAR_BLOCK_SIZE);
+	xwrite(tbInfo->tarFd, block_buf, 2*TAR_BLOCK_SIZE);
 
 	/* To be pedantically correct, we would check if the tarball
 	 * is smaller than 20 tar blocks, and pad it if it was smaller,
@@ -700,16 +699,16 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 	 * so is considered a waste of space */
 
 	/* Close so the child process (if any) will exit */
-	close(tbInfo.tarFd);
+	close(tbInfo->tarFd);
 
 	/* Hang up the tools, close up shop, head home */
 	if (ENABLE_FEATURE_CLEAN_UP)
-		freeHardLinkInfo(&tbInfo.hlInfoHead);
+		freeHardLinkInfo(&tbInfo->hlInfoHead);
 
 	if (errorFlag)
 		bb_error_msg("error exit delayed from previous errors");
 
-#if SEAMLESS_COMPRESSION
+# if SEAMLESS_COMPRESSION
 	if (gzip) {
 		int status;
 		if (safe_waitpid(-1, &status, 0) == -1)
@@ -718,21 +717,25 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 			/* gzip was killed or has exited with nonzero! */
 			errorFlag = TRUE;
 	}
-#endif
+# endif
 	return errorFlag;
 }
+
 #else /* !FEATURE_TAR_CREATE */
+
 # define writeTarFile(...) 0
+
 #endif
 
 #if ENABLE_FEATURE_TAR_FROM
 static llist_t *append_file_list_to_list(llist_t *list)
 {
-	FILE *src_stream;
-	char *line;
 	llist_t *newlist = NULL;
 
 	while (list) {
+		FILE *src_stream;
+		char *line;
+
 		src_stream = xfopen_stdin(llist_pop(&list));
 		while ((line = xmalloc_fgetline(src_stream)) != NULL) {
 			/* kill trailing '/' unless the string is just "/" */
@@ -758,7 +761,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 //usage:	"vO] "
 //usage:	"[-f TARFILE] [-C DIR] "
-//usage:	IF_FEATURE_TAR_FROM("[-T FILE] [-X FILE] "IF_FEATURE_TAR_LONG_OPTIONS("[--exclude PATTERN] "))
+//usage:	IF_FEATURE_TAR_FROM("[-T FILE] [-X FILE] "IF_FEATURE_TAR_LONG_OPTIONS("[--exclude PATTERN]... "))
 //usage:	"[FILE]..."
 //usage:#define tar_full_usage "\n\n"
 //usage:	IF_FEATURE_TAR_CREATE("Create, extract, ")
@@ -1170,13 +1173,10 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	if (base_dir)
 		xchdir(base_dir);
 
-	//if (SEAMLESS_COMPRESSION)
-	//	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
-	//	signal(SIGCHLD, check_errors_in_children);
-
 #if ENABLE_FEATURE_TAR_CREATE
 	/* Create an archive */
 	if (opt & OPT_CREATE) {
+		struct TarBallInfo *tbInfo;
 # if SEAMLESS_COMPRESSION
 		const char *zipMode = NULL;
 		if (opt & OPT_COMPRESS)
@@ -1190,12 +1190,18 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		if (opt & OPT_XZ)
 			zipMode = "xz";
 # endif
+		tbInfo = xzalloc(sizeof(*tbInfo));
+		tbInfo->tarFd = tar_handle->src_fd;
+		tbInfo->verboseFlag = verboseFlag;
+# if ENABLE_FEATURE_TAR_FROM
+		tbInfo->excludeList = tar_handle->reject;
+# endif
 		/* NB: writeTarFile() closes tar_handle->src_fd */
-		return writeTarFile(tar_handle->src_fd, verboseFlag,
+		return writeTarFile(tbInfo,
 				(opt & OPT_DEREFERENCE ? ACTION_FOLLOWLINKS : 0)
 				| (opt & OPT_NORECURSION ? 0 : ACTION_RECURSE),
 				tar_handle->accept,
-				tar_handle->reject, zipMode);
+				zipMode);
 	}
 #endif
 
