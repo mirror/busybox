@@ -32,7 +32,6 @@ char* FAST_FUNC skip_non_whitespace(const char *s)
 
 char* FAST_FUNC skip_dev_pfx(const char *tty_name)
 {
-	if (is_prefixed_with(tty_name, "/dev/"))
-		tty_name += 5;
-	return (char*)tty_name;
+	char *unprefixed = is_prefixed_with(tty_name, "/dev/");
+	return unprefixed ? unprefixed : (char*)tty_name;
 }
