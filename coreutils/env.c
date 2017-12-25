@@ -54,7 +54,7 @@ int env_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opts;
 	llist_t *unset_env = NULL;
 
-	opts = getopt32long(argv, "+iu:+",
+	opts = getopt32long(argv, "+iu:*",
 			"ignore-environment\0" No_argument       "i"
 			"unset\0"              Required_argument "u"
 			, &unset_env
