@@ -77,6 +77,10 @@ install -m 755 busybox "$prefix/bin/busybox" || exit 1
 for i in $h; do
 	appdir=`dirname "$i"`
 	app=`basename "$i"`
+	if [ "$noclobber" = "1" ] && [ -e "$prefix/$i" ]; then
+		echo "  $prefix/$i already exists"
+		continue
+	fi
 	mkdir -p "$prefix/$appdir" || exit 1
 	if [ "$scriptwrapper" = "y" ]; then
 		if [ "$swrapall" != "y" ] && [ "$i" = "/bin/sh" ]; then
@@ -90,12 +94,8 @@ for i in $h; do
 	elif [ "$binaries" = "y" ]; then
 		# Copy the binary over rather
 		if [ -e $sharedlib_dir/$app ]; then
-			if [ "$noclobber" = "0" ] || [ ! -e "$prefix/$i" ]; then
-				echo "   Copying $sharedlib_dir/$app to $prefix/$i"
-				cp -pPR $sharedlib_dir/$app $prefix/$i || exit 1
-			else
-				echo "  $prefix/$i already exists"
-			fi
+			echo "   Copying $sharedlib_dir/$app to $prefix/$i"
+			cp -pPR $sharedlib_dir/$app $prefix/$i || exit 1
 		else
 			echo "Error: Could not find $sharedlib_dir/$app"
 			exit 1
@@ -123,12 +123,8 @@ for i in $h; do
 			;;
 			esac
 		fi
-		if [ "$noclobber" = "0" ] || [ ! -e "$prefix/$i" ]; then
-			echo "  $prefix/$i -> $bb_path"
-			ln $linkopts "$bb_path" "$prefix/$i" || exit 1
-		else
-			echo "  $prefix/$i already exists"
-		fi
+		echo "  $prefix/$i -> $bb_path"
+		ln $linkopts "$bb_path" "$prefix/$i" || exit 1
 	fi
 done
 
