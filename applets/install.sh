@@ -8,6 +8,7 @@ if [ -z "$prefix" ]; then
 	echo "usage: applets/install.sh DESTINATION [--symlinks/--hardlinks/--binaries/--scriptwrapper]"
 	exit 1
 fi
+shift # Keep only remaining options
 
 # Source the configuration
 . ./.config
@@ -21,18 +22,21 @@ scriptwrapper="n"
 binaries="n"
 cleanup="0"
 noclobber="0"
-case "$2" in
-	--hardlinks)     linkopts="-f";;
-	--symlinks)      linkopts="-fs";;
-	--binaries)      binaries="y";;
-	--scriptwrapper) scriptwrapper="y";swrapall="y";;
-	--sw-sh-hard)    scriptwrapper="y";linkopts="-f";;
-	--sw-sh-sym)     scriptwrapper="y";linkopts="-fs";;
-	--cleanup)       cleanup="1";;
-	--noclobber)     noclobber="1";;
-	"")              h="";;
-	*)               echo "Unknown install option: $2"; exit 1;;
-esac
+while [ ${#} -gt 0 ]; do
+	case "$1" in
+		--hardlinks)     linkopts="-f";;
+		--symlinks)      linkopts="-fs";;
+		--binaries)      binaries="y";;
+		--scriptwrapper) scriptwrapper="y"; swrapall="y";;
+		--sw-sh-hard)    scriptwrapper="y"; linkopts="-f";;
+		--sw-sh-sym)     scriptwrapper="y"; linkopts="-fs";;
+		--cleanup)       cleanup="1";;
+		--noclobber)     noclobber="1";;
+		"")              h="";;
+		*)               echo "Unknown install option: $1"; exit 1;;
+	esac
+	shift
+done
 
 if [ -n "$DO_INSTALL_LIBS" ] && [ "$DO_INSTALL_LIBS" != "n" ]; then
 	# get the target dir for the libs
