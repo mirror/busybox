@@ -46,6 +46,9 @@ ifeq ($(strip $(CONFIG_FEATURE_SUID)),y)
 	@echo
 endif
 
+install-noclobber: INSTALL_OPTS+=--noclobber
+install-noclobber: install
+
 uninstall: busybox.links
 	rm -f $(CONFIG_PREFIX)/bin/busybox
 	for i in `cat busybox.links` ; do rm -f $(CONFIG_PREFIX)$$i; done
