@@ -108,7 +108,10 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *arg;
 	pid_t pid;
-	int signo = SIGTERM, errors = 0, quiet = 0;
+	int signo = SIGTERM, errors = 0;
+#if ENABLE_KILL || ENABLE_KILLALL
+	int quiet = 0;
+#endif
 
 #if KILL_APPLET_CNT == 1
 # define is_killall  ENABLE_KILLALL
@@ -170,7 +173,9 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 
 	/* The -q quiet option */
 	if (is_killall && arg[1] == 'q' && arg[2] == '\0') {
+#if ENABLE_KILL || ENABLE_KILLALL
 		quiet = 1;
+#endif
 		arg = *++argv;
 		if (!arg)
 			bb_show_usage();

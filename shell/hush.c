@@ -2278,7 +2278,7 @@ static int unset_local_var_len(const char *name, int name_len)
 	return EXIT_SUCCESS;
 }
 
-#if ENABLE_HUSH_UNSET
+#if ENABLE_HUSH_UNSET || ENABLE_HUSH_GETOPTS
 static int unset_local_var(const char *name)
 {
 	return unset_local_var_len(name, strlen(name));
@@ -2300,7 +2300,7 @@ static void unset_vars(char **strings)
 	free(strings);
 }
 
-#if BASH_HOSTNAME_VAR || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_READ
+#if BASH_HOSTNAME_VAR || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_READ || ENABLE_HUSH_GETOPTS
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
 	char *var = xasprintf("%s=%s", name, val);
@@ -5534,7 +5534,7 @@ static int expand_on_ifs(int *ended_with_ifs, o_string *output, int n, const cha
 static char *encode_then_expand_string(const char *str, int process_bkslash, int do_unbackslash)
 {
 #if !BASH_PATTERN_SUBST
-	const int do_unbackslash = 1;
+	enum { do_unbackslash = 1 };
 #endif
 	char *exp_str;
 	struct in_str input;
@@ -8139,7 +8139,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			return rcode;
 		}
 
-		if (ENABLE_FEATURE_SH_NOFORK) {
+		if (ENABLE_FEATURE_SH_NOFORK && NUM_APPLETS > 1) {
 			int n = find_applet_by_name(argv_expanded[0]);
 			if (n >= 0 && APPLET_IS_NOFORK(n)) {
 				rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, &squirrel, argv_expanded);
@@ -8387,7 +8387,10 @@ static int run_list(struct pipe *pi)
 				rword, cond_code, last_rword);
 
 		sv_errexit_depth = G.errexit_depth;
-		if (IF_HAS_KEYWORDS(rword == RES_IF || rword == RES_ELIF ||)
+		if (
+#if ENABLE_HUSH_IF
+		    rword == RES_IF || rword == RES_ELIF ||
+#endif
 		    pi->followup != PIPE_SEQ
 		) {
 			G.errexit_depth++;

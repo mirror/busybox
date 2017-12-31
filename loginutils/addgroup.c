@@ -142,7 +142,9 @@ static const char addgroup_longopts[] ALIGN1 =
 int addgroup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int addgroup_main(int argc UNUSED_PARAM, char **argv)
 {
+#if ENABLE_FEATURE_ADDUSER_TO_GROUP
 	unsigned opts;
+#endif
 	const char *gid = "0";
 
 	/* need to be root */
@@ -154,7 +156,10 @@ int addgroup_main(int argc UNUSED_PARAM, char **argv)
 	 *  addgroup --gid num group
 	 *  addgroup user group
 	 * Check for min, max and missing args */
-	opts = getopt32long(argv, "^" "g:S" "\0" "-1:?2", addgroup_longopts,
+#if ENABLE_FEATURE_ADDUSER_TO_GROUP
+	opts =
+#endif
+	getopt32long(argv, "^" "g:S" "\0" "-1:?2", addgroup_longopts,
 				&gid
 	);
 	/* move past the commandline options */

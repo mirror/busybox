@@ -208,7 +208,7 @@ struct globals {
 #define G_error_pkt_reason (G.error_pkt[3])
 #define G_error_pkt_str    ((char*)(G.error_pkt + 4))
 
-#if ENABLE_FEATURE_TFTP_PROGRESS_BAR
+#if ENABLE_FEATURE_TFTP_PROGRESS_BAR && ENABLE_FEATURE_TFTP_BLOCKSIZE
 static void tftp_progress_update(void)
 {
 	bb_progress_update(&G.pmt, 0, G.pos, G.size);
@@ -227,6 +227,7 @@ static void tftp_progress_done(void)
 	}
 }
 #else
+# define tftp_progress_update() ((void)0)
 # define tftp_progress_init() ((void)0)
 # define tftp_progress_done() ((void)0)
 #endif

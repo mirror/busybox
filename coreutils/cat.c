@@ -168,9 +168,12 @@ static int catv(unsigned opts, char **argv)
 int cat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cat_main(int argc UNUSED_PARAM, char **argv)
 {
+#if ENABLE_FEATURE_CATV || ENABLE_FEATURE_CATN
 	unsigned opts;
 
-	opts = getopt32(argv, IF_FEATURE_CATV("^")
+	opts =
+#endif
+	getopt32(argv, IF_FEATURE_CATV("^")
 		/* -u is ignored ("unbuffered") */
 		IF_FEATURE_CATV("etvA")IF_FEATURE_CATN("nb")"u"
 		IF_FEATURE_CATV("\0" "Aetv" /* -A == -vet */)

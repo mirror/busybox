@@ -66,6 +66,7 @@ while sleep 1; do
 			continue
 		fi
 	fi
+	grep -i 'warning:' "$dir/make.log"
 	rm -rf -- "$dir"
 	let cnt++
 done

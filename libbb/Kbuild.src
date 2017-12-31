@@ -124,6 +124,7 @@ lib-$(CONFIG_UNICODE_SUPPORT) += unicode.o
 lib-$(CONFIG_FEATURE_CHECK_NAMES) += die_if_bad_username.o
 
 lib-$(CONFIG_NC) += udp_io.o
+lib-$(CONFIG_NETCAT) += udp_io.o
 lib-$(CONFIG_DNSD) += udp_io.o
 lib-$(CONFIG_NTPD) += udp_io.o
 lib-$(CONFIG_TFTP) += udp_io.o

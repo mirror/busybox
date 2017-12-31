@@ -759,10 +759,13 @@ int stat_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_STAT_FORMAT(char *format = NULL;)
 	int i;
 	int ok;
-	unsigned opts;
 	statfunc_ptr statfunc = do_stat;
+#if ENABLE_FEATURE_STAT_FILESYSTEM || ENABLE_SELINUX
+	unsigned opts;
 
-	opts = getopt32(argv, "^"
+	opts =
+#endif
+	getopt32(argv, "^"
 		"tL"
 		IF_FEATURE_STAT_FILESYSTEM("f")
 		IF_SELINUX("Z")

@@ -482,12 +482,11 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 	int opt;
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
 	struct stat statbuf;
-	char append;
+#endif
+#if ENABLE_FEATURE_LS_FILETYPES
+	char append = append_char(dn->dn_mode);
 #endif
 
-#if ENABLE_FEATURE_LS_FILETYPES
-	append = append_char(dn->dn_mode);
-#endif
 	opt = option_mask32;
 
 	/* Do readlink early, so that if it fails, error message

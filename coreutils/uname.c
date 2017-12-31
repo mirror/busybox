@@ -127,11 +127,9 @@ int uname_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	uname_info_t uname_info;
 	IF_UNAME(const char *unknown_str = "unknown";)
-	unsigned toprint;
-
-	toprint = (1 << 4); /* "arch" = "uname -m" */
-
 #if ENABLE_UNAME
+	unsigned toprint = (1 << 4); /* "arch" = "uname -m" */
+
 	if (!ENABLE_BB_ARCH || applet_name[0] == 'u') {
 # if ENABLE_LONG_OPTS
 		static const char uname_longopts[] ALIGN1 =

@@ -12,8 +12,9 @@ makeopts="-j9"
 test -f include/applets.h || { echo "No include/applets.h file"; exit 1; }
 apps="`
 grep ^IF_ include/applets.h \
-| grep -v ^IF_FEATURE_ \
+| grep -v '^IF_FEATURE_' \
 | sed 's/IF_\([A-Z0-9._-]*\)(.*/\1/' \
+| grep -v '^BUSYBOX$' \
 | sort | uniq
 `"
 
