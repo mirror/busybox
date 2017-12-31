@@ -128,9 +128,9 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	struct param_t param;
 
 #if ENABLE_FEATURE_CHOWN_LONG_OPTIONS
-	opt = getopt32long(argv, "^" OPT_STR "\0" "=2", chown_longopts);
+	opt = getopt32long(argv, "^" OPT_STR "\0" "-2", chown_longopts);
 #else
-	opt = getopt32(argv, "^" OPT_STR "\0" "=2");
+	opt = getopt32(argv, "^" OPT_STR "\0" "-2");
 #endif
 	argv += optind;
 
