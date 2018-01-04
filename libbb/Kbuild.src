@@ -143,7 +143,8 @@ lib-$(CONFIG_DELGROUP) += update_passwd.o
 lib-$(CONFIG_DELUSER) += update_passwd.o
 
 lib-$(CONFIG_FTPD) += pw_encrypt.o correct_password.o
-lib-$(CONFIG_PASSWD) += pw_encrypt.o update_passwd.o obscure.o
+lib-$(CONFIG_PASSWD) += pw_encrypt.o update_passwd.o
+lib-$(CONFIG_FEATURE_PASSWD_WEAK_CHECK) += obscure.o
 lib-$(CONFIG_CHPASSWD) += pw_encrypt.o update_passwd.o
 lib-$(CONFIG_CRYPTPW) += pw_encrypt.o
 lib-$(CONFIG_MKPASSWD) += pw_encrypt.o
