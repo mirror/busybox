@@ -6,22 +6,20 @@
  *
  * Bernhard Reutner-Fischer adjusted for busybox
  */
+//config:config TC
+//config:	bool "tc (3.1 kb)"
+//config:	default y
+//config:	help
+//config:	Show / manipulate traffic control settings
+//config:
+//config:config FEATURE_TC_INGRESS
+//config:	bool "Enable ingress"
+//config:	default y
+//config:	depends on TC
 
-/* Was disabled in 2008 by Bernhard, not known why.
---//config:#config TC
---//config:#	bool "tc"
---//config:#	default y
---//config:#	help
---//config:#	  Show / manipulate traffic control settings
---//config:#
---//config:#config FEATURE_TC_INGRESS
---//config:#	default y
---//config:#	depends on TC
---
---//applet:IF_TC(APPLET(tc, BB_DIR_SBIN, BB_SUID_DROP))
---
---//kbuild:lib-$(CONFIG_TC) += tc.o
-*/
+//applet:IF_TC(APPLET(tc, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_TC) += tc.o
 
 //usage:#define tc_trivial_usage
 /* //usage: "[OPTIONS] OBJECT CMD [dev STRING]" */
@@ -51,6 +49,17 @@
 #include "libiproute/ip_common.h"
 #include "libiproute/rt_names.h"
 #include <linux/pkt_sched.h> /* for the TC_H_* macros */
+
+/* This is the deprecated multiqueue interface */
+#ifndef TCA_PRIO_MAX
+enum
+{
+	TCA_PRIO_UNSPEC,
+	TCA_PRIO_MQ,
+	__TCA_PRIO_MAX
+};
+#define TCA_PRIO_MAX    (__TCA_PRIO_MAX - 1)
+#endif
 
 #define parse_rtattr_nested(tb, max, rta) \
 	(parse_rtattr((tb), (max), RTA_DATA(rta), RTA_PAYLOAD(rta)))
@@ -184,11 +193,13 @@ static void print_rate(char *buf, int len, uint32_t rate)
 	}
 }
 
+#if 0
 /* This is "pfifo_fast".  */
 static int prio_parse_opt(int argc, char **argv, struct nlmsghdr *n)
 {
 	return 0;
 }
+#endif
 static int prio_print_opt(struct rtattr *opt)
 {
 	int i;
@@ -211,11 +222,13 @@ static int prio_print_opt(struct rtattr *opt)
 	return 0;
 }
 
+#if 0
 /* Class Based Queue */
 static int cbq_parse_opt(int argc, char **argv, struct nlmsghdr *n)
 {
 	return 0;
 }
+#endif
 static int cbq_print_opt(struct rtattr *opt)
 {
 	struct rtattr *tb[TCA_CBQ_MAX+1];
@@ -308,8 +321,10 @@ static int cbq_print_opt(struct rtattr *opt)
 	return 0;
 }
 
-static int print_qdisc(const struct sockaddr_nl *who UNUSED_PARAM,
-						struct nlmsghdr *hdr, void *arg UNUSED_PARAM)
+static FAST_FUNC int print_qdisc(
+		const struct sockaddr_nl *who UNUSED_PARAM,
+		struct nlmsghdr *hdr,
+		void *arg UNUSED_PARAM)
 {
 	struct tcmsg *msg = NLMSG_DATA(hdr);
 	int len = hdr->nlmsg_len;
@@ -364,8 +379,10 @@ static int print_qdisc(const struct sockaddr_nl *who UNUSED_PARAM,
 	return 0;
 }
 
-static int print_class(const struct sockaddr_nl *who UNUSED_PARAM,
-						struct nlmsghdr *hdr, void *arg UNUSED_PARAM)
+static FAST_FUNC int print_class(
+		const struct sockaddr_nl *who UNUSED_PARAM,
+		struct nlmsghdr *hdr,
+		void *arg UNUSED_PARAM)
 {
 	struct tcmsg *msg = NLMSG_DATA(hdr);
 	int len = hdr->nlmsg_len;
@@ -432,8 +449,10 @@ static int print_class(const struct sockaddr_nl *who UNUSED_PARAM,
 	return 0;
 }
 
-static int print_filter(const struct sockaddr_nl *who UNUSED_PARAM,
-						struct nlmsghdr *hdr, void *arg UNUSED_PARAM)
+static FAST_FUNC int print_filter(
+		const struct sockaddr_nl *who UNUSED_PARAM,
+		struct nlmsghdr *hdr UNUSED_PARAM,
+		void *arg UNUSED_PARAM)
 {
 	return 0;
 }
@@ -451,6 +470,12 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 		"replace\0"
 		"show\0""list\0"
 		;
+	enum {
+		CMD_add = 0, CMD_del, CMD_change,
+		CMD_link,
+		CMD_replace,
+		CMD_show
+	};
 	static const char args[] ALIGN1 =
 		"dev\0" /* qdisc, class, filter */
 		"root\0" /* class, filter */
@@ -460,9 +485,15 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 		"classid\0" /* change: for class use "handle" */
 		"preference\0""priority\0""protocol\0" /* filter */
 		;
-	enum { CMD_add = 0, CMD_del, CMD_change, CMD_link, CMD_replace, CMD_show };
-	enum { ARG_dev = 0, ARG_root, ARG_parent, ARG_qdisc,
-			ARG_handle, ARG_classid, ARG_pref, ARG_prio, ARG_proto};
+	enum {
+		ARG_dev = 0,
+		ARG_root,
+		ARG_parent,
+		ARG_qdisc,
+		ARG_handle,
+		ARG_classid,
+		ARG_pref, ARG_prio, ARG_proto
+	};
 	struct rtnl_handle rth;
 	struct tcmsg msg;
 	int ret, obj, cmd, arg;
@@ -487,9 +518,12 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			invarg_1_to_2(*argv, argv[-1]);
 		argv++;
 	}
+
 	memset(&msg, 0, sizeof(msg));
-	msg.tcm_family = AF_UNSPEC;
+	if (AF_UNSPEC != 0)
+		msg.tcm_family = AF_UNSPEC;
 	ll_init_map(&rth);
+
 	while (*argv) {
 		arg = index_in_substrings(args, *argv);
 		if (arg == ARG_dev) {
@@ -526,7 +560,8 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			msg.tcm_parent = TC_H_ROOT;
 			if (obj == OBJ_filter)
 				filter_parent = TC_H_ROOT;
-		} else if (arg == ARG_parent) {
+		} else
+		if (arg == ARG_parent) {
 			uint32_t handle;
 			if (msg.tcm_parent)
 				duparg(*argv, "parent");
@@ -535,23 +570,31 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			msg.tcm_parent = handle;
 			if (obj == OBJ_filter)
 				filter_parent = handle;
-		} else if (arg == ARG_handle) { /* filter::list */
+		} else
+		if (arg == ARG_handle) { /* filter::list */
 			if (msg.tcm_handle)
 				duparg(*argv, "handle");
 			/* reject LONG_MIN || LONG_MAX */
 			/* TODO: for fw
 			slash = strchr(handle, '/');
 			if (slash != NULL)
-				   *slash = '\0';
+				*slash = '\0';
 			 */
 			msg.tcm_handle = get_u32(*argv, "handle");
 			/* if (slash) {if (get_u32(uint32_t &mask, slash+1, NULL)) inv mask; addattr32(n, MAX_MSG, TCA_FW_MASK, mask); */
-		} else if (arg == ARG_classid && obj == OBJ_class && cmd == CMD_change){
-		} else if (arg == ARG_pref || arg == ARG_prio) { /* filter::list */
+		} else
+		if (arg == ARG_classid
+		 && obj == OBJ_class
+		 && cmd == CMD_change
+		) {
+			/* TODO */
+		} else
+		if (arg == ARG_pref || arg == ARG_prio) { /* filter::list */
 			if (filter_prio)
 				duparg(*argv, "priority");
 			filter_prio = get_u32(*argv, "priority");
-		} else if (arg == ARG_proto) { /* filter::list */
+		} else
+		if (arg == ARG_proto) { /* filter::list */
 			uint16_t tmp;
 			if (filter_proto)
 				duparg(*argv, "protocol");
@@ -560,6 +603,7 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			filter_proto = tmp;
 		}
 	}
+
 	if (cmd >= CMD_show) { /* show or list */
 		if (obj == OBJ_filter)
 			msg.tcm_info = TC_H_MAKE(filter_prio<<16, filter_proto);
