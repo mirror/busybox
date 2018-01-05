@@ -10858,7 +10858,7 @@ shiftcmd(int argc UNUSED_PARAM, char **argv)
 	if (argv[1])
 		n = number(argv[1]);
 	if (n > shellparam.nparam)
-		n = 0; /* bash compat, was = shellparam.nparam; */
+		return 1;
 	INT_OFF;
 	shellparam.nparam -= n;
 	for (ap1 = shellparam.p; --n >= 0; ap1++) {
