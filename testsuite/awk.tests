@@ -261,6 +261,25 @@ end d
 " \
 	"" ""
 
+prg='
+BEGIN{
+cnt = 0
+a[cnt] = "zeroth"
+a[++cnt] = "first"
+delete a[cnt--]
+print cnt
+print "[0]:" a[0]
+print "[1]:" a[1]
+}'
+testing "awk 'delete a[v--]' evaluates v-- once" \
+	"awk '$prg'" \
+	"\
+0
+[0]:zeroth
+[1]:
+" \
+	"" ""
+
 testing "awk handles empty ()" \
 	"awk 'BEGIN {print()}' 2>&1" "awk: cmd. line:1: Empty sequence\n" "" ""
 
