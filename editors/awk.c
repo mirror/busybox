@@ -3149,7 +3149,7 @@ static rstream *next_input_file(void)
 }
 
 int awk_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int awk_main(int argc, char **argv)
+int awk_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 	char *opt_F;
@@ -3218,7 +3218,7 @@ int awk_main(int argc, char **argv)
 	}
 	opt = getopt32(argv, OPTSTR_AWK, &opt_F, &list_v, &list_f, IF_FEATURE_AWK_GNU_EXTENSIONS(&list_e,) NULL);
 	argv += optind;
-	argc -= optind;
+	//argc -= optind;
 	if (opt & OPT_W)
 		bb_error_msg("warning: option -W is ignored");
 	if (opt & OPT_F) {
@@ -3255,15 +3255,14 @@ int awk_main(int argc, char **argv)
 		if (!*argv)
 			bb_show_usage();
 		parse_program(*argv++);
-		argc--;
 	}
 
 	/* fill in ARGV array */
-	setvar_i(intvar[ARGC], argc + 1);
 	setari_u(intvar[ARGV], 0, "awk");
 	i = 0;
 	while (*argv)
 		setari_u(intvar[ARGV], ++i, *argv++);
+	setvar_i(intvar[ARGC], i + 1);
 
 	evaluate(beginseq.first, &tv);
 	if (!mainseq.first && !endseq.first)
