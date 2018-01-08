@@ -255,7 +255,6 @@ struct globals {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	less_gets_pos = -1; \
 	empty_line_marker = "~"; \
-	num_files = 1; \
 	current_file = 1; \
 	eof_error = 1; \
 	terminated = 1; \
@@ -1773,9 +1772,8 @@ int less_main(int argc, char **argv)
 	 *     (used by some setups for manpage display)
 	 */
 	getopt32(argv, "EMmN~I" IF_FEATURE_LESS_TRUNCATE("S") /*ignored:*/"s");
-	argc -= optind;
 	argv += optind;
-	num_files = argc;
+	num_files = argc - optind;
 	files = argv;
 
 	/* Another popular pager, most, detects when stdout
