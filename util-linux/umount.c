@@ -81,8 +81,8 @@ static struct mntent *getmntent_r(FILE* stream, struct mntent* result,
 }
 #endif
 
-/* ignored: -v -t -i */
-#define OPTION_STRING           "fldnra" "vt:i"
+/* ignored: -c -v -t -i */
+#define OPTION_STRING           "fldnra" "cvt:i"
 #define OPT_FORCE               (1 << 0) // Same as MNT_FORCE
 #define OPT_LAZY                (1 << 1) // Same as MNT_DETACH
 #define OPT_FREELOOP            (1 << 2)
