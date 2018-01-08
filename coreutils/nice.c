@@ -26,7 +26,7 @@
 #include "libbb.h"
 
 int nice_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int nice_main(int argc, char **argv)
+int nice_main(int argc UNUSED_PARAM, char **argv)
 {
 	int old_priority, adjustment;
 
@@ -40,18 +40,21 @@ int nice_main(int argc, char **argv)
 	adjustment = 10;  /* Set default adjustment. */
 
 	if (argv[0][0] == '-') {
-		if (argv[0][1] == 'n') { /* -n */
-			if (argv[0][2]) { /* -nNNNN (w/o space) */
-				argv[0] += 2; argv--; argc++;
+		char *nnn = argv[0] + 1;
+		if (nnn[0] == 'n') { /* -n */
+			nnn += 1;
+			if (!nnn[0]) { /* "-n NNN" */
+				nnn = *++argv;
 			}
-		} else { /* -NNN (NNN may be negative) == -n NNN */
-			argv[0] += 1; argv--; argc++;
+			/* else: "-nNNN" (w/o space) */
 		}
-		if (argc < 4) {  /* Missing priority and/or utility! */
+		/* else: "-NNN" (NNN may be negative) - same as "-n NNN" */
+
+		if (!nnn || !argv[1]) {  /* Missing priority or PROG! */
 			bb_show_usage();
 		}
-		adjustment = xatoi_range(argv[1], INT_MIN/2, INT_MAX/2);
-		argv += 2;
+		adjustment = xatoi_range(nnn, INT_MIN/2, INT_MAX/2);
+		argv++;
 	}
 
 	{  /* Set our priority. */
