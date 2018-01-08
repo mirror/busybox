@@ -254,7 +254,7 @@ static void pass_to_client(struct dhcp_packet *p, int packet_len, int *fds)
 }
 
 int dhcprelay_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dhcprelay_main(int argc, char **argv)
+int dhcprelay_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct sockaddr_in server_addr;
 	char **iface_list;
@@ -269,11 +269,11 @@ int dhcprelay_main(int argc, char **argv)
 	server_addr.sin_port = htons(SERVER_PORT);
 
 	/* dhcprelay CLIENT_IFACE1[,CLIENT_IFACE2...] SERVER_IFACE [SERVER_IP] */
-	if (argc == 4) {
+	if (!argv[1] || !argv[2])
+		bb_show_usage();
+	if (argv[3]) {
 		if (!inet_aton(argv[3], &server_addr.sin_addr))
 			bb_perror_msg_and_die("bad server IP");
-	} else if (argc != 3) {
-		bb_show_usage();
 	}
 
 	iface_list = make_iface_list(argv + 1, &num_sockets);
