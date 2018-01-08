@@ -840,7 +840,7 @@ static int get_irqcpu_nr(const char *f, int max_irqs)
 //usage:     "\n	-u			Report CPU utilization"
 
 int mpstat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mpstat_main(int UNUSED_PARAM argc, char **argv)
+int mpstat_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *opt_irq_fmt;
 	char *opt_set_cpu;

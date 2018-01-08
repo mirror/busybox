@@ -686,7 +686,7 @@ static void show_timerstats(void)
 //usage:       "Analyze power consumption on Intel-based laptops"
 
 int powertop_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
+int powertop_main(int argc UNUSED_PARAM, char UNUSED_PARAM **argv)
 {
 	ullong cur_usage[MAX_CSTATE_COUNT];
 	ullong cur_duration[MAX_CSTATE_COUNT];
