@@ -6756,6 +6756,10 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	//		p, varname, strloc, subtype, startloc, varflags, quotes);
 
 #if BASH_PATTERN_SUBST
+	/* For "${v/pattern/repl}", we must find the delimiter _before_
+	 * argstr() call expands possible variable references in pattern:
+	 * think about "v=a; a=a/; echo ${v/$a/r}" case.
+	 */
 	repl = NULL;
 	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
 		/* Find '/' and replace with NUL */
@@ -6770,11 +6774,8 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 				*repl = '\0';
 				break;
 			}
-			if ((unsigned char)*repl == CTLESC
-			 && repl[1]
-			) {
+			if ((unsigned char)*repl == CTLESC && repl[1])
 				repl++;
-			}
 			repl++;
 		}
 	}
@@ -6941,11 +6942,10 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 
 		if (!repl) {
 			//bb_error_msg("str9:'%s' slash_pos:%d", str, slash_pos);
+			repl = nullstr;
 			if (slash_pos >= 0) {
 				repl = str + slash_pos;
 				*repl++ = '\0';
-			} else {
-				repl = nullstr;
 			}
 		}
 		//bb_error_msg("str:'%s' repl:'%s'", str, repl);
