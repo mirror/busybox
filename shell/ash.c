@@ -5811,7 +5811,6 @@ ash_arith(const char *s)
 #define RMESCAPE_GLOB   0x2     /* Add backslashes for glob */
 #define RMESCAPE_GROW   0x8     /* Grow strings instead of stalloc */
 #define RMESCAPE_HEAP   0x10    /* Malloc strings instead of stalloc */
-#define RMESCAPE_SLASH  0x20    /* Stop globbing after slash */
 
 /* Add CTLESC when necessary. */
 #define QUOTES_ESC     (EXP_FULL | EXP_CASE | EXP_QPAT)
@@ -5992,8 +5991,12 @@ esclen(const char *start, const char *p)
 /*
  * Remove any CTLESC characters from a string.
  */
+#if !BASH_PATTERN_SUBST
+#define rmescapes(str, flag, slash_position) \
+	rmescapes(str, flag)
+#endif
 static char *
-rmescapes(char *str, int flag)
+rmescapes(char *str, int flag, int *slash_position)
 {
 	static const char qchars[] ALIGN1 = {
 		IF_BASH_PATTERN_SUBST('/',) CTLESC, CTLQUOTEMARK, '\0' };
@@ -6002,9 +6005,8 @@ rmescapes(char *str, int flag)
 	unsigned inquotes;
 	unsigned protect_against_glob;
 	unsigned globbing;
-	IF_BASH_PATTERN_SUBST(unsigned slash = flag & RMESCAPE_SLASH;)
 
-	p = strpbrk(str, qchars IF_BASH_PATTERN_SUBST(+ !slash));
+	p = strpbrk(str, qchars IF_BASH_PATTERN_SUBST(+ !slash_position));
 	if (!p)
 		return str;
 
@@ -6084,10 +6086,11 @@ rmescapes(char *str, int flag)
 			goto copy;
 		}
 #if BASH_PATTERN_SUBST
-		else if (*p == '/' && slash) {
-			/* stop handling globbing and mark location of slash */
-			globbing = slash = 0;
-			*p = CTLESC;
+		else if (slash_position && p == str + *slash_position) {
+			/* stop handling globbing */
+			globbing = 0;
+			*slash_position = q - r;
+			slash_position = NULL;
 		}
 #endif
 		protect_against_glob = globbing;
@@ -6111,7 +6114,7 @@ rmescapes(char *str, int flag)
 static char *
 preglob(const char *pattern, int flag)
 {
-	return rmescapes((char *)pattern, flag | RMESCAPE_GLOB);
+	return rmescapes((char *)pattern, flag | RMESCAPE_GLOB, NULL);
 }
 
 /*
@@ -6454,7 +6457,7 @@ expari(int flag)
 	expdest = p;
 
 	if (flag & QUOTES_ESC)
-		rmescapes(p + 1, 0);
+		rmescapes(p + 1, 0, NULL);
 
 	len = cvtnum(ash_arith(p + 1));
 
@@ -6742,20 +6745,57 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	char *rmesc, *rmescend;
 	char *str;
 	int amount, resetloc;
+	int argstr_flags;
 	IF_BASH_PATTERN_SUBST(int workloc;)
-	IF_BASH_PATTERN_SUBST(char *repl = NULL;)
+	IF_BASH_PATTERN_SUBST(int slash_pos;)
+	IF_BASH_PATTERN_SUBST(char *repl;)
 	int zero;
 	char *(*scan)(char*, char*, char*, char*, int, int);
 
 	//bb_error_msg("subevalvar(p:'%s',varname:'%s',strloc:%d,subtype:%d,startloc:%d,varflags:%x,quotes:%d)",
 	//		p, varname, strloc, subtype, startloc, varflags, quotes);
 
-	argstr(p, EXP_TILDE | (subtype != VSASSIGN && subtype != VSQUESTION ?
-			(flag & (EXP_QUOTED | EXP_QPAT) ? EXP_QPAT : EXP_CASE) : 0)
-	);
+#if BASH_PATTERN_SUBST
+	repl = NULL;
+	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
+		/* Find '/' and replace with NUL */
+		repl = p;
+		for (;;) {
+			/* Handle escaped slashes, e.g. "${v/\//_}" (they are CTLESC'ed by this point) */
+			if (*repl == '\0') {
+				repl = NULL;
+				break;
+			}
+			if (*repl == '/') {
+				*repl = '\0';
+				break;
+			}
+			if ((unsigned char)*repl == CTLESC
+			 && repl[1]
+			) {
+				repl++;
+			}
+			repl++;
+		}
+	}
+#endif
+	argstr_flags = EXP_TILDE;
+	if (subtype != VSASSIGN && subtype != VSQUESTION)
+		argstr_flags |= (flag & (EXP_QUOTED | EXP_QPAT) ? EXP_QPAT : EXP_CASE);
+	argstr(p, argstr_flags);
+#if BASH_PATTERN_SUBST
+	slash_pos = -1;
+	if (repl) {
+		slash_pos = expdest - ((char *)stackblock() + strloc);
+		STPUTC('/', expdest);
+		argstr(repl + 1, argstr_flags);
+		*repl = '/';
+	}
+#endif
 	STPUTC('\0', expdest);
 	argbackq = saveargbackq;
 	startp = (char *)stackblock() + startloc;
+	//bb_error_msg("str1:'%s'", (char *)stackblock() + strloc);
 
 	switch (subtype) {
 	case VSASSIGN:
@@ -6853,6 +6893,8 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	resetloc = expdest - (char *)stackblock();
 
 #if BASH_PATTERN_SUBST
+	repl = NULL;
+
 	/* We'll comeback here if we grow the stack while handling
 	 * a VSREPLACE or VSREPLACEALL, since our pointers into the
 	 * stack will need rebasing, and we'll need to remove our work
@@ -6867,8 +6909,10 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 
 	rmesc = startp;
 	rmescend = (char *)stackblock() + strloc;
+	//bb_error_msg("str7:'%s'", rmescend);
 	if (quotes) {
-		rmesc = rmescapes(startp, RMESCAPE_ALLOC | RMESCAPE_GROW);
+//TODO: how to handle slash_pos here if string changes (shortens?)
+		rmesc = rmescapes(startp, RMESCAPE_ALLOC | RMESCAPE_GROW, NULL);
 		if (rmesc != startp) {
 			rmescend = expdest;
 			startp = (char *)stackblock() + startloc;
@@ -6881,12 +6925,13 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	 * The result is a_\_z_c (not a\_\_z_c)!
 	 *
 	 * The search pattern and replace string treat backslashes differently!
-	 * RMESCAPE_SLASH causes preglob to work differently on the pattern
+	 * "&slash_pos" causes rmescapes() to work differently on the pattern
 	 * and string.  It's only used on the first call.
 	 */
-	preglob(str, IF_BASH_PATTERN_SUBST(
-		(subtype == VSREPLACE || subtype == VSREPLACEALL) && !repl ?
-			RMESCAPE_SLASH : ) 0);
+	//bb_error_msg("str8:'%s' slash_pos:%d", str, slash_pos);
+	rmescapes(str, RMESCAPE_GLOB,
+		repl ? NULL : (slash_pos < 0 ? NULL : &slash_pos)
+	);
 
 #if BASH_PATTERN_SUBST
 	workloc = expdest - (char *)stackblock();
@@ -6895,11 +6940,13 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		char *idx, *end;
 
 		if (!repl) {
-			repl = strchr(str, CTLESC);
-			if (repl)
+			//bb_error_msg("str9:'%s' slash_pos:%d", str, slash_pos);
+			if (slash_pos >= 0) {
+				repl = str + slash_pos;
 				*repl++ = '\0';
-			else
+			} else {
 				repl = nullstr;
+			}
 		}
 		//bb_error_msg("str:'%s' repl:'%s'", str, repl);
 
@@ -7419,7 +7466,7 @@ expandmeta(struct strlist *str /*, int flag*/)
 			INT_ON;
  nometa:
 			*exparg.lastp = str;
-			rmescapes(str->text, 0);
+			rmescapes(str->text, 0, NULL);
 			exparg.lastp = &str->next;
 			break;
 		default:	/* GLOB_NOSPACE */
@@ -7648,7 +7695,7 @@ expandmeta(struct strlist *str /*, int flag*/)
 			 */
  nometa:
 			*exparg.lastp = str;
-			rmescapes(str->text, 0);
+			rmescapes(str->text, 0, NULL);
 			exparg.lastp = &str->next;
 		} else {
 			*exparg.lastp = NULL;
@@ -11328,7 +11375,7 @@ parsefname(void)
 		if (quoteflag == 0)
 			n->type = NXHERE;
 		TRACE(("Here document %d\n", n->type));
-		rmescapes(wordtext, 0);
+		rmescapes(wordtext, 0, NULL);
 		here->eofmark = wordtext;
 		here->next = NULL;
 		if (heredoclist == NULL)
