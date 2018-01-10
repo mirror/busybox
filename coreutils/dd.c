@@ -195,14 +195,16 @@ static bool write_and_stats(const void *buf, size_t len, size_t obs,
 	ssize_t n = full_write_or_warn(buf, len, filename);
 	if (n < 0)
 		return 1;
-	if ((size_t)n == obs)
-		G.out_full++;
-	else if (n) /* > 0 */
-		G.out_part++;
 #if ENABLE_FEATURE_DD_THIRD_STATUS_LINE
 	G.total_bytes += n;
 #endif
-	return 0;
+	if ((size_t)n == obs) {
+		G.out_full++;
+		return 0;
+	}
+	if (n) /* > 0 */
+		G.out_part++;
+	return 1;
 }
 
 #if ENABLE_LFS
