@@ -5780,6 +5780,26 @@ ash_arith(const char *s)
 	return result;
 }
 #endif
+#if BASH_SUBSTR
+# if ENABLE_FEATURE_SH_MATH
+static int substr_atoi(const char *s)
+{
+	arith_t t = ash_arith(s);
+	if (sizeof(t) > sizeof(int)) {
+		/* clamp very large or very large negative nums for ${v:N:M}:
+		 * else "${v:0:0x100000001}" would work as "${v:0:1}"
+		 */
+		if (t > INT_MAX)
+			t = INT_MAX;
+		if (t < INT_MIN)
+			t = INT_MIN;
+	}
+	return t;
+}
+# else
+#  define substr_atoi(s) number(s)
+# endif
+#endif
 
 /*
  * expandarg flags
@@ -6816,13 +6836,10 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 
 		loc = str = stackblock() + strloc;
 
-# if !ENABLE_FEATURE_SH_MATH
-#  define ash_arith number
-# endif
 		/* Read POS in ${var:POS:LEN} */
 		colon = strchr(loc, ':');
 		if (colon) *colon = '\0';
-		pos = ash_arith(loc);
+		pos = substr_atoi(loc);
 		if (colon) *colon = ':';
 
 		/* Read LEN in ${var:POS:LEN} */
@@ -6830,7 +6847,6 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		/* *loc != '\0', guaranteed by parser */
 		if (quotes) {
 			char *ptr;
-
 			/* Adjust the length by the number of escapes */
 			for (ptr = startp; ptr < (str - 1); ptr++) {
 				if ((unsigned char)*ptr == CTLESC) {
@@ -6842,19 +6858,15 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		orig_len = len;
 		if (*loc++ == ':') {
 			/* ${var::LEN} */
-			len = ash_arith(loc);
+			len = substr_atoi(loc);
 		} else {
 			/* Skip POS in ${var:POS:LEN} */
 			len = orig_len;
-			while (*loc && *loc != ':') {
+			while (*loc && *loc != ':')
 				loc++;
-			}
-			if (*loc++ == ':') {
-				len = ash_arith(loc);
-			}
+			if (*loc++ == ':')
+				len = substr_atoi(loc);
 		}
-#  undef ash_arith
-
 		if (pos < 0) {
 			/* ${VAR:$((-n)):l} starts n chars from the end */
 			pos = orig_len + pos;
