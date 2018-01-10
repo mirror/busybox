@@ -202,8 +202,10 @@ static bool write_and_stats(const void *buf, size_t len, size_t obs,
 		G.out_full++;
 		return 0;
 	}
-	if (n) /* > 0 */
+	if ((size_t)n == len) {
 		G.out_part++;
+		return 0;
+	}
 	return 1;
 }
 
