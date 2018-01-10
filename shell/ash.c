@@ -1532,7 +1532,7 @@ sstrdup(const char *p)
 	return memcpy(stalloc(len), p, len);
 }
 
-static inline void
+static ALWAYS_INLINE void
 grabstackblock(size_t len)
 {
 	stalloc(len);
