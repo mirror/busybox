@@ -462,7 +462,10 @@
 # define MINUS_PLUS_EQUAL_QUESTION ("%#:-=+?" + 3)
 #endif
 
-#define SPECIAL_VAR_SYMBOL   3
+#define SPECIAL_VAR_SYMBOL_STR "\3"
+#define SPECIAL_VAR_SYMBOL       3
+/* The "variable" with name "\1" emits string "\3". Testcase: "echo ^C" */
+#define SPECIAL_VAR_QUOTED_SVS   1
 
 struct variable;
 
@@ -4899,7 +4902,8 @@ static struct pipe *parse_stream(char **pstring,
 			next = i_peek(input);
 
 		is_special = "{}<>;&|()#'" /* special outside of "str" */
-				"\\$\"" IF_HUSH_TICK("`"); /* always special */
+				"\\$\"" IF_HUSH_TICK("`") /* always special */
+				SPECIAL_VAR_SYMBOL_STR;
 		/* Are { and } special here? */
 		if (ctx.command->argv /* word [word]{... - non-special */
 		 || dest.length       /* word{... - non-special */
@@ -5171,8 +5175,14 @@ static struct pipe *parse_stream(char **pstring,
 		/* Note: nommu_addchr(&ctx.as_string, ch) is already done */
 
 		switch (ch) {
-		case '#': /* non-comment #: "echo a#b" etc */
-			o_addQchr(&dest, ch);
+		case SPECIAL_VAR_SYMBOL:
+			/* Convert raw ^C to corresponding special variable reference */
+			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(&dest, SPECIAL_VAR_QUOTED_SVS);
+			/* fall through */
+		case '#':
+			/* non-comment #: "echo a#b" etc */
+			o_addchr(&dest, ch);
 			break;
 		case '\\':
 			if (next == EOF) {
@@ -6025,6 +6035,11 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			output->has_quoted_part = 1;
 			arg++;
 			cant_be_null = 0x80;
+			break;
+		case SPECIAL_VAR_QUOTED_SVS:
+			/* <SPECIAL_VAR_SYMBOL><SPECIAL_VAR_QUOTED_SVS><SPECIAL_VAR_SYMBOL> */
+			arg++;
+			val = SPECIAL_VAR_SYMBOL_STR;
 			break;
 #if ENABLE_HUSH_TICK
 		case '`': /* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
