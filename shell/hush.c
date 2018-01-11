@@ -58,6 +58,7 @@
  *              (can use this to override standalone shell as well)
  *              -p: use default $PATH
  *          command BLTIN: disables special-ness (e.g. errors do not abort)
+ *          NB: so far, only naked "command CMD" is implemented.
  *          fc -l[nr] [BEG] [END]: list range of commands in history
  *          fc [-e EDITOR] [BEG] [END]: edit/rerun range of commands
  *          fc -s [PAT=REP] [CMD]: rerun CMD, replacing PAT with REP
@@ -250,6 +251,11 @@
 //config:
 //config:config HUSH_WAIT
 //config:	bool "wait builtin"
+//config:	default y
+//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:
+//config:config HUSH_COMMAND
+//config:	bool "command builtin"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:
@@ -7406,11 +7412,20 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 	 * if this is one of those cases.
 	 */
 	{
+		const struct built_in_command *x;
+
+#if ENABLE_HUSH_COMMAND
+		/* This loop effectively makes "command BAR" run BAR without
+		 * looking it up among functions.
+		 */
+		while (strcmp(argv[0], "command") == 0 && argv[1])
+			argv++;
+//TODO: implement -Vvp and "disable dying if BAR is a builtin" behavior
+#endif
 		/* On NOMMU, it is more expensive to re-execute shell
 		 * just in order to run echo or test builtin.
 		 * It's better to skip it here and run corresponding
 		 * non-builtin later. */
-		const struct built_in_command *x;
 		x = BB_MMU ? find_builtin(argv[0]) : find_builtin1(argv[0]);
 		if (x) {
 			exec_builtin(&nommu_save->argv_from_re_execing, x, argv);
