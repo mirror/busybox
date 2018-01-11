@@ -3840,21 +3840,6 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			word->o_assignment = MAYBE_ASSIGNMENT;
 		}
 		debug_printf_parse("word->o_assignment='%s'\n", assignment_flag[word->o_assignment]);
-
-		if (word->has_quoted_part
-		 /* optimization: and if it's ("" or '') or ($v... or `cmd`...): */
-		 && (word->data[0] == '\0' || word->data[0] == SPECIAL_VAR_SYMBOL)
-		 /* (otherwise it's known to be not empty and is already safe) */
-		) {
-			/* exclude "$@" - it can expand to no word despite "" */
-			char *p = word->data;
-			while (p[0] == SPECIAL_VAR_SYMBOL
-			    && (p[1] & 0x7f) == '@'
-			    && p[2] == SPECIAL_VAR_SYMBOL
-			) {
-				p += 3;
-			}
-		}
 		command->argv = add_string_to_strings(command->argv, xstrdup(word->data));
 		debug_print_strings("word appended to argv", command->argv);
 	}
