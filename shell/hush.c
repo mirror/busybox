@@ -6199,7 +6199,7 @@ static char *expand_string_to_string(const char *str, int do_unbackslash)
 	return (char*)list;
 }
 
-/* Used for "eval" builtin and case string */
+#if ENABLE_HUSH_CASE
 static char* expand_strvec_to_string(char **argv)
 {
 	char **list;
@@ -6221,6 +6221,7 @@ static char* expand_strvec_to_string(char **argv)
 	debug_printf_expand("strvec_to_string='%s'\n", (char*)list);
 	return (char*)list;
 }
+#endif
 
 static char **expand_assignments(char **argv, int count)
 {
@@ -9349,13 +9350,34 @@ static int FAST_FUNC builtin_eval(char **argv)
 	int rcode = EXIT_SUCCESS;
 
 	argv = skip_dash_dash(argv);
-	if (*argv) {
-		char *str = expand_strvec_to_string(argv);
+	if (argv[0]) {
+		char *str = NULL;
+
+		if (argv[1]) {
+			/* "The eval utility shall construct a command by
+			 * concatenating arguments together, separating
+			 * each with a <space> character."
+			 */
+			char *p;
+			unsigned len = 0;
+			char **pp = argv;
+			do
+				len += strlen(*pp) + 1;
+			while (*++pp);
+			str = p = xmalloc(len);
+			pp = argv;
+			do {
+				p = stpcpy(p, *pp);
+				*p++ = ' ';
+			} while (*++pp);
+			p[-1] = '\0';
+		}
+
 		/* bash:
 		 * eval "echo Hi; done" ("done" is syntax error):
 		 * "echo Hi" will not execute too.
 		 */
-		parse_and_run_string(str);
+		parse_and_run_string(str ? str : argv[0]);
 		free(str);
 		rcode = G.last_exitcode;
 	}
