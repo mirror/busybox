@@ -7336,6 +7336,7 @@ static void dump_cmd_in_x_mode(char **argv)
 static void if_command_vV_print_and_exit(char opt_vV, char *cmd, const char *explanation)
 {
 	char *to_free;
+
 	if (!opt_vV)
 		return;
 
@@ -7343,14 +7344,15 @@ static void if_command_vV_print_and_exit(char opt_vV, char *cmd, const char *exp
 	if (!explanation) {
 		char *path = getenv("PATH");
 		explanation = to_free = find_executable(cmd, &path); /* path == NULL is ok */
+		if (!explanation)
+			_exit(1); /* PROG was not found */
 		if (opt_vV != 'V')
 			cmd = to_free; /* -v PROG prints "/path/to/PROG" */
 	}
-	if (explanation)
-		printf((opt_vV == 'V') ? "%s is %s\n" : "%s\n", cmd, explanation);
+	printf((opt_vV == 'V') ? "%s is %s\n" : "%s\n", cmd, explanation);
 	free(to_free);
 	fflush_all();
-	_exit(explanation == NULL); /* exit 1 if PROG was not found */
+	_exit(0);
 }
 #else
 # define if_command_vV_print_and_exit(a,b,c) ((void)0)
