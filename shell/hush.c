@@ -47,18 +47,13 @@
  *      follow IFS rules more precisely, including update semantics
  *      tilde expansion
  *      aliases
- *      builtins mandated by standards we don't support:
- *          [un]alias, command, fc:
- *          command -v CMD: print "/path/to/CMD"
- *              prints "CMD" for builtins
- *              prints "alias ALIAS='EXPANSION'" for aliases
- *              prints nothing and sets $? to 1 if not found
- *          command -V CMD: print "CMD is /path/CMD|a shell builtin|etc"
- *          command [-p] CMD: run CMD, even if a function CMD also exists
- *              (can use this to override standalone shell as well)
- *              -p: use default $PATH
+ *      "command" missing features:
+ *          command -p CMD: run CMD using default $PATH
+ *              (can use this to override standalone shell as well?)
  *          command BLTIN: disables special-ness (e.g. errors do not abort)
- *          NB: so far, only naked "command CMD" is implemented.
+ *          command -V CMD1 CMD2 CMD3 (multiple args) (not in standard)
+ *      builtins mandated by standards we don't support:
+ *          [un]alias, fc:
  *          fc -l[nr] [BEG] [END]: list range of commands in history
  *          fc [-e EDITOR] [BEG] [END]: edit/rerun range of commands
  *          fc -s [PAT=REP] [CMD]: rerun CMD, replacing PAT with REP
@@ -7337,6 +7332,30 @@ static void dump_cmd_in_x_mode(char **argv)
 # define dump_cmd_in_x_mode(argv) ((void)0)
 #endif
 
+#if ENABLE_HUSH_COMMAND
+static void if_command_vV_print_and_exit(char opt_vV, char *cmd, const char *explanation)
+{
+	char *to_free;
+	if (!opt_vV)
+		return;
+
+	to_free = NULL;
+	if (!explanation) {
+		char *path = getenv("PATH");
+		explanation = to_free = find_executable(cmd, &path); /* path == NULL is ok */
+		if (opt_vV != 'V')
+			cmd = to_free; /* -v PROG prints "/path/to/PROG" */
+	}
+	if (explanation)
+		printf((opt_vV == 'V') ? "%s is %s\n" : "%s\n", cmd, explanation);
+	free(to_free);
+	fflush_all();
+	_exit(explanation == NULL); /* exit 1 if PROG was not found */
+}
+#else
+# define if_command_vV_print_and_exit(a,b,c) ((void)0)
+#endif
+
 #if BB_MMU
 #define pseudo_exec_argv(nommu_save, argv, assignment_cnt, argv_expanded) \
 	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
@@ -7357,7 +7376,11 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 		char **argv, int assignment_cnt,
 		char **argv_expanded)
 {
+	const struct built_in_command *x;
 	char **new_env;
+#if ENABLE_HUSH_COMMAND
+	char opt_vV = 0;
+#endif
 
 	new_env = expand_assignments(argv, assignment_cnt);
 	dump_cmd_in_x_mode(new_env);
@@ -7406,30 +7429,58 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 	}
 #endif
 
+#if ENABLE_HUSH_COMMAND
+	/* "command BAR": run BAR without looking it up among functions
+	 * "command -v BAR": print "BAR" or "/path/to/BAR"; or exit 1
+	 * "command -V BAR": print "BAR is {a function,a shell builtin,/path/to/BAR}"
+	 */
+	while (strcmp(argv[0], "command") == 0 && argv[1]) {
+		char *p;
+
+		argv++;
+		p = *argv;
+		if (p[0] != '-' || !p[1])
+			continue; /* bash allows "command command command [-OPT] BAR" */
+
+		for (;;) {
+			p++;
+			switch (*p) {
+			case '\0':
+				argv++;
+				p = *argv;
+				if (p[0] != '-' || !p[1])
+					goto after_opts;
+				continue; /* next arg is also -opts, process it too */
+			case 'v':
+			case 'V':
+				opt_vV = *p;
+				continue;
+			default:
+				bb_error_msg_and_die("%s: %s: invalid option", "command", argv[0]);
+			}
+		}
+	}
+ after_opts:
+# if ENABLE_HUSH_FUNCTIONS
+	if (opt_vV && find_function(argv[0]))
+		if_command_vV_print_and_exit(opt_vV, argv[0], "a function");
+# endif
+#endif
+
 	/* Check if the command matches any of the builtins.
 	 * Depending on context, this might be redundant.  But it's
 	 * easier to waste a few CPU cycles than it is to figure out
 	 * if this is one of those cases.
 	 */
-	{
-		const struct built_in_command *x;
-
-#if ENABLE_HUSH_COMMAND
-		/* This loop effectively makes "command BAR" run BAR without
-		 * looking it up among functions.
-		 */
-		while (strcmp(argv[0], "command") == 0 && argv[1])
-			argv++;
-//TODO: implement -Vvp and "disable dying if BAR is a builtin" behavior
-#endif
-		/* On NOMMU, it is more expensive to re-execute shell
-		 * just in order to run echo or test builtin.
-		 * It's better to skip it here and run corresponding
-		 * non-builtin later. */
-		x = BB_MMU ? find_builtin(argv[0]) : find_builtin1(argv[0]);
-		if (x) {
-			exec_builtin(&nommu_save->argv_from_re_execing, x, argv);
-		}
+	/* Why "BB_MMU ? :" difference in logic? -
+	 * On NOMMU, it is more expensive to re-execute shell
+	 * just in order to run echo or test builtin.
+	 * It's better to skip it here and run corresponding
+	 * non-builtin later. */
+	x = BB_MMU ? find_builtin(argv[0]) : find_builtin1(argv[0]);
+	if (x) {
+		if_command_vV_print_and_exit(opt_vV, argv[0], "a shell builtin");
+		exec_builtin(&nommu_save->argv_from_re_execing, x, argv);
 	}
 
 #if ENABLE_FEATURE_SH_STANDALONE
@@ -7437,6 +7488,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 	{
 		int a = find_applet_by_name(argv[0]);
 		if (a >= 0) {
+			if_command_vV_print_and_exit(opt_vV, argv[0], "an applet");
 # if BB_MMU /* see above why on NOMMU it is not allowed */
 			if (APPLET_IS_NOEXEC(a)) {
 				/* Do not leak open fds from opened script files etc.
@@ -7466,6 +7518,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 #if ENABLE_FEATURE_SH_STANDALONE || BB_MMU
  skip:
 #endif
+	if_command_vV_print_and_exit(opt_vV, argv[0], NULL);
 	execvp_or_die(argv);
 }
 
@@ -9895,7 +9948,7 @@ static int FAST_FUNC builtin_set(char **argv)
 
 	/* Nothing known, so abort */
  error:
-	bb_error_msg("set: %s: invalid option", arg);
+	bb_error_msg("%s: %s: invalid option", "set", arg);
 	return EXIT_FAILURE;
 }
 #endif
