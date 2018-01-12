@@ -2005,10 +2005,16 @@ extern const char bb_path_wtmp_file[] ALIGN1;
 
 #define bb_dev_null "/dev/null"
 extern const char bb_busybox_exec_path[] ALIGN1;
-/* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,
- * but I want to save a few bytes here */
-extern const char bb_PATH_root_path[] ALIGN1; /* "PATH=/sbin:/usr/sbin:/bin:/usr/bin" */
+/* allow default system PATH to be extended via CFLAGS */
+#ifndef BB_ADDITIONAL_PATH
+#define BB_ADDITIONAL_PATH ""
+#endif
+#define BB_PATH_ROOT_PATH "PATH=/sbin:/usr/sbin:/bin:/usr/bin" BB_ADDITIONAL_PATH
+extern const char bb_PATH_root_path[] ALIGN1; /* BB_PATH_ROOT_PATH */
 #define bb_default_root_path (bb_PATH_root_path + sizeof("PATH"))
+/* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,
+ * but I want to save a few bytes here:
+ */
 #define bb_default_path      (bb_PATH_root_path + sizeof("PATH=/sbin:/usr/sbin"))
 
 extern const int const_int_0;

@@ -6,11 +6,6 @@
  */
 #include "libbb.h"
 
-/* allow default system PATH to be extended via CFLAGS */
-#ifndef BB_ADDITIONAL_PATH
-#define BB_ADDITIONAL_PATH ""
-#endif
-
 /* allow version to be extended, via CFLAGS */
 #ifndef BB_EXTRA_VERSION
 #define BB_EXTRA_VERSION " ("AUTOCONF_TIMESTAMP")"
@@ -36,8 +31,7 @@ const char bb_busybox_exec_path[] ALIGN1 = CONFIG_BUSYBOX_EXEC_PATH;
 const char bb_default_login_shell[] ALIGN1 = LIBBB_DEFAULT_LOGIN_SHELL;
 /* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,
  * but I want to save a few bytes here. Check libbb.h before changing! */
-const char bb_PATH_root_path[] ALIGN1 =
-	"PATH=/sbin:/usr/sbin:/bin:/usr/bin" BB_ADDITIONAL_PATH;
+const char bb_PATH_root_path[] ALIGN1 = BB_PATH_ROOT_PATH;
 
 
 //const int const_int_1 = 1;
