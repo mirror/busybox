@@ -12,6 +12,12 @@ INSERT
 lib-$(CONFIG_SLATTACH) += \
 	utils.o
 
+lib-$(CONFIG_TC) += \
+	libnetlink.o \
+	ll_map.o \
+	ll_proto.o \
+	utils.o
+
 lib-$(CONFIG_IP) += \
 	ip_parse_common_args.o \
 	libnetlink.o \
