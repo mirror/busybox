@@ -17,13 +17,14 @@
 //kbuild:lib-$(CONFIG_CHRT) += chrt.o
 
 //usage:#define chrt_trivial_usage
-//usage:       "[-prfom] [PRIO] [PID | PROG ARGS]"
+//usage:       "[-prfomb] [PRIO] [PID | PROG ARGS]"
 //usage:#define chrt_full_usage "\n\n"
 //usage:       "Change scheduling priority and class for a process\n"
 //usage:     "\n	-p	Operate on PID"
 //usage:     "\n	-r	Set SCHED_RR class"
 //usage:     "\n	-f	Set SCHED_FIFO class"
 //usage:     "\n	-o	Set SCHED_OTHER class"
+//usage:     "\n	-b	Set SCHED_BATCH class"
 //usage:     "\n	-m	Show min/max priorities"
 //usage:
 //usage:#define chrt_example_usage
@@ -40,11 +41,11 @@ static const struct {
 } policies[] = {
 	{SCHED_OTHER, "SCHED_OTHER"},
 	{SCHED_FIFO, "SCHED_FIFO"},
-	{SCHED_RR, "SCHED_RR"}
+	{SCHED_RR, "SCHED_RR"},
+	{SCHED_BATCH, "SCHED_BATCH"}
 };
 
 //TODO: add
-// -b, SCHED_BATCH
 // -i, SCHED_IDLE
 
 static void show_min_max(int pol)
@@ -64,6 +65,7 @@ static void show_min_max(int pol)
 #define OPT_r (1<<2)
 #define OPT_f (1<<3)
 #define OPT_o (1<<4)
+#define OPT_b (1<<5)
 
 int chrt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int chrt_main(int argc UNUSED_PARAM, char **argv)
@@ -77,11 +79,12 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 	int policy = SCHED_RR;
 
 	/* only one policy accepted */
-	opt = getopt32(argv, "^+" "mprfo" "\0" "r--fo:f--ro:o--rf");
+	opt = getopt32(argv, "^+" "mprfob" "\0" "r--fob:f--rob:o--rfb:b--rfo");
 	if (opt & OPT_m) { /* print min/max and exit */
 		show_min_max(SCHED_FIFO);
 		show_min_max(SCHED_RR);
 		show_min_max(SCHED_OTHER);
+		show_min_max(SCHED_BATCH);
 		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 	if (opt & OPT_r)
@@ -90,6 +93,8 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 		policy = SCHED_FIFO;
 	if (opt & OPT_o)
 		policy = SCHED_OTHER;
+	if (opt & OPT_b)
+		policy = SCHED_BATCH;
 
 	argv += optind;
 	if (!argv[0])
@@ -136,7 +141,8 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 	[...] SCHED_OTHER or SCHED_BATCH must be assigned static priority 0.
 	[...] SCHED_FIFO or SCHED_RR can have static priority in 1..99 range.
 	*/
-	sp.sched_priority = xstrtou_range(priority, 0, policy != SCHED_OTHER ? 1 : 0, 99);
+	sp.sched_priority = xstrtou_range(priority, 0,
+			(policy != SCHED_OTHER && policy != SCHED_BATCH) ? 1 : 0, 99);
 
 	if (sched_setscheduler(pid, policy, &sp) < 0)
 		bb_perror_msg_and_die("can't %cet pid %d's policy", 's', (int)pid);
