@@ -5225,6 +5225,11 @@ static struct pipe *parse_stream(char **pstring,
 					nommu_addchr(&ctx.as_string, ch);
 					if (ch == '\'')
 						break;
+					if (ch == SPECIAL_VAR_SYMBOL) {
+						/* Convert raw ^C to corresponding special variable reference */
+						o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+						o_addchr(&dest, SPECIAL_VAR_QUOTED_SVS);
+					}
 					o_addqchr(&dest, ch);
 				}
 			}
