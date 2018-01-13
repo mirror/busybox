@@ -3,6 +3,7 @@ SHELL: line 1: syntax error: bad substitution
 SHELL: line 1: syntax error: bad substitution
 SHELL: line 1: syntax error: bad substitution
 SHELL: line 1: syntax error: missing '}'
+0
 1    =||
 1:1  =||
 1:1:2=||

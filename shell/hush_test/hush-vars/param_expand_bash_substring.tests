@@ -11,7 +11,7 @@ export var=0123456789
 "$THIS_SH" -c 'echo ${var:}' SHELL
 
 # then some funky ones
-# UNFIXED BUG: this should work: "$THIS_SH" -c 'echo ${?:0}'
+"$THIS_SH" -c 'echo ${?:0}' SHELL
 
 # now some valid ones
 set --; echo "1    =|${1}|"
