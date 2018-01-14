@@ -45,8 +45,8 @@
 //usage:     "\n	-k		Keep retrieved messages on the server"
 //usage:     "\n	-t SEC		Network timeout"
 //usage:	IF_FEATURE_POPMAILDIR_DELIVERY(
-//usage:     "\n	-F \"PROG ARGS\"	Filter program (may be repeated)"
-//usage:     "\n	-M \"PROG ARGS\"	Delivery program"
+//usage:     "\n	-F 'PROG ARGS'	Filter program (may be repeated)"
+//usage:     "\n	-M 'PROG ARGS'	Delivery program"
 //usage:	)
 //usage:     "\n"
 //usage:     "\nFetch from plain POP3 server:"
