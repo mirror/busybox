@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config RUN_INIT
-//config:	bool "run-init"
+//config:	bool "run-init (7.5 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

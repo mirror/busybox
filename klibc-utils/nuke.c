@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config NUKE
-//config:	bool "nuke"
+//config:	bool "nuke (2.4 kb)"
 //config:	default y
 //config:	help
 //config:	Alias to "rm -rf".
