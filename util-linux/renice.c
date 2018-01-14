@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /* Notes:
  *   Setting an absolute priority was obsoleted in SUSv2 and removed
  *   in SUSv3.  However, the common linux version of renice does
@@ -95,6 +94,7 @@ int renice_main(int argc UNUSED_PARAM, char **argv)
 		/* Process an ID arg. */
 		if (which == PRIO_USER) {
 			struct passwd *p;
+			/* NB: use of getpwnam makes it risky to be NOFORK, switch to getpwnam_r? */
 			p = getpwnam(arg);
 			if (!p) {
 				bb_error_msg("unknown user %s", arg);
