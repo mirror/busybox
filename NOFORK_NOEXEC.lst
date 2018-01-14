@@ -72,7 +72,7 @@ brctl - noexec
 bunzip2 - runner
 bzcat - runner
 bzip2 - runner
-cal - runner: cal -n9999
+cal - noexec. can be runner: cal -n9999
 cat - runner: cat HUGEFILE
 chat - longterm (when used as intended - talking to modem over stdin/out)
 chattr - noexec. runner
