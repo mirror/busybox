@@ -42,10 +42,6 @@
 #include "libbb.h"
 #include <sys/resource.h>
 
-void BUG_bad_PRIO_PROCESS(void);
-void BUG_bad_PRIO_PGRP(void);
-void BUG_bad_PRIO_USER(void);
-
 int renice_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int renice_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -59,12 +55,9 @@ int renice_main(int argc UNUSED_PARAM, char **argv)
 	char *arg;
 
 	/* Yes, they are not #defines in glibc 2.4! #if won't work */
-	if (PRIO_PROCESS < CHAR_MIN || PRIO_PROCESS > CHAR_MAX)
-		BUG_bad_PRIO_PROCESS();
-	if (PRIO_PGRP < CHAR_MIN || PRIO_PGRP > CHAR_MAX)
-		BUG_bad_PRIO_PGRP();
-	if (PRIO_USER < CHAR_MIN || PRIO_USER > CHAR_MAX)
-		BUG_bad_PRIO_USER();
+	BUILD_BUG_ON(PRIO_PROCESS < CHAR_MIN || PRIO_PROCESS > CHAR_MAX);
+	BUILD_BUG_ON(PRIO_PGRP < CHAR_MIN || PRIO_PGRP > CHAR_MAX);
+	BUILD_BUG_ON(PRIO_USER < CHAR_MIN || PRIO_USER > CHAR_MAX);
 
 	arg = *++argv;
 
