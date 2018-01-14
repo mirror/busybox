@@ -53,6 +53,15 @@
 #include "libbb.h"
 #include <mtd/mtd-user.h>
 
+/* Old headers call it MTD_MODE_RAW.
+ * FIXME: In kernel headers, MTD_FILE_MODE_RAW is not a define,
+ * it's an enum. How I can test for existence of an enum?
+ */
+#if !defined(MTD_FILE_MODE_RAW)
+# define MTD_FILE_MODE_RAW 3
+#endif
+
+
 #define IS_NANDDUMP  (ENABLE_NANDDUMP && (!ENABLE_NANDWRITE || (applet_name[4] == 'd')))
 #define IS_NANDWRITE (ENABLE_NANDWRITE && (!ENABLE_NANDDUMP || (applet_name[4] != 'd')))
 
