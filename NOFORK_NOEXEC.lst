@@ -89,7 +89,7 @@ clear - NOFORK
 cmp - runner
 comm - runner
 conspy - interactive, longterm
-cp - noexec. runner
+cp - noexec. sometimes runner
 cpio - runner
 crond - daemon
 crontab - longterm (runs $EDITOR), leaks: open+xasprintf
@@ -255,7 +255,7 @@ mount - suid
 mountpoint - noexec. leaks: option -n "print dev name": find_block_device -> readdir+xstrdup
 mpstat - longterm: "mpstat 1" runs indefinitely
 mt - hardware
-mv - noexec candidate, runner
+mv - noexec. sometimes runner
 nameif - noexec. openlog(), leaks: config_open2+ioctl_or_perror_and_die
 nbd-client - noexec
 nc - runner

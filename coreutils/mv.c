@@ -17,7 +17,8 @@
 //config:	help
 //config:	mv is used to move or rename files or directories.
 
-//applet:IF_MV(APPLET(mv, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_MV(APPLET_NOEXEC(mv, mv, BB_DIR_BIN, BB_SUID_DROP, mv))
+/* NOEXEC despite cases when it can be a "runner" (mv LARGE_DIR OTHER_FS) */
 
 //kbuild:lib-$(CONFIG_MV) += mv.o
 

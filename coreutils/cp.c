@@ -26,6 +26,7 @@
 //config:	Also add support for --parents option.
 
 //applet:IF_CP(APPLET_NOEXEC(cp, cp, BB_DIR_BIN, BB_SUID_DROP, cp))
+/* NOEXEC despite cases when it can be a "runner" (cp -r LARGE_DIR NEW_DIR) */
 
 //kbuild:lib-$(CONFIG_CP) += cp.o
 
