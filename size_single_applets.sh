@@ -22,7 +22,7 @@ for app; do
 	}
 	test $mintext -gt $text && {
 		mintext=$text
-		echo "New mintext from $app: $mintext"
+		echo "# New mintext from $app: $mintext"
 	}
 	eval "text_${app}=$text"
 done
@@ -31,7 +31,7 @@ for app; do
 	b="busybox_${app}"
 	test -f "$b" || continue
 	eval "text=\$text_${app}"
-	echo "$app adds $((text-mintext))"
+	echo "# $app adds $((text-mintext))"
 done
 
 grep ^IF_ include/applets.h \
@@ -60,7 +60,7 @@ grep ^IF_ include/applets.h \
 	sz_frac=$(( (sz - sz_kb*1000) ))
 	sz_f=$((sz_frac / 100))
 
-	echo -n "sed 's/bool \"$name *(*[0-9tinykbytes .]*)*\"/"
+	echo -n "sed 's/bool \"$name"'[" ](*[0-9tinykbytes .]*)*"*$/'
 	if test "$sz_kb" -ge 10; then
 		echo -n "bool \"$name (${sz_kb} kb)\""
 	elif test "$sz_kb" -gt 0 -a "$sz_f" = 0; then
