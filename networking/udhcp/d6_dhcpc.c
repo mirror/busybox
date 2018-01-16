@@ -1706,6 +1706,10 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					bb_error_msg("%s obtained, lease time %u",
 						"prefix", /*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
 				}
+				if (!address_timeout)
+					address_timeout = prefix_timeout;
+				if (!prefix_timeout)
+					prefix_timeout = address_timeout;
 				timeout = address_timeout > prefix_timeout ? prefix_timeout : address_timeout;
 				/* paranoia: must not be too small */
 				if (timeout < 0x10)
