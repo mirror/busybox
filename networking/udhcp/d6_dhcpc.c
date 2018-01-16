@@ -1030,7 +1030,7 @@ static void client_background(void)
 //usage:# define IF_UDHCP_VERBOSE(...)
 //usage:#endif
 //usage:#define udhcpc6_trivial_usage
-//usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"oR] [-i IFACE] [-r IP] [-s PROG] [-p PIDFILE]\n"
+//usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"odR] [-i IFACE] [-r IPv6] [-s PROG] [-p PIDFILE]\n"
 //usage:       "	[-x OPT:VAL]... [-O OPT]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
 //usage:#define udhcpc6_full_usage "\n"
 //usage:     "\n	-i IFACE	Interface to use (default eth0)"
@@ -1056,7 +1056,7 @@ static void client_background(void)
 ////usage:	)
 //usage:     "\n	-O OPT		Request option OPT from server (cumulative)"
 //usage:     "\n	-o		Don't request any options (unless -O is given)"
-//usage:     "\n	-r IP		Request this IP address ('no' to not request any IP)"
+//usage:     "\n	-r IPv6		Request this address ('no' to not request any IP)"
 //usage:     "\n	-d		Request prefix"
 //usage:     "\n	-x OPT:VAL	Include option OPT in sent packets (cumulative)"
 //usage:     "\n			Examples of string, numeric, and hex byte opts:"
