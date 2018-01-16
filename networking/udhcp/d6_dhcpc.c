@@ -1033,42 +1033,6 @@ static void client_background(void)
 //usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"oR] [-i IFACE] [-r IP] [-s PROG] [-p PIDFILE]\n"
 //usage:       "	[-x OPT:VAL]... [-O OPT]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
 //usage:#define udhcpc6_full_usage "\n"
-//usage:	IF_LONG_OPTS(
-//usage:     "\n	-i,--interface IFACE	Interface to use (default eth0)"
-//usage:     "\n	-p,--pidfile FILE	Create pidfile"
-//usage:     "\n	-s,--script PROG	Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
-//usage:     "\n	-B,--broadcast		Request broadcast replies"
-//usage:     "\n	-t,--retries N		Send up to N discover packets"
-//usage:     "\n	-T,--timeout N		Pause between packets (default 3 seconds)"
-//usage:     "\n	-A,--tryagain N		Wait N seconds after failure (default 20)"
-//usage:     "\n	-f,--foreground		Run in foreground"
-//usage:	USE_FOR_MMU(
-//usage:     "\n	-b,--background		Background if lease is not obtained"
-//usage:	)
-//usage:     "\n	-n,--now		Exit if lease is not obtained"
-//usage:     "\n	-q,--quit		Exit after obtaining lease"
-//usage:     "\n	-R,--release		Release IP on exit"
-//usage:     "\n	-S,--syslog		Log to syslog too"
-//usage:	IF_FEATURE_UDHCP_PORT(
-//usage:     "\n	-P,--client-port N	Use port N (default 546)"
-//usage:	)
-////usage:	IF_FEATURE_UDHCPC_ARPING(
-////usage:     "\n	-a,--arping		Use arping to validate offered address"
-////usage:	)
-//usage:     "\n	-O,--request-option OPT	Request option OPT from server (cumulative)"
-//usage:     "\n	-o,--no-default-options	Don't request any options (unless -O is given)"
-//usage:     "\n	-r,--request IP		Request this IP address ('no' to not request any IP)"
-//usage:     "\n	-d,--requestprefix	Request prefix"
-//usage:     "\n	-x OPT:VAL		Include option OPT in sent packets (cumulative)"
-//usage:     "\n				Examples of string, numeric, and hex byte opts:"
-//usage:     "\n				-x hostname:bbox - option 12"
-//usage:     "\n				-x lease:3600 - option 51 (lease time)"
-//usage:     "\n				-x 0x3d:0100BEEFC0FFEE - option 61 (client id)"
-//usage:	IF_UDHCP_VERBOSE(
-//usage:     "\n	-v			Verbose"
-//usage:	)
-//usage:	)
-//usage:	IF_NOT_LONG_OPTS(
 //usage:     "\n	-i IFACE	Interface to use (default eth0)"
 //usage:     "\n	-p FILE		Create pidfile"
 //usage:     "\n	-s PROG		Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
@@ -1101,7 +1065,6 @@ static void client_background(void)
 //usage:     "\n			-x 0x3d:0100BEEFC0FFEE - option 61 (client id)"
 //usage:	IF_UDHCP_VERBOSE(
 //usage:     "\n	-v		Verbose"
-//usage:	)
 //usage:	)
 //usage:     "\nSignals:"
 //usage:     "\n	USR1	Renew lease"
