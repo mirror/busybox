@@ -1501,10 +1501,12 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		case REBINDING:
 			if (packet.d6_msg_type == D6_MSG_REPLY) {
 				uint32_t lease_seconds;
-				struct d6_option *option, *iaaddr;
-				int address_timeout = 0;
-				int prefix_timeout = 0;
+				struct d6_option *option;
+				int address_timeout;
+				int prefix_timeout;
  type_is_ok:
+				address_timeout = 0;
+				prefix_timeout = 0;
 				option = d6_find_option(packet.d6_options, packet_end, D6_OPT_STATUS_CODE);
 				if (option && (option->data[0] | option->data[1]) != 0) {
 					/* return to init state */
@@ -1628,6 +1630,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 				if (option_mask32 & OPT_r) {
+					struct d6_option *iaaddr;
+
 					free(client6_data.ia_na);
 					client6_data.ia_na = d6_copy_option(packet.d6_options, packet_end, D6_OPT_IA_NA);
 					if (!client6_data.ia_na) {
@@ -1635,7 +1639,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 						continue;
 					}
 					if (client6_data.ia_na->len < (4 + 4 + 4) + (2 + 2 + 16 + 4 + 4)) {
-						bb_error_msg("IA_NA option is too short:%d bytes", client6_data.ia_na->len);
+						bb_error_msg("%s option is too short:%d bytes",
+							"IA_NA", client6_data.ia_na->len);
 						continue;
 					}
 					iaaddr = d6_find_option(client6_data.ia_na->data + 4 + 4 + 4,
@@ -1647,7 +1652,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 						continue;
 					}
 					if (iaaddr->len < (16 + 4 + 4)) {
-						bb_error_msg("IAADDR option is too short:%d bytes", iaaddr->len);
+						bb_error_msg("%s option is too short:%d bytes",
+							"IAADDR", iaaddr->len);
 						continue;
 					}
 					/* Note: the address is sufficiently aligned for cast:
@@ -1656,16 +1662,13 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					requested_ipv6 = (struct in6_addr*) iaaddr->data;
 					move_from_unaligned32(lease_seconds, iaaddr->data + 16 + 4);
 					lease_seconds = ntohl(lease_seconds);
-					/* paranoia: must not be too small and not prone to overflows */
-					if (lease_seconds < 0x10)
-						lease_seconds = 0x10;
 /// TODO: check for 0 lease time?
+					/* paranoia: must not be prone to overflows */
 					if (lease_seconds > 0x7fffffff / 1000)
 						lease_seconds = 0x7fffffff / 1000;
-					/* enter bound state */
 					address_timeout = lease_seconds / 2;
-					bb_error_msg("lease obtained, lease time %u",
-						/*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
+					bb_error_msg("%s obtained, lease time %u",
+						"IPv6", /*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
 				}
 				if (option_mask32 & OPT_d) {
 					struct d6_option *iaprefix;
@@ -1677,7 +1680,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 						continue;
 					}
 					if (client6_data.ia_pd->len < (4 + 4 + 4) + (2 + 2 + 4 + 4 + 1 + 16)) {
-						bb_error_msg("IA_PD option is too short:%d bytes", client6_data.ia_pd->len);
+						bb_error_msg("%s option is too short:%d bytes",
+							"IA_PD", client6_data.ia_pd->len);
 						continue;
 					}
 					iaprefix = d6_find_option(client6_data.ia_pd->data + 4 + 4 + 4,
@@ -1689,22 +1693,24 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 						continue;
 					}
 					if (iaprefix->len < (4 + 4 + 1 + 16)) {
-						bb_error_msg("IAPREFIX option is too short:%d bytes", iaprefix->len);
+						bb_error_msg("%s option is too short:%d bytes",
+							"IAPREFIX", iaprefix->len);
 						continue;
 					}
 					move_from_unaligned32(lease_seconds, iaprefix->data + 4);
 					lease_seconds = ntohl(lease_seconds);
-					/* paranoia: must not be too small and not prone to overflows */
-					if (lease_seconds < 0x10)
-						lease_seconds = 0x10;
+					/* paranoia: must not be prone to overflows */
 					if (lease_seconds > 0x7fffffff / 1000)
 						lease_seconds = 0x7fffffff / 1000;
-					/* enter bound state */
 					prefix_timeout = lease_seconds / 2;
-					bb_error_msg("prefix obtained, lease time %u",
-						/*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
+					bb_error_msg("%s obtained, lease time %u",
+						"prefix", /*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
 				}
 				timeout = address_timeout > prefix_timeout ? prefix_timeout : address_timeout;
+				/* paranoia: must not be too small */
+				if (timeout < 0x10)
+					timeout = 0x10;
+				/* enter bound state */
 				d6_run_script(&packet, state == REQUESTING ? "bound" : "renew");
 
 				state = BOUND;
