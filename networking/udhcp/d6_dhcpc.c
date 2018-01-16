@@ -1589,44 +1589,44 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
  * .                                                               .
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
-				free(client6_data.ia_na);
-				client6_data.ia_na = d6_copy_option(packet.d6_options, packet_end, D6_OPT_IA_NA);
-				if (!client6_data.ia_na) {
-					bb_error_msg("no %s option, ignoring packet", "IA_NA");
-					continue;
-				}
-				if (client6_data.ia_na->len < (4 + 4 + 4) + (2 + 2 + 16 + 4 + 4)) {
-					bb_error_msg("IA_NA option is too short:%d bytes", client6_data.ia_na->len);
-					continue;
-				}
-				iaaddr = d6_find_option(client6_data.ia_na->data + 4 + 4 + 4,
-						client6_data.ia_na->data + client6_data.ia_na->len,
-						D6_OPT_IAADDR
-				);
-				if (!iaaddr) {
-					bb_error_msg("no %s option, ignoring packet", "IAADDR");
-					continue;
-				}
-				if (iaaddr->len < (16 + 4 + 4)) {
-					bb_error_msg("IAADDR option is too short:%d bytes", iaaddr->len);
-					continue;
-				}
-				/* Note: the address is sufficiently aligned for cast:
-				 * we _copied_ IA-NA, and copy is always well-aligned.
-				 */
-				requested_ipv6 = (struct in6_addr*) iaaddr->data;
-				move_from_unaligned32(lease_seconds, iaaddr->data + 16 + 4);
-				lease_seconds = ntohl(lease_seconds);
-				/* paranoia: must not be too small and not prone to overflows */
-				if (lease_seconds < 0x10)
-					lease_seconds = 0x10;
+					free(client6_data.ia_na);
+					client6_data.ia_na = d6_copy_option(packet.d6_options, packet_end, D6_OPT_IA_NA);
+					if (!client6_data.ia_na) {
+						bb_error_msg("no %s option, ignoring packet", "IA_NA");
+						continue;
+					}
+					if (client6_data.ia_na->len < (4 + 4 + 4) + (2 + 2 + 16 + 4 + 4)) {
+						bb_error_msg("IA_NA option is too short:%d bytes", client6_data.ia_na->len);
+						continue;
+					}
+					iaaddr = d6_find_option(client6_data.ia_na->data + 4 + 4 + 4,
+							client6_data.ia_na->data + client6_data.ia_na->len,
+							D6_OPT_IAADDR
+					);
+					if (!iaaddr) {
+						bb_error_msg("no %s option, ignoring packet", "IAADDR");
+						continue;
+					}
+					if (iaaddr->len < (16 + 4 + 4)) {
+						bb_error_msg("IAADDR option is too short:%d bytes", iaaddr->len);
+						continue;
+					}
+					/* Note: the address is sufficiently aligned for cast:
+					 * we _copied_ IA-NA, and copy is always well-aligned.
+					 */
+					requested_ipv6 = (struct in6_addr*) iaaddr->data;
+					move_from_unaligned32(lease_seconds, iaaddr->data + 16 + 4);
+					lease_seconds = ntohl(lease_seconds);
+					/* paranoia: must not be too small and not prone to overflows */
+					if (lease_seconds < 0x10)
+						lease_seconds = 0x10;
 /// TODO: check for 0 lease time?
-				if (lease_seconds > 0x7fffffff / 1000)
-					lease_seconds = 0x7fffffff / 1000;
-				/* enter bound state */
-				timeout = lease_seconds / 2;
-				bb_error_msg("lease obtained, lease time %u",
-					/*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
+					if (lease_seconds > 0x7fffffff / 1000)
+						lease_seconds = 0x7fffffff / 1000;
+					/* enter bound state */
+					timeout = lease_seconds / 2;
+					bb_error_msg("lease obtained, lease time %u",
+						/*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
 				d6_run_script(&packet, state == REQUESTING ? "bound" : "renew");
 
 				state = BOUND;
