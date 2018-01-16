@@ -277,11 +277,11 @@ static void option_to_env(uint8_t *option, uint8_t *option_end)
  * |               |
  * +-+-+-+-+-+-+-+-+
  */
-			//move_from_unaligned32(v32, option + 4 + 4);
-			//*new_env() = xasprintf("lease=%u", (unsigned)v32);
+			move_from_unaligned32(v32, option + 4 + 4);
+			*new_env() = xasprintf("ipv6prefix_lease=%u", (unsigned)v32);
 
-			sprint_nip6(ipv6str, option + 4 + 4 + 1);
-			*new_env() = xasprintf("ipv6prefix=%s/%u", ipv6str, (unsigned)(option[4 + 4]));
+			sprint_nip6(ipv6str, option + 4 + 4 + 4 + 1);
+			*new_env() = xasprintf("ipv6prefix=%s/%u", ipv6str, (unsigned)(option[4 + 4 + 4]));
 			break;
 #if ENABLE_FEATURE_UDHCPC6_RFC3646
 		case D6_OPT_DNS_SERVERS: {
