@@ -133,6 +133,7 @@ struct d6_option {
 struct client6_data_t {
 	struct d6_option *server_id;
 	struct d6_option *ia_na;
+	struct d6_option *ia_pd;
 	char **env_ptr;
 	unsigned env_idx;
 	/* link-local IPv6 address */
