@@ -1732,8 +1732,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					/* paranoia: must not be too small and not prone to overflows */
 					if (lease_seconds < 0x10)
 						lease_seconds = 0x10;
-					if (lease_seconds > 0x7fffffff / 1000)
-						lease_seconds = 0x7fffffff / 1000;
+					//if (lease_seconds > 0x7fffffff)
+					//	lease_seconds = 0x7fffffff;
+					//^^^not necessary since "timeout = lease_seconds / 2"
+					//does not overflow even for 0xffffffff.
 				}
 #if ENABLE_FEATURE_UDHCPC_ARPING
 				if (opt & OPT_a) {

@@ -1465,8 +1465,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			if (packet.d6_msg_type == D6_MSG_REPLY) {
 				uint32_t lease_seconds;
 				struct d6_option *option;
-				int address_timeout;
-				int prefix_timeout;
+				unsigned address_timeout;
+				unsigned prefix_timeout;
  type_is_ok:
 				address_timeout = 0;
 				prefix_timeout = 0;
@@ -1626,12 +1626,9 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					move_from_unaligned32(lease_seconds, iaaddr->data + 16 + 4);
 					lease_seconds = ntohl(lease_seconds);
 /// TODO: check for 0 lease time?
-					/* paranoia: must not be prone to overflows */
-					if (lease_seconds > 0x7fffffff / 1000)
-						lease_seconds = 0x7fffffff / 1000;
-					address_timeout = lease_seconds / 2;
 					bb_error_msg("%s obtained, lease time %u",
 						"IPv6", /*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
+					address_timeout = lease_seconds;
 				}
 				if (option_mask32 & OPT_d) {
 					struct d6_option *iaprefix;
@@ -1662,18 +1659,16 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					}
 					move_from_unaligned32(lease_seconds, iaprefix->data + 4);
 					lease_seconds = ntohl(lease_seconds);
-					/* paranoia: must not be prone to overflows */
-					if (lease_seconds > 0x7fffffff / 1000)
-						lease_seconds = 0x7fffffff / 1000;
-					prefix_timeout = lease_seconds / 2;
 					bb_error_msg("%s obtained, lease time %u",
 						"prefix", /*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
+					prefix_timeout = lease_seconds;
 				}
 				if (!address_timeout)
 					address_timeout = prefix_timeout;
 				if (!prefix_timeout)
 					prefix_timeout = address_timeout;
-				timeout = address_timeout > prefix_timeout ? prefix_timeout : address_timeout;
+				/* note: "int timeout" will not overflow even with 0xffffffff inputs here: */
+				timeout = (prefix_timeout < address_timeout ? prefix_timeout : address_timeout) / 2;
 				/* paranoia: must not be too small */
 				if (timeout < 0x10)
 					timeout = 0x10;
