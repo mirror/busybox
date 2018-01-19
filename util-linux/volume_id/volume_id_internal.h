@@ -187,6 +187,8 @@ int FAST_FUNC volume_id_probe_iso9660(struct volume_id *id /*,uint64_t off*/);
 
 int FAST_FUNC volume_id_probe_jfs(struct volume_id *id /*,uint64_t off*/);
 
+int FAST_FUNC volume_id_probe_lfs(struct volume_id *id /*,uint64_t off*/);
+
 int FAST_FUNC volume_id_probe_linux_swap(struct volume_id *id /*,uint64_t off*/);
 
 int FAST_FUNC volume_id_probe_luks(struct volume_id *id /*,uint64_t off*/);

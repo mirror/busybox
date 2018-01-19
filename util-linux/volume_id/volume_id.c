@@ -97,6 +97,9 @@ static const probe_fptr fs1[] = {
 #if ENABLE_FEATURE_VOLUMEID_EXFAT
 	volume_id_probe_exfat,
 #endif
+#if ENABLE_FEATURE_VOLUMEID_LFS
+	volume_id_probe_lfs,
+#endif
 #if ENABLE_FEATURE_VOLUMEID_MAC
 	volume_id_probe_mac_partition_map,
 #endif
