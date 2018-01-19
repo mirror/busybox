@@ -938,9 +938,6 @@ struct globals {
 #if BASH_LINENO_VAR
 	unsigned lineno;
 	char *lineno_var;
-# define G_lineno_var G.lineno_var
-#else
-# define G_lineno_var ((char*)NULL)
 #endif
 	struct FILE_list *FILE_list;
 	/* Which signals have non-DFL handler (even with no traps set)?
@@ -6551,13 +6548,17 @@ static void parse_and_run_string(const char *s)
 static void parse_and_run_file(FILE *f)
 {
 	struct in_str input;
+#if BASH_LINENO_VAR
 	unsigned sv;
 
-	setup_file_in_str(&input, f);
 	sv = G.lineno;
 	G.lineno = 1;
+#endif
+	setup_file_in_str(&input, f);
 	parse_and_run_stream(&input, ';');
+#if BASH_LINENO_VAR
 	G.lineno = sv;
+#endif
 }
 
 #if ENABLE_HUSH_TICK
@@ -8104,8 +8105,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		char **new_env = NULL;
 		struct variable *old_vars = NULL;
 
-		if (G_lineno_var)
-			strcpy(G_lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
+#if BASH_LINENO_VAR
+		if (G.lineno_var)
+			strcpy(G.lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
+#endif
 
 		if (argv[command->assignment_cnt] == NULL) {
 			/* Assignments, but no command */
@@ -8311,8 +8314,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		if (cmd_no < pi->num_cmds)
 			xpiped_pair(pipefds);
 
-		if (G_lineno_var)
-			strcpy(G_lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
+#if BASH_LINENO_VAR
+		if (G.lineno_var)
+			strcpy(G.lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
+#endif
 
 		command->pid = BB_MMU ? fork() : vfork();
 		if (!command->pid) { /* child */
