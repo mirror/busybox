@@ -361,6 +361,7 @@
 #define BASH_SUBSTR        ENABLE_HUSH_BASH_COMPAT
 #define BASH_SOURCE        ENABLE_HUSH_BASH_COMPAT
 #define BASH_HOSTNAME_VAR  ENABLE_HUSH_BASH_COMPAT
+#define BASH_LINENO_VAR    ENABLE_HUSH_BASH_COMPAT
 #define BASH_TEST2         (ENABLE_HUSH_BASH_COMPAT && ENABLE_HUSH_TEST)
 #define BASH_READ_D        ENABLE_HUSH_BASH_COMPAT
 
@@ -612,6 +613,9 @@ typedef enum redir_type {
 struct command {
 	pid_t pid;                  /* 0 if exited */
 	int assignment_cnt;         /* how many argv[i] are assignments? */
+#if BASH_LINENO_VAR
+	unsigned lineno;
+#endif
 	smallint cmd_type;          /* CMD_xxx */
 #define CMD_NORMAL   0
 #define CMD_SUBSHELL 1
@@ -930,6 +934,13 @@ struct globals {
 	unsigned count_SIGCHLD;
 	unsigned handled_SIGCHLD;
 	smallint we_have_children;
+#endif
+#if BASH_LINENO_VAR
+	unsigned lineno;
+	char *lineno_var;
+# define G_lineno_var G.lineno_var
+#else
+# define G_lineno_var ((char*)NULL)
 #endif
 	struct FILE_list *FILE_list;
 	/* Which signals have non-DFL handler (even with no traps set)?
@@ -2135,6 +2146,13 @@ static int set_local_var(char *str, unsigned flags)
 	}
 
 	name_len = eq_sign - str + 1; /* including '=' */
+#if BASH_LINENO_VAR
+	if (G.lineno_var) {
+		if (name_len == 7 && strncmp("LINENO", str, 6) == 0)
+			G.lineno_var = NULL;
+	}
+#endif
+
 	var_pp = &G.top_var;
 	while ((cur = *var_pp) != NULL) {
 		if (strncmp(cur->varstr, str, name_len) != 0) {
@@ -2256,10 +2274,16 @@ static int unset_local_var_len(const char *name, int name_len)
 
 	if (!name)
 		return EXIT_SUCCESS;
+
 #if ENABLE_HUSH_GETOPTS
 	if (name_len == 6 && strncmp(name, "OPTIND", 6) == 0)
 		G.getopt_count = 0;
 #endif
+#if BASH_LINENO_VAR
+	if (name_len == 6 && G.lineno_var && strncmp(name, "LINENO", 6) == 0)
+		G.lineno_var = NULL;
+#endif
+
 	var_pp = &G.top_var;
 	while ((cur = *var_pp) != NULL) {
 		if (strncmp(cur->varstr, name, name_len) == 0 && cur->varstr[name_len] == '=') {
@@ -2578,6 +2602,10 @@ static int i_getch(struct in_str *i)
  out:
 	debug_printf("file_get: got '%c' %d\n", ch, ch);
 	i->last_char = ch;
+#if BASH_LINENO_VAR
+	if (ch == '\n')
+		G.lineno++;
+#endif
 	return ch;
 }
 
@@ -3460,6 +3488,9 @@ static int done_command(struct parse_context *ctx)
 	ctx->command = command = &pi->cmds[pi->num_cmds];
  clear_and_ret:
 	memset(command, 0, sizeof(*command));
+#if BASH_LINENO_VAR
+	command->lineno = G.lineno;
+#endif
 	return pi->num_cmds; /* used only for 0/nonzero check */
 }
 
@@ -6520,8 +6551,13 @@ static void parse_and_run_string(const char *s)
 static void parse_and_run_file(FILE *f)
 {
 	struct in_str input;
+	unsigned sv;
+
 	setup_file_in_str(&input, f);
+	sv = G.lineno;
+	G.lineno = 1;
 	parse_and_run_stream(&input, ';');
+	G.lineno = sv;
 }
 
 #if ENABLE_HUSH_TICK
@@ -8068,6 +8104,9 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		char **new_env = NULL;
 		struct variable *old_vars = NULL;
 
+		if (G_lineno_var)
+			strcpy(G_lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
+
 		if (argv[command->assignment_cnt] == NULL) {
 			/* Assignments, but no command */
 			/* Ensure redirects take effect (that is, create files).
@@ -8271,6 +8310,9 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		pipefds.wr = 1;
 		if (cmd_no < pi->num_cmds)
 			xpiped_pair(pipefds);
+
+		if (G_lineno_var)
+			strcpy(G_lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
 
 		command->pid = BB_MMU ? fork() : vfork();
 		if (!command->pid) { /* child */
@@ -8907,17 +8949,19 @@ int hush_main(int argc, char **argv)
 #if !BB_MMU
 	G.argv0_for_re_execing = argv[0];
 #endif
+
 	/* Deal with HUSH_VERSION */
+	debug_printf_env("unsetenv '%s'\n", "HUSH_VERSION");
+	unsetenv("HUSH_VERSION"); /* in case it exists in initial env */
 	shell_ver = xzalloc(sizeof(*shell_ver));
 	shell_ver->flg_export = 1;
 	shell_ver->flg_read_only = 1;
 	/* Code which handles ${var<op>...} needs writable values for all variables,
 	 * therefore we xstrdup: */
 	shell_ver->varstr = xstrdup(hush_version_str);
+
 	/* Create shell local variables from the values
 	 * currently living in the environment */
-	debug_printf_env("unsetenv '%s'\n", "HUSH_VERSION");
-	unsetenv("HUSH_VERSION"); /* in case it exists in initial env */
 	G.top_var = shell_ver;
 	cur_var = G.top_var;
 	e = environ;
@@ -8981,6 +9025,14 @@ int hush_main(int argc, char **argv)
 	 * PS2='> '
 	 * PS4='+ '
 	 */
+#endif
+
+#if BASH_LINENO_VAR
+	if (BASH_LINENO_VAR) {
+		char *p = xasprintf("LINENO=%*s", (int)(sizeof(int)*3), "");
+		set_local_var(p, /*flags*/ 0);
+		G.lineno_var = p; /* can't assign before set_local_var("LINENO=...") */
+	}
 #endif
 
 #if ENABLE_FEATURE_EDITING
