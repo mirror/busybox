@@ -16,7 +16,6 @@ int FAST_FUNC d6_read_interface(const char *interface, int *ifindex, struct in6_
 	struct ifaddrs *ifap, *ifa;
 
 	getifaddrs(&ifap);
-
 	for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
 		struct sockaddr_in6 *sip6;
 
@@ -29,9 +28,9 @@ int FAST_FUNC d6_read_interface(const char *interface, int *ifindex, struct in6_
 			struct sockaddr_ll *sll = (struct sockaddr_ll*)(ifa->ifa_addr);
 			memcpy(mac, sll->sll_addr, 6);
 			log2("MAC %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-			log2("ifindex %d", sll->sll_ifindex);
 			*ifindex = sll->sll_ifindex;
-			retval &= (0xf - (1<<0));
+			log2("ifindex %d", *ifindex);
+			retval &= (3 - (1<<0));
 		}
 #if 0
 		if (ifa->ifa_addr->sa_family == AF_INET) {
@@ -54,11 +53,29 @@ int FAST_FUNC d6_read_interface(const char *interface, int *ifindex, struct in6_
 				nip6->s6_addr[12], nip6->s6_addr[13],
 				nip6->s6_addr[14], nip6->s6_addr[15]
 			);
-			retval &= (0xf - (1<<1));
+			retval &= (3 - (1<<1));
 		}
 	}
-
 	freeifaddrs(ifap);
+
+	if (retval & (1<<0)) {
+		/* This iface has no MAC (e.g. ppp), generate a random one */
+		struct ifreq ifr;
+		int fd;
+
+		memset(&ifr, 0, sizeof(ifr));
+		strncpy_IFNAMSIZ(ifr.ifr_name, interface);
+		fd = xsocket(AF_INET6, SOCK_RAW, IPPROTO_RAW);
+		if (ioctl(fd, SIOCGIFINDEX, &ifr) == 0) {
+			*ifindex = ifr.ifr_ifindex;
+			log2("ifindex %d", *ifindex);
+			((uint32_t*)mac)[0] = rand();
+			((uint16_t*)mac)[2] = rand();
+			retval &= (3 - (1<<0));
+		}
+		close(fd);
+	}
+
 	if (retval == 0)
 		return retval;
 

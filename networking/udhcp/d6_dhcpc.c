@@ -1093,6 +1093,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	int retval;
 
 	setup_common_bufsiz();
+	/* We want random_xid to be random */
+	srand(monotonic_us());
 
 	/* Default options */
 	IF_FEATURE_UDHCP_PORT(SERVER_PORT6 = 547;)
@@ -1207,8 +1209,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	bb_error_msg("started, v"BB_VER);
 	/* Set up the signal pipe */
 	udhcp_sp_setup();
-	/* We want random_xid to be random... */
-	srand(monotonic_us());
 
 	state = INIT_SELECTING;
 	d6_run_script(NULL, "deconfig");
