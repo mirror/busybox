@@ -99,6 +99,22 @@
 //config:	bool "Enable -N (dynamic switching of line numbers)"
 //config:	default y
 //config:	depends on FEATURE_LESS_DASHCMD
+//config:
+//config:config FEATURE_LESS_RAW
+//config:	bool "Enable -R ('raw control characters')"
+//config:	default y
+//config:	depends on FEATURE_LESS_DASHCMD
+//config:	help
+//config:	This is essential for less applet to work with tools that use colors
+//config:	and paging, such as git, systemd tools or nmcli.
+//config:
+//config:config FEATURE_LESS_ENV
+//config:	bool "Take options from $LESS environment variable"
+//config:	default y
+//config:	depends on FEATURE_LESS_DASHCMD
+//config:	help
+//config:	This is essential for less applet to work with tools that use colors
+//config:	and paging, such as git, systemd tools or nmcli.
 
 //applet:IF_LESS(APPLET(less, BB_DIR_USR_BIN, BB_SUID_DROP))
 
@@ -106,7 +122,7 @@
 
 //usage:#define less_trivial_usage
 //usage:       "[-E" IF_FEATURE_LESS_REGEXP("I")IF_FEATURE_LESS_FLAGS("Mm")
-//usage:       "N" IF_FEATURE_LESS_TRUNCATE("S") "h~] [FILE]..."
+//usage:       "N" IF_FEATURE_LESS_TRUNCATE("S") IF_FEATURE_LESS_TRUNCATE("R") "h~] [FILE]..."
 //usage:#define less_full_usage "\n\n"
 //usage:       "View FILE (or stdin) one screenful at a time\n"
 //usage:     "\n	-E	Quit once the end of a file is reached"
@@ -120,6 +136,9 @@
 //usage:     "\n	-N	Prefix line number to each line"
 //usage:	IF_FEATURE_LESS_TRUNCATE(
 //usage:     "\n	-S	Truncate long lines"
+//usage:	)
+//usage:	IF_FEATURE_LESS_RAW(
+//usage:     "\n	-R	Remove color escape codes in input"
 //usage:	)
 //usage:     "\n	-~	Suppress ~s displayed past EOF"
 
@@ -157,6 +176,7 @@ enum {
 	FLAG_TILDE = 1 << 4,
 	FLAG_I = 1 << 5,
 	FLAG_S = (1 << 6) * ENABLE_FEATURE_LESS_TRUNCATE,
+	FLAG_R = (1 << 7) * ENABLE_FEATURE_LESS_RAW,
 /* hijack command line options variable for internal state vars */
 	LESS_STATE_MATCH_BACKWARDS = 1 << 15,
 };
@@ -206,6 +226,9 @@ struct globals {
 	int num_matches;
 	regex_t pattern;
 	smallint pattern_valid;
+#endif
+#if ENABLE_FEATURE_LESS_RAW
+	smallint in_escape;
 #endif
 #if ENABLE_FEATURE_LESS_ASK_TERMINAL
 	smallint winsize_err;
@@ -513,6 +536,26 @@ static void read_lines(void)
 				*--p = '\0';
 				continue;
 			}
+#if ENABLE_FEATURE_LESS_RAW
+			if (option_mask32 & FLAG_R) {
+				if (c == '\033')
+					goto discard;
+				if (G.in_escape) {
+					if (isdigit(c)
+					 || c == '['
+					 || c == ';'
+					 || c == 'm'
+					) {
+ discard:
+						G.in_escape = (c != 'm');
+						readpos++;
+						continue;
+					}
+					/* Hmm, unexpected end of "ESC [ N ; N m" sequence */
+					G.in_escape = 0;
+				}
+			}
+#endif
 			{
 				size_t new_last_line_pos = last_line_pos + 1;
 				if (c == '\t') {
@@ -1775,6 +1818,25 @@ int less_main(int argc, char **argv)
 	argv += optind;
 	num_files = argc - optind;
 	files = argv;
+
+	/* Tools typically pass LESS="FRSXMK".
+	 * The options we don't understand are ignored. */
+	if (ENABLE_FEATURE_LESS_ENV) {
+		char *c = getenv("LESS");
+		if (c) while (*c) switch (*c++) {
+		case 'M':
+			option_mask32 |= FLAG_M;
+			break;
+		case 'R':
+			option_mask32 |= FLAG_R;
+			break;
+		case 'S':
+			option_mask32 |= FLAG_S;
+			break;
+		default:
+			break;
+		}
+	}
 
 	/* Another popular pager, most, detects when stdout
 	 * is not a tty and turns into cat. This makes sense. */
