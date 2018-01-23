@@ -1371,9 +1371,13 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 #ifdef DEBUG
-	for (i = 0; i < G.n_specs; i++) {
-		printf("%d: fmt=\"%s\" width=%d\n",
-			i, spec[i].fmt_string, width_bytes[spec[i].size]);
+	{
+		int i;
+		for (i = 0; i < G.n_specs; i++) {
+			printf("%d: fmt='%s' width=%d\n",
+				i, G.spec[i].fmt_string,
+				width_bytes[G.spec[i].size]);
+		}
 	}
 #endif
 
