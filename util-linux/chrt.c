@@ -35,6 +35,9 @@
 
 #include <sched.h>
 #include "libbb.h"
+#ifndef SCHED_IDLE
+# define SCHED_IDLE 5
+#endif
 
 static const struct {
 	int policy;
@@ -79,18 +82,22 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 	const char *current_new;
 	int policy = SCHED_RR;
 
-	/* only one policy accepted */
-	opt = getopt32(argv, "^+" "mprfobi" "\0" "r--fobi:f--robi:o--rfbi:b--rfoi:i--rfob");
+	opt = getopt32(argv, "^"
+			"+" "mprfobi"
+			"\0"
+			/* only one policy accepted: */
+			"r--fobi:f--robi:o--rfbi:b--rfoi:i--rfob"
+	);
 	if (opt & OPT_m) { /* print min/max and exit */
+		show_min_max(SCHED_OTHER);
 		show_min_max(SCHED_FIFO);
 		show_min_max(SCHED_RR);
-		show_min_max(SCHED_OTHER);
 		show_min_max(SCHED_BATCH);
 		show_min_max(SCHED_IDLE);
 		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
-	if (opt & OPT_r)
-		policy = SCHED_RR;
+	//if (opt & OPT_r)
+	//	policy = SCHED_RR; - default, already set
 	if (opt & OPT_f)
 		policy = SCHED_FIFO;
 	if (opt & OPT_o)
@@ -140,14 +147,9 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 		current_new += 8;
 	}
 
-	/* from the manpage of sched_getscheduler:
-	[...] sched_priority can have a value in the range 0 to 99.
-	[...] SCHED_OTHER, SCHED_BATCH or SCHED_IDLE must be assigned static
-		  priority 0.
-	[...] SCHED_FIFO or SCHED_RR can have static priority in 1..99 range.
-	*/
 	sp.sched_priority = xstrtou_range(priority, 0,
-			(policy != SCHED_OTHER && policy != SCHED_BATCH && policy != SCHED_IDLE) ? 1 : 0, 99);
+		sched_get_priority_min(policy), sched_get_priority_max(policy)
+	);
 
 	if (sched_setscheduler(pid, policy, &sp) < 0)
 		bb_perror_msg_and_die("can't %cet pid %d's policy", 's', (int)pid);
