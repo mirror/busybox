@@ -69,8 +69,12 @@ int FAST_FUNC d6_read_interface(const char *interface, int *ifindex, struct in6_
 		if (ioctl(fd, SIOCGIFINDEX, &ifr) == 0) {
 			*ifindex = ifr.ifr_ifindex;
 			log2("ifindex %d", *ifindex);
-			((uint32_t*)mac)[0] = rand();
-			((uint16_t*)mac)[2] = rand();
+			if (((uint32_t*)mac)[0] == 0) {
+				/* invent a fictitious MAC (once) */
+				((uint32_t*)mac)[0] = rand();
+				((uint16_t*)mac)[2] = rand();
+				mac[0] &= 0xfc; /* make sure it's not bcast */
+			}
 			retval &= (3 - (1<<0));
 		}
 		close(fd);
