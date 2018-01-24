@@ -122,7 +122,7 @@
 
 //usage:#define less_trivial_usage
 //usage:       "[-E" IF_FEATURE_LESS_REGEXP("I")IF_FEATURE_LESS_FLAGS("Mm")
-//usage:       "N" IF_FEATURE_LESS_TRUNCATE("S") IF_FEATURE_LESS_TRUNCATE("R") "h~] [FILE]..."
+//usage:       "N" IF_FEATURE_LESS_TRUNCATE("S") IF_FEATURE_LESS_RAW("R") "h~] [FILE]..."
 //usage:#define less_full_usage "\n\n"
 //usage:       "View FILE (or stdin) one screenful at a time\n"
 //usage:     "\n	-E	Quit once the end of a file is reached"
