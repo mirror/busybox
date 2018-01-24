@@ -51,6 +51,15 @@
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:
+//config:config ASH_BASH_NOT_FOUND_HOOK
+//config:	bool "command_not_found_handle hook support"
+//config:	default y
+//config:	depends ASH_BASH_COMPAT
+//config:	help
+//config:	Enable support for the 'command_not_found_handle' hook function,
+//config:	from GNU bash, which allows for alternative command not found
+//config:	handling.
+//config:
 //config:config ASH_JOB_CONTROL
 //config:	bool "Job control"
 //config:	default y
@@ -13227,8 +13236,21 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 	/* We failed.  If there was an entry for this command, delete it */
 	if (cmdp && updatetbl)
 		delete_cmd_entry();
-	if (act & DO_ERR)
+	if (act & DO_ERR) {
+#if ENABLE_ASH_BASH_NOT_FOUND_HOOK
+		struct tblentry *hookp = cmdlookup("command_not_found_handle", 0);
+		if (hookp && hookp->cmdtype == CMDFUNCTION) {
+			char *argv[3];
+			argv[0] = (char*) "command_not_found_handle";
+			argv[1] = name;
+			argv[2] = NULL;
+			evalfun(hookp->param.func, 2, argv, 0);
+			entry->cmdtype = CMDUNKNOWN;
+			return;
+		}
+#endif
 		ash_msg("%s: %s", name, errmsg(e, "not found"));
+	}
 	entry->cmdtype = CMDUNKNOWN;
 	return;
 
