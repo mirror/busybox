@@ -9,7 +9,7 @@
 //config:	bool "chrt (4.4 kb)"
 //config:	default y
 //config:	help
-//config:	manipulate real-time attributes of a process.
+//config:	Manipulate real-time attributes of a process.
 //config:	This requires sched_{g,s}etparam support in your libc.
 
 //applet:IF_CHRT(APPLET_NOEXEC(chrt, chrt, BB_DIR_USR_BIN, BB_SUID_DROP, chrt))
@@ -40,15 +40,15 @@
 #endif
 
 static const struct {
-	int policy;
 	char name[sizeof("SCHED_OTHER")];
 } policies[] = {
-	{SCHED_OTHER, "SCHED_OTHER"},
-	{SCHED_FIFO, "SCHED_FIFO"},
-	{SCHED_RR, "SCHED_RR"},
-	{SCHED_BATCH, "SCHED_BATCH"},
-	{0 /* unused */, ""},
-	{SCHED_IDLE, "SCHED_IDLE"}
+	{ "SCHED_OTHER" }, /* 0:SCHED_OTHER */
+	{ "SCHED_FIFO" },  /* 1:SCHED_FIFO */
+	{ "SCHED_RR" },    /* 2:SCHED_RR */
+	{ "SCHED_BATCH" }, /* 3:SCHED_BATCH */
+	{ "" },            /* 4:SCHED_ISO */
+	{ "SCHED_IDLE" },  /* 5:SCHED_IDLE */
+	/* 6:SCHED_DEADLINE */
 };
 
 static void show_min_max(int pol)
