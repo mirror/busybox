@@ -178,9 +178,10 @@ dd POSIX options:
   conv=noerror    |  yes   |           |
   conv=notrunc    |  yes   |           |
   conv=sync       |  yes   |           |
+dd compatibility options:
+  conv=fsync      |  yes   |           |
   iflag=skip_bytes|  yes   |           |
-dd Busybox specific options:
- conv=fsync
+  iflag=fullblock |  yes   |           |
 
 df POSIX options
  option           | exists | compliant | remarks
