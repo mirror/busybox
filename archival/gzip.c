@@ -114,6 +114,7 @@ aa:      85.1% -- replaced with aa.gz
 //#define DEBUG 1
 /* Diagnostic functions */
 #ifdef DEBUG
+static int verbose;
 #  define Assert(cond,msg) { if (!(cond)) bb_error_msg(msg); }
 #  define Trace(x) fprintf x
 #  define Tracev(x) {if (verbose) fprintf x; }
@@ -1538,7 +1539,7 @@ static int build_bl_tree(void)
 	}
 	/* Update opt_len to include the bit length tree and counts */
 	G2.opt_len += 3 * (max_blindex + 1) + 5 + 5 + 4;
-	Tracev((stderr, "\ndyn trees: dyn %ld, stat %ld", G2.opt_len, G2.static_len));
+	Tracev((stderr, "\ndyn trees: dyn %ld, stat %ld", (long)G2.opt_len, (long)G2.static_len));
 
 	return max_blindex;
 }
@@ -1564,13 +1565,13 @@ static void send_all_trees(int lcodes, int dcodes, int blcodes)
 		Tracev((stderr, "\nbl code %2d ", bl_order[rank]));
 		send_bits(G2.bl_tree[bl_order[rank]].Len, 3);
 	}
-	Tracev((stderr, "\nbl tree: sent %ld", G1.bits_sent));
+	Tracev((stderr, "\nbl tree: sent %ld", (long)G1.bits_sent));
 
 	send_tree((ct_data *) G2.dyn_ltree, lcodes - 1);	/* send the literal tree */
-	Tracev((stderr, "\nlit tree: sent %ld", G1.bits_sent));
+	Tracev((stderr, "\nlit tree: sent %ld", (long)G1.bits_sent));
 
 	send_tree((ct_data *) G2.dyn_dtree, dcodes - 1);	/* send the distance tree */
-	Tracev((stderr, "\ndist tree: sent %ld", G1.bits_sent));
+	Tracev((stderr, "\ndist tree: sent %ld", (long)G1.bits_sent));
 }
 
 
@@ -1619,7 +1620,8 @@ static int ct_tally(int dist, int lc)
 		out_length >>= 3;
 		Trace((stderr,
 				"\nlast_lit %u, last_dist %u, in %ld, out ~%ld(%ld%%) ",
-				G2.last_lit, G2.last_dist, in_length, out_length,
+				G2.last_lit, G2.last_dist,
+				(long)in_length, (long)out_length,
 				100L - out_length * 100L / in_length));
 		if (G2.last_dist < G2.last_lit / 2 && out_length < in_length / 2)
 			return 1;
@@ -1694,10 +1696,10 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 
 	/* Construct the literal and distance trees */
 	build_tree(&G2.l_desc);
-	Tracev((stderr, "\nlit data: dyn %ld, stat %ld", G2.opt_len, G2.static_len));
+	Tracev((stderr, "\nlit data: dyn %ld, stat %ld", (long)G2.opt_len, (long)G2.static_len));
 
 	build_tree(&G2.d_desc);
-	Tracev((stderr, "\ndist data: dyn %ld, stat %ld", G2.opt_len, G2.static_len));
+	Tracev((stderr, "\ndist data: dyn %ld, stat %ld", (long)G2.opt_len, (long)G2.static_len));
 	/* At this point, opt_len and static_len are the total bit lengths of
 	 * the compressed block data, excluding the tree representations.
 	 */
@@ -1713,7 +1715,9 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 
 	Trace((stderr,
 			"\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u dist %u ",
-			opt_lenb, G2.opt_len, static_lenb, G2.static_len, stored_len,
+			(unsigned long)opt_lenb, (unsigned long)G2.opt_len,
+			(unsigned long)static_lenb, (unsigned long)G2.static_len,
+			(unsigned long)stored_len,
 			G2.last_lit, G2.last_dist));
 
 	if (static_lenb <= opt_lenb)
@@ -1761,8 +1765,9 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 		bi_windup();
 		G2.compressed_len += 7;	/* align on byte boundary */
 	}
-	Tracev((stderr, "\ncomprlen %lu(%lu) ", G2.compressed_len >> 3,
-			G2.compressed_len - 7 * eof));
+	Tracev((stderr, "\ncomprlen %lu(%lu) ",
+			(unsigned long)G2.compressed_len >> 3,
+			(unsigned long)G2.compressed_len - 7 * eof));
 
 	return G2.compressed_len >> 3;
 }
@@ -1900,7 +1905,7 @@ static ulg deflate(void)
 			G1.strstart++;
 			G1.lookahead--;
 		}
-		Assert(G1.strstart <= G1.isize && lookahead <= G1.isize, "a bit too far");
+		Assert(G1.strstart <= G1.isize && G1.lookahead <= G1.isize, "a bit too far");
 
 		/* Make sure that we always have enough lookahead, except
 		 * at the end of the input file. We need MAX_MATCH bytes
