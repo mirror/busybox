@@ -4520,9 +4520,10 @@ static int parse_dollar(o_string *as_string,
 
 	debug_printf_parse("parse_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
+ make_var:
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
- make_var:
+ /*make_var1:*/
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		while (1) {
 			debug_printf_parse(": '%c'\n", ch);
@@ -4715,19 +4716,22 @@ static int parse_dollar(o_string *as_string,
 	}
 #endif
 	case '_':
-		ch = i_getch(input);
-		nommu_addchr(as_string, ch);
-		ch = i_peek_and_eat_bkslash_nl(input);
-		if (isalnum(ch)) { /* it's $_name or $_123 */
-			ch = '_';
-			goto make_var;
-		}
-		/* else: it's $_ */
+		goto make_var;
+#if 0
 	/* TODO: $_ and $-: */
 	/* $_ Shell or shell script name; or last argument of last command
 	 * (if last command wasn't a pipe; if it was, bash sets $_ to "");
 	 * but in command's env, set to full pathname used to invoke it */
 	/* $- Option flags set by set builtin or shell options (-i etc) */
+		ch = i_getch(input);
+		nommu_addchr(as_string, ch);
+		ch = i_peek_and_eat_bkslash_nl(input);
+		if (isalnum(ch)) { /* it's $_name or $_123 */
+			ch = '_';
+			goto make_var1;
+		}
+		/* else: it's $_ */
+#endif
 	default:
 		o_addQchr(dest, '$');
 	}
@@ -5669,9 +5673,9 @@ static char *replace_pattern(char *val, const char *pattern, const char *repl, c
  */
 static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, char **pp)
 {
-	const char *val = NULL;
-	char *to_be_freed = NULL;
-	char *p = *pp;
+	const char *val;
+	char *to_be_freed;
+	char *p;
 	char *var;
 	char first_char;
 	char exp_op;
@@ -5680,6 +5684,9 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	char *exp_word = exp_word; /* for compiler */
 	char arg0;
 
+	val = NULL;
+	to_be_freed = NULL;
+	p = *pp;
 	*p = '\0'; /* replace trailing SPECIAL_VAR_SYMBOL */
 	var = arg;
 	exp_saveptr = arg[1] ? strchr(VAR_ENCODED_SUBST_OPS, arg[1]) : NULL;
