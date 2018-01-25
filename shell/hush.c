@@ -5643,6 +5643,10 @@ static char *replace_pattern(char *val, const char *pattern, const char *repl, c
 	unsigned res_len = 0;
 	unsigned repl_len = strlen(repl);
 
+	/* Null pattern never matches, including if "var" is empty */
+	if (!pattern[0])
+		return result; /* NULL, no replaces happened */
+
 	while (1) {
 		int size;
 		char *s = strstr_pattern(val, pattern, &size);
@@ -5809,8 +5813,6 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			 * and if // is used, it is encoded as \:
 			 * var\pattern<SPECIAL_VAR_SYMBOL>repl<SPECIAL_VAR_SYMBOL>
 			 */
-			/* Empty variable always gives nothing: */
-			// "v=''; echo ${v/*/w}" prints "", not "w"
 			if (val && val[0]) {
 				/* pattern uses non-standard expansion.
 				 * repl should be unbackslashed and globbed
@@ -5846,6 +5848,13 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 					val = to_be_freed;
 				free(pattern);
 				free(repl);
+			} else {
+				/* Empty variable always gives nothing */
+				// "v=''; echo ${v/*/w}" prints "", not "w"
+				/* Just skip "replace" part */
+				*p++ = SPECIAL_VAR_SYMBOL;
+				p = strchr(p, SPECIAL_VAR_SYMBOL);
+				*p = '\0';
 			}
 		}
 #endif /* BASH_PATTERN_SUBST */
