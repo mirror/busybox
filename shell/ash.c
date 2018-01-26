@@ -51,6 +51,13 @@
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:
+//config:config ASH_BASH_SOURCE_CURDIR
+//config:	bool "'source' and '.' builtins search current directory after $PATH"
+//config:	default n   # do not encourage non-standard behavior
+//config:	depends ASH_BASH_COMPAT
+//config:	help
+//config:	This is not compliant with standards. Avoid if possible.
+//config:
 //config:config ASH_BASH_NOT_FOUND_HOOK
 //config:	bool "command_not_found_handle hook support"
 //config:	default y
@@ -12978,10 +12985,14 @@ find_dot_file(char *name)
 		if (fullname != name)
 			stunalloc(fullname);
 	}
+	/* not found in PATH */
 
-	/* not found in the PATH */
+#if ENABLE_ASH_BASH_SOURCE_CURDIR
+	return name;
+#else
 	ash_msg_and_raise_error("%s: not found", name);
 	/* NOTREACHED */
+#endif
 }
 
 static int FAST_FUNC
