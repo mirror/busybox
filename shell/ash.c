@@ -328,6 +328,8 @@ struct globals_misc {
 	/* shell level: 0 for the main shell, 1 for its children, and so on */
 	int shlvl;
 #define rootshell (!shlvl)
+	int errlinno;
+
 	char *minusc;  /* argument to -c option */
 
 	char *curdir; // = nullstr;     /* current working directory */
@@ -405,6 +407,7 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define job_warning       (G_misc.job_warning)
 #define rootpid     (G_misc.rootpid    )
 #define shlvl       (G_misc.shlvl      )
+#define errlinno    (G_misc.errlinno   )
 #define minusc      (G_misc.minusc     )
 #define curdir      (G_misc.curdir     )
 #define physdir     (G_misc.physdir    )
@@ -739,6 +742,7 @@ union node;
 
 struct ncmd {
 	smallint type; /* Nxxxx */
+	int linno;
 	union node *assign;
 	union node *args;
 	union node *redirect;
@@ -752,6 +756,7 @@ struct npipe {
 
 struct nredir {
 	smallint type;
+	int linno;
 	union node *n;
 	union node *redirect;
 };
@@ -771,6 +776,7 @@ struct nif {
 
 struct nfor {
 	smallint type;
+	int linno;
 	union node *args;
 	union node *body;
 	char *var;
@@ -778,6 +784,7 @@ struct nfor {
 
 struct ncase {
 	smallint type;
+	int linno;
 	union node *expr;
 	union node *cases;
 };
@@ -786,6 +793,13 @@ struct nclist {
 	smallint type;
 	union node *next;
 	union node *pattern;
+	union node *body;
+};
+
+struct ndefun {
+	smallint type;
+	int linno;
+	char *text;
 	union node *body;
 };
 
@@ -840,6 +854,7 @@ union node {
 	struct nfor nfor;
 	struct ncase ncase;
 	struct nclist nclist;
+	struct ndefun ndefun;
 	struct narg narg;
 	struct nfile nfile;
 	struct ndup ndup;
@@ -1269,7 +1284,6 @@ struct parsefile {
 
 static struct parsefile basepf;        /* top level input file */
 static struct parsefile *g_parsefile = &basepf;  /* current input file */
-static int startlinno;                 /* line # where last token started */
 static char *commandname;              /* currently executing command */
 
 
@@ -1283,7 +1297,7 @@ ash_vmsg(const char *msg, va_list ap)
 		if (strcmp(arg0, commandname))
 			fprintf(stderr, "%s: ", commandname);
 		if (!iflag || g_parsefile->pf_fd > 0)
-			fprintf(stderr, "line %d: ", startlinno);
+			fprintf(stderr, "line %d: ", errlinno);
 	}
 	vfprintf(stderr, msg, ap);
 	newline_and_flush(stderr);
@@ -1336,6 +1350,7 @@ static void raise_error_syntax(const char *) NORETURN;
 static void
 raise_error_syntax(const char *msg)
 {
+	errlinno = g_parsefile->linno;
 	ash_msg_and_raise_error("syntax error: %s", msg);
 	/* NOTREACHED */
 }
@@ -2023,6 +2038,7 @@ static const struct {
 #if ENABLE_ASH_GETOPTS
 	{ VSTRFIXED|VTEXTFIXED       , defoptindvar, getoptsreset    },
 #endif
+	{ VSTRFIXED|VTEXTFIXED       , NULL /* inited to linenovar */, NULL },
 #if ENABLE_ASH_RANDOM_SUPPORT
 	{ VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "RANDOM", change_random },
 #endif
@@ -2043,6 +2059,8 @@ struct globals_var {
 	int preverrout_fd;   /* stderr fd: usually 2, unless redirect moved it */
 	struct var *vartab[VTABSIZE];
 	struct var varinit[ARRAY_SIZE(varinit_data)];
+	int lineno;
+	char linenovar[sizeof("LINENO=") + sizeof(int)*3];
 };
 extern struct globals_var *const ash_ptr_to_globals_var;
 #define G_var (*ash_ptr_to_globals_var)
@@ -2051,17 +2069,8 @@ extern struct globals_var *const ash_ptr_to_globals_var;
 #define preverrout_fd (G_var.preverrout_fd)
 #define vartab        (G_var.vartab       )
 #define varinit       (G_var.varinit      )
-#define INIT_G_var() do { \
-	unsigned i; \
-	(*(struct globals_var**)&ash_ptr_to_globals_var) = xzalloc(sizeof(G_var)); \
-	barrier(); \
-	for (i = 0; i < ARRAY_SIZE(varinit_data); i++) { \
-		varinit[i].flags    = varinit_data[i].flags; \
-		varinit[i].var_text = varinit_data[i].var_text; \
-		varinit[i].var_func = varinit_data[i].var_func; \
-	} \
-} while (0)
-
+#define lineno        (G_var.lineno       )
+#define linenovar     (G_var.linenovar    )
 #define vifs      varinit[0]
 #if ENABLE_ASH_MAIL
 # define vmail    (&vifs)[1]
@@ -2075,14 +2084,28 @@ extern struct globals_var *const ash_ptr_to_globals_var;
 #define vps4      (&vps2)[1]
 #if ENABLE_ASH_GETOPTS
 # define voptind  (&vps4)[1]
+# define vlineno  (&voptind)[1]
 # if ENABLE_ASH_RANDOM_SUPPORT
-#  define vrandom (&voptind)[1]
+#  define vrandom (&vlineno)[1]
 # endif
 #else
+# define vlineno  (&vps4)[1]
 # if ENABLE_ASH_RANDOM_SUPPORT
-#  define vrandom (&vps4)[1]
+#  define vrandom (&vlineno)[1]
 # endif
 #endif
+#define INIT_G_var() do { \
+	unsigned i; \
+	(*(struct globals_var**)&ash_ptr_to_globals_var) = xzalloc(sizeof(G_var)); \
+	barrier(); \
+	for (i = 0; i < ARRAY_SIZE(varinit_data); i++) { \
+		varinit[i].flags    = varinit_data[i].flags; \
+		varinit[i].var_text = varinit_data[i].var_text; \
+		varinit[i].var_func = varinit_data[i].var_func; \
+	} \
+	strcpy(linenovar, "LINENO="); \
+	vlineno.var_text = linenovar; \
+} while (0)
 
 /*
  * The following macros access the values of the above variables.
@@ -2218,8 +2241,12 @@ lookupvar(const char *name)
 		if (v->flags & VDYNAMIC)
 			v->var_func(NULL);
 #endif
-		if (!(v->flags & VUNSET))
+		if (!(v->flags & VUNSET)) {
+			if (v == &vlineno && v->var_text == linenovar) {
+				fmtstr(linenovar+7, sizeof(linenovar)-7, "%d", lineno);
+			}
 			return var_end(v->var_text);
+		}
 	}
 	return NULL;
 }
@@ -4823,7 +4850,7 @@ cmdtxt(union node *n)
 		p = "; done";
 		goto dodo;
 	case NDEFUN:
-		cmdputs(n->narg.text);
+		cmdputs(n->ndefun.text);
 		p = "() { ... }";
 		goto dotail2;
 	case NCMD:
@@ -8650,6 +8677,9 @@ calcsize(int funcblocksize, union node *n)
 		funcblocksize = calcsize(funcblocksize, n->nclist.next);
 		break;
 	case NDEFUN:
+		funcblocksize = calcsize(funcblocksize, n->ndefun.body);
+		funcblocksize += SHELL_ALIGN(strlen(n->ndefun.text) + 1);
+		break;
 	case NARG:
 		funcblocksize = sizenodelist(funcblocksize, n->narg.backquote);
 		funcblocksize += SHELL_ALIGN(strlen(n->narg.text) + 1); /* was funcstringsize += ... */
@@ -8725,6 +8755,7 @@ copynode(union node *n)
 		new->ncmd.redirect = copynode(n->ncmd.redirect);
 		new->ncmd.args = copynode(n->ncmd.args);
 		new->ncmd.assign = copynode(n->ncmd.assign);
+		new->ncmd.linno = n->ncmd.linno;
 		break;
 	case NPIPE:
 		new->npipe.cmdlist = copynodelist(n->npipe.cmdlist);
@@ -8735,6 +8766,7 @@ copynode(union node *n)
 	case NSUBSHELL:
 		new->nredir.redirect = copynode(n->nredir.redirect);
 		new->nredir.n = copynode(n->nredir.n);
+		new->nredir.linno = n->nredir.linno;
 		break;
 	case NAND:
 	case NOR:
@@ -8753,10 +8785,12 @@ copynode(union node *n)
 		new->nfor.var = nodeckstrdup(n->nfor.var);
 		new->nfor.body = copynode(n->nfor.body);
 		new->nfor.args = copynode(n->nfor.args);
+		new->nfor.linno = n->nfor.linno;
 		break;
 	case NCASE:
 		new->ncase.cases = copynode(n->ncase.cases);
 		new->ncase.expr = copynode(n->ncase.expr);
+		new->ncase.linno = n->ncase.linno;
 		break;
 	case NCLIST:
 		new->nclist.body = copynode(n->nclist.body);
@@ -8764,6 +8798,10 @@ copynode(union node *n)
 		new->nclist.next = copynode(n->nclist.next);
 		break;
 	case NDEFUN:
+		new->ndefun.body = copynode(n->ndefun.body);
+		new->ndefun.text = nodeckstrdup(n->ndefun.text);
+		new->ndefun.linno = n->ndefun.linno;
+		break;
 	case NARG:
 		new->narg.backquote = copynodelist(n->narg.backquote);
 		new->narg.text = nodeckstrdup(n->narg.text);
@@ -8832,7 +8870,7 @@ defun(union node *func)
 	INT_OFF;
 	entry.cmdtype = CMDFUNCTION;
 	entry.u.func = copyfunc(func);
-	addcmdentry(func->narg.text, &entry);
+	addcmdentry(func->ndefun.text, &entry);
 	INT_ON;
 }
 
@@ -8842,8 +8880,8 @@ defun(union node *func)
 #define SKIPFUNC       (1 << 2)
 static smallint evalskip;       /* set to SKIPxxx if we are skipping commands */
 static int skipcount;           /* number of levels to skip */
-static int funcnest;            /* depth of function calls */
 static int loopnest;            /* current loop nesting level */
+static int funcline;            /* starting line number of current function, or 0 if not in a function */
 
 /* Forward decl way out to parsing code - dotrap needs it */
 static int evalstring(char *s, int flags);
@@ -8938,6 +8976,9 @@ evaltree(union node *n, int flags)
 		status = !evaltree(n->nnot.com, EV_TESTED);
 		goto setstatus;
 	case NREDIR:
+		errlinno = lineno = n->nredir.linno;
+		if (funcline)
+			lineno -= funcline - 1;
 		expredir(n->nredir.redirect);
 		pushredir(n->nredir.redirect);
 		status = redirectsafe(n->nredir.redirect, REDIR_PUSH);
@@ -9092,6 +9133,10 @@ evalfor(union node *n, int flags)
 	struct stackmark smark;
 	int status = 0;
 
+	errlinno = lineno = n->ncase.linno;
+	if (funcline)
+		lineno -= funcline - 1;
+
 	setstackmark(&smark);
 	arglist.list = NULL;
 	arglist.lastp = &arglist.list;
@@ -9122,6 +9167,10 @@ evalcase(union node *n, int flags)
 	struct arglist arglist;
 	struct stackmark smark;
 	int status = 0;
+
+	errlinno = lineno = n->ncase.linno;
+	if (funcline)
+		lineno -= funcline - 1;
 
 	setstackmark(&smark);
 	arglist.list = NULL;
@@ -9156,6 +9205,10 @@ evalsubshell(union node *n, int flags)
 	struct job *jp;
 	int backgnd = (n->type == NBACKGND); /* FORK_BG(1) if yes, else FORK_FG(0) */
 	int status;
+
+	errlinno = lineno = n->nredir.linno;
+	if (funcline)
+		lineno -= funcline - 1;
 
 	expredir(n->nredir.redirect);
 	if (!backgnd && (flags & EV_EXIT) && !may_have_traps)
@@ -9464,8 +9517,10 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	struct jmploc *volatile savehandler;
 	struct jmploc jmploc;
 	int e;
+	int savefuncline;
 
 	saveparam = shellparam;
+	savefuncline = funcline;
 	savehandler = exception_handler;
 	e = setjmp(jmploc.loc);
 	if (e) {
@@ -9475,7 +9530,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	exception_handler = &jmploc;
 	shellparam.malloced = 0;
 	func->count++;
-	funcnest++;
+	funcline = func->n.ndefun.linno;
 	INT_ON;
 	shellparam.nparam = argc - 1;
 	shellparam.p = argv + 1;
@@ -9484,11 +9539,11 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	shellparam.optoff = -1;
 #endif
 	pushlocalvars();
-	evaltree(func->n.narg.next, flags & EV_TESTED);
+	evaltree(func->n.ndefun.body, flags & EV_TESTED);
 	poplocalvars(0);
  funcdone:
 	INT_OFF;
-	funcnest--;
+	funcline = savefuncline;
 	freefunc(func);
 	freeparam(&shellparam);
 	shellparam = saveparam;
@@ -9852,6 +9907,10 @@ evalcommand(union node *cmd, int flags)
 	char **nargv;
 	smallint cmd_is_exec;
 
+	errlinno = lineno = cmd->ncmd.linno;
+	if (funcline)
+		lineno -= funcline - 1;
+
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
 	setstackmark(&smark);
@@ -9897,7 +9956,7 @@ evalcommand(union node *cmd, int flags)
 	*nargv = NULL;
 
 	lastarg = NULL;
-	if (iflag && funcnest == 0 && argc > 0)
+	if (iflag && funcline == 0 && argc > 0)
 		lastarg = nargv[-1];
 
 	expredir(cmd->ncmd.redirect);
@@ -11430,6 +11489,7 @@ simplecmd(void)
 	union node *vars, **vpp;
 	union node **rpp, *redir;
 	int savecheckkwd;
+	int savelinno;
 #if BASH_TEST2
 	smallint double_brackets_flag = 0;
 #endif
@@ -11443,6 +11503,7 @@ simplecmd(void)
 	rpp = &redir;
 
 	savecheckkwd = CHKALIAS;
+	savelinno = g_parsefile->linno;
 	for (;;) {
 		int t;
 		checkkwd = savecheckkwd;
@@ -11532,7 +11593,9 @@ simplecmd(void)
 				}
 				n->type = NDEFUN;
 				checkkwd = CHKNL | CHKKWD | CHKALIAS;
-				n->narg.next = parse_command();
+				n->ndefun.text = n->narg.text;
+				n->ndefun.linno = g_parsefile->linno;
+				n->ndefun.body = parse_command();
 				return n;
 			}
 			IF_BASH_FUNCTION(function_flag = 0;)
@@ -11548,6 +11611,7 @@ simplecmd(void)
 	*rpp = NULL;
 	n = stzalloc(sizeof(struct ncmd));
 	n->type = NCMD;
+	n->ncmd.linno = savelinno;
 	n->ncmd.args = args;
 	n->ncmd.assign = vars;
 	n->ncmd.redirect = redir;
@@ -11563,9 +11627,12 @@ parse_command(void)
 	union node *redir, **rpp;
 	union node **rpp2;
 	int t;
+	int savelinno;
 
 	redir = NULL;
 	rpp2 = &redir;
+
+	savelinno = g_parsefile->linno;
 
 	switch (readtoken()) {
 	default:
@@ -11617,6 +11684,7 @@ parse_command(void)
 			raise_error_syntax("bad for loop variable");
 		n1 = stzalloc(sizeof(struct nfor));
 		n1->type = NFOR;
+		n1->nfor.linno = savelinno;
 		n1->nfor.var = wordtext;
 		checkkwd = CHKNL | CHKKWD | CHKALIAS;
 		if (readtoken() == TIN) {
@@ -11657,6 +11725,7 @@ parse_command(void)
 	case TCASE:
 		n1 = stzalloc(sizeof(struct ncase));
 		n1->type = NCASE;
+		n1->ncase.linno = savelinno;
 		if (readtoken() != TWORD)
 			raise_error_unexpected_syntax(TWORD);
 		n1->ncase.expr = n2 = stzalloc(sizeof(struct narg));
@@ -11708,6 +11777,7 @@ parse_command(void)
 	case TLP:
 		n1 = stzalloc(sizeof(struct nredir));
 		n1->type = NSUBSHELL;
+		n1->nredir.linno = savelinno;
 		n1->nredir.n = list(0);
 		/*n1->nredir.redirect = NULL; - stzalloc did it */
 		t = TRP;
@@ -11741,6 +11811,7 @@ parse_command(void)
 		if (n1->type != NSUBSHELL) {
 			n2 = stzalloc(sizeof(struct nredir));
 			n2->type = NREDIR;
+			n2->nredir.linno = savelinno;
 			n2->nredir.n = n1;
 			n1 = n2;
 		}
@@ -11839,10 +11910,8 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	IF_FEATURE_SH_MATH(int arinest;)    /* levels of arithmetic expansion */
 	IF_FEATURE_SH_MATH(int parenlevel;) /* levels of parens in arithmetic */
 	int dqvarnest;       /* levels of variables expansion within double quotes */
-
 	IF_BASH_DOLLAR_SQUOTE(smallint bash_dollar_squote = 0;)
 
-	startlinno = g_parsefile->linno;
 	bqlist = NULL;
 	quotef = 0;
 	IF_FEATURE_SH_MATH(prevsyntax = 0;)
@@ -12019,7 +12088,6 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	if (syntax != BASESYNTAX && eofmark == NULL)
 		raise_error_syntax("unterminated quoted string");
 	if (varnest != 0) {
-		startlinno = g_parsefile->linno;
 		/* { */
 		raise_error_syntax("missing '}'");
 	}
@@ -12411,7 +12479,6 @@ parsebackq: {
 
 			case PEOF:
 			IF_ASH_ALIAS(case PEOA:)
-				startlinno = g_parsefile->linno;
 				raise_error_syntax("EOF in backquote substitution");
 
 			case '\n':
@@ -12493,8 +12560,6 @@ parsearith: {
  *      quoted.
  * If the token is TREDIR, then we set redirnode to a structure containing
  *      the redirection.
- * In all cases, the variable startlinno is set to the number of the line
- *      on which the token starts.
  *
  * [Change comment:  here documents and internal procedures]
  * [Readtoken shouldn't have any arguments.  Perhaps we should make the
@@ -12532,7 +12597,6 @@ xxreadtoken(void)
 		return lasttoken;
 	}
 	setprompt_if(needprompt, 2);
-	startlinno = g_parsefile->linno;
 	for (;;) {                      /* until token or start of word found */
 		c = pgetc();
 		if (c == ' ' || c == '\t' IF_ASH_ALIAS( || c == PEOA))
@@ -12593,7 +12657,6 @@ xxreadtoken(void)
 		return lasttoken;
 	}
 	setprompt_if(needprompt, 2);
-	startlinno = g_parsefile->linno;
 	for (;;) {      /* until token or start of word found */
 		c = pgetc();
 		switch (c) {

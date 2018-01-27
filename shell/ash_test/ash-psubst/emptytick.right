@@ -1,8 +1,8 @@
 0
 0
-./emptytick.tests: line 3: : Permission denied
+./emptytick.tests: line 1: : Permission denied
 127
-./emptytick.tests: line 4: : Permission denied
+./emptytick.tests: line 1: : Permission denied
 127
 0
 0
