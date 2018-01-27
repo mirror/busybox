@@ -54,14 +54,14 @@
 //config:config ASH_BASH_SOURCE_CURDIR
 //config:	bool "'source' and '.' builtins search current directory after $PATH"
 //config:	default n   # do not encourage non-standard behavior
-//config:	depends ASH_BASH_COMPAT
+//config:	depends on ASH_BASH_COMPAT
 //config:	help
 //config:	This is not compliant with standards. Avoid if possible.
 //config:
 //config:config ASH_BASH_NOT_FOUND_HOOK
 //config:	bool "command_not_found_handle hook support"
 //config:	default y
-//config:	depends ASH_BASH_COMPAT
+//config:	depends on ASH_BASH_COMPAT
 //config:	help
 //config:	Enable support for the 'command_not_found_handle' hook function,
 //config:	from GNU bash, which allows for alternative command not found

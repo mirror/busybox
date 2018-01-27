@@ -120,6 +120,13 @@
 //config:	help
 //config:	Enable {abc,def} extension.
 //config:
+//config:config HUSH_BASH_SOURCE_CURDIR
+//config:	bool "'source' and '.' builtins search current directory after $PATH"
+//config:	default n   # do not encourage non-standard behavior
+//config:	depends on HUSH_BASH_COMPAT
+//config:	help
+//config:	This is not compliant with standards. Avoid if possible.
+//config:
 //config:config HUSH_INTERACTIVE
 //config:	bool "Interactive mode"
 //config:	default y
@@ -10211,7 +10218,7 @@ static int FAST_FUNC builtin_source(char **argv)
 		arg_path = find_in_path(filename);
 		if (arg_path)
 			filename = arg_path;
-		else /* add "if (!HUSH_BASH_SOURCE_CURDIR)" if users want bash-compat */ {
+		else if (!ENABLE_HUSH_BASH_SOURCE_CURDIR) {
 			errno = ENOENT;
 			bb_simple_perror_msg(filename);
 			return EXIT_FAILURE;
