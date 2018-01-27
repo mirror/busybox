@@ -10211,6 +10211,11 @@ static int FAST_FUNC builtin_source(char **argv)
 		arg_path = find_in_path(filename);
 		if (arg_path)
 			filename = arg_path;
+		else /* add "if (!HUSH_BASH_SOURCE_CURDIR)" if users want bash-compat */ {
+			errno = ENOENT;
+			bb_simple_perror_msg(filename);
+			return EXIT_FAILURE;
+		}
 	}
 	input = remember_FILE(fopen_or_warn(filename, "r"));
 	free(arg_path);
