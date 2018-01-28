@@ -23,14 +23,14 @@
 echo 5 $(( 4 + ++a ))
 echo 1 $a
 
-# ash doesn't handle it right...
-#ash# echo 6 $(( 4+++a ))
-#ash# echo 2 $a
+# this is treated as 4 + ++a
+echo 6 $(( 4+++a ))
+echo 2 $a
       a=2
 
-# ash doesn't handle it right...
-#ash# echo 3 $(( 4---a ))
-#ash# echo 1 $a
+# this is treated as 4 - --a
+echo 3 $(( 4---a ))
+echo 1 $a
       a=1
 
 echo 4 $(( 4 - -- a ))

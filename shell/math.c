@@ -598,10 +598,24 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		}
 
 		/* Should be an operator */
+
+		/* Special case: NUM-- and NUM++ are not recognized if NUM
+		 * is a literal number, not a variable. IOW:
+		 * "a+++v" is a++ + v.
+		 * "7+++v" is 7 + ++v, not 7++ + v.
+		 */
+		if (lasttok == TOK_NUM && !numstackptr[-1].var /* number literal */
+		 && (expr[0] == '+' || expr[0] == '-')
+		 && (expr[1] == expr[0])
+		) {
+			//bb_error_msg("special %c%c", expr[0], expr[0]);
+			op = (expr[0] == '+' ? TOK_ADD : TOK_SUB);
+			expr += 1;
+			goto tok_found1;
+		}
+
 		p = op_tokens;
 		while (1) {
-// TODO: bash allows 7+++v, treats it as 7 + ++v
-// we treat it as 7++ + v and reject
 			/* Compare expr to current op_tokens[] element */
 			const char *e = expr;
 			while (1) {
@@ -627,6 +641,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		}
  tok_found:
 		op = p[1]; /* fetch TOK_foo value */
+ tok_found1:
 		/* NB: expr now points past the operator */
 
 		/* post grammar: a++ reduce to num */

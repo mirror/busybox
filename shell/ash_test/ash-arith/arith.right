@@ -126,6 +126,10 @@ ghi
 ./arith2.sub: line 5: arithmetic syntax error
 5 5
 1 1
+6 6
+2 2
+3 3
+1 1
 4 4
 0 0
 ./arith2.sub: line 42: arithmetic syntax error
