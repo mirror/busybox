@@ -263,6 +263,19 @@ typedef long arith_t;
 # error "Do not even bother, ash will not run on NOMMU machine"
 #endif
 
+/* We use a trick to have more optimized code (fewer pointer reloads):
+ *  ash.c:   extern struct globals *const ash_ptr_to_globals;
+ *  ash_ptr_hack.c: struct globals *ash_ptr_to_globals;
+ * This way, compiler in ash.c knows the pointer can not change.
+ *
+ * However, this may break on weird arches or toolchains. In this case,
+ * set "-DBB_GLOBAL_CONST=''" in CONFIG_EXTRA_CFLAGS to disable
+ * this optimization.
+ */
+#ifndef BB_GLOBAL_CONST
+# define BB_GLOBAL_CONST const
+#endif
+
 
 /* ============ Hash table sizes. Configurable. */
 
@@ -400,7 +413,7 @@ struct globals_misc {
 #endif
 	pid_t backgndpid;        /* pid of last background process */
 };
-extern struct globals_misc *const ash_ptr_to_globals_misc;
+extern struct globals_misc *BB_GLOBAL_CONST ash_ptr_to_globals_misc;
 #define G_misc (*ash_ptr_to_globals_misc)
 #define exitstatus        (G_misc.exitstatus )
 #define back_exitstatus   (G_misc.back_exitstatus )
@@ -1473,7 +1486,7 @@ struct globals_memstack {
 	size_t g_stacknleft; // = MINSIZE;
 	struct stack_block stackbase;
 };
-extern struct globals_memstack *const ash_ptr_to_globals_memstack;
+extern struct globals_memstack *BB_GLOBAL_CONST ash_ptr_to_globals_memstack;
 #define G_memstack (*ash_ptr_to_globals_memstack)
 #define g_stackp     (G_memstack.g_stackp    )
 #define g_stacknxt   (G_memstack.g_stacknxt  )
@@ -2062,7 +2075,7 @@ struct globals_var {
 	int lineno;
 	char linenovar[sizeof("LINENO=") + sizeof(int)*3];
 };
-extern struct globals_var *const ash_ptr_to_globals_var;
+extern struct globals_var *BB_GLOBAL_CONST ash_ptr_to_globals_var;
 #define G_var (*ash_ptr_to_globals_var)
 #define shellparam    (G_var.shellparam   )
 //#define redirlist     (G_var.redirlist    )
