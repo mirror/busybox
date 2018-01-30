@@ -358,7 +358,7 @@ struct globals {
 	unsigned short bi_buf;
 
 #undef BUF_SIZE
-#define BUF_SIZE (8 * sizeof(G1.bi_buf))
+#define BUF_SIZE (int)(8 * sizeof(G1.bi_buf))
 
 /* Number of bits used within bi_buf. (bi_buf might be implemented on
  * more than 16 bits on some systems.)
@@ -522,24 +522,29 @@ static unsigned file_read(void *buf, unsigned size)
  */
 static void send_bits(int value, int length)
 {
+	unsigned new_buf;
+	int remain;
+
 #ifdef DEBUG
 	Tracev((stderr, " l %2d v %4x ", length, value));
 	Assert(length > 0 && length <= 15, "invalid length");
 	G1.bits_sent += length;
 #endif
-	/* If not enough room in bi_buf, use (valid) bits from bi_buf and
-	 * (16 - bi_valid) bits from value, leaving (width - (16-bi_valid))
-	 * unused bits in value.
-	 */
-	if (G1.bi_valid > (int) BUF_SIZE - length) {
-		G1.bi_buf |= (value << G1.bi_valid);
-		put_16bit(G1.bi_buf);
-		G1.bi_buf = (ush) value >> (BUF_SIZE - G1.bi_valid);
-		G1.bi_valid += length - BUF_SIZE;
-	} else {
-		G1.bi_buf |= value << G1.bi_valid;
-		G1.bi_valid += length;
+
+	new_buf = G1.bi_buf | (value << G1.bi_valid);
+	remain = BUF_SIZE - G1.bi_valid;
+	/* If not enough room in bi_buf */
+	if (length > remain) {
+		/* ...use (valid) bits from bi_buf and
+		 * (16 - bi_valid) bits from value,
+		 *  leaving (width - (16-bi_valid)) unused bits in value.
+		 */
+		put_16bit(new_buf);
+		new_buf = (ush) value >> remain;
+		length -= BUF_SIZE;
 	}
+	G1.bi_buf = new_buf;
+	G1.bi_valid += length;
 }
 
 
