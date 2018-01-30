@@ -15,21 +15,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-/* big objects in bss:
- * 00000020 b bl_count
- * 00000074 b base_length
- * 00000078 b base_dist
- * 00000078 b static_dtree
- * 0000009c b bl_tree
- * 000000f4 b dyn_dtree
- * 00000100 b length_code
- * 00000200 b dist_code
- * 0000023d b depth
- * 00000400 b flag_buf
- * 0000047a b heap
- * 00000480 b static_ltree
- * 000008f4 b dyn_ltree
- */
 /* TODO: full support for -v for DESKTOP
  * "/usr/bin/gzip -v a bogus aa" should say:
 a:       85.1% -- replaced with a.gz
@@ -351,6 +336,44 @@ struct globals {
 	unsigned match_start;	/* start of matching string */
 	unsigned lookahead;	/* number of valid bytes ahead in window */
 
+/* number of input bytes */
+	ulg isize;		/* only 32 bits stored in .gz file */
+
+/* bbox always use stdin/stdout */
+#define ifd STDIN_FILENO	/* input file descriptor */
+#define ofd STDOUT_FILENO	/* output file descriptor */
+
+#ifdef DEBUG
+	unsigned insize;	/* valid bytes in l_buf */
+#endif
+	unsigned outcnt;	/* bytes in output buffer */
+
+	smallint eofile;	/* flag set at end of input file */
+
+/* ===========================================================================
+ * Local data used by the "bit string" routines.
+ */
+
+	unsigned short bi_buf;
+
+/* Output buffer. bits are inserted starting at the bottom (least significant
+ * bits).
+ */
+#undef BUF_SIZE
+#define BUF_SIZE (8 * sizeof(G1.bi_buf))
+
+/* Number of bits used within bi_buf. (bi_buf might be implemented on
+ * more than 16 bits on some systems.)
+ */
+	int bi_valid;
+
+#ifdef DEBUG
+	ulg bits_sent;			/* bit length of the compressed data */
+#endif
+
+	/*uint32_t *crc_32_tab;*/
+	uint32_t crc;	/* shift register contents */
+
 /* ===========================================================================
  */
 #define DECLARE(type, array, size) \
@@ -390,47 +413,6 @@ struct globals {
 /* Heads of the hash chains or 0. */
 	/* DECLARE(Pos, head, 1<<HASH_BITS); */
 #define head (G1.prev + WSIZE) /* hash head (see deflate.c) */
-
-/* number of input bytes */
-	ulg isize;		/* only 32 bits stored in .gz file */
-
-/* bbox always use stdin/stdout */
-#define ifd STDIN_FILENO	/* input file descriptor */
-#define ofd STDOUT_FILENO	/* output file descriptor */
-
-#ifdef DEBUG
-	unsigned insize;	/* valid bytes in l_buf */
-#endif
-	unsigned outcnt;	/* bytes in output buffer */
-
-	smallint eofile;	/* flag set at end of input file */
-
-/* ===========================================================================
- * Local data used by the "bit string" routines.
- */
-
-	unsigned short bi_buf;
-
-/* Output buffer. bits are inserted starting at the bottom (least significant
- * bits).
- */
-
-#undef BUF_SIZE
-#define BUF_SIZE (8 * sizeof(G1.bi_buf))
-/* Number of bits used within bi_buf. (bi_buf might be implemented on
- * more than 16 bits on some systems.)
- */
-
-	int bi_valid;
-
-/* Current input function. Set to mem_read for in-memory compression */
-
-#ifdef DEBUG
-	ulg bits_sent;			/* bit length of the compressed data */
-#endif
-
-	/*uint32_t *crc_32_tab;*/
-	uint32_t crc;	/* shift register contents */
 };
 
 #define G1 (*(ptr_to_globals - 1))
@@ -1816,7 +1798,7 @@ do { \
 	head[G1.ins_h] = (s); \
 } while (0)
 
-static ulg deflate(void)
+static NOINLINE ulg deflate(void)
 {
 	IPos hash_head;		/* head of hash chain */
 	IPos prev_match;	/* previous match */
@@ -1927,10 +1909,10 @@ static ulg deflate(void)
  */
 static void bi_init(void)
 {
-	G1.bi_buf = 0;
-	G1.bi_valid = 0;
+	//G1.bi_buf = 0; // globals are zeroed in pack_gzip()
+	//G1.bi_valid = 0; // globals are zeroed in pack_gzip()
 #ifdef DEBUG
-	G1.bits_sent = 0L;
+	//G1.bits_sent = 0L; // globals are zeroed in pack_gzip()
 #endif
 }
 
@@ -1950,8 +1932,8 @@ static void lm_init(ush * flagsp)
 	*flagsp |= 2;	/* FAST 4, SLOW 2 */
 	/* ??? reduce max_chain_length for binary files */
 
-	G1.strstart = 0;
-	G1.block_start = 0L;
+	//G1.strstart = 0; // globals are zeroed in pack_gzip()
+	//G1.block_start = 0L; // globals are zeroed in pack_gzip()
 
 	G1.lookahead = file_read(G1.window,
 			sizeof(int) <= 2 ? (unsigned) WSIZE : 2 * WSIZE);
@@ -1961,14 +1943,15 @@ static void lm_init(ush * flagsp)
 		G1.lookahead = 0;
 		return;
 	}
-	G1.eofile = 0;
+	//G1.eofile = 0; // globals are zeroed in pack_gzip()
+
 	/* Make sure that we always have enough lookahead. This is important
 	 * if input comes from a device such as a tty.
 	 */
 	while (G1.lookahead < MIN_LOOKAHEAD && !G1.eofile)
 		fill_window();
 
-	G1.ins_h = 0;
+	//G1.ins_h = 0; // globals are zeroed in pack_gzip()
 	for (j = 0; j < MIN_MATCH - 1; j++)
 		UPDATE_HASH(G1.ins_h, G1.window[j]);
 	/* If lookahead < MIN_MATCH, ins_h is garbage, but this is
@@ -1990,7 +1973,7 @@ static void ct_init(void)
 	int code;			/* code value */
 	int dist;			/* distance index */
 
-	G2.compressed_len = 0L;
+	//G2.compressed_len = 0L; // globals are zeroed in pack_gzip()
 
 #ifdef NOT_NEEDED
 	if (G2.static_dtree[0].Len != 0)
@@ -2073,12 +2056,11 @@ static void ct_init(void)
  * Deflate in to out.
  * IN assertions: the input and output buffers are cleared.
  */
-
 static void zip(void)
 {
 	ush deflate_flags = 0;  /* pkzip -es, -en or -ex equivalent */
 
-	G1.outcnt = 0;
+	//G1.outcnt = 0; // globals are zeroed in pack_gzip()
 
 	/* Write the header to the gzip file. See algorithm.doc for the format */
 	/* magic header for gzip files: 1F 8B */
@@ -2111,12 +2093,15 @@ static void zip(void)
 static
 IF_DESKTOP(long long) int FAST_FUNC pack_gzip(transformer_state_t *xstate UNUSED_PARAM)
 {
+	/* Reinit G1.xxx except pointers to allocated buffers */
+	memset(&G1, 0, offsetof(struct globals, l_buf));
+
 	/* Clear input and output buffers */
-	G1.outcnt = 0;
+	//G1.outcnt = 0;
 #ifdef DEBUG
-	G1.insize = 0;
+	//G1.insize = 0;
 #endif
-	G1.isize = 0;
+	//G1.isize = 0;
 
 	/* Reinit G2.xxx */
 	memset(&G2, 0, sizeof(G2));
