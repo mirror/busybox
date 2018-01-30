@@ -312,25 +312,24 @@ struct globals {
 #define nice_match	 (G1.nice_match)
 #endif
 
-	lng block_start;
-
 /* window position at the beginning of the current output block. Gets
  * negative when the window is moved backwards.
  */
+	lng block_start;
+
 	unsigned ins_h;	/* hash index of string to be inserted */
 
-#define H_SHIFT  ((HASH_BITS+MIN_MATCH-1) / MIN_MATCH)
 /* Number of bits by which ins_h and del_h must be shifted at each
  * input step. It must be such that after MIN_MATCH steps, the oldest
  * byte no longer takes part in the hash key, that is:
  * H_SHIFT * MIN_MATCH >= HASH_BITS
  */
-
-	unsigned prev_length;
+#define H_SHIFT  ((HASH_BITS+MIN_MATCH-1) / MIN_MATCH)
 
 /* Length of the best match at previous step. Matches not greater than this
  * are discarded. This is used in the lazy match evaluation.
  */
+	unsigned prev_length;
 
 	unsigned strstart;	/* start of string to insert */
 	unsigned match_start;	/* start of matching string */
@@ -347,18 +346,17 @@ struct globals {
 	unsigned insize;	/* valid bytes in l_buf */
 #endif
 	unsigned outcnt;	/* bytes in output buffer */
-
 	smallint eofile;	/* flag set at end of input file */
 
 /* ===========================================================================
  * Local data used by the "bit string" routines.
  */
 
-	unsigned short bi_buf;
-
 /* Output buffer. bits are inserted starting at the bottom (least significant
  * bits).
  */
+	unsigned short bi_buf;
+
 #undef BUF_SIZE
 #define BUF_SIZE (8 * sizeof(G1.bi_buf))
 
@@ -368,7 +366,7 @@ struct globals {
 	int bi_valid;
 
 #ifdef DEBUG
-	ulg bits_sent;			/* bit length of the compressed data */
+	ulg bits_sent;	/* bit length of the compressed data */
 #endif
 
 	/*uint32_t *crc_32_tab;*/
@@ -661,6 +659,12 @@ static void fill_window(void)
 			G1.lookahead += n;
 		}
 	}
+}
+/* Both users fill window with the same loop: */
+static void fill_window_if_needed(void)
+{
+	while (G1.lookahead < MIN_LOOKAHEAD && !G1.eofile)
+		fill_window();
 }
 
 
@@ -1894,8 +1898,7 @@ static NOINLINE ulg deflate(void)
 		 * for the next match, plus MIN_MATCH bytes to insert the
 		 * string following the next match.
 		 */
-		while (G1.lookahead < MIN_LOOKAHEAD && !G1.eofile)
-			fill_window();
+		fill_window_if_needed();
 	}
 	if (match_available)
 		ct_tally(0, G1.window[G1.strstart - 1]);
@@ -1948,8 +1951,7 @@ static void lm_init(ush * flagsp)
 	/* Make sure that we always have enough lookahead. This is important
 	 * if input comes from a device such as a tty.
 	 */
-	while (G1.lookahead < MIN_LOOKAHEAD && !G1.eofile)
-		fill_window();
+	fill_window_if_needed();
 
 	//G1.ins_h = 0; // globals are zeroed in pack_gzip()
 	for (j = 0; j < MIN_MATCH - 1; j++)
