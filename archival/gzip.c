@@ -363,7 +363,7 @@ struct globals {
 /* Number of bits used within bi_buf. (bi_buf might be implemented on
  * more than 16 bits on some systems.)
  */
-	int bi_valid;
+	unsigned bi_valid;
 
 #ifdef DEBUG
 	ulg bits_sent;	/* bit length of the compressed data */
@@ -520,10 +520,10 @@ static unsigned file_read(void *buf, unsigned size)
  * Send a value on a given number of bits.
  * IN assertion: length <= 16 and value fits in length bits.
  */
-static void send_bits(int value, int length)
+static void send_bits(unsigned value, unsigned length)
 {
 	unsigned new_buf;
-	int remain;
+	unsigned remain;
 
 #ifdef DEBUG
 	Tracev((stderr, " l %2d v %4x ", length, value));
@@ -548,7 +548,7 @@ static void send_bits(int value, int length)
 		} else { /* 16 */
 			put_16bit(new_buf);
 		}
-		new_buf = (unsigned) value >> remain;
+		new_buf = value >> remain;
 		length -= BUF_SIZE;
 	}
 	G1.bi_buf = new_buf;
