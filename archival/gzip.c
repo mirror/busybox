@@ -523,7 +523,6 @@ static unsigned file_read(void *buf, unsigned size)
 static void send_bits(unsigned value, unsigned length)
 {
 	unsigned new_buf;
-	unsigned remain;
 
 #ifdef DEBUG
 	Tracev((stderr, " l %2d v %4x ", length, value));
@@ -534,25 +533,26 @@ static void send_bits(unsigned value, unsigned length)
 
 	new_buf = G1.bi_buf | (value << G1.bi_valid);
 	/* NB: the above may sometimes do "<< 32" shift (undefined)
-	 * if check below is changed to "length > remain" instead of >= */
-	remain = BUF_SIZE - G1.bi_valid;
+	 * if check below is changed to "length > BUF_SIZE" instead of >= */
+	length += G1.bi_valid;
 
 	/* If bi_buf is full */
-	if (length >= remain) {
+	if (length >= BUF_SIZE) {
 		/* ...use (valid) bits from bi_buf and
 		 * (BUF_SIZE - bi_valid) bits from value,
 		 *  leaving (width - (BUF_SIZE-bi_valid)) unused bits in value.
 		 */
+		value >>= (BUF_SIZE - G1.bi_valid);
 		if (BUF_SIZE == 32) {
 			put_32bit(new_buf); /* maybe unroll to 2*put_16bit()? */
 		} else { /* 16 */
 			put_16bit(new_buf);
 		}
-		new_buf = value >> remain;
+		new_buf = value;
 		length -= BUF_SIZE;
 	}
 	G1.bi_buf = new_buf;
-	G1.bi_valid += length;
+	G1.bi_valid = length;
 }
 
 
