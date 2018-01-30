@@ -355,7 +355,7 @@ struct globals {
 /* Output buffer. bits are inserted starting at the bottom (least significant
  * bits).
  */
-	unsigned short bi_buf;
+	unsigned bi_buf;	/* was unsigned short */
 
 #undef BUF_SIZE
 #define BUF_SIZE (int)(8 * sizeof(G1.bi_buf))
@@ -530,17 +530,25 @@ static void send_bits(int value, int length)
 	Assert(length > 0 && length <= 15, "invalid length");
 	G1.bits_sent += length;
 #endif
+	BUILD_BUG_ON(BUF_SIZE != 32 && BUF_SIZE != 16);
 
 	new_buf = G1.bi_buf | (value << G1.bi_valid);
+	/* NB: the above may sometimes do "<< 32" shift (undefined)
+	 * if check below is changed to "length > remain" instead of >= */
 	remain = BUF_SIZE - G1.bi_valid;
-	/* If not enough room in bi_buf */
-	if (length > remain) {
+
+	/* If bi_buf is full */
+	if (length >= remain) {
 		/* ...use (valid) bits from bi_buf and
-		 * (16 - bi_valid) bits from value,
-		 *  leaving (width - (16-bi_valid)) unused bits in value.
+		 * (BUF_SIZE - bi_valid) bits from value,
+		 *  leaving (width - (BUF_SIZE-bi_valid)) unused bits in value.
 		 */
-		put_16bit(new_buf);
-		new_buf = (ush) value >> remain;
+		if (BUF_SIZE == 32) {
+			put_32bit(new_buf); /* maybe unroll to 2*put_16bit()? */
+		} else { /* 16 */
+			put_16bit(new_buf);
+		}
+		new_buf = (unsigned) value >> remain;
 		length -= BUF_SIZE;
 	}
 	G1.bi_buf = new_buf;
@@ -571,10 +579,13 @@ static unsigned bi_reverse(unsigned code, int len)
  */
 static void bi_windup(void)
 {
-	if (G1.bi_valid > 8) {
-		put_16bit(G1.bi_buf);
-	} else if (G1.bi_valid > 0) {
-		put_8bit(G1.bi_buf);
+	unsigned bits = G1.bi_buf;
+	int cnt = G1.bi_valid;
+
+	while (cnt > 0) {
+		put_8bit(bits);
+		bits >>= 8;
+		cnt -= 8;
 	}
 	G1.bi_buf = 0;
 	G1.bi_valid = 0;
