@@ -454,7 +454,7 @@ static void put_16bit(ush w)
 	if (outcnt < OUTBUFSIZ-2) {
 		/* Common case */
 		ush *dst16 = (void*) dst;
-		*dst16 = w; /* unalinged LSB 16-bit store */
+		*dst16 = w; /* unaligned LSB 16-bit store */
 		G1.outcnt = outcnt + 2;
 		return;
 	}
@@ -480,6 +480,18 @@ static void put_16bit(ush w)
 
 static void put_32bit(ulg n)
 {
+#if CONFIG_GZIP_FAST > 0 \
+ && BB_UNALIGNED_MEMACCESS_OK && BB_LITTLE_ENDIAN
+	unsigned outcnt = G1.outcnt;
+	if (outcnt < OUTBUFSIZ-4) {
+		/* Common case */
+		uch *dst = &G1.outbuf[outcnt];
+		ulg *dst32 = (void*) dst;
+		*dst32 = n; /* unaligned LSB 32-bit store */
+		G1.outcnt = outcnt + 4;
+		return;
+	}
+#endif
 	put_16bit(n);
 	put_16bit(n >> 16);
 }
@@ -544,7 +556,7 @@ static void send_bits(unsigned value, unsigned length)
 		 */
 		value >>= (BUF_SIZE - G1.bi_valid);
 		if (BUF_SIZE == 32) {
-			put_32bit(new_buf); /* maybe unroll to 2*put_16bit()? */
+			put_32bit(new_buf);
 		} else { /* 16 */
 			put_16bit(new_buf);
 		}
