@@ -2004,10 +2004,12 @@ static int check_and_run_traps(void)
 				smalluint save_rcode;
 				char *argv[3];
 				/* argv[0] is unused */
-				argv[1] = G_traps[sig];
+				argv[1] = xstrdup(G_traps[sig]);
+				/* why strdup? trap can modify itself: trap 'trap "echo oops" INT' INT */
 				argv[2] = NULL;
 				save_rcode = G.last_exitcode;
 				builtin_eval(argv);
+				free(argv[1]);
 //FIXME: shouldn't it be set to 128 + sig instead?
 				G.last_exitcode = save_rcode;
 				last_sig = sig;
