@@ -411,6 +411,9 @@ struct globals {
 
 #ifdef DEBUG
 	ulg bits_sent;	/* bit length of the compressed data */
+# define DEBUG_bits_sent(v) (void)(G1.bits_sent v)
+#else
+# define DEBUG_bits_sent(v) ((void)0)
 #endif
 };
 
@@ -540,7 +543,7 @@ static void send_bits(unsigned value, unsigned length)
 #ifdef DEBUG
 	Tracev((stderr, " l %2d v %4x ", length, value));
 	Assert(length > 0 && length <= 15, "invalid length");
-	G1.bits_sent += length;
+	DEBUG_bits_sent(+= length);
 #endif
 	BUILD_BUG_ON(BUF_SIZE != 32 && BUF_SIZE != 16);
 
@@ -602,9 +605,7 @@ static void bi_windup(void)
 	}
 	G1.bi_buf = 0;
 	G1.bi_valid = 0;
-#ifdef DEBUG
-	G1.bits_sent = (G1.bits_sent + 7) & ~7;
-#endif
+	DEBUG_bits_sent(= (G1.bits_sent + 7) & ~7);
 }
 
 
@@ -619,13 +620,9 @@ static void copy_block(char *buf, unsigned len, int header)
 	if (header) {
 		unsigned v = ((uint16_t)len) | ((~len) << 16);
 		put_32bit(v);
-#ifdef DEBUG
-		G1.bits_sent += 2 * 16;
-#endif
+		DEBUG_bits_sent(+= 2 * 16);
 	}
-#ifdef DEBUG
-	G1.bits_sent += (ulg) len << 3;
-#endif
+	DEBUG_bits_sent(+= (ulg) len << 3);
 	while (len--) {
 		put_8bit(*buf++);
 	}
@@ -1942,9 +1939,7 @@ static void bi_init(void)
 {
 	//G1.bi_buf = 0; // globals are zeroed in pack_gzip()
 	//G1.bi_valid = 0; // globals are zeroed in pack_gzip()
-#ifdef DEBUG
-	//G1.bits_sent = 0L; // globals are zeroed in pack_gzip()
-#endif
+	//DEBUG_bits_sent(= 0L); // globals are zeroed in pack_gzip()
 }
 
 
