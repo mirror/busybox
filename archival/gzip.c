@@ -93,7 +93,6 @@ aa:      85.1% -- replaced with aa.gz
 #include "libbb.h"
 #include "bb_archive.h"
 
-
 /* ===========================================================================
  */
 //#define DEBUG 1
@@ -114,7 +113,6 @@ static int verbose;
 #  define Tracec(c,x)
 #  define Tracecv(c,x)
 #endif
-
 
 /* ===========================================================================
  */
@@ -211,7 +209,6 @@ static int verbose;
 #  define MAX_SUFFIX  30
 #endif
 
-
 /* ===========================================================================
  * Compile with MEDIUM_MEM to reduce the memory requirements or
  * with SMALL_MEM to use as little memory as possible. Use BIG_MEM if the
@@ -220,15 +217,14 @@ static int verbose;
  * affects the compression ratio. The compressed output
  * is still correct, and might even be smaller in some cases.
  */
-
 #ifdef SMALL_MEM
-#   define HASH_BITS  13	/* Number of bits used to hash strings */
+#  define HASH_BITS  13	/* Number of bits used to hash strings */
 #endif
 #ifdef MEDIUM_MEM
-#   define HASH_BITS  14
+#  define HASH_BITS  14
 #endif
 #ifndef HASH_BITS
-#   define HASH_BITS  15
+#  define HASH_BITS  15
    /* For portability to 16 bit machines, do not use values above 15. */
 #endif
 
@@ -240,7 +236,6 @@ static int verbose;
 #  define TOO_FAR 4096
 #endif
 /* Matches of length 3 are discarded if their distance exceeds TOO_FAR */
-
 
 /* ===========================================================================
  * These types are not really 'char', 'short' and 'long'
@@ -297,7 +292,6 @@ enum {
  */
 #endif /* ENABLE_FEATURE_GZIP_LEVELS */
 };
-
 
 struct globals {
 /* =========================================================================== */
@@ -419,7 +413,6 @@ struct globals {
 
 #define G1 (*(ptr_to_globals - 1))
 
-
 /* ===========================================================================
  * Write the output buffer outbuf[0..outcnt-1] and update bytes_out.
  * (used for the compressed data only)
@@ -432,7 +425,6 @@ static void flush_outbuf(void)
 	xwrite(ofd, (char *) G1.outbuf, G1.outcnt);
 	G1.outcnt = 0;
 }
-
 
 /* ===========================================================================
  */
@@ -517,7 +509,6 @@ static void updcrc(uch * s, unsigned n)
 	G1.crc = crc32_block_endian0(G1.crc, s, n, global_crc32_table /*G1.crc_32_tab*/);
 }
 
-
 /* ===========================================================================
  * Read a new buffer from the current input file, perform end-of-line
  * translation, and update the crc and input file size.
@@ -537,7 +528,6 @@ static unsigned file_read(void *buf, unsigned size)
 	G1.isize += len;
 	return len;
 }
-
 
 /* ===========================================================================
  * Send a value on a given number of bits.
@@ -578,7 +568,6 @@ static void send_bits(unsigned value, unsigned length)
 	G1.bi_valid = length;
 }
 
-
 /* ===========================================================================
  * Reverse the first len bits of a code, using straightforward code (a faster
  * method would use a table)
@@ -595,7 +584,6 @@ static unsigned bi_reverse(unsigned code, int len)
 		res <<= 1;
 	}
 }
-
 
 /* ===========================================================================
  * Write out any remaining bits in an incomplete byte.
@@ -614,7 +602,6 @@ static void bi_windup(void)
 	G1.bi_valid = 0;
 	DEBUG_bits_sent(= (G1.bits_sent + 7) & ~7);
 }
-
 
 /* ===========================================================================
  * Copy a stored block to the zip file, storing first the length and its
@@ -637,7 +624,6 @@ static void copy_block(char *buf, unsigned len, int header)
 	if (G1.outcnt & 3) /* syscalls are expensive, is it really misaligned? */
 		flush_outbuf_if_32bit_optimized();
 }
-
 
 /* ===========================================================================
  * Fill the window when the lookahead becomes insufficient.
@@ -702,7 +688,6 @@ static void fill_window_if_needed(void)
 	while (G1.lookahead < MIN_LOOKAHEAD && !G1.eofile)
 		fill_window();
 }
-
 
 /* ===========================================================================
  * Set match_start to the longest match starting at the given string and
@@ -792,7 +777,6 @@ static int longest_match(IPos cur_match)
 
 	return best_len;
 }
-
 
 #ifdef DEBUG
 /* ===========================================================================
@@ -1072,12 +1056,11 @@ struct globals2 {
 	ulg opt_len;             /* bit length of current block with optimal trees */
 	ulg static_len;          /* bit length of current block with static trees */
 
-	ulg compressed_len;      /* total bit length of compressed file */
+//	ulg compressed_len;      /* total bit length of compressed file */
 };
 
 #define G2ptr ((struct globals2*)(ptr_to_globals))
 #define G2 (*G2ptr)
-
 
 /* ===========================================================================
  */
@@ -1100,7 +1083,6 @@ struct globals2 {
  * The arguments must not have side effects.
  */
 
-
 /* ===========================================================================
  * Initialize a new block.
  */
@@ -1122,7 +1104,6 @@ static void init_block(void)
 	G2.flags = 0;
 	G2.flag_bit = 1;
 }
-
 
 /* ===========================================================================
  * Restore the heap property by moving down the tree starting at node k,
@@ -1160,7 +1141,6 @@ static void pqdownheap(ct_data * tree, int k)
 	}
 	G2.heap[k] = v;
 }
-
 
 /* ===========================================================================
  * Compute the optimal bit lengths for a tree and update the total bit length
@@ -1259,7 +1239,6 @@ static void gen_bitlen(tree_desc * desc)
 	}
 }
 
-
 /* ===========================================================================
  * Generate the codes for a given tree and bit counts (which need not be
  * optimal).
@@ -1302,7 +1281,6 @@ static void gen_codes(ct_data * tree, int max_code)
 				next_code[len] - 1));
 	}
 }
-
 
 /* ===========================================================================
  * Construct one Huffman tree and assigns the code bit strings and lengths.
@@ -1410,7 +1388,6 @@ static void build_tree(tree_desc * desc)
 	gen_codes((ct_data *) tree, max_code);
 }
 
-
 /* ===========================================================================
  * Scan a literal or distance tree to determine the frequencies of the codes
  * in the bit length tree. Updates opt_len to take into account the repeat
@@ -1464,7 +1441,6 @@ static void scan_tree(ct_data * tree, int max_code)
 		}
 	}
 }
-
 
 /* ===========================================================================
  * Send a literal or distance tree in compressed form, using the codes in
@@ -1523,7 +1499,6 @@ static void send_tree(ct_data * tree, int max_code)
 	}
 }
 
-
 /* ===========================================================================
  * Construct the Huffman tree for the bit lengths and return the index in
  * bl_order of the last bit length code to send.
@@ -1557,7 +1532,6 @@ static int build_bl_tree(void)
 	return max_blindex;
 }
 
-
 /* ===========================================================================
  * Send the header for a block using dynamic Huffman trees: the counts, the
  * lengths of the bit length codes, the literal tree and the distance tree.
@@ -1586,7 +1560,6 @@ static void send_all_trees(int lcodes, int dcodes, int blcodes)
 	send_tree((ct_data *) G2.dyn_dtree, dcodes - 1);	/* send the distance tree */
 	Tracev((stderr, "\ndist tree: sent %ld", (long)G1.bits_sent));
 }
-
 
 /* ===========================================================================
  * Save the match info and tally the frequency counts. Return true if
@@ -1694,13 +1667,12 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 	SEND_CODE(END_BLOCK, ltree);
 }
 
-
 /* ===========================================================================
  * Determine the best encoding for the current block: dynamic trees, static
  * trees or store, and output the encoded block to the zip file. This function
  * returns the total compressed length for the file so far.
  */
-static ulg flush_block(char *buf, ulg stored_len, int eof)
+static void flush_block(char *buf, ulg stored_len, int eof)
 {
 	ulg opt_lenb, static_lenb;      /* opt_len and static_len in bytes */
 	int max_blindex;                /* index of last bit length code of non zero freq */
@@ -1740,14 +1712,17 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	 * and if the zip file can be seeked (to rewrite the local header),
 	 * the whole file is transformed into a stored file:
 	 */
-	if (stored_len <= opt_lenb && eof && G2.compressed_len == 0L && seekable()) {
-		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
-		if (buf == NULL)
-			bb_error_msg("block vanished");
-
-		G2.compressed_len = stored_len << 3;
-		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
-	} else if (stored_len + 4 <= opt_lenb && buf != NULL) {
+// seekable() is constant FALSE in busybox, and G2.compressed_len is disabled
+// (this was the only user)
+//	if (stored_len <= opt_lenb && eof && G2.compressed_len == 0L && seekable()) {
+//		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
+//		if (buf == NULL)
+//			bb_error_msg("block vanished");
+//
+//		G2.compressed_len = stored_len << 3;
+//		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
+//	} else
+	if (stored_len + 4 <= opt_lenb && buf != NULL) {
 		/* 4: two words for the lengths */
 		/* The test buf != NULL is only necessary if LIT_BUFSIZE > WSIZE.
 		 * Otherwise we can't have processed more than WSIZE input bytes since
@@ -1756,34 +1731,34 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 		 * transform a block into a stored block.
 		 */
 		send_bits((STORED_BLOCK << 1) + eof, 3);	/* send block type */
-		G2.compressed_len = ((G2.compressed_len + 3 + 7) & ~7L)
-				+ ((stored_len + 4) << 3);
+//		G2.compressed_len = ((G2.compressed_len + 3 + 7) & ~7L)
+//				+ ((stored_len + 4) << 3);
 		copy_block(buf, (unsigned) stored_len, 1);	/* with header */
-	} else if (static_lenb == opt_lenb) {
+	} else
+	if (static_lenb == opt_lenb) {
 		send_bits((STATIC_TREES << 1) + eof, 3);
 		compress_block((ct_data *) G2.static_ltree, (ct_data *) G2.static_dtree);
-		G2.compressed_len += 3 + G2.static_len;
+//		G2.compressed_len += 3 + G2.static_len;
 	} else {
 		send_bits((DYN_TREES << 1) + eof, 3);
 		send_all_trees(G2.l_desc.max_code + 1, G2.d_desc.max_code + 1,
 					max_blindex + 1);
 		compress_block((ct_data *) G2.dyn_ltree, (ct_data *) G2.dyn_dtree);
-		G2.compressed_len += 3 + G2.opt_len;
+//		G2.compressed_len += 3 + G2.opt_len;
 	}
-	Assert(G2.compressed_len == G1.bits_sent, "bad compressed size");
+//	Assert(G2.compressed_len == G1.bits_sent, "bad compressed size");
 	init_block();
 
 	if (eof) {
 		bi_windup();
-		G2.compressed_len += 7;	/* align on byte boundary */
+//		G2.compressed_len += 7;	/* align on byte boundary */
 	}
-	Tracev((stderr, "\ncomprlen %lu(%lu) ",
-			(unsigned long)G2.compressed_len >> 3,
-			(unsigned long)G2.compressed_len - 7 * eof));
+//	Tracev((stderr, "\ncomprlen %lu(%lu) ",
+//			(unsigned long)G2.compressed_len >> 3,
+//			(unsigned long)G2.compressed_len - 7 * eof));
 
-	return G2.compressed_len >> 3;
+	return; /* was "return G2.compressed_len >> 3;" */
 }
-
 
 /* ===========================================================================
  * Update a hash value with the given input byte
@@ -1792,7 +1767,6 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
  *    previous key instead of complete recalculation each time.
  */
 #define UPDATE_HASH(h, c) (h = (((h)<<H_SHIFT) ^ (c)) & HASH_MASK)
-
 
 /* ===========================================================================
  * Same as above, but achieves better compression. We use a lazy
@@ -1828,7 +1802,7 @@ do { \
 	head[G1.ins_h] = (s); \
 } while (0)
 
-static NOINLINE ulg deflate(void)
+static NOINLINE void deflate(void)
 {
 	IPos hash_head;		/* head of hash chain */
 	IPos prev_match;	/* previous match */
@@ -1929,9 +1903,8 @@ static NOINLINE ulg deflate(void)
 	if (match_available)
 		ct_tally(0, G1.window[G1.strstart - 1]);
 
-	return FLUSH_BLOCK(1);	/* eof */
+	FLUSH_BLOCK(1);	/* eof */
 }
-
 
 /* ===========================================================================
  * Initialize the bit string routines.
@@ -1942,7 +1915,6 @@ static void bi_init(void)
 	//G1.bi_valid = 0; // globals are zeroed in pack_gzip()
 	//DEBUG_bits_sent(= 0L); // globals are zeroed in pack_gzip()
 }
-
 
 /* ===========================================================================
  * Initialize the "longest match" routines for a new file
@@ -1985,7 +1957,6 @@ static void lm_init(unsigned *flags16p)
 	 */
 }
 
-
 /* ===========================================================================
  * Allocate the match buffer, initialize the various tables and save the
  * location of the internal file attribute (ascii/binary) and method
@@ -1999,7 +1970,7 @@ static void ct_init(void)
 	int code;			/* code value */
 	int dist;			/* distance index */
 
-	//G2.compressed_len = 0L; // globals are zeroed in pack_gzip()
+//	//G2.compressed_len = 0L; // globals are zeroed in pack_gzip()
 
 #ifdef NOT_NEEDED
 	if (G2.static_dtree[0].Len != 0)
@@ -2083,7 +2054,6 @@ static void ct_init(void)
 	init_block();
 }
 
-
 /* ===========================================================================
  * Deflate in to out.
  * IN assertions: the input and output buffers are cleared.
@@ -2122,7 +2092,6 @@ static void zip(void)
 
 	flush_outbuf();
 }
-
 
 /* ======================================================================== */
 static
