@@ -300,6 +300,50 @@ enum {
 
 
 struct globals {
+/* =========================================================================== */
+/* global buffers, allocated once */
+
+#define DECLARE(type, array, size) \
+	type * array
+#define ALLOC(type, array, size) \
+	array = xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type))
+#define FREE(array) \
+	do { free(array); array = NULL; } while (0)
+
+	/* buffer for literals or lengths */
+	/* DECLARE(uch, l_buf, LIT_BUFSIZE); */
+	DECLARE(uch, l_buf, INBUFSIZ);
+
+	DECLARE(ush, d_buf, DIST_BUFSIZE);
+	DECLARE(uch, outbuf, OUTBUFSIZ);
+
+/* Sliding window. Input bytes are read into the second half of the window,
+ * and move to the first half later to keep a dictionary of at least WSIZE
+ * bytes. With this organization, matches are limited to a distance of
+ * WSIZE-MAX_MATCH bytes, but this ensures that IO is always
+ * performed with a length multiple of the block size. Also, it limits
+ * the window size to 64K, which is quite useful on MSDOS.
+ * To do: limit the window size to WSIZE+BSZ if SMALL_MEM (the code would
+ * be less efficient).
+ */
+	DECLARE(uch, window, 2L * WSIZE);
+
+/* Link to older string with same hash index. To limit the size of this
+ * array to 64K, this link is maintained only for the last 32K strings.
+ * An index in this array is thus a window index modulo 32K.
+ */
+	/* DECLARE(Pos, prev, WSIZE); */
+	DECLARE(ush, prev, 1L << BITS);
+
+/* Heads of the hash chains or 0. */
+	/* DECLARE(Pos, head, 1<<HASH_BITS); */
+#define head (G1.prev + WSIZE) /* hash head (see deflate.c) */
+
+/* =========================================================================== */
+/* all members below are zeroed out in pack_gzip() for each next file */
+
+	uint32_t crc;	/* shift register contents */
+	/*uint32_t *crc_32_tab;*/
 
 #if ENABLE_FEATURE_GZIP_LEVELS
 	unsigned max_chain_length;
@@ -368,49 +412,6 @@ struct globals {
 #ifdef DEBUG
 	ulg bits_sent;	/* bit length of the compressed data */
 #endif
-
-	/*uint32_t *crc_32_tab;*/
-	uint32_t crc;	/* shift register contents */
-
-/* ===========================================================================
- */
-#define DECLARE(type, array, size) \
-	type * array
-#define ALLOC(type, array, size) \
-	array = xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type))
-#define FREE(array) \
-	do { free(array); array = NULL; } while (0)
-
-	/* global buffers */
-
-	/* buffer for literals or lengths */
-	/* DECLARE(uch, l_buf, LIT_BUFSIZE); */
-	DECLARE(uch, l_buf, INBUFSIZ);
-
-	DECLARE(ush, d_buf, DIST_BUFSIZE);
-	DECLARE(uch, outbuf, OUTBUFSIZ);
-
-/* Sliding window. Input bytes are read into the second half of the window,
- * and move to the first half later to keep a dictionary of at least WSIZE
- * bytes. With this organization, matches are limited to a distance of
- * WSIZE-MAX_MATCH bytes, but this ensures that IO is always
- * performed with a length multiple of the block size. Also, it limits
- * the window size to 64K, which is quite useful on MSDOS.
- * To do: limit the window size to WSIZE+BSZ if SMALL_MEM (the code would
- * be less efficient).
- */
-	DECLARE(uch, window, 2L * WSIZE);
-
-/* Link to older string with same hash index. To limit the size of this
- * array to 64K, this link is maintained only for the last 32K strings.
- * An index in this array is thus a window index modulo 32K.
- */
-	/* DECLARE(Pos, prev, WSIZE); */
-	DECLARE(ush, prev, 1L << BITS);
-
-/* Heads of the hash chains or 0. */
-	/* DECLARE(Pos, head, 1<<HASH_BITS); */
-#define head (G1.prev + WSIZE) /* hash head (see deflate.c) */
 };
 
 #define G1 (*(ptr_to_globals - 1))
@@ -460,6 +461,7 @@ static void put_16bit(ush w)
 	}
 	*dst = (uch)w;
 	w >>= 8;
+	G1.outcnt = ++outcnt;
 #else
 	*dst = (uch)w;
 	w >>= 8;
@@ -469,13 +471,13 @@ static void put_16bit(ush w)
 		G1.outcnt = outcnt + 2;
 		return;
 	}
+	G1.outcnt = ++outcnt;
 #endif
 
 	/* Slowpath: we will need to do flush_outbuf() */
-	G1.outcnt = ++outcnt;
 	if (outcnt == OUTBUFSIZ)
-		flush_outbuf();
-	put_8bit(w);
+		flush_outbuf(); /* here */
+	put_8bit(w); /* or here */
 }
 
 #define OPTIMIZED_PUT_32BIT (CONFIG_GZIP_FAST > 0 && BB_UNALIGNED_MEMACCESS_OK && BB_LITTLE_ENDIAN)
@@ -2056,17 +2058,20 @@ static void ct_init(void)
 		G2.static_ltree[n++].Len = 9;
 		//G2.bl_count[9]++;
 	}
-	G2.bl_count[9] = 255 - 143;
+	//G2.bl_count[9] = 255 - 143;
 	while (n <= 279) {
 		G2.static_ltree[n++].Len = 7;
 		//G2.bl_count[7]++;
 	}
-	G2.bl_count[7] = 279 - 255;
+	//G2.bl_count[7] = 279 - 255;
 	while (n <= 287) {
 		G2.static_ltree[n++].Len = 8;
 		//G2.bl_count[8]++;
 	}
-	G2.bl_count[8] = 287 - 279 + (143 + 1);
+	//G2.bl_count[8] += 287 - 279;
+	G2.bl_count[7] = 279 - 255;
+	G2.bl_count[8] = (143 + 1) + (287 - 279);
+	G2.bl_count[9] = 255 - 143;
 	/* Codes 286 and 287 do not exist, but we must include them in the
 	 * tree construction to get a canonical Huffman tree (longest code
 	 * all ones)
@@ -2132,8 +2137,8 @@ static void zip(void)
 static
 IF_DESKTOP(long long) int FAST_FUNC pack_gzip(transformer_state_t *xstate UNUSED_PARAM)
 {
-	/* Reinit G1.xxx except pointers to allocated buffers */
-	memset(&G1, 0, offsetof(struct globals, l_buf));
+	/* Reinit G1.xxx except pointers to allocated buffers, and entire G2 */
+	memset(&G1.crc, 0, (sizeof(G1) - offsetof(struct globals, crc)) + sizeof(G2));
 
 	/* Clear input and output buffers */
 	//G1.outcnt = 0;
@@ -2143,7 +2148,6 @@ IF_DESKTOP(long long) int FAST_FUNC pack_gzip(transformer_state_t *xstate UNUSED
 	//G1.isize = 0;
 
 	/* Reinit G2.xxx */
-	memset(&G2, 0, sizeof(G2));
 	G2.l_desc.dyn_tree     = G2.dyn_ltree;
 	G2.l_desc.static_tree  = G2.static_ltree;
 	G2.l_desc.extra_bits   = extra_lbits;
