@@ -478,15 +478,14 @@ static void put_16bit(ush w)
 	put_8bit(w);
 }
 
+#define OPTIMIZED_PUT_32BIT (CONFIG_GZIP_FAST > 0 && BB_UNALIGNED_MEMACCESS_OK && BB_LITTLE_ENDIAN)
 static void put_32bit(ulg n)
 {
-#if CONFIG_GZIP_FAST > 0 \
- && BB_UNALIGNED_MEMACCESS_OK && BB_LITTLE_ENDIAN
+#if OPTIMIZED_PUT_32BIT
 	unsigned outcnt = G1.outcnt;
 	if (outcnt < OUTBUFSIZ-4) {
 		/* Common case */
-		uch *dst = &G1.outbuf[outcnt];
-		ulg *dst32 = (void*) dst;
+		ulg *dst32 = (void*) &G1.outbuf[outcnt];
 		*dst32 = n; /* unaligned LSB 32-bit store */
 		G1.outcnt = outcnt + 4;
 		return;
@@ -1951,7 +1950,7 @@ static void bi_init(void)
 /* ===========================================================================
  * Initialize the "longest match" routines for a new file
  */
-static void lm_init(ush * flagsp)
+static void lm_init(unsigned *flags16p)
 {
 	unsigned j;
 
@@ -1960,7 +1959,7 @@ static void lm_init(ush * flagsp)
 	/* prev will be initialized on the fly */
 
 	/* speed options for the general purpose bit flag */
-	*flagsp |= 2;	/* FAST 4, SLOW 2 */
+	*flags16p |= 2;	/* FAST 4, SLOW 2 */
 	/* ??? reduce max_chain_length for binary files */
 
 	//G1.strstart = 0; // globals are zeroed in pack_gzip()
@@ -2044,9 +2043,8 @@ static void ct_init(void)
 	Assert(dist == 256, "ct_init: 256+dist != 512");
 
 	/* Construct the codes of the static literal tree */
-	/* already zeroed - it's in bss
-	for (n = 0; n <= MAX_BITS; n++)
-		G2.bl_count[n] = 0; */
+	//for (n = 0; n <= MAX_BITS; n++) // globals are zeroed in pack_gzip()
+	//	G2.bl_count[n] = 0;
 
 	n = 0;
 	while (n <= 143) {
@@ -2088,7 +2086,7 @@ static void ct_init(void)
  */
 static void zip(void)
 {
-	ush deflate_flags = 0;  /* pkzip -es, -en or -ex equivalent */
+	unsigned deflate_flags;
 
 	//G1.outcnt = 0; // globals are zeroed in pack_gzip()
 
@@ -2104,10 +2102,17 @@ static void zip(void)
 
 	bi_init();
 	ct_init();
+	deflate_flags = 0;  /* pkzip -es, -en or -ex equivalent */
 	lm_init(&deflate_flags);
 
-	put_8bit(deflate_flags);	/* extra flags */
-	put_8bit(3);	/* OS identifier = 3 (Unix) */
+	put_16bit(deflate_flags | 0x300); /* extra flags. OS id = 3 (Unix) */
+
+#if OPTIMIZED_PUT_32BIT
+	/* put_32bit() performs 32bit stores. If we use it in send_bits()... */
+	if (BUF_SIZE > 16)
+		/* then all stores are misaligned, unless we flush the buffer now */
+		flush_outbuf();
+#endif
 
 	deflate();
 
