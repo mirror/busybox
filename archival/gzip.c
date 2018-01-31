@@ -617,8 +617,8 @@ static void copy_block(char *buf, unsigned len, int header)
 	bi_windup();		/* align on byte boundary */
 
 	if (header) {
-		put_16bit(len);
-		put_16bit(~len);
+		unsigned v = ((uint16_t)len) | ((~len) << 16);
+		put_32bit(v);
 #ifdef DEBUG
 		G1.bits_sent += 2 * 16;
 #endif
@@ -1747,8 +1747,8 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 		if (buf == NULL)
 			bb_error_msg("block vanished");
 
-		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
 		G2.compressed_len = stored_len << 3;
+		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
 	} else if (stored_len + 4 <= opt_lenb && buf != NULL) {
 		/* 4: two words for the lengths */
 		/* The test buf != NULL is only necessary if LIT_BUFSIZE > WSIZE.
@@ -1758,9 +1758,8 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 		 * transform a block into a stored block.
 		 */
 		send_bits((STORED_BLOCK << 1) + eof, 3);	/* send block type */
-		G2.compressed_len = (G2.compressed_len + 3 + 7) & ~7L;
-		G2.compressed_len += (stored_len + 4) << 3;
-
+		G2.compressed_len = ((G2.compressed_len + 3 + 7) & ~7L)
+				+ ((stored_len + 4) << 3);
 		copy_block(buf, (unsigned) stored_len, 1);	/* with header */
 	} else if (static_lenb == opt_lenb) {
 		send_bits((STATIC_TREES << 1) + eof, 3);
