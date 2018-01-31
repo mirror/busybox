@@ -2049,20 +2049,24 @@ static void ct_init(void)
 	n = 0;
 	while (n <= 143) {
 		G2.static_ltree[n++].Len = 8;
-		G2.bl_count[8]++;
+		//G2.bl_count[8]++;
 	}
+	//G2.bl_count[8] = 143 + 1;
 	while (n <= 255) {
 		G2.static_ltree[n++].Len = 9;
-		G2.bl_count[9]++;
+		//G2.bl_count[9]++;
 	}
+	G2.bl_count[9] = 255 - 143;
 	while (n <= 279) {
 		G2.static_ltree[n++].Len = 7;
-		G2.bl_count[7]++;
+		//G2.bl_count[7]++;
 	}
+	G2.bl_count[7] = 279 - 255;
 	while (n <= 287) {
 		G2.static_ltree[n++].Len = 8;
-		G2.bl_count[8]++;
+		//G2.bl_count[8]++;
 	}
+	G2.bl_count[8] = 287 - 279 + (143 + 1);
 	/* Codes 286 and 287 do not exist, but we must include them in the
 	 * tree construction to get a canonical Huffman tree (longest code
 	 * all ones)
