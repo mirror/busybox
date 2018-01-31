@@ -634,7 +634,8 @@ static void copy_block(char *buf, unsigned len, int header)
 		put_8bit(*buf++);
 	}
 	/* The above can 32-bit misalign outbuf */
-	flush_outbuf_if_32bit_optimized();
+	if (G1.outcnt & 3) /* syscalls are expensive, is it really misaligned? */
+		flush_outbuf_if_32bit_optimized();
 }
 
 
