@@ -486,18 +486,25 @@ static void put_16bit(ush w)
 #define OPTIMIZED_PUT_32BIT (CONFIG_GZIP_FAST > 0 && BB_UNALIGNED_MEMACCESS_OK && BB_LITTLE_ENDIAN)
 static void put_32bit(ulg n)
 {
-#if OPTIMIZED_PUT_32BIT
-	unsigned outcnt = G1.outcnt;
-	if (outcnt < OUTBUFSIZ-4) {
-		/* Common case */
-		ulg *dst32 = (void*) &G1.outbuf[outcnt];
-		*dst32 = n; /* unaligned LSB 32-bit store */
-		G1.outcnt = outcnt + 4;
-		return;
+	if (OPTIMIZED_PUT_32BIT) {
+		unsigned outcnt = G1.outcnt;
+		if (outcnt < OUTBUFSIZ-4) {
+			/* Common case */
+			ulg *dst32 = (void*) &G1.outbuf[outcnt];
+			*dst32 = n; /* unaligned LSB 32-bit store */
+			//bb_error_msg("%p", dst32); // store alignment debugging
+			G1.outcnt = outcnt + 4;
+			return;
+		}
 	}
-#endif
 	put_16bit(n);
 	put_16bit(n >> 16);
+}
+static ALWAYS_INLINE void flush_outbuf_if_32bit_optimized(void)
+{
+	/* If put_32bit() performs 32bit stores && it is used in send_bits() */
+	if (OPTIMIZED_PUT_32BIT && BUF_SIZE > 16)
+		flush_outbuf();
 }
 
 /* ===========================================================================
@@ -626,6 +633,8 @@ static void copy_block(char *buf, unsigned len, int header)
 	while (len--) {
 		put_8bit(*buf++);
 	}
+	/* The above can 32-bit misalign outbuf */
+	flush_outbuf_if_32bit_optimized();
 }
 
 
@@ -2110,12 +2119,8 @@ static void zip(void)
 
 	put_16bit(deflate_flags | 0x300); /* extra flags. OS id = 3 (Unix) */
 
-#if OPTIMIZED_PUT_32BIT
-	/* put_32bit() performs 32bit stores. If we use it in send_bits()... */
-	if (BUF_SIZE > 16)
-		/* then all stores are misaligned, unless we flush the buffer now */
-		flush_outbuf();
-#endif
+	/* The above 32-bit misaligns outbuf (10 bytes are stored), flush it */
+	flush_outbuf_if_32bit_optimized();
 
 	deflate();
 
