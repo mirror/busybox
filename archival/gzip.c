@@ -1081,15 +1081,6 @@ struct globals2 {
 
 /* ===========================================================================
  */
-static void gen_codes(ct_data * tree, int max_code);
-static void build_tree(tree_desc * desc);
-static void scan_tree(ct_data * tree, int max_code);
-static void send_tree(ct_data * tree, int max_code);
-static int build_bl_tree(void);
-static void send_all_trees(int lcodes, int dcodes, int blcodes);
-static void compress_block(ct_data * ltree, ct_data * dtree);
-
-
 #ifndef DEBUG
 /* Send a code of the given tree. c and tree must not have side effects */
 #  define SEND_CODE(c, tree) send_bits(tree[c].Code, tree[c].Len)
