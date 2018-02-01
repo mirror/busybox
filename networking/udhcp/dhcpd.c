@@ -45,7 +45,7 @@
 #include "dhcpd.h"
 
 /* globals */
-struct dyn_lease *g_leases;
+#define g_leases ((struct dyn_lease*)ptr_to_globals)
 /* struct server_config_t server_config is in bb_common_bufsiz1 */
 
 /* Takes the address of the pointer to the static_leases linked list,
@@ -880,7 +880,9 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		server_config.max_leases = num_ips;
 	}
 
-	g_leases = xzalloc(server_config.max_leases * sizeof(g_leases[0]));
+	/* this sets g_leases */
+	SET_PTR_TO_GLOBALS(xzalloc(server_config.max_leases * sizeof(g_leases[0])));
+
 	read_leases(server_config.lease_file);
 
 	if (udhcp_read_interface(server_config.interface,
