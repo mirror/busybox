@@ -2211,16 +2211,16 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
 #if ENABLE_FEATURE_GZIP_LONG_OPTIONS
-	opt = getopt32long(argv, "cfkv" IF_FEATURE_GZIP_DECOMPRESS("dt") "qn123456789", gzip_longopts);
+	opt = getopt32long(argv, BBUNPK_OPTSTR IF_FEATURE_GZIP_DECOMPRESS("dt") "n123456789", gzip_longopts);
 #else
-	opt = getopt32(argv, "cfkv" IF_FEATURE_GZIP_DECOMPRESS("dt") "qn123456789");
+	opt = getopt32(argv, BBUNPK_OPTSTR IF_FEATURE_GZIP_DECOMPRESS("dt") "n123456789");
 #endif
 #if ENABLE_FEATURE_GZIP_DECOMPRESS /* gunzip_main may not be visible... */
-	if (opt & 0x30) // -d and/or -t
+	if (opt & (BBUNPK_OPT_DECOMPRESS|BBUNPK_OPT_TEST)) /* -d and/or -t */
 		return gunzip_main(argc, argv);
 #endif
 #if ENABLE_FEATURE_GZIP_LEVELS
-	opt >>= ENABLE_FEATURE_GZIP_DECOMPRESS ? 8 : 6; /* drop cfkv[dt]qn bits */
+	opt >>= (BBUNPK_OPTSTRLEN IF_FEATURE_GZIP_DECOMPRESS(+ 2) + 1); /* drop cfkvq[dt]n bits */
 	if (opt == 0)
 		opt = 1 << 6; /* default: 6 */
 	opt = ffs(opt >> 4); /* Maps -1..-4 to [0], -5 to [1] ... -9 to [5] */
@@ -2229,7 +2229,7 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	max_lazy_match	 = gzip_level_config[opt].lazy2 * 2;
 	nice_match	 = gzip_level_config[opt].nice2 * 2;
 #endif
-	option_mask32 &= 0xf; /* retain only -cfkv */
+	option_mask32 &= BBUNPK_OPTSTRMASK; /* retain only -cfkvq */
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	ALLOC(uch, G1.l_buf, INBUFSIZ);

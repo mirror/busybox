@@ -151,7 +151,8 @@ IF_DESKTOP(long long) int FAST_FUNC compressStream(transformer_state_t *xstate U
 
 	iobuf = xmalloc(2 * IOBUF_SIZE);
 
-	opt = option_mask32 >> (sizeof("cfkvq" IF_FEATURE_BZIP2_DECOMPRESS("dt") "zs") - 1);
+	opt = option_mask32 >> (BBUNPK_OPTSTRLEN IF_FEATURE_BZIP2_DECOMPRESS(+ 2) + 2);
+	/* skipped BBUNPK_OPTSTR, "dt" and "zs" bits */
 	opt |= 0x100; /* if nothing else, assume -9 */
 	level = 0;
 	for (;;) {
@@ -205,17 +206,17 @@ int bzip2_main(int argc UNUSED_PARAM, char **argv)
 	 */
 
 	opt = getopt32(argv, "^"
-		/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-		"cfkvq" IF_FEATURE_BZIP2_DECOMPRESS("dt") "zs123456789"
+		/* Must match BBUNPK_foo constants! */
+		BBUNPK_OPTSTR IF_FEATURE_BZIP2_DECOMPRESS("dt") "zs123456789"
 		"\0" "s2" /* -s means -2 (compatibility) */
 	);
 #if ENABLE_FEATURE_BZIP2_DECOMPRESS /* bunzip2_main may not be visible... */
-	if (opt & (3 << 5)) /* -d and/or -t */
+	if (opt & (BBUNPK_OPT_DECOMPRESS|BBUNPK_OPT_TEST)) /* -d and/or -t */
 		return bunzip2_main(argc, argv);
 #else
 	/* clear "decompress" and "test" bits (or bbunpack() can get confused) */
 	/* in !BZIP2_DECOMPRESS config, these bits are -zs and are unused */
-	option_mask32 = opt & ~(3 << 5);
+	option_mask32 = opt & ~(BBUNPK_OPT_DECOMPRESS|BBUNPK_OPT_TEST);
 #endif
 
 	argv += optind;
