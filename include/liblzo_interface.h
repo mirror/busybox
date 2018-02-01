@@ -49,12 +49,10 @@ int lzo1x_999_compress_level(const uint8_t* in, unsigned in_len,
 
 /* decompression */
 //int lzo1x_decompress(const uint8_t* src, unsigned src_len,
-//		uint8_t* dst, unsigned* dst_len,
-//		void* wrkmem /* NOT USED */);
+//		uint8_t* dst, unsigned* dst_len /*, void* wrkmem */);
 /* safe decompression with overrun testing */
 int lzo1x_decompress_safe(const uint8_t* src, unsigned src_len,
-		uint8_t* dst, unsigned* dst_len,
-		void* wrkmem /* NOT USED */);
+		uint8_t* dst, unsigned* dst_len	/*, void* wrkmem */);
 
 #define LZO_E_OK                    0
 #define LZO_E_ERROR                 (-1)

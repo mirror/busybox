@@ -141,8 +141,7 @@ static void copy3(uint8_t* ip, const uint8_t* m_pos, unsigned off)
 #define TEST_OP		(op <= op_end)
 
 static NOINLINE int lzo1x_optimize(uint8_t *in, unsigned in_len,
-		uint8_t *out, unsigned *out_len,
-		void* wrkmem UNUSED_PARAM)
+		uint8_t *out, unsigned *out_len /*, void* wrkmem */)
 {
 	uint8_t* op;
 	uint8_t* ip;
@@ -724,7 +723,7 @@ static NOINLINE int lzo_compress(const header_t *h)
 			/* optimize */
 			if (h->method == M_LZO1X_999) {
 				unsigned new_len = src_len;
-				r = lzo1x_optimize(b2, dst_len, b1, &new_len, NULL);
+				r = lzo1x_optimize(b2, dst_len, b1, &new_len /*, NULL*/);
 				if (r != 0 /*LZO_E_OK*/ || new_len != src_len)
 					bb_error_msg_and_die("internal error - optimization failed");
 			}
@@ -859,9 +858,9 @@ static NOINLINE int lzo_decompress(const header_t *h)
 
 			/* decompress */
 //			if (option_mask32 & OPT_F)
-//				r = lzo1x_decompress(b1, src_len, b2, &d, NULL);
+//				r = lzo1x_decompress(b1, src_len, b2, &d /*, NULL*/);
 //			else
-				r = lzo1x_decompress_safe(b1, src_len, b2, &d, NULL);
+				r = lzo1x_decompress_safe(b1, src_len, b2, &d /*, NULL*/);
 
 			if (r != 0 /*LZO_E_OK*/ || dst_len != d) {
 				bb_error_msg_and_die("corrupted data");
