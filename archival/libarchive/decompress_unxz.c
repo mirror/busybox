@@ -52,7 +52,7 @@ unpack_xz_stream(transformer_state_t *xstate)
 	IF_DESKTOP(long long) int total = 0;
 
 	if (!global_crc32_table)
-		global_crc32_table = crc32_filltable(NULL, /*endian:*/ 0);
+		global_crc32_new_table_le();
 
 	memset(&iobuf, 0, sizeof(iobuf));
 	membuf = xmalloc(2 * BUFSIZ);

@@ -1000,7 +1000,7 @@ inflate_unzip_internal(STATE_PARAM transformer_state_t *xstate)
 	gunzip_bb = 0;
 
 	/* Create the crc table */
-	gunzip_crc_table = crc32_filltable(NULL, 0);
+	gunzip_crc_table = crc32_new_table_le();
 	gunzip_crc = ~0;
 
 	error_msg = "corrupted data";

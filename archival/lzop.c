@@ -1148,6 +1148,6 @@ int lzop_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_UNLZOP && applet_name[4] == 'o')
 		option_mask32 |= OPT_DECOMPRESS;
 
-	global_crc32_table = crc32_filltable(NULL, 0);
+	global_crc32_new_table_le();
 	return bbunpack(argv, pack_lzop, make_new_name_lzop, /*unused:*/ NULL);
 }

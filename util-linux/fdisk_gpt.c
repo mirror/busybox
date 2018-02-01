@@ -177,7 +177,7 @@ check_gpt_label(void)
 
 	init_unicode();
 	if (!global_crc32_table) {
-		global_crc32_table = crc32_filltable(NULL, 0);
+		global_crc32_new_table_le();
 	}
 
 	crc = SWAP_LE32(gpt_hdr->hdr_crc32);

@@ -2239,7 +2239,7 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	ALLOC(ush, G1.prev, 1L << BITS);
 
 	/* Initialize the CRC32 table */
-	global_crc32_table = crc32_filltable(NULL, 0);
+	global_crc32_new_table_le();
 
 	argv += optind;
 	return bbunpack(argv, pack_gzip, append_ext, "gz");

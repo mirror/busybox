@@ -101,7 +101,7 @@ int flash_eraseall_main(int argc UNUSED_PARAM, char **argv)
 	if (flags & OPTION_J) {
 		uint32_t *crc32_table;
 
-		crc32_table = crc32_filltable(NULL, 0);
+		crc32_table = crc32_new_table_le();
 
 		cleanmarker.magic = cpu_to_je16(JFFS2_MAGIC_BITMASK);
 		cleanmarker.nodetype = cpu_to_je16(JFFS2_NODETYPE_CLEANMARKER);
