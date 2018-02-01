@@ -80,7 +80,7 @@
 //usage:     "\n	-F	Don't verify checksum"
 //usage:
 //usage:#define unlzop_trivial_usage
-//usage:       "[-cfkvF] [FILE]..."
+//usage:       "[-cfUvF] [FILE]..."
 //usage:#define unlzop_full_usage "\n\n"
 //usage:       "	-c	Write to stdout"
 //usage:     "\n	-f	Force"
