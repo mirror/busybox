@@ -75,25 +75,39 @@ void bsW(EState* s, int32_t n, uint32_t v)
 	s->bsBuff |= (v << (32 - s->bsLive - n));
 	s->bsLive += n;
 }
+/* Same with n == 16: */
+static
+#if CONFIG_BZIP2_FAST >= 5
+ALWAYS_INLINE
+#endif
+void bsW16(EState* s, uint32_t v)
+{
+	while (s->bsLive >= 8) {
+		s->zbits[s->numZ] = (uint8_t)(s->bsBuff >> 24);
+		s->numZ++;
+		s->bsBuff <<= 8;
+		s->bsLive -= 8;
+	}
+	s->bsBuff |= (v << (16 - s->bsLive));
+	s->bsLive += 16;
+}
+
+
+/*---------------------------------------------------*/
+static ALWAYS_INLINE
+void bsPutU16(EState* s, unsigned u)
+{
+	bsW16(s, u);
+}
 
 
 /*---------------------------------------------------*/
 static
 void bsPutU32(EState* s, unsigned u)
 {
-	bsW(s, 8, (u >> 24) & 0xff);
-	bsW(s, 8, (u >> 16) & 0xff);
-	bsW(s, 8, (u >>  8) & 0xff);
-	bsW(s, 8,  u        & 0xff);
-}
-
-
-/*---------------------------------------------------*/
-static
-void bsPutU16(EState* s, unsigned u)
-{
-	bsW(s, 8, (u >>  8) & 0xff);
-	bsW(s, 8,  u        & 0xff);
+	//bsW(s, 32, u); // can't use: may try "uint32 << -n"
+	bsW16(s, (u >> 16) & 0xffff);
+	bsW16(s, u         & 0xffff);
 }
 
 
@@ -509,7 +523,7 @@ void sendMTFValues(EState* s)
 			}
 		}
 
-		bsW(s, 16, inUse16);
+		bsW16(s, inUse16);
 
 		inUse16 <<= (sizeof(int)*8 - 16); /* move 15th bit into sign bit */
 		for (i = 0; i < 16; i++) {
@@ -517,7 +531,7 @@ void sendMTFValues(EState* s)
 				unsigned v16 = 0;
 				for (j = 0; j < 16; j++)
 					v16 = v16*2 + s->inUse[i * 16 + j];
-				bsW(s, 16, v16);
+				bsW16(s, v16);
 			}
 			inUse16 <<= 1;
 		}
