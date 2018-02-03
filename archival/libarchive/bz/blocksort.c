@@ -730,7 +730,6 @@ void mainSort(EState* state,
 		int32_t*  budget)
 {
 	int32_t  i, j;
-	int32_t  numQSorted;
 	Bool     bigDone[256];
 	/* bbox: moved to EState to save stack
 	int32_t  runningOrder[256];
@@ -853,8 +852,6 @@ void mainSort(EState* state,
 	 * The main sorting loop.
 	 */
 
-	numQSorted = 0;
-
 	for (i = 0; /*i <= 255*/; i++) {
 		int32_t ss;
 
@@ -887,7 +884,6 @@ void mainSort(EState* state,
 							lo, hi, BZ_N_RADIX, budget
 						);
 						if (*budget < 0) return;
-						numQSorted += (hi - lo + 1);
 					}
 				}
 				ftab[sb] |= SETMASK;
@@ -940,6 +936,9 @@ void mainSort(EState* state,
 		for (j = 0; j <= 255; j++)
 			ftab[(j << 8) + ss] |= SETMASK;
 
+		if (i == 255)
+			break;
+
 		/*
 		 * Step 3:
 		 * The [ss] big bucket is now done.  Record this fact,
@@ -980,9 +979,6 @@ void mainSort(EState* state,
 		 *		}
 		 */
 		bigDone[ss] = True;
-
-		if (i == 255)
-			break;
 
 		{
 			int32_t bbStart = ftab[ss << 8] & CLEARMASK;
