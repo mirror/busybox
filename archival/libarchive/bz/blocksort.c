@@ -452,7 +452,7 @@ int mainGtU(
  * usually small, typically <= 20.
  */
 static
-const int32_t incs[14] = {
+const uint32_t incs[14] = {
 	1, 4, 13, 40, 121, 364, 1093, 3280,
 	9841, 29524, 88573, 265720,
 	797161, 2391484
@@ -468,7 +468,8 @@ void mainSimpleSort(uint32_t* ptr,
 		int32_t   d,
 		int32_t*  budget)
 {
-	int32_t bigN, hp;
+	int32_t bigN;
+	int hp;
 
 	bigN = hi - lo + 1;
 	if (bigN < 2) return;
@@ -478,15 +479,15 @@ void mainSimpleSort(uint32_t* ptr,
 	hp--;
 
 	for (; hp >= 0; hp--) {
-		int32_t i, h;
+		int32_t i;
+		unsigned h;
 
 		h = incs[hp];
 		i = lo + h;
 		while (1) {
-			int32_t j;
-			uint32_t v;
+			unsigned j;
+			unsigned v;
 
-			/*-- copy 1 --*/
 			if (i > hi) break;
 			v = ptr[i];
 			j = i;
@@ -511,7 +512,6 @@ void mainSimpleSort(uint32_t* ptr,
 			}
 			ptr[j] = v;
 			i++;
-
 			/*-- copy 3 --*/
 			if (i > hi) break;
 			v = ptr[i];
