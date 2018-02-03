@@ -146,13 +146,14 @@ static
 void makeMaps_e(EState* s)
 {
 	int i;
-	s->nInUse = 0;
+	unsigned cnt = 0;
 	for (i = 0; i < 256; i++) {
 		if (s->inUse[i]) {
-			s->unseqToSeq[i] = s->nInUse;
-			s->nInUse++;
+			s->unseqToSeq[i] = cnt;
+			cnt++;
 		}
 	}
+	s->nInUse = cnt;
 }
 
 
