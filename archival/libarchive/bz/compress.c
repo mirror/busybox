@@ -297,7 +297,7 @@ void sendMTFValues(EState* s)
 	// 200..599 = 3
 	// 600..1199 = 4
 	// 1200..2399 = 5
-	// else 6
+	// 2400..99999 = 6
 	nGroups = 2;
 	nGroups += (s->nMTF >= 200);
 	nGroups += (s->nMTF >= 600);
@@ -317,12 +317,12 @@ void sendMTFValues(EState* s)
 			unsigned tFreq, aFreq;
 
 			tFreq = remF / nPart;
-			ge = gs - 1; //underflows on 1st iteration
+			ge = gs;
 			aFreq = 0;
-			while (aFreq < tFreq && (int)ge < (int)alphaSize-1) {
-				ge++;
-				aFreq += s->mtfFreq[ge];
+			while (aFreq < tFreq && ge < alphaSize) {
+				aFreq += s->mtfFreq[ge++];
 			}
+			ge--;
 
 			if (ge > gs
 			 && nPart != nGroups && nPart != 1
