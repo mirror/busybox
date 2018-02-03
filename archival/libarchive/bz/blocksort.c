@@ -468,15 +468,16 @@ void mainSimpleSort(uint32_t* ptr,
 		int32_t   d,
 		int32_t*  budget)
 {
-	int32_t bigN;
-	int hp;
-
-	bigN = hi - lo + 1;
-	if (bigN < 2) return;
-
-	hp = 0;
-	while (incs[hp] < bigN) hp++;
-	hp--;
+	/* At which increment to start? */
+	int hp = 0;
+	{
+		int bigN = hi - lo;
+		if (bigN <= 0)
+			return;
+		while (incs[hp] <= bigN)
+			hp++;
+		hp--;
+	}
 
 	for (; hp >= 0; hp--) {
 		int32_t i;
@@ -754,22 +755,22 @@ void mainSort(EState* state,
 #if CONFIG_BZIP2_FAST >= 2
 	for (; i >= 3; i -= 4) {
 		quadrant[i] = 0;
-		j = (j >> 8) | (((uint16_t)block[i]) << 8);
+		j = (j >> 8) | (((unsigned)block[i]) << 8);
 		ftab[j]++;
 		quadrant[i-1] = 0;
-		j = (j >> 8) | (((uint16_t)block[i-1]) << 8);
+		j = (j >> 8) | (((unsigned)block[i-1]) << 8);
 		ftab[j]++;
 		quadrant[i-2] = 0;
-		j = (j >> 8) | (((uint16_t)block[i-2]) << 8);
+		j = (j >> 8) | (((unsigned)block[i-2]) << 8);
 		ftab[j]++;
 		quadrant[i-3] = 0;
-		j = (j >> 8) | (((uint16_t)block[i-3]) << 8);
+		j = (j >> 8) | (((unsigned)block[i-3]) << 8);
 		ftab[j]++;
 	}
 #endif
 	for (; i >= 0; i--) {
 		quadrant[i] = 0;
-		j = (j >> 8) | (((uint16_t)block[i]) << 8);
+		j = (j >> 8) | (((unsigned)block[i]) << 8);
 		ftab[j]++;
 	}
 
