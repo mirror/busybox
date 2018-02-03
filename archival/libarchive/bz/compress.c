@@ -162,7 +162,7 @@ static NOINLINE
 void generateMTFValues(EState* s)
 {
 	uint8_t yy[256];
-	int32_t i, j;
+	int i;
 	int zPend;
 	int32_t wr;
 	int32_t EOB;
@@ -195,16 +195,18 @@ void generateMTFValues(EState* s)
 	makeMaps_e(s);
 	EOB = s->nInUse+1;
 
+	wr = 0;
+	zPend = 0;
 	for (i = 0; i <= EOB; i++)
 		s->mtfFreq[i] = 0;
 
-	wr = 0;
-	zPend = 0;
 	for (i = 0; i < s->nInUse; i++)
 		yy[i] = (uint8_t) i;
 
 	for (i = 0; i < s->nblock; i++) {
-		uint8_t ll_i;
+		uint8_t ll_i = ll_i; /* gcc 4.3.1 thinks it may be used w/o init */
+		int32_t j;
+
 		AssertD(wr <= i, "generateMTFValues(1)");
 		j = ptr[i] - 1;
 		if (j < 0)
@@ -216,6 +218,7 @@ void generateMTFValues(EState* s)
 			zPend++;
 		} else {
 			if (zPend > 0) {
+ process_zPend:
 				zPend--;
 				while (1) {
 #if 0
@@ -238,6 +241,8 @@ void generateMTFValues(EState* s)
 					zPend = (unsigned)zPend / 2;
 					/* bbox: unsigned div is easier */
 				}
+				if (i < 0) /* came via "goto process_zPend"? exit */
+					goto end;
 				zPend = 0;
 			}
 			{
@@ -264,33 +269,10 @@ void generateMTFValues(EState* s)
 		}
 	}
 
-	if (zPend > 0) {
-		zPend--;
-		while (1) {
-#if 0
-			if (zPend & 1) {
-				mtfv[wr] = BZ_RUNB;
-				wr++;
-				s->mtfFreq[BZ_RUNB]++;
-			} else {
-				mtfv[wr] = BZ_RUNA;
-				wr++;
-				s->mtfFreq[BZ_RUNA]++;
-			}
-#else /* same as above, since BZ_RUNA is 0 and BZ_RUNB is 1 */
-			unsigned run = zPend & 1;
-			mtfv[wr] = run;
-			wr++;
-			s->mtfFreq[run]++;
-#endif
-			zPend -= 2;
-			if (zPend < 0)
-				break;
-			zPend = (unsigned)zPend / 2;
-			/* bbox: unsigned div is easier */
-		}
-	}
-
+	i = -1;
+	if (zPend > 0)
+		goto process_zPend; /* "process it and come back here" */
+ end:
 	mtfv[wr] = EOB;
 	wr++;
 	s->mtfFreq[EOB]++;
