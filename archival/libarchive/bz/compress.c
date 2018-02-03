@@ -90,10 +90,8 @@ void bsW16(EState* s, uint32_t v)
 }
 /* Same with n == 1: */
 static
-#if CONFIG_BZIP2_FAST >= 5
-ALWAYS_INLINE
-#endif
-void bsW1(EState* s, uint32_t v)
+ALWAYS_INLINE /* one callsite */
+void bsW1_1(EState* s)
 {
 	/* need space for only 1 bit, no need for loop freeing > 8 bits */
 	if (s->bsLive >= 8) {
@@ -101,7 +99,22 @@ void bsW1(EState* s, uint32_t v)
 		s->bsBuff <<= 8;
 		s->bsLive -= 8;
 	}
-	s->bsBuff |= (v << (31 - s->bsLive));
+	s->bsBuff |= (1 << (31 - s->bsLive));
+	s->bsLive += 1;
+}
+static
+#if CONFIG_BZIP2_FAST >= 5
+ALWAYS_INLINE
+#endif
+void bsW1_0(EState* s)
+{
+	/* need space for only 1 bit, no need for loop freeing > 8 bits */
+	if (s->bsLive >= 8) {
+		*s->posZ++ = (uint8_t)(s->bsBuff >> 24);
+		s->bsBuff <<= 8;
+		s->bsLive -= 8;
+	}
+	//s->bsBuff |= (0 << (31 - s->bsLive));
 	s->bsLive += 1;
 }
 
@@ -573,8 +586,8 @@ void sendMTFValues(EState* s)
 	for (i = 0; i < nSelectors; i++) {
 		unsigned j;
 		for (j = 0; j < s->selectorMtf[i]; j++)
-			bsW1(s, 1);
-		bsW1(s, 0);
+			bsW1_1(s);
+		bsW1_0(s);
 	}
 
 	/*--- Now the coding tables. ---*/
@@ -584,7 +597,7 @@ void sendMTFValues(EState* s)
 		for (i = 0; i < alphaSize; i++) {
 			while (curr < s->len[t][i]) { bsW(s, 2, 2); curr++; /* 10 */ };
 			while (curr > s->len[t][i]) { bsW(s, 2, 3); curr--; /* 11 */ };
-			bsW1(s, 0);
+			bsW1_0(s);
 		}
 	}
 
@@ -698,7 +711,7 @@ void BZ2_compressBlock(EState* s, int is_last_block)
 		 * so as to maintain backwards compatibility with
 		 * older versions of bzip2.
 		 */
-		bsW1(s, 0);
+		bsW1_0(s);
 
 		bsW(s, 24, s->origPtr);
 		generateMTFValues(s);
