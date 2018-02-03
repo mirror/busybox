@@ -852,7 +852,7 @@ void mainSort(EState* state,
 	 */
 
 	for (i = 0; /*i <= 255*/; i++) {
-		int32_t ss;
+		unsigned ss;
 
 		/*
 		 * Process big buckets, starting with the least full.
@@ -980,14 +980,14 @@ void mainSort(EState* state,
 		bigDone[ss] = True;
 
 		{
-			int32_t bbStart = ftab[ss << 8] & CLEARMASK;
-			int32_t bbSize  = (ftab[(ss+1) << 8] & CLEARMASK) - bbStart;
-			int32_t shifts  = 0;
+			unsigned bbStart = ftab[ss << 8] & CLEARMASK;
+			unsigned bbSize  = (ftab[(ss+1) << 8] & CLEARMASK) - bbStart;
+			unsigned shifts  = 0;
 
 			while ((bbSize >> shifts) > 65534) shifts++;
 
 			for (j = bbSize-1; j >= 0; j--) {
-				int32_t a2update   = ptr[bbStart + j];
+				unsigned a2update  = ptr[bbStart + j]; /* uint32[] */
 				uint16_t qVal      = (uint16_t)(j >> shifts);
 				quadrant[a2update] = qVal;
 				if (a2update < BZ_N_OVERSHOOT)
