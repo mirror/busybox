@@ -280,8 +280,8 @@ static unsigned fill_bitbuffer(STATE_PARAM unsigned bitbuffer, unsigned *current
 /* Given a list of code lengths and a maximum table size, make a set of
  * tables to decode that set of codes.  Return zero on success, one if
  * the given code set is incomplete (the tables are still built in this
- * case), two if the input is invalid (all zero length codes or an
- * oversubscribed set of lengths) - in this case stores NULL in *t.
+ * case), two if the input is invalid (an oversubscribed set of lengths)
+ * - in this case stores NULL in *t.
  *
  * b:	code lengths in bits (all assumed <= BMAX)
  * n:	number of codes (assumed <= N_MAX)
@@ -330,8 +330,15 @@ static int huft_build(const unsigned *b, const unsigned n,
 		p++;     /* can't combine with above line (Solaris bug) */
 	} while (--i);
 	if (c[0] == n) {  /* null input - all zero length codes */
-		*m = 0;
-		return 2;
+		q = xzalloc(3 * sizeof(*q));
+		//q[0].v.t = NULL;
+		q[1].e = 99;    /* invalid code marker */
+		q[1].b = 1;
+		q[2].e = 99;    /* invalid code marker */
+		q[2].b = 1;
+		*t = q + 1;
+		*m = 1;
+		return 0;
 	}
 
 	/* Find minimum and maximum length, bound *m by those */
