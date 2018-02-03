@@ -88,6 +88,22 @@ void bsW16(EState* s, uint32_t v)
 	s->bsBuff |= (v << (16 - s->bsLive));
 	s->bsLive += 16;
 }
+/* Same with n == 1: */
+static
+#if CONFIG_BZIP2_FAST >= 5
+ALWAYS_INLINE
+#endif
+void bsW1(EState* s, uint32_t v)
+{
+	/* need space for only 1 bit, no need for loop freeing > 8 bits */
+	if (s->bsLive >= 8) {
+		*s->posZ++ = (uint8_t)(s->bsBuff >> 24);
+		s->bsBuff <<= 8;
+		s->bsLive -= 8;
+	}
+	s->bsBuff |= (v << (31 - s->bsLive));
+	s->bsLive += 1;
+}
 
 
 /*---------------------------------------------------*/
@@ -557,8 +573,8 @@ void sendMTFValues(EState* s)
 	for (i = 0; i < nSelectors; i++) {
 		unsigned j;
 		for (j = 0; j < s->selectorMtf[i]; j++)
-			bsW(s, 1, 1);
-		bsW(s, 1, 0);
+			bsW1(s, 1);
+		bsW1(s, 0);
 	}
 
 	/*--- Now the coding tables. ---*/
@@ -568,7 +584,7 @@ void sendMTFValues(EState* s)
 		for (i = 0; i < alphaSize; i++) {
 			while (curr < s->len[t][i]) { bsW(s, 2, 2); curr++; /* 10 */ };
 			while (curr > s->len[t][i]) { bsW(s, 2, 3); curr--; /* 11 */ };
-			bsW(s, 1, 0);
+			bsW1(s, 0);
 		}
 	}
 
@@ -682,7 +698,7 @@ void BZ2_compressBlock(EState* s, int is_last_block)
 		 * so as to maintain backwards compatibility with
 		 * older versions of bzip2.
 		 */
-		bsW(s, 1, 0);
+		bsW1(s, 0);
 
 		bsW(s, 24, s->origPtr);
 		generateMTFValues(s);

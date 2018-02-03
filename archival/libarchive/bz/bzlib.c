@@ -55,7 +55,7 @@ void prepare_new_block(EState* s)
 {
 	int i;
 	s->nblock = 0;
-	//indexes inot s->zbits[], initialzation moved to init of s->zbits
+	//indexes into s->zbits[], initialzation moved to init of s->zbits
 	//s->posZ = s->zbits; // was: s->numZ = 0;
 	//s->state_out_pos = s->zbits;
 	BZ_INITIALISE_CRC(s->blockCRC);

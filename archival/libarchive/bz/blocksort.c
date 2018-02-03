@@ -1056,7 +1056,9 @@ void BZ2_blockSort(EState* s)
 		}
 	}
 
+#if BZ_LIGHT_DEBUG
 	s->origPtr = -1;
+#endif
 	for (i = 0; i < s->nblock; i++)
 		if (ptr[i] == 0) {
 			s->origPtr = i;
