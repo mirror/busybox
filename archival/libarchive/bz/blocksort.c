@@ -825,7 +825,6 @@ void mainSort(EState* state,
 	}
 
 	{
-		int32_t vv;
 		/* bbox: was: int32_t h = 1; */
 		/* do h = 3 * h + 1; while (h <= 256); */
 		uint32_t h = 364;
@@ -834,6 +833,7 @@ void mainSort(EState* state,
 			/*h = h / 3;*/
 			h = (h * 171) >> 9; /* bbox: fast h/3 */
 			for (i = h; i <= 255; i++) {
+				int32_t vv;
 				vv = runningOrder[i];
 				j = i;
 				while (BIGFREQ(runningOrder[j-h]) > BIGFREQ(vv)) {
@@ -854,7 +854,7 @@ void mainSort(EState* state,
 
 	numQSorted = 0;
 
-	for (i = 0; i <= 255; i++) {
+	for (i = 0; /*i <= 255*/; i++) {
 
 		/*
 		 * Process big buckets, starting with the least full.
@@ -974,7 +974,10 @@ void mainSort(EState* state,
 		 */
 		bigDone[ss] = True;
 
-		if (i < 255) {
+		if (i == 255)
+			break;
+
+		{
 			int32_t bbStart = ftab[ss << 8] & CLEARMASK;
 			int32_t bbSize  = (ftab[(ss+1) << 8] & CLEARMASK) - bbStart;
 			int32_t shifts  = 0;
