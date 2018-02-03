@@ -468,8 +468,7 @@ void mainSimpleSort(uint32_t* ptr,
 		int32_t   d,
 		int32_t*  budget)
 {
-	int32_t i, j, h, bigN, hp;
-	uint32_t v;
+	int32_t bigN, hp;
 
 	bigN = hi - lo + 1;
 	if (bigN < 2) return;
@@ -479,10 +478,14 @@ void mainSimpleSort(uint32_t* ptr,
 	hp--;
 
 	for (; hp >= 0; hp--) {
-		h = incs[hp];
+		int32_t i, h;
 
+		h = incs[hp];
 		i = lo + h;
 		while (1) {
+			int32_t j;
+			uint32_t v;
+
 			/*-- copy 1 --*/
 			if (i > hi) break;
 			v = ptr[i];
@@ -592,9 +595,10 @@ void mainQSort3(uint32_t* ptr,
 		int32_t   nblock,
 		int32_t   loSt,
 		int32_t   hiSt,
-		int32_t   dSt,
+		/*int32_t   dSt,*/
 		int32_t*  budget)
 {
+	enum { dSt = BZ_N_RADIX };
 	int32_t unLo, unHi, ltLo, gtHi, n, m, med;
 	int32_t sp, lo, hi, d;
 
@@ -880,7 +884,7 @@ void mainSort(EState* state,
 					if (hi > lo) {
 						mainQSort3(
 							ptr, block, quadrant, nblock,
-							lo, hi, BZ_N_RADIX, budget
+							lo, hi, /*BZ_N_RADIX,*/ budget
 						);
 						if (*budget < 0) return;
 					}
