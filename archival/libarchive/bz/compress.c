@@ -281,7 +281,6 @@ void sendMTFValues(EState* s)
 #define len_pack sendMTFValues__len_pack
 
 	unsigned /*uint16_t*/ cost[BZ_N_GROUPS];
-	int32_t  fave[BZ_N_GROUPS];
 
 	uint16_t* mtfv = s->mtfv;
 
@@ -349,9 +348,6 @@ void sendMTFValues(EState* s)
 	 * Iterate up to BZ_N_ITERS times to improve the tables.
 	 */
 	for (iter = 0; iter < BZ_N_ITERS; iter++) {
-		for (t = 0; t < nGroups; t++)
-			fave[t] = 0;
-
 		for (t = 0; t < nGroups; t++) {
 			unsigned v;
 			for (v = 0; v < alphaSize; v++)
@@ -440,7 +436,6 @@ void sendMTFValues(EState* s)
 					bt = t;
 				}
 			}
-			fave[bt]++;
 			s->selector[nSelectors] = bt;
 			nSelectors++;
 
