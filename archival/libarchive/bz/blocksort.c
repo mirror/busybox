@@ -227,17 +227,19 @@ void fallbackQSort3(uint32_t* fmap,
 #define UNALIGNED_BH(zz)  ((zz) & 0x01f)
 
 static
-void fallbackSort(uint32_t* fmap,
-		uint32_t* eclass,
-		uint32_t* bhtab,
-		int32_t   nblock)
+void fallbackSort(EState* state)
 {
 	int32_t ftab[257];
 	int32_t ftabCopy[256];
 	int32_t H, i, j, k, l, r, cc, cc1;
 	int32_t nNotDone;
 	int32_t nBhtab;
-	uint8_t* eclass8 = (uint8_t*)eclass;
+	/* params */
+	uint32_t *const fmap    = state->arr1;
+	uint32_t *const eclass  = state->arr2;
+#define eclass8 ((uint8_t*)eclass)
+	uint32_t *const bhtab   = state->ftab;
+	const int32_t   nblock  = state->nblock;
 
 	/*
 	 * Initial 1-char radix sort to generate
@@ -349,6 +351,7 @@ void fallbackSort(uint32_t* fmap,
 		eclass8[fmap[i]] = (uint8_t)j;
 	}
 	AssertH(j < 256, 1005);
+#undef eclass8
 }
 
 #undef       SET_BH
@@ -367,17 +370,17 @@ void fallbackSort(uint32_t* fmap,
 /*---------------------------------------------*/
 static
 NOINLINE
-int mainGtU(
+int mainGtU(EState* state,
 		uint32_t  i1,
-		uint32_t  i2,
-		uint8_t*  block,
-		uint16_t* quadrant,
-		uint32_t  nblock,
-		int32_t*  budget)
+		uint32_t  i2)
 {
 	int32_t  k;
 	uint8_t  c1, c2;
 	uint16_t s1, s2;
+
+	uint8_t  *const block    = state->block;
+	uint16_t *const quadrant = state->quadrant;
+	const int32_t   nblock   = state->nblock;
 
 /* Loop unrolling here is actually very useful
  * (generated code is much simpler),
@@ -435,7 +438,7 @@ int mainGtU(
 		if (i1 >= nblock) i1 -= nblock;
 		if (i2 >= nblock) i2 -= nblock;
 
-		(*budget)--;
+		state->budget--;
 		k -= 8;
 	} while (k >= 0);
 
@@ -459,15 +462,13 @@ const uint32_t incs[14] = {
 };
 
 static
-void mainSimpleSort(uint32_t* ptr,
-		uint8_t*  block,
-		uint16_t* quadrant,
-		int32_t   nblock,
+void mainSimpleSort(EState* state,
 		int32_t   lo,
 		int32_t   hi,
-		int32_t   d,
-		int32_t*  budget)
+		int32_t   d)
 {
+	uint32_t *const ptr = state->ptr;
+
 	/* At which increment to start? */
 	int hp = 0;
 	{
@@ -492,7 +493,7 @@ void mainSimpleSort(uint32_t* ptr,
 			if (i > hi) break;
 			v = ptr[i];
 			j = i;
-			while (mainGtU(ptr[j-h]+d, v+d, block, quadrant, nblock, budget)) {
+			while (mainGtU(state, ptr[j-h]+d, v+d)) {
 				ptr[j] = ptr[j-h];
 				j = j - h;
 				if (j <= (lo + h - 1)) break;
@@ -506,7 +507,7 @@ void mainSimpleSort(uint32_t* ptr,
 			if (i > hi) break;
 			v = ptr[i];
 			j = i;
-			while (mainGtU(ptr[j-h]+d, v+d, block, quadrant, nblock, budget)) {
+			while (mainGtU(state, ptr[j-h]+d, v+d)) {
 				ptr[j] = ptr[j-h];
 				j = j - h;
 				if (j <= (lo + h - 1)) break;
@@ -517,7 +518,7 @@ void mainSimpleSort(uint32_t* ptr,
 			if (i > hi) break;
 			v = ptr[i];
 			j = i;
-			while (mainGtU(ptr[j-h]+d, v+d, block, quadrant, nblock, budget)) {
+			while (mainGtU(state, ptr[j-h]+d, v+d)) {
 				ptr[j] = ptr[j-h];
 				j = j - h;
 				if (j <= (lo + h - 1)) break;
@@ -525,7 +526,7 @@ void mainSimpleSort(uint32_t* ptr,
 			ptr[j] = v;
 			i++;
 #endif
-			if (*budget < 0) return;
+			if (state->budget < 0) return;
 		}
 	}
 }
@@ -590,14 +591,10 @@ uint8_t mmed3(uint8_t a, uint8_t b, uint8_t c)
 #define MAIN_QSORT_STACK_SIZE   100
 
 static NOINLINE
-void mainQSort3(uint32_t* ptr,
-		uint8_t*  block,
-		uint16_t* quadrant,
-		int32_t   nblock,
+void mainQSort3(EState* state,
 		int32_t   loSt,
-		int32_t   hiSt,
-		/*int32_t   dSt,*/
-		int32_t*  budget)
+		int32_t   hiSt
+		/*int32_t dSt*/)
 {
 	enum { dSt = BZ_N_RADIX };
 	int32_t unLo, unHi, ltLo, gtHi, n, m, med;
@@ -611,6 +608,9 @@ void mainQSort3(uint32_t* ptr,
 	int32_t nextHi[3];
 	int32_t nextD [3];
 
+	uint32_t *const ptr   = state->ptr;
+	uint8_t  *const block = state->block;
+
 	sp = 0;
 	mpush(loSt, hiSt, dSt);
 
@@ -621,8 +621,8 @@ void mainQSort3(uint32_t* ptr,
 		if (hi - lo < MAIN_QSORT_SMALL_THRESH
 		 || d > MAIN_QSORT_DEPTH_THRESH
 		) {
-			mainSimpleSort(ptr, block, quadrant, nblock, lo, hi, d, budget);
-			if (*budget < 0)
+			mainSimpleSort(state, lo, hi, d);
+			if (state->budget < 0)
 				return;
 			continue;
 		}
@@ -726,13 +726,7 @@ void mainQSort3(uint32_t* ptr,
 #define CLEARMASK (~(SETMASK))
 
 static NOINLINE
-void mainSort(EState* state,
-		uint32_t* ptr,
-		uint8_t*  block,
-		uint16_t* quadrant,
-		uint32_t* ftab,
-		int32_t   nblock,
-		int32_t*  budget)
+void mainSort(EState* state)
 {
 	int32_t  i, j;
 	Bool     bigDone[256];
@@ -744,6 +738,12 @@ void mainSort(EState* state,
 #define runningOrder (state->mainSort__runningOrder)
 #define copyStart    (state->mainSort__copyStart)
 #define copyEnd      (state->mainSort__copyEnd)
+
+	uint32_t *const ptr      = state->ptr;
+	uint8_t  *const block    = state->block;
+	uint32_t *const ftab     = state->ftab;
+	const int32_t   nblock   = state->nblock;
+	uint16_t *const quadrant = state->quadrant;
 
 	/*-- set up the 2-byte frequency table --*/
 	/* was: for (i = 65536; i >= 0; i--) ftab[i] = 0; */
@@ -883,11 +883,8 @@ void mainSort(EState* state,
 					int32_t lo =  ftab[sb] /*& CLEARMASK (redundant)*/;
 					int32_t hi = (ftab[sb+1] & CLEARMASK) - 1;
 					if (hi > lo) {
-						mainQSort3(
-							ptr, block, quadrant, nblock,
-							lo, hi, /*BZ_N_RADIX,*/ budget
-						);
-						if (*budget < 0) return;
+						mainQSort3(state, lo, hi /*,BZ_N_RADIX*/);
+						if (state->budget < 0) return;
 					}
 				}
 				ftab[sb] |= SETMASK;
@@ -1025,31 +1022,25 @@ void mainSort(EState* state,
  *	arr1[0 .. nblock-1] holds sorted order
  */
 static NOINLINE
-void BZ2_blockSort(EState* s)
+void BZ2_blockSort(EState* state)
 {
 	/* In original bzip2 1.0.4, it's a parameter, but 30
 	 * (which was the default) should work ok. */
 	enum { wfact = 30 };
+	unsigned i;
 
-	uint32_t* ptr    = s->ptr;
-	uint8_t*  block  = s->block;
-	uint32_t* ftab   = s->ftab;
-	int32_t   nblock = s->nblock;
-	uint16_t* quadrant;
-	int32_t   budget;
-	int32_t   i;
-
-	if (nblock < 10000) {
-		fallbackSort(s->arr1, s->arr2, ftab, nblock);
+	if (state->nblock < 10000) {
+		fallbackSort(state);
 	} else {
 		/* Calculate the location for quadrant, remembering to get
 		 * the alignment right.  Assumes that &(block[0]) is at least
 		 * 2-byte aligned -- this should be ok since block is really
 		 * the first section of arr2.
 		 */
-		i = nblock + BZ_N_OVERSHOOT;
-		if (i & 1) i++;
-		quadrant = (uint16_t*)(&(block[i]));
+		i = state->nblock + BZ_N_OVERSHOOT;
+		if (i & 1)
+			i++;
+		state->quadrant = (uint16_t*) &(state->block[i]);
 
 		/* (wfact-1) / 3 puts the default-factor-30
 		 * transition point at very roughly the same place as
@@ -1058,24 +1049,25 @@ void BZ2_blockSort(EState* s)
 		 * resulting compressed stream is now the same regardless
 		 * of whether or not we use the main sort or fallback sort.
 		 */
-		budget = nblock * ((wfact-1) / 3);
+		state->budget = state->nblock * ((wfact-1) / 3);
 
-		mainSort(s, ptr, block, quadrant, ftab, nblock, &budget);
-		if (budget < 0) {
-			fallbackSort(s->arr1, s->arr2, ftab, nblock);
+		mainSort(state);
+		if (state->budget < 0) {
+			fallbackSort(state);
 		}
 	}
 
 #if BZ_LIGHT_DEBUG
-	s->origPtr = -1;
+	state->origPtr = -1;
 #endif
-	for (i = 0; i < s->nblock; i++)
-		if (ptr[i] == 0) {
-			s->origPtr = i;
+	for (i = 0; i < state->nblock; i++) {
+		if (state->ptr[i] == 0) {
+			state->origPtr = i;
 			break;
 		}
+	}
 
-	AssertH(s->origPtr != -1, 1003);
+	AssertH(state->origPtr != -1, 1003);
 }
 
 

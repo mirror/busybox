@@ -121,6 +121,7 @@ typedef struct EState {
 	/* mode this stream is in, and whether inputting */
 	/* or outputting data */
 	int32_t  mode;
+//both smallint?
 	int32_t  state;
 
 	/* remembers avail_in when flush/finish requested */
@@ -134,6 +135,9 @@ typedef struct EState {
 	uint32_t *arr2;
 	uint32_t *ftab;
 
+	uint16_t* quadrant;
+	int32_t  budget;
+
 	/* aliases for arr1 and arr2 */
 	uint32_t *ptr;
 	uint8_t  *block;
@@ -142,6 +146,7 @@ typedef struct EState {
 
 	/* guess what */
 	uint32_t *crc32table;
+//move down
 
 	/* run-length-encoding of the input */
 	uint32_t state_in_ch;
@@ -165,6 +170,7 @@ typedef struct EState {
 	/* misc administratium */
 	int32_t  blockNo;
 	int32_t  blockSize100k;
+//smallint?
 
 	/* stuff for coding the MTF values */
 	int32_t  nMTF;

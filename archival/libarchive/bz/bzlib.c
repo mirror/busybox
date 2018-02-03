@@ -87,7 +87,7 @@ int isempty_RL(EState* s)
 static
 void BZ2_bzCompressInit(bz_stream *strm, int blockSize100k)
 {
-	int32_t n;
+	unsigned n;
 	EState* s;
 
 	s = xzalloc(sizeof(EState));
