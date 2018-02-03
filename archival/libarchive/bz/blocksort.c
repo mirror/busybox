@@ -873,10 +873,10 @@ void mainSort(EState* state,
 		 */
 		for (j = 0; j <= 255; j++) {
 			if (j != ss) {
-				int32_t sb;
+				unsigned sb;
 				sb = (ss << 8) + j;
 				if (!(ftab[sb] & SETMASK)) {
-					int32_t lo =  ftab[sb]   & CLEARMASK;
+					int32_t lo =  ftab[sb] /*& CLEARMASK (redundant)*/;
 					int32_t hi = (ftab[sb+1] & CLEARMASK) - 1;
 					if (hi > lo) {
 						mainQSort3(
