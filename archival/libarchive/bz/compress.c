@@ -216,56 +216,57 @@ void generateMTFValues(EState* s)
 
 		if (yy[0] == ll_i) {
 			zPend++;
-		} else {
-			if (zPend > 0) {
+			continue;
+		}
+
+		if (zPend > 0) {
  process_zPend:
-				zPend--;
-				while (1) {
+			zPend--;
+			while (1) {
 #if 0
-					if (zPend & 1) {
-						mtfv[wr] = BZ_RUNB; wr++;
-						s->mtfFreq[BZ_RUNB]++;
-					} else {
-						mtfv[wr] = BZ_RUNA; wr++;
-						s->mtfFreq[BZ_RUNA]++;
-					}
+				if (zPend & 1) {
+					mtfv[wr] = BZ_RUNB; wr++;
+					s->mtfFreq[BZ_RUNB]++;
+				} else {
+					mtfv[wr] = BZ_RUNA; wr++;
+					s->mtfFreq[BZ_RUNA]++;
+				}
 #else /* same as above, since BZ_RUNA is 0 and BZ_RUNB is 1 */
-					unsigned run = zPend & 1;
-					mtfv[wr] = run;
-					wr++;
-					s->mtfFreq[run]++;
-#endif
-					zPend -= 2;
-					if (zPend < 0)
-						break;
-					zPend = (unsigned)zPend / 2;
-					/* bbox: unsigned div is easier */
-				}
-				if (i < 0) /* came via "goto process_zPend"? exit */
-					goto end;
-				zPend = 0;
-			}
-			{
-				register uint8_t  rtmp;
-				register uint8_t* ryy_j;
-				register uint8_t  rll_i;
-				rtmp  = yy[1];
-				yy[1] = yy[0];
-				ryy_j = &(yy[1]);
-				rll_i = ll_i;
-				while (rll_i != rtmp) {
-					register uint8_t rtmp2;
-					ryy_j++;
-					rtmp2  = rtmp;
-					rtmp   = *ryy_j;
-					*ryy_j = rtmp2;
-				}
-				yy[0] = rtmp;
-				j = ryy_j - &(yy[0]);
-				mtfv[wr] = j+1;
+				unsigned run = zPend & 1;
+				mtfv[wr] = run;
 				wr++;
-				s->mtfFreq[j+1]++;
+				s->mtfFreq[run]++;
+#endif
+				zPend -= 2;
+				if (zPend < 0)
+					break;
+				zPend = (unsigned)zPend / 2;
+				/* bbox: unsigned div is easier */
 			}
+			if (i < 0) /* came via "goto process_zPend"? exit */
+				goto end;
+			zPend = 0;
+		}
+		{
+			register uint8_t  rtmp;
+			register uint8_t* ryy_j;
+			register uint8_t  rll_i;
+			rtmp  = yy[1];
+			yy[1] = yy[0];
+			ryy_j = &(yy[1]);
+			rll_i = ll_i;
+			while (rll_i != rtmp) {
+				register uint8_t rtmp2;
+				ryy_j++;
+				rtmp2  = rtmp;
+				rtmp   = *ryy_j;
+				*ryy_j = rtmp2;
+			}
+			yy[0] = rtmp;
+			j = ryy_j - &(yy[0]);
+			mtfv[wr] = j+1;
+			wr++;
+			s->mtfFreq[j+1]++;
 		}
 	}
 
