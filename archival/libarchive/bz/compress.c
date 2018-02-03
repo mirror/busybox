@@ -260,8 +260,11 @@ void generateMTFValues(EState* s)
 static NOINLINE
 void sendMTFValues(EState* s)
 {
-	int32_t v, t, i, j, gs, ge, bt, bc, iter;
-	int32_t nSelectors, alphaSize, minLen, maxLen, selCtr;
+	int32_t t, i;
+	unsigned iter;
+	unsigned gs;
+	int32_t alphaSize;
+	unsigned nSelectors, selCtr;
 	int32_t nGroups;
 
 	/*
@@ -277,15 +280,17 @@ void sendMTFValues(EState* s)
 #define rfreq    sendMTFValues__rfreq
 #define len_pack sendMTFValues__len_pack
 
-	uint16_t cost[BZ_N_GROUPS];
+	unsigned /*uint16_t*/ cost[BZ_N_GROUPS];
 	int32_t  fave[BZ_N_GROUPS];
 
 	uint16_t* mtfv = s->mtfv;
 
 	alphaSize = s->nInUse + 2;
-	for (t = 0; t < BZ_N_GROUPS; t++)
+	for (t = 0; t < BZ_N_GROUPS; t++) {
+		unsigned v;
 		for (v = 0; v < alphaSize; v++)
 			s->len[t][v] = BZ_GREATER_ICOST;
+	}
 
 	/*--- Decide how many coding tables to use ---*/
 	AssertH(s->nMTF > 0, 3001);
@@ -302,16 +307,20 @@ void sendMTFValues(EState* s)
 
 	/*--- Generate an initial set of coding tables ---*/
 	{
-		int32_t nPart, remF, tFreq, aFreq;
+		unsigned nPart, remF;
 
 		nPart = nGroups;
 		remF  = s->nMTF;
 		gs = 0;
 		while (nPart > 0) {
+			unsigned v;
+			unsigned ge;
+			unsigned tFreq, aFreq;
+
 			tFreq = remF / nPart;
-			ge = gs - 1;
+			ge = gs - 1; //underflows on 1st iteration
 			aFreq = 0;
-			while (aFreq < tFreq && ge < alphaSize-1) {
+			while (aFreq < tFreq && (int)ge < (int)alphaSize-1) {
 				ge++;
 				aFreq += s->mtfFreq[ge];
 			}
@@ -343,9 +352,11 @@ void sendMTFValues(EState* s)
 		for (t = 0; t < nGroups; t++)
 			fave[t] = 0;
 
-		for (t = 0; t < nGroups; t++)
+		for (t = 0; t < nGroups; t++) {
+			unsigned v;
 			for (v = 0; v < alphaSize; v++)
 				s->rfreq[t][v] = 0;
+		}
 
 #if CONFIG_BZIP2_FAST >= 5
 		/*
@@ -353,6 +364,7 @@ void sendMTFValues(EState* s)
 		 * the common case (nGroups == 6).
 		 */
 		if (nGroups == 6) {
+			unsigned v;
 			for (v = 0; v < alphaSize; v++) {
 				s->len_pack[v][0] = (s->len[1][v] << 16) | s->len[0][v];
 				s->len_pack[v][1] = (s->len[3][v] << 16) | s->len[2][v];
@@ -363,6 +375,9 @@ void sendMTFValues(EState* s)
 		nSelectors = 0;
 		gs = 0;
 		while (1) {
+			unsigned ge;
+			unsigned bt, bc;
+
 			/*--- Set group start & end marks. --*/
 			if (gs >= s->nMTF)
 				break;
@@ -406,7 +421,7 @@ void sendMTFValues(EState* s)
 			{
 				/*--- slow version which correctly handles all situations ---*/
 				for (i = gs; i <= ge; i++) {
-					uint16_t icv = mtfv[i];
+					unsigned /*uint16_t*/ icv = mtfv[i];
 					for (t = 0; t < nGroups; t++)
 						cost[t] += s->len[t][icv];
 				}
@@ -480,6 +495,7 @@ void sendMTFValues(EState* s)
 		for (i = 0; i < nGroups; i++)
 			pos[i] = i;
 		for (i = 0; i < nSelectors; i++) {
+			unsigned j;
 			ll_i = s->selector[i];
 			j = 0;
 			tmp = pos[j];
@@ -496,8 +512,8 @@ void sendMTFValues(EState* s)
 
 	/*--- Assign actual codes for the tables. --*/
 	for (t = 0; t < nGroups; t++) {
-		minLen = 32;
-		maxLen = 0;
+		unsigned minLen = 32; //todo: s->len[t][0];
+		unsigned maxLen = 0;  //todo: s->len[t][0];
 		for (i = 0; i < alphaSize; i++) {
 			if (s->len[t][i] > maxLen) maxLen = s->len[t][i];
 			if (s->len[t][i] < minLen) minLen = s->len[t][i];
@@ -531,6 +547,7 @@ void sendMTFValues(EState* s)
 		for (i = 0; i < 16; i++) {
 			if (inUse16 < 0) {
 				unsigned v16 = 0;
+				unsigned j;
 				for (j = 0; j < 16; j++)
 					v16 = v16*2 + s->inUse[i * 16 + j];
 				bsW16(s, v16);
@@ -543,6 +560,7 @@ void sendMTFValues(EState* s)
 	bsW(s, 3, nGroups);
 	bsW(s, 15, nSelectors);
 	for (i = 0; i < nSelectors; i++) {
+		unsigned j;
 		for (j = 0; j < s->selectorMtf[i]; j++)
 			bsW(s, 1, 1);
 		bsW(s, 1, 0);
@@ -550,7 +568,7 @@ void sendMTFValues(EState* s)
 
 	/*--- Now the coding tables. ---*/
 	for (t = 0; t < nGroups; t++) {
-		int32_t curr = s->len[t][0];
+		unsigned curr = s->len[t][0];
 		bsW(s, 5, curr);
 		for (i = 0; i < alphaSize; i++) {
 			while (curr < s->len[t][i]) { bsW(s, 2, 2); curr++; /* 10 */ };
@@ -563,6 +581,8 @@ void sendMTFValues(EState* s)
 	selCtr = 0;
 	gs = 0;
 	while (1) {
+		unsigned ge;
+
 		if (gs >= s->nMTF)
 			break;
 		ge = gs + BZ_G_SIZE - 1;
