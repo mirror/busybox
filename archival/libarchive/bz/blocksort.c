@@ -833,13 +833,13 @@ void mainSort(EState* state,
 			/*h = h / 3;*/
 			h = (h * 171) >> 9; /* bbox: fast h/3 */
 			for (i = h; i <= 255; i++) {
-				unsigned vv;
+				unsigned vv, jh;
 				vv = runningOrder[i]; /* uint8[] */
 				j = i;
-				while (BIGFREQ(runningOrder[j-h]) > BIGFREQ(vv)) {
-					runningOrder[j] = runningOrder[j-h];
-					j = j - h;
-					if (j <= (h - 1))
+				while (jh = j - h, BIGFREQ(runningOrder[jh]) > BIGFREQ(vv)) {
+					runningOrder[j] = runningOrder[jh];
+					j = jh;
+					if (j < h)
 						break;
 				}
 				runningOrder[j] = vv;
