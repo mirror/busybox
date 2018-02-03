@@ -217,7 +217,7 @@ void BZ2_hbAssignCodes(int32_t *code,
 			if (length[i] == n) {
 				code[i] = vec;
 				vec++;
-			};
+			}
 		}
 		vec <<= 1;
 	}

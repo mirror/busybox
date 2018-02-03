@@ -161,7 +161,7 @@ void fallbackQSort3(uint32_t* fmap,
 					ltLo++;
 					unLo++;
 					continue;
-				};
+				}
 				if (n > 0) break;
 				unLo++;
 			}
@@ -172,7 +172,7 @@ void fallbackQSort3(uint32_t* fmap,
 					mswap(fmap[unHi], fmap[gtHi]);
 					gtHi--; unHi--;
 					continue;
-				};
+				}
 				if (n < 0) break;
 				unHi--;
 			}
@@ -326,7 +326,7 @@ void fallbackSort(uint32_t* fmap,
 					if (cc != cc1) {
 						SET_BH(i);
 						cc = cc1;
-					};
+					}
 				}
 			}
 		}
@@ -545,7 +545,7 @@ uint8_t mmed3(uint8_t a, uint8_t b, uint8_t c)
 		t = a;
 		a = b;
 		b = t;
-	};
+	}
 	/* here b >= a */
 	if (b > c) {
 		b = c;
@@ -638,8 +638,8 @@ void mainQSort3(uint32_t* ptr,
 					ltLo++;
 					unLo++;
 					continue;
-				};
-				if (n >  0) break;
+				}
+				if (n > 0) break;
 				unLo++;
 			}
 			while (1) {
@@ -651,8 +651,8 @@ void mainQSort3(uint32_t* ptr,
 					gtHi--;
 					unHi--;
 					continue;
-				};
-				if (n <  0) break;
+				}
+				if (n < 0) break;
 				unHi--;
 			}
 			if (unLo > unHi)
@@ -1063,7 +1063,7 @@ void BZ2_blockSort(EState* s)
 		if (ptr[i] == 0) {
 			s->origPtr = i;
 			break;
-		};
+		}
 
 	AssertH(s->origPtr != -1, 1003);
 }

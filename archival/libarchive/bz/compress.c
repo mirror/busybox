@@ -162,7 +162,7 @@ void generateMTFValues(EState* s)
 {
 	uint8_t yy[256];
 	int32_t i, j;
-	int32_t zPend;
+	int zPend;
 	int32_t wr;
 	int32_t EOB;
 
@@ -217,6 +217,7 @@ void generateMTFValues(EState* s)
 			if (zPend > 0) {
 				zPend--;
 				while (1) {
+#if 0
 					if (zPend & 1) {
 						mtfv[wr] = BZ_RUNB; wr++;
 						s->mtfFreq[BZ_RUNB]++;
@@ -224,10 +225,18 @@ void generateMTFValues(EState* s)
 						mtfv[wr] = BZ_RUNA; wr++;
 						s->mtfFreq[BZ_RUNA]++;
 					}
-					if (zPend < 2) break;
-					zPend = (uint32_t)(zPend - 2) / 2;
+#else /* same as above, since BZ_RUNA is 0 and BZ_RUNB is 1 */
+					unsigned run = zPend & 1;
+					mtfv[wr] = run;
+					wr++;
+					s->mtfFreq[run]++;
+#endif
+					zPend -= 2;
+					if (zPend < 0)
+						break;
+					zPend = (unsigned)zPend / 2;
 					/* bbox: unsigned div is easier */
-				};
+				}
 				zPend = 0;
 			}
 			{
@@ -244,7 +253,7 @@ void generateMTFValues(EState* s)
 					rtmp2  = rtmp;
 					rtmp   = *ryy_j;
 					*ryy_j = rtmp2;
-				};
+				}
 				yy[0] = rtmp;
 				j = ryy_j - &(yy[0]);
 				mtfv[wr] = j+1;
@@ -257,6 +266,7 @@ void generateMTFValues(EState* s)
 	if (zPend > 0) {
 		zPend--;
 		while (1) {
+#if 0
 			if (zPend & 1) {
 				mtfv[wr] = BZ_RUNB;
 				wr++;
@@ -266,12 +276,18 @@ void generateMTFValues(EState* s)
 				wr++;
 				s->mtfFreq[BZ_RUNA]++;
 			}
-			if (zPend < 2)
+#else /* same as above, since BZ_RUNA is 0 and BZ_RUNB is 1 */
+			unsigned run = zPend & 1;
+			mtfv[wr] = run;
+			wr++;
+			s->mtfFreq[run]++;
+#endif
+			zPend -= 2;
+			if (zPend < 0)
 				break;
-			zPend = (uint32_t)(zPend - 2) / 2;
+			zPend = (unsigned)zPend / 2;
 			/* bbox: unsigned div is easier */
-		};
-		zPend = 0;
+		}
 	}
 
 	mtfv[wr] = EOB;
@@ -528,11 +544,11 @@ void sendMTFValues(EState* s)
 				tmp2 = tmp;
 				tmp = pos[j];
 				pos[j] = tmp2;
-			};
+			}
 			pos[0] = tmp;
 			s->selectorMtf[i] = j;
 		}
-	};
+	}
 
 	/*--- Assign actual codes for the tables. --*/
 	for (t = 0; t < nGroups; t++) {
@@ -595,8 +611,8 @@ void sendMTFValues(EState* s)
 		unsigned curr = s->len[t][0];
 		bsW(s, 5, curr);
 		for (i = 0; i < alphaSize; i++) {
-			while (curr < s->len[t][i]) { bsW(s, 2, 2); curr++; /* 10 */ };
-			while (curr > s->len[t][i]) { bsW(s, 2, 3); curr--; /* 11 */ };
+			while (curr < s->len[t][i]) { bsW(s, 2, 2); curr++; /* 10 */ }
+			while (curr > s->len[t][i]) { bsW(s, 2, 3); curr--; /* 11 */ }
 			bsW1_0(s);
 		}
 	}
