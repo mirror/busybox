@@ -120,9 +120,11 @@ typedef struct EState {
 
 	/* mode this stream is in, and whether inputting */
 	/* or outputting data */
-	int32_t  mode;
-//both smallint?
-	int32_t  state;
+	uint8_t mode;
+	uint8_t state;
+
+	/* misc administratium */
+	uint8_t blockSize100k;
 
 	/* remembers avail_in when flush/finish requested */
 /* bbox: not needed, strm->avail_in always has the same value */
@@ -130,12 +132,11 @@ typedef struct EState {
 	/* uint32_t avail_in_expect; */
 
 	/* for doing the block sorting */
-	int32_t  origPtr;
 	uint32_t *arr1;
 	uint32_t *arr2;
 	uint32_t *ftab;
 
-	uint16_t* quadrant;
+	uint16_t *quadrant;
 	int32_t  budget;
 
 	/* aliases for arr1 and arr2 */
@@ -143,10 +144,6 @@ typedef struct EState {
 	uint8_t  *block;
 	uint16_t *mtfv;
 	uint8_t  *zbits;
-
-	/* guess what */
-	uint32_t *crc32table;
-//move down
 
 	/* run-length-encoding of the input */
 	uint32_t state_in_ch;
@@ -156,12 +153,15 @@ typedef struct EState {
 	int32_t  nblock;
 	int32_t  nblockMAX;
 	//int32_t  numZ; // index into s->zbits[], replaced by pointer:
-	uint8_t *posZ;
-	uint8_t *state_out_pos;
+	uint8_t  *posZ;
+	uint8_t  *state_out_pos;
 
 	/* the buffer for bit stream creation */
 	uint32_t bsBuff;
 	int32_t  bsLive;
+
+	/* guess what */
+	uint32_t *crc32table;
 
 	/* block and combined CRCs */
 	uint32_t blockCRC;
@@ -169,8 +169,6 @@ typedef struct EState {
 
 	/* misc administratium */
 	int32_t  blockNo;
-	int32_t  blockSize100k;
-//smallint?
 
 	/* stuff for coding the MTF values */
 	int32_t  nMTF;
@@ -206,7 +204,7 @@ typedef struct EState {
 
 /*-- compression. --*/
 
-static void
+static int32_t
 BZ2_blockSort(EState*);
 
 static void

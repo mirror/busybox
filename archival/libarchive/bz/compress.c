@@ -665,6 +665,8 @@ void sendMTFValues(EState* s)
 static
 void BZ2_compressBlock(EState* s, int is_last_block)
 {
+	int32_t origPtr = origPtr;
+
 	if (s->nblock > 0) {
 		BZ_FINALISE_CRC(s->blockCRC);
 		s->combinedCRC = (s->combinedCRC << 1) | (s->combinedCRC >> 31);
@@ -672,7 +674,7 @@ void BZ2_compressBlock(EState* s, int is_last_block)
 		if (s->blockNo > 1)
 			s->posZ = s->zbits; // was: s->numZ = 0;
 
-		BZ2_blockSort(s);
+		origPtr = BZ2_blockSort(s);
 	}
 
 	s->zbits = &((uint8_t*)s->arr2)[s->nblock];
@@ -713,7 +715,7 @@ void BZ2_compressBlock(EState* s, int is_last_block)
 		 */
 		bsW1_0(s);
 
-		bsW(s, 24, s->origPtr);
+		bsW(s, 24, origPtr);
 		generateMTFValues(s);
 		sendMTFValues(s);
 	}

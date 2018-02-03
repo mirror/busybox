@@ -1022,16 +1022,15 @@ void mainSort(EState* state)
  *	arr1[0 .. nblock-1] holds sorted order
  */
 static NOINLINE
-void BZ2_blockSort(EState* state)
+int32_t BZ2_blockSort(EState* state)
 {
 	/* In original bzip2 1.0.4, it's a parameter, but 30
 	 * (which was the default) should work ok. */
 	enum { wfact = 30 };
 	unsigned i;
+	int32_t origPtr = origPtr;
 
-	if (state->nblock < 10000) {
-		fallbackSort(state);
-	} else {
+	if (state->nblock >= 10000) {
 		/* Calculate the location for quadrant, remembering to get
 		 * the alignment right.  Assumes that &(block[0]) is at least
 		 * 2-byte aligned -- this should be ok since block is really
@@ -1050,24 +1049,25 @@ void BZ2_blockSort(EState* state)
 		 * of whether or not we use the main sort or fallback sort.
 		 */
 		state->budget = state->nblock * ((wfact-1) / 3);
-
 		mainSort(state);
-		if (state->budget < 0) {
-			fallbackSort(state);
-		}
+		if (state->budget >= 0)
+			goto good;
 	}
+	fallbackSort(state);
+ good:
 
 #if BZ_LIGHT_DEBUG
-	state->origPtr = -1;
+	origPtr = -1;
 #endif
 	for (i = 0; i < state->nblock; i++) {
 		if (state->ptr[i] == 0) {
-			state->origPtr = i;
+			origPtr = i;
 			break;
 		}
 	}
 
-	AssertH(state->origPtr != -1, 1003);
+	AssertH(origPtr != -1, 1003);
+	return origPtr;
 }
 
 
