@@ -729,10 +729,8 @@ void mainSort(EState* state,
 		int32_t   nblock,
 		int32_t*  budget)
 {
-	int32_t  i, j, k, ss, sb;
-	uint8_t  c1;
+	int32_t  i, j;
 	int32_t  numQSorted;
-	uint16_t s;
 	Bool     bigDone[256];
 	/* bbox: moved to EState to save stack
 	int32_t  runningOrder[256];
@@ -785,33 +783,36 @@ void mainSort(EState* state,
 		ftab[i] = j;
 	}
 
-	s = block[0] << 8;
-	i = nblock - 1;
+	{
+		unsigned s;
+		s = block[0] << 8;
+		i = nblock - 1;
 #if CONFIG_BZIP2_FAST >= 2
-	for (; i >= 3; i -= 4) {
-		s = (s >> 8) | (block[i] << 8);
-		j = ftab[s] - 1;
-		ftab[s] = j;
-		ptr[j] = i;
-		s = (s >> 8) | (block[i-1] << 8);
-		j = ftab[s] - 1;
-		ftab[s] = j;
-		ptr[j] = i-1;
-		s = (s >> 8) | (block[i-2] << 8);
-		j = ftab[s] - 1;
-		ftab[s] = j;
-		ptr[j] = i-2;
-		s = (s >> 8) | (block[i-3] << 8);
-		j = ftab[s] - 1;
-		ftab[s] = j;
-		ptr[j] = i-3;
-	}
+		for (; i >= 3; i -= 4) {
+			s = (s >> 8) | (block[i] << 8);
+			j = ftab[s] - 1;
+			ftab[s] = j;
+			ptr[j] = i;
+			s = (s >> 8) | (block[i-1] << 8);
+			j = ftab[s] - 1;
+			ftab[s] = j;
+			ptr[j] = i-1;
+			s = (s >> 8) | (block[i-2] << 8);
+			j = ftab[s] - 1;
+			ftab[s] = j;
+			ptr[j] = i-2;
+			s = (s >> 8) | (block[i-3] << 8);
+			j = ftab[s] - 1;
+			ftab[s] = j;
+			ptr[j] = i-3;
+		}
 #endif
-	for (; i >= 0; i--) {
-		s = (s >> 8) | (block[i] << 8);
-		j = ftab[s] - 1;
-		ftab[s] = j;
-		ptr[j] = i;
+		for (; i >= 0; i--) {
+			s = (s >> 8) | (block[i] << 8);
+			j = ftab[s] - 1;
+			ftab[s] = j;
+			ptr[j] = i;
+		}
 	}
 
 	/*
@@ -827,7 +828,7 @@ void mainSort(EState* state,
 	{
 		/* bbox: was: int32_t h = 1; */
 		/* do h = 3 * h + 1; while (h <= 256); */
-		uint32_t h = 364;
+		unsigned h = 364;
 
 		do {
 			/*h = h / 3;*/
@@ -855,6 +856,7 @@ void mainSort(EState* state,
 	numQSorted = 0;
 
 	for (i = 0; /*i <= 255*/; i++) {
+		int32_t ss;
 
 		/*
 		 * Process big buckets, starting with the least full.
@@ -874,6 +876,7 @@ void mainSort(EState* state,
 		 */
 		for (j = 0; j <= 255; j++) {
 			if (j != ss) {
+				int32_t sb;
 				sb = (ss << 8) + j;
 				if (!(ftab[sb] & SETMASK)) {
 					int32_t lo =  ftab[sb]   & CLEARMASK;
@@ -906,6 +909,8 @@ void mainSort(EState* state,
 				copyEnd  [j] = (ftab[(j << 8) + ss + 1] & CLEARMASK) - 1;
 			}
 			for (j = ftab[ss << 8] & CLEARMASK; j < copyStart[ss]; j++) {
+				unsigned c1;
+				int32_t k;
 				k = ptr[j] - 1;
 				if (k < 0)
 					k += nblock;
@@ -914,6 +919,8 @@ void mainSort(EState* state,
 					ptr[copyStart[c1]++] = k;
 			}
 			for (j = (ftab[(ss+1) << 8] & CLEARMASK) - 1; j > copyEnd[ss]; j--) {
+				unsigned c1;
+				int32_t k;
 				k = ptr[j]-1;
 				if (k < 0)
 					k += nblock;
