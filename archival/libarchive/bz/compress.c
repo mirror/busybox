@@ -289,11 +289,16 @@ void sendMTFValues(EState* s)
 
 	/*--- Decide how many coding tables to use ---*/
 	AssertH(s->nMTF > 0, 3001);
-	if (s->nMTF < 200)  nGroups = 2; else
-	if (s->nMTF < 600)  nGroups = 3; else
-	if (s->nMTF < 1200) nGroups = 4; else
-	if (s->nMTF < 2400) nGroups = 5; else
-	nGroups = 6;
+	// 1..199 = 2
+	// 200..599 = 3
+	// 600..1199 = 4
+	// 1200..2399 = 5
+	// else 6
+	nGroups = 2;
+	nGroups += (s->nMTF >= 200);
+	nGroups += (s->nMTF >= 600);
+	nGroups += (s->nMTF >= 1200);
+	nGroups += (s->nMTF >= 2400);
 
 	/*--- Generate an initial set of coding tables ---*/
 	{
