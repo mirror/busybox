@@ -55,8 +55,9 @@ void prepare_new_block(EState* s)
 {
 	int i;
 	s->nblock = 0;
-	s->numZ = 0;
-	s->state_out_pos = 0;
+	//indexes inot s->zbits[], initialzation moved to init of s->zbits
+	//s->posZ = s->zbits; // was: s->numZ = 0;
+	//s->state_out_pos = s->zbits;
 	BZ_INITIALISE_CRC(s->blockCRC);
 	/* inlined memset would be nice to have here */
 	for (i = 0; i < 256; i++)
@@ -237,11 +238,10 @@ void /*Bool*/ copy_output_until_stop(EState* s)
 		if (s->strm->avail_out == 0) break;
 
 		/*-- block done? --*/
-		if (s->state_out_pos >= s->numZ) break;
+		if (s->state_out_pos >= s->posZ) break;
 
 		/*progress_out = True;*/
-		*(s->strm->next_out) = s->zbits[s->state_out_pos];
-		s->state_out_pos++;
+		*(s->strm->next_out) = *s->state_out_pos++;
 		s->strm->avail_out--;
 		s->strm->next_out++;
 		s->strm->total_out++;
@@ -261,7 +261,7 @@ void /*Bool*/ handle_compress(bz_stream *strm)
 	while (1) {
 		if (s->state == BZ_S_OUTPUT) {
 			/*progress_out |=*/ copy_output_until_stop(s);
-			if (s->state_out_pos < s->numZ) break;
+			if (s->state_out_pos < s->posZ) break;
 			if (s->mode == BZ_M_FINISHING
 			//# && s->avail_in_expect == 0
 			 && s->strm->avail_in == 0
@@ -336,7 +336,7 @@ int BZ2_bzCompress(bz_stream *strm, int action)
 			/*if (s->avail_in_expect != s->strm->avail_in)
 				return BZ_SEQUENCE_ERROR;*/
 			/*progress =*/ handle_compress(strm);
-			if (s->avail_in_expect > 0 || !isempty_RL(s) || s->state_out_pos < s->numZ)
+			if (s->avail_in_expect > 0 || !isempty_RL(s) || s->state_out_pos < s->posZ)
 				return BZ_FLUSH_OK;
 			s->mode = BZ_M_RUNNING;
 			return BZ_RUN_OK;
@@ -349,9 +349,9 @@ int BZ2_bzCompress(bz_stream *strm, int action)
 				return BZ_SEQUENCE_ERROR;*/
 			/*progress =*/ handle_compress(strm);
 			/*if (!progress) return BZ_SEQUENCE_ERROR;*/
-			//#if (s->avail_in_expect > 0 || !isempty_RL(s) || s->state_out_pos < s->numZ)
+			//#if (s->avail_in_expect > 0 || !isempty_RL(s) || s->state_out_pos < s->posZ)
 			//#	return BZ_FINISH_OK;
-			if (s->strm->avail_in > 0 || !isempty_RL(s) || s->state_out_pos < s->numZ)
+			if (s->strm->avail_in > 0 || !isempty_RL(s) || s->state_out_pos < s->posZ)
 				return BZ_FINISH_OK;
 			/*s->mode = BZ_M_IDLE;*/
 			return BZ_STREAM_END;

@@ -50,8 +50,7 @@ static NOINLINE
 void bsFinishWrite(EState* s)
 {
 	while (s->bsLive > 0) {
-		s->zbits[s->numZ] = (uint8_t)(s->bsBuff >> 24);
-		s->numZ++;
+		*s->posZ++ = (uint8_t)(s->bsBuff >> 24);
 		s->bsBuff <<= 8;
 		s->bsLive -= 8;
 	}
@@ -67,8 +66,7 @@ ALWAYS_INLINE
 void bsW(EState* s, int32_t n, uint32_t v)
 {
 	while (s->bsLive >= 8) {
-		s->zbits[s->numZ] = (uint8_t)(s->bsBuff >> 24);
-		s->numZ++;
+		*s->posZ++ = (uint8_t)(s->bsBuff >> 24);
 		s->bsBuff <<= 8;
 		s->bsLive -= 8;
 	}
@@ -83,8 +81,7 @@ ALWAYS_INLINE
 void bsW16(EState* s, uint32_t v)
 {
 	while (s->bsLive >= 8) {
-		s->zbits[s->numZ] = (uint8_t)(s->bsBuff >> 24);
-		s->numZ++;
+		*s->posZ++ = (uint8_t)(s->bsBuff >> 24);
 		s->bsBuff <<= 8;
 		s->bsLive -= 8;
 	}
@@ -624,12 +621,14 @@ void BZ2_compressBlock(EState* s, int is_last_block)
 		s->combinedCRC = (s->combinedCRC << 1) | (s->combinedCRC >> 31);
 		s->combinedCRC ^= s->blockCRC;
 		if (s->blockNo > 1)
-			s->numZ = 0;
+			s->posZ = s->zbits; // was: s->numZ = 0;
 
 		BZ2_blockSort(s);
 	}
 
 	s->zbits = &((uint8_t*)s->arr2)[s->nblock];
+	s->posZ = s->zbits;
+	s->state_out_pos = s->zbits;
 
 	/*-- If this is the first block, create the stream header. --*/
 	if (s->blockNo == 1) {

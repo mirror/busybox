@@ -150,8 +150,9 @@ typedef struct EState {
 	/* input and output limits and current posns */
 	int32_t  nblock;
 	int32_t  nblockMAX;
-	int32_t  numZ;
-	int32_t  state_out_pos;
+	//int32_t  numZ; // index into s->zbits[], replaced by pointer:
+	uint8_t *posZ;
+	uint8_t *state_out_pos;
 
 	/* the buffer for bit stream creation */
 	uint32_t bsBuff;
