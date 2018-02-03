@@ -196,7 +196,6 @@ typedef struct EState {
 	int32_t  BZ2_hbMakeCodeLengths__weight[BZ_MAX_ALPHA_SIZE * 2];
 	int32_t  BZ2_hbMakeCodeLengths__parent[BZ_MAX_ALPHA_SIZE * 2];
 
-	uint8_t  mainSort__runningOrder[256];
 	int32_t  mainSort__copyStart[256];
 	int32_t  mainSort__copyEnd[256];
 } EState;

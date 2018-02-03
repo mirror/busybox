@@ -113,9 +113,8 @@ void fallbackQSort3(uint32_t* fmap,
 		int32_t   loSt,
 		int32_t   hiSt)
 {
-	int32_t unLo, unHi, ltLo, gtHi, n, m;
-	int32_t sp, lo, hi;
-	uint32_t med, r, r3;
+	int32_t sp;
+	uint32_t r;
 	int32_t stackLo[FALLBACK_QSORT_STACK_SIZE];
 	int32_t stackHi[FALLBACK_QSORT_STACK_SIZE];
 
@@ -125,6 +124,11 @@ void fallbackQSort3(uint32_t* fmap,
 	fpush(loSt, hiSt);
 
 	while (sp > 0) {
+		int32_t unLo, unHi, ltLo, gtHi, n, m;
+		int32_t lo, hi;
+		uint32_t med;
+		uint32_t r3;
+
 		AssertH(sp < FALLBACK_QSORT_STACK_SIZE - 1, 1004);
 
 		fpop(lo, hi);
@@ -730,12 +734,11 @@ void mainSort(EState* state)
 {
 	int32_t  i, j;
 	Bool     bigDone[256];
-	/* bbox: moved to EState to save stack
 	uint8_t  runningOrder[256];
+	/* bbox: moved to EState to save stack
 	int32_t  copyStart[256];
 	int32_t  copyEnd  [256];
 	*/
-#define runningOrder (state->mainSort__runningOrder)
 #define copyStart    (state->mainSort__copyStart)
 #define copyEnd      (state->mainSort__copyEnd)
 
