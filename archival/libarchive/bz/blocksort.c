@@ -732,7 +732,7 @@ void mainSort(EState* state,
 	int32_t  i, j;
 	Bool     bigDone[256];
 	/* bbox: moved to EState to save stack
-	int32_t  runningOrder[256];
+	uint8_t  runningOrder[256];
 	int32_t  copyStart[256];
 	int32_t  copyEnd  [256];
 	*/
@@ -833,16 +833,15 @@ void mainSort(EState* state,
 			/*h = h / 3;*/
 			h = (h * 171) >> 9; /* bbox: fast h/3 */
 			for (i = h; i <= 255; i++) {
-				int32_t vv;
-				vv = runningOrder[i];
+				unsigned vv;
+				vv = runningOrder[i]; /* uint8[] */
 				j = i;
 				while (BIGFREQ(runningOrder[j-h]) > BIGFREQ(vv)) {
 					runningOrder[j] = runningOrder[j-h];
 					j = j - h;
 					if (j <= (h - 1))
-						goto zero;
+						break;
 				}
- zero:
 				runningOrder[j] = vv;
 			}
 		} while (h != 1);
