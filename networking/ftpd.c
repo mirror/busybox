@@ -262,7 +262,7 @@ cmdio_write(uint32_t status_str, const char *str)
 static void
 cmdio_write_ok(unsigned status)
 {
-	*(uint32_t *) G.msg_ok = status;
+	*(bb__aliased_uint32_t *) G.msg_ok = status;
 	xwrite(STDOUT_FILENO, G.msg_ok, sizeof("NNN " MSG_OK) - 1);
 	if (G.verbose > 1)
 		verbose_log(G.msg_ok);
@@ -273,7 +273,7 @@ cmdio_write_ok(unsigned status)
 static void
 cmdio_write_error(unsigned status)
 {
-	*(uint32_t *) G.msg_err = status;
+	*(bb__aliased_uint32_t *) G.msg_err = status;
 	xwrite(STDOUT_FILENO, G.msg_err, sizeof("NNN " MSG_ERR) - 1);
 	if (G.verbose > 0)
 		verbose_log(G.msg_err);
