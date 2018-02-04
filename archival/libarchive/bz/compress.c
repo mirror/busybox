@@ -158,6 +158,38 @@ void makeMaps_e(EState* s)
 
 
 /*---------------------------------------------------*/
+/*
+ * This bit of code is performance-critical.
+ * On 32bit x86, gcc-6.3.0 was observed to spill ryy_j to stack,
+ * resulting in abysmal performance (x3 slowdown).
+ * Forcing it into a separate function alleviates register pressure,
+ * and spillage no longer happens.
+ * Other versions of gcc do not exhibit this problem, but out-of-line code
+ * seems to be helping them too (code is both smaller and faster).
+ * Therefore NOINLINE is enabled for the entire 32bit x86 arch for now,
+ * without a check for gcc version.
+ */
+static
+#if defined __i386__
+NOINLINE
+#endif
+int inner_loop(uint8_t *yy, uint8_t ll_i)
+{
+	register uint8_t  rtmp;
+	register uint8_t* ryy_j;
+	rtmp  = yy[1];
+	yy[1] = yy[0];
+	ryy_j = &(yy[1]);
+	while (ll_i != rtmp) {
+		register uint8_t rtmp2;
+		ryy_j++;
+		rtmp2  = rtmp;
+		rtmp   = *ryy_j;
+		*ryy_j = rtmp2;
+	}
+	yy[0] = rtmp;
+	return ryy_j - &(yy[0]);
+}
 static NOINLINE
 void generateMTFValues(EState* s)
 {
@@ -165,7 +197,6 @@ void generateMTFValues(EState* s)
 	int i;
 	int zPend;
 	int32_t wr;
-	int32_t EOB;
 
 	/*
 	 * After sorting (eg, here),
@@ -189,15 +220,12 @@ void generateMTFValues(EState* s)
 	 * compressBlock().
 	 */
 	uint32_t* ptr   = s->ptr;
-	uint8_t*  block = s->block;
-	uint16_t* mtfv  = s->mtfv;
 
 	makeMaps_e(s);
-	EOB = s->nInUse+1;
 
 	wr = 0;
 	zPend = 0;
-	for (i = 0; i <= EOB; i++)
+	for (i = 0; i <= s->nInUse+1; i++)
 		s->mtfFreq[i] = 0;
 
 	for (i = 0; i < s->nInUse; i++)
@@ -211,7 +239,7 @@ void generateMTFValues(EState* s)
 		j = ptr[i] - 1;
 		if (j < 0)
 			j += s->nblock;
-		ll_i = s->unseqToSeq[block[j]];
+		ll_i = s->unseqToSeq[s->block[j]];
 		AssertD(ll_i < s->nInUse, "generateMTFValues(2a)");
 
 		if (yy[0] == ll_i) {
@@ -225,15 +253,15 @@ void generateMTFValues(EState* s)
 			while (1) {
 #if 0
 				if (zPend & 1) {
-					mtfv[wr] = BZ_RUNB; wr++;
+					s->mtfv[wr] = BZ_RUNB; wr++;
 					s->mtfFreq[BZ_RUNB]++;
 				} else {
-					mtfv[wr] = BZ_RUNA; wr++;
+					s->mtfv[wr] = BZ_RUNA; wr++;
 					s->mtfFreq[BZ_RUNA]++;
 				}
 #else /* same as above, since BZ_RUNA is 0 and BZ_RUNB is 1 */
 				unsigned run = zPend & 1;
-				mtfv[wr] = run;
+				s->mtfv[wr] = run;
 				wr++;
 				s->mtfFreq[run]++;
 #endif
@@ -247,36 +275,19 @@ void generateMTFValues(EState* s)
 				goto end;
 			zPend = 0;
 		}
-		{
-			register uint8_t  rtmp;
-			register uint8_t* ryy_j;
-			register uint8_t  rll_i;
-			rtmp  = yy[1];
-			yy[1] = yy[0];
-			ryy_j = &(yy[1]);
-			rll_i = ll_i;
-			while (rll_i != rtmp) {
-				register uint8_t rtmp2;
-				ryy_j++;
-				rtmp2  = rtmp;
-				rtmp   = *ryy_j;
-				*ryy_j = rtmp2;
-			}
-			yy[0] = rtmp;
-			j = ryy_j - &(yy[0]);
-			mtfv[wr] = j+1;
-			wr++;
-			s->mtfFreq[j+1]++;
-		}
+		j = inner_loop(yy, ll_i);
+		s->mtfv[wr] = j+1;
+		wr++;
+		s->mtfFreq[j+1]++;
 	}
 
 	i = -1;
 	if (zPend > 0)
 		goto process_zPend; /* "process it and come back here" */
  end:
-	mtfv[wr] = EOB;
+	s->mtfv[wr] = s->nInUse+1;
 	wr++;
-	s->mtfFreq[EOB]++;
+	s->mtfFreq[s->nInUse+1]++;
 
 	s->nMTF = wr;
 }
