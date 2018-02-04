@@ -174,24 +174,25 @@ For example, vsftp happily answers
 
 TODO2: need to stop ignoring IP address in PASV response.
 */
+	//if (ftpcmd("EPSV", NULL) != 229) {
+		if (ftpcmd("PASV", NULL) != 227) {
+			ftp_die("PASV");
+		}
 
-	if (ftpcmd("PASV", NULL) != 227) {
-		ftp_die("PASV");
-	}
+		/* Response is "NNN garbageN1,N2,N3,N4,P1,P2[)garbage]
+		 * Server's IP is N1.N2.N3.N4 (we ignore it)
+		 * Server's port for data connection is P1*256+P2 */
+		buf_ptr = strrchr(buf, ')');
+		if (buf_ptr) *buf_ptr = '\0';
 
-	/* Response is "NNN garbageN1,N2,N3,N4,P1,P2[)garbage]
-	 * Server's IP is N1.N2.N3.N4 (we ignore it)
-	 * Server's port for data connection is P1*256+P2 */
-	buf_ptr = strrchr(buf, ')');
-	if (buf_ptr) *buf_ptr = '\0';
+		buf_ptr = strrchr(buf, ',');
+		*buf_ptr = '\0';
+		port_num = xatoul_range(buf_ptr + 1, 0, 255);
 
-	buf_ptr = strrchr(buf, ',');
-	*buf_ptr = '\0';
-	port_num = xatoul_range(buf_ptr + 1, 0, 255);
-
-	buf_ptr = strrchr(buf, ',');
-	*buf_ptr = '\0';
-	port_num += xatoul_range(buf_ptr + 1, 0, 255) * 256;
+		buf_ptr = strrchr(buf, ',');
+		*buf_ptr = '\0';
+		port_num += xatoul_range(buf_ptr + 1, 0, 255) * 256;
+	//}
 
 	set_nport(&lsa->u.sa, htons(port_num));
 	return xconnect_stream(lsa);
