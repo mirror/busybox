@@ -92,6 +92,7 @@ int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 			}
 		}
 
+		//bb_error_msg("mkdir '%s'", path);
 		if (mkdir(path, 0777) < 0) {
 			/* If we failed for any other reason than the directory
 			 * already exists, output a diagnostic and return -1 */
@@ -118,13 +119,16 @@ int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 			/* Done.  If necessary, update perms on the newly
 			 * created directory.  Failure to update here _is_
 			 * an error. */
-			if ((mode != -1) && (chmod(path, mode) < 0)) {
-				fail_msg = "set permissions of";
-				if (flags & FILEUTILS_IGNORE_CHMOD_ERR) {
-					flags = 0;
-					goto print_err;
+			if (mode != -1) {
+				//bb_error_msg("chmod 0%03lo mkdir '%s'", mode, path);
+				if (chmod(path, mode) < 0)) {
+					fail_msg = "set permissions of";
+					if (flags & FILEUTILS_IGNORE_CHMOD_ERR) {
+						flags = 0;
+						goto print_err;
+					}
+					break;
 				}
-				break;
 			}
 			goto ret0;
 		}

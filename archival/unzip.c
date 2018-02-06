@@ -336,7 +336,9 @@ static void unzip_create_leading_dirs(const char *fn)
 {
 	/* Create all leading directories */
 	char *name = xstrdup(fn);
-	if (bb_make_directory(dirname(name), 0777, FILEUTILS_RECUR)) {
+
+	/* mode of -1: set mode according to umask */
+	if (bb_make_directory(dirname(name), -1, FILEUTILS_RECUR)) {
 		xfunc_die(); /* bb_make_directory is noisy */
 	}
 	free(name);
