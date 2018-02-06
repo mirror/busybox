@@ -787,6 +787,7 @@ ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
 		socklen_t sa_size) FAST_FUNC;
 
 uint16_t inet_cksum(uint16_t *addr, int len) FAST_FUNC;
+int parse_pasv_epsv(char *buf) FAST_FUNC;
 
 /* 0 if argv[0] is NULL: */
 unsigned string_array_len(char **argv) FAST_FUNC;

@@ -152,57 +152,16 @@ static void ftp_login(void)
 
 static int xconnect_ftpdata(void)
 {
-	char *buf_ptr;
-	unsigned port_num;
+	int port_num;
 
-/*
-PASV command will not work for IPv6. RFC2428 describes
-IPv6-capable "extended PASV" - EPSV.
-
-"EPSV [protocol]" asks server to bind to and listen on a data port
-in specified protocol. Protocol is 1 for IPv4, 2 for IPv6.
-If not specified, defaults to "same as used for control connection".
-If server understood you, it should answer "229 <some text>(|||port|)"
-where "|" are literal pipe chars and "port" is ASCII decimal port#.
-
-There is also an IPv6-capable replacement for PORT (EPRT),
-but we don't need that.
-
-NB: PASV may still work for some servers even over IPv6.
-For example, vsftp happily answers
-"227 Entering Passive Mode (0,0,0,0,n,n)" and proceeds as usual.
-*/
-	if (!ENABLE_FEATURE_IPV6
-	 || ftpcmd("EPSV", NULL) != 229
-	) {
-/* maybe also go straight to PAST if lsa->u.sa.sa_family == AF_INET? */
-		if (ftpcmd("PASV", NULL) != 227) {
-			ftp_die("PASV");
-		}
-
-		/* Response is "NNN garbageN1,N2,N3,N4,P1,P2[)garbage]"
-		 * Server's IP is N1.N2.N3.N4 (we ignore it)
-		 * Server's port for data connection is P1*256+P2 */
-		buf_ptr = strrchr(buf, ')');
-		if (buf_ptr) *buf_ptr = '\0';
-
-		buf_ptr = strrchr(buf, ',');
-		*buf_ptr = '\0';
-		port_num = xatoul_range(buf_ptr + 1, 0, 255);
-
-		buf_ptr = strrchr(buf, ',');
-		*buf_ptr = '\0';
-		port_num += xatoul_range(buf_ptr + 1, 0, 255) * 256;
-	} else {
-		/* Response is "NNN garbage(|||P1|)"
-		 * Server's port for data connection is P1 */
-		buf_ptr = strrchr(buf, '|');
-		if (buf_ptr) *buf_ptr = '\0';
-
-		buf_ptr = strrchr(buf, '|');
-		*buf_ptr = '\0';
-		port_num = xatoul_range(buf_ptr + 1, 0, 65535);
+	if (ENABLE_FEATURE_IPV6 && ftpcmd("EPSV", NULL) == 229) {
+		/* good */
+	} else if (ftpcmd("PASV", NULL) != 227) {
+		ftp_die("PASV");
 	}
+	port_num = parse_pasv_epsv(buf);
+	if (port_num < 0)
+		ftp_die("PASV");
 
 	set_nport(&lsa->u.sa, htons(port_num));
 	return xconnect_stream(lsa);

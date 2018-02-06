@@ -791,22 +791,17 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 	/*
 	 * Entering passive mode
 	 */
+	if (ENABLE_FEATURE_IPV6 && ftpcmd("EPSV", NULL, sfp) == 229) {
+		/* good */
+	} else
 	if (ftpcmd("PASV", NULL, sfp) != 227) {
  pasv_error:
 		bb_error_msg_and_die("bad response to %s: %s", "PASV", sanitize_string(G.wget_buf));
 	}
-	// Response is "227 garbageN1,N2,N3,N4,P1,P2[)garbage]
-	// Server's IP is N1.N2.N3.N4 (we ignore it)
-	// Server's port for data connection is P1*256+P2
-	str = strrchr(G.wget_buf, ')');
-	if (str) str[0] = '\0';
-	str = strrchr(G.wget_buf, ',');
-	if (!str) goto pasv_error;
-	port = xatou_range(str+1, 0, 255);
-	*str = '\0';
-	str = strrchr(G.wget_buf, ',');
-	if (!str) goto pasv_error;
-	port += xatou_range(str+1, 0, 255) * 256;
+	port = parse_pasv_epsv(G.wget_buf);
+	if (port < 0)
+		goto pasv_error;
+
 	set_nport(&lsa->u.sa, htons(port));
 
 	*dfpp = open_socket(lsa);
