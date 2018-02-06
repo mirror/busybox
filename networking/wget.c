@@ -48,6 +48,7 @@
 //config:
 //config:config FEATURE_WGET_HTTPS
 //config:	bool "Support HTTPS using internal TLS code"
+//it also enables FTPS support, but it's not well tested yet
 //config:	default y
 //config:	depends on WGET
 //config:	select TLS
@@ -176,6 +177,9 @@ struct host_info {
 static const char P_FTP[] ALIGN1 = "ftp";
 static const char P_HTTP[] ALIGN1 = "http";
 #if SSL_SUPPORTED
+# if ENABLE_FEATURE_WGET_HTTPS
+static const char P_FTPS[] ALIGN1 = "ftps";
+# endif
 static const char P_HTTPS[] ALIGN1 = "https";
 #endif
 
@@ -484,6 +488,12 @@ static void parse_url(const char *src_url, struct host_info *h)
 			h->port = bb_lookup_port(P_FTP, "tcp", 21);
 		} else
 #if SSL_SUPPORTED
+# if ENABLE_FEATURE_WGET_HTTPS
+		if (strcmp(url, P_FTPS) == 0) {
+			h->port = bb_lookup_port(P_FTPS, "tcp", 990);
+			h->protocol = P_FTPS;
+		} else
+# endif
 		if (strcmp(url, P_HTTPS) == 0) {
 			h->port = bb_lookup_port(P_HTTPS, "tcp", 443);
 			h->protocol = P_HTTPS;
@@ -678,7 +688,7 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 #endif
 
 #if ENABLE_FEATURE_WGET_HTTPS
-static void spawn_ssl_client(const char *host, int network_fd)
+static void spawn_ssl_client(const char *host, int network_fd, int flags)
 {
 	int sp[2];
 	int pid;
@@ -703,17 +713,19 @@ static void spawn_ssl_client(const char *host, int network_fd)
 			tls_state_t *tls = new_tls_state();
 			tls->ifd = tls->ofd = network_fd;
 			tls_handshake(tls, servername);
-			tls_run_copy_loop(tls);
+			tls_run_copy_loop(tls, flags);
 			exit(0);
 		} else {
-			char *argv[5];
+			char *argv[6];
+
 			xmove_fd(network_fd, 3);
 			argv[0] = (char*)"ssl_client";
 			argv[1] = (char*)"-s3";
 			//TODO: if (!is_ip_address(servername))...
 			argv[2] = (char*)"-n";
 			argv[3] = servername;
-			argv[4] = NULL;
+			argv[4] = (flags & TLSLOOP_EXIT_ON_LOCAL_EOF ? (char*)"-e" : NULL);
+			argv[5] = NULL;
 			BB_EXECVP(argv[0], argv);
 			bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 		}
@@ -737,6 +749,11 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 		target->user = xstrdup("anonymous:busybox@");
 
 	sfp = open_socket(lsa);
+#if ENABLE_FEATURE_WGET_HTTPS
+	if (target->protocol == P_FTPS)
+		spawn_ssl_client(target->host, fileno(sfp), TLSLOOP_EXIT_ON_LOCAL_EOF);
+#endif
+
 	if (ftpcmd(NULL, NULL, sfp) != 220)
 		bb_error_msg_and_die("%s", sanitize_string(G.wget_buf + 4));
 
@@ -793,6 +810,10 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 	set_nport(&lsa->u.sa, htons(port));
 
 	*dfpp = open_socket(lsa);
+
+	//For encrypted data, need to send "PROT P" and get "200 PROT now Private" response first
+	//Without it (or with "PROT C"), data is sent unencrypted
+	//spawn_ssl_client(target->host, fileno(*dfpp), /*flags*/ 0);
 
 	if (G.beg_range != 0) {
 		sprintf(G.wget_buf, "REST %"OFF_FMT"u", G.beg_range);
@@ -981,7 +1002,7 @@ static void download_one_url(const char *url)
 	/* Use the proxy if necessary */
 	use_proxy = (strcmp(G.proxy_flag, "off") != 0);
 	if (use_proxy) {
-		proxy = getenv(target.protocol == P_FTP ? "ftp_proxy" : "http_proxy");
+		proxy = getenv(target.protocol[0] == 'f' ? "ftp_proxy" : "http_proxy");
 //FIXME: what if protocol is https? Ok to use http_proxy?
 		use_proxy = (proxy && proxy[0]);
 		if (use_proxy)
@@ -1042,7 +1063,7 @@ static void download_one_url(const char *url)
 	/*G.content_len = 0; - redundant, got_clen = 0 is enough */
 	G.got_clen = 0;
 	G.chunked = 0;
-	if (use_proxy || target.protocol != P_FTP) {
+	if (use_proxy || target.protocol[0] != 'f' /*not ftp[s]*/) {
 		/*
 		 *  HTTP session
 		 */
@@ -1060,7 +1081,7 @@ static void download_one_url(const char *url)
 # if ENABLE_FEATURE_WGET_HTTPS
 			if (fd < 0) { /* no openssl? try internal */
 				sfp = open_socket(lsa);
-				spawn_ssl_client(server.host, fileno(sfp));
+				spawn_ssl_client(server.host, fileno(sfp), /*flags*/ 0);
 				goto socket_opened;
 			}
 # else
@@ -1077,7 +1098,7 @@ static void download_one_url(const char *url)
 		/* Only internal TLS support is configured */
 		sfp = open_socket(lsa);
 		if (target.protocol == P_HTTPS)
-			spawn_ssl_client(server.host, fileno(sfp));
+			spawn_ssl_client(server.host, fileno(sfp), /*flags*/ 0);
 #else
 		/* ssl (https) support is not configured */
 		sfp = open_socket(lsa);

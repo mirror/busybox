@@ -772,7 +772,8 @@ static inline tls_state_t *new_tls_state(void)
 	return tls;
 }
 void tls_handshake(tls_state_t *tls, const char *sni) FAST_FUNC;
-void tls_run_copy_loop(tls_state_t *tls) FAST_FUNC;
+#define TLSLOOP_EXIT_ON_LOCAL_EOF (1 << 0)
+void tls_run_copy_loop(tls_state_t *tls, unsigned flags) FAST_FUNC;
 
 
 void socket_want_pktinfo(int fd) FAST_FUNC;

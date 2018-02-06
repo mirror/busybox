@@ -1727,7 +1727,7 @@ static void tls_xwrite(tls_state_t *tls, int len)
 // openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL
 // openssl s_client -connect 127.0.0.1:4433 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL-SHA256
 
-void FAST_FUNC tls_run_copy_loop(tls_state_t *tls)
+void FAST_FUNC tls_run_copy_loop(tls_state_t *tls, unsigned flags)
 {
 	int inbuf_size;
 	const int INBUF_STEP = 4 * 1024;
@@ -1762,6 +1762,8 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls)
 				 */
 				pfds[0].fd = -1;
 				tls_free_outbuf(tls); /* mem usage optimization */
+				if (flags & TLSLOOP_EXIT_ON_LOCAL_EOF)
+					break;
 			} else {
 				if (nread == inbuf_size) {
 					/* TLS has per record overhead, if input comes fast,
