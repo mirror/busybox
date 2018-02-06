@@ -84,23 +84,23 @@
 # define dbg_der(...) ((void)0)
 #endif
 
-#define RECORD_TYPE_CHANGE_CIPHER_SPEC  20
-#define RECORD_TYPE_ALERT               21
-#define RECORD_TYPE_HANDSHAKE           22
-#define RECORD_TYPE_APPLICATION_DATA    23
+#define RECORD_TYPE_CHANGE_CIPHER_SPEC  20 /* 0x14 */
+#define RECORD_TYPE_ALERT               21 /* 0x15 */
+#define RECORD_TYPE_HANDSHAKE           22 /* 0x16 */
+#define RECORD_TYPE_APPLICATION_DATA    23 /* 0x17 */
 
-#define HANDSHAKE_HELLO_REQUEST         0
-#define HANDSHAKE_CLIENT_HELLO          1
-#define HANDSHAKE_SERVER_HELLO          2
-#define HANDSHAKE_HELLO_VERIFY_REQUEST  3
-#define HANDSHAKE_NEW_SESSION_TICKET    4
-#define HANDSHAKE_CERTIFICATE           11
-#define HANDSHAKE_SERVER_KEY_EXCHANGE   12
-#define HANDSHAKE_CERTIFICATE_REQUEST   13
-#define HANDSHAKE_SERVER_HELLO_DONE     14
-#define HANDSHAKE_CERTIFICATE_VERIFY    15
-#define HANDSHAKE_CLIENT_KEY_EXCHANGE   16
-#define HANDSHAKE_FINISHED              20
+#define HANDSHAKE_HELLO_REQUEST         0  /* 0x00 */
+#define HANDSHAKE_CLIENT_HELLO          1  /* 0x01 */
+#define HANDSHAKE_SERVER_HELLO          2  /* 0x02 */
+#define HANDSHAKE_HELLO_VERIFY_REQUEST  3  /* 0x03 */
+#define HANDSHAKE_NEW_SESSION_TICKET    4  /* 0x04 */
+#define HANDSHAKE_CERTIFICATE           11 /* 0x0b */
+#define HANDSHAKE_SERVER_KEY_EXCHANGE   12 /* 0x0c */
+#define HANDSHAKE_CERTIFICATE_REQUEST   13 /* 0x0d */
+#define HANDSHAKE_SERVER_HELLO_DONE     14 /* 0x0e */
+#define HANDSHAKE_CERTIFICATE_VERIFY    15 /* 0x0f */
+#define HANDSHAKE_CLIENT_KEY_EXCHANGE   16 /* 0x10 */
+#define HANDSHAKE_FINISHED              20 /* 0x14 */
 
 #define SSL_NULL_WITH_NULL_NULL                 0x0000
 #define SSL_RSA_WITH_NULL_MD5                   0x0001
@@ -512,10 +512,12 @@ static void bad_record_die(tls_state_t *tls, const char *expected, int len)
 	bb_error_msg("got bad TLS record (len:%d) while expecting %s", len, expected);
 	if (len > 0) {
 		uint8_t *p = tls->inbuf;
-		while (len > 0) {
+		if (len > 99)
+			len = 99; /* don't flood, a few lines should be enough */
+		do {
 			fprintf(stderr, " %02x", *p++);
 			len--;
-		}
+		} while (len != 0);
 		fputc('\n', stderr);
 	}
 	xfunc_die();
@@ -671,9 +673,11 @@ static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 	// AES_128_CBC   Block      16      16     16
 	// AES_256_CBC   Block      32      16     16
 
-	/* Fill IV and padding in outbuf */
 	tls_get_random(buf - AES_BLOCKSIZE, AES_BLOCKSIZE); /* IV */
-	dbg("before crypt: 5 hdr + %u data + %u hash bytes\n", size, tls->MAC_size);
+	dbg("before crypt: 5 hdr + %u data + %u hash bytes\n",
+			size - tls->MAC_size, tls->MAC_size);
+
+	/* Fill IV and padding in outbuf */
 	// RFC is talking nonsense:
 	//    "Padding that is added to force the length of the plaintext to be
 	//    an integral multiple of the block cipher's block length."
@@ -773,7 +777,7 @@ static const char *alert_text(int code)
 	return itoa(code);
 }
 
-static int tls_xread_record(tls_state_t *tls)
+static int tls_xread_record(tls_state_t *tls, const char *expected)
 {
 	struct record_hdr *xhdr;
 	int sz;
@@ -796,13 +800,16 @@ static int tls_xread_record(tls_state_t *tls)
 		if (total >= RECHDR_LEN && target == MAX_INBUF) {
 			xhdr = (void*)tls->inbuf;
 			target = RECHDR_LEN + (0x100 * xhdr->len16_hi + xhdr->len16_lo);
-			if (target > MAX_INBUF) {
-				/* malformed input (too long): yell and die */
-				tls->buffered_size = 0;
-				tls->ofs_to_buffered = total;
-				tls_error_die(tls);
+
+			if (target > MAX_INBUF /* malformed input (too long) */
+			 || xhdr->proto_maj != TLS_MAJ
+			 || xhdr->proto_min != TLS_MIN
+			) {
+				sz = total < target ? total : target;
+				if (sz > 24)
+					sz = 24; /* don't flood */
+				bad_record_die(tls, expected, sz);
 			}
-			/* can also check type/proto_maj/proto_min here */
 			dbg("xhdr type:%d ver:%d.%d len:%d\n",
 				xhdr->type, xhdr->proto_maj, xhdr->proto_min,
 				0x100 * xhdr->len16_hi + xhdr->len16_lo
@@ -1137,13 +1144,11 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 static int tls_xread_handshake_block(tls_state_t *tls, int min_len)
 {
 	struct record_hdr *xhdr;
-	int len = tls_xread_record(tls);
+	int len = tls_xread_record(tls, "handshake record");
 
 	xhdr = (void*)tls->inbuf;
 	if (len < min_len
 	 || xhdr->type != RECORD_TYPE_HANDSHAKE
-	 || xhdr->proto_maj != TLS_MAJ
-	 || xhdr->proto_min != TLS_MIN
 	) {
 		bad_record_die(tls, "handshake record", len);
 	}
@@ -1195,7 +1200,9 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 //   0023 0000 - session_ticket
 //   000a 0008 0006001700180019 - supported_groups
 //   000b 0002 0100 - ec_point_formats
-//   000d 0016 00140401040305010503060106030301030302010203 - signature_algorithms
+//   000d 0016 0014 0401 0403 0501 0503 0601 0603 0301 0303 0201 0203 - signature_algorithms
+// wolfssl library sends this option, RFC 7627 (closes a security weakness, some servers may require it. TODO?):
+//   0017 0000 - extended master secret
 	};
 	struct client_hello *record;
 	int len;
@@ -1354,7 +1361,7 @@ static void get_server_cert(tls_state_t *tls)
 	xhdr = (void*)tls->inbuf;
 	certbuf = (void*)(xhdr + 1);
 	if (certbuf[0] != HANDSHAKE_CERTIFICATE)
-		tls_error_die(tls);
+		bad_record_die(tls, "certificate", len);
 	dbg("<< CERTIFICATE\n");
 	// 4392 bytes:
 	// 0b  00|11|24 00|11|21 00|05|b0 30|82|05|ac|30|82|04|94|a0|03|02|01|02|02|11|00|9f|85|bf|66|4b|0c|dd|af|ca|50|86|79|50|1b|2b|e4|30|0d...
@@ -1611,6 +1618,7 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 	//                      <-------             Finished
 	// Application Data     <------>     Application Data
 	int len;
+	int got_cert_req;
 
 	send_client_hello_and_alloc_hsd(tls, sni);
 	get_server_hello(tls);
@@ -1638,7 +1646,8 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 		len = tls_xread_handshake_block(tls, 4);
 	}
 
-	if (tls->inbuf[RECHDR_LEN] == HANDSHAKE_CERTIFICATE_REQUEST) {
+	got_cert_req = (tls->inbuf[RECHDR_LEN] == HANDSHAKE_CERTIFICATE_REQUEST);
+	if (got_cert_req) {
 		dbg("<< CERTIFICATE_REQUEST\n");
 		// RFC 5246: "If no suitable certificate is available,
 		// the client MUST send a certificate message containing no
@@ -1647,7 +1656,9 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 		// Client certificates are sent using the Certificate structure
 		// defined in Section 7.4.2."
 		// (i.e. the same format as server certs)
-		send_empty_client_cert(tls);
+
+		/*send_empty_client_cert(tls); - WRONG (breaks handshake hash calc) */
+		/* need to hash _all_ server replies first, up to ServerHelloDone */
 		len = tls_xread_handshake_block(tls, 4);
 	}
 
@@ -1656,6 +1667,9 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 	}
 	// 0e 000000 (len:0)
 	dbg("<< SERVER_HELLO_DONE\n");
+
+	if (got_cert_req)
+		send_empty_client_cert(tls);
 
 	send_client_key_exchange(tls);
 
@@ -1667,7 +1681,7 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 	send_client_finished(tls);
 
 	/* Get CHANGE_CIPHER_SPEC */
-	len = tls_xread_record(tls);
+	len = tls_xread_record(tls, "switch to encrypted traffic");
 	if (len != 1 || memcmp(tls->inbuf, rec_CHANGE_CIPHER_SPEC, 6) != 0)
 		bad_record_die(tls, "switch to encrypted traffic", len);
 	dbg("<< CHANGE_CIPHER_SPEC\n");
@@ -1685,9 +1699,9 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 	}
 
 	/* Get (encrypted) FINISHED from the server */
-	len = tls_xread_record(tls);
+	len = tls_xread_record(tls, "'server finished'");
 	if (len < 4 || tls->inbuf[RECHDR_LEN] != HANDSHAKE_FINISHED)
-		tls_error_die(tls);
+		bad_record_die(tls, "'server finished'", len);
 	dbg("<< FINISHED\n");
 	/* application data can be sent/received */
 
@@ -1763,7 +1777,7 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls)
 		if (pfds[1].revents) {
 			dbg("NETWORK HAS DATA\n");
  read_record:
-			nread = tls_xread_record(tls);
+			nread = tls_xread_record(tls, "encrypted data");
 			if (nread < 1) {
 				/* TLS protocol has no real concept of one-sided shutdowns:
 				 * if we get "TLS EOF" from the peer, writes will fail too
@@ -1775,7 +1789,7 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls)
 				break;
 			}
 			if (tls->inbuf[0] != RECORD_TYPE_APPLICATION_DATA)
-				bb_error_msg_and_die("unexpected record type %d", tls->inbuf[0]);
+				bad_record_die(tls, "encrypted data", nread);
 			xwrite(STDOUT_FILENO, tls->inbuf + RECHDR_LEN, nread);
 			/* We may already have a complete next record buffered,
 			 * can process it without network reads (and possible blocking)
