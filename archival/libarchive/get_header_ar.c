@@ -83,7 +83,7 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 			 */
 			ar_long_name_size = size;
 			free(ar_long_names);
-			ar_long_names = xmalloc(size);
+			ar_long_names = xzalloc(size + 1);
 			xread(archive_handle->src_fd, ar_long_names, size);
 			archive_handle->offset += size;
 			/* Return next header */
@@ -107,7 +107,7 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 		unsigned long_offset;
 
 		/* The number after the '/' indicates the offset in the ar data section
-		 * (saved in ar_long_names) that conatains the real filename */
+		 * (saved in ar_long_names) that contains the real filename */
 		long_offset = read_num(&ar.formatted.name[1], 10,
 				       sizeof(ar.formatted.name) - 1);
 		if (long_offset >= ar_long_name_size) {
