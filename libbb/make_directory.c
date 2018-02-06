@@ -121,7 +121,7 @@ int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 			 * an error. */
 			if (mode != -1) {
 				//bb_error_msg("chmod 0%03lo mkdir '%s'", mode, path);
-				if (chmod(path, mode) < 0)) {
+				if (chmod(path, mode) < 0) {
 					fail_msg = "set permissions of";
 					if (flags & FILEUTILS_IGNORE_CHMOD_ERR) {
 						flags = 0;
