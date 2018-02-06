@@ -602,87 +602,6 @@ static void reset_beg_range_to_zero(void)
 	/* ftruncate(G.output_fd, 0); */
 }
 
-static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_sockaddr *lsa)
-{
-	FILE *sfp;
-	char *str;
-	int port;
-
-	if (!target->user)
-		target->user = xstrdup("anonymous:busybox@");
-
-	sfp = open_socket(lsa);
-	if (ftpcmd(NULL, NULL, sfp) != 220)
-		bb_error_msg_and_die("%s", sanitize_string(G.wget_buf + 4));
-
-	/*
-	 * Splitting username:password pair,
-	 * trying to log in
-	 */
-	str = strchr(target->user, ':');
-	if (str)
-		*str++ = '\0';
-	switch (ftpcmd("USER ", target->user, sfp)) {
-	case 230:
-		break;
-	case 331:
-		if (ftpcmd("PASS ", str, sfp) == 230)
-			break;
-		/* fall through (failed login) */
-	default:
-		bb_error_msg_and_die("ftp login: %s", sanitize_string(G.wget_buf + 4));
-	}
-
-	ftpcmd("TYPE I", NULL, sfp);
-
-	/*
-	 * Querying file size
-	 */
-	if (ftpcmd("SIZE ", target->path, sfp) == 213) {
-		G.content_len = BB_STRTOOFF(G.wget_buf + 4, NULL, 10);
-		if (G.content_len < 0 || errno) {
-			bb_error_msg_and_die("SIZE value is garbage");
-		}
-		G.got_clen = 1;
-	}
-
-	/*
-	 * Entering passive mode
-	 */
-	if (ftpcmd("PASV", NULL, sfp) != 227) {
- pasv_error:
-		bb_error_msg_and_die("bad response to %s: %s", "PASV", sanitize_string(G.wget_buf));
-	}
-	// Response is "227 garbageN1,N2,N3,N4,P1,P2[)garbage]
-	// Server's IP is N1.N2.N3.N4 (we ignore it)
-	// Server's port for data connection is P1*256+P2
-	str = strrchr(G.wget_buf, ')');
-	if (str) str[0] = '\0';
-	str = strrchr(G.wget_buf, ',');
-	if (!str) goto pasv_error;
-	port = xatou_range(str+1, 0, 255);
-	*str = '\0';
-	str = strrchr(G.wget_buf, ',');
-	if (!str) goto pasv_error;
-	port += xatou_range(str+1, 0, 255) * 256;
-	set_nport(&lsa->u.sa, htons(port));
-
-	*dfpp = open_socket(lsa);
-
-	if (G.beg_range != 0) {
-		sprintf(G.wget_buf, "REST %"OFF_FMT"u", G.beg_range);
-		if (ftpcmd(G.wget_buf, NULL, sfp) == 350)
-			G.content_len -= G.beg_range;
-		else
-			reset_beg_range_to_zero();
-	}
-
-	if (ftpcmd("RETR ", target->path, sfp) > 150)
-		bb_error_msg_and_die("bad response to %s: %s", "RETR", sanitize_string(G.wget_buf));
-
-	return sfp;
-}
-
 #if ENABLE_FEATURE_WGET_OPENSSL
 static int spawn_https_helper_openssl(const char *host, unsigned port)
 {
@@ -807,6 +726,87 @@ static void spawn_ssl_client(const char *host, int network_fd)
 	xmove_fd(sp[0], network_fd);
 }
 #endif
+
+static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_sockaddr *lsa)
+{
+	FILE *sfp;
+	char *str;
+	int port;
+
+	if (!target->user)
+		target->user = xstrdup("anonymous:busybox@");
+
+	sfp = open_socket(lsa);
+	if (ftpcmd(NULL, NULL, sfp) != 220)
+		bb_error_msg_and_die("%s", sanitize_string(G.wget_buf + 4));
+
+	/*
+	 * Splitting username:password pair,
+	 * trying to log in
+	 */
+	str = strchr(target->user, ':');
+	if (str)
+		*str++ = '\0';
+	switch (ftpcmd("USER ", target->user, sfp)) {
+	case 230:
+		break;
+	case 331:
+		if (ftpcmd("PASS ", str, sfp) == 230)
+			break;
+		/* fall through (failed login) */
+	default:
+		bb_error_msg_and_die("ftp login: %s", sanitize_string(G.wget_buf + 4));
+	}
+
+	ftpcmd("TYPE I", NULL, sfp);
+
+	/*
+	 * Querying file size
+	 */
+	if (ftpcmd("SIZE ", target->path, sfp) == 213) {
+		G.content_len = BB_STRTOOFF(G.wget_buf + 4, NULL, 10);
+		if (G.content_len < 0 || errno) {
+			bb_error_msg_and_die("SIZE value is garbage");
+		}
+		G.got_clen = 1;
+	}
+
+	/*
+	 * Entering passive mode
+	 */
+	if (ftpcmd("PASV", NULL, sfp) != 227) {
+ pasv_error:
+		bb_error_msg_and_die("bad response to %s: %s", "PASV", sanitize_string(G.wget_buf));
+	}
+	// Response is "227 garbageN1,N2,N3,N4,P1,P2[)garbage]
+	// Server's IP is N1.N2.N3.N4 (we ignore it)
+	// Server's port for data connection is P1*256+P2
+	str = strrchr(G.wget_buf, ')');
+	if (str) str[0] = '\0';
+	str = strrchr(G.wget_buf, ',');
+	if (!str) goto pasv_error;
+	port = xatou_range(str+1, 0, 255);
+	*str = '\0';
+	str = strrchr(G.wget_buf, ',');
+	if (!str) goto pasv_error;
+	port += xatou_range(str+1, 0, 255) * 256;
+	set_nport(&lsa->u.sa, htons(port));
+
+	*dfpp = open_socket(lsa);
+
+	if (G.beg_range != 0) {
+		sprintf(G.wget_buf, "REST %"OFF_FMT"u", G.beg_range);
+		if (ftpcmd(G.wget_buf, NULL, sfp) == 350)
+			G.content_len -= G.beg_range;
+		else
+			reset_beg_range_to_zero();
+	}
+
+	if (ftpcmd("RETR ", target->path, sfp) > 150)
+		bb_error_msg_and_die("bad response to %s: %s", "RETR", sanitize_string(G.wget_buf));
+
+	return sfp;
+}
 
 static void NOINLINE retrieve_file_data(FILE *dfp)
 {
