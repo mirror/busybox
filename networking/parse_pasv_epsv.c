@@ -5,8 +5,8 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-//kbuild:lib-$(CONFIG_FTPGET) += ftpgetput.o
-//kbuild:lib-$(CONFIG_FTPPUT) += ftpgetput.o
+//kbuild:lib-$(CONFIG_FTPGET) += parse_pasv_epsv.o
+//kbuild:lib-$(CONFIG_FTPPUT) += parse_pasv_epsv.o
 //kbuild:lib-$(CONFIG_WGET) += parse_pasv_epsv.o
 
 #include "libbb.h"
