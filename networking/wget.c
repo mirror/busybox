@@ -806,9 +806,13 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 
 	*dfpp = open_socket(lsa);
 
-	//For encrypted data, need to send "PROT P" and get "200 PROT now Private" response first
-	//Without it (or with "PROT C"), data is sent unencrypted
-	//spawn_ssl_client(target->host, fileno(*dfpp), /*flags*/ 0);
+#if ENABLE_FEATURE_WGET_HTTPS
+	/* "PROT P" enables encryption of data stream.
+	 * Without it (or with "PROT C"), data is sent unencrypted.
+	 */
+	if (ftpcmd("PROT P", NULL, sfp) == 200)
+		spawn_ssl_client(target->host, fileno(*dfpp), /*flags*/ 0);
+#endif
 
 	if (G.beg_range != 0) {
 		sprintf(G.wget_buf, "REST %"OFF_FMT"u", G.beg_range);
