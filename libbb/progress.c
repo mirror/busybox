@@ -71,7 +71,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		uoff_t transferred,
 		uoff_t totalsize)
 {
-	uoff_t beg_and_transferred;
+	unsigned beg_and_transferred; /* does not need uoff_t, see scaling code below */
 	unsigned since_last_update, elapsed;
 	int notty;
 	int kiloscale;
@@ -102,33 +102,24 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	 * without risking overflow: we guarantee 10 highest bits to be 0.
 	 * Introduced error is less than 1 / 2^12 ~= 0.025%
 	 */
-	if (ULONG_MAX > 0xffffffff || sizeof(off_t) == 4 || sizeof(off_t) != 8) {
-		/*
-		 * 64-bit CPU || small off_t: in either case,
-		 * >> is cheap, single-word operation.
-		 * ... || strange off_t: also use this code
-		 * (it is safe, just suboptimal wrt code size),
-		 * because 32/64 optimized one works only for 64-bit off_t.
-		 */
-		if (totalsize >= (1 << 22)) {
-			totalsize >>= 10;
-			beg_size >>= 10;
-			transferred >>= 10;
-			kiloscale = 1;
-		}
-	} else {
-		/* 32-bit CPU and 64-bit off_t.
-		 * Use a 40-bit shift, it is easier to do on 32-bit CPU.
-		 */
-/* ONE suppresses "warning: shift count >= width of type" */
-#define ONE (sizeof(off_t) > 4)
-		if (totalsize >= (uoff_t)(1ULL << 54*ONE)) {
-			totalsize = (uint32_t)(totalsize >> 32*ONE) >> 8;
-			beg_size = (uint32_t)(beg_size >> 32*ONE) >> 8;
-			transferred = (uint32_t)(transferred >> 32*ONE) >> 8;
-			kiloscale = 4;
-		}
+	while (totalsize >= (1 << 22)) {
+		totalsize >>= 10;
+		beg_size >>= 10;
+		transferred >>= 10;
+		kiloscale++;
 	}
+	/* If they were huge, now they are scaled down to [4194303,4096] range.
+	 * (N * totalsize) won't overflow 32 bits for N up to 1024.
+	 * The downside is that files larger than 4194303 kbytes (>4GB)
+	 * never show kbytes download size, they show "0M","1M"... right away
+	 * since kiloscale is already >1.
+	 */
+#if ULONG_MAX == 0xffffffff
+/* 32-bit CPU, uoff_t arithmetic is complex on it, cast variables to narrower types */
+# define totalsize   ((unsigned)totalsize)
+# define beg_size    ((unsigned)beg_size)
+# define transferred ((unsigned)transferred)
+#endif
 
 	notty = !isatty(STDERR_FILENO);
 
@@ -146,13 +137,18 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 
 		barlength = get_terminal_width(2) - 49;
 		if (barlength > 0) {
-			/* god bless gcc for variable arrays :) */
-			char buf[barlength + 1];
-			unsigned stars = (unsigned)barlength * beg_and_transferred / totalsize;
-			memset(buf, ' ', barlength);
-			buf[barlength] = '\0';
-			memset(buf, '*', stars);
-			fprintf(stderr, " |%s|", buf);
+			if (barlength > 999)
+				barlength = 999;
+			{
+				/* god bless gcc for variable arrays :) */
+				char buf[barlength + 1];
+				unsigned stars = (unsigned)barlength * beg_and_transferred / totalsize;
+				/* can't overflow ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */
+				memset(buf, ' ', barlength);
+				buf[barlength] = '\0';
+				memset(buf, '*', stars);
+				fprintf(stderr, " |%s|", buf);
+			}
 		}
 	}
 
@@ -184,16 +180,18 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		fprintf(stderr, " --:--:-- ETA");
 	} else {
 		unsigned eta, secs, hours;
+		unsigned bytes;
 
-		totalsize -= beg_size; /* now it's "total to upload" */
+		bytes = totalsize - beg_size;
 
 		/* Estimated remaining time =
-		 * estimated_sec_to_dl_totalsize_bytes - elapsed_sec =
-		 * totalsize / average_bytes_sec_so_far - elapsed =
-		 * totalsize / (transferred/elapsed) - elapsed =
-		 * totalsize * elapsed / transferred - elapsed
+		 * estimated_sec_to_dl_bytes - elapsed_sec =
+		 * bytes / average_bytes_sec_so_far - elapsed =
+		 * bytes / (transferred/elapsed) - elapsed =
+		 * bytes * elapsed / transferred - elapsed
 		 */
-		eta = totalsize * elapsed / transferred - elapsed;
+		eta = (unsigned long)bytes * elapsed / transferred - elapsed;
+		/* if 32bit, can overflow ^^^^^^^^^^, but this would only show bad ETA */
 		if (eta >= 1000*60*60)
 			eta = 1000*60*60 - 1;
 		secs = eta % 3600;
