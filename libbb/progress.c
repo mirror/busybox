@@ -71,10 +71,9 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		uoff_t transferred,
 		uoff_t totalsize)
 {
-	unsigned beg_and_transferred; /* does not need uoff_t, see scaling code below */
+	char numbuf5[6]; /* 5 + 1 for NUL */
 	unsigned since_last_update, elapsed;
 	int notty;
-	int kiloscale;
 
 	//transferred = 1234; /* use for stall detection testing */
 	//totalsize = 0; /* use for unknown size download testing */
@@ -95,24 +94,22 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		return;
 	}
 
-	kiloscale = 0;
+	/* Before we lose real, unscaled sizes, produce human-readable size string */
+	smart_ulltoa5(beg_size + transferred, numbuf5, " kMGTPEZY")[0] = '\0';
+
 	/*
 	 * Scale sizes down if they are close to overflowing.
 	 * This allows calculations like (100 * transferred / totalsize)
 	 * without risking overflow: we guarantee 10 highest bits to be 0.
 	 * Introduced error is less than 1 / 2^12 ~= 0.025%
 	 */
-	while (totalsize >= (1 << 22)) {
-		totalsize >>= 10;
-		beg_size >>= 10;
-		transferred >>= 10;
-		kiloscale++;
+	while (totalsize >= (1 << 20)) {
+		totalsize >>= 8;
+		beg_size >>= 8;
+		transferred >>= 8;
 	}
-	/* If they were huge, now they are scaled down to [4194303,4096] range.
-	 * (N * totalsize) won't overflow 32 bits for N up to 1024.
-	 * The downside is that files larger than 4194303 kbytes (>4GB)
-	 * never show kbytes download size, they show "0M","1M"... right away
-	 * since kiloscale is already >1.
+	/* If they were huge, now they are scaled down to [1048575,4096] range.
+	 * (N * totalsize) won't overflow 32 bits for N up to 4096.
 	 */
 #if ULONG_MAX == 0xffffffff
 /* 32-bit CPU, uoff_t arithmetic is complex on it, cast variables to narrower types */
@@ -124,19 +121,26 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	notty = !isatty(STDERR_FILENO);
 
 	if (ENABLE_UNICODE_SUPPORT)
-		fprintf(stderr, "\r%s" + notty, p->curfile);
+		fprintf(stderr, "\r%s " + notty, p->curfile);
 	else
-		fprintf(stderr, "\r%-20.20s" + notty, p->curfile);
-
-	beg_and_transferred = beg_size + transferred;
+		fprintf(stderr, "\r%-20.20s " + notty, p->curfile);
 
 	if (totalsize != 0) {
 		int barlength;
-		unsigned ratio = 100 * beg_and_transferred / totalsize;
-		fprintf(stderr, "%4u%%", ratio);
+		unsigned beg_and_transferred; /* does not need uoff_t, see scaling code */
+		unsigned ratio;
 
-		barlength = get_terminal_width(2) - 49;
-		if (barlength > 0) {
+		beg_and_transferred = beg_size + transferred;
+		ratio = 100 * beg_and_transferred / totalsize;
+		/* can't overflow ^^^^^^^^^^^^^^^ */
+		fprintf(stderr, "%3u%% ", ratio);
+
+		barlength = get_terminal_width(2) - 48;
+		/*
+		 * Must reject barlength <= 0 (terminal too narrow). While at it,
+		 * also reject: 1-char bar (useless), 2-char bar (ridiculous).
+		 */
+		if (barlength > 2) {
 			if (barlength > 999)
 				barlength = 999;
 			{
@@ -147,18 +151,12 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 				memset(buf, ' ', barlength);
 				buf[barlength] = '\0';
 				memset(buf, '*', stars);
-				fprintf(stderr, " |%s|", buf);
+				fprintf(stderr, "|%s| ", buf);
 			}
 		}
 	}
 
-	while (beg_and_transferred >= 100000) {
-		beg_and_transferred >>= 10;
-		kiloscale++;
-	}
-	/* see http://en.wikipedia.org/wiki/Tera */
-	fprintf(stderr, "%6u%c", (unsigned)beg_and_transferred, " kMGTPEZY"[kiloscale]);
-#define beg_and_transferred dont_use_beg_and_transferred_below()
+	fputs(numbuf5, stderr); /* "NNNNk" */
 
 	since_last_update = elapsed - p->last_change_sec;
 	if ((unsigned)transferred != p->last_size) {
