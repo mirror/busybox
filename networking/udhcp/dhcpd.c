@@ -856,8 +856,6 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Make sure fd 0,1,2 are open */
 	bb_sanitize_stdio();
-	/* Equivalent of doing a fflush after every \n */
-	setlinebuf(stdout);
 
 	/* Create pidfile */
 	write_pidfile(server_config.pidfile);
