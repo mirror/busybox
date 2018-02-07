@@ -19,6 +19,23 @@
 //config:	Unless you have a specific application which requires bzip2, you
 //config:	should probably say N here.
 //config:
+//config:config BZIP2_SMALL
+//config:	int "Trade bytes for speed (0:fast, 9:small)"
+//config:	default 8  # all "fast or small" options default to small
+//config:	range 0 9
+//config:	depends on BZIP2
+//config:	help
+//config:	Trade code size versus speed.
+//config:	Approximate values with gcc-6.3.0 "bzip -9" compressing
+//config:	linux-4.15.tar were:
+//config:	value         time (sec)  code size (386)
+//config:	9 (smallest)       70.11             7687
+//config:	8                  67.93             8091
+//config:	7                  67.88             8405
+//config:	6                  67.78             8624
+//config:	5                  67.05             9427
+//config:	4-0 (fastest)      64.14            12083
+//config:
 //config:config FEATURE_BZIP2_DECOMPRESS
 //config:	bool "Enable decompression"
 //config:	default y
@@ -48,7 +65,11 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
-#define CONFIG_BZIP2_FAST 1
+#if CONFIG_BZIP2_SMALL >= 4
+#define BZIP2_SPEED (9 - CONFIG_BZIP2_SMALL)
+#else
+#define BZIP2_SPEED 5
+#endif
 
 /* Speed test:
  * Compiled with gcc 4.2.1, run on Athlon 64 1800 MHz (512K L2 cache).
@@ -56,7 +77,7 @@
  * (time to compress gcc-4.2.1.tar is 126.4% compared to bbox).
  * At SPEED 5 difference is 32.7%.
  *
- * Test run of all CONFIG_BZIP2_FAST values on a 11Mb text file:
+ * Test run of all BZIP2_SPEED values on a 11Mb text file:
  *     Size   Time (3 runs)
  * 0:  10828  4.145 4.146 4.148
  * 1:  11097  3.845 3.860 3.861

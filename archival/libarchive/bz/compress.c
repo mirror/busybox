@@ -32,6 +32,12 @@ in the file LICENSE.
 
 /* #include "bzlib_private.h" */
 
+#if BZIP2_SPEED >= 5
+# define ALWAYS_INLINE_5 ALWAYS_INLINE
+#else
+# define ALWAYS_INLINE_5 /*nothing*/
+#endif
+
 /*---------------------------------------------------*/
 /*--- Bit stream I/O                              ---*/
 /*---------------------------------------------------*/
@@ -60,9 +66,7 @@ void bsFinishWrite(EState* s)
 /*---------------------------------------------------*/
 static
 /* Helps only on level 5, on other levels hurts. ? */
-#if CONFIG_BZIP2_FAST >= 5
-ALWAYS_INLINE
-#endif
+ALWAYS_INLINE_5
 void bsW(EState* s, int32_t n, uint32_t v)
 {
 	while (s->bsLive >= 8) {
@@ -75,9 +79,7 @@ void bsW(EState* s, int32_t n, uint32_t v)
 }
 /* Same with n == 16: */
 static
-#if CONFIG_BZIP2_FAST >= 5
-ALWAYS_INLINE
-#endif
+ALWAYS_INLINE_5
 void bsW16(EState* s, uint32_t v)
 {
 	while (s->bsLive >= 8) {
@@ -103,9 +105,7 @@ void bsW1_1(EState* s)
 	s->bsLive += 1;
 }
 static
-#if CONFIG_BZIP2_FAST >= 5
-ALWAYS_INLINE
-#endif
+ALWAYS_INLINE_5
 void bsW1_0(EState* s)
 {
 	/* need space for only 1 bit, no need for loop freeing > 8 bits */
@@ -394,7 +394,7 @@ void sendMTFValues(EState* s)
 				s->rfreq[t][v] = 0;
 		}
 
-#if CONFIG_BZIP2_FAST >= 5
+#if BZIP2_SPEED >= 5
 		/*
 		 * Set up an auxiliary length table which is used to fast-track
 		 * the common case (nGroups == 6).
@@ -427,7 +427,7 @@ void sendMTFValues(EState* s)
 			 */
 			for (t = 0; t < nGroups; t++)
 				cost[t] = 0;
-#if CONFIG_BZIP2_FAST >= 5
+#if BZIP2_SPEED >= 5
 			if (nGroups == 6 && 50 == ge-gs+1) {
 				/*--- fast track the common case ---*/
 				register uint32_t cost01, cost23, cost45;
@@ -483,7 +483,7 @@ void sendMTFValues(EState* s)
 			 * Increment the symbol frequencies for the selected table.
 			 */
 /* 1% faster compress. +800 bytes */
-#if CONFIG_BZIP2_FAST >= 4
+#if BZIP2_SPEED >= 4
 			if (nGroups == 6 && 50 == ge-gs+1) {
 				/*--- fast track the common case ---*/
 #define BZ_ITUR(nn) s->rfreq[bt][mtfv[gs + (nn)]]++
