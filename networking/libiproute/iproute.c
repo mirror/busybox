@@ -83,7 +83,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (len < 0)
 		bb_error_msg_and_die("wrong nlmsg len %d", len);
 
-	memset(tb, 0, sizeof(tb));
+	//memset(tb, 0, sizeof(tb)); - parse_rtattr does this
 	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
 
 #if HAVE_RTA_TABLE
@@ -1081,7 +1081,7 @@ static int iproute_get(char **argv)
 			bb_error_msg_and_die("wrong len %d", len);
 		}
 
-		memset(tb, 0, sizeof(tb));
+		//memset(tb, 0, sizeof(tb)); - parse_rtattr does this
 		parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
 
 		if (tb[RTA_PREFSRC]) {

@@ -63,7 +63,7 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (len < 0)
 		return -1;
 
-	memset(tb, 0, sizeof(tb));
+	//memset(tb, 0, sizeof(tb)); - parse_rtattr does this
 	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
 
 	if (r->rtm_family == AF_INET)

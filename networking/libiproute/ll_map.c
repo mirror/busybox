@@ -51,7 +51,7 @@ int FAST_FUNC ll_remember_index(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (n->nlmsg_len < NLMSG_LENGTH(sizeof(ifi)))
 		return -1;
 
-	memset(tb, 0, sizeof(tb));
+	//memset(tb, 0, sizeof(tb)); - parse_rtattr does this
 	parse_rtattr(tb, IFLA_MAX, IFLA_RTA(ifi), IFLA_PAYLOAD(n));
 	if (tb[IFLA_IFNAME] == NULL)
 		return 0;

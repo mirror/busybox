@@ -66,17 +66,21 @@ enum
 
 /* nullifies tb on error */
 #define __parse_rtattr_nested_compat(tb, max, rta, len) \
-	({if ((RTA_PAYLOAD(rta) >= len) && \
-		 (RTA_PAYLOAD(rta) >= RTA_ALIGN(len) + sizeof(struct rtattr))) { \
-			rta = RTA_DATA(rta) + RTA_ALIGN(len); \
-			parse_rtattr_nested(tb, max, rta); \
-	  } else \
-			memset(tb, 0, sizeof(struct rtattr *) * (max + 1)); \
-	})
+({ \
+	if ((RTA_PAYLOAD(rta) >= len) \
+	 && (RTA_PAYLOAD(rta) >= RTA_ALIGN(len) + sizeof(struct rtattr)) \
+	) { \
+		rta = RTA_DATA(rta) + RTA_ALIGN(len); \
+		parse_rtattr_nested(tb, max, rta); \
+	} else \
+		memset(tb, 0, sizeof(struct rtattr *) * (max + 1)); \
+})
 
 #define parse_rtattr_nested_compat(tb, max, rta, data, len) \
-	({data = RTA_PAYLOAD(rta) >= len ? RTA_DATA(rta) : NULL; \
-	__parse_rtattr_nested_compat(tb, max, rta, len); })
+({ \
+	data = RTA_PAYLOAD(rta) >= len ? RTA_DATA(rta) : NULL; \
+	__parse_rtattr_nested_compat(tb, max, rta, len); \
+})
 
 #define show_details (0) /* not implemented. Does anyone need it? */
 #define use_iec (0) /* not currently documented in the upstream manpage */

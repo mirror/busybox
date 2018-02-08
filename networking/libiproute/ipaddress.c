@@ -113,7 +113,7 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 	if (G_filter.up && !(ifi->ifi_flags & IFF_UP))
 		return 0;
 
-	memset(tb, 0, sizeof(tb));
+	//memset(tb, 0, sizeof(tb)); - parse_rtattr does this
 	parse_rtattr(tb, IFLA_MAX, IFLA_RTA(ifi), len);
 	if (tb[IFLA_IFNAME] == NULL) {
 		bb_error_msg("nil ifname");
@@ -227,7 +227,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (G_filter.flushb && n->nlmsg_type != RTM_NEWADDR)
 		return 0;
 
-	memset(rta_tb, 0, sizeof(rta_tb));
+	//memset(rta_tb, 0, sizeof(rta_tb)); - parse_rtattr does this
 	parse_rtattr(rta_tb, IFA_MAX, IFA_RTA(ifa), n->nlmsg_len - NLMSG_LENGTH(sizeof(*ifa)));
 
 	if (!rta_tb[IFA_LOCAL])
@@ -535,7 +535,7 @@ int FAST_FUNC ipaddr_list_or_flush(char **argv, int flush)
 					continue;
 				if (G_filter.pfx.family || G_filter.label) {
 					struct rtattr *tb[IFA_MAX+1];
-					memset(tb, 0, sizeof(tb));
+					//memset(tb, 0, sizeof(tb)); - parse_rtattr does this
 					parse_rtattr(tb, IFA_MAX, IFA_RTA(ifa), IFA_PAYLOAD(n));
 					if (!tb[IFA_LOCAL])
 						tb[IFA_LOCAL] = tb[IFA_ADDRESS];
