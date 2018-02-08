@@ -5019,18 +5019,13 @@ static struct pipe *parse_stream(char **pstring,
  * i.e., at the previous line.
  * We need to skip all whitespace before newlines.
  */
-			if (ch != '\n') {
-				/* It was whitespace, but not a newline.
-				 * Eat all whitespace.
-				 */
-				for (;;) {
-					next = i_peek(input);
-					if (next != ' ' && next != '\t' && next != '\n')
-						break; /* next char is not ws */
-					ch = i_getch(input);
-				}
-				/* ch == last eaten whitespace char */
+			while (ch != '\n') {
+				next = i_peek(input);
+				if (next != ' ' && next != '\t' && next != '\n')
+					break; /* next char is not ws */
+				ch = i_getch(input);
 			}
+			/* ch == last eaten whitespace char */
 #endif
 			if (done_word(&dest, &ctx)) {
 				goto parse_error;
