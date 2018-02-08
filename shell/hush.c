@@ -120,6 +120,11 @@
 //config:	help
 //config:	Enable {abc,def} extension.
 //config:
+//config:config HUSH_LINENO_VAR
+//config:	bool "$LINENO variable"
+//config:	default y
+//config:	depends on HUSH_BASH_COMPAT
+//config:
 //config:config HUSH_BASH_SOURCE_CURDIR
 //config:	bool "'source' and '.' builtins search current directory after $PATH"
 //config:	default n   # do not encourage non-standard behavior
@@ -368,7 +373,6 @@
 #define BASH_SUBSTR        ENABLE_HUSH_BASH_COMPAT
 #define BASH_SOURCE        ENABLE_HUSH_BASH_COMPAT
 #define BASH_HOSTNAME_VAR  ENABLE_HUSH_BASH_COMPAT
-#define BASH_LINENO_VAR    ENABLE_HUSH_BASH_COMPAT
 #define BASH_TEST2         (ENABLE_HUSH_BASH_COMPAT && ENABLE_HUSH_TEST)
 #define BASH_READ_D        ENABLE_HUSH_BASH_COMPAT
 
@@ -620,7 +624,7 @@ typedef enum redir_type {
 struct command {
 	pid_t pid;                  /* 0 if exited */
 	int assignment_cnt;         /* how many argv[i] are assignments? */
-#if BASH_LINENO_VAR
+#if ENABLE_HUSH_LINENO_VAR
 	unsigned lineno;
 #endif
 	smallint cmd_type;          /* CMD_xxx */
@@ -942,7 +946,7 @@ struct globals {
 	unsigned handled_SIGCHLD;
 	smallint we_have_children;
 #endif
-#if BASH_LINENO_VAR
+#if ENABLE_HUSH_LINENO_VAR
 	unsigned lineno;
 	char *lineno_var;
 #endif
@@ -2152,7 +2156,7 @@ static int set_local_var(char *str, unsigned flags)
 	}
 
 	name_len = eq_sign - str + 1; /* including '=' */
-#if BASH_LINENO_VAR
+#if ENABLE_HUSH_LINENO_VAR
 	if (G.lineno_var) {
 		if (name_len == 7 && strncmp("LINENO", str, 6) == 0)
 			G.lineno_var = NULL;
@@ -2285,7 +2289,7 @@ static int unset_local_var_len(const char *name, int name_len)
 	if (name_len == 6 && strncmp(name, "OPTIND", 6) == 0)
 		G.getopt_count = 0;
 #endif
-#if BASH_LINENO_VAR
+#if ENABLE_HUSH_LINENO_VAR
 	if (name_len == 6 && G.lineno_var && strncmp(name, "LINENO", 6) == 0)
 		G.lineno_var = NULL;
 #endif
@@ -2608,9 +2612,11 @@ static int i_getch(struct in_str *i)
  out:
 	debug_printf("file_get: got '%c' %d\n", ch, ch);
 	i->last_char = ch;
-#if BASH_LINENO_VAR
-	if (ch == '\n')
+#if ENABLE_HUSH_LINENO_VAR
+	if (ch == '\n') {
 		G.lineno++;
+		debug_printf_parse("G.lineno++ = %u\n", G.lineno);
+	}
 #endif
 	return ch;
 }
@@ -3412,8 +3418,13 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 
 	pin = 0;
 	while (pi) {
-		fdprintf(2, "%*spipe %d res_word=%s followup=%d %s\n", lvl*2, "",
-				pin, RES[pi->res_word], pi->followup, PIPE[pi->followup]);
+		fdprintf(2, "%*spipe %d %sres_word=%s followup=%d %s\n",
+				lvl*2, "",
+				pin,
+				(IF_HAS_KEYWORDS(pi->pi_inverted ? "! " :) ""),
+				RES[pi->res_word],
+				pi->followup, PIPE[pi->followup]
+		);
 		prn = 0;
 		while (prn < pi->num_cmds) {
 			struct command *command = &pi->cmds[prn];
@@ -3422,6 +3433,9 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 			fdprintf(2, "%*s cmd %d assignment_cnt:%d",
 					lvl*2, "", prn,
 					command->assignment_cnt);
+#if ENABLE_HUSH_LINENO_VAR
+			fdprintf(2, " LINENO:%u", command->lineno);
+#endif
 			if (command->group) {
 				fdprintf(2, " group %s: (argv=%p)%s%s\n",
 						CMDTYPE[command->cmd_type],
@@ -3494,8 +3508,9 @@ static int done_command(struct parse_context *ctx)
 	ctx->command = command = &pi->cmds[pi->num_cmds];
  clear_and_ret:
 	memset(command, 0, sizeof(*command));
-#if BASH_LINENO_VAR
+#if ENABLE_HUSH_LINENO_VAR
 	command->lineno = G.lineno;
+	debug_printf_parse("command->lineno = G.lineno (%u)\n", G.lineno);
 #endif
 	return pi->num_cmds; /* used only for 0/nonzero check */
 }
@@ -3684,9 +3699,9 @@ static const struct reserved_combo* match_reserved_word(o_string *word)
 	}
 	return NULL;
 }
-/* Return 0: not a keyword, 1: keyword
+/* Return NULL: not a keyword, else: keyword
  */
-static int reserved_word(o_string *word, struct parse_context *ctx)
+static const struct reserved_combo* reserved_word(o_string *word, struct parse_context *ctx)
 {
 # if ENABLE_HUSH_CASE
 	static const struct reserved_combo reserved_match = {
@@ -3699,7 +3714,7 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		return 0;
 	r = match_reserved_word(word);
 	if (!r)
-		return 0;
+		return r; /* NULL */
 
 	debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
 # if ENABLE_HUSH_CASE
@@ -3714,7 +3729,7 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 			ctx->ctx_res_w = RES_SNTX;
 		}
 		ctx->ctx_inverted = 1;
-		return 1;
+		return r;
 	}
 	if (r->flag & FLAG_START) {
 		struct parse_context *old;
@@ -3726,7 +3741,7 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 	} else if (/*ctx->ctx_res_w == RES_NONE ||*/ !(ctx->old_flag & (1 << r->res))) {
 		syntax_error_at(word->data);
 		ctx->ctx_res_w = RES_SNTX;
-		return 1;
+		return r;
 	} else {
 		/* "{...} fi" is ok. "{...} if" is not
 		 * Example:
@@ -3776,7 +3791,7 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		*ctx = *old;   /* physical copy */
 		free(old);
 	}
-	return 1;
+	return r;
 }
 #endif /* HAS_KEYWORDS */
 
@@ -3842,9 +3857,26 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		 && ctx->ctx_res_w != RES_CASE
 # endif
 		) {
-			int reserved = reserved_word(word, ctx);
-			debug_printf_parse("checking for reserved-ness: %d\n", reserved);
+			const struct reserved_combo *reserved;
+			reserved = reserved_word(word, ctx);
+			debug_printf_parse("checking for reserved-ness: %d\n", !!reserved);
 			if (reserved) {
+# if ENABLE_HUSH_LINENO_VAR
+/* Case:
+ * "while ...; do
+ *	cmd ..."
+ * If we don't close the pipe _now_, immediately after "do", lineno logic
+ * sees "cmd" as starting at "do" - i.e., at the previous line.
+ */
+				if (0
+				 IF_HUSH_IF(|| reserved->res == RES_THEN)
+				 IF_HUSH_IF(|| reserved->res == RES_ELIF)
+				 IF_HUSH_IF(|| reserved->res == RES_ELSE)
+				 IF_HUSH_LOOPS(|| reserved->res == RES_DO)
+				) {
+					done_pipe(ctx, PIPE_SEQ);
+				}
+# endif
 				o_reset_to_empty_unquoted(word);
 				debug_printf_parse("done_word return %d\n",
 						(ctx->ctx_res_w == RES_SNTX));
@@ -4979,6 +5011,27 @@ static struct pipe *parse_stream(char **pstring,
 		}
 
 		if (is_blank) {
+#if ENABLE_HUSH_LINENO_VAR
+/* Case:
+ * "while ...; do<whitespace><newline>
+ *	cmd ..."
+ * would think that "cmd" starts in <whitespace> -
+ * i.e., at the previous line.
+ * We need to skip all whitespace before newlines.
+ */
+			if (ch != '\n') {
+				/* It was whitespace, but not a newline.
+				 * Eat all whitespace.
+				 */
+				for (;;) {
+					next = i_peek(input);
+					if (next != ' ' && next != '\t' && next != '\n')
+						break; /* next char is not ws */
+					ch = i_getch(input);
+				}
+				/* ch == last eaten whitespace char */
+			}
+#endif
 			if (done_word(&dest, &ctx)) {
 				goto parse_error;
 			}
@@ -6573,7 +6626,7 @@ static void parse_and_run_string(const char *s)
 static void parse_and_run_file(FILE *f)
 {
 	struct in_str input;
-#if BASH_LINENO_VAR
+#if ENABLE_HUSH_LINENO_VAR
 	unsigned sv;
 
 	sv = G.lineno;
@@ -6581,7 +6634,7 @@ static void parse_and_run_file(FILE *f)
 #endif
 	setup_file_in_str(&input, f);
 	parse_and_run_stream(&input, ';');
-#if BASH_LINENO_VAR
+#if ENABLE_HUSH_LINENO_VAR
 	G.lineno = sv;
 #endif
 }
@@ -8130,7 +8183,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		char **new_env = NULL;
 		struct variable *old_vars = NULL;
 
-#if BASH_LINENO_VAR
+#if ENABLE_HUSH_LINENO_VAR
 		if (G.lineno_var)
 			strcpy(G.lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
 #endif
@@ -8339,7 +8392,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		if (cmd_no < pi->num_cmds)
 			xpiped_pair(pipefds);
 
-#if BASH_LINENO_VAR
+#if ENABLE_HUSH_LINENO_VAR
 		if (G.lineno_var)
 			strcpy(G.lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
 #endif
@@ -9057,8 +9110,8 @@ int hush_main(int argc, char **argv)
 	 */
 #endif
 
-#if BASH_LINENO_VAR
-	if (BASH_LINENO_VAR) {
+#if ENABLE_HUSH_LINENO_VAR
+	if (ENABLE_HUSH_LINENO_VAR) {
 		char *p = xasprintf("LINENO=%*s", (int)(sizeof(int)*3), "");
 		set_local_var(p, /*flags*/ 0);
 		G.lineno_var = p; /* can't assign before set_local_var("LINENO=...") */
