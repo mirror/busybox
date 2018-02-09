@@ -15,7 +15,7 @@
 
 testing "grep (exit with error)" "grep nonexistent 2> /dev/null ; echo \$?" \
 	"1\n" "" ""
-testing "grep (exit success)" "grep grep $0 > /dev/null 2>&1 ; echo \$?" "0\n" \
+testing "grep (exit success)" "grep grep '$0' > /dev/null 2>&1 ; echo \$?" "0\n" \
 	"" ""
 # Test various data sources and destinations
 

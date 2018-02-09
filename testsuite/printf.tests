@@ -20,7 +20,7 @@ testing "printf produces no further output 2" \
 	"" ""
 
 testing "printf repeatedly uses pattern for each argv" \
-	"${bb}printf '%s\n' foo \$HOME" \
+	"${bb}printf '%s\n' foo '$HOME'" \
 	"foo\n$HOME\n" \
 	"" ""
 
