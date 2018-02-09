@@ -140,15 +140,22 @@ log message, you can use a pattern like this instead
 //usage:#define svlogd_full_usage "\n\n"
 //usage:       "Read log data from stdin and write to rotated log files in DIRs"
 //usage:   "\n"
+//usage:   "\n""-r C		Replace non-printable characters with C"
+//usage:   "\n""-R CHARS	Also replace CHARS with C (default _)"
+//usage:   "\n""-t		Timestamp with @tai64n"
+//usage:   "\n""-tt		Timestamp with yyyy-mm-dd_hh:mm:ss.sssss"
+//usage:   "\n""-ttt		Timestamp with yyyy-mm-ddThh:mm:ss.sssss"
+//usage:   "\n""-v		Verbose"
+//usage:   "\n"
 //usage:   "\n""DIR/config file modifies behavior:"
-//usage:   "\n""sSIZE - when to rotate logs"
+//usage:   "\n""sSIZE - when to rotate logs (default 1000000, 0 disables)"
 //usage:   "\n""nNUM - number of files to retain"
-/*usage:   "\n""NNUM - min number files to retain" - confusing */
-/*usage:   "\n""tSEC - rotate file if it get SEC seconds old" - confusing */
+///////:   "\n""NNUM - min number files to retain" - confusing
+///////:   "\n""tSEC - rotate file if it get SEC seconds old" - confusing
 //usage:   "\n""!PROG - process rotated log with PROG"
-/*usage:   "\n""uIPADDR - send log over UDP" - unsupported */
-/*usage:   "\n""UIPADDR - send log over UDP and DONT log" - unsupported */
-/*usage:   "\n""pPFX - prefix each line with PFX" - unsupported */
+///////:   "\n""uIPADDR - send log over UDP" - unsupported
+///////:   "\n""UIPADDR - send log over UDP and DONT log" - unsupported
+///////:   "\n""pPFX - prefix each line with PFX" - unsupported
 //usage:   "\n""+,-PATTERN - (de)select line for logging"
 //usage:   "\n""E,ePATTERN - (de)select line for stderr"
 
