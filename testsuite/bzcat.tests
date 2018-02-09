@@ -1,5 +1,7 @@
 #!/bin/sh
 
+test -f "$bindir/.config" && . "$bindir/.config"
+
 FAILCOUNT=0
 
 bb="busybox "
@@ -73,7 +75,7 @@ done
 
 # "input" file is bzipped file with "a\n" data
 testing "bzcat can print many files" \
-"$ECHO -ne '$hexdump' | bzcat input input; echo \$?" \
+"bzcat input input; echo \$?" \
 "\
 a
 a
@@ -86,7 +88,7 @@ a
 
 # "input" file is bzipped zero byte file
 testing "bzcat can handle compressed zero-length bzip2 files" \
-"$ECHO -ne '$hexdump' | bzcat input input; echo \$?" \
+"bzcat input input; echo \$?" \
 "0\n" \
 "\x42\x5a\x68\x39\x17\x72\x45\x38\x50\x90\x00\x00\x00\x00" ""
 
@@ -95,7 +97,7 @@ testing "bzcat can handle compressed zero-length bzip2 files" \
 # "input" file is compressed (.Z) file with "a\n" data
 test x"$CONFIG_UNCOMPRESS" = x"y" && \
 testing "zcat can print many files" \
-"$ECHO -ne '$hexdump' | zcat input input; echo \$?" \
+"zcat input input; echo \$?" \
 "\
 a
 a
@@ -107,7 +109,7 @@ a
 # "input" file is compressed (.Z) zero byte file
 test x"$CONFIG_UNCOMPRESS" = x"y" && \
 testing "zcat can handle compressed zero-length (.Z) files" \
-"$ECHO -ne '$hexdump' | zcat input input; echo \$?" \
+"zcat input input; echo \$?" \
 "0\n" \
 "\x1f\x9d\x90\x00" ""
 
