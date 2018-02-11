@@ -101,7 +101,11 @@ int cp_main(int argc, char **argv)
 		"parents\0"        No_argument "\xfe"
 	);
 #else
-	flags = getopt32(argv, FILEUTILS_CP_OPTSTR);
+	flags = getopt32(argv, "^"
+		FILEUTILS_CP_OPTSTR
+		"\0"
+		"-2:l--s:s--l:Pd:rRd:Rd:apdR"
+	);
 #endif
 	/* Options of cp from GNU coreutils 6.10:
 	 * -a, --archive
