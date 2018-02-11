@@ -28,6 +28,7 @@
 //usage:     "\n	-A		ARP answer mode, update your neighbors"
 //usage:     "\n	-c N		Stop after sending N ARP requests"
 //usage:     "\n	-w TIMEOUT	Seconds to wait for ARP reply"
+//NB: in iputils-s20160308, iface is mandatory, no default
 //usage:     "\n	-I IFACE	Interface to use (default eth0)"
 //usage:     "\n	-s SRC_IP	Sender IP address"
 //usage:     "\n	DST_IP		Target IP address"
@@ -56,8 +57,8 @@ enum {
 #define GETOPT32(str_timeout, device, source) \
 	getopt32(argv, "^" \
 		"UDAqfbc:+w:I:s:" \
-		/* Dad also sets quit_on_reply, */ \
-		/* Advert also sets unsolicited: */ \
+		/* DAD also sets quit_on_reply, */ \
+		/* advert also sets unsolicited: */ \
 		"\0" "=1:Df:AU", \
 		&count, &str_timeout, &device, &source \
 	);
@@ -67,7 +68,6 @@ struct globals {
 	struct in_addr dst;
 	struct sockaddr_ll me;
 	struct sockaddr_ll he;
-	int sock_fd;
 
 	int count; // = -1;
 	unsigned last;
@@ -80,7 +80,9 @@ struct globals {
 	unsigned brd_recv;
 	unsigned req_recv;
 
+	/* should be in main(), but are here to reduce stack use: */
 	struct ifreq ifr;
+	struct sockaddr_in probe_saddr;
 	sigset_t sset;
 	unsigned char packet[4096];
 } FIX_ALIASING;
@@ -88,7 +90,6 @@ struct globals {
 #define dst        (G.dst       )
 #define me         (G.me        )
 #define he         (G.he        )
-#define sock_fd    (G.sock_fd   )
 #define count      (G.count     )
 #define last       (G.last      )
 #define timeout_us (G.timeout_us)
@@ -105,6 +106,8 @@ struct globals {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	count = -1; \
 } while (0)
+
+#define sock_fd 3
 
 static int send_pack(struct in_addr *src_addr,
 			struct in_addr *dst_addr,
@@ -299,7 +302,7 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	sock_fd = xsocket(AF_PACKET, SOCK_DGRAM, 0);
+	xmove_fd(xsocket(AF_PACKET, SOCK_DGRAM, 0), sock_fd);
 
 	// If you ever change BB_SUID_DROP to BB_SUID_REQUIRE,
 	// drop suid root privileges here:
@@ -351,31 +354,29 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 		src = dst;
 
 	if (!(option_mask32 & DAD) || src.s_addr) {
-		struct sockaddr_in saddr;
+		/*struct sockaddr_in probe_saddr;*/
 		int probe_fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
 		setsockopt_bindtodevice(probe_fd, device);
-		memset(&saddr, 0, sizeof(saddr));
-		saddr.sin_family = AF_INET;
+
+		/*memset(&G.probe_saddr, 0, sizeof(G.probe_saddr)); - zeroed by INIT_G */
+		G.probe_saddr.sin_family = AF_INET;
 		if (src.s_addr) {
 			/* Check that this is indeed our IP */
-			saddr.sin_addr = src;
-			xbind(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
+			G.probe_saddr.sin_addr = src;
+			xbind(probe_fd, (struct sockaddr *) &G.probe_saddr, sizeof(G.probe_saddr));
 		} else { /* !(option_mask32 & DAD) case */
 			/* Find IP address on this iface */
-			saddr.sin_port = htons(1025);
-			saddr.sin_addr = dst;
+			G.probe_saddr.sin_port = htons(1025);
+			G.probe_saddr.sin_addr = dst;
 
 			if (setsockopt_SOL_SOCKET_1(probe_fd, SO_DONTROUTE) != 0)
 				bb_perror_msg("setsockopt(%s)", "SO_DONTROUTE");
-			xconnect(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
-			bb_getsockname(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
-			//never happens:
-			//if (getsockname(probe_fd, (struct sockaddr *) &saddr, &alen) == -1)
-			//	bb_perror_msg_and_die("getsockname");
-			if (saddr.sin_family != AF_INET)
+			xconnect(probe_fd, (struct sockaddr *) &G.probe_saddr, sizeof(G.probe_saddr));
+			bb_getsockname(probe_fd, (struct sockaddr *) &G.probe_saddr, sizeof(G.probe_saddr));
+			if (G.probe_saddr.sin_family != AF_INET)
 				bb_error_msg_and_die("no IP address configured");
-			src = saddr.sin_addr;
+			src = G.probe_saddr.sin_addr;
 		}
 		close(probe_fd);
 	}
