@@ -79,8 +79,11 @@ struct globals {
 	unsigned received;
 	unsigned brd_recv;
 	unsigned req_recv;
+
+	struct ifreq ifr;
+	sigset_t sset;
+	unsigned char packet[4096];
 } FIX_ALIASING;
-#define G (*(struct globals*)bb_common_bufsiz1)
 #define src        (G.src       )
 #define dst        (G.dst       )
 #define me         (G.me        )
@@ -95,8 +98,11 @@ struct globals {
 #define received   (G.received  )
 #define brd_recv   (G.brd_recv  )
 #define req_recv   (G.req_recv  )
+//#define G (*(struct globals*)bb_common_bufsiz1)
+#define G (*ptr_to_globals)
 #define INIT_G() do { \
-	setup_common_bufsiz(); \
+	/*setup_common_bufsiz();*/ \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	count = -1; \
 } while (0)
 
@@ -183,15 +189,10 @@ static void recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	struct arphdr *ah = (struct arphdr *) buf;
 	unsigned char *p = (unsigned char *) (ah + 1);
 	struct in_addr src_ip, dst_ip;
+
 	/* moves below assume in_addr is 4 bytes big, ensure that */
-	struct BUG_in_addr_must_be_4 {
-		char BUG_in_addr_must_be_4[
-			sizeof(struct in_addr) == 4 ? 1 : -1
-		];
-		char BUG_s_addr_must_be_4[
-			sizeof(src_ip.s_addr) == 4 ? 1 : -1
-		];
-	};
+	BUILD_BUG_ON(sizeof(struct in_addr) != 4);
+	BUILD_BUG_ON(sizeof(src_ip.s_addr) != 4);
 
 	/* Filter out wild packets */
 	if (FROM->sll_pkttype != PACKET_HOST
@@ -212,8 +213,10 @@ static void recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	if (ah->ar_pro != htons(ETH_P_IP)
 	 || (ah->ar_pln != 4)
 	 || (ah->ar_hln != me.sll_halen)
-	 || (len < (int)(sizeof(*ah) + 2 * (4 + ah->ar_hln))))
+	 || (len < (int)(sizeof(*ah) + 2 * (4 + ah->ar_hln)))
+	) {
 		return;
+	}
 
 	move_from_unaligned32(src_ip.s_addr, p + ah->ar_hln);
 	move_from_unaligned32(dst_ip.s_addr, p + ah->ar_hln + 4 + ah->ar_hln);
@@ -292,7 +295,6 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 	const char *device = "eth0";
 	char *source = NULL;
 	char *target;
-	unsigned char *packet;
 	char *err_str;
 
 	INIT_G();
@@ -316,27 +318,21 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 	err_str = xasprintf("interface %s %%s", device);
 	xfunc_error_retval = 2;
 
-	{
-		struct ifreq ifr;
+	/*memset(&G.ifr, 0, sizeof(G.ifr)); - zeroed by INIT_G */
+	strncpy_IFNAMSIZ(G.ifr.ifr_name, device);
+	ioctl_or_perror_and_die(sock_fd, SIOCGIFINDEX, &G.ifr, err_str, "not found");
+	me.sll_ifindex = G.ifr.ifr_ifindex;
 
-		memset(&ifr, 0, sizeof(ifr));
-		strncpy_IFNAMSIZ(ifr.ifr_name, device);
-		/* We use ifr.ifr_name in error msg so that problem
-		 * with truncated name will be visible */
-		ioctl_or_perror_and_die(sock_fd, SIOCGIFINDEX, &ifr, err_str, "not found");
-		me.sll_ifindex = ifr.ifr_ifindex;
+	xioctl(sock_fd, SIOCGIFFLAGS, (char *) &G.ifr);
 
-		xioctl(sock_fd, SIOCGIFFLAGS, (char *) &ifr);
-
-		if (!(ifr.ifr_flags & IFF_UP)) {
-			bb_error_msg_and_die(err_str, "is down");
-		}
-		if (ifr.ifr_flags & (IFF_NOARP | IFF_LOOPBACK)) {
-			bb_error_msg(err_str, "is not ARPable");
-			BUILD_BUG_ON(DAD != 2);
-			/* exit 0 if DAD, else exit 2 */
-			return (~option_mask32 & DAD);
-		}
+	if (!(G.ifr.ifr_flags & IFF_UP)) {
+		bb_error_msg_and_die(err_str, "is down");
+	}
+	if (G.ifr.ifr_flags & (IFF_NOARP | IFF_LOOPBACK)) {
+		bb_error_msg(err_str, "is not ARPable");
+		BUILD_BUG_ON(DAD != 2);
+		/* exit 0 if DAD, else exit 2 */
+		return (~option_mask32 & DAD);
 	}
 
 	/* if (!inet_aton(target, &dst)) - not needed */ {
@@ -413,8 +409,9 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 		printf(" from %s %s\n", inet_ntoa(src), device);
 	}
 
-	packet = xmalloc(4096);
-
+	/*sigemptyset(&G.sset); - zeroed by INIT_G */
+	sigaddset(&G.sset, SIGALRM);
+	sigaddset(&G.sset, SIGINT);
 	signal_SA_RESTART_empty_mask(SIGINT,  (void (*)(int))finish);
 	signal_SA_RESTART_empty_mask(SIGALRM, (void (*)(int))catcher);
 
@@ -422,28 +419,24 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 	catcher();
 
 	while (1) {
-		sigset_t sset;
 		struct sockaddr_ll from;
 		socklen_t alen = sizeof(from);
 		int cc;
 
-		sigemptyset(&sset);
-		sigaddset(&sset, SIGALRM);
-		sigaddset(&sset, SIGINT);
 		/* Unblock SIGALRM so that the previously called alarm()
 		 * can prevent recvfrom from blocking forever in case the
 		 * inherited procmask is blocking SIGALRM.
 		 */
-		sigprocmask(SIG_UNBLOCK, &sset, NULL);
+		sigprocmask(SIG_UNBLOCK, &G.sset, NULL);
 
-		cc = recvfrom(sock_fd, packet, 4096, 0, (struct sockaddr *) &from, &alen);
+		cc = recvfrom(sock_fd, G.packet, sizeof(G.packet), 0, (struct sockaddr *) &from, &alen);
 
 		/* Don't allow SIGALRMs while we process the reply */
-		sigprocmask(SIG_BLOCK, &sset, NULL);
+		sigprocmask(SIG_BLOCK, &G.sset, NULL);
 		if (cc < 0) {
 			bb_perror_msg("recvfrom");
 			continue;
 		}
-		recv_pack(packet, cc, &from);
+		recv_pack(G.packet, cc, &from);
 	}
 }
