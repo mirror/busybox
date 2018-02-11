@@ -11,7 +11,6 @@
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	Ping hosts by ARP packets.
-//config:
 
 //applet:IF_ARPING(APPLET(arping, BB_DIR_USR_SBIN, BB_SUID_DROP))
 
@@ -45,14 +44,23 @@
 #define MONOTONIC_US() ((unsigned)monotonic_us())
 
 enum {
-	DAD = 1,
-	UNSOLICITED = 2,
-	ADVERT = 4,
-	QUIET = 8,
-	QUIT_ON_REPLY = 16,
-	BCAST_ONLY = 32,
-	UNICASTING = 64
+	UNSOLICITED   = 1 << 0,
+	DAD           = 1 << 1,
+	ADVERT        = 1 << 2,
+	QUIET         = 1 << 3,
+	QUIT_ON_REPLY = 1 << 4,
+	BCAST_ONLY    = 1 << 5,
+	UNICASTING    = 1 << 6,
+	TIMEOUT       = 1 << 7,
 };
+#define GETOPT32(str_timeout, device, source) \
+	getopt32(argv, "^" \
+		"UDAqfbc:+w:I:s:" \
+		/* Dad also sets quit_on_reply, */ \
+		/* Advert also sets unsolicited: */ \
+		"\0" "=1:Df:AU", \
+		&count, &str_timeout, &device, &source \
+	);
 
 struct globals {
 	struct in_addr src;
@@ -92,21 +100,15 @@ struct globals {
 	count = -1; \
 } while (0)
 
-// If GNUisms are not available...
-//static void *mempcpy(void *_dst, const void *_src, int n)
-//{
-//	memcpy(_dst, _src, n);
-//	return (char*)_dst + n;
-//}
-
 static int send_pack(struct in_addr *src_addr,
-			struct in_addr *dst_addr, struct sockaddr_ll *ME,
+			struct in_addr *dst_addr,
+			struct sockaddr_ll *ME,
 			struct sockaddr_ll *HE)
 {
 	int err;
 	unsigned char buf[256];
 	struct arphdr *ah = (struct arphdr *) buf;
-	unsigned char *p = (unsigned char *) (ah + 1);
+	unsigned char *p;
 
 	ah->ar_hrd = htons(ARPHRD_ETHER);
 	ah->ar_pro = htons(ETH_P_IP);
@@ -114,6 +116,7 @@ static int send_pack(struct in_addr *src_addr,
 	ah->ar_pln = 4;
 	ah->ar_op = option_mask32 & ADVERT ? htons(ARPOP_REPLY) : htons(ARPOP_REQUEST);
 
+	p = (unsigned char *) (ah + 1);
 	p = mempcpy(p, &ME->sll_addr, ah->ar_hln);
 	p = mempcpy(p, src_addr, 4);
 
@@ -303,16 +306,9 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 		unsigned opt;
 		char *str_timeout;
 
-		/* Dad also sets quit_on_reply.
-		 * Advert also sets unsolicited.
-		 */
-		opt = getopt32(argv, "^" "DUAqfbc:+w:I:s:" "\0" "=1:Df:AU",
-				&count, &str_timeout, &device, &source
-		);
-		if (opt & 0x80) /* -w: timeout */
+		opt = GETOPT32(str_timeout, device, source);
+		if (opt & TIMEOUT)
 			timeout_us = xatou_range(str_timeout, 0, INT_MAX/2000000) * 1000000 + 500000;
-		//if (opt & 0x200) /* -s: source */
-		option_mask32 &= 0x3f; /* set respective flags */
 	}
 
 	target = argv[optind];
@@ -336,7 +332,9 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 		}
 		if (ifr.ifr_flags & (IFF_NOARP | IFF_LOOPBACK)) {
 			bb_error_msg(err_str, "is not ARPable");
-			return (option_mask32 & DAD ? 0 : 2);
+			BUILD_BUG_ON(DAD != 2);
+			/* exit 0 if DAD, else exit 2 */
+			return (~option_mask32 & DAD);
 		}
 	}
 
@@ -401,7 +399,9 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 	}
 	if (me.sll_halen == 0) {
 		bb_error_msg(err_str, "is not ARPable (no ll address)");
-		return (option_mask32 & DAD ? 0 : 2);
+		BUILD_BUG_ON(DAD != 2);
+		/* exit 0 if DAD, else exit 2 */
+		return (~option_mask32 & DAD);
 	}
 	he = me;
 	memset(he.sll_addr, -1, he.sll_halen);
