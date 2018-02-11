@@ -15,16 +15,13 @@
 
 void FAST_FUNC xrtnl_open(struct rtnl_handle *rth/*, unsigned subscriptions*/)
 {
-	socklen_t addr_len;
-
 	memset(rth, 0, sizeof(*rth));
 	rth->fd = xsocket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	rth->local.nl_family = AF_NETLINK;
 	/*rth->local.nl_groups = subscriptions;*/
 
 	xbind(rth->fd, (struct sockaddr*)&rth->local, sizeof(rth->local));
-	addr_len = sizeof(rth->local);
-	getsockname(rth->fd, (struct sockaddr*)&rth->local, &addr_len);
+	bb_getsockname(rth->fd, (struct sockaddr*)&rth->local, sizeof(rth->local));
 
 /* too much paranoia
 	if (getsockname(rth->fd, (struct sockaddr*)&rth->local, &addr_len) < 0)

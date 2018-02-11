@@ -132,7 +132,6 @@ static int get_address(char *dev, int *htype)
 {
 	struct ifreq ifr;
 	struct sockaddr_ll me;
-	socklen_t alen;
 	int s;
 
 	s = xsocket(PF_PACKET, SOCK_DGRAM, 0);
@@ -146,8 +145,7 @@ static int get_address(char *dev, int *htype)
 	me.sll_ifindex = ifr.ifr_ifindex;
 	me.sll_protocol = htons(ETH_P_LOOP);
 	xbind(s, (struct sockaddr*)&me, sizeof(me));
-	alen = sizeof(me);
-	getsockname(s, (struct sockaddr*)&me, &alen);
+	bb_getsockname(s, (struct sockaddr*)&me, sizeof(me));
 	//never happens:
 	//if (getsockname(s, (struct sockaddr*)&me, &alen) == -1)
 	//	bb_perror_msg_and_die("getsockname");

@@ -497,10 +497,9 @@ static void register_rpc(servtab_t *sep)
 {
 	int n;
 	struct sockaddr_in ir_sin;
-	socklen_t size;
 
-	size = sizeof(ir_sin);
-	if (getsockname(sep->se_fd, (struct sockaddr *) &ir_sin, &size) < 0) {
+	if (bb_getsockname(sep->se_fd, (struct sockaddr *) &ir_sin, sizeof(ir_sin)) < 0) {
+//TODO: verify that such failure is even possible in Linux kernel
 		bb_perror_msg("getsockname");
 		return;
 	}

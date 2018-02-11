@@ -363,15 +363,13 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 			xbind(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
 		} else { /* !(option_mask32 & DAD) case */
 			/* Find IP address on this iface */
-			socklen_t alen = sizeof(saddr);
-
 			saddr.sin_port = htons(1025);
 			saddr.sin_addr = dst;
 
 			if (setsockopt_SOL_SOCKET_1(probe_fd, SO_DONTROUTE) != 0)
 				bb_perror_msg("setsockopt(%s)", "SO_DONTROUTE");
 			xconnect(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
-			getsockname(probe_fd, (struct sockaddr *) &saddr, &alen);
+			bb_getsockname(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
 			//never happens:
 			//if (getsockname(probe_fd, (struct sockaddr *) &saddr, &alen) == -1)
 			//	bb_perror_msg_and_die("getsockname");
@@ -387,13 +385,10 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 	me.sll_protocol = htons(ETH_P_ARP);
 	xbind(sock_fd, (struct sockaddr *) &me, sizeof(me));
 
-	{
-		socklen_t alen = sizeof(me);
-		getsockname(sock_fd, (struct sockaddr *) &me, &alen);
-		//never happens:
-		//if (getsockname(sock_fd, (struct sockaddr *) &me, &alen) == -1)
-		//	bb_perror_msg_and_die("getsockname");
-	}
+	bb_getsockname(sock_fd, (struct sockaddr *) &me, sizeof(me));
+	//never happens:
+	//if (getsockname(sock_fd, (struct sockaddr *) &me, &alen) == -1)
+	//	bb_perror_msg_and_die("getsockname");
 	if (me.sll_halen == 0) {
 		bb_error_msg(err_str, "is not ARPable (no ll address)");
 		BUILD_BUG_ON(DAD != 2);

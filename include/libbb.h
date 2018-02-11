@@ -636,6 +636,7 @@ void setsockopt_reuseaddr(int fd) FAST_FUNC; /* On Linux this never fails. */
 int setsockopt_keepalive(int fd) FAST_FUNC;
 int setsockopt_broadcast(int fd) FAST_FUNC;
 int setsockopt_bindtodevice(int fd, const char *iface) FAST_FUNC;
+int bb_getsockname(int sockfd, void *addr, socklen_t addrlen) FAST_FUNC;
 /* NB: returns port in host byte order */
 unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port) FAST_FUNC;
 typedef struct len_and_sockaddr {
