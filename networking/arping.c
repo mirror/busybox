@@ -142,10 +142,10 @@ static void finish(void)
 {
 	if (!(option_mask32 & QUIET)) {
 		printf("Sent %u probe(s) (%u broadcast(s))\n"
-			"Received %u repl%s"
+			"Received %u response(s)"
 			" (%u request(s), %u broadcast(s))\n",
 			sent, brd_sent,
-			received, (received == 1) ? "ies" : "y",
+			received,
 			req_recv, brd_recv);
 	}
 	if (option_mask32 & DAD)
@@ -245,6 +245,7 @@ static void recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	if (!(option_mask32 & QUIET)) {
 		int s_printed = 0;
 
+//TODO: arping from iputils-s20160308 print upprcase hex in MAC, follow them?
 		printf("%scast re%s from %s [%02x:%02x:%02x:%02x:%02x:%02x]",
 			FROM->sll_pkttype == PACKET_HOST ? "Uni" : "Broad",
 			ah->ar_op == htons(ARPOP_REPLY) ? "ply" : "quest",
@@ -252,14 +253,14 @@ static void recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 			p[0], p[1], p[2], p[3], p[4], p[5]
 		);
 		if (dst_ip.s_addr != src.s_addr) {
-			printf("for %s ", inet_ntoa(dst_ip));
+			printf("for %s", inet_ntoa(dst_ip));
 			s_printed = 1;
 		}
 		if (memcmp(p + ah->ar_hln + 4, me.sll_addr, ah->ar_hln)) {
 			unsigned char *pp = p + ah->ar_hln + 4;
 			if (!s_printed)
-				printf("for ");
-			printf("[%02x:%02x:%02x:%02x:%02x:%02x]",
+				printf(" for");
+			printf(" [%02x:%02x:%02x:%02x:%02x:%02x]",
 				pp[0], pp[1], pp[2], pp[3], pp[4], pp[5]
 			);
 		}
@@ -408,8 +409,8 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 
 	if (!(option_mask32 & QUIET)) {
 		/* inet_ntoa uses static storage, can't use in same printf */
-		printf("ARPING to %s", inet_ntoa(dst));
-		printf(" from %s via %s\n", inet_ntoa(src), device);
+		printf("ARPING %s", inet_ntoa(dst));
+		printf(" from %s %s\n", inet_ntoa(src), device);
 	}
 
 	signal_SA_RESTART_empty_mask(SIGINT,  (void (*)(int))finish);
