@@ -413,28 +413,37 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 		printf(" from %s %s\n", inet_ntoa(src), device);
 	}
 
+	packet = xmalloc(4096);
+
 	signal_SA_RESTART_empty_mask(SIGINT,  (void (*)(int))finish);
 	signal_SA_RESTART_empty_mask(SIGALRM, (void (*)(int))catcher);
 
+	/* Send the first packet, arm ALRM */
 	catcher();
 
-	packet = xmalloc(4096);
 	while (1) {
-		sigset_t sset, osset;
+		sigset_t sset;
 		struct sockaddr_ll from;
 		socklen_t alen = sizeof(from);
 		int cc;
 
+		sigemptyset(&sset);
+		sigaddset(&sset, SIGALRM);
+		sigaddset(&sset, SIGINT);
+		/* Unblock SIGALRM so that the previously called alarm()
+		 * can prevent recvfrom from blocking forever in case the
+		 * inherited procmask is blocking SIGALRM.
+		 */
+		sigprocmask(SIG_UNBLOCK, &sset, NULL);
+
 		cc = recvfrom(sock_fd, packet, 4096, 0, (struct sockaddr *) &from, &alen);
+
+		/* Don't allow SIGALRMs while we process the reply */
+		sigprocmask(SIG_BLOCK, &sset, NULL);
 		if (cc < 0) {
 			bb_perror_msg("recvfrom");
 			continue;
 		}
-		sigemptyset(&sset);
-		sigaddset(&sset, SIGALRM);
-		sigaddset(&sset, SIGINT);
-		sigprocmask(SIG_BLOCK, &sset, &osset);
 		recv_pack(packet, cc, &from);
-		sigprocmask(SIG_SETMASK, &osset, NULL);
 	}
 }
