@@ -6614,24 +6614,22 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 static void parse_and_run_string(const char *s)
 {
 	struct in_str input;
+	//IF_HUSH_LINENO_VAR(unsigned sv = G.lineno;)
+
 	setup_string_in_str(&input, s);
 	parse_and_run_stream(&input, '\0');
+	//IF_HUSH_LINENO_VAR(G.lineno = sv;)
 }
 
 static void parse_and_run_file(FILE *f)
 {
 	struct in_str input;
-#if ENABLE_HUSH_LINENO_VAR
-	unsigned sv;
+	IF_HUSH_LINENO_VAR(unsigned sv = G.lineno;)
 
-	sv = G.lineno;
-	G.lineno = 1;
-#endif
+	IF_HUSH_LINENO_VAR(G.lineno = 1;)
 	setup_file_in_str(&input, f);
 	parse_and_run_stream(&input, ';');
-#if ENABLE_HUSH_LINENO_VAR
-	G.lineno = sv;
-#endif
+	IF_HUSH_LINENO_VAR(G.lineno = sv;)
 }
 
 #if ENABLE_HUSH_TICK
@@ -6744,16 +6742,16 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 static int process_command_subs(o_string *dest, const char *s)
 {
 	FILE *fp;
-	struct in_str pipe_str;
 	pid_t pid;
 	int status, ch, eol_cnt;
 
 	fp = generate_stream_from_string(s, &pid);
 
 	/* Now send results of command back into original context */
-	setup_file_in_str(&pipe_str, fp);
 	eol_cnt = 0;
-	while ((ch = i_getch(&pipe_str)) != EOF) {
+	while ((ch = getc(fp)) != EOF) {
+		if (ch == '\0')
+			continue;
 		if (ch == '\n') {
 			eol_cnt++;
 			continue;
