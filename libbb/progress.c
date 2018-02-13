@@ -57,6 +57,9 @@ void FAST_FUNC bb_progress_init(bb_progress_t *p, const char *curfile)
 	p->last_update_sec = p->start_sec;
 	p->last_change_sec = p->start_sec;
 	p->last_size = 0;
+#if 0
+	p->last_eta = INT_MAX;
+#endif
 }
 
 /* File already had beg_size bytes.
@@ -192,6 +195,16 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		/* if 32bit, can overflow ^^^^^^^^^^, but this would only show bad ETA */
 		if (eta >= 1000*60*60)
 			eta = 1000*60*60 - 1;
+#if 0
+		/* To prevent annoying "back-and-forth" estimation jitter,
+		 * if new ETA is larger than the last just by a few seconds,
+		 * disregard it, and show last one. The end result is that
+		 * ETA usually only decreases, unless download slows down a lot.
+		 */
+		if ((unsigned)(eta - p->last_eta) < 10)
+			eta = p->last_eta;
+		p->last_eta = eta;
+#endif
 		secs = eta % 3600;
 		hours = eta / 3600;
 		fprintf(stderr, "%3u:%02u:%02u ETA", hours, secs / 60, secs % 60);

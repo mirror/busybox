@@ -1949,6 +1949,7 @@ typedef struct bb_progress_t {
 	unsigned last_update_sec;
 	unsigned last_change_sec;
 	unsigned start_sec;
+	/*unsigned last_eta;*/
 	const char *curfile;
 } bb_progress_t;
 
