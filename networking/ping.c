@@ -380,7 +380,8 @@ struct globals {
 	uint8_t pattern;
 	unsigned tmin, tmax; /* in us */
 	unsigned long long tsum; /* in us, sum of all times */
-	unsigned deadline_ms;
+	unsigned cur_us; /* low word only, we don't need more */
+	unsigned deadline_us;
 	unsigned timeout;
 	unsigned sizeof_rcv_packet;
 	char *rcv_packet; /* [datalen + MAXIPLEN + MAXICMPLEN] */
@@ -455,7 +456,7 @@ static void print_stats_and_exit(int junk UNUSED_PARAM)
 			tmax / 1000, tmax % 1000);
 	}
 	/* if condition is true, exit with 1 -- 'failure' */
-	exit(nrecv == 0 || (G.deadline_ms && nrecv < pingcount));
+	exit(nrecv == 0 || (G.deadline_us && nrecv < pingcount));
 }
 
 static void sendping_tail(void (*sp)(int), int size_pkt)
@@ -467,8 +468,8 @@ static void sendping_tail(void (*sp)(int), int size_pkt)
 
 	size_pkt += datalen;
 
-	if (G.deadline_ms) {
-		unsigned n = ((unsigned)monotonic_ms()) - G.deadline_ms;
+	if (G.deadline_us) {
+		unsigned n = G.cur_us - G.deadline_us;
 		if ((int)n >= 0)
 			print_stats_and_exit(0);
 	}
@@ -517,7 +518,7 @@ static void sendping4(int junk UNUSED_PARAM)
 	 */
 	/*if (datalen >= 4)*/
 		/* No hton: we'll read it back on the same machine */
-		*(uint32_t*)&pkt->icmp_dun = monotonic_us();
+		*(uint32_t*)&pkt->icmp_dun = G.cur_us = monotonic_us();
 
 	pkt->icmp_cksum = inet_cksum((uint16_t *) pkt, datalen + ICMP_MINLEN);
 
@@ -536,7 +537,7 @@ static void sendping6(int junk UNUSED_PARAM)
 	pkt->icmp6_id = myid;
 
 	/*if (datalen >= 4)*/
-		*(bb__aliased_uint32_t*)(&pkt->icmp6_data8[4]) = monotonic_us();
+		*(bb__aliased_uint32_t*)(&pkt->icmp6_data8[4]) = G.cur_us = monotonic_us();
 
 	//TODO? pkt->icmp_cksum = inet_cksum(...);
 
@@ -891,7 +892,7 @@ static int common_ping_main(int opt, char **argv)
 			OPT_STRING
 			/* exactly one arg; -v and -q don't mix */
 			"\0" "=1:q--v:v--q",
-			&pingcount, &str_s, &opt_ttl, &G.deadline_ms, &timeout, &str_I, &str_p
+			&pingcount, &str_s, &opt_ttl, &G.deadline_us, &timeout, &str_I, &str_p
 	);
 	if (opt & OPT_s)
 		datalen = xatou16(str_s); // -s
@@ -905,9 +906,9 @@ static int common_ping_main(int opt, char **argv)
 	}
 	if (opt & OPT_p)
 		G.pattern = xstrtou_range(str_p, 16, 0, 255);
-	if (G.deadline_ms) {
-		unsigned d = G.deadline_ms < INT_MAX/1000 ? G.deadline_ms : INT_MAX/1000;
-		G.deadline_ms = 1 | ((d * 1000) + monotonic_ms());
+	if (G.deadline_us) {
+		unsigned d = G.deadline_us < INT_MAX/1000000 ? G.deadline_us : INT_MAX/1000000;
+		G.deadline_us = 1 | ((d * 1000000) + monotonic_us());
 	}
 
 	myid = (uint16_t) getpid();
