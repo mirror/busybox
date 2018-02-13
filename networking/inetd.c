@@ -246,7 +246,11 @@
 #if ENABLE_FEATURE_INETD_RPC
 # if defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
 #  warning "You probably need to build uClibc with UCLIBC_HAS_RPC for NFS support"
-   /* not #error, since user may be using e.g. libtirpc instead */
+   /* not #error, since user may be using e.g. libtirpc instead.
+    * This might work:
+    * CONFIG_EXTRA_CFLAGS="-I/usr/include/tirpc"
+    * CONFIG_EXTRA_LDLIBS="tirpc"
+    */
 # endif
 # include <rpc/rpc.h>
 # include <rpc/pmap_clnt.h>
