@@ -6146,12 +6146,12 @@ rmescapes(char *str, int flag, int *slash_position)
 				if (*p == '*'
 				 || *p == '?'
 				 || *p == '['
-				 || *p == '\\' /* case '\' in \\ ) echo ok;; *) echo WRONG;; esac */
-				 || *p == ']' /* case ']' in [a\]] ) echo ok;; *) echo WRONG;; esac */
-				 || *p == '-' /* case '-' in [a\-c]) echo ok;; *) echo WRONG;; esac */
-				 || *p == '!' /* case '!' in [\!] ) echo ok;; *) echo WRONG;; esac */
+				 || *p == '\\' /* case '\' in \\    ) echo ok;; *) echo WRONG;; esac */
+				 || *p == ']'  /* case ']' in [a\]] ) echo ok;; *) echo WRONG;; esac */
+				 || *p == '-'  /* case '-' in [a\-c]) echo ok;; *) echo WRONG;; esac */
+				 || *p == '!'  /* case '!' in [\!]  ) echo ok;; *) echo WRONG;; esac */
 				/* Some libc support [^negate], that's why "^" also needs love */
-				 || *p == '^' /* case '^' in [\^] ) echo ok;; *) echo WRONG;; esac */
+				 || *p == '^'  /* case '^' in [\^]  ) echo ok;; *) echo WRONG;; esac */
 				) {
 					*q++ = '\\';
 				}
@@ -11992,13 +11992,24 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 					USTPUTC(CTLESC, out);
 					USTPUTC('\\', out);
 				}
-				/* Backslash is retained if we are in "str" and next char isn't special */
+				/* Backslash is retained if we are in "str"
+				 * and next char isn't dquote-special.
+				 */
 				if (dblquote
 				 && c != '\\'
 				 && c != '`'
 				 && c != '$'
 				 && (c != '"' || eofmark != NULL)
 				) {
+//dash survives not doing USTPUTC(CTLESC), but merely by chance:
+//Example: "\z" gets encoded as "\<CTLESC>z".
+//rmescapes() then emits "\", "\z", protecting z from globbing.
+//But it's wrong, should protect _both_ from globbing:
+//everything in double quotes is not globbed.
+//Unlike dash, we have a fix in rmescapes() which emits bare "z"
+//for "<CTLESC>z" since "z" is not glob-special (else unicode may break),
+//and glob would see "\z" and eat "\". Thus:
+					USTPUTC(CTLESC, out); /* protect '\' from glob */
 					USTPUTC('\\', out);
 				}
 				USTPUTC(CTLESC, out);
