@@ -32,6 +32,10 @@ void FAST_FUNC die_if_bad_username(const char *name)
 		/* These chars are valid unless they are at the 1st pos: */
 		if (*name == '-'
 		 || *name == '.'
+		 || *name == '@'
+		 || *name == '%'
+		 || *name == '/'
+		 || *name == '\\'
 		/* $ is allowed if it's the last char: */
 		 || (*name == '$' && !name[1])
 		) {
