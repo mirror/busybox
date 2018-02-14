@@ -128,6 +128,31 @@ static void set_mtu(char *dev, int mtu)
 }
 
 /* Exits on error */
+static void set_master(char *dev, int master)
+{
+	struct rtnl_handle rth;
+	struct {
+		struct nlmsghdr  n;
+		struct ifinfomsg i;
+		char             buf[1024];
+	} req;
+
+	memset(&req, 0, sizeof(req));
+
+	req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+	req.n.nlmsg_flags = NLM_F_REQUEST;
+	req.n.nlmsg_type = RTM_NEWLINK;
+	req.i.ifi_family = preferred_family;
+
+	xrtnl_open(&rth);
+	req.i.ifi_index = xll_name_to_index(dev);
+	//printf("master %i for %i\n", master, req.i.ifi_index);
+	addattr_l(&req.n, sizeof(req), IFLA_MASTER, &master, 4);
+	if (rtnl_talk(&rth, &req.n, 0, 0, NULL, NULL, NULL) < 0)
+		xfunc_die();
+}
+
+/* Exits on error */
 static int get_address(char *dev, int *htype)
 {
 	struct ifreq ifr;
@@ -200,6 +225,7 @@ static int do_set(char **argv)
 	uint32_t flags = 0;
 	int qlen = -1;
 	int mtu = -1;
+	int master = -1;
 	char *newaddr = NULL;
 	char *newbrd = NULL;
 	struct ifreq ifr0, ifr1;
@@ -209,9 +235,11 @@ static int do_set(char **argv)
 	static const char keywords[] ALIGN1 =
 		"up\0""down\0""name\0""mtu\0""qlen\0""multicast\0"
 		"arp\0""promisc\0""address\0"
+		"master\0""nomaster\0"
 		"dev\0" /* must be last */;
 	enum { ARG_up = 0, ARG_down, ARG_name, ARG_mtu, ARG_qlen, ARG_multicast,
 		ARG_arp, ARG_promisc, ARG_addr,
+		ARG_master, ARG_nomaster,
 		ARG_dev };
 	enum { PARM_on = 0, PARM_off };
 	smalluint key;
@@ -243,6 +271,11 @@ static int do_set(char **argv)
 		} else if (key == ARG_addr) {
 			NEXT_ARG();
 			newaddr = *argv;
+		} else if (key == ARG_master) {
+			NEXT_ARG();
+			master = xll_name_to_index(*argv);
+		} else if (key == ARG_nomaster) {
+			master = 0;
 		} else if (key >= ARG_dev) {
 			/* ^^^^^^ ">=" here results in "dev IFACE" treated as default */
 			if (key == ARG_dev) {
@@ -426,6 +459,9 @@ static int do_set(char **argv)
 	}
 	if (mtu != -1) {
 		set_mtu(dev, mtu);
+	}
+	if (master != -1) {
+		set_master(dev, master);
 	}
 	if (mask)
 		do_chflags(dev, flags, mask);
@@ -673,6 +709,8 @@ int FAST_FUNC do_iplink(char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"add\0""delete\0""set\0""show\0""lst\0""list\0";
+
+	xfunc_error_retval = 2; //TODO: move up to "ip"? Is it the common rule for all "ip" tools?
 	if (*argv) {
 		int key = index_in_substrings(keywords, *argv);
 		if (key < 0) /* invalid argument */

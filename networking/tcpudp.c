@@ -318,7 +318,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 	sslser = user;
 	client = 0;
 	if ((getuid() == 0) && !(opts & OPT_u)) {
-		xfunc_exitcode = 100;
+		xfunc_error_retval = 100;
 		bb_error_msg_and_die(bb_msg_you_must_be_root);
 	}
 	if (opts & OPT_u)
