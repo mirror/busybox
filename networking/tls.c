@@ -806,8 +806,6 @@ static int tls_xread_record(tls_state_t *tls, const char *expected)
 			 || xhdr->proto_min != TLS_MIN
 			) {
 				sz = total < target ? total : target;
-				if (sz > 24)
-					sz = 24; /* don't flood */
 				bad_record_die(tls, expected, sz);
 			}
 			dbg("xhdr type:%d ver:%d.%d len:%d\n",
