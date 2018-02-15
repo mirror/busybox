@@ -83,11 +83,11 @@ char BUG_wrong_field_size(void);
 #define STORE_LE(field, value) \
 do { \
 	if (sizeof(field) == 4) \
-		field = SWAP_LE32(value); \
+		field = SWAP_LE32((uint32_t)(value)); \
 	else if (sizeof(field) == 2) \
-		field = SWAP_LE16(value); \
+		field = SWAP_LE16((uint16_t)(value)); \
 	else if (sizeof(field) == 1) \
-		field = (value); \
+		field = (uint8_t)(value); \
 	else \
 		BUG_wrong_field_size(); \
 } while (0)
