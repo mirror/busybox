@@ -24,6 +24,17 @@
 //config:	help
 //config:	Stop all processes and reboot the system.
 //config:
+//config:config FEATURE_WAIT_FOR_INIT
+//config:	bool "Before signaling init, make sure it is ready for it"
+//config:	default y
+//config:	depends on HALT || POWEROFF || REBOOT
+//config:	help
+//config:	In rare cases, poweroff may be commanded by firmware to OS
+//config:	even before init process exists. On Linux, this spawns
+//config:	"/sbin/poweroff" very early. This option adds code
+//config:	which checks that init is ready to receive poweroff
+//config:	commands. Code size increase of ~80 bytes.
+//config:
 //config:config FEATURE_CALL_TELINIT
 //config:	bool "Call telinit on shutdown and reboot"
 //config:	default y
@@ -108,6 +119,47 @@ static void write_wtmp(void)
 #define write_wtmp() ((void)0)
 #endif
 
+#if ENABLE_FEATURE_WAIT_FOR_INIT
+/* In Linux, "poweroff" may be spawned even before init.
+ * For example, with ACPI:
+ * linux/drivers/acpi/bus.c:
+ *  static void sb_notify_work(struct work_struct *dummy)
+ *      orderly_poweroff(true);
+ * linux/kernel/reboot.c:
+ *  static int run_cmd(const char *cmd)
+ *      ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
+ *  poweroff_cmd[] = "/sbin/poweroff";
+ *  static int __orderly_poweroff(bool force)
+ *      ret = run_cmd(poweroff_cmd);
+ *
+ * We want to make sure init exists and listens to signals.
+ */
+static int init_was_not_there(void)
+{
+	enum { initial = 5 }; /* 5 seconds should be plenty for timeout */
+	int cnt = initial - 1;
+
+	/* Just existence of PID 1 does not mean it installed
+	 * the handlers already.
+	 */
+#if 0
+	while (kill(1, 0) != 0 && --cnt >= 0)
+		sleep(1);
+#endif
+	/* ... so let's wait for some evidence a usual startup event,
+	 * mounting of /proc, happened. By that time init should be ready
+	 * for signals.
+	 */
+	while (access("/proc/meminfo", F_OK) != 0 && --cnt >= 0)
+		sleep(1);
+
+	/* Does it look like init wasn't there? */
+	return (cnt != initial - 1);
+}
+#else
+  /* Assume it's always there */
+# define init_was_not_there() 0
+#endif
 
 int halt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int halt_main(int argc UNUSED_PARAM, char **argv)
@@ -171,6 +223,8 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 			if (!ENABLE_FEATURE_CALL_TELINIT) {
 				/* bbox init assumed */
 				rc = kill(1, signals[which]);
+				if (init_was_not_there())
+					rc = kill(1, signals[which]);
 			} else {
 				/* SysV style init assumed */
 				/* runlevels:
