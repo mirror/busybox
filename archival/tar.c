@@ -1244,6 +1244,8 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	while (get_header_tar(tar_handle) == EXIT_SUCCESS)
 		bb_got_signal = EXIT_SUCCESS; /* saw at least one header, good */
 
+	create_symlinks_from_list(tar_handle->symlink_placeholders);
+
 	/* Check that every file that should have been extracted was */
 	while (tar_handle->accept) {
 		if (!find_list_entry(tar_handle->reject, tar_handle->accept->data)

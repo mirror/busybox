@@ -5,44 +5,37 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
-int FAST_FUNC unsafe_symlink_target(const char *target)
+void FAST_FUNC create_or_remember_symlink(llist_t **symlink_placeholders,
+		const char *target,
+		const char *linkname)
 {
-	const char *dot;
-
-	if (target[0] == '/') {
-		const char *var;
- unsafe:
-		var = getenv("EXTRACT_UNSAFE_SYMLINKS");
-		if (var) {
-			if (LONE_CHAR(var, '1'))
-				return 0; /* pretend it's safe */
-			return 1; /* "UNSAFE!" */
-		}
-		bb_error_msg("skipping unsafe symlink to '%s' in archive,"
-			" set %s=1 to extract",
-			target,
-			"EXTRACT_UNSAFE_SYMLINKS"
+	if (target[0] == '/' || strstr(target, "..")) {
+		llist_add_to(symlink_placeholders,
+			xasprintf("%s%c%s", linkname, '\0', target)
 		);
-		/* Prevent further messages */
-		setenv("EXTRACT_UNSAFE_SYMLINKS", "0", 0);
-		return 1; /* "UNSAFE!" */
+		return;
 	}
+	if (symlink(target, linkname) != 0) {
+		/* shared message */
+		bb_perror_msg_and_die("can't create %slink '%s' to '%s'",
+			"sym", linkname, target
+		);
+	}
+}
 
-	dot = target;
-	for (;;) {
-		dot = strchr(dot, '.');
-		if (!dot)
-			return 0; /* safe target */
+void FAST_FUNC create_symlinks_from_list(llist_t *list)
+{
+	while (list) {
+		char *target;
 
-		/* Is it a path component starting with ".."? */
-		if ((dot[1] == '.')
-		 && (dot == target || dot[-1] == '/')
-		    /* Is it exactly ".."? */
-		 && (dot[2] == '/' || dot[2] == '\0')
-		) {
-			goto unsafe;
+		target = list->data + strlen(list->data) + 1;
+		if (symlink(target, list->data)) {
+			/* shared message */
+			bb_error_msg_and_die("can't create %slink '%s' to '%s'",
+				"sym",
+				list->data, target
+			);
 		}
-		/* NB: it can even be trailing ".", should only add 1 */
-		dot += 1;
+		list = list->link;
 	}
 }

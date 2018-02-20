@@ -107,9 +107,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			}
 		}
 		else if (existing_sb.st_mtime >= file_header->mtime) {
-			if (!(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
-			 && !S_ISDIR(file_header->mode)
-			) {
+			if (!S_ISDIR(file_header->mode)) {
 				bb_error_msg("%s not created: newer or "
 					"same age file exists", dst_name);
 			}
@@ -125,7 +123,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	/* Handle hard links separately */
 	if (hard_link) {
 		res = link(hard_link, dst_name);
-		if (res != 0 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
+		if (res != 0) {
 			/* shared message */
 			bb_perror_msg("can't create %slink '%s' to '%s'",
 				"hard",	dst_name, hard_link
@@ -165,10 +163,9 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	}
 	case S_IFDIR:
 		res = mkdir(dst_name, file_header->mode);
-		if ((res == -1)
+		if ((res != 0)
 		 && (errno != EISDIR) /* btw, Linux doesn't return this */
 		 && (errno != EEXIST)
-		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
 		) {
 			bb_perror_msg("can't make dir %s", dst_name);
 		}
@@ -198,27 +195,16 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		 *
 		 * Untarring bug.tar would otherwise place evil.py in '/tmp'.
 		 */
-		if (!unsafe_symlink_target(file_header->link_target)) {
-			res = symlink(file_header->link_target, dst_name);
-			if (res != 0
-			 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
-			) {
-				/* shared message */
-				bb_perror_msg("can't create %slink '%s' to '%s'",
-					"sym",
-					dst_name, file_header->link_target
-				);
-			}
-		}
+		create_or_remember_symlink(&archive_handle->symlink_placeholders,
+				file_header->link_target,
+				dst_name);
 		break;
 	case S_IFSOCK:
 	case S_IFBLK:
 	case S_IFCHR:
 	case S_IFIFO:
 		res = mknod(dst_name, file_header->mode, file_header->device);
-		if ((res == -1)
-		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
-		) {
+		if (res != 0) {
 			bb_perror_msg("can't create node %s", dst_name);
 		}
 		break;

@@ -279,7 +279,7 @@ optional UUDECODE FEATURE_TAR_AUTODETECT FEATURE_SEAMLESS_BZ2
 testing "tar does not extract into symlinks" "\
 >>/tmp/passwd && uudecode -o input && tar xf input 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
 " "\
-tar: skipping unsafe symlink to '/tmp/passwd' in archive, set EXTRACT_UNSAFE_SYMLINKS=1 to extract
+tar: can't create symlink 'passwd' to '/tmp/passwd'
 0
 " \
 "" "\
@@ -299,7 +299,7 @@ optional UUDECODE FEATURE_TAR_AUTODETECT FEATURE_SEAMLESS_BZ2
 testing "tar -k does not extract into symlinks" "\
 >>/tmp/passwd && uudecode -o input && tar xf input -k 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
 " "\
-tar: skipping unsafe symlink to '/tmp/passwd' in archive, set EXTRACT_UNSAFE_SYMLINKS=1 to extract
+tar: can't create symlink 'passwd' to '/tmp/passwd'
 0
 " \
 "" "\
@@ -324,11 +324,11 @@ rm -rf etc usr
 ' "\
 etc/ssl/certs/3b2716e5.0
 etc/ssl/certs/EBG_Elektronik_Sertifika_Hizmet_Sağlayıcısı.pem
-tar: skipping unsafe symlink to '/usr/share/ca-certificates/mozilla/EBG_Elektronik_Sertifika_Hizmet_Sağlayıcısı.crt' in archive, set EXTRACT_UNSAFE_SYMLINKS=1 to extract
 etc/ssl/certs/f80cc7f6.0
 usr/share/ca-certificates/mozilla/EBG_Elektronik_Sertifika_Hizmet_Sağlayıcısı.crt
 0
 etc/ssl/certs/3b2716e5.0 -> EBG_Elektronik_Sertifika_Hizmet_Sağlayıcısı.pem
+etc/ssl/certs/EBG_Elektronik_Sertifika_Hizmet_Sağlayıcısı.pem -> /usr/share/ca-certificates/mozilla/EBG_Elektronik_Sertifika_Hizmet_Sağlayıcısı.crt
 etc/ssl/certs/f80cc7f6.0 -> EBG_Elektronik_Sertifika_Hizmet_Sağlayıcısı.pem
 " \
 "" ""
@@ -346,9 +346,9 @@ ls symlink/bb_test_evilfile
 ' "\
 anything.txt
 symlink
-tar: skipping unsafe symlink to '/tmp' in archive, set EXTRACT_UNSAFE_SYMLINKS=1 to extract
 symlink/bb_test_evilfile
-0
+tar: can't create symlink 'symlink' to '/tmp'
+1
 ls: /tmp/bb_test_evilfile: No such file or directory
 ls: bb_test_evilfile: No such file or directory
 symlink/bb_test_evilfile
