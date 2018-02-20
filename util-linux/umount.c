@@ -57,6 +57,7 @@
 //usage:	IF_FEATURE_MOUNT_LOOP(
 //usage:     "\n	-d	Free loop device if it has been used"
 //usage:	)
+//usage:     "\n	-t FSTYPE[,...]	Unmount only these filesystem type(s)"
 //usage:
 //usage:#define umount_example_usage
 //usage:       "$ umount /dev/hdc1\n"
@@ -81,8 +82,8 @@ static struct mntent *getmntent_r(FILE* stream, struct mntent* result,
 }
 #endif
 
-/* ignored: -c -v -t -i */
-#define OPTION_STRING           "fldnra" "cvt:i"
+/* ignored: -c -v -i */
+#define OPTION_STRING           "fldnrat:" "cvi"
 #define OPT_FORCE               (1 << 0) // Same as MNT_FORCE
 #define OPT_LAZY                (1 << 1) // Same as MNT_DETACH
 #define OPT_FREELOOP            (1 << 2)
@@ -143,7 +144,8 @@ int umount_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	// If we're not umounting all, we need at least one argument.
-	if (!(opt & OPT_ALL) && !fstype) {
+	// Note: "-t FSTYPE" does not imply -a.
+	if (!(opt & OPT_ALL)) {
 		if (!argv[0])
 			bb_show_usage();
 		m = NULL;
