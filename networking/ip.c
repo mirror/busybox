@@ -155,11 +155,60 @@
 //usage:
 //--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
 //usage:#define iplink_trivial_usage
-//usage:       "set IFACE [up|down] [arp on|off] | show [IFACE]"
-//usage:#define iplink_full_usage "\n\n"
-//usage:       "iplink set IFACE [up|down] [arp on|off] [multicast on|off] [promisc on|off]\n"
-//usage:       "	[mtu NUM] [name NAME] [qlen NUM] [address MAC]\n"
+//usage:       /*Usage:iplink*/"set IFACE [up|down] [arp on|off] [multicast on|off]\n"
+//usage:       "	[promisc on|off] [mtu NUM] [name NAME] [qlen NUM] [address MAC]"
+// * short help shows only "set" command, long help continues (with just one "\n")
+// * and shows all other commands:
+//usage:#define iplink_full_usage "\n"
+//usage:       "iplink add [link IFACE] IFACE [address MAC] type TYPE [ARGS]\n"
+//usage:       "iplink delete IFACE type TYPE [ARGS]\n"
+//usage:       "	TYPE ARGS := vlan VLANARGS | vrf table NUM\n"
+//usage:       "	VLANARGS := id VLANID [protocol 802.1q|802.1ad] [reorder_hdr on|off]\n"
+//usage:       "		[gvrp on|off] [mvrp on|off] [loose_binding on|off]\n"
 //usage:       "iplink show [IFACE]"
+//upstream man ip-link:
+//=====================
+//ip link add [link DEV] [ name ] NAME
+//                   [ txqueuelen PACKETS ]
+//                   [ address LLADDR ]
+//                   [ broadcast LLADDR ]
+//                   [ mtu MTU ] [index IDX ]
+//                   [ numtxqueues QUEUE_COUNT ]
+//                   [ numrxqueues QUEUE_COUNT ]
+//                   type TYPE [ ARGS ]
+//       ip link delete { DEVICE | dev DEVICE | group DEVGROUP } type TYPE [ ARGS ]
+//       ip link set { DEVICE | dev DEVICE | group DEVGROUP } [ { up | down } ]
+//                      [ arp { on | off } ]
+//                      [ dynamic { on | off } ]
+//                      [ multicast { on | off } ]
+//                      [ allmulticast { on | off } ]
+//                      [ promisc { on | off } ]
+//                      [ trailers { on | off } ]
+//                      [ txqueuelen PACKETS ]
+//                      [ name NEWNAME ]
+//                      [ address LLADDR ]
+//                      [ broadcast LLADDR ]
+//                      [ mtu MTU ]
+//                      [ netns { PID | NAME } ]
+//                      [ link-netnsid ID ]
+//	      [ alias NAME ]
+//                      [ vf NUM [ mac LLADDR ]
+//		   [ vlan VLANID [ qos VLAN-QOS ] ]
+//		   [ rate TXRATE ]
+//		   [ spoofchk { on | off} ]
+//		   [ query_rss { on | off} ]
+//		   [ state { auto | enable | disable} ] ]
+//		   [ trust { on | off} ] ]
+//	      [ master DEVICE ]
+//	      [ nomaster ]
+//	      [ addrgenmode { eui64 | none | stable_secret | random } ]
+//                      [ protodown { on | off } ]
+//       ip link show [ DEVICE | group GROUP ] [up] [master DEV] [type TYPE]
+//       ip link help [ TYPE ]
+//TYPE := { vlan | veth | vcan | dummy | ifb | macvlan | macvtap |
+//          bridge | bond | ipoib | ip6tnl | ipip | sit | vxlan |
+//          gre | gretap | ip6gre | ip6gretap | vti | nlmon |
+//          bond_slave | ipvlan | geneve | bridge_slave | vrf }
 //usage:
 //--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
 //usage:#define iproute_trivial_usage

@@ -525,6 +525,24 @@ static void vlan_parse_opt(char **argv, struct nlmsghdr *n, unsigned int size)
 		addattr_l(n, size, IFLA_VLAN_FLAGS, &flags, sizeof(flags));
 }
 
+static void vrf_parse_opt(char **argv, struct nlmsghdr *n, unsigned int size)
+{
+/* IFLA_VRF_TABLE is an enum, not a define -
+ * can't test "defined(IFLA_VRF_TABLE)".
+ */
+#if !defined(IFLA_VRF_MAX)
+# define IFLA_VRF_TABLE 1
+#endif
+	uint32_t table;
+
+	if (strcmp(*argv, "table") != 0)
+		invarg_1_to_2(*argv, "type vrf");
+
+	NEXT_ARG();
+	table = get_u32(*argv, "table");
+	addattr_l(n, size, IFLA_VRF_TABLE, &table, sizeof(table));
+}
+
 #ifndef NLMSG_TAIL
 #define NLMSG_TAIL(nmsg) \
 	((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
@@ -563,6 +581,8 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 	if (rtm == RTM_NEWLINK)
 		req.n.nlmsg_flags |= NLM_F_CREATE|NLM_F_EXCL;
 
+	/* NB: update iplink_full_usage if you extend this code */
+
 	while (*argv) {
 		arg = index_in_substrings(keywords, *argv);
 		if (arg == ARG_type) {
@@ -582,7 +602,7 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 		} else if (arg == ARG_address) {
 			NEXT_ARG();
 			address_str = *argv;
-			dbg("address_str:'%s'", name_str);
+			dbg("address_str:'%s'", address_str);
 		} else {
 			if (arg == ARG_dev) {
 				if (dev_str)
@@ -609,6 +629,8 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 
 			if (strcmp(type_str, "vlan") == 0)
 				vlan_parse_opt(argv, &req.n, sizeof(req));
+			else if (strcmp(type_str, "vrf") == 0)
+				vrf_parse_opt(argv, &req.n, sizeof(req));
 
 			data->rta_len = (void *)NLMSG_TAIL(&req.n) - (void *)data;
 		}
