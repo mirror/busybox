@@ -64,6 +64,9 @@ typedef struct archive_handle_t {
 	/* Currently processed file's header */
 	file_header_t *file_header;
 
+	/* List of symlink placeholders */
+	llist_t *symlink_placeholders;
+
 	/* Process the header component, e.g. tar -t */
 	void FAST_FUNC (*action_header)(const file_header_t *);
 
@@ -119,15 +122,14 @@ typedef struct archive_handle_t {
 #define ARCHIVE_RESTORE_DATE        (1 << 0)
 #define ARCHIVE_CREATE_LEADING_DIRS (1 << 1)
 #define ARCHIVE_UNLINK_OLD          (1 << 2)
-#define ARCHIVE_EXTRACT_QUIET       (1 << 3)
-#define ARCHIVE_EXTRACT_NEWER       (1 << 4)
-#define ARCHIVE_DONT_RESTORE_OWNER  (1 << 5)
-#define ARCHIVE_DONT_RESTORE_PERM   (1 << 6)
-#define ARCHIVE_NUMERIC_OWNER       (1 << 7)
-#define ARCHIVE_O_TRUNC             (1 << 8)
-#define ARCHIVE_REMEMBER_NAMES      (1 << 9)
+#define ARCHIVE_EXTRACT_NEWER       (1 << 3)
+#define ARCHIVE_DONT_RESTORE_OWNER  (1 << 4)
+#define ARCHIVE_DONT_RESTORE_PERM   (1 << 5)
+#define ARCHIVE_NUMERIC_OWNER       (1 << 6)
+#define ARCHIVE_O_TRUNC             (1 << 7)
+#define ARCHIVE_REMEMBER_NAMES      (1 << 8)
 #if ENABLE_RPM
-#define ARCHIVE_REPLACE_VIA_RENAME  (1 << 10)
+#define ARCHIVE_REPLACE_VIA_RENAME  (1 << 9)
 #endif
 
 
@@ -197,7 +199,10 @@ void seek_by_jump(int fd, off_t amount) FAST_FUNC;
 void seek_by_read(int fd, off_t amount) FAST_FUNC;
 
 const char *strip_unsafe_prefix(const char *str) FAST_FUNC;
-int unsafe_symlink_target(const char *target) FAST_FUNC;
+void create_or_remember_symlink(llist_t **symlink_placeholders,
+		const char *target,
+		const char *linkname) FAST_FUNC;
+void create_symlinks_from_list(llist_t *list) FAST_FUNC;
 
 void data_align(archive_handle_t *archive_handle, unsigned boundary) FAST_FUNC;
 const llist_t *find_list_entry(const llist_t *list, const char *filename) FAST_FUNC;

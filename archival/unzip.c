@@ -345,7 +345,9 @@ static void unzip_create_leading_dirs(const char *fn)
 }
 
 #if ENABLE_FEATURE_UNZIP_CDF
-static void unzip_extract_symlink(zip_header_t *zip, const char *dst_fn)
+static void unzip_extract_symlink(llist_t **symlink_placeholders,
+		zip_header_t *zip,
+		const char *dst_fn)
 {
 	char *target;
 
@@ -370,15 +372,9 @@ static void unzip_extract_symlink(zip_header_t *zip, const char *dst_fn)
 		target[xstate.mem_output_size] = '\0';
 #endif
 	}
-	if (!unsafe_symlink_target(target)) {
-//TODO: libbb candidate
-		if (symlink(target, dst_fn)) {
-			/* shared message */
-			bb_perror_msg_and_die("can't create %slink '%s' to '%s'",
-				"sym", dst_fn, target
-			);
-		}
-	}
+	create_or_remember_symlink(symlink_placeholders,
+			target,
+			dst_fn);
 	free(target);
 }
 #endif
@@ -490,6 +486,9 @@ int unzip_main(int argc, char **argv)
 	llist_t *zaccept = NULL;
 	llist_t *zreject = NULL;
 	char *base_dir = NULL;
+#if ENABLE_FEATURE_UNZIP_CDF
+	llist_t *symlink_placeholders = NULL;
+#endif
 	int i;
 	char key_buf[80]; /* must match size used by my_fgets80 */
 
@@ -954,7 +953,7 @@ int unzip_main(int argc, char **argv)
 #if ENABLE_FEATURE_UNZIP_CDF
 			if (S_ISLNK(file_mode)) {
 				if (dst_fd != STDOUT_FILENO) /* not -p? */
-					unzip_extract_symlink(&zip, dst_fn);
+					unzip_extract_symlink(&symlink_placeholders, &zip, dst_fn);
 			} else
 #endif
 			{
@@ -989,6 +988,10 @@ int unzip_main(int argc, char **argv)
 
 		total_entries++;
 	}
+
+#if ENABLE_FEATURE_UNZIP_CDF
+	create_symlinks_from_list(symlink_placeholders);
+#endif
 
 	if ((opts & OPT_l) && quiet <= 1) {
 		if (!verbose) {
