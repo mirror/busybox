@@ -62,9 +62,9 @@
 //usage:     "\n	-u	Suppress duplicate lines"
 //usage:	IF_FEATURE_SORT_BIG(
 //usage:     "\n	-z	Lines are terminated by NUL, not newline"
-////usage:     "\n	-m	Ignored for GNU compatibility"
-////usage:     "\n	-S BUFSZ Ignored for GNU compatibility"
-////usage:     "\n	-T TMPDIR Ignored for GNU compatibility"
+///////:     "\n	-m	Ignored for GNU compatibility"
+///////:     "\n	-S BUFSZ Ignored for GNU compatibility"
+///////:     "\n	-T TMPDIR Ignored for GNU compatibility"
 //usage:	)
 //usage:
 //usage:#define sort_example_usage
@@ -117,6 +117,7 @@ enum {
 	FLAG_k  = 0x10000,
 	FLAG_t  = 0x20000,
 	FLAG_bb = 0x80000000,   /* Ignore trailing blanks  */
+	FLAG_no_tie_break = 0x40000000,
 };
 
 #if ENABLE_FEATURE_SORT_BIG
@@ -340,10 +341,34 @@ static int compare_keys(const void *xarg, const void *yarg)
 #endif
 	} /* for */
 
-	/* Perform fallback sort if necessary */
-	if (!retval && !(option_mask32 & FLAG_s)) {
-		flags = option_mask32;
-		retval = strcmp(*(char **)xarg, *(char **)yarg);
+	if (retval == 0) {
+		/* So far lines are "the same" */
+
+		if (option_mask32 & FLAG_s) {
+			/* "Stable sort": later line is "smaller",
+			 * IOW: do not allow qsort() to swap equal lines.
+			 */
+			uint32_t *p32;
+			uint32_t x32, y32;
+			char *line;
+			unsigned len;
+
+			line = *(char**)xarg;
+			len = (strlen(line) + 4) & (~3u);
+			p32 = (void*)(line + len);
+			x32 = *p32;
+			line = *(char**)yarg;
+			len = (strlen(line) + 4) & (~3u);
+			p32 = (void*)(line + len);
+			y32 = *p32;
+
+			retval = x32 > y32;
+		} else
+		if (!(option_mask32 & FLAG_no_tie_break)) {
+			/* fallback sort */
+			flags = option_mask32;
+			retval = strcmp(*(char **)xarg, *(char **)yarg);
+		}
 	}
 
 	if (flags & FLAG_r)
@@ -368,7 +393,7 @@ static unsigned str2u(char **str)
 int sort_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sort_main(int argc UNUSED_PARAM, char **argv)
 {
-	char *line, **lines;
+	char **lines;
 	char *str_ignored, *str_o, *str_t;
 	llist_t *lst_k = NULL;
 	int i;
@@ -457,7 +482,7 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 		 * do not continue to next file: */
 		FILE *fp = xfopen_stdin(*argv);
 		for (;;) {
-			line = GET_LINE(fp);
+			char *line = GET_LINE(fp);
 			if (!line)
 				break;
 			lines = xrealloc_vector(lines, 6, linecount);
@@ -482,15 +507,35 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 		return EXIT_SUCCESS;
 	}
 #endif
+
+	/* For stable sort, store original line position beyond terminating NUL */
+	if (option_mask32 & FLAG_s) {
+		for (i = 0; i < linecount; i++) {
+			uint32_t *p32;
+			char *line;
+			unsigned len;
+
+			line = lines[i];
+			len = (strlen(line) + 4) & (~3u);
+			lines[i] = line = xrealloc(line, len + 4);
+			p32 = (void*)(line + len);
+			*p32 = i;
+		}
+		/*option_mask32 |= FLAG_no_tie_break;*/
+		/* ^^^redundant: if FLAG_s, compare_keys() does no tie break */
+	}
+
 	/* Perform the actual sort */
 	qsort(lines, linecount, sizeof(lines[0]), compare_keys);
 
 	/* Handle -u */
 	if (option_mask32 & FLAG_u) {
 		int j = 0;
-		/* coreutils 6.3 drop lines for which only key is the same */
-		/* -- disabling last-resort compare... */
-		option_mask32 |= FLAG_s;
+		/* coreutils 6.3 drop lines for which only key is the same
+		 * -- disabling last-resort compare, or else compare_keys()
+		 * will be the same only for completely identical lines.
+		 */
+		option_mask32 |= FLAG_no_tie_break;
 		for (i = 1; i < linecount; i++) {
 			if (compare_keys(&lines[j], &lines[i]) == 0)
 				free(lines[i]);
