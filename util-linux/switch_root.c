@@ -39,6 +39,12 @@
 #include <sys/mount.h>
 #if ENABLE_RUN_INIT
 # include <sys/prctl.h>
+# ifndef PR_CAPBSET_READ
+# define PR_CAPBSET_READ 23
+# endif
+# ifndef PR_CAPBSET_DROP
+# define PR_CAPBSET_DROP 24
+# endif
 # include <linux/capability.h>
 // #include <sys/capability.h>
 // This header is in libcap, but the functions are in libc.

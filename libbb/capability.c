@@ -3,7 +3,8 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-//kbuild:lib-$(CONFIG_PLATFORM_LINUX) += capability.o
+//kbuild:lib-$(CONFIG_FEATURE_SETPRIV_CAPABILITIES) += capability.o
+//kbuild:lib-$(CONFIG_RUN_INIT) += capability.o
 
 #include <linux/capability.h>
 // #include <sys/capability.h>
