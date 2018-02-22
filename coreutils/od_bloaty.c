@@ -211,7 +211,14 @@ struct globals {
 
 	bool not_first;
 	bool prev_pair_equal;
+
+	char address_fmt[sizeof("%0n"OFF_FMT"xc")];
 } FIX_ALIASING;
+/* Corresponds to 'x' above */
+#define address_base_char G.address_fmt[sizeof(G.address_fmt)-3]
+/* Corresponds to 'n' above */
+#define address_pad_len_char G.address_fmt[2]
+
 #if !ENABLE_LONG_OPTS
 enum { G_pseudo_offset = 0 };
 #endif
@@ -220,6 +227,7 @@ enum { G_pseudo_offset = 0 };
 	setup_common_bufsiz(); \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	G.bytes_per_block = 32; \
+	strcpy(G.address_fmt, "%0n"OFF_FMT"xc"); \
 } while (0)
 
 
@@ -844,18 +852,12 @@ format_address_none(off_t address UNUSED_PARAM, char c UNUSED_PARAM)
 {
 }
 
-static char address_fmt[] ALIGN1 = "%0n"OFF_FMT"xc";
-/* Corresponds to 'x' above */
-#define address_base_char address_fmt[sizeof(address_fmt)-3]
-/* Corresponds to 'n' above */
-#define address_pad_len_char address_fmt[2]
-
 static void
 format_address_std(off_t address, char c)
 {
 	/* Corresponds to 'c' */
-	address_fmt[sizeof(address_fmt)-2] = c;
-	printf(address_fmt, address);
+	G.address_fmt[sizeof(G.address_fmt)-2] = c;
+	printf(G.address_fmt, address);
 }
 
 #if ENABLE_LONG_OPTS
