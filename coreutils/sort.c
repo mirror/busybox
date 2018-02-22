@@ -85,16 +85,7 @@
 
 #include "libbb.h"
 
-/* This is a NOEXEC applet. Be very careful! */
-
-
-/*
-	sort [-m][-o output][-bdfinru][-t char][-k keydef]... [file...]
-	sort -c [-bdfinru][-t char][-k keydef][file]
-*/
-
 /* These are sort types */
-#define OPT_STR "ngMucszbrdfimS:T:o:k:*t:"
 enum {
 	FLAG_n  = 1,            /* Numeric sort */
 	FLAG_g  = 2,            /* Sort using strtod() */
@@ -120,6 +111,15 @@ enum {
 	FLAG_no_tie_break = 0x40000000,
 };
 
+static const char sort_opt_str[] ALIGN1 = "^"
+			"ngMucszbrdfimS:T:o:k:*t:"
+			"\0" "o--o:t--t"/*-t, -o: at most one of each*/;
+/*
+ * OPT_STR must not be string literal, needs to have stable address:
+ * code uses "strchr(OPT_STR,c) - OPT_STR" idiom.
+ */
+#define OPT_STR (sort_opt_str + 1)
+
 #if ENABLE_FEATURE_SORT_BIG
 static char key_separator;
 
@@ -128,6 +128,10 @@ static struct sort_key {
 	unsigned range[4];          /* start word, start char, end word, end char */
 	unsigned flags;
 } *key_list;
+
+
+/* This is a NOEXEC applet. Be very careful! */
+
 
 static char *get_key(char *str, struct sort_key *key, int flags)
 {
@@ -404,9 +408,8 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 	xfunc_error_retval = 2;
 
 	/* Parse command line options */
-	opts = getopt32(argv, "^"
-			OPT_STR
-			"\0" "o--o:t--t"/*-t, -o: at most one of each*/,
+	opts = getopt32(argv,
+			sort_opt_str,
 			&str_ignored, &str_ignored, &str_o, &lst_k, &str_t
 	);
 	/* global b strips leading and trailing spaces */
