@@ -345,7 +345,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 		/* So far lines are "the same" */
 
 		if (option_mask32 & FLAG_s) {
-			/* "Stable sort": later line is "smaller",
+			/* "Stable sort": later line is "greater than",
 			 * IOW: do not allow qsort() to swap equal lines.
 			 */
 			uint32_t *p32;
@@ -362,7 +362,8 @@ static int compare_keys(const void *xarg, const void *yarg)
 			p32 = (void*)(line + len);
 			y32 = *p32;
 
-			retval = x32 > y32;
+			/* If x > y, 1, else -1 */
+			retval = (x32 > y32) * 2 - 1;
 		} else
 		if (!(option_mask32 & FLAG_no_tie_break)) {
 			/* fallback sort */
