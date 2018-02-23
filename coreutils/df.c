@@ -206,6 +206,11 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		device = mount_entry->mnt_fsname;
+
+		/* GNU coreutils 6.10 skips certain mounts, try to be compatible */
+		if (ENABLE_FEATURE_SKIP_ROOTFS && strcmp(device, "rootfs") == 0)
+			continue;
+
 		mount_point = mount_entry->mnt_dir;
 		fs_type = mount_entry->mnt_type;
 
@@ -244,10 +249,6 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 				u = (unsigned)blocks_used * 100u + (unsigned)blocks_total / 2;
 				blocks_percent_used = u / (unsigned)blocks_total;
 			}
-
-			/* GNU coreutils 6.10 skips certain mounts, try to be compatible.  */
-			if (ENABLE_FEATURE_SKIP_ROOTFS && strcmp(device, "rootfs") == 0)
-				continue;
 
 #ifdef WHY_WE_DO_IT_FOR_DEV_ROOT_ONLY
 			if (strcmp(device, "/dev/root") == 0) {
