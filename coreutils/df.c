@@ -91,8 +91,6 @@ static unsigned long kscale(unsigned long b, unsigned long bs)
 int df_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int df_main(int argc UNUSED_PARAM, char **argv)
 {
-	unsigned long blocks_used;
-	unsigned blocks_percent_used;
 	unsigned long df_disp_hr = 1024;
 	int status = EXIT_SUCCESS;
 	unsigned opt;
@@ -222,20 +220,29 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 			s.f_frsize = s.f_bsize;
 
 		if ((s.f_blocks > 0) || !mount_table || (opt & OPT_ALL)) {
+			unsigned long long blocks_used;
+			unsigned long long blocks_total;
+			unsigned blocks_percent_used;
+
 			if (opt & OPT_INODE) {
 				s.f_blocks = s.f_files;
 				s.f_bavail = s.f_bfree = s.f_ffree;
 				s.f_frsize = 1;
-
 				if (df_disp_hr)
 					df_disp_hr = 1;
 			}
 			blocks_used = s.f_blocks - s.f_bfree;
-			blocks_percent_used = 0;
-			if (blocks_used + s.f_bavail) {
-				blocks_percent_used = (blocks_used * 100ULL
-						+ (blocks_used + s.f_bavail)/2
-						) / (blocks_used + s.f_bavail);
+			blocks_total = blocks_used + s.f_bavail;
+			blocks_percent_used = blocks_total; /* 0% if blocks_total == 0, else... */
+			if (blocks_total != 0) {
+				/* Downscale sizes for narrower division */
+				unsigned u;
+				while (blocks_total >= INT_MAX / 101) {
+					blocks_total >>= 1;
+					blocks_used >>= 1;
+				}
+				u = (unsigned)blocks_used * 100u + (unsigned)blocks_total / 2;
+				blocks_percent_used = u / (unsigned)blocks_total;
 			}
 
 			/* GNU coreutils 6.10 skips certain mounts, try to be compatible.  */
