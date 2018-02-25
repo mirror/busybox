@@ -149,6 +149,11 @@ config FEATURE_EDITING_FANCY_PROMPT
 	Setting this option allows for prompts to use things like \w and
 	\$ and escape codes.
 
+config FEATURE_EDITING_WINCH
+	bool "Enable automatic tracking of window size changes"
+	default y
+	depends on FEATURE_EDITING
+
 config FEATURE_EDITING_ASK_TERMINAL
 	bool "Query cursor position from terminal"
 	default n
