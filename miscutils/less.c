@@ -1814,7 +1814,11 @@ int less_main(int argc, char **argv)
 	 * -s: condense many empty lines to one
 	 *     (used by some setups for manpage display)
 	 */
-	getopt32(argv, "EMmN~I" IF_FEATURE_LESS_TRUNCATE("S") /*ignored:*/"s");
+	getopt32(argv, "EMmN~I"
+		IF_FEATURE_LESS_TRUNCATE("S")
+		IF_FEATURE_LESS_RAW("R")
+		/*ignored:*/"s"
+	);
 	argv += optind;
 	num_files = argc - optind;
 	files = argv;
