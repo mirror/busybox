@@ -14,7 +14,7 @@ struct hcc {
 	int pid;
 };
 
-void ipsvd_perhost_init(unsigned);
+struct hcc* FAST_FUNC ipsvd_perhost_init(unsigned);
 
 /* Returns number of already opened connects to this ips, including this one.
  * ip should be a malloc'ed ptr.
@@ -22,12 +22,12 @@ void ipsvd_perhost_init(unsigned);
  * and pointer to table entry if stored in *hccpp
  * (useful for storing pid later).
  * Else ip is NOT inserted (you must take care of it - free() etc) */
-unsigned ipsvd_perhost_add(char *ip, unsigned maxconn, struct hcc **hccpp);
+unsigned FAST_FUNC ipsvd_perhost_add(struct hcc *cc, char *ip, unsigned maxconn, struct hcc **hccpp);
 
 /* Finds and frees element with pid */
-void ipsvd_perhost_remove(int pid);
+void FAST_FUNC ipsvd_perhost_remove(struct hcc *cc, int pid);
 
 //unsigned ipsvd_perhost_setpid(int pid);
-//void ipsvd_perhost_free(void);
+//void ipsvd_perhost_free(struct hcc *cc);
 
 POP_SAVED_FUNCTION_VISIBILITY

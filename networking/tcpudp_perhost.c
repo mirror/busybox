@@ -10,25 +10,21 @@
 #include "libbb.h"
 #include "tcpudp_perhost.h"
 
-static struct hcc *cc;
-static unsigned cclen;
-
-/* to be optimized */
-
-void ipsvd_perhost_init(unsigned c)
+struct hcc* FAST_FUNC ipsvd_perhost_init(unsigned c)
 {
 //	free(cc);
-	cc = xzalloc(c * sizeof(*cc));
-	cclen = c;
+	struct hcc *cc = xzalloc((c + 1) * sizeof(*cc));
+	cc[c].pid = -1; /* "end" marker */
+	return cc;
 }
 
-unsigned ipsvd_perhost_add(char *ip, unsigned maxconn, struct hcc **hccpp)
+unsigned FAST_FUNC ipsvd_perhost_add(struct hcc *cc, char *ip, unsigned maxconn, struct hcc **hccpp)
 {
 	unsigned i;
 	unsigned conn = 1;
 	int freepos = -1;
 
-	for (i = 0; i < cclen; ++i) {
+	for (i = 0; cc[i].pid >= 0; ++i) {
 		if (!cc[i].ip) {
 			freepos = i;
 			continue;
@@ -46,10 +42,10 @@ unsigned ipsvd_perhost_add(char *ip, unsigned maxconn, struct hcc **hccpp)
 	return conn;
 }
 
-void ipsvd_perhost_remove(int pid)
+void FAST_FUNC ipsvd_perhost_remove(struct hcc *cc, int pid)
 {
 	unsigned i;
-	for (i = 0; i < cclen; ++i) {
+	for (i = 0; cc[i].pid >= 0; ++i) {
 		if (cc[i].pid == pid) {
 			free(cc[i].ip);
 			cc[i].ip = NULL;
@@ -59,7 +55,7 @@ void ipsvd_perhost_remove(int pid)
 	}
 }
 
-//void ipsvd_perhost_free(void)
+//void ipsvd_perhost_free(struct hcc *cc)
 //{
 //	free(cc);
 //}

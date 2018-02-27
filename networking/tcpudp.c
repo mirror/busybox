@@ -127,6 +127,7 @@ struct globals {
 	unsigned cur_per_host;
 	unsigned cnum;
 	unsigned cmax;
+	struct hcc *cc;
 	char **env_cur;
 	char *env_var[1]; /* actually bigger */
 } FIX_ALIASING;
@@ -229,7 +230,7 @@ static void sig_child_handler(int sig UNUSED_PARAM)
 
 	while ((pid = wait_any_nohang(&wstat)) > 0) {
 		if (max_per_host)
-			ipsvd_perhost_remove(pid);
+			ipsvd_perhost_remove(G.cc, pid);
 		if (cnum)
 			cnum--;
 		if (verbose)
@@ -347,7 +348,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 	signal(SIGPIPE, SIG_IGN);
 
 	if (max_per_host)
-		ipsvd_perhost_init(cmax);
+		G.cc = ipsvd_perhost_init(cmax);
 
 	local_port = bb_lookup_port(argv[1], tcp ? "tcp" : "udp", 0);
 	lsa = xhost2sockaddr(argv[0], local_port);
@@ -422,7 +423,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 		/* Drop connection immediately if cur_per_host > max_per_host
 		 * (minimizing load under SYN flood) */
 		remote_addr = xmalloc_sockaddr2dotted_noport(&remote.u.sa);
-		cur_per_host = ipsvd_perhost_add(remote_addr, max_per_host, &hccp);
+		cur_per_host = ipsvd_perhost_add(G.cc, remote_addr, max_per_host, &hccp);
 		if (cur_per_host > max_per_host) {
 			/* ipsvd_perhost_add detected that max is exceeded
 			 * (and did not store ip in connection table) */
