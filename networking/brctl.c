@@ -241,7 +241,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_BRCTL_SHOW
 		if (key == ARG_show) { /* show */
-			char brname[IFNAMSIZ];
+			char buf[IFNAMSIZ];
 			int bridx[MAX_PORTS];
 			int i, num;
 			arm_ioctl(args, BRCTL_GET_BRIDGES,
@@ -249,19 +249,18 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			num = xioctl(fd, SIOCGIFBR, args);
 			puts("bridge name\tbridge id\t\tSTP enabled\tinterfaces");
 			for (i = 0; i < num; i++) {
-				char ifname[IFNAMSIZ];
 				int j, tabs;
 				struct __bridge_info bi;
 				unsigned char *x;
 
-				if (!if_indextoname(bridx[i], brname))
+				if (!if_indextoname(bridx[i], buf))
 					bb_perror_msg_and_die("can't get bridge name for index %d", i);
-				strncpy_IFNAMSIZ(ifr.ifr_name, brname);
+				strncpy_IFNAMSIZ(ifr.ifr_name, buf);
 
 				arm_ioctl(args, BRCTL_GET_BRIDGE_INFO,
 							(unsigned long) &bi, 0);
 				xioctl(fd, SIOCDEVPRIVATE, &ifr);
-				printf("%s\t\t", brname);
+				printf("%s\t\t", buf);
 
 				/* print bridge id */
 				x = (unsigned char *) &bi.bridge_id;
@@ -280,13 +279,13 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 				for (j = 0; j < MAX_PORTS; j++) {
 					if (!ifidx[j])
 						continue;
-					if (!if_indextoname(ifidx[j], ifname))
+					if (!if_indextoname(ifidx[j], buf))
 						bb_perror_msg_and_die("can't get interface name for index %d", j);
 					if (tabs)
 						printf("\t\t\t\t\t");
 					else
 						tabs = 1;
-					printf("\t\t%s\n", ifname);
+					printf("\t\t%s\n", buf);
 				}
 				if (!tabs)  /* bridge has no interfaces */
 					bb_putchar('\n');
