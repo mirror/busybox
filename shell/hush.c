@@ -4488,7 +4488,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 		}
 		if (ch == end_ch
 # if BASH_SUBSTR || BASH_PATTERN_SUBST
-			|| ch == end_char2
+		 || ch == end_char2
 # endif
 		) {
 			if (!dbl)
@@ -5842,17 +5842,18 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				unsigned scan_flags = pick_scan(exp_op, *exp_word);
 				if (exp_op == *exp_word)  /* ## or %% */
 					exp_word++;
+				debug_printf_expand("expand: exp_word:'%s'\n", exp_word);
 				exp_exp_word = encode_then_expand_string(exp_word, /*process_bkslash:*/ 1, /*unbackslash:*/ 1);
 				if (exp_exp_word)
 					exp_word = exp_exp_word;
+				debug_printf_expand("expand: exp_exp_word:'%s'\n", exp_word);
 				/* HACK ALERT. We depend here on the fact that
 				 * G.global_argv and results of utoa and get_local_var_value
 				 * are actually in writable memory:
 				 * scan_and_match momentarily stores NULs there. */
 				t = (char*)val;
 				loc = scan_and_match(t, exp_word, scan_flags);
-				//bb_error_msg("op:%c str:'%s' pat:'%s' res:'%s'",
-				//		exp_op, t, exp_word, loc);
+				debug_printf_expand("op:%c str:'%s' pat:'%s' res:'%s'\n", exp_op, t, exp_word, loc);
 				free(exp_exp_word);
 				if (loc) { /* match was found */
 					if (scan_flags & SCAN_MATCH_LEFT_HALF) /* #[#] */

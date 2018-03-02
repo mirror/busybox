@@ -71,9 +71,11 @@ char* FAST_FUNC scan_and_match(char *string, const char *pattern, unsigned flags
 		if (flags & SCAN_MATCH_LEFT_HALF) {
 			*loc = '\0';
 			r = fnmatch(pattern, string, 0);
+			//bb_error_msg("fnmatch('%s','%s',0):%d", pattern, string, r);
 			*loc = c;
 		} else {
 			r = fnmatch(pattern, loc, 0);
+			//bb_error_msg("fnmatch('%s','%s',0):%d", pattern, string, r);
 		}
 		if (r == 0) /* match found */
 			return loc;
