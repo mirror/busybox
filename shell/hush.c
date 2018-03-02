@@ -4500,6 +4500,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 			}
 		}
 		o_addchr(dest, ch);
+		//bb_error_msg("%s:o_addchr('%c')", __func__, ch);
 		if (ch == '(' || ch == '{') {
 			ch = (ch == '(' ? ')' : '}');
 			if (!add_till_closing_bracket(dest, input, ch))
@@ -4529,7 +4530,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 			/* \x. Copy verbatim. Important for  \(, \) */
 			ch = i_getch(input);
 			if (ch == EOF) {
-				syntax_error_unterm_ch(')');
+				syntax_error_unterm_ch(end_ch);
 				return 0;
 			}
 #if 0
@@ -4540,6 +4541,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 			}
 #endif
 			o_addchr(dest, ch);
+			//bb_error_msg("%s:o_addchr('%c') after '\\'", __func__, ch);
 			continue;
 		}
 	}
@@ -5843,7 +5845,13 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				if (exp_op == *exp_word)  /* ## or %% */
 					exp_word++;
 				debug_printf_expand("expand: exp_word:'%s'\n", exp_word);
-				exp_exp_word = encode_then_expand_string(exp_word, /*process_bkslash:*/ 1, /*unbackslash:*/ 1);
+				/*
+				 * process_bkslash:1 unbackslash:1 breaks this:
+				 * a='a\\'; echo ${a%\\\\} # correct output is: a
+				 * process_bkslash:1 unbackslash:0 breaks this:
+				 * a='a}'; echo ${a%\}}    # correct output is: a
+				 */
+				exp_exp_word = encode_then_expand_string(exp_word, /*process_bkslash:*/ 0, /*unbackslash:*/ 0);
 				if (exp_exp_word)
 					exp_word = exp_exp_word;
 				debug_printf_expand("expand: exp_exp_word:'%s'\n", exp_word);

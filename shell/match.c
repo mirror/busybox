@@ -75,7 +75,7 @@ char* FAST_FUNC scan_and_match(char *string, const char *pattern, unsigned flags
 			*loc = c;
 		} else {
 			r = fnmatch(pattern, loc, 0);
-			//bb_error_msg("fnmatch('%s','%s',0):%d", pattern, string, r);
+			//bb_error_msg("fnmatch('%s','%s',0):%d", pattern, loc, r);
 		}
 		if (r == 0) /* match found */
 			return loc;
