@@ -1011,7 +1011,6 @@ static void download_one_url(const char *url)
 	len_and_sockaddr *lsa;
 	FILE *sfp;                      /* socket to web/ftp server         */
 	FILE *dfp;                      /* socket to ftp server (data)      */
-	char *proxy = NULL;
 	char *fname_out_alloc;
 	char *redirected_path = NULL;
 	struct host_info server;
@@ -1027,13 +1026,14 @@ static void download_one_url(const char *url)
 	/* Use the proxy if necessary */
 	use_proxy = (strcmp(G.proxy_flag, "off") != 0);
 	if (use_proxy) {
-		proxy = getenv(target.protocol[0] == 'f' ? "ftp_proxy" : "http_proxy");
+		char *proxy = getenv(target.protocol[0] == 'f' ? "ftp_proxy" : "http_proxy");
 //FIXME: what if protocol is https? Ok to use http_proxy?
 		use_proxy = (proxy && proxy[0]);
 		if (use_proxy)
 			parse_url(proxy, &server);
 	}
 	if (!use_proxy) {
+		server.protocol = target.protocol;
 		server.port = target.port;
 		if (ENABLE_FEATURE_IPV6) {
 			//free(server.allocated); - can't be non-NULL
@@ -1098,7 +1098,7 @@ static void download_one_url(const char *url)
 		/* Open socket to http(s) server */
 #if ENABLE_FEATURE_WGET_OPENSSL
 		/* openssl (and maybe internal TLS) support is configured */
-		if (target.protocol == P_HTTPS) {
+		if (server.protocol == P_HTTPS) {
 			/* openssl-based helper
 			 * Inconvenient API since we can't give it an open fd
 			 */
@@ -1122,7 +1122,7 @@ static void download_one_url(const char *url)
 #elif ENABLE_FEATURE_WGET_HTTPS
 		/* Only internal TLS support is configured */
 		sfp = open_socket(lsa);
-		if (target.protocol == P_HTTPS)
+		if (server.protocol == P_HTTPS)
 			spawn_ssl_client(server.host, fileno(sfp), /*flags*/ 0);
 #else
 		/* ssl (https) support is not configured */
