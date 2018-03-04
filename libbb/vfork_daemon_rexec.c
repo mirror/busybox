@@ -14,14 +14,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-#include <sys/prctl.h>
-#ifndef PR_SET_NAME
-#define PR_SET_NAME 15
-#endif
-#ifndef PR_GET_NAME
-#define PR_GET_NAME 16
-#endif
-
 #include "busybox.h" /* uses applet tables */
 #include "NUM_APPLETS.h"
 
@@ -29,6 +21,13 @@
 #define NOEXEC_SUPPORT ((NUM_APPLETS > 1) && (ENABLE_FEATURE_PREFER_APPLETS || ENABLE_FEATURE_SH_STANDALONE))
 
 #if defined(__linux__) && (NUM_APPLETS > 1)
+# include <sys/prctl.h>
+# ifndef PR_SET_NAME
+# define PR_SET_NAME 15
+# endif
+# ifndef PR_GET_NAME
+# define PR_GET_NAME 16
+# endif
 void FAST_FUNC set_task_comm(const char *comm)
 {
 	/* okay if too long (truncates) */
