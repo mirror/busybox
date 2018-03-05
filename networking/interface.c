@@ -341,8 +341,9 @@ struct interface {
 #endif
 };
 
-
-static struct interface *int_list, *int_last;
+struct iface_list {
+	struct interface *int_list, *int_last;
+};
 
 
 #if 0
@@ -373,11 +374,11 @@ static int nstrcmp(const char *a, const char *b)
 }
 #endif
 
-static struct interface *add_interface(char *name)
+static struct interface *add_interface(struct iface_list *ilist, char *name)
 {
 	struct interface *ife, **nextp, *new;
 
-	for (ife = int_last; ife; ife = ife->prev) {
+	for (ife = ilist->int_last; ife; ife = ife->prev) {
 		int n = /*n*/strcmp(ife->name, name);
 
 		if (n == 0)
@@ -388,13 +389,14 @@ static struct interface *add_interface(char *name)
 
 	new = xzalloc(sizeof(*new));
 	strncpy_IFNAMSIZ(new->name, name);
-	nextp = ife ? &ife->next : &int_list;
+
+	nextp = ife ? &ife->next : &ilist->int_list;
 	new->prev = ife;
 	new->next = *nextp;
 	if (new->next)
 		new->next->prev = new;
 	else
-		int_last = new;
+		ilist->int_last = new;
 	*nextp = new;
 	return new;
 }
@@ -500,12 +502,12 @@ static int procnetdev_version(char *buf)
 	return 0;
 }
 
-static int if_readconf(void)
+static void if_readconf(struct iface_list *ilist)
 {
 	int numreqs = 30;
 	struct ifconf ifc;
 	struct ifreq *ifr;
-	int n, err;
+	int n;
 	int skfd;
 
 	ifc.ifc_buf = NULL;
@@ -518,10 +520,7 @@ static int if_readconf(void)
 		ifc.ifc_len = sizeof(struct ifreq) * numreqs;
 		ifc.ifc_buf = xrealloc(ifc.ifc_buf, ifc.ifc_len);
 
-		err = ioctl_or_warn(skfd, SIOCGIFCONF, &ifc);
-		if (err < 0) {
-			goto out;
-		}
+		xioctl(skfd, SIOCGIFCONF, &ifc);
 		if (ifc.ifc_len == (int)(sizeof(struct ifreq) * numreqs)) {
 			/* assume it overflowed and try again */
 			numreqs += 10;
@@ -532,71 +531,54 @@ static int if_readconf(void)
 
 	ifr = ifc.ifc_req;
 	for (n = 0; n < ifc.ifc_len; n += sizeof(struct ifreq)) {
-		add_interface(ifr->ifr_name);
+		add_interface(ilist, ifr->ifr_name);
 		ifr++;
 	}
-	err = 0;
 
- out:
 	close(skfd);
 	free(ifc.ifc_buf);
-	return err;
 }
 
-static int if_readlist_proc(char *target)
+static int if_readlist_proc(struct iface_list *ilist, char *ifname)
 {
-	static smallint proc_read;
-
 	FILE *fh;
 	char buf[512];
 	struct interface *ife;
-	int err, procnetdev_vsn;
-
-	if (proc_read)
-		return 0;
-	if (!target)
-		proc_read = 1;
+	int procnetdev_vsn;
+	int ret;
 
 	fh = fopen_or_warn(_PATH_PROCNET_DEV, "r");
 	if (!fh) {
-		return if_readconf();
+		return 0; /* "not found" */
 	}
 	fgets(buf, sizeof buf, fh);	/* eat line */
 	fgets(buf, sizeof buf, fh);
 
 	procnetdev_vsn = procnetdev_version(buf);
 
-	err = 0;
+	ret = 0;
 	while (fgets(buf, sizeof buf, fh)) {
 		char *s, name[IFNAMSIZ];
 
 		s = get_name(name, buf);
-		ife = add_interface(name);
+		ife = add_interface(ilist, name);
 		get_dev_fields(s, ife, procnetdev_vsn);
 		ife->statistics_valid = 1;
-		if (target && strcmp(target, name) == 0)
+		if (ifname && strcmp(ifname, name) == 0) {
+			ret = 1; /* found */
 			break;
+		}
 	}
-
-#if 0 /* we trust kernel to not be buggy, /proc/net/dev reads never fail */
-	if (ferror(fh)) {
-		bb_perror_msg(_PATH_PROCNET_DEV);
-		err = -1;
-		proc_read = 0;
-	}
-#endif
-
 	fclose(fh);
-	return err;
+	return ret;
 }
 
-static int if_readlist(void)
+static void if_readlist(struct iface_list *ilist, char *ifname)
 {
-	int err = if_readlist_proc(NULL);
+	int found = if_readlist_proc(ilist, ifname);
 	/* Needed in order to get ethN:M aliases */
-	if (!err)
-		err = if_readconf();
-	return err;
+	if (!found)
+		if_readconf(ilist);
 }
 
 /* Fetch the interface configuration from the kernel. */
@@ -1096,50 +1078,21 @@ static int do_if_print(struct interface *ife, int show_downed_too)
 	return res;
 }
 
-static struct interface *lookup_interface(char *name)
-{
-	struct interface *ife = NULL;
-
-	if (if_readlist_proc(name) < 0)
-		return NULL;
-	ife = add_interface(name);
-	return ife;
-}
-
-#ifdef UNUSED
-static int for_all_interfaces(int (*doit) (struct interface *, void *),
-							void *cookie)
-{
-	struct interface *ife;
-
-	if (!int_list) {
-		int err = if_readlist();
-		if (err < 0)
-			return err;
-	}
-	for (ife = int_list; ife; ife = ife->next) {
-		int err = doit(ife, cookie);
-		if (err)
-			return err;
-	}
-	return 0;
-}
-#endif
-
 int FAST_FUNC display_interfaces(char *ifname)
 {
 	struct interface *ife;
 	int res;
+	struct iface_list ilist;
+
+	ilist.int_list = NULL;
+	ilist.int_last = NULL;
+	if_readlist(&ilist, ifname != IFNAME_SHOW_DOWNED_TOO ? ifname : NULL);
 
 	if (!ifname || ifname == IFNAME_SHOW_DOWNED_TOO) {
-		/*res = for_all_interfaces(do_if_print, &interface_opt_a);*/
-		if (!int_list) {
-			res = if_readlist();
-			if (res < 0)
-				goto ret;
-		}
-		for (ife = int_list; ife; ife = ife->next) {
+		for (ife = ilist.int_list; ife; ife = ife->next) {
+
 			BUILD_BUG_ON((int)(intptr_t)IFNAME_SHOW_DOWNED_TOO != 1);
+
 			res = do_if_print(ife, (int)(intptr_t)ifname);
 			if (res < 0)
 				goto ret;
@@ -1147,10 +1100,8 @@ int FAST_FUNC display_interfaces(char *ifname)
 		return 0;
 	}
 
-	ife = lookup_interface(ifname);
-	res = do_if_fetch(ife);
-	if (res >= 0)
-		ife_print(ife);
+	ife = add_interface(&ilist, ifname);
+	res = do_if_print(ife, /*show_downed_too:*/ 1);
  ret:
 	return (res < 0); /* status < 0 == 1 -- error */
 }
