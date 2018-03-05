@@ -1367,7 +1367,7 @@ struct hwtype {
 	int   FAST_FUNC (*activate)(int fd);
 	int suppress_null_addr;
 };
-extern smallint interface_opt_a;
+#define IFNAME_SHOW_DOWNED_TOO ((char*)(intptr_t)1)
 int display_interfaces(char *ifname) FAST_FUNC;
 int in_ether(const char *bufp, struct sockaddr *sap) FAST_FUNC;
 #if ENABLE_FEATURE_HWIB

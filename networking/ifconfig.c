@@ -338,6 +338,7 @@ int ifconfig_main(int argc UNUSED_PARAM, char **argv)
 	char *p;
 	/*char host[128];*/
 	const char *host = NULL; /* make gcc happy */
+	IF_FEATURE_IFCONFIG_STATUS(char *show_all_param;)
 
 	did_flags = 0;
 #if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
@@ -349,15 +350,16 @@ int ifconfig_main(int argc UNUSED_PARAM, char **argv)
 	++argv;
 
 #if ENABLE_FEATURE_IFCONFIG_STATUS
-	if (argv[0] && (argv[0][0] == '-' && argv[0][1] == 'a' && !argv[0][2])) {
-		interface_opt_a = 1;
+	show_all_param = NULL;
+	if (argv[0] && argv[0][0] == '-' && argv[0][1] == 'a' && !argv[0][2]) {
 		++argv;
+		show_all_param = IFNAME_SHOW_DOWNED_TOO;
 	}
 #endif
 
 	if (!argv[0] || !argv[1]) { /* one or no args */
 #if ENABLE_FEATURE_IFCONFIG_STATUS
-		return display_interfaces(argv[0] /* can be NULL */);
+		return display_interfaces(argv[0] ? argv[0] : show_all_param);
 #else
 		bb_error_msg_and_die("no support for status display");
 #endif

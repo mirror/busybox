@@ -342,8 +342,6 @@ struct interface {
 };
 
 
-smallint interface_opt_a;	/* show all interfaces */
-
 static struct interface *int_list, *int_last;
 
 
@@ -1086,13 +1084,13 @@ static void ife_print(struct interface *ptr)
 	bb_putchar('\n');
 }
 
-static int do_if_print(struct interface *ife) /*, int *opt_a)*/
+static int do_if_print(struct interface *ife, int show_downed_too)
 {
 	int res;
 
 	res = do_if_fetch(ife);
 	if (res >= 0) {
-		if ((ife->flags & IFF_UP) || interface_opt_a)
+		if ((ife->flags & IFF_UP) || show_downed_too)
 			ife_print(ife);
 	}
 	return res;
@@ -1128,40 +1126,33 @@ static int for_all_interfaces(int (*doit) (struct interface *, void *),
 }
 #endif
 
-/* for ipv4 add/del modes */
-static int if_print(char *ifname)
+int FAST_FUNC display_interfaces(char *ifname)
 {
 	struct interface *ife;
 	int res;
 
-	if (!ifname) {
+	if (!ifname || ifname == IFNAME_SHOW_DOWNED_TOO) {
 		/*res = for_all_interfaces(do_if_print, &interface_opt_a);*/
 		if (!int_list) {
-			int err = if_readlist();
-			if (err < 0)
-				return err;
+			res = if_readlist();
+			if (res < 0)
+				goto ret;
 		}
 		for (ife = int_list; ife; ife = ife->next) {
-			int err = do_if_print(ife); /*, &interface_opt_a);*/
-			if (err)
-				return err;
+			BUILD_BUG_ON((int)(intptr_t)IFNAME_SHOW_DOWNED_TOO != 1);
+			res = do_if_print(ife, (int)(intptr_t)ifname);
+			if (res < 0)
+				goto ret;
 		}
 		return 0;
 	}
+
 	ife = lookup_interface(ifname);
 	res = do_if_fetch(ife);
 	if (res >= 0)
 		ife_print(ife);
-	return res;
-}
-
-int FAST_FUNC display_interfaces(char *ifname)
-{
-	int status;
-
-	status = if_print(ifname);
-
-	return (status < 0); /* status < 0 == 1 -- error */
+ ret:
+	return (res < 0); /* status < 0 == 1 -- error */
 }
 
 #if ENABLE_FEATURE_HWIB
