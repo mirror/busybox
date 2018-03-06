@@ -347,11 +347,13 @@ static unsigned pmatch(const char *p, const char *s, unsigned len)
 /* NUL terminated */
 static void fmt_time_human_30nul(char *s, char dt_delim)
 {
+	struct tm tm;
 	struct tm *ptm;
 	struct timeval tv;
 
 	gettimeofday(&tv, NULL);
-	ptm = gmtime(&tv.tv_sec);
+	ptm = gmtime_r(&tv.tv_sec, &tm);
+	/* ^^^ using gmtime_r() instead of gmtime() to not use static data */
 	sprintf(s, "%04u-%02u-%02u%c%02u:%02u:%02u.%06u000",
 		(unsigned)(1900 + ptm->tm_year),
 		(unsigned)(ptm->tm_mon + 1),

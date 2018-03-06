@@ -1046,6 +1046,7 @@ static void send_headers(int responseNum)
 	/* Fixed size 29-byte string. Example: Sun, 06 Nov 1994 08:49:37 GMT */
 	char date_str[40]; /* using a bit larger buffer to paranoia reasons */
 
+	struct tm tm;
 	const char *responseString = "";
 	const char *infoString = NULL;
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
@@ -1074,7 +1075,8 @@ static void send_headers(int responseNum)
 	 * always fit into those kbytes.
 	 */
 
-	strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime(&timer));
+	strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime_r(&timer, &tm));
+	/* ^^^ using gmtime_r() instead of gmtime() to not use static data */
 	len = sprintf(iobuf,
 			"HTTP/1.0 %d %s\r\n"
 			"Content-type: %s\r\n"
@@ -1128,7 +1130,7 @@ static void send_headers(int responseNum)
 #endif
 
 	if (file_size != -1) {    /* file */
-		strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime(&last_mod));
+		strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime_r(&last_mod, &tm));
 #if ENABLE_FEATURE_HTTPD_RANGES
 		if (responseNum == HTTP_PARTIAL_CONTENT) {
 			len += sprintf(iobuf + len,

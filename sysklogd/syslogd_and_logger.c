@@ -53,6 +53,7 @@ typedef struct _code {
 static const CODE *const bb_prioritynames = prioritynames;
 static const CODE *const bb_facilitynames = facilitynames;
 
+
 #if ENABLE_SYSLOGD
 #include "syslogd.c"
 #endif
