@@ -7181,21 +7181,22 @@ static const struct built_in_command *find_builtin(const char *name)
 #if ENABLE_HUSH_FUNCTIONS
 static struct function **find_function_slot(const char *name)
 {
+	struct function *funcp;
 	struct function **funcpp = &G.top_func;
-	while (*funcpp) {
-		if (strcmp(name, (*funcpp)->name) == 0) {
+
+	while ((funcp = *funcpp) != NULL) {
+		if (strcmp(name, funcp->name) == 0) {
+			debug_printf_exec("found function '%s'\n", name);
 			break;
 		}
-		funcpp = &(*funcpp)->next;
+		funcpp = &funcp->next;
 	}
 	return funcpp;
 }
 
-static const struct function *find_function(const char *name)
+static ALWAYS_INLINE const struct function *find_function(const char *name)
 {
 	const struct function *funcp = *find_function_slot(name);
-	if (funcp)
-		debug_printf_exec("found function '%s'\n", name);
 	return funcp;
 }
 
