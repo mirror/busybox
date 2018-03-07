@@ -896,7 +896,8 @@ enum {
 		| PSSCAN_PID
 		| PSSCAN_SMAPS
 		| PSSCAN_COMM,
-	EXIT_MASK = (unsigned)-1,
+	EXIT_MASK = 0,
+	NO_RESCAN_MASK = (unsigned)-1,
 };
 
 #if ENABLE_FEATURE_TOP_INTERACTIVE
@@ -934,7 +935,7 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 		}
 		if (c == KEYCODE_HOME) {
 			G_scroll_ofs = 0;
-			break;
+			goto normalize_ofs;
 		}
 		if (c == KEYCODE_END) {
 			G_scroll_ofs = ntop - G.lines / 2;
@@ -951,7 +952,7 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 				G_scroll_ofs = ntop - 1;
 			if (G_scroll_ofs < 0)
 				G_scroll_ofs = 0;
-			break;
+			return NO_RESCAN_MASK;
 		}
 
 		c |= 0x20; /* lowercase */
@@ -1156,6 +1157,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	while (scan_mask != EXIT_MASK) {
+		unsigned new_mask;
 		procps_status_t *p = NULL;
 
 		if (OPT_BATCH_MODE) {
@@ -1233,21 +1235,32 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #else
 			qsort(top, ntop, sizeof(top_status_t), (void*)(sort_function[0]));
 #endif
-			display_process_list(G.lines, col);
 		}
 #if ENABLE_FEATURE_TOPMEM
 		else { /* TOPMEM */
 			qsort(topmem, ntop, sizeof(topmem_status_t), (void*)topmem_sort);
+		}
+#endif
+ IF_FEATURE_TOP_INTERACTIVE(display:)
+		IF_FEATURE_TOPMEM(if (scan_mask != TOPMEM_MASK)) {
+			display_process_list(G.lines, col);
+		}
+#if ENABLE_FEATURE_TOPMEM
+		else { /* TOPMEM */
 			display_topmem_process_list(G.lines, col);
 		}
 #endif
-		clearmems();
 		if (iterations >= 0 && !--iterations)
 			break;
 #if !ENABLE_FEATURE_TOP_INTERACTIVE
+		clearmems();
 		sleep(interval);
 #else
-		scan_mask = handle_input(scan_mask, interval);
+		new_mask = handle_input(scan_mask, interval);
+		if (new_mask == NO_RESCAN_MASK)
+			goto display;
+		scan_mask = new_mask;
+		clearmems();
 #endif
 	} /* end of "while (not Q)" */
 
