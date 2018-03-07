@@ -607,7 +607,6 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	};
 
 	top_status_t *s;
-	char vsz_str_buf[8];
 	unsigned long total_memory = display_header(scr_width, &lines_rem); /* or use total_vsz? */
 	/* xxx_shift and xxx_scale variables allow us to replace
 	 * expensive divides with multiply and shift */
@@ -688,19 +687,18 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 		lines_rem = ntop - G_scroll_ofs;
 	s = top + G_scroll_ofs;
 	while (--lines_rem >= 0) {
+		char vsz_str_buf[8];
 		unsigned col;
+
 		CALC_STAT(pmem, (s->vsz*pmem_scale + pmem_half) >> pmem_shift);
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		CALC_STAT(pcpu, (s->pcpu*pcpu_scale + pcpu_half) >> pcpu_shift);
 #endif
 
-		if (s->vsz >= 100000)
-			sprintf(vsz_str_buf, "%6ldm", s->vsz/1024);
-		else
-			sprintf(vsz_str_buf, "%7lu", s->vsz);
+		smart_ulltoa5(s->vsz, vsz_str_buf, " mgtpezy");
 		/* PID PPID USER STAT VSZ %VSZ [%CPU] COMMAND */
 		col = snprintf(line_buf, scr_width,
-				"\n" "%5u%6u %-8.8s %s%s" FMT
+				"\n" "%5u%6u %-8.8s %s  %.5s" FMT
 				IF_FEATURE_TOP_SMP_PROCESS(" %3d")
 				IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(FMT)
 				" ",
@@ -710,7 +708,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 				IF_FEATURE_TOP_SMP_PROCESS(, s->last_seen_on_cpu)
 				IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(, SHOW_STAT(pcpu))
 		);
-		if ((int)(col + 1) < scr_width)
+		if ((int)(scr_width - col) > 1)
 			read_cmdline(line_buf + col, scr_width - col, s->pid, s->comm);
 		fputs(line_buf, stdout);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
