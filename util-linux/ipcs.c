@@ -101,8 +101,6 @@ union semun {
 #define TIME 4
 #define PID 5
 
-static char format;
-
 static void print_perms(int id, struct ipc_perm *ipcp)
 {
 	struct passwd *pw;
@@ -125,8 +123,7 @@ static void print_perms(int id, struct ipc_perm *ipcp)
 	else	printf(" %-10d\n", ipcp->gid);
 }
 
-
-static NOINLINE void do_shm(void)
+static NOINLINE void do_shm(int format)
 {
 	int maxid, shmid, id;
 	struct shmid_ds shmseg;
@@ -252,8 +249,7 @@ static NOINLINE void do_shm(void)
 	}
 }
 
-
-static NOINLINE void do_sem(void)
+static NOINLINE void do_sem(int format)
 {
 	int maxid, semid, id;
 	struct semid_ds semary;
@@ -358,8 +354,7 @@ static NOINLINE void do_sem(void)
 	}
 }
 
-
-static NOINLINE void do_msg(void)
+static NOINLINE void do_msg(int format)
 {
 	int maxid, msqid, id;
 	struct msqid_ds msgque;
@@ -466,7 +461,6 @@ static NOINLINE void do_msg(void)
 	}
 }
 
-
 static void print_shm(int shmid)
 {
 	struct shmid_ds shmds;
@@ -492,7 +486,6 @@ static void print_shm(int shmid)
 			shmds.shm_dtime ? ctime(&shmds.shm_dtime) : "Not set");
 	printf("change_time=%-26.24s\n\n", ctime(&shmds.shm_ctime));
 }
-
 
 static void print_msg(int msqid)
 {
@@ -570,7 +563,7 @@ static void print_sem(int semid)
 }
 
 //usage:#define ipcs_trivial_usage
-//usage:       "[[-smq] -i shmid] | [[-asmq] [-tcplu]]"
+//usage:       "[[-smq] -i SHMID] | [[-asmq] [-tcplu]]"
 //usage:#define ipcs_full_usage "\n\n"
 //usage:       "	-i	Show specific resource"
 //usage:     "\nResource specification:"
@@ -588,20 +581,15 @@ static void print_sem(int semid)
 int ipcs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ipcs_main(int argc UNUSED_PARAM, char **argv)
 {
-	int id = 0;
+	int format = 0;
 	unsigned flags = 0;
 	unsigned opt;
 	char *opt_i;
-#define flag_print	(1<<0)
-#define flag_msg	(1<<1)
-#define flag_sem	(1<<2)
-#define flag_shm	(1<<3)
+#define flag_msg	(1<<0)
+#define flag_sem	(1<<1)
+#define flag_shm	(1<<2)
 
 	opt = getopt32(argv, "i:aqsmtcplu", &opt_i);
-	if (opt & 0x1) { // -i
-		id = xatoi(opt_i);
-		flags |= flag_print;
-	}
 	if (opt & 0x2) flags |= flag_msg | flag_sem | flag_shm; // -a
 	if (opt & 0x4) flags |= flag_msg; // -q
 	if (opt & 0x8) flags |= flag_sem; // -s
@@ -612,7 +600,10 @@ int ipcs_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & 0x100) format = LIMITS; // -l
 	if (opt & 0x200) format = STATUS; // -u
 
-	if (flags & flag_print) {
+	if (opt & 1) { // -i
+		int id;
+
+		id = xatoi(opt_i);
 		if (flags & flag_shm) {
 			print_shm(id);
 			fflush_stdout_and_exit(EXIT_SUCCESS);
@@ -633,15 +624,15 @@ int ipcs_main(int argc UNUSED_PARAM, char **argv)
 	bb_putchar('\n');
 
 	if (flags & flag_msg) {
-		do_msg();
+		do_msg(format);
 		bb_putchar('\n');
 	}
 	if (flags & flag_shm) {
-		do_shm();
+		do_shm(format);
 		bb_putchar('\n');
 	}
 	if (flags & flag_sem) {
-		do_sem();
+		do_sem(format);
 		bb_putchar('\n');
 	}
 	fflush_stdout_and_exit(EXIT_SUCCESS);
