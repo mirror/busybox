@@ -9,7 +9,7 @@
 //config:	bool "md5sum (6.8 kb)"
 //config:	default y
 //config:	help
-//config:	md5sum is used to print or check MD5 checksums.
+//config:	Compute and check MD5 message digest
 //config:
 //config:config SHA1SUM
 //config:	bool "sha1sum (6 kb)"
