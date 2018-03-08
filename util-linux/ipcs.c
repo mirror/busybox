@@ -565,7 +565,7 @@ static void print_sem(int semid)
 //usage:#define ipcs_trivial_usage
 //usage:       "[[-smq] -i SHMID] | [[-asmq] [-tcplu]]"
 //usage:#define ipcs_full_usage "\n\n"
-//usage:       "	-i	Show specific resource"
+//usage:       "	-i ID	Show specific resource"
 //usage:     "\nResource specification:"
 //usage:     "\n	-m	Shared memory segments"
 //usage:     "\n	-q	Message queues"
@@ -582,56 +582,55 @@ int ipcs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ipcs_main(int argc UNUSED_PARAM, char **argv)
 {
 	int format = 0;
-	unsigned flags = 0;
 	unsigned opt;
 	char *opt_i;
-#define flag_msg	(1<<0)
-#define flag_sem	(1<<1)
-#define flag_shm	(1<<2)
 
 	opt = getopt32(argv, "i:aqsmtcplu", &opt_i);
-	if (opt & 0x2) flags |= flag_msg | flag_sem | flag_shm; // -a
-	if (opt & 0x4) flags |= flag_msg; // -q
-	if (opt & 0x8) flags |= flag_sem; // -s
-	if (opt & 0x10) flags |= flag_shm; // -m
-	if (opt & 0x20) format = TIME; // -t
-	if (opt & 0x40) format = CREATOR; // -c
-	if (opt & 0x80) format = PID; // -p
-	if (opt & 0x100) format = LIMITS; // -l
-	if (opt & 0x200) format = STATUS; // -u
+#define flag_msg (1<<2)
+#define flag_sem (1<<3)
+#define flag_shm (1<<4)
+	if (opt & (1<<5)) format = TIME; // -t
+	if (opt & (1<<6)) format = CREATOR; // -c
+	if (opt & (1<<7)) format = PID; // -p
+	if (opt & (1<<8)) format = LIMITS; // -l
+	if (opt & (1<<9)) format = STATUS; // -u
 
-	if (opt & 1) { // -i
+	if (opt & (1<<0)) { // -i
 		int id;
 
 		id = xatoi(opt_i);
-		if (flags & flag_shm) {
+		if (opt & flag_shm) {
 			print_shm(id);
 			fflush_stdout_and_exit(EXIT_SUCCESS);
 		}
-		if (flags & flag_sem) {
+		if (opt & flag_sem) {
 			print_sem(id);
 			fflush_stdout_and_exit(EXIT_SUCCESS);
 		}
-		if (flags & flag_msg) {
+		if (opt & flag_msg) {
 			print_msg(id);
 			fflush_stdout_and_exit(EXIT_SUCCESS);
 		}
 		bb_show_usage();
 	}
 
-	if (!(flags & (flag_shm | flag_msg | flag_sem)))
-		flags |= flag_msg | flag_shm | flag_sem;
+	if ((opt & (1<<1)) // -a
+	 || !(opt & (flag_msg | flag_sem | flag_shm)) // none of -q,-s,-m == all
+	) {
+		opt |= flag_msg | flag_sem | flag_shm;
+	}
+
 	bb_putchar('\n');
 
-	if (flags & flag_msg) {
+	if (opt & flag_msg) {
 		do_msg(format);
 		bb_putchar('\n');
 	}
-	if (flags & flag_shm) {
+	if (opt & flag_shm) {
 		do_shm(format);
 		bb_putchar('\n');
 	}
-	if (flags & flag_sem) {
+	if (opt & flag_sem) {
 		do_sem(format);
 		bb_putchar('\n');
 	}
