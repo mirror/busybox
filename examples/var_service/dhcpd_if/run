@@ -11,13 +11,13 @@ echo "* Upping iface $if"
 ip link set dev $if up
 
 >>udhcpd.leases
-sed 's/^interface.*$/interface '"$if/" -i udhcpc.conf
+sed 's/^interface.*$/interface '"$if/" -i udhcpd.conf
 
 echo "* Starting udhcpd"
 exec \
 env - PATH="$PATH" \
 softlimit \
 setuidgid root \
-udhcpd -f -vv udhcpc.conf
+udhcpd -f -vv udhcpd.conf
 
 exit $?
