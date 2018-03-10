@@ -1574,13 +1574,12 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			/* yah, I know, *you* say it would never happen */
 			timeout = INT_MAX;
 			continue; /* back to main loop */
-		} /* if select timed out */
+		} /* if poll timed out */
 
-		/* select() didn't timeout, something happened */
+		/* poll() didn't timeout, something happened */
 
 		/* Is it a signal? */
-		/* note: udhcp_sp_read checks poll result before reading */
-		switch (udhcp_sp_read(pfds)) {
+		switch (udhcp_sp_read()) {
 		case SIGUSR1:
 			client_config.first_secs = 0; /* make secs field count from 0 */
 			already_waited_sec = 0;
@@ -1615,7 +1614,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		/* Is it a packet? */
-		if (listen_mode == LISTEN_NONE || !pfds[1].revents)
+		if (!pfds[1].revents)
 			continue; /* no */
 
 		{

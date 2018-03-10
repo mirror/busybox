@@ -40,6 +40,7 @@ void FAST_FUNC udhcp_sp_setup(void)
 	xpiped_pair(signal_pipe);
 	close_on_exec_on(signal_pipe.rd);
 	close_on_exec_on(signal_pipe.wr);
+	ndelay_on(signal_pipe.rd);
 	ndelay_on(signal_pipe.wr);
 	bb_signals(0
 		+ (1 << SIGUSR1)
@@ -61,20 +62,20 @@ void FAST_FUNC udhcp_sp_fd_set(struct pollfd pfds[2], int extra_fd)
 		pfds[1].fd = extra_fd;
 		pfds[1].events = POLLIN;
 	}
+	/* this simplifies "is extra_fd ready?" tests elsewhere: */
+	pfds[1].revents = 0;
 }
 
 /* Read a signal from the signal pipe. Returns 0 if there is
  * no signal, -1 on error (and sets errno appropriately), and
  * your signal on success */
-int FAST_FUNC udhcp_sp_read(struct pollfd pfds[2])
+int FAST_FUNC udhcp_sp_read(void)
 {
 	unsigned char sig;
 
-	if (!pfds[0].revents)
-		return 0;
-
+	/* Can't block here, fd is in nonblocking mode */
 	if (safe_read(signal_pipe.rd, &sig, 1) != 1)
-		return -1;
+		return 0;
 
 	return sig;
 }
