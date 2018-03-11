@@ -61,27 +61,22 @@
 
 #define S_LEN 128
 
-/* These are the defaults */
-static const char defaultmap[] ALIGN1 = "/boot/System.map";
-static const char defaultpro[] ALIGN1 = "/proc/profile";
-
 int readprofile_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int readprofile_main(int argc UNUSED_PARAM, char **argv)
 {
 	FILE *map;
 	const char *mapFile, *proFile;
-	unsigned long indx = 1;
+	unsigned long indx;
 	size_t len;
-	uint64_t add0 = 0;
+	uint64_t add0;
 	unsigned int step;
 	unsigned int *buf, total, fn_len;
 	unsigned long long fn_add, next_add;     /* current and next address */
 	char fn_name[S_LEN], next_name[S_LEN];   /* current and next name */
 	char mapline[S_LEN];
 	char mode[8];
-	int maplineno = 1;
-	int header_printed;
-	int multiplier = 0;
+	int maplineno;
+	int multiplier;
 	unsigned opt;
 	enum {
 		OPT_M = (1 << 0),
@@ -106,8 +101,9 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 
 #define next (current^1)
 
-	proFile = defaultpro;
-	mapFile = defaultmap;
+	proFile = "/proc/profile";
+	mapFile = "/boot/System.map";
+	multiplier = 0;
 
 	opt = getopt32(argv, "M:+m:p:nabsirv", &multiplier, &mapFile, &proFile);
 
@@ -122,7 +118,7 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 		if (!optMult)
 			to_write = 1;  /* sth different from sizeof(int) */
 
-		fd = xopen(defaultpro, O_WRONLY);
+		fd = xopen("/proc/profile", O_WRONLY);
 		xwrite(fd, &multiplier, to_write);
 		close(fd);
 		return EXIT_SUCCESS;
@@ -133,12 +129,13 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 	 */
 	len = MAXINT(ssize_t);
 	buf = xmalloc_xopen_read_close(proFile, &len);
+	len /= sizeof(*buf);
+
 	if (!optNative) {
-		int entries = len / sizeof(*buf);
-		int big = 0, small = 0, i;
+		int big = 0, small = 0;
 		unsigned *p;
 
-		for (p = buf+1; p < buf+entries; p++) {
+		for (p = buf+1; p < buf+len; p++) {
 			if (*p & ~0U << (sizeof(*buf)*4))
 				big++;
 			if (*p & ((1 << (sizeof(*buf)*4))-1))
@@ -147,15 +144,15 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 		if (big > small) {
 			bb_error_msg("assuming reversed byte order, "
 				"use -n to force native byte order");
-			for (p = buf; p < buf+entries; p++)
-				for (i = 0; i < sizeof(*buf)/2; i++) {
-					unsigned char *b = (unsigned char *) p;
-					unsigned char tmp;
-
-					tmp = b[i];
-					b[i] = b[sizeof(*buf)-i-1];
-					b[sizeof(*buf)-i-1] = tmp;
-				}
+			BUILD_BUG_ON(sizeof(*p) > 8);
+			for (p = buf; p < buf+len; p++) {
+				if (sizeof(*p) == 2)
+					*p = bswap_16(*p);
+				if (sizeof(*p) == 4)
+					*p = bswap_32(*p);
+				if (sizeof(*p) == 8)
+					*p = bb_bswap_64(*p);
+			}
 		}
 	}
 
@@ -165,10 +162,9 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	total = 0;
-
 	map = xfopen_for_read(mapFile);
-
+	add0 = 0;
+	maplineno = 1;
 	while (fgets(mapline, S_LEN, map)) {
 		if (sscanf(mapline, "%llx %s %s", &fn_add, mode, fn_name) != 3)
 			bb_error_msg_and_die("%s(%i): wrong map line",
@@ -187,8 +183,11 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 	/*
 	 * Main loop.
 	 */
+	total = 0;
+	indx = 1;
 	while (fgets(mapline, S_LEN, map)) {
-		unsigned int this = 0;
+		bool header_printed;
+		unsigned int this;
 
 		if (sscanf(mapline, "%llx %s %s", &next_add, mode, next_name) != 3)
 			bb_error_msg_and_die("%s(%i): wrong map line",
@@ -198,17 +197,17 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 
 		/* ignore any LEADING (before a '[tT]' symbol is found)
 		   Absolute symbols */
-		if ((*mode == 'A' || *mode == '?') && total == 0) continue;
-		if (*mode != 'T' && *mode != 't'
-		 && *mode != 'W' && *mode != 'w'
-		) {
+		if ((mode[0] == 'A' || mode[0] == '?') && total == 0)
+			continue;
+		if ((mode[0]|0x20) != 't' && (mode[0]|0x20) != 'w') {
 			break;  /* only text is profiled */
 		}
 
-		if (indx >= len / sizeof(*buf))
+		if (indx >= len)
 			bb_error_msg_and_die("profile address out of range. "
 					"Wrong map file?");
 
+		this = 0;
 		while (indx < (next_add-add0)/step) {
 			if (optBins && (buf[indx] || optAll)) {
 				if (!header_printed) {
@@ -256,7 +255,7 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* clock ticks, out of kernel text - probably modules */
-	printf("%6u %s\n", buf[len/sizeof(*buf)-1], "*unknown*");
+	printf("%6u *unknown*\n", buf[len-1]);
 
 	/* trailer */
 	if (optVerbose)
