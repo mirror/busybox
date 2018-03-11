@@ -853,6 +853,9 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	/* Would rather not do read_config before daemonization -
 	 * otherwise NOMMU machines will parse config twice */
 	read_config(argv[0] ? argv[0] : DHCPD_CONF_FILE);
+	/* prevent poll timeout overflow */
+	if (server_config.auto_time > INT_MAX / 1000)
+		server_config.auto_time = INT_MAX / 1000;
 
 	/* Make sure fd 0,1,2 are open */
 	bb_sanitize_stdio();
@@ -914,14 +917,26 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		udhcp_sp_fd_set(pfds, server_socket);
-		tv = timeout_end - monotonic_sec();
-		/* Block here waiting for either signal or packet */
-		retval = safe_poll(pfds, 2, server_config.auto_time ? tv * 1000 : -1);
-		if (retval <= 0) {
-			if (retval == 0) {
+
+ new_tv:
+		tv = -1;
+		if (server_config.auto_time) {
+			tv = timeout_end - monotonic_sec();
+			if (tv <= 0) {
+ write_leases:
 				write_leases();
 				goto continue_with_autotime;
 			}
+			tv *= 1000;
+		}
+
+		/* Block here waiting for either signal or packet */
+		retval = poll(pfds, 2, tv);
+		if (retval <= 0) {
+			if (retval == 0)
+				goto write_leases;
+			if (errno == EINTR)
+				goto new_tv;
 			/* < 0 and not EINTR: should not happen */
 			bb_perror_msg_and_die("poll");
 		}
