@@ -1157,7 +1157,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	while (scan_mask != EXIT_MASK) {
-		unsigned new_mask;
+		IF_FEATURE_TOP_INTERACTIVE(unsigned new_mask;)
 		procps_status_t *p = NULL;
 
 		if (OPT_BATCH_MODE) {
