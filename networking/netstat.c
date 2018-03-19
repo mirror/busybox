@@ -397,8 +397,11 @@ static char *ip_port_str(struct sockaddr *addr, int port, const char *proto, int
 	/* Code which used "*" for INADDR_ANY is removed: it's ambiguous
 	 * in IPv6, while "0.0.0.0" is not. */
 
-	host = numeric ? xmalloc_sockaddr2dotted_noport(addr)
-	               : xmalloc_sockaddr2host_noport(addr);
+	host = NULL;
+	if (!numeric)
+		host = xmalloc_sockaddr2host_noport(addr);
+	if (!host)
+		host = xmalloc_sockaddr2dotted_noport(addr);
 
 	host_port = xasprintf("%s:%s", host, get_sname(htons(port), proto, numeric));
 	free(host);
