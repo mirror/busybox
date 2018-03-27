@@ -138,6 +138,7 @@
 //usage:     "\n	-v	Print out what would happen before doing it"
 //usage:     "\n	-f	Force deconfiguration"
 
+#include <net/if.h>
 #include "libbb.h"
 #include "common_bufsiz.h"
 /* After libbb.h, since it needs sys/types.h on some systems */
@@ -503,6 +504,8 @@ static int FAST_FUNC static_up6(struct interface_defn_t *ifd, execfn *exec)
 
 static int FAST_FUNC static_down6(struct interface_defn_t *ifd, execfn *exec)
 {
+	if (!if_nametoindex(ifd->iface))
+		return 1; /* already gone */
 # if ENABLE_FEATURE_IFUPDOWN_IP
 	return execute("ip link set %iface% down", ifd, exec);
 # else
@@ -598,6 +601,9 @@ static int FAST_FUNC static_up(struct interface_defn_t *ifd, execfn *exec)
 static int FAST_FUNC static_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
+
+	if (!if_nametoindex(ifd->iface))
+		return 2; /* already gone */
 # if ENABLE_FEATURE_IFUPDOWN_IP
 	/* Optional "label LBL" is necessary if interface is an alias (eth0:0),
 	 * otherwise "ip addr flush dev eth0:0" flushes all addresses on eth0.
