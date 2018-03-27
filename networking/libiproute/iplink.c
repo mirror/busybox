@@ -161,7 +161,7 @@ static int get_address(char *dev, int *htype)
 
 	s = xsocket(PF_PACKET, SOCK_DGRAM, 0);
 
-	memset(&ifr, 0, sizeof(ifr));
+	/*memset(&ifr, 0, sizeof(ifr)); - SIOCGIFINDEX does not need to clear all */
 	strncpy_IFNAMSIZ(ifr.ifr_name, dev);
 	xioctl(s, SIOCGIFINDEX, &ifr);
 

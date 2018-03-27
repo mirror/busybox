@@ -63,7 +63,7 @@ int FAST_FUNC d6_read_interface(const char *interface, int *ifindex, struct in6_
 		struct ifreq ifr;
 		int fd;
 
-		memset(&ifr, 0, sizeof(ifr));
+		/*memset(&ifr, 0, sizeof(ifr)); - SIOCGIFINDEX does not need to clear all */
 		strncpy_IFNAMSIZ(ifr.ifr_name, interface);
 		fd = xsocket(AF_INET6, SOCK_RAW, IPPROTO_RAW);
 		if (ioctl(fd, SIOCGIFINDEX, &ifr) == 0) {

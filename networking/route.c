@@ -444,7 +444,7 @@ static NOINLINE void INET6_setroute(int action, char **args)
 
 	if (devname) {
 		struct ifreq ifr;
-		memset(&ifr, 0, sizeof(ifr));
+		/*memset(&ifr, 0, sizeof(ifr)); - SIOCGIFINDEX does not need to clear all */
 		strncpy_IFNAMSIZ(ifr.ifr_name, devname);
 		xioctl(skfd, SIOCGIFINDEX, &ifr);
 		rt.rtmsg_ifindex = ifr.ifr_ifindex;
