@@ -8173,6 +8173,12 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		rcode = 1; /* exitcode if redir failed */
 		if (setup_redirects(command, &squirrel) == 0) {
 			debug_printf_exec(": run_list\n");
+//FIXME: we need to pass squirrel down into run_list()
+//for SH_STANDALONE case, or else this construct:
+// { find /proc/self/fd; true; } >FILE; cmd2
+//has no way of closing saved fd#1 for "find",
+//and in SH_STANDALONE mode, "find" is not execed,
+//therefore CLOEXEC on saved fd does not help.
 			rcode = run_list(command->group) & 0xff;
 		}
 		restore_redirects(squirrel);
