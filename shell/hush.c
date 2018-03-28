@@ -1501,12 +1501,15 @@ static void free_strings(char **strings)
 	free(strings);
 }
 
-static int fcntl_F_DUPFD(int fd, int avoid_fd)
+static int dup_CLOEXEC(int fd, int avoid_fd)
 {
 	int newfd;
  repeat:
-	newfd = fcntl(fd, F_DUPFD, avoid_fd + 1);
-	if (newfd < 0) {
+	newfd = fcntl(fd, F_DUPFD_CLOEXEC, avoid_fd + 1);
+	if (newfd >= 0) {
+		if (F_DUPFD_CLOEXEC == F_DUPFD) /* if old libc (w/o F_DUPFD_CLOEXEC) */
+			fcntl(newfd, F_SETFD, FD_CLOEXEC);
+	} else { /* newfd < 0 */
 		if (errno == EBUSY)
 			goto repeat;
 		if (errno == EINTR)
@@ -6890,7 +6893,7 @@ static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 	if (sq) for (; sq[i].orig_fd >= 0; i++) {
 		/* If we collide with an already moved fd... */
 		if (fd == sq[i].moved_to) {
-			sq[i].moved_to = fcntl_F_DUPFD(sq[i].moved_to, avoid_fd);
+			sq[i].moved_to = dup_CLOEXEC(sq[i].moved_to, avoid_fd);
 			debug_printf_redir("redirect_fd %d: already busy, moving to %d\n", fd, sq[i].moved_to);
 			if (sq[i].moved_to < 0) /* what? */
 				xfunc_die();
@@ -6904,7 +6907,7 @@ static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 	}
 
 	/* If this fd is open, we move and remember it; if it's closed, moved_to = -1 */
-	moved_to = fcntl_F_DUPFD(fd, avoid_fd);
+	moved_to = dup_CLOEXEC(fd, avoid_fd);
 	debug_printf_redir("redirect_fd %d: previous fd is moved to %d (-1 if it was closed)\n", fd, moved_to);
 	if (moved_to < 0 && errno != EBADF)
 		xfunc_die();
@@ -7622,6 +7625,10 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 				 */
 				close_saved_fds_and_FILE_fds();
 //FIXME: should also close saved redir fds
+//This casuses test failures in
+//redir_children_should_not_see_saved_fd_2.tests
+//redir_children_should_not_see_saved_fd_3.tests
+//if you replace "busybox find" with just "find" in them
 				/* Without this, "rm -i FILE" can't be ^C'ed: */
 				switch_off_special_sigs(G.special_sig_mask);
 				debug_printf_exec("running applet '%s'\n", argv[0]);
@@ -9347,7 +9354,7 @@ int hush_main(int argc, char **argv)
 			G_saved_tty_pgrp = 0;
 
 		/* try to dup stdin to high fd#, >= 255 */
-		G_interactive_fd = fcntl_F_DUPFD(STDIN_FILENO, 254);
+		G_interactive_fd = dup_CLOEXEC(STDIN_FILENO, 254);
 		if (G_interactive_fd < 0) {
 			/* try to dup to any fd */
 			G_interactive_fd = dup(STDIN_FILENO);
@@ -9420,10 +9427,10 @@ int hush_main(int argc, char **argv)
 #elif ENABLE_HUSH_INTERACTIVE
 	/* No job control compiled in, only prompt/line editing */
 	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
-		G_interactive_fd = fcntl_F_DUPFD(STDIN_FILENO, 254);
+		G_interactive_fd = dup_CLOEXEC(STDIN_FILENO, 254);
 		if (G_interactive_fd < 0) {
 			/* try to dup to any fd */
-			G_interactive_fd = dup(STDIN_FILENO);
+			G_interactive_fd = dup_CLOEXEC(STDIN_FILENO);
 			if (G_interactive_fd < 0)
 				/* give up */
 				G_interactive_fd = 0;

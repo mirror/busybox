@@ -255,6 +255,9 @@ typedef long arith_t;
 # define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
 #endif
 
+#ifndef F_DUPFD_CLOEXEC
+# define F_DUPFD_CLOEXEC F_DUPFD
+#endif
 #ifndef PIPE_BUF
 # define PIPE_BUF 4096           /* amount of buffering in a pipe */
 #endif
@@ -5448,12 +5451,15 @@ dup2_or_raise(int from, int to)
 	return newfd;
 }
 static int
-fcntl_F_DUPFD(int fd, int avoid_fd)
+dup_CLOEXEC(int fd, int avoid_fd)
 {
 	int newfd;
  repeat:
-	newfd = fcntl(fd, F_DUPFD, avoid_fd + 1);
-	if (newfd < 0) {
+	newfd = fcntl(fd, F_DUPFD_CLOEXEC, avoid_fd + 1);
+	if (newfd >= 0) {
+		if (F_DUPFD_CLOEXEC == F_DUPFD) /* if old libc (w/o F_DUPFD_CLOEXEC) */
+			fcntl(newfd, F_SETFD, FD_CLOEXEC);
+	} else { /* newfd < 0 */
 		if (errno == EBUSY)
 			goto repeat;
 		if (errno == EINTR)
@@ -5569,7 +5575,7 @@ save_fd_on_redirect(int fd, int avoid_fd, struct redirtab *sq)
 	for (i = 0; sq->two_fd[i].orig_fd != EMPTY; i++) {
 		/* If we collide with an already moved fd... */
 		if (fd == sq->two_fd[i].moved_to) {
-			new_fd = fcntl_F_DUPFD(fd, avoid_fd);
+			new_fd = dup_CLOEXEC(fd, avoid_fd);
 			sq->two_fd[i].moved_to = new_fd;
 			TRACE(("redirect_fd %d: already busy, moving to %d\n", fd, new_fd));
 			if (new_fd < 0) /* what? */
@@ -5584,7 +5590,7 @@ save_fd_on_redirect(int fd, int avoid_fd, struct redirtab *sq)
 	}
 
 	/* If this fd is open, we move and remember it; if it's closed, new_fd = CLOSED (-1) */
-	new_fd = fcntl_F_DUPFD(fd, avoid_fd);
+	new_fd = dup_CLOEXEC(fd, avoid_fd);
 	TRACE(("redirect_fd %d: previous fd is moved to %d (-1 if it was closed)\n", fd, new_fd));
 	if (new_fd < 0) {
 		if (errno != EBADF)
