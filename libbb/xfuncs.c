@@ -59,24 +59,23 @@ char* FAST_FUNC strncpy_IFNAMSIZ(char *dst, const char *src)
  * A truncated result contains the first few digits of the result ala strncpy.
  * Returns a pointer past last generated digit, does _not_ store NUL.
  */
-void BUG_sizeof(void);
 char* FAST_FUNC utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {
 	unsigned i, out, res;
 
 	if (buflen) {
 		out = 0;
+
+		BUILD_BUG_ON(sizeof(n) != 4 && sizeof(n) != 8);
 		if (sizeof(n) == 4)
 		// 2^32-1 = 4294967295
 			i = 1000000000;
-#if UINT_MAX > 4294967295 /* prevents warning about "const too large" */
+#if UINT_MAX > 0xffffffff /* prevents warning about "const too large" */
 		else
 		if (sizeof(n) == 8)
 		// 2^64-1 = 18446744073709551615
 			i = 10000000000000000000;
 #endif
-		else
-			BUG_sizeof();
 		for (; i; i /= 10) {
 			res = n / i;
 			n = n % i;
