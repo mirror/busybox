@@ -367,7 +367,7 @@ static void up_iface(void)
 		/* Let user know we mess up with interface */
 		bb_error_msg("upping interface");
 		if (network_ioctl(SIOCSIFFLAGS, &ifrequest, "setting interface flags") < 0) {
-			if (errno != ENODEV)
+			if (errno != ENODEV && errno != EADDRNOTAVAIL)
 				xfunc_die();
 			G.iface_exists = 0;
 			return;
