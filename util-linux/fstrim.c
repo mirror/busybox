@@ -70,7 +70,9 @@ int fstrim_main(int argc UNUSED_PARAM, char **argv)
 		;
 #endif
 
-	opts = getopt32long(argv, "^" "o:l:m:v" "\0" "=1", fstrim_longopts,
+	opts = getopt32long(argv, "^"
+			"o:l:m:v"
+			"\0" "=1", fstrim_longopts,
 			&arg_o, &arg_l, &arg_m
 	);
 
@@ -85,15 +87,21 @@ int fstrim_main(int argc UNUSED_PARAM, char **argv)
 		range.minlen = xatoull_sfx(arg_m, kmg_i_suffixes);
 
 	mp = argv[optind];
-	if (find_block_device(mp)) {
+//Wwhy bother checking that it's a blockdev?
+//	if (find_block_device(mp)) {
 		fd = xopen_nonblocking(mp);
+
+		/* On ENOTTY error, util-linux 2.31 says:
+		 * "fstrim: FILE: the discard operation is not supported"
+		 */
 		xioctl(fd, FITRIM, &range);
+
 		if (ENABLE_FEATURE_CLEAN_UP)
 			close(fd);
 
 		if (opts & OPT_v)
 			printf("%s: %llu bytes trimmed\n", mp, (unsigned long long)range.len);
 		return EXIT_SUCCESS;
-	}
+//	}
 	return EXIT_FAILURE;
 }
