@@ -352,7 +352,7 @@ static int grep_file(FILE *file)
 							goto opt_f_not_found;
 					} else
 					if (option_mask32 & OPT_w) {
-						char c = (match != str) ? match[-1] : ' ';
+						char c = (match != line) ? match[-1] : ' ';
 						if (!isalnum(c) && c != '_') {
 							c = match[strlen(gl->pattern)];
 							if (!c || (!isalnum(c) && c != '_'))
