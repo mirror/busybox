@@ -258,6 +258,9 @@ typedef long arith_t;
 #ifndef F_DUPFD_CLOEXEC
 # define F_DUPFD_CLOEXEC F_DUPFD
 #endif
+#ifndef O_CLOEXEC
+# define O_CLOEXEC 0
+#endif
 #ifndef PIPE_BUF
 # define PIPE_BUF 4096           /* amount of buffering in a pipe */
 #endif
@@ -3972,12 +3975,13 @@ setjobctl(int on)
 					goto out;
 		}
 		/* fd is a tty at this point */
-		fd = fcntl(fd, F_DUPFD, 10);
+		fd = fcntl(fd, F_DUPFD_CLOEXEC, 10);
 		if (ofd >= 0) /* if it is "/dev/tty", close. If 0/1/2, don't */
 			close(ofd);
 		if (fd < 0)
 			goto out; /* F_DUPFD failed */
-		close_on_exec_on(fd);
+		if (F_DUPFD_CLOEXEC == F_DUPFD) /* if old libc (w/o F_DUPFD_CLOEXEC) */
+			close_on_exec_on(fd);
 		while (1) { /* while we are in the background */
 			pgrp = tcgetpgrp(fd);
 			if (pgrp < 0) {
@@ -5427,13 +5431,14 @@ savefd(int from)
 	int newfd;
 	int err;
 
-	newfd = fcntl(from, F_DUPFD, 10);
+	newfd = fcntl(from, F_DUPFD_CLOEXEC, 10);
 	err = newfd < 0 ? errno : 0;
 	if (err != EBADF) {
 		if (err)
 			ash_msg_and_raise_perror("%d", from);
 		close(from);
-		fcntl(newfd, F_SETFD, FD_CLOEXEC);
+		if (F_DUPFD_CLOEXEC == F_DUPFD)
+			close_on_exec_on(newfd);
 	}
 
 	return newfd;
@@ -5458,7 +5463,7 @@ dup_CLOEXEC(int fd, int avoid_fd)
 	newfd = fcntl(fd, F_DUPFD_CLOEXEC, avoid_fd + 1);
 	if (newfd >= 0) {
 		if (F_DUPFD_CLOEXEC == F_DUPFD) /* if old libc (w/o F_DUPFD_CLOEXEC) */
-			fcntl(newfd, F_SETFD, FD_CLOEXEC);
+			close_on_exec_on(newfd);
 	} else { /* newfd < 0 */
 		if (errno == EBUSY)
 			goto repeat;
@@ -5472,7 +5477,7 @@ xdup_CLOEXEC_and_close(int fd, int avoid_fd)
 {
 	int newfd;
  repeat:
-	newfd = fcntl(fd, F_DUPFD, avoid_fd + 1);
+	newfd = fcntl(fd, F_DUPFD_CLOEXEC, avoid_fd + 1);
 	if (newfd < 0) {
 		if (errno == EBUSY)
 			goto repeat;
@@ -5483,7 +5488,8 @@ xdup_CLOEXEC_and_close(int fd, int avoid_fd)
 			return fd;
 		ash_msg_and_raise_perror("%d", newfd);
 	}
-	fcntl(newfd, F_SETFD, FD_CLOEXEC);
+	if (F_DUPFD_CLOEXEC == F_DUPFD)
+		close_on_exec_on(newfd);
 	close(fd);
 	return newfd;
 }
@@ -10753,7 +10759,7 @@ setinputfile(const char *fname, int flags)
 	int fd;
 
 	INT_OFF;
-	fd = open(fname, O_RDONLY);
+	fd = open(fname, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
 		if (flags & INPUT_NOFILE_OK)
 			goto out;
@@ -10762,8 +10768,9 @@ setinputfile(const char *fname, int flags)
 	}
 	if (fd < 10)
 		fd = savefd(fd);
-	else
+	else if (O_CLOEXEC == 0) /* old libc */
 		close_on_exec_on(fd);
+
 	setinputfd(fd, flags & INPUT_PUSH_FILE);
  out:
 	INT_ON;
