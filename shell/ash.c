@@ -7439,13 +7439,13 @@ hasmeta(const char *p)
 		p = strpbrk(p, chars);
 		if (!p)
 			break;
-		switch ((unsigned char) *p) {
+		switch ((unsigned char)*p) {
 		case CTLQUOTEMARK:
 			for (;;) {
 				p++;
-				if (*p == CTLQUOTEMARK)
+				if ((unsigned char)*p == CTLQUOTEMARK)
 					break;
-				if (*p == CTLESC)
+				if ((unsigned char)*p == CTLESC)
 					p++;
 				if (*p == '\0') /* huh? */
 					return 0;
