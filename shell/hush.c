@@ -6126,7 +6126,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			} else
 			/* If EXP_FLAG_SINGLEWORD, we handle assignment 'a=....$@.....'
 			 * and in this case should treat it like '$*' - see 'else...' below */
-			if (first_ch == ('@'|0x80)  /* quoted $@ */
+			if (first_ch == (char)('@'|0x80)  /* quoted $@ */
 			 && !(output->o_expflags & EXP_FLAG_SINGLEWORD) /* not v="$@" case */
 			) {
 				while (1) {
