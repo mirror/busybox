@@ -246,7 +246,8 @@ relative to the system-wide service directory.
 This proposal asks developers of other daemontools implementations
 to add "svc" command to their projects]
 
-The "svok DIR" tool exits 0 if service is running, and nonzero if not.
+The "svok DIR" tool exits 0 if service supervisor is running
+(with service itself either running or stopped), and nonzero if not.
 
 Other tools with different names and APIs may exist; however
 for portability scripts should use the above tools.
