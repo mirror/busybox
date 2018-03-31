@@ -7192,7 +7192,7 @@ varvalue(char *name, int varflags, int flags, int *quotedp)
 	case '-':
 		expdest = makestrspace(NOPTS, expdest);
 		for (i = NOPTS - 1; i >= 0; i--) {
-			if (optlist[i]) {
+			if (optlist[i] && optletters(i)) {
 				USTPUTC(optletters(i), expdest);
 				len++;
 			}
