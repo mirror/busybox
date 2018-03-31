@@ -2694,6 +2694,42 @@ static int i_peek2(struct in_str *i)
 	return ch;
 }
 
+static int i_getch_and_eat_bkslash_nl(struct in_str *input)
+{
+	for (;;) {
+		int ch, ch2;
+
+		ch = i_getch(input);
+		if (ch != '\\')
+			return ch;
+		ch2 = i_peek(input);
+		if (ch2 != '\n')
+			return ch;
+		/* backslash+newline, skip it */
+		i_getch(input);
+	}
+}
+
+/* Note: this function _eats_ \<newline> pairs, safe to use plain
+ * i_getch() after it instead of i_getch_and_eat_bkslash_nl().
+ */
+static int i_peek_and_eat_bkslash_nl(struct in_str *input)
+{
+	for (;;) {
+		int ch, ch2;
+
+		ch = i_peek(input);
+		if (ch != '\\')
+			return ch;
+		ch2 = i_peek2(input);
+		if (ch2 != '\n')
+			return ch;
+		/* backslash+newline, skip it */
+		i_getch(input);
+		i_getch(input);
+	}
+}
+
 static void setup_file_in_str(struct in_str *i, FILE *f)
 {
 	memset(i, 0, sizeof(*i));
@@ -4014,7 +4050,7 @@ static int parse_redirect(struct parse_context *ctx,
 		if (dup_num == REDIRFD_SYNTAX_ERR)
 			return 1;
 	} else {
-		int ch = i_peek(input);
+		int ch = i_peek_and_eat_bkslash_nl(input);
 		dup_num = (ch == '-'); /* HEREDOC_SKIPTABS bit is 1 */
 		if (dup_num) { /* <<-... */
 			ch = i_getch(input);
@@ -4024,7 +4060,7 @@ static int parse_redirect(struct parse_context *ctx,
 	}
 
 	if (style == REDIRECT_OVERWRITE && dup_num == REDIRFD_TO_FILE) {
-		int ch = i_peek(input);
+		int ch = i_peek_and_eat_bkslash_nl(input);
 		if (ch == '|') {
 			/* >|FILE redirect ("clobbering" >).
 			 * Since we do not support "set -o noclobber" yet,
@@ -4341,39 +4377,6 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	debug_printf_parse("parse_group return 0\n");
 	return 0;
 	/* command remains "open", available for possible redirects */
-}
-
-static int i_getch_and_eat_bkslash_nl(struct in_str *input)
-{
-	for (;;) {
-		int ch, ch2;
-
-		ch = i_getch(input);
-		if (ch != '\\')
-			return ch;
-		ch2 = i_peek(input);
-		if (ch2 != '\n')
-			return ch;
-		/* backslash+newline, skip it */
-		i_getch(input);
-	}
-}
-
-static int i_peek_and_eat_bkslash_nl(struct in_str *input)
-{
-	for (;;) {
-		int ch, ch2;
-
-		ch = i_peek(input);
-		if (ch != '\\')
-			return ch;
-		ch2 = i_peek2(input);
-		if (ch2 != '\n')
-			return ch;
-		/* backslash+newline, skip it */
-		i_getch(input);
-		i_getch(input);
-	}
 }
 
 #if ENABLE_HUSH_TICK || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_DOLLAR_OPS
@@ -5181,6 +5184,8 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			redir_style = REDIRECT_OVERWRITE;
+			if (next == '\\')
+				next = i_peek_and_eat_bkslash_nl(input);
 			if (next == '>') {
 				redir_style = REDIRECT_APPEND;
 				ch = i_getch(input);
@@ -5201,6 +5206,8 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			redir_style = REDIRECT_INPUT;
+			if (next == '\\')
+				next = i_peek_and_eat_bkslash_nl(input);
 			if (next == '<') {
 				redir_style = REDIRECT_HEREDOC;
 				heredoc_cnt++;
