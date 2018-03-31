@@ -12225,7 +12225,7 @@ parseredir: {
 	np = stzalloc(sizeof(struct nfile));
 	if (c == '>') {
 		np->nfile.fd = 1;
-		c = pgetc();
+		c = pgetc_eatbnl();
 		if (c == '>')
 			np->type = NAPPEND;
 		else if (c == '|')
@@ -12247,7 +12247,7 @@ parseredir: {
 #endif
 	else { /* c == '<' */
 		/*np->nfile.fd = 0; - stzalloc did it */
-		c = pgetc();
+		c = pgetc_eatbnl();
 		switch (c) {
 		case '<':
 			if (sizeof(struct nfile) != sizeof(struct nhere)) {
@@ -12257,7 +12257,7 @@ parseredir: {
 			np->type = NHERE;
 			heredoc = stzalloc(sizeof(struct heredoc));
 			heredoc->here = np;
-			c = pgetc();
+			c = pgetc_eatbnl();
 			if (c == '-') {
 				heredoc->striptabs = 1;
 			} else {
@@ -12487,23 +12487,13 @@ parsebackq: {
 			int pc;
 
 			setprompt_if(needprompt, 2);
-			pc = pgetc();
+			pc = pgetc_eatbnl();
 			switch (pc) {
 			case '`':
 				goto done;
 
 			case '\\':
-				pc = pgetc();
-				if (pc == '\n') {
-					nlprompt();
-					/*
-					 * If eating a newline, avoid putting
-					 * the newline into the new character
-					 * stream (via the STPUTC after the
-					 * switch).
-					 */
-					continue;
-				}
+				pc = pgetc(); /* or pgetc_eatbnl()? why (example)? */
 				if (pc != '\\' && pc != '`' && pc != '$'
 				 && (!dblquote || pc != '"')
 				) {
@@ -12635,7 +12625,7 @@ xxreadtoken(void)
 	}
 	setprompt_if(needprompt, 2);
 	for (;;) {                      /* until token or start of word found */
-		c = pgetc();
+		c = pgetc_eatbnl();
 		if (c == ' ' || c == '\t' IF_ASH_ALIAS( || c == PEOA))
 			continue;
 
@@ -12644,11 +12634,7 @@ xxreadtoken(void)
 				continue;
 			pungetc();
 		} else if (c == '\\') {
-			if (pgetc() != '\n') {
-				pungetc();
-				break; /* return readtoken1(...) */
-			}
-			nlprompt();
+			break; /* return readtoken1(...) */
 		} else {
 			const char *p;
 
@@ -12695,7 +12681,7 @@ xxreadtoken(void)
 	}
 	setprompt_if(needprompt, 2);
 	for (;;) {      /* until token or start of word found */
-		c = pgetc();
+		c = pgetc_eatbnl();
 		switch (c) {
 		case ' ': case '\t':
 		IF_ASH_ALIAS(case PEOA:)
@@ -12705,30 +12691,23 @@ xxreadtoken(void)
 				continue;
 			pungetc();
 			continue;
-		case '\\':
-			if (pgetc() == '\n') {
-				nlprompt();
-				continue;
-			}
-			pungetc();
-			goto breakloop;
 		case '\n':
 			nlnoprompt();
 			RETURN(TNL);
 		case PEOF:
 			RETURN(TEOF);
 		case '&':
-			if (pgetc() == '&')
+			if (pgetc_eatbnl() == '&')
 				RETURN(TAND);
 			pungetc();
 			RETURN(TBACKGND);
 		case '|':
-			if (pgetc() == '|')
+			if (pgetc_eatbnl() == '|')
 				RETURN(TOR);
 			pungetc();
 			RETURN(TPIPE);
 		case ';':
-			if (pgetc() == ';')
+			if (pgetc_eatbnl() == ';')
 				RETURN(TENDCASE);
 			pungetc();
 			RETURN(TSEMI);
@@ -12736,11 +12715,9 @@ xxreadtoken(void)
 			RETURN(TLP);
 		case ')':
 			RETURN(TRP);
-		default:
-			goto breakloop;
 		}
+		break;
 	}
- breakloop:
 	return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
 #undef RETURN
 }
