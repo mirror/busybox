@@ -212,7 +212,7 @@ static const char *human_fstype(uint32_t f_type)
 		{ 0x52654973, "reiserfs" },
 		{ 0x28cd3d45, "cramfs" },
 		{ 0x7275,     "romfs" },
-		{ 0x858458f6, "romfs" },
+		{ 0x858458f6, "ramfs" },
 		{ 0x73717368, "squashfs" },
 		{ 0x62656572, "sysfs" },
 		{ 0, "UNKNOWN" }
