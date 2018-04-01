@@ -409,7 +409,7 @@ static FILE *open_socket(len_and_sockaddr *lsa)
 	/* hopefully it understands what ESPIPE means... */
 	fp = fdopen(fd, "r+");
 	if (!fp)
-		bb_perror_msg_and_die(bb_msg_memory_exhausted);
+		bb_die_memory_exhausted();
 
 	return fp;
 }
@@ -1114,7 +1114,7 @@ static void download_one_url(const char *url)
 # endif
 			sfp = fdopen(fd, "r+");
 			if (!sfp)
-				bb_perror_msg_and_die(bb_msg_memory_exhausted);
+				bb_die_memory_exhausted();
 			goto socket_opened;
 		}
 		sfp = open_socket(lsa);

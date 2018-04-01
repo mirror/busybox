@@ -20,7 +20,7 @@ char* FAST_FUNC bb_get_chunk_from_file(FILE *file, size_t *end)
 		/* grow the line buffer as necessary */
 		if (!(idx & 0xff)) {
 			if (idx == ((size_t)-1) - 0xff)
-				bb_error_msg_and_die(bb_msg_memory_exhausted);
+				bb_die_memory_exhausted();
 			linebuf = xrealloc(linebuf, idx + 0x100);
 		}
 		linebuf[idx++] = (char) ch;

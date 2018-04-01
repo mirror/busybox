@@ -3158,7 +3158,7 @@ static int glob_brace(char *pattern, o_string *o, int n)
 				return o_save_ptr_helper(o, n);
 			}
 			if (gr == GLOB_NOSPACE)
-				bb_error_msg_and_die(bb_msg_memory_exhausted);
+				bb_die_memory_exhausted();
 			/* GLOB_ABORTED? Only happens with GLOB_ERR flag,
 			 * but we didn't specify it. Paranoia again. */
 			bb_error_msg_and_die("glob error %d on '%s'", gr, pattern);
@@ -3260,7 +3260,7 @@ static int perform_glob(o_string *o, int n)
 			goto literal;
 		}
 		if (gr == GLOB_NOSPACE)
-			bb_error_msg_and_die(bb_msg_memory_exhausted);
+			bb_die_memory_exhausted();
 		/* GLOB_ABORTED? Only happens with GLOB_ERR flag,
 		 * but we didn't specify it. Paranoia again. */
 		bb_error_msg_and_die("glob error %d on '%s'", gr, pattern);

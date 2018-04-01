@@ -25,6 +25,11 @@
  * fail, so callers never need to check for errors.  If it returned, it
  * succeeded. */
 
+void FAST_FUNC bb_die_memory_exhausted(void)
+{
+	bb_error_msg_and_die(bb_msg_memory_exhausted);
+}
+
 #ifndef DMALLOC
 /* dmalloc provides variants of these that do abort() on failure.
  * Since dmalloc's prototypes overwrite the impls here as they are
@@ -44,7 +49,7 @@ void* FAST_FUNC xmalloc(size_t size)
 {
 	void *ptr = malloc(size);
 	if (ptr == NULL && size != 0)
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
+		bb_die_memory_exhausted();
 	return ptr;
 }
 
@@ -55,7 +60,7 @@ void* FAST_FUNC xrealloc(void *ptr, size_t size)
 {
 	ptr = realloc(ptr, size);
 	if (ptr == NULL && size != 0)
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
+		bb_die_memory_exhausted();
 	return ptr;
 }
 #endif /* DMALLOC */
@@ -79,7 +84,7 @@ char* FAST_FUNC xstrdup(const char *s)
 	t = strdup(s);
 
 	if (t == NULL)
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
+		bb_die_memory_exhausted();
 
 	return t;
 }
@@ -327,14 +332,14 @@ char* FAST_FUNC xasprintf(const char *format, ...)
 	va_end(p);
 
 	if (r < 0)
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
+		bb_die_memory_exhausted();
 	return string_ptr;
 }
 
 void FAST_FUNC xsetenv(const char *key, const char *value)
 {
 	if (setenv(key, value, 1))
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
+		bb_die_memory_exhausted();
 }
 
 /* Handles "VAR=VAL" strings, even those which are part of environ

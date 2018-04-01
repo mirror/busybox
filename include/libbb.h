@@ -1277,20 +1277,21 @@ extern smallint syslog_level;
 extern smallint logmode;
 extern uint8_t xfunc_error_retval;
 extern void (*die_func)(void);
-extern void xfunc_die(void) NORETURN FAST_FUNC;
-extern void bb_show_usage(void) NORETURN FAST_FUNC;
-extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
-extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
-extern void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
-extern void bb_simple_perror_msg(const char *s) FAST_FUNC;
-extern void bb_perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
-extern void bb_simple_perror_msg_and_die(const char *s) NORETURN FAST_FUNC;
-extern void bb_herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
-extern void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
-extern void bb_perror_nomsg_and_die(void) NORETURN FAST_FUNC;
-extern void bb_perror_nomsg(void) FAST_FUNC;
-extern void bb_verror_msg(const char *s, va_list p, const char *strerr) FAST_FUNC;
-extern void bb_logenv_override(void) FAST_FUNC;
+void xfunc_die(void) NORETURN FAST_FUNC;
+void bb_show_usage(void) NORETURN FAST_FUNC;
+void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
+void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
+void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
+void bb_simple_perror_msg(const char *s) FAST_FUNC;
+void bb_perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
+void bb_simple_perror_msg_and_die(const char *s) NORETURN FAST_FUNC;
+void bb_herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
+void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
+void bb_perror_nomsg_and_die(void) NORETURN FAST_FUNC;
+void bb_perror_nomsg(void) FAST_FUNC;
+void bb_verror_msg(const char *s, va_list p, const char *strerr) FAST_FUNC;
+void bb_die_memory_exhausted(void) NORETURN FAST_FUNC;
+void bb_logenv_override(void) FAST_FUNC;
 
 /* We need to export XXX_main from libbusybox
  * only if we build "individual" binaries
