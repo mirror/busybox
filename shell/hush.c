@@ -3861,6 +3861,13 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		 * shell may perform it, but shall do so only when
 		 * the expansion would result in one word."
 		 */
+//bash does not do parameter/command substitution or arithmetic expansion
+//for _heredoc_ redirection word: these constructs look for exact eof marker
+// as written:
+// <<EOF$t
+// <<EOF$((1))
+// <<EOF`true`  [this case also makes heredoc "quoted", a-la <<"EOF"]
+//This contradicts the above docs.
 		ctx->pending_redirect->rd_filename = xstrdup(word->data);
 		/* Cater for >\file case:
 		 * >\a creates file a; >\\a, >"\a", >"\\a" create file \a
@@ -4228,6 +4235,7 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 
 					redir->rd_type = REDIRECT_HEREDOC2;
 					/* redir->rd_dup is (ab)used to indicate <<- */
+bb_error_msg("redir->rd_filename:'%s'",  redir->rd_filename);
 					p = fetch_till_str(&ctx->as_string, input,
 							redir->rd_filename, redir->rd_dup);
 					if (!p) {
