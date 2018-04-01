@@ -911,7 +911,7 @@ extern void xprint_and_close_file(FILE *file) FAST_FUNC;
  * end of line. If end isn't NULL, length of the chunk is stored in it.
  * Returns NULL if EOF/error.
  */
-extern char *bb_get_chunk_from_file(FILE *file, int *end) FAST_FUNC;
+extern char *bb_get_chunk_from_file(FILE *file, size_t *end) FAST_FUNC;
 /* Reads up to (and including) TERMINATING_STRING: */
 extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string) FAST_FUNC RETURNS_MALLOC;
 /* Same, with limited max size, and returns the length (excluding NUL): */

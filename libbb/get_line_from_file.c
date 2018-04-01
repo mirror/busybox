@@ -10,16 +10,19 @@
  */
 #include "libbb.h"
 
-char* FAST_FUNC bb_get_chunk_from_file(FILE *file, int *end)
+char* FAST_FUNC bb_get_chunk_from_file(FILE *file, size_t *end)
 {
 	int ch;
-	unsigned idx = 0;
+	size_t idx = 0;
 	char *linebuf = NULL;
 
 	while ((ch = getc(file)) != EOF) {
 		/* grow the line buffer as necessary */
-		if (!(idx & 0xff))
+		if (!(idx & 0xff)) {
+			if (idx == ((size_t)-1) - 0xff)
+				bb_error_msg_and_die(bb_msg_memory_exhausted);
 			linebuf = xrealloc(linebuf, idx + 0x100);
+		}
 		linebuf[idx++] = (char) ch;
 		if (ch == '\0')
 			break;
@@ -49,7 +52,7 @@ char* FAST_FUNC xmalloc_fgets(FILE *file)
 /* Get line.  Remove trailing \n */
 char* FAST_FUNC xmalloc_fgetline(FILE *file)
 {
-	int i;
+	size_t i;
 	char *c = bb_get_chunk_from_file(file, &i);
 
 	if (i && c[--i] == '\n')

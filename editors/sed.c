@@ -988,7 +988,7 @@ static void flush_append(char *last_puts_char)
 static char *get_next_line(char *gets_char, char *last_puts_char)
 {
 	char *temp = NULL;
-	int len;
+	size_t len;
 	char gc;
 
 	flush_append(last_puts_char);
