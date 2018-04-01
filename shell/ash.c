@@ -12093,6 +12093,12 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			break;
 #endif
 		case CBQUOTE:   /* '`' */
+			if (checkkwd & CHKEOFMARK) {
+				quotef = 1;
+				USTPUTC('`', out);
+				break;
+			}
+
 			PARSEBACKQOLD();
 			break;
 		case CENDFILE:
