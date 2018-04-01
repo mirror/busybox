@@ -3851,12 +3851,17 @@ static int done_word(o_string *word, struct parse_context *ctx)
 	if (ctx->pending_redirect) {
 		/* We do not glob in e.g. >*.tmp case. bash seems to glob here
 		 * only if run as "bash", not "sh" */
-		/* http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html
+		/* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 		 * "2.7 Redirection
-		 * ...the word that follows the redirection operator
-		 * shall be subjected to tilde expansion, parameter expansion,
-		 * command substitution, arithmetic expansion, and quote
-		 * removal. Pathname expansion shall not be performed
+		 * If the redirection operator is "<<" or "<<-", the word
+		 * that follows the redirection operator shall be
+		 * subjected to quote removal; it is unspecified whether
+		 * any of the other expansions occur. For the other
+		 * redirection operators, the word that follows the
+		 * redirection operator shall be subjected to tilde
+		 * expansion, parameter expansion, command substitution,
+		 * arithmetic expansion, and quote removal.
+		 * Pathname expansion shall not be performed
 		 * on the word by a non-interactive shell; an interactive
 		 * shell may perform it, but shall do so only when
 		 * the expansion would result in one word."
@@ -3866,8 +3871,8 @@ static int done_word(o_string *word, struct parse_context *ctx)
 // as written:
 // <<EOF$t
 // <<EOF$((1))
-// <<EOF`true`  [this case also makes heredoc "quoted", a-la <<"EOF"]
-//This contradicts the above docs.
+// <<EOF`true`  [this case also makes heredoc "quoted", a-la <<"EOF". Probably bash-4.3.43 bug]
+
 		ctx->pending_redirect->rd_filename = xstrdup(word->data);
 		/* Cater for >\file case:
 		 * >\a creates file a; >\\a, >"\a", >"\\a" create file \a
