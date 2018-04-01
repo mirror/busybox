@@ -12649,7 +12649,7 @@ xxreadtoken(void)
 					break; /* return readtoken1(...) */
 
 				if ((int)(p - xxreadtoken_chars) >= xxreadtoken_singles) {
-					int cc = pgetc();
+					int cc = pgetc_eatbnl();
 					if (cc == c) {    /* double occurrence? */
 						p += xxreadtoken_doubles + 1;
 					} else {

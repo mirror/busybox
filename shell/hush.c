@@ -4980,8 +4980,14 @@ static struct pipe *parse_stream(char **pstring,
 		nommu_addchr(&ctx.as_string, ch);
 
 		next = '\0';
-		if (ch != '\n')
+		if (ch != '\n') {
 			next = i_peek(input);
+			/* Can't use i_peek_and_eat_bkslash_nl(input) here:
+			 *  echo '\
+			 *  '
+			 * will break.
+			 */
+		}
 
 		is_special = "{}<>;&|()#'" /* special outside of "str" */
 				"\\$\"" IF_HUSH_TICK("`") /* always special */
@@ -5375,7 +5381,7 @@ static struct pipe *parse_stream(char **pstring,
 			/* Eat multiple semicolons, detect
 			 * whether it means something special */
 			while (1) {
-				ch = i_peek(input);
+				ch = i_peek_and_eat_bkslash_nl(input);
 				if (ch != ';')
 					break;
 				ch = i_getch(input);
@@ -5397,6 +5403,8 @@ static struct pipe *parse_stream(char **pstring,
 			if (done_word(&dest, &ctx)) {
 				goto parse_error;
 			}
+			if (next == '\\')
+				next = i_peek_and_eat_bkslash_nl(input);
 			if (next == '&') {
 				ch = i_getch(input);
 				nommu_addchr(&ctx.as_string, ch);
@@ -5413,6 +5421,8 @@ static struct pipe *parse_stream(char **pstring,
 			if (ctx.ctx_res_w == RES_MATCH)
 				break; /* we are in case's "word | word)" */
 #endif
+			if (next == '\\')
+				next = i_peek_and_eat_bkslash_nl(input);
 			if (next == '|') { /* || */
 				ch = i_getch(input);
 				nommu_addchr(&ctx.as_string, ch);
