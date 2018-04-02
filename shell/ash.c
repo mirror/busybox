@@ -5975,7 +5975,10 @@ ifsbreakup(char *string, struct arglist *arglist)
 		realifs = ifsset() ? ifsval() : defifs;
 		ifsp = &ifsfirst;
 		do {
+			int afternul;
+
 			p = string + ifsp->begoff;
+			afternul = nulonly;
 			nulonly = ifsp->nulonly;
 			ifs = nulonly ? nullstr : realifs;
 			ifsspc = 0;
@@ -5987,7 +5990,7 @@ ifsbreakup(char *string, struct arglist *arglist)
 					p++;
 					continue;
 				}
-				if (!nulonly)
+				if (!(afternul || nulonly))
 					ifsspc = (strchr(defifs, *p) != NULL);
 				/* Ignore IFS whitespace at start */
 				if (q == start && ifsspc) {
@@ -6650,12 +6653,12 @@ argstr(char *p, int flags)
 		case CTLENDVAR: /* ??? */
 			goto breakloop;
 		case CTLQUOTEMARK:
-			inquotes ^= EXP_QUOTED;
 			/* "$@" syntax adherence hack */
-			if (inquotes && !memcmp(p, dolatstr + 1, DOLATSTRLEN - 1)) {
-				p = evalvar(p + 1, flags | inquotes) + 1;
+			if (!inquotes && !memcmp(p, dolatstr + 1, DOLATSTRLEN - 1)) {
+				p = evalvar(p + 1, flags | EXP_QUOTED) + 1;
 				goto start;
 			}
+			inquotes ^= EXP_QUOTED;
  addquote:
 			if (flags & QUOTES_ESC) {
 				p--;
