@@ -4240,7 +4240,6 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 
 					redir->rd_type = REDIRECT_HEREDOC2;
 					/* redir->rd_dup is (ab)used to indicate <<- */
-bb_error_msg("redir->rd_filename:'%s'",  redir->rd_filename);
 					p = fetch_till_str(&ctx->as_string, input,
 							redir->rd_filename, redir->rd_dup);
 					if (!p) {
