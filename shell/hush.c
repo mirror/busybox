@@ -6347,7 +6347,7 @@ static char *expand_string_to_string(const char *str, int do_unbackslash)
 	return (char*)list;
 }
 
-#if ENABLE_HUSH_CASE
+#if 0
 static char* expand_strvec_to_string(char **argv)
 {
 	char **list;
@@ -8731,8 +8731,10 @@ static int run_list(struct pipe *pi)
 #if ENABLE_HUSH_CASE
 		if (rword == RES_CASE) {
 			debug_printf_exec("CASE cond_code:%d\n", cond_code);
-			case_word = expand_strvec_to_string(pi->cmds->argv);
-			unbackslash(case_word);
+			case_word = expand_string_to_string(pi->cmds->argv[0], 1);
+			debug_printf_exec("CASE word1:'%s'\n", case_word);
+			//unbackslash(case_word);
+			//debug_printf_exec("CASE word2:'%s'\n", case_word);
 			continue;
 		}
 		if (rword == RES_MATCH) {
