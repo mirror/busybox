@@ -5391,7 +5391,7 @@ openredirect(union node *redir)
 				f = open(fname, O_WRONLY, 0666);
 				if (f < 0)
 					goto ecreate;
-				if (fstat(f, &sb) < 0 && S_ISREG(sb.st_mode)) {
+				if (!fstat(f, &sb) && S_ISREG(sb.st_mode)) {
 					close(f);
 					errno = EEXIST;
 					goto ecreate;
