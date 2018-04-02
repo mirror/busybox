@@ -12005,7 +12005,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				}
 			}
 #endif
-			if (eofmark == NULL || synstack->dblquote)
+			if (!eofmark || synstack->dblquote || synstack->varnest)
 				USTPUTC(CTLESC, out);
 			USTPUTC(c, out);
 			break;
