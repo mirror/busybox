@@ -4297,6 +4297,11 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	/* dest contains characters seen prior to ( or {.
 	 * Typically it's empty, but for function defs,
 	 * it contains function name (without '()'). */
+#if BB_MMU
+# define as_string NULL
+#else
+	char *as_string = NULL;
+#endif
 	struct pipe *pipe_list;
 	int endch;
 	struct command *command = ctx->command;
@@ -4325,7 +4330,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		do
 			ch = i_getch(input);
 		while (ch == ' ' || ch == '\t' || ch == '\n');
-		if (ch != '{') {
+		if (ch != '{' && ch != '(') {
 			syntax_error_unexpected_ch(ch);
 			return 1;
 		}
@@ -4347,13 +4352,13 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	}
 #endif
 
-#if ENABLE_HUSH_FUNCTIONS
- skip:
-#endif
+ IF_HUSH_FUNCTIONS(skip:)
+
 	endch = '}';
 	if (ch == '(') {
 		endch = ')';
-		command->cmd_type = CMD_SUBSHELL;
+		IF_HUSH_FUNCTIONS(if (command->cmd_type != CMD_FUNCDEF))
+			command->cmd_type = CMD_SUBSHELL;
 	} else {
 		/* bash does not allow "{echo...", requires whitespace */
 		ch = i_peek(input);
@@ -4369,38 +4374,54 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		}
 	}
 
-	{
-#if BB_MMU
-# define as_string NULL
-#else
-		char *as_string = NULL;
-#endif
-		pipe_list = parse_stream(&as_string, input, endch);
+	pipe_list = parse_stream(&as_string, input, endch);
 #if !BB_MMU
-		if (as_string)
-			o_addstr(&ctx->as_string, as_string);
+	if (as_string)
+		o_addstr(&ctx->as_string, as_string);
 #endif
-		/* empty ()/{} or parse error? */
-		if (!pipe_list || pipe_list == ERR_PTR) {
-			/* parse_stream already emitted error msg */
-			if (!BB_MMU)
-				free(as_string);
-			debug_printf_parse("parse_group return 1: "
-				"parse_stream returned %p\n", pipe_list);
-			return 1;
-		}
-		command->group = pipe_list;
-#if !BB_MMU
-		as_string[strlen(as_string) - 1] = '\0'; /* plink ')' or '}' */
-		command->group_as_string = as_string;
-		debug_printf_parse("end of group, remembering as:'%s'\n",
-				command->group_as_string);
-#endif
-#undef as_string
+
+	/* empty ()/{} or parse error? */
+	if (!pipe_list || pipe_list == ERR_PTR) {
+		/* parse_stream already emitted error msg */
+		if (!BB_MMU)
+			free(as_string);
+		debug_printf_parse("parse_group return 1: "
+			"parse_stream returned %p\n", pipe_list);
+		return 1;
 	}
+#if !BB_MMU
+	as_string[strlen(as_string) - 1] = '\0'; /* plink ')' or '}' */
+	command->group_as_string = as_string;
+	debug_printf_parse("end of group, remembering as:'%s'\n",
+			command->group_as_string);
+#endif
+
+#if ENABLE_HUSH_FUNCTIONS
+	/* Convert "f() (cmds)" to "f() {(cmds)}" */
+	if (command->cmd_type == CMD_FUNCDEF && endch == ')') {
+		struct command *cmd2;
+
+		cmd2 = xzalloc(sizeof(*cmd2));
+		cmd2->cmd_type = CMD_SUBSHELL;
+		cmd2->group = pipe_list;
+# if !BB_MMU
+//UNTESTED!
+		cmd2->group_as_string = command->group_as_string;
+		command->group_as_string = xasprintf("(%s)", command->group_as_string);
+# endif
+
+		pipe_list = new_pipe();
+		pipe_list->cmds = cmd2;
+		pipe_list->num_cmds = 1;
+	}
+#endif
+
+	command->group = pipe_list;
+
 	debug_printf_parse("parse_group return 0\n");
 	return 0;
 	/* command remains "open", available for possible redirects */
+#undef as_string
 }
 
 #if ENABLE_HUSH_TICK || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_DOLLAR_OPS
