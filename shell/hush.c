@@ -79,20 +79,6 @@
  *      Some builtins mandated by standards:
  *          newgrp [GRP]: not a builtin in bash but a suid binary
  *              which spawns a new shell with new group ID
- *      In bash, export builtin is special, its arguments are assignments
- *          and therefore expansion of them should be "one-word" expansion:
- *              $ export i=`echo 'a  b'` # export has one arg: "i=a  b"
- *          compare with:
- *              $ ls i=`echo 'a  b'`     # ls has two args: "i=a" and "b"
- *              ls: cannot access i=a: No such file or directory
- *              ls: cannot access b: No such file or directory
- *          Note1: same applies to local builtin.
- *          Note2: bash 3.2.33(1) does this only if export word itself
- *          is not quoted:
- *              $ export i=`echo 'aaa  bbb'`; echo "$i"
- *              aaa  bbb
- *              $ "export" i=`echo 'aaa  bbb'`; echo "$i"
- *              aaa
  */
 //config:config HUSH
 //config:	bool "hush (64 kb)"
@@ -630,8 +616,10 @@ struct command {
 	smallint cmd_type;          /* CMD_xxx */
 #define CMD_NORMAL   0
 #define CMD_SUBSHELL 1
-#if BASH_TEST2
-/* used for "[[ EXPR ]]" */
+#if BASH_TEST2 || ENABLE_HUSH_LOCAL || ENABLE_HUSH_EXPORT || ENABLE_HUSH_READONLY
+/* used for "[[ EXPR ]]", and to prevent word splitting and globbing in
+ * "export v=t*"
+ */
 # define CMD_SINGLEWORD_NOGLOB 2
 #endif
 #if ENABLE_HUSH_FUNCTIONS
@@ -3933,14 +3921,37 @@ static int done_word(o_string *word, struct parse_context *ctx)
 						(ctx->ctx_res_w == RES_SNTX));
 				return (ctx->ctx_res_w == RES_SNTX);
 			}
-# if BASH_TEST2
-			if (strcmp(word->data, "[[") == 0) {
+# if defined(CMD_SINGLEWORD_NOGLOB)
+			if (0
+#  if BASH_TEST2
+			 || strcmp(word->data, "[[") == 0
+#  endif
+			/* In bash, local/export/readonly are special, args
+			 * are assignments and therefore expansion of them
+			 * should be "one-word" expansion:
+			 *  $ export i=`echo 'a  b'` # one arg: "i=a  b"
+			 * compare with:
+			 *  $ ls i=`echo 'a  b'`     # two args: "i=a" and "b"
+			 *  ls: cannot access i=a: No such file or directory
+			 *  ls: cannot access b: No such file or directory
+			 * Note: bash 3.2.33(1) does this only if export word
+			 * itself is not quoted:
+			 *  $ export i=`echo 'aaa  bbb'`; echo "$i"
+			 *  aaa  bbb
+			 *  $ "export" i=`echo 'aaa  bbb'`; echo "$i"
+			 *  aaa
+			 */
+			IF_HUSH_LOCAL(    || strcmp(word->data, "local") == 0)
+			IF_HUSH_EXPORT(   || strcmp(word->data, "export") == 0)
+			IF_HUSH_READONLY( || strcmp(word->data, "readonly") == 0)
+			) {
 				command->cmd_type = CMD_SINGLEWORD_NOGLOB;
 			}
 			/* fall through */
 # endif
 		}
-#endif
+#endif /* HAS_KEYWORDS */
+
 		if (command->group) {
 			/* "{ echo foo; } echo bar" - bad */
 			syntax_error_at(word->data);
@@ -6299,7 +6310,7 @@ static char **expand_strvec_to_strvec(char **argv)
 	return expand_variables(argv, EXP_FLAG_GLOB | EXP_FLAG_ESC_GLOB_CHARS);
 }
 
-#if BASH_TEST2
+#if defined(CMD_SINGLEWORD_NOGLOB)
 static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
 {
 	return expand_variables(argv, EXP_FLAG_SINGLEWORD);
@@ -8292,7 +8303,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		}
 
 		/* Expand the rest into (possibly) many strings each */
-#if BASH_TEST2
+#if defined(CMD_SINGLEWORD_NOGLOB)
 		if (command->cmd_type == CMD_SINGLEWORD_NOGLOB) {
 			argv_expanded = expand_strvec_to_strvec_singleword_noglob(argv + command->assignment_cnt);
 		} else
