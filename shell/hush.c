@@ -894,8 +894,9 @@ struct globals {
 # define G_flag_return_in_progress 0
 #endif
 	smallint exiting; /* used to prevent EXIT trap recursion */
-	/* These four support $?, $#, and $1 */
+	/* These support $?, $#, and $1 */
 	smalluint last_exitcode;
+	smalluint expand_exitcode;
 	smalluint last_bg_pid_exitcode;
 #if ENABLE_HUSH_SET
 	/* are global_argv and global_argv[1..n] malloced? (note: not [0]) */
@@ -6209,6 +6210,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			 * and $IFS-split */
 			debug_printf_subst("SUBST '%s' first_ch %x\n", arg, first_ch);
 			G.last_exitcode = process_command_subs(&subst_result, arg);
+			G.expand_exitcode = G.last_exitcode;
 			debug_printf_subst("SUBST RES:%d '%s'\n", G.last_exitcode, subst_result.data);
 			val = subst_result.data;
 			goto store_val;
@@ -8245,9 +8247,11 @@ static NOINLINE int run_pipe(struct pipe *pi)
 #endif
 
 		if (argv[command->assignment_cnt] == NULL) {
-			/* Assignments, but no command */
-			/* Ensure redirects take effect (that is, create files).
-			 * Try "a=t >file" */
+			/* Assignments, but no command.
+			 * Ensure redirects take effect (that is, create files).
+			 * Try "a=t >file"
+			 */
+			G.expand_exitcode = 0;
 #if 0 /* A few cases in testsuite fail with this code. FIXME */
 			rcode = redirect_and_varexp_helper(&new_env, /*old_vars:*/ NULL, command, &squirrel, /*argv_expanded:*/ NULL);
 			/* Set shell variables */
@@ -8265,7 +8269,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			 * if evaluating assignment value set $?, retain it.
 			 * Try "false; q=`exit 2`; echo $?" - should print 2: */
 			if (rcode == 0)
-				rcode = G.last_exitcode;
+				rcode = G.expand_exitcode;
 			/* Exit, _skipping_ variable restoring code: */
 			goto clean_up_and_ret0;
 
@@ -8292,9 +8296,13 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				bb_putchar_stderr('\n');
 			/* Redirect error sets $? to 1. Otherwise,
 			 * if evaluating assignment value set $?, retain it.
-			 * Try "false; q=`exit 2`; echo $?" - should print 2: */
+			 * Else, clear $?:
+			 *  false; q=`exit 2`; echo $? - should print 2
+			 *  false; x=1; echo $? - should print 0
+			 * Because of the 2nd case, we can't just use G.last_exitcode.
+			 */
 			if (rcode == 0)
-				rcode = G.last_exitcode;
+				rcode = G.expand_exitcode;
 			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
 			debug_leave();
 			debug_printf_exec("run_pipe: return %d\n", rcode);
