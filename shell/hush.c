@@ -7705,6 +7705,15 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 		struct command *command,
 		char **argv_expanded)
 {
+#if ENABLE_HUSH_FUNCTIONS
+	if (command->cmd_type == CMD_FUNCDEF) {
+		/* Ignore funcdefs in pipes:
+		 * true | f() { cmd }
+		 */
+		_exit(0);
+	}
+#endif
+
 	if (command->argv) {
 		pseudo_exec_argv(nommu_save, command->argv,
 				command->assignment_cnt, argv_expanded);
