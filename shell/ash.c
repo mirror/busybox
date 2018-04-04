@@ -11959,7 +11959,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	smallint pssyntax;   /* we are expanding a prompt string */
 	IF_BASH_DOLLAR_SQUOTE(smallint bash_dollar_squote = 0;)
 	/* syntax stack */
-	struct synstack synbase = { .syntax = syntax };
+	struct synstack synbase = { };
 	struct synstack *synstack = &synbase;
 
 #if ENABLE_ASH_EXPAND_PRMT
@@ -11969,6 +11969,8 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 #else
 	pssyntax = 0; /* constant */
 #endif
+	synstack->syntax = syntax;
+
 	if (syntax == DQSYNTAX)
 		synstack->dblquote = 1;
 	quotef = 0;
