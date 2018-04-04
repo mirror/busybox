@@ -2134,7 +2134,7 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 #define SETFLAG_LOCAL_SHIFT    3
 static int set_local_var(char *str, unsigned flags)
 {
-	struct variable **var_pp;
+	struct variable **cur_pp;
 	struct variable *cur;
 	char *free_me = NULL;
 	char *eq_sign;
@@ -2155,10 +2155,10 @@ static int set_local_var(char *str, unsigned flags)
 	}
 #endif
 
-	var_pp = &G.top_var;
-	while ((cur = *var_pp) != NULL) {
+	cur_pp = &G.top_var;
+	while ((cur = *cur_pp) != NULL) {
 		if (strncmp(cur->varstr, str, name_len) != 0) {
-			var_pp = &cur->next;
+			cur_pp = &cur->next;
 			continue;
 		}
 
@@ -2182,7 +2182,7 @@ static int set_local_var(char *str, unsigned flags)
 			 * and existing one is global, or local
 			 * from enclosing function.
 			 * Remove and save old one: */
-			*var_pp = cur->next;
+			*cur_pp = cur->next;
 			cur->next = *G.shadowed_vars_pp;
 			*G.shadowed_vars_pp = cur;
 			/* bash 3.2.33(1) and exported vars:
@@ -2226,8 +2226,8 @@ static int set_local_var(char *str, unsigned flags)
 	/* Not found - create new variable struct */
 	cur = xzalloc(sizeof(*cur));
 	IF_HUSH_LOCAL(cur->func_nest_level = local_lvl;)
-	cur->next = *var_pp;
-	*var_pp = cur;
+	cur->next = *cur_pp;
+	*cur_pp = cur;
 
  set_str_and_exp:
 	cur->varstr = str;
@@ -2272,7 +2272,7 @@ static void set_pwd_var(unsigned flag)
 static int unset_local_var_len(const char *name, int name_len)
 {
 	struct variable *cur;
-	struct variable **var_pp;
+	struct variable **cur_pp;
 
 	if (!name)
 		return EXIT_SUCCESS;
@@ -2286,14 +2286,14 @@ static int unset_local_var_len(const char *name, int name_len)
 		G.lineno_var = NULL;
 #endif
 
-	var_pp = &G.top_var;
-	while ((cur = *var_pp) != NULL) {
+	cur_pp = &G.top_var;
+	while ((cur = *cur_pp) != NULL) {
 		if (strncmp(cur->varstr, name, name_len) == 0 && cur->varstr[name_len] == '=') {
 			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
 				return EXIT_FAILURE;
 			}
-			*var_pp = cur->next;
+			*cur_pp = cur->next;
 			debug_printf_env("%s: unsetenv '%s'\n", __func__, cur->varstr);
 			bb_unsetenv(cur->varstr);
 			if (name_len == 3 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
@@ -2303,7 +2303,7 @@ static int unset_local_var_len(const char *name, int name_len)
 			free(cur);
 			return EXIT_SUCCESS;
 		}
-		var_pp = &cur->next;
+		cur_pp = &cur->next;
 	}
 	return EXIT_SUCCESS;
 }
@@ -2402,8 +2402,8 @@ static struct variable *set_vars_and_save_old(char **strings)
 			}
 			set_local_var(*s, SETFLAG_EXPORT);
 		}
- next:
 		s++;
+ next: ;
 	}
 	return old;
 }
