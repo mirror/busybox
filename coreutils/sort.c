@@ -560,6 +560,8 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 				}
 				prev_len = len;
 			}
+#else
+//TODO: lighter version which only drops total dups if can_drop_dups == true
 #endif
 			lines = xrealloc_vector(lines, 6, linecount);
 			lines[linecount++] = line;
@@ -582,8 +584,6 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 		}
 		return EXIT_SUCCESS;
 	}
-#else
-//TODO: lighter version which only drops total dups if can_drop_dups == true
 #endif
 
 	/* For stable sort, store original line position beyond terminating NUL */
