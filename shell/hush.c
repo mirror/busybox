@@ -475,7 +475,6 @@ static const char hush_version_str[] ALIGN1 = "HUSH_VERSION="BB_VER;
  */
 #if !BB_MMU
 typedef struct nommu_save_t {
-	char **new_env;
 	struct variable *old_vars;
 	char **argv;
 	char **argv_from_re_execing;
@@ -2176,10 +2175,16 @@ static int set_local_var(char *str, unsigned flags)
 			*eq_sign = '=';
 		}
 		if (cur->var_nest_level < local_lvl) {
-			/* New variable is declared as local,
+			/* New variable is local ("local VAR=VAL" or
+			 * "VAR=VAL cmd")
 			 * and existing one is global, or local
-			 * from enclosing function.
-			 * Remove and save old one: */
+			 * on a lower level that new one.
+			 * Remove and save old one:
+			 */
+			debug_printf_env("shadowing %s'%s'/%u by '%s'/%u\n",
+				cur->flg_export ? "exported " : "",
+				cur->varstr, cur->var_nest_level, str, local_lvl
+			);
 			*cur_pp = cur->next;
 			cur->next = *G.shadowed_vars_pp;
 			*G.shadowed_vars_pp = cur;
@@ -2197,6 +2202,7 @@ static int set_local_var(char *str, unsigned flags)
 		}
 
 		if (strcmp(cur->varstr + name_len, eq_sign + 1) == 0) {
+			debug_printf_env("assignement '%s' does not change anything\n", str);
  free_and_exp:
 			free(str);
 			goto exp;
@@ -2204,6 +2210,7 @@ static int set_local_var(char *str, unsigned flags)
 		if (cur->max_len != 0) {
 			if (cur->max_len >= strlen(str)) {
 				/* This one is from startup env, reuse space */
+				debug_printf_env("reusing startup env for '%s'\n", str);
 				strcpy(cur->varstr, str);
 				goto free_and_exp;
 			}
@@ -2221,7 +2228,7 @@ static int set_local_var(char *str, unsigned flags)
 		goto set_str_and_exp;
 	}
 
-	/* Not found - create new variable struct */
+	/* Not found or shadowed - create new variable struct */
 	cur = xzalloc(sizeof(*cur));
 	cur->var_nest_level = local_lvl;
 	cur->next = *cur_pp;
@@ -2250,7 +2257,7 @@ static int set_local_var(char *str, unsigned flags)
 			/* unsetenv was already done */
 		} else {
 			int i;
-			debug_printf_env("%s: putenv '%s'\n", __func__, cur->varstr);
+			debug_printf_env("%s: putenv '%s'/%u\n", __func__, cur->varstr, cur->var_nest_level);
 			i = putenv(cur->varstr);
 			/* only now we can free old exported malloced string */
 			free(free_me);
@@ -2313,21 +2320,6 @@ static int unset_local_var(const char *name)
 }
 #endif
 
-static void unset_vars(char **strings)
-{
-	char **v;
-
-	if (!strings)
-		return;
-	v = strings;
-	while (*v) {
-		const char *eq = strchrnul(*v, '=');
-		unset_local_var_len(*v, (int)(eq - *v));
-		v++;
-	}
-	free(strings);
-}
-
 #if BASH_HOSTNAME_VAR || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_READ || ENABLE_HUSH_GETOPTS
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
@@ -2349,15 +2341,20 @@ static void add_vars(struct variable *var)
 		var->next = G.top_var;
 		G.top_var = var;
 		if (var->flg_export) {
-			debug_printf_env("%s: restoring exported '%s'\n", __func__, var->varstr);
+			debug_printf_env("%s: restoring exported '%s'/%u\n", __func__, var->varstr, var->var_nest_level);
 			putenv(var->varstr);
 		} else {
-			debug_printf_env("%s: restoring variable '%s'\n", __func__, var->varstr);
+			debug_printf_env("%s: restoring variable '%s'/%u\n", __func__, var->varstr, var->var_nest_level);
 		}
 		var = next;
 	}
 }
 
+/* We put strings[i] into variable table and possibly putenv them.
+ * If variable is read only, we can free the strings[i]
+ * which attempts to overwrite it.
+ * The strings[] vector itself is freed.
+ */
 static struct variable *set_vars_and_save_old(char **strings)
 {
 	char **s;
@@ -2365,6 +2362,7 @@ static struct variable *set_vars_and_save_old(char **strings)
 
 	if (!strings)
 		return old;
+
 	s = strings;
 	while (*s) {
 		struct variable *var_p;
@@ -2398,11 +2396,15 @@ static struct variable *set_vars_and_save_old(char **strings)
 				var_p->next = old;
 				old = var_p;
 			}
-			set_local_var(*s, SETFLAG_EXPORT);
+			//bb_error_msg("G.var_nest_level:%d", G.var_nest_level);
+			set_local_var(*s, (G.var_nest_level << SETFLAG_VARLVL_SHIFT) | SETFLAG_EXPORT);
+		} else if (HUSH_DEBUG) {
+			bb_error_msg_and_die("BUG in varexp4");
 		}
 		s++;
  next: ;
 	}
+	free(strings);
 	return old;
 }
 
@@ -6339,7 +6341,7 @@ static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
 #endif
 
 /* Used for expansion of right hand of assignments,
- * $((...)), heredocs, variable espansion parts.
+ * $((...)), heredocs, variable expansion parts.
  *
  * NB: should NOT do globbing!
  * "export v=/bin/c*; env | grep ^v=" outputs "v=/bin/c*"
@@ -7385,6 +7387,7 @@ static void exec_function(char ***to_free,
 static void enter_var_nest_level(void)
 {
 	G.var_nest_level++;
+	debug_printf_env("var_nest_level++ %u\n", G.var_nest_level);
 
 	/* Try:	f() { echo -n .; f; }; f
 	 * struct variable::var_nest_level is uint16_t,
@@ -7408,17 +7411,22 @@ static void leave_var_nest_level(void)
 			continue;
 		}
 		/* Unexport */
-		if (cur->flg_export)
+		if (cur->flg_export) {
+			debug_printf_env("unexporting nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
 			bb_unsetenv(cur->varstr);
+		}
 		/* Remove from global list */
 		*cur_pp = cur->next;
 		/* Free */
-		if (!cur->max_len)
+		if (!cur->max_len) {
+			debug_printf_env("freeing nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
 			free(cur->varstr);
+		}
 		free(cur);
 	}
 
 	G.var_nest_level--;
+	debug_printf_env("var_nest_level-- %u\n", G.var_nest_level);
 	if (HUSH_DEBUG && (int)G.var_nest_level < 0)
 		bb_error_msg_and_die("BUG: nesting underflow");
 }
@@ -7431,11 +7439,12 @@ static int run_function(const struct function *funcp, char **argv)
 
 	save_and_replace_G_args(&sv, argv);
 
-	/* "we are in function, ok to use return" */
+	/* "We are in function, ok to use return" */
 	sv_flg = G_flag_return_in_progress;
 	G_flag_return_in_progress = -1;
 
-	enter_var_nest_level();
+	/* Make "local" variables properly shadow previous ones */
+	IF_HUSH_LOCAL(enter_var_nest_level();)
 	IF_HUSH_LOCAL(G.func_nest_level++;)
 
 	/* On MMU, funcp->body is always non-NULL */
@@ -7451,7 +7460,7 @@ static int run_function(const struct function *funcp, char **argv)
 	}
 
 	IF_HUSH_LOCAL(G.func_nest_level--;)
-	leave_var_nest_level();
+	IF_HUSH_LOCAL(leave_var_nest_level();)
 
 	G_flag_return_in_progress = sv_flg;
 
@@ -7608,11 +7617,9 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 
 #if BB_MMU
 	set_vars_and_save_old(new_env);
-	free(new_env); /* optional */
-	/* we can also destroy set_vars_and_save_old's return value,
+	/* we can destroy set_vars_and_save_old's return value,
 	 * to save memory */
 #else
-	nommu_save->new_env = new_env;
 	nommu_save->old_vars = set_vars_and_save_old(new_env);
 #endif
 
@@ -8174,10 +8181,10 @@ static int checkjobs_and_fg_shell(struct pipe *fg_pipe)
  * subshell:     ( list ) [&]
  */
 #if !ENABLE_HUSH_MODE_X
-#define redirect_and_varexp_helper(new_env_p, old_vars_p, command, squirrel, argv_expanded) \
-	redirect_and_varexp_helper(new_env_p, old_vars_p, command, squirrel)
+#define redirect_and_varexp_helper(old_vars_p, command, squirrel, argv_expanded) \
+	redirect_and_varexp_helper(old_vars_p, command, squirrel)
 #endif
-static int redirect_and_varexp_helper(char ***new_env_p,
+static int redirect_and_varexp_helper(
 		struct variable **old_vars_p,
 		struct command *command,
 		struct squirrel **sqp,
@@ -8190,11 +8197,10 @@ static int redirect_and_varexp_helper(char ***new_env_p,
 	int rcode = setup_redirects(command, sqp);
 	if (rcode == 0) {
 		char **new_env = expand_assignments(command->argv, command->assignment_cnt);
-		*new_env_p = new_env;
 		dump_cmd_in_x_mode(new_env);
 		dump_cmd_in_x_mode(argv_expanded);
-		if (old_vars_p)
-			*old_vars_p = set_vars_and_save_old(new_env);
+		/* this takes ownership of new_env[i] elements, and frees new_env: */
+		*old_vars_p = set_vars_and_save_old(new_env);
 	}
 	return rcode;
 }
@@ -8284,13 +8290,9 @@ static NOINLINE int run_pipe(struct pipe *pi)
 	argv = command->argv ? command->argv : (char **) &null_ptr;
 	{
 		const struct built_in_command *x;
-#if ENABLE_HUSH_FUNCTIONS
-		const struct function *funcp;
-#else
-		enum { funcp = 0 };
-#endif
-		char **new_env = NULL;
-		struct variable *old_vars = NULL;
+		IF_HUSH_FUNCTIONS(const struct function *funcp;)
+		IF_NOT_HUSH_FUNCTIONS(enum { funcp = 0 };)
+		struct variable *old_vars;
 
 #if ENABLE_HUSH_LINENO_VAR
 		if (G.lineno_var)
@@ -8303,28 +8305,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			 * Try "a=t >file"
 			 */
 			G.expand_exitcode = 0;
-#if 0 /* A few cases in testsuite fail with this code. FIXME */
-			rcode = redirect_and_varexp_helper(&new_env, /*old_vars:*/ NULL, command, &squirrel, /*argv_expanded:*/ NULL);
-			/* Set shell variables */
-			if (new_env) {
-				argv = new_env;
-				while (*argv) {
-					if (set_local_var(*argv, /*flag:*/ 0)) {
-						/* assignment to readonly var / putenv error? */
-						rcode = 1;
-					}
-					argv++;
-				}
-			}
-			/* Redirect error sets $? to 1. Otherwise,
-			 * if evaluating assignment value set $?, retain it.
-			 * Try "false; q=`exit 2`; echo $?" - should print 2: */
-			if (rcode == 0)
-				rcode = G.expand_exitcode;
-			/* Exit, _skipping_ variable restoring code: */
-			goto clean_up_and_ret0;
-
-#else /* Older, bigger, but more correct code */
 
 			rcode = setup_redirects(command, &squirrel);
 			restore_redirects(squirrel);
@@ -8358,7 +8338,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			debug_leave();
 			debug_printf_exec("run_pipe: return %d\n", rcode);
 			return rcode;
-#endif
 		}
 
 		/* Expand the rest into (possibly) many strings each */
@@ -8372,6 +8351,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		}
 
 		/* if someone gives us an empty string: `cmd with empty output` */
+//TODO: what about: var=EXPR `` >FILE ? will var be set? Will FILE be created?
 		if (!argv_expanded[0]) {
 			free(argv_expanded);
 			debug_leave();
@@ -8394,7 +8374,14 @@ static NOINLINE int run_pipe(struct pipe *pi)
 					goto clean_up_and_ret1;
 				}
 			}
-			rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, &squirrel, argv_expanded);
+
+			/* Without bumping var nesting level, this leaks
+			 * exported $a:
+			 * a=b true; env | grep ^a=
+			 */
+			enter_var_nest_level();
+			rcode = redirect_and_varexp_helper(&old_vars, command, &squirrel, argv_expanded);
+
 			if (rcode == 0) {
 				if (!funcp) {
 					debug_printf_exec(": builtin '%s' '%s'...\n",
@@ -8405,24 +8392,23 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				}
 #if ENABLE_HUSH_FUNCTIONS
 				else {
-# if ENABLE_HUSH_LOCAL
-					struct variable **sv;
-					sv = G.shadowed_vars_pp;
+					struct variable **sv = G.shadowed_vars_pp;
+					/* Make "local" builtins in the called function
+					 * stash shadowed variables in old_vars list
+					 */
 					G.shadowed_vars_pp = &old_vars;
-# endif
+
 					debug_printf_exec(": function '%s' '%s'...\n",
 						funcp->name, argv_expanded[1]);
 					rcode = run_function(funcp, argv_expanded) & 0xff;
-# if ENABLE_HUSH_LOCAL
+
 					G.shadowed_vars_pp = sv;
-# endif
 				}
 #endif
 			}
  clean_up_and_ret:
-			unset_vars(new_env);
+			leave_var_nest_level();
 			add_vars(old_vars);
-/* clean_up_and_ret0: */
 			restore_redirects(squirrel);
 			/*
 			 * Try "usleep 99999999" + ^C + "echo $?"
@@ -8453,7 +8439,8 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		if (ENABLE_FEATURE_SH_NOFORK && NUM_APPLETS > 1) {
 			int n = find_applet_by_name(argv_expanded[0]);
 			if (n >= 0 && APPLET_IS_NOFORK(n)) {
-				rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, &squirrel, argv_expanded);
+				enter_var_nest_level();
+				rcode = redirect_and_varexp_helper(&old_vars, command, &squirrel, argv_expanded);
 				if (rcode == 0) {
 					debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
 						argv_expanded[0], argv_expanded[1]);
@@ -8487,7 +8474,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		struct fd_pair pipefds;
 #if !BB_MMU
 		volatile nommu_save_t nommu_save;
-		nommu_save.new_env = NULL;
 		nommu_save.old_vars = NULL;
 		nommu_save.argv = NULL;
 		nommu_save.argv_from_re_execing = NULL;
@@ -8580,7 +8566,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		/* Clean up after vforked child */
 		free(nommu_save.argv);
 		free(nommu_save.argv_from_re_execing);
-		unset_vars(nommu_save.new_env);
 		add_vars(nommu_save.old_vars);
 #endif
 		free(argv_expanded);
@@ -10066,7 +10051,11 @@ static int FAST_FUNC builtin_local(char **argv)
 		return EXIT_FAILURE; /* bash compat */
 	}
 	argv++;
-	return helper_export_local(argv, G.var_nest_level << SETFLAG_VARLVL_SHIFT);
+	/* Since all builtins run in a nested variable level,
+	 * need to use level - 1 here. Or else the variable will be removed at once
+	 * after builtin returns.
+	 */
+	return helper_export_local(argv, (G.var_nest_level - 1) << SETFLAG_VARLVL_SHIFT);
 }
 #endif
 
