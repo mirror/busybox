@@ -213,6 +213,7 @@ int main(int argc, char **argv)
 			if (!fp)
 				return 1;
 			fputs(line_new, fp);
+			fclose(fp);
 //		}
 	}
 
