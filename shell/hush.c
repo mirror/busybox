@@ -730,10 +730,8 @@ struct parse_context {
 struct variable {
 	struct variable *next;
 	char *varstr;        /* points to "name=" portion */
-#if ENABLE_HUSH_LOCAL
-	unsigned func_nest_level;
-#endif
 	int max_len;         /* if > 0, name is part of initial env; else name is malloced */
+	uint16_t var_nest_level;
 	smallint flg_export; /* putenv should be done on this var */
 	smallint flg_read_only;
 };
@@ -922,12 +920,13 @@ struct globals {
 	const char *cwd;
 	struct variable *top_var;
 	char **expanded_assignments;
-#if ENABLE_HUSH_FUNCTIONS
-	struct function *top_func;
-# if ENABLE_HUSH_LOCAL
 	struct variable **shadowed_vars_pp;
-	unsigned func_nest_level;
+	unsigned var_nest_level;
+#if ENABLE_HUSH_FUNCTIONS
+# if ENABLE_HUSH_LOCAL
+	unsigned func_nest_level; /* solely to prevent "local v" in non-functions */
 # endif
+	struct function *top_func;
 #endif
 	/* Signal and trap handling */
 #if ENABLE_HUSH_FAST
@@ -2131,7 +2130,7 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 #define SETFLAG_EXPORT   (1 << 0)
 #define SETFLAG_UNEXPORT (1 << 1)
 #define SETFLAG_MAKE_RO  (1 << 2)
-#define SETFLAG_LOCAL_SHIFT    3
+#define SETFLAG_VARLVL_SHIFT   3
 static int set_local_var(char *str, unsigned flags)
 {
 	struct variable **cur_pp;
@@ -2139,7 +2138,7 @@ static int set_local_var(char *str, unsigned flags)
 	char *free_me = NULL;
 	char *eq_sign;
 	int name_len;
-	IF_HUSH_LOCAL(unsigned local_lvl = (flags >> SETFLAG_LOCAL_SHIFT);)
+	unsigned local_lvl = (flags >> SETFLAG_VARLVL_SHIFT);
 
 	eq_sign = strchr(str, '=');
 	if (!eq_sign) { /* not expected to ever happen? */
@@ -2176,8 +2175,7 @@ static int set_local_var(char *str, unsigned flags)
 			unsetenv(str);
 			*eq_sign = '=';
 		}
-#if ENABLE_HUSH_LOCAL
-		if (cur->func_nest_level < local_lvl) {
+		if (cur->var_nest_level < local_lvl) {
 			/* New variable is declared as local,
 			 * and existing one is global, or local
 			 * from enclosing function.
@@ -2197,7 +2195,7 @@ static int set_local_var(char *str, unsigned flags)
 				flags |= SETFLAG_EXPORT;
 			break;
 		}
-#endif
+
 		if (strcmp(cur->varstr + name_len, eq_sign + 1) == 0) {
  free_and_exp:
 			free(str);
@@ -2225,7 +2223,7 @@ static int set_local_var(char *str, unsigned flags)
 
 	/* Not found - create new variable struct */
 	cur = xzalloc(sizeof(*cur));
-	IF_HUSH_LOCAL(cur->func_nest_level = local_lvl;)
+	cur->var_nest_level = local_lvl;
 	cur->next = *cur_pp;
 	*cur_pp = cur;
 
@@ -5509,7 +5507,7 @@ static struct pipe *parse_stream(char **pstring,
 			goto parse_error2;
 		default:
 			if (HUSH_DEBUG)
-				bb_error_msg_and_die("BUG: unexpected %c\n", ch);
+				bb_error_msg_and_die("BUG: unexpected %c", ch);
 		}
 	} /* while (1) */
 
@@ -7362,8 +7360,9 @@ static void exec_function(char ***to_free,
 // for "more correctness" we might want to close those extra fds here:
 //?	close_saved_fds_and_FILE_fds();
 
-	/* "we are in function, ok to use return" */
+	/* "we are in a function, ok to use return" */
 	G_flag_return_in_progress = -1;
+	G.var_nest_level++;
 	IF_HUSH_LOCAL(G.func_nest_level++;)
 
 	/* On MMU, funcp->body is always non-NULL */
@@ -7383,6 +7382,47 @@ static void exec_function(char ***to_free,
 # endif
 }
 
+static void enter_var_nest_level(void)
+{
+	G.var_nest_level++;
+
+	/* Try:	f() { echo -n .; f; }; f
+	 * struct variable::var_nest_level is uint16_t,
+	 * thus limiting recursion to < 2^16.
+	 * In any case, with 8 Mbyte stack SEGV happens
+	 * not too long after 2^16 recursions anyway.
+	 */
+	if (G.var_nest_level > 0xff00)
+		bb_error_msg_and_die("fatal recursion (depth %u)", G.var_nest_level);
+}
+
+static void leave_var_nest_level(void)
+{
+	struct variable *cur;
+	struct variable **cur_pp;
+
+	cur_pp = &G.top_var;
+	while ((cur = *cur_pp) != NULL) {
+		if (cur->var_nest_level < G.var_nest_level) {
+			cur_pp = &cur->next;
+			continue;
+		}
+		/* Unexport */
+		if (cur->flg_export)
+			bb_unsetenv(cur->varstr);
+		/* Remove from global list */
+		*cur_pp = cur->next;
+		/* Free */
+		if (!cur->max_len)
+			free(cur->varstr);
+		free(cur);
+	}
+
+	G.var_nest_level--;
+	if (HUSH_DEBUG && (int)G.var_nest_level < 0)
+		bb_error_msg_and_die("BUG: nesting underflow");
+}
+
 static int run_function(const struct function *funcp, char **argv)
 {
 	int rc;
@@ -7394,6 +7434,8 @@ static int run_function(const struct function *funcp, char **argv)
 	/* "we are in function, ok to use return" */
 	sv_flg = G_flag_return_in_progress;
 	G_flag_return_in_progress = -1;
+
+	enter_var_nest_level();
 	IF_HUSH_LOCAL(G.func_nest_level++;)
 
 	/* On MMU, funcp->body is always non-NULL */
@@ -7408,30 +7450,9 @@ static int run_function(const struct function *funcp, char **argv)
 		rc = run_list(funcp->body);
 	}
 
-# if ENABLE_HUSH_LOCAL
-	{
-		struct variable *var;
-		struct variable **var_pp;
+	IF_HUSH_LOCAL(G.func_nest_level--;)
+	leave_var_nest_level();
 
-		var_pp = &G.top_var;
-		while ((var = *var_pp) != NULL) {
-			if (var->func_nest_level < G.func_nest_level) {
-				var_pp = &var->next;
-				continue;
-			}
-			/* Unexport */
-			if (var->flg_export)
-				bb_unsetenv(var->varstr);
-			/* Remove from global list */
-			*var_pp = var->next;
-			/* Free */
-			if (!var->max_len)
-				free(var->varstr);
-			free(var);
-		}
-		G.func_nest_level--;
-	}
-# endif
 	G_flag_return_in_progress = sv_flg;
 
 	restore_G_args(&sv, argv);
@@ -9959,8 +9980,8 @@ static int helper_export_local(char **argv, unsigned flags)
 # if ENABLE_HUSH_LOCAL
 			/* Is this "local" bltin? */
 			if (!(flags & (SETFLAG_EXPORT|SETFLAG_UNEXPORT|SETFLAG_MAKE_RO))) {
-				unsigned lvl = flags >> SETFLAG_LOCAL_SHIFT;
-				if (var && var->func_nest_level == lvl) {
+				unsigned lvl = flags >> SETFLAG_VARLVL_SHIFT;
+				if (var && var->var_nest_level == lvl) {
 					/* "local x=abc; ...; local x" - ignore second local decl */
 					continue;
 				}
@@ -10045,7 +10066,7 @@ static int FAST_FUNC builtin_local(char **argv)
 		return EXIT_FAILURE; /* bash compat */
 	}
 	argv++;
-	return helper_export_local(argv, G.func_nest_level << SETFLAG_LOCAL_SHIFT);
+	return helper_export_local(argv, G.var_nest_level << SETFLAG_VARLVL_SHIFT);
 }
 #endif
 
