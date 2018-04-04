@@ -18,16 +18,24 @@
 //config:	sort is used to sort lines of text in specified files.
 //config:
 //config:config FEATURE_SORT_BIG
-//config:	bool "Full SuSv3 compliant sort (support -ktcsbdfiozgM)"
+//config:	bool "Full SuSv3 compliant sort (support -ktcbdfiozgM)"
 //config:	default y
 //config:	depends on SORT
 //config:	help
-//config:	Without this, sort only supports -r, -u, and an integer version
+//config:	Without this, sort only supports -r, -u, -s, and an integer version
 //config:	of -n. Selecting this adds sort keys, floating point support, and
 //config:	more. This adds a little over 3k to a nonstatic build on x86.
 //config:
 //config:	The SuSv3 sort standard is available at:
 //config:	http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
+//config:
+//config:config FEATURE_SORT_OPTIMIZE_MEMORY
+//config:	bool "Use less memory (but might be slower)"
+//config:	default n   # defaults to N since we are size-paranoid tribe
+//config:	depends on SORT
+//config:	help
+//config:	Attempt to use less memory (by storing only one copy
+//config:	of duplicated lines, and such). Useful if you work on huge files.
 
 //applet:IF_SORT(APPLET_NOEXEC(sort, sort, BB_DIR_USR_BIN, BB_SUID_DROP, sort))
 
@@ -46,19 +54,17 @@
 //usage:     "\n	-f	Ignore case"
 //usage:     "\n	-i	Ignore unprintable characters"
 //usage:     "\n	-d	Dictionary order (blank or alphanumeric only)"
-//usage:     "\n	-g	General numerical sort"
-//usage:     "\n	-M	Sort month"
 //usage:	)
 //-h, --human-numeric-sort: compare human readable numbers (e.g., 2K 1G)
 //usage:     "\n	-n	Sort numbers"
 //usage:	IF_FEATURE_SORT_BIG(
+//usage:     "\n	-g	General numerical sort"
+//usage:     "\n	-M	Sort month"
 //usage:     "\n	-t CHAR	Field separator"
 //usage:     "\n	-k N[,M] Sort by Nth field"
 //usage:	)
 //usage:     "\n	-r	Reverse sort order"
-//usage:	IF_FEATURE_SORT_BIG(
 //usage:     "\n	-s	Stable (don't sort ties alphabetically)"
-//usage:	)
 //usage:     "\n	-u	Suppress duplicate lines"
 //usage:	IF_FEATURE_SORT_BIG(
 //usage:     "\n	-z	Lines are terminated by NUL, not newline"
@@ -404,6 +410,14 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 	int i;
 	int linecount;
 	unsigned opts;
+#if ENABLE_FEATURE_SORT_OPTIMIZE_MEMORY
+	bool can_drop_dups;
+	size_t prev_len = 0;
+	/* Postpone optimizing if the input is small, < 16k lines:
+	 * even just free()ing duplicate lines takes time.
+	 */
+	size_t count_to_optimize_dups = 0x3fff;
+#endif
 
 	xfunc_error_retval = 2;
 
@@ -412,6 +426,29 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 			sort_opt_str,
 			&str_ignored, &str_ignored, &str_o, &lst_k, &str_t
 	);
+#if ENABLE_FEATURE_SORT_OPTIMIZE_MEMORY
+	/* Can drop dups only if -u but no "complicating" options,
+	 * IOW: if we do a full line compares. Safe options:
+	 * -o FILE Output to FILE
+	 * -z	   Lines are terminated by NUL, not newline
+	 * -r	   Reverse sort order
+	 * -s      Stable (don't sort ties alphabetically)
+	 * Not sure about these:
+	 * -b      Ignore leading blanks
+	 * -f	   Ignore case
+	 * -i	   Ignore unprintable characters
+	 * -d	   Dictionary order (blank or alphanumeric only)
+	 * -n	   Sort numbers
+	 * -g	   General numerical sort
+	 * -M	   Sort month
+	 */
+	can_drop_dups = ((opts & ~(FLAG_o|FLAG_z|FLAG_r|FLAG_s)) == FLAG_u);
+	/* Stable sort needs every line to be uniquely allocated,
+	 * disable optimization to reuse strings:
+	 */
+	if (opts & FLAG_s)
+		count_to_optimize_dups = (size_t)-1L;
+#endif
 	/* global b strips leading and trailing spaces */
 	if (opts & FLAG_b)
 		option_mask32 |= FLAG_bb;
@@ -489,6 +526,41 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 			char *line = GET_LINE(fp);
 			if (!line)
 				break;
+
+#if ENABLE_FEATURE_SORT_OPTIMIZE_MEMORY
+			if (count_to_optimize_dups != 0)
+				count_to_optimize_dups--;
+			if (count_to_optimize_dups == 0) {
+				size_t len;
+				char *new_line;
+				char first = *line;
+
+				/* On kernel/linux/arch/ *.[ch] files,
+				 * this reduces memory usage by 6%.
+				 *  yes | head -99999999 | sort
+				 * goes down from 1900Mb to 380 Mb.
+				 */
+				if (first == '\0' || first == '\n') {
+					len = !(first == '\0');
+					new_line = (char*)"\n" + 1 - len;
+					goto replace;
+				}
+				len = strlen(line);
+				if (len <= prev_len) {
+					new_line = lines[linecount-1] + (prev_len - len);
+					if (strcmp(line, new_line) == 0) {
+						if (can_drop_dups && prev_len == len) {
+							free(line);
+							continue;
+						}
+ replace:
+						free(line);
+						line = new_line;
+					}
+				}
+				prev_len = len;
+			}
+#endif
 			lines = xrealloc_vector(lines, 6, linecount);
 			lines[linecount++] = line;
 		}
@@ -510,6 +582,8 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 		}
 		return EXIT_SUCCESS;
 	}
+#else
+//TODO: lighter version which only drops total dups if can_drop_dups == true
 #endif
 
 	/* For stable sort, store original line position beyond terminating NUL */
