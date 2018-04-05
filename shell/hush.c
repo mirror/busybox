@@ -8200,19 +8200,21 @@ static int redirect_and_varexp_helper(
 		struct squirrel **sqp,
 		char **argv_expanded)
 {
+	/* Assignments occur before redirects. Try:
+	 * a=`sleep 1` sleep 2 3>/qwe/rty
+	 */
+
+	char **new_env = expand_assignments(command->argv, command->assignment_cnt);
+	dump_cmd_in_x_mode(new_env);
+	dump_cmd_in_x_mode(argv_expanded);
+	/* this takes ownership of new_env[i] elements, and frees new_env: */
+	set_vars_and_save_old(new_env);
+
 	/* setup_redirects acts on file descriptors, not FILEs.
 	 * This is perfect for work that comes after exec().
 	 * Is it really safe for inline use?  Experimentally,
 	 * things seem to work. */
-	int rcode = setup_redirects(command, sqp);
-	if (rcode == 0) {
-		char **new_env = expand_assignments(command->argv, command->assignment_cnt);
-		dump_cmd_in_x_mode(new_env);
-		dump_cmd_in_x_mode(argv_expanded);
-		/* this takes ownership of new_env[i] elements, and frees new_env: */
-		set_vars_and_save_old(new_env);
-	}
-	return rcode;
+	return setup_redirects(command, sqp);
 }
 static NOINLINE int run_pipe(struct pipe *pi)
 {
@@ -8315,6 +8317,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			 * Ensure redirects take effect (that is, create files).
 			 * Try "a=t >file"
 			 */
+ only_assignments:
 			G.expand_exitcode = 0;
 
 			rcode = setup_redirects(command, &squirrel);
@@ -8359,12 +8362,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 #endif
 			argv_expanded = expand_strvec_to_strvec(argv + command->assignment_cnt);
 
-		/* if someone gives us an empty string: `cmd with empty output` */
-//TODO: what about: var=EXPR `` >FILE ? will var be set? Will FILE be created?
+		/* If someone gives us an empty string: `cmd with empty output` */
 		if (!argv_expanded[0]) {
 			free(argv_expanded);
-			debug_leave();
-			return G.last_exitcode;
+			goto only_assignments;
 		}
 
 		old_vars = NULL;
@@ -8378,9 +8379,17 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		if (x || funcp) {
 			if (x && x->b_function == builtin_exec && argv_expanded[1] == NULL) {
 				debug_printf("exec with redirects only\n");
-				rcode = setup_redirects(command, NULL);
-//TODO: what about: var=EXPR exec >FILE ? will var be set?
+				/*
+				 * Variable assignments are executed, but then "forgotten":
+				 *  a=`sleep 1;echo A` exec 3>&-; echo $a
+				 * sleeps, but prints nothing.
+				 */
+				enter_var_nest_level();
+				G.shadowed_vars_pp = &old_vars;
+				rcode = redirect_and_varexp_helper(command, /*squirrel:*/ NULL, argv_expanded);
+				G.shadowed_vars_pp = sv_shadowed;
 				/* rcode=1 can be if redir file can't be opened */
+
 				goto clean_up_and_ret1;
 			}
 
@@ -8452,9 +8461,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		} else
 			goto must_fork;
 
+		restore_redirects(squirrel);
+ clean_up_and_ret1:
 		leave_var_nest_level();
 		add_vars(old_vars);
-		restore_redirects(squirrel);
 
 		/*
 		 * Try "usleep 99999999" + ^C + "echo $?"
@@ -8474,7 +8484,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			if (sigismember(&G.pending_set, SIGINT))
 				rcode = 128 + SIGINT;
 		}
- clean_up_and_ret1:
 		free(argv_expanded);
 		IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
 		debug_leave();
