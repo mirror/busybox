@@ -7599,9 +7599,8 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 {
 	const struct built_in_command *x;
 	char **new_env;
-#if ENABLE_HUSH_COMMAND
-	char opt_vV = 0;
-#endif
+	IF_HUSH_COMMAND(char opt_vV = 0;)
+	IF_HUSH_FUNCTIONS(const struct function *funcp;)
 
 	new_env = expand_assignments(argv, assignment_cnt);
 	dump_cmd_in_x_mode(new_env);
@@ -7640,12 +7639,9 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 
 #if ENABLE_HUSH_FUNCTIONS
 	/* Check if the command matches any functions (this goes before bltins) */
-	{
-		const struct function *funcp = find_function(argv[0]);
-		if (funcp) {
-			exec_function(&nommu_save->argv_from_re_execing, funcp, argv);
-		}
-	}
+	funcp = find_function(argv[0]);
+	if (funcp)
+		exec_function(&nommu_save->argv_from_re_execing, funcp, argv);
 #endif
 
 #if ENABLE_HUSH_COMMAND
@@ -8366,22 +8362,18 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		if (!funcp)
 			x = find_builtin(argv_expanded[0]);
 		if (x || funcp) {
-			if (!funcp) {
-				if (x->b_function == builtin_exec && argv_expanded[1] == NULL) {
-					debug_printf("exec with redirects only\n");
-					rcode = setup_redirects(command, NULL);
-					/* rcode=1 can be if redir file can't be opened */
-					goto clean_up_and_ret1;
-				}
+			if (x && x->b_function == builtin_exec && argv_expanded[1] == NULL) {
+				debug_printf("exec with redirects only\n");
+				rcode = setup_redirects(command, NULL);
+				/* rcode=1 can be if redir file can't be opened */
+				goto clean_up_and_ret1;
 			}
 
-			/* Without bumping var nesting level, this leaks
-			 * exported $a:
+			/* Bump var nesting, or this will leak exported $a:
 			 * a=b true; env | grep ^a=
 			 */
 			enter_var_nest_level();
 			rcode = redirect_and_varexp_helper(&old_vars, command, &squirrel, argv_expanded);
-
 			if (rcode == 0) {
 				if (!funcp) {
 					debug_printf_exec(": builtin '%s' '%s'...\n",
@@ -8406,58 +8398,57 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				}
 #endif
 			}
- clean_up_and_ret:
-			leave_var_nest_level();
-			add_vars(old_vars);
-			restore_redirects(squirrel);
-			/*
-			 * Try "usleep 99999999" + ^C + "echo $?"
-			 * with FEATURE_SH_NOFORK=y.
-			 */
-			if (!funcp) {
-				/* It was builtin or nofork.
-				 * if this would be a real fork/execed program,
-				 * it should have died if a fatal sig was received.
-				 * But OTOH, there was no separate process,
-				 * the sig was sent to _shell_, not to non-existing
-				 * child.
-				 * Let's just handle ^C only, this one is obvious:
-				 * we aren't ok with exitcode 0 when ^C was pressed
-				 * during builtin/nofork.
-				 */
-				if (sigismember(&G.pending_set, SIGINT))
-					rcode = 128 + SIGINT;
-			}
- clean_up_and_ret1:
-			free(argv_expanded);
-			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
-			debug_leave();
-			debug_printf_exec("run_pipe return %d\n", rcode);
-			return rcode;
-		}
-
+		} else
 		if (ENABLE_FEATURE_SH_NOFORK && NUM_APPLETS > 1) {
 			int n = find_applet_by_name(argv_expanded[0]);
-			if (n >= 0 && APPLET_IS_NOFORK(n)) {
-				enter_var_nest_level();
-				rcode = redirect_and_varexp_helper(&old_vars, command, &squirrel, argv_expanded);
-				if (rcode == 0) {
-					debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
-						argv_expanded[0], argv_expanded[1]);
-					/*
-					 * Note: signals (^C) can't interrupt here.
-					 * We remember them and they will be acted upon
-					 * after applet returns.
-					 * This makes applets which can run for a long time
-					 * and/or wait for user input ineligible for NOFORK:
-					 * for example, "yes" or "rm" (rm -i waits for input).
-					 */
-					rcode = run_nofork_applet(n, argv_expanded);
-				}
-				goto clean_up_and_ret;
+			if (n < 0 || !APPLET_IS_NOFORK(n))
+				goto must_fork;
+
+			enter_var_nest_level();
+			rcode = redirect_and_varexp_helper(&old_vars, command, &squirrel, argv_expanded);
+			if (rcode == 0) {
+				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
+					argv_expanded[0], argv_expanded[1]);
+				/*
+				 * Note: signals (^C) can't interrupt here.
+				 * We remember them and they will be acted upon
+				 * after applet returns.
+				 * This makes applets which can run for a long time
+				 * and/or wait for user input ineligible for NOFORK:
+				 * for example, "yes" or "rm" (rm -i waits for input).
+				 */
+				rcode = run_nofork_applet(n, argv_expanded);
 			}
 		}
-		/* It is neither builtin nor applet. We must fork. */
+
+		leave_var_nest_level();
+		add_vars(old_vars);
+		restore_redirects(squirrel);
+
+		/*
+		 * Try "usleep 99999999" + ^C + "echo $?"
+		 * with FEATURE_SH_NOFORK=y.
+		 */
+		if (!funcp) {
+			/* It was builtin or nofork.
+			 * if this would be a real fork/execed program,
+			 * it should have died if a fatal sig was received.
+			 * But OTOH, there was no separate process,
+			 * the sig was sent to _shell_, not to non-existing
+			 * child.
+			 * Let's just handle ^C only, this one is obvious:
+			 * we aren't ok with exitcode 0 when ^C was pressed
+			 * during builtin/nofork.
+			 */
+			if (sigismember(&G.pending_set, SIGINT))
+				rcode = 128 + SIGINT;
+		}
+ clean_up_and_ret1:
+		free(argv_expanded);
+		IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
+		debug_leave();
+		debug_printf_exec("run_pipe return %d\n", rcode);
+		return rcode;
 	}
 
  must_fork:
