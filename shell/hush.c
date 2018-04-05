@@ -8419,7 +8419,8 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				 */
 				rcode = run_nofork_applet(n, argv_expanded);
 			}
-		}
+		} else
+			goto must_fork;
 
 		leave_var_nest_level();
 		add_vars(old_vars);
