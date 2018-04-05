@@ -5961,11 +5961,11 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				/* pattern uses non-standard expansion.
 				 * repl should be unbackslashed and globbed
 				 * by the usual expansion rules:
-				 * >az; >bz;
-				 * v='a bz'; echo "${v/a*z/a*z}" prints "a*z"
-				 * v='a bz'; echo "${v/a*z/\z}"  prints "\z"
-				 * v='a bz'; echo ${v/a*z/a*z}   prints "az"
-				 * v='a bz'; echo ${v/a*z/\z}    prints "z"
+				 *  >az >bz
+				 *  v='a bz'; echo "${v/a*z/a*z}" #prints "a*z"
+				 *  v='a bz'; echo "${v/a*z/\z}"  #prints "z"
+				 *  v='a bz'; echo ${v/a*z/a*z}   #prints "az"
+				 *  v='a bz'; echo ${v/a*z/\z}    #prints "z"
 				 * (note that a*z _pattern_ is never globbed!)
 				 */
 				char *pattern, *repl, *t;
@@ -5977,7 +5977,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				exp_word = p;
 				p = strchr(p, SPECIAL_VAR_SYMBOL);
 				*p = '\0';
-				repl = encode_then_expand_string(exp_word, /*process_bkslash:*/ arg0 & 0x80, /*unbackslash:*/ 1);
+				repl = encode_then_expand_string(exp_word, /*process_bkslash:*/ 0, /*unbackslash:*/ 1);
 				debug_printf_varexp("repl:'%s'->'%s'\n", exp_word, repl);
 				/* HACK ALERT. We depend here on the fact that
 				 * G.global_argv and results of utoa and get_local_var_value
