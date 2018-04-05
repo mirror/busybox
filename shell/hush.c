@@ -312,13 +312,13 @@
 //kbuild:lib-$(CONFIG_BASH_IS_HUSH) += hush.o match.o shell_common.o
 //kbuild:lib-$(CONFIG_HUSH_RANDOM_SUPPORT) += random.o
 
-/* -i (interactive) and -s (read stdin) are also accepted,
- * but currently do nothing, therefore aren't shown in help.
+/* -i (interactive) is also accepted,
+ * but does nothing, therefore not shown in help.
  * NOMMU-specific options are not meant to be used by users,
  * therefore we don't show them either.
  */
 //usage:#define hush_trivial_usage
-//usage:	"[-enxl] [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS]]"
+//usage:	"[-enxl] [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS] / -s [ARGS]]"
 //usage:#define hush_full_usage "\n\n"
 //usage:	"Unix shell interpreter"
 
@@ -9150,9 +9150,9 @@ int hush_main(int argc, char **argv)
 {
 	enum {
 		OPT_login = (1 << 0),
+		OPT_s     = (1 << 1),
 	};
 	unsigned flags;
-	int opt;
 	unsigned builtin_argc;
 	char **e;
 	struct variable *cur_var;
@@ -9275,7 +9275,7 @@ int hush_main(int argc, char **argv)
 	flags = (argv[0] && argv[0][0] == '-') ? OPT_login : 0;
 	builtin_argc = 0;
 	while (1) {
-		opt = getopt(argc, argv, "+c:exinsl"
+		int opt = getopt(argc, argv, "+c:exinsl"
 #if !BB_MMU
 				"<:$:R:V:"
 # if ENABLE_HUSH_FUNCTIONS
@@ -9333,8 +9333,7 @@ int hush_main(int argc, char **argv)
 			/* G_interactive_fd++; */
 			break;
 		case 's':
-			/* "-s" means "read from stdin", but this is how we always
-			 * operate, so simply do nothing here. */
+			flags |= OPT_s;
 			break;
 		case 'l':
 			flags |= OPT_login;
@@ -9437,7 +9436,8 @@ int hush_main(int argc, char **argv)
 		 */
 	}
 
-	if (G.global_argv[1]) {
+	/* -s is: hush -s ARGV1 ARGV2 (no SCRIPT) */
+	if (!(flags & OPT_s) && G.global_argv[1]) {
 		FILE *input;
 		/*
 		 * "bash <script>" (which is never interactive (unless -i?))
