@@ -2140,19 +2140,10 @@ static int set_local_var(char *str, unsigned flags)
 	unsigned local_lvl = (flags >> SETFLAG_VARLVL_SHIFT);
 
 	eq_sign = strchr(str, '=');
-	if (!eq_sign) { /* not expected to ever happen? */
-		free(str);
-		return -1;
-	}
+	if (HUSH_DEBUG && !eq_sign)
+		bb_error_msg_and_die("BUG in setvar");
 
 	name_len = eq_sign - str + 1; /* including '=' */
-#if ENABLE_HUSH_LINENO_VAR
-	if (G.lineno_var) {
-		if (name_len == 7 && strncmp("LINENO", str, 6) == 0)
-			G.lineno_var = NULL;
-	}
-#endif
-
 	cur_pp = &G.top_var;
 	while ((cur = *cur_pp) != NULL) {
 		if (strncmp(cur->varstr, str, name_len) != 0) {
@@ -2175,19 +2166,6 @@ static int set_local_var(char *str, unsigned flags)
 			*eq_sign = '=';
 		}
 		if (cur->var_nest_level < local_lvl) {
-			/* New variable is local ("local VAR=VAL" or
-			 * "VAR=VAL cmd")
-			 * and existing one is global, or local
-			 * on a lower level that new one.
-			 * Remove and save old one:
-			 */
-			debug_printf_env("shadowing %s'%s'/%u by '%s'/%u\n",
-				cur->flg_export ? "exported " : "",
-				cur->varstr, cur->var_nest_level, str, local_lvl
-			);
-			*cur_pp = cur->next;
-			cur->next = *G.shadowed_vars_pp;
-			*G.shadowed_vars_pp = cur;
 			/* bash 3.2.33(1) and exported vars:
 			 * # export z=z
 			 * # f() { local z=a; env | grep ^z; }
@@ -2198,6 +2176,31 @@ static int set_local_var(char *str, unsigned flags)
 			 */
 			if (cur->flg_export)
 				flags |= SETFLAG_EXPORT;
+			/* New variable is local ("local VAR=VAL" or
+			 * "VAR=VAL cmd")
+			 * and existing one is global, or local
+			 * on a lower level that new one.
+			 * Remove it from global variable list:
+			 */
+			*cur_pp = cur->next;
+			if (G.shadowed_vars_pp) {
+				/* Save in "shadowed" list */
+				debug_printf_env("shadowing %s'%s'/%u by '%s'/%u\n",
+					cur->flg_export ? "exported " : "",
+					cur->varstr, cur->var_nest_level, str, local_lvl
+				);
+				cur->next = *G.shadowed_vars_pp;
+				*G.shadowed_vars_pp = cur;
+			} else {
+				/* Came from pseudo_exec_argv(), no need to save: delete it */
+				debug_printf_env("shadow-deleting %s'%s'/%u by '%s'/%u\n",
+					cur->flg_export ? "exported " : "",
+					cur->varstr, cur->var_nest_level, str, local_lvl
+				);
+				if (cur->max_len == 0) /* allocated "VAR=VAL"? */
+					free_me = cur->varstr; /* then free it later */
+				free(cur);
+			}
 			break;
 		}
 
@@ -2207,8 +2210,10 @@ static int set_local_var(char *str, unsigned flags)
 			free(str);
 			goto exp;
 		}
+
+		/* Replace the value in the found "struct variable" */
 		if (cur->max_len != 0) {
-			if (cur->max_len >= strlen(str)) {
+			if (cur->max_len >= strnlen(str, cur->max_len + 1)) {
 				/* This one is from startup env, reuse space */
 				debug_printf_env("reusing startup env for '%s'\n", str);
 				strcpy(cur->varstr, str);
@@ -2244,13 +2249,6 @@ static int set_local_var(char *str, unsigned flags)
 #endif
 	if (flags & SETFLAG_EXPORT)
 		cur->flg_export = 1;
-	if (name_len == 4 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
-		cmdedit_update_prompt();
-#if ENABLE_HUSH_GETOPTS
-	/* defoptindvar is a "OPTIND=..." constant string */
-	if (strncmp(cur->varstr, defoptindvar, 7) == 0)
-		G.getopt_count = 0;
-#endif
 	if (cur->flg_export) {
 		if (flags & SETFLAG_UNEXPORT) {
 			cur->flg_export = 0;
@@ -2265,6 +2263,23 @@ static int set_local_var(char *str, unsigned flags)
 		}
 	}
 	free(free_me);
+
+	/* Handle special names */
+	if (name_len == 4 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
+		cmdedit_update_prompt();
+	else
+	if ((ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS) && name_len == 7) {
+#if ENABLE_HUSH_LINENO_VAR
+		if (G.lineno_var && strncmp(cur->varstr, "LINENO", 6) == 0)
+			G.lineno_var = NULL;
+#endif
+#if ENABLE_HUSH_GETOPTS
+		/* defoptindvar is a "OPTIND=..." constant string */
+		if (strncmp(cur->varstr, defoptindvar, 7) == 0)
+			G.getopt_count = 0;
+#endif
+	}
+
 	return 0;
 }
 
@@ -2282,14 +2297,16 @@ static int unset_local_var_len(const char *name, int name_len)
 	if (!name)
 		return EXIT_SUCCESS;
 
+	if ((ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS) && name_len == 6) {
 #if ENABLE_HUSH_GETOPTS
-	if (name_len == 6 && strncmp(name, "OPTIND", 6) == 0)
-		G.getopt_count = 0;
+		if (strncmp(name, "OPTIND", 6) == 0)
+			G.getopt_count = 0;
 #endif
 #if ENABLE_HUSH_LINENO_VAR
-	if (name_len == 6 && G.lineno_var && strncmp(name, "LINENO", 6) == 0)
-		G.lineno_var = NULL;
+		if (G.lineno_var && strncmp(name, "LINENO", 6) == 0)
+			G.lineno_var = NULL;
 #endif
+	}
 
 	cur_pp = &G.top_var;
 	while ((cur = *cur_pp) != NULL) {
@@ -2355,13 +2372,12 @@ static void add_vars(struct variable *var)
  * which attempts to overwrite it.
  * The strings[] vector itself is freed.
  */
-static struct variable *set_vars_and_save_old(char **strings)
+static void set_vars_and_save_old(char **strings)
 {
 	char **s;
-	struct variable *old = NULL;
 
 	if (!strings)
-		return old;
+		return;
 
 	s = strings;
 	while (*s) {
@@ -2389,12 +2405,10 @@ static struct variable *set_vars_and_save_old(char **strings)
 					do { *p = p[1]; p++; } while (*p);
 					goto next;
 				}
-				/* Remove variable from global linked list */
-				debug_printf_env("%s: removing '%s'\n", __func__, var_p->varstr);
-				*var_pp = var_p->next;
-				/* Add it to returned list */
-				var_p->next = old;
-				old = var_p;
+				/* below, set_local_var() with nest level will
+				 * "shadow" (remove) this variable from
+				 * global linked list.
+				 */
 			}
 			//bb_error_msg("G.var_nest_level:%d", G.var_nest_level);
 			set_local_var(*s, (G.var_nest_level << SETFLAG_VARLVL_SHIFT) | SETFLAG_EXPORT);
@@ -2405,7 +2419,6 @@ static struct variable *set_vars_and_save_old(char **strings)
  next: ;
 	}
 	free(strings);
-	return old;
 }
 
 
@@ -7598,6 +7611,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 		char **argv_expanded)
 {
 	const struct built_in_command *x;
+	struct variable **sv_shadowed;
 	char **new_env;
 	IF_HUSH_COMMAND(char opt_vV = 0;)
 	IF_HUSH_FUNCTIONS(const struct function *funcp;)
@@ -7614,13 +7628,14 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 		_exit(EXIT_SUCCESS);
 	}
 
+	sv_shadowed = G.shadowed_vars_pp;
 #if BB_MMU
-	set_vars_and_save_old(new_env);
-	/* we can destroy set_vars_and_save_old's return value,
-	 * to save memory */
+	G.shadowed_vars_pp = NULL; /* "don't save, free them instead" */
 #else
-	nommu_save->old_vars = set_vars_and_save_old(new_env);
+	G.shadowed_vars_pp = &nommu_save->old_vars;
 #endif
+	set_vars_and_save_old(new_env);
+	G.shadowed_vars_pp = sv_shadowed;
 
 	if (argv_expanded) {
 		argv = argv_expanded;
@@ -8181,7 +8196,6 @@ static int checkjobs_and_fg_shell(struct pipe *fg_pipe)
 	redirect_and_varexp_helper(old_vars_p, command, squirrel)
 #endif
 static int redirect_and_varexp_helper(
-		struct variable **old_vars_p,
 		struct command *command,
 		struct squirrel **sqp,
 		char **argv_expanded)
@@ -8196,7 +8210,7 @@ static int redirect_and_varexp_helper(
 		dump_cmd_in_x_mode(new_env);
 		dump_cmd_in_x_mode(argv_expanded);
 		/* this takes ownership of new_env[i] elements, and frees new_env: */
-		*old_vars_p = set_vars_and_save_old(new_env);
+		set_vars_and_save_old(new_env);
 	}
 	return rcode;
 }
@@ -8288,6 +8302,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		const struct built_in_command *x;
 		IF_HUSH_FUNCTIONS(const struct function *funcp;)
 		IF_NOT_HUSH_FUNCTIONS(enum { funcp = 0 };)
+		struct variable **sv_shadowed;
 		struct variable *old_vars;
 
 #if ENABLE_HUSH_LINENO_VAR
@@ -8338,13 +8353,11 @@ static NOINLINE int run_pipe(struct pipe *pi)
 
 		/* Expand the rest into (possibly) many strings each */
 #if defined(CMD_SINGLEWORD_NOGLOB)
-		if (command->cmd_type == CMD_SINGLEWORD_NOGLOB) {
+		if (command->cmd_type == CMD_SINGLEWORD_NOGLOB)
 			argv_expanded = expand_strvec_to_strvec_singleword_noglob(argv + command->assignment_cnt);
-		} else
+		else
 #endif
-		{
 			argv_expanded = expand_strvec_to_strvec(argv + command->assignment_cnt);
-		}
 
 		/* if someone gives us an empty string: `cmd with empty output` */
 //TODO: what about: var=EXPR `` >FILE ? will var be set? Will FILE be created?
@@ -8354,17 +8367,19 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			return G.last_exitcode;
 		}
 
-#if ENABLE_HUSH_FUNCTIONS
+		old_vars = NULL;
+		sv_shadowed = G.shadowed_vars_pp;
+
 		/* Check if argv[0] matches any functions (this goes before bltins) */
-		funcp = find_function(argv_expanded[0]);
-#endif
-		x = NULL;
-		if (!funcp)
+		IF_HUSH_FUNCTIONS(funcp = find_function(argv_expanded[0]);)
+		IF_HUSH_FUNCTIONS(x = NULL;)
+		IF_HUSH_FUNCTIONS(if (!funcp))
 			x = find_builtin(argv_expanded[0]);
 		if (x || funcp) {
 			if (x && x->b_function == builtin_exec && argv_expanded[1] == NULL) {
 				debug_printf("exec with redirects only\n");
 				rcode = setup_redirects(command, NULL);
+//TODO: what about: var=EXPR exec >FILE ? will var be set?
 				/* rcode=1 can be if redir file can't be opened */
 				goto clean_up_and_ret1;
 			}
@@ -8373,9 +8388,22 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			 * a=b true; env | grep ^a=
 			 */
 			enter_var_nest_level();
-			rcode = redirect_and_varexp_helper(&old_vars, command, &squirrel, argv_expanded);
+			/* Collect all variables "shadowed" by helper
+			 * (IOW: old vars overridden by "var1=val1 var2=val2 cmd..." syntax)
+			 * into old_vars list:
+			 */
+			G.shadowed_vars_pp = &old_vars;
+			rcode = redirect_and_varexp_helper(command, &squirrel, argv_expanded);
 			if (rcode == 0) {
 				if (!funcp) {
+					/* Do not collect *to old_vars list* vars shadowed
+					 * by e.g. "local VAR" builtin (collect them
+					 * in the previously nested list instead):
+					 * don't want them to be restored immediately
+					 * after "local" completes.
+					 */
+					G.shadowed_vars_pp = sv_shadowed;
+
 					debug_printf_exec(": builtin '%s' '%s'...\n",
 						x->b_cmd, argv_expanded[1]);
 					fflush_all();
@@ -8384,17 +8412,15 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				}
 #if ENABLE_HUSH_FUNCTIONS
 				else {
-					struct variable **sv = G.shadowed_vars_pp;
-					/* Make "local" builtins in the called function
-					 * stash shadowed variables in old_vars list
-					 */
-					G.shadowed_vars_pp = &old_vars;
-
 					debug_printf_exec(": function '%s' '%s'...\n",
 						funcp->name, argv_expanded[1]);
 					rcode = run_function(funcp, argv_expanded) & 0xff;
-
-					G.shadowed_vars_pp = sv;
+					/*
+					 * But do collect *to old_vars list* vars shadowed
+					 * within function execution. To that end, restore
+					 * this pointer _after_ function run:
+					 */
+					G.shadowed_vars_pp = sv_shadowed;
 				}
 #endif
 			}
@@ -8405,7 +8431,11 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				goto must_fork;
 
 			enter_var_nest_level();
-			rcode = redirect_and_varexp_helper(&old_vars, command, &squirrel, argv_expanded);
+			/* Collect all variables "shadowed" by helper into old_vars list */
+			G.shadowed_vars_pp = &old_vars;
+			rcode = redirect_and_varexp_helper(command, &squirrel, argv_expanded);
+			G.shadowed_vars_pp = sv_shadowed;
+
 			if (rcode == 0) {
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
 					argv_expanded[0], argv_expanded[1]);
