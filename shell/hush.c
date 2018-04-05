@@ -608,7 +608,7 @@ typedef enum redir_type {
 
 struct command {
 	pid_t pid;                  /* 0 if exited */
-	int assignment_cnt;         /* how many argv[i] are assignments? */
+	unsigned assignment_cnt;    /* how many argv[i] are assignments? */
 #if ENABLE_HUSH_LINENO_VAR
 	unsigned lineno;
 #endif
@@ -8317,25 +8317,26 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			 * Ensure redirects take effect (that is, create files).
 			 * Try "a=t >file"
 			 */
- only_assignments:
+			unsigned i;
 			G.expand_exitcode = 0;
-
+ only_assignments:
 			rcode = setup_redirects(command, &squirrel);
 			restore_redirects(squirrel);
+
 			/* Set shell variables */
 			if (G_x_mode)
 				bb_putchar_stderr('+');
-			while (*argv) {
-				char *p = expand_string_to_string(*argv, /*unbackslash:*/ 1);
+			i = 0;
+			while (i < command->assignment_cnt) {
+				char *p = expand_string_to_string(argv[i], /*unbackslash:*/ 1);
 				if (G_x_mode)
 					fprintf(stderr, " %s", p);
-				debug_printf_exec("set shell var:'%s'->'%s'\n",
-						*argv, p);
+				debug_printf_env("set shell var:'%s'->'%s'\n", *argv, p);
 				if (set_local_var(p, /*flag:*/ 0)) {
 					/* assignment to readonly var / putenv error? */
 					rcode = 1;
 				}
-				argv++;
+				i++;
 			}
 			if (G_x_mode)
 				bb_putchar_stderr('\n');
@@ -8365,6 +8366,8 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		/* If someone gives us an empty string: `cmd with empty output` */
 		if (!argv_expanded[0]) {
 			free(argv_expanded);
+			/* `false` still has to set exitcode 1 */
+			G.expand_exitcode = G.last_exitcode;
 			goto only_assignments;
 		}
 
@@ -10021,6 +10024,7 @@ static int helper_export_local(char **argv, unsigned flags)
 			/* (Un)exporting/making local NAME=VALUE */
 			name = xstrdup(name);
 		}
+		debug_printf_env("%s: set_local_var('%s')\n", __func__, name);
 		if (set_local_var(name, flags))
 			return EXIT_FAILURE;
 	} while (*++argv);
