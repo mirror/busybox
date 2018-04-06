@@ -2123,6 +2123,27 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 	return NULL;
 }
 
+static void handle_changed_special_names(const char *name, unsigned name_len)
+{
+	if (name_len == 3 && name[0] == 'P' && name[1] == 'S') {
+		cmdedit_update_prompt();
+		return;
+	}
+
+	if ((ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS)
+	 && name_len == 6
+	) {
+#if ENABLE_HUSH_LINENO_VAR
+		if (strncmp(name, "LINENO", 6) == 0)
+			G.lineno_var = NULL;
+#endif
+#if ENABLE_HUSH_GETOPTS
+		if (strncmp(name, "OPTIND", 6) == 0)
+			G.getopt_count = 0;
+#endif
+	}
+}
+
 /* str holds "NAME=VAL" and is expected to be malloced.
  * We take ownership of it.
  */
@@ -2264,21 +2285,7 @@ static int set_local_var(char *str, unsigned flags)
 	}
 	free(free_me);
 
-	/* Handle special names */
-	if (name_len == 4 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
-		cmdedit_update_prompt();
-	else
-	if ((ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS) && name_len == 7) {
-#if ENABLE_HUSH_LINENO_VAR
-		if (G.lineno_var && strncmp(cur->varstr, "LINENO", 6) == 0)
-			G.lineno_var = NULL;
-#endif
-#if ENABLE_HUSH_GETOPTS
-		/* defoptindvar is a "OPTIND=..." constant string */
-		if (strncmp(cur->varstr, defoptindvar, 7) == 0)
-			G.getopt_count = 0;
-#endif
-	}
+	handle_changed_special_names(cur->varstr, name_len - 1);
 
 	return 0;
 }
@@ -2297,32 +2304,26 @@ static int unset_local_var_len(const char *name, int name_len)
 	if (!name)
 		return EXIT_SUCCESS;
 
-	if ((ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS) && name_len == 6) {
-#if ENABLE_HUSH_GETOPTS
-		if (strncmp(name, "OPTIND", 6) == 0)
-			G.getopt_count = 0;
-#endif
-#if ENABLE_HUSH_LINENO_VAR
-		if (G.lineno_var && strncmp(name, "LINENO", 6) == 0)
-			G.lineno_var = NULL;
-#endif
-	}
-
 	cur_pp = &G.top_var;
 	while ((cur = *cur_pp) != NULL) {
-		if (strncmp(cur->varstr, name, name_len) == 0 && cur->varstr[name_len] == '=') {
+		if (strncmp(cur->varstr, name, name_len) == 0
+		 && cur->varstr[name_len] == '='
+		) {
 			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
 				return EXIT_FAILURE;
 			}
+
 			*cur_pp = cur->next;
 			debug_printf_env("%s: unsetenv '%s'\n", __func__, cur->varstr);
 			bb_unsetenv(cur->varstr);
-			if (name_len == 3 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
-				cmdedit_update_prompt();
+
+			handle_changed_special_names(name, name_len);
+
 			if (!cur->max_len)
 				free(cur->varstr);
 			free(cur);
+
 			return EXIT_SUCCESS;
 		}
 		cur_pp = &cur->next;
