@@ -392,7 +392,10 @@ static const struct {
 struct globals {
 	int verbose;            /* must be int (used by getopt32) */
 	smallint flg_deny_all;
-
+#if ENABLE_FEATURE_HTTPD_GZIP
+	/* client can handle gzip / we are going to send gzip */
+	smallint content_gzip;
+#endif
 	unsigned rmt_ip;        /* used for IP-based allow/deny rules */
 	time_t last_mod;
 	char *rmt_ip_str;       /* for $REMOTE_ADDR and $REMOTE_PORT */
@@ -440,14 +443,15 @@ struct globals {
 #if ENABLE_FEATURE_HTTPD_PROXY
 	Htaccess_Proxy *proxy;
 #endif
-#if ENABLE_FEATURE_HTTPD_GZIP
-	/* client can handle gzip / we are going to send gzip */
-	smallint content_gzip;
-#endif
 };
 #define G (*ptr_to_globals)
 #define verbose           (G.verbose          )
 #define flg_deny_all      (G.flg_deny_all     )
+#if ENABLE_FEATURE_HTTPD_GZIP
+# define content_gzip     (G.content_gzip     )
+#else
+# define content_gzip     0
+#endif
 #define rmt_ip            (G.rmt_ip           )
 #define bind_addr_or_port (G.bind_addr_or_port)
 #define g_query           (G.g_query          )
@@ -481,11 +485,6 @@ enum {
 #define hdr_cnt           (G.hdr_cnt          )
 #define http_error_page   (G.http_error_page  )
 #define proxy             (G.proxy            )
-#if ENABLE_FEATURE_HTTPD_GZIP
-# define content_gzip     (G.content_gzip     )
-#else
-# define content_gzip     0
-#endif
 #define INIT_G() do { \
 	setup_common_bufsiz(); \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
@@ -944,7 +943,7 @@ static char *encodeString(const char *string)
 		if (isalnum(ch))
 			*p++ = ch;
 		else
-			p += sprintf(p, "&#%d;", (unsigned char) ch);
+			p += sprintf(p, "&#%u;", (unsigned char) ch);
 	}
 	*p = '\0';
 	return out;
@@ -1040,7 +1039,7 @@ static void log_and_exit(void)
  * second packet is delayed for any reason.
  * responseNum - the result code to send.
  */
-static void send_headers(int responseNum)
+static void send_headers(unsigned responseNum)
 {
 	static const char RFC1123FMT[] ALIGN1 = "%a, %d %b %Y %H:%M:%S GMT";
 	/* Fixed size 29-byte string. Example: Sun, 06 Nov 1994 08:49:37 GMT */
@@ -1052,9 +1051,9 @@ static void send_headers(int responseNum)
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
 	const char *error_page = NULL;
 #endif
+	unsigned len;
 	unsigned i;
 	time_t timer = time(NULL);
-	int len;
 
 	for (i = 0; i < ARRAY_SIZE(http_response_type); i++) {
 		if (http_response_type[i] == responseNum) {
@@ -1078,15 +1077,20 @@ static void send_headers(int responseNum)
 	strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime_r(&timer, &tm));
 	/* ^^^ using gmtime_r() instead of gmtime() to not use static data */
 	len = sprintf(iobuf,
-			"HTTP/1.0 %d %s\r\n"
-			"Content-type: %s\r\n"
+			"HTTP/1.0 %u %s\r\n"
 			"Date: %s\r\n"
 			"Connection: close\r\n",
 			responseNum, responseString,
-			/* if it's error message, then it's HTML */
-			(responseNum == HTTP_OK ? found_mime_type : "text/html"),
 			date_str
 	);
+
+	if (responseNum != HTTP_OK || found_mime_type) {
+		len += sprintf(iobuf + len,
+				"Content-type: %s\r\n",
+				/* if it's error message, then it's HTML */
+				(responseNum != HTTP_OK ? "text/html" : found_mime_type)
+		);
+	}
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	if (responseNum == HTTP_UNAUTHORIZED) {
@@ -1147,9 +1151,9 @@ static void send_headers(int responseNum)
 			"Accept-Ranges: bytes\r\n"
 #endif
 			"Last-Modified: %s\r\n"
-			"%s %"OFF_FMT"u\r\n",
+			"%s-Length: %"OFF_FMT"u\r\n",
 				date_str,
-				content_gzip ? "Transfer-Length:" : "Content-Length:",
+				content_gzip ? "Transfer" : "Content",
 				file_size
 		);
 	}
@@ -1161,8 +1165,8 @@ static void send_headers(int responseNum)
 	iobuf[len++] = '\n';
 	if (infoString) {
 		len += sprintf(iobuf + len,
-				"<HTML><HEAD><TITLE>%d %s</TITLE></HEAD>\n"
-				"<BODY><H1>%d %s</H1>\n"
+				"<HTML><HEAD><TITLE>%u %s</TITLE></HEAD>\n"
+				"<BODY><H1>%u %s</H1>\n"
 				"%s\n"
 				"</BODY></HTML>\n",
 				responseNum, responseString,
@@ -1300,9 +1304,9 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 				continue;
 			}
 			if (DEBUG && WIFEXITED(status))
-				bb_error_msg("CGI exited, status=%d", WEXITSTATUS(status));
+				bb_error_msg("CGI exited, status=%u", WEXITSTATUS(status));
 			if (DEBUG && WIFSIGNALED(status))
-				bb_error_msg("CGI killed, signal=%d", WTERMSIG(status));
+				bb_error_msg("CGI killed, signal=%u", WTERMSIG(status));
 #endif
 			break;
 		}
@@ -1533,7 +1537,7 @@ static void send_cgi_and_exit(
 	if (G.http_accept_language)
 		setenv1("HTTP_ACCEPT_LANGUAGE", G.http_accept_language);
 	if (post_len)
-		putenv(xasprintf("CONTENT_LENGTH=%d", post_len));
+		putenv(xasprintf("CONTENT_LENGTH=%u", post_len));
 	if (cookie)
 		setenv1("HTTP_COOKIE", cookie);
 	if (content_type)
@@ -1684,8 +1688,8 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 	 * (happens if you abort downloads from local httpd): */
 	signal(SIGPIPE, SIG_IGN);
 
-	/* If not found, default is "application/octet-stream" */
-	found_mime_type = "application/octet-stream";
+	/* If not found, default is to not send "Content-type:" */
+	/*found_mime_type = NULL; - already is */
 	suffix = strrchr(url, '.');
 	if (suffix) {
 		static const char suffixTable[] ALIGN1 =
@@ -2543,11 +2547,9 @@ static void mini_httpd_nommu(int server_socket, int argc, char **argv)
 	 */
 	while (1) {
 		int n;
-		len_and_sockaddr fromAddr;
 
 		/* Wait for connections... */
-		fromAddr.len = LSA_SIZEOF_SA;
-		n = accept(server_socket, &fromAddr.u.sa, &fromAddr.len);
+		n = accept(server_socket, NULL, NULL);
 		if (n < 0)
 			continue;
 
@@ -2734,7 +2736,7 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 
 	xfunc_error_retval = 0;
 	if (opt & OPT_INETD)
-		mini_httpd_inetd();
+		mini_httpd_inetd(); /* never returns */
 #if BB_MMU
 	if (!(opt & OPT_FOREGROUND))
 		bb_daemonize(0); /* don't change current directory */
