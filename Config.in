@@ -518,6 +518,14 @@ config USE_PORTABLE_CODE
 	compiler other than gcc.
 	If you do use gcc, this option may needlessly increase code size.
 
+config STACK_OPTIMIZATION_386
+	bool "Use -mpreferred-stack-boundary=2 on i386 arch"
+	default y
+	help
+	This option makes for smaller code, but some libc versions
+	do not work with it (they use SSE instructions without
+	ensuring stack alignment).
+
 comment 'Installation Options ("make install" behavior)'
 
 choice
