@@ -18,11 +18,11 @@
 //config:	sort is used to sort lines of text in specified files.
 //config:
 //config:config FEATURE_SORT_BIG
-//config:	bool "Full SuSv3 compliant sort (support -ktcbdfiozgM)"
+//config:	bool "Full SuSv3 compliant sort (support -ktcbdfiogM)"
 //config:	default y
 //config:	depends on SORT
 //config:	help
-//config:	Without this, sort only supports -r, -u, -s, and an integer version
+//config:	Without this, sort only supports -rusz, and an integer version
 //config:	of -n. Selecting this adds sort keys, floating point support, and
 //config:	more. This adds a little over 3k to a nonstatic build on x86.
 //config:
@@ -66,12 +66,10 @@
 //usage:     "\n	-r	Reverse sort order"
 //usage:     "\n	-s	Stable (don't sort ties alphabetically)"
 //usage:     "\n	-u	Suppress duplicate lines"
-//usage:	IF_FEATURE_SORT_BIG(
 //usage:     "\n	-z	Lines are terminated by NUL, not newline"
 ///////:     "\n	-m	Ignored for GNU compatibility"
 ///////:     "\n	-S BUFSZ Ignored for GNU compatibility"
 ///////:     "\n	-T TMPDIR Ignored for GNU compatibility"
-//usage:	)
 //usage:
 //usage:#define sort_example_usage
 //usage:       "$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n"
@@ -413,6 +411,7 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_SORT_OPTIMIZE_MEMORY
 	bool can_drop_dups;
 	size_t prev_len = 0;
+	char *prev_line = (char*) "";
 	/* Postpone optimizing if the input is small, < 16k lines:
 	 * even just free()ing duplicate lines takes time.
 	 */
@@ -533,32 +532,33 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 			if (count_to_optimize_dups == 0) {
 				size_t len;
 				char *new_line;
-				char first = *line;
 
 				/* On kernel/linux/arch/ *.[ch] files,
 				 * this reduces memory usage by 6%.
 				 *  yes | head -99999999 | sort
 				 * goes down from 1900Mb to 380 Mb.
 				 */
-				if (first == '\0' || first == '\n') {
-					len = !(first == '\0');
-					new_line = (char*)"\n" + 1 - len;
-					goto replace;
-				}
 				len = strlen(line);
 				if (len <= prev_len) {
-					new_line = lines[linecount-1] + (prev_len - len);
+					new_line = prev_line + (prev_len - len);
 					if (strcmp(line, new_line) == 0) {
+						/* it's a tail of the prev line */
 						if (can_drop_dups && prev_len == len) {
+							/* it's identical to prev line */
 							free(line);
 							continue;
 						}
- replace:
 						free(line);
 						line = new_line;
+						/* continue using longer prev_line
+						 * for future tail tests.
+						 */
+						goto skip;
 					}
 				}
 				prev_len = len;
+				prev_line = line;
+ skip: ;
 			}
 #else
 //TODO: lighter version which only drops total dups if can_drop_dups == true
