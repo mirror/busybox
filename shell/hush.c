@@ -2134,12 +2134,16 @@ static void handle_changed_special_names(const char *name, unsigned name_len)
 	 && name_len == 6
 	) {
 #if ENABLE_HUSH_LINENO_VAR
-		if (strncmp(name, "LINENO", 6) == 0)
+		if (strncmp(name, "LINENO", 6) == 0) {
 			G.lineno_var = NULL;
+			return;
+		}
 #endif
 #if ENABLE_HUSH_GETOPTS
-		if (strncmp(name, "OPTIND", 6) == 0)
+		if (strncmp(name, "OPTIND", 6) == 0) {
 			G.getopt_count = 0;
+			return;
+		}
 #endif
 	}
 }
