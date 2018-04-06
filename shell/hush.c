@@ -828,7 +828,7 @@ struct globals {
 	 * _AND_ if we decided to act interactively */
 	int interactive_fd;
 	const char *PS1;
-	const char *PS2;
+	IF_FEATURE_EDITING_FANCY_PROMPT(const char *PS2;)
 # define G_interactive_fd (G.interactive_fd)
 #else
 # define G_interactive_fd 0
@@ -1394,7 +1394,7 @@ static void syntax_error_unexpected_ch(unsigned lineno UNUSED_PARAM, int ch)
 #endif
 
 
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT
 static void cmdedit_update_prompt(void);
 #else
 # define cmdedit_update_prompt() ((void)0)
@@ -2125,7 +2125,9 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 
 static void handle_changed_special_names(const char *name, unsigned name_len)
 {
-	if (name_len == 3 && name[0] == 'P' && name[1] == 'S') {
+	if (ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT
+	 && name_len == 3 && name[0] == 'P' && name[1] == 'S'
+	) {
 		cmdedit_update_prompt();
 		return;
 	}
@@ -2305,9 +2307,6 @@ static int unset_local_var_len(const char *name, int name_len)
 	struct variable *cur;
 	struct variable **cur_pp;
 
-	if (!name)
-		return EXIT_SUCCESS;
-
 	cur_pp = &G.top_var;
 	while ((cur = *cur_pp) != NULL) {
 		if (strncmp(cur->varstr, name, name_len) == 0
@@ -2321,17 +2320,18 @@ static int unset_local_var_len(const char *name, int name_len)
 			*cur_pp = cur->next;
 			debug_printf_env("%s: unsetenv '%s'\n", __func__, cur->varstr);
 			bb_unsetenv(cur->varstr);
-
-			handle_changed_special_names(name, name_len);
-
 			if (!cur->max_len)
 				free(cur->varstr);
 			free(cur);
 
-			return EXIT_SUCCESS;
+			break;
 		}
 		cur_pp = &cur->next;
 	}
+
+	/* Handle "unset PS1" et al even if did not find the variable to unset */
+	handle_changed_special_names(name, name_len);
+
 	return EXIT_SUCCESS;
 }
 
@@ -2459,36 +2459,36 @@ static void reinit_unicode_for_hush(void)
  *	\
  * It exercises a lot of corner cases.
  */
+# if ENABLE_FEATURE_EDITING_FANCY_PROMPT
 static void cmdedit_update_prompt(void)
 {
-	if (ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
-		G.PS1 = get_local_var_value("PS1");
-		if (G.PS1 == NULL)
-			G.PS1 = "\\w \\$ ";
-		G.PS2 = get_local_var_value("PS2");
-	} else {
-		G.PS1 = NULL;
-	}
+	G.PS1 = get_local_var_value("PS1");
+	if (G.PS1 == NULL)
+		G.PS1 = "";
+	G.PS2 = get_local_var_value("PS2");
 	if (G.PS2 == NULL)
-		G.PS2 = "> ";
+		G.PS2 = "";
 }
+# endif
 static const char *setup_prompt_string(int promptmode)
 {
 	const char *prompt_str;
+
 	debug_printf("setup_prompt_string %d ", promptmode);
-	if (!ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
-		/* Set up the prompt */
-		if (promptmode == 0) { /* PS1 */
+
+	IF_FEATURE_EDITING_FANCY_PROMPT(    prompt_str = G.PS2;)
+	IF_NOT_FEATURE_EDITING_FANCY_PROMPT(prompt_str = "> ";)
+	if (promptmode == 0) { /* PS1 */
+		if (!ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
+			/* No fancy prompts supported, (re)generate "CURDIR $ " by hand */
 			free((char*)G.PS1);
 			/* bash uses $PWD value, even if it is set by user.
 			 * It uses current dir only if PWD is unset.
 			 * We always use current dir. */
 			G.PS1 = xasprintf("%s %c ", get_cwd(0), (geteuid() != 0) ? '$' : '#');
-			prompt_str = G.PS1;
-		} else
-			prompt_str = G.PS2;
-	} else
-		prompt_str = (promptmode == 0) ? G.PS1 : G.PS2;
+		}
+		prompt_str = G.PS1;
+	}
 	debug_printf("prompt_str '%s'\n", prompt_str);
 	return prompt_str;
 }
@@ -9207,6 +9207,14 @@ int hush_main(int argc, char **argv)
 	/* Export PWD */
 	set_pwd_var(SETFLAG_EXPORT);
 
+#if ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT
+	/* Set (but not export) PS1/2 unless already set */
+	if (!get_local_var_value("PS1"))
+		set_local_var_from_halves("PS1", "\\w \\$ ");
+	if (!get_local_var_value("PS2"))
+		set_local_var_from_halves("PS2", "> ");
+#endif
+
 #if BASH_HOSTNAME_VAR
 	/* Set (but not export) HOSTNAME unless already set */
 	if (!get_local_var_value("HOSTNAME")) {
@@ -9245,8 +9253,6 @@ int hush_main(int argc, char **argv)
 	 * OPTERR=1
 	 * OPTIND=1
 	 * IFS=$' \t\n'
-	 * PS1='\s-\v\$ '
-	 * PS2='> '
 	 * PS4='+ '
 	 */
 #endif

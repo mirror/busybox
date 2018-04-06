@@ -430,7 +430,8 @@ static void put_till_end_and_adv_cursor(void)
 static void goto_new_line(void)
 {
 	put_till_end_and_adv_cursor();
-	if (cmdedit_x != 0)
+	/* "cursor == 0" is only if prompt is "" and user input is empty */
+	if (cursor == 0 || cmdedit_x != 0)
 		bb_putchar('\n');
 }
 
