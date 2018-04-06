@@ -222,6 +222,7 @@ struct globals {
 #define str_equal(s,t) (strcmp((s), (t)) == 0)
 
 
+#if ENABLE_SV || ENABLE_SVC
 static void fatal_cannot(const char *m1) NORETURN;
 static void fatal_cannot(const char *m1)
 {
@@ -688,6 +689,7 @@ static int sv(char **argv)
 	}
 	return rc > 99 ? 99 : rc;
 }
+#endif
 
 #if ENABLE_SV
 int sv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

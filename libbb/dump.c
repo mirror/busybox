@@ -464,11 +464,9 @@ static const char conv_str[] ALIGN1 =
 	"\v"  "\\""v""\0"
 	;
 
-
 static void conv_c(PR *pr, unsigned char *p)
 {
 	const char *str = conv_str;
-	char buf[10];
 
 	do {
 		if (*p == *str) {
@@ -482,7 +480,9 @@ static void conv_c(PR *pr, unsigned char *p)
 		*pr->cchar = 'c';
 		printf(pr->fmt, *p);
 	} else {
-		sprintf(buf, "%03o", (int) *p);
+		char buf[4];
+		/* gcc-8.0.1 needs lots of casts to shut up */
+		sprintf(buf, "%03o", (unsigned)(uint8_t)*p);
 		str = buf;
  strpr:
 		*pr->cchar = 's';
