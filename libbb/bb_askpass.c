@@ -37,15 +37,6 @@ char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
 
 	tcgetattr(fd, &oldtio);
 	tio = oldtio;
-#if 0
-	/* Switch off UPPERCASE->lowercase conversion (never used since 198x)
-	 * and XON/XOFF (why we want to mess with this??)
-	 */
-# ifndef IUCLC
-#  define IUCLC 0
-# endif
-	tio.c_iflag &= ~(IUCLC|IXON|IXOFF|IXANY);
-#endif
 	/* Switch off echo */
 	tio.c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL);
 	tcsetattr(fd, TCSANOW, &tio);
@@ -66,9 +57,8 @@ char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
 	while (1) {
 		int r = read(fd, &ret[i], 1);
 		if ((i == 0 && r == 0) /* EOF (^D) with no password */
-		 || r < 0
+		 || r < 0 /* read is interrupted by timeout or ^C */
 		) {
-			/* read is interrupted by timeout or ^C */
 			ret = NULL;
 			break;
 		}

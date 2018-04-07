@@ -89,12 +89,6 @@
 # define TELOPT_NAWS  31  /* window size */
 #endif
 
-#ifdef DOTRACE
-# define TRACE(x, y) do { if (x) printf y; } while (0)
-#else
-# define TRACE(x, y)
-#endif
-
 enum {
 	DATABUFSIZE = 128,
 	IACBUFSIZE  = 128,
@@ -627,10 +621,6 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-#if ENABLE_FEATURE_TELNET_WIDTH
-	get_terminal_width_height(0, &G.win_width, &G.win_height);
-#endif
-
 #if ENABLE_FEATURE_TELNET_TTYPE
 	G.ttype = getenv("TERM");
 #endif
@@ -661,6 +651,11 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 
 	setsockopt_keepalive(netfd);
 
+#if ENABLE_FEATURE_TELNET_WIDTH
+	get_terminal_width_height(0, &G.win_width, &G.win_height);
+//TODO: support dynamic resize?
+#endif
+
 	signal(SIGINT, record_signo);
 
 	ufds[0].fd = STDIN_FILENO;
@@ -684,7 +679,6 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 			len = safe_read(STDIN_FILENO, G.buf, DATABUFSIZE);
 			if (len <= 0)
 				doexit(EXIT_SUCCESS);
-			TRACE(0, ("Read con: %d\n", len));
 			handle_net_output(len);
 		}
 
@@ -694,7 +688,6 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 				full_write1_str("Connection closed by foreign host\r\n");
 				doexit(EXIT_FAILURE);
 			}
-			TRACE(0, ("Read netfd (%d): %d\n", netfd, len));
 			handle_net_input(len);
 		}
 	} /* while (1) */
