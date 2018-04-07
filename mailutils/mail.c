@@ -163,8 +163,8 @@ void FAST_FUNC encode_base64(char *fname, const char *text, const char *eol)
 void FAST_FUNC get_cred_or_die(int fd)
 {
 	if (isatty(fd)) {
-		G.user = xstrdup(bb_ask_noecho(fd, /* timeout: */ 0, "User: "));
-		G.pass = xstrdup(bb_ask_noecho(fd, /* timeout: */ 0, "Password: "));
+		G.user = bb_ask_noecho(fd, /* timeout: */ 0, "User: ");
+		G.pass = bb_ask_noecho(fd, /* timeout: */ 0, "Password: ");
 	} else {
 		G.user = xmalloc_reads(fd, /* maxsize: */ NULL);
 		G.pass = xmalloc_reads(fd, /* maxsize: */ NULL);
