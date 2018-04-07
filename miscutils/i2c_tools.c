@@ -421,7 +421,6 @@ static void check_write_funcs(int fd, int mode, int pec)
 static void confirm_or_abort(void)
 {
 	fprintf(stderr, "Continue? [y/N] ");
-	fflush_all();
 	if (!bb_ask_y_confirmation())
 		bb_error_msg_and_die("aborting");
 }

@@ -1412,6 +1412,7 @@ extern int set_loop(char **devname, const char *file, unsigned long long offset,
 char *bb_ask_noecho_stdin(const char *prompt) FAST_FUNC;
 //TODO: pass buf pointer or return allocated buf (avoid statics)?
 char *bb_ask_noecho(const int fd, int timeout, const char *prompt) FAST_FUNC;
+int bb_ask_y_confirmation_FILE(FILE *fp) FAST_FUNC;
 int bb_ask_y_confirmation(void) FAST_FUNC;
 
 /* Returns -1 if input is invalid. current_mode is a base for e.g. "u+rw" */

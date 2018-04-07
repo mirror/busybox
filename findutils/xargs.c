@@ -496,16 +496,16 @@ static char* FAST_FUNC process_stdin_with_replace(int n_max_chars, int n_max_arg
 static int xargs_ask_confirmation(void)
 {
 	FILE *tty_stream;
-	int c, savec;
+	int r;
 
 	tty_stream = xfopen_for_read(CURRENT_TTY);
+
 	fputs(" ?...", stderr);
-	fflush_all();
-	c = savec = getc(tty_stream);
-	while (c != EOF && c != '\n')
-		c = getc(tty_stream);
+	r = bb_ask_y_confirmation_FILE(tty_stream);
+
 	fclose(tty_stream);
-	return (savec == 'y' || savec == 'Y');
+
+	return r;
 }
 #else
 # define xargs_ask_confirmation() 1

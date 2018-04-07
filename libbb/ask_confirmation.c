@@ -8,19 +8,25 @@
  */
 #include "libbb.h"
 
-/* Read a line from stdin.  If the first non-whitespace char is 'y' or 'Y',
+/* Read a line from fp.  If the first non-whitespace char is 'y' or 'Y',
  * return 1.  Otherwise return 0.
  */
-int FAST_FUNC bb_ask_y_confirmation(void)
+int FAST_FUNC bb_ask_y_confirmation_FILE(FILE *fp)
 {
 	char first = 0;
 	int c;
 
-	while (((c = getchar()) != EOF) && (c != '\n')) {
+	fflush_all();
+	while (((c = fgetc(fp)) != EOF) && (c != '\n')) {
 		if (first == 0 && !isblank(c)) {
 			first = c|0x20;
 		}
 	}
 
 	return first == 'y';
+}
+
+int FAST_FUNC bb_ask_y_confirmation(void)
+{
+	return bb_ask_y_confirmation_FILE(stdin);
 }
