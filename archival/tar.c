@@ -766,8 +766,8 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:#define tar_full_usage "\n\n"
 //usage:	IF_FEATURE_TAR_CREATE("Create, extract, ")
 //usage:	IF_NOT_FEATURE_TAR_CREATE("Extract ")
-//usage:	"or list files from a tar file\n"
-//usage:     "\nOperation:"
+//usage:	"or list files from a tar file"
+//usage:     "\n"
 //usage:	IF_FEATURE_TAR_CREATE(
 //usage:     "\n	c	Create"
 //usage:	)
