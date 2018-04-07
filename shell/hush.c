@@ -440,6 +440,7 @@
 #define debug_printf_redir(...)  do {} while (0)
 #define debug_printf_list(...)   do {} while (0)
 #define debug_printf_subst(...)  do {} while (0)
+#define debug_printf_prompt(...) do {} while (0)
 #define debug_printf_clean(...)  do {} while (0)
 
 #define ERR_PTR ((void*)(long)1)
@@ -551,9 +552,6 @@ static const char *const assignment_flag[] = {
 
 typedef struct in_str {
 	const char *p;
-#if ENABLE_HUSH_INTERACTIVE
-	smallint promptmode; /* 0: PS1, 1: PS2 */
-#endif
 	int peek_buf[2];
 	int last_char;
 	FILE *file;
@@ -875,6 +873,9 @@ struct globals {
 # define G_x_mode (G.o_opt[OPT_O_XTRACE])
 #else
 # define G_x_mode 0
+#endif
+#if ENABLE_HUSH_INTERACTIVE
+	smallint promptmode; /* 0: PS1, 1: PS2 */
 #endif
 	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
@@ -1246,6 +1247,10 @@ static const struct built_in_command bltins2[] = {
 
 #ifndef debug_printf_subst
 # define debug_printf_subst(...) (indent(), fdprintf(2, __VA_ARGS__))
+#endif
+
+#ifndef debug_printf_prompt
+# define debug_printf_prompt(...) (indent(), fdprintf(2, __VA_ARGS__))
 #endif
 
 #ifndef debug_printf_clean
@@ -2470,15 +2475,15 @@ static void cmdedit_update_prompt(void)
 		G.PS2 = "";
 }
 # endif
-static const char *setup_prompt_string(int promptmode)
+static const char *setup_prompt_string(void)
 {
 	const char *prompt_str;
 
-	debug_printf("setup_prompt_string %d ", promptmode);
+	debug_printf_prompt("%s promptmode:%d\n", __func__, G.promptmode);
 
 	IF_FEATURE_EDITING_FANCY_PROMPT(    prompt_str = G.PS2;)
 	IF_NOT_FEATURE_EDITING_FANCY_PROMPT(prompt_str = "> ";)
-	if (promptmode == 0) { /* PS1 */
+	if (G.promptmode == 0) { /* PS1 */
 		if (!ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
 			/* No fancy prompts supported, (re)generate "CURDIR $ " by hand */
 			free((char*)G.PS1);
@@ -2497,7 +2502,7 @@ static int get_user_input(struct in_str *i)
 	int r;
 	const char *prompt_str;
 
-	prompt_str = setup_prompt_string(i->promptmode);
+	prompt_str = setup_prompt_string();
 # if ENABLE_FEATURE_EDITING
 	for (;;) {
 		reinit_unicode_for_hush();
@@ -2567,7 +2572,8 @@ static int fgetc_interactive(struct in_str *i)
 	if (G_interactive_fd && i->file == stdin) {
 		/* Returns first char (or EOF), the rest is in i->p[] */
 		ch = get_user_input(i);
-		i->promptmode = 1; /* PS2 */
+		G.promptmode = 1; /* PS2 */
+		debug_printf_prompt("%s promptmode=%d\n", __func__, G.promptmode);
 	} else {
 		/* Not stdin: script file, sourced file, etc */
 		do ch = fgetc(i->file); while (ch == '\0');
@@ -2740,7 +2746,6 @@ static int i_peek_and_eat_bkslash_nl(struct in_str *input)
 static void setup_file_in_str(struct in_str *i, FILE *f)
 {
 	memset(i, 0, sizeof(*i));
-	/* i->promptmode = 0; - PS1 (memset did it) */
 	i->file = f;
 	/* i->p = NULL; */
 }
@@ -2748,7 +2753,6 @@ static void setup_file_in_str(struct in_str *i, FILE *f)
 static void setup_string_in_str(struct in_str *i, const char *s)
 {
 	memset(i, 0, sizeof(*i));
-	/* i->promptmode = 0; - PS1 (memset did it) */
 	/*i->file = NULL */;
 	i->p = s;
 }
@@ -4549,6 +4553,9 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 # endif
 	end_ch &= (DOUBLE_CLOSE_CHAR_FLAG - 1);
 
+	G.promptmode = 1; /* PS2 */
+	debug_printf_prompt("%s promptmode=%d\n", __func__, G.promptmode);
+
 	while (1) {
 		ch = i_getch(input);
 		if (ch == EOF) {
@@ -4614,6 +4621,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 			continue;
 		}
 	}
+	debug_printf_parse("%s return '%s' ch:'%c'\n", __func__, dest->data, ch);
 	return ch;
 }
 #endif /* ENABLE_HUSH_TICK || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_DOLLAR_OPS */
@@ -6670,8 +6678,10 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 		struct pipe *pipe_list;
 
 #if ENABLE_HUSH_INTERACTIVE
-		if (end_trigger == ';')
-			inp->promptmode = 0; /* PS1 */
+		if (end_trigger == ';') {
+			G.promptmode = 0; /* PS1 */
+			debug_printf_prompt("%s promptmode=%d\n", __func__, G.promptmode);
+		}
 #endif
 		pipe_list = parse_stream(NULL, inp, end_trigger);
 		if (!pipe_list || pipe_list == ERR_PTR) { /* EOF/error */
