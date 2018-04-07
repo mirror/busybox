@@ -309,7 +309,7 @@ int ftpgetput_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 	/* Set default values */
 	user = "anonymous";
-	password = "busybox@";
+	password = "busybox";
 
 	/*
 	 * Decipher the command line

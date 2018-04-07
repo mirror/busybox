@@ -1263,7 +1263,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 					break; /* does not even ask for password */
 			}
 			pw = getpwnam(G.ftp_arg);
-			cmdio_write_raw(STR(FTP_GIVEPWORD)" Please specify password\r\n");
+			cmdio_write_raw(STR(FTP_GIVEPWORD)" Specify password\r\n");
 		} else if (cmdval == const_PASS) {
 			if (check_password(pw, G.ftp_arg) > 0) {
 				break;	/* login success */
@@ -1274,7 +1274,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 			WRITE_OK(FTP_GOODBYE);
 			return 0;
 		} else {
-			cmdio_write_raw(STR(FTP_LOGINERR)" Login with USER and PASS\r\n");
+			cmdio_write_raw(STR(FTP_LOGINERR)" Login with USER+PASS\r\n");
 		}
 	}
 	WRITE_OK(FTP_LOGINOK);

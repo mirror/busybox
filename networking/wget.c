@@ -762,11 +762,8 @@ static void spawn_ssl_client(const char *host, int network_fd, int flags)
 static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_sockaddr *lsa)
 {
 	FILE *sfp;
-	char *str;
+	char *pass;
 	int port;
-
-	if (!target->user)
-		target->user = xstrdup("anonymous:busybox@");
 
 	sfp = open_socket(lsa);
 #if ENABLE_FEATURE_WGET_HTTPS
@@ -778,18 +775,20 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 		bb_error_msg_and_die("%s", G.wget_buf);
 		/* note: ftpcmd() sanitizes G.wget_buf, ok to print */
 
-	/*
-	 * Splitting username:password pair,
-	 * trying to log in
-	 */
-	str = strchr(target->user, ':');
-	if (str)
-		*str++ = '\0';
-	switch (ftpcmd("USER ", target->user, sfp)) {
+	/* Split username:password pair */
+	pass = (char*)"busybox"; /* password for "anonymous" */
+	if (target->user) {
+		pass = strchr(target->user, ':');
+		if (pass)
+			*pass++ = '\0';
+	}
+
+	/* Log in */
+	switch (ftpcmd("USER ", target->user ?: "anonymous", sfp)) {
 	case 230:
 		break;
 	case 331:
-		if (ftpcmd("PASS ", str, sfp) == 230)
+		if (ftpcmd("PASS ", pass, sfp) == 230)
 			break;
 		/* fall through (failed login) */
 	default:
@@ -798,9 +797,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 
 	ftpcmd("TYPE I", NULL, sfp);
 
-	/*
-	 * Querying file size
-	 */
+	/* Query file size */
 	if (ftpcmd("SIZE ", target->path, sfp) == 213) {
 		G.content_len = BB_STRTOOFF(G.wget_buf + 4, NULL, 10);
 		if (G.content_len < 0 || errno) {
@@ -809,9 +806,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 		G.got_clen = 1;
 	}
 
-	/*
-	 * Entering passive mode
-	 */
+	/* Enter passive mode */
 	if (ENABLE_FEATURE_IPV6 && ftpcmd("EPSV", NULL, sfp) == 229) {
 		/* good */
 	} else
