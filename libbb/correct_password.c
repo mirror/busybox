@@ -106,7 +106,7 @@ int FAST_FUNC ask_and_check_password_extended(const struct passwd *pw,
 	if (!pw_pass[0]) /* empty password field? */
 		return CHECKPASS_PW_HAS_EMPTY_PASSWORD;
 
-	plaintext = bb_ask(STDIN_FILENO, timeout, prompt);
+	plaintext = bb_ask_noecho(STDIN_FILENO, timeout, prompt);
 	if (!plaintext) {
 		/* EOF (such as ^D) or error (such as ^C) or timeout */
 		return -1;

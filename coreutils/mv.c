@@ -101,7 +101,7 @@ int mv_main(int argc, char **argv)
 				if (fprintf(stderr, "mv: overwrite '%s'? ", dest) < 0) {
 					goto RET_1;  /* Ouch! fprintf failed! */
 				}
-				if (!bb_ask_confirmation()) {
+				if (!bb_ask_y_confirmation()) {
 					goto RET_0;
 				}
 			}

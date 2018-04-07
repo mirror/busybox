@@ -13,11 +13,11 @@ static void askpass_timeout(int UNUSED_PARAM ignore)
 {
 }
 
-char* FAST_FUNC bb_ask_stdin(const char *prompt)
+char* FAST_FUNC bb_ask_noecho_stdin(const char *prompt)
 {
-	return bb_ask(STDIN_FILENO, 0, prompt);
+	return bb_ask_noecho(STDIN_FILENO, 0, prompt);
 }
-char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
+char* FAST_FUNC bb_ask_noecho(const int fd, int timeout, const char *prompt)
 {
 	/* Was static char[BIGNUM] */
 	enum { sizeof_passwd = 128 };

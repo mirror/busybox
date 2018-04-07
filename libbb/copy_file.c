@@ -48,7 +48,7 @@ static int ask_and_unlink(const char *dest, int flags)
 		// (No "opening without O_EXCL", no "unlink only if -f")
 		// Or else we will end up having 3 open()s!
 		fprintf(stderr, "%s: overwrite '%s'? ", applet_name, dest);
-		if (!bb_ask_confirmation())
+		if (!bb_ask_y_confirmation())
 			return 0; /* not allowed to overwrite */
 	}
 	if (unlink(dest) < 0) {

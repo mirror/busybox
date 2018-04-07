@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * bb_ask_confirmation implementation for busybox
+ * bb_ask_y_confirmation implementation for busybox
  *
  * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
@@ -11,7 +11,7 @@
 /* Read a line from stdin.  If the first non-whitespace char is 'y' or 'Y',
  * return 1.  Otherwise return 0.
  */
-int FAST_FUNC bb_ask_confirmation(void)
+int FAST_FUNC bb_ask_y_confirmation(void)
 {
 	char first = 0;
 	int c;

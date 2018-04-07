@@ -422,7 +422,7 @@ static void confirm_or_abort(void)
 {
 	fprintf(stderr, "Continue? [y/N] ");
 	fflush_all();
-	if (!bb_ask_confirmation())
+	if (!bb_ask_y_confirmation())
 		bb_error_msg_and_die("aborting");
 }
 
