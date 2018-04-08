@@ -921,7 +921,7 @@ static void write_header(header_t *h)
 
 	h->flags32 = htonl(h->flags32); /* native endianness for lzo_compress() */
 
-	/*f_*/write32(chksum_getresult(h->flags32));
+	write32(chksum_getresult(h->flags32));
 }
 
 static int read_header(header_t *h)
@@ -986,7 +986,7 @@ static int read_header(header_t *h)
 	/* UNUSED h->len_and_name[1+l] = 0; */
 
 	checksum = chksum_getresult(h->flags32);
-	if (f_read32() != checksum)
+	if (read32() != checksum)
 		return 2;
 
 	/* skip extra field [not used yet] */
@@ -1002,7 +1002,7 @@ static int read_header(header_t *h)
 		for (k = 0; k < extra_field_len; k++)
 			f_read(&dummy, 1);
 		checksum = chksum_getresult(h->flags32);
-		extra_field_checksum = f_read32();
+		extra_field_checksum = read32();
 		if (extra_field_checksum != checksum)
 			return 3;
 	}
