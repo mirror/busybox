@@ -64,7 +64,6 @@
 #include "libbb.h"
 #include "common_bufsiz.h"
 #include <syslog.h>
-#include <sys/resource.h>
 
 #if ENABLE_SELINUX
 # include <selinux/selinux.h>  /* for is_selinux_enabled()  */

@@ -130,7 +130,6 @@
 #include "libbb.h"
 #include "common_bufsiz.h"
 #include <syslog.h>
-#include <sys/resource.h>
 #ifdef __linux__
 # include <linux/vt.h>
 # include <sys/sysinfo.h>

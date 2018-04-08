@@ -116,8 +116,6 @@ Misc options:
 //usage:	)
 //usage:     "\n	-q		Quiet"
 
-#include <sys/resource.h>
-
 /* Override ENABLE_FEATURE_PIDFILE */
 #define WANT_PIDFILE 1
 #include "libbb.h"

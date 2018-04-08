@@ -39,7 +39,6 @@
 //usage:     "\n	-u	Process user names"
 
 #include "libbb.h"
-#include <sys/resource.h>
 
 int renice_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int renice_main(int argc UNUSED_PARAM, char **argv)

@@ -22,7 +22,6 @@
 //usage:       "Change scheduling priority, run PROG\n"
 //usage:     "\n	-n ADJUST	Adjust priority by ADJUST"
 
-#include <sys/resource.h>
 #include "libbb.h"
 
 int nice_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

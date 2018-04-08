@@ -18,7 +18,6 @@
  */
 #include "libbb.h"
 #include "shell_common.h"
-#include <sys/resource.h> /* getrlimit */
 
 const char defifsvar[] ALIGN1 = "IFS= \t\n";
 const char defoptindvar[] ALIGN1 = "OPTIND=1";

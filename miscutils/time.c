@@ -32,7 +32,6 @@
 //usage:     "\n	-a	Append (else overwrite)"
 
 #include "libbb.h"
-#include <sys/resource.h> /* getrusage */
 
 /* Information on the resources used by a child process.  */
 typedef struct {
