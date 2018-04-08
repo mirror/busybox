@@ -11,6 +11,13 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
+#if 0
+# define dbg(...) bb_error_msg(__VA_ARGS__)
+#else
+# define dbg(...) ((void)0)
+#endif
+
+
 #if ENABLE_FEATURE_LZMA_FAST
 #  define speed_inline ALWAYS_INLINE
 #  define size_inline
@@ -417,6 +424,10 @@ unpack_lzma_stream(transformer_state_t *xstate)
 						for (; num_bits2 != LZMA_NUM_ALIGN_BITS; num_bits2--)
 							rep0 = (rep0 << 1) | rc_direct_bit(rc);
 						rep0 <<= LZMA_NUM_ALIGN_BITS;
+						if ((int32_t)rep0 < 0) {
+							dbg("%d rep0:%d", __LINE__, rep0);
+							goto bad;
+						}
 						prob3 = p + LZMA_ALIGN;
 					}
 					i2 = 1;
