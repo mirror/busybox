@@ -637,10 +637,8 @@ static NOINLINE int lzo_compress(const header_t *h)
 	int r = 0; /* LZO_E_OK */
 	uint8_t *const b1 = xzalloc(block_size);
 	uint8_t *const b2 = xzalloc(MAX_COMPRESSED_SIZE(block_size));
-	unsigned src_len = 0, dst_len = 0;
 	uint32_t d_adler32 = ADLER32_INIT_VALUE;
 	uint32_t d_crc32 = CRC32_INIT_VALUE;
-	int l;
 	uint8_t *wrk_mem = NULL;
 
 	if (h->method == M_LZO1X_1)
@@ -651,16 +649,22 @@ static NOINLINE int lzo_compress(const header_t *h)
 		wrk_mem = xzalloc(LZO1X_999_MEM_COMPRESS);
 
 	for (;;) {
+		unsigned src_len, dst_len;
+		int l;
+		uint32_t wordbuf[6];
+		uint32_t *wordptr = wordbuf;
+
 		/* read a block */
 		l = full_read(0, b1, block_size);
 		src_len = (l > 0 ? l : 0);
 
 		/* write uncompressed block size */
-		write32(src_len);
-
 		/* exit if last block */
-		if (src_len == 0)
+		if (src_len == 0) {
+			write32(0);
 			break;
+		}
+		*wordptr++ = htonl(src_len);
 
 		/* compute checksum of uncompressed block */
 		if (h->flags32 & F_ADLER32_D)
@@ -693,30 +697,36 @@ static NOINLINE int lzo_compress(const header_t *h)
 				if (r != 0 /*LZO_E_OK*/ || new_len != src_len)
 					bb_error_msg_and_die("%s: %s", "internal error", "optimization");
 			}
-			write32(dst_len);
+			*wordptr++ = htonl(dst_len);
 		} else {
 			/* data actually expanded => store data uncompressed */
-			write32(src_len);
+			*wordptr++ = htonl(src_len);
 		}
 
 		/* write checksum of uncompressed block */
 		if (h->flags32 & F_ADLER32_D)
-			write32(d_adler32);
+			*wordptr++ = htonl(d_adler32);
 		if (h->flags32 & F_CRC32_D)
-			write32(d_crc32);
+			*wordptr++ = htonl(d_crc32);
 
 		if (dst_len < src_len) {
 			/* write checksum of compressed block */
 			if (h->flags32 & F_ADLER32_C)
-				write32(lzo_adler32(ADLER32_INIT_VALUE, b2, dst_len));
+				*wordptr++ = htonl(lzo_adler32(ADLER32_INIT_VALUE, b2, dst_len));
 			if (h->flags32 & F_CRC32_C)
-				write32(lzo_crc32(CRC32_INIT_VALUE, b2, dst_len));
+				*wordptr++ = htonl(lzo_crc32(CRC32_INIT_VALUE, b2, dst_len));
+		}
+		xwrite(1, wordbuf, ((char*)wordptr) - ((char*)wordbuf));
+		if (dst_len < src_len) {
 			/* write compressed block data */
 			xwrite(1, b2, dst_len);
 		} else {
 			/* write uncompressed block data */
 			xwrite(1, b1, src_len);
 		}
+		// /* if full_read() was nevertheless "short", it was EOF */
+		// if (src_len < block_size)
+		// 	break;
 	}
 
 	free(wrk_mem);
