@@ -641,12 +641,20 @@ static NOINLINE int lzo_compress(const header_t *h)
 	uint32_t d_crc32 = CRC32_INIT_VALUE;
 	uint8_t *wrk_mem = NULL;
 
+	/* Only these methods are possible, see lzo_set_method():
+	 * -1:    M_LZO1X_1_15
+	 * -2..6: M_LZO1X_1
+	 * -7..9: M_LZO1X_999 if ENABLE_LZOP_COMPR_HIGH
+	 */
 	if (h->method == M_LZO1X_1)
 		wrk_mem = xzalloc(LZO1X_1_MEM_COMPRESS);
-	else if (h->method == M_LZO1X_1_15)
-		wrk_mem = xzalloc(LZO1X_1_15_MEM_COMPRESS);
-	else if (h->method == M_LZO1X_999)
+	else /* check only if it's not the only possibility */
+		IF_LZOP_COMPR_HIGH(if (h->method == M_LZO1X_1_15))
+			wrk_mem = xzalloc(LZO1X_1_15_MEM_COMPRESS);
+#if ENABLE_LZOP_COMPR_HIGH
+	else /* must be h->method == M_LZO1X_999 */
 		wrk_mem = xzalloc(LZO1X_999_MEM_COMPRESS);
+#endif
 
 	for (;;) {
 		unsigned src_len, dst_len;
@@ -675,16 +683,13 @@ static NOINLINE int lzo_compress(const header_t *h)
 		/* compress */
 		if (h->method == M_LZO1X_1)
 			r = lzo1x_1_compress(b1, src_len, b2, &dst_len, wrk_mem);
-		else if (h->method == M_LZO1X_1_15)
+		else IF_LZOP_COMPR_HIGH(if (h->method == M_LZO1X_1_15))
 			r = lzo1x_1_15_compress(b1, src_len, b2, &dst_len, wrk_mem);
 #if ENABLE_LZOP_COMPR_HIGH
-		else if (h->method == M_LZO1X_999)
+		else /* must be h->method == M_LZO1X_999 */
 			r = lzo1x_999_compress_level(b1, src_len, b2, &dst_len,
 						wrk_mem, h->level);
 #endif
-		else
-			bb_error_msg_and_die("internal error");
-
 		if (r != 0) /* not LZO_E_OK */
 			bb_error_msg_and_die("%s: %s", "internal error", "compression");
 
@@ -1025,25 +1030,27 @@ static int read_header(header_t *h)
 /**********************************************************************/
 static void lzo_set_method(header_t *h)
 {
-	int level = 1;
+	smallint level;
+
+	/* levels 2..6 or none (defaults to level 3) */
+	h->method = M_LZO1X_1;
+	level = 5; /* levels 2-6 are actually the same */
 
 	if (option_mask32 & OPT_1) {
 		h->method = M_LZO1X_1_15;
-	} else if (option_mask32 & OPT_789) {
+		level = 1;
+	}
+	if (option_mask32 & OPT_789) {
 #if ENABLE_LZOP_COMPR_HIGH
 		h->method = M_LZO1X_999;
+		level = 9;
 		if (option_mask32 & OPT_7)
 			level = 7;
 		else if (option_mask32 & OPT_8)
 			level = 8;
-		else
-			level = 9;
 #else
 		bb_error_msg_and_die("high compression not compiled in");
 #endif
-	} else { /* levels 2..6 or none (defaults to level 3) */
-		h->method = M_LZO1X_1;
-		level = 5; /* levels 2-6 are actually the same */
 	}
 
 	h->level = level;
