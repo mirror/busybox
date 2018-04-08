@@ -682,7 +682,7 @@ static NOINLINE int lzo_compress(const header_t *h)
 			bb_error_msg_and_die("internal error");
 
 		if (r != 0) /* not LZO_E_OK */
-			bb_error_msg_and_die("internal error - compression failed");
+			bb_error_msg_and_die("%s: %s", "internal error", "compression");
 
 		/* write compressed block size */
 		if (dst_len < src_len) {
@@ -691,7 +691,7 @@ static NOINLINE int lzo_compress(const header_t *h)
 				unsigned new_len = src_len;
 				r = lzo1x_optimize(b2, dst_len, b1, &new_len /*, NULL*/);
 				if (r != 0 /*LZO_E_OK*/ || new_len != src_len)
-					bb_error_msg_and_die("internal error - optimization failed");
+					bb_error_msg_and_die("%s: %s", "internal error", "optimization");
 			}
 			write32(dst_len);
 		} else {
