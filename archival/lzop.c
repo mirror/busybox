@@ -448,7 +448,7 @@ typedef struct header_t {
 	uint16_t version_needed_to_extract_be16;
 	uint8_t  method;
 	uint8_t	 level;
-	uint32_t flags32; /* be32 on disk, but we keep them in native order */
+	uint32_t flags32; /* be32 on disk, but we keep this field in native order */
 	uint32_t mode_be32;
 	uint32_t mtime_be32;
 	uint32_t gmtdiff_be32;
@@ -577,18 +577,18 @@ static void f_read(void* buf, int cnt)
 	xread(0, buf, cnt);
 	add_bytes_to_chksum(buf, cnt);
 }
-static int f_read8(void)
-{
-	uint8_t v;
-	f_read(&v, 1);
-	return v;
-}
-static unsigned f_read16(void)
-{
-	uint16_t v;
-	f_read(&v, 2);
-	return ntohs(v);
-}
+//static int f_read8(void)
+//{
+//	uint8_t v;
+//	f_read(&v, 1);
+//	return v;
+//}
+//static unsigned f_read16(void)
+//{
+//	uint16_t v;
+//	f_read(&v, 2);
+//	return ntohs(v);
+//}
 static uint32_t f_read32(void)
 {
 	uint32_t v;
@@ -928,66 +928,62 @@ static int read_header(header_t *h)
 {
 	int l;
 	uint32_t checksum;
+	/* As it stands now, only h->flags32 is used by our caller.
+	 * Therefore we don't store many fields in h->FIELD.
+	 */
 	unsigned h_version;
-	uint8_t h_method, h_level;
+	unsigned h_version_needed_to_extract;
 
 	init_chksum();
 
-	/* As it stands now, only h->flags32 is used by our caller.
-	 * Therefore we don't store many fields in h->field.
+	/* We don't support versions < 0.94, since 0.94
+	 * came only 2 months after 0.90:
+	 * 0.90 (10 Aug 1997): First public release of lzop
+	 * 0.94 (15 Oct 1997): Header format change
 	 */
-	h_version = f_read16();
-	if (h_version < 0x0900)
-		return 3;
-	/* UNUSED h->lib_version_be16 = */ f_read16();
-	if (h_version >= 0x0940) {
-		unsigned h_version_needed_to_extract = f_read16();
-		if (h_version_needed_to_extract > LZOP_VERSION)
-			return 16;
-		if (h_version_needed_to_extract < 0x0900) /* first lzop version */
-			return 3;
-	}
 
-	h_method = f_read8();
-	if (h_method <= 0)
+	/* Read up to and including name length byte */
+	f_read(&h->version_be16, ((char*)&h->len_and_name[1]) - ((char*)&h->version_be16));
+
+	h_version = htons(h->version_be16);
+	if (h_version < 0x0940)
+		return 3;
+	h_version_needed_to_extract = htons(h->version_needed_to_extract_be16);
+	if (h_version_needed_to_extract > LZOP_VERSION)
+		return 16;
+	if (h_version_needed_to_extract < 0x0940)
+		return 3;
+
+	if (h->method <= 0)
 		return 14;
-	h_level = 0;
-	if (h_version >= 0x0940)
-		h_level = f_read8();
 
 	/* former lzo_get_method(h): */
-	if (h_method == M_LZO1X_1) {
-		if (h_level == 0)
-			h_level = 3;
-	} else if (h_method == M_LZO1X_1_15) {
-		if (h_level == 0)
-			h_level = 1;
-	} else if (h_method == M_LZO1X_999) {
-		if (h_level == 0)
-			h_level = 9;
+	if (h->method == M_LZO1X_1) {
+		if (h->level == 0)
+			h->level = 3;
+	} else if (h->method == M_LZO1X_1_15) {
+		if (h->level == 0)
+			h->level = 1;
+	} else if (h->method == M_LZO1X_999) {
+		if (h->level == 0)
+			h->level = 9;
 	} else
 		return -1; /* not a LZO method */
 	/* check compression level */
-	if (h_level < 1 || h_level > 9)
+	if (h->level < 1 || h->level > 9)
 		return 15;
 
-	h->flags32 = f_read32();
+	h->flags32 = ntohl(h->flags32);
 	if (h->flags32 & F_H_FILTER)
 		return 16; /* filter not supported */
 	/* check reserved flags */
 	if (h->flags32 & F_RESERVED)
 		return -13;
 
-	/* UNUSED h->mode = */ f_read32();
-	/* UNUSED h->mtime = */ f_read32();
-	if (h_version >= 0x0940)
-		/* UNUSED h->gmtdiff = */ f_read32();
-
-	l = f_read8();
-	/* UNUSED h->len_and_name[0] = l; */
-	/* UNUSED h->len_and_name[1+l] = 0; */
+	l = h->len_and_name[0];
 	if (l > 0)
-		f_read(h->len_and_name+1, l);
+		/* UNUSED */ f_read(h->len_and_name+1, l);
+	/* UNUSED h->len_and_name[1+l] = 0; */
 
 	checksum = chksum_getresult(h->flags32);
 	if (f_read32() != checksum)
@@ -998,12 +994,13 @@ static int read_header(header_t *h)
 		uint32_t extra_field_len;
 		uint32_t extra_field_checksum;
 		uint32_t k;
+		char dummy;
 
 		/* note: the checksum also covers the length */
 		init_chksum();
 		extra_field_len = f_read32();
 		for (k = 0; k < extra_field_len; k++)
-			f_read8();
+			f_read(&dummy, 1);
 		checksum = chksum_getresult(h->flags32);
 		extra_field_checksum = f_read32();
 		if (extra_field_checksum != checksum)
