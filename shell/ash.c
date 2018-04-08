@@ -177,7 +177,6 @@
 
 #define JOBS ENABLE_ASH_JOB_CONTROL
 
-#include <setjmp.h>
 #include <fnmatch.h>
 #include <sys/times.h>
 #include <sys/utsname.h> /* for setting $HOSTNAME */

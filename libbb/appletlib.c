@@ -102,14 +102,21 @@ static const char *unpack_usage_messages(void)
 	char *outbuf = NULL;
 	bunzip_data *bd;
 	int i;
+	jmp_buf jmpbuf;
 
-	i = start_bunzip(&bd,
+	/* Setup for I/O error handling via longjmp */
+	i = setjmp(jmpbuf);
+	if (i == 0) {
+		i = start_bunzip(&jmpbuf,
+			&bd,
 			/* src_fd: */ -1,
 			/* inbuf:  */ packed_usage,
-			/* len:    */ sizeof(packed_usage));
-	/* read_bunzip can longjmp to start_bunzip, and ultimately
-	 * end up here with i != 0 on read data errors! Not trivial */
-	if (!i) {
+			/* len:    */ sizeof(packed_usage)
+		);
+	}
+	/* read_bunzip can longjmp and end up here with i != 0
+	 * on read data errors! Not trivial */
+	if (i == 0) {
 		/* Cannot use xmalloc: will leak bd in NOFORK case! */
 		outbuf = malloc_or_warn(sizeof(UNPACKED_USAGE));
 		if (outbuf)

@@ -210,7 +210,7 @@ const llist_t *find_list_entry2(const llist_t *list, const char *filename) FAST_
 
 /* A bit of bunzip2 internals are exposed for compressed help support: */
 typedef struct bunzip_data bunzip_data;
-int start_bunzip(bunzip_data **bdp, int in_fd, const void *inbuf, int len) FAST_FUNC;
+int start_bunzip(void *, bunzip_data **bdp, int in_fd, const void *inbuf, int len) FAST_FUNC;
 /* NB: read_bunzip returns < 0 on error, or the number of *unfilled* bytes
  * in outbuf. IOW: on EOF returns len ("all bytes are not filled"), not 0: */
 int read_bunzip(bunzip_data *bd, char *outbuf, int len) FAST_FUNC;

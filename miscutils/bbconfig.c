@@ -44,13 +44,22 @@ int bbconfig_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 #if ENABLE_FEATURE_COMPRESS_BBCONFIG
 	bunzip_data *bd;
-	int i = start_bunzip(&bd,
+	int i;
+	jmp_buf jmpbuf;
+
+	/* Setup for I/O error handling via longjmp */
+	i = setjmp(jmpbuf);
+	if (i == 0) {
+		i = start_bunzip(&jmpbuf,
+			&bd,
 			/* src_fd: */ -1,
 			/* inbuf:  */ bbconfig_config_bz2,
-			/* len:    */ sizeof(bbconfig_config_bz2));
-	/* read_bunzip can longjmp to start_bunzip, and ultimately
-	 * end up here with i != 0 on read data errors! Not trivial */
-	if (!i) {
+			/* len:    */ sizeof(bbconfig_config_bz2)
+		);
+	}
+	/* read_bunzip can longjmp and end up here with i != 0
+	 * on read data errors! Not trivial */
+	if (i == 0) {
 		/* Cannot use xmalloc: will leak bd in NOFORK case! */
 		char *outbuf = malloc_or_warn(sizeof(bbconfig_config));
 		if (outbuf) {

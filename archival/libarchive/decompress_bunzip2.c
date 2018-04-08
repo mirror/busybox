@@ -100,7 +100,7 @@ struct bunzip_data {
 	unsigned dbufSize;
 
 	/* For I/O error handling */
-	jmp_buf jmpbuf;
+	jmp_buf *jmpbuf;
 
 	/* Big things go last (register-relative addressing can be larger for big offsets) */
 	uint32_t crc32Table[256];
@@ -127,7 +127,7 @@ static unsigned get_bits(bunzip_data *bd, int bits_wanted)
 			/* if "no input fd" case: in_fd == -1, read fails, we jump */
 			bd->inbufCount = read(bd->in_fd, bd->inbuf, IOBUF_SIZE);
 			if (bd->inbufCount <= 0)
-				longjmp(bd->jmpbuf, RETVAL_UNEXPECTED_INPUT_EOF);
+				longjmp(*bd->jmpbuf, RETVAL_UNEXPECTED_INPUT_EOF);
 			bd->inbufPos = 0;
 		}
 
@@ -151,12 +151,12 @@ static unsigned get_bits(bunzip_data *bd, int bits_wanted)
 
 	return bits;
 }
+//#define get_bits(bd, n) (dbg("%d:get_bits()", __LINE__), get_bits(bd, n))
 
 /* Unpacks the next block and sets up for the inverse Burrows-Wheeler step. */
 static int get_next_block(bunzip_data *bd)
 {
-	struct group_data *hufGroup;
-	int groupCount, *base, *limit, selector,
+	int groupCount, selector,
 		i, j, symCount, symTotal, nSelectors, byteCount[256];
 	uint8_t uc, symToByte[256], mtfSymbol[256], *selectors;
 	uint32_t *dbuf;
@@ -179,15 +179,19 @@ static int get_next_block(bunzip_data *bd)
 	i = get_bits(bd, 24);
 	j = get_bits(bd, 24);
 	bd->headerCRC = get_bits(bd, 32);
-	if ((i == 0x177245) && (j == 0x385090)) return RETVAL_LAST_BLOCK;
-	if ((i != 0x314159) || (j != 0x265359)) return RETVAL_NOT_BZIP_DATA;
+	if ((i == 0x177245) && (j == 0x385090))
+		return RETVAL_LAST_BLOCK;
+	if ((i != 0x314159) || (j != 0x265359))
+		return RETVAL_NOT_BZIP_DATA;
 
 	/* We can add support for blockRandomised if anybody complains.  There was
 	   some code for this in busybox 1.0.0-pre3, but nobody ever noticed that
 	   it didn't actually work. */
-	if (get_bits(bd, 1)) return RETVAL_OBSOLETE_INPUT;
+	if (get_bits(bd, 1))
+		return RETVAL_OBSOLETE_INPUT;
 	origPtr = get_bits(bd, 24);
-	if (origPtr > bd->dbufSize) return RETVAL_DATA_ERROR;
+	if (origPtr > bd->dbufSize)
+		return RETVAL_DATA_ERROR;
 
 	/* mapping table: if some byte values are never used (encoding things
 	   like ascii text), the compression code removes the gaps to have fewer
@@ -231,13 +235,21 @@ static int get_next_block(bunzip_data *bd)
 		/* Get next value */
 		int n = 0;
 		while (get_bits(bd, 1)) {
-			if (n >= groupCount) return RETVAL_DATA_ERROR;
+			if (n >= groupCount)
+				return RETVAL_DATA_ERROR;
 			n++;
 		}
 		/* Decode MTF to get the next selector */
 		tmp_byte = mtfSymbol[n];
 		while (--n >= 0)
 			mtfSymbol[n + 1] = mtfSymbol[n];
+//We catch it later, in the second loop where we use selectors[i].
+//Maybe this is a better place, though?
+//		if (tmp_byte >= groupCount) {
+//			dbg("%d: selectors[%d]:%d groupCount:%d",
+//					__LINE__, i, tmp_byte, groupCount);
+//			return RETVAL_DATA_ERROR;
+//		}
 		mtfSymbol[0] = selectors[i] = tmp_byte;
 	}
 
@@ -248,6 +260,8 @@ static int get_next_block(bunzip_data *bd)
 		uint8_t length[MAX_SYMBOLS];
 		/* 8 bits is ALMOST enough for temp[], see below */
 		unsigned temp[MAX_HUFCODE_BITS+1];
+		struct group_data *hufGroup;
+		int *base, *limit;
 		int minLen, maxLen, pp, len_m1;
 
 		/* Read Huffman code lengths for each symbol.  They're stored in
@@ -283,8 +297,10 @@ static int get_next_block(bunzip_data *bd)
 		/* Find largest and smallest lengths in this group */
 		minLen = maxLen = length[0];
 		for (i = 1; i < symCount; i++) {
-			if (length[i] > maxLen) maxLen = length[i];
-			else if (length[i] < minLen) minLen = length[i];
+			if (length[i] > maxLen)
+				maxLen = length[i];
+			else if (length[i] < minLen)
+				minLen = length[i];
 		}
 
 		/* Calculate permute[], base[], and limit[] tables from length[].
@@ -320,7 +336,8 @@ static int get_next_block(bunzip_data *bd)
 		/* Count symbols coded for at each bit length */
 		/* NB: in pathological cases, temp[8] can end ip being 256.
 		 * That's why uint8_t is too small for temp[]. */
-		for (i = 0; i < symCount; i++) temp[length[i]]++;
+		for (i = 0; i < symCount; i++)
+			temp[length[i]]++;
 
 		/* Calculate limit[] (the largest symbol-coding value at each bit
 		 * length, which is (previous limit<<1)+symbols at this level), and
@@ -363,12 +380,22 @@ static int get_next_block(bunzip_data *bd)
 
 	runPos = dbufCount = selector = 0;
 	for (;;) {
+		struct group_data *hufGroup;
+		int *base, *limit;
 		int nextSym;
+		uint8_t ngrp;
 
 		/* Fetch next Huffman coding group from list. */
 		symCount = GROUP_SIZE - 1;
-		if (selector >= nSelectors) return RETVAL_DATA_ERROR;
-		hufGroup = bd->groups + selectors[selector++];
+		if (selector >= nSelectors)
+			return RETVAL_DATA_ERROR;
+		ngrp = selectors[selector++];
+		if (ngrp >= groupCount) {
+			dbg("%d selectors[%d]:%d groupCount:%d",
+				__LINE__, selector-1, ngrp, groupCount);
+			return RETVAL_DATA_ERROR;
+		}
+		hufGroup = bd->groups + ngrp;
 		base = hufGroup->base - 1;
 		limit = hufGroup->limit - 1;
 
@@ -403,7 +430,8 @@ static int get_next_block(bunzip_data *bd)
 		}
 		/* Figure how many bits are in next symbol and unget extras */
 		i = hufGroup->minLen;
-		while (nextSym > limit[i]) ++i;
+		while (nextSym > limit[i])
+			++i;
 		j = hufGroup->maxLen - i;
 		if (j < 0)
 			return RETVAL_DATA_ERROR;
@@ -671,7 +699,10 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 /* Because bunzip2 is used for help text unpacking, and because bb_show_usage()
    should work for NOFORK applets too, we must be extremely careful to not leak
    any allocations! */
-int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd,
+int FAST_FUNC start_bunzip(
+		void *jmpbuf,
+		bunzip_data **bdp,
+		int in_fd,
 		const void *inbuf, int len)
 {
 	bunzip_data *bd;
@@ -683,10 +714,13 @@ int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd,
 
 	/* Figure out how much data to allocate */
 	i = sizeof(bunzip_data);
-	if (in_fd != -1) i += IOBUF_SIZE;
+	if (in_fd != -1)
+		i += IOBUF_SIZE;
 
 	/* Allocate bunzip_data.  Most fields initialize to zero. */
 	bd = *bdp = xzalloc(i);
+
+	bd->jmpbuf = jmpbuf;
 
 	/* Setup input buffer */
 	bd->in_fd = in_fd;
@@ -701,10 +735,6 @@ int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd,
 
 	/* Init the CRC32 table (big endian) */
 	crc32_filltable(bd->crc32Table, 1);
-
-	/* Setup for I/O error handling via longjmp */
-	i = setjmp(bd->jmpbuf);
-	if (i) return i;
 
 	/* Ensure that file starts with "BZh['1'-'9']." */
 	/* Update: now caller verifies 1st two bytes, makes .gz/.bz2
@@ -752,8 +782,12 @@ unpack_bz2_stream(transformer_state_t *xstate)
 	outbuf = xmalloc(IOBUF_SIZE);
 	len = 0;
 	while (1) { /* "Process one BZ... stream" loop */
+		jmp_buf jmpbuf;
 
-		i = start_bunzip(&bd, xstate->src_fd, outbuf + 2, len);
+		/* Setup for I/O error handling via longjmp */
+		i = setjmp(jmpbuf);
+		if (i == 0)
+			i = start_bunzip(&jmpbuf, &bd, xstate->src_fd, outbuf + 2, len);
 
 		if (i == 0) {
 			while (1) { /* "Produce some output bytes" loop */
