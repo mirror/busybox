@@ -9394,6 +9394,13 @@ int hush_main(int argc, char **argv)
 			optarg++;
 			G.depth_of_loop = bb_strtou(optarg, &optarg, 16);
 # endif
+# if ENABLE_HUSH_FUNCTIONS
+			/* nommu uses re-exec trick for "... | func | ...",
+			 * should allow "return".
+			 * This accidentally allows returns in subshells.
+			 */
+			G_flag_return_in_progress = -1;
+# endif
 			break;
 		}
 		case 'R':
