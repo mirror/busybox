@@ -11611,10 +11611,12 @@ simplecmd(void)
 				case TLP:
 					function_flag = 0;
 					break;
+# if BASH_TEST2
 				case TWORD:
 					if (strcmp("[[", wordtext) == 0)
 						goto do_func;
 					/* fall through */
+# endif
 				default:
 					raise_error_unexpected_syntax(-1);
 				}
