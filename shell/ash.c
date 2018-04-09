@@ -11662,7 +11662,8 @@ simplecmd(void)
 	*vpp = NULL;
 	*rpp = NULL;
 	n = stzalloc(sizeof(struct ncmd));
-	n->type = NCMD;
+	if (NCMD != 0)
+		n->type = NCMD;
 	n->ncmd.linno = savelinno;
 	n->ncmd.args = args;
 	n->ncmd.assign = vars;
