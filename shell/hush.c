@@ -2266,6 +2266,7 @@ static int set_local_var(char *str, unsigned flags)
 	}
 
 	/* Not found or shadowed - create new variable struct */
+	debug_printf_env("%s: alloc new var '%s'/%u\n", __func__, str, local_lvl);
 	cur = xzalloc(sizeof(*cur));
 	cur->var_nest_level = local_lvl;
 	cur->next = *cur_pp;
@@ -2420,7 +2421,7 @@ static void set_vars_and_save_old(char **strings)
 				 * global linked list.
 				 */
 			}
-			//bb_error_msg("G.var_nest_level:%d", G.var_nest_level);
+			debug_printf_env("%s: env override '%s'/%u\n", __func__, *s, G.var_nest_level);
 			set_local_var(*s, (G.var_nest_level << SETFLAG_VARLVL_SHIFT) | SETFLAG_EXPORT);
 		} else if (HUSH_DEBUG) {
 			bb_error_msg_and_die("BUG in varexp4");
@@ -7358,6 +7359,58 @@ static void unset_func(const char *name)
 }
 # endif
 
+static void remove_nested_vars(void)
+{
+	struct variable *cur;
+	struct variable **cur_pp;
+
+	cur_pp = &G.top_var;
+	while ((cur = *cur_pp) != NULL) {
+		if (cur->var_nest_level <= G.var_nest_level) {
+			cur_pp = &cur->next;
+			continue;
+		}
+		/* Unexport */
+		if (cur->flg_export) {
+			debug_printf_env("unexporting nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
+			bb_unsetenv(cur->varstr);
+		}
+		/* Remove from global list */
+		*cur_pp = cur->next;
+		/* Free */
+		if (!cur->max_len) {
+			debug_printf_env("freeing nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
+			free(cur->varstr);
+		}
+		free(cur);
+	}
+}
+
+static void enter_var_nest_level(void)
+{
+	G.var_nest_level++;
+	debug_printf_env("var_nest_level++ %u\n", G.var_nest_level);
+
+	/* Try:	f() { echo -n .; f; }; f
+	 * struct variable::var_nest_level is uint16_t,
+	 * thus limiting recursion to < 2^16.
+	 * In any case, with 8 Mbyte stack SEGV happens
+	 * not too long after 2^16 recursions anyway.
+	 */
+	if (G.var_nest_level > 0xff00)
+		bb_error_msg_and_die("fatal recursion (depth %u)", G.var_nest_level);
+}
+
+static void leave_var_nest_level(void)
+{
+	G.var_nest_level--;
+	debug_printf_env("var_nest_level-- %u\n", G.var_nest_level);
+	if (HUSH_DEBUG && (int)G.var_nest_level < 0)
+		bb_error_msg_and_die("BUG: nesting underflow");
+
+	remove_nested_vars();
+}
+
 # if BB_MMU
 #define exec_function(to_free, funcp, argv) \
 	exec_function(funcp, argv)
@@ -7392,7 +7445,7 @@ static void exec_function(char ***to_free,
 
 	/* "we are in a function, ok to use return" */
 	G_flag_return_in_progress = -1;
-	G.var_nest_level++;
+	enter_var_nest_level();
 	IF_HUSH_LOCAL(G.func_nest_level++;)
 
 	/* On MMU, funcp->body is always non-NULL */
@@ -7410,53 +7463,6 @@ static void exec_function(char ***to_free,
 			argv + 1,
 			NULL);
 # endif
-}
-
-static void enter_var_nest_level(void)
-{
-	G.var_nest_level++;
-	debug_printf_env("var_nest_level++ %u\n", G.var_nest_level);
-
-	/* Try:	f() { echo -n .; f; }; f
-	 * struct variable::var_nest_level is uint16_t,
-	 * thus limiting recursion to < 2^16.
-	 * In any case, with 8 Mbyte stack SEGV happens
-	 * not too long after 2^16 recursions anyway.
-	 */
-	if (G.var_nest_level > 0xff00)
-		bb_error_msg_and_die("fatal recursion (depth %u)", G.var_nest_level);
-}
-
-static void leave_var_nest_level(void)
-{
-	struct variable *cur;
-	struct variable **cur_pp;
-
-	cur_pp = &G.top_var;
-	while ((cur = *cur_pp) != NULL) {
-		if (cur->var_nest_level < G.var_nest_level) {
-			cur_pp = &cur->next;
-			continue;
-		}
-		/* Unexport */
-		if (cur->flg_export) {
-			debug_printf_env("unexporting nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
-			bb_unsetenv(cur->varstr);
-		}
-		/* Remove from global list */
-		*cur_pp = cur->next;
-		/* Free */
-		if (!cur->max_len) {
-			debug_printf_env("freeing nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
-			free(cur->varstr);
-		}
-		free(cur);
-	}
-
-	G.var_nest_level--;
-	debug_printf_env("var_nest_level-- %u\n", G.var_nest_level);
-	if (HUSH_DEBUG && (int)G.var_nest_level < 0)
-		bb_error_msg_and_die("BUG: nesting underflow");
 }
 
 static int run_function(const struct function *funcp, char **argv)
@@ -7648,6 +7654,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 	G.shadowed_vars_pp = NULL; /* "don't save, free them instead" */
 #else
 	G.shadowed_vars_pp = &nommu_save->old_vars;
+	G.var_nest_level++;
 #endif
 	set_vars_and_save_old(new_env);
 	G.shadowed_vars_pp = sv_shadowed;
@@ -8522,6 +8529,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 	while (cmd_no < pi->num_cmds) {
 		struct fd_pair pipefds;
 #if !BB_MMU
+		int sv_var_nest_level = G.var_nest_level;
 		volatile nommu_save_t nommu_save;
 		nommu_save.old_vars = NULL;
 		nommu_save.argv = NULL;
@@ -8615,6 +8623,8 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		/* Clean up after vforked child */
 		free(nommu_save.argv);
 		free(nommu_save.argv_from_re_execing);
+		G.var_nest_level = sv_var_nest_level;
+		remove_nested_vars();
 		add_vars(nommu_save.old_vars);
 #endif
 		free(argv_expanded);
