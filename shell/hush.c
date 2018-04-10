@@ -4913,6 +4913,9 @@ static int encode_string(o_string *as_string,
 			ch, ch, !!(dest->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 	if (process_bkslash && ch == '\\') {
 		if (next == EOF) {
+// TODO: what if in interactive shell a file with
+//  echo "unterminated string\<eof>
+// is sourced?
 			syntax_error("\\<eof>");
 			xfunc_die();
 		}
@@ -5051,12 +5054,14 @@ static struct pipe *parse_stream(char **pstring,
 
 		next = '\0';
 		if (ch != '\n') {
-			next = i_peek(input);
-			/* Can't use i_peek_and_eat_bkslash_nl(input) here:
+			/* Do not break this case:
 			 *  echo '\
 			 *  '
-			 * will break.
+			 * and
+			 *  echo z\\
 			 */
+			next = (ch == '\'' || ch == '\\') ? i_peek(input) : i_peek_and_eat_bkslash_nl(input);
+///
 		}
 
 		is_special = "{}<>;&|()#'" /* special outside of "str" */
@@ -5260,8 +5265,6 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			redir_style = REDIRECT_OVERWRITE;
-			if (next == '\\')
-				next = i_peek_and_eat_bkslash_nl(input);
 			if (next == '>') {
 				redir_style = REDIRECT_APPEND;
 				ch = i_getch(input);
@@ -5282,8 +5285,6 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			redir_style = REDIRECT_INPUT;
-			if (next == '\\')
-				next = i_peek_and_eat_bkslash_nl(input);
 			if (next == '<') {
 				redir_style = REDIRECT_HEREDOC;
 				heredoc_cnt++;
@@ -5327,6 +5328,7 @@ static struct pipe *parse_stream(char **pstring,
 				continue; /* back to top of while (1) */
 			}
 			break;
+#if 0 /* looks like we never reach this code */
 		case '\\':
 			if (next == '\n') {
 				/* It's "\<newline>" */
@@ -5338,6 +5340,7 @@ static struct pipe *parse_stream(char **pstring,
 				continue; /* back to top of while (1) */
 			}
 			break;
+#endif
 		}
 
 		if (ctx.is_assignment == MAYBE_ASSIGNMENT
@@ -5364,6 +5367,7 @@ static struct pipe *parse_stream(char **pstring,
 			break;
 		case '\\':
 			if (next == EOF) {
+//TODO: in ". FILE" containing "cmd\" (no newline) bash ignores last "\"
 				syntax_error("\\<eof>");
 				xfunc_die();
 			}
@@ -5473,8 +5477,6 @@ static struct pipe *parse_stream(char **pstring,
 			if (done_word(&ctx)) {
 				goto parse_error;
 			}
-			if (next == '\\')
-				next = i_peek_and_eat_bkslash_nl(input);
 			if (next == '&') {
 				ch = i_getch(input);
 				nommu_addchr(&ctx.as_string, ch);
@@ -5491,8 +5493,6 @@ static struct pipe *parse_stream(char **pstring,
 			if (ctx.ctx_res_w == RES_MATCH)
 				break; /* we are in case's "word | word)" */
 #endif
-			if (next == '\\')
-				next = i_peek_and_eat_bkslash_nl(input);
 			if (next == '|') { /* || */
 				ch = i_getch(input);
 				nommu_addchr(&ctx.as_string, ch);
