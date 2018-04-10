@@ -313,6 +313,9 @@ static const struct operator_t ops_table[] = {
 	{ /* "-L" */ FILSYM  , UNOP   },
 	{ /* "-S" */ FILSOCK , UNOP   },
 	{ /* "="  */ STREQ   , BINOP  },
+	/* "==" is bashism, http://pubs.opengroup.org/onlinepubs/9699919799/utilities/test.html
+	 * lists only "=" as comparison operator.
+	 */
 	{ /* "==" */ STREQ   , BINOP  },
 	{ /* "!=" */ STRNE   , BINOP  },
 	{ /* "<"  */ STRLT   , BINOP  },
@@ -357,6 +360,7 @@ static const char ops_texts[] ALIGN1 =
 	"-L"  "\0"
 	"-S"  "\0"
 	"="   "\0"
+	/* "==" is bashism */
 	"=="  "\0"
 	"!="  "\0"
 	"<"   "\0"

@@ -197,7 +197,20 @@
 #define IF_BASH_PATTERN_SUBST       IF_ASH_BASH_COMPAT
 #define    BASH_SUBSTR          ENABLE_ASH_BASH_COMPAT
 #define IF_BASH_SUBSTR              IF_ASH_BASH_COMPAT
-/* [[ EXPR ]] */
+/* BASH_TEST2: [[ EXPR ]]
+ * Status of [[ support:
+ * We replace && and || with -a and -o
+ * TODO:
+ * singleword+noglob expansion:
+ *   v='a b'; [[ $v = 'a b' ]]; echo 0:$?
+ *   [[ /bin/* ]]; echo 0:$?
+ * -a/-o are not AND/OR ops! (they are just strings)
+ * quoting needs to be considered (-f is an operator, "-f" and ""-f are not; etc)
+ * = is glob match operator, not equality operator: STR = GLOB
+ * (in GLOB, quoting is significant on char-by-char basis: a*cd"*")
+ * == same as =
+ * add =~ regex match operator: STR =~ REGEX
+ */
 #define    BASH_TEST2           (ENABLE_ASH_BASH_COMPAT * ENABLE_ASH_TEST)
 #define    BASH_SOURCE          ENABLE_ASH_BASH_COMPAT
 #define    BASH_PIPEFAIL        ENABLE_ASH_BASH_COMPAT

@@ -79,6 +79,18 @@
  *      Some builtins mandated by standards:
  *          newgrp [GRP]: not a builtin in bash but a suid binary
  *              which spawns a new shell with new group ID
+ *
+ * Status of [[ support:
+ * [[ args ]] are CMD_SINGLEWORD_NOGLOB:
+ *   v='a b'; [[ $v = 'a b' ]]; echo 0:$?
+ *   [[ /bin/* ]]; echo 0:$?
+ * TODO:
+ * &&/|| are AND/OR ops, -a/-o are not
+ * quoting needs to be considered (-f is an operator, "-f" and ""-f are not; etc)
+ * = is glob match operator, not equality operator: STR = GLOB
+ * (in GLOB, quoting is significant on char-by-char basis: a*cd"*")
+ * == same as =
+ * add =~ regex match operator: STR =~ REGEX
  */
 //config:config HUSH
 //config:	bool "hush (64 kb)"
