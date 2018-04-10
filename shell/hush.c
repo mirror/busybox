@@ -5379,15 +5379,19 @@ static struct pipe *parse_stream(char **pstring,
 			continue; /* get next char */
 		case '\\':
 			/*nommu_addchr(&ctx.as_string, '\\'); - already done */
-			o_addchr(&ctx.word, '\\');
 			ch = i_getch(input);
 			if (ch == EOF) {
-//TODO: in ". FILE" containing "cmd\" (no newline) bash ignores last "\"
-				syntax_error("\\<eof>");
-				xfunc_die();
+				/* Ignore this '\'. Testcase: eval 'echo Ok\' */
+#if !BB_MMU
+				/* Remove trailing '\' from ctx.as_string */
+				ctx.as_string.data[--ctx.as_string.length] = '\0';
+#endif
+				continue; /* get next char */
 			}
+			o_addchr(&ctx.word, '\\');
 			/* Example: echo Hello \2>file
-			 * we need to know that word 2 is quoted */
+			 * we need to know that word 2 is quoted
+			 */
 			ctx.word.has_quoted_part = 1;
 			nommu_addchr(&ctx.as_string, ch);
 			o_addchr(&ctx.word, ch);
