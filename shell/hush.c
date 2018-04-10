@@ -5364,7 +5364,7 @@ static struct pipe *parse_stream(char **pstring,
 		case '#':
 			/* non-comment #: "echo a#b" etc */
 			o_addchr(&ctx.word, ch);
-			break;
+			continue; /* get next char */
 		case '\\':
 			if (next == EOF) {
 //TODO: in ". FILE" containing "cmd\" (no newline) bash ignores last "\"
@@ -5380,51 +5380,51 @@ static struct pipe *parse_stream(char **pstring,
 			/* Example: echo Hello \2>file
 			 * we need to know that word 2 is quoted */
 			ctx.word.has_quoted_part = 1;
-			break;
+			continue; /* get next char */
 		case '$':
 			if (!parse_dollar(&ctx.as_string, &ctx.word, input, /*quote_mask:*/ 0)) {
 				debug_printf_parse("parse_stream parse error: "
 					"parse_dollar returned 0 (error)\n");
 				goto parse_error;
 			}
-			break;
+			continue; /* get next char */
 		case '\'':
 			ctx.word.has_quoted_part = 1;
-			if (next == '\'' && !ctx.pending_redirect) {
+			if (next == '\'' && !ctx.pending_redirect)
+				goto insert_empty_quoted_str_marker;
+			while (1) {
+				ch = i_getch(input);
+				if (ch == EOF) {
+					syntax_error_unterm_ch('\'');
+					goto parse_error;
+				}
+				nommu_addchr(&ctx.as_string, ch);
+				if (ch == '\'')
+					break;
+				if (ch == SPECIAL_VAR_SYMBOL) {
+					/* Convert raw ^C to corresponding special variable reference */
+					o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
+					o_addchr(&ctx.word, SPECIAL_VAR_QUOTED_SVS);
+				}
+				o_addqchr(&ctx.word, ch);
+			}
+			continue; /* get next char */
+		case '"':
+			ctx.word.has_quoted_part = 1;
+			if (next == '"' && !ctx.pending_redirect) {
  insert_empty_quoted_str_marker:
 				nommu_addchr(&ctx.as_string, next);
 				i_getch(input); /* eat second ' */
 				o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
 				o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
-			} else {
-				while (1) {
-					ch = i_getch(input);
-					if (ch == EOF) {
-						syntax_error_unterm_ch('\'');
-						goto parse_error;
-					}
-					nommu_addchr(&ctx.as_string, ch);
-					if (ch == '\'')
-						break;
-					if (ch == SPECIAL_VAR_SYMBOL) {
-						/* Convert raw ^C to corresponding special variable reference */
-						o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
-						o_addchr(&ctx.word, SPECIAL_VAR_QUOTED_SVS);
-					}
-					o_addqchr(&ctx.word, ch);
-				}
+				continue; /* get next char */
 			}
-			break;
-		case '"':
-			ctx.word.has_quoted_part = 1;
-			if (next == '"' && !ctx.pending_redirect)
-				goto insert_empty_quoted_str_marker;
 			if (ctx.is_assignment == NOT_ASSIGNMENT)
 				ctx.word.o_expflags |= EXP_FLAG_ESC_GLOB_CHARS;
 			if (!encode_string(&ctx.as_string, &ctx.word, input, '"', /*process_bkslash:*/ 1))
 				goto parse_error;
 			ctx.word.o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
-			break;
+			continue; /* get next char */
 #if ENABLE_HUSH_TICK
 		case '`': {
 			USE_FOR_NOMMU(unsigned pos;)
@@ -5440,7 +5440,7 @@ static struct pipe *parse_stream(char **pstring,
 # endif
 			o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
 			//debug_printf_subst("SUBST RES3 '%s'\n", ctx.word.data + pos);
-			break;
+			continue; /* get next char */
 		}
 #endif
 		case ';':
@@ -5472,7 +5472,7 @@ static struct pipe *parse_stream(char **pstring,
 			 * with an assignment */
 			ctx.is_assignment = MAYBE_ASSIGNMENT;
 			debug_printf_parse("ctx.is_assignment='%s'\n", assignment_flag[ctx.is_assignment]);
-			break;
+			continue; /* get next char */
 		case '&':
 			if (done_word(&ctx)) {
 				goto parse_error;
@@ -5512,7 +5512,7 @@ static struct pipe *parse_stream(char **pstring,
 			 && ctx.word.length == 0 /* not word(... */
 			 && ctx.word.has_quoted_part == 0 /* not ""(... */
 			) {
-				continue;
+				continue; /* get next char */
 			}
 #endif
 		case '{':
