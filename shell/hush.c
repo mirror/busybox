@@ -5052,19 +5052,43 @@ static struct pipe *parse_stream(char **pstring,
 		}
 		nommu_addchr(&ctx.as_string, ch);
 
-		next = '\0';
-		if (ch != '\n') {
-			/* Do not break this case:
-			 *  echo '\
-			 *  '
-			 * and
-			 *  echo z\\
-			 */
-			next = (ch == '\'' || ch == '\\') ? i_peek(input) : i_peek_and_eat_bkslash_nl(input);
-///
+		if (ch == '\'') {
+			ctx.word.has_quoted_part = 1;
+			next = i_getch(input);
+			if (next == '\'' && !ctx.pending_redirect)
+				goto insert_empty_quoted_str_marker;
+
+			ch = next;
+			while (1) {
+				if (ch == EOF) {
+					syntax_error_unterm_ch('\'');
+					goto parse_error;
+				}
+				nommu_addchr(&ctx.as_string, ch);
+				if (ch == '\'')
+					break;
+				if (ch == SPECIAL_VAR_SYMBOL) {
+					/* Convert raw ^C to corresponding special variable reference */
+					o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
+					o_addchr(&ctx.word, SPECIAL_VAR_QUOTED_SVS);
+				}
+				o_addqchr(&ctx.word, ch);
+				ch = i_getch(input);
+			}
+			continue; /* get next char */
 		}
 
-		is_special = "{}<>;&|()#'" /* special outside of "str" */
+		next = '\0';
+		if (ch != '\n' && ch != '\\') {
+			/* Not on '\': do not break the case of "echo z\\":
+			 * on 2nd '\', i_peek_and_eat_bkslash_nl()
+			 * would stop and try to read next line,
+			 * not letting the command to execute.
+			 */
+			next = i_peek_and_eat_bkslash_nl(input);
+		}
+
+		is_special = "{}<>;&|()#" /* special outside of "str" */
 				"\\$\"" IF_HUSH_TICK("`") /* always special */
 				SPECIAL_VAR_SYMBOL_STR;
 		/* Are { and } special here? */
@@ -5252,7 +5276,7 @@ static struct pipe *parse_stream(char **pstring,
 				return ctx.list_head;
 			}
 		}
- skip_end_trigger:
+
 		if (is_blank)
 			continue;
 
@@ -5278,7 +5302,7 @@ static struct pipe *parse_stream(char **pstring,
 #endif
 			if (parse_redirect(&ctx, redir_fd, redir_style, input))
 				goto parse_error;
-			continue; /* back to top of while (1) */
+			continue; /* get next char */
 		case '<':
 			redir_fd = redirect_opt_num(&ctx.word);
 			if (done_word(&ctx)) {
@@ -5304,7 +5328,7 @@ static struct pipe *parse_stream(char **pstring,
 #endif
 			if (parse_redirect(&ctx, redir_fd, redir_style, input))
 				goto parse_error;
-			continue; /* back to top of while (1) */
+			continue; /* get next char */
 		case '#':
 			if (ctx.word.length == 0 && !ctx.word.has_quoted_part) {
 				/* skip "#comment" */
@@ -5325,23 +5349,11 @@ static struct pipe *parse_stream(char **pstring,
 					if (ch == EOF)
 						break;
 				}
-				continue; /* back to top of while (1) */
+				continue; /* get next char */
 			}
 			break;
-#if 0 /* looks like we never reach this code */
-		case '\\':
-			if (next == '\n') {
-				/* It's "\<newline>" */
-#if !BB_MMU
-				/* Remove trailing '\' from ctx.as_string */
-				ctx.as_string.data[--ctx.as_string.length] = '\0';
-#endif
-				ch = i_getch(input); /* eat it */
-				continue; /* back to top of while (1) */
-			}
-			break;
-#endif
 		}
+ skip_end_trigger:
 
 		if (ctx.is_assignment == MAYBE_ASSIGNMENT
 		 /* check that we are not in word in "a=1 2>word b=1": */
@@ -5366,20 +5378,19 @@ static struct pipe *parse_stream(char **pstring,
 			o_addchr(&ctx.word, ch);
 			continue; /* get next char */
 		case '\\':
-			if (next == EOF) {
+			/*nommu_addchr(&ctx.as_string, '\\'); - already done */
+			o_addchr(&ctx.word, '\\');
+			ch = i_getch(input);
+			if (ch == EOF) {
 //TODO: in ". FILE" containing "cmd\" (no newline) bash ignores last "\"
 				syntax_error("\\<eof>");
 				xfunc_die();
 			}
-			ch = i_getch(input);
-			/* note: ch != '\n' (that case does not reach this place) */
-			o_addchr(&ctx.word, '\\');
-			/*nommu_addchr(&ctx.as_string, '\\'); - already done */
-			o_addchr(&ctx.word, ch);
-			nommu_addchr(&ctx.as_string, ch);
 			/* Example: echo Hello \2>file
 			 * we need to know that word 2 is quoted */
 			ctx.word.has_quoted_part = 1;
+			nommu_addchr(&ctx.as_string, ch);
+			o_addchr(&ctx.word, ch);
 			continue; /* get next char */
 		case '$':
 			if (!parse_dollar(&ctx.as_string, &ctx.word, input, /*quote_mask:*/ 0)) {
@@ -5388,33 +5399,12 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			continue; /* get next char */
-		case '\'':
-			ctx.word.has_quoted_part = 1;
-			if (next == '\'' && !ctx.pending_redirect)
-				goto insert_empty_quoted_str_marker;
-			while (1) {
-				ch = i_getch(input);
-				if (ch == EOF) {
-					syntax_error_unterm_ch('\'');
-					goto parse_error;
-				}
-				nommu_addchr(&ctx.as_string, ch);
-				if (ch == '\'')
-					break;
-				if (ch == SPECIAL_VAR_SYMBOL) {
-					/* Convert raw ^C to corresponding special variable reference */
-					o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
-					o_addchr(&ctx.word, SPECIAL_VAR_QUOTED_SVS);
-				}
-				o_addqchr(&ctx.word, ch);
-			}
-			continue; /* get next char */
 		case '"':
 			ctx.word.has_quoted_part = 1;
 			if (next == '"' && !ctx.pending_redirect) {
+				i_getch(input); /* eat second " */
  insert_empty_quoted_str_marker:
 				nommu_addchr(&ctx.as_string, next);
-				i_getch(input); /* eat second ' */
 				o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
 				o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
 				continue; /* get next char */
