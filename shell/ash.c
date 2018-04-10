@@ -203,7 +203,7 @@
  * TODO:
  * singleword+noglob expansion:
  *   v='a b'; [[ $v = 'a b' ]]; echo 0:$?
- *   [[ /bin/* ]]; echo 0:$?
+ *   [[ /bin/n* ]]; echo 0:$?
  * -a/-o are not AND/OR ops! (they are just strings)
  * quoting needs to be considered (-f is an operator, "-f" and ""-f are not; etc)
  * = is glob match operator, not equality operator: STR = GLOB

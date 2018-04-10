@@ -83,7 +83,7 @@
  * Status of [[ support:
  * [[ args ]] are CMD_SINGLEWORD_NOGLOB:
  *   v='a b'; [[ $v = 'a b' ]]; echo 0:$?
- *   [[ /bin/* ]]; echo 0:$?
+ *   [[ /bin/n* ]]; echo 0:$?
  * TODO:
  * &&/|| are AND/OR ops, -a/-o are not
  * quoting needs to be considered (-f is an operator, "-f" and ""-f are not; etc)
@@ -1426,8 +1426,19 @@ static char *unbackslash(char *src)
 {
 	char *dst = src = strchrnul(src, '\\');
 	while (1) {
-		if (*src == '\\')
+		if (*src == '\\') {
 			src++;
+			if (*src != '\0') {
+				/* \x -> x */
+				*dst++ = *src++;
+				continue;
+			}
+			/* else: "\<nul>". Do not delete this backslash.
+			 * Testcase: eval 'echo ok\'
+			 */
+			*dst++ = '\\';
+			/* fallthrough */
+		}
 		if ((*dst++ = *src++) == '\0')
 			break;
 	}
@@ -5392,16 +5403,17 @@ static struct pipe *parse_stream(char **pstring,
 			continue; /* get next char */
 		case '\\':
 			/*nommu_addchr(&ctx.as_string, '\\'); - already done */
+			o_addchr(&ctx.word, '\\');
 			ch = i_getch(input);
 			if (ch == EOF) {
-				/* Ignore this '\'. Testcase: eval 'echo Ok\' */
-#if !BB_MMU
+				/* Testcase: eval 'echo Ok\' */
+
+#if 0 /* bash-4.3.43 was removing backslash, but 4.4.19 retains it, most other shells too */
 				/* Remove trailing '\' from ctx.as_string */
 				ctx.as_string.data[--ctx.as_string.length] = '\0';
 #endif
 				continue; /* get next char */
 			}
-			o_addchr(&ctx.word, '\\');
 			/* Example: echo Hello \2>file
 			 * we need to know that word 2 is quoted
 			 */
