@@ -5076,6 +5076,14 @@ static struct pipe *parse_stream(char **pstring,
 		}
 		nommu_addchr(&ctx.as_string, ch);
 
+		/* Handle "'" and "\" first, as they won't play nice with
+		 * i_peek_and_eat_bkslash_nl() anyway:
+		 *   echo z\\
+		 * and
+		 *   echo '\
+		 *   '
+		 * would break.
+		 */
 		if (ch == '\'') {
 			ctx.word.has_quoted_part = 1;
 			next = i_getch(input);
@@ -5101,19 +5109,34 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			continue; /* get next char */
 		}
+		if (ch == '\\') {
+			/*nommu_addchr(&ctx.as_string, '\\'); - already done */
+			o_addchr(&ctx.word, '\\');
+			ch = i_getch(input);
+			if (ch == EOF) {
+				/* Testcase: eval 'echo Ok\' */
 
-		next = '\0';
-		if (ch != '\n' && ch != '\\') {
-			/* Not on '\': do not break the case of "echo z\\":
-			 * on 2nd '\', i_peek_and_eat_bkslash_nl()
-			 * would stop and try to read next line,
-			 * not letting the command to execute.
+#if 0 /* bash-4.3.43 was removing backslash, but 4.4.19 retains it, most other shells too */
+				/* Remove trailing '\' from ctx.as_string */
+				ctx.as_string.data[--ctx.as_string.length] = '\0';
+#endif
+				continue; /* get next char */
+			}
+			/* Example: echo Hello \2>file
+			 * we need to know that word 2 is quoted
 			 */
-			next = i_peek_and_eat_bkslash_nl(input);
+			ctx.word.has_quoted_part = 1;
+			nommu_addchr(&ctx.as_string, ch);
+			o_addchr(&ctx.word, ch);
+			continue; /* get next char */
 		}
 
+		next = '\0';
+		if (ch != '\n')
+			next = i_peek_and_eat_bkslash_nl(input);
+
 		is_special = "{}<>;&|()#" /* special outside of "str" */
-				"\\$\"" IF_HUSH_TICK("`") /* always special */
+				"$\"" IF_HUSH_TICK("`") /* always special */
 				SPECIAL_VAR_SYMBOL_STR;
 		/* Are { and } special here? */
 		if (ctx.command->argv /* word [word]{... - non-special */
@@ -5399,26 +5422,6 @@ static struct pipe *parse_stream(char **pstring,
 			/* fall through */
 		case '#':
 			/* non-comment #: "echo a#b" etc */
-			o_addchr(&ctx.word, ch);
-			continue; /* get next char */
-		case '\\':
-			/*nommu_addchr(&ctx.as_string, '\\'); - already done */
-			o_addchr(&ctx.word, '\\');
-			ch = i_getch(input);
-			if (ch == EOF) {
-				/* Testcase: eval 'echo Ok\' */
-
-#if 0 /* bash-4.3.43 was removing backslash, but 4.4.19 retains it, most other shells too */
-				/* Remove trailing '\' from ctx.as_string */
-				ctx.as_string.data[--ctx.as_string.length] = '\0';
-#endif
-				continue; /* get next char */
-			}
-			/* Example: echo Hello \2>file
-			 * we need to know that word 2 is quoted
-			 */
-			ctx.word.has_quoted_part = 1;
-			nommu_addchr(&ctx.as_string, ch);
 			o_addchr(&ctx.word, ch);
 			continue; /* get next char */
 		case '$':
