@@ -4913,11 +4913,12 @@ static int encode_string(o_string *as_string,
 			ch, ch, !!(dest->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 	if (process_bkslash && ch == '\\') {
 		if (next == EOF) {
-// TODO: what if in interactive shell a file with
-//  echo "unterminated string\<eof>
-// is sourced?
-			syntax_error("\\<eof>");
-			xfunc_die();
+			/* Testcase: in interactive shell a file with
+			 *  echo "unterminated string\<eof>
+			 * is sourced.
+			 */
+			syntax_error_unterm_ch('"');
+			return 0; /* error */
 		}
 		/* bash:
 		 * "The backslash retains its special meaning [in "..."]
