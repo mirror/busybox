@@ -5075,7 +5075,6 @@ static struct pipe *parse_stream(char **pstring,
 			debug_printf_parse("parse_stream return %p\n", pi);
 			return pi;
 		}
-		nommu_addchr(&ctx.as_string, ch);
 
 		/* Handle "'" and "\" first, as they won't play nice with
 		 * i_peek_and_eat_bkslash_nl() anyway:
@@ -5085,6 +5084,28 @@ static struct pipe *parse_stream(char **pstring,
 		 *   '
 		 * would break.
 		 */
+		if (ch == '\\') {
+			ch = i_getch(input);
+			if (ch == '\n')
+				continue; /* drop \<newline>, get next char */
+			nommu_addchr(&ctx.as_string, '\\');
+			o_addchr(&ctx.word, '\\');
+			if (ch == EOF) {
+				/* Testcase: eval 'echo Ok\' */
+				/* bash-4.3.43 was removing backslash,
+				 * but 4.4.19 retains it, most other shells too
+				 */
+				continue; /* get next char */
+			}
+			/* Example: echo Hello \2>file
+			 * we need to know that word 2 is quoted
+			 */
+			ctx.word.has_quoted_part = 1;
+			nommu_addchr(&ctx.as_string, ch);
+			o_addchr(&ctx.word, ch);
+			continue; /* get next char */
+		}
+		nommu_addchr(&ctx.as_string, ch);
 		if (ch == '\'') {
 			ctx.word.has_quoted_part = 1;
 			next = i_getch(input);
@@ -5108,27 +5129,6 @@ static struct pipe *parse_stream(char **pstring,
 				o_addqchr(&ctx.word, ch);
 				ch = i_getch(input);
 			}
-			continue; /* get next char */
-		}
-		if (ch == '\\') {
-			/*nommu_addchr(&ctx.as_string, '\\'); - already done */
-			o_addchr(&ctx.word, '\\');
-			ch = i_getch(input);
-			if (ch == EOF) {
-				/* Testcase: eval 'echo Ok\' */
-
-#if 0 /* bash-4.3.43 was removing backslash, but 4.4.19 retains it, most other shells too */
-				/* Remove trailing '\' from ctx.as_string */
-				ctx.as_string.data[--ctx.as_string.length] = '\0';
-#endif
-				continue; /* get next char */
-			}
-			/* Example: echo Hello \2>file
-			 * we need to know that word 2 is quoted
-			 */
-			ctx.word.has_quoted_part = 1;
-			nommu_addchr(&ctx.as_string, ch);
-			o_addchr(&ctx.word, ch);
 			continue; /* get next char */
 		}
 
