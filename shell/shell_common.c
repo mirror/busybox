@@ -274,9 +274,44 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 
 	if (argv[0]) {
 		/* Remove trailing space $IFS chars */
-		while (--bufpos >= 0 && isspace(buffer[bufpos]) && strchr(ifs, buffer[bufpos]) != NULL)
+		while (--bufpos >= 0
+		 && isspace(buffer[bufpos])
+		 && strchr(ifs, buffer[bufpos]) != NULL
+		) {
 			continue;
+		}
 		buffer[bufpos + 1] = '\0';
+
+		/* Last variable takes the entire remainder with delimiters
+		 * (sans trailing whitespace $IFS),
+		 * but ***only "if there are fewer vars than fields"(c)***!
+		 * The "X:Y:" case below: there are two fields,
+		 * and therefore last delimiter (:) is eaten:
+		 * IFS=": "
+		 * echo "X:Y:Z:"  | (read x y; echo "|$x|$y|") # |X|Y:Z:|
+		 * echo "X:Y:Z"   | (read x y; echo "|$x|$y|") # |X|Y:Z|
+		 * echo "X:Y:"    | (read x y; echo "|$x|$y|") # |X|Y|, not |X|Y:|
+		 * echo "X:Y  : " | (read x y; echo "|$x|$y|") # |X|Y|
+		 */
+		if (bufpos >= 0
+		 && strchr(ifs, buffer[bufpos]) != NULL
+		) {
+			/* There _is_ a non-whitespace IFS char */
+			/* Skip whitespace IFS char before it */
+			while (--bufpos >= 0
+			 && isspace(buffer[bufpos])
+			 && strchr(ifs, buffer[bufpos]) != NULL
+			) {
+				continue;
+			}
+			/* Are there $IFS chars? */
+			if (strcspn(buffer, ifs) >= ++bufpos) {
+				/* No: last var takes one field, not more */
+				/* So, drop trailing IFS delims */
+				buffer[bufpos] = '\0';
+			}
+		}
+
 		/* Use the remainder as a value for the next variable */
 		setvar(*argv, buffer);
 		/* Set the rest to "" */
