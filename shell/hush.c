@@ -5610,11 +5610,10 @@ static struct pipe *parse_stream(char **pstring,
 
 /* Expansion can recurse, need forward decls: */
 #if !BASH_PATTERN_SUBST && !ENABLE_HUSH_CASE
-/* only ${var/pattern/repl} (its pattern part) needs additional mode */
-#define expand_string_to_string(str, do_unbackslash) \
+#define expand_string_to_string(str, EXP_flags, do_unbackslash) \
 	expand_string_to_string(str)
 #endif
-static char *expand_string_to_string(const char *str, int do_unbackslash);
+static char *expand_string_to_string(const char *str, int EXP_flags, int do_unbackslash);
 #if ENABLE_HUSH_TICK
 static int process_command_subs(o_string *dest, const char *s);
 #endif
@@ -5760,7 +5759,10 @@ static char *encode_then_expand_string(const char *str, int process_bkslash, int
 	encode_string(NULL, &dest, &input, EOF, process_bkslash);
 //TODO: error check (encode_string returns 0 on error)?
 	//bb_error_msg("'%s' -> '%s'", str, dest.data);
-	exp_str = expand_string_to_string(dest.data, /*unbackslash:*/ do_unbackslash);
+	exp_str = expand_string_to_string(dest.data,
+			do_unbackslash ? EXP_FLAG_ESC_GLOB_CHARS : 0,
+			do_unbackslash
+	);
 	//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
 	o_free_unsafe(&dest);
 	return exp_str;
@@ -6393,10 +6395,11 @@ static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
  * NB: should NOT do globbing!
  * "export v=/bin/c*; env | grep ^v=" outputs "v=/bin/c*"
  */
-static char *expand_string_to_string(const char *str, int do_unbackslash)
+static char *expand_string_to_string(const char *str, int EXP_flags, int do_unbackslash)
 {
 #if !BASH_PATTERN_SUBST && !ENABLE_HUSH_CASE
 	const int do_unbackslash = 1;
+	const int EXP_flags = EXP_FLAG_ESC_GLOB_CHARS;
 #endif
 	char *argv[2], **list;
 
@@ -6413,10 +6416,7 @@ static char *expand_string_to_string(const char *str, int do_unbackslash)
 
 	argv[0] = (char*)str;
 	argv[1] = NULL;
-	list = expand_variables(argv, do_unbackslash
-			? EXP_FLAG_ESC_GLOB_CHARS | EXP_FLAG_SINGLEWORD
-			: EXP_FLAG_SINGLEWORD
-	);
+	list = expand_variables(argv, EXP_flags | EXP_FLAG_SINGLEWORD);
 	if (HUSH_DEBUG)
 		if (!list[0] || list[1])
 			bb_error_msg_and_die("BUG in varexp2");
@@ -6460,7 +6460,13 @@ static char **expand_assignments(char **argv, int count)
 	G.expanded_assignments = p = NULL;
 	/* Expand assignments into one string each */
 	for (i = 0; i < count; i++) {
-		G.expanded_assignments = p = add_string_to_strings(p, expand_string_to_string(argv[i], /*unbackslash:*/ 1));
+		p = add_string_to_strings(p,
+			expand_string_to_string(argv[i],
+				EXP_FLAG_ESC_GLOB_CHARS,
+				/*unbackslash:*/ 1
+			)
+		);
+		G.expanded_assignments = p;
 	}
 	G.expanded_assignments = NULL;
 	return p;
@@ -7172,7 +7178,8 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 				continue;
 			}
 			mode = redir_table[redir->rd_type].mode;
-			p = expand_string_to_string(redir->rd_filename, /*unbackslash:*/ 1);
+			p = expand_string_to_string(redir->rd_filename,
+				EXP_FLAG_ESC_GLOB_CHARS, /*unbackslash:*/ 1);
 			newfd = open_or_warn(p, mode);
 			free(p);
 			if (newfd < 0) {
@@ -8370,7 +8377,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				bb_putchar_stderr('+');
 			i = 0;
 			while (i < command->assignment_cnt) {
-				char *p = expand_string_to_string(argv[i], /*unbackslash:*/ 1);
+				char *p = expand_string_to_string(argv[i],
+						EXP_FLAG_ESC_GLOB_CHARS,
+						/*unbackslash:*/ 1
+				);
 				if (G_x_mode)
 					fprintf(stderr, " %s", p);
 				debug_printf_env("set shell var:'%s'->'%s'\n", *argv, p);
@@ -8865,7 +8875,8 @@ static int run_list(struct pipe *pi)
 #if ENABLE_HUSH_CASE
 		if (rword == RES_CASE) {
 			debug_printf_exec("CASE cond_code:%d\n", cond_code);
-			case_word = expand_string_to_string(pi->cmds->argv[0], 1);
+			case_word = expand_string_to_string(pi->cmds->argv[0],
+				EXP_FLAG_ESC_GLOB_CHARS, /*unbackslash:*/ 1);
 			debug_printf_exec("CASE word1:'%s'\n", case_word);
 			//unbackslash(case_word);
 			//debug_printf_exec("CASE word2:'%s'\n", case_word);
@@ -8880,12 +8891,19 @@ static int run_list(struct pipe *pi)
 			/* all prev words didn't match, does this one match? */
 			argv = pi->cmds->argv;
 			while (*argv) {
-				char *pattern = expand_string_to_string(*argv, /*unbackslash:*/ 0);
+				char *pattern;
+				debug_printf_exec("expand_string_to_string('%s')\n", *argv);
+				pattern = expand_string_to_string(*argv,
+						EXP_FLAG_ESC_GLOB_CHARS,
+						/*unbackslash:*/ 0
+				);
 				/* TODO: which FNM_xxx flags to use? */
 				cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
-				debug_printf_exec("fnmatch(pattern:'%s',str:'%s'):%d\n", pattern, case_word, cond_code);
+				debug_printf_exec("fnmatch(pattern:'%s',str:'%s'):%d\n",
+						pattern, case_word, cond_code);
 				free(pattern);
-				if (cond_code == 0) { /* match! we will execute this branch */
+				if (cond_code == 0) {
+					/* match! we will execute this branch */
 					free(case_word);
 					case_word = NULL; /* make future "word)" stop */
 					break;
