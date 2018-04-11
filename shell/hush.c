@@ -930,6 +930,7 @@ struct globals {
 	unsigned getopt_count;
 #endif
 	const char *ifs;
+	char *ifs_whitespace; /* = G.ifs or malloced */
 	const char *cwd;
 	struct variable *top_var;
 	char **expanded_assignments;
@@ -5696,9 +5697,19 @@ static int expand_on_ifs(int *ended_with_ifs, o_string *output, int n, const cha
 
 		/* We know str here points to at least one IFS char */
 		last_is_ifs = 1;
-		str += strspn(str, G.ifs); /* skip IFS chars */
+		str += strspn(str, G.ifs_whitespace); /* skip IFS whitespace chars */
 		if (!*str)  /* EOL - do not finalize word */
 			break;
+
+		if (G.ifs_whitespace != G.ifs /* usually false ($IFS is usually all whitespace), */
+		 && strchr(G.ifs, *str)       /* the second check would fail */
+		) {
+			/* This is a non-whitespace $IFS char */
+			/* Skip it and IFS whitespace chars, start new word */
+			str++;
+			str += strspn(str, G.ifs_whitespace);
+			goto new_word;
+		}
 
 		/* Start new word... but not always! */
 		/* Case "v=' a'; echo ''$v": we do need to finalize empty word: */
@@ -5710,6 +5721,7 @@ static int expand_on_ifs(int *ended_with_ifs, o_string *output, int n, const cha
 		 */
 		 || (n > 0 && output->data[output->length - 1])
 		) {
+ new_word:
 			o_addchr(output, '\0');
 			debug_print_list("expand_on_ifs", output, n);
 			n = o_save_ptr(output, n);
@@ -8283,9 +8295,31 @@ static NOINLINE int run_pipe(struct pipe *pi)
 	/* Testcase: set -- q w e; (IFS='' echo "$*"; IFS=''; echo "$*"); echo "$*"
 	 * Result should be 3 lines: q w e, qwe, q w e
 	 */
+	if (G.ifs_whitespace != G.ifs)
+		free(G.ifs_whitespace);
 	G.ifs = get_local_var_value("IFS");
-	if (!G.ifs)
+	if (G.ifs) {
+		char *p;
+		G.ifs_whitespace = (char*)G.ifs;
+		p = skip_whitespace(G.ifs);
+		if (*p) {
+			/* Not all $IFS is whitespace */
+			char *d;
+			int len = p - G.ifs;
+			p = skip_non_whitespace(p);
+			G.ifs_whitespace = xmalloc(len + strlen(p) + 1); /* can overestimate */
+			d = mempcpy(G.ifs_whitespace, G.ifs, len);
+			while (*p) {
+				if (isspace(*p))
+					*d++ = *p;
+				p++;
+			}
+			*d = '\0';
+		}
+	} else {
 		G.ifs = defifs;
+		G.ifs_whitespace = (char*)G.ifs;
+	}
 
 	IF_HUSH_JOB(pi->pgrp = -1;)
 	pi->stopped_cmds = 0;
