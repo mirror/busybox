@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -61,6 +62,7 @@ static int str_isalnum_(const char *s)
 int main(int argc, char **argv)
 {
 	int i, j;
+	char tmp1[PATH_MAX], tmp2[PATH_MAX];
 
 	// In find_applet_by_name(), before linear search, narrow it down
 	// by looking at N "equidistant" names. With ~350 applets:
@@ -84,7 +86,8 @@ int main(int argc, char **argv)
 
 	if (!argv[1])
 		return 1;
-	i = open(argv[1], O_WRONLY | O_TRUNC | O_CREAT, 0666);
+	snprintf(tmp1, PATH_MAX, "%s.%u.new", argv[1], (int) getpid());
+	i = open(tmp1, O_WRONLY | O_TRUNC | O_CREAT, 0666);
 	if (i < 0)
 		return 1;
 	dup2(i, 1);
@@ -209,12 +212,21 @@ int main(int argc, char **argv)
 //			fclose(fp);
 //		}
 //		if (strcmp(line_old, line_new) != 0) {
-			fp = fopen(argv[2], "w");
+			snprintf(tmp2, PATH_MAX, "%s.%u.new", argv[2], (int) getpid());
+			fp = fopen(tmp2, "w");
 			if (!fp)
 				return 1;
 			fputs(line_new, fp);
+			if (fclose(fp))
+				return 1;
 //		}
 	}
 
+	if (fclose(stdout))
+		return 1;
+	if (rename(tmp1, argv[1]))
+		return 1;
+	if (rename(tmp2, argv[2]))
+		return 1;
 	return 0;
 }

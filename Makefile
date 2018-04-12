@@ -368,7 +368,7 @@ gen_build_files: $(wildcard $(srctree)/*/*.c) $(wildcard $(srctree)/*/*/*.c)
 # we depend on scripts_basic, since scripts/basic/fixdep
 # must be built before any other host prog
 PHONY += applets_dir
-applets_dir: scripts_basic gen_build_files
+applets_dir: scripts_basic gen_build_files include/config/MARKER
 	$(Q)$(MAKE) $(build)=applets
 
 applets/%: applets_dir ;
