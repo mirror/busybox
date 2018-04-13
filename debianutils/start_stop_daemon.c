@@ -157,6 +157,9 @@ struct globals {
 	unsigned execname_sizeof;
 	int user_id;
 	smallint signal_nr;
+#ifdef OLDER_VERSION_OF_X
+	struct stat execstat;
+#endif
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define userspec          (G.userspec            )
@@ -184,8 +187,8 @@ static int pid_is_exec(pid_t pid)
 	sprintf(buf, "/proc/%u/exe", (unsigned)pid);
 	if (stat(buf, &st) < 0)
 		return 0;
-	if (st.st_dev == execstat.st_dev
-	 && st.st_ino == execstat.st_ino)
+	if (st.st_dev == G.execstat.st_dev
+	 && st.st_ino == G.execstat.st_ino)
 		return 1;
 	return 0;
 }
@@ -408,9 +411,6 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	char *signame;
 	char *startas;
 	char *chuid;
-#ifdef OLDER_VERSION_OF_X
-	struct stat execstat;
-#endif
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 //	char *retry_arg = NULL;
 //	int retries = -1;
@@ -479,7 +479,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 
 #ifdef OLDER_VERSION_OF_X
 	if (execname)
-		xstat(execname, &execstat);
+		xstat(execname, &G.execstat);
 #endif
 
 	*--argv = startas;
