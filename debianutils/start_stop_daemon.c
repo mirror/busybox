@@ -192,8 +192,7 @@ static int pid_is_exec(pid_t pid)
 		return 1;
 	return 0;
 }
-#endif
-
+#else
 static int pid_is_exec(pid_t pid)
 {
 	ssize_t bytes;
@@ -217,6 +216,7 @@ static int pid_is_exec(pid_t pid)
 	}
 	return 0;
 }
+#endif
 
 static int pid_is_name(pid_t pid)
 {
