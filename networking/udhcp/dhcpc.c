@@ -1224,6 +1224,7 @@ static void client_background(void)
 //usage:     "\n			-x hostname:bbox - option 12"
 //usage:     "\n			-x lease:3600 - option 51 (lease time)"
 //usage:     "\n			-x 0x3d:0100BEEFC0FFEE - option 61 (client id)"
+//usage:     "\n			-x 14:'\"dumpfile\"' - option 14 (shell-quoted)"
 //usage:     "\n	-F NAME		Ask server to update DNS mapping for NAME"
 //usage:     "\n	-V VENDOR	Vendor identifier (default 'udhcp VERSION')"
 //usage:     "\n	-C		Don't send MAC as client identifier"
@@ -1335,15 +1336,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 	while (list_x) {
-		char *optstr = llist_pop(&list_x);
-		char *colon = strchr(optstr, ':');
-		if (colon)
-			*colon = ' ';
-		/* now it looks similar to udhcpd's config file line:
-		 * "optname optval", using the common routine: */
+		char *optstr = xstrdup(llist_pop(&list_x));
 		udhcp_str2optset(optstr, &client_config.options, dhcp_optflags, dhcp_option_strings);
-		if (colon)
-			*colon = ':'; /* restore it for NOMMU reexec */
+		free(optstr);
 	}
 
 	if (udhcp_read_interface(client_config.interface,

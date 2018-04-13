@@ -1063,6 +1063,7 @@ static void client_background(void)
 //usage:     "\n			-x hostname:bbox - option 12"
 //usage:     "\n			-x lease:3600 - option 51 (lease time)"
 //usage:     "\n			-x 0x3d:0100BEEFC0FFEE - option 61 (client id)"
+//usage:     "\n			-x 14:'\"dumpfile\"' - option 14 (shell-quoted)"
 //usage:	IF_UDHCP_VERBOSE(
 //usage:     "\n	-v		Verbose"
 //usage:	)
@@ -1155,15 +1156,9 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 	while (list_x) {
-		char *optstr = llist_pop(&list_x);
-		char *colon = strchr(optstr, ':');
-		if (colon)
-			*colon = ' ';
-		/* now it looks similar to udhcpd's config file line:
-		 * "optname optval", using the common routine: */
+		char *optstr = xstrdup(llist_pop(&list_x));
 		udhcp_str2optset(optstr, &client_config.options, d6_optflags, d6_option_strings);
-		if (colon)
-			*colon = ':'; /* restore it for NOMMU reexec */
+		free(optstr);
 	}
 
 	if (d6_read_interface(client_config.interface,
