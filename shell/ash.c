@@ -7575,9 +7575,16 @@ expandmeta(struct strlist *str /*, int flag*/)
 /*
  * Do metacharacter (i.e. *, ?, [...]) expansion.
  */
+typedef struct exp_t {
+	char *dir;
+	unsigned dir_max;
+} exp_t;
 static void
-expmeta(char *expdir, char *enddir, char *name)
+expmeta(exp_t *exp, char *name, unsigned name_len, unsigned expdir_len)
 {
+#define expdir exp->dir
+#define expdir_max exp->dir_max
+	char *enddir = expdir + expdir_len;
 	char *p;
 	const char *cp;
 	char *start;
@@ -7620,15 +7627,15 @@ expmeta(char *expdir, char *enddir, char *name)
 		}
 	}
 	if (metaflag == 0) {    /* we've reached the end of the file name */
-		if (enddir != expdir)
-			metaflag++;
+		if (!expdir_len)
+			return;
 		p = name;
 		do {
 			if (*p == '\\')
 				p++;
 			*enddir++ = *p;
 		} while (*p++);
-		if (metaflag == 0 || lstat(expdir, &statb) >= 0)
+		if (lstat(expdir, &statb) == 0)
 			addfname(expdir);
 		return;
 	}
@@ -7641,19 +7648,14 @@ expmeta(char *expdir, char *enddir, char *name)
 			*enddir++ = *p++;
 		} while (p < start);
 	}
-	if (enddir == expdir) {
+	*enddir = '\0';
+	cp = expdir;
+	expdir_len = enddir - cp;
+	if (!expdir_len)
 		cp = ".";
-	} else if (enddir == expdir + 1 && *expdir == '/') {
-		cp = "/";
-	} else {
-		cp = expdir;
-		enddir[-1] = '\0';
-	}
 	dirp = opendir(cp);
 	if (dirp == NULL)
 		return;
-	if (enddir != expdir)
-		enddir[-1] = '/';
 	if (*endname == 0) {
 		atend = 1;
 	} else {
@@ -7661,6 +7663,7 @@ expmeta(char *expdir, char *enddir, char *name)
 		*endname = '\0';
 		endname += esc + 1;
 	}
+	name_len -= endname - name;
 	matchdot = 0;
 	p = start;
 	if (*p == '\\')
@@ -7675,16 +7678,30 @@ expmeta(char *expdir, char *enddir, char *name)
 				strcpy(enddir, dp->d_name);
 				addfname(expdir);
 			} else {
-				for (p = enddir, cp = dp->d_name; (*p++ = *cp++) != '\0';)
-					continue;
-				p[-1] = '/';
-				expmeta(expdir, p, endname);
+				unsigned offset;
+				unsigned len;
+
+				p = stpcpy(enddir, dp->d_name);
+				*p = '/';
+
+				offset = p - expdir + 1;
+				len = offset + name_len + NAME_MAX;
+				if (len > expdir_max) {
+					len += PATH_MAX;
+					expdir = ckrealloc(expdir, len);
+					expdir_max = len;
+				}
+
+				expmeta(exp, endname, name_len, offset);
+				enddir = expdir + expdir_len;
 			}
 		}
 	}
 	closedir(dirp);
 	if (!atend)
 		endname[-esc - 1] = esc ? '\\' : '/';
+#undef expdir
+#undef expdir_max
 }
 
 static struct strlist *
@@ -7757,10 +7774,11 @@ expandmeta(struct strlist *str /*, int flag*/)
 	/* TODO - EXP_REDIR */
 
 	while (str) {
-		char *expdir;
+		exp_t exp;
 		struct strlist **savelastp;
 		struct strlist *sp;
 		char *p;
+		unsigned len;
 
 		if (fflag)
 			goto nometa;
@@ -7770,13 +7788,12 @@ expandmeta(struct strlist *str /*, int flag*/)
 
 		INT_OFF;
 		p = preglob(str->text, RMESCAPE_ALLOC | RMESCAPE_HEAP);
-		{
-			int i = strlen(str->text);
-//BUGGY estimation of how long expanded name can be
-			expdir = ckmalloc(i < 2048 ? 2048 : i+1);
-		}
-		expmeta(expdir, expdir, p);
-		free(expdir);
+		len = strlen(p);
+		exp.dir_max = len + PATH_MAX;
+		exp.dir = ckmalloc(exp.dir_max);
+
+		expmeta(&exp, p, len, 0);
+		free(exp.dir);
 		if (p != str->text)
 			free(p);
 		INT_ON;
