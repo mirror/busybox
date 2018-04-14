@@ -797,11 +797,9 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 			char buf80[80];
 
 			ptr = make_ptr(buf80, *argv);
-
 			if (ptr) {
-				add_query(&queries, &n_queries, T_PTR, ptr);
-			}
-			else {
+				add_query(&queries, &n_queries, T_PTR, xstrdup(ptr));
+			} else {
 				add_query(&queries, &n_queries, T_A, *argv);
 #if ENABLE_FEATURE_IPV6
 				add_query(&queries, &n_queries, T_AAAA, *argv);
