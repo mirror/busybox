@@ -557,7 +557,11 @@ static int send_queries(struct ns *ns, struct query *queries, int n_queries)
 					xconnect(pfd.fd, &ns->lsa->u.sa, ns->lsa->len);
 					ndelay_on(pfd.fd);
 				}
-				write(pfd.fd, queries[qn].query, queries[qn].qlen);
+				if (write(pfd.fd, queries[qn].query, queries[qn].qlen) < 0) {
+					bb_perror_msg("write to '%s'", ns->name);
+					close(pfd.fd);
+					return -1; /* "no go, try next server" */
+				}
 			}
 
 			t1 = t2;
@@ -710,36 +714,6 @@ static struct query *add_query(struct query **queries, int *n_queries,
 	return new_q;
 }
 
-//FIXME: use xmalloc_sockaddr2dotted[_noport]() instead of sal2str()
-
-#define SIZEOF_SAL2STR_BUF (INET6_ADDRSTRLEN + 1 + IFNAMSIZ + 1 + 5 + 1)
-static char *sal2str(char buf[SIZEOF_SAL2STR_BUF], len_and_sockaddr *a)
-{
-	char *p = buf;
-
-#if ENABLE_FEATURE_IPV6
-	if (a->u.sa.sa_family == AF_INET6) {
-		inet_ntop(AF_INET6, &a->u.sin6.sin6_addr, buf, SIZEOF_SAL2STR_BUF);
-		p += strlen(p);
-
-		if (a->u.sin6.sin6_scope_id) {
-			if (if_indextoname(a->u.sin6.sin6_scope_id, p + 1)) {
-				*p++ = '%';
-				p += strlen(p);
-			}
-		}
-	} else
-#endif
-	{
-		inet_ntop(AF_INET, &a->u.sin.sin_addr, buf, SIZEOF_SAL2STR_BUF);
-		p += strlen(p);
-	}
-
-	sprintf(p, "#%hu", ntohs(a->u.sin.sin_port));
-
-	return buf;
-}
-
 int nslookup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nslookup_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -862,10 +836,10 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 
 	for (rc = 0; rc < G.serv_count; rc++) {
 		int c = send_queries(&G.server[rc], queries, n_queries);
-		if (c < 0)
-			bb_perror_msg_and_die("can't send queries");
 		if (c > 0)
 			break;
+		/* c = 0: timed out waiting for replies */
+		/* c < 0: error (message already printed) */
 		rc++;
 		if (rc >= G.serv_count) {
 			fprintf(stderr,
@@ -875,10 +849,10 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	printf("Server:\t\t%s\n", G.server[rc].name);
-	{
-		char buf[SIZEOF_SAL2STR_BUF];
-		printf("Address:\t%s\n", sal2str(buf, G.server[rc].lsa));
-	}
+	printf("Address:\t%s\n", xmalloc_sockaddr2dotted(&G.server[rc].lsa->u.sa));
+	/* In "Address", bind-utils-9.11.3 show port after a hash: "1.2.3.4#53" */
+	/* Should we do the same? */
+
 	if (opts & OPT_stats) {
 		printf("Replies:\t%d\n", G.server[rc].replies);
 		printf("Failures:\t%d\n", G.server[rc].failures);
