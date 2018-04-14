@@ -263,10 +263,10 @@ struct ns {
 
 struct query {
 	const char *name;
-	size_t qlen, rlen;
+	unsigned qlen, rlen;
+	unsigned latency;
+	uint8_t rcode;
 	unsigned char query[512], reply[512];
-	unsigned long latency;
-	int rcode;
 };
 
 static const struct {
@@ -288,23 +288,22 @@ static const struct {
 };
 
 static const char *const rcodes[] = {
-	"NOERROR",
-	"FORMERR",
-	"SERVFAIL",
-	"NXDOMAIN",
-	"NOTIMP",
-	"REFUSED",
-	"YXDOMAIN",
-	"YXRRSET",
-	"NXRRSET",
-	"NOTAUTH",
-	"NOTZONE",
-	"RESERVED11",
-	"RESERVED12",
-	"RESERVED13",
-	"RESERVED14",
-	"RESERVED15",
-	"BADVERS"
+	"NOERROR",    // 0
+	"FORMERR",    // 1
+	"SERVFAIL",   // 2
+	"NXDOMAIN",   // 3
+	"NOTIMP",     // 4
+	"REFUSED",    // 5
+	"YXDOMAIN",   // 6
+	"YXRRSET",    // 7
+	"NXRRSET",    // 8
+	"NOTAUTH",    // 9
+	"NOTZONE",    // 10
+	"11",         // 11 not assigned
+	"12",         // 12 not assigned
+	"13",         // 13 not assigned
+	"14",         // 14 not assigned
+	"15",         // 15 not assigned
 };
 
 #if ENABLE_FEATURE_IPV6
@@ -518,131 +517,136 @@ static char *make_ptr(char resbuf[80], const char *addrstr)
 
 /*
  * Function logic borrowed & modified from musl libc, res_msend.c
+ * n_queries is always > 0.
  */
-static int send_queries(struct ns *ns, struct query *queries, int n_queries)
+static int send_queries(struct ns *ns, struct query *query, int n_queries)
 {
+	len_and_sockaddr *local_lsa;
 	struct pollfd pfd;
 	int servfail_retry = 0;
 	int n_replies = 0;
-	int next_query = 0;
+	int save_idx = 0;
 	unsigned retry_interval;
 	unsigned timeout = G.default_timeout * 1000;
-	unsigned t0, t1, t2;
+	unsigned tstart, tsent, tcur;
 
-	pfd.fd = -1;
 	pfd.events = POLLIN;
+	pfd.fd = xsocket_type(&local_lsa, ns->lsa->u.sa.sa_family, SOCK_DGRAM);
+	/*
+	 * local_lsa has "null" address and port 0 now.
+	 * bind() ensures we have a *particular port* selected by kernel
+	 * and remembered in fd, thus later recv(fd)
+	 * receives only packets sent to this port.
+	 */
+	xbind(pfd.fd, &local_lsa->u.sa, local_lsa->len);
+	free(local_lsa);
+	/* Make read/writes know the destination */
+	xconnect(pfd.fd, &ns->lsa->u.sa, ns->lsa->len);
+	ndelay_on(pfd.fd);
 
 	retry_interval = timeout / G.default_retry;
-	t0 = t2 = monotonic_ms();
-	t1 = t2 - retry_interval;
+	tstart = tcur = monotonic_ms();
+	goto send;
 
-	for (; t2 - t0 < timeout; t2 = monotonic_ms()) {
-		if (t2 - t1 >= retry_interval) {
-			int qn;
+	while (tcur - tstart < timeout) {
+		int qn;
+		int recvlen;
+
+		if (tcur - tsent >= retry_interval) {
+ send:
 			for (qn = 0; qn < n_queries; qn++) {
-				if (queries[qn].rlen)
+				if (query[qn].rlen)
 					continue;
-				if (pfd.fd < 0) {
-					len_and_sockaddr *local_lsa;
-					pfd.fd = xsocket_type(&local_lsa, ns->lsa->u.sa.sa_family, SOCK_DGRAM);
-					/*
-					 * local_lsa has "null" address and port 0 now.
-					 * bind() ensures we have a *particular port* selected by kernel
-					 * and remembered in fd, thus later recv(fd)
-					 * receives only packets sent to this port.
-					 */
-					xbind(pfd.fd, &local_lsa->u.sa, local_lsa->len);
-					free(local_lsa);
-					/* Make read/writes know the destination */
-					xconnect(pfd.fd, &ns->lsa->u.sa, ns->lsa->len);
-					ndelay_on(pfd.fd);
-				}
-				if (write(pfd.fd, queries[qn].query, queries[qn].qlen) < 0) {
+				if (write(pfd.fd, query[qn].query, query[qn].qlen) < 0) {
 					bb_perror_msg("write to '%s'", ns->name);
-					close(pfd.fd);
-					return -1; /* "no go, try next server" */
+					n_replies = -1; /* "no go, try next server" */
+					goto ret;
 				}
+				dbg("query %u sent\n", qn);
 			}
-
-			t1 = t2;
+			tsent = tcur;
 			servfail_retry = 2 * n_queries;
 		}
- poll_more:
+
 		/* Wait for a response, or until time to retry */
-		if (poll(&pfd, 1, t1 + retry_interval - t2) <= 0)
-			continue;
+		if (poll(&pfd, 1, retry_interval - (tcur - tsent)) <= 0)
+			goto next;
 
-		while (1) {
-			int qn;
-			int recvlen;
+		recvlen = read(pfd.fd, query[save_idx].reply, sizeof(query[0].reply));
 
-			recvlen = read(pfd.fd,
-					queries[next_query].reply,
-					sizeof(queries[next_query].reply)
-			);
-
-			/* read error */
-			if (recvlen < 0)
-				break;
-
-			/* Ignore non-identifiable packets */
-			if (recvlen < 4)
-				goto poll_more;
-
-			/* Find which query this answer goes with, if any */
-			for (qn = next_query; qn < n_queries; qn++)
-				if (memcmp(queries[next_query].reply, queries[qn].query, 2) == 0)
-					break;
-
-			if (qn >= n_queries || queries[qn].rlen)
-				goto poll_more;
-
-			queries[qn].rcode = queries[next_query].reply[3] & 15;
-			queries[qn].latency = monotonic_ms() - t0;
-
-			ns->replies++;
-
-			/* Only accept positive or negative responses;
-			 * retry immediately on server failure, and ignore
-			 * all other codes such as refusal. */
-			switch (queries[qn].rcode) {
-			case 0:
-			case 3:
-				break;
-
-			case 2:
-				if (servfail_retry && servfail_retry--) {
-					ns->failures++;
-					write(pfd.fd, queries[qn].query, queries[qn].qlen);
-				}
-				/* fall through */
-
-			default:
-				continue;
-			}
-
-			/* Store answer */
-			n_replies++;
-
-			queries[qn].rlen = recvlen;
-
-			if (qn == next_query) {
-				while (next_query < n_queries) {
-					if (!queries[next_query].rlen)
-						break;
-					next_query++;
-				}
-			} else {
-				memcpy(queries[qn].reply, queries[next_query].reply, recvlen);
-			}
-
-			if (next_query >= n_queries)
-				goto ret;
+		/* Error/non-identifiable packet */
+		if (recvlen < 4) {
+			dbg("read is too short:%d\n", recvlen);
+			goto next;
 		}
-	}
+
+		/* Find which query this answer goes with, if any */
+		qn = save_idx;
+		for (;;) {
+			if (memcmp(query[save_idx].reply, query[qn].query, 2) == 0) {
+				dbg("response matches query %u\n", qn);
+				break;
+			}
+			if (++qn >= n_queries) {
+				dbg("response does not match any query\n");
+				goto next;
+			}
+		}
+
+		if (query[qn].rlen) {
+			dbg("dropped duplicate response to query %u\n", qn);
+			goto next;
+		}
+
+		ns->replies++;
+
+		query[qn].rcode = query[save_idx].reply[3] & 15;
+		dbg("query %u rcode:%s\n", qn, rcodes[query[qn].rcode]);
+
+		/* Only accept positive or negative responses;
+		 * retry immediately on server failure, and ignore
+		 * all other codes such as refusal.
+		 */
+		switch (query[qn].rcode) {
+		case 0:
+		case 3:
+			break;
+		case 2:
+			if (servfail_retry) {
+				servfail_retry--;
+				ns->failures++;
+				write(pfd.fd, query[qn].query, query[qn].qlen);
+				dbg("query %u resent\n", qn);
+			}
+			/* fall through */
+		default:
+ next:
+			tcur = monotonic_ms();
+			continue;
+		}
+
+		/* Store answer */
+		n_replies++;
+		query[qn].rlen = recvlen;
+		tcur = monotonic_ms();
+		query[qn].latency = tcur - tstart;
+		if (qn != save_idx) {
+			/* "wrong" receive buffer, move to correct one */
+			memcpy(query[qn].reply, query[save_idx].reply, recvlen);
+			continue;
+		}
+		/* query[0..save_idx] have replies, move to next one, if exists */
+		for (;;) {
+			save_idx++;
+			if (save_idx >= n_queries)
+				goto ret; /* all are full: we have all results */
+			if (!query[save_idx].rlen)
+				break; /* this one is empty */
+		}
+	} /* while() */
+
  ret:
-	if (pfd.fd >= 0)
-		close(pfd.fd);
+	close(pfd.fd);
 
 	return n_replies;
 }
@@ -791,12 +795,13 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 	n_queries = 0;
 	queries = NULL;
 	do {
-		/* No explicit type given, guess query type.
-		 * If we can convert the domain argument into a ptr (means that
-		 * inet_pton() could read it) we assume a PTR request, else
-		 * we issue A+AAAA queries and switch to an output format
-		 * mimicking the one of the traditional nslookup applet. */
 		if (types == 0) {
+			/* No explicit type given, guess query type.
+			 * If we can convert the domain argument into a ptr (means that
+			 * inet_pton() could read it) we assume a PTR request, else
+			 * we issue A+AAAA queries and switch to an output format
+			 * mimicking the one of the traditional nslookup applet.
+			 */
 			char *ptr;
 			char buf80[80];
 
