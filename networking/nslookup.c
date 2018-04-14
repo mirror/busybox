@@ -1,20 +1,20 @@
 /* vi: set sw=4 ts=4: */
-/*
- * Mini nslookup implementation for busybox
- *
- * Copyright (C) 1999,2000 by Lineo, inc. and John Beppu
- * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
- *
- * Correct default name server display and explicit name server option
- * added by Ben Zeckel <bzeckel@hmc.edu> June 2001
- *
- * Licensed under GPLv2 or later, see file LICENSE in this source tree.
- */
+
 //config:config NSLOOKUP
 //config:	bool "nslookup (4.5 kb)"
 //config:	default y
 //config:	help
 //config:	nslookup is a tool to query Internet name servers.
+//config:
+//config:config NSLOOKUP_BIG
+//config:	bool "Use internal resolver code instead of libc"
+//config:	depends on NSLOOKUP
+//config:	default y
+//config:
+//config:config FEATURE_NSLOOKUP_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on NSLOOKUP_BIG && LONG_OPTS
 
 //applet:IF_NSLOOKUP(APPLET(nslookup, BB_DIR_USR_BIN, BB_SUID_DROP))
 
@@ -35,7 +35,26 @@
 //usage:       "Address:    127.0.0.1\n"
 
 #include <resolv.h>
+#include <net/if.h>	/* for IFNAMSIZ */
+//#include <arpa/inet.h>
+//#include <netdb.h>
 #include "libbb.h"
+#include "common_bufsiz.h"
+
+
+#if !ENABLE_NSLOOKUP_BIG
+
+/*
+ * Mini nslookup implementation for busybox
+ *
+ * Copyright (C) 1999,2000 by Lineo, inc. and John Beppu
+ * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
+ *
+ * Correct default name server display and explicit name server option
+ * added by Ben Zeckel <bzeckel@hmc.edu> June 2001
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ */
 
 /*
  * I'm only implementing non-interactive mode;
@@ -207,3 +226,881 @@ int nslookup_main(int argc, char **argv)
 
 	return print_host(argv[1], "Name:");
 }
+
+
+#else /****** A version from LEDE / OpenWRT ******/
+
+/*
+ * musl compatible nslookup
+ *
+ * Copyright (C) 2017 Jo-Philipp Wich <jo@mein.io>
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#if 0
+# define dbg(...) fprintf(stderr, __VA_ARGS__)
+#else
+# define dbg(...) ((void)0)
+#endif
+
+struct ns {
+	const char *name;
+	len_and_sockaddr addr;
+	int failures;
+	int replies;
+};
+
+struct query {
+	const char *name;
+	size_t qlen, rlen;
+	unsigned char query[512], reply[512];
+	unsigned long latency;
+	int rcode, n_ns;
+};
+
+static const struct {
+	int type;
+	const char *name;
+} qtypes[] = {
+	{ ns_t_soa,   "SOA"   },
+	{ ns_t_ns,    "NS"    },
+	{ ns_t_a,     "A"     },
+#if ENABLE_FEATURE_IPV6
+	{ ns_t_aaaa,  "AAAA"  },
+#endif
+	{ ns_t_cname, "CNAME" },
+	{ ns_t_mx,    "MX"    },
+	{ ns_t_txt,   "TXT"   },
+	{ ns_t_ptr,   "PTR"   },
+	{ ns_t_any,   "ANY"   },
+	{ }
+};
+
+static const char *const rcodes[] = {
+	"NOERROR",
+	"FORMERR",
+	"SERVFAIL",
+	"NXDOMAIN",
+	"NOTIMP",
+	"REFUSED",
+	"YXDOMAIN",
+	"YXRRSET",
+	"NXRRSET",
+	"NOTAUTH",
+	"NOTZONE",
+	"RESERVED11",
+	"RESERVED12",
+	"RESERVED13",
+	"RESERVED14",
+	"RESERVED15",
+	"BADVERS"
+};
+
+#if ENABLE_FEATURE_IPV6
+static const char v4_mapped[] = { 0,0,0,0,0,0,0,0,0,0,0xff,0xff };
+#endif
+
+struct globals {
+	unsigned default_port;
+	unsigned default_retry;
+	unsigned default_timeout;
+} FIX_ALIASING;
+#define G (*(struct globals*)bb_common_bufsiz1)
+#define INIT_G() do { \
+	setup_common_bufsiz(); \
+	G.default_port = 53; \
+	G.default_retry = 2; \
+	G.default_timeout = 5; \
+} while (0)
+
+static int
+parse_reply(const unsigned char *msg, size_t len, int *bb_style_counter)
+{
+	ns_msg handle;
+	ns_rr rr;
+	int i, n, rdlen;
+	const char *format = NULL;
+	char astr[INET6_ADDRSTRLEN], dname[MAXDNAME];
+	const unsigned char *cp;
+
+	if (ns_initparse(msg, len, &handle) != 0) {
+		//fprintf(stderr, "Unable to parse reply: %s\n", strerror(errno));
+		return -1;
+	}
+
+	for (i = 0; i < ns_msg_count(handle, ns_s_an); i++) {
+		if (ns_parserr(&handle, ns_s_an, i, &rr) != 0) {
+			//fprintf(stderr, "Unable to parse resource record: %s\n", strerror(errno));
+			return -1;
+		}
+
+		if (bb_style_counter && *bb_style_counter == 1)
+			printf("Name:      %s\n", ns_rr_name(rr));
+
+		rdlen = ns_rr_rdlen(rr);
+
+		switch (ns_rr_type(rr))
+		{
+		case ns_t_a:
+			if (rdlen != 4) {
+				//fprintf(stderr, "Unexpected A record length\n");
+				return -1;
+			}
+			inet_ntop(AF_INET, ns_rr_rdata(rr), astr, sizeof(astr));
+			if (bb_style_counter)
+				printf("Address %d: %s\n", (*bb_style_counter)++, astr);
+			else
+				printf("Name:\t%s\nAddress: %s\n", ns_rr_name(rr), astr);
+			break;
+
+#if ENABLE_FEATURE_IPV6
+		case ns_t_aaaa:
+			if (rdlen != 16) {
+				//fprintf(stderr, "Unexpected AAAA record length\n");
+				return -1;
+			}
+			inet_ntop(AF_INET6, ns_rr_rdata(rr), astr, sizeof(astr));
+			if (bb_style_counter)
+				printf("Address %d: %s\n", (*bb_style_counter)++, astr);
+			else
+				printf("%s\thas AAAA address %s\n", ns_rr_name(rr), astr);
+			break;
+#endif
+
+		case ns_t_ns:
+			if (!format)
+				format = "%s\tnameserver = %s\n";
+			/* fall through */
+
+		case ns_t_cname:
+			if (!format)
+				format = "%s\tcanonical name = %s\n";
+			/* fall through */
+
+		case ns_t_ptr:
+			if (!format)
+				format = "%s\tname = %s\n";
+			if (ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
+				ns_rr_rdata(rr), dname, sizeof(dname)) < 0) {
+				//fprintf(stderr, "Unable to uncompress domain: %s\n", strerror(errno));
+				return -1;
+			}
+			printf(format, ns_rr_name(rr), dname);
+			break;
+
+		case ns_t_mx:
+			if (rdlen < 2) {
+				fprintf(stderr, "MX record too short\n");
+				return -1;
+			}
+			n = ns_get16(ns_rr_rdata(rr));
+			if (ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
+				ns_rr_rdata(rr) + 2, dname, sizeof(dname)) < 0) {
+				//fprintf(stderr, "Cannot uncompress MX domain: %s\n", strerror(errno));
+				return -1;
+			}
+			printf("%s\tmail exchanger = %d %s\n", ns_rr_name(rr), n, dname);
+			break;
+
+		case ns_t_txt:
+			if (rdlen < 1) {
+				//fprintf(stderr, "TXT record too short\n");
+				return -1;
+			}
+			n = *(unsigned char *)ns_rr_rdata(rr);
+			if (n > 0) {
+				memset(dname, 0, sizeof(dname));
+				memcpy(dname, ns_rr_rdata(rr) + 1, n);
+				printf("%s\ttext = \"%s\"\n", ns_rr_name(rr), dname);
+			}
+			break;
+
+		case ns_t_soa:
+			if (rdlen < 20) {
+				//fprintf(stderr, "SOA record too short\n");
+				return -1;
+			}
+
+			printf("%s\n", ns_rr_name(rr));
+
+			cp = ns_rr_rdata(rr);
+			n = ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
+			                       cp, dname, sizeof(dname));
+
+			if (n < 0) {
+				//fprintf(stderr, "Unable to uncompress domain: %s\n", strerror(errno));
+				return -1;
+			}
+
+			printf("\torigin = %s\n", dname);
+			cp += n;
+
+			n = ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
+			                       cp, dname, sizeof(dname));
+
+			if (n < 0) {
+				//fprintf(stderr, "Unable to uncompress domain: %s\n", strerror(errno));
+				return -1;
+			}
+
+			printf("\tmail addr = %s\n", dname);
+			cp += n;
+
+			printf("\tserial = %lu\n", ns_get32(cp));
+			cp += 4;
+
+			printf("\trefresh = %lu\n", ns_get32(cp));
+			cp += 4;
+
+			printf("\tretry = %lu\n", ns_get32(cp));
+			cp += 4;
+
+			printf("\texpire = %lu\n", ns_get32(cp));
+			cp += 4;
+
+			printf("\tminimum = %lu\n", ns_get32(cp));
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return i;
+}
+
+static int parse_nsaddr(const char *addrstr, len_and_sockaddr *lsa)
+{
+	char *hash;
+	unsigned port = G.default_port;
+	IF_FEATURE_IPV6(unsigned scope;)
+
+	dbg("%s: addrstr:'%s'\n", __func__, addrstr);
+
+	hash = strchr(addrstr, '#');
+
+	if (hash) {
+		*hash++ = '\0';
+		port = bb_strtou(hash, NULL, 10);
+		if (errno || port > 65535) {
+			errno = EINVAL;
+			return -1;
+		}
+	}
+
+#if ENABLE_FEATURE_IPV6
+	scope = 0;
+	hash = strchr(addrstr, '%');
+	if (hash) {
+		char ifname[IFNAMSIZ];
+		int i;
+
+		hash++;
+		for (i = 0; hash[i] != '\0' && hash[i] != '#'; i++) {
+			if (i >= IFNAMSIZ) {
+				errno = ENODEV;
+				return -1;
+			}
+			ifname[i] = hash[i];
+		}
+		ifname[i] = '\0';
+
+		scope = if_nametoindex(ifname);
+		if (scope == 0) {
+			errno = ENODEV;
+			return -1;
+		}
+	}
+
+	if (inet_pton(AF_INET6, addrstr, &lsa->u.sin6.sin6_addr)) {
+		lsa->u.sin6.sin6_family = AF_INET6;
+		lsa->u.sin6.sin6_port = htons(port);
+		lsa->u.sin6.sin6_scope_id = scope;
+		lsa->len = sizeof(lsa->u.sin6);
+		return 0;
+	}
+#endif
+
+	if (inet_pton(AF_INET, addrstr, &lsa->u.sin.sin_addr)) {
+		lsa->u.sin.sin_family = AF_INET;
+		lsa->u.sin.sin_port = htons(port);
+		lsa->len = sizeof(lsa->u.sin);
+		return 0;
+	}
+
+	errno = EINVAL;
+	return -1;
+}
+
+static char *make_ptr(char resbuf[80], const char *addrstr)
+{
+	unsigned char addr[16];
+	int i;
+
+#if ENABLE_FEATURE_IPV6
+	if (inet_pton(AF_INET6, addrstr, addr)) {
+		if (memcmp(addr, v4_mapped, 12) != 0) {
+			char *ptr = resbuf;
+			for (i = 0; i < 16; i++) {
+				*ptr++ = 0x20 | bb_hexdigits_upcase[(unsigned char)addr[15 - i] & 0xf];
+				*ptr++ = '.';
+				*ptr++ = 0x20 | bb_hexdigits_upcase[(unsigned char)addr[15 - i] >> 4];
+				*ptr++ = '.';
+			}
+			strcpy(ptr, "ip6.arpa");
+		}
+		else {
+			sprintf(resbuf, "%u.%u.%u.%u.in-addr.arpa",
+				addr[15], addr[14], addr[13], addr[12]);
+		}
+		return resbuf;
+	}
+#endif
+
+	if (inet_pton(AF_INET, addrstr, addr)) {
+		sprintf(resbuf, "%u.%u.%u.%u.in-addr.arpa",
+		        addr[3], addr[2], addr[1], addr[0]);
+		return resbuf;
+	}
+
+	return NULL;
+}
+
+#if ENABLE_FEATURE_IPV6
+static void to_v4_mapped(len_and_sockaddr *a)
+{
+	if (a->u.sa.sa_family != AF_INET)
+		return;
+
+	/* Order is important */
+//FIXME: port?
+	memcpy(a->u.sin6.sin6_addr.s6_addr + 12, &a->u.sin.sin_addr, 4);
+	memcpy(a->u.sin6.sin6_addr.s6_addr, v4_mapped, 12);
+
+	a->u.sin6.sin6_family = AF_INET6;
+	a->u.sin6.sin6_flowinfo = 0;
+	a->u.sin6.sin6_scope_id = 0;
+	a->len = sizeof(a->u.sin6);
+}
+#endif
+
+/*
+ * Function logic borrowed & modified from musl libc, res_msend.c
+ */
+static int send_queries(struct ns *ns, int n_ns, struct query *queries, int n_queries)
+{
+	int fd;
+	int timeout = G.default_timeout * 1000, retry_interval, servfail_retry = 0;
+	len_and_sockaddr from = { };
+	int recvlen = 0;
+	int n_replies = 0;
+	struct pollfd pfd;
+	unsigned long t0, t1, t2;
+	int nn, qn, next_query = 0;
+
+	from.u.sa.sa_family = AF_INET;
+	from.len = sizeof(from.u.sin);
+#if ENABLE_FEATURE_IPV6
+	for (nn = 0; nn < n_ns; nn++) {
+		if (ns[nn].addr.u.sa.sa_family == AF_INET6) {
+			from.u.sa.sa_family = AF_INET6;
+			from.len = sizeof(from.u.sin6);
+			break;
+		}
+	}
+#endif
+
+	/* Get local address and open/bind a socket */
+#if ENABLE_FEATURE_IPV6
+	fd = socket(from.u.sa.sa_family, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
+	/* Handle case where system lacks IPv6 support */
+	if (fd < 0) {
+		if (from.u.sa.sa_family != AF_INET6 || errno != EAFNOSUPPORT)
+			bb_perror_msg_and_die("socket");
+		fd = xsocket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
+		from.u.sa.sa_family = AF_INET;
+	}
+#else
+	fd = xsocket(from.u.sa.sa_family, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
+#endif
+	xbind(fd, &from.u.sa, from.len);
+
+#if ENABLE_FEATURE_IPV6
+	/* Convert any IPv4 addresses in a mixed environment to v4-mapped */
+	if (from.u.sa.sa_family == AF_INET6) {
+		setsockopt_1(fd, IPPROTO_IPV6, IPV6_V6ONLY);
+		for (nn = 0; nn < n_ns; nn++)
+			to_v4_mapped(&ns[nn].addr);
+	}
+#endif
+
+	pfd.fd = fd;
+	pfd.events = POLLIN;
+	retry_interval = timeout / G.default_retry;
+	t0 = t2 = monotonic_ms();
+	t1 = t2 - retry_interval;
+
+	for (; t2 - t0 < timeout; t2 = monotonic_ms()) {
+		if (t2 - t1 >= retry_interval) {
+			for (qn = 0; qn < n_queries; qn++) {
+				if (queries[qn].rlen)
+					continue;
+
+				for (nn = 0; nn < n_ns; nn++) {
+					sendto(fd, queries[qn].query, queries[qn].qlen,
+					       MSG_NOSIGNAL, &ns[nn].addr.u.sa, ns[nn].addr.len);
+				}
+			}
+
+			t1 = t2;
+			servfail_retry = 2 * n_queries;
+		}
+
+		/* Wait for a response, or until time to retry */
+		if (poll(&pfd, 1, t1 + retry_interval - t2) <= 0)
+			continue;
+
+		while (1) {
+			recvlen = recvfrom(fd, queries[next_query].reply,
+				sizeof(queries[next_query].reply), 0,
+			        &from.u.sa, &from.len
+			);
+
+			/* read error */
+			if (recvlen < 0)
+				break;
+
+			/* Ignore non-identifiable packets */
+			if (recvlen < 4)
+				continue;
+
+			/* Ignore replies from addresses we didn't send to */
+			for (nn = 0; nn < n_ns; nn++)
+				if (memcmp(&from.u.sa, &ns[nn].addr.u.sa, from.len) == 0)
+					break;
+
+			if (nn >= n_ns)
+				continue;
+
+			/* Find which query this answer goes with, if any */
+			for (qn = next_query; qn < n_queries; qn++)
+				if (memcmp(queries[next_query].reply, queries[qn].query, 2) == 0)
+					break;
+
+			if (qn >= n_queries || queries[qn].rlen)
+				continue;
+
+			queries[qn].rcode = queries[next_query].reply[3] & 15;
+			queries[qn].latency = monotonic_ms() - t0;
+			queries[qn].n_ns = nn;
+
+			ns[nn].replies++;
+
+			/* Only accept positive or negative responses;
+			 * retry immediately on server failure, and ignore
+			 * all other codes such as refusal. */
+			switch (queries[qn].rcode) {
+			case 0:
+			case 3:
+				break;
+
+			case 2:
+				if (servfail_retry && servfail_retry--) {
+					ns[nn].failures++;
+					sendto(fd, queries[qn].query, queries[qn].qlen,
+					       MSG_NOSIGNAL, &ns[nn].addr.u.sa, ns[nn].addr.len);
+				}
+				/* fall through */
+
+			default:
+				continue;
+			}
+
+			/* Store answer */
+			n_replies++;
+
+			queries[qn].rlen = recvlen;
+
+			if (qn == next_query) {
+				while (next_query < n_queries) {
+					if (!queries[next_query].rlen)
+						break;
+
+					next_query++;
+				}
+			}
+			else {
+				memcpy(queries[qn].reply, queries[next_query].reply, recvlen);
+			}
+
+			if (next_query >= n_queries)
+				return n_replies;
+		}
+	}
+
+	return n_replies;
+}
+
+///FIXME: use standard lsa = xhost2sockaddr(host, port) instead
+
+static struct ns *add_ns(struct ns **ns, int *n_ns, const char *addr)
+{
+	char portstr[sizeof("65535")], *p;
+	len_and_sockaddr a = { };
+	struct ns *tmp;
+	struct addrinfo *ai, *aip, hints = {
+		.ai_flags = AI_NUMERICSERV,
+		.ai_socktype = SOCK_DGRAM
+	};
+
+	dbg("%s: addr:'%s'\n", __func__, addr);
+
+	if (parse_nsaddr(addr, &a)) {
+		/* Maybe we got a domain name, attempt to resolve it using the standard
+		 * resolver routines */
+
+		p = strchr(addr, '#');
+		snprintf(portstr, sizeof(portstr), "%hu",
+		         (unsigned short)(p ? strtoul(p, NULL, 10) : G.default_port));
+
+		if (!getaddrinfo(addr, portstr, &hints, &ai)) {
+			for (aip = ai; aip; aip = aip->ai_next) {
+				if (aip->ai_addr->sa_family != AF_INET &&
+				    aip->ai_addr->sa_family != AF_INET6)
+					continue;
+
+#if ! ENABLE_FEATURE_IPV6
+				if (aip->ai_addr->sa_family != AF_INET)
+					continue;
+#endif
+
+				tmp = realloc(*ns, sizeof(**ns) * (*n_ns + 1));
+
+				if (!tmp)
+					return NULL;
+
+				*ns = tmp;
+
+				(*ns)[*n_ns].name = addr;
+				(*ns)[*n_ns].replies = 0;
+				(*ns)[*n_ns].failures = 0;
+				(*ns)[*n_ns].addr.len = aip->ai_addrlen;
+
+				memcpy(&(*ns)[*n_ns].addr.u.sa, aip->ai_addr, aip->ai_addrlen);
+
+				(*n_ns)++;
+			}
+
+			freeaddrinfo(ai);
+
+			return &(*ns)[*n_ns];
+		}
+
+		return NULL;
+	}
+
+	tmp = xrealloc(*ns, sizeof(**ns) * (*n_ns + 1));
+	*ns = tmp;
+
+	(*ns)[*n_ns].addr = a;
+	(*ns)[*n_ns].name = addr;
+	(*ns)[*n_ns].replies = 0;
+	(*ns)[*n_ns].failures = 0;
+
+	return &(*ns)[(*n_ns)++];
+}
+
+static int parse_resolvconf(struct ns **ns, int *n_ns)
+{
+	int prev_n_ns = *n_ns;
+	FILE *resolv;
+
+	resolv = fopen("/etc/resolv.conf", "r");
+	if (resolv) {
+		char line[128], *p;
+
+		while (fgets(line, sizeof(line), resolv)) {
+			p = strtok(line, " \t\n");
+
+			if (!p || strcmp(p, "nameserver") != 0)
+				continue;
+
+			p = strtok(NULL, " \t\n");
+
+			if (!p)
+				continue;
+
+			if (!add_ns(ns, n_ns, xstrdup(p))) {
+				free(p);
+				break;
+			}
+		}
+
+		fclose(resolv);
+	}
+
+	return *n_ns - prev_n_ns;
+}
+
+static struct query *add_query(struct query **queries, int *n_queries,
+		int type, const char *dname)
+{
+	struct query *new_q;
+	int pos;
+	ssize_t qlen;
+
+	pos = *n_queries;
+	*n_queries = pos + 1;
+	*queries = new_q = xrealloc(*queries, sizeof(**queries) * (pos + 1));
+
+	dbg("new query#%u type %u for '%s'\n", pos, type, dname);
+	new_q += pos;
+	memset(new_q, 0, sizeof(*new_q));
+
+	qlen = res_mkquery(QUERY, dname, C_IN, type, NULL, 0, NULL,
+			new_q->query, sizeof(new_q->query));
+
+	new_q->qlen = qlen;
+	new_q->name = dname;
+
+	return new_q;
+}
+
+//FIXME: use xmalloc_sockaddr2dotted[_noport]() instead of sal2str()
+
+#define SIZEOF_SAL2STR_BUF (INET6_ADDRSTRLEN + 1 + IFNAMSIZ + 1 + 5 + 1)
+static char *sal2str(char buf[SIZEOF_SAL2STR_BUF], len_and_sockaddr *a)
+{
+	char *p = buf;
+
+#if ENABLE_FEATURE_IPV6
+	if (a->u.sa.sa_family == AF_INET6) {
+		inet_ntop(AF_INET6, &a->u.sin6.sin6_addr, buf, SIZEOF_SAL2STR_BUF);
+		p += strlen(p);
+
+		if (a->u.sin6.sin6_scope_id) {
+			if (if_indextoname(a->u.sin6.sin6_scope_id, p + 1)) {
+				*p++ = '%';
+				p += strlen(p);
+			}
+		}
+	} else
+#endif
+	{
+		inet_ntop(AF_INET, &a->u.sin.sin_addr, buf, SIZEOF_SAL2STR_BUF);
+		p += strlen(p);
+	}
+
+	sprintf(p, "#%hu", ntohs(a->u.sin.sin_port));
+
+	return buf;
+}
+
+int nslookup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int nslookup_main(int argc UNUSED_PARAM, char **argv)
+{
+	struct ns *ns;
+	struct query *queries;
+	llist_t *type_strings;
+	int n_ns, n_queries;
+	int bb_style_counter = 0;
+	unsigned types;
+	int rc;
+	int opts;
+	enum {
+		OPT_stats = (1 << 4),
+	};
+
+	INIT_G();
+
+	type_strings = NULL;
+#if ENABLE_FEATURE_NSLOOKUP_LONG_OPTIONS
+	opts = getopt32long(argv, "^"
+			"+" /* '+': stop at first non-option (why?) */
+			"q:*p:+r:+t:+s"
+			"\0"
+			"-1:q::", /* minimum 1 arg, -q is a list */
+				"type\0"      Required_argument "q"
+				"querytype\0" Required_argument "q"
+				"port\0"      Required_argument "p"
+				"retry\0"     Required_argument "r"
+				"timeout\0"   Required_argument "t"
+				"stats\0"     No_argument       "s",
+	                &type_strings, &G.default_port,
+	                &G.default_retry, &G.default_timeout
+	);
+#else
+	opts = getopt32(argv, "^"
+			"+" /* '+': stop at first non-option (why?) */
+			"q:*p:+r:+t:+s"
+			"\0"
+			"-1:q::", /* minimum 1 arg, -q is a list */
+	                &type_strings, &G.default_port,
+	                &G.default_retry, &G.default_timeout
+	);
+#endif
+	if (G.default_port > 65535)
+		bb_error_msg_and_die("invalid server port");
+	if (G.default_retry == 0)
+		bb_error_msg_and_die("invalid retry value");
+	if (G.default_timeout == 0)
+		bb_error_msg_and_die("invalid timeout value");
+
+	types = 0;
+	while (type_strings) {
+		int c;
+		char *ptr, *chr;
+
+		ptr = llist_pop(&type_strings);
+
+		/* skip leading text, e.g. when invoked with -querytype=AAAA */
+		chr = strchr(ptr, '=');
+		if (chr)
+			ptr = chr + 1;
+
+		for (c = 0;; c++) {
+			if (!qtypes[c].name)
+				bb_error_msg_and_die("invalid query type \"%s\"", ptr);
+			if (strcmp(qtypes[c].name, ptr) == 0)
+				break;
+		}
+
+		types |= (1 << c);
+	}
+
+	argv += optind;
+
+	n_queries = 0;
+	queries = NULL;
+	do {
+		/* No explicit type given, guess query type.
+		 * If we can convert the domain argument into a ptr (means that
+		 * inet_pton() could read it) we assume a PTR request, else
+		 * we issue A+AAAA queries and switch to an output format
+		 * mimicking the one of the traditional nslookup applet. */
+		if (types == 0) {
+			char *ptr;
+			char buf80[80];
+
+			ptr = make_ptr(buf80, *argv);
+
+			if (ptr) {
+				add_query(&queries, &n_queries, T_PTR, ptr);
+			}
+			else {
+				bb_style_counter = 1;
+				add_query(&queries, &n_queries, T_A, *argv);
+#if ENABLE_FEATURE_IPV6
+				add_query(&queries, &n_queries, T_AAAA, *argv);
+#endif
+			}
+		}
+		else {
+			int c;
+			for (c = 0; qtypes[c].name; c++) {
+				if (types & (1 << c))
+					add_query(&queries, &n_queries, qtypes[c].type,
+						*argv);
+			}
+		}
+		argv++;
+	} while (argv[0] && argv[1]);
+
+	/* Use given DNS server if present */
+	n_ns = 0;
+	ns = NULL;
+	if (argv[0]) {
+		if (!add_ns(&ns, &n_ns, argv[0]))
+			bb_error_msg_and_die("invalid NS server address \"%s\"", argv[0]);
+	} else {
+		parse_resolvconf(&ns, &n_ns);
+		/* Fall back to localhost if we could not find NS in resolv.conf */
+		if (n_ns == 0)
+			add_ns(&ns, &n_ns, "127.0.0.1");
+	}
+
+	for (rc = 0; rc < n_ns; rc++) {
+		int c = send_queries(&ns[rc], 1, queries, n_queries);
+		if (c < 0)
+			bb_perror_msg_and_die("can't send queries");
+		if (c > 0)
+			break;
+		rc++;
+		if (rc >= n_ns) {
+			fprintf(stderr,
+				";; connection timed out; no servers could be reached\n\n");
+			return EXIT_FAILURE;
+		}
+	}
+
+	printf("Server:\t\t%s\n", ns[rc].name);
+	{
+		char buf[SIZEOF_SAL2STR_BUF];
+		printf("Address:\t%s\n", sal2str(buf, &ns[rc].addr));
+	}
+	if (opts & OPT_stats) {
+		printf("Replies:\t%d\n", ns[rc].replies);
+		printf("Failures:\t%d\n", ns[rc].failures);
+	}
+	printf("\n");
+
+	for (rc = 0; rc < n_queries; rc++) {
+		int c;
+
+		if (opts & OPT_stats) {
+			printf("Query #%d completed in %lums:\n", rc, queries[rc].latency);
+		}
+
+		if (queries[rc].rcode != 0) {
+			printf("** server can't find %s: %s\n", queries[rc].name,
+			       rcodes[queries[rc].rcode]);
+			continue;
+		}
+
+		c = 0;
+
+		if (queries[rc].rlen) {
+			HEADER *header;
+
+			if (!bb_style_counter) {
+				header = (HEADER *)queries[rc].reply;
+				if (!header->aa)
+					printf("Non-authoritative answer:\n");
+				c = parse_reply(queries[rc].reply, queries[rc].rlen, NULL);
+			}
+			else {
+				c = parse_reply(queries[rc].reply, queries[rc].rlen,
+					&bb_style_counter);
+			}
+		}
+
+		if (c == 0)
+			printf("*** Can't find %s: No answer\n", queries[rc].name);
+		else if (c < 0)
+			printf("*** Can't find %s: Parse error\n", queries[rc].name);
+
+		if (!bb_style_counter)
+			printf("\n");
+	}
+
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free(ns);
+		if (n_queries)
+			free(queries);
+	}
+
+	return EXIT_SUCCESS;
+}
+
+#endif
