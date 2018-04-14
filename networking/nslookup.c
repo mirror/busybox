@@ -256,7 +256,7 @@ int nslookup_main(int argc, char **argv)
 
 struct ns {
 	const char *name;
-	len_and_sockaddr addr;
+	len_and_sockaddr *lsa;
 	int failures;
 	int replies;
 };
@@ -266,7 +266,7 @@ struct query {
 	size_t qlen, rlen;
 	unsigned char query[512], reply[512];
 	unsigned long latency;
-	int rcode, n_ns;
+	int rcode;
 };
 
 static const struct {
@@ -315,6 +315,8 @@ struct globals {
 	unsigned default_port;
 	unsigned default_retry;
 	unsigned default_timeout;
+	unsigned serv_count;
+	struct ns *server;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
@@ -480,69 +482,6 @@ parse_reply(const unsigned char *msg, size_t len, int *bb_style_counter)
 	return i;
 }
 
-static int parse_nsaddr(const char *addrstr, len_and_sockaddr *lsa)
-{
-	char *hash;
-	unsigned port = G.default_port;
-	IF_FEATURE_IPV6(unsigned scope;)
-
-	dbg("%s: addrstr:'%s'\n", __func__, addrstr);
-
-	hash = strchr(addrstr, '#');
-
-	if (hash) {
-		*hash++ = '\0';
-		port = bb_strtou(hash, NULL, 10);
-		if (errno || port > 65535) {
-			errno = EINVAL;
-			return -1;
-		}
-	}
-
-#if ENABLE_FEATURE_IPV6
-	scope = 0;
-	hash = strchr(addrstr, '%');
-	if (hash) {
-		char ifname[IFNAMSIZ];
-		int i;
-
-		hash++;
-		for (i = 0; hash[i] != '\0' && hash[i] != '#'; i++) {
-			if (i >= IFNAMSIZ) {
-				errno = ENODEV;
-				return -1;
-			}
-			ifname[i] = hash[i];
-		}
-		ifname[i] = '\0';
-
-		scope = if_nametoindex(ifname);
-		if (scope == 0) {
-			errno = ENODEV;
-			return -1;
-		}
-	}
-
-	if (inet_pton(AF_INET6, addrstr, &lsa->u.sin6.sin6_addr)) {
-		lsa->u.sin6.sin6_family = AF_INET6;
-		lsa->u.sin6.sin6_port = htons(port);
-		lsa->u.sin6.sin6_scope_id = scope;
-		lsa->len = sizeof(lsa->u.sin6);
-		return 0;
-	}
-#endif
-
-	if (inet_pton(AF_INET, addrstr, &lsa->u.sin.sin_addr)) {
-		lsa->u.sin.sin_family = AF_INET;
-		lsa->u.sin.sin_port = htons(port);
-		lsa->len = sizeof(lsa->u.sin);
-		return 0;
-	}
-
-	errno = EINVAL;
-	return -1;
-}
-
 static char *make_ptr(char resbuf[80], const char *addrstr)
 {
 	unsigned char addr[16];
@@ -577,104 +516,65 @@ static char *make_ptr(char resbuf[80], const char *addrstr)
 	return NULL;
 }
 
-#if ENABLE_FEATURE_IPV6
-static void to_v4_mapped(len_and_sockaddr *a)
-{
-	if (a->u.sa.sa_family != AF_INET)
-		return;
-
-	/* Order is important */
-//FIXME: port?
-	memcpy(a->u.sin6.sin6_addr.s6_addr + 12, &a->u.sin.sin_addr, 4);
-	memcpy(a->u.sin6.sin6_addr.s6_addr, v4_mapped, 12);
-
-	a->u.sin6.sin6_family = AF_INET6;
-	a->u.sin6.sin6_flowinfo = 0;
-	a->u.sin6.sin6_scope_id = 0;
-	a->len = sizeof(a->u.sin6);
-}
-#endif
-
 /*
  * Function logic borrowed & modified from musl libc, res_msend.c
  */
-static int send_queries(struct ns *ns, int n_ns, struct query *queries, int n_queries)
+static int send_queries(struct ns *ns, struct query *queries, int n_queries)
 {
-	int fd;
-	int timeout = G.default_timeout * 1000, retry_interval, servfail_retry = 0;
-	len_and_sockaddr from = { };
-	int recvlen = 0;
-	int n_replies = 0;
 	struct pollfd pfd;
-	unsigned long t0, t1, t2;
-	int nn, qn, next_query = 0;
+	int servfail_retry = 0;
+	int n_replies = 0;
+	int next_query = 0;
+	unsigned retry_interval;
+	unsigned timeout = G.default_timeout * 1000;
+	unsigned t0, t1, t2;
 
-	from.u.sa.sa_family = AF_INET;
-	from.len = sizeof(from.u.sin);
-#if ENABLE_FEATURE_IPV6
-	for (nn = 0; nn < n_ns; nn++) {
-		if (ns[nn].addr.u.sa.sa_family == AF_INET6) {
-			from.u.sa.sa_family = AF_INET6;
-			from.len = sizeof(from.u.sin6);
-			break;
-		}
-	}
-#endif
-
-	/* Get local address and open/bind a socket */
-#if ENABLE_FEATURE_IPV6
-	fd = socket(from.u.sa.sa_family, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
-	/* Handle case where system lacks IPv6 support */
-	if (fd < 0) {
-		if (from.u.sa.sa_family != AF_INET6 || errno != EAFNOSUPPORT)
-			bb_perror_msg_and_die("socket");
-		fd = xsocket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
-		from.u.sa.sa_family = AF_INET;
-	}
-#else
-	fd = xsocket(from.u.sa.sa_family, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
-#endif
-	xbind(fd, &from.u.sa, from.len);
-
-#if ENABLE_FEATURE_IPV6
-	/* Convert any IPv4 addresses in a mixed environment to v4-mapped */
-	if (from.u.sa.sa_family == AF_INET6) {
-		setsockopt_1(fd, IPPROTO_IPV6, IPV6_V6ONLY);
-		for (nn = 0; nn < n_ns; nn++)
-			to_v4_mapped(&ns[nn].addr);
-	}
-#endif
-
-	pfd.fd = fd;
+	pfd.fd = -1;
 	pfd.events = POLLIN;
+
 	retry_interval = timeout / G.default_retry;
 	t0 = t2 = monotonic_ms();
 	t1 = t2 - retry_interval;
 
 	for (; t2 - t0 < timeout; t2 = monotonic_ms()) {
 		if (t2 - t1 >= retry_interval) {
+			int qn;
 			for (qn = 0; qn < n_queries; qn++) {
 				if (queries[qn].rlen)
 					continue;
-
-				for (nn = 0; nn < n_ns; nn++) {
-					sendto(fd, queries[qn].query, queries[qn].qlen,
-					       MSG_NOSIGNAL, &ns[nn].addr.u.sa, ns[nn].addr.len);
+				if (pfd.fd < 0) {
+					len_and_sockaddr *local_lsa;
+					pfd.fd = xsocket_type(&local_lsa, ns->lsa->u.sa.sa_family, SOCK_DGRAM);
+					/*
+					 * local_lsa has "null" address and port 0 now.
+					 * bind() ensures we have a *particular port* selected by kernel
+					 * and remembered in fd, thus later recv(fd)
+					 * receives only packets sent to this port.
+					 */
+					xbind(pfd.fd, &local_lsa->u.sa, local_lsa->len);
+					free(local_lsa);
+					/* Make read/writes know the destination */
+					xconnect(pfd.fd, &ns->lsa->u.sa, ns->lsa->len);
+					ndelay_on(pfd.fd);
 				}
+				write(pfd.fd, queries[qn].query, queries[qn].qlen);
 			}
 
 			t1 = t2;
 			servfail_retry = 2 * n_queries;
 		}
-
+ poll_more:
 		/* Wait for a response, or until time to retry */
 		if (poll(&pfd, 1, t1 + retry_interval - t2) <= 0)
 			continue;
 
 		while (1) {
-			recvlen = recvfrom(fd, queries[next_query].reply,
-				sizeof(queries[next_query].reply), 0,
-			        &from.u.sa, &from.len
+			int qn;
+			int recvlen;
+
+			recvlen = read(pfd.fd,
+					queries[next_query].reply,
+					sizeof(queries[next_query].reply)
 			);
 
 			/* read error */
@@ -683,15 +583,7 @@ static int send_queries(struct ns *ns, int n_ns, struct query *queries, int n_qu
 
 			/* Ignore non-identifiable packets */
 			if (recvlen < 4)
-				continue;
-
-			/* Ignore replies from addresses we didn't send to */
-			for (nn = 0; nn < n_ns; nn++)
-				if (memcmp(&from.u.sa, &ns[nn].addr.u.sa, from.len) == 0)
-					break;
-
-			if (nn >= n_ns)
-				continue;
+				goto poll_more;
 
 			/* Find which query this answer goes with, if any */
 			for (qn = next_query; qn < n_queries; qn++)
@@ -699,13 +591,12 @@ static int send_queries(struct ns *ns, int n_ns, struct query *queries, int n_qu
 					break;
 
 			if (qn >= n_queries || queries[qn].rlen)
-				continue;
+				goto poll_more;
 
 			queries[qn].rcode = queries[next_query].reply[3] & 15;
 			queries[qn].latency = monotonic_ms() - t0;
-			queries[qn].n_ns = nn;
 
-			ns[nn].replies++;
+			ns->replies++;
 
 			/* Only accept positive or negative responses;
 			 * retry immediately on server failure, and ignore
@@ -717,9 +608,8 @@ static int send_queries(struct ns *ns, int n_ns, struct query *queries, int n_qu
 
 			case 2:
 				if (servfail_retry && servfail_retry--) {
-					ns[nn].failures++;
-					sendto(fd, queries[qn].query, queries[qn].qlen,
-					       MSG_NOSIGNAL, &ns[nn].addr.u.sa, ns[nn].addr.len);
+					ns->failures++;
+					write(pfd.fd, queries[qn].query, queries[qn].qlen);
 				}
 				/* fall through */
 
@@ -736,94 +626,42 @@ static int send_queries(struct ns *ns, int n_ns, struct query *queries, int n_qu
 				while (next_query < n_queries) {
 					if (!queries[next_query].rlen)
 						break;
-
 					next_query++;
 				}
-			}
-			else {
+			} else {
 				memcpy(queries[qn].reply, queries[next_query].reply, recvlen);
 			}
 
 			if (next_query >= n_queries)
-				return n_replies;
+				goto ret;
 		}
 	}
+ ret:
+	if (pfd.fd >= 0)
+		close(pfd.fd);
 
 	return n_replies;
 }
 
-///FIXME: use standard lsa = xhost2sockaddr(host, port) instead
-
-static struct ns *add_ns(struct ns **ns, int *n_ns, const char *addr)
+static void add_ns(const char *addr)
 {
-	char portstr[sizeof("65535")], *p;
-	len_and_sockaddr a = { };
-	struct ns *tmp;
-	struct addrinfo *ai, *aip, hints = {
-		.ai_flags = AI_NUMERICSERV,
-		.ai_socktype = SOCK_DGRAM
-	};
+	struct ns *ns;
+	unsigned count;
 
 	dbg("%s: addr:'%s'\n", __func__, addr);
 
-	if (parse_nsaddr(addr, &a)) {
-		/* Maybe we got a domain name, attempt to resolve it using the standard
-		 * resolver routines */
+	count = G.serv_count++;
 
-		p = strchr(addr, '#');
-		snprintf(portstr, sizeof(portstr), "%hu",
-		         (unsigned short)(p ? strtoul(p, NULL, 10) : G.default_port));
-
-		if (!getaddrinfo(addr, portstr, &hints, &ai)) {
-			for (aip = ai; aip; aip = aip->ai_next) {
-				if (aip->ai_addr->sa_family != AF_INET &&
-				    aip->ai_addr->sa_family != AF_INET6)
-					continue;
-
-#if ! ENABLE_FEATURE_IPV6
-				if (aip->ai_addr->sa_family != AF_INET)
-					continue;
-#endif
-
-				tmp = realloc(*ns, sizeof(**ns) * (*n_ns + 1));
-
-				if (!tmp)
-					return NULL;
-
-				*ns = tmp;
-
-				(*ns)[*n_ns].name = addr;
-				(*ns)[*n_ns].replies = 0;
-				(*ns)[*n_ns].failures = 0;
-				(*ns)[*n_ns].addr.len = aip->ai_addrlen;
-
-				memcpy(&(*ns)[*n_ns].addr.u.sa, aip->ai_addr, aip->ai_addrlen);
-
-				(*n_ns)++;
-			}
-
-			freeaddrinfo(ai);
-
-			return &(*ns)[*n_ns];
-		}
-
-		return NULL;
-	}
-
-	tmp = xrealloc(*ns, sizeof(**ns) * (*n_ns + 1));
-	*ns = tmp;
-
-	(*ns)[*n_ns].addr = a;
-	(*ns)[*n_ns].name = addr;
-	(*ns)[*n_ns].replies = 0;
-	(*ns)[*n_ns].failures = 0;
-
-	return &(*ns)[(*n_ns)++];
+	G.server = xrealloc_vector(G.server, /*8=2^3:*/ 3, count);
+	ns = &G.server[count];
+	ns->name = addr;
+	ns->lsa = xhost2sockaddr(addr, 53);
+	/*ns->replies = 0; - already is */
+	/*ns->failures = 0; - already is */
 }
 
-static int parse_resolvconf(struct ns **ns, int *n_ns)
+static void parse_resolvconf(void)
 {
-	int prev_n_ns = *n_ns;
 	FILE *resolv;
 
 	resolv = fopen("/etc/resolv.conf", "r");
@@ -841,16 +679,11 @@ static int parse_resolvconf(struct ns **ns, int *n_ns)
 			if (!p)
 				continue;
 
-			if (!add_ns(ns, n_ns, xstrdup(p))) {
-				free(p);
-				break;
-			}
+			add_ns(xstrdup(p));
 		}
 
 		fclose(resolv);
 	}
-
-	return *n_ns - prev_n_ns;
 }
 
 static struct query *add_query(struct query **queries, int *n_queries,
@@ -913,7 +746,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 	struct ns *ns;
 	struct query *queries;
 	llist_t *type_strings;
-	int n_ns, n_queries;
+	int n_queries;
 	int bb_style_counter = 0;
 	unsigned types;
 	int rc;
@@ -1018,40 +851,37 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 	} while (argv[0] && argv[1]);
 
 	/* Use given DNS server if present */
-	n_ns = 0;
-	ns = NULL;
 	if (argv[0]) {
-		if (!add_ns(&ns, &n_ns, argv[0]))
-			bb_error_msg_and_die("invalid NS server address \"%s\"", argv[0]);
+		add_ns(argv[0]);
 	} else {
-		parse_resolvconf(&ns, &n_ns);
+		parse_resolvconf();
 		/* Fall back to localhost if we could not find NS in resolv.conf */
-		if (n_ns == 0)
-			add_ns(&ns, &n_ns, "127.0.0.1");
+		if (G.serv_count == 0)
+			add_ns("127.0.0.1");
 	}
 
-	for (rc = 0; rc < n_ns; rc++) {
-		int c = send_queries(&ns[rc], 1, queries, n_queries);
+	for (rc = 0; rc < G.serv_count; rc++) {
+		int c = send_queries(&G.server[rc], queries, n_queries);
 		if (c < 0)
 			bb_perror_msg_and_die("can't send queries");
 		if (c > 0)
 			break;
 		rc++;
-		if (rc >= n_ns) {
+		if (rc >= G.serv_count) {
 			fprintf(stderr,
 				";; connection timed out; no servers could be reached\n\n");
 			return EXIT_FAILURE;
 		}
 	}
 
-	printf("Server:\t\t%s\n", ns[rc].name);
+	printf("Server:\t\t%s\n", G.server[rc].name);
 	{
 		char buf[SIZEOF_SAL2STR_BUF];
-		printf("Address:\t%s\n", sal2str(buf, &ns[rc].addr));
+		printf("Address:\t%s\n", sal2str(buf, G.server[rc].lsa));
 	}
 	if (opts & OPT_stats) {
-		printf("Replies:\t%d\n", ns[rc].replies);
-		printf("Failures:\t%d\n", ns[rc].failures);
+		printf("Replies:\t%d\n", G.server[rc].replies);
+		printf("Failures:\t%d\n", G.server[rc].failures);
 	}
 	printf("\n");
 
