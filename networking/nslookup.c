@@ -326,7 +326,7 @@ struct globals {
 } while (0)
 
 static int
-parse_reply(const unsigned char *msg, size_t len, int *bb_style_counter)
+parse_reply(const unsigned char *msg, size_t len)
 {
 	ns_msg handle;
 	ns_rr rr;
@@ -346,36 +346,28 @@ parse_reply(const unsigned char *msg, size_t len, int *bb_style_counter)
 			return -1;
 		}
 
-		if (bb_style_counter && *bb_style_counter == 1)
-			printf("Name:      %s\n", ns_rr_name(rr));
-
 		rdlen = ns_rr_rdlen(rr);
 
 		switch (ns_rr_type(rr))
 		{
 		case ns_t_a:
 			if (rdlen != 4) {
-				//fprintf(stderr, "Unexpected A record length\n");
+				dbg("unexpected A record length %d\n", rdlen);
 				return -1;
 			}
 			inet_ntop(AF_INET, ns_rr_rdata(rr), astr, sizeof(astr));
-			if (bb_style_counter)
-				printf("Address %d: %s\n", (*bb_style_counter)++, astr);
-			else
-				printf("Name:\t%s\nAddress: %s\n", ns_rr_name(rr), astr);
+			printf("Name:\t%s\nAddress: %s\n", ns_rr_name(rr), astr);
 			break;
 
 #if ENABLE_FEATURE_IPV6
 		case ns_t_aaaa:
 			if (rdlen != 16) {
-				//fprintf(stderr, "Unexpected AAAA record length\n");
+				dbg("unexpected AAAA record length %d\n", rdlen);
 				return -1;
 			}
 			inet_ntop(AF_INET6, ns_rr_rdata(rr), astr, sizeof(astr));
-			if (bb_style_counter)
-				printf("Address %d: %s\n", (*bb_style_counter)++, astr);
-			else
-				printf("%s\thas AAAA address %s\n", ns_rr_name(rr), astr);
+			/* bind-utils-9.11.3 uses the same format for A and AAAA answers */
+			printf("Name:\t%s\nAddress: %s\n", ns_rr_name(rr), astr);
 			break;
 #endif
 
@@ -393,7 +385,8 @@ parse_reply(const unsigned char *msg, size_t len, int *bb_style_counter)
 			if (!format)
 				format = "%s\tname = %s\n";
 			if (ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
-				ns_rr_rdata(rr), dname, sizeof(dname)) < 0) {
+					ns_rr_rdata(rr), dname, sizeof(dname)) < 0
+			) {
 				//fprintf(stderr, "Unable to uncompress domain: %s\n", strerror(errno));
 				return -1;
 			}
@@ -407,7 +400,8 @@ parse_reply(const unsigned char *msg, size_t len, int *bb_style_counter)
 			}
 			n = ns_get16(ns_rr_rdata(rr));
 			if (ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
-				ns_rr_rdata(rr) + 2, dname, sizeof(dname)) < 0) {
+					ns_rr_rdata(rr) + 2, dname, sizeof(dname)) < 0
+			) {
 				//fprintf(stderr, "Cannot uncompress MX domain: %s\n", strerror(errno));
 				return -1;
 			}
@@ -429,7 +423,7 @@ parse_reply(const unsigned char *msg, size_t len, int *bb_style_counter)
 
 		case ns_t_soa:
 			if (rdlen < 20) {
-				//fprintf(stderr, "SOA record too short\n");
+				dbg("SOA record too short:%d\n", rdlen);
 				return -1;
 			}
 
@@ -438,7 +432,6 @@ parse_reply(const unsigned char *msg, size_t len, int *bb_style_counter)
 			cp = ns_rr_rdata(rr);
 			n = ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
 			                       cp, dname, sizeof(dname));
-
 			if (n < 0) {
 				//fprintf(stderr, "Unable to uncompress domain: %s\n", strerror(errno));
 				return -1;
@@ -449,7 +442,6 @@ parse_reply(const unsigned char *msg, size_t len, int *bb_style_counter)
 
 			n = ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
 			                       cp, dname, sizeof(dname));
-
 			if (n < 0) {
 				//fprintf(stderr, "Unable to uncompress domain: %s\n", strerror(errno));
 				return -1;
@@ -725,7 +717,6 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 	struct query *queries;
 	llist_t *type_strings;
 	int n_queries;
-	int bb_style_counter = 0;
 	unsigned types;
 	int rc;
 	int opts;
@@ -811,7 +802,6 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 				add_query(&queries, &n_queries, T_PTR, ptr);
 			}
 			else {
-				bb_style_counter = 1;
 				add_query(&queries, &n_queries, T_A, *argv);
 #if ENABLE_FEATURE_IPV6
 				add_query(&queries, &n_queries, T_AAAA, *argv);
@@ -868,7 +858,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		int c;
 
 		if (opts & OPT_stats) {
-			printf("Query #%d completed in %lums:\n", rc, queries[rc].latency);
+			printf("Query #%d completed in %ums:\n", rc, queries[rc].latency);
 		}
 
 		if (queries[rc].rcode != 0) {
@@ -878,20 +868,13 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		c = 0;
-
 		if (queries[rc].rlen) {
 			HEADER *header;
 
-			if (!bb_style_counter) {
-				header = (HEADER *)queries[rc].reply;
-				if (!header->aa)
-					printf("Non-authoritative answer:\n");
-				c = parse_reply(queries[rc].reply, queries[rc].rlen, NULL);
-			}
-			else {
-				c = parse_reply(queries[rc].reply, queries[rc].rlen,
-					&bb_style_counter);
-			}
+			header = (HEADER *)queries[rc].reply;
+			if (!header->aa)
+				printf("Non-authoritative answer:\n");
+			c = parse_reply(queries[rc].reply, queries[rc].rlen);
 		}
 
 		if (c == 0)
@@ -899,8 +882,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		else if (c < 0)
 			printf("*** Can't find %s: Parse error\n", queries[rc].name);
 
-		if (!bb_style_counter)
-			printf("\n");
+		bb_putchar('\n');
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
