@@ -263,7 +263,7 @@ struct ns {
 
 struct query {
 	const char *name;
-	unsigned qlen, rlen;
+	unsigned qlen;
 //	unsigned latency;
 //	uint8_t rcode;
 	unsigned char query[512];
@@ -560,8 +560,9 @@ static int send_queries(struct ns *ns)
 		if (tcur - tsent >= retry_interval) {
  send:
 			for (qn = 0; qn < G.query_count; qn++) {
-				if (G.query[qn].rlen)
-					continue;
+				if (G.query[qn].qlen == 0)
+					continue; /* this one was replied already */
+
 				if (write(pfd.fd, G.query[qn].query, G.query[qn].qlen) < 0) {
 					bb_perror_msg("write to '%s'", ns->name);
 					n_replies = -1; /* "no go, try next server" */
@@ -614,7 +615,7 @@ static int send_queries(struct ns *ns)
 			}
 		}
 
-		if (G.query[qn].rlen) {
+		if (G.query[qn].qlen == 0) {
 			dbg("dropped duplicate response to query %u\n", qn);
 			goto next;
 		}
@@ -634,7 +635,7 @@ static int send_queries(struct ns *ns)
 		}
 
 		/* Process reply */
-		G.query[qn].rlen = recvlen;
+		G.query[qn].qlen = 0; /* flag: "reply received" */
 		tcur = monotonic_ms();
 #if 1
 		if (option_mask32 & OPT_debug) {
@@ -733,8 +734,12 @@ static void add_query(int type, const char *dname)
 
 	dbg("new query#%u type %u for '%s'\n", count, type, dname);
 	new_q->name = dname;
-	qlen = res_mkquery(QUERY, dname, C_IN, type, NULL, 0, NULL,
-			new_q->query, sizeof(new_q->query));
+
+	qlen = res_mkquery(QUERY, dname, C_IN, type,
+			/*data:*/ NULL, /*datalen:*/ 0,
+			/*newrr:*/ NULL,
+			new_q->query, sizeof(new_q->query)
+	);
 	new_q->qlen = qlen;
 }
 
@@ -913,13 +918,13 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 
 	err = 0;
 	for (rc = 0; rc < G.query_count; rc++) {
-		if (G.query[rc].rlen == 0) {
+		if (G.query[rc].qlen) {
 			printf("*** Can't find %s: No answer\n", G.query[rc].name);
 			err = 1;
 		}
 	}
-	if (err)
-		bb_putchar('\n'); /* should this affect exicode too? */
+	if (err) /* should this affect exicode too? */
+		bb_putchar('\n');
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(G.server);
