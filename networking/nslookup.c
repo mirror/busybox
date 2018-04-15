@@ -6,7 +6,7 @@
 //config:	help
 //config:	nslookup is a tool to query Internet name servers.
 //config:
-//config:config NSLOOKUP_BIG
+//config:config FEATURE_NSLOOKUP_BIG
 //config:	bool "Use internal resolver code instead of libc"
 //config:	depends on NSLOOKUP
 //config:	default y
@@ -14,17 +14,16 @@
 //config:config FEATURE_NSLOOKUP_LONG_OPTIONS
 //config:	bool "Enable long options"
 //config:	default y
-//config:	depends on NSLOOKUP_BIG && LONG_OPTS
+//config:	depends on FEATURE_NSLOOKUP_BIG && LONG_OPTS
 
 //applet:IF_NSLOOKUP(APPLET(nslookup, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_NSLOOKUP) += nslookup.o
 
 //usage:#define nslookup_trivial_usage
-//usage:       "[HOST] [SERVER]"
+//usage:       IF_FEATURE_NSLOOKUP_BIG("[-type=QUERY_TYPE] ") "HOST [DNS_SERVER]"
 //usage:#define nslookup_full_usage "\n\n"
-//usage:       "Query the nameserver for the IP address of the given HOST\n"
-//usage:       "optionally using a specified DNS server"
+//usage:       "Query DNS about HOST"
 //usage:
 //usage:#define nslookup_example_usage
 //usage:       "$ nslookup localhost\n"
@@ -42,7 +41,7 @@
 #include "common_bufsiz.h"
 
 
-#if !ENABLE_NSLOOKUP_BIG
+#if !ENABLE_FEATURE_NSLOOKUP_BIG
 
 /*
  * Mini nslookup implementation for busybox
@@ -326,7 +325,7 @@ struct globals {
 } while (0)
 
 enum {
-	OPT_stats = (1 << 4),
+	OPT_stats = (1 << 0),
 };
 
 static int parse_reply(const unsigned char *msg, size_t len)
@@ -687,7 +686,7 @@ static void add_ns(const char *addr)
 	G.server = xrealloc_vector(G.server, /*8=2^3:*/ 3, count);
 	ns = &G.server[count];
 	ns->name = addr;
-	ns->lsa = xhost2sockaddr(addr, 53);
+	ns->lsa = xhost2sockaddr(addr, G.default_port);
 	/*ns->replies = 0; - already is */
 	/*ns->failures = 0; - already is */
 }
@@ -747,107 +746,130 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct ns *ns;
 	struct query *queries;
-	llist_t *type_strings;
 	int n_queries;
 	unsigned types;
-	int opts;
 	int rc;
 	int err;
 
 	INIT_G();
 
-	type_strings = NULL;
-#if ENABLE_FEATURE_NSLOOKUP_LONG_OPTIONS
-	opts = getopt32long(argv, "^"
-			"+" /* '+': stop at first non-option (why?) */
-			"q:*p:+r:+t:+s"
-			"\0"
-			"-1:q::", /* minimum 1 arg, -q is a list */
-				"type\0"      Required_argument "q"
-				"querytype\0" Required_argument "q"
-				"port\0"      Required_argument "p"
-				"retry\0"     Required_argument "r"
-				"timeout\0"   Required_argument "t"
-				"stats\0"     No_argument       "s",
-	                &type_strings, &G.default_port,
-	                &G.default_retry, &G.default_timeout
-	);
-#else
-	opts = getopt32(argv, "^"
-			"+" /* '+': stop at first non-option (why?) */
-			"q:*p:+r:+t:+s"
-			"\0"
-			"-1:q::", /* minimum 1 arg, -q is a list */
-	                &type_strings, &G.default_port,
-	                &G.default_retry, &G.default_timeout
-	);
-#endif
-	if (G.default_port > 65535)
-		bb_error_msg_and_die("invalid server port");
-	if (G.default_retry == 0)
-		bb_error_msg_and_die("invalid retry value");
-	if (G.default_timeout == 0)
-		bb_error_msg_and_die("invalid timeout value");
-
+	/* manpage: "Options can also be specified on the command line
+	 * if they precede the arguments and are prefixed with a hyphen."
+	 */
 	types = 0;
-	while (type_strings) {
-		int c;
-		char *ptr, *chr;
+	argv++;
+	for (;;) {
+		const char *options =
+// bind-utils-9.11.3 accept these:
+// class=   cl=
+// type=    ty= querytype= query= qu= q=
+// domain=  do=
+// port=    po=
+// timeout= t=
+// retry=   ret=
+// ndots=
+// recurse
+// norecurse
+// defname
+// nodefname
+// vc
+// novc
+// debug
+// nodebug
+// d2
+// nod2
+// search
+// nosearch
+// sil
+// fail
+// nofail
+// ver (prints version and exits)
+			"type\0"      /* 0 */
+			"querytype\0" /* 1 */
+			"port\0"      /* 2 */
+			"retry\0"     /* 3 */
+			"stats\0"     /* 4 */
+			"t\0" /* disambiguate with "type": else -t=2 fails */
+			"timeout\0"   /* 6 */
+			"";
+		int i;
+		char *arg;
+		char *val;
 
-		ptr = llist_pop(&type_strings);
+		if (!*argv)
+			bb_show_usage();
+		if (argv[0][0] != '-')
+			break;
 
-		/* skip leading text, e.g. when invoked with -querytype=AAAA */
-		chr = strchr(ptr, '=');
-		if (chr)
-			ptr = chr + 1;
+		/* Separate out "=val" part */
+		arg = (*argv++) + 1;
+		val = strchrnul(arg, '=');
+		if (*val)
+			*val++ = '\0';
 
-		for (c = 0;; c++) {
-			if (c == ARRAY_SIZE(qtypes))
-				bb_error_msg_and_die("invalid query type \"%s\"", ptr);
-			if (strcmp(qtypes[c].name, ptr) == 0)
-				break;
+		i = index_in_substrings(options, arg);
+		//bb_error_msg("i:%d arg:'%s' val:'%s'", i, arg, val);
+		if (i < 0)
+			bb_show_usage();
+
+		if (i <= 1) {
+			for (i = 0;; i++) {
+				if (i == ARRAY_SIZE(qtypes))
+					bb_error_msg_and_die("invalid query type \"%s\"", val);
+				if (strcmp(qtypes[i].name, val) == 0)
+					break;
+			}
+			types |= (1 << i);
+			continue;
 		}
-
-		types |= (1 << c);
+		if (i == 2) {
+			G.default_port = xatou_range(val, 1, 0xffff);
+		}
+		if (i == 3) {
+			G.default_retry = xatou_range(val, 1, INT_MAX);
+		}
+		if (i == 4) {
+			option_mask32 |= OPT_stats;
+		}
+		if (i > 4) {
+			G.default_timeout = xatou_range(val, 1, INT_MAX / 1000);
+		}
 	}
-
-	argv += optind;
 
 	n_queries = 0;
 	queries = NULL;
-	do {
-		if (types == 0) {
-			/* No explicit type given, guess query type.
-			 * If we can convert the domain argument into a ptr (means that
-			 * inet_pton() could read it) we assume a PTR request, else
-			 * we issue A+AAAA queries and switch to an output format
-			 * mimicking the one of the traditional nslookup applet.
-			 */
-			char *ptr;
-			char buf80[80];
+	if (types == 0) {
+		/* No explicit type given, guess query type.
+		 * If we can convert the domain argument into a ptr (means that
+		 * inet_pton() could read it) we assume a PTR request, else
+		 * we issue A+AAAA queries and switch to an output format
+		 * mimicking the one of the traditional nslookup applet.
+		 */
+		char *ptr;
+		char buf80[80];
 
-			ptr = make_ptr(buf80, *argv);
-			if (ptr) {
-				add_query(&queries, &n_queries, T_PTR, xstrdup(ptr));
-			} else {
-				add_query(&queries, &n_queries, T_A, *argv);
-#if ENABLE_FEATURE_IPV6
-				add_query(&queries, &n_queries, T_AAAA, *argv);
-#endif
-			}
+		ptr = make_ptr(buf80, argv[0]);
+		if (ptr) {
+			add_query(&queries, &n_queries, T_PTR, xstrdup(ptr));
 		} else {
-			int c;
-			for (c = 0; c < ARRAY_SIZE(qtypes); c++) {
-				if (types & (1 << c))
-					add_query(&queries, &n_queries, qtypes[c].type,	*argv);
-			}
+			add_query(&queries, &n_queries, T_A, argv[0]);
+#if ENABLE_FEATURE_IPV6
+			add_query(&queries, &n_queries, T_AAAA, argv[0]);
+#endif
 		}
-		argv++;
-	} while (argv[0] && argv[1]);
+	} else {
+		int c;
+		for (c = 0; c < ARRAY_SIZE(qtypes); c++) {
+			if (types & (1 << c))
+				add_query(&queries, &n_queries, qtypes[c].type,	argv[0]);
+		}
+	}
 
 	/* Use given DNS server if present */
-	if (argv[0]) {
-		add_ns(argv[0]);
+	if (argv[1]) {
+		if (argv[2])
+			bb_show_usage();
+		add_ns(argv[1]);
 	} else {
 		parse_resolvconf();
 		/* Fall back to localhost if we could not find NS in resolv.conf */
@@ -861,7 +883,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		c = send_queries(&G.server[rc], queries, n_queries);
 		if (c > 0) {
 			/* more than zero replies received */
-			if (opts & OPT_stats) {
+			if (option_mask32 & OPT_stats) {
 				printf("Replies:\t%d\n", G.server[rc].replies);
 				printf("Failures:\t%d\n\n", G.server[rc].failures);
 			}
