@@ -484,40 +484,6 @@ static int parse_reply(const unsigned char *msg, size_t len)
 	return i;
 }
 
-static char *make_ptr(char resbuf[80], const char *addrstr)
-{
-	unsigned char addr[16];
-	int i;
-
-#if ENABLE_FEATURE_IPV6
-	if (inet_pton(AF_INET6, addrstr, addr)) {
-		if (memcmp(addr, v4_mapped, 12) != 0) {
-			char *ptr = resbuf;
-			for (i = 0; i < 16; i++) {
-				*ptr++ = 0x20 | bb_hexdigits_upcase[(unsigned char)addr[15 - i] & 0xf];
-				*ptr++ = '.';
-				*ptr++ = 0x20 | bb_hexdigits_upcase[(unsigned char)addr[15 - i] >> 4];
-				*ptr++ = '.';
-			}
-			strcpy(ptr, "ip6.arpa");
-		}
-		else {
-			sprintf(resbuf, "%u.%u.%u.%u.in-addr.arpa",
-				addr[15], addr[14], addr[13], addr[12]);
-		}
-		return resbuf;
-	}
-#endif
-
-	if (inet_pton(AF_INET, addrstr, addr)) {
-		sprintf(resbuf, "%u.%u.%u.%u.in-addr.arpa",
-		        addr[3], addr[2], addr[1], addr[0]);
-		return resbuf;
-	}
-
-	return NULL;
-}
-
 /*
  * Function logic borrowed & modified from musl libc, res_msend.c
  * G.query_count is always > 0.
@@ -743,6 +709,38 @@ static void add_query(int type, const char *dname)
 	new_q->qlen = qlen;
 }
 
+static char *make_ptr(const char *addrstr)
+{
+	unsigned char addr[16];
+	int i;
+
+#if ENABLE_FEATURE_IPV6
+	if (inet_pton(AF_INET6, addrstr, addr)) {
+		if (memcmp(addr, v4_mapped, 12) != 0) {
+			char resbuf[80];
+			char *ptr = resbuf;
+			for (i = 0; i < 16; i++) {
+				*ptr++ = 0x20 | bb_hexdigits_upcase[(unsigned char)addr[15 - i] & 0xf];
+				*ptr++ = '.';
+				*ptr++ = 0x20 | bb_hexdigits_upcase[(unsigned char)addr[15 - i] >> 4];
+				*ptr++ = '.';
+			}
+			strcpy(ptr, "ip6.arpa");
+			return xstrdup(resbuf);
+		}
+		return xasprintf("%u.%u.%u.%u.in-addr.arpa",
+				addr[15], addr[14], addr[13], addr[12]);
+	}
+#endif
+
+	if (inet_pton(AF_INET, addrstr, addr)) {
+		return xasprintf("%u.%u.%u.%u.in-addr.arpa",
+		        addr[3], addr[2], addr[1], addr[0]);
+	}
+
+	return NULL;
+}
+
 int nslookup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nslookup_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -843,11 +841,10 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		 * mimicking the one of the traditional nslookup applet.
 		 */
 		char *ptr;
-		char buf80[80];
 
-		ptr = make_ptr(buf80, argv[0]);
+		ptr = make_ptr(argv[0]);
 		if (ptr) {
-			add_query(T_PTR, xstrdup(ptr));
+			add_query(T_PTR, ptr);
 		} else {
 			add_query(T_A, argv[0]);
 #if ENABLE_FEATURE_IPV6
