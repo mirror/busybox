@@ -24,7 +24,8 @@
 //usage:       IF_FEATURE_NSLOOKUP_BIG("[-type=QUERY_TYPE] [-debug] ") "HOST [DNS_SERVER]"
 //usage:#define nslookup_full_usage "\n\n"
 //usage:       "Query DNS about HOST"
-//usage:
+//usage:       IF_FEATURE_NSLOOKUP_BIG("\n")
+//usage:       IF_FEATURE_NSLOOKUP_BIG("\nQUERY_TYPE: soa,ns,a,"IF_FEATURE_IPV6("aaaa,")"cname,mx,txt,ptr,any")
 //usage:#define nslookup_example_usage
 //usage:       "$ nslookup localhost\n"
 //usage:       "Server:     default\n"
@@ -816,7 +817,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 			for (i = 0;; i++) {
 				if (i == ARRAY_SIZE(qtypes))
 					bb_error_msg_and_die("invalid query type \"%s\"", val);
-				if (strcmp(qtypes[i].name, val) == 0)
+				if (strcasecmp(qtypes[i].name, val) == 0)
 					break;
 			}
 			types |= (1 << i);
