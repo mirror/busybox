@@ -264,9 +264,10 @@ struct ns {
 struct query {
 	const char *name;
 	unsigned qlen, rlen;
-	unsigned latency;
-	uint8_t rcode;
-	unsigned char query[512], reply[512];
+//	unsigned latency;
+//	uint8_t rcode;
+	unsigned char query[512];
+//	unsigned char reply[512];
 };
 
 static const struct {
@@ -325,9 +326,14 @@ struct globals {
 	G.default_timeout = 5; \
 } while (0)
 
-static int
-parse_reply(const unsigned char *msg, size_t len)
+enum {
+	OPT_stats = (1 << 4),
+};
+
+static int parse_reply(const unsigned char *msg, size_t len)
 {
+	HEADER *header;
+
 	ns_msg handle;
 	ns_rr rr;
 	int i, n, rdlen;
@@ -335,14 +341,18 @@ parse_reply(const unsigned char *msg, size_t len)
 	char astr[INET6_ADDRSTRLEN], dname[MAXDNAME];
 	const unsigned char *cp;
 
+	header = (HEADER *)msg;
+	if (!header->aa)
+		printf("Non-authoritative answer:\n");
+
 	if (ns_initparse(msg, len, &handle) != 0) {
-		//fprintf(stderr, "Unable to parse reply: %s\n", strerror(errno));
+		//printf("Unable to parse reply: %s\n", strerror(errno));
 		return -1;
 	}
 
 	for (i = 0; i < ns_msg_count(handle, ns_s_an); i++) {
 		if (ns_parserr(&handle, ns_s_an, i, &rr) != 0) {
-			//fprintf(stderr, "Unable to parse resource record: %s\n", strerror(errno));
+			//printf("Unable to parse resource record: %s\n", strerror(errno));
 			return -1;
 		}
 
@@ -387,7 +397,7 @@ parse_reply(const unsigned char *msg, size_t len)
 			if (ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
 					ns_rr_rdata(rr), dname, sizeof(dname)) < 0
 			) {
-				//fprintf(stderr, "Unable to uncompress domain: %s\n", strerror(errno));
+				//printf("Unable to uncompress domain: %s\n", strerror(errno));
 				return -1;
 			}
 			printf(format, ns_rr_name(rr), dname);
@@ -395,14 +405,14 @@ parse_reply(const unsigned char *msg, size_t len)
 
 		case ns_t_mx:
 			if (rdlen < 2) {
-				fprintf(stderr, "MX record too short\n");
+				printf("MX record too short\n");
 				return -1;
 			}
 			n = ns_get16(ns_rr_rdata(rr));
 			if (ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
 					ns_rr_rdata(rr) + 2, dname, sizeof(dname)) < 0
 			) {
-				//fprintf(stderr, "Cannot uncompress MX domain: %s\n", strerror(errno));
+				//printf("Cannot uncompress MX domain: %s\n", strerror(errno));
 				return -1;
 			}
 			printf("%s\tmail exchanger = %d %s\n", ns_rr_name(rr), n, dname);
@@ -410,7 +420,7 @@ parse_reply(const unsigned char *msg, size_t len)
 
 		case ns_t_txt:
 			if (rdlen < 1) {
-				//fprintf(stderr, "TXT record too short\n");
+				//printf("TXT record too short\n");
 				return -1;
 			}
 			n = *(unsigned char *)ns_rr_rdata(rr);
@@ -433,7 +443,7 @@ parse_reply(const unsigned char *msg, size_t len)
 			n = ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
 			                       cp, dname, sizeof(dname));
 			if (n < 0) {
-				//fprintf(stderr, "Unable to uncompress domain: %s\n", strerror(errno));
+				//printf("Unable to uncompress domain: %s\n", strerror(errno));
 				return -1;
 			}
 
@@ -443,7 +453,7 @@ parse_reply(const unsigned char *msg, size_t len)
 			n = ns_name_uncompress(ns_msg_base(handle), ns_msg_end(handle),
 			                       cp, dname, sizeof(dname));
 			if (n < 0) {
-				//fprintf(stderr, "Unable to uncompress domain: %s\n", strerror(errno));
+				//printf("Unable to uncompress domain: %s\n", strerror(errno));
 				return -1;
 			}
 
@@ -513,11 +523,13 @@ static char *make_ptr(char resbuf[80], const char *addrstr)
  */
 static int send_queries(struct ns *ns, struct query *query, int n_queries)
 {
+	unsigned char reply[512];
+	uint8_t rcode;
 	len_and_sockaddr *local_lsa;
 	struct pollfd pfd;
 	int servfail_retry = 0;
 	int n_replies = 0;
-	int save_idx = 0;
+//	int save_idx = 0;
 	unsigned retry_interval;
 	unsigned timeout = G.default_timeout * 1000;
 	unsigned tstart, tsent, tcur;
@@ -564,18 +576,34 @@ static int send_queries(struct ns *ns, struct query *query, int n_queries)
 		if (poll(&pfd, 1, retry_interval - (tcur - tsent)) <= 0)
 			goto next;
 
-		recvlen = read(pfd.fd, query[save_idx].reply, sizeof(query[0].reply));
+		recvlen = read(pfd.fd, reply, sizeof(reply));
+		if (recvlen < 0) {
+			bb_perror_msg("read");
+ next:
+			tcur = monotonic_ms();
+			continue;
+		}
 
-		/* Error/non-identifiable packet */
+		if (ns->replies++ == 0) {
+			printf("Server:\t\t%s\n", ns->name);
+			printf("Address:\t%s\n\n",
+				auto_string(xmalloc_sockaddr2dotted(&ns->lsa->u.sa))
+			);
+			/* In "Address", bind-utils-9.11.3 show port after a hash: "1.2.3.4#53" */
+			/* Should we do the same? */
+		}
+
+		/* Non-identifiable packet */
 		if (recvlen < 4) {
 			dbg("read is too short:%d\n", recvlen);
 			goto next;
 		}
 
 		/* Find which query this answer goes with, if any */
-		qn = save_idx;
+//		qn = save_idx;
+		qn = 0;
 		for (;;) {
-			if (memcmp(query[save_idx].reply, query[qn].query, 2) == 0) {
+			if (memcmp(reply, query[qn].query, 2) == 0) {
 				dbg("response matches query %u\n", qn);
 				break;
 			}
@@ -590,38 +618,42 @@ static int send_queries(struct ns *ns, struct query *query, int n_queries)
 			goto next;
 		}
 
-		ns->replies++;
+		rcode = reply[3] & 0x0f;
+		dbg("query %u rcode:%s\n", qn, rcodes[rcode]);
 
-		query[qn].rcode = query[save_idx].reply[3] & 15;
-		dbg("query %u rcode:%s\n", qn, rcodes[query[qn].rcode]);
-
-		/* Only accept positive or negative responses;
-		 * retry immediately on server failure, and ignore
-		 * all other codes such as refusal.
-		 */
-		switch (query[qn].rcode) {
-		case 0:
-		case 3:
-			break;
-		case 2:
+		/* Retry immediately on SERVFAIL */
+		if (rcode == 2) {
+			ns->failures++;
 			if (servfail_retry) {
 				servfail_retry--;
-				ns->failures++;
 				write(pfd.fd, query[qn].query, query[qn].qlen);
 				dbg("query %u resent\n", qn);
+				goto next;
 			}
-			/* fall through */
-		default:
- next:
-			tcur = monotonic_ms();
-			continue;
 		}
 
-		/* Store answer */
-		n_replies++;
+		/* Process reply */
 		query[qn].rlen = recvlen;
 		tcur = monotonic_ms();
+#if 1
+		if (option_mask32 & OPT_stats) {
+			printf("Query #%d completed in %ums:\n", qn, tcur - tstart);
+		}
+		if (rcode != 0) {
+			printf("** server can't find %s: %s\n",
+					query[qn].name, rcodes[rcode]);
+		} else {
+			if (parse_reply(reply, recvlen) < 0)
+				printf("*** Can't find %s: Parse error\n", query[qn].name);
+		}
+		bb_putchar('\n');
+		n_replies++;
+		if (n_replies >= n_queries)
+			goto ret;
+#else
+//used to store replies and process them later
 		query[qn].latency = tcur - tstart;
+		n_replies++;
 		if (qn != save_idx) {
 			/* "wrong" receive buffer, move to correct one */
 			memcpy(query[qn].reply, query[save_idx].reply, recvlen);
@@ -635,6 +667,7 @@ static int send_queries(struct ns *ns, struct query *query, int n_queries)
 			if (!query[save_idx].rlen)
 				break; /* this one is empty */
 		}
+#endif
 	} /* while() */
 
  ret:
@@ -718,11 +751,9 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 	llist_t *type_strings;
 	int n_queries;
 	unsigned types;
-	int rc;
 	int opts;
-	enum {
-		OPT_stats = (1 << 4),
-	};
+	int rc;
+	int err;
 
 	INIT_G();
 
@@ -827,61 +858,54 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 			add_ns("127.0.0.1");
 	}
 
-	for (rc = 0; rc < G.serv_count; rc++) {
-		int c = send_queries(&G.server[rc], queries, n_queries);
-		if (c > 0)
+	for (rc = 0; rc < G.serv_count;) {
+		int c;
+
+		c = send_queries(&G.server[rc], queries, n_queries);
+		if (c > 0) {
+			/* more than zero replies received */
+			if (opts & OPT_stats) {
+				printf("Replies:\t%d\n", G.server[rc].replies);
+				printf("Failures:\t%d\n\n", G.server[rc].failures);
+			}
 			break;
+//FIXME: we "break" even though some queries may still be not answered, and other servers may know them?
+		}
 		/* c = 0: timed out waiting for replies */
 		/* c < 0: error (message already printed) */
 		rc++;
 		if (rc >= G.serv_count) {
-			fprintf(stderr,
-				";; connection timed out; no servers could be reached\n\n");
+//
+// NB: bind-utils-9.11.3 behavior (all to stdout, not stderr):
+//
+// $ nslookup gmail.com 8.8.8.8
+// ;; connection timed out; no servers could be reached
+//
+// $ nslookup -s gmail.com 8.8.8.8; echo EXITCODE:$?
+//     <~10 sec>
+// ;; Connection to 8.8.8.8#53(8.8.8.8) for gmail.com failed: timed out.
+//     <~10 sec>
+// ;; Connection to 8.8.8.8#53(8.8.8.8) for gmail.com failed: timed out.
+//     <~10 sec>
+// ;; connection timed out; no servers could be reached
+// ;; Connection to 8.8.8.8#53(8.8.8.8) for gmail.com failed: timed out.
+//     <empty line>
+// EXITCODE:1
+// $ _
+			printf(";; connection timed out; no servers could be reached\n\n");
 			return EXIT_FAILURE;
 		}
 	}
 
-	printf("Server:\t\t%s\n", G.server[rc].name);
-	printf("Address:\t%s\n", xmalloc_sockaddr2dotted(&G.server[rc].lsa->u.sa));
-	/* In "Address", bind-utils-9.11.3 show port after a hash: "1.2.3.4#53" */
-	/* Should we do the same? */
-
-	if (opts & OPT_stats) {
-		printf("Replies:\t%d\n", G.server[rc].replies);
-		printf("Failures:\t%d\n", G.server[rc].failures);
-	}
-	printf("\n");
-
+	err = 0;
 	for (rc = 0; rc < n_queries; rc++) {
-		int c;
-
-		if (opts & OPT_stats) {
-			printf("Query #%d completed in %ums:\n", rc, queries[rc].latency);
-		}
-
-		if (queries[rc].rcode != 0) {
-			printf("** server can't find %s: %s\n", queries[rc].name,
-			       rcodes[queries[rc].rcode]);
-			continue;
-		}
-
-		c = 0;
-		if (queries[rc].rlen) {
-			HEADER *header;
-
-			header = (HEADER *)queries[rc].reply;
-			if (!header->aa)
-				printf("Non-authoritative answer:\n");
-			c = parse_reply(queries[rc].reply, queries[rc].rlen);
-		}
-
-		if (c == 0)
+		if (queries[rc].rlen == 0) {
 			printf("*** Can't find %s: No answer\n", queries[rc].name);
-		else if (c < 0)
-			printf("*** Can't find %s: Parse error\n", queries[rc].name);
-
-		bb_putchar('\n');
+			err = 1;
+		}
 	}
+	if (err)
+		bb_putchar('\n'); /* should this affect exicode too? */
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(ns);
