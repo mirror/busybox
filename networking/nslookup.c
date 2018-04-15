@@ -21,7 +21,7 @@
 //kbuild:lib-$(CONFIG_NSLOOKUP) += nslookup.o
 
 //usage:#define nslookup_trivial_usage
-//usage:       IF_FEATURE_NSLOOKUP_BIG("[-type=QUERY_TYPE] ") "HOST [DNS_SERVER]"
+//usage:       IF_FEATURE_NSLOOKUP_BIG("[-type=QUERY_TYPE] [-debug] ") "HOST [DNS_SERVER]"
 //usage:#define nslookup_full_usage "\n\n"
 //usage:       "Query DNS about HOST"
 //usage:
@@ -306,7 +306,7 @@ static const char *const rcodes[] = {
 };
 
 #if ENABLE_FEATURE_IPV6
-static const char v4_mapped[] = { 0,0,0,0,0,0,0,0,0,0,0xff,0xff };
+static const char v4_mapped[12] = { 0,0,0,0, 0,0,0,0, 0,0,0xff,0xff };
 #endif
 
 struct globals {
@@ -325,7 +325,7 @@ struct globals {
 } while (0)
 
 enum {
-	OPT_stats = (1 << 0),
+	OPT_debug = (1 << 0),
 };
 
 static int parse_reply(const unsigned char *msg, size_t len)
@@ -634,7 +634,7 @@ static int send_queries(struct ns *ns, struct query *query, int n_queries)
 		query[qn].rlen = recvlen;
 		tcur = monotonic_ms();
 #if 1
-		if (option_mask32 & OPT_stats) {
+		if (option_mask32 & OPT_debug) {
 			printf("Query #%d completed in %ums:\n", qn, tcur - tstart);
 		}
 		if (rcode != 0) {
@@ -788,7 +788,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 			"querytype\0" /* 1 */
 			"port\0"      /* 2 */
 			"retry\0"     /* 3 */
-			"stats\0"     /* 4 */
+			"debug\0"     /* 4 */
 			"t\0" /* disambiguate with "type": else -t=2 fails */
 			"timeout\0"   /* 6 */
 			"";
@@ -829,7 +829,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 			G.default_retry = xatou_range(val, 1, INT_MAX);
 		}
 		if (i == 4) {
-			option_mask32 |= OPT_stats;
+			option_mask32 |= OPT_debug;
 		}
 		if (i > 4) {
 			G.default_timeout = xatou_range(val, 1, INT_MAX / 1000);
@@ -883,10 +883,12 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		c = send_queries(&G.server[rc], queries, n_queries);
 		if (c > 0) {
 			/* more than zero replies received */
-			if (option_mask32 & OPT_stats) {
+#if 0 /* which version does this? */
+			if (option_mask32 & OPT_debug) {
 				printf("Replies:\t%d\n", G.server[rc].replies);
 				printf("Failures:\t%d\n\n", G.server[rc].failures);
 			}
+#endif
 			break;
 //FIXME: we "break" even though some queries may still be not answered, and other servers may know them?
 		}
@@ -900,7 +902,8 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 // $ nslookup gmail.com 8.8.8.8
 // ;; connection timed out; no servers could be reached
 //
-// $ nslookup -s gmail.com 8.8.8.8; echo EXITCODE:$?
+// Using TCP mode:
+// $ nslookup -vc gmail.com 8.8.8.8; echo EXITCODE:$?
 //     <~10 sec>
 // ;; Connection to 8.8.8.8#53(8.8.8.8) for gmail.com failed: timed out.
 //     <~10 sec>
