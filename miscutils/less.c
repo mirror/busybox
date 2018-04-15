@@ -1856,7 +1856,6 @@ int less_main(int argc, char **argv)
 	if (!num_files) {
 		if (isatty(STDIN_FILENO)) {
 			/* Just "less"? No args and no redirection? */
-			bb_error_msg("missing filename");
 			bb_show_usage();
 		}
 	} else {
