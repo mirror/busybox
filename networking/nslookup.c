@@ -271,8 +271,8 @@ struct query {
 };
 
 static const struct {
-	int type;
-	const char *name;
+	unsigned char type;
+	char name[7];
 } qtypes[] = {
 	{ ns_t_soa,   "SOA"   },
 	{ ns_t_ns,    "NS"    },
@@ -285,7 +285,6 @@ static const struct {
 	{ ns_t_txt,   "TXT"   },
 	{ ns_t_ptr,   "PTR"   },
 	{ ns_t_any,   "ANY"   },
-	{ }
 };
 
 static const char *const rcodes[] = {
@@ -803,7 +802,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 			ptr = chr + 1;
 
 		for (c = 0;; c++) {
-			if (!qtypes[c].name)
+			if (c == ARRAY_SIZE(qtypes))
 				bb_error_msg_and_die("invalid query type \"%s\"", ptr);
 			if (strcmp(qtypes[c].name, ptr) == 0)
 				break;
@@ -836,13 +835,11 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 				add_query(&queries, &n_queries, T_AAAA, *argv);
 #endif
 			}
-		}
-		else {
+		} else {
 			int c;
-			for (c = 0; qtypes[c].name; c++) {
+			for (c = 0; c < ARRAY_SIZE(qtypes); c++) {
 				if (types & (1 << c))
-					add_query(&queries, &n_queries, qtypes[c].type,
-						*argv);
+					add_query(&queries, &n_queries, qtypes[c].type,	*argv);
 			}
 		}
 		argv++;
