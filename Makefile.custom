@@ -11,6 +11,9 @@ busybox.cfg.nosuid: $(srctree)/applets/busybox.mksuid $(objtree)/include/autocon
 	$(Q)-SUID="DROP" $(SHELL) $^ > $@
 
 .PHONY: install
+ifeq ($(CONFIG_INSTALL_APPLET_DONT),y)
+INSTALL_OPTS:= --none
+endif
 ifeq ($(CONFIG_INSTALL_APPLET_SYMLINKS),y)
 INSTALL_OPTS:= --symlinks
 endif

@@ -5,7 +5,9 @@ export LC_CTYPE=POSIX
 
 prefix=$1
 if [ -z "$prefix" ]; then
-	echo "usage: applets/install.sh DESTINATION [--symlinks/--hardlinks/--binaries/--scriptwrapper]"
+	echo "usage: applets/install.sh DESTINATION TYPE [OPTS ...]"
+	echo "  TYPE is one of: --symlinks --hardlinks --binaries --scriptwrapper --none"
+	echo "  OPTS is one or more of: --cleanup --noclobber"
 	exit 1
 fi
 shift # Keep only remaining options
@@ -32,7 +34,7 @@ while [ ${#} -gt 0 ]; do
 		--sw-sh-sym)     scriptwrapper="y"; linkopts="-fs";;
 		--cleanup)       cleanup="1";;
 		--noclobber)     noclobber="1";;
-		"")              h="";;
+		--none)          h="";;
 		*)               echo "Unknown install option: $1"; exit 1;;
 	esac
 	shift
