@@ -34,10 +34,6 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 		char raw[60];
 		struct ar_header formatted;
 	} ar;
-#if ENABLE_FEATURE_AR_LONG_FILENAMES
-	static char *ar_long_names;
-	static unsigned ar_long_name_size;
-#endif
 
 	/* dont use xread as we want to handle the error ourself */
 	if (read(archive_handle->src_fd, ar.raw, 60) != 60) {
@@ -81,10 +77,10 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 			 * stores long filename for multiple entries, they are stored
 			 * in static variable long_names for use in future entries
 			 */
-			ar_long_name_size = size;
-			free(ar_long_names);
-			ar_long_names = xzalloc(size + 1);
-			xread(archive_handle->src_fd, ar_long_names, size);
+			archive_handle->ar__long_name_size = size;
+			free(archive_handle->ar__long_names);
+			archive_handle->ar__long_names = xzalloc(size + 1);
+			xread(archive_handle->src_fd, archive_handle->ar__long_names, size);
 			archive_handle->offset += size;
 			/* Return next header */
 			return get_header_ar(archive_handle);
@@ -107,13 +103,13 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 		unsigned long_offset;
 
 		/* The number after the '/' indicates the offset in the ar data section
-		 * (saved in ar_long_names) that contains the real filename */
+		 * (saved in ar__long_names) that contains the real filename */
 		long_offset = read_num(&ar.formatted.name[1], 10,
 				       sizeof(ar.formatted.name) - 1);
-		if (long_offset >= ar_long_name_size) {
+		if (long_offset >= archive_handle->ar__long_name_size) {
 			bb_error_msg_and_die("can't resolve long filename");
 		}
-		typed->name = xstrdup(ar_long_names + long_offset);
+		typed->name = xstrdup(archive_handle->ar__long_names + long_offset);
 	} else
 #endif
 	{
