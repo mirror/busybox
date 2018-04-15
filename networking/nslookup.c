@@ -314,8 +314,10 @@ struct globals {
 	unsigned default_port;
 	unsigned default_retry;
 	unsigned default_timeout;
+	unsigned query_count;
 	unsigned serv_count;
 	struct ns *server;
+	struct query *query;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
@@ -518,9 +520,9 @@ static char *make_ptr(char resbuf[80], const char *addrstr)
 
 /*
  * Function logic borrowed & modified from musl libc, res_msend.c
- * n_queries is always > 0.
+ * G.query_count is always > 0.
  */
-static int send_queries(struct ns *ns, struct query *query, int n_queries)
+static int send_queries(struct ns *ns)
 {
 	unsigned char reply[512];
 	uint8_t rcode;
@@ -557,10 +559,10 @@ static int send_queries(struct ns *ns, struct query *query, int n_queries)
 
 		if (tcur - tsent >= retry_interval) {
  send:
-			for (qn = 0; qn < n_queries; qn++) {
-				if (query[qn].rlen)
+			for (qn = 0; qn < G.query_count; qn++) {
+				if (G.query[qn].rlen)
 					continue;
-				if (write(pfd.fd, query[qn].query, query[qn].qlen) < 0) {
+				if (write(pfd.fd, G.query[qn].query, G.query[qn].qlen) < 0) {
 					bb_perror_msg("write to '%s'", ns->name);
 					n_replies = -1; /* "no go, try next server" */
 					goto ret;
@@ -568,7 +570,7 @@ static int send_queries(struct ns *ns, struct query *query, int n_queries)
 				dbg("query %u sent\n", qn);
 			}
 			tsent = tcur;
-			servfail_retry = 2 * n_queries;
+			servfail_retry = 2 * G.query_count;
 		}
 
 		/* Wait for a response, or until time to retry */
@@ -602,17 +604,17 @@ static int send_queries(struct ns *ns, struct query *query, int n_queries)
 //		qn = save_idx;
 		qn = 0;
 		for (;;) {
-			if (memcmp(reply, query[qn].query, 2) == 0) {
+			if (memcmp(reply, G.query[qn].query, 2) == 0) {
 				dbg("response matches query %u\n", qn);
 				break;
 			}
-			if (++qn >= n_queries) {
+			if (++qn >= G.query_count) {
 				dbg("response does not match any query\n");
 				goto next;
 			}
 		}
 
-		if (query[qn].rlen) {
+		if (G.query[qn].rlen) {
 			dbg("dropped duplicate response to query %u\n", qn);
 			goto next;
 		}
@@ -625,14 +627,14 @@ static int send_queries(struct ns *ns, struct query *query, int n_queries)
 			ns->failures++;
 			if (servfail_retry) {
 				servfail_retry--;
-				write(pfd.fd, query[qn].query, query[qn].qlen);
+				write(pfd.fd, G.query[qn].query, G.query[qn].qlen);
 				dbg("query %u resent\n", qn);
 				goto next;
 			}
 		}
 
 		/* Process reply */
-		query[qn].rlen = recvlen;
+		G.query[qn].rlen = recvlen;
 		tcur = monotonic_ms();
 #if 1
 		if (option_mask32 & OPT_debug) {
@@ -640,30 +642,30 @@ static int send_queries(struct ns *ns, struct query *query, int n_queries)
 		}
 		if (rcode != 0) {
 			printf("** server can't find %s: %s\n",
-					query[qn].name, rcodes[rcode]);
+					G.query[qn].name, rcodes[rcode]);
 		} else {
 			if (parse_reply(reply, recvlen) < 0)
-				printf("*** Can't find %s: Parse error\n", query[qn].name);
+				printf("*** Can't find %s: Parse error\n", G.query[qn].name);
 		}
 		bb_putchar('\n');
 		n_replies++;
-		if (n_replies >= n_queries)
+		if (n_replies >= G.query_count)
 			goto ret;
 #else
 //used to store replies and process them later
-		query[qn].latency = tcur - tstart;
+		G.query[qn].latency = tcur - tstart;
 		n_replies++;
 		if (qn != save_idx) {
 			/* "wrong" receive buffer, move to correct one */
-			memcpy(query[qn].reply, query[save_idx].reply, recvlen);
+			memcpy(G.query[qn].reply, G.query[save_idx].reply, recvlen);
 			continue;
 		}
-		/* query[0..save_idx] have replies, move to next one, if exists */
+		/* G.query[0..save_idx] have replies, move to next one, if exists */
 		for (;;) {
 			save_idx++;
-			if (save_idx >= n_queries)
+			if (save_idx >= G.query_count)
 				goto ret; /* all are full: we have all results */
-			if (!query[save_idx].rlen)
+			if (!G.query[save_idx].rlen)
 				break; /* this one is empty */
 		}
 #endif
@@ -718,36 +720,27 @@ static void parse_resolvconf(void)
 	}
 }
 
-static struct query *add_query(struct query **queries, int *n_queries,
-		int type, const char *dname)
+static void add_query(int type, const char *dname)
 {
 	struct query *new_q;
-	int pos;
+	unsigned count;
 	ssize_t qlen;
 
-	pos = *n_queries;
-	*n_queries = pos + 1;
-	*queries = new_q = xrealloc(*queries, sizeof(**queries) * (pos + 1));
+	count = G.query_count++;
 
-	dbg("new query#%u type %u for '%s'\n", pos, type, dname);
-	new_q += pos;
-	memset(new_q, 0, sizeof(*new_q));
+	G.query = xrealloc_vector(G.query, /*2=2^1:*/ 1, count);
+	new_q = &G.query[count];
 
+	dbg("new query#%u type %u for '%s'\n", count, type, dname);
+	new_q->name = dname;
 	qlen = res_mkquery(QUERY, dname, C_IN, type, NULL, 0, NULL,
 			new_q->query, sizeof(new_q->query));
-
 	new_q->qlen = qlen;
-	new_q->name = dname;
-
-	return new_q;
 }
 
 int nslookup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nslookup_main(int argc UNUSED_PARAM, char **argv)
 {
-	struct ns *ns;
-	struct query *queries;
-	int n_queries;
 	unsigned types;
 	int rc;
 	int err;
@@ -837,8 +830,6 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 
-	n_queries = 0;
-	queries = NULL;
 	if (types == 0) {
 		/* No explicit type given, guess query type.
 		 * If we can convert the domain argument into a ptr (means that
@@ -851,18 +842,18 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 
 		ptr = make_ptr(buf80, argv[0]);
 		if (ptr) {
-			add_query(&queries, &n_queries, T_PTR, xstrdup(ptr));
+			add_query(T_PTR, xstrdup(ptr));
 		} else {
-			add_query(&queries, &n_queries, T_A, argv[0]);
+			add_query(T_A, argv[0]);
 #if ENABLE_FEATURE_IPV6
-			add_query(&queries, &n_queries, T_AAAA, argv[0]);
+			add_query(T_AAAA, argv[0]);
 #endif
 		}
 	} else {
 		int c;
 		for (c = 0; c < ARRAY_SIZE(qtypes); c++) {
 			if (types & (1 << c))
-				add_query(&queries, &n_queries, qtypes[c].type,	argv[0]);
+				add_query(qtypes[c].type, argv[0]);
 		}
 	}
 
@@ -881,7 +872,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 	for (rc = 0; rc < G.serv_count;) {
 		int c;
 
-		c = send_queries(&G.server[rc], queries, n_queries);
+		c = send_queries(&G.server[rc]);
 		if (c > 0) {
 			/* more than zero replies received */
 #if 0 /* which version does this? */
@@ -921,9 +912,9 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	err = 0;
-	for (rc = 0; rc < n_queries; rc++) {
-		if (queries[rc].rlen == 0) {
-			printf("*** Can't find %s: No answer\n", queries[rc].name);
+	for (rc = 0; rc < G.query_count; rc++) {
+		if (G.query[rc].rlen == 0) {
+			printf("*** Can't find %s: No answer\n", G.query[rc].name);
 			err = 1;
 		}
 	}
@@ -931,9 +922,8 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		bb_putchar('\n'); /* should this affect exicode too? */
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		free(ns);
-		if (n_queries)
-			free(queries);
+		free(G.server);
+		free(G.query);
 	}
 
 	return EXIT_SUCCESS;
