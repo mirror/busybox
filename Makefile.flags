@@ -156,6 +156,10 @@ CPPFLAGS += $(SELINUX_CFLAGS)
 LDLIBS += $(if $(SELINUX_LIBS),$(SELINUX_LIBS:-l%=%),$(SELINUX_PC_MODULES:lib%=%))
 endif
 
+ifeq ($(CONFIG_FEATURE_NSLOOKUP_BIG),y)
+LDLIBS += resolv
+endif
+
 ifeq ($(CONFIG_EFENCE),y)
 LDLIBS += efence
 endif
