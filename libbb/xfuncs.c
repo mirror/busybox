@@ -330,7 +330,6 @@ int FAST_FUNC get_termios_and_make_raw(int fd, struct termios *newterm, struct t
 	newterm->c_cc[VMIN] = 1;
 	/* no timeout (reads block forever) */
 	newterm->c_cc[VTIME] = 0;
-	if (flags & TERMIOS_RAW_CRNL) {
 /* IXON, IXOFF, and IXANY:
  * IXOFF=1: sw flow control is enabled on input queue:
  * tty transmits a STOP char when input queue is close to full
@@ -340,9 +339,12 @@ int FAST_FUNC get_termios_and_make_raw(int fd, struct termios *newterm, struct t
  * and resume sending if START is received, or if any char
  * is received and IXANY=1.
  */
+	if (flags & TERMIOS_RAW_CRNL_INPUT) {
 		/* IXON=0: XON/XOFF chars are treated as normal chars (why we do this?) */
 		/* dont convert CR to NL on input */
 		newterm->c_iflag &= ~(IXON | ICRNL);
+	}
+	if (flags & TERMIOS_RAW_CRNL_OUTPUT) {
 		/* dont convert NL to CR+NL on output */
 		newterm->c_oflag &= ~(ONLCR);
 		/* Maybe clear more c_oflag bits? Usually, only OPOST and ONLCR are set.
@@ -363,9 +365,12 @@ int FAST_FUNC get_termios_and_make_raw(int fd, struct termios *newterm, struct t
 #ifndef IXANY
 # define IXANY 0
 #endif
-		/* IXOFF=0: disable sending XON/XOFF if input buf is full */
-		/* IXON=0: input XON/XOFF chars are not special */
-		/* dont convert anything on input */
+		/* IXOFF=0: disable sending XON/XOFF if input buf is full
+		 * IXON=0: input XON/XOFF chars are not special
+		 * BRKINT=0: dont send SIGINT on break
+		 * IMAXBEL=0: dont echo BEL on input line too long
+		 * INLCR,ICRNL,IUCLC: dont convert anything on input
+		 */
 		newterm->c_iflag &= ~(IXOFF|IXON|IXANY|BRKINT|INLCR|ICRNL|IUCLC|IMAXBEL);
 	}
 	return r;

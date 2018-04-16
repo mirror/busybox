@@ -1891,7 +1891,7 @@ int less_main(int argc, char **argv)
 	G.kbd_fd_orig_flags = ndelay_on(tty_fd);
 	kbd_fd = tty_fd; /* save in a global */
 
-	get_termios_and_make_raw(tty_fd, &term_less, &term_orig, TERMIOS_RAW_CRNL);
+	get_termios_and_make_raw(tty_fd, &term_less, &term_orig, TERMIOS_RAW_CRNL_INPUT);
 
 	IF_FEATURE_LESS_ASK_TERMINAL(G.winsize_err =) get_terminal_width_height(tty_fd, &width, &max_displayed_line);
 	/* 20: two tabstops + 4 */
