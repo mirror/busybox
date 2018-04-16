@@ -7,7 +7,7 @@ exec </dev/null
 user=root # for bind to port 69
 
 exec \
-env - \
+env - PATH="$PATH" \
 softlimit \
 setuidgid "$user" \
 udpsvd -v -c 10 -l localhost \

@@ -41,6 +41,7 @@
 int setlogcons_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int setlogcons_main(int argc UNUSED_PARAM, char **argv)
 {
+	char *devname;
 	struct {
 		char fn;
 		char subarg;
@@ -52,7 +53,14 @@ int setlogcons_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[1])
 		arg.subarg = xatou_range(argv[1], 0, 63);
 
-	xioctl(xopen(VC_1, O_RDONLY), TIOCLINUX, &arg);
+	/* Can just call it on "/dev/tty1" always, but...
+	 * in my testing, inactive (never opened) VTs are not
+	 * redirected to, despite ioctl not failing.
+	 *
+	 * By using "/dev/ttyN", ensure it is activated.
+	 */
+	devname = xasprintf("/dev/tty%u", arg.subarg);
+	xioctl(xopen(devname, O_RDONLY), TIOCLINUX, &arg);
 
 	return EXIT_SUCCESS;
 }
