@@ -45,7 +45,7 @@ static time_t askremotedate(const char *host)
 	alarm(10);
 	signal(SIGALRM, socket_timeout);
 
-	fd = create_and_connect_stream_or_die(host, bb_lookup_port("time", "tcp", 37));
+	fd = create_and_connect_stream_or_die(host, bb_lookup_std_port("time", "tcp", 37));
 
 	if (safe_read(fd, &nett, 4) != 4)    /* read time from server */
 		bb_error_msg_and_die("%s: %s", host, "short read");

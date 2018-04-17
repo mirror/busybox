@@ -643,7 +643,8 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 	if (!*argv)
 		bb_show_usage();
 	host = *argv++;
-	port = bb_lookup_port(*argv ? *argv++ : "telnet", "tcp", 23);
+	port = *argv ? bb_lookup_port(*argv++, "tcp", 23)
+		: bb_lookup_std_port("telnet", "tcp", 23);
 	if (*argv) /* extra params?? */
 		bb_show_usage();
 

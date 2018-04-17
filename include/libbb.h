@@ -640,6 +640,11 @@ int setsockopt_bindtodevice(int fd, const char *iface) FAST_FUNC;
 int bb_getsockname(int sockfd, void *addr, socklen_t addrlen) FAST_FUNC;
 /* NB: returns port in host byte order */
 unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port) FAST_FUNC;
+#if ENABLE_FEATURE_ETC_SERVICES
+# define bb_lookup_std_port(portstr, protocol, portnum) bb_lookup_port(portstr, protocol, portnum)
+#else
+# define bb_lookup_std_port(portstr, protocol, portnum) (portnum)
+#endif
 typedef struct len_and_sockaddr {
 	socklen_t len;
 	union {

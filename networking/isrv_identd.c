@@ -159,7 +159,7 @@ int fakeidentd_main(int argc UNUSED_PARAM, char **argv)
 	fd = 0;
 	if (!(opt & OPT_inetdwait)) {
 		fd = create_and_bind_stream_or_die(bind_address,
-				bb_lookup_port("identd", "tcp", 113));
+				bb_lookup_std_port("identd", "tcp", 113));
 		xlisten(fd, 5);
 	}
 

@@ -505,23 +505,23 @@ static void parse_url(const char *src_url, struct host_info *h)
 		*p = '\0';
 		h->host = p + 3;
 		if (strcmp(url, P_FTP) == 0) {
-			h->port = bb_lookup_port(P_FTP, "tcp", 21);
+			h->port = bb_lookup_std_port(P_FTP, "tcp", 21);
 		} else
 #if SSL_SUPPORTED
 # if ENABLE_FEATURE_WGET_HTTPS
 		if (strcmp(url, P_FTPS) == 0) {
-			h->port = bb_lookup_port(P_FTPS, "tcp", 990);
+			h->port = bb_lookup_std_port(P_FTPS, "tcp", 990);
 			h->protocol = P_FTPS;
 		} else
 # endif
 		if (strcmp(url, P_HTTPS) == 0) {
-			h->port = bb_lookup_port(P_HTTPS, "tcp", 443);
+			h->port = bb_lookup_std_port(P_HTTPS, "tcp", 443);
 			h->protocol = P_HTTPS;
 		} else
 #endif
 		if (strcmp(url, P_HTTP) == 0) {
  http:
-			h->port = bb_lookup_port(P_HTTP, "tcp", 80);
+			h->port = bb_lookup_std_port(P_HTTP, "tcp", 80);
 			h->protocol = P_HTTP;
 		} else {
 			*p = ':';
