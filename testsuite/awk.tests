@@ -339,5 +339,11 @@ testing "awk handles invalid for loop" \
     "awk '{ for() }' 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
 
 # testing "description" "command" "result" "infile" "stdin"
+testing 'awk negative field access' \
+	'awk 2>&1 -- '\''{ $(-1) }'\' \
+	"awk: cmd. line:1: Access to negative field\n" \
+	'' \
+	'anything'
+
 
 exit $FAILCOUNT

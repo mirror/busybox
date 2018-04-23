@@ -598,6 +598,7 @@ static const char EMSG_NOT_ARRAY[] ALIGN1 = "Not an array";
 static const char EMSG_POSSIBLE_ERROR[] ALIGN1 = "Possible syntax error";
 static const char EMSG_UNDEF_FUNC[] ALIGN1 = "Call to undefined function";
 static const char EMSG_NO_MATH[] ALIGN1 = "Math support is not compiled in";
+static const char EMSG_NEGATIVE_FIELD[] ALIGN1 = "Access to negative field";
 
 static void zero_out_var(var *vp)
 {
@@ -2949,6 +2950,8 @@ static var *evaluate(node *op, var *res)
 
 		case XC( OC_FIELD ): {
 			int i = (int)getvar_i(R.v);
+			if (i < 0)
+				syntax_error(EMSG_NEGATIVE_FIELD);
 			if (i == 0) {
 				res = intvar[F0];
 			} else {
