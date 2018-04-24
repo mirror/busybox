@@ -263,7 +263,7 @@
 //usage:     "\n	-regex PATTERN	Match path to regex PATTERN"
 //usage:	)
 //usage:	IF_FEATURE_FIND_TYPE(
-//usage:     "\n	-type X		File type is X (one of: f,d,l,b,c,...)"
+//usage:     "\n	-type X		File type is X (one of: f,d,l,b,c,s,p)"
 //usage:	)
 //usage:	IF_FEATURE_FIND_PERM(
 //usage:     "\n	-perm MASK	At least one mask bit (+MASK), all bits (-MASK),"
