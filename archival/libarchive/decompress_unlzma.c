@@ -498,6 +498,12 @@ unpack_lzma_stream(transformer_state_t *xstate)
 		IF_DESKTOP(total_written += buffer_pos;)
 		if (transformer_write(xstate, buffer, buffer_pos) != (ssize_t)buffer_pos) {
  bad:
+			/* One of our users, bbunpack(), expects _us_ to emit
+			 * the error message (since it's the best place to give
+			 * potentially more detailed information).
+			 * Do not fail silently.
+			 */
+			bb_error_msg("corrupted data");
 			total_written = -1; /* failure */
 		}
 		rc_free(rc);
