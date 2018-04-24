@@ -539,7 +539,7 @@ static void parse_url(const char *src_url, struct host_info *h)
 	//   and saves 'index.html?var=a%2Fb' (we save 'b')
 	// wget 'http://busybox.net?login=john@doe':
 	//   request: 'GET /?login=john@doe HTTP/1.0'
-	//   saves: 'index.html?login=john@doe' (we save '?login=john@doe')
+	//   saves: 'index.html?login=john@doe' (we save 'login=john@doe')
 	// wget 'http://busybox.net#test/test':
 	//   request: 'GET / HTTP/1.0'
 	//   saves: 'index.html' (we save 'test')
@@ -553,13 +553,13 @@ static void parse_url(const char *src_url, struct host_info *h)
 	} else if (*sp == '/') {
 		*sp = '\0';
 		h->path = sp + 1;
-	} else { // '#' or '?'
+	} else {
+		// sp points to '#' or '?'
+		// Note:
 		// http://busybox.net?login=john@doe is a valid URL
-		// memmove converts to:
-		// http:/busybox.nett?login=john@doe...
-		memmove(h->host - 1, h->host, sp - h->host);
-		h->host--;
-		sp[-1] = '\0';
+		// (without '/' between ".net" and "?"),
+		// can't store NUL at sp[-1] - this destroys hostname.
+		*sp++ = '\0';
 		h->path = sp;
 	}
 
