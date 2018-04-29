@@ -686,6 +686,8 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 			goto exiting;
 		default:
 			bb_got_signal = 0;
+		/* do not clear bb_got_signal if already 0, this can lose signals */
+		case 0:
 			break;
 		}
 
