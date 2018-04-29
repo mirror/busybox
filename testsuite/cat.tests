@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Copyright 2018 by Denys Vlasenko <vda.linux@googlemail.com>
+# Licensed under GPLv2, see file LICENSE in this source tree.
+
+. ./testing.sh
+
+# testing "description" "command" "result" "infile" "stdin"
+testing 'cat -e' \
+	'cat -e' \
+	'foo$\n' \
+	'' \
+	'foo\n'
+
+testing 'cat -v' \
+	'cat -v' \
+	'foo\n' \
+	'' \
+	'foo\n'
+
+exit $FAILCOUNT
