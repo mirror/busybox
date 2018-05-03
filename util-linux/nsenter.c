@@ -112,7 +112,7 @@ static const char nsenter_longopts[] ALIGN1 =
 	"user\0"			Optional_argument	"U"
 	"ipc\0"				Optional_argument	"i"
 	"uts\0"				Optional_argument	"u"
-	"network\0"			Optional_argument	"n"
+	"net\0"				Optional_argument	"n"
 	"pid\0"				Optional_argument	"p"
 	"mount\0"			Optional_argument	"m"
 	"target\0"			Required_argument	"t"
