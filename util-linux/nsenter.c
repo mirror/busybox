@@ -105,7 +105,7 @@ static const struct namespace_descr ns_list[] = {
 /*
  * Upstream nsenter doesn't support the short option for --preserve-credentials
  */
-static const char opt_str[] ALIGN1 = "U::i::u::n::p::m::""t+S+G+r::w::F";
+static const char opt_str[] ALIGN1 = "U::i::u::n::p::m::""t:+S:+G:+r::w::F";
 
 #if ENABLE_LONG_OPTS
 static const char nsenter_longopts[] ALIGN1 =
