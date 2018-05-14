@@ -38,6 +38,14 @@
 //config:	help
 //config:	You can request POSIX timezone with "-O tz" and timezone name
 //config:	with "-O timezone".
+//config:
+//config:config FEATURE_UDHCPC6_RFC5970
+//config:	bool "Support RFC 5970 (Network Boot)"
+//config:	default y
+//config:	depends on UDHCPC6
+//config:	help
+//config:	You can request bootfile-url with "-O bootfile_url" and
+//config:	bootfile-params with "-O bootfile_params".
 
 //applet:IF_UDHCPC6(APPLET(udhcpc6, BB_DIR_USR_BIN, BB_SUID_DROP))
 
@@ -71,6 +79,10 @@ static const struct dhcp_optflag d6_optflags[] = {
 	{ OPTION_STRING,                                D6_OPT_TZ_POSIX },
 	{ OPTION_STRING,                                D6_OPT_TZ_NAME },
 #endif
+#if ENABLE_FEATURE_UDHCPC6_RFC5970
+	{ OPTION_STRING,                                D6_OPT_BOOT_URL },
+	{ OPTION_STRING,                                D6_OPT_BOOT_PARAM },
+#endif
 	{ 0, 0 }
 };
 /* Must match d6_optflags[] order */
@@ -86,6 +98,11 @@ static const char d6_option_strings[] ALIGN1 =
 	"tz" "\0"       /* D6_OPT_TZ_POSIX */
 	"timezone" "\0" /* D6_OPT_TZ_NAME */
 #endif
+#if ENABLE_FEATURE_UDHCPC6_RFC5970
+	"bootfile_url" "\0" /* D6_OPT_BOOT_URL */
+	"bootfile_param" "\0" /* D6_OPT_BOOT_PARAM */
+#endif
+
 	"\0";
 
 #if ENABLE_LONG_OPTS
@@ -382,6 +399,14 @@ static void option_to_env(uint8_t *option, uint8_t *option_end)
 			*new_env() = xasprintf("tz_name=%.*s", (int)option[3], (char*)option + 4);
 			break;
 #endif
+		case D6_OPT_BOOT_URL:
+		case D6_OPT_BOOT_PARAM:
+			{
+			char *tmp = string_option_to_env(option, option_end);
+			if (tmp)
+				*new_env() = tmp;
+			break;
+			}
 		}
 		len_m4 -= 4 + option[3];
 		option += 4 + option[3];
