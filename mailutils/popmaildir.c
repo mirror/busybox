@@ -265,7 +265,7 @@ int popmaildir_main(int argc UNUSED_PARAM, char **argv)
 
 		// atomically move message to ./new/
 		target = xstrdup(filename);
-		strncpy(target, "new", 3);
+		memcpy(target, "new", 3);
 		// ... or just stop receiving on failure
 		if (rename_or_warn(filename, target))
 			break;
