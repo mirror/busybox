@@ -83,6 +83,8 @@ static const struct dhcp_optflag d6_optflags[] = {
 	{ OPTION_STRING,                                D6_OPT_BOOT_URL },
 	{ OPTION_STRING,                                D6_OPT_BOOT_PARAM },
 #endif
+	{ OPTION_STRING,                                0xd1 }, /* DHCP_PXE_CONF_FILE */
+	{ OPTION_STRING,                                0xd2 }, /* DHCP_PXE_PATH_PREFIX */
 	{ 0, 0 }
 };
 /* Must match d6_optflags[] order */
@@ -102,7 +104,8 @@ static const char d6_option_strings[] ALIGN1 =
 	"bootfile_url" "\0" /* D6_OPT_BOOT_URL */
 	"bootfile_param" "\0" /* D6_OPT_BOOT_PARAM */
 #endif
-
+	"pxeconffile" "\0" /* DHCP_PXE_CONF_FILE  */
+	"pxepathprefix" "\0" /* DHCP_PXE_PATH_PREFIX  */
 	"\0";
 
 #if ENABLE_LONG_OPTS
@@ -401,6 +404,8 @@ static void option_to_env(uint8_t *option, uint8_t *option_end)
 #endif
 		case D6_OPT_BOOT_URL:
 		case D6_OPT_BOOT_PARAM:
+		case 0xd1: /* DHCP_PXE_CONF_FILE */
+		case 0xd2: /* DHCP_PXE_PATH_PREFIX */
 			{
 			char *tmp = string_option_to_env(option, option_end);
 			if (tmp)
