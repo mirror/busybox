@@ -484,8 +484,10 @@ static uint8_t *init_d6_packet(struct d6_packet *packet, char type, uint32_t xid
 
 static uint8_t *add_d6_client_options(uint8_t *ptr)
 {
+	struct option_set *curr;
 	uint8_t *start = ptr;
 	unsigned option;
+	uint16_t len;
 
 	ptr += 4;
 	for (option = 1; option < 256; option++) {
@@ -508,7 +510,12 @@ static uint8_t *add_d6_client_options(uint8_t *ptr)
 	ptr = mempcpy(ptr, &opt_fqdn_req, sizeof(opt_fqdn_req));
 #endif
 	/* Add -x options if any */
-	//...
+	curr = client_config.options;
+	while (curr) {
+		len = (curr->data[D6_OPT_LEN] << 8) | curr->data[D6_OPT_LEN + 1];
+		ptr = mempcpy(ptr, curr->data, D6_OPT_DATA + len);
+		curr = curr->next;
+	}
 
 	return ptr;
 }
@@ -1215,7 +1222,10 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	}
 	while (list_x) {
 		char *optstr = xstrdup(llist_pop(&list_x));
-		udhcp_str2optset(optstr, &client_config.options, d6_optflags, d6_option_strings);
+		udhcp_str2optset(optstr, &client_config.options,
+				d6_optflags, d6_option_strings,
+				/*dhcpv6:*/ 1
+		);
 		free(optstr);
 	}
 

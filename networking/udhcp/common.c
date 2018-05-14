@@ -379,12 +379,18 @@ int FAST_FUNC udhcp_str2nip(const char *str, void *arg)
  * and to parse udhcpd.conf's "opt OPTNAME OPTVAL" directives.
  */
 /* helper: add an option to the opt_list */
+#if !ENABLE_UDHCPC6
+#define attach_option(opt_list, optflag, buffer, length, dhcpv6) \
+	attach_option(opt_list, optflag, buffer, length)
+#endif
 static NOINLINE void attach_option(
 		struct option_set **opt_list,
 		const struct dhcp_optflag *optflag,
 		char *buffer,
-		int length)
+		int length,
+		bool dhcpv6)
 {
+	IF_NOT_UDHCPC6(bool dhcpv6 = 0;)
 	struct option_set *existing;
 	char *allocated = NULL;
 
@@ -410,10 +416,21 @@ static NOINLINE void attach_option(
 		/* make a new option */
 		log2("attaching option %02x to list", optflag->code);
 		new = xmalloc(sizeof(*new));
-		new->data = xmalloc(length + OPT_DATA);
-		new->data[OPT_CODE] = optflag->code;
-		new->data[OPT_LEN] = length;
-		memcpy(new->data + OPT_DATA, (allocated ? allocated : buffer), length);
+		if (!dhcpv6) {
+			new->data = xmalloc(length + OPT_DATA);
+			new->data[OPT_CODE] = optflag->code;
+			new->data[OPT_LEN] = length;
+			memcpy(new->data + OPT_DATA, (allocated ? allocated : buffer),
+					length);
+		} else {
+			new->data = xmalloc(length + D6_OPT_DATA);
+			new->data[D6_OPT_CODE] = optflag->code >> 8;
+			new->data[D6_OPT_CODE + 1] = optflag->code & 0xff;
+			new->data[D6_OPT_LEN] = length >> 8;
+			new->data[D6_OPT_LEN + 1] = length & 0xff;
+			memcpy(new->data + D6_OPT_DATA, (allocated ? allocated : buffer),
+					length);
+		}
 
 		curr = opt_list;
 		while (*curr && (*curr)->data[OPT_CODE] < optflag->code)
@@ -450,7 +467,9 @@ static NOINLINE void attach_option(
 	free(allocated);
 }
 
-int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg, const struct dhcp_optflag *optflags, const char *option_strings)
+int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg,
+		const struct dhcp_optflag *optflags, const char *option_strings,
+		bool dhcpv6)
 {
 	struct option_set **opt_list = arg;
 	char *opt;
@@ -602,7 +621,7 @@ case_OPTION_STRING:
 		}
 
 		if (retval)
-			attach_option(opt_list, optflag, opt, length);
+			attach_option(opt_list, optflag, opt, length, dhcpv6);
 	} while (retval && (optflag->flags & OPTION_LIST));
 
 	return retval;

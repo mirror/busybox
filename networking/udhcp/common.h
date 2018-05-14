@@ -164,6 +164,10 @@ enum {
 #define OPT_CODE                0
 #define OPT_LEN                 1
 #define OPT_DATA                2
+/* Offsets in option byte sequence for DHCPv6 */
+#define D6_OPT_CODE				0
+#define D6_OPT_LEN				2
+#define D6_OPT_DATA				4
 /* Bits in "overload" option */
 #define OPTION_FIELD            0
 #define FILE_FIELD              1
@@ -290,10 +294,15 @@ void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;
 /* 2nd param is "uint32_t*" */
 int FAST_FUNC udhcp_str2nip(const char *str, void *arg);
 /* 2nd param is "struct option_set**" */
+#if !ENABLE_UDHCPC6
+#define udhcp_str2optset(str, arg, optflags, option_strings, dhcpv6) \
+	udhcp_str2optset(str, arg, optflags, option_strings)
+#endif
 int FAST_FUNC udhcp_str2optset(const char *str,
 		void *arg,
 		const struct dhcp_optflag *optflags,
-		const char *option_strings);
+		const char *option_strings,
+		bool dhcpv6);
 
 #if ENABLE_UDHCPC || ENABLE_UDHCPD
 void udhcp_init_header(struct dhcp_packet *packet, char type) FAST_FUNC;

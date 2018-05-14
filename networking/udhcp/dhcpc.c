@@ -1337,7 +1337,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	}
 	while (list_x) {
 		char *optstr = xstrdup(llist_pop(&list_x));
-		udhcp_str2optset(optstr, &client_config.options, dhcp_optflags, dhcp_option_strings);
+		udhcp_str2optset(optstr, &client_config.options,
+				dhcp_optflags, dhcp_option_strings,
+				/*dhcpv6:*/ 0
+		);
 		free(optstr);
 	}
 
