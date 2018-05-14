@@ -195,6 +195,34 @@ static char** new_env(void)
 	return &client6_data.env_ptr[client6_data.env_idx++];
 }
 
+static char *string_option_to_env(uint8_t *option, uint8_t *option_end)
+{
+	const char *ptr, *name = NULL;
+	unsigned val_len;
+	int i;
+
+	ptr = d6_option_strings;
+	i = 0;
+	while (*ptr) {
+		if (d6_optflags[i].code == option[1]) {
+			name = ptr;
+			goto found;
+		}
+		ptr += strlen(ptr) + 1;
+		i++;
+	}
+	bb_error_msg("can't find option name for 0x%x, skipping", option[1]);
+	return NULL;
+
+ found:
+	val_len = (option[2] << 8) | option[3];
+	if (val_len + &option[D6_OPT_DATA] > option_end) {
+		bb_error_msg("option data exceeds option length");
+		return NULL;
+	}
+	return xasprintf("%s=%.*s", name, val_len, (char*)option + 4);
+}
+
 /* put all the parameters into the environment */
 static void option_to_env(uint8_t *option, uint8_t *option_end)
 {
