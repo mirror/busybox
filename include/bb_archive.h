@@ -64,8 +64,8 @@ typedef struct archive_handle_t {
 	/* Currently processed file's header */
 	file_header_t *file_header;
 
-	/* List of symlink placeholders */
-	llist_t *symlink_placeholders;
+	/* List of link placeholders */
+	llist_t *link_placeholders;
 
 	/* Process the header component, e.g. tar -t */
 	void FAST_FUNC (*action_header)(const file_header_t *);
@@ -203,10 +203,11 @@ void seek_by_jump(int fd, off_t amount) FAST_FUNC;
 void seek_by_read(int fd, off_t amount) FAST_FUNC;
 
 const char *strip_unsafe_prefix(const char *str) FAST_FUNC;
-void create_or_remember_symlink(llist_t **symlink_placeholders,
+void create_or_remember_link(llist_t **link_placeholders,
 		const char *target,
-		const char *linkname) FAST_FUNC;
-void create_symlinks_from_list(llist_t *list) FAST_FUNC;
+		const char *linkname,
+		int hard_link) FAST_FUNC;
+void create_links_from_list(llist_t *list) FAST_FUNC;
 
 void data_align(archive_handle_t *archive_handle, unsigned boundary) FAST_FUNC;
 const llist_t *find_list_entry(const llist_t *list, const char *filename) FAST_FUNC;

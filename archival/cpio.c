@@ -508,7 +508,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
 		continue;
 
-	create_symlinks_from_list(archive_handle->symlink_placeholders);
+	create_links_from_list(archive_handle->link_placeholders);
 
 	if (archive_handle->cpio__blocks != (off_t)-1
 	 && !(opt & OPT_QUIET)

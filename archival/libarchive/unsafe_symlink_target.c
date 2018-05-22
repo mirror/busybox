@@ -5,13 +5,14 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
-void FAST_FUNC create_or_remember_symlink(llist_t **symlink_placeholders,
+void FAST_FUNC create_or_remember_link(llist_t **link_placeholders,
 		const char *target,
-		const char *linkname)
+		const char *linkname,
+		int hard_link)
 {
-	if (target[0] == '/' || strstr(target, "..")) {
-		llist_add_to(symlink_placeholders,
-			xasprintf("%s%c%s", linkname, '\0', target)
+	if (hard_link || target[0] == '/' || strstr(target, "..")) {
+		llist_add_to_end(link_placeholders,
+			xasprintf("%c%s%c%s", hard_link, linkname, '\0', target)
 		);
 		return;
 	}
@@ -23,17 +24,17 @@ void FAST_FUNC create_or_remember_symlink(llist_t **symlink_placeholders,
 	}
 }
 
-void FAST_FUNC create_symlinks_from_list(llist_t *list)
+void FAST_FUNC create_links_from_list(llist_t *list)
 {
 	while (list) {
 		char *target;
 
-		target = list->data + strlen(list->data) + 1;
-		if (symlink(target, list->data)) {
+		target = list->data + 1 + strlen(list->data + 1) + 1;
+		if ((*list->data ? link : symlink) (target, list->data + 1)) {
 			/* shared message */
 			bb_error_msg_and_die("can't create %slink '%s' to '%s'",
-				"sym",
-				list->data, target
+				*list->data ? "hard" : "sym",
+				list->data + 1, target
 			);
 		}
 		list = list->link;

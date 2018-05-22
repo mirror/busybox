@@ -126,7 +126,7 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 			struct archive_handle_t *sa = archive_handle->dpkg__sub_archive;
 			while (archive_handle->dpkg__action_data_subarchive(sa) == EXIT_SUCCESS)
 				continue;
-			create_symlinks_from_list(sa->symlink_placeholders);
+			create_links_from_list(sa->link_placeholders);
 		} else
 #endif
 			archive_handle->action_data(archive_handle);

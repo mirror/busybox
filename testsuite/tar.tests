@@ -365,4 +365,20 @@ n8fYaKlioCTzL2oXYczyUUIP4u5IpwoSEwWdtoA=
 SKIP=
 cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
 
+mkdir tar.tempdir && cd tar.tempdir || exit 1
+testing "Symlinks and hardlinks coexist" '\
+mkdir dir
+>dir/a
+ln -s ../dir/a dir/b
+ln dir/b dir/c
+mkdir new
+tar cf - dir/* | tar -C new -xvf - 2>&1
+' "\
+dir/a
+dir/b
+dir/c
+" \
+"" ""
+cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
+
 exit $FAILCOUNT
