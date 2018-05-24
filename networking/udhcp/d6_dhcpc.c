@@ -287,6 +287,10 @@ static void option_to_env(uint8_t *option, uint8_t *option_end)
  * |                        valid-lifetime                         |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
+			/* Make sure payload contains an address */
+			if (option[3] < 24)
+				break;
+
 			sprint_nip6(ipv6str, option + 4);
 			*new_env() = xasprintf("ipv6=%s", ipv6str);
 
