@@ -86,7 +86,7 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 
 	/* NOFORK: only one alloc is allowed; must free */
 	if (opt & 1) { /* -f */
-		buf = xmalloc_realpath(fname);
+		buf = xmalloc_realpath_coreutils(fname);
 	} else {
 		buf = xmalloc_readlink_or_warn(fname);
 	}

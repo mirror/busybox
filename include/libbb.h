@@ -485,6 +485,7 @@ DIR *xopendir(const char *path) FAST_FUNC;
 DIR *warn_opendir(const char *path) FAST_FUNC;
 
 char *xmalloc_realpath(const char *path) FAST_FUNC RETURNS_MALLOC;
+char *xmalloc_realpath_coreutils(const char *path) FAST_FUNC RETURNS_MALLOC;
 char *xmalloc_readlink(const char *path) FAST_FUNC RETURNS_MALLOC;
 char *xmalloc_readlink_or_warn(const char *path) FAST_FUNC RETURNS_MALLOC;
 /* !RETURNS_MALLOC: it's a realloc-like function */

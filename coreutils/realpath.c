@@ -38,7 +38,7 @@ int realpath_main(int argc UNUSED_PARAM, char **argv)
 
 	do {
 		/* NOFORK: only one alloc is allowed; must free */
-		char *resolved_path = xmalloc_realpath(*argv);
+		char *resolved_path = xmalloc_realpath_coreutils(*argv);
 		if (resolved_path != NULL) {
 			puts(resolved_path);
 			free(resolved_path);
