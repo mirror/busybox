@@ -350,8 +350,12 @@ unpack_lzma_stream(transformer_state_t *xstate)
 						state = state < LZMA_NUM_LIT_STATES ? 9 : 11;
 
 						pos = buffer_pos - rep0;
-						if ((int32_t)pos < 0)
+						if ((int32_t)pos < 0) {
 							pos += header.dict_size;
+							/* see unzip_bad_lzma_2.zip: */
+							if (pos >= buffer_size)
+								goto bad;
+						}
 						previous_byte = buffer[pos];
 						goto one_byte1;
 #else

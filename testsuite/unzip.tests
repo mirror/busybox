@@ -14,7 +14,7 @@
 # Create a scratch directory
 
 mkdir temp
-cd temp || exit 90
+cd temp || exit $?
 
 # Create test file to work with.
 
@@ -54,9 +54,22 @@ SKIP=
 
 rm -f *
 
-optional CONFIG_FEATURE_UNZIP_LZMA
-testing "unzip (archive with corrupted lzma)" "unzip -p ../unzip_bad_lzma_1.zip 2>&1; echo \$?" \
+optional FEATURE_UNZIP_LZMA
+testing "unzip (archive with corrupted lzma 1)" "unzip -p ../unzip_bad_lzma_1.zip 2>&1; echo \$?" \
 "unzip: removing leading '/' from member names
+unzip: corrupted data
+unzip: inflate error
+1
+" \
+"" ""
+SKIP=
+
+rm -f *
+
+optional FEATURE_UNZIP_LZMA
+testing "unzip (archive with corrupted lzma 2)" "unzip -p ../unzip_bad_lzma_2.zip 2>&1; echo \$?" \
+"unzip: removing leading '/' from member names
+unzip: corrupted data
 unzip: inflate error
 1
 " \
