@@ -2004,12 +2004,6 @@ check_consistency(const struct partition *p, int partition)
 		printf("     phys=(%u,%u,%u) ", pec, peh, pes);
 		printf("logical=(%u,%u,%u)\n", lec, leh, les);
 	}
-
-/* Ending on cylinder boundary? */
-	if (peh != (g_heads - 1) || pes != g_sectors) {
-		printf("Partition %u does not end on cylinder boundary\n",
-			partition + 1);
-	}
 }
 
 static void
