@@ -143,7 +143,7 @@ char* FAST_FUNC xmalloc_realpath_coreutils(const char *path)
 			buf = xmalloc_realpath(path);
 			if (buf) {
 				unsigned len = strlen(buf);
-                                buf = xrealloc(buf, len + strlen(last_slash) + 2);
+				buf = xrealloc(buf, len + strlen(last_slash) + 2);
 				buf[len++] = '/';
 				strcpy(buf + len, last_slash);
 			}
