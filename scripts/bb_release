@@ -15,20 +15,8 @@ VERSION=`ls busybox-*.tar.gz | sed 's/busybox-\(.*\)\.tar\.gz/\1/'`
 
 zcat busybox-$VERSION.tar.gz | bzip2 > busybox-$VERSION.tar.bz2
 
-test -f busybox-$VERSION.tar.gz || { echo "no busybox-$VERSION.tar.gz"; exit 1; }
-test -f busybox-$VERSION.tar.bz2 || { echo "no busybox-$VERSION.tar.bz2"; exit 1; }
-
-signit()
-{
-echo "$1 released `date -r $1 -R`
-
-MD5:  `md5sum $1`
-SHA1: `sha1sum $1`
-
-To verify this signature, you can obtain my public key
-from http://busybox.net/~vda/vda_pubkey.gpg
-" | gpg --clearsign > "$1.sign"
-}
-
-signit busybox-$VERSION.tar.gz
-signit busybox-$VERSION.tar.bz2
+for releasefile in busybox-$VERSION.tar.gz busybox-$VERSION.tar.bz2; do
+    test -f $releasefile || { echo "no $releasefile"; exit 1; }
+    gpg --detach-sign $releasefile
+    sha256sum $releasefile > $releasefile.sha256
+done
