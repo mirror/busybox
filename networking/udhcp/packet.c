@@ -189,8 +189,7 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 /* Let the kernel do all the work for packet generation */
 int FAST_FUNC udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 		uint32_t source_nip, int source_port,
-		uint32_t dest_nip, int dest_port,
-		int send_flags)
+		uint32_t dest_nip, int dest_port)
 {
 	struct sockaddr_in sa;
 	unsigned padding;
@@ -227,8 +226,8 @@ int FAST_FUNC udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 	padding = DHCP_OPTIONS_BUFSIZE - 1 - udhcp_end_option(dhcp_pkt->options);
 	if (padding > DHCP_SIZE - 300)
 		padding = DHCP_SIZE - 300;
-	result = send(fd, dhcp_pkt, DHCP_SIZE - padding, send_flags);
-	msg = "send";
+	result = safe_write(fd, dhcp_pkt, DHCP_SIZE - padding);
+	msg = "write";
  ret_close:
 	close(fd);
 	if (result < 0) {

@@ -803,15 +803,13 @@ static NOINLINE int send_d6_renew(uint32_t xid, struct in6_addr *server_ipv6, st
 	opt_ptr = add_d6_client_options(opt_ptr);
 
 	bb_error_msg("sending %s", "renew");
-	if (server_ipv6) {
+	if (server_ipv6)
 		return d6_send_kernel_packet(
 			&packet, (opt_ptr - (uint8_t*) &packet),
 			our_cur_ipv6, CLIENT_PORT6,
 			server_ipv6, SERVER_PORT6,
 			client_config.ifindex
-			/* TODO? send_flags: MSG_DONTROUTE (see IPv4 code for reason why) */
 		);
-	}
 	return d6_mcast_from_client_config_ifindex(&packet, opt_ptr);
 }
 

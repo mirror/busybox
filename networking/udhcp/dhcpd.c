@@ -591,9 +591,7 @@ static void send_packet_to_relay(struct dhcp_packet *dhcp_pkt)
 
 	udhcp_send_kernel_packet(dhcp_pkt,
 			server_config.server_nip, SERVER_PORT,
-			dhcp_pkt->gateway_nip, SERVER_PORT,
-			/*send_flags:*/ 0
-	);
+			dhcp_pkt->gateway_nip, SERVER_PORT);
 }
 
 static void send_packet(struct dhcp_packet *dhcp_pkt, int force_broadcast)
