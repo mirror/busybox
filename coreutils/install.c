@@ -214,7 +214,11 @@ int install_main(int argc, char **argv)
 			dest = last;
 			if (opts & OPT_MKDIR_LEADING) {
 				char *ddir = xstrdup(dest);
-				bb_make_directory(dirname(ddir), 0755, mkdir_flags);
+				/*
+				 * -D -t DIR1/DIR2/F3 FILE: create DIR1/DIR2/F3, copy FILE there
+				 * -D FILE DIR1/DIR2/F3: create DIR1/DIR2, copy FILE there as F3
+				 */
+				bb_make_directory((opts & OPT_TARGET) ? ddir : dirname(ddir), 0755, mkdir_flags);
 				/* errors are not checked. copy_file
 				 * will fail if dir is not created.
 				 */
