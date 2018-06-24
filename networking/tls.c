@@ -1082,6 +1082,8 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
  * We need Certificate.tbsCertificate.subjectPublicKeyInfo.publicKey
  */
 	uint8_t *end = der + len;
+	uint8_t tag_class, pc, tag_number;
+	int version_present;
 
 	/* enter "Certificate" item: [der, end) will be only Cert */
 	der = enter_der_item(der, &end);
@@ -1089,8 +1091,24 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 	/* enter "tbsCertificate" item: [der, end) will be only tbsCert */
 	der = enter_der_item(der, &end);
 
+	/*
+	 * Skip version field only if it is present. For a v1 certificate, the
+	 * version field won't be present since v1 is the default value for the
+	 * version field and fields with default values should be omitted (see
+	 * RFC 5280 sections 4.1 and 4.1.2.1). If the version field is present
+	 * it will have a tag class of 2 (context-specific), bit 6 as 1
+	 * (constructed), and a tag number of 0 (see ITU-T X.690 sections 8.1.2
+	 * and 8.14).
+	 */
+	tag_class = der[0] >> 6; /* bits 8-7 */
+	pc = (der[0] & 32) >> 5; /* bit 6 */
+	tag_number = der[0] & 31; /* bits 5-1 */
+	version_present = tag_class == 2 && pc == 1 && tag_number == 0;
+	if (version_present) {
+		der = skip_der_item(der, end); /* version */
+	}
+
 	/* skip up to subjectPublicKeyInfo */
-	der = skip_der_item(der, end); /* version */
 	der = skip_der_item(der, end); /* serialNumber */
 	der = skip_der_item(der, end); /* signatureAlgo */
 	der = skip_der_item(der, end); /* issuer */
