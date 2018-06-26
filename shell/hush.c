@@ -8255,8 +8255,8 @@ static int checkjobs_and_fg_shell(struct pipe *fg_pipe)
  * subshell:     ( list ) [&]
  */
 #if !ENABLE_HUSH_MODE_X
-#define redirect_and_varexp_helper(old_vars_p, command, squirrel, argv_expanded) \
-	redirect_and_varexp_helper(old_vars_p, command, squirrel)
+#define redirect_and_varexp_helper(command, squirrel, argv_expanded) \
+	redirect_and_varexp_helper(command, squirrel)
 #endif
 static int redirect_and_varexp_helper(
 		struct command *command,
