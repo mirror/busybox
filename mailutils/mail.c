@@ -109,6 +109,17 @@ static char* FAST_FUNC parse_url(char *url, char **user, char **pass)
 
 void FAST_FUNC encode_base64(char *fname, const char *text, const char *eol)
 {
+	size_t len = len;
+	if (text) {
+		// though we do not call uuencode(NULL, NULL) explicitly
+		// still we do not want to break things suddenly
+		len = strlen(text);
+	}
+	encode_n_base64(fname, text, len, eol);
+}
+
+void FAST_FUNC encode_n_base64(char *fname, const char *text, size_t len, const char *eol)
+{
 	enum {
 		SRC_BUF_SIZE = 57,  /* This *MUST* be a multiple of 3 */
 		DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
@@ -116,17 +127,12 @@ void FAST_FUNC encode_base64(char *fname, const char *text, const char *eol)
 #define src_buf text
 	char src[SRC_BUF_SIZE];
 	FILE *fp = fp;
-	ssize_t len = len;
 	char dst_buf[DST_BUF_SIZE + 1];
 
 	if (fname) {
 		fp = (NOT_LONE_DASH(fname)) ? xfopen_for_read(fname) : (FILE *)text;
 		src_buf = src;
-	} else if (text) {
-		// though we do not call uuencode(NULL, NULL) explicitly
-		// still we do not want to break things suddenly
-		len = strlen(text);
-	} else
+	} else if (!text)
 		return;
 
 	while (1) {

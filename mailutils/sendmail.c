@@ -36,7 +36,9 @@
 //usage:     "\n		openssl s_client -quiet -tls1 -connect smtp.gmail.com:465"
 //usage:     "\n			$SMTP_ANTISPAM_DELAY: seconds to wait after helper connect"
 //usage:     "\n	-S HOST[:PORT]	Server (default $SMTPHOST or 127.0.0.1)"
-//usage:     "\n	-amLOGIN	Log in using AUTH LOGIN (-amCRAM-MD5 not supported)"
+//usage:     "\n	-amLOGIN	Log in using AUTH LOGIN"
+//usage:     "\n	-amPLAIN	or AUTH PLAIN"
+//usage:     "\n			(-amCRAM-MD5 not supported)"
 //usage:     "\n	-auUSER		Username for AUTH"
 //usage:     "\n	-apPASS 	Password for AUTH"
 //usage:     "\n"
@@ -248,6 +250,10 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		OPT_S = 1 << 6,         // specify connection string
 		OPT_a = 1 << 7,         // authentication tokens
 		OPT_v = 1 << 8,         // verbosity
+	//--- from -am
+		OPT_am_mask = 3 << 14,	// AUTH method
+		OPT_am_login = 0 << 14, // AUTH LOGIN (default)
+		OPT_am_plain = 1 << 14, // AUTH PLAIN
 	};
 
 	// init global variables
@@ -286,9 +292,12 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			G.user = xstrdup(a+1);
 		if ('p' == a[0])
 			G.pass = xstrdup(a+1);
-		// N.B. we support only AUTH LOGIN so far
-		//if ('m' == a[0])
-		//	G.method = xstrdup(a+1);
+		if ('m' == a[0]) {
+			if (strcasecmp("plain", a+1) == 0)
+				opts |= OPT_am_plain;
+			else if (strcasecmp("login", a+1) != 0)
+				bb_error_msg_and_die("unsupported AUTH method %s", a+1);
+		}
 	}
 	// N.B. list == NULL here
 	//bb_error_msg("OPT[%x] AU[%s], AP[%s], AM[%s], ARGV[%s]", opts, au, ap, am, *argv);
@@ -348,13 +357,28 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 	// perform authentication
 	if (opts & OPT_a) {
-		smtp_check("AUTH LOGIN", 334);
 		// we must read credentials unless they are given via -a[up] options
 		if (!G.user || !G.pass)
 			get_cred_or_die(4);
-		encode_base64(NULL, G.user, NULL);
-		smtp_check("", 334);
-		encode_base64(NULL, G.pass, NULL);
+		if ((opts & OPT_am_mask) == OPT_am_plain) {
+			char *plain_auth;
+			size_t user_len, pass_len;
+			user_len = strlen(G.user);
+			pass_len = strlen(G.pass);
+			smtp_check("AUTH PLAIN", 334);
+			// use \1 as placeholders for \0 (format string is NUL-terminated)
+			plain_auth = xasprintf("\1%s\1%s", G.user, G.pass);
+			// substitute placeholders
+			plain_auth[0] = '\0';
+			plain_auth[1 + user_len] = '\0';
+			encode_n_base64(NULL, plain_auth, 1 + user_len + 1 + pass_len, NULL);
+			free(plain_auth);
+		} else if ((opts & OPT_am_mask) == OPT_am_login) {
+			smtp_check("AUTH LOGIN", 334);
+			encode_base64(NULL, G.user, NULL);
+			smtp_check("", 334);
+			encode_base64(NULL, G.pass, NULL);
+		}
 		smtp_check("", 235);
 	}
 
