@@ -7314,6 +7314,58 @@ static const struct built_in_command *find_builtin(const char *name)
 	return find_builtin_helper(name, bltins2, &bltins2[ARRAY_SIZE(bltins2)]);
 }
 
+static void remove_nested_vars(void)
+{
+	struct variable *cur;
+	struct variable **cur_pp;
+
+	cur_pp = &G.top_var;
+	while ((cur = *cur_pp) != NULL) {
+		if (cur->var_nest_level <= G.var_nest_level) {
+			cur_pp = &cur->next;
+			continue;
+		}
+		/* Unexport */
+		if (cur->flg_export) {
+			debug_printf_env("unexporting nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
+			bb_unsetenv(cur->varstr);
+		}
+		/* Remove from global list */
+		*cur_pp = cur->next;
+		/* Free */
+		if (!cur->max_len) {
+			debug_printf_env("freeing nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
+			free(cur->varstr);
+		}
+		free(cur);
+	}
+}
+
+static void enter_var_nest_level(void)
+{
+	G.var_nest_level++;
+	debug_printf_env("var_nest_level++ %u\n", G.var_nest_level);
+
+	/* Try:	f() { echo -n .; f; }; f
+	 * struct variable::var_nest_level is uint16_t,
+	 * thus limiting recursion to < 2^16.
+	 * In any case, with 8 Mbyte stack SEGV happens
+	 * not too long after 2^16 recursions anyway.
+	 */
+	if (G.var_nest_level > 0xff00)
+		bb_error_msg_and_die("fatal recursion (depth %u)", G.var_nest_level);
+}
+
+static void leave_var_nest_level(void)
+{
+	G.var_nest_level--;
+	debug_printf_env("var_nest_level-- %u\n", G.var_nest_level);
+	if (HUSH_DEBUG && (int)G.var_nest_level < 0)
+		bb_error_msg_and_die("BUG: nesting underflow");
+
+	remove_nested_vars();
+}
+
 #if ENABLE_HUSH_FUNCTIONS
 static struct function **find_function_slot(const char *name)
 {
@@ -7399,58 +7451,6 @@ static void unset_func(const char *name)
 	}
 }
 # endif
-
-static void remove_nested_vars(void)
-{
-	struct variable *cur;
-	struct variable **cur_pp;
-
-	cur_pp = &G.top_var;
-	while ((cur = *cur_pp) != NULL) {
-		if (cur->var_nest_level <= G.var_nest_level) {
-			cur_pp = &cur->next;
-			continue;
-		}
-		/* Unexport */
-		if (cur->flg_export) {
-			debug_printf_env("unexporting nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
-			bb_unsetenv(cur->varstr);
-		}
-		/* Remove from global list */
-		*cur_pp = cur->next;
-		/* Free */
-		if (!cur->max_len) {
-			debug_printf_env("freeing nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
-			free(cur->varstr);
-		}
-		free(cur);
-	}
-}
-
-static void enter_var_nest_level(void)
-{
-	G.var_nest_level++;
-	debug_printf_env("var_nest_level++ %u\n", G.var_nest_level);
-
-	/* Try:	f() { echo -n .; f; }; f
-	 * struct variable::var_nest_level is uint16_t,
-	 * thus limiting recursion to < 2^16.
-	 * In any case, with 8 Mbyte stack SEGV happens
-	 * not too long after 2^16 recursions anyway.
-	 */
-	if (G.var_nest_level > 0xff00)
-		bb_error_msg_and_die("fatal recursion (depth %u)", G.var_nest_level);
-}
-
-static void leave_var_nest_level(void)
-{
-	G.var_nest_level--;
-	debug_printf_env("var_nest_level-- %u\n", G.var_nest_level);
-	if (HUSH_DEBUG && (int)G.var_nest_level < 0)
-		bb_error_msg_and_die("BUG: nesting underflow");
-
-	remove_nested_vars();
-}
 
 # if BB_MMU
 #define exec_function(to_free, funcp, argv) \
