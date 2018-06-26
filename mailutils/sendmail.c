@@ -173,7 +173,7 @@ static char *angle_address(char *str)
 	char *s, *e;
 
 	e = trim(str);
-	if (e != str && e[-1] == '>') {
+	if (e != str && *--e == '>') {
 		s = strrchr(str, '<');
 		if (s) {
 			*e = '\0';
