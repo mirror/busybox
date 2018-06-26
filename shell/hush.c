@@ -2373,7 +2373,8 @@ static int unset_local_var(const char *name)
 }
 #endif
 
-#if BASH_HOSTNAME_VAR || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_READ || ENABLE_HUSH_GETOPTS
+#if BASH_HOSTNAME_VAR || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_READ || ENABLE_HUSH_GETOPTS \
+ || (ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT)
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
 	char *var = xasprintf("%s=%s", name, val);
