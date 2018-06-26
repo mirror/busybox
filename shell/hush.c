@@ -2333,6 +2333,7 @@ static void set_pwd_var(unsigned flag)
 	set_local_var(xasprintf("PWD=%s", get_cwd(/*force:*/ 1)), flag);
 }
 
+#if ENABLE_HUSH_UNSET || ENABLE_HUSH_GETOPTS
 static int unset_local_var_len(const char *name, int name_len)
 {
 	struct variable *cur;
@@ -2366,7 +2367,6 @@ static int unset_local_var_len(const char *name, int name_len)
 	return EXIT_SUCCESS;
 }
 
-#if ENABLE_HUSH_UNSET || ENABLE_HUSH_GETOPTS
 static int unset_local_var(const char *name)
 {
 	return unset_local_var_len(name, strlen(name));
