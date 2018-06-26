@@ -9668,7 +9668,7 @@ int hush_main(int argc, char **argv)
 		G_interactive_fd = dup_CLOEXEC(STDIN_FILENO, 254);
 		if (G_interactive_fd < 0) {
 			/* try to dup to any fd */
-			G_interactive_fd = dup_CLOEXEC(STDIN_FILENO);
+			G_interactive_fd = dup_CLOEXEC(STDIN_FILENO, -1);
 			if (G_interactive_fd < 0)
 				/* give up */
 				G_interactive_fd = 0;
