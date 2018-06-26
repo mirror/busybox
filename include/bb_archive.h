@@ -116,10 +116,10 @@ typedef struct archive_handle_t {
 #if ENABLE_FEATURE_AR_CREATE
 	const char *ar__name;
 	struct archive_handle_t *ar__out;
-# if ENABLE_FEATURE_AR_LONG_FILENAMES
+#endif
+#if ENABLE_FEATURE_AR_LONG_FILENAMES
 	char *ar__long_names;
 	unsigned ar__long_name_size;
-# endif
 #endif
 } archive_handle_t;
 /* bits in ah_flags */

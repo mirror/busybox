@@ -4577,7 +4577,9 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 # endif
 	end_ch &= (DOUBLE_CLOSE_CHAR_FLAG - 1);
 
+#if ENABLE_HUSH_INTERACTIVE
 	G.promptmode = 1; /* PS2 */
+#endif
 	debug_printf_prompt("%s promptmode=%d\n", __func__, G.promptmode);
 
 	while (1) {
