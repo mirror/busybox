@@ -712,11 +712,11 @@ static void add_query(int type, const char *dname)
 static char *make_ptr(const char *addrstr)
 {
 	unsigned char addr[16];
-	int i;
 
 #if ENABLE_FEATURE_IPV6
 	if (inet_pton(AF_INET6, addrstr, addr)) {
 		if (memcmp(addr, v4_mapped, 12) != 0) {
+			int i;
 			char resbuf[80];
 			char *ptr = resbuf;
 			for (i = 0; i < 16; i++) {
