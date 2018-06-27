@@ -750,7 +750,10 @@ static int query_screen_dimensions(void)
 	return err;
 }
 #else
-# define query_screen_dimensions() (0)
+static ALWAYS_INLINE int query_screen_dimensions(void)
+{
+	return 0;
+}
 #endif
 
 static void edit_file(char *fn)
