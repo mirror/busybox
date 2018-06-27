@@ -18,9 +18,11 @@ testing "pidof (exit with success)" "pidof pidof > /dev/null; echo \$?" \
 
 testing "pidof this" "pidof pidof.tests | grep -o -w $$" "$$\n" "" ""
 
+test x"`cat /proc/1/comm`" = x"init" && {
 optional FEATURE_PIDOF_SINGLE
 testing "pidof -s" "pidof -s init" "1\n" "" ""
 SKIP=
+}
 
 optional FEATURE_PIDOF_OMIT FEATURE_PIDOF_SINGLE
 # This test fails now because process name matching logic has changed,
