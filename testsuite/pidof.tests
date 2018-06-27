@@ -24,11 +24,16 @@ testing "pidof -s" "pidof -s init" "1\n" "" ""
 SKIP=
 }
 
+test x"`cat /proc/1/comm`" = x"init" && {
 optional FEATURE_PIDOF_OMIT FEATURE_PIDOF_SINGLE
 # This test fails now because process name matching logic has changed,
 # but new logic is not "wrong" either... see find_pid_by_name.c comments
 #testing "pidof -o %PPID" "pidof -o %PPID pidof.tests | grep -o -w $$" "" "" ""
 testing "pidof -o %PPID NOP" "pidof -o %PPID -s init" "1\n" "" ""
+SKIP=
+}
+
+optional FEATURE_PIDOF_OMIT
 testing "pidof -o init" "pidof -o 1 init | grep -o -w 1" "" "" ""
 SKIP=
 
