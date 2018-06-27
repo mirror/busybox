@@ -31,9 +31,9 @@ hello_bz2() {
 }
 
 for ext in \
-    `test x"$CONFIG_GUNZIP"     = x"y" && echo gz` \
-    `test x"$CONFIG_BUNZIP2"    = x"y" && echo bz2` \
-    `test x"$CONFIG_UNCOMPRESS" = x"y" && echo Z`
+    `test x"$CONFIG_GUNZIP:$CONFIG_FEATURE_SEAMLESS_GZ"    = x"y:y" && echo gz` \
+    `test x"$CONFIG_BUNZIP2:$CONFIG_FEATURE_SEAMLESS_BZ2"  = x"y:y" && echo bz2` \
+    `test x"$CONFIG_UNCOMPRESS:$CONFIG_FEATURE_SEAMLESS_Z" = x"y:y" && echo Z`
 do
     prep() {
 	rm -f t1.$ext t2.$ext t_actual
@@ -47,6 +47,8 @@ do
 	    echo "PASS: $1"
 	else
 	    echo "FAIL: $1"
+	    #echo "t_actual:"
+	    #cat t_actual
 	    FAILCOUNT=$((FAILCOUNT + 1))
 	fi
     }
@@ -96,6 +98,7 @@ testing "bzcat can handle compressed zero-length bzip2 files" \
 
 # "input" file is compressed (.Z) file with "a\n" data
 test x"$CONFIG_UNCOMPRESS" = x"y" && \
+test x"$CONFIG_FEATURE_SEAMLESS_Z" = x"y" && \
 testing "zcat can print many files" \
 "zcat input input; echo \$?" \
 "\
@@ -108,6 +111,7 @@ a
 
 # "input" file is compressed (.Z) zero byte file
 test x"$CONFIG_UNCOMPRESS" = x"y" && \
+test x"$CONFIG_FEATURE_SEAMLESS_Z" = x"y" && \
 testing "zcat can handle compressed zero-length (.Z) files" \
 "zcat input input; echo \$?" \
 "0\n" \
