@@ -10,9 +10,11 @@ test "`id -u`" = 0 || {
 	exit 0
 }
 
+# Without MOUNT_LOOP_CREATE, the test will fail if /dev/loopN's do not exist
 if test x"$CONFIG_MKFS_MINIX" != x"y" \
 || test x"$CONFIG_FEATURE_MINIX2" != x"y" \
 || test x"$CONFIG_FEATURE_MOUNT_LOOP" != x"y" \
+|| test x"$CONFIG_FEATURE_MOUNT_LOOP_CREATE" != x"y" \
 || test x"$CONFIG_FEATURE_MOUNT_FLAGS" != x"y" \
 || test x"$CONFIG_FEATURE_DEVFS" = x"y" \
 ; then

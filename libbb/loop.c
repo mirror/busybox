@@ -106,6 +106,10 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 		return -errno;
 	}
 
+//TODO: use LOOP_CTL_GET_FREE instead of trying every loopN in sequence? a-la:
+// fd = open("/dev/loop-control", O_RDWR);
+// loopN = ioctl(fd, LOOP_CTL_GET_FREE);
+//
 	/* Find a loop device.  */
 	try = *device ? *device : dev;
 	/* 1048575 (0xfffff) is a max possible minor number in Linux circa 2010 */
