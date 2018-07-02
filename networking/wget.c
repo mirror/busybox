@@ -1335,6 +1335,7 @@ However, in real world it was observed that some web servers
 						/* server.user remains untouched */
 						free(server.allocated);
 						server.allocated = NULL;
+						server.protocol = target.protocol;
 						server.host = target.host;
 						/* strip_ipv6_scope_id(target.host); - no! */
 						/* we assume remote never gives us IPv6 addr with scope id */
