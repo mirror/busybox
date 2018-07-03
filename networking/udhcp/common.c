@@ -65,6 +65,7 @@ const struct dhcp_optflag dhcp_optflags[] = {
 #endif
 	{ OPTION_STRING                           , 0xd1 }, /* DHCP_PXE_CONF_FILE */
 	{ OPTION_STRING                           , 0xd2 }, /* DHCP_PXE_PATH_PREFIX */
+	{ OPTION_U32                              , 0xd3 }, /* DHCP_REBOOT_TIME   */
 	{ OPTION_6RD                              , 0xd4 }, /* DHCP_6RD           */
 	{ OPTION_STATIC_ROUTES | OPTION_LIST      , 0xf9 }, /* DHCP_MS_STATIC_ROUTES */
 	{ OPTION_STRING                           , 0xfc }, /* DHCP_WPAD          */
@@ -133,6 +134,7 @@ const char dhcp_option_strings[] ALIGN1 =
 #endif
 	"pxeconffile" "\0" /* DHCP_PXE_CONF_FILE  */
 	"pxepathprefix" "\0" /* DHCP_PXE_PATH_PREFIX  */
+	"reboottime" "\0"  /* DHCP_REBOOT_TIME    */
 	"ip6rd" "\0"       /* DHCP_6RD            */
 	"msstaticroutes""\0"/* DHCP_MS_STATIC_ROUTES */
 	"wpad" "\0"        /* DHCP_WPAD           */
