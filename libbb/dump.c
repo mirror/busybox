@@ -387,7 +387,10 @@ static unsigned char *get(priv_dumper_t *dumper)
 			if (need == blocksize) {
 				return NULL;
 			}
-			if (dumper->pub.dump_vflag != ALL && !memcmp(dumper->get__curp, dumper->get__savp, nread)) {
+			if (dumper->pub.dump_vflag != ALL   /* not "show all"? */
+			 && dumper->pub.dump_vflag != FIRST /* not first line? */
+			 && memcmp(dumper->get__curp, dumper->get__savp, nread) == 0 /* same data? */
+			) {
 				if (dumper->pub.dump_vflag != DUP) {
 					puts("*");
 				}
@@ -399,7 +402,7 @@ static unsigned char *get(priv_dumper_t *dumper)
 		}
 		n = fread(dumper->get__curp + nread, sizeof(unsigned char),
 				dumper->pub.dump_length == -1 ? need : MIN(dumper->pub.dump_length, need), stdin);
-		if (!n) {
+		if (n == 0) {
 			if (ferror(stdin)) {
 				bb_simple_perror_msg(dumper->argv[-1]);
 			}
@@ -411,9 +414,10 @@ static unsigned char *get(priv_dumper_t *dumper)
 			dumper->pub.dump_length -= n;
 		}
 		need -= n;
-		if (!need) {
-			if (dumper->pub.dump_vflag == ALL || dumper->pub.dump_vflag == FIRST
-			 || memcmp(dumper->get__curp, dumper->get__savp, blocksize)
+		if (need == 0) {
+			if (dumper->pub.dump_vflag == ALL   /* "show all"? */
+			 || dumper->pub.dump_vflag == FIRST /* first line? */
+			 || memcmp(dumper->get__curp, dumper->get__savp, blocksize) != 0 /* not same data? */
 			) {
 				if (dumper->pub.dump_vflag == DUP || dumper->pub.dump_vflag == FIRST) {
 					dumper->pub.dump_vflag = WAIT;
