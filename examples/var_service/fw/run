@@ -8,7 +8,7 @@ extif="if"
 ext_open_tcp="22 80 88" # space-separated
 
 # Make ourself one-shot
-sv o .
+svc -o .
 # Debug
 #date '+%Y-%m-%d %H:%M:%S' >>"$0.log"
 

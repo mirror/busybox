@@ -52,7 +52,7 @@ if test x"$1" != x"bound" && test x"$1" != x"renew" ; then
 	rm "$file_ntpconf"
 	rm "$dir_ipconf/$file_ipconf"
 	rm "$dir_ntpconf/$file_ntpconf"
-	sv u /var/service/fw
+	svc -u fw
 	exit
 fi
 
@@ -67,10 +67,10 @@ if test $? != 0; then
 	echo "Reconfiguring fw"
 	mkdir -p "$dir_ipconf" 2>/dev/null
 	cp "$file_ipconf" "$dir_ipconf/$file_ipconf"
-	sv u /var/service/fw
+	svc -u fw
 fi
 
-if test -d /var/service/ntpd; then
+if test -d ../ntpd; then
 	./convert2ntpconf "$file_ntpconf"
 	# Reconfigure ntp server addresses if needed
 	diff --brief "$file_ntpconf" "$dir_ntpconf/$file_ntpconf" >/dev/null 2>&1
@@ -78,7 +78,7 @@ if test -d /var/service/ntpd; then
 		echo "Reconfiguring ntp"
 		mkdir -p "$dir_ntpconf" 2>/dev/null
 		cp "$file_ntpconf" "$dir_ntpconf/$file_ntpconf"
-		sv t /var/service/ntpd
-		sv u /var/service/ntpd
+		svc -t ntpd
+		svc -u ntpd
 	fi
 fi

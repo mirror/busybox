@@ -1,5 +1,5 @@
 #!/bin/sh
-# executed when service is taken down ("sv d .")
+# executed when service is taken down
 
 service=${PWD##*/}
 file_ipconf="$service.ipconf"
@@ -10,4 +10,4 @@ echo "Finish: deconfiguring"
 rm "env.out"
 rm "$file_ipconf"
 rm "$dir_ipconf/$file_ipconf"
-sv u /var/service/fw
+svc -u fw

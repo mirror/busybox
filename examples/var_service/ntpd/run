@@ -6,12 +6,22 @@ exec 2>&1
 exec </dev/null
 
 user=root
+start_delay=15
+net_down_delay=5
 pool="us.pool.ntp.org" # replace "us" with your country code
 
 service="${PWD##*/}"
 rundir="/var/run/service/$service"
 default_p_opt="-p 0.$pool -p 1.$pool -p 2.$pool -p 3.$pool"
 
+echo "* Checking network"
+test -f /var/run/service/fw/up || exec sleep $net_down_delay
+
+# With multiple interfaces (e.g. wired+wireless) going up,
+# networking scripts may restart ntpd service several times
+# in quick succession. Do not be too eager to start sending
+# NTP requests:
+sleep $start_delay
 
 # Make sure rundir/ exists
 mkdir -p "$rundir" 2>/dev/null
@@ -20,30 +30,25 @@ chmod -R a=rX "$rundir"
 rm -rf rundir 2>/dev/null
 ln -s "$rundir" rundir
 
-
-echo "* Checking network"
-test -f /var/run/service/fw/up || exec sleep 7
-sleep 5  # to let it settle
-
 # Grab config from dhcp
 cfg=-1
 for f in rundir/*.ntpconf; do
-        test -f "$f" || continue
-        . "$f"
+	test -f "$f" || continue
+	. "$f"
 done
 
 # Select peers
 p_opt=""
 cfg=0
 while test x"${ntpip[$cfg]}" != x""; do
-        p_opt="$p_opt -p ${ntpip[$cfg]}"
-        let cfg=cfg+1
+	p_opt="$p_opt -p ${ntpip[$cfg]}"
+	let cfg=cfg+1
 done
 test x"$p_opt" == x"" && p_opt="$default_p_opt"
 
 if test x"$p_opt" == x""; then
 	echo "* No NTP peers configured, stopping"
-	sv o .
+	svc -o .
 	exec sleep 1
 fi
 

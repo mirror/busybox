@@ -28,7 +28,7 @@ if test x"$1" != x"config"; then
 	echo "Deconfiguring"
 	rm "$file_ipconf"
 	rm "$dir_ipconf/$file_ipconf"
-	sv u /var/service/fw
+	svc -u fw
 	exit
 fi
 
@@ -43,5 +43,5 @@ if test $? != 0; then
 	echo "Reconfiguring fw"
 	mkdir -p "$dir_ipconf" 2>/dev/null
 	cp "$file_ipconf" "$dir_ipconf/$file_ipconf"
-	sv u /var/service/fw
+	svc -u fw
 fi

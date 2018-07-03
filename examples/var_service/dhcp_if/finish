@@ -14,4 +14,4 @@ rm "$file_ipconf"
 rm "$file_ntpconf"
 rm "$dir_ipconf/$file_ipconf"
 rm "$dir_ntpconf/$file_ntpconf"
-sv u /var/service/fw
+svc -u fw
