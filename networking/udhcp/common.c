@@ -93,51 +93,51 @@ const struct dhcp_optflag dhcp_optflags[] = {
  */
 /* Must match dhcp_optflags[] order */
 const char dhcp_option_strings[] ALIGN1 =
-	"subnet" "\0"      /* DHCP_SUBNET         */
-	"timezone" "\0"    /* DHCP_TIME_OFFSET    */
-	"router" "\0"      /* DHCP_ROUTER         */
-//	"timesrv" "\0"     /* DHCP_TIME_SERVER    */
-//	"namesrv" "\0"     /* DHCP_NAME_SERVER    */
-	"dns" "\0"         /* DHCP_DNS_SERVER     */
-//	"logsrv" "\0"      /* DHCP_LOG_SERVER     */
-//	"cookiesrv" "\0"   /* DHCP_COOKIE_SERVER  */
-	"lprsrv" "\0"      /* DHCP_LPR_SERVER     */
-	"hostname" "\0"    /* DHCP_HOST_NAME      */
-	"bootsize" "\0"    /* DHCP_BOOT_SIZE      */
-	"domain" "\0"      /* DHCP_DOMAIN_NAME    */
-	"swapsrv" "\0"     /* DHCP_SWAP_SERVER    */
-	"rootpath" "\0"    /* DHCP_ROOT_PATH      */
-	"ipttl" "\0"       /* DHCP_IP_TTL         */
-	"mtu" "\0"         /* DHCP_MTU            */
-	"broadcast" "\0"   /* DHCP_BROADCAST      */
-	"routes" "\0"      /* DHCP_ROUTES         */
-	"nisdomain" "\0"   /* DHCP_NIS_DOMAIN     */
-	"nissrv" "\0"      /* DHCP_NIS_SERVER     */
-	"ntpsrv" "\0"      /* DHCP_NTP_SERVER     */
-	"wins" "\0"        /* DHCP_WINS_SERVER    */
-	"lease" "\0"       /* DHCP_LEASE_TIME     */
-	"serverid" "\0"    /* DHCP_SERVER_ID      */
-	"message" "\0"     /* DHCP_ERR_MESSAGE    */
-	"tftp" "\0"        /* DHCP_TFTP_SERVER_NAME */
-	"bootfile" "\0"    /* DHCP_BOOT_FILE      */
-//	"userclass" "\0"   /* DHCP_USER_CLASS     */
+	"subnet" "\0"           /* DHCP_SUBNET          */
+	"timezone" "\0"         /* DHCP_TIME_OFFSET     */
+	"router" "\0"           /* DHCP_ROUTER          */
+//	"timesrv" "\0"          /* DHCP_TIME_SERVER     */
+//	"namesrv" "\0"          /* DHCP_NAME_SERVER     */
+	"dns" "\0"              /* DHCP_DNS_SERVER      */
+//	"logsrv" "\0"           /* DHCP_LOG_SERVER      */
+//	"cookiesrv" "\0"        /* DHCP_COOKIE_SERVER   */
+	"lprsrv" "\0"           /* DHCP_LPR_SERVER      */
+	"hostname" "\0"         /* DHCP_HOST_NAME       */
+	"bootsize" "\0"         /* DHCP_BOOT_SIZE       */
+	"domain" "\0"           /* DHCP_DOMAIN_NAME     */
+	"swapsrv" "\0"          /* DHCP_SWAP_SERVER     */
+	"rootpath" "\0"         /* DHCP_ROOT_PATH       */
+	"ipttl" "\0"            /* DHCP_IP_TTL          */
+	"mtu" "\0"              /* DHCP_MTU             */
+	"broadcast" "\0"        /* DHCP_BROADCAST       */
+	"routes" "\0"           /* DHCP_ROUTES          */
+	"nisdomain" "\0"        /* DHCP_NIS_DOMAIN      */
+	"nissrv" "\0"           /* DHCP_NIS_SERVER      */
+	"ntpsrv" "\0"           /* DHCP_NTP_SERVER      */
+	"wins" "\0"             /* DHCP_WINS_SERVER     */
+	"lease" "\0"            /* DHCP_LEASE_TIME      */
+	"serverid" "\0"         /* DHCP_SERVER_ID       */
+	"message" "\0"          /* DHCP_ERR_MESSAGE     */
+	"tftp" "\0"             /* DHCP_TFTP_SERVER_NAME*/
+	"bootfile" "\0"         /* DHCP_BOOT_FILE       */
+//	"userclass" "\0"        /* DHCP_USER_CLASS      */
 #if ENABLE_FEATURE_UDHCP_RFC3397
-	"search" "\0"      /* DHCP_DOMAIN_SEARCH  */
+	"search" "\0"           /* DHCP_DOMAIN_SEARCH   */
 // doesn't work in udhcpd.conf since OPTION_SIP_SERVERS
 // is not handled yet by "string->option" conversion code:
-	"sipsrv" "\0"      /* DHCP_SIP_SERVERS    */
+	"sipsrv" "\0"           /* DHCP_SIP_SERVERS     */
 #endif
-	"staticroutes" "\0"/* DHCP_STATIC_ROUTES  */
+	"staticroutes" "\0"     /* DHCP_STATIC_ROUTES   */
 #if ENABLE_FEATURE_UDHCP_8021Q
-	"vlanid" "\0"      /* DHCP_VLAN_ID        */
-	"vlanpriority" "\0"/* DHCP_VLAN_PRIORITY  */
+	"vlanid" "\0"           /* DHCP_VLAN_ID         */
+	"vlanpriority" "\0"     /* DHCP_VLAN_PRIORITY   */
 #endif
-	"pxeconffile" "\0" /* DHCP_PXE_CONF_FILE  */
-	"pxepathprefix" "\0" /* DHCP_PXE_PATH_PREFIX  */
-	"reboottime" "\0"  /* DHCP_REBOOT_TIME    */
-	"ip6rd" "\0"       /* DHCP_6RD            */
-	"msstaticroutes""\0"/* DHCP_MS_STATIC_ROUTES */
-	"wpad" "\0"        /* DHCP_WPAD           */
+	"pxeconffile" "\0"      /* DHCP_PXE_CONF_FILE   */
+	"pxepathprefix" "\0"    /* DHCP_PXE_PATH_PREFIX */
+	"reboottime" "\0"       /* DHCP_REBOOT_TIME     */
+	"ip6rd" "\0"            /* DHCP_6RD             */
+	"msstaticroutes" "\0"   /* DHCP_MS_STATIC_ROUTES*/
+	"wpad" "\0"             /* DHCP_WPAD            */
 	;
 #endif
 
