@@ -95,6 +95,11 @@
 //config:	Enable searching based on file type (file,
 //config:	directory, socket, device, etc.).
 //config:
+//config:config FEATURE_FIND_EXECUTABLE
+//config:	bool "Enable -executable: file is executable"
+//config:	default y
+//config:	depends on FIND
+//config:
 //config:config FEATURE_FIND_XDEV
 //config:	bool "Enable -xdev: 'stay in filesystem'"
 //config:	default y
@@ -272,6 +277,9 @@
 //usage:	IF_FEATURE_FIND_TYPE(
 //usage:     "\n	-type X		File type is X (one of: f,d,l,b,c,s,p)"
 //usage:	)
+//usage:	IF_FEATURE_FIND_EXECUTABLE(
+//usage:     "\n	-executable	File is executable"
+//usage:	)
 //usage:	IF_FEATURE_FIND_PERM(
 //usage:     "\n	-perm MASK	At least one mask bit (+MASK), all bits (-MASK),"
 //usage:     "\n			or exactly MASK bits are set in file's mode"
@@ -375,6 +383,7 @@ IF_FEATURE_FIND_PATH(   ACTS(path,  const char *pattern; bool ipath;))
 IF_FEATURE_FIND_REGEX(  ACTS(regex, regex_t compiled_pattern;))
 IF_FEATURE_FIND_PRINT0( ACTS(print0))
 IF_FEATURE_FIND_TYPE(   ACTS(type,  int type_mask;))
+IF_FEATURE_FIND_EXECUTABLE(ACTS(executable))
 IF_FEATURE_FIND_PERM(   ACTS(perm,  char perm_char; mode_t perm_mask;))
 IF_FEATURE_FIND_MTIME(  ACTS(mtime, char mtime_char; unsigned mtime_days;))
 IF_FEATURE_FIND_MMIN(   ACTS(mmin,  char mmin_char; unsigned mmin_mins;))
@@ -576,6 +585,12 @@ ACTF(regex)
 ACTF(type)
 {
 	return ((statbuf->st_mode & S_IFMT) == ap->type_mask);
+}
+#endif
+#if ENABLE_FEATURE_FIND_EXECUTABLE
+ACTF(executable)
+{
+	return access(fileName, X_OK) == 0;
 }
 #endif
 #if ENABLE_FEATURE_FIND_PERM
@@ -975,6 +990,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_QUIT(   PARM_quit      ,)
 	IF_FEATURE_FIND_DELETE( PARM_delete    ,)
 	IF_FEATURE_FIND_EXEC(   PARM_exec      ,)
+	IF_FEATURE_FIND_EXECUTABLE(PARM_executable,)
 	IF_FEATURE_FIND_PAREN(  PARM_char_brace,)
 	/* All options/actions starting from here require argument */
 	                        PARM_name      ,
@@ -1019,6 +1035,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_QUIT(   "-quit\0"  )
 	IF_FEATURE_FIND_DELETE( "-delete\0" )
 	IF_FEATURE_FIND_EXEC(   "-exec\0"   )
+	IF_FEATURE_FIND_EXECUTABLE("-executable\0")
 	IF_FEATURE_FIND_PAREN(  "(\0"       )
 	/* All options/actions starting from here require argument */
 	                        "-name\0"
@@ -1286,6 +1303,11 @@ static action*** parse_params(char **argv)
 			ap = ALLOC_ACTION(type);
 			ap->type_mask = find_type(arg1);
 			dbg("created:type mask:%x", ap->type_mask);
+		}
+#endif
+#if ENABLE_FEATURE_FIND_EXECUTABLE
+		else if (parm == PARM_executable) {
+			(void) ALLOC_ACTION(executable);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PERM
