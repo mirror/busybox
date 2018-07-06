@@ -182,6 +182,13 @@
 //config:	If the file is a directory, don't descend into it. Useful for
 //config:	exclusion .svn and CVS directories.
 //config:
+//config:config FEATURE_FIND_QUIT
+//config:	bool "Enable -quit: exit"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	If this action is reached, 'find' exits.
+//config:
 //config:config FEATURE_FIND_DELETE
 //config:	bool "Enable -delete: delete files/dirs"
 //config:	default y
@@ -318,6 +325,9 @@
 //usage:	IF_FEATURE_FIND_DELETE(
 //usage:     "\n	-delete		Delete current file/directory. Turns on -depth option"
 //usage:	)
+//usage:	IF_FEATURE_FIND_QUIT(
+//usage:     "\n	-quit		Exit"
+//usage:	)
 //usage:
 //usage:#define find_example_usage
 //usage:       "$ find / -name passwd\n"
@@ -375,6 +385,7 @@ IF_FEATURE_FIND_SIZE(   ACTS(size,  char size_char; off_t size;))
 IF_FEATURE_FIND_CONTEXT(ACTS(context, security_context_t context;))
 IF_FEATURE_FIND_PAREN(  ACTS(paren, action ***subexpr;))
 IF_FEATURE_FIND_PRUNE(  ACTS(prune))
+IF_FEATURE_FIND_QUIT(   ACTS(quit))
 IF_FEATURE_FIND_DELETE( ACTS(delete))
 IF_FEATURE_FIND_EXEC(   ACTS(exec,
 				char **exec_argv; /* -exec ARGS */
@@ -402,6 +413,7 @@ struct globals {
 	action ***actions;
 	smallint need_print;
 	smallint xdev_on;
+	smalluint exitstatus;
 	recurse_flags_t recurse_flags;
 	IF_FEATURE_FIND_EXEC_PLUS(unsigned max_argv_len;)
 } FIX_ALIASING;
@@ -774,6 +786,12 @@ ACTF(prune)
 	return SKIP + TRUE;
 }
 #endif
+#if ENABLE_FEATURE_FIND_QUIT
+ACTF(quit)
+{
+	exit(G.exitstatus);
+}
+#endif
 #if ENABLE_FEATURE_FIND_DELETE
 ACTF(delete)
 {
@@ -954,6 +972,7 @@ static action*** parse_params(char **argv)
 	                        PARM_print     ,
 	IF_FEATURE_FIND_PRINT0( PARM_print0    ,)
 	IF_FEATURE_FIND_PRUNE(  PARM_prune     ,)
+	IF_FEATURE_FIND_QUIT(   PARM_quit      ,)
 	IF_FEATURE_FIND_DELETE( PARM_delete    ,)
 	IF_FEATURE_FIND_EXEC(   PARM_exec      ,)
 	IF_FEATURE_FIND_PAREN(  PARM_char_brace,)
@@ -997,6 +1016,7 @@ static action*** parse_params(char **argv)
 	                        "-print\0"
 	IF_FEATURE_FIND_PRINT0( "-print0\0" )
 	IF_FEATURE_FIND_PRUNE(  "-prune\0"  )
+	IF_FEATURE_FIND_QUIT(   "-quit\0"  )
 	IF_FEATURE_FIND_DELETE( "-delete\0" )
 	IF_FEATURE_FIND_EXEC(   "-exec\0"   )
 	IF_FEATURE_FIND_PAREN(  "(\0"       )
@@ -1150,6 +1170,12 @@ static action*** parse_params(char **argv)
 		else if (parm == PARM_prune) {
 			dbg("%d", __LINE__);
 			(void) ALLOC_ACTION(prune);
+		}
+#endif
+#if ENABLE_FEATURE_FIND_QUIT
+		else if (parm == PARM_quit) {
+			dbg("%d", __LINE__);
+			(void) ALLOC_ACTION(quit);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_DELETE
@@ -1401,7 +1427,7 @@ static action*** parse_params(char **argv)
 int find_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int find_main(int argc UNUSED_PARAM, char **argv)
 {
-	int i, firstopt, status = EXIT_SUCCESS;
+	int i, firstopt;
 	char **past_HLP, *saved;
 
 	INIT_G();
@@ -1475,10 +1501,10 @@ int find_main(int argc UNUSED_PARAM, char **argv)
 				NULL,           /* user data */
 				0)              /* depth */
 		) {
-			status |= EXIT_FAILURE;
+			G.exitstatus |= EXIT_FAILURE;
 		}
 	}
 
-	IF_FEATURE_FIND_EXEC_PLUS(status |= flush_exec_plus();)
-	return status;
+	IF_FEATURE_FIND_EXEC_PLUS(G.exitstatus |= flush_exec_plus();)
+	return G.exitstatus;
 }
