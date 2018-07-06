@@ -520,7 +520,7 @@ static int xargs_ask_confirmation(void)
 //usage:	)
 //usage:     "\n	-r	Don't run command if input is empty"
 //usage:	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(
-//usage:     "\n	-0	Input is separated by NUL characters"
+//usage:     "\n	-0	Input is separated by NULs"
 //usage:	)
 //usage:	IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(
 //usage:     "\n	-a FILE	Read from FILE instead of stdin"

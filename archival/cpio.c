@@ -64,15 +64,17 @@
 //usage:     "\n	-p DIR	Copy files to DIR"
 //usage:	)
 //usage:     "\nOptions:"
+//usage:	IF_FEATURE_CPIO_O(
+//usage:     "\n	-H newc	Archive format"
+//usage:	)
 //usage:     "\n	-d	Make leading directories"
 //usage:     "\n	-m	Preserve mtime"
 //usage:     "\n	-v	Verbose"
 //usage:     "\n	-u	Overwrite"
 //usage:     "\n	-F FILE	Input (-t,-i,-p) or output (-o) file"
 //usage:     "\n	-R USER[:GRP]	Set owner of created files"
-//usage:	IF_FEATURE_CPIO_O(
-//usage:     "\n	-H newc	Archive format"
-//usage:	)
+//usage:     "\n	-L	Dereference symlinks"
+//usage:     "\n	-0	Input is separated by NULs"
 
 /* GNU cpio 2.9 --help (abridged):
 
