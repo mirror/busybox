@@ -60,6 +60,7 @@
 //usage:	IF_FEATURE_SORT_BIG(
 //usage:     "\n	-g	General numerical sort"
 //usage:     "\n	-M	Sort month"
+//usage:     "\n	-V	Sort version"
 //usage:     "\n	-t CHAR	Field separator"
 //usage:     "\n	-k N[,M] Sort by Nth field"
 //usage:	)
@@ -91,32 +92,33 @@
 
 /* These are sort types */
 enum {
-	FLAG_n  = 1,            /* Numeric sort */
-	FLAG_g  = 2,            /* Sort using strtod() */
-	FLAG_M  = 4,            /* Sort date */
+	FLAG_n  = 1 << 0,       /* Numeric sort */
+	FLAG_g  = 1 << 1,       /* Sort using strtod() */
+	FLAG_M  = 1 << 2,       /* Sort date */
+	FLAG_V  = 1 << 3,       /* Sort version */
 /* ucsz apply to root level only, not keys.  b at root level implies bb */
-	FLAG_u  = 8,            /* Unique */
-	FLAG_c  = 0x10,         /* Check: no output, exit(!ordered) */
-	FLAG_s  = 0x20,         /* Stable sort, no ascii fallback at end */
-	FLAG_z  = 0x40,         /* Input and output is NUL terminated, not \n */
+	FLAG_u  = 1 << 4,       /* Unique */
+	FLAG_c  = 1 << 5,       /* Check: no output, exit(!ordered) */
+	FLAG_s  = 1 << 6,       /* Stable sort, no ascii fallback at end */
+	FLAG_z  = 1 << 7,       /* Input and output is NUL terminated, not \n */
 /* These can be applied to search keys, the previous four can't */
-	FLAG_b  = 0x80,         /* Ignore leading blanks */
-	FLAG_r  = 0x100,        /* Reverse */
-	FLAG_d  = 0x200,        /* Ignore !(isalnum()|isspace()) */
-	FLAG_f  = 0x400,        /* Force uppercase */
-	FLAG_i  = 0x800,        /* Ignore !isprint() */
-	FLAG_m  = 0x1000,       /* ignored: merge already sorted files; do not sort */
-	FLAG_S  = 0x2000,       /* ignored: -S, --buffer-size=SIZE */
-	FLAG_T  = 0x4000,       /* ignored: -T, --temporary-directory=DIR */
-	FLAG_o  = 0x8000,
-	FLAG_k  = 0x10000,
-	FLAG_t  = 0x20000,
+	FLAG_b  = 1 << 8,       /* Ignore leading blanks */
+	FLAG_r  = 1 << 9,       /* Reverse */
+	FLAG_d  = 1 << 10,      /* Ignore !(isalnum()|isspace()) */
+	FLAG_f  = 1 << 11,      /* Force uppercase */
+	FLAG_i  = 1 << 12,      /* Ignore !isprint() */
+	FLAG_m  = 1 << 13,      /* ignored: merge already sorted files; do not sort */
+	FLAG_S  = 1 << 14,      /* ignored: -S, --buffer-size=SIZE */
+	FLAG_T  = 1 << 15,      /* ignored: -T, --temporary-directory=DIR */
+	FLAG_o  = 1 << 16,
+	FLAG_k  = 1 << 17,
+	FLAG_t  = 1 << 18,
 	FLAG_bb = 0x80000000,   /* Ignore trailing blanks  */
 	FLAG_no_tie_break = 0x40000000,
 };
 
 static const char sort_opt_str[] ALIGN1 = "^"
-			"ngMucszbrdfimS:T:o:k:*t:"
+			"ngMVucszbrdfimS:T:o:k:*t:"
 			"\0" "o--o:t--t"/*-t, -o: at most one of each*/;
 /*
  * OPT_STR must not be string literal, needs to have stable address:
@@ -273,10 +275,15 @@ static int compare_keys(const void *xarg, const void *yarg)
 		y = *(char **)yarg;
 #endif
 		/* Perform actual comparison */
-		switch (flags & (FLAG_n | FLAG_M | FLAG_g)) {
+		switch (flags & (FLAG_n | FLAG_g | FLAG_M | FLAG_V)) {
 		default:
 			bb_error_msg_and_die("unknown sort type");
 			break;
+#if defined(HAVE_STRVERSCMP) && HAVE_STRVERSCMP == 1
+		case FLAG_V:
+			retval = strverscmp(x, y);
+			break;
+#endif
 		/* Ascii sort */
 		case 0:
 #if ENABLE_LOCALE_SUPPORT
