@@ -24,6 +24,11 @@
 //config:	help
 //config:	Enable long options.
 //config:	Also add support for --parents option.
+//config:
+//config:config FEATURE_CP_REFLINK
+//config:	bool "Enable --reflink[=auto]
+//config:	default y
+//config:	depends on FEATURE_CP_LONG_OPTIONS
 
 //applet:IF_CP(APPLET_NOEXEC(cp, cp, BB_DIR_BIN, BB_SUID_DROP, cp))
 /* NOEXEC despite cases when it can be a "runner" (cp -r LARGE_DIR NEW_DIR) */
@@ -72,10 +77,14 @@ int cp_main(int argc, char **argv)
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
 		/*OPT_rmdest  = FILEUTILS_RMDEST = 1 << FILEUTILS_CP_OPTNUM */
 		OPT_parents = 1 << (FILEUTILS_CP_OPTNUM+1),
+		OPT_reflink = 1 << (FILEUTILS_CP_OPTNUM+2),
 #endif
 	};
 
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
+# if ENABLE_FEATURE_CP_REFLINK
+	char *reflink = NULL;
+# endif
 	flags = getopt32long(argv, "^"
 		FILEUTILS_CP_OPTSTR
 		"\0"
@@ -99,7 +108,22 @@ int cp_main(int argc, char **argv)
 		"update\0"         No_argument "u"
 		"remove-destination\0" No_argument "\xff"
 		"parents\0"        No_argument "\xfe"
+# if ENABLE_FEATURE_CP_REFLINK
+		"reflink\0"        Optional_argument "\xfd"
+		, &reflink
+# endif
 	);
+# if ENABLE_FEATURE_CP_REFLINK
+	BUILD_BUG_ON(OPT_reflink != FILEUTILS_REFLINK);
+	if (flags & FILEUTILS_REFLINK) {
+		if (!reflink)
+			flags |= FILEUTILS_REFLINK_ALWAYS;
+		else if (strcmp(reflink, "always") == 0)
+			flags |= FILEUTILS_REFLINK_ALWAYS;
+		else if (strcmp(reflink, "auto") != 0)
+			bb_show_usage();
+	}
+# endif
 #else
 	flags = getopt32(argv, "^"
 		FILEUTILS_CP_OPTSTR

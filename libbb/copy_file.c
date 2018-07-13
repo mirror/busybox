@@ -340,8 +340,27 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			}
 		}
 #endif
+#if ENABLE_FEATURE_CP_REFLINK
+# undef BTRFS_IOCTL_MAGIC
+# define BTRFS_IOCTL_MAGIC 0x94
+# undef BTRFS_IOC_CLONE
+# define BTRFS_IOC_CLONE _IOW (BTRFS_IOCTL_MAGIC, 9, int)
+		if (flags & FILEUTILS_REFLINK) {
+			retval = ioctl(dst_fd, BTRFS_IOC_CLONE, src_fd);
+			if (retval == 0)
+				goto do_close;
+			/* reflink did not work */
+			if (flags & FILEUTILS_REFLINK_ALWAYS) {
+				bb_perror_msg("failed to clone '%s' from '%s'", dest, source);
+				goto do_close;
+			}
+			/* fall through to standard copy */
+			retval = 0;
+		}
+#endif
 		if (bb_copyfd_eof(src_fd, dst_fd) == -1)
 			retval = -1;
+ IF_FEATURE_CP_REFLINK(do_close:)
 		/* Careful with writing... */
 		if (close(dst_fd) < 0) {
 			bb_perror_msg("error writing to '%s'", dest);
