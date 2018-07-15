@@ -9806,41 +9806,41 @@ static int FAST_FUNC builtin_pwd(char **argv UNUSED_PARAM)
 
 static int FAST_FUNC builtin_eval(char **argv)
 {
-	int rcode = EXIT_SUCCESS;
-
 	argv = skip_dash_dash(argv);
-	if (argv[0]) {
-		char *str = NULL;
 
-		if (argv[1]) {
-			/* "The eval utility shall construct a command by
-			 * concatenating arguments together, separating
-			 * each with a <space> character."
-			 */
-			char *p;
-			unsigned len = 0;
-			char **pp = argv;
-			do
-				len += strlen(*pp) + 1;
-			while (*++pp);
-			str = p = xmalloc(len);
-			pp = argv;
-			do {
-				p = stpcpy(p, *pp);
-				*p++ = ' ';
-			} while (*++pp);
-			p[-1] = '\0';
-		}
+	if (!argv[0])
+		return EXIT_SUCCESS;
 
+	if (!argv[1]) {
 		/* bash:
 		 * eval "echo Hi; done" ("done" is syntax error):
 		 * "echo Hi" will not execute too.
 		 */
-		parse_and_run_string(str ? str : argv[0]);
+		parse_and_run_string(argv[0]);
+	} else {
+		/* "The eval utility shall construct a command by
+		 * concatenating arguments together, separating
+		 * each with a <space> character."
+		 */
+		char *str, *p;
+		unsigned len = 0;
+		char **pp = argv;
+		do
+			len += strlen(*pp) + 1;
+		while (*++pp);
+		str = p = xmalloc(len);
+		pp = argv;
+		for (;;) {
+			p = stpcpy(p, *pp);
+			pp++;
+			if (!*pp)
+				break;
+			*p++ = ' ';
+		}
+		parse_and_run_string(str);
 		free(str);
-		rcode = G.last_exitcode;
 	}
-	return rcode;
+	return G.last_exitcode;
 }
 
 static int FAST_FUNC builtin_exec(char **argv)
