@@ -26,7 +26,7 @@
 //config:	Also add support for --parents option.
 //config:
 //config:config FEATURE_CP_REFLINK
-//config:	bool "Enable --reflink[=auto]
+//config:	bool "Enable --reflink[=auto]"
 //config:	default y
 //config:	depends on FEATURE_CP_LONG_OPTIONS
 
