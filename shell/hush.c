@@ -5730,14 +5730,17 @@ static char *encode_then_expand_string(const char *str)
 	char *exp_str;
 	struct in_str input;
 	o_string dest = NULL_O_STRING;
+	const char *cp;
 
-	if (!strchr(str, '$')
-	 && !strchr(str, '\\')
+	cp = str;
+	for (;;) {
+		if (!*cp) return NULL; /* string has no special chars */
+		if (*cp == '$') break;
+		if (*cp == '\\') break;
 #if ENABLE_HUSH_TICK
-	 && !strchr(str, '`')
+		if (*cp == '`') break;
 #endif
-	) {
-		return NULL;
+		cp++;
 	}
 
 	/* We need to expand. Example:
@@ -5768,17 +5771,19 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 	char *exp_str;
 	struct in_str input;
 	o_string dest = NULL_O_STRING;
+	const char *cp;
 
-	if (!strchr(str, '$')
-	 && !strchr(str, '\\')
-	 && !strchr(str, '\'')
-//todo:better code
-	 && !strchr(str, '"')
+	cp = str;
+	for (;;) {
+		if (!*cp) return NULL; /* string has no special chars */
+		if (*cp == '$') break;
+		if (*cp == '\\') break;
+		if (*cp == '\'') break;
+		if (*cp == '"') break;
 #if ENABLE_HUSH_TICK
-	 && !strchr(str, '`')
+		if (*cp == '`') break;
 #endif
-	) {
-		return NULL;
+		cp++;
 	}
 
 	/* Expanding ARG in ${var#ARG}, ${var%ARG}, or ${var/ARG/ARG}.
