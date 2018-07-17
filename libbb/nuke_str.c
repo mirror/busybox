@@ -12,7 +12,7 @@
 
 void FAST_FUNC nuke_str(char *str)
 {
-        if (str) {
+	if (str) {
 		while (*str)
 			*str++ = 0;
 		/* or: memset(str, 0, strlen(str)); - not as small as above */

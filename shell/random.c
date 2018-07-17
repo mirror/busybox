@@ -46,11 +46,11 @@ next_random(random_t *rnd)
 	 * Choices for a,b,c: 10,13,10; 8,9,22; 2,7,3; 23,3,24
 	 * (given by algorithm author)
 	 */
-        enum {
-                a = 2,
-                b = 7,
-                c = 3,
-        };
+	enum {
+		a = 2,
+		b = 7,
+		c = 3,
+	};
 
 	uint32_t t;
 
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 		write(1, buf, sizeof(buf));
 	}
 
-        return 0;
+	return 0;
 }
 
 #endif

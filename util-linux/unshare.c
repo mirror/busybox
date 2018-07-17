@@ -73,7 +73,7 @@
 #include "libbb.h"
 
 static void mount_or_die(const char *source, const char *target,
-                 const char *fstype, unsigned long mountflags)
+		const char *fstype, unsigned long mountflags)
 {
 	if (mount(source, target, fstype, mountflags, NULL)) {
 		bb_perror_msg_and_die("can't mount %s on %s (flags:0x%lx)",

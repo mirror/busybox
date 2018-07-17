@@ -2470,7 +2470,7 @@ static void reinit_unicode_for_hush(void)
 	 */
 	if (ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
 	 || ENABLE_UNICODE_USING_LOCALE
-        ) {
+	) {
 		const char *s = get_local_var_value("LC_ALL");
 		if (!s) s = get_local_var_value("LC_CTYPE");
 		if (!s) s = get_local_var_value("LANG");
@@ -5795,8 +5795,8 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 	 */
 
 	setup_string_in_str(&input, str);
-        o_addchr(&dest, '\0');
-        dest.length = 0;
+	o_addchr(&dest, '\0');
+	dest.length = 0;
 	exp_str = NULL;
 
 	for (;;) {

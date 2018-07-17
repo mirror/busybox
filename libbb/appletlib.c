@@ -737,7 +737,7 @@ static void install_links(const char *busybox, int use_symbolic_links,
 	 * busybox.h::bb_install_loc_t, or else... */
 	int (*lf)(const char *, const char *);
 	char *fpc;
-        const char *appname = applet_names;
+	const char *appname = applet_names;
 	unsigned i;
 	int rc;
 
