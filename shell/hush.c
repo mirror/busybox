@@ -4888,34 +4888,15 @@ static int parse_dollar(o_string *as_string,
 }
 
 #if BB_MMU
-# if BASH_PATTERN_SUBST
-#define encode_string(as_string, dest, input, dquote_end, process_bkslash) \
-	encode_string(dest, input, dquote_end, process_bkslash)
-# else
-/* only ${var/pattern/repl} (its pattern part) needs additional mode */
-#define encode_string(as_string, dest, input, dquote_end, process_bkslash) \
+#define encode_string(as_string, dest, input, dquote_end) \
 	encode_string(dest, input, dquote_end)
-# endif
 #define as_string NULL
-
-#else /* !MMU */
-
-# if BASH_PATTERN_SUBST
-/* all parameters are needed, no macro tricks */
-# else
-#define encode_string(as_string, dest, input, dquote_end, process_bkslash) \
-	encode_string(as_string, dest, input, dquote_end)
-# endif
 #endif
 static int encode_string(o_string *as_string,
 		o_string *dest,
 		struct in_str *input,
-		int dquote_end,
-		int process_bkslash)
+		int dquote_end)
 {
-#if !BASH_PATTERN_SUBST
-	const int process_bkslash = 1;
-#endif
 	int ch;
 	int next;
 
@@ -4938,7 +4919,7 @@ static int encode_string(o_string *as_string,
 	}
 	debug_printf_parse("\" ch=%c (%d) escape=%d\n",
 			ch, ch, !!(dest->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
-	if (process_bkslash && ch == '\\') {
+	if (ch == '\\') {
 		if (next == EOF) {
 			/* Testcase: in interactive shell a file with
 			 *  echo "unterminated string\<eof>
@@ -5447,7 +5428,7 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			if (ctx.is_assignment == NOT_ASSIGNMENT)
 				ctx.word.o_expflags |= EXP_FLAG_ESC_GLOB_CHARS;
-			if (!encode_string(&ctx.as_string, &ctx.word, input, '"', /*process_bkslash:*/ 1))
+			if (!encode_string(&ctx.as_string, &ctx.word, input, '"'))
 				goto parse_error;
 			ctx.word.o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 			continue; /* get next char */
@@ -5744,16 +5725,8 @@ static int expand_on_ifs(int *ended_with_ifs, o_string *output, int n, const cha
  * Returns malloced string.
  * As an optimization, we return NULL if expansion is not needed.
  */
-#if !BASH_PATTERN_SUBST
-/* only ${var/pattern/repl} (its pattern part) needs additional mode */
-#define encode_then_expand_string(str, process_bkslash, do_unbackslash) \
-	encode_then_expand_string(str)
-#endif
-static char *encode_then_expand_string(const char *str, int process_bkslash, int do_unbackslash)
+static char *encode_then_expand_string(const char *str)
 {
-#if !BASH_PATTERN_SUBST
-	enum { do_unbackslash = 1 };
-#endif
 	char *exp_str;
 	struct in_str input;
 	o_string dest = NULL_O_STRING;
@@ -5771,14 +5744,135 @@ static char *encode_then_expand_string(const char *str, int process_bkslash, int
 	 * echo $(($a + `echo 1`)) $((1 + $((2)) ))
 	 */
 	setup_string_in_str(&input, str);
-	encode_string(NULL, &dest, &input, EOF, process_bkslash);
+	encode_string(NULL, &dest, &input, EOF);
 //TODO: error check (encode_string returns 0 on error)?
 	//bb_error_msg("'%s' -> '%s'", str, dest.data);
+	exp_str = expand_string_to_string(dest.data,
+			EXP_FLAG_ESC_GLOB_CHARS,
+			/*unbackslash:*/ 1
+	);
+	//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
+	o_free_unsafe(&dest);
+	return exp_str;
+}
+
+#if !BASH_PATTERN_SUBST
+#define encode_then_expand_vararg(str, handle_squotes, do_unbackslash) \
+	encode_then_expand_vararg(str, handle_squotes)
+#endif
+static char *encode_then_expand_vararg(const char *str, int handle_squotes, int do_unbackslash)
+{
+#if !BASH_PATTERN_SUBST
+	const int do_unbackslash = 0;
+#endif
+	char *exp_str;
+	struct in_str input;
+	o_string dest = NULL_O_STRING;
+
+	if (!strchr(str, '$')
+	 && !strchr(str, '\\')
+	 && !strchr(str, '\'')
+//todo:better code
+	 && !strchr(str, '"')
+#if ENABLE_HUSH_TICK
+	 && !strchr(str, '`')
+#endif
+	) {
+		return NULL;
+	}
+
+	/* Expanding ARG in ${var#ARG}, ${var%ARG}, or ${var/ARG/ARG}.
+	 * These can contain single- and double-quoted strings,
+	 * and treated as if the ARG string is initially unquoted. IOW:
+	 * ${var#ARG} and "${var#ARG}" treat ARG the same (ARG can even be
+	 * a dquoted string: "${var#"zz"}"), the difference only comes later
+	 * (word splitting and globbing of the ${var...} result).
+	 */
+
+	setup_string_in_str(&input, str);
+        o_addchr(&dest, '\0');
+        dest.length = 0;
+	exp_str = NULL;
+
+	for (;;) {
+		int ch;
+		int next;
+
+		ch = i_getch(&input);
+		if (ch == EOF) {
+			if (dest.o_expflags) { /* EXP_FLAG_ESC_GLOB_CHARS set? */
+				syntax_error_unterm_ch('"');
+				goto ret; /* error */
+			}
+			break;
+		}
+		debug_printf_parse("%s: ch=%c (%d) escape=%d\n",
+				__func__, ch, ch, !!dest.o_expflags);
+		if (ch == '\'' && handle_squotes && !dest.o_expflags) {
+//quoting version of add_till_single_quote() (try to merge?):
+			for (;;) {
+				ch = i_getch(&input);
+				if (ch == EOF) {
+					syntax_error_unterm_ch('\'');
+					goto ret; /* error */
+				}
+				if (ch == '\'')
+					break;
+				o_addqchr(&dest, ch);
+			}
+			continue;
+		}
+		if (ch == '"') {
+			dest.o_expflags ^= EXP_FLAG_ESC_GLOB_CHARS;
+			continue;
+		}
+		if (ch == '\\') {
+			ch = i_getch(&input);
+			if (ch == EOF) {
+//example? error message?	syntax_error_unterm_ch('"');
+				debug_printf_parse("%s: error: \\<eof>\n", __func__);
+				goto ret;
+			}
+			o_addqchr(&dest, ch);
+			continue;
+		}
+		next = '\0';
+		if (ch != '\n') {
+			next = i_peek(&input);
+		}
+		if (ch == '$') {
+			if (!parse_dollar(NULL, &dest, &input, /*quote_mask:*/ 0x80)) {
+				debug_printf_parse("%s: error: parse_dollar returned 0 (error)\n", __func__);
+				goto ret;
+			}
+			continue;
+		}
+#if ENABLE_HUSH_TICK
+		if (ch == '`') {
+			//unsigned pos = dest->length;
+			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(&dest, 0x80 | '`');
+			if (!add_till_backquote(&dest, &input,
+					/*in_dquote:*/ dest.o_expflags /* nonzero if EXP_FLAG_ESC_GLOB_CHARS set */
+				)
+			) {
+				goto ret; /* error */
+			}
+			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+			//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
+			continue;
+		}
+#endif
+		o_addQchr(&dest, ch);
+	} /* for (;;) */
+
+	debug_printf_parse("encode: '%s' -> '%s'\n", str, dest.data);
 	exp_str = expand_string_to_string(dest.data,
 			do_unbackslash ? EXP_FLAG_ESC_GLOB_CHARS : 0,
 			do_unbackslash
 	);
-	//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
+ ret:
+	debug_printf_parse("expand: '%s' -> '%s'\n", dest.data, exp_str);
 	o_free_unsafe(&dest);
 	return exp_str;
 }
@@ -5793,7 +5887,7 @@ static arith_t expand_and_evaluate_arith(const char *arg, const char **errmsg_p)
 	math_state.lookupvar = get_local_var_value;
 	math_state.setvar = set_local_var_from_halves;
 	//math_state.endofname = endofname;
-	exp_str = encode_then_expand_string(arg, /*process_bkslash:*/ 1, /*unbackslash:*/ 1);
+	exp_str = encode_then_expand_string(arg);
 	res = arith(&math_state, exp_str ? exp_str : arg);
 	free(exp_str);
 	if (errmsg_p)
@@ -5869,7 +5963,6 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	char *to_be_freed;
 	char *p;
 	char *var;
-	char first_char;
 	char exp_op;
 	char exp_save = exp_save; /* for compiler */
 	char *exp_saveptr; /* points to expansion operator */
@@ -5883,10 +5976,10 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	var = arg;
 	exp_saveptr = arg[1] ? strchr(VAR_ENCODED_SUBST_OPS, arg[1]) : NULL;
 	arg0 = arg[0];
-	first_char = arg[0] = arg0 & 0x7f;
+	arg[0] = (arg0 & 0x7f);
 	exp_op = 0;
 
-	if (first_char == '#' && arg[1] /* ${#...} but not ${#} */
+	if (arg[0] == '#' && arg[1] /* ${#...} but not ${#} */
 	 && (!exp_saveptr               /* and ( not(${#<op_char>...}) */
 	    || (arg[2] == '\0' && strchr(SPECIAL_VARS_STR, arg[1])) /* or ${#C} "len of $C" ) */
 	    )		/* NB: skipping ^^^specvar check mishandles ${#::2} */
@@ -5897,7 +5990,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	} else {
 		/* Maybe handle parameter expansion */
 		if (exp_saveptr /* if 2nd char is one of expansion operators */
-		 && strchr(NUMERIC_SPECVARS_STR, first_char) /* 1st char is special variable */
+		 && strchr(NUMERIC_SPECVARS_STR, arg[0]) /* 1st char is special variable */
 		) {
 			/* ${?:0}, ${#[:]%0} etc */
 			exp_saveptr = var + 1;
@@ -5966,6 +6059,9 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			 * Word is expanded to produce a glob pattern.
 			 * Then var's value is matched to it and matching part removed.
 			 */
+//FIXME: ${x#...${...}...}
+//should evaluate inner ${...} even if x is "" and no shrinking of it is possible -
+//inner ${...} may have side effects!
 			if (val && val[0]) {
 				char *t;
 				char *exp_exp_word;
@@ -5974,20 +6070,16 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				if (exp_op == *exp_word)  /* ## or %% */
 					exp_word++;
 				debug_printf_expand("expand: exp_word:'%s'\n", exp_word);
-				/*
-				 * process_bkslash:1 unbackslash:1 breaks this:
-				 * a='a\\'; echo ${a%\\\\} # correct output is: a
-				 * process_bkslash:1 unbackslash:0 breaks this:
-				 * a='a}'; echo ${a%\}}    # correct output is: a
-				 */
-				exp_exp_word = encode_then_expand_string(exp_word, /*process_bkslash:*/ 0, /*unbackslash:*/ 0);
+				exp_exp_word = encode_then_expand_vararg(exp_word, /*handle_squotes:*/ 1, /*unbackslash:*/ 0);
 				if (exp_exp_word)
 					exp_word = exp_exp_word;
-				debug_printf_expand("expand: exp_exp_word:'%s'\n", exp_word);
-				/* HACK ALERT. We depend here on the fact that
+				debug_printf_expand("expand: exp_word:'%s'\n", exp_word);
+				/*
+				 * HACK ALERT. We depend here on the fact that
 				 * G.global_argv and results of utoa and get_local_var_value
 				 * are actually in writable memory:
-				 * scan_and_match momentarily stores NULs there. */
+				 * scan_and_match momentarily stores NULs there.
+				 */
 				t = (char*)val;
 				loc = scan_and_match(t, exp_word, scan_flags);
 				debug_printf_expand("op:%c str:'%s' pat:'%s' res:'%s'\n", exp_op, t, exp_word, loc);
@@ -6020,7 +6112,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				 * (note that a*z _pattern_ is never globbed!)
 				 */
 				char *pattern, *repl, *t;
-				pattern = encode_then_expand_string(exp_word, /*process_bkslash:*/ 0, /*unbackslash:*/ 0);
+				pattern = encode_then_expand_vararg(exp_word, /*handle_squotes:*/ 1, /*unbackslash:*/ 0);
 				if (!pattern)
 					pattern = xstrdup(exp_word);
 				debug_printf_varexp("pattern:'%s'->'%s'\n", exp_word, pattern);
@@ -6028,7 +6120,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				exp_word = p;
 				p = strchr(p, SPECIAL_VAR_SYMBOL);
 				*p = '\0';
-				repl = encode_then_expand_string(exp_word, /*process_bkslash:*/ 0, /*unbackslash:*/ 1);
+				repl = encode_then_expand_vararg(exp_word, /*handle_squotes:*/ 1, /*unbackslash:*/ 1);
 				debug_printf_varexp("repl:'%s'->'%s'\n", exp_word, repl);
 				/* HACK ALERT. We depend here on the fact that
 				 * G.global_argv and results of utoa and get_local_var_value
@@ -6131,7 +6223,9 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
 					(exp_save == ':') ? "true" : "false", use_word);
 			if (use_word) {
-				to_be_freed = encode_then_expand_string(exp_word, /*process_bkslash:*/ 1, /*unbackslash:*/ 1);
+//FIXME: unquoted ${x:+"b c" d} and ${x:+'b c' d} should expand to two words
+//currently it expands to three.
+				to_be_freed = encode_then_expand_vararg(exp_word, /*handle_squotes:*/ !(arg0 & 0x80), /*unbackslash:*/ 0);
 				if (to_be_freed)
 					exp_word = to_be_freed;
 				if (exp_op == '?') {
@@ -6934,7 +7028,7 @@ static void setup_heredoc(struct redir_struct *redir)
 
 	expanded = NULL;
 	if (!(redir->rd_dup & HEREDOC_QUOTED)) {
-		expanded = encode_then_expand_string(heredoc, /*process_bkslash:*/ 1, /*unbackslash:*/ 1);
+		expanded = encode_then_expand_string(heredoc);
 		if (expanded)
 			heredoc = expanded;
 	}

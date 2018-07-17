@@ -229,8 +229,8 @@ do
 						'')	split "$d0$f1$d1$f2$d2$f3$d3" "[2]($f1)($f2)" "($f1)($f2)" ;;
 						' ')	;;
 						*)	x=$f2$d2$f3$d3
-							x=${x# } #was x=${x#' '} hush needs fixing for this to work
-							x=${x% } #was x=${x%' '}
+							x=${x#' '}
+							x=${x%' '}
 							split "$d0$f1$d1$f2$d2$f3$d3" "[3]($f1)($f2)($f3)" "($f1)($x)"
 							;;
 						esac
