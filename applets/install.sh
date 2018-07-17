@@ -83,7 +83,7 @@ install -m 755 busybox "$prefix/bin/busybox" || exit 1
 for i in $h; do
 	appdir=`dirname "$i"`
 	app=`basename "$i"`
-	if [ x"$noclobber" = x"1" ] && [ -e "$prefix/$i" ]; then
+	if [ x"$noclobber" = x"1" ] && ([ -e "$prefix/$i" ] || [ -h "$prefix/$i" ]); then
 		echo "  $prefix/$i already exists"
 		continue
 	fi
