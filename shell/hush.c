@@ -2423,35 +2423,33 @@ static void set_vars_and_save_old(char **strings)
 		char *eq;
 
 		eq = strchr(*s, '=');
-		if (eq) {
-			var_pp = get_ptr_to_local_var(*s, eq - *s);
-			if (var_pp) {
-				var_p = *var_pp;
-				if (var_p->flg_read_only) {
-					char **p;
-					bb_error_msg("%s: readonly variable", *s);
-					/*
-					 * "VAR=V BLTIN" unsets VARs after BLTIN completes.
-					 * If VAR is readonly, leaving it in the list
-					 * after asssignment error (msg above)
-					 * causes doubled error message later, on unset.
-					 */
-					debug_printf_env("removing/freeing '%s' element\n", *s);
-					free(*s);
-					p = s;
-					do { *p = p[1]; p++; } while (*p);
-					goto next;
-				}
-				/* below, set_local_var() with nest level will
-				 * "shadow" (remove) this variable from
-				 * global linked list.
-				 */
-			}
-			debug_printf_env("%s: env override '%s'/%u\n", __func__, *s, G.var_nest_level);
-			set_local_var(*s, (G.var_nest_level << SETFLAG_VARLVL_SHIFT) | SETFLAG_EXPORT);
-		} else if (HUSH_DEBUG) {
+		if (HUSH_DEBUG && !eq)
 			bb_error_msg_and_die("BUG in varexp4");
+		var_pp = get_ptr_to_local_var(*s, eq - *s);
+		if (var_pp) {
+			var_p = *var_pp;
+			if (var_p->flg_read_only) {
+				char **p;
+				bb_error_msg("%s: readonly variable", *s);
+				/*
+				 * "VAR=V BLTIN" unsets VARs after BLTIN completes.
+				 * If VAR is readonly, leaving it in the list
+				 * after asssignment error (msg above)
+				 * causes doubled error message later, on unset.
+				 */
+				debug_printf_env("removing/freeing '%s' element\n", *s);
+				free(*s);
+				p = s;
+				do { *p = p[1]; p++; } while (*p);
+				goto next;
+			}
+			/* below, set_local_var() with nest level will
+			 * "shadow" (remove) this variable from
+			 * global linked list.
+			 */
 		}
+		debug_printf_env("%s: env override '%s'/%u\n", __func__, *s, G.var_nest_level);
+		set_local_var(*s, (G.var_nest_level << SETFLAG_VARLVL_SHIFT) | SETFLAG_EXPORT);
 		s++;
  next: ;
 	}
