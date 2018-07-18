@@ -4997,8 +4997,7 @@ static struct pipe *parse_stream(char **pstring,
 	/* If very first arg is "" or '', ctx.word.data may end up NULL.
 	 * Preventing this:
 	 */
-	o_addchr(&ctx.word, '\0');
-	ctx.word.length = 0;
+	ctx.word.data = xzalloc(1); /* start as "", not as NULL */
 
 	/* We used to separate words on $IFS here. This was wrong.
 	 * $IFS is used only for word splitting when $var is expanded,
@@ -5795,8 +5794,7 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 	 */
 
 	setup_string_in_str(&input, str);
-	o_addchr(&dest, '\0');
-	dest.length = 0;
+	dest.data = xzalloc(1); /* start as "", not as NULL */
 	exp_str = NULL;
 
 	for (;;) {
