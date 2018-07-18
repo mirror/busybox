@@ -6529,13 +6529,20 @@ static char *expand_string_to_string(const char *str, int EXP_flags, int do_unba
 	argv[0] = (char*)str;
 	argv[1] = NULL;
 	list = expand_variables(argv, EXP_flags | EXP_FLAG_SINGLEWORD);
-	if (HUSH_DEBUG)
-		if (!list[0] || list[1])
-			bb_error_msg_and_die("BUG in varexp2");
-	/* actually, just move string 2*sizeof(char*) bytes back */
-	overlapping_strcpy((char*)list, list[0]);
-	if (do_unbackslash)
-		unbackslash((char*)list);
+	if (!list[0]) {
+		/* Example where it happens:
+		 * x=; echo ${x:-"$@"}
+		 */
+		((char*)list)[0] = '\0';
+	} else {
+		if (HUSH_DEBUG)
+			if (list[1])
+				bb_error_msg_and_die("BUG in varexp2");
+		/* actually, just move string 2*sizeof(char*) bytes back */
+		overlapping_strcpy((char*)list, list[0]);
+		if (do_unbackslash)
+			unbackslash((char*)list);
+	}
 	debug_printf_expand("string_to_string=>'%s'\n", (char*)list);
 	return (char*)list;
 }
