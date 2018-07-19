@@ -5976,7 +5976,8 @@ static int append_str_maybe_ifs_split(o_string *output, int *ended_in_ifs, int n
 /* Helper:
  * Handles <SPECIAL_VAR_SYMBOL>varname...<SPECIAL_VAR_SYMBOL> construct.
  */
-static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, char **pp)
+static NOINLINE int expand_one_var(o_string *output,
+	int *ended_in_ifs, int n, int first_ch, char *arg, char **pp)
 {
 	const char *val;
 	char *to_be_freed;
@@ -6038,9 +6039,9 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	/* Look up the variable in question */
 	if (isdigit(var[0])) {
 		/* parse_dollar should have vetted var for us */
-		int n = xatoi_positive(var);
-		if (n < G.global_argc)
-			val = G.global_argv[n];
+		int nn = xatoi_positive(var);
+		if (nn < G.global_argc)
+			val = G.global_argv[nn];
 		/* else val remains NULL: $N with too big N */
 	} else {
 		switch (var[0]) {
@@ -6236,6 +6237,34 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			 * Colon forms (${var:-word}, ${var:=word} etc) do the same,
 			 * but also treat null var as if it is unset.
 			 */
+/*
+ * Word-splitting and squote behavior of bash:
+ * $ f() { for i; do echo "|$i|"; done; };
+ *
+ * $ x=; f ${x:?'x y' z}
+ * bash: x: x y z
+ * $ x=; f "${x:?'x y' z}"
+ * bash: x: x y z       # dash prints: dash: x: 'x y' z
+ *
+ * $ x=; f ${x:='x y' z}
+ * |x|
+ * |y|
+ * |z|
+ * $ x=; f "${x:='x y' z}"
+ * |'x y' z|
+ *
+ * $ x=x; f ${x:+'x y' z}
+ * |x y|
+ * |z|
+ * $ x=x; f "${x:+'x y' z}"
+ * |'x y' z|
+ *
+ * $ x=; f ${x:-'x y' z}
+ * |x y|
+ * |z|
+ * $ x=; f "${x:-'x y' z}"
+ * |'x y' z|
+ */
 			int use_word = (!val || ((exp_save == ':') && !val[0]));
 			if (exp_op == '+')
 				use_word = !use_word;
@@ -6244,7 +6273,10 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			if (use_word) {
 //FIXME: unquoted ${x:+"b c" d} and ${x:+'b c' d} should expand to two words
 //currently it expands to three.
-				to_be_freed = encode_then_expand_vararg(exp_word, /*handle_squotes:*/ !(arg0 & 0x80), /*unbackslash:*/ 0);
+				to_be_freed = encode_then_expand_vararg(exp_word,
+						/*handle_squotes:*/ !(arg0 & 0x80),
+						/*unbackslash:*/ 0
+				);
 				if (to_be_freed)
 					exp_word = to_be_freed;
 				if (exp_op == '?') {
@@ -6258,6 +6290,11 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 						/*: (exp_save == ':' ? "parameter null or not set" : "parameter not set")*/
 					);
 //TODO: how interactive bash aborts expansion mid-command?
+//It aborts the entire line:
+// $ f() { for i; do echo "|$i|"; done; }; x=; f "${x:?'x y' z}"; echo YO
+// bash: x: x y z
+// $
+// ("echo YO" is not executed, neither the f function call)
 				} else {
 					val = exp_word;
 				}
@@ -6280,10 +6317,12 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	} /* if (exp_op) */
 
 	arg[0] = arg0;
-
 	*pp = p;
-	*to_be_freed_pp = to_be_freed;
-	return val;
+
+	n = append_str_maybe_ifs_split(output, ended_in_ifs, n, first_ch, val);
+
+	free(to_be_freed);
+	return n;
 }
 
 /* Expand all variable references in given string, adding words to list[]
@@ -6427,13 +6466,9 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			break;
 		}
 #endif
-		default: {
-			char *to_be_freed;
-			val = expand_one_var(&to_be_freed, arg, &p);
-			n = append_str_maybe_ifs_split(output, &ended_in_ifs, n, first_ch, val);
-			free(to_be_freed);
+		default:
+			n = expand_one_var(output, &ended_in_ifs, n, first_ch, arg, &p);
 			goto restore;
-		} /* default: */
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
 
 		if (val && val[0]) {
