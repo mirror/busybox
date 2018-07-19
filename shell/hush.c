@@ -534,6 +534,7 @@ typedef struct o_string {
 	 * possibly empty one: word"", wo''rd etc. */
 	smallint has_quoted_part;
 	smallint has_empty_slot;
+	smallint ended_in_ifs;
 } o_string;
 enum {
 	EXP_FLAG_SINGLEWORD     = 0x80, /* must be 0x80 */
@@ -5643,10 +5644,10 @@ static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len
 /* Store given string, finalizing the word and starting new one whenever
  * we encounter IFS char(s). This is used for expanding variable values.
  * End-of-string does NOT finalize word: think about 'echo -$VAR-'.
- * Return in *ended_with_ifs:
+ * Return in output->ended_in_ifs:
  * 1 - ended with IFS char, else 0 (this includes case of empty str).
  */
-static int expand_on_ifs(int *ended_with_ifs, o_string *output, int n, const char *str)
+static int expand_on_ifs(o_string *output, int n, const char *str)
 {
 	int last_is_ifs = 0;
 
@@ -5709,8 +5710,7 @@ static int expand_on_ifs(int *ended_with_ifs, o_string *output, int n, const cha
 		}
 	}
 
-	if (ended_with_ifs)
-		*ended_with_ifs = last_is_ifs;
+	output->ended_in_ifs = last_is_ifs;
 	debug_print_list("expand_on_ifs[1]", output, n);
 	return n;
 }
@@ -5955,14 +5955,14 @@ static char *replace_pattern(char *val, const char *pattern, const char *repl, c
 }
 #endif /* BASH_PATTERN_SUBST */
 
-static int append_str_maybe_ifs_split(o_string *output, int *ended_in_ifs, int n,
+static int append_str_maybe_ifs_split(o_string *output, int n,
 	int first_ch, const char *val)
 {
 	if (!(first_ch & 0x80)) { /* unquoted $VAR */
 		debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val,
 				!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 		if (val && val[0])
-			n = expand_on_ifs(ended_in_ifs, output, n, val);
+			n = expand_on_ifs(output, n, val);
 	} else { /* quoted "$VAR" */
 		output->has_quoted_part = 1;
 		debug_printf_expand("quoted '%s', output->o_escape:%d\n", val,
@@ -5977,7 +5977,7 @@ static int append_str_maybe_ifs_split(o_string *output, int *ended_in_ifs, int n
  * Handles <SPECIAL_VAR_SYMBOL>varname...<SPECIAL_VAR_SYMBOL> construct.
  */
 static NOINLINE int expand_one_var(o_string *output,
-	int *ended_in_ifs, int n, int first_ch, char *arg, char **pp)
+	int n, int first_ch, char *arg, char **pp)
 {
 	const char *val;
 	char *to_be_freed;
@@ -6242,9 +6242,9 @@ static NOINLINE int expand_one_var(o_string *output,
  * $ f() { for i; do echo "|$i|"; done; };
  *
  * $ x=; f ${x:?'x y' z}
- * bash: x: x y z
+ * bash: x: x y z              #BUG: does not abort, ${} results in empty expansion
  * $ x=; f "${x:?'x y' z}"
- * bash: x: x y z       # dash prints: dash: x: 'x y' z
+ * bash: x: x y z       # dash prints: dash: x: 'x y' z   #BUG: does not abort, ${} results in ""
  *
  * $ x=; f ${x:='x y' z}
  * |x|
@@ -6290,7 +6290,7 @@ static NOINLINE int expand_one_var(o_string *output,
 						/*: (exp_save == ':' ? "parameter null or not set" : "parameter not set")*/
 					);
 //TODO: how interactive bash aborts expansion mid-command?
-//It aborts the entire line:
+//It aborts the entire line, returns to prompt:
 // $ f() { for i; do echo "|$i|"; done; }; x=; f "${x:?'x y' z}"; echo YO
 // bash: x: x y z
 // $
@@ -6319,7 +6319,7 @@ static NOINLINE int expand_one_var(o_string *output,
 	arg[0] = arg0;
 	*pp = p;
 
-	n = append_str_maybe_ifs_split(output, ended_in_ifs, n, first_ch, val);
+	n = append_str_maybe_ifs_split(output, n, first_ch, val);
 
 	free(to_be_freed);
 	return n;
@@ -6336,8 +6336,9 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 	 * expansion of right-hand side of assignment == 1-element expand.
 	 */
 	char cant_be_null = 0; /* only bit 0x80 matters */
-	int ended_in_ifs = 0;  /* did last unquoted expansion end with IFS chars? */
 	char *p;
+
+	output->ended_in_ifs = 0;  /* did last unquoted expansion end with IFS chars? */
 
 	debug_printf_expand("expand_vars_to_list: arg:'%s' singleword:%x\n", arg,
 			!!(output->o_expflags & EXP_FLAG_SINGLEWORD));
@@ -6352,10 +6353,10 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		char arith_buf[sizeof(arith_t)*3 + 2];
 #endif
 
-		if (ended_in_ifs) {
+		if (output->ended_in_ifs) {
 			o_addchr(output, '\0');
 			n = o_save_ptr(output, n);
-			ended_in_ifs = 0;
+			output->ended_in_ifs = 0;
 		}
 
 		o_addblock(output, arg, p - arg);
@@ -6386,7 +6387,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			cant_be_null |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
 				while (G.global_argv[i]) {
-					n = expand_on_ifs(NULL, output, n, G.global_argv[i]);
+					n = expand_on_ifs(output, n, G.global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, G.global_argc - 1);
 					if (G.global_argv[i++][0] && G.global_argv[i]) {
 						/* this argv[] is not empty and not last:
@@ -6447,7 +6448,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			G.last_exitcode = process_command_subs(&subst_result, arg);
 			G.expand_exitcode = G.last_exitcode;
 			debug_printf_subst("SUBST RES:%d '%s'\n", G.last_exitcode, subst_result.data);
-			n = append_str_maybe_ifs_split(output, &ended_in_ifs, n, first_ch, subst_result.data);
+			n = append_str_maybe_ifs_split(output, n, first_ch, subst_result.data);
 			o_free_unsafe(&subst_result);
 			goto restore;
 		}
@@ -6467,7 +6468,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		}
 #endif
 		default:
-			n = expand_one_var(output, &ended_in_ifs, n, first_ch, arg, &p);
+			n = expand_one_var(output, n, first_ch, arg, &p);
 			goto restore;
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
 
@@ -6483,7 +6484,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
 
 	if (arg[0]) {
-		if (ended_in_ifs) {
+		if (output->ended_in_ifs) {
 			o_addchr(output, '\0');
 			n = o_save_ptr(output, n);
 		}
