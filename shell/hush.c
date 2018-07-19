@@ -5955,6 +5955,24 @@ static char *replace_pattern(char *val, const char *pattern, const char *repl, c
 }
 #endif /* BASH_PATTERN_SUBST */
 
+static int append_str_maybe_ifs_split(o_string *output, int *ended_in_ifs, int n,
+	int first_ch, const char *val)
+{
+	if (!(first_ch & 0x80)) { /* unquoted $VAR */
+		debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val,
+				!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
+		if (val && val[0])
+			n = expand_on_ifs(ended_in_ifs, output, n, val);
+	} else { /* quoted "$VAR" */
+		output->has_quoted_part = 1;
+		debug_printf_expand("quoted '%s', output->o_escape:%d\n", val,
+				!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
+		if (val && val[0])
+			o_addQstr(output, val);
+	}
+	return n;
+}
+
 /* Helper:
  * Handles <SPECIAL_VAR_SYMBOL>varname...<SPECIAL_VAR_SYMBOL> construct.
  */
@@ -6290,11 +6308,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
 		char first_ch;
-		char *to_be_freed = NULL;
 		const char *val = NULL;
-#if ENABLE_HUSH_TICK
-		o_string subst_result = NULL_O_STRING;
-#endif
 #if ENABLE_FEATURE_SH_MATH
 		char arith_buf[sizeof(arith_t)*3 + 2];
 #endif
@@ -6382,7 +6396,9 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			val = SPECIAL_VAR_SYMBOL_STR;
 			break;
 #if ENABLE_HUSH_TICK
-		case '`': /* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
+		case '`': { /* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
+			o_string subst_result = NULL_O_STRING;
+
 			*p = '\0'; /* replace trailing <SPECIAL_VAR_SYMBOL> */
 			arg++;
 			/* Can't just stuff it into output o_string,
@@ -6392,8 +6408,10 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			G.last_exitcode = process_command_subs(&subst_result, arg);
 			G.expand_exitcode = G.last_exitcode;
 			debug_printf_subst("SUBST RES:%d '%s'\n", G.last_exitcode, subst_result.data);
-			val = subst_result.data;
-			goto store_val;
+			n = append_str_maybe_ifs_split(output, &ended_in_ifs, n, first_ch, subst_result.data);
+			o_free_unsafe(&subst_result);
+			goto restore;
+		}
 #endif
 #if ENABLE_FEATURE_SH_MATH
 		case '+': { /* <SPECIAL_VAR_SYMBOL>+cmd<SPECIAL_VAR_SYMBOL> */
@@ -6409,37 +6427,23 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			break;
 		}
 #endif
-		default:
+		default: {
+			char *to_be_freed;
 			val = expand_one_var(&to_be_freed, arg, &p);
- IF_HUSH_TICK(store_val:)
-			if (!(first_ch & 0x80)) { /* unquoted $VAR */
-				debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val,
-						!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
-				if (val && val[0]) {
-					n = expand_on_ifs(&ended_in_ifs, output, n, val);
-					val = NULL;
-				}
-			} else { /* quoted $VAR, val will be appended below */
-				output->has_quoted_part = 1;
-				debug_printf_expand("quoted '%s', output->o_escape:%d\n", val,
-						!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
-			}
-			break;
+			n = append_str_maybe_ifs_split(output, &ended_in_ifs, n, first_ch, val);
+			free(to_be_freed);
+			goto restore;
+		} /* default: */
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
 
 		if (val && val[0]) {
 			o_addQstr(output, val);
 		}
-		free(to_be_freed);
-
+ restore:
 		/* Restore NULL'ed SPECIAL_VAR_SYMBOL.
 		 * Do the check to avoid writing to a const string. */
 		if (*p != SPECIAL_VAR_SYMBOL)
 			*p = SPECIAL_VAR_SYMBOL;
-
-#if ENABLE_HUSH_TICK
-		o_free(&subst_result);
-#endif
 		arg = ++p;
 	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
 
