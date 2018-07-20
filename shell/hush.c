@@ -4471,7 +4471,6 @@ static int parse_group(struct parse_context *ctx,
 
 #if ENABLE_HUSH_TICK || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_DOLLAR_OPS
 /* Subroutines for copying $(...) and `...` things */
-static int add_till_backquote(o_string *dest, struct in_str *input, int in_dquote);
 /* '...' */
 static int add_till_single_quote(o_string *dest, struct in_str *input)
 {
@@ -4486,7 +4485,21 @@ static int add_till_single_quote(o_string *dest, struct in_str *input)
 		o_addchr(dest, ch);
 	}
 }
+static int add_till_single_quote_dquoted(o_string *dest, struct in_str *input)
+{
+	while (1) {
+		int ch = i_getch(input);
+		if (ch == EOF) {
+			syntax_error_unterm_ch('\'');
+			return 0;
+		}
+		if (ch == '\'')
+			return 1;
+		o_addqchr(dest, ch);
+	}
+}
 /* "...\"...`..`...." - do we need to handle "...$(..)..." too? */
+static int add_till_backquote(o_string *dest, struct in_str *input, int in_dquote);
 static int add_till_double_quote(o_string *dest, struct in_str *input)
 {
 	while (1) {
@@ -5599,6 +5612,7 @@ static char *expand_string_to_string(const char *str, int EXP_flags, int do_unba
 #if ENABLE_HUSH_TICK
 static int process_command_subs(o_string *dest, const char *s);
 #endif
+static int expand_vars_to_list(o_string *output, int n, char *arg);
 
 /* expand_strvec_to_strvec() takes a list of strings, expands
  * all variable references within and returns a pointer to
@@ -5755,6 +5769,13 @@ static char *encode_then_expand_string(const char *str)
 	return exp_str;
 }
 
+/* Expanding ARG in ${var#ARG}, ${var%ARG}, or ${var/ARG/ARG}.
+ * These can contain single- and double-quoted strings,
+ * and treated as if the ARG string is initially unquoted. IOW:
+ * ${var#ARG} and "${var#ARG}" treat ARG the same (ARG can even be
+ * a dquoted string: "${var#"zz"}"), the difference only comes later
+ * (word splitting and globbing of the ${var...} result).
+ */
 #if !BASH_PATTERN_SUBST
 #define encode_then_expand_vararg(str, handle_squotes, do_unbackslash) \
 	encode_then_expand_vararg(str, handle_squotes)
@@ -5782,14 +5803,6 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 		cp++;
 	}
 
-	/* Expanding ARG in ${var#ARG}, ${var%ARG}, or ${var/ARG/ARG}.
-	 * These can contain single- and double-quoted strings,
-	 * and treated as if the ARG string is initially unquoted. IOW:
-	 * ${var#ARG} and "${var#ARG}" treat ARG the same (ARG can even be
-	 * a dquoted string: "${var#"zz"}"), the difference only comes later
-	 * (word splitting and globbing of the ${var...} result).
-	 */
-
 	setup_string_in_str(&input, str);
 	dest.data = xzalloc(1); /* start as "", not as NULL */
 	exp_str = NULL;
@@ -5798,28 +5811,21 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 		int ch;
 
 		ch = i_getch(&input);
-		if (ch == EOF) {
-			if (dest.o_expflags) { /* EXP_FLAG_ESC_GLOB_CHARS set? */
-				syntax_error_unterm_ch('"');
-				goto ret; /* error */
-			}
-			break;
-		}
 		debug_printf_parse("%s: ch=%c (%d) escape=%d\n",
 				__func__, ch, ch, !!dest.o_expflags);
-		if (ch == '\'' && handle_squotes && !dest.o_expflags) {
-//quoting version of add_till_single_quote() (try to merge?):
-			for (;;) {
-				ch = i_getch(&input);
-				if (ch == EOF) {
-					syntax_error_unterm_ch('\'');
+
+		if (!dest.o_expflags) {
+			if (ch == EOF)
+				break;
+			if (handle_squotes && ch == '\'') {
+				if (!add_till_single_quote_dquoted(&dest, &input))
 					goto ret; /* error */
-				}
-				if (ch == '\'')
-					break;
-				o_addqchr(&dest, ch);
+				continue;
 			}
-			continue;
+		}
+		if (ch == EOF) {
+			syntax_error_unterm_ch('"');
+			goto ret; /* error */
 		}
 		if (ch == '"') {
 			dest.o_expflags ^= EXP_FLAG_ESC_GLOB_CHARS;
@@ -5872,8 +5878,8 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 	return exp_str;
 }
 
-static int expand_vars_to_list(o_string *output, int n, char *arg);
-
+/* Expanding ARG in ${var+ARG}, ${var-ARG}
+ */
 static int encode_then_append_var_plusminus(o_string *output, int n,
 		const char *str, int dquoted)
 {
@@ -5895,8 +5901,6 @@ static int encode_then_append_var_plusminus(o_string *output, int n,
 		cp++;
 	}
 #endif
-
-	/* Expanding ARG in ${var+ARG}, ${var-ARG} */
 
 	setup_string_in_str(&input, str);
 
@@ -5938,17 +5942,8 @@ static int encode_then_append_var_plusminus(o_string *output, int n,
 				continue;
 			}
 			if (!dquoted && ch == '\'') {
-//quoting version of add_till_single_quote() (try to merge?):
-				for (;;) {
-					ch = i_getch(&input);
-					if (ch == EOF) {
-						syntax_error_unterm_ch('\'');
-						goto ret; /* error */
-					}
-					if (ch == '\'')
-						break;
-					o_addqchr(&dest, ch);
-				}
+				if (!add_till_single_quote_dquoted(&dest, &input))
+					goto ret; /* error */
 				o_addchr(&dest, SPECIAL_VAR_SYMBOL);
 				o_addchr(&dest, SPECIAL_VAR_SYMBOL);
 				continue;
@@ -6105,11 +6100,10 @@ static int append_str_maybe_ifs_split(o_string *output, int n,
 	return n;
 }
 
-/* Helper:
- * Handles <SPECIAL_VAR_SYMBOL>varname...<SPECIAL_VAR_SYMBOL> construct.
+/* Handle <SPECIAL_VAR_SYMBOL>varname...<SPECIAL_VAR_SYMBOL> construct.
  */
-static NOINLINE int expand_one_var(o_string *output,
-	int n, int first_ch, char *arg, char **pp)
+static NOINLINE int expand_one_var(o_string *output, int n,
+		int first_ch, char *arg, char **pp)
 {
 	const char *val;
 	char *to_be_freed;
@@ -6385,7 +6379,7 @@ static NOINLINE int expand_one_var(o_string *output,
 			 * $ x=; f "${x:='x y' z}"
 			 * |'x y' z|
 			 *
-			 * $ x=x; f ${x:+'x y' z}|
+			 * $ x=x; f ${x:+'x y' z}
 			 * |x y|
 			 * |z|
 			 * $ x=x; f "${x:+'x y' z}"
@@ -6620,7 +6614,8 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		arg = ++p;
 	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
 
-	if (arg[0]) {
+	if (*arg) {
+		/* handle trailing string */
 		if (output->ended_in_ifs) {
 			o_addchr(output, '\0');
 			n = o_save_ptr(output, n);
