@@ -5994,7 +5994,19 @@ static int encode_then_append_var_plusminus(o_string *output, int n,
 			continue;
 		}
 #endif
-		o_addQchr(&dest, ch);
+		if (dquoted) {
+			/* Always glob-protect if in dquotes:
+			 * x=x; echo "${x:+/bin/c*}" - prints: /bin/c*
+			 * x=x; echo "${x:+"/bin/c*"}" - prints: /bin/c*
+			 */
+			o_addqchr(&dest, ch);
+		} else {
+			/* Glob-protect only if char is quoted:
+			 * x=x; echo ${x:+/bin/c*} - prints many filenames
+			 * x=x; echo ${x:+"/bin/c*"} - prints: /bin/c*
+			 */
+			o_addQchr(&dest, ch);
+		}
 	} /* for (;;) */
 
 	if (dest.data) {
