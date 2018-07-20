@@ -475,7 +475,6 @@
 #endif
 
 #define SPECIAL_VAR_SYMBOL_STR "\3"
-#define SPECIAL_VAR_SYMBOL_CHR '\3'
 #define SPECIAL_VAR_SYMBOL       3
 /* The "variable" with name "\1" emits string "\3". Testcase: "echo ^C" */
 #define SPECIAL_VAR_QUOTED_SVS   1
@@ -5950,6 +5949,8 @@ static int encode_then_append_var_plusminus(o_string *output, int n,
 						break;
 					o_addqchr(&dest, ch);
 				}
+				o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+				o_addchr(&dest, SPECIAL_VAR_SYMBOL);
 				continue;
 			}
 		}
@@ -5959,6 +5960,10 @@ static int encode_then_append_var_plusminus(o_string *output, int n,
 		}
 		if (ch == '"') {
 			dest.o_expflags ^= EXP_FLAG_ESC_GLOB_CHARS;
+			if (dest.o_expflags) {
+				o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+				o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+			}
 			continue;
 		}
 		if (ch == '\\') {
@@ -6565,7 +6570,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		case SPECIAL_VAR_QUOTED_SVS:
 			/* <SPECIAL_VAR_SYMBOL><SPECIAL_VAR_QUOTED_SVS><SPECIAL_VAR_SYMBOL> */
 			/* "^C variable", represents literal ^C char (possible in scripts) */
-			o_addchr(output, SPECIAL_VAR_SYMBOL_CHR);
+			o_addchr(output, SPECIAL_VAR_SYMBOL);
 			arg++;
 			break;
 #if ENABLE_HUSH_TICK
@@ -6627,7 +6632,8 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		o_addstr(output, arg);
 		debug_print_list("expand_vars_to_list[b]", output, n);
 	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
-	 && !(cant_be_null & 0x80) /* and all vars were not quoted. */
+	 && !(cant_be_null & 0x80)   /* and all vars were not quoted */
+	 && !output->has_quoted_part
 	) {
 		n--;
 		/* allow to reuse list[n] later without re-growth */
