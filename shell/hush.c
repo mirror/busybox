@@ -475,6 +475,7 @@
 #endif
 
 #define SPECIAL_VAR_SYMBOL_STR "\3"
+#define SPECIAL_VAR_SYMBOL_CHR '\3'
 #define SPECIAL_VAR_SYMBOL       3
 /* The "variable" with name "\1" emits string "\3". Testcase: "echo ^C" */
 #define SPECIAL_VAR_QUOTED_SVS   1
@@ -5797,7 +5798,6 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 
 	for (;;) {
 		int ch;
-		int next;
 
 		ch = i_getch(&input);
 		if (ch == EOF) {
@@ -5836,10 +5836,6 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 			}
 			o_addqchr(&dest, ch);
 			continue;
-		}
-		next = '\0';
-		if (ch != '\n') {
-			next = i_peek(&input);
 		}
 		if (ch == '$') {
 			if (!parse_dollar(NULL, &dest, &input, /*quote_mask:*/ 0x80)) {
@@ -5956,7 +5952,7 @@ static char *replace_pattern(char *val, const char *pattern, const char *repl, c
 #endif /* BASH_PATTERN_SUBST */
 
 static int append_str_maybe_ifs_split(o_string *output, int n,
-	int first_ch, const char *val)
+		int first_ch, const char *val)
 {
 	if (!(first_ch & 0x80)) { /* unquoted $VAR */
 		debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val,
@@ -6348,7 +6344,6 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
 		char first_ch;
-		const char *val = NULL;
 #if ENABLE_FEATURE_SH_MATH
 		char arith_buf[sizeof(arith_t)*3 + 2];
 #endif
@@ -6424,19 +6419,23 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			}
 			break;
 		}
-		case SPECIAL_VAR_SYMBOL: /* <SPECIAL_VAR_SYMBOL><SPECIAL_VAR_SYMBOL> */
+		case SPECIAL_VAR_SYMBOL: {
+			/* <SPECIAL_VAR_SYMBOL><SPECIAL_VAR_SYMBOL> */
 			/* "Empty variable", used to make "" etc to not disappear */
 			output->has_quoted_part = 1;
-			arg++;
 			cant_be_null = 0x80;
+			arg++;
 			break;
+		}
 		case SPECIAL_VAR_QUOTED_SVS:
 			/* <SPECIAL_VAR_SYMBOL><SPECIAL_VAR_QUOTED_SVS><SPECIAL_VAR_SYMBOL> */
+			/* "^C variable", represents literal ^C char (possible in scripts) */
+			o_addchr(output, SPECIAL_VAR_SYMBOL_CHR);
 			arg++;
-			val = SPECIAL_VAR_SYMBOL_STR;
 			break;
 #if ENABLE_HUSH_TICK
-		case '`': { /* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
+		case '`': {
+			/* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
 			o_string subst_result = NULL_O_STRING;
 
 			*p = '\0'; /* replace trailing <SPECIAL_VAR_SYMBOL> */
@@ -6450,11 +6449,12 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			debug_printf_subst("SUBST RES:%d '%s'\n", G.last_exitcode, subst_result.data);
 			n = append_str_maybe_ifs_split(output, n, first_ch, subst_result.data);
 			o_free_unsafe(&subst_result);
-			goto restore;
+			break;
 		}
 #endif
 #if ENABLE_FEATURE_SH_MATH
-		case '+': { /* <SPECIAL_VAR_SYMBOL>+cmd<SPECIAL_VAR_SYMBOL> */
+		case '+': {
+			/* <SPECIAL_VAR_SYMBOL>+arith<SPECIAL_VAR_SYMBOL> */
 			arith_t res;
 
 			arg++; /* skip '+' */
@@ -6463,19 +6463,16 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			res = expand_and_evaluate_arith(arg, NULL);
 			debug_printf_subst("ARITH RES '"ARITH_FMT"'\n", res);
 			sprintf(arith_buf, ARITH_FMT, res);
-			val = arith_buf;
+			o_addstr(output, arith_buf);
 			break;
 		}
 #endif
 		default:
+			/* <SPECIAL_VAR_SYMBOL>varname[ops]<SPECIAL_VAR_SYMBOL> */
 			n = expand_one_var(output, n, first_ch, arg, &p);
-			goto restore;
+			break;
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
 
-		if (val && val[0]) {
-			o_addQstr(output, val);
-		}
- restore:
 		/* Restore NULL'ed SPECIAL_VAR_SYMBOL.
 		 * Do the check to avoid writing to a const string. */
 		if (*p != SPECIAL_VAR_SYMBOL)
