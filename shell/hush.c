@@ -5873,6 +5873,138 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 	return exp_str;
 }
 
+static int expand_vars_to_list(o_string *output, int n, char *arg);
+
+static int encode_then_append_var_plusminus(o_string *output, int n,
+		const char *str, int dquoted)
+{
+	struct in_str input;
+	o_string dest = NULL_O_STRING;
+
+#if 0 //todo?
+	const char *cp;
+	cp = str;
+	for (;;) {
+		if (!*cp) return NULL; /* string has no special chars */
+		if (*cp == '$') break;
+		if (*cp == '\\') break;
+		if (*cp == '\'') break;
+		if (*cp == '"') break;
+#if ENABLE_HUSH_TICK
+		if (*cp == '`') break;
+#endif
+		cp++;
+	}
+#endif
+
+	/* Expanding ARG in ${var+ARG}, ${var-ARG} */
+
+	setup_string_in_str(&input, str);
+
+	for (;;) {
+		int ch;
+
+		ch = i_getch(&input);
+		debug_printf_parse("%s: ch=%c (%d) escape=%x\n",
+				__func__, ch, ch, dest.o_expflags);
+
+		if (!dest.o_expflags) {
+			if (ch == EOF)
+				break;
+			if (!dquoted && strchr(G.ifs, ch)) {
+				/* PREFIX${x:d${e}f ...} and we met space: expand "d${e}f" and start new word.
+				 * do not assume we are at the start of the word (PREFIX above).
+				 */
+				if (dest.data) {
+					n = expand_vars_to_list(output, n, dest.data);
+					o_free(&dest);
+					o_addchr(output, '\0');
+					n = o_save_ptr(output, n); /* create next word */
+				} else
+				if (output->length != o_get_last_ptr(output, n)
+				 || output->has_quoted_part
+				) {
+					/* For these cases:
+					 * f() { for i; do echo "|$i|"; done; }; x=x
+					 * f a${x:+ }b  # 1st condition
+					 * |a|
+					 * |b|
+					 * f ""${x:+ }b  # 2nd condition
+					 * ||
+					 * |b|
+					 */
+					o_addchr(output, '\0');
+					n = o_save_ptr(output, n); /* create next word */
+				}
+				continue;
+			}
+			if (!dquoted && ch == '\'') {
+//quoting version of add_till_single_quote() (try to merge?):
+				for (;;) {
+					ch = i_getch(&input);
+					if (ch == EOF) {
+						syntax_error_unterm_ch('\'');
+						goto ret; /* error */
+					}
+					if (ch == '\'')
+						break;
+					o_addqchr(&dest, ch);
+				}
+				continue;
+			}
+		}
+		if (ch == EOF) {
+			syntax_error_unterm_ch('"');
+			goto ret; /* error */
+		}
+		if (ch == '"') {
+			dest.o_expflags ^= EXP_FLAG_ESC_GLOB_CHARS;
+			continue;
+		}
+		if (ch == '\\') {
+			ch = i_getch(&input);
+			if (ch == EOF) {
+//example? error message?	syntax_error_unterm_ch('"');
+				debug_printf_parse("%s: error: \\<eof>\n", __func__);
+				goto ret;
+			}
+			o_addqchr(&dest, ch);
+			continue;
+		}
+		if (ch == '$') {
+			if (!parse_dollar(NULL, &dest, &input, /*quote_mask:*/ (dest.o_expflags || dquoted) ? 0x80 : 0)) {
+				debug_printf_parse("%s: error: parse_dollar returned 0 (error)\n", __func__);
+				goto ret;
+			}
+			continue;
+		}
+#if ENABLE_HUSH_TICK
+		if (ch == '`') {
+			//unsigned pos = dest->length;
+			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(&dest, (dest.o_expflags || dquoted) ? 0x80 | '`' : '`');
+			if (!add_till_backquote(&dest, &input,
+					/*in_dquote:*/ dest.o_expflags /* nonzero if EXP_FLAG_ESC_GLOB_CHARS set */
+				)
+			) {
+				goto ret; /* error */
+			}
+			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+			//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
+			continue;
+		}
+#endif
+		o_addQchr(&dest, ch);
+	} /* for (;;) */
+
+	if (dest.data) {
+		n = expand_vars_to_list(output, n, dest.data);
+	}
+ ret:
+	o_free_unsafe(&dest);
+	return n;
+}
+
 #if ENABLE_FEATURE_SH_MATH
 static arith_t expand_and_evaluate_arith(const char *arg, const char **errmsg_p)
 {
@@ -6231,78 +6363,86 @@ static NOINLINE int expand_one_var(o_string *output,
 			 *
 			 * Colon forms (${var:-word}, ${var:=word} etc) do the same,
 			 * but also treat null var as if it is unset.
+			 *
+			 * Word-splitting and single quote behavior:
+			 *
+			 * $ f() { for i; do echo "|$i|"; done; };
+			 *
+			 * $ x=; f ${x:?'x y' z}
+			 * bash: x: x y z              #BUG: does not abort, ${} results in empty expansion
+			 * $ x=; f "${x:?'x y' z}"
+			 * bash: x: x y z       # dash prints: dash: x: 'x y' z   #BUG: does not abort, ${} results in ""
+			 *
+			 * $ x=; f ${x:='x y' z}
+			 * |x|
+			 * |y|
+			 * |z|
+			 * $ x=; f "${x:='x y' z}"
+			 * |'x y' z|
+			 *
+			 * $ x=x; f ${x:+'x y' z}|
+			 * |x y|
+			 * |z|
+			 * $ x=x; f "${x:+'x y' z}"
+			 * |'x y' z|
+			 *
+			 * $ x=; f ${x:-'x y' z}
+			 * |x y|
+			 * |z|
+			 * $ x=; f "${x:-'x y' z}"
+			 * |'x y' z|
 			 */
-/*
- * Word-splitting and squote behavior of bash:
- * $ f() { for i; do echo "|$i|"; done; };
- *
- * $ x=; f ${x:?'x y' z}
- * bash: x: x y z              #BUG: does not abort, ${} results in empty expansion
- * $ x=; f "${x:?'x y' z}"
- * bash: x: x y z       # dash prints: dash: x: 'x y' z   #BUG: does not abort, ${} results in ""
- *
- * $ x=; f ${x:='x y' z}
- * |x|
- * |y|
- * |z|
- * $ x=; f "${x:='x y' z}"
- * |'x y' z|
- *
- * $ x=x; f ${x:+'x y' z}
- * |x y|
- * |z|
- * $ x=x; f "${x:+'x y' z}"
- * |'x y' z|
- *
- * $ x=; f ${x:-'x y' z}
- * |x y|
- * |z|
- * $ x=; f "${x:-'x y' z}"
- * |'x y' z|
- */
 			int use_word = (!val || ((exp_save == ':') && !val[0]));
 			if (exp_op == '+')
 				use_word = !use_word;
 			debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
 					(exp_save == ':') ? "true" : "false", use_word);
 			if (use_word) {
-//FIXME: unquoted ${x:+"b c" d} and ${x:+'b c' d} should expand to two words
-//currently it expands to three.
-				to_be_freed = encode_then_expand_vararg(exp_word,
-						/*handle_squotes:*/ !(arg0 & 0x80),
-						/*unbackslash:*/ 0
-				);
-				if (to_be_freed)
-					exp_word = to_be_freed;
-				if (exp_op == '?') {
-					/* mimic bash message */
-					msg_and_die_if_script("%s: %s",
-						var,
-						exp_word[0]
-						? exp_word
-						: "parameter null or not set"
-						/* ash has more specific messages, a-la: */
-						/*: (exp_save == ':' ? "parameter null or not set" : "parameter not set")*/
+				if (exp_op == '+' || exp_op == '-') {
+					/* ${var+word} - use alternative value */
+					/* ${var-word} - use default value */
+					n = encode_then_append_var_plusminus(output, n, exp_word,
+							/*dquoted:*/ (arg0 & 0x80)
 					);
+					val = NULL;
+				} else {
+					/* ${var?word} - indicate error if unset */
+					/* ${var=word} - assign and use default value */
+					to_be_freed = encode_then_expand_vararg(exp_word,
+							/*handle_squotes:*/ !(arg0 & 0x80),
+							/*unbackslash:*/ 0
+					);
+					if (to_be_freed)
+						exp_word = to_be_freed;
+					if (exp_op == '?') {
+						/* mimic bash message */
+						msg_and_die_if_script("%s: %s",
+							var,
+							exp_word[0]
+							? exp_word
+							: "parameter null or not set"
+							/* ash has more specific messages, a-la: */
+							/*: (exp_save == ':' ? "parameter null or not set" : "parameter not set")*/
+						);
 //TODO: how interactive bash aborts expansion mid-command?
 //It aborts the entire line, returns to prompt:
 // $ f() { for i; do echo "|$i|"; done; }; x=; f "${x:?'x y' z}"; echo YO
 // bash: x: x y z
 // $
 // ("echo YO" is not executed, neither the f function call)
-				} else {
-					val = exp_word;
-				}
-
-				if (exp_op == '=') {
-					/* ${var=[word]} or ${var:=[word]} */
-					if (isdigit(var[0]) || var[0] == '#') {
-						/* mimic bash message */
-						msg_and_die_if_script("$%s: cannot assign in this way", var);
-						val = NULL;
 					} else {
-						char *new_var = xasprintf("%s=%s", var, val);
-						set_local_var(new_var, /*flag:*/ 0);
+						val = exp_word;
+					}
+					if (exp_op == '=') {
+						/* ${var=[word]} or ${var:=[word]} */
+						if (isdigit(var[0]) || var[0] == '#') {
+							/* mimic bash message */
+							msg_and_die_if_script("$%s: cannot assign in this way", var);
+							val = NULL;
+						} else {
+							char *new_var = xasprintf("%s=%s", var, val);
+							set_local_var(new_var, /*flag:*/ 0);
+						}
 					}
 				}
 			}
@@ -6482,8 +6622,9 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		}
 		debug_print_list("expand_vars_to_list[a]", output, n);
 		/* this part is literal, and it was already pre-quoted
-		 * if needed (much earlier), do not use o_addQstr here! */
-		o_addstr_with_NUL(output, arg);
+		 * if needed (much earlier), do not use o_addQstr here!
+		 */
+		o_addstr(output, arg);
 		debug_print_list("expand_vars_to_list[b]", output, n);
 	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
 	 && !(cant_be_null & 0x80) /* and all vars were not quoted. */
@@ -6491,8 +6632,6 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		n--;
 		/* allow to reuse list[n] later without re-growth */
 		output->has_empty_slot = 1;
-	} else {
-		o_addchr(output, '\0');
 	}
 
 	return n;
@@ -6517,6 +6656,8 @@ static char **expand_variables(char **argv, unsigned expflags)
 
 		/* expand argv[i] */
 		n = expand_vars_to_list(&output, n, *argv++);
+		/* if (!output->has_empty_slot) -- need this?? */
+			o_addchr(&output, '\0');
 	}
 	debug_print_list("expand_variables", &output, n);
 
