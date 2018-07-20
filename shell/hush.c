@@ -2797,13 +2797,13 @@ static void o_reset_to_empty_unquoted(o_string *o)
 		o->data[0] = '\0';
 }
 
-static void o_free(o_string *o)
+static void o_free_and_set_NULL(o_string *o)
 {
 	free(o->data);
 	memset(o, 0, sizeof(*o));
 }
 
-static ALWAYS_INLINE void o_free_unsafe(o_string *o)
+static ALWAYS_INLINE void o_free(o_string *o)
 {
 	free(o->data);
 }
@@ -3852,7 +3852,7 @@ static const struct reserved_combo* reserved_word(struct parse_context *ctx)
 			int len = old->as_string.length;
 			/* Concatenate halves */
 			o_addstr(&old->as_string, ctx->as_string.data);
-			o_free_unsafe(&ctx->as_string);
+			o_free(&ctx->as_string);
 			/* Find where leading keyword starts in first half */
 			str = old->as_string.data + len;
 			if (str > old->as_string.data)
@@ -4263,7 +4263,7 @@ static char *fetch_till_str(o_string *as_string,
 			}
 		}
 		if (ch == EOF) {
-			o_free_unsafe(&heredoc);
+			o_free(&heredoc);
 			return NULL;
 		}
 		o_addchr(&heredoc, ch);
@@ -5033,7 +5033,7 @@ static struct pipe *parse_stream(char **pstring,
 			if (done_word(&ctx)) {
 				goto parse_error;
 			}
-			o_free(&ctx.word);
+			o_free_and_set_NULL(&ctx.word);
 			done_pipe(&ctx, PIPE_SEQ);
 			pi = ctx.list_head;
 			/* If we got nothing... */
@@ -5050,7 +5050,7 @@ static struct pipe *parse_stream(char **pstring,
 			if (pstring)
 				*pstring = ctx.as_string.data;
 			else
-				o_free_unsafe(&ctx.as_string);
+				o_free(&ctx.as_string);
 #endif
 			debug_leave();
 			debug_printf_parse("parse_stream return %p\n", pi);
@@ -5284,13 +5284,13 @@ static struct pipe *parse_stream(char **pstring,
 			if (!HAS_KEYWORDS
 			IF_HAS_KEYWORDS(|| (ctx.ctx_res_w == RES_NONE && ctx.old_flag == 0))
 			) {
-				o_free(&ctx.word);
+				o_free_and_set_NULL(&ctx.word);
 #if !BB_MMU
 				debug_printf_parse("as_string2 '%s'\n", ctx.as_string.data);
 				if (pstring)
 					*pstring = ctx.as_string.data;
 				else
-					o_free_unsafe(&ctx.as_string);
+					o_free(&ctx.as_string);
 #endif
 				if (ch != ';' && IS_NULL_PIPE(ctx.list_head)) {
 					/* Example: bare "{ }", "()" */
@@ -5568,7 +5568,7 @@ static struct pipe *parse_stream(char **pstring,
 			free_pipe_list(pctx->list_head);
 			debug_printf_clean("freed list %p\n", pctx->list_head);
 #if !BB_MMU
-			o_free_unsafe(&pctx->as_string);
+			o_free(&pctx->as_string);
 #endif
 			IF_HAS_KEYWORDS(p2 = pctx->stack;)
 			if (pctx != &ctx) {
@@ -5577,7 +5577,7 @@ static struct pipe *parse_stream(char **pstring,
 			IF_HAS_KEYWORDS(pctx = p2;)
 		} while (HAS_KEYWORDS && pctx);
 
-		o_free(&ctx.word);
+		o_free_and_set_NULL(&ctx.word);
 #if !BB_MMU
 		if (pstring)
 			*pstring = NULL;
@@ -5751,7 +5751,7 @@ static char *encode_then_expand_string(const char *str)
 			/*unbackslash:*/ 1
 	);
 	//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
-	o_free_unsafe(&dest);
+	o_free(&dest);
 	return exp_str;
 }
 
@@ -5868,7 +5868,7 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 	);
  ret:
 	debug_printf_parse("expand: '%s' -> '%s'\n", dest.data, exp_str);
-	o_free_unsafe(&dest);
+	o_free(&dest);
 	return exp_str;
 }
 
@@ -5916,7 +5916,7 @@ static int encode_then_append_var_plusminus(o_string *output, int n,
 				 */
 				if (dest.data) {
 					n = expand_vars_to_list(output, n, dest.data);
-					o_free(&dest);
+					o_free_and_set_NULL(&dest);
 					o_addchr(output, '\0');
 					n = o_save_ptr(output, n); /* create next word */
 				} else
@@ -6006,7 +6006,7 @@ static int encode_then_append_var_plusminus(o_string *output, int n,
 		n = expand_vars_to_list(output, n, dest.data);
 	}
  ret:
-	o_free_unsafe(&dest);
+	o_free(&dest);
 	return n;
 }
 
@@ -6588,7 +6588,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			G.expand_exitcode = G.last_exitcode;
 			debug_printf_subst("SUBST RES:%d '%s'\n", G.last_exitcode, subst_result.data);
 			n = append_str_maybe_ifs_split(output, n, first_ch, subst_result.data);
-			o_free_unsafe(&subst_result);
+			o_free(&subst_result);
 			break;
 		}
 #endif
@@ -6631,7 +6631,8 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		 */
 		o_addstr(output, arg);
 		debug_print_list("expand_vars_to_list[b]", output, n);
-	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
+	} else
+	if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
 	 && !(cant_be_null & 0x80)   /* and all vars were not quoted */
 	 && !output->has_quoted_part
 	) {
