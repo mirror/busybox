@@ -3343,7 +3343,6 @@ static char **o_finalize_list(o_string *o, int n)
 	char **list;
 	int string_start;
 
-	n = o_save_ptr(o, n); /* force growth for list[n] if necessary */
 	if (DEBUG_EXPAND)
 		debug_print_list("finalized", o, n);
 	debug_printf_expand("finalized n:%d\n", n);
@@ -6334,12 +6333,8 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 	char cant_be_null = 0; /* only bit 0x80 matters */
 	char *p;
 
-	output->ended_in_ifs = 0;  /* did last unquoted expansion end with IFS chars? */
-
 	debug_printf_expand("expand_vars_to_list: arg:'%s' singleword:%x\n", arg,
 			!!(output->o_expflags & EXP_FLAG_SINGLEWORD));
-	debug_print_list("expand_vars_to_list", output, n);
-	n = o_save_ptr(output, n);
 	debug_print_list("expand_vars_to_list[0]", output, n);
 
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
@@ -6512,9 +6507,16 @@ static char **expand_variables(char **argv, unsigned expflags)
 	output.o_expflags = expflags;
 
 	n = 0;
-	while (*argv) {
-		n = expand_vars_to_list(&output, n, *argv);
-		argv++;
+	for (;;) {
+		/* go to next list[n] */
+		output.ended_in_ifs = 0;
+		n = o_save_ptr(&output, n);
+
+		if (!*argv)
+			break;
+
+		/* expand argv[i] */
+		n = expand_vars_to_list(&output, n, *argv++);
 	}
 	debug_print_list("expand_variables", &output, n);
 
