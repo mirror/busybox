@@ -439,21 +439,22 @@
 
 /* If you comment out one of these below, it will be #defined later
  * to perform debug printfs to stderr: */
-#define debug_printf(...)        do {} while (0)
+#define debug_printf(...)         do {} while (0)
 /* Finer-grained debug switches */
-#define debug_printf_parse(...)  do {} while (0)
-#define debug_print_tree(a, b)   do {} while (0)
-#define debug_printf_exec(...)   do {} while (0)
-#define debug_printf_env(...)    do {} while (0)
-#define debug_printf_jobs(...)   do {} while (0)
-#define debug_printf_expand(...) do {} while (0)
-#define debug_printf_varexp(...) do {} while (0)
-#define debug_printf_glob(...)   do {} while (0)
-#define debug_printf_redir(...)  do {} while (0)
-#define debug_printf_list(...)   do {} while (0)
-#define debug_printf_subst(...)  do {} while (0)
-#define debug_printf_prompt(...) do {} while (0)
-#define debug_printf_clean(...)  do {} while (0)
+#define debug_printf_parse(...)   do {} while (0)
+#define debug_printf_heredoc(...) do {} while (0)
+#define debug_print_tree(a, b)    do {} while (0)
+#define debug_printf_exec(...)    do {} while (0)
+#define debug_printf_env(...)     do {} while (0)
+#define debug_printf_jobs(...)    do {} while (0)
+#define debug_printf_expand(...)  do {} while (0)
+#define debug_printf_varexp(...)  do {} while (0)
+#define debug_printf_glob(...)    do {} while (0)
+#define debug_printf_redir(...)   do {} while (0)
+#define debug_printf_list(...)    do {} while (0)
+#define debug_printf_subst(...)   do {} while (0)
+#define debug_printf_prompt(...)  do {} while (0)
+#define debug_printf_clean(...)   do {} while (0)
 
 #define ERR_PTR ((void*)(long)1)
 
@@ -1217,6 +1218,10 @@ static const struct built_in_command bltins2[] = {
 
 #ifndef debug_printf_parse
 # define debug_printf_parse(...) (indent(), fdprintf(2, __VA_ARGS__))
+#endif
+
+#ifndef debug_printf_heredoc
+# define debug_printf_heredoc(...) (indent(), fdprintf(2, __VA_ARGS__))
 #endif
 
 #ifndef debug_printf_exec
@@ -4245,7 +4250,7 @@ static char *fetch_till_str(o_string *as_string,
 			if ((heredoc_flags & HEREDOC_QUOTED) || prev != '\\') {
 				if (strcmp(heredoc.data + past_EOL, word) == 0) {
 					heredoc.data[past_EOL] = '\0';
-					debug_printf_parse("parsed heredoc '%s'\n", heredoc.data);
+					debug_printf_heredoc("parsed '%s' heredoc '%s'\n", word, heredoc.data);
 					return heredoc.data;
 				}
 				if (ch == '\n') {
@@ -4295,13 +4300,14 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 		int i;
 		struct command *cmd = pi->cmds;
 
-		debug_printf_parse("fetch_heredocs: num_cmds:%d cmd argv0:'%s'\n",
+		debug_printf_heredoc("fetch_heredocs: num_cmds:%d cmd argv0:'%s'\n",
 				pi->num_cmds,
-				cmd->argv ? cmd->argv[0] : "NONE");
+				cmd->argv ? cmd->argv[0] : "NONE"
+		);
 		for (i = 0; i < pi->num_cmds; i++) {
 			struct redir_struct *redir = cmd->redirects;
 
-			debug_printf_parse("fetch_heredocs: %d cmd argv0:'%s'\n",
+			debug_printf_heredoc("fetch_heredocs: %d cmd argv0:'%s'\n",
 					i, cmd->argv ? cmd->argv[0] : "NONE");
 			while (redir) {
 				if (redir->rd_type == REDIRECT_HEREDOC) {
@@ -4325,11 +4331,9 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 		}
 		pi = pi->next;
 	}
-#if 0
 	/* Should be 0. If it isn't, it's a parse error */
-	if (heredoc_cnt)
+	if (HUSH_DEBUG && heredoc_cnt)
 		bb_error_msg_and_die("heredoc BUG 2");
-#endif
 	return 0;
 }
 
@@ -5200,7 +5204,9 @@ static struct pipe *parse_stream(char **pstring,
 				 * "case ... in <newline> word) ..."
 				 */
 				if (IS_NULL_CMD(ctx.command)
-				 && ctx.word.length == 0 && !ctx.word.has_quoted_part
+				 && ctx.word.length == 0
+				 && !ctx.word.has_quoted_part
+				 && heredoc_cnt == 0
 				) {
 					/* This newline can be ignored. But...
 					 * Without check #1, interactive shell
@@ -5228,7 +5234,7 @@ static struct pipe *parse_stream(char **pstring,
 				}
 				/* Treat newline as a command separator. */
 				done_pipe(&ctx, PIPE_SEQ);
-				debug_printf_parse("heredoc_cnt:%d\n", heredoc_cnt);
+				debug_printf_heredoc("heredoc_cnt:%d\n", heredoc_cnt);
 				if (heredoc_cnt) {
 					if (fetch_heredocs(heredoc_cnt, &ctx, input)) {
 						goto parse_error;
@@ -5362,7 +5368,7 @@ static struct pipe *parse_stream(char **pstring,
 			if (next == '<') {
 				redir_style = REDIRECT_HEREDOC;
 				heredoc_cnt++;
-				debug_printf_parse("++heredoc_cnt=%d\n", heredoc_cnt);
+				debug_printf_heredoc("++heredoc_cnt=%d\n", heredoc_cnt);
 				ch = i_getch(input);
 				nommu_addchr(&ctx.as_string, ch);
 			} else if (next == '>') {
