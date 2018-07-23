@@ -4226,6 +4226,14 @@ static char *fetch_till_str(o_string *as_string,
 	int prev = 0; /* not \ */
 	int ch;
 
+	/* Starting with "" is necessary for this case:
+	 * cat <<EOF
+	 *
+	 * xxx
+	 * EOF
+	 */
+	heredoc.data = xzalloc(1); /* start as "", not as NULL */
+
 	goto jump_in;
 
 	while (1) {
