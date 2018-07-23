@@ -153,7 +153,8 @@ static void redraw(unsigned cursor)
 		i++;
 	}
 
-	printf(ESC"[%u;%uH", 1 + cursor / 16, 1 + pos + (cursor & 0xf) * 3);
+	G.row = cursor / 16;
+	printf(ESC"[%u;%uH", 1 + G.row, 1 + pos + (cursor & 0xf) * 3);
 }
 
 static void redraw_cur_line(void)
@@ -367,6 +368,8 @@ int hexedit_main(int argc UNUSED_PARAM, char **argv)
 				if (G.current_byte > G.eof_byte) {
 					/* _after_ eof - don't allow this */
 					G.current_byte -= 16;
+					if (G.current_byte < G.baseaddr)
+						move_mapping_lower();
 					break;
 				}
 			}
