@@ -357,6 +357,9 @@
 #else
 # define CLEAR_RANDOM_T(rnd) ((void)0)
 #endif
+#ifndef O_CLOEXEC
+# define O_CLOEXEC 0
+#endif
 #ifndef F_DUPFD_CLOEXEC
 # define F_DUPFD_CLOEXEC F_DUPFD
 #endif
@@ -556,11 +559,27 @@ static const char *const assignment_flag[] = {
 };
 #endif
 
+/* We almost can use standard FILE api, but we need an ability to move
+ * its fd when redirects coincide with it. No api exists for that
+ * (RFE for it at https://sourceware.org/bugzilla/show_bug.cgi?id=21902).
+ * HFILE is our internal alternative. Only supports reading.
+ * Since we now can, we incorporate linked list of all opened HFILEs
+ * into the struct (used to be a separate mini-list).
+ */
+typedef struct HFILE {
+	char *cur;
+	char *end;
+	struct HFILE *next_hfile;
+	int is_stdin;
+	int fd;
+	char buf[1024];
+} HFILE;
+
 typedef struct in_str {
 	const char *p;
 	int peek_buf[2];
 	int last_char;
-	FILE *file;
+	HFILE *file;
 } in_str;
 
 /* The descrip member of this structure is only used to make
@@ -814,14 +833,6 @@ enum {
 	NUM_OPT_O
 };
 
-
-struct FILE_list {
-	struct FILE_list *next;
-	FILE *fp;
-	int fd;
-};
-
-
 /* "Globals" within this file */
 /* Sorted roughly by size (smaller offsets == smaller code) */
 struct globals {
@@ -954,7 +965,7 @@ struct globals {
 	unsigned lineno;
 	char *lineno_var;
 #endif
-	struct FILE_list *FILE_list;
+	HFILE *HFILE_list;
 	/* Which signals have non-DFL handler (even with no traps set)?
 	 * Set at the start to:
 	 * (SIGQUIT + maybe SPECIAL_INTERACTIVE_SIGS + maybe SPECIAL_JOBSTOP_SIGS)
@@ -1563,83 +1574,115 @@ static int xdup_CLOEXEC_and_close(int fd, int avoid_fd)
 }
 
 
-/* Manipulating the list of open FILEs */
-static FILE *remember_FILE(FILE *fp)
+/* Manipulating HFILEs */
+static HFILE *hfopen(const char *name)
 {
-	if (fp) {
-		struct FILE_list *n = xmalloc(sizeof(*n));
-		n->next = G.FILE_list;
-		G.FILE_list = n;
-		n->fp = fp;
-		n->fd = fileno(fp);
-		close_on_exec_on(n->fd);
+	HFILE *fp;
+	int fd;
+
+	fd = STDIN_FILENO;
+	if (name) {
+		fd = open(name, O_RDONLY | O_CLOEXEC);
+		if (fd < 0)
+			return NULL;
+		if (O_CLOEXEC == 0) /* ancient libc */
+			close_on_exec_on(fd);
 	}
+
+	fp = xmalloc(sizeof(*fp));
+	fp->is_stdin = (name == NULL);
+	fp->fd = fd;
+	fp->cur = fp->end = fp->buf;
+	fp->next_hfile = G.HFILE_list;
+	G.HFILE_list = fp;
 	return fp;
 }
-static void fclose_and_forget(FILE *fp)
+static void hfclose(HFILE *fp)
 {
-	struct FILE_list **pp = &G.FILE_list;
+	HFILE **pp = &G.HFILE_list;
 	while (*pp) {
-		struct FILE_list *cur = *pp;
-		if (cur->fp == fp) {
-			*pp = cur->next;
-			free(cur);
+		HFILE *cur = *pp;
+		if (cur == fp) {
+			*pp = cur->next_hfile;
 			break;
 		}
-		pp = &cur->next;
+		pp = &cur->next_hfile;
 	}
-	fclose(fp);
+	if (fp->fd >= 0)
+		close(fp->fd);
+	free(fp);
 }
-static int save_FILEs_on_redirect(int fd, int avoid_fd)
+static int refill_HFILE_and_getc(HFILE *fp)
 {
-	struct FILE_list *fl = G.FILE_list;
+	int n;
+
+	if (fp->fd < 0) {
+		/* Already saw EOF */
+		return EOF;
+	}
+	/* Try to buffer more input */
+	fp->cur = fp->buf;
+	n = safe_read(fp->fd, fp->buf, sizeof(fp->buf));
+	if (n < 0) {
+		bb_perror_msg("read error");
+		n = 0;
+	}
+	fp->end = fp->buf + n;
+	if (n == 0) {
+		/* EOF/error */
+		close(fp->fd);
+		fp->fd = -1;
+		return EOF;
+	}
+	return (unsigned char)(*fp->cur++);
+}
+/* Inlined for common case of non-empty buffer.
+ */
+static ALWAYS_INLINE int hfgetc(HFILE *fp)
+{
+	if (fp->cur < fp->end)
+		return (unsigned char)(*fp->cur++);
+	/* Buffer empty */
+	return refill_HFILE_and_getc(fp);
+}
+static int move_HFILEs_on_redirect(int fd, int avoid_fd)
+{
+	HFILE *fl = G.HFILE_list;
 	while (fl) {
 		if (fd == fl->fd) {
 			/* We use it only on script files, they are all CLOEXEC */
 			fl->fd = xdup_CLOEXEC_and_close(fd, avoid_fd);
 			debug_printf_redir("redirect_fd %d: matches a script fd, moving it to %d\n", fd, fl->fd);
-			return 1;
+			return 1; /* "found and moved" */
 		}
-		fl = fl->next;
+		fl = fl->next_hfile;
 	}
-	return 0;
-}
-static void restore_redirected_FILEs(void)
-{
-	struct FILE_list *fl = G.FILE_list;
-	while (fl) {
-		int should_be = fileno(fl->fp);
-		if (fl->fd != should_be) {
-			debug_printf_redir("restoring script fd from %d to %d\n", fl->fd, should_be);
-			xmove_fd(fl->fd, should_be);
-			fl->fd = should_be;
-		}
-		fl = fl->next;
-	}
+	return 0; /* "not in the list" */
 }
 #if ENABLE_FEATURE_SH_STANDALONE && BB_MMU
-static void close_all_FILE_list(void)
+static void close_all_HFILE_list(void)
 {
-	struct FILE_list *fl = G.FILE_list;
+	HFILE *fl = G.HFILE_list;
 	while (fl) {
-		/* fclose would also free FILE object.
+		/* hfclose would also free HFILE object.
 		 * It is disastrous if we share memory with a vforked parent.
 		 * I'm not sure we never come here after vfork.
 		 * Therefore just close fd, nothing more.
 		 */
-		/*fclose(fl->fp); - unsafe */
-		close(fl->fd);
-		fl = fl->next;
+		/*hfclose(fl); - unsafe */
+		if (fl->fd >= 0)
+			close(fl->fd);
+		fl = fl->next_hfile;
 	}
 }
 #endif
-static int fd_in_FILEs(int fd)
+static int fd_in_HFILEs(int fd)
 {
-	struct FILE_list *fl = G.FILE_list;
+	HFILE *fl = G.HFILE_list;
 	while (fl) {
 		if (fl->fd == fd)
 			return 1;
-		fl = fl->next;
+		fl = fl->next_hfile;
 	}
 	return 0;
 }
@@ -2580,7 +2623,7 @@ static int get_user_input(struct in_str *i)
 		}
 		fflush_all();
 //FIXME: here ^C or SIGINT will have effect only after <Enter>
-		r = fgetc(i->file);
+		r = hfgetc(i->file);
 		/* In !ENABLE_FEATURE_EDITING we don't use read_line_input,
 		 * no ^C masking happens during fgetc, no special code for ^C:
 		 * it generates SIGINT as usual.
@@ -2600,22 +2643,22 @@ static int fgetc_interactive(struct in_str *i)
 {
 	int ch;
 	/* If it's interactive stdin, get new line. */
-	if (G_interactive_fd && i->file == stdin) {
+	if (G_interactive_fd && i->file->is_stdin) {
 		/* Returns first char (or EOF), the rest is in i->p[] */
 		ch = get_user_input(i);
 		G.promptmode = 1; /* PS2 */
 		debug_printf_prompt("%s promptmode=%d\n", __func__, G.promptmode);
 	} else {
 		/* Not stdin: script file, sourced file, etc */
-		do ch = fgetc(i->file); while (ch == '\0');
+		do ch = hfgetc(i->file); while (ch == '\0');
 	}
 	return ch;
 }
 #else
-static inline int fgetc_interactive(struct in_str *i)
+static ALWAYS_INLINE int fgetc_interactive(struct in_str *i)
 {
 	int ch;
-	do ch = fgetc(i->file); while (ch == '\0');
+	do ch = hfgetc(i->file); while (ch == '\0');
 	return ch;
 }
 #endif  /* INTERACTIVE */
@@ -2730,7 +2773,7 @@ static int i_peek2(struct in_str *i)
 	ch = i->peek_buf[1];
 	if (ch == 0) {
 		/* We did not read it yet, get it now */
-		do ch = fgetc(i->file); while (ch == '\0');
+		do ch = hfgetc(i->file); while (ch == '\0');
 		i->peek_buf[1] = ch;
 	}
 
@@ -2774,10 +2817,10 @@ static int i_peek_and_eat_bkslash_nl(struct in_str *input)
 	}
 }
 
-static void setup_file_in_str(struct in_str *i, FILE *f)
+static void setup_file_in_str(struct in_str *i, HFILE *fp)
 {
 	memset(i, 0, sizeof(*i));
-	i->file = f;
+	i->file = fp;
 	/* i->p = NULL; */
 }
 
@@ -7106,19 +7149,19 @@ static void parse_and_run_string(const char *s)
 	//IF_HUSH_LINENO_VAR(G.lineno = sv;)
 }
 
-static void parse_and_run_file(FILE *f)
+static void parse_and_run_file(HFILE *fp)
 {
 	struct in_str input;
 	IF_HUSH_LINENO_VAR(unsigned sv = G.lineno;)
 
 	IF_HUSH_LINENO_VAR(G.lineno = 1;)
-	setup_file_in_str(&input, f);
+	setup_file_in_str(&input, fp);
 	parse_and_run_stream(&input, ';');
 	IF_HUSH_LINENO_VAR(G.lineno = sv;)
 }
 
 #if ENABLE_HUSH_TICK
-static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
+static int generate_stream_from_string(const char *s, pid_t *pid_p)
 {
 	pid_t pid;
 	int channel[2];
@@ -7220,7 +7263,7 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 	free(to_free);
 # endif
 	close(channel[1]);
-	return remember_FILE(xfdopen_for_read(channel[0]));
+	return channel[0];
 }
 
 /* Return code is exit status of the process that is run. */
@@ -7230,7 +7273,7 @@ static int process_command_subs(o_string *dest, const char *s)
 	pid_t pid;
 	int status, ch, eol_cnt;
 
-	fp = generate_stream_from_string(s, &pid);
+	fp = xfdopen_for_read(generate_stream_from_string(s, &pid));
 
 	/* Now send results of command back into original context */
 	eol_cnt = 0;
@@ -7249,7 +7292,7 @@ static int process_command_subs(o_string *dest, const char *s)
 	}
 
 	debug_printf("done reading from `cmd` pipe, closing it\n");
-	fclose_and_forget(fp);
+	fclose(fp);
 	/* We need to extract exitcode. Test case
 	 * "true; echo `sleep 1; false` $?"
 	 * should print 1 */
@@ -7427,19 +7470,16 @@ static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 		return 1; /* "we closed fd" */
 	}
 #endif
+	/* If this one of script's fds? */
+	if (move_HFILEs_on_redirect(fd, avoid_fd))
+		return 1; /* yes. "we closed fd" (actually moved it) */
+
 	/* Are we called from setup_redirects(squirrel==NULL)? Two cases:
-	 * (1) Redirect in a forked child. No need to save FILEs' fds,
-	 * we aren't going to use them anymore, ok to trash.
-	 * (2) "exec 3>FILE". Bummer. We can save script FILEs' fds,
-	 * but how are we doing to restore them?
-	 * "fileno(fd) = new_fd" can't be done.
+	 * (1) Redirect in a forked child.
+	 * (2) "exec 3>FILE".
 	 */
 	if (!sqp)
 		return 0;
-
-	/* If this one of script's fds? */
-	if (save_FILEs_on_redirect(fd, avoid_fd))
-		return 1; /* yes. "we closed fd" */
 
 	/* Check whether it collides with any open fds (e.g. stdio), save fds as needed */
 	*sqp = add_squirrel(*sqp, fd, avoid_fd);
@@ -7465,8 +7505,6 @@ static void restore_redirects(struct squirrel *sq)
 	}
 
 	/* If moved, G.interactive_fd stays on new fd, not restoring it */
-
-	restore_redirected_FILEs();
 }
 
 #if ENABLE_FEATURE_SH_STANDALONE && BB_MMU
@@ -7474,7 +7512,7 @@ static void close_saved_fds_and_FILE_fds(void)
 {
 	if (G_interactive_fd)
 		close(G_interactive_fd);
-	close_all_FILE_list();
+	close_all_HFILE_list();
 }
 #endif
 
@@ -7487,7 +7525,7 @@ static int internally_opened_fd(int fd, struct squirrel *sq)
 		return 1;
 #endif
 	/* If this one of script's fds? */
-	if (fd_in_FILEs(fd))
+	if (fd_in_HFILEs(fd))
 		return 1;
 
 	if (sq) for (i = 0; sq[i].orig_fd >= 0; i++) {
@@ -7512,7 +7550,7 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 			save_fd_on_redirect(redir->rd_fd, /*avoid:*/ 0, sqp);
 			/* for REDIRECT_HEREDOC2, rd_filename holds _contents_
 			 * of the heredoc */
-			debug_printf_parse("set heredoc '%s'\n",
+			debug_printf_redir("set heredoc '%s'\n",
 					redir->rd_filename);
 			setup_heredoc(redir);
 			continue;
@@ -7524,8 +7562,7 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 			int mode;
 
 			if (redir->rd_filename == NULL) {
-				/*
-				 * Examples:
+				/* Examples:
 				 * "cmd >" (no filename)
 				 * "cmd > <file" (2nd redirect starts too early)
 				 */
@@ -8706,7 +8743,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		}
 #endif
 		/* { list } */
-		debug_printf("non-subshell group\n");
+		debug_printf_exec("non-subshell group\n");
 		rcode = 1; /* exitcode if redir failed */
 		if (setup_redirects(command, &squirrel) == 0) {
 			debug_printf_exec(": run_list\n");
@@ -9871,14 +9908,13 @@ int hush_main(int argc, char **argv)
 
 	/* If we are login shell... */
 	if (flags & OPT_login) {
-		FILE *input;
+		HFILE *input;
 		debug_printf("sourcing /etc/profile\n");
-		input = fopen_for_read("/etc/profile");
+		input = hfopen("/etc/profile");
 		if (input != NULL) {
-			remember_FILE(input);
 			install_special_sighandlers();
 			parse_and_run_file(input);
-			fclose_and_forget(input);
+			hfclose(input);
 		}
 		/* bash: after sourcing /etc/profile,
 		 * tries to source (in the given order):
@@ -9891,7 +9927,7 @@ int hush_main(int argc, char **argv)
 
 	/* -s is: hush -s ARGV1 ARGV2 (no SCRIPT) */
 	if (!(flags & OPT_s) && G.global_argv[1]) {
-		FILE *input;
+		HFILE *input;
 		/*
 		 * "bash <script>" (which is never interactive (unless -i?))
 		 * sources $BASH_ENV here (without scanning $PATH).
@@ -9902,13 +9938,15 @@ int hush_main(int argc, char **argv)
 		G.global_argv++;
 		debug_printf("running script '%s'\n", G.global_argv[0]);
 		xfunc_error_retval = 127; /* for "hush /does/not/exist" case */
-		input = xfopen_for_read(G.global_argv[0]);
+		input = hfopen(G.global_argv[0]);
+		if (!input) {
+			bb_simple_perror_msg_and_die(G.global_argv[0]);
+		}
 		xfunc_error_retval = 1;
-		remember_FILE(input);
 		install_special_sighandlers();
 		parse_and_run_file(input);
 #if ENABLE_FEATURE_CLEAN_UP
-		fclose_and_forget(input);
+		hfclose(input);
 #endif
 		goto final_return;
 	}
@@ -10038,7 +10076,7 @@ int hush_main(int argc, char **argv)
 		);
 	}
 
-	parse_and_run_file(stdin);
+	parse_and_run_file(hfopen(NULL)); /* stdin */
 
  final_return:
 	hush_exit(G.last_exitcode);
@@ -10849,7 +10887,7 @@ Test that VAR is a valid variable name?
 static int FAST_FUNC builtin_source(char **argv)
 {
 	char *arg_path, *filename;
-	FILE *input;
+	HFILE *input;
 	save_arg_t sv;
 	char *args_need_save;
 #if ENABLE_HUSH_FUNCTIONS
@@ -10873,10 +10911,10 @@ static int FAST_FUNC builtin_source(char **argv)
 			return EXIT_FAILURE;
 		}
 	}
-	input = remember_FILE(fopen_or_warn(filename, "r"));
+	input = hfopen(filename);
 	free(arg_path);
 	if (!input) {
-		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
+		bb_perror_msg("%s", filename);
 		/* POSIX: non-interactive shell should abort here,
 		 * not merely fail. So far no one complained :)
 		 */
@@ -10895,7 +10933,7 @@ static int FAST_FUNC builtin_source(char **argv)
 	/* "false; . ./empty_line; echo Zero:$?" should print 0 */
 	G.last_exitcode = 0;
 	parse_and_run_file(input);
-	fclose_and_forget(input);
+	hfclose(input);
 
 	if (args_need_save) /* can't use argv[1] instead: "shift" can mangle it */
 		restore_G_args(&sv, argv);

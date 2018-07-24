@@ -27,6 +27,10 @@ test x"$fds1" = x"$fds" \
 test x"$fds1" = x" 10>&- 3>&-" && \
 test x"$fds"  = x" 11>&- 3>&-" \
 && { echo "Ok: script fd is not closed"; exit 0; }
+# or we see that fd 3 moved to fd 10:
+test x"$fds1" = x" 3>&- 4>&-" && \
+test x"$fds"  = x" 10>&- 3>&-" \
+&& { echo "Ok: script fd is not closed"; exit 0; }
 
 echo "Bug: script fd is closed"
 echo "fds1:$fds1"

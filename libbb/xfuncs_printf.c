@@ -222,6 +222,7 @@ void FAST_FUNC xdup2(int from, int to)
 {
 	if (dup2(from, to) != to)
 		bb_perror_msg_and_die("can't duplicate file descriptor");
+		//		" %d to %d", from, to);
 }
 
 // "Renumber" opened fd
