@@ -333,12 +333,6 @@ struct globals {
 	/* DECLARE(Pos, head, 1<<HASH_BITS); */
 #define head (G1.prev + WSIZE) /* hash head (see deflate.c) */
 
-/* =========================================================================== */
-/* all members below are zeroed out in pack_gzip() for each next file */
-
-	uint32_t crc;	/* shift register contents */
-	/*uint32_t *crc_32_tab;*/
-
 #if ENABLE_FEATURE_GZIP_LEVELS
 	unsigned max_chain_length;
 	unsigned max_lazy_match;
@@ -349,6 +343,12 @@ struct globals {
 #define good_match	 (G1.good_match)
 #define nice_match	 (G1.nice_match)
 #endif
+
+/* =========================================================================== */
+/* all members below are zeroed out in pack_gzip() for each next file */
+
+	uint32_t crc;	/* shift register contents */
+	/*uint32_t *crc_32_tab;*/
 
 /* window position at the beginning of the current output block. Gets
  * negative when the window is moved backwards.
