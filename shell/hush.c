@@ -4250,6 +4250,7 @@ static char *fetch_till_str(o_string *as_string,
 		if (ch == '\n' || ch == EOF) {
  check_heredoc_end:
 			if ((heredoc_flags & HEREDOC_QUOTED) || prev != '\\') {
+				/* End-of-line, and not a line continuation */
 				if (strcmp(heredoc.data + past_EOL, word) == 0) {
 					heredoc.data[past_EOL] = '\0';
 					debug_printf_heredoc("parsed '%s' heredoc '%s'\n", word, heredoc.data);
@@ -4275,17 +4276,32 @@ static char *fetch_till_str(o_string *as_string,
 					if (ch == '\n')
 						goto check_heredoc_end;
 				}
+			} else {
+				/* Backslash-line continuation in an unquoted
+				 * heredoc. This does not need special handling
+				 * for heredoc body (unquoted heredocs are
+				 * expanded on "execution" and that would take
+				 * care of this case too), but not the case
+				 * of line continuation *in terminator*:
+				 *  cat <<EOF
+				 *  Ok1
+				 *  EO\
+				 *  F
+				 */
+				heredoc.data[--heredoc.length] = '\0';
+				prev = 0; /* not '\' */
+				continue;
 			}
 		}
 		if (ch == EOF) {
 			o_free(&heredoc);
-			return NULL;
+			return NULL; /* error */
 		}
 		o_addchr(&heredoc, ch);
 		nommu_addchr(as_string, ch);
 		if (prev == '\\' && ch == '\\')
 			/* Correctly handle foo\\<eol> (not a line cont.) */
-			prev = 0; /* not \ */
+			prev = 0; /* not '\' */
 		else
 			prev = ch;
 	}
