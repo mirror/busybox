@@ -8512,7 +8512,8 @@ describe_command(char *command, const char *path, int describe_command_verbose)
 
 	case CMDFUNCTION:
 		if (describe_command_verbose) {
-			out1str(" is a shell function");
+			/*out1str(" is a shell function");*/
+			out1str(" is a function"); /* bash says this */
 		} else {
 			out1str(command);
 		}
