@@ -3534,6 +3534,8 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 				fdprintf(2, " '%s'", *argv);
 				argv++;
 			}
+			if (command->redirects)
+				fdprintf(2, " {redir}");
 			fdprintf(2, "\n");
 			prn++;
 		}
@@ -4292,10 +4294,12 @@ static char *fetch_till_str(o_string *as_string,
 /* Look at entire parse tree for not-yet-loaded REDIRECT_HEREDOCs
  * and load them all. There should be exactly heredoc_cnt of them.
  */
-static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_str *input)
+#if BB_MMU
+#define fetch_heredocs(as_string, pi, heredoc_cnt, input) \
+	fetch_heredocs(pi, heredoc_cnt, input)
+#endif
+static int fetch_heredocs(o_string *as_string, struct pipe *pi, int heredoc_cnt, struct in_str *input)
 {
-	struct pipe *pi = ctx->list_head;
-
 	while (pi && heredoc_cnt) {
 		int i;
 		struct command *cmd = pi->cmds;
@@ -4315,11 +4319,11 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 
 					redir->rd_type = REDIRECT_HEREDOC2;
 					/* redir->rd_dup is (ab)used to indicate <<- */
-					p = fetch_till_str(&ctx->as_string, input,
+					p = fetch_till_str(as_string, input,
 							redir->rd_filename, redir->rd_dup);
 					if (!p) {
 						syntax_error("unexpected EOF in here document");
-						return 1;
+						return -1;
 					}
 					free(redir->rd_filename);
 					redir->rd_filename = p;
@@ -4327,29 +4331,36 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 				}
 				redir = redir->next;
 			}
+			if (cmd->group) {
+				//bb_error_msg("%s:%u heredoc_cnt:%d", __func__, __LINE__, heredoc_cnt);
+				heredoc_cnt = fetch_heredocs(as_string, cmd->group, heredoc_cnt, input);
+				//bb_error_msg("%s:%u heredoc_cnt:%d", __func__, __LINE__, heredoc_cnt);
+				if (heredoc_cnt < 0)
+					return heredoc_cnt; /* error */
+			}
 			cmd++;
 		}
 		pi = pi->next;
 	}
-	/* Should be 0. If it isn't, it's a parse error */
-	if (HUSH_DEBUG && heredoc_cnt)
-		bb_error_msg_and_die("heredoc BUG 2");
-	return 0;
+	return heredoc_cnt;
 }
 
 
 static int run_list(struct pipe *pi);
 #if BB_MMU
-#define parse_stream(pstring, input, end_trigger) \
-	parse_stream(input, end_trigger)
+#define parse_stream(pstring, heredoc_cnt_ptr, input, end_trigger) \
+	parse_stream(heredoc_cnt_ptr, input, end_trigger)
 #endif
 static struct pipe *parse_stream(char **pstring,
+		int *heredoc_cnt_ptr,
 		struct in_str *input,
 		int end_trigger);
 
-
+/* Returns number of heredocs not yet consumed,
+ * or -1 on error.
+ */
 static int parse_group(struct parse_context *ctx,
-	struct in_str *input, int ch)
+		struct in_str *input, int ch)
 {
 	/* ctx->word contains characters seen prior to ( or {.
 	 * Typically it's empty, but for function defs,
@@ -4360,6 +4371,7 @@ static int parse_group(struct parse_context *ctx,
 	char *as_string = NULL;
 #endif
 	struct pipe *pipe_list;
+	int heredoc_cnt = 0;
 	int endch;
 	struct command *command = ctx->command;
 
@@ -4368,12 +4380,12 @@ static int parse_group(struct parse_context *ctx,
 	if (ch == '(' && !ctx->word.has_quoted_part) {
 		if (ctx->word.length)
 			if (done_word(ctx))
-				return 1;
+				return -1;
 		if (!command->argv)
 			goto skip; /* (... */
 		if (command->argv[1]) { /* word word ... (... */
 			syntax_error_unexpected_ch('(');
-			return 1;
+			return -1;
 		}
 		/* it is "word(..." or "word (..." */
 		do
@@ -4381,7 +4393,7 @@ static int parse_group(struct parse_context *ctx,
 		while (ch == ' ' || ch == '\t');
 		if (ch != ')') {
 			syntax_error_unexpected_ch(ch);
-			return 1;
+			return -1;
 		}
 		nommu_addchr(&ctx->as_string, ch);
 		do
@@ -4389,7 +4401,7 @@ static int parse_group(struct parse_context *ctx,
 		while (ch == ' ' || ch == '\t' || ch == '\n');
 		if (ch != '{' && ch != '(') {
 			syntax_error_unexpected_ch(ch);
-			return 1;
+			return -1;
 		}
 		nommu_addchr(&ctx->as_string, ch);
 		command->cmd_type = CMD_FUNCDEF;
@@ -4403,9 +4415,9 @@ static int parse_group(struct parse_context *ctx,
 	 || ctx->word.has_quoted_part /* ""{... */
 	) {
 		syntax_error(NULL);
-		debug_printf_parse("parse_group return 1: "
+		debug_printf_parse("parse_group return -1: "
 			"syntax error, groups and arglists don't mix\n");
-		return 1;
+		return -1;
 	}
 #endif
 
@@ -4423,7 +4435,7 @@ static int parse_group(struct parse_context *ctx,
 		 && ch != '('	/* but "{(..." is allowed (without whitespace) */
 		) {
 			syntax_error_unexpected_ch(ch);
-			return 1;
+			return -1;
 		}
 		if (ch != '(') {
 			ch = i_getch(input);
@@ -4431,7 +4443,9 @@ static int parse_group(struct parse_context *ctx,
 		}
 	}
 
-	pipe_list = parse_stream(&as_string, input, endch);
+	debug_printf_heredoc("calling parse_stream, heredoc_cnt:%d\n", heredoc_cnt);
+	pipe_list = parse_stream(&as_string, &heredoc_cnt, input, endch);
+	debug_printf_heredoc("parse_stream returned: heredoc_cnt:%d\n", heredoc_cnt);
 #if !BB_MMU
 	if (as_string)
 		o_addstr(&ctx->as_string, as_string);
@@ -4442,9 +4456,9 @@ static int parse_group(struct parse_context *ctx,
 		/* parse_stream already emitted error msg */
 		if (!BB_MMU)
 			free(as_string);
-		debug_printf_parse("parse_group return 1: "
+		debug_printf_parse("parse_group return -1: "
 			"parse_stream returned %p\n", pipe_list);
-		return 1;
+		return -1;
 	}
 #if !BB_MMU
 	as_string[strlen(as_string) - 1] = '\0'; /* plink ')' or '}' */
@@ -4475,8 +4489,8 @@ static int parse_group(struct parse_context *ctx,
 
 	command->group = pipe_list;
 
-	debug_printf_parse("parse_group return 0\n");
-	return 0;
+	debug_printf_parse("parse_group return %d\n", heredoc_cnt);
+	return heredoc_cnt;
 	/* command remains "open", available for possible redirects */
 #undef as_string
 }
@@ -5002,6 +5016,7 @@ static int encode_string(o_string *as_string,
  * or return ERR_PTR.
  */
 static struct pipe *parse_stream(char **pstring,
+		int *heredoc_cnt_ptr,
 		struct in_str *input,
 		int end_trigger)
 {
@@ -5077,7 +5092,11 @@ static struct pipe *parse_stream(char **pstring,
 			else
 				o_free(&ctx.as_string);
 #endif
+			// heredoc_cnt must be 0 here anyway
+			//if (heredoc_cnt_ptr)
+			//	*heredoc_cnt_ptr = heredoc_cnt;
 			debug_leave();
+			debug_printf_heredoc("parse_stream return heredoc_cnt:%d\n", heredoc_cnt);
 			debug_printf_parse("parse_stream return %p\n", pi);
 			return pi;
 		}
@@ -5236,10 +5255,9 @@ static struct pipe *parse_stream(char **pstring,
 				done_pipe(&ctx, PIPE_SEQ);
 				debug_printf_heredoc("heredoc_cnt:%d\n", heredoc_cnt);
 				if (heredoc_cnt) {
-					if (fetch_heredocs(heredoc_cnt, &ctx, input)) {
+					heredoc_cnt = fetch_heredocs(&ctx.as_string, ctx.list_head, heredoc_cnt, input);
+					if (heredoc_cnt != 0)
 						goto parse_error;
-					}
-					heredoc_cnt = 0;
 				}
 				ctx.is_assignment = MAYBE_ASSIGNMENT;
 				debug_printf_parse("ctx.is_assignment='%s'\n", assignment_flag[ctx.is_assignment]);
@@ -5288,19 +5306,6 @@ static struct pipe *parse_stream(char **pstring,
 		    )
 #endif
 		) {
-			if (heredoc_cnt) {
-				/* This is technically valid:
-				 * { cat <<HERE; }; echo Ok
-				 * heredoc
-				 * heredoc
-				 * HERE
-				 * but we don't support this.
-				 * We require heredoc to be in enclosing {}/(),
-				 * if any.
-				 */
-				syntax_error_unterm_str("here document");
-				goto parse_error;
-			}
 			if (done_word(&ctx)) {
 				goto parse_error;
 			}
@@ -5325,6 +5330,9 @@ static struct pipe *parse_stream(char **pstring,
 					syntax_error_unexpected_ch(ch);
 					goto parse_error2;
 				}
+				if (heredoc_cnt_ptr)
+					*heredoc_cnt_ptr = heredoc_cnt;
+				debug_printf_heredoc("parse_stream return heredoc_cnt:%d\n", heredoc_cnt);
 				debug_printf_parse("parse_stream return %p: "
 						"end_trigger char found\n",
 						ctx.list_head);
@@ -5546,16 +5554,22 @@ static struct pipe *parse_stream(char **pstring,
 				continue; /* get next char */
 			}
 #endif
-		case '{':
-			if (parse_group(&ctx, input, ch) != 0) {
+			/* fall through */
+		case '{': {
+			int n = parse_group(&ctx, input, ch);
+			if (n < 0) {
 				goto parse_error;
 			}
+			debug_printf_heredoc("parse_group done, needs heredocs:%d\n", n);
+			heredoc_cnt += n;
 			goto new_cmd;
+		}
 		case ')':
 #if ENABLE_HUSH_CASE
 			if (ctx.ctx_res_w == RES_MATCH)
 				goto case_semi;
 #endif
+
 		case '}':
 			/* proper use of this character is caught by end_trigger:
 			 * if we see {, we call parse_group(..., end_trigger='}')
@@ -5604,7 +5618,7 @@ static struct pipe *parse_stream(char **pstring,
 			IF_HAS_KEYWORDS(pctx = p2;)
 		} while (HAS_KEYWORDS && pctx);
 
-		o_free_and_set_NULL(&ctx.word);
+		o_free(&ctx.word);
 #if !BB_MMU
 		if (pstring)
 			*pstring = NULL;
@@ -7035,7 +7049,7 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 			debug_printf_prompt("%s promptmode=%d\n", __func__, G.promptmode);
 		}
 #endif
-		pipe_list = parse_stream(NULL, inp, end_trigger);
+		pipe_list = parse_stream(NULL, NULL, inp, end_trigger);
 		if (!pipe_list || pipe_list == ERR_PTR) { /* EOF/error */
 			/* If we are in "big" script
 			 * (not in `cmd` or something similar)...
