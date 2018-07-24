@@ -7470,16 +7470,54 @@ static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 		return 1; /* "we closed fd" */
 	}
 #endif
+	/* Are we called from setup_redirects(squirrel==NULL)
+	 * in redirect in a [v]forked child?
+	 */
+	if (sqp == NULL) {
+		/* No need to move script fds.
+		 * For NOMMU case, it's actively wrong: we'd change ->fd
+		 * fields in memory for the parent, but parent's fds
+		 * aren't be moved, it would use wrong fd!
+		 * Reproducer: "cmd 3>FILE" in script.
+		 * If we would call move_HFILEs_on_redirect(), child would:
+		 *  fcntl64(3, F_DUPFD_CLOEXEC, 10)   = 10
+		 *  close(3)                          = 0
+		 * and change ->fd to 10 if fd#3 is a script fd. WRONG.
+		 */
+		//bb_error_msg("sqp == NULL: [v]forked child");
+		return 0;
+	}
+
 	/* If this one of script's fds? */
 	if (move_HFILEs_on_redirect(fd, avoid_fd))
 		return 1; /* yes. "we closed fd" (actually moved it) */
 
-	/* Are we called from setup_redirects(squirrel==NULL)? Two cases:
-	 * (1) Redirect in a forked child.
-	 * (2) "exec 3>FILE".
+	/* Are we called for "exec 3>FILE"? Came through
+	 * redirect_and_varexp_helper(squirrel=ERR_PTR) -> setup_redirects(ERR_PTR)
+	 * This case used to fail for this script:
+	 *  exec 3>FILE
+	 *  echo Ok
+	 *  ...100000 more lines...
+	 *  echo Ok
+	 * as follows:
+	 *  read(3, "exec 3>FILE\necho Ok\necho Ok"..., 1024) = 1024
+	 *  open("FILE", O_WRONLY|O_CREAT|O_TRUNC|O_LARGEFILE, 0666) = 4
+	 *  dup2(4, 3)                        = 3
+	 *  ^^^^^^^^ oops, we lost fd#3 opened to our script!
+	 *  close(4)                          = 0
+	 *  write(1, "Ok\n", 3)               = 3
+	 *  ...                               = 3
+	 *  write(1, "Ok\n", 3)               = 3
+	 *  read(3, 0x94fbc08, 1024)          = -1 EBADF (Bad file descriptor)
+	 *  ^^^^^^^^ oops, wrong fd!!!
+	 * With this case separate from sqp == NULL and *after* move_HFILEs,
+	 * it now works:
 	 */
-	if (!sqp)
+	if (sqp == ERR_PTR) {
+		/* Don't preserve redirected fds: exec is _meant_ to change these */
+		//bb_error_msg("sqp == ERR_PTR: exec >FILE");
 		return 0;
+	}
 
 	/* Check whether it collides with any open fds (e.g. stdio), save fds as needed */
 	*sqp = add_squirrel(*sqp, fd, avoid_fd);
@@ -7618,7 +7656,7 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 			 */
 		} else {
 			/* if newfd is a script fd or saved fd, simulate EBADF */
-			if (internally_opened_fd(newfd, sqp ? *sqp : NULL)) {
+			if (internally_opened_fd(newfd, sqp && sqp != ERR_PTR ? *sqp : NULL)) {
 				//errno = EBADF;
 				//bb_perror_msg_and_die("can't duplicate file descriptor");
 				newfd = -1; /* same effect as code above */
@@ -8633,8 +8671,8 @@ static int checkjobs_and_fg_shell(struct pipe *fg_pipe)
  * subshell:     ( list ) [&]
  */
 #if !ENABLE_HUSH_MODE_X
-#define redirect_and_varexp_helper(command, squirrel, argv_expanded) \
-	redirect_and_varexp_helper(command, squirrel)
+#define redirect_and_varexp_helper(command, sqp, argv_expanded) \
+	redirect_and_varexp_helper(command, sqp)
 #endif
 static int redirect_and_varexp_helper(
 		struct command *command,
@@ -8651,10 +8689,6 @@ static int redirect_and_varexp_helper(
 	/* this takes ownership of new_env[i] elements, and frees new_env: */
 	set_vars_and_save_old(new_env);
 
-	/* setup_redirects acts on file descriptors, not FILEs.
-	 * This is perfect for work that comes after exec().
-	 * Is it really safe for inline use?  Experimentally,
-	 * things seem to work. */
 	return setup_redirects(command, sqp);
 }
 static NOINLINE int run_pipe(struct pipe *pi)
@@ -8855,7 +8889,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				 */
 				enter_var_nest_level();
 				G.shadowed_vars_pp = &old_vars;
-				rcode = redirect_and_varexp_helper(command, /*squirrel:*/ NULL, argv_expanded);
+				rcode = redirect_and_varexp_helper(command,
+					/*squirrel:*/ ERR_PTR,
+					argv_expanded
+				);
 				G.shadowed_vars_pp = sv_shadowed;
 				/* rcode=1 can be if redir file can't be opened */
 
