@@ -623,7 +623,7 @@ sgi_change_sysid(int i, int sys)
 			"retrieve from its directory standalone tools like sash and fx.\n"
 			"Only the \"SGI volume\" entire disk section may violate this.\n"
 			"Type YES if you are sure about tagging this partition differently.\n");
-		if (strcmp(line_ptr, "YES\n") != 0)
+		if (strcmp(line_ptr, "YES") != 0)
 			return;
 	}
 	sgilabel->partitions[i].id = SGI_SSWAP32(sys);
