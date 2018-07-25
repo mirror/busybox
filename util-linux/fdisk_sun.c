@@ -606,7 +606,7 @@ sun_change_sysid(int i, int sys)
 			"there may destroy your partition table and bootblock.\n"
 			"Type YES if you're very sure you would like that partition\n"
 			"tagged with 82 (Linux swap): ");
-		if (strcmp (line_ptr, "YES\n"))
+		if (strcmp(line_ptr, "YES\n"))
 			return;
 	}
 	switch (sys) {
