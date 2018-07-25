@@ -1631,6 +1631,26 @@ read_int(sector_t low, sector_t dflt, sector_t high, sector_t base, const char *
 			case 'k':
 				scale_shift = 10; /* 1024 */
 				break;
+/*
+ * fdisk from util-linux 2.31 seems to round '+NNNk' and '+NNNK' to megabytes,
+ * (512-byte) sector count of the partition does not equal NNN*2:
+ *
+ * Last sector, +sectors or +size{K,M,G,T,P} (1953792-1000215215, default 1000215215): +9727k
+ *   Device     Boot   Start     End Sectors  Size Id Type
+ *   /dev/sdaN       1953792 1972223   18432    9M 83 Linux   <-- size exactly 9*1024*1024 bytes
+ *
+ * Last sector, +sectors or +size{K,M,G,T,P} (1953792-1000215215, default 1000215215): +9728k
+ *   /dev/sdaN       1953792 1974271   20480   10M 83 Linux   <-- size exactly 10*1024*1024 bytes
+ *
+ * If 'k' means 1000 bytes (not 1024), then 9728k = 9728*1000 = 9500*1024,
+ * exactly halfway from 9000 to 10000, which explains why it jumps to next mbyte
+ * at this value.
+ *
+ * 'm' does not seem to behave this way: it means 1024*1024 bytes.
+ *
+ * Not sure we want to copy this. If user says he wants 1234kbyte partition,
+ * we do _exactly that_: 1234kbytes = 2468 sectors.
+ */
 			case 'm':
 				scale_shift = 20; /* 1024*1024 */
 				break;
@@ -1725,8 +1745,9 @@ get_existing_partition(int warn, unsigned max)
 }
 
 static int
-get_nonexisting_partition(int warn, unsigned max)
+get_nonexisting_partition(void)
 {
+	const int max = 4;
 	int pno = -1;
 	unsigned i;
 
@@ -1748,7 +1769,7 @@ get_nonexisting_partition(int warn, unsigned max)
 	return -1;
 
  not_unique:
-	return get_partition(warn, max);
+	return get_partition(/*warn*/ 0, max);
 }
 
 
@@ -2619,8 +2640,9 @@ new_partition(void)
 			"l   logical (5 or over)" : "e   extended"));
 		while (1) {
 			c = read_nonempty(line);
-			if ((c | 0x20) == 'p') {
-				i = get_nonexisting_partition(0, 4);
+			c |= 0x20; /* lowercase */
+			if (c == 'p') {
+				i = get_nonexisting_partition();
 				if (i >= 0)
 					add_partition(i, LINUX_NATIVE);
 				return;
@@ -2630,7 +2652,7 @@ new_partition(void)
 				return;
 			}
 			if (c == 'e' && !extended_offset) {
-				i = get_nonexisting_partition(0, 4);
+				i = get_nonexisting_partition();
 				if (i >= 0)
 					add_partition(i, EXTENDED);
 				return;
