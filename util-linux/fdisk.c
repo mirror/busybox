@@ -426,7 +426,7 @@ struct globals {
 	unsigned sector_offset; // = 1;
 	unsigned g_heads, g_sectors, g_cylinders;
 	smallint /* enum label_type */ current_label_type;
-	smallint display_in_cyl_units; // = 1;
+	smallint display_in_cyl_units;
 #if ENABLE_FEATURE_OSF_LABEL
 	smallint possibly_osf_label;
 #endif
@@ -488,7 +488,6 @@ struct globals {
 	sector_size = DEFAULT_SECTOR_SIZE; \
 	sector_offset = 1; \
 	g_partitions = 4; \
-	display_in_cyl_units = 1; \
 	units_per_sector = 1; \
 	dos_compatible_flag = 1; \
 } while (0)
@@ -639,25 +638,6 @@ seek_sector(sector_t secno)
 }
 
 #if ENABLE_FEATURE_FDISK_WRITABLE
-/* Read line; return 0 or first printable char */
-static int
-read_line(const char *prompt)
-{
-	int sz;
-
-	sz = read_line_input(NULL, prompt, line_buffer, sizeof(line_buffer));
-	if (sz <= 0)
-		exit(EXIT_SUCCESS); /* Ctrl-D or Ctrl-C */
-
-	if (line_buffer[sz-1] == '\n')
-		line_buffer[--sz] = '\0';
-
-	line_ptr = line_buffer;
-	while (*line_ptr != '\0' && (unsigned char)*line_ptr <= ' ')
-		line_ptr++;
-	return *line_ptr;
-}
-
 static void
 set_all_unchanged(void)
 {
@@ -678,6 +658,25 @@ write_part_table_flag(char *b)
 {
 	b[510] = 0x55;
 	b[511] = 0xaa;
+}
+
+/* Read line; return 0 or first printable non-space char */
+static int
+read_line(const char *prompt)
+{
+	int sz;
+
+	sz = read_line_input(NULL, prompt, line_buffer, sizeof(line_buffer));
+	if (sz <= 0)
+		exit(EXIT_SUCCESS); /* Ctrl-D or Ctrl-C */
+
+	if (line_buffer[sz-1] == '\n')
+		line_buffer[--sz] = '\0';
+
+	line_ptr = line_buffer;
+	while (*line_ptr != '\0' && (unsigned char)*line_ptr <= ' ')
+		line_ptr++;
+	return *line_ptr;
 }
 
 static char
@@ -1614,7 +1613,7 @@ read_int(sector_t low, sector_t dflt, sector_t high, sector_t base, const char *
 
 		if (*line_ptr == '+' || *line_ptr == '-') {
 			int minus = (*line_ptr == '-');
-			int absolute = 0;
+			unsigned scale_shift;
 
 			if (sizeof(value) <= sizeof(long))
 				value = strtoul(line_ptr + 1, NULL, 10);
@@ -1622,48 +1621,46 @@ read_int(sector_t low, sector_t dflt, sector_t high, sector_t base, const char *
 				value = strtoull(line_ptr + 1, NULL, 10);
 
 			/* (1) if 2nd char is digit, use_default = 0.
-			 * (2) move line_ptr to first non-digit. */
+			 * (2) move line_ptr to first non-digit.
+			 */
 			while (isdigit(*++line_ptr))
 				use_default = 0;
 
-			switch (*line_ptr) {
-			case 'c':
-			case 'C':
-				if (!display_in_cyl_units)
-					value *= g_heads * g_sectors;
-				break;
-			case 'K':
-				absolute = 1024;
-				break;
+			scale_shift = 0;
+			switch (*line_ptr | 0x20) {
 			case 'k':
-				absolute = 1000;
+				scale_shift = 10; /* 1024 */
 				break;
 			case 'm':
-			case 'M':
-				absolute = 1000000;
+				scale_shift = 20; /* 1024*1024 */
 				break;
 			case 'g':
-			case 'G':
-				absolute = 1000000000;
+				scale_shift = 30; /* 1024*1024*1024 */
+				break;
+			case 't':
+				scale_shift = 40; /* 1024*1024*1024*1024 */
 				break;
 			default:
 				break;
 			}
-			if (absolute) {
+			if (scale_shift) {
 				ullong bytes;
 				unsigned long unit;
 
-				bytes = (ullong) value * absolute;
+				bytes = (ullong) value << scale_shift;
 				unit = sector_size * units_per_sector;
 				bytes += unit/2; /* round */
 				bytes /= unit;
-				value = bytes;
+				value = (bytes != 0 ? bytes - 1 : 0);
 			}
 			if (minus)
 				value = -value;
 			value += base;
 		} else {
-			value = atoi(line_ptr);
+			if (sizeof(value) <= sizeof(long))
+				value = strtoul(line_ptr, NULL, 10);
+			else
+				value = strtoull(line_ptr, NULL, 10);
 			while (isdigit(*line_ptr)) {
 				line_ptr++;
 				use_default = 0;
@@ -2529,8 +2526,9 @@ add_partition(int n, int sys)
 		stop = limit;
 	} else {
 		snprintf(mesg, sizeof(mesg),
-			 "Last %s or +size or +sizeM or +sizeK",
-			 str_units(SINGULAR));
+			 "Last %s or +size{,K,M,G,T}",
+			 str_units(SINGULAR)
+		);
 		stop = read_int(cround(start), cround(limit), cround(limit), cround(start), mesg);
 		if (display_in_cyl_units) {
 			stop = stop * units_per_sector - 1;
@@ -2614,9 +2612,9 @@ new_partition(void)
 	} else {
 		char c, line[80];
 		snprintf(line, sizeof(line),
-			"Command action\n"
-			"   %s\n"
-			"   p   primary partition (1-4)\n",
+			"Partition type\n"
+			"   p   primary partition (1-4)\n"
+			"   %s\n",
 			(extended_offset ?
 			"l   logical (5 or over)" : "e   extended"));
 		while (1) {
