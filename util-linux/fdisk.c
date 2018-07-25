@@ -169,9 +169,9 @@ typedef unsigned long long ullong;
  * do not support more than 2^32 sectors
  */
 typedef uint32_t sector_t;
-#if UINT_MAX == 4294967295
+#if UINT_MAX == 0xffffffff
 # define SECT_FMT ""
-#elif ULONG_MAX == 4294967295
+#elif ULONG_MAX == 0xffffffff
 # define SECT_FMT "l"
 #else
 # error Cant detect sizeof(uint32_t)
@@ -1616,7 +1616,10 @@ read_int(sector_t low, sector_t dflt, sector_t high, sector_t base, const char *
 			int minus = (*line_ptr == '-');
 			int absolute = 0;
 
-			value = atoi(line_ptr + 1);
+			if (sizeof(value) <= sizeof(long))
+				value = strtoul(line_ptr + 1, NULL, 10);
+			else
+				value = strtoull(line_ptr + 1, NULL, 10);
 
 			/* (1) if 2nd char is digit, use_default = 0.
 			 * (2) move line_ptr to first non-digit. */
