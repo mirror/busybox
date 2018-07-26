@@ -1,5 +1,4 @@
 #!/bin/sh
-
 # Note that there is no provision to prevent several copies of the script
 # to be run in quick succession. In fact, it happens rather often
 # if initial syncronization results in a step.
@@ -7,6 +6,9 @@
 # as close as only 0.002 seconds apart.
 #
 # Script should be ready to deal with this.
+
+# For other parts of the system which prefer to run only on the stable clock
+echo "$1" >rundir/sync_status
 
 dt=`date '+%Y-%m-%d %H:%M:%S'`
 
