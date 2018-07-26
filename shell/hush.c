@@ -896,6 +896,7 @@ struct globals {
 
 	char o_opt[NUM_OPT_O];
 #if ENABLE_HUSH_MODE_X
+	smalluint x_mode_depth;
 # define G_x_mode (G.o_opt[OPT_O_XTRACE])
 #else
 # define G_x_mode 0
@@ -7182,11 +7183,8 @@ static int generate_stream_from_string(const char *s, pid_t *pid_p)
 			+ (1 << SIGTTIN)
 			+ (1 << SIGTTOU)
 			, SIG_IGN);
-		CLEAR_RANDOM_T(&G.random_gen); /* or else $RANDOM repeats in child */
 		close(channel[0]); /* NB: close _first_, then move fd! */
 		xmove_fd(channel[1], 1);
-		/* Prevent it from trying to handle ctrl-z etc */
-		IF_HUSH_JOB(G.run_list_level = 1;)
 # if ENABLE_HUSH_TRAP
 		/* Awful hack for `trap` or $(trap).
 		 *
@@ -7233,7 +7231,11 @@ static int generate_stream_from_string(const char *s, pid_t *pid_p)
 		}
 # endif
 # if BB_MMU
+		/* Prevent it from trying to handle ctrl-z etc */
+		IF_HUSH_JOB(G.run_list_level = 1;)
+		CLEAR_RANDOM_T(&G.random_gen); /* or else $RANDOM repeats in child */
 		reset_traps_to_defaults();
+		IF_HUSH_MODE_X(G.x_mode_depth++;)
 		parse_and_run_string(s);
 		_exit(G.last_exitcode);
 # else
@@ -8022,13 +8024,14 @@ static void dump_cmd_in_x_mode(char **argv)
 		int len;
 		int n;
 
-		len = 3;
+		len = G.x_mode_depth + 3; /* "+[+++...]<cmd...>\n\0" */
 		n = 0;
 		while (argv[n])
 			len += strlen(argv[n++]) + 1;
-		buf = xmalloc(len);
-		buf[0] = '+';
-		p = buf + 1;
+		p = buf = xmalloc(len);
+		n = G.x_mode_depth;
+		while (n-- >= 0)
+			*p++ = '+';
 		n = 0;
 		while (argv[n])
 			p += sprintf(p, " %s", argv[n++]);
@@ -8821,8 +8824,13 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			restore_redirects(squirrel);
 
 			/* Set shell variables */
-			if (G_x_mode)
-				bb_putchar_stderr('+');
+#if ENABLE_HUSH_MODE_X
+			if (G_x_mode) {
+				int n = G.x_mode_depth;
+				while (n-- >= 0)
+					bb_putchar_stderr('+');
+			}
+#endif
 			i = 0;
 			while (i < command->assignment_cnt) {
 				char *p = expand_string_to_string(argv[i],
@@ -10226,6 +10234,7 @@ static int FAST_FUNC builtin_eval(char **argv)
 	if (!argv[0])
 		return EXIT_SUCCESS;
 
+	IF_HUSH_MODE_X(G.x_mode_depth++;)
 	if (!argv[1]) {
 		/* bash:
 		 * eval "echo Hi; done" ("done" is syntax error):
@@ -10255,6 +10264,7 @@ static int FAST_FUNC builtin_eval(char **argv)
 		parse_and_run_string(str);
 		free(str);
 	}
+	IF_HUSH_MODE_X(G.x_mode_depth--;)
 	return G.last_exitcode;
 }
 
