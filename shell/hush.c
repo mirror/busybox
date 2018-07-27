@@ -896,7 +896,6 @@ struct globals {
 
 	char o_opt[NUM_OPT_O];
 #if ENABLE_HUSH_MODE_X
-	smalluint x_mode_depth;
 # define G_x_mode (G.o_opt[OPT_O_XTRACE])
 #else
 # define G_x_mode 0
@@ -955,6 +954,9 @@ struct globals {
 	unsigned func_nest_level; /* solely to prevent "local v" in non-functions */
 # endif
 	struct function *top_func;
+#endif
+#if ENABLE_HUSH_MODE_X
+	unsigned x_mode_depth;
 #endif
 	/* Signal and trap handling */
 #if ENABLE_HUSH_FAST
@@ -7247,6 +7249,7 @@ static int generate_stream_from_string(const char *s, pid_t *pid_p)
 		CLEAR_RANDOM_T(&G.random_gen); /* or else $RANDOM repeats in child */
 		reset_traps_to_defaults();
 		IF_HUSH_MODE_X(G.x_mode_depth++;)
+		//bb_error_msg("%s: ++x_mode_depth=%d", __func__, G.x_mode_depth);
 		parse_and_run_string(s);
 		_exit(G.last_exitcode);
 # else
@@ -8032,17 +8035,16 @@ static void dump_cmd_in_x_mode(char **argv)
 	if (G_x_mode && argv) {
 		/* We want to output the line in one write op */
 		char *buf, *p;
-		int len;
-		int n;
+		unsigned len;
+		unsigned n;
 
-		len = G.x_mode_depth + 3; /* "+[+++...]<cmd...>\n\0" */
+		len = G.x_mode_depth + 3; /* "+[+++...][ cmd...]\n\0" */
 		n = 0;
 		while (argv[n])
 			len += strlen(argv[n++]) + 1;
 		p = buf = xmalloc(len);
 		n = G.x_mode_depth;
-		while (n-- >= 0)
-			*p++ = '+';
+		do *p++ = '+'; while ((int)(--n) >= 0);
 		n = 0;
 		while (argv[n])
 			p += sprintf(p, " %s", argv[n++]);
@@ -8835,21 +8837,23 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			restore_redirects(squirrel);
 
 			/* Set shell variables */
-#if ENABLE_HUSH_MODE_X
-			if (G_x_mode) {
-				int n = G.x_mode_depth;
-				while (n-- >= 0)
-					bb_putchar_stderr('+');
-			}
-#endif
 			i = 0;
 			while (i < command->assignment_cnt) {
 				char *p = expand_string_to_string(argv[i],
 						EXP_FLAG_ESC_GLOB_CHARS,
 						/*unbackslash:*/ 1
 				);
-				if (G_x_mode)
+#if ENABLE_HUSH_MODE_X
+				if (G_x_mode) {
+					if (i == 0) {
+						unsigned n = G.x_mode_depth;
+						do
+							bb_putchar_stderr('+');
+						while ((int)(--n) >= 0);
+					}
 					fprintf(stderr, " %s", p);
+				}
+#endif
 				debug_printf_env("set shell var:'%s'->'%s'\n", *argv, p);
 				if (set_local_var(p, /*flag:*/ 0)) {
 					/* assignment to readonly var / putenv error? */
@@ -10246,6 +10250,7 @@ static int FAST_FUNC builtin_eval(char **argv)
 		return EXIT_SUCCESS;
 
 	IF_HUSH_MODE_X(G.x_mode_depth++;)
+	//bb_error_msg("%s: ++x_mode_depth=%d", __func__, G.x_mode_depth);
 	if (!argv[1]) {
 		/* bash:
 		 * eval "echo Hi; done" ("done" is syntax error):
@@ -10276,6 +10281,7 @@ static int FAST_FUNC builtin_eval(char **argv)
 		free(str);
 	}
 	IF_HUSH_MODE_X(G.x_mode_depth--;)
+	//bb_error_msg("%s: --x_mode_depth=%d", __func__, G.x_mode_depth);
 	return G.last_exitcode;
 }
 
