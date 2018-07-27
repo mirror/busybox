@@ -3069,6 +3069,13 @@ static int o_save_ptr_helper(o_string *o, int n)
 			o->data = xrealloc(o->data, o->maxlen + 1);
 			list = (char**)o->data;
 			memmove(list + n + 0x10, list + n, string_len);
+			/*
+			 * expand_on_ifs() has a "previous argv[] ends in IFS?"
+			 * check. (grep for -prev-ifs-check-).
+			 * Ensure that argv[-1][last] is not garbage
+			 * but zero bytes, to save index check there.
+			 */
+			list[n + 0x10 - 1] = 0;
 			o->length += 0x10 * sizeof(list[0]);
 		} else {
 			debug_printf_list("list[%d]=%d string_start=%d\n",
@@ -5797,12 +5804,16 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 		/* Start new word... but not always! */
 		/* Case "v=' a'; echo ''$v": we do need to finalize empty word: */
 		if (output->has_quoted_part
-		/* Case "v=' a'; echo $v":
+		/*
+		 * Case "v=' a'; echo $v":
 		 * here nothing precedes the space in $v expansion,
 		 * therefore we should not finish the word
 		 * (IOW: if there *is* word to finalize, only then do it):
+		 * It's okay if this accesses the byte before first argv[]:
+		 * past call to o_save_ptr() cleared it to zero byte
+		 * (grep for -prev-ifs-check-).
 		 */
-		 || (n > 0 && output->data[output->length - 1])
+		 || output->data[output->length - 1]
 		) {
  new_word:
 			o_addchr(output, '\0');
