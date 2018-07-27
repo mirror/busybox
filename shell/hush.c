@@ -8030,28 +8030,67 @@ static void execvp_or_die(char **argv)
 }
 
 #if ENABLE_HUSH_MODE_X
+static void print_optionally_squoted(FILE *fp, const char *str)
+{
+	unsigned len;
+	const char *cp;
+
+	cp = str;
+	if (str[0] != '{' && str[0] != '(') for (;;) {
+		if (!*cp) {
+			/* string has no special chars */
+			fputs(str, fp);
+			return;
+		}
+		if (*cp == '\\') break;
+		if (*cp == '\'') break;
+		if (*cp == '"') break;
+		if (*cp == '$') break;
+		if (*cp == '!') break;
+		if (*cp == '*') break;
+		if (*cp == '[') break;
+		if (*cp == ']') break;
+#if ENABLE_HUSH_TICK
+		if (*cp == '`') break;
+#endif
+		if (isspace(*cp)) break;
+		cp++;
+	}
+
+	cp = str;
+	for (;;) {
+		/* print '....' up to EOL or first squote */
+		len = (int)(strchrnul(cp, '\'') - cp);
+		if (len != 0) {
+			fprintf(fp, "'%.*s'", len, cp);
+			cp += len;
+		}
+		if (*cp == '\0')
+			break;
+		/* string contains squote(s), print them as \' */
+		fprintf(fp, "\\'");
+		cp++;
+	}
+}
 static void dump_cmd_in_x_mode(char **argv)
 {
 	if (G_x_mode && argv) {
-		/* We want to output the line in one write op */
-		char *buf, *p;
-		unsigned len;
 		unsigned n;
 
-		len = G.x_mode_depth + 3; /* "+[+++...][ cmd...]\n\0" */
-		n = 0;
-		while (argv[n])
-			len += strlen(argv[n++]) + 1;
-		p = buf = xmalloc(len);
+		/* "+[+++...][ cmd...]\n\0" */
 		n = G.x_mode_depth;
-		do *p++ = '+'; while ((int)(--n) >= 0);
+		do bb_putchar_stderr('+'); while ((int)(--n) >= 0);
 		n = 0;
-		while (argv[n])
-			p += sprintf(p, " %s", argv[n++]);
-		*p++ = '\n';
-		*p = '\0';
-		fputs(buf, stderr);
-		free(buf);
+		while (argv[n]) {
+			if (argv[n][0] == '\0')
+				fputs(" ''", stderr);
+			else {
+				bb_putchar_stderr(' ');
+				print_optionally_squoted(stderr, argv[n]);
+			}
+			n++;
+		}
+		bb_putchar_stderr('\n');
 	}
 }
 #else
@@ -8845,13 +8884,18 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				);
 #if ENABLE_HUSH_MODE_X
 				if (G_x_mode) {
+					char *eq;
 					if (i == 0) {
 						unsigned n = G.x_mode_depth;
 						do
 							bb_putchar_stderr('+');
 						while ((int)(--n) >= 0);
 					}
-					fprintf(stderr, " %s", p);
+					eq = strchrnul(p, '=');
+					fprintf(stderr, " %.*s=", (int)(eq - p), p);
+					if (*eq)
+						print_optionally_squoted(stderr, eq + 1);
+					bb_putchar_stderr('\n');
 				}
 #endif
 				debug_printf_env("set shell var:'%s'->'%s'\n", *argv, p);
@@ -8861,8 +8905,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				}
 				i++;
 			}
-			if (G_x_mode)
-				bb_putchar_stderr('\n');
 			/* Redirect error sets $? to 1. Otherwise,
 			 * if evaluating assignment value set $?, retain it.
 			 * Else, clear $?:
