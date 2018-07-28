@@ -955,9 +955,6 @@ struct globals {
 # endif
 	struct function *top_func;
 #endif
-#if ENABLE_HUSH_MODE_X
-	unsigned x_mode_depth;
-#endif
 	/* Signal and trap handling */
 #if ENABLE_HUSH_FAST
 	unsigned count_SIGCHLD;
@@ -992,6 +989,15 @@ struct globals {
 	sigset_t pending_set;
 #if ENABLE_HUSH_MEMLEAK
 	unsigned long memleak_value;
+#endif
+#if ENABLE_HUSH_MODE_X
+	unsigned x_mode_depth;
+	/* "set -x" output should not be redirectable with subsequent 2>FILE.
+	 * We dup fd#2 to x_mode_fd when "set -x" is executed, and use it
+	 * for all subsequent output.
+	 */
+	int x_mode_fd;
+	o_string x_mode_buf;
 #endif
 #if HUSH_DEBUG
 	int debug_indent;
@@ -1660,6 +1666,12 @@ static int move_HFILEs_on_redirect(int fd, int avoid_fd)
 		}
 		fl = fl->next_hfile;
 	}
+#if ENABLE_HUSH_MODE_X
+	if (G.x_mode_fd > 0 && fd == G.x_mode_fd) {
+		G.x_mode_fd = xdup_CLOEXEC_and_close(fd, avoid_fd);
+		return 1; /* "found and moved" */
+	}
+#endif
 	return 0; /* "not in the list" */
 }
 #if ENABLE_FEATURE_SH_STANDALONE && BB_MMU
@@ -2903,6 +2915,11 @@ static void o_addstr(o_string *o, const char *str)
 	o_addblock(o, str, strlen(str));
 }
 
+static void o_addstr_with_NUL(o_string *o, const char *str)
+{
+	o_addblock(o, str, strlen(str) + 1);
+}
+
 #if !BB_MMU
 static void nommu_addchr(o_string *o, int ch)
 {
@@ -2913,10 +2930,36 @@ static void nommu_addchr(o_string *o, int ch)
 # define nommu_addchr(o, str) ((void)0)
 #endif
 
-static void o_addstr_with_NUL(o_string *o, const char *str)
+#if ENABLE_HUSH_MODE_X
+static void x_mode_addchr(int ch)
 {
-	o_addblock(o, str, strlen(str) + 1);
+	o_addchr(&G.x_mode_buf, ch);
 }
+static void x_mode_addstr(const char *str)
+{
+	o_addstr(&G.x_mode_buf, str);
+}
+static void x_mode_addblock(const char *str, int len)
+{
+	o_addblock(&G.x_mode_buf, str, len);
+}
+static void x_mode_prefix(void)
+{
+	int n = G.x_mode_depth;
+	do x_mode_addchr('+'); while (--n >= 0);
+}
+static void x_mode_flush(void)
+{
+	int len = G.x_mode_buf.length;
+	if (len <= 0)
+		return;
+	if (G.x_mode_fd > 0) {
+		G.x_mode_buf.data[len] = '\n';
+		full_write(G.x_mode_fd, G.x_mode_buf.data, len + 1);
+	}
+	G.x_mode_buf.length = 0;
+}
+#endif
 
 /*
  * HUSH_BRACE_EXPANSION code needs corresponding quoting on variable expansion side.
@@ -8030,31 +8073,26 @@ static void execvp_or_die(char **argv)
 }
 
 #if ENABLE_HUSH_MODE_X
-static void print_optionally_squoted(FILE *fp, const char *str)
+static void x_mode_print_optionally_squoted(const char *str)
 {
 	unsigned len;
 	const char *cp;
 
 	cp = str;
-	if (str[0] != '{' && str[0] != '(') for (;;) {
-		if (!*cp) {
-			/* string has no special chars */
-			fputs(str, fp);
-			return;
-		}
-		if (*cp == '\\') break;
-		if (*cp == '\'') break;
-		if (*cp == '"') break;
-		if (*cp == '$') break;
-		if (*cp == '!') break;
-		if (*cp == '*') break;
-		if (*cp == '[') break;
-		if (*cp == ']') break;
-#if ENABLE_HUSH_TICK
-		if (*cp == '`') break;
-#endif
-		if (isspace(*cp)) break;
-		cp++;
+
+	/* the set of chars which-cause-string-to-be-squoted mimics bash */
+	/* test a char with: bash -c 'set -x; echo "CH"' */
+	if (str[strcspn(str, "\\\"'`$(){}[]<>;#&|~*?!^"
+			" " "\001\002\003\004\005\006\007"
+			"\010\011\012\013\014\015\016\017"
+			"\020\021\022\023\024\025\026\027"
+			"\030\031\032\033\034\035\036\037"
+			)
+		] == '\0'
+	) {
+		/* string has no special chars */
+		x_mode_addstr(str);
+		return;
 	}
 
 	cp = str;
@@ -8062,13 +8100,16 @@ static void print_optionally_squoted(FILE *fp, const char *str)
 		/* print '....' up to EOL or first squote */
 		len = (int)(strchrnul(cp, '\'') - cp);
 		if (len != 0) {
-			fprintf(fp, "'%.*s'", len, cp);
+			x_mode_addchr('\'');
+			x_mode_addblock(cp, len);
+			x_mode_addchr('\'');
 			cp += len;
 		}
 		if (*cp == '\0')
 			break;
 		/* string contains squote(s), print them as \' */
-		fprintf(fp, "\\'");
+		x_mode_addchr('\\');
+		x_mode_addchr('\'');
 		cp++;
 	}
 }
@@ -8078,19 +8119,19 @@ static void dump_cmd_in_x_mode(char **argv)
 		unsigned n;
 
 		/* "+[+++...][ cmd...]\n\0" */
-		n = G.x_mode_depth;
-		do bb_putchar_stderr('+'); while ((int)(--n) >= 0);
+		x_mode_prefix();
 		n = 0;
 		while (argv[n]) {
-			if (argv[n][0] == '\0')
-				fputs(" ''", stderr);
-			else {
-				bb_putchar_stderr(' ');
-				print_optionally_squoted(stderr, argv[n]);
+			x_mode_addchr(' ');
+			if (argv[n][0] == '\0') {
+				x_mode_addchr('\'');
+				x_mode_addchr('\'');
+			} else {
+				x_mode_print_optionally_squoted(argv[n]);
 			}
 			n++;
 		}
-		bb_putchar_stderr('\n');
+		x_mode_flush();
 	}
 }
 #else
@@ -8885,17 +8926,14 @@ static NOINLINE int run_pipe(struct pipe *pi)
 #if ENABLE_HUSH_MODE_X
 				if (G_x_mode) {
 					char *eq;
-					if (i == 0) {
-						unsigned n = G.x_mode_depth;
-						do
-							bb_putchar_stderr('+');
-						while ((int)(--n) >= 0);
-					}
+					if (i == 0)
+						x_mode_prefix();
+					x_mode_addchr(' ');
 					eq = strchrnul(p, '=');
-					fprintf(stderr, " %.*s=", (int)(eq - p), p);
-					if (*eq)
-						print_optionally_squoted(stderr, eq + 1);
-					bb_putchar_stderr('\n');
+					if (*eq) eq++;
+					x_mode_addblock(p, (eq - p));
+					x_mode_print_optionally_squoted(eq);
+					x_mode_flush();
 				}
 #endif
 				debug_printf_env("set shell var:'%s'->'%s'\n", *argv, p);
@@ -9691,6 +9729,7 @@ static int set_mode(int state, char mode, const char *o_opt)
 		break;
 	case 'x':
 		IF_HUSH_MODE_X(G_x_mode = state;)
+		IF_HUSH_MODE_X(if (G.x_mode_fd <= 0) G.x_mode_fd = dup_CLOEXEC(2, 10);)
 		break;
 	case 'o':
 		if (!o_opt) {
