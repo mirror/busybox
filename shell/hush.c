@@ -9391,11 +9391,11 @@ static int run_list(struct pipe *pi)
 				}; /* argv list with one element: "$@" */
 				char **vals;
 
+				G.last_exitcode = rcode = EXIT_SUCCESS;
 				vals = (char**)encoded_dollar_at_argv;
 				if (pi->next->res_word == RES_IN) {
 					/* if no variable values after "in" we skip "for" */
 					if (!pi->next->cmds[0].argv) {
-						G.last_exitcode = rcode = EXIT_SUCCESS;
 						debug_printf_exec(": null FOR: exitcode EXIT_SUCCESS\n");
 						break;
 					}
