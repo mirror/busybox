@@ -999,7 +999,7 @@ struct globals {
 	int x_mode_fd;
 	o_string x_mode_buf;
 #endif
-#if HUSH_DEBUG
+#if HUSH_DEBUG >= 2
 	int debug_indent;
 #endif
 	struct sigaction sa;
@@ -1221,7 +1221,7 @@ static const struct built_in_command bltins2[] = {
 
 /* Debug printouts.
  */
-#if HUSH_DEBUG
+#if HUSH_DEBUG >= 2
 /* prevent disasters with G.debug_indent < 0 */
 # define indent() fdprintf(2, "%*s", (G.debug_indent * 2) & 0xff, "")
 # define debug_enter() (G.debug_indent++)
