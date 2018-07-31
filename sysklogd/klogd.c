@@ -275,10 +275,13 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 			priority = LOG_INFO;
 			if (*start == '<') {
 				start++;
-				if (*start)
-					priority = strtoul(start, &start, 10);
-				if (*start == '>')
-					start++;
+				if (*start) {
+					char *end;
+					priority = strtoul(start, &end, 10);
+					if (*end == '>')
+						end++;
+					start = end;
+				}
 			}
 			/* Log (only non-empty lines) */
 			if (*start)
