@@ -250,10 +250,8 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		OPT_S = 1 << 6,         // specify connection string
 		OPT_a = 1 << 7,         // authentication tokens
 		OPT_v = 1 << 8,         // verbosity
-	//--- from -am
-		OPT_am_mask = 3 << 14,	// AUTH method
-		OPT_am_login = 0 << 14, // AUTH LOGIN (default)
-		OPT_am_plain = 1 << 14, // AUTH PLAIN
+	//--- for -amMETHOD
+		OPT_am_plain = 1 << 9,  // AUTH PLAIN
 	};
 
 	// init global variables
@@ -293,9 +291,11 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		if ('p' == a[0])
 			G.pass = xstrdup(a+1);
 		if ('m' == a[0]) {
-			if (strcasecmp("plain", a+1) == 0)
+			if ((a[1] | 0x20) == 'p') // PLAIN
 				opts |= OPT_am_plain;
-			else if (strcasecmp("login", a+1) != 0)
+			else if ((a[1] | 0x20) == 'l') // LOGIN
+				; /* do nothing (this is the default) */
+			else
 				bb_error_msg_and_die("unsupported AUTH method %s", a+1);
 		}
 	}
@@ -357,10 +357,10 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 	// perform authentication
 	if (opts & OPT_a) {
-		// we must read credentials unless they are given via -a[up] options
+		// read credentials unless they are given via -a[up] options
 		if (!G.user || !G.pass)
 			get_cred_or_die(4);
-		if ((opts & OPT_am_mask) == OPT_am_plain) {
+		if (opts & OPT_am_plain) {
 			char *plain_auth;
 			size_t user_len, pass_len;
 			user_len = strlen(G.user);
@@ -373,7 +373,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			plain_auth[1 + user_len] = '\0';
 			printbuf_base64(plain_auth, 1 + user_len + 1 + pass_len);
 			free(plain_auth);
-		} else if ((opts & OPT_am_mask) == OPT_am_login) {
+		} else {
 			smtp_check("AUTH LOGIN", 334);
 			printstr_base64(G.user);
 			smtp_check("", 334);
