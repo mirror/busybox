@@ -53,7 +53,7 @@
 //usage:#define klogd_trivial_usage
 //usage:       "[-c N] [-n]"
 //usage:#define klogd_full_usage "\n\n"
-//usage:       "Kernel logger\n"
+//usage:       "Log kernel messages to syslog\n"
 //usage:     "\n	-c N	Print to console messages more urgent than prio N (1-8)"
 //usage:     "\n	-n	Run in foreground"
 
@@ -85,6 +85,7 @@ static void klogd_setloglevel(int lvl)
 
 static int klogd_read(char *bufp, int len)
 {
+	/* "2 -- Read from the log." */
 	return klogctl(2, bufp, len);
 }
 # define READ_ERROR "klogctl(2) error"
@@ -238,7 +239,6 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 		int priority;
 		char *start;
 
-		/* "2 -- Read from the log." */
 		start = log_buffer + used;
 		n = klogd_read(start, KLOGD_LOGBUF_SIZE-1 - used);
 		if (n < 0) {
