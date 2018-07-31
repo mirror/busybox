@@ -34,5 +34,6 @@ void get_cred_or_die(int fd) FAST_FUNC;
 
 char *send_mail_command(const char *fmt, const char *param) FAST_FUNC;
 
-void encode_base64(char *fname, const char *text, const char *eol) FAST_FUNC;
-void encode_n_base64(char *fname, const char *text, size_t size, const char *eol) FAST_FUNC;
+void printbuf_base64(const char *buf, unsigned len) FAST_FUNC;
+void printstr_base64(const char *buf) FAST_FUNC;
+void printfile_base64(const char *fname) FAST_FUNC;

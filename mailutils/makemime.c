@@ -234,7 +234,7 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 			, G.opt_charset
 			, bb_get_last_path_component_strip(*argv)
 		);
-		encode_base64(*argv++, (const char *)stdin, "");
+		printfile_base64(*argv++);
 	}
 
 	// put multipart footer

@@ -107,18 +107,7 @@ static char* FAST_FUNC parse_url(char *url, char **user, char **pass)
 }
 */
 
-void FAST_FUNC encode_base64(char *fname, const char *text, const char *eol)
-{
-	size_t len = len;
-	if (text) {
-		// though we do not call uuencode(NULL, NULL) explicitly
-		// still we do not want to break things suddenly
-		len = strlen(text);
-	}
-	encode_n_base64(fname, text, len, eol);
-}
-
-void FAST_FUNC encode_n_base64(char *fname, const char *text, size_t len, const char *eol)
+static void encode_n_base64(const char *fname, const char *text, size_t len)
 {
 	enum {
 		SRC_BUF_SIZE = 57,  /* This *MUST* be a multiple of 3 */
@@ -130,10 +119,9 @@ void FAST_FUNC encode_n_base64(char *fname, const char *text, size_t len, const 
 	char dst_buf[DST_BUF_SIZE + 1];
 
 	if (fname) {
-		fp = (NOT_LONE_DASH(fname)) ? xfopen_for_read(fname) : (FILE *)text;
+		fp = (NOT_LONE_DASH(fname)) ? xfopen_for_read(fname) : stdin;
 		src_buf = src;
-	} else if (!text)
-		return;
+	}
 
 	while (1) {
 		size_t size;
@@ -151,7 +139,7 @@ void FAST_FUNC encode_n_base64(char *fname, const char *text, size_t len, const 
 		// encode the buffer we just read in
 		bb_uuencode(dst_buf, src_buf, size, bb_uuenc_tbl_base64);
 		if (fname) {
-			puts(eol);
+			puts("");
 		} else {
 			src_buf += size;
 			len -= size;
@@ -161,6 +149,21 @@ void FAST_FUNC encode_n_base64(char *fname, const char *text, size_t len, const 
 	if (fname && NOT_LONE_DASH(fname))
 		fclose(fp);
 #undef src_buf
+}
+
+void FAST_FUNC printstr_base64(const char *text)
+{
+	encode_n_base64(NULL, text, strlen(text));
+}
+
+void FAST_FUNC printbuf_base64(const char *text, unsigned len)
+{
+	encode_n_base64(NULL, text, len);
+}
+
+void FAST_FUNC printfile_base64(const char *fname)
+{
+	encode_n_base64(fname, NULL, 0);
 }
 
 /*

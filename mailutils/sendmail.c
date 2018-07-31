@@ -371,13 +371,13 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			// substitute placeholders
 			plain_auth[0] = '\0';
 			plain_auth[1 + user_len] = '\0';
-			encode_n_base64(NULL, plain_auth, 1 + user_len + 1 + pass_len, NULL);
+			printbuf_base64(plain_auth, 1 + user_len + 1 + pass_len);
 			free(plain_auth);
 		} else if ((opts & OPT_am_mask) == OPT_am_login) {
 			smtp_check("AUTH LOGIN", 334);
-			encode_base64(NULL, G.user, NULL);
+			printstr_base64(G.user);
 			smtp_check("", 334);
-			encode_base64(NULL, G.pass, NULL);
+			printstr_base64(G.pass);
 		}
 		smtp_check("", 235);
 	}
