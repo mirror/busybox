@@ -5913,6 +5913,26 @@ static char *encode_then_expand_string(const char *str)
 	return exp_str;
 }
 
+static const char *first_special_char_in_vararg(const char *cp)
+{
+	for (;;) {
+		if (!*cp) return NULL; /* string has no special chars */
+		if (*cp == '$') return cp;
+		if (*cp == '\\') return cp;
+		if (*cp == '\'') return cp;
+		if (*cp == '"') return cp;
+#if ENABLE_HUSH_TICK
+		if (*cp == '`') return cp;
+#endif
+		/* dquoted "${x:+ARG}" should not glob, therefore
+		 * '*' et al require some non-literal processing: */
+		if (*cp == '*') return cp;
+		if (*cp == '?') return cp;
+		if (*cp == '[') return cp;
+		cp++;
+	}
+}
+
 /* Expanding ARG in ${var#ARG}, ${var%ARG}, or ${var/ARG/ARG}.
  * These can contain single- and double-quoted strings,
  * and treated as if the ARG string is initially unquoted. IOW:
@@ -5932,19 +5952,10 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 	char *exp_str;
 	struct in_str input;
 	o_string dest = NULL_O_STRING;
-	const char *cp;
 
-	cp = str;
-	for (;;) {
-		if (!*cp) return NULL; /* string has no special chars */
-		if (*cp == '$') break;
-		if (*cp == '\\') break;
-		if (*cp == '\'') break;
-		if (*cp == '"') break;
-#if ENABLE_HUSH_TICK
-		if (*cp == '`') break;
-#endif
-		cp++;
+	if (!first_special_char_in_vararg(str)) {
+		/* string has no special chars */
+		return NULL;
 	}
 
 	setup_string_in_str(&input, str);
@@ -6025,26 +6036,19 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 /* Expanding ARG in ${var+ARG}, ${var-ARG}
  */
 static int encode_then_append_var_plusminus(o_string *output, int n,
-		const char *str, int dquoted)
+		char *str, int dquoted)
 {
 	struct in_str input;
 	o_string dest = NULL_O_STRING;
 
-#if 0 //todo?
-	const char *cp;
-	cp = str;
-	for (;;) {
-		if (!*cp) return NULL; /* string has no special chars */
-		if (*cp == '$') break;
-		if (*cp == '\\') break;
-		if (*cp == '\'') break;
-		if (*cp == '"') break;
-#if ENABLE_HUSH_TICK
-		if (*cp == '`') break;
-#endif
-		cp++;
+	if (!first_special_char_in_vararg(str)
+	 && '\0' == str[strcspn(str, G.ifs)]
+	) {
+		/* string has no special chars
+		 * && string has no $IFS chars
+		 */
+		return expand_vars_to_list(output, n, str);
 	}
-#endif
 
 	setup_string_in_str(&input, str);
 
