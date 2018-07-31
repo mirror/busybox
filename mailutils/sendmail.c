@@ -361,19 +361,35 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		if (!G.user || !G.pass)
 			get_cred_or_die(4);
 		if (opts & OPT_am_plain) {
-			char *plain_auth;
-			size_t user_len, pass_len;
-			user_len = strlen(G.user);
-			pass_len = strlen(G.pass);
+			// C: AUTH PLAIN
+			// S: 334
+			// C: base64encoded(auth<NUL>user<NUL>pass)
+			// S: 235 2.7.0 Authentication successful
+//Note: a shorter format is allowed:
+// C: AUTH PLAIN base64encoded(auth<NUL>user<NUL>pass)
+// S: 235 2.7.0 Authentication successful
 			smtp_check("AUTH PLAIN", 334);
-			// use \1 as placeholders for \0 (format string is NUL-terminated)
-			plain_auth = xasprintf("\1%s\1%s", G.user, G.pass);
-			// substitute placeholders
-			plain_auth[0] = '\0';
-			plain_auth[1 + user_len] = '\0';
-			printbuf_base64(plain_auth, 1 + user_len + 1 + pass_len);
-			free(plain_auth);
+			{
+				unsigned user_len = strlen(G.user);
+				unsigned pass_len = strlen(G.pass);
+				unsigned sz = 1 + user_len + 1 + pass_len;
+				char plain_auth[sz + 1];
+				// the format is:
+				// "authorization identity<NUL>username<NUL>password"
+				// authorization identity is empty.
+				plain_auth[0] = '\0';
+				strcpy(stpcpy(plain_auth + 1, G.user) + 1, G.pass);
+				printbuf_base64(plain_auth, sz);
+			}
 		} else {
+			// C: AUTH LOGIN
+			// S: 334 VXNlcm5hbWU6
+			//        ^^^^^^^^^^^^ server says "Username:"
+			// C: base64encoded(user)
+			// S: 334 UGFzc3dvcmQ6
+			//        ^^^^^^^^^^^^ server says "Password:"
+			// C: base64encoded(pass)
+			// S: 235 2.7.0 Authentication successful
 			smtp_check("AUTH LOGIN", 334);
 			printstr_base64(G.user);
 			smtp_check("", 334);
