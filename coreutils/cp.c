@@ -114,7 +114,7 @@ int cp_main(int argc, char **argv)
 # endif
 	);
 # if ENABLE_FEATURE_CP_REFLINK
-	BUILD_BUG_ON(OPT_reflink != FILEUTILS_REFLINK);
+	BUILD_BUG_ON((int)OPT_reflink != (int)FILEUTILS_REFLINK);
 	if (flags & FILEUTILS_REFLINK) {
 		if (!reflink)
 			flags |= FILEUTILS_REFLINK_ALWAYS;
