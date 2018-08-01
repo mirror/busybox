@@ -160,8 +160,8 @@ static int mton(uint32_t mask)
 
 #if ENABLE_FEATURE_UDHCPC_SANITIZEOPT
 /* Check if a given label represents a valid DNS label
- * Return pointer to the first character after the label upon success,
- * NULL otherwise.
+ * Return pointer to the first character after the label
+ * (NUL or dot) upon success, NULL otherwise.
  * See RFC1035, 2.3.1
  */
 /* We don't need to be particularly anal. For example, allowing _, hyphen
@@ -173,8 +173,10 @@ static int mton(uint32_t mask)
 static const char *valid_domain_label(const char *label)
 {
 	unsigned char ch;
-	unsigned pos = 0;
+	//unsigned pos = 0;
 
+	if (label[0] == '-')
+		return NULL;
 	for (;;) {
 		ch = *label;
 		if ((ch|0x20) < 'a' || (ch|0x20) > 'z') {
@@ -187,7 +189,7 @@ static const char *valid_domain_label(const char *label)
 			}
 		}
 		label++;
-		pos++;
+		//pos++;
 		//Do we want this?
 		//if (pos > 63) /* NS_MAXLABEL; labels must be 63 chars or less */
 		//	return NULL;
