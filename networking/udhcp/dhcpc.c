@@ -274,6 +274,12 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 		case OPTION_STRING_HOST:
 			memcpy(dest, option, len);
 			dest[len] = '\0';
+//TODO: it appears option 15 DHCP_DOMAIN_NAME is often abused
+//by DHCP admins to contain a space-separated list of domains,
+//not one domain name (presumably, to work as list of search domains,
+//instead of using proper option 119 DHCP_DOMAIN_SEARCH).
+//Currently, good_hostname() balks on strings containing spaces.
+//Do we need to allow it? Only for DHCP_DOMAIN_NAME option?
 			if (type == OPTION_STRING_HOST && !good_hostname(dest))
 				safe_strncpy(dest, "bad", len);
 			return ret;
