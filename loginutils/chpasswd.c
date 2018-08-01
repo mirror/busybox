@@ -24,18 +24,20 @@
 //kbuild:lib-$(CONFIG_CHPASSWD) += chpasswd.o
 
 //usage:#define chpasswd_trivial_usage
-//usage:	IF_LONG_OPTS("[--md5|--encrypted|--crypt-method]") IF_NOT_LONG_OPTS("[-m|-e|-c]")
+//usage:	IF_LONG_OPTS("[--md5|--encrypted|--crypt-method|--root]") IF_NOT_LONG_OPTS("[-m|-e|-c|-R]")
 //usage:#define chpasswd_full_usage "\n\n"
 //usage:       "Read user:password from stdin and update /etc/passwd\n"
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-e,--encrypted		Supplied passwords are in encrypted form"
-//usage:     "\n	-m,--md5		Eencrypt using md5, not des"
+//usage:     "\n	-m,--md5		Encrypt using md5, not des"
 //usage:     "\n	-c,--crypt-method ALG	"CRYPT_METHODS_HELP_STR
+//usage:     "\n	-R,--root DIR		Directory to chroot into"
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(
 //usage:     "\n	-e	Supplied passwords are in encrypted form"
-//usage:     "\n	-m	Eencrypt using md5, not des"
+//usage:     "\n	-m	Encrypt using md5, not des"
 //usage:     "\n	-c ALG	"CRYPT_METHODS_HELP_STR
+//usage:     "\n	-R DIR	Directory to chroot into"
 //usage:	)
 
 #include "libbb.h"
@@ -45,6 +47,7 @@ static const char chpasswd_longopts[] ALIGN1 =
 	"encrypted\0"    No_argument       "e"
 	"md5\0"          No_argument       "m"
 	"crypt-method\0" Required_argument "c"
+	"root\0"         Required_argument "R"
 	;
 #endif
 
@@ -56,15 +59,20 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *name;
 	const char *algo = CONFIG_FEATURE_DEFAULT_PASSWD_ALGO;
+	const char *root = NULL;
 	int opt;
 
 	if (getuid() != 0)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
-	opt = getopt32long(argv, "^" "emc:" "\0" "m--ec:e--mc:c--em",
+	opt = getopt32long(argv, "^" "emc:R:" "\0" "m--ec:e--mc:c--em",
 			chpasswd_longopts,
-			&algo
+			&algo, &root
 	);
+
+	if (root) {
+		xchroot(root);
+	}
 
 	while ((name = xmalloc_fgetline(stdin)) != NULL) {
 		char *free_me;
