@@ -318,6 +318,8 @@ struct globals {
 	unsigned serv_count;
 	struct ns *server;
 	struct query *query;
+	char *search;
+	smalluint have_search_directive;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
@@ -667,24 +669,60 @@ static void parse_resolvconf(void)
 
 	resolv = fopen("/etc/resolv.conf", "r");
 	if (resolv) {
-		char line[128], *p;
+		char line[512];	/* "search" is defined to be up to 256 chars */
 
 		while (fgets(line, sizeof(line), resolv)) {
+			char *p, *arg;
+
 			p = strtok(line, " \t\n");
-
-			if (!p || strcmp(p, "nameserver") != 0)
-				continue;
-
-			p = strtok(NULL, " \t\n");
-
 			if (!p)
 				continue;
+			dbg("resolv_key:'%s'\n", p);
+			arg = strtok(NULL, "\n");
+			dbg("resolv_arg:'%s'\n", arg);
+			if (!arg)
+				continue;
 
-			add_ns(xstrdup(p));
+			if (strcmp(p, "domain") == 0) {
+				/* domain DOM */
+				if (!G.have_search_directive)
+					goto set_search;
+				continue;
+			}
+			if (strcmp(p, "search") == 0) {
+				/* search DOM1 DOM2... */
+				G.have_search_directive = 1;
+ set_search:
+				free(G.search);
+				G.search = xstrdup(arg);
+				dbg("search='%s'\n", G.search);
+				continue;
+			}
+
+			if (strcmp(p, "nameserver") != 0)
+				continue;
+
+			/* nameserver DNS */
+			add_ns(xstrdup(arg));
 		}
 
 		fclose(resolv);
 	}
+
+	if (!G.search) {
+		/* default search domain is domain part of hostname */
+		char *h = safe_gethostname();
+		char *d = strchr(h, '.');
+		if (d) {
+			G.search = d + 1;
+			dbg("search='%s' (from hostname)\n", G.search);
+		}
+		/* else free(h); */
+	}
+
+	/* Cater for case of "domain ." in resolv.conf */
+	if (G.search && LONE_CHAR(G.search, '.'))
+		G.search = NULL;
 }
 
 static void add_query(int type, const char *dname)
@@ -695,7 +733,7 @@ static void add_query(int type, const char *dname)
 
 	count = G.query_count++;
 
-	G.query = xrealloc_vector(G.query, /*2=2^1:*/ 1, count);
+	G.query = xrealloc_vector(G.query, /*4=2^2:*/ 2, count);
 	new_q = &G.query[count];
 
 	dbg("new query#%u type %u for '%s'\n", count, type, dname);
@@ -707,6 +745,28 @@ static void add_query(int type, const char *dname)
 			new_q->query, sizeof(new_q->query)
 	);
 	new_q->qlen = qlen;
+}
+
+static void add_query_with_search(int type, const char *dname)
+{
+	char *s;
+
+	if (type == T_PTR || !G.search || strchr(dname, '.')) {
+		add_query(type, dname);
+		return;
+	}
+
+	s = G.search;
+	for (;;) {
+		char *fullname, *e;
+
+		e = skip_non_whitespace(s);
+		fullname = xasprintf("%s.%.*s", dname, (int)(e - s), s);
+		add_query(type, fullname);
+		s = skip_whitespace(e);
+		if (!*s)
+			break;
+	}
 }
 
 static char *make_ptr(const char *addrstr)
@@ -833,6 +893,18 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 
+	/* Use given DNS server if present */
+	if (argv[1]) {
+		if (argv[2])
+			bb_show_usage();
+		add_ns(argv[1]);
+	} else {
+		parse_resolvconf();
+		/* Fall back to localhost if we could not find NS in resolv.conf */
+		if (G.serv_count == 0)
+			add_ns("127.0.0.1");
+	}
+
 	if (types == 0) {
 		/* No explicit type given, guess query type.
 		 * If we can convert the domain argument into a ptr (means that
@@ -846,29 +918,17 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		if (ptr) {
 			add_query(T_PTR, ptr);
 		} else {
-			add_query(T_A, argv[0]);
+			add_query_with_search(T_A, argv[0]);
 #if ENABLE_FEATURE_IPV6
-			add_query(T_AAAA, argv[0]);
+			add_query_with_search(T_AAAA, argv[0]);
 #endif
 		}
 	} else {
 		int c;
 		for (c = 0; c < ARRAY_SIZE(qtypes); c++) {
 			if (types & (1 << c))
-				add_query(qtypes[c].type, argv[0]);
+				add_query_with_search(qtypes[c].type, argv[0]);
 		}
-	}
-
-	/* Use given DNS server if present */
-	if (argv[1]) {
-		if (argv[2])
-			bb_show_usage();
-		add_ns(argv[1]);
-	} else {
-		parse_resolvconf();
-		/* Fall back to localhost if we could not find NS in resolv.conf */
-		if (G.serv_count == 0)
-			add_ns("127.0.0.1");
 	}
 
 	for (rc = 0; rc < G.serv_count;) {
