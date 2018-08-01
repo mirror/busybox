@@ -1016,7 +1016,15 @@ static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 		subdnp = scan_one_dir((*dn)->fullname, &nfiles);
 #if ENABLE_DESKTOP
 		if (option_mask32 & (OPT_s|OPT_l)) {
-			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
+			if (option_mask32 & OPT_h) {
+				printf("total %-"HUMAN_READABLE_MAX_WIDTH_STR"s\n",
+					/* print size, no fractions, use suffixes */
+					make_human_readable_str(calculate_blocks(subdnp) * 1024,
+								0, 0)
+				);
+			} else {
+				printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
+			}
 		}
 #endif
 		if (nfiles > 0) {
