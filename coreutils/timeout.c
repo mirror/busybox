@@ -39,10 +39,10 @@
 //kbuild:lib-$(CONFIG_TIMEOUT) += timeout.o
 
 //usage:#define timeout_trivial_usage
-//usage:       "[-t SECS] [-s SIG] PROG ARGS"
+//usage:       "[-s SIG] SECS PROG ARGS"
 //usage:#define timeout_full_usage "\n\n"
 //usage:       "Runs PROG. Sends SIG to it if it is not gone in SECS seconds.\n"
-//usage:       "Defaults: SECS: 10, SIG: TERM."
+//usage:       "Default SIG: TERM."
 
 #include "libbb.h"
 
@@ -52,8 +52,7 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 	int signo;
 	int status;
 	int parent = 0;
-	unsigned timeout;
-	const char *timeout_s = "10";
+	int timeout;
 	pid_t pid;
 #if !BB_MMU
 	char *sv1, *sv2;
@@ -64,12 +63,18 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 
 	/* -t SECONDS; -p PARENT_PID */
 	/* '+': stop at first non-option */
-	getopt32(argv, "+s:t:" USE_FOR_NOMMU("p:+"), &opt_s, &timeout_s, &parent);
+	getopt32(argv, "+s:" USE_FOR_NOMMU("p:+"), &opt_s, &parent);
 	/*argv += optind; - no, wait for bb_daemonize_or_rexec! */
+
 	signo = get_signum(opt_s);
 	if (signo < 0)
 		bb_error_msg_and_die("unknown signal '%s'", opt_s);
-	timeout = parse_duration_str((char*)timeout_s);
+
+	if (!argv[optind])
+		bb_show_usage();
+	timeout = parse_duration_str(argv[optind++]);
+	if (!argv[optind]) /* no PROG? */
+		bb_show_usage();
 
 	/* We want to create a grandchild which will watch
 	 * and kill the grandparent. Other methods:
@@ -77,12 +82,10 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 	 * (example: "tcpsvd 0.0.0.0 1234 timeout service_prog" -
 	 * it's better if service_prog is a child of tcpsvd!),
 	 * making child watch parent results in programs having
-	 * unexpected children. */
+	 * unexpected children.	*/
 
 	if (parent) /* we were re-execed, already grandchild */
 		goto grandchild;
-	if (!argv[optind]) /* no PROG? */
-		bb_show_usage();
 
 #if !BB_MMU
 	sv1 = argv[optind];
