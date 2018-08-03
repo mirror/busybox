@@ -15,6 +15,8 @@
 //kbuild:lib-$(CONFIG_SLEEP)   += duration.o
 //kbuild:lib-$(CONFIG_TOP)     += duration.o
 //kbuild:lib-$(CONFIG_TIMEOUT) += duration.o
+//kbuild:lib-$(CONFIG_PING)    += duration.o
+//kbuild:lib-$(CONFIG_PING6)   += duration.o
 
 #include "libbb.h"
 
