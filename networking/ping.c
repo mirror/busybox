@@ -74,6 +74,7 @@
 //usage:	)
 //usage:     "\n	-c CNT		Send only CNT pings"
 //usage:     "\n	-s SIZE		Send SIZE data bytes in packets (default 56)"
+//usage:     "\n	-i SECS		Interval"
 //usage:     "\n	-A		Ping as soon as reply is recevied"
 //usage:     "\n	-t TTL		Set TTL"
 //usage:     "\n	-I IFACE/IP	Source interface or IP address"
@@ -91,6 +92,7 @@
 //usage:       "Send ICMP ECHO_REQUEST packets to network hosts\n"
 //usage:     "\n	-c CNT		Send only CNT pings"
 //usage:     "\n	-s SIZE		Send SIZE data bytes in packets (default 56)"
+//usage:     "\n	-i SECS		Interval"
 //usage:     "\n	-A		Ping as soon as reply is recevied"
 //usage:     "\n	-I IFACE/IP	Source interface or IP address"
 //usage:     "\n	-q		Quiet, only display output at start"
@@ -350,7 +352,7 @@ static int common_ping_main(sa_family_t af, char **argv)
 /* Full(er) version */
 
 /* -c NUM, -t NUM, -w NUM, -W NUM */
-#define OPT_STRING "qvAc:+s:t:+w:+W:+I:np:4"IF_PING6("6")
+#define OPT_STRING "qvAc:+s:t:+w:+W:+I:np:i:4"IF_PING6("6")
 enum {
 	OPT_QUIET = 1 << 0,
 	OPT_VERBOSE = 1 << 1,
@@ -363,8 +365,9 @@ enum {
 	OPT_I = 1 << 8,
 	/*OPT_n = 1 << 9, - ignored */
 	OPT_p = 1 << 10,
-	OPT_IPV4 = 1 << 11,
-	OPT_IPV6 = (1 << 12) * ENABLE_PING6,
+	OPT_i = 1 << 11,
+	OPT_IPV4 = 1 << 12,
+	OPT_IPV6 = (1 << 13) * ENABLE_PING6,
 };
 
 
@@ -382,6 +385,7 @@ struct globals {
 	unsigned long long tsum; /* in us, sum of all times */
 	unsigned cur_us; /* low word only, we don't need more */
 	unsigned deadline_us;
+	unsigned interval_us;
 	unsigned timeout;
 	unsigned sizeof_rcv_packet;
 	char *rcv_packet; /* [datalen + MAXIPLEN + MAXICMPLEN] */
@@ -483,7 +487,7 @@ static void sendping_tail(void (*sp)(int), int size_pkt)
 	if (pingcount == 0 || G.ntransmitted < pingcount) {
 		/* Didn't send all pings yet - schedule next in 1s */
 		signal(SIGALRM, sp);
-		alarm(PINGINTERVAL);
+		ualarm(G.interval_us, 0);
 	} else { /* -c NN, and all NN are sent */
 		/* Wait for the last ping to come back.
 		 * -W timeout: wait for a response in seconds.
@@ -885,6 +889,8 @@ static int common_ping_main(int opt, char **argv)
 {
 	len_and_sockaddr *lsa;
 	char *str_s, *str_p;
+	char *str_i = (char*)"1";
+	duration_t interval;
 
 	INIT_G();
 
@@ -892,7 +898,7 @@ static int common_ping_main(int opt, char **argv)
 			OPT_STRING
 			/* exactly one arg; -v and -q don't mix */
 			"\0" "=1:q--v:v--q",
-			&pingcount, &str_s, &opt_ttl, &G.deadline_us, &timeout, &str_I, &str_p
+			&pingcount, &str_s, &opt_ttl, &G.deadline_us, &timeout, &str_I, &str_p, &str_i
 	);
 	if (opt & OPT_s)
 		datalen = xatou16(str_s); // -s
@@ -910,6 +916,10 @@ static int common_ping_main(int opt, char **argv)
 		unsigned d = G.deadline_us < INT_MAX/1000000 ? G.deadline_us : INT_MAX/1000000;
 		G.deadline_us = 1 | ((d * 1000000) + monotonic_us());
 	}
+	interval = parse_duration_str(str_i);
+	if (interval > INT_MAX/1000000)
+		interval = INT_MAX/1000000;
+	G.interval_us = interval * 1000000;
 
 	myid = (uint16_t) getpid();
 	hostname = argv[optind];
