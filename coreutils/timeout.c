@@ -52,7 +52,8 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 	int signo;
 	int status;
 	int parent = 0;
-	int timeout = 10;
+	unsigned timeout;
+	const char *timeout_s = "10";
 	pid_t pid;
 #if !BB_MMU
 	char *sv1, *sv2;
@@ -63,11 +64,12 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 
 	/* -t SECONDS; -p PARENT_PID */
 	/* '+': stop at first non-option */
-	getopt32(argv, "+s:t:+" USE_FOR_NOMMU("p:+"), &opt_s, &timeout, &parent);
+	getopt32(argv, "+s:t:" USE_FOR_NOMMU("p:+"), &opt_s, &timeout_s, &parent);
 	/*argv += optind; - no, wait for bb_daemonize_or_rexec! */
 	signo = get_signum(opt_s);
 	if (signo < 0)
 		bb_error_msg_and_die("unknown signal '%s'", opt_s);
+	timeout = parse_duration_str((char*)timeout_s);
 
 	/* We want to create a grandchild which will watch
 	 * and kill the grandparent. Other methods:

@@ -901,11 +901,11 @@ enum {
 };
 
 #if ENABLE_FEATURE_TOP_INTERACTIVE
-static unsigned handle_input(unsigned scan_mask, unsigned interval)
+static unsigned handle_input(unsigned scan_mask, duration_t interval)
 {
 	if (option_mask32 & OPT_EOF) {
 		/* EOF on stdin ("top </dev/null") */
-		sleep(interval);
+		sleep_for_duration(interval);
 		return scan_mask;
 	}
 
@@ -1092,9 +1092,9 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 int top_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int top_main(int argc UNUSED_PARAM, char **argv)
 {
+	duration_t interval;
 	int iterations;
 	unsigned col;
-	unsigned interval;
 	char *str_interval, *str_iterations;
 	unsigned scan_mask = TOP_MASK;
 
@@ -1120,8 +1120,10 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 		/* work around for "-d 1" -> "-d -1" done by make_all_argv_opts() */
 		if (str_interval[0] == '-')
 			str_interval++;
+		interval = parse_duration_str(str_interval);
 		/* Need to limit it to not overflow poll timeout */
-		interval = xatou16(str_interval);
+		if (interval > INT_MAX / 1000)
+			interval = INT_MAX / 1000;
 	}
 	if (col & OPT_n) {
 		if (str_iterations[0] == '-')
@@ -1169,7 +1171,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			/* We output to stdout, we need size of stdout (not stdin)! */
 			get_terminal_width_height(STDOUT_FILENO, &col, &G.lines);
 			if (G.lines < 5 || col < 10) {
-				sleep(interval);
+				sleep_for_duration(interval);
 				continue;
 			}
 			if (col > LINE_BUF_SIZE - 2)
@@ -1254,7 +1256,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			break;
 #if !ENABLE_FEATURE_TOP_INTERACTIVE
 		clearmems();
-		sleep(interval);
+		sleep_for_duration(interval);
 #else
 		new_mask = handle_input(scan_mask, interval);
 		if (new_mask == NO_RESCAN_MASK)

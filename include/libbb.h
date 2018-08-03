@@ -1018,6 +1018,14 @@ int xatoi_positive(const char *numstr) FAST_FUNC;
 /* Useful for reading port numbers */
 uint16_t xatou16(const char *numstr) FAST_FUNC;
 
+#if ENABLE_FLOAT_DURATION
+typedef double duration_t;
+void sleep_for_duration(duration_t duration) FAST_FUNC;
+#else
+typedef unsigned duration_t;
+#define sleep_for_duration(duration) sleep(duration)
+#endif
+duration_t parse_duration_str(char *str) FAST_FUNC;
 
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which

@@ -32,13 +32,6 @@
 //config:	depends on SLEEP
 //config:	help
 //config:	Allow sleep to pause for specified minutes, hours, and days.
-//config:
-//config:config FEATURE_FLOAT_SLEEP
-//config:	bool "Enable fractional arguments"
-//config:	default y
-//config:	depends on FEATURE_FANCY_SLEEP
-//config:	help
-//config:	Allow for fractional numeric parameters.
 
 /* Do not make this applet NOFORK. It breaks ^C-ing of pauses in shells */
 //applet:IF_SLEEP(APPLET(sleep, BB_DIR_BIN, BB_SUID_DROP))
@@ -66,89 +59,28 @@
 
 #include "libbb.h"
 
-#if ENABLE_FEATURE_FANCY_SLEEP || ENABLE_FEATURE_FLOAT_SLEEP
-static const struct suffix_mult sfx[] = {
-	{ "s", 1 },
-	{ "m", 60 },
-	{ "h", 60*60 },
-	{ "d", 24*60*60 },
-	{ "", 0 }
-};
-#endif
-
 int sleep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sleep_main(int argc UNUSED_PARAM, char **argv)
 {
-#if ENABLE_FEATURE_FLOAT_SLEEP
-	double duration;
-	struct timespec ts;
-#else
-	unsigned duration;
-#endif
+	duration_t duration;
 
 	++argv;
 	if (!*argv)
 		bb_show_usage();
 
-#if ENABLE_FEATURE_FLOAT_SLEEP
-
-# if ENABLE_LOCALE_SUPPORT
+#if ENABLE_FEATURE_FANCY_SLEEP
+# if ENABLE_FLOAT_DURATION
 	/* undo busybox.c setlocale */
 	setlocale(LC_NUMERIC, "C");
 # endif
 	duration = 0;
 	do {
-		char *arg = *argv;
-		if (strchr(arg, '.')) {
-			double d;
-			char *pp;
-			int len = strspn(arg, "0123456789.");
-			char sv = arg[len];
-			arg[len] = '\0';
-			errno = 0;
-			d = strtod(arg, &pp);
-			if (errno || *pp)
-				bb_show_usage();
-			arg += len;
-			*arg-- = sv;
-			sv = *arg;
-			*arg = '1';
-			duration += d * xatoul_sfx(arg, sfx);
-			*arg = sv;
-		} else {
-			duration += xatoul_sfx(arg, sfx);
-		}
+		duration += parse_duration_str(*argv);
 	} while (*++argv);
-
-	ts.tv_sec = MAXINT(typeof(ts.tv_sec));
-	ts.tv_nsec = 0;
-	if (duration >= 0 && duration < ts.tv_sec) {
-		ts.tv_sec = duration;
-		ts.tv_nsec = (duration - ts.tv_sec) * 1000000000;
-	}
-	do {
-		errno = 0;
-		nanosleep(&ts, &ts);
-	} while (errno == EINTR);
-
-#elif ENABLE_FEATURE_FANCY_SLEEP
-
-	duration = 0;
-	do {
-		duration += xatou_range_sfx(*argv, 0, UINT_MAX - duration, sfx);
-	} while (*++argv);
-	sleep(duration);
-
+	sleep_for_duration(duration);
 #else /* simple */
-
 	duration = xatou(*argv);
 	sleep(duration);
-	// Off. If it's really needed, provide example why
-	//if (sleep(duration)) {
-	//	bb_perror_nomsg_and_die();
-	//}
-
 #endif
-
 	return EXIT_SUCCESS;
 }
