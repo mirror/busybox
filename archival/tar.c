@@ -611,6 +611,7 @@ static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 
 	if (xvfork() == 0) {
 		/* child */
+		int tfd;
 		/* NB: close _first_, then move fds! */
 		close(data.wr);
 #  if WAIT_FOR_CHILD
@@ -619,8 +620,23 @@ static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 		 * parent waits for this close to happen */
 		fcntl(status.wr, F_SETFD, FD_CLOEXEC);
 #  endif
+		/* copy it: parent's tar_fd variable must not change */
+		tfd = tar_fd;
+		if (tfd == 0) {
+			/* Output tar fd may be zero.
+			 * xmove_fd(data.rd, 0) would destroy it.
+			 * Reproducer:
+			 *  exec 0>&-
+			 *  exec 1>&-
+			 *  tar czf Z.tar.gz FILE
+			 * Swapping move_fd's order wouldn't work:
+			 * data.rd is 1 and _it_ would be destroyed.
+			 */
+			xmove_fd(tfd, 3);
+			tfd = 3;
+		}
 		xmove_fd(data.rd, 0);
-		xmove_fd(tar_fd, 1);
+		xmove_fd(tfd, 1);
 		/* exec gzip/bzip2 program/applet */
 		BB_EXECLP(gzip, gzip, "-f", (char *)0);
 		vfork_exec_errno = errno;
@@ -715,11 +731,7 @@ static NOINLINE int writeTarFile(
 	return errorFlag;
 }
 
-#else /* !FEATURE_TAR_CREATE */
-
-# define writeTarFile(...) 0
-
-#endif
+#endif /* FEATURE_TAR_CREATE */
 
 #if ENABLE_FEATURE_TAR_FROM
 static llist_t *append_file_list_to_list(llist_t *list)
