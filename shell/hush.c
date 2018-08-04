@@ -4930,6 +4930,15 @@ static int parse_dollar(o_string *as_string,
 					end_ch = '}' * 0x100 + '/';
 				}
 				o_addchr(dest, ch);
+				/* The pattern can't be empty.
+				 * IOW: if the first char after "${v//" is a slash,
+				 * it does not terminate the pattern - it's the first char of the pattern:
+				 *  v=/dev/ram; echo ${v////-}  prints -dev-ram (pattern is "/")
+				 *  v=/dev/ram; echo ${v///r/-} prints /dev-am  (pattern is "/r")
+				 */
+				if (i_peek(input) == '/') {
+					o_addchr(dest, i_getch(input));
+				}
  again:
 				if (!BB_MMU)
 					pos = dest->length;

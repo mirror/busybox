@@ -6854,8 +6854,15 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
 		/* Find '/' and replace with NUL */
 		repl = p;
+		/* The pattern can't be empty.
+		 * IOW: if the first char after "${v//" is a slash,
+		 * it does not terminate the pattern - it's the first char of the pattern:
+		 *  v=/dev/ram; echo ${v////-}  prints -dev-ram (pattern is "/")
+		 *  v=/dev/ram; echo ${v///r/-} prints /dev-am  (pattern is "/r")
+		 */
+		if (*repl == '/')
+			repl++;
 		for (;;) {
-			/* Handle escaped slashes, e.g. "${v/\//_}" (they are CTLESC'ed by this point) */
 			if (*repl == '\0') {
 				repl = NULL;
 				break;
@@ -6864,6 +6871,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 				*repl = '\0';
 				break;
 			}
+			/* Handle escaped slashes, e.g. "${v/\//_}" (they are CTLESC'ed by this point) */
 			if ((unsigned char)*repl == CTLESC && repl[1])
 				repl++;
 			repl++;
