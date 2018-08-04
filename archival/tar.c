@@ -632,8 +632,7 @@ static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 			 * Swapping move_fd's order wouldn't work:
 			 * data.rd is 1 and _it_ would be destroyed.
 			 */
-			xmove_fd(tfd, 3);
-			tfd = 3;
+			tfd = dup(tfd);
 		}
 		xmove_fd(data.rd, 0);
 		xmove_fd(tfd, 1);
