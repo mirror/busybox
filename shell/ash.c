@@ -5902,7 +5902,7 @@ static int substr_atoi(const char *s)
 #define EXP_CASE        0x10    /* keeps quotes around for CASE pattern */
 #define EXP_VARTILDE2   0x20    /* expand tildes after colons only */
 #define EXP_WORD        0x40    /* expand word in parameter expansion */
-#define EXP_QUOTED      0x80    /* expand word in double quotes */
+#define EXP_QUOTED      0x100   /* expand word in double quotes */
 /*
  * rmescape() flags
  */
@@ -7175,14 +7175,13 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
  * ash -c 'echo ${#1#}'  name:'1=#'
  */
 static NOINLINE ssize_t
-varvalue(char *name, int varflags, int flags, int *quotedp)
+varvalue(char *name, int varflags, int flags, int quoted)
 {
 	const char *p;
 	int num;
 	int i;
 	ssize_t len = 0;
 	int sep;
-	int quoted = *quotedp;
 	int subtype = varflags & VSTYPE;
 	int discard = subtype == VSPLUS || subtype == VSLENGTH;
 	int quotes = (discard ? 0 : (flags & QUOTES_ESC)) | QUOTES_KEEPNUL;
@@ -7230,13 +7229,27 @@ varvalue(char *name, int varflags, int flags, int *quotedp)
 	case '*': {
 		char **ap;
 		char sepc;
+		char c;
 
-		if (quoted)
-			sep = 0;
-		sep |= ifsset() ? ifsval()[0] : ' ';
+		/* We will set c to 0 or ~0 depending on whether
+		 * we're doing field splitting.  We won't do field
+		 * splitting if either we're quoted or sep is zero.
+		 *
+		 * Instead of testing (quoted || !sep) the following
+		 * trick optimises away any branches by using the
+		 * fact that EXP_QUOTED (which is the only bit that
+		 * can be set in quoted) is the same as EXP_FULL <<
+		 * CHAR_BIT (which is the only bit that can be set
+		 * in sep).
+		 */
+#if EXP_QUOTED >> CHAR_BIT != EXP_FULL
+#error The following two lines expect EXP_QUOTED == EXP_FULL << CHAR_BIT
+#endif
+		c = !((quoted | ~sep) & EXP_QUOTED) - 1;
+		sep &= ~quoted;
+		sep |= ifsset() ? (unsigned char)(c & ifsval()[0]) : ' ';
  param:
 		sepc = sep;
-		*quotedp = !sepc;
 		ap = shellparam.p;
 		if (!ap)
 			return -1;
@@ -7301,7 +7314,6 @@ evalvar(char *p, int flag)
 	char varflags;
 	char subtype;
 	int quoted;
-	char easy;
 	char *var;
 	int patloc;
 	int startloc;
@@ -7315,12 +7327,11 @@ evalvar(char *p, int flag)
 
 	quoted = flag & EXP_QUOTED;
 	var = p;
-	easy = (!quoted || (*var == '@' && shellparam.nparam));
 	startloc = expdest - (char *)stackblock();
 	p = strchr(p, '=') + 1; //TODO: use var_end(p)?
 
  again:
-	varlen = varvalue(var, varflags, flag, &quoted);
+	varlen = varvalue(var, varflags, flag, quoted);
 	if (varflags & VSNUL)
 		varlen--;
 
@@ -7366,8 +7377,11 @@ evalvar(char *p, int flag)
 
 	if (subtype == VSNORMAL) {
  record:
-		if (!easy)
-			goto end;
+		if (quoted) {
+			quoted = *var == '@' && shellparam.nparam;
+			if (!quoted)
+				goto end;
+		}
 		recordregion(startloc, expdest - (char *)stackblock(), quoted);
 		goto end;
 	}
