@@ -10500,40 +10500,29 @@ static int FAST_FUNC builtin_type(char **argv)
 static int FAST_FUNC builtin_read(char **argv)
 {
 	const char *r;
-	char *opt_n = NULL;
-	char *opt_p = NULL;
-	char *opt_t = NULL;
-	char *opt_u = NULL;
-	char *opt_d = NULL; /* optimized out if !BASH */
-	const char *ifs;
-	int read_flags;
+	struct builtin_read_params params;
+
+	memset(&params, 0, sizeof(params));
 
 	/* "!": do not abort on errors.
 	 * Option string must start with "sr" to match BUILTIN_READ_xxx
 	 */
-	read_flags = getopt32(argv,
+	params.read_flags = getopt32(argv,
 #if BASH_READ_D
-		"!srn:p:t:u:d:", &opt_n, &opt_p, &opt_t, &opt_u, &opt_d
+		"!srn:p:t:u:d:", &params.opt_n, &params.opt_p, &params.opt_t, &params.opt_u, &params.opt_d
 #else
-		"!srn:p:t:u:", &opt_n, &opt_p, &opt_t, &opt_u
+		"!srn:p:t:u:", &params.opt_n, &params.opt_p, &params.opt_t, &params.opt_u
 #endif
 	);
-	if (read_flags == (uint32_t)-1)
+	if ((uint32_t)params.read_flags == (uint32_t)-1)
 		return EXIT_FAILURE;
 	argv += optind;
-	ifs = get_local_var_value("IFS"); /* can be NULL */
+	params.argv = argv;
+	params.setvar = set_local_var_from_halves;
+	params.ifs = get_local_var_value("IFS"); /* can be NULL */
 
  again:
-	r = shell_builtin_read(set_local_var_from_halves,
-		argv,
-		ifs,
-		read_flags,
-		opt_n,
-		opt_p,
-		opt_t,
-		opt_u,
-		opt_d
-	);
+	r = shell_builtin_read(&params);
 
 	if ((uintptr_t)r == 1 && errno == EINTR) {
 		unsigned sig = check_and_run_traps();

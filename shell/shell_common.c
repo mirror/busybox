@@ -46,16 +46,7 @@ int FAST_FUNC is_well_formed_var_name(const char *s, char terminator)
 //Here we can simply store "VAR=" at buffer start and store read data directly
 //after "=", then pass buffer to setvar() to consume.
 const char* FAST_FUNC
-shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
-	char       **argv,
-	const char *ifs,
-	int        read_flags,
-	const char *opt_n,
-	const char *opt_p,
-	const char *opt_t,
-	const char *opt_u,
-	const char *opt_d
-)
+shell_builtin_read(struct builtin_read_params *params)
 {
 	struct pollfd pfd[1];
 #define fd (pfd[0].fd) /* -u FD */
@@ -70,9 +61,13 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	int bufpos; /* need to be able to hold -1 */
 	int startword;
 	smallint backslash;
+	char **argv;
+	const char *ifs;
+	int read_flags;
 
 	errno = err = 0;
 
+	argv = params->argv;
 	pp = argv;
 	while (*pp) {
 		if (!is_well_formed_var_name(*pp, '\0')) {
@@ -84,29 +79,29 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	}
 
 	nchars = 0; /* if != 0, -n is in effect */
-	if (opt_n) {
-		nchars = bb_strtou(opt_n, NULL, 10);
+	if (params->opt_n) {
+		nchars = bb_strtou(params->opt_n, NULL, 10);
 		if (nchars < 0 || errno)
 			return "invalid count";
 		/* note: "-n 0": off (bash 3.2 does this too) */
 	}
 
 	end_ms = 0;
-	if (opt_t && !ENABLE_FEATURE_SH_READ_FRAC) {
-		end_ms = bb_strtou(opt_t, NULL, 10);
+	if (params->opt_t && !ENABLE_FEATURE_SH_READ_FRAC) {
+		end_ms = bb_strtou(params->opt_t, NULL, 10);
 		if (errno)
 			return "invalid timeout";
 		if (end_ms > UINT_MAX / 2048) /* be safely away from overflow */
 			end_ms = UINT_MAX / 2048;
 		end_ms *= 1000;
 	}
-	if (opt_t && ENABLE_FEATURE_SH_READ_FRAC) {
+	if (params->opt_t && ENABLE_FEATURE_SH_READ_FRAC) {
 		/* bash 4.3 (maybe earlier) supports -t N.NNNNNN */
 		char *p;
 		/* Eat up to three fractional digits */
 		int frac_digits = 3 + 1;
 
-		end_ms = bb_strtou(opt_t, &p, 10);
+		end_ms = bb_strtou(params->opt_t, &p, 10);
 		if (end_ms > UINT_MAX / 2048) /* be safely away from overflow */
 			end_ms = UINT_MAX / 2048;
 
@@ -128,13 +123,13 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	}
 
 	fd = STDIN_FILENO;
-	if (opt_u) {
-		fd = bb_strtou(opt_u, NULL, 10);
+	if (params->opt_u) {
+		fd = bb_strtou(params->opt_u, NULL, 10);
 		if (fd < 0 || errno)
 			return "invalid file descriptor";
 	}
 
-	if (opt_t && end_ms == 0) {
+	if (params->opt_t && end_ms == 0) {
 		/* "If timeout is 0, read returns immediately, without trying
 		 * to read any data. The exit status is 0 if input is available
 		 * on the specified file descriptor, non-zero otherwise."
@@ -147,14 +142,16 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 		return (const char *)(uintptr_t)(r <= 0);
 	}
 
-	if (opt_p && isatty(fd)) {
-		fputs(opt_p, stderr);
+	if (params->opt_p && isatty(fd)) {
+		fputs(params->opt_p, stderr);
 		fflush_all();
 	}
 
+	ifs = params->ifs;
 	if (ifs == NULL)
 		ifs = defifs;
 
+	read_flags = params->read_flags;
 	if (nchars || (read_flags & BUILTIN_READ_SILENT)) {
 		tcgetattr(fd, &tty);
 		old_tty = tty;
@@ -181,11 +178,11 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	retval = (const char *)(uintptr_t)0;
 	startword = 1;
 	backslash = 0;
-	if (opt_t)
+	if (params->opt_t)
 		end_ms += (unsigned)monotonic_ms();
 	buffer = NULL;
 	bufpos = 0;
-	delim = opt_d ? *opt_d : '\n';
+	delim = params->opt_d ? params->opt_d[0] : '\n';
 	do {
 		char c;
 		int timeout;
@@ -194,7 +191,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 			buffer = xrealloc(buffer, bufpos + 0x101);
 
 		timeout = -1;
-		if (opt_t) {
+		if (params->opt_t) {
 			timeout = end_ms - (unsigned)monotonic_ms();
 			/* ^^^^^^^^^^^^^ all values are unsigned,
 			 * wrapping math is used here, good even if
@@ -246,7 +243,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 		 * without variable names (bash compat).
 		 * Thus, "read" and "read REPLY" are not the same.
 		 */
-		if (!opt_d && argv[0]) {
+		if (!params->opt_d && argv[0]) {
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_05 */
 			const char *is_ifs = strchr(ifs, c);
 			if (startword && is_ifs) {
@@ -261,7 +258,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 			if (argv[1] != NULL && is_ifs) {
 				buffer[bufpos] = '\0';
 				bufpos = 0;
-				setvar(*argv, buffer);
+				params->setvar(*argv, buffer);
 				argv++;
 				/* can we skip one non-space ifs char? (2: yes) */
 				startword = isspace(c) ? 2 : 1;
@@ -313,14 +310,14 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 		}
 
 		/* Use the remainder as a value for the next variable */
-		setvar(*argv, buffer);
+		params->setvar(*argv, buffer);
 		/* Set the rest to "" */
 		while (*++argv)
-			setvar(*argv, "");
+			params->setvar(*argv, "");
 	} else {
 		/* Note: no $IFS removal */
 		buffer[bufpos] = '\0';
-		setvar("REPLY", buffer);
+		params->setvar("REPLY", buffer);
 	}
 
  ret:

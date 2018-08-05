@@ -13762,38 +13762,35 @@ letcmd(int argc UNUSED_PARAM, char **argv)
 static int FAST_FUNC
 readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	char *opt_n = NULL;
-	char *opt_p = NULL;
-	char *opt_t = NULL;
-	char *opt_u = NULL;
-	char *opt_d = NULL; /* optimized out if !BASH */
-	int read_flags = 0;
+	struct builtin_read_params params;
 	const char *r;
 	int i;
+
+	memset(&params, 0, sizeof(params));
 
 	while ((i = nextopt("p:u:rt:n:sd:")) != '\0') {
 		switch (i) {
 		case 'p':
-			opt_p = optionarg;
+			params.opt_p = optionarg;
 			break;
 		case 'n':
-			opt_n = optionarg;
+			params.opt_n = optionarg;
 			break;
 		case 's':
-			read_flags |= BUILTIN_READ_SILENT;
+			params.read_flags |= BUILTIN_READ_SILENT;
 			break;
 		case 't':
-			opt_t = optionarg;
+			params.opt_t = optionarg;
 			break;
 		case 'r':
-			read_flags |= BUILTIN_READ_RAW;
+			params.read_flags |= BUILTIN_READ_RAW;
 			break;
 		case 'u':
-			opt_u = optionarg;
+			params.opt_u = optionarg;
 			break;
 #if BASH_READ_D
 		case 'd':
-			opt_d = optionarg;
+			params.opt_d = optionarg;
 			break;
 #endif
 		default:
@@ -13801,21 +13798,16 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		}
 	}
 
+	params.argv = argptr;
+	params.setvar = setvar0;
+	params.ifs = bltinlookup("IFS"); /* can be NULL */
+
 	/* "read -s" needs to save/restore termios, can't allow ^C
 	 * to jump out of it.
 	 */
  again:
 	INT_OFF;
-	r = shell_builtin_read(setvar0,
-		argptr,
-		bltinlookup("IFS"), /* can be NULL */
-		read_flags,
-		opt_n,
-		opt_p,
-		opt_t,
-		opt_u,
-		opt_d
-	);
+	r = shell_builtin_read(&params);
 	INT_ON;
 
 	if ((uintptr_t)r == 1 && errno == EINTR) {
