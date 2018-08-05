@@ -1683,9 +1683,15 @@ static void close_all_HFILE_list(void)
 		 * It is disastrous if we share memory with a vforked parent.
 		 * I'm not sure we never come here after vfork.
 		 * Therefore just close fd, nothing more.
+		 *
+		 * ">" instead of ">=": we don't close fd#0,
+		 * interactive shell uses hfopen(NULL) as stdin input
+		 * which has fl->fd == 0, but fd#0 gets redirected in pipes.
+		 * If we'd close it here, then e.g. interactive "set | sort"
+		 * with NOFORKed sort, would have sort's input fd closed.
 		 */
-		/*hfclose(fl); - unsafe */
-		if (fl->fd >= 0)
+		if (fl->fd > 0)
+			/*hfclose(fl); - unsafe */
 			close(fl->fd);
 		fl = fl->next_hfile;
 	}
