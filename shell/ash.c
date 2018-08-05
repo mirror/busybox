@@ -13960,6 +13960,7 @@ init(void)
 			}
 		}
 
+		setvareq((char*)defifsvar, VTEXTFIXED);
 		setvareq((char*)defoptindvar, VTEXTFIXED);
 
 		setvar0("PPID", utoa(getppid()));
