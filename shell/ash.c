@@ -9600,9 +9600,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	shellparam.optind = 1;
 	shellparam.optoff = -1;
 #endif
-	pushlocalvars();
 	evaltree(func->n.ndefun.body, flags & EV_TESTED);
-	poplocalvars(0);
  funcdone:
 	INT_OFF;
 	funcline = savefuncline;
@@ -10235,7 +10233,6 @@ evalcommand(union node *cmd, int flags)
 		goto readstatus;
 
 	case CMDFUNCTION:
-		poplocalvars(1);
 		/* See above for the rationale */
 		dowait(DOWAIT_NONBLOCK, NULL);
 		if (evalfun(cmdentry.u.func, argc, argv, flags))

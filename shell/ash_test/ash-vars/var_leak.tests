@@ -15,9 +15,7 @@ VAR=''
 VAR=val2 exec 2>&1
 echo "should be not empty: '$VAR'"
 
-# ash follows the "function call is a special builtin" rule here
-# (bash does not do it)
 f() { true; }
 VAR=''
 VAR=val3 f
-echo "should be not empty: '$VAR'"
+echo "should be empty: '$VAR'"
