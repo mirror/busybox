@@ -8098,14 +8098,14 @@ static void shellexec(char *prog, char **argv, const char *path, int idx)
 
 	/* Map to POSIX errors */
 	switch (e) {
-	case EACCES:
+	default:
 		exerrno = 126;
 		break;
+	case ELOOP:
+	case ENAMETOOLONG:
 	case ENOENT:
+	case ENOTDIR:
 		exerrno = 127;
-		break;
-	default:
-		exerrno = 2;
 		break;
 	}
 	exitstatus = exerrno;
