@@ -9942,6 +9942,7 @@ find_builtin(const char *name)
 /*
  * Execute a simple command.
  */
+static void unwindfiles(struct parsefile *stop);
 static int
 isassignment(const char *p)
 {
@@ -9964,6 +9965,7 @@ evalcommand(union node *cmd, int flags)
 		"\0\0", bltincmd /* why three NULs? */
 	};
 	struct localvar_list *localvar_stop;
+	struct parsefile *file_stop;
 	struct redirtab *redir_stop;
 	struct stackmark smark;
 	union node *argp;
@@ -9989,6 +9991,7 @@ evalcommand(union node *cmd, int flags)
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
 	setstackmark(&smark);
 	localvar_stop = pushlocalvars();
+	file_stop = g_parsefile;
 	back_exitstatus = 0;
 
 	cmdentry.cmdtype = CMDBUILTIN;
@@ -10260,6 +10263,7 @@ evalcommand(union node *cmd, int flags)
 	if (cmd->ncmd.redirect)
 		popredir(/*drop:*/ cmd_is_exec);
 	unwindredir(redir_stop);
+	unwindfiles(file_stop);
 	unwindlocalvars(localvar_stop);
 	if (lastarg) {
 		/* dsl: I think this is intended to be used to support
@@ -10782,14 +10786,20 @@ popfile(void)
 	INT_ON;
 }
 
+static void
+unwindfiles(struct parsefile *stop)
+{
+	while (g_parsefile != stop)
+		popfile();
+}
+
 /*
  * Return to top level.
  */
 static void
 popallfiles(void)
 {
-	while (g_parsefile != &basepf)
-		popfile();
+	unwindfiles(&basepf);
 }
 
 /*
