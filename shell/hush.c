@@ -2397,6 +2397,12 @@ static int set_local_var(char *str, unsigned flags)
 	return 0;
 }
 
+static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
+{
+	char *var = xasprintf("%s=%s", name, val);
+	set_local_var(var, /*flag:*/ 0);
+}
+
 /* Used at startup and after each cd */
 static void set_pwd_var(unsigned flag)
 {
@@ -2440,15 +2446,6 @@ static int unset_local_var_len(const char *name, int name_len)
 static int unset_local_var(const char *name)
 {
 	return unset_local_var_len(name, strlen(name));
-}
-#endif
-
-#if BASH_HOSTNAME_VAR || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_READ || ENABLE_HUSH_GETOPTS \
- || (ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT)
-static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
-{
-	char *var = xasprintf("%s=%s", name, val);
-	set_local_var(var, /*flag:*/ 0);
 }
 #endif
 
@@ -9854,6 +9851,10 @@ int hush_main(int argc, char **argv)
 		uname(&uts);
 		set_local_var_from_halves("HOSTNAME", uts.nodename);
 	}
+#endif
+	/* IFS is not inherited from the parent environment */
+	set_local_var_from_halves("IFS", defifs);
+
 	/* bash also exports SHLVL and _,
 	 * and sets (but doesn't export) the following variables:
 	 * BASH=/bin/bash
@@ -9884,10 +9885,8 @@ int hush_main(int argc, char **argv)
 	 * TERM=dumb
 	 * OPTERR=1
 	 * OPTIND=1
-	 * IFS=$' \t\n'
 	 * PS4='+ '
 	 */
-#endif
 
 #if ENABLE_HUSH_LINENO_VAR
 	if (ENABLE_HUSH_LINENO_VAR) {
