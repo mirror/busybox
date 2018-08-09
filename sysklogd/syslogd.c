@@ -140,6 +140,7 @@
 //usage:	)
 //usage:     "\n	-l N		Log only messages more urgent than prio N (1-8)"
 //usage:     "\n	-S		Smaller output"
+//usage:     "\n	-t		Strip client-generated timestamps"
 //usage:	IF_FEATURE_SYSLOGD_DUP(
 //usage:     "\n	-D		Drop duplicates"
 //usage:	)
@@ -316,6 +317,7 @@ enum {
 	OPTBIT_outfile, // -O
 	OPTBIT_loglevel, // -l
 	OPTBIT_small, // -S
+	OPTBIT_timestamp, // -t
 	IF_FEATURE_ROTATE_LOGFILE(OPTBIT_filesize   ,)	// -s
 	IF_FEATURE_ROTATE_LOGFILE(OPTBIT_rotatecnt  ,)	// -b
 	IF_FEATURE_REMOTE_LOG(    OPTBIT_remotelog  ,)	// -R
@@ -330,6 +332,7 @@ enum {
 	OPT_outfile     = 1 << OPTBIT_outfile ,
 	OPT_loglevel    = 1 << OPTBIT_loglevel,
 	OPT_small       = 1 << OPTBIT_small   ,
+	OPT_timestamp   = 1 << OPTBIT_timestamp,
 	OPT_filesize    = IF_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_filesize   )) + 0,
 	OPT_rotatecnt   = IF_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_rotatecnt  )) + 0,
 	OPT_remotelog   = IF_FEATURE_REMOTE_LOG(    (1 << OPTBIT_remotelog  )) + 0,
@@ -339,7 +342,7 @@ enum {
 	OPT_cfg         = IF_FEATURE_SYSLOGD_CFG(   (1 << OPTBIT_cfg        )) + 0,
 	OPT_kmsg        = IF_FEATURE_KMSG_SYSLOG(   (1 << OPTBIT_kmsg       )) + 0,
 };
-#define OPTION_STR "m:nO:l:S" \
+#define OPTION_STR "m:nO:l:St" \
 	IF_FEATURE_ROTATE_LOGFILE("s:" ) \
 	IF_FEATURE_ROTATE_LOGFILE("b:" ) \
 	IF_FEATURE_REMOTE_LOG(    "R:*") \
@@ -813,21 +816,27 @@ static void parse_fac_prio_20(int pri, char *res20)
  * that there is no timestamp, short-circuiting the test. */
 static void timestamp_and_log(int pri, char *msg, int len)
 {
-	char *timestamp;
+	char *timestamp = NULL;
 	time_t now;
 
 	/* Jan 18 00:11:22 msg... */
 	/* 01234567890123456 */
-	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
-	 || msg[9] != ':' || msg[12] != ':' || msg[15] != ' '
+	if (len >= 16 && msg[3] == ' ' && msg[6] == ' '
+	 && msg[9] == ':' && msg[12] == ':' && msg[15] == ' '
 	) {
-		time(&now);
-		timestamp = ctime(&now) + 4; /* skip day of week */
-	} else {
-		now = 0;
-		timestamp = msg;
+		if (!(option_mask32 & OPT_timestamp)) {
+			/* use message timestamp */
+			timestamp = msg;
+			now = 0;
+		}
 		msg += 16;
 	}
+
+	if (!timestamp) {
+		time(&now);
+		timestamp = ctime(&now) + 4; /* skip day of week */
+	}
+
 	timestamp[15] = '\0';
 
 	if (option_mask32 & OPT_kmsg) {
