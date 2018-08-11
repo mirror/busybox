@@ -3151,6 +3151,41 @@ static int o_get_last_ptr(o_string *o, int n)
 	return ((int)(uintptr_t)list[n-1]) + string_start;
 }
 
+/*
+ * Globbing routines.
+ *
+ * Most words in commands need to be globbed, even ones which are
+ * (single or double) quoted. This stems from the possiblity of
+ * constructs like "abc"* and 'abc'* - these should be globbed.
+ * Having a different code path for fully-quoted strings ("abc",
+ * 'abc') would only help performance-wise, but we still need
+ * code for partially-quoted strings.
+ *
+ * Unfortunately, if we want to match bash and ash behavior in all cases,
+ * the logic can't be see as "shell-syntax argument is first transformed
+ * to a string, then globbed, and if globbing does not match anything,
+ * it is used verbatim". Here are two examples where it fails:
+ *
+ * 	echo 'b\*'?
+ *
+ * The globbing can't be avoided (because of '?' at the end).
+ * The glob pattern is: b\\\*? - IOW, both \ and * are literals
+ * and are glob-escaped. If this does not match, bash/ash print b\*?
+ * - IOW: they "unbackslash" the pattern.
+ * Now, look at this:
+ *
+ * 	v='\\\*'; echo b$v?
+ *
+ * The glob pattern is the same here: b\\\*? - an unquoted $var expansion
+ * should be used as glob pattern with no changes. However, if glob
+ * does not match, bash/ash print b\\\*? - NOT THE SAME as 1st example!
+ *
+ * ash implements this by having an encoded representation of the word
+ * to glob, which IS NOT THE SAME as the glob pattern - it has more data.
+ * Glob pattern is derived from it. If glob fails, the decision what result
+ * should be is made using that encoded representation. Not glob pattern.
+ */
+
 #if ENABLE_HUSH_BRACE_EXPANSION
 /* There in a GNU extension, GLOB_BRACE, but it is not usable:
  * first, it processes even {a} (no commas), second,
