@@ -3162,7 +3162,7 @@ static int o_get_last_ptr(o_string *o, int n)
  * code for partially-quoted strings.
  *
  * Unfortunately, if we want to match bash and ash behavior in all cases,
- * the logic can't be see as "shell-syntax argument is first transformed
+ * the logic can't be "shell-syntax argument is first transformed
  * to a string, then globbed, and if globbing does not match anything,
  * it is used verbatim". Here are two examples where it fails:
  *
@@ -3171,14 +3171,14 @@ static int o_get_last_ptr(o_string *o, int n)
  * The globbing can't be avoided (because of '?' at the end).
  * The glob pattern is: b\\\*? - IOW, both \ and * are literals
  * and are glob-escaped. If this does not match, bash/ash print b\*?
- * - IOW: they "unbackslash" the pattern.
+ * - IOW: they "unbackslash" the glob pattern.
  * Now, look at this:
  *
  * 	v='\\\*'; echo b$v?
  *
- * The glob pattern is the same here: b\\\*? - an unquoted $var expansion
+ * The glob pattern is the same here: b\\\*? - the unquoted $v expansion
  * should be used as glob pattern with no changes. However, if glob
- * does not match, bash/ash print b\\\*? - NOT THE SAME as 1st example!
+ * does not match, bash/ash print b\\\*? - NOT THE SAME as first example!
  *
  * ash implements this by having an encoded representation of the word
  * to glob, which IS NOT THE SAME as the glob pattern - it has more data.
