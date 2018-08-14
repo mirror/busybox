@@ -267,8 +267,7 @@
 //--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
 //usage:#define iptunnel_trivial_usage
 //usage:       "add|change|del|show [NAME]\n"
-//usage:       "	[mode ipip|gre|sit]\n"
-//usage:       "	[remote ADDR] [local ADDR] [ttl TTL]"
+//usage:       "	[mode ipip|gre|sit] [remote ADDR] [local ADDR] [ttl TTL]"
 //usage:#define iptunnel_full_usage "\n\n"
 //usage:       "iptunnel add|change|del|show [NAME]\n"
 //usage:       "	[mode ipip|gre|sit] [remote ADDR] [local ADDR]\n"
@@ -308,10 +307,9 @@
 //usage:	IF_FEATURE_IP_TUNNEL( IP_BAR_TUNNEL"tunnel")
 //usage:	IF_FEATURE_IP_NEIGH(  IP_BAR_NEIGH "neigh")
 //usage:	IF_FEATURE_IP_RULE(   IP_BAR_RULE  "rule")
-//usage:       " [COMMAND]"
+//usage:       " [ARGS]"
 //usage:#define ip_full_usage "\n\n"
 //usage:       "OPTIONS := -f[amily] inet|inet6|link | -o[neline]\n"
-//usage:       "COMMAND :="
 //usage:	IF_FEATURE_IP_ADDRESS("\n"
 //usage:	"ip addr "ipaddr_trivial_usage)
 //usage:	IF_FEATURE_IP_ROUTE("\n"
