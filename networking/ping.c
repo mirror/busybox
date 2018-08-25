@@ -485,9 +485,15 @@ static void sendping_tail(void (*sp)(int), int size_pkt)
 		bb_error_msg_and_die(bb_msg_write_error);
 
 	if (pingcount == 0 || G.ntransmitted < pingcount) {
-		/* Didn't send all pings yet - schedule next in 1s */
+		/* Didn't send all pings yet - schedule next in -i SEC interval */
+		struct itimerval i;
 		signal(SIGALRM, sp);
-		ualarm(G.interval_us, 0);
+		/*ualarm(G.interval_us, 0); - does not work for >=1sec on some libc */
+		i.it_interval.tv_sec = 0;
+		i.it_interval.tv_usec = 0;
+		i.it_value.tv_sec = G.interval_us / 1000000;
+		i.it_value.tv_usec = G.interval_us % 1000000;
+		setitimer(ITIMER_REAL, &i, NULL);
 	} else { /* -c NN, and all NN are sent */
 		/* Wait for the last ping to come back.
 		 * -W timeout: wait for a response in seconds.
