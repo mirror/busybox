@@ -73,6 +73,6 @@ void FAST_FUNC sleep_for_duration(duration_t duration)
 #else
 duration_t FAST_FUNC parse_duration_str(char *str)
 {
-	return xatou_range_sfx(*argv, 0, UINT_MAX, duration_suffixes);
+	return xatou_range_sfx(str, 0, UINT_MAX, duration_suffixes);
 }
 #endif
