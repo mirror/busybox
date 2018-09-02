@@ -47,7 +47,9 @@ char* FAST_FUNC bb_get_chunk_from_file(FILE *file, size_t *end)
 /* Get line, including trailing \n if any */
 char* FAST_FUNC xmalloc_fgets(FILE *file)
 {
-	return bb_get_chunk_from_file(file, NULL);
+	int i;
+
+	return bb_get_chunk_from_file(file, &i);
 }
 /* Get line.  Remove trailing \n */
 char* FAST_FUNC xmalloc_fgetline(FILE *file)
