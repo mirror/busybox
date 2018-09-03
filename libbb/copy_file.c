@@ -388,14 +388,15 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 		char *lpath = xmalloc_readlink_or_warn(source);
 		if (lpath) {
 			int r = symlink(lpath, dest);
-			free(lpath);
 			if (r < 0) {
 				/* shared message */
 				bb_perror_msg("can't create %slink '%s' to '%s'",
 					"sym", dest, lpath
 				);
+				free(lpath);
 				return -1;
 			}
+			free(lpath);
 			if (flags & FILEUTILS_PRESERVE_STATUS)
 				if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
 					bb_perror_msg("can't preserve %s of '%s'", "ownership", dest);
