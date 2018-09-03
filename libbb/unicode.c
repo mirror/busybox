@@ -1121,6 +1121,8 @@ static char* FAST_FUNC unicode_conv_to_printable2(uni_stat_t *stats, const char 
 			dst[dst_len++] = ' ';
 		}
 	}
+	if (!dst) /* for example, if input was "" */
+		dst = xzalloc(1);
 	dst[dst_len] = '\0';
 	if (stats) {
 		stats->byte_count = dst_len;
