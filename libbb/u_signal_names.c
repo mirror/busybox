@@ -12,6 +12,18 @@
 //config:	help
 //config:	Support RTMIN[+n] and RTMAX[-n] signal names
 //config:	in kill, killall etc. This costs ~250 bytes.
+//config:
+//config:config FEATURE_RTMINMAX_USE_LIBC_DEFINITIONS
+//config:	bool "Use the definitions of SIGRTMIN/SIGRTMAX provided by libc"
+//config:	default y
+//config:	depends on FEATURE_RTMINMAX
+//config:	help
+//config:	Some C libraries reserve a few real-time signals for internal
+//config:	use, and adjust the values of SIGRTMIN/SIGRTMAX seen by
+//config:	applications accordingly. Saying yes here means that a signal
+//config:	name RTMIN+n will be interpreted according to the libc definition
+//config:	of SIGRTMIN, and not the raw definition provided by the kernel.
+//config:	This behavior matches "kill -l RTMIN+n" from bash.
 
 #include "libbb.h"
 
@@ -123,7 +135,7 @@ static const char signals[][7] ALIGN1 = {
 #ifdef SIGSYS
 	[SIGSYS   ] = "SYS",
 #endif
-#if ENABLE_FEATURE_RTMINMAX
+#if ENABLE_FEATURE_RTMINMAX && !ENABLE_FEATURE_RTMINMAX_USE_LIBC_DEFINITIONS
 # ifdef __SIGRTMIN
 	[__SIGRTMIN] = "RTMIN",
 # endif
@@ -168,36 +180,46 @@ int FAST_FUNC get_signum(const char *name)
 # endif
 #endif
 
-#if ENABLE_FEATURE_RTMINMAX
-# if defined(SIGRTMIN) && defined(SIGRTMAX)
-/* libc may use some rt sigs for pthreads and therefore "remap" SIGRTMIN/MAX,
- * but we want to use "raw" SIGRTMIN/MAX. Underscored names, if exist, provide
- * them. If they don't exist, fall back to non-underscored ones: */
+#if ENABLE_FEATURE_RTMINMAX && defined(SIGRTMIN) && defined(SIGRTMAX)
+	{
+# if ENABLE_FEATURE_RTMINMAX_USE_LIBC_DEFINITIONS
+		/* Use the libc provided values. */
+		unsigned sigrtmin = SIGRTMIN;
+		unsigned sigrtmax = SIGRTMAX;
+# else
+	/* Use the "raw" SIGRTMIN/MAX. Underscored names, if exist, provide
+	 * them. If they don't exist, fall back to non-underscored ones: */
 #  if !defined(__SIGRTMIN)
 #   define __SIGRTMIN SIGRTMIN
 #  endif
 #  if !defined(__SIGRTMAX)
 #   define __SIGRTMAX SIGRTMAX
 #  endif
-	if (strncasecmp(name, "RTMIN", 5) == 0) {
-		if (!name[5])
-			return __SIGRTMIN;
-		if (name[5] == '+') {
-			i = bb_strtou(name + 6, NULL, 10);
-			if (!errno && i <= __SIGRTMAX - __SIGRTMIN)
-				return __SIGRTMIN + i;
-		}
-	}
-	else if (strncasecmp(name, "RTMAX", 5) == 0) {
-		if (!name[5])
-			return __SIGRTMAX;
-		if (name[5] == '-') {
-			i = bb_strtou(name + 6, NULL, 10);
-			if (!errno && i <= __SIGRTMAX - __SIGRTMIN)
-				return __SIGRTMAX - i;
-		}
-	}
+
+#  define sigrtmin __SIGRTMIN
+#  define sigrtmax __SIGRTMAX
 # endif
+		if (strncasecmp(name, "RTMIN", 5) == 0) {
+			if (!name[5])
+				return sigrtmin;
+			if (name[5] == '+') {
+				i = bb_strtou(name + 6, NULL, 10);
+				if (!errno && i <= sigrtmax - sigrtmin)
+					return sigrtmin + i;
+			}
+		}
+		else if (strncasecmp(name, "RTMAX", 5) == 0) {
+			if (!name[5])
+				return sigrtmax;
+			if (name[5] == '-') {
+				i = bb_strtou(name + 6, NULL, 10);
+				if (!errno && i <= sigrtmax - sigrtmin)
+					return sigrtmax - i;
+			}
+		}
+# undef sigrtmin
+# undef sigrtmax
+	}
 #endif
 
 	return -1;
@@ -228,8 +250,16 @@ void FAST_FUNC print_signames(void)
 			printf("%2u) %s\n", signo, name);
 	}
 #if ENABLE_FEATURE_RTMINMAX
-# ifdef __SIGRTMAX
+# if ENABLE_FEATURE_RTMINMAX_USE_LIBC_DEFINITIONS
+#  if defined(SIGRTMIN) && defined(SIGRTMAX)
+	printf("%2u) %s\n", SIGRTMIN, "RTMIN");
+	printf("%2u) %s\n", SIGRTMAX, "RTMAX");
+#  endif
+# else
+// __SIGRTMIN is included in signals[] array.
+#  ifdef __SIGRTMAX
 	printf("%2u) %s\n", __SIGRTMAX, "RTMAX");
+#  endif
 # endif
 #endif
 }
