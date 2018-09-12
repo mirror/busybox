@@ -153,8 +153,12 @@ int FAST_FUNC get_signum(const char *name)
 {
 	unsigned i;
 
+	/* bb_strtou returns UINT_MAX on error. NSIG is smaller
+	 * than UINT_MAX on any sane Unix. Hence no need
+	 * to check errno after bb_strtou().
+	 */
 	i = bb_strtou(name, NULL, 10);
-	if (!errno && i < NSIG) /* for shells, we allow 0 too */
+	if (i < NSIG) /* for shells, we allow 0 too */
 		return i;
 	if (strncasecmp(name, "SIG", 3) == 0)
 		name += 3;
@@ -204,7 +208,7 @@ int FAST_FUNC get_signum(const char *name)
 				return sigrtmin;
 			if (name[5] == '+') {
 				i = bb_strtou(name + 6, NULL, 10);
-				if (!errno && i <= sigrtmax - sigrtmin)
+				if (i <= sigrtmax - sigrtmin)
 					return sigrtmin + i;
 			}
 		}
@@ -213,7 +217,7 @@ int FAST_FUNC get_signum(const char *name)
 				return sigrtmax;
 			if (name[5] == '-') {
 				i = bb_strtou(name + 6, NULL, 10);
-				if (!errno && i <= sigrtmax - sigrtmin)
+				if (i <= sigrtmax - sigrtmin)
 					return sigrtmax - i;
 			}
 		}
