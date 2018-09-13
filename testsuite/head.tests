@@ -21,6 +21,16 @@ line 11
 line 12
 EOF
 
+testing "head (without args)" \
+	"head head.input" \
+	"line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n" \
+	"" ""
+
+testing "head -n <positive number>" \
+	"head -n 2 head.input" \
+	"line 1\nline 2\n" \
+	"" ""
+
 testing "head -n <negative number>" \
 	"head -n -9 head.input" \
 	"line 1\nline 2\nline 3\n" \
