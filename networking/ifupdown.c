@@ -1022,6 +1022,22 @@ static struct interfaces_file_t *read_interfaces(const char *filename, struct in
 			currently_processing = NONE;
 		} else if (strcmp(first_word, "source") == 0) {
 			read_interfaces(next_word(&rest_of_line), defn);
+		} else if (is_prefixed_with(first_word, "source-dir")) {
+			const char *dirpath;
+			DIR *dir;
+			struct dirent *entry;
+
+			dirpath = next_word(&rest_of_line);
+			dir = xopendir(dirpath);
+			while ((entry = readdir(dir)) != NULL) {
+				char *path;
+				if (entry->d_name[0] == '.')
+					continue;
+				path = concat_path_file(dirpath, entry->d_name);
+				read_interfaces(path, defn);
+				free(path);
+			}
+			closedir(dir);
 		} else {
 			switch (currently_processing) {
 			case IFACE:
