@@ -184,6 +184,7 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 			ptm->tm_year -= 1900; /* Adjust years */
 			ptm->tm_mon -= 1; /* Adjust month from 1-12 to 0-11 */
 		} else {
+ err:
 			bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 		}
 		ptm->tm_sec = 0; /* assume zero if [.SS] is not given */
@@ -193,6 +194,19 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 					&ptm->tm_sec, &end) == 1)
 				end = '\0';
 			/* else end != NUL and we error out */
+		}
+		/* Users were confused by "date -s 20180923"
+		 * working (not in the way they were expecting).
+		 * It was interpreted as MMDDhhmm, and not bothered by
+		 * "month #20" in the least. Prevent such cases:
+		 */
+		if (ptm->tm_sec > 60 /* allow "23:60" leap second */
+		 || ptm->tm_min > 59
+		 || ptm->tm_hour > 23
+		 || ptm->tm_mday > 31
+		 || ptm->tm_mon > 11 /* month# is 0..11, not 1..12 */
+		) {
+			goto err;
 		}
 	}
 	if (end != '\0') {
