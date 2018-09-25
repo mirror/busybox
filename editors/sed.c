@@ -180,18 +180,23 @@ static void sed_free_and_close_stuff(void)
 		if (sed_cmd->sw_file)
 			fclose(sed_cmd->sw_file);
 
-		if (sed_cmd->beg_match) {
-			regfree(sed_cmd->beg_match);
-			free(sed_cmd->beg_match);
-		}
-		if (sed_cmd->end_match) {
-			regfree(sed_cmd->end_match);
-			free(sed_cmd->end_match);
-		}
-		if (sed_cmd->sub_match) {
-			regfree(sed_cmd->sub_match);
-			free(sed_cmd->sub_match);
-		}
+		/* Used to free regexps, but now there is code
+		 * in get_address() which can reuse a regexp
+		 * for constructs as /regexp/cmd1;//cmd2
+		 * leading to double-frees here:
+		 */
+		//if (sed_cmd->beg_match) {
+		//	regfree(sed_cmd->beg_match);
+		//	free(sed_cmd->beg_match);
+		//}
+		//if (sed_cmd->end_match) {
+		//	regfree(sed_cmd->end_match);
+		//	free(sed_cmd->end_match);
+		//}
+		//if (sed_cmd->sub_match) {
+		//	regfree(sed_cmd->sub_match);
+		//	free(sed_cmd->sub_match);
+		//}
 		free(sed_cmd->string);
 		free(sed_cmd);
 		sed_cmd = sed_cmd_next;
