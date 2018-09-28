@@ -2127,6 +2127,23 @@ extern const char bb_default_login_shell[] ALIGN1;
 # define FB_0 "/dev/fb0"
 #endif
 
+// storage helpers for mk*fs utilities
+char BUG_wrong_field_size(void);
+#define STORE_LE(field, value) \
+do { \
+	if (sizeof(field) == 4) \
+		field = SWAP_LE32((uint32_t)(value)); \
+	else if (sizeof(field) == 2) \
+		field = SWAP_LE16((uint16_t)(value)); \
+	else if (sizeof(field) == 1) \
+		field = (uint8_t)(value); \
+	else \
+		BUG_wrong_field_size(); \
+} while (0)
+
+#define FETCH_LE32(field) \
+	(sizeof(field) == 4 ? SWAP_LE32(field) : BUG_wrong_field_size())
+
 
 #define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
 #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))

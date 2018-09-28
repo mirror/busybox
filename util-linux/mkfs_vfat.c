@@ -206,19 +206,6 @@ static const char boot_code[] ALIGN1 =
 #define MARK_CLUSTER(cluster, value) \
 	((uint32_t *)fat)[cluster] = SWAP_LE32(value)
 
-void BUG_unsupported_field_size(void);
-#define STORE_LE(field, value) \
-do { \
-	if (sizeof(field) == 4) \
-		field = SWAP_LE32((uint32_t)(value)); \
-	else if (sizeof(field) == 2) \
-		field = SWAP_LE16((uint16_t)(value)); \
-	else if (sizeof(field) == 1) \
-		field = (uint8_t)(value); \
-	else \
-		BUG_unsupported_field_size(); \
-} while (0)
-
 /* compat:
  * mkdosfs 2.11 (12 Mar 2005)
  * Usage: mkdosfs [-A] [-c] [-C] [-v] [-I] [-l bad-block-file]

@@ -39,23 +39,6 @@
 #include <linux/fs.h>
 #include "bb_e2fs_defs.h"
 
-// storage helpers
-char BUG_wrong_field_size(void);
-#define STORE_LE(field, value) \
-do { \
-	if (sizeof(field) == 4) \
-		field = SWAP_LE32(value); \
-	else if (sizeof(field) == 2) \
-		field = SWAP_LE16(value); \
-	else if (sizeof(field) == 1) \
-		field = (value); \
-	else \
-		BUG_wrong_field_size(); \
-} while (0)
-
-#define FETCH_LE32(field) \
-	(sizeof(field) == 4 ? SWAP_LE32(field) : BUG_wrong_field_size())
-
 enum {
 	OPT_L = 1 << 0, // label
 	OPT_c = 1 << 1, // max mount count
