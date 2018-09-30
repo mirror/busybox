@@ -1086,7 +1086,7 @@ static void showfiles(void)
 			);
 		}
 		if (ENABLE_UNICODE_SUPPORT)
-			puts(printable_string(NULL, matches[n]));
+			puts(printable_string(matches[n]));
 		else
 			puts(matches[n]);
 	}

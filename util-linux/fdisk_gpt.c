@@ -87,7 +87,7 @@ gpt_print_wide36(uint16_t *s)
 	}
 	wc[i] = 0;
 	if (wcstombs(buf, wc, sizeof(buf)) <= sizeof(buf)-1)
-		fputs(printable_string(NULL, buf), stdout);
+		fputs(printable_string(buf), stdout);
 #else
 	char buf[37];
 	int i = 0;

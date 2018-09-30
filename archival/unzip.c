@@ -153,15 +153,15 @@ typedef union {
 #define FIX_ENDIANNESS_CDF(cdf) \
 do { if (BB_BIG_ENDIAN) { \
 	(cdf).fmt.version_made_by = SWAP_LE16((cdf).fmt.version_made_by); \
-	(cdf).fmt.version_needed = SWAP_LE16((cdf).fmt.version_needed); \
-	(cdf).fmt.method        = SWAP_LE16((cdf).fmt.method      ); \
-	(cdf).fmt.modtime       = SWAP_LE16((cdf).fmt.modtime     ); \
-	(cdf).fmt.moddate       = SWAP_LE16((cdf).fmt.moddate     ); \
-	(cdf).fmt.crc32         = SWAP_LE32((cdf).fmt.crc32       ); \
-	(cdf).fmt.cmpsize       = SWAP_LE32((cdf).fmt.cmpsize     ); \
-	(cdf).fmt.ucmpsize      = SWAP_LE32((cdf).fmt.ucmpsize    ); \
-	(cdf).fmt.filename_len  = SWAP_LE16((cdf).fmt.filename_len); \
-	(cdf).fmt.extra_len     = SWAP_LE16((cdf).fmt.extra_len   ); \
+	(cdf).fmt.version_needed  = SWAP_LE16((cdf).fmt.version_needed ); \
+	(cdf).fmt.method          = SWAP_LE16((cdf).fmt.method         ); \
+	(cdf).fmt.modtime         = SWAP_LE16((cdf).fmt.modtime        ); \
+	(cdf).fmt.moddate         = SWAP_LE16((cdf).fmt.moddate        ); \
+	(cdf).fmt.crc32           = SWAP_LE32((cdf).fmt.crc32          ); \
+	(cdf).fmt.cmpsize         = SWAP_LE32((cdf).fmt.cmpsize        ); \
+	(cdf).fmt.ucmpsize        = SWAP_LE32((cdf).fmt.ucmpsize       ); \
+	(cdf).fmt.filename_len    = SWAP_LE16((cdf).fmt.filename_len   ); \
+	(cdf).fmt.extra_len       = SWAP_LE16((cdf).fmt.extra_len      ); \
 	(cdf).fmt.file_comment_length = SWAP_LE16((cdf).fmt.file_comment_length); \
 	(cdf).fmt.external_attributes = SWAP_LE32((cdf).fmt.external_attributes); \
 }} while (0)
@@ -456,7 +456,9 @@ static int get_lstat_mode(const char *dst_fn)
 	struct stat stat_buf;
 	if (lstat(dst_fn, &stat_buf) == -1) {
 		if (errno != ENOENT) {
-			bb_perror_msg_and_die("can't stat '%s'", dst_fn);
+			bb_perror_msg_and_die("can't stat '%s'",
+				dst_fn
+			);
 		}
 		/* File does not exist */
 		return -1;
@@ -634,7 +636,9 @@ int unzip_main(int argc, char **argv)
 				break;
 			if (++i > 2) {
 				*ext = '\0';
-				bb_error_msg_and_die("can't open %s[.zip]", src_fn);
+				bb_error_msg_and_die("can't open %s[.zip]",
+					src_fn
+				);
 			}
 			strcpy(ext, extn[i - 1]);
 		}
@@ -646,8 +650,11 @@ int unzip_main(int argc, char **argv)
 		xchdir(base_dir);
 
 	if (quiet <= 1) { /* not -qq */
-		if (quiet == 0)
-			printf("Archive:  %s\n", src_fn);
+		if (quiet == 0) {
+			printf("Archive:  %s\n",
+				printable_string(src_fn)
+			);
+		}
 		if (opts & OPT_l) {
 			puts(verbose ?
 				" Length   Method    Size  Cmpr    Date    Time   CRC-32   Name\n"
@@ -831,7 +838,8 @@ int unzip_main(int argc, char **argv)
 				printf(       "%9u  " "%s   "         "%s\n",
 					(unsigned)zip.fmt.ucmpsize,
 					dtbuf,
-					dst_fn);
+					printable_string(dst_fn)
+				);
 			} else {
 				char method6[7];
 				unsigned long percents;
@@ -860,7 +868,8 @@ int unzip_main(int argc, char **argv)
 					(unsigned)percents,
 					dtbuf,
 					zip.fmt.crc32,
-					dst_fn);
+					printable_string(dst_fn)
+				);
 				total_size += zip.fmt.cmpsize;
 			}
 			total_usize += zip.fmt.ucmpsize;
@@ -886,7 +895,7 @@ int unzip_main(int argc, char **argv)
 			mode = get_lstat_mode(dst_fn);
 			if (mode == -1) { /* ENOENT */
 				if (!quiet) {
-					printf("   creating: %s\n", dst_fn);
+					printf("   creating: %s\n", printable_string(dst_fn));
 				}
 				unzip_create_leading_dirs(dst_fn);
 				if (bb_make_directory(dst_fn, dir_mode, FILEUTILS_IGNORE_CHMOD_ERR)) {
@@ -895,7 +904,9 @@ int unzip_main(int argc, char **argv)
 			} else {
 				if (!S_ISDIR(mode)) {
 					bb_error_msg_and_die("'%s' exists but is not a %s",
-						dst_fn, "directory");
+						printable_string(dst_fn),
+						"directory"
+					);
 				}
 			}
 			goto skip_cmpsize;
@@ -914,12 +925,16 @@ int unzip_main(int argc, char **argv)
 			if (!S_ISREG(mode)) {
  fishy:
 				bb_error_msg_and_die("'%s' exists but is not a %s",
-					dst_fn, "regular file");
+					printable_string(dst_fn),
+					"regular file"
+				);
 			}
 			if (overwrite == O_ALWAYS) {
 				goto do_open_and_extract;
 			}
-			printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
+			printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ",
+				printable_string(dst_fn)
+			);
 			my_fgets80(key_buf);
 			/* User input could take a long time. Is it still a regular file? */
 			mode = get_lstat_mode(dst_fn);
@@ -949,7 +964,9 @@ int unzip_main(int argc, char **argv)
 			if (!quiet) {
 				printf(/* zip.fmt.method == 0
 					? " extracting: %s\n"
-					: */ "  inflating: %s\n", dst_fn);
+					: */ "  inflating: %s\n",
+					printable_string(dst_fn)
+				);
 			}
 #if ENABLE_FEATURE_UNZIP_CDF
 			if (S_ISLNK(file_mode)) {
