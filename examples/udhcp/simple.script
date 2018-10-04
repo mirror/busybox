@@ -6,19 +6,31 @@ RESOLV_CONF="/etc/resolv.conf"
 [ -n "$1" ] || { echo "Error: should be called from udhcpc"; exit 1; }
 
 NETMASK=""
-[ -n "$subnet" ] && NETMASK="netmask $subnet"
+if command -v ip >/dev/null; then
+	[ -n "$subnet" ] && NETMASK="/$subnet"
+else
+	[ -n "$subnet" ] && NETMASK="netmask $subnet"
+fi
 BROADCAST="broadcast +"
 [ -n "$broadcast" ] && BROADCAST="broadcast $broadcast"
 
 case "$1" in
 	deconfig)
 		echo "Setting IP address 0.0.0.0 on $interface"
-		ifconfig $interface 0.0.0.0
+		if command -v ip >/dev/null; then
+			ip addr flush dev $interface
+		else
+			ifconfig $interface 0.0.0.0
+		fi
 		;;
 
 	renew|bound)
 		echo "Setting IP address $ip on $interface"
-		ifconfig $interface $ip $NETMASK $BROADCAST
+		if command -v ip >/dev/null; then
+			ip addr add $ip$NETMASK $BROADCAST dev $interface
+		else
+			ifconfig $interface $ip $NETMASK $BROADCAST
+		fi
 
 		if [ -n "$router" ] ; then
 			echo "Deleting routers"
