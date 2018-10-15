@@ -182,6 +182,7 @@ dd compatibility options:
   conv=fsync      |  yes   |           |
   iflag=skip_bytes|  yes   |           |
   iflag=fullblock |  yes   |           |
+  oflag=seek_bytes|  yes   |           |
 
 df POSIX options
  option           | exists | compliant | remarks
