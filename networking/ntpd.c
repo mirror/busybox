@@ -62,13 +62,19 @@
 //config:	help
 //config:	Make ntpd look in /etc/ntp.conf for peers. Only "server address"
 //config:	is supported.
+//config:config FEATURE_NTP_AUTH
+//config:	bool "Support md5/sha1 message authentication codes"
+//config:	default n
+//config:	depends on NTPD
 
 //applet:IF_NTPD(APPLET(ntpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_NTPD) += ntpd.o
 
 //usage:#define ntpd_trivial_usage
-//usage:	"[-dnqNw"IF_FEATURE_NTPD_SERVER("l -I IFACE")"] [-S PROG] [-p PEER]..."
+//usage:	"[-dnqNw"IF_FEATURE_NTPD_SERVER("l] [-I IFACE")"] [-S PROG]"
+//usage:	IF_NOT_FEATURE_NTP_AUTH(" [-p PEER]...")
+//usage:	IF_FEATURE_NTP_AUTH(" [-k KEYFILE] [-p [keyno:N:]PEER]...")
 //usage:#define ntpd_full_usage "\n\n"
 //usage:       "NTP client/server\n"
 //usage:     "\n	-d	Verbose (may be repeated)"
@@ -76,8 +82,16 @@
 //usage:     "\n	-q	Quit after clock is set"
 //usage:     "\n	-N	Run at high priority"
 //usage:     "\n	-w	Do not set time (only query peers), implies -n"
-//usage:     "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 mins"
+//usage:     "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 min"
+//usage:	IF_NOT_FEATURE_NTP_AUTH(
 //usage:     "\n	-p PEER	Obtain time from PEER (may be repeated)"
+//usage:	)
+//usage:	IF_FEATURE_NTP_AUTH(
+//usage:     "\n	-k FILE	Key file (ntp.keys compatible)"
+//usage:     "\n	-p [keyno:NUM:]PEER"
+//usage:     "\n		Obtain time from PEER (may be repeated)"
+//usage:     "\n		Use key NUM for authentication"
+//usage:	)
 //usage:	IF_FEATURE_NTPD_CONF(
 //usage:     "\n		If -p is not given, 'server HOST' lines"
 //usage:     "\n		from /etc/ntp.conf are used"
@@ -228,14 +242,18 @@
 /* Parameter averaging constant */
 #define AVG             4
 
+#define MAX_KEY_NUMBER  65535
+#define KEYID_SIZE      sizeof(uint32_t)
 
 enum {
 	NTP_VERSION     = 4,
 	NTP_MAXSTRATUM  = 15,
 
-	NTP_DIGESTSIZE     = 16,
-	NTP_MSGSIZE_NOAUTH = 48,
-	NTP_MSGSIZE        = (NTP_MSGSIZE_NOAUTH + 4 + NTP_DIGESTSIZE),
+	NTP_MD5_DIGESTSIZE    = 16,
+	NTP_MSGSIZE_NOAUTH    = 48,
+	NTP_MSGSIZE_MD5_AUTH  = NTP_MSGSIZE_NOAUTH + KEYID_SIZE + NTP_MD5_DIGESTSIZE,
+	NTP_SHA1_DIGESTSIZE   = 20,
+	NTP_MSGSIZE_SHA1_AUTH = NTP_MSGSIZE_NOAUTH + KEYID_SIZE + NTP_SHA1_DIGESTSIZE,
 
 	/* Status Masks */
 	MODE_MASK       = (7 << 0),
@@ -288,7 +306,7 @@ typedef struct {
 	l_fixedpt_t m_rectime;
 	l_fixedpt_t m_xmttime;
 	uint32_t    m_keyid;
-	uint8_t     m_digest[NTP_DIGESTSIZE];
+	uint8_t     m_digest[ENABLE_FEATURE_NTP_AUTH ? NTP_SHA1_DIGESTSIZE : NTP_MD5_DIGESTSIZE];
 } msg_t;
 
 typedef struct {
@@ -297,9 +315,26 @@ typedef struct {
 	double d_dispersion;
 } datapoint_t;
 
+#if ENABLE_FEATURE_NTP_AUTH
+enum {
+	HASH_MD5,
+	HASH_SHA1,
+};
+typedef struct {
+	unsigned id; //try uint16_t?
+	smalluint type;
+	smalluint msg_size;
+	smalluint key_length;
+	char key[0];
+} key_entry_t;
+#endif
+
 typedef struct {
 	len_and_sockaddr *p_lsa;
 	char             *p_dotted;
+#if ENABLE_FEATURE_NTP_AUTH
+	key_entry_t      *key_entry;
+#endif
 	int              p_fd;
 	int              datapoint_idx;
 	uint32_t         lastpkt_refid;
@@ -337,13 +372,14 @@ enum {
 	OPT_q = (1 << 1),
 	OPT_N = (1 << 2),
 	OPT_x = (1 << 3),
+	OPT_k = (1 << 4) * ENABLE_FEATURE_NTP_AUTH,
 	/* Insert new options above this line. */
 	/* Non-compat options: */
-	OPT_w = (1 << 4),
-	OPT_p = (1 << 5),
-	OPT_S = (1 << 6),
-	OPT_l = (1 << 7) * ENABLE_FEATURE_NTPD_SERVER,
-	OPT_I = (1 << 8) * ENABLE_FEATURE_NTPD_SERVER,
+	OPT_w = (1 << (4+ENABLE_FEATURE_NTP_AUTH)),
+	OPT_p = (1 << (5+ENABLE_FEATURE_NTP_AUTH)),
+	OPT_S = (1 << (6+ENABLE_FEATURE_NTP_AUTH)),
+	OPT_l = (1 << (7+ENABLE_FEATURE_NTP_AUTH)) * ENABLE_FEATURE_NTPD_SERVER,
+	OPT_I = (1 << (8+ENABLE_FEATURE_NTP_AUTH)) * ENABLE_FEATURE_NTPD_SERVER,
 	/* We hijack some bits for other purposes */
 	OPT_qq = (1 << 31),
 };
@@ -816,8 +852,12 @@ resolve_peer_hostname(peer_t *p)
 	return lsa;
 }
 
+#if !ENABLE_FEATURE_NTP_AUTH
+#define add_peers(s, key_entry) \
+	add_peers(s)
+#endif
 static void
-add_peers(const char *s)
+add_peers(const char *s, key_entry_t *key_entry)
 {
 	llist_t *item;
 	peer_t *p;
@@ -846,6 +886,7 @@ add_peers(const char *s)
 		}
 	}
 
+	IF_FEATURE_NTP_AUTH(p->key_entry = key_entry;)
 	llist_add_to(&G.ntp_peers, p);
 	G.peer_cnt++;
 }
@@ -869,6 +910,48 @@ do_sendto(int fd,
 	}
 	return 0;
 }
+
+#if ENABLE_FEATURE_NTP_AUTH
+static void
+hash(key_entry_t *key_entry, const msg_t *msg, uint8_t *output)
+{
+	union {
+		md5_ctx_t m;
+		sha1_ctx_t s;
+	} ctx;
+	unsigned hash_size = sizeof(*msg) - sizeof(msg->m_keyid) - sizeof(msg->m_digest);
+
+	switch (key_entry->type) {
+	case HASH_MD5:
+		md5_begin(&ctx.m);
+		md5_hash(&ctx.m, key_entry->key, key_entry->key_length);
+		md5_hash(&ctx.m, msg, hash_size);
+		md5_end(&ctx.m, output);
+		break;
+	default: /* it's HASH_SHA1 */
+		sha1_begin(&ctx.s);
+		sha1_hash(&ctx.s, key_entry->key, key_entry->key_length);
+		sha1_hash(&ctx.s, msg, hash_size);
+		sha1_end(&ctx.s, output);
+		break;
+	}
+}
+
+static void
+hash_peer(peer_t *p)
+{
+	p->p_xmt_msg.m_keyid = htonl(p->key_entry->id);
+	hash(p->key_entry, &p->p_xmt_msg, p->p_xmt_msg.m_digest);
+}
+
+static int
+hashes_differ(peer_t *p, const msg_t *msg)
+{
+	uint8_t digest[NTP_SHA1_DIGESTSIZE];
+	hash(p->key_entry, msg, digest);
+	return memcmp(digest, msg->m_digest, p->key_entry->msg_size - NTP_MSGSIZE_NOAUTH - KEYID_SIZE);
+}
+#endif
 
 static void
 send_query_to_peer(peer_t *p)
@@ -946,9 +1029,18 @@ send_query_to_peer(peer_t *p)
 	 */
 	p->reachable_bits <<= 1;
 
+#if ENABLE_FEATURE_NTP_AUTH
+	if (p->key_entry)
+		hash_peer(p);
 	if (do_sendto(p->p_fd, /*from:*/ NULL, /*to:*/ &p->p_lsa->u.sa, /*addrlen:*/ p->p_lsa->len,
-			&p->p_xmt_msg, NTP_MSGSIZE_NOAUTH) == -1
-	) {
+		&p->p_xmt_msg, !p->key_entry ? NTP_MSGSIZE_NOAUTH : p->key_entry->msg_size) == -1
+	)
+#else
+	if (do_sendto(p->p_fd, /*from:*/ NULL, /*to:*/ &p->p_lsa->u.sa, /*addrlen:*/ p->p_lsa->len,
+		&p->p_xmt_msg, NTP_MSGSIZE_NOAUTH) == -1
+	)
+#endif
+	{
 		close(p->p_fd);
 		p->p_fd = -1;
 		/*
@@ -1924,10 +2016,21 @@ recv_and_process_peer_pkt(peer_t *p)
 		bb_perror_msg_and_die("recv(%s) error", p->p_dotted);
 	}
 
-	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE) {
+#if ENABLE_FEATURE_NTP_AUTH
+	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE_MD5_AUTH && size != NTP_MSGSIZE_SHA1_AUTH) {
 		bb_error_msg("malformed packet received from %s", p->p_dotted);
 		return;
 	}
+	if (p->key_entry && hashes_differ(p, &msg)) {
+		bb_error_msg("invalid cryptographic hash received from %s", p->p_dotted);
+		return;
+	}
+#else
+	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE_MD5_AUTH) {
+		bb_error_msg("malformed packet received from %s", p->p_dotted);
+		return;
+	}
+#endif
 
 	if (msg.m_orgtime.int_partl != p->p_xmt_msg.m_xmttime.int_partl
 	 || msg.m_orgtime.fractionl != p->p_xmt_msg.m_xmttime.fractionl
@@ -2135,7 +2238,12 @@ recv_and_process_client_pkt(void /*int fd*/)
 	from = xzalloc(to->len);
 
 	size = recv_from_to(G_listen_fd, &msg, sizeof(msg), MSG_DONTWAIT, from, &to->u.sa, to->len);
-	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE) {
+#if ENABLE_FEATURE_NTP_AUTH
+	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE_MD5_AUTH && size != NTP_MSGSIZE_SHA1_AUTH)
+#else
+	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE_MD5_AUTH)
+#endif
+	{
 		char *addr;
 		if (size < 0) {
 			if (errno == EAGAIN)
@@ -2278,6 +2386,19 @@ recv_and_process_client_pkt(void /*int fd*/)
  *      with the -g and -q options. See the tinker command for other options.
  *      Note: The kernel time discipline is disabled with this option.
  */
+#if ENABLE_FEATURE_NTP_AUTH
+static key_entry_t *
+find_key_entry(llist_t *key_entries, unsigned id)
+{
+	while (key_entries) {
+		key_entry_t *cur = (key_entry_t*) key_entries->data;
+		if (cur->id == id)
+			return cur;
+		key_entries = key_entries->link;
+	}
+	bb_error_msg_and_die("key %u is not defined", id);
+}
+#endif
 
 /* By doing init in a separate function we decrease stack usage
  * in main loop.
@@ -2286,6 +2407,10 @@ static NOINLINE void ntp_init(char **argv)
 {
 	unsigned opts;
 	llist_t *peers;
+#if ENABLE_FEATURE_NTP_AUTH
+	llist_t *key_entries;
+	char *key_file_path;
+#endif
 
 	srand(getpid());
 
@@ -2302,8 +2427,10 @@ static NOINLINE void ntp_init(char **argv)
 
 	/* Parse options */
 	peers = NULL;
+	IF_FEATURE_NTP_AUTH(key_entries = NULL;)
 	opts = getopt32(argv, "^"
 			"nqNx" /* compat */
+			IF_FEATURE_NTP_AUTH("k:")  /* compat */
 			"wp:*S:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
 			IF_FEATURE_NTPD_SERVER("I:") /* compat */
 			"d" /* compat */
@@ -2311,11 +2438,11 @@ static NOINLINE void ntp_init(char **argv)
 				"\0"
 				"dd:wn"  /* -d: counter; -p: list; -w implies -n */
 				IF_FEATURE_NTPD_SERVER(":Il") /* -I implies -l */
-			, &peers, &G.script_name,
-#if ENABLE_FEATURE_NTPD_SERVER
-			&G.if_name,
-#endif
-			&G.verbose);
+			IF_FEATURE_NTP_AUTH(, &key_file_path)
+			, &peers, &G.script_name
+			IF_FEATURE_NTPD_SERVER(, &G.if_name)
+			, &G.verbose
+	);
 
 //	if (opts & OPT_x) /* disable stepping, only slew is allowed */
 //		G.time_was_stepped = 1;
@@ -2341,19 +2468,107 @@ static NOINLINE void ntp_init(char **argv)
 		logmode = LOGMODE_NONE;
 	}
 
+#if ENABLE_FEATURE_NTP_AUTH
+	if (opts & OPT_k) {
+		char *tokens[4];
+		parser_t *parser;
+
+		parser = config_open(key_file_path);
+		while (config_read(parser, tokens, 4, 3, "# \t", PARSE_NORMAL | PARSE_MIN_DIE) == 3) {
+			key_entry_t *key_entry;
+			char buffer[40];
+			smalluint hash_type;
+			smalluint msg_size;
+			smalluint key_length;
+			char *key;
+
+			if ((tokens[1][0] | 0x20) == 'm')
+				/* supports 'M' and 'md5' formats */
+				hash_type = HASH_MD5;
+			else
+			if (strncasecmp(tokens[1], "sha", 3) == 0)
+				/* supports 'sha' and 'sha1' formats */
+				hash_type = HASH_SHA1;
+			else
+				bb_error_msg_and_die("only MD5 and SHA1 keys supported");
+/* man ntp.keys:
+ *  MD5    The key is 1 to 16 printable characters terminated by an EOL,
+ *         whitespace, or a # (which is the "start of comment" character).
+ *  SHA
+ *  SHA1
+ *  RMD160 The key is a hex-encoded ASCII string of 40 characters, which
+ *         is truncated as necessary.
+ */
+			key_length = strnlen(tokens[2], sizeof(buffer)+1);
+			if (key_length >= sizeof(buffer)+1) {
+ err:
+				bb_error_msg_and_die("malformed key at line %u", parser->lineno);
+			}
+			if (hash_type == HASH_MD5) {
+				key = tokens[2];
+				msg_size = NTP_MSGSIZE_MD5_AUTH;
+			} else /* it's hash_type == HASH_SHA1 */
+			if (!(key_length & 1)) {
+				key_length >>= 1;
+				if (!hex2bin(buffer, tokens[2], key_length))
+					goto err;
+				key = buffer;
+				msg_size = NTP_MSGSIZE_SHA1_AUTH;
+			} else {
+				goto err;
+			}
+			key_entry = xzalloc(sizeof(*key_entry) + key_length);
+			key_entry->type = hash_type;
+			key_entry->msg_size = msg_size;
+			key_entry->key_length = key_length;
+			memcpy(key_entry->key, key, key_length);
+			key_entry->id = xatou_range(tokens[0], 1, MAX_KEY_NUMBER);
+			llist_add_to(&key_entries, key_entry);
+		}
+		config_close(parser);
+	}
+#endif
 	if (peers) {
+#if ENABLE_FEATURE_NTP_AUTH
+		while (peers) {
+			char *peer = llist_pop(&peers);
+			key_entry_t *key_entry = NULL;
+			if (strncmp(peer, "keyno:", 6) == 0) {
+				char *end;
+				int key_id;
+				peer += 6;
+				end = strchr(peer, ':');
+				*end = '\0';
+				key_id = xatou_range(peer, 1, MAX_KEY_NUMBER);
+				*end = ':';
+				key_entry = find_key_entry(key_entries, key_id);
+				peer = end + 1;
+			}
+			add_peers(peer, key_entry);
+		}
+#else
 		while (peers)
-			add_peers(llist_pop(&peers));
+			add_peers(llist_pop(&peers), NULL);
+#endif
 	}
 #if ENABLE_FEATURE_NTPD_CONF
 	else {
 		parser_t *parser;
-		char *token[3];
+		char *token[3 + 2*ENABLE_FEATURE_NTP_AUTH];
 
 		parser = config_open("/etc/ntp.conf");
-		while (config_read(parser, token, 3, 1, "# \t", PARSE_NORMAL)) {
+		while (config_read(parser, token, 3 + 2*ENABLE_FEATURE_NTP_AUTH, 1, "# \t", PARSE_NORMAL)) {
 			if (strcmp(token[0], "server") == 0 && token[1]) {
-				add_peers(token[1]);
+# if ENABLE_FEATURE_NTP_AUTH
+				key_entry_t *key_entry = NULL;
+				if (token[2] && token[3] && strcmp(token[2], "key") == 0) {
+					unsigned key_id = xatou_range(token[3], 1, MAX_KEY_NUMBER);
+					key_entry = find_key_entry(key_entries, key_id);
+				}
+				add_peers(token[1], key_entry);
+# else
+				add_peers(token[1], NULL);
+# endif
 				continue;
 			}
 			bb_error_msg("skipping %s:%u: unimplemented command '%s'",
@@ -2394,6 +2609,7 @@ static NOINLINE void ntp_init(char **argv)
 		| (1 << SIGCHLD)
 		, SIG_IGN
 	);
+//TODO: free unused elements of key_entries?
 }
 
 int ntpd_main(int argc UNUSED_PARAM, char **argv) MAIN_EXTERNALLY_VISIBLE;
