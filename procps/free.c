@@ -53,21 +53,27 @@ static unsigned long long scale(struct globals *g, unsigned long d)
 }
 
 /* NOINLINE reduces main() stack usage, which makes code smaller (on x86 at least) */
-static NOINLINE unsigned long parse_cached_kb(void)
+static NOINLINE unsigned int parse_meminfo(unsigned long *cached_kb, unsigned long *available_kb)
 {
 	char buf[60]; /* actual lines we expect are ~30 chars or less */
 	FILE *fp;
-	unsigned long cached = 0;
+	int seen_cached_and_available;
 
 	fp = xfopen_for_read("/proc/meminfo");
-	while (fgets(buf, sizeof(buf), fp) != NULL) {
-		if (sscanf(buf, "Cached: %lu %*s\n", &cached) == 1)
-			break;
+	*cached_kb = *available_kb = 0;
+	seen_cached_and_available = 2;
+	while (fgets(buf, sizeof(buf), fp)) {
+		if (sscanf(buf, "Cached: %lu %*s\n", cached_kb) == 1)
+			if (--seen_cached_and_available == 0)
+				break;
+		if (sscanf(buf, "MemAvailable: %lu %*s\n", available_kb) == 1)
+			if (--seen_cached_and_available == 0)
+				break;
 	}
 	/* Have to close because of NOFORK */
 	fclose(fp);
 
-	return cached;
+	return seen_cached_and_available == 0;
 }
 
 int free_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -75,7 +81,9 @@ int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 {
 	struct globals G;
 	struct sysinfo info;
-	unsigned long long cached;
+	unsigned long long cached, cached_plus_free, available;
+	unsigned long cached_kb, available_kb;
+	int seen_available;
 
 #if ENABLE_DESKTOP
 	G.unit_steps = 10;
@@ -98,41 +106,46 @@ int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 		}
 	}
 #endif
-	printf("       %11s%11s%11s%11s%11s%11s\n"
+	printf("       %12s%12s%12s%12s%12s%12s\n"
 	"Mem:   ",
 		"total",
 		"used",
 		"free",
-		"shared", "buffers", "cached" /* swap and total don't have these columns */
+		"shared", "buff/cache", "available" /* swap and total don't have these columns */
 	);
 
 	sysinfo(&info);
 	/* Kernels prior to 2.4.x will return info.mem_unit==0, so cope... */
 	G.mem_unit = (info.mem_unit ? info.mem_unit : 1);
-	/* Extract cached from /proc/meminfo and convert to mem_units */
-	cached = ((unsigned long long) parse_cached_kb() * 1024) / G.mem_unit;
+	/* Extract cached and memavailable from /proc/meminfo and convert to mem_units */
+	seen_available = parse_meminfo(&cached_kb, &available_kb);
+	available = ((unsigned long long) available_kb * 1024) / G.mem_unit;
+	cached = ((unsigned long long) cached_kb * 1024) / G.mem_unit;
+	cached += info.bufferram;
+	cached_plus_free = cached + info.freeram;
 
-#define FIELDS_6 "%11llu%11llu%11llu%11llu%11llu%11llu\n"
+#define FIELDS_6 "%12llu%12llu%12llu%12llu%12llu%12llu\n"
 #define FIELDS_3 (FIELDS_6 + 3*6)
 #define FIELDS_2 (FIELDS_6 + 4*6)
 
 	printf(FIELDS_6,
 		scale(&G, info.totalram),                //total
-		scale(&G, info.totalram - info.freeram), //used
+		scale(&G, info.totalram - cached_plus_free), //used
 		scale(&G, info.freeram),                 //free
 		scale(&G, info.sharedram),               //shared
-		scale(&G, info.bufferram),               //buffers
-		scale(&G, cached)                        //cached
+		scale(&G, cached),                       //buff/cache
+		scale(&G, available)                     //available
 	);
-	/* Show alternate, more meaningful busy/free numbers by counting
+	/* On kernels < 3.14, MemAvailable is not provided.
+	 * Show alternate, more meaningful busy/free numbers by counting
 	 * buffer cache as free memory. */
-	printf("-/+ buffers/cache:");
-	cached += info.freeram;
-	cached += info.bufferram;
-	printf(FIELDS_2,
-		scale(&G, info.totalram - cached), //used
-		scale(&G, cached)                  //free
-	);
+	if (!seen_available) {
+		printf("-/+ buffers/cache: ");
+		printf(FIELDS_2,
+			scale(&G, info.totalram - cached_plus_free), //used
+			scale(&G, cached_plus_free)                  //free
+		);
+	}
 #if BB_MMU
 	printf("Swap:  ");
 	printf(FIELDS_3,
