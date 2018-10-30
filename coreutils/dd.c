@@ -56,8 +56,11 @@
 //kbuild:lib-$(CONFIG_DD) += dd.o
 
 //usage:#define dd_trivial_usage
-//usage:       "[if=FILE] [of=FILE] " IF_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n"
-//usage:       "	[seek=N]" IF_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync] [iflag=skip_bytes|fullblock] [oflag=seek_bytes]")
+//usage:       "[if=FILE] [of=FILE] [" IF_FEATURE_DD_IBS_OBS("ibs=N obs=N/") "bs=N] [count=N] [skip=N] [seek=N]\n"
+//usage:	IF_FEATURE_DD_IBS_OBS(
+//usage:       "	[conv=notrunc|noerror|sync|fsync]\n"
+//usage:       "	[iflag=skip_bytes|fullblock] [oflag=seek_bytes]"
+//usage:	)
 //usage:#define dd_full_usage "\n\n"
 //usage:       "Copy a file with converting and formatting\n"
 //usage:     "\n	if=FILE		Read from FILE instead of stdin"
@@ -321,13 +324,13 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	/* These are all zeroed at once! */
 	struct {
-		size_t oc;
+		IF_FEATURE_DD_IBS_OBS(size_t ocount;)
 		ssize_t prev_read_size; /* for detecting swab failure */
 		off_t count;
 		off_t seek, skip;
 		const char *infile, *outfile;
 	} Z;
-#define oc      (Z.oc     )
+#define ocount  (Z.ocount )
 #define prev_read_size (Z.prev_read_size)
 #define count   (Z.count  )
 #define seek    (Z.seek   )
@@ -542,24 +545,26 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 				n = ibs;
 			}
 		}
+#if ENABLE_FEATURE_DD_IBS_OBS
 		if (G.flags & FLAG_TWOBUFS) {
 			char *tmp = ibuf;
 			while (n) {
-				size_t d = obs - oc;
-
+				size_t d = obs - ocount;
 				if (d > (size_t)n)
 					d = n;
-				memcpy(obuf + oc, tmp, d);
+				memcpy(obuf + ocount, tmp, d);
 				n -= d;
 				tmp += d;
-				oc += d;
-				if (oc == obs) {
+				ocount += d;
+				if (ocount == obs) {
 					if (write_and_stats(obuf, obs, obs, outfile))
 						goto out_status;
-					oc = 0;
+					ocount = 0;
 				}
 			}
-		} else {
+		} else
+#endif
+		{
 			if (write_and_stats(ibuf, n, obs, outfile))
 				goto out_status;
 		}
@@ -570,10 +575,12 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			goto die_outfile;
 	}
 
-	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {
-		if (write_and_stats(obuf, oc, obs, outfile))
+#if ENABLE_FEATURE_DD_IBS_OBS
+	if (ocount != 0) {
+		if (write_and_stats(obuf, ocount, obs, outfile))
 			goto out_status;
 	}
+#endif
 	if (close(ifd) < 0) {
  die_infile:
 		bb_simple_perror_msg_and_die(infile);
