@@ -81,7 +81,7 @@ long long FAST_FUNC bb_strtoll(const char *arg, char **endp, int base)
 	/* Check for the weird "feature":
 	 * a "-" string is apparently a valid "number" for strto[u]l[l]!
 	 * It returns zero and errno is 0! :( */
-	first = (arg[0] != '-' && arg[0] != '+' ? arg[0] : arg[1]);
+	first = (arg[0] != '-' ? arg[0] : arg[1]);
 	if (!isalnum(first)) return ret_ERANGE();
 
 	errno = 0;
