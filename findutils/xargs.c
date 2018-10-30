@@ -204,14 +204,15 @@ static int xargs_exec(void)
 		status = (errno == ENOENT) ? 127 : 126;
 	}
 	else if (status >= 0x180) {
-		bb_error_msg("'%s' terminated by signal %d",
+		bb_error_msg("'%s' terminated by signal %u",
 			G.args[0], status - 0x180);
 		status = 125;
 	}
 	else if (status != 0) {
 		if (status == 255) {
 			bb_error_msg("%s: exited with status 255; aborting", G.args[0]);
-			return 124;
+			status = 124;
+			goto ret;
 		}
 		/* "123 if any invocation of the command exited with status 1-125"
 		 * This implies that nonzero exit code is remembered,
@@ -220,7 +221,7 @@ static int xargs_exec(void)
 		G.xargs_exitcode = 123;
 		status = 0;
 	}
-
+ ret:
 	if (status != 0)
 		G.xargs_exitcode = status;
 	return status;
