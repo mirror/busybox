@@ -62,9 +62,10 @@
 //config:	help
 //config:	Make ntpd look in /etc/ntp.conf for peers. Only "server address"
 //config:	is supported.
+//config:
 //config:config FEATURE_NTP_AUTH
 //config:	bool "Support md5/sha1 message authentication codes"
-//config:	default n
+//config:	default y
 //config:	depends on NTPD
 
 //applet:IF_NTPD(APPLET(ntpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
