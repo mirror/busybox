@@ -8018,8 +8018,7 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) const char *cmd, char **argv, c
 #if ENABLE_FEATURE_SH_STANDALONE
 	if (applet_no >= 0) {
 # if NUM_SCRIPTS > 0
-		if (applet_no >= NUM_APPLETS)
-			goto run_script;
+		if (applet_no < NUM_APPLETS)
 # endif
 		if (APPLET_IS_NOEXEC(applet_no)) {
 			clearenv();
@@ -8045,9 +8044,6 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) const char *cmd, char **argv, c
 #endif
 
 	if (cmd != bb_busybox_exec_path && errno == ENOEXEC) {
-#if ENABLE_FEATURE_SH_STANDALONE && NUM_SCRIPTS > 0
- run_script:
-#endif
 		/* Run "cmd" as a shell script:
 		 * http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 		 * "If the execve() function fails with ENOEXEC, the shell
