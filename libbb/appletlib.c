@@ -839,24 +839,30 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 			"Currently defined functions:\n"
 		);
 		col = 0;
-		a = applet_names;
 		/* prevent last comma to be in the very last pos */
 		output_width--;
-		while (*a) {
-			int len2 = strlen(a) + 2;
-			if (col >= (int)output_width - len2) {
-				full_write2_str(",\n");
-				col = 0;
+		a = applet_names;
+		{
+#  if NUM_SCRIPTS > 0
+			int i;
+			for (i = 0; i < 2; i++, a = script_names)
+#  endif
+			while (*a) {
+				int len2 = strlen(a) + 2;
+				if (col >= (int)output_width - len2) {
+					full_write2_str(",\n");
+					col = 0;
+				}
+				if (col == 0) {
+					col = 6;
+					full_write2_str("\t");
+				} else {
+					full_write2_str(", ");
+				}
+				full_write2_str(a);
+				col += len2;
+				a += len2 - 1;
 			}
-			if (col == 0) {
-				col = 6;
-				full_write2_str("\t");
-			} else {
-				full_write2_str(", ");
-			}
-			full_write2_str(a);
-			col += len2;
-			a += len2 - 1;
 		}
 		full_write2_str("\n");
 		return 0;
