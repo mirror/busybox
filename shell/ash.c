@@ -153,15 +153,10 @@
 //config:	default y
 //config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
 //config:	help
-//config:	Allow scripts to be compressed and embedded in the BusyBox
+//config:	Allow scripts to be compressed and embedded in the busybox
 //config:	binary. The scripts should be placed in the 'embed' directory
-//config:	at build time. In standalone shell mode such scripts can be
-//config:	run directly and are subject to tab completion; otherwise they
-//config:	can be run by giving their name as an argument to the shell.
-//config:	For convenience shell aliases are created. The '-L' shell
-//config:	argument lists the names of the scripts. Like applets scripts
-//config:	can be run as 'busybox name ...' or by linking their name to
-//config:	the binary.
+//config:	at build time. Like applets, scripts can be run as
+//config:	'busybox SCRIPT ...' or by linking their name to the binary.
 //config:
 //config:endif # ash options
 
