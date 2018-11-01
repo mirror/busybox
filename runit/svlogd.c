@@ -1010,7 +1010,7 @@ static void sig_hangup_handler(int sig_no UNUSED_PARAM)
 	reopenasap = 1;
 }
 
-static void logmatch(struct logdir *ld)
+static void logmatch(struct logdir *ld, char* lineptr, int lineptr_len)
 {
 	char *s;
 
@@ -1021,12 +1021,12 @@ static void logmatch(struct logdir *ld)
 		switch (s[0]) {
 		case '+':
 		case '-':
-			if (pmatch(s+1, line, linelen))
+			if (pmatch(s+1, lineptr, lineptr_len))
 				ld->match = s[0];
 			break;
 		case 'e':
 		case 'E':
-			if (pmatch(s+1, line, linelen))
+			if (pmatch(s+1, lineptr, lineptr_len))
 				ld->matcherr = s[0];
 			break;
 		}
@@ -1182,7 +1182,7 @@ int svlogd_main(int argc, char **argv)
 			if (ld->fddir == -1)
 				continue;
 			if (ld->inst)
-				logmatch(ld);
+				logmatch(ld, lineptr, linelen);
 			if (ld->matcherr == 'e') {
 				/* runit-1.8.0 compat: if timestamping, do it on stderr too */
 				////full_write(STDERR_FILENO, printptr, printlen);
