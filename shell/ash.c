@@ -8085,6 +8085,9 @@ static void shellexec(char *prog, char **argv, const char *path, int idx)
 	if (strchr(prog, '/') != NULL
 #if ENABLE_FEATURE_SH_STANDALONE
 	 || (applet_no = find_applet_by_name(prog)) >= 0
+# if NUM_SCRIPTS > 0
+	 || (applet_no = NUM_APPLETS + find_script_by_name(prog)) >= 0
+# endif
 #endif
 	) {
 		tryexec(IF_FEATURE_SH_STANDALONE(applet_no,) prog, argv, envp);
@@ -10186,6 +10189,10 @@ evalcommand(union node *cmd, int flags)
  */
 		/* find_command() encodes applet_no as (-2 - applet_no) */
 		int applet_no = (- cmdentry.u.index - 2);
+# if NUM_SCRIPTS > 0
+		/* Applets are ok, but not embedded scripts */
+		if (applet_no < NUM_APPLETS)
+# endif
 		if (applet_no >= 0 && APPLET_IS_NOFORK(applet_no)) {
 			char **sv_environ;
 
@@ -13368,6 +13375,11 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 #if ENABLE_FEATURE_SH_STANDALONE
 	{
 		int applet_no = find_applet_by_name(name);
+# if NUM_SCRIPTS > 0
+		if (applet_no < 0)
+			/* embedded script indices are offset by NUM_APPLETS */
+			applet_no = NUM_APPLETS + find_script_by_name(name);
+# endif
 		if (applet_no >= 0) {
 			entry->cmdtype = CMDNORMAL;
 			entry->u.index = -2 - applet_no;

@@ -1322,7 +1322,7 @@ void bb_logenv_override(void) FAST_FUNC;
 #endif
 
 /* Embedded script support */
-//int find_script_by_name(const char *arg IF_FEATURE_SH_STANDALONE(, int offset)) FAST_FUNC;
+int find_script_by_name(const char *name) FAST_FUNC;
 char *get_script_content(unsigned n) FAST_FUNC;
 
 /* Applets which are useful from another applets */

@@ -964,20 +964,20 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **ar
 # endif /* NUM_APPLETS > 0 */
 
 # if NUM_SCRIPTS > 0
-static int
-find_script_by_name(const char *arg)
+int FAST_FUNC
+find_script_by_name(const char *name)
 {
 	const char *s = script_names;
 	int i = 0;
 
 	while (*s) {
-		if (strcmp(arg, s) == 0)
+		if (strcmp(name, s) == 0)
 			return i;
 		i++;
 		while (*s++ != '\0')
 			continue;
 	}
-	return -1;
+	return -0x10000; /* make it so that NUM_APPLETS + <error> is still < 0 */
 }
 
 static char *
