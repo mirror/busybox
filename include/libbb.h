@@ -1321,9 +1321,17 @@ void bb_logenv_override(void) FAST_FUNC;
 #define MAIN_EXTERNALLY_VISIBLE
 #endif
 
+/* Embedded script support */
+//int find_script_by_name(const char *arg IF_FEATURE_SH_STANDALONE(, int offset)) FAST_FUNC;
+char *get_script_content(unsigned n) FAST_FUNC;
 
 /* Applets which are useful from another applets */
 int bb_cat(char** argv) FAST_FUNC;
+int ash_main(int argc, char** argv)
+#if ENABLE_ASH || ENABLE_SH_IS_ASH || ENABLE_BASH_IS_ASH
+		MAIN_EXTERNALLY_VISIBLE
+#endif
+;
 /* If shell needs them, they exist even if not enabled as applets */
 int echo_main(int argc, char** argv) IF_ECHO(MAIN_EXTERNALLY_VISIBLE);
 int printf_main(int argc, char **argv) IF_PRINTF(MAIN_EXTERNALLY_VISIBLE);

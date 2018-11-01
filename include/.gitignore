@@ -5,6 +5,7 @@
 /autoconf.h
 /bbconfigopts_bz2.h
 /bbconfigopts.h
+/embedded_scripts.h
 /NUM_APPLETS.h
 /usage_compressed.h
 /usage.h

@@ -41,6 +41,12 @@
 #include "busybox.h"
 #include "NUM_APPLETS.h"
 #include "unicode.h"
+#if ENABLE_ASH_EMBEDDED_SCRIPTS
+# include "embedded_scripts.h"
+#else
+# define NUM_SCRIPTS 0
+#endif
+
 #ifndef _POSIX_VDISABLE
 # define _POSIX_VDISABLE '\0'
 #endif

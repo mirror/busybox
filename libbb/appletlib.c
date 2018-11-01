@@ -50,6 +50,16 @@
 
 #include "usage_compressed.h"
 
+#if ENABLE_ASH_EMBEDDED_SCRIPTS
+# define DEFINE_script_names 1
+# include "embedded_scripts.h"
+#else
+# define NUM_SCRIPTS 0
+#endif
+#if NUM_SCRIPTS > 0
+# include "bb_archive.h"
+static const char packed_scripts[] ALIGN1 = { PACKED_SCRIPTS };
+#endif
 
 /* "Do not compress usage text if uncompressed text is small
  *  and we don't include bunzip2 code for other reasons"
@@ -953,7 +963,71 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **ar
 }
 # endif /* NUM_APPLETS > 0 */
 
-# if ENABLE_BUSYBOX || NUM_APPLETS > 0
+# if NUM_SCRIPTS > 0
+static char *
+unpack_scripts(void)
+{
+	char *outbuf = NULL;
+	bunzip_data *bd;
+	int i;
+	jmp_buf jmpbuf;
+
+	/* Setup for I/O error handling via longjmp */
+	i = setjmp(jmpbuf);
+	if (i == 0) {
+		i = start_bunzip(&jmpbuf,
+			&bd,
+			/* src_fd: */ -1,
+			/* inbuf:  */ packed_scripts,
+			/* len:    */ sizeof(packed_scripts)
+		);
+	}
+	/* read_bunzip can longjmp and end up here with i != 0
+	 * on read data errors! Not trivial */
+	if (i == 0) {
+		outbuf = xmalloc(UNPACKED_SCRIPTS_LENGTH);
+		read_bunzip(bd, outbuf, UNPACKED_SCRIPTS_LENGTH);
+	}
+	dealloc_bunzip(bd);
+	return outbuf;
+}
+
+/*
+ * In standalone shell mode we sometimes want the index of the script
+ * and sometimes the index offset by NUM_APPLETS.
+ */
+static int
+find_script_by_name(const char *arg)
+{
+	const char *s = script_names;
+	int i = 0;
+
+	while (*s) {
+		if (strcmp(arg, s) == 0)
+			return i;
+		i++;
+		while (*s++ != '\0')
+			continue;
+	}
+	return -1;
+}
+
+char* FAST_FUNC
+get_script_content(unsigned n)
+{
+	char *t = unpack_scripts();
+	if (t) {
+		while (n != 0) {
+			while (*t++ != '\0')
+				continue;
+			n--;
+		}
+	}
+	return t;
+}
+# endif /* NUM_SCRIPTS > 0 */
+
+# if ENABLE_BUSYBOX || NUM_APPLETS > 0 || NUM_SCRIPTS > 0
 static NORETURN void run_applet_and_exit(const char *name, char **argv)
 {
 #  if ENABLE_BUSYBOX
@@ -966,6 +1040,13 @@ static NORETURN void run_applet_and_exit(const char *name, char **argv)
 		int applet = find_applet_by_name(name);
 		if (applet >= 0)
 			run_applet_no_and_exit(applet, name, argv);
+	}
+#  endif
+#  if NUM_SCRIPTS > 0
+	{
+		int script = find_script_by_name(name);
+		if (script >= 0)
+			exit(ash_main(-script - 1, argv));
 	}
 #  endif
 

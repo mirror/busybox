@@ -148,6 +148,21 @@
 //config:	you to run the specified command or builtin,
 //config:	even when there is a function with the same name.
 //config:
+//config:config ASH_EMBEDDED_SCRIPTS
+//config:	bool "Embed scripts in the binary"
+//config:	default y
+//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	help
+//config:	Allow scripts to be compressed and embedded in the BusyBox
+//config:	binary. The scripts should be placed in the 'embed' directory
+//config:	at build time. In standalone shell mode such scripts can be
+//config:	run directly and are subject to tab completion; otherwise they
+//config:	can be run by giving their name as an argument to the shell.
+//config:	For convenience shell aliases are created. The '-L' shell
+//config:	argument lists the names of the scripts. Like applets scripts
+//config:	can be run as 'busybox name ...' or by linking their name to
+//config:	the binary.
+//config:
 //config:endif # ash options
 
 //applet:IF_ASH(APPLET(ash, BB_DIR_BIN, BB_SUID_DROP))
@@ -181,6 +196,11 @@
 #include <sys/times.h>
 #include <sys/utsname.h> /* for setting $HOSTNAME */
 #include "busybox.h" /* for applet_names */
+#if ENABLE_ASH_EMBEDDED_SCRIPTS
+# include "embedded_scripts.h"
+#else
+# define NUM_SCRIPTS 0
+#endif
 
 /* So far, all bash compat is controlled by one config option */
 /* Separate defines document which part of code implements what */
@@ -14021,13 +14041,17 @@ procargs(char **argv)
 	int login_sh;
 
 	xargv = argv;
+#if NUM_SCRIPTS > 0
+	if (minusc)
+		goto setarg0;
+#endif
 	login_sh = xargv[0] && xargv[0][0] == '-';
 	arg0 = xargv[0];
 	/* if (xargv[0]) - mmm, this is always true! */
 		xargv++;
+	argptr = xargv;
 	for (i = 0; i < NOPTS; i++)
 		optlist[i] = 2;
-	argptr = xargv;
 	if (options(/*cmdline:*/ 1, &login_sh)) {
 		/* it already printed err message */
 		raise_exception(EXERROR);
@@ -14130,6 +14154,7 @@ extern int etext();
  */
 int ash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ash_main(int argc UNUSED_PARAM, char **argv)
+/* note: 'argc' is used only if embedded scripts are enabled */
 {
 	volatile smallint state;
 	struct jmploc jmploc;
@@ -14183,6 +14208,12 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 
 	init();
 	setstackmark(&smark);
+
+#if NUM_SCRIPTS > 0
+	if (argc < 0)
+		/* Non-NULL minusc tells procargs that an embedded script is being run */
+		minusc = get_script_content(-argc - 1);
+#endif
 	login_sh = procargs(argv);
 #if DEBUG
 	TRACE(("Shell args: "));
