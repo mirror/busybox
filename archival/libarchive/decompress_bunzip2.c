@@ -107,7 +107,7 @@ struct bunzip_data {
 	uint8_t selectors[32768];  /* nSelectors=15 bits */
 	struct group_data groups[MAX_GROUPS];  /* Huffman coding tables */
 };
-/* typedef struct bunzip_data bunzip_data; -- done in .h file */
+typedef struct bunzip_data bunzip_data;
 
 
 /* Return the next nnn bits of input.  All reads from the compressed input
@@ -575,7 +575,7 @@ static int get_next_block(bunzip_data *bd)
    in outbuf. IOW: on EOF returns len ("all bytes are not filled"), not 0.
    (Why? This allows to get rid of one local variable)
 */
-int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
+static int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 {
 	const uint32_t *dbuf;
 	int pos, current, previous;
@@ -699,7 +699,7 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 /* Because bunzip2 is used for help text unpacking, and because bb_show_usage()
    should work for NOFORK applets too, we must be extremely careful to not leak
    any allocations! */
-int FAST_FUNC start_bunzip(
+static int FAST_FUNC start_bunzip(
 		void *jmpbuf,
 		bunzip_data **bdp,
 		int in_fd,
@@ -759,7 +759,7 @@ int FAST_FUNC start_bunzip(
 	return RETVAL_OK;
 }
 
-void FAST_FUNC dealloc_bunzip(bunzip_data *bd)
+static void FAST_FUNC dealloc_bunzip(bunzip_data *bd)
 {
 	free(bd->dbuf);
 	free(bd);
@@ -845,6 +845,36 @@ unpack_bz2_stream(transformer_state_t *xstate)
 	free(outbuf);
 
 	return i ? i : IF_DESKTOP(total_written) + 0;
+}
+
+char* FAST_FUNC
+unpack_bz2_data(const char *packed, int packed_len, int unpacked_len)
+{
+	char *outbuf = NULL;
+	bunzip_data *bd;
+	int i;
+	jmp_buf jmpbuf;
+
+	/* Setup for I/O error handling via longjmp */
+	i = setjmp(jmpbuf);
+	if (i == 0) {
+		i = start_bunzip(&jmpbuf,
+			&bd,
+			/* src_fd: */ -1,
+			/* inbuf:  */ packed,
+			/* len:    */ packed_len
+		);
+	}
+	/* read_bunzip can longjmp and end up here with i != 0
+	 * on read data errors! Not trivial */
+	if (i == 0) {
+		/* Cannot use xmalloc: will leak bd in NOFORK case! */
+		outbuf = malloc_or_warn(unpacked_len);
+		if (outbuf)
+			read_bunzip(bd, outbuf, unpacked_len);
+	}
+	dealloc_bunzip(bd);
+	return outbuf;
 }
 
 #ifdef TESTING

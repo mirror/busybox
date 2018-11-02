@@ -214,12 +214,7 @@ const llist_t *find_list_entry(const llist_t *list, const char *filename) FAST_F
 const llist_t *find_list_entry2(const llist_t *list, const char *filename) FAST_FUNC;
 
 /* A bit of bunzip2 internals are exposed for compressed help support: */
-typedef struct bunzip_data bunzip_data;
-int start_bunzip(void *, bunzip_data **bdp, int in_fd, const void *inbuf, int len) FAST_FUNC;
-/* NB: read_bunzip returns < 0 on error, or the number of *unfilled* bytes
- * in outbuf. IOW: on EOF returns len ("all bytes are not filled"), not 0: */
-int read_bunzip(bunzip_data *bd, char *outbuf, int len) FAST_FUNC;
-void dealloc_bunzip(bunzip_data *bd) FAST_FUNC;
+char *unpack_bz2_data(const char *packed, int packed_len, int unpacked_len) FAST_FUNC;
 
 /* Meaning and direction (input/output) of the fields are transformer-specific */
 typedef struct transformer_state_t {

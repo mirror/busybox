@@ -107,34 +107,8 @@ static const char usage_messages[] ALIGN1 = UNPACKED_USAGE;
 
 static const char packed_usage[] ALIGN1 = { PACKED_USAGE };
 # include "bb_archive.h"
-static const char *unpack_usage_messages(void)
-{
-	char *outbuf = NULL;
-	bunzip_data *bd;
-	int i;
-	jmp_buf jmpbuf;
-
-	/* Setup for I/O error handling via longjmp */
-	i = setjmp(jmpbuf);
-	if (i == 0) {
-		i = start_bunzip(&jmpbuf,
-			&bd,
-			/* src_fd: */ -1,
-			/* inbuf:  */ packed_usage,
-			/* len:    */ sizeof(packed_usage)
-		);
-	}
-	/* read_bunzip can longjmp and end up here with i != 0
-	 * on read data errors! Not trivial */
-	if (i == 0) {
-		/* Cannot use xmalloc: will leak bd in NOFORK case! */
-		outbuf = malloc_or_warn(sizeof(UNPACKED_USAGE));
-		if (outbuf)
-			read_bunzip(bd, outbuf, sizeof(UNPACKED_USAGE));
-	}
-	dealloc_bunzip(bd);
-	return outbuf;
-}
+# define unpack_usage_messages() \
+	unpack_bz2_data(packed_usage, sizeof(packed_usage), sizeof(UNPACKED_USAGE))
 # define dealloc_usage_messages(s) free(s)
 
 #else
@@ -152,21 +126,23 @@ void FAST_FUNC bb_show_usage(void)
 		/* Imagine that this applet is "true". Dont suck in printf! */
 		const char *usage_string = unpack_usage_messages();
 
-		if (*usage_string == '\b') {
-			full_write2_str("No help available.\n\n");
-		} else {
-			full_write2_str("Usage: "SINGLE_APPLET_STR" ");
-			full_write2_str(usage_string);
-			full_write2_str("\n\n");
+		if (usage_string) {
+			if (*usage_string == '\b') {
+				full_write2_str("No help available.\n\n");
+			} else {
+				full_write2_str("Usage: "SINGLE_APPLET_STR" ");
+				full_write2_str(usage_string);
+				full_write2_str("\n\n");
+			}
+			if (ENABLE_FEATURE_CLEAN_UP)
+				dealloc_usage_messages((char*)usage_string);
 		}
-		if (ENABLE_FEATURE_CLEAN_UP)
-			dealloc_usage_messages((char*)usage_string);
 #else
 		const char *p;
 		const char *usage_string = p = unpack_usage_messages();
 		int ap = find_applet_by_name(applet_name);
 
-		if (ap < 0) /* never happens, paranoia */
+		if (ap < 0 || usage_string == NULL)
 			xfunc_die();
 		while (ap) {
 			while (*p++) continue;
@@ -986,38 +962,11 @@ find_script_by_name(const char *name)
 	return -0x10000; /* make it so that NUM_APPLETS + <error> is still < 0 */
 }
 
-static char *
-unpack_scripts(void)
-{
-	char *outbuf = NULL;
-	bunzip_data *bd;
-	int i;
-	jmp_buf jmpbuf;
-
-	/* Setup for I/O error handling via longjmp */
-	i = setjmp(jmpbuf);
-	if (i == 0) {
-		i = start_bunzip(&jmpbuf,
-			&bd,
-			/* src_fd: */ -1,
-			/* inbuf:  */ packed_scripts,
-			/* len:    */ sizeof(packed_scripts)
-		);
-	}
-	/* read_bunzip can longjmp and end up here with i != 0
-	 * on read data errors! Not trivial */
-	if (i == 0) {
-		outbuf = xmalloc(UNPACKED_SCRIPTS_LENGTH);
-		read_bunzip(bd, outbuf, UNPACKED_SCRIPTS_LENGTH);
-	}
-	dealloc_bunzip(bd);
-	return outbuf;
-}
-
 char* FAST_FUNC
 get_script_content(unsigned n)
 {
-	char *t = unpack_scripts();
+	char *t = unpack_bz2_data(packed_scripts, sizeof(packed_scripts),
+					UNPACKED_SCRIPTS_LENGTH);
 	if (t) {
 		while (n != 0) {
 			while (*t++ != '\0')

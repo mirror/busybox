@@ -43,29 +43,10 @@ int bbconfig_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bbconfig_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 #if ENABLE_FEATURE_COMPRESS_BBCONFIG
-	bunzip_data *bd;
-	int i;
-	jmp_buf jmpbuf;
-
-	/* Setup for I/O error handling via longjmp */
-	i = setjmp(jmpbuf);
-	if (i == 0) {
-		i = start_bunzip(&jmpbuf,
-			&bd,
-			/* src_fd: */ -1,
-			/* inbuf:  */ bbconfig_config_bz2,
-			/* len:    */ sizeof(bbconfig_config_bz2)
-		);
-	}
-	/* read_bunzip can longjmp and end up here with i != 0
-	 * on read data errors! Not trivial */
-	if (i == 0) {
-		/* Cannot use xmalloc: will leak bd in NOFORK case! */
-		char *outbuf = malloc_or_warn(sizeof(bbconfig_config));
-		if (outbuf) {
-			read_bunzip(bd, outbuf, sizeof(bbconfig_config));
-			full_write1_str(outbuf);
-		}
+	const char *outbuf = unpack_bz2_data(bbconfig_config_bz2,
+			sizeof(bbconfig_config_bz2), sizeof(bbconfig_config));
+	if (outbuf) {
+		full_write1_str(outbuf);
 	}
 #else
 	full_write1_str(bbconfig_config);
