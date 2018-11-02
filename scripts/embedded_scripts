@@ -32,7 +32,7 @@ then
 	do
 		printf '"%s\\0"' $i
 	done
-	printf '"\\0";\n'
+	printf ';\n'
 	printf '#else\n'
 	printf 'extern const char script_names[] ALIGN1;\n'
 	printf '#endif\n'
