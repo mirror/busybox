@@ -575,7 +575,7 @@ static int get_next_block(bunzip_data *bd)
    in outbuf. IOW: on EOF returns len ("all bytes are not filled"), not 0.
    (Why? This allows to get rid of one local variable)
 */
-static int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
+static int read_bunzip(bunzip_data *bd, char *outbuf, int len)
 {
 	const uint32_t *dbuf;
 	int pos, current, previous;
@@ -809,7 +809,7 @@ unpack_bz2_stream(transformer_state_t *xstate)
 		/* Observed case when i == RETVAL_OK:
 		 * "bzcat z.bz2", where "z.bz2" is a bzipped zero-length file
 		 * (to be exact, z.bz2 is exactly these 14 bytes:
-		 * 42 5a 68 39 17 72 45 38  50 90 00 00 00 00).
+		 * 42 5a 68 39 17 72 45 38 50 90 00 00 00 00).
 		 */
 		 && i != RETVAL_OK
 		) {
