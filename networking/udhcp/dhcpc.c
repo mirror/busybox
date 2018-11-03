@@ -850,7 +850,9 @@ static NOINLINE int send_decline(/*uint32_t xid,*/ uint32_t server, uint32_t req
 #endif
 
 /* Unicast a DHCP release message */
-static int send_release(uint32_t server, uint32_t ciaddr)
+static
+ALWAYS_INLINE /* one caller, help compiler to use this fact */
+int send_release(uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
 

@@ -814,7 +814,9 @@ static NOINLINE int send_d6_renew(uint32_t xid, struct in6_addr *server_ipv6, st
 }
 
 /* Unicast a DHCP release message */
-static int send_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
+static
+ALWAYS_INLINE /* one caller, help compiler to use this fact */
+int send_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
 {
 	struct d6_packet packet;
 	uint8_t *opt_ptr;
