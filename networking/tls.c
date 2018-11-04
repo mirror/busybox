@@ -191,9 +191,9 @@
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8            0xC0AE /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=AESCCM8(128) Mac=AEAD */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8            0xC0AF /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=AESCCM8(256) Mac=AEAD */
 
+#define TLS_AES_128_GCM_SHA256                        0x1301 /*TLSv1.3 Kx=any   Au=any   Enc=AESGCM(128) Mac=AEAD */
 #define TLS_AES_256_GCM_SHA384                        0x1302 /*TLSv1.3 Kx=any   Au=any   Enc=AESGCM(256) Mac=AEAD */
 #define TLS_CHACHA20_POLY1305_SHA256                  0x1303 /*TLSv1.3 Kx=any   Au=any   Enc=CHACHA20/POLY1305(256) Mac=AEAD */
-#define TLS_AES_128_GCM_SHA256                        0x1301 /*TLSv1.3 Kx=any   Au=any   Enc=AESGCM(128) Mac=AEAD */
 #define TLS_AES_128_CCM_SHA256                        0x1304 /*TLSv1.3 Kx=any   Au=any   Enc=AESCCM(128) Mac=AEAD */
 
 /* Might go to libbb.h */
