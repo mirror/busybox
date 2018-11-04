@@ -104,46 +104,46 @@
 #define HANDSHAKE_CLIENT_KEY_EXCHANGE   16 /* 0x10 */
 #define HANDSHAKE_FINISHED              20 /* 0x14 */
 
+#define TLS_EMPTY_RENEGOTIATION_INFO_SCSV       0x00FF /* not a real cipher id... */
+
 #define SSL_NULL_WITH_NULL_NULL                 0x0000
 #define SSL_RSA_WITH_NULL_MD5                   0x0001
 #define SSL_RSA_WITH_NULL_SHA                   0x0002
 #define SSL_RSA_WITH_RC4_128_MD5                0x0004
 #define SSL_RSA_WITH_RC4_128_SHA                0x0005
-#define SSL_RSA_WITH_3DES_EDE_CBC_SHA           0x000A  /* 10 */
-#define TLS_RSA_WITH_AES_128_CBC_SHA            0x002F  /*SSLv3   Kx=RSA   Au=RSA   Enc=AES(128) Mac=SHA1 */
-#define TLS_RSA_WITH_AES_256_CBC_SHA            0x0035  /* 53 */
-#define TLS_RSA_WITH_NULL_SHA256                0x003B  /* 59 */
-
-#define TLS_EMPTY_RENEGOTIATION_INFO_SCSV       0x00FF
-
 #define TLS_RSA_WITH_IDEA_CBC_SHA               0x0007  /* 7 */
+#define SSL_RSA_WITH_3DES_EDE_CBC_SHA           0x000A  /* 10 */
+
 #define SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA       0x0016  /* 22 */
 #define SSL_DH_anon_WITH_RC4_128_MD5            0x0018  /* 24 */
 #define SSL_DH_anon_WITH_3DES_EDE_CBC_SHA       0x001B  /* 27 */
+#define TLS_RSA_WITH_AES_128_CBC_SHA            0x002F  /*SSLv3   Kx=RSA   Au=RSA   Enc=AES(128) Mac=SHA1 */
 #define TLS_DHE_RSA_WITH_AES_128_CBC_SHA        0x0033  /* 51 */
-#define TLS_DHE_RSA_WITH_AES_256_CBC_SHA        0x0039  /* 57 */
-#define TLS_DHE_RSA_WITH_AES_128_CBC_SHA256     0x0067  /* 103 */
-#define TLS_DHE_RSA_WITH_AES_256_CBC_SHA256     0x006B  /* 107 */
 #define TLS_DH_anon_WITH_AES_128_CBC_SHA        0x0034  /* 52 */
+#define TLS_RSA_WITH_AES_256_CBC_SHA            0x0035  /* 53 */
+#define TLS_DHE_RSA_WITH_AES_256_CBC_SHA        0x0039  /* 57 */
 #define TLS_DH_anon_WITH_AES_256_CBC_SHA        0x003A  /* 58 */
+#define TLS_RSA_WITH_NULL_SHA256                0x003B  /* 59 */
 #define TLS_RSA_WITH_AES_128_CBC_SHA256         0x003C  /* 60 */
 #define TLS_RSA_WITH_AES_256_CBC_SHA256         0x003D  /* 61 */
-#define TLS_RSA_WITH_SEED_CBC_SHA               0x0096  /* 150 */
+#define TLS_DHE_RSA_WITH_AES_128_CBC_SHA256     0x0067  /* 103 */
+#define TLS_DHE_RSA_WITH_AES_256_CBC_SHA256     0x006B  /* 107 */
 #define TLS_PSK_WITH_AES_128_CBC_SHA            0x008C  /* 140 */
-#define TLS_PSK_WITH_AES_128_CBC_SHA256         0x00AE  /* 174 */
-#define TLS_PSK_WITH_AES_256_CBC_SHA384         0x00AF  /* 175 */
 #define TLS_PSK_WITH_AES_256_CBC_SHA            0x008D  /* 141 */
 #define TLS_DHE_PSK_WITH_AES_128_CBC_SHA        0x0090  /* 144 */
 #define TLS_DHE_PSK_WITH_AES_256_CBC_SHA        0x0091  /* 145 */
+#define TLS_RSA_WITH_SEED_CBC_SHA               0x0096  /* 150 */
+#define TLS_PSK_WITH_AES_128_CBC_SHA256         0x00AE  /* 174 */
+#define TLS_PSK_WITH_AES_256_CBC_SHA384         0x00AF  /* 175 */
 #define TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA     0xC004  /* 49156 */
 #define TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA     0xC005  /* 49157 */
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA    0xC009  /*TLSv1   Kx=ECDH  Au=ECDSA Enc=AES(128) Mac=SHA1 */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA    0xC00A  /*TLSv1   Kx=ECDH  Au=ECDSA Enc=AES(256) Mac=SHA1 */
+#define TLS_ECDH_RSA_WITH_AES_128_CBC_SHA       0xC00E  /* 49166 */
+#define TLS_ECDH_RSA_WITH_AES_256_CBC_SHA       0xC00F  /* 49167 */
 #define TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA     0xC012  /* 49170 */
 #define TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA      0xC013  /*TLSv1   Kx=ECDH  Au=RSA   Enc=AES(128) Mac=SHA1 */
 #define TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA      0xC014  /*TLSv1   Kx=ECDH  Au=RSA   Enc=AES(256) Mac=SHA1 */
-#define TLS_ECDH_RSA_WITH_AES_128_CBC_SHA       0xC00E  /* 49166 */
-#define TLS_ECDH_RSA_WITH_AES_256_CBC_SHA       0xC00F  /* 49167 */
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 0xC023  /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=AES(128) Mac=SHA256 */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 0xC024  /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=AES(256) Mac=SHA384 */
 #define TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256  0xC025  /* 49189 */
@@ -168,17 +168,17 @@
 /* From http://wiki.mozilla.org/Security/Server_Side_TLS */
 /* and 'openssl ciphers -V -stdname' */
 #define TLS_RSA_WITH_ARIA_128_GCM_SHA256              0xC050 /*TLSv1.2 Kx=RSA   Au=RSA   Enc=ARIAGCM(128) Mac=AEAD */
+#define TLS_RSA_WITH_ARIA_256_GCM_SHA384              0xC051 /*TLSv1.2 Kx=RSA   Au=RSA   Enc=ARIAGCM(256) Mac=AEAD */
 #define TLS_DHE_RSA_WITH_ARIA_128_GCM_SHA256          0xC052 /*TLSv1.2 Kx=DH    Au=RSA   Enc=ARIAGCM(128) Mac=AEAD */
 #define TLS_DHE_RSA_WITH_ARIA_256_GCM_SHA384          0xC053 /*TLSv1.2 Kx=DH    Au=RSA   Enc=ARIAGCM(256) Mac=AEAD */
-#define TLS_ECDHE_ECDSA_WITH_ARIA_256_GCM_SHA384      0xC05D /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=ARIAGCM(256) Mac=AEAD */
-#define TLS_RSA_WITH_ARIA_256_GCM_SHA384              0xC051 /*TLSv1.2 Kx=RSA   Au=RSA   Enc=ARIAGCM(256) Mac=AEAD */
 #define TLS_ECDHE_ECDSA_WITH_ARIA_128_GCM_SHA256      0xC05C /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=ARIAGCM(128) Mac=AEAD */
+#define TLS_ECDHE_ECDSA_WITH_ARIA_256_GCM_SHA384      0xC05D /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=ARIAGCM(256) Mac=AEAD */
 #define TLS_ECDHE_RSA_WITH_ARIA_128_GCM_SHA256        0xC060 /*TLSv1.2 Kx=ECDH  Au=RSA   Enc=ARIAGCM(128) Mac=AEAD */
 #define TLS_ECDHE_RSA_WITH_ARIA_256_GCM_SHA384        0xC061 /*TLSv1.2 Kx=ECDH  Au=RSA   Enc=ARIAGCM(256) Mac=AEAD */
 #define TLS_RSA_WITH_AES_128_CCM                      0xC09C /*TLSv1.2 Kx=RSA   Au=RSA   Enc=AESCCM(128) Mac=AEAD */
 #define TLS_RSA_WITH_AES_256_CCM                      0xC09D /*TLSv1.2 Kx=RSA   Au=RSA   Enc=AESCCM(256) Mac=AEAD */
-#define TLS_DHE_RSA_WITH_AES_256_CCM                  0xC09F /*TLSv1.2 Kx=DH    Au=RSA   Enc=AESCCM(256) Mac=AEAD */
 #define TLS_DHE_RSA_WITH_AES_128_CCM                  0xC09E /*TLSv1.2 Kx=DH    Au=RSA   Enc=AESCCM(128) Mac=AEAD */
+#define TLS_DHE_RSA_WITH_AES_256_CCM                  0xC09F /*TLSv1.2 Kx=DH    Au=RSA   Enc=AESCCM(256) Mac=AEAD */
 #define TLS_RSA_WITH_AES_128_CCM_8                    0xC0A0 /*TLSv1.2 Kx=RSA   Au=RSA   Enc=AESCCM8(128) Mac=AEAD */
 #define TLS_RSA_WITH_AES_256_CCM_8                    0xC0A1 /*TLSv1.2 Kx=RSA   Au=RSA   Enc=AESCCM8(256) Mac=AEAD */
 #define TLS_DHE_RSA_WITH_AES_128_CCM_8                0xC0A2 /*TLSv1.2 Kx=DH    Au=RSA   Enc=AESCCM8(128) Mac=AEAD */
