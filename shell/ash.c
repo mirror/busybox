@@ -14052,11 +14052,11 @@ procargs(char **argv)
 	int login_sh;
 
 	xargv = argv;
+	login_sh = xargv[0] && xargv[0][0] == '-';
 #if NUM_SCRIPTS > 0
 	if (minusc)
 		goto setarg0;
 #endif
-	login_sh = xargv[0] && xargv[0][0] == '-';
 	arg0 = xargv[0];
 	/* if (xargv[0]) - mmm, this is always true! */
 		xargv++;
@@ -14164,7 +14164,11 @@ extern int etext();
  * is used to figure out how far we had gotten.
  */
 int ash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+#if NUM_SCRIPTS > 0
+int ash_main(int argc, char **argv)
+#else
 int ash_main(int argc UNUSED_PARAM, char **argv)
+#endif
 /* note: 'argc' is used only if embedded scripts are enabled */
 {
 	volatile smallint state;
