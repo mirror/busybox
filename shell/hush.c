@@ -157,7 +157,7 @@
 //config:	but no separate process group is formed.
 //config:
 //config:config HUSH_TICK
-//config:	bool "Support process substitution"
+//config:	bool "Support command substitution"
 //config:	default y
 //config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
 //config:	help
