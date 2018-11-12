@@ -2420,13 +2420,12 @@ setvar(const char *name, const char *val, int flags)
 	}
 
 	INT_OFF;
-	nameeq = ckmalloc(namelen + vallen + 2);
+	nameeq = ckzalloc(namelen + vallen + 2);
 	p = mempcpy(nameeq, name, namelen);
 	if (val) {
 		*p++ = '=';
-		p = mempcpy(p, val, vallen);
+		memcpy(p, val, vallen);
 	}
-	*p = '\0';
 	vp = setvareq(nameeq, flags | VNOSAVE);
 	INT_ON;
 
