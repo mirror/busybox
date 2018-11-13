@@ -966,6 +966,13 @@ static int tls_xread_record(tls_state_t *tls, const char *expected)
 	return sz;
 }
 
+static void binary_to_pstm(pstm_int *pstm_n, uint8_t *bin_ptr, unsigned len)
+{
+	pstm_init_for_read_unsigned_bin(/*pool:*/ NULL, pstm_n, len);
+	pstm_read_unsigned_bin(pstm_n, bin_ptr, len);
+	//return bin_ptr + len;
+}
+
 /*
  * DER parsing routines
  */
@@ -1031,15 +1038,6 @@ static uint8_t *skip_der_item(uint8_t *der, uint8_t *end)
 	return new_der;
 }
 
-//
-static void binary_to_pstm(pstm_int *pstm_n, uint8_t *bin_ptr, unsigned len)
-{
-	pstm_init_for_read_unsigned_bin(/*pool:*/ NULL, pstm_n, len);
-	pstm_read_unsigned_bin(pstm_n, bin_ptr, len);
-	//return bin_ptr + len;
-}
-//
-
 static void der_binary_to_pstm(pstm_int *pstm_n, uint8_t *der, uint8_t *end)
 {
 	uint8_t *bin_ptr;
@@ -1047,9 +1045,6 @@ static void der_binary_to_pstm(pstm_int *pstm_n, uint8_t *der, uint8_t *end)
 
 	dbg_der("binary bytes:%u, first:0x%02x\n", len, bin_ptr[0]);
 	binary_to_pstm(pstm_n, bin_ptr, len);
-	//pstm_init_for_read_unsigned_bin(/*pool:*/ NULL, pstm_n, len);
-	//pstm_read_unsigned_bin(pstm_n, bin_ptr, len);
-	////return bin_ptr + len;
 }
 
 static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
@@ -1180,18 +1175,19 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 	{ /* check subjectPublicKeyInfo.algorithm */
 		static const uint8_t OID_RSA_KEY_ALG[] = {
 			0x30,0x0d, // SEQ 13 bytes
-			0x06,0x09, 0x2a,0x86,0x48,0x86,0xf7,0x0d,0x01,0x01,0x01, // OID RSA_KEY_ALG 42.134.72.134.247.13.1.1.1
+			0x06,0x09, 0x2a,0x86,0x48,0x86,0xf7,0x0d,0x01,0x01,0x01, //OID_RSA_KEY_ALG 42.134.72.134.247.13.1.1.1
 			//0x05,0x00, // NULL
 		};
 		static const uint8_t OID_ECDSA_KEY_ALG[] = {
 			0x30,0x13, // SEQ 0x13 bytes
 			0x06,0x07, 0x2a,0x86,0x48,0xce,0x3d,0x02,0x01,      //OID_ECDSA_KEY_ALG 42.134.72.206.61.2.1
-			0x06,0x08, 0x2a,0x86,0x48,0xce,0x3d,0x03,0x01,0x07, //OID_EC_prime256v1 42.134.72.206.61.3.1.7
-			//rfc3279:
+		//allow any curve code for now...
+		//	0x06,0x08, 0x2a,0x86,0x48,0xce,0x3d,0x03,0x01,0x07, //OID_EC_prime256v1 42.134.72.206.61.3.1.7
+			//RFC 3279:
 			//42.134.72.206.61.3     is ellipticCurve
 			//42.134.72.206.61.3.0   is c-TwoCurve
 			//42.134.72.206.61.3.1   is primeCurve
-			//42.134.72.206.61.3.1.7 is prime256v1
+			//42.134.72.206.61.3.1.7 is curve_secp256r1
 		};
 		if (memcmp(der, OID_RSA_KEY_ALG, sizeof(OID_RSA_KEY_ALG)) == 0) {
 			dbg("RSA key\n");
@@ -1210,7 +1206,7 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 		/* skip subjectPublicKeyInfo.algorithm */
 		der = skip_der_item(der, end);
 		/* enter subjectPublicKeyInfo.publicKey */
-//		die_if_not_this_der_type(der, end, 0x03); /* must be BITSTRING */
+		//die_if_not_this_der_type(der, end, 0x03); /* must be BITSTRING */
 		der = enter_der_item(der, &end);
 
 		dbg("key bytes:%u, first:0x%02x\n", (int)(end - der), der[0]);
@@ -1233,6 +1229,11 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 		tls->hsd->server_rsa_pub_key.size = pstm_unsigned_bin_size(&tls->hsd->server_rsa_pub_key.N);
 		dbg("server_rsa_pub_key.size:%d\n", tls->hsd->server_rsa_pub_key.size);
 	}
+	/* else: ECDSA key. It is not used for generating encryption keys,
+	 * it is used only to sign the EC public key (which comes in ServerKey message).
+	 * Since we do not verify cert validity, verifying signature on EC public key
+	 * wouldn't add any security. Thus, we do nothing here.
+	 */
 }
 
 /*
@@ -1376,7 +1377,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		ptr[8] = sni_len;         //name len
 		ptr = mempcpy(&ptr[9], sni, sni_len);
 	}
-	mempcpy(ptr, supported_groups, sizeof(supported_groups));
+	memcpy(ptr, supported_groups, sizeof(supported_groups));
 
 	dbg(">> CLIENT_HELLO\n");
 	/* Can hash it only when we know which MAC hash to use */
@@ -1550,7 +1551,7 @@ static void process_server_key(tls_state_t *tls, int len)
 	/* So far we only support curve_x25519 */
 	move_from_unaligned32(t32, keybuf);
 	if (t32 != htonl(0x03001d20))
-		tls_error_die(tls);
+		bb_error_msg_and_die("elliptic curve is not x25519");
 
 	memcpy(tls->hsd->ecc_pub_key32, keybuf + 4, 32);
 	dbg("got eccPubKey\n");
@@ -1575,6 +1576,7 @@ static void send_empty_client_cert(tls_state_t *tls)
 	//record->cert_chain_len24_hi = 0;
 	//record->cert_chain_len24_mid = 0;
 	//record->cert_chain_len24_lo = 0;
+	// same as above:
 	memcpy(record, empty_client_cert, sizeof(empty_client_cert));
 
 	dbg(">> CERTIFICATE\n");
