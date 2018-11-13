@@ -602,6 +602,13 @@ static void *tls_get_outbuf(tls_state_t *tls, int len)
 	return tls->outbuf + OUTBUF_PFX;
 }
 
+static void *tls_get_zeroed_outbuf(tls_state_t *tls, int len)
+{
+	void *record = tls_get_outbuf(tls, len);
+	memset(record, 0, len);
+	return record;
+}
+
 static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
 {
 	uint8_t *buf = tls->outbuf + OUTBUF_PFX;
@@ -1332,8 +1339,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 
 	/* +2 is for "len of all extensions" 2-byte field */
 	len = sizeof(*record) + 2 + ext_len;
-	record = tls_get_outbuf(tls, len);
-	memset(record, 0, len);
+	record = tls_get_zeroed_outbuf(tls, len);
 
 	fill_handshake_record_hdr(record, HANDSHAKE_CLIENT_HELLO, len);
 	record->proto_maj = TLS_MAJ;	/* the "requested" version of the protocol, */
@@ -1565,19 +1571,15 @@ static void send_empty_client_cert(tls_state_t *tls)
 		uint8_t cert_chain_len24_hi, cert_chain_len24_mid, cert_chain_len24_lo;
 	};
 	struct client_empty_cert *record;
-	static const uint8_t empty_client_cert[] = {
-		HANDSHAKE_CERTIFICATE,
-		0, 0, 3, //len24
-		0, 0, 0, //cert_chain_len24
-	};
 
-	record = tls_get_outbuf(tls, sizeof(*record));
+	record = tls_get_zeroed_outbuf(tls, sizeof(*record));
 	//fill_handshake_record_hdr(record, HANDSHAKE_CERTIFICATE, sizeof(*record));
 	//record->cert_chain_len24_hi = 0;
 	//record->cert_chain_len24_mid = 0;
 	//record->cert_chain_len24_lo = 0;
 	// same as above:
-	memcpy(record, empty_client_cert, sizeof(empty_client_cert));
+	record->type = HANDSHAKE_CERTIFICATE;
+	record->len24_lo = 3;
 
 	dbg(">> CERTIFICATE\n");
 	xwrite_and_update_handshake_hash(tls, sizeof(*record));
@@ -1591,7 +1593,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 		uint8_t key[2 + 4 * 1024]; // size??
 	};
 //FIXME: better size estimate
-	struct client_key_exchange *record = tls_get_outbuf(tls, sizeof(*record));
+	struct client_key_exchange *record = tls_get_zeroed_outbuf(tls, sizeof(*record));
 	uint8_t rsa_premaster[RSA_PREMASTER_SIZE];
 	uint8_t x25519_premaster[CURVE25519_KEYSIZE];
 	uint8_t *premaster;
@@ -1646,7 +1648,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	}
 
 	record->type = HANDSHAKE_CLIENT_KEY_EXCHANGE;
-	record->len24_hi  = 0;
+	/* record->len24_hi = 0; - already is */
 	record->len24_mid = len >> 8;
 	record->len24_lo  = len & 0xff;
 	len += 4;
