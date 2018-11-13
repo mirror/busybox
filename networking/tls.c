@@ -12,8 +12,9 @@
 //kbuild:lib-$(CONFIG_TLS) += tls_pstm_montgomery_reduce.o
 //kbuild:lib-$(CONFIG_TLS) += tls_pstm_mul_comba.o
 //kbuild:lib-$(CONFIG_TLS) += tls_pstm_sqr_comba.o
-//kbuild:lib-$(CONFIG_TLS) += tls_rsa.o
 //kbuild:lib-$(CONFIG_TLS) += tls_aes.o
+//kbuild:lib-$(CONFIG_TLS) += tls_rsa.o
+//kbuild:lib-$(CONFIG_TLS) += tls_fe.o
 ////kbuild:lib-$(CONFIG_TLS) += tls_aes_gcm.o
 
 #include "tls.h"
@@ -57,6 +58,7 @@
 #define CIPHER_ID2  TLS_RSA_WITH_AES_128_CBC_SHA
 
 // bug #11456: host is.gd accepts only ECDHE-ECDSA-foo (the simplest which works: ECDHE-ECDSA-AES128-SHA 0xC009)
+#define CIPHER_ID3  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
 
 
 #define TLS_DEBUG      0
@@ -260,15 +262,22 @@ struct record_hdr {
 	uint8_t len16_hi, len16_lo;
 };
 
+enum {
+	KEY_ALG_RSA,
+	KEY_ALG_ECDSA,
+};
 struct tls_handshake_data {
 	/* In bbox, md5/sha1/sha256 ctx's are the same structure */
 	md5sha_ctx_t handshake_hash_ctx;
 
 	uint8_t client_and_server_rand32[2 * 32];
 	uint8_t master_secret[48];
+
+	smallint key_alg;
 //TODO: store just the DER key here, parse/use/delete it when sending client key
 //this way it will stay key type agnostic here.
 	psRsaKey_t server_rsa_pub_key;
+	uint8_t ecc_pub_key32[32];
 
 	unsigned saved_client_hello_size;
 	uint8_t saved_client_hello[1];
@@ -1022,15 +1031,25 @@ static uint8_t *skip_der_item(uint8_t *der, uint8_t *end)
 	return new_der;
 }
 
+//
+static void binary_to_pstm(pstm_int *pstm_n, uint8_t *bin_ptr, unsigned len)
+{
+	pstm_init_for_read_unsigned_bin(/*pool:*/ NULL, pstm_n, len);
+	pstm_read_unsigned_bin(pstm_n, bin_ptr, len);
+	//return bin_ptr + len;
+}
+//
+
 static void der_binary_to_pstm(pstm_int *pstm_n, uint8_t *der, uint8_t *end)
 {
 	uint8_t *bin_ptr;
 	unsigned len = get_der_len(&bin_ptr, der, end);
 
 	dbg_der("binary bytes:%u, first:0x%02x\n", len, bin_ptr[0]);
-	pstm_init_for_read_unsigned_bin(/*pool:*/ NULL, pstm_n, len);
-	pstm_read_unsigned_bin(pstm_n, bin_ptr, len);
-	//return bin + len;
+	binary_to_pstm(pstm_n, bin_ptr, len);
+	//pstm_init_for_read_unsigned_bin(/*pool:*/ NULL, pstm_n, len);
+	//pstm_read_unsigned_bin(pstm_n, bin_ptr, len);
+	////return bin_ptr + len;
 }
 
 static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
@@ -1113,6 +1132,18 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
  *	publicKey (BIT STRING)
  *
  * We need Certificate.tbsCertificate.subjectPublicKeyInfo.publicKey
+ *
+ * Example of an ECDSA key:
+ *      SEQ 0x59 bytes (subjectPublicKeyInfo): 3059
+ *        SEQ 0x13 bytes (algorithm): 3013
+ *          OID 7 bytes: 0607 2a8648ce3d0201   (OID_ECDSA_KEY_ALG 42.134.72.206.61.2.1)
+ *          OID 8 bytes: 0608 2a8648ce3d030107 (OID_EC_prime256v1 42.134.72.206.61.3.1.7)
+ *        BITSTRING 0x42 bytes (publicKey): 0342
+ *          0004 53af f65e 50cc 7959 7e29 0171 c75c
+ *          7335 e07d f45b 9750 b797 3a38 aebb 2ac6
+ *          8329 2748 e77e 41cb d482 2ce6 05ec a058
+ *          f3ab d561 2f4c d845 9ad3 7252 e3de bd3b
+ *          9012
  */
 	uint8_t *end = der + len;
 
@@ -1147,40 +1178,61 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 	/* enter subjectPublicKeyInfo */
 	der = enter_der_item(der, &end);
 	{ /* check subjectPublicKeyInfo.algorithm */
-		static const uint8_t expected[] = {
+		static const uint8_t OID_RSA_KEY_ALG[] = {
 			0x30,0x0d, // SEQ 13 bytes
 			0x06,0x09, 0x2a,0x86,0x48,0x86,0xf7,0x0d,0x01,0x01,0x01, // OID RSA_KEY_ALG 42.134.72.134.247.13.1.1.1
 			//0x05,0x00, // NULL
 		};
-		if (memcmp(der, expected, sizeof(expected)) != 0)
-			bb_error_msg_and_die("not RSA key");
+		static const uint8_t OID_ECDSA_KEY_ALG[] = {
+			0x30,0x13, // SEQ 0x13 bytes
+			0x06,0x07, 0x2a,0x86,0x48,0xce,0x3d,0x02,0x01,      //OID_ECDSA_KEY_ALG 42.134.72.206.61.2.1
+			0x06,0x08, 0x2a,0x86,0x48,0xce,0x3d,0x03,0x01,0x07, //OID_EC_prime256v1 42.134.72.206.61.3.1.7
+			//rfc3279:
+			//42.134.72.206.61.3     is ellipticCurve
+			//42.134.72.206.61.3.0   is c-TwoCurve
+			//42.134.72.206.61.3.1   is primeCurve
+			//42.134.72.206.61.3.1.7 is prime256v1
+		};
+		if (memcmp(der, OID_RSA_KEY_ALG, sizeof(OID_RSA_KEY_ALG)) == 0) {
+			dbg("RSA key\n");
+			tls->hsd->key_alg = KEY_ALG_RSA;
+		} else
+		if (memcmp(der, OID_ECDSA_KEY_ALG, sizeof(OID_ECDSA_KEY_ALG)) == 0) {
+			dbg("ECDSA key\n");
+			tls->hsd->key_alg = KEY_ALG_ECDSA;
+		} else
+			bb_error_msg_and_die("not RSA or ECDSA key");
 	}
-	/* skip subjectPublicKeyInfo.algorithm */
-	der = skip_der_item(der, end);
-	/* enter subjectPublicKeyInfo.publicKey */
-//	die_if_not_this_der_type(der, end, 0x03); /* must be BITSTRING */
-	der = enter_der_item(der, &end);
 
-	/* parse RSA key: */
-//based on getAsnRsaPubKey(), pkcs1ParsePrivBin() is also of note
-	dbg("key bytes:%u, first:0x%02x\n", (int)(end - der), der[0]);
-	if (end - der < 14) xfunc_die();
-	/* example format:
-	 * ignore bits: 00
-	 * SEQ 0x018a/394 bytes: 3082018a
-	 *   INTEGER 0x0181/385 bytes (modulus): 02820181 XX...XXX
-	 *   INTEGER 3 bytes (exponent): 0203 010001
-	 */
-	if (*der != 0) /* "ignore bits", should be 0 */
-		xfunc_die();
-	der++;
-	der = enter_der_item(der, &end); /* enter SEQ */
-	/* memset(tls->hsd->server_rsa_pub_key, 0, sizeof(tls->hsd->server_rsa_pub_key)); - already is */
-	der_binary_to_pstm(&tls->hsd->server_rsa_pub_key.N, der, end); /* modulus */
-	der = skip_der_item(der, end);
-	der_binary_to_pstm(&tls->hsd->server_rsa_pub_key.e, der, end); /* exponent */
-	tls->hsd->server_rsa_pub_key.size = pstm_unsigned_bin_size(&tls->hsd->server_rsa_pub_key.N);
-	dbg("server_rsa_pub_key.size:%d\n", tls->hsd->server_rsa_pub_key.size);
+	if (tls->hsd->key_alg == KEY_ALG_RSA) {
+		/* parse RSA key: */
+	//based on getAsnRsaPubKey(), pkcs1ParsePrivBin() is also of note
+		/* skip subjectPublicKeyInfo.algorithm */
+		der = skip_der_item(der, end);
+		/* enter subjectPublicKeyInfo.publicKey */
+//		die_if_not_this_der_type(der, end, 0x03); /* must be BITSTRING */
+		der = enter_der_item(der, &end);
+
+		dbg("key bytes:%u, first:0x%02x\n", (int)(end - der), der[0]);
+		if (end - der < 14)
+			xfunc_die();
+		/* example format:
+		 * ignore bits: 00
+		 * SEQ 0x018a/394 bytes: 3082018a
+		 *   INTEGER 0x0181/385 bytes (modulus): 02820181 XX...XXX
+		 *   INTEGER 3 bytes (exponent): 0203 010001
+		 */
+		if (*der != 0) /* "ignore bits", should be 0 */
+			xfunc_die();
+		der++;
+		der = enter_der_item(der, &end); /* enter SEQ */
+		/* memset(tls->hsd->server_rsa_pub_key, 0, sizeof(tls->hsd->server_rsa_pub_key)); - already is */
+		der_binary_to_pstm(&tls->hsd->server_rsa_pub_key.N, der, end); /* modulus */
+		der = skip_der_item(der, end);
+		der_binary_to_pstm(&tls->hsd->server_rsa_pub_key.e, der, end); /* exponent */
+		tls->hsd->server_rsa_pub_key.size = pstm_unsigned_bin_size(&tls->hsd->server_rsa_pub_key.N);
+		dbg("server_rsa_pub_key.size:%d\n", tls->hsd->server_rsa_pub_key.size);
+	}
 }
 
 /*
@@ -1217,6 +1269,22 @@ static ALWAYS_INLINE void fill_handshake_record_hdr(void *buf, unsigned type, un
 
 static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 {
+	static const uint8_t supported_groups[] = {
+		0x00,0x0a, //extension_type: "supported_groups"
+		0x00,0x04, //ext len
+		0x00,0x02, //list len
+		0x00,0x1d, //curve_x25519 (rfc7748)
+		//0x00,0x17, //curve_secp256r1
+		//0x00,0x18, //curve_secp384r1
+		//0x00,0x19, //curve_secp521r1
+	};
+	//static const uint8_t signature_algorithms[] = {
+	//	000d
+	//	0020
+	//	001e
+	//	0601 0602 0603 0501 0502 0503 0401 0402 0403 0301 0302 0303 0201 0202 0203
+	//};
+
 	struct client_hello {
 		uint8_t type;
 		uint8_t len24_hi, len24_mid, len24_lo;
@@ -1225,7 +1293,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		uint8_t session_id_len;
 		/* uint8_t session_id[]; */
 		uint8_t cipherid_len16_hi, cipherid_len16_lo;
-		uint8_t cipherid[2 * (2 + !!CIPHER_ID2)]; /* actually variable */
+		uint8_t cipherid[2 * (2 + !!CIPHER_ID2 + !!CIPHER_ID3)]; /* actually variable */
 		uint8_t comprtypes_len;
 		uint8_t comprtypes[1]; /* actually variable */
 		/* Extensions (SNI shown):
@@ -1250,12 +1318,19 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 //   0017 0000 - extended master secret
 	};
 	struct client_hello *record;
+	uint8_t *ptr;
 	int len;
-	int sni_len = sni ? strnlen(sni, 127 - 9) : 0;
+	int ext_len;
+	int sni_len = sni ? strnlen(sni, 127 - 5) : 0;
 
-	len = sizeof(*record);
+	ext_len = 0;
+	/* is.gd responds with "handshake failure" to our hello if there's no supported_groups element */
+	ext_len += sizeof(supported_groups);
 	if (sni_len)
-		len += 11 + sni_len;
+		ext_len += 9 + sni_len;
+
+	/* +2 is for "len of all extensions" 2-byte field */
+	len = sizeof(*record) + 2 + ext_len;
 	record = tls_get_outbuf(tls, len);
 	memset(record, 0, len);
 
@@ -1278,25 +1353,30 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 	if ((CIPHER_ID2 >> 8) != 0) record->cipherid[4] = CIPHER_ID2 >> 8;
 	/*************************/ record->cipherid[5] = CIPHER_ID2 & 0xff;
 #endif
+#if CIPHER_ID3
+	if ((CIPHER_ID3 >> 8) != 0) record->cipherid[6] = CIPHER_ID3 >> 8;
+	/*************************/ record->cipherid[7] = CIPHER_ID3 & 0xff;
+#endif
 
 	record->comprtypes_len = 1;
 	/* record->comprtypes[0] = 0; */
 
+	ptr = (void*)(record + 1);
+	*ptr++ = ext_len >> 8;
+	*ptr++ = ext_len;
 	if (sni_len) {
-		uint8_t *p = (void*)(record + 1);
-		//p[0] = 0;         //
-		p[1] = sni_len + 9; //ext_len
-		//p[2] = 0;             //
-		//p[3] = 0;             //extension_type
-		//p[4] = 0;         //
-		p[5] = sni_len + 5; //list len
-		//p[6] = 0;             //
-		p[7] = sni_len + 3;     //len of 1st SNI
-		//p[8] = 0;         //name type
-		//p[9] = 0;             //
-		p[10] = sni_len;        //name len
-		memcpy(&p[11], sni, sni_len);
+		//ptr[0] = 0;             //
+		//ptr[1] = 0;             //extension_type
+		//ptr[2] = 0;         //
+		ptr[3] = sni_len + 5; //list len
+		//ptr[4] = 0;             //
+		ptr[5] = sni_len + 3;     //len of 1st SNI
+		//ptr[6] = 0;         //name type
+		//ptr[7] = 0;             //
+		ptr[8] = sni_len;         //name len
+		ptr = mempcpy(&ptr[9], sni, sni_len);
 	}
+	mempcpy(ptr, supported_groups, sizeof(supported_groups));
 
 	dbg(">> CLIENT_HELLO\n");
 	/* Can hash it only when we know which MAC hash to use */
@@ -1373,7 +1453,9 @@ static void get_server_hello(tls_state_t *tls)
 	tls->cipher_id = cipher = 0x100 * cipherid[0] + cipherid[1];
 	dbg("server chose cipher %04x\n", cipher);
 
-	if (cipher == TLS_RSA_WITH_AES_128_CBC_SHA) {
+	if (cipher == TLS_RSA_WITH_AES_128_CBC_SHA
+	 || cipher == TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+	) {
 		tls->key_size = AES128_KEYSIZE;
 		tls->MAC_size = SHA1_OUTSIZE;
 	}
@@ -1425,6 +1507,55 @@ static void get_server_cert(tls_state_t *tls)
 		find_key_in_der_cert(tls, certbuf + 10, len);
 }
 
+/* On input, len is known to be >= 4.
+ * The record is known to be SERVER_KEY_EXCHANGE.
+ */
+static void process_server_key(tls_state_t *tls, int len)
+{
+	struct record_hdr *xhdr;
+	uint8_t *keybuf;
+	int len1;
+	uint32_t t32;
+
+	xhdr = (void*)tls->inbuf;
+	keybuf = (void*)(xhdr + 1);
+//seen from is.gd: it selects curve_x25519:
+//  0c 00006e //SERVER_KEY_EXCHANGE
+//    03 //curve_type: named curve
+//    001d //curve_x25519
+//server-chosen EC point, and then signed_params
+//      (rfc8422: "A hash of the params, with the signature
+//      appropriate to that hash applied.  The private key corresponding
+//      to the certified public key in the server's Certificate message is
+//      used for signing.")
+//follow. Format unclear/guessed:
+//    20 //eccPubKeyLen
+//      25511923d73b70dd2f60e66ba2f3fda31a9c25170963c7a3a972e481dbb2835d //eccPubKey (32bytes)
+//    0203 //hashSigAlg: 2:SHA1 (4:SHA256 5:SHA384 6:SHA512), 3:ECDSA (1:RSA)
+//    0046 //len (16bit)
+//      30 44 //SEQ, len
+//        02 20 //INTEGER, len
+//          2e18e7c2a9badd0a70cd3059a6ab114539b9f5163568911147386cd77ed7c412 //32bytes
+//this item ^^^^^ is sometimes 33 bytes (with all container sizes also +1)
+//        02 20 //INTEGER, len
+//          64523d6216cb94c43c9b20e377d8c52c55be6703fd6730a155930c705eaf3af6 //32bytes
+//same about this item ^^^^^
+	/* Get and verify length */
+	len1 = get24be(keybuf + 1);
+	if (len1 > len - 4) tls_error_die(tls);
+	len = len1;
+	if (len < (1+2+1+32)) tls_error_die(tls);
+	keybuf += 4;
+
+	/* So far we only support curve_x25519 */
+	move_from_unaligned32(t32, keybuf);
+	if (t32 != htonl(0x03001d20))
+		tls_error_die(tls);
+
+	memcpy(tls->hsd->ecc_pub_key32, keybuf + 4, 32);
+	dbg("got eccPubKey\n");
+}
+
 static void send_empty_client_cert(tls_state_t *tls)
 {
 	struct client_empty_cert {
@@ -1433,13 +1564,18 @@ static void send_empty_client_cert(tls_state_t *tls)
 		uint8_t cert_chain_len24_hi, cert_chain_len24_mid, cert_chain_len24_lo;
 	};
 	struct client_empty_cert *record;
+	static const uint8_t empty_client_cert[] = {
+		HANDSHAKE_CERTIFICATE,
+		0, 0, 3, //len24
+		0, 0, 0, //cert_chain_len24
+	};
 
 	record = tls_get_outbuf(tls, sizeof(*record));
-//FIXME: can just memcpy a ready-made one.
-	fill_handshake_record_hdr(record, HANDSHAKE_CERTIFICATE, sizeof(*record));
-	record->cert_chain_len24_hi = 0;
-	record->cert_chain_len24_mid = 0;
-	record->cert_chain_len24_lo = 0;
+	//fill_handshake_record_hdr(record, HANDSHAKE_CERTIFICATE, sizeof(*record));
+	//record->cert_chain_len24_hi = 0;
+	//record->cert_chain_len24_mid = 0;
+	//record->cert_chain_len24_lo = 0;
+	memcpy(record, empty_client_cert, sizeof(empty_client_cert));
 
 	dbg(">> CERTIFICATE\n");
 	xwrite_and_update_handshake_hash(tls, sizeof(*record));
@@ -1450,34 +1586,63 @@ static void send_client_key_exchange(tls_state_t *tls)
 	struct client_key_exchange {
 		uint8_t type;
 		uint8_t len24_hi, len24_mid, len24_lo;
-		/* keylen16 exists for RSA (in TLS, not in SSL), but not for some other key types */
-		uint8_t keylen16_hi, keylen16_lo;
-		uint8_t key[4 * 1024]; // size??
+		uint8_t key[2 + 4 * 1024]; // size??
 	};
 //FIXME: better size estimate
 	struct client_key_exchange *record = tls_get_outbuf(tls, sizeof(*record));
 	uint8_t rsa_premaster[RSA_PREMASTER_SIZE];
+	uint8_t x25519_premaster[CURVE25519_KEYSIZE];
+	uint8_t *premaster;
+	int premaster_size;
 	int len;
 
-	tls_get_random(rsa_premaster, sizeof(rsa_premaster));
-	if (TLS_DEBUG_FIXED_SECRETS)
-		memset(rsa_premaster, 0x44, sizeof(rsa_premaster));
-	// RFC 5246
-	// "Note: The version number in the PreMasterSecret is the version
-	// offered by the client in the ClientHello.client_version, not the
-	// version negotiated for the connection."
-	rsa_premaster[0] = TLS_MAJ;
-	rsa_premaster[1] = TLS_MIN;
-	dump_hex("premaster:%s\n", rsa_premaster, sizeof(rsa_premaster));
-	len = psRsaEncryptPub(/*pool:*/ NULL,
-		/* psRsaKey_t* */ &tls->hsd->server_rsa_pub_key,
-		rsa_premaster, /*inlen:*/ sizeof(rsa_premaster),
-		record->key, sizeof(record->key),
-		data_param_ignored
-	);
-	record->keylen16_hi = len >> 8;
-	record->keylen16_lo = len & 0xff;
-	len += 2;
+	if (tls->hsd->key_alg == KEY_ALG_RSA) {
+		tls_get_random(rsa_premaster, sizeof(rsa_premaster));
+		if (TLS_DEBUG_FIXED_SECRETS)
+			memset(rsa_premaster, 0x44, sizeof(rsa_premaster));
+		// RFC 5246
+		// "Note: The version number in the PreMasterSecret is the version
+		// offered by the client in the ClientHello.client_version, not the
+		// version negotiated for the connection."
+		rsa_premaster[0] = TLS_MAJ;
+		rsa_premaster[1] = TLS_MIN;
+		dump_hex("premaster:%s\n", rsa_premaster, sizeof(rsa_premaster));
+		len = psRsaEncryptPub(/*pool:*/ NULL,
+			/* psRsaKey_t* */ &tls->hsd->server_rsa_pub_key,
+			rsa_premaster, /*inlen:*/ sizeof(rsa_premaster),
+			record->key + 2, sizeof(record->key) - 2,
+			data_param_ignored
+		);
+		/* keylen16 exists for RSA (in TLS, not in SSL), but not for some other key types */
+		record->key[0] = len >> 8;
+		record->key[1] = len & 0xff;
+		len += 2;
+		premaster = rsa_premaster;
+		premaster_size = sizeof(rsa_premaster);
+	} else {
+		/* KEY_ALG_ECDSA */
+		static const uint8_t basepoint9[CURVE25519_KEYSIZE] = {9};
+		uint8_t privkey[CURVE25519_KEYSIZE]; //[32]
+
+		/* Generate random private key, see RFC 7748 */
+		tls_get_random(privkey, sizeof(privkey));
+		privkey[0] &= 0xf8;
+		privkey[CURVE25519_KEYSIZE-1] = ((privkey[CURVE25519_KEYSIZE-1] & 0x7f) | 0x40);
+
+		/* Compute public key */
+		curve25519(record->key + 1, privkey, basepoint9);
+
+		/* Compute premaster using peer's public key */
+		dbg("computing x25519_premaster\n");
+		curve25519(x25519_premaster, privkey, tls->hsd->ecc_pub_key32);
+
+		len = CURVE25519_KEYSIZE;
+		record->key[0] = len;
+		len++;
+		premaster = x25519_premaster;
+		premaster_size = sizeof(x25519_premaster);
+	}
+
 	record->type = HANDSHAKE_CLIENT_KEY_EXCHANGE;
 	record->len24_hi  = 0;
 	record->len24_mid = len >> 8;
@@ -1499,7 +1664,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	// of the premaster secret will vary depending on key exchange method.
 	prf_hmac_sha256(/*tls,*/
 		tls->hsd->master_secret, sizeof(tls->hsd->master_secret),
-		rsa_premaster, sizeof(rsa_premaster),
+		premaster, premaster_size,
 		"master secret",
 		tls->hsd->client_and_server_rand32, sizeof(tls->hsd->client_and_server_rand32)
 	);
@@ -1686,8 +1851,19 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 		//SvKey len=455^
 		// with TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA: 461 bytes:
 		// 0c   00|01|c9 03|00|17|41|04|cd|9b|b4|29|1f|f6|b0|c2|84|82|7f|29|6a|47|4e|ec|87|0b|c1|9c|69|e1|f8|c6|d0|53|e9|27|90|a5|c8|02|15|75...
+		//
+		// RFC 8422 5.4. Server Key Exchange
+		// This message is sent when using the ECDHE_ECDSA, ECDHE_RSA, and
+		// ECDH_anon key exchange algorithms.
+		// This message is used to convey the server's ephemeral ECDH public key
+		// (and the corresponding elliptic curve domain parameters) to the
+		// client.
 		dbg("<< SERVER_KEY_EXCHANGE len:%u\n", len);
-//probably need to save it
+		dump_raw_in("<< %s\n", tls->inbuf, RECHDR_LEN + len);
+		if (tls->hsd->key_alg == KEY_ALG_ECDSA)
+			process_server_key(tls, len);
+
+		// read next handshake block
 		len = tls_xread_handshake_block(tls, 4);
 	}
 

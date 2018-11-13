@@ -94,6 +94,7 @@ void tls_get_random(void *buf, unsigned len);
 
 
 #include "tls_pstm.h"
-#include "tls_rsa.h"
 #include "tls_symmetric.h"
 #include "tls_aes.h"
+#include "tls_rsa.h"
+#include "tls_fe.h"
