@@ -556,18 +556,28 @@ static void xc_double(byte *x3, byte *z3,
 
 void curve25519(byte *result, const byte *e, const byte *q)
 {
-	/* from wolfssl-3.15.3/wolfssl/wolfcrypt/fe_operations.h */
-	static const byte f25519_one[F25519_SIZE] = {1};
-
-	/* Current point: P_m */
-	byte xm[F25519_SIZE];
-	byte zm[F25519_SIZE] = {1};
-
-	/* Predecessor: P_(m-1) */
-	byte xm1[F25519_SIZE] = {1};
-	byte zm1[F25519_SIZE] = {0};
-
 	int i;
+
+	struct {
+		/* from wolfssl-3.15.3/wolfssl/wolfcrypt/fe_operations.h */
+		/*static const*/ byte f25519_one[F25519_SIZE]; // = {1};
+
+		/* Current point: P_m */
+		byte xm[F25519_SIZE];
+		byte zm[F25519_SIZE]; // = {1};
+		/* Predecessor: P_(m-1) */
+		byte xm1[F25519_SIZE]; // = {1};
+		byte zm1[F25519_SIZE]; // = {0};
+	} z;
+#define f25519_one z.f25519_one
+#define xm         z.xm
+#define zm         z.zm
+#define xm1        z.xm1
+#define zm1        z.zm1
+	memset(&z, 0, sizeof(z));
+	f25519_one[0] = 1;
+	zm[0] = 1;
+	xm1[0] = 1;
 
 	/* Note: bit 254 is assumed to be 1 */
 	lm_copy(xm, q);
