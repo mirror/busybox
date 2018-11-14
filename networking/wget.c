@@ -717,8 +717,8 @@ static void spawn_ssl_client(const char *host, int network_fd, int flags)
 	char *servername, *p;
 
 	if (!(option_mask32 & WGET_OPT_NO_CHECK_CERT)) {
-		bb_error_msg("note: TLS certificate validation not implemented");
 		option_mask32 |= WGET_OPT_NO_CHECK_CERT;
+		bb_error_msg("note: TLS certificate validation not implemented");
 	}
 
 	servername = xstrdup(host);
