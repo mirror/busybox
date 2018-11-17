@@ -1,7 +1,8 @@
 #!/bin/sh
 
 target="$1"
-loc="$2"
+custom_loc="$2"
+applet_loc="$3"
 
 test "$target" || exit 1
 test "$SED" || SED=sed
@@ -14,46 +15,102 @@ if test $? != 0; then
 	exit 1
 fi
 
-exec >"$target.$$"
-
-scripts=""
-if [ -d "$loc" ]
+custom_scripts=""
+if [ -d "$custom_loc" ]
 then
-	scripts=$(cd $loc; ls * 2>/dev/null)
+	custom_scripts=$(cd $custom_loc; ls * 2>/dev/null)
+fi
+all_scripts=$(applets/busybox.mkscripts)
+
+# all_scripts includes applet scripts and custom scripts, sort them out
+applet_scripts=""
+for i in $all_scripts
+do
+    found=0
+	for j in $custom_scripts
+	do
+		if [ "$i" = "$j" ]
+		then
+			found=1
+			break;
+		fi
+	done
+	if [ $found -eq 0 ]
+	then
+		# anything that isn't a custom script is an applet script
+		applet_scripts="$applet_scripts $i"
+	fi
+done
+
+# we know the custom scripts are present but applet scripts might have
+# become detached from their configuration
+for i in $applet_scripts
+do
+	#if [ ! -f "$applet_loc/$i" -a ! -f "$custom_loc/$i" ]
+	if [ ! -f "$applet_loc/$i" ]
+	then
+		echo "missing applet script $i"
+		exit 1
+	fi
+done
+
+n=$(echo $custom_scripts $applet_scripts | wc -w)
+nall=$(echo $all_scripts | wc -w)
+
+if [ $n -ne $nall ]
+then
+	echo "script mismatch $n != $nall"
+	exit 1
 fi
 
-n=$(echo $scripts | wc -w)
+concatenate_scripts() {
+	for i in $custom_scripts
+	do
+		cat $custom_loc/$i
+		printf '\000'
+	done
+	for i in $applet_scripts
+	do
+		cat $applet_loc/$i
+		printf '\000'
+	done
+}
+
+exec >"$target.$$"
 
 if [ $n -ne 0 ]
 then
-	printf '#ifdef DEFINE_script_names\n'
-	printf 'const char script_names[] ALIGN1 = '
-	for i in $scripts
-	do
-		printf '"%s\\0"' $i
-	done
-	printf ';\n'
+	printf '#ifdef DEFINE_SCRIPT_DATA\n'
+	if [ $n -ne 0 ]
+	then
+		printf 'const uint16_t applet_numbers[] = {\n'
+		for i in $custom_scripts $applet_scripts
+		do
+			# TODO support applets with names including invalid characters
+			printf '\tAPPLET_NO_%s,\n' $i
+		done
+		printf '};\n'
+	fi
 	printf '#else\n'
-	printf 'extern const char script_names[] ALIGN1;\n'
+	if [ $n -ne 0 ]
+	then
+		printf 'extern const uint16_t applet_numbers[];\n'
+	fi
 	printf '#endif\n'
 fi
-printf "#define NUM_SCRIPTS $n\n\n"
+
+printf "\n"
+printf '#define NUM_SCRIPTS %d\n' $n
+printf "\n"
 
 if [ $n -ne 0 ]
 then
 	printf '#define UNPACKED_SCRIPTS_LENGTH '
-	for i in $scripts
-	do
-		cat $loc/$i
-		printf '\000'
-	done | wc -c
+	concatenate_scripts | wc -c
 
 	printf '#define PACKED_SCRIPTS \\\n'
-	for i in $scripts
-	do
-		cat $loc/$i
-		printf '\000'
-	done | bzip2 -1 | $DD bs=2 skip=1 2>/dev/null | od -v -b \
+	concatenate_scripts | bzip2 -1 | $DD bs=2 skip=1 2>/dev/null | \
+	od -v -b \
 	| grep -v '^ ' \
 	| $SED -e 's/^[^ ]*//' \
 		-e 's/ //g' \

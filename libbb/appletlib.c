@@ -51,7 +51,7 @@
 #include "usage_compressed.h"
 
 #if ENABLE_ASH_EMBEDDED_SCRIPTS
-# define DEFINE_script_names 1
+# define DEFINE_SCRIPT_DATA 1
 # include "embedded_scripts.h"
 #else
 # define NUM_SCRIPTS 0
@@ -818,27 +818,21 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 		/* prevent last comma to be in the very last pos */
 		output_width--;
 		a = applet_names;
-		{
-#  if NUM_SCRIPTS > 0
-			int i;
-			for (i = 0; i < 2; i++, a = script_names)
-#  endif
-			while (*a) {
-				int len2 = strlen(a) + 2;
-				if (col >= (int)output_width - len2) {
-					full_write2_str(",\n");
-					col = 0;
-				}
-				if (col == 0) {
-					col = 6;
-					full_write2_str("\t");
-				} else {
-					full_write2_str(", ");
-				}
-				full_write2_str(a);
-				col += len2;
-				a += len2 - 1;
+		while (*a) {
+			int len2 = strlen(a) + 2;
+			if (col >= (int)output_width - len2) {
+				full_write2_str(",\n");
+				col = 0;
 			}
+			if (col == 0) {
+				col = 6;
+				full_write2_str("\t");
+			} else {
+				full_write2_str(", ");
+			}
+			full_write2_str(a);
+			col += len2;
+			a += len2 - 1;
 		}
 		full_write2_str("\n");
 		return 0;
@@ -946,20 +940,25 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **ar
 # endif /* NUM_APPLETS > 0 */
 
 # if NUM_SCRIPTS > 0
-int FAST_FUNC
-find_script_by_name(const char *name)
+static int find_script_by_name(const char *name)
 {
-	const char *s = script_names;
-	int i = 0;
+	int i;
+	int applet = find_applet_by_name(name);
 
-	while (*s) {
-		if (strcmp(name, s) == 0)
-			return i;
-		i++;
-		while (*s++ != '\0')
-			continue;
+	if (applet >= 0) {
+		for (i = 0; i < NUM_SCRIPTS; ++i)
+			if (applet_numbers[i] == applet)
+				return i;
 	}
-	return -0x10000; /* make it so that NUM_APPLETS + <error> is still < 0 */
+	return -1;
+}
+
+int scripted_main(int argc UNUSED_PARAM, char **argv)
+{
+	int script = find_script_by_name(applet_name);
+	if (script >= 0)
+		exit(ash_main(-script - 1, argv));
+	return 0;
 }
 
 char* FAST_FUNC
@@ -978,7 +977,7 @@ get_script_content(unsigned n)
 }
 # endif /* NUM_SCRIPTS > 0 */
 
-# if ENABLE_BUSYBOX || NUM_APPLETS > 0 || NUM_SCRIPTS > 0
+# if ENABLE_BUSYBOX || NUM_APPLETS > 0
 static NORETURN void run_applet_and_exit(const char *name, char **argv)
 {
 #  if ENABLE_BUSYBOX
@@ -991,13 +990,6 @@ static NORETURN void run_applet_and_exit(const char *name, char **argv)
 		int applet = find_applet_by_name(name);
 		if (applet >= 0)
 			run_applet_no_and_exit(applet, name, argv);
-	}
-#  endif
-#  if NUM_SCRIPTS > 0
-	{
-		int script = find_script_by_name(name);
-		if (script >= 0)
-			exit(ash_main(-script - 1, argv));
 	}
 #  endif
 

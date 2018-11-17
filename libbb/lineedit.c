@@ -41,12 +41,6 @@
 #include "busybox.h"
 #include "NUM_APPLETS.h"
 #include "unicode.h"
-#if ENABLE_ASH_EMBEDDED_SCRIPTS
-# include "embedded_scripts.h"
-#else
-# define NUM_SCRIPTS 0
-#endif
-
 #ifndef _POSIX_VDISABLE
 # define _POSIX_VDISABLE '\0'
 #endif
@@ -812,20 +806,14 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 	}
 	pf_len = strlen(pfind);
 
-# if ENABLE_FEATURE_SH_STANDALONE && (NUM_APPLETS != 1 || NUM_SCRIPTS > 0)
+# if ENABLE_FEATURE_SH_STANDALONE && NUM_APPLETS != 1
 	if (type == FIND_EXE_ONLY && !dirbuf) {
-		const char *p;
-#  if NUM_APPLETS != 1 && NUM_SCRIPTS > 0
-		for (i = 0, p = applet_names; i < 2; i++, p = script_names)
-#  elif NUM_APPLETS != 1 /* and NUM_SCRIPTS == 0 */
-		p = applet_names;
-#  else /* NUM_APPLETS == 1 && NUM_SCRIPTS > 0 */
-		p = script_names;
-#  endif
+		const char *p = applet_names;
+
 		while (*p) {
 			if (strncmp(pfind, p, pf_len) == 0)
 				add_match(xstrdup(p));
-			while (*p++)
+			while (*p++ != '\0')
 				continue;
 		}
 	}

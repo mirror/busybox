@@ -56,3 +56,8 @@ cscope.po.out
 #
 tags
 TAGS
+
+#
+# user-supplied scripts
+#
+/embed
