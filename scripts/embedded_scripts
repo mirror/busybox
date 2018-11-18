@@ -20,7 +20,7 @@ if [ -d "$custom_loc" ]
 then
 	custom_scripts=$(cd $custom_loc; ls * 2>/dev/null)
 fi
-all_scripts=$(applets/busybox.mkscripts)
+all_scripts=$($srctree/applets/busybox.mkscripts)
 
 # all_scripts includes applet scripts and custom scripts, sort them out
 applet_scripts=""
