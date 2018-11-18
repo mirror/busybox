@@ -756,6 +756,44 @@ static void install_links(const char *busybox UNUSED_PARAM,
 
 static void run_applet_and_exit(const char *name, char **argv) NORETURN;
 
+# if NUM_SCRIPTS > 0
+static int find_script_by_name(const char *name)
+{
+	int i;
+	int applet = find_applet_by_name(name);
+
+	if (applet >= 0) {
+		for (i = 0; i < NUM_SCRIPTS; ++i)
+			if (applet_numbers[i] == applet)
+				return i;
+	}
+	return -1;
+}
+
+int scripted_main(int argc UNUSED_PARAM, char **argv)
+{
+	int script = find_script_by_name(applet_name);
+	if (script >= 0)
+		exit(ash_main(-script - 1, argv));
+	return 0;
+}
+
+char* FAST_FUNC
+get_script_content(unsigned n)
+{
+	char *t = unpack_bz2_data(packed_scripts, sizeof(packed_scripts),
+					UNPACKED_SCRIPTS_LENGTH);
+	if (t) {
+		while (n != 0) {
+			while (*t++ != '\0')
+				continue;
+			n--;
+		}
+	}
+	return t;
+}
+# endif /* NUM_SCRIPTS > 0 */
+
 # if ENABLE_BUSYBOX
 #  if ENABLE_FEATURE_SH_STANDALONE && ENABLE_FEATURE_TAB_COMPLETION
     /*
@@ -793,6 +831,9 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 			"\n"
 			"Usage: busybox [function [arguments]...]\n"
 			"   or: busybox --list"IF_FEATURE_INSTALLER("[-full]")"\n"
+#  if ENABLE_FEATURE_SHOW_SCRIPT && NUM_SCRIPTS > 0
+			"   or: busybox --show SCRIPT\n"
+#  endif
 			IF_FEATURE_INSTALLER(
 			"   or: busybox --install [-s] [DIR]\n"
 			)
@@ -837,6 +878,19 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 		full_write2_str("\n");
 		return 0;
 	}
+
+#  if ENABLE_FEATURE_SHOW_SCRIPT && NUM_SCRIPTS > 0
+	if (strcmp(argv[1], "--show") == 0) {
+		int n;
+		if (!argv[2])
+			bb_error_msg_and_die(bb_msg_requires_arg, "--show");
+		n = find_script_by_name(argv[2]);
+		if (n < 0)
+			bb_error_msg_and_die("script '%s' not found", argv[2]);
+		full_write1_str(get_script_content(n));
+		return 0;
+	}
+#  endif
 
 	if (is_prefixed_with(argv[1], "--list")) {
 		unsigned i = 0;
@@ -938,44 +992,6 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **ar
 	xfunc_die();
 }
 # endif /* NUM_APPLETS > 0 */
-
-# if NUM_SCRIPTS > 0
-static int find_script_by_name(const char *name)
-{
-	int i;
-	int applet = find_applet_by_name(name);
-
-	if (applet >= 0) {
-		for (i = 0; i < NUM_SCRIPTS; ++i)
-			if (applet_numbers[i] == applet)
-				return i;
-	}
-	return -1;
-}
-
-int scripted_main(int argc UNUSED_PARAM, char **argv)
-{
-	int script = find_script_by_name(applet_name);
-	if (script >= 0)
-		exit(ash_main(-script - 1, argv));
-	return 0;
-}
-
-char* FAST_FUNC
-get_script_content(unsigned n)
-{
-	char *t = unpack_bz2_data(packed_scripts, sizeof(packed_scripts),
-					UNPACKED_SCRIPTS_LENGTH);
-	if (t) {
-		while (n != 0) {
-			while (*t++ != '\0')
-				continue;
-			n--;
-		}
-	}
-	return t;
-}
-# endif /* NUM_SCRIPTS > 0 */
 
 # if ENABLE_BUSYBOX || NUM_APPLETS > 0
 static NORETURN void run_applet_and_exit(const char *name, char **argv)

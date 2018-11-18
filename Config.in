@@ -178,6 +178,11 @@ config BUSYBOX
 
 	Running "busybox APPLET [ARGS...]" will still work, of course.
 
+config FEATURE_SHOW_SCRIPT
+	bool "Support --show SCRIPT"
+	default y
+	depends on BUSYBOX
+
 config FEATURE_INSTALLER
 	bool "Support --install [-s] to install applet links at runtime"
 	default y
