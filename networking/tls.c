@@ -1527,11 +1527,11 @@ static void process_server_key(tls_state_t *tls, int len)
 	xhdr = (void*)tls->inbuf;
 	keybuf = (void*)(xhdr + 1);
 //seen from is.gd: it selects curve_x25519:
-//  0c 00006e //SERVER_KEY_EXCHANGE
+//  0c 00006e //SERVER_KEY_EXCHANGE, len
 //    03 //curve_type: named curve
 //    001d //curve_x25519
 //server-chosen EC point, and then signed_params
-//      (rfc8422: "A hash of the params, with the signature
+//      (RFC 8422: "A hash of the params, with the signature
 //      appropriate to that hash applied.  The private key corresponding
 //      to the certified public key in the server's Certificate message is
 //      used for signing.")
@@ -1547,6 +1547,18 @@ static void process_server_key(tls_state_t *tls, int len)
 //        02 20 //INTEGER, len
 //          64523d6216cb94c43c9b20e377d8c52c55be6703fd6730a155930c705eaf3af6 //32bytes
 //same about this item ^^^^^
+
+//seen from www.openbsd.org
+//(which only accepts ECDHE-RSA-AESnnn-GCM-SHAnnn and ECDHE-RSA-CHACHA20-POLY1305 ciphers):
+//  0c 000228 //SERVER_KEY_EXCHANGE, len
+//    03 //curve_type: named curve
+//    001d //curve_x25519
+//    20 //eccPubKeyLen
+//      eef7a15c43b71a4c7eaa48a39369399cc4332e569ec90a83274cc92596705c1a //eccPubKey
+//    0401 //hashSigAlg: 4:SHA256, 1:RSA
+//    0200 //len
+//      //0x200 bytes follow
+
 	/* Get and verify length */
 	len1 = get24be(keybuf + 1);
 	if (len1 > len - 4) tls_error_die(tls);
