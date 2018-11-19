@@ -149,8 +149,8 @@ try $CC $CFLAGS $LDFLAGS \
 # Stop when no lib can be removed.
 while test "$LDLIBS"; do
     $debug && echo "Trying libraries: $LDLIBS"
-    all_needed=true
-    last_needed=false
+    dropped_non_first_lib=false
+    first_lib=true
     for one in $LDLIBS; do
 	without_one=`echo " $LDLIBS " | sed "s/ $one / /g" | xargs`
 	# "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
@@ -167,20 +167,17 @@ while test "$LDLIBS"; do
 	if test $? = 0; then
 	    echo " Library $one is not needed, excluding it"
 	    LDLIBS="$without_one"
-	    all_needed=false
-	    last_needed=false
+	    $first_lib || dropped_non_first_lib=true
 	else
 	    echo " Library $one is needed, can't exclude it (yet)"
-	    last_needed=true
+	    first_lib=false
 	fi
     done
-    # All libs were needed, can't remove any
-    $all_needed && break
-    # Optimization: was the last tried lib needed?
-    if $last_needed; then
-	# Was it the only one lib left? Don't test again then.
-	{ echo "$LDLIBS" | grep -q ' '; } || break
-    fi
+    # We can stop trying to drop libs if either all libs were needed,
+    # or we excluded only the _first_ few.
+    # (else: we dropped some intermediate lib(s), maybe now we can succeed
+    # in dropping some of the preceding ones)
+    $dropped_non_first_lib || break
 done
 
 # Make the binary with final, minimal list of libs
