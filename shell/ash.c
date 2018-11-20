@@ -12961,6 +12961,7 @@ parseheredoc(void)
 	heredoclist = NULL;
 
 	while (here) {
+		tokpushback = 0;
 		setprompt_if(needprompt, 2);
 		readtoken1(pgetc(), here->here->type == NHERE ? SQSYNTAX : DQSYNTAX,
 				here->eofmark, here->striptabs);
