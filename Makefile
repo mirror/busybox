@@ -853,7 +853,7 @@ quiet_cmd_split_autoconf   = SPLIT   include/autoconf.h -> include/config/*
 quiet_cmd_gen_embedded_scripts = GEN     include/embedded_scripts.h
       cmd_gen_embedded_scripts = $(srctree)/scripts/embedded_scripts include/embedded_scripts.h $(srctree)/embed $(srctree)/applets_sh
 #bbox# piggybacked generation of few .h files
-include/config/MARKER: scripts/basic/split-include include/autoconf.h $(wildcard $(srctree)/embed/*) $(srctree)/scripts/embedded_scripts
+include/config/MARKER: scripts/basic/split-include include/autoconf.h $(wildcard $(srctree)/embed/*) $(wildcard $(srctree)/applets_sh/*) $(srctree)/scripts/embedded_scripts
 	$(call cmd,split_autoconf)
 	$(call cmd,gen_bbconfigopts)
 	$(call cmd,gen_common_bufsiz)

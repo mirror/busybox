@@ -22,12 +22,6 @@ s     - suid type:
         BB_SUID_REQUIRE or BB_SUID_MAYBE applet.
 */
 
-#define NOUSAGE_STR "\b"
-
-#define dummy_trivial_usage NOUSAGE_STR \
-
-#define dummy_full_usage "" \
-
 #if defined(PROTOTYPES)
 # define APPLET(name,l,s)                    int name##_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 # define APPLET_ODDNAME(name,main,l,s,help)  int main##_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
