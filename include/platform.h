@@ -236,6 +236,7 @@ typedef uint64_t bb__aliased_uint64_t FIX_ALIASING;
 # define move_from_unaligned32(v, u32p) ((v) = *(bb__aliased_uint32_t*)(u32p))
 # define move_to_unaligned16(u16p, v)   (*(bb__aliased_uint16_t*)(u16p) = (v))
 # define move_to_unaligned32(u32p, v)   (*(bb__aliased_uint32_t*)(u32p) = (v))
+# define move_to_unaligned64(u64p, v)   (*(bb__aliased_uint64_t*)(u64p) = (v))
 /* #elif ... - add your favorite arch today! */
 #else
 # define BB_UNALIGNED_MEMACCESS_OK 0
@@ -251,6 +252,10 @@ typedef uint64_t bb__aliased_uint64_t FIX_ALIASING;
 # define move_to_unaligned32(u32p, v) do { \
 	uint32_t __t = (v); \
 	memcpy((u32p), &__t, 4); \
+} while (0)
+# define move_to_unaligned64(u64p, v) do { \
+	uint64_t __t = (v); \
+	memcpy((u64p), &__t, 8); \
 } while (0)
 #endif
 

@@ -788,14 +788,15 @@ static void xwrite_encrypted_aesgcm(tls_state_t *tls, unsigned size, unsigned ty
 {
 #define COUNTER(v) (*(uint32_t*)(v + 12))
 
-	uint8_t aad[13 + 3];   /* +3 creates [16] buffer, simplifying GHASH() */
-	uint8_t nonce[12 + 4]; /* +4 creates space for AES block counter */
-	uint8_t scratch[AES_BLOCK_SIZE]; //[16]
-	uint8_t authtag[AES_BLOCK_SIZE]; //[16]
+	uint8_t aad[13 + 3] ALIGNED(4);   /* +3 creates [16] buffer, simplifying GHASH() */
+	uint8_t nonce[12 + 4] ALIGNED(4); /* +4 creates space for AES block counter */
+	uint8_t scratch[AES_BLOCK_SIZE] ALIGNED(4); //[16]
+	uint8_t authtag[AES_BLOCK_SIZE] ALIGNED(4); //[16]
 	uint8_t *buf;
 	struct record_hdr *xhdr;
 	unsigned remaining;
 	unsigned cnt;
+	uint64_t t64;
 
 	buf = tls->outbuf + OUTBUF_PFX; /* see above for the byte it points to */
 	dump_hex("xwrite_encrypted_aesgcm plaintext:%s\n", buf, size);
@@ -810,13 +811,13 @@ static void xwrite_encrypted_aesgcm(tls_state_t *tls, unsigned size, unsigned ty
 	/* set aad[12], and clear aad[13..15] */
 	COUNTER(aad) = SWAP_LE32(size & 0xff);
 
-	memcpy(nonce,     tls->client_write_IV, 4);
-	memcpy(nonce + 4, &tls->write_seq64_be, 8);
-	memcpy(aad,       &tls->write_seq64_be, 8);
-	memcpy(buf - 8,   &tls->write_seq64_be, 8);
-//optimize
+	memcpy(nonce, tls->client_write_IV, 4);
+	t64 = tls->write_seq64_be;
+	move_to_unaligned64(nonce + 4, t64);
+	move_to_unaligned64(aad,       t64);
+	move_to_unaligned64(buf - 8,   t64);
 	/* seq64 is not used later in this func, can increment here */
-	tls->write_seq64_be = SWAP_BE64(1 + SWAP_BE64(tls->write_seq64_be));
+	tls->write_seq64_be = SWAP_BE64(1 + SWAP_BE64(t64));
 
 	cnt = 1;
 	remaining = size;
@@ -923,13 +924,14 @@ static void tls_aesgcm_decrypt(tls_state_t *tls, uint8_t *buf, int size)
 {
 #define COUNTER(v) (*(uint32_t*)(v + 12))
 
-	//uint8_t aad[13 + 3]; /* +3 creates [16] buffer, simplifying GHASH() */
-	uint8_t nonce[12 + 4]; /* +4 creates space for AES block counter */
-	uint8_t scratch[AES_BLOCK_SIZE]; //[16]
-	//uint8_t authtag[AES_BLOCK_SIZE]; //[16]
+	//uint8_t aad[13 + 3] ALIGNED(4); /* +3 creates [16] buffer, simplifying GHASH() */
+	uint8_t nonce[12 + 4] ALIGNED(4); /* +4 creates space for AES block counter */
+	uint8_t scratch[AES_BLOCK_SIZE] ALIGNED(4); //[16]
+	//uint8_t authtag[AES_BLOCK_SIZE] ALIGNED(4); //[16]
 	unsigned remaining;
 	unsigned cnt;
 
+	//memcpy(aad, buf, 8);
 	//aad[8] = type;
 	//aad[9] = TLS_MAJ;
 	//aad[10] = TLS_MIN;
@@ -937,7 +939,6 @@ static void tls_aesgcm_decrypt(tls_state_t *tls, uint8_t *buf, int size)
 	///* set aad[12], and clear aad[13..15] */
 	//COUNTER(aad) = SWAP_LE32(size & 0xff);
 
-	//memcpy(aad,       &tls->write_seq64_be, 8);
 	memcpy(nonce,     tls->server_write_IV, 4);
 	memcpy(nonce + 4, buf, 8);
 	buf += 8;
