@@ -11,11 +11,6 @@ typedef uint32_t word32;
 #define XMEMSET memset
 #define XMEMCPY memcpy
 
-#define TLS_MAJ 3
-#define TLS_MIN 3
-#define RECHDR_LEN 5
-#define OUTBUF_PFX (8 + AES_BLOCK_SIZE)
-
 void FAST_FUNC xorbuf(void* buf, const void* mask, unsigned count)
 {
     word32 i;
@@ -39,12 +34,12 @@ static ALWAYS_INLINE void FlattenSzInBits(byte* buf, word32 sz)
 //    buf[1] = (szHi >> 16) & 0xff;
 //    buf[2] = (szHi >>  8) & 0xff;
 //    buf[3] = szHi & 0xff;
-    move_to_unaligned32(buf, 0);
+    *(uint32_t*)(buf + 0) = 0;
 //    buf[4] = (sz >> 24) & 0xff;
 //    buf[5] = (sz >> 16) & 0xff;
 //    buf[6] = (sz >>  8) & 0xff;
 //    buf[7] = sz & 0xff;
-    move_to_unaligned32(buf + 4, SWAP_BE32(sz));
+    *(uint32_t*)(buf + 4) = SWAP_BE32(sz);
 }
 
 static void RIGHTSHIFTX(byte* x)
@@ -100,8 +95,8 @@ void FAST_FUNC aesgcm_GHASH(byte* h,
     byte* s //, unsigned sSz
 )
 {
-    byte x[AES_BLOCK_SIZE];
-    byte scratch[AES_BLOCK_SIZE];
+    byte x[AES_BLOCK_SIZE] ALIGNED(4);
+    byte scratch[AES_BLOCK_SIZE] ALIGNED(4);
     word32 blocks, partial;
     //was: byte* h = aes->H;
 
