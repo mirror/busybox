@@ -17,4 +17,4 @@ typedef struct {
         psRsaEncryptPub(      key, in, inlen, out, outlen)
 int32 psRsaEncryptPub(psPool_t *pool, psRsaKey_t *key,
                                                 unsigned char *in, uint32 inlen,
-                                                unsigned char *out, uint32 outlen, void *data);
+                                                unsigned char *out, uint32 outlen, void *data) FAST_FUNC;

@@ -179,7 +179,7 @@ done:
 	return res;
 }
 
-int32 psRsaEncryptPub(psPool_t *pool, psRsaKey_t *key,
+int32 FAST_FUNC psRsaEncryptPub(psPool_t *pool, psRsaKey_t *key,
 						unsigned char *in, uint32 inlen,
 						unsigned char *out, uint32 outlen, void *data)
 {

@@ -554,7 +554,7 @@ static void xc_double(byte *x3, byte *z3,
 	fe_mul_c(z3, x1sq, 4);
 }
 
-void curve25519(byte *result, const byte *e, const byte *q)
+void FAST_FUNC curve25519(byte *result, const byte *e, const byte *q)
 {
 	int i;
 

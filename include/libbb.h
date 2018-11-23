@@ -736,10 +736,17 @@ struct hostent *xgethostbyname(const char *name) FAST_FUNC;
 // + inet_common.c has additional IPv4-only stuff
 
 
+struct tls_aes {
+	uint32_t key[60];
+	unsigned rounds;
+};
 #define TLS_MAX_MAC_SIZE 32
 #define TLS_MAX_KEY_SIZE 32
+#define TLS_MAX_IV_SIZE   4
 struct tls_handshake_data; /* opaque */
 typedef struct tls_state {
+	unsigned flags;
+
 	int ofd;
 	int ifd;
 
@@ -748,6 +755,7 @@ typedef struct tls_state {
 	uint8_t  encrypt_on_write;
 	unsigned MAC_size;
 	unsigned key_size;
+	unsigned IV_size;
 
 	uint8_t *outbuf;
 	int     outbuf_size;
@@ -769,12 +777,21 @@ typedef struct tls_state {
 	/*uint64_t read_seq64_be;*/
 	uint64_t write_seq64_be;
 
+	/*uint8_t *server_write_MAC_key;*/
 	uint8_t *client_write_key;
 	uint8_t *server_write_key;
+	uint8_t *client_write_IV;
+	uint8_t *server_write_IV;
 	uint8_t client_write_MAC_key[TLS_MAX_MAC_SIZE];
 	uint8_t server_write_MAC_k__[TLS_MAX_MAC_SIZE];
 	uint8_t client_write_k__[TLS_MAX_KEY_SIZE];
 	uint8_t server_write_k__[TLS_MAX_KEY_SIZE];
+	uint8_t client_write_I_[TLS_MAX_IV_SIZE];
+	uint8_t server_write_I_[TLS_MAX_IV_SIZE];
+
+	struct tls_aes aes_encrypt;
+	struct tls_aes aes_decrypt;
+	uint8_t H[16]; //used by AES_GCM
 } tls_state_t;
 
 static inline tls_state_t *new_tls_state(void)

@@ -340,8 +340,12 @@ static void aes_encrypt_1(unsigned astate[16], unsigned rounds, const uint32_t *
 	AddRoundKey(astate, RoundKey);
 }
 
-#if 0 // UNUSED
-static void aes_encrypt_one_block(unsigned rounds, const uint32_t *RoundKey, const void *data, void *dst)
+void FAST_FUNC aes_setkey(struct tls_aes *aes, const void *key, unsigned key_len)
+{
+	aes->rounds = KeyExpansion(aes->key, key, key_len);
+}
+
+void FAST_FUNC aes_encrypt_one_block(struct tls_aes *aes, const void *data, void *dst)
 {
 	unsigned astate[16];
 	unsigned i;
@@ -351,13 +355,12 @@ static void aes_encrypt_one_block(unsigned rounds, const uint32_t *RoundKey, con
 
 	for (i = 0; i < 16; i++)
 		astate[i] = pt[i];
-	aes_encrypt_1(astate, rounds, RoundKey);
+	aes_encrypt_1(astate, aes->rounds, aes->key);
 	for (i = 0; i < 16; i++)
 		ct[i] = astate[i];
 }
-#endif
 
-void aes_cbc_encrypt(const void *key, int klen, void *iv, const void *data, size_t len, void *dst)
+void FAST_FUNC aes_cbc_encrypt(const void *key, int klen, void *iv, const void *data, size_t len, void *dst)
 {
 	uint32_t RoundKey[60];
 	uint8_t iv2[16];
@@ -420,7 +423,7 @@ static void aes_decrypt_one_block(unsigned rounds, const uint32_t *RoundKey, con
 }
 #endif
 
-void aes_cbc_decrypt(const void *key, int klen, void *iv, const void *data, size_t len, void *dst)
+void FAST_FUNC aes_cbc_decrypt(const void *key, int klen, void *iv, const void *data, size_t len, void *dst)
 {
 	uint32_t RoundKey[60];
 	uint8_t iv2[16];
