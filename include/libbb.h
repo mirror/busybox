@@ -2007,7 +2007,7 @@ typedef struct bb_progress_t {
 	(p)->curfile = NULL; \
 } while (0)
 void bb_progress_init(bb_progress_t *p, const char *curfile) FAST_FUNC;
-void bb_progress_update(bb_progress_t *p,
+int bb_progress_update(bb_progress_t *p,
 			uoff_t beg_range,
 			uoff_t transferred,
 			uoff_t totalsize) FAST_FUNC;

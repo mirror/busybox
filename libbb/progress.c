@@ -69,7 +69,7 @@ void FAST_FUNC bb_progress_init(bb_progress_t *p, const char *curfile)
  * will be "totalsize" bytes.
  * If totalsize == 0, then it is unknown.
  */
-void FAST_FUNC bb_progress_update(bb_progress_t *p,
+int FAST_FUNC bb_progress_update(bb_progress_t *p,
 		uoff_t beg_size,
 		uoff_t transferred,
 		uoff_t totalsize)
@@ -94,7 +94,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		 * Do not update on every call
 		 * (we can be called on every network read!)
 		 */
-		return;
+		return -1;
 	}
 
 	/* Before we lose real, unscaled sizes, produce human-readable size string */
@@ -211,4 +211,5 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	}
 	if (notty)
 		fputc('\n', stderr);
+	return notty;
 }
