@@ -7,7 +7,7 @@
 void xorbuf(void* buf, const void* mask, unsigned count) FAST_FUNC;
 
 void aesgcm_GHASH(uint8_t* h,
-	const uint8_t* a, unsigned aSz,
+	const uint8_t* a, //unsigned aSz,
 	const uint8_t* c, unsigned cSz,
-	uint8_t* s, unsigned sSz
+	uint8_t* s //, unsigned sSz
 ) FAST_FUNC;

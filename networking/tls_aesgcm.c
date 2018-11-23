@@ -25,23 +25,26 @@ void FAST_FUNC xorbuf(void* buf, const void* mask, unsigned count)
         b[i] ^= m[i];
 }
 
-/* wolfssl-3.15.3/wolfcrypt/src/aes.c */
+/* from wolfssl-3.15.3/wolfcrypt/src/aes.c */
 
-static void FlattenSzInBits(byte* buf, word32 sz)
+static ALWAYS_INLINE void FlattenSzInBits(byte* buf, word32 sz)
 {
     /* Multiply the sz by 8 */
-    word32 szHi = (sz >> (8*sizeof(sz) - 3));
+//bbox: these sizes are never even close to 2^32/8
+//    word32 szHi = (sz >> (8*sizeof(sz) - 3));
     sz <<= 3;
 
     /* copy over the words of the sz into the destination buffer */
-    buf[0] = (szHi >> 24) & 0xff;
-    buf[1] = (szHi >> 16) & 0xff;
-    buf[2] = (szHi >>  8) & 0xff;
-    buf[3] = szHi & 0xff;
-    buf[4] = (sz >> 24) & 0xff;
-    buf[5] = (sz >> 16) & 0xff;
-    buf[6] = (sz >>  8) & 0xff;
-    buf[7] = sz & 0xff;
+//    buf[0] = (szHi >> 24) & 0xff;
+//    buf[1] = (szHi >> 16) & 0xff;
+//    buf[2] = (szHi >>  8) & 0xff;
+//    buf[3] = szHi & 0xff;
+    move_to_unaligned32(buf, 0);
+//    buf[4] = (sz >> 24) & 0xff;
+//    buf[5] = (sz >> 16) & 0xff;
+//    buf[6] = (sz >>  8) & 0xff;
+//    buf[7] = sz & 0xff;
+    move_to_unaligned32(buf + 4, SWAP_BE32(sz));
 }
 
 static void RIGHTSHIFTX(byte* x)
@@ -83,35 +86,47 @@ static void GMULT(byte* X, byte* Y)
     XMEMCPY(X, Z, AES_BLOCK_SIZE);
 }
 
-void FAST_FUNC aesgcm_GHASH(byte* h, const byte* a, unsigned aSz, const byte* c,
-    unsigned cSz, byte* s, unsigned sSz)
+//bbox:
+// for TLS AES-GCM, a (which as AAD) is always 13 bytes long, and bbox code provides
+// extra 3 zeroed bytes, making it a[16], or a[AES_BLOCK_SIZE].
+// Resulting auth tag in s is also always AES_BLOCK_SIZE bytes.
+//
+// This allows some simplifications.
+#define aSz AES_BLOCK_SIZE
+#define sSz AES_BLOCK_SIZE
+void FAST_FUNC aesgcm_GHASH(byte* h,
+    const byte* a, //unsigned aSz,
+    const byte* c, unsigned cSz,
+    byte* s //, unsigned sSz
+)
 {
     byte x[AES_BLOCK_SIZE];
     byte scratch[AES_BLOCK_SIZE];
     word32 blocks, partial;
     //was: byte* h = aes->H;
 
-    XMEMSET(x, 0, AES_BLOCK_SIZE);
+    //XMEMSET(x, 0, AES_BLOCK_SIZE);
 
     /* Hash in A, the Additional Authentication Data */
-    if (aSz != 0 && a != NULL) {
-        blocks = aSz / AES_BLOCK_SIZE;
-        partial = aSz % AES_BLOCK_SIZE;
-        while (blocks--) {
-            xorbuf(x, a, AES_BLOCK_SIZE);
+//    if (aSz != 0 && a != NULL) {
+//        blocks = aSz / AES_BLOCK_SIZE;
+//        partial = aSz % AES_BLOCK_SIZE;
+//        while (blocks--) {
+            //xorbuf(x, a, AES_BLOCK_SIZE);
+            XMEMCPY(x, a, AES_BLOCK_SIZE);// memcpy(x,a) = memset(x,0)+xorbuf(x,a)
             GMULT(x, h);
-            a += AES_BLOCK_SIZE;
-        }
-        if (partial != 0) {
-            XMEMSET(scratch, 0, AES_BLOCK_SIZE);
-            XMEMCPY(scratch, a, partial);
-            xorbuf(x, scratch, AES_BLOCK_SIZE);
-            GMULT(x, h);
-        }
-    }
+//            a += AES_BLOCK_SIZE;
+//        }
+//        if (partial != 0) {
+//            XMEMSET(scratch, 0, AES_BLOCK_SIZE);
+//            XMEMCPY(scratch, a, partial);
+//            xorbuf(x, scratch, AES_BLOCK_SIZE);
+//            GMULT(x, h);
+//        }
+//    }
 
     /* Hash in C, the Ciphertext */
-    if (cSz != 0 && c != NULL) {
+    if (cSz != 0 /*&& c != NULL*/) {
         blocks = cSz / AES_BLOCK_SIZE;
         partial = cSz % AES_BLOCK_SIZE;
         while (blocks--) {
