@@ -136,13 +136,3 @@ void FAST_FUNC aesgcm_GHASH(byte* h, const byte* a, unsigned aSz, const byte* c,
     /* Copy the result into s. */
     XMEMCPY(s, x, sSz);
 }
-
-void FAST_FUNC aesgcm_setkey(uint8_t H[16], struct tls_aes *aes, const byte* key, unsigned len)
-{
-    byte iv[AES_BLOCK_SIZE];
-
-    aes_setkey(aes, key, len);
-
-    memset(iv, 0, AES_BLOCK_SIZE);
-    aes_encrypt_one_block(aes, iv, H);
-}

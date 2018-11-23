@@ -758,7 +758,7 @@ static void xwrite_encrypted_and_hmac_signed(tls_state_t *tls, unsigned size, un
 	/* Encrypt content+MAC+padding in place */
 //optimize key setup
 	aes_cbc_encrypt(
-		tls->client_write_key, tls->key_size, /* selects 128/256 */
+		&tls->aes_decrypt, /* selects 128/256 */
 		buf - AES_BLOCK_SIZE, /* IV */
 		buf, size, /* plaintext */
 		buf /* ciphertext */
@@ -1061,7 +1061,7 @@ static int tls_xread_record(tls_state_t *tls, const char *expected)
 			/* Decrypt content+MAC+padding, moving it over IV in the process */
 			sz -= AES_BLOCK_SIZE; /* we will overwrite IV now */
 			aes_cbc_decrypt(
-				tls->server_write_key, tls->key_size, /* selects 128/256 */
+				&tls->aes_decrypt, /* selects 128/256 */
 				p, /* IV */
 				p + AES_BLOCK_SIZE, sz, /* ciphertext */
 				p /* plaintext */
@@ -1934,8 +1934,14 @@ static void send_client_key_exchange(tls_state_t *tls)
 		dump_hex("client_write_IV:%s\n",
 			tls->client_write_IV, tls->IV_size
 		);
-		aesgcm_setkey(tls->H, &tls->aes_encrypt, tls->client_write_key, tls->key_size);
+
 		aes_setkey(&tls->aes_decrypt, tls->server_write_key, tls->key_size);
+		aes_setkey(&tls->aes_encrypt, tls->client_write_key, tls->key_size);
+		{
+			uint8_t iv[AES_BLOCK_SIZE];
+			memset(iv, 0, AES_BLOCK_SIZE);
+			aes_encrypt_one_block(&tls->aes_encrypt, iv, tls->H);
+		}
 	}
 }
 
