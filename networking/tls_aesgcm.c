@@ -130,9 +130,10 @@ void FAST_FUNC aesgcm_GHASH(byte* h,
             c += AES_BLOCK_SIZE;
         }
         if (partial != 0) {
-            XMEMSET(scratch, 0, AES_BLOCK_SIZE);
-            XMEMCPY(scratch, c, partial);
-            xorbuf(x, scratch, AES_BLOCK_SIZE);
+            //XMEMSET(scratch, 0, AES_BLOCK_SIZE);
+            //XMEMCPY(scratch, c, partial);
+            //xorbuf(x, scratch, AES_BLOCK_SIZE);
+            xorbuf(x, c, partial);
             GMULT(x, h);
         }
     }
