@@ -82,9 +82,9 @@ static void GMULT(byte* X, byte* Y)
 }
 
 //bbox:
-// for TLS AES-GCM, a (which as AAD) is always 13 bytes long, and bbox code provides
+// for TLS AES-GCM, a (which is AAD) is always 13 bytes long, and bbox code provides
 // extra 3 zeroed bytes, making it a[16], or a[AES_BLOCK_SIZE].
-// Resulting auth tag in s is also always AES_BLOCK_SIZE bytes.
+// Resulting auth tag in s[] is also always AES_BLOCK_SIZE bytes.
 //
 // This allows some simplifications.
 #define aSz AES_BLOCK_SIZE
