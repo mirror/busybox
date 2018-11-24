@@ -233,20 +233,19 @@ struct globals {
 	char *fname_out;        /* where to direct output (-O) */
 	const char *proxy_flag; /* Use proxies if env vars are set */
 	const char *user_agent; /* "User-Agent" header field */
-#if ENABLE_FEATURE_WGET_TIMEOUT
-	unsigned timeout_seconds;
-	bool die_if_timed_out;
-#endif
 	int output_fd;
 	int o_flags;
+#if ENABLE_FEATURE_WGET_TIMEOUT
+	unsigned timeout_seconds;
+	smallint die_if_timed_out;
+#endif
 	smallint chunked;         /* chunked transfer encoding */
 	smallint got_clen;        /* got content-length: from server  */
 	/* Local downloads do benefit from big buffer.
 	 * With 512 byte buffer, it was measured to be
 	 * an order of magnitude slower than with big one.
 	 */
-	uint64_t just_to_align_next_member;
-	char wget_buf[CONFIG_FEATURE_COPYBUF_KB*1024];
+	char wget_buf[CONFIG_FEATURE_COPYBUF_KB*1024] ALIGNED(sizeof(long));
 } FIX_ALIASING;
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
@@ -349,9 +348,8 @@ static void strip_ipv6_scope_id(char *host)
 /* Base64-encode character string. */
 static char *base64enc(const char *str)
 {
-	unsigned len = strlen(str);
-	if (len > sizeof(G.wget_buf)/4*3 - 10) /* paranoia */
-		len = sizeof(G.wget_buf)/4*3 - 10;
+	/* paranoia */
+	unsigned len = strnlen(str, sizeof(G.wget_buf)/4*3 - 10);
 	bb_uuencode(G.wget_buf, str, len, bb_uuenc_tbl_base64);
 	return G.wget_buf;
 }
