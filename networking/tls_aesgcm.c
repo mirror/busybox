@@ -50,8 +50,8 @@ static void RIGHTSHIFTX(byte* x)
 
 static void GMULT(byte* X, byte* Y)
 {
-    byte Z[AES_BLOCK_SIZE];
-    byte V[AES_BLOCK_SIZE];
+    byte Z[AES_BLOCK_SIZE] ALIGNED_long;
+    byte V[AES_BLOCK_SIZE] ALIGNED_long;
     int i, j;
 
     XMEMSET(Z, 0, AES_BLOCK_SIZE);
@@ -62,7 +62,7 @@ static void GMULT(byte* X, byte* Y)
         for (j = 0; j < 8; j++)
         {
             if (y & 0x80) {
-                xorbuf(Z, V, AES_BLOCK_SIZE);
+                xorbuf_aligned_AES_BLOCK_SIZE(Z, V);
             }
 
             RIGHTSHIFTX(V);
@@ -86,8 +86,8 @@ void FAST_FUNC aesgcm_GHASH(byte* h,
     byte* s //, unsigned sSz
 )
 {
-    byte x[AES_BLOCK_SIZE] ALIGNED(4);
-    byte scratch[AES_BLOCK_SIZE] ALIGNED(4);
+    byte x[AES_BLOCK_SIZE] ALIGNED_long;
+    byte scratch[AES_BLOCK_SIZE] ALIGNED_long;
     word32 blocks, partial;
     //was: byte* h = aes->H;
 
@@ -116,6 +116,7 @@ void FAST_FUNC aesgcm_GHASH(byte* h,
         blocks = cSz / AES_BLOCK_SIZE;
         partial = cSz % AES_BLOCK_SIZE;
         while (blocks--) {
+            //xorbuf_aligned_AES_BLOCK_SIZE(x, c); - c is not guaranteed to be aligned
             xorbuf(x, c, AES_BLOCK_SIZE);
             GMULT(x, h);
             c += AES_BLOCK_SIZE;
@@ -124,7 +125,7 @@ void FAST_FUNC aesgcm_GHASH(byte* h,
             //XMEMSET(scratch, 0, AES_BLOCK_SIZE);
             //XMEMCPY(scratch, c, partial);
             //xorbuf(x, scratch, AES_BLOCK_SIZE);
-            xorbuf(x, c, partial);
+            xorbuf(x, c, partial);//same result as above
             GMULT(x, h);
         }
     }
@@ -132,7 +133,7 @@ void FAST_FUNC aesgcm_GHASH(byte* h,
     /* Hash in the lengths of A and C in bits */
     FlattenSzInBits(&scratch[0], aSz);
     FlattenSzInBits(&scratch[8], cSz);
-    xorbuf(x, scratch, AES_BLOCK_SIZE);
+    xorbuf_aligned_AES_BLOCK_SIZE(x, scratch);
     GMULT(x, h);
 
     /* Copy the result into s. */

@@ -357,6 +357,20 @@ void FAST_FUNC xorbuf(void *dst, const void *src, unsigned count)
 	xorbuf3(dst, dst, src, count);
 }
 
+void FAST_FUNC xorbuf_aligned_AES_BLOCK_SIZE(void *dst, const void *src)
+{
+	unsigned long *d = dst;
+	const unsigned long *s = src;
+	d[0] ^= s[0];
+#if ULONG_MAX <= 0xffffffffffffffff
+	d[1] ^= s[1];
+ #if ULONG_MAX == 0xffffffff
+	d[2] ^= s[2];
+	d[3] ^= s[3];
+ #endif
+#endif
+}
+
 /* Nondestructively see the current hash value */
 static unsigned sha_peek(md5sha_ctx_t *ctx, void *buffer)
 {
@@ -802,10 +816,10 @@ static void xwrite_encrypted_aesgcm(tls_state_t *tls, unsigned size, unsigned ty
 {
 #define COUNTER(v) (*(uint32_t*)(v + 12))
 
-	uint8_t aad[13 + 3] ALIGNED(4);   /* +3 creates [16] buffer, simplifying GHASH() */
-	uint8_t nonce[12 + 4] ALIGNED(4); /* +4 creates space for AES block counter */
-	uint8_t scratch[AES_BLOCK_SIZE] ALIGNED(4); //[16]
-	uint8_t authtag[AES_BLOCK_SIZE] ALIGNED(4); //[16]
+	uint8_t aad[13 + 3] ALIGNED_long;   /* +3 creates [16] buffer, simplifying GHASH() */
+	uint8_t nonce[12 + 4] ALIGNED_long; /* +4 creates space for AES block counter */
+	uint8_t scratch[AES_BLOCK_SIZE] ALIGNED_long; //[16]
+	uint8_t authtag[AES_BLOCK_SIZE] ALIGNED_long; //[16]
 	uint8_t *buf;
 	struct record_hdr *xhdr;
 	unsigned remaining;
@@ -850,7 +864,7 @@ static void xwrite_encrypted_aesgcm(tls_state_t *tls, unsigned size, unsigned ty
 	aesgcm_GHASH(tls->H, aad, /*sizeof(aad),*/ tls->outbuf + OUTBUF_PFX, size, authtag /*, sizeof(authtag)*/);
 	COUNTER(nonce) = htonl(1);
 	aes_encrypt_one_block(&tls->aes_encrypt, nonce, scratch);
-	xorbuf(authtag, scratch, sizeof(authtag));
+	xorbuf_aligned_AES_BLOCK_SIZE(authtag, scratch);
 
 	memcpy(buf, authtag, sizeof(authtag));
 #undef COUNTER
@@ -938,10 +952,10 @@ static void tls_aesgcm_decrypt(tls_state_t *tls, uint8_t *buf, int size)
 {
 #define COUNTER(v) (*(uint32_t*)(v + 12))
 
-	//uint8_t aad[13 + 3] ALIGNED(4); /* +3 creates [16] buffer, simplifying GHASH() */
-	uint8_t nonce[12 + 4] ALIGNED(4); /* +4 creates space for AES block counter */
-	uint8_t scratch[AES_BLOCK_SIZE] ALIGNED(4); //[16]
-	//uint8_t authtag[AES_BLOCK_SIZE] ALIGNED(4); //[16]
+	//uint8_t aad[13 + 3] ALIGNED_long; /* +3 creates [16] buffer, simplifying GHASH() */
+	uint8_t nonce[12 + 4] ALIGNED_long; /* +4 creates space for AES block counter */
+	uint8_t scratch[AES_BLOCK_SIZE] ALIGNED_long; //[16]
+	//uint8_t authtag[AES_BLOCK_SIZE] ALIGNED_long; //[16]
 	unsigned remaining;
 	unsigned cnt;
 
@@ -973,7 +987,7 @@ static void tls_aesgcm_decrypt(tls_state_t *tls, uint8_t *buf, int size)
 	//aesgcm_GHASH(tls->H, aad, tls->inbuf + RECHDR_LEN, size, authtag);
 	//COUNTER(nonce) = htonl(1);
 	//aes_encrypt_one_block(&tls->aes_encrypt, nonce, scratch);
-	//xorbuf(authtag, scratch, sizeof(authtag));
+	//xorbuf_aligned_AES_BLOCK_SIZE(authtag, scratch);
 
 	//memcmp(buf, authtag, sizeof(authtag)) || DIE("HASH DOES NOT MATCH!");
 #undef COUNTER
