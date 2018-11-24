@@ -58,11 +58,13 @@
 // Works with "wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.9.5.tar.xz"
 #define CIPHER_ID2  TLS_RSA_WITH_AES_128_CBC_SHA
 
-// bug #11456: host is.gd accepts only ECDHE-ECDSA-foo (the simplest which works: ECDHE-ECDSA-AES128-SHA 0xC009)
-#define CIPHER_ID3  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-
+// bug #11456:
 // ftp.openbsd.org only supports ECDHE-RSA-AESnnn-GCM-SHAnnn or ECDHE-RSA-CHACHA20-POLY1305
-#define CIPHER_ID4  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+#define CIPHER_ID3  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+// host is.gd accepts only ECDHE-ECDSA-foo (the simplest which works: ECDHE-ECDSA-AES128-SHA 0xC009),
+// and immediately throws alert 40 "handshake failure" in response to our hello record
+// if ECDHE-ECDSA-AES-CBC-SHA is *before* ECDHE-RSA-AES-GCM cipher in the list! Server bug?
+#define CIPHER_ID4  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
 
 #define NUM_CIPHERS 4
 
@@ -785,7 +787,7 @@ static void xwrite_encrypted_and_hmac_signed(tls_state_t *tls, unsigned size, un
 
 	/* Encrypt content+MAC+padding in place */
 	aes_cbc_encrypt(
-		&tls->aes_decrypt, /* selects 128/256 */
+		&tls->aes_encrypt, /* selects 128/256 */
 		buf - AES_BLOCK_SIZE, /* IV */
 		buf, size, /* plaintext */
 		buf /* ciphertext */
