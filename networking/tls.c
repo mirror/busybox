@@ -61,9 +61,7 @@
 // bug #11456:
 // ftp.openbsd.org only supports ECDHE-RSA-AESnnn-GCM-SHAnnn or ECDHE-RSA-CHACHA20-POLY1305
 #define CIPHER_ID3  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-// host is.gd accepts only ECDHE-ECDSA-foo (the simplest which works: ECDHE-ECDSA-AES128-SHA 0xC009),
-// and immediately throws alert 40 "handshake failure" in response to our hello record
-// if ECDHE-ECDSA-AES-CBC-SHA is *before* ECDHE-RSA-AES-GCM cipher in the list! Server bug?
+// host is.gd accepts only ECDHE-ECDSA-foo (the simplest which works: ECDHE-ECDSA-AES128-SHA 0xC009)
 #define CIPHER_ID4  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
 
 #define NUM_CIPHERS 4
@@ -1544,8 +1542,8 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 	/*************************/ record->cipherid[7] = CIPHER_ID3 & 0xff;
 #endif
 #if CIPHER_ID4
-	if ((CIPHER_ID4 >> 8) != 0) record->cipherid[6] = CIPHER_ID4 >> 8;
-	/*************************/ record->cipherid[7] = CIPHER_ID4 & 0xff;
+	if ((CIPHER_ID4 >> 8) != 0) record->cipherid[8] = CIPHER_ID4 >> 8;
+	/*************************/ record->cipherid[9] = CIPHER_ID4 & 0xff;
 #endif
 
 	record->comprtypes_len = 1;
