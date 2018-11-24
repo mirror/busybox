@@ -2539,6 +2539,7 @@ static NOINLINE void ntp_init(char **argv)
 				int key_id;
 				peer += 6;
 				end = strchr(peer, ':');
+				if (!end) bb_show_usage();
 				*end = '\0';
 				key_id = xatou_range(peer, 1, MAX_KEY_NUMBER);
 				*end = ':';
