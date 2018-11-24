@@ -87,7 +87,7 @@ static void GMULT(byte* X, byte* Y)
 // Resulting auth tag in s[] is also always AES_BLOCK_SIZE bytes.
 //
 // This allows some simplifications.
-#define aSz AES_BLOCK_SIZE
+#define aSz 13
 #define sSz AES_BLOCK_SIZE
 void FAST_FUNC aesgcm_GHASH(byte* h,
     const byte* a, //unsigned aSz,
