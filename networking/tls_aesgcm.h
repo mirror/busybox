@@ -4,8 +4,6 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-void xorbuf(void* buf, const void* mask, unsigned count) FAST_FUNC;
-
 void aesgcm_GHASH(uint8_t* h,
 	const uint8_t* a, //unsigned aSz,
 	const uint8_t* c, unsigned cSz,

@@ -343,6 +343,20 @@ void FAST_FUNC tls_get_random(void *buf, unsigned len)
 		xfunc_die();
 }
 
+static void xorbuf3(void *dst, const void *src1, const void *src2, unsigned count)
+{
+	uint8_t *d = dst;
+	const uint8_t *s1 = src1;
+	const uint8_t* s2 = src2;
+	while (count--)
+		*d++ = *s1++ ^ *s2++;
+}
+
+void FAST_FUNC xorbuf(void *dst, const void *src, unsigned count)
+{
+	xorbuf3(dst, dst, src, count);
+}
+
 /* Nondestructively see the current hash value */
 static unsigned sha_peek(md5sha_ctx_t *ctx, void *buffer)
 {
@@ -941,7 +955,6 @@ static void tls_aesgcm_decrypt(tls_state_t *tls, uint8_t *buf, int size)
 
 	memcpy(nonce,     tls->server_write_IV, 4);
 	memcpy(nonce + 4, buf, 8);
-	buf += 8;
 
 	cnt = 1;
 	remaining = size;
@@ -952,12 +965,12 @@ static void tls_aesgcm_decrypt(tls_state_t *tls, uint8_t *buf, int size)
 		COUNTER(nonce) = htonl(cnt); /* yes, first cnt here is 2 (!) */
 		aes_encrypt_one_block(&tls->aes_decrypt, nonce, scratch);
 		n = remaining > AES_BLOCK_SIZE ? AES_BLOCK_SIZE : remaining;
-		xorbuf(buf, scratch, n);
+		xorbuf3(buf, scratch, buf + 8, n);
 		buf += n;
 		remaining -= n;
 	}
 
-	//aesgcm_GHASH(tls->H, aad, tls->outbuf + OUTBUF_PFX, size, authtag);
+	//aesgcm_GHASH(tls->H, aad, tls->inbuf + RECHDR_LEN, size, authtag);
 	//COUNTER(nonce) = htonl(1);
 	//aes_encrypt_one_block(&tls->aes_encrypt, nonce, scratch);
 	//xorbuf(authtag, scratch, sizeof(authtag));
@@ -1046,7 +1059,6 @@ static int tls_xread_record(tls_state_t *tls, const char *expected)
 
 			sz -= 8 + AES_BLOCK_SIZE; /* we will overwrite nonce, drop hash */
 			tls_aesgcm_decrypt(tls, p, sz);
-			memmove(p, p + 8, sz);
 			dbg("encrypted size:%u\n", sz);
 		} else
 		if (tls->min_encrypted_len_on_read > tls->MAC_size) {

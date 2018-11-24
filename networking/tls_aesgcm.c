@@ -11,15 +11,6 @@ typedef uint32_t word32;
 #define XMEMSET memset
 #define XMEMCPY memcpy
 
-void FAST_FUNC xorbuf(void* buf, const void* mask, unsigned count)
-{
-    word32 i;
-    byte*       b = (byte*)buf;
-    const byte* m = (const byte*)mask;
-    for (i = 0; i < count; i++)
-        b[i] ^= m[i];
-}
-
 /* from wolfssl-3.15.3/wolfcrypt/src/aes.c */
 
 static ALWAYS_INLINE void FlattenSzInBits(byte* buf, word32 sz)
