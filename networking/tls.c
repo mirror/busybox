@@ -19,10 +19,6 @@
 
 #include "tls.h"
 
-//TLS 1.2
-#define TLS_MAJ 3
-#define TLS_MIN 3
-
 //Tested against kernel.org:
 //#define CIPHER_ID TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA // ok, recvs SERVER_KEY_EXCHANGE *** matrixssl uses this on my box
 //#define CIPHER_ID TLS_RSA_WITH_AES_256_CBC_SHA256 // ok, no SERVER_KEY_EXCHANGE
@@ -93,6 +89,11 @@
 #else
 # define dbg_der(...) ((void)0)
 #endif
+
+
+//TLS 1.2
+#define TLS_MAJ 3
+#define TLS_MIN 3
 
 #define RECORD_TYPE_CHANGE_CIPHER_SPEC  20 /* 0x14 */
 #define RECORD_TYPE_ALERT               21 /* 0x15 */
@@ -191,13 +192,13 @@
 #define TLS_RSA_WITH_AES_256_CCM_8                    0xC0A1 /*TLSv1.2 Kx=RSA   Au=RSA   Enc=AESCCM8(256) Mac=AEAD */
 #define TLS_DHE_RSA_WITH_AES_128_CCM_8                0xC0A2 /*TLSv1.2 Kx=DH    Au=RSA   Enc=AESCCM8(128) Mac=AEAD */
 #define TLS_DHE_RSA_WITH_AES_256_CCM_8                0xC0A3 /*TLSv1.2 Kx=DH    Au=RSA   Enc=AESCCM8(256) Mac=AEAD */
-#define TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256   0xCCA8 /*TLSv1.2 Kx=ECDH  Au=RSA   Enc=CHACHA20/POLY1305(256) Mac=AEAD */
-#define TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 0xCCA9 /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=CHACHA20/POLY1305(256) Mac=AEAD */
-#define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256     0xCCAA /*TLSv1.2 Kx=DH    Au=RSA   Enc=CHACHA20/POLY1305(256) Mac=AEAD */
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CCM              0xC0AC /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=AESCCM(128) Mac=AEAD */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CCM              0xC0AD /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=AESCCM(256) Mac=AEAD */
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8            0xC0AE /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=AESCCM8(128) Mac=AEAD */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8            0xC0AF /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=AESCCM8(256) Mac=AEAD */
+#define TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256   0xCCA8 /*TLSv1.2 Kx=ECDH  Au=RSA   Enc=CHACHA20/POLY1305(256) Mac=AEAD */
+#define TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 0xCCA9 /*TLSv1.2 Kx=ECDH  Au=ECDSA Enc=CHACHA20/POLY1305(256) Mac=AEAD */
+#define TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256     0xCCAA /*TLSv1.2 Kx=DH    Au=RSA   Enc=CHACHA20/POLY1305(256) Mac=AEAD */
 
 #define TLS_AES_128_GCM_SHA256                        0x1301 /*TLSv1.3 Kx=any   Au=any   Enc=AESGCM(128) Mac=AEAD */
 #define TLS_AES_256_GCM_SHA384                        0x1302 /*TLSv1.3 Kx=any   Au=any   Enc=AESGCM(256) Mac=AEAD */
@@ -259,6 +260,13 @@ enum {
 	// |    The length (in bytes) of the following TLSCiphertext.fragment.
 	// |    The length MUST NOT exceed 2^14 + 2048.
 	MAX_INBUF = RECHDR_LEN + (1 << 14) + 2048,
+
+	/* Bits for tls->flags */
+	NEED_EC_KEY            = 1 << 0,
+	GOT_CERT_RSA_KEY_ALG   = 1 << 1,
+	GOT_CERT_ECDSA_KEY_ALG = 1 << 2, // so far unused
+	GOT_EC_KEY             = 1 << 3,
+	ENCRYPTION_AESGCM      = 1 << 4, // else AES-SHA (or NULL-SHA if CIPHER_ID1 set to allow one)
 };
 
 struct record_hdr {
@@ -267,13 +275,6 @@ struct record_hdr {
 	uint8_t len16_hi, len16_lo;
 };
 
-enum {
-	NEED_EC_KEY            = 1 << 0,
-	GOT_CERT_RSA_KEY_ALG   = 1 << 1,
-	GOT_CERT_ECDSA_KEY_ALG = 1 << 2,
-	GOT_EC_KEY             = 1 << 3,
-	ENCRYPTION_AESGCM      = 1 << 4,
-};
 struct tls_handshake_data {
 	/* In bbox, md5/sha1/sha256 ctx's are the same structure */
 	md5sha_ctx_t handshake_hash_ctx;
@@ -1379,7 +1380,7 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 		} else
 		if (memcmp(der, OID_ECDSA_KEY_ALG, sizeof(OID_ECDSA_KEY_ALG)) == 0) {
 			dbg("ECDSA key\n");
-			tls->flags |= GOT_CERT_ECDSA_KEY_ALG;
+			//UNUSED: tls->flags |= GOT_CERT_ECDSA_KEY_ALG;
 		} else
 			bb_error_msg_and_die("not RSA or ECDSA cert");
 	}
