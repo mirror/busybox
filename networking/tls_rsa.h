@@ -13,6 +13,18 @@ typedef struct {
 //bbox	psPool_t *pool;
 } psRsaKey_t;
 
+static ALWAYS_INLINE void psRsaKey_clear(psRsaKey_t *key)
+{
+	pstm_clear(&key->N);
+	pstm_clear(&key->e);
+	pstm_clear(&key->d);
+	pstm_clear(&key->p);
+	pstm_clear(&key->q);
+	pstm_clear(&key->dP);
+	pstm_clear(&key->dQ);
+	pstm_clear(&key->qP);
+}
+
 #define psRsaEncryptPub(pool, key, in, inlen, out, outlen, data) \
         psRsaEncryptPub(      key, in, inlen, out, outlen)
 int32 psRsaEncryptPub(psPool_t *pool, psRsaKey_t *key,

@@ -2168,6 +2168,7 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 	/* application data can be sent/received */
 
 	/* free handshake data */
+	psRsaKey_clear(&tls->hsd->server_rsa_pub_key);
 //	if (PARANOIA)
 //		memset(tls->hsd, 0, tls->hsd->hsd_size);
 	free(tls->hsd);
