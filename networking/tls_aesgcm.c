@@ -87,8 +87,8 @@ void FAST_FUNC aesgcm_GHASH(byte* h,
 )
 {
     byte x[AES_BLOCK_SIZE] ALIGNED_long;
-    byte scratch[AES_BLOCK_SIZE] ALIGNED_long;
-    word32 blocks, partial;
+//    byte scratch[AES_BLOCK_SIZE] ALIGNED_long;
+    unsigned blocks, partial;
     //was: byte* h = aes->H;
 
     //XMEMSET(x, 0, AES_BLOCK_SIZE);
@@ -133,9 +133,17 @@ void FAST_FUNC aesgcm_GHASH(byte* h,
     }
 
     /* Hash in the lengths of A and C in bits */
-    FlattenSzInBits(&scratch[0], aSz);
-    FlattenSzInBits(&scratch[8], cSz);
-    xorbuf_aligned_AES_BLOCK_SIZE(x, scratch);
+    //FlattenSzInBits(&scratch[0], aSz);
+    //FlattenSzInBits(&scratch[8], cSz);
+    //xorbuf_aligned_AES_BLOCK_SIZE(x, scratch);
+    // simpler:
+#define P32(v) ((uint32_t*)v)
+  //P32(x)[0] ^= 0;
+    P32(x)[1] ^= SWAP_BE32(aSz * 8);
+  //P32(x)[2] ^= 0;
+    P32(x)[3] ^= SWAP_BE32(cSz * 8);
+#undef P32
+
     GMULT(x, h);
 
     /* Copy the result into s. */

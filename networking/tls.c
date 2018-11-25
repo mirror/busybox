@@ -867,7 +867,6 @@ static void xwrite_encrypted_aesgcm(tls_state_t *tls, unsigned size, unsigned ty
 	xorbuf_aligned_AES_BLOCK_SIZE(authtag, scratch);
 
 	memcpy(buf, authtag, sizeof(authtag));
-#undef COUNTER
 
 	/* Write out */
 	xhdr = (void*)(tls->outbuf + OUTBUF_PFX - 8 - RECHDR_LEN);
@@ -881,6 +880,7 @@ static void xwrite_encrypted_aesgcm(tls_state_t *tls, unsigned size, unsigned ty
 	dump_raw_out(">> %s\n", xhdr, size);
 	xwrite(tls->ofd, xhdr, size);
 	dbg("wrote %u bytes\n", size);
+#undef COUNTER
 }
 
 static void xwrite_encrypted(tls_state_t *tls, unsigned size, unsigned type)
