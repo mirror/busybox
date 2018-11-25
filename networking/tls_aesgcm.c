@@ -116,8 +116,10 @@ void FAST_FUNC aesgcm_GHASH(byte* h,
         blocks = cSz / AES_BLOCK_SIZE;
         partial = cSz % AES_BLOCK_SIZE;
         while (blocks--) {
-            //xorbuf_aligned_AES_BLOCK_SIZE(x, c); - c is not guaranteed to be aligned
-            xorbuf(x, c, AES_BLOCK_SIZE);
+            if (BB_UNALIGNED_MEMACCESS_OK) // c is not guaranteed to be aligned
+                xorbuf_aligned_AES_BLOCK_SIZE(x, c);
+            else
+                xorbuf(x, c, AES_BLOCK_SIZE);
             GMULT(x, h);
             c += AES_BLOCK_SIZE;
         }
