@@ -52,7 +52,7 @@
 //        (TLS_RSA_WITH_AES_128_CBC_SHA - in TLS 1.2 it's mandated to be always supported)
 #define CIPHER_ID1  TLS_RSA_WITH_AES_256_CBC_SHA256 //0x003D
 // Works with "wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.9.5.tar.xz"
-#define CIPHER_ID2  TLS_RSA_WITH_AES_128_CBC_SHA    //0x003C
+#define CIPHER_ID2  TLS_RSA_WITH_AES_128_CBC_SHA    //0x002F
 
 // bug #11456:
 // ftp.openbsd.org only supports ECDHE-RSA-AESnnn-GCM-SHAnnn or ECDHE-RSA-CHACHA20-POLY1305
@@ -62,6 +62,8 @@
 
 #define NUM_CIPHERS 4
 //TODO: we can support all these:
+//  TLS_RSA_WITH_AES_128_CBC_SHA            0x002F
+//  TLS_RSA_WITH_AES_256_CBC_SHA            0x0035
 //  TLS_RSA_WITH_AES_128_CBC_SHA256         0x003C
 //  TLS_RSA_WITH_AES_256_CBC_SHA256         0x003D
 //  TLS_RSA_WITH_AES_128_GCM_SHA256         0x009C
@@ -324,11 +326,13 @@ static unsigned get24be(const uint8_t *p)
 
 #if TLS_DEBUG
 /* Nondestructively see the current hash value */
+# if TLS_DEBUG_HASH
 static unsigned sha_peek(md5sha_ctx_t *ctx, void *buffer)
 {
 	md5sha_ctx_t ctx_copy = *ctx; /* struct copy */
 	return sha_end(&ctx_copy, buffer);
 }
+# endif
 
 static void dump_hex(const char *fmt, const void *vp, int len)
 {
