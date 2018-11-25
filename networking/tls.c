@@ -267,6 +267,7 @@ enum {
 	GOT_CERT_ECDSA_KEY_ALG = 1 << 2, // so far unused
 	GOT_EC_KEY             = 1 << 3,
 	ENCRYPTION_AESGCM      = 1 << 4, // else AES-SHA (or NULL-SHA if CIPHER_ID1 set to allow one)
+	ENCRYPT_ON_WRITE       = 1 << 5,
 };
 
 struct record_hdr {
@@ -299,6 +300,13 @@ static unsigned get24be(const uint8_t *p)
 }
 
 #if TLS_DEBUG
+/* Nondestructively see the current hash value */
+static unsigned sha_peek(md5sha_ctx_t *ctx, void *buffer)
+{
+	md5sha_ctx_t ctx_copy = *ctx; /* struct copy */
+	return sha_end(&ctx_copy, buffer);
+}
+
 static void dump_hex(const char *fmt, const void *vp, int len)
 {
 	char hexbuf[32 * 1024 + 4];
@@ -370,18 +378,6 @@ void FAST_FUNC xorbuf_aligned_AES_BLOCK_SIZE(void *dst, const void *src)
 	d[3] ^= s[3];
  #endif
 #endif
-}
-
-/* Nondestructively see the current hash value */
-static unsigned sha_peek(md5sha_ctx_t *ctx, void *buffer)
-{
-	md5sha_ctx_t ctx_copy = *ctx; /* struct copy */
-	return sha_end(&ctx_copy, buffer);
-}
-
-static ALWAYS_INLINE unsigned get_handshake_hash(tls_state_t *tls, void *buffer)
-{
-	return sha_peek(&tls->hsd->handshake_hash_ctx, buffer);
 }
 
 #if !TLS_DEBUG_HASH
@@ -910,7 +906,7 @@ static void xwrite_handshake_record(tls_state_t *tls, unsigned size)
 
 static void xwrite_and_update_handshake_hash(tls_state_t *tls, unsigned size)
 {
-	if (!tls->encrypt_on_write) {
+	if (!(tls->flags & ENCRYPT_ON_WRITE)) {
 		uint8_t *buf;
 
 		xwrite_handshake_record(tls, size);
@@ -2032,7 +2028,8 @@ static void send_client_finished(tls_state_t *tls)
 
 	fill_handshake_record_hdr(record, HANDSHAKE_FINISHED, sizeof(*record));
 
-	len = get_handshake_hash(tls, handshake_hash);
+	len = sha_end(&tls->hsd->handshake_hash_ctx, handshake_hash);
+
 	prf_hmac_sha256(/*tls,*/
 		record->prf_result, sizeof(record->prf_result),
 		tls->hsd->master_secret, sizeof(tls->hsd->master_secret),
@@ -2137,7 +2134,7 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 	send_change_cipher_spec(tls);
 	/* from now on we should send encrypted */
 	/* tls->write_seq64_be = 0; - already is */
-	tls->encrypt_on_write = 1;
+	tls->flags |= ENCRYPT_ON_WRITE;
 
 	send_client_finished(tls);
 

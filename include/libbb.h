@@ -752,7 +752,6 @@ typedef struct tls_state {
 
 	unsigned min_encrypted_len_on_read;
 	uint16_t cipher_id;
-	uint8_t  encrypt_on_write;
 	unsigned MAC_size;
 	unsigned key_size;
 	unsigned IV_size;
