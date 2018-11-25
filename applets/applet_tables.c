@@ -84,7 +84,15 @@ int main(int argc, char **argv)
 
 	qsort(applets, NUM_APPLETS, sizeof(applets[0]), cmp_name);
 
-	if (!argv[1])
+	for (i = j = 0; i < NUM_APPLETS-1; ++i) {
+		if (cmp_name(applets+i, applets+i+1) == 0) {
+			fprintf(stderr, "%s: duplicate applet name '%s'\n", argv[0],
+					applets[i].name);
+			j = 1;
+		}
+	}
+
+	if (j != 0 || !argv[1])
 		return 1;
 	snprintf(tmp1, PATH_MAX, "%s.%u.new", argv[1], (int) getpid());
 	i = open(tmp1, O_WRONLY | O_TRUNC | O_CREAT, 0666);
