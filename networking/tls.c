@@ -44,11 +44,11 @@
 // does not work for cdn.kernel.org (e.g. downloading an actual tarball, not a web page)
 //  getting alert 40 "handshake failure" at once
 //  with GNU Wget 1.18, they agree on TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (0xC02F) cipher
-//  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES256-SHA256
-//  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES256-GCM-SHA384
-//  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-SHA256
-//  ok:   openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-GCM-SHA256
-//  ok:   openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher AES128-SHA
+//  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -cipher AES256-SHA256
+//  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -cipher AES256-GCM-SHA384
+//  fail: openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -cipher AES128-SHA256
+//  ok:   openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -cipher AES128-GCM-SHA256
+//  ok:   openssl s_client -connect cdn.kernel.org:443 -debug -tls1_2 -cipher AES128-SHA
 //        (TLS_RSA_WITH_AES_128_CBC_SHA - in TLS 1.2 it's mandated to be always supported)
 //#define CIPHER_ID1  TLS_RSA_WITH_AES_256_CBC_SHA256 //0x003D
 // Works with "wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.9.5.tar.xz"
@@ -1466,7 +1466,7 @@ static ALWAYS_INLINE void fill_handshake_record_hdr(void *buf, unsigned type, un
 
 static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 {
-#define NUM_CIPHERS (12 + ALLOW_RSA_NULL_SHA256)
+#define NUM_CIPHERS (13 + ALLOW_RSA_NULL_SHA256)
 	static const uint8_t ciphers[] = {
 		0x00,(1 + NUM_CIPHERS) * 2, //len16_be
 		0x00,0xFF, //not a cipher - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
@@ -1474,26 +1474,26 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		0xC0,0x09, // 1 TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA - ok: wget https://is.gd/
 		0xC0,0x0A, // 2 TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA - ok: wget https://is.gd/
 		0xC0,0x13, // 3 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-SHA
-	//	0xC0,0x14, //   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA - openssl s_server ... -cipher ECDHE-RSA-AES256-SHA: "No ciphers enabled for max supported SSL/TLS version"
-		0xC0,0x23, // 4 TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 - ok: wget https://is.gd/
+		0xC0,0x14, // 4 TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA - ok: openssl s_server ... -cipher ECDHE-RSA-AES256-SHA (might fail with older openssl)
+		0xC0,0x23, // 5 TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 - ok: wget https://is.gd/
 	//	0xC0,0x24, //   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
-		0xC0,0x27, // 5 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-SHA256
+		0xC0,0x27, // 6 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-SHA256
 	//	0xC0,0x28, //   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
-		0xC0,0x2B, // 6 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 - ok: wget https://is.gd/
+		0xC0,0x2B, // 7 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 - ok: wget https://is.gd/
 	//	0xC0,0x2C, //   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 - wget https://is.gd/: "TLS error from peer (alert code 20): bad MAC"
 //TODO: GCM_SHA384 ciphers can be supported, only need sha384-based PRF?
-		0xC0,0x2F, // 7 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-GCM-SHA256
+		0xC0,0x2F, // 8 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-GCM-SHA256
 	//	0xC0,0x30, //   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 - openssl s_server ... -cipher ECDHE-RSA-AES256-GCM-SHA384: "decryption failed or bad record mac"
 	//possibly these too:
 	//	0xC0,0x35, //   TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA
 	//	0xC0,0x36, //   TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA
 	//	0xC0,0x37, //   TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256
 	//	0xC0,0x38, //   TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
-		0x00,0x2F, // 8 TLS_RSA_WITH_AES_128_CBC_SHA - ok: openssl s_server ... -cipher AES128-SHA
-		0x00,0x35, // 9 TLS_RSA_WITH_AES_256_CBC_SHA - ok: openssl s_server ... -cipher AES256-SHA
-		0x00,0x3C, //10 TLS_RSA_WITH_AES_128_CBC_SHA256 - ok: openssl s_server ... -cipher AES128-SHA256
-		0x00,0x3D, //11 TLS_RSA_WITH_AES_256_CBC_SHA256 - ok: openssl s_server ... -cipher AES256-SHA256
-		0x00,0x9C, //12 TLS_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher AES128-GCM-SHA256
+		0x00,0x2F, // 9 TLS_RSA_WITH_AES_128_CBC_SHA - ok: openssl s_server ... -cipher AES128-SHA
+		0x00,0x35, //10 TLS_RSA_WITH_AES_256_CBC_SHA - ok: openssl s_server ... -cipher AES256-SHA
+		0x00,0x3C, //11 TLS_RSA_WITH_AES_128_CBC_SHA256 - ok: openssl s_server ... -cipher AES128-SHA256
+		0x00,0x3D, //12 TLS_RSA_WITH_AES_256_CBC_SHA256 - ok: openssl s_server ... -cipher AES256-SHA256
+		0x00,0x9C, //13 TLS_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher AES128-GCM-SHA256
 	//	0x00,0x9D, //   TLS_RSA_WITH_AES_256_GCM_SHA384 - openssl s_server ... -cipher AES256-GCM-SHA384: "decryption failed or bad record mac"
 #if ALLOW_RSA_NULL_SHA256
 		0x00,0x3B, //   TLS_RSA_WITH_NULL_SHA256
@@ -1672,25 +1672,25 @@ static void get_server_hello(tls_state_t *tls)
 		0xC0,0x09, // 1 TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA - ok: wget https://is.gd/
 		0xC0,0x0A, // 2 TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA - ok: wget https://is.gd/
 		0xC0,0x13, // 3 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-SHA
-	//	0xC0,0x14, //   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA - openssl s_server ... -cipher ECDHE-RSA-AES256-SHA: "No ciphers enabled for max supported SSL/TLS version"
-		0xC0,0x23, // 4 TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 - ok: wget https://is.gd/
+		0xC0,0x14, // 4 TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA - ok: openssl s_server ... -cipher ECDHE-RSA-AES256-SHA (might fail with older openssl)
+		0xC0,0x23, // 5 TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 - ok: wget https://is.gd/
 	//	0xC0,0x24, //   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
-		0xC0,0x27, // 5 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-SHA256
+		0xC0,0x27, // 6 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-SHA256
 	//	0xC0,0x28, //   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
-		0xC0,0x2B, // 6 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 - ok: wget https://is.gd/
+		0xC0,0x2B, // 7 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 - ok: wget https://is.gd/
 	//	0xC0,0x2C, //   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 - wget https://is.gd/: "TLS error from peer (alert code 20): bad MAC"
-		0xC0,0x2F, // 7 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-GCM-SHA256
+		0xC0,0x2F, // 8 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-GCM-SHA256
 	//	0xC0,0x30, //   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 - openssl s_server ... -cipher ECDHE-RSA-AES256-GCM-SHA384: "decryption failed or bad record mac"
 	//possibly these too:
 	//	0xC0,0x35, //   TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA
 	//	0xC0,0x36, //   TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA
 	//	0xC0,0x37, //   TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256
 	//	0xC0,0x38, //   TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
-		0x00,0x2F, // 8 TLS_RSA_WITH_AES_128_CBC_SHA - ok: openssl s_server ... -cipher AES128-SHA
-		0x00,0x35, // 9 TLS_RSA_WITH_AES_256_CBC_SHA - ok: openssl s_server ... -cipher AES256-SHA
-		0x00,0x3C, //10 TLS_RSA_WITH_AES_128_CBC_SHA256 - ok: openssl s_server ... -cipher AES128-SHA256
-		0x00,0x3D, //11 TLS_RSA_WITH_AES_256_CBC_SHA256 - ok: openssl s_server ... -cipher AES256-SHA256
-		0x00,0x9C, //12 TLS_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher AES128-GCM-SHA256
+		0x00,0x2F, // 9 TLS_RSA_WITH_AES_128_CBC_SHA - ok: openssl s_server ... -cipher AES128-SHA
+		0x00,0x35, //10 TLS_RSA_WITH_AES_256_CBC_SHA - ok: openssl s_server ... -cipher AES256-SHA
+		0x00,0x3C, //11 TLS_RSA_WITH_AES_128_CBC_SHA256 - ok: openssl s_server ... -cipher AES128-SHA256
+		0x00,0x3D, //12 TLS_RSA_WITH_AES_256_CBC_SHA256 - ok: openssl s_server ... -cipher AES256-SHA256
+		0x00,0x9C, //13 TLS_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher AES128-GCM-SHA256
 	//	0x00,0x9D, //   TLS_RSA_WITH_AES_256_GCM_SHA384 - openssl s_server ... -cipher AES256-GCM-SHA384: "decryption failed or bad record mac"
 		0x00,0x3B, //   TLS_RSA_WITH_NULL_SHA256
 #endif
@@ -2254,12 +2254,12 @@ static void tls_xwrite(tls_state_t *tls, int len)
 
 // To run a test server using openssl:
 // openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
-// openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1
+// openssl s_server -key key.pem -cert server.pem -debug -tls1_2
 //
 // Unencryped SHA256 example:
 // openssl req -x509 -newkey rsa:$((4096/4*3)) -keyout key.pem -out server.pem -nodes -days 99999 -subj '/CN=localhost'
-// openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL
-// openssl s_client -connect 127.0.0.1:4433 -debug -tls1_2 -no_tls1 -no_tls1_1 -cipher NULL-SHA256
+// openssl s_server -key key.pem -cert server.pem -debug -tls1_2 -cipher NULL
+// openssl s_client -connect 127.0.0.1:4433 -debug -tls1_2 -cipher NULL-SHA256
 
 void FAST_FUNC tls_run_copy_loop(tls_state_t *tls, unsigned flags)
 {
