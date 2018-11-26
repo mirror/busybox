@@ -1629,7 +1629,6 @@ static void get_server_hello(tls_state_t *tls)
 	struct server_hello *hp;
 	uint8_t *cipherid;
 	uint8_t cipherid1;
-	unsigned cipher;
 	int len, len24;
 
 	len = tls_xread_handshake_block(tls, 74 - 32);
@@ -1696,8 +1695,7 @@ static void get_server_hello(tls_state_t *tls)
 		0x00,0x3B, //   TLS_RSA_WITH_NULL_SHA256
 #endif
 	cipherid1 = cipherid[1];
-	tls->cipher_id = cipher = 0x100 * cipherid[0] + cipherid1;
-	dbg("server chose cipher %04x\n", cipher);
+	tls->cipher_id = 0x100 * cipherid[0] + cipherid1;
 	tls->key_size = AES256_KEYSIZE;
 	tls->MAC_size = SHA256_OUTSIZE;
 	/*tls->IV_size = 0; - already is */
@@ -1728,13 +1726,14 @@ static void get_server_hello(tls_state_t *tls)
 		if (cipherid1 <= 0x35) {
 			tls->MAC_size = SHA1_OUTSIZE;
 		} else
-		if (cipherid1 == 0x9C || cipherid1 == 0x9D) {
+		if (cipherid1 == 0x9C /*|| cipherid1 == 0x9D*/) {
 			/* 009C,9D are AES-GCM */
 			tls->flags |= ENCRYPTION_AESGCM;
 			tls->MAC_size = 0;
 			tls->IV_size = 4;
 		}
 	}
+	dbg("server chose cipher %04x\n", tls->cipher_id);
 	dbg("key_size:%u MAC_size:%u IV_size:%u\n", tls->key_size, tls->MAC_size, tls->IV_size);
 
 	/* Handshake hash eventually destined to FINISHED record
