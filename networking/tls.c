@@ -420,29 +420,6 @@ typedef struct hmac_precomputed {
 	md5sha_ctx_t hashed_key_xor_opad;
 } hmac_precomputed_t;
 
-static unsigned hmac_sha_precomputed_v(
-		hmac_precomputed_t *pre,
-		uint8_t *out,
-		va_list va)
-{
-	uint8_t *text;
-	unsigned len;
-
-	/* pre->hashed_key_xor_ipad contains unclosed "H((key XOR ipad) +" state */
-	/* pre->hashed_key_xor_opad contains unclosed "H((key XOR opad) +" state */
-
-	/* calculate out = H((key XOR ipad) + text) */
-	while ((text = va_arg(va, uint8_t*)) != NULL) {
-		unsigned text_size = va_arg(va, unsigned);
-		md5sha_hash(&pre->hashed_key_xor_ipad, text, text_size);
-	}
-	len = sha_end(&pre->hashed_key_xor_ipad, out);
-
-	/* out = H((key XOR opad) + out) */
-	md5sha_hash(&pre->hashed_key_xor_opad, out, len);
-	return sha_end(&pre->hashed_key_xor_opad, out);
-}
-
 typedef void md5sha_begin_func(md5sha_ctx_t *ctx) FAST_FUNC;
 static void hmac_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size, md5sha_begin_func *begin)
 {
@@ -485,6 +462,42 @@ static void hmac_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size,
 	md5sha_hash(&pre->hashed_key_xor_opad, key_xor_opad, SHA_INSIZE);
 }
 
+static unsigned hmac_sha_precomputed_v(
+		hmac_precomputed_t *pre,
+		uint8_t *out,
+		va_list va)
+{
+	uint8_t *text;
+	unsigned len;
+
+	/* pre->hashed_key_xor_ipad contains unclosed "H((key XOR ipad) +" state */
+	/* pre->hashed_key_xor_opad contains unclosed "H((key XOR opad) +" state */
+
+	/* calculate out = H((key XOR ipad) + text) */
+	while ((text = va_arg(va, uint8_t*)) != NULL) {
+		unsigned text_size = va_arg(va, unsigned);
+		md5sha_hash(&pre->hashed_key_xor_ipad, text, text_size);
+	}
+	len = sha_end(&pre->hashed_key_xor_ipad, out);
+
+	/* out = H((key XOR opad) + out) */
+	md5sha_hash(&pre->hashed_key_xor_opad, out, len);
+	return sha_end(&pre->hashed_key_xor_opad, out);
+}
+
+static unsigned hmac_sha_precomputed(hmac_precomputed_t *pre_init, uint8_t *out, ...)
+{
+	hmac_precomputed_t pre;
+	va_list va;
+	unsigned len;
+
+	va_start(va, out);
+	pre = *pre_init; /* struct copy */
+	len = hmac_sha_precomputed_v(&pre, out, va);
+	va_end(va);
+	return len;
+}
+
 static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_size, ...)
 {
 	hmac_precomputed_t pre;
@@ -498,21 +511,6 @@ static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_
 				? sha256_begin
 				: sha1_begin
 	);
-	len = hmac_sha_precomputed_v(&pre, out, va);
-
-	va_end(va);
-	return len;
-}
-
-static unsigned hmac_sha256(/*tls_state_t *tls,*/ uint8_t *out, uint8_t *key, unsigned key_size, ...)
-{
-	hmac_precomputed_t pre;
-	va_list va;
-	unsigned len;
-
-	va_start(va, key_size);
-
-	hmac_begin(&pre, key, key_size, sha256_begin);
 	len = hmac_sha_precomputed_v(&pre, out, va);
 
 	va_end(va);
@@ -563,6 +561,7 @@ static void prf_hmac_sha256(/*tls_state_t *tls,*/
 		const char *label,
 		uint8_t *seed, unsigned seed_size)
 {
+	hmac_precomputed_t pre;
 	uint8_t a[TLS_MAX_MAC_SIZE];
 	uint8_t *out_p = outbuf;
 	unsigned label_size = strlen(label);
@@ -570,28 +569,28 @@ static void prf_hmac_sha256(/*tls_state_t *tls,*/
 
 	/* In P_hash() calculation, "seed" is "label + seed": */
 #define SEED   label, label_size, seed, seed_size
-#define SECRET secret, secret_size
 #define A      a, MAC_size
 
+	hmac_begin(&pre, secret, secret_size, sha256_begin);
+
 	/* A(1) = HMAC_hash(secret, seed) */
-	hmac_sha256(/*tls,*/ a, SECRET, SEED, NULL);
-//TODO: convert hmac to precomputed
+	hmac_sha_precomputed(&pre, a, SEED, NULL);
 
 	for (;;) {
 		/* HMAC_hash(secret, A(1) + seed) */
 		if (outbuf_size <= MAC_size) {
 			/* Last, possibly incomplete, block */
 			/* (use a[] as temp buffer) */
-			hmac_sha256(/*tls,*/ a, SECRET, A, SEED, NULL);
+			hmac_sha_precomputed(&pre, a, A, SEED, NULL);
 			memcpy(out_p, a, outbuf_size);
 			return;
 		}
 		/* Not last block. Store directly to result buffer */
-		hmac_sha256(/*tls,*/ out_p, SECRET, A, SEED, NULL);
+		hmac_sha_precomputed(&pre, out_p, A, SEED, NULL);
 		out_p += MAC_size;
 		outbuf_size -= MAC_size;
 		/* A(2) = HMAC_hash(secret, A(1)) */
-		hmac_sha256(/*tls,*/ a, SECRET, A, NULL);
+		hmac_sha_precomputed(&pre, a, A, NULL);
 	}
 #undef A
 #undef SECRET
