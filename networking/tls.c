@@ -224,7 +224,7 @@ enum {
 	OUTBUF_PFX = 8 + AES_BLOCK_SIZE, /* header + IV */
 	OUTBUF_SFX = TLS_MAX_MAC_SIZE + TLS_MAX_CRYPTBLOCK_SIZE, /* MAC + padding */
 
-	// RFC 5246
+	// RFC 5246:
 	// | 6.2.1. Fragmentation
 	// |  The record layer fragments information blocks into TLSPlaintext
 	// |  records carrying data in chunks of 2^14 bytes or less.  Client
@@ -405,7 +405,7 @@ static void hash_handshake(tls_state_t *tls, const char *fmt, const void *buffer
 #endif
 }
 
-// RFC 2104
+// RFC 2104:
 // HMAC(key, text) based on a hash H (say, sha256) is:
 // ipad = [0x36 x INSIZE]
 // opad = [0x5c x INSIZE]
@@ -448,7 +448,7 @@ static void hmac_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size,
 {
 	uint8_t key_xor_ipad[SHA_INSIZE];
 	uint8_t key_xor_opad[SHA_INSIZE];
-	uint8_t tempkey[SHA1_OUTSIZE < SHA256_OUTSIZE ? SHA256_OUTSIZE : SHA1_OUTSIZE];
+//	uint8_t tempkey[SHA1_OUTSIZE < SHA256_OUTSIZE ? SHA256_OUTSIZE : SHA1_OUTSIZE];
 	unsigned i;
 
 	// "The authentication key can be of any length up to INSIZE, the
@@ -456,10 +456,18 @@ static void hmac_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size,
 	// than INSIZE bytes will first hash the key using H and then use the
 	// resultant OUTSIZE byte string as the actual key to HMAC."
 	if (key_size > SHA_INSIZE) {
-		md5sha_ctx_t ctx;
-		begin(&ctx);
-		md5sha_hash(&ctx, key, key_size);
-		key_size = sha_end(&ctx, tempkey);
+		bb_error_msg_and_die("HMAC key>64"); //does not happen (yet?)
+//		md5sha_ctx_t ctx;
+//		begin(&ctx);
+//		md5sha_hash(&ctx, key, key_size);
+//		key_size = sha_end(&ctx, tempkey);
+//		//key = tempkey; - right? RIGHT? why does it work without this?
+//		// because SHA_INSIZE is 64, but hmac() is always called with
+//		// key_size = tls->MAC_size = SHA1/256_OUTSIZE (20 or 32),
+//		// and prf_hmac_sha256() -> hmac_sha256() key sizes are:
+//		// - RSA_PREMASTER_SIZE is 48
+//		// - CURVE25519_KEYSIZE is 32
+//		// - master_secret[] is 48
 	}
 
 	for (i = 0; i < key_size; i++) {
@@ -519,8 +527,9 @@ static unsigned hmac_sha256(/*tls_state_t *tls,*/ uint8_t *out, uint8_t *key, un
 // document and in TLS documents published prior to this document when
 // TLS 1.2 is negotiated.
 // ^^^^^^^^^^^^^ IMPORTANT!
-//               PRF uses sha256 regardless of cipher (at least for all ciphers
-//               defined by RFC5246). It's not sha1 for AES_128_CBC_SHA!
+//               PRF uses sha256 regardless of cipher for all ciphers
+//               defined by RFC 5246. It's not sha1 for AES_128_CBC_SHA!
+//               However, for _SHA384 ciphers, it's sha384. See RFC 5288,5289.
 //...
 //    P_hash(secret, seed) = HMAC_hash(secret, A(1) + seed) +
 //                           HMAC_hash(secret, A(2) + seed) +
@@ -542,6 +551,12 @@ static unsigned hmac_sha256(/*tls_state_t *tls,*/ uint8_t *out, uint8_t *key, un
 //    PRF(secret, label, seed) = P_<hash>(secret, label + seed)
 //
 // The label is an ASCII string.
+//
+// RFC 5288:
+// For cipher suites ending with _SHA256, the PRF is the TLS PRF
+// with SHA-256 as the hash function.
+// For cipher suites ending with _SHA384, the PRF is the TLS PRF
+// with SHA-384 as the hash function.
 static void prf_hmac_sha256(/*tls_state_t *tls,*/
 		uint8_t *outbuf, unsigned outbuf_size,
 		uint8_t *secret, unsigned secret_size,
@@ -675,7 +690,7 @@ static void xwrite_encrypted_and_hmac_signed(tls_state_t *tls, unsigned size, un
 
 	size += tls->MAC_size;
 
-	// RFC 5246
+	// RFC 5246:
 	// 6.2.3.1.  Null or Standard Stream Cipher
 	//
 	// Stream ciphers (including BulkCipherAlgorithm.null; see Appendix A.6)
@@ -1467,6 +1482,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 	//	0xC0,0x28, //   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
 		0xC0,0x2B, // 6 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 - ok: wget https://is.gd/
 	//	0xC0,0x2C, //   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 - wget https://is.gd/: "TLS error from peer (alert code 20): bad MAC"
+//TODO: GCM_SHA384 ciphers can be supported, only need sha384-based PRF?
 		0xC0,0x2F, // 7 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-GCM-SHA256
 	//	0xC0,0x30, //   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 - openssl s_server ... -cipher ECDHE-RSA-AES256-GCM-SHA384: "decryption failed or bad record mac"
 	//possibly these too:
@@ -1489,7 +1505,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		0x00,0x0a, //extension_type: "supported_groups"
 		0x00,0x04, //ext len
 		0x00,0x02, //list len
-		0x00,0x1d, //curve_x25519 (rfc7748)
+		0x00,0x1d, //curve_x25519 (RFC 7748)
 		//0x00,0x17, //curve_secp256r1
 		//0x00,0x18, //curve_secp384r1
 		//0x00,0x19, //curve_secp521r1
