@@ -367,6 +367,11 @@
 # define PIPE_BUF 4096  /* amount of buffering in a pipe */
 #endif
 
+#if ENABLE_FEATURE_SH_EMBEDDED_SCRIPTS && !(ENABLE_ASH || ENABLE_SH_IS_ASH || ENABLE_BASH_IS_ASH)
+# include "embedded_scripts.h"
+#else
+# define NUM_SCRIPTS 0
+#endif
 
 /* So far, all bash compat is controlled by one config option */
 /* Separate defines document which part of code implements what */
@@ -9951,6 +9956,14 @@ int hush_main(int argc, char **argv)
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
 	flags = (argv[0] && argv[0][0] == '-') ? OPT_login : 0;
 	builtin_argc = 0;
+#if NUM_SCRIPTS > 0
+	if (argc < 0) {
+		optarg = get_script_content(-argc - 1);
+		optind = 0;
+		argc = string_array_len(argv);
+		goto run_script;
+	}
+#endif
 	while (1) {
 		int opt = getopt(argc, argv, "+c:exinsl"
 #if !BB_MMU
@@ -9974,6 +9987,9 @@ int hush_main(int argc, char **argv)
 			 * Note: the form without ARG0 never happens:
 			 * sh ... -c 'builtin' BARGV... ""
 			 */
+#if NUM_SCRIPTS > 0
+ run_script:
+#endif
 			if (!G.root_pid) {
 				G.root_pid = getpid();
 				G.root_ppid = getppid();

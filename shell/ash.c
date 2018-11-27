@@ -148,20 +148,6 @@
 //config:	you to run the specified command or builtin,
 //config:	even when there is a function with the same name.
 //config:
-//config:config ASH_EMBEDDED_SCRIPTS
-//config:	bool "Embed scripts in the binary"
-//config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
-//config:	help
-//config:	Allow scripts to be compressed and embedded in the busybox
-//config:	binary. The scripts should be placed in the 'embed' directory
-//config:	at build time. Like applets, scripts can be run as
-//config:	'busybox SCRIPT ...' or by linking their name to the binary.
-//config:
-//config:	This also allows applets to be implemented as scripts: place
-//config:	the script in 'applets_sh' and a stub C file containing
-//config:	configuration in the appropriate subsystem directory.
-//config:
 //config:endif # ash options
 
 //applet:IF_ASH(APPLET(ash, BB_DIR_BIN, BB_SUID_DROP))
@@ -195,7 +181,7 @@
 #include <sys/times.h>
 #include <sys/utsname.h> /* for setting $HOSTNAME */
 #include "busybox.h" /* for applet_names */
-#if ENABLE_ASH_EMBEDDED_SCRIPTS
+#if ENABLE_FEATURE_SH_EMBEDDED_SCRIPTS
 # include "embedded_scripts.h"
 #else
 # define NUM_SCRIPTS 0

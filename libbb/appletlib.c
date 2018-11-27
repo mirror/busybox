@@ -50,7 +50,7 @@
 
 #include "usage_compressed.h"
 
-#if ENABLE_ASH_EMBEDDED_SCRIPTS
+#if ENABLE_FEATURE_SH_EMBEDDED_SCRIPTS
 # define DEFINE_SCRIPT_DATA 1
 # include "embedded_scripts.h"
 #else
@@ -774,7 +774,13 @@ int scripted_main(int argc UNUSED_PARAM, char **argv)
 {
 	int script = find_script_by_name(applet_name);
 	if (script >= 0)
+#if ENABLE_ASH || ENABLE_SH_IS_ASH || ENABLE_BASH_IS_ASH
 		exit(ash_main(-script - 1, argv));
+#elif ENABLE_HUSH || ENABLE_SH_IS_HUSH || ENABLE_BASH_IS_HUSH
+		exit(hush_main(-script - 1, argv));
+#else
+		return 1;
+#endif
 	return 0;
 }
 

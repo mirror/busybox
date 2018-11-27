@@ -1348,6 +1348,11 @@ int ash_main(int argc, char** argv)
 		MAIN_EXTERNALLY_VISIBLE
 #endif
 ;
+int hush_main(int argc, char** argv)
+#if ENABLE_HUSH || ENABLE_SH_IS_HUSH || ENABLE_BASH_IS_HUSH
+		MAIN_EXTERNALLY_VISIBLE
+#endif
+;
 /* If shell needs them, they exist even if not enabled as applets */
 int echo_main(int argc, char** argv) IF_ECHO(MAIN_EXTERNALLY_VISIBLE);
 int printf_main(int argc, char **argv) IF_PRINTF(MAIN_EXTERNALLY_VISIBLE);

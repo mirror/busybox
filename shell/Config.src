@@ -161,6 +161,20 @@ config FEATURE_SH_HISTFILESIZE
 	to set shell history size. Note that its max value is capped
 	by "History size" setting in library tuning section.
 
+config FEATURE_SH_EMBEDDED_SCRIPTS
+	bool "Embed scripts in the binary"
+	default y
+	depends on ASH || HUSH || SH_IS_ASH || BASH_IS_ASH || SH_IS_HUSH || BASH_IS_HUSH
+	help
+	Allow scripts to be compressed and embedded in the busybox
+	binary. The scripts should be placed in the 'embed' directory
+	at build time. Like applets, scripts can be run as
+	'busybox SCRIPT ...' or by linking their name to the binary.
+
+	This also allows applets to be implemented as scripts: place
+	the script in 'applets_sh' and a stub C file containing
+	configuration in the appropriate subsystem directory.
+
 endif # Options common to all shells
 
 endmenu

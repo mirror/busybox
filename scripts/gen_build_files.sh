@@ -25,7 +25,7 @@ custom_scripts()
 	then
 		for i in $(cd "$custom_loc"; ls * 2>/dev/null)
 		do
-			printf "APPLET_SCRIPTED(%s, scripted, BB_DIR_USR_BIN, BB_SUID_DROP, scripted)\n" $i;
+			printf "IF_FEATURE_SH_EMBEDDED_SCRIPTS(APPLET_SCRIPTED(%s, scripted, BB_DIR_USR_BIN, BB_SUID_DROP, scripted))\n" $i;
 		done
 	fi
 }

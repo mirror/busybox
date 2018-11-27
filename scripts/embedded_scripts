@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. ./.config || exit 1
+
 target="$1"
 custom_loc="$2"
 applet_loc="$3"
@@ -7,6 +9,12 @@ applet_loc="$3"
 test "$target" || exit 1
 test "$SED" || SED=sed
 test "$DD" || DD=dd
+
+if [ x"$CONFIG_FEATURE_SH_EMBEDDED_SCRIPTS" != x"y" ]
+then
+	printf '#define NUM_SCRIPTS 0\n' >"$target"
+	exit 0
+fi
 
 # Some people were bitten by their system lacking a (proper) od
 od -v -b </dev/null >/dev/null

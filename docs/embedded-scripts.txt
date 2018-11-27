@@ -3,13 +3,9 @@ Embedded Shell Scripts in BusyBox
 
 BusyBox allows applets to be implemented as shell scripts.  Since
 this obviously requires a shell to interpret the scripts the feature
-depends on having a shell (specifically, ash) built into the binary.
-Support for embedded scripts also has to be enabled.
-
-To embed scripts in BusyBox you must enable these configuration options:
-
-   ASH
-   ASH_EMBEDDED_SCRIPTS
+depends on having a shell built into the binary.  Either ash or hush
+will do.  If both are present ash will be used.  Support for embedded
+scripts also has to be enabled.
 
 It's unlikely that your applet will be implemented as a pure shell
 script:  it will probably need some external commands.  If these are
@@ -75,10 +71,9 @@ code for the native applet:
 
 The only difference is that the applet is specified as being of type
 APPLET_SCRIPTED.  It would also be useful to include details of any
-dependencies the script has.  We can assume that ash is available.
-No external commands are used by our mu script, but it does depend on
-optional shell features.  We can ensure these are selected by adding
-this to the configuration:
+dependencies the script has.  No external commands are used by our mu
+script, but it does depend on optional shell features.  We can ensure
+these are selected by adding this to the configuration:
 
 //config:config MU_DEPENDENCIES
 //config:	bool "Enable dependencies for mu"
@@ -87,8 +82,8 @@ this to the configuration:
 //config:	select ASH_RANDOM_SUPPORT
 //config:	select FEATURE_SH_MATH
 //config:	help
-//config:	mu is implemented as a shell script. It requires ash
-//config:	support for $RANDOM and arithmetic.
+//config:	mu is implemented as a shell script. It requires support
+//config:	for $RANDOM and arithmetic.
 
 The configuration data should be placed in a C file in an appropriate
 subdirectory.  There isn't any C code, though!  In this case the file
