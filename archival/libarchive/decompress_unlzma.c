@@ -353,8 +353,10 @@ unpack_lzma_stream(transformer_state_t *xstate)
 						if ((int32_t)pos < 0) {
 							pos += header.dict_size;
 							/* see unzip_bad_lzma_2.zip: */
-							if (pos >= buffer_size)
+							if (pos >= buffer_size) {
+								dbg("%d pos:%d buffer_size:%d", __LINE__, pos, buffer_size);
 								goto bad;
+							}
 						}
 						previous_byte = buffer[pos];
 						goto one_byte1;
@@ -430,10 +432,9 @@ unpack_lzma_stream(transformer_state_t *xstate)
 						for (; num_bits2 != LZMA_NUM_ALIGN_BITS; num_bits2--)
 							rep0 = (rep0 << 1) | rc_direct_bit(rc);
 						rep0 <<= LZMA_NUM_ALIGN_BITS;
-						if ((int32_t)rep0 < 0) {
-							dbg("%d rep0:%d", __LINE__, rep0);
-							goto bad;
-						}
+						// Note: (int32_t)rep0 may be < 0 here
+						// (I have linux-3.3.4.tar.lzma which has it).
+						// I moved the check after "++rep0 == 0" check below.
 						prob3 = p + LZMA_ALIGN;
 					}
 					i2 = 1;
@@ -444,8 +445,13 @@ unpack_lzma_stream(transformer_state_t *xstate)
 						i2 <<= 1;
 					}
 				}
-				if (++rep0 == 0)
-					break;
+				rep0++;
+				if ((int32_t)rep0 <= 0) {
+					if (rep0 == 0)
+						break;
+					dbg("%d rep0:%d", __LINE__, rep0);
+					goto bad;
+				}
 			}
 
 			len += LZMA_MATCH_MIN_LEN;
