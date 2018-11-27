@@ -124,9 +124,9 @@ int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 	cached += info.bufferram;
 	cached_plus_free = cached + info.freeram;
 
-#define FIELDS_6 "%12llu%12llu%12llu%12llu%12llu%12llu\n"
-#define FIELDS_3 (FIELDS_6 + 3*6)
-#define FIELDS_2 (FIELDS_6 + 4*6)
+#define FIELDS_6 "%12llu %11llu %11llu %11llu %11llu %11llu\n"
+#define FIELDS_3 (FIELDS_6 + 6 + 7 + 7)
+#define FIELDS_2 (FIELDS_6 + 6 + 7 + 7 + 7)
 
 	printf(FIELDS_6,
 		scale(&G, info.totalram),                //total
