@@ -6,7 +6,7 @@
 //config:	Politely refuse a login
 //config:
 //config:config NOLOGIN_DEPENDENCIES
-//config:	bool "Dependencies for nologin"
+//config:	bool "Enable dependencies for nologin"
 //config:	default y
 //config:	depends on NOLOGIN
 //config:	select CAT
