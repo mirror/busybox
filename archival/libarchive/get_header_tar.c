@@ -414,7 +414,8 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 //	case 'D':	/* GNU dump dir */
 //	case 'M':	/* Continuation of multi volume archive */
 //	case 'N':	/* Old GNU for names > 100 characters */
-//	case 'V':	/* Volume header */
+	case 'V':	/* Volume header */
+		; /* Fall through to skip it */
 #endif
 	}
  skip_ext_hdr:
