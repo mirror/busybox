@@ -245,7 +245,7 @@ static int FAST_FUNC config_file_action(const char *filename,
 	parser_t *p;
 	struct module_entry *m;
 	int rc = TRUE;
-	const char *base, *ext;
+	const char *base;
 
 	/* Skip files that begin with a "." */
 	base = bb_basename(filename);
@@ -266,8 +266,7 @@ static int FAST_FUNC config_file_action(const char *filename,
 	 * "include FILE_NOT_ENDING_IN_CONF" must work too.
 	 */
 	if (depth != 0) {
-		ext = strrchr(base, '.');
-		if (ext == NULL || strcmp(ext + 1, "conf"))
+		if (!is_suffixed_with(base, ".conf"))
 			goto error;
 	}
 

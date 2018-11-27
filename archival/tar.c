@@ -1162,8 +1162,16 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 			tar_handle->seek = seek_by_read;
 		} else
 		if (ENABLE_FEATURE_TAR_AUTODETECT
+		 && ENABLE_FEATURE_SEAMLESS_LZMA
 		 && flags == O_RDONLY
 		 && !(opt & OPT_ANY_COMPRESS)
+		 && is_suffixed_with(tar_filename, ".lzma")
+		/* We do this only for .lzma files, they have no signature.
+		 * All other compression formats are recognized in
+		 * get_header_tar() when first tar block has invalid format.
+		 * Doing it here for all filenames would falsely trigger
+		 * on e.g. tarball with 1st file named "BZh5".
+		 */
 		) {
 			tar_handle->src_fd = open_zipped(tar_filename, /*fail_if_not_compressed:*/ 0);
 			if (tar_handle->src_fd < 0)

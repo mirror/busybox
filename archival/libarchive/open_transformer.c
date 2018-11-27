@@ -278,8 +278,7 @@ static transformer_state_t *open_transformer(const char *fname, int fail_if_not_
 
 	if (ENABLE_FEATURE_SEAMLESS_LZMA) {
 		/* .lzma has no header/signature, can only detect it by extension */
-		char *sfx = strrchr(fname, '.');
-		if (sfx && strcmp(sfx+1, "lzma") == 0) {
+		if (is_suffixed_with(fname, ".lzma")) {
 			xstate = xzalloc(sizeof(*xstate));
 			xstate->src_fd = fd;
 			xstate->xformer = unpack_lzma_stream;
