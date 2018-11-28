@@ -1849,6 +1849,8 @@ static void handle_special(var *v)
 
 	if (v == intvar[NF]) {
 		n = (int)getvar_i(v);
+		if (n < 0)
+			syntax_error("NF set to negative value");
 		fsrealloc(n);
 
 		/* recalculate $0 */
