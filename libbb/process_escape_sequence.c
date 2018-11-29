@@ -37,17 +37,15 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 	 * We treat \2 as a valid octal escape sequence. */
 	do {
 		unsigned r;
-#if !WANT_HEX_ESCAPES
 		unsigned d = (unsigned char)(*q) - '0';
-#else
-		unsigned d = (unsigned char)_tolower(*q) - '0';
+#if WANT_HEX_ESCAPES
 		if (d >= 10) {
-			//d += ('0' - 'a' + 10);
-			/* The above would maps 'A'-'F' and 'a'-'f' to 10-15,
+			d = (unsigned char)_tolower(*q) - 'a';
+			//d += 10;
+			/* The above would map 'A'-'F' and 'a'-'f' to 10-15,
 			 * however, some chars like '@' would map to 9 < base.
 			 * Do not allow that, map invalid chars to N > base:
 			 */
-			d += ('0' - 'a');
 			if ((int)d >= 0)
 				d += 10;
 		}
