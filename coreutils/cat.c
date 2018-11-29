@@ -195,6 +195,7 @@ int cat_main(int argc UNUSED_PARAM, char **argv)
 # define CAT_OPT_b (1<<1)
 	if (opts & (CAT_OPT_n|CAT_OPT_b)) { /* -n or -b */
 		struct number_state ns;
+		int exitcode;
 
 		ns.width = 6;
 		ns.start = 1;
@@ -203,10 +204,11 @@ int cat_main(int argc UNUSED_PARAM, char **argv)
 		ns.empty_str = "\n";
 		ns.all = !(opts & CAT_OPT_b); /* -n without -b */
 		ns.nonempty = (opts & CAT_OPT_b); /* -b (with or without -n) */
+		exitcode = EXIT_SUCCESS;
 		do {
-			print_numbered_lines(&ns, *argv);
+			exitcode |= print_numbered_lines(&ns, *argv);
 		} while (*++argv);
-		fflush_stdout_and_exit(EXIT_SUCCESS);
+		fflush_stdout_and_exit(exitcode);
 	}
 	/*opts >>= 2;*/
 #endif

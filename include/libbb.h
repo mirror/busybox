@@ -1386,7 +1386,7 @@ struct number_state {
 	const char *empty_str;
 	smallint all, nonempty;
 };
-void print_numbered_lines(struct number_state *ns, const char *filename) FAST_FUNC;
+int print_numbered_lines(struct number_state *ns, const char *filename) FAST_FUNC;
 
 
 /* Networking */

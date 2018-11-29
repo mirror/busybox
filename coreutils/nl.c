@@ -58,6 +58,8 @@ int nl_main(int argc UNUSED_PARAM, char **argv)
 		"number-width\0"	Required_argument "w"
 	;
 #endif
+	int exitcode;
+
 	ns.width = 6;
 	ns.start = 1;
 	ns.inc = 1;
@@ -72,9 +74,10 @@ int nl_main(int argc UNUSED_PARAM, char **argv)
 	if (!*argv)
 		*--argv = (char*)"-";
 
+	exitcode = EXIT_SUCCESS;
 	do {
-		print_numbered_lines(&ns, *argv);
+		exitcode |= print_numbered_lines(&ns, *argv);
 	} while (*++argv);
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(exitcode);
 }
