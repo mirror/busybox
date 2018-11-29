@@ -41,8 +41,16 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 		unsigned d = (unsigned char)(*q) - '0';
 #else
 		unsigned d = (unsigned char)_tolower(*q) - '0';
-		if (d >= 10)
-			d += ('0' - 'a' + 10);
+		if (d >= 10) {
+			//d += ('0' - 'a' + 10);
+			/* The above would maps 'A'-'F' and 'a'-'f' to 10-15,
+			 * however, some chars like '@' would map to 9 < base.
+			 * Do not allow that, map invalid chars to N > base:
+			 */
+			d += ('0' - 'a');
+			if ((int)d >= 0)
+				d += 10;
+		}
 #endif
 		if (d >= base) {
 			if (WANT_HEX_ESCAPES && base == 16) {
