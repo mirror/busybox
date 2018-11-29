@@ -255,8 +255,8 @@ enum {
 	YANKDEL = TRUE,
 	FORWARD = 1,	// code depends on "1"  for array index
 	BACK = -1,	// code depends on "-1" for array index
-	LIMITED = 0,	// how much of text[] in char_search
-	FULL = 1,	// how much of text[] in char_search
+	LIMITED = 0,	// char_search() only current line
+	FULL = 1,	// char_search() to the end/beginning of entire text
 
 	S_BEFORE_WS = 1,	// used in skip_thing() for moving "dot"
 	S_TO_WS = 2,		// used in skip_thing() for moving "dot"
@@ -1914,10 +1914,15 @@ static char *char_search(char *p, const char *pat, int dir, int range)
 		return p;
 	}
 
-	// assume a LIMITED forward search
-	q = end - 1;
-	if (dir == BACK)
+	q = end - 1; // if FULL
+	if (range == LIMITED)
+		q = next_line(p);
+	if (dir == BACK) {
 		q = text;
+		if (range == LIMITED)
+			q = prev_line(p);
+	}
+
 	// RANGE could be negative if we are searching backwards
 	range = q - p;
 	q = p;
