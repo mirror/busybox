@@ -165,7 +165,7 @@ typedef enum BcStatus {
 	BC_STATUS_SUCCESS,
 
 	BC_STATUS_ALLOC_ERR,
-	BC_STATUS_IO_ERR,
+	BC_STATUS_INPUT_EOF,
 	BC_STATUS_BIN_FILE,
 	BC_STATUS_PATH_IS_DIR,
 
@@ -719,9 +719,9 @@ static BcStatus bc_lex_token(BcLex *l);
 static BcStatus bc_parse_parse(BcParse *p);
 static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
 
-#endif
+#endif // ENABLE_BC
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 
 #define DC_PARSE_BUF_LEN ((int) (sizeof(uint32_t) * CHAR_BIT))
 
@@ -849,50 +849,37 @@ typedef struct BcGlobals {
 	long warn;
 	long exreg;
 
-	const char *name;
 #if ENABLE_FEATURE_BC_SIGNALS
 	const char *sig_msg;
 #endif
 	const char *help;
-	bool bc;
 
 } BcGlobals;
+
+#define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
 
 #if ENABLE_BC
 static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
                                  const char *msg);
 #endif
 
-static void bc_vm_exit(BcStatus s);
-static void bc_vm_printf(FILE *restrict f, const char *fmt, ...);
-static void bc_vm_puts(const char *str, FILE *restrict f);
-static void bc_vm_putchar(int c);
-static void bc_vm_fflush(FILE *restrict f);
-
-static void bc_vm_info(const char *const help);
+static void bc_vm_info(void);
 static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
                           const char *env_len);
 
 static BcGlobals bcg;
 
 #if ENABLE_BC
-static const char bc_name[] = "bc";
 # if ENABLE_FEATURE_BC_SIGNALS
 static const char bc_sig_msg[] = "\ninterrupt (type \"quit\" to exit)\n";
 # endif
 #endif
 
 #if ENABLE_DC
-static const char dc_name[] = "dc";
 # if ENABLE_FEATURE_BC_SIGNALS
 static const char dc_sig_msg[] = "\ninterrupt (type \"q\" to exit)\n";
 # endif
 #endif
-
-static const char bc_copyright[] =
-	"Copyright (c) 2018 Gavin D. Howard and contributors\n"
-	"Report bugs at: https://github.com/gavinhoward/bc\n\n"
-	"This is free software with ABSOLUTELY NO WARRANTY.\n";
 
 static const char* const bc_args_env_name = "BC_ENV_ARGS";
 
@@ -1386,18 +1373,22 @@ static size_t bc_map_index(const BcVec *v, const void *ptr)
 static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 {
 	int i;
-	signed char c = 0;
+	signed char c;
 
 	if (bcg.ttyin && !bcg.posix) {
-		bc_vm_puts(prompt, stderr);
-		bc_vm_fflush(stderr);
+		fputs(prompt, stderr);
+		fflush(stderr);
 	}
 
 	bc_vec_npop(vec, vec->len);
 
-	while (c != '\n') {
+	do {
+		if (ferror(stdout) || ferror(stderr))
+			bb_perror_msg_and_die("output error");
 
 		i = fgetc(stdin);
+		if (ferror(stdin))
+			bb_perror_msg_and_die("input error");
 
 		if (i == EOF) {
 
@@ -1408,22 +1399,22 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 				bcg.signe = 0;
 
 				if (bcg.ttyin) {
-					bc_vm_puts(bc_program_ready_msg, stderr);
-					if (!bcg.posix) bc_vm_puts(prompt, stderr);
-					bc_vm_fflush(stderr);
+					fputs(bc_program_ready_msg, stderr);
+					if (!bcg.posix) fputs(prompt, stderr);
+					fflush(stderr);
 				}
 
 				continue;
 			}
 #endif
 
-			return BC_STATUS_IO_ERR;
+			return BC_STATUS_INPUT_EOF;
 		}
 
 		c = (signed char) i;
 		if (i > UCHAR_MAX || BC_READ_BIN_CHAR(c)) return BC_STATUS_BIN_FILE;
 		bc_vec_push(vec, &c);
-	}
+	} while (c != '\n');
 
 	bc_vec_pushByte(vec, '\0');
 
@@ -1477,7 +1468,7 @@ static BcStatus bc_args(int argc, char *argv[], uint32_t *flags, BcVec *files)
 	*flags = getopt32(argv, bc_args_opt);
 #endif
 
-	if ((*flags) & BC_FLAG_V) bc_vm_info(NULL);
+	if ((*flags) & BC_FLAG_V) bc_vm_info();
 	if (do_exit) exit((int) s);
 	if (argv[optind] && !strcmp(argv[optind], "--")) ++optind;
 
@@ -2329,8 +2320,8 @@ int_err:
 static void bc_num_printNewline(size_t *nchars, size_t line_len)
 {
 	if (*nchars == line_len - 1) {
-		bc_vm_putchar('\\');
-		bc_vm_putchar('\n');
+		bb_putchar('\\');
+		bb_putchar('\n');
 		*nchars = 0;
 	}
 }
@@ -2340,7 +2331,7 @@ static void bc_num_printChar(size_t num, size_t width, bool radix,
                              size_t *nchars, size_t line_len)
 {
 	(void) radix, (void) line_len;
-	bc_vm_putchar((char) num);
+	bb_putchar((char) num);
 	*nchars = *nchars + width;
 }
 #endif
@@ -2351,7 +2342,7 @@ static void bc_num_printDigits(size_t num, size_t width, bool radix,
 	size_t exp, pow;
 
 	bc_num_printNewline(nchars, line_len);
-	bc_vm_putchar(radix ? '.' : ' ');
+	bb_putchar(radix ? '.' : ' ');
 	++(*nchars);
 
 	bc_num_printNewline(nchars, line_len);
@@ -2363,7 +2354,7 @@ static void bc_num_printDigits(size_t num, size_t width, bool radix,
 		bc_num_printNewline(nchars, line_len);
 		dig = num / pow;
 		num -= dig * pow;
-		bc_vm_putchar(((char) dig) + '0');
+		bb_putchar(((char) dig) + '0');
 	}
 }
 
@@ -2372,12 +2363,12 @@ static void bc_num_printHex(size_t num, size_t width, bool radix,
 {
 	if (radix) {
 		bc_num_printNewline(nchars, line_len);
-		bc_vm_putchar('.');
+		bb_putchar('.');
 		*nchars += 1;
 	}
 
 	bc_num_printNewline(nchars, line_len);
-	bc_vm_putchar(bb_hexdigits_upcase[num]);
+	bb_putchar(bb_hexdigits_upcase[num]);
 	*nchars = *nchars + width;
 }
 
@@ -2385,7 +2376,7 @@ static void bc_num_printDecimal(BcNum *n, size_t *nchars, size_t len)
 {
 	size_t i, rdx = n->rdx - 1;
 
-	if (n->neg) bc_vm_putchar('-');
+	if (n->neg) bb_putchar('-');
 	(*nchars) += n->neg;
 
 	for (i = n->len - 1; i < n->len; --i)
@@ -2465,7 +2456,7 @@ static BcStatus bc_num_printBase(BcNum *n, BcNum *base, size_t base_t,
 	BcNumDigitOp print;
 	bool neg = n->neg;
 
-	if (neg) bc_vm_putchar('-');
+	if (neg) bb_putchar('-');
 	(*nchars) += neg;
 
 	n->neg = false;
@@ -2546,7 +2537,7 @@ static BcStatus bc_num_print(BcNum *n, BcNum *base, size_t base_t, bool newline,
 	bc_num_printNewline(nchars, line_len);
 
 	if (n->len == 0) {
-		bc_vm_putchar('0');
+		bb_putchar('0');
 		++(*nchars);
 	}
 	else if (base_t == 10)
@@ -2555,7 +2546,7 @@ static BcStatus bc_num_print(BcNum *n, BcNum *base, size_t base_t, bool newline,
 		s = bc_num_printBase(n, base, base_t, nchars, line_len);
 
 	if (newline) {
-		bc_vm_putchar('\n');
+		bb_putchar('\n');
 		*nchars = 0;
 	}
 
@@ -5577,7 +5568,7 @@ static void bc_program_printString(const char *str, size_t *nchars)
 
 #if ENABLE_DC
 	if (len == 0) {
-		bc_vm_putchar('\0');
+		bb_putchar('\0');
 		return;
 	}
 #endif
@@ -5587,7 +5578,7 @@ static void bc_program_printString(const char *str, size_t *nchars)
 		int c = str[i];
 
 		if (c != '\\' || i == len - 1)
-			bc_vm_putchar(c);
+			bb_putchar(c);
 		else {
 
 			c = str[++i];
@@ -5596,60 +5587,60 @@ static void bc_program_printString(const char *str, size_t *nchars)
 
 				case 'a':
 				{
-					bc_vm_putchar('\a');
+					bb_putchar('\a');
 					break;
 				}
 
 				case 'b':
 				{
-					bc_vm_putchar('\b');
+					bb_putchar('\b');
 					break;
 				}
 
 				case '\\':
 				case 'e':
 				{
-					bc_vm_putchar('\\');
+					bb_putchar('\\');
 					break;
 				}
 
 				case 'f':
 				{
-					bc_vm_putchar('\f');
+					bb_putchar('\f');
 					break;
 				}
 
 				case 'n':
 				{
-					bc_vm_putchar('\n');
+					bb_putchar('\n');
 					*nchars = SIZE_MAX;
 					break;
 				}
 
 				case 'r':
 				{
-					bc_vm_putchar('\r');
+					bb_putchar('\r');
 					break;
 				}
 
 				case 'q':
 				{
-					bc_vm_putchar('"');
+					bb_putchar('"');
 					break;
 				}
 
 				case 't':
 				{
-					bc_vm_putchar('\t');
+					bb_putchar('\t');
 					break;
 				}
 
 				default:
 				{
 					// Just print the backslash and following character.
-					bc_vm_putchar('\\');
+					bb_putchar('\\');
 					++(*nchars);
-					bc_vm_putchar(c);
+					bb_putchar(c);
 					break;
 				}
 			}
@@ -5684,14 +5675,14 @@ static BcStatus bc_program_print(BcProgram *p, char inst, size_t idx)
 		if (inst == BC_INST_PRINT_STR) {
 			for (i = 0, len = strlen(str); i < len; ++i) {
 				char c = str[i];
-				bc_vm_putchar(c);
+				bb_putchar(c);
 				if (c == '\n') p->nchars = SIZE_MAX;
 				++p->nchars;
 			}
 		}
 		else {
 			bc_program_printString(str, &p->nchars);
-			if (inst == BC_INST_PRINT) bc_vm_putchar('\n');
+			if (inst == BC_INST_PRINT) bb_putchar('\n');
 		}
 	}
 
@@ -6392,7 +6383,7 @@ static BcStatus bc_program_printStream(BcProgram *p)
 	else {
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : n->rdx;
 		str = *((char **) bc_vec_item(&p->strs, idx));
-		bc_vm_printf(stdout, "%s", str);
+		printf("%s", str);
 	}
 
 	return s;
@@ -6685,8 +6676,8 @@ static BcStatus bc_program_reset(BcProgram *p, BcStatus s)
 
 	if (!s || s == BC_STATUS_EXEC_SIGNAL) {
 		if (bcg.ttyin) {
-			bc_vm_puts(bc_program_ready_msg, stderr);
-			bc_vm_fflush(stderr);
+			fputs(bc_program_ready_msg, stderr);
+			fflush(stderr);
 			s = BC_STATUS_SUCCESS;
 		}
 		else
@@ -7029,20 +7020,22 @@ static void bc_vm_sig(int sig)
 }
 #endif
 
-static void bc_vm_info(const char *const help)
+static void bc_vm_info(void)
 {
-	bc_vm_printf(stdout, "%s %s\n", bcg.name, "1.1");
-	bc_vm_puts(bc_copyright, stdout);
-	if (help) bc_vm_printf(stdout, help, bcg.name);
+	printf("%s "BB_VER"\n"
+		"Copyright (c) 2018 Gavin D. Howard and contributors\n"
+		"Report bugs at: https://github.com/gavinhoward/bc\n\n"
+		"This is free software with ABSOLUTELY NO WARRANTY\n"
+	, applet_name);
 }
 
 static BcStatus bc_vm_error(BcStatus s, const char *file, size_t line)
 {
 	if (!s || s > BC_STATUS_VEC_ITEM_EXISTS) return s;
 
-	bc_vm_printf(stderr, bc_err_fmt, bc_errs[bc_err_ids[s]], bc_err_msgs[s]);
-	bc_vm_printf(stderr, "    %s", file);
-	bc_vm_printf(stderr, bc_err_line + 4 * !line, line);
+	fprintf(stderr, bc_err_fmt, bc_errs[bc_err_ids[s]], bc_err_msgs[s]);
+	fprintf(stderr, "    %s", file);
+	fprintf(stderr, bc_err_line + 4 * !line, line);
 
 	return s * (!bcg.ttyin || !!strcmp(file, bc_program_stdin_name));
 }
@@ -7056,10 +7049,10 @@ static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
 
 	if (!(p || w) || s < BC_STATUS_POSIX_NAME_LEN) return BC_STATUS_SUCCESS;
 
-	bc_vm_printf(stderr, fmt, bc_errs[bc_err_ids[s]], bc_err_msgs[s]);
-	if (msg) bc_vm_printf(stderr, "    %s\n", msg);
-	bc_vm_printf(stderr, "    %s", file);
-	bc_vm_printf(stderr, bc_err_line + 4 * !line, line);
+	fprintf(stderr, fmt, bc_errs[bc_err_ids[s]], bc_err_msgs[s]);
+	if (msg) fprintf(stderr, "    %s\n", msg);
+	fprintf(stderr, "    %s", file);
+	fprintf(stderr, bc_err_line + 4 * !line, line);
 
 	return s * (!bcg.ttyin && !!p);
 }
@@ -7117,39 +7110,6 @@ static size_t bc_vm_envLen(const char *var)
 	return len;
 }
 
-static void bc_vm_exit(BcStatus s)
-{
-	bc_vm_printf(stderr, bc_err_fmt, bc_errs[bc_err_ids[s]], bc_err_msgs[s]);
-	exit((int) s);
-}
-
-static void bc_vm_printf(FILE *restrict f, const char *fmt, ...)
-{
-	va_list args;
-	bool bad;
-
-	va_start(args, fmt);
-	bad = vfprintf(f, fmt, args) < 0;
-	va_end(args);
-
-	if (bad) bc_vm_exit(BC_STATUS_IO_ERR);
-}
-
-static void bc_vm_puts(const char *str, FILE *restrict f)
-{
-	if (fputs(str, f) == EOF) bc_vm_exit(BC_STATUS_IO_ERR);
-}
-
-static void bc_vm_putchar(int c)
-{
-	if (putchar(c) == EOF) bc_vm_exit(BC_STATUS_IO_ERR);
-}
-
-static void bc_vm_fflush(FILE *restrict f)
-{
-	if (fflush(f) == EOF) bc_vm_exit(BC_STATUS_IO_ERR);
-}
-
 static BcStatus bc_vm_process(BcVm *vm, const char *text)
 {
 	BcStatus s = bc_parse_text(&vm->prs, text);
@@ -7163,16 +7123,16 @@ static BcStatus bc_vm_process(BcVm *vm, const char *text)
 
 		if (s == BC_STATUS_LIMITS) {
 
-			bc_vm_putchar('\n');
-			bc_vm_printf(stdout, "BC_BASE_MAX     = %lu\n", BC_MAX_OBASE);
-			bc_vm_printf(stdout, "BC_DIM_MAX      = %lu\n", BC_MAX_DIM);
-			bc_vm_printf(stdout, "BC_SCALE_MAX    = %lu\n", BC_MAX_SCALE);
-			bc_vm_printf(stdout, "BC_STRING_MAX   = %lu\n", BC_MAX_STRING);
-			bc_vm_printf(stdout, "BC_NAME_MAX     = %lu\n", BC_MAX_NAME);
-			bc_vm_printf(stdout, "BC_NUM_MAX      = %lu\n", BC_MAX_NUM);
-			bc_vm_printf(stdout, "Max Exponent    = %lu\n", BC_MAX_EXP);
-			bc_vm_printf(stdout, "Number of Vars  = %lu\n", BC_MAX_VARS);
-			bc_vm_putchar('\n');
+			bb_putchar('\n');
+			printf("BC_BASE_MAX     = %lu\n", BC_MAX_OBASE);
+			printf("BC_DIM_MAX      = %lu\n", BC_MAX_DIM);
+			printf("BC_SCALE_MAX    = %lu\n", BC_MAX_SCALE);
+			printf("BC_STRING_MAX   = %lu\n", BC_MAX_STRING);
+			printf("BC_NAME_MAX     = %lu\n", BC_MAX_NAME);
+			printf("BC_NUM_MAX      = %lu\n", BC_MAX_NUM);
+			printf("Max Exponent    = %lu\n", BC_MAX_EXP);
+			printf("Number of Vars  = %lu\n", BC_MAX_VARS);
+			bb_putchar('\n');
 
 			s = BC_STATUS_SUCCESS;
 		}
@@ -7185,7 +7145,7 @@ static BcStatus bc_vm_process(BcVm *vm, const char *text)
 
 	if (BC_PARSE_CAN_EXEC(&vm->prs)) {
 		s = bc_program_exec(&vm->prog);
-		if (!s && bcg.tty) bc_vm_fflush(stdout);
+		if (!s && bcg.tty) fflush(stdout);
 		if (s && s != BC_STATUS_QUIT)
 			s = bc_vm_error(bc_program_reset(&vm->prog, s), vm->prs.l.f, 0);
 	}
@@ -7290,7 +7250,8 @@ static BcStatus bc_vm_stdin(BcVm *vm)
 
 	// I/O error will always happen when stdin is
 	// closed. It's not a problem in that case.
-	s = s == BC_STATUS_IO_ERR || s == BC_STATUS_QUIT ? BC_STATUS_SUCCESS : s;
+	if (s == BC_STATUS_INPUT_EOF || s == BC_STATUS_QUIT)
+		s = BC_STATUS_SUCCESS;
 
 	if (str)
 		s = bc_vm_error(BC_STATUS_LEX_NO_STRING_END, vm->prs.l.f,
@@ -7328,10 +7289,12 @@ static BcStatus bc_vm_exec(BcVm *vm)
 		s = bc_vm_file(vm, *((char **) bc_vec_item(&vm->files, i)));
 	if (s && s != BC_STATUS_QUIT) return s;
 
-	if (bcg.bc || !vm->files.len) s = bc_vm_stdin(vm);
+	if (IS_BC || !vm->files.len) s = bc_vm_stdin(vm);
 	if (!s && !BC_PARSE_CAN_EXEC(&vm->prs)) s = bc_vm_process(vm, "");
 
-	return s == BC_STATUS_QUIT ? BC_STATUS_SUCCESS : s;
+	if (s == BC_STATUS_QUIT)
+		s = BC_STATUS_SUCCESS;
+	return s;
 }
 
 static void bc_vm_free(BcVm *vm)
@@ -7364,8 +7327,8 @@ static BcStatus bc_vm_init(BcVm *vm, BcVmExe exe, const char *env_len)
 	bc_vec_init(&vm->files, sizeof(char *), NULL);
 
 #if ENABLE_BC
-	vm->flags |= BC_FLAG_S * bcg.bc * (getenv("POSIXLY_CORRECT") != NULL);
-	if (bcg.bc) s = bc_vm_envArgs(vm);
+	vm->flags |= BC_FLAG_S * IS_BC * (getenv("POSIXLY_CORRECT") != NULL);
+	if (IS_BC) s = bc_vm_envArgs(vm);
 #endif
 
 	bc_program_init(&vm->prog, len, exe.init, exe.exp);
@@ -7396,7 +7359,7 @@ static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
 	bcg.exreg = vm.flags & BC_FLAG_X;
 #endif
 
-	if (bcg.ttyin && !(vm.flags & BC_FLAG_Q)) bc_vm_info(NULL);
+	if (bcg.ttyin && !(vm.flags & BC_FLAG_Q)) bc_vm_info();
 	st = bc_vm_exec(&vm);
 
 exit:
@@ -7409,8 +7372,6 @@ BcStatus bc_main(int argc, char *argv[])
 {
 	BcVmExe exec;
 
-	bcg.bc = true;
-	bcg.name = bc_name;
 # if ENABLE_FEATURE_BC_SIGNALS
 	bcg.sig_msg = bc_sig_msg;
 # endif
@@ -7428,8 +7389,6 @@ BcStatus dc_main(int argc, char *argv[])
 {
 	BcVmExe exec;
 
-	bcg.bc = false;
-	bcg.name = dc_name;
 # if ENABLE_FEATURE_BC_SIGNALS
 	bcg.sig_msg = dc_sig_msg;
 # endif
