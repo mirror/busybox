@@ -168,13 +168,12 @@
 #include "libbb.h"
 
 typedef enum BcStatus {
-
 	BC_STATUS_SUCCESS,
 
-	BC_STATUS_ALLOC_ERR,
+//	BC_STATUS_ALLOC_ERR,
 	BC_STATUS_INPUT_EOF,
 	BC_STATUS_BIN_FILE,
-	BC_STATUS_PATH_IS_DIR,
+//	BC_STATUS_PATH_IS_DIR,
 
 	BC_STATUS_LEX_BAD_CHAR,
 	BC_STATUS_LEX_NO_STRING_END,
@@ -183,7 +182,6 @@ typedef enum BcStatus {
 #if ENABLE_DC
 	BC_STATUS_LEX_EXTENDED_REG,
 #endif
-
 	BC_STATUS_PARSE_BAD_TOKEN,
 	BC_STATUS_PARSE_BAD_EXP,
 	BC_STATUS_PARSE_EMPTY_EXP,
@@ -200,7 +198,7 @@ typedef enum BcStatus {
 	BC_STATUS_MATH_DIVIDE_BY_ZERO,
 	BC_STATUS_MATH_BAD_STRING,
 
-	BC_STATUS_EXEC_FILE_ERR,
+//	BC_STATUS_EXEC_FILE_ERR,
 	BC_STATUS_EXEC_MISMATCHED_PARAMS,
 	BC_STATUS_EXEC_UNDEFINED_FUNC,
 	BC_STATUS_EXEC_FILE_NOT_EXECUTABLE,
@@ -209,17 +207,16 @@ typedef enum BcStatus {
 	BC_STATUS_EXEC_STRING_LEN,
 	BC_STATUS_EXEC_ARRAY_LEN,
 	BC_STATUS_EXEC_BAD_IBASE,
-	BC_STATUS_EXEC_BAD_SCALE,
+//	BC_STATUS_EXEC_BAD_SCALE,
 	BC_STATUS_EXEC_BAD_READ_EXPR,
 	BC_STATUS_EXEC_REC_READ,
 	BC_STATUS_EXEC_BAD_TYPE,
-	BC_STATUS_EXEC_BAD_OBASE,
+//	BC_STATUS_EXEC_BAD_OBASE,
 	BC_STATUS_EXEC_SIGNAL,
 	BC_STATUS_EXEC_STACK,
 
-	BC_STATUS_VEC_OUT_OF_BOUNDS,
+//	BC_STATUS_VEC_OUT_OF_BOUNDS,
 	BC_STATUS_VEC_ITEM_EXISTS,
-
 #if ENABLE_BC
 	BC_STATUS_POSIX_NAME_LEN,
 	BC_STATUS_POSIX_COMMENT,
@@ -234,13 +231,77 @@ typedef enum BcStatus {
 	BC_STATUS_POSIX_FOR3,
 	BC_STATUS_POSIX_BRACE,
 #endif
-
 	BC_STATUS_QUIT,
 	BC_STATUS_LIMITS,
 
-	BC_STATUS_INVALID_OPTION,
-
+//	BC_STATUS_INVALID_OPTION,
 } BcStatus;
+// Keep enum above and messages below in sync!
+static const char *const bc_err_msgs[] = {
+	NULL,
+//	"memory allocation error",
+	"I/O error",
+	"file is not text:",
+//	"path is a directory:",
+
+	"bad character",
+	"string end could not be found",
+	"comment end could not be found",
+	"end of file",
+#if ENABLE_DC
+	"extended register",
+#endif
+	"bad token",
+	"bad expression",
+	"empty expression",
+	"bad print statement",
+	"bad function definition",
+	"bad assignment: left side must be scale, ibase, "
+		"obase, last, var, or array element",
+	"no auto variable found",
+	"function parameter or auto var has the same name as another",
+	"block end could not be found",
+
+	"negative number",
+	"non integer number",
+	"overflow",
+	"divide by zero",
+	"bad number string",
+
+//	"could not open file:",
+	"mismatched parameters", // wrong number of them, to be exact
+	"undefined function",
+	"file is not executable:",
+	"number too long: must be [1, BC_NUM_MAX]",
+	"name too long: must be [1, BC_NAME_MAX]",
+	"string too long: must be [1, BC_STRING_MAX]",
+	"array too long; must be [1, BC_DIM_MAX]",
+	"bad ibase; must be [2, 16]",
+//	"bad scale; must be [0, BC_SCALE_MAX]",
+	"bad read() expression",
+	"read() call inside of a read() call",
+	"variable is wrong type",
+//	"bad obase; must be [2, BC_BASE_MAX]",
+	"signal caught and not handled",
+	"stack has too few elements",
+
+//	"index is out of bounds",
+	"item already exists",
+#if ENABLE_BC
+	"POSIX only allows one character names; the following is bad:",
+	"POSIX does not allow '#' script comments",
+	"POSIX does not allow the following keyword:",
+	"POSIX does not allow a period ('.') as a shortcut for the last result",
+	"POSIX requires parentheses around return expressions",
+	"POSIX does not allow boolean operators; the following is bad:",
+	"POSIX does not allow comparison operators outside if or loops",
+	"POSIX requires exactly one comparison operator per condition",
+	"POSIX does not allow an empty init expression in a for loop",
+	"POSIX does not allow an empty condition expression in a for loop",
+	"POSIX does not allow an empty update expression in a for loop",
+	"POSIX requires the left brace be on the same line as the function header",
+#endif
+};
 
 #define BC_VEC_INVALID_IDX ((size_t) -1)
 #define BC_VEC_START_CAP (1 << 5)
@@ -837,76 +898,6 @@ static void bc_vm_info(void);
 static const char bc_err_fmt[] = "\nerror: %s\n";
 static const char bc_warn_fmt[] = "\nwarning: %s\n";
 static const char bc_err_line[] = ":%zu\n\n";
-
-static const char *bc_err_msgs[] = {
-
-	NULL,
-	"memory allocation error",
-	"I/O error",
-	"file is not text:",
-	"path is a directory:",
-
-	"bad character",
-	"string end could not be found",
-	"comment end could not be found",
-	"end of file",
-#if ENABLE_DC
-	"extended register",
-#endif
-
-	"bad token",
-	"bad expression",
-	"empty expression",
-	"bad print statement",
-	"bad function definition",
-	"bad assignment: left side must be scale, ibase, "
-		"obase, last, var, or array element",
-	"no auto variable found",
-	"function parameter or auto var has the same name as another",
-	"block end could not be found",
-
-	"negative number",
-	"non integer number",
-	"overflow",
-	"divide by zero",
-	"bad number string",
-
-	"could not open file:",
-	"mismatched parameters",
-	"undefined function",
-	"file is not executable:",
-	"number too long: must be [1, BC_NUM_MAX]",
-	"name too long: must be [1, BC_NAME_MAX]",
-	"string too long: must be [1, BC_STRING_MAX]",
-	"array too long; must be [1, BC_DIM_MAX]",
-	"bad ibase; must be [2, 16]",
-	"bad scale; must be [0, BC_SCALE_MAX]",
-	"bad read() expression",
-	"read() call inside of a read() call",
-	"variable is wrong type",
-	"bad obase; must be [2, BC_BASE_MAX]",
-	"signal caught and not handled",
-	"stack has too few elements",
-
-	"index is out of bounds",
-	"item already exists",
-
-#if ENABLE_BC
-	"POSIX only allows one character names; the following is bad:",
-	"POSIX does not allow '#' script comments",
-	"POSIX does not allow the following keyword:",
-	"POSIX does not allow a period ('.') as a shortcut for the last result",
-	"POSIX requires parentheses around return expressions",
-	"POSIX does not allow boolean operators; the following is bad:",
-	"POSIX does not allow comparison operators outside if or loops",
-	"POSIX requires exactly one comparison operator per condition",
-	"POSIX does not allow an empty init expression in a for loop",
-	"POSIX does not allow an empty condition expression in a for loop",
-	"POSIX does not allow an empty update expression in a for loop",
-	"POSIX requires the left brace be on the same line as the function header",
-#endif
-
-};
 
 #if ENABLE_BC
 static const BcLexKeyword bc_lex_kws[20] = {
