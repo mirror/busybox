@@ -790,7 +790,6 @@ typedef unsigned long (*BcProgramBuiltIn)(BcNum *);
 
 static void bc_program_addFunc(BcProgram *p, char *name, size_t *idx);
 static BcStatus bc_program_reset(BcProgram *p, BcStatus s);
-static BcStatus bc_program_exec(BcProgram *p);
 
 #define BC_FLAG_X (1 << 0)
 #define BC_FLAG_W (1 << 1)
@@ -813,8 +812,6 @@ static BcStatus bc_program_exec(BcProgram *p);
 #define BC_MAX_VARS ((unsigned long) SIZE_MAX - 1)
 
 struct globals {
-	BcParseInit init;
-	BcParseExpr exp;
 	char sbgn;
 	char send;
 
@@ -1416,14 +1413,13 @@ read_err:
 	return s;
 }
 
-static void bc_args(int argc, char *argv[], uint32_t *flags, BcVec *files)
+static void bc_args(int argc, char **argv)
 {
 	int i;
-	bool do_exit = false;
 
 	GETOPT_RESET();
 #if ENABLE_FEATURE_BC_LONG_OPTIONS
-	*flags = getopt32long(argv, "xwvsqli",
+	G.flags = getopt32long(argv, "xwvsqli",
 		"extended-register\0" No_argument "x"
 		"warn\0"              No_argument "w"
 		"version\0"           No_argument "v"
@@ -1433,15 +1429,14 @@ static void bc_args(int argc, char *argv[], uint32_t *flags, BcVec *files)
 		"interactive\0"       No_argument "i"
 	);
 #else
-	*flags = getopt32(argv, "xwvsqli");
+	G.flags = getopt32(argv, "xwvsqli");
 #endif
 
-	if ((*flags) & BC_FLAG_V) bc_vm_info();
-	if (do_exit) exit(0);
+	if (G.flags & BC_FLAG_V) bc_vm_info();
 	// should not be necessary, getopt32() handles this??
 	//if (argv[optind] && !strcmp(argv[optind], "--")) ++optind;
 
-	for (i = optind; i < argc; ++i) bc_vec_push(files, argv + i);
+	for (i = optind; i < argc; ++i) bc_vec_push(&G.files, argv + i);
 }
 
 static void bc_num_setToZero(BcNum *n, size_t scale)
@@ -5452,8 +5447,10 @@ err:
 	return s;
 }
 
-static BcStatus bc_program_read(BcProgram *p)
+static BcStatus bc_program_read(void)
 {
+	BcProgram *p = &G.prog;
+
 	BcStatus s;
 	BcParse parse;
 	BcVec buf;
@@ -5477,6 +5474,7 @@ static BcStatus bc_program_read(BcProgram *p)
 
 	s = bc_parse_text(&parse, buf.v);
 	if (s) goto exec_err;
+/// replace by IS_BC selection
 	s = p->parse_expr(&parse, BC_PARSE_NOREAD);
 	if (s) goto exec_err;
 
@@ -6356,8 +6354,10 @@ static BcStatus bc_program_printStream(BcProgram *p)
 	return s;
 }
 
-static BcStatus bc_program_nquit(BcProgram *p)
+static BcStatus bc_program_nquit(void)
 {
+	BcProgram *p = &G.prog;
+
 	BcStatus s;
 	BcResult *opnd;
 	BcNum *num = NULL;
@@ -6380,9 +6380,11 @@ static BcStatus bc_program_nquit(BcProgram *p)
 	return s;
 }
 
-static BcStatus bc_program_execStr(BcProgram *p, char *code, size_t *bgn,
+static BcStatus bc_program_execStr(char *code, size_t *bgn,
                                    bool cond)
 {
+	BcProgram *p = &G.prog;
+
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcResult *r;
 	char **str;
@@ -6451,10 +6453,11 @@ static BcStatus bc_program_execStr(BcProgram *p, char *code, size_t *bgn,
 	f = bc_vec_item(&p->fns, fidx);
 
 	if (f->code.len == 0) {
-
+/// replace by IS_BC selection
 		p->parse_init(&prs, p, fidx);
 		s = bc_parse_text(&prs, *str);
 		if (s) goto err;
+/// replace by IS_BC selection
 		s = p->parse_expr(&prs, BC_PARSE_NOCALL);
 		if (s) goto err;
 
@@ -6509,88 +6512,6 @@ static BcStatus bc_program_pushGlobal(BcProgram *p, char inst)
 err:
 	bc_num_free(&res.d.n);
 	return s;
-}
-
-static void bc_program_free(BcProgram *p)
-{
-	bc_num_free(&p->ib);
-	bc_num_free(&p->ob);
-	bc_num_free(&p->hexb);
-#if ENABLE_DC
-	bc_num_free(&p->strmb);
-#endif
-	bc_vec_free(&p->fns);
-	bc_vec_free(&p->fn_map);
-	bc_vec_free(&p->vars);
-	bc_vec_free(&p->var_map);
-	bc_vec_free(&p->arrs);
-	bc_vec_free(&p->arr_map);
-	bc_vec_free(&p->strs);
-	bc_vec_free(&p->consts);
-	bc_vec_free(&p->results);
-	bc_vec_free(&p->stack);
-	bc_num_free(&p->last);
-	bc_num_free(&p->zero);
-	bc_num_free(&p->one);
-}
-
-static void bc_program_init(BcProgram *p, size_t line_len, BcParseInit init,
-                            BcParseExpr expr)
-{
-	size_t idx;
-	BcInstPtr ip;
-
-	memset(p, 0, sizeof(BcProgram));
-	memset(&ip, 0, sizeof(BcInstPtr));
-
-	p->nchars = p->scale = 0;
-	p->len = line_len;
-	p->parse_init = init;
-	p->parse_expr = expr;
-
-	bc_num_init(&p->ib, BC_NUM_DEF_SIZE);
-	bc_num_ten(&p->ib);
-	p->ib_t = 10;
-
-	bc_num_init(&p->ob, BC_NUM_DEF_SIZE);
-	bc_num_ten(&p->ob);
-	p->ob_t = 10;
-
-	bc_num_init(&p->hexb, BC_NUM_DEF_SIZE);
-	bc_num_ten(&p->hexb);
-	p->hexb.num[0] = 6;
-
-#if ENABLE_DC
-	bc_num_init(&p->strmb, BC_NUM_DEF_SIZE);
-	bc_num_ulong2num(&p->strmb, UCHAR_MAX + 1);
-#endif
-
-	bc_num_init(&p->last, BC_NUM_DEF_SIZE);
-	bc_num_zero(&p->last);
-
-	bc_num_init(&p->zero, BC_NUM_DEF_SIZE);
-	bc_num_zero(&p->zero);
-
-	bc_num_init(&p->one, BC_NUM_DEF_SIZE);
-	bc_num_one(&p->one);
-
-	bc_vec_init(&p->fns, sizeof(BcFunc), bc_func_free);
-	bc_map_init(&p->fn_map);
-
-	bc_program_addFunc(p, xstrdup(bc_func_main), &idx);
-	bc_program_addFunc(p, xstrdup(bc_func_read), &idx);
-
-	bc_vec_init(&p->vars, sizeof(BcVec), bc_vec_free);
-	bc_map_init(&p->var_map);
-
-	bc_vec_init(&p->arrs, sizeof(BcVec), bc_vec_free);
-	bc_map_init(&p->arr_map);
-
-	bc_vec_init(&p->strs, sizeof(char *), bc_string_free);
-	bc_vec_init(&p->consts, sizeof(char *), bc_string_free);
-	bc_vec_init(&p->results, sizeof(BcResult), bc_result_free);
-	bc_vec_init(&p->stack, sizeof(BcInstPtr), NULL);
-	bc_vec_push(&p->stack, &ip);
 }
 
 static void bc_program_addFunc(BcProgram *p, char *name, size_t *idx)
@@ -6652,8 +6573,10 @@ static BcStatus bc_program_reset(BcProgram *p, BcStatus s)
 	return s;
 }
 
-static BcStatus bc_program_exec(BcProgram *p)
+static BcStatus bc_program_exec(void)
 {
+	BcProgram *p = &G.prog;
+
 	BcStatus s = BC_STATUS_SUCCESS;
 	size_t idx;
 	BcResult r, *ptr;
@@ -6731,7 +6654,7 @@ static BcStatus bc_program_exec(BcProgram *p)
 
 			case BC_INST_READ:
 			{
-				s = bc_program_read(p);
+				s = bc_program_read();
 				break;
 			}
 
@@ -6869,7 +6792,7 @@ static BcStatus bc_program_exec(BcProgram *p)
 			case BC_INST_EXEC_COND:
 			{
 				cond = inst == BC_INST_EXEC_COND;
-				s = bc_program_execStr(p, code, &ip->idx, cond);
+				s = bc_program_execStr(code, &ip->idx, cond);
 				break;
 			}
 
@@ -6955,7 +6878,7 @@ static BcStatus bc_program_exec(BcProgram *p)
 
 			case BC_INST_NQUIT:
 			{
-				s = bc_program_nquit(p);
+				s = bc_program_nquit();
 				break;
 			}
 #endif // ENABLE_DC
@@ -7032,7 +6955,7 @@ static void bc_vm_envArgs(void)
 			++buf;
 	}
 
-	bc_args((int) v.len, (char **) v.v, &G.flags, &G.files);
+	bc_args((int) v.len, (char **) v.v);
 
 	bc_vec_free(&v);
 }
@@ -7093,7 +7016,7 @@ static BcStatus bc_vm_process(const char *text)
 	}
 
 	if (BC_PARSE_CAN_EXEC(&G.prs)) {
-		s = bc_program_exec(&G.prog);
+		s = bc_program_exec();
 		if (!s && G.tty) fflush(stdout);
 		if (s && s != BC_STATUS_QUIT)
 			s = bc_vm_error(bc_program_reset(&G.prog, s), G.prs.l.f, 0);
@@ -7229,7 +7152,7 @@ static BcStatus bc_vm_exec(void)
 		while (!s && G.prs.l.t.t != BC_LEX_EOF) s = G.prs.parse(&G.prs);
 
 		if (s) return s;
-		s = bc_program_exec(&G.prog);
+		s = bc_program_exec();
 		if (s) return s;
 	}
 #endif
@@ -7246,6 +7169,30 @@ static BcStatus bc_vm_exec(void)
 	return s;
 }
 
+#if ENABLE_FEATURE_CLEAN_UP
+static void bc_program_free(BcProgram *p)
+{
+	bc_num_free(&p->ib);
+	bc_num_free(&p->ob);
+	bc_num_free(&p->hexb);
+# if ENABLE_DC
+	bc_num_free(&p->strmb);
+# endif
+	bc_vec_free(&p->fns);
+	bc_vec_free(&p->fn_map);
+	bc_vec_free(&p->vars);
+	bc_vec_free(&p->var_map);
+	bc_vec_free(&p->arrs);
+	bc_vec_free(&p->arr_map);
+	bc_vec_free(&p->strs);
+	bc_vec_free(&p->consts);
+	bc_vec_free(&p->results);
+	bc_vec_free(&p->stack);
+	bc_num_free(&p->last);
+	bc_num_free(&p->zero);
+	bc_num_free(&p->one);
+}
+
 static void bc_vm_free(void)
 {
 	bc_vec_free(&G.files);
@@ -7253,9 +7200,74 @@ static void bc_vm_free(void)
 	bc_parse_free(&G.prs);
 	free(G.env_args);
 }
+#endif
+
+static void bc_program_init(size_t line_len)
+{
+	size_t idx;
+	BcInstPtr ip;
+
+	/* memset(&G.prog, 0, sizeof(G.prog)); - already is */
+	memset(&ip, 0, sizeof(BcInstPtr));
+
+	/* G.prog.nchars = G.prog.scale = 0; - already is */
+	G.prog.len = line_len;
+	if (IS_BC) {
+		G.prog.parse_init = bc_parse_init;
+		G.prog.parse_expr = bc_parse_expression;
+	} else {
+		G.prog.parse_init = dc_parse_init;
+		G.prog.parse_expr = dc_parse_expr;
+	}
+
+	bc_num_init(&G.prog.ib, BC_NUM_DEF_SIZE);
+	bc_num_ten(&G.prog.ib);
+	G.prog.ib_t = 10;
+
+	bc_num_init(&G.prog.ob, BC_NUM_DEF_SIZE);
+	bc_num_ten(&G.prog.ob);
+	G.prog.ob_t = 10;
+
+	bc_num_init(&G.prog.hexb, BC_NUM_DEF_SIZE);
+	bc_num_ten(&G.prog.hexb);
+	G.prog.hexb.num[0] = 6;
+
+#if ENABLE_DC
+	bc_num_init(&G.prog.strmb, BC_NUM_DEF_SIZE);
+	bc_num_ulong2num(&G.prog.strmb, UCHAR_MAX + 1);
+#endif
+
+	bc_num_init(&G.prog.last, BC_NUM_DEF_SIZE);
+	bc_num_zero(&G.prog.last);
+
+	bc_num_init(&G.prog.zero, BC_NUM_DEF_SIZE);
+	bc_num_zero(&G.prog.zero);
+
+	bc_num_init(&G.prog.one, BC_NUM_DEF_SIZE);
+	bc_num_one(&G.prog.one);
+
+	bc_vec_init(&G.prog.fns, sizeof(BcFunc), bc_func_free);
+	bc_map_init(&G.prog.fn_map);
+
+	bc_program_addFunc(&G.prog, xstrdup(bc_func_main), &idx);
+	bc_program_addFunc(&G.prog, xstrdup(bc_func_read), &idx);
+
+	bc_vec_init(&G.prog.vars, sizeof(BcVec), bc_vec_free);
+	bc_map_init(&G.prog.var_map);
+
+	bc_vec_init(&G.prog.arrs, sizeof(BcVec), bc_vec_free);
+	bc_map_init(&G.prog.arr_map);
+
+	bc_vec_init(&G.prog.strs, sizeof(char *), bc_string_free);
+	bc_vec_init(&G.prog.consts, sizeof(char *), bc_string_free);
+	bc_vec_init(&G.prog.results, sizeof(BcResult), bc_result_free);
+	bc_vec_init(&G.prog.stack, sizeof(BcInstPtr), NULL);
+	bc_vec_push(&G.prog.stack, &ip);
+}
 
 static void bc_vm_init(const char *env_len)
 {
+	BcParseInit init;
 	size_t len = bc_vm_envLen(env_len);
 
 #if ENABLE_FEATURE_BC_SIGNALS
@@ -7265,12 +7277,16 @@ static void bc_vm_init(const char *env_len)
 	bc_vec_init(&G.files, sizeof(char *), NULL);
 
 	if (IS_BC) {
-		G.flags |= BC_FLAG_S * (getenv("POSIXLY_CORRECT") != NULL);
+		if (getenv("POSIXLY_CORRECT"))
+			G.flags |= BC_FLAG_S;
 		bc_vm_envArgs();
+		init = bc_parse_init;
+	} else {
+		init = dc_parse_init;
 	}
 
-	bc_program_init(&G.prog, len, G.init, G.exp);
-	G.init(&G.prs, &G.prog, BC_PROG_MAIN);
+	bc_program_init(len);
+	init(&G.prs, &G.prog, BC_PROG_MAIN);
 }
 
 static BcStatus bc_vm_run(int argc, char *argv[],
@@ -7279,7 +7295,7 @@ static BcStatus bc_vm_run(int argc, char *argv[],
 	BcStatus st;
 
 	bc_vm_init(env_len);
-	bc_args(argc, argv, &G.flags, &G.files);
+	bc_args(argc, argv);
 
 	G.ttyin = isatty(0);
 	G.tty = G.ttyin || (G.flags & BC_FLAG_I) || isatty(1);
@@ -7287,7 +7303,9 @@ static BcStatus bc_vm_run(int argc, char *argv[],
 	if (G.ttyin && !(G.flags & BC_FLAG_Q)) bc_vm_info();
 	st = bc_vm_exec();
 
+#if ENABLE_FEATURE_CLEAN_UP
 	bc_vm_free();
+#endif
 	return st;
 }
 
@@ -7296,8 +7314,6 @@ int bc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bc_main(int argc, char **argv)
 {
 	INIT_G();
-	G.init = bc_parse_init;
-	G.exp = bc_parse_expression;
 	G.sbgn = G.send = '"';
 
 	return bc_vm_run(argc, argv, "BC_LINE_LENGTH");
@@ -7309,8 +7325,6 @@ int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dc_main(int argc, char **argv)
 {
 	INIT_G();
-	G.init = dc_parse_init;
-	G.exp = dc_parse_expr;
 	G.sbgn = '[';
 	G.send = ']';
 
