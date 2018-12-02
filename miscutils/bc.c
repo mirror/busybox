@@ -717,7 +717,6 @@ static BcStatus bc_lex_token(BcLex *l);
 // first in the expr enum. Note: This only works for binary operators.
 #define BC_PARSE_TOKEN_INST(t) ((char) ((t) -BC_LEX_NEG + BC_INST_NEG))
 
-static BcStatus bc_parse_parse(BcParse *p);
 static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
 
 #endif // ENABLE_BC
@@ -845,8 +844,6 @@ static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
 
 static void bc_vm_info(void);
 
-static const char* const bc_args_env_name = "BC_ENV_ARGS";
-
 static const char bc_err_fmt[] = "\n%s error: %s\n";
 static const char bc_warn_fmt[] = "\n%s warning: %s\n";
 static const char bc_err_line[] = ":%zu\n\n";
@@ -959,9 +956,6 @@ static const char *bc_err_msgs[] = {
 #endif
 
 };
-
-static const char bc_func_main[] = "(main)";
-static const char bc_func_read[] = "(read)";
 
 #if ENABLE_BC
 static const BcLexKeyword bc_lex_kws[20] = {
@@ -6895,6 +6889,8 @@ static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
 
 static void bc_vm_envArgs(void)
 {
+	static const char* const bc_args_env_name = "BC_ENV_ARGS";
+
 	BcVec v;
 	char *env_args = getenv(bc_args_env_name), *buf;
 
@@ -7200,8 +7196,8 @@ static void bc_program_init(size_t line_len)
 	bc_vec_init(&G.prog.fns, sizeof(BcFunc), bc_func_free);
 	bc_map_init(&G.prog.fn_map);
 
-	bc_program_addFunc(xstrdup(bc_func_main), &idx);
-	bc_program_addFunc(xstrdup(bc_func_read), &idx);
+	bc_program_addFunc(xstrdup("(main)"), &idx);
+	bc_program_addFunc(xstrdup("(read)"), &idx);
 
 	bc_vec_init(&G.prog.vars, sizeof(BcVec), bc_vec_free);
 	bc_map_init(&G.prog.var_map);
