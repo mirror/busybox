@@ -1338,12 +1338,12 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 #if ENABLE_FEATURE_BC_SIGNALS
 	if (bb_got_signal) { /* ^C was pressed */
  intr:
+		bb_got_signal = 0; /* resets G_interrupt to zero */
 		fputs(IS_BC
 			? "\ninterrupt (type \"quit\" to exit)\n"
 			: "\ninterrupt (type \"q\" to exit)\n"
 			, stderr);
 	}
-	bb_got_signal = 0; /* resets G_interrupt to zero */
 #endif
 	if (G.ttyin && !G_posix)
 		fputs(prompt, stderr);
@@ -1458,25 +1458,23 @@ static void bc_num_ten(BcNum *n)
 	n->num[1] = 1;
 }
 
-static BcStatus bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
+static void bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
                                  size_t len)
 {
 	size_t i, j;
-	for (i = 0; !G_interrupt && i < len; ++i) {
-		for (a[i] -= b[i], j = 0; !G_interrupt && a[i + j] < 0;) {
+	for (i = 0; i < len; ++i) {
+		for (a[i] -= b[i], j = 0; a[i + j] < 0;) {
 			a[i + j++] += 10;
 			a[i + j] -= 1;
 		}
 	}
-///move ^C detection to bc_num_binary() (can make bc_num_s() return void)
-	return G_interrupt ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 }
 
 static ssize_t bc_num_compare(BcDig *restrict a, BcDig *restrict b, size_t len)
 {
 	size_t i;
 	int c = 0;
-	for (i = len - 1; !G_interrupt && i < len && !(c = a[i] - b[i]); --i);
+	for (i = len - 1; i < len && !(c = a[i] - b[i]); --i);
 	return BC_NUM_NEG(i + 1, c < 0);
 }
 
@@ -1522,7 +1520,7 @@ static ssize_t bc_num_cmp(BcNum *a, BcNum *b)
 	cmp = bc_num_compare(max_num, min_num, b_int + min);
 	if (cmp != 0) return BC_NUM_NEG(cmp, (!a_max) != neg);
 
-	for (max_num -= diff, i = diff - 1; !G_interrupt && i < diff; --i) {
+	for (max_num -= diff, i = diff - 1; i < diff; --i) {
 		if (max_num[i]) return BC_NUM_NEG(1, (!a_max) != neg);
 	}
 
@@ -1681,13 +1679,13 @@ static BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 		ptr = ptr_b;
 	}
 
-	for (carry = 0, i = 0; !G_interrupt && i < min_rdx + min_int; ++i, ++c->len) {
+	for (carry = 0, i = 0; i < min_rdx + min_int; ++i, ++c->len) {
 		in = ((int) ptr_a[i]) + ((int) ptr_b[i]) + carry;
 		carry = in / 10;
 		ptr_c[i] = (BcDig)(in % 10);
 	}
 
-	for (; !G_interrupt && i < max + min_rdx; ++i, ++c->len) {
+	for (; i < max + min_rdx; ++i, ++c->len) {
 		in = ((int) ptr[i]) + carry;
 		carry = in / 10;
 		ptr_c[i] = (BcDig)(in % 10);
@@ -1695,13 +1693,11 @@ static BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 
 	if (carry != 0) c->num[c->len++] = (BcDig) carry;
 
-///move ^C detection to bc_num_binary()
-	return G_interrupt ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
+	return BC_STATUS_SUCCESS; // can't make void, see bc_num_binary()
 }
 
 static BcStatus bc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 {
-	BcStatus s;
 	ssize_t cmp;
 	BcNum *minuend, *subtrahend;
 	size_t start;
@@ -1755,11 +1751,11 @@ static BcStatus bc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 	else
 		start = c->rdx - subtrahend->rdx;
 
-	s = bc_num_subArrays(c->num + start, subtrahend->num, subtrahend->len);
+	bc_num_subArrays(c->num + start, subtrahend->num, subtrahend->len);
 
 	bc_num_clean(c);
 
-	return s;
+	return BC_STATUS_SUCCESS; // can't make void, see bc_num_binary()
 }
 
 static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
@@ -1771,8 +1767,6 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 	BcNum l1, h1, l2, h2, m2, m1, z0, z1, z2, temp;
 	bool aone = BC_NUM_ONE(a);
 
-///move ^C detection to bc_num_binary()
-	if (G_interrupt) return BC_STATUS_EXEC_SIGNAL;
 	if (a->len == 0 || b->len == 0) {
 		bc_num_zero(c);
 		return BC_STATUS_SUCCESS;
@@ -1790,9 +1784,9 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 		memset(c->num, 0, sizeof(BcDig) * c->cap);
 		c->len = carry = len = 0;
 
-		for (i = 0; !G_interrupt && i < b->len; ++i) {
+		for (i = 0; i < b->len; ++i) {
 
-			for (j = 0; !G_interrupt && j < a->len; ++j) {
+			for (j = 0; j < a->len; ++j) {
 				int in = (int) c->num[i + j];
 				in += ((int) a->num[j]) * ((int) b->num[i]) + carry;
 				carry = in / 10;
@@ -1806,8 +1800,7 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 
 		c->len = len;
 
-///move ^C detection to bc_num_binary()
-		return G_interrupt ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
+		return BC_STATUS_SUCCESS;
 	}
 
 	bc_num_init(&l1, max);
@@ -1957,17 +1950,17 @@ static BcStatus bc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 	c->len = cp.len;
 	p = b->num;
 
-	for (i = end - 1; !G_interrupt && !s && i < end; --i) {
+	for (i = end - 1; !s && i < end; --i) {
 		n = cp.num + i;
 		for (q = 0; (!s && n[len] != 0) || bc_num_compare(n, p, len) >= 0; ++q)
-			s = bc_num_subArrays(n, p, len);
+			bc_num_subArrays(n, p, len);
 		c->num[i] = q;
 	}
 
-	if (!s) bc_num_retireMul(c, scale, a->neg, b->neg);
+	bc_num_retireMul(c, scale, a->neg, b->neg);
 	bc_num_free(&cp);
 
-	return s;
+	return BC_STATUS_SUCCESS; // can't make void, see bc_num_binary()
 }
 
 static BcStatus bc_num_r(BcNum *a, BcNum *b, BcNum *restrict c,
@@ -2057,21 +2050,15 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 
 	b->neg = neg;
 
-	for (powrdx = a->rdx; !G_interrupt && !(pow & 1); pow >>= 1) {
+	for (powrdx = a->rdx; !(pow & 1); pow >>= 1) {
 		powrdx <<= 1;
 		s = bc_num_mul(&copy, &copy, &copy, powrdx);
 		if (s) goto err;
 	}
 
-	if (G_interrupt) {
-///move ^C detection to bc_num_binary()
-		s = BC_STATUS_EXEC_SIGNAL;
-		goto err;
-	}
-
 	bc_num_copy(c, &copy);
 
-	for (resrdx = powrdx, pow >>= 1; !G_interrupt && pow != 0; pow >>= 1) {
+	for (resrdx = powrdx, pow >>= 1; pow != 0; pow >>= 1) {
 
 		powrdx <<= 1;
 		s = bc_num_mul(&copy, &copy, &copy, powrdx);
@@ -2087,12 +2074,6 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 	if (neg) {
 		s = bc_num_inv(c, c, scale);
 		if (s) goto err;
-	}
-
-	if (G_interrupt) {
-///move ^C detection to bc_num_binary()
-		s = BC_STATUS_EXEC_SIGNAL;
-		goto err;
 	}
 
 	if (c->rdx > scale) bc_num_truncate(c, c->rdx - scale);
@@ -2140,8 +2121,6 @@ static BcStatus bc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
 
 	if (init) bc_num_free(&num2);
 
-///move ^C detection here:
-//	if (s == 0 && G_interrupt) s = BC_STATUS_EXEC_SIGNAL;
 	return s;
 }
 
@@ -2644,8 +2623,7 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	resrdx = scale + 2;
 	len = BC_NUM_INT(x0) + resrdx - 1;
 
-///move ^C detection to callers
-	while (!G_interrupt && (cmp != 0 || digs < len)) {
+	while (cmp != 0 || digs < len) {
 
 		s = bc_num_div(a, x0, &f, resrdx);
 		if (s) goto err;
@@ -2671,12 +2649,6 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 		temp = x0;
 		x0 = x1;
 		x1 = temp;
-	}
-
-	if (G_interrupt) {
-///move ^C detection to callers
-		s = BC_STATUS_EXEC_SIGNAL;
-		goto err;
 	}
 
 	bc_num_copy(b, x0);
