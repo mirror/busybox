@@ -802,14 +802,14 @@ static BcStatus bc_program_reset(BcStatus s);
 #define BC_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define BC_MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#define BC_MAX_OBASE ((unsigned long) 999)
-#define BC_MAX_DIM ((unsigned long) INT_MAX)
-#define BC_MAX_SCALE ((unsigned long) UINT_MAX)
-#define BC_MAX_STRING ((unsigned long) UINT_MAX - 1)
-#define BC_MAX_NAME BC_MAX_STRING
-#define BC_MAX_NUM BC_MAX_STRING
-#define BC_MAX_EXP ((unsigned long) LONG_MAX)
-#define BC_MAX_VARS ((unsigned long) SIZE_MAX - 1)
+#define BC_MAX_OBASE  ((unsigned) 999)
+#define BC_MAX_DIM    ((unsigned) INT_MAX)
+#define BC_MAX_SCALE  ((unsigned) UINT_MAX)
+#define BC_MAX_STRING ((unsigned) UINT_MAX - 1)
+#define BC_MAX_NAME   BC_MAX_STRING
+#define BC_MAX_NUM    BC_MAX_STRING
+#define BC_MAX_EXP    ((unsigned long) LONG_MAX)
+#define BC_MAX_VARS   ((unsigned long) SIZE_MAX - 1)
 
 struct globals {
 	char sbgn;
@@ -6956,16 +6956,14 @@ static BcStatus bc_vm_process(const char *text)
 
 		if (s == BC_STATUS_LIMITS) {
 
-			bb_putchar('\n');
-			printf("BC_BASE_MAX     = %lu\n", BC_MAX_OBASE);
-			printf("BC_DIM_MAX      = %lu\n", BC_MAX_DIM);
-			printf("BC_SCALE_MAX    = %lu\n", BC_MAX_SCALE);
-			printf("BC_STRING_MAX   = %lu\n", BC_MAX_STRING);
-			printf("BC_NAME_MAX     = %lu\n", BC_MAX_NAME);
-			printf("BC_NUM_MAX      = %lu\n", BC_MAX_NUM);
-			printf("Max Exponent    = %lu\n", BC_MAX_EXP);
-			printf("Number of Vars  = %lu\n", BC_MAX_VARS);
-			bb_putchar('\n');
+			printf("BC_BASE_MAX     = %u\n", BC_MAX_OBASE);
+			printf("BC_DIM_MAX      = %u\n", BC_MAX_DIM);
+			printf("BC_SCALE_MAX    = %u\n", BC_MAX_SCALE);
+			printf("BC_STRING_MAX   = %u\n", BC_MAX_STRING);
+			printf("BC_NAME_MAX     = %u\n", BC_MAX_NAME);
+			printf("BC_NUM_MAX      = %u\n", BC_MAX_NUM);
+			printf("MAX Exponent    = %lu\n", BC_MAX_EXP);
+			printf("Number of vars  = %lu\n", BC_MAX_VARS);
 
 			s = BC_STATUS_SUCCESS;
 		}
