@@ -1386,25 +1386,23 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 	return BC_STATUS_SUCCESS;
 }
 
-static BcStatus bc_read_file(const char *path, char **buf)
+static char* bc_read_file(const char *path)
 {
-	BcStatus s = BC_STATUS_BIN_FILE;
+	char *buf;
 	size_t size = ((size_t) -1);
 	size_t i;
 
-	*buf = xmalloc_open_read_close(path, &size);
+	buf = xmalloc_open_read_close(path, &size);
 
 	for (i = 0; i < size; ++i) {
-		if (BC_READ_BIN_CHAR((*buf)[i]))
-			goto read_err;
+		if (BC_READ_BIN_CHAR(buf[i])) {
+			free(buf);
+			buf = NULL;
+			break;
+		}
 	}
 
-	return BC_STATUS_SUCCESS;
-
-read_err:
-	free(*buf);
-	return s;
-///convert to better return convention
+	return buf;
 }
 
 static void bc_args(int argc, char **argv)
@@ -5275,7 +5273,7 @@ static BcStatus common_parse_expr(BcParse *p, uint8_t flags)
 	}
 }
 
-static void bc_program_search(char *id, BcVec **ret, bool var)
+static BcVec* bc_program_search(char *id, bool var)
 {
 	BcStatus s;
 	BcId e, *ptr;
@@ -5299,8 +5297,7 @@ static void bc_program_search(char *id, BcVec **ret, bool var)
 
 	ptr = bc_vec_item(map, i);
 	if (new) ptr->name = xstrdup(e.name);
-	*ret = bc_vec_item(v, ptr->idx);
-/// convert to better return convention
+	return bc_vec_item(v, ptr->idx);
 }
 
 static BcStatus bc_program_num(BcResult *r, BcNum **num, bool hex)
@@ -5349,7 +5346,7 @@ static BcStatus bc_program_num(BcResult *r, BcNum **num, bool hex)
 		{
 			BcVec *v;
 
-			bc_program_search(r->d.id.name, &v, r->t == BC_RESULT_VAR);
+			v = bc_program_search(r->d.id.name, r->t == BC_RESULT_VAR);
 
 			if (r->t == BC_RESULT_ARRAY_ELEM) {
 				v = bc_vec_top(v);
@@ -5792,7 +5789,7 @@ static BcStatus bc_program_copyToVar(char *name, bool var)
 
 	ptr = bc_vec_top(&G.prog.results);
 	if ((ptr->t == BC_RESULT_ARRAY) != !var) return BC_STATUS_EXEC_BAD_TYPE;
-	bc_program_search(name, &v, var);
+	v = bc_program_search(name, var);
 
 #if ENABLE_DC
 	if (ptr->t == BC_RESULT_STR && !var) return BC_STATUS_EXEC_BAD_TYPE;
@@ -5803,7 +5800,7 @@ static BcStatus bc_program_copyToVar(char *name, bool var)
 	if (s) return s;
 
 	// Do this once more to make sure that pointers were not invalidated.
-	bc_program_search(name, &v, var);
+	v = bc_program_search(name, var);
 
 	if (var) {
 		bc_num_init(&r.d.n, BC_NUM_DEF_SIZE);
@@ -5841,7 +5838,7 @@ static BcStatus bc_program_assign(char inst)
 		BcVec *v;
 
 		if (left->t != BC_RESULT_VAR) return BC_STATUS_EXEC_BAD_TYPE;
-		bc_program_search(left->d.id.name, &v, true);
+		v = bc_program_search(left->d.id.name, true);
 
 		return bc_program_assignStr(right, v, false);
 	}
@@ -5913,7 +5910,7 @@ static BcStatus bc_program_pushVar(char *code, size_t *bgn,
 	r.d.id.name = name;
 
 #if ENABLE_DC
-	bc_program_search(name, &v, true);
+	v = bc_program_search(name, true);
 	num = bc_vec_top(v);
 
 	if (pop || copy) {
@@ -6023,7 +6020,6 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 	BcInstPtr ip;
 	size_t i, nparams = bc_program_index(code, idx);
 	BcFunc *func;
-	BcVec *v;
 	BcId *a;
 	BcResultData param;
 	BcResult *arg;
@@ -6049,9 +6045,10 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 	}
 
 	for (; i < func->autos.len; ++i) {
+		BcVec *v;
 
 		a = bc_vec_item(&func->autos, i);
-		bc_program_search(a->name, &v, a->idx);
+		v = bc_program_search(a->name, a->idx);
 
 		if (a->idx) {
 			bc_num_init(&param.n, BC_NUM_DEF_SIZE);
@@ -6103,7 +6100,7 @@ static BcStatus bc_program_return(char inst)
 		BcVec *v;
 		BcId *a = bc_vec_item(&f->autos, i);
 
-		bc_program_search(a->name, &v, a->idx);
+		v = bc_program_search(a->name, a->idx);
 		bc_vec_pop(v);
 	}
 
@@ -6397,7 +6394,6 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 
 	if (cond) {
 
-		BcVec *v;
 		char *name, *then_name = bc_program_name(code, bgn), *else_name = NULL;
 
 		if (code[*bgn] == BC_PARSE_STREND)
@@ -6415,7 +6411,8 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 		}
 
 		if (exec) {
-			bc_program_search(name, &v, true);
+			BcVec *v;
+			v = bc_program_search(name, true);
 			n = bc_vec_top(v);
 		}
 
@@ -7017,8 +7014,8 @@ static BcStatus bc_vm_file(const char *file)
 	BcInstPtr *ip;
 
 	G.prog.file = file;
-	s = bc_read_file(file, &data);
-	if (s) return bc_vm_error(s, file, 0);
+	data = bc_read_file(file);
+	if (!data) return bc_vm_error(BC_STATUS_BIN_FILE, file, 0);
 
 	bc_lex_file(&G.prs.l, file);
 	s = bc_vm_process(data);
