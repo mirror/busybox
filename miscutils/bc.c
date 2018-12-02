@@ -662,9 +662,7 @@ struct BcParse;
 
 struct BcProgram;
 
-typedef void (*BcParseInit)(struct BcParse *, struct BcProgram *, size_t);
 typedef BcStatus (*BcParseParse)(struct BcParse *);
-typedef BcStatus (*BcParseExpr)(struct BcParse *, uint8_t);
 
 typedef struct BcParse {
 
@@ -724,7 +722,6 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
 
 static BcStatus dc_lex_token(BcLex *l);
 
-static void dc_parse_init(BcParse *p, struct BcProgram *prog, size_t func);
 static BcStatus dc_parse_expr(BcParse *p, uint8_t flags);
 
 #endif // ENABLE_DC
@@ -767,9 +764,6 @@ typedef struct BcProgram {
 	BcNum one;
 
 	size_t nchars;
-
-	BcParseInit parse_init;
-	BcParseExpr parse_expr;
 
 } BcProgram;
 
@@ -5259,6 +5253,24 @@ static void dc_parse_init(BcParse *p, BcProgram *prog, size_t func)
 }
 #endif // ENABLE_DC
 
+static void common_parse_init(BcParse *p, BcProgram *prog, size_t func)
+{
+	if (IS_BC) {
+		bc_parse_init(p, prog, func);
+	} else {
+		dc_parse_init(p, prog, func);
+	}
+}
+
+static BcStatus common_parse_expr(BcParse *p, uint8_t flags)
+{
+	if (IS_BC) {
+		return bc_parse_expression(p, flags);
+	} else {
+		return dc_parse_expr(p, flags);
+	}
+}
+
 static void bc_program_search(BcProgram *p, char *id, BcVec **ret, bool var)
 {
 	BcStatus s;
@@ -5469,13 +5481,12 @@ static BcStatus bc_program_read(void)
 	s = bc_read_line(&buf, "read> ");
 	if (s) goto io_err;
 
-	p->parse_init(&parse, p, BC_PROG_READ);
+	common_parse_init(&parse, p, BC_PROG_READ);
 	bc_lex_file(&parse.l, bc_program_stdin_name);
 
 	s = bc_parse_text(&parse, buf.v);
 	if (s) goto exec_err;
-/// replace by IS_BC selection
-	s = p->parse_expr(&parse, BC_PARSE_NOREAD);
+	s = common_parse_expr(&parse, BC_PARSE_NOREAD);
 	if (s) goto exec_err;
 
 	if (parse.l.t.t != BC_LEX_NLINE && parse.l.t.t != BC_LEX_EOF) {
@@ -6453,12 +6464,10 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 	f = bc_vec_item(&p->fns, fidx);
 
 	if (f->code.len == 0) {
-/// replace by IS_BC selection
-		p->parse_init(&prs, p, fidx);
+		common_parse_init(&prs, p, fidx);
 		s = bc_parse_text(&prs, *str);
 		if (s) goto err;
-/// replace by IS_BC selection
-		s = p->parse_expr(&prs, BC_PARSE_NOCALL);
+		s = common_parse_expr(&prs, BC_PARSE_NOCALL);
 		if (s) goto err;
 
 		if (prs.l.t.t != BC_LEX_EOF) {
@@ -7212,13 +7221,6 @@ static void bc_program_init(size_t line_len)
 
 	/* G.prog.nchars = G.prog.scale = 0; - already is */
 	G.prog.len = line_len;
-	if (IS_BC) {
-		G.prog.parse_init = bc_parse_init;
-		G.prog.parse_expr = bc_parse_expression;
-	} else {
-		G.prog.parse_init = dc_parse_init;
-		G.prog.parse_expr = dc_parse_expr;
-	}
 
 	bc_num_init(&G.prog.ib, BC_NUM_DEF_SIZE);
 	bc_num_ten(&G.prog.ib);
@@ -7267,7 +7269,6 @@ static void bc_program_init(size_t line_len)
 
 static void bc_vm_init(const char *env_len)
 {
-	BcParseInit init;
 	size_t len = bc_vm_envLen(env_len);
 
 #if ENABLE_FEATURE_BC_SIGNALS
@@ -7280,13 +7281,14 @@ static void bc_vm_init(const char *env_len)
 		if (getenv("POSIXLY_CORRECT"))
 			G.flags |= BC_FLAG_S;
 		bc_vm_envArgs();
-		init = bc_parse_init;
-	} else {
-		init = dc_parse_init;
 	}
 
 	bc_program_init(len);
-	init(&G.prs, &G.prog, BC_PROG_MAIN);
+	if (IS_BC) {
+		bc_parse_init(&G.prs, &G.prog, BC_PROG_MAIN);
+	} else {
+		dc_parse_init(&G.prs, &G.prog, BC_PROG_MAIN);
+	}
 }
 
 static BcStatus bc_vm_run(int argc, char *argv[],
