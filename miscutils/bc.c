@@ -249,7 +249,6 @@ typedef enum BcStatus {
 #define BC_VEC_START_CAP (1 << 5)
 
 typedef void (*BcVecFree)(void *);
-typedef int (*BcVecCmp)(const void *, const void *);
 
 typedef struct BcVec {
 	char *v;
@@ -691,8 +690,6 @@ typedef struct BcParse {
 
 #if ENABLE_BC
 
-BcStatus bc_main(int argc, char *argv[]);
-
 typedef struct BcLexKeyword {
 	const char name[9];
 	const char len;
@@ -724,8 +721,6 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
 #if ENABLE_DC
 
 #define DC_PARSE_BUF_LEN ((int) (sizeof(uint32_t) * CHAR_BIT))
-
-BcStatus dc_main(int argc, char *argv[]);
 
 static BcStatus dc_lex_token(BcLex *l);
 
@@ -864,22 +859,8 @@ static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
 #endif
 
 static void bc_vm_info(void);
-static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
-                          const char *env_len);
 
 static BcGlobals bcg;
-
-#if ENABLE_BC
-# if ENABLE_FEATURE_BC_SIGNALS
-static const char bc_sig_msg[] = "\ninterrupt (type \"quit\" to exit)\n";
-# endif
-#endif
-
-#if ENABLE_DC
-# if ENABLE_FEATURE_BC_SIGNALS
-static const char dc_sig_msg[] = "\ninterrupt (type \"q\" to exit)\n";
-# endif
-#endif
 
 static const char* const bc_args_env_name = "BC_ENV_ARGS";
 
@@ -1386,28 +1367,25 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 		if (ferror(stdout) || ferror(stderr))
 			bb_perror_msg_and_die("output error");
 
+		errno = 0;
 		i = fgetc(stdin);
-		if (ferror(stdin))
-			bb_perror_msg_and_die("input error");
 
 		if (i == EOF) {
-
 #if ENABLE_FEATURE_BC_SIGNALS
 			if (errno == EINTR) {
-
 				bcg.sigc = bcg.sig;
 				bcg.signe = 0;
-
 				if (bcg.ttyin) {
 					fputs(bc_program_ready_msg, stderr);
 					if (!bcg.posix) fputs(prompt, stderr);
 					fflush(stderr);
 				}
-
+				clearerr(stdin);
 				continue;
 			}
+			if (ferror(stdin))
+				bb_perror_msg_and_die("input error");
 #endif
-
 			return BC_STATUS_INPUT_EOF;
 		}
 
@@ -1441,40 +1419,32 @@ read_err:
 	return s;
 }
 
-#if ENABLE_FEATURE_BC_LONG_OPTIONS
-static const char bc_args_lopt[] ALIGN1 =
-	"extended-register\0"No_argument"x"
-	"warn\0"No_argument"w"
-	"version\0"No_argument"v"
-	"standard\0"No_argument"s"
-	"quiet\0"No_argument"q"
-	"mathlib\0"No_argument"l"
-	"interactive\0"No_argument"i";
-#endif
-
-static const char bc_args_opt[] ALIGN1 = "xwvsqli";
-
-static BcStatus bc_args(int argc, char *argv[], uint32_t *flags, BcVec *files)
+static void bc_args(int argc, char *argv[], uint32_t *flags, BcVec *files)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
 	int i;
 	bool do_exit = false;
 
-	i = optind = 0;
-
+	GETOPT_RESET();
 #if ENABLE_FEATURE_BC_LONG_OPTIONS
-	*flags = getopt32long(argv, bc_args_opt, bc_args_lopt);
+	*flags = getopt32long(argv, "xwvsqli",
+		"extended-register\0" No_argument "x"
+		"warn\0"              No_argument "w"
+		"version\0"           No_argument "v"
+		"standard\0"          No_argument "s"
+		"quiet\0"             No_argument "q"
+		"mathlib\0"           No_argument "l"
+		"interactive\0"       No_argument "i"
+	);
 #else
-	*flags = getopt32(argv, bc_args_opt);
+	*flags = getopt32(argv, "xwvsqli");
 #endif
 
 	if ((*flags) & BC_FLAG_V) bc_vm_info();
-	if (do_exit) exit((int) s);
-	if (argv[optind] && !strcmp(argv[optind], "--")) ++optind;
+	if (do_exit) exit(0);
+	// should not be necessary, getopt32() handles this??
+	//if (argv[optind] && !strcmp(argv[optind], "--")) ++optind;
 
 	for (i = optind; i < argc; ++i) bc_vec_push(files, argv + i);
-
-	return s;
 }
 
 static void bc_num_setToZero(BcNum *n, size_t scale)
@@ -7024,7 +6994,7 @@ static void bc_vm_info(void)
 {
 	printf("%s "BB_VER"\n"
 		"Copyright (c) 2018 Gavin D. Howard and contributors\n"
-		"Report bugs at: https://github.com/gavinhoward/bc\n\n"
+		"Report bugs at: https://github.com/gavinhoward/bc\n"
 		"This is free software with ABSOLUTELY NO WARRANTY\n"
 	, applet_name);
 }
@@ -7057,13 +7027,12 @@ static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
 	return s * (!bcg.ttyin && !!p);
 }
 
-static BcStatus bc_vm_envArgs(BcVm *vm)
+static void bc_vm_envArgs(BcVm *vm)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
 	BcVec v;
 	char *env_args = getenv(bc_args_env_name), *buf;
 
-	if (!env_args) return s;
+	if (!env_args) return;
 
 	vm->env_args = xstrdup(env_args);
 	buf = vm->env_args;
@@ -7081,11 +7050,9 @@ static BcStatus bc_vm_envArgs(BcVm *vm)
 			++buf;
 	}
 
-	s = bc_args((int) v.len, (char **) v.v, &vm->flags, &vm->files);
+	bc_args((int) v.len, (char **) v.v, &vm->flags, &vm->files);
 
 	bc_vec_free(&v);
-
-	return s;
 }
 #endif // ENABLE_BC
 
@@ -7248,7 +7215,7 @@ static BcStatus bc_vm_stdin(BcVm *vm)
 
 	if (s == BC_STATUS_BIN_FILE) s = bc_vm_error(s, vm->prs.l.f, 0);
 
-	// I/O error will always happen when stdin is
+	// INPUT_EOF will always happen when stdin is
 	// closed. It's not a problem in that case.
 	if (s == BC_STATUS_INPUT_EOF || s == BC_STATUS_QUIT)
 		s = BC_STATUS_SUCCESS;
@@ -7305,9 +7272,8 @@ static void bc_vm_free(BcVm *vm)
 	free(vm->env_args);
 }
 
-static BcStatus bc_vm_init(BcVm *vm, BcVmExe exe, const char *env_len)
+static void bc_vm_init(BcVm *vm, BcVmExe exe, const char *env_len)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
 	size_t len = bc_vm_envLen(env_len);
 #if ENABLE_FEATURE_BC_SIGNALS
 	struct sigaction sa;
@@ -7328,13 +7294,11 @@ static BcStatus bc_vm_init(BcVm *vm, BcVmExe exe, const char *env_len)
 
 #if ENABLE_BC
 	vm->flags |= BC_FLAG_S * IS_BC * (getenv("POSIXLY_CORRECT") != NULL);
-	if (IS_BC) s = bc_vm_envArgs(vm);
+	if (IS_BC) bc_vm_envArgs(vm);
 #endif
 
 	bc_program_init(&vm->prog, len, exe.init, exe.exp);
 	exe.init(&vm->prs, &vm->prog, BC_PROG_MAIN);
-
-	return s;
 }
 
 static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
@@ -7343,10 +7307,8 @@ static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
 	BcStatus st;
 	BcVm vm;
 
-	st = bc_vm_init(&vm, exe, env_len);
-	if (st) goto exit;
-	st = bc_args(argc, argv, &vm.flags, &vm.files);
-	if (st) goto exit;
+	bc_vm_init(&vm, exe, env_len);
+	bc_args(argc, argv, &vm.flags, &vm.files);
 
 	bcg.ttyin = isatty(0);
 	bcg.tty = bcg.ttyin || (vm.flags & BC_FLAG_I) || isatty(1);
@@ -7362,18 +7324,18 @@ static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
 	if (bcg.ttyin && !(vm.flags & BC_FLAG_Q)) bc_vm_info();
 	st = bc_vm_exec(&vm);
 
-exit:
 	bc_vm_free(&vm);
 	return st;
 }
 
 #if ENABLE_BC
-BcStatus bc_main(int argc, char *argv[])
+int bc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int bc_main(int argc, char **argv)
 {
 	BcVmExe exec;
 
 # if ENABLE_FEATURE_BC_SIGNALS
-	bcg.sig_msg = bc_sig_msg;
+	bcg.sig_msg = "\ninterrupt (type \"quit\" to exit)\n";
 # endif
 
 	exec.init = bc_parse_init;
@@ -7385,12 +7347,13 @@ BcStatus bc_main(int argc, char *argv[])
 #endif
 
 #if ENABLE_DC
-BcStatus dc_main(int argc, char *argv[])
+int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int dc_main(int argc, char **argv)
 {
 	BcVmExe exec;
 
 # if ENABLE_FEATURE_BC_SIGNALS
-	bcg.sig_msg = dc_sig_msg;
+	bcg.sig_msg = "\ninterrupt (type \"q\" to exit)\n";
 # endif
 
 	exec.init = dc_parse_init;
