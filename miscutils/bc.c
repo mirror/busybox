@@ -5872,49 +5872,50 @@ static BcStatus bc_program_assign(char inst)
 	return s;
 }
 
+#if !ENABLE_DC
+#define bc_program_pushVar(code, bgn, pop, copy) \
+	bc_program_pushVar(code, bgn)
+// for bc, 'pop' and 'copy' are always false
+#endif
 static BcStatus bc_program_pushVar(char *code, size_t *bgn,
                                    bool pop, bool copy)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcResult r;
 	char *name = bc_program_name(code, bgn);
-#if ENABLE_DC // Exclude
-	BcNum *num;
-	BcVec *v;
-#else
-	(void) pop, (void) copy;
-#endif
 
 	r.t = BC_RESULT_VAR;
 	r.d.id.name = name;
 
 #if ENABLE_DC
-	v = bc_program_search(name, true);
-	num = bc_vec_top(v);
+	{
+		BcVec *v = bc_program_search(name, true);
+		BcNum *num = bc_vec_top(v);
 
-	if (pop || copy) {
+		if (pop || copy) {
 
-		if (!BC_PROG_STACK(v, 2 - copy)) {
+			if (!BC_PROG_STACK(v, 2 - copy)) {
+				free(name);
+				return BC_STATUS_EXEC_STACK;
+			}
+
 			free(name);
-			return BC_STATUS_EXEC_STACK;
+			name = NULL;
+
+			if (!BC_PROG_STR(num)) {
+
+				r.t = BC_RESULT_TEMP;
+
+				bc_num_init(&r.d.n, BC_NUM_DEF_SIZE);
+				bc_num_copy(&r.d.n, num);
+			}
+			else {
+				r.t = BC_RESULT_STR;
+				r.d.id.idx = num->rdx;
+			}
+
+			if (!copy) bc_vec_pop(v);
 		}
-
-		free(name);
-		name = NULL;
-
-		if (!BC_PROG_STR(num)) {
-
-			r.t = BC_RESULT_TEMP;
-
-			bc_num_init(&r.d.n, BC_NUM_DEF_SIZE);
-			bc_num_copy(&r.d.n, num);
-		}
-		else {
-			r.t = BC_RESULT_STR;
-			r.d.id.idx = num->rdx;
-		}
-
-		if (!copy) bc_vec_pop(v);
 	}
 #endif // ENABLE_DC
 
