@@ -242,16 +242,6 @@ typedef enum BcStatus {
 
 } BcStatus;
 
-#define BC_ERR_IDX_VM (0)
-#define BC_ERR_IDX_LEX (1)
-#define BC_ERR_IDX_PARSE (2)
-#define BC_ERR_IDX_MATH (3)
-#define BC_ERR_IDX_EXEC (4)
-#define BC_ERR_IDX_VEC (5)
-#if ENABLE_BC
-#define BC_ERR_IDX_POSIX (6)
-#endif
-
 #define BC_VEC_INVALID_IDX ((size_t) -1)
 #define BC_VEC_START_CAP (1 << 5)
 
@@ -844,48 +834,9 @@ static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
 
 static void bc_vm_info(void);
 
-static const char bc_err_fmt[] = "\n%s error: %s\n";
-static const char bc_warn_fmt[] = "\n%s warning: %s\n";
+static const char bc_err_fmt[] = "\nerror: %s\n";
+static const char bc_warn_fmt[] = "\nwarning: %s\n";
 static const char bc_err_line[] = ":%zu\n\n";
-
-static const char *bc_errs[] = {
-	"VM",
-	"Lex",
-	"Parse",
-	"Math",
-	"Runtime",
-	"Vector",
-#if ENABLE_BC
-	"POSIX",
-#endif
-};
-
-static const uint8_t bc_err_ids[] = {
-	BC_ERR_IDX_VM, BC_ERR_IDX_VM, BC_ERR_IDX_VM, BC_ERR_IDX_VM, BC_ERR_IDX_VM,
-	BC_ERR_IDX_LEX, BC_ERR_IDX_LEX, BC_ERR_IDX_LEX, BC_ERR_IDX_LEX,
-#if ENABLE_DC
-	BC_ERR_IDX_LEX,
-#endif
-	BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE,
-	BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE,
-	BC_ERR_IDX_MATH, BC_ERR_IDX_MATH, BC_ERR_IDX_MATH, BC_ERR_IDX_MATH,
-	BC_ERR_IDX_MATH,
-#if ENABLE_DC
-	BC_ERR_IDX_MATH,
-#endif
-	BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC,
-	BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC,
-	BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC,
-	BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC,
-	BC_ERR_IDX_EXEC,
-	BC_ERR_IDX_VEC, BC_ERR_IDX_VEC,
-#if ENABLE_BC
-	BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX,
-	BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX,
-	BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX,
-#endif
-	BC_ERR_IDX_VM, BC_ERR_IDX_VM, BC_ERR_IDX_VM,
-};
 
 static const char *bc_err_msgs[] = {
 
@@ -6863,7 +6814,7 @@ static BcStatus bc_vm_error(BcStatus s, const char *file, size_t line)
 {
 	if (!s || s > BC_STATUS_VEC_ITEM_EXISTS) return s;
 
-	fprintf(stderr, bc_err_fmt, bc_errs[bc_err_ids[s]], bc_err_msgs[s]);
+	fprintf(stderr, bc_err_fmt, bc_err_msgs[s]);
 	fprintf(stderr, "    %s", file);
 	fprintf(stderr, bc_err_line + 4 * !line, line);
 
@@ -6874,17 +6825,20 @@ static BcStatus bc_vm_error(BcStatus s, const char *file, size_t line)
 static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
                                  const char *msg)
 {
-	int p = (int) G_posix, w = (int) G_warn;
-	const char *const fmt = p ? bc_err_fmt : bc_warn_fmt;
+	const char *fmt;
 
-	if (!(p || w) || s < BC_STATUS_POSIX_NAME_LEN) return BC_STATUS_SUCCESS;
+	if (!(G.flags & (BC_FLAG_S|BC_FLAG_W))) return BC_STATUS_SUCCESS;
+	if (s < BC_STATUS_POSIX_NAME_LEN) return BC_STATUS_SUCCESS;
 
-	fprintf(stderr, fmt, bc_errs[bc_err_ids[s]], bc_err_msgs[s]);
+	fmt = G_posix ? bc_err_fmt : bc_warn_fmt;
+	fprintf(stderr, fmt, bc_err_msgs[s]);
 	if (msg) fprintf(stderr, "    %s\n", msg);
 	fprintf(stderr, "    %s", file);
 	fprintf(stderr, bc_err_line + 4 * !line, line);
 
-	return s * (!G.ttyin && !!p);
+	if (G.ttyin || !G_posix)
+		s = BC_STATUS_SUCCESS;
+	return s;
 }
 
 static void bc_vm_envArgs(void)
