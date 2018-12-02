@@ -812,44 +812,39 @@ static BcStatus bc_program_exec(BcProgram *p);
 #define BC_MAX_EXP ((unsigned long) LONG_MAX)
 #define BC_MAX_VARS ((unsigned long) SIZE_MAX - 1)
 
-typedef struct BcVmExe {
+struct globals {
 	BcParseInit init;
 	BcParseExpr exp;
 	char sbgn;
 	char send;
-} BcVmExe;
-
-typedef struct BcVm {
 
 	BcParse prs;
 	BcProgram prog;
 
-	uint32_t flags;
+	unsigned flags;
 	BcVec files;
 
 	char *env_args;
-	BcVmExe exe;
 
-} BcVm;
+	unsigned sig;    //counter?
+	unsigned sigc;   //counter?
+	smallint signe;  //flag
 
-typedef struct BcGlobals {
-
-	unsigned long sig;
-	unsigned long sigc;
-	unsigned long signe;
-
-	long tty;
-	long ttyin;
-	long posix;
-	long warn;
-	long exreg;
+	smallint tty;
+	smallint ttyin;
 
 #if ENABLE_FEATURE_BC_SIGNALS
 	const char *sig_msg;
 #endif
-	const char *help;
+} FIX_ALIASING;
+#define G (*ptr_to_globals)
+#define INIT_G() do { \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+} while (0)
+#define G_posix (ENABLE_BC && (G.flags & BC_FLAG_S))
+#define G_warn  (ENABLE_BC && (G.flags & BC_FLAG_W))
+#define G_exreg (ENABLE_DC && (G.flags & BC_FLAG_X))
 
-} BcGlobals;
 
 #define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
 
@@ -859,8 +854,6 @@ static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
 #endif
 
 static void bc_vm_info(void);
-
-static BcGlobals bcg;
 
 static const char* const bc_args_env_name = "BC_ENV_ARGS";
 
@@ -1356,7 +1349,7 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 	int i;
 	signed char c;
 
-	if (bcg.ttyin && !bcg.posix) {
+	if (G.ttyin && !G_posix) {
 		fputs(prompt, stderr);
 		fflush(stderr);
 	}
@@ -1373,11 +1366,11 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 		if (i == EOF) {
 #if ENABLE_FEATURE_BC_SIGNALS
 			if (errno == EINTR) {
-				bcg.sigc = bcg.sig;
-				bcg.signe = 0;
-				if (bcg.ttyin) {
+				G.sigc = G.sig;
+				G.signe = 0;
+				if (G.ttyin) {
 					fputs(bc_program_ready_msg, stderr);
-					if (!bcg.posix) fputs(prompt, stderr);
+					if (!G_posix) fputs(prompt, stderr);
 					fflush(stderr);
 				}
 				clearerr(stdin);
@@ -1478,20 +1471,20 @@ static BcStatus bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
                                  size_t len)
 {
 	size_t i, j;
-	for (i = 0; !bcg.signe && i < len; ++i) {
-		for (a[i] -= b[i], j = 0; !bcg.signe && a[i + j] < 0;) {
+	for (i = 0; !G.signe && i < len; ++i) {
+		for (a[i] -= b[i], j = 0; !G.signe && a[i + j] < 0;) {
 			a[i + j++] += 10;
 			a[i + j] -= 1;
 		}
 	}
-	return bcg.signe ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
+	return G.signe ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 }
 
 static ssize_t bc_num_compare(BcDig *restrict a, BcDig *restrict b, size_t len)
 {
 	size_t i;
 	int c = 0;
-	for (i = len - 1; !bcg.signe && i < len && !(c = a[i] - b[i]); --i);
+	for (i = len - 1; !G.signe && i < len && !(c = a[i] - b[i]); --i);
 	return BC_NUM_NEG(i + 1, c < 0);
 }
 
@@ -1537,7 +1530,7 @@ static ssize_t bc_num_cmp(BcNum *a, BcNum *b)
 	cmp = bc_num_compare(max_num, min_num, b_int + min);
 	if (cmp != 0) return BC_NUM_NEG(cmp, (!a_max) != neg);
 
-	for (max_num -= diff, i = diff - 1; !bcg.signe && i < diff; --i) {
+	for (max_num -= diff, i = diff - 1; !G.signe && i < diff; --i) {
 		if (max_num[i]) return BC_NUM_NEG(1, (!a_max) != neg);
 	}
 
@@ -1696,13 +1689,13 @@ static BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 		ptr = ptr_b;
 	}
 
-	for (carry = 0, i = 0; !bcg.signe && i < min_rdx + min_int; ++i, ++c->len) {
+	for (carry = 0, i = 0; !G.signe && i < min_rdx + min_int; ++i, ++c->len) {
 		in = ((int) ptr_a[i]) + ((int) ptr_b[i]) + carry;
 		carry = in / 10;
 		ptr_c[i] = (BcDig)(in % 10);
 	}
 
-	for (; !bcg.signe && i < max + min_rdx; ++i, ++c->len) {
+	for (; !G.signe && i < max + min_rdx; ++i, ++c->len) {
 		in = ((int) ptr[i]) + carry;
 		carry = in / 10;
 		ptr_c[i] = (BcDig)(in % 10);
@@ -1710,7 +1703,7 @@ static BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 
 	if (carry != 0) c->num[c->len++] = (BcDig) carry;
 
-	return bcg.signe ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
+	return G.signe ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 }
 
 static BcStatus bc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
@@ -1785,7 +1778,7 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 	BcNum l1, h1, l2, h2, m2, m1, z0, z1, z2, temp;
 	bool aone = BC_NUM_ONE(a);
 
-	if (bcg.signe) return BC_STATUS_EXEC_SIGNAL;
+	if (G.signe) return BC_STATUS_EXEC_SIGNAL;
 	if (a->len == 0 || b->len == 0) {
 		bc_num_zero(c);
 		return BC_STATUS_SUCCESS;
@@ -1803,9 +1796,9 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 		memset(c->num, 0, sizeof(BcDig) * c->cap);
 		c->len = carry = len = 0;
 
-		for (i = 0; !bcg.signe && i < b->len; ++i) {
+		for (i = 0; !G.signe && i < b->len; ++i) {
 
-			for (j = 0; !bcg.signe && j < a->len; ++j) {
+			for (j = 0; !G.signe && j < a->len; ++j) {
 				int in = (int) c->num[i + j];
 				in += ((int) a->num[j]) * ((int) b->num[i]) + carry;
 				carry = in / 10;
@@ -1819,7 +1812,7 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 
 		c->len = len;
 
-		return bcg.signe ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
+		return G.signe ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 	}
 
 	bc_num_init(&l1, max);
@@ -1969,7 +1962,7 @@ static BcStatus bc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 	c->len = cp.len;
 	p = b->num;
 
-	for (i = end - 1; !bcg.signe && !s && i < end; --i) {
+	for (i = end - 1; !G.signe && !s && i < end; --i) {
 		n = cp.num + i;
 		for (q = 0; (!s && n[len] != 0) || bc_num_compare(n, p, len) >= 0; ++q)
 			s = bc_num_subArrays(n, p, len);
@@ -2069,20 +2062,20 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 
 	b->neg = neg;
 
-	for (powrdx = a->rdx; !bcg.signe && !(pow & 1); pow >>= 1) {
+	for (powrdx = a->rdx; !G.signe && !(pow & 1); pow >>= 1) {
 		powrdx <<= 1;
 		s = bc_num_mul(&copy, &copy, &copy, powrdx);
 		if (s) goto err;
 	}
 
-	if (bcg.signe) {
+	if (G.signe) {
 		s = BC_STATUS_EXEC_SIGNAL;
 		goto err;
 	}
 
 	bc_num_copy(c, &copy);
 
-	for (resrdx = powrdx, pow >>= 1; !bcg.signe && pow != 0; pow >>= 1) {
+	for (resrdx = powrdx, pow >>= 1; !G.signe && pow != 0; pow >>= 1) {
 
 		powrdx <<= 1;
 		s = bc_num_mul(&copy, &copy, &copy, powrdx);
@@ -2100,7 +2093,7 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 		if (s) goto err;
 	}
 
-	if (bcg.signe) {
+	if (G.signe) {
 		s = BC_STATUS_EXEC_SIGNAL;
 		goto err;
 	}
@@ -2657,7 +2650,7 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	resrdx = scale + 2;
 	len = BC_NUM_INT(x0) + resrdx - 1;
 
-	while (!bcg.signe && (cmp != 0 || digs < len)) {
+	while (!G.signe && (cmp != 0 || digs < len)) {
 
 		s = bc_num_div(a, x0, &f, resrdx);
 		if (s) goto err;
@@ -2685,7 +2678,7 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 		x1 = temp;
 	}
 
-	if (bcg.signe) {
+	if (G.signe) {
 		s = BC_STATUS_EXEC_SIGNAL;
 		goto err;
 	}
@@ -3461,7 +3454,7 @@ static BcStatus dc_lex_register(BcLex *l)
 	if (isspace(l->buf[l->i - 1])) {
 		bc_lex_whitespace(l);
 		++l->i;
-		if (!bcg.exreg)
+		if (!G_exreg)
 			s = BC_STATUS_LEX_EXTENDED_REG;
 		else
 			s = bc_lex_name(l);
@@ -4782,7 +4775,7 @@ static BcStatus bc_parse_parse(BcParse *p)
 	else
 		s = bc_parse_stmt(p);
 
-	if ((s && s != BC_STATUS_QUIT && s != BC_STATUS_LIMITS) || bcg.signe)
+	if ((s && s != BC_STATUS_QUIT && s != BC_STATUS_LIMITS) || G.signe)
 		s = bc_parse_reset(p, s);
 
 	return s;
@@ -4802,7 +4795,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 	paren_expr = rprn = done = get_token = assign = false;
 	bin_last = true;
 
-	for (; !bcg.signe && !s && !done && bc_parse_exprs[t]; t = p->l.t.t) {
+	for (; !G.signe && !s && !done && bc_parse_exprs[t]; t = p->l.t.t) {
 		switch (t) {
 
 			case BC_LEX_OP_INC:
@@ -4996,7 +4989,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 	}
 
 	if (s) return s;
-	if (bcg.signe) return BC_STATUS_EXEC_SIGNAL;
+	if (G.signe) return BC_STATUS_EXEC_SIGNAL;
 
 	while (p->ops.len > ops_bgn) {
 
@@ -5256,7 +5249,7 @@ static BcStatus dc_parse_parse(BcParse *p)
 	else
 		s = dc_parse_expr(p, 0);
 
-	if (s || bcg.signe) s = bc_parse_reset(p, s);
+	if (s || G.signe) s = bc_parse_reset(p, s);
 
 	return s;
 }
@@ -6639,13 +6632,13 @@ static BcStatus bc_program_reset(BcProgram *p, BcStatus s)
 	ip = bc_vec_top(&p->stack);
 	ip->idx = f->code.len;
 
-	if (!s && bcg.signe && !bcg.tty) return BC_STATUS_QUIT;
+	if (!s && G.signe && !G.tty) return BC_STATUS_QUIT;
 
-	bcg.sigc += bcg.signe;
-	bcg.signe = bcg.sig != bcg.sigc;
+	G.sigc += G.signe;
+	G.signe = G.sig != G.sigc;
 
 	if (!s || s == BC_STATUS_EXEC_SIGNAL) {
-		if (bcg.ttyin) {
+		if (G.ttyin) {
 			fputs(bc_program_ready_msg, stderr);
 			fflush(stderr);
 			s = BC_STATUS_SUCCESS;
@@ -6966,7 +6959,7 @@ static BcStatus bc_program_exec(BcProgram *p)
 #endif // ENABLE_DC
 		}
 
-		if ((s && s != BC_STATUS_QUIT) || bcg.signe) s = bc_program_reset(p, s);
+		if ((s && s != BC_STATUS_QUIT) || G.signe) s = bc_program_reset(p, s);
 
 		// If the stack has changed, pointers may be invalid.
 		ip = bc_vec_top(&p->stack);
@@ -6981,10 +6974,10 @@ static BcStatus bc_program_exec(BcProgram *p)
 static void bc_vm_sig(int sig)
 {
 	int err = errno;
-	size_t len = strlen(bcg.sig_msg);
-	if (sig == SIGINT && write(2, bcg.sig_msg, len) == (ssize_t) len) {
-		bcg.signe = bcg.sig == bcg.sigc;
-		bcg.sig += bcg.signe;
+	size_t len = strlen(G.sig_msg);
+	if (sig == SIGINT && write(2, G.sig_msg, len) == (ssize_t) len) {
+		G.signe = G.sig == G.sigc;
+		G.sig += G.signe;
 	}
 	errno = err;
 }
@@ -7007,14 +7000,14 @@ static BcStatus bc_vm_error(BcStatus s, const char *file, size_t line)
 	fprintf(stderr, "    %s", file);
 	fprintf(stderr, bc_err_line + 4 * !line, line);
 
-	return s * (!bcg.ttyin || !!strcmp(file, bc_program_stdin_name));
+	return s * (!G.ttyin || !!strcmp(file, bc_program_stdin_name));
 }
 
 #if ENABLE_BC
 static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
                                  const char *msg)
 {
-	int p = (int) bcg.posix, w = (int) bcg.warn;
+	int p = (int) G_posix, w = (int) G_warn;
 	const char *const fmt = p ? bc_err_fmt : bc_warn_fmt;
 
 	if (!(p || w) || s < BC_STATUS_POSIX_NAME_LEN) return BC_STATUS_SUCCESS;
@@ -7024,18 +7017,18 @@ static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
 	fprintf(stderr, "    %s", file);
 	fprintf(stderr, bc_err_line + 4 * !line, line);
 
-	return s * (!bcg.ttyin && !!p);
+	return s * (!G.ttyin && !!p);
 }
 
-static void bc_vm_envArgs(BcVm *vm)
+static void bc_vm_envArgs(void)
 {
 	BcVec v;
 	char *env_args = getenv(bc_args_env_name), *buf;
 
 	if (!env_args) return;
 
-	vm->env_args = xstrdup(env_args);
-	buf = vm->env_args;
+	G.env_args = xstrdup(env_args);
+	buf = G.env_args;
 
 	bc_vec_init(&v, sizeof(char *), NULL);
 	bc_vec_push(&v, &bc_args_env_name);
@@ -7050,7 +7043,7 @@ static void bc_vm_envArgs(BcVm *vm)
 			++buf;
 	}
 
-	bc_args((int) v.len, (char **) v.v, &vm->flags, &vm->files);
+	bc_args((int) v.len, (char **) v.v, &G.flags, &G.files);
 
 	bc_vec_free(&v);
 }
@@ -7077,16 +7070,16 @@ static size_t bc_vm_envLen(const char *var)
 	return len;
 }
 
-static BcStatus bc_vm_process(BcVm *vm, const char *text)
+static BcStatus bc_vm_process(const char *text)
 {
-	BcStatus s = bc_parse_text(&vm->prs, text);
+	BcStatus s = bc_parse_text(&G.prs, text);
 
-	s = bc_vm_error(s, vm->prs.l.f, vm->prs.l.line);
+	s = bc_vm_error(s, G.prs.l.f, G.prs.l.line);
 	if (s) return s;
 
-	while (vm->prs.l.t.t != BC_LEX_EOF) {
+	while (G.prs.l.t.t != BC_LEX_EOF) {
 
-		s = vm->prs.parse(&vm->prs);
+		s = G.prs.parse(&G.prs);
 
 		if (s == BC_STATUS_LIMITS) {
 
@@ -7105,38 +7098,38 @@ static BcStatus bc_vm_process(BcVm *vm, const char *text)
 		}
 		else {
 			if (s == BC_STATUS_QUIT) return s;
-			s = bc_vm_error(s, vm->prs.l.f, vm->prs.l.line);
+			s = bc_vm_error(s, G.prs.l.f, G.prs.l.line);
 			if (s) return s;
 		}
 	}
 
-	if (BC_PARSE_CAN_EXEC(&vm->prs)) {
-		s = bc_program_exec(&vm->prog);
-		if (!s && bcg.tty) fflush(stdout);
+	if (BC_PARSE_CAN_EXEC(&G.prs)) {
+		s = bc_program_exec(&G.prog);
+		if (!s && G.tty) fflush(stdout);
 		if (s && s != BC_STATUS_QUIT)
-			s = bc_vm_error(bc_program_reset(&vm->prog, s), vm->prs.l.f, 0);
+			s = bc_vm_error(bc_program_reset(&G.prog, s), G.prs.l.f, 0);
 	}
 
 	return s;
 }
 
-static BcStatus bc_vm_file(BcVm *vm, const char *file)
+static BcStatus bc_vm_file(const char *file)
 {
 	BcStatus s;
 	char *data;
 	BcFunc *main_func;
 	BcInstPtr *ip;
 
-	vm->prog.file = file;
+	G.prog.file = file;
 	s = bc_read_file(file, &data);
 	if (s) return bc_vm_error(s, file, 0);
 
-	bc_lex_file(&vm->prs.l, file);
-	s = bc_vm_process(vm, data);
+	bc_lex_file(&G.prs.l, file);
+	s = bc_vm_process(data);
 	if (s) goto err;
 
-	main_func = bc_vec_item(&vm->prog.fns, BC_PROG_MAIN);
-	ip = bc_vec_item(&vm->prog.stack, 0);
+	main_func = bc_vec_item(&G.prog.fns, BC_PROG_MAIN);
+	ip = bc_vec_item(&G.prog.stack, 0);
 
 	if (main_func->code.len < ip->idx) s = BC_STATUS_EXEC_FILE_NOT_EXECUTABLE;
 
@@ -7145,7 +7138,7 @@ err:
 	return s;
 }
 
-static BcStatus bc_vm_stdin(BcVm *vm)
+static BcStatus bc_vm_stdin(void)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcVec buf, buffer;
@@ -7153,8 +7146,8 @@ static BcStatus bc_vm_stdin(BcVm *vm)
 	size_t len, i, str = 0;
 	bool comment = false, notend;
 
-	vm->prog.file = bc_program_stdin_name;
-	bc_lex_file(&vm->prs.l, bc_program_stdin_name);
+	G.prog.file = bc_program_stdin_name;
+	bc_lex_file(&G.prs.l, bc_program_stdin_name);
 
 	bc_vec_init(&buffer, sizeof(char), NULL);
 	bc_vec_init(&buf, sizeof(char), NULL);
@@ -7171,9 +7164,9 @@ static BcStatus bc_vm_stdin(BcVm *vm)
 		len = buf.len - 1;
 
 		if (len == 1) {
-			if (str && buf.v[0] == vm->exe.send)
+			if (str && buf.v[0] == G.send)
 				str -= 1;
-			else if (buf.v[0] == vm->exe.sbgn)
+			else if (buf.v[0] == G.sbgn)
 				str += 1;
 		}
 		else if (len > 1 || comment) {
@@ -7184,11 +7177,11 @@ static BcStatus bc_vm_stdin(BcVm *vm)
 				c = string[i];
 
 				if (i - 1 > len || string[i - 1] != '\\') {
-					if (vm->exe.sbgn == vm->exe.send)
-						str ^= c == vm->exe.sbgn;
-					else if (c == vm->exe.send)
+					if (G.sbgn == G.send)
+						str ^= c == G.sbgn;
+					else if (c == G.send)
 						str -= 1;
-					else if (c == vm->exe.sbgn)
+					else if (c == G.sbgn)
 						str += 1;
 				}
 
@@ -7207,13 +7200,13 @@ static BcStatus bc_vm_stdin(BcVm *vm)
 		}
 
 		bc_vec_concat(&buffer, buf.v);
-		s = bc_vm_process(vm, buffer.v);
+		s = bc_vm_process(buffer.v);
 		if (s) goto err;
 
 		bc_vec_npop(&buffer, buffer.len);
 	}
 
-	if (s == BC_STATUS_BIN_FILE) s = bc_vm_error(s, vm->prs.l.f, 0);
+	if (s == BC_STATUS_BIN_FILE) s = bc_vm_error(s, G.prs.l.f, 0);
 
 	// INPUT_EOF will always happen when stdin is
 	// closed. It's not a problem in that case.
@@ -7221,11 +7214,11 @@ static BcStatus bc_vm_stdin(BcVm *vm)
 		s = BC_STATUS_SUCCESS;
 
 	if (str)
-		s = bc_vm_error(BC_STATUS_LEX_NO_STRING_END, vm->prs.l.f,
-		                vm->prs.l.line);
+		s = bc_vm_error(BC_STATUS_LEX_NO_STRING_END, G.prs.l.f,
+		                G.prs.l.line);
 	else if (comment)
-		s = bc_vm_error(BC_STATUS_LEX_NO_COMMENT_END, vm->prs.l.f,
-		                vm->prs.l.line);
+		s = bc_vm_error(BC_STATUS_LEX_NO_COMMENT_END, G.prs.l.f,
+		                G.prs.l.line);
 
 err:
 	bc_vec_free(&buf);
@@ -7233,46 +7226,46 @@ err:
 	return s;
 }
 
-static BcStatus bc_vm_exec(BcVm *vm)
+static BcStatus bc_vm_exec(void)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	size_t i;
 
 #if ENABLE_BC
-	if (vm->flags & BC_FLAG_L) {
+	if (G.flags & BC_FLAG_L) {
 
-		bc_lex_file(&vm->prs.l, bc_lib_name);
-		s = bc_parse_text(&vm->prs, bc_lib);
+		bc_lex_file(&G.prs.l, bc_lib_name);
+		s = bc_parse_text(&G.prs, bc_lib);
 
-		while (!s && vm->prs.l.t.t != BC_LEX_EOF) s = vm->prs.parse(&vm->prs);
+		while (!s && G.prs.l.t.t != BC_LEX_EOF) s = G.prs.parse(&G.prs);
 
 		if (s) return s;
-		s = bc_program_exec(&vm->prog);
+		s = bc_program_exec(&G.prog);
 		if (s) return s;
 	}
 #endif
 
-	for (i = 0; !s && i < vm->files.len; ++i)
-		s = bc_vm_file(vm, *((char **) bc_vec_item(&vm->files, i)));
+	for (i = 0; !s && i < G.files.len; ++i)
+		s = bc_vm_file(*((char **) bc_vec_item(&G.files, i)));
 	if (s && s != BC_STATUS_QUIT) return s;
 
-	if (IS_BC || !vm->files.len) s = bc_vm_stdin(vm);
-	if (!s && !BC_PARSE_CAN_EXEC(&vm->prs)) s = bc_vm_process(vm, "");
+	if (IS_BC || !G.files.len) s = bc_vm_stdin();
+	if (!s && !BC_PARSE_CAN_EXEC(&G.prs)) s = bc_vm_process("");
 
 	if (s == BC_STATUS_QUIT)
 		s = BC_STATUS_SUCCESS;
 	return s;
 }
 
-static void bc_vm_free(BcVm *vm)
+static void bc_vm_free(void)
 {
-	bc_vec_free(&vm->files);
-	bc_program_free(&vm->prog);
-	bc_parse_free(&vm->prs);
-	free(vm->env_args);
+	bc_vec_free(&G.files);
+	bc_program_free(&G.prog);
+	bc_parse_free(&G.prs);
+	free(G.env_args);
 }
 
-static void bc_vm_init(BcVm *vm, BcVmExe exe, const char *env_len)
+static void bc_vm_init(const char *env_len)
 {
 	size_t len = bc_vm_envLen(env_len);
 #if ENABLE_FEATURE_BC_SIGNALS
@@ -7284,47 +7277,32 @@ static void bc_vm_init(BcVm *vm, BcVmExe exe, const char *env_len)
 	sigaction(SIGINT, &sa, NULL);
 #endif
 
-	memset(vm, 0, sizeof(BcVm));
-
-	vm->exe = exe;
-	vm->flags = 0;
-	vm->env_args = NULL;
-
-	bc_vec_init(&vm->files, sizeof(char *), NULL);
+	bc_vec_init(&G.files, sizeof(char *), NULL);
 
 #if ENABLE_BC
-	vm->flags |= BC_FLAG_S * IS_BC * (getenv("POSIXLY_CORRECT") != NULL);
-	if (IS_BC) bc_vm_envArgs(vm);
+	G.flags |= BC_FLAG_S * IS_BC * (getenv("POSIXLY_CORRECT") != NULL);
+	if (IS_BC) bc_vm_envArgs();
 #endif
 
-	bc_program_init(&vm->prog, len, exe.init, exe.exp);
-	exe.init(&vm->prs, &vm->prog, BC_PROG_MAIN);
+	bc_program_init(&G.prog, len, G.init, G.exp);
+	G.init(&G.prs, &G.prog, BC_PROG_MAIN);
 }
 
-static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
+static BcStatus bc_vm_run(int argc, char *argv[],
                           const char *env_len)
 {
 	BcStatus st;
-	BcVm vm;
 
-	bc_vm_init(&vm, exe, env_len);
-	bc_args(argc, argv, &vm.flags, &vm.files);
+	bc_vm_init(env_len);
+	bc_args(argc, argv, &G.flags, &G.files);
 
-	bcg.ttyin = isatty(0);
-	bcg.tty = bcg.ttyin || (vm.flags & BC_FLAG_I) || isatty(1);
+	G.ttyin = isatty(0);
+	G.tty = G.ttyin || (G.flags & BC_FLAG_I) || isatty(1);
 
-#if ENABLE_BC
-	bcg.posix = vm.flags & BC_FLAG_S;
-	bcg.warn = vm.flags & BC_FLAG_W;
-#endif
-#if ENABLE_DC
-	bcg.exreg = vm.flags & BC_FLAG_X;
-#endif
+	if (G.ttyin && !(G.flags & BC_FLAG_Q)) bc_vm_info();
+	st = bc_vm_exec();
 
-	if (bcg.ttyin && !(vm.flags & BC_FLAG_Q)) bc_vm_info();
-	st = bc_vm_exec(&vm);
-
-	bc_vm_free(&vm);
+	bc_vm_free();
 	return st;
 }
 
@@ -7332,17 +7310,15 @@ static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
 int bc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bc_main(int argc, char **argv)
 {
-	BcVmExe exec;
-
+	INIT_G();
 # if ENABLE_FEATURE_BC_SIGNALS
-	bcg.sig_msg = "\ninterrupt (type \"quit\" to exit)\n";
+	G.sig_msg = "\ninterrupt (type \"quit\" to exit)\n";
 # endif
+	G.init = bc_parse_init;
+	G.exp = bc_parse_expression;
+	G.sbgn = G.send = '"';
 
-	exec.init = bc_parse_init;
-	exec.exp = bc_parse_expression;
-	exec.sbgn = exec.send = '"';
-
-	return bc_vm_run(argc, argv, exec, "BC_LINE_LENGTH");
+	return bc_vm_run(argc, argv, "BC_LINE_LENGTH");
 }
 #endif
 
@@ -7350,17 +7326,15 @@ int bc_main(int argc, char **argv)
 int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dc_main(int argc, char **argv)
 {
-	BcVmExe exec;
-
+	INIT_G();
 # if ENABLE_FEATURE_BC_SIGNALS
-	bcg.sig_msg = "\ninterrupt (type \"q\" to exit)\n";
+	G.sig_msg = "\ninterrupt (type \"q\" to exit)\n";
 # endif
+	G.init = dc_parse_init;
+	G.exp = dc_parse_expr;
+	G.sbgn = '[';
+	G.send = ']';
 
-	exec.init = dc_parse_init;
-	exec.exp = dc_parse_expr;
-	exec.sbgn = '[';
-	exec.send = ']';
-
-	return bc_vm_run(argc, argv, exec, "DC_LINE_LENGTH");
+	return bc_vm_run(argc, argv, "DC_LINE_LENGTH");
 }
 #endif
