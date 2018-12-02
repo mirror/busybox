@@ -299,7 +299,7 @@ static void bc_num_copy(BcNum *d, BcNum *s);
 static void bc_num_free(void *num);
 
 static BcStatus bc_num_ulong(BcNum *n, unsigned long *result);
-static BcStatus bc_num_ulong2num(BcNum *n, unsigned long val);
+static void bc_num_ulong2num(BcNum *n, unsigned long val);
 
 static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale);
 static BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale);
@@ -1404,6 +1404,7 @@ static BcStatus bc_read_file(const char *path, char **buf)
 read_err:
 	free(*buf);
 	return s;
+///convert to better return convention
 }
 
 static void bc_args(int argc, char **argv)
@@ -1469,6 +1470,7 @@ static BcStatus bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
 			a[i + j] -= 1;
 		}
 	}
+///move ^C detection to bc_num_binary() (can make bc_num_s() return void)
 	return G_interrupt ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 }
 
@@ -1695,6 +1697,7 @@ static BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 
 	if (carry != 0) c->num[c->len++] = (BcDig) carry;
 
+///move ^C detection to bc_num_binary()
 	return G_interrupt ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 }
 
@@ -1770,6 +1773,7 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 	BcNum l1, h1, l2, h2, m2, m1, z0, z1, z2, temp;
 	bool aone = BC_NUM_ONE(a);
 
+///move ^C detection to bc_num_binary()
 	if (G_interrupt) return BC_STATUS_EXEC_SIGNAL;
 	if (a->len == 0 || b->len == 0) {
 		bc_num_zero(c);
@@ -1804,6 +1808,7 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 
 		c->len = len;
 
+///move ^C detection to bc_num_binary()
 		return G_interrupt ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 	}
 
@@ -2061,6 +2066,7 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 	}
 
 	if (G_interrupt) {
+///move ^C detection to bc_num_binary()
 		s = BC_STATUS_EXEC_SIGNAL;
 		goto err;
 	}
@@ -2086,6 +2092,7 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 	}
 
 	if (G_interrupt) {
+///move ^C detection to bc_num_binary()
 		s = BC_STATUS_EXEC_SIGNAL;
 		goto err;
 	}
@@ -2135,6 +2142,8 @@ static BcStatus bc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
 
 	if (init) bc_num_free(&num2);
 
+///move ^C detection here:
+//	if (s == 0 && G_interrupt) s = BC_STATUS_EXEC_SIGNAL;
 	return s;
 }
 
@@ -2222,8 +2231,7 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 
 		s = bc_num_mul(n, base, &mult, 0);
 		if (s) goto int_err;
-		s = bc_num_ulong2num(&temp, v);
-		if (s) goto int_err;
+		bc_num_ulong2num(&temp, v);
 		s = bc_num_add(&mult, &temp, n, 0);
 		if (s) goto int_err;
 	}
@@ -2246,8 +2254,7 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 
 		s = bc_num_mul(&result, base, &result, 0);
 		if (s) goto err;
-		s = bc_num_ulong2num(&temp, v);
-		if (s) goto err;
+		bc_num_ulong2num(&temp, v);
 		s = bc_num_add(&result, &temp, &result, 0);
 		if (s) goto err;
 		s = bc_num_mul(&mult, base, &mult, 0);
@@ -2385,8 +2392,7 @@ static BcStatus bc_num_printNum(BcNum *n, BcNum *base, size_t width,
 		if (s) goto err;
 		s = bc_num_ulong(&fracp, &dig);
 		if (s) goto err;
-		s = bc_num_ulong2num(&intp, dig);
-		if (s) goto err;
+		bc_num_ulong2num(&intp, dig);
 		s = bc_num_sub(&fracp, &intp, &fracp, 0);
 		if (s) goto err;
 		print(dig, width, radix, nchars, len);
@@ -2528,7 +2534,7 @@ static BcStatus bc_num_ulong(BcNum *n, unsigned long *result)
 	return BC_STATUS_SUCCESS;
 }
 
-static BcStatus bc_num_ulong2num(BcNum *n, unsigned long val)
+static void bc_num_ulong2num(BcNum *n, unsigned long val)
 {
 	size_t len;
 	BcDig *ptr;
@@ -2536,12 +2542,10 @@ static BcStatus bc_num_ulong2num(BcNum *n, unsigned long val)
 
 	bc_num_zero(n);
 
-	if (val == 0) return BC_STATUS_SUCCESS;
+	if (val == 0) return;
 
 	for (len = 1, i = ULONG_MAX; i != 0; i /= 10, ++len) bc_num_expand(n, len);
 	for (ptr = n->num, i = 0; val; ++i, ++n->len, val /= 10) ptr[i] = val % 10;
-
-	return BC_STATUS_SUCCESS;
 }
 
 static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
@@ -2642,6 +2646,7 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	resrdx = scale + 2;
 	len = BC_NUM_INT(x0) + resrdx - 1;
 
+///move ^C detection to callers
 	while (!G_interrupt && (cmp != 0 || digs < len)) {
 
 		s = bc_num_div(a, x0, &f, resrdx);
@@ -2671,6 +2676,7 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	}
 
 	if (G_interrupt) {
+///move ^C detection to callers
 		s = BC_STATUS_EXEC_SIGNAL;
 		goto err;
 	}
@@ -6148,7 +6154,7 @@ static BcStatus bc_program_builtin(char inst)
 	if (inst == BC_INST_SQRT) s = bc_num_sqrt(num, &res.d.n, G.prog.scale);
 #if ENABLE_BC
 	else if (len != 0 && opnd->t == BC_RESULT_ARRAY) {
-		s = bc_num_ulong2num(&res.d.n, (unsigned long) ((BcVec *) num)->len);
+		bc_num_ulong2num(&res.d.n, (unsigned long) ((BcVec *) num)->len);
 	}
 #endif
 #if ENABLE_DC
@@ -6158,22 +6164,16 @@ static BcStatus bc_program_builtin(char inst)
 		size_t idx = opnd->t == BC_RESULT_STR ? opnd->d.id.idx : num->rdx;
 
 		str = bc_vec_item(&G.prog.strs, idx);
-		s = bc_num_ulong2num(&res.d.n, strlen(*str));
-		if (s) goto err;
+		bc_num_ulong2num(&res.d.n, strlen(*str));
 	}
 #endif
 	else {
 		BcProgramBuiltIn f = len ? bc_program_len : bc_program_scale;
-		s = bc_num_ulong2num(&res.d.n, f(num));
-		if (s) goto err;
+		bc_num_ulong2num(&res.d.n, f(num));
 	}
 
 	bc_program_retire(&res, BC_RESULT_TEMP);
 
-	return s;
-
-err:
-	bc_num_free(&res.d.n);
 	return s;
 }
 
@@ -6248,24 +6248,16 @@ err:
 	return s;
 }
 
-static BcStatus bc_program_stackLen(void)
+static void bc_program_stackLen(void)
 {
-	BcStatus s;
 	BcResult res;
 	size_t len = G.prog.results.len;
 
 	res.t = BC_RESULT_TEMP;
 
 	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
-	s = bc_num_ulong2num(&res.d.n, len);
-	if (s) goto err;
+	bc_num_ulong2num(&res.d.n, len);
 	bc_vec_push(&G.prog.results, &res);
-
-	return s;
-
-err:
-	bc_num_free(&res.d.n);
-	return s;
 }
 
 static BcStatus bc_program_asciify(void)
@@ -6490,9 +6482,8 @@ exit:
 }
 #endif // ENABLE_DC
 
-static BcStatus bc_program_pushGlobal(char inst)
+static void bc_program_pushGlobal(char inst)
 {
-	BcStatus s;
 	BcResult res;
 	unsigned long val;
 
@@ -6505,15 +6496,8 @@ static BcStatus bc_program_pushGlobal(char inst)
 		val = (unsigned long) G.prog.ob_t;
 
 	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
-	s = bc_num_ulong2num(&res.d.n, val);
-	if (s) goto err;
+	bc_num_ulong2num(&res.d.n, val);
 	bc_vec_push(&G.prog.results, &res);
-
-	return s;
-
-err:
-	bc_num_free(&res.d.n);
-	return s;
 }
 
 static void bc_program_addFunc(char *name, size_t *idx)
@@ -6682,7 +6666,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_SCALE:
 			case BC_INST_OBASE:
 			{
-				s = bc_program_pushGlobal(inst);
+				bc_program_pushGlobal(inst);
 				break;
 			}
 
@@ -6811,7 +6795,7 @@ static BcStatus bc_program_exec(void)
 
 			case BC_INST_STACK_LEN:
 			{
-				s = bc_program_stackLen();
+				bc_program_stackLen();
 				break;
 			}
 
