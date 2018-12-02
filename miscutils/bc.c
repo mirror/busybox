@@ -173,9 +173,9 @@ typedef enum BcStatus {
 	BC_STATUS_LEX_NO_STRING_END,
 	BC_STATUS_LEX_NO_COMMENT_END,
 	BC_STATUS_LEX_EOF,
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	BC_STATUS_LEX_EXTENDED_REG,
-#endif // ENABLE_DC
+#endif
 
 	BC_STATUS_PARSE_BAD_TOKEN,
 	BC_STATUS_PARSE_BAD_EXP,
@@ -213,7 +213,7 @@ typedef enum BcStatus {
 	BC_STATUS_VEC_OUT_OF_BOUNDS,
 	BC_STATUS_VEC_ITEM_EXISTS,
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	BC_STATUS_POSIX_NAME_LEN,
 	BC_STATUS_POSIX_COMMENT,
 	BC_STATUS_POSIX_BAD_KW,
@@ -226,7 +226,7 @@ typedef enum BcStatus {
 	BC_STATUS_POSIX_FOR2,
 	BC_STATUS_POSIX_FOR3,
 	BC_STATUS_POSIX_BRACE,
-#endif // ENABLE_BC
+#endif
 
 	BC_STATUS_QUIT,
 	BC_STATUS_LIMITS,
@@ -241,9 +241,9 @@ typedef enum BcStatus {
 #define BC_ERR_IDX_MATH (3)
 #define BC_ERR_IDX_EXEC (4)
 #define BC_ERR_IDX_VEC (5)
-#ifdef ENABLE_BC
+#if ENABLE_BC
 #define BC_ERR_IDX_POSIX (6)
-#endif // ENABLE_BC
+#endif
 
 #define BC_VEC_INVALID_IDX ((size_t) -1)
 #define BC_VEC_START_CAP (1 << 5)
@@ -314,12 +314,12 @@ static BcStatus bc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
 
 typedef enum BcInst {
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	BC_INST_INC_PRE,
 	BC_INST_DEC_PRE,
 	BC_INST_INC_POST,
 	BC_INST_DEC_POST,
-#endif // ENABLE_BC
+#endif
 
 	BC_INST_NEG,
 
@@ -341,14 +341,14 @@ typedef enum BcInst {
 	BC_INST_BOOL_OR,
 	BC_INST_BOOL_AND,
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	BC_INST_ASSIGN_POWER,
 	BC_INST_ASSIGN_MULTIPLY,
 	BC_INST_ASSIGN_DIVIDE,
 	BC_INST_ASSIGN_MODULUS,
 	BC_INST_ASSIGN_PLUS,
 	BC_INST_ASSIGN_MINUS,
-#endif // ENABLE_BC
+#endif
 	BC_INST_ASSIGN,
 
 	BC_INST_NUM,
@@ -370,7 +370,7 @@ typedef enum BcInst {
 	BC_INST_STR,
 	BC_INST_PRINT_STR,
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	BC_INST_JUMP,
 	BC_INST_JUMP_ZERO,
 
@@ -380,12 +380,12 @@ typedef enum BcInst {
 	BC_INST_RET0,
 
 	BC_INST_HALT,
-#endif // ENABLE_BC
+#endif
 
 	BC_INST_POP,
 	BC_INST_POP_EXEC,
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	BC_INST_MODEXP,
 	BC_INST_DIVMOD,
 
@@ -409,7 +409,7 @@ typedef enum BcInst {
 	BC_INST_NQUIT,
 
 	BC_INST_INVALID = -1,
-#endif // ENABLE_DC
+#endif
 
 } BcInst;
 
@@ -543,7 +543,7 @@ typedef enum BcLexType {
 	BC_LEX_KEY_SQRT,
 	BC_LEX_KEY_WHILE,
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	BC_LEX_EQ_NO_REG,
 	BC_LEX_OP_MODEXP,
 	BC_LEX_OP_DIVMOD,
@@ -570,7 +570,7 @@ typedef enum BcLexType {
 	BC_LEX_PRINT_POP,
 	BC_LEX_NQUIT,
 	BC_LEX_SCALE_FACTOR,
-#endif // ENABLE_DC
+#endif
 
 } BcLexType;
 
@@ -689,7 +689,7 @@ typedef struct BcParse {
 
 } BcParse;
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 
 BcStatus bc_main(int argc, char *argv[]);
 
@@ -719,7 +719,7 @@ static BcStatus bc_lex_token(BcLex *l);
 static BcStatus bc_parse_parse(BcParse *p);
 static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
 
-#endif // ENABLE_BC
+#endif
 
 #ifdef ENABLE_DC
 
@@ -746,9 +746,9 @@ typedef struct BcProgram {
 
 	BcNum hexb;
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	BcNum strmb;
-#endif // ENABLE_DC
+#endif
 
 	BcVec results;
 	BcVec stack;
@@ -783,9 +783,9 @@ typedef struct BcProgram {
 #define BC_PROG_MAIN (0)
 #define BC_PROG_READ (1)
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 #define BC_PROG_REQ_FUNCS (2)
-#endif // ENABLE_DC
+#endif
 
 #define BC_PROG_STR(n) (!(n)->num && !(n)->cap)
 #define BC_PROG_NUM(r, n) \
@@ -852,16 +852,16 @@ typedef struct BcGlobals {
 	const char *name;
 #if ENABLE_FEATURE_BC_SIGNALS
 	const char *sig_msg;
-#endif // ENABLE_FEATURE_BC_SIGNALS
+#endif
 	const char *help;
 	bool bc;
 
 } BcGlobals;
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
                                  const char *msg);
-#endif // ENABLE_BC
+#endif
 
 static void bc_vm_exit(BcStatus s);
 static void bc_vm_printf(FILE *restrict f, const char *fmt, ...);
@@ -875,19 +875,19 @@ static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
 
 static BcGlobals bcg;
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 static const char bc_name[] = "bc";
-#if ENABLE_FEATURE_BC_SIGNALS
+# if ENABLE_FEATURE_BC_SIGNALS
 static const char bc_sig_msg[] = "\ninterrupt (type \"quit\" to exit)\n";
-#endif // ENABLE_FEATURE_BC_SIGNALS
-#endif // ENABLE_BC
+# endif
+#endif
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static const char dc_name[] = "dc";
-#if ENABLE_FEATURE_BC_SIGNALS
+# if ENABLE_FEATURE_BC_SIGNALS
 static const char dc_sig_msg[] = "\ninterrupt (type \"q\" to exit)\n";
-#endif // ENABLE_FEATURE_BC_SIGNALS
-#endif // ENABLE_DC
+# endif
+#endif
 
 static const char bc_copyright[] =
 	"Copyright (c) 2018 Gavin D. Howard and contributors\n"
@@ -907,35 +907,35 @@ static const char *bc_errs[] = {
 	"Math",
 	"Runtime",
 	"Vector",
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	"POSIX",
-#endif // ENABLE_BC
+#endif
 };
 
 static const uint8_t bc_err_ids[] = {
 	BC_ERR_IDX_VM, BC_ERR_IDX_VM, BC_ERR_IDX_VM, BC_ERR_IDX_VM, BC_ERR_IDX_VM,
 	BC_ERR_IDX_LEX, BC_ERR_IDX_LEX, BC_ERR_IDX_LEX, BC_ERR_IDX_LEX,
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	BC_ERR_IDX_LEX,
-#endif // ENABLE_DC
+#endif
 	BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE,
 	BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE, BC_ERR_IDX_PARSE,
 	BC_ERR_IDX_MATH, BC_ERR_IDX_MATH, BC_ERR_IDX_MATH, BC_ERR_IDX_MATH,
 	BC_ERR_IDX_MATH,
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	BC_ERR_IDX_MATH,
-#endif // ENABLE_DC
+#endif
 	BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC,
 	BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC,
 	BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC,
 	BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC, BC_ERR_IDX_EXEC,
 	BC_ERR_IDX_EXEC,
 	BC_ERR_IDX_VEC, BC_ERR_IDX_VEC,
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX,
 	BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX,
 	BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX, BC_ERR_IDX_POSIX,
-#endif // ENABLE_BC
+#endif
 	BC_ERR_IDX_VM, BC_ERR_IDX_VM, BC_ERR_IDX_VM,
 };
 
@@ -951,9 +951,9 @@ static const char *bc_err_msgs[] = {
 	"string end could not be found",
 	"comment end could not be found",
 	"end of file",
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	"extended register",
-#endif // ENABLE_DC
+#endif
 
 	"bad token",
 	"bad expression",
@@ -992,7 +992,7 @@ static const char *bc_err_msgs[] = {
 	"index is out of bounds",
 	"item already exists",
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	"POSIX only allows one character names; the following is bad:",
 	"POSIX does not allow '#' script comments",
 	"POSIX does not allow the following keyword:",
@@ -1005,14 +1005,14 @@ static const char *bc_err_msgs[] = {
 	"POSIX does not allow an empty condition expression in a for loop",
 	"POSIX does not allow an empty update expression in a for loop",
 	"POSIX requires the left brace be on the same line as the function header",
-#endif // ENABLE_BC
+#endif
 
 };
 
 static const char bc_func_main[] = "(main)";
 static const char bc_func_read[] = "(read)";
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 static const BcLexKeyword bc_lex_kws[20] = {
 	BC_LEX_KW_ENTRY("auto", 4, true),
 	BC_LEX_KW_ENTRY("break", 5, true),
@@ -1075,7 +1075,7 @@ static const BcParseNext bc_parse_next_read =
 	BC_PARSE_NEXT(2, BC_LEX_NLINE, BC_LEX_EOF);
 #endif // ENABLE_BC
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static const BcLexType dc_lex_regs[] = {
 	BC_LEX_OP_REL_EQ, BC_LEX_OP_REL_LE, BC_LEX_OP_REL_GE, BC_LEX_OP_REL_NE,
 	BC_LEX_OP_REL_LT, BC_LEX_OP_REL_GT, BC_LEX_SCOLON, BC_LEX_COLON,
@@ -1140,8 +1140,6 @@ static const BcInst dc_parse_insts[] = {
 };
 #endif // ENABLE_DC
 
-static const char bc_num_hex_digits[] = "0123456789ABCDEF";
-
 static const BcNumBinaryOp bc_program_ops[] = {
 	bc_num_pow, bc_num_mul, bc_num_div, bc_num_mod, bc_num_add, bc_num_sub,
 };
@@ -1149,7 +1147,7 @@ static const BcNumBinaryOp bc_program_ops[] = {
 static const char bc_program_stdin_name[] = "<stdin>";
 static const char bc_program_ready_msg[] = "ready for more input\n";
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 static const char *bc_lib_name = "gen/lib.bc";
 
 static const char bc_lib[] = {
@@ -1417,7 +1415,7 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 
 				continue;
 			}
-#endif // ENABLE_FEATURE_BC_SIGNALS
+#endif
 
 			return BC_STATUS_IO_ERR;
 		}
@@ -1435,12 +1433,14 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 static BcStatus bc_read_file(const char *path, char **buf)
 {
 	BcStatus s = BC_STATUS_BIN_FILE;
-	size_t size = ((size_t) -1), read;
+	size_t size = ((size_t) -1);
+	size_t i;
 
 	*buf = xmalloc_open_read_close(path, &size);
 
-	for (read = 0; read < size; ++read) {
-		if (BC_READ_BIN_CHAR((*buf)[read])) goto read_err;
+	for (i = 0; i < size; ++i) {
+		if (BC_READ_BIN_CHAR((*buf)[i]))
+			goto read_err;
 	}
 
 	return BC_STATUS_SUCCESS;
@@ -1459,7 +1459,7 @@ static const char bc_args_lopt[] ALIGN1 =
 	"quiet\0"No_argument"q"
 	"mathlib\0"No_argument"l"
 	"interactive\0"No_argument"i";
-#endif // ENABLE_FEATURE_BC_LONG_OPTIONS
+#endif
 
 static const char bc_args_opt[] ALIGN1 = "xwvsqli";
 
@@ -1473,9 +1473,9 @@ static BcStatus bc_args(int argc, char *argv[], uint32_t *flags, BcVec *files)
 
 #if ENABLE_FEATURE_BC_LONG_OPTIONS
 	*flags = getopt32long(argv, bc_args_opt, bc_args_lopt);
-#else // ENABLE_FEATURE_BC_LONG_OPTIONS
+#else
 	*flags = getopt32(argv, bc_args_opt);
-#endif // ENABLE_FEATURE_BC_LONG_OPTIONS
+#endif
 
 	if ((*flags) & BC_FLAG_V) bc_vm_info(NULL);
 	if (do_exit) exit((int) s);
@@ -2335,7 +2335,7 @@ static void bc_num_printNewline(size_t *nchars, size_t line_len)
 	}
 }
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static void bc_num_printChar(size_t num, size_t width, bool radix,
                              size_t *nchars, size_t line_len)
 {
@@ -2343,25 +2343,27 @@ static void bc_num_printChar(size_t num, size_t width, bool radix,
 	bc_vm_putchar((char) num);
 	*nchars = *nchars + width;
 }
-#endif // ENABLE_DC
+#endif
 
 static void bc_num_printDigits(size_t num, size_t width, bool radix,
                                size_t *nchars, size_t line_len)
 {
-	size_t exp, pow, div;
+	size_t exp, pow;
 
 	bc_num_printNewline(nchars, line_len);
 	bc_vm_putchar(radix ? '.' : ' ');
 	++(*nchars);
 
 	bc_num_printNewline(nchars, line_len);
-	for (exp = 0, pow = 1; exp < width - 1; ++exp, pow *= 10);
+	for (exp = 0, pow = 1; exp < width - 1; ++exp, pow *= 10)
+		continue;
 
 	for (exp = 0; exp < width; pow /= 10, ++(*nchars), ++exp) {
+		size_t dig;
 		bc_num_printNewline(nchars, line_len);
-		div = num / pow;
-		num -= div * pow;
-		bc_vm_putchar(((char) div) + '0');
+		dig = num / pow;
+		num -= dig * pow;
+		bc_vm_putchar(((char) dig) + '0');
 	}
 }
 
@@ -2375,7 +2377,7 @@ static void bc_num_printHex(size_t num, size_t width, bool radix,
 	}
 
 	bc_num_printNewline(nchars, line_len);
-	bc_vm_putchar(bc_num_hex_digits[num]);
+	bc_vm_putchar(bb_hexdigits_upcase[num]);
 	*nchars = *nchars + width;
 }
 
@@ -2483,12 +2485,12 @@ static BcStatus bc_num_printBase(BcNum *n, BcNum *base, size_t base_t,
 	return s;
 }
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static BcStatus bc_num_stream(BcNum *n, BcNum *base, size_t *nchars, size_t len)
 {
 	return bc_num_printNum(n, base, 1, nchars, len, bc_num_printChar);
 }
-#endif // ENABLE_DC
+#endif
 
 static void bc_num_init(BcNum *n, size_t req)
 {
@@ -2766,7 +2768,7 @@ static BcStatus bc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
 	return s;
 }
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static BcStatus bc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 {
 	BcStatus s;
@@ -2908,7 +2910,7 @@ static void bc_string_free(void *string)
 	free(*((char **) string));
 }
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static void bc_result_copy(BcResult *d, BcResult *src)
 {
 	d->t = src->t;
@@ -3111,7 +3113,7 @@ static BcStatus bc_lex_text(BcLex *l, const char *text)
 	return bc_lex_next(l);
 }
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 static BcStatus bc_lex_identifier(BcLex *l)
 {
 	BcStatus s;
@@ -3490,7 +3492,7 @@ static BcStatus bc_lex_token(BcLex *l)
 }
 #endif // ENABLE_BC
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static BcStatus dc_lex_register(BcLex *l)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
@@ -3762,7 +3764,7 @@ static void bc_parse_create(BcParse *p, BcProgram *prog, size_t func,
 	bc_parse_updateFunc(p, func);
 }
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 static BcStatus bc_parse_else(BcParse *p);
 static BcStatus bc_parse_stmt(BcParse *p);
 
@@ -5083,7 +5085,7 @@ static BcStatus bc_parse_expression(BcParse *p, uint8_t flags)
 }
 #endif // ENABLE_BC
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static BcStatus dc_parse_register(BcParse *p)
 {
 	BcStatus s;
@@ -5438,10 +5440,6 @@ static BcStatus bc_program_binOpPrep(BcProgram *p, BcResult **l, BcNum **ln,
 		return BC_STATUS_EXEC_BAD_TYPE;
 	if (!assign && !BC_PROG_NUM((*r), (*ln))) return BC_STATUS_EXEC_BAD_TYPE;
 
-#ifdef ENABLE_DC
-#else // ENABLE_DC
-#endif // ENABLE_DC
-
 	return s;
 }
 
@@ -5462,9 +5460,6 @@ static BcStatus bc_program_prep(BcProgram *p, BcResult **r, BcNum **n)
 
 	s = bc_program_num(p, *r, n, false);
 	if (s) return s;
-
-#ifdef ENABLE_DC
-#endif // ENABLE_DC
 
 	if (!BC_PROG_NUM((*r), (*n))) return BC_STATUS_EXEC_BAD_TYPE;
 
@@ -5580,12 +5575,12 @@ static void bc_program_printString(const char *str, size_t *nchars)
 {
 	size_t i, len = strlen(str);
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	if (len == 0) {
 		bc_vm_putchar('\0');
 		return;
 	}
-#endif // ENABLE_DC
+#endif
 
 	for (i = 0; i < len; ++i, ++(*nchars)) {
 
@@ -5790,7 +5785,7 @@ static BcStatus bc_program_logical(BcProgram *p, char inst)
 	return s;
 }
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static BcStatus bc_program_assignStr(BcProgram *p, BcResult *r, BcVec *v,
                                      bool push)
 {
@@ -5829,10 +5824,10 @@ static BcStatus bc_program_copyToVar(BcProgram *p, char *name, bool var)
 	if ((ptr->t == BC_RESULT_ARRAY) != !var) return BC_STATUS_EXEC_BAD_TYPE;
 	bc_program_search(p, name, &v, var);
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	if (ptr->t == BC_RESULT_STR && !var) return BC_STATUS_EXEC_BAD_TYPE;
 	if (ptr->t == BC_RESULT_STR) return bc_program_assignStr(p, ptr, v, true);
-#endif // ENABLE_DC
+#endif
 
 	s = bc_program_num(p, ptr, &n, false);
 	if (s) return s;
@@ -5869,7 +5864,7 @@ static BcStatus bc_program_assign(BcProgram *p, char inst)
 	ib = left->t == BC_RESULT_IBASE;
 	sc = left->t == BC_RESULT_SCALE;
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 
 	if (right->t == BC_RESULT_STR) {
 
@@ -5880,12 +5875,12 @@ static BcStatus bc_program_assign(BcProgram *p, char inst)
 
 		return bc_program_assignStr(p, right, v, false);
 	}
-#endif // ENABLE_DC
+#endif
 
 	if (left->t == BC_RESULT_CONSTANT || left->t == BC_RESULT_TEMP)
 		return BC_STATUS_PARSE_BAD_ASSIGN;
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	if (inst == BC_INST_ASSIGN_DIVIDE && !bc_num_cmp(r, &p->zero))
 		return BC_STATUS_MATH_DIVIDE_BY_ZERO;
 
@@ -5895,9 +5890,9 @@ static BcStatus bc_program_assign(BcProgram *p, char inst)
 		s = bc_program_ops[inst - BC_INST_ASSIGN_POWER](l, r, l, p->scale);
 
 	if (s) return s;
-#else // ENABLE_BC
+#else
 	bc_num_copy(l, r);
-#endif // ENABLE_BC
+#endif
 
 	if (ib || sc || left->t == BC_RESULT_OBASE) {
 
@@ -5937,17 +5932,17 @@ static BcStatus bc_program_pushVar(BcProgram *p, char *code, size_t *bgn,
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcResult r;
 	char *name = bc_program_name(code, bgn);
-#ifdef ENABLE_DC // Exclude
+#if ENABLE_DC // Exclude
 	BcNum *num;
 	BcVec *v;
-#else // ENABLE_DC
+#else
 	(void) pop, (void) copy;
-#endif // ENABLE_DC Exclude
+#endif
 
 	r.t = BC_RESULT_VAR;
 	r.d.id.name = name;
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	bc_program_search(p, name, &v, true);
 	num = bc_vec_top(v);
 
@@ -6019,7 +6014,7 @@ err:
 	return s;
 }
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 static BcStatus bc_program_incdec(BcProgram *p, char inst)
 {
 	BcStatus s;
@@ -6180,19 +6175,19 @@ static BcStatus bc_program_builtin(BcProgram *p, char inst)
 	s = bc_program_num(p, opnd, &num, false);
 	if (s) return s;
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	if (!BC_PROG_NUM(opnd, num) && !len) return BC_STATUS_EXEC_BAD_TYPE;
-#endif // ENABLE_DC
+#endif
 
 	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
 
 	if (inst == BC_INST_SQRT) s = bc_num_sqrt(num, &res.d.n, p->scale);
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	else if (len != 0 && opnd->t == BC_RESULT_ARRAY) {
 		s = bc_num_ulong2num(&res.d.n, (unsigned long) ((BcVec *) num)->len);
 	}
-#endif // ENABLE_BC
-#ifdef ENABLE_DC
+#endif
+#if ENABLE_DC
 	else if (len != 0 && !BC_PROG_NUM(opnd, num)) {
 
 		char **str;
@@ -6202,7 +6197,7 @@ static BcStatus bc_program_builtin(BcProgram *p, char inst)
 		s = bc_num_ulong2num(&res.d.n, strlen(*str));
 		if (s) goto err;
 	}
-#endif // ENABLE_DC
+#endif
 	else {
 		BcProgramBuiltIn f = len ? bc_program_len : bc_program_scale;
 		s = bc_num_ulong2num(&res.d.n, f(num));
@@ -6218,7 +6213,7 @@ err:
 	return s;
 }
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 static BcStatus bc_program_divmod(BcProgram *p)
 {
 	BcStatus s;
@@ -6563,9 +6558,9 @@ static void bc_program_free(BcProgram *p)
 	bc_num_free(&p->ib);
 	bc_num_free(&p->ob);
 	bc_num_free(&p->hexb);
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	bc_num_free(&p->strmb);
-#endif // ENABLE_DC
+#endif
 	bc_vec_free(&p->fns);
 	bc_vec_free(&p->fn_map);
 	bc_vec_free(&p->vars);
@@ -6607,10 +6602,10 @@ static void bc_program_init(BcProgram *p, size_t line_len, BcParseInit init,
 	bc_num_ten(&p->hexb);
 	p->hexb.num[0] = 6;
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 	bc_num_init(&p->strmb, BC_NUM_DEF_SIZE);
 	bc_num_ulong2num(&p->strmb, UCHAR_MAX + 1);
-#endif // ENABLE_DC
+#endif
 
 	bc_num_init(&p->last, BC_NUM_DEF_SIZE);
 	bc_num_zero(&p->last);
@@ -6718,7 +6713,7 @@ static BcStatus bc_program_exec(BcProgram *p)
 
 		switch (inst) {
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 			case BC_INST_JUMP_ZERO:
 			{
 				s = bc_program_prep(p, &ptr, &num);
@@ -6888,20 +6883,20 @@ static BcStatus bc_program_exec(BcProgram *p)
 				break;
 			}
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 			case BC_INST_ASSIGN_POWER:
 			case BC_INST_ASSIGN_MULTIPLY:
 			case BC_INST_ASSIGN_DIVIDE:
 			case BC_INST_ASSIGN_MODULUS:
 			case BC_INST_ASSIGN_PLUS:
 			case BC_INST_ASSIGN_MINUS:
-#endif // ENABLE_BC
+#endif
 			case BC_INST_ASSIGN:
 			{
 				s = bc_program_assign(p, inst);
 				break;
 			}
-#ifdef ENABLE_DC
+#if ENABLE_DC
 			case BC_INST_MODEXP:
 			{
 				s = bc_program_modexp(p);
@@ -7032,7 +7027,7 @@ static void bc_vm_sig(int sig)
 	}
 	errno = err;
 }
-#endif // ENABLE_FEATURE_BC_SIGNALS
+#endif
 
 static void bc_vm_info(const char *const help)
 {
@@ -7052,7 +7047,7 @@ static BcStatus bc_vm_error(BcStatus s, const char *file, size_t line)
 	return s * (!bcg.ttyin || !!strcmp(file, bc_program_stdin_name));
 }
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
                                  const char *msg)
 {
@@ -7315,7 +7310,7 @@ static BcStatus bc_vm_exec(BcVm *vm)
 	BcStatus s = BC_STATUS_SUCCESS;
 	size_t i;
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	if (vm->flags & BC_FLAG_L) {
 
 		bc_lex_file(&vm->prs.l, bc_lib_name);
@@ -7327,7 +7322,7 @@ static BcStatus bc_vm_exec(BcVm *vm)
 		s = bc_program_exec(&vm->prog);
 		if (s) return s;
 	}
-#endif // ENABLE_BC
+#endif
 
 	for (i = 0; !s && i < vm->files.len; ++i)
 		s = bc_vm_file(vm, *((char **) bc_vec_item(&vm->files, i)));
@@ -7358,7 +7353,7 @@ static BcStatus bc_vm_init(BcVm *vm, BcVmExe exe, const char *env_len)
 	sa.sa_handler = bc_vm_sig;
 	sa.sa_flags = 0;
 	sigaction(SIGINT, &sa, NULL);
-#endif // ENABLE_FEATURE_BC_SIGNALS
+#endif
 
 	memset(vm, 0, sizeof(BcVm));
 
@@ -7368,10 +7363,10 @@ static BcStatus bc_vm_init(BcVm *vm, BcVmExe exe, const char *env_len)
 
 	bc_vec_init(&vm->files, sizeof(char *), NULL);
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	vm->flags |= BC_FLAG_S * bcg.bc * (getenv("POSIXLY_CORRECT") != NULL);
 	if (bcg.bc) s = bc_vm_envArgs(vm);
-#endif // ENABLE_BC
+#endif
 
 	bc_program_init(&vm->prog, len, exe.init, exe.exp);
 	exe.init(&vm->prs, &vm->prog, BC_PROG_MAIN);
@@ -7393,13 +7388,13 @@ static BcStatus bc_vm_run(int argc, char *argv[], BcVmExe exe,
 	bcg.ttyin = isatty(0);
 	bcg.tty = bcg.ttyin || (vm.flags & BC_FLAG_I) || isatty(1);
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 	bcg.posix = vm.flags & BC_FLAG_S;
 	bcg.warn = vm.flags & BC_FLAG_W;
-#endif // ENABLE_BC
-#ifdef ENABLE_DC
+#endif
+#if ENABLE_DC
 	bcg.exreg = vm.flags & BC_FLAG_X;
-#endif // ENABLE_DC
+#endif
 
 	if (bcg.ttyin && !(vm.flags & BC_FLAG_Q)) bc_vm_info(NULL);
 	st = bc_vm_exec(&vm);
@@ -7409,16 +7404,16 @@ exit:
 	return st;
 }
 
-#ifdef ENABLE_BC
+#if ENABLE_BC
 BcStatus bc_main(int argc, char *argv[])
 {
 	BcVmExe exec;
 
 	bcg.bc = true;
 	bcg.name = bc_name;
-#if ENABLE_FEATURE_BC_SIGNALS
+# if ENABLE_FEATURE_BC_SIGNALS
 	bcg.sig_msg = bc_sig_msg;
-#endif // ENABLE_FEATURE_BC_SIGNALS
+# endif
 
 	exec.init = bc_parse_init;
 	exec.exp = bc_parse_expression;
@@ -7426,18 +7421,18 @@ BcStatus bc_main(int argc, char *argv[])
 
 	return bc_vm_run(argc, argv, exec, "BC_LINE_LENGTH");
 }
-#endif // ENABLE_BC
+#endif
 
-#ifdef ENABLE_DC
+#if ENABLE_DC
 BcStatus dc_main(int argc, char *argv[])
 {
 	BcVmExe exec;
 
 	bcg.bc = false;
 	bcg.name = dc_name;
-#if ENABLE_FEATURE_BC_SIGNALS
+# if ENABLE_FEATURE_BC_SIGNALS
 	bcg.sig_msg = dc_sig_msg;
-#endif // ENABLE_FEATURE_BC_SIGNALS
+# endif
 
 	exec.init = dc_parse_init;
 	exec.exp = dc_parse_expr;
@@ -7446,4 +7441,4 @@ BcStatus dc_main(int argc, char *argv[])
 
 	return bc_vm_run(argc, argv, exec, "DC_LINE_LENGTH");
 }
-#endif // ENABLE_DC
+#endif
