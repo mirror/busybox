@@ -826,16 +826,8 @@ struct globals {
 
 	char *env_args;
 
-	unsigned sig;    //counter?
-	unsigned sigc;   //counter?
-	smallint signe;  //flag
-
 	smallint tty;
 	smallint ttyin;
-
-#if ENABLE_FEATURE_BC_SIGNALS
-	const char *sig_msg;
-#endif
 } FIX_ALIASING;
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
@@ -844,6 +836,7 @@ struct globals {
 #define G_posix (ENABLE_BC && (G.flags & BC_FLAG_S))
 #define G_warn  (ENABLE_BC && (G.flags & BC_FLAG_W))
 #define G_exreg (ENABLE_DC && (G.flags & BC_FLAG_X))
+#define G_interrupt (ENABLE_FEATURE_BC_SIGNALS ? bb_got_signal : 0)
 
 
 #define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
@@ -1349,36 +1342,47 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 	int i;
 	signed char c;
 
-	if (G.ttyin && !G_posix) {
-		fputs(prompt, stderr);
-		fflush(stderr);
-	}
-
 	bc_vec_npop(vec, vec->len);
 
+	fflush(stdout);
+#if ENABLE_FEATURE_BC_SIGNALS
+	if (bb_got_signal) { /* ^C was pressed */
+ intr:
+		fputs(IS_BC
+			? "\ninterrupt (type \"quit\" to exit)\n"
+			: "\ninterrupt (type \"q\" to exit)\n"
+			, stderr);
+	}
+	bb_got_signal = 0; /* resets G_interrupt to zero */
+#endif
+	if (G.ttyin && !G_posix)
+		fputs(prompt, stderr);
+	fflush(stderr);
+
+#if ENABLE_FEATURE_BC_SIGNALS
+ again:
+	errno = 0;
+#endif
 	do {
 		if (ferror(stdout) || ferror(stderr))
 			bb_perror_msg_and_die("output error");
 
-		errno = 0;
 		i = fgetc(stdin);
+
+#if ENABLE_FEATURE_BC_SIGNALS
+		if (bb_got_signal) /* ^C was pressed */
+			goto intr;
+#endif
 
 		if (i == EOF) {
 #if ENABLE_FEATURE_BC_SIGNALS
 			if (errno == EINTR) {
-				G.sigc = G.sig;
-				G.signe = 0;
-				if (G.ttyin) {
-					fputs(bc_program_ready_msg, stderr);
-					if (!G_posix) fputs(prompt, stderr);
-					fflush(stderr);
-				}
 				clearerr(stdin);
-				continue;
+				goto again;
 			}
+#endif
 			if (ferror(stdin))
 				bb_perror_msg_and_die("input error");
-#endif
 			return BC_STATUS_INPUT_EOF;
 		}
 
@@ -1471,20 +1475,20 @@ static BcStatus bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
                                  size_t len)
 {
 	size_t i, j;
-	for (i = 0; !G.signe && i < len; ++i) {
-		for (a[i] -= b[i], j = 0; !G.signe && a[i + j] < 0;) {
+	for (i = 0; !G_interrupt && i < len; ++i) {
+		for (a[i] -= b[i], j = 0; !G_interrupt && a[i + j] < 0;) {
 			a[i + j++] += 10;
 			a[i + j] -= 1;
 		}
 	}
-	return G.signe ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
+	return G_interrupt ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 }
 
 static ssize_t bc_num_compare(BcDig *restrict a, BcDig *restrict b, size_t len)
 {
 	size_t i;
 	int c = 0;
-	for (i = len - 1; !G.signe && i < len && !(c = a[i] - b[i]); --i);
+	for (i = len - 1; !G_interrupt && i < len && !(c = a[i] - b[i]); --i);
 	return BC_NUM_NEG(i + 1, c < 0);
 }
 
@@ -1530,7 +1534,7 @@ static ssize_t bc_num_cmp(BcNum *a, BcNum *b)
 	cmp = bc_num_compare(max_num, min_num, b_int + min);
 	if (cmp != 0) return BC_NUM_NEG(cmp, (!a_max) != neg);
 
-	for (max_num -= diff, i = diff - 1; !G.signe && i < diff; --i) {
+	for (max_num -= diff, i = diff - 1; !G_interrupt && i < diff; --i) {
 		if (max_num[i]) return BC_NUM_NEG(1, (!a_max) != neg);
 	}
 
@@ -1689,13 +1693,13 @@ static BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 		ptr = ptr_b;
 	}
 
-	for (carry = 0, i = 0; !G.signe && i < min_rdx + min_int; ++i, ++c->len) {
+	for (carry = 0, i = 0; !G_interrupt && i < min_rdx + min_int; ++i, ++c->len) {
 		in = ((int) ptr_a[i]) + ((int) ptr_b[i]) + carry;
 		carry = in / 10;
 		ptr_c[i] = (BcDig)(in % 10);
 	}
 
-	for (; !G.signe && i < max + min_rdx; ++i, ++c->len) {
+	for (; !G_interrupt && i < max + min_rdx; ++i, ++c->len) {
 		in = ((int) ptr[i]) + carry;
 		carry = in / 10;
 		ptr_c[i] = (BcDig)(in % 10);
@@ -1703,7 +1707,7 @@ static BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 
 	if (carry != 0) c->num[c->len++] = (BcDig) carry;
 
-	return G.signe ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
+	return G_interrupt ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 }
 
 static BcStatus bc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
@@ -1778,7 +1782,7 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 	BcNum l1, h1, l2, h2, m2, m1, z0, z1, z2, temp;
 	bool aone = BC_NUM_ONE(a);
 
-	if (G.signe) return BC_STATUS_EXEC_SIGNAL;
+	if (G_interrupt) return BC_STATUS_EXEC_SIGNAL;
 	if (a->len == 0 || b->len == 0) {
 		bc_num_zero(c);
 		return BC_STATUS_SUCCESS;
@@ -1796,9 +1800,9 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 		memset(c->num, 0, sizeof(BcDig) * c->cap);
 		c->len = carry = len = 0;
 
-		for (i = 0; !G.signe && i < b->len; ++i) {
+		for (i = 0; !G_interrupt && i < b->len; ++i) {
 
-			for (j = 0; !G.signe && j < a->len; ++j) {
+			for (j = 0; !G_interrupt && j < a->len; ++j) {
 				int in = (int) c->num[i + j];
 				in += ((int) a->num[j]) * ((int) b->num[i]) + carry;
 				carry = in / 10;
@@ -1812,7 +1816,7 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 
 		c->len = len;
 
-		return G.signe ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
+		return G_interrupt ? BC_STATUS_EXEC_SIGNAL : BC_STATUS_SUCCESS;
 	}
 
 	bc_num_init(&l1, max);
@@ -1962,7 +1966,7 @@ static BcStatus bc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 	c->len = cp.len;
 	p = b->num;
 
-	for (i = end - 1; !G.signe && !s && i < end; --i) {
+	for (i = end - 1; !G_interrupt && !s && i < end; --i) {
 		n = cp.num + i;
 		for (q = 0; (!s && n[len] != 0) || bc_num_compare(n, p, len) >= 0; ++q)
 			s = bc_num_subArrays(n, p, len);
@@ -2062,20 +2066,20 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 
 	b->neg = neg;
 
-	for (powrdx = a->rdx; !G.signe && !(pow & 1); pow >>= 1) {
+	for (powrdx = a->rdx; !G_interrupt && !(pow & 1); pow >>= 1) {
 		powrdx <<= 1;
 		s = bc_num_mul(&copy, &copy, &copy, powrdx);
 		if (s) goto err;
 	}
 
-	if (G.signe) {
+	if (G_interrupt) {
 		s = BC_STATUS_EXEC_SIGNAL;
 		goto err;
 	}
 
 	bc_num_copy(c, &copy);
 
-	for (resrdx = powrdx, pow >>= 1; !G.signe && pow != 0; pow >>= 1) {
+	for (resrdx = powrdx, pow >>= 1; !G_interrupt && pow != 0; pow >>= 1) {
 
 		powrdx <<= 1;
 		s = bc_num_mul(&copy, &copy, &copy, powrdx);
@@ -2093,7 +2097,7 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 		if (s) goto err;
 	}
 
-	if (G.signe) {
+	if (G_interrupt) {
 		s = BC_STATUS_EXEC_SIGNAL;
 		goto err;
 	}
@@ -2650,7 +2654,7 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	resrdx = scale + 2;
 	len = BC_NUM_INT(x0) + resrdx - 1;
 
-	while (!G.signe && (cmp != 0 || digs < len)) {
+	while (!G_interrupt && (cmp != 0 || digs < len)) {
 
 		s = bc_num_div(a, x0, &f, resrdx);
 		if (s) goto err;
@@ -2678,7 +2682,7 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 		x1 = temp;
 	}
 
-	if (G.signe) {
+	if (G_interrupt) {
 		s = BC_STATUS_EXEC_SIGNAL;
 		goto err;
 	}
@@ -4775,7 +4779,7 @@ static BcStatus bc_parse_parse(BcParse *p)
 	else
 		s = bc_parse_stmt(p);
 
-	if ((s && s != BC_STATUS_QUIT && s != BC_STATUS_LIMITS) || G.signe)
+	if ((s && s != BC_STATUS_QUIT && s != BC_STATUS_LIMITS) || G_interrupt)
 		s = bc_parse_reset(p, s);
 
 	return s;
@@ -4795,7 +4799,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 	paren_expr = rprn = done = get_token = assign = false;
 	bin_last = true;
 
-	for (; !G.signe && !s && !done && bc_parse_exprs[t]; t = p->l.t.t) {
+	for (; !G_interrupt && !s && !done && bc_parse_exprs[t]; t = p->l.t.t) {
 		switch (t) {
 
 			case BC_LEX_OP_INC:
@@ -4989,7 +4993,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 	}
 
 	if (s) return s;
-	if (G.signe) return BC_STATUS_EXEC_SIGNAL;
+	if (G_interrupt) return BC_STATUS_EXEC_SIGNAL;
 
 	while (p->ops.len > ops_bgn) {
 
@@ -5249,7 +5253,7 @@ static BcStatus dc_parse_parse(BcParse *p)
 	else
 		s = dc_parse_expr(p, 0);
 
-	if (s || G.signe) s = bc_parse_reset(p, s);
+	if (s || G_interrupt) s = bc_parse_reset(p, s);
 
 	return s;
 }
@@ -6632,13 +6636,11 @@ static BcStatus bc_program_reset(BcProgram *p, BcStatus s)
 	ip = bc_vec_top(&p->stack);
 	ip->idx = f->code.len;
 
-	if (!s && G.signe && !G.tty) return BC_STATUS_QUIT;
-
-	G.sigc += G.signe;
-	G.signe = G.sig != G.sigc;
+	if (!s && G_interrupt && !G.tty) return BC_STATUS_QUIT;
 
 	if (!s || s == BC_STATUS_EXEC_SIGNAL) {
 		if (G.ttyin) {
+			fflush(stdout);
 			fputs(bc_program_ready_msg, stderr);
 			fflush(stderr);
 			s = BC_STATUS_SUCCESS;
@@ -6959,7 +6961,7 @@ static BcStatus bc_program_exec(BcProgram *p)
 #endif // ENABLE_DC
 		}
 
-		if ((s && s != BC_STATUS_QUIT) || G.signe) s = bc_program_reset(p, s);
+		if ((s && s != BC_STATUS_QUIT) || G_interrupt) s = bc_program_reset(p, s);
 
 		// If the stack has changed, pointers may be invalid.
 		ip = bc_vec_top(&p->stack);
@@ -6969,19 +6971,6 @@ static BcStatus bc_program_exec(BcProgram *p)
 
 	return s;
 }
-
-#if ENABLE_FEATURE_BC_SIGNALS
-static void bc_vm_sig(int sig)
-{
-	int err = errno;
-	size_t len = strlen(G.sig_msg);
-	if (sig == SIGINT && write(2, G.sig_msg, len) == (ssize_t) len) {
-		G.signe = G.sig == G.sigc;
-		G.sig += G.signe;
-	}
-	errno = err;
-}
-#endif
 
 static void bc_vm_info(void)
 {
@@ -7268,21 +7257,17 @@ static void bc_vm_free(void)
 static void bc_vm_init(const char *env_len)
 {
 	size_t len = bc_vm_envLen(env_len);
-#if ENABLE_FEATURE_BC_SIGNALS
-	struct sigaction sa;
 
-	sigemptyset(&sa.sa_mask);
-	sa.sa_handler = bc_vm_sig;
-	sa.sa_flags = 0;
-	sigaction(SIGINT, &sa, NULL);
+#if ENABLE_FEATURE_BC_SIGNALS
+        signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
 #endif
 
 	bc_vec_init(&G.files, sizeof(char *), NULL);
 
-#if ENABLE_BC
-	G.flags |= BC_FLAG_S * IS_BC * (getenv("POSIXLY_CORRECT") != NULL);
-	if (IS_BC) bc_vm_envArgs();
-#endif
+	if (IS_BC) {
+		G.flags |= BC_FLAG_S * (getenv("POSIXLY_CORRECT") != NULL);
+		bc_vm_envArgs();
+	}
 
 	bc_program_init(&G.prog, len, G.init, G.exp);
 	G.init(&G.prs, &G.prog, BC_PROG_MAIN);
@@ -7311,9 +7296,6 @@ int bc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bc_main(int argc, char **argv)
 {
 	INIT_G();
-# if ENABLE_FEATURE_BC_SIGNALS
-	G.sig_msg = "\ninterrupt (type \"quit\" to exit)\n";
-# endif
 	G.init = bc_parse_init;
 	G.exp = bc_parse_expression;
 	G.sbgn = G.send = '"';
@@ -7327,9 +7309,6 @@ int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dc_main(int argc, char **argv)
 {
 	INIT_G();
-# if ENABLE_FEATURE_BC_SIGNALS
-	G.sig_msg = "\ninterrupt (type \"q\" to exit)\n";
-# endif
 	G.init = dc_parse_init;
 	G.exp = dc_parse_expr;
 	G.sbgn = '[';
