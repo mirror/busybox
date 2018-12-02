@@ -7005,11 +7005,10 @@ err:
 
 static BcStatus bc_vm_stdin(void)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
+	BcStatus s;
 	BcVec buf, buffer;
-	char c;
 	size_t len, i, str = 0;
-	bool comment = false, notend;
+	bool comment = false;
 
 	G.prog.file = bc_program_stdin_name;
 	bc_lex_file(&G.prs.l, bc_program_stdin_name);
@@ -7022,7 +7021,7 @@ static BcStatus bc_vm_stdin(void)
 	// with a backslash to the parser. The reason for that is because the parser
 	// treats a backslash+newline combo as whitespace, per the bc spec. In that
 	// case, and for strings and comments, the parser will expect more stuff.
-	for (s = bc_read_line(&buf, ">>> "); !s; s = bc_read_line(&buf, ">>> ")) {
+	while ((s = bc_read_line(&buf, ">>> ")) == BC_STATUS_SUCCESS) {
 
 		char *string = buf.v;
 
@@ -7038,8 +7037,8 @@ static BcStatus bc_vm_stdin(void)
 
 			for (i = 0; i < len; ++i) {
 
-				notend = len > i + 1;
-				c = string[i];
+				bool notend = len > i + 1;
+				char c = string[i];
 
 				if (i - 1 > len || string[i - 1] != '\\') {
 					if (G.sbgn == G.send)
