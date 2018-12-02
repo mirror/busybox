@@ -114,12 +114,19 @@
 //kbuild:lib-$(CONFIG_BC) += bc.o
 //kbuild:lib-$(CONFIG_DC) += bc.o
 
+//See www.gnu.org/software/bc/manual/bc.html
 //usage:#define bc_trivial_usage
-//usage:       "EXPRESSION...\n"
-//usage:       "function_definition\n"
+//usage:       "[-sqli] FILE..."
 //usage:
-//usage:#define bc_full_usage "\n\n"
-//usage:       "See www.gnu.org/software/bc/manual/bc.html\n"
+//usage:#define bc_full_usage "\n"
+//usage:     "\nArbitrary precision calculator"
+//usage:     "\n"
+//usage:     "\n	-i	Interactive"
+//usage:     "\n	-l	Load standard math library"
+//usage:     "\n	-s	Be POSIX compatible"
+//usage:     "\n	-q	Quiet"
+//usage:     "\n	-w	Warn if extensions are used"
+///////:     "\n	-v	Version"
 //usage:
 //usage:#define bc_example_usage
 //usage:       "3 + 4.129\n"
