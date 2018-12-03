@@ -231,8 +231,8 @@ typedef enum BcStatus {
 	BC_STATUS_POSIX_FOR3,
 	BC_STATUS_POSIX_BRACE,
 #endif
-	BC_STATUS_QUIT,
-	BC_STATUS_LIMITS,
+//	BC_STATUS_QUIT,
+//	BC_STATUS_LIMITS,
 
 //	BC_STATUS_INVALID_OPTION,
 } BcStatus;
@@ -1121,6 +1121,13 @@ static const char bc_lib[] = {
 };
 #endif // ENABLE_BC
 
+static void quit(void) NORETURN;
+static void quit(void)
+{
+	fflush_all();
+	exit(ferror(stdout) || ferror(stderr));
+}
+
 static void bc_vec_grow(BcVec *v, size_t n)
 {
 	size_t cap = v->cap * 2;
@@ -1279,9 +1286,9 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 
 	fflush(stdout);
 #if ENABLE_FEATURE_BC_SIGNALS
-	if (bb_got_signal) { /* ^C was pressed */
+	if (bb_got_signal) { // ^C was pressed
  intr:
-		bb_got_signal = 0; /* resets G_interrupt to zero */
+		bb_got_signal = 0; // resets G_interrupt to zero
 		fputs(IS_BC
 			? "\ninterrupt (type \"quit\" to exit)\n"
 			: "\ninterrupt (type \"q\" to exit)\n"
@@ -1293,7 +1300,6 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 	fflush(stderr);
 
 #if ENABLE_FEATURE_BC_SIGNALS
- again:
 	errno = 0;
 #endif
 	do {
@@ -1302,16 +1308,13 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 
 		i = fgetc(stdin);
 
-#if ENABLE_FEATURE_BC_SIGNALS
-		if (bb_got_signal) /* ^C was pressed */
-			goto intr;
-#endif
-
 		if (i == EOF) {
 #if ENABLE_FEATURE_BC_SIGNALS
-			if (errno == EINTR) {
+			// Both conditions appear simultaneously, check both just in case
+			if (errno == EINTR || bb_got_signal) {
+				// ^C was pressed
 				clearerr(stdin);
-				goto again;
+				goto intr;
 			}
 #endif
 			if (ferror(stdin))
@@ -4630,9 +4633,18 @@ static BcStatus bc_parse_stmt(BcParse *p)
 
 		case BC_LEX_KEY_LIMITS:
 		{
+			// "limits" is a compile-time command,
+			// the output is produced at _parse time_.
 			s = bc_lex_next(&p->l);
 			if (s) return s;
-			s = BC_STATUS_LIMITS;
+			printf("BC_BASE_MAX     = %u\n", BC_MAX_OBASE);
+			printf("BC_DIM_MAX      = %u\n", BC_MAX_DIM);
+			printf("BC_SCALE_MAX    = %u\n", BC_MAX_SCALE);
+			printf("BC_STRING_MAX   = %u\n", BC_MAX_STRING);
+			printf("BC_NAME_MAX     = %u\n", BC_MAX_NAME);
+			printf("BC_NUM_MAX      = %u\n", BC_MAX_NUM);
+			printf("MAX Exponent    = %lu\n", BC_MAX_EXP);
+			printf("Number of vars  = %lu\n", BC_MAX_VARS);
 			break;
 		}
 
@@ -4644,10 +4656,10 @@ static BcStatus bc_parse_stmt(BcParse *p)
 
 		case BC_LEX_KEY_QUIT:
 		{
-			// Quit is a compile-time command. We don't exit directly,
-			// so the vm can clean up. Limits do the same thing.
-			s = BC_STATUS_QUIT;
-			break;
+			// "quit" is a compile-time command. For example,
+			// "if (0 == 1) quit" terminates when parsing the statement,
+			// not when it is executed
+			quit();
 		}
 
 		case BC_LEX_KEY_RETURN:
@@ -4685,7 +4697,7 @@ static BcStatus bc_parse_parse(BcParse *p)
 	else
 		s = bc_parse_stmt(p);
 
-	if ((s && s != BC_STATUS_QUIT && s != BC_STATUS_LIMITS) || G_interrupt)
+	if (s || G_interrupt)
 		s = bc_parse_reset(p, s);
 
 	return s;
@@ -6283,8 +6295,8 @@ static BcStatus bc_program_nquit(void)
 
 	if (G.prog.stack.len < val)
 		return BC_STATUS_EXEC_STACK;
-	else if (G.prog.stack.len == val)
-		return BC_STATUS_QUIT;
+	if (G.prog.stack.len == val)
+		quit();
 
 	bc_vec_npop(&G.prog.stack, val);
 
@@ -6456,17 +6468,15 @@ static BcStatus bc_program_reset(BcStatus s)
 	ip = bc_vec_top(&G.prog.stack);
 	ip->idx = f->code.len;
 
-	if (!s && G_interrupt && !G.tty) return BC_STATUS_QUIT;
+	if (!s && G_interrupt && !G.tty) quit();
 
 	if (!s || s == BC_STATUS_EXEC_SIGNAL) {
-		if (G.ttyin) {
-			fflush(stdout);
-			fputs(bc_program_ready_msg, stderr);
-			fflush(stderr);
-			s = BC_STATUS_SUCCESS;
-		}
-		else
-			s = BC_STATUS_QUIT;
+		if (!G.ttyin)
+			quit();
+		fflush(stdout);
+		fputs(bc_program_ready_msg, stderr);
+		fflush(stderr);
+		s = BC_STATUS_SUCCESS;
 	}
 
 	return s;
@@ -6524,7 +6534,7 @@ static BcStatus bc_program_exec(void)
 
 			case BC_INST_HALT:
 			{
-				s = BC_STATUS_QUIT;
+				quit();
 				break;
 			}
 
@@ -6767,9 +6777,8 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_QUIT:
 			{
 				if (G.prog.stack.len <= 2)
-					s = BC_STATUS_QUIT;
-				else
-					bc_vec_npop(&G.prog.stack, 2);
+					quit();
+				bc_vec_npop(&G.prog.stack, 2);
 				break;
 			}
 
@@ -6781,7 +6790,7 @@ static BcStatus bc_program_exec(void)
 #endif // ENABLE_DC
 		}
 
-		if ((s && s != BC_STATUS_QUIT) || G_interrupt) s = bc_program_reset(s);
+		if (s || G_interrupt) s = bc_program_reset(s);
 
 		// If the stack has changed, pointers may be invalid.
 		ip = bc_vec_top(&G.prog.stack);
@@ -6895,30 +6904,14 @@ static BcStatus bc_vm_process(const char *text)
 
 		s = G.prs.parse(&G.prs);
 
-		if (s == BC_STATUS_LIMITS) {
-
-			printf("BC_BASE_MAX     = %u\n", BC_MAX_OBASE);
-			printf("BC_DIM_MAX      = %u\n", BC_MAX_DIM);
-			printf("BC_SCALE_MAX    = %u\n", BC_MAX_SCALE);
-			printf("BC_STRING_MAX   = %u\n", BC_MAX_STRING);
-			printf("BC_NAME_MAX     = %u\n", BC_MAX_NAME);
-			printf("BC_NUM_MAX      = %u\n", BC_MAX_NUM);
-			printf("MAX Exponent    = %lu\n", BC_MAX_EXP);
-			printf("Number of vars  = %lu\n", BC_MAX_VARS);
-
-			s = BC_STATUS_SUCCESS;
-		}
-		else {
-			if (s == BC_STATUS_QUIT) return s;
-			s = bc_vm_error(s, G.prs.l.f, G.prs.l.line);
-			if (s) return s;
-		}
+		s = bc_vm_error(s, G.prs.l.f, G.prs.l.line);
+		if (s) return s;
 	}
 
 	if (BC_PARSE_CAN_EXEC(&G.prs)) {
 		s = bc_program_exec();
-		if (!s && G.tty) fflush(stdout);
-		if (s && s != BC_STATUS_QUIT)
+		fflush(stdout);
+		if (s)
 			s = bc_vm_error(bc_program_reset(s), G.prs.l.f, 0);
 	}
 
@@ -7021,7 +7014,7 @@ static BcStatus bc_vm_stdin(void)
 
 	// INPUT_EOF will always happen when stdin is
 	// closed. It's not a problem in that case.
-	if (s == BC_STATUS_INPUT_EOF || s == BC_STATUS_QUIT)
+	if (s == BC_STATUS_INPUT_EOF)
 		s = BC_STATUS_SUCCESS;
 
 	if (str)
@@ -7058,13 +7051,11 @@ static BcStatus bc_vm_exec(void)
 
 	for (i = 0; !s && i < G.files.len; ++i)
 		s = bc_vm_file(*((char **) bc_vec_item(&G.files, i)));
-	if (s && s != BC_STATUS_QUIT) return s;
+	if (s) return s;
 
 	if (IS_BC || !G.files.len) s = bc_vm_stdin();
 	if (!s && !BC_PARSE_CAN_EXEC(&G.prs)) s = bc_vm_process("");
 
-	if (s == BC_STATUS_QUIT)
-		s = BC_STATUS_SUCCESS;
 	return s;
 }
 
