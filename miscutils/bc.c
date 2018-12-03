@@ -171,7 +171,7 @@ typedef enum BcStatus {
 	BC_STATUS_SUCCESS,
 
 //	BC_STATUS_ALLOC_ERR,
-	BC_STATUS_INPUT_EOF,
+//	BC_STATUS_INPUT_EOF,
 	BC_STATUS_BIN_FILE,
 //	BC_STATUS_PATH_IS_DIR,
 
@@ -240,7 +240,7 @@ typedef enum BcStatus {
 static const char *const bc_err_msgs[] = {
 	NULL,
 //	"memory allocation error",
-	"I/O error",
+//	"I/O error",
 	"file is not text:",
 //	"path is a directory:",
 
@@ -875,6 +875,7 @@ struct globals {
 
 	smallint tty;
 	smallint ttyin;
+	smallint eof;
 } FIX_ALIASING;
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
@@ -1121,11 +1122,20 @@ static const char bc_lib[] = {
 };
 #endif // ENABLE_BC
 
+static void fflush_and_check(void)
+{
+	fflush_all();
+	if (ferror(stdout) || ferror(stderr))
+		bb_perror_msg_and_die("output error");
+}
+
 static void quit(void) NORETURN;
 static void quit(void)
 {
-	fflush_all();
-	exit(ferror(stdout) || ferror(stderr));
+	if (ferror(stdin))
+		bb_perror_msg_and_die("input error");
+	fflush_and_check();
+	exit(0);
 }
 
 static void bc_vec_grow(BcVec *v, size_t n)
@@ -1284,7 +1294,7 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 
 	bc_vec_npop(vec, vec->len);
 
-	fflush(stdout);
+	fflush_and_check();
 #if ENABLE_FEATURE_BC_SIGNALS
 	if (bb_got_signal) { // ^C was pressed
  intr:
@@ -1297,15 +1307,12 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 #endif
 	if (G.ttyin && !G_posix)
 		fputs(prompt, stderr);
-	fflush(stderr);
+	fflush_and_check();
 
 #if ENABLE_FEATURE_BC_SIGNALS
 	errno = 0;
 #endif
 	do {
-		if (ferror(stdout) || ferror(stderr))
-			bb_perror_msg_and_die("output error");
-
 		i = fgetc(stdin);
 
 		if (i == EOF) {
@@ -1318,8 +1325,12 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 			}
 #endif
 			if (ferror(stdin))
-				bb_perror_msg_and_die("input error");
-			return BC_STATUS_INPUT_EOF;
+				quit(); // this emits error message
+			G.eof = 1;
+			// Note: EOF does not append '\n', therefore:
+			// printf 'print 123\n' | bc - works
+			// printf 'print 123' | bc   - fails (syntax error)
+			break;
 		}
 
 		c = (signed char) i;
@@ -3627,7 +3638,7 @@ static void bc_parse_create(BcParse *p, size_t func,
 	bc_vec_init(&p->ops, sizeof(BcLexType), NULL);
 
 	p->parse = parse;
-	p->auto_part = (p->nbraces = 0);
+	// p->auto_part = p->nbraces = 0; - already is
 	bc_parse_updateFunc(p, func);
 }
 
@@ -6473,9 +6484,9 @@ static BcStatus bc_program_reset(BcStatus s)
 	if (!s || s == BC_STATUS_EXEC_SIGNAL) {
 		if (!G.ttyin)
 			quit();
-		fflush(stdout);
+		fflush_and_check(); // make sure buffered stdout is printed
 		fputs(bc_program_ready_msg, stderr);
-		fflush(stderr);
+		fflush_and_check();
 		s = BC_STATUS_SUCCESS;
 	}
 
@@ -6910,7 +6921,7 @@ static BcStatus bc_vm_process(const char *text)
 
 	if (BC_PARSE_CAN_EXEC(&G.prs)) {
 		s = bc_program_exec();
-		fflush(stdout);
+		fflush_and_check();
 		if (s)
 			s = bc_vm_error(bc_program_reset(s), G.prs.l.f, 0);
 	}
@@ -6961,7 +6972,7 @@ static BcStatus bc_vm_stdin(void)
 	// with a backslash to the parser. The reason for that is because the parser
 	// treats a backslash+newline combo as whitespace, per the bc spec. In that
 	// case, and for strings and comments, the parser will expect more stuff.
-	while ((s = bc_read_line(&buf, ">>> ")) == BC_STATUS_SUCCESS) {
+	while (!G.eof && (s = bc_read_line(&buf, ">>> ")) == BC_STATUS_SUCCESS) {
 
 		char *string = buf.v;
 
@@ -7011,11 +7022,6 @@ static BcStatus bc_vm_stdin(void)
 	}
 
 	if (s == BC_STATUS_BIN_FILE) s = bc_vm_error(s, G.prs.l.f, 0);
-
-	// INPUT_EOF will always happen when stdin is
-	// closed. It's not a problem in that case.
-	if (s == BC_STATUS_INPUT_EOF)
-		s = BC_STATUS_SUCCESS;
 
 	if (str)
 		s = bc_vm_error(BC_STATUS_LEX_NO_STRING_END, G.prs.l.f,
