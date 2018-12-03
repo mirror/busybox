@@ -189,7 +189,7 @@ typedef enum BcStatus {
 	BC_STATUS_PARSE_BAD_PRINT,
 	BC_STATUS_PARSE_BAD_FUNC,
 	BC_STATUS_PARSE_BAD_ASSIGN,
-	BC_STATUS_PARSE_NO_AUTO,
+//	BC_STATUS_PARSE_NO_AUTO,
 	BC_STATUS_PARSE_DUPLICATE_LOCAL,
 	BC_STATUS_PARSE_NO_BLOCK_END,
 
@@ -261,7 +261,7 @@ static const char *const bc_err_msgs[] = {
 	"bad function definition",
 	"bad assignment: left side must be scale, ibase, "
 		"obase, last, var, or array element",
-	"no auto variable found",
+//	"no auto variable found",
 	"function parameter or auto var has the same name as another",
 	"block end could not be found",
 
@@ -4509,7 +4509,7 @@ static BcStatus bc_parse_auto(BcParse *p)
 	}
 
 	if (comma) return BC_STATUS_PARSE_BAD_FUNC;
-	if (!one) return BC_STATUS_PARSE_NO_AUTO;
+	if (!one) return bc_error("no auto variable found");
 
 	if (p->l.t.t != BC_LEX_NLINE && p->l.t.t != BC_LEX_SCOLON)
 		return BC_STATUS_PARSE_BAD_TOKEN;
