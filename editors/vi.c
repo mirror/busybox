@@ -2364,7 +2364,7 @@ static void undo_push(char *src, unsigned int length, uint8_t u_type)	// Add to 
 	// Allocate a new undo object
 	if (u_type == UNDO_DEL || u_type == UNDO_DEL_CHAIN) {
 		// For UNDO_DEL objects, save deleted text
-		if ((src + length) == end)
+		if ((text + length) == end)
 			length--;
 		// If this deletion empties text[], strip the newline. When the buffer becomes
 		// zero-length, a newline is added back, which requires this to compensate.
