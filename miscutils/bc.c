@@ -3090,24 +3090,27 @@ static BcStatus bc_lex_comment(BcLex *l)
 {
 	size_t i, nls = 0;
 	const char *buf = l->buf;
-	bool end = false;
-	char c;
 
 	l->t.t = BC_LEX_WHITESPACE;
-
-	for (i = ++l->i; !end; i += !end) {
-
-		for (c = buf[i]; c != '*' && c != 0; c = buf[++i]) nls += (c == '\n');
-
-		if (c == 0 || buf[i + 1] == '\0') {
+	i = ++l->i;
+	for (;;) {
+		char c = buf[i];
+ check_star:
+		if (c == '*') {
+			c = buf[++i];
+			if (c == '/')
+				break;
+			goto check_star;
+		}
+		if (c == '\0') {
 			l->i = i;
 			return BC_STATUS_LEX_NO_COMMENT_END;
 		}
-
-		end = buf[i + 1] == '/';
+		nls += (c == '\n');
+		i++;
 	}
 
-	l->i = i + 2;
+	l->i = i + 1;
 	l->line += nls;
 
 	return BC_STATUS_SUCCESS;
