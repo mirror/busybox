@@ -169,13 +169,14 @@
 
 typedef enum BcStatus {
 	BC_STATUS_SUCCESS,
+	BC_STATUS_FAILURE,
 
 //	BC_STATUS_ALLOC_ERR,
 //	BC_STATUS_INPUT_EOF,
-	BC_STATUS_BIN_FILE,
+//	BC_STATUS_BIN_FILE,
 //	BC_STATUS_PATH_IS_DIR,
 
-	BC_STATUS_LEX_BAD_CHAR,
+//	BC_STATUS_LEX_BAD_CHAR,
 	BC_STATUS_LEX_NO_STRING_END,
 	BC_STATUS_LEX_NO_COMMENT_END,
 	BC_STATUS_LEX_EOF,
@@ -239,12 +240,13 @@ typedef enum BcStatus {
 // Keep enum above and messages below in sync!
 static const char *const bc_err_msgs[] = {
 	NULL,
+	"",
 //	"memory allocation error",
 //	"I/O error",
-	"file is not text:",
+//	"file is not text:",
 //	"path is a directory:",
 
-	"bad character",
+//	"bad character",
 	"string end could not be found",
 	"comment end could not be found",
 	"end of file",
@@ -320,8 +322,6 @@ typedef struct BcVec {
 #define bc_vec_top(v) (bc_vec_item_rev((v), 0))
 
 #define bc_map_init(v) (bc_vec_init((v), sizeof(BcId), bc_id_free))
-
-#define BC_READ_BIN_CHAR(c) ((((c) < ' ' && !isspace((c))) || (c) > '~'))
 
 typedef signed char BcDig;
 
@@ -1138,6 +1138,18 @@ static void quit(void)
 	exit(0);
 }
 
+static int bc_error(const char *fmt, ...)
+{
+	va_list p;
+
+	va_start(p, fmt);
+	bb_verror_msg(fmt, p, NULL);
+	va_end(p);
+	if (!G.ttyin)
+		exit(1);
+	return BC_STATUS_FAILURE;
+}
+
 static void bc_vec_grow(BcVec *v, size_t n)
 {
 	size_t cap = v->cap * 2;
@@ -1289,54 +1301,63 @@ static size_t bc_map_index(const BcVec *v, const void *ptr)
 
 static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 {
-	int i;
-	signed char c;
+	bool bad_chars;
 
-	bc_vec_npop(vec, vec->len);
-
-	fflush_and_check();
-#if ENABLE_FEATURE_BC_SIGNALS
-	if (bb_got_signal) { // ^C was pressed
- intr:
-		bb_got_signal = 0; // resets G_interrupt to zero
-		fputs(IS_BC
-			? "\ninterrupt (type \"quit\" to exit)\n"
-			: "\ninterrupt (type \"q\" to exit)\n"
-			, stderr);
-	}
-#endif
-	if (G.ttyin && !G_posix)
-		fputs(prompt, stderr);
-	fflush_and_check();
-
-#if ENABLE_FEATURE_BC_SIGNALS
-	errno = 0;
-#endif
 	do {
-		i = fgetc(stdin);
+		int i;
+		char c;
 
-		if (i == EOF) {
+		bad_chars = 0;
+		bc_vec_npop(vec, vec->len);
+
+		fflush_and_check();
 #if ENABLE_FEATURE_BC_SIGNALS
-			// Both conditions appear simultaneously, check both just in case
-			if (errno == EINTR || bb_got_signal) {
-				// ^C was pressed
-				clearerr(stdin);
-				goto intr;
-			}
-#endif
-			if (ferror(stdin))
-				quit(); // this emits error message
-			G.eof = 1;
-			// Note: EOF does not append '\n', therefore:
-			// printf 'print 123\n' | bc - works
-			// printf 'print 123' | bc   - fails (syntax error)
-			break;
+		if (bb_got_signal) { // ^C was pressed
+ intr:
+			bb_got_signal = 0; // resets G_interrupt to zero
+			fputs(IS_BC
+				? "\ninterrupt (type \"quit\" to exit)\n"
+				: "\ninterrupt (type \"q\" to exit)\n"
+				, stderr);
 		}
+#endif
+		if (G.ttyin && !G_posix)
+			fputs(prompt, stderr);
 
-		c = (signed char) i;
-		if (i > UCHAR_MAX || BC_READ_BIN_CHAR(c)) return BC_STATUS_BIN_FILE;
-		bc_vec_push(vec, &c);
-	} while (c != '\n');
+#if ENABLE_FEATURE_BC_SIGNALS
+		errno = 0;
+#endif
+		do {
+			i = fgetc(stdin);
+			if (i == EOF) {
+#if ENABLE_FEATURE_BC_SIGNALS
+				// Both conditions appear simultaneously, check both just in case
+				if (errno == EINTR || bb_got_signal) {
+					// ^C was pressed
+					clearerr(stdin);
+					goto intr;
+				}
+#endif
+				if (ferror(stdin))
+					quit(); // this emits error message
+				G.eof = 1;
+				// Note: EOF does not append '\n', therefore:
+				// printf 'print 123\n' | bc - works
+				// printf 'print 123' | bc   - fails (syntax error)
+				break;
+			}
+
+			if ((i < ' ' && i != '\t' && i != '\r' && i != '\n') // also allow '\v' '\f'?
+			 || i > 0x7e
+			) {
+				// Bad chars on this line, ignore entire line
+				bc_error("illegal character 0x%02x", i);
+				bad_chars = 1;
+			}
+			c = (char) i;
+			bc_vec_push(vec, &c);
+		} while (i != '\n');
+	} while (bad_chars);
 
 	bc_vec_pushByte(vec, '\0');
 
@@ -1352,7 +1373,10 @@ static char* bc_read_file(const char *path)
 	buf = xmalloc_open_read_close(path, &size);
 
 	for (i = 0; i < size; ++i) {
-		if (BC_READ_BIN_CHAR(buf[i])) {
+		char c = buf[i];
+		if ((c < ' ' && c != '\t' && c != '\r' && c != '\n') // also allow '\v' '\f'?
+		 || c > 0x7e
+		) {
 			free(buf);
 			buf = NULL;
 			break;
@@ -3162,7 +3186,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			}
 			else {
 				l->t.t = BC_LEX_INVALID;
-				s = BC_STATUS_LEX_BAD_CHAR;
+				s = bc_error("bad character '%c'", '&');
 			}
 
 			break;
@@ -3291,7 +3315,7 @@ static BcStatus bc_lex_token(BcLex *l)
 				++l->i;
 			}
 			else
-				s = BC_STATUS_LEX_BAD_CHAR;
+				s = bc_error("bad character '%c'", c);
 			break;
 		}
 
@@ -3353,7 +3377,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			}
 			else {
 				l->t.t = BC_LEX_INVALID;
-				s = BC_STATUS_LEX_BAD_CHAR;
+				s = bc_error("bad character '%c'", c);
 			}
 
 			break;
@@ -3362,7 +3386,7 @@ static BcStatus bc_lex_token(BcLex *l)
 		default:
 		{
 			l->t.t = BC_LEX_INVALID;
-			s = BC_STATUS_LEX_BAD_CHAR;
+			s = bc_error("bad character '%c'", c);
 			break;
 		}
 	}
@@ -3473,7 +3497,7 @@ static BcStatus dc_lex_token(BcLex *l)
 			else if (c2 == '>')
 				l->t.t = BC_LEX_OP_REL_GE;
 			else
-				return BC_STATUS_LEX_BAD_CHAR;
+				return bc_error("bad character '%c'", c);
 
 			++l->i;
 			break;
@@ -3490,7 +3514,7 @@ static BcStatus dc_lex_token(BcLex *l)
 			if (isdigit(l->buf[l->i]))
 				s = bc_lex_number(l, c);
 			else
-				s = BC_STATUS_LEX_BAD_CHAR;
+				s = bc_error("bad character '%c'", c);
 			break;
 		}
 
@@ -3524,7 +3548,7 @@ static BcStatus dc_lex_token(BcLex *l)
 		default:
 		{
 			l->t.t = BC_LEX_INVALID;
-			s = BC_STATUS_LEX_BAD_CHAR;
+			s = bc_error("bad character '%c'", c);
 			break;
 		}
 	}
@@ -6938,7 +6962,7 @@ static BcStatus bc_vm_file(const char *file)
 
 	G.prog.file = file;
 	data = bc_read_file(file);
-	if (!data) return bc_vm_error(BC_STATUS_BIN_FILE, file, 0);
+	if (!data) return bc_error("file '%s' is not text", file);
 
 	bc_lex_file(&G.prs.l, file);
 	s = bc_vm_process(data);
@@ -7020,8 +7044,6 @@ static BcStatus bc_vm_stdin(void)
 
 		bc_vec_npop(&buffer, buffer.len);
 	}
-
-	if (s == BC_STATUS_BIN_FILE) s = bc_vm_error(s, G.prs.l.f, 0);
 
 	if (str)
 		s = bc_vm_error(BC_STATUS_LEX_NO_STRING_END, G.prs.l.f,
