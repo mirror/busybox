@@ -200,8 +200,8 @@ typedef enum BcStatus {
 	BC_STATUS_MATH_BAD_STRING,
 
 //	BC_STATUS_EXEC_FILE_ERR,
-	BC_STATUS_EXEC_MISMATCHED_PARAMS,
-	BC_STATUS_EXEC_UNDEFINED_FUNC,
+//	BC_STATUS_EXEC_MISMATCHED_PARAMS,
+//	BC_STATUS_EXEC_UNDEFINED_FUNC,
 	BC_STATUS_EXEC_FILE_NOT_EXECUTABLE,
 	BC_STATUS_EXEC_NUM_LEN,
 	BC_STATUS_EXEC_NAME_LEN,
@@ -241,7 +241,7 @@ typedef enum BcStatus {
 // Keep enum above and messages below in sync!
 static const char *const bc_err_msgs[] = {
 	NULL,
-	"",
+	NULL,
 //	"memory allocation error",
 //	"I/O error",
 //	"file is not text:",
@@ -272,8 +272,8 @@ static const char *const bc_err_msgs[] = {
 	"bad number string",
 
 //	"could not open file:",
-	"mismatched parameters", // wrong number of them, to be exact
-	"undefined function",
+//	"mismatched parameters", // wrong number of them, to be exact
+//	"undefined function",
 	"file is not executable:",
 	"number too long: must be [1, BC_NUM_MAX]",
 	"name too long: must be [1, BC_NAME_MAX]",
@@ -5990,8 +5990,12 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 	ip.func = bc_program_index(code, idx);
 	func = bc_vec_item(&G.prog.fns, ip.func);
 
-	if (func->code.len == 0) return BC_STATUS_EXEC_UNDEFINED_FUNC;
-	if (nparams != func->nparams) return BC_STATUS_EXEC_MISMATCHED_PARAMS;
+	if (func->code.len == 0) {
+		return bc_error("undefined function");
+	}
+	if (nparams != func->nparams) {
+		return bc_error("function has %u parameters, but called with %u", func->nparams, nparams);
+	}
 	ip.len = G.prog.results.len - nparams;
 
 	for (i = 0; i < nparams; ++i) {
@@ -6848,9 +6852,11 @@ static BcStatus bc_vm_error(BcStatus s, const char *file, size_t line)
 {
 	if (!s || s > BC_STATUS_BEFORE_POSIX) return s;
 
-	fprintf(stderr, bc_err_fmt, bc_err_msgs[s]);
-	fprintf(stderr, "    %s", file);
-	fprintf(stderr, bc_err_line + 4 * !line, line);
+	if (bc_err_msgs[s]) {
+		fprintf(stderr, bc_err_fmt, bc_err_msgs[s]);
+		fprintf(stderr, "    %s", file);
+		fprintf(stderr, bc_err_line + 4 * !line, line);
+	}
 
 	return s * (!G.ttyin || !!strcmp(file, bc_program_stdin_name));
 }
