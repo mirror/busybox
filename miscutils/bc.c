@@ -217,7 +217,8 @@ typedef enum BcStatus {
 	BC_STATUS_EXEC_STACK,
 
 //	BC_STATUS_VEC_OUT_OF_BOUNDS,
-	BC_STATUS_VEC_ITEM_EXISTS,
+//	BC_STATUS_VEC_ITEM_EXISTS,
+	BC_STATUS_BEFORE_POSIX = BC_STATUS_EXEC_STACK,
 #if ENABLE_BC
 	BC_STATUS_POSIX_NAME_LEN,
 	BC_STATUS_POSIX_COMMENT,
@@ -288,7 +289,7 @@ static const char *const bc_err_msgs[] = {
 	"stack has too few elements",
 
 //	"index is out of bounds",
-	"item already exists",
+//	"item already exists",
 #if ENABLE_BC
 	"POSIX only allows one character names; the following is bad:",
 	"POSIX does not allow '#' script comments",
@@ -1276,20 +1277,17 @@ static size_t bc_map_find(const BcVec *v, const void *ptr)
 	return low;
 }
 
-static BcStatus bc_map_insert(BcVec *v, const void *ptr, size_t *i)
+static int bc_map_insert(BcVec *v, const void *ptr, size_t *i)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
+	size_t n = *i = bc_map_find(v, ptr);
 
-	*i = bc_map_find(v, ptr);
-
-	if (*i == v->len)
+	if (n == v->len)
 		bc_vec_push(v, ptr);
-	else if (!bc_id_cmp(ptr, bc_vec_item(v, *i)))
-		s = BC_STATUS_VEC_ITEM_EXISTS;
+	else if (!bc_id_cmp(ptr, bc_vec_item(v, n)))
+		return 0; // "was not inserted"
 	else
-		bc_vec_pushAt(v, ptr, *i);
-
-	return s;
+		bc_vec_pushAt(v, ptr, n);
+	return 1; // "was inserted"
 }
 
 static size_t bc_map_index(const BcVec *v, const void *ptr)
@@ -5240,20 +5238,18 @@ static BcStatus common_parse_expr(BcParse *p, uint8_t flags)
 
 static BcVec* bc_program_search(char *id, bool var)
 {
-	BcStatus s;
 	BcId e, *ptr;
 	BcVec *v, *map;
 	size_t i;
 	BcResultData data;
-	bool new;
+	int new;
 
 	v = var ? &G.prog.vars : &G.prog.arrs;
 	map = var ? &G.prog.var_map : &G.prog.arr_map;
 
 	e.name = id;
 	e.idx = v->len;
-	s = bc_map_insert(map, &e, &i);
-	new = s != BC_STATUS_VEC_ITEM_EXISTS;
+	new = bc_map_insert(map, &e, &i); // 1 if insertion was successful
 
 	if (new) {
 		bc_array_init(&data.v, var);
@@ -6465,20 +6461,20 @@ static void bc_program_pushGlobal(char inst)
 
 static void bc_program_addFunc(char *name, size_t *idx)
 {
-	BcStatus s;
 	BcId entry, *entry_ptr;
 	BcFunc f;
+	int inserted;
 
 	entry.name = name;
 	entry.idx = G.prog.fns.len;
 
-	s = bc_map_insert(&G.prog.fn_map, &entry, idx);
-	if (s) free(name);
+	inserted = bc_map_insert(&G.prog.fn_map, &entry, idx);
+	if (!inserted) free(name);
 
 	entry_ptr = bc_vec_item(&G.prog.fn_map, *idx);
 	*idx = entry_ptr->idx;
 
-	if (s == BC_STATUS_VEC_ITEM_EXISTS) {
+	if (!inserted) {
 
 		BcFunc *func = bc_vec_item(&G.prog.fns, entry_ptr->idx);
 
@@ -6850,7 +6846,7 @@ static void bc_vm_info(void)
 
 static BcStatus bc_vm_error(BcStatus s, const char *file, size_t line)
 {
-	if (!s || s > BC_STATUS_VEC_ITEM_EXISTS) return s;
+	if (!s || s > BC_STATUS_BEFORE_POSIX) return s;
 
 	fprintf(stderr, bc_err_fmt, bc_err_msgs[s]);
 	fprintf(stderr, "    %s", file);
