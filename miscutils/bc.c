@@ -171,141 +171,7 @@ typedef enum BcStatus {
 	BC_STATUS_SUCCESS = 0,
 	BC_STATUS_FAILURE = 1,
 	BC_STATUS_PARSE_EMPTY_EXP = 2, // bc_parse_expr() uses this
-
-//	BC_STATUS_ALLOC_ERR,
-//	BC_STATUS_INPUT_EOF,
-//	BC_STATUS_BIN_FILE,
-//	BC_STATUS_PATH_IS_DIR,
-
-//	BC_STATUS_LEX_BAD_CHAR,
-//	BC_STATUS_LEX_NO_STRING_END,
-//	BC_STATUS_LEX_NO_COMMENT_END,
-//	BC_STATUS_LEX_EOF,
-#if ENABLE_DC
-//	BC_STATUS_LEX_EXTENDED_REG,
-#endif
-//	BC_STATUS_PARSE_BAD_TOKEN,
-//	BC_STATUS_PARSE_BAD_EXP,
-//	BC_STATUS_PARSE_BAD_PRINT,
-//	BC_STATUS_PARSE_BAD_FUNC,
-//	BC_STATUS_PARSE_BAD_ASSIGN,
-//	BC_STATUS_PARSE_NO_AUTO,
-//	BC_STATUS_PARSE_DUPLICATE_LOCAL,
-//	BC_STATUS_PARSE_NO_BLOCK_END,
-
-//	BC_STATUS_MATH_NEGATIVE,
-//	BC_STATUS_MATH_NON_INTEGER,
-//	BC_STATUS_MATH_OVERFLOW,
-//	BC_STATUS_MATH_DIVIDE_BY_ZERO,
-//	BC_STATUS_MATH_BAD_STRING,
-
-//	BC_STATUS_EXEC_FILE_ERR,
-//	BC_STATUS_EXEC_MISMATCHED_PARAMS,
-//	BC_STATUS_EXEC_UNDEFINED_FUNC,
-//	BC_STATUS_EXEC_FILE_NOT_EXECUTABLE,
-//	BC_STATUS_EXEC_NUM_LEN,
-//	BC_STATUS_EXEC_NAME_LEN,
-//	BC_STATUS_EXEC_STRING_LEN,
-//	BC_STATUS_EXEC_ARRAY_LEN,
-//	BC_STATUS_EXEC_BAD_IBASE,
-//	BC_STATUS_EXEC_BAD_SCALE,
-//	BC_STATUS_EXEC_BAD_READ_EXPR,
-//	BC_STATUS_EXEC_REC_READ,
-//	BC_STATUS_EXEC_BAD_TYPE,
-//	BC_STATUS_EXEC_BAD_OBASE,
-//	BC_STATUS_EXEC_SIGNAL,
-//	BC_STATUS_EXEC_STACK,
-
-//	BC_STATUS_VEC_OUT_OF_BOUNDS,
-//	BC_STATUS_VEC_ITEM_EXISTS,
-	BC_STATUS_BEFORE_POSIX = BC_STATUS_PARSE_EMPTY_EXP,
-#if ENABLE_BC
-	BC_STATUS_POSIX_NAME_LEN,
-	BC_STATUS_POSIX_COMMENT,
-	BC_STATUS_POSIX_BAD_KW,
-	BC_STATUS_POSIX_DOT,
-	BC_STATUS_POSIX_RET,
-	BC_STATUS_POSIX_BOOL,
-	BC_STATUS_POSIX_REL_POS,
-	BC_STATUS_POSIX_MULTIREL,
-	BC_STATUS_POSIX_FOR1,
-	BC_STATUS_POSIX_FOR2,
-	BC_STATUS_POSIX_FOR3,
-	BC_STATUS_POSIX_BRACE,
-#endif
-//	BC_STATUS_QUIT,
-//	BC_STATUS_LIMITS,
-
-//	BC_STATUS_INVALID_OPTION,
 } BcStatus;
-// Keep enum above and messages below in sync!
-static const char *const bc_err_msgs[] = {
-	NULL,
-	NULL,
-	NULL,
-
-//	"memory allocation error",
-//	"I/O error",
-//	"file is not text:",
-//	"path is a directory:",
-
-//	"bad character",
-//	"string end could not be found",
-//	"comment end could not be found",
-//	"end of file",
-#if ENABLE_DC
-//	"extended register",
-#endif
-//	"bad token",
-//	"bad expression",
-//	"bad print statement",
-//	"bad function definition",
-//	"bad assignment: left side must be scale, ibase, "
-//		"obase, last, var, or array element",
-//	"no auto variable found",
-//	"function parameter or auto var has the same name as another",
-//	"block end could not be found",
-
-//	"negative number",
-//	"non integer number",
-//	"overflow",
-//	"divide by zero",
-//	"bad number string",
-
-//	"could not open file:",
-//	"mismatched parameters", // wrong number of them, to be exact
-//	"undefined function",
-//	"file is not executable:",
-//	"number too long: must be [1, BC_NUM_MAX]",
-//	"name too long: must be [1, BC_NAME_MAX]",
-//	"string too long: must be [1, BC_STRING_MAX]",
-//	"array too long; must be [1, BC_DIM_MAX]",
-//	"bad ibase; must be [2, 16]",
-//	"bad scale; must be [0, BC_SCALE_MAX]",
-//	"bad read() expression",
-//	"read() call inside of a read() call",
-//	"variable is wrong type",
-//	"bad obase; must be [2, BC_BASE_MAX]",
-//	"signal caught and not handled",
-//	"stack has too few elements",
-
-//	"index is out of bounds",
-//	"item already exists",
-#if ENABLE_BC
-	"POSIX only allows one character names; the following is bad:",
-	"POSIX does not allow '#' script comments",
-	"POSIX does not allow the following keyword:",
-	"POSIX does not allow a period ('.') as a shortcut for the last result",
-	"POSIX requires parentheses around return expressions",
-	"POSIX does not allow boolean operators; the following is bad:",
-	"POSIX does not allow comparison operators outside if or loops",
-	"POSIX requires exactly one comparison operator per condition",
-	"POSIX does not allow an empty init expression in a for loop",
-	"POSIX does not allow an empty condition expression in a for loop",
-	"POSIX does not allow an empty update expression in a for loop",
-	"POSIX requires the left brace be on the same line as the function header",
-#endif
-};
 
 #define BC_VEC_INVALID_IDX ((size_t) -1)
 #define BC_VEC_START_CAP (1 << 5)
@@ -891,16 +757,7 @@ struct globals {
 
 #define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
 
-#if ENABLE_BC
-static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
-                                 const char *msg);
-#endif
-
 static void bc_vm_info(void);
-
-static const char bc_err_fmt[] = "\nerror: %s\n";
-static const char bc_warn_fmt[] = "\nwarning: %s\n";
-static const char bc_err_line[] = ":%zu\n\n";
 
 #if ENABLE_BC
 static const BcLexKeyword bc_lex_kws[20] = {
@@ -1146,6 +1003,25 @@ static int bc_error(const char *fmt, ...)
 	va_start(p, fmt);
 	bb_verror_msg(fmt, p, NULL);
 	va_end(p);
+	if (!G.ttyin)
+		exit(1);
+	return BC_STATUS_FAILURE;
+}
+
+static int bc_posix_error(const char *fmt, ...)
+{
+	va_list p;
+
+	if (!(G.flags & (BC_FLAG_S|BC_FLAG_W)))
+		return BC_STATUS_SUCCESS;
+
+	va_start(p, fmt);
+	bb_verror_msg(fmt, p, NULL);
+	va_end(p);
+
+	// Do we treat non-POSIX constructs as errors?
+	if (!(G.flags & BC_FLAG_S))
+		return BC_STATUS_SUCCESS; // no, it's a warning
 	if (!G.ttyin)
 		exit(1);
 	return BC_STATUS_FAILURE;
@@ -3039,8 +2915,7 @@ static BcStatus bc_lex_identifier(BcLex *l)
 			l->t.t = BC_LEX_KEY_AUTO + (BcLexType) i;
 
 			if (!bc_lex_kws[i].posix) {
-				s = bc_vm_posixError(BC_STATUS_POSIX_BAD_KW, l->f, l->line,
-				                     bc_lex_kws[i].name);
+				s = bc_posix_error("POSIX does not allow the following keyword:"); // bc_lex_kws[i].name
 				if (s) return s;
 			}
 
@@ -3054,7 +2929,7 @@ static BcStatus bc_lex_identifier(BcLex *l)
 	if (s) return s;
 
 	if (l->t.v.len - 1 > 1)
-		s = bc_vm_posixError(BC_STATUS_POSIX_NAME_LEN, l->f, l->line, buf);
+		s = bc_posix_error("POSIX only allows one character names; the following is bad:"); // buf
 
 	return s;
 }
@@ -3155,7 +3030,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			bc_lex_assign(l, BC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
 
 			if (l->t.t == BC_LEX_OP_BOOL_NOT) {
-				s = bc_vm_posixError(BC_STATUS_POSIX_BOOL, l->f, l->line, "!");
+				s = bc_posix_error("POSIX does not allow boolean operators; the following is bad:"); // "!"
 				if (s) return s;
 			}
 
@@ -3170,7 +3045,7 @@ static BcStatus bc_lex_token(BcLex *l)
 
 		case '#':
 		{
-			s = bc_vm_posixError(BC_STATUS_POSIX_COMMENT, l->f, l->line, NULL);
+			s = bc_posix_error("POSIX does not allow '#' script comments");
 			if (s) return s;
 
 			bc_lex_lineComment(l);
@@ -3189,7 +3064,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			c2 = l->buf[l->i];
 			if (c2 == '&') {
 
-				s = bc_vm_posixError(BC_STATUS_POSIX_BOOL, l->f, l->line, "&&");
+				s = bc_posix_error("POSIX does not allow boolean operators; the following is bad:"); // "&&"
 				if (s) return s;
 
 				++l->i;
@@ -3252,7 +3127,7 @@ static BcStatus bc_lex_token(BcLex *l)
 				s = bc_lex_number(l, c);
 			else {
 				l->t.t = BC_LEX_KEY_LAST;
-				s = bc_vm_posixError(BC_STATUS_POSIX_DOT, l->f, l->line, NULL);
+				s = bc_posix_error("POSIX does not allow a period ('.') as a shortcut for the last result");
 			}
 			break;
 		}
@@ -3379,8 +3254,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			c2 = l->buf[l->i];
 
 			if (c2 == '|') {
-
-				s = bc_vm_posixError(BC_STATUS_POSIX_BOOL, l->f, l->line, "||");
+				s = bc_posix_error("POSIX does not allow boolean operators; the following is bad:"); // "||"
 				if (s) return s;
 
 				++l->i;
@@ -4106,7 +3980,7 @@ static BcStatus bc_parse_return(BcParse *p)
 		}
 
 		if (!paren || p->l.t.last != BC_LEX_RPAREN) {
-			s = bc_vm_posixError(BC_STATUS_POSIX_RET, p->l.f, p->l.line, NULL);
+			s = bc_posix_error("POSIX requires parentheses around return expressions");
 			if (s) return s;
 		}
 
@@ -4313,7 +4187,7 @@ static BcStatus bc_parse_for(BcParse *p)
 	if (p->l.t.t != BC_LEX_SCOLON)
 		s = bc_parse_expr(p, 0, bc_parse_next_for);
 	else
-		s = bc_vm_posixError(BC_STATUS_POSIX_FOR1, p->l.f, p->l.line, NULL);
+		s = bc_posix_error("POSIX does not allow an empty init expression in a for loop");
 
 	if (s) return s;
 	if (p->l.t.t != BC_LEX_SCOLON) return bc_error("bad token");
@@ -4330,7 +4204,7 @@ static BcStatus bc_parse_for(BcParse *p)
 	if (p->l.t.t != BC_LEX_SCOLON)
 		s = bc_parse_expr(p, BC_PARSE_REL, bc_parse_next_for);
 	else
-		s = bc_vm_posixError(BC_STATUS_POSIX_FOR2, p->l.f, p->l.line, NULL);
+		s = bc_posix_error("POSIX does not allow an empty condition expression in a for loop");
 
 	if (s) return s;
 	if (p->l.t.t != BC_LEX_SCOLON) return bc_error("bad token");
@@ -4351,7 +4225,7 @@ static BcStatus bc_parse_for(BcParse *p)
 	if (p->l.t.t != BC_LEX_RPAREN)
 		s = bc_parse_expr(p, 0, bc_parse_next_rel);
 	else
-		s = bc_vm_posixError(BC_STATUS_POSIX_FOR3, p->l.f, p->l.line, NULL);
+		s = bc_posix_error("POSIX does not allow an empty update expression in a for loop");
 
 	if (s) return s;
 
@@ -4475,7 +4349,7 @@ static BcStatus bc_parse_func(BcParse *p)
 	if (s) return s;
 
 	if (p->l.t.t != BC_LEX_LBRACE)
-		s = bc_vm_posixError(BC_STATUS_POSIX_BRACE, p->l.f, p->l.line, NULL);
+		s = bc_posix_error("POSIX requires the left brace be on the same line as the function header");
 
 	return s;
 
@@ -4999,11 +4873,11 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
  ok:
 
 	if (!(flags & BC_PARSE_REL) && nrelops) {
-		s = bc_vm_posixError(BC_STATUS_POSIX_REL_POS, p->l.f, p->l.line, NULL);
+		s = bc_posix_error("POSIX does not allow comparison operators outside if or loops");
 		if (s) return s;
 	}
 	else if ((flags & BC_PARSE_REL) && nrelops > 1) {
-		s = bc_vm_posixError(BC_STATUS_POSIX_MULTIREL, p->l.f, p->l.line, NULL);
+		s = bc_posix_error("POSIX requires exactly one comparison operator per condition");
 		if (s) return s;
 	}
 
@@ -6575,10 +6449,6 @@ static void bc_program_reset(void)
 
 	// If !tty, no need to check for ^C: we don't have ^C handler,
 	// we would be killed by a signal and won't reach this place
-
-	fflush_and_check(); // make sure buffered stdout is printed
-	fputs("ready for more input\n", stderr);
-	fflush_and_check();
 }
 
 static BcStatus bc_program_exec(void)
@@ -6914,40 +6784,7 @@ static void bc_vm_info(void)
 	, applet_name);
 }
 
-static BcStatus bc_vm_error(BcStatus s, const char *file, size_t line)
-{
-	if (!s || s > BC_STATUS_BEFORE_POSIX) return s;
-
-	if (bc_err_msgs[s]) {
-		fprintf(stderr, bc_err_fmt, bc_err_msgs[s]);
-		fprintf(stderr, "    %s", file);
-		fprintf(stderr, bc_err_line + 4 * !line, line);
-	}
-
-///
-	return s * (!G.ttyin || !!strcmp(file, bc_program_stdin_name));
-}
-
 #if ENABLE_BC
-static BcStatus bc_vm_posixError(BcStatus s, const char *file, size_t line,
-                                 const char *msg)
-{
-	const char *fmt;
-
-	if (!(G.flags & (BC_FLAG_S|BC_FLAG_W))) return BC_STATUS_SUCCESS;
-	if (s < BC_STATUS_POSIX_NAME_LEN) return BC_STATUS_SUCCESS;
-
-	fmt = G_posix ? bc_err_fmt : bc_warn_fmt;
-	fprintf(stderr, fmt, bc_err_msgs[s]);
-	if (msg) fprintf(stderr, "    %s\n", msg);
-	fprintf(stderr, "    %s", file);
-	fprintf(stderr, bc_err_line + 4 * !line, line);
-
-	if (G.ttyin || !G_posix)
-		s = BC_STATUS_SUCCESS;
-	return s;
-}
-
 static void bc_vm_envArgs(void)
 {
 	static const char* const bc_args_env_name = "BC_ENV_ARGS";
@@ -7004,24 +6841,18 @@ static BcStatus bc_vm_process(const char *text)
 {
 	BcStatus s = bc_parse_text(&G.prs, text);
 
-	s = bc_vm_error(s, G.prs.l.f, G.prs.l.line);
 	if (s) return s;
 
 	while (G.prs.l.t.t != BC_LEX_EOF) {
-
 		s = G.prs.parse(&G.prs);
-
-		s = bc_vm_error(s, G.prs.l.f, G.prs.l.line);
 		if (s) return s;
 	}
 
 	if (BC_PARSE_CAN_EXEC(&G.prs)) {
 		s = bc_program_exec();
 		fflush_and_check();
-		if (s) {
+		if (s)
 			bc_program_reset();
-			s = bc_vm_error(s, G.prs.l.f, 0);
-		}
 	}
 
 	return s;
@@ -7115,23 +6946,21 @@ static BcStatus bc_vm_stdin(void)
 
 		bc_vec_concat(&buffer, buf.v);
 		s = bc_vm_process(buffer.v);
-		if (s) goto err;
+		if (s) {
+			fflush_and_check();
+			fputs("ready for more input\n", stderr);
+		}
 
 		bc_vec_npop(&buffer, buffer.len);
 	}
 
 	if (str) {
-		bc_error("string end could not be found");
-		s = bc_vm_error(BC_STATUS_FAILURE, G.prs.l.f,
-		                G.prs.l.line);
+		s = bc_error("string end could not be found");
 	}
 	else if (comment) {
-		bc_error("comment end could not be found");
-		s = bc_vm_error(BC_STATUS_FAILURE, G.prs.l.f,
-		                G.prs.l.line);
+		s = bc_error("comment end could not be found");
 	}
 
-err:
 	bc_vec_free(&buf);
 	bc_vec_free(&buffer);
 	return s;
@@ -7148,7 +6977,8 @@ static BcStatus bc_vm_exec(void)
 		bc_lex_file(&G.prs.l, bc_lib_name);
 		s = bc_parse_text(&G.prs, bc_lib);
 
-		while (!s && G.prs.l.t.t != BC_LEX_EOF) s = G.prs.parse(&G.prs);
+		while (!s && G.prs.l.t.t != BC_LEX_EOF)
+			s = G.prs.parse(&G.prs);
 
 		if (s) return s;
 		s = bc_program_exec();
@@ -7158,10 +6988,17 @@ static BcStatus bc_vm_exec(void)
 
 	for (i = 0; !s && i < G.files.len; ++i)
 		s = bc_vm_file(*((char **) bc_vec_item(&G.files, i)));
-	if (s) return s;
+	if (s) {
+		if (!G.tty)
+			return s;
+		fflush_and_check();
+		fputs("ready for more input\n", stderr);
+	}
 
-	if (IS_BC || !G.files.len) s = bc_vm_stdin();
-	if (!s && !BC_PARSE_CAN_EXEC(&G.prs)) s = bc_vm_process("");
+	if (IS_BC || !G.files.len)
+		s = bc_vm_stdin();
+	if (!s && !BC_PARSE_CAN_EXEC(&G.prs))
+		s = bc_vm_process("");
 
 	return s;
 }
