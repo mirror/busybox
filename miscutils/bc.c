@@ -730,28 +730,25 @@ static void bc_program_reset(void);
 #define BC_MAX_VARS   ((unsigned long) SIZE_MAX - 1)
 
 struct globals {
+	smallint ttyin;
+	smallint eof;
 	char sbgn;
 	char send;
 
 	BcParse prs;
 	BcProgram prog;
 
-	unsigned flags;
 	BcVec files;
 
 	char *env_args;
-
-	smallint tty;
-	smallint ttyin;
-	smallint eof;
 } FIX_ALIASING;
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
-#define G_posix (ENABLE_BC && (G.flags & BC_FLAG_S))
-#define G_warn  (ENABLE_BC && (G.flags & BC_FLAG_W))
-#define G_exreg (ENABLE_DC && (G.flags & BC_FLAG_X))
+#define G_posix (ENABLE_BC && (option_mask32 & BC_FLAG_S))
+#define G_warn  (ENABLE_BC && (option_mask32 & BC_FLAG_W))
+#define G_exreg (ENABLE_DC && (option_mask32 & BC_FLAG_X))
 #define G_interrupt (ENABLE_FEATURE_BC_SIGNALS ? bb_got_signal : 0)
 
 
@@ -1012,7 +1009,7 @@ static int bc_posix_error(const char *fmt, ...)
 {
 	va_list p;
 
-	if (!(G.flags & (BC_FLAG_S|BC_FLAG_W)))
+	if (!(option_mask32 & (BC_FLAG_S|BC_FLAG_W)))
 		return BC_STATUS_SUCCESS;
 
 	va_start(p, fmt);
@@ -1020,7 +1017,7 @@ static int bc_posix_error(const char *fmt, ...)
 	va_end(p);
 
 	// Do we treat non-POSIX constructs as errors?
-	if (!(G.flags & BC_FLAG_S))
+	if (!(option_mask32 & BC_FLAG_S))
 		return BC_STATUS_SUCCESS; // no, it's a warning
 	if (!G.ttyin)
 		exit(1);
@@ -1262,11 +1259,12 @@ static char* bc_read_file(const char *path)
 
 static void bc_args(int argc, char **argv)
 {
+	unsigned opts;
 	int i;
 
 	GETOPT_RESET();
 #if ENABLE_FEATURE_BC_LONG_OPTIONS
-	G.flags = getopt32long(argv, "xwvsqli",
+	opts = getopt32long(argv, "xwvsqli",
 		"extended-register\0" No_argument "x"
 		"warn\0"              No_argument "w"
 		"version\0"           No_argument "v"
@@ -1276,14 +1274,17 @@ static void bc_args(int argc, char **argv)
 		"interactive\0"       No_argument "i"
 	);
 #else
-	G.flags = getopt32(argv, "xwvsqli");
+	opts = getopt32(argv, "xwvsqli");
 #endif
+	if (getenv("POSIXLY_CORRECT"))
+		option_mask32 |= BC_FLAG_S;
 
-	if (G.flags & BC_FLAG_V) bc_vm_info();
+	if (opts & BC_FLAG_V) bc_vm_info();
 	// should not be necessary, getopt32() handles this??
 	//if (argv[optind] && !strcmp(argv[optind], "--")) ++optind;
 
-	for (i = optind; i < argc; ++i) bc_vec_push(&G.files, argv + i);
+	for (i = optind; i < argc; ++i)
+		bc_vec_push(&G.files, argv + i);
 }
 
 static void bc_num_setToZero(BcNum *n, size_t scale)
@@ -6972,7 +6973,7 @@ static BcStatus bc_vm_exec(void)
 	size_t i;
 
 #if ENABLE_BC
-	if (G.flags & BC_FLAG_L) {
+	if (option_mask32 & BC_FLAG_L) {
 
 		bc_lex_file(&G.prs.l, bc_lib_name);
 		s = bc_parse_text(&G.prs, bc_lib);
@@ -6989,8 +6990,6 @@ static BcStatus bc_vm_exec(void)
 	for (i = 0; !s && i < G.files.len; ++i)
 		s = bc_vm_file(*((char **) bc_vec_item(&G.files, i)));
 	if (s) {
-		if (!G.tty)
-			return s;
 		fflush_and_check();
 		fputs("ready for more input\n", stderr);
 	}
@@ -7099,8 +7098,6 @@ static void bc_vm_init(const char *env_len)
 	bc_vec_init(&G.files, sizeof(char *), NULL);
 
 	if (IS_BC) {
-		if (getenv("POSIXLY_CORRECT"))
-			G.flags |= BC_FLAG_S;
 		bc_vm_envArgs();
 	}
 
@@ -7121,13 +7118,12 @@ static BcStatus bc_vm_run(int argc, char *argv[],
 	bc_args(argc, argv);
 
 	G.ttyin = isatty(0);
-	G.tty = G.ttyin || (G.flags & BC_FLAG_I) || isatty(1);
 
 	if (G.ttyin) {
 #if ENABLE_FEATURE_BC_SIGNALS
 		signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
 #endif
-		if (!(G.flags & BC_FLAG_Q))
+		if (!(option_mask32 & BC_FLAG_Q))
 			bc_vm_info();
 	}
 	st = bc_vm_exec();
