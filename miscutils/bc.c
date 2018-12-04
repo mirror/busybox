@@ -2031,8 +2031,9 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 
 	ptr = strchr(val, '.');
 
-	// Explicitly test for NULL here to produce either a 0 or 1.
-	n->rdx = (size_t)((ptr != NULL) * ((val + len) - (ptr + 1)));
+	n->rdx = 0;
+	if (ptr != NULL)
+		n->rdx = (size_t)((val + len) - (ptr + 1));
 
 	if (!zero) {
 		for (i = len - 1; i < len; ++n->len, i -= 1 + (i && val[i - 1] == '.'))
@@ -2802,7 +2803,7 @@ static BcStatus bc_lex_number(BcLex *l, char start)
 		c = buf[++i];
 	}
 
-	len = i + 1 * !last_pt - bslashes * 2;
+	len = i + !last_pt - bslashes * 2;
 	if (len > BC_MAX_NUM)
 		return bc_error("number too long: must be [1, BC_NUM_MAX]");
 
