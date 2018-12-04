@@ -213,7 +213,7 @@ typedef enum BcStatus {
 	BC_STATUS_EXEC_REC_READ,
 	BC_STATUS_EXEC_BAD_TYPE,
 //	BC_STATUS_EXEC_BAD_OBASE,
-	BC_STATUS_EXEC_SIGNAL,
+//	BC_STATUS_EXEC_SIGNAL,
 	BC_STATUS_EXEC_STACK,
 
 //	BC_STATUS_VEC_OUT_OF_BOUNDS,
@@ -285,7 +285,7 @@ static const char *const bc_err_msgs[] = {
 	"read() call inside of a read() call",
 	"variable is wrong type",
 //	"bad obase; must be [2, BC_BASE_MAX]",
-	"signal caught and not handled",
+//	"signal caught and not handled",
 	"stack has too few elements",
 
 //	"index is out of bounds",
@@ -840,7 +840,7 @@ typedef struct BcProgram {
 typedef unsigned long (*BcProgramBuiltIn)(BcNum *);
 
 static void bc_program_addFunc(char *name, size_t *idx);
-static BcStatus bc_program_reset(BcStatus s);
+static void bc_program_reset(void);
 
 #define BC_FLAG_X (1 << 0)
 #define BC_FLAG_W (1 << 1)
@@ -1034,7 +1034,6 @@ static const BcNumBinaryOp bc_program_ops[] = {
 };
 
 static const char bc_program_stdin_name[] = "<stdin>";
-static const char bc_program_ready_msg[] = "ready for more input\n";
 
 #if ENABLE_BC
 static const char *bc_lib_name = "gen/lib.bc";
@@ -3617,7 +3616,9 @@ static BcStatus bc_parse_text(BcParse *p, const char *text)
 	return bc_lex_text(&p->l, text);
 }
 
-static BcStatus bc_parse_reset(BcParse *p, BcStatus s)
+// Called when bc/dc_parse_parse() detects a failure,
+// resets parsing structures.
+static void bc_parse_reset(BcParse *p)
 {
 	if (p->fidx != BC_PROG_MAIN) {
 
@@ -3638,7 +3639,7 @@ static BcStatus bc_parse_reset(BcParse *p, BcStatus s)
 	bc_vec_npop(&p->conds, p->conds.len);
 	bc_vec_npop(&p->ops, p->ops.len);
 
-	return bc_program_reset(s);
+	bc_program_reset();
 }
 
 static void bc_parse_free(BcParse *p)
@@ -4733,8 +4734,10 @@ static BcStatus bc_parse_parse(BcParse *p)
 	else
 		s = bc_parse_stmt(p);
 
-	if (s || G_interrupt)
-		s = bc_parse_reset(p, s);
+	if (s || G_interrupt) {
+		bc_parse_reset(p);
+		s = BC_STATUS_FAILURE;
+	}
 
 	return s;
 }
@@ -4947,7 +4950,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 	}
 
 	if (s) return s;
-	if (G_interrupt) return BC_STATUS_EXEC_SIGNAL;
+	if (G_interrupt) return BC_STATUS_FAILURE; // ^C: stop parsing
 
 	while (p->ops.len > ops_bgn) {
 
@@ -5207,7 +5210,10 @@ static BcStatus dc_parse_parse(BcParse *p)
 	else
 		s = dc_parse_expr(p, 0);
 
-	if (s || G_interrupt) s = bc_parse_reset(p, s);
+	if (s || G_interrupt) {
+		bc_parse_reset(p);
+		s = BC_STATUS_FAILURE;
+	}
 
 	return s;
 }
@@ -6494,7 +6500,9 @@ static void bc_program_addFunc(char *name, size_t *idx)
 	}
 }
 
-static BcStatus bc_program_reset(BcStatus s)
+// Called when parsing or execution detects a failure,
+// resets execution structures.
+static void bc_program_reset(void)
 {
 	BcFunc *f;
 	BcInstPtr *ip;
@@ -6506,18 +6514,12 @@ static BcStatus bc_program_reset(BcStatus s)
 	ip = bc_vec_top(&G.prog.stack);
 	ip->idx = f->code.len;
 
-	if (!s && G_interrupt && !G.tty) quit();
+	// If !tty, no need to check for ^C: we don't have ^C handler,
+	// we would be killed by a signal and won't reach this place
 
-	if (!s || s == BC_STATUS_EXEC_SIGNAL) {
-		if (!G.ttyin)
-			quit();
-		fflush_and_check(); // make sure buffered stdout is printed
-		fputs(bc_program_ready_msg, stderr);
-		fflush_and_check();
-		s = BC_STATUS_SUCCESS;
-	}
-
-	return s;
+	fflush_and_check(); // make sure buffered stdout is printed
+	fputs("ready for more input\n", stderr);
+	fflush_and_check();
 }
 
 static BcStatus bc_program_exec(void)
@@ -6828,7 +6830,10 @@ static BcStatus bc_program_exec(void)
 #endif // ENABLE_DC
 		}
 
-		if (s || G_interrupt) s = bc_program_reset(s);
+		if (s || G_interrupt) {
+			bc_program_reset();
+			break;
+		}
 
 		// If the stack has changed, pointers may be invalid.
 		ip = bc_vec_top(&G.prog.stack);
@@ -6951,8 +6956,10 @@ static BcStatus bc_vm_process(const char *text)
 	if (BC_PARSE_CAN_EXEC(&G.prs)) {
 		s = bc_program_exec();
 		fflush_and_check();
-		if (s)
-			s = bc_vm_error(bc_program_reset(s), G.prs.l.f, 0);
+		if (s) {
+			bc_program_reset();
+			s = bc_vm_error(s, G.prs.l.f, 0);
+		}
 	}
 
 	return s;
@@ -7185,10 +7192,6 @@ static void bc_vm_init(const char *env_len)
 {
 	size_t len = bc_vm_envLen(env_len);
 
-#if ENABLE_FEATURE_BC_SIGNALS
-        signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
-#endif
-
 	bc_vec_init(&G.files, sizeof(char *), NULL);
 
 	if (IS_BC) {
@@ -7216,7 +7219,13 @@ static BcStatus bc_vm_run(int argc, char *argv[],
 	G.ttyin = isatty(0);
 	G.tty = G.ttyin || (G.flags & BC_FLAG_I) || isatty(1);
 
-	if (G.ttyin && !(G.flags & BC_FLAG_Q)) bc_vm_info();
+	if (G.ttyin) {
+#if ENABLE_FEATURE_BC_SIGNALS
+		signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
+#endif
+		if (!(G.flags & BC_FLAG_Q))
+			bc_vm_info();
+	}
 	st = bc_vm_exec();
 
 #if ENABLE_FEATURE_CLEAN_UP
