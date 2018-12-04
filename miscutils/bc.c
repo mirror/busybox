@@ -1041,6 +1041,11 @@ static void bc_vec_init(BcVec *v, size_t esize, BcVecFree dtor)
 	v->v = xmalloc(esize * BC_VEC_START_CAP);
 }
 
+static void bc_char_vec_init(BcVec *v)
+{
+	bc_vec_init(v, sizeof(char), NULL);
+}
+
 static void bc_vec_expand(BcVec *v, size_t req)
 {
 	if (v->cap < req) {
@@ -1057,6 +1062,11 @@ static void bc_vec_npop(BcVec *v, size_t n)
 		size_t len = v->len - n;
 		while (v->len > len) v->dtor(v->v + (v->size * --v->len));
 	}
+}
+
+static void bc_vec_pop_all(BcVec *v)
+{
+	bc_vec_npop(v, v->len);
 }
 
 static void bc_vec_push(BcVec *v, const void *data)
@@ -1090,7 +1100,7 @@ static void bc_vec_pushAt(BcVec *v, const void *data, size_t idx)
 
 static void bc_vec_string(BcVec *v, size_t len, const char *str)
 {
-	bc_vec_npop(v, v->len);
+	bc_vec_pop_all(v);
 	bc_vec_expand(v, len + 1);
 	memcpy(v->v, str, len);
 	v->len = len;
@@ -1125,7 +1135,7 @@ static void *bc_vec_item_rev(const BcVec *v, size_t idx)
 static void bc_vec_free(void *vec)
 {
 	BcVec *v = (BcVec *) vec;
-	bc_vec_npop(v, v->len);
+	bc_vec_pop_all(v);
 	free(v->v);
 }
 
@@ -1179,7 +1189,7 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 		char c;
 
 		bad_chars = 0;
-		bc_vec_npop(vec, vec->len);
+		bc_vec_pop_all(vec);
 
 		fflush_and_check();
 #if ENABLE_FEATURE_BC_SIGNALS
@@ -2635,7 +2645,7 @@ static BcStatus bc_func_insert(BcFunc *f, char *name, bool var)
 
 static void bc_func_init(BcFunc *f)
 {
-	bc_vec_init(&f->code, sizeof(char), NULL);
+	bc_char_vec_init(&f->code);
 	bc_vec_init(&f->autos, sizeof(BcId), bc_id_free);
 	bc_vec_init(&f->labels, sizeof(size_t), NULL);
 	f->nparams = 0;
@@ -2662,7 +2672,7 @@ static void bc_array_copy(BcVec *d, const BcVec *s)
 {
 	size_t i;
 
-	bc_vec_npop(d, d->len);
+	bc_vec_pop_all(d);
 	bc_vec_expand(d, s->cap);
 	d->len = s->len;
 
@@ -2807,7 +2817,7 @@ static BcStatus bc_lex_number(BcLex *l, char start)
 	if (len > BC_MAX_NUM)
 		return bc_error("number too long: must be [1, BC_NUM_MAX]");
 
-	bc_vec_npop(&l->t.v, l->t.v.len);
+	bc_vec_pop_all(&l->t.v);
 	bc_vec_expand(&l->t.v, len + 1);
 	bc_vec_push(&l->t.v, &start);
 
@@ -2855,7 +2865,7 @@ static BcStatus bc_lex_name(BcLex *l)
 static void bc_lex_init(BcLex *l, BcLexNext next)
 {
 	l->next = next;
-	bc_vec_init(&l->t.v, sizeof(char), NULL);
+	bc_char_vec_init(&l->t.v);
 }
 
 static void bc_lex_free(BcLex *l)
@@ -3296,7 +3306,7 @@ static BcStatus dc_lex_register(BcLex *l)
 			s = bc_lex_name(l);
 	}
 	else {
-		bc_vec_npop(&l->t.v, l->t.v.len);
+		bc_vec_pop_all(&l->t.v);
 		bc_vec_pushByte(&l->t.v, l->buf[l->i - 1]);
 		bc_vec_pushByte(&l->t.v, '\0');
 		l->t.t = BC_LEX_NAME;
@@ -3311,7 +3321,7 @@ static BcStatus dc_lex_string(BcLex *l)
 	char c;
 
 	l->t.t = BC_LEX_STR;
-	bc_vec_npop(&l->t.v, l->t.v.len);
+	bc_vec_pop_all(&l->t.v);
 
 	for (c = l->buf[i]; c != 0 && depth; c = l->buf[++i]) {
 
@@ -3510,11 +3520,10 @@ static BcStatus bc_parse_text(BcParse *p, const char *text)
 static void bc_parse_reset(BcParse *p)
 {
 	if (p->fidx != BC_PROG_MAIN) {
-
 		p->func->nparams = 0;
-		bc_vec_npop(&p->func->code, p->func->code.len);
-		bc_vec_npop(&p->func->autos, p->func->autos.len);
-		bc_vec_npop(&p->func->labels, p->func->labels.len);
+		bc_vec_pop_all(&p->func->code);
+		bc_vec_pop_all(&p->func->autos);
+		bc_vec_pop_all(&p->func->labels);
 
 		bc_parse_updateFunc(p, BC_PROG_MAIN);
 	}
@@ -3524,9 +3533,9 @@ static void bc_parse_reset(BcParse *p)
 	p->auto_part = (p->nbraces = 0);
 
 	bc_vec_npop(&p->flags, p->flags.len - 1);
-	bc_vec_npop(&p->exits, p->exits.len);
-	bc_vec_npop(&p->conds, p->conds.len);
-	bc_vec_npop(&p->ops, p->ops.len);
+	bc_vec_pop_all(&p->exits);
+	bc_vec_pop_all(&p->conds);
+	bc_vec_pop_all(&p->ops);
 
 	bc_program_reset();
 }
@@ -5350,8 +5359,8 @@ static BcStatus bc_program_read(void)
 			return bc_error("read() call inside of a read() call");
 	}
 
-	bc_vec_npop(&f->code, f->code.len);
-	bc_vec_init(&buf, sizeof(char), NULL);
+	bc_vec_pop_all(&f->code);
+	bc_char_vec_init(&buf);
 
 	s = bc_read_line(&buf, "read> ");
 	if (s) goto io_err;
@@ -6379,7 +6388,7 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 err:
 	bc_parse_free(&prs);
 	f = bc_vec_item(&G.prog.fns, fidx);
-	bc_vec_npop(&f->code, f->code.len);
+	bc_vec_pop_all(&f->code);
 exit:
 	bc_vec_pop(&G.prog.results);
 	return s;
@@ -6425,9 +6434,9 @@ static void bc_program_addFunc(char *name, size_t *idx)
 
 		// We need to reset these, so the function can be repopulated.
 		func->nparams = 0;
-		bc_vec_npop(&func->autos, func->autos.len);
-		bc_vec_npop(&func->code, func->code.len);
-		bc_vec_npop(&func->labels, func->labels.len);
+		bc_vec_pop_all(&func->autos);
+		bc_vec_pop_all(&func->code);
+		bc_vec_pop_all(&func->labels);
 	}
 	else {
 		bc_func_init(&f);
@@ -6443,7 +6452,7 @@ static void bc_program_reset(void)
 	BcInstPtr *ip;
 
 	bc_vec_npop(&G.prog.stack, G.prog.stack.len - 1);
-	bc_vec_npop(&G.prog.results, G.prog.results.len);
+	bc_vec_pop_all(&G.prog.results);
 
 	f = bc_vec_item(&G.prog.fns, 0);
 	ip = bc_vec_top(&G.prog.stack);
@@ -6683,7 +6692,7 @@ static BcStatus bc_program_exec(void)
 
 			case BC_INST_CLEAR_STACK:
 			{
-				bc_vec_npop(&G.prog.results, G.prog.results.len);
+				bc_vec_pop_all(&G.prog.results);
 				break;
 			}
 
@@ -6896,8 +6905,8 @@ static BcStatus bc_vm_stdin(void)
 	G.prog.file = bc_program_stdin_name;
 	bc_lex_file(&G.prs.l, bc_program_stdin_name);
 
-	bc_vec_init(&buffer, sizeof(char), NULL);
-	bc_vec_init(&buf, sizeof(char), NULL);
+	bc_char_vec_init(&buffer);
+	bc_char_vec_init(&buf);
 	bc_vec_pushByte(&buffer, '\0');
 
 	// This loop is complex because the vm tries not to send any lines that end
@@ -6953,7 +6962,7 @@ static BcStatus bc_vm_stdin(void)
 			fputs("ready for more input\n", stderr);
 		}
 
-		bc_vec_npop(&buffer, buffer.len);
+		bc_vec_pop_all(&buffer);
 	}
 
 	if (str) {
