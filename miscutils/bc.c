@@ -189,8 +189,6 @@ typedef struct BcVec {
 #define bc_vec_pop(v) (bc_vec_npop((v), 1))
 #define bc_vec_top(v) (bc_vec_item_rev((v), 0))
 
-#define bc_map_init(v) (bc_vec_init((v), sizeof(BcId), bc_id_free))
-
 typedef signed char BcDig;
 
 typedef struct BcNum {
@@ -7083,16 +7081,16 @@ static void bc_program_init(size_t line_len)
 	bc_num_one(&G.prog.one);
 
 	bc_vec_init(&G.prog.fns, sizeof(BcFunc), bc_func_free);
-	bc_map_init(&G.prog.fn_map);
+	bc_vec_init(&G.prog.fn_map, sizeof(BcId), bc_id_free);
 
 	bc_program_addFunc(xstrdup("(main)"), &idx);
 	bc_program_addFunc(xstrdup("(read)"), &idx);
 
 	bc_vec_init(&G.prog.vars, sizeof(BcVec), bc_vec_free);
-	bc_map_init(&G.prog.var_map);
+	bc_vec_init(&G.prog.var_map, sizeof(BcId), bc_id_free);
 
 	bc_vec_init(&G.prog.arrs, sizeof(BcVec), bc_vec_free);
-	bc_map_init(&G.prog.arr_map);
+	bc_vec_init(&G.prog.arr_map, sizeof(BcId), bc_id_free);
 
 	bc_vec_init(&G.prog.strs, sizeof(char *), bc_string_free);
 	bc_vec_init(&G.prog.consts, sizeof(char *), bc_string_free);
