@@ -7121,7 +7121,23 @@ static BcStatus bc_vm_run(int argc, char *argv[],
 
 	if (G.ttyin) {
 #if ENABLE_FEATURE_BC_SIGNALS
-		signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
+		// With SA_RESTART, most system calls will restart
+		// (IOW: they won't fail with EINTR).
+		// In particular, this means ^C won't cause
+		// stdout to get into "error state" if SIGINT hits
+		// within write() syscall.
+		// The downside is that ^C while line input is taken
+		// will only be handled after [Enter] since read()
+		// from stdin is not interrupted by ^C either,
+		// it restarts, thus fgetc() does not return on ^C.
+		signal_SA_RESTART_empty_mask(SIGINT, record_signo);
+
+		// Without SA_RESTART, this exhibits a bug:
+		// "while (1) print 1" and try ^C-ing it.
+		// Intermittently, instead of returning to input line,
+		// you'll get "output error: Interrupted system call"
+		// and exit.
+		//signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
 #endif
 		if (!(option_mask32 & BC_FLAG_Q))
 			bc_vm_info();
