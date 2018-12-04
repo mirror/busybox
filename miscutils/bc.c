@@ -445,19 +445,21 @@ typedef enum BcLexType {
 	BC_LEX_NAME,
 	BC_LEX_NUMBER,
 
-	BC_LEX_KEY_AUTO,
+	BC_LEX_KEY_1st_keyword,
+	BC_LEX_KEY_AUTO = BC_LEX_KEY_1st_keyword,
 	BC_LEX_KEY_BREAK,
 	BC_LEX_KEY_CONTINUE,
 	BC_LEX_KEY_DEFINE,
 	BC_LEX_KEY_ELSE,
 	BC_LEX_KEY_FOR,
 	BC_LEX_KEY_HALT,
-	BC_LEX_KEY_IBASE,
+	// code uses "type - BC_LEX_KEY_IBASE + BC_INST_IBASE" construct,
+	BC_LEX_KEY_IBASE,  // relative order should match for: BC_INST_IBASE
 	BC_LEX_KEY_IF,
-	BC_LEX_KEY_LAST,
+	BC_LEX_KEY_LAST,   // relative order should match for: BC_INST_LAST
 	BC_LEX_KEY_LENGTH,
 	BC_LEX_KEY_LIMITS,
-	BC_LEX_KEY_OBASE,
+	BC_LEX_KEY_OBASE,  // relative order should match for: BC_INST_OBASE
 	BC_LEX_KEY_PRINT,
 	BC_LEX_KEY_QUIT,
 	BC_LEX_KEY_READ,
@@ -494,8 +496,68 @@ typedef enum BcLexType {
 	BC_LEX_NQUIT,
 	BC_LEX_SCALE_FACTOR,
 #endif
-
 } BcLexType;
+// must match order of BC_LEX_KEY_foo etc above
+#if ENABLE_BC
+struct BcLexKeyword {
+	char name8[8];
+};
+#define BC_LEX_KW_ENTRY(a, b, c)            \
+	{ .name8 = a /*, .len = b, .posix = c*/ }
+static const struct BcLexKeyword bc_lex_kws[20] = {
+	BC_LEX_KW_ENTRY("auto"    , 4, 1), // 0
+	BC_LEX_KW_ENTRY("break"   , 5, 1), // 1
+	BC_LEX_KW_ENTRY("continue", 8, 0), // 2 note: this one has no terminating NUL
+	BC_LEX_KW_ENTRY("define"  , 6, 1), // 3
+
+	BC_LEX_KW_ENTRY("else"    , 4, 0), // 4
+	BC_LEX_KW_ENTRY("for"     , 3, 1), // 5
+	BC_LEX_KW_ENTRY("halt"    , 4, 0), // 6
+	BC_LEX_KW_ENTRY("ibase"   , 5, 1), // 7
+
+	BC_LEX_KW_ENTRY("if"      , 2, 1), // 8
+	BC_LEX_KW_ENTRY("last"    , 4, 0), // 9
+	BC_LEX_KW_ENTRY("length"  , 6, 1), // 10
+	BC_LEX_KW_ENTRY("limits"  , 6, 0), // 11
+
+	BC_LEX_KW_ENTRY("obase"   , 5, 1), // 12
+	BC_LEX_KW_ENTRY("print"   , 5, 0), // 13
+	BC_LEX_KW_ENTRY("quit"    , 4, 1), // 14
+	BC_LEX_KW_ENTRY("read"    , 4, 0), // 15
+
+	BC_LEX_KW_ENTRY("return"  , 6, 1), // 16
+	BC_LEX_KW_ENTRY("scale"   , 5, 1), // 17
+	BC_LEX_KW_ENTRY("sqrt"    , 4, 1), // 18
+	BC_LEX_KW_ENTRY("while"   , 5, 1), // 19
+};
+enum {
+	POSIX_KWORD_MASK = 0
+		| (1 << 0)
+		| (1 << 1)
+		| (0 << 2)
+		| (1 << 3)
+		\
+		| (0 << 4)
+		| (1 << 5)
+		| (0 << 6)
+		| (1 << 7)
+		\
+		| (1 << 8)
+		| (0 << 9)
+		| (1 << 10)
+		| (0 << 11)
+		\
+		| (1 << 12)
+		| (0 << 13)
+		| (1 << 14)
+		| (0 << 15)
+		\
+		| (1 << 16)
+		| (1 << 17)
+		| (1 << 18)
+		| (1 << 19)
+};
+#endif
 
 struct BcLex;
 typedef BcStatus (*BcLexNext)(struct BcLex *);
@@ -610,17 +672,6 @@ typedef struct BcParse {
 } BcParse;
 
 #if ENABLE_BC
-
-typedef struct BcLexKeyword {
-	const char name[9];
-	const char len;
-	const bool posix;
-} BcLexKeyword;
-
-#define BC_LEX_KW_ENTRY(a, b, c)            \
-	{                                       \
-		.name = a, .len = (b), .posix = (c) \
-	}
 
 static BcStatus bc_lex_token(BcLex *l);
 
@@ -755,28 +806,6 @@ struct globals {
 static void bc_vm_info(void);
 
 #if ENABLE_BC
-static const BcLexKeyword bc_lex_kws[20] = {
-	BC_LEX_KW_ENTRY("auto", 4, true),
-	BC_LEX_KW_ENTRY("break", 5, true),
-	BC_LEX_KW_ENTRY("continue", 8, false),
-	BC_LEX_KW_ENTRY("define", 6, true),
-	BC_LEX_KW_ENTRY("else", 4, false),
-	BC_LEX_KW_ENTRY("for", 3, true),
-	BC_LEX_KW_ENTRY("halt", 4, false),
-	BC_LEX_KW_ENTRY("ibase", 5, true),
-	BC_LEX_KW_ENTRY("if", 2, true),
-	BC_LEX_KW_ENTRY("last", 4, false),
-	BC_LEX_KW_ENTRY("length", 6, true),
-	BC_LEX_KW_ENTRY("limits", 6, false),
-	BC_LEX_KW_ENTRY("obase", 5, true),
-	BC_LEX_KW_ENTRY("print", 5, false),
-	BC_LEX_KW_ENTRY("quit", 4, true),
-	BC_LEX_KW_ENTRY("read", 4, false),
-	BC_LEX_KW_ENTRY("return", 6, true),
-	BC_LEX_KW_ENTRY("scale", 5, true),
-	BC_LEX_KW_ENTRY("sqrt", 4, true),
-	BC_LEX_KW_ENTRY("while", 5, true),
-};
 
 // This is an array that corresponds to token types. An entry is
 // true if the token is valid in an expression, false otherwise.
@@ -824,8 +853,6 @@ static const BcLexType dc_lex_regs[] = {
 	BC_LEX_ELSE, BC_LEX_LOAD, BC_LEX_LOAD_POP, BC_LEX_OP_ASSIGN,
 	BC_LEX_STORE_PUSH,
 };
-
-static const size_t dc_lex_regs_len = sizeof(dc_lex_regs) / sizeof(BcLexType);
 
 static const BcLexType dc_lex_tokens[] = {
 	BC_LEX_OP_MODULUS, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_LPAREN,
@@ -892,86 +919,178 @@ static const char bc_program_stdin_name[] = "<stdin>";
 static const char *bc_lib_name = "gen/lib.bc";
 
 static const char bc_lib[] = {
-  115,99,97,108,101,61,50,48,10,100,101,102,105,110,101,32,101,40,120,41,123,
-  10,9,97,117,116,111,32,98,44,115,44,110,44,114,44,100,44,105,44,112,44,102,
-  44,118,10,9,98,61,105,98,97,115,101,10,9,105,98,97,115,101,61,65,10,9,105,102,
-  40,120,60,48,41,123,10,9,9,110,61,49,10,9,9,120,61,45,120,10,9,125,10,9,115,
-  61,115,99,97,108,101,10,9,114,61,54,43,115,43,48,46,52,52,42,120,10,9,115,99,
-  97,108,101,61,115,99,97,108,101,40,120,41,43,49,10,9,119,104,105,108,101,40,
-  120,62,49,41,123,10,9,9,100,43,61,49,10,9,9,120,47,61,50,10,9,9,115,99,97,108,
-  101,43,61,49,10,9,125,10,9,115,99,97,108,101,61,114,10,9,114,61,120,43,49,10,
-  9,112,61,120,10,9,102,61,118,61,49,10,9,102,111,114,40,105,61,50,59,118,33,
-  61,48,59,43,43,105,41,123,10,9,9,112,42,61,120,10,9,9,102,42,61,105,10,9,9,
-  118,61,112,47,102,10,9,9,114,43,61,118,10,9,125,10,9,119,104,105,108,101,40,
-  40,100,45,45,41,33,61,48,41,114,42,61,114,10,9,115,99,97,108,101,61,115,10,
-  9,105,98,97,115,101,61,98,10,9,105,102,40,110,33,61,48,41,114,101,116,117,114,
-  110,40,49,47,114,41,10,9,114,101,116,117,114,110,40,114,47,49,41,10,125,10,
-  100,101,102,105,110,101,32,108,40,120,41,123,10,9,97,117,116,111,32,98,44,115,
-  44,114,44,112,44,97,44,113,44,105,44,118,10,9,98,61,105,98,97,115,101,10,9,
-  105,98,97,115,101,61,65,10,9,105,102,40,120,60,61,48,41,123,10,9,9,114,61,40,
-  49,45,49,48,94,115,99,97,108,101,41,47,49,10,9,9,105,98,97,115,101,61,98,10,
-  9,9,114,101,116,117,114,110,40,114,41,10,9,125,10,9,115,61,115,99,97,108,101,
-  10,9,115,99,97,108,101,43,61,54,10,9,112,61,50,10,9,119,104,105,108,101,40,
-  120,62,61,50,41,123,10,9,9,112,42,61,50,10,9,9,120,61,115,113,114,116,40,120,
-  41,10,9,125,10,9,119,104,105,108,101,40,120,60,61,48,46,53,41,123,10,9,9,112,
-  42,61,50,10,9,9,120,61,115,113,114,116,40,120,41,10,9,125,10,9,114,61,97,61,
-  40,120,45,49,41,47,40,120,43,49,41,10,9,113,61,97,42,97,10,9,118,61,49,10,9,
-  102,111,114,40,105,61,51,59,118,33,61,48,59,105,43,61,50,41,123,10,9,9,97,42,
-  61,113,10,9,9,118,61,97,47,105,10,9,9,114,43,61,118,10,9,125,10,9,114,42,61,
-  112,10,9,115,99,97,108,101,61,115,10,9,105,98,97,115,101,61,98,10,9,114,101,
-  116,117,114,110,40,114,47,49,41,10,125,10,100,101,102,105,110,101,32,115,40,
-  120,41,123,10,9,97,117,116,111,32,98,44,115,44,114,44,110,44,97,44,113,44,105,
-  10,9,98,61,105,98,97,115,101,10,9,105,98,97,115,101,61,65,10,9,115,61,115,99,
-  97,108,101,10,9,115,99,97,108,101,61,49,46,49,42,115,43,50,10,9,97,61,97,40,
-  49,41,10,9,105,102,40,120,60,48,41,123,10,9,9,110,61,49,10,9,9,120,61,45,120,
-  10,9,125,10,9,115,99,97,108,101,61,48,10,9,113,61,40,120,47,97,43,50,41,47,
-  52,10,9,120,61,120,45,52,42,113,42,97,10,9,105,102,40,113,37,50,33,61,48,41,
-  120,61,45,120,10,9,115,99,97,108,101,61,115,43,50,10,9,114,61,97,61,120,10,
-  9,113,61,45,120,42,120,10,9,102,111,114,40,105,61,51,59,97,33,61,48,59,105,
-  43,61,50,41,123,10,9,9,97,42,61,113,47,40,105,42,40,105,45,49,41,41,10,9,9,
-  114,43,61,97,10,9,125,10,9,115,99,97,108,101,61,115,10,9,105,98,97,115,101,
-  61,98,10,9,105,102,40,110,33,61,48,41,114,101,116,117,114,110,40,45,114,47,
-  49,41,10,9,114,101,116,117,114,110,40,114,47,49,41,10,125,10,100,101,102,105,
-  110,101,32,99,40,120,41,123,10,9,97,117,116,111,32,98,44,115,10,9,98,61,105,
-  98,97,115,101,10,9,105,98,97,115,101,61,65,10,9,115,61,115,99,97,108,101,10,
-  9,115,99,97,108,101,42,61,49,46,50,10,9,120,61,115,40,50,42,97,40,49,41,43,
-  120,41,10,9,115,99,97,108,101,61,115,10,9,105,98,97,115,101,61,98,10,9,114,
-  101,116,117,114,110,40,120,47,49,41,10,125,10,100,101,102,105,110,101,32,97,
-  40,120,41,123,10,9,97,117,116,111,32,98,44,115,44,114,44,110,44,97,44,109,44,
-  116,44,102,44,105,44,117,10,9,98,61,105,98,97,115,101,10,9,105,98,97,115,101,
-  61,65,10,9,110,61,49,10,9,105,102,40,120,60,48,41,123,10,9,9,110,61,45,49,10,
-  9,9,120,61,45,120,10,9,125,10,9,105,102,40,120,61,61,49,41,123,10,9,9,105,102,
-  40,115,99,97,108,101,60,54,53,41,123,10,9,9,9,114,101,116,117,114,110,40,46,
-  55,56,53,51,57,56,49,54,51,51,57,55,52,52,56,51,48,57,54,49,53,54,54,48,56,
-  52,53,56,49,57,56,55,53,55,50,49,48,52,57,50,57,50,51,52,57,56,52,51,55,55,
-  54,52,53,53,50,52,51,55,51,54,49,52,56,48,47,110,41,10,9,9,125,10,9,125,10,
-  9,105,102,40,120,61,61,46,50,41,123,10,9,9,105,102,40,115,99,97,108,101,60,
-  54,53,41,123,10,9,9,9,114,101,116,117,114,110,40,46,49,57,55,51,57,53,53,53,
-  57,56,52,57,56,56,48,55,53,56,51,55,48,48,52,57,55,54,53,49,57,52,55,57,48,
-  50,57,51,52,52,55,53,56,53,49,48,51,55,56,55,56,53,50,49,48,49,53,49,55,54,
-  56,56,57,52,48,50,47,110,41,10,9,9,125,10,9,125,10,9,115,61,115,99,97,108,101,
-  10,9,105,102,40,120,62,46,50,41,123,10,9,9,115,99,97,108,101,43,61,53,10,9,
-  9,97,61,97,40,46,50,41,10,9,125,10,9,115,99,97,108,101,61,115,43,51,10,9,119,
-  104,105,108,101,40,120,62,46,50,41,123,10,9,9,109,43,61,49,10,9,9,120,61,40,
-  120,45,46,50,41,47,40,49,43,46,50,42,120,41,10,9,125,10,9,114,61,117,61,120,
-  10,9,102,61,45,120,42,120,10,9,116,61,49,10,9,102,111,114,40,105,61,51,59,116,
-  33,61,48,59,105,43,61,50,41,123,10,9,9,117,42,61,102,10,9,9,116,61,117,47,105,
-  10,9,9,114,43,61,116,10,9,125,10,9,115,99,97,108,101,61,115,10,9,105,98,97,
-  115,101,61,98,10,9,114,101,116,117,114,110,40,40,109,42,97,43,114,41,47,110,
-  41,10,125,10,100,101,102,105,110,101,32,106,40,110,44,120,41,123,10,9,97,117,
-  116,111,32,98,44,115,44,111,44,97,44,105,44,118,44,102,10,9,98,61,105,98,97,
-  115,101,10,9,105,98,97,115,101,61,65,10,9,115,61,115,99,97,108,101,10,9,115,
-  99,97,108,101,61,48,10,9,110,47,61,49,10,9,105,102,40,110,60,48,41,123,10,9,
-  9,110,61,45,110,10,9,9,105,102,40,110,37,50,61,61,49,41,111,61,49,10,9,125,
-  10,9,97,61,49,10,9,102,111,114,40,105,61,50,59,105,60,61,110,59,43,43,105,41,
-  97,42,61,105,10,9,115,99,97,108,101,61,49,46,53,42,115,10,9,97,61,40,120,94,
-  110,41,47,50,94,110,47,97,10,9,114,61,118,61,49,10,9,102,61,45,120,42,120,47,
-  52,10,9,115,99,97,108,101,61,115,99,97,108,101,43,108,101,110,103,116,104,40,
-  97,41,45,115,99,97,108,101,40,97,41,10,9,102,111,114,40,105,61,49,59,118,33,
-  61,48,59,43,43,105,41,123,10,9,9,118,61,118,42,102,47,105,47,40,110,43,105,
-  41,10,9,9,114,43,61,118,10,9,125,10,9,115,99,97,108,101,61,115,10,9,105,98,
-  97,115,101,61,98,10,9,105,102,40,111,33,61,48,41,97,61,45,97,10,9,114,101,116,
-  117,114,110,40,97,42,114,47,49,41,10,125,10,0
+  "scale=20"
+"\ndefine e(x){"
+"\n	auto b,s,n,r,d,i,p,f,v"
+"\n	b=ibase"
+"\n	ibase=A"
+"\n	if(x<0){"
+"\n		n=1"
+"\n		x=-x"
+"\n	}"
+"\n	s=scale"
+"\n	r=6+s+0.44*x"
+"\n	scale=scale(x)+1"
+"\n	while(x>1){"
+"\n		d+=1"
+"\n		x/=2"
+"\n		scale+=1"
+"\n	}"
+"\n	scale=r"
+"\n	r=x+1"
+"\n	p=x"
+"\n	f=v=1"
+"\n	for(i=2;v!=0;++i){"
+"\n		p*=x"
+"\n		f*=i"
+"\n		v=p/f"
+"\n		r+=v"
+"\n	}"
+"\n	while((d--)!=0)r*=r"
+"\n	scale=s"
+"\n	ibase=b"
+"\n	if(n!=0)return(1/r)"
+"\n	return(r/1)"
+"\n}"
+"\ndefine l(x){"
+"\n	auto b,s,r,p,a,q,i,v"
+"\n	b=ibase"
+"\n	ibase=A"
+"\n	if(x<=0){"
+"\n		r=(1-10^scale)/1"
+"\n		ibase=b"
+"\n		return(r)"
+"\n	}"
+"\n	s=scale"
+"\n	scale+=6"
+"\n	p=2"
+"\n	while(x>=2){"
+"\n		p*=2"
+"\n		x=sqrt(x)"
+"\n	}"
+"\n	while(x<=0.5){"
+"\n		p*=2"
+"\n		x=sqrt(x)"
+"\n	}"
+"\n	r=a=(x-1)/(x+1)"
+"\n	q=a*a"
+"\n	v=1"
+"\n	for(i=3;v!=0;i+=2){"
+"\n		a*=q"
+"\n		v=a/i"
+"\n		r+=v"
+"\n	}"
+"\n	r*=p"
+"\n	scale=s"
+"\n	ibase=b"
+"\n	return(r/1)"
+"\n}"
+"\ndefine s(x){"
+"\n	auto b,s,r,n,a,q,i"
+"\n	b=ibase"
+"\n	ibase=A"
+"\n	s=scale"
+"\n	scale=1.1*s+2"
+"\n	a=a(1)"
+"\n	if(x<0){"
+"\n		n=1"
+"\n		x=-x"
+"\n	}"
+"\n	scale=0"
+"\n	q=(x/a+2)/4"
+"\n	x=x-4*q*a"
+"\n	if(q%2!=0)x=-x"
+"\n	scale=s+2"
+"\n	r=a=x"
+"\n	q=-x*x"
+"\n	for(i=3;a!=0;i+=2){"
+"\n		a*=q/(i*(i-1))"
+"\n		r+=a"
+"\n	}"
+"\n	scale=s"
+"\n	ibase=b"
+"\n	if(n!=0)return(-r/1)"
+"\n	return(r/1)"
+"\n}"
+"\ndefine c(x){"
+"\n	auto b,s"
+"\n	b=ibase"
+"\n	ibase=A"
+"\n	s=scale"
+"\n	scale*=1.2"
+"\n	x=s(2*a(1)+x)"
+"\n	scale=s"
+"\n	ibase=b"
+"\n	return(x/1)"
+"\n}"
+"\ndefine a(x){"
+"\n	auto b,s,r,n,a,m,t,f,i,u"
+"\n	b=ibase"
+"\n	ibase=A"
+"\n	n=1"
+"\n	if(x<0){"
+"\n		n=-1"
+"\n		x=-x"
+"\n	}"
+"\n	if(x==1){"
+"\n		if(scale<65){"
+"\n			return(.7853981633974483096156608458198757210492923498437764552437361480/n)"
+"\n		}"
+"\n	}"
+"\n	if(x==.2){"
+"\n		if(scale<65){"
+"\n			return(.1973955598498807583700497651947902934475851037878521015176889402/n)"
+"\n		}"
+"\n	}"
+"\n	s=scale"
+"\n	if(x>.2){"
+"\n		scale+=5"
+"\n		a=a(.2)"
+"\n	}"
+"\n	scale=s+3"
+"\n	while(x>.2){"
+"\n		m+=1"
+"\n		x=(x-.2)/(1+.2*x)"
+"\n	}"
+"\n	r=u=x"
+"\n	f=-x*x"
+"\n	t=1"
+"\n	for(i=3;t!=0;i+=2){"
+"\n		u*=f"
+"\n		t=u/i"
+"\n		r+=t"
+"\n	}"
+"\n	scale=s"
+"\n	ibase=b"
+"\n	return((m*a+r)/n)"
+"\n}"
+"\ndefine j(n,x){"
+"\n	auto b,s,o,a,i,v,f"
+"\n	b=ibase"
+"\n	ibase=A"
+"\n	s=scale"
+"\n	scale=0"
+"\n	n/=1"
+"\n	if(n<0){"
+"\n		n=-n"
+"\n		if(n%2==1)o=1"
+"\n	}"
+"\n	a=1"
+"\n	for(i=2;i<=n;++i)a*=i"
+"\n	scale=1.5*s"
+"\n	a=(x^n)/2^n/a"
+"\n	r=v=1"
+"\n	f=-x*x/4"
+"\n	scale=scale+length(a)-scale(a)"
+"\n	for(i=1;v!=0;++i){"
+"\n		v=v*f/i/(n+i)"
+"\n		r+=v"
+"\n	}"
+"\n	scale=s"
+"\n	ibase=b"
+"\n	if(o!=0)a=-a"
+"\n	return(a*r/1)"
+"\n}"
 };
 #endif // ENABLE_BC
 
@@ -2913,32 +3032,35 @@ static BcStatus bc_lex_text(BcLex *l, const char *text)
 static BcStatus bc_lex_identifier(BcLex *l)
 {
 	BcStatus s;
-	size_t i;
+	unsigned i;
 	const char *buf = l->buf + l->i - 1;
 
-	for (i = 0; i < sizeof(bc_lex_kws) / sizeof(bc_lex_kws[0]); ++i) {
-
-		unsigned long len = (unsigned long) bc_lex_kws[i].len;
-
-		if (strncmp(buf, bc_lex_kws[i].name, len) == 0) {
-
-			l->t.t = BC_LEX_KEY_AUTO + (BcLexType) i;
-
-			if (!bc_lex_kws[i].posix) {
-				s = bc_posix_error("POSIX does not allow the following keyword:"); // bc_lex_kws[i].name
-				if (s) return s;
-			}
-
-			// We minus 1 because the index has already been incremented.
-			l->i += len - 1;
-			return BC_STATUS_SUCCESS;
+	for (i = 0; i < ARRAY_SIZE(bc_lex_kws); ++i) {
+		const char *keyword8 = bc_lex_kws[i].name8;
+		unsigned j = 0;
+		while (buf[j] != '\0' && buf[j] == keyword8[j]) {
+			j++;
+			if (j == 8) goto match;
 		}
+		if (keyword8[j] != '\0')
+			continue;
+ match:
+		// buf starts with keyword bc_lex_kws[i]
+		l->t.t = BC_LEX_KEY_1st_keyword + i;
+		if ((1 << i) & POSIX_KWORD_MASK) {
+			s = bc_posix_error("POSIX does not allow the following keyword:"); // bc_lex_kws[i].name8
+			if (s) return s;
+		}
+
+		// We minus 1 because the index has already been incremented.
+		l->i += j - 1;
+		return BC_STATUS_SUCCESS;
 	}
 
 	s = bc_lex_name(l);
 	if (s) return s;
 
-	if (l->t.v.len - 1 > 1)
+	if (l->t.v.len > 2)
 		s = bc_posix_error("POSIX only allows one character names; the following is bad:"); // buf
 
 	return s;
@@ -3351,8 +3473,9 @@ static BcStatus dc_lex_token(BcLex *l)
 	char c = l->buf[l->i++], c2;
 	size_t i;
 
-	for (i = 0; i < dc_lex_regs_len; ++i) {
-		if (l->t.last == dc_lex_regs[i]) return dc_lex_register(l);
+	for (i = 0; i < ARRAY_SIZE(dc_lex_regs); ++i) {
+		if (l->t.last == dc_lex_regs[i])
+			return dc_lex_register(l);
 	}
 
 	if (c >= '%' && c <= '~' &&
