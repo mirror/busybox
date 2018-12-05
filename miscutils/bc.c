@@ -786,6 +786,10 @@ struct globals {
 	BcParse prs;
 	BcProgram prog;
 
+	// For error messages. Can be set to current parsed line,
+	// or [TODO] to current executing line (can be before last parsed one)
+	unsigned err_line;
+
 	BcVec files;
 
 	char *env_args;
@@ -928,19 +932,27 @@ static void quit(void)
 	exit(0);
 }
 
+static void bc_verror_msg(const char *fmt, va_list p)
+{
+	const char *sv = sv; /* for compiler */
+	if (G.prog.file) {
+		sv = applet_name;
+		applet_name = xasprintf("%s: %s:%u", applet_name, G.prog.file, G.err_line);
+	}
+	bb_verror_msg(fmt, p, NULL);
+	if (G.prog.file) {
+		free((char*)applet_name);
+		applet_name = sv;
+	}
+}
+
 static NOINLINE int bc_error_fmt(const char *fmt, ...)
 {
-	const char *sv;
 	va_list p;
 
-	sv = applet_name;
-	if (G.prog.file)
-		applet_name = G.prog.file;
-
 	va_start(p, fmt);
-	bb_verror_msg(fmt, p, NULL);
+	bc_verror_msg(fmt, p);
 	va_end(p);
-	applet_name = sv;
 
 	if (!G.ttyin)
 		exit(1);
@@ -949,21 +961,15 @@ static NOINLINE int bc_error_fmt(const char *fmt, ...)
 
 static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 {
-	const char *sv;
 	va_list p;
 
 	// Are non-POSIX constructs totally ok?
 	if (!(option_mask32 & (BC_FLAG_S|BC_FLAG_W)))
 		return BC_STATUS_SUCCESS; // yes
 
-	sv = applet_name;
-	if (G.prog.file)
-		applet_name = G.prog.file;
-
 	va_start(p, fmt);
-	bb_verror_msg(fmt, p, NULL);
+	bc_verror_msg(fmt, p);
 	va_end(p);
-	applet_name = sv;
 
 	// Do we treat non-POSIX constructs as errors?
 	if (!(option_mask32 & BC_FLAG_S))
@@ -2877,7 +2883,7 @@ static void bc_lex_free(BcLex *l)
 
 static void bc_lex_file(BcLex *l)
 {
-	l->line = 1;
+	G.err_line = l->line = 1;
 	l->newline = false;
 }
 
@@ -2889,6 +2895,7 @@ static BcStatus bc_lex_next(BcLex *l)
 	if (l->t.last == BC_LEX_EOF) return bc_error("end of file");
 
 	l->line += l->newline;
+	G.err_line = l->line;
 	l->t.t = BC_LEX_EOF;
 
 	l->newline = (l->i == l->len);
@@ -2971,6 +2978,7 @@ static BcStatus bc_lex_string(BcLex *l)
 
 	l->i = i + 1;
 	l->line += nls;
+	G.err_line = l->line;
 
 	return BC_STATUS_SUCCESS;
 }
@@ -3011,6 +3019,7 @@ static BcStatus bc_lex_comment(BcLex *l)
 
 	l->i = i + 1;
 	l->line += nls;
+	G.err_line = l->line;
 
 	return BC_STATUS_SUCCESS;
 }
@@ -3347,6 +3356,7 @@ static BcStatus dc_lex_string(BcLex *l)
 
 	l->i = i;
 	l->line += nls;
+	G.err_line = l->line;
 
 	return BC_STATUS_SUCCESS;
 }
