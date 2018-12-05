@@ -4047,14 +4047,11 @@ static BcStatus bc_parse_return(BcParse *p)
 	else {
 
 		s = bc_parse_expr(p, 0, bc_parse_next_expr);
-		if (s && s != BC_STATUS_PARSE_EMPTY_EXP)
-			return s;
-
 		if (s == BC_STATUS_PARSE_EMPTY_EXP) {
 			bc_parse_push(p, BC_INST_RET0);
 			s = bc_lex_next(&p->l);
-			if (s) return s;
 		}
+		if (s) return s;
 
 		if (!paren || p->l.t.last != BC_LEX_RPAREN) {
 			s = bc_posix_error("POSIX requires parentheses around return expressions");
