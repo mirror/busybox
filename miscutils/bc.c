@@ -1284,14 +1284,14 @@ static char* bc_read_file(const char *path)
 	return buf;
 }
 
-static void bc_args(int argc, char **argv)
+static void bc_args(char **argv)
 {
 	unsigned opts;
 	int i;
 
 	GETOPT_RESET();
 #if ENABLE_FEATURE_BC_LONG_OPTIONS
-	opts = getopt32long(argv, "xwvsqli",
+	opts = option_mask32 |= getopt32long(argv, "xwvsqli",
 		"extended-register\0" No_argument "x"
 		"warn\0"              No_argument "w"
 		"version\0"           No_argument "v"
@@ -1301,16 +1301,15 @@ static void bc_args(int argc, char **argv)
 		"interactive\0"       No_argument "i"
 	);
 #else
-	opts = getopt32(argv, "xwvsqli");
+	opts = option_mask32 |= getopt32(argv, "xwvsqli");
 #endif
 	if (getenv("POSIXLY_CORRECT"))
 		option_mask32 |= BC_FLAG_S;
 
+///should be in bc_vm_run() instead??
 	if (opts & BC_FLAG_V) bc_vm_info();
-	// should not be necessary, getopt32() handles this??
-	//if (argv[optind] && !strcmp(argv[optind], "--")) ++optind;
 
-	for (i = optind; i < argc; ++i)
+	for (i = optind; argv[i]; ++i)
 		bc_vec_push(&G.files, argv + i);
 }
 
@@ -6870,10 +6869,11 @@ static BcStatus bc_program_exec(void)
 #if ENABLE_BC
 static void bc_vm_envArgs(void)
 {
-	static const char* const bc_args_env_name = "BC_ENV_ARGS";
+	static char *const nullptr = NULL;
 
 	BcVec v;
-	char *env_args = getenv(bc_args_env_name), *buf;
+	char *env_args = getenv("BC_ENV_ARGS");
+	char *buf;
 
 	if (!env_args) return;
 
@@ -6881,40 +6881,34 @@ static void bc_vm_envArgs(void)
 	buf = G.env_args;
 
 	bc_vec_init(&v, sizeof(char *), NULL);
-	bc_vec_push(&v, &bc_args_env_name);
+	bc_vec_push(&v, &nullptr);
 
-	while (*buf != 0) {
-		if (!isspace(*buf)) {
-			bc_vec_push(&v, &buf);
-			while (*buf != 0 && !isspace(*buf)) ++buf;
-			if (*buf != 0) (*(buf++)) = '\0';
-		}
-		else
-			++buf;
+	while (*(buf = skip_whitespace(buf)) != '\0') {
+		bc_vec_push(&v, &buf);
+		buf = skip_non_whitespace(buf);
+		if (!*buf)
+			break;
+		*buf++ = '\0';
 	}
 
-	bc_args((int) v.len, (char **) v.v);
+	bc_vec_push(&v, &nullptr);
+	bc_args((char **) v.v);
 
 	bc_vec_free(&v);
 }
 #endif // ENABLE_BC
 
-static size_t bc_vm_envLen(const char *var)
+static unsigned bc_vm_envLen(const char *var)
 {
-	char *lenv = getenv(var);
-	size_t i, len = BC_NUM_PRINT_WIDTH;
-	int num;
+	char *lenv;
+	unsigned len;
 
+	lenv = getenv(var);
+	len = BC_NUM_PRINT_WIDTH;
 	if (!lenv) return len;
 
-	len = strlen(lenv);
-
-	for (num = 1, i = 0; num && i < len; ++i) num = isdigit(lenv[i]);
-	if (num) {
-		len = (size_t) atoi(lenv) - 1;
-		if (len < 2 || len >= INT32_MAX) len = BC_NUM_PRINT_WIDTH;
-	}
-	else
+	len = bb_strtou(lenv, NULL, 10) - 1;
+	if (errno || len < 2 || len >= INT_MAX)
 		len = BC_NUM_PRINT_WIDTH;
 
 	return len;
@@ -7314,7 +7308,7 @@ static void bc_vm_free(void)
 }
 #endif
 
-static void bc_program_init(size_t line_len)
+static void bc_program_init(void)
 {
 	size_t idx;
 	BcInstPtr ip;
@@ -7323,7 +7317,6 @@ static void bc_program_init(size_t line_len)
 	memset(&ip, 0, sizeof(BcInstPtr));
 
 	/* G.prog.nchars = G.prog.scale = 0; - already is */
-	G.prog.len = line_len;
 
 	bc_num_init(&G.prog.ib, BC_NUM_DEF_SIZE);
 	bc_num_ten(&G.prog.ib);
@@ -7370,17 +7363,12 @@ static void bc_program_init(size_t line_len)
 	bc_vec_push(&G.prog.stack, &ip);
 }
 
-static void bc_vm_init(const char *env_len)
+static void bc_vm_init(void)
 {
-	size_t len = bc_vm_envLen(env_len);
-
 	bc_vec_init(&G.files, sizeof(char *), NULL);
-
-	if (IS_BC) {
+	if (IS_BC)
 		bc_vm_envArgs();
-	}
-
-	bc_program_init(len);
+	bc_program_init();
 	if (IS_BC) {
 		bc_parse_init(&G.prs, BC_PROG_MAIN);
 	} else {
@@ -7388,16 +7376,16 @@ static void bc_vm_init(const char *env_len)
 	}
 }
 
-static BcStatus bc_vm_run(int argc, char *argv[],
-                          const char *env_len)
+static BcStatus bc_vm_run(char **argv, const char *env_len)
 {
 	BcStatus st;
 
-	bc_vm_init(env_len);
-	bc_args(argc, argv);
+	G.prog.len = bc_vm_envLen(env_len);
+
+	bc_vm_init();
+	bc_args(argv);
 
 	G.ttyin = isatty(0);
-
 	if (G.ttyin) {
 #if ENABLE_FEATURE_BC_SIGNALS
 		// With SA_RESTART, most system calls will restart
@@ -7421,6 +7409,7 @@ static BcStatus bc_vm_run(int argc, char *argv[],
 		if (!(option_mask32 & BC_FLAG_Q))
 			bc_vm_info();
 	}
+
 	st = bc_vm_exec();
 
 #if ENABLE_FEATURE_CLEAN_UP
@@ -7432,23 +7421,23 @@ static BcStatus bc_vm_run(int argc, char *argv[],
 
 #if ENABLE_BC
 int bc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int bc_main(int argc, char **argv)
+int bc_main(int argc UNUSED_PARAM, char **argv)
 {
 	INIT_G();
 	G.sbgn = G.send = '"';
 
-	return bc_vm_run(argc, argv, "BC_LINE_LENGTH");
+	return bc_vm_run(argv, "BC_LINE_LENGTH");
 }
 #endif
 
 #if ENABLE_DC
 int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dc_main(int argc, char **argv)
+int dc_main(int argc UNUSED_PARAM, char **argv)
 {
 	INIT_G();
 	G.sbgn = '[';
 	G.send = ']';
 
-	return bc_vm_run(argc, argv, "DC_LINE_LENGTH");
+	return bc_vm_run(argv, "DC_LINE_LENGTH");
 }
 #endif
