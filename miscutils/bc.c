@@ -6987,6 +6987,7 @@ static BcStatus bc_vm_stdin(void)
 	// with a backslash to the parser. The reason for that is because the parser
 	// treats a backslash+newline combo as whitespace, per the bc spec. In that
 	// case, and for strings and comments, the parser will expect more stuff.
+	s = BC_STATUS_SUCCESS;
 	while (!G.eof && (s = bc_read_line(&buf, ">>> ")) == BC_STATUS_SUCCESS) {
 
 		char *string = buf.v;
