@@ -1639,16 +1639,16 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
                          BcNum *restrict c)
 {
 	BcStatus s;
-	int carry;
-	size_t i, j, len, max = BC_MAX(a->len, b->len), max2 = (max + 1) / 2;
+	size_t max = BC_MAX(a->len, b->len), max2 = (max + 1) / 2;
 	BcNum l1, h1, l2, h2, m2, m1, z0, z1, z2, temp;
-	bool aone = BC_NUM_ONE(a);
+	bool aone;
 
 	if (a->len == 0 || b->len == 0) {
 		bc_num_zero(c);
 		return BC_STATUS_SUCCESS;
 	}
-	else if (aone || BC_NUM_ONE(b)) {
+	aone = BC_NUM_ONE(a);
+	if (aone || BC_NUM_ONE(b)) {
 		bc_num_copy(c, aone ? b : a);
 		return BC_STATUS_SUCCESS;
 	}
@@ -1656,13 +1656,17 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 	if (a->len + b->len < BC_NUM_KARATSUBA_LEN ||
 	    a->len < BC_NUM_KARATSUBA_LEN || b->len < BC_NUM_KARATSUBA_LEN)
 	{
+		size_t i, j, len;
+		int carry;
+
 		bc_num_expand(c, a->len + b->len + 1);
 
 		memset(c->num, 0, sizeof(BcDig) * c->cap);
-		c->len = carry = len = 0;
+		c->len = len = 0;
 
 		for (i = 0; i < b->len; ++i) {
 
+			carry = 0;
 			for (j = 0; j < a->len; ++j) {
 				int in = (int) c->num[i + j];
 				in += ((int) a->num[j]) * ((int) b->num[i]) + carry;
@@ -1672,7 +1676,6 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 
 			c->num[i + j] += (BcDig) carry;
 			len = BC_MAX(len, i + j + !!carry);
-			carry = 0;
 		}
 
 		c->len = len;
