@@ -567,7 +567,6 @@ typedef struct BcLex {
 	const char *buf;
 	size_t i;
 	size_t line;
-	const char *f;
 	size_t len;
 	bool newline;
 
@@ -913,8 +912,6 @@ static const BcNumBinaryOp bc_program_ops[] = {
 	bc_num_pow, bc_num_mul, bc_num_div, bc_num_mod, bc_num_add, bc_num_sub,
 };
 
-static const char bc_program_stdin_name[] = "<stdin>";
-
 static void fflush_and_check(void)
 {
 	fflush_all();
@@ -933,11 +930,18 @@ static void quit(void)
 
 static NOINLINE int bc_error_fmt(const char *fmt, ...)
 {
+	const char *sv;
 	va_list p;
+
+	sv = applet_name;
+	if (G.prog.file)
+		applet_name = G.prog.file;
 
 	va_start(p, fmt);
 	bb_verror_msg(fmt, p, NULL);
 	va_end(p);
+	applet_name = sv;
+
 	if (!G.ttyin)
 		exit(1);
 	return BC_STATUS_FAILURE;
@@ -945,15 +949,21 @@ static NOINLINE int bc_error_fmt(const char *fmt, ...)
 
 static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 {
+	const char *sv;
 	va_list p;
 
 	// Are non-POSIX constructs totally ok?
 	if (!(option_mask32 & (BC_FLAG_S|BC_FLAG_W)))
 		return BC_STATUS_SUCCESS; // yes
 
+	sv = applet_name;
+	if (G.prog.file)
+		applet_name = G.prog.file;
+
 	va_start(p, fmt);
 	bb_verror_msg(fmt, p, NULL);
 	va_end(p);
+	applet_name = sv;
 
 	// Do we treat non-POSIX constructs as errors?
 	if (!(option_mask32 & BC_FLAG_S))
@@ -2860,11 +2870,10 @@ static void bc_lex_free(BcLex *l)
 	bc_vec_free(&l->t.v);
 }
 
-static void bc_lex_file(BcLex *l, const char *file)
+static void bc_lex_file(BcLex *l)
 {
 	l->line = 1;
 	l->newline = false;
-	l->f = file;
 }
 
 static BcStatus bc_lex_next(BcLex *l)
@@ -5337,6 +5346,7 @@ err:
 
 static BcStatus bc_program_read(void)
 {
+	const char *sv_file;
 	BcStatus s;
 	BcParse parse;
 	BcVec buf;
@@ -5353,11 +5363,14 @@ static BcStatus bc_program_read(void)
 	bc_vec_pop_all(&f->code);
 	bc_char_vec_init(&buf);
 
+	sv_file = G.prog.file;
+	G.prog.file = NULL;
+
 	s = bc_read_line(&buf, "read> ");
 	if (s) goto io_err;
 
 	common_parse_init(&parse, BC_PROG_READ);
-	bc_lex_file(&parse.l, bc_program_stdin_name);
+	bc_lex_file(&parse.l);
 
 	s = bc_parse_text(&parse, buf.v);
 	if (s) goto exec_err;
@@ -5380,6 +5393,7 @@ static BcStatus bc_program_read(void)
 	bc_vec_push(&G.prog.stack, &ip);
 
 exec_err:
+	G.prog.file = sv_file;
 	bc_parse_free(&parse);
 io_err:
 	bc_vec_free(&buf);
@@ -6862,16 +6876,18 @@ static BcStatus bc_vm_process(const char *text)
 
 static BcStatus bc_vm_file(const char *file)
 {
-	BcStatus s;
+	const char *sv_file;
 	char *data;
+	BcStatus s;
 	BcFunc *main_func;
 	BcInstPtr *ip;
 
-	G.prog.file = file;
 	data = bc_read_file(file);
 	if (!data) return bc_error_fmt("file '%s' is not text", file);
 
-	bc_lex_file(&G.prs.l, file);
+	sv_file = G.prog.file;
+	G.prog.file = file;
+	bc_lex_file(&G.prs.l);
 	s = bc_vm_process(data);
 	if (s) goto err;
 
@@ -6882,6 +6898,7 @@ static BcStatus bc_vm_file(const char *file)
 		s = bc_error_fmt("file '%s' is not executable", file);
 
 err:
+	G.prog.file = sv_file;
 	free(data);
 	return s;
 }
@@ -6893,8 +6910,8 @@ static BcStatus bc_vm_stdin(void)
 	size_t len, i, str = 0;
 	bool comment = false;
 
-	G.prog.file = bc_program_stdin_name;
-	bc_lex_file(&G.prs.l, bc_program_stdin_name);
+	G.prog.file = NULL;
+	bc_lex_file(&G.prs.l);
 
 	bc_char_vec_init(&buffer);
 	bc_char_vec_init(&buf);
@@ -7156,7 +7173,7 @@ static BcStatus bc_vm_exec(void)
 		// We know that internal library is not buggy,
 		// thus error checking is normally disabled.
 # define DEBUG_LIB 0
-		bc_lex_file(&G.prs.l, "");
+		bc_lex_file(&G.prs.l);
 		s = bc_parse_text(&G.prs, bc_lib);
 		if (DEBUG_LIB && s) return s;
 
