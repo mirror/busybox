@@ -5827,9 +5827,9 @@ static BcStatus bc_program_assign(char inst)
 		static const char *const msg[] = {
 			"bad ibase; must be [2, 16]",           //BC_RESULT_IBASE
 			"bad scale; must be [0, BC_SCALE_MAX]", //BC_RESULT_SCALE
-			"?1",                                   //BC_RESULT_LAST
-			"?2",                                   //BC_RESULT_CONSTANT
-			"?3",                                   //BC_RESULT_ONE
+			NULL, //can't happen                    //BC_RESULT_LAST
+			NULL, //can't happen                    //BC_RESULT_CONSTANT
+			NULL, //can't happen                    //BC_RESULT_ONE
 			"bad obase; must be [2, BC_BASE_MAX]",  //BC_RESULT_OBASE
 		};
 		size_t *ptr;
