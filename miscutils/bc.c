@@ -992,6 +992,18 @@ static int bc_posix_error(const char *msg)
 {
 	return bc_posix_error_fmt("%s", msg);
 }
+static int bc_POSIX_does_not_allow(const char *msg)
+{
+	return bc_posix_error_fmt("%s%s", "POSIX does not allow ", msg);
+}
+static int bc_POSIX_does_not_allow_bool_ops_this_is_bad(const char *msg)
+{
+	return bc_posix_error_fmt("%s%s %s", "POSIX does not allow ", "boolean operators; the following is bad:", msg);
+}
+static int bc_POSIX_does_not_allow_empty_X_expression_in_for(const char *msg)
+{
+	return bc_posix_error_fmt("%san empty %s expression in a for loop", "POSIX does not allow ", msg);
+}
 static int bc_error_bad_character(char c)
 {
 	return bc_error_fmt("bad character '%c'", c);
@@ -2938,8 +2950,8 @@ static BcStatus bc_lex_identifier(BcLex *l)
  match:
 		// buf starts with keyword bc_lex_kws[i]
 		l->t.t = BC_LEX_KEY_1st_keyword + i;
-		if ((1 << i) & POSIX_KWORD_MASK) {
-			s = bc_posix_error("POSIX does not allow the following keyword:"); // bc_lex_kws[i].name8
+		if (!((1 << i) & POSIX_KWORD_MASK)) {
+			s = bc_posix_error_fmt("%sthe following keyword: '%.8s'", "POSIX does not allow ", bc_lex_kws[i].name8);
 			if (s) return s;
 		}
 
@@ -2952,7 +2964,7 @@ static BcStatus bc_lex_identifier(BcLex *l)
 	if (s) return s;
 
 	if (l->t.v.len > 2)
-		s = bc_posix_error("POSIX only allows one character names; the following is bad:"); // buf
+		s = bc_posix_error_fmt("POSIX only allows one character names; the following is bad: '%s'", buf);
 
 	return s;
 }
@@ -3055,7 +3067,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			bc_lex_assign(l, BC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
 
 			if (l->t.t == BC_LEX_OP_BOOL_NOT) {
-				s = bc_posix_error("POSIX does not allow boolean operators; the following is bad:"); // "!"
+				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("!");
 				if (s) return s;
 			}
 
@@ -3070,7 +3082,7 @@ static BcStatus bc_lex_token(BcLex *l)
 
 		case '#':
 		{
-			s = bc_posix_error("POSIX does not allow '#' script comments");
+			s = bc_POSIX_does_not_allow("'#' script comments");
 			if (s) return s;
 
 			bc_lex_lineComment(l);
@@ -3089,7 +3101,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			c2 = l->buf[l->i];
 			if (c2 == '&') {
 
-				s = bc_posix_error("POSIX does not allow boolean operators; the following is bad:"); // "&&"
+				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("&&");
 				if (s) return s;
 
 				++l->i;
@@ -3152,7 +3164,7 @@ static BcStatus bc_lex_token(BcLex *l)
 				s = bc_lex_number(l, c);
 			else {
 				l->t.t = BC_LEX_KEY_LAST;
-				s = bc_posix_error("POSIX does not allow a period ('.') as a shortcut for the last result");
+				s = bc_POSIX_does_not_allow("a period ('.') as a shortcut for the last result");
 			}
 			break;
 		}
@@ -3279,7 +3291,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			c2 = l->buf[l->i];
 
 			if (c2 == '|') {
-				s = bc_posix_error("POSIX does not allow boolean operators; the following is bad:"); // "||"
+				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("||");
 				if (s) return s;
 
 				++l->i;
@@ -4213,7 +4225,7 @@ static BcStatus bc_parse_for(BcParse *p)
 	if (p->l.t.t != BC_LEX_SCOLON)
 		s = bc_parse_expr(p, 0, bc_parse_next_for);
 	else
-		s = bc_posix_error("POSIX does not allow an empty init expression in a for loop");
+		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("init");
 
 	if (s) return s;
 	if (p->l.t.t != BC_LEX_SCOLON) return bc_error_bad_token();
@@ -4230,7 +4242,7 @@ static BcStatus bc_parse_for(BcParse *p)
 	if (p->l.t.t != BC_LEX_SCOLON)
 		s = bc_parse_expr(p, BC_PARSE_REL, bc_parse_next_for);
 	else
-		s = bc_posix_error("POSIX does not allow an empty condition expression in a for loop");
+		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("condition");
 
 	if (s) return s;
 	if (p->l.t.t != BC_LEX_SCOLON) return bc_error_bad_token();
@@ -4251,7 +4263,7 @@ static BcStatus bc_parse_for(BcParse *p)
 	if (p->l.t.t != BC_LEX_RPAREN)
 		s = bc_parse_expr(p, 0, bc_parse_next_rel);
 	else
-		s = bc_posix_error("POSIX does not allow an empty update expression in a for loop");
+		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("update");
 
 	if (s) return s;
 
@@ -4899,7 +4911,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
  ok:
 
 	if (!(flags & BC_PARSE_REL) && nrelops) {
-		s = bc_posix_error("POSIX does not allow comparison operators outside if or loops");
+		s = bc_POSIX_does_not_allow("comparison operators outside if or loops");
 		if (s) return s;
 	}
 	else if ((flags & BC_PARSE_REL) && nrelops > 1) {
