@@ -1068,6 +1068,13 @@ static void bc_vec_pushByte(BcVec *v, char data)
 	bc_vec_push(v, &data);
 }
 
+static void bc_vec_pushZeroByte(BcVec *v)
+{
+	//bc_vec_pushByte(v, '\0');
+	// better:
+	bc_vec_push(v, &const_int_0);
+}
+
 static void bc_vec_pushAt(BcVec *v, const void *data, size_t idx)
 {
 	if (idx == v->len)
@@ -1092,14 +1099,14 @@ static void bc_vec_string(BcVec *v, size_t len, const char *str)
 	memcpy(v->v, str, len);
 	v->len = len;
 
-	bc_vec_pushByte(v, '\0');
+	bc_vec_pushZeroByte(v);
 }
 
 static void bc_vec_concat(BcVec *v, const char *str)
 {
 	size_t len;
 
-	if (v->len == 0) bc_vec_pushByte(v, '\0');
+	if (v->len == 0) bc_vec_pushZeroByte(v);
 
 	len = v->len + strlen(str);
 
@@ -1173,7 +1180,6 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 
 	do {
 		int i;
-		char c;
 
 		bad_chars = 0;
 		bc_vec_pop_all(vec);
@@ -1222,12 +1228,11 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 				bc_error_fmt("illegal character 0x%02x", i);
 				bad_chars = 1;
 			}
-			c = (char) i;
-			bc_vec_push(vec, &c);
+			bc_vec_pushByte(vec, (char)i);
 		} while (i != '\n');
 	} while (bad_chars);
 
-	bc_vec_pushByte(vec, '\0');
+	bc_vec_pushZeroByte(vec);
 
 	return BC_STATUS_SUCCESS;
 }
@@ -2833,7 +2838,7 @@ static BcStatus bc_lex_number(BcLex *l, char start)
 		bc_vec_push(&l->t.v, &c);
 	}
 
-	bc_vec_pushByte(&l->t.v, '\0');
+	bc_vec_pushZeroByte(&l->t.v);
 	l->i += i;
 
 	return BC_STATUS_SUCCESS;
@@ -3307,7 +3312,7 @@ static BcStatus dc_lex_register(BcLex *l)
 	else {
 		bc_vec_pop_all(&l->t.v);
 		bc_vec_pushByte(&l->t.v, l->buf[l->i - 1]);
-		bc_vec_pushByte(&l->t.v, '\0');
+		bc_vec_pushZeroByte(&l->t.v);
 		l->t.t = BC_LEX_NAME;
 	}
 
@@ -3336,7 +3341,7 @@ static BcStatus dc_lex_string(BcLex *l)
 		return bc_error("string end could not be found");
 	}
 
-	bc_vec_pushByte(&l->t.v, '\0');
+	bc_vec_pushZeroByte(&l->t.v);
 	if (i - l->i > BC_MAX_STRING)
 		return bc_error("string too long: must be [1, BC_STRING_MAX]");
 
@@ -3558,7 +3563,7 @@ static void bc_parse_create(BcParse *p, size_t func,
 	bc_vec_init(&p->flags, sizeof(uint8_t), NULL);
 	bc_vec_init(&p->exits, sizeof(BcInstPtr), NULL);
 	bc_vec_init(&p->conds, sizeof(size_t), NULL);
-	bc_vec_pushByte(&p->flags, 0);
+	bc_vec_pushZeroByte(&p->flags);
 	bc_vec_init(&p->ops, sizeof(BcLexType), NULL);
 
 	p->parse = parse;
@@ -6915,7 +6920,7 @@ static BcStatus bc_vm_stdin(void)
 
 	bc_char_vec_init(&buffer);
 	bc_char_vec_init(&buf);
-	bc_vec_pushByte(&buffer, '\0');
+	bc_vec_pushZeroByte(&buffer);
 
 	// This loop is complex because the vm tries not to send any lines that end
 	// with a backslash to the parser. The reason for that is because the parser
