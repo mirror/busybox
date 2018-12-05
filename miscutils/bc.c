@@ -1676,6 +1676,10 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 
 			c->num[i + j] += (BcDig) carry;
 			len = BC_MAX(len, i + j + !!carry);
+
+			// a=2^1000000
+			// a*a <- without check below, this will not be interruptible
+			if (G_interrupt) return BC_STATUS_FAILURE;
 		}
 
 		c->len = len;
@@ -1935,11 +1939,11 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 		powrdx <<= 1;
 		s = bc_num_mul(&copy, &copy, &copy, powrdx);
 		if (s) goto err;
-		// It is too slow to handle ^C only after entire "2^1000000" completes
-		if (G_interrupt) {
-			s = BC_STATUS_FAILURE;
-			goto err;
-		}
+		// Not needed: bc_num_mul() has a check for ^C:
+		//if (G_interrupt) {
+		//	s = BC_STATUS_FAILURE;
+		//	goto err;
+		//}
 	}
 
 	bc_num_copy(c, &copy);
@@ -1955,11 +1959,11 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 			s = bc_num_mul(c, &copy, c, resrdx);
 			if (s) goto err;
 		}
-		// It is too slow to handle ^C only after entire "2^1000000" completes
-		if (G_interrupt) {
-			s = BC_STATUS_FAILURE;
-			goto err;
-		}
+		// Not needed: bc_num_mul() has a check for ^C:
+		//if (G_interrupt) {
+		//	s = BC_STATUS_FAILURE;
+		//	goto err;
+		//}
 	}
 
 	if (neg) {
