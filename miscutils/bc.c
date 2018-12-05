@@ -2951,7 +2951,7 @@ static BcStatus bc_lex_identifier(BcLex *l)
 		// buf starts with keyword bc_lex_kws[i]
 		l->t.t = BC_LEX_KEY_1st_keyword + i;
 		if (!((1 << i) & POSIX_KWORD_MASK)) {
-			s = bc_posix_error_fmt("%sthe following keyword: '%.8s'", "POSIX does not allow ", bc_lex_kws[i].name8);
+			s = bc_posix_error_fmt("%sthe '%.8s' keyword", "POSIX does not allow ", bc_lex_kws[i].name8);
 			if (s) return s;
 		}
 
@@ -2963,8 +2963,14 @@ static BcStatus bc_lex_identifier(BcLex *l)
 	s = bc_lex_name(l);
 	if (s) return s;
 
-	if (l->t.v.len > 2)
-		s = bc_posix_error_fmt("POSIX only allows one character names; the following is bad: '%s'", buf);
+	if (l->t.v.len > 2) {
+		// Prevent this:
+		// >>> qwe=1
+		// bc: POSIX only allows one character names; the following is bad: 'qwe=1
+		// '
+		unsigned len = strchrnul(buf, '\n') - buf;
+		s = bc_posix_error_fmt("POSIX only allows one character names; the following is bad: '%.*s'", len, buf);
+	}
 
 	return s;
 }
