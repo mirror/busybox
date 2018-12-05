@@ -1657,7 +1657,7 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 	    a->len < BC_NUM_KARATSUBA_LEN || b->len < BC_NUM_KARATSUBA_LEN)
 	{
 		size_t i, j, len;
-		int carry;
+		unsigned carry;
 
 		bc_num_expand(c, a->len + b->len + 1);
 
@@ -1668,8 +1668,9 @@ static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 
 			carry = 0;
 			for (j = 0; j < a->len; ++j) {
-				int in = (int) c->num[i + j];
-				in += ((int) a->num[j]) * ((int) b->num[i]) + carry;
+				unsigned in = c->num[i + j];
+				in += ((unsigned) a->num[j]) * ((unsigned) b->num[i]) + carry;
+				// note: compilers prefer _unsigned_ div/const
 				carry = in / 10;
 				c->num[i + j] = (BcDig)(in % 10);
 			}
