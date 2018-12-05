@@ -805,30 +805,48 @@ static void bc_vm_info(void);
 
 #if ENABLE_BC
 
-// This is an array that corresponds to token types. An entry is
+// This is a bit array that corresponds to token types. An entry is
 // true if the token is valid in an expression, false otherwise.
-static const bool bc_parse_exprs[] = {
-	false, false, true, true, true, true, true, true, true, true, true, true,
-	true, true, true, true, true, true, true, true, true, true, true, true,
-	true, true, true, false, false, true, true, false, false, false, false,
-	false, false, false, true, true, false, false, false, false, false, false,
-	false, true, false, true, true, true, true, false, false, true, false, true,
-	true, false,
+enum {
+	BC_PARSE_EXPRS_BITS = 0
+	+ ((uint64_t)((0 << 0)+(0 << 1)+(1 << 2)+(1 << 3)+(1 << 4)+(1 << 5)+(1 << 6)+(1 << 7)) << (0*8))
+	+ ((uint64_t)((1 << 0)+(1 << 1)+(1 << 2)+(1 << 3)+(1 << 4)+(1 << 5)+(1 << 6)+(1 << 7)) << (1*8))
+	+ ((uint64_t)((1 << 0)+(1 << 1)+(1 << 2)+(1 << 3)+(1 << 4)+(1 << 5)+(1 << 6)+(1 << 7)) << (2*8))
+	+ ((uint64_t)((1 << 0)+(1 << 1)+(1 << 2)+(0 << 3)+(0 << 4)+(1 << 5)+(1 << 6)+(0 << 7)) << (3*8))
+	+ ((uint64_t)((0 << 0)+(0 << 1)+(0 << 2)+(0 << 3)+(0 << 4)+(0 << 5)+(1 << 6)+(1 << 7)) << (4*8))
+	+ ((uint64_t)((0 << 0)+(0 << 1)+(0 << 2)+(0 << 3)+(0 << 4)+(0 << 5)+(0 << 6)+(1 << 7)) << (5*8))
+	+ ((uint64_t)((0 << 0)+(1 << 1)+(1 << 2)+(1 << 3)+(1 << 4)+(0 << 5)+(0 << 6)+(1 << 7)) << (6*8))
+	+ ((uint64_t)((0 << 0)+(1 << 1)+(1 << 2)+(0 << 3)                                    ) << (7*8))
 };
+static ALWAYS_INLINE long bc_parse_exprs(unsigned i)
+{
+#if ULONG_MAX > 0xffffffff
+	// 64-bit version (will not work correctly for 32-bit longs!)
+	return BC_PARSE_EXPRS_BITS & (1UL << i);
+#else
+	// 32-bit version
+	unsigned long m = (uint32_t)BC_PARSE_EXPRS_BITS;
+	if (i >= 32) {
+		m = (uint32_t)(BC_PARSE_EXPRS_BITS >> 32);
+		i &= 31;
+	}
+	return m & (1UL << i);
+#endif
+}
 
 // This is an array of data for operators that correspond to token types.
 static const uint8_t bc_parse_ops[] = {
 #define OP(p,l) ((int)(l) * 0x10 + (p))
-	OP(0, false), OP( 0, false ),
-	OP(1, false),
+	OP(0, false), OP( 0, false ), // inc dec
+	OP(1, false), // neg
 	OP(2, false),
-	OP(3, true ), OP( 3, true  ), OP( 3, true  ),
-	OP(4, true ), OP( 4, true  ),
-	OP(6, true ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true ),
-	OP(1, false),
-	OP(7, true ), OP( 7, true  ),
-	OP(5, false), OP( 5, false ), OP( 5, false ), OP( 5, false ), OP( 5, false ),
-	OP(5, false), OP( 5, false ),
+	OP(3, true ), OP( 3, true  ), OP( 3, true  ), // pow mul div
+	OP(4, true ), OP( 4, true  ), // mod + -
+	OP(6, true ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true ), // == <= >= != < >
+	OP(1, false), // not
+	OP(7, true ), OP( 7, true  ), // or and
+	OP(5, false), OP( 5, false ), OP( 5, false ), OP( 5, false ), OP( 5, false ), // ^= *= /= %= +=
+	OP(5, false), OP( 5, false ), // -= =
 #undef OP
 };
 #define bc_parse_op_PREC(i) (bc_parse_ops[i] & 0x0f)
@@ -4708,7 +4726,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 	paren_expr = rprn = done = get_token = assign = false;
 	bin_last = true;
 
-	for (; !G_interrupt && !s && !done && bc_parse_exprs[t]; t = p->l.t.t) {
+	for (; !G_interrupt && !s && !done && bc_parse_exprs(t); t = p->l.t.t) {
 		switch (t) {
 
 			case BC_LEX_OP_INC:
