@@ -627,11 +627,6 @@ typedef struct BcLex {
 	    BC_PARSE_FLAG_LOOP | BC_PARSE_FLAG_LOOP_INNER | BC_PARSE_FLAG_IF |   \
 	    BC_PARSE_FLAG_ELSE | BC_PARSE_FLAG_IF_END)))
 
-typedef struct BcOp {
-	char prec;
-	bool left;
-} BcOp;
-
 typedef struct BcParseNext {
 	uint32_t len;
 	BcLexType tokens[4];
@@ -822,18 +817,22 @@ static const bool bc_parse_exprs[] = {
 };
 
 // This is an array of data for operators that correspond to token types.
-static const BcOp bc_parse_ops[] = {
-	{ 0, false }, { 0, false },
-	{ 1, false },
-	{ 2, false },
-	{ 3, true }, { 3, true }, { 3, true },
-	{ 4, true }, { 4, true },
-	{ 6, true }, { 6, true }, { 6, true }, { 6, true }, { 6, true }, { 6, true },
-	{ 1, false },
-	{ 7, true }, { 7, true },
-	{ 5, false }, { 5, false }, { 5, false }, { 5, false }, { 5, false },
-	{ 5, false }, { 5, false },
+static const uint8_t bc_parse_ops[] = {
+#define OP(p,l) ((int)(l) * 0x10 + (p))
+	OP(0, false), OP( 0, false ),
+	OP(1, false),
+	OP(2, false),
+	OP(3, true ), OP( 3, true  ), OP( 3, true  ),
+	OP(4, true ), OP( 4, true  ),
+	OP(6, true ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true ),
+	OP(1, false),
+	OP(7, true ), OP( 7, true  ),
+	OP(5, false), OP( 5, false ), OP( 5, false ), OP( 5, false ), OP( 5, false ),
+	OP(5, false), OP( 5, false ),
+#undef OP
 };
+#define bc_parse_op_PREC(i) (bc_parse_ops[i] & 0x0f)
+#define bc_parse_op_LEFT(i) (bc_parse_ops[i] & 0x10)
 
 // These identify what tokens can come after expressions in certain cases.
 static const BcParseNext bc_parse_next_expr =
@@ -3624,15 +3623,15 @@ static BcStatus bc_parse_operator(BcParse *p, BcLexType type, size_t start,
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcLexType t;
-	char l, r = bc_parse_ops[type - BC_LEX_OP_INC].prec;
-	bool left = bc_parse_ops[type - BC_LEX_OP_INC].left;
+	char l, r = bc_parse_op_PREC(type - BC_LEX_OP_INC);
+	bool left = bc_parse_op_LEFT(type - BC_LEX_OP_INC);
 
 	while (p->ops.len > start) {
 
 		t = BC_PARSE_TOP_OP(p);
 		if (t == BC_LEX_LPAREN) break;
 
-		l = bc_parse_ops[t - BC_LEX_OP_INC].prec;
+		l = bc_parse_op_PREC(t - BC_LEX_OP_INC);
 		if (l >= r && (l != r || !left)) break;
 
 		bc_parse_push(p, BC_PARSE_TOKEN_INST(t));
