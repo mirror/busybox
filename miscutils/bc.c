@@ -1110,7 +1110,7 @@ static void quit(void)
 	exit(0);
 }
 
-static int bc_error(const char *fmt, ...)
+static NOINLINE int bc_error_fmt(const char *fmt, ...)
 {
 	va_list p;
 
@@ -1122,12 +1122,13 @@ static int bc_error(const char *fmt, ...)
 	return BC_STATUS_FAILURE;
 }
 
-static int bc_posix_error(const char *fmt, ...)
+static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 {
 	va_list p;
 
+	// Are non-POSIX constructs totally ok?
 	if (!(option_mask32 & (BC_FLAG_S|BC_FLAG_W)))
-		return BC_STATUS_SUCCESS;
+		return BC_STATUS_SUCCESS; // yes
 
 	va_start(p, fmt);
 	bb_verror_msg(fmt, p, NULL);
@@ -1139,6 +1140,44 @@ static int bc_posix_error(const char *fmt, ...)
 	if (!G.ttyin)
 		exit(1);
 	return BC_STATUS_FAILURE;
+}
+
+// We use error functions with "return bc_error(FMT[, PARAMS])" idiom.
+// This idiom begs for tail-call optimization, but for it to work,
+// function must not have calller-cleaned parameters on stack.
+// Unfortunately, vararg functions do exactly that on most arches.
+// Thus, these shims for the cases when we have no PARAMS:
+static int bc_error(const char *msg)
+{
+	return bc_error_fmt("%s", msg);
+}
+static int bc_posix_error(const char *msg)
+{
+	return bc_posix_error_fmt("%s", msg);
+}
+static int bc_error_bad_character(char c)
+{
+	return bc_error_fmt("bad character '%c'", c);
+}
+static int bc_error_bad_expression(void)
+{
+	return bc_error("bad expression");
+}
+static int bc_error_bad_token(void)
+{
+	return bc_error("bad token");
+}
+static int bc_error_stack_has_too_few_elements(void)
+{
+	return bc_error("stack has too few elements");
+}
+static int bc_error_variable_is_wrong_type(void)
+{
+	return bc_error("variable is wrong type");
+}
+static int bc_error_nested_read_call(void)
+{
+	return bc_error("read() call inside of a read() call");
 }
 
 static void bc_vec_grow(BcVec *v, size_t n)
@@ -1349,7 +1388,7 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 			 || i > 0x7e
 			) {
 				// Bad chars on this line, ignore entire line
-				bc_error("illegal character 0x%02x", i);
+				bc_error_fmt("illegal character 0x%02x", i);
 				bad_chars = 1;
 			}
 			c = (char) i;
@@ -3214,7 +3253,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			}
 			else {
 				l->t.t = BC_LEX_INVALID;
-				s = bc_error("bad character '%c'", '&');
+				s = bc_error_bad_character('&');
 			}
 
 			break;
@@ -3343,7 +3382,7 @@ static BcStatus bc_lex_token(BcLex *l)
 				++l->i;
 			}
 			else
-				s = bc_error("bad character '%c'", c);
+				s = bc_error_bad_character(c);
 			break;
 		}
 
@@ -3404,7 +3443,7 @@ static BcStatus bc_lex_token(BcLex *l)
 			}
 			else {
 				l->t.t = BC_LEX_INVALID;
-				s = bc_error("bad character '%c'", c);
+				s = bc_error_bad_character(c);
 			}
 
 			break;
@@ -3413,7 +3452,7 @@ static BcStatus bc_lex_token(BcLex *l)
 		default:
 		{
 			l->t.t = BC_LEX_INVALID;
-			s = bc_error("bad character '%c'", c);
+			s = bc_error_bad_character(c);
 			break;
 		}
 	}
@@ -3526,7 +3565,7 @@ static BcStatus dc_lex_token(BcLex *l)
 			else if (c2 == '>')
 				l->t.t = BC_LEX_OP_REL_GE;
 			else
-				return bc_error("bad character '%c'", c);
+				return bc_error_bad_character(c);
 
 			++l->i;
 			break;
@@ -3543,7 +3582,7 @@ static BcStatus dc_lex_token(BcLex *l)
 			if (isdigit(l->buf[l->i]))
 				s = bc_lex_number(l, c);
 			else
-				s = bc_error("bad character '%c'", c);
+				s = bc_error_bad_character(c);
 			break;
 		}
 
@@ -3577,7 +3616,7 @@ static BcStatus dc_lex_token(BcLex *l)
 		default:
 		{
 			l->t.t = BC_LEX_INVALID;
-			s = bc_error("bad character '%c'", c);
+			s = bc_error_bad_character(c);
 			break;
 		}
 	}
@@ -3733,7 +3772,7 @@ static BcStatus bc_parse_rightParen(BcParse *p, size_t ops_bgn, size_t *nexs)
 	BcLexType top;
 
 	if (p->ops.len <= ops_bgn)
-		return bc_error("bad expression");
+		return bc_error_bad_expression();
 	top = BC_PARSE_TOP_OP(p);
 
 	while (top != BC_LEX_LPAREN) {
@@ -3744,7 +3783,7 @@ static BcStatus bc_parse_rightParen(BcParse *p, size_t ops_bgn, size_t *nexs)
 		*nexs -= top != BC_LEX_OP_BOOL_NOT && top != BC_LEX_NEG;
 
 		if (p->ops.len <= ops_bgn)
-			return bc_error("bad expression");
+			return bc_error_bad_expression();
 		top = BC_PARSE_TOP_OP(p);
 	}
 
@@ -3775,7 +3814,7 @@ static BcStatus bc_parse_params(BcParse *p, uint8_t flags)
 		}
 	}
 
-	if (comma) return bc_error("bad token");
+	if (comma) return bc_error_bad_token();
 	bc_parse_push(p, BC_INST_CALL);
 	bc_parse_pushIndex(p, nparams);
 
@@ -3794,7 +3833,7 @@ static BcStatus bc_parse_call(BcParse *p, char *name, uint8_t flags)
 	if (s) goto err;
 
 	if (p->l.t.t != BC_LEX_RPAREN) {
-		s = bc_error("bad token");
+		s = bc_error_bad_token();
 		goto err;
 	}
 
@@ -3836,7 +3875,7 @@ static BcStatus bc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 		if (p->l.t.t == BC_LEX_RBRACKET) {
 
 			if (!(flags & BC_PARSE_ARRAY)) {
-				s = bc_error("bad expression");
+				s = bc_error_bad_expression();
 				goto err;
 			}
 
@@ -3859,7 +3898,7 @@ static BcStatus bc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 	else if (p->l.t.t == BC_LEX_LPAREN) {
 
 		if (flags & BC_PARSE_NOCALL) {
-			s = bc_error("bad token");
+			s = bc_error_bad_token();
 			goto err;
 		}
 
@@ -3885,11 +3924,11 @@ static BcStatus bc_parse_read(BcParse *p)
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_LPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_LPAREN) return bc_error_bad_token();
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_RPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_RPAREN) return bc_error_bad_token();
 
 	bc_parse_push(p, BC_INST_READ);
 
@@ -3903,7 +3942,7 @@ static BcStatus bc_parse_builtin(BcParse *p, BcLexType type, uint8_t flags,
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_LPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_LPAREN) return bc_error_bad_token();
 
 	flags = (flags & ~(BC_PARSE_PRINT | BC_PARSE_REL)) | BC_PARSE_ARRAY;
 
@@ -3913,7 +3952,7 @@ static BcStatus bc_parse_builtin(BcParse *p, BcLexType type, uint8_t flags,
 	s = bc_parse_expr(p, flags, bc_parse_next_rel);
 	if (s) return s;
 
-	if (p->l.t.t != BC_LEX_RPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_RPAREN) return bc_error_bad_token();
 
 	*prev = (type == BC_LEX_KEY_LENGTH) ? BC_INST_LENGTH : BC_INST_SQRT;
 	bc_parse_push(p, *prev);
@@ -3942,7 +3981,7 @@ static BcStatus bc_parse_scale(BcParse *p, BcInst *type, uint8_t flags)
 
 	s = bc_parse_expr(p, flags, bc_parse_next_rel);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_RPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_RPAREN) return bc_error_bad_token();
 	bc_parse_push(p, BC_INST_SCALE_FUNC);
 
 	return bc_lex_next(&p->l);
@@ -3999,7 +4038,7 @@ static BcStatus bc_parse_incdec(BcParse *p, BcInst *prev, bool *paren_expr,
 				s = bc_lex_next(&p->l);
 				if (s) return s;
 				if (p->l.t.t == BC_LEX_LPAREN)
-					s = bc_error("bad token");
+					s = bc_error_bad_token();
 				else
 					bc_parse_push(p, BC_INST_SCALE);
 				break;
@@ -4007,7 +4046,7 @@ static BcStatus bc_parse_incdec(BcParse *p, BcInst *prev, bool *paren_expr,
 
 			default:
 			{
-				s = bc_error("bad token");
+				s = bc_error_bad_token();
 				break;
 			}
 		}
@@ -4088,7 +4127,7 @@ static BcStatus bc_parse_print(BcParse *p)
 	}
 
 	if (s) return s;
-	if (comma) return bc_error("bad token");
+	if (comma) return bc_error_bad_token();
 
 	return bc_lex_next(&p->l);
 }
@@ -4099,7 +4138,7 @@ static BcStatus bc_parse_return(BcParse *p)
 	BcLexType t;
 	bool paren;
 
-	if (!BC_PARSE_FUNC(p)) return bc_error("bad token");
+	if (!BC_PARSE_FUNC(p)) return bc_error_bad_token();
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
@@ -4137,18 +4176,18 @@ static BcStatus bc_parse_endBody(BcParse *p, bool brace)
 	BcStatus s = BC_STATUS_SUCCESS;
 
 	if (p->flags.len <= 1 || (brace && p->nbraces == 0))
-		return bc_error("bad token");
+		return bc_error_bad_token();
 
 	if (brace) {
 
 		if (p->l.t.t == BC_LEX_RBRACE) {
-			if (!p->nbraces) return bc_error("bad token");
+			if (!p->nbraces) return bc_error_bad_token();
 			--p->nbraces;
 			s = bc_lex_next(&p->l);
 			if (s) return s;
 		}
 		else
-			return bc_error("bad token");
+			return bc_error_bad_token();
 	}
 
 	if (BC_PARSE_IF(p)) {
@@ -4234,13 +4273,13 @@ static BcStatus bc_parse_if(BcParse *p)
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_LPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_LPAREN) return bc_error_bad_token();
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
 	s = bc_parse_expr(p, BC_PARSE_REL, bc_parse_next_rel);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_RPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_RPAREN) return bc_error_bad_token();
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
@@ -4261,7 +4300,7 @@ static BcStatus bc_parse_else(BcParse *p)
 {
 	BcInstPtr ip;
 
-	if (!BC_PARSE_IF_END(p)) return bc_error("bad token");
+	if (!BC_PARSE_IF_END(p)) return bc_error_bad_token();
 
 	ip.idx = p->func->labels.len;
 	ip.func = ip.len = 0;
@@ -4285,7 +4324,7 @@ static BcStatus bc_parse_while(BcParse *p)
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_LPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_LPAREN) return bc_error_bad_token();
 	s = bc_lex_next(&p->l);
 	if (s) return s;
 
@@ -4303,7 +4342,7 @@ static BcStatus bc_parse_while(BcParse *p)
 
 	s = bc_parse_expr(p, BC_PARSE_REL, bc_parse_next_rel);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_RPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_RPAREN) return bc_error_bad_token();
 	s = bc_lex_next(&p->l);
 	if (s) return s;
 
@@ -4322,7 +4361,7 @@ static BcStatus bc_parse_for(BcParse *p)
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_LPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_LPAREN) return bc_error_bad_token();
 	s = bc_lex_next(&p->l);
 	if (s) return s;
 
@@ -4332,7 +4371,7 @@ static BcStatus bc_parse_for(BcParse *p)
 		s = bc_posix_error("POSIX does not allow an empty init expression in a for loop");
 
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_SCOLON) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_SCOLON) return bc_error_bad_token();
 	s = bc_lex_next(&p->l);
 	if (s) return s;
 
@@ -4349,7 +4388,7 @@ static BcStatus bc_parse_for(BcParse *p)
 		s = bc_posix_error("POSIX does not allow an empty condition expression in a for loop");
 
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_SCOLON) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_SCOLON) return bc_error_bad_token();
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
@@ -4371,7 +4410,7 @@ static BcStatus bc_parse_for(BcParse *p)
 
 	if (s) return s;
 
-	if (p->l.t.t != BC_LEX_RPAREN) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_RPAREN) return bc_error_bad_token();
 	bc_parse_push(p, BC_INST_JUMP);
 	bc_parse_pushIndex(p, cond_idx);
 	bc_vec_push(&p->func->labels, &p->func->code.len);
@@ -4394,17 +4433,17 @@ static BcStatus bc_parse_loopExit(BcParse *p, BcLexType type)
 	size_t i;
 	BcInstPtr *ip;
 
-	if (!BC_PARSE_LOOP(p)) return bc_error("bad token");
+	if (!BC_PARSE_LOOP(p)) return bc_error_bad_token();
 
 	if (type == BC_LEX_KEY_BREAK) {
 
-		if (p->exits.len == 0) return bc_error("bad token");
+		if (p->exits.len == 0) return bc_error_bad_token();
 
 		i = p->exits.len - 1;
 		ip = bc_vec_item(&p->exits, i);
 
 		while (!ip->func && i < p->exits.len) ip = bc_vec_item(&p->exits, i--);
-		if (i >= p->exits.len && !ip->func) return bc_error("bad token");
+		if (i >= p->exits.len && !ip->func) return bc_error_bad_token();
 
 		i = ip->idx;
 	}
@@ -4418,7 +4457,7 @@ static BcStatus bc_parse_loopExit(BcParse *p, BcLexType type)
 	if (s) return s;
 
 	if (p->l.t.t != BC_LEX_SCOLON && p->l.t.t != BC_LEX_NLINE)
-		return bc_error("bad token");
+		return bc_error_bad_token();
 
 	return bc_lex_next(&p->l);
 }
@@ -4506,7 +4545,7 @@ static BcStatus bc_parse_auto(BcParse *p)
 	bool comma, var, one;
 	char *name;
 
-	if (!p->auto_part) return bc_error("bad token");
+	if (!p->auto_part) return bc_error_bad_token();
 	s = bc_lex_next(&p->l);
 	if (s) return s;
 
@@ -4548,7 +4587,7 @@ static BcStatus bc_parse_auto(BcParse *p)
 	if (!one) return bc_error("no auto variable found");
 
 	if (p->l.t.t != BC_LEX_NLINE && p->l.t.t != BC_LEX_SCOLON)
-		return bc_error("bad token");
+		return bc_error_bad_token();
 
 	return bc_lex_next(&p->l);
 
@@ -4566,7 +4605,7 @@ static BcStatus bc_parse_body(BcParse *p, bool brace)
 
 	if (*flag_ptr & BC_PARSE_FLAG_FUNC_INNER) {
 
-		if (!brace) return bc_error("bad token");
+		if (!brace) return bc_error_bad_token();
 		p->auto_part = p->l.t.t != BC_LEX_KEY_AUTO;
 
 		if (!p->auto_part) {
@@ -4603,7 +4642,7 @@ static BcStatus bc_parse_stmt(BcParse *p)
 
 		case BC_LEX_LBRACE:
 		{
-			if (!BC_PARSE_BODY(p)) return bc_error("bad token");
+			if (!BC_PARSE_BODY(p)) return bc_error_bad_token();
 
 			++p->nbraces;
 			s = bc_lex_next(&p->l);
@@ -4748,7 +4787,7 @@ static BcStatus bc_parse_stmt(BcParse *p)
 
 		default:
 		{
-			s = bc_error("bad token");
+			s = bc_error_bad_token();
 			break;
 		}
 	}
@@ -4763,7 +4802,7 @@ static BcStatus bc_parse_parse(BcParse *p)
 	if (p->l.t.t == BC_LEX_EOF)
 		s = p->flags.len > 0 ? bc_error("block end could not be found") : bc_error("end of file");
 	else if (p->l.t.t == BC_LEX_KEY_DEFINE) {
-		if (!BC_PARSE_CAN_EXEC(p)) return bc_error("bad token");
+		if (!BC_PARSE_CAN_EXEC(p)) return bc_error_bad_token();
 		s = bc_parse_func(p);
 	}
 	else
@@ -4849,7 +4888,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 				if (((t == BC_LEX_OP_BOOL_NOT) != bin_last)
 				 || (t != BC_LEX_OP_BOOL_NOT && prev == BC_INST_BOOL_NOT)
 				) {
-					return bc_error("bad expression");
+					return bc_error_bad_expression();
 				}
 
 				nrelops += t >= BC_LEX_OP_REL_EQ && t <= BC_LEX_OP_REL_GT;
@@ -4864,7 +4903,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 			case BC_LEX_LPAREN:
 			{
 				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error("bad expression");
+					return bc_error_bad_expression();
 				++nparens;
 				paren_expr = rprn = bin_last = false;
 				get_token = true;
@@ -4876,7 +4915,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 			case BC_LEX_RPAREN:
 			{
 				if (bin_last || prev == BC_INST_BOOL_NOT)
-					return bc_error("bad expression");
+					return bc_error_bad_expression();
 
 				if (nparens == 0) {
 					s = BC_STATUS_SUCCESS;
@@ -4899,7 +4938,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 			case BC_LEX_NAME:
 			{
 				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error("bad expression");
+					return bc_error_bad_expression();
 				paren_expr = true;
 				rprn = get_token = bin_last = false;
 				s = bc_parse_name(p, &prev, flags & ~BC_PARSE_NOCALL);
@@ -4911,7 +4950,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 			case BC_LEX_NUMBER:
 			{
 				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error("bad expression");
+					return bc_error_bad_expression();
 				bc_parse_number(p, &prev, &nexprs);
 				paren_expr = get_token = true;
 				rprn = bin_last = false;
@@ -4924,7 +4963,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 			case BC_LEX_KEY_OBASE:
 			{
 				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error("bad expression");
+					return bc_error_bad_expression();
 				prev = (char) (t - BC_LEX_KEY_IBASE + BC_INST_IBASE);
 				bc_parse_push(p, (char) prev);
 
@@ -4939,7 +4978,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 			case BC_LEX_KEY_SQRT:
 			{
 				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error("bad expression");
+					return bc_error_bad_expression();
 				s = bc_parse_builtin(p, t, flags, &prev);
 				paren_expr = true;
 				rprn = get_token = bin_last = false;
@@ -4951,9 +4990,9 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 			case BC_LEX_KEY_READ:
 			{
 				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error("bad expression");
+					return bc_error_bad_expression();
 				else if (flags & BC_PARSE_NOREAD)
-					s = bc_error("read() call inside of a read() call");
+					s = bc_error_nested_read_call();
 				else
 					s = bc_parse_read(p);
 
@@ -4968,7 +5007,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 			case BC_LEX_KEY_SCALE:
 			{
 				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error("bad expression");
+					return bc_error_bad_expression();
 				s = bc_parse_scale(p, &prev, flags);
 				paren_expr = true;
 				rprn = get_token = bin_last = false;
@@ -4980,7 +5019,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 
 			default:
 			{
-				s = bc_error("bad token");
+				s = bc_error_bad_token();
 				break;
 			}
 		}
@@ -4997,7 +5036,7 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 		assign = top >= BC_LEX_OP_ASSIGN_POWER && top <= BC_LEX_OP_ASSIGN;
 
 		if (top == BC_LEX_LPAREN || top == BC_LEX_RPAREN)
-			return bc_error("bad expression");
+			return bc_error_bad_expression();
 
 		bc_parse_push(p, BC_PARSE_TOKEN_INST(top));
 
@@ -5006,12 +5045,12 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 	}
 
 	if (prev == BC_INST_BOOL_NOT || nexprs != 1)
-		return bc_error("bad expression");
+		return bc_error_bad_expression();
 
 	for (i = 0; i < next.len; ++i)
 		if (t == next.tokens[i])
 			goto ok;
-	return bc_error("bad expression");
+	return bc_error_bad_expression();
  ok:
 
 	if (!(flags & BC_PARSE_REL) && nrelops) {
@@ -5050,7 +5089,7 @@ static BcStatus dc_parse_register(BcParse *p)
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
-	if (p->l.t.t != BC_LEX_NAME) return bc_error("bad token");
+	if (p->l.t.t != BC_LEX_NAME) return bc_error_bad_token();
 
 	name = xstrdup(p->l.t.v.v);
 	bc_parse_pushName(p, name);
@@ -5158,7 +5197,7 @@ static BcStatus dc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 				s = bc_lex_next(&p->l);
 				if (s) return s;
 				if (p->l.t.t != BC_LEX_NUMBER)
-					return bc_error("bad token");
+					return bc_error_bad_token();
 			}
 
 			bc_parse_number(p, &prev, &p->nbraces);
@@ -5172,7 +5211,7 @@ static BcStatus dc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 		case BC_LEX_KEY_READ:
 		{
 			if (flags & BC_PARSE_NOREAD)
-				s = bc_error("read() call inside of a read() call");
+				s = bc_error_nested_read_call();
 			else
 				bc_parse_push(p, BC_INST_READ);
 			get_token = true;
@@ -5207,7 +5246,7 @@ static BcStatus dc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 
 		default:
 		{
-			s = bc_error("bad token");
+			s = bc_error_bad_token();
 			get_token = true;
 			break;
 		}
@@ -5393,7 +5432,7 @@ static BcStatus bc_program_binOpPrep(BcResult **l, BcNum **ln,
 	BcResultType lt, rt;
 
 	if (!BC_PROG_STACK(&G.prog.results, 2))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 
 	*r = bc_vec_item_rev(&G.prog.results, 0);
 	*l = bc_vec_item_rev(&G.prog.results, 1);
@@ -5415,9 +5454,9 @@ static BcStatus bc_program_binOpPrep(BcResult **l, BcNum **ln,
 	}
 
 	if (!BC_PROG_NUM((*l), (*ln)) && (!assign || (*l)->t != BC_RESULT_VAR))
-		return bc_error("variable is wrong type");
+		return bc_error_variable_is_wrong_type();
 	if (!assign && !BC_PROG_NUM((*r), (*ln)))
-		return bc_error("variable is wrong type");
+		return bc_error_variable_is_wrong_type();
 
 	return s;
 }
@@ -5435,14 +5474,14 @@ static BcStatus bc_program_prep(BcResult **r, BcNum **n)
 	BcStatus s;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 	*r = bc_vec_top(&G.prog.results);
 
 	s = bc_program_num(*r, n, false);
 	if (s) return s;
 
 	if (!BC_PROG_NUM((*r), (*n)))
-		return bc_error("variable is wrong type");
+		return bc_error_variable_is_wrong_type();
 
 	return s;
 }
@@ -5487,7 +5526,7 @@ static BcStatus bc_program_read(void)
 	for (i = 0; i < G.prog.stack.len; ++i) {
 		BcInstPtr *ip_ptr = bc_vec_item(&G.prog.stack, i);
 		if (ip_ptr->func == BC_PROG_READ)
-			return bc_error("read() call inside of a read() call");
+			return bc_error_nested_read_call();
 	}
 
 	bc_vec_pop_all(&f->code);
@@ -5649,7 +5688,7 @@ static BcStatus bc_program_print(char inst, size_t idx)
 	bool pop = inst != BC_INST_PRINT;
 
 	if (!BC_PROG_STACK(&G.prog.results, idx + 1))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 
 	r = bc_vec_item_rev(&G.prog.results, idx);
 	s = bc_program_num(r, &num, false);
@@ -5781,7 +5820,7 @@ static BcStatus bc_program_assignStr(BcResult *r, BcVec *v,
 
 	if (!push) {
 		if (!BC_PROG_STACK(&G.prog.results, 2))
-			return bc_error("stack has too few elements");
+			return bc_error_stack_has_too_few_elements();
 		bc_vec_pop(v);
 		bc_vec_pop(&G.prog.results);
 	}
@@ -5803,16 +5842,16 @@ static BcStatus bc_program_copyToVar(char *name, bool var)
 	BcNum *n;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 
 	ptr = bc_vec_top(&G.prog.results);
 	if ((ptr->t == BC_RESULT_ARRAY) != !var)
-		return bc_error("variable is wrong type");
+		return bc_error_variable_is_wrong_type();
 	v = bc_program_search(name, var);
 
 #if ENABLE_DC
 	if (ptr->t == BC_RESULT_STR && !var)
-		return bc_error("variable is wrong type");
+		return bc_error_variable_is_wrong_type();
 	if (ptr->t == BC_RESULT_STR) return bc_program_assignStr(ptr, v, true);
 #endif
 
@@ -5858,7 +5897,7 @@ static BcStatus bc_program_assign(char inst)
 		BcVec *v;
 
 		if (left->t != BC_RESULT_VAR)
-			return bc_error("variable is wrong type");
+			return bc_error_variable_is_wrong_type();
 		v = bc_program_search(left->d.id.name, true);
 
 		return bc_program_assignStr(right, v, false);
@@ -5952,7 +5991,7 @@ static BcStatus bc_program_pushVar(char *code, size_t *bgn,
 
 			if (!BC_PROG_STACK(v, 2 - copy)) {
 				free(name);
-				return bc_error("stack has too few elements");
+				return bc_error_stack_has_too_few_elements();
 			}
 
 			free(name);
@@ -6068,7 +6107,7 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 		return bc_error("undefined function");
 	}
 	if (nparams != func->nparams) {
-		return bc_error("function has %u parameters, but called with %u", func->nparams, nparams);
+		return bc_error_fmt("function has %u parameters, but called with %u", func->nparams, nparams);
 	}
 	ip.len = G.prog.results.len - nparams;
 
@@ -6078,7 +6117,7 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 		arg = bc_vec_top(&G.prog.results);
 
 		if ((!a->idx) != (arg->t == BC_RESULT_ARRAY) || arg->t == BC_RESULT_STR)
-			return bc_error("variable is wrong type");
+			return bc_error_variable_is_wrong_type();
 
 		s = bc_program_copyToVar(a->name, a->idx);
 		if (s) return s;
@@ -6114,7 +6153,7 @@ static BcStatus bc_program_return(char inst)
 	BcInstPtr *ip = bc_vec_top(&G.prog.stack);
 
 	if (!BC_PROG_STACK(&G.prog.results, ip->len + inst == BC_INST_RET))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 
 	f = bc_vec_item(&G.prog.fns, ip->func);
 	res.t = BC_RESULT_TEMP;
@@ -6177,7 +6216,7 @@ static BcStatus bc_program_builtin(char inst)
 	bool len = inst == BC_INST_LENGTH;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 	opnd = bc_vec_top(&G.prog.results);
 
 	s = bc_program_num(opnd, &num, false);
@@ -6185,7 +6224,7 @@ static BcStatus bc_program_builtin(char inst)
 
 #if ENABLE_DC
 	if (!BC_PROG_NUM(opnd, num) && !len)
-		return bc_error("variable is wrong type");
+		return bc_error_variable_is_wrong_type();
 #endif
 
 	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
@@ -6251,7 +6290,7 @@ static BcStatus bc_program_modexp(void)
 	BcNum *n1, *n2, *n3;
 
 	if (!BC_PROG_STACK(&G.prog.results, 3))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 	s = bc_program_binOpPrep(&r2, &n2, &r3, &n3, false);
 	if (s) return s;
 
@@ -6259,7 +6298,7 @@ static BcStatus bc_program_modexp(void)
 	s = bc_program_num(r1, &n1, false);
 	if (s) return s;
 	if (!BC_PROG_NUM(r1, n1))
-		return bc_error("variable is wrong type");
+		return bc_error_variable_is_wrong_type();
 
 	// Make sure that the values have their pointers updated, if necessary.
 	if (r1->t == BC_RESULT_VAR || r1->t == BC_RESULT_ARRAY_ELEM) {
@@ -6311,7 +6350,7 @@ static BcStatus bc_program_asciify(void)
 	unsigned long val;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 	r = bc_vec_top(&G.prog.results);
 
 	s = bc_program_num(r, &num, false);
@@ -6380,7 +6419,7 @@ static BcStatus bc_program_printStream(void)
 	char *str;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 	r = bc_vec_top(&G.prog.results);
 
 	s = bc_program_num(r, &n, false);
@@ -6412,7 +6451,7 @@ static BcStatus bc_program_nquit(void)
 	bc_vec_pop(&G.prog.results);
 
 	if (G.prog.stack.len < val)
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 	if (G.prog.stack.len == val)
 		quit();
 
@@ -6435,7 +6474,7 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 	bool exec;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error("stack has too few elements");
+		return bc_error_stack_has_too_few_elements();
 
 	r = bc_vec_top(&G.prog.results);
 
@@ -6468,7 +6507,7 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 
 		if (!exec) goto exit;
 		if (!BC_PROG_STR(n)) {
-			s = bc_error("variable is wrong type");
+			s = bc_error_variable_is_wrong_type();
 			goto exit;
 		}
 
@@ -6500,7 +6539,7 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 		if (s) goto err;
 
 		if (prs.l.t.t != BC_LEX_EOF) {
-			s = bc_error("bad expression");
+			s = bc_error_bad_expression();
 			goto err;
 		}
 
@@ -6723,7 +6762,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_POP:
 			{
 				if (!BC_PROG_STACK(&G.prog.results, 1))
-					s = bc_error("stack has too few elements");
+					s = bc_error_stack_has_too_few_elements();
 				else
 					bc_vec_pop(&G.prog.results);
 				break;
@@ -6836,7 +6875,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_DUPLICATE:
 			{
 				if (!BC_PROG_STACK(&G.prog.results, 1))
-					return bc_error("stack has too few elements");
+					return bc_error_stack_has_too_few_elements();
 				ptr = bc_vec_top(&G.prog.results);
 				bc_result_copy(&r, ptr);
 				bc_vec_push(&G.prog.results, &r);
@@ -6848,7 +6887,7 @@ static BcStatus bc_program_exec(void)
 				BcResult *ptr2;
 
 				if (!BC_PROG_STACK(&G.prog.results, 2))
-					return bc_error("stack has too few elements");
+					return bc_error_stack_has_too_few_elements();
 
 				ptr = bc_vec_item_rev(&G.prog.results, 0);
 				ptr2 = bc_vec_item_rev(&G.prog.results, 1);
@@ -7009,7 +7048,7 @@ static BcStatus bc_vm_file(const char *file)
 
 	G.prog.file = file;
 	data = bc_read_file(file);
-	if (!data) return bc_error("file '%s' is not text", file);
+	if (!data) return bc_error_fmt("file '%s' is not text", file);
 
 	bc_lex_file(&G.prs.l, file);
 	s = bc_vm_process(data);
@@ -7019,7 +7058,7 @@ static BcStatus bc_vm_file(const char *file)
 	ip = bc_vec_item(&G.prog.stack, 0);
 
 	if (main_func->code.len < ip->idx)
-		s = bc_error("file '%s' is not executable", file);
+		s = bc_error_fmt("file '%s' is not executable", file);
 
 err:
 	free(data);
