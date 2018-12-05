@@ -754,6 +754,9 @@ struct globals {
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
+#define FREE_G() do { \
+	FREE_PTR_TO_GLOBALS(); \
+} while (0)
 #define G_posix (ENABLE_BC && (option_mask32 & BC_FLAG_S))
 #define G_warn  (ENABLE_BC && (option_mask32 & BC_FLAG_W))
 #define G_exreg (ENABLE_DC && (option_mask32 & BC_FLAG_X))
@@ -898,6 +901,16 @@ static void fflush_and_check(void)
 		bb_perror_msg_and_die("output error");
 }
 
+#if ENABLE_FEATURE_CLEAN_UP
+#define quit_or_return_for_exit() \
+do { \
+	G.ttyin = 0; /* do not loop in main loop anymore */ \
+	return BC_STATUS_FAILURE; \
+} while (0)
+#else
+#define quit_or_return_for_exit() quit()
+#endif
+
 static void quit(void) NORETURN;
 static void quit(void)
 {
@@ -929,7 +942,7 @@ static NOINLINE int bc_error_fmt(const char *fmt, ...)
 	bc_verror_msg(fmt, p);
 	va_end(p);
 
-	if (!G.ttyin)
+	if (!ENABLE_FEATURE_CLEAN_UP && !G.ttyin)
 		exit(1);
 	return BC_STATUS_FAILURE;
 }
@@ -949,7 +962,7 @@ static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 	// Do we treat non-POSIX constructs as errors?
 	if (!(option_mask32 & BC_FLAG_S))
 		return BC_STATUS_SUCCESS; // no, it's a warning
-	if (!G.ttyin)
+	if (!ENABLE_FEATURE_CLEAN_UP && !G.ttyin)
 		exit(1);
 	return BC_STATUS_FAILURE;
 }
@@ -4645,7 +4658,7 @@ static BcStatus bc_parse_stmt(BcParse *p)
 			// "quit" is a compile-time command. For example,
 			// "if (0 == 1) quit" terminates when parsing the statement,
 			// not when it is executed
-			quit();
+			quit_or_return_for_exit();
 		}
 
 		case BC_LEX_KEY_RETURN:
@@ -6347,8 +6360,11 @@ static BcStatus bc_program_nquit(void)
 
 	if (G.prog.stack.len < val)
 		return bc_error_stack_has_too_few_elements();
-	if (G.prog.stack.len == val)
+	if (G.prog.stack.len == val) {
+		if (ENABLE_FEATURE_CLEAN_UP)
+			return BC_STATUS_FAILURE;
 		quit();
+	}
 
 	bc_vec_npop(&G.prog.stack, val);
 
@@ -6579,7 +6595,7 @@ static BcStatus bc_program_exec(void)
 
 			case BC_INST_HALT:
 			{
-				quit();
+				quit_or_return_for_exit();
 				break;
 			}
 
@@ -6824,7 +6840,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_QUIT:
 			{
 				if (G.prog.stack.len <= 2)
-					quit();
+					quit_or_return_for_exit();
 				bc_vec_npop(&G.prog.stack, 2);
 				break;
 			}
@@ -7018,6 +7034,12 @@ static BcStatus bc_vm_stdin(void)
 		bc_vec_concat(&buffer, buf.v);
 		s = bc_vm_process(buffer.v);
 		if (s) {
+			if (ENABLE_FEATURE_CLEAN_UP && !G.ttyin) {
+				// Debug config, non-interactive mode:
+				// return all the way back to main.
+				// Non-debug builds do not come here, they exit.
+				break;
+			}
 			fflush_and_check();
 			fputs("ready for more input\n", stderr);
 		}
@@ -7241,6 +7263,12 @@ static BcStatus bc_vm_exec(void)
 	for (i = 0; !s && i < G.files.len; ++i)
 		s = bc_vm_file(*((char **) bc_vec_item(&G.files, i)));
 	if (s) {
+		if (ENABLE_FEATURE_CLEAN_UP && !G.ttyin) {
+			// Debug config, non-interactive mode:
+			// return all the way back to main.
+			// Non-debug builds do not come here, they exit.
+			return s;
+		}
 		fflush_and_check();
 		fputs("ready for more input\n", stderr);
 	}
@@ -7254,7 +7282,7 @@ static BcStatus bc_vm_exec(void)
 }
 
 #if ENABLE_FEATURE_CLEAN_UP
-static void bc_program_free()
+static void bc_program_free(void)
 {
 	bc_num_free(&G.prog.ib);
 	bc_num_free(&G.prog.ob);
@@ -7397,6 +7425,7 @@ static BcStatus bc_vm_run(int argc, char *argv[],
 
 #if ENABLE_FEATURE_CLEAN_UP
 	bc_vm_free();
+	FREE_G();
 #endif
 	return st;
 }
