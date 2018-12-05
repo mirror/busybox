@@ -1840,12 +1840,19 @@ static BcStatus bc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 		for (q = 0; (!s && n[len] != 0) || bc_num_compare(n, p, len) >= 0; ++q)
 			bc_num_subArrays(n, p, len);
 		c->num[i] = q;
+		// a=2^100000
+		// scale=40000
+		// 1/a <- without check below, this will not be interruptible
+		if (G_interrupt) {
+			s = BC_STATUS_FAILURE;
+			break;
+		}
 	}
 
 	bc_num_retireMul(c, scale, a->neg, b->neg);
 	bc_num_free(&cp);
 
-	return BC_STATUS_SUCCESS; // can't make void, see bc_num_binary()
+	return s;
 }
 
 static BcStatus bc_num_r(BcNum *a, BcNum *b, BcNum *restrict c,
@@ -1864,7 +1871,8 @@ static BcStatus bc_num_r(BcNum *a, BcNum *b, BcNum *restrict c,
 	}
 
 	bc_num_init(&temp, d->cap);
-	bc_num_d(a, b, c, scale);
+	s = bc_num_d(a, b, c, scale);
+	if (s) goto err;
 
 	if (scale != 0) scale = ts;
 
