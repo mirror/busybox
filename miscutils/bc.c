@@ -3616,6 +3616,7 @@ static void bc_parse_create(BcParse *p, size_t func,
 static BcStatus bc_parse_else(BcParse *p);
 static BcStatus bc_parse_stmt(BcParse *p);
 static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
+static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext next);
 
 static BcStatus bc_parse_operator(BcParse *p, BcLexType type, size_t start,
                                   size_t *nexprs, bool next)
@@ -4027,7 +4028,7 @@ static BcStatus bc_parse_return(BcParse *p)
 		bc_parse_push(p, BC_INST_RET0);
 	else {
 
-		s = bc_parse_expr(p, 0, bc_parse_next_expr);
+		s = bc_parse_expr_empty_ok(p, 0, bc_parse_next_expr);
 		if (s == BC_STATUS_PARSE_EMPTY_EXP) {
 			bc_parse_push(p, BC_INST_RET0);
 			s = bc_lex_next(&p->l);
@@ -4690,7 +4691,7 @@ static BcStatus bc_parse_parse(BcParse *p)
 	return s;
 }
 
-static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
+static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext next)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcInst prev = BC_INST_PRINT;
@@ -4941,6 +4942,16 @@ static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 		bc_parse_push(p, BC_INST_POP);
 	}
 
+	return s;
+}
+
+static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
+{
+	BcStatus s;
+
+	s = bc_parse_expr_empty_ok(p, flags, next);
+	if (s == BC_STATUS_PARSE_EMPTY_EXP)
+		return bc_error("empty expression");
 	return s;
 }
 
