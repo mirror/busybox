@@ -2039,6 +2039,11 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 		powrdx <<= 1;
 		s = bc_num_mul(&copy, &copy, &copy, powrdx);
 		if (s) goto err;
+		// It is too slow to handle ^C only after entire "2^1000000" completes
+		if (G_interrupt) {
+			s = BC_STATUS_FAILURE;
+			goto err;
+		}
 	}
 
 	bc_num_copy(c, &copy);
@@ -2053,6 +2058,11 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 			resrdx += powrdx;
 			s = bc_num_mul(c, &copy, c, resrdx);
 			if (s) goto err;
+		}
+		// It is too slow to handle ^C only after entire "2^1000000" completes
+		if (G_interrupt) {
+			s = BC_STATUS_FAILURE;
+			goto err;
 		}
 	}
 
