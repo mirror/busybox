@@ -217,14 +217,6 @@ typedef struct BcNum {
 typedef BcStatus (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t);
 typedef void (*BcNumDigitOp)(size_t, size_t, bool, size_t *, size_t);
 
-static void bc_num_init(BcNum *n, size_t req);
-static void bc_num_expand(BcNum *n, size_t req);
-static void bc_num_copy(BcNum *d, BcNum *s);
-static void bc_num_free(void *num);
-
-static BcStatus bc_num_ulong(BcNum *n, unsigned long *result);
-static void bc_num_ulong2num(BcNum *n, unsigned long val);
-
 static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale);
 static BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale);
 static BcStatus bc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale);
@@ -387,7 +379,6 @@ typedef struct BcInstPtr {
 	size_t len;
 } BcInstPtr;
 
-static void bc_array_expand(BcVec *a, size_t len);
 static int bc_id_cmp(const void *e1, const void *e2);
 
 // BC_LEX_NEG is not used in lexing; it is only for parsing.
@@ -798,10 +789,7 @@ struct globals {
 #define G_exreg (ENABLE_DC && (option_mask32 & BC_FLAG_X))
 #define G_interrupt (ENABLE_FEATURE_BC_SIGNALS ? bb_got_signal : 0)
 
-
 #define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
-
-static void bc_vm_info(void);
 
 #if ENABLE_BC
 
@@ -1044,6 +1032,15 @@ static int bc_error_variable_is_wrong_type(void)
 static int bc_error_nested_read_call(void)
 {
 	return bc_error("read() call inside of a read() call");
+}
+
+static void bc_vm_info(void)
+{
+	printf("%s "BB_VER"\n"
+		"Copyright (c) 2018 Gavin D. Howard and contributors\n"
+		"Report bugs at: https://github.com/gavinhoward/bc\n"
+		"This is free software with ABSOLUTELY NO WARRANTY\n"
+	, applet_name);
 }
 
 static void bc_vec_grow(BcVec *v, size_t n)
@@ -1349,6 +1346,74 @@ static void bc_num_ten(BcNum *n)
 	n->len = 2;
 	n->num[0] = 0;
 	n->num[1] = 1;
+}
+
+static void bc_num_init(BcNum *n, size_t req)
+{
+	req = req >= BC_NUM_DEF_SIZE ? req : BC_NUM_DEF_SIZE;
+	memset(n, 0, sizeof(BcNum));
+	n->num = xmalloc(req);
+	n->cap = req;
+}
+
+static void bc_num_expand(BcNum *n, size_t req)
+{
+	req = req >= BC_NUM_DEF_SIZE ? req : BC_NUM_DEF_SIZE;
+	if (req > n->cap) {
+		n->num = xrealloc(n->num, req);
+		n->cap = req;
+	}
+}
+
+static void bc_num_free(void *num)
+{
+	free(((BcNum *) num)->num);
+}
+
+static void bc_num_copy(BcNum *d, BcNum *s)
+{
+	if (d != s) {
+		bc_num_expand(d, s->cap);
+		d->len = s->len;
+		d->neg = s->neg;
+		d->rdx = s->rdx;
+		memcpy(d->num, s->num, sizeof(BcDig) * d->len);
+	}
+}
+
+static BcStatus bc_num_ulong(BcNum *n, unsigned long *result)
+{
+	size_t i;
+	unsigned long pow;
+
+	if (n->neg) return bc_error("negative number");
+
+	for (*result = 0, pow = 1, i = n->rdx; i < n->len; ++i) {
+
+		unsigned long prev = *result, powprev = pow;
+
+		*result += ((unsigned long) n->num[i]) * pow;
+		pow *= 10;
+
+		if (*result < prev || pow < powprev)
+			return bc_error("overflow");
+	}
+
+	return BC_STATUS_SUCCESS;
+}
+
+static void bc_num_ulong2num(BcNum *n, unsigned long val)
+{
+	size_t len;
+	BcDig *ptr;
+	unsigned long i;
+
+	bc_num_zero(n);
+
+	if (val == 0) return;
+
+	for (len = 1, i = ULONG_MAX; i != 0; i /= 10, ++len) bc_num_expand(n, len);
+	for (ptr = n->num, i = 0; val; ++i, ++n->len, val /= 10) ptr[i] = val % 10;
 }
 
 static void bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
@@ -2343,39 +2408,6 @@ static BcStatus bc_num_stream(BcNum *n, BcNum *base, size_t *nchars, size_t len)
 }
 #endif
 
-static void bc_num_init(BcNum *n, size_t req)
-{
-	req = req >= BC_NUM_DEF_SIZE ? req : BC_NUM_DEF_SIZE;
-	memset(n, 0, sizeof(BcNum));
-	n->num = xmalloc(req);
-	n->cap = req;
-}
-
-static void bc_num_expand(BcNum *n, size_t req)
-{
-	req = req >= BC_NUM_DEF_SIZE ? req : BC_NUM_DEF_SIZE;
-	if (req > n->cap) {
-		n->num = xrealloc(n->num, req);
-		n->cap = req;
-	}
-}
-
-static void bc_num_free(void *num)
-{
-	free(((BcNum *) num)->num);
-}
-
-static void bc_num_copy(BcNum *d, BcNum *s)
-{
-	if (d != s) {
-		bc_num_expand(d, s->cap);
-		d->len = s->len;
-		d->neg = s->neg;
-		d->rdx = s->rdx;
-		memcpy(d->num, s->num, sizeof(BcDig) * d->len);
-	}
-}
-
 static BcStatus bc_num_parse(BcNum *n, const char *val, BcNum *base,
                              size_t base_t)
 {
@@ -2412,41 +2444,6 @@ static BcStatus bc_num_print(BcNum *n, BcNum *base, size_t base_t, bool newline,
 	}
 
 	return s;
-}
-
-static BcStatus bc_num_ulong(BcNum *n, unsigned long *result)
-{
-	size_t i;
-	unsigned long pow;
-
-	if (n->neg) return bc_error("negative number");
-
-	for (*result = 0, pow = 1, i = n->rdx; i < n->len; ++i) {
-
-		unsigned long prev = *result, powprev = pow;
-
-		*result += ((unsigned long) n->num[i]) * pow;
-		pow *= 10;
-
-		if (*result < prev || pow < powprev)
-			return bc_error("overflow");
-	}
-
-	return BC_STATUS_SUCCESS;
-}
-
-static void bc_num_ulong2num(BcNum *n, unsigned long val)
-{
-	size_t len;
-	BcDig *ptr;
-	unsigned long i;
-
-	bc_num_zero(n);
-
-	if (val == 0) return;
-
-	for (len = 1, i = ULONG_MAX; i != 0; i /= 10, ++len) bc_num_expand(n, len);
-	for (ptr = n->num, i = 0; val; ++i, ++n->len, val /= 10) ptr[i] = val % 10;
 }
 
 static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
@@ -2712,6 +2709,8 @@ static void bc_func_free(void *func)
 	bc_vec_free(&f->labels);
 }
 
+static void bc_array_expand(BcVec *a, size_t len);
+
 static void bc_array_init(BcVec *a, bool nums)
 {
 	if (nums)
@@ -2719,21 +2718,6 @@ static void bc_array_init(BcVec *a, bool nums)
 	else
 		bc_vec_init(a, sizeof(BcVec), bc_vec_free);
 	bc_array_expand(a, 1);
-}
-
-static void bc_array_copy(BcVec *d, const BcVec *s)
-{
-	size_t i;
-
-	bc_vec_pop_all(d);
-	bc_vec_expand(d, s->cap);
-	d->len = s->len;
-
-	for (i = 0; i < s->len; ++i) {
-		BcNum *dnum = bc_vec_item(d, i), *snum = bc_vec_item(s, i);
-		bc_num_init(dnum, snum->len);
-		bc_num_copy(dnum, snum);
-	}
 }
 
 static void bc_array_expand(BcVec *a, size_t len)
@@ -2751,6 +2735,21 @@ static void bc_array_expand(BcVec *a, size_t len)
 			bc_array_init(&data.v, true);
 			bc_vec_push(a, &data.v);
 		}
+	}
+}
+
+static void bc_array_copy(BcVec *d, const BcVec *s)
+{
+	size_t i;
+
+	bc_vec_pop_all(d);
+	bc_vec_expand(d, s->cap);
+	d->len = s->len;
+
+	for (i = 0; i < s->len; ++i) {
+		BcNum *dnum = bc_vec_item(d, i), *snum = bc_vec_item(s, i);
+		bc_num_init(dnum, snum->len);
+		bc_num_copy(dnum, snum);
 	}
 }
 
@@ -6852,15 +6851,6 @@ static BcStatus bc_program_exec(void)
 	}
 
 	return s;
-}
-
-static void bc_vm_info(void)
-{
-	printf("%s "BB_VER"\n"
-		"Copyright (c) 2018 Gavin D. Howard and contributors\n"
-		"Report bugs at: https://github.com/gavinhoward/bc\n"
-		"This is free software with ABSOLUTELY NO WARRANTY\n"
-	, applet_name);
 }
 
 #if ENABLE_BC
