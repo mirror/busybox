@@ -379,8 +379,6 @@ typedef struct BcInstPtr {
 	size_t len;
 } BcInstPtr;
 
-static int bc_id_cmp(const void *e1, const void *e2);
-
 // BC_LEX_NEG is not used in lexing; it is only for parsing.
 typedef enum BcLexType {
 
@@ -655,34 +653,6 @@ typedef struct BcParse {
 	bool auto_part;
 
 } BcParse;
-
-#if ENABLE_BC
-
-static BcStatus bc_lex_token(BcLex *l);
-
-#define BC_PARSE_TOP_OP(p) (*((BcLexType *) bc_vec_top(&(p)->ops)))
-#define BC_PARSE_LEAF(p, rparen)                                \
-	(((p) >= BC_INST_NUM && (p) <= BC_INST_SQRT) || (rparen) || \
-	 (p) == BC_INST_INC_POST || (p) == BC_INST_DEC_POST)
-
-// We can calculate the conversion between tokens and exprs by subtracting the
-// position of the first operator in the lex enum and adding the position of the
-// first in the expr enum. Note: This only works for binary operators.
-#define BC_PARSE_TOKEN_INST(t) ((char) ((t) -BC_LEX_NEG + BC_INST_NEG))
-
-static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
-
-#endif // ENABLE_BC
-
-#if ENABLE_DC
-
-#define DC_PARSE_BUF_LEN ((int) (sizeof(uint32_t) * CHAR_BIT))
-
-static BcStatus dc_lex_token(BcLex *l);
-
-static BcStatus dc_parse_expr(BcParse *p, uint8_t flags);
-
-#endif // ENABLE_DC
 
 typedef struct BcProgram {
 
@@ -1163,6 +1133,16 @@ static void bc_vec_free(void *vec)
 	BcVec *v = (BcVec *) vec;
 	bc_vec_pop_all(v);
 	free(v->v);
+}
+
+static int bc_id_cmp(const void *e1, const void *e2)
+{
+	return strcmp(((const BcId *) e1)->name, ((const BcId *) e2)->name);
+}
+
+static void bc_id_free(void *id)
+{
+	free(((BcId *) id)->name);
 }
 
 static size_t bc_map_find(const BcVec *v, const void *ptr)
@@ -2665,16 +2645,6 @@ err:
 }
 #endif // ENABLE_DC
 
-static int bc_id_cmp(const void *e1, const void *e2)
-{
-	return strcmp(((const BcId *) e1)->name, ((const BcId *) e2)->name);
-}
-
-static void bc_id_free(void *id)
-{
-	free(((BcId *) id)->name);
-}
-
 static BcStatus bc_func_insert(BcFunc *f, char *name, bool var)
 {
 	BcId a;
@@ -3632,8 +3602,20 @@ static void bc_parse_create(BcParse *p, size_t func,
 }
 
 #if ENABLE_BC
+
+#define BC_PARSE_TOP_OP(p) (*((BcLexType *) bc_vec_top(&(p)->ops)))
+#define BC_PARSE_LEAF(p, rparen)                                \
+	(((p) >= BC_INST_NUM && (p) <= BC_INST_SQRT) || (rparen) || \
+	 (p) == BC_INST_INC_POST || (p) == BC_INST_DEC_POST)
+
+// We can calculate the conversion between tokens and exprs by subtracting the
+// position of the first operator in the lex enum and adding the position of the
+// first in the expr enum. Note: This only works for binary operators.
+#define BC_PARSE_TOKEN_INST(t) ((char) ((t) -BC_LEX_NEG + BC_INST_NEG))
+
 static BcStatus bc_parse_else(BcParse *p);
 static BcStatus bc_parse_stmt(BcParse *p);
+static BcStatus bc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
 
 static BcStatus bc_parse_operator(BcParse *p, BcLexType type, size_t start,
                                   size_t *nexprs, bool next)
@@ -4971,9 +4953,13 @@ static BcStatus bc_parse_expression(BcParse *p, uint8_t flags)
 {
 	return bc_parse_expr(p, flags, bc_parse_next_read);
 }
+
 #endif // ENABLE_BC
 
 #if ENABLE_DC
+
+#define DC_PARSE_BUF_LEN ((int) (sizeof(uint32_t) * CHAR_BIT))
+
 static BcStatus dc_parse_register(BcParse *p)
 {
 	BcStatus s;
@@ -5196,6 +5182,7 @@ static void dc_parse_init(BcParse *p, size_t func)
 {
 	bc_parse_create(p, func, dc_parse_parse, dc_lex_token);
 }
+
 #endif // ENABLE_DC
 
 static void common_parse_init(BcParse *p, size_t func)
