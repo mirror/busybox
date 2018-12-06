@@ -12,45 +12,33 @@ testing "dc basic syntax (stdin, multiple args)" \
 	"" "10 20+p"
 
 testing "dc basic syntax (argv, single arg)" \
-	"dc '10 20+p'" \
+	"dc -e'10 20+p'" \
 	"30\n" \
 	"" ""
 
 testing "dc basic syntax (argv, multiple args)" \
-	"dc 10 20+p" \
+	"dc -e10 -e20+p" \
 	"30\n" \
 	"" ""
 
 testing "dc complex with spaces (single arg)" \
-	"dc '8 8 * 2 2 + / p'" \
+	"dc -e'8 8 * 2 2 + / p'" \
 	"16\n" \
 	"" ""
 
 testing "dc complex without spaces (single arg)" \
-	"dc '8 8*2 2+/p'" \
+	"dc -e'8 8*2 2+/p'" \
 	"16\n" \
 	"" ""
 
 testing "dc complex with spaces (multiple args)" \
-	"dc 8 8 \* 2 2 + / p" \
+	"dc -e8 -e8 -e\* -e2 -e2 -e+ -e/ -ep" \
 	"16\n" \
 	"" ""
 
 testing "dc complex without spaces (multiple args)" \
-	"dc 8 8\*2 2+/p" \
+	"dc -e8 -e8\*2 -e2+/p" \
 	"16\n" \
 	"" ""
 
 exit $FAILCOUNT
-
-# we do not support arguments
-testing "dc -e <exprs>" \
-	"dc -e '10 2+f'" \
-	"12\n" \
-	"" ""
-
-testing "dc -f <exprs-from-given-file>" \
-	"dc -f input" \
-	"12\n" \
-	"10 2+f" ""
-

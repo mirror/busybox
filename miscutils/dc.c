@@ -248,6 +248,7 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 {
 	INIT_G();
 
+//TODO: fix this, should take: dc -eSCRIPT -fFILE FILE
 	argv++;
 	if (!argv[0]) {
 		/* take stuff from stdin if no args are given */
