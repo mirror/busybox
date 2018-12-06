@@ -1148,7 +1148,7 @@ static void bc_vec_concat(BcVec *v, const char *str)
 	len = v->len + strlen(str);
 
 	if (v->cap < len) bc_vec_grow(v, len - v->len);
-	strcat(v->v, str);
+	strcpy(v->v + v->len, str);
 
 	v->len = len;
 }
