@@ -1216,41 +1216,41 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 				, stderr);
 		}
 #endif
-		if (G_ttyin && !G_posix)
-			fputs(prompt, stderr);
+		{
+			if (G_ttyin && !G_posix)
+				fputs(prompt, stderr);
 
+			IF_FEATURE_BC_SIGNALS(errno = 0;)
+			do {
+				i = fgetc(stdin);
+				if (i == EOF) {
 #if ENABLE_FEATURE_BC_SIGNALS
-		errno = 0;
+					// Both conditions appear simultaneously, check both just in case
+					if (errno == EINTR || bb_got_signal) {
+						// ^C was pressed
+						clearerr(stdin);
+						goto intr;
+					}
 #endif
-		do {
-			i = fgetc(stdin);
-			if (i == EOF) {
-#if ENABLE_FEATURE_BC_SIGNALS
-				// Both conditions appear simultaneously, check both just in case
-				if (errno == EINTR || bb_got_signal) {
-					// ^C was pressed
-					clearerr(stdin);
-					goto intr;
+					if (ferror(stdin))
+						quit(); // this emits error message
+					G.eof = 1;
+					// Note: EOF does not append '\n', therefore:
+					// printf 'print 123\n' | bc - works
+					// printf 'print 123' | bc   - fails (syntax error)
+					break;
 				}
-#endif
-				if (ferror(stdin))
-					quit(); // this emits error message
-				G.eof = 1;
-				// Note: EOF does not append '\n', therefore:
-				// printf 'print 123\n' | bc - works
-				// printf 'print 123' | bc   - fails (syntax error)
-				break;
-			}
 
-			if ((i < ' ' && i != '\t' && i != '\r' && i != '\n') // also allow '\v' '\f'?
-			 || i > 0x7e
-			) {
-				// Bad chars on this line, ignore entire line
-				bc_error_fmt("illegal character 0x%02x", i);
-				bad_chars = 1;
-			}
-			bc_vec_pushByte(vec, (char)i);
-		} while (i != '\n');
+				if ((i < ' ' && i != '\t' && i != '\r' && i != '\n') // also allow '\v' '\f'?
+				 || i > 0x7e
+				) {
+					// Bad chars on this line, ignore entire line
+					bc_error_fmt("illegal character 0x%02x", i);
+					bad_chars = 1;
+				}
+				bc_vec_pushByte(vec, (char)i);
+			} while (i != '\n');
+		}
 	} while (bad_chars);
 
 	bc_vec_pushZeroByte(vec);
