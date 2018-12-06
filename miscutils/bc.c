@@ -1069,8 +1069,12 @@ static void bc_vec_expand(BcVec *v, size_t req)
 	}
 }
 
-#define bc_vec_pop(v) (bc_vec_npop((v), 1))
-#define bc_vec_top(v) (bc_vec_item_rev((v), 0))
+static void bc_vec_pop(BcVec *v)
+{
+	v->len--;
+	if (v->dtor)
+		v->dtor(v->v + (v->size * v->len));
+}
 
 static void bc_vec_npop(BcVec *v, size_t n)
 {
@@ -1093,8 +1097,6 @@ static void bc_vec_push(BcVec *v, const void *data)
 	memmove(v->v + (v->size * v->len), data, v->size);
 	v->len += 1;
 }
-
-#define bc_parse_push(p, i) bc_vec_pushByte(&(p)->func->code, (char) (i))
 
 static void bc_vec_pushByte(BcVec *v, char data)
 {
@@ -1157,6 +1159,11 @@ static void *bc_vec_item(const BcVec *v, size_t idx)
 static void *bc_vec_item_rev(const BcVec *v, size_t idx)
 {
 	return v->v + v->size * (v->len - idx - 1);
+}
+
+static void *bc_vec_top(const BcVec *v)
+{
+	return v->v + v->size * (v->len - 1);
 }
 
 static void bc_vec_free(void *vec)
@@ -3529,6 +3536,8 @@ static void bc_parse_addFunc(BcParse *p, char *name, size_t *idx)
 	bc_program_addFunc(name, idx);
 	p->func = bc_vec_item(&G.prog.fns, p->fidx);
 }
+
+#define bc_parse_push(p, i) bc_vec_pushByte(&(p)->func->code, (char) (i))
 
 static void bc_parse_pushName(BcParse *p, char *name)
 {
