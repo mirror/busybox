@@ -134,12 +134,13 @@
 //usage:#define bc_full_usage "\n"
 //usage:     "\nArbitrary precision calculator"
 //usage:     "\n"
-//usage:     "\n	-i	Interactive"
+///////:     "\n	-i	Interactive" - has no effect for now
+//usage:     "\n	-q	Quiet"
 //usage:     "\n	-l	Load standard math library"
 //usage:     "\n	-s	Be POSIX compatible"
-//usage:     "\n	-q	Quiet"
 //usage:     "\n	-w	Warn if extensions are used"
 ///////:     "\n	-v	Version"
+//usage:     "\n"
 //usage:     "\n$BC_LINE_LENGTH changes output width"
 //usage:
 //usage:#define bc_example_usage
@@ -154,29 +155,29 @@
 //usage:       "obase = A\n"
 //usage:
 //usage:#define dc_trivial_usage
-//usage:       "EXPRESSION..."
+//usage:       "[-eSCRIPT]... [-fFILE]... [FILE]..."
 //usage:
 //usage:#define dc_full_usage "\n"
 //usage:     "\nTiny RPN calculator. Operations:"
-//usage:     "\n+, add, -, sub, *, mul, /, div, %, mod, ^, exp, ~, divmod, |, "
+//usage:     "\n+, -, *, /, %, ^, exp, ~, divmod, |, "
 //usage:       "modular exponentiation,"
-//usage:     "\np - print top of the stack (without popping),"
-//usage:     "\nf - print entire stack,"
-//usage:     "\nk - pop the value and set the precision."
-//usage:     "\ni - pop the value and set input radix."
-//usage:     "\no - pop the value and set output radix."
-//usage:     "\nExamples: 'dc 2 2 add p' -> 4, 'dc 8 8 mul 2 2 + / p' -> 16"
+//usage:     "\np - print top of the stack (without popping)"
+//usage:     "\nf - print entire stack"
+//usage:     "\nk - pop the value and set the precision"
+//usage:     "\ni - pop the value and set input radix"
+//usage:     "\no - pop the value and set output radix"
+//usage:     "\nExamples: dc -e'2 2 + p' -> 4, dc -e'8 8 * 2 2 + / p' -> 16"
 //usage:
 //usage:#define dc_example_usage
-//usage:       "$ dc 2 2 + p\n"
+//usage:       "$ dc -e'2 2 + p'\n"
 //usage:       "4\n"
-//usage:       "$ dc 8 8 \\* 2 2 + / p\n"
+//usage:       "$ dc -e'8 8 \\* 2 2 + / p'\n"
 //usage:       "16\n"
-//usage:       "$ dc 0 1 and p\n"
+//usage:       "$ dc -e'0 1 & p'\n"
 //usage:       "0\n"
-//usage:       "$ dc 0 1 or p\n"
+//usage:       "$ dc -e'0 1 | p'\n"
 //usage:       "1\n"
-//usage:       "$ echo 72 9 div 8 mul p | dc\n"
+//usage:       "$ echo '72 9 / 8 * p' | dc\n"
 //usage:       "64\n"
 
 #include "libbb.h"
@@ -718,13 +719,13 @@ typedef struct BcProgram {
 
 typedef unsigned long (*BcProgramBuiltIn)(BcNum *);
 
-#define BC_FLAG_X (1 << 0)
-#define BC_FLAG_W (1 << 1)
-#define BC_FLAG_V (1 << 2)
-#define BC_FLAG_S (1 << 3)
-#define BC_FLAG_Q (1 << 4)
-#define BC_FLAG_L (1 << 5)
-#define BC_FLAG_I (1 << 6)
+#define BC_FLAG_W (1 << 0)
+#define BC_FLAG_V (1 << 1)
+#define BC_FLAG_S (1 << 2)
+#define BC_FLAG_Q (1 << 3)
+#define BC_FLAG_L (1 << 4)
+#define BC_FLAG_I (1 << 5)
+#define DC_FLAG_X (1 << 6)
 
 #define BC_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define BC_MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -768,7 +769,7 @@ struct globals {
 } while (0)
 #define G_posix (ENABLE_BC && (option_mask32 & BC_FLAG_S))
 #define G_warn  (ENABLE_BC && (option_mask32 & BC_FLAG_W))
-#define G_exreg (ENABLE_DC && (option_mask32 & BC_FLAG_X))
+#define G_exreg (ENABLE_DC && (option_mask32 & DC_FLAG_X))
 #define G_interrupt (ENABLE_FEATURE_BC_SIGNALS ? bb_got_signal : 0)
 #if ENABLE_FEATURE_BC_SIGNALS
 # define G_ttyin G.ttyin
@@ -6898,6 +6899,7 @@ static BcStatus bc_program_exec(void)
 	return s;
 }
 
+#if ENABLE_BC
 static void bc_vm_info(void)
 {
 	printf("%s "BB_VER"\n"
@@ -6914,8 +6916,7 @@ static void bc_args(char **argv)
 
 	GETOPT_RESET();
 #if ENABLE_FEATURE_BC_LONG_OPTIONS
-	opts = option_mask32 |= getopt32long(argv, "xwvsqli",
-		"extended-register\0" No_argument "x"
+	opts = option_mask32 |= getopt32long(argv, "wvsqli",
 		"warn\0"              No_argument "w"
 		"version\0"           No_argument "v"
 		"standard\0"          No_argument "s"
@@ -6924,7 +6925,7 @@ static void bc_args(char **argv)
 		"interactive\0"       No_argument "i"
 	);
 #else
-	opts = option_mask32 |= getopt32(argv, "xwvsqli");
+	opts = option_mask32 |= getopt32(argv, "wvsqli");
 #endif
 	if (getenv("POSIXLY_CORRECT"))
 		option_mask32 |= BC_FLAG_S;
@@ -6939,7 +6940,6 @@ static void bc_args(char **argv)
 		bc_vec_push(&G.files, argv + i);
 }
 
-#if ENABLE_BC
 static void bc_vm_envArgs(void)
 {
 	BcVec v;
@@ -7308,7 +7308,7 @@ static const char bc_lib[] = {
 
 static BcStatus bc_vm_exec(void)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
+	BcStatus s;
 	size_t i;
 
 #if ENABLE_BC
@@ -7330,21 +7330,24 @@ static BcStatus bc_vm_exec(void)
 	}
 #endif
 
+	s = BC_STATUS_SUCCESS;
 	for (i = 0; !s && i < G.files.len; ++i)
 		s = bc_vm_file(*((char **) bc_vec_item(&G.files, i)));
-	if (s) {
-		if (ENABLE_FEATURE_CLEAN_UP && !G_ttyin) {
-			// Debug config, non-interactive mode:
-			// return all the way back to main.
-			// Non-debug builds do not come here, they exit.
-			return s;
-		}
-		fflush_and_check();
-		fputs("ready for more input\n", stderr);
+	if (ENABLE_FEATURE_CLEAN_UP && s && !G_ttyin) {
+		// Debug config, non-interactive mode:
+		// return all the way back to main.
+		// Non-debug builds do not come here, they exit.
+		return s;
 	}
 
-	if (IS_BC || !G.files.len)
+	if (IS_BC || (option_mask32 & BC_FLAG_I)) {
+		if (s) {
+			fflush_and_check();
+			fputs("ready for more input\n", stderr);
+		}
 		s = bc_vm_stdin();
+	}
+
 	if (!s && !BC_PARSE_CAN_EXEC(&G.prs))
 		s = bc_vm_process("");
 
@@ -7439,8 +7442,13 @@ static void bc_program_init(void)
 	bc_vec_push(&G.prog.stack, &ip);
 }
 
-static void bc_vm_init(void)
+static int bc_vm_init(const char *env_len)
 {
+#if ENABLE_FEATURE_EDITING
+	G.line_input_state = new_line_input_t(DO_HISTORY);
+#endif
+	G.prog.len = bc_vm_envLen(env_len);
+
 	bc_vec_init(&G.files, sizeof(char *), NULL);
 	if (IS_BC)
 		IF_BC(bc_vm_envArgs();)
@@ -7450,19 +7458,6 @@ static void bc_vm_init(void)
 	} else {
 		IF_DC(dc_parse_init(&G.prs, BC_PROG_MAIN);)
 	}
-}
-
-static BcStatus bc_vm_run(char **argv, const char *env_len)
-{
-	BcStatus st;
-
-#if ENABLE_FEATURE_EDITING
-	G.line_input_state = new_line_input_t(DO_HISTORY);
-#endif
-	G.prog.len = bc_vm_envLen(env_len);
-
-	bc_vm_init();
-	bc_args(argv);
 
 	if (isatty(0)) {
 #if ENABLE_FEATURE_BC_SIGNALS
@@ -7485,12 +7480,14 @@ static BcStatus bc_vm_run(char **argv, const char *env_len)
 		// and exit.
 		//signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
 #endif
-		if (!(option_mask32 & BC_FLAG_Q))
-			bc_vm_info();
+		return 1; // "tty"
 	}
+	return 0; // "not a tty"
+}
 
-	st = bc_vm_exec();
-
+static BcStatus bc_vm_run(void)
+{
+	BcStatus st = bc_vm_exec();
 #if ENABLE_FEATURE_CLEAN_UP
 	bc_vm_free();
 # if ENABLE_FEATURE_EDITING
@@ -7505,10 +7502,19 @@ static BcStatus bc_vm_run(char **argv, const char *env_len)
 int bc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bc_main(int argc UNUSED_PARAM, char **argv)
 {
+	int is_tty;
+
 	INIT_G();
 	G.sbgn = G.send = '"';
 
-	return bc_vm_run(argv, "BC_LINE_LENGTH");
+	is_tty = bc_vm_init("BC_LINE_LENGTH");
+
+	bc_args(argv);
+
+	if (is_tty && !(option_mask32 & BC_FLAG_Q))
+		bc_vm_info();
+
+	return bc_vm_run();
 }
 #endif
 
@@ -7516,11 +7522,48 @@ int bc_main(int argc UNUSED_PARAM, char **argv)
 int dc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dc_main(int argc UNUSED_PARAM, char **argv)
 {
+	int noscript;
+
 	INIT_G();
 	G.sbgn = '[';
 	G.send = ']';
+	// TODO: dc (GNU bc 1.07.1) 1.4.1 seems to use default width
+	// 1 char narrower than bc from the same package. Do the same?
+	bc_vm_init("DC_LINE_LENGTH");
 
-	return bc_vm_run(argv, "DC_LINE_LENGTH");
+	// Run -e'SCRIPT' and -fFILE in order of appearance, then handle FILEs
+	noscript = BC_FLAG_I;
+	for (;;) {
+		int n = getopt(argc, argv, "e:f:x");
+		if (n <= 0)
+			break;
+		switch (n) {
+		case 'e':
+			noscript = 0;
+			n = bc_vm_process(optarg);
+			if (n) return n;
+			break;
+		case 'f':
+			noscript = 0;
+			bc_vm_file(optarg);
+			break;
+		case 'x':
+			option_mask32 |= DC_FLAG_X;
+			break;
+		default:
+			bb_show_usage();
+		}
+	}
+	argv += optind;
+
+	while (*argv) {
+		noscript = 0;
+		bc_vec_push(&G.files, argv++);
+	}
+
+	option_mask32 |= noscript; // set BC_FLAG_I if we need to interpret stdin
+
+	return bc_vm_run();
 }
 #endif
 
