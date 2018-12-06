@@ -27,6 +27,8 @@ allno="$cfg"
 for app in $apps; do
 	allno="`echo "$allno" | sed "s/^CONFIG_${app}=y\$/# CONFIG_${app} is not set/"`"
 done
+# remove "busybox" as well
+allno="`echo "$allno" | sed "s/^CONFIG_BUSYBOX=y\$/# CONFIG_BUSYBOX is not set/"`"
 #echo "$allno" >.config_allno
 
 trap 'test -f .config.SV && mv .config.SV .config && touch .config' EXIT
