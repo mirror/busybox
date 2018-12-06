@@ -588,15 +588,11 @@ typedef struct BcLex {
 
 #define BC_PARSE_STREND ((char) UCHAR_MAX)
 
-#define bc_parse_push(p, i) (bc_vec_pushByte(&(p)->func->code, (char) (i)))
-#define bc_parse_updateFunc(p, f) \
-	((p)->func = bc_vec_item(&G.prog.fns, ((p)->fidx = (f))))
-
-#define BC_PARSE_REL (1 << 0)
-#define BC_PARSE_PRINT (1 << 1)
+#define BC_PARSE_REL    (1 << 0)
+#define BC_PARSE_PRINT  (1 << 1)
 #define BC_PARSE_NOCALL (1 << 2)
 #define BC_PARSE_NOREAD (1 << 3)
-#define BC_PARSE_ARRAY (1 << 4)
+#define BC_PARSE_ARRAY  (1 << 4)
 
 #define BC_PARSE_TOP_FLAG_PTR(parse) ((uint8_t *) bc_vec_top(&(parse)->flags))
 #define BC_PARSE_TOP_FLAG(parse) (*(BC_PARSE_TOP_FLAG_PTR(parse)))
@@ -637,12 +633,6 @@ typedef struct BcParseNext {
 	uint32_t len;
 	BcLexType tokens[4];
 } BcParseNext;
-
-#define BC_PARSE_NEXT_TOKENS(...) .tokens = { __VA_ARGS__ }
-#define BC_PARSE_NEXT(a, ...)                         \
-	{                                                 \
-		.len = (a), BC_PARSE_NEXT_TOKENS(__VA_ARGS__) \
-	}
 
 struct BcParse;
 
@@ -716,7 +706,6 @@ typedef struct BcProgram {
 
 #define BC_PROG_MAIN (0)
 #define BC_PROG_READ (1)
-
 #if ENABLE_DC
 #define BC_PROG_REQ_FUNCS (2)
 #endif
@@ -839,6 +828,11 @@ static const uint8_t bc_parse_ops[] = {
 #define bc_parse_op_LEFT(i) (bc_parse_ops[i] & 0x10)
 
 // These identify what tokens can come after expressions in certain cases.
+#define BC_PARSE_NEXT_TOKENS(...) .tokens = { __VA_ARGS__ }
+#define BC_PARSE_NEXT(a, ...)                         \
+	{                                                 \
+		.len = (a), BC_PARSE_NEXT_TOKENS(__VA_ARGS__) \
+	}
 static const BcParseNext bc_parse_next_expr =
 	BC_PARSE_NEXT(4, BC_LEX_NLINE, BC_LEX_SCOLON, BC_LEX_RBRACE, BC_LEX_EOF);
 static const BcParseNext bc_parse_next_param =
@@ -1100,6 +1094,8 @@ static void bc_vec_push(BcVec *v, const void *data)
 	memmove(v->v + (v->size * v->len), data, v->size);
 	v->len += 1;
 }
+
+#define bc_parse_push(p, i) bc_vec_pushByte(&(p)->func->code, (char) (i))
 
 static void bc_vec_pushByte(BcVec *v, char data)
 {
@@ -3377,7 +3373,7 @@ static BcStatus dc_lex_register(BcLex *l)
 	}
 	else {
 		bc_vec_pop_all(&l->t.v);
-		bc_vec_pushByte(&l->t.v, l->buf[l->i - 1]);
+		bc_vec_push(&l->t.v, &l->buf[l->i - 1]);
 		bc_vec_pushZeroByte(&l->t.v);
 		l->t.t = BC_LEX_NAME;
 	}
@@ -3586,6 +3582,9 @@ static BcStatus bc_parse_text(BcParse *p, const char *text)
 
 	return bc_lex_text(&p->l, text);
 }
+
+#define bc_parse_updateFunc(p, f) \
+	((p)->func = bc_vec_item(&G.prog.fns, ((p)->fidx = (f))))
 
 // Called when bc/dc_parse_parse() detects a failure,
 // resets parsing structures.
