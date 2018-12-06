@@ -716,9 +716,6 @@ typedef struct BcProgram {
 
 typedef unsigned long (*BcProgramBuiltIn)(BcNum *);
 
-static void bc_program_addFunc(char *name, size_t *idx);
-static void bc_program_reset(void);
-
 #define BC_FLAG_X (1 << 0)
 #define BC_FLAG_W (1 << 1)
 #define BC_FLAG_V (1 << 2)
@@ -3523,6 +3520,8 @@ static BcStatus dc_lex_token(BcLex *l)
 }
 #endif // ENABLE_DC
 
+static void bc_program_addFunc(char *name, size_t *idx);
+
 static void bc_parse_addFunc(BcParse *p, char *name, size_t *idx)
 {
 	bc_program_addFunc(name, idx);
@@ -3581,6 +3580,21 @@ static BcStatus bc_parse_text(BcParse *p, const char *text)
 	}
 
 	return bc_lex_text(&p->l, text);
+}
+
+// Called when parsing or execution detects a failure,
+// resets execution structures.
+static void bc_program_reset(void)
+{
+	BcFunc *f;
+	BcInstPtr *ip;
+
+	bc_vec_npop(&G.prog.stack, G.prog.stack.len - 1);
+	bc_vec_pop_all(&G.prog.results);
+
+	f = bc_vec_item(&G.prog.fns, 0);
+	ip = bc_vec_top(&G.prog.stack);
+	ip->idx = f->code.len;
 }
 
 #define bc_parse_updateFunc(p, f) \
@@ -6546,24 +6560,6 @@ static void bc_program_addFunc(char *name, size_t *idx)
 		bc_func_init(&f);
 		bc_vec_push(&G.prog.fns, &f);
 	}
-}
-
-// Called when parsing or execution detects a failure,
-// resets execution structures.
-static void bc_program_reset(void)
-{
-	BcFunc *f;
-	BcInstPtr *ip;
-
-	bc_vec_npop(&G.prog.stack, G.prog.stack.len - 1);
-	bc_vec_pop_all(&G.prog.results);
-
-	f = bc_vec_item(&G.prog.fns, 0);
-	ip = bc_vec_top(&G.prog.stack);
-	ip->idx = f->code.len;
-
-	// If !tty, no need to check for ^C: we don't have ^C handler,
-	// we would be killed by a signal and won't reach this place
 }
 
 static BcStatus bc_program_exec(void)
