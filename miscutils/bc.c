@@ -974,6 +974,7 @@ static NOINLINE int bc_error_fmt(const char *fmt, ...)
 	return BC_STATUS_FAILURE;
 }
 
+#if ENABLE_BC
 static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 {
 	va_list p;
@@ -993,6 +994,7 @@ static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 		exit(1);
 	return BC_STATUS_FAILURE;
 }
+#endif
 
 // We use error functions with "return bc_error(FMT[, PARAMS])" idiom.
 // This idiom begs for tail-call optimization, but for it to work,
@@ -1003,6 +1005,7 @@ static int bc_error(const char *msg)
 {
 	return bc_error_fmt("%s", msg);
 }
+#if ENABLE_BC
 static int bc_POSIX_requires(const char *msg)
 {
 	return bc_posix_error_fmt("POSIX requires %s", msg);
@@ -1019,6 +1022,7 @@ static int bc_POSIX_does_not_allow_empty_X_expression_in_for(const char *msg)
 {
 	return bc_posix_error_fmt("%san empty %s expression in a for loop", "POSIX does not allow ", msg);
 }
+#endif
 static int bc_error_bad_character(char c)
 {
 	return bc_error_fmt("bad character '%c'", c);
@@ -1210,12 +1214,14 @@ static int bc_map_insert(BcVec *v, const void *ptr, size_t *i)
 	return 1; // "was inserted"
 }
 
+#if ENABLE_BC
 static size_t bc_map_index(const BcVec *v, const void *ptr)
 {
 	size_t i = bc_map_find(v, ptr);
 	if (i >= v->len) return BC_VEC_INVALID_IDX;
 	return bc_id_cmp(ptr, bc_vec_item(v, i)) ? BC_VEC_INVALID_IDX : i;
 }
+#endif
 
 static int push_input_byte(BcVec *vec, char c)
 {
@@ -2673,6 +2679,7 @@ err:
 }
 #endif // ENABLE_DC
 
+#if ENABLE_BC
 static BcStatus bc_func_insert(BcFunc *f, char *name, bool var)
 {
 	BcId a;
@@ -2690,6 +2697,7 @@ static BcStatus bc_func_insert(BcFunc *f, char *name, bool var)
 
 	return BC_STATUS_SUCCESS;
 }
+#endif
 
 static void bc_func_init(BcFunc *f)
 {
@@ -5227,18 +5235,18 @@ static void dc_parse_init(BcParse *p, size_t func)
 static void common_parse_init(BcParse *p, size_t func)
 {
 	if (IS_BC) {
-		bc_parse_init(p, func);
+		IF_BC(bc_parse_init(p, func);)
 	} else {
-		dc_parse_init(p, func);
+		IF_DC(dc_parse_init(p, func);)
 	}
 }
 
 static BcStatus common_parse_expr(BcParse *p, uint8_t flags)
 {
 	if (IS_BC) {
-		return bc_parse_expression(p, flags);
+		IF_BC(return bc_parse_expression(p, flags);)
 	} else {
-		return dc_parse_expr(p, flags);
+		IF_DC(return dc_parse_expr(p, flags);)
 	}
 }
 
@@ -7427,12 +7435,12 @@ static void bc_vm_init(void)
 {
 	bc_vec_init(&G.files, sizeof(char *), NULL);
 	if (IS_BC)
-		bc_vm_envArgs();
+		IF_BC(bc_vm_envArgs();)
 	bc_program_init();
 	if (IS_BC) {
-		bc_parse_init(&G.prs, BC_PROG_MAIN);
+		IF_BC(bc_parse_init(&G.prs, BC_PROG_MAIN);)
 	} else {
-		dc_parse_init(&G.prs, BC_PROG_MAIN);
+		IF_DC(dc_parse_init(&G.prs, BC_PROG_MAIN);)
 	}
 }
 
