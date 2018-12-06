@@ -741,6 +741,7 @@ typedef unsigned long (*BcProgramBuiltIn)(BcNum *);
 
 struct globals {
 	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
+	IF_FEATURE_CLEAN_UP(smallint exiting;)
 	smallint eof;
 	char sbgn;
 	char send;
@@ -775,6 +776,11 @@ struct globals {
 # define G_ttyin G.ttyin
 #else
 # define G_ttyin 0
+#endif
+#if ENABLE_FEATURE_CLEAN_UP
+# define G_exiting G.exiting
+#else
+# define G_exiting 0
 #endif
 #define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
 
@@ -921,13 +927,14 @@ static void fflush_and_check(void)
 }
 
 #if ENABLE_FEATURE_CLEAN_UP
-#define quit_or_return_for_exit() \
+#define QUIT_OR_RETURN_TO_MAIN \
 do { \
 	IF_FEATURE_BC_SIGNALS(G_ttyin = 0;) /* do not loop in main loop anymore */ \
+	G_exiting = 1; \
 	return BC_STATUS_FAILURE; \
 } while (0)
 #else
-#define quit_or_return_for_exit() quit()
+#define QUIT_OR_RETURN_TO_MAIN quit()
 #endif
 
 static void quit(void) NORETURN;
@@ -4708,7 +4715,7 @@ static BcStatus bc_parse_stmt(BcParse *p)
 			// "quit" is a compile-time command. For example,
 			// "if (0 == 1) quit" terminates when parsing the statement,
 			// not when it is executed
-			quit_or_return_for_exit();
+			QUIT_OR_RETURN_TO_MAIN;
 		}
 
 		case BC_LEX_KEY_RETURN:
@@ -6411,9 +6418,7 @@ static BcStatus bc_program_nquit(void)
 	if (G.prog.stack.len < val)
 		return bc_error_stack_has_too_few_elements();
 	if (G.prog.stack.len == val) {
-		if (ENABLE_FEATURE_CLEAN_UP)
-			return BC_STATUS_FAILURE;
-		quit();
+		QUIT_OR_RETURN_TO_MAIN;
 	}
 
 	bc_vec_npop(&G.prog.stack, val);
@@ -6627,7 +6632,7 @@ static BcStatus bc_program_exec(void)
 
 			case BC_INST_HALT:
 			{
-				quit_or_return_for_exit();
+				QUIT_OR_RETURN_TO_MAIN;
 				break;
 			}
 
@@ -6872,7 +6877,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_QUIT:
 			{
 				if (G.prog.stack.len <= 2)
-					quit_or_return_for_exit();
+					QUIT_OR_RETURN_TO_MAIN;
 				bc_vec_npop(&G.prog.stack, 2);
 				break;
 			}
@@ -7489,6 +7494,8 @@ static BcStatus bc_vm_run(void)
 {
 	BcStatus st = bc_vm_exec();
 #if ENABLE_FEATURE_CLEAN_UP
+	if (G_exiting) // it was actually "halt" or "quit"
+		st = EXIT_SUCCESS;
 	bc_vm_free();
 # if ENABLE_FEATURE_EDITING
 	free_line_input_t(G.line_input_state);
