@@ -1382,7 +1382,7 @@ void FAST_FUNC show_history(const line_input_t *st)
  * than configured MAX_HISTORY lines.
  */
 
-static void free_line_input_t(line_input_t *n)
+void FAST_FUNC free_line_input_t(line_input_t *n)
 {
 	int i = n->cnt_history;
 	while (i > 0)

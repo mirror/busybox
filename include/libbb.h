@@ -1786,7 +1786,7 @@ enum {
 	FOR_SHELL        = DO_HISTORY | TAB_COMPLETION | USERNAME_COMPLETION,
 };
 line_input_t *new_line_input_t(int flags) FAST_FUNC;
-/* So far static: void free_line_input_t(line_input_t *n) FAST_FUNC; */
+void free_line_input_t(line_input_t *n) FAST_FUNC;
 /*
  * maxsize must be >= 2.
  * Returns:
