@@ -116,7 +116,7 @@
 
 //See www.gnu.org/software/bc/manual/bc.html
 //usage:#define bc_trivial_usage
-//usage:       "[-sqli] FILE..."
+//usage:       "[-sqliw] FILE..."
 //usage:
 //usage:#define bc_full_usage "\n"
 //usage:     "\nArbitrary precision calculator"
@@ -127,6 +127,7 @@
 //usage:     "\n	-q	Quiet"
 //usage:     "\n	-w	Warn if extensions are used"
 ///////:     "\n	-v	Version"
+//usage:     "\n$BC_LINE_LENGTH changes output width"
 //usage:
 //usage:#define bc_example_usage
 //usage:       "3 + 4.129\n"
@@ -734,7 +735,7 @@ static void bc_program_reset(void);
 #define BC_MAX_VARS   ((unsigned long) SIZE_MAX - 1)
 
 struct globals {
-	smallint ttyin;
+	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
 	smallint eof;
 	char sbgn;
 	char send;
@@ -761,7 +762,11 @@ struct globals {
 #define G_warn  (ENABLE_BC && (option_mask32 & BC_FLAG_W))
 #define G_exreg (ENABLE_DC && (option_mask32 & BC_FLAG_X))
 #define G_interrupt (ENABLE_FEATURE_BC_SIGNALS ? bb_got_signal : 0)
-
+#if ENABLE_FEATURE_BC_SIGNALS
+# define G_ttyin G.ttyin
+#else
+# define G_ttyin 0
+#endif
 #define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
 
 #if ENABLE_BC
@@ -904,7 +909,7 @@ static void fflush_and_check(void)
 #if ENABLE_FEATURE_CLEAN_UP
 #define quit_or_return_for_exit() \
 do { \
-	G.ttyin = 0; /* do not loop in main loop anymore */ \
+	IF_FEATURE_BC_SIGNALS(G_ttyin = 0;) /* do not loop in main loop anymore */ \
 	return BC_STATUS_FAILURE; \
 } while (0)
 #else
@@ -942,7 +947,7 @@ static NOINLINE int bc_error_fmt(const char *fmt, ...)
 	bc_verror_msg(fmt, p);
 	va_end(p);
 
-	if (!ENABLE_FEATURE_CLEAN_UP && !G.ttyin)
+	if (!ENABLE_FEATURE_CLEAN_UP && !G_ttyin)
 		exit(1);
 	return BC_STATUS_FAILURE;
 }
@@ -962,7 +967,7 @@ static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 	// Do we treat non-POSIX constructs as errors?
 	if (!(option_mask32 & BC_FLAG_S))
 		return BC_STATUS_SUCCESS; // no, it's a warning
-	if (!ENABLE_FEATURE_CLEAN_UP && !G.ttyin)
+	if (!ENABLE_FEATURE_CLEAN_UP && !G_ttyin)
 		exit(1);
 	return BC_STATUS_FAILURE;
 }
@@ -1211,7 +1216,7 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 				, stderr);
 		}
 #endif
-		if (G.ttyin && !G_posix)
+		if (G_ttyin && !G_posix)
 			fputs(prompt, stderr);
 
 #if ENABLE_FEATURE_BC_SIGNALS
@@ -7034,7 +7039,7 @@ static BcStatus bc_vm_stdin(void)
 		bc_vec_concat(&buffer, buf.v);
 		s = bc_vm_process(buffer.v);
 		if (s) {
-			if (ENABLE_FEATURE_CLEAN_UP && !G.ttyin) {
+			if (ENABLE_FEATURE_CLEAN_UP && !G_ttyin) {
 				// Debug config, non-interactive mode:
 				// return all the way back to main.
 				// Non-debug builds do not come here, they exit.
@@ -7263,7 +7268,7 @@ static BcStatus bc_vm_exec(void)
 	for (i = 0; !s && i < G.files.len; ++i)
 		s = bc_vm_file(*((char **) bc_vec_item(&G.files, i)));
 	if (s) {
-		if (ENABLE_FEATURE_CLEAN_UP && !G.ttyin) {
+		if (ENABLE_FEATURE_CLEAN_UP && !G_ttyin) {
 			// Debug config, non-interactive mode:
 			// return all the way back to main.
 			// Non-debug builds do not come here, they exit.
@@ -7391,9 +7396,9 @@ static BcStatus bc_vm_run(char **argv, const char *env_len)
 	bc_vm_init();
 	bc_args(argv);
 
-	G.ttyin = isatty(0);
-	if (G.ttyin) {
+	if (isatty(0)) {
 #if ENABLE_FEATURE_BC_SIGNALS
+		G_ttyin = 1;
 		// With SA_RESTART, most system calls will restart
 		// (IOW: they won't fail with EINTR).
 		// In particular, this means ^C won't cause
