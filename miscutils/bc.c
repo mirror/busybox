@@ -508,34 +508,35 @@ typedef enum BcLexType {
 struct BcLexKeyword {
 	char name8[8];
 };
-#define BC_LEX_KW_ENTRY(a, b, c)            \
-	{ .name8 = a /*, .len = b, .posix = c*/ }
+#define BC_LEX_KW_ENTRY(a, b) \
+	{ .name8 = a /*, .posix = b */ }
 static const struct BcLexKeyword bc_lex_kws[20] = {
-	BC_LEX_KW_ENTRY("auto"    , 4, 1), // 0
-	BC_LEX_KW_ENTRY("break"   , 5, 1), // 1
-	BC_LEX_KW_ENTRY("continue", 8, 0), // 2 note: this one has no terminating NUL
-	BC_LEX_KW_ENTRY("define"  , 6, 1), // 3
+	BC_LEX_KW_ENTRY("auto"    , 1), // 0
+	BC_LEX_KW_ENTRY("break"   , 1), // 1
+	BC_LEX_KW_ENTRY("continue", 0), // 2 note: this one has no terminating NUL
+	BC_LEX_KW_ENTRY("define"  , 1), // 3
 
-	BC_LEX_KW_ENTRY("else"    , 4, 0), // 4
-	BC_LEX_KW_ENTRY("for"     , 3, 1), // 5
-	BC_LEX_KW_ENTRY("halt"    , 4, 0), // 6
-	BC_LEX_KW_ENTRY("ibase"   , 5, 1), // 7
+	BC_LEX_KW_ENTRY("else"    , 0), // 4
+	BC_LEX_KW_ENTRY("for"     , 1), // 5
+	BC_LEX_KW_ENTRY("halt"    , 0), // 6
+	BC_LEX_KW_ENTRY("ibase"   , 1), // 7
 
-	BC_LEX_KW_ENTRY("if"      , 2, 1), // 8
-	BC_LEX_KW_ENTRY("last"    , 4, 0), // 9
-	BC_LEX_KW_ENTRY("length"  , 6, 1), // 10
-	BC_LEX_KW_ENTRY("limits"  , 6, 0), // 11
+	BC_LEX_KW_ENTRY("if"      , 1), // 8
+	BC_LEX_KW_ENTRY("last"    , 0), // 9
+	BC_LEX_KW_ENTRY("length"  , 1), // 10
+	BC_LEX_KW_ENTRY("limits"  , 0), // 11
 
-	BC_LEX_KW_ENTRY("obase"   , 5, 1), // 12
-	BC_LEX_KW_ENTRY("print"   , 5, 0), // 13
-	BC_LEX_KW_ENTRY("quit"    , 4, 1), // 14
-	BC_LEX_KW_ENTRY("read"    , 4, 0), // 15
+	BC_LEX_KW_ENTRY("obase"   , 1), // 12
+	BC_LEX_KW_ENTRY("print"   , 0), // 13
+	BC_LEX_KW_ENTRY("quit"    , 1), // 14
+	BC_LEX_KW_ENTRY("read"    , 0), // 15
 
-	BC_LEX_KW_ENTRY("return"  , 6, 1), // 16
-	BC_LEX_KW_ENTRY("scale"   , 5, 1), // 17
-	BC_LEX_KW_ENTRY("sqrt"    , 4, 1), // 18
-	BC_LEX_KW_ENTRY("while"   , 5, 1), // 19
+	BC_LEX_KW_ENTRY("return"  , 1), // 16
+	BC_LEX_KW_ENTRY("scale"   , 1), // 17
+	BC_LEX_KW_ENTRY("sqrt"    , 1), // 18
+	BC_LEX_KW_ENTRY("while"   , 1), // 19
 };
+#undef BC_LEX_KW_ENTRY
 enum {
 	POSIX_KWORD_MASK = 0
 		| (1 << 0)
@@ -563,6 +564,7 @@ enum {
 		| (1 << 18)
 		| (1 << 19)
 };
+#define bc_lex_kws_POSIX(i) ((1 << (i)) & POSIX_KWORD_MASK)
 #endif
 
 struct BcLex;
@@ -2982,7 +2984,7 @@ static BcStatus bc_lex_identifier(BcLex *l)
  match:
 		// buf starts with keyword bc_lex_kws[i]
 		l->t.t = BC_LEX_KEY_1st_keyword + i;
-		if (!((1 << i) & POSIX_KWORD_MASK)) {
+		if (!bc_lex_kws_POSIX(i)) {
 			s = bc_posix_error_fmt("%sthe '%.8s' keyword", "POSIX does not allow ", bc_lex_kws[i].name8);
 			if (s) return s;
 		}
