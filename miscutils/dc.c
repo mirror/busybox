@@ -1,52 +1,12 @@
-#if 0 //TODO: use if bc is not selected
 /* vi: set sw=4 ts=4: */
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-	//config:config DC
-	//config:	bool "dc (4.2 kb)"
-	//config:	default y
-	//config:	help
-	//config:	Dc is a reverse-polish desk calculator which supports unlimited
-	//config:	precision arithmetic.
-	//config:
-	//config:config FEATURE_DC_LIBM
-	//config:	bool "Enable power and exp functions (requires libm)"
-	//config:	default y
-	//config:	depends on DC
-	//config:	help
-	//config:	Enable power and exp functions.
-	//config:	NOTE: This will require libm to be present for linking.
 
-	//applet:IF_DC(APPLET(dc, BB_DIR_USR_BIN, BB_SUID_DROP))
+/* config/applet/usage bits are in bc.c */
 
-	//kbuild:lib-$(CONFIG_DC) += dc.o
-
-	//usage:#define dc_trivial_usage
-	//usage:       "EXPRESSION..."
-	//usage:
-	//usage:#define dc_full_usage "\n\n"
-	//usage:       "Tiny RPN calculator. Operations:\n"
-	//usage:       "+, add, -, sub, *, mul, /, div, %, mod, "IF_FEATURE_DC_LIBM("**, exp, ")"and, or, not, xor,\n"
-	//usage:       "p - print top of the stack (without popping),\n"
-	//usage:       "f - print entire stack,\n"
-	//usage:       "o - pop the value and set output radix (must be 10, 16, 8 or 2).\n"
-	//usage:       "Examples: 'dc 2 2 add p' -> 4, 'dc 8 8 mul 2 2 + / p' -> 16"
-	//usage:
-	//usage:#define dc_example_usage
-	//usage:       "$ dc 2 2 + p\n"
-	//usage:       "4\n"
-	//usage:       "$ dc 8 8 \\* 2 2 + / p\n"
-	//usage:       "16\n"
-	//usage:       "$ dc 0 1 and p\n"
-	//usage:       "0\n"
-	//usage:       "$ dc 0 1 or p\n"
-	//usage:       "1\n"
-	//usage:       "$ echo 72 9 div 8 mul p | dc\n"
-	//usage:       "64\n"
-
-#include "libbb.h"
-#include "common_bufsiz.h"
+//#include "libbb.h"
+//#include "common_bufsiz.h"
 #include <math.h>
 
 #if 0
@@ -303,4 +263,3 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 	}
 	return EXIT_SUCCESS;
 }
-#endif

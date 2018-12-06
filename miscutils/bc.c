@@ -94,17 +94,30 @@
 //config:	     Also note that, like the FreeBSD dc, extended registers are not
 //config:	     allowed unless the "-x" option is given.
 //config:
+//config:config FEATURE_DC_SMALL
+//config:	bool "Minimal dc implementation (4.2 kb), not using bc code base"
+//config:	depends on DC && !BC
+//config:	default y
+//config:
+//config:config FEATURE_DC_LIBM
+//config:	bool "Enable power and exp functions (requires libm)"
+//config:	default y
+//config:	depends on FEATURE_DC_SMALL
+//config:	help
+//config:	Enable power and exp functions.
+//config:	NOTE: This will require libm to be present for linking.
+//config:
 //config:config FEATURE_BC_SIGNALS
 //config:	bool "Enable bc/dc signal handling"
 //config:	default y
-//config:	depends on BC || DC
+//config:	depends on (BC || DC) && !FEATURE_DC_SMALL
 //config:	help
 //config:	Enable signal handling for bc and dc.
 //config:
 //config:config FEATURE_BC_LONG_OPTIONS
 //config:	bool "Enable bc/dc long options"
 //config:	default y
-//config:	depends on BC || DC
+//config:	depends on (BC || DC) && !FEATURE_DC_SMALL
 //config:	help
 //config:	Enable long options for bc and dc.
 
@@ -143,16 +156,16 @@
 //usage:#define dc_trivial_usage
 //usage:       "EXPRESSION..."
 //usage:
-//usage:#define dc_full_usage "\n\n"
-//usage:       "Tiny RPN calculator. Operations:\n"
-//usage:       "+, add, -, sub, *, mul, /, div, %, mod, ^, exp, ~, divmod, |, "
-//usage:       "modular exponentiation,\n"
-//usage:       "p - print top of the stack (without popping),\n"
-//usage:       "f - print entire stack,\n"
-//usage:       "k - pop the value and set the precision.\n"
-//usage:       "i - pop the value and set input radix.\n"
-//usage:       "o - pop the value and set output radix.\n"
-//usage:       "Examples: 'dc 2 2 add p' -> 4, 'dc 8 8 mul 2 2 + / p' -> 16"
+//usage:#define dc_full_usage "\n"
+//usage:     "\nTiny RPN calculator. Operations:"
+//usage:     "\n+, add, -, sub, *, mul, /, div, %, mod, ^, exp, ~, divmod, |, "
+//usage:       "modular exponentiation,"
+//usage:     "\np - print top of the stack (without popping),"
+//usage:     "\nf - print entire stack,"
+//usage:     "\nk - pop the value and set the precision."
+//usage:     "\ni - pop the value and set input radix."
+//usage:     "\no - pop the value and set output radix."
+//usage:     "\nExamples: 'dc 2 2 add p' -> 4, 'dc 8 8 mul 2 2 + / p' -> 16"
 //usage:
 //usage:#define dc_example_usage
 //usage:       "$ dc 2 2 + p\n"
@@ -168,6 +181,10 @@
 
 #include "libbb.h"
 #include "common_bufsiz.h"
+
+#if ENABLE_FEATURE_DC_SMALL
+# include "dc.c"
+#else
 
 typedef enum BcStatus {
 	BC_STATUS_SUCCESS = 0,
@@ -7490,3 +7507,5 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 	return bc_vm_run(argv, "DC_LINE_LENGTH");
 }
 #endif
+
+#endif // not DC_SMALL
