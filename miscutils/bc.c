@@ -205,9 +205,6 @@ typedef struct BcVec {
 	BcVecFree dtor;
 } BcVec;
 
-#define bc_vec_pop(v) (bc_vec_npop((v), 1))
-#define bc_vec_top(v) (bc_vec_item_rev((v), 0))
-
 typedef signed char BcDig;
 
 typedef struct BcNum {
@@ -218,16 +215,17 @@ typedef struct BcNum {
 	bool neg;
 } BcNum;
 
-#define BC_NUM_MIN_BASE ((unsigned long) 2)
-#define BC_NUM_MAX_IBASE ((unsigned long) 16)
-#define BC_NUM_DEF_SIZE (16)
-#define BC_NUM_PRINT_WIDTH (69)
+#define BC_NUM_MIN_BASE         ((unsigned long) 2)
+#define BC_NUM_MAX_IBASE        ((unsigned long) 16)
+// larger value might speed up BIGNUM calculations a bit:
+#define BC_NUM_DEF_SIZE         (16)
+#define BC_NUM_PRINT_WIDTH      (69)
 
-#define BC_NUM_KARATSUBA_LEN (32)
+#define BC_NUM_KARATSUBA_LEN    (32)
 
-#define BC_NUM_NEG(n, neg) ((((ssize_t)(n)) ^ -((ssize_t)(neg))) + (neg))
-#define BC_NUM_ONE(n) ((n)->len == 1 && (n)->rdx == 0 && (n)->num[0] == 1)
-#define BC_NUM_INT(n) ((n)->len - (n)->rdx)
+#define BC_NUM_NEG(n, neg)      ((((ssize_t)(n)) ^ -((ssize_t)(neg))) + (neg))
+#define BC_NUM_ONE(n)           ((n)->len == 1 && (n)->rdx == 0 && (n)->num[0] == 1)
+#define BC_NUM_INT(n)           ((n)->len - (n)->rdx)
 #define BC_NUM_AREQ(a, b) \
 	(BC_MAX((a)->rdx, (b)->rdx) + BC_MAX(BC_NUM_INT(a), BC_NUM_INT(b)) + 1)
 #define BC_NUM_MREQ(a, b, scale) \
@@ -1077,6 +1075,9 @@ static void bc_vec_expand(BcVec *v, size_t req)
 		v->cap = req;
 	}
 }
+
+#define bc_vec_pop(v) (bc_vec_npop((v), 1))
+#define bc_vec_top(v) (bc_vec_item_rev((v), 0))
 
 static void bc_vec_npop(BcVec *v, size_t n)
 {
