@@ -1322,7 +1322,8 @@ static char* bc_read_file(const char *path)
 	size_t size = ((size_t) -1);
 	size_t i;
 
-	buf = xmalloc_open_read_close(path, &size);
+	// Never returns NULL (dies on errors)
+	buf = xmalloc_xopen_read_close(path, &size);
 
 	for (i = 0; i < size; ++i) {
 		char c = buf[i];
