@@ -167,6 +167,7 @@
 //usage:       "64\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 typedef enum BcStatus {
 	BC_STATUS_SUCCESS = 0,
@@ -750,6 +751,10 @@ struct globals {
 	BcVec files;
 
 	char *env_args;
+
+#if ENABLE_FEATURE_EDITING
+	line_input_t *line_input_state;
+#endif
 } FIX_ALIASING;
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
@@ -974,9 +979,9 @@ static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 
 // We use error functions with "return bc_error(FMT[, PARAMS])" idiom.
 // This idiom begs for tail-call optimization, but for it to work,
-// function must not have calller-cleaned parameters on stack.
-// Unfortunately, vararg functions do exactly that on most arches.
-// Thus, these shims for the cases when we have no PARAMS:
+// function must not have caller-cleaned parameters on stack.
+// Unfortunately, vararg function API does exactly that on most arches.
+// Thus, use these shims for the cases when we have no vararg PARAMS:
 static int bc_error(const char *msg)
 {
 	return bc_error_fmt("%s", msg);
@@ -1195,17 +1200,33 @@ static size_t bc_map_index(const BcVec *v, const void *ptr)
 	return bc_id_cmp(ptr, bc_vec_item(v, i)) ? BC_VEC_INVALID_IDX : i;
 }
 
+static int push_input_byte(BcVec *vec, char c)
+{
+	if ((c < ' ' && c != '\t' && c != '\r' && c != '\n') // also allow '\v' '\f'?
+	 || c > 0x7e
+	) {
+		// Bad chars on this line, ignore entire line
+		bc_error_fmt("illegal character 0x%02x", c);
+		return 1;
+	}
+	bc_vec_pushByte(vec, (char)c);
+	return 0;
+}
+
 static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 {
 	bool bad_chars;
 
+	if (G_posix) prompt = "";
+
 	do {
-		int i;
+		int c;
 
 		bad_chars = 0;
 		bc_vec_pop_all(vec);
 
 		fflush_and_check();
+
 #if ENABLE_FEATURE_BC_SIGNALS
 		if (bb_got_signal) { // ^C was pressed
  intr:
@@ -1215,23 +1236,42 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 				: "\ninterrupt (type \"q\" to exit)\n"
 				, stderr);
 		}
+# if ENABLE_FEATURE_EDITING
+		if (G_ttyin) {
+			int n, i;
+#  define line_buf bb_common_bufsiz1
+			n = read_line_input(G.line_input_state, prompt, line_buf, COMMON_BUFSIZE);
+			if (n <= 0) { // read errors or EOF, or ^D, or ^C
+				if (n == 0) // ^C
+					goto intr;
+				G.eof = 1;
+				break;
+			}
+			i = 0;
+			for (;;) {
+				c = line_buf[i++];
+				if (!c) break;
+				bad_chars |= push_input_byte(vec, c);
+			}
+#  undef line_buf
+		} else
+# endif
 #endif
 		{
-			if (G_ttyin && !G_posix)
+			if (G_ttyin)
 				fputs(prompt, stderr);
-
 			IF_FEATURE_BC_SIGNALS(errno = 0;)
 			do {
-				i = fgetc(stdin);
-				if (i == EOF) {
-#if ENABLE_FEATURE_BC_SIGNALS
-					// Both conditions appear simultaneously, check both just in case
-					if (errno == EINTR || bb_got_signal) {
-						// ^C was pressed
-						clearerr(stdin);
-						goto intr;
-					}
+				c = fgetc(stdin);
+#if ENABLE_FEATURE_BC_SIGNALS && !ENABLE_FEATURE_EDITING
+				// Both conditions appear simultaneously, check both just in case
+				if (errno == EINTR || bb_got_signal) {
+					// ^C was pressed
+					clearerr(stdin);
+					goto intr;
+				}
 #endif
+				if (c == EOF) {
 					if (ferror(stdin))
 						quit(); // this emits error message
 					G.eof = 1;
@@ -1240,16 +1280,8 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 					// printf 'print 123' | bc   - fails (syntax error)
 					break;
 				}
-
-				if ((i < ' ' && i != '\t' && i != '\r' && i != '\n') // also allow '\v' '\f'?
-				 || i > 0x7e
-				) {
-					// Bad chars on this line, ignore entire line
-					bc_error_fmt("illegal character 0x%02x", i);
-					bad_chars = 1;
-				}
-				bc_vec_pushByte(vec, (char)i);
-			} while (i != '\n');
+				bad_chars |= push_input_byte(vec, c);
+			} while (c != '\n');
 		}
 	} while (bad_chars);
 
@@ -7391,6 +7423,9 @@ static BcStatus bc_vm_run(char **argv, const char *env_len)
 {
 	BcStatus st;
 
+#if ENABLE_FEATURE_EDITING
+	G.line_input_state = new_line_input_t(DO_HISTORY);
+#endif
 	G.prog.len = bc_vm_envLen(env_len);
 
 	bc_vm_init();
@@ -7425,6 +7460,9 @@ static BcStatus bc_vm_run(char **argv, const char *env_len)
 
 #if ENABLE_FEATURE_CLEAN_UP
 	bc_vm_free();
+# if ENABLE_FEATURE_EDITING
+	free_line_input_t(G.line_input_state);
+# endif
 	FREE_G();
 #endif
 	return st;
