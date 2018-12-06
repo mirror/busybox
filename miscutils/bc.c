@@ -986,9 +986,9 @@ static int bc_error(const char *msg)
 {
 	return bc_error_fmt("%s", msg);
 }
-static int bc_posix_error(const char *msg)
+static int bc_POSIX_requires(const char *msg)
 {
-	return bc_posix_error_fmt("%s", msg);
+	return bc_posix_error_fmt("POSIX requires %s", msg);
 }
 static int bc_POSIX_does_not_allow(const char *msg)
 {
@@ -4047,7 +4047,7 @@ static BcStatus bc_parse_return(BcParse *p)
 		if (s) return s;
 
 		if (!paren || p->l.t.last != BC_LEX_RPAREN) {
-			s = bc_posix_error("POSIX requires parentheses around return expressions");
+			s = bc_POSIX_requires("parentheses around return expressions");
 			if (s) return s;
 		}
 
@@ -4416,7 +4416,7 @@ static BcStatus bc_parse_func(BcParse *p)
 	if (s) return s;
 
 	if (p->l.t.t != BC_LEX_LBRACE)
-		s = bc_posix_error("POSIX requires the left brace be on the same line as the function header");
+		s = bc_POSIX_requires("the left brace be on the same line as the function header");
 
 	return s;
 
@@ -4944,7 +4944,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 		if (s) return s;
 	}
 	else if ((flags & BC_PARSE_REL) && nrelops > 1) {
-		s = bc_posix_error("POSIX requires exactly one comparison operator per condition");
+		s = bc_POSIX_requires("exactly one comparison operator per condition");
 		if (s) return s;
 	}
 
