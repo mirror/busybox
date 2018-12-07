@@ -725,14 +725,39 @@ typedef unsigned long (*BcProgramBuiltIn)(BcNum *);
 #define BC_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define BC_MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#define BC_MAX_OBASE  ((unsigned) 999)
-#define BC_MAX_DIM    ((unsigned) INT_MAX)
-#define BC_MAX_SCALE  ((unsigned) UINT_MAX)
-#define BC_MAX_STRING ((unsigned) UINT_MAX - 1)
-#define BC_MAX_NAME   BC_MAX_STRING
-#define BC_MAX_NUM    BC_MAX_STRING
-#define BC_MAX_EXP    ((unsigned long) LONG_MAX)
-#define BC_MAX_VARS   ((unsigned long) SIZE_MAX - 1)
+#define BC_MAX_OBASE    ((unsigned) 999)
+#define BC_MAX_DIM      ((unsigned) INT_MAX)
+#define BC_MAX_SCALE    ((unsigned) UINT_MAX)
+#define BC_MAX_STRING   ((unsigned) UINT_MAX - 1)
+#define BC_MAX_NUM      BC_MAX_STRING
+// Unused apart from "limits" message. Just show a "biggish number" there.
+//#define BC_MAX_NAME     BC_MAX_STRING
+//#define BC_MAX_EXP      ((unsigned long) LONG_MAX)
+//#define BC_MAX_VARS     ((unsigned long) SIZE_MAX - 1)
+#define BC_MAX_NAME_STR "999999999"
+#define BC_MAX_EXP_STR  "999999999"
+#define BC_MAX_VARS_STR "999999999"
+
+#define BC_MAX_OBASE_STR "999"
+
+#if INT_MAX == 2147483647
+# define BC_MAX_DIM_STR "2147483647"
+#elif INT_MAX == 9223372036854775807
+# define BC_MAX_DIM_STR "9223372036854775807"
+#else
+# error Strange INT_MAX
+#endif
+
+#if UINT_MAX == 4294967295
+# define BC_MAX_SCALE_STR  "4294967295"
+# define BC_MAX_STRING_STR "4294967294"
+#elif UINT_MAX == 18446744073709551615
+# define BC_MAX_SCALE_STR  "18446744073709551615"
+# define BC_MAX_STRING_STR "18446744073709551614"
+#else
+# error Strange UINT_MAX
+#endif
+#define BC_MAX_NUM_STR BC_MAX_STRING_STR
 
 struct globals {
 	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
@@ -1590,8 +1615,12 @@ static void bc_num_split(BcNum *restrict n, size_t idx, BcNum *restrict a,
 static BcStatus bc_num_shift(BcNum *n, size_t places)
 {
 	if (places == 0 || n->len == 0) return BC_STATUS_SUCCESS;
-	if (places + n->len > BC_MAX_NUM)
-		return bc_error("number too long: must be [1, BC_NUM_MAX]");
+
+	// This check makes sense only if size_t is (much) larger than BC_MAX_NUM.
+	if (SIZE_MAX > (BC_MAX_NUM | 0xff)) {
+		if (places + n->len > BC_MAX_NUM)
+			return bc_error("number too long: must be [1,"BC_MAX_NUM_STR"]");
+	}
 
 	if (n->rdx >= places)
 		n->rdx -= places;
@@ -2891,8 +2920,11 @@ static BcStatus bc_lex_number(BcLex *l, char start)
 	}
 
 	len = i + !last_pt - bslashes * 2;
-	if (len > BC_MAX_NUM)
-		return bc_error("number too long: must be [1, BC_NUM_MAX]");
+	// This check makes sense only if size_t is (much) larger than BC_MAX_NUM.
+	if (SIZE_MAX > (BC_MAX_NUM | 0xff)) {
+		if (len > BC_MAX_NUM)
+			return bc_error("number too long: must be [1,"BC_MAX_NUM_STR"]");
+	}
 
 	bc_vec_pop_all(&l->t.v);
 	bc_vec_expand(&l->t.v, len + 1);
@@ -2929,8 +2961,11 @@ static BcStatus bc_lex_name(BcLex *l)
 
 	while ((c >= 'a' && c <= 'z') || isdigit(c) || c == '_') c = buf[++i];
 
-	if (i > BC_MAX_STRING)
-		return bc_error("name too long: must be [1, BC_NAME_MAX]");
+	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
+	if (SIZE_MAX > (BC_MAX_STRING | 0xff)) {
+		if (i > BC_MAX_STRING)
+			return bc_error("name too long: must be [1,"BC_MAX_STRING_STR"]");
+	}
 	bc_vec_string(&l->t.v, i, buf);
 
 	// Increment the index. We minus 1 because it has already been incremented.
@@ -3047,8 +3082,11 @@ static BcStatus bc_lex_string(BcLex *l)
 	}
 
 	len = i - l->i;
-	if (len > BC_MAX_STRING)
-		return bc_error("string too long: must be [1, BC_STRING_MAX]");
+	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
+	if (SIZE_MAX > (BC_MAX_STRING | 0xff)) {
+		if (len > BC_MAX_STRING)
+			return bc_error("string too long: must be [1,"BC_MAX_STRING_STR"]");
+	}
 	bc_vec_string(&l->t.v, len, l->buf + l->i);
 
 	l->i = i + 1;
@@ -3426,8 +3464,11 @@ static BcStatus dc_lex_string(BcLex *l)
 	}
 
 	bc_vec_pushZeroByte(&l->t.v);
-	if (i - l->i > BC_MAX_STRING)
-		return bc_error("string too long: must be [1, BC_STRING_MAX]");
+	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
+	if (SIZE_MAX > (BC_MAX_STRING | 0xff)) {
+		if (i - l->i > BC_MAX_STRING)
+			return bc_error("string too long: must be [1,"BC_MAX_STRING_STR"]");
+	}
 
 	l->i = i;
 	l->line += nls;
@@ -4700,14 +4741,16 @@ static BcStatus bc_parse_stmt(BcParse *p)
 			// the output is produced at _parse time_.
 			s = bc_lex_next(&p->l);
 			if (s) return s;
-			printf("BC_BASE_MAX     = %u\n", BC_MAX_OBASE);
-			printf("BC_DIM_MAX      = %u\n", BC_MAX_DIM);
-			printf("BC_SCALE_MAX    = %u\n", BC_MAX_SCALE);
-			printf("BC_STRING_MAX   = %u\n", BC_MAX_STRING);
-			printf("BC_NAME_MAX     = %u\n", BC_MAX_NAME);
-			printf("BC_NUM_MAX      = %u\n", BC_MAX_NUM);
-			printf("MAX Exponent    = %lu\n", BC_MAX_EXP);
-			printf("Number of vars  = %lu\n", BC_MAX_VARS);
+			printf(
+				"BC_BASE_MAX     = "BC_MAX_OBASE_STR "\n"
+				"BC_DIM_MAX      = "BC_MAX_DIM_STR   "\n"
+				"BC_SCALE_MAX    = "BC_MAX_SCALE_STR "\n"
+				"BC_STRING_MAX   = "BC_MAX_STRING_STR"\n"
+				"BC_NAME_MAX     = "BC_MAX_NAME_STR  "\n"
+				"BC_NUM_MAX      = "BC_MAX_NUM_STR   "\n"
+				"MAX Exponent    = "BC_MAX_EXP_STR   "\n"
+				"Number of vars  = "BC_MAX_VARS_STR  "\n"
+			);
 			break;
 		}
 
@@ -5903,12 +5946,12 @@ static BcStatus bc_program_assign(char inst)
 
 	if (ib || sc || left->t == BC_RESULT_OBASE) {
 		static const char *const msg[] = {
-			"bad ibase; must be [2, 16]",           //BC_RESULT_IBASE
-			"bad scale; must be [0, BC_SCALE_MAX]", //BC_RESULT_SCALE
-			NULL, //can't happen                    //BC_RESULT_LAST
-			NULL, //can't happen                    //BC_RESULT_CONSTANT
-			NULL, //can't happen                    //BC_RESULT_ONE
-			"bad obase; must be [2, BC_BASE_MAX]",  //BC_RESULT_OBASE
+			"bad ibase; must be [2,16]",                 //BC_RESULT_IBASE
+			"bad scale; must be [0,"BC_MAX_SCALE_STR"]", //BC_RESULT_SCALE
+			NULL, //can't happen                         //BC_RESULT_LAST
+			NULL, //can't happen                         //BC_RESULT_CONSTANT
+			NULL, //can't happen                         //BC_RESULT_ONE
+			"bad obase; must be [2,"BC_MAX_OBASE_STR"]", //BC_RESULT_OBASE
 		};
 		size_t *ptr;
 		unsigned long val, max;
@@ -6020,7 +6063,7 @@ static BcStatus bc_program_pushArray(char *code, size_t *bgn,
 		if (s) goto err;
 
 		if (temp > BC_MAX_DIM) {
-			s = bc_error("array too long; must be [1, BC_DIM_MAX]");
+			s = bc_error("array too long; must be [1,"BC_MAX_DIM_STR"]");
 			goto err;
 		}
 
