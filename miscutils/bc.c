@@ -632,11 +632,6 @@ typedef struct BcLex {
 	    BC_PARSE_FLAG_LOOP | BC_PARSE_FLAG_LOOP_INNER | BC_PARSE_FLAG_IF |   \
 	    BC_PARSE_FLAG_ELSE | BC_PARSE_FLAG_IF_END)))
 
-typedef struct BcParseNext {
-	uint32_t len;
-	BcLexType tokens[4];
-} BcParseNext;
-
 struct BcParse;
 
 struct BcProgram;
@@ -834,34 +829,40 @@ static const uint8_t bc_parse_ops[] = {
 #define bc_parse_op_PREC(i) (bc_parse_ops[i] & 0x0f)
 #define bc_parse_op_LEFT(i) (bc_parse_ops[i] & 0x10)
 
+// Byte array of up to 4 BC_LEX's, packed into 32-bit word
+typedef uint32_t BcParseNext;
+
 // These identify what tokens can come after expressions in certain cases.
-#define BC_PARSE_NEXT_TOKENS(...) .tokens = { __VA_ARGS__ }
-#define BC_PARSE_NEXT(a, ...)                         \
-	{                                                 \
-		.len = (a), BC_PARSE_NEXT_TOKENS(__VA_ARGS__) \
-	}
-static const BcParseNext bc_parse_next_expr =
-	BC_PARSE_NEXT(4, BC_LEX_NLINE, BC_LEX_SCOLON, BC_LEX_RBRACE, BC_LEX_EOF);
-static const BcParseNext bc_parse_next_param =
-	BC_PARSE_NEXT(2, BC_LEX_RPAREN, BC_LEX_COMMA);
-static const BcParseNext bc_parse_next_print =
-	BC_PARSE_NEXT(4, BC_LEX_COMMA, BC_LEX_NLINE, BC_LEX_SCOLON, BC_LEX_EOF);
-static const BcParseNext bc_parse_next_rel = BC_PARSE_NEXT(1, BC_LEX_RPAREN);
-static const BcParseNext bc_parse_next_elem = BC_PARSE_NEXT(1, BC_LEX_RBRACKET);
-static const BcParseNext bc_parse_next_for = BC_PARSE_NEXT(1, BC_LEX_SCOLON);
-static const BcParseNext bc_parse_next_read =
-	BC_PARSE_NEXT(2, BC_LEX_NLINE, BC_LEX_EOF);
+enum {
+#define BC_PARSE_NEXT4(a,b,c,d) ( (a) | ((b)<<8) | ((c)<<16) | ((((d)|0x80)<<24)) )
+#define BC_PARSE_NEXT2(a,b)     BC_PARSE_NEXT4(a,b,0xff,0xff)
+#define BC_PARSE_NEXT1(a)       BC_PARSE_NEXT4(a,0xff,0xff,0xff)
+	bc_parse_next_expr  = BC_PARSE_NEXT4(BC_LEX_NLINE,  BC_LEX_SCOLON, BC_LEX_RBRACE, BC_LEX_EOF),
+	bc_parse_next_param = BC_PARSE_NEXT2(BC_LEX_RPAREN, BC_LEX_COMMA),
+	bc_parse_next_print = BC_PARSE_NEXT4(BC_LEX_COMMA,  BC_LEX_NLINE,  BC_LEX_SCOLON, BC_LEX_EOF),
+	bc_parse_next_rel   = BC_PARSE_NEXT1(BC_LEX_RPAREN),
+	bc_parse_next_elem  = BC_PARSE_NEXT1(BC_LEX_RBRACKET),
+	bc_parse_next_for   = BC_PARSE_NEXT1(BC_LEX_SCOLON),
+	bc_parse_next_read  = BC_PARSE_NEXT2(BC_LEX_NLINE,  BC_LEX_EOF),
+#undef BC_PARSE_NEXT4
+#undef BC_PARSE_NEXT2
+#undef BC_PARSE_NEXT1
+};
 #endif // ENABLE_BC
 
 #if ENABLE_DC
-static const BcLexType dc_lex_regs[] = {
+static const //BcLexType - should be this type, but narrower type saves size:
+uint8_t
+dc_lex_regs[] = {
 	BC_LEX_OP_REL_EQ, BC_LEX_OP_REL_LE, BC_LEX_OP_REL_GE, BC_LEX_OP_REL_NE,
 	BC_LEX_OP_REL_LT, BC_LEX_OP_REL_GT, BC_LEX_SCOLON, BC_LEX_COLON,
 	BC_LEX_ELSE, BC_LEX_LOAD, BC_LEX_LOAD_POP, BC_LEX_OP_ASSIGN,
 	BC_LEX_STORE_PUSH,
 };
 
-static const BcLexType dc_lex_tokens[] = {
+static const //BcLexType - should be this type
+uint8_t
+dc_lex_tokens[] = {
 	BC_LEX_OP_MODULUS, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_LPAREN,
 	BC_LEX_INVALID, BC_LEX_OP_MULTIPLY, BC_LEX_OP_PLUS, BC_LEX_INVALID,
 	BC_LEX_OP_MINUS, BC_LEX_INVALID, BC_LEX_OP_DIVIDE,
@@ -889,7 +890,9 @@ static const BcLexType dc_lex_tokens[] = {
 	BC_LEX_INVALID
 };
 
-static const BcInst dc_parse_insts[] = {
+static const //BcInst - should be this type. Using signed narrow type since BC_INST_INVALID is -1
+int8_t
+dc_parse_insts[] = {
 	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,
 	BC_INST_INVALID, BC_INST_POWER, BC_INST_MULTIPLY, BC_INST_DIVIDE,
 	BC_INST_MODULUS, BC_INST_PLUS, BC_INST_MINUS,
@@ -4768,7 +4771,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 	BcInst prev = BC_INST_PRINT;
 	BcLexType top, t = p->l.t.t;
 	size_t nexprs = 0, ops_bgn = p->ops.len;
-	uint32_t i, nparens, nrelops;
+	unsigned nparens, nrelops;
 	bool paren_first, paren_expr, rprn, done, get_token, assign, bin_last;
 
 	paren_first = p->l.t.t == BC_LEX_LPAREN;
@@ -4993,9 +4996,14 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 	if (prev == BC_INST_BOOL_NOT || nexprs != 1)
 		return bc_error_bad_expression();
 
-	for (i = 0; i < next.len; ++i)
-		if (t == next.tokens[i])
+	// next is BcParseNext, byte array of up to 4 BC_LEX's, packed into 32-bit word
+	for (;;) {
+		if (t == (next & 0x7f))
 			goto ok;
+		if (next & 0x80) // last element?
+			break;
+		next >>= 8;
+	}
 	return bc_error_bad_expression();
  ok:
 
