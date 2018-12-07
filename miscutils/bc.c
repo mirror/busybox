@@ -1411,23 +1411,26 @@ static void bc_num_copy(BcNum *d, BcNum *s)
 	}
 }
 
-static BcStatus bc_num_ulong(BcNum *n, unsigned long *result)
+static BcStatus bc_num_ulong(BcNum *n, unsigned long *result_p)
 {
 	size_t i;
-	unsigned long pow;
+	unsigned long pow, result;
 
 	if (n->neg) return bc_error("negative number");
 
-	for (*result = 0, pow = 1, i = n->rdx; i < n->len; ++i) {
+	for (result = 0, pow = 1, i = n->rdx; i < n->len; ++i) {
 
-		unsigned long prev = *result, powprev = pow;
+		unsigned long prev = result, powprev = pow;
 
-		*result += ((unsigned long) n->num[i]) * pow;
+		result += ((unsigned long) n->num[i]) * pow;
 		pow *= 10;
 
-		if (*result < prev || pow < powprev)
+		if (result < prev || pow < powprev)
 			return bc_error("overflow");
+		prev = result;
+		powprev = pow;
 	}
+	*result_p = result;
 
 	return BC_STATUS_SUCCESS;
 }
@@ -5855,7 +5858,6 @@ static BcStatus bc_program_assign(char inst)
 	BcStatus s;
 	BcResult *left, *right, res;
 	BcNum *l = NULL, *r = NULL;
-	unsigned long val, max;
 	bool assign = inst == BC_INST_ASSIGN, ib, sc;
 
 	s = bc_program_binOpPrep(&left, &l, &right, &r, assign);
@@ -5909,6 +5911,7 @@ static BcStatus bc_program_assign(char inst)
 			"bad obase; must be [2, BC_BASE_MAX]",  //BC_RESULT_OBASE
 		};
 		size_t *ptr;
+		unsigned long val, max;
 
 		s = bc_num_ulong(l, &val);
 		if (s)
