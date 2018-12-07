@@ -224,14 +224,6 @@ typedef struct BcNum {
 
 #define BC_NUM_KARATSUBA_LEN    (32)
 
-#define BC_NUM_NEG(n, neg)      ((((ssize_t)(n)) ^ -((ssize_t)(neg))) + (neg))
-#define BC_NUM_ONE(n)           ((n)->len == 1 && (n)->rdx == 0 && (n)->num[0] == 1)
-#define BC_NUM_INT(n)           ((n)->len - (n)->rdx)
-#define BC_NUM_AREQ(a, b) \
-	(BC_MAX((a)->rdx, (b)->rdx) + BC_MAX(BC_NUM_INT(a), BC_NUM_INT(b)) + 1)
-#define BC_NUM_MREQ(a, b, scale) \
-	(BC_NUM_INT(a) + BC_NUM_INT(b) + BC_MAX((scale), (a)->rdx + (b)->rdx) + 1)
-
 typedef BcStatus (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t);
 typedef void (*BcNumDigitOp)(size_t, size_t, bool, size_t *, size_t);
 
@@ -1486,6 +1478,20 @@ static void bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
 	}
 }
 
+#define BC_NUM_NEG(n, neg)      ((((ssize_t)(n)) ^ -((ssize_t)(neg))) + (neg))
+#define BC_NUM_ONE(n)           ((n)->len == 1 && (n)->rdx == 0 && (n)->num[0] == 1)
+#define BC_NUM_INT(n)           ((n)->len - (n)->rdx)
+//#define BC_NUM_AREQ(a, b)       (BC_MAX((a)->rdx, (b)->rdx) + BC_MAX(BC_NUM_INT(a), BC_NUM_INT(b)) + 1)
+static /*ALWAYS_INLINE*/ size_t BC_NUM_AREQ(BcNum *a, BcNum *b)
+{
+	return BC_MAX(a->rdx, b->rdx) + BC_MAX(BC_NUM_INT(a), BC_NUM_INT(b)) + 1;
+}
+//#define BC_NUM_MREQ(a, b, scale) (BC_NUM_INT(a) + BC_NUM_INT(b) + BC_MAX((scale), (a)->rdx + (b)->rdx) + 1)
+static /*ALWAYS_INLINE*/ size_t BC_NUM_MREQ(BcNum *a, BcNum *b, size_t scale)
+{
+	return BC_NUM_INT(a) + BC_NUM_INT(b) + BC_MAX(scale, a->rdx + b->rdx) + 1;
+}
+
 static ssize_t bc_num_compare(BcDig *restrict a, BcDig *restrict b, size_t len)
 {
 	size_t i;
@@ -2084,7 +2090,12 @@ static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 	bc_num_init(&copy, a->len);
 	bc_num_copy(&copy, a);
 
-	if (!neg) scale = BC_MIN(a->rdx * pow, BC_MAX(scale, a->rdx));
+	if (!neg) {
+		if (a->rdx > scale)
+			scale = a->rdx;
+		if (a->rdx * pow < scale)
+			scale = a->rdx * pow;
+	}
 
 	b->neg = neg;
 
