@@ -771,11 +771,12 @@ struct globals {
 #define G_posix (ENABLE_BC && (option_mask32 & BC_FLAG_S))
 #define G_warn  (ENABLE_BC && (option_mask32 & BC_FLAG_W))
 #define G_exreg (ENABLE_DC && (option_mask32 & DC_FLAG_X))
-#define G_interrupt (ENABLE_FEATURE_BC_SIGNALS ? bb_got_signal : 0)
 #if ENABLE_FEATURE_BC_SIGNALS
-# define G_ttyin G.ttyin
+# define G_interrupt bb_got_signal
+# define G_ttyin     G.ttyin
 #else
-# define G_ttyin 0
+# define G_interrupt 0
+# define G_ttyin     0
 #endif
 #if ENABLE_FEATURE_CLEAN_UP
 # define G_exiting G.exiting
@@ -1262,9 +1263,9 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 		fflush_and_check();
 
 #if ENABLE_FEATURE_BC_SIGNALS
-		if (bb_got_signal) { // ^C was pressed
+		if (G_interrupt) { // ^C was pressed
  intr:
-			bb_got_signal = 0; // resets G_interrupt to zero
+			G_interrupt = 0;
 			fputs(IS_BC
 				? "\ninterrupt (type \"quit\" to exit)\n"
 				: "\ninterrupt (type \"q\" to exit)\n"
@@ -1299,7 +1300,7 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 				c = fgetc(stdin);
 #if ENABLE_FEATURE_BC_SIGNALS && !ENABLE_FEATURE_EDITING
 				// Both conditions appear simultaneously, check both just in case
-				if (errno == EINTR || bb_got_signal) {
+				if (errno == EINTR || G_interrupt) {
 					// ^C was pressed
 					clearerr(stdin);
 					goto intr;
