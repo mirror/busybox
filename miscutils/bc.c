@@ -2436,28 +2436,31 @@ err:
 	return s;
 }
 
-static BcStatus bc_num_printBase(BcNum *n, BcNum *base, size_t base_t)
+static BcStatus bc_num_printBase(BcNum *n)
 {
 	BcStatus s;
 	size_t width, i;
 	BcNumDigitOp print;
 	bool neg = n->neg;
 
-	if (neg) bb_putchar('-');
-	G.prog.nchars += neg;
+	if (neg) {
+		bb_putchar('-');
+		G.prog.nchars++;
+	}
 
 	n->neg = false;
 
-	if (base_t <= BC_NUM_MAX_IBASE) {
+	if (G.prog.ob_t <= BC_NUM_MAX_IBASE) {
 		width = 1;
 		print = bc_num_printHex;
 	}
 	else {
-		for (i = base_t - 1, width = 0; i != 0; i /= 10, ++width);
+		for (i = G.prog.ob_t - 1, width = 0; i != 0; i /= 10, ++width)
+			continue;
 		print = bc_num_printDigits;
 	}
 
-	s = bc_num_printNum(n, base, width, print);
+	s = bc_num_printNum(n, &G.prog.ob, width, print);
 	n->neg = neg;
 
 	return s;
@@ -2486,9 +2489,6 @@ static BcStatus bc_num_parse(BcNum *n, const char *val, BcNum *base,
 
 static BcStatus bc_num_print(BcNum *n, bool newline)
 {
-	BcNum *base = &G.prog.ob;
-	size_t base_t = G.prog.ob_t;
-
 	BcStatus s = BC_STATUS_SUCCESS;
 
 	bc_num_printNewline();
@@ -2497,10 +2497,10 @@ static BcStatus bc_num_print(BcNum *n, bool newline)
 		bb_putchar('0');
 		++G.prog.nchars;
 	}
-	else if (base_t == 10)
+	else if (G.prog.ob_t == 10)
 		bc_num_printDecimal(n);
 	else
-		s = bc_num_printBase(n, base, base_t);
+		s = bc_num_printBase(n);
 
 	if (newline) {
 		bb_putchar('\n');
