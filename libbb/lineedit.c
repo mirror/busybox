@@ -2309,6 +2309,7 @@ static int32_t reverse_i_search(int timeout)
 }
 #endif
 
+#if ENABLE_FEATURE_EDITING_WINCH
 static void sigaction2(int sig, struct sigaction *act)
 {
 	// Grr... gcc 8.1.1:
@@ -2318,6 +2319,7 @@ static void sigaction2(int sig, struct sigaction *act)
 	oact = act;
 	sigaction(sig, act, oact);
 }
+#endif
 
 /* maxsize must be >= 2.
  * Returns:
