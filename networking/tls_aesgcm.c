@@ -97,25 +97,25 @@ static void RIGHTSHIFTX(byte* x)
 #undef l
 }
 
+// Caller guarantees X is aligned
 static void GMULT(byte* X, byte* Y)
 {
     byte Z[AES_BLOCK_SIZE] ALIGNED_long;
-    byte V[AES_BLOCK_SIZE] ALIGNED_long;
-    int i, j;
+    //byte V[AES_BLOCK_SIZE] ALIGNED_long;
+    int i;
 
     XMEMSET(Z, 0, AES_BLOCK_SIZE);
-    XMEMCPY(V, X, AES_BLOCK_SIZE);
-    for (i = 0; i < AES_BLOCK_SIZE; i++)
-    {
-        byte y = Y[i];
-        for (j = 0; j < 8; j++)
-        {
+    //XMEMCPY(V, X, AES_BLOCK_SIZE);
+    for (i = 0; i < AES_BLOCK_SIZE; i++) {
+        uint32_t y = 0x800000 | Y[i];
+        for (;;) { // for every bit in Y[i], from msb to lsb
             if (y & 0x80) {
-                xorbuf_aligned_AES_BLOCK_SIZE(Z, V);
+                xorbuf_aligned_AES_BLOCK_SIZE(Z, X); // was V, not X
             }
-
-            RIGHTSHIFTX(V);
+            RIGHTSHIFTX(X); // was V, not X
             y = y << 1;
+            if ((int32_t)y < 0) // if bit 0x80000000 set = if 8 iterations done
+                break;
         }
     }
     XMEMCPY(X, Z, AES_BLOCK_SIZE);
