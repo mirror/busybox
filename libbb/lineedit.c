@@ -2309,6 +2309,16 @@ static int32_t reverse_i_search(int timeout)
 }
 #endif
 
+static void sigaction2(int sig, struct sigaction *act)
+{
+	// Grr... gcc 8.1.1:
+	// "passing argument 3 to restrict-qualified parameter aliases with argument 2"
+	// dance around that...
+	struct sigaction *oact FIX_ALIASING;
+	oact = act;
+	sigaction(sig, act, oact);
+}
+
 /* maxsize must be >= 2.
  * Returns:
  * -1 on read errors or EOF, or on bare Ctrl-D,
@@ -2419,7 +2429,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	/* Install window resize handler (NB: after *all* init is complete) */
 	S.SIGWINCH_handler.sa_handler = win_changed;
 	S.SIGWINCH_handler.sa_flags = SA_RESTART;
-	sigaction(SIGWINCH, &S.SIGWINCH_handler, &S.SIGWINCH_handler);
+	sigaction2(SIGWINCH, &S.SIGWINCH_handler);
 #endif
 	read_key_buffer[0] = 0;
 	while (1) {

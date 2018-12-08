@@ -11442,7 +11442,7 @@ static int wait_for_child_or_signal(struct pipe *waitfor_pipe, pid_t waitfor_pid
 		 * and get stuck in sigsuspend...
 		 */
 		sigfillset(&oldset); /* block all signals, remember old set */
-		sigprocmask(SIG_SETMASK, &oldset, &oldset);
+		sigprocmask_SIG_SETMASK(&oldset);
 
 		if (!sigisemptyset(&G.pending_set)) {
 			/* Crap! we raced with some signal! */
