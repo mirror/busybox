@@ -221,8 +221,9 @@ typedef struct BcNum {
 
 #define BC_NUM_KARATSUBA_LEN    (32)
 
+typedef void (*BcNumDigitOp)(size_t, size_t, bool, size_t *);
+
 typedef BcStatus (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t);
-typedef void (*BcNumDigitOp)(size_t, size_t, bool, size_t *, size_t);
 
 static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale);
 static BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale);
@@ -2309,9 +2310,9 @@ int_err:
 	bc_num_free(&temp);
 }
 
-static void bc_num_printNewline(size_t *nchars, size_t line_len)
+static void bc_num_printNewline(size_t *nchars)
 {
-	if (*nchars == line_len - 1) {
+	if (*nchars == G.prog.len - 1) {
 		bb_putchar('\\');
 		bb_putchar('\n');
 		*nchars = 0;
@@ -2320,30 +2321,30 @@ static void bc_num_printNewline(size_t *nchars, size_t line_len)
 
 #if ENABLE_DC
 static void bc_num_printChar(size_t num, size_t width, bool radix,
-                             size_t *nchars, size_t line_len)
+                             size_t *nchars)
 {
-	(void) radix, (void) line_len;
+	(void) radix;
 	bb_putchar((char) num);
 	*nchars = *nchars + width;
 }
 #endif
 
 static void bc_num_printDigits(size_t num, size_t width, bool radix,
-                               size_t *nchars, size_t line_len)
+                               size_t *nchars)
 {
 	size_t exp, pow;
 
-	bc_num_printNewline(nchars, line_len);
+	bc_num_printNewline(nchars);
 	bb_putchar(radix ? '.' : ' ');
 	++(*nchars);
 
-	bc_num_printNewline(nchars, line_len);
+	bc_num_printNewline(nchars);
 	for (exp = 0, pow = 1; exp < width - 1; ++exp, pow *= 10)
 		continue;
 
 	for (exp = 0; exp < width; pow /= 10, ++(*nchars), ++exp) {
 		size_t dig;
-		bc_num_printNewline(nchars, line_len);
+		bc_num_printNewline(nchars);
 		dig = num / pow;
 		num -= dig * pow;
 		bb_putchar(((char) dig) + '0');
@@ -2351,20 +2352,20 @@ static void bc_num_printDigits(size_t num, size_t width, bool radix,
 }
 
 static void bc_num_printHex(size_t num, size_t width, bool radix,
-                            size_t *nchars, size_t line_len)
+                            size_t *nchars)
 {
 	if (radix) {
-		bc_num_printNewline(nchars, line_len);
+		bc_num_printNewline(nchars);
 		bb_putchar('.');
 		*nchars += 1;
 	}
 
-	bc_num_printNewline(nchars, line_len);
+	bc_num_printNewline(nchars);
 	bb_putchar(bb_hexdigits_upcase[num]);
 	*nchars = *nchars + width;
 }
 
-static void bc_num_printDecimal(BcNum *n, size_t *nchars, size_t len)
+static void bc_num_printDecimal(BcNum *n, size_t *nchars)
 {
 	size_t i, rdx = n->rdx - 1;
 
@@ -2372,11 +2373,11 @@ static void bc_num_printDecimal(BcNum *n, size_t *nchars, size_t len)
 	(*nchars) += n->neg;
 
 	for (i = n->len - 1; i < n->len; --i)
-		bc_num_printHex((size_t) n->num[i], 1, i == rdx, nchars, len);
+		bc_num_printHex((size_t) n->num[i], 1, i == rdx, nchars);
 }
 
 static BcStatus bc_num_printNum(BcNum *n, BcNum *base, size_t width,
-                                size_t *nchars, size_t len, BcNumDigitOp print)
+                                size_t *nchars, BcNumDigitOp print)
 {
 	BcStatus s;
 	BcVec stack;
@@ -2386,7 +2387,7 @@ static BcStatus bc_num_printNum(BcNum *n, BcNum *base, size_t width,
 	bool radix;
 
 	if (n->len == 0) {
-		print(0, width, false, nchars, len);
+		print(0, width, false, nchars);
 		return BC_STATUS_SUCCESS;
 	}
 
@@ -2412,7 +2413,7 @@ static BcStatus bc_num_printNum(BcNum *n, BcNum *base, size_t width,
 
 	for (i = 0; i < stack.len; ++i) {
 		ptr = bc_vec_item_rev(&stack, i);
-		print(*ptr, width, false, nchars, len);
+		print(*ptr, width, false, nchars);
 	}
 
 	if (!n->rdx) goto err;
@@ -2425,7 +2426,7 @@ static BcStatus bc_num_printNum(BcNum *n, BcNum *base, size_t width,
 		bc_num_ulong2num(&intp, dig);
 		s = bc_num_sub(&fracp, &intp, &fracp, 0);
 		if (s) goto err;
-		print(dig, width, radix, nchars, len);
+		print(dig, width, radix, nchars);
 		s = bc_num_mul(&frac_len, base, &frac_len, 0);
 		if (s) goto err;
 	}
@@ -2440,7 +2441,7 @@ err:
 }
 
 static BcStatus bc_num_printBase(BcNum *n, BcNum *base, size_t base_t,
-                                 size_t *nchars, size_t line_len)
+                                 size_t *nchars)
 {
 	BcStatus s;
 	size_t width, i;
@@ -2461,16 +2462,16 @@ static BcStatus bc_num_printBase(BcNum *n, BcNum *base, size_t base_t,
 		print = bc_num_printDigits;
 	}
 
-	s = bc_num_printNum(n, base, width, nchars, line_len, print);
+	s = bc_num_printNum(n, base, width, nchars, print);
 	n->neg = neg;
 
 	return s;
 }
 
 #if ENABLE_DC
-static BcStatus bc_num_stream(BcNum *n, BcNum *base, size_t *nchars, size_t len)
+static BcStatus bc_num_stream(BcNum *n, BcNum *base, size_t *nchars)
 {
-	return bc_num_printNum(n, base, 1, nchars, len, bc_num_printChar);
+	return bc_num_printNum(n, base, 1, nchars, bc_num_printChar);
 }
 #endif
 
@@ -2489,20 +2490,20 @@ static BcStatus bc_num_parse(BcNum *n, const char *val, BcNum *base,
 }
 
 static BcStatus bc_num_print(BcNum *n, BcNum *base, size_t base_t, bool newline,
-                             size_t *nchars, size_t line_len)
+                             size_t *nchars)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 
-	bc_num_printNewline(nchars, line_len);
+	bc_num_printNewline(nchars);
 
 	if (n->len == 0) {
 		bb_putchar('0');
 		++(*nchars);
 	}
 	else if (base_t == 10)
-		bc_num_printDecimal(n, nchars, line_len);
+		bc_num_printDecimal(n, nchars);
 	else
-		s = bc_num_printBase(n, base, base_t, nchars, line_len);
+		s = bc_num_printBase(n, base, base_t, nchars);
 
 	if (newline) {
 		bb_putchar('\n');
@@ -5719,7 +5720,7 @@ static BcStatus bc_program_print(char inst, size_t idx)
 	if (s) return s;
 
 	if (BC_PROG_NUM(r, num)) {
-		s = bc_num_print(num, &G.prog.ob, G.prog.ob_t, !pop, &G.prog.nchars, G.prog.len);
+		s = bc_num_print(num, &G.prog.ob, G.prog.ob_t, !pop, &G.prog.nchars);
 		if (!s) bc_num_copy(&G.prog.last, num);
 	}
 	else {
@@ -6450,7 +6451,7 @@ static BcStatus bc_program_printStream(void)
 	if (s) return s;
 
 	if (BC_PROG_NUM(r, n))
-		s = bc_num_stream(n, &G.prog.strmb, &G.prog.nchars, G.prog.len);
+		s = bc_num_stream(n, &G.prog.strmb, &G.prog.nchars);
 	else {
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : n->rdx;
 		str = *((char **) bc_vec_item(&G.prog.strs, idx));
