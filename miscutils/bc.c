@@ -2,9 +2,6 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  * Copyright (c) 2018 Gavin D. Howard and contributors.
- *
- * ** Automatically generated from https://github.com/gavinhoward/bc **
- * **        Do not edit unless you know what you are doing.         **
  */
 //config:config BC
 //config:	bool "bc (45 kb; 49 kb when combined with dc)"
@@ -97,7 +94,7 @@
 //config:config FEATURE_DC_SMALL
 //config:	bool "Minimal dc implementation (4.2 kb), not using bc code base"
 //config:	depends on DC && !BC
-//config:	default y
+//config:	default n
 //config:
 //config:config FEATURE_DC_LIBM
 //config:	bool "Enable power and exp functions (requires libm)"
@@ -155,11 +152,11 @@
 //usage:       "obase = A\n"
 //usage:
 //usage:#define dc_trivial_usage
-//usage:       "[-eSCRIPT]... [-fFILE]... [FILE]..."
+//usage:       IF_NOT_FEATURE_DC_SMALL("[-x] ")"[-eSCRIPT]... [-fFILE]... [FILE]..."
 //usage:
 //usage:#define dc_full_usage "\n"
 //usage:     "\nTiny RPN calculator. Operations:"
-//usage:     "\n+, -, *, /, %, ~, ^, |,"
+//usage:     "\n+, -, *, /, %, ~, ^," IF_NOT_FEATURE_DC_SMALL(" |,")
 //usage:     "\np - print top of the stack (without popping)"
 //usage:     "\nf - print entire stack"
 //usage:     "\nk - pop the value and set the precision"
@@ -1267,12 +1264,10 @@ static int push_input_byte(BcVec *vec, char c)
 	return 0;
 }
 
-static BcStatus bc_read_line(BcVec *vec, const char *prompt)
+static BcStatus bc_read_line(BcVec *vec)
 {
 	BcStatus s;
 	bool bad_chars;
-
-	if (G_posix) prompt = "";
 
 	s = BC_STATUS_SUCCESS;
 	do {
@@ -1296,7 +1291,7 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 		if (G_ttyin) {
 			int n, i;
 #  define line_buf bb_common_bufsiz1
-			n = read_line_input(G.line_input_state, prompt, line_buf, COMMON_BUFSIZE);
+			n = read_line_input(G.line_input_state, "", line_buf, COMMON_BUFSIZE);
 			if (n <= 0) { // read errors or EOF, or ^D, or ^C
 				if (n == 0) // ^C
 					goto intr;
@@ -1314,8 +1309,6 @@ static BcStatus bc_read_line(BcVec *vec, const char *prompt)
 # endif
 #endif
 		{
-			if (G_ttyin)
-				fputs(prompt, stderr);
 			IF_FEATURE_BC_SIGNALS(errno = 0;)
 			do {
 				c = fgetc(stdin);
@@ -5563,7 +5556,7 @@ static BcStatus bc_program_read(void)
 	sv_file = G.prog.file;
 	G.prog.file = NULL;
 
-	s = bc_read_line(&buf, "read> ");
+	s = bc_read_line(&buf);
 	if (s) goto io_err;
 
 	common_parse_init(&parse, BC_PROG_READ);
@@ -6976,8 +6969,6 @@ static void bc_vm_info(void)
 {
 	printf("%s "BB_VER"\n"
 		"Copyright (c) 2018 Gavin D. Howard and contributors\n"
-		"Report bugs at: https://github.com/gavinhoward/bc\n"
-		"This is free software with ABSOLUTELY NO WARRANTY\n"
 	, applet_name);
 }
 
@@ -7002,7 +6993,6 @@ static void bc_args(char **argv)
 	if (getenv("POSIXLY_CORRECT"))
 		option_mask32 |= BC_FLAG_S;
 
-///should be in bc_vm_run() instead??
 	if (opts & BC_FLAG_V) {
 		bc_vm_info();
 		exit(0);
@@ -7130,7 +7120,7 @@ static BcStatus bc_vm_stdin(void)
 	// with a backslash to the parser. The reason for that is because the parser
 	// treats a backslash+newline combo as whitespace, per the bc spec. In that
 	// case, and for strings and comments, the parser will expect more stuff.
-	while ((s = bc_read_line(&buf, ">>> ")) == BC_STATUS_SUCCESS) {
+	while ((s = bc_read_line(&buf)) == BC_STATUS_SUCCESS) {
 
 		char *string = buf.v;
 
@@ -7602,8 +7592,18 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 	G.sbgn = '[';
 	G.send = ']';
-	// TODO: dc (GNU bc 1.07.1) 1.4.1 seems to use default width
-	// 1 char narrower than bc from the same package. Do the same?
+	/*
+	 * TODO: dc (GNU bc 1.07.1) 1.4.1 seems to use width
+	 * 1 char wider than bc from the same package.
+	 * Both default width, and xC_LINE_LENGTH=N are wider:
+	 * "DC_LINE_LENGTH=5 dc -e'123456 p'" prints:
+	 *	1234\
+	 *	56
+	 * "echo '123456' | BC_LINE_LENGTH=5 bc" prints:
+	 *	123\
+	 *	456
+	 * Do the same, or it's a bug?
+	 */
 	bc_vm_init("DC_LINE_LENGTH");
 
 	// Run -e'SCRIPT' and -fFILE in order of appearance, then handle FILEs
