@@ -4097,7 +4097,7 @@ static BcStatus bc_parse_print(BcParse *p)
 {
 	BcStatus s;
 	BcLexType type;
-	bool comma = false;
+	bool comma;
 
 	s = bc_lex_next(&p->l);
 	if (s) return s;
@@ -4107,24 +4107,26 @@ static BcStatus bc_parse_print(BcParse *p)
 	if (type == BC_LEX_SCOLON || type == BC_LEX_NLINE)
 		return bc_error("bad print statement");
 
-	while (!s && type != BC_LEX_SCOLON && type != BC_LEX_NLINE) {
+	comma = false;
+	while (type != BC_LEX_SCOLON && type != BC_LEX_NLINE) {
 
-		if (type == BC_LEX_STR)
+		if (type == BC_LEX_STR) {
 			s = bc_parse_string(p, BC_INST_PRINT_POP);
-		else {
+			if (s) return s;
+		} else {
 			s = bc_parse_expr(p, 0, bc_parse_next_print);
 			if (s) return s;
 			bc_parse_push(p, BC_INST_PRINT_POP);
 		}
 
-		if (s) return s;
-
 		comma = p->l.t.t == BC_LEX_COMMA;
-		if (comma) s = bc_lex_next(&p->l);
+		if (comma) {
+			s = bc_lex_next(&p->l);
+			if (s) return s;
+		}
 		type = p->l.t.t;
 	}
 
-	if (s) return s;
 	if (comma) return bc_error_bad_token();
 
 	return bc_lex_next(&p->l);
