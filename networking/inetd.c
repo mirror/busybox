@@ -488,7 +488,7 @@ static void block_CHLD_HUP_ALRM(sigset_t *m)
 	sigaddset(m, SIGCHLD);
 	sigaddset(m, SIGHUP);
 	sigaddset(m, SIGALRM);
-	sigprocmask(SIG_BLOCK, m, m); /* old sigmask is stored in m */
+	sigprocmask2(SIG_BLOCK, m); /* old sigmask is stored in m */
 }
 
 static void restore_sigmask(sigset_t *m)
