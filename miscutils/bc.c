@@ -1282,10 +1282,9 @@ static BcStatus bc_read_line(BcVec *vec)
 		if (G_interrupt) { // ^C was pressed
  intr:
 			G_interrupt = 0;
-			fputs(IS_BC
-				? "\ninterrupt (type \"quit\" to exit)\n"
-				: "\ninterrupt (type \"q\" to exit)\n"
-				, stderr);
+			// GNU bc says "interrupted execution."
+			// GNU dc says "Interrupt!"
+			fputs("\ninterrupted execution\n", stderr);
 		}
 # if ENABLE_FEATURE_EDITING
 		if (G_ttyin) {
@@ -7171,8 +7170,6 @@ static BcStatus bc_vm_stdin(void)
 				// Non-debug builds do not come here, they exit.
 				break;
 			}
-			fflush_and_check();
-			fputs("ready for more input\n", stderr);
 		}
 
 		bc_vec_pop_all(&buffer);
@@ -7403,13 +7400,8 @@ static BcStatus bc_vm_exec(void)
 		return s;
 	}
 
-	if (IS_BC || (option_mask32 & BC_FLAG_I)) {
-		if (s) {
-			fflush_and_check();
-			fputs("ready for more input\n", stderr);
-		}
+	if (IS_BC || (option_mask32 & BC_FLAG_I)) 
 		s = bc_vm_stdin();
-	}
 
 	if (!s && !BC_PARSE_CAN_EXEC(&G.prs))
 		s = bc_vm_process("");
