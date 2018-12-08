@@ -159,8 +159,7 @@
 //usage:
 //usage:#define dc_full_usage "\n"
 //usage:     "\nTiny RPN calculator. Operations:"
-//usage:     "\n+, -, *, /, %, ^, exp, ~, divmod, |, "
-//usage:       "modular exponentiation,"
+//usage:     "\n+, -, *, /, %, ~, ^, |,"
 //usage:     "\np - print top of the stack (without popping)"
 //usage:     "\nf - print entire stack"
 //usage:     "\nk - pop the value and set the precision"
