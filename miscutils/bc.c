@@ -1182,6 +1182,16 @@ static void *bc_vec_item(const BcVec *v, size_t idx)
 	return v->v + v->size * idx;
 }
 
+static char** bc_program_str(size_t idx)
+{
+	return bc_vec_item(&G.prog.strs, idx);
+}
+
+static BcFunc* bc_program_func(size_t idx)
+{
+	return bc_vec_item(&G.prog.fns, idx);
+}
+
 static void *bc_vec_item_rev(const BcVec *v, size_t idx)
 {
 	return v->v + v->size * (v->len - idx - 1);
@@ -3593,7 +3603,7 @@ static void bc_program_addFunc(char *name, size_t *idx);
 static void bc_parse_addFunc(BcParse *p, char *name, size_t *idx)
 {
 	bc_program_addFunc(name, idx);
-	p->func = bc_vec_item(&G.prog.fns, p->fidx);
+	p->func = bc_program_func(p->fidx);
 }
 
 #define bc_parse_push(p, i) bc_vec_pushByte(&(p)->func->code, (char) (i))
@@ -3639,7 +3649,7 @@ static BcStatus bc_parse_text(BcParse *p, const char *text)
 {
 	BcStatus s;
 
-	p->func = bc_vec_item(&G.prog.fns, p->fidx);
+	p->func = bc_program_func(p->fidx);
 
 	if (!text[0] && !BC_PARSE_CAN_EXEC(p)) {
 		p->l.t.t = BC_LEX_INVALID;
@@ -3662,13 +3672,13 @@ static void bc_program_reset(void)
 	bc_vec_npop(&G.prog.stack, G.prog.stack.len - 1);
 	bc_vec_pop_all(&G.prog.results);
 
-	f = bc_vec_item(&G.prog.fns, 0);
+	f = bc_program_func(0);
 	ip = bc_vec_top(&G.prog.stack);
 	ip->idx = f->code.len;
 }
 
 #define bc_parse_updateFunc(p, f) \
-	((p)->func = bc_vec_item(&G.prog.fns, ((p)->fidx = (f))))
+	((p)->func = bc_program_func((p)->fidx = (f)))
 
 // Called when bc/dc_parse_parse() detects a failure,
 // resets parsing structures.
@@ -5541,7 +5551,7 @@ static BcStatus bc_program_read(void)
 	BcVec buf;
 	BcInstPtr ip;
 	size_t i;
-	BcFunc *f = bc_vec_item(&G.prog.fns, BC_PROG_READ);
+	BcFunc *f = bc_program_func(BC_PROG_READ);
 
 	for (i = 0; i < G.prog.stack.len; ++i) {
 		BcInstPtr *ip_ptr = bc_vec_item(&G.prog.stack, i);
@@ -5576,7 +5586,7 @@ static BcStatus bc_program_read(void)
 	ip.len = G.prog.results.len;
 
 	// Update this pointer, just in case.
-	f = bc_vec_item(&G.prog.fns, BC_PROG_READ);
+	f = bc_program_func(BC_PROG_READ);
 
 	bc_vec_pushByte(&f->code, BC_INST_POP_EXEC);
 	bc_vec_push(&G.prog.stack, &ip);
@@ -5725,7 +5735,7 @@ static BcStatus bc_program_print(char inst, size_t idx)
 	else {
 
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : num->rdx;
-		str = *((char **) bc_vec_item(&G.prog.strs, idx));
+		str = *bc_program_str(idx);
 
 		if (inst == BC_INST_PRINT_STR) {
 			for (i = 0, len = strlen(str); i < len; ++i) {
@@ -6125,7 +6135,7 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 
 	ip.idx = 0;
 	ip.func = bc_program_index(code, idx);
-	func = bc_vec_item(&G.prog.fns, ip.func);
+	func = bc_program_func(ip.func);
 
 	if (func->code.len == 0) {
 		return bc_error("undefined function");
@@ -6179,7 +6189,7 @@ static BcStatus bc_program_return(char inst)
 	if (!BC_PROG_STACK(&G.prog.results, ip->len + inst == BC_INST_RET))
 		return bc_error_stack_has_too_few_elements();
 
-	f = bc_vec_item(&G.prog.fns, ip->func);
+	f = bc_program_func(ip->func);
 	res.t = BC_RESULT_TEMP;
 
 	if (inst == BC_INST_RET) {
@@ -6265,7 +6275,7 @@ static BcStatus bc_program_builtin(char inst)
 		char **str;
 		size_t idx = opnd->t == BC_RESULT_STR ? opnd->d.id.idx : num->rdx;
 
-		str = bc_vec_item(&G.prog.strs, idx);
+		str = bc_program_str(idx);
 		bc_num_ulong2num(&res.d.n, strlen(*str));
 	}
 #endif
@@ -6397,7 +6407,7 @@ static BcStatus bc_program_asciify(void)
 	}
 	else {
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : num->rdx;
-		str2 = *((char **) bc_vec_item(&G.prog.strs, idx));
+		str2 = *bc_program_str(idx);
 		c = str2[0];
 	}
 
@@ -6411,7 +6421,7 @@ static BcStatus bc_program_asciify(void)
 	if (idx != len + BC_PROG_REQ_FUNCS) {
 
 		for (idx = 0; idx < G.prog.strs.len; ++idx) {
-			if (!strcmp(*((char **) bc_vec_item(&G.prog.strs, idx)), str)) {
+			if (strcmp(*bc_program_str(idx), str) == 0) {
 				len = idx;
 				break;
 			}
@@ -6453,7 +6463,7 @@ static BcStatus bc_program_printStream(void)
 		s = bc_num_stream(n, &G.prog.strmb);
 	else {
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : n->rdx;
-		str = *((char **) bc_vec_item(&G.prog.strs, idx));
+		str = *bc_program_str(idx);
 		printf("%s", str);
 	}
 
@@ -6553,8 +6563,8 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 
 	fidx = sidx + BC_PROG_REQ_FUNCS;
 
-	str = bc_vec_item(&G.prog.strs, sidx);
-	f = bc_vec_item(&G.prog.fns, fidx);
+	str = bc_program_str(sidx);
+	f = bc_program_func(fidx);
 
 	if (f->code.len == 0) {
 		common_parse_init(&prs, fidx);
@@ -6582,7 +6592,7 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 
 err:
 	bc_parse_free(&prs);
-	f = bc_vec_item(&G.prog.fns, fidx);
+	f = bc_program_func(fidx);
 	bc_vec_pop_all(&f->code);
 exit:
 	bc_vec_pop(&G.prog.results);
@@ -6625,7 +6635,7 @@ static void bc_program_addFunc(char *name, size_t *idx)
 
 	if (!inserted) {
 
-		BcFunc *func = bc_vec_item(&G.prog.fns, entry_ptr->idx);
+		BcFunc *func = bc_program_func(entry_ptr->idx);
 
 		// We need to reset these, so the function can be repopulated.
 		func->nparams = 0;
@@ -6646,7 +6656,7 @@ static BcStatus bc_program_exec(void)
 	BcResult r, *ptr;
 	BcNum *num;
 	BcInstPtr *ip = bc_vec_top(&G.prog.stack);
-	BcFunc *func = bc_vec_item(&G.prog.fns, ip->func);
+	BcFunc *func = bc_program_func(ip->func);
 	char *code = func->code.v;
 	bool cond = false;
 
@@ -6956,7 +6966,7 @@ static BcStatus bc_program_exec(void)
 
 		// If the stack has changed, pointers may be invalid.
 		ip = bc_vec_top(&G.prog.stack);
-		func = bc_vec_item(&G.prog.fns, ip->func);
+		func = bc_program_func(ip->func);
 		code = func->code.v;
 	}
 
@@ -7089,7 +7099,7 @@ static BcStatus bc_vm_file(const char *file)
 	s = bc_vm_process(data);
 	if (s) goto err;
 
-	main_func = bc_vec_item(&G.prog.fns, BC_PROG_MAIN);
+	main_func = bc_program_func(BC_PROG_MAIN);
 	ip = bc_vec_item(&G.prog.stack, 0);
 
 	if (main_func->code.len < ip->idx)
