@@ -6505,8 +6505,6 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 	BcParse prs;
 	BcInstPtr ip;
 	size_t fidx, sidx;
-	BcNum *n;
-	bool exec;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
 		return bc_error_stack_has_too_few_elements();
@@ -6514,8 +6512,11 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 	r = bc_vec_top(&G.prog.results);
 
 	if (cond) {
-
-		char *name, *then_name = bc_program_name(code, bgn), *else_name = NULL;
+		BcNum *n = n; // for compiler
+		bool exec;
+		char *name;
+		char *then_name = bc_program_name(code, bgn);
+		char *else_name = NULL;
 
 		if (code[*bgn] == BC_PARSE_STREND)
 			(*bgn) += 1;
@@ -6523,10 +6524,8 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 			else_name = bc_program_name(code, bgn);
 
 		exec = r->d.n.len != 0;
-
-		if (exec)
-			name = then_name;
-		else if (else_name != NULL) {
+		name = then_name;
+		if (!exec && else_name != NULL) {
 			exec = true;
 			name = else_name;
 		}
@@ -6547,17 +6546,15 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 		}
 
 		sidx = n->rdx;
-	}
-	else {
-
-		if (r->t == BC_RESULT_STR)
+	} else {
+		if (r->t == BC_RESULT_STR) {
 			sidx = r->d.id.idx;
-		else if (r->t == BC_RESULT_VAR) {
+		} else if (r->t == BC_RESULT_VAR) {
+			BcNum *n;
 			s = bc_program_num(r, &n, false);
 			if (s || !BC_PROG_STR(n)) goto exit;
 			sidx = n->rdx;
-		}
-		else
+		} else
 			goto exit;
 	}
 
