@@ -2199,49 +2199,45 @@ static BcStatus bc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
 static bool bc_num_strValid(const char *val, size_t base)
 {
 	BcDig b;
-	bool small, radix = false;
-	size_t i, len = strlen(val);
+	bool radix;
 
-	if (!len) return true;
-
-	small = base <= 10;
-	b = (BcDig)(small ? base + '0' : base - 10 + 'A');
-
-	for (i = 0; i < len; ++i) {
-
-		BcDig c = val[i];
-
+	b = (BcDig)(base <= 10 ? base + '0' : base - 10 + 'A');
+	radix = false;
+	for (;;) {
+		BcDig c = *val++;
+		if (c == '\0')
+			break;
 		if (c == '.') {
-
 			if (radix) return false;
-
 			radix = true;
 			continue;
 		}
-
-		if (c < '0' || (small && c >= b) || (c > '9' && (c < 'A' || c >= b)))
+		if (c < '0' || c >= b || (c > '9' && c < 'A'))
 			return false;
 	}
-
 	return true;
 }
 
+// Note: n is already "bc_num_zero()"ed,
+// leading zeroes in "val" are removed
 static void bc_num_parseDecimal(BcNum *n, const char *val)
 {
 	size_t len, i;
 	const char *ptr;
-	bool zero = true;
+	bool zero;
 
-	for (i = 0; val[i] == '0'; ++i);
-
-	val += i;
 	len = strlen(val);
-	bc_num_zero(n);
+	if (len == 0)
+		return;
 
-	if (len != 0) {
-		for (i = 0; zero && i < len; ++i) zero = val[i] == '0' || val[i] == '.';
-		bc_num_expand(n, len);
+	zero = true;
+	for (i = 0; val[i]; ++i) {
+		if (val[i] != '0' && val[i] != '.') {
+			zero = false;
+			break;
+		}
 	}
+	bc_num_expand(n, len);
 
 	ptr = strchr(val, '.');
 
@@ -2255,26 +2251,29 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 	}
 }
 
+// Note: n is already "bc_num_zero()"ed,
+// leading zeroes in "val" are removed
 static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 {
 	BcStatus s;
 	BcNum temp, mult, result;
 	BcDig c = '\0';
-	bool zero = true;
 	unsigned long v;
-	size_t i, digits, len = strlen(val);
+	size_t i, digits;
 
-	bc_num_zero(n);
-
-	for (i = 0; zero && i < len; ++i) zero = (val[i] == '.' || val[i] == '0');
-	if (zero) return;
+	for (i = 0; ; ++i) {
+		if (val[i] == '\0')
+			return;
+		if (val[i] != '.' && val[i] != '0')
+			break;
+	}
 
 	bc_num_init_DEF_SIZE(&temp);
 	bc_num_init_DEF_SIZE(&mult);
 
-	for (i = 0; i < len; ++i) {
-
-		c = val[i];
+	for (;;) {
+		c = *val++;
+		if (c == '\0') goto int_err;
 		if (c == '.') break;
 
 		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
@@ -2286,19 +2285,15 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 		if (s) goto int_err;
 	}
 
-	if (i == len) {
-		c = val[i];
-		if (c == 0) goto int_err;
-	}
-
 	bc_num_init(&result, base->len);
 	//bc_num_zero(&result); - already is
 	bc_num_one(&mult);
 
-	for (i += 1, digits = 0; i < len; ++i, ++digits) {
-
-		c = val[i];
-		if (c == 0) break;
+	digits = 0;
+	for (;;) {
+		c = *val++;
+		if (c == '\0') break;
+		digits++;
 
 		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
 
@@ -2318,8 +2313,7 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 
 	if (n->len != 0) {
 		if (n->rdx < digits) bc_num_extend(n, digits - n->rdx);
-	}
-	else
+	} else
 		bc_num_zero(n);
 
 err:
@@ -2497,6 +2491,9 @@ static BcStatus bc_num_parse(BcNum *n, const char *val, BcNum *base,
 {
 	if (!bc_num_strValid(val, base_t))
 		return bc_error("bad number string");
+
+	bc_num_zero(n);
+	while (*val == '0') val++;
 
 	if (base_t == 10)
 		bc_num_parseDecimal(n, val);
@@ -6387,7 +6384,7 @@ static BcStatus bc_program_asciify(void)
 {
 	BcStatus s;
 	BcResult *r, res;
-	BcNum *num = NULL, n;
+	BcNum *num, n;
 	char *str, *str2, c;
 	size_t len = G.prog.strs.len, idx;
 	unsigned long val;
@@ -6396,6 +6393,7 @@ static BcStatus bc_program_asciify(void)
 		return bc_error_stack_has_too_few_elements();
 	r = bc_vec_top(&G.prog.results);
 
+	num = NULL; // TODO: is this NULL needed?
 	s = bc_program_num(r, &num, false);
 	if (s) return s;
 
