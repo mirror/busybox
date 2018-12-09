@@ -1407,6 +1407,11 @@ static void bc_num_init(BcNum *n, size_t req)
 	n->cap = req;
 }
 
+static void bc_num_init_DEF_SIZE(BcNum *n)
+{
+	bc_num_init(n, BC_NUM_DEF_SIZE);
+}
+
 static void bc_num_expand(BcNum *n, size_t req)
 {
 	req = req >= BC_NUM_DEF_SIZE ? req : BC_NUM_DEF_SIZE;
@@ -2260,8 +2265,8 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 	for (i = 0; zero && i < len; ++i) zero = (val[i] == '.' || val[i] == '0');
 	if (zero) return;
 
-	bc_num_init(&temp, BC_NUM_DEF_SIZE);
-	bc_num_init(&mult, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&temp);
+	bc_num_init_DEF_SIZE(&mult);
 
 	for (i = 0; i < len; ++i) {
 
@@ -2584,7 +2589,7 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 
 	bc_num_init(&num1, len);
 	bc_num_init(&num2, len);
-	bc_num_init(&half, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&half);
 
 	bc_num_one(&half);
 	half.num[0] = 5;
@@ -2701,7 +2706,7 @@ static BcStatus bc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 	bc_num_expand(d, c->len);
 	bc_num_init(&base, c->len);
 	bc_num_init(&exp, b->len);
-	bc_num_init(&two, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&two);
 	bc_num_init(&temp, b->len);
 
 	bc_num_one(&two);
@@ -2792,7 +2797,7 @@ static void bc_array_expand(BcVec *a, size_t len)
 
 	if (a->size == sizeof(BcNum) && a->dtor == bc_num_free) {
 		while (len > a->len) {
-			bc_num_init(&data.n, BC_NUM_DEF_SIZE);
+			bc_num_init_DEF_SIZE(&data.n);
 			bc_vec_push(a, &data.n);
 		}
 	}
@@ -5530,7 +5535,7 @@ static BcStatus bc_program_op(char inst)
 
 	s = bc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) return s;
-	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&res.d.n);
 
 	s = bc_program_ops[inst - BC_INST_POWER](n1, n2, &res.d.n, G.prog.scale);
 	if (s) goto err;
@@ -5784,7 +5789,7 @@ static BcStatus bc_program_logical(char inst)
 
 	s = bc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) return s;
-	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&res.d.n);
 
 	if (inst == BC_INST_BOOL_AND)
 		cond = bc_num_cmp(n1, &G.prog.zero) && bc_num_cmp(n2, &G.prog.zero);
@@ -5896,7 +5901,7 @@ static BcStatus bc_program_copyToVar(char *name, bool var)
 	v = bc_program_search(name, var);
 
 	if (var) {
-		bc_num_init(&r.d.n, BC_NUM_DEF_SIZE);
+		bc_num_init_DEF_SIZE(&r.d.n);
 		bc_num_copy(&r.d.n, n);
 	}
 	else {
@@ -6035,7 +6040,7 @@ static BcStatus bc_program_pushVar(char *code, size_t *bgn,
 
 				r.t = BC_RESULT_TEMP;
 
-				bc_num_init(&r.d.n, BC_NUM_DEF_SIZE);
+				bc_num_init_DEF_SIZE(&r.d.n);
 				bc_num_copy(&r.d.n, num);
 			}
 			else {
@@ -6164,7 +6169,7 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 		v = bc_program_search(a->name, a->idx);
 
 		if (a->idx) {
-			bc_num_init(&param.n, BC_NUM_DEF_SIZE);
+			bc_num_init_DEF_SIZE(&param.n);
 			bc_vec_push(v, &param.n);
 		}
 		else {
@@ -6203,7 +6208,7 @@ static BcStatus bc_program_return(char inst)
 		bc_num_copy(&res.d.n, num);
 	}
 	else {
-		bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
+		bc_num_init_DEF_SIZE(&res.d.n);
 		bc_num_zero(&res.d.n);
 	}
 
@@ -6261,7 +6266,7 @@ static BcStatus bc_program_builtin(char inst)
 		return bc_error_variable_is_wrong_type();
 #endif
 
-	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&res.d.n);
 
 	if (inst == BC_INST_SQRT) s = bc_num_sqrt(num, &res.d.n, G.prog.scale);
 #if ENABLE_BC
@@ -6299,7 +6304,7 @@ static BcStatus bc_program_divmod(void)
 	s = bc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) return s;
 
-	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&res.d.n);
 	bc_num_init(&res2.d.n, n2->len);
 
 	s = bc_num_divmod(n1, n2, &res2.d.n, &res.d.n, G.prog.scale);
@@ -6369,7 +6374,7 @@ static void bc_program_stackLen(void)
 
 	res.t = BC_RESULT_TEMP;
 
-	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&res.d.n);
 	bc_num_ulong2num(&res.d.n, len);
 	bc_vec_push(&G.prog.results, &res);
 }
@@ -6392,7 +6397,7 @@ static BcStatus bc_program_asciify(void)
 
 	if (BC_PROG_NUM(r, num)) {
 
-		bc_num_init(&n, BC_NUM_DEF_SIZE);
+		bc_num_init_DEF_SIZE(&n);
 		bc_num_copy(&n, num);
 		bc_num_truncate(&n, n.rdx);
 
@@ -6610,7 +6615,7 @@ static void bc_program_pushGlobal(char inst)
 	else
 		val = (unsigned long) G.prog.ob_t;
 
-	bc_num_init(&res.d.n, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&res.d.n);
 	bc_num_ulong2num(&res.d.n, val);
 	bc_vec_push(&G.prog.results, &res);
 }
@@ -6760,7 +6765,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_BOOL_NOT:
 				s = bc_program_prep(&ptr, &num);
 				if (s) return s;
-				bc_num_init(&r.d.n, BC_NUM_DEF_SIZE);
+				bc_num_init_DEF_SIZE(&r.d.n);
 				if (!bc_num_cmp(num, &G.prog.zero))
 					bc_num_one(&r.d.n);
 				else
@@ -7356,31 +7361,30 @@ static void bc_program_init(void)
 	memset(&ip, 0, sizeof(BcInstPtr));
 
 	/* G.prog.nchars = G.prog.scale = 0; - already is */
-
-	bc_num_init(&G.prog.ib, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&G.prog.ib);
 	bc_num_ten(&G.prog.ib);
 	G.prog.ib_t = 10;
 
-	bc_num_init(&G.prog.ob, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&G.prog.ob);
 	bc_num_ten(&G.prog.ob);
 	G.prog.ob_t = 10;
 
-	bc_num_init(&G.prog.hexb, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&G.prog.hexb);
 	bc_num_ten(&G.prog.hexb);
 	G.prog.hexb.num[0] = 6;
 
 #if ENABLE_DC
-	bc_num_init(&G.prog.strmb, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&G.prog.strmb);
 	bc_num_ulong2num(&G.prog.strmb, UCHAR_MAX + 1);
 #endif
 
-	bc_num_init(&G.prog.last, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&G.prog.last);
 	bc_num_zero(&G.prog.last);
 
-	bc_num_init(&G.prog.zero, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&G.prog.zero);
 	bc_num_zero(&G.prog.zero);
 
-	bc_num_init(&G.prog.one, BC_NUM_DEF_SIZE);
+	bc_num_init_DEF_SIZE(&G.prog.one);
 	bc_num_one(&G.prog.one);
 
 	bc_vec_init(&G.prog.fns, sizeof(BcFunc), bc_func_free);
