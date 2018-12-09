@@ -6651,8 +6651,6 @@ static void bc_program_addFunc(char *name, size_t *idx)
 
 static BcStatus bc_program_exec(void)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
-	size_t idx;
 	BcResult r, *ptr;
 	BcNum *num;
 	BcInstPtr *ip = bc_vec_top(&G.prog.stack);
@@ -6660,58 +6658,41 @@ static BcStatus bc_program_exec(void)
 	char *code = func->code.v;
 	bool cond = false;
 
-	while (!s && ip->idx < func->code.len) {
-
+	while (ip->idx < func->code.len) {
+		BcStatus s;
 		char inst = code[(ip->idx)++];
 
 		switch (inst) {
-
 #if ENABLE_BC
 			case BC_INST_JUMP_ZERO:
-			{
 				s = bc_program_prep(&ptr, &num);
 				if (s) return s;
 				cond = !bc_num_cmp(num, &G.prog.zero);
 				bc_vec_pop(&G.prog.results);
-			}
-			// Fallthrough.
-			case BC_INST_JUMP:
-			{
+				// Fallthrough.
+			case BC_INST_JUMP: {
 				size_t *addr;
-				idx = bc_program_index(code, &ip->idx);
+				size_t idx = bc_program_index(code, &ip->idx);
 				addr = bc_vec_item(&func->labels, idx);
 				if (inst == BC_INST_JUMP || cond) ip->idx = *addr;
 				break;
 			}
-
 			case BC_INST_CALL:
-			{
 				s = bc_program_call(code, &ip->idx);
 				break;
-			}
-
 			case BC_INST_INC_PRE:
 			case BC_INST_DEC_PRE:
 			case BC_INST_INC_POST:
 			case BC_INST_DEC_POST:
-			{
 				s = bc_program_incdec(inst);
 				break;
-			}
-
 			case BC_INST_HALT:
-			{
 				QUIT_OR_RETURN_TO_MAIN;
 				break;
-			}
-
 			case BC_INST_RET:
 			case BC_INST_RET0:
-			{
 				s = bc_program_return(inst);
 				break;
-			}
-
 			case BC_INST_BOOL_OR:
 			case BC_INST_BOOL_AND:
 #endif // ENABLE_BC
@@ -6721,121 +6702,77 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_REL_NE:
 			case BC_INST_REL_LT:
 			case BC_INST_REL_GT:
-			{
 				s = bc_program_logical(inst);
 				break;
-			}
-
 			case BC_INST_READ:
-			{
 				s = bc_program_read();
 				break;
-			}
-
 			case BC_INST_VAR:
-			{
 				s = bc_program_pushVar(code, &ip->idx, false, false);
 				break;
-			}
-
 			case BC_INST_ARRAY_ELEM:
 			case BC_INST_ARRAY:
-			{
 				s = bc_program_pushArray(code, &ip->idx, inst);
 				break;
-			}
-
 			case BC_INST_LAST:
-			{
 				r.t = BC_RESULT_LAST;
 				bc_vec_push(&G.prog.results, &r);
 				break;
-			}
-
 			case BC_INST_IBASE:
 			case BC_INST_SCALE:
 			case BC_INST_OBASE:
-			{
 				bc_program_pushGlobal(inst);
 				break;
-			}
-
 			case BC_INST_SCALE_FUNC:
 			case BC_INST_LENGTH:
 			case BC_INST_SQRT:
-			{
 				s = bc_program_builtin(inst);
 				break;
-			}
-
 			case BC_INST_NUM:
-			{
 				r.t = BC_RESULT_CONSTANT;
 				r.d.id.idx = bc_program_index(code, &ip->idx);
 				bc_vec_push(&G.prog.results, &r);
 				break;
-			}
-
 			case BC_INST_POP:
-			{
 				if (!BC_PROG_STACK(&G.prog.results, 1))
 					s = bc_error_stack_has_too_few_elements();
 				else
 					bc_vec_pop(&G.prog.results);
 				break;
-			}
-
 			case BC_INST_POP_EXEC:
-			{
 				bc_vec_pop(&G.prog.stack);
 				break;
-			}
-
 			case BC_INST_PRINT:
 			case BC_INST_PRINT_POP:
 			case BC_INST_PRINT_STR:
-			{
 				s = bc_program_print(inst, 0);
 				break;
-			}
-
 			case BC_INST_STR:
-			{
 				r.t = BC_RESULT_STR;
 				r.d.id.idx = bc_program_index(code, &ip->idx);
 				bc_vec_push(&G.prog.results, &r);
 				break;
-			}
-
 			case BC_INST_POWER:
 			case BC_INST_MULTIPLY:
 			case BC_INST_DIVIDE:
 			case BC_INST_MODULUS:
 			case BC_INST_PLUS:
 			case BC_INST_MINUS:
-			{
 				s = bc_program_op(inst);
 				break;
-			}
-
 			case BC_INST_BOOL_NOT:
-			{
 				s = bc_program_prep(&ptr, &num);
 				if (s) return s;
-
 				bc_num_init(&r.d.n, BC_NUM_DEF_SIZE);
-				(!bc_num_cmp(num, &G.prog.zero) ? bc_num_one : bc_num_zero)(&r.d.n);
+				if (!bc_num_cmp(num, &G.prog.zero))
+					bc_num_one(&r.d.n);
+				else
+					bc_num_zero(&r.d.n);
 				bc_program_retire(&r, BC_RESULT_TEMP);
-
 				break;
-			}
-
 			case BC_INST_NEG:
-			{
 				s = bc_program_negate();
 				break;
-			}
-
 #if ENABLE_BC
 			case BC_INST_ASSIGN_POWER:
 			case BC_INST_ASSIGN_MULTIPLY:
@@ -6845,123 +6782,84 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_ASSIGN_MINUS:
 #endif
 			case BC_INST_ASSIGN:
-			{
 				s = bc_program_assign(inst);
 				break;
-			}
 #if ENABLE_DC
 			case BC_INST_MODEXP:
-			{
 				s = bc_program_modexp();
 				break;
-			}
-
 			case BC_INST_DIVMOD:
-			{
 				s = bc_program_divmod();
 				break;
-			}
-
 			case BC_INST_EXECUTE:
 			case BC_INST_EXEC_COND:
-			{
 				cond = inst == BC_INST_EXEC_COND;
 				s = bc_program_execStr(code, &ip->idx, cond);
 				break;
-			}
-
-			case BC_INST_PRINT_STACK:
-			{
-				for (idx = 0; !s && idx < G.prog.results.len; ++idx)
+			case BC_INST_PRINT_STACK: {
+				size_t idx;
+				for (idx = 0; idx < G.prog.results.len; ++idx) {
 					s = bc_program_print(BC_INST_PRINT, idx);
+					if (s) break;
+				}
 				break;
 			}
-
 			case BC_INST_CLEAR_STACK:
-			{
 				bc_vec_pop_all(&G.prog.results);
 				break;
-			}
-
 			case BC_INST_STACK_LEN:
-			{
 				bc_program_stackLen();
 				break;
-			}
-
 			case BC_INST_DUPLICATE:
-			{
 				if (!BC_PROG_STACK(&G.prog.results, 1))
 					return bc_error_stack_has_too_few_elements();
 				ptr = bc_vec_top(&G.prog.results);
 				bc_result_copy(&r, ptr);
 				bc_vec_push(&G.prog.results, &r);
 				break;
-			}
-
-			case BC_INST_SWAP:
-			{
+			case BC_INST_SWAP: {
 				BcResult *ptr2;
-
 				if (!BC_PROG_STACK(&G.prog.results, 2))
 					return bc_error_stack_has_too_few_elements();
-
 				ptr = bc_vec_item_rev(&G.prog.results, 0);
 				ptr2 = bc_vec_item_rev(&G.prog.results, 1);
 				memcpy(&r, ptr, sizeof(BcResult));
 				memcpy(ptr, ptr2, sizeof(BcResult));
 				memcpy(ptr2, &r, sizeof(BcResult));
-
 				break;
 			}
-
 			case BC_INST_ASCIIFY:
-			{
 				s = bc_program_asciify();
 				break;
-			}
-
 			case BC_INST_PRINT_STREAM:
-			{
 				s = bc_program_printStream();
 				break;
-			}
-
 			case BC_INST_LOAD:
-			case BC_INST_PUSH_VAR:
-			{
+			case BC_INST_PUSH_VAR: {
 				bool copy = inst == BC_INST_LOAD;
 				s = bc_program_pushVar(code, &ip->idx, true, copy);
 				break;
 			}
-
-			case BC_INST_PUSH_TO_VAR:
-			{
+			case BC_INST_PUSH_TO_VAR: {
 				char *name = bc_program_name(code, &ip->idx);
 				s = bc_program_copyToVar(name, true);
 				free(name);
 				break;
 			}
-
 			case BC_INST_QUIT:
-			{
 				if (G.prog.stack.len <= 2)
 					QUIT_OR_RETURN_TO_MAIN;
 				bc_vec_npop(&G.prog.stack, 2);
 				break;
-			}
-
 			case BC_INST_NQUIT:
-			{
 				s = bc_program_nquit();
 				break;
-			}
 #endif // ENABLE_DC
 		}
 
 		if (s || G_interrupt) {
 			bc_program_reset();
-			break;
+			return s;
 		}
 
 		// If the stack has changed, pointers may be invalid.
@@ -6970,7 +6868,7 @@ static BcStatus bc_program_exec(void)
 		code = func->code.v;
 	}
 
-	return s;
+	return BC_STATUS_SUCCESS;
 }
 
 #if ENABLE_BC
