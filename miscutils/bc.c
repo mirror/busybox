@@ -1399,12 +1399,16 @@ static void bc_num_ten(BcNum *n)
 	n->num[1] = 1;
 }
 
+// Note: this also sets BcNum to zero
 static void bc_num_init(BcNum *n, size_t req)
 {
 	req = req >= BC_NUM_DEF_SIZE ? req : BC_NUM_DEF_SIZE;
-	memset(n, 0, sizeof(BcNum));
+	//memset(n, 0, sizeof(BcNum)); - cleared by assignments below
 	n->num = xmalloc(req);
 	n->cap = req;
+	n->rdx = 0;
+	n->len = 0;
+	n->neg = false;
 }
 
 static void bc_num_init_DEF_SIZE(BcNum *n)
@@ -2288,7 +2292,7 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 	}
 
 	bc_num_init(&result, base->len);
-	bc_num_zero(&result);
+	//bc_num_zero(&result); - already is
 	bc_num_one(&mult);
 
 	for (i += 1, digits = 0; i < len; ++i, ++digits) {
@@ -6209,7 +6213,7 @@ static BcStatus bc_program_return(char inst)
 	}
 	else {
 		bc_num_init_DEF_SIZE(&res.d.n);
-		bc_num_zero(&res.d.n);
+		//bc_num_zero(&res.d.n); - already is
 	}
 
 	// We need to pop arguments as well, so this takes that into account.
@@ -6768,8 +6772,7 @@ static BcStatus bc_program_exec(void)
 				bc_num_init_DEF_SIZE(&r.d.n);
 				if (!bc_num_cmp(num, &G.prog.zero))
 					bc_num_one(&r.d.n);
-				else
-					bc_num_zero(&r.d.n);
+				//else bc_num_zero(&r.d.n); - already is
 				bc_program_retire(&r, BC_RESULT_TEMP);
 				break;
 			case BC_INST_NEG:
@@ -7379,10 +7382,10 @@ static void bc_program_init(void)
 #endif
 
 	bc_num_init_DEF_SIZE(&G.prog.last);
-	bc_num_zero(&G.prog.last);
+	//bc_num_zero(&G.prog.last); - already is
 
 	bc_num_init_DEF_SIZE(&G.prog.zero);
-	bc_num_zero(&G.prog.zero);
+	//bc_num_zero(&G.prog.zero); - already is
 
 	bc_num_init_DEF_SIZE(&G.prog.one);
 	bc_num_one(&G.prog.one);
