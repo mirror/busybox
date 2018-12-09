@@ -2246,8 +2246,14 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 		n->rdx = (size_t)((val + len) - (ptr + 1));
 
 	if (!zero) {
-		for (i = len - 1; i < len; ++n->len, i -= 1 + (i && val[i - 1] == '.'))
+		i = len - 1;
+		for (;;) {
 			n->num[n->len] = val[i] - '0';
+			++n->len;
+ skip_dot:
+			if ((ssize_t)--i == (ssize_t)-1) break;
+			if (val[i] == '.') goto skip_dot;
+		}
 	}
 }
 
