@@ -6254,12 +6254,14 @@ static unsigned long bc_program_scale(BcNum *n)
 
 static unsigned long bc_program_len(BcNum *n)
 {
-	unsigned long len = n->len;
-	size_t i;
+	size_t len = n->len;
 
-	if (n->rdx != n->len) return len;
-	for (i = n->len - 1; i < n->len && n->num[i] == 0; --len, --i);
-
+	if (n->rdx != len) return len;
+	for (;;) {
+		if (len == 0) break;
+		len--;
+		if (n->num[len] != 0) break;
+	}
 	return len;
 }
 
