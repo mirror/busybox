@@ -407,6 +407,12 @@ static void hash_handshake(tls_state_t *tls, const char *fmt, const void *buffer
 #endif
 }
 
+#if !ENABLE_FEATURE_TLS_SHA1
+# define TLS_MAC_SIZE(tls) SHA256_OUTSIZE
+#else
+# define TLS_MAC_SIZE(tls) (tls)->MAC_size
+#endif
+
 // RFC 2104:
 // HMAC(key, text) based on a hash H (say, sha256) is:
 // ipad = [0x36 x INSIZE]
@@ -691,7 +697,7 @@ static void xwrite_encrypted_and_hmac_signed(tls_state_t *tls, unsigned size, un
 
 	/* Calculate MAC signature */
 	hmac(tls, buf + size, /* result */
-		tls->client_write_MAC_key, tls->MAC_size,
+		tls->client_write_MAC_key, TLS_MAC_SIZE(tls),
 		&tls->write_seq64_be, sizeof(tls->write_seq64_be),
 		xhdr, RECHDR_LEN,
 		buf, size,
@@ -699,7 +705,7 @@ static void xwrite_encrypted_and_hmac_signed(tls_state_t *tls, unsigned size, un
 	);
 	tls->write_seq64_be = SWAP_BE64(1 + SWAP_BE64(tls->write_seq64_be));
 
-	size += tls->MAC_size;
+	size += TLS_MAC_SIZE(tls);
 
 	// RFC 5246:
 	// 6.2.3.1.  Null or Standard Stream Cipher
@@ -784,7 +790,7 @@ static void xwrite_encrypted_and_hmac_signed(tls_state_t *tls, unsigned size, un
 
 	tls_get_random(buf - AES_BLOCK_SIZE, AES_BLOCK_SIZE); /* IV */
 	dbg("before crypt: 5 hdr + %u data + %u hash bytes\n",
-			size - tls->MAC_size, tls->MAC_size);
+			size - TLS_MAC_SIZE(tls), TLS_MAC_SIZE(tls));
 
 	/* Fill IV and padding in outbuf */
 	// RFC is talking nonsense:
@@ -1099,7 +1105,7 @@ static int tls_xread_record(tls_state_t *tls, const char *expected)
 			tls_aesgcm_decrypt(tls, p, sz);
 			dbg("encrypted size:%u\n", sz);
 		} else
-		if (tls->min_encrypted_len_on_read > tls->MAC_size) {
+		if (tls->min_encrypted_len_on_read > TLS_MAC_SIZE(tls)) {
 			/* AES+SHA */
 			uint8_t *p = tls->inbuf + RECHDR_LEN;
 			int padding_len;
@@ -1118,7 +1124,7 @@ static int tls_xread_record(tls_state_t *tls, const char *expected)
 			padding_len = p[sz - 1];
 			dbg("encrypted size:%u type:0x%02x padding_length:0x%02x\n", sz, p[0], padding_len);
 			padding_len++;
-			sz -= tls->MAC_size + padding_len; /* drop MAC and padding */
+			sz -= TLS_MAC_SIZE(tls) + padding_len; /* drop MAC and padding */
 		} else {
 			/* if nonzero, then it's TLS_RSA_WITH_NULL_SHA256: drop MAC */
 			/* else: no encryption yet on input, subtract zero = NOP */
@@ -2245,7 +2251,7 @@ void FAST_FUNC tls_handshake(tls_state_t *tls, const char *sni)
 		tls->min_encrypted_len_on_read = tls->MAC_size;
 	} else
 	if (!(tls->flags & ENCRYPTION_AESGCM)) {
-		unsigned mac_blocks = (unsigned)(tls->MAC_size + AES_BLOCK_SIZE-1) / AES_BLOCK_SIZE;
+		unsigned mac_blocks = (unsigned)(TLS_MAC_SIZE(tls) + AES_BLOCK_SIZE-1) / AES_BLOCK_SIZE;
 		/* all incoming packets now should be encrypted and have
 		 * at least IV + (MAC padded to blocksize):
 		 */
