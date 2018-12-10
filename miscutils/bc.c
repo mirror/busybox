@@ -7118,9 +7118,6 @@ err:
 	free(data);
 	return s;
 }
-#if ERRORS_ARE_FATAL
-# define bc_vm_file(...) (bc_vm_file(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
 
 static BcStatus bc_vm_stdin(void)
 {
@@ -7421,7 +7418,7 @@ static BcStatus bc_vm_exec(void)
 		return s;
 	}
 
-	if (IS_BC || (option_mask32 & BC_FLAG_I)) 
+	if (IS_BC || (option_mask32 & BC_FLAG_I))
 		s = bc_vm_stdin();
 
 	if (!s && !BC_PARSE_CAN_EXEC(&G.prs))
