@@ -2395,19 +2395,11 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 {
 	size_t len, i;
 	const char *ptr;
-	bool zero;
 
 	len = strlen(val);
 	if (len == 0)
 		return;
 
-	zero = true;
-	for (i = 0; val[i]; ++i) {
-		if (val[i] != '0' && val[i] != '.') {
-			zero = false;
-			break;
-		}
-	}
 	bc_num_expand(n, len);
 
 	ptr = strchr(val, '.');
@@ -2416,16 +2408,21 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 	if (ptr != NULL)
 		n->rdx = (size_t)((val + len) - (ptr + 1));
 
-	if (!zero) {
-		i = len - 1;
-		for (;;) {
-			n->num[n->len] = val[i] - '0';
-			++n->len;
+	for (i = 0; val[i]; ++i) {
+		if (val[i] != '0' && val[i] != '.') {
+			// Not entirely zero value - convert it, and exit
+			i = len - 1;
+			for (;;) {
+				n->num[n->len] = val[i] - '0';
+				++n->len;
  skip_dot:
-			if ((ssize_t)--i == (ssize_t)-1) break;
-			if (val[i] == '.') goto skip_dot;
+				if ((ssize_t)--i == (ssize_t)-1) break;
+				if (val[i] == '.') goto skip_dot;
+			}
+			break;
 		}
 	}
+	// if this is reached, the value is entirely zero
 }
 
 // Note: n is already "bc_num_zero()"ed,
