@@ -193,7 +193,7 @@ typedef enum BcStatus {
 #define BC_VEC_INVALID_IDX ((size_t) -1)
 #define BC_VEC_START_CAP (1 << 5)
 
-typedef void (*BcVecFree)(void *);
+typedef void (*BcVecFree)(void *) FAST_FUNC;
 
 typedef struct BcVec {
 	char *v;
@@ -221,16 +221,16 @@ typedef struct BcNum {
 
 #define BC_NUM_KARATSUBA_LEN    (32)
 
-typedef void (*BcNumDigitOp)(size_t, size_t, bool);
+typedef void (*BcNumDigitOp)(size_t, size_t, bool) FAST_FUNC;
 
-typedef BcStatus (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t);
+typedef BcStatus (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t) FAST_FUNC;
 
-static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale);
-static BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale);
-static BcStatus bc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale);
-static BcStatus bc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale);
-static BcStatus bc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale);
-static BcStatus bc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale);
+static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
 static BcStatus bc_num_sqrt(BcNum *a, BcNum *b, size_t scale);
 static BcStatus bc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
                               size_t scale);
@@ -559,7 +559,7 @@ enum {
 #endif
 
 struct BcLex;
-typedef BcStatus (*BcLexNext)(struct BcLex *);
+typedef BcStatus (*BcLexNext)(struct BcLex *) FAST_FUNC;
 
 typedef struct BcLex {
 
@@ -626,7 +626,7 @@ struct BcParse;
 
 struct BcProgram;
 
-typedef BcStatus (*BcParseParse)(struct BcParse *);
+typedef BcStatus (*BcParseParse)(struct BcParse *) FAST_FUNC;
 
 typedef struct BcParse {
 
@@ -701,8 +701,6 @@ typedef struct BcProgram {
 #define BC_PROG_STR(n) (!(n)->num && !(n)->cap)
 #define BC_PROG_NUM(r, n) \
 	((r)->t != BC_RESULT_ARRAY && (r)->t != BC_RESULT_STR && !BC_PROG_STR(n))
-
-typedef unsigned long (*BcProgramBuiltIn)(BcNum *);
 
 #define BC_FLAG_W (1 << 0)
 #define BC_FLAG_V (1 << 1)
@@ -1203,7 +1201,7 @@ static void *bc_vec_top(const BcVec *v)
 	return v->v + v->size * (v->len - 1);
 }
 
-static void bc_vec_free(void *vec)
+static FAST_FUNC void bc_vec_free(void *vec)
 {
 	BcVec *v = (BcVec *) vec;
 	bc_vec_pop_all(v);
@@ -1215,7 +1213,7 @@ static int bc_id_cmp(const void *e1, const void *e2)
 	return strcmp(((const BcId *) e1)->name, ((const BcId *) e2)->name);
 }
 
-static void bc_id_free(void *id)
+static FAST_FUNC void bc_id_free(void *id)
 {
 	free(((BcId *) id)->name);
 }
@@ -1426,7 +1424,7 @@ static void bc_num_expand(BcNum *n, size_t req)
 	}
 }
 
-static void bc_num_free(void *num)
+static FAST_FUNC void bc_num_free(void *num)
 {
 	free(((BcNum *) num)->num);
 }
@@ -1675,7 +1673,7 @@ static BcStatus bc_num_inv(BcNum *a, BcNum *b, size_t scale)
 	return bc_num_div(&one, a, b, scale);
 }
 
-static BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
+static FAST_FUNC BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 {
 	BcDig *ptr, *ptr_a, *ptr_b, *ptr_c;
 	size_t i, max, min_rdx, min_int, diff, a_int, b_int;
@@ -1746,7 +1744,7 @@ static BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 	return BC_STATUS_SUCCESS; // can't make void, see bc_num_binary()
 }
 
-static BcStatus bc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
+static FAST_FUNC BcStatus bc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 {
 	ssize_t cmp;
 	BcNum *minuend, *subtrahend;
@@ -1808,7 +1806,7 @@ static BcStatus bc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 	return BC_STATUS_SUCCESS; // can't make void, see bc_num_binary()
 }
 
-static BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
+static FAST_FUNC BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
                          BcNum *restrict c)
 {
 	BcStatus s;
@@ -1914,7 +1912,7 @@ err:
 	return s;
 }
 
-static BcStatus bc_num_m(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
+static FAST_FUNC BcStatus bc_num_m(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
 	BcStatus s;
 	BcNum cpa, cpb;
@@ -1956,7 +1954,7 @@ err:
 	return s;
 }
 
-static BcStatus bc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
+static FAST_FUNC BcStatus bc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcDig *n, *p, q;
@@ -2028,7 +2026,7 @@ static BcStatus bc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 	return s;
 }
 
-static BcStatus bc_num_r(BcNum *a, BcNum *b, BcNum *restrict c,
+static FAST_FUNC BcStatus bc_num_r(BcNum *a, BcNum *b, BcNum *restrict c,
                          BcNum *restrict d, size_t scale, size_t ts)
 {
 	BcStatus s;
@@ -2065,7 +2063,7 @@ err:
 	return s;
 }
 
-static BcStatus bc_num_rem(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
+static FAST_FUNC BcStatus bc_num_rem(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
 	BcStatus s;
 	BcNum c1;
@@ -2078,7 +2076,7 @@ static BcStatus bc_num_rem(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 	return s;
 }
 
-static BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
+static FAST_FUNC BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcNum copy;
@@ -2216,7 +2214,7 @@ static void bc_num_printNewline(void)
 }
 
 #if ENABLE_DC
-static void bc_num_printChar(size_t num, size_t width, bool radix)
+static FAST_FUNC void bc_num_printChar(size_t num, size_t width, bool radix)
 {
 	(void) radix;
 	bb_putchar((char) num);
@@ -2224,7 +2222,7 @@ static void bc_num_printChar(size_t num, size_t width, bool radix)
 }
 #endif
 
-static void bc_num_printDigits(size_t num, size_t width, bool radix)
+static FAST_FUNC void bc_num_printDigits(size_t num, size_t width, bool radix)
 {
 	size_t exp, pow;
 
@@ -2245,7 +2243,7 @@ static void bc_num_printDigits(size_t num, size_t width, bool radix)
 	}
 }
 
-static void bc_num_printHex(size_t num, size_t width, bool radix)
+static FAST_FUNC void bc_num_printHex(size_t num, size_t width, bool radix)
 {
 	if (radix) {
 		bc_num_printNewline();
@@ -2542,39 +2540,39 @@ static BcStatus bc_num_print(BcNum *n, bool newline)
 	return s;
 }
 
-static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
 	BcNumBinaryOp op = (!a->neg == !b->neg) ? bc_num_a : bc_num_s;
 	(void) scale;
 	return bc_num_binary(a, b, c, false, op, BC_NUM_AREQ(a, b));
 }
 
-static BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
 	BcNumBinaryOp op = (!a->neg == !b->neg) ? bc_num_s : bc_num_a;
 	(void) scale;
 	return bc_num_binary(a, b, c, true, op, BC_NUM_AREQ(a, b));
 }
 
-static BcStatus bc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus bc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
 	size_t req = BC_NUM_MREQ(a, b, scale);
 	return bc_num_binary(a, b, c, scale, bc_num_m, req);
 }
 
-static BcStatus bc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus bc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
 	size_t req = BC_NUM_MREQ(a, b, scale);
 	return bc_num_binary(a, b, c, scale, bc_num_d, req);
 }
 
-static BcStatus bc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus bc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
 	size_t req = BC_NUM_MREQ(a, b, scale);
 	return bc_num_binary(a, b, c, scale, bc_num_rem, req);
 }
 
-static BcStatus bc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus bc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
 	return bc_num_binary(a, b, c, scale, bc_num_p, a->len * b->len + 1);
 }
@@ -2789,7 +2787,7 @@ static void bc_func_init(BcFunc *f)
 	f->nparams = 0;
 }
 
-static void bc_func_free(void *func)
+static FAST_FUNC void bc_func_free(void *func)
 {
 	BcFunc *f = (BcFunc *) func;
 	bc_vec_free(&f->code);
@@ -2841,7 +2839,7 @@ static void bc_array_copy(BcVec *d, const BcVec *s)
 	}
 }
 
-static void bc_string_free(void *string)
+static FAST_FUNC void bc_string_free(void *string)
 {
 	free(*((char **) string));
 }
@@ -2883,7 +2881,7 @@ static void bc_result_copy(BcResult *d, BcResult *src)
 }
 #endif // ENABLE_DC
 
-static void bc_result_free(void *result)
+static FAST_FUNC void bc_result_free(void *result)
 {
 	BcResult *r = (BcResult *) result;
 
@@ -3171,7 +3169,7 @@ static BcStatus bc_lex_comment(BcLex *l)
 	return BC_STATUS_SUCCESS;
 }
 
-static BcStatus bc_lex_token(BcLex *l)
+static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	char c = l->buf[l->i++], c2;
@@ -3511,7 +3509,7 @@ static BcStatus dc_lex_string(BcLex *l)
 	return BC_STATUS_SUCCESS;
 }
 
-static BcStatus dc_lex_token(BcLex *l)
+static FAST_FUNC BcStatus dc_lex_token(BcLex *l)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	char c = l->buf[l->i++], c2;
@@ -4826,7 +4824,7 @@ static BcStatus bc_parse_stmt(BcParse *p)
 	return s;
 }
 
-static BcStatus bc_parse_parse(BcParse *p)
+static FAST_FUNC BcStatus bc_parse_parse(BcParse *p)
 {
 	BcStatus s;
 
@@ -5333,7 +5331,7 @@ static BcStatus dc_parse_expr(BcParse *p, uint8_t flags)
 	return s;
 }
 
-static BcStatus dc_parse_parse(BcParse *p)
+static FAST_FUNC BcStatus dc_parse_parse(BcParse *p)
 {
 	BcStatus s;
 
@@ -6305,8 +6303,7 @@ static BcStatus bc_program_builtin(char inst)
 	}
 #endif
 	else {
-		BcProgramBuiltIn f = len ? bc_program_len : bc_program_scale;
-		bc_num_ulong2num(&res.d.n, f(num));
+		bc_num_ulong2num(&res.d.n, len ? bc_program_len(num) : bc_program_scale(num));
 	}
 
 	bc_program_retire(&res, BC_RESULT_TEMP);
