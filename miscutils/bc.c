@@ -977,15 +977,18 @@ static void bc_verror_msg(const char *fmt, va_list p)
 }
 
 #if ENABLE_FEATURE_BC_SIGNALS
-# define ERRORFUNC       /*nothing*/
-# define ERROR_RETURN(a) a
+# define ERRORFUNC        /*nothing*/
+# define ERROR_RETURN(a)  a
+# define ERRORS_ARE_FATAL 0
 #else
 # if ENABLE_FEATURE_CLEAN_UP
-#  define ERRORFUNC       /*nothing*/
-#  define ERROR_RETURN(a) a
+#  define ERRORFUNC        /*nothing*/
+#  define ERROR_RETURN(a)  a
+#  define ERRORS_ARE_FATAL 0
 # else
-#  define ERRORFUNC       NORETURN
-#  define ERROR_RETURN(a) /*nothing*/
+#  define ERRORFUNC        NORETURN
+#  define ERROR_RETURN(a)  /*nothing*/
+#  define ERRORS_ARE_FATAL 1
 # endif
 #endif
 
@@ -1476,6 +1479,9 @@ static BcStatus bc_num_ulong(BcNum *n, unsigned long *result_p)
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_num_ulong(...) (bc_num_ulong(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static void bc_num_ulong2num(BcNum *n, unsigned long val)
 {
@@ -1673,6 +1679,9 @@ static BcStatus bc_num_shift(BcNum *n, size_t places)
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_num_shift(...) (bc_num_shift(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_num_inv(BcNum *a, BcNum *b, size_t scale)
 {
@@ -2342,6 +2351,9 @@ err:
 	bc_vec_free(&stack);
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_num_printNum(...) (bc_num_printNum(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_num_printBase(BcNum *n)
 {
@@ -2372,6 +2384,9 @@ static BcStatus bc_num_printBase(BcNum *n)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_num_printBase(...) (bc_num_printBase(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 #if ENABLE_DC
 static BcStatus bc_num_stream(BcNum *n, BcNum *base)
@@ -2526,6 +2541,9 @@ static BcStatus bc_num_parse(BcNum *n, const char *val, BcNum *base,
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_num_parse(...) (bc_num_parse(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_num_print(BcNum *n, bool newline)
 {
@@ -2549,6 +2567,9 @@ static BcStatus bc_num_print(BcNum *n, bool newline)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_num_print(...) (bc_num_print(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static FAST_FUNC BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
@@ -2787,6 +2808,9 @@ static BcStatus bc_func_insert(BcFunc *f, char *name, bool var)
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_func_insert(...) (bc_func_insert(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 #endif
 
 static void bc_func_init(BcFunc *f)
@@ -2992,6 +3016,9 @@ static BcStatus bc_lex_number(BcLex *l, char start)
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_lex_number(...) (bc_lex_number(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_lex_name(BcLex *l)
 {
@@ -5410,8 +5437,6 @@ static BcVec* bc_program_search(char *id, bool var)
 
 static BcStatus bc_program_num(BcResult *r, BcNum **num, bool hex)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
-
 	switch (r->t) {
 
 		case BC_RESULT_STR:
@@ -5426,6 +5451,7 @@ static BcStatus bc_program_num(BcResult *r, BcNum **num, bool hex)
 
 		case BC_RESULT_CONSTANT:
 		{
+			BcStatus s;
 			char **str = bc_vec_item(&G.prog.consts, r->d.id.idx);
 			size_t base_t, len = strlen(*str);
 			BcNum *base;
@@ -5480,8 +5506,11 @@ static BcStatus bc_program_num(BcResult *r, BcNum **num, bool hex)
 		}
 	}
 
-	return s;
+	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_num(...) (bc_program_num(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_program_binOpPrep(BcResult **l, BcNum **ln,
                                      BcResult **r, BcNum **rn, bool assign)
@@ -5544,6 +5573,9 @@ static BcStatus bc_program_prep(BcResult **r, BcNum **n)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_prep(...) (bc_program_prep(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static void bc_program_retire(BcResult *r, BcResultType t)
 {
@@ -5744,7 +5776,7 @@ static void bc_program_printString(const char *str)
 
 static BcStatus bc_program_print(char inst, size_t idx)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
+	BcStatus s;
 	BcResult *r;
 	BcNum *num;
 	bool pop = inst != BC_INST_PRINT;
@@ -5786,6 +5818,9 @@ static BcStatus bc_program_print(char inst, size_t idx)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_print(...) (bc_program_print(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_program_negate(void)
 {
@@ -5804,6 +5839,9 @@ static BcStatus bc_program_negate(void)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_negate(...) (bc_program_negate(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_program_logical(char inst)
 {
@@ -6120,6 +6158,9 @@ err:
 	if (s) free(r.d.id.name);
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_pushArray(...) (bc_program_pushArray(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 #if ENABLE_BC
 static BcStatus bc_program_incdec(char inst)
@@ -6153,6 +6194,9 @@ static BcStatus bc_program_incdec(char inst)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_incdec(...) (bc_program_incdec(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_program_call(char *code, size_t *idx)
 {
@@ -6444,9 +6488,9 @@ static BcStatus bc_program_asciify(void)
 		c = str2[0];
 	}
 
-	str = xmalloc(2);
+	str = xzalloc(2);
 	str[0] = c;
-	str[1] = '\0';
+	//str[1] = '\0'; - already is
 
 	str2 = xstrdup(str);
 	bc_program_addFunc(str2, &idx);
@@ -6527,6 +6571,9 @@ static BcStatus bc_program_nquit(void)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_nquit(...) (bc_program_nquit(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_program_execStr(char *code, size_t *bgn,
                                    bool cond)
@@ -6689,7 +6736,7 @@ static BcStatus bc_program_exec(void)
 	bool cond = false;
 
 	while (ip->idx < func->code.len) {
-		BcStatus s;
+		BcStatus s = BC_STATUS_SUCCESS;
 		char inst = code[(ip->idx)++];
 
 		switch (inst) {
