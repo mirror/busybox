@@ -2393,6 +2393,9 @@ static BcStatus bc_num_stream(BcNum *n, BcNum *base)
 {
 	return bc_num_printNum(n, base, 1, bc_num_printChar);
 }
+#if ERRORS_ARE_FATAL
+# define bc_num_stream(...) (bc_num_stream(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 #endif
 
 static bool bc_num_strValid(const char *val, size_t base)
@@ -3211,6 +3214,9 @@ static BcStatus bc_lex_comment(BcLex *l)
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_lex_comment(...) (bc_lex_comment(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 {
@@ -5560,6 +5566,9 @@ static BcStatus bc_program_binOpPrep(BcResult **l, BcNum **ln,
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_binOpPrep(...) (bc_program_binOpPrep(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static void bc_program_binOpRetire(BcResult *r)
 {
@@ -5947,6 +5956,9 @@ static BcStatus bc_program_assignStr(BcResult *r, BcVec *v,
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_assignStr(...) (bc_program_assignStr(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 #endif // ENABLE_DC
 
 static BcStatus bc_program_copyToVar(char *name, bool var)
@@ -5990,6 +6002,9 @@ static BcStatus bc_program_copyToVar(char *name, bool var)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_copyToVar(...) (bc_program_copyToVar(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_program_assign(char inst)
 {
@@ -6212,7 +6227,6 @@ static BcStatus bc_program_incdec(char inst)
 
 static BcStatus bc_program_call(char *code, size_t *idx)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
 	BcInstPtr ip;
 	size_t i, nparams = bc_program_index(code, idx);
 	BcFunc *func;
@@ -6233,6 +6247,7 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 	ip.len = G.prog.results.len - nparams;
 
 	for (i = 0; i < nparams; ++i) {
+		BcStatus s;
 
 		a = bc_vec_item(&func->autos, nparams - 1 - i);
 		arg = bc_vec_top(&G.prog.results);
@@ -6264,10 +6279,12 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_call(...) (bc_program_call(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_program_return(char inst)
 {
-	BcStatus s;
 	BcResult res;
 	BcFunc *f;
 	size_t i;
@@ -6280,7 +6297,7 @@ static BcStatus bc_program_return(char inst)
 	res.t = BC_RESULT_TEMP;
 
 	if (inst == BC_INST_RET) {
-
+		BcStatus s;
 		BcNum *num;
 		BcResult *operand = bc_vec_top(&G.prog.results);
 
@@ -6296,7 +6313,6 @@ static BcStatus bc_program_return(char inst)
 
 	// We need to pop arguments as well, so this takes that into account.
 	for (i = 0; i < f->autos.len; ++i) {
-
 		BcVec *v;
 		BcId *a = bc_vec_item(&f->autos, i);
 
@@ -6310,6 +6326,9 @@ static BcStatus bc_program_return(char inst)
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_return(...) (bc_program_return(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 #endif // ENABLE_BC
 
 static unsigned long bc_program_scale(BcNum *n)
@@ -6558,6 +6577,9 @@ static BcStatus bc_program_printStream(void)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_program_printStream(...) (bc_program_printStream(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_program_nquit(void)
 {
@@ -7096,6 +7118,9 @@ err:
 	free(data);
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define bc_vm_file(...) (bc_vm_file(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_vm_stdin(void)
 {
