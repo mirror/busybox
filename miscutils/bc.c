@@ -976,7 +976,20 @@ static void bc_verror_msg(const char *fmt, va_list p)
 	}
 }
 
-static NOINLINE int bc_error_fmt(const char *fmt, ...)
+#if ENABLE_FEATURE_BC_SIGNALS
+# define ERRORFUNC       /*nothing*/
+# define ERROR_RETURN(a) a
+#else
+# if ENABLE_FEATURE_CLEAN_UP
+#  define ERRORFUNC       /*nothing*/
+#  define ERROR_RETURN(a) a
+# else
+#  define ERRORFUNC       NORETURN
+#  define ERROR_RETURN(a) /*nothing*/
+# endif
+#endif
+
+static NOINLINE ERRORFUNC int bc_error_fmt(const char *fmt, ...)
 {
 	va_list p;
 
@@ -986,7 +999,7 @@ static NOINLINE int bc_error_fmt(const char *fmt, ...)
 
 	if (!ENABLE_FEATURE_CLEAN_UP && !G_ttyin)
 		exit(1);
-	return BC_STATUS_FAILURE;
+	ERROR_RETURN(return BC_STATUS_FAILURE;)
 }
 
 #if ENABLE_BC
@@ -1016,9 +1029,33 @@ static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 // function must not have caller-cleaned parameters on stack.
 // Unfortunately, vararg function API does exactly that on most arches.
 // Thus, use these shims for the cases when we have no vararg PARAMS:
-static int bc_error(const char *msg)
+static ERRORFUNC int bc_error(const char *msg)
 {
-	return bc_error_fmt("%s", msg);
+	ERROR_RETURN(return) bc_error_fmt("%s", msg);
+}
+static ERRORFUNC int bc_error_bad_character(char c)
+{
+	ERROR_RETURN(return) bc_error_fmt("bad character '%c'", c);
+}
+static ERRORFUNC int bc_error_bad_expression(void)
+{
+	ERROR_RETURN(return) bc_error("bad expression");
+}
+static ERRORFUNC int bc_error_bad_token(void)
+{
+	ERROR_RETURN(return) bc_error("bad token");
+}
+static ERRORFUNC int bc_error_stack_has_too_few_elements(void)
+{
+	ERROR_RETURN(return) bc_error("stack has too few elements");
+}
+static ERRORFUNC int bc_error_variable_is_wrong_type(void)
+{
+	ERROR_RETURN(return) bc_error("variable is wrong type");
+}
+static ERRORFUNC int bc_error_nested_read_call(void)
+{
+	ERROR_RETURN(return) bc_error("read() call inside of a read() call");
 }
 #if ENABLE_BC
 static int bc_POSIX_requires(const char *msg)
@@ -1038,30 +1075,6 @@ static int bc_POSIX_does_not_allow_empty_X_expression_in_for(const char *msg)
 	return bc_posix_error_fmt("%san empty %s expression in a for loop", "POSIX does not allow ", msg);
 }
 #endif
-static int bc_error_bad_character(char c)
-{
-	return bc_error_fmt("bad character '%c'", c);
-}
-static int bc_error_bad_expression(void)
-{
-	return bc_error("bad expression");
-}
-static int bc_error_bad_token(void)
-{
-	return bc_error("bad token");
-}
-static int bc_error_stack_has_too_few_elements(void)
-{
-	return bc_error("stack has too few elements");
-}
-static int bc_error_variable_is_wrong_type(void)
-{
-	return bc_error("variable is wrong type");
-}
-static int bc_error_nested_read_call(void)
-{
-	return bc_error("read() call inside of a read() call");
-}
 
 static void bc_vec_grow(BcVec *v, size_t n)
 {
