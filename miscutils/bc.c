@@ -3020,27 +3020,34 @@ static BcStatus bc_lex_number(BcLex *l, char start)
 # define bc_lex_number(...) (bc_lex_number(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_lex_name(BcLex *l)
+static void bc_lex_name(BcLex *l)
 {
-	size_t i = 0;
-	const char *buf = l->buf + l->i - 1;
-	char c = buf[i];
+	size_t i;
+	const char *buf;
 
 	l->t.t = BC_LEX_NAME;
 
-	while ((c >= 'a' && c <= 'z') || isdigit(c) || c == '_') c = buf[++i];
+	i = 0;
+	buf = l->buf + l->i - 1;
+	for (;;) {
+		char c = buf[i];
+		if ((c < 'a' || c > 'z') && !isdigit(c) && c != '_') break;
+		i++;
+	}
 
+#if 0 // We do not protect against people with gigabyte-long names
 	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
 	if (SIZE_MAX > (BC_MAX_STRING | 0xff)) {
 		if (i > BC_MAX_STRING)
 			return bc_error("name too long: must be [1,"BC_MAX_STRING_STR"]");
 	}
+#endif
 	bc_vec_string(&l->t.v, i, buf);
 
 	// Increment the index. We minus 1 because it has already been incremented.
 	l->i += i - 1;
 
-	return BC_STATUS_SUCCESS;
+	//return BC_STATUS_SUCCESS;
 }
 
 static void bc_lex_init(BcLex *l, BcLexNext next)
@@ -3121,8 +3128,7 @@ static BcStatus bc_lex_identifier(BcLex *l)
 		return BC_STATUS_SUCCESS;
 	}
 
-	s = bc_lex_name(l);
-	if (s) return s;
+	bc_lex_name(l);
 
 	if (l->t.v.len > 2) {
 		// Prevent this:
@@ -3498,7 +3504,7 @@ static BcStatus dc_lex_register(BcLex *l)
 		if (!G_exreg)
 			s = bc_error("extended register");
 		else
-			s = bc_lex_name(l);
+			bc_lex_name(l);
 	}
 	else {
 		bc_vec_pop_all(&l->t.v);
@@ -3509,6 +3515,9 @@ static BcStatus dc_lex_register(BcLex *l)
 
 	return s;
 }
+#if ERRORS_ARE_FATAL
+# define dc_lex_register(...) (dc_lex_register(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus dc_lex_string(BcLex *l)
 {
@@ -3545,6 +3554,9 @@ static BcStatus dc_lex_string(BcLex *l)
 
 	return BC_STATUS_SUCCESS;
 }
+#if ERRORS_ARE_FATAL
+# define dc_lex_string(...) (dc_lex_string(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static FAST_FUNC BcStatus dc_lex_token(BcLex *l)
 {
