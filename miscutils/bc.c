@@ -1476,9 +1476,9 @@ static void bc_num_ulong2num(BcNum *n, unsigned long val)
 
 	if (ULONG_MAX == 0xffffffffUL)
 		bc_num_expand(n, 10); // 10 digits: 4294967295
-	if (ULONG_MAX == 0xffffffffffffffffUL)
+	if (ULONG_MAX == 0xffffffffffffffffULL)
 		bc_num_expand(n, 20); // 20 digits: 18446744073709551615
-	BUILD_BUG_ON(ULONG_MAX > 0xffffffffffffffffUL);
+	BUILD_BUG_ON(ULONG_MAX > 0xffffffffffffffffULL);
 
 	ptr = n->num;
 	for (;;) {
