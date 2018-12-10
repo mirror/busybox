@@ -1165,13 +1165,14 @@ static void bc_vec_string(BcVec *v, size_t len, const char *str)
 
 static void bc_vec_concat(BcVec *v, const char *str)
 {
-	size_t len;
+	size_t len, slen;
 
 	if (v->len == 0) bc_vec_pushZeroByte(v);
 
-	len = v->len + strlen(str);
+	slen = strlen(str);
+	len = v->len + slen;
 
-	if (v->cap < len) bc_vec_grow(v, len - v->len);
+	if (v->cap < len) bc_vec_grow(v, slen);
 	strcpy(v->v + v->len - 1, str);
 
 	v->len = len;
