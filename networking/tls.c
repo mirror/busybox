@@ -525,7 +525,7 @@ static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_
 	va_start(va, key_size);
 
 	hmac_begin(&pre, key, key_size,
-			(ENABLE_FEATURE_TLS_SHA1 || tls->MAC_size == SHA256_OUTSIZE)
+			(!ENABLE_FEATURE_TLS_SHA1 || tls->MAC_size == SHA256_OUTSIZE)
 				? sha256_begin
 				: sha1_begin
 	);
