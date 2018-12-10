@@ -525,9 +525,9 @@ static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_
 	va_start(va, key_size);
 
 	hmac_begin(&pre, key, key_size,
-			(!ENABLE_FEATURE_TLS_SHA1 || tls->MAC_size == SHA256_OUTSIZE)
-				? sha256_begin
-				: sha1_begin
+			(ENABLE_FEATURE_TLS_SHA1 && tls->MAC_size == SHA1_OUTSIZE)
+				? sha1_begin
+				: sha256_begin
 	);
 	len = hmac_sha_precomputed_v(&pre, out, va);
 
@@ -1486,7 +1486,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 {
 #define NUM_CIPHERS (7 + 6 * ENABLE_FEATURE_TLS_SHA1 + ALLOW_RSA_NULL_SHA256)
 	static const uint8_t ciphers[] = {
-		0x00,(1 + NUM_CIPHERS) * 2, //len16_be
+		0x00,2 + NUM_CIPHERS*2, //len16_be
 		0x00,0xFF, //not a cipher - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
 		/* ^^^^^^ RFC 5746 Renegotiation Indication Extension - some servers will refuse to work with us otherwise */
 #if ENABLE_FEATURE_TLS_SHA1
@@ -1494,6 +1494,8 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		0xC0,0x0A, // 2 TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA - ok: wget https://is.gd/
 		0xC0,0x13, // 3 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-SHA
 		0xC0,0x14, // 4 TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA - ok: openssl s_server ... -cipher ECDHE-RSA-AES256-SHA (might fail with older openssl)
+	//	0xC0,0x18, //   TLS_ECDH_anon_WITH_AES_128_CBC_SHA
+	//	0xC0,0x19, //   TLS_ECDH_anon_WITH_AES_256_CBC_SHA
 #endif
 		0xC0,0x23, // 5 TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 - ok: wget https://is.gd/
 	//	0xC0,0x24, //   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
@@ -1548,7 +1550,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		uint8_t session_id_len;
 		/* uint8_t session_id[]; */
 		uint8_t cipherid_len16_hi, cipherid_len16_lo;
-		uint8_t cipherid[(1 + NUM_CIPHERS) * 2]; /* actually variable */
+		uint8_t cipherid[2 + NUM_CIPHERS*2]; /* actually variable */
 		uint8_t comprtypes_len;
 		uint8_t comprtypes[1]; /* actually variable */
 		/* Extensions (SNI shown):
@@ -1596,7 +1598,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		memset(record->rand32, 0x11, sizeof(record->rand32));
 	/* record->session_id_len = 0; - already is */
 
-	BUILD_BUG_ON(sizeof(ciphers) != 2 + (1 + NUM_CIPHERS) * 2 + 2);
+	BUILD_BUG_ON(sizeof(ciphers) != 2 + 2 + NUM_CIPHERS*2 + 2);
 	memcpy(&record->cipherid_len16_hi, ciphers, sizeof(ciphers));
 
 	ptr = (void*)(record + 1);
@@ -1698,6 +1700,8 @@ static void get_server_hello(tls_state_t *tls)
 		0xC0,0x0A, // 2 TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA - ok: wget https://is.gd/
 		0xC0,0x13, // 3 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-SHA
 		0xC0,0x14, // 4 TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA - ok: openssl s_server ... -cipher ECDHE-RSA-AES256-SHA (might fail with older openssl)
+	//	0xC0,0x18, //   TLS_ECDH_anon_WITH_AES_128_CBC_SHA
+	//	0xC0,0x19, //   TLS_ECDH_anon_WITH_AES_256_CBC_SHA
 #endif
 		0xC0,0x23, // 5 TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 - ok: wget https://is.gd/
 	//	0xC0,0x24, //   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
@@ -1705,6 +1709,7 @@ static void get_server_hello(tls_state_t *tls)
 	//	0xC0,0x28, //   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 - can't do SHA384 yet
 		0xC0,0x2B, // 7 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 - ok: wget https://is.gd/
 	//	0xC0,0x2C, //   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 - wget https://is.gd/: "TLS error from peer (alert code 20): bad MAC"
+//TODO: GCM_SHA384 ciphers can be supported, only need sha384-based PRF?
 		0xC0,0x2F, // 8 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher ECDHE-RSA-AES128-GCM-SHA256
 	//	0xC0,0x30, //   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 - openssl s_server ... -cipher ECDHE-RSA-AES256-GCM-SHA384: "decryption failed or bad record mac"
 	//possibly these too:
@@ -1722,7 +1727,9 @@ static void get_server_hello(tls_state_t *tls)
 		0x00,0x3D, //12 TLS_RSA_WITH_AES_256_CBC_SHA256 - ok: openssl s_server ... -cipher AES256-SHA256
 		0x00,0x9C, //13 TLS_RSA_WITH_AES_128_GCM_SHA256 - ok: openssl s_server ... -cipher AES128-GCM-SHA256
 	//	0x00,0x9D, //   TLS_RSA_WITH_AES_256_GCM_SHA384 - openssl s_server ... -cipher AES256-GCM-SHA384: "decryption failed or bad record mac"
+#if ALLOW_RSA_NULL_SHA256
 		0x00,0x3B, //   TLS_RSA_WITH_NULL_SHA256
+#endif
 #endif
 	cipherid1 = cipherid[1];
 	tls->cipher_id = 0x100 * cipherid[0] + cipherid1;
@@ -1736,7 +1743,7 @@ static void get_server_hello(tls_state_t *tls)
 			/* Odd numbered C0xx use AES128 (even ones use AES256) */
 			tls->key_size = AES128_KEYSIZE;
 		}
-		if (ENABLE_FEATURE_TLS_SHA1 && cipherid1 <= 0x14) {
+		if (ENABLE_FEATURE_TLS_SHA1 && cipherid1 <= 0x19) {
 			tls->MAC_size = SHA1_OUTSIZE;
 		} else
 		if (cipherid1 >= 0x2B && cipherid1 <= 0x30) {
