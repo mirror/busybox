@@ -1467,16 +1467,25 @@ static BcStatus bc_num_ulong(BcNum *n, unsigned long *result_p)
 
 static void bc_num_ulong2num(BcNum *n, unsigned long val)
 {
-	size_t len;
 	BcDig *ptr;
-	unsigned long i;
 
 	bc_num_zero(n);
 
 	if (val == 0) return;
 
-	for (len = 1, i = ULONG_MAX; i != 0; i /= 10, ++len) bc_num_expand(n, len);
-	for (ptr = n->num, i = 0; val; ++i, ++n->len, val /= 10) ptr[i] = val % 10;
+	if (ULONG_MAX == 0xffffffffUL)
+		bc_num_expand(n, 10); // 10 digits: 4294967295
+	if (ULONG_MAX == 0xffffffffffffffffUL)
+		bc_num_expand(n, 20); // 20 digits: 18446744073709551615
+	BUILD_BUG_ON(ULONG_MAX > 0xffffffffffffffffUL);
+
+	ptr = n->num;
+	for (;;) {
+		n->len++;
+		*ptr++ = val % 10;
+		val /= 10;
+		if (val == 0) break;
+	}
 }
 
 static void bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
