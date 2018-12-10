@@ -5737,15 +5737,14 @@ static BcStatus bc_program_print(char inst, size_t idx)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcResult *r;
-	size_t len, i;
-	char *str;
-	BcNum *num = NULL;
+	BcNum *num;
 	bool pop = inst != BC_INST_PRINT;
 
 	if (!BC_PROG_STACK(&G.prog.results, idx + 1))
 		return bc_error_stack_has_too_few_elements();
 
 	r = bc_vec_item_rev(&G.prog.results, idx);
+	num = NULL; // is this NULL necessary?
 	s = bc_program_num(r, &num, false);
 	if (s) return s;
 
@@ -5754,16 +5753,18 @@ static BcStatus bc_program_print(char inst, size_t idx)
 		if (!s) bc_num_copy(&G.prog.last, num);
 	}
 	else {
+		char *str;
 
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : num->rdx;
 		str = *bc_program_str(idx);
 
 		if (inst == BC_INST_PRINT_STR) {
-			for (i = 0, len = strlen(str); i < len; ++i) {
-				char c = str[i];
+			for (;;) {
+				char c = *str++;
+				if (c == '\0') break;
 				bb_putchar(c);
-				if (c == '\n') G.prog.nchars = SIZE_MAX;
 				++G.prog.nchars;
+				if (c == '\n') G.prog.nchars = 0;
 			}
 		}
 		else {
