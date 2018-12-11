@@ -5586,8 +5586,9 @@ static char *bc_program_name(char *code, size_t *bgn)
 static void bc_program_printString(const char *str)
 {
 #if ENABLE_DC
-	// Huh? Example when this happens?
 	if (!str[0]) {
+		// Example: echo '[]ap' | dc
+		// should print two bytes: 0x00, 0x0A
 		bb_putchar('\0');
 		return;
 	}
