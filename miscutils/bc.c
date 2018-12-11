@@ -221,20 +221,6 @@ typedef struct BcNum {
 
 #define BC_NUM_KARATSUBA_LEN    (32)
 
-typedef void (*BcNumDigitOp)(size_t, size_t, bool) FAST_FUNC;
-
-typedef BcStatus (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t) FAST_FUNC;
-
-static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_sqrt(BcNum *a, BcNum *b, size_t scale);
-static BcStatus bc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
-                              size_t scale);
-
 typedef enum BcInst {
 
 #if ENABLE_BC
@@ -931,6 +917,45 @@ dc_parse_insts[] = {
 };
 #endif // ENABLE_DC
 
+// In configurations where errors abort instead of propagating error
+// return code up the call chain, functions returning BC_STATUS
+// actually don't return anything, they always succeed and return "void".
+// A macro wrapper is provided, which makes this statement work:
+//  s = zbc_func(...)
+// and makes it visible to the compiler that s is always zero,
+// allowing compiler to optimize dead code after the statement.
+//
+// To make code more readable, each such function has a "z"
+// ("always returning zero") prefix, i.e. zbc_foo or zdc_foo.
+//
+#if ENABLE_FEATURE_BC_SIGNALS || ENABLE_FEATURE_CLEAN_UP
+# define ERRORFUNC        /*nothing*/
+# define ERROR_RETURN(a)  a
+# define ERRORS_ARE_FATAL 0
+# define BC_STATUS        BcStatus
+# define RETURN_STATUS(v) return (v)
+#else
+# define ERRORFUNC        NORETURN
+# define ERROR_RETURN(a)  /*nothing*/
+# define ERRORS_ARE_FATAL 1
+# define BC_STATUS        void
+# define RETURN_STATUS(v) do { ((void)(v)); return; } while (0)
+#endif
+
+typedef void (*BcNumDigitOp)(size_t, size_t, bool) FAST_FUNC;
+
+typedef BcStatus (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t) FAST_FUNC;
+
+static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus bc_num_sqrt(BcNum *a, BcNum *b, size_t scale);
+static BcStatus bc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
+                              size_t scale);
+
 static const BcNumBinaryOp bc_program_ops[] = {
 	bc_num_pow, bc_num_mul, bc_num_div, bc_num_mod, bc_num_add, bc_num_sub,
 };
@@ -975,31 +1000,6 @@ static void bc_verror_msg(const char *fmt, va_list p)
 		applet_name = sv;
 	}
 }
-
-// In configurations where errors abort instead of propagating error
-// return code up the call chain, functions returning BC_STATUS
-// actually don't return anything, they always succeed and return "void".
-// A macro wrapper is provided, which makes this statement work:
-//  s = zbc_func(...)
-// and makes it visible to the compiler that s is always zero,
-// allowing compiler to optimize dead code after the statement.
-//
-// To make code more readable, each such function has a "z"
-// ("always returning zero") prefix, i.e. zbc_foo or zdc_foo.
-//
-#if ENABLE_FEATURE_BC_SIGNALS || ENABLE_FEATURE_CLEAN_UP
-# define ERRORFUNC        /*nothing*/
-# define ERROR_RETURN(a)  a
-# define ERRORS_ARE_FATAL 0
-# define BC_STATUS        BcStatus
-# define RETURN_STATUS(v) return (v)
-#else
-# define ERRORFUNC        NORETURN
-# define ERROR_RETURN(a)  /*nothing*/
-# define ERRORS_ARE_FATAL 1
-# define BC_STATUS        void
-# define RETURN_STATUS(v) do { ((void)(v)); return; } while (0)
-#endif
 
 static NOINLINE ERRORFUNC int bc_error_fmt(const char *fmt, ...)
 {
