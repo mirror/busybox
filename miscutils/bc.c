@@ -2976,29 +2976,40 @@ static void bc_lex_whitespace(BcLex *l)
 static BC_STATUS zbc_lex_number(BcLex *l, char start)
 {
 	const char *buf = l->buf + l->i;
-	size_t len, hits = 0, bslashes = 0, i = 0, j;
-	char c = buf[i];
-	bool last_pt, pt = start == '.';
+	size_t len, bslashes, i, ccnt;
+	bool pt;
 
-	last_pt = pt;
+	pt = (start == '.');
 	l->t.t = BC_LEX_NUMBER;
-
-	while (c != 0 && (isdigit(c) || (c >= 'A' && c <= 'F') ||
-	                  (c == '.' && !pt) || (c == '\\' && buf[i + 1] == '\n')))
-	{
-		if (c != '\\') {
-			last_pt = c == '.';
-			pt = pt || last_pt;
+	bslashes = 0;
+	ccnt = i = 0;
+	for (;;) {
+		char c = buf[i];
+		if (c == '\0')
+			break;
+		if (c == '\\' && buf[i + 1] == '\n') {
+			i += 2;
+			bslashes++;
+			continue;
 		}
-		else {
-			++i;
-			bslashes += 1;
+		if (!isdigit(c) && (c < 'A' || c > 'F')) {
+			if (c != '.') break;
+			// if '.' was already seen, stop on second one:
+			if (pt) break;
+			pt = 1;
 		}
-
-		c = buf[++i];
+		// buf[i] is one of "0-9A-F."
+		i++;
+		if (c != '.')
+			ccnt = i;
 	}
+	//i is buf[i] index of the first not-yet-parsed char
+	l->i += i;
 
-	len = i + !last_pt - bslashes * 2;
+	//ccnt is the number of chars in the number string, excluding possible
+	//trailing "." and possible following trailing "\<newline>"(s).
+	len = ccnt - bslashes * 2 + 1; // +1 byte for NUL termination
+
 	// This check makes sense only if size_t is (much) larger than BC_MAX_NUM.
 	if (SIZE_MAX > (BC_MAX_NUM | 0xff)) {
 		if (len > BC_MAX_NUM)
@@ -3006,26 +3017,23 @@ static BC_STATUS zbc_lex_number(BcLex *l, char start)
 	}
 
 	bc_vec_pop_all(&l->t.v);
-	bc_vec_expand(&l->t.v, len + 1);
+	bc_vec_expand(&l->t.v, 1 + len);
 	bc_vec_push(&l->t.v, &start);
 
-	for (buf -= 1, j = 1; j < len + hits * 2; ++j) {
-
-		c = buf[j];
-
+	while (ccnt != 0) {
 		// If we have hit a backslash, skip it. We don't have
 		// to check for a newline because it's guaranteed.
-		if (hits < bslashes && c == '\\') {
-			++hits;
-			++j;
+		if (*buf == '\\') {
+			buf += 2;
+			ccnt -= 2;
 			continue;
 		}
-
-		bc_vec_push(&l->t.v, &c);
+		bc_vec_push(&l->t.v, buf);
+		buf++;
+		ccnt--;
 	}
 
 	bc_vec_pushZeroByte(&l->t.v);
-	l->i += i;
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
