@@ -5943,6 +5943,7 @@ static BcStatus bc_program_logical(char inst)
 
 	s = zbc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) return s;
+
 	bc_num_init_DEF_SIZE(&res.d.n);
 
 	if (inst == BC_INST_BOOL_AND)
@@ -5950,50 +5951,31 @@ static BcStatus bc_program_logical(char inst)
 	else if (inst == BC_INST_BOOL_OR)
 		cond = bc_num_cmp(n1, &G.prog.zero) || bc_num_cmp(n2, &G.prog.zero);
 	else {
-
 		cmp = bc_num_cmp(n1, n2);
-
 		switch (inst) {
-
-			case BC_INST_REL_EQ:
-			{
-				cond = cmp == 0;
-				break;
-			}
-
-			case BC_INST_REL_LE:
-			{
-				cond = cmp <= 0;
-				break;
-			}
-
-			case BC_INST_REL_GE:
-			{
-				cond = cmp >= 0;
-				break;
-			}
-
-			case BC_INST_REL_NE:
-			{
-				cond = cmp != 0;
-				break;
-			}
-
-			case BC_INST_REL_LT:
-			{
-				cond = cmp < 0;
-				break;
-			}
-
-			case BC_INST_REL_GT:
-			{
-				cond = cmp > 0;
-				break;
-			}
+		case BC_INST_REL_EQ:
+			cond = cmp == 0;
+			break;
+		case BC_INST_REL_LE:
+			cond = cmp <= 0;
+			break;
+		case BC_INST_REL_GE:
+			cond = cmp >= 0;
+			break;
+		case BC_INST_REL_NE:
+			cond = cmp != 0;
+			break;
+		case BC_INST_REL_LT:
+			cond = cmp < 0;
+			break;
+		case BC_INST_REL_GT:
+			cond = cmp > 0;
+			break;
 		}
 	}
 
-	(cond ? bc_num_one : bc_num_zero)(&res.d.n);
+	if (cond) bc_num_one(&res.d.n);
+	//else bc_num_zero(&res.d.n); - already is
 
 	bc_program_binOpRetire(&res);
 
