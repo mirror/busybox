@@ -5585,87 +5585,55 @@ static char *bc_program_name(char *code, size_t *bgn)
 
 static void bc_program_printString(const char *str)
 {
-	size_t i, len = strlen(str);
-
 #if ENABLE_DC
-	if (len == 0) {
+	// Huh? Example when this happens?
+	if (!str[0]) {
 		bb_putchar('\0');
 		return;
 	}
 #endif
-
-	for (i = 0; i < len; ++i, ++G.prog.nchars) {
-
-		int c = str[i];
-
-		if (c != '\\' || i == len - 1)
+	while (*str) {
+		int c = *str++;
+		if (c != '\\' || !*str)
 			bb_putchar(c);
 		else {
-
-			c = str[++i];
-
+			c = *str++;
 			switch (c) {
-
-				case 'a':
-				{
-					bb_putchar('\a');
-					break;
-				}
-
-				case 'b':
-				{
-					bb_putchar('\b');
-					break;
-				}
-
-				case '\\':
-				case 'e':
-				{
-					bb_putchar('\\');
-					break;
-				}
-
-				case 'f':
-				{
-					bb_putchar('\f');
-					break;
-				}
-
-				case 'n':
-				{
-					bb_putchar('\n');
-					G.prog.nchars = SIZE_MAX;
-					break;
-				}
-
-				case 'r':
-				{
-					bb_putchar('\r');
-					break;
-				}
-
-				case 'q':
-				{
-					bb_putchar('"');
-					break;
-				}
-
-				case 't':
-				{
-					bb_putchar('\t');
-					break;
-				}
-
-				default:
-				{
-					// Just print the backslash and following character.
-					bb_putchar('\\');
-					++G.prog.nchars;
-					bb_putchar(c);
-					break;
-				}
+			case 'a':
+				bb_putchar('\a');
+				break;
+			case 'b':
+				bb_putchar('\b');
+				break;
+			case '\\':
+			case 'e':
+				bb_putchar('\\');
+				break;
+			case 'f':
+				bb_putchar('\f');
+				break;
+			case 'n':
+				bb_putchar('\n');
+				G.prog.nchars = SIZE_MAX;
+				break;
+			case 'r':
+				bb_putchar('\r');
+				break;
+			case 'q':
+				bb_putchar('"');
+				break;
+			case 't':
+				bb_putchar('\t');
+				break;
+			default:
+				// Just print the backslash and following character.
+				bb_putchar('\\');
+				++G.prog.nchars;
+				bb_putchar(c);
+				break;
 			}
 		}
+		++G.prog.nchars;
 	}
 }
 
