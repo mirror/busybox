@@ -5472,14 +5472,14 @@ static void bc_program_retire(BcResult *r, BcResultType t)
 	bc_vec_push(&G.prog.results, r);
 }
 
-static BcStatus bc_program_op(char inst)
+static BC_STATUS zbc_program_op(char inst)
 {
 	BcStatus s;
 	BcResult *opd1, *opd2, res;
 	BcNum *n1, *n2 = NULL;
 
 	s = zbc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
-	if (s) return s;
+	if (s) RETURN_STATUS(s);
 	bc_num_init_DEF_SIZE(&res.d.n);
 
 	s = BC_STATUS_SUCCESS;
@@ -5490,12 +5490,15 @@ static BcStatus bc_program_op(char inst)
 	if (s) goto err;
 	bc_program_binOpRetire(&res);
 
-	return s;
+	RETURN_STATUS(s);
 
 err:
 	bc_num_free(&res.d.n);
-	return s;
+	RETURN_STATUS(s);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_program_op(...) (zbc_program_op(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_program_read(void)
 {
@@ -6089,7 +6092,7 @@ static BC_STATUS zbc_program_assign(char inst)
 #endif
 
 	if (left->t == BC_RESULT_CONSTANT || left->t == BC_RESULT_TEMP)
-		RETURN_STATUS(("bad assignment:"
+		RETURN_STATUS(bc_error("bad assignment:"
 				" left side must be scale,"
 				" ibase, obase, last, var,"
 				" or array element"
@@ -6943,7 +6946,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_MODULUS:
 			case BC_INST_PLUS:
 			case BC_INST_MINUS:
-				s = bc_program_op(inst);
+				s = zbc_program_op(inst);
 				break;
 			case BC_INST_BOOL_NOT:
 				s = zbc_program_prep(&ptr, &num);
