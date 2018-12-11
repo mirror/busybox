@@ -946,18 +946,17 @@ typedef void (*BcNumDigitOp)(size_t, size_t, bool) FAST_FUNC;
 
 typedef BcStatus (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t) FAST_FUNC;
 
-static BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
-static BcStatus bc_num_sqrt(BcNum *a, BcNum *b, size_t scale);
-static BcStatus bc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
+static BcStatus zbc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus zbc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus zbc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus zbc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus zbc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus zbc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale) FAST_FUNC;
+static BcStatus zbc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
                               size_t scale);
 
-static const BcNumBinaryOp bc_program_ops[] = {
-	bc_num_pow, bc_num_mul, bc_num_div, bc_num_mod, bc_num_add, bc_num_sub,
+static const BcNumBinaryOp zbc_program_ops[] = {
+	zbc_num_pow, zbc_num_mul, zbc_num_div, zbc_num_mod, zbc_num_add, zbc_num_sub,
 };
 
 static void fflush_and_check(void)
@@ -1693,7 +1692,7 @@ static BC_STATUS zbc_num_shift(BcNum *n, size_t places)
 # define zbc_num_shift(...) (zbc_num_shift(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_num_inv(BcNum *a, BcNum *b, size_t scale)
+static BcStatus zbc_num_inv(BcNum *a, BcNum *b, size_t scale)
 {
 	BcNum one;
 	BcDig num[2];
@@ -1702,10 +1701,10 @@ static BcStatus bc_num_inv(BcNum *a, BcNum *b, size_t scale)
 	one.num = num;
 	bc_num_one(&one);
 
-	return bc_num_div(&one, a, b, scale);
+	return zbc_num_div(&one, a, b, scale);
 }
 
-static FAST_FUNC BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
+static FAST_FUNC BcStatus zbc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 {
 	BcDig *ptr, *ptr_a, *ptr_b, *ptr_c;
 	size_t i, max, min_rdx, min_int, diff, a_int, b_int;
@@ -1773,10 +1772,10 @@ static FAST_FUNC BcStatus bc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 
 	if (carry != 0) c->num[c->len++] = (BcDig) carry;
 
-	return BC_STATUS_SUCCESS; // can't make void, see bc_num_binary()
+	return BC_STATUS_SUCCESS; // can't make void, see zbc_num_binary()
 }
 
-static FAST_FUNC BcStatus bc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
+static FAST_FUNC BcStatus zbc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 {
 	ssize_t cmp;
 	BcNum *minuend, *subtrahend;
@@ -1835,10 +1834,10 @@ static FAST_FUNC BcStatus bc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 
 	bc_num_clean(c);
 
-	return BC_STATUS_SUCCESS; // can't make void, see bc_num_binary()
+	return BC_STATUS_SUCCESS; // can't make void, see zbc_num_binary()
 }
 
-static FAST_FUNC BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
+static FAST_FUNC BcStatus zbc_num_k(BcNum *restrict a, BcNum *restrict b,
                          BcNum *restrict c)
 {
 	BcStatus s;
@@ -1905,30 +1904,30 @@ static FAST_FUNC BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 	bc_num_split(a, max2, &l1, &h1);
 	bc_num_split(b, max2, &l2, &h2);
 
-	s = bc_num_add(&h1, &l1, &m1, 0);
+	s = zbc_num_add(&h1, &l1, &m1, 0);
 	if (s) goto err;
-	s = bc_num_add(&h2, &l2, &m2, 0);
-	if (s) goto err;
-
-	s = bc_num_k(&h1, &h2, &z0);
-	if (s) goto err;
-	s = bc_num_k(&m1, &m2, &z1);
-	if (s) goto err;
-	s = bc_num_k(&l1, &l2, &z2);
+	s = zbc_num_add(&h2, &l2, &m2, 0);
 	if (s) goto err;
 
-	s = bc_num_sub(&z1, &z0, &temp, 0);
+	s = zbc_num_k(&h1, &h2, &z0);
 	if (s) goto err;
-	s = bc_num_sub(&temp, &z2, &z1, 0);
+	s = zbc_num_k(&m1, &m2, &z1);
+	if (s) goto err;
+	s = zbc_num_k(&l1, &l2, &z2);
+	if (s) goto err;
+
+	s = zbc_num_sub(&z1, &z0, &temp, 0);
+	if (s) goto err;
+	s = zbc_num_sub(&temp, &z2, &z1, 0);
 	if (s) goto err;
 
 	s = zbc_num_shift(&z0, max2 * 2);
 	if (s) goto err;
 	s = zbc_num_shift(&z1, max2);
 	if (s) goto err;
-	s = bc_num_add(&z0, &z1, &temp, 0);
+	s = zbc_num_add(&z0, &z1, &temp, 0);
 	if (s) goto err;
-	s = bc_num_add(&temp, &z2, c, 0);
+	s = zbc_num_add(&temp, &z2, c, 0);
 
 err:
 	bc_num_free(&temp);
@@ -1944,7 +1943,7 @@ err:
 	return s;
 }
 
-static FAST_FUNC BcStatus bc_num_m(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_m(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
 	BcStatus s;
 	BcNum cpa, cpb;
@@ -1966,7 +1965,7 @@ static FAST_FUNC BcStatus bc_num_m(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 	if (s) goto err;
 	s = zbc_num_shift(&cpb, maxrdx);
 	if (s) goto err;
-	s = bc_num_k(&cpa, &cpb, c);
+	s = zbc_num_k(&cpa, &cpb, c);
 	if (s) goto err;
 
 	maxrdx += scale;
@@ -1986,7 +1985,7 @@ err:
 	return s;
 }
 
-static FAST_FUNC BcStatus bc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcDig *n, *p, q;
@@ -2058,7 +2057,7 @@ static FAST_FUNC BcStatus bc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 	return s;
 }
 
-static FAST_FUNC BcStatus bc_num_r(BcNum *a, BcNum *b, BcNum *restrict c,
+static FAST_FUNC BcStatus zbc_num_r(BcNum *a, BcNum *b, BcNum *restrict c,
                          BcNum *restrict d, size_t scale, size_t ts)
 {
 	BcStatus s;
@@ -2074,14 +2073,14 @@ static FAST_FUNC BcStatus bc_num_r(BcNum *a, BcNum *b, BcNum *restrict c,
 	}
 
 	bc_num_init(&temp, d->cap);
-	s = bc_num_d(a, b, c, scale);
+	s = zbc_num_d(a, b, c, scale);
 	if (s) goto err;
 
 	if (scale != 0) scale = ts;
 
-	s = bc_num_m(c, b, &temp, scale);
+	s = zbc_num_m(c, b, &temp, scale);
 	if (s) goto err;
-	s = bc_num_sub(a, &temp, d, scale);
+	s = zbc_num_sub(a, &temp, d, scale);
 	if (s) goto err;
 
 	if (ts > d->rdx && d->len) bc_num_extend(d, ts - d->rdx);
@@ -2095,20 +2094,20 @@ err:
 	return s;
 }
 
-static FAST_FUNC BcStatus bc_num_rem(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_rem(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
 	BcStatus s;
 	BcNum c1;
 	size_t ts = BC_MAX(scale + b->rdx, a->rdx), len = BC_NUM_MREQ(a, b, ts);
 
 	bc_num_init(&c1, len);
-	s = bc_num_r(a, b, &c1, c, scale, ts);
+	s = zbc_num_r(a, b, &c1, c, scale, ts);
 	bc_num_free(&c1);
 
 	return s;
 }
 
-static FAST_FUNC BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcNum copy;
@@ -2130,7 +2129,7 @@ static FAST_FUNC BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 		if (!b->neg)
 			bc_num_copy(c, a);
 		else
-			s = bc_num_inv(a, c, scale);
+			s = zbc_num_inv(a, c, scale);
 		return s;
 	}
 
@@ -2154,9 +2153,9 @@ static FAST_FUNC BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 
 	for (powrdx = a->rdx; !(pow & 1); pow >>= 1) {
 		powrdx <<= 1;
-		s = bc_num_mul(&copy, &copy, &copy, powrdx);
+		s = zbc_num_mul(&copy, &copy, &copy, powrdx);
 		if (s) goto err;
-		// Not needed: bc_num_mul() has a check for ^C:
+		// Not needed: zbc_num_mul() has a check for ^C:
 		//if (G_interrupt) {
 		//	s = BC_STATUS_FAILURE;
 		//	goto err;
@@ -2168,15 +2167,15 @@ static FAST_FUNC BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 	for (resrdx = powrdx, pow >>= 1; pow != 0; pow >>= 1) {
 
 		powrdx <<= 1;
-		s = bc_num_mul(&copy, &copy, &copy, powrdx);
+		s = zbc_num_mul(&copy, &copy, &copy, powrdx);
 		if (s) goto err;
 
 		if (pow & 1) {
 			resrdx += powrdx;
-			s = bc_num_mul(c, &copy, c, resrdx);
+			s = zbc_num_mul(c, &copy, c, resrdx);
 			if (s) goto err;
 		}
-		// Not needed: bc_num_mul() has a check for ^C:
+		// Not needed: zbc_num_mul() has a check for ^C:
 		//if (G_interrupt) {
 		//	s = BC_STATUS_FAILURE;
 		//	goto err;
@@ -2184,7 +2183,7 @@ static FAST_FUNC BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 	}
 
 	if (neg) {
-		s = bc_num_inv(c, c, scale);
+		s = zbc_num_inv(c, c, scale);
 		if (s) goto err;
 	}
 
@@ -2199,7 +2198,7 @@ err:
 	return s;
 }
 
-static BcStatus bc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
+static BcStatus zbc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
                               BcNumBinaryOp op, size_t req)
 {
 	BcStatus s;
@@ -2322,11 +2321,11 @@ static BC_STATUS zbc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigi
 	bc_num_one(&frac_len);
 
 	bc_num_truncate(&intp, intp.rdx);
-	s = bc_num_sub(n, &intp, &fracp, 0);
+	s = zbc_num_sub(n, &intp, &fracp, 0);
 	if (s) goto err;
 
 	while (intp.len != 0) {
-		s = bc_num_divmod(&intp, base, &intp, &digit, 0);
+		s = zbc_num_divmod(&intp, base, &intp, &digit, 0);
 		if (s) goto err;
 		s = zbc_num_ulong(&digit, &dig);
 		if (s) goto err;
@@ -2341,15 +2340,15 @@ static BC_STATUS zbc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigi
 	if (!n->rdx) goto err;
 
 	for (radix = true; frac_len.len <= n->rdx; radix = false) {
-		s = bc_num_mul(&fracp, base, &fracp, n->rdx);
+		s = zbc_num_mul(&fracp, base, &fracp, n->rdx);
 		if (s) goto err;
 		s = zbc_num_ulong(&fracp, &dig);
 		if (s) goto err;
 		bc_num_ulong2num(&intp, dig);
-		s = bc_num_sub(&fracp, &intp, &fracp, 0);
+		s = zbc_num_sub(&fracp, &intp, &fracp, 0);
 		if (s) goto err;
 		print(dig, width, radix);
-		s = bc_num_mul(&frac_len, base, &frac_len, 0);
+		s = zbc_num_mul(&frac_len, base, &frac_len, 0);
 		if (s) goto err;
 	}
 
@@ -2493,10 +2492,10 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 
 		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
 
-		s = bc_num_mul(n, base, &mult, 0);
+		s = zbc_num_mul(n, base, &mult, 0);
 		if (s) goto int_err;
 		bc_num_ulong2num(&temp, v);
-		s = bc_num_add(&mult, &temp, n, 0);
+		s = zbc_num_add(&mult, &temp, n, 0);
 		if (s) goto int_err;
 	}
 
@@ -2512,18 +2511,18 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 
 		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
 
-		s = bc_num_mul(&result, base, &result, 0);
+		s = zbc_num_mul(&result, base, &result, 0);
 		if (s) goto err;
 		bc_num_ulong2num(&temp, v);
-		s = bc_num_add(&result, &temp, &result, 0);
+		s = zbc_num_add(&result, &temp, &result, 0);
 		if (s) goto err;
-		s = bc_num_mul(&mult, base, &mult, 0);
+		s = zbc_num_mul(&mult, base, &mult, 0);
 		if (s) goto err;
 	}
 
-	s = bc_num_div(&result, &mult, &result, digits);
+	s = zbc_num_div(&result, &mult, &result, digits);
 	if (s) goto err;
-	s = bc_num_add(n, &result, n, digits);
+	s = zbc_num_add(n, &result, n, digits);
 	if (s) goto err;
 
 	if (n->len != 0) {
@@ -2584,44 +2583,44 @@ static BC_STATUS zbc_num_print(BcNum *n, bool newline)
 # define zbc_num_print(...) (zbc_num_print(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static FAST_FUNC BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
-	BcNumBinaryOp op = (!a->neg == !b->neg) ? bc_num_a : bc_num_s;
+	BcNumBinaryOp op = (!a->neg == !b->neg) ? zbc_num_a : zbc_num_s;
 	(void) scale;
-	return bc_num_binary(a, b, c, false, op, BC_NUM_AREQ(a, b));
+	return zbc_num_binary(a, b, c, false, op, BC_NUM_AREQ(a, b));
 }
 
-static FAST_FUNC BcStatus bc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
-	BcNumBinaryOp op = (!a->neg == !b->neg) ? bc_num_s : bc_num_a;
+	BcNumBinaryOp op = (!a->neg == !b->neg) ? zbc_num_s : zbc_num_a;
 	(void) scale;
-	return bc_num_binary(a, b, c, true, op, BC_NUM_AREQ(a, b));
+	return zbc_num_binary(a, b, c, true, op, BC_NUM_AREQ(a, b));
 }
 
-static FAST_FUNC BcStatus bc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
 	size_t req = BC_NUM_MREQ(a, b, scale);
-	return bc_num_binary(a, b, c, scale, bc_num_m, req);
+	return zbc_num_binary(a, b, c, scale, zbc_num_m, req);
 }
 
-static FAST_FUNC BcStatus bc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
 	size_t req = BC_NUM_MREQ(a, b, scale);
-	return bc_num_binary(a, b, c, scale, bc_num_d, req);
+	return zbc_num_binary(a, b, c, scale, zbc_num_d, req);
 }
 
-static FAST_FUNC BcStatus bc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
 	size_t req = BC_NUM_MREQ(a, b, scale);
-	return bc_num_binary(a, b, c, scale, bc_num_rem, req);
+	return zbc_num_binary(a, b, c, scale, zbc_num_rem, req);
 }
 
-static FAST_FUNC BcStatus bc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+static FAST_FUNC BcStatus zbc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale)
 {
-	return bc_num_binary(a, b, c, scale, bc_num_p, a->len * b->len + 1);
+	return zbc_num_binary(a, b, c, scale, zbc_num_p, a->len * b->len + 1);
 }
 
-static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
+static BcStatus zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 {
 	BcStatus s;
 	BcNum num1, num2, half, f, fprime, *x0, *x1, *temp;
@@ -2684,11 +2683,11 @@ static BcStatus bc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 
 	while (cmp != 0 || digs < len) {
 
-		s = bc_num_div(a, x0, &f, resrdx);
+		s = zbc_num_div(a, x0, &f, resrdx);
 		if (s) goto err;
-		s = bc_num_add(x0, &f, &fprime, resrdx);
+		s = zbc_num_add(x0, &f, &fprime, resrdx);
 		if (s) goto err;
-		s = bc_num_mul(&fprime, &half, x1, resrdx);
+		s = zbc_num_mul(&fprime, &half, x1, resrdx);
 		if (s) goto err;
 
 		cmp = bc_num_cmp(x1, x0);
@@ -2723,7 +2722,7 @@ err:
 	return s;
 }
 
-static BcStatus bc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
+static BcStatus zbc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
                               size_t scale)
 {
 	BcStatus s;
@@ -2742,7 +2741,7 @@ static BcStatus bc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
 		bc_num_expand(c, len);
 	}
 
-	s = bc_num_r(ptr_a, b, c, d, scale, ts);
+	s = zbc_num_r(ptr_a, b, c, d, scale, ts);
 
 	if (init) bc_num_free(&num2);
 
@@ -2750,7 +2749,7 @@ static BcStatus bc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
 }
 
 #if ENABLE_DC
-static BcStatus bc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
+static BcStatus zbc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 {
 	BcStatus s;
 	BcNum base, exp, two, temp;
@@ -2772,25 +2771,25 @@ static BcStatus bc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 	two.num[0] = 2;
 	bc_num_one(d);
 
-	s = bc_num_rem(a, c, &base, 0);
+	s = zbc_num_rem(a, c, &base, 0);
 	if (s) goto err;
 	bc_num_copy(&exp, b);
 
 	while (exp.len != 0) {
 
-		s = bc_num_divmod(&exp, &two, &exp, &temp, 0);
+		s = zbc_num_divmod(&exp, &two, &exp, &temp, 0);
 		if (s) goto err;
 
 		if (BC_NUM_ONE(&temp)) {
-			s = bc_num_mul(d, &base, &temp, 0);
+			s = zbc_num_mul(d, &base, &temp, 0);
 			if (s) goto err;
-			s = bc_num_rem(&temp, c, d, 0);
+			s = zbc_num_rem(&temp, c, d, 0);
 			if (s) goto err;
 		}
 
-		s = bc_num_mul(&base, &base, &temp, 0);
+		s = zbc_num_mul(&base, &base, &temp, 0);
 		if (s) goto err;
-		s = bc_num_rem(&temp, c, &base, 0);
+		s = zbc_num_rem(&temp, c, &base, 0);
 		if (s) goto err;
 	}
 
@@ -5631,7 +5630,7 @@ static BcStatus bc_program_op(char inst)
 	if (s) return s;
 	bc_num_init_DEF_SIZE(&res.d.n);
 
-	s = bc_program_ops[inst - BC_INST_POWER](n1, n2, &res.d.n, G.prog.scale);
+	s = zbc_program_ops[inst - BC_INST_POWER](n1, n2, &res.d.n, G.prog.scale);
 	if (s) goto err;
 	bc_program_binOpRetire(&res);
 
@@ -6064,7 +6063,7 @@ static BcStatus bc_program_assign(char inst)
 	if (assign)
 		bc_num_copy(l, r);
 	else
-		s = bc_program_ops[inst - BC_INST_ASSIGN_POWER](l, r, l, G.prog.scale);
+		s = zbc_program_ops[inst - BC_INST_ASSIGN_POWER](l, r, l, G.prog.scale);
 
 	if (s) return s;
 #else
@@ -6392,7 +6391,7 @@ static BcStatus bc_program_builtin(char inst)
 
 	bc_num_init_DEF_SIZE(&res.d.n);
 
-	if (inst == BC_INST_SQRT) s = bc_num_sqrt(num, &res.d.n, G.prog.scale);
+	if (inst == BC_INST_SQRT) s = zbc_num_sqrt(num, &res.d.n, G.prog.scale);
 #if ENABLE_BC
 	else if (len != 0 && opnd->t == BC_RESULT_ARRAY) {
 		bc_num_ulong2num(&res.d.n, (unsigned long) ((BcVec *) num)->len);
@@ -6430,7 +6429,7 @@ static BcStatus bc_program_divmod(void)
 	bc_num_init_DEF_SIZE(&res.d.n);
 	bc_num_init(&res2.d.n, n2->len);
 
-	s = bc_num_divmod(n1, n2, &res2.d.n, &res.d.n, G.prog.scale);
+	s = zbc_num_divmod(n1, n2, &res2.d.n, &res.d.n, G.prog.scale);
 	if (s) goto err;
 
 	bc_program_binOpRetire(&res2);
@@ -6477,7 +6476,7 @@ static BcStatus bc_program_modexp(void)
 	}
 
 	bc_num_init(&res.d.n, n3->len);
-	s = bc_num_modexp(n1, n2, n3, &res.d.n);
+	s = zbc_num_modexp(n1, n2, n3, &res.d.n);
 	if (s) goto err;
 
 	bc_vec_pop(&G.prog.results);
@@ -6525,7 +6524,7 @@ static BcStatus bc_program_asciify(void)
 		bc_num_copy(&n, num);
 		bc_num_truncate(&n, n.rdx);
 
-		s = bc_num_mod(&n, &G.prog.strmb, &n, 0);
+		s = zbc_num_mod(&n, &G.prog.strmb, &n, 0);
 		if (s) goto num_err;
 		s = zbc_num_ulong(&n, &val);
 		if (s) goto num_err;
