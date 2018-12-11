@@ -1358,6 +1358,8 @@ static int push_input_byte(BcVec *vec, char c)
 }
 
 // This is not a "z" function: can also return BC_STATUS_EOF
+// Can return success (0) or BC_STATUS_EOF.
+// Exits with error message if read error is detected.
 static BcStatus bc_read_line(BcVec *vec)
 {
 	BcStatus s;
@@ -5523,7 +5525,7 @@ static BcStatus bc_program_read(void)
 	G.prog.file = NULL;
 
 	s = bc_read_line(&buf);
-	if (s) goto io_err;
+	//if (s) goto io_err; - wrong, nonzero return means EOF, not error
 
 	common_parse_init(&parse, BC_PROG_READ);
 	bc_lex_file(&parse.l);
@@ -5549,9 +5551,9 @@ static BcStatus bc_program_read(void)
 	bc_vec_push(&G.prog.stack, &ip);
 
 exec_err:
-	G.prog.file = sv_file;
 	bc_parse_free(&parse);
-io_err:
+//io_err:
+	G.prog.file = sv_file;
 	bc_vec_free(&buf);
 	return s;
 }
@@ -7171,8 +7173,8 @@ static BcStatus bc_vm_stdin(void)
 {
 	BcStatus s;
 	BcVec buf, buffer;
-	size_t len, i, str = 0;
-	bool comment = false;
+	size_t str;
+	bool comment;
 
 	G.prog.file = NULL;
 	bc_lex_file(&G.prs.l);
@@ -7185,12 +7187,13 @@ static BcStatus bc_vm_stdin(void)
 	// with a backslash to the parser. The reason for that is because the parser
 	// treats a backslash+newline combo as whitespace, per the bc spec. In that
 	// case, and for strings and comments, the parser will expect more stuff.
+	comment = false;
+	str = 0;
 	while ((s = bc_read_line(&buf)) == BC_STATUS_SUCCESS) {
-
+		size_t len;
 		char *string = buf.v;
 
 		len = buf.len - 1;
-
 		if (len == 1) {
 			if (str && buf.v[0] == G.send)
 				str -= 1;
@@ -7198,9 +7201,8 @@ static BcStatus bc_vm_stdin(void)
 				str += 1;
 		}
 		else if (len > 1 || comment) {
-
+			size_t i;
 			for (i = 0; i < len; ++i) {
-
 				bool notend = len > i + 1;
 				char c = string[i];
 
