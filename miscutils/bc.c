@@ -2994,7 +2994,7 @@ static BcStatus bc_lex_identifier(BcLex *l)
 		l->t.t = BC_LEX_KEY_1st_keyword + i;
 		if (!bc_lex_kws_POSIX(i)) {
 			s = bc_posix_error_fmt("%sthe '%.8s' keyword", "POSIX does not allow ", bc_lex_kws[i].name8);
-			if (s) return s;
+			ERROR_RETURN(if (s) return s;)
 		}
 
 		// We minus 1 because the index has already been incremented.
@@ -3096,123 +3096,75 @@ static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 
 	// This is the workhorse of the lexer.
 	switch (c) {
-
 		case '\0':
 		case '\n':
-		{
 			l->newline = true;
 			l->t.t = !c ? BC_LEX_EOF : BC_LEX_NLINE;
 			break;
-		}
-
 		case '\t':
 		case '\v':
 		case '\f':
 		case '\r':
 		case ' ':
-		{
 			bc_lex_whitespace(l);
 			break;
-		}
-
 		case '!':
-		{
 			bc_lex_assign(l, BC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
-
 			if (l->t.t == BC_LEX_OP_BOOL_NOT) {
 				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("!");
-				if (s) return s;
+				ERROR_RETURN(if (s) return s;)
 			}
-
 			break;
-		}
-
 		case '"':
-		{
 			s = bc_lex_string(l);
 			break;
-		}
-
 		case '#':
-		{
 			s = bc_POSIX_does_not_allow("'#' script comments");
-			if (s) return s;
-
+			ERROR_RETURN(if (s) return s;)
 			bc_lex_lineComment(l);
-
 			break;
-		}
-
 		case '%':
-		{
 			bc_lex_assign(l, BC_LEX_OP_ASSIGN_MODULUS, BC_LEX_OP_MODULUS);
 			break;
-		}
-
 		case '&':
-		{
 			c2 = l->buf[l->i];
 			if (c2 == '&') {
-
 				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("&&");
-				if (s) return s;
-
+				ERROR_RETURN(if (s) return s;)
 				++l->i;
 				l->t.t = BC_LEX_OP_BOOL_AND;
-			}
-			else {
+			} else {
 				l->t.t = BC_LEX_INVALID;
 				s = bc_error_bad_character('&');
 			}
-
 			break;
-		}
-
 		case '(':
 		case ')':
-		{
 			l->t.t = (BcLexType)(c - '(' + BC_LEX_LPAREN);
 			break;
-		}
-
 		case '*':
-		{
 			bc_lex_assign(l, BC_LEX_OP_ASSIGN_MULTIPLY, BC_LEX_OP_MULTIPLY);
 			break;
-		}
-
 		case '+':
-		{
 			c2 = l->buf[l->i];
 			if (c2 == '+') {
 				++l->i;
 				l->t.t = BC_LEX_OP_INC;
-			}
-			else
+			} else
 				bc_lex_assign(l, BC_LEX_OP_ASSIGN_PLUS, BC_LEX_OP_PLUS);
 			break;
-		}
-
 		case ',':
-		{
 			l->t.t = BC_LEX_COMMA;
 			break;
-		}
-
 		case '-':
-		{
 			c2 = l->buf[l->i];
 			if (c2 == '-') {
 				++l->i;
 				l->t.t = BC_LEX_OP_DEC;
-			}
-			else
+			} else
 				bc_lex_assign(l, BC_LEX_OP_ASSIGN_MINUS, BC_LEX_OP_MINUS);
 			break;
-		}
-
 		case '.':
-		{
 			if (isdigit(l->buf[l->i]))
 				s = zbc_lex_number(l, c);
 			else {
@@ -3220,18 +3172,13 @@ static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 				s = bc_POSIX_does_not_allow("a period ('.') as a shortcut for the last result");
 			}
 			break;
-		}
-
 		case '/':
-		{
 			c2 = l->buf[l->i];
 			if (c2 == '*')
 				s = zbc_lex_comment(l);
 			else
 				bc_lex_assign(l, BC_LEX_OP_ASSIGN_DIVIDE, BC_LEX_OP_DIVIDE);
 			break;
-		}
-
 		case '0':
 		case '1':
 		case '2':
@@ -3248,59 +3195,34 @@ static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 		case 'D':
 		case 'E':
 		case 'F':
-		{
 			s = zbc_lex_number(l, c);
 			break;
-		}
-
 		case ';':
-		{
 			l->t.t = BC_LEX_SCOLON;
 			break;
-		}
-
 		case '<':
-		{
 			bc_lex_assign(l, BC_LEX_OP_REL_LE, BC_LEX_OP_REL_LT);
 			break;
-		}
-
 		case '=':
-		{
 			bc_lex_assign(l, BC_LEX_OP_REL_EQ, BC_LEX_OP_ASSIGN);
 			break;
-		}
-
 		case '>':
-		{
 			bc_lex_assign(l, BC_LEX_OP_REL_GE, BC_LEX_OP_REL_GT);
 			break;
-		}
-
 		case '[':
 		case ']':
-		{
 			l->t.t = (BcLexType)(c - '[' + BC_LEX_LBRACKET);
 			break;
-		}
-
 		case '\\':
-		{
 			if (l->buf[l->i] == '\n') {
 				l->t.t = BC_LEX_WHITESPACE;
 				++l->i;
-			}
-			else
+			} else
 				s = bc_error_bad_character(c);
 			break;
-		}
-
 		case '^':
-		{
 			bc_lex_assign(l, BC_LEX_OP_ASSIGN_POWER, BC_LEX_OP_POWER);
 			break;
-		}
-
 		case 'a':
 		case 'b':
 		case 'c':
@@ -3327,43 +3249,28 @@ static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 		case 'x':
 		case 'y':
 		case 'z':
-		{
 			s = bc_lex_identifier(l);
 			break;
-		}
-
 		case '{':
 		case '}':
-		{
 			l->t.t = (BcLexType)(c - '{' + BC_LEX_LBRACE);
 			break;
-		}
-
 		case '|':
-		{
 			c2 = l->buf[l->i];
-
 			if (c2 == '|') {
 				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("||");
-				if (s) return s;
-
+				ERROR_RETURN(if (s) return s;)
 				++l->i;
 				l->t.t = BC_LEX_OP_BOOL_OR;
-			}
-			else {
+			} else {
 				l->t.t = BC_LEX_INVALID;
 				s = bc_error_bad_character(c);
 			}
-
 			break;
-		}
-
 		default:
-		{
 			l->t.t = BC_LEX_INVALID;
 			s = bc_error_bad_character(c);
 			break;
-		}
 	}
 
 	return s;
@@ -3443,37 +3350,28 @@ static FAST_FUNC BcStatus dc_lex_token(BcLex *l)
 			return zdc_lex_register(l);
 	}
 
-	if (c >= '%' && c <= '~' &&
-	    (l->t.t = dc_lex_tokens[(c - '%')]) != BC_LEX_INVALID)
-	{
+	if (c >= '%' && c <= '~'
+	 && (l->t.t = dc_lex_tokens[(c - '%')]) != BC_LEX_INVALID
+	) {
 		return s;
 	}
 
 	// This is the workhorse of the lexer.
 	switch (c) {
-
 		case '\0':
-		{
 			l->t.t = BC_LEX_EOF;
 			break;
-		}
-
 		case '\n':
 		case '\t':
 		case '\v':
 		case '\f':
 		case '\r':
 		case ' ':
-		{
 			l->newline = (c == '\n');
 			bc_lex_whitespace(l);
 			break;
-		}
-
 		case '!':
-		{
 			c2 = l->buf[l->i];
-
 			if (c2 == '=')
 				l->t.t = BC_LEX_OP_REL_NE;
 			else if (c2 == '<')
@@ -3482,26 +3380,17 @@ static FAST_FUNC BcStatus dc_lex_token(BcLex *l)
 				l->t.t = BC_LEX_OP_REL_GE;
 			else
 				return bc_error_bad_character(c);
-
 			++l->i;
 			break;
-		}
-
 		case '#':
-		{
 			bc_lex_lineComment(l);
 			break;
-		}
-
 		case '.':
-		{
 			if (isdigit(l->buf[l->i]))
 				s = zbc_lex_number(l, c);
 			else
 				s = bc_error_bad_character(c);
 			break;
-		}
-
 		case '0':
 		case '1':
 		case '2':
@@ -3518,23 +3407,15 @@ static FAST_FUNC BcStatus dc_lex_token(BcLex *l)
 		case 'D':
 		case 'E':
 		case 'F':
-		{
 			s = zbc_lex_number(l, c);
 			break;
-		}
-
 		case '[':
-		{
 			s = zdc_lex_string(l);
 			break;
-		}
-
 		default:
-		{
 			l->t.t = BC_LEX_INVALID;
 			s = bc_error_bad_character(c);
 			break;
-		}
 	}
 
 	return s;
@@ -4112,7 +3993,7 @@ static BcStatus bc_parse_return(BcParse *p)
 
 		if (!paren || p->l.t.last != BC_LEX_RPAREN) {
 			s = bc_POSIX_requires("parentheses around return expressions");
-			if (s) return s;
+			ERROR_RETURN(if (s) return s;)
 		}
 
 		bc_parse_push(p, BC_INST_RET);
@@ -5013,11 +4894,11 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 
 	if (!(flags & BC_PARSE_REL) && nrelops) {
 		s = bc_POSIX_does_not_allow("comparison operators outside if or loops");
-		if (s) return s;
+		ERROR_RETURN(if (s) return s;)
 	}
 	else if ((flags & BC_PARSE_REL) && nrelops > 1) {
 		s = bc_POSIX_requires("exactly one comparison operator per condition");
-		if (s) return s;
+		ERROR_RETURN(if (s) return s;)
 	}
 
 	if (flags & BC_PARSE_PRINT) {
