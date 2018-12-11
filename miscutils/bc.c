@@ -186,7 +186,7 @@
 typedef enum BcStatus {
 	BC_STATUS_SUCCESS = 0,
 	BC_STATUS_FAILURE = 1,
-	BC_STATUS_PARSE_EMPTY_EXP = 2, // bc_parse_expr() uses this
+	BC_STATUS_PARSE_EMPTY_EXP = 2, // bc_parse_expr_empty_ok() uses this
 	BC_STATUS_EOF = 3, // bc_vm_stdin() uses this
 } BcStatus;
 
@@ -1299,6 +1299,7 @@ static int push_input_byte(BcVec *vec, char c)
 	return 0;
 }
 
+// This is not a "z" function: can also return BC_STATUS_EOF
 static BcStatus bc_read_line(BcVec *vec)
 {
 	BcStatus s;
@@ -4906,6 +4907,7 @@ static FAST_FUNC BcStatus bc_parse_parse(BcParse *p)
 	return s;
 }
 
+// This is not a "z" function: can also return BC_STATUS_PARSE_EMPTY_EXP
 static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext next)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
@@ -6109,10 +6111,9 @@ static BcStatus bc_program_assign(char inst)
 	bc_program_pushVar(code, bgn)
 // for bc, 'pop' and 'copy' are always false
 #endif
-static BcStatus bc_program_pushVar(char *code, size_t *bgn,
+static BC_STATUS bc_program_pushVar(char *code, size_t *bgn,
                                    bool pop, bool copy)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
 	BcResult r;
 	char *name = bc_program_name(code, bgn);
 
@@ -6128,7 +6129,7 @@ static BcStatus bc_program_pushVar(char *code, size_t *bgn,
 
 			if (!BC_PROG_STACK(v, 2 - copy)) {
 				free(name);
-				return bc_error_stack_has_too_few_elements();
+				RETURN_STATUS(bc_error_stack_has_too_few_elements());
 			}
 
 			free(name);
@@ -6153,8 +6154,13 @@ static BcStatus bc_program_pushVar(char *code, size_t *bgn,
 
 	bc_vec_push(&G.prog.results, &r);
 
-	return s;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_program_pushVar(...) (bc_program_pushVar(__VA_ARGS__), BC_STATUS_SUCCESS)
+#else
+# define zbc_program_pushVar(...) bc_program_pushVar(__VA_ARGS__)
+#endif
 
 static BC_STATUS zbc_program_pushArray(char *code, size_t *bgn,
                                      char inst)
@@ -6826,7 +6832,7 @@ static BcStatus bc_program_exec(void)
 				s = bc_program_read();
 				break;
 			case BC_INST_VAR:
-				s = bc_program_pushVar(code, &ip->idx, false, false);
+				s = zbc_program_pushVar(code, &ip->idx, false, false);
 				break;
 			case BC_INST_ARRAY_ELEM:
 			case BC_INST_ARRAY:
@@ -6954,7 +6960,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_LOAD:
 			case BC_INST_PUSH_VAR: {
 				bool copy = inst == BC_INST_LOAD;
-				s = bc_program_pushVar(code, &ip->idx, true, copy);
+				s = zbc_program_pushVar(code, &ip->idx, true, copy);
 				break;
 			}
 			case BC_INST_PUSH_TO_VAR: {
