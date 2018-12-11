@@ -6526,7 +6526,7 @@ static void bc_program_stackLen(void)
 	bc_vec_push(&G.prog.results, &res);
 }
 
-static BcStatus bc_program_asciify(void)
+static BC_STATUS zbc_program_asciify(void)
 {
 	BcStatus s;
 	BcResult *r, res;
@@ -6536,12 +6536,12 @@ static BcStatus bc_program_asciify(void)
 	unsigned long val;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error_stack_has_too_few_elements();
+		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	r = bc_vec_top(&G.prog.results);
 
 	num = NULL; // TODO: is this NULL needed?
 	s = zbc_program_num(r, &num, false);
-	if (s) return s;
+	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, num)) {
 
@@ -6572,7 +6572,6 @@ static BcStatus bc_program_asciify(void)
 	bc_program_addFunc(str2, &idx);
 
 	if (idx != len + BC_PROG_REQ_FUNCS) {
-
 		for (idx = 0; idx < G.prog.strs.len; ++idx) {
 			if (strcmp(*bc_program_str(idx), str) == 0) {
 				len = idx;
@@ -6590,12 +6589,15 @@ static BcStatus bc_program_asciify(void)
 	bc_vec_pop(&G.prog.results);
 	bc_vec_push(&G.prog.results, &res);
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 
 num_err:
 	bc_num_free(&n);
-	return s;
+	RETURN_STATUS(s);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_program_asciify(...) (zbc_program_asciify(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BC_STATUS zbc_program_printStream(void)
 {
@@ -6984,7 +6986,7 @@ static BcStatus bc_program_exec(void)
 				break;
 			}
 			case BC_INST_ASCIIFY:
-				s = bc_program_asciify();
+				s = zbc_program_asciify();
 				break;
 			case BC_INST_PRINT_STREAM:
 				s = zbc_program_printStream();
