@@ -7575,11 +7575,7 @@ static int bc_vm_init(const char *env_len)
 	if (IS_BC)
 		IF_BC(bc_vm_envArgs();)
 	bc_program_init();
-	if (IS_BC) {
-		IF_BC(bc_parse_init(&G.prs, BC_PROG_MAIN);)
-	} else {
-		IF_DC(dc_parse_init(&G.prs, BC_PROG_MAIN);)
-	}
+	common_parse_init(&G.prs, BC_PROG_MAIN);
 
 	if (isatty(0)) {
 #if ENABLE_FEATURE_BC_SIGNALS
