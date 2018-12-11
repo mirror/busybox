@@ -736,6 +736,7 @@ typedef struct BcProgram {
 struct globals {
 	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
 	IF_FEATURE_CLEAN_UP(smallint exiting;)
+	smallint in_read;
 	char sbgn;
 	char send;
 
@@ -5390,20 +5391,18 @@ static BcStatus bc_program_read(void)
 	BcParse parse;
 	BcVec buf;
 	BcInstPtr ip;
-	size_t i;
-	BcFunc *f = bc_program_func(BC_PROG_READ);
+	BcFunc *f;
 
-	for (i = 0; i < G.prog.stack.len; ++i) {
-		BcInstPtr *ip_ptr = bc_vec_item(&G.prog.stack, i);
-		if (ip_ptr->func == BC_PROG_READ)
-			return bc_error_nested_read_call();
-	}
+	if (G.in_read)
+		return bc_error_nested_read_call();
 
+	f = bc_program_func(BC_PROG_READ);
 	bc_vec_pop_all(&f->code);
 	bc_char_vec_init(&buf);
 
 	sv_file = G.prog.file;
 	G.prog.file = NULL;
+	G.in_read = 1;
 
 	s = bc_read_line(&buf);
 	//if (s) goto io_err; - wrong, nonzero return means EOF, not error
@@ -5434,6 +5433,7 @@ static BcStatus bc_program_read(void)
 exec_err:
 	bc_parse_free(&parse);
 //io_err:
+	G.in_read = 0;
 	G.prog.file = sv_file;
 	bc_vec_free(&buf);
 	return s;
