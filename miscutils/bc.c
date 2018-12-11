@@ -5933,7 +5933,7 @@ static BC_STATUS zbc_program_negate(void)
 # define zbc_program_negate(...) (zbc_program_negate(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_program_logical(char inst)
+static BC_STATUS zbc_program_logical(char inst)
 {
 	BcStatus s;
 	BcResult *opd1, *opd2, res;
@@ -5942,7 +5942,7 @@ static BcStatus bc_program_logical(char inst)
 	ssize_t cmp;
 
 	s = zbc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
-	if (s) return s;
+	if (s) RETURN_STATUS(s);
 
 	bc_num_init_DEF_SIZE(&res.d.n);
 
@@ -5979,8 +5979,11 @@ static BcStatus bc_program_logical(char inst)
 
 	bc_program_binOpRetire(&res);
 
-	return s;
+	RETURN_STATUS(s);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_program_logical(...) (zbc_program_logical(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 #if ENABLE_DC
 static BC_STATUS zbc_program_assignStr(BcResult *r, BcVec *v,
@@ -6884,7 +6887,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_REL_NE:
 			case BC_INST_REL_LT:
 			case BC_INST_REL_GT:
-				s = bc_program_logical(inst);
+				s = zbc_program_logical(inst);
 				break;
 			case BC_INST_READ:
 				s = bc_program_read();
