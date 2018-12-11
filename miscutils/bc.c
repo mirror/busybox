@@ -976,20 +976,29 @@ static void bc_verror_msg(const char *fmt, va_list p)
 	}
 }
 
-#if ENABLE_FEATURE_BC_SIGNALS
+// In configurations where errors abort instead of propagating error
+// return code up the call chain, functions returning BC_STATUS
+// actually don't return anything, they always succeed and return "void".
+// A macro wrapper is provided, which makes this statement work:
+//  s = zbc_func(...)
+// and makes it visible to the compiler that s is always zero,
+// allowing compiler to optimize dead code after the statement.
+//
+// To make code more readable, each such function has a "z"
+// ("always returning zero") prefix, i.e. zbc_foo or zdc_foo.
+//
+#if ENABLE_FEATURE_BC_SIGNALS || ENABLE_FEATURE_CLEAN_UP
 # define ERRORFUNC        /*nothing*/
 # define ERROR_RETURN(a)  a
 # define ERRORS_ARE_FATAL 0
+# define BC_STATUS        BcStatus
+# define RETURN_STATUS(v) return (v)
 #else
-# if ENABLE_FEATURE_CLEAN_UP
-#  define ERRORFUNC        /*nothing*/
-#  define ERROR_RETURN(a)  a
-#  define ERRORS_ARE_FATAL 0
-# else
-#  define ERRORFUNC        NORETURN
-#  define ERROR_RETURN(a)  /*nothing*/
-#  define ERRORS_ARE_FATAL 1
-# endif
+# define ERRORFUNC        NORETURN
+# define ERROR_RETURN(a)  /*nothing*/
+# define ERRORS_ARE_FATAL 1
+# define BC_STATUS        void
+# define RETURN_STATUS(v) do { ((void)(v)); return; } while (0)
 #endif
 
 static NOINLINE ERRORFUNC int bc_error_fmt(const char *fmt, ...)
@@ -1456,12 +1465,12 @@ static void bc_num_copy(BcNum *d, BcNum *s)
 	}
 }
 
-static BcStatus bc_num_ulong(BcNum *n, unsigned long *result_p)
+static BC_STATUS zbc_num_ulong(BcNum *n, unsigned long *result_p)
 {
 	size_t i;
 	unsigned long pow, result;
 
-	if (n->neg) return bc_error("negative number");
+	if (n->neg) RETURN_STATUS(bc_error("negative number"));
 
 	for (result = 0, pow = 1, i = n->rdx; i < n->len; ++i) {
 
@@ -1471,16 +1480,16 @@ static BcStatus bc_num_ulong(BcNum *n, unsigned long *result_p)
 		pow *= 10;
 
 		if (result < prev || pow < powprev)
-			return bc_error("overflow");
+			RETURN_STATUS(bc_error("overflow"));
 		prev = result;
 		powprev = pow;
 	}
 	*result_p = result;
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_num_ulong(...) (bc_num_ulong(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_num_ulong(...) (zbc_num_ulong(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static void bc_num_ulong2num(BcNum *n, unsigned long val)
@@ -1658,14 +1667,14 @@ static void bc_num_split(BcNum *restrict n, size_t idx, BcNum *restrict a,
 	bc_num_clean(b);
 }
 
-static BcStatus bc_num_shift(BcNum *n, size_t places)
+static BC_STATUS zbc_num_shift(BcNum *n, size_t places)
 {
-	if (places == 0 || n->len == 0) return BC_STATUS_SUCCESS;
+	if (places == 0 || n->len == 0) RETURN_STATUS(BC_STATUS_SUCCESS);
 
 	// This check makes sense only if size_t is (much) larger than BC_MAX_NUM.
 	if (SIZE_MAX > (BC_MAX_NUM | 0xff)) {
 		if (places + n->len > BC_MAX_NUM)
-			return bc_error("number too long: must be [1,"BC_MAX_NUM_STR"]");
+			RETURN_STATUS(bc_error("number too long: must be [1,"BC_MAX_NUM_STR"]"));
 	}
 
 	if (n->rdx >= places)
@@ -1677,10 +1686,10 @@ static BcStatus bc_num_shift(BcNum *n, size_t places)
 
 	bc_num_clean(n);
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_num_shift(...) (bc_num_shift(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_num_shift(...) (zbc_num_shift(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static BcStatus bc_num_inv(BcNum *a, BcNum *b, size_t scale)
@@ -1912,9 +1921,9 @@ static FAST_FUNC BcStatus bc_num_k(BcNum *restrict a, BcNum *restrict b,
 	s = bc_num_sub(&temp, &z2, &z1, 0);
 	if (s) goto err;
 
-	s = bc_num_shift(&z0, max2 * 2);
+	s = zbc_num_shift(&z0, max2 * 2);
 	if (s) goto err;
-	s = bc_num_shift(&z1, max2);
+	s = zbc_num_shift(&z1, max2);
 	if (s) goto err;
 	s = bc_num_add(&z0, &z1, &temp, 0);
 	if (s) goto err;
@@ -1952,9 +1961,9 @@ static FAST_FUNC BcStatus bc_num_m(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 	bc_num_copy(&cpb, b);
 	cpa.neg = cpb.neg = false;
 
-	s = bc_num_shift(&cpa, maxrdx);
+	s = zbc_num_shift(&cpa, maxrdx);
 	if (s) goto err;
-	s = bc_num_shift(&cpb, maxrdx);
+	s = zbc_num_shift(&cpb, maxrdx);
 	if (s) goto err;
 	s = bc_num_k(&cpa, &cpb, c);
 	if (s) goto err;
@@ -2127,7 +2136,7 @@ static FAST_FUNC BcStatus bc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t
 	neg = b->neg;
 	b->neg = false;
 
-	s = bc_num_ulong(b, &pow);
+	s = zbc_num_ulong(b, &pow);
 	if (s) return s;
 
 	bc_num_init(&copy, a->len);
@@ -2289,7 +2298,7 @@ static void bc_num_printDecimal(BcNum *n)
 		bc_num_printHex((size_t) n->num[i], 1, i == rdx);
 }
 
-static BcStatus bc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigitOp print)
+static BC_STATUS zbc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigitOp print)
 {
 	BcStatus s;
 	BcVec stack;
@@ -2300,7 +2309,7 @@ static BcStatus bc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigitO
 
 	if (n->len == 0) {
 		print(0, width, false);
-		return BC_STATUS_SUCCESS;
+		RETURN_STATUS(BC_STATUS_SUCCESS);
 	}
 
 	bc_vec_init(&stack, sizeof(long), NULL);
@@ -2318,7 +2327,7 @@ static BcStatus bc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigitO
 	while (intp.len != 0) {
 		s = bc_num_divmod(&intp, base, &intp, &digit, 0);
 		if (s) goto err;
-		s = bc_num_ulong(&digit, &dig);
+		s = zbc_num_ulong(&digit, &dig);
 		if (s) goto err;
 		bc_vec_push(&stack, &dig);
 	}
@@ -2333,7 +2342,7 @@ static BcStatus bc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigitO
 	for (radix = true; frac_len.len <= n->rdx; radix = false) {
 		s = bc_num_mul(&fracp, base, &fracp, n->rdx);
 		if (s) goto err;
-		s = bc_num_ulong(&fracp, &dig);
+		s = zbc_num_ulong(&fracp, &dig);
 		if (s) goto err;
 		bc_num_ulong2num(&intp, dig);
 		s = bc_num_sub(&fracp, &intp, &fracp, 0);
@@ -2349,13 +2358,13 @@ err:
 	bc_num_free(&fracp);
 	bc_num_free(&intp);
 	bc_vec_free(&stack);
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_num_printNum(...) (bc_num_printNum(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_num_printNum(...) (zbc_num_printNum(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_num_printBase(BcNum *n)
+static BC_STATUS zbc_num_printBase(BcNum *n)
 {
 	BcStatus s;
 	size_t width, i;
@@ -2379,22 +2388,22 @@ static BcStatus bc_num_printBase(BcNum *n)
 		print = bc_num_printDigits;
 	}
 
-	s = bc_num_printNum(n, &G.prog.ob, width, print);
+	s = zbc_num_printNum(n, &G.prog.ob, width, print);
 	n->neg = neg;
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_num_printBase(...) (bc_num_printBase(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_num_printBase(...) (zbc_num_printBase(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 #if ENABLE_DC
-static BcStatus bc_num_stream(BcNum *n, BcNum *base)
+static BC_STATUS zbc_num_stream(BcNum *n, BcNum *base)
 {
-	return bc_num_printNum(n, base, 1, bc_num_printChar);
+	RETURN_STATUS(zbc_num_printNum(n, base, 1, bc_num_printChar));
 }
 #if ERRORS_ARE_FATAL
-# define bc_num_stream(...) (bc_num_stream(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_num_stream(...) (zbc_num_stream(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 #endif
 
@@ -2528,11 +2537,11 @@ int_err:
 	bc_num_free(&temp);
 }
 
-static BcStatus bc_num_parse(BcNum *n, const char *val, BcNum *base,
+static BC_STATUS zbc_num_parse(BcNum *n, const char *val, BcNum *base,
                              size_t base_t)
 {
 	if (!bc_num_strValid(val, base_t))
-		return bc_error("bad number string");
+		RETURN_STATUS(bc_error("bad number string"));
 
 	bc_num_zero(n);
 	while (*val == '0') val++;
@@ -2542,13 +2551,13 @@ static BcStatus bc_num_parse(BcNum *n, const char *val, BcNum *base,
 	else
 		bc_num_parseBase(n, val, base);
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_num_parse(...) (bc_num_parse(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_num_parse(...) (zbc_num_parse(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_num_print(BcNum *n, bool newline)
+static BC_STATUS zbc_num_print(BcNum *n, bool newline)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 
@@ -2561,17 +2570,17 @@ static BcStatus bc_num_print(BcNum *n, bool newline)
 	else if (G.prog.ob_t == 10)
 		bc_num_printDecimal(n);
 	else
-		s = bc_num_printBase(n);
+		s = zbc_num_printBase(n);
 
 	if (newline) {
 		bb_putchar('\n');
 		G.prog.nchars = 0;
 	}
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_num_print(...) (bc_num_print(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_num_print(...) (zbc_num_print(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static FAST_FUNC BcStatus bc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
@@ -2794,14 +2803,14 @@ err:
 #endif // ENABLE_DC
 
 #if ENABLE_BC
-static BcStatus bc_func_insert(BcFunc *f, char *name, bool var)
+static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
 {
 	BcId a;
 	size_t i;
 
 	for (i = 0; i < f->autos.len; ++i) {
 		if (strcmp(name, ((BcId *) bc_vec_item(&f->autos, i))->name) == 0)
-			return bc_error("function parameter or auto var has the same name as another");
+			RETURN_STATUS(bc_error("function parameter or auto var has the same name as another"));
 	}
 
 	a.idx = var;
@@ -2809,10 +2818,10 @@ static BcStatus bc_func_insert(BcFunc *f, char *name, bool var)
 
 	bc_vec_push(&f->autos, &a);
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_func_insert(...) (bc_func_insert(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_func_insert(...) (zbc_func_insert(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 #endif
 
@@ -2963,7 +2972,7 @@ static void bc_lex_whitespace(BcLex *l)
 	for (c = l->buf[l->i]; c != '\n' && isspace(c); c = l->buf[++l->i]);
 }
 
-static BcStatus bc_lex_number(BcLex *l, char start)
+static BC_STATUS zbc_lex_number(BcLex *l, char start)
 {
 	const char *buf = l->buf + l->i;
 	size_t len, hits = 0, bslashes = 0, i = 0, j;
@@ -2992,7 +3001,7 @@ static BcStatus bc_lex_number(BcLex *l, char start)
 	// This check makes sense only if size_t is (much) larger than BC_MAX_NUM.
 	if (SIZE_MAX > (BC_MAX_NUM | 0xff)) {
 		if (len > BC_MAX_NUM)
-			return bc_error("number too long: must be [1,"BC_MAX_NUM_STR"]");
+			RETURN_STATUS(bc_error("number too long: must be [1,"BC_MAX_NUM_STR"]"));
 	}
 
 	bc_vec_pop_all(&l->t.v);
@@ -3017,10 +3026,10 @@ static BcStatus bc_lex_number(BcLex *l, char start)
 	bc_vec_pushZeroByte(&l->t.v);
 	l->i += i;
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_lex_number(...) (bc_lex_number(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_lex_number(...) (zbc_lex_number(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static void bc_lex_name(BcLex *l)
@@ -3184,7 +3193,7 @@ static void bc_lex_assign(BcLex *l, BcLexType with, BcLexType without)
 		l->t.t = without;
 }
 
-static BcStatus bc_lex_comment(BcLex *l)
+static BC_STATUS zbc_lex_comment(BcLex *l)
 {
 	size_t i, nls = 0;
 	const char *buf = l->buf;
@@ -3202,7 +3211,7 @@ static BcStatus bc_lex_comment(BcLex *l)
 		}
 		if (c == '\0') {
 			l->i = i;
-			return bc_error("comment end could not be found");
+			RETURN_STATUS(bc_error("comment end could not be found"));
 		}
 		nls += (c == '\n');
 		i++;
@@ -3212,10 +3221,10 @@ static BcStatus bc_lex_comment(BcLex *l)
 	l->line += nls;
 	G.err_line = l->line;
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_lex_comment(...) (bc_lex_comment(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_lex_comment(...) (zbc_lex_comment(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
@@ -3343,7 +3352,7 @@ static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 		case '.':
 		{
 			if (isdigit(l->buf[l->i]))
-				s = bc_lex_number(l, c);
+				s = zbc_lex_number(l, c);
 			else {
 				l->t.t = BC_LEX_KEY_LAST;
 				s = bc_POSIX_does_not_allow("a period ('.') as a shortcut for the last result");
@@ -3355,7 +3364,7 @@ static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 		{
 			c2 = l->buf[l->i];
 			if (c2 == '*')
-				s = bc_lex_comment(l);
+				s = zbc_lex_comment(l);
 			else
 				bc_lex_assign(l, BC_LEX_OP_ASSIGN_DIVIDE, BC_LEX_OP_DIVIDE);
 			break;
@@ -3378,7 +3387,7 @@ static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 		case 'E':
 		case 'F':
 		{
-			s = bc_lex_number(l, c);
+			s = zbc_lex_number(l, c);
 			break;
 		}
 
@@ -3500,17 +3509,14 @@ static FAST_FUNC BcStatus bc_lex_token(BcLex *l)
 #endif // ENABLE_BC
 
 #if ENABLE_DC
-static BcStatus dc_lex_register(BcLex *l)
+static BC_STATUS zdc_lex_register(BcLex *l)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
-
 	if (isspace(l->buf[l->i - 1])) {
 		bc_lex_whitespace(l);
 		++l->i;
 		if (!G_exreg)
-			s = bc_error("extended register");
-		else
-			bc_lex_name(l);
+			RETURN_STATUS(bc_error("extended register"));
+		bc_lex_name(l);
 	}
 	else {
 		bc_vec_pop_all(&l->t.v);
@@ -3519,13 +3525,13 @@ static BcStatus dc_lex_register(BcLex *l)
 		l->t.t = BC_LEX_NAME;
 	}
 
-	return s;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define dc_lex_register(...) (dc_lex_register(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zdc_lex_register(...) (zdc_lex_register(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus dc_lex_string(BcLex *l)
+static BC_STATUS zdc_lex_string(BcLex *l)
 {
 	size_t depth = 1, nls = 0, i = l->i;
 	char c;
@@ -3544,24 +3550,24 @@ static BcStatus dc_lex_string(BcLex *l)
 
 	if (c == '\0') {
 		l->i = i;
-		return bc_error("string end could not be found");
+		RETURN_STATUS(bc_error("string end could not be found"));
 	}
 
 	bc_vec_pushZeroByte(&l->t.v);
 	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
 	if (SIZE_MAX > (BC_MAX_STRING | 0xff)) {
 		if (i - l->i > BC_MAX_STRING)
-			return bc_error("string too long: must be [1,"BC_MAX_STRING_STR"]");
+			RETURN_STATUS(bc_error("string too long: must be [1,"BC_MAX_STRING_STR"]"));
 	}
 
 	l->i = i;
 	l->line += nls;
 	G.err_line = l->line;
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define dc_lex_string(...) (dc_lex_string(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zdc_lex_string(...) (zdc_lex_string(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static FAST_FUNC BcStatus dc_lex_token(BcLex *l)
@@ -3572,7 +3578,7 @@ static FAST_FUNC BcStatus dc_lex_token(BcLex *l)
 
 	for (i = 0; i < ARRAY_SIZE(dc_lex_regs); ++i) {
 		if (l->t.last == dc_lex_regs[i])
-			return dc_lex_register(l);
+			return zdc_lex_register(l);
 	}
 
 	if (c >= '%' && c <= '~' &&
@@ -3628,7 +3634,7 @@ static FAST_FUNC BcStatus dc_lex_token(BcLex *l)
 		case '.':
 		{
 			if (isdigit(l->buf[l->i]))
-				s = bc_lex_number(l, c);
+				s = zbc_lex_number(l, c);
 			else
 				s = bc_error_bad_character(c);
 			break;
@@ -3651,13 +3657,13 @@ static FAST_FUNC BcStatus dc_lex_token(BcLex *l)
 		case 'E':
 		case 'F':
 		{
-			s = bc_lex_number(l, c);
+			s = zbc_lex_number(l, c);
 			break;
 		}
 
 		case '[':
 		{
-			s = dc_lex_string(l);
+			s = zdc_lex_string(l);
 			break;
 		}
 
@@ -4599,7 +4605,7 @@ static BcStatus bc_parse_func(BcParse *p)
 			if (s) goto err;
 		}
 
-		s = bc_func_insert(p->func, name, var);
+		s = zbc_func_insert(p->func, name, var);
 		if (s) goto err;
 	}
 
@@ -4661,7 +4667,7 @@ static BcStatus bc_parse_auto(BcParse *p)
 			if (s) goto err;
 		}
 
-		s = bc_func_insert(p->func, name, var);
+		s = zbc_func_insert(p->func, name, var);
 		if (s) goto err;
 	}
 
@@ -5453,7 +5459,7 @@ static BcVec* bc_program_search(char *id, bool var)
 	return bc_vec_item(v, ptr->idx);
 }
 
-static BcStatus bc_program_num(BcResult *r, BcNum **num, bool hex)
+static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 {
 	switch (r->t) {
 
@@ -5479,11 +5485,11 @@ static BcStatus bc_program_num(BcResult *r, BcNum **num, bool hex)
 			hex = hex && len == 1;
 			base = hex ? &G.prog.hexb : &G.prog.ib;
 			base_t = hex ? BC_NUM_MAX_IBASE : G.prog.ib_t;
-			s = bc_num_parse(&r->d.n, *str, base, base_t);
+			s = zbc_num_parse(&r->d.n, *str, base, base_t);
 
 			if (s) {
 				bc_num_free(&r->d.n);
-				return s;
+				RETURN_STATUS(s);
 			}
 
 			*num = &r->d.n;
@@ -5524,13 +5530,13 @@ static BcStatus bc_program_num(BcResult *r, BcNum **num, bool hex)
 		}
 	}
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_num(...) (bc_program_num(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_num(...) (zbc_program_num(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_program_binOpPrep(BcResult **l, BcNum **ln,
+static BC_STATUS zbc_program_binOpPrep(BcResult **l, BcNum **ln,
                                      BcResult **r, BcNum **rn, bool assign)
 {
 	BcStatus s;
@@ -5538,7 +5544,7 @@ static BcStatus bc_program_binOpPrep(BcResult **l, BcNum **ln,
 	BcResultType lt, rt;
 
 	if (!BC_PROG_STACK(&G.prog.results, 2))
-		return bc_error_stack_has_too_few_elements();
+		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	*r = bc_vec_item_rev(&G.prog.results, 0);
 	*l = bc_vec_item_rev(&G.prog.results, 1);
@@ -5547,27 +5553,27 @@ static BcStatus bc_program_binOpPrep(BcResult **l, BcNum **ln,
 	rt = (*r)->t;
 	hex = assign && (lt == BC_RESULT_IBASE || lt == BC_RESULT_OBASE);
 
-	s = bc_program_num(*l, ln, false);
-	if (s) return s;
-	s = bc_program_num(*r, rn, hex);
-	if (s) return s;
+	s = zbc_program_num(*l, ln, false);
+	if (s) RETURN_STATUS(s);
+	s = zbc_program_num(*r, rn, hex);
+	if (s) RETURN_STATUS(s);
 
 	// We run this again under these conditions in case any vector has been
 	// reallocated out from under the BcNums or arrays we had.
 	if (lt == rt && (lt == BC_RESULT_VAR || lt == BC_RESULT_ARRAY_ELEM)) {
-		s = bc_program_num(*l, ln, false);
-		if (s) return s;
+		s = zbc_program_num(*l, ln, false);
+		if (s) RETURN_STATUS(s);
 	}
 
 	if (!BC_PROG_NUM((*l), (*ln)) && (!assign || (*l)->t != BC_RESULT_VAR))
-		return bc_error_variable_is_wrong_type();
+		RETURN_STATUS(bc_error_variable_is_wrong_type());
 	if (!assign && !BC_PROG_NUM((*r), (*ln)))
-		return bc_error_variable_is_wrong_type();
+		RETURN_STATUS(bc_error_variable_is_wrong_type());
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_binOpPrep(...) (bc_program_binOpPrep(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_binOpPrep(...) (zbc_program_binOpPrep(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static void bc_program_binOpRetire(BcResult *r)
@@ -5578,24 +5584,24 @@ static void bc_program_binOpRetire(BcResult *r)
 	bc_vec_push(&G.prog.results, r);
 }
 
-static BcStatus bc_program_prep(BcResult **r, BcNum **n)
+static BC_STATUS zbc_program_prep(BcResult **r, BcNum **n)
 {
 	BcStatus s;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error_stack_has_too_few_elements();
+		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	*r = bc_vec_top(&G.prog.results);
 
-	s = bc_program_num(*r, n, false);
-	if (s) return s;
+	s = zbc_program_num(*r, n, false);
+	if (s) RETURN_STATUS(s);
 
 	if (!BC_PROG_NUM((*r), (*n)))
-		return bc_error_variable_is_wrong_type();
+		RETURN_STATUS(bc_error_variable_is_wrong_type());
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_prep(...) (bc_program_prep(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_prep(...) (zbc_program_prep(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static void bc_program_retire(BcResult *r, BcResultType t)
@@ -5611,7 +5617,7 @@ static BcStatus bc_program_op(char inst)
 	BcResult *opd1, *opd2, res;
 	BcNum *n1, *n2 = NULL;
 
-	s = bc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
+	s = zbc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) return s;
 	bc_num_init_DEF_SIZE(&res.d.n);
 
@@ -5795,7 +5801,7 @@ static void bc_program_printString(const char *str)
 	}
 }
 
-static BcStatus bc_program_print(char inst, size_t idx)
+static BC_STATUS zbc_program_print(char inst, size_t idx)
 {
 	BcStatus s;
 	BcResult *r;
@@ -5803,15 +5809,15 @@ static BcStatus bc_program_print(char inst, size_t idx)
 	bool pop = inst != BC_INST_PRINT;
 
 	if (!BC_PROG_STACK(&G.prog.results, idx + 1))
-		return bc_error_stack_has_too_few_elements();
+		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	r = bc_vec_item_rev(&G.prog.results, idx);
 	num = NULL; // is this NULL necessary?
-	s = bc_program_num(r, &num, false);
-	if (s) return s;
+	s = zbc_program_num(r, &num, false);
+	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, num)) {
-		s = bc_num_print(num, !pop);
+		s = zbc_num_print(num, !pop);
 		if (!s) bc_num_copy(&G.prog.last, num);
 	}
 	else {
@@ -5837,20 +5843,20 @@ static BcStatus bc_program_print(char inst, size_t idx)
 
 	if (!s && pop) bc_vec_pop(&G.prog.results);
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_print(...) (bc_program_print(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_print(...) (zbc_program_print(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_program_negate(void)
+static BC_STATUS zbc_program_negate(void)
 {
 	BcStatus s;
 	BcResult res, *ptr;
 	BcNum *num = NULL;
 
-	s = bc_program_prep(&ptr, &num);
-	if (s) return s;
+	s = zbc_program_prep(&ptr, &num);
+	if (s) RETURN_STATUS(s);
 
 	bc_num_init(&res.d.n, num->len);
 	bc_num_copy(&res.d.n, num);
@@ -5858,10 +5864,10 @@ static BcStatus bc_program_negate(void)
 
 	bc_program_retire(&res, BC_RESULT_TEMP);
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_negate(...) (bc_program_negate(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_negate(...) (zbc_program_negate(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static BcStatus bc_program_logical(char inst)
@@ -5872,7 +5878,7 @@ static BcStatus bc_program_logical(char inst)
 	bool cond = 0;
 	ssize_t cmp;
 
-	s = bc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
+	s = zbc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) return s;
 	bc_num_init_DEF_SIZE(&res.d.n);
 
@@ -5932,7 +5938,7 @@ static BcStatus bc_program_logical(char inst)
 }
 
 #if ENABLE_DC
-static BcStatus bc_program_assignStr(BcResult *r, BcVec *v,
+static BC_STATUS zbc_program_assignStr(BcResult *r, BcVec *v,
                                      bool push)
 {
 	BcNum n2;
@@ -5944,7 +5950,7 @@ static BcStatus bc_program_assignStr(BcResult *r, BcVec *v,
 
 	if (!push) {
 		if (!BC_PROG_STACK(&G.prog.results, 2))
-			return bc_error_stack_has_too_few_elements();
+			RETURN_STATUS(bc_error_stack_has_too_few_elements());
 		bc_vec_pop(v);
 		bc_vec_pop(&G.prog.results);
 	}
@@ -5954,14 +5960,14 @@ static BcStatus bc_program_assignStr(BcResult *r, BcVec *v,
 	bc_vec_push(&G.prog.results, &res);
 	bc_vec_push(v, &n2);
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_assignStr(...) (bc_program_assignStr(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_assignStr(...) (zbc_program_assignStr(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 #endif // ENABLE_DC
 
-static BcStatus bc_program_copyToVar(char *name, bool var)
+static BC_STATUS zbc_program_copyToVar(char *name, bool var)
 {
 	BcStatus s;
 	BcResult *ptr, r;
@@ -5969,21 +5975,22 @@ static BcStatus bc_program_copyToVar(char *name, bool var)
 	BcNum *n;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error_stack_has_too_few_elements();
+		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	ptr = bc_vec_top(&G.prog.results);
 	if ((ptr->t == BC_RESULT_ARRAY) != !var)
-		return bc_error_variable_is_wrong_type();
+		RETURN_STATUS(bc_error_variable_is_wrong_type());
 	v = bc_program_search(name, var);
 
 #if ENABLE_DC
 	if (ptr->t == BC_RESULT_STR && !var)
-		return bc_error_variable_is_wrong_type();
-	if (ptr->t == BC_RESULT_STR) return bc_program_assignStr(ptr, v, true);
+		RETURN_STATUS(bc_error_variable_is_wrong_type());
+	if (ptr->t == BC_RESULT_STR)
+		RETURN_STATUS(zbc_program_assignStr(ptr, v, true));
 #endif
 
-	s = bc_program_num(ptr, &n, false);
-	if (s) return s;
+	s = zbc_program_num(ptr, &n, false);
+	if (s) RETURN_STATUS(s);
 
 	// Do this once more to make sure that pointers were not invalidated.
 	v = bc_program_search(name, var);
@@ -6000,10 +6007,10 @@ static BcStatus bc_program_copyToVar(char *name, bool var)
 	bc_vec_push(v, &r.d);
 	bc_vec_pop(&G.prog.results);
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_copyToVar(...) (bc_program_copyToVar(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_copyToVar(...) (zbc_program_copyToVar(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static BcStatus bc_program_assign(char inst)
@@ -6013,7 +6020,7 @@ static BcStatus bc_program_assign(char inst)
 	BcNum *l = NULL, *r = NULL;
 	bool assign = inst == BC_INST_ASSIGN, ib, sc;
 
-	s = bc_program_binOpPrep(&left, &l, &right, &r, assign);
+	s = zbc_program_binOpPrep(&left, &l, &right, &r, assign);
 	if (s) return s;
 
 	ib = left->t == BC_RESULT_IBASE;
@@ -6029,7 +6036,7 @@ static BcStatus bc_program_assign(char inst)
 			return bc_error_variable_is_wrong_type();
 		v = bc_program_search(left->d.id.name, true);
 
-		return bc_program_assignStr(right, v, false);
+		return zbc_program_assignStr(right, v, false);
 	}
 #endif
 
@@ -6066,7 +6073,7 @@ static BcStatus bc_program_assign(char inst)
 		size_t *ptr;
 		unsigned long val, max;
 
-		s = bc_num_ulong(l, &val);
+		s = zbc_num_ulong(l, &val);
 		if (s)
 			return s;
 		s = left->t - BC_RESULT_IBASE;
@@ -6149,7 +6156,7 @@ static BcStatus bc_program_pushVar(char *code, size_t *bgn,
 	return s;
 }
 
-static BcStatus bc_program_pushArray(char *code, size_t *bgn,
+static BC_STATUS zbc_program_pushArray(char *code, size_t *bgn,
                                      char inst)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
@@ -6167,9 +6174,9 @@ static BcStatus bc_program_pushArray(char *code, size_t *bgn,
 		BcResult *operand;
 		unsigned long temp;
 
-		s = bc_program_prep(&operand, &num);
+		s = zbc_program_prep(&operand, &num);
 		if (s) goto err;
-		s = bc_num_ulong(num, &temp);
+		s = zbc_num_ulong(num, &temp);
 		if (s) goto err;
 
 		if (temp > BC_MAX_DIM) {
@@ -6183,22 +6190,22 @@ static BcStatus bc_program_pushArray(char *code, size_t *bgn,
 
 err:
 	if (s) free(r.d.id.name);
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_pushArray(...) (bc_program_pushArray(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_pushArray(...) (zbc_program_pushArray(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 #if ENABLE_BC
-static BcStatus bc_program_incdec(char inst)
+static BC_STATUS zbc_program_incdec(char inst)
 {
 	BcStatus s;
 	BcResult *ptr, res, copy;
 	BcNum *num = NULL;
 	char inst2 = inst;
 
-	s = bc_program_prep(&ptr, &num);
-	if (s) return s;
+	s = zbc_program_prep(&ptr, &num);
+	if (s) RETURN_STATUS(s);
 
 	if (inst == BC_INST_INC_POST || inst == BC_INST_DEC_POST) {
 		copy.t = BC_RESULT_TEMP;
@@ -6219,13 +6226,13 @@ static BcStatus bc_program_incdec(char inst)
 		bc_vec_push(&G.prog.results, &copy);
 	}
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_incdec(...) (bc_program_incdec(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_incdec(...) (zbc_program_incdec(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_program_call(char *code, size_t *idx)
+static BC_STATUS zbc_program_call(char *code, size_t *idx)
 {
 	BcInstPtr ip;
 	size_t i, nparams = bc_program_index(code, idx);
@@ -6239,10 +6246,10 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 	func = bc_program_func(ip.func);
 
 	if (func->code.len == 0) {
-		return bc_error("undefined function");
+		RETURN_STATUS(bc_error("undefined function"));
 	}
 	if (nparams != func->nparams) {
-		return bc_error_fmt("function has %u parameters, but called with %u", func->nparams, nparams);
+		RETURN_STATUS(bc_error_fmt("function has %u parameters, but called with %u", func->nparams, nparams));
 	}
 	ip.len = G.prog.results.len - nparams;
 
@@ -6253,10 +6260,10 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 		arg = bc_vec_top(&G.prog.results);
 
 		if ((!a->idx) != (arg->t == BC_RESULT_ARRAY) || arg->t == BC_RESULT_STR)
-			return bc_error_variable_is_wrong_type();
+			RETURN_STATUS(bc_error_variable_is_wrong_type());
 
-		s = bc_program_copyToVar(a->name, a->idx);
-		if (s) return s;
+		s = zbc_program_copyToVar(a->name, a->idx);
+		if (s) RETURN_STATUS(s);
 	}
 
 	for (; i < func->autos.len; ++i) {
@@ -6277,13 +6284,13 @@ static BcStatus bc_program_call(char *code, size_t *idx)
 
 	bc_vec_push(&G.prog.stack, &ip);
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_call(...) (bc_program_call(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_call(...) (zbc_program_call(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_program_return(char inst)
+static BC_STATUS zbc_program_return(char inst)
 {
 	BcResult res;
 	BcFunc *f;
@@ -6291,7 +6298,7 @@ static BcStatus bc_program_return(char inst)
 	BcInstPtr *ip = bc_vec_top(&G.prog.stack);
 
 	if (!BC_PROG_STACK(&G.prog.results, ip->len + inst == BC_INST_RET))
-		return bc_error_stack_has_too_few_elements();
+		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	f = bc_program_func(ip->func);
 	res.t = BC_RESULT_TEMP;
@@ -6301,8 +6308,8 @@ static BcStatus bc_program_return(char inst)
 		BcNum *num;
 		BcResult *operand = bc_vec_top(&G.prog.results);
 
-		s = bc_program_num(operand, &num, false);
-		if (s) return s;
+		s = zbc_program_num(operand, &num, false);
+		if (s) RETURN_STATUS(s);
 		bc_num_init(&res.d.n, num->len);
 		bc_num_copy(&res.d.n, num);
 	}
@@ -6324,10 +6331,10 @@ static BcStatus bc_program_return(char inst)
 	bc_vec_push(&G.prog.results, &res);
 	bc_vec_pop(&G.prog.stack);
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_return(...) (bc_program_return(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_return(...) (zbc_program_return(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 #endif // ENABLE_BC
 
@@ -6361,7 +6368,7 @@ static BcStatus bc_program_builtin(char inst)
 		return bc_error_stack_has_too_few_elements();
 	opnd = bc_vec_top(&G.prog.results);
 
-	s = bc_program_num(opnd, &num, false);
+	s = zbc_program_num(opnd, &num, false);
 	if (s) return s;
 
 #if ENABLE_DC
@@ -6403,7 +6410,7 @@ static BcStatus bc_program_divmod(void)
 	BcResult *opd1, *opd2, res, res2;
 	BcNum *n1, *n2 = NULL;
 
-	s = bc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
+	s = zbc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) return s;
 
 	bc_num_init_DEF_SIZE(&res.d.n);
@@ -6432,11 +6439,11 @@ static BcStatus bc_program_modexp(void)
 
 	if (!BC_PROG_STACK(&G.prog.results, 3))
 		return bc_error_stack_has_too_few_elements();
-	s = bc_program_binOpPrep(&r2, &n2, &r3, &n3, false);
+	s = zbc_program_binOpPrep(&r2, &n2, &r3, &n3, false);
 	if (s) return s;
 
 	r1 = bc_vec_item_rev(&G.prog.results, 2);
-	s = bc_program_num(r1, &n1, false);
+	s = zbc_program_num(r1, &n1, false);
 	if (s) return s;
 	if (!BC_PROG_NUM(r1, n1))
 		return bc_error_variable_is_wrong_type();
@@ -6445,12 +6452,12 @@ static BcStatus bc_program_modexp(void)
 	if (r1->t == BC_RESULT_VAR || r1->t == BC_RESULT_ARRAY_ELEM) {
 
 		if (r1->t == r2->t) {
-			s = bc_program_num(r2, &n2, false);
+			s = zbc_program_num(r2, &n2, false);
 			if (s) return s;
 		}
 
 		if (r1->t == r3->t) {
-			s = bc_program_num(r3, &n3, false);
+			s = zbc_program_num(r3, &n3, false);
 			if (s) return s;
 		}
 	}
@@ -6495,7 +6502,7 @@ static BcStatus bc_program_asciify(void)
 	r = bc_vec_top(&G.prog.results);
 
 	num = NULL; // TODO: is this NULL needed?
-	s = bc_program_num(r, &num, false);
+	s = zbc_program_num(r, &num, false);
 	if (s) return s;
 
 	if (BC_PROG_NUM(r, num)) {
@@ -6506,7 +6513,7 @@ static BcStatus bc_program_asciify(void)
 
 		s = bc_num_mod(&n, &G.prog.strmb, &n, 0);
 		if (s) goto num_err;
-		s = bc_num_ulong(&n, &val);
+		s = zbc_num_ulong(&n, &val);
 		if (s) goto num_err;
 
 		c = (char) val;
@@ -6552,7 +6559,7 @@ num_err:
 	return s;
 }
 
-static BcStatus bc_program_printStream(void)
+static BC_STATUS zbc_program_printStream(void)
 {
 	BcStatus s;
 	BcResult *r;
@@ -6561,52 +6568,52 @@ static BcStatus bc_program_printStream(void)
 	char *str;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error_stack_has_too_few_elements();
+		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	r = bc_vec_top(&G.prog.results);
 
-	s = bc_program_num(r, &n, false);
-	if (s) return s;
+	s = zbc_program_num(r, &n, false);
+	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, n))
-		s = bc_num_stream(n, &G.prog.strmb);
+		s = zbc_num_stream(n, &G.prog.strmb);
 	else {
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : n->rdx;
 		str = *bc_program_str(idx);
 		printf("%s", str);
 	}
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_printStream(...) (bc_program_printStream(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_printStream(...) (zbc_program_printStream(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_program_nquit(void)
+static BC_STATUS zbc_program_nquit(void)
 {
 	BcStatus s;
 	BcResult *opnd;
 	BcNum *num = NULL;
 	unsigned long val;
 
-	s = bc_program_prep(&opnd, &num);
-	if (s) return s;
-	s = bc_num_ulong(num, &val);
-	if (s) return s;
+	s = zbc_program_prep(&opnd, &num);
+	if (s) RETURN_STATUS(s);
+	s = zbc_num_ulong(num, &val);
+	if (s) RETURN_STATUS(s);
 
 	bc_vec_pop(&G.prog.results);
 
 	if (G.prog.stack.len < val)
-		return bc_error_stack_has_too_few_elements();
+		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	if (G.prog.stack.len == val) {
 		QUIT_OR_RETURN_TO_MAIN;
 	}
 
 	bc_vec_npop(&G.prog.stack, val);
 
-	return s;
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define bc_program_nquit(...) (bc_program_nquit(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_program_nquit(...) (zbc_program_nquit(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static BcStatus bc_program_execStr(char *code, size_t *bgn,
@@ -6665,7 +6672,7 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 			sidx = r->d.id.idx;
 		} else if (r->t == BC_RESULT_VAR) {
 			BcNum *n;
-			s = bc_program_num(r, &n, false);
+			s = zbc_program_num(r, &n, false);
 			if (s || !BC_PROG_STR(n)) goto exit;
 			sidx = n->rdx;
 		} else
@@ -6776,7 +6783,7 @@ static BcStatus bc_program_exec(void)
 		switch (inst) {
 #if ENABLE_BC
 			case BC_INST_JUMP_ZERO:
-				s = bc_program_prep(&ptr, &num);
+				s = zbc_program_prep(&ptr, &num);
 				if (s) return s;
 				cond = !bc_num_cmp(num, &G.prog.zero);
 				bc_vec_pop(&G.prog.results);
@@ -6789,20 +6796,20 @@ static BcStatus bc_program_exec(void)
 				break;
 			}
 			case BC_INST_CALL:
-				s = bc_program_call(code, &ip->idx);
+				s = zbc_program_call(code, &ip->idx);
 				break;
 			case BC_INST_INC_PRE:
 			case BC_INST_DEC_PRE:
 			case BC_INST_INC_POST:
 			case BC_INST_DEC_POST:
-				s = bc_program_incdec(inst);
+				s = zbc_program_incdec(inst);
 				break;
 			case BC_INST_HALT:
 				QUIT_OR_RETURN_TO_MAIN;
 				break;
 			case BC_INST_RET:
 			case BC_INST_RET0:
-				s = bc_program_return(inst);
+				s = zbc_program_return(inst);
 				break;
 			case BC_INST_BOOL_OR:
 			case BC_INST_BOOL_AND:
@@ -6823,7 +6830,7 @@ static BcStatus bc_program_exec(void)
 				break;
 			case BC_INST_ARRAY_ELEM:
 			case BC_INST_ARRAY:
-				s = bc_program_pushArray(code, &ip->idx, inst);
+				s = zbc_program_pushArray(code, &ip->idx, inst);
 				break;
 			case BC_INST_LAST:
 				r.t = BC_RESULT_LAST;
@@ -6856,7 +6863,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_PRINT:
 			case BC_INST_PRINT_POP:
 			case BC_INST_PRINT_STR:
-				s = bc_program_print(inst, 0);
+				s = zbc_program_print(inst, 0);
 				break;
 			case BC_INST_STR:
 				r.t = BC_RESULT_STR;
@@ -6872,7 +6879,7 @@ static BcStatus bc_program_exec(void)
 				s = bc_program_op(inst);
 				break;
 			case BC_INST_BOOL_NOT:
-				s = bc_program_prep(&ptr, &num);
+				s = zbc_program_prep(&ptr, &num);
 				if (s) return s;
 				bc_num_init_DEF_SIZE(&r.d.n);
 				if (!bc_num_cmp(num, &G.prog.zero))
@@ -6881,7 +6888,7 @@ static BcStatus bc_program_exec(void)
 				bc_program_retire(&r, BC_RESULT_TEMP);
 				break;
 			case BC_INST_NEG:
-				s = bc_program_negate();
+				s = zbc_program_negate();
 				break;
 #if ENABLE_BC
 			case BC_INST_ASSIGN_POWER:
@@ -6909,7 +6916,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_PRINT_STACK: {
 				size_t idx;
 				for (idx = 0; idx < G.prog.results.len; ++idx) {
-					s = bc_program_print(BC_INST_PRINT, idx);
+					s = zbc_program_print(BC_INST_PRINT, idx);
 					if (s) break;
 				}
 				break;
@@ -6942,7 +6949,7 @@ static BcStatus bc_program_exec(void)
 				s = bc_program_asciify();
 				break;
 			case BC_INST_PRINT_STREAM:
-				s = bc_program_printStream();
+				s = zbc_program_printStream();
 				break;
 			case BC_INST_LOAD:
 			case BC_INST_PUSH_VAR: {
@@ -6952,7 +6959,7 @@ static BcStatus bc_program_exec(void)
 			}
 			case BC_INST_PUSH_TO_VAR: {
 				char *name = bc_program_name(code, &ip->idx);
-				s = bc_program_copyToVar(name, true);
+				s = zbc_program_copyToVar(name, true);
 				free(name);
 				break;
 			}
@@ -6962,7 +6969,7 @@ static BcStatus bc_program_exec(void)
 				bc_vec_npop(&G.prog.stack, 2);
 				break;
 			case BC_INST_NQUIT:
-				s = bc_program_nquit();
+				s = zbc_program_nquit();
 				break;
 #endif // ENABLE_DC
 		}
