@@ -5793,8 +5793,7 @@ static BC_STATUS zbc_program_logical(char inst)
 	BcStatus s;
 	BcResult *opd1, *opd2, res;
 	BcNum *n1, *n2;
-	bool cond = 0;
-	ssize_t cmp;
+	ssize_t cond;
 
 	s = zbc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) RETURN_STATUS(s);
@@ -5806,25 +5805,25 @@ static BC_STATUS zbc_program_logical(char inst)
 	else if (inst == BC_INST_BOOL_OR)
 		cond = bc_num_cmp(n1, &G.prog.zero) || bc_num_cmp(n2, &G.prog.zero);
 	else {
-		cmp = bc_num_cmp(n1, n2);
+		cond = bc_num_cmp(n1, n2);
 		switch (inst) {
 		case BC_INST_REL_EQ:
-			cond = cmp == 0;
+			cond = (cond == 0);
 			break;
 		case BC_INST_REL_LE:
-			cond = cmp <= 0;
+			cond = (cond <= 0);
 			break;
 		case BC_INST_REL_GE:
-			cond = cmp >= 0;
-			break;
-		case BC_INST_REL_NE:
-			cond = cmp != 0;
+			cond = (cond >= 0);
 			break;
 		case BC_INST_REL_LT:
-			cond = cmp < 0;
+			cond = (cond < 0);
 			break;
 		case BC_INST_REL_GT:
-			cond = cmp > 0;
+			cond = (cond > 0);
+			break;
+		default: // = case BC_INST_REL_NE:
+			//cond = (cond != 0); - not needed
 			break;
 		}
 	}
