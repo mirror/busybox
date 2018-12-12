@@ -7060,7 +7060,7 @@ err:
 # define zbc_vm_file(...) (zbc_vm_file(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_vm_stdin(void)
+static BC_STATUS zbc_vm_stdin(void)
 {
 	BcStatus s;
 	BcVec buf, buffer;
@@ -7148,8 +7148,11 @@ static BcStatus bc_vm_stdin(void)
 
 	bc_vec_free(&buf);
 	bc_vec_free(&buffer);
-	return s;
+	RETURN_STATUS(s);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_vm_stdin(...) (zbc_vm_stdin(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 #if ENABLE_BC
 static const char bc_lib[] = {
@@ -7328,7 +7331,7 @@ static const char bc_lib[] = {
 };
 #endif // ENABLE_BC
 
-static BcStatus bc_vm_exec(void)
+static BC_STATUS zbc_vm_exec(void)
 {
 	BcStatus s;
 	size_t i;
@@ -7341,14 +7344,14 @@ static BcStatus bc_vm_exec(void)
 # define DEBUG_LIB 0
 		bc_lex_file(&G.prs.l);
 		s = zbc_parse_text(&G.prs, bc_lib);
-		if (DEBUG_LIB && s) return s;
+		if (DEBUG_LIB && s) RETURN_STATUS(s);
 
 		while (G.prs.l.t.t != BC_LEX_EOF) {
 			ERROR_RETURN(s =) G.prs.parse(&G.prs);
-			if (DEBUG_LIB && s) return s;
+			if (DEBUG_LIB && s) RETURN_STATUS(s);
 		}
 		s = zbc_program_exec();
-		if (DEBUG_LIB && s) return s;
+		if (DEBUG_LIB && s) RETURN_STATUS(s);
 	}
 #endif
 
@@ -7359,17 +7362,20 @@ static BcStatus bc_vm_exec(void)
 		// Debug config, non-interactive mode:
 		// return all the way back to main.
 		// Non-debug builds do not come here, they exit.
-		return s;
+		RETURN_STATUS(s);
 	}
 
 	if (IS_BC || (option_mask32 & BC_FLAG_I))
-		s = bc_vm_stdin();
+		s = zbc_vm_stdin();
 
 	if (!s && !BC_PARSE_CAN_EXEC(&G.prs))
 		s = zbc_vm_process("");
 
-	return s;
+	RETURN_STATUS(s);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_vm_exec(...) (zbc_vm_exec(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 #if ENABLE_FEATURE_CLEAN_UP
 static void bc_program_free(void)
@@ -7499,7 +7505,7 @@ static int bc_vm_init(const char *env_len)
 
 static BcStatus bc_vm_run(void)
 {
-	BcStatus st = bc_vm_exec();
+	BcStatus st = zbc_vm_exec();
 #if ENABLE_FEATURE_CLEAN_UP
 	if (G_exiting) // it was actually "halt" or "quit"
 		st = EXIT_SUCCESS;
