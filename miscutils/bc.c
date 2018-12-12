@@ -1425,7 +1425,9 @@ static BcStatus bc_read_line(BcVec *vec)
 				if (c == EOF) {
 					if (ferror(stdin))
 						quit(); // this emits error message
-					s = BC_STATUS_EOF;
+					// If we had some input before EOF, do not report EOF yet:
+					if (vec->len == 0)
+						s = BC_STATUS_EOF;
 					// Note: EOF does not append '\n', therefore:
 					// printf 'print 123\n' | bc - works
 					// printf 'print 123' | bc   - fails (syntax error)
