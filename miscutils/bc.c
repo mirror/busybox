@@ -549,9 +549,6 @@ enum {
 # define BC_STATUS void
 #endif
 
-struct BcLex;
-typedef BC_STATUS (*BcLexNext)(struct BcLex *) FAST_FUNC;
-
 typedef struct BcLex {
 
 	const char *buf;
@@ -565,8 +562,6 @@ typedef struct BcLex {
 		BcLexType last;
 		BcVec v;
 	} t;
-
-	BcLexNext next;
 
 } BcLex;
 
@@ -2911,9 +2906,8 @@ static void bc_lex_name(BcLex *l)
 	//return BC_STATUS_SUCCESS;
 }
 
-static void bc_lex_init(BcLex *l, BcLexNext next)
+static void bc_lex_init(BcLex *l)
 {
-	l->next = next;
 	bc_char_vec_init(&l->t.v);
 }
 
@@ -2926,6 +2920,17 @@ static void bc_lex_file(BcLex *l)
 {
 	G.err_line = l->line = 1;
 	l->newline = false;
+}
+
+static BC_STATUS zbc_lex_token(BcLex *l);
+static BC_STATUS zdc_lex_token(BcLex *l);
+
+static BC_STATUS zcommon_lex_token(BcLex *l)
+{
+	if (IS_BC) {
+		IF_BC(RETURN_STATUS(zbc_lex_token(l));)
+	}
+	IF_DC(RETURN_STATUS(zdc_lex_token(l));)
 }
 
 static BC_STATUS zbc_lex_next(BcLex *l)
@@ -2947,7 +2952,7 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 	s = BC_STATUS_SUCCESS;
 	do {
 //TODO: replace pointer with if(IS_BC)
-		ERROR_RETURN(s =) l->next(l);
+		ERROR_RETURN(s =) zcommon_lex_token(l);
 	} while (!s && l->t.t == BC_LEX_WHITESPACE);
 
 	RETURN_STATUS(s);
@@ -3091,7 +3096,7 @@ static BC_STATUS zbc_lex_comment(BcLex *l)
 # define zbc_lex_comment(...) (zbc_lex_comment(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static FAST_FUNC BC_STATUS zbc_lex_token(BcLex *l)
+static BC_STATUS zbc_lex_token(BcLex *l)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	char c = l->buf[l->i++], c2;
@@ -3341,7 +3346,7 @@ static BC_STATUS zdc_lex_string(BcLex *l)
 # define zdc_lex_string(...) (zdc_lex_string(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static FAST_FUNC BC_STATUS zdc_lex_token(BcLex *l)
+static BC_STATUS zdc_lex_token(BcLex *l)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	char c = l->buf[l->i++], c2;
@@ -3563,11 +3568,11 @@ static void bc_parse_free(BcParse *p)
 	bc_lex_free(&p->l);
 }
 
-static void bc_parse_create(BcParse *p, size_t func, BcLexNext next)
+static void bc_parse_create(BcParse *p, size_t func)
 {
 	memset(p, 0, sizeof(BcParse));
 
-	bc_lex_init(&p->l, next);
+	bc_lex_init(&p->l);
 	bc_vec_init(&p->flags, sizeof(uint8_t), NULL);
 	bc_vec_init(&p->exits, sizeof(BcInstPtr), NULL);
 	bc_vec_init(&p->conds, sizeof(size_t), NULL);
@@ -4933,11 +4938,6 @@ static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 # define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static void bc_parse_init(BcParse *p, size_t func)
-{
-	bc_parse_create(p, func, zbc_lex_token);
-}
-
 static BC_STATUS zbc_parse_expression(BcParse *p, uint8_t flags)
 {
 	RETURN_STATUS(zbc_parse_expr(p, flags, bc_parse_next_read));
@@ -5159,21 +5159,7 @@ static BC_STATUS zdc_parse_parse(BcParse *p)
 # define zdc_parse_parse(...) (zdc_parse_parse(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static void dc_parse_init(BcParse *p, size_t func)
-{
-	bc_parse_create(p, func, zdc_lex_token);
-}
-
 #endif // ENABLE_DC
-
-static void common_parse_init(BcParse *p, size_t func)
-{
-	if (IS_BC) {
-		IF_BC(bc_parse_init(p, func);)
-	} else {
-		IF_DC(dc_parse_init(p, func);)
-	}
-}
 
 static BC_STATUS zcommon_parse_expr(BcParse *p, uint8_t flags)
 {
@@ -5411,7 +5397,7 @@ static BC_STATUS zbc_program_read(void)
 
 	bc_read_line(&buf);
 
-	common_parse_init(&parse, BC_PROG_READ);
+	bc_parse_create(&parse, BC_PROG_READ);
 	bc_lex_file(&parse.l);
 
 	s = zbc_parse_text(&parse, buf.v);
@@ -6612,7 +6598,7 @@ static BC_STATUS zbc_program_execStr(char *code, size_t *bgn,
 	f = bc_program_func(fidx);
 
 	if (f->code.len == 0) {
-		common_parse_init(&prs, fidx);
+		bc_parse_create(&prs, fidx);
 		s = zbc_parse_text(&prs, *str);
 		if (s) goto err;
 		s = zcommon_parse_expr(&prs, BC_PARSE_NOCALL);
@@ -7480,7 +7466,7 @@ static int bc_vm_init(const char *env_len)
 	if (IS_BC)
 		IF_BC(bc_vm_envArgs();)
 	bc_program_init();
-	common_parse_init(&G.prs, BC_PROG_MAIN);
+	bc_parse_create(&G.prs, BC_PROG_MAIN);
 
 	if (isatty(0)) {
 #if ENABLE_FEATURE_BC_SIGNALS
