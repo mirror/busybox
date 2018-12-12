@@ -3460,16 +3460,23 @@ static void bc_parse_pushName(BcParse *p, char *name)
 
 static void bc_parse_pushIndex(BcParse *p, size_t idx)
 {
-	unsigned char amt, i, nums[sizeof(size_t)];
+	size_t mask;
+	unsigned amt;
 
-///oh boy
-	for (amt = 0; idx; ++amt) {
-		nums[amt] = (char) idx;
-		idx = (idx & ((unsigned long) ~(UCHAR_MAX))) >> sizeof(char) * CHAR_BIT;
-	}
+	mask = ((size_t)0xff) << (sizeof(idx) * 8 - 8);
+	amt = sizeof(idx);
+	do {
+		if (idx & mask) break;
+		mask >>= 8;
+		amt--;
+	} while (amt != 0);
 
 	bc_parse_push(p, amt);
-	for (i = 0; i < amt; ++i) bc_parse_push(p, nums[i]);
+
+	while (idx != 0) {
+		bc_parse_push(p, (unsigned char)idx);
+		idx >>= 8;
+	}
 }
 
 static void bc_parse_number(BcParse *p, BcInst *prev, size_t *nexs)
