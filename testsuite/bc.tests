@@ -1,0 +1,19 @@
+#!/bin/sh
+# Copyright 2018 by Denys Vlasenko
+# Licensed under GPLv2 or later, see file LICENSE in this source tree.
+
+. ./testing.sh
+
+tar xJf bc_large.tar.xz
+
+for f in bc*.bc; do
+	r="`basename "$f" .bc`_results.txt"
+	test -f "$r" || continue
+	# testing "test name" "command" "expected result" "file input" "stdin"
+	testing "bc -lq $f" \
+		"{ { bc -lq $f 2>&1; echo E:\$? >&2; } | diff -u - $r; echo E:\$?; } 2>&1" \
+		"E:0\nE:0\n" \
+		"" ""
+done
+
+exit $FAILCOUNT

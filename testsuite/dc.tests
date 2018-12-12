@@ -41,4 +41,24 @@ testing "dc complex without spaces (multiple args)" \
 	"16\n" \
 	"" ""
 
+for f in dc_*.dc; do
+	r="`basename "$f" .dc`_results.txt"
+	test -f "$r" || continue
+	# testing "test name" "command" "expected result" "file input" "stdin"
+	testing "dc $f" \
+		"{ { dc $f 2>&1; echo E:\$? >&2; } | diff -u - $r; echo E:\$?; } 2>&1" \
+		"E:0\nE:0\n" \
+		"" ""
+done
+
+for f in dcx_*.dc; do
+	r="`basename "$f" .dc`_results.txt"
+	test -f "$r" || continue
+	# testing "test name" "command" "expected result" "file input" "stdin"
+	testing "dc -x $f" \
+		"{ { dc -x $f 2>&1; echo E:\$? >&2; } | diff -u - $r; echo E:\$?; } 2>&1" \
+		"E:0\nE:0\n" \
+		"" ""
+done
+
 exit $FAILCOUNT
