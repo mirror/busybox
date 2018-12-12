@@ -1601,46 +1601,44 @@ static ssize_t bc_num_cmp(BcNum *a, BcNum *b)
 {
 	size_t i, min, a_int, b_int, diff;
 	BcDig *max_num, *min_num;
-	bool a_max, neg = false;
+	bool a_max, neg;
 	ssize_t cmp;
 
 	if (a == b) return 0;
 	if (a->len == 0) return BC_NUM_NEG(!!b->len, !b->neg);
 	if (b->len == 0) return BC_NUM_NEG(1, a->neg);
-	if (a->neg) {
-		if (b->neg)
-			neg = true;
-		else
-			return -1;
-	}
-	else if (b->neg)
-		return 1;
+
+	if (a->neg != b->neg) // signs of a and b differ
+		// +a,-b = a>b = 1 or -a,+b = a<b = -1
+		return (int)b->neg - (int)a->neg;
+	neg = a->neg; // 1 if both negative, 0 if both positive
 
 	a_int = BC_NUM_INT(a);
 	b_int = BC_NUM_INT(b);
 	a_int -= b_int;
-	a_max = (a->rdx > b->rdx);
 
 	if (a_int != 0) return (ssize_t) a_int;
 
+	a_max = (a->rdx > b->rdx);
 	if (a_max) {
 		min = b->rdx;
 		diff = a->rdx - b->rdx;
 		max_num = a->num + diff;
 		min_num = b->num;
-	}
-	else {
+		// neg = (a_max == neg); - NOP (maps 1->1 and 0->0)
+	} else {
 		min = a->rdx;
 		diff = b->rdx - a->rdx;
 		max_num = b->num + diff;
 		min_num = a->num;
+		neg = !neg; // same as "neg = (a_max == neg)"
 	}
 
 	cmp = bc_num_compare(max_num, min_num, b_int + min);
-	if (cmp != 0) return BC_NUM_NEG(cmp, (!a_max) != neg);
+	if (cmp != 0) return BC_NUM_NEG(cmp, neg);
 
 	for (max_num -= diff, i = diff - 1; i < diff; --i) {
-		if (max_num[i]) return BC_NUM_NEG(1, (!a_max) != neg);
+		if (max_num[i]) return BC_NUM_NEG(1, neg);
 	}
 
 	return 0;
