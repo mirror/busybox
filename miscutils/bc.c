@@ -187,7 +187,6 @@ typedef enum BcStatus {
 	BC_STATUS_SUCCESS = 0,
 	BC_STATUS_FAILURE = 1,
 	BC_STATUS_PARSE_EMPTY_EXP = 2, // bc_parse_expr_empty_ok() uses this
-	BC_STATUS_EOF = 3, // bc_vm_stdin() uses this
 } BcStatus;
 
 #define BC_VEC_INVALID_IDX ((size_t) -1)
@@ -1364,15 +1363,10 @@ static int push_input_byte(BcVec *vec, char c)
 	return 0;
 }
 
-// This is not a "z" function:
-// can return success (0) or BC_STATUS_EOF.
-// Exits with error message if read error is detected.
-static BcStatus bc_read_line(BcVec *vec)
+static void bc_read_line(BcVec *vec)
 {
-	BcStatus s;
 	bool bad_chars;
 
-	s = BC_STATUS_SUCCESS;
 	do {
 		int c;
 
@@ -1397,7 +1391,6 @@ static BcStatus bc_read_line(BcVec *vec)
 			if (n <= 0) { // read errors or EOF, or ^D, or ^C
 				if (n == 0) // ^C
 					goto intr;
-				s = BC_STATUS_EOF;
 				break;
 			}
 			i = 0;
@@ -1425,9 +1418,6 @@ static BcStatus bc_read_line(BcVec *vec)
 				if (c == EOF) {
 					if (ferror(stdin))
 						quit(); // this emits error message
-					// If we had some input before EOF, do not report EOF yet:
-					if (vec->len == 0)
-						s = BC_STATUS_EOF;
 					// Note: EOF does not append '\n', therefore:
 					// printf 'print 123\n' | bc - works
 					// printf 'print 123' | bc   - fails (syntax error)
@@ -1439,8 +1429,6 @@ static BcStatus bc_read_line(BcVec *vec)
 	} while (bad_chars);
 
 	bc_vec_pushZeroByte(vec);
-
-	return s;
 }
 
 static char* bc_read_file(const char *path)
@@ -5416,8 +5404,7 @@ static BC_STATUS zbc_program_read(void)
 	G.prog.file = NULL;
 	G.in_read = 1;
 
-	s = bc_read_line(&buf);
-	//if (s) goto io_err; - wrong, nonzero return means EOF, not error
+	bc_read_line(&buf);
 
 	common_parse_init(&parse, BC_PROG_READ);
 	bc_lex_file(&parse.l);
@@ -7091,13 +7078,18 @@ static BcStatus bc_vm_stdin(void)
 	// with a backslash to the parser. The reason for that is because the parser
 	// treats a backslash+newline combo as whitespace, per the bc spec. In that
 	// case, and for strings and comments, the parser will expect more stuff.
+	s = BC_STATUS_SUCCESS;
 	comment = false;
 	str = 0;
-	while ((s = bc_read_line(&buf)) == BC_STATUS_SUCCESS) {
+	for (;;) {
 		size_t len;
-		char *string = buf.v;
+		char *string;
 
+		bc_read_line(&buf);
 		len = buf.len - 1;
+		if (len == 0) // "" buf means EOF
+			break;
+		string = buf.v;
 		if (len == 1) {
 			if (str && buf.v[0] == G.send)
 				str -= 1;
@@ -7146,8 +7138,6 @@ static BcStatus bc_vm_stdin(void)
 
 		bc_vec_pop_all(&buffer);
 	}
-	if (s == BC_STATUS_EOF) // input EOF (^D) is not an error
-		s = BC_STATUS_SUCCESS;
 
 	if (str) {
 		s = bc_error("string end could not be found");
