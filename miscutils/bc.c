@@ -6549,7 +6549,7 @@ static BC_STATUS zbc_program_nquit(void)
 # define zbc_program_nquit(...) (zbc_program_nquit(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BcStatus bc_program_execStr(char *code, size_t *bgn,
+static BC_STATUS zbc_program_execStr(char *code, size_t *bgn,
                                    bool cond)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
@@ -6561,7 +6561,7 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 	size_t fidx, sidx;
 
 	if (!BC_PROG_STACK(&G.prog.results, 1))
-		return bc_error_stack_has_too_few_elements();
+		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	r = bc_vec_top(&G.prog.results);
 
@@ -6639,7 +6639,7 @@ static BcStatus bc_program_execStr(char *code, size_t *bgn,
 	bc_vec_pop(&G.prog.results);
 	bc_vec_push(&G.prog.stack, &ip);
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 
 err:
 	bc_parse_free(&prs);
@@ -6647,8 +6647,11 @@ err:
 	bc_vec_pop_all(&f->code);
 exit:
 	bc_vec_pop(&G.prog.results);
-	return s;
+	RETURN_STATUS(s);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_program_execStr(...) (zbc_program_execStr(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 #endif // ENABLE_DC
 
 static void bc_program_pushGlobal(char inst)
@@ -6700,7 +6703,7 @@ static void bc_program_addFunc(char *name, size_t *idx)
 	}
 }
 
-static BcStatus bc_program_exec(void)
+static BC_STATUS zbc_program_exec(void)
 {
 	BcResult r, *ptr;
 	BcNum *num;
@@ -6717,7 +6720,7 @@ static BcStatus bc_program_exec(void)
 #if ENABLE_BC
 			case BC_INST_JUMP_ZERO:
 				s = zbc_program_prep(&ptr, &num);
-				if (s) return s;
+				if (s) RETURN_STATUS(s);
 				cond = !bc_num_cmp(num, &G.prog.zero);
 				bc_vec_pop(&G.prog.results);
 				// Fallthrough.
@@ -6813,7 +6816,7 @@ static BcStatus bc_program_exec(void)
 				break;
 			case BC_INST_BOOL_NOT:
 				s = zbc_program_prep(&ptr, &num);
-				if (s) return s;
+				if (s) RETURN_STATUS(s);
 				bc_num_init_DEF_SIZE(&r.d.n);
 				if (!bc_num_cmp(num, &G.prog.zero))
 					bc_num_one(&r.d.n);
@@ -6844,7 +6847,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_EXECUTE:
 			case BC_INST_EXEC_COND:
 				cond = inst == BC_INST_EXEC_COND;
-				s = bc_program_execStr(code, &ip->idx, cond);
+				s = zbc_program_execStr(code, &ip->idx, cond);
 				break;
 			case BC_INST_PRINT_STACK: {
 				size_t idx;
@@ -6862,7 +6865,7 @@ static BcStatus bc_program_exec(void)
 				break;
 			case BC_INST_DUPLICATE:
 				if (!BC_PROG_STACK(&G.prog.results, 1))
-					return bc_error_stack_has_too_few_elements();
+					RETURN_STATUS(bc_error_stack_has_too_few_elements());
 				ptr = bc_vec_top(&G.prog.results);
 				bc_result_copy(&r, ptr);
 				bc_vec_push(&G.prog.results, &r);
@@ -6870,7 +6873,7 @@ static BcStatus bc_program_exec(void)
 			case BC_INST_SWAP: {
 				BcResult *ptr2;
 				if (!BC_PROG_STACK(&G.prog.results, 2))
-					return bc_error_stack_has_too_few_elements();
+					RETURN_STATUS(bc_error_stack_has_too_few_elements());
 				ptr = bc_vec_item_rev(&G.prog.results, 0);
 				ptr2 = bc_vec_item_rev(&G.prog.results, 1);
 				memcpy(&r, ptr, sizeof(BcResult));
@@ -6909,7 +6912,7 @@ static BcStatus bc_program_exec(void)
 
 		if (s || G_interrupt) {
 			bc_program_reset();
-			return s;
+			RETURN_STATUS(s);
 		}
 
 		// If the stack has changed, pointers may be invalid.
@@ -6918,8 +6921,11 @@ static BcStatus bc_program_exec(void)
 		code = func->code.v;
 	}
 
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_program_exec(...) (zbc_program_exec(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 #if ENABLE_BC
 static void bc_vm_info(void)
@@ -7009,28 +7015,31 @@ static unsigned bc_vm_envLen(const char *var)
 	return len;
 }
 
-static BcStatus bc_vm_process(const char *text)
+static BC_STATUS zbc_vm_process(const char *text)
 {
 	BcStatus s = zbc_parse_text(&G.prs, text);
 
-	if (s) return s;
+	if (s) RETURN_STATUS(s);
 
 	while (G.prs.l.t.t != BC_LEX_EOF) {
 		ERROR_RETURN(s =) G.prs.parse(&G.prs);
-		if (s) return s;
+		if (s) RETURN_STATUS(s);
 	}
 
 	if (BC_PARSE_CAN_EXEC(&G.prs)) {
-		s = bc_program_exec();
+		s = zbc_program_exec();
 		fflush_and_check();
 		if (s)
 			bc_program_reset();
 	}
 
-	return s;
+	RETURN_STATUS(s);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_vm_process(...) (zbc_vm_process(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
-static BcStatus bc_vm_file(const char *file)
+static BC_STATUS zbc_vm_file(const char *file)
 {
 	const char *sv_file;
 	char *data;
@@ -7039,12 +7048,12 @@ static BcStatus bc_vm_file(const char *file)
 	BcInstPtr *ip;
 
 	data = bc_read_file(file);
-	if (!data) return bc_error_fmt("file '%s' is not text", file);
+	if (!data) RETURN_STATUS(bc_error_fmt("file '%s' is not text", file));
 
 	sv_file = G.prog.file;
 	G.prog.file = file;
 	bc_lex_file(&G.prs.l);
-	s = bc_vm_process(data);
+	s = zbc_vm_process(data);
 	if (s) goto err;
 
 	main_func = bc_program_func(BC_PROG_MAIN);
@@ -7056,8 +7065,11 @@ static BcStatus bc_vm_file(const char *file)
 err:
 	G.prog.file = sv_file;
 	free(data);
-	return s;
+	RETURN_STATUS(s);
 }
+#if ERRORS_ARE_FATAL
+# define zbc_vm_file(...) (zbc_vm_file(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
 
 static BcStatus bc_vm_stdin(void)
 {
@@ -7120,7 +7132,7 @@ static BcStatus bc_vm_stdin(void)
 		}
 
 		bc_vec_concat(&buffer, buf.v);
-		s = bc_vm_process(buffer.v);
+		s = zbc_vm_process(buffer.v);
 		if (s) {
 			if (ENABLE_FEATURE_CLEAN_UP && !G_ttyin) {
 				// Debug config, non-interactive mode:
@@ -7343,14 +7355,14 @@ static BcStatus bc_vm_exec(void)
 			ERROR_RETURN(s =) G.prs.parse(&G.prs);
 			if (DEBUG_LIB && s) return s;
 		}
-		s = bc_program_exec();
+		s = zbc_program_exec();
 		if (DEBUG_LIB && s) return s;
 	}
 #endif
 
 	s = BC_STATUS_SUCCESS;
 	for (i = 0; !s && i < G.files.len; ++i)
-		s = bc_vm_file(*((char **) bc_vec_item(&G.files, i)));
+		s = zbc_vm_file(*((char **) bc_vec_item(&G.files, i)));
 	if (ENABLE_FEATURE_CLEAN_UP && s && !G_ttyin) {
 		// Debug config, non-interactive mode:
 		// return all the way back to main.
@@ -7362,7 +7374,7 @@ static BcStatus bc_vm_exec(void)
 		s = bc_vm_stdin();
 
 	if (!s && !BC_PARSE_CAN_EXEC(&G.prs))
-		s = bc_vm_process("");
+		s = zbc_vm_process("");
 
 	return s;
 }
@@ -7560,12 +7572,13 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 		switch (n) {
 		case 'e':
 			noscript = 0;
-			n = bc_vm_process(optarg);
+			n = zbc_vm_process(optarg);
 			if (n) return n;
 			break;
 		case 'f':
 			noscript = 0;
-			bc_vm_file(optarg);
+			n = zbc_vm_file(optarg);
+			if (n) return n;
 			break;
 		case 'x':
 			option_mask32 |= DC_FLAG_X;
