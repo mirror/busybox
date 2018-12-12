@@ -3038,7 +3038,7 @@ static BC_STATUS zbc_lex_string(BcLex *l)
 	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
 	if (SIZE_MAX > (BC_MAX_STRING | 0xff)) {
 		if (len > BC_MAX_STRING)
-			RETURN_STATUS(("string too long: must be [1,"BC_MAX_STRING_STR"]"));
+			RETURN_STATUS(bc_error("string too long: must be [1,"BC_MAX_STRING_STR"]"));
 	}
 	bc_vec_string(&l->t.v, len, l->buf + l->i);
 
