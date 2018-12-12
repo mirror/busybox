@@ -617,11 +617,7 @@ struct BcParse;
 
 struct BcProgram;
 
-typedef BC_STATUS (*BcParseParse)(struct BcParse *) FAST_FUNC;
-
 typedef struct BcParse {
-
-	BcParseParse parse;
 
 	BcLex l;
 
@@ -3483,6 +3479,17 @@ static void bc_parse_number(BcParse *p, BcInst *prev, size_t *nexs)
 	(*prev) = BC_INST_NUM;
 }
 
+static BC_STATUS zbc_parse_parse(BcParse *p);
+static BC_STATUS zdc_parse_parse(BcParse *p);
+
+static BC_STATUS zcommon_parse(BcParse *p)
+{
+	if (IS_BC) {
+		IF_BC(RETURN_STATUS(zbc_parse_parse(p));)
+	}
+	IF_DC(RETURN_STATUS(zdc_parse_parse(p));)
+}
+
 static BC_STATUS zbc_parse_text(BcParse *p, const char *text)
 {
 	BcStatus s;
@@ -3492,7 +3499,7 @@ static BC_STATUS zbc_parse_text(BcParse *p, const char *text)
 	if (!text[0] && !BC_PARSE_CAN_EXEC(p)) {
 		p->l.t.t = BC_LEX_INVALID;
 		s = BC_STATUS_SUCCESS;
-		ERROR_RETURN(s =) p->parse(p);
+		ERROR_RETURN(s =) zcommon_parse(p);
 		if (s) RETURN_STATUS(s);
 		if (!BC_PARSE_CAN_EXEC(p))
 			RETURN_STATUS(bc_error("file is not executable"));
@@ -3556,8 +3563,7 @@ static void bc_parse_free(BcParse *p)
 	bc_lex_free(&p->l);
 }
 
-static void bc_parse_create(BcParse *p, size_t func,
-                            BcParseParse parse, BcLexNext next)
+static void bc_parse_create(BcParse *p, size_t func, BcLexNext next)
 {
 	memset(p, 0, sizeof(BcParse));
 
@@ -3568,7 +3574,6 @@ static void bc_parse_create(BcParse *p, size_t func,
 	bc_vec_pushZeroByte(&p->flags);
 	bc_vec_init(&p->ops, sizeof(BcLexType), NULL);
 
-	p->parse = parse;
 	// p->auto_part = p->nbraces = 0; - already is
 	bc_parse_updateFunc(p, func);
 }
@@ -4630,7 +4635,7 @@ static BC_STATUS zbc_parse_stmt(BcParse *p)
 # define zbc_parse_stmt(...) (zbc_parse_stmt(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static FAST_FUNC BC_STATUS zbc_parse_parse(BcParse *p)
+static BC_STATUS zbc_parse_parse(BcParse *p)
 {
 	BcStatus s;
 
@@ -4930,7 +4935,7 @@ static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 
 static void bc_parse_init(BcParse *p, size_t func)
 {
-	bc_parse_create(p, func, zbc_parse_parse, zbc_lex_token);
+	bc_parse_create(p, func, zbc_lex_token);
 }
 
 static BC_STATUS zbc_parse_expression(BcParse *p, uint8_t flags)
@@ -5134,7 +5139,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 # define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static FAST_FUNC BC_STATUS zdc_parse_parse(BcParse *p)
+static BC_STATUS zdc_parse_parse(BcParse *p)
 {
 	BcStatus s;
 
@@ -5156,7 +5161,7 @@ static FAST_FUNC BC_STATUS zdc_parse_parse(BcParse *p)
 
 static void dc_parse_init(BcParse *p, size_t func)
 {
-	bc_parse_create(p, func, zdc_parse_parse, zdc_lex_token);
+	bc_parse_create(p, func, zdc_lex_token);
 }
 
 #endif // ENABLE_DC
@@ -7011,7 +7016,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 	if (s) RETURN_STATUS(s);
 
 	while (G.prs.l.t.t != BC_LEX_EOF) {
-		ERROR_RETURN(s =) G.prs.parse(&G.prs);
+		ERROR_RETURN(s =) zcommon_parse(&G.prs);
 		if (s) RETURN_STATUS(s);
 	}
 
@@ -7347,7 +7352,7 @@ static BC_STATUS zbc_vm_exec(void)
 		if (DEBUG_LIB && s) RETURN_STATUS(s);
 
 		while (G.prs.l.t.t != BC_LEX_EOF) {
-			ERROR_RETURN(s =) G.prs.parse(&G.prs);
+			ERROR_RETURN(s =) zcommon_parse(&G.prs);
 			if (DEBUG_LIB && s) RETURN_STATUS(s);
 		}
 		s = zbc_program_exec();
