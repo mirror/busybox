@@ -7458,8 +7458,7 @@ static int bc_vm_init(const char *env_len)
 	G.prog.len = bc_vm_envLen(env_len);
 
 	bc_vec_init(&G.files, sizeof(char *), NULL);
-	if (IS_BC)
-		IF_BC(bc_vm_envArgs();)
+	IF_BC(if (IS_BC) bc_vm_envArgs();)
 	bc_program_init();
 	bc_parse_create(&G.prs, BC_PROG_MAIN);
 
