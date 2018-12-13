@@ -7088,10 +7088,13 @@ static BC_STATUS zbc_vm_stdin(void)
 				string++;
 				if (c == '/' && *string == '*') {
 					comment = true;
-					break;
+					string++;
+					continue;
 				}
-				if (c == '*' && *string == '/')
+				if (c == '*' && *string == '/') {
 					comment = false;
+					string++;
+				}
 			}
 			if (str || comment || string[-2] == '\\') {
 				bc_vec_concat(&buffer, buf.v);
