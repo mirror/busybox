@@ -1226,6 +1226,7 @@ static void bc_vec_string(BcVec *v, size_t len, const char *str)
 	bc_vec_pushZeroByte(v);
 }
 
+#if ENABLE_FEATURE_BC_SIGNALS && ENABLE_FEATURE_EDITING
 static void bc_vec_concat(BcVec *v, const char *str)
 {
 	size_t len, slen;
@@ -1240,6 +1241,7 @@ static void bc_vec_concat(BcVec *v, const char *str)
 
 	v->len = len;
 }
+#endif
 
 static void *bc_vec_item(const BcVec *v, size_t idx)
 {
@@ -1326,29 +1328,21 @@ static size_t bc_map_index(const BcVec *v, const void *ptr)
 }
 #endif
 
-static int push_input_byte(BcVec *vec, char c)
+static int bad_input_byte(char c)
 {
 	if ((c < ' ' && c != '\t' && c != '\r' && c != '\n') // also allow '\v' '\f'?
 	 || c > 0x7e
 	) {
-		// Bad chars on this line, ignore entire line
 		bc_error_fmt("illegal character 0x%02x", c);
 		return 1;
 	}
-	bc_vec_pushByte(vec, (char)c);
 	return 0;
 }
 
+// Note: it _appends_ data from the stdin to vec.
 static void bc_read_line(BcVec *vec)
 {
-	bool bad_chars;
-
-	do {
-		int c;
-
-		bad_chars = 0;
-		bc_vec_pop_all(vec);
-
+ again:
 		fflush_and_check();
 
 #if ENABLE_FEATURE_BC_SIGNALS
@@ -1359,6 +1353,7 @@ static void bc_read_line(BcVec *vec)
 			// GNU dc says "Interrupt!"
 			fputs("\ninterrupted execution\n", stderr);
 		}
+
 # if ENABLE_FEATURE_EDITING
 		if (G_ttyin) {
 			int n, i;
@@ -1371,15 +1366,20 @@ static void bc_read_line(BcVec *vec)
 			}
 			i = 0;
 			for (;;) {
-				c = line_buf[i++];
+				char c = line_buf[i++];
 				if (!c) break;
-				bad_chars |= push_input_byte(vec, c);
+				if (bad_input_byte(c)) goto again;
 			}
+			bc_vec_concat(vec, line_buf);
 #  undef line_buf
 		} else
 # endif
 #endif
 		{
+			int c;
+			bool bad_chars = 0;
+			size_t len = vec->len;
+
 			IF_FEATURE_BC_SIGNALS(errno = 0;)
 			do {
 				c = fgetc(stdin);
@@ -1399,10 +1399,15 @@ static void bc_read_line(BcVec *vec)
 					// printf 'print 123' | bc   - fails (syntax error)
 					break;
 				}
-				bad_chars |= push_input_byte(vec, c);
+				bad_chars |= bad_input_byte(c);
+				bc_vec_pushByte(vec, (char)c);
 			} while (c != '\n');
+			if (bad_chars) {
+				// Bad chars on this line, ignore entire line
+				vec->len = len;
+				goto again;
+			}
 		}
-	} while (bad_chars);
 
 	bc_vec_pushZeroByte(vec);
 }
@@ -5374,12 +5379,12 @@ static BC_STATUS zbc_program_read(void)
 
 	f = bc_program_func(BC_PROG_READ);
 	bc_vec_pop_all(&f->code);
-	bc_char_vec_init(&buf);
 
 	sv_file = G.prog.file;
 	G.prog.file = NULL;
 	G.in_read = 1;
 
+	bc_char_vec_init(&buf);
 	bc_read_line(&buf);
 
 	bc_parse_create(&parse, BC_PROG_READ);
@@ -7039,7 +7044,7 @@ err:
 static BC_STATUS zbc_vm_stdin(void)
 {
 	BcStatus s;
-	BcVec buf, buffer;
+	BcVec buffer;
 	size_t str;
 	bool comment;
 
@@ -7047,8 +7052,6 @@ static BC_STATUS zbc_vm_stdin(void)
 	bc_lex_file(&G.prs.l);
 
 	bc_char_vec_init(&buffer);
-	bc_char_vec_init(&buf);
-	bc_vec_pushZeroByte(&buffer);
 
 	// This loop is complex because the vm tries not to send any lines that end
 	// with a backslash to the parser. The reason for that is because the parser
@@ -7058,16 +7061,18 @@ static BC_STATUS zbc_vm_stdin(void)
 	comment = false;
 	str = 0;
 	for (;;) {
+		size_t prevlen = buffer.len;
 		char *string;
 
-		bc_read_line(&buf);
-		if (buf.len <= 1) // "" buf means EOF
+		bc_read_line(&buffer);
+		// No more input means EOF
+		if (buffer.len <= prevlen + 1) // (we expect +1 for NUL byte)
 			break;
 
-		string = buf.v;
+		string = buffer.v + prevlen;
 		while (*string) {
 			char c = *string;
-			if (string == buf.v || string[-1] != '\\') {
+			if (string == buffer.v || string[-1] != '\\') {
 				// checking applet type is cheaper than accessing sbgn/send
 				if (IS_BC) // bc: sbgn = send = '"'
 					str ^= (c == '"');
@@ -7089,17 +7094,20 @@ static BC_STATUS zbc_vm_stdin(void)
 				string++;
 			}
 		}
-		bc_vec_concat(&buffer, buf.v);
-		if (str || comment)
+		if (str || comment) {
+			buffer.len--; // backstep over the trailing NUL byte
 			continue;
+		}
 
 		// Check for backslash+newline.
 		// we do not check that last char is '\n' -
 		// if it is not, then it's EOF, and looping back
 		// to bc_read_line() will detect it:
 		string -= 2;
-		if (string >= buf.v && *string == '\\')
+		if (string >= buffer.v && *string == '\\') {
+			buffer.len--;
 			continue;
+		}
 
 		s = zbc_vm_process(buffer.v);
 		if (s) {
@@ -7121,7 +7129,6 @@ static BC_STATUS zbc_vm_stdin(void)
 		s = bc_error("comment end could not be found");
 	}
 
-	bc_vec_free(&buf);
 	bc_vec_free(&buffer);
 	RETURN_STATUS(s);
 }
