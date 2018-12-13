@@ -758,6 +758,7 @@ struct globals {
 # define G_exiting 0
 #endif
 #define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
+#define IS_DC (ENABLE_DC && (!ENABLE_BC || applet_name[0] != 'b'))
 
 #if ENABLE_BC
 
@@ -7070,27 +7071,28 @@ static BC_STATUS zbc_vm_stdin(void)
 				str -= 1;
 			else if (buf.v[0] == G.sbgn)
 				str += 1;
-		}
-		else if (len > 1 || comment) {
+		} else {
 			size_t i;
 			for (i = 0; i < len; ++i) {
-				bool notend = len > i + 1;
 				char c = string[i];
 
 				if (i - 1 > len || string[i - 1] != '\\') {
-					if (G.sbgn == G.send)
-						str ^= c == G.sbgn;
-					else if (c == G.send)
-						str -= 1;
-					else if (c == G.sbgn)
-						str += 1;
+					// checking applet type is cheaper than accessing sbgn/send
+					if (IS_DC) // dc: sbgn = send = '"'
+						str ^= (c == '"');
+					else { // bc: sbgn = '[', send = ']'
+						if (c == ']')
+							str -= 1;
+						else if (c == '[')
+							str += 1;
+					}
 				}
 
-				if (c == '/' && notend && !comment && string[i + 1] == '*') {
+				if (c == '/' && !comment && string[i + 1] == '*') {
 					comment = true;
 					break;
 				}
-				else if (c == '*' && notend && comment && string[i + 1] == '/')
+				else if (c == '*' && comment && string[i + 1] == '/')
 					comment = false;
 			}
 
