@@ -717,8 +717,6 @@ struct globals {
 	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
 	IF_FEATURE_CLEAN_UP(smallint exiting;)
 	smallint in_read;
-	char sbgn;
-	char send;
 
 	BcParse prs;
 	BcProgram prog;
@@ -7075,10 +7073,9 @@ static BC_STATUS zbc_vm_stdin(void)
 		while (*string) {
 			char c = *string;
 			if (string == buffer.v || string[-1] != '\\') {
-				// checking applet type is cheaper than accessing sbgn/send
-				if (IS_BC) // bc: sbgn = send = '"'
+				if (IS_BC)
 					str ^= (c == '"');
-				else { // dc: sbgn = '[', send = ']'
+				else {
 					if (c == ']')
 						str -= 1;
 					else if (c == '[')
@@ -7513,7 +7510,6 @@ int bc_main(int argc UNUSED_PARAM, char **argv)
 	int is_tty;
 
 	INIT_G();
-	G.sbgn = G.send = '"';
 
 	is_tty = bc_vm_init("BC_LINE_LENGTH");
 
@@ -7533,8 +7529,6 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 	int noscript;
 
 	INIT_G();
-	G.sbgn = '[';
-	G.send = ']';
 	/*
 	 * TODO: dc (GNU bc 1.07.1) 1.4.1 seems to use width
 	 * 1 char wider than bc from the same package.
