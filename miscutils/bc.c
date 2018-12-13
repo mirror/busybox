@@ -10,49 +10,34 @@
 //config:	bc is a command-line, arbitrary-precision calculator with a
 //config:	Turing-complete language. See the GNU bc manual
 //config:	(https://www.gnu.org/software/bc/manual/bc.html) and bc spec
-//config:	(http://pubs.opengroup.org/onlinepubs/9699919799/utilities/bc.html)
-//config:	for details.
+//config:	(http://pubs.opengroup.org/onlinepubs/9699919799/utilities/bc.html).
 //config:
-//config:	This bc has four differences to the GNU bc:
-//config:
-//config:	  1) The period (.) can also be used as a shortcut for "last", as in
-//config:	     the BSD bc.
+//config:	This bc has five differences to the GNU bc:
+//config:	  1) The period (.) is a shortcut for "last", as in the BSD bc.
 //config:	  2) Arrays are copied before being passed as arguments to
 //config:	     functions. This behavior is required by the bc spec.
 //config:	  3) Arrays can be passed to the builtin "length" function to get
-//config:	     the number of elements currently in the array. The following
-//config:	     example prints "1":
-//config:
-//config:	       a[0] = 0
-//config:	       length(a[])
-//config:
+//config:	     the number of elements in the array. This prints "1":
+//config:		a[0] = 0; length(a[])
 //config:	  4) The precedence of the boolean "not" operator (!) is equal to
-//config:	     that of the unary minus (-), or negation, operator. This still
+//config:	     that of the unary minus (-) negation operator. This still
 //config:	     allows POSIX-compliant scripts to work while somewhat
 //config:	     preserving expected behavior (versus C) and making parsing
 //config:	     easier.
+//config:	  5) "read()" accepts expressions, not only numeric literals.
 //config:
 //config:	Options:
-//config:
 //config:	  -i  --interactive  force interactive mode
+//config:	  -q  --quiet        don't print version and copyright
+//config:	  -s  --standard     error if any non-POSIX extensions are used
+//config:	  -w  --warn         warn if any non-POSIX extensions are used
 //config:	  -l  --mathlib      use predefined math routines:
-//config:
-//config:	                       s(expr)  =  sine of expr in radians
-//config:	                       c(expr)  =  cosine of expr in radians
-//config:	                       a(expr)  =  arctangent of expr, returning
-//config:	                                   radians
-//config:	                       l(expr)  =  natural log of expr
-//config:	                       e(expr)  =  raises e to the power of expr
-//config:	                       j(n, x)  =  Bessel function of integer order
-//config:	                                   n of x
-//config:
-//config:	  -q  --quiet        don't print version and copyright.
-//config:	  -s  --standard     error if any non-POSIX extensions are used.
-//config:	  -w  --warn         warn if any non-POSIX extensions are used.
-//config:	  -v  --version      print version and copyright and exit.
-//config:
-//config:	Long options are only available if FEATURE_BC_LONG_OPTIONS is
-//config:	enabled.
+//config:		s(expr) sine in radians
+//config:		c(expr) cosine in radians
+//config:		a(expr) arctangent, returning radians
+//config:		l(expr) natural log
+//config:		e(expr) raises e to the power of expr
+//config:		j(n, x) Bessel function of integer order n of x
 //config:
 //config:config DC
 //config:	bool "dc (38 kb; 49 kb when combined with bc)"
@@ -61,33 +46,24 @@
 //config:	dc is a reverse-polish notation command-line calculator which
 //config:	supports unlimited precision arithmetic. See the FreeBSD man page
 //config:	(https://www.unix.com/man-page/FreeBSD/1/dc/) and GNU dc manual
-//config:	(https://www.gnu.org/software/bc/manual/dc-1.05/html_mono/dc.html)
-//config:	for details.
+//config:	(https://www.gnu.org/software/bc/manual/dc-1.05/html_mono/dc.html).
 //config:
 //config:	This dc has a few differences from the two above:
-//config:
-//config:	  1) When printing a byte stream (command "P"), this bc follows what
+//config:	  1) When printing a byte stream (command "P"), this dc follows what
 //config:	     the FreeBSD dc does.
-//config:	  2) This dc implements the GNU extensions for divmod ("~") and
+//config:	  2) Implements the GNU extensions for divmod ("~") and
 //config:	     modular exponentiation ("|").
-//config:	  3) This dc implements all FreeBSD extensions, except for "J" and
-//config:	     "M".
+//config:	  3) Implements all FreeBSD extensions, except for "J" and "M".
 //config:	  4) Like the FreeBSD dc, this dc supports extended registers.
 //config:	     However, they are implemented differently. When it encounters
 //config:	     whitespace where a register should be, it skips the whitespace.
 //config:	     If the character following is not a lowercase letter, an error
 //config:	     is issued. Otherwise, the register name is parsed by the
 //config:	     following regex:
-//config:
-//config:	       [a-z][a-z0-9_]*
-//config:
+//config:		[a-z][a-z0-9_]*
 //config:	     This generally means that register names will be surrounded by
-//config:	     whitespace.
-//config:
-//config:	     Examples:
-//config:
-//config:	       l idx s temp L index S temp2 < do_thing
-//config:
+//config:	     whitespace. Examples:
+//config:		l idx s temp L index S temp2 < do_thing
 //config:	     Also note that, like the FreeBSD dc, extended registers are not
 //config:	     allowed unless the "-x" option is given.
 //config:
@@ -105,11 +81,19 @@
 //config:	NOTE: This will require libm to be present for linking.
 //config:
 //config:config FEATURE_BC_SIGNALS
-//config:	bool "Enable bc/dc signal handling"
+//config:	bool "Interactive mode (+4kb)"
 //config:	default y
 //config:	depends on (BC || DC) && !FEATURE_DC_SMALL
 //config:	help
-//config:	Enable signal handling for bc and dc.
+//config:	Enable interactive mode: when started on a tty,
+//config:	^C interrupts execution and returns to command line,
+//config:	errors also return to command line instead of exiting,
+//config:	line editing with history is available.
+//config:
+//config:	With this option off, input can still be taken from tty,
+//config:	but all errors are fatal, ^C is fatal,
+//config:	tty is treated exactly the same as any other
+//config:	standard input (IOW: no line editing).
 //config:
 //config:config FEATURE_BC_LONG_OPTIONS
 //config:	bool "Enable bc/dc long options"
@@ -7468,6 +7452,8 @@ static int bc_vm_init(const char *env_len)
 	bc_program_init();
 	bc_parse_create(&G.prs, BC_PROG_MAIN);
 
+//TODO: in GNU bc, the check is (isatty(0) && isatty(1)),
+//-i option unconditionally enables this regardless of isatty():
 	if (isatty(0)) {
 #if ENABLE_FEATURE_BC_SIGNALS
 		G_ttyin = 1;
@@ -7476,10 +7462,12 @@ static int bc_vm_init(const char *env_len)
 		// In particular, this means ^C won't cause
 		// stdout to get into "error state" if SIGINT hits
 		// within write() syscall.
-		// The downside is that ^C while line input is taken
+		//
+		// The downside is that ^C while tty input is taken
 		// will only be handled after [Enter] since read()
 		// from stdin is not interrupted by ^C either,
 		// it restarts, thus fgetc() does not return on ^C.
+		// (This problem manifests only if line editing is disabled)
 		signal_SA_RESTART_empty_mask(SIGINT, record_signo);
 
 		// Without SA_RESTART, this exhibits a bug:
