@@ -7010,7 +7010,9 @@ static BC_STATUS zbc_vm_process(const char *text)
 
 static BC_STATUS zbc_vm_file(const char *file)
 {
-	const char *sv_file;
+	// So far bc/dc have no way to include a file from another file,
+	// therefore we know G.prog.file == NULL on entry
+	//const char *sv_file;
 	char *data;
 	BcStatus s;
 	BcFunc *main_func;
@@ -7019,7 +7021,7 @@ static BC_STATUS zbc_vm_file(const char *file)
 	data = bc_read_file(file);
 	if (!data) RETURN_STATUS(bc_error_fmt("file '%s' is not text", file));
 
-	sv_file = G.prog.file;
+	//sv_file = G.prog.file;
 	G.prog.file = file;
 	bc_lex_file(&G.prs.l);
 	s = zbc_vm_process(data);
@@ -7032,7 +7034,8 @@ static BC_STATUS zbc_vm_file(const char *file)
 		s = bc_error_fmt("file '%s' is not executable", file);
 
 err:
-	G.prog.file = sv_file;
+	//G.prog.file = sv_file;
+	G.prog.file = NULL;
 	free(data);
 	RETURN_STATUS(s);
 }
@@ -7047,7 +7050,7 @@ static BC_STATUS zbc_vm_stdin(void)
 	size_t str;
 	bool comment;
 
-	G.prog.file = NULL;
+	//G.prog.file = NULL; - already is
 	bc_lex_file(&G.prs.l);
 
 	bc_char_vec_init(&buffer);
