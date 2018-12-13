@@ -7059,22 +7059,21 @@ static BC_STATUS zbc_vm_stdin(void)
 	str = 0;
 	for (;;) {
 		size_t len;
-		char *string;
 
 		bc_read_line(&buf);
 		len = buf.len - 1;
 		if (len == 0) // "" buf means EOF
 			break;
-		string = buf.v;
 		if (len == 1) {
 			if (str && buf.v[0] == G.send)
 				str -= 1;
 			else if (buf.v[0] == G.sbgn)
 				str += 1;
 		} else {
+			char *string = buf.v;
 			while (*string) {
 				char c = *string;
-				if (string != buf.v && string[-1] != '\\') {
+				if (string == buf.v || string[-1] != '\\') {
 					// checking applet type is cheaper than accessing sbgn/send
 					if (IS_BC) // bc: sbgn = send = '"'
 						str ^= (c == '"');

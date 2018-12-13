@@ -16,6 +16,16 @@ testing "bc comment 2: /*/ is not a closed comment" \
 	"4\n" \
 	"" "1 /*/ + 2 */ + 3"
 
+testing "bc backslash 1" \
+	"bc" \
+	"3\n" \
+	"" "1 \\\\\n + 2"
+
+testing "bc string 1" \
+	"bc" \
+	"STR\n" \
+	"" "\"STR\n\""
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do
