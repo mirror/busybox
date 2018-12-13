@@ -7076,9 +7076,9 @@ static BC_STATUS zbc_vm_stdin(void)
 				char c = *string;
 				if (string != buf.v && string[-1] != '\\') {
 					// checking applet type is cheaper than accessing sbgn/send
-					if (IS_DC) // dc: sbgn = send = '"'
+					if (IS_BC) // bc: sbgn = send = '"'
 						str ^= (c == '"');
-					else { // bc: sbgn = '[', send = ']'
+					else { // dc: sbgn = '[', send = ']'
 						if (c == ']')
 							str -= 1;
 						else if (c == '[')
