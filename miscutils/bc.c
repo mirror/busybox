@@ -7072,11 +7072,9 @@ static BC_STATUS zbc_vm_stdin(void)
 			else if (buf.v[0] == G.sbgn)
 				str += 1;
 		} else {
-			size_t i;
-			for (i = 0; i < len; ++i) {
-				char c = string[i];
-
-				if (i - 1 > len || string[i - 1] != '\\') {
+			while (*string) {
+				char c = *string;
+				if (string != buf.v && string[-1] != '\\') {
 					// checking applet type is cheaper than accessing sbgn/send
 					if (IS_DC) // dc: sbgn = send = '"'
 						str ^= (c == '"');
@@ -7087,16 +7085,15 @@ static BC_STATUS zbc_vm_stdin(void)
 							str += 1;
 					}
 				}
-
-				if (c == '/' && !comment && string[i + 1] == '*') {
+				string++;
+				if (c == '/' && *string == '*') {
 					comment = true;
 					break;
 				}
-				else if (c == '*' && comment && string[i + 1] == '/')
+				if (c == '*' && *string == '/')
 					comment = false;
 			}
-
-			if (str || comment || string[len - 2] == '\\') {
+			if (str || comment || string[-2] == '\\') {
 				bc_vec_concat(&buffer, buf.v);
 				continue;
 			}
