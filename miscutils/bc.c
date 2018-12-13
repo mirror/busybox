@@ -1343,73 +1343,72 @@ static int bad_input_byte(char c)
 static void bc_read_line(BcVec *vec)
 {
  again:
-		fflush_and_check();
+	fflush_and_check();
 
 #if ENABLE_FEATURE_BC_SIGNALS
-		if (G_interrupt) { // ^C was pressed
+	if (G_interrupt) { // ^C was pressed
  intr:
-			G_interrupt = 0;
-			// GNU bc says "interrupted execution."
-			// GNU dc says "Interrupt!"
-			fputs("\ninterrupted execution\n", stderr);
-		}
+		G_interrupt = 0;
+		// GNU bc says "interrupted execution."
+		// GNU dc says "Interrupt!"
+		fputs("\ninterrupted execution\n", stderr);
+	}
 
 # if ENABLE_FEATURE_EDITING
-		if (G_ttyin) {
-			int n, i;
+	if (G_ttyin) {
+		int n, i;
 #  define line_buf bb_common_bufsiz1
-			n = read_line_input(G.line_input_state, "", line_buf, COMMON_BUFSIZE);
-			if (n <= 0) { // read errors or EOF, or ^D, or ^C
-				if (n == 0) // ^C
-					goto intr;
-				break;
-			}
-			i = 0;
-			for (;;) {
-				char c = line_buf[i++];
-				if (!c) break;
-				if (bad_input_byte(c)) goto again;
-			}
-			bc_vec_concat(vec, line_buf);
+		n = read_line_input(G.line_input_state, "", line_buf, COMMON_BUFSIZE);
+		if (n <= 0) { // read errors or EOF, or ^D, or ^C
+			if (n == 0) // ^C
+				goto intr;
+			break;
+		}
+		i = 0;
+		for (;;) {
+			char c = line_buf[i++];
+			if (!c) break;
+			if (bad_input_byte(c)) goto again;
+		}
+		bc_vec_concat(vec, line_buf);
 #  undef line_buf
-		} else
+	} else
 # endif
 #endif
-		{
-			int c;
-			bool bad_chars = 0;
-			size_t len = vec->len;
+	{
+		int c;
+		bool bad_chars = 0;
+		size_t len = vec->len;
 
-			IF_FEATURE_BC_SIGNALS(errno = 0;)
-			do {
-				c = fgetc(stdin);
+		IF_FEATURE_BC_SIGNALS(errno = 0;)
+		do {
+			c = fgetc(stdin);
 #if ENABLE_FEATURE_BC_SIGNALS && !ENABLE_FEATURE_EDITING
-				// Both conditions appear simultaneously, check both just in case
-				if (errno == EINTR || G_interrupt) {
-					// ^C was pressed
-					clearerr(stdin);
-					goto intr;
-				}
-#endif
-				if (c == EOF) {
-					if (ferror(stdin))
-						quit(); // this emits error message
-					// Note: EOF does not append '\n', therefore:
-					// printf 'print 123\n' | bc - works
-					// printf 'print 123' | bc   - fails (syntax error)
-					break;
-				}
-				bad_chars |= bad_input_byte(c);
-				bc_vec_pushByte(vec, (char)c);
-			} while (c != '\n');
-			if (bad_chars) {
-				// Bad chars on this line, ignore entire line
-				vec->len = len;
-				goto again;
+			// Both conditions appear simultaneously, check both just in case
+			if (errno == EINTR || G_interrupt) {
+				// ^C was pressed
+				clearerr(stdin);
+				goto intr;
 			}
+#endif
+			if (c == EOF) {
+				if (ferror(stdin))
+					quit(); // this emits error message
+				// Note: EOF does not append '\n', therefore:
+				// printf 'print 123\n' | bc - works
+				// printf 'print 123' | bc   - fails (syntax error)
+				break;
+			}
+			bad_chars |= bad_input_byte(c);
+			bc_vec_pushByte(vec, (char)c);
+		} while (c != '\n');
+		if (bad_chars) {
+			// Bad chars on this line, ignore entire line
+			vec->len = len;
+			goto again;
 		}
-
-	bc_vec_pushZeroByte(vec);
+		bc_vec_pushZeroByte(vec);
+	}
 }
 
 static char* bc_read_file(const char *path)
