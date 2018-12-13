@@ -6899,78 +6899,6 @@ static BC_STATUS zbc_program_exec(void)
 # define zbc_program_exec(...) (zbc_program_exec(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-#if ENABLE_BC
-static void bc_vm_info(void)
-{
-	printf("%s "BB_VER"\n"
-		"Copyright (c) 2018 Gavin D. Howard and contributors\n"
-	, applet_name);
-}
-
-static void bc_args(char **argv)
-{
-	unsigned opts;
-	int i;
-
-	GETOPT_RESET();
-#if ENABLE_FEATURE_BC_LONG_OPTIONS
-	opts = option_mask32 |= getopt32long(argv, "wvsqli",
-		"warn\0"              No_argument "w"
-		"version\0"           No_argument "v"
-		"standard\0"          No_argument "s"
-		"quiet\0"             No_argument "q"
-		"mathlib\0"           No_argument "l"
-		"interactive\0"       No_argument "i"
-	);
-#else
-	opts = option_mask32 |= getopt32(argv, "wvsqli");
-#endif
-	if (getenv("POSIXLY_CORRECT"))
-		option_mask32 |= BC_FLAG_S;
-
-	if (opts & BC_FLAG_V) {
-		bc_vm_info();
-		exit(0);
-	}
-
-	for (i = optind; argv[i]; ++i)
-		bc_vec_push(&G.files, argv + i);
-}
-
-static void bc_vm_envArgs(void)
-{
-	BcVec v;
-	char *buf;
-	char *env_args = getenv("BC_ENV_ARGS");
-
-	if (!env_args) return;
-
-	G.env_args = xstrdup(env_args);
-	buf = G.env_args;
-
-	bc_vec_init(&v, sizeof(char *), NULL);
-
-	while (*(buf = skip_whitespace(buf)) != '\0') {
-		bc_vec_push(&v, &buf);
-		buf = skip_non_whitespace(buf);
-		if (!*buf)
-			break;
-		*buf++ = '\0';
-	}
-
-	// NULL terminate, and pass argv[] so that first arg is argv[1]
-	if (sizeof(int) == sizeof(char*)) {
-		bc_vec_push(&v, &const_int_0);
-	} else {
-		static char *const nullptr = NULL;
-		bc_vec_push(&v, &nullptr);
-	}
-	bc_args(((char **)v.v) - 1);
-
-	bc_vec_free(&v);
-}
-#endif // ENABLE_BC
-
 static unsigned bc_vm_envLen(const char *var)
 {
 	char *lenv;
@@ -7141,7 +7069,77 @@ static BC_STATUS zbc_vm_stdin(void)
 #endif
 
 #if ENABLE_BC
-static const char bc_lib[] = {
+static void bc_vm_info(void)
+{
+	printf("%s "BB_VER"\n"
+		"Copyright (c) 2018 Gavin D. Howard and contributors\n"
+	, applet_name);
+}
+
+static void bc_args(char **argv)
+{
+	unsigned opts;
+	int i;
+
+	GETOPT_RESET();
+#if ENABLE_FEATURE_BC_LONG_OPTIONS
+	opts = option_mask32 |= getopt32long(argv, "wvsqli",
+		"warn\0"              No_argument "w"
+		"version\0"           No_argument "v"
+		"standard\0"          No_argument "s"
+		"quiet\0"             No_argument "q"
+		"mathlib\0"           No_argument "l"
+		"interactive\0"       No_argument "i"
+	);
+#else
+	opts = option_mask32 |= getopt32(argv, "wvsqli");
+#endif
+	if (getenv("POSIXLY_CORRECT"))
+		option_mask32 |= BC_FLAG_S;
+
+	if (opts & BC_FLAG_V) {
+		bc_vm_info();
+		exit(0);
+	}
+
+	for (i = optind; argv[i]; ++i)
+		bc_vec_push(&G.files, argv + i);
+}
+
+static void bc_vm_envArgs(void)
+{
+	BcVec v;
+	char *buf;
+	char *env_args = getenv("BC_ENV_ARGS");
+
+	if (!env_args) return;
+
+	G.env_args = xstrdup(env_args);
+	buf = G.env_args;
+
+	bc_vec_init(&v, sizeof(char *), NULL);
+
+	while (*(buf = skip_whitespace(buf)) != '\0') {
+		bc_vec_push(&v, &buf);
+		buf = skip_non_whitespace(buf);
+		if (!*buf)
+			break;
+		*buf++ = '\0';
+	}
+
+	// NULL terminate, and pass argv[] so that first arg is argv[1]
+	if (sizeof(int) == sizeof(char*)) {
+		bc_vec_push(&v, &const_int_0);
+	} else {
+		static char *const nullptr = NULL;
+		bc_vec_push(&v, &nullptr);
+	}
+	bc_args(((char **)v.v) - 1);
+
+	bc_vec_free(&v);
+}
+
+static const char bc_lib[] ALIGN1 = {
 	"scale=20"
 "\n"	"define e(x){"
 "\n"		"auto b,s,n,r,d,i,p,f,v"
