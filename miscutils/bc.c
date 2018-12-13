@@ -2790,9 +2790,13 @@ static void bc_lex_lineComment(BcLex *l)
 
 static void bc_lex_whitespace(BcLex *l)
 {
-	char c;
 	l->t.t = BC_LEX_WHITESPACE;
-	for (c = l->buf[l->i]; c != '\n' && isspace(c); c = l->buf[++l->i]);
+	for (;;) {
+		char c = l->buf[l->i];
+		if (c == '\n' || !isspace(c))
+			break;
+		l->i++;
+	}
 }
 
 static BC_STATUS zbc_lex_number(BcLex *l, char start)
