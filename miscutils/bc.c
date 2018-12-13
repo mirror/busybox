@@ -1360,7 +1360,8 @@ static void bc_read_line(BcVec *vec)
 		if (n <= 0) { // read errors or EOF, or ^D, or ^C
 			if (n == 0) // ^C
 				goto intr;
-			break;
+			bc_vec_pushZeroByte(vec);
+			return;
 		}
 		i = 0;
 		for (;;) {
@@ -2913,8 +2914,8 @@ static void bc_lex_file(BcLex *l)
 	l->newline = false;
 }
 
-static BC_STATUS zbc_lex_token(BcLex *l);
-static BC_STATUS zdc_lex_token(BcLex *l);
+IF_BC(static BC_STATUS zbc_lex_token(BcLex *l);)
+IF_DC(static BC_STATUS zdc_lex_token(BcLex *l);)
 
 static BC_STATUS zcommon_lex_token(BcLex *l)
 {
@@ -3475,8 +3476,8 @@ static void bc_parse_number(BcParse *p, BcInst *prev, size_t *nexs)
 	(*prev) = BC_INST_NUM;
 }
 
-static BC_STATUS zbc_parse_parse(BcParse *p);
-static BC_STATUS zdc_parse_parse(BcParse *p);
+IF_BC(static BC_STATUS zbc_parse_parse(BcParse *p);)
+IF_DC(static BC_STATUS zdc_parse_parse(BcParse *p);)
 
 static BC_STATUS zcommon_parse(BcParse *p)
 {
