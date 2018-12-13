@@ -7058,50 +7058,49 @@ static BC_STATUS zbc_vm_stdin(void)
 	comment = false;
 	str = 0;
 	for (;;) {
-		size_t len;
+		char *string;
 
 		bc_read_line(&buf);
-		len = buf.len - 1;
-		if (len == 0) // "" buf means EOF
+		if (buf.len <= 1) // "" buf means EOF
 			break;
-		if (len == 1) {
-			if (str && buf.v[0] == G.send)
-				str -= 1;
-			else if (buf.v[0] == G.sbgn)
-				str += 1;
-		} else {
-			char *string = buf.v;
-			while (*string) {
-				char c = *string;
-				if (string == buf.v || string[-1] != '\\') {
-					// checking applet type is cheaper than accessing sbgn/send
-					if (IS_BC) // bc: sbgn = send = '"'
-						str ^= (c == '"');
-					else { // dc: sbgn = '[', send = ']'
-						if (c == ']')
-							str -= 1;
-						else if (c == '[')
-							str += 1;
-					}
-				}
-				string++;
-				if (c == '/' && *string == '*') {
-					comment = true;
-					string++;
-					continue;
-				}
-				if (c == '*' && *string == '/') {
-					comment = false;
-					string++;
+
+		string = buf.v;
+		while (*string) {
+			char c = *string;
+			if (string == buf.v || string[-1] != '\\') {
+				// checking applet type is cheaper than accessing sbgn/send
+				if (IS_BC) // bc: sbgn = send = '"'
+					str ^= (c == '"');
+				else { // dc: sbgn = '[', send = ']'
+					if (c == ']')
+						str -= 1;
+					else if (c == '[')
+						str += 1;
 				}
 			}
-			if (str || comment || string[-2] == '\\') {
-				bc_vec_concat(&buffer, buf.v);
+			string++;
+			if (c == '/' && *string == '*') {
+				comment = true;
+				string++;
 				continue;
 			}
+			if (c == '*' && *string == '/') {
+				comment = false;
+				string++;
+			}
 		}
-
 		bc_vec_concat(&buffer, buf.v);
+		if (str || comment)
+			continue;
+
+		// Check for backslash+newline.
+		// we do not check that last char is '\n' -
+		// if it is not, then it's EOF, and looping back
+		// to bc_read_line() will detect it:
+		string -= 2;
+		if (string >= buf.v && *string == '\\')
+			continue;
+
 		s = zbc_vm_process(buffer.v);
 		if (s) {
 			if (ENABLE_FEATURE_CLEAN_UP && !G_ttyin) {
