@@ -4046,22 +4046,12 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 # define zbc_parse_return(...) (zbc_parse_return(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BC_STATUS zbc_parse_endBody(BcParse *p, bool brace)
+static BC_STATUS zbc_parse_endBody(BcParse *p)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 
-	if (p->flags.len <= 1 || (brace && p->nbraces == 0))
+	if (p->flags.len <= 1)
 		RETURN_STATUS(bc_error_bad_token());
-
-	if (brace) {
-		if (p->l.t.t != BC_LEX_RBRACE)
-			RETURN_STATUS(bc_error_bad_token());
-		if (!p->nbraces)
-			RETURN_STATUS(bc_error_bad_token());
-		--p->nbraces;
-		s = zbc_lex_next(&p->l);
-		if (s) RETURN_STATUS(s);
-	}
 
 	if (BC_PARSE_IF(p)) {
 		uint8_t *flag_ptr;
@@ -4523,7 +4513,7 @@ static BC_STATUS zbc_parse_body(BcParse *p, bool brace)
 	else {
 		dbg_lex("%s:%d !BC_PARSE_FLAG_FUNC_INNER", __func__, __LINE__);
 		s = zbc_parse_stmt(p);
-		if (!s && !brace) s = zbc_parse_endBody(p, false);
+		if (!s && !brace) s = zbc_parse_endBody(p);
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
@@ -4598,7 +4588,12 @@ static BC_STATUS zbc_parse_stmt(BcParse *p)
 			while (!s && p->l.t.t == BC_LEX_SCOLON) s = zbc_lex_next(&p->l);
 			break;
 		case BC_LEX_RBRACE:
-			s = zbc_parse_endBody(p, true);
+			if (p->nbraces == 0)
+				RETURN_STATUS(bc_error_bad_token());
+			--p->nbraces;
+			s = zbc_lex_next(&p->l);
+			if (!s)
+				s = zbc_parse_endBody(p);
 			break;
 		case BC_LEX_STR:
 			s = zbc_parse_string(p, BC_INST_PRINT_STR);
