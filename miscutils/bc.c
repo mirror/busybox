@@ -167,10 +167,29 @@
 # include "dc.c"
 #else
 
-#if 0
-# define dbg_lex(...) bb_error_msg(__VA_ARGS__)
+#define DEBUG_LEXER 0
+
+#if DEBUG_LEXER
+static unsigned lex_indent;
+#define dbg_lex(...) \
+	do { \
+		fprintf(stderr, "%*s", lex_indent, ""); \
+		bb_error_msg(__VA_ARGS__); \
+	} while (0)
+#define dbg_lex_enter(...) \
+	do { \
+		dbg_lex(__VA_ARGS__); \
+		lex_indent++; \
+	} while (0)
+#define dbg_lex_done(...) \
+	do { \
+		lex_indent--; \
+		dbg_lex(__VA_ARGS__); \
+	} while (0)
 #else
-# define dbg_lex(...) ((void)0)
+# define dbg_lex(...)       ((void)0)
+# define dbg_lex_enter(...) ((void)0)
+# define dbg_lex_done(...)  ((void)0)
 #endif
 
 typedef enum BcStatus {
@@ -2941,7 +2960,7 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 	// is so the parser doesn't get inundated with whitespace.
 	s = BC_STATUS_SUCCESS;
 	do {
-		dbg_lex("next token:'%.*s'",
+		dbg_lex("next string to parse:'%.*s'",
 			(int)(strchrnul(l->buf + l->i, '\n') - (l->buf + l->i)),
 			l->buf + l->i);
 		ERROR_RETURN(s =) zcommon_lex_token(l);
@@ -2954,7 +2973,7 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 # define zbc_lex_next(...) (zbc_lex_next(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BC_STATUS zbc_lex_text(BcLex *l, const char *text)
+static BC_STATUS zbc_lex_text_init(BcLex *l, const char *text)
 {
 	l->buf = text;
 	l->i = 0;
@@ -2963,7 +2982,7 @@ static BC_STATUS zbc_lex_text(BcLex *l, const char *text)
 	RETURN_STATUS(zbc_lex_next(l));
 }
 #if ERRORS_ARE_FATAL
-# define zbc_lex_text(...) (zbc_lex_text(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_lex_text_init(...) (zbc_lex_text_init(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 #if ENABLE_BC
@@ -3431,7 +3450,11 @@ static void bc_parse_addFunc(BcParse *p, char *name, size_t *idx)
 	p->func = bc_program_func(p->fidx);
 }
 
-#define bc_parse_push(p, i) bc_vec_pushByte(&(p)->func->code, (char) (i))
+static void bc_parse_push(BcParse *p, char i)
+{
+	dbg_lex("%s:%d pushing opcode %d", __func__, __LINE__, i);
+	bc_vec_pushByte(&p->func->code, i);
+}
 
 static void bc_parse_pushName(BcParse *p, char *name)
 {
@@ -3448,6 +3471,7 @@ static void bc_parse_pushIndex(BcParse *p, size_t idx)
 	size_t mask;
 	unsigned amt;
 
+	dbg_lex("%s:%d pushing index %d", __func__, __LINE__, idx);
 	mask = ((size_t)0xff) << (sizeof(idx) * 8 - 8);
 	amt = sizeof(idx);
 	do {
@@ -3504,7 +3528,7 @@ static BC_STATUS zbc_parse_text_init(BcParse *p, const char *text)
 			RETURN_STATUS(bc_error("file is not executable"));
 	}
 
-	RETURN_STATUS(zbc_lex_text(&p->l, text));
+	RETURN_STATUS(zbc_lex_text_init(&p->l, text));
 }
 #if ERRORS_ARE_FATAL
 # define zbc_parse_text_init(...) (zbc_parse_text_init(__VA_ARGS__), BC_STATUS_SUCCESS)
@@ -3662,6 +3686,7 @@ static BC_STATUS zbc_parse_params(BcParse *p, uint8_t flags)
 	bool comma = false;
 	size_t nparams;
 
+	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
@@ -4140,6 +4165,7 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	BcStatus s;
 	BcInstPtr ip;
 
+	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
@@ -4162,6 +4188,7 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	bc_vec_push(&p->func->labels, &ip.idx);
 	bc_parse_startBody(p, BC_PARSE_FLAG_IF);
 
+	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #if ERRORS_ARE_FATAL
@@ -4173,6 +4200,7 @@ static BC_STATUS zbc_parse_else(BcParse *p)
 {
 	BcInstPtr ip;
 
+	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	if (!BC_PARSE_IF_END(p)) RETURN_STATUS(bc_error_bad_token());
 
 	ip.idx = p->func->labels.len;
@@ -4238,6 +4266,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	BcInstPtr ip;
 	size_t cond_idx, exit_idx, body_idx, update_idx;
 
+	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
@@ -4521,6 +4550,7 @@ static BC_STATUS zbc_parse_stmt(BcParse *p)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 
+	dbg_lex_enter("%s:%d entered, p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	switch (p->l.t.t) {
 		case BC_LEX_NLINE:
 			RETURN_STATUS(zbc_lex_next(&p->l));
@@ -4550,6 +4580,7 @@ static BC_STATUS zbc_parse_stmt(BcParse *p)
 			break;
 	}
 
+	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	switch (p->l.t.t) {
 		case BC_LEX_OP_INC:
 		case BC_LEX_OP_DEC:
@@ -4628,6 +4659,7 @@ static BC_STATUS zbc_parse_stmt(BcParse *p)
 			break;
 	}
 
+	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
@@ -4638,20 +4670,25 @@ static BC_STATUS zbc_parse_parse(BcParse *p)
 {
 	BcStatus s;
 
+	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	if (p->l.t.t == BC_LEX_EOF)
 		s = p->flags.len > 0 ? bc_error("block end could not be found") : bc_error("end of file");
 	else if (p->l.t.t == BC_LEX_KEY_DEFINE) {
+		dbg_lex("%s:%d p->l.t.t:BC_LEX_KEY_DEFINE", __func__, __LINE__);
 		if (!BC_PARSE_CAN_EXEC(p))
 			RETURN_STATUS(bc_error_bad_token());
 		s = zbc_parse_func(p);
-	} else
+	} else {
+		dbg_lex("%s:%d p->l.t.t:%d (not BC_LEX_KEY_DEFINE)", __func__, __LINE__, p->l.t.t);
 		s = zbc_parse_stmt(p);
+	}
 
 	if (s || G_interrupt) {
 		bc_parse_reset(p);
 		s = BC_STATUS_FAILURE;
 	}
 
+	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
@@ -6919,14 +6956,18 @@ static unsigned bc_vm_envLen(const char *var)
 
 static BC_STATUS zbc_vm_process(const char *text)
 {
-	BcStatus s = zbc_parse_text_init(&G.prs, text);
+	BcStatus s;
 
+	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
+	s = zbc_parse_text_init(&G.prs, text);
 	if (s) RETURN_STATUS(s);
 
 	while (G.prs.l.t.t != BC_LEX_EOF) {
+		dbg_lex("%s:%d G.prs.l.t.t:%d", __func__, __LINE__, G.prs.l.t.t);
 		ERROR_RETURN(s =) zcommon_parse(&G.prs);
 		if (s) RETURN_STATUS(s);
 	}
+	dbg_lex("%s:%d G.prs.l.t.t:BC_LEX_EOF", __func__, __LINE__);
 
 	if (BC_PARSE_CAN_EXEC(&G.prs)) {
 		s = zbc_program_exec();
@@ -6935,6 +6976,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 			bc_program_reset();
 	}
 
+	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
@@ -7324,7 +7366,7 @@ static BC_STATUS zbc_vm_exec(void)
 		// thus error checking is normally disabled.
 # define DEBUG_LIB 0
 		bc_lex_file(&G.prs.l);
-		ERROR_RETURN(s =) zbc_vm_process(bc_lib);
+		s = zbc_vm_process(bc_lib);
 		if (DEBUG_LIB && s) RETURN_STATUS(s);
 	}
 #endif
