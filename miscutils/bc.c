@@ -574,8 +574,9 @@ typedef struct BcLex {
 #define BC_PARSE_NOREAD              (1 << 3)
 #define BC_PARSE_ARRAY               (1 << 4)
 
-#define BC_PARSE_TOP_FLAG_PTR(parse) ((uint8_t *) bc_vec_top(&(parse)->flags))
+#define BC_PARSE_TOP_FLAG_PTR(parse) ((parse)->bf_top)
 #define BC_PARSE_TOP_FLAG(parse)     (*(BC_PARSE_TOP_FLAG_PTR(parse)))
+#define BC_PARSE_FLAG_STACK_EMPTY(p) ((p)->bf_top == (p)->bf_base)
 
 #define BC_PARSE_FLAG_FUNC_INNER     (1 << 0)
 #define BC_PARSE_FLAG_FUNC           (1 << 1)
@@ -598,15 +599,11 @@ typedef struct BcLex {
 #define BC_PARSE_ELSE(parse)         (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_ELSE)
 #define BC_PARSE_IF_END(parse)       (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_IF_END)
 
-struct BcParse;
-
-struct BcProgram;
-
 typedef struct BcParse {
-
 	BcLex l;
 
-	BcVec flags;
+	uint8_t *bf_base;
+	uint8_t *bf_top;
 
 	BcVec exits;
 	BcVec conds;
@@ -618,7 +615,6 @@ typedef struct BcParse {
 
 	size_t nbraces;
 	bool auto_part;
-
 } BcParse;
 
 typedef struct BcProgram {
@@ -3558,7 +3554,7 @@ static void bc_parse_reset(BcParse *p)
 	p->l.t.t = BC_LEX_EOF;
 	p->auto_part = (p->nbraces = 0);
 
-	bc_vec_npop(&p->flags, p->flags.len - 1);
+	p->bf_top = p->bf_base; // pop all flags
 	bc_vec_pop_all(&p->exits);
 	bc_vec_pop_all(&p->conds);
 	bc_vec_pop_all(&p->ops);
@@ -3568,7 +3564,7 @@ static void bc_parse_reset(BcParse *p)
 
 static void bc_parse_free(BcParse *p)
 {
-	bc_vec_free(&p->flags);
+	free(p->bf_base);
 	bc_vec_free(&p->exits);
 	bc_vec_free(&p->conds);
 	bc_vec_free(&p->ops);
@@ -3580,10 +3576,9 @@ static void bc_parse_create(BcParse *p, size_t func)
 	memset(p, 0, sizeof(BcParse));
 
 	bc_lex_init(&p->l);
-	bc_vec_init(&p->flags, sizeof(uint8_t), NULL);
+	p->bf_top = p->bf_base = xzalloc(1);
 	bc_vec_init(&p->exits, sizeof(BcInstPtr), NULL);
 	bc_vec_init(&p->conds, sizeof(size_t), NULL);
-	bc_vec_pushZeroByte(&p->flags);
 	bc_vec_init(&p->ops, sizeof(BcLexType), NULL);
 
 	// p->auto_part = p->nbraces = 0; - already is
@@ -4050,7 +4045,7 @@ static BC_STATUS zbc_parse_endBody(BcParse *p)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 
-	if (p->flags.len <= 1)
+	if (BC_PARSE_FLAG_STACK_EMPTY(p))
 		RETURN_STATUS(bc_error_bad_token());
 
 	if (BC_PARSE_IF(p)) {
@@ -4061,7 +4056,7 @@ static BC_STATUS zbc_parse_endBody(BcParse *p)
 			if (s) RETURN_STATUS(s);
 		}
 
-		bc_vec_pop(&p->flags);
+		p->bf_top--;
 
 		flag_ptr = BC_PARSE_TOP_FLAG_PTR(p);
 		dbg_lex("%s:%d setting BC_PARSE_FLAG_IF_END bit", __func__, __LINE__);
@@ -4074,7 +4069,7 @@ static BC_STATUS zbc_parse_endBody(BcParse *p)
 		BcInstPtr *ip;
 		size_t *label;
 
-		bc_vec_pop(&p->flags);
+		p->bf_top--;
 
 		ip = bc_vec_top(&p->exits);
 		label = bc_vec_item(&p->func->labels, ip->idx);
@@ -4085,7 +4080,7 @@ static BC_STATUS zbc_parse_endBody(BcParse *p)
 	else if (BC_PARSE_FUNC_INNER(p)) {
 		bc_parse_push(p, BC_INST_RET0);
 		bc_parse_updateFunc(p, BC_PROG_MAIN);
-		bc_vec_pop(&p->flags);
+		p->bf_top--;
 	}
 	else {
 		BcInstPtr *ip = bc_vec_top(&p->exits);
@@ -4097,7 +4092,7 @@ static BC_STATUS zbc_parse_endBody(BcParse *p)
 		label = bc_vec_item(&p->func->labels, ip->idx);
 		*label = p->func->code.len;
 
-		bc_vec_pop(&p->flags);
+		p->bf_top--;
 		bc_vec_pop(&p->exits);
 		bc_vec_pop(&p->conds);
 	}
@@ -4110,10 +4105,15 @@ static BC_STATUS zbc_parse_endBody(BcParse *p)
 
 static void bc_parse_startBody(BcParse *p, uint8_t flags)
 {
+	size_t size;
 	uint8_t *flag_ptr = BC_PARSE_TOP_FLAG_PTR(p);
 	flags |= (*flag_ptr & (BC_PARSE_FLAG_FUNC | BC_PARSE_FLAG_LOOP));
 	flags |= BC_PARSE_FLAG_BODY;
-	bc_vec_push(&p->flags, &flags);
+
+	size = p->bf_top - p->bf_base;
+	p->bf_base = xrealloc(p->bf_base, size + 2);
+	p->bf_top = p->bf_base + size + 1;
+	*p->bf_top = flags;
 }
 
 static void bc_parse_noElse(BcParse *p)
@@ -4492,7 +4492,7 @@ err:
 static BC_STATUS zbc_parse_body(BcParse *p, bool brace)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
-	uint8_t *flag_ptr = bc_vec_top(&p->flags);
+	uint8_t *flag_ptr = BC_PARSE_TOP_FLAG_PTR(p);
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	*flag_ptr &= ~(BC_PARSE_FLAG_BODY);
@@ -4535,10 +4535,12 @@ static BC_STATUS zbc_parse_stmt(BcParse *p)
 			RETURN_STATUS(zbc_lex_next(&p->l));
 
 		case BC_LEX_KEY_ELSE:
+			dbg_lex("%s:%d BC_LEX_KEY_ELSE:", __func__, __LINE__);
 			p->auto_part = false;
 			break;
 
 		case BC_LEX_LBRACE:
+			dbg_lex("%s:%d BC_LEX_LBRACE:", __func__, __LINE__);
 			if (!BC_PARSE_BODY(p)) RETURN_STATUS(bc_error_bad_token());
 			++p->nbraces;
 			s = zbc_lex_next(&p->l);
@@ -4547,6 +4549,7 @@ static BC_STATUS zbc_parse_stmt(BcParse *p)
 			RETURN_STATUS(zbc_parse_body(p, true));
 
 		case BC_LEX_KEY_AUTO:
+			dbg_lex("%s:%d BC_LEX_KEY_AUTO:", __func__, __LINE__);
 			RETURN_STATUS(zbc_parse_auto(p));
 
 		default:
@@ -4660,7 +4663,7 @@ static BC_STATUS zbc_parse_parse(BcParse *p)
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	if (p->l.t.t == BC_LEX_EOF)
-		s = p->flags.len > 0 ? bc_error("block end could not be found") : bc_error("end of file");
+		s = BC_PARSE_FLAG_STACK_EMPTY(p) ? bc_error("end of file") : bc_error("block end could not be found");
 	else if (p->l.t.t == BC_LEX_KEY_DEFINE) {
 		dbg_lex("%s:%d p->l.t.t:BC_LEX_KEY_DEFINE", __func__, __LINE__);
 		if (!BC_PARSE_CAN_EXEC(p))
