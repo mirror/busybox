@@ -475,22 +475,18 @@ static const struct BcLexKeyword bc_lex_kws[20] = {
 	BC_LEX_KW_ENTRY("break"   , 1), // 1
 	BC_LEX_KW_ENTRY("continue", 0), // 2 note: this one has no terminating NUL
 	BC_LEX_KW_ENTRY("define"  , 1), // 3
-
 	BC_LEX_KW_ENTRY("else"    , 0), // 4
 	BC_LEX_KW_ENTRY("for"     , 1), // 5
 	BC_LEX_KW_ENTRY("halt"    , 0), // 6
 	BC_LEX_KW_ENTRY("ibase"   , 1), // 7
-
 	BC_LEX_KW_ENTRY("if"      , 1), // 8
 	BC_LEX_KW_ENTRY("last"    , 0), // 9
 	BC_LEX_KW_ENTRY("length"  , 1), // 10
 	BC_LEX_KW_ENTRY("limits"  , 0), // 11
-
 	BC_LEX_KW_ENTRY("obase"   , 1), // 12
 	BC_LEX_KW_ENTRY("print"   , 0), // 13
 	BC_LEX_KW_ENTRY("quit"    , 1), // 14
 	BC_LEX_KW_ENTRY("read"    , 0), // 15
-
 	BC_LEX_KW_ENTRY("return"  , 1), // 16
 	BC_LEX_KW_ENTRY("scale"   , 1), // 17
 	BC_LEX_KW_ENTRY("sqrt"    , 1), // 18
@@ -499,30 +495,26 @@ static const struct BcLexKeyword bc_lex_kws[20] = {
 #undef BC_LEX_KW_ENTRY
 enum {
 	POSIX_KWORD_MASK = 0
-		| (1 << 0)
-		| (1 << 1)
-		| (0 << 2)
-		| (1 << 3)
-		\
-		| (0 << 4)
-		| (1 << 5)
-		| (0 << 6)
-		| (1 << 7)
-		\
-		| (1 << 8)
-		| (0 << 9)
-		| (1 << 10)
-		| (0 << 11)
-		\
-		| (1 << 12)
-		| (0 << 13)
-		| (1 << 14)
-		| (0 << 15)
-		\
-		| (1 << 16)
-		| (1 << 17)
-		| (1 << 18)
-		| (1 << 19)
+		| (1 << 0)  // 0
+		| (1 << 1)  // 1
+		| (0 << 2)  // 2
+		| (1 << 3)  // 3
+		| (0 << 4)  // 4
+		| (1 << 5)  // 5
+		| (0 << 6)  // 6
+		| (1 << 7)  // 7
+		| (1 << 8)  // 8
+		| (0 << 9)  // 9
+		| (1 << 10) // 10
+		| (0 << 11) // 11
+		| (1 << 12) // 12
+		| (0 << 13) // 13
+		| (1 << 14) // 14
+		| (0 << 15) // 15
+		| (1 << 16) // 16
+		| (1 << 17) // 17
+		| (1 << 18) // 18
+		| (1 << 19) // 19
 };
 #define bc_lex_kws_POSIX(i) ((1 << (i)) & POSIX_KWORD_MASK)
 #endif
@@ -1027,7 +1019,7 @@ static void quit(void)
 
 static void bc_verror_msg(const char *fmt, va_list p)
 {
-	const char *sv = sv; /* for compiler */
+	const char *sv = sv; // for compiler
 	if (G.prog.file) {
 		sv = applet_name;
 		applet_name = xasprintf("%s: %s:%u", applet_name, G.prog.file, G.err_line);
@@ -2943,7 +2935,6 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 	// is so the parser doesn't get inundated with whitespace.
 	s = BC_STATUS_SUCCESS;
 	do {
-//TODO: replace pointer with if(IS_BC)
 		ERROR_RETURN(s =) zcommon_lex_token(l);
 	} while (!s && l->t.t == BC_LEX_WHITESPACE);
 
@@ -7395,10 +7386,10 @@ static void bc_program_init(void)
 	size_t idx;
 	BcInstPtr ip;
 
-	/* memset(&G.prog, 0, sizeof(G.prog)); - already is */
+	// memset(&G.prog, 0, sizeof(G.prog)); - already is
 	memset(&ip, 0, sizeof(BcInstPtr));
 
-	/* G.prog.nchars = G.prog.scale = 0; - already is */
+	// G.prog.nchars = G.prog.scale = 0; - already is
 	bc_num_init_DEF_SIZE(&G.prog.ib);
 	bc_num_ten(&G.prog.ib);
 	G.prog.ib_t = 10;
@@ -7527,18 +7518,17 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 	int noscript;
 
 	INIT_G();
-	/*
-	 * TODO: dc (GNU bc 1.07.1) 1.4.1 seems to use width
-	 * 1 char wider than bc from the same package.
-	 * Both default width, and xC_LINE_LENGTH=N are wider:
-	 * "DC_LINE_LENGTH=5 dc -e'123456 p'" prints:
-	 *	1234\
-	 *	56
-	 * "echo '123456' | BC_LINE_LENGTH=5 bc" prints:
-	 *	123\
-	 *	456
-	 * Do the same, or it's a bug?
-	 */
+
+	// TODO: dc (GNU bc 1.07.1) 1.4.1 seems to use width
+	// 1 char wider than bc from the same package.
+	// Both default width, and xC_LINE_LENGTH=N are wider:
+	// "DC_LINE_LENGTH=5 dc -e'123456 p'" prints:
+	//	1234\
+	//	56
+	// "echo '123456' | BC_LINE_LENGTH=5 bc" prints:
+	//	123\
+	//	456
+	// Do the same, or it's a bug?
 	bc_vm_init("DC_LINE_LENGTH");
 
 	// Run -e'SCRIPT' and -fFILE in order of appearance, then handle FILEs
