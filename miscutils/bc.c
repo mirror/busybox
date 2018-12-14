@@ -7302,7 +7302,7 @@ static const char bc_lib[] ALIGN1 = {
 "\n"		"a=(x^n)/2^n/a"
 "\n"		"r=v=1"
 "\n"		"f=-x*x/4"
-"\n"		"scale=scale+length(a)-scale(a)"
+"\n"		"scale+=length(a)-scale(a)"
 "\n"		"for(i=1;v;++i){"
 "\n"			"v=v*f/i/(n+i)"
 "\n"			"r+=v"
