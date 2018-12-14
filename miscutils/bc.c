@@ -7143,6 +7143,12 @@ static const char bc_lib[] ALIGN1 = {
 	"scale=20"
 "\n"	"define e(x){"
 "\n"		"auto b,s,n,r,d,i,p,f,v"
+////////////////"if(x<0)return(1/e(-x))" // and drop 'n' and x<0 logic below
+//^^^^^^^^^^^^^^^^ this would work, and is even more precise than GNU bc:
+//e(-.998896): GNU:.36828580434569428695
+//      above code:.36828580434569428696
+//    actual value:.3682858043456942869594...
+// but for now let's be "GNU compatible"
 "\n"		"b=ibase"
 "\n"		"ibase=A"
 "\n"		"if(x<0){"
@@ -7219,7 +7225,7 @@ static const char bc_lib[] ALIGN1 = {
 "\n"		"}"
 "\n"		"scale=0"
 "\n"		"q=(x/a+2)/4"
-"\n"		"x=x-4*q*a"
+"\n"		"x-=4*q*a"
 "\n"		"if(q%2)x=-x"
 "\n"		"scale=s+2"
 "\n"		"r=a=x"
@@ -7288,7 +7294,7 @@ static const char bc_lib[] ALIGN1 = {
 "\n"		"n/=1"
 "\n"		"if(n<0){"
 "\n"			"n=-n"
-"\n"			"if(n%2==1)o=1"
+"\n"			"o=n%2"
 "\n"		"}"
 "\n"		"a=1"
 "\n"		"for(i=2;i<=n;++i)a*=i"
