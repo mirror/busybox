@@ -167,6 +167,12 @@
 # include "dc.c"
 #else
 
+#if 0
+# define dbg_lex(...) bb_error_msg(__VA_ARGS__)
+#else
+# define dbg_lex(...) ((void)0)
+#endif
+
 typedef enum BcStatus {
 	BC_STATUS_SUCCESS = 0,
 	BC_STATUS_FAILURE = 1,
@@ -2935,8 +2941,12 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 	// is so the parser doesn't get inundated with whitespace.
 	s = BC_STATUS_SUCCESS;
 	do {
+		dbg_lex("next token:'%.*s'",
+			(int)(strchrnul(l->buf + l->i, '\n') - (l->buf + l->i)),
+			l->buf + l->i);
 		ERROR_RETURN(s =) zcommon_lex_token(l);
 	} while (!s && l->t.t == BC_LEX_WHITESPACE);
+	dbg_lex("next l->t.t:%d", l->t.t);
 
 	RETURN_STATUS(s);
 }
@@ -3035,15 +3045,16 @@ static BC_STATUS zbc_lex_string(BcLex *l)
 # define zbc_lex_string(...) (zbc_lex_string(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static void bc_lex_assign(BcLex *l, BcLexType with, BcLexType without)
+static void bc_lex_assign(BcLex *l, unsigned with_and_without)
 {
 	if (l->buf[l->i] == '=') {
 		++l->i;
-		l->t.t = with;
-	}
-	else
-		l->t.t = without;
+		with_and_without >>= 8; // store "with" value
+	} // else store "without" value
+	l->t.t = (with_and_without & 0xff);
 }
+#define bc_lex_assign(l, with, without) \
+	bc_lex_assign(l, ((with)<<8)|(without))
 
 static BC_STATUS zbc_lex_comment(BcLex *l)
 {
@@ -7523,11 +7534,11 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 	// 1 char wider than bc from the same package.
 	// Both default width, and xC_LINE_LENGTH=N are wider:
 	// "DC_LINE_LENGTH=5 dc -e'123456 p'" prints:
-	//	1234\
-	//	56
+	//	|1234\   |
+	//	|56      |
 	// "echo '123456' | BC_LINE_LENGTH=5 bc" prints:
-	//	123\
-	//	456
+	//	|123\    |
+	//	|456     |
 	// Do the same, or it's a bug?
 	bc_vm_init("DC_LINE_LENGTH");
 
