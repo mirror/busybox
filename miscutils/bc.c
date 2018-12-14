@@ -7236,7 +7236,7 @@ static const char bc_lib[] ALIGN1 = {
 "\n"		"}"
 "\n"		"scale=s"
 "\n"		"ibase=b"
-"\n"		"if(n)return(-r/1)"
+"\n"		"if(n)r=-r"
 "\n"		"return(r/1)"
 "\n"	"}"
 "\n"	"define c(x){"
