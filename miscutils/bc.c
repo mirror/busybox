@@ -3489,7 +3489,7 @@ static BC_STATUS zcommon_parse(BcParse *p)
 	IF_DC(RETURN_STATUS(zdc_parse_parse(p));)
 }
 
-static BC_STATUS zbc_parse_text(BcParse *p, const char *text)
+static BC_STATUS zbc_parse_text_init(BcParse *p, const char *text)
 {
 	BcStatus s;
 
@@ -3507,7 +3507,7 @@ static BC_STATUS zbc_parse_text(BcParse *p, const char *text)
 	RETURN_STATUS(zbc_lex_text(&p->l, text));
 }
 #if ERRORS_ARE_FATAL
-# define zbc_parse_text(...) (zbc_parse_text(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_parse_text_init(...) (zbc_parse_text_init(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 // Called when parsing or execution detects a failure,
@@ -5394,7 +5394,7 @@ static BC_STATUS zbc_program_read(void)
 	bc_parse_create(&parse, BC_PROG_READ);
 	bc_lex_file(&parse.l);
 
-	s = zbc_parse_text(&parse, buf.v);
+	s = zbc_parse_text_init(&parse, buf.v);
 	if (s) goto exec_err;
 	s = zcommon_parse_expr(&parse, BC_PARSE_NOREAD);
 	if (s) goto exec_err;
@@ -6593,7 +6593,7 @@ static BC_STATUS zbc_program_execStr(char *code, size_t *bgn,
 
 	if (f->code.len == 0) {
 		bc_parse_create(&prs, fidx);
-		s = zbc_parse_text(&prs, *str);
+		s = zbc_parse_text_init(&prs, *str);
 		if (s) goto err;
 		s = zcommon_parse_expr(&prs, BC_PARSE_NOCALL);
 		if (s) goto err;
@@ -6919,7 +6919,7 @@ static unsigned bc_vm_envLen(const char *var)
 
 static BC_STATUS zbc_vm_process(const char *text)
 {
-	BcStatus s = zbc_parse_text(&G.prs, text);
+	BcStatus s = zbc_parse_text_init(&G.prs, text);
 
 	if (s) RETURN_STATUS(s);
 
@@ -7320,19 +7320,11 @@ static BC_STATUS zbc_vm_exec(void)
 
 #if ENABLE_BC
 	if (option_mask32 & BC_FLAG_L) {
-
 		// We know that internal library is not buggy,
 		// thus error checking is normally disabled.
 # define DEBUG_LIB 0
 		bc_lex_file(&G.prs.l);
-		s = zbc_parse_text(&G.prs, bc_lib);
-		if (DEBUG_LIB && s) RETURN_STATUS(s);
-
-		while (G.prs.l.t.t != BC_LEX_EOF) {
-			ERROR_RETURN(s =) zcommon_parse(&G.prs);
-			if (DEBUG_LIB && s) RETURN_STATUS(s);
-		}
-		s = zbc_program_exec();
+		ERROR_RETURN(s =) zbc_vm_process(bc_lib);
 		if (DEBUG_LIB && s) RETURN_STATUS(s);
 	}
 #endif
