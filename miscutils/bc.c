@@ -2334,13 +2334,13 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 				n->num[n->len] = val[i] - '0';
 				++n->len;
  skip_dot:
-				if ((ssize_t)--i == (ssize_t)-1) break;
-				if (val[i] == '.') goto skip_dot;
+				if (i == 0) break;
+				if (val[--i] == '.') goto skip_dot;
 			}
 			break;
 		}
 	}
-	// if this is reached, the value is entirely zero
+	// if for() exits without hitting if(), the value is entirely zero
 }
 
 // Note: n is already "bc_num_zero()"ed,
