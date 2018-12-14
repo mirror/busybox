@@ -3611,7 +3611,7 @@ static void bc_parse_create(BcParse *p, size_t func)
 // We can calculate the conversion between tokens and exprs by subtracting the
 // position of the first operator in the lex enum and adding the position of the
 // first in the expr enum. Note: This only works for binary operators.
-#define BC_PARSE_TOKEN_INST(t) ((char) ((t) -BC_LEX_NEG + BC_INST_NEG))
+#define BC_PARSE_TOKEN_INST(t) ((char) ((t) - BC_LEX_NEG + BC_INST_NEG))
 
 static BC_STATUS zbc_parse_else(BcParse *p);
 static BC_STATUS zbc_parse_stmt(BcParse *p);
@@ -3623,17 +3623,14 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 # define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BC_STATUS zbc_parse_operator(BcParse *p, BcLexType type, size_t start,
-                                  size_t *nexprs, bool next)
+static void bc_parse_operator(BcParse *p, BcLexType type, size_t start,
+                                  size_t *nexprs)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
-	BcLexType t;
 	char l, r = bc_parse_op_PREC(type - BC_LEX_OP_INC);
 	bool left = bc_parse_op_LEFT(type - BC_LEX_OP_INC);
 
 	while (p->ops.len > start) {
-
-		t = BC_PARSE_TOP_OP(p);
+		BcLexType t = BC_PARSE_TOP_OP(p);
 		if (t == BC_LEX_LPAREN) break;
 
 		l = bc_parse_op_PREC(t - BC_LEX_OP_INC);
@@ -3641,17 +3638,11 @@ static BC_STATUS zbc_parse_operator(BcParse *p, BcLexType type, size_t start,
 
 		bc_parse_push(p, BC_PARSE_TOKEN_INST(t));
 		bc_vec_pop(&p->ops);
-		*nexprs -= t != BC_LEX_OP_BOOL_NOT && t != BC_LEX_NEG;
+		*nexprs -= (t != BC_LEX_OP_BOOL_NOT && t != BC_LEX_NEG);
 	}
 
 	bc_vec_push(&p->ops, &type);
-	if (next) s = zbc_lex_next(&p->l);
-
-	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_operator(...) (zbc_parse_operator(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
 
 static BC_STATUS zbc_parse_rightParen(BcParse *p, size_t ops_bgn, size_t *nexs)
 {
@@ -3964,7 +3955,7 @@ static BC_STATUS zbc_parse_minus(BcParse *p, BcInst *prev, size_t ops_bgn,
 	if (type != BC_LEX_OP_MINUS)
 		bc_vec_push(&p->ops, &type);
 	else
-		s = zbc_parse_operator(p, type, ops_bgn, nexprs, false);
+		bc_parse_operator(p, type, ops_bgn, nexprs);
 
 	RETURN_STATUS(s);
 }
@@ -4787,7 +4778,8 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 
 				nrelops += t >= BC_LEX_OP_REL_EQ && t <= BC_LEX_OP_REL_GT;
 				prev = BC_PARSE_TOKEN_INST(t);
-				s = zbc_parse_operator(p, t, ops_bgn, &nexprs, true);
+				bc_parse_operator(p, t, ops_bgn, &nexprs);
+				s = zbc_lex_next(&p->l);
 				rprn = get_token = false;
 				bin_last = t != BC_LEX_OP_BOOL_NOT;
 
