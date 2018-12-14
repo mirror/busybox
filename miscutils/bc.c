@@ -566,48 +566,37 @@ typedef struct BcLex {
 
 } BcLex;
 
-#define BC_PARSE_STREND ((char) UCHAR_MAX)
+#define BC_PARSE_STREND              ((char) UCHAR_MAX)
 
-#define BC_PARSE_REL    (1 << 0)
-#define BC_PARSE_PRINT  (1 << 1)
-#define BC_PARSE_NOCALL (1 << 2)
-#define BC_PARSE_NOREAD (1 << 3)
-#define BC_PARSE_ARRAY  (1 << 4)
+#define BC_PARSE_REL                 (1 << 0)
+#define BC_PARSE_PRINT               (1 << 1)
+#define BC_PARSE_NOCALL              (1 << 2)
+#define BC_PARSE_NOREAD              (1 << 3)
+#define BC_PARSE_ARRAY               (1 << 4)
 
 #define BC_PARSE_TOP_FLAG_PTR(parse) ((uint8_t *) bc_vec_top(&(parse)->flags))
-#define BC_PARSE_TOP_FLAG(parse) (*(BC_PARSE_TOP_FLAG_PTR(parse)))
+#define BC_PARSE_TOP_FLAG(parse)     (*(BC_PARSE_TOP_FLAG_PTR(parse)))
 
-#define BC_PARSE_FLAG_FUNC_INNER (1 << 0)
-#define BC_PARSE_FUNC_INNER(parse) \
-	(BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_FUNC_INNER)
+#define BC_PARSE_FLAG_FUNC_INNER     (1 << 0)
+#define BC_PARSE_FLAG_FUNC           (1 << 1)
+#define BC_PARSE_FLAG_BODY           (1 << 2)
+#define BC_PARSE_FLAG_LOOP           (1 << 3)
+#define BC_PARSE_FLAG_LOOP_INNER     (1 << 4)
+#define BC_PARSE_FLAG_IF             (1 << 5)
+#define BC_PARSE_FLAG_ELSE           (1 << 6)
+#define BC_PARSE_FLAG_IF_END         (1 << 7)
 
-#define BC_PARSE_FLAG_FUNC (1 << 1)
-#define BC_PARSE_FUNC(parse) (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_FUNC)
+// If we have none of the above bits, we can stop parsing and execute already parsed chunk
+#define BC_PARSE_CAN_EXEC(parse)     (BC_PARSE_TOP_FLAG(parse) == 0)
 
-#define BC_PARSE_FLAG_BODY (1 << 2)
-#define BC_PARSE_BODY(parse) (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_BODY)
-
-#define BC_PARSE_FLAG_LOOP (1 << 3)
-#define BC_PARSE_LOOP(parse) (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_LOOP)
-
-#define BC_PARSE_FLAG_LOOP_INNER (1 << 4)
-#define BC_PARSE_LOOP_INNER(parse) \
-	(BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_LOOP_INNER)
-
-#define BC_PARSE_FLAG_IF (1 << 5)
-#define BC_PARSE_IF(parse) (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_IF)
-
-#define BC_PARSE_FLAG_ELSE (1 << 6)
-#define BC_PARSE_ELSE(parse) (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_ELSE)
-
-#define BC_PARSE_FLAG_IF_END (1 << 7)
-#define BC_PARSE_IF_END(parse) (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_IF_END)
-
-#define BC_PARSE_CAN_EXEC(parse)                                             \
-	(!(BC_PARSE_TOP_FLAG(parse) &                                            \
-	   (BC_PARSE_FLAG_FUNC_INNER | BC_PARSE_FLAG_FUNC | BC_PARSE_FLAG_BODY | \
-	    BC_PARSE_FLAG_LOOP | BC_PARSE_FLAG_LOOP_INNER | BC_PARSE_FLAG_IF |   \
-	    BC_PARSE_FLAG_ELSE | BC_PARSE_FLAG_IF_END)))
+#define BC_PARSE_FUNC_INNER(parse)   (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_FUNC_INNER)
+#define BC_PARSE_FUNC(parse)         (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_FUNC)
+#define BC_PARSE_BODY(parse)         (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_BODY)
+#define BC_PARSE_LOOP(parse)         (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_LOOP)
+#define BC_PARSE_LOOP_INNER(parse)   (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_LOOP_INNER)
+#define BC_PARSE_IF(parse)           (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_IF)
+#define BC_PARSE_ELSE(parse)         (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_ELSE)
+#define BC_PARSE_IF_END(parse)       (BC_PARSE_TOP_FLAG(parse) & BC_PARSE_FLAG_IF_END)
 
 struct BcParse;
 
@@ -3611,7 +3600,7 @@ static void bc_parse_create(BcParse *p, size_t func)
 // We can calculate the conversion between tokens and exprs by subtracting the
 // position of the first operator in the lex enum and adding the position of the
 // first in the expr enum. Note: This only works for binary operators.
-#define BC_PARSE_TOKEN_INST(t) ((char) ((t) - BC_LEX_NEG + BC_INST_NEG))
+#define BC_TOKEN_2_INST(t) ((char) ((t) - BC_LEX_NEG + BC_INST_NEG))
 
 static BC_STATUS zbc_parse_else(BcParse *p);
 static BC_STATUS zbc_parse_stmt(BcParse *p);
@@ -3636,7 +3625,7 @@ static void bc_parse_operator(BcParse *p, BcLexType type, size_t start,
 		l = bc_parse_op_PREC(t - BC_LEX_OP_INC);
 		if (l >= r && (l != r || !left)) break;
 
-		bc_parse_push(p, BC_PARSE_TOKEN_INST(t));
+		bc_parse_push(p, BC_TOKEN_2_INST(t));
 		bc_vec_pop(&p->ops);
 		*nexprs -= (t != BC_LEX_OP_BOOL_NOT && t != BC_LEX_NEG);
 	}
@@ -3653,7 +3642,7 @@ static BC_STATUS zbc_parse_rightParen(BcParse *p, size_t ops_bgn, size_t *nexs)
 	top = BC_PARSE_TOP_OP(p);
 
 	while (top != BC_LEX_LPAREN) {
-		bc_parse_push(p, BC_PARSE_TOKEN_INST(top));
+		bc_parse_push(p, BC_TOKEN_2_INST(top));
 
 		bc_vec_pop(&p->ops);
 		*nexs -= top != BC_LEX_OP_BOOL_NOT && top != BC_LEX_NEG;
@@ -3948,7 +3937,7 @@ static BC_STATUS zbc_parse_minus(BcParse *p, BcInst *prev, size_t ops_bgn,
 	               (etype >= BC_INST_NUM && etype <= BC_INST_SQRT) ?
 	           BC_LEX_OP_MINUS :
 	           BC_LEX_NEG;
-	*prev = BC_PARSE_TOKEN_INST(type);
+	*prev = BC_TOKEN_2_INST(type);
 
 	// We can just push onto the op stack because this is the largest
 	// precedence operator that gets pushed. Inc/dec does not.
@@ -4747,10 +4736,9 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 				    prev != BC_INST_OBASE && prev != BC_INST_LAST)
 				{
 					s = bc_error("bad assignment:"
-						" left side must be scale,"
-						" ibase, obase, last, var,"
+						" left side must be variable"
 						" or array element"
-					);
+					); // note: shared string
 					break;
 				}
 			}
@@ -4777,7 +4765,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 				}
 
 				nrelops += t >= BC_LEX_OP_REL_EQ && t <= BC_LEX_OP_REL_GT;
-				prev = BC_PARSE_TOKEN_INST(t);
+				prev = BC_TOKEN_2_INST(t);
 				bc_parse_operator(p, t, ops_bgn, &nexprs);
 				s = zbc_lex_next(&p->l);
 				rprn = get_token = false;
@@ -4926,7 +4914,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 		if (top == BC_LEX_LPAREN || top == BC_LEX_RPAREN)
 			return bc_error_bad_expression();
 
-		bc_parse_push(p, BC_PARSE_TOKEN_INST(top));
+		bc_parse_push(p, BC_TOKEN_2_INST(top));
 
 		nexprs -= top != BC_LEX_OP_BOOL_NOT && top != BC_LEX_NEG;
 		bc_vec_pop(&p->ops);
@@ -5977,10 +5965,9 @@ static BC_STATUS zbc_program_assign(char inst)
 
 	if (left->t == BC_RESULT_CONSTANT || left->t == BC_RESULT_TEMP)
 		RETURN_STATUS(bc_error("bad assignment:"
-				" left side must be scale,"
-				" ibase, obase, last, var,"
+				" left side must be variable"
 				" or array element"
-		));
+		)); // note: shared string
 
 #if ENABLE_BC
 	if (inst == BC_INST_ASSIGN_DIVIDE && !bc_num_cmp(r, &G.prog.zero))
