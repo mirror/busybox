@@ -6715,7 +6715,6 @@ static BC_STATUS zbc_program_exec(void)
 	BcInstPtr *ip = bc_vec_top(&G.prog.stack);
 	BcFunc *func = bc_program_func(ip->func);
 	char *code = func->code.v;
-	bool cond = false;
 
 	while (ip->idx < func->code.len) {
 		BcStatus s = BC_STATUS_SUCCESS;
@@ -6723,17 +6722,22 @@ static BC_STATUS zbc_program_exec(void)
 
 		switch (inst) {
 #if ENABLE_BC
-			case BC_INST_JUMP_ZERO:
+			case BC_INST_JUMP_ZERO: {
+				bool zero;
 				s = zbc_program_prep(&ptr, &num);
 				if (s) RETURN_STATUS(s);
-				cond = !bc_num_cmp(num, &G.prog.zero);
+				zero = (bc_num_cmp(num, &G.prog.zero) == 0);
 				bc_vec_pop(&G.prog.results);
-				// Fallthrough.
+				if (!zero) {
+					bc_program_index(code, &ip->idx);
+					break;
+				}
+				// else: fall through
+			}
 			case BC_INST_JUMP: {
-				size_t *addr;
 				size_t idx = bc_program_index(code, &ip->idx);
-				addr = bc_vec_item(&func->labels, idx);
-				if (inst == BC_INST_JUMP || cond) ip->idx = *addr;
+				size_t *addr = bc_vec_item(&func->labels, idx);
+				ip->idx = *addr;
 				break;
 			}
 			case BC_INST_CALL:
@@ -6851,8 +6855,7 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			case BC_INST_EXECUTE:
 			case BC_INST_EXEC_COND:
-				cond = inst == BC_INST_EXEC_COND;
-				s = zbc_program_execStr(code, &ip->idx, cond);
+				s = zbc_program_execStr(code, &ip->idx, inst == BC_INST_EXEC_COND);
 				break;
 			case BC_INST_PRINT_STACK: {
 				size_t idx;
