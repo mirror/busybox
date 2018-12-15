@@ -26,6 +26,26 @@ testing "bc string 1" \
 	"STR\n" \
 	"" "\"STR\n\""
 
+testing "bc if 0 else" \
+	"bc" \
+	"2\n9\n" \
+	"" "if (0) 1 else 2; 9"
+
+testing "bc if 1 else" \
+	"bc" \
+	"1\n9\n" \
+	"" "if (1) 1 else 2; 9"
+
+testing "bc if 1 if 1 else else" \
+	"bc" \
+	"1\n9\n" \
+	"" "if (1) if (1) 1 else 2 else 3; 9"
+
+testing "bc if 0 else if 1" \
+	"bc" \
+	"2\n9\n" \
+	"" "if (0) 1 else if (1) 2; 9"
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do
