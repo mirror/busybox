@@ -4232,7 +4232,6 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	BcInstPtr ip;
 	size_t *label;
 	size_t cond_idx, exit_idx, body_idx, update_idx;
-	size_t n;
 
 	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	s = zbc_lex_next(&p->l);
@@ -4305,16 +4304,10 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "for");
 	if (s) RETURN_STATUS(s);
 
-	n = *((size_t *) bc_vec_top(&p->conds));
-	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, n);
-
-	label = bc_vec_top(&p->conds);
-
 //TODO: commonalize?
-	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, *label);
+	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, update_idx);
 	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, *label);
+	bc_parse_pushIndex(p, update_idx);
 
 	label = bc_vec_item(&p->func->labels, ip.idx);
 	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
@@ -4337,18 +4330,13 @@ static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 	if (type == BC_LEX_KEY_BREAK) {
 		BcInstPtr *ipp;
 
-		i = p->exits.len;
-		for (;;) {
-			if (i == 0) // none of the enclosing blocks is a loop
-				RETURN_STATUS(bc_error_bad_token());
-			ipp = bc_vec_item(&p->exits, --i);
-			if (ipp->func != 0)
-				break;
-		}
+		if (p->exits.len == 0) // none of the enclosing blocks is a loop
+			RETURN_STATUS(bc_error_bad_token());
+		ipp = bc_vec_top(&p->exits);
 		i = ipp->idx;
-	}
-	else
+	} else {
 		i = *((size_t *) bc_vec_top(&p->conds));
+	}
 
 	bc_parse_push(p, BC_INST_JUMP);
 	bc_parse_pushIndex(p, i);
