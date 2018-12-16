@@ -107,6 +107,33 @@ if(1) {
 99
 "
 
+testing "bc continue in if" \
+	"bc" \
+	"\
+11
+21
+11
+31
+99
+" \
+	"" "\
+i=2
+while(i--) {
+        11
+        if(i) {
+                21
+                continue
+                22
+        } else {
+                31
+                continue
+                32
+	}
+        12
+}
+99
+"
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do

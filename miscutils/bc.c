@@ -4175,7 +4175,7 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	BcStatus s;
 	BcInstPtr ip;
 	size_t *label;
-	size_t n;
+	size_t cond_idx;
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
@@ -4183,10 +4183,10 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	ip.idx = p->func->labels.len;
+	cond_idx = p->func->labels.len;
 
 	bc_vec_push(&p->func->labels, &p->func->code.len);
-	bc_vec_push(&p->conds, &ip.idx);
+	bc_vec_push(&p->conds, &cond_idx);
 
 	ip.idx = p->func->labels.len;
 	ip.func = 1;
@@ -4209,15 +4209,9 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "while");
 	if (s) RETURN_STATUS(s);
 
-	n = *((size_t *) bc_vec_top(&p->conds));
+	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, cond_idx);
 	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, n);
-
-	label = bc_vec_top(&p->conds);
-
-	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, *label);
-	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, *label);
+	bc_parse_pushIndex(p, cond_idx);
 
 	label = bc_vec_item(&p->func->labels, ip.idx);
 	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
