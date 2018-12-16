@@ -435,9 +435,9 @@ typedef enum BcLexType {
 	BC_LEX_COMMA,
 	BC_LEX_RBRACKET,
 
-	BC_LEX_LBRACE,
+	BC_LEX_LBRACE, // '{' is 0x7B, '}' is 0x7D,
 	BC_LEX_SCOLON,
-	BC_LEX_RBRACE,
+	BC_LEX_RBRACE, // should be LBRACE+2: code uses (c - '{' + BC_LEX_LBRACE)
 
 	BC_LEX_STR,
 	BC_LEX_NAME,
@@ -588,9 +588,6 @@ typedef struct BcParse {
 
 	BcFunc *func;
 	size_t fidx;
-
-//TODO: needed? Example?
-	size_t nbraces;
 
 	size_t in_funcdef;
 } BcParse;
@@ -2777,7 +2774,9 @@ static void bc_lex_whitespace(BcLex *l)
 	l->t.t = BC_LEX_WHITESPACE;
 	for (;;) {
 		char c = l->buf[l->i];
-		if (c == '\n' || !isspace(c))
+		if (c == '\n') // this is BC_LEX_NLINE, not BC_LEX_WHITESPACE
+			break;
+		if (!isspace(c))
 			break;
 		l->i++;
 	}
@@ -3003,6 +3002,7 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 
 	// Loop until failure or we don't have whitespace. This
 	// is so the parser doesn't get inundated with whitespace.
+	// Comments are also BC_LEX_WHITESPACE tokens and eaten here.
 	s = BC_STATUS_SUCCESS;
 	do {
 		dbg_lex("next string to parse:'%.*s'",
@@ -3149,9 +3149,9 @@ static BC_STATUS zbc_lex_comment(BcLex *l)
 	const char *buf = l->buf;
 
 	l->t.t = BC_LEX_WHITESPACE;
-	i = ++l->i;
+	i = l->i; /* here buf[l->i] is the '*' of opening comment delimiter */
 	for (;;) {
-		char c = buf[i];
+		char c = buf[++i];
  check_star:
 		if (c == '*') {
 			c = buf[++i];
@@ -3164,7 +3164,6 @@ static BC_STATUS zbc_lex_comment(BcLex *l)
 			RETURN_STATUS(bc_error("comment end could not be found"));
 		}
 		nls += (c == '\n');
-		i++;
 	}
 
 	l->i = i + 1;
@@ -3184,10 +3183,14 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 
 	// This is the workhorse of the lexer.
 	switch (c) {
-		case '\0':
-		case '\n':
+		case '\0': // probably never reached
+			l->i--;
+			l->t.t = BC_LEX_EOF;
 			l->newline = true;
-			l->t.t = !c ? BC_LEX_EOF : BC_LEX_NLINE;
+			break;
+		case '\n':
+			l->t.t = BC_LEX_NLINE;
+			l->newline = true;
 			break;
 		case '\t':
 		case '\v':
@@ -3556,7 +3559,7 @@ static void bc_parse_pushIndex(BcParse *p, size_t idx)
 	}
 }
 
-static void bc_parse_number(BcParse *p, BcInst *prev, size_t *nexs)
+static void bc_parse_number(BcParse *p)
 {
 	char *num = xstrdup(p->l.t.v.v);
 	size_t idx = G.prog.consts.len;
@@ -3565,9 +3568,6 @@ static void bc_parse_number(BcParse *p, BcInst *prev, size_t *nexs)
 
 	bc_parse_push(p, BC_INST_NUM);
 	bc_parse_pushIndex(p, idx);
-
-	++(*nexs);
-	(*prev) = BC_INST_NUM;
 }
 
 IF_BC(static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p);)
@@ -3624,7 +3624,6 @@ static void bc_parse_reset(BcParse *p)
 
 	p->l.i = p->l.len;
 	p->l.t.t = BC_LEX_EOF;
-	p->nbraces = 0;
 
 	bc_vec_pop_all(&p->exits);
 	bc_vec_pop_all(&p->conds);
@@ -3650,7 +3649,6 @@ static void bc_parse_create(BcParse *p, size_t func)
 	bc_vec_init(&p->conds, sizeof(size_t), NULL);
 	bc_vec_init(&p->ops, sizeof(BcLexType), NULL);
 
-	// p->nbraces = 0; - already is
 	bc_parse_updateFunc(p, func);
 }
 
@@ -4846,7 +4844,9 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 			{
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
-				bc_parse_number(p, &prev, &nexprs);
+				bc_parse_number(p);
+				nexprs++;
+				prev = BC_INST_NUM;
 				paren_expr = get_token = true;
 				rprn = bin_last = false;
 
@@ -5111,7 +5111,8 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 				if (p->l.t.t != BC_LEX_NUMBER)
 					RETURN_STATUS(bc_error_bad_token());
 			}
-			bc_parse_number(p, &prev, &p->nbraces);
+			bc_parse_number(p);
+			prev = BC_INST_NUM;
 			if (t == BC_LEX_NEG) bc_parse_push(p, BC_INST_NEG);
 			get_token = true;
 			break;
@@ -5158,8 +5159,6 @@ static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcInst inst;
 	BcLexType t;
-
-	if (flags & BC_PARSE_NOCALL) p->nbraces = G.prog.results.len;
 
 	for (t = p->l.t.t; !s && t != BC_LEX_EOF; t = p->l.t.t) {
 		inst = dc_parse_insts[t];
