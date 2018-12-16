@@ -3018,6 +3018,29 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 # define zbc_lex_next(...) (zbc_lex_next(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
+static BC_STATUS zbc_lex_skip_if_at_NLINE(BcLex *l)
+{
+	if (l->t.t == BC_LEX_NLINE)
+		RETURN_STATUS(zbc_lex_next(l));
+	RETURN_STATUS(BC_STATUS_SUCCESS);
+}
+#if ERRORS_ARE_FATAL
+# define zbc_lex_skip_if_at_NLINE(...) (zbc_lex_skip_if_at_NLINE(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
+
+static BC_STATUS zbc_lex_next_and_skip_NLINE(BcLex *l)
+{
+	BcStatus s;
+	s = zbc_lex_next(l);
+	if (s) RETURN_STATUS(s);
+	// if(cond)<newline>stmt is accepted too (but not 2+ newlines)
+	s = zbc_lex_skip_if_at_NLINE(l);
+	RETURN_STATUS(s);
+}
+#if ERRORS_ARE_FATAL
+# define zbc_lex_next_and_skip_NLINE(...) (zbc_lex_next_and_skip_NLINE(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
+
 static BC_STATUS zbc_lex_text_init(BcLex *l, const char *text)
 {
 	l->buf = text;
@@ -4152,7 +4175,8 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	if (s) RETURN_STATUS(s);
 
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
-	s = zbc_lex_next(&p->l);
+	// if(cond)<newline>stmt is accepted too (but not 2+ newlines)
+	s = zbc_lex_next_and_skip_NLINE(&p->l);
 	if (s) RETURN_STATUS(s);
 
 	bc_parse_push(p, BC_INST_JUMP_ZERO);
@@ -4216,12 +4240,15 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	s = zbc_parse_expr(p, BC_PARSE_REL, bc_parse_next_rel);
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
-	s = zbc_lex_next(&p->l);
+
+	// while(cond)<newline>stmt is accepted too
+	s = zbc_lex_next_and_skip_NLINE(&p->l);
 	if (s) RETURN_STATUS(s);
 
 	bc_parse_push(p, BC_INST_JUMP_ZERO);
 	bc_parse_pushIndex(p, ip.idx);
 
+//TODO: diagnose "while(cond)<newline><newline>"? Now it is seen as "while() with empty body"
 	s = zbc_parse_stmt(p);
 	if (s) RETURN_STATUS(s);
 
@@ -4321,7 +4348,9 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 
 	bc_vec_push(&p->exits, &ip);
 	bc_vec_push(&p->func->labels, &ip.idx);
-	s = zbc_lex_next(&p->l);
+
+	// for(...)<newline>stmt is accepted as well
+	s = zbc_lex_next_and_skip_NLINE(&p->l);
 	if (s) RETURN_STATUS(s);
 
 	s = zbc_parse_stmt(p);
@@ -4453,11 +4482,9 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	if (p->l.t.t != BC_LEX_LBRACE)
 		s = bc_POSIX_requires("the left brace be on the same line as the function header");
 
-	// Prevent "define z()<newline>" to be interpreted as function with empty stmt as body
-	while (p->l.t.t == BC_LEX_NLINE) {
-		s = zbc_lex_next(&p->l);
-		if (s) RETURN_STATUS(s);
-	}
+	// Prevent "define z()<newline>" from being interpreted as function with empty stmt as body
+	s = zbc_lex_skip_if_at_NLINE(&p->l);
+	if (s) RETURN_STATUS(s);
 //TODO: GNU bc requires a {} block even if function body has single stmt, enforce this?
 
 	p->in_funcdef++; // to determine whether "return" stmt is allowed, and such

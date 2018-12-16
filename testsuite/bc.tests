@@ -56,6 +56,16 @@ testing "bc define with body on next line" \
 	"8\n9\n" \
 	"" "define w()\n{ auto z; return 8; }\nw()\n9"
 
+testing "bc if(cond)<NL>" \
+	"bc" \
+	"9\n" \
+	"" "if(0)\n3\n9"
+
+testing "bc while(cond)<NL>" \
+	"bc" \
+	"8\n7\n6\n5\n4\n3\n2\n1\n9\n" \
+	"" "i=9;while(--i)\ni\n9"
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do
