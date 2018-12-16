@@ -4110,7 +4110,6 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 {
 	BcStatus s;
 	BcInstPtr ip;
-	BcInstPtr *ipp;
 	size_t *label;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
@@ -4132,8 +4131,6 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	ip.idx = p->func->labels.len;
 	ip.func = ip.len = 0;
 	bc_parse_pushIndex(p, ip.idx);
-//TODO: can get rid of p->exits stack?
-	bc_vec_push(&p->exits, &ip);
 	bc_vec_push(&p->func->labels, &ip.idx);
 
 	s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "if");
@@ -4147,31 +4144,26 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 		if (s) RETURN_STATUS(s);
 
 		ip2.idx = p->func->labels.len;
-		ip2.func = ip.len = 0;
+		ip2.func = ip2.len = 0;
 
 		dbg_lex("%s:%d after if() body: BC_INST_JUMP to %d", __func__, __LINE__, ip.idx);
 		bc_parse_push(p, BC_INST_JUMP);
 		bc_parse_pushIndex(p, ip2.idx);
 
-		ipp = bc_vec_top(&p->exits);
-		label = bc_vec_item(&p->func->labels, ipp->idx);
+		label = bc_vec_item(&p->func->labels, ip.idx);
 		dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
 		*label = p->func->code.len;
-		bc_vec_pop(&p->exits);
 
-		bc_vec_push(&p->exits, &ip2);
 		bc_vec_push(&p->func->labels, &ip2.idx);
+		ip.idx = ip2.idx;
 
-		s = zbc_parse_stmt(p);
+		s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "else");
 		if (s) RETURN_STATUS(s);
 	}
 
-	ipp = bc_vec_top(&p->exits);
-	label = bc_vec_item(&p->func->labels, ipp->idx);
+	label = bc_vec_item(&p->func->labels, ip.idx);
 	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
 	*label = p->func->code.len;
-
-	bc_vec_pop(&p->exits);
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
