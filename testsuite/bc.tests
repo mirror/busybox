@@ -61,6 +61,11 @@ testing "bc if(cond)<NL>" \
 	"9\n" \
 	"" "if(0)\n3\n9"
 
+testing "bc if(cond) stmt else<NL>" \
+	"bc" \
+	"4\n9\n" \
+	"" "if(0)3 else\n4\n9"
+
 testing "bc while(cond)<NL>" \
 	"bc" \
 	"8\n7\n6\n5\n4\n3\n2\n1\n9\n" \

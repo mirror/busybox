@@ -4112,41 +4112,6 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 # define zbc_parse_return(...) (zbc_parse_return(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BC_STATUS zbc_parse_else(BcParse *p)
-{
-	BcStatus s;
-	BcInstPtr ip;
-	BcInstPtr *ipp;
-	size_t *label;
-
-	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
-
-	ip.idx = p->func->labels.len;
-	ip.func = ip.len = 0;
-
-	dbg_lex("%s:%d after if() body: BC_INST_JUMP to %d", __func__, __LINE__, ip.idx);
-	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, ip.idx);
-
-	ipp = bc_vec_top(&p->exits);
-	label = bc_vec_item(&p->func->labels, ipp->idx);
-	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
-	*label = p->func->code.len;
-	bc_vec_pop(&p->exits);
-
-	bc_vec_push(&p->exits, &ip);
-	bc_vec_push(&p->func->labels, &ip.idx);
-
-	s = zbc_parse_stmt(p);
-	if (s) RETURN_STATUS(s);
-
-	dbg_lex_done("%s:%d done", __func__, __LINE__);
-	RETURN_STATUS(s);
-}
-#if ERRORS_ARE_FATAL
-# define zbc_parse_else(...) (zbc_parse_else(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
-
 static BC_STATUS zbc_parse_if(BcParse *p)
 {
 	BcStatus s;
@@ -4179,12 +4144,30 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 
 	s = zbc_parse_stmt(p);
 	if (s) RETURN_STATUS(s);
+
 	dbg_lex("%s:%d in if after stmt: p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	if (p->l.t.t == BC_LEX_KEY_ELSE) {
-		s = zbc_lex_next(&p->l);
+		s = zbc_lex_next_and_skip_NLINE(&p->l);
 		if (s) RETURN_STATUS(s);
-		dbg_lex("%s:%d calling zbc_parse_else(), p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
-		s = zbc_parse_else(p);
+
+		ip.idx = p->func->labels.len;
+		ip.func = ip.len = 0;
+
+		dbg_lex("%s:%d after if() body: BC_INST_JUMP to %d", __func__, __LINE__, ip.idx);
+		bc_parse_push(p, BC_INST_JUMP);
+		bc_parse_pushIndex(p, ip.idx);
+
+		ipp = bc_vec_top(&p->exits);
+		label = bc_vec_item(&p->func->labels, ipp->idx);
+		dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
+		*label = p->func->code.len;
+		bc_vec_pop(&p->exits);
+
+		bc_vec_push(&p->exits, &ip);
+		bc_vec_push(&p->func->labels, &ip.idx);
+
+		s = zbc_parse_stmt(p);
+		if (s) RETURN_STATUS(s);
 	}
 
 	ipp = bc_vec_top(&p->exits);
