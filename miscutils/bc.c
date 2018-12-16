@@ -4112,23 +4112,12 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 # define zbc_parse_return(...) (zbc_parse_return(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static void bc_parse_noElse(BcParse *p)
-{
-	BcInstPtr *ip;
-	size_t *label;
-
-	ip = bc_vec_top(&p->exits);
-	label = bc_vec_item(&p->func->labels, ip->idx);
-	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
-	*label = p->func->code.len;
-
-	bc_vec_pop(&p->exits);
-}
-
 static BC_STATUS zbc_parse_else(BcParse *p)
 {
 	BcStatus s;
 	BcInstPtr ip;
+	BcInstPtr *ipp;
+	size_t *label;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 
@@ -4139,8 +4128,11 @@ static BC_STATUS zbc_parse_else(BcParse *p)
 	bc_parse_push(p, BC_INST_JUMP);
 	bc_parse_pushIndex(p, ip.idx);
 
-	dbg_lex("%s:%d calling bc_parse_noElse()", __func__, __LINE__);
-	bc_parse_noElse(p);
+	ipp = bc_vec_top(&p->exits);
+	label = bc_vec_item(&p->func->labels, ipp->idx);
+	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
+	*label = p->func->code.len;
+	bc_vec_pop(&p->exits);
 
 	bc_vec_push(&p->exits, &ip);
 	bc_vec_push(&p->func->labels, &ip.idx);
