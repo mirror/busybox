@@ -3556,6 +3556,18 @@ static void bc_parse_pushIndex(BcParse *p, size_t idx)
 	}
 }
 
+static void bc_parse_pushJUMP(BcParse *p, size_t idx)
+{
+	bc_parse_push(p, BC_INST_JUMP);
+	bc_parse_pushIndex(p, idx);
+}
+
+static void bc_parse_pushJUMP_ZERO(BcParse *p, size_t idx)
+{
+	bc_parse_push(p, BC_INST_JUMP_ZERO);
+	bc_parse_pushIndex(p, idx);
+}
+
 static void bc_parse_number(BcParse *p)
 {
 	char *num = xstrdup(p->l.t.v.v);
@@ -3677,14 +3689,19 @@ static BC_STATUS zbc_parse_stmt(BcParse *p)
 # define zbc_parse_stmt(...) (zbc_parse_stmt(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BC_STATUS zbc_parse_stmt_fail_if_bare_NLINE(BcParse *p, bool auto_allowed, const char *after_X)
+static BC_STATUS zbc_parse_stmt_allow_NLINE_before(BcParse *p, const char *after_X)
 {
+	// "if(cond)<newline>stmt" is accepted too, but not 2+ newlines.
+	// Same for "else", "while()", "for()".
+	BcStatus s = zbc_lex_next_and_skip_NLINE(&p->l);
+	if (s) RETURN_STATUS(s);
 	if (p->l.t.t == BC_LEX_NLINE)
 		RETURN_STATUS(bc_error_fmt("no statement after '%s'", after_X));
-	RETURN_STATUS(zbc_parse_stmt_possibly_auto(p, auto_allowed));
+
+	RETURN_STATUS(zbc_parse_stmt(p));
 }
 #if ERRORS_ARE_FATAL
-# define zbc_parse_stmt_fail_if_bare_NLINE(...) (zbc_parse_stmt_fail_if_bare_NLINE(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_parse_stmt_allow_NLINE_before(...) (zbc_parse_stmt_allow_NLINE_before(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static void bc_parse_operator(BcParse *p, BcLexType type, size_t start,
@@ -4106,11 +4123,16 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 # define zbc_parse_return(...) (zbc_parse_return(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
+static void rewrite_label_to_current(BcParse *p, size_t idx)
+{
+	size_t *label = bc_vec_item(&p->func->labels, idx);
+	*label = p->func->code.len;
+}
+
 static BC_STATUS zbc_parse_if(BcParse *p)
 {
 	BcStatus s;
 	size_t ip_idx;
-	size_t *label;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	s = zbc_lex_next(&p->l);
@@ -4123,45 +4145,35 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	if (s) RETURN_STATUS(s);
 
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
-	// if(cond)<newline>stmt is accepted too (but not 2+ newlines)
-	s = zbc_lex_next_and_skip_NLINE(&p->l);
-	if (s) RETURN_STATUS(s);
 
-	bc_parse_push(p, BC_INST_JUMP_ZERO);
 	ip_idx = p->func->labels.len;
-	bc_parse_pushIndex(p, ip_idx);
+	bc_parse_pushJUMP_ZERO(p, ip_idx);
 	bc_vec_push(&p->func->labels, &ip_idx);
 
-	s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "if");
+	s = zbc_parse_stmt_allow_NLINE_before(p, "if");
 	if (s) RETURN_STATUS(s);
 
 	dbg_lex("%s:%d in if after stmt: p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	if (p->l.t.t == BC_LEX_KEY_ELSE) {
 		size_t ip2_idx;
 
-		s = zbc_lex_next_and_skip_NLINE(&p->l);
-		if (s) RETURN_STATUS(s);
-
 		ip2_idx = p->func->labels.len;
 
 		dbg_lex("%s:%d after if() body: BC_INST_JUMP to %d", __func__, __LINE__, ip2_idx);
-		bc_parse_push(p, BC_INST_JUMP);
-		bc_parse_pushIndex(p, ip2_idx);
+		bc_parse_pushJUMP(p, ip2_idx);
 
-		label = bc_vec_item(&p->func->labels, ip_idx);
-		dbg_lex("%s:%d rewriting 'if_zero' label to jump to 'else': %d -> %d", __func__, __LINE__, *label, p->func->code.len);
-		*label = p->func->code.len;
+		dbg_lex("%s:%d rewriting 'if_zero' label to jump to 'else'-> %d", __func__, __LINE__, p->func->code.len);
+		rewrite_label_to_current(p, ip_idx);
 
 		bc_vec_push(&p->func->labels, &ip2_idx);
 		ip_idx = ip2_idx;
 
-		s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "else");
+		s = zbc_parse_stmt_allow_NLINE_before(p, "else");
 		if (s) RETURN_STATUS(s);
 	}
 
-	label = bc_vec_item(&p->func->labels, ip_idx);
-	dbg_lex("%s:%d rewriting label to jump after 'if' body: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
-	*label = p->func->code.len;
+	dbg_lex("%s:%d rewriting label to jump after 'if' body-> %d", __func__, __LINE__, p->func->code.len);
+	rewrite_label_to_current(p, ip_idx);
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
@@ -4173,7 +4185,6 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 static BC_STATUS zbc_parse_while(BcParse *p)
 {
 	BcStatus s;
-	size_t *label;
 	size_t cond_idx;
 	size_t ip_idx;
 
@@ -4196,23 +4207,16 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 
-	// while(cond)<newline>stmt is accepted too
-	s = zbc_lex_next_and_skip_NLINE(&p->l);
-	if (s) RETURN_STATUS(s);
+	bc_parse_pushJUMP_ZERO(p, ip_idx);
 
-	bc_parse_push(p, BC_INST_JUMP_ZERO);
-	bc_parse_pushIndex(p, ip_idx);
-
-	s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "while");
+	s = zbc_parse_stmt_allow_NLINE_before(p, "while");
 	if (s) RETURN_STATUS(s);
 
 	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, cond_idx);
-	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, cond_idx);
+	bc_parse_pushJUMP(p, cond_idx);
 
-	label = bc_vec_item(&p->func->labels, ip_idx);
-	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
-	*label = p->func->code.len;
+	dbg_lex("%s:%d rewriting label-> %d", __func__, __LINE__, p->func->code.len);
+	rewrite_label_to_current(p, ip_idx);
 
 	bc_vec_pop(&p->exits);
 	bc_vec_pop(&p->conds);
@@ -4226,7 +4230,6 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 static BC_STATUS zbc_parse_for(BcParse *p)
 {
 	BcStatus s;
-	size_t *label;
 	size_t cond_idx, exit_idx, body_idx, update_idx;
 
 	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
@@ -4264,10 +4267,8 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	bc_parse_push(p, BC_INST_JUMP_ZERO);
-	bc_parse_pushIndex(p, exit_idx);
-	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, body_idx);
+	bc_parse_pushJUMP_ZERO(p, exit_idx);
+	bc_parse_pushJUMP(p, body_idx);
 
 	bc_vec_push(&p->conds, &update_idx);
 	bc_vec_push(&p->func->labels, &p->func->code.len);
@@ -4280,28 +4281,20 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	if (s) RETURN_STATUS(s);
 
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
-	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, cond_idx);
+	bc_parse_pushJUMP(p, cond_idx);
 	bc_vec_push(&p->func->labels, &p->func->code.len);
 
 	bc_vec_push(&p->exits, &exit_idx);
 	bc_vec_push(&p->func->labels, &exit_idx);
 
-	// for(...)<newline>stmt is accepted as well
-	s = zbc_lex_next_and_skip_NLINE(&p->l);
+	s = zbc_parse_stmt_allow_NLINE_before(p, "for");
 	if (s) RETURN_STATUS(s);
 
-	s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "for");
-	if (s) RETURN_STATUS(s);
-
-//TODO: commonalize?
 	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, update_idx);
-	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, update_idx);
+	bc_parse_pushJUMP(p, update_idx);
 
-	label = bc_vec_item(&p->func->labels, exit_idx);
-	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
-	*label = p->func->code.len;
+	dbg_lex("%s:%d rewriting label-> %d", __func__, __LINE__, p->func->code.len);
+	rewrite_label_to_current(p, exit_idx);
 
 	bc_vec_pop(&p->exits);
 	bc_vec_pop(&p->conds);
@@ -4325,8 +4318,7 @@ static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 		i = *(size_t*)bc_vec_top(&p->conds);
 	}
 
-	bc_parse_push(p, BC_INST_JUMP);
-	bc_parse_pushIndex(p, i);
+	bc_parse_pushJUMP(p, i);
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
@@ -4407,10 +4399,12 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	// Prevent "define z()<newline>" from being interpreted as function with empty stmt as body
 	s = zbc_lex_skip_if_at_NLINE(&p->l);
 	if (s) RETURN_STATUS(s);
-//TODO: GNU bc requires a {} block even if function body has single stmt, enforce this?
+	//GNU bc requires a {} block even if function body has single stmt, enforce this?
+	if (p->l.t.t != BC_LEX_LBRACE)
+		RETURN_STATUS(bc_error("function { body } expected"));
 
 	p->in_funcdef++; // to determine whether "return" stmt is allowed, and such
-	s = zbc_parse_stmt_fail_if_bare_NLINE(p, true, "define");
+	s = zbc_parse_stmt_possibly_auto(p, true);
 	p->in_funcdef--;
 	if (s) RETURN_STATUS(s);
 
