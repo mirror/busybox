@@ -4109,7 +4109,7 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 static BC_STATUS zbc_parse_if(BcParse *p)
 {
 	BcStatus s;
-	BcInstPtr ip;
+	size_t ip_idx;
 	size_t *label;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
@@ -4128,41 +4128,39 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	if (s) RETURN_STATUS(s);
 
 	bc_parse_push(p, BC_INST_JUMP_ZERO);
-	ip.idx = p->func->labels.len;
-	ip.func = ip.len = 0;
-	bc_parse_pushIndex(p, ip.idx);
-	bc_vec_push(&p->func->labels, &ip.idx);
+	ip_idx = p->func->labels.len;
+	bc_parse_pushIndex(p, ip_idx);
+	bc_vec_push(&p->func->labels, &ip_idx);
 
 	s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "if");
 	if (s) RETURN_STATUS(s);
 
 	dbg_lex("%s:%d in if after stmt: p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	if (p->l.t.t == BC_LEX_KEY_ELSE) {
-		BcInstPtr ip2;
+		size_t ip2_idx;
 
 		s = zbc_lex_next_and_skip_NLINE(&p->l);
 		if (s) RETURN_STATUS(s);
 
-		ip2.idx = p->func->labels.len;
-		ip2.func = ip2.len = 0;
+		ip2_idx = p->func->labels.len;
 
-		dbg_lex("%s:%d after if() body: BC_INST_JUMP to %d", __func__, __LINE__, ip.idx);
+		dbg_lex("%s:%d after if() body: BC_INST_JUMP to %d", __func__, __LINE__, ip2_idx);
 		bc_parse_push(p, BC_INST_JUMP);
-		bc_parse_pushIndex(p, ip2.idx);
+		bc_parse_pushIndex(p, ip2_idx);
 
-		label = bc_vec_item(&p->func->labels, ip.idx);
-		dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
+		label = bc_vec_item(&p->func->labels, ip_idx);
+		dbg_lex("%s:%d rewriting 'if_zero' label to jump to 'else': %d -> %d", __func__, __LINE__, *label, p->func->code.len);
 		*label = p->func->code.len;
 
-		bc_vec_push(&p->func->labels, &ip2.idx);
-		ip.idx = ip2.idx;
+		bc_vec_push(&p->func->labels, &ip2_idx);
+		ip_idx = ip2_idx;
 
 		s = zbc_parse_stmt_fail_if_bare_NLINE(p, false, "else");
 		if (s) RETURN_STATUS(s);
 	}
 
-	label = bc_vec_item(&p->func->labels, ip.idx);
-	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
+	label = bc_vec_item(&p->func->labels, ip_idx);
+	dbg_lex("%s:%d rewriting label to jump after 'if' body: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
 	*label = p->func->code.len;
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
