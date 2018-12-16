@@ -71,6 +71,11 @@ testing "bc while(cond)<NL>" \
 	"8\n7\n6\n5\n4\n3\n2\n1\n9\n" \
 	"" "i=9;while(--i)\ni\n9"
 
+testing "bc print 1,2,3" \
+	"bc" \
+	"123" \
+	"" "print 1,2,3"
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do

@@ -4048,38 +4048,23 @@ static BC_STATUS zbc_parse_print(BcParse *p)
 {
 	BcStatus s;
 	BcLexType type;
-	bool comma;
 
-	s = zbc_lex_next(&p->l);
-	if (s) RETURN_STATUS(s);
-
-	type = p->l.t.t;
-
-	if (type == BC_LEX_SCOLON || type == BC_LEX_NLINE)
-		RETURN_STATUS(bc_error("bad print statement"));
-
-	comma = false;
-	while (type != BC_LEX_SCOLON && type != BC_LEX_NLINE) {
+	for (;;) {
+		s = zbc_lex_next(&p->l);
+		if (s) RETURN_STATUS(s);
+		type = p->l.t.t;
 		if (type == BC_LEX_STR) {
 			s = zbc_parse_string(p, BC_INST_PRINT_POP);
-			if (s) RETURN_STATUS(s);
 		} else {
 			s = zbc_parse_expr(p, 0, bc_parse_next_print);
-			if (s) RETURN_STATUS(s);
 			bc_parse_push(p, BC_INST_PRINT_POP);
 		}
-
-		comma = p->l.t.t == BC_LEX_COMMA;
-		if (comma) {
-			s = zbc_lex_next(&p->l);
-			if (s) RETURN_STATUS(s);
-		}
-		type = p->l.t.t;
+		if (s) RETURN_STATUS(s);
+		if (p->l.t.t != BC_LEX_COMMA)
+			break;
 	}
 
-	if (comma) RETURN_STATUS(bc_error_bad_token());
-
-	RETURN_STATUS(zbc_lex_next(&p->l));
+	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
 # define zbc_parse_print(...) (zbc_parse_print(__VA_ARGS__), BC_STATUS_SUCCESS)
