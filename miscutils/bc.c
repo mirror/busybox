@@ -591,6 +591,8 @@ typedef struct BcParse {
 
 //TODO: needed? Example?
 	size_t nbraces;
+
+	size_t in_funcdef;
 } BcParse;
 
 typedef struct BcProgram {
@@ -4057,19 +4059,16 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 {
 	BcStatus s;
 	BcLexType t;
-	bool paren;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
-
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
 	t = p->l.t.t;
-	paren = t == BC_LEX_LPAREN;
-
 	if (t == BC_LEX_NLINE || t == BC_LEX_SCOLON)
 		bc_parse_push(p, BC_INST_RET0);
 	else {
+		bool paren = (t == BC_LEX_LPAREN);
 		s = bc_parse_expr_empty_ok(p, 0, bc_parse_next_expr);
 		if (s == BC_STATUS_PARSE_EMPTY_EXP) {
 			bc_parse_push(p, BC_INST_RET0);
@@ -4390,7 +4389,7 @@ static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 # define zbc_parse_break_or_continue(...) (zbc_parse_break_or_continue(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BC_STATUS zbc_parse_func(BcParse *p)
+static BC_STATUS zbc_parse_funcdef(BcParse *p)
 {
 	BcStatus s;
 	bool var, comma = false;
@@ -4454,7 +4453,16 @@ static BC_STATUS zbc_parse_func(BcParse *p)
 	if (p->l.t.t != BC_LEX_LBRACE)
 		s = bc_POSIX_requires("the left brace be on the same line as the function header");
 
+	// Prevent "define z()<newline>" to be interpreted as function with empty stmt as body
+	while (p->l.t.t == BC_LEX_NLINE) {
+		s = zbc_lex_next(&p->l);
+		if (s) RETURN_STATUS(s);
+	}
+//TODO: GNU bc requires a {} block even if function body has single stmt, enforce this?
+
+	p->in_funcdef++; // to determine whether "return" stmt is allowed, and such
 	s = zbc_parse_stmt_possibly_auto(p, true);
+	p->in_funcdef--;
 	if (s) RETURN_STATUS(s);
 
 	bc_parse_push(p, BC_INST_RET0);
@@ -4467,7 +4475,7 @@ err:
 	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
-# define zbc_parse_func(...) (zbc_parse_func(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_parse_funcdef(...) (zbc_parse_funcdef(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static BC_STATUS zbc_parse_auto(BcParse *p)
@@ -4626,6 +4634,8 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 			// not when it is executed
 			QUIT_OR_RETURN_TO_MAIN;
 		case BC_LEX_KEY_RETURN:
+			if (!p->in_funcdef)
+				RETURN_STATUS(bc_error("'return' not in a function"));
 			s = zbc_parse_return(p);
 			break;
 		case BC_LEX_KEY_WHILE:
@@ -4657,7 +4667,7 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p)
 		s = bc_error("end of file");
 	else if (p->l.t.t == BC_LEX_KEY_DEFINE) {
 		dbg_lex("%s:%d p->l.t.t:BC_LEX_KEY_DEFINE", __func__, __LINE__);
-		s = zbc_parse_func(p);
+		s = zbc_parse_funcdef(p);
 	} else {
 		dbg_lex("%s:%d p->l.t.t:%d (not BC_LEX_KEY_DEFINE)", __func__, __LINE__, p->l.t.t);
 		s = zbc_parse_stmt(p);
@@ -7021,7 +7031,13 @@ static BC_STATUS zbc_vm_stdin(void)
 	bc_lex_file(&G.prs.l);
 
 	G.use_stdin = 1;
-	s = zbc_vm_process("");
+	do {
+		s = zbc_vm_process("");
+		// We do not stop looping on errors here.
+		// Example: start interactive bc and enter "return".
+		// It should say "'return' not in a function"
+		// but should not exit.
+	} while (G.use_stdin);
 	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL

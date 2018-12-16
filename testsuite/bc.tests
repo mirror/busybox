@@ -51,6 +51,11 @@ testing "bc define auto" \
 	"8\n9\n" \
 	"" "define w() { auto z; return 8; }; w(); 9"
 
+testing "bc define with body on next line" \
+	"bc" \
+	"8\n9\n" \
+	"" "define w()\n{ auto z; return 8; }\nw()\n9"
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do
