@@ -3677,6 +3677,16 @@ static BC_STATUS zbc_parse_stmt(BcParse *p)
 # define zbc_parse_stmt(...) (zbc_parse_stmt(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
+static BC_STATUS zbc_parse_stmt_fail_if_bare_NLINE(BcParse *p, const char *after_X)
+{
+	if (p->l.t.t == BC_LEX_NLINE)
+		RETURN_STATUS(bc_error_fmt("no statement after '%s'", after_X));
+	RETURN_STATUS(zbc_parse_stmt(p));
+}
+#if ERRORS_ARE_FATAL
+# define zbc_parse_stmt_fail_if_bare_NLINE((...) (zbc_parse_stmt_fail_if_bare_NLINE((__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
+
 static void bc_parse_operator(BcParse *p, BcLexType type, size_t start,
                                   size_t *nexprs)
 {
@@ -4141,7 +4151,7 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	bc_vec_push(&p->exits, &ip);
 	bc_vec_push(&p->func->labels, &ip.idx);
 
-	s = zbc_parse_stmt(p);
+	s = zbc_parse_stmt_fail_if_bare_NLINE(p, "if");
 	if (s) RETURN_STATUS(s);
 
 	dbg_lex("%s:%d in if after stmt: p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
@@ -4220,8 +4230,7 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	bc_parse_push(p, BC_INST_JUMP_ZERO);
 	bc_parse_pushIndex(p, ip.idx);
 
-//TODO: diagnose "while(cond)<newline><newline>"? Now it is seen as "while() with empty body"
-	s = zbc_parse_stmt(p);
+	s = zbc_parse_stmt_fail_if_bare_NLINE(p, "while");
 	if (s) RETURN_STATUS(s);
 
 	n = *((size_t *) bc_vec_top(&p->conds));
@@ -4325,7 +4334,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	s = zbc_lex_next_and_skip_NLINE(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	s = zbc_parse_stmt(p);
+	s = zbc_parse_stmt_fail_if_bare_NLINE(p, "for");
 	if (s) RETURN_STATUS(s);
 
 	n = *((size_t *) bc_vec_top(&p->conds));
