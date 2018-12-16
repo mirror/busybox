@@ -41,5 +41,4 @@ define u() {
 
 u()
 
-if (x == -4) x
-else x - 4
+if (x == -4) x else x - 4

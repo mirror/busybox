@@ -46,6 +46,11 @@ testing "bc if 0 else if 1" \
 	"2\n9\n" \
 	"" "if (0) 1 else if (1) 2; 9"
 
+testing "bc define auto" \
+	"bc" \
+	"8\n9\n" \
+	"" "define w() { auto z; return 8; }; w(); 9"
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do
