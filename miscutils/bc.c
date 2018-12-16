@@ -3642,7 +3642,7 @@ static void bc_parse_create(BcParse *p, size_t func)
 	memset(p, 0, sizeof(BcParse));
 
 	bc_lex_init(&p->l);
-	bc_vec_init(&p->exits, sizeof(BcInstPtr), NULL);
+	bc_vec_init(&p->exits, sizeof(size_t), NULL);
 	bc_vec_init(&p->conds, sizeof(size_t), NULL);
 	bc_vec_init(&p->ops, sizeof(BcLexType), NULL);
 
@@ -4192,7 +4192,7 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	ip.func = 1;
 	ip.len = 0;
 
-	bc_vec_push(&p->exits, &ip);
+	bc_vec_push(&p->exits, &ip.idx);
 	bc_vec_push(&p->func->labels, &ip.idx);
 
 	s = zbc_parse_expr(p, BC_PARSE_REL, bc_parse_next_rel);
@@ -4294,7 +4294,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	ip.func = 1;
 	ip.len = 0;
 
-	bc_vec_push(&p->exits, &ip);
+	bc_vec_push(&p->exits, &ip.idx);
 	bc_vec_push(&p->func->labels, &ip.idx);
 
 	// for(...)<newline>stmt is accepted as well
@@ -4328,14 +4328,11 @@ static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 	size_t i;
 
 	if (type == BC_LEX_KEY_BREAK) {
-		BcInstPtr *ipp;
-
 		if (p->exits.len == 0) // none of the enclosing blocks is a loop
 			RETURN_STATUS(bc_error_bad_token());
-		ipp = bc_vec_top(&p->exits);
-		i = ipp->idx;
+		i = *(size_t*)bc_vec_top(&p->exits);
 	} else {
-		i = *((size_t *) bc_vec_top(&p->conds));
+		i = *(size_t*)bc_vec_top(&p->conds);
 	}
 
 	bc_parse_push(p, BC_INST_JUMP);

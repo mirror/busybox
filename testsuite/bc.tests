@@ -134,6 +134,23 @@ while(i--) {
 99
 "
 
+testing "bc continue in for" \
+	"bc" \
+	"\
+1
+77
+2
+99
+" \
+	"" "\
+for(i=1; i<3; i++) {
+    i
+    if(i==2) continue
+    77
+}
+99
+"
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do
