@@ -4358,20 +4358,19 @@ static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 {
 	BcStatus s;
 	size_t i;
-	BcInstPtr *ip;
 
 	if (type == BC_LEX_KEY_BREAK) {
-		if (p->exits.len == 0) RETURN_STATUS(bc_error_bad_token());
+		BcInstPtr *ipp;
 
-		i = p->exits.len - 1;
-		ip = bc_vec_item(&p->exits, i);
-
-		while (!ip->func && i < p->exits.len)
-			ip = bc_vec_item(&p->exits, i--);
-		if (i >= p->exits.len && !ip->func)
-			RETURN_STATUS(bc_error_bad_token());
-
-		i = ip->idx;
+		i = p->exits.len;
+		for (;;) {
+			if (i == 0) // none of the enclosing blocks is a loop
+				RETURN_STATUS(bc_error_bad_token());
+			ipp = bc_vec_item(&p->exits, --i);
+			if (ipp->func != 0)
+				break;
+		}
+		i = ipp->idx;
 	}
 	else
 		i = *((size_t *) bc_vec_top(&p->conds));
