@@ -4141,15 +4141,17 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 
 	dbg_lex("%s:%d in if after stmt: p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	if (p->l.t.t == BC_LEX_KEY_ELSE) {
+		BcInstPtr ip2;
+
 		s = zbc_lex_next_and_skip_NLINE(&p->l);
 		if (s) RETURN_STATUS(s);
 
-		ip.idx = p->func->labels.len;
-		ip.func = ip.len = 0;
+		ip2.idx = p->func->labels.len;
+		ip2.func = ip.len = 0;
 
 		dbg_lex("%s:%d after if() body: BC_INST_JUMP to %d", __func__, __LINE__, ip.idx);
 		bc_parse_push(p, BC_INST_JUMP);
-		bc_parse_pushIndex(p, ip.idx);
+		bc_parse_pushIndex(p, ip2.idx);
 
 		ipp = bc_vec_top(&p->exits);
 		label = bc_vec_item(&p->func->labels, ipp->idx);
@@ -4157,8 +4159,8 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 		*label = p->func->code.len;
 		bc_vec_pop(&p->exits);
 
-		bc_vec_push(&p->exits, &ip);
-		bc_vec_push(&p->func->labels, &ip.idx);
+		bc_vec_push(&p->exits, &ip2);
+		bc_vec_push(&p->func->labels, &ip2.idx);
 
 		s = zbc_parse_stmt(p);
 		if (s) RETURN_STATUS(s);
