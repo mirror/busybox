@@ -3529,12 +3529,9 @@ static void bc_parse_push(BcParse *p, char i)
 
 static void bc_parse_pushName(BcParse *p, char *name)
 {
-	size_t i = 0, len = strlen(name);
-
-	for (; i < len; ++i) bc_parse_push(p, name[i]);
+	while (*name)
+		bc_parse_push(p, *name++);
 	bc_parse_push(p, BC_PARSE_STREND);
-
-	free(name);
 }
 
 static void bc_parse_pushIndex(BcParse *p, size_t idx)
@@ -3828,6 +3825,7 @@ static BC_STATUS zbc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 		if (s) goto err;
 		bc_parse_push(p, *type);
 		bc_parse_pushName(p, name);
+		free(name);
 	}
 	else if (p->l.t.t == BC_LEX_LPAREN) {
 		if (flags & BC_PARSE_NOCALL) {
@@ -3840,6 +3838,7 @@ static BC_STATUS zbc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 		*type = BC_INST_VAR;
 		bc_parse_push(p, BC_INST_VAR);
 		bc_parse_pushName(p, name);
+		free(name);
 	}
 
 	RETURN_STATUS(s);
@@ -4970,14 +4969,12 @@ static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 static BC_STATUS zdc_parse_register(BcParse *p)
 {
 	BcStatus s;
-	char *name;
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_NAME) RETURN_STATUS(bc_error_bad_token());
 
-	name = xstrdup(p->l.t.v.v);
-	bc_parse_pushName(p, name);
+	bc_parse_pushName(p, p->l.t.v.v);
 
 	RETURN_STATUS(s);
 }
