@@ -76,6 +76,37 @@ testing "bc print 1,2,3" \
 	"123" \
 	"" "print 1,2,3"
 
+testing "bc nested loops and breaks" \
+	"bc" \
+	"\
+11
+21
+31
+22
+12
+99
+" \
+	"" "\
+if(1) {
+	11
+	while(1) {
+		21
+		while(1) {
+			31
+			break
+			32
+		}
+		22
+		break
+		23
+	}
+	12
+} else {
+	88
+}
+99
+"
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do

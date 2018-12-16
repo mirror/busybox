@@ -4174,7 +4174,6 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 {
 	BcStatus s;
 	BcInstPtr ip;
-	BcInstPtr *ipp;
 	size_t *label;
 	size_t n;
 
@@ -4214,14 +4213,13 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	bc_parse_push(p, BC_INST_JUMP);
 	bc_parse_pushIndex(p, n);
 
-	ipp = bc_vec_top(&p->exits);
 	label = bc_vec_top(&p->conds);
 
 	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, *label);
 	bc_parse_push(p, BC_INST_JUMP);
 	bc_parse_pushIndex(p, *label);
 
-	label = bc_vec_item(&p->func->labels, ipp->idx);
+	label = bc_vec_item(&p->func->labels, ip.idx);
 	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
 	*label = p->func->code.len;
 
@@ -4238,7 +4236,6 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 {
 	BcStatus s;
 	BcInstPtr ip;
-	BcInstPtr *ipp;
 	size_t *label;
 	size_t cond_idx, exit_idx, body_idx, update_idx;
 	size_t n;
@@ -4318,7 +4315,6 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	bc_parse_push(p, BC_INST_JUMP);
 	bc_parse_pushIndex(p, n);
 
-	ipp = bc_vec_top(&p->exits);
 	label = bc_vec_top(&p->conds);
 
 //TODO: commonalize?
@@ -4326,7 +4322,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	bc_parse_push(p, BC_INST_JUMP);
 	bc_parse_pushIndex(p, *label);
 
-	label = bc_vec_item(&p->func->labels, ipp->idx);
+	label = bc_vec_item(&p->func->labels, ip.idx);
 	dbg_lex("%s:%d rewriting label: %d -> %d", __func__, __LINE__, *label, p->func->code.len);
 	*label = p->func->code.len;
 
