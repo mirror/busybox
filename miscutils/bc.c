@@ -3678,7 +3678,7 @@ static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
 static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext next);
 #if ERRORS_ARE_FATAL
 # define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__), BC_STATUS_SUCCESS)
-# defone zbc_parse_stmt_possibly_auto(...) (zbc_parse_stmt_possibly_auto(__VA_ARGS__), BC_STATUS_SUCCESS)
+# define zbc_parse_stmt_possibly_auto(...) (zbc_parse_stmt_possibly_auto(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 static BC_STATUS zbc_parse_stmt(BcParse *p)
