@@ -1475,10 +1475,20 @@ static void bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
 
 static ssize_t bc_num_compare(BcDig *restrict a, BcDig *restrict b, size_t len)
 {
-	size_t i;
-	int c = 0;
-	for (i = len - 1; i < len && !(c = a[i] - b[i]); --i);
-	return BC_NUM_NEG(i + 1, c < 0);
+	size_t i = len;
+	for (;;) {
+		int c;
+		if (i == 0)
+			return 0;
+		i--;
+		c = a[i] - b[i];
+		if (c != 0) {
+			i++;
+			if (c < 0)
+				return -i;
+			return i;
+		}
+	}
 }
 
 static ssize_t bc_num_cmp(BcNum *a, BcNum *b)
