@@ -6875,6 +6875,8 @@ static BC_STATUS zbc_program_exec(void)
 			RETURN_STATUS(s);
 		}
 
+		fflush_and_check();
+
 		// If the stack has changed, pointers may be invalid.
 		ip = bc_vec_top(&G.prog.stack);
 		func = bc_program_func(ip->func);
@@ -6920,7 +6922,6 @@ static BC_STATUS zbc_vm_process(const char *text)
 			bc_program_reset();
 			break;
 		}
-		fflush_and_check();
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
