@@ -5486,14 +5486,6 @@ static BC_STATUS zbc_num_printBase(BcNum *n)
 }
 #define zbc_num_printBase(...) (zbc_num_printBase(__VA_ARGS__) COMMA_SUCCESS)
 
-#if ENABLE_DC
-static BC_STATUS zbc_num_stream(BcNum *n, BcNum *base)
-{
-	RETURN_STATUS(zbc_num_printNum(n, base, 1, bc_num_printChar));
-}
-#define zbc_num_stream(...) (zbc_num_stream(__VA_ARGS__) COMMA_SUCCESS)
-#endif
-
 static BC_STATUS zbc_num_print(BcNum *n, bool newline)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
@@ -6259,9 +6251,9 @@ static BC_STATUS zbc_program_printStream(void)
 	s = zbc_program_num(r, &n, false);
 	if (s) RETURN_STATUS(s);
 
-	if (BC_PROG_NUM(r, n))
-		s = zbc_num_stream(n, &G.prog.strmb);
-	else {
+	if (BC_PROG_NUM(r, n)) {
+		s = zbc_num_printNum(n, &G.prog.strmb, 1, bc_num_printChar);
+	} else {
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : n->rdx;
 		str = *bc_program_str(idx);
 		printf("%s", str);
