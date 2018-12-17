@@ -551,12 +551,6 @@ enum {
 #define bc_lex_kws_POSIX(i) ((1 << (i)) & POSIX_KWORD_MASK)
 #endif
 
-#if ENABLE_FEATURE_BC_SIGNALS || ENABLE_FEATURE_CLEAN_UP
-# define BC_STATUS BcStatus
-#else
-# define BC_STATUS void
-#endif
-
 typedef struct BcLex {
 	const char *buf;
 	size_t i;
@@ -890,15 +884,17 @@ dc_parse_insts[] = {
 #if ENABLE_FEATURE_BC_SIGNALS || ENABLE_FEATURE_CLEAN_UP
 # define ERRORS_ARE_FATAL 0
 # define ERRORFUNC        /*nothing*/
-# define ERROR_RETURN(a)  a
-//moved up: # define BC_STATUS        BcStatus
+# define IF_ERROR_RETURN_POSSIBLE(a)  a
+# define BC_STATUS        BcStatus
 # define RETURN_STATUS(v) return (v)
+# define COMMA_SUCCESS    /*nothing*/
 #else
 # define ERRORS_ARE_FATAL 1
 # define ERRORFUNC        NORETURN
-# define ERROR_RETURN(a)  /*nothing*/
-//moved up: # define BC_STATUS        void
+# define IF_ERROR_RETURN_POSSIBLE(a)  /*nothing*/
+# define BC_STATUS        void
 # define RETURN_STATUS(v) do { ((void)(v)); return; } while (0)
+# define COMMA_SUCCESS    ,BC_STATUS_SUCCESS
 #endif
 
 #define BC_NUM_NEG(n, neg)      ((((ssize_t)(n)) ^ -((ssize_t)(neg))) + (neg))
@@ -968,14 +964,12 @@ static FAST_FUNC BC_STATUS zbc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scal
 static const BcNumBinaryOp zbc_program_ops[] = {
 	zbc_num_pow, zbc_num_mul, zbc_num_div, zbc_num_mod, zbc_num_add, zbc_num_sub,
 };
-#if ERRORS_ARE_FATAL
-# define zbc_num_add(...) (zbc_num_add(__VA_ARGS__), BC_STATUS_SUCCESS)
-# define zbc_num_sub(...) (zbc_num_sub(__VA_ARGS__), BC_STATUS_SUCCESS)
-# define zbc_num_mul(...) (zbc_num_mul(__VA_ARGS__), BC_STATUS_SUCCESS)
-# define zbc_num_div(...) (zbc_num_div(__VA_ARGS__), BC_STATUS_SUCCESS)
-# define zbc_num_mod(...) (zbc_num_mod(__VA_ARGS__), BC_STATUS_SUCCESS)
-# define zbc_num_pow(...) (zbc_num_pow(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_add(...) (zbc_num_add(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_sub(...) (zbc_num_sub(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_mul(...) (zbc_num_mul(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_div(...) (zbc_num_div(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_mod(...) (zbc_num_mod(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_pow(...) (zbc_num_pow(__VA_ARGS__) COMMA_SUCCESS)
 
 static void fflush_and_check(void)
 {
@@ -1027,9 +1021,9 @@ static NOINLINE ERRORFUNC int bc_error_fmt(const char *fmt, ...)
 	bc_verror_msg(fmt, p);
 	va_end(p);
 
-	if (!ENABLE_FEATURE_CLEAN_UP && !G_ttyin)
-		exit(1);
-	ERROR_RETURN(return BC_STATUS_FAILURE;)
+	if (ENABLE_FEATURE_CLEAN_UP || G_ttyin)
+		IF_ERROR_RETURN_POSSIBLE(return BC_STATUS_FAILURE);
+	exit(1);
 }
 
 #if ENABLE_BC
@@ -1048,9 +1042,9 @@ static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 	// Do we treat non-POSIX constructs as errors?
 	if (!(option_mask32 & BC_FLAG_S))
 		return BC_STATUS_SUCCESS; // no, it's a warning
-	if (!ENABLE_FEATURE_CLEAN_UP && !G_ttyin)
-		exit(1);
-	return BC_STATUS_FAILURE;
+	if (ENABLE_FEATURE_CLEAN_UP || G_ttyin)
+		return BC_STATUS_FAILURE;
+	exit(1);
 }
 #endif
 
@@ -1061,31 +1055,31 @@ static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 // Thus, use these shims for the cases when we have no vararg PARAMS:
 static ERRORFUNC int bc_error(const char *msg)
 {
-	ERROR_RETURN(return) bc_error_fmt("%s", msg);
+	IF_ERROR_RETURN_POSSIBLE(return) bc_error_fmt("%s", msg);
 }
 static ERRORFUNC int bc_error_bad_character(char c)
 {
-	ERROR_RETURN(return) bc_error_fmt("bad character '%c'", c);
+	IF_ERROR_RETURN_POSSIBLE(return) bc_error_fmt("bad character '%c'", c);
 }
 static ERRORFUNC int bc_error_bad_expression(void)
 {
-	ERROR_RETURN(return) bc_error("bad expression");
+	IF_ERROR_RETURN_POSSIBLE(return) bc_error("bad expression");
 }
 static ERRORFUNC int bc_error_bad_token(void)
 {
-	ERROR_RETURN(return) bc_error("bad token");
+	IF_ERROR_RETURN_POSSIBLE(return) bc_error("bad token");
 }
 static ERRORFUNC int bc_error_stack_has_too_few_elements(void)
 {
-	ERROR_RETURN(return) bc_error("stack has too few elements");
+	IF_ERROR_RETURN_POSSIBLE(return) bc_error("stack has too few elements");
 }
 static ERRORFUNC int bc_error_variable_is_wrong_type(void)
 {
-	ERROR_RETURN(return) bc_error("variable is wrong type");
+	IF_ERROR_RETURN_POSSIBLE(return) bc_error("variable is wrong type");
 }
 static ERRORFUNC int bc_error_nested_read_call(void)
 {
-	ERROR_RETURN(return) bc_error("read() call inside of a read() call");
+	IF_ERROR_RETURN_POSSIBLE(return) bc_error("read() call inside of a read() call");
 }
 #if ENABLE_BC
 static int bc_POSIX_requires(const char *msg)
@@ -1494,9 +1488,7 @@ static BC_STATUS zbc_num_ulong(BcNum *n, unsigned long *result_p)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_ulong(...) (zbc_num_ulong(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_ulong(...) (zbc_num_ulong(__VA_ARGS__) COMMA_SUCCESS)
 
 static void bc_num_ulong2num(BcNum *n, unsigned long val)
 {
@@ -1678,9 +1670,7 @@ static BC_STATUS zbc_num_shift(BcNum *n, size_t places)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_shift(...) (zbc_num_shift(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_shift(...) (zbc_num_shift(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_num_inv(BcNum *a, BcNum *b, size_t scale)
 {
@@ -1693,9 +1683,7 @@ static BC_STATUS zbc_num_inv(BcNum *a, BcNum *b, size_t scale)
 
 	RETURN_STATUS(zbc_num_div(&one, a, b, scale));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_inv(...) (zbc_num_inv(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_inv(...) (zbc_num_inv(__VA_ARGS__) COMMA_SUCCESS)
 
 static FAST_FUNC BC_STATUS zbc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t sub)
 {
@@ -1832,9 +1820,7 @@ static FAST_FUNC BC_STATUS zbc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size
 
 static FAST_FUNC BC_STATUS zbc_num_k(BcNum *restrict a, BcNum *restrict b,
                          BcNum *restrict c)
-#if ERRORS_ARE_FATAL
-# define zbc_num_k(...) (zbc_num_k(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_k(...) (zbc_num_k(__VA_ARGS__) COMMA_SUCCESS)
 {
 	BcStatus s;
 	size_t max = BC_MAX(a->len, b->len), max2 = (max + 1) / 2;
@@ -1982,9 +1968,7 @@ err:
 	bc_num_free(&cpa);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_m(...) (zbc_num_m(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_m(...) (zbc_num_m(__VA_ARGS__) COMMA_SUCCESS)
 
 static FAST_FUNC BC_STATUS zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
@@ -2059,9 +2043,7 @@ static FAST_FUNC BC_STATUS zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_d(...) (zbc_num_d(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_d(...) (zbc_num_d(__VA_ARGS__) COMMA_SUCCESS)
 
 static FAST_FUNC BC_STATUS zbc_num_r(BcNum *a, BcNum *b, BcNum *restrict c,
                          BcNum *restrict d, size_t scale, size_t ts)
@@ -2099,9 +2081,7 @@ err:
 	bc_num_free(&temp);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_r(...) (zbc_num_r(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_r(...) (zbc_num_r(__VA_ARGS__) COMMA_SUCCESS)
 
 static FAST_FUNC BC_STATUS zbc_num_rem(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
@@ -2115,9 +2095,7 @@ static FAST_FUNC BC_STATUS zbc_num_rem(BcNum *a, BcNum *b, BcNum *restrict c, si
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_rem(...) (zbc_num_rem(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_rem(...) (zbc_num_rem(__VA_ARGS__) COMMA_SUCCESS)
 
 static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
@@ -2209,9 +2187,7 @@ err:
 	bc_num_free(&copy);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_p(...) (zbc_num_p(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_p(...) (zbc_num_p(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
                               BcNumBinaryOp op, size_t req)
@@ -2244,15 +2220,13 @@ static BC_STATUS zbc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
 		bc_num_expand(c, req);
 
 	s = BC_STATUS_SUCCESS;
-	ERROR_RETURN(s =) op(ptr_a, ptr_b, c, scale);
+	IF_ERROR_RETURN_POSSIBLE(s =) op(ptr_a, ptr_b, c, scale);
 
 	if (init) bc_num_free(&num2);
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_binary(...) (zbc_num_binary(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_binary(...) (zbc_num_binary(__VA_ARGS__) COMMA_SUCCESS)
 
 static bool bc_num_strValid(const char *val, size_t base)
 {
@@ -2400,9 +2374,7 @@ static BC_STATUS zbc_num_parse(BcNum *n, const char *val, BcNum *base,
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_parse(...) (zbc_num_parse(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_parse(...) (zbc_num_parse(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 {
@@ -2505,9 +2477,7 @@ err:
 	bc_num_free(&num1);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_sqrt(...) (zbc_num_sqrt(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_sqrt(...) (zbc_num_sqrt(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
                               size_t scale)
@@ -2534,9 +2504,7 @@ static BC_STATUS zbc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_divmod(...) (zbc_num_divmod(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_divmod(...) (zbc_num_divmod(__VA_ARGS__) COMMA_SUCCESS)
 
 #if ENABLE_DC
 static BC_STATUS zbc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
@@ -2590,9 +2558,7 @@ err:
 	bc_num_free(&base);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_modexp(...) (zbc_num_modexp(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_modexp(...) (zbc_num_modexp(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_DC
 
 #if ENABLE_BC
@@ -2613,9 +2579,7 @@ static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_func_insert(...) (zbc_func_insert(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_func_insert(...) (zbc_func_insert(__VA_ARGS__) COMMA_SUCCESS)
 #endif
 
 static void bc_func_init(BcFunc *f)
@@ -2835,9 +2799,7 @@ static BC_STATUS zbc_lex_number(BcLex *l, char start)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_lex_number(...) (zbc_lex_number(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_lex_number(...) (zbc_lex_number(__VA_ARGS__) COMMA_SUCCESS)
 
 static void bc_lex_name(BcLex *l)
 {
@@ -2895,6 +2857,7 @@ static BC_STATUS zcommon_lex_token(BcLex *l)
 	}
 	IF_DC(RETURN_STATUS(zdc_lex_token(l));)
 }
+#define zcommon_lex_token(...) (zcommon_lex_token(__VA_ARGS__) COMMA_SUCCESS)
 
 static bool bc_lex_more_input(BcLex *l)
 {
@@ -2997,15 +2960,13 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 		dbg_lex("next string to parse:'%.*s'",
 			(int)(strchrnul(l->buf + l->i, '\n') - (l->buf + l->i)),
 			l->buf + l->i);
-		ERROR_RETURN(s =) zcommon_lex_token(l);
+		s = zcommon_lex_token(l);
 	} while (!s && l->t.t == BC_LEX_WHITESPACE);
 	dbg_lex("l->t.t from string:%d", l->t.t);
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_lex_next(...) (zbc_lex_next(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_lex_next(...) (zbc_lex_next(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_lex_skip_if_at_NLINE(BcLex *l)
 {
@@ -3013,9 +2974,7 @@ static BC_STATUS zbc_lex_skip_if_at_NLINE(BcLex *l)
 		RETURN_STATUS(zbc_lex_next(l));
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_lex_skip_if_at_NLINE(...) (zbc_lex_skip_if_at_NLINE(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_lex_skip_if_at_NLINE(...) (zbc_lex_skip_if_at_NLINE(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_lex_next_and_skip_NLINE(BcLex *l)
 {
@@ -3026,9 +2985,7 @@ static BC_STATUS zbc_lex_next_and_skip_NLINE(BcLex *l)
 	s = zbc_lex_skip_if_at_NLINE(l);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_lex_next_and_skip_NLINE(...) (zbc_lex_next_and_skip_NLINE(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_lex_next_and_skip_NLINE(...) (zbc_lex_next_and_skip_NLINE(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_lex_text_init(BcLex *l, const char *text)
 {
@@ -3038,9 +2995,7 @@ static BC_STATUS zbc_lex_text_init(BcLex *l, const char *text)
 	l->t.t = l->t.last = BC_LEX_INVALID;
 	RETURN_STATUS(zbc_lex_next(l));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_lex_text_init(...) (zbc_lex_text_init(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_lex_text_init(...) (zbc_lex_text_init(__VA_ARGS__) COMMA_SUCCESS)
 
 #if ENABLE_BC
 static BC_STATUS zbc_lex_identifier(BcLex *l)
@@ -3063,7 +3018,7 @@ static BC_STATUS zbc_lex_identifier(BcLex *l)
 		l->t.t = BC_LEX_KEY_1st_keyword + i;
 		if (!bc_lex_kws_POSIX(i)) {
 			s = bc_posix_error_fmt("%sthe '%.8s' keyword", "POSIX does not allow ", bc_lex_kws[i].name8);
-			ERROR_RETURN(if (s) RETURN_STATUS(s);)
+			IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
 		}
 
 		// We minus 1 because the index has already been incremented.
@@ -3084,9 +3039,7 @@ static BC_STATUS zbc_lex_identifier(BcLex *l)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_lex_identifier(...) (zbc_lex_identifier(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_lex_identifier(...) (zbc_lex_identifier(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_lex_string(BcLex *l)
 {
@@ -3117,9 +3070,7 @@ static BC_STATUS zbc_lex_string(BcLex *l)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_lex_string(...) (zbc_lex_string(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_lex_string(...) (zbc_lex_string(__VA_ARGS__) COMMA_SUCCESS)
 
 static void bc_lex_assign(BcLex *l, unsigned with_and_without)
 {
@@ -3161,9 +3112,7 @@ static BC_STATUS zbc_lex_comment(BcLex *l)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_lex_comment(...) (zbc_lex_comment(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_lex_comment(...) (zbc_lex_comment(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_lex_token(BcLex *l)
 {
@@ -3192,7 +3141,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			bc_lex_assign(l, BC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
 			if (l->t.t == BC_LEX_OP_BOOL_NOT) {
 				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("!");
-				ERROR_RETURN(if (s) RETURN_STATUS(s);)
+				IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
 			}
 			break;
 		case '"':
@@ -3200,7 +3149,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			break;
 		case '#':
 			s = bc_POSIX_does_not_allow("'#' script comments");
-			ERROR_RETURN(if (s) RETURN_STATUS(s);)
+			IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
 			bc_lex_lineComment(l);
 			break;
 		case '%':
@@ -3210,7 +3159,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			c2 = l->buf[l->i];
 			if (c2 == '&') {
 				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("&&");
-				ERROR_RETURN(if (s) RETURN_STATUS(s);)
+				IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
 				++l->i;
 				l->t.t = BC_LEX_OP_BOOL_AND;
 			} else {
@@ -3339,7 +3288,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			c2 = l->buf[l->i];
 			if (c2 == '|') {
 				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("||");
-				ERROR_RETURN(if (s) RETURN_STATUS(s);)
+				IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
 				++l->i;
 				l->t.t = BC_LEX_OP_BOOL_OR;
 			} else {
@@ -3376,9 +3325,7 @@ static BC_STATUS zdc_lex_register(BcLex *l)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zdc_lex_register(...) (zdc_lex_register(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zdc_lex_register(...) (zdc_lex_register(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_lex_string(BcLex *l)
 {
@@ -3415,9 +3362,7 @@ static BC_STATUS zdc_lex_string(BcLex *l)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zdc_lex_string(...) (zdc_lex_string(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zdc_lex_string(...) (zdc_lex_string(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_lex_token(BcLex *l)
 {
@@ -3578,6 +3523,7 @@ static BC_STATUS zcommon_parse(BcParse *p)
 	}
 	IF_DC(RETURN_STATUS(zdc_parse_parse(p));)
 }
+#define zcommon_parse(...) (zcommon_parse(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_text_init(BcParse *p, const char *text)
 {
@@ -3585,9 +3531,7 @@ static BC_STATUS zbc_parse_text_init(BcParse *p, const char *text)
 
 	RETURN_STATUS(zbc_lex_text_init(&p->l, text));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_text_init(...) (zbc_parse_text_init(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_text_init(...) (zbc_parse_text_init(__VA_ARGS__) COMMA_SUCCESS)
 
 // Called when parsing or execution detects a failure,
 // resets execution structures.
@@ -3665,18 +3609,14 @@ static void bc_parse_create(BcParse *p, size_t func)
 static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed);
 static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
 static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext next);
-#if ERRORS_ARE_FATAL
-# define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__), BC_STATUS_SUCCESS)
-# define zbc_parse_stmt_possibly_auto(...) (zbc_parse_stmt_possibly_auto(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_parse_stmt_possibly_auto(...) (zbc_parse_stmt_possibly_auto(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_stmt(BcParse *p)
 {
 	RETURN_STATUS(zbc_parse_stmt_possibly_auto(p, false));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_stmt(...) (zbc_parse_stmt(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_stmt(...) (zbc_parse_stmt(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_stmt_allow_NLINE_before(BcParse *p, const char *after_X)
 {
@@ -3689,9 +3629,7 @@ static BC_STATUS zbc_parse_stmt_allow_NLINE_before(BcParse *p, const char *after
 
 	RETURN_STATUS(zbc_parse_stmt(p));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_stmt_allow_NLINE_before(...) (zbc_parse_stmt_allow_NLINE_before(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_stmt_allow_NLINE_before(...) (zbc_parse_stmt_allow_NLINE_before(__VA_ARGS__) COMMA_SUCCESS)
 
 static void bc_parse_operator(BcParse *p, BcLexType type, size_t start,
                                   size_t *nexprs)
@@ -3737,9 +3675,7 @@ static BC_STATUS zbc_parse_rightParen(BcParse *p, size_t ops_bgn, size_t *nexs)
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_rightParen(...) (zbc_parse_rightParen(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_rightParen(...) (zbc_parse_rightParen(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_params(BcParse *p, uint8_t flags)
 {
@@ -3769,9 +3705,7 @@ static BC_STATUS zbc_parse_params(BcParse *p, uint8_t flags)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_params(...) (zbc_parse_params(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_params(...) (zbc_parse_params(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_call(BcParse *p, char *name, uint8_t flags)
 {
@@ -3808,9 +3742,7 @@ err:
 	free(name);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_call(...) (zbc_parse_call(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_call(...) (zbc_parse_call(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 {
@@ -3863,9 +3795,7 @@ err:
 	free(name);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_name(...) (zbc_parse_name(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_name(...) (zbc_parse_name(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_read(BcParse *p)
 {
@@ -3883,9 +3813,7 @@ static BC_STATUS zbc_parse_read(BcParse *p)
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_read(...) (zbc_parse_read(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_read(...) (zbc_parse_read(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_builtin(BcParse *p, BcLexType type, uint8_t flags,
                                  BcInst *prev)
@@ -3911,9 +3839,7 @@ static BC_STATUS zbc_parse_builtin(BcParse *p, BcLexType type, uint8_t flags,
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_builtin(...) (zbc_parse_builtin(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_builtin(...) (zbc_parse_builtin(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_scale(BcParse *p, BcInst *type, uint8_t flags)
 {
@@ -3942,9 +3868,7 @@ static BC_STATUS zbc_parse_scale(BcParse *p, BcInst *type, uint8_t flags)
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_scale(...) (zbc_parse_scale(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_scale(...) (zbc_parse_scale(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_incdec(BcParse *p, BcInst *prev, bool *paren_expr,
                                 size_t *nexprs, uint8_t flags)
@@ -4002,9 +3926,7 @@ static BC_STATUS zbc_parse_incdec(BcParse *p, BcInst *prev, bool *paren_expr,
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_incdec(...) (zbc_parse_incdec(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_incdec(...) (zbc_parse_incdec(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_minus(BcParse *p, BcInst *prev, size_t ops_bgn,
                                bool rparen, size_t *nexprs)
@@ -4031,9 +3953,7 @@ static BC_STATUS zbc_parse_minus(BcParse *p, BcInst *prev, size_t ops_bgn,
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_minus(...) (zbc_parse_minus(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_minus(...) (zbc_parse_minus(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_string(BcParse *p, char inst)
 {
@@ -4046,9 +3966,7 @@ static BC_STATUS zbc_parse_string(BcParse *p, char inst)
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_string(...) (zbc_parse_string(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_string(...) (zbc_parse_string(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_print(BcParse *p)
 {
@@ -4072,9 +3990,7 @@ static BC_STATUS zbc_parse_print(BcParse *p)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_print(...) (zbc_parse_print(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_print(...) (zbc_parse_print(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_return(BcParse *p)
 {
@@ -4099,7 +4015,7 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 
 		if (!paren || p->l.t.last != BC_LEX_RPAREN) {
 			s = bc_POSIX_requires("parentheses around return expressions");
-			ERROR_RETURN(if (s) RETURN_STATUS(s);)
+			IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
 		}
 
 		bc_parse_push(p, BC_INST_RET);
@@ -4108,9 +4024,7 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_return(...) (zbc_parse_return(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_return(...) (zbc_parse_return(__VA_ARGS__) COMMA_SUCCESS)
 
 static void rewrite_label_to_current(BcParse *p, size_t idx)
 {
@@ -4167,9 +4081,7 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_if(...) (zbc_parse_if(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_if(...) (zbc_parse_if(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_while(BcParse *p)
 {
@@ -4212,9 +4124,7 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_while(...) (zbc_parse_while(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_while(...) (zbc_parse_while(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_for(BcParse *p)
 {
@@ -4290,9 +4200,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_for(...) (zbc_parse_for(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_for(...) (zbc_parse_for(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 {
@@ -4317,9 +4225,7 @@ static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_break_or_continue(...) (zbc_parse_break_or_continue(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_break_or_continue(...) (zbc_parse_break_or_continue(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_funcdef(BcParse *p)
 {
@@ -4406,9 +4312,7 @@ err:
 	free(name);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_funcdef(...) (zbc_parse_funcdef(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_funcdef(...) (zbc_parse_funcdef(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_auto(BcParse *p)
 {
@@ -4466,9 +4370,7 @@ err:
 	dbg_lex_done("%s:%d done (ERROR)", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_auto(...) (zbc_parse_auto(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_auto(...) (zbc_parse_auto(__VA_ARGS__) COMMA_SUCCESS)
 
 #undef zbc_parse_stmt_possibly_auto
 static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
@@ -4586,9 +4488,7 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_stmt_possibly_auto(...) (zbc_parse_stmt_possibly_auto(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_stmt_possibly_auto(...) (zbc_parse_stmt_possibly_auto(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p)
 {
@@ -4608,9 +4508,7 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p)
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_stmt_or_funcdef(...) (zbc_parse_stmt_or_funcdef(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_stmt_or_funcdef(...) (zbc_parse_stmt_or_funcdef(__VA_ARGS__) COMMA_SUCCESS)
 
 // This is not a "z" function: can also return BC_STATUS_PARSE_EMPTY_EXP
 static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext next)
@@ -4864,11 +4762,11 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 
 	if (!(flags & BC_PARSE_REL) && nrelops) {
 		s = bc_POSIX_does_not_allow("comparison operators outside if or loops");
-		ERROR_RETURN(if (s) return s;)
+		IF_ERROR_RETURN_POSSIBLE(if (s) return s);
 	}
 	else if ((flags & BC_PARSE_REL) && nrelops > 1) {
 		s = bc_POSIX_requires("exactly one comparison operator per condition");
-		ERROR_RETURN(if (s) return s;)
+		IF_ERROR_RETURN_POSSIBLE(if (s) return s);
 	}
 
 	if (flags & BC_PARSE_PRINT) {
@@ -4890,9 +4788,7 @@ static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 		RETURN_STATUS(bc_error("empty expression"));
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 #endif // ENABLE_BC
 
@@ -4912,9 +4808,7 @@ static BC_STATUS zdc_parse_register(BcParse *p)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zdc_parse_register(...) (zdc_parse_register(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zdc_parse_register(...) (zdc_parse_register(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_parse_string(BcParse *p)
 {
@@ -4932,9 +4826,7 @@ static BC_STATUS zdc_parse_string(BcParse *p)
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#if ERRORS_ARE_FATAL
-# define zdc_parse_string(...) (zdc_parse_string(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zdc_parse_string(...) (zdc_parse_string(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_parse_mem(BcParse *p, uint8_t inst, bool name, bool store)
 {
@@ -4954,9 +4846,7 @@ static BC_STATUS zdc_parse_mem(BcParse *p, uint8_t inst, bool name, bool store)
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#if ERRORS_ARE_FATAL
-# define zdc_parse_mem(...) (zdc_parse_mem(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zdc_parse_mem(...) (zdc_parse_mem(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_parse_cond(BcParse *p, uint8_t inst)
 {
@@ -4981,9 +4871,7 @@ static BC_STATUS zdc_parse_cond(BcParse *p, uint8_t inst)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zdc_parse_cond(...) (zdc_parse_cond(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zdc_parse_cond(...) (zdc_parse_cond(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 {
@@ -5055,9 +4943,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zdc_parse_token(...) (zdc_parse_token(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zdc_parse_token(...) (zdc_parse_token(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 {
@@ -5080,9 +4966,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_parse_parse(BcParse *p)
 {
@@ -5100,9 +4984,7 @@ static BC_STATUS zdc_parse_parse(BcParse *p)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zdc_parse_parse(...) (zdc_parse_parse(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zdc_parse_parse(...) (zdc_parse_parse(__VA_ARGS__) COMMA_SUCCESS)
 
 #endif // ENABLE_DC
 
@@ -5114,9 +4996,7 @@ static BC_STATUS zcommon_parse_expr(BcParse *p, uint8_t flags)
 		IF_DC(RETURN_STATUS(zdc_parse_expr(p, flags)));
 	}
 }
-#if ERRORS_ARE_FATAL
-# define zcommon_parse_expr(...) (zcommon_parse_expr(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zcommon_parse_expr(...) (zcommon_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 static BcVec* bc_program_search(char *id, bool var)
 {
@@ -5216,9 +5096,7 @@ static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_num(...) (zbc_program_num(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_num(...) (zbc_program_num(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_binOpPrep(BcResult **l, BcNum **ln,
                                      BcResult **r, BcNum **rn, bool assign)
@@ -5256,9 +5134,7 @@ static BC_STATUS zbc_program_binOpPrep(BcResult **l, BcNum **ln,
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_binOpPrep(...) (zbc_program_binOpPrep(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_binOpPrep(...) (zbc_program_binOpPrep(__VA_ARGS__) COMMA_SUCCESS)
 
 static void bc_program_binOpRetire(BcResult *r)
 {
@@ -5284,9 +5160,7 @@ static BC_STATUS zbc_program_prep(BcResult **r, BcNum **n)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_prep(...) (zbc_program_prep(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_prep(...) (zbc_program_prep(__VA_ARGS__) COMMA_SUCCESS)
 
 static void bc_program_retire(BcResult *r, BcResultType t)
 {
@@ -5306,7 +5180,7 @@ static BC_STATUS zbc_program_op(char inst)
 	bc_num_init_DEF_SIZE(&res.d.n);
 
 	s = BC_STATUS_SUCCESS;
-	ERROR_RETURN(s =) zbc_program_ops[inst - BC_INST_POWER](n1, n2, &res.d.n, G.prog.scale);
+	IF_ERROR_RETURN_POSSIBLE(s =) zbc_program_ops[inst - BC_INST_POWER](n1, n2, &res.d.n, G.prog.scale);
 	if (s) goto err;
 	bc_program_binOpRetire(&res);
 
@@ -5316,9 +5190,7 @@ err:
 	bc_num_free(&res.d.n);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_op(...) (zbc_program_op(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_op(...) (zbc_program_op(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_read(void)
 {
@@ -5367,15 +5239,12 @@ static BC_STATUS zbc_program_read(void)
 
 exec_err:
 	bc_parse_free(&parse);
-//io_err:
 	G.in_read = 0;
 	G.prog.file = sv_file;
 	bc_vec_free(&buf);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_read(...) (zbc_program_read(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_read(...) (zbc_program_read(__VA_ARGS__) COMMA_SUCCESS)
 
 static size_t bc_program_index(char *code, size_t *bgn)
 {
@@ -5584,9 +5453,7 @@ err:
 	bc_vec_free(&stack);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_printNum(...) (zbc_num_printNum(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_printNum(...) (zbc_num_printNum(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_num_printBase(BcNum *n)
 {
@@ -5617,18 +5484,14 @@ static BC_STATUS zbc_num_printBase(BcNum *n)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_printBase(...) (zbc_num_printBase(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_printBase(...) (zbc_num_printBase(__VA_ARGS__) COMMA_SUCCESS)
 
 #if ENABLE_DC
 static BC_STATUS zbc_num_stream(BcNum *n, BcNum *base)
 {
 	RETURN_STATUS(zbc_num_printNum(n, base, 1, bc_num_printChar));
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_stream(...) (zbc_num_stream(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_stream(...) (zbc_num_stream(__VA_ARGS__) COMMA_SUCCESS)
 #endif
 
 static BC_STATUS zbc_num_print(BcNum *n, bool newline)
@@ -5653,9 +5516,7 @@ static BC_STATUS zbc_num_print(BcNum *n, bool newline)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_num_print(...) (zbc_num_print(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_num_print(...) (zbc_num_print(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_print(char inst, size_t idx)
 {
@@ -5701,9 +5562,7 @@ static BC_STATUS zbc_program_print(char inst, size_t idx)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_print(...) (zbc_program_print(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_print(...) (zbc_program_print(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_negate(void)
 {
@@ -5722,9 +5581,7 @@ static BC_STATUS zbc_program_negate(void)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_negate(...) (zbc_program_negate(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_negate(...) (zbc_program_negate(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_logical(char inst)
 {
@@ -5773,9 +5630,7 @@ static BC_STATUS zbc_program_logical(char inst)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_logical(...) (zbc_program_logical(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_logical(...) (zbc_program_logical(__VA_ARGS__) COMMA_SUCCESS)
 
 #if ENABLE_DC
 static BC_STATUS zbc_program_assignStr(BcResult *r, BcVec *v,
@@ -5802,9 +5657,7 @@ static BC_STATUS zbc_program_assignStr(BcResult *r, BcVec *v,
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_assignStr(...) (zbc_program_assignStr(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_assignStr(...) (zbc_program_assignStr(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_DC
 
 static BC_STATUS zbc_program_copyToVar(char *name, bool var)
@@ -5849,9 +5702,7 @@ static BC_STATUS zbc_program_copyToVar(char *name, bool var)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_copyToVar(...) (zbc_program_copyToVar(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_copyToVar(...) (zbc_program_copyToVar(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_assign(char inst)
 {
@@ -5894,7 +5745,7 @@ static BC_STATUS zbc_program_assign(char inst)
 		bc_num_copy(l, r);
 	else {
 		s = BC_STATUS_SUCCESS;
-		ERROR_RETURN(s =) zbc_program_ops[inst - BC_INST_ASSIGN_POWER](l, r, l, G.prog.scale);
+		IF_ERROR_RETURN_POSSIBLE(s =) zbc_program_ops[inst - BC_INST_ASSIGN_POWER](l, r, l, G.prog.scale);
 	}
 	if (s) RETURN_STATUS(s);
 #else
@@ -5942,9 +5793,7 @@ static BC_STATUS zbc_program_assign(char inst)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_assign(...) (zbc_program_assign(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_assign(...) (zbc_program_assign(__VA_ARGS__) COMMA_SUCCESS)
 
 #if !ENABLE_DC
 #define bc_program_pushVar(code, bgn, pop, copy) \
@@ -5996,11 +5845,7 @@ static BC_STATUS bc_program_pushVar(char *code, size_t *bgn,
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_pushVar(...) (bc_program_pushVar(__VA_ARGS__), BC_STATUS_SUCCESS)
-#else
-# define zbc_program_pushVar(...) bc_program_pushVar(__VA_ARGS__)
-#endif
+#define zbc_program_pushVar(...) (bc_program_pushVar(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_pushArray(char *code, size_t *bgn,
                                      char inst)
@@ -6038,9 +5883,7 @@ err:
 	if (s) free(r.d.id.name);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_pushArray(...) (zbc_program_pushArray(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_pushArray(...) (zbc_program_pushArray(__VA_ARGS__) COMMA_SUCCESS)
 
 #if ENABLE_BC
 static BC_STATUS zbc_program_incdec(char inst)
@@ -6075,9 +5918,7 @@ static BC_STATUS zbc_program_incdec(char inst)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_incdec(...) (zbc_program_incdec(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_incdec(...) (zbc_program_incdec(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_call(char *code, size_t *idx)
 {
@@ -6133,9 +5974,7 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_call(...) (zbc_program_call(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_call(...) (zbc_program_call(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_return(char inst)
 {
@@ -6180,9 +6019,7 @@ static BC_STATUS zbc_program_return(char inst)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_return(...) (zbc_program_return(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_return(...) (zbc_program_return(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_BC
 
 static unsigned long bc_program_scale(BcNum *n)
@@ -6248,9 +6085,7 @@ static BC_STATUS zbc_program_builtin(char inst)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_builtin(...) (zbc_program_builtin(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_builtin(...) (zbc_program_builtin(__VA_ARGS__) COMMA_SUCCESS)
 
 #if ENABLE_DC
 static BC_STATUS zbc_program_divmod(void)
@@ -6279,9 +6114,7 @@ err:
 	bc_num_free(&res.d.n);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_divmod(...) (zbc_program_divmod(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_divmod(...) (zbc_program_divmod(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_modexp(void)
 {
@@ -6327,9 +6160,7 @@ err:
 	bc_num_free(&res.d.n);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_modexp(...) (zbc_program_modexp(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_modexp(...) (zbc_program_modexp(__VA_ARGS__) COMMA_SUCCESS)
 
 static void bc_program_stackLen(void)
 {
@@ -6412,9 +6243,7 @@ num_err:
 	bc_num_free(&n);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_asciify(...) (zbc_program_asciify(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_asciify(...) (zbc_program_asciify(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_printStream(void)
 {
@@ -6441,9 +6270,7 @@ static BC_STATUS zbc_program_printStream(void)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_printStream(...) (zbc_program_printStream(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_printStream(...) (zbc_program_printStream(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_nquit(void)
 {
@@ -6469,9 +6296,7 @@ static BC_STATUS zbc_program_nquit(void)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_nquit(...) (zbc_program_nquit(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_nquit(...) (zbc_program_nquit(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_program_execStr(char *code, size_t *bgn,
                                    bool cond)
@@ -6573,9 +6398,7 @@ exit:
 	bc_vec_pop(&G.prog.results);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_execStr(...) (zbc_program_execStr(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_execStr(...) (zbc_program_execStr(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_DC
 
 static void bc_program_pushGlobal(char inst)
@@ -6874,9 +6697,7 @@ static BC_STATUS zbc_program_exec(void)
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_program_exec(...) (zbc_program_exec(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_program_exec(...) (zbc_program_exec(__VA_ARGS__) COMMA_SUCCESS)
 
 static unsigned bc_vm_envLen(const char *var)
 {
@@ -6904,7 +6725,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 
 	while (G.prs.l.t.t != BC_LEX_EOF) {
 		dbg_lex("%s:%d G.prs.l.t.t:%d", __func__, __LINE__, G.prs.l.t.t);
-		ERROR_RETURN(s =) zcommon_parse(&G.prs);
+		s = zcommon_parse(&G.prs);
 		if (s) RETURN_STATUS(s);
 		s = zbc_program_exec();
 		if (s) {
@@ -6916,9 +6737,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_vm_process(...) (zbc_vm_process(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_vm_process(...) (zbc_vm_process(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_vm_execute_FILE(FILE *fp, const char *filename)
 {
@@ -6941,9 +6760,7 @@ static BC_STATUS zbc_vm_execute_FILE(FILE *fp, const char *filename)
 	G.prog.file = NULL;
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_vm_execute_FILE(...) (zbc_vm_execute_FILE(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_vm_execute_FILE(...) (zbc_vm_execute_FILE(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_vm_file(const char *file)
 {
@@ -6956,9 +6773,7 @@ static BC_STATUS zbc_vm_file(const char *file)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_vm_file(...) (zbc_vm_file(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_vm_file(...) (zbc_vm_file(__VA_ARGS__) COMMA_SUCCESS)
 
 #if ENABLE_BC
 static void bc_vm_info(void)
@@ -7234,9 +7049,7 @@ static BC_STATUS zbc_vm_exec(void)
 
 	RETURN_STATUS(s);
 }
-#if ERRORS_ARE_FATAL
-# define zbc_vm_exec(...) (zbc_vm_exec(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
+#define zbc_vm_exec(...) (zbc_vm_exec(__VA_ARGS__) COMMA_SUCCESS)
 
 #if ENABLE_FEATURE_CLEAN_UP
 static void bc_program_free(void)
