@@ -4798,8 +4798,6 @@ static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
 
 #if ENABLE_DC
 
-#define DC_PARSE_BUF_LEN ((int) (sizeof(uint32_t) * CHAR_BIT))
-
 static BC_STATUS zdc_parse_register(BcParse *p)
 {
 	BcStatus s;
@@ -4816,11 +4814,11 @@ static BC_STATUS zdc_parse_register(BcParse *p)
 
 static BC_STATUS zdc_parse_string(BcParse *p)
 {
-	char *str, *name, b[DC_PARSE_BUF_LEN + 1];
+	char *str, *name;
 	size_t idx, len = G.prog.strs.len;
 
-	sprintf(b, "%0*zu", DC_PARSE_BUF_LEN, len);
-	name = xstrdup(b);
+//why pad to 32 zeros??
+	name = xasprintf("%032lu", (unsigned long)len);
 
 	str = xstrdup(p->l.t.v.v);
 	bc_parse_push(p, BC_INST_STR);
