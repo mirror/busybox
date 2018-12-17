@@ -228,7 +228,6 @@ typedef struct BcNum {
 	bool neg;
 } BcNum;
 
-#define BC_NUM_MIN_BASE         ((unsigned long) 2)
 #define BC_NUM_MAX_IBASE        ((unsigned long) 16)
 // larger value might speed up BIGNUM calculations a bit:
 #define BC_NUM_DEF_SIZE         (16)
@@ -680,12 +679,9 @@ typedef struct BcProgram {
 	size_t len;
 	size_t scale;
 
-	BcNum ib;
 	size_t ib_t;
-	BcNum ob;
 	size_t ob_t;
-
-	BcNum hexb;
+	BcNum ob;
 
 #if ENABLE_DC
 	BcNum strmb;
@@ -2240,10 +2236,11 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 
 // Note: n is already "bc_num_zero()"ed,
 // leading zeroes in "val" are removed
-static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
+static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 {
 	BcStatus s;
 	BcNum temp, mult, result;
+	BcNum base;
 	BcDig c = '\0';
 	unsigned long v;
 	size_t i, digits;
@@ -2257,6 +2254,8 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 
 	bc_num_init_DEF_SIZE(&temp);
 	bc_num_init_DEF_SIZE(&mult);
+	bc_num_init_DEF_SIZE(&base);
+	bc_num_ulong2num(&base, base_t);
 
 	for (;;) {
 		c = *val++;
@@ -2265,14 +2264,14 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 
 		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
 
-		s = zbc_num_mul(n, base, &mult, 0);
+		s = zbc_num_mul(n, &base, &mult, 0);
 		if (s) goto int_err;
 		bc_num_ulong2num(&temp, v);
 		s = zbc_num_add(&mult, &temp, n, 0);
 		if (s) goto int_err;
 	}
 
-	bc_num_init(&result, base->len);
+	bc_num_init(&result, base.len);
 	//bc_num_zero(&result); - already is
 	bc_num_one(&mult);
 
@@ -2284,12 +2283,12 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 
 		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
 
-		s = zbc_num_mul(&result, base, &result, 0);
+		s = zbc_num_mul(&result, &base, &result, 0);
 		if (s) goto err;
 		bc_num_ulong2num(&temp, v);
 		s = zbc_num_add(&result, &temp, &result, 0);
 		if (s) goto err;
-		s = zbc_num_mul(&mult, base, &mult, 0);
+		s = zbc_num_mul(&mult, &base, &mult, 0);
 		if (s) goto err;
 	}
 
@@ -2306,12 +2305,12 @@ static void bc_num_parseBase(BcNum *n, const char *val, BcNum *base)
 err:
 	bc_num_free(&result);
 int_err:
+	bc_num_free(&base);
 	bc_num_free(&mult);
 	bc_num_free(&temp);
 }
 
-static BC_STATUS zbc_num_parse(BcNum *n, const char *val, BcNum *base,
-                             size_t base_t)
+static BC_STATUS zbc_num_parse(BcNum *n, const char *val, unsigned base_t)
 {
 	if (!bc_num_strValid(val, base_t))
 		RETURN_STATUS(bc_error("bad number string"));
@@ -2322,7 +2321,7 @@ static BC_STATUS zbc_num_parse(BcNum *n, const char *val, BcNum *base,
 	if (base_t == 10)
 		bc_num_parseDecimal(n, val);
 	else
-		bc_num_parseBase(n, val, base);
+		bc_num_parseBase(n, val, base_t);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -5044,15 +5043,14 @@ static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 		{
 			BcStatus s;
 			char **str = bc_vec_item(&G.prog.consts, r->d.id.idx);
-			size_t base_t, len = strlen(*str);
-			BcNum *base;
+			unsigned base_t;
+			size_t len = strlen(*str);
 
 			bc_num_init(&r->d.n, len);
 
 			hex = hex && len == 1;
-			base = hex ? &G.prog.hexb : &G.prog.ib;
-			base_t = hex ? BC_NUM_MAX_IBASE : G.prog.ib_t;
-			s = zbc_num_parse(&r->d.n, *str, base, base_t);
+			base_t = hex ? 16 : G.prog.ib_t;
+			s = zbc_num_parse(&r->d.n, *str, base_t);
 
 			if (s) {
 				bc_num_free(&r->d.n);
@@ -5475,8 +5473,7 @@ static BC_STATUS zbc_num_printBase(BcNum *n)
 	if (G.prog.ob_t <= BC_NUM_MAX_IBASE) {
 		width = 1;
 		print = bc_num_printHex;
-	}
-	else {
+	} else {
 		for (i = G.prog.ob_t - 1, width = 0; i != 0; i /= 10, ++width)
 			continue;
 		print = bc_num_printDigits;
@@ -5506,8 +5503,7 @@ static BC_STATUS zbc_num_print(BcNum *n, bool newline)
 	if (n->len == 0) {
 		bb_putchar('0');
 		++G.prog.nchars;
-	}
-	else if (G.prog.ob_t == 10)
+	} else if (G.prog.ob_t == 10)
 		bc_num_printDecimal(n);
 	else
 		s = zbc_num_printBase(n);
@@ -5765,7 +5761,8 @@ static BC_STATUS zbc_program_assign(char inst)
 			"bad obase; must be [2,"BC_MAX_OBASE_STR"]", //BC_RESULT_OBASE
 		};
 		size_t *ptr;
-		unsigned long val, max;
+		size_t max;
+		unsigned long val;
 
 		s = zbc_num_ulong(l, &val);
 		if (s) RETURN_STATUS(s);
@@ -5773,9 +5770,8 @@ static BC_STATUS zbc_program_assign(char inst)
 		if (sc) {
 			max = BC_MAX_SCALE;
 			ptr = &G.prog.scale;
-		}
-		else {
-			if (val < BC_NUM_MIN_BASE)
+		} else {
+			if (val < 2)
 				RETURN_STATUS(bc_error(msg[s]));
 			max = ib ? BC_NUM_MAX_IBASE : BC_MAX_OBASE;
 			ptr = ib ? &G.prog.ib_t : &G.prog.ob_t;
@@ -5783,8 +5779,8 @@ static BC_STATUS zbc_program_assign(char inst)
 
 		if (val > max)
 			RETURN_STATUS(bc_error(msg[s]));
-		if (!sc)
-			bc_num_copy(ib ? &G.prog.ib : &G.prog.ob, l);
+		if (!sc && !ib)
+			bc_num_copy(&G.prog.ob, l);
 
 		*ptr = (size_t) val;
 		s = BC_STATUS_SUCCESS;
@@ -7057,9 +7053,7 @@ static BC_STATUS zbc_vm_exec(void)
 #if ENABLE_FEATURE_CLEAN_UP
 static void bc_program_free(void)
 {
-	bc_num_free(&G.prog.ib);
 	bc_num_free(&G.prog.ob);
-	bc_num_free(&G.prog.hexb);
 # if ENABLE_DC
 	bc_num_free(&G.prog.strmb);
 # endif
@@ -7097,17 +7091,11 @@ static void bc_program_init(void)
 	memset(&ip, 0, sizeof(BcInstPtr));
 
 	// G.prog.nchars = G.prog.scale = 0; - already is
-	bc_num_init_DEF_SIZE(&G.prog.ib);
-	bc_num_ten(&G.prog.ib);
 	G.prog.ib_t = 10;
 
 	bc_num_init_DEF_SIZE(&G.prog.ob);
 	bc_num_ten(&G.prog.ob);
 	G.prog.ob_t = 10;
-
-	bc_num_init_DEF_SIZE(&G.prog.hexb);
-	bc_num_ten(&G.prog.hexb);
-	G.prog.hexb.num[0] = 6;
 
 #if ENABLE_DC
 	bc_num_init_DEF_SIZE(&G.prog.strmb);
