@@ -76,6 +76,11 @@ testing "bc print 1,2,3" \
 	"123" \
 	"" "print 1,2,3"
 
+testing "bc { print 1 }" \
+	"bc" \
+	"1" \
+	"" "{ print 1 }"
+
 testing "bc nested loops and breaks" \
 	"bc" \
 	"\

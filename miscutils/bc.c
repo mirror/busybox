@@ -390,7 +390,6 @@ typedef struct BcInstPtr {
 
 // BC_LEX_NEG is not used in lexing; it is only for parsing.
 typedef enum BcLexType {
-
 	BC_LEX_EOF,
 	BC_LEX_INVALID,
 
@@ -553,7 +552,93 @@ enum {
 		| (1 << 19) // 19
 };
 #define bc_lex_kws_POSIX(i) ((1 << (i)) & POSIX_KWORD_MASK)
+
+// This is a bit array that corresponds to token types. An entry is
+// true if the token is valid in an expression, false otherwise.
+// Used to figure out when expr parsing should stop *without error message*
+// - 0 element indicates this condition. 1 means "this token is to be eaten
+// as part of the expression", token can them still be determined to be invalid
+// by later processing.
+enum {
+#define EXBITS(a,b,c,d,e,f,g,h) \
+	((uint64_t)((a << 0)+(b << 1)+(c << 2)+(d << 3)+(e << 4)+(f << 5)+(g << 6)+(h << 7)))
+	BC_PARSE_EXPRS_BITS = 0
+	+ (EXBITS(0,0,1,1,1,1,1,1) << (0*8)) //  0: eof    inval ++    --     -     ^     *    /
+	+ (EXBITS(1,1,1,1,1,1,1,1) << (1*8)) //  8: %      +     -     ==     <=    >=    !=   <
+	+ (EXBITS(1,1,1,1,1,1,1,1) << (2*8)) // 16: >      !     ||    &&     ^=    *=    /=   %=
+	+ (EXBITS(1,1,1,0,0,1,1,0) << (3*8)) // 24: +=     -=    =     NL     WS    (     )    [
+	+ (EXBITS(0,0,0,0,0,0,1,1) << (4*8)) // 32: ,      ]     {     ;      }     STR   NAME NUM
+	+ (EXBITS(0,0,0,0,0,0,0,1) << (5*8)) // 40: auto   break cont  define else  for   halt ibase
+	+ (EXBITS(0,1,1,1,1,0,0,1) << (6*8)) // 48: if     last  len   limits obase print quit read - bug, why "limits" is allowed?
+	+ (EXBITS(0,1,1,0,0,0,0,0) << (7*8)) // 56: return scale sqrt  while
+#undef EXBITS
+};
+static ALWAYS_INLINE long bc_parse_exprs(unsigned i)
+{
+#if ULONG_MAX > 0xffffffff
+	// 64-bit version (will not work correctly for 32-bit longs!)
+	return BC_PARSE_EXPRS_BITS & (1UL << i);
+#else
+	// 32-bit version
+	unsigned long m = (uint32_t)BC_PARSE_EXPRS_BITS;
+	if (i >= 32) {
+		m = (uint32_t)(BC_PARSE_EXPRS_BITS >> 32);
+		i &= 31;
+	}
+	return m & (1UL << i);
 #endif
+}
+
+// This is an array of data for operators that correspond to
+// [BC_LEX_OP_INC...BC_LEX_OP_ASSIGN] token types.
+static const uint8_t bc_parse_ops[] = {
+#define OP(p,l) ((int)(l) * 0x10 + (p))
+	OP(0, false), OP( 0, false ), // inc dec
+	OP(1, false), // neg
+	OP(2, false), // pow
+	OP(3, true ), OP( 3, true  ), OP( 3, true  ), // mul div mod
+	OP(4, true ), OP( 4, true  ), // + -
+	OP(6, true ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true ), // == <= >= != < >
+	OP(1, false), // not
+	OP(7, true ), OP( 7, true  ), // or and
+	OP(5, false), OP( 5, false ), OP( 5, false ), OP( 5, false ), OP( 5, false ), // ^= *= /= %= +=
+	OP(5, false), OP( 5, false ), // -= =
+#undef OP
+};
+#define bc_parse_op_PREC(i) (bc_parse_ops[i] & 0x0f)
+#define bc_parse_op_LEFT(i) (bc_parse_ops[i] & 0x10)
+#endif // ENABLE_BC
+
+#if ENABLE_DC
+static const //BcInst - should be this type. Using signed narrow type since BC_INST_INVALID is -1
+int8_t
+dc_parse_insts[] = {
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,
+	BC_INST_INVALID, BC_INST_POWER, BC_INST_MULTIPLY, BC_INST_DIVIDE,
+	BC_INST_MODULUS, BC_INST_PLUS, BC_INST_MINUS,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_BOOL_NOT, BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GT, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,
+	BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_IBASE,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_LENGTH, BC_INST_INVALID,
+	BC_INST_OBASE, BC_INST_PRINT, BC_INST_QUIT, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_SCALE, BC_INST_SQRT, BC_INST_INVALID,
+	BC_INST_REL_EQ, BC_INST_MODEXP, BC_INST_DIVMOD, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_EXECUTE, BC_INST_PRINT_STACK, BC_INST_CLEAR_STACK,
+	BC_INST_STACK_LEN, BC_INST_DUPLICATE, BC_INST_SWAP, BC_INST_POP,
+	BC_INST_ASCIIFY, BC_INST_PRINT_STREAM, BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
+	BC_INST_PRINT, BC_INST_NQUIT, BC_INST_SCALE_FUNC,
+};
+#endif // ENABLE_DC
+
 
 typedef struct BcLex {
 	const char *buf;
@@ -734,106 +819,6 @@ struct globals {
 #endif
 #define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
 #define IS_DC (ENABLE_DC && (!ENABLE_BC || applet_name[0] != 'b'))
-
-#if ENABLE_BC
-
-// This is a bit array that corresponds to token types. An entry is
-// true if the token is valid in an expression, false otherwise.
-enum {
-	BC_PARSE_EXPRS_BITS = 0
-	+ ((uint64_t)((0 << 0)+(0 << 1)+(1 << 2)+(1 << 3)+(1 << 4)+(1 << 5)+(1 << 6)+(1 << 7)) << (0*8))
-	+ ((uint64_t)((1 << 0)+(1 << 1)+(1 << 2)+(1 << 3)+(1 << 4)+(1 << 5)+(1 << 6)+(1 << 7)) << (1*8))
-	+ ((uint64_t)((1 << 0)+(1 << 1)+(1 << 2)+(1 << 3)+(1 << 4)+(1 << 5)+(1 << 6)+(1 << 7)) << (2*8))
-	+ ((uint64_t)((1 << 0)+(1 << 1)+(1 << 2)+(0 << 3)+(0 << 4)+(1 << 5)+(1 << 6)+(0 << 7)) << (3*8))
-	+ ((uint64_t)((0 << 0)+(0 << 1)+(0 << 2)+(0 << 3)+(0 << 4)+(0 << 5)+(1 << 6)+(1 << 7)) << (4*8))
-	+ ((uint64_t)((0 << 0)+(0 << 1)+(0 << 2)+(0 << 3)+(0 << 4)+(0 << 5)+(0 << 6)+(1 << 7)) << (5*8))
-	+ ((uint64_t)((0 << 0)+(1 << 1)+(1 << 2)+(1 << 3)+(1 << 4)+(0 << 5)+(0 << 6)+(1 << 7)) << (6*8))
-	+ ((uint64_t)((0 << 0)+(1 << 1)+(1 << 2)+(0 << 3)                                    ) << (7*8))
-};
-static ALWAYS_INLINE long bc_parse_exprs(unsigned i)
-{
-#if ULONG_MAX > 0xffffffff
-	// 64-bit version (will not work correctly for 32-bit longs!)
-	return BC_PARSE_EXPRS_BITS & (1UL << i);
-#else
-	// 32-bit version
-	unsigned long m = (uint32_t)BC_PARSE_EXPRS_BITS;
-	if (i >= 32) {
-		m = (uint32_t)(BC_PARSE_EXPRS_BITS >> 32);
-		i &= 31;
-	}
-	return m & (1UL << i);
-#endif
-}
-
-// This is an array of data for operators that correspond to token types.
-static const uint8_t bc_parse_ops[] = {
-#define OP(p,l) ((int)(l) * 0x10 + (p))
-	OP(0, false), OP( 0, false ), // inc dec
-	OP(1, false), // neg
-	OP(2, false),
-	OP(3, true ), OP( 3, true  ), OP( 3, true  ), // pow mul div
-	OP(4, true ), OP( 4, true  ), // mod + -
-	OP(6, true ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true ), // == <= >= != < >
-	OP(1, false), // not
-	OP(7, true ), OP( 7, true  ), // or and
-	OP(5, false), OP( 5, false ), OP( 5, false ), OP( 5, false ), OP( 5, false ), // ^= *= /= %= +=
-	OP(5, false), OP( 5, false ), // -= =
-#undef OP
-};
-#define bc_parse_op_PREC(i) (bc_parse_ops[i] & 0x0f)
-#define bc_parse_op_LEFT(i) (bc_parse_ops[i] & 0x10)
-
-// Byte array of up to 4 BC_LEX's, packed into 32-bit word
-typedef uint32_t BcParseNext;
-
-// These identify what tokens can come after expressions in certain cases.
-enum {
-#define BC_PARSE_NEXT4(a,b,c,d) ( (a) | ((b)<<8) | ((c)<<16) | ((((d)|0x80)<<24)) )
-#define BC_PARSE_NEXT2(a,b)     BC_PARSE_NEXT4(a,b,0xff,0xff)
-#define BC_PARSE_NEXT1(a)       BC_PARSE_NEXT4(a,0xff,0xff,0xff)
-	bc_parse_next_expr  = BC_PARSE_NEXT4(BC_LEX_NLINE,  BC_LEX_SCOLON, BC_LEX_RBRACE, BC_LEX_EOF),
-	bc_parse_next_param = BC_PARSE_NEXT2(BC_LEX_RPAREN, BC_LEX_COMMA),
-	bc_parse_next_print = BC_PARSE_NEXT4(BC_LEX_COMMA,  BC_LEX_NLINE,  BC_LEX_SCOLON, BC_LEX_EOF),
-	bc_parse_next_rel   = BC_PARSE_NEXT1(BC_LEX_RPAREN),
-	bc_parse_next_elem  = BC_PARSE_NEXT1(BC_LEX_RBRACKET),
-	bc_parse_next_for   = BC_PARSE_NEXT1(BC_LEX_SCOLON),
-	bc_parse_next_read  = BC_PARSE_NEXT2(BC_LEX_NLINE,  BC_LEX_EOF),
-#undef BC_PARSE_NEXT4
-#undef BC_PARSE_NEXT2
-#undef BC_PARSE_NEXT1
-};
-#endif // ENABLE_BC
-
-#if ENABLE_DC
-static const //BcInst - should be this type. Using signed narrow type since BC_INST_INVALID is -1
-int8_t
-dc_parse_insts[] = {
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,
-	BC_INST_INVALID, BC_INST_POWER, BC_INST_MULTIPLY, BC_INST_DIVIDE,
-	BC_INST_MODULUS, BC_INST_PLUS, BC_INST_MINUS,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_BOOL_NOT, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GT, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,
-	BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_IBASE,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_LENGTH, BC_INST_INVALID,
-	BC_INST_OBASE, BC_INST_PRINT, BC_INST_QUIT, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_SCALE, BC_INST_SQRT, BC_INST_INVALID,
-	BC_INST_REL_EQ, BC_INST_MODEXP, BC_INST_DIVMOD, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_EXECUTE, BC_INST_PRINT_STACK, BC_INST_CLEAR_STACK,
-	BC_INST_STACK_LEN, BC_INST_DUPLICATE, BC_INST_SWAP, BC_INST_POP,
-	BC_INST_ASCIIFY, BC_INST_PRINT_STREAM, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_PRINT, BC_INST_NQUIT, BC_INST_SCALE_FUNC,
-};
-#endif // ENABLE_DC
 
 // In configurations where errors abort instead of propagating error
 // return code up the call chain, functions returning BC_STATUS
@@ -3535,9 +3520,15 @@ static void bc_parse_number(BcParse *p)
 IF_BC(static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p);)
 IF_DC(static BC_STATUS zdc_parse_parse(BcParse *p);)
 
+// "Parse" half of "parse,execute,repeat" main loop
 static BC_STATUS zcommon_parse(BcParse *p)
 {
 	if (IS_BC) {
+// FIXME: "eating" of stmt delemiters is coded inconsistently
+// (sometimes zbc_parse_stmt() eats the delimiter, sometimes don't),
+// which causes bugs such as "print 1 print 2" erroneously accepted,
+// or "print 1 else 2" detecting parse error only after executing
+// "print 1" part.
 		IF_BC(RETURN_STATUS(zbc_parse_stmt_or_funcdef(p));)
 	}
 	IF_DC(RETURN_STATUS(zdc_parse_parse(p));)
@@ -3625,10 +3616,20 @@ static void bc_parse_create(BcParse *p, size_t func)
 // first in the expr enum. Note: This only works for binary operators.
 #define BC_TOKEN_2_INST(t) ((char) ((t) - BC_LEX_NEG + BC_INST_NEG))
 
-static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed);
-static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next);
-static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext next);
+static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags);
+
+static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags)
+{
+	BcStatus s;
+
+	s = bc_parse_expr_empty_ok(p, flags);
+	if (s == BC_STATUS_PARSE_EMPTY_EXP)
+		RETURN_STATUS(bc_error("empty expression"));
+	RETURN_STATUS(s);
+}
 #define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
+
+static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed);
 #define zbc_parse_stmt_possibly_auto(...) (zbc_parse_stmt_possibly_auto(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_stmt(BcParse *p)
@@ -3699,26 +3700,30 @@ static BC_STATUS zbc_parse_rightParen(BcParse *p, size_t ops_bgn, size_t *nexs)
 static BC_STATUS zbc_parse_params(BcParse *p, uint8_t flags)
 {
 	BcStatus s;
-	bool comma = false;
 	size_t nparams;
 
 	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
+	flags = (flags & ~(BC_PARSE_PRINT | BC_PARSE_REL)) | BC_PARSE_ARRAY;
+
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	for (nparams = 0; p->l.t.t != BC_LEX_RPAREN; ++nparams) {
-		flags = (flags & ~(BC_PARSE_PRINT | BC_PARSE_REL)) | BC_PARSE_ARRAY;
-		s = zbc_parse_expr(p, flags, bc_parse_next_param);
-		if (s) RETURN_STATUS(s);
-
-		comma = p->l.t.t == BC_LEX_COMMA;
-		if (comma) {
+	nparams = 0;
+	if (p->l.t.t != BC_LEX_RPAREN) {
+		for (;;) {
+			s = zbc_parse_expr(p, flags);
+			if (s) RETURN_STATUS(s);
+			nparams++;
+			if (p->l.t.t != BC_LEX_COMMA) {
+				if (p->l.t.t == BC_LEX_RPAREN)
+					break;
+				RETURN_STATUS(bc_error_bad_token());
+			}
 			s = zbc_lex_next(&p->l);
 			if (s) RETURN_STATUS(s);
 		}
 	}
 
-	if (comma) RETURN_STATUS(bc_error_bad_token());
 	bc_parse_push(p, BC_INST_CALL);
 	bc_parse_pushIndex(p, nparams);
 
@@ -3785,7 +3790,7 @@ static BC_STATUS zbc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 		} else {
 			*type = BC_INST_ARRAY_ELEM;
 			flags &= ~(BC_PARSE_PRINT | BC_PARSE_REL);
-			s = zbc_parse_expr(p, flags, bc_parse_next_elem);
+			s = zbc_parse_expr(p, flags);
 			if (s) goto err;
 		}
 		s = zbc_lex_next(&p->l);
@@ -3848,7 +3853,7 @@ static BC_STATUS zbc_parse_builtin(BcParse *p, BcLexType type, uint8_t flags,
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	s = zbc_parse_expr(p, flags, bc_parse_next_rel);
+	s = zbc_parse_expr(p, flags);
 	if (s) RETURN_STATUS(s);
 
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
@@ -3879,7 +3884,7 @@ static BC_STATUS zbc_parse_scale(BcParse *p, BcInst *type, uint8_t flags)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	s = zbc_parse_expr(p, flags, bc_parse_next_rel);
+	s = zbc_parse_expr(p, flags);
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_RPAREN)
 		RETURN_STATUS(bc_error_bad_token());
@@ -3999,7 +4004,7 @@ static BC_STATUS zbc_parse_print(BcParse *p)
 		if (type == BC_LEX_STR) {
 			s = zbc_parse_string(p, BC_INST_PRINT_POP);
 		} else {
-			s = zbc_parse_expr(p, 0, bc_parse_next_print);
+			s = zbc_parse_expr(p, 0);
 			bc_parse_push(p, BC_INST_PRINT_POP);
 		}
 		if (s) RETURN_STATUS(s);
@@ -4025,7 +4030,7 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 		bc_parse_push(p, BC_INST_RET0);
 	else {
 		bool paren = (t == BC_LEX_LPAREN);
-		s = bc_parse_expr_empty_ok(p, 0, bc_parse_next_expr);
+		s = bc_parse_expr_empty_ok(p, 0);
 		if (s == BC_STATUS_PARSE_EMPTY_EXP) {
 			bc_parse_push(p, BC_INST_RET0);
 			s = zbc_lex_next(&p->l);
@@ -4063,7 +4068,7 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	s = zbc_parse_expr(p, BC_PARSE_REL, bc_parse_next_rel);
+	s = zbc_parse_expr(p, BC_PARSE_REL);
 	if (s) RETURN_STATUS(s);
 
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
@@ -4123,7 +4128,7 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	bc_vec_push(&p->exits, &ip_idx);
 	bc_vec_push(&p->func->labels, &ip_idx);
 
-	s = zbc_parse_expr(p, BC_PARSE_REL, bc_parse_next_rel);
+	s = zbc_parse_expr(p, BC_PARSE_REL);
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 
@@ -4158,7 +4163,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	if (s) RETURN_STATUS(s);
 
 	if (p->l.t.t != BC_LEX_SCOLON)
-		s = zbc_parse_expr(p, 0, bc_parse_next_for);
+		s = zbc_parse_expr(p, 0);
 	else
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("init");
 
@@ -4175,7 +4180,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	bc_vec_push(&p->func->labels, &p->func->code.len);
 
 	if (p->l.t.t != BC_LEX_SCOLON)
-		s = zbc_parse_expr(p, BC_PARSE_REL, bc_parse_next_for);
+		s = zbc_parse_expr(p, BC_PARSE_REL);
 	else
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("condition");
 
@@ -4192,7 +4197,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	bc_vec_push(&p->func->labels, &p->func->code.len);
 
 	if (p->l.t.t != BC_LEX_RPAREN)
-		s = zbc_parse_expr(p, 0, bc_parse_next_rel);
+		s = zbc_parse_expr(p, 0);
 	else
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("update");
 
@@ -4444,7 +4449,7 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 		case BC_LEX_KEY_READ:
 		case BC_LEX_KEY_SCALE:
 		case BC_LEX_KEY_SQRT:
-			s = zbc_parse_expr(p, BC_PARSE_PRINT, bc_parse_next_expr);
+			s = zbc_parse_expr(p, BC_PARSE_PRINT);
 			break;
 		case BC_LEX_STR:
 			s = zbc_parse_string(p, BC_INST_PRINT_STR);
@@ -4530,7 +4535,7 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p)
 #define zbc_parse_stmt_or_funcdef(...) (zbc_parse_stmt_or_funcdef(__VA_ARGS__) COMMA_SUCCESS)
 
 // This is not a "z" function: can also return BC_STATUS_PARSE_EMPTY_EXP
-static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext next)
+static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcInst prev = BC_INST_PRINT;
@@ -4766,19 +4771,6 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 	if (prev == BC_INST_BOOL_NOT || nexprs != 1)
 		return bc_error_bad_expression();
 
-//TODO: why is this needed at all?
-	// next is BcParseNext, byte array of up to 4 BC_LEX's, packed into 32-bit word
-	for (;;) {
-		if (t == (next & 0x7f))
-			goto ok;
-		if (next & 0x80) // last element?
-			break;
-		next >>= 8;
-	}
-	if (t != BC_LEX_KEY_ELSE)
-		return bc_error_bad_expression();
- ok:
-
 	if (!(flags & BC_PARSE_REL) && nrelops) {
 		s = bc_POSIX_does_not_allow("comparison operators outside if or loops");
 		IF_ERROR_RETURN_POSSIBLE(if (s) return s);
@@ -4796,18 +4788,6 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags, BcParseNext ne
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	return s;
 }
-
-#undef zbc_parse_expr
-static BC_STATUS zbc_parse_expr(BcParse *p, uint8_t flags, BcParseNext next)
-{
-	BcStatus s;
-
-	s = bc_parse_expr_empty_ok(p, flags, next);
-	if (s == BC_STATUS_PARSE_EMPTY_EXP)
-		RETURN_STATUS(bc_error("empty expression"));
-	RETURN_STATUS(s);
-}
-#define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 #endif // ENABLE_BC
 
@@ -5008,7 +4988,7 @@ static BC_STATUS zdc_parse_parse(BcParse *p)
 static BC_STATUS zcommon_parse_expr(BcParse *p, uint8_t flags)
 {
 	if (IS_BC) {
-		IF_BC(RETURN_STATUS(zbc_parse_expr(p, flags, bc_parse_next_read)));
+		IF_BC(RETURN_STATUS(zbc_parse_expr(p, flags)));
 	} else {
 		IF_DC(RETURN_STATUS(zdc_parse_expr(p, flags)));
 	}
