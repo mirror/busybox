@@ -806,45 +806,6 @@ enum {
 #endif // ENABLE_BC
 
 #if ENABLE_DC
-static const //BcLexType - should be this type, but narrower type saves size:
-uint8_t
-dc_lex_regs[] = {
-	BC_LEX_OP_REL_EQ, BC_LEX_OP_REL_LE, BC_LEX_OP_REL_GE, BC_LEX_OP_REL_NE,
-	BC_LEX_OP_REL_LT, BC_LEX_OP_REL_GT, BC_LEX_SCOLON, BC_LEX_COLON,
-	BC_LEX_ELSE, BC_LEX_LOAD, BC_LEX_LOAD_POP, BC_LEX_OP_ASSIGN,
-	BC_LEX_STORE_PUSH,
-};
-
-static const //BcLexType - should be this type
-uint8_t
-dc_lex_tokens[] = {
-	BC_LEX_OP_MODULUS, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_LPAREN,
-	BC_LEX_INVALID, BC_LEX_OP_MULTIPLY, BC_LEX_OP_PLUS, BC_LEX_INVALID,
-	BC_LEX_OP_MINUS, BC_LEX_INVALID, BC_LEX_OP_DIVIDE,
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_COLON, BC_LEX_SCOLON, BC_LEX_OP_REL_GT, BC_LEX_OP_REL_EQ,
-	BC_LEX_OP_REL_LT, BC_LEX_KEY_READ, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_EQ_NO_REG, BC_LEX_INVALID,
-	BC_LEX_KEY_IBASE, BC_LEX_INVALID, BC_LEX_KEY_SCALE, BC_LEX_LOAD_POP,
-	BC_LEX_INVALID, BC_LEX_OP_BOOL_NOT, BC_LEX_KEY_OBASE, BC_LEX_PRINT_STREAM,
-	BC_LEX_NQUIT, BC_LEX_POP, BC_LEX_STORE_PUSH, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_SCALE_FACTOR, BC_LEX_INVALID,
-	BC_LEX_KEY_LENGTH, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_OP_POWER, BC_LEX_NEG, BC_LEX_INVALID,
-	BC_LEX_ASCIIFY, BC_LEX_INVALID, BC_LEX_CLEAR_STACK, BC_LEX_DUPLICATE,
-	BC_LEX_ELSE, BC_LEX_PRINT_STACK, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_STORE_IBASE, BC_LEX_INVALID, BC_LEX_STORE_SCALE, BC_LEX_LOAD,
-	BC_LEX_INVALID, BC_LEX_PRINT_POP, BC_LEX_STORE_OBASE, BC_LEX_KEY_PRINT,
-	BC_LEX_KEY_QUIT, BC_LEX_SWAP, BC_LEX_OP_ASSIGN, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_KEY_SQRT, BC_LEX_INVALID, BC_LEX_EXECUTE,
-	BC_LEX_INVALID, BC_LEX_STACK_LEVEL,
-	BC_LEX_LBRACE, BC_LEX_OP_MODEXP, BC_LEX_INVALID, BC_LEX_OP_DIVMOD,
-	BC_LEX_INVALID
-};
-
 static const //BcInst - should be this type. Using signed narrow type since BC_INST_INVALID is -1
 int8_t
 dc_parse_insts[] = {
@@ -1063,6 +1024,8 @@ static ERRORFUNC int bc_error(const char *msg)
 }
 static ERRORFUNC int bc_error_bad_character(char c)
 {
+	if (!c)
+		IF_ERROR_RETURN_POSSIBLE(return) bc_error("NUL character");
 	IF_ERROR_RETURN_POSSIBLE(return) bc_error_fmt("bad character '%c'", c);
 }
 static ERRORFUNC int bc_error_bad_expression(void)
@@ -1376,7 +1339,7 @@ static void bc_read_line(BcVec *vec, FILE *fp)
 				goto intr;
 			}
 #endif
-			c = fgetc(fp);
+			do c = fgetc(fp); while (c == '\0');
 			if (c == EOF) {
 				if (ferror(fp))
 					bb_perror_msg_and_die("input error");
@@ -3125,11 +3088,11 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 
 	// This is the workhorse of the lexer.
 	switch (c) {
-		case '\0': // probably never reached
-			l->i--;
-			l->t.t = BC_LEX_EOF;
-			l->newline = true;
-			break;
+//		case '\0': // probably never reached
+//			l->i--;
+//			l->t.t = BC_LEX_EOF;
+//			l->newline = true;
+//			break;
 		case '\n':
 			l->t.t = BC_LEX_NLINE;
 			l->newline = true;
@@ -3370,6 +3333,58 @@ static BC_STATUS zdc_lex_string(BcLex *l)
 
 static BC_STATUS zdc_lex_token(BcLex *l)
 {
+	static const //BcLexType - should be this type, but narrower type saves size:
+	uint8_t
+	dc_lex_regs[] = {
+		BC_LEX_OP_REL_EQ, BC_LEX_OP_REL_LE, BC_LEX_OP_REL_GE, BC_LEX_OP_REL_NE,
+		BC_LEX_OP_REL_LT, BC_LEX_OP_REL_GT, BC_LEX_SCOLON, BC_LEX_COLON,
+		BC_LEX_ELSE, BC_LEX_LOAD, BC_LEX_LOAD_POP, BC_LEX_OP_ASSIGN,
+		BC_LEX_STORE_PUSH,
+	};
+	static const //BcLexType - should be this type
+	uint8_t
+	dc_lex_tokens[] = {
+		/* %&'( */
+		BC_LEX_OP_MODULUS, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_LPAREN,
+		/* )*+, */
+		BC_LEX_INVALID, BC_LEX_OP_MULTIPLY, BC_LEX_OP_PLUS, BC_LEX_INVALID,
+		/* -./ */
+		BC_LEX_OP_MINUS, BC_LEX_INVALID, BC_LEX_OP_DIVIDE,
+		/* 0123456789 */
+		BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
+		BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
+		BC_LEX_INVALID, BC_LEX_INVALID,
+		/* :;<=>?@ */
+		BC_LEX_COLON, BC_LEX_SCOLON, BC_LEX_OP_REL_GT, BC_LEX_OP_REL_EQ,
+		BC_LEX_OP_REL_LT, BC_LEX_KEY_READ, BC_LEX_INVALID,
+		/* ABCDEFGH */
+		BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
+		BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_EQ_NO_REG, BC_LEX_INVALID,
+		/* IJKLMNOP */
+		BC_LEX_KEY_IBASE, BC_LEX_INVALID, BC_LEX_KEY_SCALE, BC_LEX_LOAD_POP,
+		BC_LEX_INVALID, BC_LEX_OP_BOOL_NOT, BC_LEX_KEY_OBASE, BC_LEX_PRINT_STREAM,
+		/* QRSTUVWXY */
+		BC_LEX_NQUIT, BC_LEX_POP, BC_LEX_STORE_PUSH, BC_LEX_INVALID, BC_LEX_INVALID,
+		BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_SCALE_FACTOR, BC_LEX_INVALID,
+		/* Z[\] */
+		BC_LEX_KEY_LENGTH, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
+		/* ^_` */
+		BC_LEX_OP_POWER, BC_LEX_NEG, BC_LEX_INVALID,
+		/* abcdefgh */
+		BC_LEX_ASCIIFY, BC_LEX_INVALID, BC_LEX_CLEAR_STACK, BC_LEX_DUPLICATE,
+		BC_LEX_ELSE, BC_LEX_PRINT_STACK, BC_LEX_INVALID, BC_LEX_INVALID,
+		/* ijklmnop */
+		BC_LEX_STORE_IBASE, BC_LEX_INVALID, BC_LEX_STORE_SCALE, BC_LEX_LOAD,
+		BC_LEX_INVALID, BC_LEX_PRINT_POP, BC_LEX_STORE_OBASE, BC_LEX_KEY_PRINT,
+		/* qrstuvwx */
+		BC_LEX_KEY_QUIT, BC_LEX_SWAP, BC_LEX_OP_ASSIGN, BC_LEX_INVALID,
+		BC_LEX_INVALID, BC_LEX_KEY_SQRT, BC_LEX_INVALID, BC_LEX_EXECUTE,
+		/* yz */
+		BC_LEX_INVALID, BC_LEX_STACK_LEVEL,
+		/* {|}~ */
+		BC_LEX_LBRACE, BC_LEX_OP_MODEXP, BC_LEX_INVALID, BC_LEX_OP_DIVMOD,
+	};
+
 	BcStatus s = BC_STATUS_SUCCESS;
 	char c = l->buf[l->i++], c2;
 	size_t i;
@@ -3380,16 +3395,16 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 	}
 
 	if (c >= '%' && c <= '~'
-	 && (l->t.t = dc_lex_tokens[(c - '%')]) != BC_LEX_INVALID
+	 && (l->t.t = dc_lex_tokens[c - '%']) != BC_LEX_INVALID
 	) {
 		RETURN_STATUS(s);
 	}
 
 	// This is the workhorse of the lexer.
 	switch (c) {
-		case '\0':
-			l->t.t = BC_LEX_EOF;
-			break;
+//		case '\0': // probably never reached
+//			l->t.t = BC_LEX_EOF;
+//			break;
 		case '\n':
 		case '\t':
 		case '\v':
