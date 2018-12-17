@@ -525,6 +525,10 @@ static const struct BcLexKeyword bc_lex_kws[20] = {
 	BC_LEX_KW_ENTRY("while"   , 1), // 19
 };
 #undef BC_LEX_KW_ENTRY
+#define STRING_if    (bc_lex_kws[8].name8)
+#define STRING_else  (bc_lex_kws[4].name8)
+#define STRING_while (bc_lex_kws[19].name8)
+#define STRING_for   (bc_lex_kws[5].name8)
 enum {
 	POSIX_KWORD_MASK = 0
 		| (1 << 0)  // 0
@@ -4053,7 +4057,7 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	bc_parse_pushJUMP_ZERO(p, ip_idx);
 	bc_vec_push(&p->func->labels, &ip_idx);
 
-	s = zbc_parse_stmt_allow_NLINE_before(p, "if");
+	s = zbc_parse_stmt_allow_NLINE_before(p, STRING_if);
 	if (s) RETURN_STATUS(s);
 
 	dbg_lex("%s:%d in if after stmt: p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
@@ -4071,7 +4075,7 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 		bc_vec_push(&p->func->labels, &ip2_idx);
 		ip_idx = ip2_idx;
 
-		s = zbc_parse_stmt_allow_NLINE_before(p, "else");
+		s = zbc_parse_stmt_allow_NLINE_before(p, STRING_else);
 		if (s) RETURN_STATUS(s);
 	}
 
@@ -4110,7 +4114,7 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 
 	bc_parse_pushJUMP_ZERO(p, ip_idx);
 
-	s = zbc_parse_stmt_allow_NLINE_before(p, "while");
+	s = zbc_parse_stmt_allow_NLINE_before(p, STRING_while);
 	if (s) RETURN_STATUS(s);
 
 	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, cond_idx);
@@ -4186,7 +4190,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	bc_vec_push(&p->exits, &exit_idx);
 	bc_vec_push(&p->func->labels, &exit_idx);
 
-	s = zbc_parse_stmt_allow_NLINE_before(p, "for");
+	s = zbc_parse_stmt_allow_NLINE_before(p, STRING_for);
 	if (s) RETURN_STATUS(s);
 
 	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, update_idx);
