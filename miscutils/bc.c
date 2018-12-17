@@ -694,7 +694,6 @@ struct globals {
 	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
 	IF_FEATURE_CLEAN_UP(smallint exiting;)
 	smallint in_read;
-	smallint use_stdin;
 
 	BcParse prs;
 	BcProgram prog;
@@ -704,7 +703,8 @@ struct globals {
 	unsigned err_line;
 
 	BcVec files;
-	BcVec stdin_buffer;
+	BcVec input_buffer;
+	FILE *input_fp;
 
 	char *env_args;
 
@@ -1317,8 +1317,8 @@ static int bad_input_byte(char c)
 	return 0;
 }
 
-// Note: it _appends_ data from the stdin to vec.
-static void bc_read_line(BcVec *vec)
+// Note: it _appends_ data from fp to vec.
+static void bc_read_line(BcVec *vec, FILE *fp)
 {
  again:
 	fflush_and_check();
@@ -1326,6 +1326,17 @@ static void bc_read_line(BcVec *vec)
 #if ENABLE_FEATURE_BC_SIGNALS
 	if (G_interrupt) { // ^C was pressed
  intr:
+		if (fp != stdin) {
+			// ^C while running a script (bc SCRIPT): die.
+			// We do not return to interactive prompt:
+			// user might be running us from a shell,
+			// and SCRIPT might be intended to terminate
+			// (e.g. contain a "halt" stmt).
+			// ^C dropping user into a bc prompt instead of
+			// the shell would be unexpected.
+			xfunc_die();
+		}
+		// ^C while interactive input
 		G_interrupt = 0;
 		// GNU bc says "interrupted execution."
 		// GNU dc says "Interrupt!"
@@ -1333,14 +1344,14 @@ static void bc_read_line(BcVec *vec)
 	}
 
 # if ENABLE_FEATURE_EDITING
-	if (G_ttyin) {
+	if (G_ttyin && fp == stdin) {
 		int n, i;
 #  define line_buf bb_common_bufsiz1
 		n = read_line_input(G.line_input_state, "", line_buf, COMMON_BUFSIZE);
 		if (n <= 0) { // read errors or EOF, or ^D, or ^C
 			if (n == 0) // ^C
 				goto intr;
-			bc_vec_pushZeroByte(vec);
+			bc_vec_pushZeroByte(vec); // ^D or EOF (or error)
 			return;
 		}
 		i = 0;
@@ -1359,58 +1370,36 @@ static void bc_read_line(BcVec *vec)
 		bool bad_chars = 0;
 		size_t len = vec->len;
 
-		IF_FEATURE_BC_SIGNALS(errno = 0;)
 		do {
-			c = fgetc(stdin);
-#if ENABLE_FEATURE_BC_SIGNALS && !ENABLE_FEATURE_EDITING
-			// Both conditions appear simultaneously, check both just in case
-			if (errno == EINTR || G_interrupt) {
-				// ^C was pressed
-				clearerr(stdin);
+#if ENABLE_FEATURE_BC_SIGNALS
+			if (G_interrupt) {
+				// ^C was pressed: ignore entire line, get another one
+				vec->len = len;
 				goto intr;
 			}
 #endif
+			c = fgetc(fp);
 			if (c == EOF) {
-				if (ferror(stdin))
-					quit(); // this emits error message
-				// Note: EOF does not append '\n', therefore:
-				// printf 'print 123\n' | bc - works
-				// printf 'print 123' | bc   - fails (syntax error)
+				if (ferror(fp))
+					bb_perror_msg_and_die("input error");
+				// Note: EOF does not append '\n'
 				break;
 			}
 			bad_chars |= bad_input_byte(c);
 			bc_vec_pushByte(vec, (char)c);
 		} while (c != '\n');
+
 		if (bad_chars) {
-			// Bad chars on this line, ignore entire line
-			vec->len = len;
-			goto again;
+			// Bad chars on this line
+			if (!G.prog.file) { // stdin
+				// ignore entire line, get another one
+				vec->len = len;
+				goto again;
+			}
+			bb_perror_msg_and_die("file '%s' is not text", G.prog.file);
 		}
 		bc_vec_pushZeroByte(vec);
 	}
-}
-
-static char* bc_read_file(const char *path)
-{
-	char *buf;
-	size_t size = ((size_t) -1);
-	size_t i;
-
-	// Never returns NULL (dies on errors)
-	buf = xmalloc_xopen_read_close(path, &size);
-
-	for (i = 0; i < size; ++i) {
-		char c = buf[i];
-		if ((c < ' ' && c != '\t' && c != '\r' && c != '\n') // also allow '\v' '\f'?
-		 || c > 0x7e
-		) {
-			free(buf);
-			buf = NULL;
-			break;
-		}
-	}
-
-	return buf;
 }
 
 static void bc_num_setToZero(BcNum *n, size_t scale)
@@ -2912,7 +2901,7 @@ static bool bc_lex_more_input(BcLex *l)
 	size_t str;
 	bool comment;
 
-	bc_vec_pop_all(&G.stdin_buffer);
+	bc_vec_pop_all(&G.input_buffer);
 
 	// This loop is complex because the vm tries not to send any lines that end
 	// with a backslash to the parser. The reason for that is because the parser
@@ -2921,18 +2910,18 @@ static bool bc_lex_more_input(BcLex *l)
 	comment = false;
 	str = 0;
 	for (;;) {
-		size_t prevlen = G.stdin_buffer.len;
+		size_t prevlen = G.input_buffer.len;
 		char *string;
 
-		bc_read_line(&G.stdin_buffer);
+		bc_read_line(&G.input_buffer, G.input_fp);
 		// No more input means EOF
-		if (G.stdin_buffer.len <= prevlen + 1) // (we expect +1 for NUL byte)
+		if (G.input_buffer.len <= prevlen + 1) // (we expect +1 for NUL byte)
 			break;
 
-		string = G.stdin_buffer.v + prevlen;
+		string = G.input_buffer.v + prevlen;
 		while (*string) {
 			char c = *string;
-			if (string == G.stdin_buffer.v || string[-1] != '\\') {
+			if (string == G.input_buffer.v || string[-1] != '\\') {
 				if (IS_BC)
 					str ^= (c == '"');
 				else {
@@ -2954,7 +2943,7 @@ static bool bc_lex_more_input(BcLex *l)
 			}
 		}
 		if (str != 0 || comment) {
-			G.stdin_buffer.len--; // backstep over the trailing NUL byte
+			G.input_buffer.len--; // backstep over the trailing NUL byte
 			continue;
 		}
 
@@ -2963,21 +2952,20 @@ static bool bc_lex_more_input(BcLex *l)
 		// if it is not, then it's EOF, and looping back
 		// to bc_read_line() will detect it:
 		string -= 2;
-		if (string >= G.stdin_buffer.v && *string == '\\') {
-			G.stdin_buffer.len--;
+		if (string >= G.input_buffer.v && *string == '\\') {
+			G.input_buffer.len--;
 			continue;
 		}
 
 		break;
 	}
 
-	l->buf = G.stdin_buffer.v;
+	l->buf = G.input_buffer.v;
 	l->i = 0;
-//bb_error_msg("G.stdin_buffer.len:%d '%s'", G.stdin_buffer.len, G.stdin_buffer.v);
-	l->len = G.stdin_buffer.len - 1; // do not include NUL
+//	bb_error_msg("G.input_buffer.len:%d '%s'", G.input_buffer.len, G.input_buffer.v);
+	l->len = G.input_buffer.len - 1; // do not include NUL
 
-	G.use_stdin = (l->len != 0);
-	return G.use_stdin;
+	return l->len != 0;
 }
 
 static BC_STATUS zbc_lex_next(BcLex *l)
@@ -2989,22 +2977,23 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 
 	l->line += l->newline;
 	G.err_line = l->line;
-
-	l->t.t = BC_LEX_EOF;
-//this NL handling is bogus
-	l->newline = (l->i == l->len);
-	if (l->newline) {
-		if (!G.use_stdin || !bc_lex_more_input(l))
-			RETURN_STATUS(BC_STATUS_SUCCESS);
-		// here it's guaranteed that l->i is below l->len
-		l->newline = false;
-	}
+	l->newline = false;
 
 	// Loop until failure or we don't have whitespace. This
 	// is so the parser doesn't get inundated with whitespace.
 	// Comments are also BC_LEX_WHITESPACE tokens and eaten here.
 	s = BC_STATUS_SUCCESS;
 	do {
+		l->t.t = BC_LEX_EOF;
+		if (l->i == l->len) {
+			if (!G.input_fp)
+				RETURN_STATUS(BC_STATUS_SUCCESS);
+			if (!bc_lex_more_input(l)) {
+				G.input_fp = NULL;
+				RETURN_STATUS(BC_STATUS_SUCCESS);
+			}
+			// here it's guaranteed that l->i is below l->len
+		}
 		dbg_lex("next string to parse:'%.*s'",
 			(int)(strchrnul(l->buf + l->i, '\n') - (l->buf + l->i)),
 			l->buf + l->i);
@@ -5351,7 +5340,7 @@ static BC_STATUS zbc_program_read(void)
 	G.in_read = 1;
 
 	bc_char_vec_init(&buf);
-	bc_read_line(&buf);
+	bc_read_line(&buf, stdin);
 
 	bc_parse_create(&parse, BC_PROG_READ);
 	bc_lex_file(&parse.l);
@@ -6931,60 +6920,44 @@ static BC_STATUS zbc_vm_process(const char *text)
 # define zbc_vm_process(...) (zbc_vm_process(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
-static BC_STATUS zbc_vm_file(const char *file)
+static BC_STATUS zbc_vm_execute_FILE(FILE *fp, const char *filename)
 {
 	// So far bc/dc have no way to include a file from another file,
 	// therefore we know G.prog.file == NULL on entry
 	//const char *sv_file;
-	char *data;
 	BcStatus s;
-	BcFunc *main_func;
-	BcInstPtr *ip;
 
-	data = bc_read_file(file);
-	if (!data) RETURN_STATUS(bc_error_fmt("file '%s' is not text", file));
-
-	//sv_file = G.prog.file;
-	G.prog.file = file;
+	G.prog.file = filename;
+	G.input_fp = fp;
 	bc_lex_file(&G.prs.l);
-	s = zbc_vm_process(data);
-	if (s) goto err;
 
-	main_func = bc_program_func(BC_PROG_MAIN);
-	ip = bc_vec_item(&G.prog.stack, 0);
-
-	if (main_func->code.len < ip->idx)
-		s = bc_error_fmt("file '%s' is not executable", file);
-
-err:
-	//G.prog.file = sv_file;
+	do {
+		s = zbc_vm_process("");
+		// We do not stop looping on errors here if reading stdin.
+		// Example: start interactive bc and enter "return".
+		// It should say "'return' not in a function"
+		// but should not exit.
+	} while (G.input_fp == stdin);
 	G.prog.file = NULL;
-	free(data);
+	RETURN_STATUS(s);
+}
+#if ERRORS_ARE_FATAL
+# define zbc_vm_execute_FILE(...) (zbc_vm_execute_FILE(__VA_ARGS__), BC_STATUS_SUCCESS)
+#endif
+
+static BC_STATUS zbc_vm_file(const char *file)
+{
+	BcStatus s;
+	FILE *fp;
+
+	fp = xfopen_for_read(file);
+	s = zbc_vm_execute_FILE(fp, file);
+	fclose(fp);
+
 	RETURN_STATUS(s);
 }
 #if ERRORS_ARE_FATAL
 # define zbc_vm_file(...) (zbc_vm_file(__VA_ARGS__), BC_STATUS_SUCCESS)
-#endif
-
-static BC_STATUS zbc_vm_stdin(void)
-{
-	BcStatus s;
-
-	//G.prog.file = NULL; - already is
-	bc_lex_file(&G.prs.l);
-
-	G.use_stdin = 1;
-	do {
-		s = zbc_vm_process("");
-		// We do not stop looping on errors here.
-		// Example: start interactive bc and enter "return".
-		// It should say "'return' not in a function"
-		// but should not exit.
-	} while (G.use_stdin);
-	RETURN_STATUS(s);
-}
-#if ERRORS_ARE_FATAL
-# define zbc_vm_stdin(...) (zbc_vm_stdin(__VA_ARGS__), BC_STATUS_SUCCESS)
 #endif
 
 #if ENABLE_BC
@@ -7257,7 +7230,7 @@ static BC_STATUS zbc_vm_exec(void)
 	}
 
 	if (IS_BC || (option_mask32 & BC_FLAG_I))
-		s = zbc_vm_stdin();
+		s = zbc_vm_execute_FILE(stdin, /*filename:*/ NULL);
 
 	RETURN_STATUS(s);
 }
@@ -7287,7 +7260,7 @@ static void bc_program_free(void)
 	bc_num_free(&G.prog.last);
 	bc_num_free(&G.prog.zero);
 	bc_num_free(&G.prog.one);
-	bc_vec_free(&G.stdin_buffer);
+	bc_vec_free(&G.input_buffer);
 }
 
 static void bc_vm_free(void)
@@ -7352,7 +7325,7 @@ static void bc_program_init(void)
 	bc_vec_init(&G.prog.stack, sizeof(BcInstPtr), NULL);
 	bc_vec_push(&G.prog.stack, &ip);
 
-	bc_char_vec_init(&G.stdin_buffer);
+	bc_char_vec_init(&G.input_buffer);
 }
 
 static int bc_vm_init(const char *env_len)
