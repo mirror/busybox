@@ -2547,17 +2547,19 @@ static void bc_array_init(BcVec *a, bool nums)
 
 static void bc_array_expand(BcVec *a, size_t len)
 {
-	BcResultData data;
-
-	if (a->size == sizeof(BcNum) && a->dtor == bc_num_free) {
+	if (a->dtor == bc_num_free
+	 // && a->size == sizeof(BcNum) - always true
+	) {
+		BcNum n;
 		while (len > a->len) {
-			bc_num_init_DEF_SIZE(&data.n);
-			bc_vec_push(a, &data.n);
+			bc_num_init_DEF_SIZE(&n);
+			bc_vec_push(a, &n);
 		}
 	} else {
+		BcVec v;
 		while (len > a->len) {
-			bc_array_init(&data.v, true);
-			bc_vec_push(a, &data.v);
+			bc_array_init(&v, true);
+			bc_vec_push(a, &v);
 		}
 	}
 }
