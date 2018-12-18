@@ -16,6 +16,11 @@ testing "bc comment 2: /*/ is not a closed comment" \
 	"4\n" \
 	"" "1 /*/ + 2 */ + 3"
 
+testing "bc comment 3: unterminated #comment" \
+	"bc" \
+	"" \
+	"" "#foo"  # no trailing newline
+
 testing "bc backslash 1" \
 	"bc" \
 	"3\n" \

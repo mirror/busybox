@@ -2655,9 +2655,13 @@ static FAST_FUNC void bc_result_free(void *result)
 
 static void bc_lex_lineComment(BcLex *l)
 {
+	// Try: echo -n '#foo' | bc
+	size_t i;
 	l->t.t = BC_LEX_WHITESPACE;
-	while (l->i < l->len && l->buf[l->i++] != '\n');
-	--l->i;
+	i = l->i;
+	while (i < l->len && l->buf[i] != '\n')
+		i++;
+	l->i = i;
 }
 
 static void bc_lex_whitespace(BcLex *l)
@@ -2889,8 +2893,8 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 	// Comments are also BC_LEX_WHITESPACE tokens and eaten here.
 	s = BC_STATUS_SUCCESS;
 	do {
-		l->t.t = BC_LEX_EOF;
 		if (l->i == l->len) {
+			l->t.t = BC_LEX_EOF;
 			if (!G.input_fp)
 				RETURN_STATUS(BC_STATUS_SUCCESS);
 			if (!bc_lex_more_input(l)) {
