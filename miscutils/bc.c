@@ -1466,9 +1466,10 @@ static void bc_num_subArrays(BcDig *restrict a, BcDig *restrict b,
 {
 	size_t i, j;
 	for (i = 0; i < len; ++i) {
-		for (a[i] -= b[i], j = 0; a[i + j] < 0;) {
-			a[i + j++] += 10;
-			a[i + j] -= 1;
+		a[i] -= b[i];
+		for (j = i; a[j] < 0;) {
+			a[j++] += 10;
+			a[j] -= 1;
 		}
 	}
 }
@@ -1647,7 +1648,7 @@ static FAST_FUNC BC_STATUS zbc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size
 {
 	BcDig *ptr, *ptr_a, *ptr_b, *ptr_c;
 	size_t i, max, min_rdx, min_int, diff, a_int, b_int;
-	int carry, in;
+	unsigned carry;
 
 	// Because this function doesn't need to use scale (per the bc spec),
 	// I am hijacking it to say whether it's doing an add or a subtract.
@@ -1672,15 +1673,16 @@ static FAST_FUNC BC_STATUS zbc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size
 		ptr = a->num;
 		ptr_a = a->num + diff;
 		ptr_b = b->num;
-	}
-	else {
+	} else {
 		diff = b->rdx - a->rdx;
 		ptr = b->num;
 		ptr_a = a->num;
 		ptr_b = b->num + diff;
 	}
 
-	for (ptr_c = c->num, i = 0; i < diff; ++i, ++c->len) ptr_c[i] = ptr[i];
+	ptr_c = c->num;
+	for (i = 0; i < diff; ++i, ++c->len)
+		ptr_c[i] = ptr[i];
 
 	ptr_c += diff;
 	a_int = BC_NUM_INT(a);
@@ -1690,24 +1692,24 @@ static FAST_FUNC BC_STATUS zbc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size
 		min_int = b_int;
 		max = a_int;
 		ptr = ptr_a;
-	}
-	else {
+	} else {
 		min_int = a_int;
 		max = b_int;
 		ptr = ptr_b;
 	}
 
-	for (carry = 0, i = 0; i < min_rdx + min_int; ++i, ++c->len) {
-		in = ((int) ptr_a[i]) + ((int) ptr_b[i]) + carry;
+	carry = 0;
+	for (i = 0; i < min_rdx + min_int; ++i) {
+		unsigned in = (unsigned)ptr_a[i] + (unsigned)ptr_b[i] + carry;
 		carry = in / 10;
 		ptr_c[i] = (BcDig)(in % 10);
 	}
-
-	for (; i < max + min_rdx; ++i, ++c->len) {
-		in = ((int) ptr[i]) + carry;
+	for (; i < max + min_rdx; ++i) {
+		unsigned in = (unsigned)ptr[i] + carry;
 		carry = in / 10;
 		ptr_c[i] = (BcDig)(in % 10);
 	}
+	c->len += i;
 
 	if (carry != 0) c->num[c->len++] = (BcDig) carry;
 
@@ -1751,8 +1753,7 @@ static FAST_FUNC BC_STATUS zbc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size
 		neg = a->neg;
 		minuend = a;
 		subtrahend = b;
-	}
-	else {
+	} else {
 		neg = b->neg;
 		if (sub) neg = !neg;
 		minuend = b;
@@ -1765,8 +1766,7 @@ static FAST_FUNC BC_STATUS zbc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size
 	if (c->rdx < subtrahend->rdx) {
 		bc_num_extend(c, subtrahend->rdx - c->rdx);
 		start = 0;
-	}
-	else
+	} else
 		start = c->rdx - subtrahend->rdx;
 
 	bc_num_subArrays(c->num + start, subtrahend->num, subtrahend->len);
@@ -1795,11 +1795,11 @@ static FAST_FUNC BC_STATUS zbc_num_k(BcNum *restrict a, BcNum *restrict b,
 		RETURN_STATUS(BC_STATUS_SUCCESS);
 	}
 
-	if (a->len + b->len < BC_NUM_KARATSUBA_LEN ||
-	    a->len < BC_NUM_KARATSUBA_LEN || b->len < BC_NUM_KARATSUBA_LEN)
-	{
+	if (a->len + b->len < BC_NUM_KARATSUBA_LEN
+	 || a->len < BC_NUM_KARATSUBA_LEN
+	 || b->len < BC_NUM_KARATSUBA_LEN
+	) {
 		size_t i, j, len;
-		unsigned carry;
 
 		bc_num_expand(c, a->len + b->len + 1);
 
@@ -1807,11 +1807,10 @@ static FAST_FUNC BC_STATUS zbc_num_k(BcNum *restrict a, BcNum *restrict b,
 		c->len = len = 0;
 
 		for (i = 0; i < b->len; ++i) {
-
-			carry = 0;
+			unsigned carry = 0;
 			for (j = 0; j < a->len; ++j) {
 				unsigned in = c->num[i + j];
-				in += ((unsigned) a->num[j]) * ((unsigned) b->num[i]) + carry;
+				in += (unsigned)a->num[j] * (unsigned)b->num[i] + carry;
 				// note: compilers prefer _unsigned_ div/const
 				carry = in / 10;
 				c->num[i + j] = (BcDig)(in % 10);
@@ -2158,8 +2157,7 @@ static BC_STATUS zbc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
 		ptr_a = &num2;
 		memcpy(ptr_a, c, sizeof(BcNum));
 		init = true;
-	}
-	else
+	} else
 		ptr_a = a;
 
 	if (c == b) {
@@ -2168,8 +2166,7 @@ static BC_STATUS zbc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
 			memcpy(ptr_b, c, sizeof(BcNum));
 			init = true;
 		}
-	}
-	else
+	} else
 		ptr_b = b;
 
 	if (init)
@@ -2350,10 +2347,9 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	if (a->len == 0) {
 		bc_num_setToZero(b, scale);
 		RETURN_STATUS(BC_STATUS_SUCCESS);
-	}
-	else if (a->neg)
+	} else if (a->neg) {
 		RETURN_STATUS(bc_error("negative number"));
-	else if (BC_NUM_ONE(a)) {
+	} else if (BC_NUM_ONE(a)) {
 		bc_num_one(b);
 		bc_num_extend(b, scale);
 		RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -2380,7 +2376,6 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	pow = BC_NUM_INT(a);
 
 	if (pow) {
-
 		if (pow & 1)
 			x0->num[0] = 2;
 		else
@@ -2399,7 +2394,6 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	len = BC_NUM_INT(x0) + resrdx - 1;
 
 	while (cmp != 0 || digs < len) {
-
 		s = zbc_num_div(a, x0, &f, resrdx);
 		if (s) goto err;
 		s = zbc_num_add(x0, &f, &fprime, resrdx);
@@ -2429,8 +2423,7 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	bc_num_copy(b, x0);
 	scale -= 1;
 	if (b->rdx > scale) bc_num_truncate(b, b->rdx - scale);
-
-err:
+ err:
 	bc_num_free(&fprime);
 	bc_num_free(&f);
 	bc_num_free(&half);
@@ -2453,8 +2446,7 @@ static BC_STATUS zbc_num_divmod(BcNum *a, BcNum *b, BcNum *c, BcNum *d,
 		ptr_a = &num2;
 		bc_num_init(c, len);
 		init = true;
-	}
-	else {
+	} else {
 		ptr_a = a;
 		bc_num_expand(c, len);
 	}
@@ -2495,7 +2487,6 @@ static BC_STATUS zbc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 	bc_num_copy(&exp, b);
 
 	while (exp.len != 0) {
-
 		s = zbc_num_divmod(&exp, &two, &exp, &temp, 0);
 		if (s) goto err;
 
@@ -2511,8 +2502,7 @@ static BC_STATUS zbc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 		s = zbc_num_rem(&temp, c, &base, 0);
 		if (s) goto err;
 	}
-
-err:
+ err:
 	bc_num_free(&temp);
 	bc_num_free(&two);
 	bc_num_free(&exp);
@@ -2579,8 +2569,7 @@ static void bc_array_expand(BcVec *a, size_t len)
 			bc_num_init_DEF_SIZE(&data.n);
 			bc_vec_push(a, &data.n);
 		}
-	}
-	else {
+	} else {
 		while (len > a->len) {
 			bc_array_init(&data.v, true);
 			bc_vec_push(a, &data.v);
@@ -2614,33 +2603,24 @@ static void bc_result_copy(BcResult *d, BcResult *src)
 	d->t = src->t;
 
 	switch (d->t) {
-
 		case BC_RESULT_TEMP:
 		case BC_RESULT_IBASE:
 		case BC_RESULT_SCALE:
 		case BC_RESULT_OBASE:
-		{
 			bc_num_init(&d->d.n, src->d.n.len);
 			bc_num_copy(&d->d.n, &src->d.n);
 			break;
-		}
-
 		case BC_RESULT_VAR:
 		case BC_RESULT_ARRAY:
 		case BC_RESULT_ARRAY_ELEM:
-		{
 			d->d.id.name = xstrdup(src->d.id.name);
 			break;
-		}
-
 		case BC_RESULT_CONSTANT:
 		case BC_RESULT_LAST:
 		case BC_RESULT_ONE:
 		case BC_RESULT_STR:
-		{
 			memcpy(&d->d.n, &src->d.n, sizeof(BcNum));
 			break;
-		}
 	}
 }
 #endif // ENABLE_DC
@@ -2650,29 +2630,20 @@ static FAST_FUNC void bc_result_free(void *result)
 	BcResult *r = (BcResult *) result;
 
 	switch (r->t) {
-
 		case BC_RESULT_TEMP:
 		case BC_RESULT_IBASE:
 		case BC_RESULT_SCALE:
 		case BC_RESULT_OBASE:
-		{
 			bc_num_free(&r->d.n);
 			break;
-		}
-
 		case BC_RESULT_VAR:
 		case BC_RESULT_ARRAY:
 		case BC_RESULT_ARRAY_ELEM:
-		{
 			free(r->d.id.name);
 			break;
-		}
-
 		default:
-		{
 			// Do nothing.
 			break;
-		}
 	}
 }
 
