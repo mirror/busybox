@@ -3477,7 +3477,7 @@ static void bc_parse_pushIndex(BcParse *p, size_t idx)
 	size_t mask;
 	unsigned amt;
 
-	dbg_lex("%s:%d pushing index %d", __func__, __LINE__, idx);
+	dbg_lex("%s:%d pushing index %zd", __func__, __LINE__, idx);
 	mask = ((size_t)0xff) << (sizeof(idx) * 8 - 8);
 	amt = sizeof(idx);
 	do {
@@ -4086,10 +4086,10 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 
 		ip2_idx = p->func->labels.len;
 
-		dbg_lex("%s:%d after if() body: BC_INST_JUMP to %d", __func__, __LINE__, ip2_idx);
+		dbg_lex("%s:%d after if() body: BC_INST_JUMP to %zd", __func__, __LINE__, ip2_idx);
 		bc_parse_pushJUMP(p, ip2_idx);
 
-		dbg_lex("%s:%d rewriting 'if_zero' label to jump to 'else'-> %d", __func__, __LINE__, p->func->code.len);
+		dbg_lex("%s:%d rewriting 'if_zero' label to jump to 'else'-> %zd", __func__, __LINE__, p->func->code.len);
 		rewrite_label_to_current(p, ip_idx);
 
 		bc_vec_push(&p->func->labels, &ip2_idx);
@@ -4099,7 +4099,7 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 		if (s) RETURN_STATUS(s);
 	}
 
-	dbg_lex("%s:%d rewriting label to jump after 'if' body-> %d", __func__, __LINE__, p->func->code.len);
+	dbg_lex("%s:%d rewriting label to jump after 'if' body-> %zd", __func__, __LINE__, p->func->code.len);
 	rewrite_label_to_current(p, ip_idx);
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
@@ -4137,10 +4137,10 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	s = zbc_parse_stmt_allow_NLINE_before(p, STRING_while);
 	if (s) RETURN_STATUS(s);
 
-	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, cond_idx);
+	dbg_lex("%s:%d BC_INST_JUMP to %zd", __func__, __LINE__, cond_idx);
 	bc_parse_pushJUMP(p, cond_idx);
 
-	dbg_lex("%s:%d rewriting label-> %d", __func__, __LINE__, p->func->code.len);
+	dbg_lex("%s:%d rewriting label-> %zd", __func__, __LINE__, p->func->code.len);
 	rewrite_label_to_current(p, ip_idx);
 
 	bc_vec_pop(&p->exits);
@@ -4213,10 +4213,10 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	s = zbc_parse_stmt_allow_NLINE_before(p, STRING_for);
 	if (s) RETURN_STATUS(s);
 
-	dbg_lex("%s:%d BC_INST_JUMP to %d", __func__, __LINE__, update_idx);
+	dbg_lex("%s:%d BC_INST_JUMP to %zd", __func__, __LINE__, update_idx);
 	bc_parse_pushJUMP(p, update_idx);
 
-	dbg_lex("%s:%d rewriting label-> %d", __func__, __LINE__, p->func->code.len);
+	dbg_lex("%s:%d rewriting label-> %zd", __func__, __LINE__, p->func->code.len);
 	rewrite_label_to_current(p, exit_idx);
 
 	bc_vec_pop(&p->exits);
@@ -4257,6 +4257,7 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	bool var, comma = false;
 	char *name;
 
+	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_NAME)
@@ -4330,9 +4331,11 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	bc_parse_push(p, BC_INST_RET0);
 	bc_parse_updateFunc(p, BC_PROG_MAIN);
 
+	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 
 err:
+	dbg_lex_done("%s:%d done (error)", __func__, __LINE__);
 	free(name);
 	RETURN_STATUS(s);
 }
@@ -4873,7 +4876,6 @@ static BC_STATUS zdc_parse_cond(BcParse *p, uint8_t inst)
 static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
-	BcInst prev;
 	uint8_t inst;
 	bool assign, get_token = false;
 
@@ -4902,7 +4904,6 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 					RETURN_STATUS(bc_error_bad_token());
 			}
 			bc_parse_number(p);
-			prev = BC_INST_NUM;
 			if (t == BC_LEX_NEG) bc_parse_push(p, BC_INST_NEG);
 			get_token = true;
 			break;
