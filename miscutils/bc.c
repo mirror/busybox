@@ -1933,7 +1933,6 @@ static FAST_FUNC BC_STATUS zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size
 	BcDig *n, *p, q;
 	size_t len, end, i;
 	BcNum cp;
-	bool zero = true;
 
 	if (b->len == 0)
 		RETURN_STATUS(bc_error("divide by zero"));
@@ -1961,8 +1960,13 @@ static FAST_FUNC BC_STATUS zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size
 	if (scale > cp.rdx) bc_num_extend(&cp, scale - cp.rdx);
 
 	if (b->rdx == b->len) {
-		for (i = 0; zero && i < len; ++i) zero = !b->num[len - i - 1];
-		len -= i - 1;
+		for (;;) {
+			if (len == 0) break;
+			len--;
+			if (b->num[len] != 0)
+				break;
+		}
+		len++;
 	}
 
 	if (cp.cap == cp.len) bc_num_expand(&cp, cp.len + 1);
