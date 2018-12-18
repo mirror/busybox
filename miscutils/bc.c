@@ -5448,7 +5448,7 @@ err:
 static BC_STATUS zbc_num_printBase(BcNum *n)
 {
 	BcStatus s;
-	size_t width, i;
+	size_t width;
 	BcNumDigitOp print;
 	bool neg = n->neg;
 
@@ -5463,8 +5463,14 @@ static BC_STATUS zbc_num_printBase(BcNum *n)
 		width = 1;
 		print = bc_num_printHex;
 	} else {
-		for (i = G.prog.ob_t - 1, width = 0; i != 0; i /= 10, ++width)
-			continue;
+		unsigned i = G.prog.ob_t - 1;
+		width = 0;
+		for (;;) {
+			width++;
+			i /= 10;
+			if (i == 0)
+				break;
+		}
 		print = bc_num_printDigits;
 	}
 
