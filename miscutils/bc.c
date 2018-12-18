@@ -3272,25 +3272,31 @@ static BC_STATUS zdc_lex_register(BcLex *l)
 
 static BC_STATUS zdc_lex_string(BcLex *l)
 {
-	size_t depth = 1, nls = 0, i = l->i;
-	char c;
+	size_t depth, nls, i;
 
 	l->t.t = BC_LEX_STR;
 	bc_vec_pop_all(&l->t.v);
 
-	for (c = l->buf[i]; c != 0 && depth; c = l->buf[++i]) {
-
-		depth += (c == '[' && (i == l->i || l->buf[i - 1] != '\\'));
-		depth -= (c == ']' && (i == l->i || l->buf[i - 1] != '\\'));
+	nls = 0;
+	depth = 1;
+	i = l->i;
+	for (;;) {
+		char c = l->buf[i];
+		if (c == '\0') {
+			l->i = i;
+			RETURN_STATUS(bc_error("string end could not be found"));
+		}
 		nls += (c == '\n');
-
-		if (depth) bc_vec_push(&l->t.v, &c);
+		if (i == l->i || l->buf[i - 1] != '\\') {
+			if (c == '[') depth++;
+			if (c == ']')
+				if (--depth == 0)
+					break;
+		}
+		bc_vec_push(&l->t.v, &l->buf[i]);
+		i++;
 	}
-
-	if (c == '\0') {
-		l->i = i;
-		RETURN_STATUS(bc_error("string end could not be found"));
-	}
+	i++;
 
 	bc_vec_pushZeroByte(&l->t.v);
 	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
