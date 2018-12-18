@@ -1929,8 +1929,7 @@ err:
 
 static FAST_FUNC BC_STATUS zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
-	BcDig *n, *p, q;
+	BcStatus s;
 	size_t len, end, i;
 	BcNum cp;
 
@@ -1981,12 +1980,13 @@ static FAST_FUNC BC_STATUS zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size
 	memset(c->num + end, 0, (c->cap - end) * sizeof(BcDig));
 	c->rdx = cp.rdx;
 	c->len = cp.len;
-	p = b->num;
 
-	for (i = end - 1; !s && i < end; --i) {
+	s = BC_STATUS_SUCCESS;
+	for (i = end - 1; i < end; --i) {
+		BcDig *n, q;
 		n = cp.num + i;
-		for (q = 0; (!s && n[len] != 0) || bc_num_compare(n, p, len) >= 0; ++q)
-			bc_num_subArrays(n, p, len);
+		for (q = 0; n[len] != 0 || bc_num_compare(n, b->num, len) >= 0; ++q)
+			bc_num_subArrays(n, b->num, len);
 		c->num[i] = q;
 #if ENABLE_FEATURE_BC_SIGNALS
 		// a=2^100000
