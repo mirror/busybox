@@ -1,7 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
- * Copyright (c) 2018 Gavin D. Howard and contributors.
+ * Adapted from https://github.com/gavinhoward/bc
+ * Original code copyright (c) 2018 Gavin D. Howard and contributors.
  */
 //config:config BC
 //config:	bool "bc (45 kb; 49 kb when combined with dc)"
@@ -6950,7 +6951,8 @@ static BC_STATUS zbc_vm_file(const char *file)
 static void bc_vm_info(void)
 {
 	printf("%s "BB_VER"\n"
-		"Copyright (c) 2018 Gavin D. Howard and contributors\n"
+		"Adapted from https://github.com/gavinhoward/bc\n"
+		"Original code (c) 2018 Gavin D. Howard and contributors\n"
 	, applet_name);
 }
 
