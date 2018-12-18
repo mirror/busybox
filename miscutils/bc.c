@@ -5174,17 +5174,19 @@ static size_t bc_program_index(char *code, size_t *bgn)
 static char *bc_program_name(char *code, size_t *bgn)
 {
 	size_t i;
-	char *s, *str = code + *bgn, *ptr = strchr(str, BC_PARSE_STREND);
+	char *s;
 
-	s = xmalloc(ptr - str + 1);
+	code += *bgn;
+	s = xmalloc(strchr(code, BC_PARSE_STREND) - code + 1);
 	i = 0;
 	for (;;) {
-		char c = code[(*bgn)++];
-		if (c == '\0' || c == BC_PARSE_STREND)
+		char c = *code++;
+		if (c == BC_PARSE_STREND)
 			break;
 		s[i++] = c;
 	}
 	s[i] = '\0';
+	*bgn += i + 1;
 
 	return s;
 }
