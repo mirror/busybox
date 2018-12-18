@@ -2986,17 +2986,22 @@ static BC_STATUS zbc_lex_identifier(BcLex *l)
 
 static BC_STATUS zbc_lex_string(BcLex *l)
 {
-	size_t len, nls = 0, i = l->i;
-	char c;
+	size_t len, nls, i;
 
 	l->t.t = BC_LEX_STR;
 
-	for (c = l->buf[i]; c != '\0' && c != '"'; c = l->buf[++i])
+	nls = 0;
+	i = l->i;
+	for (;;) {
+		char c = l->buf[i];
+		if (c == '\0') {
+			l->i = i;
+			RETURN_STATUS(bc_error("string end could not be found"));
+		}
+		if (c == '"')
+			break;
 		nls += (c == '\n');
-
-	if (c == '\0') {
-		l->i = i;
-		RETURN_STATUS(bc_error("string end could not be found"));
+		i++;
 	}
 
 	len = i - l->i;
