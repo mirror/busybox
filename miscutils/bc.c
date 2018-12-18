@@ -5290,7 +5290,7 @@ static FAST_FUNC void bc_num_printHex(size_t num, size_t width, bool radix)
 	if (radix) {
 		bc_num_printNewline();
 		bb_putchar('.');
-		G.prog.nchars += 1;
+		G.prog.nchars++;
 	}
 
 	bc_num_printNewline();
@@ -5302,8 +5302,10 @@ static void bc_num_printDecimal(BcNum *n)
 {
 	size_t i, rdx = n->rdx - 1;
 
-	if (n->neg) bb_putchar('-');
-	G.prog.nchars += n->neg;
+	if (n->neg) {
+		bb_putchar('-');
+		G.prog.nchars++;
+	}
 
 	for (i = n->len - 1; i < n->len; --i)
 		bc_num_printHex((size_t) n->num[i], 1, i == rdx);
