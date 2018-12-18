@@ -5718,31 +5718,25 @@ static BC_STATUS bc_program_pushVar(char *code, size_t *bgn,
 	r.d.id.name = name;
 
 #if ENABLE_DC
-	{
+	if (pop || copy) {
 		BcVec *v = bc_program_search(name, true);
 		BcNum *num = bc_vec_top(v);
 
-		if (pop || copy) {
-			if (!BC_PROG_STACK(v, 2 - copy)) {
-				free(name);
-				RETURN_STATUS(bc_error_stack_has_too_few_elements());
-			}
-
-			free(name);
-			name = NULL;
-
-			if (!BC_PROG_STR(num)) {
-				r.t = BC_RESULT_TEMP;
-
-				bc_num_init_DEF_SIZE(&r.d.n);
-				bc_num_copy(&r.d.n, num);
-			} else {
-				r.t = BC_RESULT_STR;
-				r.d.id.idx = num->rdx;
-			}
-
-			if (!copy) bc_vec_pop(v);
+		free(name);
+		if (!BC_PROG_STACK(v, 2 - copy)) {
+			RETURN_STATUS(bc_error_stack_has_too_few_elements());
 		}
+
+		if (!BC_PROG_STR(num)) {
+			r.t = BC_RESULT_TEMP;
+			bc_num_init_DEF_SIZE(&r.d.n);
+			bc_num_copy(&r.d.n, num);
+		} else {
+			r.t = BC_RESULT_STR;
+			r.d.id.idx = num->rdx;
+		}
+
+		if (!copy) bc_vec_pop(v);
 	}
 #endif // ENABLE_DC
 
