@@ -4947,24 +4947,29 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 
 static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
-	BcInst inst;
 	BcLexType t;
 
-	for (t = p->l.t.t; !s && t != BC_LEX_EOF; t = p->l.t.t) {
-		inst = dc_parse_insts[t];
+	for (;;) {
+		BcInst inst;
+		BcStatus s;
 
+		t = p->l.t.t;
+		if (t == BC_LEX_EOF) break;
+
+		inst = dc_parse_insts[t];
 		if (inst != BC_INST_INVALID) {
 			bc_parse_push(p, inst);
 			s = zbc_lex_next(&p->l);
-		} else
+		} else {
 			s = zdc_parse_token(p, t, flags);
+		}
+		if (s) RETURN_STATUS(s);
 	}
 
-	if (!s && p->l.t.t == BC_LEX_EOF && (flags & BC_PARSE_NOCALL))
+	if (flags & BC_PARSE_NOCALL)
 		bc_parse_push(p, BC_INST_POP_EXEC);
 
-	RETURN_STATUS(s);
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
