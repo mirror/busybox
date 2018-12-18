@@ -2690,12 +2690,11 @@ static void bc_lex_whitespace(BcLex *l)
 static BC_STATUS zbc_lex_number(BcLex *l, char start)
 {
 	const char *buf = l->buf + l->i;
-	size_t len, bslashes, i, ccnt;
+	size_t len, i, ccnt;
 	bool pt;
 
 	pt = (start == '.');
 	l->t.t = BC_LEX_NUMBER;
-	bslashes = 0;
 	ccnt = i = 0;
 	for (;;) {
 		char c = buf[i];
@@ -2703,26 +2702,31 @@ static BC_STATUS zbc_lex_number(BcLex *l, char start)
 			break;
 		if (c == '\\' && buf[i + 1] == '\n') {
 			i += 2;
-			bslashes++;
+			//number_of_backslashes++ - see comment below
 			continue;
 		}
 		if (!isdigit(c) && (c < 'A' || c > 'F')) {
 			if (c != '.') break;
 			// if '.' was already seen, stop on second one:
 			if (pt) break;
-			pt = 1;
+			pt = true;
 		}
 		// buf[i] is one of "0-9A-F."
 		i++;
 		if (c != '.')
 			ccnt = i;
 	}
-	//i is buf[i] index of the first not-yet-parsed char
+	//ccnt is the number of chars in the number string, excluding possible
+	//trailing "[\<newline>].[\<newline>]" (with any number of \<NL> repetitions).
+	//i is buf[i] index of the first not-yet-parsed char after that.
 	l->i += i;
 
-	//ccnt is the number of chars in the number string, excluding possible
-	//trailing "." and possible following trailing "\<newline>"(s).
-	len = ccnt - bslashes * 2 + 1; // +1 byte for NUL termination
+	// This might overestimate the size, if there are "\<NL>"'s
+	// in the number. Subtracting number_of_backslashes*2 correctly
+	// is not that easy: consider that in the case of "NNN.\<NL>"
+	// loop above will count "\<NL>" before it realizes it is not
+	// in fact *inside* the number:
+	len = ccnt + 1; // +1 byte for NUL termination
 
 	// This check makes sense only if size_t is (much) larger than BC_MAX_NUM.
 	if (SIZE_MAX > (BC_MAX_NUM | 0xff)) {
@@ -2979,6 +2983,7 @@ static BC_STATUS zbc_lex_identifier(BcLex *l)
 	}
 
 	bc_lex_name(l);
+	s = BC_STATUS_SUCCESS;
 
 	if (l->t.v.len > 2) {
 		// Prevent this:
