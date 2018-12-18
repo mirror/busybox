@@ -1355,14 +1355,6 @@ static void bc_num_one(BcNum *n)
 	n->num[0] = 1;
 }
 
-static void bc_num_ten(BcNum *n)
-{
-	bc_num_setToZero(n, 0);
-	n->len = 2;
-	n->num[0] = 0;
-	n->num[1] = 1;
-}
-
 // Note: this also sets BcNum to zero
 static void bc_num_init(BcNum *n, size_t req)
 {
@@ -2251,6 +2243,7 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 
 	bc_num_init_DEF_SIZE(&temp);
 	bc_num_init_DEF_SIZE(&mult);
+//TODO: have BcNumSmall type, with static buffer
 	bc_num_init_DEF_SIZE(&base);
 	bc_num_ulong2num(&base, base_t);
 
@@ -5314,10 +5307,11 @@ static void bc_num_printDecimal(BcNum *n)
 		bc_num_printHex((size_t) n->num[i], 1, i == rdx);
 }
 
-static BC_STATUS zbc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigitOp print)
+static BC_STATUS zbc_num_printNum(BcNum *n, unsigned base_t, size_t width, BcNumDigitOp print)
 {
 	BcStatus s;
 	BcVec stack;
+	BcNum base;
 	BcNum intp, fracp, digit, frac_len;
 	unsigned long dig, *ptr;
 	size_t i;
@@ -5335,13 +5329,16 @@ static BC_STATUS zbc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigi
 	bc_num_init(&frac_len, BC_NUM_INT(n));
 	bc_num_copy(&intp, n);
 	bc_num_one(&frac_len);
+//TODO: have BcNumSmall type, with static buffer
+	bc_num_init_DEF_SIZE(&base);
+	bc_num_ulong2num(&base, base_t);
 
 	bc_num_truncate(&intp, intp.rdx);
 	s = zbc_num_sub(n, &intp, &fracp, 0);
 	if (s) goto err;
 
 	while (intp.len != 0) {
-		s = zbc_num_divmod(&intp, base, &intp, &digit, 0);
+		s = zbc_num_divmod(&intp, &base, &intp, &digit, 0);
 		if (s) goto err;
 		s = zbc_num_ulong(&digit, &dig);
 		if (s) goto err;
@@ -5356,7 +5353,7 @@ static BC_STATUS zbc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigi
 	if (!n->rdx) goto err;
 
 	for (radix = true; frac_len.len <= n->rdx; radix = false) {
-		s = zbc_num_mul(&fracp, base, &fracp, n->rdx);
+		s = zbc_num_mul(&fracp, &base, &fracp, n->rdx);
 		if (s) goto err;
 		s = zbc_num_ulong(&fracp, &dig);
 		if (s) goto err;
@@ -5364,10 +5361,11 @@ static BC_STATUS zbc_num_printNum(BcNum *n, BcNum *base, size_t width, BcNumDigi
 		s = zbc_num_sub(&fracp, &intp, &fracp, 0);
 		if (s) goto err;
 		print(dig, width, radix);
-		s = zbc_num_mul(&frac_len, base, &frac_len, 0);
+		s = zbc_num_mul(&frac_len, &base, &frac_len, 0);
 		if (s) goto err;
 	}
  err:
+	bc_num_free(&base);
 	bc_num_free(&frac_len);
 	bc_num_free(&digit);
 	bc_num_free(&fracp);
@@ -5406,7 +5404,7 @@ static BC_STATUS zbc_num_printBase(BcNum *n)
 		print = bc_num_printDigits;
 	}
 
-	s = zbc_num_printNum(n, &G.prog.ob, width, print);
+	s = zbc_num_printNum(n, G.prog.ob_t, width, print);
 	n->neg = neg;
 
 	RETURN_STATUS(s);
@@ -5692,8 +5690,6 @@ static BC_STATUS zbc_program_assign(char inst)
 
 		if (val > max)
 			RETURN_STATUS(bc_error(msg[s]));
-		if (!sc && !ib)
-			bc_num_copy(&G.prog.ob, l);
 
 		*ptr = (size_t) val;
 		s = BC_STATUS_SUCCESS;
@@ -6092,11 +6088,18 @@ static BC_STATUS zbc_program_asciify(void)
 	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, num)) {
+		BcNum strmb;
+
 		bc_num_init_DEF_SIZE(&n);
 		bc_num_copy(&n, num);
 		bc_num_truncate(&n, n.rdx);
 
-		s = zbc_num_mod(&n, &G.prog.strmb, &n, 0);
+//TODO: have BcNumSmall type, with static buffer
+		bc_num_init_DEF_SIZE(&strmb);
+		bc_num_ulong2num(&strmb, 0x100);
+		s = zbc_num_mod(&n, &strmb, &n, 0);
+		bc_num_free(&strmb);
+
 		if (s) goto num_err;
 		s = zbc_num_ulong(&n, &val);
 		if (s) goto num_err;
@@ -6156,7 +6159,7 @@ static BC_STATUS zbc_program_printStream(void)
 	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, n)) {
-		s = zbc_num_printNum(n, &G.prog.strmb, 1, bc_num_printChar);
+		s = zbc_num_printNum(n, 0x100, 1, bc_num_printChar);
 	} else {
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : n->rdx;
 		str = *bc_program_str(idx);
@@ -6945,10 +6948,6 @@ static BC_STATUS zbc_vm_exec(void)
 #if ENABLE_FEATURE_CLEAN_UP
 static void bc_program_free(void)
 {
-	bc_num_free(&G.prog.ob);
-# if ENABLE_DC
-	bc_num_free(&G.prog.strmb);
-# endif
 	bc_vec_free(&G.prog.fns);
 	bc_vec_free(&G.prog.fn_map);
 	bc_vec_free(&G.prog.vars);
@@ -6984,15 +6983,7 @@ static void bc_program_init(void)
 
 	// G.prog.nchars = G.prog.scale = 0; - already is
 	G.prog.ib_t = 10;
-
-	bc_num_init_DEF_SIZE(&G.prog.ob);
-	bc_num_ten(&G.prog.ob);
 	G.prog.ob_t = 10;
-
-#if ENABLE_DC
-	bc_num_init_DEF_SIZE(&G.prog.strmb);
-	bc_num_ulong2num(&G.prog.strmb, UCHAR_MAX + 1);
-#endif
 
 	bc_num_init_DEF_SIZE(&G.prog.last);
 	//bc_num_zero(&G.prog.last); - already is
