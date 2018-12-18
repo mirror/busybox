@@ -2064,7 +2064,7 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 	BcNum copy;
 	unsigned long pow;
 	size_t i, powrdx, resrdx;
-	bool neg, zero;
+	bool neg;
 
 	if (b->rdx) RETURN_STATUS(bc_error("non integer number"));
 
@@ -2116,7 +2116,6 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 	bc_num_copy(c, &copy);
 
 	for (resrdx = powrdx, pow >>= 1; pow != 0; pow >>= 1) {
-
 		powrdx <<= 1;
 		s = zbc_num_mul(&copy, &copy, &copy, powrdx);
 		if (s) goto err;
@@ -2141,10 +2140,13 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 	if (c->rdx > scale) bc_num_truncate(c, c->rdx - scale);
 
 	// We can't use bc_num_clean() here.
-	for (zero = true, i = 0; zero && i < c->len; ++i) zero = !c->num[i];
-	if (zero) bc_num_setToZero(c, scale);
+	for (i = 0; i < c->len; ++i)
+		if (c->num[i] != 0)
+			goto skip;
+	bc_num_setToZero(c, scale);
+ skip:
 
-err:
+ err:
 	bc_num_free(&copy);
 	RETURN_STATUS(s);
 }
@@ -2989,7 +2991,7 @@ static BC_STATUS zbc_lex_string(BcLex *l)
 
 	l->t.t = BC_LEX_STR;
 
-	for (c = l->buf[i]; c != 0 && c != '"'; c = l->buf[++i])
+	for (c = l->buf[i]; c != '\0' && c != '"'; c = l->buf[++i])
 		nls += (c == '\n');
 
 	if (c == '\0') {
@@ -5246,14 +5248,16 @@ static size_t bc_program_index(char *code, size_t *bgn)
 static char *bc_program_name(char *code, size_t *bgn)
 {
 	size_t i;
-	char c, *s, *str = code + *bgn, *ptr = strchr(str, BC_PARSE_STREND);
+	char *s, *str = code + *bgn, *ptr = strchr(str, BC_PARSE_STREND);
 
 	s = xmalloc(ptr - str + 1);
-	c = code[(*bgn)++];
-
-	for (i = 0; c != 0 && c != BC_PARSE_STREND; c = code[(*bgn)++], ++i)
-		s[i] = c;
-
+	i = 0;
+	for (;;) {
+		char c = code[(*bgn)++];
+		if (c == '\0' || c == BC_PARSE_STREND)
+			break;
+		s[i++] = c;
+	}
 	s[i] = '\0';
 
 	return s;
