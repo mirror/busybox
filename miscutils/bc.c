@@ -5256,11 +5256,18 @@ exec_err:
 
 static size_t bc_program_index(char *code, size_t *bgn)
 {
-	char amt = code[(*bgn)++], i = 0;
-	size_t res = 0;
+	unsigned char *bytes = (void*)(code + *bgn);
+	unsigned amt;
+	unsigned i;
+	size_t res;
 
-	for (; i < amt; ++i, ++(*bgn))
-		res |= (((size_t)((int) code[*bgn]) & UCHAR_MAX) << (i * CHAR_BIT));
+	amt = *bytes++;
+	*bgn += amt + 1;
+
+	amt *= 8;
+	res = 0;
+	for (i = 0; i < amt; i += 8)
+		res |= (size_t)(*bytes++) << i;
 
 	return res;
 }
