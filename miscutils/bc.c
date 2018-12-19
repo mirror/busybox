@@ -6460,7 +6460,7 @@ static BC_STATUS zbc_program_exec(void)
 			case BC_INST_POP_EXEC:
 				dbg_exec("BC_INST_POP_EXEC:");
 				bc_vec_pop(&G.prog.exestack);
-				break;
+				goto read_updated_ip;
 			case BC_INST_PRINT:
 			case BC_INST_PRINT_POP:
 			case BC_INST_PRINT_STR:
@@ -6574,7 +6574,7 @@ static BC_STATUS zbc_program_exec(void)
 				if (G.prog.exestack.len <= 2)
 					QUIT_OR_RETURN_TO_MAIN;
 				bc_vec_npop(&G.prog.exestack, 2);
-				break;
+				goto read_updated_ip;
 			case BC_INST_NQUIT:
 				s = zbc_program_nquit();
 				//goto read_updated_ip; - just fall through to it
