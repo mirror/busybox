@@ -1171,6 +1171,8 @@ static BcFunc* bc_program_func(size_t idx)
 {
 	return bc_vec_item(&G.prog.fns, idx);
 }
+// BC_PROG_MAIN is zeroth element, so:
+#define bc_program_func_BC_PROG_MAIN() ((BcFunc*)(G.prog.fns.v))
 
 static void *bc_vec_item_rev(const BcVec *v, size_t idx)
 {
@@ -3538,9 +3540,6 @@ static void bc_program_reset(void)
 	ip->idx = f->code.len;
 }
 
-#define bc_parse_updateFunc(p, f) \
-	((p)->func = bc_program_func((p)->fidx = (f)))
-
 // Called when zbc/zdc_parse_parse() detects a failure,
 // resets parsing structures.
 static void bc_parse_reset(BcParse *p)
@@ -3551,7 +3550,8 @@ static void bc_parse_reset(BcParse *p)
 		bc_vec_pop_all(&p->func->autos);
 		bc_vec_pop_all(&p->func->labels);
 
-		bc_parse_updateFunc(p, BC_PROG_MAIN);
+		p->fidx = BC_PROG_MAIN;
+		p->func = bc_program_func_BC_PROG_MAIN();
 	}
 
 	p->l.i = p->l.len;
@@ -3581,7 +3581,8 @@ static void bc_parse_create(BcParse *p, size_t func)
 	bc_vec_init(&p->conds, sizeof(size_t), NULL);
 	bc_vec_init(&p->ops, sizeof(BcLexType), NULL);
 
-	bc_parse_updateFunc(p, func);
+	p->fidx = func;
+	p->func = bc_program_func(func);
 }
 
 #if ENABLE_BC
@@ -4339,7 +4340,10 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	if (s) RETURN_STATUS(s);
 
 	bc_parse_push(p, BC_INST_RET0);
-	bc_parse_updateFunc(p, BC_PROG_MAIN);
+
+	// Subsequent code generation is into main program
+	p->fidx = BC_PROG_MAIN;
+	p->func = bc_program_func_BC_PROG_MAIN();
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
