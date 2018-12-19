@@ -2572,14 +2572,16 @@ static void bc_array_expand(BcVec *a, size_t len)
 
 static void bc_array_copy(BcVec *d, const BcVec *s)
 {
+	BcNum *dnum, *snum;
 	size_t i;
 
 	bc_vec_pop_all(d);
 	bc_vec_expand(d, s->cap);
 	d->len = s->len;
 
-	for (i = 0; i < s->len; ++i) {
-		BcNum *dnum = bc_vec_item(d, i), *snum = bc_vec_item(s, i);
+	dnum = (void*)d->v;
+	snum = (void*)s->v;
+	for (i = 0; i < s->len; i++, dnum++, snum++) {
 		bc_num_init(dnum, snum->len);
 		bc_num_copy(dnum, snum);
 	}
