@@ -6926,6 +6926,7 @@ static const char bc_lib[] ALIGN1 = {
 
 static BC_STATUS zbc_vm_exec(void)
 {
+	char **fname;
 	BcStatus s;
 	size_t i;
 
@@ -6941,13 +6942,16 @@ static BC_STATUS zbc_vm_exec(void)
 #endif
 
 	s = BC_STATUS_SUCCESS;
-	for (i = 0; !s && i < G.files.len; ++i)
-		s = zbc_vm_file(*((char **) bc_vec_item(&G.files, i)));
-	if (ENABLE_FEATURE_CLEAN_UP && s && !G_ttyin) {
-		// Debug config, non-interactive mode:
-		// return all the way back to main.
-		// Non-debug builds do not come here, they exit.
-		RETURN_STATUS(s);
+	fname = (void*)G.files.v;
+	for (i = 0; i < G.files.len; i++) {
+		s = zbc_vm_file(*fname++);
+		if (ENABLE_FEATURE_CLEAN_UP && !G_ttyin && s) {
+			// Debug config, non-interactive mode:
+			// return all the way back to main.
+			// Non-debug builds do not come here
+			// in non-interactive mode, they exit.
+			RETURN_STATUS(s);
+		}
 	}
 
 	if (IS_BC || (option_mask32 & BC_FLAG_I))
