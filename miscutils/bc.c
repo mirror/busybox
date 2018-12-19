@@ -4964,7 +4964,6 @@ static BcVec* bc_program_search(char *id, bool var)
 	BcId e, *ptr;
 	BcVec *v, *map;
 	size_t i;
-	BcResultData data;
 	int new;
 
 	v = var ? &G.prog.vars : &G.prog.arrs;
@@ -4975,8 +4974,9 @@ static BcVec* bc_program_search(char *id, bool var)
 	new = bc_map_insert(map, &e, &i); // 1 if insertion was successful
 
 	if (new) {
-		bc_array_init(&data.v, var);
-		bc_vec_push(v, &data.v);
+		BcVec v2;
+		bc_array_init(&v2, var);
+		bc_vec_push(v, &v2);
 	}
 
 	ptr = bc_vec_item(map, i);
@@ -5860,7 +5860,6 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 	size_t i, nparams;
 	BcFunc *func;
 	BcId *a;
-	BcResultData param;
 	BcResult *arg;
 
 	nparams = bc_program_index(code, idx);
@@ -5896,11 +5895,13 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 		v = bc_program_search(a->name, a->idx);
 
 		if (a->idx) {
-			bc_num_init_DEF_SIZE(&param.n);
-			bc_vec_push(v, &param.n);
+			BcNum n2;
+			bc_num_init_DEF_SIZE(&n2);
+			bc_vec_push(v, &n2);
 		} else {
-			bc_array_init(&param.v, true);
-			bc_vec_push(v, &param.v);
+			BcVec v2;
+			bc_array_init(&v2, true);
+			bc_vec_push(v, &v2);
 		}
 	}
 
