@@ -3504,6 +3504,18 @@ static void bc_parse_pushNUM(BcParse *p)
 	bc_parse_pushIndex(p, idx);
 }
 
+static BC_STATUS bc_parse_pushSTR(BcParse *p)
+{
+	char *str = xstrdup(p->l.t.v.v);
+
+	bc_parse_push(p, BC_INST_STR);
+	bc_parse_pushIndex(p, G.prog.strs.len);
+	bc_vec_push(&G.prog.strs, &str);
+
+	RETURN_STATUS(zbc_lex_next(&p->l));
+}
+#define bc_parse_pushSTR(...) (bc_parse_pushSTR(__VA_ARGS__) COMMA_SUCCESS)
+
 IF_BC(static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p);)
 IF_DC(static BC_STATUS zdc_parse_parse(BcParse *p);)
 
@@ -3994,19 +4006,6 @@ static BC_STATUS zbc_parse_minus(BcParse *p, BcInst *prev, size_t ops_bgn,
 }
 #define zbc_parse_minus(...) (zbc_parse_minus(__VA_ARGS__) COMMA_SUCCESS)
 
-static BC_STATUS zbc_parse_string(BcParse *p, char inst)
-{
-	char *str = xstrdup(p->l.t.v.v);
-
-	bc_parse_push(p, BC_INST_STR);
-	bc_parse_pushIndex(p, G.prog.strs.len);
-	bc_vec_push(&G.prog.strs, &str);
-	bc_parse_push(p, inst);
-
-	RETURN_STATUS(zbc_lex_next(&p->l));
-}
-#define zbc_parse_string(...) (zbc_parse_string(__VA_ARGS__) COMMA_SUCCESS)
-
 static BC_STATUS zbc_parse_print(BcParse *p)
 {
 	BcStatus s;
@@ -4017,12 +4016,12 @@ static BC_STATUS zbc_parse_print(BcParse *p)
 		if (s) RETURN_STATUS(s);
 		type = p->l.t.t;
 		if (type == BC_LEX_STR) {
-			s = zbc_parse_string(p, BC_INST_PRINT_POP);
+			s = bc_parse_pushSTR(p);
 		} else {
 			s = zbc_parse_expr(p, 0);
-			bc_parse_push(p, BC_INST_PRINT_POP);
 		}
 		if (s) RETURN_STATUS(s);
+		bc_parse_push(p, BC_INST_PRINT_POP);
 		if (p->l.t.t != BC_LEX_COMMA)
 			break;
 	}
@@ -4472,7 +4471,8 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 			s = zbc_parse_expr(p, BC_PARSE_PRINT);
 			break;
 		case BC_LEX_STR:
-			s = zbc_parse_string(p, BC_INST_PRINT_STR);
+			s = bc_parse_pushSTR(p);
+			bc_parse_push(p, BC_INST_PRINT_STR);
 			break;
 		case BC_LEX_KEY_BREAK:
 		case BC_LEX_KEY_CONTINUE:
