@@ -167,8 +167,9 @@
 # include "dc.c"
 #else
 
-#define DEBUG_LEXER 0
-#define DEBUG_EXEC  0
+#define DEBUG_LEXER   0
+#define DEBUG_COMPILE 0
+#define DEBUG_EXEC    0
 
 #if DEBUG_LEXER
 static uint8_t lex_indent;
@@ -191,6 +192,12 @@ static uint8_t lex_indent;
 # define dbg_lex(...)       ((void)0)
 # define dbg_lex_enter(...) ((void)0)
 # define dbg_lex_done(...)  ((void)0)
+#endif
+
+#if DEBUG_COMPILE
+# define dbg_compile(...) bb_error_msg(__VA_ARGS__)
+#else
+# define dbg_compile(...) ((void)0)
 #endif
 
 #if DEBUG_EXEC
@@ -683,7 +690,7 @@ typedef struct BcProgram {
 #endif
 
 	BcVec results;
-	BcVec stack;
+	BcVec exestack;
 
 	BcVec fns;
 	BcVec fn_map;
@@ -3448,7 +3455,7 @@ static void bc_parse_addFunc(BcParse *p, char *name, size_t *idx)
 
 static void bc_parse_push(BcParse *p, char i)
 {
-	dbg_lex("%s:%d pushing opcode %d", __func__, __LINE__, i);
+	dbg_compile("%s:%d pushing bytecode %zd:%d", __func__, __LINE__, p->func->code.len, i);
 	bc_vec_pushByte(&p->func->code, i);
 }
 
@@ -3537,11 +3544,11 @@ static void bc_program_reset(void)
 	BcFunc *f;
 	BcInstPtr *ip;
 
-	bc_vec_npop(&G.prog.stack, G.prog.stack.len - 1);
+	bc_vec_npop(&G.prog.exestack, G.prog.exestack.len - 1);
 	bc_vec_pop_all(&G.prog.results);
 
 	f = bc_program_func(0);
-	ip = bc_vec_top(&G.prog.stack);
+	ip = bc_vec_top(&G.prog.exestack);
 	ip->idx = f->code.len;
 }
 
@@ -5145,7 +5152,7 @@ static BC_STATUS zbc_program_read(void)
 	f = bc_program_func(BC_PROG_READ);
 
 	bc_vec_pushByte(&f->code, BC_INST_POP_EXEC);
-	bc_vec_push(&G.prog.stack, &ip);
+	bc_vec_push(&G.prog.exestack, &ip);
  exec_err:
 	bc_parse_free(&parse);
 	G.in_read = 0;
@@ -5824,12 +5831,13 @@ static BC_STATUS zbc_program_incdec(char inst)
 static BC_STATUS zbc_program_call(char *code, size_t *idx)
 {
 	BcInstPtr ip;
-	size_t i, nparams = bc_program_index(code, idx);
+	size_t i, nparams;
 	BcFunc *func;
 	BcId *a;
 	BcResultData param;
 	BcResult *arg;
 
+	nparams = bc_program_index(code, idx);
 	ip.idx = 0;
 	ip.func = bc_program_index(code, idx);
 	func = bc_program_func(ip.func);
@@ -5870,7 +5878,7 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 		}
 	}
 
-	bc_vec_push(&G.prog.stack, &ip);
+	bc_vec_push(&G.prog.exestack, &ip);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -5881,7 +5889,7 @@ static BC_STATUS zbc_program_return(char inst)
 	BcResult res;
 	BcFunc *f;
 	size_t i;
-	BcInstPtr *ip = bc_vec_top(&G.prog.stack);
+	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 
 	if (!BC_PROG_STACK(&G.prog.results, ip->len + inst == BC_INST_RET))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
@@ -5914,7 +5922,7 @@ static BC_STATUS zbc_program_return(char inst)
 
 	bc_vec_npop(&G.prog.results, G.prog.results.len - ip->len);
 	bc_vec_push(&G.prog.results, &res);
-	bc_vec_pop(&G.prog.stack);
+	bc_vec_pop(&G.prog.exestack);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -6184,13 +6192,13 @@ static BC_STATUS zbc_program_nquit(void)
 
 	bc_vec_pop(&G.prog.results);
 
-	if (G.prog.stack.len < val)
+	if (G.prog.exestack.len < val)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
-	if (G.prog.stack.len == val) {
+	if (G.prog.exestack.len == val) {
 		QUIT_OR_RETURN_TO_MAIN;
 	}
 
-	bc_vec_npop(&G.prog.stack, val);
+	bc_vec_npop(&G.prog.exestack, val);
 
 	RETURN_STATUS(s);
 }
@@ -6283,7 +6291,7 @@ static BC_STATUS zbc_program_execStr(char *code, size_t *bgn, bool cond)
 	ip.func = fidx;
 
 	bc_vec_pop(&G.prog.results);
-	bc_vec_push(&G.prog.stack, &ip);
+	bc_vec_push(&G.prog.exestack, &ip);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
  err:
@@ -6348,15 +6356,16 @@ static BC_STATUS zbc_program_exec(void)
 {
 	BcResult r, *ptr;
 	BcNum *num;
-	BcInstPtr *ip = bc_vec_top(&G.prog.stack);
+	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 	BcFunc *func = bc_program_func(ip->func);
 	char *code = func->code.v;
 
+	dbg_exec("func:%zd bytes:%zd ip:%zd", ip->func, func->code.len, ip->idx);
 	while (ip->idx < func->code.len) {
 		BcStatus s = BC_STATUS_SUCCESS;
-		char inst = code[(ip->idx)++];
+		char inst = code[ip->idx++];
 
-		dbg_exec("inst:%d", inst);
+		dbg_exec("inst at %zd:%d", ip->idx - 1, inst);
 		switch (inst) {
 #if ENABLE_BC
 			case BC_INST_JUMP_ZERO: {
@@ -6382,7 +6391,7 @@ static BC_STATUS zbc_program_exec(void)
 			case BC_INST_CALL:
 				dbg_exec("BC_INST_CALL:");
 				s = zbc_program_call(code, &ip->idx);
-				break;
+				goto read_updated_ip;
 			case BC_INST_INC_PRE:
 			case BC_INST_DEC_PRE:
 			case BC_INST_INC_POST:
@@ -6398,7 +6407,7 @@ static BC_STATUS zbc_program_exec(void)
 			case BC_INST_RET0:
 				dbg_exec("BC_INST_RET[0]:");
 				s = zbc_program_return(inst);
-				break;
+				goto read_updated_ip;
 			case BC_INST_BOOL_OR:
 			case BC_INST_BOOL_AND:
 #endif // ENABLE_BC
@@ -6414,7 +6423,7 @@ static BC_STATUS zbc_program_exec(void)
 			case BC_INST_READ:
 				dbg_exec("BC_INST_READ:");
 				s = zbc_program_read();
-				break;
+				goto read_updated_ip;
 			case BC_INST_VAR:
 				dbg_exec("BC_INST_VAR:");
 				s = zbc_program_pushVar(code, &ip->idx, false, false);
@@ -6454,7 +6463,7 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			case BC_INST_POP_EXEC:
 				dbg_exec("BC_INST_POP_EXEC:");
-				bc_vec_pop(&G.prog.stack);
+				bc_vec_pop(&G.prog.exestack);
 				break;
 			case BC_INST_PRINT:
 			case BC_INST_PRINT_POP:
@@ -6513,7 +6522,7 @@ static BC_STATUS zbc_program_exec(void)
 			case BC_INST_EXECUTE:
 			case BC_INST_EXEC_COND:
 				s = zbc_program_execStr(code, &ip->idx, inst == BC_INST_EXEC_COND);
-				break;
+				goto read_updated_ip;
 			case BC_INST_PRINT_STACK: {
 				size_t idx;
 				for (idx = 0; idx < G.prog.results.len; ++idx) {
@@ -6566,14 +6575,20 @@ static BC_STATUS zbc_program_exec(void)
 			}
 			case BC_INST_QUIT:
 				dbg_exec("BC_INST_NEG:");
-				if (G.prog.stack.len <= 2)
+				if (G.prog.exestack.len <= 2)
 					QUIT_OR_RETURN_TO_MAIN;
-				bc_vec_npop(&G.prog.stack, 2);
+				bc_vec_npop(&G.prog.exestack, 2);
 				break;
 			case BC_INST_NQUIT:
 				s = zbc_program_nquit();
-				break;
+				//goto read_updated_ip; - just fall through to it
 #endif // ENABLE_DC
+ read_updated_ip:
+				// Instruction stack has changed, read new pointers
+				ip = bc_vec_top(&G.prog.exestack);
+				func = bc_program_func(ip->func);
+				code = func->code.v;
+				dbg_exec("func:%zd bytes:%zd ip:%zd", ip->func, func->code.len, ip->idx);
 		}
 
 		if (s || G_interrupt) {
@@ -6583,10 +6598,6 @@ static BC_STATUS zbc_program_exec(void)
 
 		fflush_and_check();
 
-		// If the stack has changed, pointers may be invalid.
-		ip = bc_vec_top(&G.prog.stack);
-		func = bc_program_func(ip->func);
-		code = func->code.v;
 	}
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -6957,7 +6968,7 @@ static void bc_program_free(void)
 	bc_vec_free(&G.prog.strs);
 	bc_vec_free(&G.prog.consts);
 	bc_vec_free(&G.prog.results);
-	bc_vec_free(&G.prog.stack);
+	bc_vec_free(&G.prog.exestack);
 	bc_num_free(&G.prog.last);
 	bc_num_free(&G.prog.zero);
 	bc_num_free(&G.prog.one);
@@ -7009,8 +7020,8 @@ static void bc_program_init(void)
 	bc_vec_init(&G.prog.strs, sizeof(char *), bc_string_free);
 	bc_vec_init(&G.prog.consts, sizeof(char *), bc_string_free);
 	bc_vec_init(&G.prog.results, sizeof(BcResult), bc_result_free);
-	bc_vec_init(&G.prog.stack, sizeof(BcInstPtr), NULL);
-	bc_vec_push(&G.prog.stack, &ip);
+	bc_vec_init(&G.prog.exestack, sizeof(BcInstPtr), NULL);
+	bc_vec_push(&G.prog.exestack, &ip);
 
 	bc_char_vec_init(&G.input_buffer);
 }
