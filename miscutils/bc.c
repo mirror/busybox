@@ -3439,15 +3439,6 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 }
 #endif // ENABLE_DC
 
-static void bc_program_addFunc(char *name, size_t *idx);
-
-// Note: takes ownership of 'name' (must be malloced)
-static void bc_parse_addFunc(BcParse *p, char *name, size_t *idx)
-{
-	bc_program_addFunc(name, idx);
-	p->func = bc_program_func(p->fidx);
-}
-
 static void bc_parse_push(BcParse *p, char i)
 {
 	dbg_compile("%s:%d pushing bytecode %zd:%d", __func__, __LINE__, p->func->code.len, i);
@@ -3721,6 +3712,39 @@ static BC_STATUS zbc_parse_params(BcParse *p, uint8_t flags)
 #define zbc_parse_params(...) (zbc_parse_params(__VA_ARGS__) COMMA_SUCCESS)
 
 // Note: takes ownership of 'name' (must be malloced)
+static size_t bc_program_addFunc(char *name)
+{
+	size_t idx;
+	BcId entry, *entry_ptr;
+	BcFunc f;
+	int inserted;
+
+	entry.name = name;
+	entry.idx = G.prog.fns.len;
+
+	inserted = bc_map_insert(&G.prog.fn_map, &entry, &idx);
+	if (!inserted) free(name);
+
+	entry_ptr = bc_vec_item(&G.prog.fn_map, idx);
+	idx = entry_ptr->idx;
+
+	if (!inserted) {
+		BcFunc *func = bc_program_func(entry_ptr->idx);
+
+		// We need to reset these, so the function can be repopulated.
+		func->nparams = 0;
+		bc_vec_pop_all(&func->autos);
+		bc_vec_pop_all(&func->code);
+		bc_vec_pop_all(&func->labels);
+	} else {
+		bc_func_init(&f);
+		bc_vec_push(&G.prog.fns, &f);
+	}
+
+	return idx;
+}
+
+// Note: takes ownership of 'name' (must be malloced)
 static BC_STATUS zbc_parse_call(BcParse *p, char *name, uint8_t flags)
 {
 	BcStatus s;
@@ -3741,7 +3765,7 @@ static BC_STATUS zbc_parse_call(BcParse *p, char *name, uint8_t flags)
 
 	if (idx == BC_VEC_INVALID_IDX) {
 		// No such function exists, create an empty one
-		bc_parse_addFunc(p, name, &idx);
+		bc_program_addFunc(name);
 		idx = bc_map_find_exact(&G.prog.fn_map, &entry);
 	} else
 		free(name);
@@ -4249,7 +4273,8 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 		RETURN_STATUS(bc_error("bad function definition"));
 
 	name = xstrdup(p->l.t.v.v);
-	bc_parse_addFunc(p, name, &p->fidx);
+	p->fidx = bc_program_addFunc(name);
+	p->func = bc_program_func(p->fidx);
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
@@ -4741,7 +4766,7 @@ static BC_STATUS zdc_parse_register(BcParse *p)
 static BC_STATUS zdc_parse_string(BcParse *p)
 {
 	char *str, *name;
-	size_t idx, len = G.prog.strs.len;
+	size_t len = G.prog.strs.len;
 
 //why pad to 32 zeros??
 	name = xasprintf("%032lu", (unsigned long)len);
@@ -4750,7 +4775,8 @@ static BC_STATUS zdc_parse_string(BcParse *p)
 	bc_parse_push(p, BC_INST_STR);
 	bc_parse_pushIndex(p, len);
 	bc_vec_push(&G.prog.strs, &str);
-	bc_parse_addFunc(p, name, &idx);
+	bc_program_addFunc(name);
+	p->func = bc_program_func(p->fidx);
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
@@ -6121,7 +6147,7 @@ static BC_STATUS zbc_program_asciify(void)
 	//str[1] = '\0'; - already is
 
 	str2 = xstrdup(str);
-	bc_program_addFunc(str2, &idx);
+	idx = bc_program_addFunc(str2);
 
 	if (idx != len + BC_PROG_REQ_FUNCS) {
 		for (idx = 0; idx < G.prog.strs.len; ++idx) {
@@ -6316,36 +6342,6 @@ static void bc_program_pushGlobal(char inst)
 	bc_num_init_DEF_SIZE(&res.d.n);
 	bc_num_ulong2num(&res.d.n, val);
 	bc_vec_push(&G.prog.results, &res);
-}
-
-// Note: takes ownership of 'name' (must be malloced)
-static void bc_program_addFunc(char *name, size_t *idx)
-{
-	BcId entry, *entry_ptr;
-	BcFunc f;
-	int inserted;
-
-	entry.name = name;
-	entry.idx = G.prog.fns.len;
-
-	inserted = bc_map_insert(&G.prog.fn_map, &entry, idx);
-	if (!inserted) free(name);
-
-	entry_ptr = bc_vec_item(&G.prog.fn_map, *idx);
-	*idx = entry_ptr->idx;
-
-	if (!inserted) {
-		BcFunc *func = bc_program_func(entry_ptr->idx);
-
-		// We need to reset these, so the function can be repopulated.
-		func->nparams = 0;
-		bc_vec_pop_all(&func->autos);
-		bc_vec_pop_all(&func->code);
-		bc_vec_pop_all(&func->labels);
-	} else {
-		bc_func_init(&f);
-		bc_vec_push(&G.prog.fns, &f);
-	}
 }
 
 static BC_STATUS zbc_program_exec(void)
@@ -6982,7 +6978,6 @@ static void bc_vm_free(void)
 
 static void bc_program_init(void)
 {
-	size_t idx;
 	BcInstPtr ip;
 
 	// memset(&G.prog, 0, sizeof(G.prog)); - already is
@@ -7004,8 +6999,9 @@ static void bc_program_init(void)
 	bc_vec_init(&G.prog.fns, sizeof(BcFunc), bc_func_free);
 	bc_vec_init(&G.prog.fn_map, sizeof(BcId), bc_id_free);
 
-	bc_program_addFunc(xstrdup("(main)"), &idx);
-	bc_program_addFunc(xstrdup("(read)"), &idx);
+//TODO: with "", dc_strings.dc enters infinite loop, ??!
+	bc_program_addFunc(xstrdup("(m)")); // func #0: main
+	bc_program_addFunc(xstrdup("(r)")); // func #1: for read()
 
 	bc_vec_init(&G.prog.vars, sizeof(BcVec), bc_vec_free);
 	bc_vec_init(&G.prog.var_map, sizeof(BcId), bc_id_free);
