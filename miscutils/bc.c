@@ -2903,6 +2903,7 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 }
 #define zbc_lex_next(...) (zbc_lex_next(__VA_ARGS__) COMMA_SUCCESS)
 
+#if ENABLE_BC
 static BC_STATUS zbc_lex_skip_if_at_NLINE(BcLex *l)
 {
 	if (l->t.t == BC_LEX_NLINE)
@@ -2921,6 +2922,7 @@ static BC_STATUS zbc_lex_next_and_skip_NLINE(BcLex *l)
 	RETURN_STATUS(s);
 }
 #define zbc_lex_next_and_skip_NLINE(...) (zbc_lex_next_and_skip_NLINE(__VA_ARGS__) COMMA_SUCCESS)
+#endif
 
 static BC_STATUS zbc_lex_text_init(BcLex *l, const char *text)
 {
@@ -3481,6 +3483,7 @@ static void bc_parse_pushIndex(BcParse *p, size_t idx)
 	}
 }
 
+#if ENABLE_BC
 static void bc_parse_pushJUMP(BcParse *p, size_t idx)
 {
 	bc_parse_push(p, BC_INST_JUMP);
@@ -3490,17 +3493,6 @@ static void bc_parse_pushJUMP(BcParse *p, size_t idx)
 static void bc_parse_pushJUMP_ZERO(BcParse *p, size_t idx)
 {
 	bc_parse_push(p, BC_INST_JUMP_ZERO);
-	bc_parse_pushIndex(p, idx);
-}
-
-static void bc_parse_pushNUM(BcParse *p)
-{
-	char *num = xstrdup(p->l.t.v.v);
-	size_t idx = G.prog.consts.len;
-
-	bc_vec_push(&G.prog.consts, &num);
-
-	bc_parse_push(p, BC_INST_NUM);
 	bc_parse_pushIndex(p, idx);
 }
 
@@ -3515,6 +3507,18 @@ static BC_STATUS bc_parse_pushSTR(BcParse *p)
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
 #define bc_parse_pushSTR(...) (bc_parse_pushSTR(__VA_ARGS__) COMMA_SUCCESS)
+#endif
+
+static void bc_parse_pushNUM(BcParse *p)
+{
+	char *num = xstrdup(p->l.t.v.v);
+	size_t idx = G.prog.consts.len;
+
+	bc_vec_push(&G.prog.consts, &num);
+
+	bc_parse_push(p, BC_INST_NUM);
+	bc_parse_pushIndex(p, idx);
+}
 
 IF_BC(static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p);)
 IF_DC(static BC_STATUS zdc_parse_parse(BcParse *p);)
@@ -3600,6 +3604,39 @@ static void bc_parse_create(BcParse *p, size_t fidx)
 
 	p->fidx = fidx;
 	p->func = bc_program_func(fidx);
+}
+
+// Note: takes ownership of 'name' (must be malloced)
+static size_t bc_program_addFunc(char *name)
+{
+	size_t idx;
+	BcId entry, *entry_ptr;
+	BcFunc f;
+	int inserted;
+
+	entry.name = name;
+	entry.idx = G.prog.fns.len;
+
+	inserted = bc_map_insert(&G.prog.fn_map, &entry, &idx);
+	if (!inserted) free(name);
+
+	entry_ptr = bc_vec_item(&G.prog.fn_map, idx);
+	idx = entry_ptr->idx;
+
+	if (!inserted) {
+		BcFunc *func = bc_program_func(entry_ptr->idx);
+
+		// We need to reset these, so the function can be repopulated.
+		func->nparams = 0;
+		bc_vec_pop_all(&func->autos);
+		bc_vec_pop_all(&func->code);
+		bc_vec_pop_all(&func->labels);
+	} else {
+		bc_func_init(&f);
+		bc_vec_push(&G.prog.fns, &f);
+	}
+
+	return idx;
 }
 
 #if ENABLE_BC
@@ -3728,39 +3765,6 @@ static BC_STATUS zbc_parse_params(BcParse *p, uint8_t flags)
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #define zbc_parse_params(...) (zbc_parse_params(__VA_ARGS__) COMMA_SUCCESS)
-
-// Note: takes ownership of 'name' (must be malloced)
-static size_t bc_program_addFunc(char *name)
-{
-	size_t idx;
-	BcId entry, *entry_ptr;
-	BcFunc f;
-	int inserted;
-
-	entry.name = name;
-	entry.idx = G.prog.fns.len;
-
-	inserted = bc_map_insert(&G.prog.fn_map, &entry, &idx);
-	if (!inserted) free(name);
-
-	entry_ptr = bc_vec_item(&G.prog.fn_map, idx);
-	idx = entry_ptr->idx;
-
-	if (!inserted) {
-		BcFunc *func = bc_program_func(entry_ptr->idx);
-
-		// We need to reset these, so the function can be repopulated.
-		func->nparams = 0;
-		bc_vec_pop_all(&func->autos);
-		bc_vec_pop_all(&func->code);
-		bc_vec_pop_all(&func->labels);
-	} else {
-		bc_func_init(&f);
-		bc_vec_push(&G.prog.fns, &f);
-	}
-
-	return idx;
-}
 
 // Note: takes ownership of 'name' (must be malloced)
 static BC_STATUS zbc_parse_call(BcParse *p, char *name, uint8_t flags)
