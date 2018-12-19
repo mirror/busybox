@@ -2504,11 +2504,13 @@ static BC_STATUS zbc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 #if ENABLE_BC
 static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
 {
+	BcId *autoid;
 	BcId a;
 	size_t i;
 
-	for (i = 0; i < f->autos.len; ++i) {
-		if (strcmp(name, ((BcId *) bc_vec_item(&f->autos, i))->name) == 0)
+	autoid = (void*)f->autos.v;
+	for (i = 0; i < f->autos.len; i++, autoid++) {
+		if (strcmp(name, autoid->name) == 0)
 			RETURN_STATUS(bc_error("function parameter or auto var has the same name as another"));
 	}
 
@@ -5888,12 +5890,11 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 		if (s) RETURN_STATUS(s);
 	}
 
-	for (; i < func->autos.len; ++i) {
+	a = bc_vec_item(&func->autos, i);
+	for (; i < func->autos.len; i++, a++) {
 		BcVec *v;
 
-		a = bc_vec_item(&func->autos, i);
 		v = bc_program_search(a->name, a->idx);
-
 		if (a->idx) {
 			BcNum n2;
 			bc_num_init_DEF_SIZE(&n2);
@@ -5915,6 +5916,7 @@ static BC_STATUS zbc_program_return(char inst)
 {
 	BcResult res;
 	BcFunc *f;
+	BcId *a;
 	size_t i;
 	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 
@@ -5939,10 +5941,9 @@ static BC_STATUS zbc_program_return(char inst)
 	}
 
 	// We need to pop arguments as well, so this takes that into account.
-	for (i = 0; i < f->autos.len; ++i) {
+	a = (void*)f->autos.v;
+	for (i = 0; i < f->autos.len; i++, a++) {
 		BcVec *v;
-		BcId *a = bc_vec_item(&f->autos, i);
-
 		v = bc_program_search(a->name, a->idx);
 		bc_vec_pop(v);
 	}
