@@ -707,8 +707,6 @@ typedef struct BcProgram {
 	size_t nchars;
 } BcProgram;
 
-#define BC_PROG_STACK(s, n) ((s)->len >= ((size_t) n))
-
 #define BC_PROG_MAIN (0)
 #define BC_PROG_READ (1)
 #if ENABLE_DC
@@ -837,6 +835,9 @@ struct globals {
 # define RETURN_STATUS(v) do { ((void)(v)); return; } while (0)
 # define COMMA_SUCCESS    ,BC_STATUS_SUCCESS
 #endif
+
+#define STACK_HAS_MORE_THAN(s, n)          ((s)->len > ((size_t)(n)))
+#define STACK_HAS_EQUAL_OR_MORE_THAN(s, n) ((s)->len >= ((size_t)(n)))
 
 #define BC_NUM_NEG(n, neg)      ((((ssize_t)(n)) ^ -((ssize_t)(neg))) + (neg))
 #define BC_NUM_ONE(n)           ((n)->len == 1 && (n)->rdx == 0 && (n)->num[0] == 1)
@@ -5048,7 +5049,7 @@ static BC_STATUS zbc_program_binOpPrep(BcResult **l, BcNum **ln,
 	bool hex;
 	BcResultType lt, rt;
 
-	if (!BC_PROG_STACK(&G.prog.results, 2))
+	if (!STACK_HAS_MORE_THAN(&G.prog.results, 1))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	*r = bc_vec_item_rev(&G.prog.results, 0);
@@ -5091,7 +5092,7 @@ static BC_STATUS zbc_program_prep(BcResult **r, BcNum **n)
 {
 	BcStatus s;
 
-	if (!BC_PROG_STACK(&G.prog.results, 1))
+	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	*r = bc_vec_top(&G.prog.results);
 
@@ -5479,7 +5480,7 @@ static BC_STATUS zbc_program_print(char inst, size_t idx)
 	BcNum *num;
 	bool pop = inst != BC_INST_PRINT;
 
-	if (!BC_PROG_STACK(&G.prog.results, idx + 1))
+	if (!STACK_HAS_MORE_THAN(&G.prog.results, idx))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	r = bc_vec_item_rev(&G.prog.results, idx);
@@ -5595,7 +5596,7 @@ static BC_STATUS zbc_program_assignStr(BcResult *r, BcVec *v, bool push)
 	res.t = BC_RESULT_STR;
 
 	if (!push) {
-		if (!BC_PROG_STACK(&G.prog.results, 2))
+		if (!STACK_HAS_MORE_THAN(&G.prog.results, 1))
 			RETURN_STATUS(bc_error_stack_has_too_few_elements());
 		bc_vec_pop(v);
 		bc_vec_pop(&G.prog.results);
@@ -5618,7 +5619,7 @@ static BC_STATUS zbc_program_copyToVar(char *name, bool var)
 	BcVec *v;
 	BcNum *n;
 
-	if (!BC_PROG_STACK(&G.prog.results, 1))
+	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	ptr = bc_vec_top(&G.prog.results);
@@ -5761,7 +5762,7 @@ static BC_STATUS bc_program_pushVar(char *code, size_t *bgn,
 		BcNum *num = bc_vec_top(v);
 
 		free(name);
-		if (!BC_PROG_STACK(v, 2 - copy)) {
+		if (!STACK_HAS_MORE_THAN(v, 1 - copy)) {
 			RETURN_STATUS(bc_error_stack_has_too_few_elements());
 		}
 
@@ -5916,7 +5917,7 @@ static BC_STATUS zbc_program_return(char inst)
 	size_t i;
 	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 
-	if (!BC_PROG_STACK(&G.prog.results, ip->len + inst == BC_INST_RET))
+	if (!STACK_HAS_EQUAL_OR_MORE_THAN(&G.prog.results, ip->len + (inst == BC_INST_RET)))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	f = bc_program_func(ip->func);
@@ -5980,7 +5981,7 @@ static BC_STATUS zbc_program_builtin(char inst)
 	BcResult res;
 	bool len = inst == BC_INST_LENGTH;
 
-	if (!BC_PROG_STACK(&G.prog.results, 1))
+	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	opnd = bc_vec_top(&G.prog.results);
 
@@ -6054,7 +6055,7 @@ static BC_STATUS zbc_program_modexp(void)
 	BcResult *r1, *r2, *r3, res;
 	BcNum *n1, *n2, *n3;
 
-	if (!BC_PROG_STACK(&G.prog.results, 3))
+	if (!STACK_HAS_MORE_THAN(&G.prog.results, 2))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	s = zbc_program_binOpPrep(&r2, &n2, &r3, &n3, false);
 	if (s) RETURN_STATUS(s);
@@ -6112,7 +6113,7 @@ static BC_STATUS zbc_program_asciify(void)
 	size_t len = G.prog.strs.len, idx;
 	unsigned long val;
 
-	if (!BC_PROG_STACK(&G.prog.results, 1))
+	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	r = bc_vec_top(&G.prog.results);
 
@@ -6184,7 +6185,7 @@ static BC_STATUS zbc_program_printStream(void)
 	size_t idx;
 	char *str;
 
-	if (!BC_PROG_STACK(&G.prog.results, 1))
+	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	r = bc_vec_top(&G.prog.results);
 
@@ -6239,7 +6240,7 @@ static BC_STATUS zbc_program_execStr(char *code, size_t *bgn, bool cond)
 	BcInstPtr ip;
 	size_t fidx, sidx;
 
-	if (!BC_PROG_STACK(&G.prog.results, 1))
+	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	r = bc_vec_top(&G.prog.results);
@@ -6452,7 +6453,7 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			case BC_INST_POP:
 				dbg_exec("BC_INST_POP:");
-				if (!BC_PROG_STACK(&G.prog.results, 1))
+				if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 					s = bc_error_stack_has_too_few_elements();
 				else
 					bc_vec_pop(&G.prog.results);
@@ -6534,7 +6535,7 @@ static BC_STATUS zbc_program_exec(void)
 				bc_program_stackLen();
 				break;
 			case BC_INST_DUPLICATE:
-				if (!BC_PROG_STACK(&G.prog.results, 1))
+				if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 					RETURN_STATUS(bc_error_stack_has_too_few_elements());
 				ptr = bc_vec_top(&G.prog.results);
 				bc_result_copy(&r, ptr);
@@ -6542,7 +6543,7 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			case BC_INST_SWAP: {
 				BcResult *ptr2;
-				if (!BC_PROG_STACK(&G.prog.results, 2))
+				if (!STACK_HAS_MORE_THAN(&G.prog.results, 1))
 					RETURN_STATUS(bc_error_stack_has_too_few_elements());
 				ptr = bc_vec_item_rev(&G.prog.results, 0);
 				ptr2 = bc_vec_item_rev(&G.prog.results, 1);
@@ -6570,7 +6571,7 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			}
 			case BC_INST_QUIT:
-				dbg_exec("BC_INST_NEG:");
+				dbg_exec("BC_INST_QUIT:");
 				if (G.prog.exestack.len <= 2)
 					QUIT_OR_RETURN_TO_MAIN;
 				bc_vec_npop(&G.prog.exestack, 2);
