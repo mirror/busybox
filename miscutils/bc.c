@@ -362,15 +362,13 @@ typedef enum BcResultType {
 
 	BC_RESULT_STR,
 
-	BC_RESULT_IBASE,
-	BC_RESULT_SCALE,
-	BC_RESULT_LAST,
-
-	// These are between to calculate ibase, obase, and last from instructions.
+	//code uses "inst - BC_INST_IBASE + BC_RESULT_IBASE" construct,
+	BC_RESULT_IBASE,  // relative order should match for: BC_INST_IBASE
+	BC_RESULT_SCALE,  // relative order should match for: BC_INST_SCALE
+	BC_RESULT_LAST,   // relative order should match for: BC_INST_LAST
 	BC_RESULT_CONSTANT,
 	BC_RESULT_ONE,
-
-	BC_RESULT_OBASE,
+	BC_RESULT_OBASE,  // relative order should match for: BC_INST_OBASE
 } BcResultType;
 
 typedef union BcResultData {
@@ -485,12 +483,13 @@ typedef enum BcLexType {
 	BC_LEX_ASCIIFY,
 	BC_LEX_PRINT_STREAM,
 
-	BC_LEX_STORE_IBASE,
-	BC_LEX_STORE_SCALE,
+	// code uses "t - BC_LEX_STORE_IBASE + BC_INST_IBASE" construct,
+	BC_LEX_STORE_IBASE,  // relative order should match for: BC_INST_IBASE
+	BC_LEX_STORE_SCALE,  // relative order should match for: BC_INST_SCALE
 	BC_LEX_LOAD,
 	BC_LEX_LOAD_POP,
 	BC_LEX_STORE_PUSH,
-	BC_LEX_STORE_OBASE,
+	BC_LEX_STORE_OBASE,  // relative order should match for: BC_INST_OBASE
 	BC_LEX_PRINT_POP,
 	BC_LEX_NQUIT,
 	BC_LEX_SCALE_FACTOR,
@@ -641,7 +640,6 @@ dc_parse_insts[] = {
 };
 #endif // ENABLE_DC
 
-
 typedef struct BcLex {
 	const char *buf;
 	size_t i;
@@ -655,13 +653,13 @@ typedef struct BcLex {
 	} t;
 } BcLex;
 
-#define BC_PARSE_STREND              ((char) UCHAR_MAX)
+#define BC_PARSE_STREND         (0xff)
 
-#define BC_PARSE_REL                 (1 << 0)
-#define BC_PARSE_PRINT               (1 << 1)
-#define BC_PARSE_NOCALL              (1 << 2)
-#define BC_PARSE_NOREAD              (1 << 3)
-#define BC_PARSE_ARRAY               (1 << 4)
+#define BC_PARSE_REL            (1 << 0)
+#define BC_PARSE_PRINT          (1 << 1)
+#define BC_PARSE_NOCALL         (1 << 2)
+#define BC_PARSE_NOREAD         (1 << 3)
+#define BC_PARSE_ARRAY          (1 << 4)
 
 typedef struct BcParse {
 	BcLex l;
@@ -684,10 +682,6 @@ typedef struct BcProgram {
 	size_t ib_t;
 	size_t ob_t;
 	BcNum ob;
-
-#if ENABLE_DC
-	BcNum strmb;
-#endif
 
 	BcVec results;
 	BcVec exestack;
