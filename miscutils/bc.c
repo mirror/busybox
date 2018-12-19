@@ -1199,7 +1199,7 @@ static FAST_FUNC void bc_id_free(void *id)
 	free(((BcId *) id)->name);
 }
 
-static size_t bc_map_find(const BcVec *v, const void *ptr)
+static size_t bc_map_find_ge(const BcVec *v, const void *ptr)
 {
 	size_t low = 0, high = v->len;
 
@@ -1221,7 +1221,7 @@ static size_t bc_map_find(const BcVec *v, const void *ptr)
 
 static int bc_map_insert(BcVec *v, const void *ptr, size_t *i)
 {
-	size_t n = *i = bc_map_find(v, ptr);
+	size_t n = *i = bc_map_find_ge(v, ptr);
 
 	if (n == v->len)
 		bc_vec_push(v, ptr);
@@ -1233,9 +1233,9 @@ static int bc_map_insert(BcVec *v, const void *ptr, size_t *i)
 }
 
 #if ENABLE_BC
-static size_t bc_map_index(const BcVec *v, const void *ptr)
+static size_t bc_map_find_exact(const BcVec *v, const void *ptr)
 {
-	size_t i = bc_map_find(v, ptr);
+	size_t i = bc_map_find_ge(v, ptr);
 	if (i >= v->len) return BC_VEC_INVALID_IDX;
 	return bc_id_cmp(ptr, bc_vec_item(v, i)) ? BC_VEC_INVALID_IDX : i;
 }
@@ -3737,12 +3737,12 @@ static BC_STATUS zbc_parse_call(BcParse *p, char *name, uint8_t flags)
 		goto err;
 	}
 
-	idx = bc_map_index(&G.prog.fn_map, &entry);
+	idx = bc_map_find_exact(&G.prog.fn_map, &entry);
 
 	if (idx == BC_VEC_INVALID_IDX) {
-		// No such function exist, create an empty one
+		// No such function exists, create an empty one
 		bc_parse_addFunc(p, name, &idx);
-		idx = bc_map_index(&G.prog.fn_map, &entry);
+		idx = bc_map_find_exact(&G.prog.fn_map, &entry);
 	} else
 		free(name);
 
