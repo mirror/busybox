@@ -1210,7 +1210,7 @@ static size_t bc_map_find(const BcVec *v, const void *ptr)
 
 		if (result == 0)
 			return mid;
-		else if (result < 0)
+		if (result < 0)
 			high = mid;
 		else
 			low = mid + 1;
@@ -3441,6 +3441,7 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 
 static void bc_program_addFunc(char *name, size_t *idx);
 
+// Note: takes ownership of 'name' (must be malloced)
 static void bc_parse_addFunc(BcParse *p, char *name, size_t *idx)
 {
 	bc_program_addFunc(name, idx);
@@ -3494,7 +3495,7 @@ static void bc_parse_pushJUMP_ZERO(BcParse *p, size_t idx)
 	bc_parse_pushIndex(p, idx);
 }
 
-static void bc_parse_number(BcParse *p)
+static void bc_parse_pushNUM(BcParse *p)
 {
 	char *num = xstrdup(p->l.t.v.v);
 	size_t idx = G.prog.consts.len;
@@ -3719,6 +3720,7 @@ static BC_STATUS zbc_parse_params(BcParse *p, uint8_t flags)
 }
 #define zbc_parse_params(...) (zbc_parse_params(__VA_ARGS__) COMMA_SUCCESS)
 
+// Note: takes ownership of 'name' (must be malloced)
 static BC_STATUS zbc_parse_call(BcParse *p, char *name, uint8_t flags)
 {
 	BcStatus s;
@@ -3738,10 +3740,9 @@ static BC_STATUS zbc_parse_call(BcParse *p, char *name, uint8_t flags)
 	idx = bc_map_index(&G.prog.fn_map, &entry);
 
 	if (idx == BC_VEC_INVALID_IDX) {
-		name = xstrdup(entry.name);
+		// No such function exist, create an empty one
 		bc_parse_addFunc(p, name, &idx);
 		idx = bc_map_index(&G.prog.fn_map, &entry);
-		free(entry.name);
 	} else
 		free(name);
 
@@ -4628,7 +4629,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 			case BC_LEX_NUMBER:
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
-				bc_parse_number(p);
+				bc_parse_pushNUM(p);
 				nexprs++;
 				prev = BC_INST_NUM;
 				paren_expr = get_token = true;
@@ -4829,7 +4830,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 				if (p->l.t.t != BC_LEX_NUMBER)
 					RETURN_STATUS(bc_error_bad_token());
 			}
-			bc_parse_number(p);
+			bc_parse_pushNUM(p);
 			if (t == BC_LEX_NEG) bc_parse_push(p, BC_INST_NEG);
 			get_token = true;
 			break;
@@ -4964,15 +4965,15 @@ static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 			break;
 		case BC_RESULT_CONSTANT: {
 			BcStatus s;
-			char **str = bc_vec_item(&G.prog.consts, r->d.id.idx);
+			char *str = *(char**)bc_vec_item(&G.prog.consts, r->d.id.idx);
 			unsigned base_t;
-			size_t len = strlen(*str);
+			size_t len = strlen(str);
 
 			bc_num_init(&r->d.n, len);
 
 			hex = hex && len == 1;
 			base_t = hex ? 16 : G.prog.ib_t;
-			s = zbc_num_parse(&r->d.n, *str, base_t);
+			s = zbc_num_parse(&r->d.n, str, base_t);
 
 			if (s) {
 				bc_num_free(&r->d.n);
@@ -6317,6 +6318,7 @@ static void bc_program_pushGlobal(char inst)
 	bc_vec_push(&G.prog.results, &res);
 }
 
+// Note: takes ownership of 'name' (must be malloced)
 static void bc_program_addFunc(char *name, size_t *idx)
 {
 	BcId entry, *entry_ptr;
