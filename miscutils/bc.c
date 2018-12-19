@@ -3624,13 +3624,11 @@ static size_t bc_program_addFunc(char *name)
 	idx = entry_ptr->idx;
 
 	if (!inserted) {
+		// There is already a function with this name.
+		// It'll be redefined now, clear old definition.
 		BcFunc *func = bc_program_func(entry_ptr->idx);
-
-		// We need to reset these, so the function can be repopulated.
-		func->nparams = 0;
-		bc_vec_pop_all(&func->autos);
-		bc_vec_pop_all(&func->code);
-		bc_vec_pop_all(&func->labels);
+		bc_func_free(func);
+		bc_func_init(func);
 	} else {
 		bc_func_init(&f);
 		bc_vec_push(&G.prog.fns, &f);
