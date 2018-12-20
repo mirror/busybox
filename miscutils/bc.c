@@ -4206,7 +4206,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	if (p->l.t.t != BC_LEX_SCOLON)
 		s = zbc_parse_expr(p, BC_PARSE_REL);
 	else {
-		// Set this for the next call to bc_parse_number.
+		// Set this for the next call to bc_parse_pushNUM().
 		// This is safe to set because the current token is a semicolon,
 		// which has no string requirement.
 		bc_vec_string(&p->l.t.v, 1, "1");
