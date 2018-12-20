@@ -686,7 +686,7 @@ typedef struct BcProgram {
 	BcVec exestack;
 
 	BcVec fns;
-	BcVec fn_map; //TODO: dc does not need this, its 'functions' are anonynomous (have no names)
+	IF_BC(BcVec fn_map;)
 
 	BcVec vars;
 	BcVec var_map;
@@ -3606,12 +3606,23 @@ static void bc_parse_create(BcParse *p, size_t fidx)
 	p->func = bc_program_func(fidx);
 }
 
+static size_t bc_program_add_fn(void)
+{
+	size_t idx;
+	BcFunc f;
+	bc_func_init(&f);
+	idx = G.prog.fns.len;
+	bc_vec_push(&G.prog.fns, &f);
+	return idx;
+}
+
+#if ENABLE_BC
+
 // Note: takes ownership of 'name' (must be malloced)
 static size_t bc_program_addFunc(char *name)
 {
 	size_t idx;
 	BcId entry, *entry_ptr;
-	BcFunc f;
 	int inserted;
 
 	entry.name = name;
@@ -3630,14 +3641,11 @@ static size_t bc_program_addFunc(char *name)
 		bc_func_free(func);
 		bc_func_init(func);
 	} else {
-		bc_func_init(&f);
-		bc_vec_push(&G.prog.fns, &f);
+		bc_program_add_fn();
 	}
 
 	return idx;
 }
-
-#if ENABLE_BC
 
 #define BC_PARSE_TOP_OP(p) (*((BcLexType *) bc_vec_top(&(p)->ops)))
 #define BC_PARSE_LEAF(p, rparen)                                \
@@ -4776,18 +4784,21 @@ static BC_STATUS zdc_parse_register(BcParse *p)
 
 static BC_STATUS zdc_parse_string(BcParse *p)
 {
-	char *str, *name;
+	char *str;
 	size_t len = G.prog.strs.len;
 
-//why pad to 32 zeros??
-	name = xasprintf("%032lu", (unsigned long)len);
+	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 
 	str = xstrdup(p->l.t.v.v);
 	bc_parse_push(p, BC_INST_STR);
 	bc_parse_pushIndex(p, len);
 	bc_vec_push(&G.prog.strs, &str);
-	bc_program_addFunc(name);
+
+	// Explanation needed here
+	bc_program_add_fn();
 	p->func = bc_program_func(p->fidx);
+
+	dbg_lex_done("%s:%d done", __func__, __LINE__);
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
@@ -4843,6 +4854,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 	uint8_t inst;
 	bool assign, get_token = false;
 
+	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	switch (t) {
 		case BC_LEX_OP_REL_EQ:
 		case BC_LEX_OP_REL_LE:
@@ -4857,10 +4869,12 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 			s = zdc_parse_mem(p, BC_INST_ARRAY_ELEM, true, t == BC_LEX_COLON);
 			break;
 		case BC_LEX_STR:
+			dbg_lex("%s:%d LEX_STR", __func__, __LINE__);
 			s = zdc_parse_string(p);
 			break;
 		case BC_LEX_NEG:
 		case BC_LEX_NUMBER:
+			dbg_lex("%s:%d LEX_NEG/NUMBER", __func__, __LINE__);
 			if (t == BC_LEX_NEG) {
 				s = zbc_lex_next(&p->l);
 				if (s) RETURN_STATUS(s);
@@ -4903,6 +4917,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 
 	if (!s && get_token) s = zbc_lex_next(&p->l);
 
+	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
 #define zdc_parse_token(...) (zdc_parse_token(__VA_ARGS__) COMMA_SUCCESS)
@@ -4911,6 +4926,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 {
 	BcLexType t;
 
+	dbg_lex_enter("%s:%d entered G.prs.l.t.t:%d", __func__, __LINE__, G.prs.l.t.t);
 	for (;;) {
 		BcInst inst;
 		BcStatus s;
@@ -4920,9 +4936,11 @@ static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 
 		inst = dc_parse_insts[t];
 		if (inst != BC_INST_INVALID) {
+			dbg_lex("%s:%d", __func__, __LINE__);
 			bc_parse_push(p, inst);
 			s = zbc_lex_next(&p->l);
 		} else {
+			dbg_lex("%s:%d", __func__, __LINE__);
 			s = zdc_parse_token(p, t, flags);
 		}
 		if (s) RETURN_STATUS(s);
@@ -4931,6 +4949,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 	if (flags & BC_PARSE_NOCALL)
 		bc_parse_push(p, BC_INST_POP_EXEC);
 
+	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
@@ -6122,8 +6141,10 @@ static BC_STATUS zdc_program_asciify(void)
 	BcStatus s;
 	BcResult *r, res;
 	BcNum *num, n;
-	char *str, *str2, c;
-	size_t len = G.prog.strs.len, idx;
+	char **strs;
+	char *str;
+	char c;
+	size_t idx;
 	unsigned long val;
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
@@ -6155,31 +6176,25 @@ static BC_STATUS zdc_program_asciify(void)
 
 		bc_num_free(&n);
 	} else {
+		char *sp;
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : num->rdx;
-		str2 = *bc_program_str(idx);
-		c = str2[0];
+		sp = *bc_program_str(idx);
+		c = sp[0];
 	}
 
+	strs = (void*)G.prog.strs.v;
+	for (idx = 0; idx < G.prog.strs.len; idx++) {
+		if (strs[idx][0] == c && strs[idx][1] == '\0') {
+			goto dup;
+		}
+	}
 	str = xzalloc(2);
 	str[0] = c;
 	//str[1] = '\0'; - already is
-
-	str2 = xstrdup(str);
-	idx = bc_program_addFunc(str2);
-
-	if (idx != len + BC_PROG_REQ_FUNCS) {
-		for (idx = 0; idx < G.prog.strs.len; ++idx) {
-			if (strcmp(*bc_program_str(idx), str) == 0) {
-				len = idx;
-				break;
-			}
-		}
-		free(str);
-	} else
-		bc_vec_push(&G.prog.strs, &str);
-
+	bc_vec_push(&G.prog.strs, &str);
+ dup:
 	res.t = BC_RESULT_STR;
-	res.d.id.idx = len;
+	res.d.id.idx = idx;
 	bc_vec_pop(&G.prog.results);
 	bc_vec_push(&G.prog.results, &res);
 
@@ -6973,7 +6988,7 @@ static BC_STATUS zbc_vm_exec(void)
 static void bc_program_free(void)
 {
 	bc_vec_free(&G.prog.fns);
-	bc_vec_free(&G.prog.fn_map);
+	IF_BC(bc_vec_free(&G.prog.fn_map);)
 	bc_vec_free(&G.prog.vars);
 	bc_vec_free(&G.prog.var_map);
 	bc_vec_free(&G.prog.arrs);
@@ -6982,8 +6997,8 @@ static void bc_program_free(void)
 	bc_vec_free(&G.prog.consts);
 	bc_vec_free(&G.prog.results);
 	bc_vec_free(&G.prog.exestack);
-	bc_num_free(&G.prog.last);
-	bc_num_free(&G.prog.zero);
+	IF_BC(bc_num_free(&G.prog.last);)
+	IF_BC(bc_num_free(&G.prog.zero);)
 	IF_BC(bc_num_free(&G.prog.one);)
 	bc_vec_free(&G.input_buffer);
 }
@@ -7018,11 +7033,16 @@ static void bc_program_init(void)
 	IF_BC(bc_num_one(&G.prog.one);)
 
 	bc_vec_init(&G.prog.fns, sizeof(BcFunc), bc_func_free);
-	bc_vec_init(&G.prog.fn_map, sizeof(BcId), bc_id_free);
+	IF_BC(bc_vec_init(&G.prog.fn_map, sizeof(BcId), bc_id_free);)
 
 //TODO: with "", dc_strings.dc enters infinite loop, ??!
-	bc_program_addFunc(xstrdup("(m)")); // func #0: main
-	bc_program_addFunc(xstrdup("(r)")); // func #1: for read()
+	if (IS_BC) {
+		IF_BC(bc_program_addFunc(xstrdup("(m)"))); // func #0: main
+		IF_BC(bc_program_addFunc(xstrdup("(r)"))); // func #1: for read()
+	} else {
+		bc_program_add_fn();
+		bc_program_add_fn();
+	}
 
 	bc_vec_init(&G.prog.vars, sizeof(BcVec), bc_vec_free);
 	bc_vec_init(&G.prog.var_map, sizeof(BcId), bc_id_free);
