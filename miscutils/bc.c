@@ -3606,14 +3606,14 @@ static void bc_parse_create(BcParse *p, size_t fidx)
 	p->func = bc_program_func(fidx);
 }
 
-static size_t bc_program_add_fn(void)
+static void bc_program_add_fn(void)
 {
-	size_t idx;
+	//size_t idx;
 	BcFunc f;
 	bc_func_init(&f);
-	idx = G.prog.fns.len;
+	//idx = G.prog.fns.len;
 	bc_vec_push(&G.prog.fns, &f);
-	return idx;
+	//return idx;
 }
 
 #if ENABLE_BC
@@ -7035,10 +7035,11 @@ static void bc_program_init(void)
 	bc_vec_init(&G.prog.fns, sizeof(BcFunc), bc_func_free);
 	IF_BC(bc_vec_init(&G.prog.fn_map, sizeof(BcId), bc_id_free);)
 
-//TODO: with "", dc_strings.dc enters infinite loop, ??!
 	if (IS_BC) {
-		IF_BC(bc_program_addFunc(xstrdup("(m)"))); // func #0: main
-		IF_BC(bc_program_addFunc(xstrdup("(r)"))); // func #1: for read()
+		// Names are chosen simply to never match
+		// a valid function name (and be short)
+		IF_BC(bc_program_addFunc(xstrdup(""))); // func #0: main
+		IF_BC(bc_program_addFunc(xstrdup(""))); // func #1: for read()
 	} else {
 		bc_program_add_fn();
 		bc_program_add_fn();
