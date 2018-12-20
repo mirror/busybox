@@ -76,6 +76,11 @@ testing "bc while(cond)<NL>" \
 	"8\n7\n6\n5\n4\n3\n2\n1\n9\n" \
 	"" "i=9;while(--i)\ni\n9"
 
+testing "bc ifz does not match if keyword" \
+	"bc" \
+	"1\n2\n2\n3\n" \
+	"" "ifz=1;ifz\n++ifz;ifz++\nifz"
+
 testing "bc print 1,2,3" \
 	"bc" \
 	"123" \

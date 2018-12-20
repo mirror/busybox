@@ -2950,6 +2950,8 @@ static BC_STATUS zbc_lex_identifier(BcLex *l)
 			continue;
  match:
 		// buf starts with keyword bc_lex_kws[i]
+		if (isalnum(buf[j]) || buf[j]=='_')
+			continue; // "ifz" does not match "if" keyword, "if." does
 		l->t.t = BC_LEX_KEY_1st_keyword + i;
 		if (!bc_lex_kws_POSIX(i)) {
 			s = bc_posix_error_fmt("%sthe '%.8s' keyword", "POSIX does not allow ", bc_lex_kws[i].name8);
