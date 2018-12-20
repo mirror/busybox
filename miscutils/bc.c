@@ -348,9 +348,9 @@ typedef struct BcId {
 
 typedef struct BcFunc {
 	BcVec code;
-	BcVec labels;
-	size_t nparams;
-	BcVec autos;
+	IF_BC(BcVec labels;)
+	IF_BC(BcVec autos;)
+	IF_BC(size_t nparams;)
 } BcFunc;
 
 typedef enum BcResultType {
@@ -385,7 +385,7 @@ typedef struct BcResult {
 typedef struct BcInstPtr {
 	size_t func;
 	size_t idx;
-	size_t len;
+	IF_BC(size_t len;)
 } BcInstPtr;
 
 // BC_LEX_NEG is not used in lexing; it is only for parsing.
@@ -664,30 +664,29 @@ typedef struct BcLex {
 typedef struct BcParse {
 	BcLex l;
 
-	BcVec exits;
-	BcVec conds;
-
-	BcVec ops;
+	IF_BC(BcVec exits;)
+	IF_BC(BcVec conds;)
+	IF_BC(BcVec ops;)
 
 	BcFunc *func;
 	size_t fidx;
 
-	size_t in_funcdef;
+	IF_BC(size_t in_funcdef;)
 } BcParse;
 
 typedef struct BcProgram {
 	size_t len;
-	size_t scale;
+	size_t nchars;
 
+	size_t scale;
 	size_t ib_t;
 	size_t ob_t;
-	BcNum ob;
 
 	BcVec results;
 	BcVec exestack;
 
 	BcVec fns;
-	BcVec fn_map;
+	BcVec fn_map; //TODO: dc does not need this, its 'functions' are anonynomous (have no names)
 
 	BcVec vars;
 	BcVec var_map;
@@ -700,11 +699,9 @@ typedef struct BcProgram {
 
 	const char *file;
 
-	BcNum last;
 	BcNum zero;
-	BcNum one;
-
-	size_t nchars;
+	IF_BC(BcNum one;)
+	IF_BC(BcNum last;)
 } BcProgram;
 
 #define BC_PROG_MAIN (0)
@@ -1616,6 +1613,7 @@ static BC_STATUS zbc_num_shift(BcNum *n, size_t places)
 
 static BC_STATUS zbc_num_inv(BcNum *a, BcNum *b, size_t scale)
 {
+//TODO: nice example of non-allocated BcNum, use in other places as well!
 	BcNum one;
 	BcDig num[2];
 
@@ -2527,17 +2525,17 @@ static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
 static void bc_func_init(BcFunc *f)
 {
 	bc_char_vec_init(&f->code);
-	bc_vec_init(&f->autos, sizeof(BcId), bc_id_free);
-	bc_vec_init(&f->labels, sizeof(size_t), NULL);
-	f->nparams = 0;
+	IF_BC(bc_vec_init(&f->labels, sizeof(size_t), NULL);)
+	IF_BC(bc_vec_init(&f->autos, sizeof(BcId), bc_id_free);)
+	IF_BC(f->nparams = 0;)
 }
 
 static FAST_FUNC void bc_func_free(void *func)
 {
 	BcFunc *f = (BcFunc *) func;
 	bc_vec_free(&f->code);
-	bc_vec_free(&f->autos);
-	bc_vec_free(&f->labels);
+	IF_BC(bc_vec_free(&f->labels);)
+	IF_BC(bc_vec_free(&f->autos);)
 }
 
 static void bc_array_expand(BcVec *a, size_t len);
@@ -3566,10 +3564,10 @@ static void bc_program_reset(void)
 static void bc_parse_reset(BcParse *p)
 {
 	if (p->fidx != BC_PROG_MAIN) {
-		p->func->nparams = 0;
 		bc_vec_pop_all(&p->func->code);
-		bc_vec_pop_all(&p->func->autos);
-		bc_vec_pop_all(&p->func->labels);
+		IF_BC(bc_vec_pop_all(&p->func->labels);)
+		IF_BC(bc_vec_pop_all(&p->func->autos);)
+		IF_BC(p->func->nparams = 0;)
 
 		p->fidx = BC_PROG_MAIN;
 		p->func = bc_program_func_BC_PROG_MAIN();
@@ -3578,18 +3576,18 @@ static void bc_parse_reset(BcParse *p)
 	p->l.i = p->l.len;
 	p->l.t.t = BC_LEX_EOF;
 
-	bc_vec_pop_all(&p->exits);
-	bc_vec_pop_all(&p->conds);
-	bc_vec_pop_all(&p->ops);
+	IF_BC(bc_vec_pop_all(&p->exits);)
+	IF_BC(bc_vec_pop_all(&p->conds);)
+	IF_BC(bc_vec_pop_all(&p->ops);)
 
 	bc_program_reset();
 }
 
 static void bc_parse_free(BcParse *p)
 {
-	bc_vec_free(&p->exits);
-	bc_vec_free(&p->conds);
-	bc_vec_free(&p->ops);
+	IF_BC(bc_vec_free(&p->exits);)
+	IF_BC(bc_vec_free(&p->conds);)
+	IF_BC(bc_vec_free(&p->ops);)
 	bc_lex_free(&p->l);
 }
 
@@ -3598,9 +3596,9 @@ static void bc_parse_create(BcParse *p, size_t fidx)
 	memset(p, 0, sizeof(BcParse));
 
 	bc_lex_init(&p->l);
-	bc_vec_init(&p->exits, sizeof(size_t), NULL);
-	bc_vec_init(&p->conds, sizeof(size_t), NULL);
-	bc_vec_init(&p->ops, sizeof(BcLexType), NULL);
+	IF_BC(bc_vec_init(&p->exits, sizeof(size_t), NULL);)
+	IF_BC(bc_vec_init(&p->conds, sizeof(size_t), NULL);)
+	IF_BC(bc_vec_init(&p->ops, sizeof(BcLexType), NULL);)
 
 	p->fidx = fidx;
 	p->func = bc_program_func(fidx);
@@ -5036,12 +5034,17 @@ static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 				*num = bc_vec_top(v);
 			break;
 		}
+#if ENABLE_BC
 		case BC_RESULT_LAST:
 			*num = &G.prog.last;
 			break;
 		case BC_RESULT_ONE:
 			*num = &G.prog.one;
 			break;
+#endif
+		default:
+			// Testing the theory that dc does not reach LAST/ONE
+			bb_error_msg_and_die("BUG:%d", r->t);
 	}
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -5178,7 +5181,7 @@ static BC_STATUS zbc_program_read(void)
 
 	ip.func = BC_PROG_READ;
 	ip.idx = 0;
-	ip.len = G.prog.results.len;
+	IF_BC(ip.len = G.prog.results.len;)
 
 	// Update this pointer, just in case.
 	f = bc_program_func(BC_PROG_READ);
@@ -5496,7 +5499,9 @@ static BC_STATUS zbc_program_print(char inst, size_t idx)
 
 	if (BC_PROG_NUM(r, num)) {
 		s = zbc_num_print(num, !pop);
-		if (!s) bc_num_copy(&G.prog.last, num);
+#if ENABLE_BC
+		if (!s && IS_BC) bc_num_copy(&G.prog.last, num);
+#endif
 	} else {
 		char *str;
 
@@ -6322,7 +6327,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 	}
 
 	ip.idx = 0;
-	ip.len = G.prog.results.len;
+	IF_BC(ip.len = G.prog.results.len;)
 	ip.func = fidx;
 
 	bc_vec_pop(&G.prog.results);
@@ -6977,7 +6982,7 @@ static void bc_program_free(void)
 	bc_vec_free(&G.prog.exestack);
 	bc_num_free(&G.prog.last);
 	bc_num_free(&G.prog.zero);
-	bc_num_free(&G.prog.one);
+	IF_BC(bc_num_free(&G.prog.one);)
 	bc_vec_free(&G.input_buffer);
 }
 
@@ -7001,14 +7006,14 @@ static void bc_program_init(void)
 	G.prog.ib_t = 10;
 	G.prog.ob_t = 10;
 
-	bc_num_init_DEF_SIZE(&G.prog.last);
-	//bc_num_zero(&G.prog.last); - already is
+	IF_BC(bc_num_init_DEF_SIZE(&G.prog.last);)
+	//IF_BC(bc_num_zero(&G.prog.last);) - already is
 
 	bc_num_init_DEF_SIZE(&G.prog.zero);
 	//bc_num_zero(&G.prog.zero); - already is
 
-	bc_num_init_DEF_SIZE(&G.prog.one);
-	bc_num_one(&G.prog.one);
+	IF_BC(bc_num_init_DEF_SIZE(&G.prog.one);)
+	IF_BC(bc_num_one(&G.prog.one);)
 
 	bc_vec_init(&G.prog.fns, sizeof(BcFunc), bc_func_free);
 	bc_vec_init(&G.prog.fn_map, sizeof(BcId), bc_id_free);
