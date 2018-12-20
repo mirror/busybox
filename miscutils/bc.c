@@ -4205,8 +4205,14 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 
 	if (p->l.t.t != BC_LEX_SCOLON)
 		s = zbc_parse_expr(p, BC_PARSE_REL);
-	else
+	else {
+		// Set this for the next call to bc_parse_number.
+		// This is safe to set because the current token is a semicolon,
+		// which has no string requirement.
+		bc_vec_string(&p->l.t.v, 1, "1");
+		bc_parse_pushNUM(p);
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("condition");
+	}
 
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_SCOLON) RETURN_STATUS(bc_error_bad_token());

@@ -51,6 +51,11 @@ testing "bc if 0 else if 1" \
 	"2\n9\n" \
 	"" "if (0) 1 else if (1) 2; 9"
 
+testing "bc for(;;)" \
+	"bc" \
+	"2\n3\n2\n9\n" \
+	"" "i=2; for (;;) { 2; if(--i==0) break; 3; }; 9"
+
 testing "bc define auto" \
 	"bc" \
 	"8\n9\n" \
