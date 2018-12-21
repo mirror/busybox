@@ -1454,6 +1454,14 @@ static BC_STATUS zbc_num_ulong(BcNum *n, unsigned long *result_p)
 }
 #define zbc_num_ulong(...) (zbc_num_ulong(__VA_ARGS__) COMMA_SUCCESS)
 
+#if ULONG_MAX == 0xffffffffUL // 10 digits: 4294967295
+# define ULONG_NUM_BUFSIZE (10 > BC_NUM_DEF_SIZE ? 10 : BC_NUM_DEF_SIZE)
+#elif ULONG_MAX == 0xffffffffffffffffULL // 20 digits: 18446744073709551615
+# define ULONG_NUM_BUFSIZE (20 > BC_NUM_DEF_SIZE ? 20 : BC_NUM_DEF_SIZE)
+#endif
+// minimum BC_NUM_DEF_SIZE, so that bc_num_expand() in bc_num_ulong2num()
+// would not hit realloc() code path - not good if num[] is not malloced
+
 static void bc_num_ulong2num(BcNum *n, unsigned long val)
 {
 	BcDig *ptr;
@@ -1462,11 +1470,7 @@ static void bc_num_ulong2num(BcNum *n, unsigned long val)
 
 	if (val == 0) return;
 
-	if (ULONG_MAX == 0xffffffffUL)
-		bc_num_expand(n, 10); // 10 digits: 4294967295
-	if (ULONG_MAX == 0xffffffffffffffffULL)
-		bc_num_expand(n, 20); // 20 digits: 18446744073709551615
-	BUILD_BUG_ON(ULONG_MAX > 0xffffffffffffffffULL);
+	bc_num_expand(n, ULONG_NUM_BUFSIZE);
 
 	ptr = n->num;
 	for (;;) {
@@ -1645,7 +1649,6 @@ static BC_STATUS zbc_num_shift(BcNum *n, size_t places)
 
 static BC_STATUS zbc_num_inv(BcNum *a, BcNum *b, size_t scale)
 {
-//TODO: nice example of non-allocated BcNum, use in other places as well!
 	BcNum one;
 	BcDig num[2];
 
@@ -2264,6 +2267,7 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 	BcStatus s;
 	BcNum temp, mult, result;
 	BcNum base;
+	BcDig base_digs[ULONG_NUM_BUFSIZE];
 	BcDig c = '\0';
 	unsigned long v;
 	size_t i, digits;
@@ -2277,8 +2281,8 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 
 	bc_num_init_DEF_SIZE(&temp);
 	bc_num_init_DEF_SIZE(&mult);
-//TODO: have BcNumSmall type, with static buffer
-	bc_num_init_DEF_SIZE(&base);
+	base.cap = ARRAY_SIZE(base_digs);
+	base.num = base_digs;
 	bc_num_ulong2num(&base, base_t);
 
 	for (;;) {
@@ -2329,7 +2333,6 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
  err:
 	bc_num_free(&result);
  int_err:
-	bc_num_free(&base);
 	bc_num_free(&mult);
 	bc_num_free(&temp);
 }
@@ -5430,6 +5433,7 @@ static BC_STATUS zbc_num_printNum(BcNum *n, unsigned base_t, size_t width, BcNum
 	BcStatus s;
 	BcVec stack;
 	BcNum base;
+	BcDig base_digs[ULONG_NUM_BUFSIZE];
 	BcNum intp, fracp, digit, frac_len;
 	unsigned long dig, *ptr;
 	size_t i;
@@ -5447,8 +5451,8 @@ static BC_STATUS zbc_num_printNum(BcNum *n, unsigned base_t, size_t width, BcNum
 	bc_num_init(&frac_len, BC_NUM_INT(n));
 	bc_num_copy(&intp, n);
 	bc_num_one(&frac_len);
-//TODO: have BcNumSmall type, with static buffer
-	bc_num_init_DEF_SIZE(&base);
+	base.cap = ARRAY_SIZE(base_digs);
+	base.num = base_digs;
 	bc_num_ulong2num(&base, base_t);
 
 	bc_num_truncate(&intp, intp.rdx);
@@ -5483,7 +5487,6 @@ static BC_STATUS zbc_num_printNum(BcNum *n, unsigned base_t, size_t width, BcNum
 		if (s) goto err;
 	}
  err:
-	bc_num_free(&base);
 	bc_num_free(&frac_len);
 	bc_num_free(&digit);
 	bc_num_free(&fracp);
@@ -6206,16 +6209,16 @@ static BC_STATUS zdc_program_asciify(void)
 
 	if (BC_PROG_NUM(r, num)) {
 		BcNum strmb;
+		BcDig strmb_digs[ULONG_NUM_BUFSIZE];
 
 		bc_num_init_DEF_SIZE(&n);
 		bc_num_copy(&n, num);
 		bc_num_truncate(&n, n.rdx);
 
-//TODO: have BcNumSmall type, with static buffer
-		bc_num_init_DEF_SIZE(&strmb);
+		strmb.cap = ARRAY_SIZE(strmb_digs);
+		strmb.num = strmb_digs;
 		bc_num_ulong2num(&strmb, 0x100);
 		s = zbc_num_mod(&n, &strmb, &n, 0);
-		bc_num_free(&strmb);
 
 		if (s) goto num_err;
 		s = zbc_num_ulong(&n, &val);
