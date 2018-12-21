@@ -1097,24 +1097,25 @@ static void bc_vec_pop_all(BcVec *v)
 	bc_vec_npop(v, v->len);
 }
 
-//TODO: return index of pushed data - many callers can use that
-static void bc_vec_push(BcVec *v, const void *data)
+static size_t bc_vec_push(BcVec *v, const void *data)
 {
-	if (v->len + 1 > v->cap) bc_vec_grow(v, 1);
-	memmove(v->v + (v->size * v->len), data, v->size);
-	v->len += 1;
+	size_t len = v->len;
+	if (len >= v->cap) bc_vec_grow(v, 1);
+	memmove(v->v + (v->size * len), data, v->size);
+	v->len++;
+	return len;
 }
 
-static void bc_vec_pushByte(BcVec *v, char data)
+static size_t bc_vec_pushByte(BcVec *v, char data)
 {
-	bc_vec_push(v, &data);
+	return bc_vec_push(v, &data);
 }
 
-static void bc_vec_pushZeroByte(BcVec *v)
+static size_t bc_vec_pushZeroByte(BcVec *v)
 {
-	//bc_vec_pushByte(v, '\0');
+	//return bc_vec_pushByte(v, '\0');
 	// better:
-	bc_vec_push(v, &const_int_0);
+	return bc_vec_push(v, &const_int_0);
 }
 
 static void bc_vec_pushAt(BcVec *v, const void *data, size_t idx)
@@ -3548,14 +3549,11 @@ static void bc_parse_pushNUM(BcParse *p)
 {
 	char *num = xstrdup(p->l.t.v.v);
 #if ENABLE_BC && ENABLE_DC
-	size_t idx = IS_BC ? p->func->consts.len : G.prog.consts.len;
-	bc_vec_push(IS_BC ? &p->func->consts : &G.prog.consts, &num);
+	size_t idx = bc_vec_push(IS_BC ? &p->func->consts : &G.prog.consts, &num);
 #elif ENABLE_BC
-	size_t idx = p->func->consts.len;
-	bc_vec_push(&p->func->consts, &num);
+	size_t idx = bc_vec_push(&p->func->consts, &num);
 #else // DC
-	size_t idx = G.prog.consts.len;
-	bc_vec_push(&G.prog.consts, &num);
+	size_t idx = bc_vec_push(&G.prog.consts, &num);
 #endif
 	bc_parse_push(p, BC_INST_NUM);
 	bc_parse_pushIndex(p, idx);
@@ -3652,7 +3650,7 @@ static void bc_program_add_fn(void)
 	//size_t idx;
 	BcFunc f;
 	bc_func_init(&f);
-	//idx = G.prog.fns.len;
+	//idx =
 	bc_vec_push(&G.prog.fns, &f);
 	//return idx;
 }
@@ -4135,12 +4133,13 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	if (s) RETURN_STATUS(s);
 	s = zbc_parse_expr(p, BC_PARSE_REL);
 	if (s) RETURN_STATUS(s);
-
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 
-	ip_idx = p->func->labels.len;
+	// Encode "if zero, jump to ..."
+	// Pushed value (destination of the jump) is uninitialized,
+	// will be rewritten to be address of "end of if()" or of "else".
+	ip_idx = bc_vec_push(&p->func->labels, &ip_idx);
 	bc_parse_pushJUMP_ZERO(p, ip_idx);
-	bc_vec_push(&p->func->labels, &ip_idx);
 
 	s = zbc_parse_stmt_allow_NLINE_before(p, STRING_if);
 	if (s) RETURN_STATUS(s);
@@ -4149,15 +4148,14 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	if (p->l.t.t == BC_LEX_KEY_ELSE) {
 		size_t ip2_idx;
 
-		ip2_idx = p->func->labels.len;
-
-		dbg_lex("%s:%d after if() body: BC_INST_JUMP to %zd", __func__, __LINE__, ip2_idx);
+		// Encode "after then_stmt, jump to end of if()"
+		ip2_idx = bc_vec_push(&p->func->labels, &ip2_idx);
+		dbg_lex("%s:%d after if() then_stmt: BC_INST_JUMP to %zd", __func__, __LINE__, ip2_idx);
 		bc_parse_pushJUMP(p, ip2_idx);
 
 		dbg_lex("%s:%d rewriting 'if_zero' label to jump to 'else'-> %zd", __func__, __LINE__, p->func->code.len);
 		rewrite_label_to_current(p, ip_idx);
 
-		bc_vec_push(&p->func->labels, &ip2_idx);
 		ip_idx = ip2_idx;
 
 		s = zbc_parse_stmt_allow_NLINE_before(p, STRING_else);
@@ -4184,10 +4182,8 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	cond_idx = p->func->labels.len;
+	cond_idx = bc_vec_push(&p->func->labels, &p->func->code.len);
 	ip_idx = cond_idx + 1;
-
-	bc_vec_push(&p->func->labels, &p->func->code.len);
 	bc_vec_push(&p->conds, &cond_idx);
 
 	bc_vec_push(&p->exits, &ip_idx);
@@ -4240,12 +4236,10 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	cond_idx = p->func->labels.len;
+	cond_idx = bc_vec_push(&p->func->labels, &p->func->code.len);
 	update_idx = cond_idx + 1;
 	body_idx = update_idx + 1;
 	exit_idx = body_idx + 1;
-
-	bc_vec_push(&p->func->labels, &p->func->code.len);
 
 	if (p->l.t.t != BC_LEX_SCOLON)
 		s = zbc_parse_expr(p, BC_PARSE_REL);
@@ -4272,14 +4266,14 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 
 	if (p->l.t.t != BC_LEX_RPAREN) {
 		s = zbc_parse_expr(p, 0);
-		bc_parse_push(p, BC_INST_POP);
 		if (s) RETURN_STATUS(s);
+		if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
+		bc_parse_push(p, BC_INST_POP);
 	} else {
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("update");
 		IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s);)
 	}
 
-	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 	bc_parse_pushJUMP(p, cond_idx);
 	bc_vec_push(&p->func->labels, &p->func->code.len);
 
