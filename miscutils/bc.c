@@ -388,8 +388,8 @@ typedef struct BcResult {
 
 typedef struct BcInstPtr {
 	size_t func;
-	size_t idx;
-	IF_BC(size_t len;)
+	size_t inst_idx;
+	IF_BC(size_t results_len_before_call;)
 } BcInstPtr;
 
 // BC_LEX_NEG is not used in lexing; it is only for parsing.
@@ -3600,7 +3600,7 @@ static void bc_program_reset(void)
 
 	f = bc_program_func_BC_PROG_MAIN();
 	ip = bc_vec_top(&G.prog.exestack);
-	ip->idx = f->code.len;
+	ip->inst_idx = f->code.len;
 }
 
 // Called when zbc/zdc_parse_parse() detects a failure,
@@ -5252,8 +5252,8 @@ static BC_STATUS zbc_program_read(void)
 	}
 
 	ip.func = BC_PROG_READ;
-	ip.idx = 0;
-	IF_BC(ip.len = G.prog.results.len;)
+	ip.inst_idx = 0;
+	IF_BC(ip.results_len_before_call = G.prog.results.len;)
 
 	// Update this pointer, just in case.
 	f = bc_program_func(BC_PROG_READ);
@@ -5945,7 +5945,7 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 	BcResult *arg;
 
 	nparams = bc_program_index(code, idx);
-	ip.idx = 0;
+	ip.inst_idx = 0;
 	ip.func = bc_program_index(code, idx);
 	func = bc_program_func(ip.func);
 
@@ -5955,7 +5955,7 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 	if (nparams != func->nparams) {
 		RETURN_STATUS(bc_error_fmt("function has %u parameters, but called with %u", func->nparams, nparams));
 	}
-	ip.len = G.prog.results.len - nparams;
+	ip.results_len_before_call = G.prog.results.len - nparams;
 
 	for (i = 0; i < nparams; ++i) {
 		BcStatus s;
@@ -6000,7 +6000,7 @@ static BC_STATUS zbc_program_return(char inst)
 	size_t i;
 	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 
-	if (!STACK_HAS_EQUAL_OR_MORE_THAN(&G.prog.results, ip->len + (inst == BC_INST_RET)))
+	if (!STACK_HAS_EQUAL_OR_MORE_THAN(&G.prog.results, ip->results_len_before_call + (inst == BC_INST_RET)))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	f = bc_program_func(ip->func);
@@ -6028,7 +6028,7 @@ static BC_STATUS zbc_program_return(char inst)
 		bc_vec_pop(v);
 	}
 
-	bc_vec_npop(&G.prog.results, G.prog.results.len - ip->len);
+	bc_vec_npop(&G.prog.results, G.prog.results.len - ip->results_len_before_call);
 	bc_vec_push(&G.prog.results, &res);
 	bc_vec_pop(&G.prog.exestack);
 
@@ -6391,8 +6391,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 		bc_parse_free(&prs);
 	}
 
-	ip.idx = 0;
-	IF_BC(ip.len = G.prog.results.len;)
+	ip.inst_idx = 0;
 	ip.func = fidx;
 
 	bc_vec_pop(&G.prog.results);
@@ -6433,12 +6432,12 @@ static BC_STATUS zbc_program_exec(void)
 	char *code = func->code.v;
 
 	dbg_exec("func:%zd bytes:%zd ip:%zd results.len:%d",
-			ip->func, func->code.len, ip->idx, G.prog.results.len);
-	while (ip->idx < func->code.len) {
+			ip->func, func->code.len, ip->inst_idx, G.prog.results.len);
+	while (ip->inst_idx < func->code.len) {
 		BcStatus s = BC_STATUS_SUCCESS;
-		char inst = code[ip->idx++];
+		char inst = code[ip->inst_idx++];
 
-		dbg_exec("inst at %zd:%d results.len:%d", ip->idx - 1, inst, G.prog.results.len);
+		dbg_exec("inst at %zd:%d results.len:%d", ip->inst_idx - 1, inst, G.prog.results.len);
 		switch (inst) {
 #if ENABLE_BC
 			case BC_INST_JUMP_ZERO: {
@@ -6449,21 +6448,21 @@ static BC_STATUS zbc_program_exec(void)
 				zero = (bc_num_cmp(num, &G.prog.zero) == 0);
 				bc_vec_pop(&G.prog.results);
 				if (!zero) {
-					bc_program_index(code, &ip->idx);
+					bc_program_index(code, &ip->inst_idx);
 					break;
 				}
 				// else: fall through
 			}
 			case BC_INST_JUMP: {
-				size_t idx = bc_program_index(code, &ip->idx);
+				size_t idx = bc_program_index(code, &ip->inst_idx);
 				size_t *addr = bc_vec_item(&func->labels, idx);
 				dbg_exec("BC_INST_JUMP: to %ld", (long)*addr);
-				ip->idx = *addr;
+				ip->inst_idx = *addr;
 				break;
 			}
 			case BC_INST_CALL:
 				dbg_exec("BC_INST_CALL:");
-				s = zbc_program_call(code, &ip->idx);
+				s = zbc_program_call(code, &ip->inst_idx);
 				goto read_updated_ip;
 			case BC_INST_INC_PRE:
 			case BC_INST_DEC_PRE:
@@ -6499,12 +6498,12 @@ static BC_STATUS zbc_program_exec(void)
 				goto read_updated_ip;
 			case BC_INST_VAR:
 				dbg_exec("BC_INST_VAR:");
-				s = zbc_program_pushVar(code, &ip->idx, false, false);
+				s = zbc_program_pushVar(code, &ip->inst_idx, false, false);
 				break;
 			case BC_INST_ARRAY_ELEM:
 			case BC_INST_ARRAY:
 				dbg_exec("BC_INST_ARRAY[_ELEM]:");
-				s = zbc_program_pushArray(code, &ip->idx, inst);
+				s = zbc_program_pushArray(code, &ip->inst_idx, inst);
 				break;
 			case BC_INST_LAST:
 				r.t = BC_RESULT_LAST;
@@ -6524,7 +6523,7 @@ static BC_STATUS zbc_program_exec(void)
 			case BC_INST_NUM:
 				dbg_exec("BC_INST_NUM:");
 				r.t = BC_RESULT_CONSTANT;
-				r.d.id.idx = bc_program_index(code, &ip->idx);
+				r.d.id.idx = bc_program_index(code, &ip->inst_idx);
 				bc_vec_push(&G.prog.results, &r);
 				break;
 			case BC_INST_POP:
@@ -6547,7 +6546,7 @@ static BC_STATUS zbc_program_exec(void)
 			case BC_INST_STR:
 				dbg_exec("BC_INST_STR:");
 				r.t = BC_RESULT_STR;
-				r.d.id.idx = bc_program_index(code, &ip->idx);
+				r.d.id.idx = bc_program_index(code, &ip->inst_idx);
 				bc_vec_push(&G.prog.results, &r);
 				break;
 			case BC_INST_POWER:
@@ -6594,7 +6593,7 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			case BC_INST_EXECUTE:
 			case BC_INST_EXEC_COND:
-				s = zdc_program_execStr(code, &ip->idx, inst == BC_INST_EXEC_COND);
+				s = zdc_program_execStr(code, &ip->inst_idx, inst == BC_INST_EXEC_COND);
 				goto read_updated_ip;
 			case BC_INST_PRINT_STACK: {
 				size_t idx;
@@ -6637,11 +6636,11 @@ static BC_STATUS zbc_program_exec(void)
 			case BC_INST_LOAD:
 			case BC_INST_PUSH_VAR: {
 				bool copy = inst == BC_INST_LOAD;
-				s = zbc_program_pushVar(code, &ip->idx, true, copy);
+				s = zbc_program_pushVar(code, &ip->inst_idx, true, copy);
 				break;
 			}
 			case BC_INST_PUSH_TO_VAR: {
-				char *name = bc_program_name(code, &ip->idx);
+				char *name = bc_program_name(code, &ip->inst_idx);
 				s = zbc_program_copyToVar(name, true);
 				free(name);
 				break;
@@ -6661,7 +6660,7 @@ static BC_STATUS zbc_program_exec(void)
 				ip = bc_vec_top(&G.prog.exestack);
 				func = bc_program_func(ip->func);
 				code = func->code.v;
-				dbg_exec("func:%zd bytes:%zd ip:%zd", ip->func, func->code.len, ip->idx);
+				dbg_exec("func:%zd bytes:%zd ip:%zd", ip->func, func->code.len, ip->inst_idx);
 		}
 
 		if (s || G_interrupt) {
@@ -6731,11 +6730,11 @@ static BC_STATUS zbc_vm_process(const char *text)
 			if (ip->func != BC_PROG_MAIN)
 				bb_error_msg_and_die("BUG:not MAIN");
 #endif
-//bb_error_msg("ip->func:%d >idx:%d >len:%d", ip->func, ip->idx, ip->len);
+//bb_error_msg("ip->func:%d >idx:%d >len:%d", ip->func, ip->inst_idx, ip->len);
 			f = bc_program_func_BC_PROG_MAIN();
 //bb_error_msg("MAIN->code.len:%d >strs.len:%d >consts.len:%d", f->code.len, f->strs.len, f->consts.len); // labels, autos, nparams
 			bc_vec_pop_all(&f->code);
-			ip->idx = 0;
+			ip->inst_idx = 0;
 			IF_BC(bc_vec_pop_all(&f->strs);)
 			IF_BC(bc_vec_pop_all(&f->consts);)
 		}
