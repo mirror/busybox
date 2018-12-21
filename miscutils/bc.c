@@ -5058,6 +5058,7 @@ static BcVec* bc_program_search(char *id, bool var)
 	return bc_vec_item(v, ptr->idx);
 }
 
+// 'num' need not be initialized on entry
 static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 {
 	switch (r->t) {
@@ -5082,12 +5083,10 @@ static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 			hex = hex && len == 1;
 			base_t = hex ? 16 : G.prog.ib_t;
 			s = zbc_num_parse(&r->d.n, str, base_t);
-
 			if (s) {
 				bc_num_free(&r->d.n);
 				RETURN_STATUS(s);
 			}
-
 			*num = &r->d.n;
 			r->t = BC_RESULT_TEMP;
 			break;
@@ -5566,7 +5565,6 @@ static BC_STATUS zbc_program_print(char inst, size_t idx)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	r = bc_vec_item_rev(&G.prog.results, idx);
-	num = NULL; // is this NULL necessary?
 	s = zbc_program_num(r, &num, false);
 	if (s) RETURN_STATUS(s);
 
@@ -6203,7 +6201,6 @@ static BC_STATUS zdc_program_asciify(void)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	r = bc_vec_top(&G.prog.results);
 
-	num = NULL; // TODO: is this NULL needed?
 	s = zbc_program_num(r, &num, false);
 	if (s) RETURN_STATUS(s);
 
@@ -6268,7 +6265,6 @@ static BC_STATUS zdc_program_printStream(void)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	r = bc_vec_top(&G.prog.results);
 
-	n = NULL; // is this needed?
 	s = zbc_program_num(r, &n, false);
 	if (s) RETURN_STATUS(s);
 
