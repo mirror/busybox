@@ -350,6 +350,8 @@ typedef struct BcFunc {
 	BcVec code;
 	IF_BC(BcVec labels;)
 	IF_BC(BcVec autos;)
+	IF_BC(BcVec strs;)
+	IF_BC(BcVec consts;)
 	IF_BC(size_t nparams;)
 } BcFunc;
 
@@ -694,8 +696,8 @@ typedef struct BcProgram {
 	BcVec arrs;
 	BcVec arr_map;
 
-	BcVec strs;
-	BcVec consts;
+	IF_DC(BcVec strs;)
+	IF_DC(BcVec consts;)
 
 	const char *file;
 
@@ -1093,6 +1095,7 @@ static void bc_vec_pop_all(BcVec *v)
 	bc_vec_npop(v, v->len);
 }
 
+//TODO: return index of pushed data - many callers can use that
 static void bc_vec_push(BcVec *v, const void *data)
 {
 	if (v->len + 1 > v->cap) bc_vec_grow(v, 1);
@@ -1160,18 +1163,6 @@ static void *bc_vec_item(const BcVec *v, size_t idx)
 	return v->v + v->size * idx;
 }
 
-static char** bc_program_str(size_t idx)
-{
-	return bc_vec_item(&G.prog.strs, idx);
-}
-
-static BcFunc* bc_program_func(size_t idx)
-{
-	return bc_vec_item(&G.prog.fns, idx);
-}
-// BC_PROG_MAIN is zeroth element, so:
-#define bc_program_func_BC_PROG_MAIN() ((BcFunc*)(G.prog.fns.v))
-
 static void *bc_vec_item_rev(const BcVec *v, size_t idx)
 {
 	return v->v + v->size * (v->len - idx - 1);
@@ -1188,6 +1179,46 @@ static FAST_FUNC void bc_vec_free(void *vec)
 	bc_vec_pop_all(v);
 	free(v->v);
 }
+
+static BcFunc* bc_program_func(size_t idx)
+{
+	return bc_vec_item(&G.prog.fns, idx);
+}
+// BC_PROG_MAIN is zeroth element, so:
+#define bc_program_func_BC_PROG_MAIN() ((BcFunc*)(G.prog.fns.v))
+
+#if ENABLE_BC
+static BcFunc* bc_program_current_func(void)
+{
+	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
+	BcFunc *func = bc_program_func(ip->func);
+	return func;
+}
+#endif
+
+static char** bc_program_str(size_t idx)
+{
+#if ENABLE_BC
+	if (IS_BC) {
+		BcFunc *func = bc_program_current_func();
+		return bc_vec_item(&func->strs, idx);
+	}
+#endif
+	IF_DC(return bc_vec_item(&G.prog.strs, idx);)
+}
+
+static char** bc_program_const(size_t idx)
+{
+#if ENABLE_BC
+	if (IS_BC) {
+		BcFunc *func = bc_program_current_func();
+		return bc_vec_item(&func->consts, idx);
+	}
+#endif
+	IF_DC(return bc_vec_item(&G.prog.consts, idx);)
+}
+
+
 
 static int bc_id_cmp(const void *e1, const void *e2)
 {
@@ -2522,11 +2553,18 @@ static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
 #define zbc_func_insert(...) (zbc_func_insert(__VA_ARGS__) COMMA_SUCCESS)
 #endif
 
+static FAST_FUNC void bc_string_free(void *string)
+{
+	free(*(char**)string);
+}
+
 static void bc_func_init(BcFunc *f)
 {
 	bc_char_vec_init(&f->code);
 	IF_BC(bc_vec_init(&f->labels, sizeof(size_t), NULL);)
 	IF_BC(bc_vec_init(&f->autos, sizeof(BcId), bc_id_free);)
+	IF_BC(bc_vec_init(&f->strs, sizeof(char *), bc_string_free);)
+	IF_BC(bc_vec_init(&f->consts, sizeof(char *), bc_string_free);)
 	IF_BC(f->nparams = 0;)
 }
 
@@ -2536,6 +2574,8 @@ static FAST_FUNC void bc_func_free(void *func)
 	bc_vec_free(&f->code);
 	IF_BC(bc_vec_free(&f->labels);)
 	IF_BC(bc_vec_free(&f->autos);)
+	IF_BC(bc_vec_free(&f->strs);)
+	IF_BC(bc_vec_free(&f->consts);)
 }
 
 static void bc_array_expand(BcVec *a, size_t len);
@@ -2583,11 +2623,6 @@ static void bc_array_copy(BcVec *d, const BcVec *s)
 		bc_num_init(dnum, snum->len);
 		bc_num_copy(dnum, snum);
 	}
-}
-
-static FAST_FUNC void bc_string_free(void *string)
-{
-	free(*((char **) string));
 }
 
 #if ENABLE_DC
@@ -3501,8 +3536,8 @@ static BC_STATUS bc_parse_pushSTR(BcParse *p)
 	char *str = xstrdup(p->l.t.v.v);
 
 	bc_parse_push(p, BC_INST_STR);
-	bc_parse_pushIndex(p, G.prog.strs.len);
-	bc_vec_push(&G.prog.strs, &str);
+	bc_parse_pushIndex(p, p->func->strs.len);
+	bc_vec_push(&p->func->strs, &str);
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
@@ -3512,10 +3547,16 @@ static BC_STATUS bc_parse_pushSTR(BcParse *p)
 static void bc_parse_pushNUM(BcParse *p)
 {
 	char *num = xstrdup(p->l.t.v.v);
+#if ENABLE_BC && ENABLE_DC
+	size_t idx = IS_BC ? p->func->consts.len : G.prog.consts.len;
+	bc_vec_push(IS_BC ? &p->func->consts : &G.prog.consts, &num);
+#elif ENABLE_BC
+	size_t idx = p->func->consts.len;
+	bc_vec_push(&p->func->consts, &num);
+#else // DC
 	size_t idx = G.prog.consts.len;
-
 	bc_vec_push(&G.prog.consts, &num);
-
+#endif
 	bc_parse_push(p, BC_INST_NUM);
 	bc_parse_pushIndex(p, idx);
 }
@@ -3556,7 +3597,7 @@ static void bc_program_reset(void)
 	bc_vec_npop(&G.prog.exestack, G.prog.exestack.len - 1);
 	bc_vec_pop_all(&G.prog.results);
 
-	f = bc_program_func(0);
+	f = bc_program_func_BC_PROG_MAIN();
 	ip = bc_vec_top(&G.prog.exestack);
 	ip->idx = f->code.len;
 }
@@ -5027,9 +5068,12 @@ static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 			break;
 		case BC_RESULT_CONSTANT: {
 			BcStatus s;
-			char *str = *(char**)bc_vec_item(&G.prog.consts, r->d.id.idx);
+			char *str;
 			unsigned base_t;
-			size_t len = strlen(str);
+			size_t len;
+
+			str = *bc_program_const(r->d.id.idx);
+			len = strlen(str);
 
 			bc_num_init(&r->d.n, len);
 
@@ -6667,6 +6711,43 @@ static BC_STATUS zbc_vm_process(const char *text)
 			bc_program_reset();
 			break;
 		}
+		// bc discards strings, constants and code after each
+		// top-level statement in the "main program".
+		// This prevents "yes 1 | bc" from growing its memory
+		// without bound. This can be done because data stack
+		// is empty and thus can't hold any references to
+		// strings or constants, there is no generated code
+		// which can hold references (after we discard one
+		// we just executed). Code of functions can have references,
+		// but bc stores function strings/constants in per-function
+		// storage.
+		if (IS_BC) {
+			BcFunc *f;
+			BcInstPtr *ip;
+
+			//FIXME: this does not clear up the stack
+			//for(i=1; i<3; i++) {
+			//    i
+			//    if(i==2) continue
+			//    77
+			//}
+//			if (G.prog.results.len != 0)
+//				bb_error_msg_and_die("data stack not empty: %d slots", G.prog.results.len);
+
+			if (G.prog.exestack.len != 1) // should be empty
+				bb_error_msg_and_die("BUG:call stack");
+
+			ip = (void*)G.prog.exestack.v;
+			if (ip->func != BC_PROG_MAIN)
+				bb_error_msg_and_die("BUG:not MAIN");
+//bb_error_msg("ip->func:%d >idx:%d >len:%d", ip->func, ip->idx, ip->len);
+			f = bc_program_func_BC_PROG_MAIN();
+//bb_error_msg("MAIN->code.len:%d >strs.len:%d >consts.len:%d", f->code.len, f->strs.len, f->consts.len); // labels, autos, nparams
+			bc_vec_pop_all(&f->code);
+			ip->idx = 0;
+			IF_BC(bc_vec_pop_all(&f->strs);)
+			IF_BC(bc_vec_pop_all(&f->consts);)
+		}
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
@@ -6999,8 +7080,8 @@ static void bc_program_free(void)
 	bc_vec_free(&G.prog.var_map);
 	bc_vec_free(&G.prog.arrs);
 	bc_vec_free(&G.prog.arr_map);
-	bc_vec_free(&G.prog.strs);
-	bc_vec_free(&G.prog.consts);
+	IF_DC(bc_vec_free(&G.prog.strs);)
+	IF_DC(bc_vec_free(&G.prog.consts);)
 	bc_vec_free(&G.prog.results);
 	bc_vec_free(&G.prog.exestack);
 	IF_BC(bc_num_free(&G.prog.last);)
@@ -7057,8 +7138,8 @@ static void bc_program_init(void)
 	bc_vec_init(&G.prog.arrs, sizeof(BcVec), bc_vec_free);
 	bc_vec_init(&G.prog.arr_map, sizeof(BcId), bc_id_free);
 
-	bc_vec_init(&G.prog.strs, sizeof(char *), bc_string_free);
-	bc_vec_init(&G.prog.consts, sizeof(char *), bc_string_free);
+	IF_DC(bc_vec_init(&G.prog.strs, sizeof(char *), bc_string_free);)
+	IF_DC(bc_vec_init(&G.prog.consts, sizeof(char *), bc_string_free);)
 	bc_vec_init(&G.prog.results, sizeof(BcResult), bc_result_free);
 	bc_vec_init(&G.prog.exestack, sizeof(BcInstPtr), NULL);
 	bc_vec_push(&G.prog.exestack, &ip);
