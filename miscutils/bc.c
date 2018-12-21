@@ -1106,6 +1106,21 @@ static size_t bc_vec_push(BcVec *v, const void *data)
 	return len;
 }
 
+// G.prog.results often needs "pop old operand, push result" idiom.
+// Can do this without a few extra ops
+static size_t bc_result_pop_and_push(const void *data)
+{
+	BcVec *v = &G.prog.results;
+	char *last;
+	size_t len = v->len - 1;
+
+	last = v->v + (v->size * len);
+	if (v->dtor)
+		v->dtor(last);
+	memmove(last, data, v->size);
+	return len;
+}
+
 static size_t bc_vec_pushByte(BcVec *v, char data)
 {
 	return bc_vec_push(v, &data);
@@ -5165,8 +5180,7 @@ static void bc_program_binOpRetire(BcResult *r)
 {
 	r->t = BC_RESULT_TEMP;
 	bc_vec_pop(&G.prog.results);
-	bc_vec_pop(&G.prog.results);
-	bc_vec_push(&G.prog.results, r);
+	bc_result_pop_and_push(r);
 }
 
 static BC_STATUS zbc_program_prep(BcResult **r, BcNum **n)
@@ -5190,8 +5204,7 @@ static BC_STATUS zbc_program_prep(BcResult **r, BcNum **n)
 static void bc_program_retire(BcResult *r, BcResultType t)
 {
 	r->t = t;
-	bc_vec_pop(&G.prog.results);
-	bc_vec_push(&G.prog.results, r);
+	bc_result_pop_and_push(r);
 }
 
 static BC_STATUS zbc_program_op(char inst)
@@ -5684,9 +5697,7 @@ static BC_STATUS zdc_program_assignStr(BcResult *r, BcVec *v, bool push)
 		bc_vec_pop(&G.prog.results);
 	}
 
-	bc_vec_pop(&G.prog.results);
-
-	bc_vec_push(&G.prog.results, &res);
+	bc_result_pop_and_push(&res);
 	bc_vec_push(v, &n2);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -5928,8 +5939,7 @@ static BC_STATUS zbc_program_incdec(char inst)
 	if (s) RETURN_STATUS(s);
 
 	if (inst2 == BC_INST_INC_POST || inst2 == BC_INST_DEC_POST) {
-		bc_vec_pop(&G.prog.results);
-		bc_vec_push(&G.prog.results, &copy);
+		bc_result_pop_and_push(&copy);
 	}
 
 	RETURN_STATUS(s);
@@ -6244,8 +6254,7 @@ static BC_STATUS zdc_program_asciify(void)
  dup:
 	res.t = BC_RESULT_STR;
 	res.d.id.idx = idx;
-	bc_vec_pop(&G.prog.results);
-	bc_vec_push(&G.prog.results, &res);
+	bc_result_pop_and_push(&res);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
  num_err:
