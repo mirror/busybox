@@ -170,6 +170,8 @@
 #define DEBUG_LEXER   0
 #define DEBUG_COMPILE 0
 #define DEBUG_EXEC    0
+// This can be left enabled for production as well:
+#define SANITY_CHECKS 1
 
 #if DEBUG_LEXER
 static uint8_t lex_indent;
@@ -1217,8 +1219,6 @@ static char** bc_program_const(size_t idx)
 #endif
 	IF_DC(return bc_vec_item(&G.prog.consts, idx);)
 }
-
-
 
 static int bc_id_cmp(const void *e1, const void *e2)
 {
@@ -4227,12 +4227,15 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	if (p->l.t.t != BC_LEX_SCOLON)
+	if (p->l.t.t != BC_LEX_SCOLON) {
 		s = zbc_parse_expr(p, 0);
-	else
+		bc_parse_push(p, BC_INST_POP);
+		if (s) RETURN_STATUS(s);
+	} else {
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("init");
+		IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s);)
+	}
 
-	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_SCOLON) RETURN_STATUS(bc_error_bad_token());
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
@@ -4254,8 +4257,8 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 		bc_parse_pushNUM(p);
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("condition");
 	}
-
 	if (s) RETURN_STATUS(s);
+
 	if (p->l.t.t != BC_LEX_SCOLON) RETURN_STATUS(bc_error_bad_token());
 
 	s = zbc_lex_next(&p->l);
@@ -4267,12 +4270,14 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	bc_vec_push(&p->conds, &update_idx);
 	bc_vec_push(&p->func->labels, &p->func->code.len);
 
-	if (p->l.t.t != BC_LEX_RPAREN)
+	if (p->l.t.t != BC_LEX_RPAREN) {
 		s = zbc_parse_expr(p, 0);
-	else
+		bc_parse_push(p, BC_INST_POP);
+		if (s) RETURN_STATUS(s);
+	} else {
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("update");
-
-	if (s) RETURN_STATUS(s);
+		IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s);)
+	}
 
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 	bc_parse_pushJUMP(p, cond_idx);
@@ -6434,12 +6439,13 @@ static BC_STATUS zbc_program_exec(void)
 	BcFunc *func = bc_program_func(ip->func);
 	char *code = func->code.v;
 
-	dbg_exec("func:%zd bytes:%zd ip:%zd", ip->func, func->code.len, ip->idx);
+	dbg_exec("func:%zd bytes:%zd ip:%zd results.len:%d",
+			ip->func, func->code.len, ip->idx, G.prog.results.len);
 	while (ip->idx < func->code.len) {
 		BcStatus s = BC_STATUS_SUCCESS;
 		char inst = code[ip->idx++];
 
-		dbg_exec("inst at %zd:%d", ip->idx - 1, inst);
+		dbg_exec("inst at %zd:%d results.len:%d", ip->idx - 1, inst, G.prog.results.len);
 		switch (inst) {
 #if ENABLE_BC
 			case BC_INST_JUMP_ZERO: {
@@ -6671,7 +6677,6 @@ static BC_STATUS zbc_program_exec(void)
 		}
 
 		fflush_and_check();
-
 	}
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -6723,23 +6728,16 @@ static BC_STATUS zbc_vm_process(const char *text)
 		// storage.
 		if (IS_BC) {
 			BcFunc *f;
-			BcInstPtr *ip;
+			BcInstPtr *ip = (void*)G.prog.exestack.v;
 
-			//FIXME: this does not clear up the stack
-			//for(i=1; i<3; i++) {
-			//    i
-			//    if(i==2) continue
-			//    77
-			//}
-//			if (G.prog.results.len != 0)
-//				bb_error_msg_and_die("data stack not empty: %d slots", G.prog.results.len);
-
+#if SANITY_CHECKS
+			if (G.prog.results.len != 0)
+				bb_error_msg_and_die("data stack not empty: %d slots", G.prog.results.len);
 			if (G.prog.exestack.len != 1) // should be empty
 				bb_error_msg_and_die("BUG:call stack");
-
-			ip = (void*)G.prog.exestack.v;
 			if (ip->func != BC_PROG_MAIN)
 				bb_error_msg_and_die("BUG:not MAIN");
+#endif
 //bb_error_msg("ip->func:%d >idx:%d >len:%d", ip->func, ip->idx, ip->len);
 			f = bc_program_func_BC_PROG_MAIN();
 //bb_error_msg("MAIN->code.len:%d >strs.len:%d >consts.len:%d", f->code.len, f->strs.len, f->consts.len); // labels, autos, nparams
