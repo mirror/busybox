@@ -2503,6 +2503,7 @@ static BC_STATUS zdc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 {
 	BcStatus s;
 	BcNum base, exp, two, temp;
+	BcDig two_digs[2];
 
 	if (c->len == 0)
 		RETURN_STATUS(bc_error("divide by zero"));
@@ -2514,11 +2515,13 @@ static BC_STATUS zdc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 	bc_num_expand(d, c->len);
 	bc_num_init(&base, c->len);
 	bc_num_init(&exp, b->len);
-	bc_num_init_DEF_SIZE(&two);
 	bc_num_init(&temp, b->len);
 
+	two.cap = ARRAY_SIZE(two_digs);
+	two.num = two_digs;
 	bc_num_one(&two);
-	two.num[0] = 2;
+	two_digs[0] = 2;
+
 	bc_num_one(d);
 
 	s = zbc_num_rem(a, c, &base, 0);
@@ -2543,7 +2546,6 @@ static BC_STATUS zdc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 	}
  err:
 	bc_num_free(&temp);
-	bc_num_free(&two);
 	bc_num_free(&exp);
 	bc_num_free(&base);
 	RETURN_STATUS(s);
