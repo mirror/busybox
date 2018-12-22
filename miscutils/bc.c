@@ -5025,21 +5025,15 @@ static BC_STATUS zdc_parse_parse(BcParse *p)
 
 #endif // ENABLE_DC
 
-#if !ENABLE_BC
-#define common_parse_expr(p, flags) \
-	common_parse_expr(p)
-#define flags 0
-#endif
-static BC_STATUS common_parse_expr(BcParse *p, uint8_t flags)
+static BC_STATUS zcommon_parse_expr(BcParse *p)
 {
 	if (IS_BC) {
-		IF_BC(RETURN_STATUS(zbc_parse_expr(p, flags)));
+		IF_BC(RETURN_STATUS(zbc_parse_expr(p, 0)));
 	} else {
 		IF_DC(RETURN_STATUS(zdc_parse_expr(p)));
 	}
-#undef flags
 }
-#define zcommon_parse_expr(...) (common_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
+#define zcommon_parse_expr(...) (zcommon_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 static BcVec* bc_program_search(char *id, bool var)
 {
@@ -5245,7 +5239,7 @@ static BC_STATUS zbc_program_read(void)
 
 	s = zbc_parse_text_init(&parse, buf.v);
 	if (s) goto exec_err;
-	s = zcommon_parse_expr(&parse, 0);
+	s = zcommon_parse_expr(&parse);
 	if (s) goto exec_err;
 
 	if (parse.l.t.t != BC_LEX_NLINE && parse.l.t.t != BC_LEX_EOF) {
@@ -6373,7 +6367,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 		str = *bc_program_str(sidx);
 		s = zbc_parse_text_init(&prs, str);
 		if (s) goto err;
-		s = zcommon_parse_expr(&prs, 0);
+		s = zcommon_parse_expr(&prs);
 		if (s) goto err;
 		if (prs.l.t.t != BC_LEX_EOF) {
 			s = bc_error_bad_expression();
