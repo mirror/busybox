@@ -31,6 +31,21 @@ testing "bc string 1" \
 	"STR\n" \
 	"" "\"STR\n\""
 
+testing "bc read() 4<EOF>" \
+	"bc input" \
+	"4\n" \
+	"read();halt" "4"
+
+testing "bc read()^2" \
+	"bc input" \
+	"16\n" \
+	"read()^2;halt" "4\n"
+
+testing "bc read()*read()" \
+	"bc input" \
+	"20\n" \
+	"read()*read();halt" "4\n5"
+
 testing "bc if 0 else" \
 	"bc" \
 	"2\n9\n" \

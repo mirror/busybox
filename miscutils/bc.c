@@ -314,9 +314,9 @@ typedef enum BcInst {
 #endif
 
 	BC_INST_POP,
+#if ENABLE_DC
 	BC_INST_POP_EXEC,
 
-#if ENABLE_DC
 	BC_INST_MODEXP,
 	BC_INST_DIVMOD,
 
@@ -662,8 +662,7 @@ typedef struct BcLex {
 #define BC_PARSE_REL            (1 << 0)
 #define BC_PARSE_PRINT          (1 << 1)
 #define BC_PARSE_NOCALL         (1 << 2)
-#define BC_PARSE_NOREAD         (1 << 3)
-#define BC_PARSE_ARRAY          (1 << 4)
+#define BC_PARSE_ARRAY          (1 << 3)
 
 typedef struct BcParse {
 	BcLex l;
@@ -766,7 +765,6 @@ typedef struct BcProgram {
 struct globals {
 	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
 	IF_FEATURE_CLEAN_UP(smallint exiting;)
-	smallint in_read;
 
 	BcParse prs;
 	BcProgram prog;
@@ -1021,10 +1019,6 @@ static ERRORFUNC int bc_error_stack_has_too_few_elements(void)
 static ERRORFUNC int bc_error_variable_is_wrong_type(void)
 {
 	IF_ERROR_RETURN_POSSIBLE(return) bc_error("variable is wrong type");
-}
-static ERRORFUNC int bc_error_nested_read_call(void)
-{
-	IF_ERROR_RETURN_POSSIBLE(return) bc_error("read() call inside of a read() call");
 }
 #if ENABLE_BC
 static int bc_POSIX_requires(const char *msg)
@@ -3550,7 +3544,7 @@ static void bc_parse_pushJUMP_ZERO(BcParse *p, size_t idx)
 	bc_parse_pushIndex(p, idx);
 }
 
-static BC_STATUS bc_parse_pushSTR(BcParse *p)
+static BC_STATUS zbc_parse_pushSTR(BcParse *p)
 {
 	char *str = xstrdup(p->l.t.v.v);
 
@@ -3560,7 +3554,7 @@ static BC_STATUS bc_parse_pushSTR(BcParse *p)
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#define bc_parse_pushSTR(...) (bc_parse_pushSTR(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_parse_pushSTR(...) (zbc_parse_pushSTR(__VA_ARGS__) COMMA_SUCCESS)
 #endif
 
 static void bc_parse_pushNUM(BcParse *p)
@@ -4083,7 +4077,7 @@ static BC_STATUS zbc_parse_print(BcParse *p)
 		if (s) RETURN_STATUS(s);
 		type = p->l.t.t;
 		if (type == BC_LEX_STR) {
-			s = bc_parse_pushSTR(p);
+			s = zbc_parse_pushSTR(p);
 		} else {
 			s = zbc_parse_expr(p, 0);
 		}
@@ -4545,7 +4539,7 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 			s = zbc_parse_expr(p, BC_PARSE_PRINT);
 			break;
 		case BC_LEX_STR:
-			s = bc_parse_pushSTR(p);
+			s = zbc_parse_pushSTR(p);
 			bc_parse_push(p, BC_INST_PRINT_STR);
 			break;
 		case BC_LEX_KEY_BREAK:
@@ -4645,6 +4639,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 	bin_last = true;
 
 	for (; !G_interrupt && !s && !done && bc_parse_exprs(t); t = p->l.t.t) {
+		dbg_lex("%s:%d t:%d", __func__, __LINE__, t);
 		switch (t) {
 			case BC_LEX_OP_INC:
 			case BC_LEX_OP_DEC:
@@ -4766,8 +4761,6 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 			case BC_LEX_KEY_READ:
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
-				else if (flags & BC_PARSE_NOREAD)
-					s = bc_error_nested_read_call();
 				else
 					s = zbc_parse_read(p);
 				paren_expr = true;
@@ -4912,7 +4905,7 @@ static BC_STATUS zdc_parse_cond(BcParse *p, uint8_t inst)
 }
 #define zdc_parse_cond(...) (zdc_parse_cond(__VA_ARGS__) COMMA_SUCCESS)
 
-static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
+static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	uint8_t inst;
@@ -4950,10 +4943,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t, uint8_t flags)
 			get_token = true;
 			break;
 		case BC_LEX_KEY_READ:
-			if (flags & BC_PARSE_NOREAD)
-				s = bc_error_nested_read_call();
-			else
-				bc_parse_push(p, BC_INST_READ);
+			bc_parse_push(p, BC_INST_READ);
 			get_token = true;
 			break;
 		case BC_LEX_OP_ASSIGN:
@@ -5005,7 +4995,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 			s = zbc_lex_next(&p->l);
 		} else {
 			dbg_lex("%s:%d", __func__, __LINE__);
-			s = zdc_parse_token(p, t, flags);
+			s = zdc_parse_token(p, t);
 		}
 		if (s) RETURN_STATUS(s);
 	}
@@ -5038,7 +5028,12 @@ static BC_STATUS zdc_parse_parse(BcParse *p)
 
 #endif // ENABLE_DC
 
-static BC_STATUS zcommon_parse_expr(BcParse *p, uint8_t flags)
+#if !ENABLE_DC
+#define common_parse_expr(p,flags) \
+	common_parse_expr(p)
+#define flags 0
+#endif
+static BC_STATUS common_parse_expr(BcParse *p, uint8_t flags)
 {
 	if (IS_BC) {
 		IF_BC(RETURN_STATUS(zbc_parse_expr(p, flags)));
@@ -5046,7 +5041,7 @@ static BC_STATUS zcommon_parse_expr(BcParse *p, uint8_t flags)
 		IF_DC(RETURN_STATUS(zdc_parse_expr(p, flags)));
 	}
 }
-#define zcommon_parse_expr(...) (zcommon_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
+#define zcommon_parse_expr(...) (common_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 static BcVec* bc_program_search(char *id, bool var)
 {
@@ -5238,15 +5233,11 @@ static BC_STATUS zbc_program_read(void)
 	BcInstPtr ip;
 	BcFunc *f;
 
-	if (G.in_read)
-		RETURN_STATUS(bc_error_nested_read_call());
-
 	f = bc_program_func(BC_PROG_READ);
 	bc_vec_pop_all(&f->code);
 
 	sv_file = G.prog.file;
 	G.prog.file = NULL;
-	G.in_read = 1;
 
 	bc_char_vec_init(&buf);
 	bc_read_line(&buf, stdin);
@@ -5256,7 +5247,7 @@ static BC_STATUS zbc_program_read(void)
 
 	s = zbc_parse_text_init(&parse, buf.v);
 	if (s) goto exec_err;
-	s = zcommon_parse_expr(&parse, BC_PARSE_NOREAD);
+	s = zcommon_parse_expr(&parse, 0);
 	if (s) goto exec_err;
 
 	if (parse.l.t.t != BC_LEX_NLINE && parse.l.t.t != BC_LEX_EOF) {
@@ -5268,14 +5259,10 @@ static BC_STATUS zbc_program_read(void)
 	ip.inst_idx = 0;
 	IF_BC(ip.results_len_before_call = G.prog.results.len;)
 
-	// Update this pointer, just in case.
-	f = bc_program_func(BC_PROG_READ);
-
-	bc_vec_pushByte(&f->code, BC_INST_POP_EXEC);
+	bc_parse_push(&parse, BC_INST_RET);
 	bc_vec_push(&G.prog.exestack, &ip);
  exec_err:
 	bc_parse_free(&parse);
-	G.in_read = 0;
 	G.prog.file = sv_file;
 	bc_vec_free(&buf);
 	RETURN_STATUS(s);
@@ -6542,10 +6529,6 @@ static BC_STATUS zbc_program_exec(void)
 				else
 					bc_vec_pop(&G.prog.results);
 				break;
-			case BC_INST_POP_EXEC:
-				dbg_exec("BC_INST_POP_EXEC:");
-				bc_vec_pop(&G.prog.exestack);
-				goto read_updated_ip;
 			case BC_INST_PRINT:
 			case BC_INST_PRINT_POP:
 			case BC_INST_PRINT_STR:
@@ -6594,6 +6577,10 @@ static BC_STATUS zbc_program_exec(void)
 				s = zbc_program_assign(inst);
 				break;
 #if ENABLE_DC
+			case BC_INST_POP_EXEC:
+				dbg_exec("BC_INST_POP_EXEC:");
+				bc_vec_pop(&G.prog.exestack);
+				goto read_updated_ip;
 			case BC_INST_MODEXP:
 				s = zdc_program_modexp();
 				break;
@@ -7122,11 +7109,12 @@ static void bc_program_init(void)
 	IF_BC(bc_vec_init(&G.prog.fn_map, sizeof(BcId), bc_id_free);)
 
 	if (IS_BC) {
-		// Names are chosen simply to never match
+		// Names are chosen simply to be distinct and never match
 		// a valid function name (and be short)
 		IF_BC(bc_program_addFunc(xstrdup(""))); // func #0: main
-		IF_BC(bc_program_addFunc(xstrdup(""))); // func #1: for read()
+		IF_BC(bc_program_addFunc(xstrdup("1"))); // func #1: for read()
 	} else {
+		// in dc, functions have no names
 		bc_program_add_fn();
 		bc_program_add_fn();
 	}
