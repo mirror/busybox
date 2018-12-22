@@ -2828,18 +2828,6 @@ static void bc_lex_file(BcLex *l)
 	l->newline = false;
 }
 
-IF_BC(static BC_STATUS zbc_lex_token(BcLex *l);)
-IF_DC(static BC_STATUS zdc_lex_token(BcLex *l);)
-
-static BC_STATUS zcommon_lex_token(BcLex *l)
-{
-	if (IS_BC) {
-		IF_BC(RETURN_STATUS(zbc_lex_token(l));)
-	}
-	IF_DC(RETURN_STATUS(zdc_lex_token(l));)
-}
-#define zcommon_lex_token(...) (zcommon_lex_token(__VA_ARGS__) COMMA_SUCCESS)
-
 static bool bc_lex_more_input(BcLex *l)
 {
 	size_t str;
@@ -2912,6 +2900,9 @@ static bool bc_lex_more_input(BcLex *l)
 	return l->len != 0;
 }
 
+IF_BC(static BC_STATUS zbc_lex_token(BcLex *l);)
+IF_DC(static BC_STATUS zdc_lex_token(BcLex *l);)
+
 static BC_STATUS zbc_lex_next(BcLex *l)
 {
 	BcStatus s;
@@ -2941,7 +2932,11 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 		dbg_lex("next string to parse:'%.*s'",
 			(int)(strchrnul(l->buf + l->i, '\n') - (l->buf + l->i)),
 			l->buf + l->i);
-		s = zcommon_lex_token(l);
+		if (IS_BC) {
+			IF_BC(s = zbc_lex_token(l));
+		} else {
+			IF_DC(s = zdc_lex_token(l));
+		}
 	} while (!s && l->t.t == BC_LEX_WHITESPACE);
 	dbg_lex("l->t.t from string:%d", l->t.t);
 
@@ -3571,24 +3566,6 @@ static void bc_parse_pushNUM(BcParse *p)
 	bc_parse_pushIndex(p, idx);
 }
 
-IF_BC(static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p);)
-IF_DC(static BC_STATUS zdc_parse_parse(BcParse *p);)
-
-// "Parse" half of "parse,execute,repeat" main loop
-static BC_STATUS zcommon_parse(BcParse *p)
-{
-	if (IS_BC) {
-// FIXME: "eating" of stmt delemiters is coded inconsistently
-// (sometimes zbc_parse_stmt() eats the delimiter, sometimes don't),
-// which causes bugs such as "print 1 print 2" erroneously accepted,
-// or "print 1 else 2" detecting parse error only after executing
-// "print 1" part.
-		IF_BC(RETURN_STATUS(zbc_parse_stmt_or_funcdef(p));)
-	}
-	IF_DC(RETURN_STATUS(zdc_parse_parse(p));)
-}
-#define zcommon_parse(...) (zcommon_parse(__VA_ARGS__) COMMA_SUCCESS)
-
 static BC_STATUS zbc_parse_text_init(BcParse *p, const char *text)
 {
 	p->func = bc_program_func(p->fidx);
@@ -3612,15 +3589,13 @@ static void bc_program_reset(void)
 	ip->inst_idx = f->code.len;
 }
 
-// Called when zbc/zdc_parse_parse() detects a failure,
+// Called when parsing code detects a failure,
 // resets parsing structures.
 static void bc_parse_reset(BcParse *p)
 {
 	if (p->fidx != BC_PROG_MAIN) {
-		bc_vec_pop_all(&p->func->code);
-		IF_BC(bc_vec_pop_all(&p->func->labels);)
-		IF_BC(bc_vec_pop_all(&p->func->autos);)
-		IF_BC(p->func->nparams = 0;)
+		bc_func_free(p->func);
+		bc_func_init(p->func);
 
 		p->fidx = BC_PROG_MAIN;
 		p->func = bc_program_func_BC_PROG_MAIN();
@@ -4592,11 +4567,6 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 			break;
 	}
 
-	if (s || G_interrupt) {
-		bc_parse_reset(p);
-		s = BC_STATUS_FAILURE;
-	}
-
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
@@ -4980,13 +4950,13 @@ static BC_STATUS zdc_parse_expr(BcParse *p)
 {
 	BcLexType t;
 
-	dbg_lex_enter("%s:%d entered G.prs.l.t.t:%d", __func__, __LINE__, G.prs.l.t.t);
+	dbg_lex_enter("%s:%d entered, p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	for (;;) {
 		BcInst inst;
 		BcStatus s;
 
 		t = p->l.t.t;
-		dbg_lex("%s:%d G.prs.l.t.t:%d", __func__, __LINE__, G.prs.l.t.t);
+		dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 		if (t == BC_LEX_EOF) break;
 
 		inst = dc_parse_insts[t];
@@ -5005,26 +4975,6 @@ static BC_STATUS zdc_parse_expr(BcParse *p)
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
-
-static BC_STATUS zdc_parse_parse(BcParse *p)
-{
-	BcStatus s;
-
-	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
-	if (p->l.t.t == BC_LEX_EOF)
-		s = bc_error("end of file");
-	else
-		s = zdc_parse_expr(p);
-
-	if (s || G_interrupt) {
-		bc_parse_reset(p);
-		s = BC_STATUS_FAILURE;
-	}
-
-	dbg_lex_done("%s:%d done", __func__, __LINE__);
-	RETURN_STATUS(s);
-}
-#define zdc_parse_parse(...) (zdc_parse_parse(__VA_ARGS__) COMMA_SUCCESS)
 
 #endif // ENABLE_DC
 
@@ -6687,8 +6637,26 @@ static BC_STATUS zbc_vm_process(const char *text)
 
 	while (G.prs.l.t.t != BC_LEX_EOF) {
 		dbg_lex("%s:%d G.prs.l.t.t:%d, parsing...", __func__, __LINE__, G.prs.l.t.t);
-		s = zcommon_parse(&G.prs);
-		if (s) RETURN_STATUS(s);
+		if (IS_BC) {
+// FIXME: "eating" of stmt delemiters is coded inconsistently
+// (sometimes zbc_parse_stmt() eats the delimiter, sometimes don't),
+// which causes bugs such as "print 1 print 2" erroneously accepted,
+// or "print 1 else 2" detecting parse error only after executing
+// "print 1" part.
+			IF_BC(s = zbc_parse_stmt_or_funcdef(&G.prs));
+		} else {
+#if ENABLE_DC
+			if (G.prs.l.t.t == BC_LEX_EOF)
+				s = bc_error("end of file");
+			else
+				s = zdc_parse_expr(&G.prs);
+#endif
+		}
+		if (s || G_interrupt) {
+			bc_parse_reset(&G.prs); // includes bc_program_reset()
+			RETURN_STATUS(BC_STATUS_FAILURE);
+		}
+
 		dbg_lex("%s:%d executing...", __func__, __LINE__);
 		s = zbc_program_exec();
 		if (s) {
