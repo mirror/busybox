@@ -1442,20 +1442,21 @@ static void bc_num_copy(BcNum *d, BcNum *s)
 static BC_STATUS zbc_num_ulong(BcNum *n, unsigned long *result_p)
 {
 	size_t i;
-	unsigned long pow, result;
+	unsigned long result;
 
 	if (n->neg) RETURN_STATUS(bc_error("negative number"));
 
-	for (result = 0, pow = 1, i = n->rdx; i < n->len; ++i) {
-		unsigned long prev = result, powprev = pow;
-
-		result += ((unsigned long) n->num[i]) * pow;
-		pow *= 10;
-
-		if (result < prev || pow < powprev)
+	result = 0;
+	i = n->len;
+	while (i > n->rdx) {
+		unsigned long prev = result;
+		result = result * 10 + n->num[--i];
+		// Even overflowed N*10 can still satisfy N*10>=N. For example,
+		//    0x1ff00000 * 10 is 0x13f600000,
+		// or 0x3f600000 truncated to 32 bits. Which is larger.
+		// However, (N*10)/8 < N check is always correct.
+		if ((result / 8) < prev)
 			RETURN_STATUS(bc_error("overflow"));
-		prev = result;
-		powprev = pow;
 	}
 	*result_p = result;
 
