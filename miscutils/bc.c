@@ -2095,8 +2095,10 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 	size_t i, powrdx, resrdx;
 	bool neg;
 
-// GNU bc does not allow 2^2.0. We do.
-//	if (b->rdx) RETURN_STATUS(bc_error("non integer number"));
+	// GNU bc does not allow 2^2.0 - we do
+	for (i = 0; i < b->rdx; i++)
+		if (b->num[i] != 0)
+			RETURN_STATUS(bc_error("not an integer"));
 
 	if (b->len == 0) {
 		bc_num_one(c);
@@ -2505,7 +2507,7 @@ static BC_STATUS zdc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 	if (c->len == 0)
 		RETURN_STATUS(bc_error("divide by zero"));
 	if (a->rdx || b->rdx || c->rdx)
-		RETURN_STATUS(bc_error("non integer number"));
+		RETURN_STATUS(bc_error("not an integer"));
 	if (b->neg)
 		RETURN_STATUS(bc_error("negative number"));
 
