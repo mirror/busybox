@@ -2089,7 +2089,8 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 	size_t i, powrdx, resrdx;
 	bool neg;
 
-	if (b->rdx) RETURN_STATUS(bc_error("non integer number"));
+// GNU bc does not allow 2^2.0. We do.
+//	if (b->rdx) RETURN_STATUS(bc_error("non integer number"));
 
 	if (b->len == 0) {
 		bc_num_one(c);
@@ -2109,9 +2110,10 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 
 	neg = b->neg;
 	b->neg = false;
-
 	s = zbc_num_ulong(b, &pow);
+	b->neg = neg;
 	if (s) RETURN_STATUS(s);
+	// b is not used beyond this point
 
 	bc_num_init(&copy, a->len);
 	bc_num_copy(&copy, a);
@@ -2123,7 +2125,6 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 			scale = a->rdx * pow;
 	}
 
-	b->neg = neg;
 
 	for (powrdx = a->rdx; !(pow & 1); pow >>= 1) {
 		powrdx <<= 1;
