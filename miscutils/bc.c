@@ -6695,9 +6695,18 @@ static BC_STATUS zbc_vm_process(const char *text)
 // "print 1" part.
 			IF_BC(s = zbc_parse_stmt_or_funcdef(&G.prs));
 		} else {
+			// Most of dc parsing assumes all whitespace,
+			// including '\n', is eaten.
+			while (G.prs.l.t.t == BC_LEX_NLINE) {
+				s = zbc_lex_next(&G.prs.l);
+				if (s) goto err;
+				if (G.prs.l.t.t == BC_LEX_EOF)
+					goto done;
+			}
 			IF_DC(s = zdc_parse_expr(&G.prs));
 		}
 		if (s || G_interrupt) {
+ err:
 			bc_parse_reset(&G.prs); // includes bc_program_reset()
 			RETURN_STATUS(BC_STATUS_FAILURE);
 		}
@@ -6735,13 +6744,6 @@ static BC_STATUS zbc_vm_process(const char *text)
 			IF_BC(bc_vec_pop_all(&f->strs);)
 			IF_BC(bc_vec_pop_all(&f->consts);)
 		} else {
-			// Most of dc parsing assumes all whitespace,
-			// including '\n', is eaten.
-			if (G.prs.l.t.t == BC_LEX_NLINE) {
-				s = zbc_lex_next(&G.prs.l);
-				if (s) RETURN_STATUS(s);
-			}
-
 			if (G.prog.results.len == 0
 			 && G.prog.vars.len == 0
 			) {
@@ -6762,7 +6764,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 		bc_vec_pop_all(&f->code);
 		ip->inst_idx = 0;
 	}
-
+ done:
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
