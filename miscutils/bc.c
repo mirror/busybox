@@ -6678,9 +6678,9 @@ static BC_STATUS zbc_vm_process(const char *text)
 			BcInstPtr *ip = (void*)G.prog.exestack.v;
 
 #if SANITY_CHECKS
-			if (G.prog.results.len != 0)
-				bb_error_msg_and_die("data stack not empty: %d slots", G.prog.results.len);
-			if (G.prog.exestack.len != 1) // should be empty
+			if (G.prog.results.len != 0) // should be empty
+				bb_error_msg_and_die("BUG:data stack");
+			if (G.prog.exestack.len != 1) // should have only main's IP
 				bb_error_msg_and_die("BUG:call stack");
 			if (ip->func != BC_PROG_MAIN)
 				bb_error_msg_and_die("BUG:not MAIN");
