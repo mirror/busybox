@@ -4809,7 +4809,7 @@ static BC_STATUS zdc_parse_register(BcParse *p)
 }
 #define zdc_parse_register(...) (zdc_parse_register(__VA_ARGS__) COMMA_SUCCESS)
 
-static BC_STATUS zdc_parse_string(BcParse *p)
+static void dc_parse_string(BcParse *p)
 {
 	char *str;
 	size_t len = G.prog.strs.len;
@@ -4826,10 +4826,7 @@ static BC_STATUS zdc_parse_string(BcParse *p)
 	p->func = bc_program_func(p->fidx);
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
-
-	RETURN_STATUS(zbc_lex_next(&p->l));
 }
-#define zdc_parse_string(...) (zdc_parse_string(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_parse_mem(BcParse *p, uint8_t inst, bool name, bool store)
 {
@@ -4847,7 +4844,7 @@ static BC_STATUS zdc_parse_mem(BcParse *p, uint8_t inst, bool name, bool store)
 		bc_parse_push(p, BC_INST_POP);
 	}
 
-	RETURN_STATUS(zbc_lex_next(&p->l));
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #define zdc_parse_mem(...) (zdc_parse_mem(__VA_ARGS__) COMMA_SUCCESS)
 
@@ -4877,11 +4874,13 @@ static BC_STATUS zdc_parse_cond(BcParse *p, uint8_t inst)
 
 static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
+	BcStatus s;
 	uint8_t inst;
-	bool assign, get_token = false;
+	bool assign, get_token;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
+	s = BC_STATUS_SUCCESS;
+	get_token = true;
 	switch (t) {
 		case BC_LEX_OP_REL_EQ:
 		case BC_LEX_OP_REL_LE:
@@ -4890,6 +4889,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 		case BC_LEX_OP_REL_LT:
 		case BC_LEX_OP_REL_GT:
 			s = zdc_parse_cond(p, t - BC_LEX_OP_REL_EQ + BC_INST_REL_EQ);
+			get_token = false;
 			break;
 		case BC_LEX_SCOLON:
 		case BC_LEX_COLON:
@@ -4897,7 +4897,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			break;
 		case BC_LEX_STR:
 			dbg_lex("%s:%d LEX_STR", __func__, __LINE__);
-			s = zdc_parse_string(p);
+			dc_parse_string(p);
 			break;
 		case BC_LEX_NEG:
 		case BC_LEX_NUMBER:
@@ -4910,11 +4910,9 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			}
 			bc_parse_pushNUM(p);
 			if (t == BC_LEX_NEG) bc_parse_push(p, BC_INST_NEG);
-			get_token = true;
 			break;
 		case BC_LEX_KEY_READ:
 			bc_parse_push(p, BC_INST_READ);
-			get_token = true;
 			break;
 		case BC_LEX_OP_ASSIGN:
 		case BC_LEX_STORE_PUSH:
@@ -4934,9 +4932,8 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			s = zdc_parse_mem(p, inst, false, true);
 			break;
 		default:
-			s = bc_error_bad_token();
-			get_token = true;
-			break;
+			dbg_lex_done("%s:%d done (bad token)", __func__, __LINE__);
+			RETURN_STATUS(bc_error_bad_token());
 	}
 
 	if (!s && get_token) s = zbc_lex_next(&p->l);
