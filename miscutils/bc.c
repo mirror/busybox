@@ -302,16 +302,14 @@ typedef enum BcInst {
 	BC_INST_PRINT_STR,
 
 #if ENABLE_BC
+	BC_INST_HALT,
 	BC_INST_JUMP,
 	BC_INST_JUMP_ZERO,
 
 	BC_INST_CALL,
-
-	BC_INST_RET,
 	BC_INST_RET0,
-
-	BC_INST_HALT,
 #endif
+	BC_INST_RET,
 
 	BC_INST_POP,
 #if ENABLE_DC
@@ -659,10 +657,12 @@ typedef struct BcLex {
 
 #define BC_PARSE_STREND         (0xff)
 
-#define BC_PARSE_REL            (1 << 0)
-#define BC_PARSE_PRINT          (1 << 1)
-#define BC_PARSE_NOCALL         (1 << 2)
-#define BC_PARSE_ARRAY          (1 << 3)
+#if ENABLE_BC
+# define BC_PARSE_REL           (1 << 0)
+# define BC_PARSE_PRINT         (1 << 1)
+# define BC_PARSE_ARRAY         (1 << 2)
+# define BC_PARSE_NOCALL        (1 << 3)
+#endif
 
 typedef struct BcParse {
 	BcLex l;
@@ -4976,7 +4976,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 }
 #define zdc_parse_token(...) (zdc_parse_token(__VA_ARGS__) COMMA_SUCCESS)
 
-static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
+static BC_STATUS zdc_parse_expr(BcParse *p)
 {
 	BcLexType t;
 
@@ -5000,9 +5000,6 @@ static BC_STATUS zdc_parse_expr(BcParse *p, uint8_t flags)
 		if (s) RETURN_STATUS(s);
 	}
 
-	if (flags & BC_PARSE_NOCALL)
-		bc_parse_push(p, BC_INST_POP_EXEC);
-
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -5015,7 +5012,7 @@ static BC_STATUS zdc_parse_parse(BcParse *p)
 	if (p->l.t.t == BC_LEX_EOF)
 		s = bc_error("end of file");
 	else
-		s = zdc_parse_expr(p, 0);
+		s = zdc_parse_expr(p);
 
 	if (s || G_interrupt) {
 		bc_parse_reset(p);
@@ -5028,8 +5025,8 @@ static BC_STATUS zdc_parse_parse(BcParse *p)
 
 #endif // ENABLE_DC
 
-#if !ENABLE_DC
-#define common_parse_expr(p,flags) \
+#if !ENABLE_BC
+#define common_parse_expr(p, flags) \
 	common_parse_expr(p)
 #define flags 0
 #endif
@@ -5038,8 +5035,9 @@ static BC_STATUS common_parse_expr(BcParse *p, uint8_t flags)
 	if (IS_BC) {
 		IF_BC(RETURN_STATUS(zbc_parse_expr(p, flags)));
 	} else {
-		IF_DC(RETURN_STATUS(zdc_parse_expr(p, flags)));
+		IF_DC(RETURN_STATUS(zdc_parse_expr(p)));
 	}
+#undef flags
 }
 #define zcommon_parse_expr(...) (common_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
@@ -6375,7 +6373,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 		str = *bc_program_str(sidx);
 		s = zbc_parse_text_init(&prs, str);
 		if (s) goto err;
-		s = zcommon_parse_expr(&prs, BC_PARSE_NOCALL);
+		s = zcommon_parse_expr(&prs, 0);
 		if (s) goto err;
 		if (prs.l.t.t != BC_LEX_EOF) {
 			s = bc_error_bad_expression();
@@ -6384,6 +6382,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 			bc_vec_pop_all(&f->code);
 			goto exit;
 		}
+		bc_parse_push(&prs, BC_INST_POP_EXEC);
 		bc_parse_free(&prs);
 	}
 
@@ -6696,9 +6695,10 @@ static BC_STATUS zbc_vm_process(const char *text)
 	if (s) RETURN_STATUS(s);
 
 	while (G.prs.l.t.t != BC_LEX_EOF) {
-		dbg_lex("%s:%d G.prs.l.t.t:%d", __func__, __LINE__, G.prs.l.t.t);
+		dbg_lex("%s:%d G.prs.l.t.t:%d, parsing...", __func__, __LINE__, G.prs.l.t.t);
 		s = zcommon_parse(&G.prs);
 		if (s) RETURN_STATUS(s);
+		dbg_lex("%s:%d executing...", __func__, __LINE__);
 		s = zbc_program_exec();
 		if (s) {
 			bc_program_reset();
