@@ -4986,6 +4986,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p)
 		BcStatus s;
 
 		t = p->l.t.t;
+		dbg_lex("%s:%d G.prs.l.t.t:%d", __func__, __LINE__, G.prs.l.t.t);
 		if (t == BC_LEX_EOF) break;
 
 		inst = dc_parse_insts[t];
@@ -5009,6 +5010,7 @@ static BC_STATUS zdc_parse_parse(BcParse *p)
 {
 	BcStatus s;
 
+	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	if (p->l.t.t == BC_LEX_EOF)
 		s = bc_error("end of file");
 	else
@@ -5019,21 +5021,12 @@ static BC_STATUS zdc_parse_parse(BcParse *p)
 		s = BC_STATUS_FAILURE;
 	}
 
+	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
 #define zdc_parse_parse(...) (zdc_parse_parse(__VA_ARGS__) COMMA_SUCCESS)
 
 #endif // ENABLE_DC
-
-static BC_STATUS zcommon_parse_expr(BcParse *p)
-{
-	if (IS_BC) {
-		IF_BC(RETURN_STATUS(zbc_parse_expr(p, 0)));
-	} else {
-		IF_DC(RETURN_STATUS(zdc_parse_expr(p)));
-	}
-}
-#define zcommon_parse_expr(...) (zcommon_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 static BcVec* bc_program_search(char *id, bool var)
 {
@@ -5239,7 +5232,11 @@ static BC_STATUS zbc_program_read(void)
 
 	s = zbc_parse_text_init(&parse, buf.v);
 	if (s) goto exec_err;
-	s = zcommon_parse_expr(&parse);
+	if (IS_BC) {
+		IF_BC(s = zbc_parse_expr(&parse, 0));
+	} else {
+		IF_DC(s = zdc_parse_expr(&parse));
+	}
 	if (s) goto exec_err;
 
 	if (parse.l.t.t != BC_LEX_NLINE && parse.l.t.t != BC_LEX_EOF) {
@@ -6367,7 +6364,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 		str = *bc_program_str(sidx);
 		s = zbc_parse_text_init(&prs, str);
 		if (s) goto err;
-		s = zcommon_parse_expr(&prs);
+		s = zdc_parse_expr(&prs);
 		if (s) goto err;
 		if (prs.l.t.t != BC_LEX_EOF) {
 			s = bc_error_bad_expression();
