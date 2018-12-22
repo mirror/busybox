@@ -3437,11 +3437,11 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 //			break;
 		case '\n':
 			// '\n' is BC_LEX_NLINE, not BC_LEX_WHITESPACE
-			// (and "case '\n'" is not just empty here)
+			// (and "case '\n':" is not just empty here)
 			// only to allow interactive dc have a way to exit
 			// "parse" stage of "parse,execute" loop
-			// on '\n', not on _next_ token (which would mean
-			// command are not executed on pressing <enter>).
+			// on <enter>, not on _next_ token (which would mean
+			// commands are not executed on pressing <enter>).
 			// IOW: typing "1p<enter>" should print "1" _at once_,
 			// not after some more input.
 			l->t.t = BC_LEX_NLINE;
@@ -6673,6 +6673,9 @@ static BC_STATUS zbc_vm_process(const char *text)
 	if (s) RETURN_STATUS(s);
 
 	while (G.prs.l.t.t != BC_LEX_EOF) {
+		BcInstPtr *ip;
+		BcFunc *f;
+
 		dbg_lex("%s:%d G.prs.l.t.t:%d, parsing...", __func__, __LINE__, G.prs.l.t.t);
 		if (IS_BC) {
 // FIXME: "eating" of stmt delimiters is coded inconsistently
@@ -6695,6 +6698,15 @@ static BC_STATUS zbc_vm_process(const char *text)
 			bc_program_reset();
 			break;
 		}
+
+		ip = (void*)G.prog.exestack.v;
+#if SANITY_CHECKS
+		if (G.prog.exestack.len != 1) // should have only main's IP
+			bb_error_msg_and_die("BUG:call stack");
+		if (ip->func != BC_PROG_MAIN)
+			bb_error_msg_and_die("BUG:not MAIN");
+#endif
+		f = bc_program_func_BC_PROG_MAIN();
 		// bc discards strings, constants and code after each
 		// top-level statement in the "main program".
 		// This prevents "yes 1 | bc" from growing its memory
@@ -6706,22 +6718,10 @@ static BC_STATUS zbc_vm_process(const char *text)
 		// but bc stores function strings/constants in per-function
 		// storage.
 		if (IS_BC) {
-			BcFunc *f;
-			BcInstPtr *ip = (void*)G.prog.exestack.v;
-
 #if SANITY_CHECKS
 			if (G.prog.results.len != 0) // should be empty
 				bb_error_msg_and_die("BUG:data stack");
-			if (G.prog.exestack.len != 1) // should have only main's IP
-				bb_error_msg_and_die("BUG:call stack");
-			if (ip->func != BC_PROG_MAIN)
-				bb_error_msg_and_die("BUG:not MAIN");
 #endif
-//bb_error_msg("ip->func:%d >idx:%d >len:%d", ip->func, ip->inst_idx, ip->len);
-			f = bc_program_func_BC_PROG_MAIN();
-//bb_error_msg("MAIN->code.len:%d >strs.len:%d >consts.len:%d", f->code.len, f->strs.len, f->consts.len); // labels, autos, nparams
-			bc_vec_pop_all(&f->code);
-			ip->inst_idx = 0;
 			IF_BC(bc_vec_pop_all(&f->strs);)
 			IF_BC(bc_vec_pop_all(&f->consts);)
 		} else {
@@ -6731,7 +6731,26 @@ static BC_STATUS zbc_vm_process(const char *text)
 				s = zbc_lex_next(&G.prs.l);
 				if (s) RETURN_STATUS(s);
 			}
+
+			if (G.prog.results.len == 0
+			 && G.prog.vars.len == 0
+			) {
+				// If stack is empty and no registers exist (TODO: or they are all empty),
+				// we can get rid of accumulated strings and constants.
+				// In this example dc process should not grow
+				// its memory consumption with time:
+				// yes 1pc | dc
+				IF_DC(bc_vec_pop_all(&G.prog.strs);)
+				IF_DC(bc_vec_pop_all(&G.prog.consts);)
+			}
+			// The code is discarded always (below), thus this example
+			// should also not grow its memory consumption with time,
+			// even though its data stack is not empty:
+			// { echo 1; yes dk; } | dc
 		}
+		// We drop generated and executed code for both bc and dc:
+		bc_vec_pop_all(&f->code);
+		ip->inst_idx = 0;
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
