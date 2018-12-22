@@ -3431,6 +3431,17 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 //			l->t.t = BC_LEX_EOF;
 //			break;
 		case '\n':
+			// '\n' is BC_LEX_NLINE, not BC_LEX_WHITESPACE
+			// (and "case '\n'" is not just empty here)
+			// only to allow interactive dc have a way to exit
+			// "parse" stage of "parse,execute" loop
+			// on '\n', not on _next_ token (which would mean
+			// command are not executed on pressing <enter>).
+			// IOW: typing "1p<enter>" should print "1" _at once_,
+			// not after some more input.
+			l->t.t = BC_LEX_NLINE;
+			l->newline = true;
+			break;
 		case '\t':
 		case '\v':
 		case '\f':
@@ -4861,12 +4872,16 @@ static BC_STATUS zdc_parse_cond(BcParse *p, uint8_t inst)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
+	// Note that 'else' part can not be on the next line:
+	// echo -e '[1p]sa [2p]sb 2 1>a eb' | dc - OK, prints "2"
+	// echo -e '[1p]sa [2p]sb 2 1>a\neb' | dc - parse error
 	if (p->l.t.t == BC_LEX_ELSE) {
 		s = zdc_parse_register(p);
 		if (s) RETURN_STATUS(s);
 		s = zbc_lex_next(&p->l);
-	} else
+	} else {
 		bc_parse_push(p, BC_PARSE_STREND);
+	}
 
 	RETURN_STATUS(s);
 }
@@ -4945,33 +4960,32 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 
 static BC_STATUS zdc_parse_expr(BcParse *p)
 {
-	BcLexType t;
+	BcInst inst;
+	BcStatus s;
 
+	inst = dc_parse_insts[p->l.t.t];
+	if (inst != BC_INST_INVALID) {
+		bc_parse_push(p, inst);
+		s = zbc_lex_next(&p->l);
+	} else {
+		s = zdc_parse_token(p, p->l.t.t);
+	}
+	RETURN_STATUS(s);
+}
+#define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
+
+static BC_STATUS zdc_parse_exprs_until_eof(BcParse *p)
+{
 	dbg_lex_enter("%s:%d entered, p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
-	for (;;) {
-		BcInst inst;
-		BcStatus s;
-
-		t = p->l.t.t;
-		dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
-		if (t == BC_LEX_EOF) break;
-
-		inst = dc_parse_insts[t];
-		if (inst != BC_INST_INVALID) {
-			dbg_lex("%s:%d", __func__, __LINE__);
-			bc_parse_push(p, inst);
-			s = zbc_lex_next(&p->l);
-		} else {
-			dbg_lex("%s:%d", __func__, __LINE__);
-			s = zdc_parse_token(p, t);
-		}
+	while (p->l.t.t != BC_LEX_EOF) {
+		BcStatus s = zdc_parse_expr(p);
 		if (s) RETURN_STATUS(s);
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
-#define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
+#define zdc_parse_exprs_until_eof(...) (zdc_parse_exprs_until_eof(__VA_ARGS__) COMMA_SUCCESS)
 
 #endif // ENABLE_DC
 
@@ -5182,7 +5196,7 @@ static BC_STATUS zbc_program_read(void)
 	if (IS_BC) {
 		IF_BC(s = zbc_parse_expr(&parse, 0));
 	} else {
-		IF_DC(s = zdc_parse_expr(&parse));
+		IF_DC(s = zdc_parse_exprs_until_eof(&parse));
 	}
 	if (s) goto exec_err;
 
@@ -6304,6 +6318,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 	f = bc_program_func(fidx);
 
 	if (f->code.len == 0) {
+		FILE *sv_input_fp;
 		BcParse prs;
 		char *str;
 
@@ -6311,7 +6326,12 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 		str = *bc_program_str(sidx);
 		s = zbc_parse_text_init(&prs, str);
 		if (s) goto err;
-		s = zdc_parse_expr(&prs);
+
+		sv_input_fp = G.input_fp;
+		G.input_fp = NULL; // "do not read from input file when <EOL> reached"
+		s = zdc_parse_exprs_until_eof(&prs);
+		G.input_fp = sv_input_fp;
+
 		if (s) goto err;
 		if (prs.l.t.t != BC_LEX_EOF) {
 			s = bc_error_bad_expression();
@@ -6439,12 +6459,15 @@ static BC_STATUS zbc_program_exec(void)
 				s = zbc_program_pushArray(code, &ip->inst_idx, inst);
 				break;
 			case BC_INST_LAST:
+//TODO: this can't happen on dc, right?
+				dbg_exec("BC_INST_LAST:");
 				r.t = BC_RESULT_LAST;
 				bc_vec_push(&G.prog.results, &r);
 				break;
 			case BC_INST_IBASE:
 			case BC_INST_SCALE:
 			case BC_INST_OBASE:
+				dbg_exec("BC_INST_internalvar:");
 				bc_program_pushGlobal(inst);
 				break;
 			case BC_INST_SCALE_FUNC:
@@ -6519,17 +6542,21 @@ static BC_STATUS zbc_program_exec(void)
 				bc_vec_pop(&G.prog.exestack);
 				goto read_updated_ip;
 			case BC_INST_MODEXP:
+				dbg_exec("BC_INST_MODEXP:");
 				s = zdc_program_modexp();
 				break;
 			case BC_INST_DIVMOD:
+				dbg_exec("BC_INST_DIVMOD:");
 				s = zdc_program_divmod();
 				break;
 			case BC_INST_EXECUTE:
 			case BC_INST_EXEC_COND:
+				dbg_exec("BC_INST_EXEC[_COND]:");
 				s = zdc_program_execStr(code, &ip->inst_idx, inst == BC_INST_EXEC_COND);
 				goto read_updated_ip;
 			case BC_INST_PRINT_STACK: {
 				size_t idx;
+				dbg_exec("BC_INST_PRINT_STACK:");
 				for (idx = 0; idx < G.prog.results.len; ++idx) {
 					s = zbc_program_print(BC_INST_PRINT, idx);
 					if (s) break;
@@ -6537,12 +6564,15 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			}
 			case BC_INST_CLEAR_STACK:
+				dbg_exec("BC_INST_CLEAR_STACK:");
 				bc_vec_pop_all(&G.prog.results);
 				break;
 			case BC_INST_STACK_LEN:
+				dbg_exec("BC_INST_STACK_LEN:");
 				dc_program_stackLen();
 				break;
 			case BC_INST_DUPLICATE:
+				dbg_exec("BC_INST_DUPLICATE:");
 				if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 					RETURN_STATUS(bc_error_stack_has_too_few_elements());
 				ptr = bc_vec_top(&G.prog.results);
@@ -6551,6 +6581,7 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			case BC_INST_SWAP: {
 				BcResult *ptr2;
+				dbg_exec("BC_INST_SWAP:");
 				if (!STACK_HAS_MORE_THAN(&G.prog.results, 1))
 					RETURN_STATUS(bc_error_stack_has_too_few_elements());
 				ptr = bc_vec_item_rev(&G.prog.results, 0);
@@ -6561,9 +6592,11 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			}
 			case BC_INST_ASCIIFY:
+				dbg_exec("BC_INST_ASCIIFY:");
 				s = zdc_program_asciify();
 				break;
 			case BC_INST_PRINT_STREAM:
+				dbg_exec("BC_INST_STREAM:");
 				s = zdc_program_printStream();
 				break;
 			case BC_INST_LOAD:
@@ -6585,6 +6618,7 @@ static BC_STATUS zbc_program_exec(void)
 				bc_vec_npop(&G.prog.exestack, 2);
 				goto read_updated_ip;
 			case BC_INST_NQUIT:
+				dbg_exec("BC_INST_NQUIT:");
 				s = zdc_program_nquit();
 				//goto read_updated_ip; - just fall through to it
 #endif // ENABLE_DC
@@ -6629,25 +6663,20 @@ static BC_STATUS zbc_vm_process(const char *text)
 	BcStatus s;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
-	s = zbc_parse_text_init(&G.prs, text);
+	s = zbc_parse_text_init(&G.prs, text); // does the first zbc_lex_next()
 	if (s) RETURN_STATUS(s);
 
 	while (G.prs.l.t.t != BC_LEX_EOF) {
 		dbg_lex("%s:%d G.prs.l.t.t:%d, parsing...", __func__, __LINE__, G.prs.l.t.t);
 		if (IS_BC) {
-// FIXME: "eating" of stmt delemiters is coded inconsistently
+// FIXME: "eating" of stmt delimiters is coded inconsistently
 // (sometimes zbc_parse_stmt() eats the delimiter, sometimes don't),
 // which causes bugs such as "print 1 print 2" erroneously accepted,
 // or "print 1 else 2" detecting parse error only after executing
 // "print 1" part.
 			IF_BC(s = zbc_parse_stmt_or_funcdef(&G.prs));
 		} else {
-#if ENABLE_DC
-			if (G.prs.l.t.t == BC_LEX_EOF)
-				s = bc_error("end of file");
-			else
-				s = zdc_parse_expr(&G.prs);
-#endif
+			IF_DC(s = zdc_parse_expr(&G.prs));
 		}
 		if (s || G_interrupt) {
 			bc_parse_reset(&G.prs); // includes bc_program_reset()
@@ -6689,6 +6718,13 @@ static BC_STATUS zbc_vm_process(const char *text)
 			ip->inst_idx = 0;
 			IF_BC(bc_vec_pop_all(&f->strs);)
 			IF_BC(bc_vec_pop_all(&f->consts);)
+		} else {
+			// Most of dc parsing assumes all whitespace,
+			// including '\n', is eaten.
+			if (G.prs.l.t.t == BC_LEX_NLINE) {
+				s = zbc_lex_next(&G.prs.l);
+				if (s) RETURN_STATUS(s);
+			}
 		}
 	}
 

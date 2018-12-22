@@ -41,6 +41,21 @@ testing "dc complex without spaces (multiple args)" \
 	"16\n" \
 	"" ""
 
+testing "dc '>a' (conditional execute string) 1" \
+	"dc" \
+	"1\n9\n" \
+	"" "[1p]sa [2p]sb 1 2>a\n9p"
+
+testing "dc '>a' (conditional execute string) 2" \
+	"dc" \
+	"9\n" \
+	"" "[1p]sa [2p]sb 2 1>a\n9p"
+
+testing "dc '>aeb' (conditional execute string with else)" \
+	"dc" \
+	"2\n9\n" \
+	"" "[1p]sa [2p]sb 2 1>aeb\n9p"
+
 for f in dc_*.dc; do
 	r="`basename "$f" .dc`_results.txt"
 	test -f "$r" || continue
