@@ -1439,12 +1439,10 @@ static void bc_num_copy(BcNum *d, BcNum *s)
 	}
 }
 
-static BC_STATUS zbc_num_ulong(BcNum *n, unsigned long *result_p)
+static BC_STATUS zbc_num_ulong_abs(BcNum *n, unsigned long *result_p)
 {
 	size_t i;
 	unsigned long result;
-
-	if (n->neg) RETURN_STATUS(bc_error("negative number"));
 
 	result = 0;
 	i = n->len;
@@ -1461,6 +1459,14 @@ static BC_STATUS zbc_num_ulong(BcNum *n, unsigned long *result_p)
 	*result_p = result;
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
+}
+#define zbc_num_ulong_abs(...) (zbc_num_ulong_abs(__VA_ARGS__) COMMA_SUCCESS)
+
+static BC_STATUS zbc_num_ulong(BcNum *n, unsigned long *result_p)
+{
+	if (n->neg) RETURN_STATUS(bc_error("negative number"));
+
+	RETURN_STATUS(zbc_num_ulong_abs(n, result_p));
 }
 #define zbc_num_ulong(...) (zbc_num_ulong(__VA_ARGS__) COMMA_SUCCESS)
 
@@ -2109,9 +2115,7 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 	}
 
 	neg = b->neg;
-	b->neg = false;
-	s = zbc_num_ulong(b, &pow);
-	b->neg = neg;
+	s = zbc_num_ulong_abs(b, &pow);
 	if (s) RETURN_STATUS(s);
 	// b is not used beyond this point
 
@@ -6150,7 +6154,6 @@ static BC_STATUS zdc_program_asciify(void)
 	char *str;
 	char c;
 	size_t idx;
-	unsigned long val;
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
@@ -6160,6 +6163,7 @@ static BC_STATUS zdc_program_asciify(void)
 	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, num)) {
+		unsigned long val;
 		BcNum strmb;
 		BcDig strmb_digs[ULONG_NUM_BUFSIZE];
 
