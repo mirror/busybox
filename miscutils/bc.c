@@ -2902,6 +2902,8 @@ static bool bc_lex_more_input(BcLex *l)
 
 IF_BC(static BC_STATUS zbc_lex_token(BcLex *l);)
 IF_DC(static BC_STATUS zdc_lex_token(BcLex *l);)
+#define zbc_lex_token(...) (zbc_lex_token(__VA_ARGS__) COMMA_SUCCESS)
+#define zdc_lex_token(...) (zdc_lex_token(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_lex_next(BcLex *l)
 {
@@ -3100,6 +3102,7 @@ static BC_STATUS zbc_lex_comment(BcLex *l)
 }
 #define zbc_lex_comment(...) (zbc_lex_comment(__VA_ARGS__) COMMA_SUCCESS)
 
+#undef zbc_lex_token
 static BC_STATUS zbc_lex_token(BcLex *l)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
@@ -3290,6 +3293,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 
 	RETURN_STATUS(s);
 }
+#define zbc_lex_token(...) (zbc_lex_token(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_BC
 
 #if ENABLE_DC
@@ -3356,6 +3360,7 @@ static BC_STATUS zdc_lex_string(BcLex *l)
 }
 #define zdc_lex_string(...) (zdc_lex_string(__VA_ARGS__) COMMA_SUCCESS)
 
+#undef zdc_lex_token
 static BC_STATUS zdc_lex_token(BcLex *l)
 {
 	static const //BcLexType - should be this type, but narrower type saves size:
@@ -3500,6 +3505,7 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 
 	RETURN_STATUS(s);
 }
+#define zdc_lex_token(...) (zdc_lex_token(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_DC
 
 static void bc_parse_push(BcParse *p, char i)
