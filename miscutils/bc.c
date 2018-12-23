@@ -141,7 +141,7 @@
 //usage:#define dc_full_usage "\n"
 //usage:     "\nTiny RPN calculator. Operations:"
 //usage:     "\n+, -, *, /, %, ~, ^," IF_NOT_FEATURE_DC_SMALL(" |,")
-//usage:     "\np - print top of the stack (without popping)"
+//usage:     "\np - print top of the stack without popping"
 //usage:     "\nf - print entire stack"
 //usage:     "\nk - pop the value and set the precision"
 //usage:     "\ni - pop the value and set input radix"
@@ -286,14 +286,14 @@ typedef enum BcInst {
 	BC_INST_VAR,
 	BC_INST_ARRAY_ELEM,
 	BC_INST_ARRAY,
-
 	BC_INST_SCALE_FUNC,
-	BC_INST_IBASE,
-	BC_INST_SCALE,
-	BC_INST_LAST,
+
+	BC_INST_IBASE,       // order of these constans should match other enums
+	BC_INST_OBASE,       // order of these constans should match other enums
+	BC_INST_SCALE,       // order of these constans should match other enums
+	IF_BC(BC_INST_LAST,) // order of these constans should match other enums
 	BC_INST_LENGTH,
 	BC_INST_READ,
-	BC_INST_OBASE,
 	BC_INST_SQRT,
 
 	BC_INST_PRINT,
@@ -365,12 +365,12 @@ typedef enum BcResultType {
 	BC_RESULT_STR,
 
 	//code uses "inst - BC_INST_IBASE + BC_RESULT_IBASE" construct,
-	BC_RESULT_IBASE,  // relative order should match for: BC_INST_IBASE
-	BC_RESULT_SCALE,  // relative order should match for: BC_INST_SCALE
-	BC_RESULT_LAST,   // relative order should match for: BC_INST_LAST
+	BC_RESULT_IBASE,       // relative order should match for: BC_INST_IBASE
+	BC_RESULT_OBASE,       // relative order should match for: BC_INST_OBASE
+	BC_RESULT_SCALE,       // relative order should match for: BC_INST_SCALE
+	IF_BC(BC_RESULT_LAST,) // relative order should match for: BC_INST_LAST
 	BC_RESULT_CONSTANT,
 	BC_RESULT_ONE,
-	BC_RESULT_OBASE,  // relative order should match for: BC_INST_OBASE
 } BcResultType;
 
 typedef union BcResultData {
@@ -453,12 +453,12 @@ typedef enum BcLexType {
 	BC_LEX_KEY_FOR,
 	BC_LEX_KEY_HALT,
 	// code uses "type - BC_LEX_KEY_IBASE + BC_INST_IBASE" construct,
-	BC_LEX_KEY_IBASE,  // relative order should match for: BC_INST_IBASE
+	BC_LEX_KEY_IBASE,       // relative order should match for: BC_INST_IBASE
+	BC_LEX_KEY_OBASE,       // relative order should match for: BC_INST_OBASE
 	BC_LEX_KEY_IF,
-	BC_LEX_KEY_LAST,   // relative order should match for: BC_INST_LAST
+	IF_BC(BC_LEX_KEY_LAST,) // relative order should match for: BC_INST_LAST
 	BC_LEX_KEY_LENGTH,
 	BC_LEX_KEY_LIMITS,
-	BC_LEX_KEY_OBASE,  // relative order should match for: BC_INST_OBASE
 	BC_LEX_KEY_PRINT,
 	BC_LEX_KEY_QUIT,
 	BC_LEX_KEY_READ,
@@ -487,11 +487,11 @@ typedef enum BcLexType {
 
 	// code uses "t - BC_LEX_STORE_IBASE + BC_INST_IBASE" construct,
 	BC_LEX_STORE_IBASE,  // relative order should match for: BC_INST_IBASE
+	BC_LEX_STORE_OBASE,  // relative order should match for: BC_INST_OBASE
 	BC_LEX_STORE_SCALE,  // relative order should match for: BC_INST_SCALE
 	BC_LEX_LOAD,
 	BC_LEX_LOAD_POP,
 	BC_LEX_STORE_PUSH,
-	BC_LEX_STORE_OBASE,  // relative order should match for: BC_INST_OBASE
 	BC_LEX_PRINT_POP,
 	BC_LEX_NQUIT,
 	BC_LEX_SCALE_FACTOR,
@@ -513,11 +513,11 @@ static const struct BcLexKeyword bc_lex_kws[20] = {
 	BC_LEX_KW_ENTRY("for"     , 1), // 5
 	BC_LEX_KW_ENTRY("halt"    , 0), // 6
 	BC_LEX_KW_ENTRY("ibase"   , 1), // 7
-	BC_LEX_KW_ENTRY("if"      , 1), // 8
-	BC_LEX_KW_ENTRY("last"    , 0), // 9
-	BC_LEX_KW_ENTRY("length"  , 1), // 10
-	BC_LEX_KW_ENTRY("limits"  , 0), // 11
-	BC_LEX_KW_ENTRY("obase"   , 1), // 12
+	BC_LEX_KW_ENTRY("obase"   , 1), // 8
+	BC_LEX_KW_ENTRY("if"      , 1), // 9
+	BC_LEX_KW_ENTRY("last"    , 0), // 10
+	BC_LEX_KW_ENTRY("length"  , 1), // 11
+	BC_LEX_KW_ENTRY("limits"  , 0), // 12
 	BC_LEX_KW_ENTRY("print"   , 0), // 13
 	BC_LEX_KW_ENTRY("quit"    , 1), // 14
 	BC_LEX_KW_ENTRY("read"    , 0), // 15
@@ -527,10 +527,10 @@ static const struct BcLexKeyword bc_lex_kws[20] = {
 	BC_LEX_KW_ENTRY("while"   , 1), // 19
 };
 #undef BC_LEX_KW_ENTRY
-#define STRING_if    (bc_lex_kws[8].name8)
 #define STRING_else  (bc_lex_kws[4].name8)
-#define STRING_while (bc_lex_kws[19].name8)
 #define STRING_for   (bc_lex_kws[5].name8)
+#define STRING_if    (bc_lex_kws[9].name8)
+#define STRING_while (bc_lex_kws[19].name8)
 enum {
 	POSIX_KWORD_MASK = 0
 		| (1 << 0)  // 0
@@ -542,10 +542,10 @@ enum {
 		| (0 << 6)  // 6
 		| (1 << 7)  // 7
 		| (1 << 8)  // 8
-		| (0 << 9)  // 9
-		| (1 << 10) // 10
-		| (0 << 11) // 11
-		| (1 << 12) // 12
+		| (1 << 9)  // 9
+		| (0 << 10) // 10
+		| (1 << 11) // 11
+		| (0 << 12) // 12
 		| (0 << 13) // 13
 		| (1 << 14) // 14
 		| (0 << 15) // 15
@@ -560,19 +560,19 @@ enum {
 // true if the token is valid in an expression, false otherwise.
 // Used to figure out when expr parsing should stop *without error message*
 // - 0 element indicates this condition. 1 means "this token is to be eaten
-// as part of the expression", token can them still be determined to be invalid
+// as part of the expression", it can then still be determined to be invalid
 // by later processing.
 enum {
 #define EXBITS(a,b,c,d,e,f,g,h) \
 	((uint64_t)((a << 0)+(b << 1)+(c << 2)+(d << 3)+(e << 4)+(f << 5)+(g << 6)+(h << 7)))
-	BC_PARSE_EXPRS_BITS = 0
-	+ (EXBITS(0,0,1,1,1,1,1,1) << (0*8)) //  0: eof    inval ++    --     -     ^     *    /
-	+ (EXBITS(1,1,1,1,1,1,1,1) << (1*8)) //  8: %      +     -     ==     <=    >=    !=   <
-	+ (EXBITS(1,1,1,1,1,1,1,1) << (2*8)) // 16: >      !     ||    &&     ^=    *=    /=   %=
-	+ (EXBITS(1,1,1,0,0,1,1,0) << (3*8)) // 24: +=     -=    =     NL     WS    (     )    [
-	+ (EXBITS(0,0,0,0,0,0,1,1) << (4*8)) // 32: ,      ]     {     ;      }     STR   NAME NUM
-	+ (EXBITS(0,0,0,0,0,0,0,1) << (5*8)) // 40: auto   break cont  define else  for   halt ibase
-	+ (EXBITS(0,1,1,1,1,0,0,1) << (6*8)) // 48: if     last  len   limits obase print quit read - bug, why "limits" is allowed?
+	BC_PARSE_EXPRS_BITS = 0              // corresponding BC_LEX_xyz:
+	+ (EXBITS(0,0,1,1,1,1,1,1) << (0*8)) //  0: eof    inval ++    --     -      ^     *    /
+	+ (EXBITS(1,1,1,1,1,1,1,1) << (1*8)) //  8: %      +     -     ==     <=     >=    !=   <
+	+ (EXBITS(1,1,1,1,1,1,1,1) << (2*8)) // 16: >      !     ||    &&     ^=     *=    /=   %=
+	+ (EXBITS(1,1,1,0,0,1,1,0) << (3*8)) // 24: +=     -=    =     NL     WS     (     )    [
+	+ (EXBITS(0,0,0,0,0,0,1,1) << (4*8)) // 32: ,      ]     {     ;      }      STR   NAME NUM
+	+ (EXBITS(0,0,0,0,0,0,0,1) << (5*8)) // 40: auto   break cont  define else   for   halt ibase
+	+ (EXBITS(1,0,1,1,1,0,0,1) << (6*8)) // 48: obase  if    last  len    limits print quit read - bug, why "limits" is allowed?
 	+ (EXBITS(0,1,1,0,0,0,0,0) << (7*8)) // 56: return scale sqrt  while
 #undef EXBITS
 };
@@ -615,30 +615,30 @@ static const uint8_t bc_parse_ops[] = {
 #if ENABLE_DC
 static const //BcInst - should be this type. Using signed narrow type since BC_INST_INVALID is -1
 int8_t
-dc_parse_insts[] = {
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,
-	BC_INST_INVALID, BC_INST_POWER, BC_INST_MULTIPLY, BC_INST_DIVIDE,
-	BC_INST_MODULUS, BC_INST_PLUS, BC_INST_MINUS,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_BOOL_NOT, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GT, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,
-	BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_IBASE,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_LENGTH, BC_INST_INVALID,
-	BC_INST_OBASE, BC_INST_PRINT, BC_INST_QUIT, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_SCALE, BC_INST_SQRT, BC_INST_INVALID,
-	BC_INST_REL_EQ, BC_INST_MODEXP, BC_INST_DIVMOD, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_EXECUTE, BC_INST_PRINT_STACK, BC_INST_CLEAR_STACK,
-	BC_INST_STACK_LEN, BC_INST_DUPLICATE, BC_INST_SWAP, BC_INST_POP,
-	BC_INST_ASCIIFY, BC_INST_PRINT_STREAM, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,
-	BC_INST_PRINT, BC_INST_NQUIT, BC_INST_SCALE_FUNC,
+dc_LEX_to_INST[] = { // (so many INVALIDs b/c dc parser does not generate these LEXs) // corresponding BC_LEX_xyz:
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,   // EOF         INVALID      OP_INC       OP_DEC
+	BC_INST_INVALID, BC_INST_POWER, BC_INST_MULTIPLY, BC_INST_DIVIDE,    // NEG         OP_POWER     OP_MULTIPLY  OP_DIVIDE
+	BC_INST_MODULUS, BC_INST_PLUS, BC_INST_MINUS,                        // OP_MODULUS  OP_PLUS      OP_MINUS
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,  // OP_REL_EQ   OP_REL_LE    OP_REL_GE    OP_REL_NE
+	BC_INST_INVALID, BC_INST_INVALID,                                    // OP_REL_LT   OP_REL_GT
+	BC_INST_BOOL_NOT, BC_INST_INVALID, BC_INST_INVALID,                  // OP_BOOL_NOT OP_BOOL_OR   OP_BOOL_AND
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,  // OP_ASSIGN_POWER OP_ASSIGN_MULTIPLY OP_ASSIGN_DIVIDE OP_ASSIGN_MODULUS
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,                   // OP_ASSIGN_PLUS OP_ASSIGN_MINUS        OP_ASSIGN
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GT, BC_INST_INVALID,   // NLINE       WHITESPACE   LPAREN       RPAREN
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,   // LBRACKET    COMMA        RBRACKET     LBRACE
+	BC_INST_INVALID, BC_INST_INVALID,                                    // SCOLON      RBRACE
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,                   // STR         NAME         NUMBER
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,  // KEY_AUTO    KEY_BREAK    KEY_CONTINUE KEY_DEFINE
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_IBASE,    // KEY_ELSE    KEY_FOR      KEY_HALT     KEY_IBASE
+	BC_INST_OBASE, BC_INST_INVALID, IF_BC(BC_INST_INVALID,) BC_INST_LENGTH,//KEY_OBASE  KEY_IF       KEY_LAST(bc) KEY_LENGTH
+	BC_INST_INVALID, BC_INST_PRINT, BC_INST_QUIT, BC_INST_INVALID,       // KEY_LIMITS  KEY_PRINT    KEY_QUIT     KEY_READ
+	BC_INST_INVALID, BC_INST_SCALE, BC_INST_SQRT, BC_INST_INVALID,       // KEY_RETURN  KEY_SCALE    KEY_SQRT     KEY_WHILE
+	BC_INST_REL_EQ, BC_INST_MODEXP, BC_INST_DIVMOD, BC_INST_INVALID,     // EQ_NO_REG   OP_MODEXP    OP_DIVMOD    COLON
+	BC_INST_INVALID, BC_INST_EXECUTE, BC_INST_PRINT_STACK, BC_INST_CLEAR_STACK, //ELSE  EXECUTE      PRINT_STACK  CLEAR_STACK
+	BC_INST_STACK_LEN, BC_INST_DUPLICATE, BC_INST_SWAP, BC_INST_POP,     // STACK_LEVEL DUPLICATE    SWAP         POP
+	BC_INST_ASCIIFY, BC_INST_PRINT_STREAM, BC_INST_INVALID, BC_INST_INVALID, //ASCIIFY  PRINT_STREAM STORE_IBASE  STORE_OBASE
+	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,  // STORE_SCALE LOAD         LOAD_POP     STORE_PUSH
+	BC_INST_PRINT, BC_INST_NQUIT, BC_INST_SCALE_FUNC,                    // PRINT_POP   NQUIT        SCALE_FACTOR
 };
 #endif // ENABLE_DC
 
@@ -2667,7 +2667,7 @@ static void dc_result_copy(BcResult *d, BcResult *src)
 			d->d.id.name = xstrdup(src->d.id.name);
 			break;
 		case BC_RESULT_CONSTANT:
-		case BC_RESULT_LAST:
+		IF_BC(case BC_RESULT_LAST:)
 		case BC_RESULT_ONE:
 		case BC_RESULT_STR:
 			memcpy(&d->d.n, &src->d.n, sizeof(BcNum));
@@ -4919,11 +4919,13 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 		case BC_LEX_OP_REL_NE:
 		case BC_LEX_OP_REL_LT:
 		case BC_LEX_OP_REL_GT:
+			dbg_lex("%s:%d LEX_OP_REL_xyz", __func__, __LINE__);
 			s = zdc_parse_cond(p, t - BC_LEX_OP_REL_EQ + BC_INST_REL_EQ);
 			get_token = false;
 			break;
 		case BC_LEX_SCOLON:
 		case BC_LEX_COLON:
+			dbg_lex("%s:%d LEX_[S]COLON", __func__, __LINE__);
 			s = zdc_parse_mem(p, BC_INST_ARRAY_ELEM, true, t == BC_LEX_COLON);
 			break;
 		case BC_LEX_STR:
@@ -4931,34 +4933,39 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			dc_parse_string(p);
 			break;
 		case BC_LEX_NEG:
-		case BC_LEX_NUMBER:
-			dbg_lex("%s:%d LEX_NEG/NUMBER", __func__, __LINE__);
-			if (t == BC_LEX_NEG) {
-				s = zbc_lex_next(&p->l);
-				if (s) RETURN_STATUS(s);
-				if (p->l.t.t != BC_LEX_NUMBER)
-					RETURN_STATUS(bc_error_bad_token());
-			}
+			dbg_lex("%s:%d LEX_NEG", __func__, __LINE__);
+			s = zbc_lex_next(&p->l);
+			if (s) RETURN_STATUS(s);
+			if (p->l.t.t != BC_LEX_NUMBER)
+				RETURN_STATUS(bc_error_bad_token());
 			bc_parse_pushNUM(p);
-			if (t == BC_LEX_NEG) bc_parse_push(p, BC_INST_NEG);
+			bc_parse_push(p, BC_INST_NEG);
+			break;
+		case BC_LEX_NUMBER:
+			dbg_lex("%s:%d LEX_NUMBER", __func__, __LINE__);
+			bc_parse_pushNUM(p);
 			break;
 		case BC_LEX_KEY_READ:
+			dbg_lex("%s:%d LEX_KEY_READ", __func__, __LINE__);
 			bc_parse_push(p, BC_INST_READ);
 			break;
 		case BC_LEX_OP_ASSIGN:
 		case BC_LEX_STORE_PUSH:
+			dbg_lex("%s:%d LEX_OP_ASSIGN/STORE_PUSH", __func__, __LINE__);
 			assign = t == BC_LEX_OP_ASSIGN;
 			inst = assign ? BC_INST_VAR : BC_INST_PUSH_TO_VAR;
 			s = zdc_parse_mem(p, inst, true, assign);
 			break;
 		case BC_LEX_LOAD:
 		case BC_LEX_LOAD_POP:
+			dbg_lex("%s:%d LEX_OP_LOAD[_POP]", __func__, __LINE__);
 			inst = t == BC_LEX_LOAD_POP ? BC_INST_PUSH_VAR : BC_INST_LOAD;
 			s = zdc_parse_mem(p, inst, true, false);
 			break;
 		case BC_LEX_STORE_IBASE:
 		case BC_LEX_STORE_SCALE:
 		case BC_LEX_STORE_OBASE:
+			dbg_lex("%s:%d LEX_OP_STORE_I/OBASE/SCALE", __func__, __LINE__);
 			inst = t - BC_LEX_STORE_IBASE + BC_INST_IBASE;
 			s = zdc_parse_mem(p, inst, false, true);
 			break;
@@ -4979,7 +4986,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p)
 	BcInst inst;
 	BcStatus s;
 
-	inst = dc_parse_insts[p->l.t.t];
+	inst = dc_LEX_to_INST[p->l.t.t];
 	if (inst != BC_INST_INVALID) {
 		bc_parse_push(p, inst);
 		s = zbc_lex_next(&p->l);
@@ -5086,9 +5093,11 @@ static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 			*num = &G.prog.one;
 			break;
 #endif
+#if SANITY_CHECKS
 		default:
 			// Testing the theory that dc does not reach LAST/ONE
 			bb_error_msg_and_die("BUG:%d", r->t);
+#endif
 	}
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -5750,11 +5759,8 @@ static BC_STATUS zbc_program_assign(char inst)
 	if (ib || sc || left->t == BC_RESULT_OBASE) {
 		static const char *const msg[] = {
 			"bad ibase; must be [2,16]",                 //BC_RESULT_IBASE
-			"bad scale; must be [0,"BC_MAX_SCALE_STR"]", //BC_RESULT_SCALE
-			NULL, //can't happen                         //BC_RESULT_LAST
-			NULL, //can't happen                         //BC_RESULT_CONSTANT
-			NULL, //can't happen                         //BC_RESULT_ONE
 			"bad obase; must be [2,"BC_MAX_OBASE_STR"]", //BC_RESULT_OBASE
+			"bad scale; must be [0,"BC_MAX_SCALE_STR"]", //BC_RESULT_SCALE
 		};
 		size_t *ptr;
 		size_t max;
@@ -6474,16 +6480,17 @@ static BC_STATUS zbc_program_exec(void)
 				dbg_exec("BC_INST_ARRAY[_ELEM]:");
 				s = zbc_program_pushArray(code, &ip->inst_idx, inst);
 				break;
+#if ENABLE_BC
 			case BC_INST_LAST:
-//TODO: this can't happen on dc, right?
 				dbg_exec("BC_INST_LAST:");
 				r.t = BC_RESULT_LAST;
 				bc_vec_push(&G.prog.results, &r);
 				break;
+#endif
 			case BC_INST_IBASE:
-			case BC_INST_SCALE:
 			case BC_INST_OBASE:
-				dbg_exec("BC_INST_internalvar:");
+			case BC_INST_SCALE:
+				dbg_exec("BC_INST_internalvar(%d):", inst - BC_INST_IBASE);
 				bc_program_pushGlobal(inst);
 				break;
 			case BC_INST_SCALE_FUNC:
