@@ -391,8 +391,8 @@ typedef struct BcInstPtr {
 
 // BC_LEX_NEG is not used in lexing; it is only for parsing.
 typedef enum BcLexType {
-	BC_LEX_EOF,
-	BC_LEX_INVALID,
+	XC_LEX_EOF,
+	XC_LEX_INVALID,
 
 	BC_LEX_OP_INC,
 	BC_LEX_OP_DEC,
@@ -467,33 +467,33 @@ typedef enum BcLexType {
 	BC_LEX_KEY_WHILE,
 
 #if ENABLE_DC
-	BC_LEX_EQ_NO_REG,
-	BC_LEX_OP_MODEXP,
-	BC_LEX_OP_DIVMOD,
+	DC_LEX_EQ_NO_REG,
+	DC_LEX_OP_MODEXP,
+	DC_LEX_OP_DIVMOD,
 
-	BC_LEX_COLON,
-	BC_LEX_ELSE,
-	BC_LEX_EXECUTE,
-	BC_LEX_PRINT_STACK,
-	BC_LEX_CLEAR_STACK,
-	BC_LEX_STACK_LEVEL,
-	BC_LEX_DUPLICATE,
-	BC_LEX_SWAP,
-	BC_LEX_POP,
+	DC_LEX_COLON,
+	DC_LEX_ELSE,
+	DC_LEX_EXECUTE,
+	DC_LEX_PRINT_STACK,
+	DC_LEX_CLEAR_STACK,
+	DC_LEX_STACK_LEVEL,
+	DC_LEX_DUPLICATE,
+	DC_LEX_SWAP,
+	DC_LEX_POP,
 
-	BC_LEX_ASCIIFY,
-	BC_LEX_PRINT_STREAM,
+	DC_LEX_ASCIIFY,
+	DC_LEX_PRINT_STREAM,
 
-	// code uses "t - BC_LEX_STORE_IBASE + XC_INST_IBASE" construct,
-	BC_LEX_STORE_IBASE,  // relative order should match for: XC_INST_IBASE
-	BC_LEX_STORE_OBASE,  // relative order should match for: XC_INST_OBASE
-	BC_LEX_STORE_SCALE,  // relative order should match for: XC_INST_SCALE
-	BC_LEX_LOAD,
-	BC_LEX_LOAD_POP,
-	BC_LEX_STORE_PUSH,
-	BC_LEX_PRINT_POP,
-	BC_LEX_NQUIT,
-	BC_LEX_SCALE_FACTOR,
+	// code uses "t - DC_LEX_STORE_IBASE + XC_INST_IBASE" construct,
+	DC_LEX_STORE_IBASE,  // relative order should match for: XC_INST_IBASE
+	DC_LEX_STORE_OBASE,  // relative order should match for: XC_INST_OBASE
+	DC_LEX_STORE_SCALE,  // relative order should match for: XC_INST_SCALE
+	DC_LEX_LOAD,
+	DC_LEX_LOAD_POP,
+	DC_LEX_STORE_PUSH,
+	DC_LEX_PRINT_POP,
+	DC_LEX_NQUIT,
+	DC_LEX_SCALE_FACTOR,
 #endif
 } BcLexType;
 // must match order of BC_LEX_KEY_foo etc above
@@ -616,44 +616,44 @@ static const //BcLexType - should be this type
 uint8_t
 dc_char_to_LEX[] = {
 	/* %&'( */
-	BC_LEX_OP_MODULUS, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_LPAREN,
+	BC_LEX_OP_MODULUS, XC_LEX_INVALID, XC_LEX_INVALID, BC_LEX_LPAREN,
 	/* )*+, */
-	BC_LEX_INVALID, BC_LEX_OP_MULTIPLY, BC_LEX_OP_PLUS, BC_LEX_INVALID,
+	XC_LEX_INVALID, BC_LEX_OP_MULTIPLY, BC_LEX_OP_PLUS, XC_LEX_INVALID,
 	/* -./ */
-	BC_LEX_OP_MINUS, BC_LEX_INVALID, BC_LEX_OP_DIVIDE,
+	BC_LEX_OP_MINUS, XC_LEX_INVALID, BC_LEX_OP_DIVIDE,
 	/* 0123456789 */
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_INVALID,
+	XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
+	XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
+	XC_LEX_INVALID, XC_LEX_INVALID,
 	/* :;<=>?@ */
-	BC_LEX_COLON, BC_LEX_SCOLON, BC_LEX_OP_REL_GT, BC_LEX_OP_REL_EQ,
-	BC_LEX_OP_REL_LT, BC_LEX_KEY_READ, BC_LEX_INVALID,
+	DC_LEX_COLON, BC_LEX_SCOLON, BC_LEX_OP_REL_GT, BC_LEX_OP_REL_EQ,
+	BC_LEX_OP_REL_LT, BC_LEX_KEY_READ, XC_LEX_INVALID,
 	/* ABCDEFGH */
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_EQ_NO_REG, BC_LEX_INVALID,
+	XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
+	XC_LEX_INVALID, XC_LEX_INVALID, DC_LEX_EQ_NO_REG, XC_LEX_INVALID,
 	/* IJKLMNOP */
-	BC_LEX_KEY_IBASE, BC_LEX_INVALID, BC_LEX_KEY_SCALE, BC_LEX_LOAD_POP,
-	BC_LEX_INVALID, BC_LEX_OP_BOOL_NOT, BC_LEX_KEY_OBASE, BC_LEX_PRINT_STREAM,
+	BC_LEX_KEY_IBASE, XC_LEX_INVALID, BC_LEX_KEY_SCALE, DC_LEX_LOAD_POP,
+	XC_LEX_INVALID, BC_LEX_OP_BOOL_NOT, BC_LEX_KEY_OBASE, DC_LEX_PRINT_STREAM,
 	/* QRSTUVWXY */
-	BC_LEX_NQUIT, BC_LEX_POP, BC_LEX_STORE_PUSH, BC_LEX_INVALID, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_SCALE_FACTOR, BC_LEX_INVALID,
+	DC_LEX_NQUIT, DC_LEX_POP, DC_LEX_STORE_PUSH, XC_LEX_INVALID, XC_LEX_INVALID,
+	XC_LEX_INVALID, XC_LEX_INVALID, DC_LEX_SCALE_FACTOR, XC_LEX_INVALID,
 	/* Z[\] */
-	BC_LEX_KEY_LENGTH, BC_LEX_INVALID, BC_LEX_INVALID, BC_LEX_INVALID,
+	BC_LEX_KEY_LENGTH, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
 	/* ^_` */
-	BC_LEX_OP_POWER, BC_LEX_NEG, BC_LEX_INVALID,
+	BC_LEX_OP_POWER, BC_LEX_NEG, XC_LEX_INVALID,
 	/* abcdefgh */
-	BC_LEX_ASCIIFY, BC_LEX_INVALID, BC_LEX_CLEAR_STACK, BC_LEX_DUPLICATE,
-	BC_LEX_ELSE, BC_LEX_PRINT_STACK, BC_LEX_INVALID, BC_LEX_INVALID,
+	DC_LEX_ASCIIFY, XC_LEX_INVALID, DC_LEX_CLEAR_STACK, DC_LEX_DUPLICATE,
+	DC_LEX_ELSE, DC_LEX_PRINT_STACK, XC_LEX_INVALID, XC_LEX_INVALID,
 	/* ijklmnop */
-	BC_LEX_STORE_IBASE, BC_LEX_INVALID, BC_LEX_STORE_SCALE, BC_LEX_LOAD,
-	BC_LEX_INVALID, BC_LEX_PRINT_POP, BC_LEX_STORE_OBASE, BC_LEX_KEY_PRINT,
+	DC_LEX_STORE_IBASE, XC_LEX_INVALID, DC_LEX_STORE_SCALE, DC_LEX_LOAD,
+	XC_LEX_INVALID, DC_LEX_PRINT_POP, DC_LEX_STORE_OBASE, BC_LEX_KEY_PRINT,
 	/* qrstuvwx */
-	BC_LEX_KEY_QUIT, BC_LEX_SWAP, BC_LEX_OP_ASSIGN, BC_LEX_INVALID,
-	BC_LEX_INVALID, BC_LEX_KEY_SQRT, BC_LEX_INVALID, BC_LEX_EXECUTE,
+	BC_LEX_KEY_QUIT, DC_LEX_SWAP, BC_LEX_OP_ASSIGN, XC_LEX_INVALID,
+	XC_LEX_INVALID, BC_LEX_KEY_SQRT, XC_LEX_INVALID, DC_LEX_EXECUTE,
 	/* yz */
-	BC_LEX_INVALID, BC_LEX_STACK_LEVEL,
+	XC_LEX_INVALID, DC_LEX_STACK_LEVEL,
 	/* {|}~ */
-	BC_LEX_LBRACE, BC_LEX_OP_MODEXP, BC_LEX_INVALID, BC_LEX_OP_DIVMOD,
+	BC_LEX_LBRACE, DC_LEX_OP_MODEXP, XC_LEX_INVALID, DC_LEX_OP_DIVMOD,
 };
 static const //BcInst - should be this type. Using signed narrow type since DC_INST_INVALID is -1
 int8_t
@@ -2940,7 +2940,7 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 	BcStatus s;
 
 	l->t.last = l->t.t;
-	if (l->t.last == BC_LEX_EOF) RETURN_STATUS(bc_error("end of file"));
+	if (l->t.last == XC_LEX_EOF) RETURN_STATUS(bc_error("end of file"));
 
 	l->line += l->newline;
 	G.err_line = l->line;
@@ -2952,7 +2952,7 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 	s = BC_STATUS_SUCCESS;
 	do {
 		if (l->i == l->len) {
-			l->t.t = BC_LEX_EOF;
+			l->t.t = XC_LEX_EOF;
 			if (!G.input_fp)
 				RETURN_STATUS(BC_STATUS_SUCCESS);
 			if (!bc_lex_more_input(l)) {
@@ -3002,7 +3002,7 @@ static BC_STATUS zbc_lex_text_init(BcLex *l, const char *text)
 	l->buf = text;
 	l->i = 0;
 	l->len = strlen(text);
-	l->t.t = l->t.last = BC_LEX_INVALID;
+	l->t.t = l->t.last = XC_LEX_INVALID;
 	RETURN_STATUS(zbc_lex_next(l));
 }
 #define zbc_lex_text_init(...) (zbc_lex_text_init(__VA_ARGS__) COMMA_SUCCESS)
@@ -3142,7 +3142,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 	switch (c) {
 //		case '\0': // probably never reached
 //			l->i--;
-//			l->t.t = BC_LEX_EOF;
+//			l->t.t = XC_LEX_EOF;
 //			l->newline = true;
 //			break;
 		case '\n':
@@ -3182,7 +3182,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 				++l->i;
 				l->t.t = BC_LEX_OP_BOOL_AND;
 			} else {
-				l->t.t = BC_LEX_INVALID;
+				l->t.t = XC_LEX_INVALID;
 				s = bc_error_bad_character('&');
 			}
 			break;
@@ -3311,12 +3311,12 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 				++l->i;
 				l->t.t = BC_LEX_OP_BOOL_OR;
 			} else {
-				l->t.t = BC_LEX_INVALID;
+				l->t.t = XC_LEX_INVALID;
 				s = bc_error_bad_character(c);
 			}
 			break;
 		default:
-			l->t.t = BC_LEX_INVALID;
+			l->t.t = XC_LEX_INVALID;
 			s = bc_error_bad_character(c);
 			break;
 	}
@@ -3394,9 +3394,9 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 	uint8_t
 	dc_lex_regs[] = {
 		BC_LEX_OP_REL_EQ, BC_LEX_OP_REL_LE, BC_LEX_OP_REL_GE, BC_LEX_OP_REL_NE,
-		BC_LEX_OP_REL_LT, BC_LEX_OP_REL_GT, BC_LEX_SCOLON, BC_LEX_COLON,
-		BC_LEX_ELSE, BC_LEX_LOAD, BC_LEX_LOAD_POP, BC_LEX_OP_ASSIGN,
-		BC_LEX_STORE_PUSH,
+		BC_LEX_OP_REL_LT, BC_LEX_OP_REL_GT, BC_LEX_SCOLON, DC_LEX_COLON,
+		DC_LEX_ELSE, DC_LEX_LOAD, DC_LEX_LOAD_POP, BC_LEX_OP_ASSIGN,
+		DC_LEX_STORE_PUSH,
 	};
 
 	BcStatus s;
@@ -3411,7 +3411,7 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 	s = BC_STATUS_SUCCESS;
 	c = l->buf[l->i++];
 	if (c >= '%' && c <= '~'
-	 && (l->t.t = dc_char_to_LEX[c - '%']) != BC_LEX_INVALID
+	 && (l->t.t = dc_char_to_LEX[c - '%']) != XC_LEX_INVALID
 	) {
 		RETURN_STATUS(s);
 	}
@@ -3419,7 +3419,7 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 	// This is the workhorse of the lexer.
 	switch (c) {
 //		case '\0': // probably never reached
-//			l->t.t = BC_LEX_EOF;
+//			l->t.t = XC_LEX_EOF;
 //			break;
 		case '\n':
 			// '\n' is BC_LEX_NLINE, not BC_LEX_WHITESPACE
@@ -3484,7 +3484,7 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 			s = zdc_lex_string(l);
 			break;
 		default:
-			l->t.t = BC_LEX_INVALID;
+			l->t.t = XC_LEX_INVALID;
 			s = bc_error_bad_character(c);
 			break;
 	}
@@ -3605,7 +3605,7 @@ static void bc_parse_reset(BcParse *p)
 	}
 
 	p->l.i = p->l.len;
-	p->l.t.t = BC_LEX_EOF;
+	p->l.t.t = XC_LEX_EOF;
 
 	IF_BC(bc_vec_pop_all(&p->exits);)
 	IF_BC(bc_vec_pop_all(&p->conds);)
@@ -4601,7 +4601,7 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p)
 	BcStatus s;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
-	if (p->l.t.t == BC_LEX_EOF)
+	if (p->l.t.t == XC_LEX_EOF)
 		s = bc_error("end of file");
 	else if (p->l.t.t == BC_LEX_KEY_DEFINE) {
 		dbg_lex("%s:%d p->l.t.t:BC_LEX_KEY_DEFINE", __func__, __LINE__);
@@ -4888,7 +4888,7 @@ static BC_STATUS zdc_parse_cond(BcParse *p, uint8_t inst)
 	// Note that 'else' part can not be on the next line:
 	// echo -e '[1p]sa [2p]sb 2 1>a eb' | dc - OK, prints "2"
 	// echo -e '[1p]sa [2p]sb 2 1>a\neb' | dc - parse error
-	if (p->l.t.t == BC_LEX_ELSE) {
+	if (p->l.t.t == DC_LEX_ELSE) {
 		s = zdc_parse_register(p);
 		if (s) RETURN_STATUS(s);
 		s = zbc_lex_next(&p->l);
@@ -4921,9 +4921,9 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			get_token = false;
 			break;
 		case BC_LEX_SCOLON:
-		case BC_LEX_COLON:
+		case DC_LEX_COLON:
 			dbg_lex("%s:%d LEX_[S]COLON", __func__, __LINE__);
-			s = zdc_parse_mem(p, XC_INST_ARRAY_ELEM, true, t == BC_LEX_COLON);
+			s = zdc_parse_mem(p, XC_INST_ARRAY_ELEM, true, t == DC_LEX_COLON);
 			break;
 		case BC_LEX_STR:
 			dbg_lex("%s:%d LEX_STR", __func__, __LINE__);
@@ -4947,23 +4947,23 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			bc_parse_push(p, XC_INST_READ);
 			break;
 		case BC_LEX_OP_ASSIGN:
-		case BC_LEX_STORE_PUSH:
+		case DC_LEX_STORE_PUSH:
 			dbg_lex("%s:%d LEX_OP_ASSIGN/STORE_PUSH", __func__, __LINE__);
 			assign = t == BC_LEX_OP_ASSIGN;
 			inst = assign ? XC_INST_VAR : DC_INST_PUSH_TO_VAR;
 			s = zdc_parse_mem(p, inst, true, assign);
 			break;
-		case BC_LEX_LOAD:
-		case BC_LEX_LOAD_POP:
+		case DC_LEX_LOAD:
+		case DC_LEX_LOAD_POP:
 			dbg_lex("%s:%d LEX_OP_LOAD[_POP]", __func__, __LINE__);
-			inst = t == BC_LEX_LOAD_POP ? DC_INST_PUSH_VAR : DC_INST_LOAD;
+			inst = t == DC_LEX_LOAD_POP ? DC_INST_PUSH_VAR : DC_INST_LOAD;
 			s = zdc_parse_mem(p, inst, true, false);
 			break;
-		case BC_LEX_STORE_IBASE:
-		case BC_LEX_STORE_SCALE:
-		case BC_LEX_STORE_OBASE:
+		case DC_LEX_STORE_IBASE:
+		case DC_LEX_STORE_SCALE:
+		case DC_LEX_STORE_OBASE:
 			dbg_lex("%s:%d LEX_OP_STORE_I/OBASE/SCALE", __func__, __LINE__);
-			inst = t - BC_LEX_STORE_IBASE + XC_INST_IBASE;
+			inst = t - DC_LEX_STORE_IBASE + XC_INST_IBASE;
 			s = zdc_parse_mem(p, inst, false, true);
 			break;
 		default:
@@ -4997,7 +4997,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p)
 static BC_STATUS zdc_parse_exprs_until_eof(BcParse *p)
 {
 	dbg_lex_enter("%s:%d entered, p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
-	while (p->l.t.t != BC_LEX_EOF) {
+	while (p->l.t.t != XC_LEX_EOF) {
 		BcStatus s = zdc_parse_expr(p);
 		if (s) RETURN_STATUS(s);
 	}
@@ -5229,7 +5229,7 @@ static BC_STATUS zbc_program_read(void)
 	}
 	if (s) goto exec_err;
 
-	if (parse.l.t.t != BC_LEX_NLINE && parse.l.t.t != BC_LEX_EOF) {
+	if (parse.l.t.t != BC_LEX_NLINE && parse.l.t.t != XC_LEX_EOF) {
 		s = bc_error("bad read() expression");
 		goto exec_err;
 	}
@@ -6361,7 +6361,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 		G.input_fp = sv_input_fp;
 
 		if (s) goto err;
-		if (prs.l.t.t != BC_LEX_EOF) {
+		if (prs.l.t.t != XC_LEX_EOF) {
 			s = bc_error_bad_expression();
  err:
 			bc_parse_free(&prs);
@@ -6695,7 +6695,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 	s = zbc_parse_text_init(&G.prs, text); // does the first zbc_lex_next()
 	if (s) RETURN_STATUS(s);
 
-	while (G.prs.l.t.t != BC_LEX_EOF) {
+	while (G.prs.l.t.t != XC_LEX_EOF) {
 		BcInstPtr *ip;
 		BcFunc *f;
 
@@ -6713,7 +6713,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 			while (G.prs.l.t.t == BC_LEX_NLINE) {
 				s = zbc_lex_next(&G.prs.l);
 				if (s) goto err;
-				if (G.prs.l.t.t == BC_LEX_EOF)
+				if (G.prs.l.t.t == XC_LEX_EOF)
 					goto done;
 			}
 			IF_DC(s = zdc_parse_expr(&G.prs));
