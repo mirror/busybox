@@ -673,34 +673,39 @@ dc_char_to_LEX[] = {
 };
 static const //BcInst - should be this type. Using signed narrow type since DC_INST_INVALID is -1
 int8_t
-dc_LEX_to_INST[] = { // (so many INVALIDs b/c dc parser does not generate these LEXs) // corresponding XC/DC_LEX_xyz:
-	DC_INST_INVALID, DC_INST_INVALID,                                    // EOF          INVALID
-	DC_INST_INVALID, DC_INST_INVALID,                                    // NLINE        WHITESPACE
-	DC_INST_INVALID, DC_INST_INVALID,  DC_INST_INVALID,                  // STR          NAME         NUMBER
-	DC_INST_INVALID,                                                     // NEG
-	XC_INST_POWER,   XC_INST_MULTIPLY, XC_INST_DIVIDE,                   // OP_POWER     OP_MULTIPLY  OP_DIVIDE
-	XC_INST_MODULUS, XC_INST_PLUS,     XC_INST_MINUS,                    // OP_MODULUS   OP_PLUS      OP_MINUS
-	DC_INST_INVALID, DC_INST_INVALID,  DC_INST_INVALID, DC_INST_INVALID, // OP_REL_EQ    OP_REL_LE    OP_REL_GE    OP_REL_NE
-	DC_INST_INVALID, DC_INST_INVALID,                                    // OP_REL_LT    OP_REL_GT
-	XC_INST_BOOL_NOT, // DC_LEX_OP_BOOL_NOT
-	DC_INST_INVALID,  // DC_LEX_OP_ASSIGN
-	XC_INST_REL_GT,   // DC_LEX_LPAREN
-	DC_INST_INVALID,  // DC_LEX_SCOLON
-	DC_INST_INVALID,  // DC_LEX_READ
-	XC_INST_IBASE,    // DC_LEX_IBASE
-	XC_INST_SCALE,    // DC_LEX_SCALE
-	XC_INST_OBASE,    // DC_LEX_OBASE
-	XC_INST_LENGTH,   // DC_LEX_LENGTH
-	XC_INST_PRINT,    // DC_LEX_PRINT
-	DC_INST_QUIT,     // DC_LEX_QUIT
-	XC_INST_SQRT,     // DC_LEX_SQRT
-	XC_INST_REL_GE,   // DC_LEX_LBRACE
-	XC_INST_REL_EQ, DC_INST_MODEXP, DC_INST_DIVMOD, DC_INST_INVALID,     // EQ_NO_REG    OP_MODEXP    OP_DIVMOD    COLON
-	DC_INST_INVALID, DC_INST_EXECUTE, DC_INST_PRINT_STACK, DC_INST_CLEAR_STACK, //ELSE   EXECUTE      PRINT_STACK  CLEAR_STACK
-	DC_INST_STACK_LEN, DC_INST_DUPLICATE, DC_INST_SWAP, XC_INST_POP,     // STACK_LEVEL  DUPLICATE    SWAP         POP
-	DC_INST_ASCIIFY, DC_INST_PRINT_STREAM, DC_INST_INVALID, DC_INST_INVALID, //ASCIIFY   PRINT_STREAM STORE_IBASE  STORE_OBASE
-	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // STORE_SCALE  LOAD         LOAD_POP     STORE_PUSH
-	XC_INST_PRINT, DC_INST_NQUIT, XC_INST_SCALE_FUNC,                    // PRINT_POP    NQUIT        SCALE_FACTOR
+dc_LEX_to_INST[] = { // starts at XC_LEX_OP_POWER       // corresponding XC/DC_LEX_xyz:
+	XC_INST_POWER,       XC_INST_MULTIPLY,          // OP_POWER     OP_MULTIPLY
+	XC_INST_DIVIDE,      XC_INST_MODULUS,           // OP_DIVIDE    OP_MODULUS
+	XC_INST_PLUS,        XC_INST_MINUS,             // OP_PLUS      OP_MINUS
+	DC_INST_INVALID,     DC_INST_INVALID,           // OP_REL_EQ    OP_REL_LE
+	DC_INST_INVALID,     DC_INST_INVALID,           // OP_REL_GE    OP_REL_NE
+	DC_INST_INVALID,     DC_INST_INVALID,           // OP_REL_LT    OP_REL_GT
+	XC_INST_BOOL_NOT,                               // DC_LEX_OP_BOOL_NOT
+	DC_INST_INVALID,                                // DC_LEX_OP_ASSIGN
+	XC_INST_REL_GT,                                 // DC_LEX_LPAREN
+	DC_INST_INVALID,                                // DC_LEX_SCOLON
+	DC_INST_INVALID,                                // DC_LEX_READ
+	XC_INST_IBASE,                                  // DC_LEX_IBASE
+	XC_INST_SCALE,                                  // DC_LEX_SCALE
+	XC_INST_OBASE,                                  // DC_LEX_OBASE
+	XC_INST_LENGTH,                                 // DC_LEX_LENGTH
+	XC_INST_PRINT,                                  // DC_LEX_PRINT
+	DC_INST_QUIT,                                   // DC_LEX_QUIT
+	XC_INST_SQRT,                                   // DC_LEX_SQRT
+	XC_INST_REL_GE,                                 // DC_LEX_LBRACE
+	XC_INST_REL_EQ,                                 // DC_LEX_EQ_NO_REG
+	DC_INST_MODEXP,      DC_INST_DIVMOD,            // OP_MODEXP    OP_DIVMOD
+	DC_INST_INVALID,     DC_INST_INVALID,           // COLON        ELSE
+	DC_INST_EXECUTE,                                // EXECUTE
+	DC_INST_PRINT_STACK, DC_INST_CLEAR_STACK,       // PRINT_STACK  CLEAR_STACK
+	DC_INST_STACK_LEN,   DC_INST_DUPLICATE,         // STACK_LEVEL  DUPLICATE
+	DC_INST_SWAP,        XC_INST_POP,               // SWAP         POP
+	DC_INST_ASCIIFY,     DC_INST_PRINT_STREAM,      // ASCIIFY      PRINT_STREAM
+	DC_INST_INVALID,     DC_INST_INVALID,           // STORE_IBASE  STORE_OBASE
+	DC_INST_INVALID,     DC_INST_INVALID,           // STORE_SCALE  LOAD
+	DC_INST_INVALID,     DC_INST_INVALID,           // LOAD_POP     STORE_PUSH
+	XC_INST_PRINT,       DC_INST_NQUIT,             // PRINT_POP    NQUIT
+	XC_INST_SCALE_FUNC,                             // SCALE_FACTOR
 	// DC_INST_INVALID in this table either means that corresponding LEX
 	// is not possible for dc, or that it does not compile one-to-one
 	// to a single INST.
@@ -5003,17 +5008,17 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 
 static BC_STATUS zdc_parse_expr(BcParse *p)
 {
-	BcInst inst;
-	BcStatus s;
+	int i;
 
-	inst = dc_LEX_to_INST[p->l.t.t];
-	if (inst != DC_INST_INVALID) {
-		bc_parse_push(p, inst);
-		s = zbc_lex_next(&p->l);
-	} else {
-		s = zdc_parse_token(p, p->l.t.t);
+	i = (int)p->l.t.t - (int)XC_LEX_OP_POWER;
+	if (i >= 0) {
+		BcInst inst = dc_LEX_to_INST[i];
+		if (inst != DC_INST_INVALID) {
+			bc_parse_push(p, inst);
+			RETURN_STATUS(zbc_lex_next(&p->l));
+		}
 	}
-	RETURN_STATUS(s);
+	RETURN_STATUS(zdc_parse_token(p, p->l.t.t));
 }
 #define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
