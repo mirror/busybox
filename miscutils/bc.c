@@ -962,13 +962,13 @@ static NOINLINE ERRORFUNC int bc_error_fmt(const char *fmt, ...)
 }
 
 #if ENABLE_BC
-static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
+static NOINLINE BC_STATUS zbc_posix_error_fmt(const char *fmt, ...)
 {
 	va_list p;
 
 	// Are non-POSIX constructs totally ok?
 	if (!(option_mask32 & (BC_FLAG_S|BC_FLAG_W)))
-		return BC_STATUS_SUCCESS; // yes
+		RETURN_STATUS(BC_STATUS_SUCCESS); // yes
 
 	va_start(p, fmt);
 	bc_verror_msg(fmt, p);
@@ -976,11 +976,13 @@ static NOINLINE int bc_posix_error_fmt(const char *fmt, ...)
 
 	// Do we treat non-POSIX constructs as errors?
 	if (!(option_mask32 & BC_FLAG_S))
-		return BC_STATUS_SUCCESS; // no, it's a warning
+		RETURN_STATUS(BC_STATUS_SUCCESS); // no, it's a warning
+
 	if (ENABLE_FEATURE_CLEAN_UP || G_ttyin)
-		return BC_STATUS_FAILURE;
+		RETURN_STATUS(BC_STATUS_FAILURE);
 	exit(1);
 }
+#define zbc_posix_error_fmt(...) (zbc_posix_error_fmt(__VA_ARGS__) COMMA_SUCCESS)
 #endif
 
 // We use error functions with "return bc_error(FMT[, PARAMS])" idiom.
@@ -1015,22 +1017,26 @@ static ERRORFUNC int bc_error_variable_is_wrong_type(void)
 	IF_ERROR_RETURN_POSSIBLE(return) bc_error("variable is wrong type");
 }
 #if ENABLE_BC
-static int bc_POSIX_requires(const char *msg)
+static BC_STATUS zbc_POSIX_requires(const char *msg)
 {
-	return bc_posix_error_fmt("POSIX requires %s", msg);
+	RETURN_STATUS(zbc_posix_error_fmt("POSIX requires %s", msg));
 }
-static int bc_POSIX_does_not_allow(const char *msg)
+#define zbc_POSIX_requires(...) (zbc_POSIX_requires(__VA_ARGS__) COMMA_SUCCESS)
+static BC_STATUS zbc_POSIX_does_not_allow(const char *msg)
 {
-	return bc_posix_error_fmt("%s%s", "POSIX does not allow ", msg);
+	RETURN_STATUS(zbc_posix_error_fmt("%s%s", "POSIX does not allow ", msg));
 }
-static int bc_POSIX_does_not_allow_bool_ops_this_is_bad(const char *msg)
+#define zbc_POSIX_does_not_allow(...) (zbc_POSIX_does_not_allow(__VA_ARGS__) COMMA_SUCCESS)
+static BC_STATUS zbc_POSIX_does_not_allow_bool_ops_this_is_bad(const char *msg)
 {
-	return bc_posix_error_fmt("%s%s %s", "POSIX does not allow ", "boolean operators; the following is bad:", msg);
+	RETURN_STATUS(zbc_posix_error_fmt("%s%s %s", "POSIX does not allow ", "boolean operators; the following is bad:", msg));
 }
-static int bc_POSIX_does_not_allow_empty_X_expression_in_for(const char *msg)
+#define zbc_POSIX_does_not_allow_bool_ops_this_is_bad(...) (zbc_POSIX_does_not_allow_bool_ops_this_is_bad(__VA_ARGS__) COMMA_SUCCESS)
+static BC_STATUS zbc_POSIX_does_not_allow_empty_X_expression_in_for(const char *msg)
 {
-	return bc_posix_error_fmt("%san empty %s expression in a for loop", "POSIX does not allow ", msg);
+	RETURN_STATUS(zbc_posix_error_fmt("%san empty %s expression in a for loop", "POSIX does not allow ", msg));
 }
+#define zbc_POSIX_does_not_allow_empty_X_expression_in_for(...) (zbc_POSIX_does_not_allow_empty_X_expression_in_for(__VA_ARGS__) COMMA_SUCCESS)
 #endif
 
 static void bc_vec_grow(BcVec *v, size_t n)
@@ -3054,8 +3060,8 @@ static BC_STATUS zbc_lex_identifier(BcLex *l)
 			continue; // "ifz" does not match "if" keyword, "if." does
 		l->t.t = BC_LEX_KEY_1st_keyword + i;
 		if (!bc_lex_kws_POSIX(i)) {
-			s = bc_posix_error_fmt("%sthe '%.8s' keyword", "POSIX does not allow ", bc_lex_kws[i].name8);
-			IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
+			s = zbc_posix_error_fmt("%sthe '%.8s' keyword", "POSIX does not allow ", bc_lex_kws[i].name8);
+			if (s) RETURN_STATUS(s);
 		}
 
 		// We minus 1 because the index has already been incremented.
@@ -3072,7 +3078,7 @@ static BC_STATUS zbc_lex_identifier(BcLex *l)
 		// bc: POSIX only allows one character names; the following is bad: 'qwe=1
 		// '
 		unsigned len = strchrnul(buf, '\n') - buf;
-		s = bc_posix_error_fmt("POSIX only allows one character names; the following is bad: '%.*s'", len, buf);
+		s = zbc_posix_error_fmt("POSIX only allows one character names; the following is bad: '%.*s'", len, buf);
 	}
 
 	RETURN_STATUS(s);
@@ -3184,16 +3190,16 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 		case '!':
 			bc_lex_assign(l, XC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
 			if (l->t.t == BC_LEX_OP_BOOL_NOT) {
-				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("!");
-				IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
+				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("!");
+				if (s) RETURN_STATUS(s);
 			}
 			break;
 		case '"':
 			s = zbc_lex_string(l);
 			break;
 		case '#':
-			s = bc_POSIX_does_not_allow("'#' script comments");
-			IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
+			s = zbc_POSIX_does_not_allow("'#' script comments");
+			if (s) RETURN_STATUS(s);
 			bc_lex_lineComment(l);
 			break;
 		case '%':
@@ -3202,8 +3208,8 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 		case '&':
 			c2 = l->buf[l->i];
 			if (c2 == '&') {
-				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("&&");
-				IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
+				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("&&");
+				if (s) RETURN_STATUS(s);
 				++l->i;
 				l->t.t = BC_LEX_OP_BOOL_AND;
 			} else {
@@ -3242,7 +3248,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 				s = zbc_lex_number(l, c);
 			else {
 				l->t.t = BC_LEX_KEY_LAST;
-				s = bc_POSIX_does_not_allow("a period ('.') as a shortcut for the last result");
+				s = zbc_POSIX_does_not_allow("a period ('.') as a shortcut for the last result");
 			}
 			break;
 		case '/':
@@ -3331,8 +3337,8 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 		case '|':
 			c2 = l->buf[l->i];
 			if (c2 == '|') {
-				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("||");
-				IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
+				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("||");
+				if (s) RETURN_STATUS(s);
 				++l->i;
 				l->t.t = BC_LEX_OP_BOOL_OR;
 			} else {
@@ -4116,8 +4122,8 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 		if (s) RETURN_STATUS(s);
 
 		if (!paren || p->l.t.last != BC_LEX_RPAREN) {
-			s = bc_POSIX_requires("parentheses around return expressions");
-			IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
+			s = zbc_POSIX_requires("parentheses around return expressions");
+			if (s) RETURN_STATUS(s);
 		}
 
 		bc_parse_push(p, XC_INST_RET);
@@ -4243,8 +4249,8 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 		bc_parse_push(p, XC_INST_POP);
 		if (s) RETURN_STATUS(s);
 	} else {
-		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("init");
-		IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s);)
+		s = zbc_POSIX_does_not_allow_empty_X_expression_in_for("init");
+		if (s) RETURN_STATUS(s);
 	}
 
 	if (p->l.t.t != BC_LEX_SCOLON) RETURN_STATUS(bc_error_bad_token());
@@ -4264,7 +4270,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 		// which has no string requirement.
 		bc_vec_string(&p->l.t.v, 1, "1");
 		bc_parse_pushNUM(p);
-		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("condition");
+		s = zbc_POSIX_does_not_allow_empty_X_expression_in_for("condition");
 	}
 	if (s) RETURN_STATUS(s);
 
@@ -4285,8 +4291,8 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 		if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 		bc_parse_push(p, XC_INST_POP);
 	} else {
-		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("update");
-		IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s);)
+		s = zbc_POSIX_does_not_allow_empty_X_expression_in_for("update");
+		if (s) RETURN_STATUS(s);
 	}
 
 	bc_parse_pushJUMP(p, cond_idx);
@@ -4421,7 +4427,7 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	if (s) RETURN_STATUS(s);
 
 	if (p->l.t.t != BC_LEX_LBRACE)
-		s = bc_POSIX_requires("the left brace be on the same line as the function header");
+		s = zbc_POSIX_requires("the left brace be on the same line as the function header");
 
 	// Prevent "define z()<newline>" from being interpreted as function with empty stmt as body
 	s = zbc_lex_skip_if_at_NLINE(&p->l);
@@ -4824,11 +4830,11 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 		return bc_error_bad_expression();
 
 	if (!(flags & BC_PARSE_REL) && nrelops) {
-		s = bc_POSIX_does_not_allow("comparison operators outside if or loops");
-		IF_ERROR_RETURN_POSSIBLE(if (s) return s);
+		s = zbc_POSIX_does_not_allow("comparison operators outside if or loops");
+		if (s) return s;
 	} else if ((flags & BC_PARSE_REL) && nrelops > 1) {
-		s = bc_POSIX_requires("exactly one comparison operator per condition");
-		IF_ERROR_RETURN_POSSIBLE(if (s) return s);
+		s = zbc_POSIX_requires("exactly one comparison operator per condition");
+		if (s) return s;
 	}
 
 	if (flags & BC_PARSE_PRINT) {
