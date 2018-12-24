@@ -260,7 +260,7 @@ typedef enum BcInst {
 	XC_INST_PLUS,           // for
 	XC_INST_MINUS,          // these
 
-	XC_INST_REL_EQ,         // opeartions
+	XC_INST_REL_EQ,         // operations
 	XC_INST_REL_LE,         // |
 	XC_INST_REL_GE,         // |
 	XC_INST_REL_NE,         // |
@@ -388,10 +388,15 @@ typedef struct BcInstPtr {
 	IF_BC(size_t results_len_before_call;)
 } BcInstPtr;
 
-// XC_LEX_NEG is not used in lexing; it is only for parsing.
 typedef enum BcLexType {
 	XC_LEX_EOF,
 	XC_LEX_INVALID,
+
+	BC_LEX_NLINE,
+	BC_LEX_WHITESPACE,
+	BC_LEX_STR,
+	BC_LEX_NAME,
+	BC_LEX_NUMBER,
 
 	XC_LEX_1st_op,
 	XC_LEX_NEG = XC_LEX_1st_op,     // order
@@ -403,13 +408,14 @@ typedef enum BcLexType {
 	XC_LEX_OP_PLUS,                 // for
 	XC_LEX_OP_MINUS,                // these
 
-	XC_LEX_OP_REL_EQ,               // opeartions
+	XC_LEX_OP_REL_EQ,               // operations
 	XC_LEX_OP_REL_LE,               // |
 	XC_LEX_OP_REL_GE,               // |
 	XC_LEX_OP_REL_NE,               // |
 	XC_LEX_OP_REL_LT,               // |
 	XC_LEX_OP_REL_GT,               // |
-
+	XC_LEX_OP_last = XC_LEX_OP_REL_GT,
+#if ENABLE_BC
 	BC_LEX_OP_BOOL_NOT,             // |
 	BC_LEX_OP_BOOL_OR,              // |
 	BC_LEX_OP_BOOL_AND,             // |
@@ -426,9 +432,6 @@ typedef enum BcLexType {
 	BC_LEX_OP_INC,
 	BC_LEX_OP_DEC,
 
-	BC_LEX_NLINE,
-	BC_LEX_WHITESPACE,
-
 	BC_LEX_LPAREN,
 	BC_LEX_RPAREN,
 
@@ -439,10 +442,6 @@ typedef enum BcLexType {
 	BC_LEX_LBRACE, // '{' is 0x7B, '}' is 0x7D,
 	BC_LEX_SCOLON,
 	BC_LEX_RBRACE, // should be LBRACE+2: code uses (c - '{' + BC_LEX_LBRACE)
-
-	BC_LEX_STR,
-	BC_LEX_NAME,
-	BC_LEX_NUMBER,
 
 	BC_LEX_KEY_1st_keyword,
 	BC_LEX_KEY_AUTO = BC_LEX_KEY_1st_keyword,
@@ -466,8 +465,24 @@ typedef enum BcLexType {
 	BC_LEX_KEY_SCALE,
 	BC_LEX_KEY_SQRT,
 	BC_LEX_KEY_WHILE,
+#endif // ENABLE_BC
 
 #if ENABLE_DC
+	DC_LEX_OP_BOOL_NOT = XC_LEX_OP_last + 1,
+	DC_LEX_OP_ASSIGN,
+
+	DC_LEX_LPAREN,
+	DC_LEX_SCOLON,
+	DC_LEX_READ,
+	DC_LEX_IBASE,
+	DC_LEX_SCALE,
+	DC_LEX_OBASE,
+	DC_LEX_LENGTH,
+	DC_LEX_PRINT,
+	DC_LEX_QUIT,
+	DC_LEX_SQRT,
+	DC_LEX_LBRACE,
+
 	DC_LEX_EQ_NO_REG,
 	DC_LEX_OP_MODEXP,
 	DC_LEX_OP_DIVMOD,
@@ -566,11 +581,11 @@ enum {
 #define EXBITS(a,b,c,d,e,f,g,h) \
 	((uint64_t)((a << 0)+(b << 1)+(c << 2)+(d << 3)+(e << 4)+(f << 5)+(g << 6)+(h << 7)))
 	BC_PARSE_EXPRS_BITS = 0              // corresponding BC_LEX_xyz:
-	+ (EXBITS(0,0,1,1,1,1,1,1) << (0*8)) //  0: eof    inval  -      ^      *      /      %      +
-	+ (EXBITS(1,1,1,1,1,1,1,1) << (1*8)) //  8: -      ==     <=     >=     !=     <      >      !
-	+ (EXBITS(1,1,1,1,1,1,1,1) << (2*8)) // 16: ||     &&     ^=     *=     /=     %=     +=     -=
-	+ (EXBITS(1,1,1,0,0,1,1,0) << (3*8)) // 24: =      ++     --     NL     WS     (      )      [
-	+ (EXBITS(0,0,0,0,0,0,1,1) << (4*8)) // 32: ,      ]      {      ;      }      STR    NAME   NUM
+	+ (EXBITS(0,0,0,0,0,1,1,1) << (0*8)) //  0: EOF    INVAL  NL     WS     STR    NAME   NUM    -
+	+ (EXBITS(1,1,1,1,1,1,1,1) << (1*8)) //  8: ^      *      /      %      +      -      ==     <=
+	+ (EXBITS(1,1,1,1,1,1,1,1) << (2*8)) // 16: >=     !=     <      >      !      ||     &&     ^=
+	+ (EXBITS(1,1,1,1,1,1,1,1) << (3*8)) // 24: *=     /=     %=     +=     -=     =      ++     --
+	+ (EXBITS(1,1,0,0,0,0,0,0) << (4*8)) // 32: (      )      [      ,      ]      {      ;      }
 	+ (EXBITS(0,0,0,0,0,0,0,1) << (5*8)) // 40: auto   break  cont   define else   for    halt   ibase
 	+ (EXBITS(1,0,1,1,0,0,0,1) << (6*8)) // 48: obase  if     last   length limits print  quit   read
 	+ (EXBITS(0,1,1,0,0,0,0,0) << (7*8)) // 56: return scale  sqrt   while
@@ -617,7 +632,7 @@ static const //BcLexType - should be this type
 uint8_t
 dc_char_to_LEX[] = {
 	/* %&'( */
-	XC_LEX_OP_MODULUS, XC_LEX_INVALID, XC_LEX_INVALID, BC_LEX_LPAREN,
+	XC_LEX_OP_MODULUS, XC_LEX_INVALID, XC_LEX_INVALID, DC_LEX_LPAREN,
 	/* )*+, */
 	XC_LEX_INVALID, XC_LEX_OP_MULTIPLY, XC_LEX_OP_PLUS, XC_LEX_INVALID,
 	/* -./ */
@@ -627,19 +642,19 @@ dc_char_to_LEX[] = {
 	XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
 	XC_LEX_INVALID, XC_LEX_INVALID,
 	/* :;<=>?@ */
-	DC_LEX_COLON, BC_LEX_SCOLON, XC_LEX_OP_REL_GT, XC_LEX_OP_REL_EQ,
-	XC_LEX_OP_REL_LT, BC_LEX_KEY_READ, XC_LEX_INVALID,
+	DC_LEX_COLON, DC_LEX_SCOLON, XC_LEX_OP_REL_GT, XC_LEX_OP_REL_EQ,
+	XC_LEX_OP_REL_LT, DC_LEX_READ, XC_LEX_INVALID,
 	/* ABCDEFGH */
 	XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
 	XC_LEX_INVALID, XC_LEX_INVALID, DC_LEX_EQ_NO_REG, XC_LEX_INVALID,
 	/* IJKLMNOP */
-	BC_LEX_KEY_IBASE, XC_LEX_INVALID, BC_LEX_KEY_SCALE, DC_LEX_LOAD_POP,
-	XC_LEX_INVALID, BC_LEX_OP_BOOL_NOT, BC_LEX_KEY_OBASE, DC_LEX_PRINT_STREAM,
+	DC_LEX_IBASE, XC_LEX_INVALID, DC_LEX_SCALE, DC_LEX_LOAD_POP,
+	XC_LEX_INVALID, DC_LEX_OP_BOOL_NOT, DC_LEX_OBASE, DC_LEX_PRINT_STREAM,
 	/* QRSTUVWXY */
 	DC_LEX_NQUIT, DC_LEX_POP, DC_LEX_STORE_PUSH, XC_LEX_INVALID, XC_LEX_INVALID,
 	XC_LEX_INVALID, XC_LEX_INVALID, DC_LEX_SCALE_FACTOR, XC_LEX_INVALID,
 	/* Z[\] */
-	BC_LEX_KEY_LENGTH, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
+	DC_LEX_LENGTH, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
 	/* ^_` */
 	XC_LEX_OP_POWER, XC_LEX_NEG, XC_LEX_INVALID,
 	/* abcdefgh */
@@ -647,43 +662,48 @@ dc_char_to_LEX[] = {
 	DC_LEX_ELSE, DC_LEX_PRINT_STACK, XC_LEX_INVALID, XC_LEX_INVALID,
 	/* ijklmnop */
 	DC_LEX_STORE_IBASE, XC_LEX_INVALID, DC_LEX_STORE_SCALE, DC_LEX_LOAD,
-	XC_LEX_INVALID, DC_LEX_PRINT_POP, DC_LEX_STORE_OBASE, BC_LEX_KEY_PRINT,
+	XC_LEX_INVALID, DC_LEX_PRINT_POP, DC_LEX_STORE_OBASE, DC_LEX_PRINT,
 	/* qrstuvwx */
-	BC_LEX_KEY_QUIT, DC_LEX_SWAP, BC_LEX_OP_ASSIGN, XC_LEX_INVALID,
-	XC_LEX_INVALID, BC_LEX_KEY_SQRT, XC_LEX_INVALID, DC_LEX_EXECUTE,
+	DC_LEX_QUIT, DC_LEX_SWAP, DC_LEX_OP_ASSIGN, XC_LEX_INVALID,
+	XC_LEX_INVALID, DC_LEX_SQRT, XC_LEX_INVALID, DC_LEX_EXECUTE,
 	/* yz */
 	XC_LEX_INVALID, DC_LEX_STACK_LEVEL,
 	/* {|}~ */
-	BC_LEX_LBRACE, DC_LEX_OP_MODEXP, XC_LEX_INVALID, DC_LEX_OP_DIVMOD,
+	DC_LEX_LBRACE, DC_LEX_OP_MODEXP, XC_LEX_INVALID, DC_LEX_OP_DIVMOD,
 };
 static const //BcInst - should be this type. Using signed narrow type since DC_INST_INVALID is -1
 int8_t
-dc_LEX_to_INST[] = { // (so many INVALIDs b/c dc parser does not generate these LEXs) // corresponding BC_LEX_xyz:
+dc_LEX_to_INST[] = { // (so many INVALIDs b/c dc parser does not generate these LEXs) // corresponding XC/DC_LEX_xyz:
 	DC_INST_INVALID, DC_INST_INVALID,                                    // EOF          INVALID
+	DC_INST_INVALID, DC_INST_INVALID,                                    // NLINE        WHITESPACE
+	DC_INST_INVALID, DC_INST_INVALID,  DC_INST_INVALID,                  // STR          NAME         NUMBER
 	DC_INST_INVALID,                                                     // NEG
-	XC_INST_POWER, XC_INST_MULTIPLY, XC_INST_DIVIDE,                     // OP_POWER     OP_MULTIPLY  OP_DIVIDE
-	XC_INST_MODULUS, XC_INST_PLUS, XC_INST_MINUS,                        // OP_MODULUS   OP_PLUS      OP_MINUS
-	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // OP_REL_EQ    OP_REL_LE    OP_REL_GE    OP_REL_NE
+	XC_INST_POWER,   XC_INST_MULTIPLY, XC_INST_DIVIDE,                   // OP_POWER     OP_MULTIPLY  OP_DIVIDE
+	XC_INST_MODULUS, XC_INST_PLUS,     XC_INST_MINUS,                    // OP_MODULUS   OP_PLUS      OP_MINUS
+	DC_INST_INVALID, DC_INST_INVALID,  DC_INST_INVALID, DC_INST_INVALID, // OP_REL_EQ    OP_REL_LE    OP_REL_GE    OP_REL_NE
 	DC_INST_INVALID, DC_INST_INVALID,                                    // OP_REL_LT    OP_REL_GT
-	XC_INST_BOOL_NOT, DC_INST_INVALID, DC_INST_INVALID,                  // OP_BOOL_NOT  OP_BOOL_OR   OP_BOOL_AND
-	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // OP_ASSIGN_POWER OP_ASSIGN_MULTIPLY OP_ASSIGN_DIVIDE OP_ASSIGN_MODULUS
-	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,                   // OP_ASSIGN_PLUS OP_ASSIGN_MINUS         OP_ASSIGN
-	DC_INST_INVALID, XC_INST_REL_GE,                                     // OP_INC       OP_DEC
-	DC_INST_INVALID, DC_INST_INVALID, XC_INST_REL_GT, DC_INST_INVALID,   // NLINE        WHITESPACE   LPAREN       RPAREN
-	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, XC_INST_REL_GE,   // LBRACKET     COMMA        RBRACKET     LBRACE
-	DC_INST_INVALID, DC_INST_INVALID,                                    // SCOLON       RBRACE
-	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,                   // STR          NAME         NUMBER
-	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // KEY_AUTO     KEY_BREAK    KEY_CONTINUE KEY_DEFINE
-	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, XC_INST_IBASE,    // KEY_ELSE     KEY_FOR      KEY_HALT     KEY_IBASE
-	XC_INST_OBASE, DC_INST_INVALID, IF_BC(DC_INST_INVALID,) XC_INST_LENGTH,//KEY_OBASE   KEY_IF       KEY_LAST(bc) KEY_LENGTH
-	DC_INST_INVALID, XC_INST_PRINT, DC_INST_QUIT, DC_INST_INVALID,       // KEY_LIMITS   KEY_PRINT    KEY_QUIT     KEY_READ
-	DC_INST_INVALID, XC_INST_SCALE, XC_INST_SQRT, DC_INST_INVALID,       // KEY_RETURN   KEY_SCALE    KEY_SQRT     KEY_WHILE
+	XC_INST_BOOL_NOT, // DC_LEX_OP_BOOL_NOT
+	DC_INST_INVALID,  // DC_LEX_OP_ASSIGN
+	XC_INST_REL_GT,   // DC_LEX_LPAREN
+	DC_INST_INVALID,  // DC_LEX_SCOLON
+	DC_INST_INVALID,  // DC_LEX_READ
+	XC_INST_IBASE,    // DC_LEX_IBASE
+	XC_INST_SCALE,    // DC_LEX_SCALE
+	XC_INST_OBASE,    // DC_LEX_OBASE
+	XC_INST_LENGTH,   // DC_LEX_LENGTH
+	XC_INST_PRINT,    // DC_LEX_PRINT
+	DC_INST_QUIT,     // DC_LEX_QUIT
+	XC_INST_SQRT,     // DC_LEX_SQRT
+	XC_INST_REL_GE,   // DC_LEX_LBRACE
 	XC_INST_REL_EQ, DC_INST_MODEXP, DC_INST_DIVMOD, DC_INST_INVALID,     // EQ_NO_REG    OP_MODEXP    OP_DIVMOD    COLON
 	DC_INST_INVALID, DC_INST_EXECUTE, DC_INST_PRINT_STACK, DC_INST_CLEAR_STACK, //ELSE   EXECUTE      PRINT_STACK  CLEAR_STACK
 	DC_INST_STACK_LEN, DC_INST_DUPLICATE, DC_INST_SWAP, XC_INST_POP,     // STACK_LEVEL  DUPLICATE    SWAP         POP
 	DC_INST_ASCIIFY, DC_INST_PRINT_STREAM, DC_INST_INVALID, DC_INST_INVALID, //ASCIIFY   PRINT_STREAM STORE_IBASE  STORE_OBASE
 	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // STORE_SCALE  LOAD         LOAD_POP     STORE_PUSH
 	XC_INST_PRINT, DC_INST_NQUIT, XC_INST_SCALE_FUNC,                    // PRINT_POP    NQUIT        SCALE_FACTOR
+	// DC_INST_INVALID in this table either means that corresponding LEX
+	// is not possible for dc, or that it does not compile one-to-one
+	// to a single INST.
 };
 #endif // ENABLE_DC
 
@@ -3397,8 +3417,8 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 	uint8_t
 	dc_lex_regs[] = {
 		XC_LEX_OP_REL_EQ, XC_LEX_OP_REL_LE, XC_LEX_OP_REL_GE, XC_LEX_OP_REL_NE,
-		XC_LEX_OP_REL_LT, XC_LEX_OP_REL_GT, BC_LEX_SCOLON, DC_LEX_COLON,
-		DC_LEX_ELSE, DC_LEX_LOAD, DC_LEX_LOAD_POP, BC_LEX_OP_ASSIGN,
+		XC_LEX_OP_REL_LT, XC_LEX_OP_REL_GT, DC_LEX_SCOLON, DC_LEX_COLON,
+		DC_LEX_ELSE, DC_LEX_LOAD, DC_LEX_LOAD_POP, DC_LEX_OP_ASSIGN,
 		DC_LEX_STORE_PUSH,
 	};
 
@@ -4923,7 +4943,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			s = zdc_parse_cond(p, t - XC_LEX_OP_REL_EQ + XC_INST_REL_EQ);
 			get_token = false;
 			break;
-		case BC_LEX_SCOLON:
+		case DC_LEX_SCOLON:
 		case DC_LEX_COLON:
 			dbg_lex("%s:%d LEX_[S]COLON", __func__, __LINE__);
 			s = zdc_parse_mem(p, XC_INST_ARRAY_ELEM, true, t == DC_LEX_COLON);
@@ -4945,14 +4965,14 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			dbg_lex("%s:%d LEX_NUMBER", __func__, __LINE__);
 			bc_parse_pushNUM(p);
 			break;
-		case BC_LEX_KEY_READ:
+		case DC_LEX_READ:
 			dbg_lex("%s:%d LEX_KEY_READ", __func__, __LINE__);
 			bc_parse_push(p, XC_INST_READ);
 			break;
-		case BC_LEX_OP_ASSIGN:
+		case DC_LEX_OP_ASSIGN:
 		case DC_LEX_STORE_PUSH:
 			dbg_lex("%s:%d LEX_OP_ASSIGN/STORE_PUSH", __func__, __LINE__);
-			assign = t == BC_LEX_OP_ASSIGN;
+			assign = (t == DC_LEX_OP_ASSIGN);
 			inst = assign ? XC_INST_VAR : DC_INST_PUSH_TO_VAR;
 			s = zdc_parse_mem(p, inst, true, assign);
 			break;
