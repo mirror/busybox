@@ -251,26 +251,25 @@ typedef enum BcInst {
 	BC_INST_INC_POST,
 	BC_INST_DEC_POST,
 #endif
+	XC_INST_NEG,
 
-	BC_INST_NEG,
+	XC_INST_POWER,
+	XC_INST_MULTIPLY,
+	XC_INST_DIVIDE,
+	XC_INST_MODULUS,
+	XC_INST_PLUS,
+	XC_INST_MINUS,
 
-	BC_INST_POWER,
-	BC_INST_MULTIPLY,
-	BC_INST_DIVIDE,
-	BC_INST_MODULUS,
-	BC_INST_PLUS,
-	BC_INST_MINUS,
+	XC_INST_REL_EQ,
+	XC_INST_REL_LE,
+	XC_INST_REL_GE,
+	XC_INST_REL_NE,
+	XC_INST_REL_LT,
+	XC_INST_REL_GT,
 
-	BC_INST_REL_EQ,
-	BC_INST_REL_LE,
-	BC_INST_REL_GE,
-	BC_INST_REL_NE,
-	BC_INST_REL_LT,
-	BC_INST_REL_GT,
-
-	BC_INST_BOOL_NOT,
-	BC_INST_BOOL_OR,
-	BC_INST_BOOL_AND,
+	XC_INST_BOOL_NOT,
+	XC_INST_BOOL_OR,
+	XC_INST_BOOL_AND,
 
 #if ENABLE_BC
 	BC_INST_ASSIGN_POWER,
@@ -280,26 +279,26 @@ typedef enum BcInst {
 	BC_INST_ASSIGN_PLUS,
 	BC_INST_ASSIGN_MINUS,
 #endif
-	BC_INST_ASSIGN,
+	XC_INST_ASSIGN,
 
-	BC_INST_NUM,
-	BC_INST_VAR,
-	BC_INST_ARRAY_ELEM,
-	BC_INST_ARRAY,
-	BC_INST_SCALE_FUNC,
+	XC_INST_NUM,
+	XC_INST_VAR,
+	XC_INST_ARRAY_ELEM,
+	XC_INST_ARRAY,
+	XC_INST_SCALE_FUNC,
 
-	BC_INST_IBASE,       // order of these constans should match other enums
-	BC_INST_OBASE,       // order of these constans should match other enums
-	BC_INST_SCALE,       // order of these constans should match other enums
+	XC_INST_IBASE,       // order of these constans should match other enums
+	XC_INST_OBASE,       // order of these constans should match other enums
+	XC_INST_SCALE,       // order of these constans should match other enums
 	IF_BC(BC_INST_LAST,) // order of these constans should match other enums
-	BC_INST_LENGTH,
-	BC_INST_READ,
-	BC_INST_SQRT,
+	XC_INST_LENGTH,
+	XC_INST_READ,
+	XC_INST_SQRT,
 
-	BC_INST_PRINT,
-	BC_INST_PRINT_POP,
-	BC_INST_STR,
-	BC_INST_PRINT_STR,
+	XC_INST_PRINT,
+	XC_INST_PRINT_POP,
+	XC_INST_STR,
+	XC_INST_PRINT_STR,
 
 #if ENABLE_BC
 	BC_INST_HALT,
@@ -309,35 +308,35 @@ typedef enum BcInst {
 	BC_INST_CALL,
 	BC_INST_RET0,
 #endif
-	BC_INST_RET,
+	XC_INST_RET,
 
-	BC_INST_POP,
+	XC_INST_POP,
 #if ENABLE_DC
-	BC_INST_POP_EXEC,
+	DC_INST_POP_EXEC,
 
-	BC_INST_MODEXP,
-	BC_INST_DIVMOD,
+	DC_INST_MODEXP,
+	DC_INST_DIVMOD,
 
-	BC_INST_EXECUTE,
-	BC_INST_EXEC_COND,
+	DC_INST_EXECUTE,
+	DC_INST_EXEC_COND,
 
-	BC_INST_ASCIIFY,
-	BC_INST_PRINT_STREAM,
+	DC_INST_ASCIIFY,
+	DC_INST_PRINT_STREAM,
 
-	BC_INST_PRINT_STACK,
-	BC_INST_CLEAR_STACK,
-	BC_INST_STACK_LEN,
-	BC_INST_DUPLICATE,
-	BC_INST_SWAP,
+	DC_INST_PRINT_STACK,
+	DC_INST_CLEAR_STACK,
+	DC_INST_STACK_LEN,
+	DC_INST_DUPLICATE,
+	DC_INST_SWAP,
 
-	BC_INST_LOAD,
-	BC_INST_PUSH_VAR,
-	BC_INST_PUSH_TO_VAR,
+	DC_INST_LOAD,
+	DC_INST_PUSH_VAR,
+	DC_INST_PUSH_TO_VAR,
 
-	BC_INST_QUIT,
-	BC_INST_NQUIT,
+	DC_INST_QUIT,
+	DC_INST_NQUIT,
 
-	BC_INST_INVALID = -1,
+	DC_INST_INVALID = -1,
 #endif
 } BcInst;
 
@@ -364,10 +363,10 @@ typedef enum BcResultType {
 
 	BC_RESULT_STR,
 
-	//code uses "inst - BC_INST_IBASE + BC_RESULT_IBASE" construct,
-	BC_RESULT_IBASE,       // relative order should match for: BC_INST_IBASE
-	BC_RESULT_OBASE,       // relative order should match for: BC_INST_OBASE
-	BC_RESULT_SCALE,       // relative order should match for: BC_INST_SCALE
+	//code uses "inst - XC_INST_IBASE + BC_RESULT_IBASE" construct,
+	BC_RESULT_IBASE,       // relative order should match for: XC_INST_IBASE
+	BC_RESULT_OBASE,       // relative order should match for: XC_INST_OBASE
+	BC_RESULT_SCALE,       // relative order should match for: XC_INST_SCALE
 	IF_BC(BC_RESULT_LAST,) // relative order should match for: BC_INST_LAST
 	BC_RESULT_CONSTANT,
 	BC_RESULT_ONE,
@@ -452,9 +451,9 @@ typedef enum BcLexType {
 	BC_LEX_KEY_ELSE,
 	BC_LEX_KEY_FOR,
 	BC_LEX_KEY_HALT,
-	// code uses "type - BC_LEX_KEY_IBASE + BC_INST_IBASE" construct,
-	BC_LEX_KEY_IBASE,       // relative order should match for: BC_INST_IBASE
-	BC_LEX_KEY_OBASE,       // relative order should match for: BC_INST_OBASE
+	// code uses "type - BC_LEX_KEY_IBASE + XC_INST_IBASE" construct,
+	BC_LEX_KEY_IBASE,       // relative order should match for: XC_INST_IBASE
+	BC_LEX_KEY_OBASE,       // relative order should match for: XC_INST_OBASE
 	BC_LEX_KEY_IF,
 	IF_BC(BC_LEX_KEY_LAST,) // relative order should match for: BC_INST_LAST
 	BC_LEX_KEY_LENGTH,
@@ -485,10 +484,10 @@ typedef enum BcLexType {
 	BC_LEX_ASCIIFY,
 	BC_LEX_PRINT_STREAM,
 
-	// code uses "t - BC_LEX_STORE_IBASE + BC_INST_IBASE" construct,
-	BC_LEX_STORE_IBASE,  // relative order should match for: BC_INST_IBASE
-	BC_LEX_STORE_OBASE,  // relative order should match for: BC_INST_OBASE
-	BC_LEX_STORE_SCALE,  // relative order should match for: BC_INST_SCALE
+	// code uses "t - BC_LEX_STORE_IBASE + XC_INST_IBASE" construct,
+	BC_LEX_STORE_IBASE,  // relative order should match for: XC_INST_IBASE
+	BC_LEX_STORE_OBASE,  // relative order should match for: XC_INST_OBASE
+	BC_LEX_STORE_SCALE,  // relative order should match for: XC_INST_SCALE
 	BC_LEX_LOAD,
 	BC_LEX_LOAD_POP,
 	BC_LEX_STORE_PUSH,
@@ -656,32 +655,32 @@ dc_char_to_LEX[] = {
 	/* {|}~ */
 	BC_LEX_LBRACE, BC_LEX_OP_MODEXP, BC_LEX_INVALID, BC_LEX_OP_DIVMOD,
 };
-static const //BcInst - should be this type. Using signed narrow type since BC_INST_INVALID is -1
+static const //BcInst - should be this type. Using signed narrow type since DC_INST_INVALID is -1
 int8_t
 dc_LEX_to_INST[] = { // (so many INVALIDs b/c dc parser does not generate these LEXs) // corresponding BC_LEX_xyz:
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,   // EOF         INVALID      OP_INC       OP_DEC
-	BC_INST_INVALID, BC_INST_POWER, BC_INST_MULTIPLY, BC_INST_DIVIDE,    // NEG         OP_POWER     OP_MULTIPLY  OP_DIVIDE
-	BC_INST_MODULUS, BC_INST_PLUS, BC_INST_MINUS,                        // OP_MODULUS  OP_PLUS      OP_MINUS
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,  // OP_REL_EQ   OP_REL_LE    OP_REL_GE    OP_REL_NE
-	BC_INST_INVALID, BC_INST_INVALID,                                    // OP_REL_LT   OP_REL_GT
-	BC_INST_BOOL_NOT, BC_INST_INVALID, BC_INST_INVALID,                  // OP_BOOL_NOT OP_BOOL_OR   OP_BOOL_AND
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,  // OP_ASSIGN_POWER OP_ASSIGN_MULTIPLY OP_ASSIGN_DIVIDE OP_ASSIGN_MODULUS
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,                   // OP_ASSIGN_PLUS OP_ASSIGN_MINUS        OP_ASSIGN
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GT, BC_INST_INVALID,   // NLINE       WHITESPACE   LPAREN       RPAREN
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_REL_GE,   // LBRACKET    COMMA        RBRACKET     LBRACE
-	BC_INST_INVALID, BC_INST_INVALID,                                    // SCOLON      RBRACE
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,                   // STR         NAME         NUMBER
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,  // KEY_AUTO    KEY_BREAK    KEY_CONTINUE KEY_DEFINE
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_IBASE,    // KEY_ELSE    KEY_FOR      KEY_HALT     KEY_IBASE
-	BC_INST_OBASE, BC_INST_INVALID, IF_BC(BC_INST_INVALID,) BC_INST_LENGTH,//KEY_OBASE  KEY_IF       KEY_LAST(bc) KEY_LENGTH
-	BC_INST_INVALID, BC_INST_PRINT, BC_INST_QUIT, BC_INST_INVALID,       // KEY_LIMITS  KEY_PRINT    KEY_QUIT     KEY_READ
-	BC_INST_INVALID, BC_INST_SCALE, BC_INST_SQRT, BC_INST_INVALID,       // KEY_RETURN  KEY_SCALE    KEY_SQRT     KEY_WHILE
-	BC_INST_REL_EQ, BC_INST_MODEXP, BC_INST_DIVMOD, BC_INST_INVALID,     // EQ_NO_REG   OP_MODEXP    OP_DIVMOD    COLON
-	BC_INST_INVALID, BC_INST_EXECUTE, BC_INST_PRINT_STACK, BC_INST_CLEAR_STACK, //ELSE  EXECUTE      PRINT_STACK  CLEAR_STACK
-	BC_INST_STACK_LEN, BC_INST_DUPLICATE, BC_INST_SWAP, BC_INST_POP,     // STACK_LEVEL DUPLICATE    SWAP         POP
-	BC_INST_ASCIIFY, BC_INST_PRINT_STREAM, BC_INST_INVALID, BC_INST_INVALID, //ASCIIFY  PRINT_STREAM STORE_IBASE  STORE_OBASE
-	BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID, BC_INST_INVALID,  // STORE_SCALE LOAD         LOAD_POP     STORE_PUSH
-	BC_INST_PRINT, BC_INST_NQUIT, BC_INST_SCALE_FUNC,                    // PRINT_POP   NQUIT        SCALE_FACTOR
+	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, XC_INST_REL_GE,   // EOF         INVALID      OP_INC       OP_DEC
+	DC_INST_INVALID, XC_INST_POWER, XC_INST_MULTIPLY, XC_INST_DIVIDE,    // NEG         OP_POWER     OP_MULTIPLY  OP_DIVIDE
+	XC_INST_MODULUS, XC_INST_PLUS, XC_INST_MINUS,                        // OP_MODULUS  OP_PLUS      OP_MINUS
+	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // OP_REL_EQ   OP_REL_LE    OP_REL_GE    OP_REL_NE
+	DC_INST_INVALID, DC_INST_INVALID,                                    // OP_REL_LT   OP_REL_GT
+	XC_INST_BOOL_NOT, DC_INST_INVALID, DC_INST_INVALID,                  // OP_BOOL_NOT OP_BOOL_OR   OP_BOOL_AND
+	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // OP_ASSIGN_POWER OP_ASSIGN_MULTIPLY OP_ASSIGN_DIVIDE OP_ASSIGN_MODULUS
+	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,                   // OP_ASSIGN_PLUS OP_ASSIGN_MINUS        OP_ASSIGN
+	DC_INST_INVALID, DC_INST_INVALID, XC_INST_REL_GT, DC_INST_INVALID,   // NLINE       WHITESPACE   LPAREN       RPAREN
+	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, XC_INST_REL_GE,   // LBRACKET    COMMA        RBRACKET     LBRACE
+	DC_INST_INVALID, DC_INST_INVALID,                                    // SCOLON      RBRACE
+	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,                   // STR         NAME         NUMBER
+	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // KEY_AUTO    KEY_BREAK    KEY_CONTINUE KEY_DEFINE
+	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, XC_INST_IBASE,    // KEY_ELSE    KEY_FOR      KEY_HALT     KEY_IBASE
+	XC_INST_OBASE, DC_INST_INVALID, IF_BC(DC_INST_INVALID,) XC_INST_LENGTH,//KEY_OBASE  KEY_IF       KEY_LAST(bc) KEY_LENGTH
+	DC_INST_INVALID, XC_INST_PRINT, DC_INST_QUIT, DC_INST_INVALID,       // KEY_LIMITS  KEY_PRINT    KEY_QUIT     KEY_READ
+	DC_INST_INVALID, XC_INST_SCALE, XC_INST_SQRT, DC_INST_INVALID,       // KEY_RETURN  KEY_SCALE    KEY_SQRT     KEY_WHILE
+	XC_INST_REL_EQ, DC_INST_MODEXP, DC_INST_DIVMOD, DC_INST_INVALID,     // EQ_NO_REG   OP_MODEXP    OP_DIVMOD    COLON
+	DC_INST_INVALID, DC_INST_EXECUTE, DC_INST_PRINT_STACK, DC_INST_CLEAR_STACK, //ELSE  EXECUTE      PRINT_STACK  CLEAR_STACK
+	DC_INST_STACK_LEN, DC_INST_DUPLICATE, DC_INST_SWAP, XC_INST_POP,     // STACK_LEVEL DUPLICATE    SWAP         POP
+	DC_INST_ASCIIFY, DC_INST_PRINT_STREAM, DC_INST_INVALID, DC_INST_INVALID, //ASCIIFY  PRINT_STREAM STORE_IBASE  STORE_OBASE
+	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // STORE_SCALE LOAD         LOAD_POP     STORE_PUSH
+	XC_INST_PRINT, DC_INST_NQUIT, XC_INST_SCALE_FUNC,                    // PRINT_POP   NQUIT        SCALE_FACTOR
 };
 #endif // ENABLE_DC
 
@@ -3569,7 +3568,7 @@ static BC_STATUS zbc_parse_pushSTR(BcParse *p)
 {
 	char *str = xstrdup(p->l.t.v.v);
 
-	bc_parse_push(p, BC_INST_STR);
+	bc_parse_push(p, XC_INST_STR);
 	bc_parse_pushIndex(p, p->func->strs.len);
 	bc_vec_push(&p->func->strs, &str);
 
@@ -3588,7 +3587,7 @@ static void bc_parse_pushNUM(BcParse *p)
 #else // DC
 	size_t idx = bc_vec_push(&G.prog.consts, &num);
 #endif
-	bc_parse_push(p, BC_INST_NUM);
+	bc_parse_push(p, XC_INST_NUM);
 	bc_parse_pushIndex(p, idx);
 }
 
@@ -3701,13 +3700,13 @@ static size_t bc_program_addFunc(char *name)
 
 #define BC_PARSE_TOP_OP(p) (*((BcLexType *) bc_vec_top(&(p)->ops)))
 #define BC_PARSE_LEAF(p, rparen)                                \
-	(((p) >= BC_INST_NUM && (p) <= BC_INST_SQRT) || (rparen) || \
+	(((p) >= XC_INST_NUM && (p) <= XC_INST_SQRT) || (rparen) || \
 	 (p) == BC_INST_INC_POST || (p) == BC_INST_DEC_POST)
 
 // We can calculate the conversion between tokens and exprs by subtracting the
 // position of the first operator in the lex enum and adding the position of the
 // first in the expr enum. Note: This only works for binary operators.
-#define BC_TOKEN_2_INST(t) ((char) ((t) - BC_LEX_NEG + BC_INST_NEG))
+#define BC_TOKEN_2_INST(t) ((char) ((t) - BC_LEX_NEG + XC_INST_NEG))
 
 static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags);
 
@@ -3878,9 +3877,9 @@ static BC_STATUS zbc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 				s = bc_error_bad_expression();
 				goto err;
 			}
-			*type = BC_INST_ARRAY;
+			*type = XC_INST_ARRAY;
 		} else {
-			*type = BC_INST_ARRAY_ELEM;
+			*type = XC_INST_ARRAY_ELEM;
 			flags &= ~(BC_PARSE_PRINT | BC_PARSE_REL);
 			s = zbc_parse_expr(p, flags);
 			if (s) goto err;
@@ -3898,8 +3897,8 @@ static BC_STATUS zbc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 		*type = BC_INST_CALL;
 		s = zbc_parse_call(p, name, flags);
 	} else {
-		*type = BC_INST_VAR;
-		bc_parse_push(p, BC_INST_VAR);
+		*type = XC_INST_VAR;
+		bc_parse_push(p, XC_INST_VAR);
 		bc_parse_pushName(p, name);
 		free(name);
 	}
@@ -3923,7 +3922,7 @@ static BC_STATUS zbc_parse_read(BcParse *p)
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 
-	bc_parse_push(p, BC_INST_READ);
+	bc_parse_push(p, XC_INST_READ);
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
@@ -3948,7 +3947,7 @@ static BC_STATUS zbc_parse_builtin(BcParse *p, BcLexType type, uint8_t flags,
 
 	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 
-	*prev = (type == BC_LEX_KEY_LENGTH) ? BC_INST_LENGTH : BC_INST_SQRT;
+	*prev = (type == BC_LEX_KEY_LENGTH) ? XC_INST_LENGTH : XC_INST_SQRT;
 	bc_parse_push(p, *prev);
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
@@ -3963,12 +3962,12 @@ static BC_STATUS zbc_parse_scale(BcParse *p, BcInst *type, uint8_t flags)
 	if (s) RETURN_STATUS(s);
 
 	if (p->l.t.t != BC_LEX_LPAREN) {
-		*type = BC_INST_SCALE;
-		bc_parse_push(p, BC_INST_SCALE);
+		*type = XC_INST_SCALE;
+		bc_parse_push(p, XC_INST_SCALE);
 		RETURN_STATUS(BC_STATUS_SUCCESS);
 	}
 
-	*type = BC_INST_SCALE_FUNC;
+	*type = XC_INST_SCALE_FUNC;
 	flags &= ~(BC_PARSE_PRINT | BC_PARSE_REL);
 
 	s = zbc_lex_next(&p->l);
@@ -3978,7 +3977,7 @@ static BC_STATUS zbc_parse_scale(BcParse *p, BcInst *type, uint8_t flags)
 	if (s) RETURN_STATUS(s);
 	if (p->l.t.t != BC_LEX_RPAREN)
 		RETURN_STATUS(bc_error_bad_token());
-	bc_parse_push(p, BC_INST_SCALE_FUNC);
+	bc_parse_push(p, XC_INST_SCALE_FUNC);
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
@@ -3992,9 +3991,9 @@ static BC_STATUS zbc_parse_incdec(BcParse *p, BcInst *prev, bool *paren_expr,
 	char inst;
 	BcInst etype = *prev;
 
-	if (etype == BC_INST_VAR || etype == BC_INST_ARRAY_ELEM
-	 || etype == BC_INST_SCALE || etype == BC_INST_LAST
-	 || etype == BC_INST_IBASE || etype == BC_INST_OBASE
+	if (etype == XC_INST_VAR || etype == XC_INST_ARRAY_ELEM
+	 || etype == XC_INST_SCALE || etype == BC_INST_LAST
+	 || etype == XC_INST_IBASE || etype == XC_INST_OBASE
 	) {
 		*prev = inst = BC_INST_INC_POST + (p->l.t.t != BC_LEX_OP_INC);
 		bc_parse_push(p, inst);
@@ -4018,7 +4017,7 @@ static BC_STATUS zbc_parse_incdec(BcParse *p, BcInst *prev, bool *paren_expr,
 			case BC_LEX_KEY_IBASE:
 			case BC_LEX_KEY_LAST:
 			case BC_LEX_KEY_OBASE:
-				bc_parse_push(p, type - BC_LEX_KEY_IBASE + BC_INST_IBASE);
+				bc_parse_push(p, type - BC_LEX_KEY_IBASE + XC_INST_IBASE);
 				s = zbc_lex_next(&p->l);
 				break;
 			case BC_LEX_KEY_SCALE:
@@ -4027,7 +4026,7 @@ static BC_STATUS zbc_parse_incdec(BcParse *p, BcInst *prev, bool *paren_expr,
 				if (p->l.t.t == BC_LEX_LPAREN)
 					s = bc_error_bad_token();
 				else
-					bc_parse_push(p, BC_INST_SCALE);
+					bc_parse_push(p, XC_INST_SCALE);
 				break;
 			default:
 				s = bc_error_bad_token();
@@ -4052,7 +4051,7 @@ static BC_STATUS zbc_parse_minus(BcParse *p, BcInst *prev, size_t ops_bgn,
 	if (s) RETURN_STATUS(s);
 
 	type = rparen || etype == BC_INST_INC_POST || etype == BC_INST_DEC_POST ||
-	               (etype >= BC_INST_NUM && etype <= BC_INST_SQRT) ?
+	               (etype >= XC_INST_NUM && etype <= XC_INST_SQRT) ?
 	           BC_LEX_OP_MINUS :
 	           BC_LEX_NEG;
 	*prev = BC_TOKEN_2_INST(type);
@@ -4083,7 +4082,7 @@ static BC_STATUS zbc_parse_print(BcParse *p)
 			s = zbc_parse_expr(p, 0);
 		}
 		if (s) RETURN_STATUS(s);
-		bc_parse_push(p, BC_INST_PRINT_POP);
+		bc_parse_push(p, XC_INST_PRINT_POP);
 		if (p->l.t.t != BC_LEX_COMMA)
 			break;
 	}
@@ -4118,7 +4117,7 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 			IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
 		}
 
-		bc_parse_push(p, BC_INST_RET);
+		bc_parse_push(p, XC_INST_RET);
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
@@ -4238,7 +4237,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 
 	if (p->l.t.t != BC_LEX_SCOLON) {
 		s = zbc_parse_expr(p, 0);
-		bc_parse_push(p, BC_INST_POP);
+		bc_parse_push(p, XC_INST_POP);
 		if (s) RETURN_STATUS(s);
 	} else {
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("init");
@@ -4281,7 +4280,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 		s = zbc_parse_expr(p, 0);
 		if (s) RETURN_STATUS(s);
 		if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
-		bc_parse_push(p, BC_INST_POP);
+		bc_parse_push(p, XC_INST_POP);
 	} else {
 		s = bc_POSIX_does_not_allow_empty_X_expression_in_for("update");
 		IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s);)
@@ -4541,7 +4540,7 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 			break;
 		case BC_LEX_STR:
 			s = zbc_parse_pushSTR(p);
-			bc_parse_push(p, BC_INST_PRINT_STR);
+			bc_parse_push(p, XC_INST_PRINT_STR);
 			break;
 		case BC_LEX_KEY_BREAK:
 		case BC_LEX_KEY_CONTINUE:
@@ -4622,7 +4621,7 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p)
 static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
-	BcInst prev = BC_INST_PRINT;
+	BcInst prev = XC_INST_PRINT;
 	BcLexType top, t = p->l.t.t;
 	size_t nexprs = 0, ops_bgn = p->ops.len;
 	unsigned nparens, nrelops;
@@ -4645,7 +4644,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 			case BC_LEX_OP_MINUS:
 				s = zbc_parse_minus(p, &prev, ops_bgn, rprn, &nexprs);
 				rprn = get_token = false;
-				bin_last = prev == BC_INST_MINUS;
+				bin_last = prev == XC_INST_MINUS;
 				break;
 			case BC_LEX_OP_ASSIGN_POWER:
 			case BC_LEX_OP_ASSIGN_MULTIPLY:
@@ -4654,9 +4653,9 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 			case BC_LEX_OP_ASSIGN_PLUS:
 			case BC_LEX_OP_ASSIGN_MINUS:
 			case BC_LEX_OP_ASSIGN:
-				if (prev != BC_INST_VAR && prev != BC_INST_ARRAY_ELEM
-				 && prev != BC_INST_SCALE && prev != BC_INST_IBASE
-				 && prev != BC_INST_OBASE && prev != BC_INST_LAST
+				if (prev != XC_INST_VAR && prev != XC_INST_ARRAY_ELEM
+				 && prev != XC_INST_SCALE && prev != XC_INST_IBASE
+				 && prev != XC_INST_OBASE && prev != BC_INST_LAST
 				) {
 					s = bc_error("bad assignment:"
 						" left side must be variable"
@@ -4680,7 +4679,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 			case BC_LEX_OP_BOOL_OR:
 			case BC_LEX_OP_BOOL_AND:
 				if (((t == BC_LEX_OP_BOOL_NOT) != bin_last)
-				 || (t != BC_LEX_OP_BOOL_NOT && prev == BC_INST_BOOL_NOT)
+				 || (t != BC_LEX_OP_BOOL_NOT && prev == XC_INST_BOOL_NOT)
 				) {
 					return bc_error_bad_expression();
 				}
@@ -4700,7 +4699,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				bc_vec_push(&p->ops, &t);
 				break;
 			case BC_LEX_RPAREN:
-				if (bin_last || prev == BC_INST_BOOL_NOT)
+				if (bin_last || prev == XC_INST_BOOL_NOT)
 					return bc_error_bad_expression();
 				if (nparens == 0) {
 					s = BC_STATUS_SUCCESS;
@@ -4730,7 +4729,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 					return bc_error_bad_expression();
 				bc_parse_pushNUM(p);
 				nexprs++;
-				prev = BC_INST_NUM;
+				prev = XC_INST_NUM;
 				paren_expr = get_token = true;
 				rprn = bin_last = false;
 				break;
@@ -4739,7 +4738,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 			case BC_LEX_KEY_OBASE:
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
-				prev = (char) (t - BC_LEX_KEY_IBASE + BC_INST_IBASE);
+				prev = (char) (t - BC_LEX_KEY_IBASE + XC_INST_IBASE);
 				bc_parse_push(p, (char) prev);
 				paren_expr = get_token = true;
 				rprn = bin_last = false;
@@ -4762,7 +4761,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				paren_expr = true;
 				rprn = get_token = bin_last = false;
 				++nexprs;
-				prev = BC_INST_READ;
+				prev = XC_INST_READ;
 				break;
 			case BC_LEX_KEY_SCALE:
 				if (BC_PARSE_LEAF(prev, rprn))
@@ -4771,7 +4770,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				paren_expr = true;
 				rprn = get_token = bin_last = false;
 				++nexprs;
-				prev = BC_INST_SCALE;
+				prev = XC_INST_SCALE;
 				break;
 			default:
 				s = bc_error_bad_token();
@@ -4797,7 +4796,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 		bc_vec_pop(&p->ops);
 	}
 
-	if (prev == BC_INST_BOOL_NOT || nexprs != 1)
+	if (prev == XC_INST_BOOL_NOT || nexprs != 1)
 		return bc_error_bad_expression();
 
 	if (!(flags & BC_PARSE_REL) && nrelops) {
@@ -4809,8 +4808,8 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 	}
 
 	if (flags & BC_PARSE_PRINT) {
-		if (paren_first || !assign) bc_parse_push(p, BC_INST_PRINT);
-		bc_parse_push(p, BC_INST_POP);
+		if (paren_first || !assign) bc_parse_push(p, XC_INST_PRINT);
+		bc_parse_push(p, XC_INST_POP);
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
@@ -4843,7 +4842,7 @@ static void dc_parse_string(BcParse *p)
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 
 	str = xstrdup(p->l.t.v.v);
-	bc_parse_push(p, BC_INST_STR);
+	bc_parse_push(p, XC_INST_STR);
 	bc_parse_pushIndex(p, len);
 	bc_vec_push(&G.prog.strs, &str);
 
@@ -4865,9 +4864,9 @@ static BC_STATUS zdc_parse_mem(BcParse *p, uint8_t inst, bool name, bool store)
 	}
 
 	if (store) {
-		bc_parse_push(p, BC_INST_SWAP);
-		bc_parse_push(p, BC_INST_ASSIGN);
-		bc_parse_push(p, BC_INST_POP);
+		bc_parse_push(p, DC_INST_SWAP);
+		bc_parse_push(p, XC_INST_ASSIGN);
+		bc_parse_push(p, XC_INST_POP);
 	}
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -4879,7 +4878,7 @@ static BC_STATUS zdc_parse_cond(BcParse *p, uint8_t inst)
 	BcStatus s;
 
 	bc_parse_push(p, inst);
-	bc_parse_push(p, BC_INST_EXEC_COND);
+	bc_parse_push(p, DC_INST_EXEC_COND);
 
 	s = zdc_parse_register(p);
 	if (s) RETURN_STATUS(s);
@@ -4919,13 +4918,13 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 		case BC_LEX_OP_REL_LT:
 		case BC_LEX_OP_REL_GT:
 			dbg_lex("%s:%d LEX_OP_REL_xyz", __func__, __LINE__);
-			s = zdc_parse_cond(p, t - BC_LEX_OP_REL_EQ + BC_INST_REL_EQ);
+			s = zdc_parse_cond(p, t - BC_LEX_OP_REL_EQ + XC_INST_REL_EQ);
 			get_token = false;
 			break;
 		case BC_LEX_SCOLON:
 		case BC_LEX_COLON:
 			dbg_lex("%s:%d LEX_[S]COLON", __func__, __LINE__);
-			s = zdc_parse_mem(p, BC_INST_ARRAY_ELEM, true, t == BC_LEX_COLON);
+			s = zdc_parse_mem(p, XC_INST_ARRAY_ELEM, true, t == BC_LEX_COLON);
 			break;
 		case BC_LEX_STR:
 			dbg_lex("%s:%d LEX_STR", __func__, __LINE__);
@@ -4938,7 +4937,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			if (p->l.t.t != BC_LEX_NUMBER)
 				RETURN_STATUS(bc_error_bad_token());
 			bc_parse_pushNUM(p);
-			bc_parse_push(p, BC_INST_NEG);
+			bc_parse_push(p, XC_INST_NEG);
 			break;
 		case BC_LEX_NUMBER:
 			dbg_lex("%s:%d LEX_NUMBER", __func__, __LINE__);
@@ -4946,26 +4945,26 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			break;
 		case BC_LEX_KEY_READ:
 			dbg_lex("%s:%d LEX_KEY_READ", __func__, __LINE__);
-			bc_parse_push(p, BC_INST_READ);
+			bc_parse_push(p, XC_INST_READ);
 			break;
 		case BC_LEX_OP_ASSIGN:
 		case BC_LEX_STORE_PUSH:
 			dbg_lex("%s:%d LEX_OP_ASSIGN/STORE_PUSH", __func__, __LINE__);
 			assign = t == BC_LEX_OP_ASSIGN;
-			inst = assign ? BC_INST_VAR : BC_INST_PUSH_TO_VAR;
+			inst = assign ? XC_INST_VAR : DC_INST_PUSH_TO_VAR;
 			s = zdc_parse_mem(p, inst, true, assign);
 			break;
 		case BC_LEX_LOAD:
 		case BC_LEX_LOAD_POP:
 			dbg_lex("%s:%d LEX_OP_LOAD[_POP]", __func__, __LINE__);
-			inst = t == BC_LEX_LOAD_POP ? BC_INST_PUSH_VAR : BC_INST_LOAD;
+			inst = t == BC_LEX_LOAD_POP ? DC_INST_PUSH_VAR : DC_INST_LOAD;
 			s = zdc_parse_mem(p, inst, true, false);
 			break;
 		case BC_LEX_STORE_IBASE:
 		case BC_LEX_STORE_SCALE:
 		case BC_LEX_STORE_OBASE:
 			dbg_lex("%s:%d LEX_OP_STORE_I/OBASE/SCALE", __func__, __LINE__);
-			inst = t - BC_LEX_STORE_IBASE + BC_INST_IBASE;
+			inst = t - BC_LEX_STORE_IBASE + XC_INST_IBASE;
 			s = zdc_parse_mem(p, inst, false, true);
 			break;
 		default:
@@ -4986,7 +4985,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p)
 	BcStatus s;
 
 	inst = dc_LEX_to_INST[p->l.t.t];
-	if (inst != BC_INST_INVALID) {
+	if (inst != DC_INST_INVALID) {
 		bc_parse_push(p, inst);
 		s = zbc_lex_next(&p->l);
 	} else {
@@ -5183,7 +5182,7 @@ static BC_STATUS zbc_program_op(char inst)
 	bc_num_init_DEF_SIZE(&res.d.n);
 
 	s = BC_STATUS_SUCCESS;
-	IF_ERROR_RETURN_POSSIBLE(s =) zbc_program_ops[inst - BC_INST_POWER](n1, n2, &res.d.n, G.prog.scale);
+	IF_ERROR_RETURN_POSSIBLE(s =) zbc_program_ops[inst - XC_INST_POWER](n1, n2, &res.d.n, G.prog.scale);
 	if (s) goto err;
 	bc_program_binOpRetire(&res);
 
@@ -5233,7 +5232,7 @@ static BC_STATUS zbc_program_read(void)
 	ip.inst_idx = 0;
 	IF_BC(ip.results_len_before_call = G.prog.results.len;)
 
-	bc_parse_push(&parse, BC_INST_RET);
+	bc_parse_push(&parse, XC_INST_RET);
 	bc_vec_push(&G.prog.exestack, &ip);
  exec_err:
 	bc_parse_free(&parse);
@@ -5533,7 +5532,7 @@ static BC_STATUS zbc_program_print(char inst, size_t idx)
 	BcStatus s;
 	BcResult *r;
 	BcNum *num;
-	bool pop = inst != BC_INST_PRINT;
+	bool pop = inst != XC_INST_PRINT;
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, idx))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
@@ -5553,7 +5552,7 @@ static BC_STATUS zbc_program_print(char inst, size_t idx)
 		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : num->rdx;
 		str = *bc_program_str(idx);
 
-		if (inst == BC_INST_PRINT_STR) {
+		if (inst == XC_INST_PRINT_STR) {
 			for (;;) {
 				char c = *str++;
 				if (c == '\0') break;
@@ -5563,7 +5562,7 @@ static BC_STATUS zbc_program_print(char inst, size_t idx)
 			}
 		} else {
 			bc_program_printString(str);
-			if (inst == BC_INST_PRINT) bb_putchar('\n');
+			if (inst == XC_INST_PRINT) bb_putchar('\n');
 		}
 	}
 
@@ -5604,29 +5603,29 @@ static BC_STATUS zbc_program_logical(char inst)
 
 	bc_num_init_DEF_SIZE(&res.d.n);
 
-	if (inst == BC_INST_BOOL_AND)
+	if (inst == XC_INST_BOOL_AND)
 		cond = bc_num_cmp(n1, &G.prog.zero) && bc_num_cmp(n2, &G.prog.zero);
-	else if (inst == BC_INST_BOOL_OR)
+	else if (inst == XC_INST_BOOL_OR)
 		cond = bc_num_cmp(n1, &G.prog.zero) || bc_num_cmp(n2, &G.prog.zero);
 	else {
 		cond = bc_num_cmp(n1, n2);
 		switch (inst) {
-		case BC_INST_REL_EQ:
+		case XC_INST_REL_EQ:
 			cond = (cond == 0);
 			break;
-		case BC_INST_REL_LE:
+		case XC_INST_REL_LE:
 			cond = (cond <= 0);
 			break;
-		case BC_INST_REL_GE:
+		case XC_INST_REL_GE:
 			cond = (cond >= 0);
 			break;
-		case BC_INST_REL_LT:
+		case XC_INST_REL_LT:
 			cond = (cond < 0);
 			break;
-		case BC_INST_REL_GT:
+		case XC_INST_REL_GT:
 			cond = (cond > 0);
 			break;
-		default: // = case BC_INST_REL_NE:
+		default: // = case XC_INST_REL_NE:
 			//cond = (cond != 0); - not needed
 			break;
 		}
@@ -5714,7 +5713,7 @@ static BC_STATUS zbc_program_assign(char inst)
 	BcStatus s;
 	BcResult *left, *right, res;
 	BcNum *l = NULL, *r = NULL;
-	bool assign = inst == BC_INST_ASSIGN, ib, sc;
+	bool assign = inst == XC_INST_ASSIGN, ib, sc;
 
 	s = zbc_program_binOpPrep(&left, &l, &right, &r, assign);
 	if (s) RETURN_STATUS(s);
@@ -5844,7 +5843,7 @@ static BC_STATUS zbc_program_pushArray(char *code, size_t *bgn, char inst)
 
 	r.d.id.name = bc_program_name(code, bgn);
 
-	if (inst == BC_INST_ARRAY) {
+	if (inst == XC_INST_ARRAY) {
 		r.t = BC_RESULT_ARRAY;
 		bc_vec_push(&G.prog.results, &r);
 	} else {
@@ -5968,13 +5967,13 @@ static BC_STATUS zbc_program_return(char inst)
 	size_t i;
 	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 
-	if (!STACK_HAS_EQUAL_OR_MORE_THAN(&G.prog.results, ip->results_len_before_call + (inst == BC_INST_RET)))
+	if (!STACK_HAS_EQUAL_OR_MORE_THAN(&G.prog.results, ip->results_len_before_call + (inst == XC_INST_RET)))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	f = bc_program_func(ip->func);
 	res.t = BC_RESULT_TEMP;
 
-	if (inst == BC_INST_RET) {
+	if (inst == XC_INST_RET) {
 		BcStatus s;
 		BcNum *num;
 		BcResult *operand = bc_vec_top(&G.prog.results);
@@ -6029,7 +6028,7 @@ static BC_STATUS zbc_program_builtin(char inst)
 	BcResult *opnd;
 	BcNum *num = NULL;
 	BcResult res;
-	bool len = inst == BC_INST_LENGTH;
+	bool len = inst == XC_INST_LENGTH;
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
@@ -6045,7 +6044,7 @@ static BC_STATUS zbc_program_builtin(char inst)
 
 	bc_num_init_DEF_SIZE(&res.d.n);
 
-	if (inst == BC_INST_SQRT)
+	if (inst == XC_INST_SQRT)
 		s = zbc_num_sqrt(num, &res.d.n, G.prog.scale);
 #if ENABLE_BC
 	else if (len != 0 && opnd->t == BC_RESULT_ARRAY) {
@@ -6361,7 +6360,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 			bc_vec_pop_all(&f->code);
 			goto exit;
 		}
-		bc_parse_push(&prs, BC_INST_POP_EXEC);
+		bc_parse_push(&prs, DC_INST_POP_EXEC);
 		bc_parse_free(&prs);
 	}
 
@@ -6384,10 +6383,10 @@ static void bc_program_pushGlobal(char inst)
 	BcResult res;
 	unsigned long val;
 
-	res.t = inst - BC_INST_IBASE + BC_RESULT_IBASE;
-	if (inst == BC_INST_IBASE)
+	res.t = inst - XC_INST_IBASE + BC_RESULT_IBASE;
+	if (inst == XC_INST_IBASE)
 		val = (unsigned long) G.prog.ib_t;
-	else if (inst == BC_INST_SCALE)
+	else if (inst == XC_INST_SCALE)
 		val = (unsigned long) G.prog.scale;
 	else
 		val = (unsigned long) G.prog.ob_t;
@@ -6449,34 +6448,34 @@ static BC_STATUS zbc_program_exec(void)
 				dbg_exec("BC_INST_HALT:");
 				QUIT_OR_RETURN_TO_MAIN;
 				break;
-			case BC_INST_RET:
+			case XC_INST_RET:
 			case BC_INST_RET0:
 				dbg_exec("BC_INST_RET[0]:");
 				s = zbc_program_return(inst);
 				goto read_updated_ip;
-			case BC_INST_BOOL_OR:
-			case BC_INST_BOOL_AND:
+			case XC_INST_BOOL_OR:
+			case XC_INST_BOOL_AND:
 #endif // ENABLE_BC
-			case BC_INST_REL_EQ:
-			case BC_INST_REL_LE:
-			case BC_INST_REL_GE:
-			case BC_INST_REL_NE:
-			case BC_INST_REL_LT:
-			case BC_INST_REL_GT:
+			case XC_INST_REL_EQ:
+			case XC_INST_REL_LE:
+			case XC_INST_REL_GE:
+			case XC_INST_REL_NE:
+			case XC_INST_REL_LT:
+			case XC_INST_REL_GT:
 				dbg_exec("BC_INST_BOOL:");
 				s = zbc_program_logical(inst);
 				break;
-			case BC_INST_READ:
-				dbg_exec("BC_INST_READ:");
+			case XC_INST_READ:
+				dbg_exec("XC_INST_READ:");
 				s = zbc_program_read();
 				goto read_updated_ip;
-			case BC_INST_VAR:
-				dbg_exec("BC_INST_VAR:");
+			case XC_INST_VAR:
+				dbg_exec("XC_INST_VAR:");
 				s = zbc_program_pushVar(code, &ip->inst_idx, false, false);
 				break;
-			case BC_INST_ARRAY_ELEM:
-			case BC_INST_ARRAY:
-				dbg_exec("BC_INST_ARRAY[_ELEM]:");
+			case XC_INST_ARRAY_ELEM:
+			case XC_INST_ARRAY:
+				dbg_exec("XC_INST_ARRAY[_ELEM]:");
 				s = zbc_program_pushArray(code, &ip->inst_idx, inst);
 				break;
 #if ENABLE_BC
@@ -6486,54 +6485,54 @@ static BC_STATUS zbc_program_exec(void)
 				bc_vec_push(&G.prog.results, &r);
 				break;
 #endif
-			case BC_INST_IBASE:
-			case BC_INST_OBASE:
-			case BC_INST_SCALE:
-				dbg_exec("BC_INST_internalvar(%d):", inst - BC_INST_IBASE);
+			case XC_INST_IBASE:
+			case XC_INST_OBASE:
+			case XC_INST_SCALE:
+				dbg_exec("XC_INST_internalvar(%d):", inst - XC_INST_IBASE);
 				bc_program_pushGlobal(inst);
 				break;
-			case BC_INST_SCALE_FUNC:
-			case BC_INST_LENGTH:
-			case BC_INST_SQRT:
+			case XC_INST_SCALE_FUNC:
+			case XC_INST_LENGTH:
+			case XC_INST_SQRT:
 				dbg_exec("BC_INST_builtin:");
 				s = zbc_program_builtin(inst);
 				break;
-			case BC_INST_NUM:
-				dbg_exec("BC_INST_NUM:");
+			case XC_INST_NUM:
+				dbg_exec("XC_INST_NUM:");
 				r.t = BC_RESULT_CONSTANT;
 				r.d.id.idx = bc_program_index(code, &ip->inst_idx);
 				bc_vec_push(&G.prog.results, &r);
 				break;
-			case BC_INST_POP:
-				dbg_exec("BC_INST_POP:");
+			case XC_INST_POP:
+				dbg_exec("XC_INST_POP:");
 				if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 					s = bc_error_stack_has_too_few_elements();
 				else
 					bc_vec_pop(&G.prog.results);
 				break;
-			case BC_INST_PRINT:
-			case BC_INST_PRINT_POP:
-			case BC_INST_PRINT_STR:
-				dbg_exec("BC_INST_PRINTxyz:");
+			case XC_INST_PRINT:
+			case XC_INST_PRINT_POP:
+			case XC_INST_PRINT_STR:
+				dbg_exec("XC_INST_PRINTxyz:");
 				s = zbc_program_print(inst, 0);
 				break;
-			case BC_INST_STR:
-				dbg_exec("BC_INST_STR:");
+			case XC_INST_STR:
+				dbg_exec("XC_INST_STR:");
 				r.t = BC_RESULT_STR;
 				r.d.id.idx = bc_program_index(code, &ip->inst_idx);
 				bc_vec_push(&G.prog.results, &r);
 				break;
-			case BC_INST_POWER:
-			case BC_INST_MULTIPLY:
-			case BC_INST_DIVIDE:
-			case BC_INST_MODULUS:
-			case BC_INST_PLUS:
-			case BC_INST_MINUS:
+			case XC_INST_POWER:
+			case XC_INST_MULTIPLY:
+			case XC_INST_DIVIDE:
+			case XC_INST_MODULUS:
+			case XC_INST_PLUS:
+			case XC_INST_MINUS:
 				dbg_exec("BC_INST_binaryop:");
 				s = zbc_program_op(inst);
 				break;
-			case BC_INST_BOOL_NOT:
-				dbg_exec("BC_INST_BOOL_NOT:");
+			case XC_INST_BOOL_NOT:
+				dbg_exec("XC_INST_BOOL_NOT:");
 				s = zbc_program_prep(&ptr, &num);
 				if (s) RETURN_STATUS(s);
 				bc_num_init_DEF_SIZE(&r.d.n);
@@ -6542,8 +6541,8 @@ static BC_STATUS zbc_program_exec(void)
 				//else bc_num_zero(&r.d.n); - already is
 				bc_program_retire(&r, BC_RESULT_TEMP);
 				break;
-			case BC_INST_NEG:
-				dbg_exec("BC_INST_NEG:");
+			case XC_INST_NEG:
+				dbg_exec("XC_INST_NEG:");
 				s = zbc_program_negate();
 				break;
 #if ENABLE_BC
@@ -6554,56 +6553,56 @@ static BC_STATUS zbc_program_exec(void)
 			case BC_INST_ASSIGN_PLUS:
 			case BC_INST_ASSIGN_MINUS:
 #endif
-			case BC_INST_ASSIGN:
+			case XC_INST_ASSIGN:
 				dbg_exec("BC_INST_ASSIGNxyz:");
 				s = zbc_program_assign(inst);
 				break;
 #if ENABLE_DC
-			case BC_INST_POP_EXEC:
-				dbg_exec("BC_INST_POP_EXEC:");
+			case DC_INST_POP_EXEC:
+				dbg_exec("DC_INST_POP_EXEC:");
 				bc_vec_pop(&G.prog.exestack);
 				goto read_updated_ip;
-			case BC_INST_MODEXP:
-				dbg_exec("BC_INST_MODEXP:");
+			case DC_INST_MODEXP:
+				dbg_exec("DC_INST_MODEXP:");
 				s = zdc_program_modexp();
 				break;
-			case BC_INST_DIVMOD:
-				dbg_exec("BC_INST_DIVMOD:");
+			case DC_INST_DIVMOD:
+				dbg_exec("DC_INST_DIVMOD:");
 				s = zdc_program_divmod();
 				break;
-			case BC_INST_EXECUTE:
-			case BC_INST_EXEC_COND:
-				dbg_exec("BC_INST_EXEC[_COND]:");
-				s = zdc_program_execStr(code, &ip->inst_idx, inst == BC_INST_EXEC_COND);
+			case DC_INST_EXECUTE:
+			case DC_INST_EXEC_COND:
+				dbg_exec("DC_INST_EXEC[_COND]:");
+				s = zdc_program_execStr(code, &ip->inst_idx, inst == DC_INST_EXEC_COND);
 				goto read_updated_ip;
-			case BC_INST_PRINT_STACK: {
+			case DC_INST_PRINT_STACK: {
 				size_t idx;
-				dbg_exec("BC_INST_PRINT_STACK:");
+				dbg_exec("DC_INST_PRINT_STACK:");
 				for (idx = 0; idx < G.prog.results.len; ++idx) {
-					s = zbc_program_print(BC_INST_PRINT, idx);
+					s = zbc_program_print(XC_INST_PRINT, idx);
 					if (s) break;
 				}
 				break;
 			}
-			case BC_INST_CLEAR_STACK:
-				dbg_exec("BC_INST_CLEAR_STACK:");
+			case DC_INST_CLEAR_STACK:
+				dbg_exec("DC_INST_CLEAR_STACK:");
 				bc_vec_pop_all(&G.prog.results);
 				break;
-			case BC_INST_STACK_LEN:
-				dbg_exec("BC_INST_STACK_LEN:");
+			case DC_INST_STACK_LEN:
+				dbg_exec("DC_INST_STACK_LEN:");
 				dc_program_stackLen();
 				break;
-			case BC_INST_DUPLICATE:
-				dbg_exec("BC_INST_DUPLICATE:");
+			case DC_INST_DUPLICATE:
+				dbg_exec("DC_INST_DUPLICATE:");
 				if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 					RETURN_STATUS(bc_error_stack_has_too_few_elements());
 				ptr = bc_vec_top(&G.prog.results);
 				dc_result_copy(&r, ptr);
 				bc_vec_push(&G.prog.results, &r);
 				break;
-			case BC_INST_SWAP: {
+			case DC_INST_SWAP: {
 				BcResult *ptr2;
-				dbg_exec("BC_INST_SWAP:");
+				dbg_exec("DC_INST_SWAP:");
 				if (!STACK_HAS_MORE_THAN(&G.prog.results, 1))
 					RETURN_STATUS(bc_error_stack_has_too_few_elements());
 				ptr = bc_vec_item_rev(&G.prog.results, 0);
@@ -6613,34 +6612,34 @@ static BC_STATUS zbc_program_exec(void)
 				memcpy(ptr2, &r, sizeof(BcResult));
 				break;
 			}
-			case BC_INST_ASCIIFY:
-				dbg_exec("BC_INST_ASCIIFY:");
+			case DC_INST_ASCIIFY:
+				dbg_exec("DC_INST_ASCIIFY:");
 				s = zdc_program_asciify();
 				break;
-			case BC_INST_PRINT_STREAM:
-				dbg_exec("BC_INST_STREAM:");
+			case DC_INST_PRINT_STREAM:
+				dbg_exec("DC_INST_PRINT_STREAM:");
 				s = zdc_program_printStream();
 				break;
-			case BC_INST_LOAD:
-			case BC_INST_PUSH_VAR: {
-				bool copy = inst == BC_INST_LOAD;
+			case DC_INST_LOAD:
+			case DC_INST_PUSH_VAR: {
+				bool copy = inst == DC_INST_LOAD;
 				s = zbc_program_pushVar(code, &ip->inst_idx, true, copy);
 				break;
 			}
-			case BC_INST_PUSH_TO_VAR: {
+			case DC_INST_PUSH_TO_VAR: {
 				char *name = bc_program_name(code, &ip->inst_idx);
 				s = zbc_program_copyToVar(name, true);
 				free(name);
 				break;
 			}
-			case BC_INST_QUIT:
-				dbg_exec("BC_INST_QUIT:");
+			case DC_INST_QUIT:
+				dbg_exec("DC_INST_QUIT:");
 				if (G.prog.exestack.len <= 2)
 					QUIT_OR_RETURN_TO_MAIN;
 				bc_vec_npop(&G.prog.exestack, 2);
 				goto read_updated_ip;
-			case BC_INST_NQUIT:
-				dbg_exec("BC_INST_NQUIT:");
+			case DC_INST_NQUIT:
+				dbg_exec("DC_INST_NQUIT:");
 				s = zdc_program_nquit();
 				//goto read_updated_ip; - just fall through to it
 #endif // ENABLE_DC
