@@ -714,12 +714,10 @@ typedef struct BcLex {
 	size_t i;
 	size_t line;
 	size_t len;
-	bool newline;
-	struct {
-		BcLexType t;
-		BcLexType last;
-		BcVec v;
-	} t;
+	bool   newline;
+	smallint lex;      // was BcLexType
+	smallint lex_last; // was BcLexType
+	BcVec  lex_buf;
 } BcLex;
 
 #define BC_PARSE_STREND         (0xff)
@@ -2753,7 +2751,7 @@ static void bc_lex_lineComment(BcLex *l)
 {
 	// Try: echo -n '#foo' | bc
 	size_t i;
-	l->t.t = XC_LEX_WHITESPACE;
+	l->lex = XC_LEX_WHITESPACE;
 	i = l->i;
 	while (i < l->len && l->buf[i] != '\n')
 		i++;
@@ -2762,7 +2760,7 @@ static void bc_lex_lineComment(BcLex *l)
 
 static void bc_lex_whitespace(BcLex *l)
 {
-	l->t.t = XC_LEX_WHITESPACE;
+	l->lex = XC_LEX_WHITESPACE;
 	for (;;) {
 		char c = l->buf[l->i];
 		if (c == '\n') // this is XC_LEX_NLINE, not XC_LEX_WHITESPACE
@@ -2780,7 +2778,7 @@ static BC_STATUS zbc_lex_number(BcLex *l, char start)
 	bool pt;
 
 	pt = (start == '.');
-	l->t.t = XC_LEX_NUMBER;
+	l->lex = XC_LEX_NUMBER;
 	ccnt = i = 0;
 	for (;;) {
 		char c = buf[i];
@@ -2820,9 +2818,9 @@ static BC_STATUS zbc_lex_number(BcLex *l, char start)
 			RETURN_STATUS(bc_error("number too long: must be [1,"BC_MAX_NUM_STR"]"));
 	}
 
-	bc_vec_pop_all(&l->t.v);
-	bc_vec_expand(&l->t.v, 1 + len);
-	bc_vec_push(&l->t.v, &start);
+	bc_vec_pop_all(&l->lex_buf);
+	bc_vec_expand(&l->lex_buf, 1 + len);
+	bc_vec_push(&l->lex_buf, &start);
 
 	while (ccnt != 0) {
 		// If we have hit a backslash, skip it. We don't have
@@ -2832,12 +2830,12 @@ static BC_STATUS zbc_lex_number(BcLex *l, char start)
 			ccnt -= 2;
 			continue;
 		}
-		bc_vec_push(&l->t.v, buf);
+		bc_vec_push(&l->lex_buf, buf);
 		buf++;
 		ccnt--;
 	}
 
-	bc_vec_pushZeroByte(&l->t.v);
+	bc_vec_pushZeroByte(&l->lex_buf);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -2848,7 +2846,7 @@ static void bc_lex_name(BcLex *l)
 	size_t i;
 	const char *buf;
 
-	l->t.t = XC_LEX_NAME;
+	l->lex = XC_LEX_NAME;
 
 	i = 0;
 	buf = l->buf + l->i - 1;
@@ -2865,7 +2863,7 @@ static void bc_lex_name(BcLex *l)
 			return bc_error("name too long: must be [1,"BC_MAX_STRING_STR"]");
 	}
 #endif
-	bc_vec_string(&l->t.v, i, buf);
+	bc_vec_string(&l->lex_buf, i, buf);
 
 	// Increment the index. We minus 1 because it has already been incremented.
 	l->i += i - 1;
@@ -2875,12 +2873,12 @@ static void bc_lex_name(BcLex *l)
 
 static void bc_lex_init(BcLex *l)
 {
-	bc_char_vec_init(&l->t.v);
+	bc_char_vec_init(&l->lex_buf);
 }
 
 static void bc_lex_free(BcLex *l)
 {
-	bc_vec_free(&l->t.v);
+	bc_vec_free(&l->lex_buf);
 }
 
 static void bc_lex_file(BcLex *l)
@@ -2970,8 +2968,8 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 {
 	BcStatus s;
 
-	l->t.last = l->t.t;
-	if (l->t.last == XC_LEX_EOF) RETURN_STATUS(bc_error("end of file"));
+	l->lex_last = l->lex;
+	if (l->lex_last == XC_LEX_EOF) RETURN_STATUS(bc_error("end of file"));
 
 	l->line += l->newline;
 	G.err_line = l->line;
@@ -2983,7 +2981,7 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 	s = BC_STATUS_SUCCESS;
 	do {
 		if (l->i == l->len) {
-			l->t.t = XC_LEX_EOF;
+			l->lex = XC_LEX_EOF;
 			if (!G.input_fp)
 				RETURN_STATUS(BC_STATUS_SUCCESS);
 			if (!bc_lex_more_input(l)) {
@@ -3000,8 +2998,8 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 		} else {
 			IF_DC(s = zdc_lex_token(l));
 		}
-	} while (!s && l->t.t == XC_LEX_WHITESPACE);
-	dbg_lex("l->t.t from string:%d", l->t.t);
+	} while (!s && l->lex == XC_LEX_WHITESPACE);
+	dbg_lex("l->lex from string:%d", l->lex);
 
 	RETURN_STATUS(s);
 }
@@ -3010,7 +3008,7 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 #if ENABLE_BC
 static BC_STATUS zbc_lex_skip_if_at_NLINE(BcLex *l)
 {
-	if (l->t.t == XC_LEX_NLINE)
+	if (l->lex == XC_LEX_NLINE)
 		RETURN_STATUS(zbc_lex_next(l));
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -3033,7 +3031,7 @@ static BC_STATUS zbc_lex_text_init(BcLex *l, const char *text)
 	l->buf = text;
 	l->i = 0;
 	l->len = strlen(text);
-	l->t.t = l->t.last = XC_LEX_INVALID;
+	l->lex = l->lex_last = XC_LEX_INVALID;
 	RETURN_STATUS(zbc_lex_next(l));
 }
 #define zbc_lex_text_init(...) (zbc_lex_text_init(__VA_ARGS__) COMMA_SUCCESS)
@@ -3058,7 +3056,7 @@ static BC_STATUS zbc_lex_identifier(BcLex *l)
 		// buf starts with keyword bc_lex_kws[i]
 		if (isalnum(buf[j]) || buf[j]=='_')
 			continue; // "ifz" does not match "if" keyword, "if." does
-		l->t.t = BC_LEX_KEY_1st_keyword + i;
+		l->lex = BC_LEX_KEY_1st_keyword + i;
 		if (!bc_lex_kws_POSIX(i)) {
 			s = zbc_posix_error_fmt("%sthe '%.8s' keyword", "POSIX does not allow ", bc_lex_kws[i].name8);
 			if (s) RETURN_STATUS(s);
@@ -3072,7 +3070,7 @@ static BC_STATUS zbc_lex_identifier(BcLex *l)
 	bc_lex_name(l);
 	s = BC_STATUS_SUCCESS;
 
-	if (l->t.v.len > 2) {
+	if (l->lex_buf.len > 2) {
 		// Prevent this:
 		// >>> qwe=1
 		// bc: POSIX only allows one character names; the following is bad: 'qwe=1
@@ -3089,7 +3087,7 @@ static BC_STATUS zbc_lex_string(BcLex *l)
 {
 	size_t len, nls, i;
 
-	l->t.t = XC_LEX_STR;
+	l->lex = XC_LEX_STR;
 
 	nls = 0;
 	i = l->i;
@@ -3111,7 +3109,7 @@ static BC_STATUS zbc_lex_string(BcLex *l)
 		if (len > BC_MAX_STRING)
 			RETURN_STATUS(bc_error("string too long: must be [1,"BC_MAX_STRING_STR"]"));
 	}
-	bc_vec_string(&l->t.v, len, l->buf + l->i);
+	bc_vec_string(&l->lex_buf, len, l->buf + l->i);
 
 	l->i = i + 1;
 	l->line += nls;
@@ -3127,7 +3125,7 @@ static void bc_lex_assign(BcLex *l, unsigned with_and_without)
 		++l->i;
 		with_and_without >>= 8; // store "with" value
 	} // else store "without" value
-	l->t.t = (with_and_without & 0xff);
+	l->lex = (with_and_without & 0xff);
 }
 #define bc_lex_assign(l, with, without) \
 	bc_lex_assign(l, ((with)<<8)|(without))
@@ -3137,7 +3135,7 @@ static BC_STATUS zbc_lex_comment(BcLex *l)
 	size_t i, nls = 0;
 	const char *buf = l->buf;
 
-	l->t.t = XC_LEX_WHITESPACE;
+	l->lex = XC_LEX_WHITESPACE;
 	i = l->i; /* here buf[l->i] is the '*' of opening comment delimiter */
 	for (;;) {
 		char c = buf[++i];
@@ -3173,11 +3171,11 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 	switch (c) {
 //		case '\0': // probably never reached
 //			l->i--;
-//			l->t.t = XC_LEX_EOF;
+//			l->lex = XC_LEX_EOF;
 //			l->newline = true;
 //			break;
 		case '\n':
-			l->t.t = XC_LEX_NLINE;
+			l->lex = XC_LEX_NLINE;
 			l->newline = true;
 			break;
 		case '\t':
@@ -3189,7 +3187,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			break;
 		case '!':
 			bc_lex_assign(l, XC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
-			if (l->t.t == BC_LEX_OP_BOOL_NOT) {
+			if (l->lex == BC_LEX_OP_BOOL_NOT) {
 				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("!");
 				if (s) RETURN_STATUS(s);
 			}
@@ -3211,15 +3209,15 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("&&");
 				if (s) RETURN_STATUS(s);
 				++l->i;
-				l->t.t = BC_LEX_OP_BOOL_AND;
+				l->lex = BC_LEX_OP_BOOL_AND;
 			} else {
-				l->t.t = XC_LEX_INVALID;
+				l->lex = XC_LEX_INVALID;
 				s = bc_error_bad_character('&');
 			}
 			break;
 		case '(':
 		case ')':
-			l->t.t = (BcLexType)(c - '(' + BC_LEX_LPAREN);
+			l->lex = (BcLexType)(c - '(' + BC_LEX_LPAREN);
 			break;
 		case '*':
 			bc_lex_assign(l, BC_LEX_OP_ASSIGN_MULTIPLY, XC_LEX_OP_MULTIPLY);
@@ -3228,18 +3226,18 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			c2 = l->buf[l->i];
 			if (c2 == '+') {
 				++l->i;
-				l->t.t = BC_LEX_OP_INC;
+				l->lex = BC_LEX_OP_INC;
 			} else
 				bc_lex_assign(l, BC_LEX_OP_ASSIGN_PLUS, XC_LEX_OP_PLUS);
 			break;
 		case ',':
-			l->t.t = BC_LEX_COMMA;
+			l->lex = BC_LEX_COMMA;
 			break;
 		case '-':
 			c2 = l->buf[l->i];
 			if (c2 == '-') {
 				++l->i;
-				l->t.t = BC_LEX_OP_DEC;
+				l->lex = BC_LEX_OP_DEC;
 			} else
 				bc_lex_assign(l, BC_LEX_OP_ASSIGN_MINUS, XC_LEX_OP_MINUS);
 			break;
@@ -3247,7 +3245,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			if (isdigit(l->buf[l->i]))
 				s = zbc_lex_number(l, c);
 			else {
-				l->t.t = BC_LEX_KEY_LAST;
+				l->lex = BC_LEX_KEY_LAST;
 				s = zbc_POSIX_does_not_allow("a period ('.') as a shortcut for the last result");
 			}
 			break;
@@ -3277,7 +3275,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			s = zbc_lex_number(l, c);
 			break;
 		case ';':
-			l->t.t = BC_LEX_SCOLON;
+			l->lex = BC_LEX_SCOLON;
 			break;
 		case '<':
 			bc_lex_assign(l, XC_LEX_OP_REL_LE, XC_LEX_OP_REL_LT);
@@ -3290,11 +3288,11 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			break;
 		case '[':
 		case ']':
-			l->t.t = (BcLexType)(c - '[' + BC_LEX_LBRACKET);
+			l->lex = (BcLexType)(c - '[' + BC_LEX_LBRACKET);
 			break;
 		case '\\':
 			if (l->buf[l->i] == '\n') {
-				l->t.t = XC_LEX_WHITESPACE;
+				l->lex = XC_LEX_WHITESPACE;
 				++l->i;
 			} else
 				s = bc_error_bad_character(c);
@@ -3332,7 +3330,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			break;
 		case '{':
 		case '}':
-			l->t.t = (BcLexType)(c - '{' + BC_LEX_LBRACE);
+			l->lex = (BcLexType)(c - '{' + BC_LEX_LBRACE);
 			break;
 		case '|':
 			c2 = l->buf[l->i];
@@ -3340,14 +3338,14 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("||");
 				if (s) RETURN_STATUS(s);
 				++l->i;
-				l->t.t = BC_LEX_OP_BOOL_OR;
+				l->lex = BC_LEX_OP_BOOL_OR;
 			} else {
-				l->t.t = XC_LEX_INVALID;
+				l->lex = XC_LEX_INVALID;
 				s = bc_error_bad_character(c);
 			}
 			break;
 		default:
-			l->t.t = XC_LEX_INVALID;
+			l->lex = XC_LEX_INVALID;
 			s = bc_error_bad_character(c);
 			break;
 	}
@@ -3365,10 +3363,10 @@ static BC_STATUS zdc_lex_register(BcLex *l)
 		l->i++; // bc_lex_name() expects this
 		bc_lex_name(l);
 	} else {
-		bc_vec_pop_all(&l->t.v);
-		bc_vec_push(&l->t.v, &l->buf[l->i++]);
-		bc_vec_pushZeroByte(&l->t.v);
-		l->t.t = XC_LEX_NAME;
+		bc_vec_pop_all(&l->lex_buf);
+		bc_vec_push(&l->lex_buf, &l->buf[l->i++]);
+		bc_vec_pushZeroByte(&l->lex_buf);
+		l->lex = XC_LEX_NAME;
 	}
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -3379,8 +3377,8 @@ static BC_STATUS zdc_lex_string(BcLex *l)
 {
 	size_t depth, nls, i;
 
-	l->t.t = XC_LEX_STR;
-	bc_vec_pop_all(&l->t.v);
+	l->lex = XC_LEX_STR;
+	bc_vec_pop_all(&l->lex_buf);
 
 	nls = 0;
 	depth = 1;
@@ -3398,12 +3396,12 @@ static BC_STATUS zdc_lex_string(BcLex *l)
 				if (--depth == 0)
 					break;
 		}
-		bc_vec_push(&l->t.v, &l->buf[i]);
+		bc_vec_push(&l->lex_buf, &l->buf[i]);
 		i++;
 	}
 	i++;
 
-	bc_vec_pushZeroByte(&l->t.v);
+	bc_vec_pushZeroByte(&l->lex_buf);
 	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
 	if (SIZE_MAX > (BC_MAX_STRING | 0xff)) {
 		if (i - l->i > BC_MAX_STRING)
@@ -3435,14 +3433,14 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 	size_t i;
 
 	for (i = 0; i < ARRAY_SIZE(dc_lex_regs); ++i) {
-		if (l->t.last == dc_lex_regs[i])
+		if (l->lex_last == dc_lex_regs[i])
 			RETURN_STATUS(zdc_lex_register(l));
 	}
 
 	s = BC_STATUS_SUCCESS;
 	c = l->buf[l->i++];
 	if (c >= '%' && c <= '~'
-	 && (l->t.t = dc_char_to_LEX[c - '%']) != XC_LEX_INVALID
+	 && (l->lex = dc_char_to_LEX[c - '%']) != XC_LEX_INVALID
 	) {
 		RETURN_STATUS(s);
 	}
@@ -3450,7 +3448,7 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 	// This is the workhorse of the lexer.
 	switch (c) {
 //		case '\0': // probably never reached
-//			l->t.t = XC_LEX_EOF;
+//			l->lex = XC_LEX_EOF;
 //			break;
 		case '\n':
 			// '\n' is XC_LEX_NLINE, not XC_LEX_WHITESPACE
@@ -3461,7 +3459,7 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 			// commands are not executed on pressing <enter>).
 			// IOW: typing "1p<enter>" should print "1" _at once_,
 			// not after some more input.
-			l->t.t = XC_LEX_NLINE;
+			l->lex = XC_LEX_NLINE;
 			l->newline = true;
 			break;
 		case '\t':
@@ -3475,11 +3473,11 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 		case '!':
 			c2 = l->buf[l->i];
 			if (c2 == '=')
-				l->t.t = XC_LEX_OP_REL_NE;
+				l->lex = XC_LEX_OP_REL_NE;
 			else if (c2 == '<')
-				l->t.t = XC_LEX_OP_REL_LE;
+				l->lex = XC_LEX_OP_REL_LE;
 			else if (c2 == '>')
-				l->t.t = XC_LEX_OP_REL_GE;
+				l->lex = XC_LEX_OP_REL_GE;
 			else
 				RETURN_STATUS(bc_error_bad_character(c));
 			++l->i;
@@ -3515,7 +3513,7 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 			s = zdc_lex_string(l);
 			break;
 		default:
-			l->t.t = XC_LEX_INVALID;
+			l->lex = XC_LEX_INVALID;
 			s = bc_error_bad_character(c);
 			break;
 	}
@@ -3575,7 +3573,7 @@ static void bc_parse_pushJUMP_ZERO(BcParse *p, size_t idx)
 
 static BC_STATUS zbc_parse_pushSTR(BcParse *p)
 {
-	char *str = xstrdup(p->l.t.v.v);
+	char *str = xstrdup(p->l.lex_buf.v);
 
 	bc_parse_push(p, XC_INST_STR);
 	bc_parse_pushIndex(p, p->func->strs.len);
@@ -3588,7 +3586,7 @@ static BC_STATUS zbc_parse_pushSTR(BcParse *p)
 
 static void bc_parse_pushNUM(BcParse *p)
 {
-	char *num = xstrdup(p->l.t.v.v);
+	char *num = xstrdup(p->l.lex_buf.v);
 #if ENABLE_BC && ENABLE_DC
 	size_t idx = bc_vec_push(IS_BC ? &p->func->consts : &G.prog.consts, &num);
 #elif ENABLE_BC
@@ -3636,7 +3634,7 @@ static void bc_parse_reset(BcParse *p)
 	}
 
 	p->l.i = p->l.len;
-	p->l.t.t = XC_LEX_EOF;
+	p->l.lex = XC_LEX_EOF;
 
 	IF_BC(bc_vec_pop_all(&p->exits);)
 	IF_BC(bc_vec_pop_all(&p->conds);)
@@ -3745,7 +3743,7 @@ static BC_STATUS zbc_parse_stmt_allow_NLINE_before(BcParse *p, const char *after
 	// Same for "else", "while()", "for()".
 	BcStatus s = zbc_lex_next_and_skip_NLINE(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t == XC_LEX_NLINE)
+	if (p->l.lex == XC_LEX_NLINE)
 		RETURN_STATUS(bc_error_fmt("no statement after '%s'", after_X));
 
 	RETURN_STATUS(zbc_parse_stmt(p));
@@ -3803,20 +3801,20 @@ static BC_STATUS zbc_parse_params(BcParse *p, uint8_t flags)
 	BcStatus s;
 	size_t nparams;
 
-	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
+	dbg_lex("%s:%d p->l.lex:%d", __func__, __LINE__, p->l.lex);
 	flags = (flags & ~(BC_PARSE_PRINT | BC_PARSE_REL)) | BC_PARSE_ARRAY;
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
 	nparams = 0;
-	if (p->l.t.t != BC_LEX_RPAREN) {
+	if (p->l.lex != BC_LEX_RPAREN) {
 		for (;;) {
 			s = zbc_parse_expr(p, flags);
 			if (s) RETURN_STATUS(s);
 			nparams++;
-			if (p->l.t.t != BC_LEX_COMMA) {
-				if (p->l.t.t == BC_LEX_RPAREN)
+			if (p->l.lex != BC_LEX_COMMA) {
+				if (p->l.lex == BC_LEX_RPAREN)
 					break;
 				RETURN_STATUS(bc_error_bad_token());
 			}
@@ -3844,7 +3842,7 @@ static BC_STATUS zbc_parse_call(BcParse *p, char *name, uint8_t flags)
 	s = zbc_parse_params(p, flags);
 	if (s) goto err;
 
-	if (p->l.t.t != BC_LEX_RPAREN) {
+	if (p->l.lex != BC_LEX_RPAREN) {
 		s = bc_error_bad_token();
 		goto err;
 	}
@@ -3873,15 +3871,15 @@ static BC_STATUS zbc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 	BcStatus s;
 	char *name;
 
-	name = xstrdup(p->l.t.v.v);
+	name = xstrdup(p->l.lex_buf.v);
 	s = zbc_lex_next(&p->l);
 	if (s) goto err;
 
-	if (p->l.t.t == BC_LEX_LBRACKET) {
+	if (p->l.lex == BC_LEX_LBRACKET) {
 		s = zbc_lex_next(&p->l);
 		if (s) goto err;
 
-		if (p->l.t.t == BC_LEX_RBRACKET) {
+		if (p->l.lex == BC_LEX_RBRACKET) {
 			if (!(flags & BC_PARSE_ARRAY)) {
 				s = bc_error_bad_expression();
 				goto err;
@@ -3898,7 +3896,7 @@ static BC_STATUS zbc_parse_name(BcParse *p, BcInst *type, uint8_t flags)
 		bc_parse_push(p, *type);
 		bc_parse_pushName(p, name);
 		free(name);
-	} else if (p->l.t.t == BC_LEX_LPAREN) {
+	} else if (p->l.lex == BC_LEX_LPAREN) {
 		if (flags & BC_PARSE_NOCALL) {
 			s = bc_error_bad_token();
 			goto err;
@@ -3925,11 +3923,11 @@ static BC_STATUS zbc_parse_read(BcParse *p)
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 
 	bc_parse_push(p, XC_INST_READ);
 
@@ -3944,7 +3942,7 @@ static BC_STATUS zbc_parse_builtin(BcParse *p, BcLexType type, uint8_t flags,
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
 
 	flags = (flags & ~(BC_PARSE_PRINT | BC_PARSE_REL)) | BC_PARSE_ARRAY;
 
@@ -3954,7 +3952,7 @@ static BC_STATUS zbc_parse_builtin(BcParse *p, BcLexType type, uint8_t flags,
 	s = zbc_parse_expr(p, flags);
 	if (s) RETURN_STATUS(s);
 
-	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 
 	*prev = (type == BC_LEX_KEY_LENGTH) ? XC_INST_LENGTH : XC_INST_SQRT;
 	bc_parse_push(p, *prev);
@@ -3970,7 +3968,7 @@ static BC_STATUS zbc_parse_scale(BcParse *p, BcInst *type, uint8_t flags)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	if (p->l.t.t != BC_LEX_LPAREN) {
+	if (p->l.lex != BC_LEX_LPAREN) {
 		*type = XC_INST_SCALE;
 		bc_parse_push(p, XC_INST_SCALE);
 		RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -3984,7 +3982,7 @@ static BC_STATUS zbc_parse_scale(BcParse *p, BcInst *type, uint8_t flags)
 
 	s = zbc_parse_expr(p, flags);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_RPAREN)
+	if (p->l.lex != BC_LEX_RPAREN)
 		RETURN_STATUS(bc_error_bad_token());
 	bc_parse_push(p, XC_INST_SCALE_FUNC);
 
@@ -4004,16 +4002,16 @@ static BC_STATUS zbc_parse_incdec(BcParse *p, BcInst *prev, bool *paren_expr,
 	 || etype == XC_INST_SCALE || etype == BC_INST_LAST
 	 || etype == XC_INST_IBASE || etype == XC_INST_OBASE
 	) {
-		*prev = inst = BC_INST_INC_POST + (p->l.t.t != BC_LEX_OP_INC);
+		*prev = inst = BC_INST_INC_POST + (p->l.lex != BC_LEX_OP_INC);
 		bc_parse_push(p, inst);
 		s = zbc_lex_next(&p->l);
 	} else {
-		*prev = inst = BC_INST_INC_PRE + (p->l.t.t != BC_LEX_OP_INC);
+		*prev = inst = BC_INST_INC_PRE + (p->l.lex != BC_LEX_OP_INC);
 		*paren_expr = true;
 
 		s = zbc_lex_next(&p->l);
 		if (s) RETURN_STATUS(s);
-		type = p->l.t.t;
+		type = p->l.lex;
 
 		// Because we parse the next part of the expression
 		// right here, we need to increment this.
@@ -4032,7 +4030,7 @@ static BC_STATUS zbc_parse_incdec(BcParse *p, BcInst *prev, bool *paren_expr,
 			case BC_LEX_KEY_SCALE:
 				s = zbc_lex_next(&p->l);
 				if (s) RETURN_STATUS(s);
-				if (p->l.t.t == BC_LEX_LPAREN)
+				if (p->l.lex == BC_LEX_LPAREN)
 					s = bc_error_bad_token();
 				else
 					bc_parse_push(p, XC_INST_SCALE);
@@ -4084,7 +4082,7 @@ static BC_STATUS zbc_parse_print(BcParse *p)
 	for (;;) {
 		s = zbc_lex_next(&p->l);
 		if (s) RETURN_STATUS(s);
-		type = p->l.t.t;
+		type = p->l.lex;
 		if (type == XC_LEX_STR) {
 			s = zbc_parse_pushSTR(p);
 		} else {
@@ -4092,7 +4090,7 @@ static BC_STATUS zbc_parse_print(BcParse *p)
 		}
 		if (s) RETURN_STATUS(s);
 		bc_parse_push(p, XC_INST_PRINT_POP);
-		if (p->l.t.t != BC_LEX_COMMA)
+		if (p->l.lex != BC_LEX_COMMA)
 			break;
 	}
 
@@ -4109,7 +4107,7 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	t = p->l.t.t;
+	t = p->l.lex;
 	if (t == XC_LEX_NLINE || t == BC_LEX_SCOLON)
 		bc_parse_push(p, BC_INST_RET0);
 	else {
@@ -4121,7 +4119,7 @@ static BC_STATUS zbc_parse_return(BcParse *p)
 		}
 		if (s) RETURN_STATUS(s);
 
-		if (!paren || p->l.t.last != BC_LEX_RPAREN) {
+		if (!paren || p->l.lex_last != BC_LEX_RPAREN) {
 			s = zbc_POSIX_requires("parentheses around return expressions");
 			if (s) RETURN_STATUS(s);
 		}
@@ -4148,13 +4146,13 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 	s = zbc_parse_expr(p, BC_PARSE_REL);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 
 	// Encode "if zero, jump to ..."
 	// Pushed value (destination of the jump) is uninitialized,
@@ -4165,8 +4163,8 @@ static BC_STATUS zbc_parse_if(BcParse *p)
 	s = zbc_parse_stmt_allow_NLINE_before(p, STRING_if);
 	if (s) RETURN_STATUS(s);
 
-	dbg_lex("%s:%d in if after stmt: p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
-	if (p->l.t.t == BC_LEX_KEY_ELSE) {
+	dbg_lex("%s:%d in if after stmt: p->l.lex:%d", __func__, __LINE__, p->l.lex);
+	if (p->l.lex == BC_LEX_KEY_ELSE) {
 		size_t ip2_idx;
 
 		// Encode "after then_stmt, jump to end of if()"
@@ -4199,7 +4197,7 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
@@ -4212,7 +4210,7 @@ static BC_STATUS zbc_parse_while(BcParse *p)
 
 	s = zbc_parse_expr(p, BC_PARSE_REL);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 
 	bc_parse_pushJUMP_ZERO(p, ip_idx);
 
@@ -4237,14 +4235,14 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	BcStatus s;
 	size_t cond_idx, exit_idx, body_idx, update_idx;
 
-	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
+	dbg_lex("%s:%d p->l.lex:%d", __func__, __LINE__, p->l.lex);
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_LPAREN) RETURN_STATUS(bc_error_bad_token());
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	if (p->l.t.t != BC_LEX_SCOLON) {
+	if (p->l.lex != BC_LEX_SCOLON) {
 		s = zbc_parse_expr(p, 0);
 		bc_parse_push(p, XC_INST_POP);
 		if (s) RETURN_STATUS(s);
@@ -4253,7 +4251,7 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 		if (s) RETURN_STATUS(s);
 	}
 
-	if (p->l.t.t != BC_LEX_SCOLON) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_SCOLON) RETURN_STATUS(bc_error_bad_token());
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
@@ -4262,19 +4260,19 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	body_idx = update_idx + 1;
 	exit_idx = body_idx + 1;
 
-	if (p->l.t.t != BC_LEX_SCOLON)
+	if (p->l.lex != BC_LEX_SCOLON)
 		s = zbc_parse_expr(p, BC_PARSE_REL);
 	else {
 		// Set this for the next call to bc_parse_pushNUM().
 		// This is safe to set because the current token is a semicolon,
 		// which has no string requirement.
-		bc_vec_string(&p->l.t.v, 1, "1");
+		bc_vec_string(&p->l.lex_buf, 1, "1");
 		bc_parse_pushNUM(p);
 		s = zbc_POSIX_does_not_allow_empty_X_expression_in_for("condition");
 	}
 	if (s) RETURN_STATUS(s);
 
-	if (p->l.t.t != BC_LEX_SCOLON) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != BC_LEX_SCOLON) RETURN_STATUS(bc_error_bad_token());
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
@@ -4285,10 +4283,10 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 	bc_vec_push(&p->conds, &update_idx);
 	bc_vec_push(&p->func->labels, &p->func->code.len);
 
-	if (p->l.t.t != BC_LEX_RPAREN) {
+	if (p->l.lex != BC_LEX_RPAREN) {
 		s = zbc_parse_expr(p, 0);
 		if (s) RETURN_STATUS(s);
-		if (p->l.t.t != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
+		if (p->l.lex != BC_LEX_RPAREN) RETURN_STATUS(bc_error_bad_token());
 		bc_parse_push(p, XC_INST_POP);
 	} else {
 		s = zbc_POSIX_does_not_allow_empty_X_expression_in_for("update");
@@ -4335,7 +4333,7 @@ static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	if (p->l.t.t != BC_LEX_SCOLON && p->l.t.t != XC_LEX_NLINE)
+	if (p->l.lex != BC_LEX_SCOLON && p->l.lex != XC_LEX_NLINE)
 		RETURN_STATUS(bc_error_bad_token());
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
@@ -4372,37 +4370,37 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != XC_LEX_NAME)
+	if (p->l.lex != XC_LEX_NAME)
 		RETURN_STATUS(bc_error("bad function definition"));
 
-	name = xstrdup(p->l.t.v.v);
+	name = xstrdup(p->l.lex_buf.v);
 	p->fidx = bc_program_addFunc(name);
 	p->func = bc_program_func(p->fidx);
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != BC_LEX_LPAREN)
+	if (p->l.lex != BC_LEX_LPAREN)
 		RETURN_STATUS(bc_error("bad function definition"));
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	while (p->l.t.t != BC_LEX_RPAREN) {
-		if (p->l.t.t != XC_LEX_NAME)
+	while (p->l.lex != BC_LEX_RPAREN) {
+		if (p->l.lex != XC_LEX_NAME)
 			RETURN_STATUS(bc_error("bad function definition"));
 
 		++p->func->nparams;
 
-		name = xstrdup(p->l.t.v.v);
+		name = xstrdup(p->l.lex_buf.v);
 		s = zbc_lex_next(&p->l);
 		if (s) goto err;
 
-		var = p->l.t.t != BC_LEX_LBRACKET;
+		var = p->l.lex != BC_LEX_LBRACKET;
 
 		if (!var) {
 			s = zbc_lex_next(&p->l);
 			if (s) goto err;
 
-			if (p->l.t.t != BC_LEX_RBRACKET) {
+			if (p->l.lex != BC_LEX_RBRACKET) {
 				s = bc_error("bad function definition");
 				goto err;
 			}
@@ -4411,7 +4409,7 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 			if (s) goto err;
 		}
 
-		comma = p->l.t.t == BC_LEX_COMMA;
+		comma = p->l.lex == BC_LEX_COMMA;
 		if (comma) {
 			s = zbc_lex_next(&p->l);
 			if (s) goto err;
@@ -4426,7 +4424,7 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	if (p->l.t.t != BC_LEX_LBRACE) {
+	if (p->l.lex != BC_LEX_LBRACE) {
 		s = zbc_POSIX_requires("the left brace be on the same line as the function header");
 		if (s) RETURN_STATUS(s);
 	}
@@ -4435,7 +4433,7 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	s = zbc_lex_skip_if_at_NLINE(&p->l);
 	if (s) RETURN_STATUS(s);
 	//GNU bc requires a {} block even if function body has single stmt, enforce this?
-	if (p->l.t.t != BC_LEX_LBRACE)
+	if (p->l.lex != BC_LEX_LBRACE)
 		RETURN_STATUS(bc_error("function { body } expected"));
 
 	p->in_funcdef++; // to determine whether "return" stmt is allowed, and such
@@ -4469,19 +4467,19 @@ static BC_STATUS zbc_parse_auto(BcParse *p)
 	if (s) RETURN_STATUS(s);
 
 	comma = false;
-	one = p->l.t.t == XC_LEX_NAME;
+	one = p->l.lex == XC_LEX_NAME;
 
-	while (p->l.t.t == XC_LEX_NAME) {
-		name = xstrdup(p->l.t.v.v);
+	while (p->l.lex == XC_LEX_NAME) {
+		name = xstrdup(p->l.lex_buf.v);
 		s = zbc_lex_next(&p->l);
 		if (s) goto err;
 
-		var = p->l.t.t != BC_LEX_LBRACKET;
+		var = p->l.lex != BC_LEX_LBRACKET;
 		if (!var) {
 			s = zbc_lex_next(&p->l);
 			if (s) goto err;
 
-			if (p->l.t.t != BC_LEX_RBRACKET) {
+			if (p->l.lex != BC_LEX_RBRACKET) {
 				s = bc_error("bad function definition");
 				goto err;
 			}
@@ -4490,7 +4488,7 @@ static BC_STATUS zbc_parse_auto(BcParse *p)
 			if (s) goto err;
 		}
 
-		comma = p->l.t.t == BC_LEX_COMMA;
+		comma = p->l.lex == BC_LEX_COMMA;
 		if (comma) {
 			s = zbc_lex_next(&p->l);
 			if (s) goto err;
@@ -4503,7 +4501,7 @@ static BC_STATUS zbc_parse_auto(BcParse *p)
 	if (comma) RETURN_STATUS(bc_error("bad function definition"));
 	if (!one) RETURN_STATUS(bc_error("no auto variable found"));
 
-	if (p->l.t.t != XC_LEX_NLINE && p->l.t.t != BC_LEX_SCOLON)
+	if (p->l.lex != XC_LEX_NLINE && p->l.lex != BC_LEX_SCOLON)
 		RETURN_STATUS(bc_error_bad_token());
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
@@ -4520,29 +4518,29 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 
-	dbg_lex_enter("%s:%d entered, p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
+	dbg_lex_enter("%s:%d entered, p->l.lex:%d", __func__, __LINE__, p->l.lex);
 
-	if (p->l.t.t == XC_LEX_NLINE) {
+	if (p->l.lex == XC_LEX_NLINE) {
 		dbg_lex_done("%s:%d done (seen XC_LEX_NLINE)", __func__, __LINE__);
 		RETURN_STATUS(zbc_lex_next(&p->l));
 	}
-	if (p->l.t.t == BC_LEX_SCOLON) {
+	if (p->l.lex == BC_LEX_SCOLON) {
 		dbg_lex_done("%s:%d done (seen BC_LEX_SCOLON)", __func__, __LINE__);
 		RETURN_STATUS(zbc_lex_next(&p->l));
 	}
 
-	if (p->l.t.t == BC_LEX_LBRACE) {
+	if (p->l.lex == BC_LEX_LBRACE) {
 		dbg_lex("%s:%d BC_LEX_LBRACE: (auto_allowed:%d)", __func__, __LINE__, auto_allowed);
 		do {
 			s = zbc_lex_next(&p->l);
 			if (s) RETURN_STATUS(s);
-		} while (p->l.t.t == XC_LEX_NLINE);
-		if (auto_allowed && p->l.t.t == BC_LEX_KEY_AUTO) {
+		} while (p->l.lex == XC_LEX_NLINE);
+		if (auto_allowed && p->l.lex == BC_LEX_KEY_AUTO) {
 			dbg_lex("%s:%d calling zbc_parse_auto()", __func__, __LINE__);
 			s = zbc_parse_auto(p);
 			if (s) RETURN_STATUS(s);
 		}
-		while (p->l.t.t != BC_LEX_RBRACE) {
+		while (p->l.lex != BC_LEX_RBRACE) {
 			dbg_lex("%s:%d block parsing loop", __func__, __LINE__);
 			s = zbc_parse_stmt(p);
 			if (s) RETURN_STATUS(s);
@@ -4552,8 +4550,8 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 		RETURN_STATUS(s);
 	}
 
-	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
-	switch (p->l.t.t) {
+	dbg_lex("%s:%d p->l.lex:%d", __func__, __LINE__, p->l.lex);
+	switch (p->l.lex) {
 		case XC_LEX_OP_MINUS:
 		case BC_LEX_OP_INC:
 		case BC_LEX_OP_DEC:
@@ -4576,7 +4574,7 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 			break;
 		case BC_LEX_KEY_BREAK:
 		case BC_LEX_KEY_CONTINUE:
-			s = zbc_parse_break_or_continue(p, p->l.t.t);
+			s = zbc_parse_break_or_continue(p, p->l.lex);
 			break;
 		case BC_LEX_KEY_FOR:
 			s = zbc_parse_for(p);
@@ -4634,13 +4632,13 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p)
 	BcStatus s;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
-	if (p->l.t.t == XC_LEX_EOF)
+	if (p->l.lex == XC_LEX_EOF)
 		s = bc_error("end of file");
-	else if (p->l.t.t == BC_LEX_KEY_DEFINE) {
-		dbg_lex("%s:%d p->l.t.t:BC_LEX_KEY_DEFINE", __func__, __LINE__);
+	else if (p->l.lex == BC_LEX_KEY_DEFINE) {
+		dbg_lex("%s:%d p->l.lex:BC_LEX_KEY_DEFINE", __func__, __LINE__);
 		s = zbc_parse_funcdef(p);
 	} else {
-		dbg_lex("%s:%d p->l.t.t:%d (not BC_LEX_KEY_DEFINE)", __func__, __LINE__, p->l.t.t);
+		dbg_lex("%s:%d p->l.lex:%d (not BC_LEX_KEY_DEFINE)", __func__, __LINE__, p->l.lex);
 		s = zbc_parse_stmt(p);
 	}
 
@@ -4654,18 +4652,18 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 {
 	BcStatus s = BC_STATUS_SUCCESS;
 	BcInst prev = XC_INST_PRINT;
-	BcLexType top, t = p->l.t.t;
+	BcLexType top, t = p->l.lex;
 	size_t nexprs = 0, ops_bgn = p->ops.len;
 	unsigned nparens, nrelops;
 	bool paren_first, paren_expr, rprn, done, get_token, assign, bin_last;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
-	paren_first = (p->l.t.t == BC_LEX_LPAREN);
+	paren_first = (p->l.lex == BC_LEX_LPAREN);
 	nparens = nrelops = 0;
 	paren_expr = rprn = done = get_token = assign = false;
 	bin_last = true;
 
-	for (; !G_interrupt && !s && !done && bc_parse_exprs(t); t = p->l.t.t) {
+	for (; !G_interrupt && !s && !done && bc_parse_exprs(t); t = p->l.lex) {
 		dbg_lex("%s:%d t:%d", __func__, __LINE__, t);
 		switch (t) {
 			case BC_LEX_OP_INC:
@@ -4858,9 +4856,9 @@ static BC_STATUS zdc_parse_register(BcParse *p)
 
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
-	if (p->l.t.t != XC_LEX_NAME) RETURN_STATUS(bc_error_bad_token());
+	if (p->l.lex != XC_LEX_NAME) RETURN_STATUS(bc_error_bad_token());
 
-	bc_parse_pushName(p, p->l.t.v.v);
+	bc_parse_pushName(p, p->l.lex_buf.v);
 
 	RETURN_STATUS(s);
 }
@@ -4873,7 +4871,7 @@ static void dc_parse_string(BcParse *p)
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 
-	str = xstrdup(p->l.t.v.v);
+	str = xstrdup(p->l.lex_buf.v);
 	bc_parse_push(p, XC_INST_STR);
 	bc_parse_pushIndex(p, len);
 	bc_vec_push(&G.prog.strs, &str);
@@ -4921,7 +4919,7 @@ static BC_STATUS zdc_parse_cond(BcParse *p, uint8_t inst)
 	// Note that 'else' part can not be on the next line:
 	// echo -e '[1p]sa [2p]sb 2 1>a eb' | dc - OK, prints "2"
 	// echo -e '[1p]sa [2p]sb 2 1>a\neb' | dc - parse error
-	if (p->l.t.t == DC_LEX_ELSE) {
+	if (p->l.lex == DC_LEX_ELSE) {
 		s = zdc_parse_register(p);
 		if (s) RETURN_STATUS(s);
 		s = zbc_lex_next(&p->l);
@@ -4966,7 +4964,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			dbg_lex("%s:%d LEX_NEG", __func__, __LINE__);
 			s = zbc_lex_next(&p->l);
 			if (s) RETURN_STATUS(s);
-			if (p->l.t.t != XC_LEX_NUMBER)
+			if (p->l.lex != XC_LEX_NUMBER)
 				RETURN_STATUS(bc_error_bad_token());
 			bc_parse_pushNUM(p);
 			bc_parse_push(p, XC_INST_NEG);
@@ -5015,7 +5013,7 @@ static BC_STATUS zdc_parse_expr(BcParse *p)
 {
 	int i;
 
-	i = (int)p->l.t.t - (int)XC_LEX_OP_POWER;
+	i = (int)p->l.lex - (int)XC_LEX_OP_POWER;
 	if (i >= 0) {
 		BcInst inst = dc_LEX_to_INST[i];
 		if (inst != DC_INST_INVALID) {
@@ -5023,14 +5021,14 @@ static BC_STATUS zdc_parse_expr(BcParse *p)
 			RETURN_STATUS(zbc_lex_next(&p->l));
 		}
 	}
-	RETURN_STATUS(zdc_parse_token(p, p->l.t.t));
+	RETURN_STATUS(zdc_parse_token(p, p->l.lex));
 }
 #define zdc_parse_expr(...) (zdc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zdc_parse_exprs_until_eof(BcParse *p)
 {
-	dbg_lex_enter("%s:%d entered, p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
-	while (p->l.t.t != XC_LEX_EOF) {
+	dbg_lex_enter("%s:%d entered, p->l.lex:%d", __func__, __LINE__, p->l.lex);
+	while (p->l.lex != XC_LEX_EOF) {
 		BcStatus s = zdc_parse_expr(p);
 		if (s) RETURN_STATUS(s);
 	}
@@ -5263,7 +5261,7 @@ static BC_STATUS zbc_program_read(void)
 	}
 	if (s) goto exec_err;
 
-	if (parse.l.t.t != XC_LEX_NLINE && parse.l.t.t != XC_LEX_EOF) {
+	if (parse.l.lex != XC_LEX_NLINE && parse.l.lex != XC_LEX_EOF) {
 		s = bc_error("bad read() expression");
 		goto exec_err;
 	}
@@ -6396,7 +6394,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 		G.input_fp = sv_input_fp;
 
 		if (s) goto err;
-		if (prs.l.t.t != XC_LEX_EOF) {
+		if (prs.l.lex != XC_LEX_EOF) {
 			s = bc_error_bad_expression();
  err:
 			bc_parse_free(&prs);
@@ -6732,11 +6730,11 @@ static BC_STATUS zbc_vm_process(const char *text)
 	s = zbc_parse_text_init(&G.prs, text); // does the first zbc_lex_next()
 	if (s) RETURN_STATUS(s);
 
-	while (G.prs.l.t.t != XC_LEX_EOF) {
+	while (G.prs.l.lex != XC_LEX_EOF) {
 		BcInstPtr *ip;
 		BcFunc *f;
 
-		dbg_lex("%s:%d G.prs.l.t.t:%d, parsing...", __func__, __LINE__, G.prs.l.t.t);
+		dbg_lex("%s:%d G.prs.l.lex:%d, parsing...", __func__, __LINE__, G.prs.l.lex);
 		if (IS_BC) {
 // FIXME: "eating" of stmt delimiters is coded inconsistently
 // (sometimes zbc_parse_stmt() eats the delimiter, sometimes don't),
@@ -6747,10 +6745,10 @@ static BC_STATUS zbc_vm_process(const char *text)
 		} else {
 			// Most of dc parsing assumes all whitespace,
 			// including '\n', is eaten.
-			while (G.prs.l.t.t == XC_LEX_NLINE) {
+			while (G.prs.l.lex == XC_LEX_NLINE) {
 				s = zbc_lex_next(&G.prs.l);
 				if (s) goto err;
-				if (G.prs.l.t.t == XC_LEX_EOF)
+				if (G.prs.l.lex == XC_LEX_EOF)
 					goto done;
 			}
 			IF_DC(s = zdc_parse_expr(&G.prs));
