@@ -253,19 +253,19 @@ typedef enum BcInst {
 #endif
 	XC_INST_NEG,            // order
 
-	XC_INST_POWER,          // should
-	XC_INST_MULTIPLY,       // match
-	XC_INST_DIVIDE,         // LEX
-	XC_INST_MODULUS,        // constants
-	XC_INST_PLUS,           // for
-	XC_INST_MINUS,          // these
+	XC_INST_REL_EQ,         // should
+	XC_INST_REL_LE,         // match
+	XC_INST_REL_GE,         // LEX
+	XC_INST_REL_NE,         // constants
+	XC_INST_REL_LT,         // for
+	XC_INST_REL_GT,         // these
 
-	XC_INST_REL_EQ,         // operations
-	XC_INST_REL_LE,         // |
-	XC_INST_REL_GE,         // |
-	XC_INST_REL_NE,         // |
-	XC_INST_REL_LT,         // |
-	XC_INST_REL_GT,         // |
+	XC_INST_POWER,          // operations
+	XC_INST_MULTIPLY,       // |
+	XC_INST_DIVIDE,         // |
+	XC_INST_MODULUS,        // |
+	XC_INST_PLUS,           // |
+	XC_INST_MINUS,          // |
 
 	XC_INST_BOOL_NOT,       // |
 	XC_INST_BOOL_OR,        // |
@@ -401,20 +401,20 @@ typedef enum BcLexType {
 	XC_LEX_1st_op,
 	XC_LEX_NEG = XC_LEX_1st_op,     // order
 
-	XC_LEX_OP_POWER,                // should
-	XC_LEX_OP_MULTIPLY,             // match
-	XC_LEX_OP_DIVIDE,               // INST
-	XC_LEX_OP_MODULUS,              // constants
-	XC_LEX_OP_PLUS,                 // for
-	XC_LEX_OP_MINUS,                // these
+	XC_LEX_OP_REL_EQ,               // should
+	XC_LEX_OP_REL_LE,               // match
+	XC_LEX_OP_REL_GE,               // INST
+	XC_LEX_OP_REL_NE,               // constants
+	XC_LEX_OP_REL_LT,               // for
+	XC_LEX_OP_REL_GT,               // these
 
-	XC_LEX_OP_REL_EQ,               // operations
-	XC_LEX_OP_REL_LE,               // |
-	XC_LEX_OP_REL_GE,               // |
-	XC_LEX_OP_REL_NE,               // |
-	XC_LEX_OP_REL_LT,               // |
-	XC_LEX_OP_REL_GT,               // |
-	XC_LEX_OP_last = XC_LEX_OP_REL_GT,
+	XC_LEX_OP_POWER,                // operations
+	XC_LEX_OP_MULTIPLY,             // |
+	XC_LEX_OP_DIVIDE,               // |
+	XC_LEX_OP_MODULUS,              // |
+	XC_LEX_OP_PLUS,                 // |
+	XC_LEX_OP_MINUS,                // |
+	XC_LEX_OP_last = XC_LEX_OP_MINUS,
 #if ENABLE_BC
 	BC_LEX_OP_BOOL_NOT,             // |
 	BC_LEX_OP_BOOL_OR,              // |
@@ -432,16 +432,16 @@ typedef enum BcLexType {
 	BC_LEX_OP_INC,
 	BC_LEX_OP_DEC,
 
-	BC_LEX_LPAREN,
-	BC_LEX_RPAREN,
+	BC_LEX_LPAREN, // () are 0x28 and 0x29
+	BC_LEX_RPAREN, // must be LPAREN+1: code uses (c - '(' + BC_LEX_LPAREN)
 
-	BC_LEX_LBRACKET,
+	BC_LEX_LBRACKET, // [] are 0x5B and 5D
 	BC_LEX_COMMA,
-	BC_LEX_RBRACKET,
+	BC_LEX_RBRACKET, // must be LBRACKET+2: code uses (c - '[' + BC_LEX_LBRACKET)
 
-	BC_LEX_LBRACE, // '{' is 0x7B, '}' is 0x7D,
+	BC_LEX_LBRACE, // {} are 0x7B and 0x7D
 	BC_LEX_SCOLON,
-	BC_LEX_RBRACE, // should be LBRACE+2: code uses (c - '{' + BC_LEX_LBRACE)
+	BC_LEX_RBRACE, // must be LBRACE+2: code uses (c - '{' + BC_LEX_LBRACE)
 
 	BC_LEX_KEY_1st_keyword,
 	BC_LEX_KEY_AUTO = BC_LEX_KEY_1st_keyword,
@@ -582,8 +582,8 @@ enum {
 	((uint64_t)((a << 0)+(b << 1)+(c << 2)+(d << 3)+(e << 4)+(f << 5)+(g << 6)+(h << 7)))
 	BC_PARSE_EXPRS_BITS = 0              // corresponding BC_LEX_xyz:
 	+ (EXBITS(0,0,0,0,0,1,1,1) << (0*8)) //  0: EOF    INVAL  NL     WS     STR    NAME   NUM    -
-	+ (EXBITS(1,1,1,1,1,1,1,1) << (1*8)) //  8: ^      *      /      %      +      -      ==     <=
-	+ (EXBITS(1,1,1,1,1,1,1,1) << (2*8)) // 16: >=     !=     <      >      !      ||     &&     ^=
+	+ (EXBITS(1,1,1,1,1,1,1,1) << (1*8)) //  8: ==     <=     >=     !=     <      >      ^      *
+	+ (EXBITS(1,1,1,1,1,1,1,1) << (2*8)) // 16: /      %      +      -      !      ||     &&     ^=
 	+ (EXBITS(1,1,1,1,1,1,1,1) << (3*8)) // 24: *=     /=     %=     +=     -=     =      ++     --
 	+ (EXBITS(1,1,0,0,0,0,0,0) << (4*8)) // 32: (      )      [      ,      ]      {      ;      }
 	+ (EXBITS(0,0,0,0,0,0,0,1) << (5*8)) // 40: auto   break  cont   define else   for    halt   ibase
@@ -612,10 +612,10 @@ static ALWAYS_INLINE long bc_parse_exprs(unsigned i)
 static const uint8_t bc_parse_ops[] = {
 #define OP(p,l) ((int)(l) * 0x10 + (p))
 	OP(1, false), // neg
+	OP(6, true ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true ), // == <= >= != < >
 	OP(2, false), // pow
 	OP(3, true ), OP( 3, true  ), OP( 3, true  ), // mul div mod
 	OP(4, true ), OP( 4, true  ), // + -
-	OP(6, true ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true ), // == <= >= != < >
 	OP(1, false), // not
 	OP(7, true ), OP( 7, true  ), // or and
 	OP(5, false), OP( 5, false ), OP( 5, false ), OP( 5, false ), OP( 5, false ), // ^= *= /= %= +=
@@ -677,9 +677,6 @@ dc_LEX_to_INST[] = { // starts at XC_LEX_OP_POWER       // corresponding XC/DC_L
 	XC_INST_POWER,       XC_INST_MULTIPLY,          // OP_POWER     OP_MULTIPLY
 	XC_INST_DIVIDE,      XC_INST_MODULUS,           // OP_DIVIDE    OP_MODULUS
 	XC_INST_PLUS,        XC_INST_MINUS,             // OP_PLUS      OP_MINUS
-	DC_INST_INVALID,     DC_INST_INVALID,           // OP_REL_EQ    OP_REL_LE
-	DC_INST_INVALID,     DC_INST_INVALID,           // OP_REL_GE    OP_REL_NE
-	DC_INST_INVALID,     DC_INST_INVALID,           // OP_REL_LT    OP_REL_GT
 	XC_INST_BOOL_NOT,                               // DC_LEX_OP_BOOL_NOT
 	DC_INST_INVALID,                                // DC_LEX_OP_ASSIGN
 	XC_INST_REL_GT,                                 // DC_LEX_LPAREN
@@ -4655,7 +4652,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 	bool paren_first, paren_expr, rprn, done, get_token, assign, bin_last;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
-	paren_first = p->l.t.t == BC_LEX_LPAREN;
+	paren_first = (p->l.t.t == BC_LEX_LPAREN);
 	nparens = nrelops = 0;
 	paren_expr = rprn = done = get_token = assign = false;
 	bin_last = true;
@@ -4671,7 +4668,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 			case XC_LEX_OP_MINUS:
 				s = zbc_parse_minus(p, &prev, ops_bgn, rprn, &nexprs);
 				rprn = get_token = false;
-				bin_last = prev == XC_INST_MINUS;
+				bin_last = (prev == XC_INST_MINUS);
 				break;
 			case BC_LEX_OP_ASSIGN_POWER:
 			case BC_LEX_OP_ASSIGN_MULTIPLY:
@@ -4812,7 +4809,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 
 	while (p->ops.len > ops_bgn) {
 		top = BC_PARSE_TOP_OP(p);
-		assign = top >= BC_LEX_OP_ASSIGN_POWER && top <= BC_LEX_OP_ASSIGN;
+		assign = (top >= BC_LEX_OP_ASSIGN_POWER && top <= BC_LEX_OP_ASSIGN);
 
 		if (top == BC_LEX_LPAREN || top == BC_LEX_RPAREN)
 			return bc_error_bad_expression();
