@@ -877,82 +877,9 @@ struct globals {
 # define COMMA_SUCCESS    ,BC_STATUS_SUCCESS
 #endif
 
-#define STACK_HAS_MORE_THAN(s, n)          ((s)->len > ((size_t)(n)))
-#define STACK_HAS_EQUAL_OR_MORE_THAN(s, n) ((s)->len >= ((size_t)(n)))
-
-#define BC_NUM_NEG(n, neg)      ((((ssize_t)(n)) ^ -((ssize_t)(neg))) + (neg))
-#define BC_NUM_ONE(n)           ((n)->len == 1 && (n)->rdx == 0 && (n)->num[0] == 1)
-#define BC_NUM_INT(n)           ((n)->len - (n)->rdx)
-//#define BC_NUM_AREQ(a, b)       (BC_MAX((a)->rdx, (b)->rdx) + BC_MAX(BC_NUM_INT(a), BC_NUM_INT(b)) + 1)
-static /*ALWAYS_INLINE*/ size_t BC_NUM_AREQ(BcNum *a, BcNum *b)
-{
-	return BC_MAX(a->rdx, b->rdx) + BC_MAX(BC_NUM_INT(a), BC_NUM_INT(b)) + 1;
-}
-//#define BC_NUM_MREQ(a, b, scale) (BC_NUM_INT(a) + BC_NUM_INT(b) + BC_MAX((scale), (a)->rdx + (b)->rdx) + 1)
-static /*ALWAYS_INLINE*/ size_t BC_NUM_MREQ(BcNum *a, BcNum *b, size_t scale)
-{
-	return BC_NUM_INT(a) + BC_NUM_INT(b) + BC_MAX(scale, a->rdx + b->rdx) + 1;
-}
-
-typedef void (*BcNumDigitOp)(size_t, size_t, bool) FAST_FUNC;
-
-typedef BC_STATUS (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t) FAST_FUNC;
-
-static BC_STATUS zbc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
-			BcNumBinaryOp op, size_t req);
-static FAST_FUNC BC_STATUS zbc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
-static FAST_FUNC BC_STATUS zbc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
-static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
-static FAST_FUNC BC_STATUS zbc_num_m(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
-static FAST_FUNC BC_STATUS zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
-static FAST_FUNC BC_STATUS zbc_num_rem(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
-
-static FAST_FUNC BC_STATUS zbc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
-{
-	BcNumBinaryOp op = (!a->neg == !b->neg) ? zbc_num_a : zbc_num_s;
-	(void) scale;
-	RETURN_STATUS(zbc_num_binary(a, b, c, false, op, BC_NUM_AREQ(a, b)));
-}
-
-static FAST_FUNC BC_STATUS zbc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale)
-{
-	BcNumBinaryOp op = (!a->neg == !b->neg) ? zbc_num_s : zbc_num_a;
-	(void) scale;
-	RETURN_STATUS(zbc_num_binary(a, b, c, true, op, BC_NUM_AREQ(a, b)));
-}
-
-static FAST_FUNC BC_STATUS zbc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale)
-{
-	size_t req = BC_NUM_MREQ(a, b, scale);
-	RETURN_STATUS(zbc_num_binary(a, b, c, scale, zbc_num_m, req));
-}
-
-static FAST_FUNC BC_STATUS zbc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale)
-{
-	size_t req = BC_NUM_MREQ(a, b, scale);
-	RETURN_STATUS(zbc_num_binary(a, b, c, scale, zbc_num_d, req));
-}
-
-static FAST_FUNC BC_STATUS zbc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale)
-{
-	size_t req = BC_NUM_MREQ(a, b, scale);
-	RETURN_STATUS(zbc_num_binary(a, b, c, scale, zbc_num_rem, req));
-}
-
-static FAST_FUNC BC_STATUS zbc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale)
-{
-	RETURN_STATUS(zbc_num_binary(a, b, c, scale, zbc_num_p, a->len * b->len + 1));
-}
-
-static const BcNumBinaryOp zbc_program_ops[] = {
-	zbc_num_pow, zbc_num_mul, zbc_num_div, zbc_num_mod, zbc_num_add, zbc_num_sub,
-};
-#define zbc_num_add(...) (zbc_num_add(__VA_ARGS__) COMMA_SUCCESS)
-#define zbc_num_sub(...) (zbc_num_sub(__VA_ARGS__) COMMA_SUCCESS)
-#define zbc_num_mul(...) (zbc_num_mul(__VA_ARGS__) COMMA_SUCCESS)
-#define zbc_num_div(...) (zbc_num_div(__VA_ARGS__) COMMA_SUCCESS)
-#define zbc_num_mod(...) (zbc_num_mod(__VA_ARGS__) COMMA_SUCCESS)
-#define zbc_num_pow(...) (zbc_num_pow(__VA_ARGS__) COMMA_SUCCESS)
+//
+// Utility routines
+//
 
 static void fflush_and_check(void)
 {
@@ -1324,102 +1251,6 @@ static size_t bc_map_find_exact(const BcVec *v, const void *ptr)
 }
 #endif
 
-static int bad_input_byte(char c)
-{
-	if ((c < ' ' && c != '\t' && c != '\r' && c != '\n') // also allow '\v' '\f'?
-	 || c > 0x7e
-	) {
-		bc_error_fmt("illegal character 0x%02x", c);
-		return 1;
-	}
-	return 0;
-}
-
-// Note: it _appends_ data from fp to vec.
-static void bc_read_line(BcVec *vec, FILE *fp)
-{
- again:
-	fflush_and_check();
-
-#if ENABLE_FEATURE_BC_SIGNALS
-	if (G_interrupt) { // ^C was pressed
- intr:
-		if (fp != stdin) {
-			// ^C while running a script (bc SCRIPT): die.
-			// We do not return to interactive prompt:
-			// user might be running us from a shell,
-			// and SCRIPT might be intended to terminate
-			// (e.g. contain a "halt" stmt).
-			// ^C dropping user into a bc prompt instead of
-			// the shell would be unexpected.
-			xfunc_die();
-		}
-		// ^C while interactive input
-		G_interrupt = 0;
-		// GNU bc says "interrupted execution."
-		// GNU dc says "Interrupt!"
-		fputs("\ninterrupted execution\n", stderr);
-	}
-
-# if ENABLE_FEATURE_EDITING
-	if (G_ttyin && fp == stdin) {
-		int n, i;
-#  define line_buf bb_common_bufsiz1
-		n = read_line_input(G.line_input_state, "", line_buf, COMMON_BUFSIZE);
-		if (n <= 0) { // read errors or EOF, or ^D, or ^C
-			if (n == 0) // ^C
-				goto intr;
-			bc_vec_pushZeroByte(vec); // ^D or EOF (or error)
-			return;
-		}
-		i = 0;
-		for (;;) {
-			char c = line_buf[i++];
-			if (!c) break;
-			if (bad_input_byte(c)) goto again;
-		}
-		bc_vec_concat(vec, line_buf);
-#  undef line_buf
-	} else
-# endif
-#endif
-	{
-		int c;
-		bool bad_chars = 0;
-		size_t len = vec->len;
-
-		do {
-#if ENABLE_FEATURE_BC_SIGNALS
-			if (G_interrupt) {
-				// ^C was pressed: ignore entire line, get another one
-				vec->len = len;
-				goto intr;
-			}
-#endif
-			do c = fgetc(fp); while (c == '\0');
-			if (c == EOF) {
-				if (ferror(fp))
-					bb_perror_msg_and_die("input error");
-				// Note: EOF does not append '\n'
-				break;
-			}
-			bad_chars |= bad_input_byte(c);
-			bc_vec_pushByte(vec, (char)c);
-		} while (c != '\n');
-
-		if (bad_chars) {
-			// Bad chars on this line
-			if (!G.prog.file) { // stdin
-				// ignore entire line, get another one
-				vec->len = len;
-				goto again;
-			}
-			bb_perror_msg_and_die("file '%s' is not text", G.prog.file);
-		}
-		bc_vec_pushZeroByte(vec);
-	}
-}
-
 static void bc_num_setToZero(BcNum *n, size_t scale)
 {
 	n->len = 0;
@@ -1569,6 +1400,20 @@ static ssize_t bc_num_compare(BcDig *restrict a, BcDig *restrict b, size_t len)
 	}
 }
 
+#define BC_NUM_NEG(n, neg)      ((((ssize_t)(n)) ^ -((ssize_t)(neg))) + (neg))
+#define BC_NUM_ONE(n)           ((n)->len == 1 && (n)->rdx == 0 && (n)->num[0] == 1)
+#define BC_NUM_INT(n)           ((n)->len - (n)->rdx)
+//#define BC_NUM_AREQ(a, b)       (BC_MAX((a)->rdx, (b)->rdx) + BC_MAX(BC_NUM_INT(a), BC_NUM_INT(b)) + 1)
+static /*ALWAYS_INLINE*/ size_t BC_NUM_AREQ(BcNum *a, BcNum *b)
+{
+	return BC_MAX(a->rdx, b->rdx) + BC_MAX(BC_NUM_INT(a), BC_NUM_INT(b)) + 1;
+}
+//#define BC_NUM_MREQ(a, b, scale) (BC_NUM_INT(a) + BC_NUM_INT(b) + BC_MAX((scale), (a)->rdx + (b)->rdx) + 1)
+static /*ALWAYS_INLINE*/ size_t BC_NUM_MREQ(BcNum *a, BcNum *b, size_t scale)
+{
+	return BC_NUM_INT(a) + BC_NUM_INT(b) + BC_MAX(scale, a->rdx + b->rdx) + 1;
+}
+
 static ssize_t bc_num_cmp(BcNum *a, BcNum *b)
 {
 	size_t i, min, a_int, b_int, diff;
@@ -1704,6 +1549,99 @@ static BC_STATUS zbc_num_shift(BcNum *n, size_t places)
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #define zbc_num_shift(...) (zbc_num_shift(__VA_ARGS__) COMMA_SUCCESS)
+
+typedef BC_STATUS (*BcNumBinaryOp)(BcNum *, BcNum *, BcNum *, size_t) FAST_FUNC;
+
+static BC_STATUS zbc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
+                              BcNumBinaryOp op, size_t req)
+{
+	BcStatus s;
+	BcNum num2, *ptr_a, *ptr_b;
+	bool init = false;
+
+	if (c == a) {
+		ptr_a = &num2;
+		memcpy(ptr_a, c, sizeof(BcNum));
+		init = true;
+	} else
+		ptr_a = a;
+
+	if (c == b) {
+		ptr_b = &num2;
+		if (c != a) {
+			memcpy(ptr_b, c, sizeof(BcNum));
+			init = true;
+		}
+	} else
+		ptr_b = b;
+
+	if (init)
+		bc_num_init(c, req);
+	else
+		bc_num_expand(c, req);
+
+	s = BC_STATUS_SUCCESS;
+	IF_ERROR_RETURN_POSSIBLE(s =) op(ptr_a, ptr_b, c, scale);
+
+	if (init) bc_num_free(&num2);
+
+	RETURN_STATUS(s);
+}
+#define zbc_num_binary(...) (zbc_num_binary(__VA_ARGS__) COMMA_SUCCESS)
+
+static FAST_FUNC BC_STATUS zbc_num_a(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
+static FAST_FUNC BC_STATUS zbc_num_s(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
+static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
+static FAST_FUNC BC_STATUS zbc_num_m(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
+static FAST_FUNC BC_STATUS zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
+static FAST_FUNC BC_STATUS zbc_num_rem(BcNum *a, BcNum *b, BcNum *restrict c, size_t scale);
+
+static FAST_FUNC BC_STATUS zbc_num_add(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+{
+	BcNumBinaryOp op = (!a->neg == !b->neg) ? zbc_num_a : zbc_num_s;
+	(void) scale;
+	RETURN_STATUS(zbc_num_binary(a, b, c, false, op, BC_NUM_AREQ(a, b)));
+}
+
+static FAST_FUNC BC_STATUS zbc_num_sub(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+{
+	BcNumBinaryOp op = (!a->neg == !b->neg) ? zbc_num_s : zbc_num_a;
+	(void) scale;
+	RETURN_STATUS(zbc_num_binary(a, b, c, true, op, BC_NUM_AREQ(a, b)));
+}
+
+static FAST_FUNC BC_STATUS zbc_num_mul(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+{
+	size_t req = BC_NUM_MREQ(a, b, scale);
+	RETURN_STATUS(zbc_num_binary(a, b, c, scale, zbc_num_m, req));
+}
+
+static FAST_FUNC BC_STATUS zbc_num_div(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+{
+	size_t req = BC_NUM_MREQ(a, b, scale);
+	RETURN_STATUS(zbc_num_binary(a, b, c, scale, zbc_num_d, req));
+}
+
+static FAST_FUNC BC_STATUS zbc_num_mod(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+{
+	size_t req = BC_NUM_MREQ(a, b, scale);
+	RETURN_STATUS(zbc_num_binary(a, b, c, scale, zbc_num_rem, req));
+}
+
+static FAST_FUNC BC_STATUS zbc_num_pow(BcNum *a, BcNum *b, BcNum *c, size_t scale)
+{
+	RETURN_STATUS(zbc_num_binary(a, b, c, scale, zbc_num_p, a->len * b->len + 1));
+}
+
+static const BcNumBinaryOp zbc_program_ops[] = {
+	zbc_num_pow, zbc_num_mul, zbc_num_div, zbc_num_mod, zbc_num_add, zbc_num_sub,
+};
+#define zbc_num_add(...) (zbc_num_add(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_sub(...) (zbc_num_sub(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_mul(...) (zbc_num_mul(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_div(...) (zbc_num_div(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_mod(...) (zbc_num_mod(__VA_ARGS__) COMMA_SUCCESS)
+#define zbc_num_pow(...) (zbc_num_pow(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_num_inv(BcNum *a, BcNum *b, size_t scale)
 {
@@ -2224,195 +2162,6 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 }
 #define zbc_num_p(...) (zbc_num_p(__VA_ARGS__) COMMA_SUCCESS)
 
-static BC_STATUS zbc_num_binary(BcNum *a, BcNum *b, BcNum *c, size_t scale,
-                              BcNumBinaryOp op, size_t req)
-{
-	BcStatus s;
-	BcNum num2, *ptr_a, *ptr_b;
-	bool init = false;
-
-	if (c == a) {
-		ptr_a = &num2;
-		memcpy(ptr_a, c, sizeof(BcNum));
-		init = true;
-	} else
-		ptr_a = a;
-
-	if (c == b) {
-		ptr_b = &num2;
-		if (c != a) {
-			memcpy(ptr_b, c, sizeof(BcNum));
-			init = true;
-		}
-	} else
-		ptr_b = b;
-
-	if (init)
-		bc_num_init(c, req);
-	else
-		bc_num_expand(c, req);
-
-	s = BC_STATUS_SUCCESS;
-	IF_ERROR_RETURN_POSSIBLE(s =) op(ptr_a, ptr_b, c, scale);
-
-	if (init) bc_num_free(&num2);
-
-	RETURN_STATUS(s);
-}
-#define zbc_num_binary(...) (zbc_num_binary(__VA_ARGS__) COMMA_SUCCESS)
-
-static bool bc_num_strValid(const char *val, size_t base)
-{
-	BcDig b;
-	bool radix;
-
-	b = (BcDig)(base <= 10 ? base + '0' : base - 10 + 'A');
-	radix = false;
-	for (;;) {
-		BcDig c = *val++;
-		if (c == '\0')
-			break;
-		if (c == '.') {
-			if (radix) return false;
-			radix = true;
-			continue;
-		}
-		if (c < '0' || c >= b || (c > '9' && c < 'A'))
-			return false;
-	}
-	return true;
-}
-
-// Note: n is already "bc_num_zero()"ed,
-// leading zeroes in "val" are removed
-static void bc_num_parseDecimal(BcNum *n, const char *val)
-{
-	size_t len, i;
-	const char *ptr;
-
-	len = strlen(val);
-	if (len == 0)
-		return;
-
-	bc_num_expand(n, len);
-
-	ptr = strchr(val, '.');
-
-	n->rdx = 0;
-	if (ptr != NULL)
-		n->rdx = (size_t)((val + len) - (ptr + 1));
-
-	for (i = 0; val[i]; ++i) {
-		if (val[i] != '0' && val[i] != '.') {
-			// Not entirely zero value - convert it, and exit
-			i = len - 1;
-			for (;;) {
-				n->num[n->len] = val[i] - '0';
-				++n->len;
- skip_dot:
-				if (i == 0) break;
-				if (val[--i] == '.') goto skip_dot;
-			}
-			break;
-		}
-	}
-	// if for() exits without hitting if(), the value is entirely zero
-}
-
-// Note: n is already "bc_num_zero()"ed,
-// leading zeroes in "val" are removed
-static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
-{
-	BcStatus s;
-	BcNum temp, mult, result;
-	BcNum base;
-	BcDig base_digs[ULONG_NUM_BUFSIZE];
-	BcDig c = '\0';
-	unsigned long v;
-	size_t i, digits;
-
-	for (i = 0; ; ++i) {
-		if (val[i] == '\0')
-			return;
-		if (val[i] != '.' && val[i] != '0')
-			break;
-	}
-
-	bc_num_init_DEF_SIZE(&temp);
-	bc_num_init_DEF_SIZE(&mult);
-	base.cap = ARRAY_SIZE(base_digs);
-	base.num = base_digs;
-	bc_num_ulong2num(&base, base_t);
-
-	for (;;) {
-		c = *val++;
-		if (c == '\0') goto int_err;
-		if (c == '.') break;
-
-		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
-
-		s = zbc_num_mul(n, &base, &mult, 0);
-		if (s) goto int_err;
-		bc_num_ulong2num(&temp, v);
-		s = zbc_num_add(&mult, &temp, n, 0);
-		if (s) goto int_err;
-	}
-
-	bc_num_init(&result, base.len);
-	//bc_num_zero(&result); - already is
-	bc_num_one(&mult);
-
-	digits = 0;
-	for (;;) {
-		c = *val++;
-		if (c == '\0') break;
-		digits++;
-
-		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
-
-		s = zbc_num_mul(&result, &base, &result, 0);
-		if (s) goto err;
-		bc_num_ulong2num(&temp, v);
-		s = zbc_num_add(&result, &temp, &result, 0);
-		if (s) goto err;
-		s = zbc_num_mul(&mult, &base, &mult, 0);
-		if (s) goto err;
-	}
-
-	s = zbc_num_div(&result, &mult, &result, digits);
-	if (s) goto err;
-	s = zbc_num_add(n, &result, n, digits);
-	if (s) goto err;
-
-	if (n->len != 0) {
-		if (n->rdx < digits)
-			bc_num_extend(n, digits - n->rdx);
-	} else
-		bc_num_zero(n);
- err:
-	bc_num_free(&result);
- int_err:
-	bc_num_free(&mult);
-	bc_num_free(&temp);
-}
-
-static BC_STATUS zbc_num_parse(BcNum *n, const char *val, unsigned base_t)
-{
-	if (!bc_num_strValid(val, base_t))
-		RETURN_STATUS(bc_error("bad number string"));
-
-	bc_num_zero(n);
-	while (*val == '0') val++;
-
-	if (base_t == 10)
-		bc_num_parseDecimal(n, val);
-	else
-		bc_num_parseBase(n, val, base_t);
-
-	RETURN_STATUS(BC_STATUS_SUCCESS);
-}
-#define zbc_num_parse(...) (zbc_num_parse(__VA_ARGS__) COMMA_SUCCESS)
-
 static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 {
 	BcStatus s;
@@ -2595,29 +2344,6 @@ static BC_STATUS zdc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 #define zdc_num_modexp(...) (zdc_num_modexp(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_DC
 
-#if ENABLE_BC
-static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
-{
-	BcId *autoid;
-	BcId a;
-	size_t i;
-
-	autoid = (void*)f->autos.v;
-	for (i = 0; i < f->autos.len; i++, autoid++) {
-		if (strcmp(name, autoid->name) == 0)
-			RETURN_STATUS(bc_error("function parameter or auto var has the same name as another"));
-	}
-
-	a.idx = var;
-	a.name = name;
-
-	bc_vec_push(&f->autos, &a);
-
-	RETURN_STATUS(BC_STATUS_SUCCESS);
-}
-#define zbc_func_insert(...) (zbc_func_insert(__VA_ARGS__) COMMA_SUCCESS)
-#endif
-
 static FAST_FUNC void bc_string_free(void *string)
 {
 	free(*(char**)string);
@@ -2739,6 +2465,258 @@ static FAST_FUNC void bc_result_free(void *result)
 			break;
 	}
 }
+
+static int bad_input_byte(char c)
+{
+	if ((c < ' ' && c != '\t' && c != '\r' && c != '\n') // also allow '\v' '\f'?
+	 || c > 0x7e
+	) {
+		bc_error_fmt("illegal character 0x%02x", c);
+		return 1;
+	}
+	return 0;
+}
+
+// Note: it _appends_ data from fp to vec.
+static void bc_read_line(BcVec *vec, FILE *fp)
+{
+ again:
+	fflush_and_check();
+
+#if ENABLE_FEATURE_BC_SIGNALS
+	if (G_interrupt) { // ^C was pressed
+ intr:
+		if (fp != stdin) {
+			// ^C while running a script (bc SCRIPT): die.
+			// We do not return to interactive prompt:
+			// user might be running us from a shell,
+			// and SCRIPT might be intended to terminate
+			// (e.g. contain a "halt" stmt).
+			// ^C dropping user into a bc prompt instead of
+			// the shell would be unexpected.
+			xfunc_die();
+		}
+		// ^C while interactive input
+		G_interrupt = 0;
+		// GNU bc says "interrupted execution."
+		// GNU dc says "Interrupt!"
+		fputs("\ninterrupted execution\n", stderr);
+	}
+
+# if ENABLE_FEATURE_EDITING
+	if (G_ttyin && fp == stdin) {
+		int n, i;
+#  define line_buf bb_common_bufsiz1
+		n = read_line_input(G.line_input_state, "", line_buf, COMMON_BUFSIZE);
+		if (n <= 0) { // read errors or EOF, or ^D, or ^C
+			if (n == 0) // ^C
+				goto intr;
+			bc_vec_pushZeroByte(vec); // ^D or EOF (or error)
+			return;
+		}
+		i = 0;
+		for (;;) {
+			char c = line_buf[i++];
+			if (!c) break;
+			if (bad_input_byte(c)) goto again;
+		}
+		bc_vec_concat(vec, line_buf);
+#  undef line_buf
+	} else
+# endif
+#endif
+	{
+		int c;
+		bool bad_chars = 0;
+		size_t len = vec->len;
+
+		do {
+#if ENABLE_FEATURE_BC_SIGNALS
+			if (G_interrupt) {
+				// ^C was pressed: ignore entire line, get another one
+				vec->len = len;
+				goto intr;
+			}
+#endif
+			do c = fgetc(fp); while (c == '\0');
+			if (c == EOF) {
+				if (ferror(fp))
+					bb_perror_msg_and_die("input error");
+				// Note: EOF does not append '\n'
+				break;
+			}
+			bad_chars |= bad_input_byte(c);
+			bc_vec_pushByte(vec, (char)c);
+		} while (c != '\n');
+
+		if (bad_chars) {
+			// Bad chars on this line
+			if (!G.prog.file) { // stdin
+				// ignore entire line, get another one
+				vec->len = len;
+				goto again;
+			}
+			bb_perror_msg_and_die("file '%s' is not text", G.prog.file);
+		}
+		bc_vec_pushZeroByte(vec);
+	}
+}
+
+//
+// Parsing routines
+//
+
+static bool bc_num_strValid(const char *val, size_t base)
+{
+	BcDig b;
+	bool radix;
+
+	b = (BcDig)(base <= 10 ? base + '0' : base - 10 + 'A');
+	radix = false;
+	for (;;) {
+		BcDig c = *val++;
+		if (c == '\0')
+			break;
+		if (c == '.') {
+			if (radix) return false;
+			radix = true;
+			continue;
+		}
+		if (c < '0' || c >= b || (c > '9' && c < 'A'))
+			return false;
+	}
+	return true;
+}
+
+// Note: n is already "bc_num_zero()"ed,
+// leading zeroes in "val" are removed
+static void bc_num_parseDecimal(BcNum *n, const char *val)
+{
+	size_t len, i;
+	const char *ptr;
+
+	len = strlen(val);
+	if (len == 0)
+		return;
+
+	bc_num_expand(n, len);
+
+	ptr = strchr(val, '.');
+
+	n->rdx = 0;
+	if (ptr != NULL)
+		n->rdx = (size_t)((val + len) - (ptr + 1));
+
+	for (i = 0; val[i]; ++i) {
+		if (val[i] != '0' && val[i] != '.') {
+			// Not entirely zero value - convert it, and exit
+			i = len - 1;
+			for (;;) {
+				n->num[n->len] = val[i] - '0';
+				++n->len;
+ skip_dot:
+				if (i == 0) break;
+				if (val[--i] == '.') goto skip_dot;
+			}
+			break;
+		}
+	}
+	// if for() exits without hitting if(), the value is entirely zero
+}
+
+// Note: n is already "bc_num_zero()"ed,
+// leading zeroes in "val" are removed
+static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
+{
+	BcStatus s;
+	BcNum temp, mult, result;
+	BcNum base;
+	BcDig base_digs[ULONG_NUM_BUFSIZE];
+	BcDig c = '\0';
+	unsigned long v;
+	size_t i, digits;
+
+	for (i = 0; ; ++i) {
+		if (val[i] == '\0')
+			return;
+		if (val[i] != '.' && val[i] != '0')
+			break;
+	}
+
+	bc_num_init_DEF_SIZE(&temp);
+	bc_num_init_DEF_SIZE(&mult);
+	base.cap = ARRAY_SIZE(base_digs);
+	base.num = base_digs;
+	bc_num_ulong2num(&base, base_t);
+
+	for (;;) {
+		c = *val++;
+		if (c == '\0') goto int_err;
+		if (c == '.') break;
+
+		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
+
+		s = zbc_num_mul(n, &base, &mult, 0);
+		if (s) goto int_err;
+		bc_num_ulong2num(&temp, v);
+		s = zbc_num_add(&mult, &temp, n, 0);
+		if (s) goto int_err;
+	}
+
+	bc_num_init(&result, base.len);
+	//bc_num_zero(&result); - already is
+	bc_num_one(&mult);
+
+	digits = 0;
+	for (;;) {
+		c = *val++;
+		if (c == '\0') break;
+		digits++;
+
+		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
+
+		s = zbc_num_mul(&result, &base, &result, 0);
+		if (s) goto err;
+		bc_num_ulong2num(&temp, v);
+		s = zbc_num_add(&result, &temp, &result, 0);
+		if (s) goto err;
+		s = zbc_num_mul(&mult, &base, &mult, 0);
+		if (s) goto err;
+	}
+
+	s = zbc_num_div(&result, &mult, &result, digits);
+	if (s) goto err;
+	s = zbc_num_add(n, &result, n, digits);
+	if (s) goto err;
+
+	if (n->len != 0) {
+		if (n->rdx < digits)
+			bc_num_extend(n, digits - n->rdx);
+	} else
+		bc_num_zero(n);
+ err:
+	bc_num_free(&result);
+ int_err:
+	bc_num_free(&mult);
+	bc_num_free(&temp);
+}
+
+static BC_STATUS zbc_num_parse(BcNum *n, const char *val, unsigned base_t)
+{
+	if (!bc_num_strValid(val, base_t))
+		RETURN_STATUS(bc_error("bad number string"));
+
+	bc_num_zero(n);
+	while (*val == '0') val++;
+
+	if (base_t == 10)
+		bc_num_parseDecimal(n, val);
+	else
+		bc_num_parseBase(n, val, base_t);
+
+	RETURN_STATUS(BC_STATUS_SUCCESS);
+}
+#define zbc_num_parse(...) (zbc_num_parse(__VA_ARGS__) COMMA_SUCCESS)
 
 static void bc_lex_lineComment(BcLex *l)
 {
@@ -4333,6 +4311,27 @@ static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 }
 #define zbc_parse_break_or_continue(...) (zbc_parse_break_or_continue(__VA_ARGS__) COMMA_SUCCESS)
 
+static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
+{
+	BcId *autoid;
+	BcId a;
+	size_t i;
+
+	autoid = (void*)f->autos.v;
+	for (i = 0; i < f->autos.len; i++, autoid++) {
+		if (strcmp(name, autoid->name) == 0)
+			RETURN_STATUS(bc_error("function parameter or auto var has the same name as another"));
+	}
+
+	a.idx = var;
+	a.name = name;
+
+	bc_vec_push(&f->autos, &a);
+
+	RETURN_STATUS(BC_STATUS_SUCCESS);
+}
+#define zbc_func_insert(...) (zbc_func_insert(__VA_ARGS__) COMMA_SUCCESS)
+
 static BC_STATUS zbc_parse_funcdef(BcParse *p)
 {
 	BcStatus s;
@@ -5010,6 +5009,13 @@ static BC_STATUS zdc_parse_exprs_until_eof(BcParse *p)
 
 #endif // ENABLE_DC
 
+//
+// Execution engine
+//
+
+#define STACK_HAS_MORE_THAN(s, n)          ((s)->len > ((size_t)(n)))
+#define STACK_HAS_EQUAL_OR_MORE_THAN(s, n) ((s)->len >= ((size_t)(n)))
+
 static BcVec* bc_program_search(char *id, bool var)
 {
 	BcId e, *ptr;
@@ -5399,6 +5405,8 @@ static void bc_num_printDecimal(BcNum *n)
 	for (i = n->len - 1; i < n->len; --i)
 		bc_num_printHex((size_t) n->num[i], 1, i == rdx);
 }
+
+typedef void (*BcNumDigitOp)(size_t, size_t, bool) FAST_FUNC;
 
 static BC_STATUS zbc_num_printNum(BcNum *n, unsigned base_t, size_t width, BcNumDigitOp print)
 {
