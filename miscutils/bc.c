@@ -3352,16 +3352,13 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 #if ENABLE_DC
 static BC_STATUS zdc_lex_register(BcLex *l)
 {
-	if (isspace(l->buf[l->i - 1])) {
-		bc_lex_whitespace(l);
-		++l->i;
-		if (!G_exreg)
-			RETURN_STATUS(bc_error("extended register"));
+	if (G_exreg && isspace(l->buf[l->i])) {
+		bc_lex_whitespace(l); // eats whitespace (but not newline)
+		l->i++; // bc_lex_name() expects this
 		bc_lex_name(l);
-	}
-	else {
+	} else {
 		bc_vec_pop_all(&l->t.v);
-		bc_vec_push(&l->t.v, &l->buf[l->i - 1]);
+		bc_vec_push(&l->t.v, &l->buf[l->i++]);
 		bc_vec_pushZeroByte(&l->t.v);
 		l->t.t = BC_LEX_NAME;
 	}
@@ -3425,8 +3422,8 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 		BC_LEX_STORE_PUSH,
 	};
 
-	BcStatus s = BC_STATUS_SUCCESS;
-	char c = l->buf[l->i++], c2;
+	BcStatus s;
+	char c, c2;
 	size_t i;
 
 	for (i = 0; i < ARRAY_SIZE(dc_lex_regs); ++i) {
@@ -3434,6 +3431,8 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 			RETURN_STATUS(zdc_lex_register(l));
 	}
 
+	s = BC_STATUS_SUCCESS;
+	c = l->buf[l->i++];
 	if (c >= '%' && c <= '~'
 	 && (l->t.t = dc_char_to_LEX[c - '%']) != BC_LEX_INVALID
 	) {
@@ -3462,7 +3461,7 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 		case '\f':
 		case '\r':
 		case ' ':
-			l->newline = (c == '\n');
+			l->newline = 0; // was (c == '\n')
 			bc_lex_whitespace(l);
 			break;
 		case '!':
