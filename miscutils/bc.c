@@ -4426,8 +4426,10 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	if (p->l.t.t != BC_LEX_LBRACE)
+	if (p->l.t.t != BC_LEX_LBRACE) {
 		s = zbc_POSIX_requires("the left brace be on the same line as the function header");
+		if (s) RETURN_STATUS(s);
+	}
 
 	// Prevent "define z()<newline>" from being interpreted as function with empty stmt as body
 	s = zbc_lex_skip_if_at_NLINE(&p->l);
