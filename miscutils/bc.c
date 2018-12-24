@@ -388,27 +388,27 @@ typedef struct BcInstPtr {
 	IF_BC(size_t results_len_before_call;)
 } BcInstPtr;
 
-// BC_LEX_NEG is not used in lexing; it is only for parsing.
+// XC_LEX_NEG is not used in lexing; it is only for parsing.
 typedef enum BcLexType {
 	XC_LEX_EOF,
 	XC_LEX_INVALID,
 
-	BC_LEX_1st_op,
-	BC_LEX_NEG = BC_LEX_1st_op,     // order
+	XC_LEX_1st_op,
+	XC_LEX_NEG = XC_LEX_1st_op,     // order
 
-	BC_LEX_OP_POWER,                // should
-	BC_LEX_OP_MULTIPLY,             // match
-	BC_LEX_OP_DIVIDE,               // INST
-	BC_LEX_OP_MODULUS,              // constants
-	BC_LEX_OP_PLUS,                 // for
-	BC_LEX_OP_MINUS,                // these
+	XC_LEX_OP_POWER,                // should
+	XC_LEX_OP_MULTIPLY,             // match
+	XC_LEX_OP_DIVIDE,               // INST
+	XC_LEX_OP_MODULUS,              // constants
+	XC_LEX_OP_PLUS,                 // for
+	XC_LEX_OP_MINUS,                // these
 
-	BC_LEX_OP_REL_EQ,               // opeartions
-	BC_LEX_OP_REL_LE,               // |
-	BC_LEX_OP_REL_GE,               // |
-	BC_LEX_OP_REL_NE,               // |
-	BC_LEX_OP_REL_LT,               // |
-	BC_LEX_OP_REL_GT,               // |
+	XC_LEX_OP_REL_EQ,               // opeartions
+	XC_LEX_OP_REL_LE,               // |
+	XC_LEX_OP_REL_GE,               // |
+	XC_LEX_OP_REL_NE,               // |
+	XC_LEX_OP_REL_LT,               // |
+	XC_LEX_OP_REL_GT,               // |
 
 	BC_LEX_OP_BOOL_NOT,             // |
 	BC_LEX_OP_BOOL_OR,              // |
@@ -593,7 +593,7 @@ static ALWAYS_INLINE long bc_parse_exprs(unsigned i)
 }
 
 // This is an array of data for operators that correspond to
-// [BC_LEX_1st_op...BC_LEX_last_op] token types.
+// [XC_LEX_1st_op...] token types.
 static const uint8_t bc_parse_ops[] = {
 #define OP(p,l) ((int)(l) * 0x10 + (p))
 	OP(1, false), // neg
@@ -617,18 +617,18 @@ static const //BcLexType - should be this type
 uint8_t
 dc_char_to_LEX[] = {
 	/* %&'( */
-	BC_LEX_OP_MODULUS, XC_LEX_INVALID, XC_LEX_INVALID, BC_LEX_LPAREN,
+	XC_LEX_OP_MODULUS, XC_LEX_INVALID, XC_LEX_INVALID, BC_LEX_LPAREN,
 	/* )*+, */
-	XC_LEX_INVALID, BC_LEX_OP_MULTIPLY, BC_LEX_OP_PLUS, XC_LEX_INVALID,
+	XC_LEX_INVALID, XC_LEX_OP_MULTIPLY, XC_LEX_OP_PLUS, XC_LEX_INVALID,
 	/* -./ */
-	BC_LEX_OP_MINUS, XC_LEX_INVALID, BC_LEX_OP_DIVIDE,
+	XC_LEX_OP_MINUS, XC_LEX_INVALID, XC_LEX_OP_DIVIDE,
 	/* 0123456789 */
 	XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
 	XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
 	XC_LEX_INVALID, XC_LEX_INVALID,
 	/* :;<=>?@ */
-	DC_LEX_COLON, BC_LEX_SCOLON, BC_LEX_OP_REL_GT, BC_LEX_OP_REL_EQ,
-	BC_LEX_OP_REL_LT, BC_LEX_KEY_READ, XC_LEX_INVALID,
+	DC_LEX_COLON, BC_LEX_SCOLON, XC_LEX_OP_REL_GT, XC_LEX_OP_REL_EQ,
+	XC_LEX_OP_REL_LT, BC_LEX_KEY_READ, XC_LEX_INVALID,
 	/* ABCDEFGH */
 	XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
 	XC_LEX_INVALID, XC_LEX_INVALID, DC_LEX_EQ_NO_REG, XC_LEX_INVALID,
@@ -641,7 +641,7 @@ dc_char_to_LEX[] = {
 	/* Z[\] */
 	BC_LEX_KEY_LENGTH, XC_LEX_INVALID, XC_LEX_INVALID, XC_LEX_INVALID,
 	/* ^_` */
-	BC_LEX_OP_POWER, BC_LEX_NEG, XC_LEX_INVALID,
+	XC_LEX_OP_POWER, XC_LEX_NEG, XC_LEX_INVALID,
 	/* abcdefgh */
 	DC_LEX_ASCIIFY, XC_LEX_INVALID, DC_LEX_CLEAR_STACK, DC_LEX_DUPLICATE,
 	DC_LEX_ELSE, DC_LEX_PRINT_STACK, XC_LEX_INVALID, XC_LEX_INVALID,
@@ -660,7 +660,8 @@ static const //BcInst - should be this type. Using signed narrow type since DC_I
 int8_t
 dc_LEX_to_INST[] = { // (so many INVALIDs b/c dc parser does not generate these LEXs) // corresponding BC_LEX_xyz:
 	DC_INST_INVALID, DC_INST_INVALID,                                    // EOF          INVALID
-	DC_INST_INVALID, XC_INST_POWER, XC_INST_MULTIPLY, XC_INST_DIVIDE,    // NEG          OP_POWER     OP_MULTIPLY  OP_DIVIDE
+	DC_INST_INVALID,                                                     // NEG
+	XC_INST_POWER, XC_INST_MULTIPLY, XC_INST_DIVIDE,                     // OP_POWER     OP_MULTIPLY  OP_DIVIDE
 	XC_INST_MODULUS, XC_INST_PLUS, XC_INST_MINUS,                        // OP_MODULUS   OP_PLUS      OP_MINUS
 	DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID, DC_INST_INVALID,  // OP_REL_EQ    OP_REL_LE    OP_REL_GE    OP_REL_NE
 	DC_INST_INVALID, DC_INST_INVALID,                                    // OP_REL_LT    OP_REL_GT
@@ -3159,7 +3160,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			bc_lex_whitespace(l);
 			break;
 		case '!':
-			bc_lex_assign(l, BC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
+			bc_lex_assign(l, XC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
 			if (l->t.t == BC_LEX_OP_BOOL_NOT) {
 				s = bc_POSIX_does_not_allow_bool_ops_this_is_bad("!");
 				IF_ERROR_RETURN_POSSIBLE(if (s) RETURN_STATUS(s));
@@ -3174,7 +3175,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			bc_lex_lineComment(l);
 			break;
 		case '%':
-			bc_lex_assign(l, BC_LEX_OP_ASSIGN_MODULUS, BC_LEX_OP_MODULUS);
+			bc_lex_assign(l, BC_LEX_OP_ASSIGN_MODULUS, XC_LEX_OP_MODULUS);
 			break;
 		case '&':
 			c2 = l->buf[l->i];
@@ -3193,7 +3194,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			l->t.t = (BcLexType)(c - '(' + BC_LEX_LPAREN);
 			break;
 		case '*':
-			bc_lex_assign(l, BC_LEX_OP_ASSIGN_MULTIPLY, BC_LEX_OP_MULTIPLY);
+			bc_lex_assign(l, BC_LEX_OP_ASSIGN_MULTIPLY, XC_LEX_OP_MULTIPLY);
 			break;
 		case '+':
 			c2 = l->buf[l->i];
@@ -3201,7 +3202,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 				++l->i;
 				l->t.t = BC_LEX_OP_INC;
 			} else
-				bc_lex_assign(l, BC_LEX_OP_ASSIGN_PLUS, BC_LEX_OP_PLUS);
+				bc_lex_assign(l, BC_LEX_OP_ASSIGN_PLUS, XC_LEX_OP_PLUS);
 			break;
 		case ',':
 			l->t.t = BC_LEX_COMMA;
@@ -3212,7 +3213,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 				++l->i;
 				l->t.t = BC_LEX_OP_DEC;
 			} else
-				bc_lex_assign(l, BC_LEX_OP_ASSIGN_MINUS, BC_LEX_OP_MINUS);
+				bc_lex_assign(l, BC_LEX_OP_ASSIGN_MINUS, XC_LEX_OP_MINUS);
 			break;
 		case '.':
 			if (isdigit(l->buf[l->i]))
@@ -3227,7 +3228,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			if (c2 == '*')
 				s = zbc_lex_comment(l);
 			else
-				bc_lex_assign(l, BC_LEX_OP_ASSIGN_DIVIDE, BC_LEX_OP_DIVIDE);
+				bc_lex_assign(l, BC_LEX_OP_ASSIGN_DIVIDE, XC_LEX_OP_DIVIDE);
 			break;
 		case '0':
 		case '1':
@@ -3251,13 +3252,13 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 			l->t.t = BC_LEX_SCOLON;
 			break;
 		case '<':
-			bc_lex_assign(l, BC_LEX_OP_REL_LE, BC_LEX_OP_REL_LT);
+			bc_lex_assign(l, XC_LEX_OP_REL_LE, XC_LEX_OP_REL_LT);
 			break;
 		case '=':
-			bc_lex_assign(l, BC_LEX_OP_REL_EQ, BC_LEX_OP_ASSIGN);
+			bc_lex_assign(l, XC_LEX_OP_REL_EQ, BC_LEX_OP_ASSIGN);
 			break;
 		case '>':
-			bc_lex_assign(l, BC_LEX_OP_REL_GE, BC_LEX_OP_REL_GT);
+			bc_lex_assign(l, XC_LEX_OP_REL_GE, XC_LEX_OP_REL_GT);
 			break;
 		case '[':
 		case ']':
@@ -3271,7 +3272,7 @@ static BC_STATUS zbc_lex_token(BcLex *l)
 				s = bc_error_bad_character(c);
 			break;
 		case '^':
-			bc_lex_assign(l, BC_LEX_OP_ASSIGN_POWER, BC_LEX_OP_POWER);
+			bc_lex_assign(l, BC_LEX_OP_ASSIGN_POWER, XC_LEX_OP_POWER);
 			break;
 		case 'a':
 		case 'b':
@@ -3395,8 +3396,8 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 	static const //BcLexType - should be this type, but narrower type saves size:
 	uint8_t
 	dc_lex_regs[] = {
-		BC_LEX_OP_REL_EQ, BC_LEX_OP_REL_LE, BC_LEX_OP_REL_GE, BC_LEX_OP_REL_NE,
-		BC_LEX_OP_REL_LT, BC_LEX_OP_REL_GT, BC_LEX_SCOLON, DC_LEX_COLON,
+		XC_LEX_OP_REL_EQ, XC_LEX_OP_REL_LE, XC_LEX_OP_REL_GE, XC_LEX_OP_REL_NE,
+		XC_LEX_OP_REL_LT, XC_LEX_OP_REL_GT, BC_LEX_SCOLON, DC_LEX_COLON,
 		DC_LEX_ELSE, DC_LEX_LOAD, DC_LEX_LOAD_POP, BC_LEX_OP_ASSIGN,
 		DC_LEX_STORE_PUSH,
 	};
@@ -3446,11 +3447,11 @@ static BC_STATUS zdc_lex_token(BcLex *l)
 		case '!':
 			c2 = l->buf[l->i];
 			if (c2 == '=')
-				l->t.t = BC_LEX_OP_REL_NE;
+				l->t.t = XC_LEX_OP_REL_NE;
 			else if (c2 == '<')
-				l->t.t = BC_LEX_OP_REL_LE;
+				l->t.t = XC_LEX_OP_REL_LE;
 			else if (c2 == '>')
-				l->t.t = BC_LEX_OP_REL_GE;
+				l->t.t = XC_LEX_OP_REL_GE;
 			else
 				RETURN_STATUS(bc_error_bad_character(c));
 			++l->i;
@@ -3686,7 +3687,7 @@ static size_t bc_program_addFunc(char *name)
 // We can calculate the conversion between tokens and exprs by subtracting the
 // position of the first operator in the lex enum and adding the position of the
 // first in the expr enum. Note: This only works for binary operators.
-#define BC_TOKEN_2_INST(t) ((char) ((t) - BC_LEX_OP_POWER + XC_INST_POWER))
+#define BC_TOKEN_2_INST(t) ((char) ((t) - XC_LEX_OP_POWER + XC_INST_POWER))
 
 static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags);
 
@@ -3726,19 +3727,19 @@ static BC_STATUS zbc_parse_stmt_allow_NLINE_before(BcParse *p, const char *after
 static void bc_parse_operator(BcParse *p, BcLexType type, size_t start,
                                   size_t *nexprs)
 {
-	char l, r = bc_parse_op_PREC(type - BC_LEX_1st_op);
-	bool left = bc_parse_op_LEFT(type - BC_LEX_1st_op);
+	char l, r = bc_parse_op_PREC(type - XC_LEX_1st_op);
+	bool left = bc_parse_op_LEFT(type - XC_LEX_1st_op);
 
 	while (p->ops.len > start) {
 		BcLexType t = BC_PARSE_TOP_OP(p);
 		if (t == BC_LEX_LPAREN) break;
 
-		l = bc_parse_op_PREC(t - BC_LEX_1st_op);
+		l = bc_parse_op_PREC(t - XC_LEX_1st_op);
 		if (l >= r && (l != r || !left)) break;
 
 		bc_parse_push(p, BC_TOKEN_2_INST(t));
 		bc_vec_pop(&p->ops);
-		*nexprs -= (t != BC_LEX_OP_BOOL_NOT && t != BC_LEX_NEG);
+		*nexprs -= (t != BC_LEX_OP_BOOL_NOT && t != XC_LEX_NEG);
 	}
 
 	bc_vec_push(&p->ops, &type);
@@ -3756,7 +3757,7 @@ static BC_STATUS zbc_parse_rightParen(BcParse *p, size_t ops_bgn, size_t *nexs)
 		bc_parse_push(p, BC_TOKEN_2_INST(top));
 
 		bc_vec_pop(&p->ops);
-		*nexs -= (top != BC_LEX_OP_BOOL_NOT && top != BC_LEX_NEG);
+		*nexs -= (top != BC_LEX_OP_BOOL_NOT && top != XC_LEX_NEG);
 
 		if (p->ops.len <= ops_bgn)
 			RETURN_STATUS(bc_error_bad_expression());
@@ -4032,13 +4033,13 @@ static BC_STATUS zbc_parse_minus(BcParse *p, BcInst *prev, size_t ops_bgn,
 
 	type = rparen || etype == BC_INST_INC_POST || etype == BC_INST_DEC_POST ||
 	               (etype >= XC_INST_NUM && etype <= XC_INST_SQRT) ?
-	           BC_LEX_OP_MINUS :
-	           BC_LEX_NEG;
+	           XC_LEX_OP_MINUS :
+	           XC_LEX_NEG;
 	*prev = BC_TOKEN_2_INST(type);
 
 	// We can just push onto the op stack because this is the largest
 	// precedence operator that gets pushed. Inc/dec does not.
-	if (type != BC_LEX_OP_MINUS)
+	if (type != XC_LEX_OP_MINUS)
 		bc_vec_push(&p->ops, &type);
 	else
 		bc_parse_operator(p, type, ops_bgn, nexprs);
@@ -4523,9 +4524,9 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(BcParse *p, bool auto_allowed)
 
 	dbg_lex("%s:%d p->l.t.t:%d", __func__, __LINE__, p->l.t.t);
 	switch (p->l.t.t) {
+		case XC_LEX_OP_MINUS:
 		case BC_LEX_OP_INC:
 		case BC_LEX_OP_DEC:
-		case BC_LEX_OP_MINUS:
 		case BC_LEX_OP_BOOL_NOT:
 		case BC_LEX_LPAREN:
 		case BC_LEX_NAME:
@@ -4642,7 +4643,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				s = zbc_parse_incdec(p, &prev, &paren_expr, &nexprs, flags);
 				rprn = get_token = bin_last = false;
 				break;
-			case BC_LEX_OP_MINUS:
+			case XC_LEX_OP_MINUS:
 				s = zbc_parse_minus(p, &prev, ops_bgn, rprn, &nexprs);
 				rprn = get_token = false;
 				bin_last = prev == XC_INST_MINUS;
@@ -4665,17 +4666,17 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 					break;
 				}
 			// Fallthrough.
-			case BC_LEX_OP_POWER:
-			case BC_LEX_OP_MULTIPLY:
-			case BC_LEX_OP_DIVIDE:
-			case BC_LEX_OP_MODULUS:
-			case BC_LEX_OP_PLUS:
-			case BC_LEX_OP_REL_EQ:
-			case BC_LEX_OP_REL_LE:
-			case BC_LEX_OP_REL_GE:
-			case BC_LEX_OP_REL_NE:
-			case BC_LEX_OP_REL_LT:
-			case BC_LEX_OP_REL_GT:
+			case XC_LEX_OP_POWER:
+			case XC_LEX_OP_MULTIPLY:
+			case XC_LEX_OP_DIVIDE:
+			case XC_LEX_OP_MODULUS:
+			case XC_LEX_OP_PLUS:
+			case XC_LEX_OP_REL_EQ:
+			case XC_LEX_OP_REL_LE:
+			case XC_LEX_OP_REL_GE:
+			case XC_LEX_OP_REL_NE:
+			case XC_LEX_OP_REL_LT:
+			case XC_LEX_OP_REL_GT:
 			case BC_LEX_OP_BOOL_NOT:
 			case BC_LEX_OP_BOOL_OR:
 			case BC_LEX_OP_BOOL_AND:
@@ -4684,12 +4685,12 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				) {
 					return bc_error_bad_expression();
 				}
-				nrelops += t >= BC_LEX_OP_REL_EQ && t <= BC_LEX_OP_REL_GT;
+				nrelops += (t >= XC_LEX_OP_REL_EQ && t <= XC_LEX_OP_REL_GT);
 				prev = BC_TOKEN_2_INST(t);
 				bc_parse_operator(p, t, ops_bgn, &nexprs);
 				s = zbc_lex_next(&p->l);
 				rprn = get_token = false;
-				bin_last = t != BC_LEX_OP_BOOL_NOT;
+				bin_last = (t != BC_LEX_OP_BOOL_NOT);
 				break;
 			case BC_LEX_LPAREN:
 				if (BC_PARSE_LEAF(prev, rprn))
@@ -4793,7 +4794,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 
 		bc_parse_push(p, BC_TOKEN_2_INST(top));
 
-		nexprs -= (top != BC_LEX_OP_BOOL_NOT && top != BC_LEX_NEG);
+		nexprs -= (top != BC_LEX_OP_BOOL_NOT && top != XC_LEX_NEG);
 		bc_vec_pop(&p->ops);
 	}
 
@@ -4912,14 +4913,14 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 	s = BC_STATUS_SUCCESS;
 	get_token = true;
 	switch (t) {
-		case BC_LEX_OP_REL_EQ:
-		case BC_LEX_OP_REL_LE:
-		case BC_LEX_OP_REL_GE:
-		case BC_LEX_OP_REL_NE:
-		case BC_LEX_OP_REL_LT:
-		case BC_LEX_OP_REL_GT:
+		case XC_LEX_OP_REL_EQ:
+		case XC_LEX_OP_REL_LE:
+		case XC_LEX_OP_REL_GE:
+		case XC_LEX_OP_REL_NE:
+		case XC_LEX_OP_REL_LT:
+		case XC_LEX_OP_REL_GT:
 			dbg_lex("%s:%d LEX_OP_REL_xyz", __func__, __LINE__);
-			s = zdc_parse_cond(p, t - BC_LEX_OP_REL_EQ + XC_INST_REL_EQ);
+			s = zdc_parse_cond(p, t - XC_LEX_OP_REL_EQ + XC_INST_REL_EQ);
 			get_token = false;
 			break;
 		case BC_LEX_SCOLON:
@@ -4931,7 +4932,7 @@ static BC_STATUS zdc_parse_token(BcParse *p, BcLexType t)
 			dbg_lex("%s:%d LEX_STR", __func__, __LINE__);
 			dc_parse_string(p);
 			break;
-		case BC_LEX_NEG:
+		case XC_LEX_NEG:
 			dbg_lex("%s:%d LEX_NEG", __func__, __LINE__);
 			s = zbc_lex_next(&p->l);
 			if (s) RETURN_STATUS(s);
