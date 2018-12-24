@@ -5178,6 +5178,7 @@ static void bc_program_binOpRetire(BcResult *r)
 	bc_result_pop_and_push(r);
 }
 
+// Note: *r and *n need not be initialized by caller
 static BC_STATUS zbc_program_prep(BcResult **r, BcNum **n)
 {
 	BcStatus s;
@@ -5206,7 +5207,7 @@ static BC_STATUS zbc_program_op(char inst)
 {
 	BcStatus s;
 	BcResult *opd1, *opd2, res;
-	BcNum *n1, *n2 = NULL;
+	BcNum *n1, *n2;
 
 	s = zbc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) RETURN_STATUS(s);
@@ -5565,7 +5566,7 @@ static BC_STATUS zbc_program_print(char inst, size_t idx)
 	BcStatus s;
 	BcResult *r;
 	BcNum *num;
-	bool pop = inst != XC_INST_PRINT;
+	bool pop = (inst != XC_INST_PRINT);
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, idx))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
@@ -5609,7 +5610,7 @@ static BC_STATUS zbc_program_negate(void)
 {
 	BcStatus s;
 	BcResult res, *ptr;
-	BcNum *num = NULL;
+	BcNum *num;
 
 	s = zbc_program_prep(&ptr, &num);
 	if (s) RETURN_STATUS(s);
@@ -5745,8 +5746,9 @@ static BC_STATUS zbc_program_assign(char inst)
 {
 	BcStatus s;
 	BcResult *left, *right, res;
-	BcNum *l = NULL, *r = NULL;
-	bool assign = inst == XC_INST_ASSIGN, ib, sc;
+	BcNum *l, *r;
+	bool assign = (inst == XC_INST_ASSIGN);
+	bool ib, sc;
 
 	s = zbc_program_binOpPrep(&left, &l, &right, &r, assign);
 	if (s) RETURN_STATUS(s);
@@ -5907,7 +5909,7 @@ static BC_STATUS zbc_program_incdec(char inst)
 {
 	BcStatus s;
 	BcResult *ptr, res, copy;
-	BcNum *num = NULL;
+	BcNum *num;
 	char inst2 = inst;
 
 	s = zbc_program_prep(&ptr, &num);
@@ -5920,9 +5922,9 @@ static BC_STATUS zbc_program_incdec(char inst)
 	}
 
 	res.t = BC_RESULT_ONE;
-	inst = inst == BC_INST_INC_PRE || inst == BC_INST_INC_POST ?
-	           BC_INST_ASSIGN_PLUS :
-	           BC_INST_ASSIGN_MINUS;
+	inst = (inst == BC_INST_INC_PRE || inst == BC_INST_INC_POST)
+			? BC_INST_ASSIGN_PLUS
+			: BC_INST_ASSIGN_MINUS;
 
 	bc_vec_push(&G.prog.results, &res);
 	s = zbc_program_assign(inst);
@@ -6059,9 +6061,9 @@ static BC_STATUS zbc_program_builtin(char inst)
 {
 	BcStatus s;
 	BcResult *opnd;
-	BcNum *num = NULL;
+	BcNum *num;
 	BcResult res;
-	bool len = inst == XC_INST_LENGTH;
+	bool len = (inst == XC_INST_LENGTH);
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
@@ -6108,7 +6110,7 @@ static BC_STATUS zdc_program_divmod(void)
 {
 	BcStatus s;
 	BcResult *opd1, *opd2, res, res2;
-	BcNum *n1, *n2 = NULL;
+	BcNum *n1, *n2;
 
 	s = zbc_program_binOpPrep(&opd1, &n1, &opd2, &n2, false);
 	if (s) RETURN_STATUS(s);
@@ -6284,7 +6286,7 @@ static BC_STATUS zdc_program_nquit(void)
 {
 	BcStatus s;
 	BcResult *opnd;
-	BcNum *num = NULL;
+	BcNum *num;
 	unsigned long val;
 
 	s = zbc_program_prep(&opnd, &num);
@@ -6432,7 +6434,6 @@ static void bc_program_pushGlobal(char inst)
 static BC_STATUS zbc_program_exec(void)
 {
 	BcResult r, *ptr;
-	BcNum *num;
 	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 	BcFunc *func = bc_program_func(ip->func);
 	char *code = func->code.v;
@@ -6447,6 +6448,7 @@ static BC_STATUS zbc_program_exec(void)
 		switch (inst) {
 #if ENABLE_BC
 			case BC_INST_JUMP_ZERO: {
+				BcNum *num;
 				bool zero;
 				dbg_exec("BC_INST_JUMP_ZERO:");
 				s = zbc_program_prep(&ptr, &num);
@@ -6564,16 +6566,18 @@ static BC_STATUS zbc_program_exec(void)
 				dbg_exec("BC_INST_binaryop:");
 				s = zbc_program_op(inst);
 				break;
-			case XC_INST_BOOL_NOT:
+			case XC_INST_BOOL_NOT: {
+				BcNum *num;
 				dbg_exec("XC_INST_BOOL_NOT:");
 				s = zbc_program_prep(&ptr, &num);
 				if (s) RETURN_STATUS(s);
 				bc_num_init_DEF_SIZE(&r.d.n);
-				if (!bc_num_cmp(num, &G.prog.zero))
+				if (bc_num_cmp(num, &G.prog.zero) == 0)
 					bc_num_one(&r.d.n);
 				//else bc_num_zero(&r.d.n); - already is
 				bc_program_retire(&r, BC_RESULT_TEMP);
 				break;
+			}
 			case XC_INST_NEG:
 				dbg_exec("XC_INST_NEG:");
 				s = zbc_program_negate();
