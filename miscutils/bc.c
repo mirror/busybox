@@ -354,21 +354,21 @@ typedef struct BcFunc {
 } BcFunc;
 
 typedef enum BcResultType {
-	BC_RESULT_TEMP,
+	XC_RESULT_TEMP,
 
-	BC_RESULT_VAR,
-	BC_RESULT_ARRAY_ELEM,
-	BC_RESULT_ARRAY,
+	XC_RESULT_VAR,
+	XC_RESULT_ARRAY_ELEM,
+	XC_RESULT_ARRAY,
 
-	BC_RESULT_STR,
+	XC_RESULT_STR,
 
-	//code uses "inst - XC_INST_IBASE + BC_RESULT_IBASE" construct,
-	BC_RESULT_IBASE,       // relative order should match for: XC_INST_IBASE
-	BC_RESULT_OBASE,       // relative order should match for: XC_INST_OBASE
-	BC_RESULT_SCALE,       // relative order should match for: XC_INST_SCALE
+	//code uses "inst - XC_INST_IBASE + XC_RESULT_IBASE" construct,
+	XC_RESULT_IBASE,       // relative order should match for: XC_INST_IBASE
+	XC_RESULT_OBASE,       // relative order should match for: XC_INST_OBASE
+	XC_RESULT_SCALE,       // relative order should match for: XC_INST_SCALE
 	IF_BC(BC_RESULT_LAST,) // relative order should match for: BC_INST_LAST
-	BC_RESULT_CONSTANT,
-	BC_RESULT_ONE,
+	XC_RESULT_CONSTANT,
+	IF_BC(BC_RESULT_ONE,)
 } BcResultType;
 
 typedef union BcResultData {
@@ -780,7 +780,7 @@ typedef struct BcProgram {
 
 #define BC_PROG_STR(n) (!(n)->num && !(n)->cap)
 #define BC_PROG_NUM(r, n) \
-	((r)->t != BC_RESULT_ARRAY && (r)->t != BC_RESULT_STR && !BC_PROG_STR(n))
+	((r)->t != XC_RESULT_ARRAY && (r)->t != XC_RESULT_STR && !BC_PROG_STR(n))
 
 #define BC_FLAG_W (1 << 0)
 #define BC_FLAG_V (1 << 1)
@@ -2451,22 +2451,22 @@ static void dc_result_copy(BcResult *d, BcResult *src)
 	d->t = src->t;
 
 	switch (d->t) {
-		case BC_RESULT_TEMP:
-		case BC_RESULT_IBASE:
-		case BC_RESULT_SCALE:
-		case BC_RESULT_OBASE:
+		case XC_RESULT_TEMP:
+		case XC_RESULT_IBASE:
+		case XC_RESULT_SCALE:
+		case XC_RESULT_OBASE:
 			bc_num_init(&d->d.n, src->d.n.len);
 			bc_num_copy(&d->d.n, &src->d.n);
 			break;
-		case BC_RESULT_VAR:
-		case BC_RESULT_ARRAY:
-		case BC_RESULT_ARRAY_ELEM:
+		case XC_RESULT_VAR:
+		case XC_RESULT_ARRAY:
+		case XC_RESULT_ARRAY_ELEM:
 			d->d.id.name = xstrdup(src->d.id.name);
 			break;
-		case BC_RESULT_CONSTANT:
+		case XC_RESULT_CONSTANT:
 		IF_BC(case BC_RESULT_LAST:)
-		case BC_RESULT_ONE:
-		case BC_RESULT_STR:
+		IF_BC(case BC_RESULT_ONE:)
+		case XC_RESULT_STR:
 			memcpy(&d->d.n, &src->d.n, sizeof(BcNum));
 			break;
 	}
@@ -2478,15 +2478,15 @@ static FAST_FUNC void bc_result_free(void *result)
 	BcResult *r = (BcResult *) result;
 
 	switch (r->t) {
-		case BC_RESULT_TEMP:
-		case BC_RESULT_IBASE:
-		case BC_RESULT_SCALE:
-		case BC_RESULT_OBASE:
+		case XC_RESULT_TEMP:
+		case XC_RESULT_IBASE:
+		case XC_RESULT_SCALE:
+		case XC_RESULT_OBASE:
 			bc_num_free(&r->d.n);
 			break;
-		case BC_RESULT_VAR:
-		case BC_RESULT_ARRAY:
-		case BC_RESULT_ARRAY_ELEM:
+		case XC_RESULT_VAR:
+		case XC_RESULT_ARRAY:
+		case XC_RESULT_ARRAY_ELEM:
 			free(r->d.id.name);
 			break;
 		default:
@@ -5086,14 +5086,14 @@ static BcVec* bc_program_search(char *id, bool var)
 static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 {
 	switch (r->t) {
-		case BC_RESULT_STR:
-		case BC_RESULT_TEMP:
-		case BC_RESULT_IBASE:
-		case BC_RESULT_SCALE:
-		case BC_RESULT_OBASE:
+		case XC_RESULT_STR:
+		case XC_RESULT_TEMP:
+		case XC_RESULT_IBASE:
+		case XC_RESULT_SCALE:
+		case XC_RESULT_OBASE:
 			*num = &r->d.n;
 			break;
-		case BC_RESULT_CONSTANT: {
+		case XC_RESULT_CONSTANT: {
 			BcStatus s;
 			char *str;
 			unsigned base_t;
@@ -5112,17 +5112,17 @@ static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 				RETURN_STATUS(s);
 			}
 			*num = &r->d.n;
-			r->t = BC_RESULT_TEMP;
+			r->t = XC_RESULT_TEMP;
 			break;
 		}
-		case BC_RESULT_VAR:
-		case BC_RESULT_ARRAY:
-		case BC_RESULT_ARRAY_ELEM: {
+		case XC_RESULT_VAR:
+		case XC_RESULT_ARRAY:
+		case XC_RESULT_ARRAY_ELEM: {
 			BcVec *v;
 
-			v = bc_program_search(r->d.id.name, r->t == BC_RESULT_VAR);
+			v = bc_program_search(r->d.id.name, r->t == XC_RESULT_VAR);
 
-			if (r->t == BC_RESULT_ARRAY_ELEM) {
+			if (r->t == XC_RESULT_ARRAY_ELEM) {
 				v = bc_vec_top(v);
 				if (v->len <= r->d.id.idx) bc_array_expand(v, r->d.id.idx + 1);
 				*num = bc_vec_item(v, r->d.id.idx);
@@ -5164,7 +5164,7 @@ static BC_STATUS zbc_program_binOpPrep(BcResult **l, BcNum **ln,
 
 	lt = (*l)->t;
 	rt = (*r)->t;
-	hex = assign && (lt == BC_RESULT_IBASE || lt == BC_RESULT_OBASE);
+	hex = assign && (lt == XC_RESULT_IBASE || lt == XC_RESULT_OBASE);
 
 	s = zbc_program_num(*l, ln, false);
 	if (s) RETURN_STATUS(s);
@@ -5173,12 +5173,12 @@ static BC_STATUS zbc_program_binOpPrep(BcResult **l, BcNum **ln,
 
 	// We run this again under these conditions in case any vector has been
 	// reallocated out from under the BcNums or arrays we had.
-	if (lt == rt && (lt == BC_RESULT_VAR || lt == BC_RESULT_ARRAY_ELEM)) {
+	if (lt == rt && (lt == XC_RESULT_VAR || lt == XC_RESULT_ARRAY_ELEM)) {
 		s = zbc_program_num(*l, ln, false);
 		if (s) RETURN_STATUS(s);
 	}
 
-	if (!BC_PROG_NUM((*l), (*ln)) && (!assign || (*l)->t != BC_RESULT_VAR))
+	if (!BC_PROG_NUM((*l), (*ln)) && (!assign || (*l)->t != XC_RESULT_VAR))
 		RETURN_STATUS(bc_error_variable_is_wrong_type());
 	if (!assign && !BC_PROG_NUM((*r), (*ln)))
 		RETURN_STATUS(bc_error_variable_is_wrong_type());
@@ -5189,7 +5189,7 @@ static BC_STATUS zbc_program_binOpPrep(BcResult **l, BcNum **ln,
 
 static void bc_program_binOpRetire(BcResult *r)
 {
-	r->t = BC_RESULT_TEMP;
+	r->t = XC_RESULT_TEMP;
 	bc_vec_pop(&G.prog.results);
 	bc_result_pop_and_push(r);
 }
@@ -5599,7 +5599,7 @@ static BC_STATUS zbc_program_print(char inst, size_t idx)
 	} else {
 		char *str;
 
-		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : num->rdx;
+		idx = (r->t == XC_RESULT_STR) ? r->d.id.idx : num->rdx;
 		str = *bc_program_str(idx);
 
 		if (inst == XC_INST_PRINT_STR) {
@@ -5635,7 +5635,7 @@ static BC_STATUS zbc_program_negate(void)
 	bc_num_copy(&res.d.n, num);
 	if (res.d.n.len) res.d.n.neg = !res.d.n.neg;
 
-	bc_program_retire(&res, BC_RESULT_TEMP);
+	bc_program_retire(&res, XC_RESULT_TEMP);
 
 	RETURN_STATUS(s);
 }
@@ -5698,7 +5698,7 @@ static BC_STATUS zdc_program_assignStr(BcResult *r, BcVec *v, bool push)
 
 	memset(&n2, 0, sizeof(BcNum));
 	n2.rdx = res.d.id.idx = r->d.id.idx;
-	res.t = BC_RESULT_STR;
+	res.t = XC_RESULT_STR;
 
 	if (!push) {
 		if (!STACK_HAS_MORE_THAN(&G.prog.results, 1))
@@ -5726,14 +5726,14 @@ static BC_STATUS zbc_program_copyToVar(char *name, bool var)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	ptr = bc_vec_top(&G.prog.results);
-	if ((ptr->t == BC_RESULT_ARRAY) != !var)
+	if ((ptr->t == XC_RESULT_ARRAY) != !var)
 		RETURN_STATUS(bc_error_variable_is_wrong_type());
 	v = bc_program_search(name, var);
 
 #if ENABLE_DC
-	if (ptr->t == BC_RESULT_STR && !var)
+	if (ptr->t == XC_RESULT_STR && !var)
 		RETURN_STATUS(bc_error_variable_is_wrong_type());
-	if (ptr->t == BC_RESULT_STR)
+	if (ptr->t == XC_RESULT_STR)
 		RETURN_STATUS(zdc_program_assignStr(ptr, v, true));
 #endif
 
@@ -5769,14 +5769,14 @@ static BC_STATUS zbc_program_assign(char inst)
 	s = zbc_program_binOpPrep(&left, &l, &right, &r, assign);
 	if (s) RETURN_STATUS(s);
 
-	ib = left->t == BC_RESULT_IBASE;
-	sc = left->t == BC_RESULT_SCALE;
+	ib = left->t == XC_RESULT_IBASE;
+	sc = left->t == XC_RESULT_SCALE;
 
 #if ENABLE_DC
-	if (right->t == BC_RESULT_STR) {
+	if (right->t == XC_RESULT_STR) {
 		BcVec *v;
 
-		if (left->t != BC_RESULT_VAR)
+		if (left->t != XC_RESULT_VAR)
 			RETURN_STATUS(bc_error_variable_is_wrong_type());
 		v = bc_program_search(left->d.id.name, true);
 
@@ -5784,7 +5784,7 @@ static BC_STATUS zbc_program_assign(char inst)
 	}
 #endif
 
-	if (left->t == BC_RESULT_CONSTANT || left->t == BC_RESULT_TEMP)
+	if (left->t == XC_RESULT_CONSTANT || left->t == XC_RESULT_TEMP)
 		RETURN_STATUS(bc_error("bad assignment:"
 				" left side must be variable"
 				" or array element"
@@ -5805,11 +5805,11 @@ static BC_STATUS zbc_program_assign(char inst)
 	bc_num_copy(l, r);
 #endif
 
-	if (ib || sc || left->t == BC_RESULT_OBASE) {
+	if (ib || sc || left->t == XC_RESULT_OBASE) {
 		static const char *const msg[] = {
-			"bad ibase; must be [2,16]",                 //BC_RESULT_IBASE
-			"bad obase; must be [2,"BC_MAX_OBASE_STR"]", //BC_RESULT_OBASE
-			"bad scale; must be [0,"BC_MAX_SCALE_STR"]", //BC_RESULT_SCALE
+			"bad ibase; must be [2,16]",                 //XC_RESULT_IBASE
+			"bad obase; must be [2,"BC_MAX_OBASE_STR"]", //XC_RESULT_OBASE
+			"bad scale; must be [0,"BC_MAX_SCALE_STR"]", //XC_RESULT_SCALE
 		};
 		size_t *ptr;
 		size_t max;
@@ -5817,7 +5817,7 @@ static BC_STATUS zbc_program_assign(char inst)
 
 		s = zbc_num_ulong(l, &val);
 		if (s) RETURN_STATUS(s);
-		s = left->t - BC_RESULT_IBASE;
+		s = left->t - XC_RESULT_IBASE;
 		if (sc) {
 			max = BC_MAX_SCALE;
 			ptr = &G.prog.scale;
@@ -5854,7 +5854,7 @@ static BC_STATUS bc_program_pushVar(char *code, size_t *bgn,
 	BcResult r;
 	char *name = bc_program_name(code, bgn);
 
-	r.t = BC_RESULT_VAR;
+	r.t = XC_RESULT_VAR;
 	r.d.id.name = name;
 
 #if ENABLE_DC
@@ -5868,11 +5868,11 @@ static BC_STATUS bc_program_pushVar(char *code, size_t *bgn,
 		}
 
 		if (!BC_PROG_STR(num)) {
-			r.t = BC_RESULT_TEMP;
+			r.t = XC_RESULT_TEMP;
 			bc_num_init_DEF_SIZE(&r.d.n);
 			bc_num_copy(&r.d.n, num);
 		} else {
-			r.t = BC_RESULT_STR;
+			r.t = XC_RESULT_STR;
 			r.d.id.idx = num->rdx;
 		}
 
@@ -5895,7 +5895,7 @@ static BC_STATUS zbc_program_pushArray(char *code, size_t *bgn, char inst)
 	r.d.id.name = bc_program_name(code, bgn);
 
 	if (inst == XC_INST_ARRAY) {
-		r.t = BC_RESULT_ARRAY;
+		r.t = XC_RESULT_ARRAY;
 		bc_vec_push(&G.prog.results, &r);
 	} else {
 		BcResult *operand;
@@ -5912,7 +5912,7 @@ static BC_STATUS zbc_program_pushArray(char *code, size_t *bgn, char inst)
 		}
 
 		r.d.id.idx = (size_t) temp;
-		bc_program_retire(&r, BC_RESULT_ARRAY_ELEM);
+		bc_program_retire(&r, XC_RESULT_ARRAY_ELEM);
 	}
  err:
 	if (s) free(r.d.id.name);
@@ -5932,7 +5932,7 @@ static BC_STATUS zbc_program_incdec(char inst)
 	if (s) RETURN_STATUS(s);
 
 	if (inst == BC_INST_INC_POST || inst == BC_INST_DEC_POST) {
-		copy.t = BC_RESULT_TEMP;
+		copy.t = XC_RESULT_TEMP;
 		bc_num_init(&copy.d.n, num->len);
 		bc_num_copy(&copy.d.n, num);
 	}
@@ -5981,7 +5981,7 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 		a = bc_vec_item(&func->autos, nparams - 1 - i);
 		arg = bc_vec_top(&G.prog.results);
 
-		if ((!a->idx) != (arg->t == BC_RESULT_ARRAY) || arg->t == BC_RESULT_STR)
+		if ((!a->idx) != (arg->t == XC_RESULT_ARRAY) || arg->t == XC_RESULT_STR)
 			RETURN_STATUS(bc_error_variable_is_wrong_type());
 
 		s = zbc_program_copyToVar(a->name, a->idx);
@@ -6022,7 +6022,7 @@ static BC_STATUS zbc_program_return(char inst)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	f = bc_program_func(ip->func);
-	res.t = BC_RESULT_TEMP;
+	res.t = XC_RESULT_TEMP;
 
 	if (inst == XC_INST_RET) {
 		BcStatus s;
@@ -6098,14 +6098,14 @@ static BC_STATUS zbc_program_builtin(char inst)
 	if (inst == XC_INST_SQRT)
 		s = zbc_num_sqrt(num, &res.d.n, G.prog.scale);
 #if ENABLE_BC
-	else if (len != 0 && opnd->t == BC_RESULT_ARRAY) {
+	else if (len != 0 && opnd->t == XC_RESULT_ARRAY) {
 		bc_num_ulong2num(&res.d.n, (unsigned long) ((BcVec *) num)->len);
 	}
 #endif
 #if ENABLE_DC
 	else if (len != 0 && !BC_PROG_NUM(opnd, num)) {
 		char **str;
-		size_t idx = opnd->t == BC_RESULT_STR ? opnd->d.id.idx : num->rdx;
+		size_t idx = opnd->t == XC_RESULT_STR ? opnd->d.id.idx : num->rdx;
 
 		str = bc_program_str(idx);
 		bc_num_ulong2num(&res.d.n, strlen(*str));
@@ -6115,7 +6115,7 @@ static BC_STATUS zbc_program_builtin(char inst)
 		bc_num_ulong2num(&res.d.n, len ? bc_program_len(num) : bc_program_scale(num));
 	}
 
-	bc_program_retire(&res, BC_RESULT_TEMP);
+	bc_program_retire(&res, XC_RESULT_TEMP);
 
 	RETURN_STATUS(s);
 }
@@ -6138,7 +6138,7 @@ static BC_STATUS zdc_program_divmod(void)
 	if (s) goto err;
 
 	bc_program_binOpRetire(&res2);
-	res.t = BC_RESULT_TEMP;
+	res.t = XC_RESULT_TEMP;
 	bc_vec_push(&G.prog.results, &res);
 
 	RETURN_STATUS(s);
@@ -6167,7 +6167,7 @@ static BC_STATUS zdc_program_modexp(void)
 		RETURN_STATUS(bc_error_variable_is_wrong_type());
 
 	// Make sure that the values have their pointers updated, if necessary.
-	if (r1->t == BC_RESULT_VAR || r1->t == BC_RESULT_ARRAY_ELEM) {
+	if (r1->t == XC_RESULT_VAR || r1->t == XC_RESULT_ARRAY_ELEM) {
 		if (r1->t == r2->t) {
 			s = zbc_program_num(r2, &n2, false);
 			if (s) RETURN_STATUS(s);
@@ -6197,7 +6197,7 @@ static void dc_program_stackLen(void)
 	BcResult res;
 	size_t len = G.prog.results.len;
 
-	res.t = BC_RESULT_TEMP;
+	res.t = XC_RESULT_TEMP;
 
 	bc_num_init_DEF_SIZE(&res.d.n);
 	bc_num_ulong2num(&res.d.n, len);
@@ -6244,7 +6244,7 @@ static BC_STATUS zdc_program_asciify(void)
 		bc_num_free(&n);
 	} else {
 		char *sp;
-		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : num->rdx;
+		idx = (r->t == XC_RESULT_STR) ? r->d.id.idx : num->rdx;
 		sp = *bc_program_str(idx);
 		c = sp[0];
 	}
@@ -6260,7 +6260,7 @@ static BC_STATUS zdc_program_asciify(void)
 	//str[1] = '\0'; - already is
 	bc_vec_push(&G.prog.strs, &str);
  dup:
-	res.t = BC_RESULT_STR;
+	res.t = XC_RESULT_STR;
 	res.d.id.idx = idx;
 	bc_result_pop_and_push(&res);
 
@@ -6289,7 +6289,7 @@ static BC_STATUS zdc_program_printStream(void)
 		s = zbc_num_printNum(n, 0x100, 1, dc_num_printChar);
 	} else {
 		char *str;
-		idx = (r->t == BC_RESULT_STR) ? r->d.id.idx : n->rdx;
+		idx = (r->t == XC_RESULT_STR) ? r->d.id.idx : n->rdx;
 		str = *bc_program_str(idx);
 		fputs(str, stdout);
 	}
@@ -6373,9 +6373,9 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 
 		sidx = n->rdx;
 	} else {
-		if (r->t == BC_RESULT_STR) {
+		if (r->t == XC_RESULT_STR) {
 			sidx = r->d.id.idx;
-		} else if (r->t == BC_RESULT_VAR) {
+		} else if (r->t == XC_RESULT_VAR) {
 			BcNum *n;
 			s = zbc_program_num(r, &n, false);
 			if (s || !BC_PROG_STR(n)) goto exit;
@@ -6434,7 +6434,7 @@ static void bc_program_pushGlobal(char inst)
 	BcResult res;
 	unsigned long val;
 
-	res.t = inst - XC_INST_IBASE + BC_RESULT_IBASE;
+	res.t = inst - XC_INST_IBASE + XC_RESULT_IBASE;
 	if (inst == XC_INST_IBASE)
 		val = (unsigned long) G.prog.ib_t;
 	else if (inst == XC_INST_SCALE)
@@ -6550,7 +6550,7 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			case XC_INST_NUM:
 				dbg_exec("XC_INST_NUM:");
-				r.t = BC_RESULT_CONSTANT;
+				r.t = XC_RESULT_CONSTANT;
 				r.d.id.idx = bc_program_index(code, &ip->inst_idx);
 				bc_vec_push(&G.prog.results, &r);
 				break;
@@ -6569,7 +6569,7 @@ static BC_STATUS zbc_program_exec(void)
 				break;
 			case XC_INST_STR:
 				dbg_exec("XC_INST_STR:");
-				r.t = BC_RESULT_STR;
+				r.t = XC_RESULT_STR;
 				r.d.id.idx = bc_program_index(code, &ip->inst_idx);
 				bc_vec_push(&G.prog.results, &r);
 				break;
@@ -6591,7 +6591,7 @@ static BC_STATUS zbc_program_exec(void)
 				if (bc_num_cmp(num, &G.prog.zero) == 0)
 					bc_num_one(&r.d.n);
 				//else bc_num_zero(&r.d.n); - already is
-				bc_program_retire(&r, BC_RESULT_TEMP);
+				bc_program_retire(&r, XC_RESULT_TEMP);
 				break;
 			}
 			case XC_INST_NEG:
