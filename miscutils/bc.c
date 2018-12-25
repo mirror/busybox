@@ -518,31 +518,31 @@ typedef enum BcLexType {
 struct BcLexKeyword {
 	char name8[8];
 };
-#define BC_LEX_KW_ENTRY(a, b) \
+#define LEX_KW_ENTRY(a, b) \
 	{ .name8 = a /*, .posix = b */ }
 static const struct BcLexKeyword bc_lex_kws[20] = {
-	BC_LEX_KW_ENTRY("auto"    , 1), // 0
-	BC_LEX_KW_ENTRY("break"   , 1), // 1
-	BC_LEX_KW_ENTRY("continue", 0), // 2 note: this one has no terminating NUL
-	BC_LEX_KW_ENTRY("define"  , 1), // 3
-	BC_LEX_KW_ENTRY("else"    , 0), // 4
-	BC_LEX_KW_ENTRY("for"     , 1), // 5
-	BC_LEX_KW_ENTRY("halt"    , 0), // 6
-	BC_LEX_KW_ENTRY("ibase"   , 1), // 7
-	BC_LEX_KW_ENTRY("obase"   , 1), // 8
-	BC_LEX_KW_ENTRY("if"      , 1), // 9
-	BC_LEX_KW_ENTRY("last"    , 0), // 10
-	BC_LEX_KW_ENTRY("length"  , 1), // 11
-	BC_LEX_KW_ENTRY("limits"  , 0), // 12
-	BC_LEX_KW_ENTRY("print"   , 0), // 13
-	BC_LEX_KW_ENTRY("quit"    , 1), // 14
-	BC_LEX_KW_ENTRY("read"    , 0), // 15
-	BC_LEX_KW_ENTRY("return"  , 1), // 16
-	BC_LEX_KW_ENTRY("scale"   , 1), // 17
-	BC_LEX_KW_ENTRY("sqrt"    , 1), // 18
-	BC_LEX_KW_ENTRY("while"   , 1), // 19
+	LEX_KW_ENTRY("auto"    , 1), // 0
+	LEX_KW_ENTRY("break"   , 1), // 1
+	LEX_KW_ENTRY("continue", 0), // 2 note: this one has no terminating NUL
+	LEX_KW_ENTRY("define"  , 1), // 3
+	LEX_KW_ENTRY("else"    , 0), // 4
+	LEX_KW_ENTRY("for"     , 1), // 5
+	LEX_KW_ENTRY("halt"    , 0), // 6
+	LEX_KW_ENTRY("ibase"   , 1), // 7
+	LEX_KW_ENTRY("obase"   , 1), // 8
+	LEX_KW_ENTRY("if"      , 1), // 9
+	LEX_KW_ENTRY("last"    , 0), // 10
+	LEX_KW_ENTRY("length"  , 1), // 11
+	LEX_KW_ENTRY("limits"  , 0), // 12
+	LEX_KW_ENTRY("print"   , 0), // 13
+	LEX_KW_ENTRY("quit"    , 1), // 14
+	LEX_KW_ENTRY("read"    , 0), // 15
+	LEX_KW_ENTRY("return"  , 1), // 16
+	LEX_KW_ENTRY("scale"   , 1), // 17
+	LEX_KW_ENTRY("sqrt"    , 1), // 18
+	LEX_KW_ENTRY("while"   , 1), // 19
 };
-#undef BC_LEX_KW_ENTRY
+#undef LEX_KW_ENTRY
 #define STRING_else  (bc_lex_kws[4].name8)
 #define STRING_for   (bc_lex_kws[5].name8)
 #define STRING_if    (bc_lex_kws[9].name8)
@@ -570,7 +570,7 @@ enum {
 		| (1 << 18) // 18
 		| (1 << 19) // 19
 };
-#define bc_lex_kws_POSIX(i) ((1 << (i)) & POSIX_KWORD_MASK)
+#define keyword_is_POSIX(i) ((1 << (i)) & POSIX_KWORD_MASK)
 
 // This is a bit array that corresponds to token types. An entry is
 // true if the token is valid in an expression, false otherwise.
@@ -711,15 +711,15 @@ dc_LEX_to_INST[] = { // starts at XC_LEX_OP_POWER       // corresponding XC/DC_L
 #endif // ENABLE_DC
 
 typedef struct BcLex {
-	const char *buf;
+	const char *lex_inbuf;
 	const char *lex_next_at; // last lex_next() was called at this string
-	size_t i;
-	size_t line;
-	size_t len;
-	bool   newline;
+	size_t lex_i;
+	size_t lex_line;
+	size_t lex_len;
+	bool   lex_newline;
 	smallint lex;      // was BcLexType
 	smallint lex_last; // was BcLexType
-	BcVec  lex_buf;
+	BcVec  lex_strnumbuf;
 } BcLex;
 
 #define BC_PARSE_STREND         (0xff)
@@ -2755,10 +2755,10 @@ static void bc_lex_lineComment(void)
 	// Try: echo -n '#foo' | bc
 	size_t i;
 	l->lex = XC_LEX_WHITESPACE;
-	i = l->i;
-	while (i < l->len && l->buf[i] != '\n')
+	i = l->lex_i;
+	while (i < l->lex_len && l->lex_inbuf[i] != '\n')
 		i++;
-	l->i = i;
+	l->lex_i = i;
 }
 
 static void bc_lex_whitespace(void)
@@ -2766,19 +2766,19 @@ static void bc_lex_whitespace(void)
 	BcLex *l = &G.prs.l;
 	l->lex = XC_LEX_WHITESPACE;
 	for (;;) {
-		char c = l->buf[l->i];
+		char c = l->lex_inbuf[l->lex_i];
 		if (c == '\n') // this is XC_LEX_NLINE, not XC_LEX_WHITESPACE
 			break;
 		if (!isspace(c))
 			break;
-		l->i++;
+		l->lex_i++;
 	}
 }
 
 static BC_STATUS zbc_lex_number(char start)
 {
 	BcLex *l = &G.prs.l;
-	const char *buf = l->buf + l->i;
+	const char *buf = l->lex_inbuf + l->lex_i;
 	size_t len, i, ccnt;
 	bool pt;
 
@@ -2808,7 +2808,7 @@ static BC_STATUS zbc_lex_number(char start)
 	//ccnt is the number of chars in the number string, excluding possible
 	//trailing "[\<newline>].[\<newline>]" (with any number of \<NL> repetitions).
 	//i is buf[i] index of the first not-yet-parsed char after that.
-	l->i += i;
+	l->lex_i += i;
 
 	// This might overestimate the size, if there are "\<NL>"'s
 	// in the number. Subtracting number_of_backslashes*2 correctly
@@ -2823,9 +2823,9 @@ static BC_STATUS zbc_lex_number(char start)
 			RETURN_STATUS(bc_error("number too long: must be [1,"BC_MAX_NUM_STR"]"));
 	}
 
-	bc_vec_pop_all(&l->lex_buf);
-	bc_vec_expand(&l->lex_buf, 1 + len);
-	bc_vec_push(&l->lex_buf, &start);
+	bc_vec_pop_all(&l->lex_strnumbuf);
+	bc_vec_expand(&l->lex_strnumbuf, 1 + len);
+	bc_vec_push(&l->lex_strnumbuf, &start);
 
 	while (ccnt != 0) {
 		// If we have hit a backslash, skip it. We don't have
@@ -2835,12 +2835,12 @@ static BC_STATUS zbc_lex_number(char start)
 			ccnt -= 2;
 			continue;
 		}
-		bc_vec_push(&l->lex_buf, buf);
+		bc_vec_push(&l->lex_strnumbuf, buf);
 		buf++;
 		ccnt--;
 	}
 
-	bc_vec_pushZeroByte(&l->lex_buf);
+	bc_vec_pushZeroByte(&l->lex_strnumbuf);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -2855,7 +2855,7 @@ static void bc_lex_name(void)
 	l->lex = XC_LEX_NAME;
 
 	i = 0;
-	buf = l->buf + l->i - 1;
+	buf = l->lex_inbuf + l->lex_i - 1;
 	for (;;) {
 		char c = buf[i];
 		if ((c < 'a' || c > 'z') && !isdigit(c) && c != '_') break;
@@ -2869,28 +2869,28 @@ static void bc_lex_name(void)
 			return bc_error("name too long: must be [1,"BC_MAX_STRING_STR"]");
 	}
 #endif
-	bc_vec_string(&l->lex_buf, i, buf);
+	bc_vec_string(&l->lex_strnumbuf, i, buf);
 
 	// Increment the index. We minus 1 because it has already been incremented.
-	l->i += i - 1;
+	l->lex_i += i - 1;
 
 	//return BC_STATUS_SUCCESS;
 }
 
 static void bc_lex_init(void)
 {
-	bc_char_vec_init(&G.prs.l.lex_buf);
+	bc_char_vec_init(&G.prs.l.lex_strnumbuf);
 }
 
 static void bc_lex_free(void)
 {
-	bc_vec_free(&G.prs.l.lex_buf);
+	bc_vec_free(&G.prs.l.lex_strnumbuf);
 }
 
 static void bc_lex_file(void)
 {
-	G.err_line = G.prs.l.line = 1;
-	G.prs.l.newline = false;
+	G.err_line = G.prs.l.lex_line = 1;
+	G.prs.l.lex_newline = false;
 }
 
 static bool bc_lex_more_input(void)
@@ -2958,12 +2958,12 @@ static bool bc_lex_more_input(void)
 		break;
 	}
 
-	l->buf = G.input_buffer.v;
-	l->i = 0;
+	l->lex_inbuf = G.input_buffer.v;
+	l->lex_i = 0;
 //	bb_error_msg("G.input_buffer.len:%d '%s'", G.input_buffer.len, G.input_buffer.v);
-	l->len = G.input_buffer.len - 1; // do not include NUL
+	l->lex_len = G.input_buffer.len - 1; // do not include NUL
 
-	return l->len != 0;
+	return l->lex_len != 0;
 }
 
 IF_BC(static BC_STATUS zbc_lex_token(void);)
@@ -2979,16 +2979,16 @@ static BC_STATUS zbc_lex_next(void)
 	l->lex_last = l->lex;
 	if (l->lex_last == XC_LEX_EOF) RETURN_STATUS(bc_error("end of file"));
 
-	l->line += l->newline;
-	G.err_line = l->line;
-	l->newline = false;
+	l->lex_line += l->lex_newline;
+	G.err_line = l->lex_line;
+	l->lex_newline = false;
 
 	// Loop until failure or we don't have whitespace. This
 	// is so the parser doesn't get inundated with whitespace.
 	// Comments are also XC_LEX_WHITESPACE tokens and eaten here.
 	s = BC_STATUS_SUCCESS;
 	do {
-		if (l->i == l->len) {
+		if (l->lex_i == l->lex_len) {
 			l->lex = XC_LEX_EOF;
 			if (!G.prs.input_fp)
 				RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -2996,9 +2996,9 @@ static BC_STATUS zbc_lex_next(void)
 				G.prs.input_fp = NULL;
 				RETURN_STATUS(BC_STATUS_SUCCESS);
 			}
-			// here it's guaranteed that l->i is below l->len
+			// here it's guaranteed that l->lex_i is below l->lex_len
 		}
-		l->lex_next_at = l->buf + l->i;
+		l->lex_next_at = l->lex_inbuf + l->lex_i;
 		dbg_lex("next string to parse:'%.*s'",
 			(int)(strchrnul(l->lex_next_at, '\n') - l->lex_next_at),
 			l->lex_next_at
@@ -3038,9 +3038,9 @@ static BC_STATUS zbc_lex_next_and_skip_NLINE(void)
 
 static BC_STATUS zbc_lex_text_init(const char *text)
 {
-	G.prs.l.buf = text;
-	G.prs.l.i = 0;
-	G.prs.l.len = strlen(text);
+	G.prs.l.lex_inbuf = text;
+	G.prs.l.lex_i = 0;
+	G.prs.l.lex_len = strlen(text);
 	G.prs.l.lex = G.prs.l.lex_last = XC_LEX_INVALID;
 	RETURN_STATUS(zbc_lex_next());
 }
@@ -3052,7 +3052,7 @@ static BC_STATUS zbc_lex_identifier(void)
 	BcLex *l = &G.prs.l;
 	BcStatus s;
 	unsigned i;
-	const char *buf = l->buf + l->i - 1;
+	const char *buf = l->lex_inbuf + l->lex_i - 1;
 
 	for (i = 0; i < ARRAY_SIZE(bc_lex_kws); ++i) {
 		const char *keyword8 = bc_lex_kws[i].name8;
@@ -3068,20 +3068,20 @@ static BC_STATUS zbc_lex_identifier(void)
 		if (isalnum(buf[j]) || buf[j]=='_')
 			continue; // "ifz" does not match "if" keyword, "if." does
 		l->lex = BC_LEX_KEY_1st_keyword + i;
-		if (!bc_lex_kws_POSIX(i)) {
+		if (!keyword_is_POSIX(i)) {
 			s = zbc_posix_error_fmt("%sthe '%.8s' keyword", "POSIX does not allow ", bc_lex_kws[i].name8);
 			if (s) RETURN_STATUS(s);
 		}
 
 		// We minus 1 because the index has already been incremented.
-		l->i += j - 1;
+		l->lex_i += j - 1;
 		RETURN_STATUS(BC_STATUS_SUCCESS);
 	}
 
 	bc_lex_name();
 	s = BC_STATUS_SUCCESS;
 
-	if (l->lex_buf.len > 2) {
+	if (l->lex_strnumbuf.len > 2) {
 		// Prevent this:
 		// >>> qwe=1
 		// bc: POSIX only allows one character names; this is bad: 'qwe=1
@@ -3102,11 +3102,11 @@ static BC_STATUS zbc_lex_string(void)
 	l->lex = XC_LEX_STR;
 
 	nls = 0;
-	i = l->i;
+	i = l->lex_i;
 	for (;;) {
-		char c = l->buf[i];
+		char c = l->lex_inbuf[i];
 		if (c == '\0') {
-			l->i = i;
+			l->lex_i = i;
 			RETURN_STATUS(bc_error("unterminated string"));
 		}
 		if (c == '"')
@@ -3115,17 +3115,17 @@ static BC_STATUS zbc_lex_string(void)
 		i++;
 	}
 
-	len = i - l->i;
+	len = i - l->lex_i;
 	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
 	if (SIZE_MAX > (BC_MAX_STRING | 0xff)) {
 		if (len > BC_MAX_STRING)
 			RETURN_STATUS(bc_error("string too long: must be [1,"BC_MAX_STRING_STR"]"));
 	}
-	bc_vec_string(&l->lex_buf, len, l->buf + l->i);
+	bc_vec_string(&l->lex_strnumbuf, len, l->lex_inbuf + l->lex_i);
 
-	l->i = i + 1;
-	l->line += nls;
-	G.err_line = l->line;
+	l->lex_i = i + 1;
+	l->lex_line += nls;
+	G.err_line = l->lex_line;
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -3134,8 +3134,8 @@ static BC_STATUS zbc_lex_string(void)
 static void bc_lex_assign(unsigned with_and_without)
 {
 	BcLex *l = &G.prs.l;
-	if (l->buf[l->i] == '=') {
-		++l->i;
+	if (l->lex_inbuf[l->lex_i] == '=') {
+		l->lex_i++;
 		with_and_without >>= 8; // store "with" value
 	} // else store "without" value
 	l->lex = (with_and_without & 0xff);
@@ -3147,10 +3147,10 @@ static BC_STATUS zbc_lex_comment(void)
 {
 	BcLex *l = &G.prs.l;
 	size_t i, nls = 0;
-	const char *buf = l->buf;
+	const char *buf = l->lex_inbuf;
 
 	l->lex = XC_LEX_WHITESPACE;
-	i = l->i; /* here buf[l->i] is the '*' of opening comment delimiter */
+	i = l->lex_i; /* here buf[l->lex_i] is the '*' of opening comment delimiter */
 	for (;;) {
 		char c = buf[++i];
  check_star:
@@ -3161,15 +3161,15 @@ static BC_STATUS zbc_lex_comment(void)
 			goto check_star;
 		}
 		if (c == '\0') {
-			l->i = i;
+			l->lex_i = i;
 			RETURN_STATUS(bc_error("unterminated comment"));
 		}
 		nls += (c == '\n');
 	}
 
-	l->i = i + 1;
-	l->line += nls;
-	G.err_line = l->line;
+	l->lex_i = i + 1;
+	l->lex_line += nls;
+	G.err_line = l->lex_line;
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -3180,18 +3180,18 @@ static BC_STATUS zbc_lex_token(void)
 {
 	BcLex *l = &G.prs.l;
 	BcStatus s = BC_STATUS_SUCCESS;
-	char c = l->buf[l->i++], c2;
+	char c = l->lex_inbuf[l->lex_i++], c2;
 
 	// This is the workhorse of the lexer.
 	switch (c) {
 //		case '\0': // probably never reached
-//			l->i--;
+//			l->lex_i--;
 //			l->lex = XC_LEX_EOF;
-//			l->newline = true;
+//			l->lex_newline = true;
 //			break;
 		case '\n':
 			l->lex = XC_LEX_NLINE;
-			l->newline = true;
+			l->lex_newline = true;
 			break;
 		case '\t':
 		case '\v':
@@ -3219,11 +3219,11 @@ static BC_STATUS zbc_lex_token(void)
 			bc_lex_assign(BC_LEX_OP_ASSIGN_MODULUS, XC_LEX_OP_MODULUS);
 			break;
 		case '&':
-			c2 = l->buf[l->i];
+			c2 = l->lex_inbuf[l->lex_i];
 			if (c2 == '&') {
 				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("&&");
 				if (s) RETURN_STATUS(s);
-				++l->i;
+				l->lex_i++;
 				l->lex = BC_LEX_OP_BOOL_AND;
 			} else {
 				l->lex = XC_LEX_INVALID;
@@ -3238,9 +3238,9 @@ static BC_STATUS zbc_lex_token(void)
 			bc_lex_assign(BC_LEX_OP_ASSIGN_MULTIPLY, XC_LEX_OP_MULTIPLY);
 			break;
 		case '+':
-			c2 = l->buf[l->i];
+			c2 = l->lex_inbuf[l->lex_i];
 			if (c2 == '+') {
-				++l->i;
+				l->lex_i++;
 				l->lex = BC_LEX_OP_INC;
 			} else
 				bc_lex_assign(BC_LEX_OP_ASSIGN_PLUS, XC_LEX_OP_PLUS);
@@ -3249,15 +3249,15 @@ static BC_STATUS zbc_lex_token(void)
 			l->lex = BC_LEX_COMMA;
 			break;
 		case '-':
-			c2 = l->buf[l->i];
+			c2 = l->lex_inbuf[l->lex_i];
 			if (c2 == '-') {
-				++l->i;
+				l->lex_i++;
 				l->lex = BC_LEX_OP_DEC;
 			} else
 				bc_lex_assign(BC_LEX_OP_ASSIGN_MINUS, XC_LEX_OP_MINUS);
 			break;
 		case '.':
-			if (isdigit(l->buf[l->i]))
+			if (isdigit(l->lex_inbuf[l->lex_i]))
 				s = zbc_lex_number(c);
 			else {
 				l->lex = BC_LEX_KEY_LAST;
@@ -3265,7 +3265,7 @@ static BC_STATUS zbc_lex_token(void)
 			}
 			break;
 		case '/':
-			c2 = l->buf[l->i];
+			c2 = l->lex_inbuf[l->lex_i];
 			if (c2 == '*')
 				s = zbc_lex_comment();
 			else
@@ -3306,9 +3306,9 @@ static BC_STATUS zbc_lex_token(void)
 			l->lex = (BcLexType)(c - '[' + BC_LEX_LBRACKET);
 			break;
 		case '\\':
-			if (l->buf[l->i] == '\n') {
+			if (l->lex_inbuf[l->lex_i] == '\n') {
 				l->lex = XC_LEX_WHITESPACE;
-				++l->i;
+				l->lex_i++;
 			} else
 				s = bc_error_bad_character(c);
 			break;
@@ -3348,11 +3348,11 @@ static BC_STATUS zbc_lex_token(void)
 			l->lex = (BcLexType)(c - '{' + BC_LEX_LBRACE);
 			break;
 		case '|':
-			c2 = l->buf[l->i];
+			c2 = l->lex_inbuf[l->lex_i];
 			if (c2 == '|') {
 				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("||");
 				if (s) RETURN_STATUS(s);
-				++l->i;
+				l->lex_i++;
 				l->lex = BC_LEX_OP_BOOL_OR;
 			} else {
 				l->lex = XC_LEX_INVALID;
@@ -3374,14 +3374,14 @@ static BC_STATUS zbc_lex_token(void)
 static BC_STATUS zdc_lex_register(void)
 {
 	BcLex *l = &G.prs.l;
-	if (G_exreg && isspace(l->buf[l->i])) {
+	if (G_exreg && isspace(l->lex_inbuf[l->lex_i])) {
 		bc_lex_whitespace(); // eats whitespace (but not newline)
-		l->i++; // bc_lex_name() expects this
+		l->lex_i++; // bc_lex_name() expects this
 		bc_lex_name();
 	} else {
-		bc_vec_pop_all(&l->lex_buf);
-		bc_vec_push(&l->lex_buf, &l->buf[l->i++]);
-		bc_vec_pushZeroByte(&l->lex_buf);
+		bc_vec_pop_all(&l->lex_strnumbuf);
+		bc_vec_push(&l->lex_strnumbuf, &l->lex_inbuf[l->lex_i++]);
+		bc_vec_pushZeroByte(&l->lex_strnumbuf);
 		l->lex = XC_LEX_NAME;
 	}
 
@@ -3395,39 +3395,39 @@ static BC_STATUS zdc_lex_string(void)
 	size_t depth, nls, i;
 
 	l->lex = XC_LEX_STR;
-	bc_vec_pop_all(&l->lex_buf);
+	bc_vec_pop_all(&l->lex_strnumbuf);
 
 	nls = 0;
 	depth = 1;
-	i = l->i;
+	i = l->lex_i;
 	for (;;) {
-		char c = l->buf[i];
+		char c = l->lex_inbuf[i];
 		if (c == '\0') {
-			l->i = i;
+			l->lex_i = i;
 			RETURN_STATUS(bc_error("string end could not be found"));
 		}
 		nls += (c == '\n');
-		if (i == l->i || l->buf[i - 1] != '\\') {
+		if (i == l->lex_i || l->lex_inbuf[i - 1] != '\\') {
 			if (c == '[') depth++;
 			if (c == ']')
 				if (--depth == 0)
 					break;
 		}
-		bc_vec_push(&l->lex_buf, &l->buf[i]);
+		bc_vec_push(&l->lex_strnumbuf, &l->lex_inbuf[i]);
 		i++;
 	}
 	i++;
 
-	bc_vec_pushZeroByte(&l->lex_buf);
+	bc_vec_pushZeroByte(&l->lex_strnumbuf);
 	// This check makes sense only if size_t is (much) larger than BC_MAX_STRING.
 	if (SIZE_MAX > (BC_MAX_STRING | 0xff)) {
-		if (i - l->i > BC_MAX_STRING)
+		if (i - l->lex_i > BC_MAX_STRING)
 			RETURN_STATUS(bc_error("string too long: must be [1,"BC_MAX_STRING_STR"]"));
 	}
 
-	l->i = i;
-	l->line += nls;
-	G.err_line = l->line;
+	l->lex_i = i;
+	l->lex_line += nls;
+	G.err_line = l->lex_line;
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -3456,7 +3456,7 @@ static BC_STATUS zdc_lex_token(void)
 	}
 
 	s = BC_STATUS_SUCCESS;
-	c = l->buf[l->i++];
+	c = l->lex_inbuf[l->lex_i++];
 	if (c >= '%' && c <= '~'
 	 && (l->lex = dc_char_to_LEX[c - '%']) != XC_LEX_INVALID
 	) {
@@ -3478,18 +3478,18 @@ static BC_STATUS zdc_lex_token(void)
 			// IOW: typing "1p<enter>" should print "1" _at once_,
 			// not after some more input.
 			l->lex = XC_LEX_NLINE;
-			l->newline = true;
+			l->lex_newline = true;
 			break;
 		case '\t':
 		case '\v':
 		case '\f':
 		case '\r':
 		case ' ':
-			l->newline = 0; // was (c == '\n')
+			l->lex_newline = 0; // was (c == '\n')
 			bc_lex_whitespace();
 			break;
 		case '!':
-			c2 = l->buf[l->i];
+			c2 = l->lex_inbuf[l->lex_i];
 			if (c2 == '=')
 				l->lex = XC_LEX_OP_REL_NE;
 			else if (c2 == '<')
@@ -3498,13 +3498,13 @@ static BC_STATUS zdc_lex_token(void)
 				l->lex = XC_LEX_OP_REL_GE;
 			else
 				RETURN_STATUS(bc_error_bad_character(c));
-			++l->i;
+			l->lex_i++;
 			break;
 		case '#':
 			bc_lex_lineComment();
 			break;
 		case '.':
-			if (isdigit(l->buf[l->i]))
+			if (isdigit(l->lex_inbuf[l->lex_i]))
 				s = zbc_lex_number(c);
 			else
 				s = bc_error_bad_character(c);
@@ -3593,7 +3593,7 @@ static void bc_parse_pushJUMP_ZERO(size_t idx)
 static BC_STATUS zbc_parse_pushSTR(void)
 {
 	BcParse *p = &G.prs;
-	char *str = xstrdup(p->l.lex_buf.v);
+	char *str = xstrdup(p->l.lex_strnumbuf.v);
 
 	bc_parse_push(XC_INST_STR);
 	bc_parse_pushIndex(p->func->strs.len);
@@ -3607,7 +3607,7 @@ static BC_STATUS zbc_parse_pushSTR(void)
 static void bc_parse_pushNUM(void)
 {
 	BcParse *p = &G.prs;
-	char *num = xstrdup(p->l.lex_buf.v);
+	char *num = xstrdup(p->l.lex_strnumbuf.v);
 #if ENABLE_BC && ENABLE_DC
 	size_t idx = bc_vec_push(IS_BC ? &p->func->consts : &G.prog.consts, &num);
 #elif ENABLE_BC
@@ -3656,7 +3656,7 @@ static void bc_parse_reset(void)
 		p->func = bc_program_func_BC_PROG_MAIN();
 	}
 
-	p->l.i = p->l.len;
+	p->l.lex_i = p->l.lex_len;
 	p->l.lex = XC_LEX_EOF;
 
 	IF_BC(bc_vec_pop_all(&p->exits);)
@@ -3897,7 +3897,7 @@ static BC_STATUS zbc_parse_name(BcInst *type, uint8_t flags)
 	BcStatus s;
 	char *name;
 
-	name = xstrdup(p->l.lex_buf.v);
+	name = xstrdup(p->l.lex_strnumbuf.v);
 	s = zbc_lex_next();
 	if (s) goto err;
 
@@ -4317,7 +4317,7 @@ static BC_STATUS zbc_parse_for(void)
 		// Set this for the next call to bc_parse_pushNUM().
 		// This is safe to set because the current token is a semicolon,
 		// which has no string requirement.
-		bc_vec_string(&p->l.lex_buf, 1, "1");
+		bc_vec_string(&p->l.lex_strnumbuf, 1, "1");
 		bc_parse_pushNUM();
 		s = zbc_POSIX_does_not_allow_empty_X_expression_in_for("condition");
 	}
@@ -4418,7 +4418,7 @@ static BC_STATUS zbc_parse_funcdef(void)
 	if (p->l.lex != XC_LEX_NAME)
 		RETURN_STATUS(bc_error("bad function definition"));
 
-	name = xstrdup(p->l.lex_buf.v);
+	name = xstrdup(p->l.lex_strnumbuf.v);
 	p->fidx = bc_program_addFunc(name);
 	p->func = bc_program_func(p->fidx);
 
@@ -4435,7 +4435,7 @@ static BC_STATUS zbc_parse_funcdef(void)
 
 		++p->func->nparams;
 
-		name = xstrdup(p->l.lex_buf.v);
+		name = xstrdup(p->l.lex_strnumbuf.v);
 		s = zbc_lex_next();
 		if (s) goto err;
 
@@ -4517,7 +4517,7 @@ static BC_STATUS zbc_parse_auto(void)
 		if (p->l.lex != XC_LEX_NAME)
 			RETURN_STATUS(bc_error("bad 'auto' syntax"));
 
-		name = xstrdup(p->l.lex_buf.v);
+		name = xstrdup(p->l.lex_strnumbuf.v);
 		s = zbc_lex_next();
 		if (s) goto err;
 
@@ -4925,7 +4925,7 @@ static BC_STATUS zdc_parse_register(void)
 	if (s) RETURN_STATUS(s);
 	if (p->l.lex != XC_LEX_NAME) RETURN_STATUS(bc_error_bad_token());
 
-	bc_parse_pushName(p->l.lex_buf.v);
+	bc_parse_pushName(p->l.lex_strnumbuf.v);
 
 	RETURN_STATUS(s);
 }
@@ -4939,7 +4939,7 @@ static void dc_parse_string(void)
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 
-	str = xstrdup(p->l.lex_buf.v);
+	str = xstrdup(p->l.lex_strnumbuf.v);
 	bc_parse_push(XC_INST_STR);
 	bc_parse_pushIndex(len);
 	bc_vec_push(&G.prog.strs, &str);
