@@ -4664,15 +4664,16 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 	BcInst prev = XC_INST_PRINT;
 	size_t nexprs = 0, ops_bgn = p->ops.len;
 	unsigned nparens, nrelops;
-	bool paren_first, paren_expr, rprn, get_token, assign, bin_last;
+	bool paren_first, paren_expr, rprn, assign, bin_last;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	paren_first = (p->l.lex == BC_LEX_LPAREN);
 	nparens = nrelops = 0;
-	paren_expr = rprn = get_token = assign = false;
+	paren_expr = rprn = assign = false;
 	bin_last = true;
 
 	for (;;) {
+		bool get_token;
 		BcStatus s;
 		BcLexType t = p->l.lex;
 
@@ -4680,16 +4681,19 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 			break;
 
 		dbg_lex("%s:%d t:%d", __func__, __LINE__, t);
+		get_token = false;
 		s = BC_STATUS_SUCCESS;
 		switch (t) {
 			case BC_LEX_OP_INC:
 			case BC_LEX_OP_DEC:
 				s = zbc_parse_incdec(p, &prev, &paren_expr, &nexprs, flags);
-				rprn = get_token = bin_last = false;
+				rprn = bin_last = false;
+				//get_token = false; - already is
 				break;
 			case XC_LEX_OP_MINUS:
 				s = zbc_parse_minus(p, &prev, ops_bgn, rprn, &nexprs);
-				rprn = get_token = false;
+				rprn = false;
+				//get_token = false; - already is
 				bin_last = (prev == XC_INST_MINUS);
 				break;
 			case BC_LEX_OP_ASSIGN_POWER:
@@ -4733,16 +4737,18 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				prev = BC_TOKEN_2_INST(t);
 				bc_parse_operator(p, t, ops_bgn, &nexprs);
 				s = zbc_lex_next(&p->l);
-				rprn = get_token = false;
+				rprn = false;
+				//get_token = false; - already is
 				bin_last = (t != BC_LEX_OP_BOOL_NOT);
 				break;
 			case BC_LEX_LPAREN:
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
-				nparens++;
-				paren_expr = rprn = bin_last = false;
-				get_token = true;
 				bc_vec_push(&p->ops, &t);
+				nparens++;
+				get_token = true;
+				paren_expr = false;
+				rprn = bin_last = false;
 				break;
 			case BC_LEX_RPAREN:
 				if (bin_last || prev == XC_INST_BOOL_NOT)
@@ -4754,27 +4760,30 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 					dbg_lex_done("%s:%d done (returning EMPTY_EXP)", __func__, __LINE__);
 					return BC_STATUS_PARSE_EMPTY_EXP;
 				}
+				s = zbc_parse_rightParen(p, ops_bgn, &nexprs);
 				nparens--;
 				paren_expr = rprn = true;
-				get_token = bin_last = false;
-				s = zbc_parse_rightParen(p, ops_bgn, &nexprs);
+				bin_last = false;
+				//get_token = false; - already is
 				break;
 			case XC_LEX_NAME:
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
-				paren_expr = true;
-				rprn = get_token = bin_last = false;
 				s = zbc_parse_name(p, &prev, flags & ~BC_PARSE_NOCALL);
+				paren_expr = true;
+				rprn = bin_last = false;
+				//get_token = false; - already is
 				nexprs++;
 				break;
 			case XC_LEX_NUMBER:
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
 				bc_parse_pushNUM(p);
-				nexprs++;
 				prev = XC_INST_NUM;
-				paren_expr = get_token = true;
+				get_token = true;
+				paren_expr = true;
 				rprn = bin_last = false;
+				nexprs++;
 				break;
 			case BC_LEX_KEY_IBASE:
 			case BC_LEX_KEY_LAST:
@@ -4783,7 +4792,8 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 					return bc_error_bad_expression();
 				prev = (char) (t - BC_LEX_KEY_IBASE + XC_INST_IBASE);
 				bc_parse_push(p, (char) prev);
-				paren_expr = get_token = true;
+				get_token = true;
+				paren_expr = true;
 				rprn = bin_last = false;
 				nexprs++;
 				break;
@@ -4793,17 +4803,19 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 					return bc_error_bad_expression();
 				s = zbc_parse_builtin(p, t, flags, &prev);
 				paren_expr = true;
-				rprn = get_token = bin_last = false;
+				rprn = bin_last = false;
+				//get_token = false; - already is
 				nexprs++;
 				break;
 			case BC_LEX_KEY_READ:
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
 				s = zbc_parse_read(p);
-				paren_expr = true;
-				rprn = get_token = bin_last = false;
-				nexprs++;
 				prev = XC_INST_READ;
+				paren_expr = true;
+				rprn = bin_last = false;
+				//get_token = false; - already is
+				nexprs++;
 				break;
 			case BC_LEX_KEY_SCALE:
 				if (BC_PARSE_LEAF(prev, rprn))
@@ -4811,12 +4823,12 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				s = zbc_parse_scale(p, &prev, flags);
 				prev = XC_INST_SCALE;
 				paren_expr = true;
-				rprn = get_token = bin_last = false;
+				rprn = bin_last = false;
+				//get_token = false; - already is
 				nexprs++;
 				break;
 			default:
-				s = bc_error_bad_token();
-				break;
+				return bc_error_bad_token();
 		}
 
 		if (s || G_interrupt) // error, or ^C: stop parsing
