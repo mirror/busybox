@@ -6753,6 +6753,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 	s = zbc_parse_text_init(&G.prs, text); // does the first zbc_lex_next()
 	if (s) RETURN_STATUS(s);
 
+ IF_BC(check_eof:)
 	while (G.prs.l.lex != XC_LEX_EOF) {
 		BcInstPtr *ip;
 		BcFunc *f;
@@ -6760,34 +6761,34 @@ static BC_STATUS zbc_vm_process(const char *text)
 		dbg_lex("%s:%d G.prs.l.lex:%d, parsing...", __func__, __LINE__, G.prs.l.lex);
 		if (IS_BC) {
 #if ENABLE_BC
+			if (G.prs.l.lex == BC_LEX_SCOLON
+			 || G.prs.l.lex == XC_LEX_NLINE
+			) {
+				s = zbc_lex_next(&G.prs.l);
+				if (s) goto err;
+				goto check_eof;
+			}
+
 			s = zbc_parse_stmt_or_funcdef(&G.prs);
 			if (s) goto err;
 
-			// Check that next token is not bogus, and skip over
-			// stmt delimiter(s) - newlines and semicolons
-			s = 1; // s == 1 on first iteration only
-			for (;;) {
-				if (G.prs.l.lex == XC_LEX_EOF)
-					goto execute; // this goto avoids resetting 's' to zero
-				if (G.prs.l.lex != BC_LEX_SCOLON
-				 && G.prs.l.lex != XC_LEX_NLINE
-				) {
-					const char *err_at;
-					// Not newline and not semicolon
-					if (s == 0) // saw at least one NL/semicolon before it?
-						break; // yes, good
-//TODO: commolalize for other parse errors:
-					err_at = G.prs.l.lex_next_at ? G.prs.l.lex_next_at : "UNKNOWN";
-					bc_error_fmt("bad statement terminator at '%.*s'",
-						(int)(strchrnul(err_at, '\n') - err_at),
-						err_at
-					);
-					goto err;
-				}
-				// NL or semicolon: skip it, set s = 0, repeat
-				s = zbc_lex_next(&G.prs.l);
-				if (s) goto err;
+			// Check that next token is a correct stmt delimiter -
+			// disallows "print 1 print 2" and such.
+			if (G.prs.l.lex != BC_LEX_SCOLON
+			 && G.prs.l.lex != XC_LEX_NLINE
+			 && G.prs.l.lex != XC_LEX_EOF
+			) {
+				const char *err_at;
+//TODO: commonalize for other parse errors:
+				err_at = G.prs.l.lex_next_at ? G.prs.l.lex_next_at : "UNKNOWN";
+				bc_error_fmt("bad statement terminator at '%.*s'",
+					(int)(strchrnul(err_at, '\n') - err_at),
+					err_at
+				);
+				goto err;
 			}
+			// The above logic is fragile. Check these examples:
+			// - interative read() still works
 #endif
 		} else {
 #if ENABLE_DC
@@ -6807,7 +6808,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 			bc_parse_reset(&G.prs); // includes bc_program_reset()
 			RETURN_STATUS(BC_STATUS_FAILURE);
 		}
- IF_BC(execute:)
+
 		dbg_lex("%s:%d executing...", __func__, __LINE__);
 		s = zbc_program_exec();
 		if (s) {
