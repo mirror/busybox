@@ -56,6 +56,16 @@ testing "dc '>aeb' (conditional execute string with else)" \
 	"2\n9\n" \
 	"" "[1p]sa [2p]sb 2 1>aeb\n9p"
 
+testing "dc space can be a register" \
+	"dc" \
+	"2\n9\n" \
+	"" "[2p]s \n[3p]\nl x\n9p"
+
+testing "dc newline can be a register" \
+	"dc" \
+	"2\n9\n" \
+	"" "[2p]s\n[3p]l\nx\n9p"
+
 for f in dc_*.dc; do
 	r="`basename "$f" .dc`_results.txt"
 	test -f "$r" || continue
