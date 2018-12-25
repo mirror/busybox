@@ -711,6 +711,7 @@ dc_LEX_to_INST[] = { // starts at XC_LEX_OP_POWER       // corresponding XC/DC_L
 
 typedef struct BcLex {
 	const char *buf;
+	const char *lex_next_at; // last lex_next() was called at this string
 	size_t i;
 	size_t line;
 	size_t len;
@@ -2990,9 +2991,11 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 			}
 			// here it's guaranteed that l->i is below l->len
 		}
+		l->lex_next_at = l->buf + l->i;
 		dbg_lex("next string to parse:'%.*s'",
-			(int)(strchrnul(l->buf + l->i, '\n') - (l->buf + l->i)),
-			l->buf + l->i);
+			(int)(strchrnul(l->lex_next_at, '\n') - l->lex_next_at),
+			l->lex_next_at
+		);
 		if (IS_BC) {
 			IF_BC(s = zbc_lex_token(l));
 		} else {
@@ -6756,13 +6759,38 @@ static BC_STATUS zbc_vm_process(const char *text)
 
 		dbg_lex("%s:%d G.prs.l.lex:%d, parsing...", __func__, __LINE__, G.prs.l.lex);
 		if (IS_BC) {
-// FIXME: "eating" of stmt delimiters is coded inconsistently
-// (sometimes zbc_parse_stmt() eats the delimiter, sometimes don't),
-// which causes bugs such as "print 1 print 2" erroneously accepted,
-// or "print 1 else 2" detecting parse error only after executing
-// "print 1" part.
-			IF_BC(s = zbc_parse_stmt_or_funcdef(&G.prs));
+#if ENABLE_BC
+			s = zbc_parse_stmt_or_funcdef(&G.prs);
+			if (s) goto err;
+
+			// Check that next token is not bogus, and skip over
+			// stmt delimiter(s) - newlines and semicolons
+			s = 1; // s == 1 on first iteration only
+			for (;;) {
+				if (G.prs.l.lex == XC_LEX_EOF)
+					goto execute; // this goto avoids resetting 's' to zero
+				if (G.prs.l.lex != BC_LEX_SCOLON
+				 && G.prs.l.lex != XC_LEX_NLINE
+				) {
+					const char *err_at;
+					// Not newline and not semicolon
+					if (s == 0) // saw at least one NL/semicolon before it?
+						break; // yes, good
+//TODO: commolalize for other parse errors:
+					err_at = G.prs.l.lex_next_at ? G.prs.l.lex_next_at : "UNKNOWN";
+					bc_error_fmt("bad statement terminator at '%.*s'",
+						(int)(strchrnul(err_at, '\n') - err_at),
+						err_at
+					);
+					goto err;
+				}
+				// NL or semicolon: skip it, set s = 0, repeat
+				s = zbc_lex_next(&G.prs.l);
+				if (s) goto err;
+			}
+#endif
 		} else {
+#if ENABLE_DC
 			// Most of dc parsing assumes all whitespace,
 			// including '\n', is eaten.
 			while (G.prs.l.lex == XC_LEX_NLINE) {
@@ -6771,14 +6799,15 @@ static BC_STATUS zbc_vm_process(const char *text)
 				if (G.prs.l.lex == XC_LEX_EOF)
 					goto done;
 			}
-			IF_DC(s = zdc_parse_expr(&G.prs));
+			s = zdc_parse_expr(&G.prs);
+#endif
 		}
 		if (s || G_interrupt) {
  err:
 			bc_parse_reset(&G.prs); // includes bc_program_reset()
 			RETURN_STATUS(BC_STATUS_FAILURE);
 		}
-
+ IF_BC(execute:)
 		dbg_lex("%s:%d executing...", __func__, __LINE__);
 		s = zbc_program_exec();
 		if (s) {
