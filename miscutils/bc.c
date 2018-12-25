@@ -4661,20 +4661,21 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p)
 // This is not a "z" function: can also return BC_STATUS_PARSE_EMPTY_EXP
 static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 {
-	BcStatus s = BC_STATUS_SUCCESS;
 	BcInst prev = XC_INST_PRINT;
 	BcLexType top, t = p->l.lex;
 	size_t nexprs = 0, ops_bgn = p->ops.len;
 	unsigned nparens, nrelops;
-	bool paren_first, paren_expr, rprn, done, get_token, assign, bin_last;
+	bool paren_first, paren_expr, rprn, get_token, assign, bin_last;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	paren_first = (p->l.lex == BC_LEX_LPAREN);
 	nparens = nrelops = 0;
-	paren_expr = rprn = done = get_token = assign = false;
+	paren_expr = rprn = get_token = assign = false;
 	bin_last = true;
 
-	for (; !G_interrupt && !s && !done && bc_parse_exprs(t); t = p->l.lex) {
+	for (; bc_parse_exprs(t); t = p->l.lex) {
+		BcStatus s = BC_STATUS_SUCCESS;
+
 		dbg_lex("%s:%d t:%d", __func__, __LINE__, t);
 		switch (t) {
 			case BC_LEX_OP_INC:
@@ -4743,10 +4744,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				if (bin_last || prev == XC_INST_BOOL_NOT)
 					return bc_error_bad_expression();
 				if (nparens == 0) {
-					s = BC_STATUS_SUCCESS;
-					done = true;
-					get_token = false;
-					break;
+					goto exit_loop;
 				}
 				if (!paren_expr) {
 					dbg_lex_done("%s:%d done (returning EMPTY_EXP)", __func__, __LINE__);
@@ -4763,7 +4761,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				paren_expr = true;
 				rprn = get_token = bin_last = false;
 				s = zbc_parse_name(p, &prev, flags & ~BC_PARSE_NOCALL);
-				++nexprs;
+				nexprs++;
 				break;
 			case XC_LEX_NUMBER:
 				if (BC_PARSE_LEAF(prev, rprn))
@@ -4807,21 +4805,24 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
 				s = zbc_parse_scale(p, &prev, flags);
+				prev = XC_INST_SCALE;
 				paren_expr = true;
 				rprn = get_token = bin_last = false;
 				nexprs++;
-				prev = XC_INST_SCALE;
 				break;
 			default:
 				s = bc_error_bad_token();
 				break;
 		}
 
-		if (!s && get_token) s = zbc_lex_next(&p->l);
+		if (s || G_interrupt) // error, or ^C: stop parsing
+			return BC_STATUS_FAILURE;
+		if (get_token) {
+			s = zbc_lex_next(&p->l);
+			if (s) return s;
+		}
 	}
-
-	if (s) return s;
-	if (G_interrupt) return BC_STATUS_FAILURE; // ^C: stop parsing
+ exit_loop:
 
 	while (p->ops.len > ops_bgn) {
 		top = BC_PARSE_TOP_OP(p);
@@ -4840,20 +4841,23 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 		return bc_error_bad_expression();
 
 	if (!(flags & BC_PARSE_REL) && nrelops) {
+		BcStatus s;
 		s = zbc_POSIX_does_not_allow("comparison operators outside if or loops");
 		if (s) return s;
 	} else if ((flags & BC_PARSE_REL) && nrelops > 1) {
+		BcStatus s;
 		s = zbc_POSIX_requires("exactly one comparison operator per condition");
 		if (s) return s;
 	}
 
 	if (flags & BC_PARSE_PRINT) {
-		if (paren_first || !assign) bc_parse_push(p, XC_INST_PRINT);
+		if (paren_first || !assign)
+			bc_parse_push(p, XC_INST_PRINT);
 		bc_parse_push(p, XC_INST_POP);
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
-	return s;
+	return BC_STATUS_SUCCESS;
 }
 
 #endif // ENABLE_BC
