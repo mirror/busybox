@@ -1029,12 +1029,12 @@ static BC_STATUS zbc_POSIX_does_not_allow(const char *msg)
 #define zbc_POSIX_does_not_allow(...) (zbc_POSIX_does_not_allow(__VA_ARGS__) COMMA_SUCCESS)
 static BC_STATUS zbc_POSIX_does_not_allow_bool_ops_this_is_bad(const char *msg)
 {
-	RETURN_STATUS(zbc_posix_error_fmt("%s%s %s", "POSIX does not allow ", "boolean operators; the following is bad:", msg));
+	RETURN_STATUS(zbc_posix_error_fmt("%s%s %s", "POSIX does not allow ", "boolean operators; this is bad:", msg));
 }
 #define zbc_POSIX_does_not_allow_bool_ops_this_is_bad(...) (zbc_POSIX_does_not_allow_bool_ops_this_is_bad(__VA_ARGS__) COMMA_SUCCESS)
 static BC_STATUS zbc_POSIX_does_not_allow_empty_X_expression_in_for(const char *msg)
 {
-	RETURN_STATUS(zbc_posix_error_fmt("%san empty %s expression in a for loop", "POSIX does not allow ", msg));
+	RETURN_STATUS(zbc_posix_error_fmt("%san empty %s expression in 'for()'", "POSIX does not allow ", msg));
 }
 #define zbc_POSIX_does_not_allow_empty_X_expression_in_for(...) (zbc_POSIX_does_not_allow_empty_X_expression_in_for(__VA_ARGS__) COMMA_SUCCESS)
 #endif
@@ -3084,10 +3084,10 @@ static BC_STATUS zbc_lex_identifier(void)
 	if (l->lex_buf.len > 2) {
 		// Prevent this:
 		// >>> qwe=1
-		// bc: POSIX only allows one character names; the following is bad: 'qwe=1
+		// bc: POSIX only allows one character names; this is bad: 'qwe=1
 		// '
 		unsigned len = strchrnul(buf, '\n') - buf;
-		s = zbc_posix_error_fmt("POSIX only allows one character names; the following is bad: '%.*s'", len, buf);
+		s = zbc_posix_error_fmt("POSIX only allows one character names; this is bad: '%.*s'", len, buf);
 	}
 
 	RETURN_STATUS(s);
@@ -3107,7 +3107,7 @@ static BC_STATUS zbc_lex_string(void)
 		char c = l->buf[i];
 		if (c == '\0') {
 			l->i = i;
-			RETURN_STATUS(bc_error("string end could not be found"));
+			RETURN_STATUS(bc_error("unterminated string"));
 		}
 		if (c == '"')
 			break;
@@ -3162,7 +3162,7 @@ static BC_STATUS zbc_lex_comment(void)
 		}
 		if (c == '\0') {
 			l->i = i;
-			RETURN_STATUS(bc_error("comment end could not be found"));
+			RETURN_STATUS(bc_error("unterminated comment"));
 		}
 		nls += (c == '\n');
 	}
@@ -3261,7 +3261,7 @@ static BC_STATUS zbc_lex_token(void)
 				s = zbc_lex_number(c);
 			else {
 				l->lex = BC_LEX_KEY_LAST;
-				s = zbc_POSIX_does_not_allow("a period ('.') as a shortcut for the last result");
+				s = zbc_POSIX_does_not_allow("'.' as 'last'");
 			}
 			break;
 		case '/':
@@ -4393,7 +4393,7 @@ static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
 	autoid = (void*)f->autos.v;
 	for (i = 0; i < f->autos.len; i++, autoid++) {
 		if (strcmp(name, autoid->name) == 0)
-			RETURN_STATUS(bc_error("function parameter or auto var has the same name as another"));
+			RETURN_STATUS(bc_error("duplicate function parameter or auto name"));
 	}
 
 	a.idx = var;
