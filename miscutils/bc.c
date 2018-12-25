@@ -711,40 +711,29 @@ dc_LEX_to_INST[] = { // starts at XC_LEX_OP_POWER       // corresponding XC/DC_L
 #endif // ENABLE_DC
 
 typedef struct BcLex {
-	const char *lex_inbuf;
-	const char *lex_next_at; // last lex_next() was called at this string
+	smallint lex;      // was BcLexType // first member is most used
+	smallint lex_last; // was BcLexType
+	bool   lex_newline;
 	size_t lex_i;
 	size_t lex_line;
 	size_t lex_len;
-	bool   lex_newline;
-	smallint lex;      // was BcLexType
-	smallint lex_last; // was BcLexType
+	const char *lex_inbuf;
+	const char *lex_next_at; // last lex_next() was called at this string
 	BcVec  lex_strnumbuf;
 } BcLex;
 
-#define BC_PARSE_STREND         (0xff)
-
-#if ENABLE_BC
-# define BC_PARSE_REL           (1 << 0)
-# define BC_PARSE_PRINT         (1 << 1)
-# define BC_PARSE_ARRAY         (1 << 2)
-# define BC_PARSE_NOCALL        (1 << 3)
-#endif
-
 typedef struct BcParse {
-	BcLex l;
-
-	IF_BC(BcVec exits;)
-	IF_BC(BcVec conds;)
-	IF_BC(BcVec ops;)
+	BcLex l; // first member is most used
 
 	const char *filename;
 	FILE *input_fp;
 
 	BcFunc *func;
 	size_t fidx;
-
 	IF_BC(size_t in_funcdef;)
+	IF_BC(BcVec exits;)
+	IF_BC(BcVec conds;)
+	IF_BC(BcVec ops;)
 } BcParse;
 
 typedef struct BcProgram {
@@ -774,6 +763,62 @@ typedef struct BcProgram {
 	IF_BC(BcNum one;)
 	IF_BC(BcNum last;)
 } BcProgram;
+
+struct globals {
+	BcParse prs; // first member is most used
+
+	// For error messages. Can be set to current parsed line,
+	// or [TODO] to current executing line (can be before last parsed one)
+	unsigned err_line;
+
+	BcVec input_buffer;
+
+	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
+	IF_FEATURE_CLEAN_UP(smallint exiting;)
+
+	BcProgram prog;
+
+	BcVec files;
+
+	char *env_args;
+
+#if ENABLE_FEATURE_EDITING
+	line_input_t *line_input_state;
+#endif
+} FIX_ALIASING;
+#define G (*ptr_to_globals)
+#define INIT_G() do { \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+} while (0)
+#define FREE_G() do { \
+	FREE_PTR_TO_GLOBALS(); \
+} while (0)
+#define G_posix (ENABLE_BC && (option_mask32 & BC_FLAG_S))
+#define G_warn  (ENABLE_BC && (option_mask32 & BC_FLAG_W))
+#define G_exreg (ENABLE_DC && (option_mask32 & DC_FLAG_X))
+#if ENABLE_FEATURE_BC_SIGNALS
+# define G_interrupt bb_got_signal
+# define G_ttyin     G.ttyin
+#else
+# define G_interrupt 0
+# define G_ttyin     0
+#endif
+#if ENABLE_FEATURE_CLEAN_UP
+# define G_exiting G.exiting
+#else
+# define G_exiting 0
+#endif
+#define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
+#define IS_DC (ENABLE_DC && (!ENABLE_BC || applet_name[0] != 'b'))
+
+#define BC_PARSE_STREND         (0xff)
+
+#if ENABLE_BC
+# define BC_PARSE_REL           (1 << 0)
+# define BC_PARSE_PRINT         (1 << 1)
+# define BC_PARSE_ARRAY         (1 << 2)
+# define BC_PARSE_NOCALL        (1 << 3)
+#endif
 
 #define BC_PROG_MAIN (0)
 #define BC_PROG_READ (1)
@@ -829,51 +874,6 @@ typedef struct BcProgram {
 # error Strange UINT_MAX
 #endif
 #define BC_MAX_NUM_STR BC_MAX_STRING_STR
-
-struct globals {
-	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
-	IF_FEATURE_CLEAN_UP(smallint exiting;)
-
-	BcParse prs;
-	BcProgram prog;
-
-	// For error messages. Can be set to current parsed line,
-	// or [TODO] to current executing line (can be before last parsed one)
-	unsigned err_line;
-
-	BcVec files;
-	BcVec input_buffer;
-
-	char *env_args;
-
-#if ENABLE_FEATURE_EDITING
-	line_input_t *line_input_state;
-#endif
-} FIX_ALIASING;
-#define G (*ptr_to_globals)
-#define INIT_G() do { \
-	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
-} while (0)
-#define FREE_G() do { \
-	FREE_PTR_TO_GLOBALS(); \
-} while (0)
-#define G_posix (ENABLE_BC && (option_mask32 & BC_FLAG_S))
-#define G_warn  (ENABLE_BC && (option_mask32 & BC_FLAG_W))
-#define G_exreg (ENABLE_DC && (option_mask32 & DC_FLAG_X))
-#if ENABLE_FEATURE_BC_SIGNALS
-# define G_interrupt bb_got_signal
-# define G_ttyin     G.ttyin
-#else
-# define G_interrupt 0
-# define G_ttyin     0
-#endif
-#if ENABLE_FEATURE_CLEAN_UP
-# define G_exiting G.exiting
-#else
-# define G_exiting 0
-#endif
-#define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
-#define IS_DC (ENABLE_DC && (!ENABLE_BC || applet_name[0] != 'b'))
 
 // In configurations where errors abort instead of propagating error
 // return code up the call chain, functions returning BC_STATUS
