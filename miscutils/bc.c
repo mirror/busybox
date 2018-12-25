@@ -591,7 +591,7 @@ enum {
 	+ (EXBITS(0,1,1,0,0,0,0,0) << (7*8)) // 56: return scale  sqrt   while
 #undef EXBITS
 };
-static ALWAYS_INLINE long bc_parse_exprs(unsigned i)
+static ALWAYS_INLINE long lex_allowed_in_bc_expr(unsigned i)
 {
 #if ULONG_MAX > 0xffffffff
 	// 64-bit version (will not work correctly for 32-bit longs!)
@@ -4662,7 +4662,6 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(BcParse *p)
 static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 {
 	BcInst prev = XC_INST_PRINT;
-	BcLexType top, t = p->l.lex;
 	size_t nexprs = 0, ops_bgn = p->ops.len;
 	unsigned nparens, nrelops;
 	bool paren_first, paren_expr, rprn, get_token, assign, bin_last;
@@ -4673,10 +4672,15 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 	paren_expr = rprn = get_token = assign = false;
 	bin_last = true;
 
-	for (; bc_parse_exprs(t); t = p->l.lex) {
-		BcStatus s = BC_STATUS_SUCCESS;
+	for (;;) {
+		BcStatus s;
+		BcLexType t = p->l.lex;
+
+		if (!lex_allowed_in_bc_expr(t))
+			break;
 
 		dbg_lex("%s:%d t:%d", __func__, __LINE__, t);
+		s = BC_STATUS_SUCCESS;
 		switch (t) {
 			case BC_LEX_OP_INC:
 			case BC_LEX_OP_DEC:
@@ -4825,7 +4829,7 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
  exit_loop:
 
 	while (p->ops.len > ops_bgn) {
-		top = BC_PARSE_TOP_OP(p);
+		BcLexType top = BC_PARSE_TOP_OP(p);
 		assign = (top >= BC_LEX_OP_ASSIGN_POWER && top <= BC_LEX_OP_ASSIGN);
 
 		if (top == BC_LEX_LPAREN || top == BC_LEX_RPAREN)
