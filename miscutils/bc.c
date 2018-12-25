@@ -3788,7 +3788,7 @@ static BC_STATUS zbc_parse_rightParen(BcParse *p, size_t ops_bgn, size_t *nexs)
 
 	bc_vec_pop(&p->ops);
 
-	RETURN_STATUS(zbc_lex_next(&p->l));
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
 #define zbc_parse_rightParen(...) (zbc_parse_rightParen(__VA_ARGS__) COMMA_SUCCESS)
 
@@ -4470,53 +4470,52 @@ static BC_STATUS zbc_parse_funcdef(BcParse *p)
 static BC_STATUS zbc_parse_auto(BcParse *p)
 {
 	BcStatus s;
-	bool comma, var, one;
 	char *name;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 	s = zbc_lex_next(&p->l);
 	if (s) RETURN_STATUS(s);
 
-	comma = false;
-	one = p->l.lex == XC_LEX_NAME;
+	for (;;) {
+		bool var;
 
-	while (p->l.lex == XC_LEX_NAME) {
+		if (p->l.lex != XC_LEX_NAME)
+			RETURN_STATUS(bc_error("bad 'auto' syntax"));
+
 		name = xstrdup(p->l.lex_buf.v);
 		s = zbc_lex_next(&p->l);
 		if (s) goto err;
 
-		var = p->l.lex != BC_LEX_LBRACKET;
+		var = (p->l.lex != BC_LEX_LBRACKET);
 		if (!var) {
 			s = zbc_lex_next(&p->l);
 			if (s) goto err;
 
 			if (p->l.lex != BC_LEX_RBRACKET) {
-				s = bc_error("bad function definition");
+				s = bc_error("bad 'auto' syntax");
 				goto err;
 			}
-
-			s = zbc_lex_next(&p->l);
-			if (s) goto err;
-		}
-
-		comma = p->l.lex == BC_LEX_COMMA;
-		if (comma) {
 			s = zbc_lex_next(&p->l);
 			if (s) goto err;
 		}
 
 		s = zbc_func_insert(p->func, name, var);
 		if (s) goto err;
+
+		if (p->l.lex == XC_LEX_NLINE
+		 || p->l.lex == BC_LEX_SCOLON
+		//|| p->l.lex == BC_LEX_RBRACE // allow "define f() {auto a}"
+		) {
+			break;
+		}
+		if (p->l.lex != BC_LEX_COMMA)
+			RETURN_STATUS(bc_error("bad 'auto' syntax"));
+		s = zbc_lex_next(&p->l); // skip comma
+		if (s) RETURN_STATUS(s);
 	}
 
-	if (comma) RETURN_STATUS(bc_error("bad function definition"));
-	if (!one) RETURN_STATUS(bc_error("no auto variable found"));
-
-	if (p->l.lex != XC_LEX_NLINE && p->l.lex != BC_LEX_SCOLON)
-		RETURN_STATUS(bc_error_bad_token());
-
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
-	RETURN_STATUS(zbc_lex_next(&p->l));
+	RETURN_STATUS(BC_STATUS_SUCCESS);
  err:
 	free(name);
 	dbg_lex_done("%s:%d done (ERROR)", __func__, __LINE__);
@@ -4707,11 +4706,10 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				 && prev != XC_INST_SCALE && prev != XC_INST_IBASE
 				 && prev != XC_INST_OBASE && prev != BC_INST_LAST
 				) {
-					s = bc_error("bad assignment:"
+					return bc_error("bad assignment:"
 						" left side must be variable"
 						" or array element"
 					); // note: shared string
-					break;
 				}
 			// Fallthrough.
 			case XC_LEX_OP_POWER:
@@ -4762,9 +4760,9 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				}
 				s = zbc_parse_rightParen(p, ops_bgn, &nexprs);
 				nparens--;
+				get_token = true;
 				paren_expr = rprn = true;
 				bin_last = false;
-				//get_token = false; - already is
 				break;
 			case XC_LEX_NAME:
 				if (BC_PARSE_LEAF(prev, rprn))
