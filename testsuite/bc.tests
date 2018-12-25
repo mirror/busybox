@@ -6,15 +6,27 @@
 
 # testing "test name" "command" "expected result" "file input" "stdin"
 
-testing "bc comment 1" \
+testing "bc comment" \
 	"bc" \
 	"3\n" \
 	"" "1 /* comment */ + 2"
 
-testing "bc comment 2: /*/ is not a closed comment" \
+testing "bc /*/ is not a closed comment" \
 	"bc" \
 	"4\n" \
 	"" "1 /*/ + 2 */ + 3"
+
+# this needs interactive testing
+testing "bc comment with \"" \
+	"bc" \
+	"3\n" \
+	"" "1 /* \" */ + 2"
+
+# this needs interactive testing
+testing "bc \"string/*\" is not a comment" \
+	"bc" \
+	"string/*9\n" \
+	"" "\"string/*\";9"
 
 testing "bc comment 3: unterminated #comment" \
 	"bc" \

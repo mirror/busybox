@@ -2910,25 +2910,29 @@ static bool bc_lex_more_input(void)
 		string = G.input_buffer.v + prevlen;
 		while (*string) {
 			char c = *string;
-			if (string == G.input_buffer.v || string[-1] != '\\') {
-				if (IS_BC)
-					str ^= (c == '"');
-				else {
-					if (c == ']')
-						str -= 1;
-					else if (c == '[')
-						str += 1;
+			if (!comment) {
+				if (string == G.input_buffer.v || string[-1] != '\\') {
+					if (IS_BC)
+						str ^= (c == '"');
+					else {
+						if (c == ']')
+							str -= 1;
+						else if (c == '[')
+							str += 1;
+					}
 				}
 			}
 			string++;
-			if (c == '/' && *string == '*') {
-				comment = true;
-				string++;
-				continue;
-			}
-			if (c == '*' && *string == '/') {
-				comment = false;
-				string++;
+			if (!str) {
+				if (c == '/' && *string == '*') {
+					comment = true;
+					string++;
+					continue;
+				}
+				if (c == '*' && *string == '/') {
+					comment = false;
+					string++;
+				}
 			}
 		}
 		if (str != 0 || comment) {
