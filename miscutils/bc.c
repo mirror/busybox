@@ -3927,7 +3927,7 @@ static BC_STATUS zbc_parse_read(BcParse *p)
 
 	bc_parse_push(p, XC_INST_READ);
 
-	RETURN_STATUS(zbc_lex_next(&p->l));
+	RETURN_STATUS(s);
 }
 #define zbc_parse_read(...) (zbc_parse_read(__VA_ARGS__) COMMA_SUCCESS)
 
@@ -3953,7 +3953,7 @@ static BC_STATUS zbc_parse_builtin(BcParse *p, BcLexType type, uint8_t flags,
 	*prev = (type == BC_LEX_KEY_LENGTH) ? XC_INST_LENGTH : XC_INST_SQRT;
 	bc_parse_push(p, *prev);
 
-	RETURN_STATUS(zbc_lex_next(&p->l));
+	RETURN_STATUS(s);
 }
 #define zbc_parse_builtin(...) (zbc_parse_builtin(__VA_ARGS__) COMMA_SUCCESS)
 
@@ -4328,7 +4328,6 @@ static BC_STATUS zbc_parse_for(BcParse *p)
 
 static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 {
-	BcStatus s;
 	size_t i;
 
 	if (type == BC_LEX_KEY_BREAK) {
@@ -4338,14 +4337,7 @@ static BC_STATUS zbc_parse_break_or_continue(BcParse *p, BcLexType type)
 	} else {
 		i = *(size_t*)bc_vec_top(&p->conds);
 	}
-
 	bc_parse_pushJUMP(p, i);
-
-	s = zbc_lex_next(&p->l);
-	if (s) RETURN_STATUS(s);
-
-	if (p->l.lex != BC_LEX_SCOLON && p->l.lex != XC_LEX_NLINE)
-		RETURN_STATUS(bc_error_bad_token());
 
 	RETURN_STATUS(zbc_lex_next(&p->l));
 }
@@ -4800,9 +4792,9 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 				if (BC_PARSE_LEAF(prev, rprn))
 					return bc_error_bad_expression();
 				s = zbc_parse_builtin(p, t, flags, &prev);
+				get_token = true;
 				paren_expr = true;
 				rprn = bin_last = false;
-				//get_token = false; - already is
 				nexprs++;
 				break;
 			case BC_LEX_KEY_READ:
@@ -4810,9 +4802,9 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 					return bc_error_bad_expression();
 				s = zbc_parse_read(p);
 				prev = XC_INST_READ;
+				get_token = true;
 				paren_expr = true;
 				rprn = bin_last = false;
-				//get_token = false; - already is
 				nexprs++;
 				break;
 			case BC_LEX_KEY_SCALE:
@@ -4820,9 +4812,9 @@ static BcStatus bc_parse_expr_empty_ok(BcParse *p, uint8_t flags)
 					return bc_error_bad_expression();
 				s = zbc_parse_scale(p, &prev, flags);
 				prev = XC_INST_SCALE;
+				//get_token = false; - already is
 				paren_expr = true;
 				rprn = bin_last = false;
-				//get_token = false; - already is
 				nexprs++;
 				break;
 			default:
