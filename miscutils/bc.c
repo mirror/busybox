@@ -737,6 +737,9 @@ typedef struct BcParse {
 	IF_BC(BcVec conds;)
 	IF_BC(BcVec ops;)
 
+	const char *filename;
+	FILE *input_fp;
+
 	BcFunc *func;
 	size_t fidx;
 
@@ -765,8 +768,6 @@ typedef struct BcProgram {
 
 	IF_DC(BcVec strs;)
 	IF_DC(BcVec consts;)
-
-	const char *file;
 
 	BcNum zero;
 	IF_BC(BcNum one;)
@@ -841,7 +842,6 @@ struct globals {
 
 	BcVec files;
 	BcVec input_buffer;
-	FILE *input_fp;
 
 	char *env_args;
 
@@ -936,12 +936,12 @@ static void quit(void)
 static void bc_verror_msg(const char *fmt, va_list p)
 {
 	const char *sv = sv; // for compiler
-	if (G.prog.file) {
+	if (G.prs.filename) {
 		sv = applet_name;
-		applet_name = xasprintf("%s: %s:%u", applet_name, G.prog.file, G.err_line);
+		applet_name = xasprintf("%s: %s:%u", applet_name, G.prs.filename, G.err_line);
 	}
 	bb_verror_msg(fmt, p, NULL);
-	if (G.prog.file) {
+	if (G.prs.filename) {
 		free((char*)applet_name);
 		applet_name = sv;
 	}
@@ -2581,12 +2581,12 @@ static void bc_read_line(BcVec *vec, FILE *fp)
 
 		if (bad_chars) {
 			// Bad chars on this line
-			if (!G.prog.file) { // stdin
+			if (!G.prs.filename) { // stdin
 				// ignore entire line, get another one
 				vec->len = len;
 				goto again;
 			}
-			bb_perror_msg_and_die("file '%s' is not text", G.prog.file);
+			bb_perror_msg_and_die("file '%s' is not text", G.prs.filename);
 		}
 		bc_vec_pushZeroByte(vec);
 	}
@@ -2905,7 +2905,7 @@ static bool bc_lex_more_input(BcLex *l)
 		size_t prevlen = G.input_buffer.len;
 		char *string;
 
-		bc_read_line(&G.input_buffer, G.input_fp);
+		bc_read_line(&G.input_buffer, G.prs.input_fp);
 		// No more input means EOF
 		if (G.input_buffer.len <= prevlen + 1) // (we expect +1 for NUL byte)
 			break;
@@ -2983,10 +2983,10 @@ static BC_STATUS zbc_lex_next(BcLex *l)
 	do {
 		if (l->i == l->len) {
 			l->lex = XC_LEX_EOF;
-			if (!G.input_fp)
+			if (!G.prs.input_fp)
 				RETURN_STATUS(BC_STATUS_SUCCESS);
 			if (!bc_lex_more_input(l)) {
-				G.input_fp = NULL;
+				G.prs.input_fp = NULL;
 				RETURN_STATUS(BC_STATUS_SUCCESS);
 			}
 			// here it's guaranteed that l->i is below l->len
@@ -5256,35 +5256,32 @@ static BC_STATUS zbc_program_op(char inst)
 
 static BC_STATUS zbc_program_read(void)
 {
-	const char *sv_file;
 	BcStatus s;
-	BcParse parse;
+	BcParse sv_parse;
 	BcVec buf;
 	BcInstPtr ip;
 	BcFunc *f;
 
-	f = bc_program_func(BC_PROG_READ);
-	bc_vec_pop_all(&f->code);
-
-	sv_file = G.prog.file;
-	G.prog.file = NULL;
-
 	bc_char_vec_init(&buf);
 	bc_read_line(&buf, stdin);
 
-	bc_parse_create(&parse, BC_PROG_READ);
-	bc_lex_file(&parse.l);
+	f = bc_program_func(BC_PROG_READ);
+	bc_vec_pop_all(&f->code);
 
-	s = zbc_parse_text_init(&parse, buf.v);
+	sv_parse = G.prs; // struct copy
+	bc_parse_create(&G.prs, BC_PROG_READ);
+	//bc_lex_file(&G.prs.l); - not needed, error line info is not printed for read()
+
+	s = zbc_parse_text_init(&G.prs, buf.v);
 	if (s) goto exec_err;
 	if (IS_BC) {
-		IF_BC(s = zbc_parse_expr(&parse, 0));
+		IF_BC(s = zbc_parse_expr(&G.prs, 0));
 	} else {
-		IF_DC(s = zdc_parse_exprs_until_eof(&parse));
+		IF_DC(s = zdc_parse_exprs_until_eof(&G.prs));
 	}
 	if (s) goto exec_err;
 
-	if (parse.l.lex != XC_LEX_NLINE && parse.l.lex != XC_LEX_EOF) {
+	if (G.prs.l.lex != XC_LEX_NLINE && G.prs.l.lex != XC_LEX_EOF) {
 		s = bc_error("bad read() expression");
 		goto exec_err;
 	}
@@ -5293,11 +5290,12 @@ static BC_STATUS zbc_program_read(void)
 	ip.inst_idx = 0;
 	IF_BC(ip.results_len_before_call = G.prog.results.len;)
 
-	bc_parse_push(&parse, XC_INST_RET);
+	bc_parse_push(&G.prs, XC_INST_RET);
 	bc_vec_push(&G.prog.exestack, &ip);
+
  exec_err:
-	bc_parse_free(&parse);
-	G.prog.file = sv_file;
+	bc_parse_free(&G.prs);
+	G.prs = sv_parse; // struct copy
 	bc_vec_free(&buf);
 	RETURN_STATUS(s);
 }
@@ -6402,30 +6400,27 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 	f = bc_program_func(fidx);
 
 	if (f->code.len == 0) {
-		FILE *sv_input_fp;
-		BcParse prs;
+		BcParse sv_parse;
 		char *str;
 
-		bc_parse_create(&prs, fidx);
+		sv_parse = G.prs; // struct copy
+		bc_parse_create(&G.prs, fidx);
 		str = *bc_program_str(sidx);
-		s = zbc_parse_text_init(&prs, str);
+		s = zbc_parse_text_init(&G.prs, str);
 		if (s) goto err;
 
-		sv_input_fp = G.input_fp;
-		G.input_fp = NULL; // "do not read from input file when <EOL> reached"
-		s = zdc_parse_exprs_until_eof(&prs);
-		G.input_fp = sv_input_fp;
-
+		s = zdc_parse_exprs_until_eof(&G.prs);
 		if (s) goto err;
-		if (prs.l.lex != XC_LEX_EOF) {
+		bc_parse_push(&G.prs, DC_INST_POP_EXEC);
+		if (G.prs.l.lex != XC_LEX_EOF)
 			s = bc_error_bad_expression();
+		bc_parse_free(&G.prs);
+		G.prs = sv_parse; // struct copy
+		if (s) {
  err:
-			bc_parse_free(&prs);
 			bc_vec_pop_all(&f->code);
 			goto exit;
 		}
-		bc_parse_push(&prs, DC_INST_POP_EXEC);
-		bc_parse_free(&prs);
 	}
 
 	ip.inst_idx = 0;
@@ -6871,12 +6866,12 @@ static BC_STATUS zbc_vm_process(const char *text)
 static BC_STATUS zbc_vm_execute_FILE(FILE *fp, const char *filename)
 {
 	// So far bc/dc have no way to include a file from another file,
-	// therefore we know G.prog.file == NULL on entry
+	// therefore we know G.prs.filename == NULL on entry
 	//const char *sv_file;
 	BcStatus s;
 
-	G.prog.file = filename;
-	G.input_fp = fp;
+	G.prs.filename = filename;
+	G.prs.input_fp = fp;
 	bc_lex_file(&G.prs.l);
 
 	do {
@@ -6885,8 +6880,8 @@ static BC_STATUS zbc_vm_execute_FILE(FILE *fp, const char *filename)
 		// Example: start interactive bc and enter "return".
 		// It should say "'return' not in a function"
 		// but should not exit.
-	} while (G.input_fp == stdin);
-	G.prog.file = NULL;
+	} while (G.prs.input_fp == stdin);
+	G.prs.filename = NULL;
 	RETURN_STATUS(s);
 }
 #define zbc_vm_execute_FILE(...) (zbc_vm_execute_FILE(__VA_ARGS__) COMMA_SUCCESS)
