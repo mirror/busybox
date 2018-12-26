@@ -1147,23 +1147,6 @@ static void bc_vec_string(BcVec *v, size_t len, const char *str)
 	bc_vec_pushZeroByte(v);
 }
 
-#if ENABLE_FEATURE_BC_SIGNALS && ENABLE_FEATURE_EDITING
-static void bc_vec_concat(BcVec *v, const char *str)
-{
-	size_t len, slen;
-
-	if (v->len == 0) bc_vec_pushZeroByte(v);
-
-	slen = strlen(str);
-	len = v->len + slen;
-
-	if (v->cap < len) bc_vec_grow(v, slen);
-	strcpy(v->v + v->len - 1, str);
-
-	v->len = len;
-}
-#endif
-
 static void *bc_vec_item(const BcVec *v, size_t idx)
 {
 	return v->v + v->size * idx;
@@ -2491,6 +2474,21 @@ static FAST_FUNC void bc_result_free(void *result)
 	}
 }
 
+#if ENABLE_FEATURE_BC_SIGNALS && ENABLE_FEATURE_EDITING
+static void bc_vec_concat(BcVec *v, const char *str)
+{
+	size_t len, slen;
+
+	slen = strlen(str);
+	len = v->len + slen + 1;
+
+	if (v->cap < len) bc_vec_grow(v, slen);
+	strcpy(v->v + v->len, str);
+
+	v->len = len;
+}
+#endif
+
 static int bad_input_byte(char c)
 {
 	if ((c < ' ' && c != '\t' && c != '\r' && c != '\n') // also allow '\v' '\f'?
@@ -2887,7 +2885,7 @@ static void bc_lex_file(void)
 static bool bc_lex_more_input(void)
 {
 	BcParse *p = &G.prs;
-	size_t str;
+	unsigned str; // bool for bc, string nest count for dc
 	bool comment;
 
 	bc_vec_pop_all(&G.input_buffer);
@@ -2896,8 +2894,23 @@ static bool bc_lex_more_input(void)
 	// with a backslash to the parser. The reason for that is because the parser
 	// treats a backslash+newline combo as whitespace, per the bc spec. In that
 	// case, and for strings and comments, the parser will expect more stuff.
-	comment = false;
+	//
+	// bc cases to test interactively:
+	// 1 #comment\  - prints "1<newline>" at once (comment is not continued)
+	// 1 #comment/* - prints "1<newline>" at once
+	// 1 #comment"  - prints "1<newline>" at once
+	// 1\#comment   - error at once (\ is not a line continuation)
+	// 1 + /*"*/2   - prints "3<newline>" at once
+	// 1 + /*#*/2   - prints "3<newline>" at once
+	// "str\"       - prints "str\" at once
+	// "str#"       - prints "str#" at once
+	// "str/*"      - prints "str/*" at once
+	// "str#\       - waits for second line
+	// end"         - ...prints "str#\<newline>end"
+//This is way too complex, we duplicate comment/string logic of lexer
+//TODO: switch to char-by-char input like hush does it
 	str = 0;
+	comment = false; // stays always false for dc
 	for (;;) {
 		size_t prevlen = G.input_buffer.len;
 		char *string;
@@ -2909,39 +2922,61 @@ static bool bc_lex_more_input(void)
 
 		string = G.input_buffer.v + prevlen;
 		while (*string) {
-			char c = *string;
-			if (!comment) {
-				if (string == G.input_buffer.v || string[-1] != '\\') {
-					if (IS_BC)
-						str ^= (c == '"');
-					else {
-						if (c == ']')
-							str -= 1;
-						else if (c == '[')
-							str += 1;
-					}
+			char c = *string++;
+#if ENABLE_BC
+			if (comment) {
+				// We are in /**/ comment, exit only on "*/"
+				if (c == '*' && *string == '/') {
+					comment = false;
+					string++;
 				}
+				continue;
 			}
-			string++;
-			if (!str) {
+#endif
+			// We are not in /**/ comment
+			if (str) {
+				// We are in "string" (bc) or [string] (dc)
+				if (IS_BC) {
+					// bc strings have no escapes: \\ is not special,
+					// \n is not, \" is not, \<newline> is not.
+					str = (c != '"'); // clear flag when " is seen
+				} else {
+					// dc strings have no escapes as well, can nest
+					if (c == ']')
+						str--;
+					if (c == '[')
+						str++;
+				}
+				continue;
+			}
+			// We are not in a string or /**/ comment
+
+			// Is it a #comment? Return the string (can't have continuation)
+			if (c == '#')
+				goto return_string;
+#if ENABLE_BC
+			if (IS_BC) {
+				// bc: is it a start of /**/ comment or string?
 				if (c == '/' && *string == '*') {
 					comment = true;
 					string++;
 					continue;
 				}
-				if (c == '*' && *string == '/') {
-					comment = false;
-					string++;
-				}
+				str = (c == '"'); // set flag if " is seen
+				continue;
 			}
-		}
+#endif
+			// dc: is it a start of string?
+			str = (c == '[');
+		} // end of "check all chars in string" loop
+
 		if (str != 0 || comment) {
 			G.input_buffer.len--; // backstep over the trailing NUL byte
 			continue;
 		}
 
 		// Check for backslash+newline.
-		// we do not check that last char is '\n' -
+		// We do not check that last char is '\n' -
 		// if it is not, then it's EOF, and looping back
 		// to bc_read_line() will detect it:
 		string -= 2;
@@ -2952,6 +2987,7 @@ static bool bc_lex_more_input(void)
 
 		break;
 	}
+ return_string:
 
 	p->lex_inbuf = G.input_buffer.v;
 //	bb_error_msg("G.input_buffer.len:%d '%s'", G.input_buffer.len, G.input_buffer.v);
