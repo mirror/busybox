@@ -3559,7 +3559,7 @@ static void bc_parse_reset(void)
 
 static void bc_parse_free(void)
 {
-	BcParse *p = &G.prs;
+	IF_BC(BcParse *p = &G.prs;)
 	IF_BC(bc_vec_free(&p->exits);)
 	IF_BC(bc_vec_free(&p->conds);)
 	IF_BC(bc_vec_free(&p->ops);)
