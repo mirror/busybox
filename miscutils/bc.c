@@ -6808,7 +6808,7 @@ static BC_STATUS zbc_vm_process(const char *text)
 		bc_vec_pop_all(&f->code);
 		ip->inst_idx = 0;
 	}
- done:
+ IF_DC(done:)
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
