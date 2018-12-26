@@ -123,14 +123,14 @@
 //usage:#define wget_trivial_usage
 //usage:	IF_FEATURE_WGET_LONG_OPTIONS(
 //usage:       "[-c|--continue] [--spider] [-q|--quiet] [-O|--output-document FILE]\n"
-//usage:       "	[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n"
+//usage:       "	[-o|--output-file FILE] [--header 'header: value'] [-Y|--proxy on/off]\n"
 /* Since we ignore these opts, we don't show them in --help */
 /* //usage:    "	[--no-check-certificate] [--no-cache] [--passive-ftp] [-t TRIES]" */
 /* //usage:    "	[-nv] [-nc] [-nH] [-np]" */
-//usage:       "	[-S|--server-response] [-U|--user-agent AGENT]" IF_FEATURE_WGET_TIMEOUT(" [-T SEC]") " URL..."
+//usage:       "	[-P DIR] [-S|--server-response] [-U|--user-agent AGENT]" IF_FEATURE_WGET_TIMEOUT(" [-T SEC]") " URL..."
 //usage:	)
 //usage:	IF_NOT_FEATURE_WGET_LONG_OPTIONS(
-//usage:       "[-cq] [-O FILE] [-Y on/off] [-P DIR] [-S] [-U AGENT]"
+//usage:       "[-cq] [-O FILE] [-o FILE] [-Y on/off] [-P DIR] [-S] [-U AGENT]"
 //usage:			IF_FEATURE_WGET_TIMEOUT(" [-T SEC]") " URL..."
 //usage:	)
 //usage:#define wget_full_usage "\n\n"
@@ -147,6 +147,7 @@
 //usage:     "\n	-T SEC		Network read timeout is SEC seconds"
 //usage:	)
 //usage:     "\n	-O FILE		Save to FILE ('-' for stdout)"
+//usage:     "\n	-o FILE		Log messages to FILE"
 //usage:     "\n	-U STR		Use STR for User-Agent header"
 //usage:     "\n	-Y on/off	Use proxy"
 
@@ -231,9 +232,11 @@ struct globals {
 	unsigned char user_headers; /* Headers mentioned by the user */
 #endif
 	char *fname_out;        /* where to direct output (-O) */
+	char *fname_log;        /* where to direct log (-o) */
 	const char *proxy_flag; /* Use proxies if env vars are set */
 	const char *user_agent; /* "User-Agent" header field */
 	int output_fd;
+	int log_fd;
 	int o_flags;
 #if ENABLE_FEATURE_WGET_TIMEOUT
 	unsigned timeout_seconds;
@@ -262,16 +265,17 @@ enum {
 	WGET_OPT_QUIET      = (1 << 1),
 	WGET_OPT_SERVER_RESPONSE = (1 << 2),
 	WGET_OPT_OUTNAME    = (1 << 3),
-	WGET_OPT_PREFIX     = (1 << 4),
-	WGET_OPT_PROXY      = (1 << 5),
-	WGET_OPT_USER_AGENT = (1 << 6),
-	WGET_OPT_NETWORK_READ_TIMEOUT = (1 << 7),
-	WGET_OPT_RETRIES    = (1 << 8),
-	WGET_OPT_nsomething = (1 << 9),
-	WGET_OPT_HEADER     = (1 << 10) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
-	WGET_OPT_POST_DATA  = (1 << 11) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
-	WGET_OPT_SPIDER     = (1 << 12) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
-	WGET_OPT_NO_CHECK_CERT = (1 << 13) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	WGET_OPT_LOGNAME    = (1 << 4),
+	WGET_OPT_PREFIX     = (1 << 5),
+	WGET_OPT_PROXY      = (1 << 6),
+	WGET_OPT_USER_AGENT = (1 << 7),
+	WGET_OPT_NETWORK_READ_TIMEOUT = (1 << 8),
+	WGET_OPT_RETRIES    = (1 << 9),
+	WGET_OPT_nsomething = (1 << 10),
+	WGET_OPT_HEADER     = (1 << 11) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	WGET_OPT_POST_DATA  = (1 << 12) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	WGET_OPT_SPIDER     = (1 << 13) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	WGET_OPT_NO_CHECK_CERT = (1 << 14) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
 };
 
 enum {
@@ -285,6 +289,10 @@ static void progress_meter(int flag)
 	int notty;
 
 	if (option_mask32 & WGET_OPT_QUIET)
+		return;
+
+	/* Don't save progress to log file */
+	if (G.log_fd >= 0)
 		return;
 
 	if (flag == PROGRESS_START)
@@ -1401,6 +1409,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		"quiet\0"            No_argument       "q"
 		"server-response\0"  No_argument       "S"
 		"output-document\0"  Required_argument "O"
+		"output-file\0"      Required_argument "o"
 		"directory-prefix\0" Required_argument "P"
 		"proxy\0"            Required_argument "Y"
 		"user-agent\0"       Required_argument "U"
@@ -1444,7 +1453,7 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 #endif
 	GETOPT32(argv, "^"
-		"cqSO:P:Y:U:T:+"
+		"cqSO:o:P:Y:U:T:+"
 		/*ignored:*/ "t:"
 		/*ignored:*/ "n::"
 		/* wget has exactly four -n<letter> opts, all of which we can ignore:
@@ -1459,7 +1468,7 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 		"-1" /* at least one URL */
 		IF_FEATURE_WGET_LONG_OPTIONS(":\xff::") /* --header is a list */
 		LONGOPTS
-		, &G.fname_out, &G.dir_prefix,
+		, &G.fname_out, &G.fname_log, &G.dir_prefix,
 		&G.proxy_flag, &G.user_agent,
 		IF_FEATURE_WGET_TIMEOUT(&G.timeout_seconds) IF_NOT_FEATURE_WGET_TIMEOUT(NULL),
 		NULL, /* -t RETRIES */
@@ -1521,11 +1530,24 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 		G.o_flags = O_WRONLY | O_CREAT | O_TRUNC;
 	}
 
+	G.log_fd = -1;
+	if (G.fname_log) { /* -o FILE ? */
+		if (!LONE_DASH(G.fname_log)) { /* not -o - ? */
+			/* compat with wget: -o FILE can overwrite */
+			G.log_fd = xopen(G.fname_log, O_WRONLY | O_CREAT | O_TRUNC);
+			/* Redirect only stderr to log file, so -O - will work */
+			xdup2(G.log_fd, STDERR_FILENO);
+		}
+	}
+
 	while (*argv)
 		download_one_url(*argv++);
 
 	if (G.output_fd >= 0)
 		xclose(G.output_fd);
+
+	if (G.log_fd >= 0)
+		xclose(G.log_fd);
 
 #if ENABLE_FEATURE_CLEAN_UP && ENABLE_FEATURE_WGET_LONG_OPTIONS
 	free(G.extra_headers);
