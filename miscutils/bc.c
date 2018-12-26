@@ -3016,7 +3016,7 @@ static BC_STATUS zbc_lex_string(void)
 	for (;;) {
 		char c = peek_inbuf(); // strings can cross lines
 		if (c == '\0') {
-			RETURN_STATUS(bc_error("unterminated string1"));
+			RETURN_STATUS(bc_error("unterminated string"));
 		}
 		if (c == '"')
 			break;
@@ -3060,7 +3060,7 @@ static BC_STATUS zbc_lex_comment(void)
  check_star:
 		if (c == '*') {
 			p->lex_inbuf++;
-			c = peek_inbuf();
+			c = *p->lex_inbuf; // no need to peek_inbuf()
 			if (c == '/')
 				break;
 			goto check_star;
