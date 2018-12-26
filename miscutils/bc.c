@@ -803,8 +803,6 @@ struct globals {
 #define IS_BC (ENABLE_BC && (!ENABLE_DC || applet_name[0] == 'b'))
 #define IS_DC (ENABLE_DC && (!ENABLE_BC || applet_name[0] != 'b'))
 
-#define BC_PARSE_STREND         (0xff)
-
 #if ENABLE_BC
 # define BC_PARSE_REL           (1 << 0)
 # define BC_PARSE_PRINT         (1 << 1)
@@ -3434,16 +3432,16 @@ static BC_STATUS zdc_lex_token(void)
 
 static void bc_parse_push(char i)
 {
-	BcParse *p = &G.prs;
-	dbg_compile("%s:%d pushing bytecode %zd:%d", __func__, __LINE__, p->func->code.len, i);
-	bc_vec_pushByte(&p->func->code, i);
+	BcVec *code = &G.prs.func->code;
+	dbg_compile("%s:%d pushing bytecode %zd:%d", __func__, __LINE__, code->len, i);
+	bc_vec_pushByte(code, i);
 }
 
 static void bc_parse_pushName(char *name)
 {
-	while (*name)
-		bc_parse_push(*name++);
-	bc_parse_push(BC_PARSE_STREND);
+	do {
+		bc_parse_push(*name);
+	} while (*name++);
 }
 
 static void bc_parse_pushIndex(size_t idx)
@@ -4895,7 +4893,7 @@ static BC_STATUS zdc_parse_cond(uint8_t inst)
 		if (s) RETURN_STATUS(s);
 		s = zbc_lex_next();
 	} else {
-		bc_parse_push(BC_PARSE_STREND);
+		bc_parse_push('\0');
 	}
 
 	RETURN_STATUS(s);
@@ -5271,22 +5269,10 @@ static size_t bc_program_index(char *code, size_t *bgn)
 
 static char *bc_program_name(char *code, size_t *bgn)
 {
-	size_t i;
-	char *s;
-
 	code += *bgn;
-	s = xmalloc(strchr(code, BC_PARSE_STREND) - code + 1);
-	i = 0;
-	for (;;) {
-		char c = *code++;
-		if (c == BC_PARSE_STREND)
-			break;
-		s[i++] = c;
-	}
-	s[i] = '\0';
-	*bgn += i + 1;
+	*bgn += strlen(code) + 1;
 
-	return s;
+	return xstrdup(code);
 }
 
 static void bc_program_printString(const char *str)
@@ -6305,7 +6291,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 		char *then_name = bc_program_name(code, bgn);
 		char *else_name = NULL;
 
-		if (code[*bgn] == BC_PARSE_STREND)
+		if (code[*bgn] == '\0')
 			(*bgn) += 1;
 		else
 			else_name = bc_program_name(code, bgn);
