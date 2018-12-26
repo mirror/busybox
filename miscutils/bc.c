@@ -2901,8 +2901,9 @@ static BC_STATUS zbc_lex_next(void)
 	BcStatus s;
 
 	p->lex_last = p->lex;
-	if (p->lex_last == XC_LEX_EOF)
-		RETURN_STATUS(bc_error("end of file"));
+//why?
+//	if (p->lex_last == XC_LEX_EOF)
+//		RETURN_STATUS(bc_error("end of file"));
 
 	// Loop until failure or we don't have whitespace. This
 	// is so the parser doesn't get inundated with whitespace.
