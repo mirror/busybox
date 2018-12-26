@@ -715,7 +715,6 @@ typedef struct BcParse {
 	smallint lex_last; // was BcLexType
 	size_t lex_line;
 	const char *lex_inbuf;
-	const char *lex_end;
 	const char *lex_next_at; // last lex_next() was called at this string
 	const char *lex_filename;
 	FILE *lex_input_fp;
@@ -2473,21 +2472,6 @@ static FAST_FUNC void bc_result_free(void *result)
 	}
 }
 
-#if ENABLE_FEATURE_BC_SIGNALS && ENABLE_FEATURE_EDITING
-static void bc_vec_concat(BcVec *v, const char *str)
-{
-	size_t len, slen;
-
-	slen = strlen(str);
-	len = v->len + slen + 1;
-
-	if (v->cap < len) bc_vec_grow(v, slen);
-	strcpy(v->v + v->len, str);
-
-	v->len = len;
-}
-#endif
-
 static int bad_input_byte(char c)
 {
 	if ((c < ' ' && c != '\t' && c != '\r' && c != '\n') // also allow '\v' '\f'?
@@ -2499,10 +2483,10 @@ static int bad_input_byte(char c)
 	return 0;
 }
 
-// Note: it _appends_ data from fp to vec.
 static void bc_read_line(BcVec *vec, FILE *fp)
 {
  again:
+	bc_vec_pop_all(vec);
 	fflush_and_check();
 
 #if ENABLE_FEATURE_BC_SIGNALS
@@ -2542,7 +2526,7 @@ static void bc_read_line(BcVec *vec, FILE *fp)
 			if (!c) break;
 			if (bad_input_byte(c)) goto again;
 		}
-		bc_vec_concat(vec, line_buf);
+		bc_vec_string(vec, n, line_buf);
 #  undef line_buf
 	} else
 # endif
@@ -2550,13 +2534,12 @@ static void bc_read_line(BcVec *vec, FILE *fp)
 	{
 		int c;
 		bool bad_chars = 0;
-		size_t len = vec->len;
 
 		do {
 #if ENABLE_FEATURE_BC_SIGNALS
 			if (G_interrupt) {
 				// ^C was pressed: ignore entire line, get another one
-				vec->len = len;
+				bc_vec_pop_all(vec);
 				goto intr;
 			}
 #endif
@@ -2575,7 +2558,6 @@ static void bc_read_line(BcVec *vec, FILE *fp)
 			// Bad chars on this line
 			if (!G.prs.lex_filename) { // stdin
 				// ignore entire line, get another one
-				vec->len = len;
 				goto again;
 			}
 			bb_perror_msg_and_die("file '%s' is not text", G.prs.lex_filename);
@@ -2743,113 +2725,13 @@ static BC_STATUS zbc_num_parse(BcNum *n, const char *val, unsigned base_t)
 static bool bc_lex_more_input(void)
 {
 	BcParse *p = &G.prs;
-	unsigned str; // bool for bc, string nest count for dc
-	bool comment;
 
 	bc_vec_pop_all(&G.input_buffer);
 
-	// This loop is complex because the vm tries not to send any lines that end
-	// with a backslash to the parser. The reason for that is because the parser
-	// treats a backslash+newline combo as whitespace, per the bc spec. In that
-	// case, and for strings and comments, the parser will expect more stuff.
-	//
-	// bc cases to test interactively:
-	// 1 #comment\  - prints "1<newline>" at once (comment is not continued)
-	// 1 #comment/* - prints "1<newline>" at once
-	// 1 #comment"  - prints "1<newline>" at once
-	// 1\#comment   - error at once (\ is not a line continuation)
-	// 1 + /*"*/2   - prints "3<newline>" at once
-	// 1 + /*#*/2   - prints "3<newline>" at once
-	// "str\"       - prints "str\" at once
-	// "str#"       - prints "str#" at once
-	// "str/*"      - prints "str/*" at once
-	// "str#\       - waits for second line
-	// end"         - ...prints "str#\<newline>end"
-//This is way too complex, we duplicate comment/string logic of lexer
-//TODO: switch to char-by-char input like hush does it
-	str = 0;
-	comment = false; // stays always false for dc
-	for (;;) {
-		size_t prevlen = G.input_buffer.len;
-		char *string;
-
-		bc_read_line(&G.input_buffer, G.prs.lex_input_fp);
-		// No more input means EOF
-		if (G.input_buffer.len <= prevlen + 1) // (we expect +1 for NUL byte)
-			break;
-
-		string = G.input_buffer.v + prevlen;
-		while (*string) {
-			char c = *string++;
-#if ENABLE_BC
-			if (comment) {
-				// We are in /**/ comment, exit only on "*/"
-				if (c == '*' && *string == '/') {
-					comment = false;
-					string++;
-				}
-				continue;
-			}
-#endif
-			// We are not in /**/ comment
-			if (str) {
-				// We are in "string" (bc) or [string] (dc)
-				if (IS_BC) {
-					// bc strings have no escapes: \\ is not special,
-					// \n is not, \" is not, \<newline> is not.
-					str = (c != '"'); // clear flag when " is seen
-				} else {
-					// dc strings have no escapes as well, can nest
-					if (c == ']')
-						str--;
-					if (c == '[')
-						str++;
-				}
-				continue;
-			}
-			// We are not in a string or /**/ comment
-
-			// Is it a #comment? Return the string (can't have continuation)
-			if (c == '#')
-				goto return_string;
-#if ENABLE_BC
-			if (IS_BC) {
-				// bc: is it a start of /**/ comment or string?
-				if (c == '/' && *string == '*') {
-					comment = true;
-					string++;
-					continue;
-				}
-				str = (c == '"'); // set flag if " is seen
-				continue;
-			}
-#endif
-			// dc: is it a start of string?
-			str = (c == '[');
-		} // end of "check all chars in string" loop
-
-		if (str != 0 || comment) {
-			G.input_buffer.len--; // backstep over the trailing NUL byte
-			continue;
-		}
-
-		// Check for backslash+newline.
-		// We do not check that last char is '\n' -
-		// if it is not, then it's EOF, and looping back
-		// to bc_read_line() will detect it:
-		string -= 2;
-		if (string >= G.input_buffer.v && *string == '\\') {
-			G.input_buffer.len--;
-			continue;
-		}
-
-		break;
-	}
- return_string:
+	bc_read_line(&G.input_buffer, G.prs.lex_input_fp);
 
 	p->lex_inbuf = G.input_buffer.v;
 //	bb_error_msg("G.input_buffer.len:%d '%s'", G.input_buffer.len, G.input_buffer.v);
-	p->lex_end = p->lex_inbuf + G.input_buffer.len - 1; // do not include NUL
 
 	return G.input_buffer.len > 1;
 }
@@ -2872,9 +2754,22 @@ static bool bc_lex_more_input(void)
 // In many cases, you can use fast *p->lex_inbuf instead of peek_inbuf():
 // unless prev char might have been '\n', *p->lex_inbuf is '\0' ONLY
 // on real EOF, not end-of-buffer.
+//
+// bc cases to test interactively:
+// 1 #comment\  - prints "1<newline>" at once (comment is not continued)
+// 1 #comment/* - prints "1<newline>" at once
+// 1 #comment"  - prints "1<newline>" at once
+// 1\#comment   - error at once (\ is not a line continuation)
+// 1 + /*"*/2   - prints "3<newline>" at once
+// 1 + /*#*/2   - prints "3<newline>" at once
+// "str\"       - prints "str\" at once
+// "str#"       - prints "str#" at once
+// "str/*"      - prints "str/*" at once
+// "str#\       - waits for second line
+// end"         - ...prints "str#\<newline>end"
 static char peek_inbuf(void)
 {
-	if (G.prs.lex_inbuf == G.prs.lex_end) {
+	if (*G.prs.lex_inbuf == '\0') {
 		if (G.prs.lex_input_fp)
 			if (!bc_lex_more_input())
 				G.prs.lex_input_fp = NULL;
@@ -3060,7 +2955,6 @@ static BC_STATUS zbc_lex_next_and_skip_NLINE(void)
 static BC_STATUS zbc_lex_text_init(const char *text)
 {
 	G.prs.lex_inbuf = text;
-	G.prs.lex_end = text + strlen(text);
 	G.prs.lex = G.prs.lex_last = XC_LEX_INVALID;
 	RETURN_STATUS(zbc_lex_next());
 }
@@ -3652,7 +3546,7 @@ static void bc_parse_reset(void)
 		p->func = bc_program_func_BC_PROG_MAIN();
 	}
 
-	p->lex_inbuf = p->lex_end;
+	p->lex_inbuf += strlen(p->lex_inbuf);
 	p->lex = XC_LEX_EOF;
 
 	IF_BC(bc_vec_pop_all(&p->exits);)
