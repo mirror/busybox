@@ -3439,10 +3439,27 @@ static void bc_parse_push(char i)
 
 static void bc_parse_pushName(char *name)
 {
+#if 1
+	BcVec *code = &G.prs.func->code;
+	size_t pos = code->len;
+	size_t len = strlen(name) + 1;
+
+	bc_vec_expand(code, pos + len);
+	strcpy(code->v + pos, name);
+	code->len = pos + len;
+#else
+	// Smaller code, but way slow:
 	do {
 		bc_parse_push(*name);
 	} while (*name++);
+#endif
 }
+
+// Indexes < 0xfc are encoded verbatim, else first byte is
+// 0xfc, 0xfd, 0xfe or 0xff, encoding "1..4 bytes",
+// followed by that many bytes, lsb first.
+// (The above describes 32-bit case).
+#define SMALL_INDEX_LIMIT (0x100 - sizeof(size_t))
 
 static void bc_parse_pushIndex(size_t idx)
 {
@@ -3450,6 +3467,10 @@ static void bc_parse_pushIndex(size_t idx)
 	unsigned amt;
 
 	dbg_lex("%s:%d pushing index %zd", __func__, __LINE__, idx);
+	if (idx < SMALL_INDEX_LIMIT) {
+		goto push_idx;
+	}
+
 	mask = ((size_t)0xff) << (sizeof(idx) * 8 - 8);
 	amt = sizeof(idx);
 	do {
@@ -3458,9 +3479,10 @@ static void bc_parse_pushIndex(size_t idx)
 		amt--;
 	} while (amt != 0);
 
-	bc_parse_push(amt);
+	bc_parse_push(SMALL_INDEX_LIMIT + amt);
 
 	while (idx != 0) {
+ push_idx:
 		bc_parse_push((unsigned char)idx);
 		idx >>= 8;
 	}
@@ -5257,6 +5279,11 @@ static size_t bc_program_index(char *code, size_t *bgn)
 	size_t res;
 
 	amt = *bytes++;
+	if (amt < SMALL_INDEX_LIMIT) {
+		*bgn += 1;
+		return amt;
+	}
+	amt -= SMALL_INDEX_LIMIT;
 	*bgn += amt + 1;
 
 	amt *= 8;
