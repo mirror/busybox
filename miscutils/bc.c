@@ -610,7 +610,7 @@ static ALWAYS_INLINE long lex_allowed_in_bc_expr(unsigned i)
 
 // This is an array of data for operators that correspond to
 // [XC_LEX_1st_op...] token types.
-static const uint8_t bc_parse_ops[] = {
+static const uint8_t bc_parse_ops[] ALIGN1 = {
 #define OP(p,l) ((int)(l) * 0x10 + (p))
 	OP(1, false), // neg
 	OP(6, true ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true ), // == <= >= != < >
@@ -631,7 +631,7 @@ static const uint8_t bc_parse_ops[] = {
 #if ENABLE_DC
 static const //BcLexType - should be this type
 uint8_t
-dc_char_to_LEX[] = {
+dc_char_to_LEX[] ALIGN1 = {
 	/* %&'( */
 	XC_LEX_OP_MODULUS, XC_LEX_INVALID, XC_LEX_INVALID, DC_LEX_LPAREN,
 	/* )*+, */
@@ -674,7 +674,7 @@ dc_char_to_LEX[] = {
 };
 static const //BcInst - should be this type. Using signed narrow type since DC_INST_INVALID is -1
 int8_t
-dc_LEX_to_INST[] = { // starts at XC_LEX_OP_POWER       // corresponding XC/DC_LEX_xyz:
+dc_LEX_to_INST[] ALIGN1 = { // starts at XC_LEX_OP_POWER       // corresponding XC/DC_LEX_xyz:
 	XC_INST_POWER,       XC_INST_MULTIPLY,          // OP_POWER     OP_MULTIPLY
 	XC_INST_DIVIDE,      XC_INST_MODULUS,           // OP_DIVIDE    OP_MODULUS
 	XC_INST_PLUS,        XC_INST_MINUS,             // OP_PLUS      OP_MINUS
@@ -3329,7 +3329,7 @@ static BC_STATUS zdc_lex_token(void)
 	BcParse *p = &G.prs;
 	static const //BcLexType - should be this type, but narrower type saves size:
 	uint8_t
-	dc_lex_regs[] = {
+	dc_lex_regs[] ALIGN1 = {
 		XC_LEX_OP_REL_EQ, XC_LEX_OP_REL_LE, XC_LEX_OP_REL_GE, XC_LEX_OP_REL_NE,
 		XC_LEX_OP_REL_LT, XC_LEX_OP_REL_GT, DC_LEX_SCOLON, DC_LEX_COLON,
 		DC_LEX_ELSE, DC_LEX_LOAD, DC_LEX_LOAD_POP, DC_LEX_OP_ASSIGN,
