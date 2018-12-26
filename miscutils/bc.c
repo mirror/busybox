@@ -3090,184 +3090,184 @@ static BC_STATUS zbc_lex_token(void)
 
 	// This is the workhorse of the lexer.
 	switch (c) {
-//		case '\0': // probably never reached
-//			p->lex_inbuf--;
-//			p->lex = XC_LEX_EOF;
-//			break;
-		case '\n':
-			p->lex_line++;
-			p->lex = XC_LEX_NLINE;
-			break;
-		case '\t':
-		case '\v':
-		case '\f':
-		case '\r':
-		case ' ':
-			bc_lex_whitespace();
-			break;
-		case '!':
-			parse_lex_by_checking_eq_sign(XC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
-			if (p->lex == BC_LEX_OP_BOOL_NOT) {
-				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("!");
-				if (s) RETURN_STATUS(s);
-			}
-			break;
-		case '"':
-			s = zbc_lex_string();
-			break;
-		case '#':
-			s = zbc_POSIX_does_not_allow("'#' script comments");
+//	case '\0': // probably never reached
+//		p->lex_inbuf--;
+//		p->lex = XC_LEX_EOF;
+//		break;
+	case '\n':
+		p->lex_line++;
+		p->lex = XC_LEX_NLINE;
+		break;
+	case '\t':
+	case '\v':
+	case '\f':
+	case '\r':
+	case ' ':
+		bc_lex_whitespace();
+		break;
+	case '!':
+		parse_lex_by_checking_eq_sign(XC_LEX_OP_REL_NE, BC_LEX_OP_BOOL_NOT);
+		if (p->lex == BC_LEX_OP_BOOL_NOT) {
+			s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("!");
 			if (s) RETURN_STATUS(s);
-			bc_lex_lineComment();
-			break;
-		case '%':
-			parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_MODULUS, XC_LEX_OP_MODULUS);
-			break;
-		case '&':
-			c2 = *p->lex_inbuf;
-			if (c2 == '&') {
-				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("&&");
-				if (s) RETURN_STATUS(s);
-				p->lex_inbuf++;
-				p->lex = BC_LEX_OP_BOOL_AND;
-			} else {
-				p->lex = XC_LEX_INVALID;
-				s = bc_error_bad_character('&');
-			}
-			break;
-		case '(':
-		case ')':
-			p->lex = (BcLexType)(c - '(' + BC_LEX_LPAREN);
-			break;
-		case '*':
-			parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_MULTIPLY, XC_LEX_OP_MULTIPLY);
-			break;
-		case '+':
-			c2 = *p->lex_inbuf;
-			if (c2 == '+') {
-				p->lex_inbuf++;
-				p->lex = BC_LEX_OP_INC;
-			} else
-				parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_PLUS, XC_LEX_OP_PLUS);
-			break;
-		case ',':
-			p->lex = BC_LEX_COMMA;
-			break;
-		case '-':
-			c2 = *p->lex_inbuf;
-			if (c2 == '-') {
-				p->lex_inbuf++;
-				p->lex = BC_LEX_OP_DEC;
-			} else
-				parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_MINUS, XC_LEX_OP_MINUS);
-			break;
-		case '.':
-			if (isdigit(*p->lex_inbuf))
-				s = zbc_lex_number(c);
-			else {
-				p->lex = BC_LEX_KEY_LAST;
-				s = zbc_POSIX_does_not_allow("'.' as 'last'");
-			}
-			break;
-		case '/':
-			c2 = *p->lex_inbuf;
-			if (c2 == '*')
-				s = zbc_lex_comment();
-			else
-				parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_DIVIDE, XC_LEX_OP_DIVIDE);
-			break;
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-		case 'A':
-		case 'B':
-		case 'C':
-		case 'D':
-		case 'E':
-		case 'F':
+		}
+		break;
+	case '"':
+		s = zbc_lex_string();
+		break;
+	case '#':
+		s = zbc_POSIX_does_not_allow("'#' script comments");
+		if (s) RETURN_STATUS(s);
+		bc_lex_lineComment();
+		break;
+	case '%':
+		parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_MODULUS, XC_LEX_OP_MODULUS);
+		break;
+	case '&':
+		c2 = *p->lex_inbuf;
+		if (c2 == '&') {
+			s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("&&");
+			if (s) RETURN_STATUS(s);
+			p->lex_inbuf++;
+			p->lex = BC_LEX_OP_BOOL_AND;
+		} else {
+			p->lex = XC_LEX_INVALID;
+			s = bc_error_bad_character('&');
+		}
+		break;
+	case '(':
+	case ')':
+		p->lex = (BcLexType)(c - '(' + BC_LEX_LPAREN);
+		break;
+	case '*':
+		parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_MULTIPLY, XC_LEX_OP_MULTIPLY);
+		break;
+	case '+':
+		c2 = *p->lex_inbuf;
+		if (c2 == '+') {
+			p->lex_inbuf++;
+			p->lex = BC_LEX_OP_INC;
+		} else
+			parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_PLUS, XC_LEX_OP_PLUS);
+		break;
+	case ',':
+		p->lex = BC_LEX_COMMA;
+		break;
+	case '-':
+		c2 = *p->lex_inbuf;
+		if (c2 == '-') {
+			p->lex_inbuf++;
+			p->lex = BC_LEX_OP_DEC;
+		} else
+			parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_MINUS, XC_LEX_OP_MINUS);
+		break;
+	case '.':
+		if (isdigit(*p->lex_inbuf))
 			s = zbc_lex_number(c);
-			break;
-		case ';':
-			p->lex = BC_LEX_SCOLON;
-			break;
-		case '<':
-			parse_lex_by_checking_eq_sign(XC_LEX_OP_REL_LE, XC_LEX_OP_REL_LT);
-			break;
-		case '=':
-			parse_lex_by_checking_eq_sign(XC_LEX_OP_REL_EQ, BC_LEX_OP_ASSIGN);
-			break;
-		case '>':
-			parse_lex_by_checking_eq_sign(XC_LEX_OP_REL_GE, XC_LEX_OP_REL_GT);
-			break;
-		case '[':
-		case ']':
-			p->lex = (BcLexType)(c - '[' + BC_LEX_LBRACKET);
-			break;
-		case '\\':
-			if (*p->lex_inbuf == '\n') {
-				p->lex = XC_LEX_WHITESPACE;
-				p->lex_inbuf++;
-			} else
-				s = bc_error_bad_character(c);
-			break;
-		case '^':
-			parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_POWER, XC_LEX_OP_POWER);
-			break;
-		case 'a':
-		case 'b':
-		case 'c':
-		case 'd':
-		case 'e':
-		case 'f':
-		case 'g':
-		case 'h':
-		case 'i':
-		case 'j':
-		case 'k':
-		case 'l':
-		case 'm':
-		case 'n':
-		case 'o':
-		case 'p':
-		case 'q':
-		case 'r':
-		case 's':
-		case 't':
-		case 'u':
-		case 'v':
-		case 'w':
-		case 'x':
-		case 'y':
-		case 'z':
-			s = zbc_lex_identifier();
-			break;
-		case '{':
-		case '}':
-			p->lex = (BcLexType)(c - '{' + BC_LEX_LBRACE);
-			break;
-		case '|':
-			c2 = *p->lex_inbuf;
-			if (c2 == '|') {
-				s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("||");
-				if (s) RETURN_STATUS(s);
-				p->lex_inbuf++;
-				p->lex = BC_LEX_OP_BOOL_OR;
-			} else {
-				p->lex = XC_LEX_INVALID;
-				s = bc_error_bad_character(c);
-			}
-			break;
-		default:
+		else {
+			p->lex = BC_LEX_KEY_LAST;
+			s = zbc_POSIX_does_not_allow("'.' as 'last'");
+		}
+		break;
+	case '/':
+		c2 = *p->lex_inbuf;
+		if (c2 == '*')
+			s = zbc_lex_comment();
+		else
+			parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_DIVIDE, XC_LEX_OP_DIVIDE);
+		break;
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+	case 'A':
+	case 'B':
+	case 'C':
+	case 'D':
+	case 'E':
+	case 'F':
+		s = zbc_lex_number(c);
+		break;
+	case ';':
+		p->lex = BC_LEX_SCOLON;
+		break;
+	case '<':
+		parse_lex_by_checking_eq_sign(XC_LEX_OP_REL_LE, XC_LEX_OP_REL_LT);
+		break;
+	case '=':
+		parse_lex_by_checking_eq_sign(XC_LEX_OP_REL_EQ, BC_LEX_OP_ASSIGN);
+		break;
+	case '>':
+		parse_lex_by_checking_eq_sign(XC_LEX_OP_REL_GE, XC_LEX_OP_REL_GT);
+		break;
+	case '[':
+	case ']':
+		p->lex = (BcLexType)(c - '[' + BC_LEX_LBRACKET);
+		break;
+	case '\\':
+		if (*p->lex_inbuf == '\n') {
+			p->lex = XC_LEX_WHITESPACE;
+			p->lex_inbuf++;
+		} else
+			s = bc_error_bad_character(c);
+		break;
+	case '^':
+		parse_lex_by_checking_eq_sign(BC_LEX_OP_ASSIGN_POWER, XC_LEX_OP_POWER);
+		break;
+	case 'a':
+	case 'b':
+	case 'c':
+	case 'd':
+	case 'e':
+	case 'f':
+	case 'g':
+	case 'h':
+	case 'i':
+	case 'j':
+	case 'k':
+	case 'l':
+	case 'm':
+	case 'n':
+	case 'o':
+	case 'p':
+	case 'q':
+	case 'r':
+	case 's':
+	case 't':
+	case 'u':
+	case 'v':
+	case 'w':
+	case 'x':
+	case 'y':
+	case 'z':
+		s = zbc_lex_identifier();
+		break;
+	case '{':
+	case '}':
+		p->lex = (BcLexType)(c - '{' + BC_LEX_LBRACE);
+		break;
+	case '|':
+		c2 = *p->lex_inbuf;
+		if (c2 == '|') {
+			s = zbc_POSIX_does_not_allow_bool_ops_this_is_bad("||");
+			if (s) RETURN_STATUS(s);
+			p->lex_inbuf++;
+			p->lex = BC_LEX_OP_BOOL_OR;
+		} else {
 			p->lex = XC_LEX_INVALID;
 			s = bc_error_bad_character(c);
-			break;
+		}
+		break;
+	default:
+		p->lex = XC_LEX_INVALID;
+		s = bc_error_bad_character(c);
+		break;
 	}
 
 	RETURN_STATUS(s);
@@ -3357,74 +3357,74 @@ static BC_STATUS zdc_lex_token(void)
 
 	// This is the workhorse of the lexer.
 	switch (c) {
-//		case '\0': // probably never reached
-//			p->lex = XC_LEX_EOF;
-//			break;
-		case '\n':
-			// '\n' is XC_LEX_NLINE, not XC_LEX_WHITESPACE
-			// (and "case '\n':" is not just empty here)
-			// only to allow interactive dc have a way to exit
-			// "parse" stage of "parse,execute" loop
-			// on <enter>, not on _next_ token (which would mean
-			// commands are not executed on pressing <enter>).
-			// IOW: typing "1p<enter>" should print "1" _at once_,
-			// not after some more input.
-			p->lex_line++;
-			p->lex = XC_LEX_NLINE;
-			break;
-		case '\t':
-		case '\v':
-		case '\f':
-		case '\r':
-		case ' ':
-			bc_lex_whitespace();
-			break;
-		case '!':
-			c2 = *p->lex_inbuf;
-			if (c2 == '=')
-				p->lex = XC_LEX_OP_REL_NE;
-			else if (c2 == '<')
-				p->lex = XC_LEX_OP_REL_LE;
-			else if (c2 == '>')
-				p->lex = XC_LEX_OP_REL_GE;
-			else
-				RETURN_STATUS(bc_error_bad_character(c));
-			p->lex_inbuf++;
-			break;
-		case '#':
-			bc_lex_lineComment();
-			break;
-		case '.':
-			if (isdigit(*p->lex_inbuf))
-				s = zbc_lex_number(c);
-			else
-				s = bc_error_bad_character(c);
-			break;
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-		case 'A':
-		case 'B':
-		case 'C':
-		case 'D':
-		case 'E':
-		case 'F':
+//	case '\0': // probably never reached
+//		p->lex = XC_LEX_EOF;
+//		break;
+	case '\n':
+		// '\n' is XC_LEX_NLINE, not XC_LEX_WHITESPACE
+		// (and "case '\n':" is not just empty here)
+		// only to allow interactive dc have a way to exit
+		// "parse" stage of "parse,execute" loop
+		// on <enter>, not on _next_ token (which would mean
+		// commands are not executed on pressing <enter>).
+		// IOW: typing "1p<enter>" should print "1" _at once_,
+		// not after some more input.
+		p->lex_line++;
+		p->lex = XC_LEX_NLINE;
+		break;
+	case '\t':
+	case '\v':
+	case '\f':
+	case '\r':
+	case ' ':
+		bc_lex_whitespace();
+		break;
+	case '!':
+		c2 = *p->lex_inbuf;
+		if (c2 == '=')
+			p->lex = XC_LEX_OP_REL_NE;
+		else if (c2 == '<')
+			p->lex = XC_LEX_OP_REL_LE;
+		else if (c2 == '>')
+			p->lex = XC_LEX_OP_REL_GE;
+		else
+			RETURN_STATUS(bc_error_bad_character(c));
+		p->lex_inbuf++;
+		break;
+	case '#':
+		bc_lex_lineComment();
+		break;
+	case '.':
+		if (isdigit(*p->lex_inbuf))
 			s = zbc_lex_number(c);
-			break;
-		case '[':
-			s = zdc_lex_string();
-			break;
-		default:
-			p->lex = XC_LEX_INVALID;
+		else
 			s = bc_error_bad_character(c);
-			break;
+		break;
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+	case 'A':
+	case 'B':
+	case 'C':
+	case 'D':
+	case 'E':
+	case 'F':
+		s = zbc_lex_number(c);
+		break;
+	case '[':
+		s = zdc_lex_string();
+		break;
+	default:
+		p->lex = XC_LEX_INVALID;
+		s = bc_error_bad_character(c);
+		break;
 	}
 
 	RETURN_STATUS(s);
@@ -3559,10 +3559,9 @@ static void bc_parse_reset(void)
 
 static void bc_parse_free(void)
 {
-	IF_BC(BcParse *p = &G.prs;)
-	IF_BC(bc_vec_free(&p->exits);)
-	IF_BC(bc_vec_free(&p->conds);)
-	IF_BC(bc_vec_free(&p->ops);)
+	IF_BC(bc_vec_free(&G.prs.exits);)
+	IF_BC(bc_vec_free(&G.prs.conds);)
+	IF_BC(bc_vec_free(&G.prs.ops);)
 	bc_vec_free(&G.prs.lex_strnumbuf);
 }
 
@@ -3571,7 +3570,7 @@ static void bc_parse_create(size_t fidx)
 	BcParse *p = &G.prs;
 	memset(p, 0, sizeof(BcParse));
 
-	bc_char_vec_init(&G.prs.lex_strnumbuf);
+	bc_char_vec_init(&p->lex_strnumbuf);
 	IF_BC(bc_vec_init(&p->exits, sizeof(size_t), NULL);)
 	IF_BC(bc_vec_init(&p->conds, sizeof(size_t), NULL);)
 	IF_BC(bc_vec_init(&p->ops, sizeof(BcLexType), NULL);)
@@ -3938,26 +3937,26 @@ static BC_STATUS zbc_parse_incdec(BcInst *prev, bool *paren_expr,
 		*nexprs = *nexprs + 1;
 
 		switch (type) {
-			case XC_LEX_NAME:
-				s = zbc_parse_name(prev, flags | BC_PARSE_NOCALL);
-				break;
-			case BC_LEX_KEY_IBASE:
-			case BC_LEX_KEY_LAST:
-			case BC_LEX_KEY_OBASE:
-				bc_parse_push(type - BC_LEX_KEY_IBASE + XC_INST_IBASE);
-				s = zbc_lex_next();
-				break;
-			case BC_LEX_KEY_SCALE:
-				s = zbc_lex_next();
-				if (s) RETURN_STATUS(s);
-				if (p->lex == BC_LEX_LPAREN)
-					s = bc_error_bad_token();
-				else
-					bc_parse_push(XC_INST_SCALE);
-				break;
-			default:
+		case XC_LEX_NAME:
+			s = zbc_parse_name(prev, flags | BC_PARSE_NOCALL);
+			break;
+		case BC_LEX_KEY_IBASE:
+		case BC_LEX_KEY_LAST:
+		case BC_LEX_KEY_OBASE:
+			bc_parse_push(type - BC_LEX_KEY_IBASE + XC_INST_IBASE);
+			s = zbc_lex_next();
+			break;
+		case BC_LEX_KEY_SCALE:
+			s = zbc_lex_next();
+			if (s) RETURN_STATUS(s);
+			if (p->lex == BC_LEX_LPAREN)
 				s = bc_error_bad_token();
-				break;
+			else
+				bc_parse_push(XC_INST_SCALE);
+			break;
+		default:
+			s = bc_error_bad_token();
+			break;
 		}
 
 		if (!s) bc_parse_push(inst);
@@ -4489,74 +4488,74 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(bool auto_allowed)
 
 	dbg_lex("%s:%d p->lex:%d", __func__, __LINE__, p->lex);
 	switch (p->lex) {
-		case XC_LEX_OP_MINUS:
-		case BC_LEX_OP_INC:
-		case BC_LEX_OP_DEC:
-		case BC_LEX_OP_BOOL_NOT:
-		case BC_LEX_LPAREN:
-		case XC_LEX_NAME:
-		case XC_LEX_NUMBER:
-		case BC_LEX_KEY_IBASE:
-		case BC_LEX_KEY_LAST:
-		case BC_LEX_KEY_LENGTH:
-		case BC_LEX_KEY_OBASE:
-		case BC_LEX_KEY_READ:
-		case BC_LEX_KEY_SCALE:
-		case BC_LEX_KEY_SQRT:
-			s = zbc_parse_expr(BC_PARSE_PRINT);
-			break;
-		case XC_LEX_STR:
-			s = zbc_parse_pushSTR();
-			bc_parse_push(XC_INST_PRINT_STR);
-			break;
-		case BC_LEX_KEY_BREAK:
-		case BC_LEX_KEY_CONTINUE:
-			s = zbc_parse_break_or_continue(p->lex);
-			break;
-		case BC_LEX_KEY_FOR:
-			s = zbc_parse_for();
-			break;
-		case BC_LEX_KEY_HALT:
-			bc_parse_push(BC_INST_HALT);
-			s = zbc_lex_next();
-			break;
-		case BC_LEX_KEY_IF:
-			s = zbc_parse_if();
-			break;
-		case BC_LEX_KEY_LIMITS:
-			// "limits" is a compile-time command,
-			// the output is produced at _parse time_.
-			printf(
-				"BC_BASE_MAX     = "BC_MAX_OBASE_STR "\n"
-				"BC_DIM_MAX      = "BC_MAX_DIM_STR   "\n"
-				"BC_SCALE_MAX    = "BC_MAX_SCALE_STR "\n"
-				"BC_STRING_MAX   = "BC_MAX_STRING_STR"\n"
-				"BC_NAME_MAX     = "BC_MAX_NAME_STR  "\n"
-				"BC_NUM_MAX      = "BC_MAX_NUM_STR   "\n"
-				"MAX Exponent    = "BC_MAX_EXP_STR   "\n"
-				"Number of vars  = "BC_MAX_VARS_STR  "\n"
-			);
-			s = zbc_lex_next();
-			break;
-		case BC_LEX_KEY_PRINT:
-			s = zbc_parse_print();
-			break;
-		case BC_LEX_KEY_QUIT:
-			// "quit" is a compile-time command. For example,
-			// "if (0 == 1) quit" terminates when parsing the statement,
-			// not when it is executed
-			QUIT_OR_RETURN_TO_MAIN;
-		case BC_LEX_KEY_RETURN:
-			if (!p->in_funcdef)
-				RETURN_STATUS(bc_error("'return' not in a function"));
-			s = zbc_parse_return();
-			break;
-		case BC_LEX_KEY_WHILE:
-			s = zbc_parse_while();
-			break;
-		default:
-			s = bc_error_bad_token();
-			break;
+	case XC_LEX_OP_MINUS:
+	case BC_LEX_OP_INC:
+	case BC_LEX_OP_DEC:
+	case BC_LEX_OP_BOOL_NOT:
+	case BC_LEX_LPAREN:
+	case XC_LEX_NAME:
+	case XC_LEX_NUMBER:
+	case BC_LEX_KEY_IBASE:
+	case BC_LEX_KEY_LAST:
+	case BC_LEX_KEY_LENGTH:
+	case BC_LEX_KEY_OBASE:
+	case BC_LEX_KEY_READ:
+	case BC_LEX_KEY_SCALE:
+	case BC_LEX_KEY_SQRT:
+		s = zbc_parse_expr(BC_PARSE_PRINT);
+		break;
+	case XC_LEX_STR:
+		s = zbc_parse_pushSTR();
+		bc_parse_push(XC_INST_PRINT_STR);
+		break;
+	case BC_LEX_KEY_BREAK:
+	case BC_LEX_KEY_CONTINUE:
+		s = zbc_parse_break_or_continue(p->lex);
+		break;
+	case BC_LEX_KEY_FOR:
+		s = zbc_parse_for();
+		break;
+	case BC_LEX_KEY_HALT:
+		bc_parse_push(BC_INST_HALT);
+		s = zbc_lex_next();
+		break;
+	case BC_LEX_KEY_IF:
+		s = zbc_parse_if();
+		break;
+	case BC_LEX_KEY_LIMITS:
+		// "limits" is a compile-time command,
+		// the output is produced at _parse time_.
+		printf(
+			"BC_BASE_MAX     = "BC_MAX_OBASE_STR "\n"
+			"BC_DIM_MAX      = "BC_MAX_DIM_STR   "\n"
+			"BC_SCALE_MAX    = "BC_MAX_SCALE_STR "\n"
+			"BC_STRING_MAX   = "BC_MAX_STRING_STR"\n"
+			"BC_NAME_MAX     = "BC_MAX_NAME_STR  "\n"
+			"BC_NUM_MAX      = "BC_MAX_NUM_STR   "\n"
+			"MAX Exponent    = "BC_MAX_EXP_STR   "\n"
+			"Number of vars  = "BC_MAX_VARS_STR  "\n"
+		);
+		s = zbc_lex_next();
+		break;
+	case BC_LEX_KEY_PRINT:
+		s = zbc_parse_print();
+		break;
+	case BC_LEX_KEY_QUIT:
+		// "quit" is a compile-time command. For example,
+		// "if (0 == 1) quit" terminates when parsing the statement,
+		// not when it is executed
+		QUIT_OR_RETURN_TO_MAIN;
+	case BC_LEX_KEY_RETURN:
+		if (!p->in_funcdef)
+			RETURN_STATUS(bc_error("'return' not in a function"));
+		s = zbc_parse_return();
+		break;
+	case BC_LEX_KEY_WHILE:
+		s = zbc_parse_while();
+		break;
+	default:
+		s = bc_error_bad_token();
+		break;
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
@@ -4612,162 +4611,162 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		get_token = false;
 		s = BC_STATUS_SUCCESS;
 		switch (t) {
-			case BC_LEX_OP_INC:
-			case BC_LEX_OP_DEC:
-				dbg_lex("%s:%d LEX_OP_INC/DEC", __func__, __LINE__);
-				s = zbc_parse_incdec(&prev, &paren_expr, &nexprs, flags);
-				rprn = bin_last = false;
-				//get_token = false; - already is
-				break;
-			case XC_LEX_OP_MINUS:
-				dbg_lex("%s:%d LEX_OP_MINUS", __func__, __LINE__);
-				s = zbc_parse_minus(&prev, ops_bgn, rprn, &nexprs);
-				rprn = false;
-				//get_token = false; - already is
-				bin_last = (prev == XC_INST_MINUS);
-				break;
-			case BC_LEX_OP_ASSIGN_POWER:
-			case BC_LEX_OP_ASSIGN_MULTIPLY:
-			case BC_LEX_OP_ASSIGN_DIVIDE:
-			case BC_LEX_OP_ASSIGN_MODULUS:
-			case BC_LEX_OP_ASSIGN_PLUS:
-			case BC_LEX_OP_ASSIGN_MINUS:
-			case BC_LEX_OP_ASSIGN:
-				dbg_lex("%s:%d LEX_ASSIGNxyz", __func__, __LINE__);
-				if (prev != XC_INST_VAR && prev != XC_INST_ARRAY_ELEM
-				 && prev != XC_INST_SCALE && prev != XC_INST_IBASE
-				 && prev != XC_INST_OBASE && prev != BC_INST_LAST
-				) {
-					return bc_error("bad assignment:"
-						" left side must be variable"
-						" or array element"
-					); // note: shared string
-				}
-			// Fallthrough.
-			case XC_LEX_OP_POWER:
-			case XC_LEX_OP_MULTIPLY:
-			case XC_LEX_OP_DIVIDE:
-			case XC_LEX_OP_MODULUS:
-			case XC_LEX_OP_PLUS:
-			case XC_LEX_OP_REL_EQ:
-			case XC_LEX_OP_REL_LE:
-			case XC_LEX_OP_REL_GE:
-			case XC_LEX_OP_REL_NE:
-			case XC_LEX_OP_REL_LT:
-			case XC_LEX_OP_REL_GT:
-			case BC_LEX_OP_BOOL_NOT:
-			case BC_LEX_OP_BOOL_OR:
-			case BC_LEX_OP_BOOL_AND:
-				dbg_lex("%s:%d LEX_OP_xyz", __func__, __LINE__);
-				if (((t == BC_LEX_OP_BOOL_NOT) != bin_last)
-				 || (t != BC_LEX_OP_BOOL_NOT && prev == XC_INST_BOOL_NOT)
-				) {
-					return bc_error_bad_expression();
-				}
-				nrelops += (t >= XC_LEX_OP_REL_EQ && t <= XC_LEX_OP_REL_GT);
-				prev = BC_TOKEN_2_INST(t);
-				bc_parse_operator(t, ops_bgn, &nexprs);
-				s = zbc_lex_next();
-				rprn = false;
-				//get_token = false; - already is
-				bin_last = (t != BC_LEX_OP_BOOL_NOT);
-				break;
-			case BC_LEX_LPAREN:
-				dbg_lex("%s:%d LEX_LPAREN", __func__, __LINE__);
-				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error_bad_expression();
-				bc_vec_push(&p->ops, &t);
-				nparens++;
-				get_token = true;
-				paren_expr = false;
-				rprn = bin_last = false;
-				break;
-			case BC_LEX_RPAREN:
-				dbg_lex("%s:%d LEX_RPAREN", __func__, __LINE__);
-				if (bin_last || prev == XC_INST_BOOL_NOT)
-					return bc_error_bad_expression();
-				if (nparens == 0) {
-					goto exit_loop;
-				}
-				if (!paren_expr) {
-					dbg_lex_done("%s:%d done (returning EMPTY_EXP)", __func__, __LINE__);
-					return BC_STATUS_PARSE_EMPTY_EXP;
-				}
-				s = zbc_parse_rightParen(ops_bgn, &nexprs);
-				nparens--;
-				get_token = true;
-				paren_expr = rprn = true;
-				bin_last = false;
-				break;
-			case XC_LEX_NAME:
-				dbg_lex("%s:%d LEX_NAME", __func__, __LINE__);
-				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error_bad_expression();
-				s = zbc_parse_name(&prev, flags & ~BC_PARSE_NOCALL);
-				paren_expr = true;
-				rprn = bin_last = false;
-				//get_token = false; - already is
-				nexprs++;
-				break;
-			case XC_LEX_NUMBER:
-				dbg_lex("%s:%d LEX_NUMBER", __func__, __LINE__);
-				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error_bad_expression();
-				bc_parse_pushNUM();
-				prev = XC_INST_NUM;
-				get_token = true;
-				paren_expr = true;
-				rprn = bin_last = false;
-				nexprs++;
-				break;
-			case BC_LEX_KEY_IBASE:
-			case BC_LEX_KEY_LAST:
-			case BC_LEX_KEY_OBASE:
-				dbg_lex("%s:%d LEX_IBASE/LAST/OBASE", __func__, __LINE__);
-				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error_bad_expression();
-				prev = (char) (t - BC_LEX_KEY_IBASE + XC_INST_IBASE);
-				bc_parse_push((char) prev);
-				get_token = true;
-				paren_expr = true;
-				rprn = bin_last = false;
-				nexprs++;
-				break;
-			case BC_LEX_KEY_LENGTH:
-			case BC_LEX_KEY_SQRT:
-				dbg_lex("%s:%d LEX_LEN/SQRT", __func__, __LINE__);
-				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error_bad_expression();
-				s = zbc_parse_builtin(t, flags, &prev);
-				get_token = true;
-				paren_expr = true;
-				rprn = bin_last = false;
-				nexprs++;
-				break;
-			case BC_LEX_KEY_READ:
-				dbg_lex("%s:%d LEX_READ", __func__, __LINE__);
-				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error_bad_expression();
-				s = zbc_parse_read();
-				prev = XC_INST_READ;
-				get_token = true;
-				paren_expr = true;
-				rprn = bin_last = false;
-				nexprs++;
-				break;
-			case BC_LEX_KEY_SCALE:
-				dbg_lex("%s:%d LEX_SCALE", __func__, __LINE__);
-				if (BC_PARSE_LEAF(prev, rprn))
-					return bc_error_bad_expression();
-				s = zbc_parse_scale(&prev, flags);
-				prev = XC_INST_SCALE;
-				//get_token = false; - already is
-				paren_expr = true;
-				rprn = bin_last = false;
-				nexprs++;
-				break;
-			default:
-				return bc_error_bad_token();
+		case BC_LEX_OP_INC:
+		case BC_LEX_OP_DEC:
+			dbg_lex("%s:%d LEX_OP_INC/DEC", __func__, __LINE__);
+			s = zbc_parse_incdec(&prev, &paren_expr, &nexprs, flags);
+			rprn = bin_last = false;
+			//get_token = false; - already is
+			break;
+		case XC_LEX_OP_MINUS:
+			dbg_lex("%s:%d LEX_OP_MINUS", __func__, __LINE__);
+			s = zbc_parse_minus(&prev, ops_bgn, rprn, &nexprs);
+			rprn = false;
+			//get_token = false; - already is
+			bin_last = (prev == XC_INST_MINUS);
+			break;
+		case BC_LEX_OP_ASSIGN_POWER:
+		case BC_LEX_OP_ASSIGN_MULTIPLY:
+		case BC_LEX_OP_ASSIGN_DIVIDE:
+		case BC_LEX_OP_ASSIGN_MODULUS:
+		case BC_LEX_OP_ASSIGN_PLUS:
+		case BC_LEX_OP_ASSIGN_MINUS:
+		case BC_LEX_OP_ASSIGN:
+			dbg_lex("%s:%d LEX_ASSIGNxyz", __func__, __LINE__);
+			if (prev != XC_INST_VAR && prev != XC_INST_ARRAY_ELEM
+			 && prev != XC_INST_SCALE && prev != XC_INST_IBASE
+			 && prev != XC_INST_OBASE && prev != BC_INST_LAST
+			) {
+				return bc_error("bad assignment:"
+					" left side must be variable"
+					" or array element"
+				); // note: shared string
+			}
+		// Fallthrough.
+		case XC_LEX_OP_POWER:
+		case XC_LEX_OP_MULTIPLY:
+		case XC_LEX_OP_DIVIDE:
+		case XC_LEX_OP_MODULUS:
+		case XC_LEX_OP_PLUS:
+		case XC_LEX_OP_REL_EQ:
+		case XC_LEX_OP_REL_LE:
+		case XC_LEX_OP_REL_GE:
+		case XC_LEX_OP_REL_NE:
+		case XC_LEX_OP_REL_LT:
+		case XC_LEX_OP_REL_GT:
+		case BC_LEX_OP_BOOL_NOT:
+		case BC_LEX_OP_BOOL_OR:
+		case BC_LEX_OP_BOOL_AND:
+			dbg_lex("%s:%d LEX_OP_xyz", __func__, __LINE__);
+			if (((t == BC_LEX_OP_BOOL_NOT) != bin_last)
+			 || (t != BC_LEX_OP_BOOL_NOT && prev == XC_INST_BOOL_NOT)
+			) {
+				return bc_error_bad_expression();
+			}
+			nrelops += (t >= XC_LEX_OP_REL_EQ && t <= XC_LEX_OP_REL_GT);
+			prev = BC_TOKEN_2_INST(t);
+			bc_parse_operator(t, ops_bgn, &nexprs);
+			s = zbc_lex_next();
+			rprn = false;
+			//get_token = false; - already is
+			bin_last = (t != BC_LEX_OP_BOOL_NOT);
+			break;
+		case BC_LEX_LPAREN:
+			dbg_lex("%s:%d LEX_LPAREN", __func__, __LINE__);
+			if (BC_PARSE_LEAF(prev, rprn))
+				return bc_error_bad_expression();
+			bc_vec_push(&p->ops, &t);
+			nparens++;
+			get_token = true;
+			paren_expr = false;
+			rprn = bin_last = false;
+			break;
+		case BC_LEX_RPAREN:
+			dbg_lex("%s:%d LEX_RPAREN", __func__, __LINE__);
+			if (bin_last || prev == XC_INST_BOOL_NOT)
+				return bc_error_bad_expression();
+			if (nparens == 0) {
+				goto exit_loop;
+			}
+			if (!paren_expr) {
+				dbg_lex_done("%s:%d done (returning EMPTY_EXP)", __func__, __LINE__);
+				return BC_STATUS_PARSE_EMPTY_EXP;
+			}
+			s = zbc_parse_rightParen(ops_bgn, &nexprs);
+			nparens--;
+			get_token = true;
+			paren_expr = rprn = true;
+			bin_last = false;
+			break;
+		case XC_LEX_NAME:
+			dbg_lex("%s:%d LEX_NAME", __func__, __LINE__);
+			if (BC_PARSE_LEAF(prev, rprn))
+				return bc_error_bad_expression();
+			s = zbc_parse_name(&prev, flags & ~BC_PARSE_NOCALL);
+			paren_expr = true;
+			rprn = bin_last = false;
+			//get_token = false; - already is
+			nexprs++;
+			break;
+		case XC_LEX_NUMBER:
+			dbg_lex("%s:%d LEX_NUMBER", __func__, __LINE__);
+			if (BC_PARSE_LEAF(prev, rprn))
+				return bc_error_bad_expression();
+			bc_parse_pushNUM();
+			prev = XC_INST_NUM;
+			get_token = true;
+			paren_expr = true;
+			rprn = bin_last = false;
+			nexprs++;
+			break;
+		case BC_LEX_KEY_IBASE:
+		case BC_LEX_KEY_LAST:
+		case BC_LEX_KEY_OBASE:
+			dbg_lex("%s:%d LEX_IBASE/LAST/OBASE", __func__, __LINE__);
+			if (BC_PARSE_LEAF(prev, rprn))
+				return bc_error_bad_expression();
+			prev = (char) (t - BC_LEX_KEY_IBASE + XC_INST_IBASE);
+			bc_parse_push((char) prev);
+			get_token = true;
+			paren_expr = true;
+			rprn = bin_last = false;
+			nexprs++;
+			break;
+		case BC_LEX_KEY_LENGTH:
+		case BC_LEX_KEY_SQRT:
+			dbg_lex("%s:%d LEX_LEN/SQRT", __func__, __LINE__);
+			if (BC_PARSE_LEAF(prev, rprn))
+				return bc_error_bad_expression();
+			s = zbc_parse_builtin(t, flags, &prev);
+			get_token = true;
+			paren_expr = true;
+			rprn = bin_last = false;
+			nexprs++;
+			break;
+		case BC_LEX_KEY_READ:
+			dbg_lex("%s:%d LEX_READ", __func__, __LINE__);
+			if (BC_PARSE_LEAF(prev, rprn))
+				return bc_error_bad_expression();
+			s = zbc_parse_read();
+			prev = XC_INST_READ;
+			get_token = true;
+			paren_expr = true;
+			rprn = bin_last = false;
+			nexprs++;
+			break;
+		case BC_LEX_KEY_SCALE:
+			dbg_lex("%s:%d LEX_SCALE", __func__, __LINE__);
+			if (BC_PARSE_LEAF(prev, rprn))
+				return bc_error_bad_expression();
+			s = zbc_parse_scale(&prev, flags);
+			prev = XC_INST_SCALE;
+			//get_token = false; - already is
+			paren_expr = true;
+			rprn = bin_last = false;
+			nexprs++;
+			break;
+		default:
+			return bc_error_bad_token();
 		}
 
 		if (s || G_interrupt) // error, or ^C: stop parsing
@@ -4913,65 +4912,65 @@ static BC_STATUS zdc_parse_token(BcLexType t)
 	s = BC_STATUS_SUCCESS;
 	get_token = true;
 	switch (t) {
-		case XC_LEX_OP_REL_EQ:
-		case XC_LEX_OP_REL_LE:
-		case XC_LEX_OP_REL_GE:
-		case XC_LEX_OP_REL_NE:
-		case XC_LEX_OP_REL_LT:
-		case XC_LEX_OP_REL_GT:
-			dbg_lex("%s:%d LEX_OP_REL_xyz", __func__, __LINE__);
-			s = zdc_parse_cond(t - XC_LEX_OP_REL_EQ + XC_INST_REL_EQ);
-			get_token = false;
-			break;
-		case DC_LEX_SCOLON:
-		case DC_LEX_COLON:
-			dbg_lex("%s:%d LEX_[S]COLON", __func__, __LINE__);
-			s = zdc_parse_mem(XC_INST_ARRAY_ELEM, true, t == DC_LEX_COLON);
-			break;
-		case XC_LEX_STR:
-			dbg_lex("%s:%d LEX_STR", __func__, __LINE__);
-			dc_parse_string();
-			break;
-		case XC_LEX_NEG:
-			dbg_lex("%s:%d LEX_NEG", __func__, __LINE__);
-			s = zbc_lex_next();
-			if (s) RETURN_STATUS(s);
-			if (G.prs.lex != XC_LEX_NUMBER)
-				RETURN_STATUS(bc_error_bad_token());
-			bc_parse_pushNUM();
-			bc_parse_push(XC_INST_NEG);
-			break;
-		case XC_LEX_NUMBER:
-			dbg_lex("%s:%d LEX_NUMBER", __func__, __LINE__);
-			bc_parse_pushNUM();
-			break;
-		case DC_LEX_READ:
-			dbg_lex("%s:%d LEX_KEY_READ", __func__, __LINE__);
-			bc_parse_push(XC_INST_READ);
-			break;
-		case DC_LEX_OP_ASSIGN:
-		case DC_LEX_STORE_PUSH:
-			dbg_lex("%s:%d LEX_OP_ASSIGN/STORE_PUSH", __func__, __LINE__);
-			assign = (t == DC_LEX_OP_ASSIGN);
-			inst = assign ? XC_INST_VAR : DC_INST_PUSH_TO_VAR;
-			s = zdc_parse_mem(inst, true, assign);
-			break;
-		case DC_LEX_LOAD:
-		case DC_LEX_LOAD_POP:
-			dbg_lex("%s:%d LEX_OP_LOAD[_POP]", __func__, __LINE__);
-			inst = t == DC_LEX_LOAD_POP ? DC_INST_PUSH_VAR : DC_INST_LOAD;
-			s = zdc_parse_mem(inst, true, false);
-			break;
-		case DC_LEX_STORE_IBASE:
-		case DC_LEX_STORE_SCALE:
-		case DC_LEX_STORE_OBASE:
-			dbg_lex("%s:%d LEX_OP_STORE_I/OBASE/SCALE", __func__, __LINE__);
-			inst = t - DC_LEX_STORE_IBASE + XC_INST_IBASE;
-			s = zdc_parse_mem(inst, false, true);
-			break;
-		default:
-			dbg_lex_done("%s:%d done (bad token)", __func__, __LINE__);
+	case XC_LEX_OP_REL_EQ:
+	case XC_LEX_OP_REL_LE:
+	case XC_LEX_OP_REL_GE:
+	case XC_LEX_OP_REL_NE:
+	case XC_LEX_OP_REL_LT:
+	case XC_LEX_OP_REL_GT:
+		dbg_lex("%s:%d LEX_OP_REL_xyz", __func__, __LINE__);
+		s = zdc_parse_cond(t - XC_LEX_OP_REL_EQ + XC_INST_REL_EQ);
+		get_token = false;
+		break;
+	case DC_LEX_SCOLON:
+	case DC_LEX_COLON:
+		dbg_lex("%s:%d LEX_[S]COLON", __func__, __LINE__);
+		s = zdc_parse_mem(XC_INST_ARRAY_ELEM, true, t == DC_LEX_COLON);
+		break;
+	case XC_LEX_STR:
+		dbg_lex("%s:%d LEX_STR", __func__, __LINE__);
+		dc_parse_string();
+		break;
+	case XC_LEX_NEG:
+		dbg_lex("%s:%d LEX_NEG", __func__, __LINE__);
+		s = zbc_lex_next();
+		if (s) RETURN_STATUS(s);
+		if (G.prs.lex != XC_LEX_NUMBER)
 			RETURN_STATUS(bc_error_bad_token());
+		bc_parse_pushNUM();
+		bc_parse_push(XC_INST_NEG);
+		break;
+	case XC_LEX_NUMBER:
+		dbg_lex("%s:%d LEX_NUMBER", __func__, __LINE__);
+		bc_parse_pushNUM();
+		break;
+	case DC_LEX_READ:
+		dbg_lex("%s:%d LEX_KEY_READ", __func__, __LINE__);
+		bc_parse_push(XC_INST_READ);
+		break;
+	case DC_LEX_OP_ASSIGN:
+	case DC_LEX_STORE_PUSH:
+		dbg_lex("%s:%d LEX_OP_ASSIGN/STORE_PUSH", __func__, __LINE__);
+		assign = (t == DC_LEX_OP_ASSIGN);
+		inst = assign ? XC_INST_VAR : DC_INST_PUSH_TO_VAR;
+		s = zdc_parse_mem(inst, true, assign);
+		break;
+	case DC_LEX_LOAD:
+	case DC_LEX_LOAD_POP:
+		dbg_lex("%s:%d LEX_OP_LOAD[_POP]", __func__, __LINE__);
+		inst = t == DC_LEX_LOAD_POP ? DC_INST_PUSH_VAR : DC_INST_LOAD;
+		s = zdc_parse_mem(inst, true, false);
+		break;
+	case DC_LEX_STORE_IBASE:
+	case DC_LEX_STORE_SCALE:
+	case DC_LEX_STORE_OBASE:
+		dbg_lex("%s:%d LEX_OP_STORE_I/OBASE/SCALE", __func__, __LINE__);
+		inst = t - DC_LEX_STORE_IBASE + XC_INST_IBASE;
+		s = zdc_parse_mem(inst, false, true);
+		break;
+	default:
+		dbg_lex_done("%s:%d done (bad token)", __func__, __LINE__);
+		RETURN_STATUS(bc_error_bad_token());
 	}
 
 	if (!s && get_token) s = zbc_lex_next();
@@ -5050,62 +5049,62 @@ static BcVec* bc_program_search(char *id, bool var)
 static BC_STATUS zbc_program_num(BcResult *r, BcNum **num, bool hex)
 {
 	switch (r->t) {
-		case XC_RESULT_STR:
-		case XC_RESULT_TEMP:
-		case XC_RESULT_IBASE:
-		case XC_RESULT_SCALE:
-		case XC_RESULT_OBASE:
-			*num = &r->d.n;
-			break;
-		case XC_RESULT_CONSTANT: {
-			BcStatus s;
-			char *str;
-			unsigned base_t;
-			size_t len;
+	case XC_RESULT_STR:
+	case XC_RESULT_TEMP:
+	case XC_RESULT_IBASE:
+	case XC_RESULT_SCALE:
+	case XC_RESULT_OBASE:
+		*num = &r->d.n;
+		break;
+	case XC_RESULT_CONSTANT: {
+		BcStatus s;
+		char *str;
+		unsigned base_t;
+		size_t len;
 
-			str = *bc_program_const(r->d.id.idx);
-			len = strlen(str);
+		str = *bc_program_const(r->d.id.idx);
+		len = strlen(str);
 
-			bc_num_init(&r->d.n, len);
+		bc_num_init(&r->d.n, len);
 
-			hex = hex && len == 1;
-			base_t = hex ? 16 : G.prog.ib_t;
-			s = zbc_num_parse(&r->d.n, str, base_t);
-			if (s) {
-				bc_num_free(&r->d.n);
-				RETURN_STATUS(s);
-			}
-			*num = &r->d.n;
-			r->t = XC_RESULT_TEMP;
-			break;
+		hex = hex && len == 1;
+		base_t = hex ? 16 : G.prog.ib_t;
+		s = zbc_num_parse(&r->d.n, str, base_t);
+		if (s) {
+			bc_num_free(&r->d.n);
+			RETURN_STATUS(s);
 		}
-		case XC_RESULT_VAR:
-		case XC_RESULT_ARRAY:
-		case XC_RESULT_ARRAY_ELEM: {
-			BcVec *v;
+		*num = &r->d.n;
+		r->t = XC_RESULT_TEMP;
+		break;
+	}
+	case XC_RESULT_VAR:
+	case XC_RESULT_ARRAY:
+	case XC_RESULT_ARRAY_ELEM: {
+		BcVec *v;
 
-			v = bc_program_search(r->d.id.name, r->t == XC_RESULT_VAR);
+		v = bc_program_search(r->d.id.name, r->t == XC_RESULT_VAR);
 
-			if (r->t == XC_RESULT_ARRAY_ELEM) {
-				v = bc_vec_top(v);
-				if (v->len <= r->d.id.idx) bc_array_expand(v, r->d.id.idx + 1);
-				*num = bc_vec_item(v, r->d.id.idx);
-			} else
-				*num = bc_vec_top(v);
-			break;
-		}
+		if (r->t == XC_RESULT_ARRAY_ELEM) {
+			v = bc_vec_top(v);
+			if (v->len <= r->d.id.idx) bc_array_expand(v, r->d.id.idx + 1);
+			*num = bc_vec_item(v, r->d.id.idx);
+		} else
+			*num = bc_vec_top(v);
+		break;
+	}
 #if ENABLE_BC
-		case BC_RESULT_LAST:
-			*num = &G.prog.last;
-			break;
-		case BC_RESULT_ONE:
-			*num = &G.prog.one;
-			break;
+	case BC_RESULT_LAST:
+		*num = &G.prog.last;
+		break;
+	case BC_RESULT_ONE:
+		*num = &G.prog.one;
+		break;
 #endif
 #if SANITY_CHECKS
-		default:
-			// Testing the theory that dc does not reach LAST/ONE
-			bb_error_msg_and_die("BUG:%d", r->t);
+	default:
+		// Testing the theory that dc does not reach LAST/ONE
+		bb_error_msg_and_die("BUG:%d", r->t);
 #endif
 	}
 
@@ -6422,245 +6421,245 @@ static BC_STATUS zbc_program_exec(void)
 		dbg_exec("inst at %zd:%d results.len:%d", ip->inst_idx - 1, inst, G.prog.results.len);
 		switch (inst) {
 #if ENABLE_BC
-			case BC_INST_JUMP_ZERO: {
-				BcNum *num;
-				bool zero;
-				dbg_exec("BC_INST_JUMP_ZERO:");
-				s = zbc_program_prep(&ptr, &num);
-				if (s) RETURN_STATUS(s);
-				zero = (bc_num_cmp(num, &G.prog.zero) == 0);
-				bc_vec_pop(&G.prog.results);
-				if (!zero) {
-					bc_program_index(code, &ip->inst_idx);
-					break;
-				}
-				// else: fall through
-			}
-			case BC_INST_JUMP: {
-				size_t idx = bc_program_index(code, &ip->inst_idx);
-				size_t *addr = bc_vec_item(&func->labels, idx);
-				dbg_exec("BC_INST_JUMP: to %ld", (long)*addr);
-				ip->inst_idx = *addr;
+		case BC_INST_JUMP_ZERO: {
+			BcNum *num;
+			bool zero;
+			dbg_exec("BC_INST_JUMP_ZERO:");
+			s = zbc_program_prep(&ptr, &num);
+			if (s) RETURN_STATUS(s);
+			zero = (bc_num_cmp(num, &G.prog.zero) == 0);
+			bc_vec_pop(&G.prog.results);
+			if (!zero) {
+				bc_program_index(code, &ip->inst_idx);
 				break;
 			}
-			case BC_INST_CALL:
-				dbg_exec("BC_INST_CALL:");
-				s = zbc_program_call(code, &ip->inst_idx);
-				goto read_updated_ip;
-			case BC_INST_INC_PRE:
-			case BC_INST_DEC_PRE:
-			case BC_INST_INC_POST:
-			case BC_INST_DEC_POST:
-				dbg_exec("BC_INST_INCDEC:");
-				s = zbc_program_incdec(inst);
-				break;
-			case BC_INST_HALT:
-				dbg_exec("BC_INST_HALT:");
-				QUIT_OR_RETURN_TO_MAIN;
-				break;
-			case XC_INST_RET:
-			case BC_INST_RET0:
-				dbg_exec("BC_INST_RET[0]:");
-				s = zbc_program_return(inst);
-				goto read_updated_ip;
-			case XC_INST_BOOL_OR:
-			case XC_INST_BOOL_AND:
+			// else: fall through
+		}
+		case BC_INST_JUMP: {
+			size_t idx = bc_program_index(code, &ip->inst_idx);
+			size_t *addr = bc_vec_item(&func->labels, idx);
+			dbg_exec("BC_INST_JUMP: to %ld", (long)*addr);
+			ip->inst_idx = *addr;
+			break;
+		}
+		case BC_INST_CALL:
+			dbg_exec("BC_INST_CALL:");
+			s = zbc_program_call(code, &ip->inst_idx);
+			goto read_updated_ip;
+		case BC_INST_INC_PRE:
+		case BC_INST_DEC_PRE:
+		case BC_INST_INC_POST:
+		case BC_INST_DEC_POST:
+			dbg_exec("BC_INST_INCDEC:");
+			s = zbc_program_incdec(inst);
+			break;
+		case BC_INST_HALT:
+			dbg_exec("BC_INST_HALT:");
+			QUIT_OR_RETURN_TO_MAIN;
+			break;
+		case XC_INST_RET:
+		case BC_INST_RET0:
+			dbg_exec("BC_INST_RET[0]:");
+			s = zbc_program_return(inst);
+			goto read_updated_ip;
+		case XC_INST_BOOL_OR:
+		case XC_INST_BOOL_AND:
 #endif // ENABLE_BC
-			case XC_INST_REL_EQ:
-			case XC_INST_REL_LE:
-			case XC_INST_REL_GE:
-			case XC_INST_REL_NE:
-			case XC_INST_REL_LT:
-			case XC_INST_REL_GT:
-				dbg_exec("BC_INST_BOOL:");
-				s = zbc_program_logical(inst);
-				break;
-			case XC_INST_READ:
-				dbg_exec("XC_INST_READ:");
-				s = zbc_program_read();
-				goto read_updated_ip;
-			case XC_INST_VAR:
-				dbg_exec("XC_INST_VAR:");
-				s = zbc_program_pushVar(code, &ip->inst_idx, false, false);
-				break;
-			case XC_INST_ARRAY_ELEM:
-			case XC_INST_ARRAY:
-				dbg_exec("XC_INST_ARRAY[_ELEM]:");
-				s = zbc_program_pushArray(code, &ip->inst_idx, inst);
-				break;
+		case XC_INST_REL_EQ:
+		case XC_INST_REL_LE:
+		case XC_INST_REL_GE:
+		case XC_INST_REL_NE:
+		case XC_INST_REL_LT:
+		case XC_INST_REL_GT:
+			dbg_exec("BC_INST_BOOL:");
+			s = zbc_program_logical(inst);
+			break;
+		case XC_INST_READ:
+			dbg_exec("XC_INST_READ:");
+			s = zbc_program_read();
+			goto read_updated_ip;
+		case XC_INST_VAR:
+			dbg_exec("XC_INST_VAR:");
+			s = zbc_program_pushVar(code, &ip->inst_idx, false, false);
+			break;
+		case XC_INST_ARRAY_ELEM:
+		case XC_INST_ARRAY:
+			dbg_exec("XC_INST_ARRAY[_ELEM]:");
+			s = zbc_program_pushArray(code, &ip->inst_idx, inst);
+			break;
 #if ENABLE_BC
-			case BC_INST_LAST:
-				dbg_exec("BC_INST_LAST:");
-				r.t = BC_RESULT_LAST;
-				bc_vec_push(&G.prog.results, &r);
-				break;
+		case BC_INST_LAST:
+			dbg_exec("BC_INST_LAST:");
+			r.t = BC_RESULT_LAST;
+			bc_vec_push(&G.prog.results, &r);
+			break;
 #endif
-			case XC_INST_IBASE:
-			case XC_INST_OBASE:
-			case XC_INST_SCALE:
-				dbg_exec("XC_INST_internalvar(%d):", inst - XC_INST_IBASE);
-				bc_program_pushGlobal(inst);
-				break;
-			case XC_INST_SCALE_FUNC:
-			case XC_INST_LENGTH:
-			case XC_INST_SQRT:
-				dbg_exec("BC_INST_builtin:");
-				s = zbc_program_builtin(inst);
-				break;
-			case XC_INST_NUM:
-				dbg_exec("XC_INST_NUM:");
-				r.t = XC_RESULT_CONSTANT;
-				r.d.id.idx = bc_program_index(code, &ip->inst_idx);
-				bc_vec_push(&G.prog.results, &r);
-				break;
-			case XC_INST_POP:
-				dbg_exec("XC_INST_POP:");
-				if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
-					s = bc_error_stack_has_too_few_elements();
-				else
-					bc_vec_pop(&G.prog.results);
-				break;
-			case XC_INST_PRINT:
-			case XC_INST_PRINT_POP:
-			case XC_INST_PRINT_STR:
-				dbg_exec("XC_INST_PRINTxyz:");
-				s = zbc_program_print(inst, 0);
-				break;
-			case XC_INST_STR:
-				dbg_exec("XC_INST_STR:");
-				r.t = XC_RESULT_STR;
-				r.d.id.idx = bc_program_index(code, &ip->inst_idx);
-				bc_vec_push(&G.prog.results, &r);
-				break;
-			case XC_INST_POWER:
-			case XC_INST_MULTIPLY:
-			case XC_INST_DIVIDE:
-			case XC_INST_MODULUS:
-			case XC_INST_PLUS:
-			case XC_INST_MINUS:
-				dbg_exec("BC_INST_binaryop:");
-				s = zbc_program_op(inst);
-				break;
-			case XC_INST_BOOL_NOT: {
-				BcNum *num;
-				dbg_exec("XC_INST_BOOL_NOT:");
-				s = zbc_program_prep(&ptr, &num);
-				if (s) RETURN_STATUS(s);
-				bc_num_init_DEF_SIZE(&r.d.n);
-				if (bc_num_cmp(num, &G.prog.zero) == 0)
-					bc_num_one(&r.d.n);
-				//else bc_num_zero(&r.d.n); - already is
-				bc_program_retire(&r, XC_RESULT_TEMP);
-				break;
-			}
-			case XC_INST_NEG:
-				dbg_exec("XC_INST_NEG:");
-				s = zbc_program_negate();
-				break;
+		case XC_INST_IBASE:
+		case XC_INST_OBASE:
+		case XC_INST_SCALE:
+			dbg_exec("XC_INST_internalvar(%d):", inst - XC_INST_IBASE);
+			bc_program_pushGlobal(inst);
+			break;
+		case XC_INST_SCALE_FUNC:
+		case XC_INST_LENGTH:
+		case XC_INST_SQRT:
+			dbg_exec("BC_INST_builtin:");
+			s = zbc_program_builtin(inst);
+			break;
+		case XC_INST_NUM:
+			dbg_exec("XC_INST_NUM:");
+			r.t = XC_RESULT_CONSTANT;
+			r.d.id.idx = bc_program_index(code, &ip->inst_idx);
+			bc_vec_push(&G.prog.results, &r);
+			break;
+		case XC_INST_POP:
+			dbg_exec("XC_INST_POP:");
+			if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
+				s = bc_error_stack_has_too_few_elements();
+			else
+				bc_vec_pop(&G.prog.results);
+			break;
+		case XC_INST_PRINT:
+		case XC_INST_PRINT_POP:
+		case XC_INST_PRINT_STR:
+			dbg_exec("XC_INST_PRINTxyz:");
+			s = zbc_program_print(inst, 0);
+			break;
+		case XC_INST_STR:
+			dbg_exec("XC_INST_STR:");
+			r.t = XC_RESULT_STR;
+			r.d.id.idx = bc_program_index(code, &ip->inst_idx);
+			bc_vec_push(&G.prog.results, &r);
+			break;
+		case XC_INST_POWER:
+		case XC_INST_MULTIPLY:
+		case XC_INST_DIVIDE:
+		case XC_INST_MODULUS:
+		case XC_INST_PLUS:
+		case XC_INST_MINUS:
+			dbg_exec("BC_INST_binaryop:");
+			s = zbc_program_op(inst);
+			break;
+		case XC_INST_BOOL_NOT: {
+			BcNum *num;
+			dbg_exec("XC_INST_BOOL_NOT:");
+			s = zbc_program_prep(&ptr, &num);
+			if (s) RETURN_STATUS(s);
+			bc_num_init_DEF_SIZE(&r.d.n);
+			if (bc_num_cmp(num, &G.prog.zero) == 0)
+				bc_num_one(&r.d.n);
+			//else bc_num_zero(&r.d.n); - already is
+			bc_program_retire(&r, XC_RESULT_TEMP);
+			break;
+		}
+		case XC_INST_NEG:
+			dbg_exec("XC_INST_NEG:");
+			s = zbc_program_negate();
+			break;
 #if ENABLE_BC
-			case BC_INST_ASSIGN_POWER:
-			case BC_INST_ASSIGN_MULTIPLY:
-			case BC_INST_ASSIGN_DIVIDE:
-			case BC_INST_ASSIGN_MODULUS:
-			case BC_INST_ASSIGN_PLUS:
-			case BC_INST_ASSIGN_MINUS:
+		case BC_INST_ASSIGN_POWER:
+		case BC_INST_ASSIGN_MULTIPLY:
+		case BC_INST_ASSIGN_DIVIDE:
+		case BC_INST_ASSIGN_MODULUS:
+		case BC_INST_ASSIGN_PLUS:
+		case BC_INST_ASSIGN_MINUS:
 #endif
-			case XC_INST_ASSIGN:
-				dbg_exec("BC_INST_ASSIGNxyz:");
-				s = zbc_program_assign(inst);
-				break;
+		case XC_INST_ASSIGN:
+			dbg_exec("BC_INST_ASSIGNxyz:");
+			s = zbc_program_assign(inst);
+			break;
 #if ENABLE_DC
-			case DC_INST_POP_EXEC:
-				dbg_exec("DC_INST_POP_EXEC:");
-				bc_vec_pop(&G.prog.exestack);
-				goto read_updated_ip;
-			case DC_INST_MODEXP:
-				dbg_exec("DC_INST_MODEXP:");
-				s = zdc_program_modexp();
-				break;
-			case DC_INST_DIVMOD:
-				dbg_exec("DC_INST_DIVMOD:");
-				s = zdc_program_divmod();
-				break;
-			case DC_INST_EXECUTE:
-			case DC_INST_EXEC_COND:
-				dbg_exec("DC_INST_EXEC[_COND]:");
-				s = zdc_program_execStr(code, &ip->inst_idx, inst == DC_INST_EXEC_COND);
-				goto read_updated_ip;
-			case DC_INST_PRINT_STACK: {
-				size_t idx;
-				dbg_exec("DC_INST_PRINT_STACK:");
-				for (idx = 0; idx < G.prog.results.len; ++idx) {
-					s = zbc_program_print(XC_INST_PRINT, idx);
-					if (s) break;
-				}
-				break;
+		case DC_INST_POP_EXEC:
+			dbg_exec("DC_INST_POP_EXEC:");
+			bc_vec_pop(&G.prog.exestack);
+			goto read_updated_ip;
+		case DC_INST_MODEXP:
+			dbg_exec("DC_INST_MODEXP:");
+			s = zdc_program_modexp();
+			break;
+		case DC_INST_DIVMOD:
+			dbg_exec("DC_INST_DIVMOD:");
+			s = zdc_program_divmod();
+			break;
+		case DC_INST_EXECUTE:
+		case DC_INST_EXEC_COND:
+			dbg_exec("DC_INST_EXEC[_COND]:");
+			s = zdc_program_execStr(code, &ip->inst_idx, inst == DC_INST_EXEC_COND);
+			goto read_updated_ip;
+		case DC_INST_PRINT_STACK: {
+			size_t idx;
+			dbg_exec("DC_INST_PRINT_STACK:");
+			for (idx = 0; idx < G.prog.results.len; ++idx) {
+				s = zbc_program_print(XC_INST_PRINT, idx);
+				if (s) break;
 			}
-			case DC_INST_CLEAR_STACK:
-				dbg_exec("DC_INST_CLEAR_STACK:");
-				bc_vec_pop_all(&G.prog.results);
-				break;
-			case DC_INST_STACK_LEN:
-				dbg_exec("DC_INST_STACK_LEN:");
-				dc_program_stackLen();
-				break;
-			case DC_INST_DUPLICATE:
-				dbg_exec("DC_INST_DUPLICATE:");
-				if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
-					RETURN_STATUS(bc_error_stack_has_too_few_elements());
-				ptr = bc_vec_top(&G.prog.results);
-				dc_result_copy(&r, ptr);
-				bc_vec_push(&G.prog.results, &r);
-				break;
-			case DC_INST_SWAP: {
-				BcResult *ptr2;
-				dbg_exec("DC_INST_SWAP:");
-				if (!STACK_HAS_MORE_THAN(&G.prog.results, 1))
-					RETURN_STATUS(bc_error_stack_has_too_few_elements());
-				ptr = bc_vec_item_rev(&G.prog.results, 0);
-				ptr2 = bc_vec_item_rev(&G.prog.results, 1);
-				memcpy(&r, ptr, sizeof(BcResult));
-				memcpy(ptr, ptr2, sizeof(BcResult));
-				memcpy(ptr2, &r, sizeof(BcResult));
-				break;
-			}
-			case DC_INST_ASCIIFY:
-				dbg_exec("DC_INST_ASCIIFY:");
-				s = zdc_program_asciify();
-				break;
-			case DC_INST_PRINT_STREAM:
-				dbg_exec("DC_INST_PRINT_STREAM:");
-				s = zdc_program_printStream();
-				break;
-			case DC_INST_LOAD:
-			case DC_INST_PUSH_VAR: {
-				bool copy = inst == DC_INST_LOAD;
-				s = zbc_program_pushVar(code, &ip->inst_idx, true, copy);
-				break;
-			}
-			case DC_INST_PUSH_TO_VAR: {
-				char *name = bc_program_name(code, &ip->inst_idx);
-				s = zbc_program_copyToVar(name, true);
-				free(name);
-				break;
-			}
-			case DC_INST_QUIT:
-				dbg_exec("DC_INST_QUIT:");
-				if (G.prog.exestack.len <= 2)
-					QUIT_OR_RETURN_TO_MAIN;
-				bc_vec_npop(&G.prog.exestack, 2);
-				goto read_updated_ip;
-			case DC_INST_NQUIT:
-				dbg_exec("DC_INST_NQUIT:");
-				s = zdc_program_nquit();
-				//goto read_updated_ip; - just fall through to it
+			break;
+		}
+		case DC_INST_CLEAR_STACK:
+			dbg_exec("DC_INST_CLEAR_STACK:");
+			bc_vec_pop_all(&G.prog.results);
+			break;
+		case DC_INST_STACK_LEN:
+			dbg_exec("DC_INST_STACK_LEN:");
+			dc_program_stackLen();
+			break;
+		case DC_INST_DUPLICATE:
+			dbg_exec("DC_INST_DUPLICATE:");
+			if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
+				RETURN_STATUS(bc_error_stack_has_too_few_elements());
+			ptr = bc_vec_top(&G.prog.results);
+			dc_result_copy(&r, ptr);
+			bc_vec_push(&G.prog.results, &r);
+			break;
+		case DC_INST_SWAP: {
+			BcResult *ptr2;
+			dbg_exec("DC_INST_SWAP:");
+			if (!STACK_HAS_MORE_THAN(&G.prog.results, 1))
+				RETURN_STATUS(bc_error_stack_has_too_few_elements());
+			ptr = bc_vec_item_rev(&G.prog.results, 0);
+			ptr2 = bc_vec_item_rev(&G.prog.results, 1);
+			memcpy(&r, ptr, sizeof(BcResult));
+			memcpy(ptr, ptr2, sizeof(BcResult));
+			memcpy(ptr2, &r, sizeof(BcResult));
+			break;
+		}
+		case DC_INST_ASCIIFY:
+			dbg_exec("DC_INST_ASCIIFY:");
+			s = zdc_program_asciify();
+			break;
+		case DC_INST_PRINT_STREAM:
+			dbg_exec("DC_INST_PRINT_STREAM:");
+			s = zdc_program_printStream();
+			break;
+		case DC_INST_LOAD:
+		case DC_INST_PUSH_VAR: {
+			bool copy = inst == DC_INST_LOAD;
+			s = zbc_program_pushVar(code, &ip->inst_idx, true, copy);
+			break;
+		}
+		case DC_INST_PUSH_TO_VAR: {
+			char *name = bc_program_name(code, &ip->inst_idx);
+			s = zbc_program_copyToVar(name, true);
+			free(name);
+			break;
+		}
+		case DC_INST_QUIT:
+			dbg_exec("DC_INST_QUIT:");
+			if (G.prog.exestack.len <= 2)
+				QUIT_OR_RETURN_TO_MAIN;
+			bc_vec_npop(&G.prog.exestack, 2);
+			goto read_updated_ip;
+		case DC_INST_NQUIT:
+			dbg_exec("DC_INST_NQUIT:");
+			s = zdc_program_nquit();
+			//goto read_updated_ip; - just fall through to it
 #endif // ENABLE_DC
  read_updated_ip:
-				// Instruction stack has changed, read new pointers
-				ip = bc_vec_top(&G.prog.exestack);
-				func = bc_program_func(ip->func);
-				code = func->code.v;
-				dbg_exec("func:%zd bytes:%zd ip:%zd", ip->func, func->code.len, ip->inst_idx);
+			// Instruction stack has changed, read new pointers
+			ip = bc_vec_top(&G.prog.exestack);
+			func = bc_program_func(ip->func);
+			code = func->code.v;
+			dbg_exec("func:%zd bytes:%zd ip:%zd", ip->func, func->code.len, ip->inst_idx);
 		}
 
 		if (s || G_interrupt) {
