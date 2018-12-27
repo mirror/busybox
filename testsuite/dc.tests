@@ -41,6 +41,9 @@ testing "dc complex without spaces (multiple args)" \
 	"16\n" \
 	"" ""
 
+optional FEATURE_DC_BIG
+# All tests below depend on FEATURE_DC_BIG
+
 testing "dc '>a' (conditional execute string) 1" \
 	"dc" \
 	"1\n9\n" \

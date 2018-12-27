@@ -31,10 +31,12 @@ testing "head -n <positive number>" \
 	"line 1\nline 2\n" \
 	"" ""
 
+optional FEATURE_FANCY_HEAD
 testing "head -n <negative number>" \
 	"head -n -9 head.input" \
 	"line 1\nline 2\nline 3\n" \
 	"" ""
+SKIP=
 
 rm head.input
 

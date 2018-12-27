@@ -27,19 +27,6 @@
 //config:	     easier.
 //config:	  5) "read()" accepts expressions, not only numeric literals.
 //config:
-//config:	Options:
-//config:	  -i  --interactive  force interactive mode
-//config:	  -q  --quiet        don't print version and copyright
-//config:	  -s  --standard     error if any non-POSIX extensions are used
-//config:	  -w  --warn         warn if any non-POSIX extensions are used
-//config:	  -l  --mathlib      use predefined math routines:
-//config:		s(expr) sine in radians
-//config:		c(expr) cosine in radians
-//config:		a(expr) arctangent, returning radians
-//config:		l(expr) natural log
-//config:		e(expr) raises e to the power of expr
-//config:		j(n, x) Bessel function of integer order n of x
-//config:
 //config:config DC
 //config:	bool "dc (36 kb)"
 //config:	default y
@@ -60,31 +47,32 @@
 //config:	     whitespace where a register should be, it skips the whitespace.
 //config:	     If the character following is not a lowercase letter, an error
 //config:	     is issued. Otherwise, the register name is parsed by the
-//config:	     following regex:
-//config:		[a-z][a-z0-9_]*
+//config:	     following regex: [a-z][a-z0-9_]*
 //config:	     This generally means that register names will be surrounded by
 //config:	     whitespace. Examples:
 //config:		l idx s temp L index S temp2 < do_thing
 //config:	     Also note that, like the FreeBSD dc, extended registers are not
 //config:	     allowed unless the "-x" option is given.
 //config:
-//config:config FEATURE_DC_SMALL
-//config:	bool "Minimal dc implementation (4.2 kb), not using bc code base"
+//config:if BC || DC  # for menuconfig indenting
+//config:
+//config:config FEATURE_DC_BIG
+//config:	bool "Use bc code base for dc (larger, more features)"
 //config:	depends on DC && !BC
-//config:	default n
+//config:	default y
 //config:
 //config:config FEATURE_DC_LIBM
 //config:	bool "Enable power and exp functions (requires libm)"
 //config:	default y
-//config:	depends on FEATURE_DC_SMALL
+//config:	depends on DC && !BC && !FEATURE_DC_BIG
 //config:	help
 //config:	Enable power and exp functions.
 //config:	NOTE: This will require libm to be present for linking.
 //config:
-//config:config FEATURE_BC_SIGNALS
+//config:config FEATURE_BC_INTERACTIVE
 //config:	bool "Interactive mode (+4kb)"
 //config:	default y
-//config:	depends on (BC || DC) && !FEATURE_DC_SMALL
+//config:	depends on BC || (DC && FEATURE_DC_BIG)
 //config:	help
 //config:	Enable interactive mode: when started on a tty,
 //config:	^C interrupts execution and returns to command line,
@@ -99,9 +87,9 @@
 //config:config FEATURE_BC_LONG_OPTIONS
 //config:	bool "Enable bc/dc long options"
 //config:	default y
-//config:	depends on (BC || DC) && !FEATURE_DC_SMALL
-//config:	help
-//config:	Enable long options for bc and dc.
+//config:	depends on BC || (DC && FEATURE_DC_BIG)
+//config:
+//config:endif
 
 //applet:IF_BC(APPLET(bc, BB_DIR_USR_BIN, BB_SUID_DROP))
 //applet:IF_DC(APPLET(dc, BB_DIR_USR_BIN, BB_SUID_DROP))
@@ -137,11 +125,11 @@
 //usage:       "obase = A\n"
 //usage:
 //usage:#define dc_trivial_usage
-//usage:       IF_NOT_FEATURE_DC_SMALL("[-x] ")"[-eSCRIPT]... [-fFILE]... [FILE]..."
+//usage:       IF_FEATURE_DC_BIG("[-x] ")"[-eSCRIPT]... [-fFILE]... [FILE]..."
 //usage:
 //usage:#define dc_full_usage "\n"
 //usage:     "\nTiny RPN calculator. Operations:"
-//usage:     "\n+, -, *, /, %, ~, ^," IF_NOT_FEATURE_DC_SMALL(" |,")
+//usage:     "\n+, -, *, /, %, ~, ^," IF_FEATURE_DC_BIG(" |,")
 //usage:     "\np - print top of the stack without popping"
 //usage:     "\nf - print entire stack"
 //usage:     "\nk - pop the value and set the precision"
@@ -164,7 +152,7 @@
 #include "libbb.h"
 #include "common_bufsiz.h"
 
-#if ENABLE_FEATURE_DC_SMALL
+#if !ENABLE_BC && !ENABLE_FEATURE_DC_BIG
 # include "dc.c"
 #else
 
@@ -765,7 +753,7 @@ struct globals {
 
 	BcVec input_buffer;
 
-	IF_FEATURE_BC_SIGNALS(smallint ttyin;)
+	IF_FEATURE_BC_INTERACTIVE(smallint ttyin;)
 	IF_FEATURE_CLEAN_UP(smallint exiting;)
 
 	BcProgram prog;
@@ -788,7 +776,7 @@ struct globals {
 #define G_posix (ENABLE_BC && (option_mask32 & BC_FLAG_S))
 #define G_warn  (ENABLE_BC && (option_mask32 & BC_FLAG_W))
 #define G_exreg (ENABLE_DC && (option_mask32 & DC_FLAG_X))
-#if ENABLE_FEATURE_BC_SIGNALS
+#if ENABLE_FEATURE_BC_INTERACTIVE
 # define G_interrupt bb_got_signal
 # define G_ttyin     G.ttyin
 #else
@@ -876,7 +864,7 @@ struct globals {
 // To make code more readable, each such function has a "z"
 // ("always returning zero") prefix, i.e. zbc_foo or zdc_foo.
 //
-#if ENABLE_FEATURE_BC_SIGNALS || ENABLE_FEATURE_CLEAN_UP
+#if ENABLE_FEATURE_BC_INTERACTIVE || ENABLE_FEATURE_CLEAN_UP
 # define ERRORS_ARE_FATAL 0
 # define ERRORFUNC        /*nothing*/
 # define IF_ERROR_RETURN_POSSIBLE(a)  a
@@ -906,7 +894,7 @@ static void fflush_and_check(void)
 #if ENABLE_FEATURE_CLEAN_UP
 #define QUIT_OR_RETURN_TO_MAIN \
 do { \
-	IF_FEATURE_BC_SIGNALS(G_ttyin = 0;) /* do not loop in main loop anymore */ \
+	IF_FEATURE_BC_INTERACTIVE(G_ttyin = 0;) /* do not loop in main loop anymore */ \
 	G_exiting = 1; \
 	return BC_STATUS_FAILURE; \
 } while (0)
@@ -1834,7 +1822,7 @@ static FAST_FUNC BC_STATUS zbc_num_k(BcNum *restrict a, BcNum *restrict b,
 			c->num[i + j] += (BcDig) carry;
 			len = BC_MAX(len, i + j + !!carry);
 
-#if ENABLE_FEATURE_BC_SIGNALS
+#if ENABLE_FEATURE_BC_INTERACTIVE
 			// a=2^1000000
 			// a*a <- without check below, this will not be interruptible
 			if (G_interrupt) return BC_STATUS_FAILURE;
@@ -2001,7 +1989,7 @@ static FAST_FUNC BC_STATUS zbc_num_d(BcNum *a, BcNum *b, BcNum *restrict c, size
 		for (q = 0; n[len] != 0 || bc_num_compare(n, b->num, len) >= 0; ++q)
 			bc_num_subArrays(n, b->num, len);
 		c->num[i] = q;
-#if ENABLE_FEATURE_BC_SIGNALS
+#if ENABLE_FEATURE_BC_INTERACTIVE
 		// a=2^100000
 		// scale=40000
 		// 1/a <- without check below, this will not be interruptible
@@ -2486,7 +2474,7 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 	bc_vec_pop_all(vec);
 	fflush_and_check();
 
-#if ENABLE_FEATURE_BC_SIGNALS
+#if ENABLE_FEATURE_BC_INTERACTIVE
 	if (G_interrupt) { // ^C was pressed
  intr:
 		if (fp != stdin) {
@@ -2533,7 +2521,7 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 		bool bad_chars = 0;
 
 		do {
-#if ENABLE_FEATURE_BC_SIGNALS
+#if ENABLE_FEATURE_BC_INTERACTIVE
 			if (G_interrupt) {
 				// ^C was pressed: ignore entire line, get another one
 				bc_vec_pop_all(vec);
@@ -7223,7 +7211,7 @@ static int xc_vm_init(const char *env_len)
 //TODO: in GNU bc, the check is (isatty(0) && isatty(1)),
 //-i option unconditionally enables this regardless of isatty():
 	if (isatty(0)) {
-#if ENABLE_FEATURE_BC_SIGNALS
+#if ENABLE_FEATURE_BC_INTERACTIVE
 		G_ttyin = 1;
 		// With SA_RESTART, most system calls will restart
 		// (IOW: they won't fail with EINTR).
@@ -7342,4 +7330,5 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 }
 #endif
 
-#endif // not DC_SMALL
+#endif // DC_BIG
+
