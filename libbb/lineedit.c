@@ -1373,6 +1373,16 @@ void FAST_FUNC show_history(const line_input_t *st)
 		printf("%4d %s\n", i, st->history[i]);
 }
 
+void FAST_FUNC free_line_input_t(line_input_t *n)
+{
+# if ENABLE_FEATURE_EDITING_SAVEHISTORY
+	int i = n->cnt_history;
+	while (i > 0)
+		free(n->history[--i]);
+#endif
+	free(n);
+}
+
 # if ENABLE_FEATURE_EDITING_SAVEHISTORY
 /* We try to ensure that concurrent additions to the history
  * do not overwrite each other.
@@ -1381,14 +1391,6 @@ void FAST_FUNC show_history(const line_input_t *st)
  * History file is trimmed lazily, when it grows several times longer
  * than configured MAX_HISTORY lines.
  */
-
-void FAST_FUNC free_line_input_t(line_input_t *n)
-{
-	int i = n->cnt_history;
-	while (i > 0)
-		free(n->history[--i]);
-	free(n);
-}
 
 /* state->flags is already checked to be nonzero */
 static void load_history(line_input_t *st_parm)

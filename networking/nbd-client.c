@@ -163,7 +163,9 @@ int nbdclient_main(int argc, char **argv)
 		int sock, nbd;
 		int ro;
 		int proto_new; // 0 for old, 1 for new
+#if BB_MMU
 		char *data;
+#endif
 
 		// Make sure BLOCKDEV exists
 		nbd = xopen(device, O_RDWR);
@@ -200,7 +202,9 @@ int nbdclient_main(int argc, char **argv)
 			ioctl(nbd, NBD_SET_SIZE_BLOCKS, size_blocks);
 			ioctl(nbd, NBD_CLEAR_SOCK);
 			ro = !!(old_nbd_header.flags & htons(2));
+#if BB_MMU
 			data = old_nbd_header.data;
+#endif
 		} else {
 			unsigned namelen;
 			uint16_t handshake_flags;
@@ -230,7 +234,9 @@ int nbdclient_main(int argc, char **argv)
 			ioctl(nbd, NBD_SET_FLAGS,
 					ntohs(new_nbd_header.transmission_flags));
 			ro = !!(new_nbd_header.transmission_flags & htons(2));
+#if BB_MMU
 			data = new_nbd_header.data;
+#endif
 		}
 
 		if (ioctl(nbd, BLKROSET, &ro) < 0) {

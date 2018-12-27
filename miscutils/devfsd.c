@@ -694,7 +694,7 @@ static void process_config_line(const char *line, unsigned long *event_mask)
 	return;
 
  process_config_line_err:
-	msg_logger_and_die(LOG_ERR, bb_msg_bad_config, msg , line);
+	msg_logger_and_die(LOG_ERR, bb_msg_bad_config, msg, line);
 }  /*  End Function process_config_line   */
 
 static int do_servicing(int fd, unsigned long event_mask)

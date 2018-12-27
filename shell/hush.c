@@ -5998,7 +5998,7 @@ static const char *first_special_char_in_vararg(const char *cp)
 #endif
 static char *encode_then_expand_vararg(const char *str, int handle_squotes, int do_unbackslash)
 {
-#if !BASH_PATTERN_SUBST
+#if !BASH_PATTERN_SUBST && ENABLE_HUSH_CASE
 	const int do_unbackslash = 0;
 #endif
 	char *exp_str;
