@@ -7156,7 +7156,7 @@ static void bc_program_free(void)
 	bc_vec_free(&G.prog.results);
 	bc_vec_free(&G.prog.exestack);
 	IF_BC(bc_num_free(&G.prog.last);)
-	IF_BC(bc_num_free(&G.prog.zero);)
+	//IF_BC(bc_num_free(&G.prog.zero);)
 	IF_BC(bc_num_free(&G.prog.one);)
 	bc_vec_free(&G.input_buffer);
 }
@@ -7184,7 +7184,7 @@ static void bc_program_init(void)
 	IF_BC(bc_num_init_DEF_SIZE(&G.prog.last);)
 	//IF_BC(bc_num_zero(&G.prog.last);) - already is
 
-	bc_num_init_DEF_SIZE(&G.prog.zero);
+	//bc_num_init_DEF_SIZE(&G.prog.zero); - not needed
 	//bc_num_zero(&G.prog.zero); - already is
 
 	IF_BC(bc_num_init_DEF_SIZE(&G.prog.one);)
