@@ -7,6 +7,7 @@
 //config:config BC
 //config:	bool "bc (45 kb)"
 //config:	default y
+//config:	select FEATURE_DC_BIG
 //config:	help
 //config:	bc is a command-line, arbitrary-precision calculator with a
 //config:	Turing-complete language. See the GNU bc manual
@@ -58,7 +59,6 @@
 //config:
 //config:config FEATURE_DC_BIG
 //config:	bool "Use bc code base for dc (larger, more features)"
-//config:	depends on DC && !BC
 //config:	default y
 //config:
 //config:config FEATURE_DC_LIBM
