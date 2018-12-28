@@ -57,8 +57,8 @@ grep ^IF_ include/applets.h \
 	test -f "$b" || continue
 
 	file=`grep -lF "bool \"$name" $(find -name '*.c') | xargs`
-	# so far all such items are in .c files; if need to check Config.* files:
-	#test "$file" || file=`grep -lF "bool \"$name" $(find -name 'Config.*') |  xargs`
+	# A few applets have their CONFIG items in Config.* files, not .c files:
+	test "$file" || file=`grep -lF "bool \"$name" $(find -name 'Config.*') | xargs`
 	test "$file" || continue
 	#echo "FILE:'$file'"
 
