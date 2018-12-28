@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FSYNC
-//config:	bool "fsync (3.7 kb)"
+//config:	bool "fsync (3.6 kb)"
 //config:	default y
 //config:	help
 //config:	fsync is used to flush file-related cached blocks to disk.

@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config UEVENT
-//config:	bool "uevent (3.2 kb)"
+//config:	bool "uevent (3.1 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

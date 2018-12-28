@@ -18,7 +18,7 @@
  * Implement -P and -B; better coreutils compat; cleanup
  */
 //config:config DF
-//config:	bool "df (7.5 kb)"
+//config:	bool "df (6.8 kb)"
 //config:	default y
 //config:	help
 //config:	df reports the amount of disk space used and available

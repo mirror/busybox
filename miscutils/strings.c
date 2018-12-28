@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config STRINGS
-//config:	bool "strings (4.3 kb)"
+//config:	bool "strings (4.6 kb)"
 //config:	default y
 //config:	help
 //config:	strings prints the printable character sequences for each file

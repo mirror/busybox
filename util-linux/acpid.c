@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config ACPID
-//config:	bool "acpid (8.7 kb)"
+//config:	bool "acpid (9 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

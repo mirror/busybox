@@ -93,7 +93,7 @@
  * add =~ regex match operator: STR =~ REGEX
  */
 //config:config HUSH
-//config:	bool "hush (64 kb)"
+//config:	bool "hush (68 kb)"
 //config:	default y
 //config:	help
 //config:	hush is a small shell. It handles the normal flow control

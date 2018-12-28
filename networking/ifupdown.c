@@ -17,7 +17,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config IFUP
-//config:	bool "ifup (17 kb)"
+//config:	bool "ifup (14 kb)"
 //config:	default y
 //config:	help
 //config:	Activate the specified interfaces. This applet makes use
@@ -33,7 +33,7 @@
 //config:	via busybox or via standalone utilities.
 //config:
 //config:config IFDOWN
-//config:	bool "ifdown (15 kb)"
+//config:	bool "ifdown (13 kb)"
 //config:	default y
 //config:	help
 //config:	Deactivate the specified interfaces.

@@ -12,7 +12,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config IPCALC
-//config:	bool "ipcalc (4.3 kb)"
+//config:	bool "ipcalc (4.4 kb)"
 //config:	default y
 //config:	help
 //config:	ipcalc takes an IP address and netmask and calculates the

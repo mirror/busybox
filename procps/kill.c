@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config KILL
-//config:	bool "kill (2.6 kb)"
+//config:	bool "kill (3.1 kb)"
 //config:	default y
 //config:	help
 //config:	The command kill sends the specified signal to the specified

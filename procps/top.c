@@ -50,7 +50,7 @@
  * chroot . ./top -bn1 >top1.out
  */
 //config:config TOP
-//config:	bool "top (17 kb)"
+//config:	bool "top (18 kb)"
 //config:	default y
 //config:	help
 //config:	The top program provides a dynamic real-time view of a running

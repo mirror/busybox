@@ -44,7 +44,7 @@
  *  Fix handling of -a to not print "unknown", add -o and -i support.
  */
 //config:config UNAME
-//config:	bool "uname (3.7 kb)"
+//config:	bool "uname (3.9 kb)"
 //config:	default y
 //config:	help
 //config:	uname is used to print system information.
@@ -59,7 +59,7 @@
 //config:
 //can't use "ARCH" for this applet, all hell breaks loose in build system :)
 //config:config BB_ARCH
-//config:	bool "arch (1.6 kb)"
+//config:	bool "arch (1.1 kb)"
 //config:	default y
 //config:	help
 //config:	Same as uname -m.

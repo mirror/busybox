@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config SEQ
-//config:	bool "seq (3.6 kb)"
+//config:	bool "seq (3.8 kb)"
 //config:	default y
 //config:	help
 //config:	print a sequence of numbers

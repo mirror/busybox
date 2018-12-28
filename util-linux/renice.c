@@ -18,7 +18,7 @@
  *   following IDs (if any).  Multiple switches are allowed.
  */
 //config:config RENICE
-//config:	bool "renice (3.8 kb)"
+//config:	bool "renice (4.2 kb)"
 //config:	default y
 //config:	help
 //config:	Renice alters the scheduling priority of one or more running

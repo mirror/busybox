@@ -8,14 +8,14 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config MKE2FS
-//config:	bool "mke2fs (9.7 kb)"
+//config:	bool "mke2fs (10 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	Utility to create EXT2 filesystems.
 //config:
 //config:config MKFS_EXT2
-//config:	bool "mkfs.ext2 (9.8 kb)"
+//config:	bool "mkfs.ext2 (10 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

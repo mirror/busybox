@@ -10,7 +10,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config TUNCTL
-//config:	bool "tunctl (6.4 kb)"
+//config:	bool "tunctl (6.2 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

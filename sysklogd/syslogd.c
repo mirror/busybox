@@ -13,7 +13,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SYSLOGD
-//config:	bool "syslogd (12 kb)"
+//config:	bool "syslogd (13 kb)"
 //config:	default y
 //config:	help
 //config:	The syslogd utility is used to record logs of all the

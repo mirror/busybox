@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 
 //config:config NSLOOKUP
-//config:	bool "nslookup (4.5 kb)"
+//config:	bool "nslookup (9.7 kb)"
 //config:	default y
 //config:	help
 //config:	nslookup is a tool to query Internet name servers.

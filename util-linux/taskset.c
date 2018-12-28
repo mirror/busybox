@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config TASKSET
-//config:	bool "taskset (4.1 kb)"
+//config:	bool "taskset (4.2 kb)"
 //config:	default y
 //config:	help
 //config:	Retrieve or set a processes's CPU affinity.

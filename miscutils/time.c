@@ -10,7 +10,7 @@
  * Heavily modified for busybox by Erik Andersen <andersen@codepoet.org>
  */
 //config:config TIME
-//config:	bool "time (7 kb)"
+//config:	bool "time (6.8 kb)"
 //config:	default y
 //config:	help
 //config:	The time command runs the specified program with the given arguments.

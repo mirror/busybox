@@ -14,7 +14,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config MORE
-//config:	bool "more (6.7 kb)"
+//config:	bool "more (7 kb)"
 //config:	default y
 //config:	help
 //config:	more is a simple utility which allows you to read text one screen

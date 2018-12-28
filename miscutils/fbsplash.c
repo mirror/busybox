@@ -21,7 +21,7 @@
  *   "exit" (or just close fifo) - well you guessed it.
  */
 //config:config FBSPLASH
-//config:	bool "fbsplash (27 kb)"
+//config:	bool "fbsplash (26 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

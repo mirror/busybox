@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config UBIRENAME
-//config:	bool "ubirename (2.2 kb)"
+//config:	bool "ubirename (2.4 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

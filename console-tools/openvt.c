@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config OPENVT
-//config:	bool "openvt (7 kb)"
+//config:	bool "openvt (7.2 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

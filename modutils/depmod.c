@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DEPMOD
-//config:	bool "depmod (26 kb)"
+//config:	bool "depmod (27 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

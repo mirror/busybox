@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DD
-//config:	bool "dd (7.1 kb)"
+//config:	bool "dd (7.5 kb)"
 //config:	default y
 //config:	help
 //config:	dd copies a file (from standard input to standard output,

@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see LICENSE in this source tree
  */
 //config:config NPROC
-//config:	bool "nproc (248 bytes)"
+//config:	bool "nproc (3.7 kb)"
 //config:	default y
 //config:	help
 //config:	Print number of CPUs

@@ -25,7 +25,7 @@
  * remove ridiculous amounts of bloat.
  */
 //config:config ROUTE
-//config:	bool "route (8.9 kb)"
+//config:	bool "route (8.7 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

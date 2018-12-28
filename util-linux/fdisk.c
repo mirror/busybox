@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FDISK
-//config:	bool "fdisk (41 kb)"
+//config:	bool "fdisk (37 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

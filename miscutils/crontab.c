@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CRONTAB
-//config:	bool "crontab (9.7 kb)"
+//config:	bool "crontab (10 kb)"
 //config:	default y
 //config:	help
 //config:	Crontab manipulates the crontab for a particular user. Only

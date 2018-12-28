@@ -9,7 +9,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config POWERTOP
-//config:	bool "powertop (9.1 kb)"
+//config:	bool "powertop (9.6 kb)"
 //config:	default y
 //config:	help
 //config:	Analyze power consumption on Intel-based laptops

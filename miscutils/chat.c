@@ -8,7 +8,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config CHAT
-//config:	bool "chat (6.6 kb)"
+//config:	bool "chat (6.3 kb)"
 //config:	default y
 //config:	help
 //config:	Simple chat utility.

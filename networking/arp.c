@@ -13,7 +13,7 @@
  * modified for getopt32 by Arne Bernin <arne [at] alamut.de>
  */
 //config:config ARP
-//config:	bool "arp (11 kb)"
+//config:	bool "arp (10 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

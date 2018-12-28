@@ -6,7 +6,7 @@
  * Busybox port: Nick Fedchik <nick@fedchik.org.ua>
  */
 //config:config ARPING
-//config:	bool "arping (9.3 kb)"
+//config:	bool "arping (9 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

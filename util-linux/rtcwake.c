@@ -23,7 +23,7 @@
  * That flag should not be needed on systems with adjtime support.
  */
 //config:config RTCWAKE
-//config:	bool "rtcwake (6.4 kb)"
+//config:	bool "rtcwake (6.8 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

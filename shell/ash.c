@@ -16,7 +16,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config ASH
-//config:	bool "ash (77 kb)"
+//config:	bool "ash (78 kb)"
 //config:	default y
 //config:	depends on !NOMMU
 //config:	help

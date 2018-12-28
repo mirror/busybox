@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config WATCH
-//config:	bool "watch (4.1 kb)"
+//config:	bool "watch (4.4 kb)"
 //config:	default y
 //config:	help
 //config:	watch is used to execute a program periodically, showing

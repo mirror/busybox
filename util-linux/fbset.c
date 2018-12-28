@@ -12,7 +12,7 @@
  *     Geert Uytterhoeven (Geert.Uytterhoeven@cs.kuleuven.ac.be)
  */
 //config:config FBSET
-//config:	bool "fbset (5.8 kb)"
+//config:	bool "fbset (5.9 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

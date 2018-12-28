@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FLASHCP
-//config:	bool "flashcp (5.4 kb)"
+//config:	bool "flashcp (5.3 kb)"
 //config:	default n  # doesn't build on Ubuntu 8.04
 //config:	help
 //config:	The flashcp binary, inspired by mtd-utils as of git head 5eceb74f7.

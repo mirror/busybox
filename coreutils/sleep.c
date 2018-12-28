@@ -13,7 +13,7 @@
  * time suffixes for seconds, minutes, hours, and days.
  */
 //config:config SLEEP
-//config:	bool "sleep (1.7 kb)"
+//config:	bool "sleep (2 kb)"
 //config:	default y
 //config:	help
 //config:	sleep is used to pause for a specified number of seconds.

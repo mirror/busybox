@@ -6,7 +6,7 @@
  * Contact me: vda.linux@googlemail.com
  */
 //config:config NMETER
-//config:	bool "nmeter (10 kb)"
+//config:	bool "nmeter (11 kb)"
 //config:	default y
 //config:	help
 //config:	Prints selected system stats continuously, one line per update.

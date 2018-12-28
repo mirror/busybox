@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CHMOD
-//config:	bool "chmod (5.1 kb)"
+//config:	bool "chmod (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	chmod is used to change the access permission of files.

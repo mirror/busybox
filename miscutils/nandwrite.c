@@ -8,14 +8,14 @@
  * TODO: add support for large (>4GB) MTD devices
  */
 //config:config NANDWRITE
-//config:	bool "nandwrite (5.9 kb)"
+//config:	bool "nandwrite (4.8 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	Write to the specified MTD device, with bad blocks awareness
 //config:
 //config:config NANDDUMP
-//config:	bool "nanddump (6.3 kb)"
+//config:	bool "nanddump (5.2 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

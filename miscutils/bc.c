@@ -5,7 +5,7 @@
  * Original code copyright (c) 2018 Gavin D. Howard and contributors.
  */
 //config:config BC
-//config:	bool "bc (45 kb; 49 kb when combined with dc)"
+//config:	bool "bc (45 kb)"
 //config:	default y
 //config:	help
 //config:	bc is a command-line, arbitrary-precision calculator with a
@@ -41,7 +41,7 @@
 //config:		j(n, x) Bessel function of integer order n of x
 //config:
 //config:config DC
-//config:	bool "dc (38 kb; 49 kb when combined with bc)"
+//config:	bool "dc (36 kb)"
 //config:	default y
 //config:	help
 //config:	dc is a reverse-polish notation command-line calculator which

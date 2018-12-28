@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config LAST
-//config:	bool "last (6.2 kb)"
+//config:	bool "last (6.1 kb)"
 //config:	default y
 //config:	depends on FEATURE_WTMP
 //config:	help

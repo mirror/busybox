@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LOSETUP
-//config:	bool "losetup (5.4 kb)"
+//config:	bool "losetup (5.5 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LSSCSI
-//config:	bool "lsscsi (2.4 kb)"
+//config:	bool "lsscsi (2.5 kb)"
 //config:	default y
 //config:	#select PLATFORM_LINUX
 //config:	help

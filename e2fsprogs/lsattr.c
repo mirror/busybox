@@ -10,7 +10,7 @@
  * Public License
  */
 //config:config LSATTR
-//config:	bool "lsattr (5 kb)"
+//config:	bool "lsattr (5.5 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

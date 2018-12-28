@@ -22,7 +22,7 @@ gzip: bogus: No such file or directory
 aa:      85.1% -- replaced with aa.gz
 */
 //config:config GZIP
-//config:	bool "gzip (19 kb)"
+//config:	bool "gzip (17 kb)"
 //config:	default y
 //config:	help
 //config:	gzip is used to compress files.

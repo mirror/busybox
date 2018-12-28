@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config SETFATTR
-//config:	bool "setfattr (3.6 kb)"
+//config:	bool "setfattr (3.7 kb)"
 //config:	default y
 //config:	help
 //config:	Set/delete extended attributes on files

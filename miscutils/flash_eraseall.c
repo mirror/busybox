@@ -11,7 +11,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FLASH_ERASEALL
-//config:	bool "flash_eraseall (5.5 kb)"
+//config:	bool "flash_eraseall (5.9 kb)"
 //config:	default n  # doesn't build on Ubuntu 8.04
 //config:	help
 //config:	The flash_eraseall binary from mtd-utils as of git head c4c6a59eb.

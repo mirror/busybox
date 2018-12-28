@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config IFPLUGD
-//config:	bool "ifplugd (9.9 kb)"
+//config:	bool "ifplugd (10 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

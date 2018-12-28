@@ -23,7 +23,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config TAR
-//config:	bool "tar (40 kb)"
+//config:	bool "tar (39 kb)"
 //config:	default y
 //config:	help
 //config:	tar is an archiving program. It's commonly used with gzip to

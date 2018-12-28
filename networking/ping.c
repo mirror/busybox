@@ -25,7 +25,7 @@
  * The code was modified by Bart Visscher <magick@linux-fan.com>
  */
 //config:config PING
-//config:	bool "ping (9.5 kb)"
+//config:	bool "ping (10 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
@@ -33,7 +33,7 @@
 //config:	elicit an ICMP ECHO_RESPONSE from a host or gateway.
 //config:
 //config:config PING6
-//config:	bool "ping6 (10 kb)"
+//config:	bool "ping6 (11 kb)"
 //config:	default y
 //config:	depends on FEATURE_IPV6
 //config:	help

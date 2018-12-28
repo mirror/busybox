@@ -7,7 +7,7 @@
  * known bugs: can't deal with alpha ranges
  */
 //config:config MAKEDEVS
-//config:	bool "makedevs (9.3 kb)"
+//config:	bool "makedevs (9.2 kb)"
 //config:	default y
 //config:	help
 //config:	'makedevs' is a utility used to create a batch of devices with

@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CHGRP
-//config:	bool "chgrp (7.2 kb)"
+//config:	bool "chgrp (7.6 kb)"
 //config:	default y
 //config:	help
 //config:	chgrp is used to change the group ownership of files.

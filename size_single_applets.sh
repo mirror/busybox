@@ -1,4 +1,12 @@
 #!/bin/bash
+# Which config to use when updating the sizes in "official"
+# source tree? I am using x86 glibc toolchain of some typical distro,
+# not-static build, 32-bit defconfig build:
+# # CONFIG_STATIC is not set
+# CONFIG_CROSS_COMPILER_PREFIX=""
+# CONFIG_EXTRA_CFLAGS="-m32"
+# CONFIG_EXTRA_LDFLAGS="-m32"
+
 # The list of all applet config symbols
 test -f include/applets.h || { echo "No include/applets.h file"; exit 1; }
 apps="`

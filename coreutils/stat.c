@@ -13,7 +13,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config STAT
-//config:	bool "stat (10 kb)"
+//config:	bool "stat (11 kb)"
 //config:	default y
 //config:	help
 //config:	display file or filesystem status.

@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CKSUM
-//config:	bool "cksum (4.2 kb)"
+//config:	bool "cksum (4.1 kb)"
 //config:	default y
 //config:	help
 //config:	cksum is used to calculate the CRC32 checksum of a file.

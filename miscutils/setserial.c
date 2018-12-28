@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SETSERIAL
-//config:	bool "setserial (6.6 kb)"
+//config:	bool "setserial (6.9 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

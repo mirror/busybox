@@ -9,7 +9,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config DMESG
-//config:	bool "dmesg (3.5 kb)"
+//config:	bool "dmesg (3.7 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

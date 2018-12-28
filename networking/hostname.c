@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config HOSTNAME
-//config:	bool "hostname (5.6 kb)"
+//config:	bool "hostname (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	Show or set the system's host name.

@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FACTOR
-//config:	bool "factor (2.6 kb)"
+//config:	bool "factor (2.7 kb)"
 //config:	default y
 //config:	help
 //config:	factor factorizes integers

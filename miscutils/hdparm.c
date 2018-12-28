@@ -12,7 +12,7 @@
  *          - by Mark Lord (C) 1994-2002 -- freely distributable
  */
 //config:config HDPARM
-//config:	bool "hdparm (23 kb)"
+//config:	bool "hdparm (25 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

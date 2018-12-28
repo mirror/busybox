@@ -11,7 +11,7 @@
  * Only supports new ASCII and CRC formats
  */
 //config:config CPIO
-//config:	bool "cpio (14 kb)"
+//config:	bool "cpio (15 kb)"
 //config:	default y
 //config:	help
 //config:	cpio is an archival utility program used to create, modify, and

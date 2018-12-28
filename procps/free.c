@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FREE
-//config:	bool "free (2.4 kb)"
+//config:	bool "free (3.1 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX #sysinfo()
 //config:	help

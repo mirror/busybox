@@ -7,7 +7,7 @@
  * Bernhard Reutner-Fischer adjusted for busybox
  */
 //config:config TC
-//config:	bool "tc (3.1 kb)"
+//config:	bool "tc (8.3 kb)"
 //config:	default y
 //config:	help
 //config:	Show / manipulate traffic control settings

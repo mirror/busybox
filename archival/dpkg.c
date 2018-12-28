@@ -26,7 +26,7 @@
  *  - (unknown, please let me know when you find any)
  */
 //config:config DPKG
-//config:	bool "dpkg (44 kb)"
+//config:	bool "dpkg (43 kb)"
 //config:	default y
 //config:	select FEATURE_SEAMLESS_GZ
 //config:	help

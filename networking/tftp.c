@@ -19,7 +19,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config TFTP
-//config:	bool "tftp (12 kb)"
+//config:	bool "tftp (11 kb)"
 //config:	default y
 //config:	help
 //config:	Trivial File Transfer Protocol client. TFTP is usually used

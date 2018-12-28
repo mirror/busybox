@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SYNC
-//config:	bool "sync (769 bytes)"
+//config:	bool "sync (3.8 kb)"
 //config:	default y
 //config:	help
 //config:	sync is used to flush filesystem buffers.

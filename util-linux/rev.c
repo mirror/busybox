@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config REV
-//config:	bool "rev (4.5 kb)"
+//config:	bool "rev (4.4 kb)"
 //config:	default y
 //config:	help
 //config:	Reverse lines of a file or files.

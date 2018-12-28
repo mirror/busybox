@@ -217,7 +217,7 @@
 //config:	Utility to trace the route of IP packets.
 //config:
 //config:config TRACEROUTE6
-//config:	bool "traceroute6 (12 kb)"
+//config:	bool "traceroute6 (13 kb)"
 //config:	default y
 //config:	depends on FEATURE_IPV6
 //config:	help

@@ -9,7 +9,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CUT
-//config:	bool "cut (5.3 kb)"
+//config:	bool "cut (5.8 kb)"
 //config:	default y
 //config:	help
 //config:	cut is used to print selected parts of lines from

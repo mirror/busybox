@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LSUSB
-//config:	bool "lsusb (3.5 kb)"
+//config:	bool "lsusb (4.2 kb)"
 //config:	default y
 //config:	#select PLATFORM_LINUX
 //config:	help

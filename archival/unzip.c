@@ -17,7 +17,7 @@
  * Zip64 + other methods
  */
 //config:config UNZIP
-//config:	bool "unzip (24 kb)"
+//config:	bool "unzip (26 kb)"
 //config:	default y
 //config:	help
 //config:	unzip will list or extract files from a ZIP archive,

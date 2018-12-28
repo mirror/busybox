@@ -9,7 +9,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config ADDGROUP
-//config:	bool "addgroup (8.2 kb)"
+//config:	bool "addgroup (8.6 kb)"
 //config:	default y
 //config:	select LONG_OPTS
 //config:	help

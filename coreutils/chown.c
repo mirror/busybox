@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CHOWN
-//config:	bool "chown (7.2 kb)"
+//config:	bool "chown (7.6 kb)"
 //config:	default y
 //config:	help
 //config:	chown is used to change the user and/or group ownership

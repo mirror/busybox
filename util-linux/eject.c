@@ -13,7 +13,7 @@
  * Most of the dirty work blatantly ripped off from cat.c =)
  */
 //config:config EJECT
-//config:	bool "eject (4.1 kb)"
+//config:	bool "eject (4 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

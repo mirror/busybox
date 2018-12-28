@@ -11,7 +11,7 @@
  * Size reductions and removed redundant applet name prefix from error messages.
  */
 //config:config YES
-//config:	bool "yes (956 bytes)"
+//config:	bool "yes (1.2 kb)"
 //config:	default y
 //config:	help
 //config:	yes is used to repeatedly output a specific string, or

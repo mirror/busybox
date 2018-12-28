@@ -16,7 +16,7 @@
  * a diagnostic message and an error return.
  */
 //config:config LOGNAME
-//config:	bool "logname (894 bytes)"
+//config:	bool "logname (1.1 kb)"
 //config:	default y
 //config:	help
 //config:	logname is used to print the current user's login name.

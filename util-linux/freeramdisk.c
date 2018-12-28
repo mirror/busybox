@@ -9,7 +9,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FDFLUSH
-//config:	bool "fdflush (1.4 kb)"
+//config:	bool "fdflush (1.3 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
@@ -22,7 +22,7 @@
 //config:	leave this disabled.
 //config:
 //config:config FREERAMDISK
-//config:	bool "freeramdisk (1.4 kb)"
+//config:	bool "freeramdisk (1.3 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

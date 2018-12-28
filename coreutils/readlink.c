@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config READLINK
-//config:	bool "readlink (3.6 kb)"
+//config:	bool "readlink (4 kb)"
 //config:	default y
 //config:	help
 //config:	This program reads a symbolic link and returns the name

@@ -27,7 +27,7 @@
  * See below for mask names explanation.
  */
 //config:config INOTIFYD
-//config:	bool "inotifyd (3.5 kb)"
+//config:	bool "inotifyd (3.6 kb)"
 //config:	default n  # doesn't build on Knoppix 5
 //config:	help
 //config:	Simple inotify daemon. Reports filesystem changes. Requires

@@ -6,31 +6,31 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config MD5SUM
-//config:	bool "md5sum (6.8 kb)"
+//config:	bool "md5sum (6.5 kb)"
 //config:	default y
 //config:	help
 //config:	Compute and check MD5 message digest
 //config:
 //config:config SHA1SUM
-//config:	bool "sha1sum (6 kb)"
+//config:	bool "sha1sum (5.9 kb)"
 //config:	default y
 //config:	help
 //config:	Compute and check SHA1 message digest
 //config:
 //config:config SHA256SUM
-//config:	bool "sha256sum (7.1 kb)"
+//config:	bool "sha256sum (7 kb)"
 //config:	default y
 //config:	help
 //config:	Compute and check SHA256 message digest
 //config:
 //config:config SHA512SUM
-//config:	bool "sha512sum (7.6 kb)"
+//config:	bool "sha512sum (7.4 kb)"
 //config:	default y
 //config:	help
 //config:	Compute and check SHA512 message digest
 //config:
 //config:config SHA3SUM
-//config:	bool "sha3sum (6.3 kb)"
+//config:	bool "sha3sum (6.1 kb)"
 //config:	default y
 //config:	help
 //config:	Compute and check SHA3 message digest

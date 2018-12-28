@@ -9,7 +9,7 @@
  * Bernhard Reutner-Fischer rewrote to use index_in_substr_array
  */
 //config:config IP
-//config:	bool "ip (34 kb)"
+//config:	bool "ip (35 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
@@ -28,7 +28,7 @@
 //config:	Short form of "ip addr"
 //config:
 //config:config IPLINK
-//config:	bool "iplink (16 kb)"
+//config:	bool "iplink (17 kb)"
 //config:	default y
 //config:	select FEATURE_IP_LINK
 //config:	select PLATFORM_LINUX

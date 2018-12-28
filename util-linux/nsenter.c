@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config NSENTER
-//config:	bool "nsenter (8.6 kb)"
+//config:	bool "nsenter (6.5 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

@@ -20,7 +20,7 @@
  *   redirected input has been read from stdin
  */
 //config:config LESS
-//config:	bool "less (15 kb)"
+//config:	bool "less (16 kb)"
 //config:	default y
 //config:	help
 //config:	'less' is a pager, meaning that it displays text files. It possesses

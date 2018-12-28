@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LN
-//config:	bool "ln (4.5 kb)"
+//config:	bool "ln (4.9 kb)"
 //config:	default y
 //config:	help
 //config:	ln is used to create hard or soft links between files.

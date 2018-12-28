@@ -21,7 +21,7 @@
  * Special for busybox ported by Vladimir Oleynik <dzo@simtreas.ru> 2001
  */
 //config:config STTY
-//config:	bool "stty (8.6 kb)"
+//config:	bool "stty (8.9 kb)"
 //config:	default y
 //config:	help
 //config:	stty is used to change and print terminal line settings.

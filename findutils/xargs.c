@@ -15,7 +15,7 @@
  * http://www.opengroup.org/onlinepubs/007904975/utilities/xargs.html
  */
 //config:config XARGS
-//config:	bool "xargs (6.7 kb)"
+//config:	bool "xargs (7.2 kb)"
 //config:	default y
 //config:	help
 //config:	xargs is used to execute a specified command for

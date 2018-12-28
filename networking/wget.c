@@ -9,7 +9,7 @@
  * Kuhn's copyrights are licensed GPLv2-or-later.  File as a whole remains GPLv2.
  */
 //config:config WGET
-//config:	bool "wget (35 kb)"
+//config:	bool "wget (38 kb)"
 //config:	default y
 //config:	help
 //config:	wget is a utility for non-interactive download of files from HTTP
