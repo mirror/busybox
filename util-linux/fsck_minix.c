@@ -86,7 +86,7 @@
  * enforced (but it's not much fun on a character device :-).
  */
 //config:config FSCK_MINIX
-//config:	bool "fsck_minix"
+//config:	bool "fsck.minix (13 kb)"
 //config:	default y
 //config:	help
 //config:	The minix filesystem is a nice, small, compact, read-write filesystem

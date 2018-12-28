@@ -63,7 +63,7 @@
  *	removed getopt based parser and added a hand rolled one.
  */
 //config:config MKFS_MINIX
-//config:	bool "mkfs_minix"
+//config:	bool "mkfs.minix (10 kb)"
 //config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help

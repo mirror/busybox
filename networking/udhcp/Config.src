@@ -60,7 +60,7 @@ config DHCPRELAY
 	server.
 
 config UDHCPC
-	bool "udhcpc"
+	bool "udhcpc (24 kb)"
 	default y
 	select PLATFORM_LINUX
 	help
