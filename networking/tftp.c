@@ -41,9 +41,6 @@
 //config:	In other words: it should be run from inetd in nowait mode,
 //config:	or from udpsvd. Example: "udpsvd -E 0 69 tftpd DIR"
 //config:
-//config:comment "Common options for tftp/tftpd"
-//config:	depends on TFTP || TFTPD
-//config:
 //config:config FEATURE_TFTP_GET
 //config:	bool "Enable 'tftp get' and/or tftpd upload code"
 //config:	default y

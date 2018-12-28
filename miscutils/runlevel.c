@@ -16,7 +16,7 @@
 //config:	default y
 //config:	depends on FEATURE_UTMP
 //config:	help
-//config:	find the current and previous system runlevel.
+//config:	Find the current and previous system runlevel.
 //config:
 //config:	This applet uses utmp but does not rely on busybox supporing
 //config:	utmp on purpose. It is used by e.g. emdebian via /etc/init.d/rc.

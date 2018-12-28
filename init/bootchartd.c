@@ -23,7 +23,7 @@
 //config:	help
 //config:	Create extended header file compatible with "big" bootchartd.
 //config:	"Big" bootchartd is a shell script and it dumps some
-//config:	"convenient" info int the header, such as:
+//config:	"convenient" info into the header, such as:
 //config:		title = Boot chart for `hostname` (`date`)
 //config:		system.uname = `uname -srvm`
 //config:		system.release = `cat /etc/DISTRO-release`
