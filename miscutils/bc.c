@@ -5092,7 +5092,7 @@ static BcVec* xc_program_search(char *id, bool var)
 }
 
 // 'num' need not be initialized on entry
-static BC_STATUS zxc_program_num(BcResult *r, BcNum **num, bool hex)
+static BC_STATUS zxc_program_num(BcResult *r, BcNum **num)
 {
 	switch (r->t) {
 	case XC_RESULT_STR:
@@ -5105,7 +5105,6 @@ static BC_STATUS zxc_program_num(BcResult *r, BcNum **num, bool hex)
 	case XC_RESULT_CONSTANT: {
 		BcStatus s;
 		char *str;
-		unsigned base_t;
 		size_t len;
 
 		str = *xc_program_const(r->d.id.idx);
@@ -5113,9 +5112,7 @@ static BC_STATUS zxc_program_num(BcResult *r, BcNum **num, bool hex)
 
 		bc_num_init(&r->d.n, len);
 
-		hex = hex && len == 1;
-		base_t = hex ? 16 : G.prog.ib_t;
-		s = zxc_num_parse(&r->d.n, str, base_t);
+		s = zxc_num_parse(&r->d.n, str, G.prog.ib_t);
 		if (s) {
 			bc_num_free(&r->d.n);
 			RETURN_STATUS(s);
@@ -5162,7 +5159,6 @@ static BC_STATUS zxc_program_binOpPrep(BcResult **l, BcNum **ln,
                                      BcResult **r, BcNum **rn, bool assign)
 {
 	BcStatus s;
-	bool hex;
 	BcResultType lt, rt;
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, 1))
@@ -5171,19 +5167,18 @@ static BC_STATUS zxc_program_binOpPrep(BcResult **l, BcNum **ln,
 	*r = bc_vec_item_rev(&G.prog.results, 0);
 	*l = bc_vec_item_rev(&G.prog.results, 1);
 
+	s = zxc_program_num(*l, ln);
+	if (s) RETURN_STATUS(s);
+	s = zxc_program_num(*r, rn);
+	if (s) RETURN_STATUS(s);
+
 	lt = (*l)->t;
 	rt = (*r)->t;
-	hex = assign && (lt == XC_RESULT_IBASE || lt == XC_RESULT_OBASE);
-
-	s = zxc_program_num(*l, ln, false);
-	if (s) RETURN_STATUS(s);
-	s = zxc_program_num(*r, rn, hex);
-	if (s) RETURN_STATUS(s);
 
 	// We run this again under these conditions in case any vector has been
 	// reallocated out from under the BcNums or arrays we had.
 	if (lt == rt && (lt == XC_RESULT_VAR || lt == XC_RESULT_ARRAY_ELEM)) {
-		s = zxc_program_num(*l, ln, false);
+		s = zxc_program_num(*l, ln);
 		if (s) RETURN_STATUS(s);
 	}
 
@@ -5212,7 +5207,7 @@ static BC_STATUS zxc_program_prep(BcResult **r, BcNum **n)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	*r = bc_vec_top(&G.prog.results);
 
-	s = zxc_program_num(*r, n, false);
+	s = zxc_program_num(*r, n);
 	if (s) RETURN_STATUS(s);
 
 	if (!BC_PROG_NUM((*r), (*n)))
@@ -5590,7 +5585,7 @@ static BC_STATUS zxc_program_print(char inst, size_t idx)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	r = bc_vec_item_rev(&G.prog.results, idx);
-	s = zxc_program_num(r, &num, false);
+	s = zxc_program_num(r, &num);
 	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, num)) {
@@ -5739,7 +5734,7 @@ static BC_STATUS zxc_program_copyToVar(char *name, bool var)
 		RETURN_STATUS(zdc_program_assignStr(ptr, v, true));
 #endif
 
-	s = zxc_program_num(ptr, &n, false);
+	s = zxc_program_num(ptr, &n);
 	if (s) RETURN_STATUS(s);
 
 	// Do this once more to make sure that pointers were not invalidated.
@@ -6031,7 +6026,7 @@ static BC_STATUS zbc_program_return(char inst)
 		BcNum *num;
 		BcResult *operand = bc_vec_top(&G.prog.results);
 
-		s = zxc_program_num(operand, &num, false);
+		s = zxc_program_num(operand, &num);
 		if (s) RETURN_STATUS(s);
 		bc_num_init(&res.d.n, num->len);
 		bc_num_copy(&res.d.n, num);
@@ -6087,7 +6082,7 @@ static BC_STATUS zxc_program_builtin(char inst)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	opnd = bc_vec_top(&G.prog.results);
 
-	s = zxc_program_num(opnd, &num, false);
+	s = zxc_program_num(opnd, &num);
 	if (s) RETURN_STATUS(s);
 
 #if ENABLE_DC
@@ -6163,7 +6158,7 @@ static BC_STATUS zdc_program_modexp(void)
 	if (s) RETURN_STATUS(s);
 
 	r1 = bc_vec_item_rev(&G.prog.results, 2);
-	s = zxc_program_num(r1, &n1, false);
+	s = zxc_program_num(r1, &n1);
 	if (s) RETURN_STATUS(s);
 	if (!BC_PROG_NUM(r1, n1))
 		RETURN_STATUS(bc_error_variable_is_wrong_type());
@@ -6171,11 +6166,11 @@ static BC_STATUS zdc_program_modexp(void)
 	// Make sure that the values have their pointers updated, if necessary.
 	if (r1->t == XC_RESULT_VAR || r1->t == XC_RESULT_ARRAY_ELEM) {
 		if (r1->t == r2->t) {
-			s = zxc_program_num(r2, &n2, false);
+			s = zxc_program_num(r2, &n2);
 			if (s) RETURN_STATUS(s);
 		}
 		if (r1->t == r3->t) {
-			s = zxc_program_num(r3, &n3, false);
+			s = zxc_program_num(r3, &n3);
 			if (s) RETURN_STATUS(s);
 		}
 	}
@@ -6220,7 +6215,7 @@ static BC_STATUS zdc_program_asciify(void)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	r = bc_vec_top(&G.prog.results);
 
-	s = zxc_program_num(r, &num, false);
+	s = zxc_program_num(r, &num);
 	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, num)) {
@@ -6284,7 +6279,7 @@ static BC_STATUS zdc_program_printStream(void)
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 	r = bc_vec_top(&G.prog.results);
 
-	s = zxc_program_num(r, &n, false);
+	s = zxc_program_num(r, &n);
 	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, n)) {
@@ -6379,7 +6374,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 			sidx = r->d.id.idx;
 		} else if (r->t == XC_RESULT_VAR) {
 			BcNum *n;
-			s = zxc_program_num(r, &n, false);
+			s = zxc_program_num(r, &n);
 			if (s || !BC_PROG_STR(n)) goto exit;
 			sidx = n->rdx;
 		} else
