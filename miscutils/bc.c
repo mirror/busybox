@@ -2555,13 +2555,16 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 // Parsing routines
 //
 
-static bool xc_num_strValid(const char *val, size_t base)
+// "Input numbers may contain the characters 0-9 and A-Z.
+// (Note: They must be capitals.  Lower case letters are variable names.)
+// Single digit numbers always have the value of the digit regardless of
+// the value of ibase. (i.e. A = 10.) For multi-digit numbers, bc changes
+// all input digits greater or equal to ibase to the value of ibase-1.
+// This makes the number ZZZ always be the largest 3 digit number of the
+// input base."
+static bool xc_num_strValid(const char *val)
 {
-	BcDig b;
-	bool radix;
-
-	b = (BcDig)(base <= 10 ? base + '0' : base - 10 + 'A');
-	radix = false;
+	bool radix = false;
 	for (;;) {
 		BcDig c = *val++;
 		if (c == '\0')
@@ -2571,7 +2574,7 @@ static bool xc_num_strValid(const char *val, size_t base)
 			radix = true;
 			continue;
 		}
-		if (c < '0' || c >= b || (c > '9' && c < 'A'))
+		if ((c < '0' || c > '9') && (c < 'A' || c > 'Z'))
 			return false;
 	}
 	return true;
@@ -2599,10 +2602,21 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 	for (i = 0; val[i]; ++i) {
 		if (val[i] != '0' && val[i] != '.') {
 			// Not entirely zero value - convert it, and exit
+			if (len == 1) {
+				char c = val[0] - '0';
+				if (c > 9) // A-Z => 10-36
+					c -= ('A' - '9' - 1);
+				n->num[0] = c;
+				n->len = 1;
+				break;
+			}
 			i = len - 1;
 			for (;;) {
-				n->num[n->len] = val[i] - '0';
-				++n->len;
+				char c = val[i] - '0';
+				if (c > 9) // A-Z => 9
+					c = 9;
+				n->num[n->len] = c;
+				n->len++;
  skip_dot:
 				if (i == 0) break;
 				if (val[--i] == '.') goto skip_dot;
@@ -2692,7 +2706,7 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 
 static BC_STATUS zxc_num_parse(BcNum *n, const char *val, unsigned base_t)
 {
-	if (!xc_num_strValid(val, base_t))
+	if (!xc_num_strValid(val))
 		RETURN_STATUS(bc_error("bad number string"));
 
 	bc_num_zero(n);
@@ -2807,6 +2821,13 @@ static BC_STATUS zxc_lex_number(char last)
 	bc_vec_pop_all(&p->lex_strnumbuf);
 	bc_vec_pushByte(&p->lex_strnumbuf, last);
 
+// "Input numbers may contain the characters 0-9 and A-Z.
+// (Note: They must be capitals.  Lower case letters are variable names.)
+// Single digit numbers always have the value of the digit regardless of
+// the value of ibase. (i.e. A = 10.) For multi-digit numbers, bc changes
+// all input digits greater or equal to ibase to the value of ibase-1.
+// This makes the number ZZZ always be the largest 3 digit number of the
+// input base."
 	pt = (last == '.');
 	p->lex = XC_LEX_NUMBER;
 	for (;;) {
@@ -2822,13 +2843,13 @@ static BC_STATUS zxc_lex_number(char last)
 			c = peek_inbuf(); // force next line to be read
 			goto check_c;
 		}
-		if (!isdigit(c) && (c < 'A' || c > 'F')) {
+		if (!isdigit(c) && (c < 'A' || c > 'Z')) {
 			if (c != '.') break;
 			// if '.' was already seen, stop on second one:
 			if (pt) break;
 			pt = true;
 		}
-		// c is one of "0-9A-F."
+		// c is one of "0-9A-Z."
 		last = c;
 		bc_vec_push(&p->lex_strnumbuf, p->lex_inbuf);
 		p->lex_inbuf++;
@@ -3167,6 +3188,26 @@ static BC_STATUS zbc_lex_token(void)
 	case 'D':
 	case 'E':
 	case 'F':
+	case 'G':
+	case 'H':
+	case 'I':
+	case 'J':
+	case 'K':
+	case 'L':
+	case 'M':
+	case 'N':
+	case 'O':
+	case 'P':
+	case 'Q':
+	case 'R':
+	case 'S':
+	case 'T':
+	case 'U':
+	case 'V':
+	case 'W':
+	case 'X':
+	case 'Y':
+	case 'Z':
 		s = zxc_lex_number(c);
 		break;
 	case ';':
@@ -3450,13 +3491,14 @@ static void xc_parse_pushIndex(size_t idx)
 
 	mask = ((size_t)0xff) << (sizeof(idx) * 8 - 8);
 	amt = sizeof(idx);
-	do {
+	for (;;) {
 		if (idx & mask) break;
 		mask >>= 8;
 		amt--;
-	} while (amt != 0);
+	}
+	// amt is at least 1 here - "one byte of length data follows"
 
-	xc_parse_push(SMALL_INDEX_LIMIT + amt);
+	xc_parse_push((SMALL_INDEX_LIMIT - 1) + amt);
 
 	while (idx != 0) {
  push_idx:
@@ -5260,13 +5302,15 @@ static size_t xc_program_index(char *code, size_t *bgn)
 		*bgn += 1;
 		return amt;
 	}
-	amt -= SMALL_INDEX_LIMIT;
+	amt -= (SMALL_INDEX_LIMIT - 1); // amt is 1 or more here
 	*bgn += amt + 1;
 
-	amt *= 8;
 	res = 0;
-	for (i = 0; i < amt; i += 8)
+	i = 0;
+	do {
 		res |= (size_t)(*bytes++) << i;
+		i += 8;
+	} while (--amt != 0);
 
 	return res;
 }
