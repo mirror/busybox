@@ -2157,6 +2157,7 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 {
 	BcStatus s;
 	BcNum num1, num2, half, f, fprime, *x0, *x1, *temp;
+	BcDig half_digs[1];
 	size_t pow, len, digs, digs1, resrdx, req, times = 0;
 	ssize_t cmp = 1, cmp1 = SSIZE_MAX, cmp2 = SSIZE_MAX;
 
@@ -2181,10 +2182,11 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 
 	bc_num_init(&num1, len);
 	bc_num_init(&num2, len);
-	bc_num_init_DEF_SIZE(&half);
 
+	half.cap = ARRAY_SIZE(half_digs);
+	half.num = half_digs;
 	bc_num_one(&half);
-	half.num[0] = 5;
+	half_digs[0] = 5;
 	half.rdx = 1;
 
 	bc_num_init(&f, len);
@@ -2247,7 +2249,6 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
  err:
 	bc_num_free(&fprime);
 	bc_num_free(&f);
-	bc_num_free(&half);
 	bc_num_free(&num2);
 	bc_num_free(&num1);
 	RETURN_STATUS(s);
@@ -2285,7 +2286,7 @@ static BC_STATUS zdc_num_modexp(BcNum *a, BcNum *b, BcNum *c, BcNum *restrict d)
 {
 	BcStatus s;
 	BcNum base, exp, two, temp;
-	BcDig two_digs[2];
+	BcDig two_digs[1];
 
 	if (c->len == 0)
 		RETURN_STATUS(bc_error("divide by zero"));
@@ -5125,15 +5126,19 @@ static BC_STATUS zxc_program_num(BcResult *r, BcNum **num)
 	case XC_RESULT_ARRAY:
 	case XC_RESULT_ARRAY_ELEM: {
 		BcVec *v;
-
+		void *p;
 		v = xc_program_search(r->d.id.name, r->t == XC_RESULT_VAR);
-
+// dc variables are all stacks, so here we have this:
+		p = bc_vec_top(v);
+// TODO: eliminate these stacks for bc-only config?
 		if (r->t == XC_RESULT_ARRAY_ELEM) {
-			v = bc_vec_top(v);
-			if (v->len <= r->d.id.idx) bc_array_expand(v, r->d.id.idx + 1);
+			v = p;
+			if (v->len <= r->d.id.idx)
+				bc_array_expand(v, r->d.id.idx + 1);
 			*num = bc_vec_item(v, r->d.id.idx);
-		} else
-			*num = bc_vec_top(v);
+		} else {
+			*num = p;
+		}
 		break;
 	}
 #if ENABLE_BC
