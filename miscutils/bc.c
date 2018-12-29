@@ -2591,7 +2591,7 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 	if (len == 0)
 		return;
 
-	bc_num_expand(n, len);
+	bc_num_expand(n, len + 1); // +1 for e.g. "A" converting into 10
 
 	ptr = strchr(val, '.');
 
@@ -2603,11 +2603,15 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 		if (val[i] != '0' && val[i] != '.') {
 			// Not entirely zero value - convert it, and exit
 			if (len == 1) {
-				char c = val[0] - '0';
-				if (c > 9) // A-Z => 10-36
-					c -= ('A' - '9' - 1);
-				n->num[0] = c;
+				unsigned c = val[0] - '0';
 				n->len = 1;
+				if (c > 9) { // A-Z => 10-36
+					n->len = 2;
+					c -= ('A' - '9' - 1);
+					n->num[1] = c/10;
+					c = c%10;
+				}
+				n->num[0] = c;
 				break;
 			}
 			i = len - 1;
@@ -2817,17 +2821,20 @@ static BC_STATUS zxc_lex_number(char last)
 {
 	BcParse *p = &G.prs;
 	bool pt;
+	char last_valid_ch;
 
 	bc_vec_pop_all(&p->lex_strnumbuf);
 	bc_vec_pushByte(&p->lex_strnumbuf, last);
 
-// "Input numbers may contain the characters 0-9 and A-Z.
+// bc: "Input numbers may contain the characters 0-9 and A-Z.
 // (Note: They must be capitals.  Lower case letters are variable names.)
 // Single digit numbers always have the value of the digit regardless of
 // the value of ibase. (i.e. A = 10.) For multi-digit numbers, bc changes
 // all input digits greater or equal to ibase to the value of ibase-1.
 // This makes the number ZZZ always be the largest 3 digit number of the
 // input base."
+// dc only allows A-F, the rules about single-char and multi-char are the same.
+	last_valid_ch = (IS_BC ? 'Z' : 'F');
 	pt = (last == '.');
 	p->lex = XC_LEX_NUMBER;
 	for (;;) {
@@ -2843,7 +2850,7 @@ static BC_STATUS zxc_lex_number(char last)
 			c = peek_inbuf(); // force next line to be read
 			goto check_c;
 		}
-		if (!isdigit(c) && (c < 'A' || c > 'Z')) {
+		if (!isdigit(c) && (c < 'A' || c > last_valid_ch)) {
 			if (c != '.') break;
 			// if '.' was already seen, stop on second one:
 			if (pt) break;
