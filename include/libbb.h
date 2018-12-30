@@ -1828,7 +1828,12 @@ struct smaprec {
 	unsigned long stack;
 	unsigned long smap_pss, smap_swap;
 	unsigned long smap_size;
-	unsigned long smap_start;
+	// For mixed 32/64 userspace, 32-bit pmap still needs
+	// 64-bit field here to correctly show 64-bit processes:
+	unsigned long long smap_start;
+	// (strictly speaking, other fields need to be wider too,
+	// but they are in kbytes, not bytes, and they hold sizes,
+	// not start addresses, sizes tend to be less than 4 terabytes)
 	char smap_mode[5];
 	char *smap_name;
 };

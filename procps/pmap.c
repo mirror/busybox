@@ -37,6 +37,12 @@
 # define DASHES "--------"
 #endif
 
+#if ULLONG_MAX == 0xffffffff
+# define AFMTLL "8"
+#else
+# define AFMTLL "16"
+#endif
+
 enum {
 	OPT_x = 1 << 0,
 	OPT_q = 1 << 1,
@@ -46,7 +52,7 @@ static void print_smaprec(struct smaprec *currec, void *data)
 {
 	unsigned opt = (uintptr_t)data;
 
-	printf("%0" AFMT "lx ", currec->smap_start);
+	printf("%0" AFMTLL "llx ", currec->smap_start);
 
 	if (opt & OPT_x)
 		printf("%7lu %7lu %7lu %7lu ",
