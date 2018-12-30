@@ -4,6 +4,17 @@
  * Adapted from https://github.com/gavinhoward/bc
  * Original code copyright (c) 2018 Gavin D. Howard and contributors.
  */
+//TODO: GNU extensions:
+// support ibase up to 36
+// support "define void f()..."
+// support "define f(*param[])" - "pass array by reference" syntax
+
+#define DEBUG_LEXER   0
+#define DEBUG_COMPILE 0
+#define DEBUG_EXEC    0
+// This can be left enabled for production as well:
+#define SANITY_CHECKS 1
+
 //config:config BC
 //config:	bool "bc (45 kb)"
 //config:	default y
@@ -156,12 +167,6 @@
 # include "dc.c"
 #else
 
-#define DEBUG_LEXER   0
-#define DEBUG_COMPILE 0
-#define DEBUG_EXEC    0
-// This can be left enabled for production as well:
-#define SANITY_CHECKS 1
-
 #if DEBUG_LEXER
 static uint8_t lex_indent;
 #define dbg_lex(...) \
@@ -203,8 +208,8 @@ typedef enum BcStatus {
 	BC_STATUS_PARSE_EMPTY_EXP = 2, // bc_parse_expr_empty_ok() uses this
 } BcStatus;
 
-#define BC_VEC_INVALID_IDX ((size_t) -1)
-#define BC_VEC_START_CAP (1 << 5)
+#define BC_VEC_INVALID_IDX  ((size_t) -1)
+#define BC_VEC_START_CAP    (1 << 5)
 
 typedef void (*BcVecFree)(void *) FAST_FUNC;
 
@@ -228,10 +233,10 @@ typedef struct BcNum {
 
 #define BC_NUM_MAX_IBASE        ((unsigned long) 16)
 // larger value might speed up BIGNUM calculations a bit:
-#define BC_NUM_DEF_SIZE         (16)
-#define BC_NUM_PRINT_WIDTH      (69)
+#define BC_NUM_DEF_SIZE         16
+#define BC_NUM_PRINT_WIDTH      69
 
-#define BC_NUM_KARATSUBA_LEN    (32)
+#define BC_NUM_KARATSUBA_LEN    32
 
 typedef enum BcInst {
 #if ENABLE_BC
@@ -441,10 +446,10 @@ typedef enum BcLexType {
 	BC_LEX_KEY_FOR,
 	BC_LEX_KEY_HALT,
 	// code uses "type - BC_LEX_KEY_IBASE + XC_INST_IBASE" construct,
-	BC_LEX_KEY_IBASE,       // relative order should match for: XC_INST_IBASE
-	BC_LEX_KEY_OBASE,       // relative order should match for: XC_INST_OBASE
+	BC_LEX_KEY_IBASE,    // relative order should match for: XC_INST_IBASE
+	BC_LEX_KEY_OBASE,    // relative order should match for: XC_INST_OBASE
 	BC_LEX_KEY_IF,
-	IF_BC(BC_LEX_KEY_LAST,) // relative order should match for: BC_INST_LAST
+	BC_LEX_KEY_LAST,     // relative order should match for: BC_INST_LAST
 	BC_LEX_KEY_LENGTH,
 	BC_LEX_KEY_LIMITS,
 	BC_LEX_KEY_PRINT,
@@ -598,7 +603,7 @@ static ALWAYS_INLINE long lex_allowed_in_bc_expr(unsigned i)
 
 // This is an array of data for operators that correspond to
 // [XC_LEX_1st_op...] token types.
-static const uint8_t bc_parse_ops[] ALIGN1 = {
+static const uint8_t bc_ops_prec_and_assoc[] ALIGN1 = {
 #define OP(p,l) ((int)(l) * 0x10 + (p))
 	OP(1, false), // neg
 	OP(6, true ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true  ), OP( 6, true ), // == <= >= != < >
@@ -612,8 +617,8 @@ static const uint8_t bc_parse_ops[] ALIGN1 = {
 	OP(0, false), OP( 0, false ), // inc dec
 #undef OP
 };
-#define bc_parse_op_PREC(i) (bc_parse_ops[i] & 0x0f)
-#define bc_parse_op_LEFT(i) (bc_parse_ops[i] & 0x10)
+#define bc_operation_PREC(i) (bc_ops_prec_and_assoc[i] & 0x0f)
+#define bc_operation_LEFT(i) (bc_ops_prec_and_assoc[i] & 0x10)
 #endif // ENABLE_BC
 
 #if ENABLE_DC
@@ -798,15 +803,11 @@ struct globals {
 # define BC_PARSE_NOCALL        (1 << 3)
 #endif
 
-#define BC_PROG_MAIN (0)
-#define BC_PROG_READ (1)
+#define BC_PROG_MAIN      0
+#define BC_PROG_READ      1
 #if ENABLE_DC
-#define BC_PROG_REQ_FUNCS (2)
+#define BC_PROG_REQ_FUNCS 2
 #endif
-
-#define BC_PROG_STR(n) (!(n)->num && !(n)->cap)
-#define BC_PROG_NUM(r, n) \
-	((r)->t != XC_RESULT_ARRAY && (r)->t != XC_RESULT_STR && !BC_PROG_STR(n))
 
 #define BC_FLAG_W (1 << 0)
 #define BC_FLAG_V (1 << 1)
@@ -815,9 +816,6 @@ struct globals {
 #define BC_FLAG_L (1 << 4)
 #define BC_FLAG_I ((1 << 5) * ENABLE_DC)
 #define DC_FLAG_X ((1 << 6) * ENABLE_DC)
-
-#define BC_MAX(a, b) ((a) > (b) ? (a) : (b))
-#define BC_MIN(a, b) ((a) < (b) ? (a) : (b))
 
 #define BC_MAX_OBASE    ((unsigned) 999)
 #define BC_MAX_DIM      ((unsigned) INT_MAX)
@@ -883,6 +881,9 @@ struct globals {
 //
 // Utility routines
 //
+
+#define BC_MAX(a, b) ((a) > (b) ? (a) : (b))
+#define BC_MIN(a, b) ((a) < (b) ? (a) : (b))
 
 static void fflush_and_check(void)
 {
@@ -3712,14 +3713,14 @@ static BC_STATUS zbc_parse_stmt_allow_NLINE_before(const char *after_X)
 static void bc_parse_operator(BcLexType type, size_t start, size_t *nexprs)
 {
 	BcParse *p = &G.prs;
-	char l, r = bc_parse_op_PREC(type - XC_LEX_1st_op);
-	bool left = bc_parse_op_LEFT(type - XC_LEX_1st_op);
+	char l, r = bc_operation_PREC(type - XC_LEX_1st_op);
+	bool left = bc_operation_LEFT(type - XC_LEX_1st_op);
 
 	while (p->ops.len > start) {
 		BcLexType t = BC_PARSE_TOP_OP(p);
 		if (t == BC_LEX_LPAREN) break;
 
-		l = bc_parse_op_PREC(t - XC_LEX_1st_op);
+		l = bc_operation_PREC(t - XC_LEX_1st_op);
 		if (l >= r && (l != r || !left)) break;
 
 		xc_parse_push(BC_TOKEN_2_INST(t));
@@ -5064,6 +5065,10 @@ static BC_STATUS zdc_parse_exprs_until_eof(void)
 // Execution engine
 //
 
+#define BC_PROG_STR(n) (!(n)->num && !(n)->cap)
+#define BC_PROG_NUM(r, n) \
+	((r)->t != XC_RESULT_ARRAY && (r)->t != XC_RESULT_STR && !BC_PROG_STR(n))
+
 #define STACK_HAS_MORE_THAN(s, n)          ((s)->len > ((size_t)(n)))
 #define STACK_HAS_EQUAL_OR_MORE_THAN(s, n) ((s)->len >= ((size_t)(n)))
 
@@ -6218,8 +6223,8 @@ static BC_STATUS zdc_program_asciify(void)
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
-	r = bc_vec_top(&G.prog.results);
 
+	r = bc_vec_top(&G.prog.results);
 	s = zxc_program_num(r, &num);
 	if (s) RETURN_STATUS(s);
 
@@ -6235,8 +6240,8 @@ static BC_STATUS zdc_program_asciify(void)
 		strmb.cap = ARRAY_SIZE(strmb_digs);
 		strmb.num = strmb_digs;
 		bc_num_ulong2num(&strmb, 0x100);
-		s = zbc_num_mod(&n, &strmb, &n, 0);
 
+		s = zbc_num_mod(&n, &strmb, &n, 0);
 		if (s) goto num_err;
 		s = zbc_num_ulong(&n, &val);
 		if (s) goto num_err;
@@ -7188,14 +7193,6 @@ static void xc_program_free(void)
 	IF_BC(bc_num_free(&G.prog.one);)
 	bc_vec_free(&G.input_buffer);
 }
-
-static void xc_vm_free(void)
-{
-	bc_vec_free(&G.files);
-	xc_program_free();
-	xc_parse_free();
-	free(G.env_args);
-}
 #endif
 
 static void xc_program_init(void)
@@ -7249,12 +7246,12 @@ static void xc_program_init(void)
 
 static int xc_vm_init(const char *env_len)
 {
+	G.prog.len = xc_vm_envLen(env_len);
 #if ENABLE_FEATURE_EDITING
 	G.line_input_state = new_line_input_t(DO_HISTORY);
 #endif
-	G.prog.len = xc_vm_envLen(env_len);
-
 	bc_vec_init(&G.files, sizeof(char *), NULL);
+
 	xc_program_init();
 	IF_BC(if (IS_BC) bc_vm_envArgs();)
 	xc_parse_create(BC_PROG_MAIN);
@@ -7295,7 +7292,11 @@ static BcStatus xc_vm_run(void)
 #if ENABLE_FEATURE_CLEAN_UP
 	if (G_exiting) // it was actually "halt" or "quit"
 		st = EXIT_SUCCESS;
-	xc_vm_free();
+
+	bc_vec_free(&G.files);
+	xc_program_free();
+	xc_parse_free();
+	free(G.env_args);
 # if ENABLE_FEATURE_EDITING
 	free_line_input_t(G.line_input_state);
 # endif
