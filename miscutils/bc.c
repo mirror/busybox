@@ -5,7 +5,6 @@
  * Original code copyright (c) 2018 Gavin D. Howard and contributors.
  */
 //TODO: GNU extensions:
-// support ibase up to 36
 // support "define void f()..."
 // support "define f(*param[])" - "pass array by reference" syntax
 
@@ -231,7 +230,7 @@ typedef struct BcNum {
 	bool neg;
 } BcNum;
 
-#define BC_NUM_MAX_IBASE        ((unsigned long) 16)
+#define BC_NUM_MAX_IBASE        36
 // larger value might speed up BIGNUM calculations a bit:
 #define BC_NUM_DEF_SIZE         16
 #define BC_NUM_PRINT_WIDTH      69
@@ -2638,32 +2637,33 @@ static void bc_num_parseDecimal(BcNum *n, const char *val)
 static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 {
 	BcStatus s;
-	BcNum temp, mult, result;
+	BcNum mult, result;
+	BcNum temp;
 	BcNum base;
+	BcDig temp_digs[ULONG_NUM_BUFSIZE];
 	BcDig base_digs[ULONG_NUM_BUFSIZE];
 	BcDig c = '\0';
-	unsigned long v;
-	size_t i, digits;
+	size_t digits;
 
-	for (i = 0; ; ++i) {
-		if (val[i] == '\0')
-			return;
-		if (val[i] != '.' && val[i] != '0')
-			break;
-	}
-
-	bc_num_init_DEF_SIZE(&temp);
 	bc_num_init_DEF_SIZE(&mult);
+
+	temp.cap = ARRAY_SIZE(temp_digs);
+	temp.num = temp_digs;
+
 	base.cap = ARRAY_SIZE(base_digs);
 	base.num = base_digs;
 	bc_num_ulong2num(&base, base_t);
+	base_t--;
 
 	for (;;) {
+		unsigned v;
+
 		c = *val++;
 		if (c == '\0') goto int_err;
 		if (c == '.') break;
 
-		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
+		v = (unsigned)(c <= '9' ? c - '0' : c - 'A' + 10);
+		if (v > base_t) v = base_t;
 
 		s = zbc_num_mul(n, &base, &mult, 0);
 		if (s) goto int_err;
@@ -2678,11 +2678,14 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 
 	digits = 0;
 	for (;;) {
+		unsigned v;
+
 		c = *val++;
 		if (c == '\0') break;
 		digits++;
 
-		v = (unsigned long) (c <= '9' ? c - '0' : c - 'A' + 10);
+		v = (unsigned)(c <= '9' ? c - '0' : c - 'A' + 10);
+		if (v > base_t) v = base_t;
 
 		s = zbc_num_mul(&result, &base, &result, 0);
 		if (s) goto err;
@@ -2707,18 +2710,27 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 	bc_num_free(&result);
  int_err:
 	bc_num_free(&mult);
-	bc_num_free(&temp);
 }
 
 static BC_STATUS zxc_num_parse(BcNum *n, const char *val, unsigned base_t)
 {
+	size_t i;
+
 	if (!xc_num_strValid(val))
 		RETURN_STATUS(bc_error("bad number string"));
 
 	bc_num_zero(n);
-	while (*val == '0') val++;
+	while (*val == '0')
+		val++;
+	for (i = 0; ; ++i) {
+		if (val[i] == '\0')
+			RETURN_STATUS(BC_STATUS_SUCCESS);
+		if (val[i] != '.' && val[i] != '0')
+			break;
+	}
 
-	if (base_t == 10)
+	if (base_t == 10 || val[1] == '\0')
+		// Decimal, or single-digit number
 		bc_num_parseDecimal(n, val);
 	else
 		bc_num_parseBase(n, val, base_t);
@@ -5526,7 +5538,7 @@ static BC_STATUS zxc_num_printBase(BcNum *n)
 
 	n->neg = false;
 
-	if (G.prog.ob_t <= BC_NUM_MAX_IBASE) {
+	if (G.prog.ob_t <= 16) {
 		width = 1;
 		print = bc_num_printHex;
 	} else {

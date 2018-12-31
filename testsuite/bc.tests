@@ -218,6 +218,11 @@ for(i=1; i<3; i++) {
 99
 "
 
+testing "bc ibase" \
+	"bc" \
+	"99\n1295\n1224\n" \
+	"" "a=ZZ;a;ibase=36;a=ZZ;a;ibase=Z;a=ZZ;a"
+
 tar xJf bc_large.tar.xz
 
 for f in bc*.bc; do
