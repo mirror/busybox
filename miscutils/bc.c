@@ -2642,7 +2642,6 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 	BcNum base;
 	BcDig temp_digs[ULONG_NUM_BUFSIZE];
 	BcDig base_digs[ULONG_NUM_BUFSIZE];
-	BcDig c = '\0';
 	size_t digits;
 
 	bc_num_init_DEF_SIZE(&mult);
@@ -2657,6 +2656,7 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 
 	for (;;) {
 		unsigned v;
+		char c;
 
 		c = *val++;
 		if (c == '\0') goto int_err;
@@ -2679,6 +2679,7 @@ static void bc_num_parseBase(BcNum *n, const char *val, unsigned base_t)
 	digits = 0;
 	for (;;) {
 		unsigned v;
+		char c;
 
 		c = *val++;
 		if (c == '\0') break;
