@@ -2727,20 +2727,6 @@ static BC_STATUS zxc_num_parse(BcNum *n, const char *val, unsigned base_t)
 }
 #define zxc_num_parse(...) (zxc_num_parse(__VA_ARGS__) COMMA_SUCCESS)
 
-static bool xc_lex_more_input(void)
-{
-	BcParse *p = &G.prs;
-
-	bc_vec_pop_all(&G.input_buffer);
-
-	xc_read_line(&G.input_buffer, G.prs.lex_input_fp);
-
-	p->lex_inbuf = G.input_buffer.v;
-//	bb_error_msg("G.input_buffer.len:%d '%s'", G.input_buffer.len, G.input_buffer.v);
-
-	return G.input_buffer.len > 1;
-}
-
 // p->lex_inbuf points to the current string to be parsed.
 // if p->lex_inbuf points to '\0', it's either EOF or it points after
 // last processed line's terminating '\n' (and more reading needs to be done
@@ -2774,10 +2760,13 @@ static bool xc_lex_more_input(void)
 // end"         - ...prints "str#\<newline>end"
 static char peek_inbuf(void)
 {
-	if (*G.prs.lex_inbuf == '\0') {
-		if (G.prs.lex_input_fp)
-			if (!xc_lex_more_input())
-				G.prs.lex_input_fp = NULL;
+	if (*G.prs.lex_inbuf == '\0'
+	 && G.prs.lex_input_fp
+	) {
+		xc_read_line(&G.input_buffer, G.prs.lex_input_fp);
+		G.prs.lex_inbuf = G.input_buffer.v;
+		if (G.input_buffer.len <= 1) // on EOF, len is 1 (NUL byte)
+			G.prs.lex_input_fp = NULL;
 	}
 	return *G.prs.lex_inbuf;
 }
@@ -2796,7 +2785,7 @@ static void xc_lex_lineComment(void)
 	// Try: echo -n '#foo' | bc
 	p->lex = XC_LEX_WHITESPACE;
 
-	// We depend here on input being done in whole lines:
+	// Not peek_inbuf(): we depend on input being done in whole lines:
 	// '\0' which isn't the EOF can only be seen after '\n'.
 	while ((c = *p->lex_inbuf) != '\n' && c != '\0')
 		p->lex_inbuf++;
@@ -5281,17 +5270,15 @@ static BC_STATUS zxc_program_read(void)
 		IF_DC(s = zdc_parse_exprs_until_eof());
 	}
 	if (s) goto exec_err;
-
 	if (G.prs.lex != XC_LEX_NLINE && G.prs.lex != XC_LEX_EOF) {
 		s = bc_error("bad read() expression");
 		goto exec_err;
 	}
+	xc_parse_push(XC_INST_RET);
 
 	ip.func = BC_PROG_READ;
 	ip.inst_idx = 0;
 	IF_BC(ip.results_len_before_call = G.prog.results.len;)
-
-	xc_parse_push(XC_INST_RET);
 	bc_vec_push(&G.prog.exestack, &ip);
 
  exec_err:
