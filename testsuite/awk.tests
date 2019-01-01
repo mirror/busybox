@@ -336,10 +336,13 @@ testing "awk continue" \
 	'BEGIN { if (1) continue; else a = 1 }'
 
 testing "awk handles invalid for loop" \
-    "awk '{ for() }' 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
+	"awk -e '{ for() }' 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
 
 testing "awk handles colon not preceded by ternary" \
-    "awk 'foo:bar:' 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
+	"awk -e foo:bar: 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
+
+testing "awk errors on missing delete arg" \
+	"awk -e '{delete}' 2>&1" "awk: cmd. line:1: Too few arguments\n" "" ""
 
 # testing "description" "command" "result" "infile" "stdin"
 testing 'awk negative field access' \

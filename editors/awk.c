@@ -275,18 +275,21 @@ typedef struct tsplitter_s {
                    | TC_STRING | TC_NUMBER | TC_UOPPOST)
 #define	TC_CONCAT2 (TC_OPERAND | TC_UOPPRE)
 
-#define	OF_RES1    0x010000
-#define	OF_RES2    0x020000
-#define	OF_STR1    0x040000
-#define	OF_STR2    0x080000
-#define	OF_NUM1    0x100000
-#define	OF_CHECKED 0x200000
+#define	OF_RES1     0x010000
+#define	OF_RES2     0x020000
+#define	OF_STR1     0x040000
+#define	OF_STR2     0x080000
+#define	OF_NUM1     0x100000
+#define	OF_CHECKED  0x200000
+#define	OF_REQUIRED 0x400000
+
 
 /* combined operator flags */
 #define	xx	0
 #define	xV	OF_RES2
 #define	xS	(OF_RES2 | OF_STR2)
 #define	Vx	OF_RES1
+#define	Rx	(OF_RES1 | OF_NUM1 | OF_REQUIRED)
 #define	VV	(OF_RES1 | OF_RES2)
 #define	Nx	(OF_RES1 | OF_NUM1)
 #define	NV	(OF_RES1 | OF_NUM1 | OF_RES2)
@@ -425,7 +428,7 @@ static const uint32_t tokeninfo[] = {
 	0,
 	0, /* \n */
 	ST_IF,        ST_DO,        ST_FOR,      OC_BREAK,
-	OC_CONTINUE,  OC_DELETE|Vx, OC_PRINT,
+	OC_CONTINUE,  OC_DELETE|Rx, OC_PRINT,
 	OC_PRINTF,    OC_NEXT,      OC_NEXTFILE,
 	OC_RETURN|Vx, OC_EXIT|Nx,
 	ST_WHILE,
@@ -593,7 +596,7 @@ static const char EMSG_UNEXP_EOS[] ALIGN1 = "Unexpected end of string";
 static const char EMSG_UNEXP_TOKEN[] ALIGN1 = "Unexpected token";
 static const char EMSG_DIV_BY_ZERO[] ALIGN1 = "Division by zero";
 static const char EMSG_INV_FMT[] ALIGN1 = "Invalid format specifier";
-static const char EMSG_TOO_FEW_ARGS[] ALIGN1 = "Too few arguments for builtin";
+static const char EMSG_TOO_FEW_ARGS[] ALIGN1 = "Too few arguments";
 static const char EMSG_NOT_ARRAY[] ALIGN1 = "Not an array";
 static const char EMSG_POSSIBLE_ERROR[] ALIGN1 = "Possible syntax error";
 static const char EMSG_UNDEF_FUNC[] ALIGN1 = "Call to undefined function";
@@ -1426,7 +1429,11 @@ static void chain_expr(uint32_t info)
 	node *n;
 
 	n = chain_node(info);
+
 	n->l.n = parse_expr(TC_OPTERM | TC_GRPTERM);
+	if ((info & OF_REQUIRED) && !n->l.n)
+		syntax_error(EMSG_TOO_FEW_ARGS);
+
 	if (t_tclass & TC_GRPTERM)
 		rollback_token();
 }
