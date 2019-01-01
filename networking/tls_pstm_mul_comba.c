@@ -754,7 +754,7 @@ static int32 pstm_mul_comba32(pstm_int *A, pstm_int *B, pstm_int *C)
 
 /******************************************************************************/
 
-int32 pstm_mul_comba(psPool_t *pool, pstm_int *A, pstm_int *B, pstm_int *C,
+int32 FAST_FUNC pstm_mul_comba(psPool_t *pool, pstm_int *A, pstm_int *B, pstm_int *C,
 			pstm_digit *paD, uint32 paDlen)
 {
 #ifdef USE_1024_KEY_SPEED_OPTIMIZATIONS

@@ -1085,7 +1085,7 @@ static int32 pstm_sqr_comba32(pstm_int *A, pstm_int *B)
 /******************************************************************************/
 /*
  */
-int32 pstm_sqr_comba(psPool_t *pool, pstm_int *A, pstm_int *B, pstm_digit *paD,
+int32 FAST_FUNC pstm_sqr_comba(psPool_t *pool, pstm_int *A, pstm_int *B, pstm_digit *paD,
 		uint32 paDlen)
 {
 #ifdef USE_1024_KEY_SPEED_OPTIMIZATIONS

@@ -340,7 +340,7 @@ asm(                                  \
 #define LO 0
 
 /* computes x/R == x (mod N) via Montgomery Reduction */
-int32 pstm_montgomery_reduce(psPool_t *pool, pstm_int *a, pstm_int *m,
+int32 FAST_FUNC pstm_montgomery_reduce(psPool_t *pool, pstm_int *a, pstm_int *m,
 		pstm_digit mp, pstm_digit *paD, uint32 paDlen)
 {
 	pstm_digit	*c, *_c, *tmpm, mu;

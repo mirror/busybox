@@ -173,7 +173,9 @@ error:
 	res = PS_FAILURE;
 done:
 	if (type == PRIVKEY_TYPE && key->optimized) {
-		pstm_clear_multi(&tmpa, &tmpb, NULL, NULL, NULL, NULL, NULL, NULL);
+		//pstm_clear_multi(&tmpa, &tmpb, NULL, NULL, NULL, NULL, NULL, NULL);
+		pstm_clear(&tmpa);
+		pstm_clear(&tmpb);
 	}
 	pstm_clear(&tmp);
 	return res;

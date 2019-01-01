@@ -136,148 +136,148 @@ typedef struct  {
 #define pstm_isodd(a)  (((a)->used > 0 && (((a)->dp[0] & 1) == 1)) ? PS_TRUE : PS_FALSE)
 #define pstm_abs(a, b)  { pstm_copy(a, b); (b)->sign  = 0; }
 
-extern void pstm_set(pstm_int *a, pstm_digit b);
+//made static:extern void pstm_set(pstm_int *a, pstm_digit b);
 
-extern void pstm_zero(pstm_int * a);
+//made static:extern void pstm_zero(pstm_int * a);
 
 //bbox: pool unused
 #define pstm_init(pool, a) \
         pstm_init(      a)
-extern int32 pstm_init(psPool_t *pool, pstm_int * a);
+//made static:extern int32 pstm_init(psPool_t *pool, pstm_int * a);
 
 //bbox: pool unused
 #define pstm_init_size(pool, a, size) \
         pstm_init_size(      a, size)
-extern int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size);
+extern int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size) FAST_FUNC;
 
 //bbox: pool unused
 #define pstm_init_copy(pool, a, b, toSqr) \
         pstm_init_copy(      a, b, toSqr)
-extern int32 pstm_init_copy(psPool_t *pool, pstm_int * a, pstm_int * b,
-				int toSqr); //bbox: was int16 toSqr
+//made static:extern int32 pstm_init_copy(psPool_t *pool, pstm_int * a, pstm_int * b,
+//made static:				int toSqr); //bbox: was int16 toSqr
 
-extern int pstm_count_bits (pstm_int * a); //bbox: was returning int16
+//made static:extern int pstm_count_bits (pstm_int * a) FAST_FUNC; //bbox: was returning int16
 
 //bbox: pool unused
 #define pstm_init_for_read_unsigned_bin(pool, a, len) \
         pstm_init_for_read_unsigned_bin(      a, len)
 extern int32 pstm_init_for_read_unsigned_bin(psPool_t *pool, pstm_int *a,
-				uint32 len);
+				uint32 len) FAST_FUNC;
 
-extern int32 pstm_read_unsigned_bin(pstm_int *a, unsigned char *b, int32 c);
+extern int32 pstm_read_unsigned_bin(pstm_int *a, unsigned char *b, int32 c) FAST_FUNC;
 
-extern int32 pstm_unsigned_bin_size(pstm_int *a);
+extern int32 pstm_unsigned_bin_size(pstm_int *a) FAST_FUNC;
 
 extern int32 pstm_copy(pstm_int * a, pstm_int * b);
 
-extern void pstm_exch(pstm_int * a, pstm_int * b);
+//made static:extern void pstm_exch(pstm_int * a, pstm_int * b);
 
-extern void pstm_clear(pstm_int * a);
+extern void pstm_clear(pstm_int * a) FAST_FUNC;
 
 extern void pstm_clear_multi(pstm_int *mp0, pstm_int *mp1, pstm_int *mp2,
 				pstm_int *mp3, pstm_int *mp4, pstm_int *mp5, pstm_int *mp6,
-				pstm_int *mp7);
+				pstm_int *mp7) FAST_FUNC;
 
-extern int32 pstm_grow(pstm_int * a, int size); //bbox: was int16 size
+extern int32 pstm_grow(pstm_int * a, int size) FAST_FUNC; //bbox: was int16 size
 
-extern void pstm_clamp(pstm_int * a);
+extern void pstm_clamp(pstm_int * a) FAST_FUNC;
 
-extern int32 pstm_cmp(pstm_int * a, pstm_int * b);
+extern int32 pstm_cmp(pstm_int * a, pstm_int * b) FAST_FUNC;
 
-extern int32 pstm_cmp_mag(pstm_int * a, pstm_int * b);
+extern int32 pstm_cmp_mag(pstm_int * a, pstm_int * b) FAST_FUNC;
 
-extern void pstm_rshd(pstm_int *a, int x); //bbox: was int16 x
+//made static:extern void pstm_rshd(pstm_int *a, int x); //bbox: was int16 x
 
-extern int32 pstm_lshd(pstm_int * a, int b); //bbox: was int16 b
+//made static:extern int32 pstm_lshd(pstm_int * a, int b); //bbox: was int16 b
 
 //bbox: pool unused
 #define pstm_div(pool, a, b, c, d) \
         pstm_div(      a, b, c, d)
-extern int32 pstm_div(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
-				pstm_int *d);
+//made static:extern int32 pstm_div(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
+//made static:				pstm_int *d);
 
 //bbox: pool unused
 #define pstm_div_2d(pool, a, b, c, d) \
         pstm_div_2d(      a, b, c, d)
-extern int32 pstm_div_2d(psPool_t *pool, pstm_int *a, int b, pstm_int *c,
-				pstm_int *d); //bbox: was int16 b
+//made static:extern int32 pstm_div_2d(psPool_t *pool, pstm_int *a, int b, pstm_int *c,
+//made static:				pstm_int *d); //bbox: was int16 b
 
-extern int32 pstm_div_2(pstm_int * a, pstm_int * b);
+extern int32 pstm_div_2(pstm_int * a, pstm_int * b) FAST_FUNC;
 
-extern int32 s_pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c);
+extern int32 s_pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c) FAST_FUNC;
 
-extern int32 pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c);
+extern int32 pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c) FAST_FUNC;
 
 //bbox: pool unused
 #define pstm_sub_d(pool, a, b, c) \
         pstm_sub_d(      a, b, c)
-extern int32 pstm_sub_d(psPool_t *pool, pstm_int *a, pstm_digit b, pstm_int *c);
+extern int32 pstm_sub_d(psPool_t *pool, pstm_int *a, pstm_digit b, pstm_int *c) FAST_FUNC;
 
-extern int32 pstm_mul_2(pstm_int * a, pstm_int * b);
+extern int32 pstm_mul_2(pstm_int * a, pstm_int * b) FAST_FUNC;
 
 //bbox: pool unused
 #define pstm_mod(pool, a, b, c) \
         pstm_mod(      a, b, c)
-extern int32 pstm_mod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c);
+//made static:extern int32 pstm_mod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c);
 
 //bbox: pool unused
 #define pstm_mulmod(pool, a, b, c, d) \
         pstm_mulmod(      a, b, c, d)
 extern int32 pstm_mulmod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
-				pstm_int *d);
+				pstm_int *d) FAST_FUNC;
 
 //bbox: pool unused
 #define pstm_exptmod(pool, G, X, P, Y) \
         pstm_exptmod(      G, X, P, Y)
 extern int32 pstm_exptmod(psPool_t *pool, pstm_int *G, pstm_int *X, pstm_int *P,
-				pstm_int *Y);
+				pstm_int *Y) FAST_FUNC;
 
-extern int32 pstm_2expt(pstm_int *a, int b); //bbox: was int16 b
+//made static:extern int32 pstm_2expt(pstm_int *a, int b); //bbox: was int16 b
 
-extern int32 pstm_add(pstm_int *a, pstm_int *b, pstm_int *c);
+extern int32 pstm_add(pstm_int *a, pstm_int *b, pstm_int *c) FAST_FUNC;
 
 //bbox: pool unused
 #define pstm_to_unsigned_bin(pool, a, b) \
         pstm_to_unsigned_bin(      a, b)
 extern int32 pstm_to_unsigned_bin(psPool_t *pool, pstm_int *a,
-				unsigned char *b);
+				unsigned char *b) FAST_FUNC;
 
 //bbox: pool unused
 #define pstm_to_unsigned_bin_nr(pool, a, b) \
         pstm_to_unsigned_bin_nr(      a, b)
 extern int32 pstm_to_unsigned_bin_nr(psPool_t *pool, pstm_int *a,
-				unsigned char *b);
+				unsigned char *b) FAST_FUNC;
 
-extern int32 pstm_montgomery_setup(pstm_int *a, pstm_digit *rho);
+//made static:extern int32 pstm_montgomery_setup(pstm_int *a, pstm_digit *rho);
 
 //bbox: pool unused
 #define pstm_montgomery_reduce(pool, a, m, mp, paD, paDlen) \
         pstm_montgomery_reduce(      a, m, mp, paD, paDlen)
 extern int32 pstm_montgomery_reduce(psPool_t *pool, pstm_int *a, pstm_int *m,
-				pstm_digit mp, pstm_digit *paD, uint32 paDlen);
+				pstm_digit mp, pstm_digit *paD, uint32 paDlen) FAST_FUNC;
 
 #define pstm_mul_comba(pool, A, B, C, paD, paDlen) \
         pstm_mul_comba(      A, B, C, paD, paDlen)
 extern int32 pstm_mul_comba(psPool_t *pool, pstm_int *A, pstm_int *B,
-				pstm_int *C, pstm_digit *paD, uint32 paDlen);
+				pstm_int *C, pstm_digit *paD, uint32 paDlen) FAST_FUNC;
 
 //bbox: pool unused
 #define pstm_sqr_comba(pool, A, B, paD, paDlen) \
         pstm_sqr_comba(      A, B, paD, paDlen)
 extern int32 pstm_sqr_comba(psPool_t *pool, pstm_int *A, pstm_int *B,
-				pstm_digit *paD, uint32 paDlen);
+				pstm_digit *paD, uint32 paDlen) FAST_FUNC;
 
-extern int32 pstm_cmp_d(pstm_int *a, pstm_digit b);
+//made static:extern int32 pstm_cmp_d(pstm_int *a, pstm_digit b);
 
-extern int32 pstm_montgomery_calc_normalization(pstm_int *a, pstm_int *b);
+//made static:extern int32 pstm_montgomery_calc_normalization(pstm_int *a, pstm_int *b);
 
-extern int32 pstm_mul_d(pstm_int *a, pstm_digit b, pstm_int *c);
+//made static:extern int32 pstm_mul_d(pstm_int *a, pstm_digit b, pstm_int *c);
 
 //bbox: pool unused
 #define pstm_invmod(pool, a, b, c) \
         pstm_invmod(      a, b, c)
 extern int32 pstm_invmod(psPool_t *pool, pstm_int * a, pstm_int * b,
-				pstm_int * c);
+				pstm_int * c) FAST_FUNC;
 
 #else /* DISABLE_PSTM */
 	typedef int32 pstm_int;

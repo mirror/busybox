@@ -47,13 +47,18 @@
 //#include "../cryptoApi.h"
 #ifndef DISABLE_PSTM
 
+#undef pstm_mul_2d
 static int32 pstm_mul_2d(pstm_int *a, int b, pstm_int *c); //bbox: was int16 b
+#define pstm_mul_2d(a, b, c) (pstm_mul_2d(a, b, c), PSTM_OKAY)
 
 /******************************************************************************/
 /*
 	init an pstm_int for a given size
  */
-int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size)
+#undef pstm_init_size
+#define pstm_init_size(pool, a, size) \
+        pstm_init_size(      a, size)
+int32 FAST_FUNC pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size)
 {
 //bbox
 //	uint16		x;
@@ -75,12 +80,17 @@ int32 pstm_init_size(psPool_t *pool, pstm_int * a, uint32 size)
 //	}
 	return PSTM_OKAY;
 }
+#undef pstm_init_size
+#define pstm_init_size(pool, a, size) (pstm_init_size(a, size), PSTM_OKAY)
 
 /******************************************************************************/
 /*
 	Init a new pstm_int.
 */
-int32 pstm_init(psPool_t *pool, pstm_int * a)
+#undef pstm_init
+#define pstm_init(pool, a) \
+        pstm_init(      a)
+static int32 pstm_init(psPool_t *pool, pstm_int * a)
 {
 //bbox
 //	int32		i;
@@ -106,12 +116,15 @@ int32 pstm_init(psPool_t *pool, pstm_int * a)
 
 	return PSTM_OKAY;
 }
+#undef pstm_init
+#define pstm_init(pool, a) (pstm_init(a), PSTM_OKAY)
 
 /******************************************************************************/
 /*
 	Grow as required
  */
-int32 pstm_grow(pstm_int * a, int size)
+#undef pstm_grow
+int32 FAST_FUNC pstm_grow(pstm_int * a, int size)
 {
 	int			i; //bbox: was int16
 	pstm_digit		*tmp;
@@ -142,11 +155,13 @@ int32 pstm_grow(pstm_int * a, int size)
 	}
 	return PSTM_OKAY;
 }
+#define pstm_grow(a, size) (pstm_grow(a, size), PSTM_OKAY)
 
 /******************************************************************************/
 /*
 	copy, b = a (b must be pre-allocated)
  */
+#undef pstm_copy
 int32 pstm_copy(pstm_int * a, pstm_int * b)
 {
 	int32	res, n;
@@ -195,6 +210,7 @@ int32 pstm_copy(pstm_int * a, pstm_int * b)
 	b->sign = a->sign;
 	return PSTM_OKAY;
 }
+#define pstm_copy(a, b) (pstm_copy(a, b), PSTM_OKAY)
 
 /******************************************************************************/
 /*
@@ -204,7 +220,7 @@ int32 pstm_copy(pstm_int * a, pstm_int * b)
 	leading "used" digit will be non-zero. Typically very fast.  Also fixes
 	the sign if there are no more leading digits
 */
-void pstm_clamp(pstm_int * a)
+void FAST_FUNC pstm_clamp(pstm_int * a)
 {
 /*	decrease used while the most significant digit is zero. */
 	while (a->used > 0 && a->dp[a->used - 1] == 0) {
@@ -220,7 +236,7 @@ void pstm_clamp(pstm_int * a)
 /*
 	clear one (frees).
  */
-void pstm_clear(pstm_int * a)
+void FAST_FUNC pstm_clear(pstm_int * a)
 {
 	int32		i;
 /*
@@ -248,6 +264,7 @@ void pstm_clear(pstm_int * a)
 /*
 	clear many (frees).
  */
+#if 0 //UNUSED
 void pstm_clear_multi(pstm_int *mp0, pstm_int *mp1, pstm_int *mp2,
 					pstm_int *mp3, pstm_int *mp4, pstm_int *mp5,
 					pstm_int *mp6, pstm_int *mp7)
@@ -272,12 +289,13 @@ void pstm_clear_multi(pstm_int *mp0, pstm_int *mp1, pstm_int *mp2,
 		}
 	}
 }
+#endif
 
 /******************************************************************************/
 /*
 	Set to zero.
  */
-void pstm_zero(pstm_int * a)
+static void pstm_zero(pstm_int * a)
 {
 	int32		n;
 	pstm_digit	*tmp;
@@ -296,7 +314,7 @@ void pstm_zero(pstm_int * a)
 /*
 	Compare maginitude of two ints (unsigned).
  */
-int32 pstm_cmp_mag(pstm_int * a, pstm_int * b)
+int32 FAST_FUNC pstm_cmp_mag(pstm_int * a, pstm_int * b)
 {
 	int		n; //bbox: was int16
 	pstm_digit	*tmpa, *tmpb;
@@ -336,7 +354,7 @@ int32 pstm_cmp_mag(pstm_int * a, pstm_int * b)
 /*
 	Compare two ints (signed)
  */
-int32 pstm_cmp(pstm_int * a, pstm_int * b)
+int32 FAST_FUNC pstm_cmp(pstm_int * a, pstm_int * b)
 {
 /*
 	compare based on sign
@@ -364,7 +382,7 @@ int32 pstm_cmp(pstm_int * a, pstm_int * b)
 	pstm_ints can be initialized more precisely when they will populated
 	using pstm_read_unsigned_bin since the length of the byte stream is known
 */
-int32 pstm_init_for_read_unsigned_bin(psPool_t *pool, pstm_int *a, uint32 len)
+int32 FAST_FUNC pstm_init_for_read_unsigned_bin(psPool_t *pool, pstm_int *a, uint32 len)
 {
 	int32 size;
 /*
@@ -385,7 +403,7 @@ int32 pstm_init_for_read_unsigned_bin(psPool_t *pool, pstm_int *a, uint32 len)
 	called pstm_init_for_read_unsigned_bin first.  There is some grow logic
 	here if the default pstm_init was used but we don't really want to hit it.
 */
-int32 pstm_read_unsigned_bin(pstm_int *a, unsigned char *b, int32 c)
+int32 FAST_FUNC pstm_read_unsigned_bin(pstm_int *a, unsigned char *b, int32 c)
 {
 	/* zero the int */
 	pstm_zero (a);
@@ -460,7 +478,7 @@ int32 pstm_read_unsigned_bin(pstm_int *a, unsigned char *b, int32 c)
 /******************************************************************************/
 /*
 */
-int pstm_count_bits (pstm_int * a)
+static int pstm_count_bits(pstm_int * a)
 {
 	int     r; //bbox: was int16
 	pstm_digit q;
@@ -482,14 +500,14 @@ int pstm_count_bits (pstm_int * a)
 }
 
 /******************************************************************************/
-int32 pstm_unsigned_bin_size(pstm_int *a)
+int32 FAST_FUNC pstm_unsigned_bin_size(pstm_int *a)
 {
 	int32     size = pstm_count_bits (a);
 	return (size / 8 + ((size & 7) != 0 ? 1 : 0));
 }
 
 /******************************************************************************/
-void pstm_set(pstm_int *a, pstm_digit b)
+static void pstm_set(pstm_int *a, pstm_digit b)
 {
    pstm_zero(a);
    a->dp[0] = b;
@@ -500,7 +518,7 @@ void pstm_set(pstm_int *a, pstm_digit b)
 /*
 	Right shift
 */
-void pstm_rshd(pstm_int *a, int x)
+static void pstm_rshd(pstm_int *a, int x)
 {
 	int y; //bbox: was int16
 
@@ -529,7 +547,8 @@ void pstm_rshd(pstm_int *a, int x)
 /*
 	Shift left a certain amount of digits.
  */
-int32 pstm_lshd(pstm_int * a, int b)
+#undef pstm_lshd
+static int32 pstm_lshd(pstm_int * a, int b)
 {
 	int	x; //bbox: was int16
 	int32	res;
@@ -577,12 +596,13 @@ int32 pstm_lshd(pstm_int * a, int b)
 	}
 	return PSTM_OKAY;
 }
+#define pstm_lshd(a, b) (pstm_lshd(a, b), PSTM_OKAY)
 
 /******************************************************************************/
 /*
 	computes a = 2**b
 */
-int32 pstm_2expt(pstm_int *a, int b)
+static int32 pstm_2expt(pstm_int *a, int b)
 {
 	int     z; //bbox: was int16
 
@@ -616,7 +636,7 @@ int32 pstm_2expt(pstm_int *a, int b)
 /*
 
 */
-int32 pstm_mul_2(pstm_int * a, pstm_int * b)
+int32 FAST_FUNC pstm_mul_2(pstm_int * a, pstm_int * b)
 {
 	int32	res;
 	int	x, oldused; //bbox: was int16
@@ -682,7 +702,7 @@ int32 pstm_mul_2(pstm_int * a, pstm_int * b)
 /*
 	unsigned subtraction ||a|| >= ||b|| ALWAYS!
 */
-int32 s_pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c)
+int32 FAST_FUNC s_pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c)
 {
 	int		oldbused, oldused; //bbox: was int16
 	int32		x;
@@ -779,7 +799,7 @@ static int32 s_pstm_add(pstm_int *a, pstm_int *b, pstm_int *c)
 /*
 
 */
-int32 pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c)
+int32 FAST_FUNC pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c)
 {
 	int32	res;
 	int	sa, sb; //bbox: was int16
@@ -824,6 +844,7 @@ int32 pstm_sub(pstm_int *a, pstm_int *b, pstm_int *c)
 /*
 	c = a - b
 */
+#if 0 //UNUSED
 int32 pstm_sub_d(psPool_t *pool, pstm_int *a, pstm_digit b, pstm_int *c)
 {
 	pstm_int	tmp;
@@ -837,12 +858,13 @@ int32 pstm_sub_d(psPool_t *pool, pstm_int *a, pstm_digit b, pstm_int *c)
 	pstm_clear(&tmp);
 	return res;
 }
+#endif
 
 /******************************************************************************/
 /*
 	setups the montgomery reduction
 */
-int32 pstm_montgomery_setup(pstm_int *a, pstm_digit *rho)
+static int32 pstm_montgomery_setup(pstm_int *a, pstm_digit *rho)
 {
 	pstm_digit x, b;
 
@@ -878,7 +900,7 @@ int32 pstm_montgomery_setup(pstm_int *a, pstm_digit *rho)
  *	computes a = B**n mod b without division or multiplication useful for
  *	normalizing numbers in a Montgomery system.
  */
-int32 pstm_montgomery_calc_normalization(pstm_int *a, pstm_int *b)
+static int32 pstm_montgomery_calc_normalization(pstm_int *a, pstm_int *b)
 {
 	int32     x;
 	int	bits; //bbox: was int16
@@ -916,6 +938,7 @@ int32 pstm_montgomery_calc_normalization(pstm_int *a, pstm_int *b)
 /*
 	c = a * 2**d
 */
+#undef pstm_mul_2d
 static int32 pstm_mul_2d(pstm_int *a, int b, pstm_int *c)
 {
 	pstm_digit	carry, carrytmp, shift;
@@ -956,11 +979,13 @@ static int32 pstm_mul_2d(pstm_int *a, int b, pstm_int *c)
 	pstm_clamp(c);
 	return PSTM_OKAY;
 }
+#define pstm_mul_2d(a, b, c) (pstm_mul_2d(a, b, c), PSTM_OKAY)
 
 /******************************************************************************/
 /*
 	c = a mod 2**d
 */
+#undef pstm_mod_2d
 static int32 pstm_mod_2d(pstm_int *a, int b, pstm_int *c) //bbox: was int16 b
 {
 	int	x; //bbox: was int16
@@ -991,13 +1016,15 @@ static int32 pstm_mod_2d(pstm_int *a, int b, pstm_int *c) //bbox: was int16 b
 	pstm_clamp (c);
 	return PSTM_OKAY;
 }
+#define pstm_mod_2d(a, b, c) (pstm_mod_2d(a, b, c), PSTM_OKAY)
 
 
 /******************************************************************************/
 /*
 	c = a * b
 */
-int32 pstm_mul_d(pstm_int *a, pstm_digit b, pstm_int *c)
+#undef pstm_mul_d
+static int32 pstm_mul_d(pstm_int *a, pstm_digit b, pstm_int *c)
 {
 	pstm_word	w;
 	int32		res;
@@ -1027,12 +1054,16 @@ int32 pstm_mul_d(pstm_int *a, pstm_digit b, pstm_int *c)
 	pstm_clamp(c);
 	return PSTM_OKAY;
 }
+#define pstm_mul_d(a, b, c) (pstm_mul_d(a, b, c), PSTM_OKAY)
 
 /******************************************************************************/
 /*
 	c = a / 2**b
 */
-int32 pstm_div_2d(psPool_t *pool, pstm_int *a, int b, pstm_int *c,
+#undef pstm_div_2d
+#define pstm_div_2d(pool, a, b, c, d) \
+        pstm_div_2d(      a, b, c, d)
+static int32 pstm_div_2d(psPool_t *pool, pstm_int *a, int b, pstm_int *c,
 					pstm_int *d)
 {
 	pstm_digit	D, r, rr;
@@ -1113,11 +1144,14 @@ LBL_DONE:
 	}
 	return res;
 }
+#undef pstm_div_2d
+#define pstm_div_2d(pool, a, b, c, d) (pstm_div_2d(a, b, c, d), PSTM_OKAY)
 
 /******************************************************************************/
 /*
 	b = a/2
 */
+#if 0 //UNUSED
 int32 pstm_div_2(pstm_int * a, pstm_int * b)
 {
 	int	x, oldused; //bbox: was int16
@@ -1161,12 +1195,16 @@ int32 pstm_div_2(pstm_int * a, pstm_int * b)
 	pstm_clamp (b);
 	return PSTM_OKAY;
 }
+#endif
 
 /******************************************************************************/
 /*
 	Creates "a" then copies b into it
  */
-int32 pstm_init_copy(psPool_t *pool, pstm_int * a, pstm_int * b, int toSqr)
+#undef pstm_init_copy
+#define pstm_init_copy(pool, a, b, toSqr) \
+        pstm_init_copy(      a, b, toSqr)
+static int32 pstm_init_copy(psPool_t *pool, pstm_int * a, pstm_int * b, int toSqr)
 {
 	int	x; //bbox: was int16
 	int32	res;
@@ -1191,6 +1229,8 @@ int32 pstm_init_copy(psPool_t *pool, pstm_int * a, pstm_int * b, int toSqr)
 	}
 	return pstm_copy(b, a);
 }
+#undef pstm_init_copy
+#define pstm_init_copy(pool, a, b, toSqr) (pstm_init_copy(a, b, toSqr), PSTM_OKAY)
 
 /******************************************************************************/
 /*
@@ -1274,7 +1314,7 @@ static uint64 psDiv128(uint128 *numerator, uint64 denominator)
 /*
 	a/b => cb + d == a
 */
-int32 pstm_div(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
+static int32 pstm_div(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
 				pstm_int *d)
 {
 	pstm_int	q, x, y, t1, t2;
@@ -1487,7 +1527,7 @@ LBL_T1:pstm_clear (&t1);
 	Swap the elements of two integers, for cases where you can't simply swap
 	the pstm_int pointers around
 */
-void pstm_exch(pstm_int * a, pstm_int * b)
+static void pstm_exch(pstm_int * a, pstm_int * b)
 {
 	pstm_int		t;
 
@@ -1500,7 +1540,7 @@ void pstm_exch(pstm_int * a, pstm_int * b)
 /*
 	c = a mod b, 0 <= c < b
 */
-int32 pstm_mod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c)
+static int32 pstm_mod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c)
 {
 	pstm_int	t;
 	int32		err;
@@ -1527,7 +1567,7 @@ int32 pstm_mod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c)
 /*
 	d = a * b (mod c)
 */
-int32 pstm_mulmod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
+int32 FAST_FUNC pstm_mulmod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
 			pstm_int *d)
 {
 	int32		res;
@@ -1560,7 +1600,7 @@ int32 pstm_mulmod(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
  *	y = g**x (mod b)
  *	Some restrictions... x must be positive and < b
  */
-int32 pstm_exptmod(psPool_t *pool, pstm_int *G, pstm_int *X, pstm_int *P,
+int32 FAST_FUNC pstm_exptmod(psPool_t *pool, pstm_int *G, pstm_int *X, pstm_int *P,
 			pstm_int *Y)
 {
 	pstm_int	M[32], res; /* Keep this winsize based: (1 << max_winsize) */
@@ -1801,7 +1841,7 @@ LBL_RES:pstm_clear(&res);
 /*
 
 */
-int32 pstm_add(pstm_int *a, pstm_int *b, pstm_int *c)
+int32 FAST_FUNC pstm_add(pstm_int *a, pstm_int *b, pstm_int *c)
 {
 	int32	res;
 	int	sa, sb; //bbox: was int16
@@ -1862,6 +1902,7 @@ static void pstm_reverse (unsigned char *s, int len) //bbox: was int16 len
 	No reverse.  Useful in some of the EIP-154 PKA stuff where special byte
 	order seems to come into play more often
 */
+#if 0 //UNUSED
 int32 pstm_to_unsigned_bin_nr(psPool_t *pool, pstm_int *a, unsigned char *b)
 {
 	int32     res;
@@ -1883,11 +1924,12 @@ int32 pstm_to_unsigned_bin_nr(psPool_t *pool, pstm_int *a, unsigned char *b)
 	pstm_clear(&t);
 	return PS_SUCCESS;
 }
+#endif
 /******************************************************************************/
 /*
 
 */
-int32 pstm_to_unsigned_bin(psPool_t *pool, pstm_int *a, unsigned char *b)
+int32 FAST_FUNC pstm_to_unsigned_bin(psPool_t *pool, pstm_int *a, unsigned char *b)
 {
 	int32     res;
 	int	x; //bbox: was int16
@@ -1910,11 +1952,12 @@ int32 pstm_to_unsigned_bin(psPool_t *pool, pstm_int *a, unsigned char *b)
 	return PS_SUCCESS;
 }
 
+#if 0 //UNUSED
 /******************************************************************************/
 /*
 	compare against a single digit
 */
-int32 pstm_cmp_d(pstm_int *a, pstm_digit b)
+static int32 pstm_cmp_d(pstm_int *a, pstm_digit b)
 {
 	/* compare based on sign */
 	if ((b && a->used == 0) || a->sign == PSTM_NEG) {
@@ -2259,5 +2302,7 @@ LBL_Y: pstm_clear(&y);
 LBL_X: pstm_clear(&x);
 	return res;
 }
+#endif //UNUSED
+
 #endif /* !DISABLE_PSTM */
 /******************************************************************************/
