@@ -108,6 +108,11 @@ testing "bc define auto" \
 	"8\n9\n" \
 	"" "define w() { auto z; return 8; }; w(); 9"
 
+testing "bc define auto array same name" \
+	"bc" \
+	"8\n9\n" \
+	"" "define w(x) { auto x[]; return x; }; w(8); 9"
+
 testing "bc define with body on next line" \
 	"bc" \
 	"8\n9\n" \
@@ -132,6 +137,17 @@ testing "bc ifz does not match if keyword" \
 	"bc" \
 	"1\n2\n2\n3\n" \
 	"" "ifz=1;ifz\n++ifz;ifz++\nifz"
+
+# had parse error on "f()-N"
+testing "bc -l 'e(0)-2'" \
+	"bc -l" \
+	"-1.00000000000000000000\n" \
+	"" "e(0)-2"
+
+testing "bc (!a&&b)" \
+	"bc" \
+	"0\n" \
+	"" "(!a&&b)"
 
 testing "bc print 1,2,3" \
 	"bc" \
