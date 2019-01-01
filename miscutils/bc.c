@@ -2509,7 +2509,7 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 		i = 0;
 		for (;;) {
 			char c = line_buf[i++];
-			if (!c) break;
+			if (c == '\0') break;
 			if (bad_input_byte(c)) goto again;
 		}
 		bc_vec_string(vec, n, line_buf);
@@ -2522,14 +2522,16 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 		bool bad_chars = 0;
 
 		do {
+ get_char:
 #if ENABLE_FEATURE_BC_INTERACTIVE
 			if (G_interrupt) {
 				// ^C was pressed: ignore entire line, get another one
-				bc_vec_pop_all(vec);
-				goto intr;
+				goto again;
 			}
 #endif
-			do c = fgetc(fp); while (c == '\0');
+			c = fgetc(fp);
+			if (c == '\0')
+				goto get_char;
 			if (c == EOF) {
 				if (ferror(fp))
 					bb_perror_msg_and_die("input error");
