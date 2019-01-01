@@ -1265,7 +1265,7 @@ static node *parse_expr(uint32_t iexp)
 	debug_printf_parse("%s(%x)\n", __func__, iexp);
 
 	sn.info = PRIMASK;
-	sn.r.n = glptr = NULL;
+	sn.r.n = sn.a.n = glptr = NULL;
 	xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP | iexp;
 
 	while (!((tc = next_token(xtc)) & iexp)) {
@@ -1287,6 +1287,7 @@ static node *parse_expr(uint32_t iexp)
 			    || ((t_info == vn->info) && ((t_info & OPCLSMASK) == OC_COLON))
 			) {
 				vn = vn->a.n;
+				if (!vn->a.n) syntax_error(EMSG_UNEXP_TOKEN);
 			}
 			if ((t_info & OPCLSMASK) == OC_TERNARY)
 				t_info += P(6);
