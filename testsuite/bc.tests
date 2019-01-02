@@ -149,6 +149,12 @@ testing "bc (!a&&b)" \
 	"0\n" \
 	"" "(!a&&b)"
 
+# check that dc code is not messing this up (no NUL printing!)
+testing "bc print \"\"" \
+	"bc" \
+	"" \
+	"" "print \"\""
+
 testing "bc print 1,2,3" \
 	"bc" \
 	"123" \
