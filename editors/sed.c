@@ -387,7 +387,7 @@ static int parse_file_cmd(/*sed_cmd_t *sed_cmd,*/ const char *filecmdstr, char *
 		bb_error_msg_and_die("empty filename");
 	*retval = xstrndup(filecmdstr+start, idx-start+hack+1);
 	if (hack)
-		(*retval)[idx] = '\\';
+		(*retval)[idx-start] = '\\';
 
 	return idx;
 }
