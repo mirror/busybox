@@ -208,17 +208,17 @@ testing "bc continue in if" \
 	"" "\
 i=2
 while(i--) {
-        11
-        if(i) {
-                21
-                continue
-                22
-        } else {
-                31
-                continue
-                32
+	11
+	if(i) {
+		21
+		continue
+		22
+	} else {
+		31
+		continue
+	32
 	}
-        12
+	12
 }
 99
 "
@@ -245,7 +245,39 @@ testing "bc ibase" \
 	"99\n1295\n1224\n" \
 	"" "a=ZZ;a;ibase=36;a=ZZ;a;ibase=Z;a=ZZ;a"
 
-tar xJf bc_large.tar.xz
+testing "bc parsing of numbers" \
+	"bc 2>&1 | bc 2>&1 | md5sum 2>&1" \
+	"465d8c01308d0863b6f5669e8a1c69fb  -\n" \
+	"" '
+for (b = 2; b <= 16; ++b) {
+	if (b == 10) continue
+	obase = 10
+	print "ibase = A; ibase = ", b, "\n"
+	obase = b
+	for (i = 0; i <= 65536; ++i) {
+		i
+		print "0.", i, "\n"
+		print "1.", i, "\n"
+		print i, ".", i, "\n"
+	}
+}'
+
+testing "bc printing of numbers" \
+	"bc 2>&1 | bc 2>&1 | md5sum 2>&1" \
+	"d884b35d251ca096410712743aeafb9e  -\n" \
+	"" '
+for (b = 2; b <= 101; ++b) {
+	if (b == 10) continue
+	s = b * b
+	print "obase = ", b, "\n"
+	for (i = 0; i <= s; ++i) {
+		i
+		print "0.", i, "\n"
+		print "1.", i, "\n"
+		print i, ".", i, "\n"
+	}
+	2189432174861923048671023498128347619023487610234689172304.192748960128745108927461089237469018723460
+}'
 
 for f in bc*.bc; do
 	r="`basename "$f" .bc`_results.txt"
