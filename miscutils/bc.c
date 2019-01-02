@@ -753,7 +753,7 @@ struct globals {
 
 	// For error messages. Can be set to current parsed line,
 	// or [TODO] to current executing line (can be before last parsed one)
-	unsigned err_line;
+	size_t err_line;
 
 	BcVec input_buffer;
 
@@ -916,7 +916,9 @@ static void bc_verror_msg(const char *fmt, va_list p)
 	const char *sv = sv; // for compiler
 	if (G.prs.lex_filename) {
 		sv = applet_name;
-		applet_name = xasprintf("%s: %s:%u", applet_name, G.prs.lex_filename, G.err_line);
+		applet_name = xasprintf("%s: %s:%lu", applet_name,
+			G.prs.lex_filename, (unsigned long)G.err_line
+		);
 	}
 	bb_verror_msg(fmt, p, NULL);
 	if (G.prs.lex_filename) {
@@ -3532,7 +3534,8 @@ static void xc_parse_pushIndex(size_t idx)
 
 	dbg_lex("%s:%d pushing index %zd", __func__, __LINE__, idx);
 	if (idx < SMALL_INDEX_LIMIT) {
-		goto push_idx;
+		xc_parse_push(idx);
+		return;
 	}
 
 	mask = ((size_t)0xff) << (sizeof(idx) * 8 - 8);
@@ -3546,11 +3549,10 @@ static void xc_parse_pushIndex(size_t idx)
 
 	xc_parse_push((SMALL_INDEX_LIMIT - 1) + amt);
 
-	while (idx != 0) {
- push_idx:
+	do {
 		xc_parse_push((unsigned char)idx);
 		idx >>= 8;
-	}
+	} while (idx != 0);
 }
 
 #if ENABLE_BC
