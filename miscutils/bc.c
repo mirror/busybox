@@ -5359,7 +5359,7 @@ static char *xc_program_name(char *code, size_t *bgn)
 static void xc_program_printString(const char *str)
 {
 #if ENABLE_DC
-	if (!str[0]) {
+	if (!str[0] && IS_DC) {
 		// Example: echo '[]ap' | dc
 		// should print two bytes: 0x00, 0x0A
 		bb_putchar('\0');
@@ -5367,46 +5367,25 @@ static void xc_program_printString(const char *str)
 	}
 #endif
 	while (*str) {
-		int c = *str++;
-		if (c != '\\' || !*str)
-			bb_putchar(c);
-		else {
+		char c = *str++;
+		if (c == '\\') {
+			static const char esc[] ALIGN1 = "nabfrt""e\\";
+			char *n;
+
 			c = *str++;
-			switch (c) {
-			case 'a':
-				bb_putchar('\a');
-				break;
-			case 'b':
-				bb_putchar('\b');
-				break;
-			case '\\':
-			case 'e':
-				bb_putchar('\\');
-				break;
-			case 'f':
-				bb_putchar('\f');
-				break;
-			case 'n':
-				bb_putchar('\n');
-				G.prog.nchars = SIZE_MAX;
-				break;
-			case 'r':
-				bb_putchar('\r');
-				break;
-			case 'q':
-				bb_putchar('"');
-				break;
-			case 't':
-				bb_putchar('\t');
-				break;
-			default:
-				// Just print the backslash and following character.
+			n = strchr(esc, c); // note: c can be NUL
+			if (!n) {
+				// Just print the backslash and following character
 				bb_putchar('\\');
 				++G.prog.nchars;
-				bb_putchar(c);
-				break;
+			} else {
+				if (n - esc == 0) // "\n" ?
+					G.prog.nchars = SIZE_MAX;
+				c = "\n\a\b\f\r\t""\\\\""\\"[n - esc];
+				//   n a b f r t   e \   \<end of line>
 			}
 		}
+		putchar(c);
 		++G.prog.nchars;
 	}
 }
@@ -5631,16 +5610,15 @@ static BC_STATUS zxc_program_print(char inst, size_t idx)
 		str = *xc_program_str(idx);
 
 		if (inst == XC_INST_PRINT_STR) {
-			for (;;) {
-				char c = *str++;
-				if (c == '\0') break;
-				bb_putchar(c);
-				++G.prog.nchars;
-				if (c == '\n') G.prog.nchars = 0;
-			}
+			char *nl;
+			G.prog.nchars += printf("%s", str);
+			nl = strrchr(str, '\n');
+			if (nl)
+				G.prog.nchars = strlen(nl + 1);
 		} else {
 			xc_program_printString(str);
-			if (inst == XC_INST_PRINT) bb_putchar('\n');
+			if (inst == XC_INST_PRINT)
+				bb_putchar('\n');
 		}
 	}
 
