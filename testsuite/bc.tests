@@ -103,6 +103,11 @@ testing "bc for (;;) {break}" \
 	"2\n9\n" \
 	"" "for (;;) {2;break}; 9"
 
+testing "bc define {return}" \
+	"bc" \
+	"0\n9\n" \
+	"" "define w() {return}\nw();9"
+
 testing "bc define auto" \
 	"bc" \
 	"8\n9\n" \

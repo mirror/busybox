@@ -4121,18 +4121,15 @@ static BC_STATUS zbc_parse_return(void)
 	if (s) RETURN_STATUS(s);
 
 	t = p->lex;
-	if (t == XC_LEX_NLINE || t == BC_LEX_SCOLON)
+	if (t == XC_LEX_NLINE || t == BC_LEX_SCOLON || t == BC_LEX_RBRACE)
 		xc_parse_push(BC_INST_RET0);
 	else {
-		bool paren = (t == BC_LEX_LPAREN);
-		s = bc_parse_expr_empty_ok(0);
-		if (s == BC_STATUS_PARSE_EMPTY_EXP) {
-			xc_parse_push(BC_INST_RET0);
-			s = zxc_lex_next();
-		}
+		s = zbc_parse_expr(0);
 		if (s) RETURN_STATUS(s);
 
-		if (!paren || p->lex_last != BC_LEX_RPAREN) {
+		if (t != BC_LEX_LPAREN   // "return EXPR", no ()
+		 || p->lex_last != BC_LEX_RPAREN  // example: "return (a) + b"
+		) {
 			s = zbc_POSIX_requires("parentheses around return expressions");
 			if (s) RETURN_STATUS(s);
 		}

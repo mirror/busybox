@@ -4,9 +4,7 @@ define x(x) {
 define y() {
 	return;
 }
-define z() {
-	return ();
-}
+define z() {return}
 scale = 0
 x=2
 x[0]=3
