@@ -5793,9 +5793,6 @@ static BC_STATUS zxc_program_assign(char inst)
 		RETURN_STATUS(bc_error_bad_assignment());
 
 #if ENABLE_BC
-	if (inst == BC_INST_ASSIGN_DIVIDE && !bc_num_cmp(r, &G.prog.zero))
-		RETURN_STATUS(bc_error("divide by zero"));
-
 	if (assign)
 		bc_num_copy(l, r);
 	else {
@@ -5960,12 +5957,10 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 {
 	BcInstPtr ip;
 	size_t i, nparams;
-	BcFunc *func;
 	BcId *a;
-	BcResult *arg;
+	BcFunc *func;
 
 	nparams = xc_program_index(code, idx);
-	ip.inst_idx = 0;
 	ip.func = xc_program_index(code, idx);
 	func = xc_program_func(ip.func);
 
@@ -5975,17 +5970,21 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 	if (nparams != func->nparams) {
 		RETURN_STATUS(bc_error_fmt("function has %u parameters, but called with %u", func->nparams, nparams));
 	}
+	ip.inst_idx = 0;
 	ip.results_len_before_call = G.prog.results.len - nparams;
 
 	for (i = 0; i < nparams; ++i) {
+		BcResult *arg;
 		BcStatus s;
 
 		a = bc_vec_item(&func->autos, nparams - 1 - i);
 		arg = bc_vec_top(&G.prog.results);
 
-		if ((!a->idx) != (arg->t == XC_RESULT_ARRAY) || arg->t == XC_RESULT_STR)
+		if ((!a->idx) != (arg->t == XC_RESULT_ARRAY) // array/variable mismatch
+		// || arg->t == XC_RESULT_STR - impossible, f("str") is not a legal syntax (strings are not bc expressions)
+		) {
 			RETURN_STATUS(bc_error_variable_is_wrong_type());
-
+		}
 		s = zxc_program_copyToVar(a->name, a->idx);
 		if (s) RETURN_STATUS(s);
 	}
