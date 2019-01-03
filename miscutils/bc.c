@@ -378,7 +378,6 @@ typedef struct BcResult {
 typedef struct BcInstPtr {
 	size_t func;
 	size_t inst_idx;
-	IF_BC(size_t results_len_before_call;)
 } BcInstPtr;
 
 typedef enum BcLexType {
@@ -5311,7 +5310,6 @@ static BC_STATUS zxc_program_read(void)
 
 	ip.func = BC_PROG_READ;
 	ip.inst_idx = 0;
-	IF_BC(ip.results_len_before_call = G.prog.results.len;)
 	bc_vec_push(&G.prog.exestack, &ip);
 
  exec_err:
@@ -5971,7 +5969,6 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 		RETURN_STATUS(bc_error_fmt("function has %u parameters, but called with %u", func->nparams, nparams));
 	}
 	ip.inst_idx = 0;
-	ip.results_len_before_call = G.prog.results.len - nparams;
 
 	for (i = 0; i < nparams; ++i) {
 		BcResult *arg;
@@ -6019,11 +6016,6 @@ static BC_STATUS zbc_program_return(char inst)
 	size_t i;
 	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 
-#if SANITY_CHECKS
-	if (!STACK_HAS_EQUAL_OR_MORE_THAN(&G.prog.results, ip->results_len_before_call + (inst == XC_INST_RET)))
-		RETURN_STATUS(bc_error_stack_has_too_few_elements());
-#endif
-
 	if (inst == XC_INST_RET) {
 		BcStatus s;
 		BcNum *num;
@@ -6033,6 +6025,7 @@ static BC_STATUS zbc_program_return(char inst)
 		if (s) RETURN_STATUS(s);
 		bc_num_init(&res.d.n, num->len);
 		bc_num_copy(&res.d.n, num);
+		bc_vec_pop(&G.prog.results);
 	//} else if (f->void_func) {
 		//prepare "void" result in res
 	} else {
@@ -6040,8 +6033,6 @@ static BC_STATUS zbc_program_return(char inst)
 		//bc_num_zero(&res.d.n); - already is
 	}
 	res.t = XC_RESULT_TEMP;
-
-	bc_vec_npop(&G.prog.results, G.prog.results.len - ip->results_len_before_call);
 	bc_vec_push(&G.prog.results, &res);
 
 	bc_vec_pop(&G.prog.exestack);
