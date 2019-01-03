@@ -5720,7 +5720,7 @@ static BC_STATUS zdc_program_assignStr(BcResult *r, BcVec *v, bool push)
 #define zdc_program_assignStr(...) (zdc_program_assignStr(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_DC
 
-static BC_STATUS zxc_program_copyToVar(char *name, bool var)
+static BC_STATUS zxc_program_popResultAndCopyToVar(char *name, bool var)
 {
 	BcStatus s;
 	BcResult *ptr, r;
@@ -5761,7 +5761,7 @@ static BC_STATUS zxc_program_copyToVar(char *name, bool var)
 
 	RETURN_STATUS(s);
 }
-#define zxc_program_copyToVar(...) (zxc_program_copyToVar(__VA_ARGS__) COMMA_SUCCESS)
+#define zxc_program_popResultAndCopyToVar(...) (zxc_program_popResultAndCopyToVar(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zxc_program_assign(char inst)
 {
@@ -5985,7 +5985,7 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 		) {
 			RETURN_STATUS(bc_error_variable_is_wrong_type());
 		}
-		s = zxc_program_copyToVar(a->name, a->idx);
+		s = zxc_program_popResultAndCopyToVar(a->name, a->idx);
 		if (s) RETURN_STATUS(s);
 	}
 
@@ -6019,11 +6019,10 @@ static BC_STATUS zbc_program_return(char inst)
 	size_t i;
 	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 
+#if SANITY_CHECKS
 	if (!STACK_HAS_EQUAL_OR_MORE_THAN(&G.prog.results, ip->results_len_before_call + (inst == XC_INST_RET)))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
-
-	f = xc_program_func(ip->func);
-	res.t = XC_RESULT_TEMP;
+#endif
 
 	if (inst == XC_INST_RET) {
 		BcStatus s;
@@ -6034,22 +6033,27 @@ static BC_STATUS zbc_program_return(char inst)
 		if (s) RETURN_STATUS(s);
 		bc_num_init(&res.d.n, num->len);
 		bc_num_copy(&res.d.n, num);
+	//} else if (f->void_func) {
+		//prepare "void" result in res
 	} else {
 		bc_num_init_DEF_SIZE(&res.d.n);
 		//bc_num_zero(&res.d.n); - already is
 	}
+	res.t = XC_RESULT_TEMP;
+
+	bc_vec_npop(&G.prog.results, G.prog.results.len - ip->results_len_before_call);
+	bc_vec_push(&G.prog.results, &res);
+
+	bc_vec_pop(&G.prog.exestack);
 
 	// We need to pop arguments as well, so this takes that into account.
+	f = xc_program_func(ip->func);
 	a = (void*)f->autos.v;
 	for (i = 0; i < f->autos.len; i++, a++) {
 		BcVec *v;
 		v = xc_program_search(a->name, a->idx);
 		bc_vec_pop(v);
 	}
-
-	bc_vec_npop(&G.prog.results, G.prog.results.len - ip->results_len_before_call);
-	bc_vec_push(&G.prog.results, &res);
-	bc_vec_pop(&G.prog.exestack);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -6679,7 +6683,7 @@ static BC_STATUS zxc_program_exec(void)
 		}
 		case DC_INST_PUSH_TO_VAR: {
 			char *name = xc_program_name(code, &ip->inst_idx);
-			s = zxc_program_copyToVar(name, true);
+			s = zxc_program_popResultAndCopyToVar(name, true);
 			free(name);
 			break;
 		}
