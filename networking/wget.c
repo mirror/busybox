@@ -876,6 +876,10 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 	polldata.fd = fileno(dfp);
 	polldata.events = POLLIN | POLLPRI;
 #endif
+	if (G.output_fd == 1)
+		fprintf(stderr, "writing to stdout\n");
+	else
+		fprintf(stderr, "saving to '%s'\n", G.fname_out);
 	progress_meter(PROGRESS_START);
 
 	if (G.chunked)
@@ -1021,6 +1025,10 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 	G.chunked = 0;  /* makes it show 100% even for chunked download */
 	G.got_clen = 1; /* makes it show 100% even for download of (formerly) unknown size */
 	progress_meter(PROGRESS_END);
+	if (G.output_fd == 1)
+		fprintf(stderr, "written to stdout\n");
+	else
+		fprintf(stderr, "'%s' saved\n", G.fname_out);
 }
 
 static void download_one_url(const char *url)
@@ -1380,6 +1388,8 @@ However, in real world it was observed that some web servers
 			xclose(G.output_fd);
 			G.output_fd = -1;
 		}
+	} else {
+		fprintf(stderr, "remote file exists\n");
 	}
 
 	if (dfp != sfp) {
