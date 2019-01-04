@@ -6020,6 +6020,9 @@ static BC_STATUS zbc_program_return(char inst)
 	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 
 	if (inst == XC_INST_RET) {
+		// bc needs this for e.g. RESULT_CONSTANT ("return 5")
+		// because bc constants are per-function.
+		// TODO: maybe avoid if value is already RESULT_TEMP?
 		BcStatus s;
 		BcNum *num;
 		BcResult *operand = bc_vec_top(&G.prog.results);
@@ -6458,7 +6461,17 @@ static BC_STATUS zxc_program_exec(void)
 
 		dbg_exec("inst at %zd:%d results.len:%d", ip->inst_idx - 1, inst, G.prog.results.len);
 		switch (inst) {
+		case XC_INST_RET:
+			if (IS_DC) { // end of '?' reached
+				bc_vec_pop(&G.prog.exestack);
+				goto read_updated_ip;
+			}
+			// bc: fall through
 #if ENABLE_BC
+		case BC_INST_RET0:
+			dbg_exec("BC_INST_RET[0]:");
+			s = zbc_program_return(inst);
+			goto read_updated_ip;
 		case BC_INST_JUMP_ZERO: {
 			BcNum *num;
 			bool zero;
@@ -6495,11 +6508,6 @@ static BC_STATUS zxc_program_exec(void)
 			dbg_exec("BC_INST_HALT:");
 			QUIT_OR_RETURN_TO_MAIN;
 			break;
-		case XC_INST_RET:
-		case BC_INST_RET0:
-			dbg_exec("BC_INST_RET[0]:");
-			s = zbc_program_return(inst);
-			goto read_updated_ip;
 		case XC_INST_BOOL_OR:
 		case XC_INST_BOOL_AND:
 #endif // ENABLE_BC
