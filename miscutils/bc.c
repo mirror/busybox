@@ -5054,6 +5054,9 @@ static BC_STATUS zdc_parse_expr(void)
 	BcParse *p = &G.prs;
 	int i;
 
+	if (p->lex == XC_LEX_NLINE)
+		RETURN_STATUS(zxc_lex_next());
+
 	i = (int)p->lex - (int)XC_LEX_OP_POWER;
 	if (i >= 0) {
 		BcInst inst = dc_LEX_to_INST[i];
@@ -6766,14 +6769,6 @@ static BC_STATUS zxc_vm_process(const char *text)
 #endif
 		} else {
 #if ENABLE_DC
-			// Most of dc parsing assumes all whitespace,
-			// including '\n', is eaten.
-			while (G.prs.lex == XC_LEX_NLINE) {
-				s = zxc_lex_next();
-				if (s) goto err;
-				if (G.prs.lex == XC_LEX_EOF)
-					goto done;
-			}
 			s = zdc_parse_expr();
 #endif
 		}
@@ -6836,7 +6831,7 @@ static BC_STATUS zxc_vm_process(const char *text)
 		bc_vec_pop_all(&f->code);
 		ip->inst_idx = 0;
 	}
- IF_DC(done:)
+
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
 	RETURN_STATUS(s);
 }
