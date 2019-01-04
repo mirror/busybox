@@ -1204,8 +1204,8 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	nfiles = 0;
 	do {
 		cur = my_stat(*argv, *argv,
-			/* follow links on command line unless -l, -s or -F: */
-			!(option_mask32 & (OPT_l|OPT_s|OPT_F))
+			/* follow links on command line unless -l, -i, -s or -F: */
+			!(option_mask32 & (OPT_l|OPT_i|OPT_s|OPT_F))
 			/* ... or if -H: */
 			|| (option_mask32 & OPT_H)
 			/* ... or if -L, but my_stat always follows links if -L */
