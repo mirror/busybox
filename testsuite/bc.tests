@@ -123,6 +123,23 @@ testing "bc define with body on next line" \
 	"8\n9\n" \
 	"" "define w()\n{ auto z; return 8; }\nw()\n9"
 
+testing "bc void function" \
+	"bc" \
+	"void9\n" \
+	"" "define void w() {print \"void\"}\nw()\n9"
+
+# Extra POSIX compat - GNU bc does not allow this
+testing "bc function named 'void'" \
+	"bc" \
+	"void0\n9\n" \
+	"" "define void() {print \"void\"}\nvoid()\n9"
+
+# Extra POSIX compat - GNU bc does not allow this
+testing "bc variable named 'void'" \
+	"bc" \
+	"6\n9\n" \
+	"" "void=6\nvoid\n9"
+
 testing "bc if(cond)<NL>" \
 	"bc" \
 	"9\n" \

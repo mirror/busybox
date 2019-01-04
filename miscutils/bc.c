@@ -5,7 +5,6 @@
  * Original code copyright (c) 2018 Gavin D. Howard and contributors.
  */
 //TODO: GNU extensions:
-// support "define void f()..."
 // support "define f(*param[])" - "pass array by reference" syntax
 
 #define DEBUG_LEXER   0
@@ -344,10 +343,12 @@ typedef struct BcFunc {
 	IF_BC(BcVec strs;)
 	IF_BC(BcVec consts;)
 	IF_BC(size_t nparams;)
+	IF_BC(bool voidfunc;)
 } BcFunc;
 
 typedef enum BcResultType {
 	XC_RESULT_TEMP,
+	IF_BC(BC_RESULT_VOID,) // same as TEMP, but INST_PRINT will ignore it
 
 	XC_RESULT_VAR,
 	XC_RESULT_ARRAY_ELEM,
@@ -2451,10 +2452,11 @@ static void dc_result_copy(BcResult *d, BcResult *src)
 			d->d.id.name = xstrdup(src->d.id.name);
 			break;
 		case XC_RESULT_CONSTANT:
-		IF_BC(case BC_RESULT_LAST:)
-		IF_BC(case BC_RESULT_ONE:)
 		case XC_RESULT_STR:
 			memcpy(&d->d.n, &src->d.n, sizeof(BcNum));
+			break;
+		default: // placate compiler
+			// BC_RESULT_VOID, BC_RESULT_LAST, BC_RESULT_ONE - do not happen
 			break;
 	}
 }
@@ -2466,6 +2468,7 @@ static FAST_FUNC void bc_result_free(void *result)
 
 	switch (r->t) {
 		case XC_RESULT_TEMP:
+		IF_BC(case BC_RESULT_VOID:)
 		case XC_RESULT_IBASE:
 		case XC_RESULT_SCALE:
 		case XC_RESULT_OBASE:
@@ -4123,6 +4126,7 @@ static BC_STATUS zbc_parse_return(void)
 	if (t == XC_LEX_NLINE || t == BC_LEX_SCOLON || t == BC_LEX_RBRACE)
 		xc_parse_push(BC_INST_RET0);
 	else {
+//TODO: if (p->func->voidfunc) ERROR
 		s = zbc_parse_expr(0);
 		if (s) RETURN_STATUS(s);
 
@@ -4374,7 +4378,7 @@ static BC_STATUS zbc_parse_funcdef(void)
 {
 	BcParse *p = &G.prs;
 	BcStatus s;
-	bool var, comma = false;
+	bool var, comma, voidfunc;
 	char *name;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
@@ -4383,17 +4387,34 @@ static BC_STATUS zbc_parse_funcdef(void)
 	if (p->lex != XC_LEX_NAME)
 		RETURN_STATUS(bc_error_bad_function_definition());
 
-	name = xstrdup(p->lex_strnumbuf.v);
-	p->fidx = bc_program_addFunc(name);
-	p->func = xc_program_func(p->fidx);
+	// To be maximally both POSIX and GNU-compatible,
+	// "void" is not treated as a normal keyword:
+	// you can have variable named "void", and even a function
+	// named "void": "define void() { return 6; }" is ok.
+	// _Only_ "define void f() ..." syntax treats "void"
+	// specially.
+	voidfunc = (strcmp(p->lex_strnumbuf.v, "void") == 0);
 
 	s = zxc_lex_next();
 	if (s) RETURN_STATUS(s);
+
+	voidfunc = (voidfunc && p->lex == XC_LEX_NAME);
+	if (voidfunc) {
+		s = zxc_lex_next();
+		if (s) RETURN_STATUS(s);
+	}
+
 	if (p->lex != BC_LEX_LPAREN)
 		RETURN_STATUS(bc_error_bad_function_definition());
+
+	p->fidx = bc_program_addFunc(xstrdup(p->lex_strnumbuf.v));
+	p->func = xc_program_func(p->fidx);
+	p->func->voidfunc = voidfunc;
+
 	s = zxc_lex_next();
 	if (s) RETURN_STATUS(s);
 
+	comma = false;
 	while (p->lex != BC_LEX_RPAREN) {
 		if (p->lex != XC_LEX_NAME)
 			RETURN_STATUS(bc_error_bad_function_definition());
@@ -4442,7 +4463,7 @@ static BC_STATUS zbc_parse_funcdef(void)
 	// Prevent "define z()<newline>" from being interpreted as function with empty stmt as body
 	s = zbc_lex_skip_if_at_NLINE();
 	if (s) RETURN_STATUS(s);
-	//GNU bc requires a {} block even if function body has single stmt, enforce this?
+	// GNU bc requires a {} block even if function body has single stmt, enforce this
 	if (p->lex != BC_LEX_LBRACE)
 		RETURN_STATUS(bc_error("function { body } expected"));
 
@@ -5127,6 +5148,7 @@ static BC_STATUS zxc_program_num(BcResult *r, BcNum **num)
 	switch (r->t) {
 	case XC_RESULT_STR:
 	case XC_RESULT_TEMP:
+	IF_BC(case BC_RESULT_VOID:)
 	case XC_RESULT_IBASE:
 	case XC_RESULT_SCALE:
 	case XC_RESULT_OBASE:
@@ -5584,22 +5606,32 @@ static BC_STATUS zxc_num_print(BcNum *n, bool newline)
 }
 #define zxc_num_print(...) (zxc_num_print(__VA_ARGS__) COMMA_SUCCESS)
 
-static BC_STATUS zxc_program_print(char inst, size_t idx)
+#if !ENABLE_DC
+// for bc, idx is always 0
+#define xc_program_print(inst, idx) \
+	xc_program_print(inst)
+#endif
+static BC_STATUS xc_program_print(char inst, size_t idx)
 {
 	BcStatus s;
 	BcResult *r;
 	BcNum *num;
-	bool pop = (inst != XC_INST_PRINT);
+	IF_NOT_DC(size_t idx = 0);
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, idx))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	r = bc_vec_item_rev(&G.prog.results, idx);
+#if ENABLE_BC
+	if (inst == XC_INST_PRINT && r->t == BC_RESULT_VOID)
+		// void function's result on stack, ignore
+		RETURN_STATUS(BC_STATUS_SUCCESS);
+#endif
 	s = zxc_program_num(r, &num);
 	if (s) RETURN_STATUS(s);
 
 	if (BC_PROG_NUM(r, num)) {
-		s = zxc_num_print(num, !pop);
+		s = zxc_num_print(num, /*newline:*/ inst == XC_INST_PRINT);
 #if ENABLE_BC
 		if (!s && IS_BC) bc_num_copy(&G.prog.last, num);
 #endif
@@ -5622,11 +5654,11 @@ static BC_STATUS zxc_program_print(char inst, size_t idx)
 		}
 	}
 
-	if (!s && pop) bc_vec_pop(&G.prog.results);
+	if (!s && inst != XC_INST_PRINT) bc_vec_pop(&G.prog.results);
 
 	RETURN_STATUS(s);
 }
-#define zxc_program_print(...) (zxc_program_print(__VA_ARGS__) COMMA_SUCCESS)
+#define zxc_program_print(...) (xc_program_print(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zxc_program_negate(void)
 {
@@ -5790,8 +5822,12 @@ static BC_STATUS zxc_program_assign(char inst)
 	}
 #endif
 
-	if (left->t == XC_RESULT_CONSTANT || left->t == XC_RESULT_TEMP)
+	if (left->t == XC_RESULT_CONSTANT
+	 || left->t == XC_RESULT_TEMP
+	IF_BC(|| left->t == BC_RESULT_VOID)
+	) {
 		RETURN_STATUS(bc_error_bad_assignment());
+	}
 
 #if ENABLE_BC
 	if (assign)
@@ -6019,6 +6055,9 @@ static BC_STATUS zbc_program_return(char inst)
 	size_t i;
 	BcInstPtr *ip = bc_vec_top(&G.prog.exestack);
 
+	f = xc_program_func(ip->func);
+
+	res.t = XC_RESULT_TEMP;
 	if (inst == XC_INST_RET) {
 		// bc needs this for e.g. RESULT_CONSTANT ("return 5")
 		// because bc constants are per-function.
@@ -6032,19 +6071,17 @@ static BC_STATUS zbc_program_return(char inst)
 		bc_num_init(&res.d.n, num->len);
 		bc_num_copy(&res.d.n, num);
 		bc_vec_pop(&G.prog.results);
-	//} else if (f->void_func) {
-		//prepare "void" result in res
 	} else {
+		if (f->voidfunc)
+			res.t = BC_RESULT_VOID;
 		bc_num_init_DEF_SIZE(&res.d.n);
 		//bc_num_zero(&res.d.n); - already is
 	}
-	res.t = XC_RESULT_TEMP;
 	bc_vec_push(&G.prog.results, &res);
 
 	bc_vec_pop(&G.prog.exestack);
 
 	// We need to pop arguments as well, so this takes that into account.
-	f = xc_program_func(ip->func);
 	a = (void*)f->autos.v;
 	for (i = 0; i < f->autos.len; i++, a++) {
 		BcVec *v;
@@ -6568,7 +6605,7 @@ static BC_STATUS zxc_program_exec(void)
 		case XC_INST_PRINT:
 		case XC_INST_PRINT_POP:
 		case XC_INST_PRINT_STR:
-			dbg_exec("XC_INST_PRINTxyz:");
+			dbg_exec("XC_INST_PRINTxyz(%d):", inst - XC_INST_PRINT);
 			s = zxc_program_print(inst, 0);
 			break;
 		case XC_INST_STR:
