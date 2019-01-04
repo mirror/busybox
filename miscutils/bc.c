@@ -824,10 +824,8 @@ struct globals {
 #define BC_MAX_STRING   ((unsigned) UINT_MAX - 1)
 #define BC_MAX_NUM      BC_MAX_STRING
 // Unused apart from "limits" message. Just show a "biggish number" there.
-//#define BC_MAX_NAME     BC_MAX_STRING
 //#define BC_MAX_EXP      ((unsigned long) LONG_MAX)
 //#define BC_MAX_VARS     ((unsigned long) SIZE_MAX - 1)
-#define BC_MAX_NAME_STR "999999999"
 #define BC_MAX_EXP_STR  "999999999"
 #define BC_MAX_VARS_STR "999999999"
 
@@ -4629,8 +4627,7 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(bool auto_allowed)
 			"BC_DIM_MAX      = "BC_MAX_DIM_STR   "\n"
 			"BC_SCALE_MAX    = "BC_MAX_SCALE_STR "\n"
 			"BC_STRING_MAX   = "BC_MAX_STRING_STR"\n"
-			"BC_NAME_MAX     = "BC_MAX_NAME_STR  "\n"
-			"BC_NUM_MAX      = "BC_MAX_NUM_STR   "\n"
+		//	"BC_NUM_MAX      = "BC_MAX_NUM_STR   "\n" - GNU bc does not show this
 			"MAX Exponent    = "BC_MAX_EXP_STR   "\n"
 			"Number of vars  = "BC_MAX_VARS_STR  "\n"
 		);
