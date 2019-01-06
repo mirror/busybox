@@ -1467,6 +1467,12 @@ int find_main(int argc UNUSED_PARAM, char **argv)
 			break;
 		if (!saved[1])
 			break; /* it is "-" */
+		if (saved[1] == '-' && !saved[2]) {
+			/* it is "--" */
+			/* Try: find -- /dev/null */
+			saved = *++past_HLP;
+			break;
+		}
 		if ((saved+1)[strspn(saved+1, "HLP")] != '\0')
 			break;
 	}
