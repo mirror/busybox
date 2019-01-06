@@ -152,8 +152,10 @@ static void subneg(byte c);
 
 static void iac_flush(void)
 {
-	full_write(netfd, G.iacbuf, G.iaclen);
-	G.iaclen = 0;
+	if (G.iaclen != 0) {
+		full_write(netfd, G.iacbuf, G.iaclen);
+		G.iaclen = 0;
+	}
 }
 
 static void doexit(int ev) NORETURN;
@@ -338,88 +340,73 @@ static void handle_net_input(int len)
 
 static void put_iac(int c)
 {
-	G.iacbuf[G.iaclen++] = c;
-}
-
-static void put_iac2_merged(unsigned wwdd_and_c)
-{
-	if (G.iaclen + 3 > IACBUFSIZE)
+	int iaclen = G.iaclen;
+	if (iaclen >= IACBUFSIZE) {
 		iac_flush();
-
-	put_iac(IAC);
-	put_iac(wwdd_and_c >> 8);
-	put_iac(wwdd_and_c & 0xff);
+		iaclen = 0;
+	}
+	G.iacbuf[iaclen] = c; /* "... & 0xff" is implicit */
+	G.iaclen = iaclen + 1;
 }
-#define put_iac2(wwdd,c) put_iac2_merged(((wwdd)<<8) + (c))
+
+static void put_iac2_msb_lsb(unsigned x_y)
+{
+	put_iac(x_y >> 8);  /* "... & 0xff" is implicit */
+	put_iac(x_y);  /* "... & 0xff" is implicit */
+}
+#define put_iac2_x_y(x,y) put_iac2_msb_lsb(((x)<<8) + (y))
+
+static void put_iac4_msb_lsb(unsigned x_y_z_t)
+{
+	put_iac2_msb_lsb(x_y_z_t >> 16);
+	put_iac2_msb_lsb(x_y_z_t);  /* "... & 0xffff" is implicit */
+}
+#define put_iac4_x_y_z_t(x,y,z,t) put_iac4_msb_lsb(((x)<<24) + ((y)<<16) + ((z)<<8) + (t))
+
+static void put_iac3_IAC_x_y_merged(unsigned wwdd_and_c)
+{
+	put_iac(IAC);
+	put_iac2_msb_lsb(wwdd_and_c);
+}
+#define put_iac3_IAC_x_y(wwdd,c) put_iac3_IAC_x_y_merged(((wwdd)<<8) + (c))
 
 #if ENABLE_FEATURE_TELNET_TTYPE
 static void put_iac_subopt(byte c, char *str)
 {
-	int len = strlen(str) + 6;   // ( 2 + 1 + 1 + strlen + 2 )
-
-	if (G.iaclen + len > IACBUFSIZE)
-		iac_flush();
-
-	put_iac(IAC);
-	put_iac(SB);
-	put_iac(c);
-	put_iac(0);
+	put_iac4_x_y_z_t(IAC, SB, c, 0);
 
 	while (*str)
 		put_iac(*str++);
 
-	put_iac(IAC);
-	put_iac(SE);
+	put_iac2_x_y(IAC, SE);
 }
 #endif
 
 #if ENABLE_FEATURE_TELNET_AUTOLOGIN
 static void put_iac_subopt_autologin(void)
 {
-	int len = strlen(G.autologin) + 6;	// (2 + 1 + 1 + strlen + 2)
-	const char *p = "USER";
+	const char *p;
 
-	if (G.iaclen + len > IACBUFSIZE)
-		iac_flush();
-
-	put_iac(IAC);
-	put_iac(SB);
-	put_iac(TELOPT_NEW_ENVIRON);
-	put_iac(TELQUAL_IS);
-	put_iac(NEW_ENV_VAR);
-
-	while (*p)
-		put_iac(*p++);
-
-	put_iac(NEW_ENV_VALUE);
+	put_iac4_x_y_z_t(IAC, SB, TELOPT_NEW_ENVIRON, TELQUAL_IS);
+	put_iac4_x_y_z_t(NEW_ENV_VAR, 'U', 'S', 'E'); /* "USER" */
+	put_iac2_x_y('R', NEW_ENV_VALUE);
 
 	p = G.autologin;
 	while (*p)
 		put_iac(*p++);
 
-	put_iac(IAC);
-	put_iac(SE);
+	put_iac2_x_y(IAC, SE);
 }
 #endif
 
 #if ENABLE_FEATURE_TELNET_WIDTH
 static void put_iac_naws(byte c, int x, int y)
 {
-	if (G.iaclen + 9 > IACBUFSIZE)
-		iac_flush();
+	put_iac3_IAC_x_y(SB, c);
 
-	put_iac(IAC);
-	put_iac(SB);
-	put_iac(c);
+	put_iac4_msb_lsb((x << 16) + y);
 
-	/* "... & 0xff" implicitly done below */
-	put_iac(x >> 8);
-	put_iac(x);
-	put_iac(y >> 8);
-	put_iac(y);
-
-	put_iac(IAC);
-	put_iac(SE);
+	put_iac2_x_y(IAC, SE);
 }
 #endif
 
@@ -448,8 +435,8 @@ static void will_charmode(void)
 	G.telflags |= (UF_ECHO | UF_SGA);
 	setConMode();
 
-	put_iac2(DO, TELOPT_ECHO);
-	put_iac2(DO, TELOPT_SGA);
+	put_iac3_IAC_x_y(DO, TELOPT_ECHO);
+	put_iac3_IAC_x_y(DO, TELOPT_SGA);
 	iac_flush();
 }
 
@@ -459,24 +446,24 @@ static void do_linemode(void)
 	G.telflags &= ~(UF_ECHO | UF_SGA);
 	setConMode();
 
-	put_iac2(DONT, TELOPT_ECHO);
-	put_iac2(DONT, TELOPT_SGA);
+	put_iac3_IAC_x_y(DONT, TELOPT_ECHO);
+	put_iac3_IAC_x_y(DONT, TELOPT_SGA);
 	iac_flush();
 }
 
 static void to_notsup(char c)
 {
 	if (G.telwish == WILL)
-		put_iac2(DONT, c);
+		put_iac3_IAC_x_y(DONT, c);
 	else if (G.telwish == DO)
-		put_iac2(WONT, c);
+		put_iac3_IAC_x_y(WONT, c);
 }
 
 static void to_echo(void)
 {
 	/* if server requests ECHO, don't agree */
 	if (G.telwish == DO) {
-		put_iac2(WONT, TELOPT_ECHO);
+		put_iac3_IAC_x_y(WONT, TELOPT_ECHO);
 		return;
 	}
 	if (G.telwish == DONT)
@@ -492,9 +479,9 @@ static void to_echo(void)
 		G.telflags ^= UF_ECHO;
 
 	if (G.telflags & UF_ECHO)
-		put_iac2(DO, TELOPT_ECHO);
+		put_iac3_IAC_x_y(DO, TELOPT_ECHO);
 	else
-		put_iac2(DONT, TELOPT_ECHO);
+		put_iac3_IAC_x_y(DONT, TELOPT_ECHO);
 
 	setConMode();
 	full_write1_str("\r\n");  /* sudden modec */
@@ -512,9 +499,9 @@ static void to_sga(void)
 
 	G.telflags ^= UF_SGA; /* toggle */
 	if (G.telflags & UF_SGA)
-		put_iac2(DO, TELOPT_SGA);
+		put_iac3_IAC_x_y(DO, TELOPT_SGA);
 	else
-		put_iac2(DONT, TELOPT_SGA);
+		put_iac3_IAC_x_y(DONT, TELOPT_SGA);
 }
 
 #if ENABLE_FEATURE_TELNET_TTYPE
@@ -522,9 +509,9 @@ static void to_ttype(void)
 {
 	/* Tell server we will (or won't) do TTYPE */
 	if (G.ttype)
-		put_iac2(WILL, TELOPT_TTYPE);
+		put_iac3_IAC_x_y(WILL, TELOPT_TTYPE);
 	else
-		put_iac2(WONT, TELOPT_TTYPE);
+		put_iac3_IAC_x_y(WONT, TELOPT_TTYPE);
 }
 #endif
 
@@ -533,9 +520,9 @@ static void to_new_environ(void)
 {
 	/* Tell server we will (or will not) do AUTOLOGIN */
 	if (G.autologin)
-		put_iac2(WILL, TELOPT_NEW_ENVIRON);
+		put_iac3_IAC_x_y(WILL, TELOPT_NEW_ENVIRON);
 	else
-		put_iac2(WONT, TELOPT_NEW_ENVIRON);
+		put_iac3_IAC_x_y(WONT, TELOPT_NEW_ENVIRON);
 }
 #endif
 
@@ -543,7 +530,7 @@ static void to_new_environ(void)
 static void to_naws(void)
 {
 	/* Tell server we will do NAWS */
-	put_iac2(WILL, TELOPT_NAWS);
+	put_iac3_IAC_x_y(WILL, TELOPT_NAWS);
 }
 #endif
 
