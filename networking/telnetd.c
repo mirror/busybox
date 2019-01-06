@@ -865,11 +865,25 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
  skip3:
 		if (/*ts->size2 < BUFSIZE &&*/ FD_ISSET(ts->ptyfd, &rdfdset)) {
 			/* Read from pty to buffer 2 */
+			int eio = 0;
+ read_pty:
 			count = MIN(BUFSIZE - ts->rdidx2, BUFSIZE - ts->size2);
 			count = safe_read(ts->ptyfd, TS_BUF2(ts) + ts->rdidx2, count);
 			if (count <= 0) {
-				if (count < 0 && errno == EAGAIN)
-					goto skip4;
+				if (count < 0) {
+					if (errno == EAGAIN)
+						goto skip4;
+					/* login process might call vhangup(),
+					 * which causes intermittent EIOs on read above
+					 * (observed on kernel 4.12.0). Try up to 10 ms.
+					 */
+					if (errno == EIO && eio < 10) {
+						eio++;
+						//bb_error_msg("EIO pty %u", eio);
+						usleep(1000);
+						goto read_pty;
+					}
+				}
 				goto kill_session;
 			}
 			ts->size2 += count;
