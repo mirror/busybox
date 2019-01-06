@@ -94,19 +94,19 @@ enum {
 	IACBUFSIZE  = 128,
 
 	CHM_TRY = 0,
-	CHM_ON = 1,
+	CHM_ON  = 1,
 	CHM_OFF = 2,
 
 	UF_ECHO = 0x01,
-	UF_SGA = 0x02,
+	UF_SGA  = 0x02,
 
 	TS_NORMAL = 0,
 	TS_COPY = 1,
-	TS_IAC = 2,
-	TS_OPT = 3,
+	TS_IAC  = 2,
+	TS_OPT  = 3,
 	TS_SUB1 = 4,
 	TS_SUB2 = 5,
-	TS_CR = 6,
+	TS_CR   = 6,
 };
 
 typedef unsigned char byte;
@@ -244,25 +244,34 @@ static void handle_net_output(int len)
 
 static void handle_net_input(int len)
 {
+	byte c;
 	int i;
-	int cstart = 0;
+	int cstart;
 
-	for (i = 0; i < len; i++) {
-		byte c = G.buf[i];
-
-		if (G.telstate == TS_NORMAL) { /* most typical state */
-			if (c == IAC) {
-				cstart = i;
-				G.telstate = TS_IAC;
-			}
-			else if (c == '\r') {
-				cstart = i + 1;
-				G.telstate = TS_CR;
-			}
-			/* No IACs were seen so far, no need to copy
-			 * bytes within G.buf: */
-			continue;
+	i = 0;
+	//bb_error_msg("[%u,'%.*s']", G.telstate, len, G.buf);
+	if (G.telstate == TS_NORMAL) { /* most typical state */
+		while (i < len) {
+			c = G.buf[i];
+			i++;
+			if (c == IAC) /* unlikely */
+				goto got_IAC;
+			if (c != '\r') /* likely */
+				continue;
+			G.telstate = TS_CR;
+			cstart = i;
+			goto got_special;
 		}
+		full_write(STDOUT_FILENO, G.buf, len);
+		return;
+ got_IAC:
+		G.telstate = TS_IAC;
+		cstart = i - 1;
+ got_special: ;
+	}
+
+	for (; i < len; i++) {
+		c = G.buf[i];
 
 		switch (G.telstate) {
 		case TS_CR:
@@ -278,20 +287,19 @@ static void handle_net_input(int len)
 			/* Similar to NORMAL, but in TS_COPY we need to copy bytes */
 			if (c == IAC)
 				G.telstate = TS_IAC;
-			else
+			else {
 				G.buf[cstart++] = c;
-			if (c == '\r')
-				G.telstate = TS_CR;
+				if (c == '\r')
+					G.telstate = TS_CR;
+			}
 			break;
 
 		case TS_IAC: /* Prev char was IAC */
-			if (c == IAC) { /* IAC IAC -> one IAC */
+			switch (c) {
+			case IAC: /* IAC IAC -> one IAC */
 				G.buf[cstart++] = c;
 				G.telstate = TS_COPY;
 				break;
-			}
-			/* else */
-			switch (c) {
 			case SB:
 				G.telstate = TS_SUB1;
 				break;
@@ -320,17 +328,12 @@ static void handle_net_input(int len)
 		}
 	}
 
-	if (G.telstate != TS_NORMAL) {
-		/* We had some IACs, or CR */
-		if (G.iaclen)
-			iac_flush();
-		if (G.telstate == TS_COPY) /* we aren't in the middle of IAC */
-			G.telstate = TS_NORMAL;
-		len = cstart;
-	}
-
-	if (len)
-		full_write(STDOUT_FILENO, G.buf, len);
+	/* We had some IACs, or CR */
+	iac_flush();
+	if (G.telstate == TS_COPY) /* we aren't in the middle of IAC */
+		G.telstate = TS_NORMAL;
+	if (cstart != 0)
+		full_write(STDOUT_FILENO, G.buf, cstart);
 }
 
 static void put_iac(int c)
