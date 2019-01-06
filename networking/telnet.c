@@ -639,6 +639,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 
 	xmove_fd(create_and_connect_stream_or_die(host, port), netfd);
+	printf("Connected to %s\n", host);
 
 	setsockopt_keepalive(netfd);
 
