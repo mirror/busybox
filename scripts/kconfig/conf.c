@@ -142,7 +142,8 @@ static void conf_askvalue(struct symbol *sym, const char *def)
 		check_stdin();
 	case ask_all:
 		fflush(stdout);
-		fgets(line, 128, stdin);
+		if (!fgets(line, 128, stdin))
+			exit(1);
 		return;
 	case set_default:
 		printf("%s\n", def);
@@ -390,7 +391,8 @@ static int conf_choice(struct menu *menu)
 			check_stdin();
 		case ask_all:
 			fflush(stdout);
-			fgets(line, 128, stdin);
+			if (!fgets(line, 128, stdin))
+				exit(1);
 			strip(line);
 			if (line[0] == '?') {
 				printf("\n%s\n", menu->sym->help ?

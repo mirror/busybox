@@ -131,7 +131,8 @@ int main(int argc, const char * argv [])
 	is_same = 0;
 	if ((fp_target = fopen(ptarget, "r")) != NULL)
 	{
-	    fgets(old_line, buffer_size, fp_target);
+	    if (!fgets(old_line, buffer_size, fp_target))
+		ERROR_EXIT(ptarget);
 	    if (fclose(fp_target) != 0)
 		ERROR_EXIT(ptarget);
 	    if (!strcmp(line, old_line))
