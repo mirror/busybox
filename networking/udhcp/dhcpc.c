@@ -531,7 +531,7 @@ static char **fill_envp(struct dhcp_packet *packet)
 		temp = udhcp_get_option(packet, code);
 		*curr = xmalloc_optname_optval(temp, &dhcp_optflags[i], opt_name);
 		putenv(*curr++);
-		if (code == DHCP_SUBNET) {
+		if (code == DHCP_SUBNET && temp[-OPT_DATA + OPT_LEN] == 4) {
 			/* Subnet option: make things like "$ip/$mask" possible */
 			uint32_t subnet;
 			move_from_unaligned32(subnet, temp);
