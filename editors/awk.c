@@ -1613,12 +1613,25 @@ static void parse_program(char *p)
 			f = newfunc(t_string);
 			f->body.first = NULL;
 			f->nargs = 0;
-			while (next_token(TC_VARIABLE | TC_SEQTERM) & TC_VARIABLE) {
+			/* Match func arg list: a comma sep list of >= 0 args, and a close paren */
+			while (next_token(TC_VARIABLE | TC_SEQTERM | TC_COMMA)) {
+				/* Either an empty arg list, or trailing comma from prev iter
+				 * must be followed by an arg */
+				if (f->nargs == 0 && t_tclass == TC_SEQTERM)
+					break;
+
+				/* TC_SEQSTART/TC_COMMA must be followed by TC_VARIABLE */
+				if (t_tclass != TC_VARIABLE)
+					syntax_error(EMSG_UNEXP_TOKEN);
+
 				v = findvar(ahash, t_string);
 				v->x.aidx = f->nargs++;
 
+				/* Arg followed either by end of arg list or 1 comma */
 				if (next_token(TC_COMMA | TC_SEQTERM) & TC_SEQTERM)
 					break;
+				if (t_tclass != TC_COMMA)
+					syntax_error(EMSG_UNEXP_TOKEN);
 			}
 			seq = &f->body;
 			chain_group();

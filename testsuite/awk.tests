@@ -280,6 +280,18 @@ testing "awk 'delete a[v--]' evaluates v-- once" \
 " \
 	"" ""
 
+testing "awk func arg parsing 1" \
+	"awk 'func f(,) { }' 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
+
+testing "awk func arg parsing 2" \
+	"awk 'func f(a,,b) { }' 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
+
+testing "awk func arg parsing 3" \
+	"awk 'func f(a,) { }' 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
+
+testing "awk func arg parsing 4" \
+	"awk 'func f(a b) { }' 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
+
 testing "awk handles empty ()" \
 	"awk 'BEGIN {print()}' 2>&1" "awk: cmd. line:1: Empty sequence\n" "" ""
 
