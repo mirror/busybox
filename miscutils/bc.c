@@ -7407,4 +7407,3 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 #endif // DC_BIG
-
