@@ -422,6 +422,7 @@ static NOINLINE void attach_option(
 		if (errno)
 			bb_error_msg_and_die("malformed hex string '%s'", buffer);
 		length = end - allocated;
+		buffer = allocated;
 	}
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
@@ -441,15 +442,14 @@ static NOINLINE void attach_option(
 			new->data = xmalloc(length + OPT_DATA);
 			new->data[OPT_CODE] = optflag->code;
 			new->data[OPT_LEN] = length;
-			memcpy(new->data + OPT_DATA, (allocated ? allocated : buffer),
-					length);
+			memcpy(new->data + OPT_DATA, buffer, length);
 		} else {
 			new->data = xmalloc(length + D6_OPT_DATA);
 			new->data[D6_OPT_CODE] = optflag->code >> 8;
 			new->data[D6_OPT_CODE + 1] = optflag->code & 0xff;
 			new->data[D6_OPT_LEN] = length >> 8;
 			new->data[D6_OPT_LEN + 1] = length & 0xff;
-			memcpy(new->data + D6_OPT_DATA, (allocated ? allocated : buffer),
+			memcpy(new->data + D6_OPT_DATA, buffer,
 					length);
 		}
 
@@ -472,6 +472,8 @@ static NOINLINE void attach_option(
 			/* actually 255 is ok too, but adding a space can overlow it */
 
 			existing->data = xrealloc(existing->data, OPT_DATA + 1 + old_len + length);
+// So far dhcp_optflags[] has no OPTION_STRING[_HOST] | OPTION_LIST items
+#if 0
 			if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_STRING
 			 || (optflag->flags & OPTION_TYPE_MASK) == OPTION_STRING_HOST
 			) {
@@ -479,7 +481,9 @@ static NOINLINE void attach_option(
 				existing->data[OPT_DATA + old_len] = ' ';
 				old_len++;
 			}
-			memcpy(existing->data + OPT_DATA + old_len, (allocated ? allocated : buffer), length);
+#endif
+
+			memcpy(existing->data + OPT_DATA + old_len, buffer, length);
 			existing->data[OPT_LEN] = old_len + length;
 		} /* else, ignore the data, we could put this in a second option in the future */
 	} /* else, ignore the new data */
@@ -553,7 +557,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg,
 			if (retval)
 				retval = udhcp_str2nip(val, buffer + 4);
 			break;
-case_OPTION_STRING:
+ case_OPTION_STRING:
 		case OPTION_STRING:
 		case OPTION_STRING_HOST:
 #if ENABLE_FEATURE_UDHCP_RFC3397
