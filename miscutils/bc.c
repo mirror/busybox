@@ -4554,11 +4554,11 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(bool auto_allowed)
 
 	if (p->lex == XC_LEX_NLINE) {
 		dbg_lex_done("%s:%d done (seen XC_LEX_NLINE)", __func__, __LINE__);
-		RETURN_STATUS(zxc_lex_next());
+		RETURN_STATUS(s);
 	}
 	if (p->lex == BC_LEX_SCOLON) {
 		dbg_lex_done("%s:%d done (seen BC_LEX_SCOLON)", __func__, __LINE__);
-		RETURN_STATUS(zxc_lex_next());
+		RETURN_STATUS(s);
 	}
 
 	if (p->lex == BC_LEX_LBRACE) {
@@ -4574,8 +4574,18 @@ static BC_STATUS zbc_parse_stmt_possibly_auto(bool auto_allowed)
 		}
 		while (p->lex != BC_LEX_RBRACE) {
 			dbg_lex("%s:%d block parsing loop", __func__, __LINE__);
-//FIXME: prevent wrong syntax such as "{ print 1 print 2 }"
 			s = zbc_parse_stmt();
+			if (s) RETURN_STATUS(s);
+			// Check that next token is a correct stmt delimiter -
+			// disallows "print 1 print 2" and such.
+			if (p->lex == BC_LEX_RBRACE)
+				break;
+			if (p->lex != BC_LEX_SCOLON
+			 && p->lex != XC_LEX_NLINE
+			) {
+				RETURN_STATUS(bc_error_at("bad statement terminator"));
+			}
+		        s = zxc_lex_next();
 			if (s) RETURN_STATUS(s);
 		}
 		s = zxc_lex_next();
@@ -4665,9 +4675,11 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(void)
 	BcStatus s;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
-	if (p->lex == XC_LEX_EOF)
-		s = bc_error("end of file");
-	else if (p->lex == BC_LEX_KEY_DEFINE) {
+//why?
+//	if (p->lex == XC_LEX_EOF)
+//		s = bc_error("end of file");
+//	else
+	if (p->lex == BC_LEX_KEY_DEFINE) {
 		dbg_lex("%s:%d p->lex:BC_LEX_KEY_DEFINE", __func__, __LINE__);
 		s = zbc_parse_funcdef();
 	} else {
@@ -6781,7 +6793,6 @@ static BC_STATUS zxc_vm_process(const char *text)
 	s = zxc_parse_text_init(text); // does the first zxc_lex_next()
 	if (s) RETURN_STATUS(s);
 
- IF_BC(check_eof:)
 	while (G.prs.lex != XC_LEX_EOF) {
 		BcInstPtr *ip;
 		BcFunc *f;
@@ -6789,14 +6800,6 @@ static BC_STATUS zxc_vm_process(const char *text)
 		dbg_lex("%s:%d G.prs.lex:%d, parsing...", __func__, __LINE__, G.prs.lex);
 		if (IS_BC) {
 #if ENABLE_BC
-			if (G.prs.lex == BC_LEX_SCOLON
-			 || G.prs.lex == XC_LEX_NLINE
-			) {
-				s = zxc_lex_next();
-				if (s) goto err;
-				goto check_eof;
-			}
-
 			s = zbc_parse_stmt_or_funcdef();
 			if (s) goto err;
 
@@ -6855,6 +6858,9 @@ static BC_STATUS zxc_vm_process(const char *text)
 #endif
 			IF_BC(bc_vec_pop_all(&f->strs);)
 			IF_BC(bc_vec_pop_all(&f->consts);)
+			// We are at SCOLON/NLINE, skip it:
+			s = zxc_lex_next();
+			if (s) goto err;
 		} else {
 			if (G.prog.results.len == 0
 			 && G.prog.vars.len == 0
