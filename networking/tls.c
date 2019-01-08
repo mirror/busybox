@@ -1531,9 +1531,17 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		0x00,0x04, //ext len
 		0x00,0x02, //list len
 		0x00,0x1d, //curve_x25519 (RFC 7748)
+		//0x00,0x1e, //curve_x448 (RFC 7748)
 		//0x00,0x17, //curve_secp256r1
 		//0x00,0x18, //curve_secp384r1
 		//0x00,0x19, //curve_secp521r1
+//TODO: implement secp256r1 (at least): dl.fedoraproject.org immediately aborts
+//if only x25519/x448 are advertised, seems to support only secpNNNr1 curves:
+// openssl s_client -connect dl.fedoraproject.org:443 -debug -tls1_2 -cipher ECDHE-RSA-AES128-GCM-SHA256
+//Peer signing digest: SHA512
+//Peer signature type: RSA
+//Server Temp Key: ECDH, P-256, 256 bits
+//TLSv1.2, Cipher is ECDHE-RSA-AES128-GCM-SHA256
 	};
 	//static const uint8_t signature_algorithms[] = {
 	//	000d
