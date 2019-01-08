@@ -203,7 +203,6 @@ static uint8_t lex_indent;
 typedef enum BcStatus {
 	BC_STATUS_SUCCESS = 0,
 	BC_STATUS_FAILURE = 1,
-	BC_STATUS_PARSE_EMPTY_EXP = 2, // bc_parse_expr_empty_ok() uses this
 } BcStatus;
 
 #define BC_VEC_INVALID_IDX  ((size_t) -1)
@@ -3715,17 +3714,7 @@ static size_t bc_program_addFunc(char *name)
 // first in the expr enum. Note: This only works for binary operators.
 #define BC_TOKEN_2_INST(t) ((char) ((t) - XC_LEX_OP_POWER + XC_INST_POWER))
 
-static BcStatus bc_parse_expr_empty_ok(uint8_t flags);
-
-static BC_STATUS zbc_parse_expr(uint8_t flags)
-{
-	BcStatus s;
-
-	s = bc_parse_expr_empty_ok(flags);
-	if (s == BC_STATUS_PARSE_EMPTY_EXP)
-		RETURN_STATUS(bc_error("empty expression"));
-	RETURN_STATUS(s);
-}
+static BC_STATUS zbc_parse_expr(uint8_t flags);
 #define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 static BC_STATUS zbc_parse_stmt_possibly_auto(bool auto_allowed);
@@ -4692,8 +4681,8 @@ static BC_STATUS zbc_parse_stmt_or_funcdef(void)
 }
 #define zbc_parse_stmt_or_funcdef(...) (zbc_parse_stmt_or_funcdef(__VA_ARGS__) COMMA_SUCCESS)
 
-// This is not a "z" function: can also return BC_STATUS_PARSE_EMPTY_EXP
-static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
+#undef zbc_parse_expr
+static BC_STATUS zbc_parse_expr(uint8_t flags)
 {
 	BcParse *p = &G.prs;
 	BcInst prev = XC_INST_PRINT;
@@ -4722,7 +4711,7 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		case BC_LEX_OP_INC:
 		case BC_LEX_OP_DEC:
 			dbg_lex("%s:%d LEX_OP_INC/DEC", __func__, __LINE__);
-			if (incdec) return bc_error_bad_assignment();
+			if (incdec) RETURN_STATUS(bc_error_bad_assignment());
 			s = zbc_parse_incdec(&prev, &nexprs, flags);
 			incdec = true;
 			rprn = bin_last = false;
@@ -4748,7 +4737,7 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 			 && prev != XC_INST_SCALE && prev != XC_INST_IBASE
 			 && prev != XC_INST_OBASE && prev != BC_INST_LAST
 			) {
-				return bc_error_bad_assignment();
+				RETURN_STATUS(bc_error_bad_assignment());
 			}
 		// Fallthrough.
 		case XC_LEX_OP_POWER:
@@ -4768,9 +4757,9 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 			dbg_lex("%s:%d LEX_OP_xyz", __func__, __LINE__);
 			if (t == BC_LEX_OP_BOOL_NOT) {
 				if (!bin_last && p->lex_last != BC_LEX_OP_BOOL_NOT)
-					return bc_error_bad_expression();
+					RETURN_STATUS(bc_error_bad_expression());
 			} else if (prev == XC_INST_BOOL_NOT) {
-				return bc_error_bad_expression();
+				RETURN_STATUS(bc_error_bad_expression());
 			}
 
 			nrelops += (t >= XC_LEX_OP_REL_EQ && t <= XC_LEX_OP_REL_GT);
@@ -4783,7 +4772,7 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		case BC_LEX_LPAREN:
 			dbg_lex("%s:%d LEX_LPAREN", __func__, __LINE__);
 			if (BC_PARSE_LEAF(prev, bin_last, rprn))
-				return bc_error_bad_expression();
+				RETURN_STATUS(bc_error_bad_expression());
 			bc_vec_push(&p->ops, &t);
 			nparens++;
 			get_token = true;
@@ -4792,11 +4781,10 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		case BC_LEX_RPAREN:
 			dbg_lex("%s:%d LEX_RPAREN", __func__, __LINE__);
 			if (p->lex_last == BC_LEX_LPAREN) {
-				dbg_lex_done("%s:%d done (returning EMPTY_EXP)", __func__, __LINE__);
-				return BC_STATUS_PARSE_EMPTY_EXP;
+				RETURN_STATUS(bc_error("empty expression"));
 			}
 			if (bin_last || prev == XC_INST_BOOL_NOT)
-				return bc_error_bad_expression();
+				RETURN_STATUS(bc_error_bad_expression());
 			if (nparens == 0) {
 				goto exit_loop;
 			}
@@ -4809,7 +4797,7 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		case XC_LEX_NAME:
 			dbg_lex("%s:%d LEX_NAME", __func__, __LINE__);
 			if (BC_PARSE_LEAF(prev, bin_last, rprn))
-				return bc_error_bad_expression();
+				RETURN_STATUS(bc_error_bad_expression());
 			s = zbc_parse_name(&prev, flags & ~BC_PARSE_NOCALL);
 			rprn = (prev == BC_INST_CALL);
 			bin_last = false;
@@ -4819,7 +4807,7 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		case XC_LEX_NUMBER:
 			dbg_lex("%s:%d LEX_NUMBER", __func__, __LINE__);
 			if (BC_PARSE_LEAF(prev, bin_last, rprn))
-				return bc_error_bad_expression();
+				RETURN_STATUS(bc_error_bad_expression());
 			xc_parse_pushNUM();
 			prev = XC_INST_NUM;
 			get_token = true;
@@ -4831,7 +4819,7 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		case BC_LEX_KEY_OBASE:
 			dbg_lex("%s:%d LEX_IBASE/LAST/OBASE", __func__, __LINE__);
 			if (BC_PARSE_LEAF(prev, bin_last, rprn))
-				return bc_error_bad_expression();
+				RETURN_STATUS(bc_error_bad_expression());
 			prev = (char) (t - BC_LEX_KEY_IBASE + XC_INST_IBASE);
 			xc_parse_push((char) prev);
 			get_token = true;
@@ -4842,7 +4830,7 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		case BC_LEX_KEY_SQRT:
 			dbg_lex("%s:%d LEX_LEN/SQRT", __func__, __LINE__);
 			if (BC_PARSE_LEAF(prev, bin_last, rprn))
-				return bc_error_bad_expression();
+				RETURN_STATUS(bc_error_bad_expression());
 			s = zbc_parse_builtin(t, flags, &prev);
 			get_token = true;
 			rprn = bin_last = incdec = false;
@@ -4851,7 +4839,7 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		case BC_LEX_KEY_READ:
 			dbg_lex("%s:%d LEX_READ", __func__, __LINE__);
 			if (BC_PARSE_LEAF(prev, bin_last, rprn))
-				return bc_error_bad_expression();
+				RETURN_STATUS(bc_error_bad_expression());
 			s = zbc_parse_read();
 			prev = XC_INST_READ;
 			get_token = true;
@@ -4861,21 +4849,21 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		case BC_LEX_KEY_SCALE:
 			dbg_lex("%s:%d LEX_SCALE", __func__, __LINE__);
 			if (BC_PARSE_LEAF(prev, bin_last, rprn))
-				return bc_error_bad_expression();
+				RETURN_STATUS(bc_error_bad_expression());
 			s = zbc_parse_scale(&prev, flags);
 			//get_token = false; - already is
 			rprn = bin_last = false;
 			nexprs++;
 			break;
 		default:
-			return bc_error_bad_token();
+			RETURN_STATUS(bc_error_bad_token());
 		}
 
 		if (s || G_interrupt) // error, or ^C: stop parsing
-			return BC_STATUS_FAILURE;
+			RETURN_STATUS(BC_STATUS_FAILURE);
 		if (get_token) {
 			s = zxc_lex_next();
-			if (s) return s;
+			if (s) RETURN_STATUS(s);
 		}
 	}
  exit_loop:
@@ -4885,7 +4873,7 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 		assign = (top >= BC_LEX_OP_ASSIGN_POWER && top <= BC_LEX_OP_ASSIGN);
 
 		if (top == BC_LEX_LPAREN || top == BC_LEX_RPAREN)
-			return bc_error_bad_expression();
+			RETURN_STATUS(bc_error_bad_expression());
 
 		xc_parse_push(BC_TOKEN_2_INST(top));
 
@@ -4894,16 +4882,16 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 	}
 
 	if (prev == XC_INST_BOOL_NOT || nexprs != 1)
-		return bc_error_bad_expression();
+		RETURN_STATUS(bc_error_bad_expression());
 
 	if (!(flags & BC_PARSE_REL) && nrelops) {
 		BcStatus s;
 		s = zbc_POSIX_does_not_allow("comparison operators outside if or loops");
-		if (s) return s;
+		if (s) RETURN_STATUS(s);
 	} else if ((flags & BC_PARSE_REL) && nrelops > 1) {
 		BcStatus s;
 		s = zbc_POSIX_requires("exactly one comparison operator per condition");
-		if (s) return s;
+		if (s) RETURN_STATUS(s);
 	}
 
 	if (flags & BC_PARSE_PRINT) {
@@ -4913,8 +4901,9 @@ static BcStatus bc_parse_expr_empty_ok(uint8_t flags)
 	}
 
 	dbg_lex_done("%s:%d done", __func__, __LINE__);
-	return BC_STATUS_SUCCESS;
+	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
+#define zbc_parse_expr(...) (zbc_parse_expr(__VA_ARGS__) COMMA_SUCCESS)
 
 #endif // ENABLE_BC
 
