@@ -4780,9 +4780,10 @@ static BC_STATUS zbc_parse_expr(uint8_t flags)
 			break;
 		case BC_LEX_RPAREN:
 			dbg_lex("%s:%d LEX_RPAREN", __func__, __LINE__);
-			if (p->lex_last == BC_LEX_LPAREN) {
-				RETURN_STATUS(bc_error("empty expression"));
-			}
+//why?
+//			if (p->lex_last == BC_LEX_LPAREN) {
+//				RETURN_STATUS(bc_error_at("empty expression"));
+//			}
 			if (bin_last || prev == XC_INST_BOOL_NOT)
 				RETURN_STATUS(bc_error_bad_expression());
 			if (nparens == 0) {
