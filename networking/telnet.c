@@ -248,7 +248,7 @@ static void handle_net_input(int len)
 {
 	byte c;
 	int i;
-	int cstart;
+	int cstart = cstart; /* for compiler */
 
 	i = 0;
 	//bb_error_msg("[%u,'%.*s']", G.telstate, len, G.buf);
