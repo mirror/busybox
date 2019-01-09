@@ -54,7 +54,7 @@
 //config:	date -s (and other commands like touch -d) use more sensible
 //config:	formats (for one, ISO format YYYY-MM-DD hh:mm:ss.ssssss).
 //config:
-//config:	With this option off, 'date DATE' is 'date -s DATE' support
+//config:	With this option off, 'date DATE' and 'date -s DATE' support
 //config:	the same format. With it on, 'date DATE' additionally supports
 //config:	MMDDhhmm[[YY]YY][.ss] format.
 
@@ -121,7 +121,7 @@
 //usage:     "\n	-d,--date TIME	Display TIME, not 'now'"
 //usage:	)
 //usage:	IF_FEATURE_DATE_ISOFMT(
-//usage:     "\n	-D FMT		Use FMT for -d TIME conversion"
+//usage:     "\n	-D FMT		Use FMT (strptime format) for -d TIME conversion"
 //usage:	)
 //usage:     "\n"
 //usage:     "\nRecognized TIME formats:"
