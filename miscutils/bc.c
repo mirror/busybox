@@ -3497,11 +3497,11 @@ static BC_STATUS zdc_lex_token(void)
 #define zdc_lex_token(...) (zdc_lex_token(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_DC
 
-static void xc_parse_push(char i)
+static void xc_parse_push(unsigned i)
 {
 	BcVec *code = &G.prs.func->code;
 	dbg_compile("%s:%d pushing bytecode %zd:%d", __func__, __LINE__, code->len, i);
-	bc_vec_pushByte(code, i);
+	bc_vec_pushByte(code, (uint8_t)i);
 }
 
 static void xc_parse_pushName(char *name)
@@ -3556,17 +3556,21 @@ static void xc_parse_pushIndex(size_t idx)
 	} while (idx != 0);
 }
 
+static void xc_parse_pushInst_and_Index(unsigned inst, size_t idx)
+{
+	xc_parse_push(inst);
+	xc_parse_pushIndex(idx);
+}
+
 #if ENABLE_BC
 static void bc_parse_pushJUMP(size_t idx)
 {
-	xc_parse_push(BC_INST_JUMP);
-	xc_parse_pushIndex(idx);
+	xc_parse_pushInst_and_Index(BC_INST_JUMP, idx);
 }
 
 static void bc_parse_pushJUMP_ZERO(size_t idx)
 {
-	xc_parse_push(BC_INST_JUMP_ZERO);
-	xc_parse_pushIndex(idx);
+	xc_parse_pushInst_and_Index(BC_INST_JUMP_ZERO, idx);
 }
 
 static BC_STATUS zbc_parse_pushSTR(void)
@@ -3574,8 +3578,7 @@ static BC_STATUS zbc_parse_pushSTR(void)
 	BcParse *p = &G.prs;
 	char *str = xstrdup(p->lex_strnumbuf.v);
 
-	xc_parse_push(XC_INST_STR);
-	xc_parse_pushIndex(p->func->strs.len);
+	xc_parse_pushInst_and_Index(XC_INST_STR, p->func->strs.len);
 	bc_vec_push(&p->func->strs, &str);
 
 	RETURN_STATUS(zxc_lex_next());
@@ -3594,8 +3597,7 @@ static void xc_parse_pushNUM(void)
 #else // DC
 	size_t idx = bc_vec_push(&G.prog.consts, &num);
 #endif
-	xc_parse_push(XC_INST_NUM);
-	xc_parse_pushIndex(idx);
+	xc_parse_pushInst_and_Index(XC_INST_NUM, idx);
 }
 
 static BC_STATUS zxc_parse_text_init(const char *text)
@@ -3815,8 +3817,7 @@ static BC_STATUS zbc_parse_params(uint8_t flags)
 		}
 	}
 
-	xc_parse_push(BC_INST_CALL);
-	xc_parse_pushIndex(nparams);
+	xc_parse_pushInst_and_Index(BC_INST_CALL, nparams);
 
 	RETURN_STATUS(BC_STATUS_SUCCESS);
 }
@@ -4934,8 +4935,7 @@ static void dc_parse_string(void)
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
 
 	str = xstrdup(p->lex_strnumbuf.v);
-	xc_parse_push(XC_INST_STR);
-	xc_parse_pushIndex(len);
+	xc_parse_pushInst_and_Index(XC_INST_STR, len);
 	bc_vec_push(&G.prog.strs, &str);
 
 	// Explanation needed here
