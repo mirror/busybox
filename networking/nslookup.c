@@ -257,7 +257,7 @@ int nslookup_main(int argc, char **argv)
 struct ns {
 	const char *name;
 	len_and_sockaddr *lsa;
-	int failures;
+	//UNUSED: int failures;
 	int replies;
 };
 
@@ -320,6 +320,7 @@ struct globals {
 	struct query *query;
 	char *search;
 	smalluint have_search_directive;
+	smalluint exitcode;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
@@ -593,7 +594,7 @@ static int send_queries(struct ns *ns)
 
 		/* Retry immediately on SERVFAIL */
 		if (rcode == 2) {
-			ns->failures++;
+			//UNUSED: ns->failures++;
 			if (servfail_retry) {
 				servfail_retry--;
 				write(pfd.fd, G.query[qn].query, G.query[qn].qlen);
@@ -612,9 +613,12 @@ static int send_queries(struct ns *ns)
 		if (rcode != 0) {
 			printf("** server can't find %s: %s\n",
 					G.query[qn].name, rcodes[rcode]);
+			G.exitcode = EXIT_FAILURE;
 		} else {
-			if (parse_reply(reply, recvlen) < 0)
+			if (parse_reply(reply, recvlen) < 0) {
 				printf("*** Can't find %s: Parse error\n", G.query[qn].name);
+				G.exitcode = EXIT_FAILURE;
+			}
 		}
 		bb_putchar('\n');
 		n_replies++;
@@ -988,7 +992,7 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		free(G.query);
 	}
 
-	return EXIT_SUCCESS;
+	return G.exitcode;
 }
 
 #endif
