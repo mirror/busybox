@@ -43,17 +43,13 @@ typedef uint32_t word32;
 #if 0 //UNUSED
 static void fprime_copy(byte *x, const byte *a)
 {
-    int i;
-    for (i = 0; i < F25519_SIZE; i++)
-        x[i] = a[i];
+	memcpy(x, a, F25519_SIZE);
 }
 #endif
 
 static void lm_copy(byte* x, const byte* a)
 {
-    int i;
-    for (i = 0; i < F25519_SIZE; i++)
-        x[i] = a[i];
+	memcpy(x, a, F25519_SIZE);
 }
 
 #if 0 //UNUSED
@@ -200,7 +196,7 @@ static void fe_load(byte *x, word32 c)
 static void fe_normalize(byte *x)
 {
 	byte minusp[F25519_SIZE];
-	word16 c;
+	unsigned c;
 	int i;
 
 	/* Reduce using 2^255 = 19 mod p */
@@ -219,13 +215,13 @@ static void fe_normalize(byte *x)
 	 */
 	c = 19;
 
-	for (i = 0; i + 1 < F25519_SIZE; i++) {
+	for (i = 0; i < F25519_SIZE - 1; i++) {
 		c += x[i];
 		minusp[i] = (byte)c;
 		c >>= 8;
 	}
 
-	c += ((word16)x[i]) - 128;
+	c += ((unsigned)x[i]) - 128;
 	minusp[31] = (byte)c;
 
 	/* Load x-p if no underflow */
@@ -234,13 +230,13 @@ static void fe_normalize(byte *x)
 
 static void lm_add(byte* r, const byte* a, const byte* b)
 {
-	word16 c = 0;
+	unsigned c = 0;
 	int i;
 
 	/* Add */
 	for (i = 0; i < F25519_SIZE; i++) {
 		c >>= 8;
-		c += ((word16)a[i]) + ((word16)b[i]);
+		c += ((unsigned)a[i]) + ((unsigned)b[i]);
 		r[i] = (byte)c;
 	}
 
