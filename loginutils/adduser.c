@@ -198,7 +198,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 
 	pw.pw_gecos = (char *)"Linux User,,,";
 	/* We assume that newly created users "inherit" root's shell setting */
-	pw.pw_shell = (char *)get_shell_name();
+	pw.pw_shell = xstrdup(get_shell_name()); /* might come from getpwnam(), need to make a copy */
 	pw.pw_dir = NULL;
 
 	opts = getopt32long(argv, "^"
