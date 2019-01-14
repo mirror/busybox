@@ -1201,11 +1201,11 @@ void set_task_comm(const char *comm) FAST_FUNC;
  * to /dev/null if they are not.
  */
 enum {
-	DAEMON_CHDIR_ROOT = 1,
-	DAEMON_DEVNULL_STDIO = 2,
-	DAEMON_CLOSE_EXTRA_FDS = 4,
-	DAEMON_ONLY_SANITIZE = 8, /* internal use */
-	DAEMON_DOUBLE_FORK = 16, /* double fork to avoid controlling tty */
+	DAEMON_CHDIR_ROOT      = 1 << 0,
+	DAEMON_DEVNULL_STDIO   = 1 << 1,
+	DAEMON_CLOSE_EXTRA_FDS = 1 << 2,
+	DAEMON_ONLY_SANITIZE   = 1 << 3, /* internal use */
+	//DAEMON_DOUBLE_FORK     = 1 << 4, /* double fork to avoid controlling tty */
 };
 #if BB_MMU
   enum { re_execed = 0 };

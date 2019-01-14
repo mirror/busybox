@@ -409,7 +409,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 	char *signame;
-	char *startas;
+	char *startas = NULL;
 	char *chuid;
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 //	char *retry_arg = NULL;
@@ -425,10 +425,11 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 			/* -K or -S is required; they are mutually exclusive */
 			/* -p is required if -m is given */
 			/* -xpun (at least one) is required if -K is given */
-			/* -xa (at least one) is required if -S is given */
+//			/* -xa (at least one) is required if -S is given */
+//WRONG: "start-stop-daemon -S -- sleep 5" is a valid invocation
 			/* -q turns off -v */
 			"\0"
-			"K:S:K--S:S--K:m?p:K?xpun:S?xa"
+			"K:S:K--S:S--K:m?p:K?xpun"
 			IF_FEATURE_START_STOP_DAEMON_FANCY("q-v"),
 		LONGOPTS
 		&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile
@@ -442,21 +443,34 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		if (signal_nr < 0) bb_show_usage();
 	}
 
-	if (!(opt & OPT_a))
-		startas = execname;
-	if (!execname) /* in case -a is given and -x is not */
+	//argc -= optind;
+	argv += optind;
+// ARGS contains zeroth arg if -x/-a is not given, else it starts with 1st arg.
+// These will try to execute "[/bin/]sleep 5":
+// "start-stop-daemon -S               -- sleep 5"
+// "start-stop-daemon -S -x /bin/sleep -- 5"
+// "start-stop-daemon -S -a sleep      -- 5"
+// NB: -n option does _not_ behave in this way: this will try to execute "5":
+// "start-stop-daemon -S -n sleep      -- 5"
+	if (!execname) { /* -x is not given */
 		execname = startas;
-	if (execname) {
-		G.execname_sizeof = strlen(execname) + 1;
-		G.execname_cmpbuf = xmalloc(G.execname_sizeof + 1);
+		if (!execname) { /* neither -x nor -a is given */
+			execname = argv[0];
+			if (!execname)
+				bb_show_usage();
+			argv++;
+		}
 	}
+	if (!startas) /* -a is not given: use -x EXECUTABLE or argv[0] */
+		startas = execname;
+	*--argv = startas;
+	G.execname_sizeof = strlen(execname) + 1;
+	G.execname_cmpbuf = xmalloc(G.execname_sizeof + 1);
 
 //	IF_FEATURE_START_STOP_DAEMON_FANCY(
 //		if (retry_arg)
 //			retries = xatoi_positive(retry_arg);
 //	)
-	//argc -= optind;
-	argv += optind;
 
 	if (userspec) {
 		user_id = bb_strtou(userspec, NULL, 10);
@@ -473,7 +487,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 
 	if (G.found_procs) {
 		if (!QUIET)
-			printf("%s is already running\n%u\n", execname, (unsigned)G.found_procs->pid);
+			printf("%s is already running\n", execname);
 		return !(opt & OPT_OKNODO);
 	}
 
@@ -482,30 +496,37 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		xstat(execname, &G.execstat);
 #endif
 
-	*--argv = startas;
 	if (opt & OPT_BACKGROUND) {
-#if BB_MMU
-		bb_daemonize(DAEMON_DEVNULL_STDIO + DAEMON_CLOSE_EXTRA_FDS + DAEMON_DOUBLE_FORK);
-		/* DAEMON_DEVNULL_STDIO is superfluous -
-		 * it's always done by bb_daemonize() */
-#else
 		/* Daemons usually call bb_daemonize_or_rexec(), but SSD can do
 		 * without: SSD is not itself a daemon, it _execs_ a daemon.
 		 * The usual NOMMU problem of "child can't run indefinitely,
 		 * it must exec" does not bite us: we exec anyway.
+		 *
+		 * bb_daemonize(DAEMON_DEVNULL_STDIO | DAEMON_CLOSE_EXTRA_FDS | DAEMON_DOUBLE_FORK)
+		 * can be used on MMU systems, but use of vfork()
+		 * is preferable since we want to create pidfile
+		 * _before_ parent returns, and vfork() on Linux
+		 * ensures that (by blocking parent until exec in the child).
 		 */
 		pid_t pid = xvfork();
 		if (pid != 0) {
-			/* parent */
+			/* Parent */
 			/* why _exit? the child may have changed the stack,
-			 * so "return 0" may do bad things */
+			 * so "return 0" may do bad things
+			 */
 			_exit(EXIT_SUCCESS);
 		}
 		/* Child */
 		setsid(); /* detach from controlling tty */
 		/* Redirect stdio to /dev/null, close extra FDs */
 		bb_daemon_helper(DAEMON_DEVNULL_STDIO + DAEMON_CLOSE_EXTRA_FDS);
-#endif
+		/* On Linux, session leader can acquire ctty
+		 * unknowingly, by opening a tty.
+		 * Prevent this: stop being a session leader.
+		 */
+		pid = xvfork();
+		if (pid != 0)
+			_exit(EXIT_SUCCESS); /* Parent */
 	}
 	if (opt & OPT_MAKEPID) {
 		/* User wants _us_ to make the pidfile */
@@ -534,6 +555,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #endif
-	execvp(startas, argv);
+//bb_error_msg("HERE %d '%s'%s'", __LINE__, argv[0], argv[1]);
+	execvp(argv[0], argv);
 	bb_perror_msg_and_die("can't execute '%s'", startas);
 }

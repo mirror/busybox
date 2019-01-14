@@ -16,4 +16,9 @@ testing "start-stop-daemon -a without -x" \
 	"1\n" \
 	"" ""
 
+testing "start-stop-daemon without -x and -a" \
+	'start-stop-daemon -S false 2>&1; echo $?' \
+	"1\n" \
+	"" ""
+
 exit $FAILCOUNT
