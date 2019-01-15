@@ -154,8 +154,8 @@ enum {
 //#define DHCP_STATIC_ROUTES    0x79 /* 121: RFC 3442. (mask,ip,router) tuples */
 //#define DHCP_VLAN_ID          0x84 /* 132: 802.1P VLAN ID */
 //#define DHCP_VLAN_PRIORITY    0x85 /* 133: 802.1Q VLAN priority */
-//#define DHCP_PXE_CONF_FILE    0xd1 /* 209: RFC 5071 Configuration File */
-//#define DHCP_PXE_PATH_PREFIX  0xd2 /* 210: RFC 5071 Configuration File */
+//#define DHCP_PXE_CONF_FILE    0xd1 /* 209: RFC 5071 Configuration file */
+//#define DHCP_PXE_PATH_PREFIX  0xd2 /* 210: RFC 5071 Path prefix */
 //#define DHCP_REBOOT_TIME      0xd3 /* 211: RFC 5071 Reboot time */
 //#define DHCP_MS_STATIC_ROUTES 0xf9 /* 249: Microsoft's pre-RFC 3442 code for 0x79? */
 //#define DHCP_WPAD             0xfc /* 252: MSIE's Web Proxy Autodiscovery Protocol */
