@@ -32,6 +32,7 @@ my (@stack, $re, $x, $xs);
 	my $arch = shift;
 	if ($arch eq "") {
 		$arch = `uname -m`;
+		1 while chomp $arch;
 	}
 
 	$x	= "[0-9a-f]";	# hex character
