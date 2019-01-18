@@ -67,7 +67,7 @@ unsigned FAST_FUNC cap_name_to_number(const char *cap)
 		goto found;
 	}
 	for (i = 0; i < ARRAY_SIZE(capabilities); i++) {
-		if (strcasecmp(capabilities[i], cap) != 0)
+		if (strcasecmp(capabilities[i], cap) == 0)
 			goto found;
 	}
 	bb_error_msg_and_die("unknown capability '%s'", cap);
