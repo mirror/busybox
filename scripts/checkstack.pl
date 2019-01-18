@@ -65,7 +65,7 @@ my (@stack, $re, $dre, $x, $xs, $funcre);
 		$dre = qr/^.*[as][du][db]    (%.*),\%(e|r)sp$/o;
 	} elsif ($arch eq 'blackfin') {
 		#      52:       00 e8 03 00     LINK 0xc;
-		$re = qr/.*LINK (0x$x{1,5});$/o;
+		$re = qr/.*[[:space:]]LINK[[:space:]]*(0x$x{1,8})/o;
 	} elsif ($arch eq 'ia64') {
 		#e0000000044011fc:       01 0f fc 8c     adds r12=-384,r12
 		$re = qr/.*adds.*r12=-(([0-9]{2}|[3-9])[0-9]{2}),r12/o;
