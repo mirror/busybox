@@ -1465,8 +1465,6 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 	G.proxy_flag = "on";   /* use proxies if env vars are set */
 	G.user_agent = "Wget"; /* "User-Agent" header field */
 
-#if ENABLE_FEATURE_WGET_LONG_OPTIONS
-#endif
 	GETOPT32(argv, "^"
 		"cqSO:o:P:Y:U:T:+"
 		/*ignored:*/ "t:"
