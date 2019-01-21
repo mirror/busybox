@@ -371,25 +371,25 @@ static int get_address(const char *my_str, int *linenum, regex_t ** regex)
 /* Grab a filename.  Whitespace at start is skipped, then goes to EOL. */
 static int parse_file_cmd(/*sed_cmd_t *sed_cmd,*/ const char *filecmdstr, char **retval)
 {
-	int start = 0, idx, hack = 0;
+	const char *start;
+	const char *eol;
 
 	/* Skip whitespace, then grab filename to end of line */
-	while (isspace(filecmdstr[start]))
-		start++;
-	idx = start;
-	while (filecmdstr[idx] && filecmdstr[idx] != '\n')
-		idx++;
-
-	/* If lines glued together, put backslash back. */
-	if (filecmdstr[idx] == '\n')
-		hack = 1;
-	if (idx == start)
+	start = skip_whitespace(filecmdstr);
+	eol = strchrnul(start, '\n');
+	if (eol == start)
 		bb_error_msg_and_die("empty filename");
-	*retval = xstrndup(filecmdstr+start, idx-start+hack+1);
-	if (hack)
-		(*retval)[idx-start] = '\\';
 
-	return idx;
+	if (*eol) {
+		/* If lines glued together, put backslash back. */
+		*retval = xstrndup(start, eol-start + 1);
+		(*retval)[eol-start] = '\\';
+	} else {
+		/* eol is NUL */
+		*retval = xstrdup(start);
+	}
+
+	return eol - filecmdstr;
 }
 
 static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
