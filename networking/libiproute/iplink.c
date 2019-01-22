@@ -490,11 +490,11 @@ static void vlan_parse_opt(char **argv, struct nlmsghdr *n, unsigned int size)
 	;
 	enum {
 		ARG_id = 0,
+		ARG_protocol,
 		ARG_reorder_hdr,
 		ARG_gvrp,
 		ARG_mvrp,
 		ARG_loose_binding,
-		ARG_protocol,
 	};
 	enum {
 		PROTO_8021Q = 0,
