@@ -518,11 +518,11 @@ static void vlan_parse_opt(char **argv, struct nlmsghdr *n, unsigned int size)
 			id = get_u16(*argv, "id");
 			addattr_l(n, size, IFLA_VLAN_ID, &id, sizeof(id));
 		} else if (arg == ARG_protocol) {
-			arg = index_in_substrings(protocols, *argv);
+			arg = index_in_substrings(protocols, str_tolower(*argv));
 			if (arg == PROTO_8021Q)
-				proto = ETH_P_8021Q;
+				proto = htons(ETH_P_8021Q);
 			else if (arg == PROTO_8021AD)
-				proto = ETH_P_8021AD;
+				proto = htons(ETH_P_8021AD);
 			else
 				bb_error_msg_and_die("unknown VLAN encapsulation protocol '%s'",
 								     *argv);
@@ -673,13 +673,19 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 
 		linkinfo->rta_len = (void *)NLMSG_TAIL(&req.n) - (void *)linkinfo;
 	}
+	/* Allow "ip link add dev" and "ip link add name" */
+	if (!name_str)
+		name_str = dev_str;
+	else if (!dev_str)
+		dev_str = name_str;
+	/* else if (!strcmp(name_str, dev_str))
+		name_str = dev_str; */
+
 	if (rtm != RTM_NEWLINK) {
 		if (!dev_str)
 			return 1; /* Need a device to delete */
 		req.i.ifi_index = xll_name_to_index(dev_str);
 	} else {
-		if (!name_str)
-			name_str = dev_str;
 		if (link_str) {
 			int idx = xll_name_to_index(link_str);
 			addattr_l(&req.n, sizeof(req), IFLA_LINK, &idx, 4);
