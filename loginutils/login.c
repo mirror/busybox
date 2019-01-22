@@ -245,7 +245,9 @@ static void login_pam_end(pam_handle_t *pamh)
 			pam_strerror(pamh, pamret), pamret);
 	}
 }
-#endif /* ENABLE_PAM */
+#else
+# define login_pam_end(pamh) ((void)0)
+#endif
 
 static void get_username_or_die(char *buf, int size_buf)
 {
@@ -471,6 +473,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		 * to know _why_ login failed */
 		syslog(LOG_WARNING, "pam_%s call failed: %s (%d)", failed_msg,
 					pam_strerror(pamh, pamret), pamret);
+		login_pam_end(pamh);
 		safe_strncpy(username, "UNKNOWN", sizeof(username));
 #else /* not PAM */
 		pw = getpwnam(username);
@@ -528,8 +531,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		if (child_pid < 0)
 			bb_perror_msg("vfork");
 		else {
-			if (safe_waitpid(child_pid, NULL, 0) == -1)
-				bb_perror_msg("waitpid");
+			wait_for_exitstatus(child_pid);
 			update_utmp_DEAD_PROCESS(child_pid);
 		}
 		IF_PAM(login_pam_end(pamh);)
