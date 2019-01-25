@@ -4,8 +4,8 @@
  * Adapted from https://github.com/gavinhoward/bc
  * Original code copyright (c) 2018 Gavin D. Howard and contributors.
  */
-//TODO: GNU extensions:
-// support "define f(*param[])" - "pass array by reference" syntax
+//TODO:
+// maybe implement a^b for non-integer b?
 
 #define DEBUG_LEXER   0
 #define DEBUG_COMPILE 0
@@ -379,6 +379,12 @@ typedef struct BcInstPtr {
 	size_t func;
 	size_t inst_idx;
 } BcInstPtr;
+
+typedef enum BcType {
+	BC_TYPE_VAR,
+	BC_TYPE_ARRAY,
+	BC_TYPE_REF,
+} BcType;
 
 typedef enum BcLexType {
 	XC_LEX_EOF,
@@ -1092,13 +1098,23 @@ static void bc_vec_pop_all(BcVec *v)
 	bc_vec_npop(v, v->len);
 }
 
-static size_t bc_vec_push(BcVec *v, const void *data)
+static size_t bc_vec_npush(BcVec *v, size_t n, const void *data)
 {
 	size_t len = v->len;
-	if (len >= v->cap) bc_vec_grow(v, 1);
-	memmove(v->v + (v->size * len), data, v->size);
-	v->len++;
+	if (len + n > v->cap) bc_vec_grow(v, n);
+	memmove(v->v + (v->size * len), data, v->size * n);
+	v->len = len + n;
 	return len;
+}
+
+static size_t bc_vec_push(BcVec *v, const void *data)
+{
+	return bc_vec_npush(v, 1, data);
+	//size_t len = v->len;
+	//if (len >= v->cap) bc_vec_grow(v, 1);
+	//memmove(v->v + (v->size * len), data, v->size);
+	//v->len = len + 1;
+	//return len;
 }
 
 // G.prog.results often needs "pop old operand, push result" idiom.
@@ -3528,14 +3544,14 @@ static void xc_parse_pushName(char *name)
 // (The above describes 32-bit case).
 #define SMALL_INDEX_LIMIT (0x100 - sizeof(size_t))
 
-static void xc_parse_pushIndex(size_t idx)
+static void bc_vec_pushIndex(BcVec *v, size_t idx)
 {
 	size_t mask;
 	unsigned amt;
 
 	dbg_lex("%s:%d pushing index %zd", __func__, __LINE__, idx);
 	if (idx < SMALL_INDEX_LIMIT) {
-		xc_parse_push(idx);
+		bc_vec_pushByte(v, idx);
 		return;
 	}
 
@@ -3548,12 +3564,17 @@ static void xc_parse_pushIndex(size_t idx)
 	}
 	// amt is at least 1 here - "one byte of length data follows"
 
-	xc_parse_push((SMALL_INDEX_LIMIT - 1) + amt);
+	bc_vec_pushByte(v, (SMALL_INDEX_LIMIT - 1) + amt);
 
 	do {
-		xc_parse_push((unsigned char)idx);
+		bc_vec_pushByte(v, (unsigned char)idx);
 		idx >>= 8;
 	} while (idx != 0);
+}
+
+static void xc_parse_pushIndex(size_t idx)
+{
+	bc_vec_pushIndex(&G.prs.func->code, idx);
 }
 
 static void xc_parse_pushInst_and_Index(unsigned inst, size_t idx)
@@ -4340,7 +4361,7 @@ static BC_STATUS zbc_parse_break_or_continue(BcLexType type)
 }
 #define zbc_parse_break_or_continue(...) (zbc_parse_break_or_continue(__VA_ARGS__) COMMA_SUCCESS)
 
-static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
+static BC_STATUS zbc_func_insert(BcFunc *f, char *name, BcType type)
 {
 	BcId *autoid;
 	BcId a;
@@ -4349,13 +4370,13 @@ static BC_STATUS zbc_func_insert(BcFunc *f, char *name, bool var)
 	autoid = (void*)f->autos.v;
 	for (i = 0; i < f->autos.len; i++, autoid++) {
 		if (strcmp(name, autoid->name) == 0
-		 && var == autoid->idx
+		 && type == (BcType) autoid->idx
 		) {
 			RETURN_STATUS(bc_error("duplicate function parameter or auto name"));
 		}
 	}
 
-	a.idx = var;
+	a.idx = type;
 	a.name = name;
 
 	bc_vec_push(&f->autos, &a);
@@ -4368,7 +4389,7 @@ static BC_STATUS zbc_parse_funcdef(void)
 {
 	BcParse *p = &G.prs;
 	BcStatus s;
-	bool var, comma, voidfunc;
+	bool comma, voidfunc;
 	char *name;
 
 	dbg_lex_enter("%s:%d entered", __func__, __LINE__);
@@ -4406,6 +4427,16 @@ static BC_STATUS zbc_parse_funcdef(void)
 
 	comma = false;
 	while (p->lex != BC_LEX_RPAREN) {
+		BcType t = BC_TYPE_VAR;
+
+		if (p->lex == XC_LEX_OP_MULTIPLY) {
+			t = BC_TYPE_REF;
+			s = zxc_lex_next();
+			if (s) RETURN_STATUS(s);
+			s = zbc_POSIX_does_not_allow("references");
+			if (s) RETURN_STATUS(s);
+		}
+
 		if (p->lex != XC_LEX_NAME)
 			RETURN_STATUS(bc_error_bad_function_definition());
 
@@ -4415,9 +4446,8 @@ static BC_STATUS zbc_parse_funcdef(void)
 		s = zxc_lex_next();
 		if (s) goto err;
 
-		var = p->lex != BC_LEX_LBRACKET;
-
-		if (!var) {
+		if (p->lex == BC_LEX_LBRACKET) {
+			if (t == BC_TYPE_VAR) t = BC_TYPE_ARRAY;
 			s = zxc_lex_next();
 			if (s) goto err;
 
@@ -4429,6 +4459,10 @@ static BC_STATUS zbc_parse_funcdef(void)
 			s = zxc_lex_next();
 			if (s) goto err;
 		}
+		else if (t == BC_TYPE_REF) {
+			s = bc_error_at("vars can't be references");
+			goto err;
+		}
 
 		comma = p->lex == BC_LEX_COMMA;
 		if (comma) {
@@ -4436,7 +4470,7 @@ static BC_STATUS zbc_parse_funcdef(void)
 			if (s) goto err;
 		}
 
-		s = zbc_func_insert(p->func, name, var);
+		s = zbc_func_insert(p->func, name, t);
 		if (s) goto err;
 	}
 
@@ -4488,7 +4522,7 @@ static BC_STATUS zbc_parse_auto(void)
 	if (s) RETURN_STATUS(s);
 
 	for (;;) {
-		bool var;
+		BcType t;
 
 		if (p->lex != XC_LEX_NAME)
 			RETURN_STATUS(bc_error_at("bad 'auto' syntax"));
@@ -4497,8 +4531,9 @@ static BC_STATUS zbc_parse_auto(void)
 		s = zxc_lex_next();
 		if (s) goto err;
 
-		var = (p->lex != BC_LEX_LBRACKET);
-		if (!var) {
+		t = BC_TYPE_VAR;
+		if (p->lex == BC_LEX_LBRACKET) {
+			t = BC_TYPE_ARRAY;
 			s = zxc_lex_next();
 			if (s) goto err;
 
@@ -4510,7 +4545,7 @@ static BC_STATUS zbc_parse_auto(void)
 			if (s) goto err;
 		}
 
-		s = zbc_func_insert(p->func, name, var);
+		s = zbc_func_insert(p->func, name, t);
 		if (s) goto err;
 
 		if (p->lex == XC_LEX_NLINE
@@ -5119,12 +5154,64 @@ static BC_STATUS zdc_parse_exprs_until_eof(void)
 #define STACK_HAS_MORE_THAN(s, n)          ((s)->len > ((size_t)(n)))
 #define STACK_HAS_EQUAL_OR_MORE_THAN(s, n) ((s)->len >= ((size_t)(n)))
 
-static BcVec* xc_program_search(char *id, bool var)
+static size_t xc_program_index(char *code, size_t *bgn)
+{
+	unsigned char *bytes = (void*)(code + *bgn);
+	unsigned amt;
+	unsigned i;
+	size_t res;
+
+	amt = *bytes++;
+	if (amt < SMALL_INDEX_LIMIT) {
+		*bgn += 1;
+		return amt;
+	}
+	amt -= (SMALL_INDEX_LIMIT - 1); // amt is 1 or more here
+	*bgn += amt + 1;
+
+	res = 0;
+	i = 0;
+	do {
+		res |= (size_t)(*bytes++) << i;
+		i += 8;
+	} while (--amt != 0);
+
+	return res;
+}
+
+static char *xc_program_name(char *code, size_t *bgn)
+{
+	code += *bgn;
+	*bgn += strlen(code) + 1;
+
+	return xstrdup(code);
+}
+
+static BcVec* xc_program_dereference(BcVec *vec)
+{
+	BcVec *v;
+	size_t vidx, nidx, i = 0;
+
+	//assert(vec->size == sizeof(uint8_t));
+
+	vidx = xc_program_index(vec->v, &i);
+	nidx = xc_program_index(vec->v, &i);
+
+	v = bc_vec_item(&G.prog.arrs, vidx);
+	v = bc_vec_item(v, nidx);
+
+	//assert(v->size != sizeof(uint8_t));
+
+	return v;
+}
+
+static BcVec* xc_program_search(char *id, BcType type)
 {
 	BcId e, *ptr;
 	BcVec *v, *map;
 	size_t i;
 	int new;
+	bool var = (type == BC_TYPE_VAR);
 
 	v = var ? &G.prog.vars : &G.prog.arrs;
 	map = var ? &G.prog.var_map : &G.prog.arr_map;
@@ -5178,17 +5265,20 @@ static BC_STATUS zxc_program_num(BcResult *r, BcNum **num)
 	case XC_RESULT_VAR:
 	case XC_RESULT_ARRAY:
 	case XC_RESULT_ARRAY_ELEM: {
-		BcVec *v;
-		void *p;
-		v = xc_program_search(r->d.id.name, r->t == XC_RESULT_VAR);
-// dc variables are all stacks, so here we have this:
-		p = bc_vec_top(v);
-// TODO: eliminate these stacks for bc-only config?
+		BcType type = (r->t == XC_RESULT_VAR) ? BC_TYPE_VAR : BC_TYPE_ARRAY;
+		BcVec *v = xc_program_search(r->d.id.name, type);
+		void *p = bc_vec_top(v);
+
 		if (r->t == XC_RESULT_ARRAY_ELEM) {
+			size_t idx = r->d.id.idx;
+
 			v = p;
-			if (v->len <= r->d.id.idx)
-				bc_array_expand(v, r->d.id.idx + 1);
-			*num = bc_vec_item(v, r->d.id.idx);
+			if (v->size == sizeof(uint8_t))
+				v = xc_program_dereference(v);
+			//assert(v->size == sizeof(BcNum));
+			if (v->len <= idx)
+				bc_array_expand(v, idx + 1);
+			*num = bc_vec_item(v, idx);
 		} else {
 			*num = p;
 		}
@@ -5346,39 +5436,6 @@ static BC_STATUS zxc_program_read(void)
 	RETURN_STATUS(s);
 }
 #define zxc_program_read(...) (zxc_program_read(__VA_ARGS__) COMMA_SUCCESS)
-
-static size_t xc_program_index(char *code, size_t *bgn)
-{
-	unsigned char *bytes = (void*)(code + *bgn);
-	unsigned amt;
-	unsigned i;
-	size_t res;
-
-	amt = *bytes++;
-	if (amt < SMALL_INDEX_LIMIT) {
-		*bgn += 1;
-		return amt;
-	}
-	amt -= (SMALL_INDEX_LIMIT - 1); // amt is 1 or more here
-	*bgn += amt + 1;
-
-	res = 0;
-	i = 0;
-	do {
-		res |= (size_t)(*bytes++) << i;
-		i += 8;
-	} while (--amt != 0);
-
-	return res;
-}
-
-static char *xc_program_name(char *code, size_t *bgn)
-{
-	code += *bgn;
-	*bgn += strlen(code) + 1;
-
-	return xstrdup(code);
-}
 
 static void xc_program_printString(const char *str)
 {
@@ -5755,43 +5812,81 @@ static BC_STATUS zdc_program_assignStr(BcResult *r, BcVec *v, bool push)
 #define zdc_program_assignStr(...) (zdc_program_assignStr(__VA_ARGS__) COMMA_SUCCESS)
 #endif // ENABLE_DC
 
-static BC_STATUS zxc_program_popResultAndCopyToVar(char *name, bool var)
+static BC_STATUS zxc_program_popResultAndCopyToVar(char *name, BcType t)
 {
 	BcStatus s;
 	BcResult *ptr, r;
-	BcVec *v;
+	BcVec *vec;
 	BcNum *n;
+	bool var = (t == BC_TYPE_VAR);
 
 	if (!STACK_HAS_MORE_THAN(&G.prog.results, 0))
 		RETURN_STATUS(bc_error_stack_has_too_few_elements());
 
 	ptr = bc_vec_top(&G.prog.results);
-	if ((ptr->t == XC_RESULT_ARRAY) != !var)
+	if ((ptr->t == XC_RESULT_ARRAY) == var)
 		RETURN_STATUS(bc_error_variable_is_wrong_type());
-	v = xc_program_search(name, var);
+	vec = xc_program_search(name, t);
 
 #if ENABLE_DC
-	if (ptr->t == XC_RESULT_STR && !var)
-		RETURN_STATUS(bc_error_variable_is_wrong_type());
-	if (ptr->t == XC_RESULT_STR)
-		RETURN_STATUS(zdc_program_assignStr(ptr, v, true));
+	if (ptr->t == XC_RESULT_STR) {
+		if (!var)
+			RETURN_STATUS(bc_error_variable_is_wrong_type());
+		RETURN_STATUS(zdc_program_assignStr(ptr, vec, true));
+	}
 #endif
 
 	s = zxc_program_num(ptr, &n);
 	if (s) RETURN_STATUS(s);
 
 	// Do this once more to make sure that pointers were not invalidated.
-	v = xc_program_search(name, var);
+	vec = xc_program_search(name, t);
 
 	if (var) {
 		bc_num_init_DEF_SIZE(&r.d.n);
 		bc_num_copy(&r.d.n, n);
 	} else {
-		bc_array_init(&r.d.v, true);
-		bc_array_copy(&r.d.v, (BcVec *) n);
-	}
+		BcVec *v = (BcVec*) n;
+		bool ref, ref_size;
 
-	bc_vec_push(v, &r.d);
+		ref = (v->size == sizeof(BcVec) && t != BC_TYPE_ARRAY);
+		ref_size = (v->size == sizeof(uint8_t));
+
+		if (ref || (ref_size && t == BC_TYPE_REF)) {
+			bc_vec_init(&r.d.v, sizeof(uint8_t), NULL);
+			if (ref) {
+				size_t vidx, idx;
+				BcId id;
+
+				id.name = ptr->d.id.name;
+				v = xc_program_search(ptr->d.id.name, BC_TYPE_REF);
+
+				// Make sure the pointer was not invalidated.
+				vec = xc_program_search(name, t);
+
+				vidx = bc_map_find_exact(&G.prog.arr_map, &id);
+				//assert(vidx != BC_VEC_INVALID_IDX);
+				vidx = ((BcId*) bc_vec_item(&G.prog.arr_map, vidx))->idx;
+				idx = v->len - 1;
+
+				bc_vec_pushIndex(&r.d.v, vidx);
+				bc_vec_pushIndex(&r.d.v, idx);
+			}
+			// If we get here, we are copying a ref to a ref.
+			else bc_vec_npush(&r.d.v, v->len, v->v);
+
+			// We need to return early.
+			goto ret;
+		}
+
+		if (ref_size && t != BC_TYPE_REF)
+			v = xc_program_dereference(v);
+
+		bc_array_init(&r.d.v, true);
+		bc_array_copy(&r.d.v, v);
+	}
+ ret:
+	bc_vec_push(vec, &r.d);
 	bc_vec_pop(&G.prog.results);
 
 	RETURN_STATUS(s);
@@ -5818,7 +5913,7 @@ static BC_STATUS zxc_program_assign(char inst)
 
 		if (left->t != XC_RESULT_VAR)
 			RETURN_STATUS(bc_error_variable_is_wrong_type());
-		v = xc_program_search(left->d.id.name, true);
+		v = xc_program_search(left->d.id.name, BC_TYPE_VAR);
 
 		RETURN_STATUS(zdc_program_assignStr(right, v, false));
 	}
@@ -5897,7 +5992,7 @@ static BC_STATUS xc_program_pushVar(char *code, size_t *bgn,
 
 #if ENABLE_DC
 	if (pop || copy) {
-		BcVec *v = xc_program_search(name, true);
+		BcVec *v = xc_program_search(name, BC_TYPE_VAR);
 		BcNum *num = bc_vec_top(v);
 
 		free(name);
@@ -6014,16 +6109,19 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 	for (i = 0; i < nparams; ++i) {
 		BcResult *arg;
 		BcStatus s;
+		bool arr;
 
 		a = bc_vec_item(&func->autos, nparams - 1 - i);
 		arg = bc_vec_top(&G.prog.results);
 
-		if ((!a->idx) != (arg->t == XC_RESULT_ARRAY) // array/variable mismatch
+		arr = (a->idx == BC_TYPE_ARRAY || a->idx == BC_TYPE_REF);
+
+		if (arr != (arg->t == XC_RESULT_ARRAY) // array/variable mismatch
 		// || arg->t == XC_RESULT_STR - impossible, f("str") is not a legal syntax (strings are not bc expressions)
 		) {
 			RETURN_STATUS(bc_error_variable_is_wrong_type());
 		}
-		s = zxc_program_popResultAndCopyToVar(a->name, a->idx);
+		s = zxc_program_popResultAndCopyToVar(a->name, (BcType) a->idx);
 		if (s) RETURN_STATUS(s);
 	}
 
@@ -6031,12 +6129,13 @@ static BC_STATUS zbc_program_call(char *code, size_t *idx)
 	for (; i < func->autos.len; i++, a++) {
 		BcVec *v;
 
-		v = xc_program_search(a->name, a->idx);
-		if (a->idx) {
+		v = xc_program_search(a->name, (BcType) a->idx);
+		if (a->idx == BC_TYPE_VAR) {
 			BcNum n2;
 			bc_num_init_DEF_SIZE(&n2);
 			bc_vec_push(v, &n2);
 		} else {
+			//assert(a->idx == BC_TYPE_ARRAY);
 			BcVec v2;
 			bc_array_init(&v2, true);
 			bc_vec_push(v, &v2);
@@ -6087,7 +6186,7 @@ static BC_STATUS zbc_program_return(char inst)
 	a = (void*)f->autos.v;
 	for (i = 0; i < f->autos.len; i++, a++) {
 		BcVec *v;
-		v = xc_program_search(a->name, a->idx);
+		v = xc_program_search(a->name, (BcType) a->idx);
 		bc_vec_pop(v);
 	}
 
@@ -6399,7 +6498,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 
 		if (exec) {
 			BcVec *v;
-			v = xc_program_search(name, true);
+			v = xc_program_search(name, BC_TYPE_VAR);
 			n = bc_vec_top(v);
 		}
 
@@ -6724,7 +6823,7 @@ static BC_STATUS zxc_program_exec(void)
 		}
 		case DC_INST_PUSH_TO_VAR: {
 			char *name = xc_program_name(code, &ip->inst_idx);
-			s = zxc_program_popResultAndCopyToVar(name, true);
+			s = zxc_program_popResultAndCopyToVar(name, BC_TYPE_VAR);
 			free(name);
 			break;
 		}
