@@ -443,15 +443,23 @@ static int grep_file(FILE *file)
 					}
 				}
 			}
-			/* If it's non-inverted search, we can stop
-			 * at first match */
-			if (found && !invert_search)
-				goto do_found;
+			/* If it's a non-inverted search, we can stop
+			 * at first match and report it.
+			 * If it's an inverted search, we can move on
+			 * to the next line of input, ignoring the
+			 * rest of the patterns.
+			 */
+			if (found) {
+				//if (invert_search)
+				//	goto do_not_found;
+				//goto do_found;
+				break; // this accomplishes both
+			}
 			pattern_ptr = pattern_ptr->link;
 		} /* while (pattern_ptr) */
 
 		if (found ^ invert_search) {
- do_found:
+ //do_found:
 			/* keep track of matches */
 			nmatches++;
 
@@ -552,6 +560,7 @@ static int grep_file(FILE *file)
 		}
 #if ENABLE_FEATURE_GREP_CONTEXT
 		else { /* no match */
+ //do_not_found:
 			/* if we need to print some context lines after the last match, do so */
 			if (print_n_lines_after) {
 				print_line(line, strlen(line), linenum, '-');
