@@ -177,6 +177,13 @@ testing "grep -w word match second word" \
 	"bword,word\n""wordb,word\n""bwordb,word\n" \
 	""
 
+
+testing "grep -x -v -e EXP1 -e EXP2 finds nothing if either EXP matches" \
+	"grep -x -v -e '.*aa.*' -e 'bb.*'; echo \$?" \
+	"1\n" \
+	"" \
+	"  aa bb cc\n"
+
 # -r on symlink to dir should recurse into dir
 mkdir -p grep.testdir/foo
 echo bar > grep.testdir/foo/file

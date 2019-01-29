@@ -404,7 +404,7 @@ static int grep_file(FILE *file)
 #endif
 				) {
 					if (option_mask32 & OPT_x) {
-						found = (gl->matched_range.rm_so == 0
+						found |= (gl->matched_range.rm_so == 0
 						         && match_at[gl->matched_range.rm_eo] == '\0');
 					} else
 					if (!(option_mask32 & OPT_w)) {
