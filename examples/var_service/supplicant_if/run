@@ -8,7 +8,8 @@ pwd="$PWD"
 if="${PWD##*/dhcp_}"
 
 echo "* Upping iface $if"
-ip link set dev "$if" up
+# "or sleep" idiom prevents rapid respawning if iface does not exist
+ip link set dev "$if" up || { sleep 5; exit; }
 
 ##echo "* Powersave disable on $if"
 ##iw dev "$if" set power_save off
