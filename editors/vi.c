@@ -598,6 +598,7 @@ static void check_context(char);	// remember context for '' command
 #if ENABLE_FEATURE_VI_UNDO
 static void flush_undo_data(void);
 static void undo_push(char *, unsigned int, unsigned char);	// Push an operation on the undo stack
+static void undo_push_insert(char *, int, int); // convenience function
 static void undo_pop(void);	// Undo the last operation
 # if ENABLE_FEATURE_VI_UNDO_QUEUE
 static void undo_queue_commit(void);	// Flush any queued objects to the undo stack
@@ -2011,19 +2012,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		c = get_one_char();
 		*p = c;
 #if ENABLE_FEATURE_VI_UNDO
-		switch (undo) {
-			case ALLOW_UNDO:
-				undo_push(p, 1, UNDO_INS);
-				break;
-			case ALLOW_UNDO_CHAIN:
-				undo_push(p, 1, UNDO_INS_CHAIN);
-				break;
-# if ENABLE_FEATURE_VI_UNDO_QUEUE
-			case ALLOW_UNDO_QUEUED:
-				undo_push(p, 1, UNDO_INS_QUEUED);
-				break;
-# endif
-		}
+		undo_push_insert(p, 1, undo);
 #else
 		modified_count++;
 #endif /* ENABLE_FEATURE_VI_UNDO */
@@ -2051,19 +2040,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		if (c == '\n')
 			undo_queue_commit();
 # endif
-		switch (undo) {
-			case ALLOW_UNDO:
-				undo_push(p, 1, UNDO_INS);
-				break;
-			case ALLOW_UNDO_CHAIN:
-				undo_push(p, 1, UNDO_INS_CHAIN);
-				break;
-# if ENABLE_FEATURE_VI_UNDO_QUEUE
-			case ALLOW_UNDO_QUEUED:
-				undo_push(p, 1, UNDO_INS_QUEUED);
-				break;
-# endif
-		}
+		undo_push_insert(p, 1, undo);
 #else
 		modified_count++;
 #endif /* ENABLE_FEATURE_VI_UNDO */
@@ -2083,7 +2060,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 				p += bias;
 				q += bias;
 #if ENABLE_FEATURE_VI_UNDO
-				undo_push(p, len, UNDO_INS);
+				undo_push_insert(p, len, undo);
 #endif
 				memcpy(p, q, len);
 				p += len;
@@ -2392,6 +2369,23 @@ static void undo_push(char *src, unsigned int length, uint8_t u_type)	// Add to 
 	modified_count++;
 }
 
+static void undo_push_insert(char *p, int len, int undo)
+{
+	switch (undo) {
+		case ALLOW_UNDO:
+			undo_push(p, len, UNDO_INS);
+			break;
+		case ALLOW_UNDO_CHAIN:
+			undo_push(p, len, UNDO_INS_CHAIN);
+			break;
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+		case ALLOW_UNDO_QUEUED:
+			undo_push(p, len, UNDO_INS_QUEUED);
+			break;
+# endif
+	}
+}
+
 static void undo_pop(void)	// Undo the last operation
 {
 	int repeat;
@@ -2665,14 +2659,7 @@ static uintptr_t string_insert(char *p, const char *s, int undo) // insert the s
 
 	i = strlen(s);
 #if ENABLE_FEATURE_VI_UNDO
-	switch (undo) {
-		case ALLOW_UNDO:
-			undo_push(p, i, UNDO_INS);
-			break;
-		case ALLOW_UNDO_CHAIN:
-			undo_push(p, i, UNDO_INS_CHAIN);
-			break;
-	}
+	undo_push_insert(p, i, undo);
 #endif
 	bias = text_hole_make(p, i);
 	p += bias;
