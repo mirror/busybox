@@ -4189,14 +4189,9 @@ static void do_cmd(int c)
 	case 'r':			// r- replace the current char with user input
 		c1 = get_one_char();	// get the replacement char
 		if (*dot != '\n') {
-#if ENABLE_FEATURE_VI_UNDO
-			undo_push(dot, 1, UNDO_DEL);
-			*dot = c1;
-			undo_push(dot, 1, UNDO_INS_CHAIN);
-#else
-			*dot = c1;
-			modified_count++;
-#endif
+			dot = text_hole_delete(dot, dot, ALLOW_UNDO);
+			dot = char_insert(dot, c1, ALLOW_UNDO_CHAIN);
+			dot_left();
 		}
 		end_cmd_q();	// stop adding to q
 		break;
