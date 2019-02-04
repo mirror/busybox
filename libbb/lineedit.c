@@ -2383,13 +2383,14 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 		timeout = st->timeout;
 	}
 #if MAX_HISTORY > 0
+	if (state->flags & DO_HISTORY) {
 # if ENABLE_FEATURE_EDITING_SAVEHISTORY
-	if (state->hist_file)
-		if (state->cnt_history == 0)
-			load_history(state);
+		if (state->hist_file)
+			if (state->cnt_history == 0)
+				load_history(state);
 # endif
-	if (state->flags & DO_HISTORY)
 		state->cur_history = state->cnt_history;
+	}
 #endif
 
 	/* prepare before init handlers */
