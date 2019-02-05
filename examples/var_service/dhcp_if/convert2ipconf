@@ -26,6 +26,25 @@ exec 2>&1
 test "$interface" || exit 1
 test "$ip" || exit 1
 
+# some servers do not return subnet option.
+# guess it for standard private networks.
+if ! test "$mask"; then
+	if test "$ip" != "${ip#192.168.}"; then
+		mask=16
+	elif test "$ip" != "${ip#172.16.}"; then
+		mask=12
+		# repeat for each in 172.17. - 172.31. range?
+	elif test "$ip" != "${ip#10.}"; then
+		mask=8
+	fi
+fi
+
+# some servers do not return router option.
+# assume DHCP server is the router.
+if ! test "$router"; then
+	test "$serverid" && router="$serverid"
+fi
+
 {
 echo "let cfg=cfg+1"
 test "$interface"	&& echo "if[\$cfg]='$interface'"
