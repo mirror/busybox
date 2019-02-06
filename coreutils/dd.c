@@ -59,7 +59,7 @@
 //usage:       "[if=FILE] [of=FILE] [" IF_FEATURE_DD_IBS_OBS("ibs=N obs=N/") "bs=N] [count=N] [skip=N] [seek=N]\n"
 //usage:	IF_FEATURE_DD_IBS_OBS(
 //usage:       "	[conv=notrunc|noerror|sync|fsync]\n"
-//usage:       "	[iflag=skip_bytes|fullblock] [oflag=seek_bytes]"
+//usage:       "	[iflag=skip_bytes|fullblock] [oflag=seek_bytes|append]"
 //usage:	)
 //usage:#define dd_full_usage "\n\n"
 //usage:       "Copy a file with converting and formatting\n"
@@ -84,6 +84,7 @@
 //usage:     "\n	iflag=skip_bytes	skip=N is in bytes"
 //usage:     "\n	iflag=fullblock	Read full blocks"
 //usage:     "\n	oflag=seek_bytes	seek=N is in bytes"
+//usage:     "\n	oflag=append	Open output file in append mode"
 //usage:	)
 //usage:	IF_FEATURE_DD_STATUS(
 //usage:     "\n	status=noxfer	Suppress rate output"
@@ -140,11 +141,12 @@ enum {
 	/* start of output flags */
 	FLAG_OFLAG_SHIFT = 7,
 	FLAG_SEEK_BYTES = (1 << 7) * ENABLE_FEATURE_DD_IBS_OBS,
+	FLAG_APPEND = (1 << 8) * ENABLE_FEATURE_DD_IBS_OBS,
 	/* end of output flags */
-	FLAG_TWOBUFS = (1 << 8) * ENABLE_FEATURE_DD_IBS_OBS,
-	FLAG_COUNT   = 1 << 9,
-	FLAG_STATUS_NONE = 1 << 10,
-	FLAG_STATUS_NOXFER = 1 << 11,
+	FLAG_TWOBUFS = (1 << 9) * ENABLE_FEATURE_DD_IBS_OBS,
+	FLAG_COUNT   = 1 << 10,
+	FLAG_STATUS_NONE = 1 << 11,
+	FLAG_STATUS_NOXFER = 1 << 12,
 };
 
 static void dd_output_status(int UNUSED_PARAM cur_signal)
@@ -267,7 +269,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	static const char iflag_words[] ALIGN1 =
 		"skip_bytes\0""fullblock\0";
 	static const char oflag_words[] ALIGN1 =
-		"seek_bytes\0";
+		"seek_bytes\0append\0";
 #endif
 #if ENABLE_FEATURE_DD_STATUS
 	static const char status_words[] ALIGN1 =
@@ -451,6 +453,8 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 
 		if (!seek && !(G.flags & FLAG_NOTRUNC))
 			oflag |= O_TRUNC;
+		if (G.flags & FLAG_APPEND)
+			oflag |= O_APPEND;
 
 		xmove_fd(xopen(outfile, oflag), ofd);
 

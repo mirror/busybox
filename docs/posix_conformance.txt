@@ -183,6 +183,7 @@ dd compatibility options:
   iflag=skip_bytes|  yes   |           |
   iflag=fullblock |  yes   |           |
   oflag=seek_bytes|  yes   |           |
+  oflag=append    |  yes   |           |
 
 df POSIX options
  option           | exists | compliant | remarks
