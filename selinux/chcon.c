@@ -204,7 +204,7 @@ int chcon_main(int argc UNUSED_PARAM, char **argv)
 		fname[fname_len] = '\0';
 
 		if (recursive_action(fname,
-					((option_mask32 & OPT_RECURSIVE) ? ACTION_RECURSIVE : 0),
+					((option_mask32 & OPT_RECURSIVE) ? ACTION_RECURSE : 0),
 					change_filedir_context,
 					change_filedir_context,
 					NULL, 0) != TRUE)
