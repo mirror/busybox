@@ -56,8 +56,31 @@ enum {
 
 static void sysctl_dots_to_slashes(char *name)
 {
-	char *cptr, *last_good, *end;
+	char *cptr, *last_good, *end, *slash;
 	char end_ch;
+
+	end = strchrnul(name, '=');
+
+	slash = strchrnul(name, '/');
+	if (slash < end
+	 && strchrnul(name, '.') < slash
+	) {
+		/* There are both dots and slashes, and 1st dot is
+		 * before 1st slash.
+		 * (IOW: not raw, unmangled a/b/c.d format)
+		 *
+		 * procps supports this syntax for names with dots:
+		 *  net.ipv4.conf.eth0/100.mc_forwarding
+		 * (dots and slashes are simply swapped)
+		 */
+		while (end != name) {
+			end--;
+			if (*end == '.') *end = '/';
+			else if (*end == '/') *end = '.';
+		}
+		return;
+	}
+	/* else: use our old behavior: */
 
 	/* Convert minimum number of '.' to '/' so that
 	 * we end up with existing file's name.
@@ -77,7 +100,6 @@ static void sysctl_dots_to_slashes(char *name)
 	 *
 	 * To set up testing: modprobe 8021q; vconfig add eth0 100
 	 */
-	end = strchrnul(name, '=');
 	end_ch = *end;
 	*end = '.'; /* trick the loop into trying full name too */
 
@@ -114,6 +136,8 @@ static int sysctl_act_on_setting(char *setting)
 	while (*cptr) {
 		if (*cptr == '/')
 			*cptr = '.';
+		else if (*cptr == '.')
+			*cptr = '/';
 		cptr++;
 	}
 
