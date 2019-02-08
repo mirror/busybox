@@ -57,6 +57,7 @@ enum {
 static void sysctl_dots_to_slashes(char *name)
 {
 	char *cptr, *last_good, *end;
+	char end_ch;
 
 	/* Convert minimum number of '.' to '/' so that
 	 * we end up with existing file's name.
@@ -76,10 +77,11 @@ static void sysctl_dots_to_slashes(char *name)
 	 *
 	 * To set up testing: modprobe 8021q; vconfig add eth0 100
 	 */
-	end = name + strlen(name);
-	last_good = name - 1;
+	end = strchrnul(name, '=');
+	end_ch = *end;
 	*end = '.'; /* trick the loop into trying full name too */
 
+	last_good = name - 1;
  again:
 	cptr = end;
 	while (cptr > last_good) {
@@ -96,7 +98,7 @@ static void sysctl_dots_to_slashes(char *name)
 		}
 		cptr--;
 	}
-	*end = '\0';
+	*end = end_ch;
 }
 
 static int sysctl_act_on_setting(char *setting)
