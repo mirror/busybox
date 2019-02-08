@@ -119,14 +119,16 @@ static int sysctl_act_on_setting(char *setting)
 	if (cptr)
 		writing = 1;
 	if (writing) {
-		if (cptr == NULL) {
+		if (!cptr) {
 			bb_error_msg("error: '%s' must be of the form name=value",
 				outname);
 			retval = EXIT_FAILURE;
 			goto end;
 		}
 		value = cptr + 1;  /* point to the value in name=value */
-		if (setting == cptr || !*value) {
+		if (setting == cptr /* "name" can't be empty */
+		 /* || !*value - WRONG: "sysctl net.ipv4.ip_local_reserved_ports=" is a valid syntax (clears the value) */
+		) {
 			bb_error_msg("error: malformed setting '%s'", outname);
 			retval = EXIT_FAILURE;
 			goto end;
