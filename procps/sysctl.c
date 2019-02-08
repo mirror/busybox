@@ -205,19 +205,21 @@ static int sysctl_act_on_setting(char *setting)
 
 static int sysctl_act_recursive(const char *path)
 {
-	DIR *dirp;
 	struct stat buf;
-	struct dirent *entry;
-	char *next;
 	int retval = 0;
 
-	stat(path, &buf);
-	if (S_ISDIR(buf.st_mode) && !(option_mask32 & FLAG_WRITE)) {
+	if (!(option_mask32 & FLAG_WRITE)
+	 && stat(path, &buf) == 0
+	 && S_ISDIR(buf.st_mode)
+	) {
+		struct dirent *entry;
+		DIR *dirp;
+
 		dirp = opendir(path);
 		if (dirp == NULL)
 			return -1;
 		while ((entry = readdir(dirp)) != NULL) {
-			next = concat_subpath_file(path, entry->d_name);
+			char *next = concat_subpath_file(path, entry->d_name);
 			if (next == NULL)
 				continue; /* d_name is "." or ".." */
 			/* if path was ".", drop "./" prefix: */
@@ -304,6 +306,8 @@ int sysctl_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & (FLAG_TABLE_FORMAT | FLAG_SHOW_ALL)) {
 		return sysctl_act_recursive(".");
 	}
+
+//TODO: if(!argv[0]) bb_show_usage() ?
 
 	retval = 0;
 	while (*argv) {
