@@ -177,6 +177,7 @@ static int sysctl_act_on_setting(char *setting)
 		close(fd);
 		if (value == NULL) {
 			bb_perror_msg("error reading key '%s'", outname);
+			retval = EXIT_FAILURE;
 			goto end;
 		}
 
