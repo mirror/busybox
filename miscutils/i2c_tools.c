@@ -36,17 +36,26 @@
 //config:	help
 //config:	Detect I2C chips.
 //config:
+//config:config I2CTRANSFER
+//config:	bool "i2ctransfer (4.0 kb)"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	Send user-defined I2C messages in one transfer.
+//config:
 
 //applet:IF_I2CGET(APPLET(i2cget, BB_DIR_USR_SBIN, BB_SUID_DROP))
 //applet:IF_I2CSET(APPLET(i2cset, BB_DIR_USR_SBIN, BB_SUID_DROP))
 //applet:IF_I2CDUMP(APPLET(i2cdump, BB_DIR_USR_SBIN, BB_SUID_DROP))
 //applet:IF_I2CDETECT(APPLET(i2cdetect, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_I2CTRANSFER(APPLET(i2ctransfer, BB_DIR_USR_SBIN, BB_SUID_DROP))
 /* not NOEXEC: if hw operation stalls, use less memory in "hung" process */
 
 //kbuild:lib-$(CONFIG_I2CGET) += i2c_tools.o
 //kbuild:lib-$(CONFIG_I2CSET) += i2c_tools.o
 //kbuild:lib-$(CONFIG_I2CDUMP) += i2c_tools.o
 //kbuild:lib-$(CONFIG_I2CDETECT) += i2c_tools.o
+//kbuild:lib-$(CONFIG_I2CTRANSFER) += i2c_tools.o
 
 /*
  * Unsupported stuff:
@@ -80,11 +89,18 @@
 #define I2C_FUNCS			0x0705
 #define I2C_PEC				0x0708
 #define I2C_SMBUS			0x0720
+#define I2C_RDWR			0x0707
+#define I2C_RDWR_IOCTL_MAX_MSGS		42
+#define I2C_RDWR_IOCTL_MAX_MSGS_STR	"42"
 struct i2c_smbus_ioctl_data {
 	__u8 read_write;
 	__u8 command;
 	__u32 size;
 	union i2c_smbus_data *data;
+};
+struct i2c_rdwr_ioctl_data {
+	struct i2c_msg *msgs;	/* pointers to i2c_msgs */
+	__u32 nmsgs;		/* number of i2c_msgs */
 };
 /* end linux/i2c-dev.h */
 
@@ -262,7 +278,7 @@ static int i2c_bus_lookup(const char *bus_str)
 	return xstrtou_range(bus_str, 10, 0, 0xfffff);
 }
 
-#if ENABLE_I2CGET || ENABLE_I2CSET || ENABLE_I2CDUMP
+#if ENABLE_I2CGET || ENABLE_I2CSET || ENABLE_I2CDUMP || ENABLE_I2CTRANSFER
 static int i2c_parse_bus_addr(const char *addr_str)
 {
 	/* Slave address must be in range 0x03 - 0x77. */
@@ -1373,3 +1389,163 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 	return 0;
 }
 #endif /* ENABLE_I2CDETECT */
+
+#if ENABLE_I2CTRANSFER
+static void check_i2c_func(int fd)
+{
+	unsigned long funcs;
+
+	get_funcs_matrix(fd, &funcs);
+
+	if (!(funcs & I2C_FUNC_I2C))
+		bb_error_msg_and_die("adapter does not support I2C transfers");
+}
+
+//usage:#define i2ctransfer_trivial_usage
+//usage:       "[-fay] I2CBUS {rLENGTH[@ADDR] | wLENGTH[@ADDR] DATA...}..."
+//usage:#define i2ctransfer_full_usage "\n\n"
+//usage:       "Read/write I2C data in one transfer"
+//usage:     "\n"
+//usage:     "\n	-f	Force access"
+//usage:     "\n	-a	Force scanning of non-regular addresses"
+//usage:     "\n	-y	Disable interactive mode"
+int i2ctransfer_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int i2ctransfer_main(int argc UNUSED_PARAM, char **argv)
+{
+	enum {
+		opt_f = (1 << 0),
+		opt_y = (1 << 1),
+		opt_a = (1 << 2),
+	};
+	int bus_num, bus_addr;
+	int fd;
+	unsigned opts, first, last;
+	int nmsgs, nmsgs_sent, i;
+	struct i2c_msg msgs[I2C_RDWR_IOCTL_MAX_MSGS];
+	struct i2c_rdwr_ioctl_data rdwr;
+
+	memset(msgs, 0, sizeof(msgs));
+
+	opts = getopt32(argv, "^"
+		"fya"
+		"\0" "-2" /* minimum 2 args */
+	);
+	first = 0x03;
+	last = 0x77;
+	if (opts & opt_a) {
+		first = 0x00;
+		last = 0x7f;
+	}
+
+	argv += optind;
+	bus_num = i2c_bus_lookup(argv[0]);
+	fd = i2c_dev_open(bus_num);
+	check_i2c_func(fd);
+
+	bus_addr = -1;
+	nmsgs = 0;
+	while (*++argv) {
+		char *arg_ptr;
+		unsigned len;
+		uint16_t flags;
+		char *end;
+
+		if (nmsgs >= I2C_RDWR_IOCTL_MAX_MSGS)
+			bb_error_msg_and_die("too many messages, max: "I2C_RDWR_IOCTL_MAX_MSGS_STR);
+
+		flags = 0;
+		arg_ptr = *argv;
+		switch (*arg_ptr++) {
+		case 'r': flags |= I2C_M_RD; break;
+		case 'w': break;
+		default:
+			bb_show_usage();
+		}
+
+		end = strchr(arg_ptr, '@');
+		if (end) *end = '\0';
+		len = xstrtou_range(arg_ptr, 0, 0, 0xffff);
+		if (end) {
+			bus_addr = xstrtou_range(end + 1, 0, first, last);
+//TODO: will this work correctly if -f is specified?
+			if (!(opts & opt_f))
+				i2c_set_slave_addr(fd, bus_addr, (opts & opt_f));
+		} else {
+			/* Reuse last address if possible */
+			if (bus_addr < 0)
+				bb_error_msg_and_die("no address given in '%s'", *argv);
+		}
+
+		msgs[nmsgs].addr = bus_addr;
+		msgs[nmsgs].flags = flags;
+		msgs[nmsgs].len = len;
+		if (len)
+			msgs[nmsgs].buf = xzalloc(len);
+
+		if (!(flags & I2C_M_RD)) {
+			/* Consume DATA arg(s) */
+			unsigned buf_idx = 0;
+
+			while (buf_idx < len) {
+				uint8_t data8;
+				unsigned long data;
+
+				arg_ptr = *++argv;
+				if (!arg_ptr)
+					bb_show_usage();
+				data = strtoul(arg_ptr, &end, 0);
+				if (data > 0xff || arg_ptr == end)
+					bb_error_msg_and_die("invalid data byte '%s'", *argv);
+
+				data8 = data;
+				while (buf_idx < len) {
+					msgs[nmsgs].buf[buf_idx++] = data8;
+					if (!*end)
+						break;
+					switch (*end) {
+					/* Pseudo randomness (8 bit AXR with a=13 and b=27) */
+					case 'p':
+						data8 = (data8 ^ 27) + 13;
+						data8 = (data8 << 1) | (data8 >> 7);
+						break;
+					case '+': data8++; break;
+					case '-': data8--; break;
+					case '=': break;
+					default:
+						bb_error_msg_and_die("invalid data byte suffix: '%s'",
+								     *argv);
+					}
+				}
+			}
+		}
+		nmsgs++;
+	}
+
+	if (!(opts & opt_y))
+		confirm_action(bus_addr, 0, 0, 0);
+
+	rdwr.msgs = msgs;
+	rdwr.nmsgs = nmsgs;
+	nmsgs_sent = ioctl_or_perror_and_die(fd, I2C_RDWR, &rdwr, "I2C_RDWR");
+	if (nmsgs_sent < nmsgs)
+		bb_error_msg("warning: only %u/%u messages sent", nmsgs_sent, nmsgs);
+
+	for (i = 0; i < nmsgs_sent; i++) {
+		if (msgs[i].len != 0 && (msgs[i].flags & I2C_M_RD)) {
+			int j;
+			for (j = 0; j < msgs[i].len - 1; j++)
+				printf("0x%02x ", msgs[i].buf[j]);
+			/* Print final byte with newline */
+			printf("0x%02x\n", msgs[i].buf[j]);
+		}
+	}
+
+# if ENABLE_FEATURE_CLEAN_UP
+	close(fd);
+	for (i = 0; i < nmsgs; i++)
+		free(msgs[i].buf);
+# endif
+
+	return 0;
+}
+#endif /* ENABLE_I2CTRANSFER */
