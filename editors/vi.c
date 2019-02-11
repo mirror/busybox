@@ -2314,16 +2314,18 @@ static void undo_push(char *src, unsigned int length, uint8_t u_type)	// Add to 
 		}
 		break;
 	case UNDO_INS_QUEUED:
-		if (length != 1)
+		if (length < 1)
 			return;
 		switch (undo_queue_state) {
 		case UNDO_EMPTY:
 			undo_queue_state = UNDO_INS;
 			undo_queue_spos = src;
 		case UNDO_INS:
-			undo_q++;	// Don't need to save any data for insertions
-			if (undo_q == CONFIG_FEATURE_VI_UNDO_QUEUE_MAX)
-				undo_queue_commit();
+			while (length--) {
+				undo_q++;	// Don't need to save any data for insertions
+				if (undo_q == CONFIG_FEATURE_VI_UNDO_QUEUE_MAX)
+					undo_queue_commit();
+			}
 			return;
 		case UNDO_DEL:
 			// Switch from storing deleted text to inserted text
@@ -2372,16 +2374,16 @@ static void undo_push(char *src, unsigned int length, uint8_t u_type)	// Add to 
 static void undo_push_insert(char *p, int len, int undo)
 {
 	switch (undo) {
-		case ALLOW_UNDO:
-			undo_push(p, len, UNDO_INS);
-			break;
-		case ALLOW_UNDO_CHAIN:
-			undo_push(p, len, UNDO_INS_CHAIN);
-			break;
+	case ALLOW_UNDO:
+		undo_push(p, len, UNDO_INS);
+		break;
+	case ALLOW_UNDO_CHAIN:
+		undo_push(p, len, UNDO_INS_CHAIN);
+		break;
 # if ENABLE_FEATURE_VI_UNDO_QUEUE
-		case ALLOW_UNDO_QUEUED:
-			undo_push(p, len, UNDO_INS_QUEUED);
-			break;
+	case ALLOW_UNDO_QUEUED:
+		undo_push(p, len, UNDO_INS_QUEUED);
+		break;
 # endif
 	}
 }
