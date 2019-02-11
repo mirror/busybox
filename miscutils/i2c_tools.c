@@ -1406,8 +1406,8 @@ static void check_i2c_func(int fd)
 //usage:#define i2ctransfer_full_usage "\n\n"
 //usage:       "Read/write I2C data in one transfer"
 //usage:     "\n"
-//usage:     "\n	-f	Force access"
-//usage:     "\n	-a	Force scanning of non-regular addresses"
+//usage:     "\n	-f	Force access to busy addresses"
+//usage:     "\n	-a	Force access to non-regular addresses"
 //usage:     "\n	-y	Disable interactive mode"
 int i2ctransfer_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int i2ctransfer_main(int argc UNUSED_PARAM, char **argv)
@@ -1467,9 +1467,7 @@ int i2ctransfer_main(int argc UNUSED_PARAM, char **argv)
 		len = xstrtou_range(arg_ptr, 0, 0, 0xffff);
 		if (end) {
 			bus_addr = xstrtou_range(end + 1, 0, first, last);
-//TODO: will this work correctly if -f is specified?
-			if (!(opts & opt_f))
-				i2c_set_slave_addr(fd, bus_addr, (opts & opt_f));
+			i2c_set_slave_addr(fd, bus_addr, (opts & opt_f));
 		} else {
 			/* Reuse last address if possible */
 			if (bus_addr < 0)
