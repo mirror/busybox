@@ -1484,7 +1484,13 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					bb_error_msg("no lease, forking to background");
 					client_background();
 					/* do not background again! */
-					opt = ((opt & ~OPT_b) | OPT_f);
+					opt = ((opt & ~(OPT_b|OPT_n)) | OPT_f);
+					/* ^^^ also disables -n (-b takes priority over -n):
+					 * ifup's default udhcpc options are -R -n,
+					 * and users want to be able to add -b
+					 * (in a config file) to make it background
+					 * _and not exit_.
+					 */
 				} else
 #endif
 				if (opt & OPT_n) { /* abort if no lease */
