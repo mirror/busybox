@@ -9034,7 +9034,10 @@ evaltree(union node *n, int flags)
 {
 	int checkexit = 0;
 	int (*evalfn)(union node *, int);
+	struct stackmark smark;
 	int status = 0;
+
+	setstackmark(&smark);
 
 	if (n == NULL) {
 		TRACE(("evaltree(NULL) called\n"));
@@ -9149,6 +9152,7 @@ evaltree(union node *n, int flags)
 	if (flags & EV_EXIT)
 		raise_exception(EXEXIT);
 
+	popstackmark(&smark);
 	TRACE(("leaving evaltree (no interrupts)\n"));
 	return exitstatus;
 }
@@ -9209,14 +9213,12 @@ evalfor(union node *n, int flags)
 	struct arglist arglist;
 	union node *argp;
 	struct strlist *sp;
-	struct stackmark smark;
 	int status = 0;
 
 	errlinno = lineno = n->ncase.linno;
 	if (funcline)
 		lineno -= funcline - 1;
 
-	setstackmark(&smark);
 	arglist.list = NULL;
 	arglist.lastp = &arglist.list;
 	for (argp = n->nfor.args; argp; argp = argp->narg.next) {
@@ -9233,7 +9235,6 @@ evalfor(union node *n, int flags)
 			break;
 	}
 	loopnest--;
-	popstackmark(&smark);
 
 	return status;
 }
@@ -9244,14 +9245,12 @@ evalcase(union node *n, int flags)
 	union node *cp;
 	union node *patp;
 	struct arglist arglist;
-	struct stackmark smark;
 	int status = 0;
 
 	errlinno = lineno = n->ncase.linno;
 	if (funcline)
 		lineno -= funcline - 1;
 
-	setstackmark(&smark);
 	arglist.list = NULL;
 	arglist.lastp = &arglist.list;
 	expandarg(n->ncase.expr, &arglist, EXP_TILDE);
@@ -9270,8 +9269,6 @@ evalcase(union node *n, int flags)
 		}
 	}
  out:
-	popstackmark(&smark);
-
 	return status;
 }
 
@@ -9970,7 +9967,6 @@ evalcommand(union node *cmd, int flags)
 	struct localvar_list *localvar_stop;
 	struct parsefile *file_stop;
 	struct redirtab *redir_stop;
-	struct stackmark smark;
 	union node *argp;
 	struct arglist arglist;
 	struct arglist varlist;
@@ -9992,7 +9988,6 @@ evalcommand(union node *cmd, int flags)
 
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
-	setstackmark(&smark);
 	localvar_stop = pushlocalvars();
 	file_stop = g_parsefile;
 	back_exitstatus = 0;
@@ -10275,7 +10270,6 @@ evalcommand(union node *cmd, int flags)
 		 */
 		setvar0("_", lastarg);
 	}
-	popstackmark(&smark);
 
 	return status;
 }
