@@ -1043,7 +1043,7 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 //usage:# define IF_SHOW_THREADS_OR_TOP_SMP(...)
 //usage:#endif
 //usage:#define top_trivial_usage
-//usage:       "[-b] [-nCOUNT] [-dSECONDS]" IF_FEATURE_TOPMEM(" [-m]")
+//usage:       "[-b"IF_FEATURE_TOPMEM("m")"] [-n COUNT] [-d SECONDS]"
 //usage:#define top_full_usage "\n\n"
 //usage:       "Provide a view of process activity in real time."
 //usage:   "\n""Read the status of all processes from /proc each SECONDS"
@@ -1068,12 +1068,11 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 //usage:                IF_FEATURE_TOP_SMP_CPU("1: toggle SMP")
 //usage:	)
 //usage:   "\n""	Q,^C: exit"
-//usage:   "\n"
 //usage:   "\n""Options:"
 //usage:	)
 //usage:   "\n""	-b	Batch mode"
 //usage:   "\n""	-n N	Exit after N iterations"
-//usage:   "\n""	-d N	Delay between updates"
+//usage:   "\n""	-d SEC	Delay between updates"
 //usage:	IF_FEATURE_TOPMEM(
 //usage:   "\n""	-m	Same as 's' key"
 //usage:	)
