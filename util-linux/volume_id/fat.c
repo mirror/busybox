@@ -247,7 +247,7 @@ int FAST_FUNC volume_id_probe_vfat(struct volume_id *id /*,uint64_t fat_partitio
 //		strcpy(id->type_version, "FAT32");
 //		goto fat32;
 //	}
-	if (cluster_count >= FAT16_MAX)
+	if (cluster_count > FAT16_MAX)
 		goto fat32;
 
 	/* the label may be an attribute in the root directory */
