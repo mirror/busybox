@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
 
 #define WANT_HEX_ESCAPES 1
 
