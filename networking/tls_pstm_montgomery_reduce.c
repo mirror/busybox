@@ -73,7 +73,7 @@ asm(                                                      \
    "movl %%edx,%1 \n\t"                                   \
 :"=g"(_c[LO]), "=r"(cy)                                   \
 :"0"(_c[LO]), "1"(cy), "g"(mu), "g"(*tmpm++)              \
-: "%eax", "%edx", "%cc")
+: "%eax", "%edx", "cc")
 
 #define PROPCARRY                           \
 asm(                                        \
@@ -82,7 +82,7 @@ asm(                                        \
    "movzbl %%al,%1 \n\t"                    \
 :"=g"(_c[LO]), "=r"(cy)                     \
 :"0"(_c[LO]), "1"(cy)                       \
-: "%eax", "%cc")
+: "%eax", "cc")
 
 /******************************************************************************/
 #elif defined(PSTM_X86_64)
@@ -235,7 +235,7 @@ asm(                                \
 	" STR    r0,%1            \n\t" \
 	:"=r"(cy),"=m"(_c[0])\
 	:"0"(cy),"r"(mu),"r"(*tmpm++),"m"(_c[0])\
-	:"r0","%cc");
+	:"r0","cc");
 #define PROPCARRY                  \
 asm(                               \
 	" LDR   r0,%1            \n\t" \
@@ -246,7 +246,7 @@ asm(                               \
 	" MOVCC %0,#0            \n\t" \
 	:"=r"(cy),"=m"(_c[0])\
 	:"0"(cy),"m"(_c[0])\
-	:"r0","%cc");
+	:"r0","cc");
 #else /* Non-Thumb2 code */
 //#pragma message ("Using 32 bit ARM Assembly Optimizations")
 #define INNERMUL                    \
@@ -259,7 +259,7 @@ asm(                                \
 	" STR    r0,%1            \n\t" \
 	:"=r"(cy),"=m"(_c[0])\
 	:"0"(cy),"r"(mu),"r"(*tmpm++),"m"(_c[0])\
-	:"r0","%cc");
+	:"r0","cc");
 #define PROPCARRY                  \
 asm(                               \
 	" LDR   r0,%1            \n\t" \
@@ -269,7 +269,7 @@ asm(                               \
 	" MOVCC %0,#0            \n\t" \
 	:"=r"(cy),"=m"(_c[0])\
 	:"0"(cy),"m"(_c[0])\
-	:"r0","%cc");
+	:"r0","cc");
 #endif /* __thumb2__ */
 
 
