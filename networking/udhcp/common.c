@@ -54,6 +54,8 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_STRING                           , 0x43 }, /* DHCP_BOOT_FILE     */
 //TODO: not a string, but a set of LASCII strings:
 //	{ OPTION_STRING                           , 0x4D }, /* DHCP_USER_CLASS    */
+	{ OPTION_STRING                           , 0x64 }, /* DHCP_PCODE         */
+	{ OPTION_STRING                           , 0x65 }, /* DHCP_TCODE         */
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	{ OPTION_DNS_STRING | OPTION_LIST         , 0x77 }, /* DHCP_DOMAIN_SEARCH */
 	{ OPTION_SIP_SERVERS                      , 0x78 }, /* DHCP_SIP_SERVERS   */
@@ -121,6 +123,8 @@ const char dhcp_option_strings[] ALIGN1 =
 	"tftp" "\0"             /* DHCP_TFTP_SERVER_NAME*/
 	"bootfile" "\0"         /* DHCP_BOOT_FILE       */
 //	"userclass" "\0"        /* DHCP_USER_CLASS      */
+	"tzstr" "\0"            /* DHCP_PCODE           */
+	"tzdbstr" "\0"          /* DHCP_TCODE           */
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	"search" "\0"           /* DHCP_DOMAIN_SEARCH   */
 // doesn't work in udhcpd.conf since OPTION_SIP_SERVERS
