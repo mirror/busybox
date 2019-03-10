@@ -516,23 +516,23 @@ static int xargs_ask_confirmation(void)
 //usage:       "[OPTIONS] [PROG ARGS]"
 //usage:#define xargs_full_usage "\n\n"
 //usage:       "Run PROG on every item given by stdin\n"
-//usage:	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION(
-//usage:     "\n	-p	Ask user whether to run each command"
-//usage:	)
-//usage:     "\n	-r	Don't run command if input is empty"
 //usage:	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(
 //usage:     "\n	-0	Input is separated by NULs"
 //usage:	)
 //usage:	IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(
 //usage:     "\n	-a FILE	Read from FILE instead of stdin"
 //usage:	)
+//usage:     "\n	-r	Don't run command if input is empty"
 //usage:     "\n	-t	Print the command on stderr before execution"
-//usage:     "\n	-e[STR]	STR stops input processing"
-//usage:     "\n	-n N	Pass no more than N args to PROG"
-//usage:     "\n	-s N	Pass command line of no more than N bytes"
+//usage:	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION(
+//usage:     "\n	-p	Ask user whether to run each command"
+//usage:	)
+//usage:     "\n	-E STR,-e[STR]	STR stops input processing"
 //usage:	IF_FEATURE_XARGS_SUPPORT_REPL_STR(
 //usage:     "\n	-I STR	Replace STR within PROG ARGS with input line"
 //usage:	)
+//usage:     "\n	-n N	Pass no more than N args to PROG"
+//usage:     "\n	-s N	Pass command line of no more than N bytes"
 //usage:	IF_FEATURE_XARGS_SUPPORT_PARALLEL(
 //usage:     "\n	-P N	Run up to N PROGs in parallel"
 //usage:	)
