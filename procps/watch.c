@@ -22,7 +22,7 @@
 //usage:       "[-n SEC] [-t] PROG ARGS"
 //usage:#define watch_full_usage "\n\n"
 //usage:       "Run PROG periodically\n"
-//usage:     "\n	-n	Loop period in seconds (default 2)"
+//usage:     "\n	-n SEC	Loop period (default 2)"
 //usage:     "\n	-t	Don't print header"
 //usage:
 //usage:#define watch_example_usage
@@ -51,8 +51,9 @@
 int watch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int watch_main(int argc UNUSED_PARAM, char **argv)
 {
+	duration_t period;
+	char *period_str = (char*) "2";
 	unsigned opt;
-	unsigned period = 2;
 	unsigned width, new_width;
 	char *header;
 	char *cmd;
@@ -65,7 +66,7 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 
 	// "+": stop at first non-option (procps 3.x only); -n NUM
 	// at least one param
-	opt = getopt32(argv, "^+" "dtn:+" "\0" "-1", &period);
+	opt = getopt32(argv, "^+" "dtn:" "\0" "-1", &period_str);
 	argv += optind;
 
 	// watch from both procps 2.x and 3.x does concatenation. Example:
@@ -74,6 +75,7 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 	while (*++argv)
 		cmd = xasprintf("%s %s", cmd, *argv); // leaks cmd
 
+	period = parse_duration_str(period_str);
 	width = (unsigned)-1; // make sure first time new_width != width
 	header = NULL;
 	while (1) {
@@ -88,7 +90,12 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 			if (new_width != width) {
 				width = new_width;
 				free(header);
-				header = xasprintf("Every %us: %-*s", period, (int)width, cmd);
+				header = xasprintf("Every"
+					" %"IF_FLOAT_DURATION(".1")DURATION_FMT"s:"
+					" %-*s",
+					period,
+					(int)width, cmd
+				);
 			}
 			if (time_len < width) {
 				strftime_YYYYMMDDHHMMSS(
@@ -106,7 +113,7 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 		// and does not allow it to overflow the screen
 		// (taking into account linewrap!)
 		system(cmd);
-		sleep(period);
+		sleep_for_duration(period);
 	}
 	return 0; // gcc thinks we can reach this :)
 }
