@@ -38,3 +38,21 @@ void FAST_FUNC write_pidfile(const char *path)
 	}
 	close(pid_fd);
 }
+
+void FAST_FUNC write_pidfile_std_path_and_ext(const char *name)
+{
+	char buf[sizeof(CONFIG_PID_FILE_PATH) + 64];
+
+	snprintf(buf, sizeof(buf), CONFIG_PID_FILE_PATH"/%s.pid", name);
+	write_pidfile(buf);
+}
+
+void FAST_FUNC remove_pidfile_std_path_and_ext(const char *name)
+{
+	char buf[sizeof(CONFIG_PID_FILE_PATH) + 64];
+
+	if (!wrote_pidfile)
+		return;
+	snprintf(buf, sizeof(buf), CONFIG_PID_FILE_PATH"/%s.pid", name);
+	unlink(buf);
+}

@@ -231,7 +231,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 
 	syslog(LOG_NOTICE, "klogd started: %s", bb_banner);
 
-	write_pidfile(CONFIG_PID_FILE_PATH "/klogd.pid");
+	write_pidfile_std_path_and_ext("klogd");
 
 	used = 0;
 	while (!bb_got_signal) {
@@ -295,7 +295,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 
 	klogd_close();
 	syslog(LOG_NOTICE, "klogd: exiting");
-	remove_pidfile(CONFIG_PID_FILE_PATH "/klogd.pid");
+	remove_pidfile_std_path_and_ext("klogd");
 	if (bb_got_signal)
 		kill_myself_with_sig(bb_got_signal);
 	return EXIT_FAILURE;

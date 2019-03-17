@@ -1207,7 +1207,7 @@ static void clean_up_and_exit(int sig UNUSED_PARAM)
 		if (ENABLE_FEATURE_CLEAN_UP)
 			close(sep->se_fd);
 	}
-	remove_pidfile(CONFIG_PID_FILE_PATH "/inetd.pid");
+	remove_pidfile_std_path_and_ext("inetd");
 	exit(EXIT_SUCCESS);
 }
 
@@ -1256,7 +1256,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 		setgroups(1, &gid);
 	}
 
-	write_pidfile(CONFIG_PID_FILE_PATH "/inetd.pid");
+	write_pidfile_std_path_and_ext("inetd");
 
 	/* never fails under Linux (except if you pass it bad arguments) */
 	getrlimit(RLIMIT_NOFILE, &rlim_ofile);

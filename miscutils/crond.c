@@ -1056,7 +1056,7 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 
 	log8("crond (busybox "BB_VER") started, log level %d", G.log_level);
 	rescan_crontab_dir();
-	write_pidfile(CONFIG_PID_FILE_PATH "/crond.pid");
+	write_pidfile_std_path_and_ext("crond");
 #if ENABLE_FEATURE_CROND_SPECIAL_TIMES
 	if (touch_reboot_file())
 		start_jobs(START_ME_REBOOT); /* start @reboot entries, if any */

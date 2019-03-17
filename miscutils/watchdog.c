@@ -64,7 +64,7 @@ static void shutdown_watchdog(void)
 
 static void shutdown_on_signal(int sig UNUSED_PARAM)
 {
-	remove_pidfile(CONFIG_PID_FILE_PATH "/watchdog.pid");
+	remove_pidfile_std_path_and_ext("watchdog");
 	shutdown_watchdog();
 	_exit(EXIT_SUCCESS);
 }
@@ -136,7 +136,7 @@ int watchdog_main(int argc UNUSED_PARAM, char **argv)
 		stimer_duration, htimer_duration * 1000);
 #endif
 
-	write_pidfile(CONFIG_PID_FILE_PATH "/watchdog.pid");
+	write_pidfile_std_path_and_ext("watchdog");
 
 	while (1) {
 		/*
