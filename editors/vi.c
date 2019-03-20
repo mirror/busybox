@@ -3349,7 +3349,15 @@ static void refresh(int full_screen)
 	if (ENABLE_FEATURE_VI_WIN_RESIZE IF_FEATURE_VI_ASK_TERMINAL(&& !G.get_rowcol_error) ) {
 		unsigned c = columns, r = rows;
 		query_screen_dimensions();
+#if ENABLE_FEATURE_VI_USE_SIGNALS
 		full_screen |= (c - columns) | (r - rows);
+#else
+		if (c != columns || r != rows) {
+			full_screen = TRUE;
+			/* update screen memory since SIGWINCH won't have done it */
+			new_screen(rows, columns);
+		}
+#endif
 	}
 	sync_cursor(dot, &crow, &ccol);	// where cursor will be (on "dot")
 	tp = screenbegin;	// index into text[] of top line
