@@ -209,8 +209,12 @@ static char **add_MANPATH(char **man_path_list, int *count_mp, char *path)
 		/* Do we already have path? */
 		path_element = man_path_list;
 		if (path_element) while (*path_element) {
-			if (strcmp(*path_element, path) == 0)
+			if (strcmp(*path_element, path) == 0) {
+				/* Have path but haven't counted it, must be default */
+				if (*count_mp == 0)
+					break;
 				goto skip;
+			}
 			path_element++;
 		}
 		man_path_list = xrealloc_vector(man_path_list, 4, *count_mp);
