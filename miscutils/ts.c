@@ -1,8 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Copyright (C) 2006  Michael Opdenacker <michael@free-electrons.com>
- *
- * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ * Copyright (C) 2019 Denys Vlasenko <vda.linux@googlemail.com>
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config TS
 //config:	bool "ts (450 bytes)"
@@ -21,7 +20,7 @@
 # include <sys/syscall.h>
 
 int ts_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ts_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
+int ts_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct timespec base;
 	unsigned opt;
