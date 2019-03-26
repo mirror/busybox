@@ -69,8 +69,8 @@ int ts_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if (opt & 1) /* -i */
 				base = ts1;
-			localtime_r(&ts.tv_sec, &tm_time);
 		}
+		localtime_r(&ts.tv_sec, &tm_time);
 		strftime(date_buf, COMMON_BUFSIZE, fmt_dt2str, &tm_time);
 		if (!frac) {
 			printf("%s %s", date_buf, line);
