@@ -8763,7 +8763,11 @@ static int checkjobs(struct pipe *fg_pipe, pid_t waitfor_pid)
 			/* fg_pipe exited or stopped */
 			break;
 		}
-		if (childpid == waitfor_pid) {
+		if (childpid == waitfor_pid /* "wait PID" */
+#if ENABLE_HUSH_BASH_COMPAT
+		 || -1 == waitfor_pid /* "wait -n" (wait for any one child) */
+#endif
+		) {
 			debug_printf_exec("childpid==waitfor_pid:%d status:0x%08x\n", childpid, status);
 			rcode = WEXITSTATUS(status);
 			if (WIFSIGNALED(status))
@@ -11471,6 +11475,12 @@ static int wait_for_child_or_signal(struct pipe *waitfor_pipe, pid_t waitfor_pid
 			ret--;
 			if (ret < 0) /* if ECHILD, may need to fix "ret" */
 				ret = 0;
+#if ENABLE_HUSH_BASH_COMPAT
+			if (waitfor_pid == -1 && errno == ECHILD) {
+				/* exitcode of "wait -n" with no children is 127, not 0 */
+				ret = 127;
+			}
+#endif
 			sigprocmask(SIG_SETMASK, &oldset, NULL);
 			break;
 		}
@@ -11499,6 +11509,12 @@ static int FAST_FUNC builtin_wait(char **argv)
 	int status;
 
 	argv = skip_dash_dash(argv);
+#if ENABLE_HUSH_BASH_COMPAT
+	if (argv[0] && !argv[1] && strcmp(argv[0], "-n") == 0) {
+		/* wait -n */
+		return wait_for_child_or_signal(NULL, -1 /*(no job, wait for one child)*/);
+	}
+#endif
 	if (argv[0] == NULL) {
 		/* Don't care about wait results */
 		/* Note 1: must wait until there are no more children */
