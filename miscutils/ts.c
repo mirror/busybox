@@ -42,7 +42,8 @@ int ts_main(int argc UNUSED_PARAM, char **argv)
 		frac = is_suffixed_with(fmt_dt2str, "%.s");
 	if (frac) {
 		frac++;
-		strcpy(frac, frac + 1);
+		frac[0] = frac[1];
+		frac[1] = '\0';
 	}
 
 #define date_buf bb_common_bufsiz1
