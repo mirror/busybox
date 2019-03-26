@@ -222,8 +222,9 @@ enum {
 	OPT_d = (1 << 0),
 	OPT_n = (1 << 1),
 	OPT_b = (1 << 2),
-	OPT_m = (1 << 3),
-	OPT_EOF = (1 << 4), /* pseudo: "we saw EOF in stdin" */
+	OPT_H = (1 << 3),
+	OPT_m = (1 << 4),
+	OPT_EOF = (1 << 5), /* pseudo: "we saw EOF in stdin" */
 };
 #define OPT_BATCH_MODE (option_mask32 & OPT_b)
 
@@ -1043,7 +1044,8 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 //usage:# define IF_SHOW_THREADS_OR_TOP_SMP(...)
 //usage:#endif
 //usage:#define top_trivial_usage
-//usage:       "[-b"IF_FEATURE_TOPMEM("m")"] [-n COUNT] [-d SECONDS]"
+//usage:       "[-b"IF_FEATURE_TOPMEM("m")IF_FEATURE_SHOW_THREADS("H")"]"
+//usage:       " [-n COUNT] [-d SECONDS]"
 //usage:#define top_full_usage "\n\n"
 //usage:       "Provide a view of process activity in real time."
 //usage:   "\n""Read the status of all processes from /proc each SECONDS"
@@ -1075,6 +1077,9 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 //usage:   "\n""	-d SEC	Delay between updates"
 //usage:	IF_FEATURE_TOPMEM(
 //usage:   "\n""	-m	Same as 's' key"
+//usage:	)
+//usage:	IF_FEATURE_SHOW_THREADS(
+//usage:   "\n""	-H	Show threads"
 //usage:	)
 
 /* Interactive testing:
@@ -1110,7 +1115,8 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 
 	/* all args are options; -n NUM */
 	make_all_argv_opts(argv); /* options can be specified w/o dash */
-	col = getopt32(argv, "d:n:b"IF_FEATURE_TOPMEM("m"), &str_interval, &str_iterations);
+	col = getopt32(argv, "d:n:bHm", &str_interval, &str_iterations);
+	/* NB: -m and -H are accepted even if not configured */
 #if ENABLE_FEATURE_TOPMEM
 	if (col & OPT_m) /* -m (busybox specific) */
 		scan_mask = TOPMEM_MASK;
@@ -1129,6 +1135,11 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			str_iterations++;
 		iterations = xatou(str_iterations);
 	}
+#if ENABLE_FEATURE_SHOW_THREADS
+	if (col & OPT_H) {
+		scan_mask |= PSSCAN_TASKS;
+	}
+#endif
 
 	/* change to /proc */
 	xchdir("/proc");
