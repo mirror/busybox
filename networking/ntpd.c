@@ -2585,6 +2585,10 @@ static NOINLINE void ntp_init(char **argv)
 		/* -l but no peers: "stratum 1 server" mode */
 		G.stratum = 1;
 	}
+
+	if (!(opts & OPT_n)) /* only if backgrounded: */
+		write_pidfile_std_path_and_ext("ntpd");
+
 	/* If network is up, syncronization occurs in ~10 seconds.
 	 * We give "ntpd -q" 10 seconds to get first reply,
 	 * then another 50 seconds to finish syncing.
@@ -2640,8 +2644,6 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 	 * since last reply does not come back instantaneously.
 	 */
 	cnt = G.peer_cnt * (INITIAL_SAMPLES + 1);
-
-	write_pidfile_std_path_and_ext("ntpd");
 
 	while (!bb_got_signal) {
 		llist_t *item;
