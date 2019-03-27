@@ -3522,7 +3522,7 @@ struct procstat {
 
 struct job {
 	struct procstat ps0;    /* status of process */
-	struct procstat *ps;    /* status or processes when more than one */
+	struct procstat *ps;    /* status of processes when more than one */
 #if JOBS
 	int stopstatus;         /* status of a stopped job */
 #endif
@@ -4235,6 +4235,9 @@ wait_block_or_sig(int *status)
 #define DOWAIT_NONBLOCK 0
 #define DOWAIT_BLOCK    1
 #define DOWAIT_BLOCK_OR_SIG 2
+#if ENABLE_ASH_BASH_COMPAT
+# define DOWAIT_JOBSTATUS 0x10   /* OR this to get job's exitstatus instead of pid */
+#endif
 
 static int
 dowait(int block, struct job *job)
@@ -4242,7 +4245,11 @@ dowait(int block, struct job *job)
 	int pid;
 	int status;
 	struct job *jp;
-	struct job *thisjob = NULL;
+	struct job *thisjob;
+#if ENABLE_ASH_BASH_COMPAT
+	bool want_jobexitstatus = (block & DOWAIT_JOBSTATUS);
+	block = (block & ~DOWAIT_JOBSTATUS);
+#endif
 
 	TRACE(("dowait(0x%x) called\n", block));
 
@@ -4279,10 +4286,10 @@ dowait(int block, struct job *job)
 	}
 	TRACE(("wait returns pid=%d, status=0x%x, errno=%d(%s)\n",
 				pid, status, errno, strerror(errno)));
+	thisjob = NULL;
 	if (pid <= 0)
 		goto out;
 
-	thisjob = NULL;
 	for (jp = curjob; jp; jp = jp->prev_job) {
 		int jobstate;
 		struct procstat *ps;
@@ -4341,6 +4348,13 @@ dowait(int block, struct job *job)
  out:
 	INT_ON;
 
+#if ENABLE_ASH_BASH_COMPAT
+	if (want_jobexitstatus) {
+		pid = -1;
+		if (thisjob && thisjob->state == JOBDONE)
+			pid = thisjob->ps[thisjob->nprocs - 1].ps_status;
+	}
+#endif
 	if (thisjob && thisjob == job) {
 		char s[48 + 1];
 		int len;
@@ -4523,15 +4537,24 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	struct job *job;
 	int retval;
 	struct job *jp;
-
+#if ENABLE_ASH_BASH_COMPAT
+	int status;
+	char one = nextopt("n");
+#else
 	nextopt(nullstr);
+#endif
 	retval = 0;
 
 	argv = argptr;
-	if (!*argv) {
-		/* wait for all jobs */
+	if (!argv[0]) {
+		/* wait for all jobs / one job if -n */
 		for (;;) {
 			jp = curjob;
+#if ENABLE_ASH_BASH_COMPAT
+			if (one && !jp)
+				/* exitcode of "wait -n" with nothing to wait for is 127, not 0 */
+				retval = 127;
+#endif
 			while (1) {
 				if (!jp) /* no running procs */
 					goto ret;
@@ -4547,13 +4570,31 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	 * with an exit status greater than 128, immediately after which
 	 * the trap is executed."
 	 */
+#if ENABLE_ASH_BASH_COMPAT
+			status = dowait(DOWAIT_BLOCK_OR_SIG | DOWAIT_JOBSTATUS, NULL);
+#else
 			dowait(DOWAIT_BLOCK_OR_SIG, NULL);
+#endif
 	/* if child sends us a signal *and immediately exits*,
 	 * dowait() returns pid > 0. Check this case,
 	 * not "if (dowait() < 0)"!
 	 */
 			if (pending_sig)
 				goto sigout;
+#if ENABLE_ASH_BASH_COMPAT
+			if (one) {
+				/* wait -n waits for one _job_, not one _process_.
+				 *  date; sleep 3 & sleep 2 | sleep 1 & wait -n; date
+				 * should wait for 2 seconds. Not 1 or 3.
+				 */
+				if (status != -1 && !WIFSTOPPED(status)) {
+					retval = WEXITSTATUS(status);
+					if (WIFSIGNALED(status))
+						retval = WTERMSIG(status) + 128;
+					goto ret;
+				}
+			}
+#endif
 		}
 	}
 
