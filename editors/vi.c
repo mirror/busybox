@@ -345,7 +345,8 @@ struct globals {
 
 	/* a few references only */
 #if ENABLE_FEATURE_VI_YANKMARK
-	int YDreg, Ureg;        // default delete register and orig line for "U"
+	smalluint YDreg;//,Ureg;// default delete register and orig line for "U"
+#define Ureg 27
 	char *reg[28];          // named register a-z, "D", and "U" 0-25,26,27
 	char *mark[28];         // user marks points somewhere in text[]-  a-z and previous context ''
 	char *context_start, *context_end;
@@ -455,7 +456,7 @@ struct globals {
 #define format_edit_status__tot (G.format_edit_status__tot)
 
 #define YDreg          (G.YDreg         )
-#define Ureg           (G.Ureg          )
+//#define Ureg           (G.Ureg          )
 #define mark           (G.mark          )
 #define context_start  (G.context_start )
 #define context_end    (G.context_end   )
@@ -794,7 +795,7 @@ static void edit_file(char *fn)
 
 #if ENABLE_FEATURE_VI_YANKMARK
 	YDreg = 26;			// default Yank/Delete reg
-	Ureg = 27;			// hold orig line for "U" cmd
+//	Ureg = 27; - const		// hold orig line for "U" cmd
 	mark[26] = mark[27] = text;	// init "previous context"
 #endif
 
@@ -4174,8 +4175,8 @@ static void do_cmd(int c)
 				if (*p == '\n')
 					cnt++;
 			}
-			status_line("%s %d lines (%d chars) using [%c]",
-				buf, cnt, strlen(reg[YDreg]), what_reg());
+			status_line("%s %u lines (%u chars) using [%c]",
+				buf, cnt, (unsigned)strlen(reg[YDreg]), what_reg());
 #endif
 			end_cmd_q();	// stop adding to q
 		}
