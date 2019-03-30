@@ -1347,7 +1347,7 @@ void bb_logenv_override(void) FAST_FUNC;
 
 /* Embedded script support */
 char *get_script_content(unsigned n) FAST_FUNC;
-int scripted_main(int argc, char** argv);
+int scripted_main(int argc, char** argv) MAIN_EXTERNALLY_VISIBLE;
 
 /* Applets which are useful from another applets */
 int bb_cat(char** argv) FAST_FUNC;

@@ -770,6 +770,7 @@ static int find_script_by_name(const char *name)
 	return -1;
 }
 
+int scripted_main(int argc UNUSED_PARAM, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int scripted_main(int argc UNUSED_PARAM, char **argv)
 {
 	int script = find_script_by_name(applet_name);
