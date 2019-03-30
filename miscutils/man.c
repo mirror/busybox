@@ -13,9 +13,9 @@
 //kbuild:lib-$(CONFIG_MAN) += man.o
 
 //usage:#define man_trivial_usage
-//usage:       "[-aw] [MANPAGE]..."
+//usage:       "[-aw] MANPAGE..."
 //usage:#define man_full_usage "\n\n"
-//usage:       "Format and display manual page\n"
+//usage:       "Display manual page\n"
 //usage:     "\n	-a	Display all pages"
 //usage:     "\n	-w	Show page locations"
 //usage:     "\n"
@@ -210,9 +210,6 @@ static char **add_MANPATH(char **man_path_list, int *count_mp, char *path)
 		path_element = man_path_list;
 		if (path_element) while (*path_element) {
 			if (strcmp(*path_element, path) == 0) {
-				/* Have path but haven't counted it, must be default */
-				if (*count_mp == 0)
-					break;
 				goto skip;
 			}
 			path_element++;
@@ -248,10 +245,8 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 {
 	parser_t *parser;
 	char *sec_list;
-	char *cur_path, *cur_sect;
 	char **man_path_list;
 	int count_mp;
-	int cur_mp;
 	int opt, not_found;
 	char *token[2];
 
@@ -266,16 +261,6 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	man_path_list = add_MANPATH(NULL, &count_mp,
 			getenv("MANDATORY_MANPATH"+10) /* "MANPATH" */
 	);
-	if (!man_path_list) {
-		/* default, may be overridden by /etc/man.conf */
-		man_path_list = xzalloc(2 * sizeof(man_path_list[0]));
-		man_path_list[0] = (char*)"/usr/man";
-		/* count_mp stays 0.
-		 * Thus, man.conf will overwrite man_path_list[0]
-		 * if a path is defined there.
-		 */
-	}
-
 	/* Parse man.conf[ig] or man_db.conf */
 	/* man version 1.6f uses man.config */
 	/* man-db implementation of man uses man_db.conf */
@@ -289,7 +274,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		if (!token[1])
 			continue;
 		if (strcmp("DEFINE", token[0]) == 0) {
-			G.col   = if_redefined(G.tbl  , "col",   token[1]);
+			G.col   = if_redefined(G.col  , "col",   token[1]);
 			G.tbl   = if_redefined(G.tbl  , "tbl",   token[1]);
 			G.nroff = if_redefined(G.nroff, "nroff", token[1]);
 			G.pager = if_redefined(G.pager, "pager", token[1]);
@@ -305,6 +290,12 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 	config_close(parser);
+
+	if (!man_path_list) {
+		static const char *const mpl[] = { "/usr/man", "/usr/share/man", NULL };
+		man_path_list = (char**)mpl;
+		/*count_mp = 2; - not used below anyway */
+	}
 
 	{
 		/* environment overrides setting from man.config */
@@ -322,16 +313,18 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 
 	not_found = 0;
 	do { /* for each argv[] */
+		const char *cur_path;
+		int cur_mp;
 		int found = 0;
-		cur_mp = 0;
 
 		if (strchr(*argv, '/')) {
 			found = show_manpage(*argv, /*man:*/ 1, 0);
 			goto check_found;
 		}
+		cur_mp = 0;
 		while ((cur_path = man_path_list[cur_mp++]) != NULL) {
 			/* for each MANPATH */
-			cur_sect = sec_list;
+			const char *cur_sect = sec_list;
 			do { /* for each section */
 				char *next_sect = strchrnul(cur_sect, ':');
 				int sect_len = next_sect - cur_sect;
