@@ -34,6 +34,35 @@
 #include "libbb.h"
 #include <linux/fs.h>
 
+/* Takes less space is separate arrays than one array of struct */
+static const char bdcmd_names[] ALIGN1 =
+	"setro"     "\0"
+#define CMD_SETRO 0
+	"setrw"     "\0"
+	"getro"     "\0"
+	"getss"     "\0"
+	"getbsz"    "\0"
+	"setbsz"    "\0"
+#define CMD_SETBSZ 5
+	"getsz"     "\0"
+	"getsize"   "\0"
+	"getsize64" "\0"
+	"flushbufs" "\0"
+	"rereadpt"  "\0"
+;
+static const uint32_t bdcmd_ioctl[] = {
+	BLKROSET,       //setro
+	BLKROSET,       //setrw
+	BLKROGET,       //getro
+	BLKSSZGET,      //getss
+	BLKBSZGET,      //getbsz
+	BLKBSZSET,      //setbsz
+	BLKGETSIZE64,   //getsz
+	BLKGETSIZE,     //getsize
+	BLKGETSIZE64,   //getsize64
+	BLKFLSBUF,      //flushbufs
+	BLKRRPART,      //rereadpt
+};
 enum {
 	ARG_NONE   = 0,
 	ARG_INT    = 1,
@@ -46,83 +75,26 @@ enum {
 	FL_NORESULT = 8,
 	FL_SCALE512 = 16,
 };
-
-struct bdc {
-	uint32_t   ioc;                       /* ioctl code */
-	const char name[sizeof("flushbufs")]; /* "--setfoo" wothout "--" */
-	uint8_t    flags;
-	int8_t     argval;                    /* default argument value */
+static const uint8_t bdcmd_flags[] ALIGN1 = {
+	ARG_INT + FL_NORESULT,             //setro
+	ARG_INT + FL_NORESULT,             //setrw
+	ARG_INT,                           //getro
+	ARG_INT,                           //getss
+	ARG_INT,                           //getbsz
+	ARG_INT + FL_NORESULT + FL_USRARG, //setbsz
+	ARG_U64 + FL_SCALE512,             //getsz
+	ARG_ULONG,                         //getsize
+	ARG_U64,                           //getsize64
+	ARG_NONE + FL_NORESULT,            //flushbufs
+	ARG_NONE + FL_NORESULT,            //rereadpt
 };
 
-static const struct bdc bdcommands[] = {
-	{
-		.ioc = BLKROSET,
-		.name = "setro",
-		.flags = ARG_INT + FL_NORESULT,
-		.argval = 1,
-	},{
-		.ioc = BLKROSET,
-		.name = "setrw",
-		.flags = ARG_INT + FL_NORESULT,
-		.argval = 0,
-	},{
-		.ioc = BLKROGET,
-		.name = "getro",
-		.flags = ARG_INT,
-		.argval = -1,
-	},{
-		.ioc = BLKSSZGET,
-		.name = "getss",
-		.flags = ARG_INT,
-		.argval = -1,
-	},{
-		.ioc = BLKBSZGET,
-		.name = "getbsz",
-		.flags = ARG_INT,
-		.argval = -1,
-	},{
-		.ioc = BLKBSZSET,
-		.name = "setbsz",
-		.flags = ARG_INT + FL_NORESULT + FL_USRARG,
-		.argval = 0,
-	},{
-		.ioc = BLKGETSIZE64,
-		.name = "getsz",
-		.flags = ARG_U64 + FL_SCALE512,
-		.argval = -1,
-	},{
-		.ioc = BLKGETSIZE,
-		.name = "getsize",
-		.flags = ARG_ULONG,
-		.argval = -1,
-	},{
-		.ioc = BLKGETSIZE64,
-		.name = "getsize64",
-		.flags = ARG_U64,
-		.argval = -1,
-	},{
-		.ioc = BLKFLSBUF,
-		.name = "flushbufs",
-		.flags = ARG_NONE + FL_NORESULT,
-		.argval = 0,
-	},{
-		.ioc = BLKRRPART,
-		.name = "rereadpt",
-		.flags = ARG_NONE + FL_NORESULT,
-		.argval = 0,
-	}
-};
-
-static const struct bdc *find_cmd(const char *s)
+static unsigned find_cmd(const char *s)
 {
-	const struct bdc *bdcmd = bdcommands;
 	if (s[0] == '-' && s[1] == '-') {
-		s += 2;
-		do {
-			if (strcmp(s, bdcmd->name) == 0)
-				return bdcmd;
-			bdcmd++;
-		} while (bdcmd != bdcommands + ARRAY_SIZE(bdcommands));
+		int n = index_in_strings(bdcmd_names, s + 2);
+		if (n >= 0)
+			return n;
 	}
 	bb_show_usage();
 }
@@ -130,7 +102,8 @@ static const struct bdc *find_cmd(const char *s)
 int blockdev_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int blockdev_main(int argc UNUSED_PARAM, char **argv)
 {
-	const struct bdc *bdcmd;
+	unsigned bdcmd;
+	unsigned flags;
 	int fd;
 	uint64_t u64;
 	union {
@@ -144,10 +117,13 @@ int blockdev_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 
 	bdcmd = find_cmd(*argv);
-
-	u64 = (int)bdcmd->argval;
-	if (bdcmd->flags & FL_USRARG)
+	/* setrw translates to BLKROSET(0), most other ioctls don't care... */
+	/* ...setro will do BLKROSET(1) */
+	u64 = (bdcmd == CMD_SETRO);
+	if (bdcmd == CMD_SETBSZ) {
+		/* ...setbsz is BLKBSZSET(bytes) */
 		u64 = xatoi_positive(*++argv);
+	}
 
 	argv++;
 	if (!argv[0] || argv[1])
@@ -155,6 +131,7 @@ int blockdev_main(int argc UNUSED_PARAM, char **argv)
 	fd = xopen(argv[0], O_RDONLY);
 
 	ioctl_val_on_stack.u64 = u64;
+	flags = bdcmd_flags[bdcmd];
 #if BB_BIG_ENDIAN
 	/* Store data properly wrt data size.
 	 * (1) It's no-op for little-endian.
@@ -162,7 +139,7 @@ int blockdev_main(int argc UNUSED_PARAM, char **argv)
 	 * and it is ARG_INT. --setbsz USER_VAL is also ARG_INT.
 	 * Thus, we don't need to handle ARG_ULONG.
 	 */
-	switch (bdcmd->flags & ARG_MASK) {
+	switch (flags & ARG_MASK) {
 	case ARG_INT:
 		ioctl_val_on_stack.i = (int)u64;
 		break;
@@ -174,17 +151,17 @@ int blockdev_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	if (ioctl(fd, bdcmd->ioc, &ioctl_val_on_stack.u64) == -1)
+	if (ioctl(fd, bdcmd_ioctl[bdcmd], &ioctl_val_on_stack.u64) == -1)
 		bb_simple_perror_msg_and_die(*argv);
 
 	/* Fetch it into register(s) */
 	u64 = ioctl_val_on_stack.u64;
 
-	if (bdcmd->flags & FL_SCALE512)
+	if (flags & FL_SCALE512)
 		u64 >>= 9;
 
 	/* Zero- or one-extend the value if needed, then print */
-	switch (bdcmd->flags & (ARG_MASK+FL_NORESULT)) {
+	switch (flags & (ARG_MASK+FL_NORESULT)) {
 	case ARG_INT:
 		/* Smaller code when we use long long
 		 * (gcc tail-merges printf call)
