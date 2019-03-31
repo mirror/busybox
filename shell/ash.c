@@ -224,6 +224,7 @@
 #define    BASH_XTRACEFD        ENABLE_ASH_BASH_COMPAT
 #define    BASH_READ_D          ENABLE_ASH_BASH_COMPAT
 #define IF_BASH_READ_D              IF_ASH_BASH_COMPAT
+#define    BASH_WAIT_N          ENABLE_ASH_BASH_COMPAT
 
 #if defined(__ANDROID_API__) && __ANDROID_API__ <= 24
 /* Bionic at least up to version 24 has no glob() */
@@ -4235,7 +4236,7 @@ wait_block_or_sig(int *status)
 #define DOWAIT_NONBLOCK 0
 #define DOWAIT_BLOCK    1
 #define DOWAIT_BLOCK_OR_SIG 2
-#if ENABLE_ASH_BASH_COMPAT
+#if BASH_WAIT_N
 # define DOWAIT_JOBSTATUS 0x10   /* OR this to get job's exitstatus instead of pid */
 #endif
 
@@ -4246,7 +4247,7 @@ dowait(int block, struct job *job)
 	int status;
 	struct job *jp;
 	struct job *thisjob;
-#if ENABLE_ASH_BASH_COMPAT
+#if BASH_WAIT_N
 	bool want_jobexitstatus = (block & DOWAIT_JOBSTATUS);
 	block = (block & ~DOWAIT_JOBSTATUS);
 #endif
@@ -4348,7 +4349,7 @@ dowait(int block, struct job *job)
  out:
 	INT_ON;
 
-#if ENABLE_ASH_BASH_COMPAT
+#if BASH_WAIT_N
 	if (want_jobexitstatus) {
 		pid = -1;
 		if (thisjob && thisjob->state == JOBDONE)
@@ -4537,7 +4538,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	struct job *job;
 	int retval;
 	struct job *jp;
-#if ENABLE_ASH_BASH_COMPAT
+#if BASH_WAIT_N
 	int status;
 	char one = nextopt("n");
 #else
@@ -4550,7 +4551,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 		/* wait for all jobs / one job if -n */
 		for (;;) {
 			jp = curjob;
-#if ENABLE_ASH_BASH_COMPAT
+#if BASH_WAIT_N
 			if (one && !jp)
 				/* exitcode of "wait -n" with nothing to wait for is 127, not 0 */
 				retval = 127;
@@ -4570,7 +4571,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	 * with an exit status greater than 128, immediately after which
 	 * the trap is executed."
 	 */
-#if ENABLE_ASH_BASH_COMPAT
+#if BASH_WAIT_N
 			status = dowait(DOWAIT_BLOCK_OR_SIG | DOWAIT_JOBSTATUS, NULL);
 #else
 			dowait(DOWAIT_BLOCK_OR_SIG, NULL);
@@ -4581,7 +4582,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	 */
 			if (pending_sig)
 				goto sigout;
-#if ENABLE_ASH_BASH_COMPAT
+#if BASH_WAIT_N
 			if (one) {
 				/* wait -n waits for one _job_, not one _process_.
 				 *  date; sleep 3 & sleep 2 | sleep 1 & wait -n; date
