@@ -235,9 +235,10 @@ enum {
  * Full sequence is "ESC [ <num> J",
  * <num> is 0/1/2 = "erase below/above/all".)
  */
-#define ESC_CLEAR2EOS ESC"[J"
+#define ESC_CLEAR2EOS          ESC"[J"
 /* Cursor to given coordinate (1,1: top left) */
-#define ESC_SET_CURSOR_POS ESC"[%u;%uH"
+#define ESC_SET_CURSOR_POS     ESC"[%u;%uH"
+#define ESC_SET_CURSOR_TOPLEFT ESC"[H"
 //UNUSED
 ///* Cursor up and down */
 //#define ESC_CURSOR_UP   ESC"[A"
@@ -352,7 +353,7 @@ struct globals {
 	char *context_start, *context_end;
 #endif
 #if ENABLE_FEATURE_VI_USE_SIGNALS
-	sigjmp_buf restart;     // catch_sig()
+	sigjmp_buf restart;     // int_handler() jumps to location remembered here
 #endif
 	struct termios term_orig; // remember what the cooked mode was
 #if ENABLE_FEATURE_VI_COLON
@@ -535,15 +536,11 @@ static void rawmode(void);	// set "raw" mode on tty
 static void cookmode(void);	// return to "cooked" mode on tty
 // sleep for 'h' 1/100 seconds, return 1/0 if stdin is (ready for read)/(not ready)
 static int mysleep(int);
-static int readit(void);	// read (maybe cursor) key from stdin
 static int get_one_char(void);	// read 1 char from stdin
 // file_insert might reallocate text[]!
 static int file_insert(const char *, char *, int);
 static int file_write(char *, char *, char *);
-static void place_cursor(int, int);
 static void screen_erase(void);
-static void clear_to_eol(void);
-static void clear_to_eos(void);
 static void go_bottom_and_clear_to_eol(void);
 static void standout_start(void);	// send "start reverse video" sequence
 static void standout_end(void);	// send "end reverse video" sequence
@@ -570,9 +567,9 @@ static char *get_address(char *, int *, int *);	// get two colon addrs, if prese
 #endif
 static void colon(char *);	// execute the "colon" mode cmds
 #if ENABLE_FEATURE_VI_USE_SIGNALS
-static void winch_sig(int);	// catch window size changes
-static void suspend_sig(int);	// catch ctrl-Z
-static void catch_sig(int);     // catch ctrl-C and alarm time-outs
+static void winch_handler(int);	// catch window size changes
+static void tstp_handler(int);	// catch ctrl-Z
+static void int_handler(int);	// catch ctrl-C
 #endif
 #if ENABLE_FEATURE_VI_DOT_CMD
 static void start_new_cmd_q(char);	// new queue for command
@@ -598,11 +595,11 @@ static void check_context(char);	// remember context for '' command
 #endif
 #if ENABLE_FEATURE_VI_UNDO
 static void flush_undo_data(void);
-static void undo_push(char *, unsigned int, unsigned char);	// Push an operation on the undo stack
+static void undo_push(char *, unsigned, unsigned char);	// push an operation on the undo stack
 static void undo_push_insert(char *, int, int); // convenience function
-static void undo_pop(void);	// Undo the last operation
+static void undo_pop(void);		// undo the last operation
 # if ENABLE_FEATURE_VI_UNDO_QUEUE
-static void undo_queue_commit(void);	// Flush any queued objects to the undo stack
+static void undo_queue_commit(void);	// flush any queued objects to the undo stack
 # else
 # define undo_queue_commit() ((void)0)
 # endif
@@ -644,7 +641,7 @@ int vi_main(int argc, char **argv)
 	srand((long) my_pid);
 #endif
 #ifdef NO_SUCH_APPLET_YET
-	/* If we aren't "vi", we are "view" */
+	// if we aren't "vi", we are "view"
 	if (ENABLE_FEATURE_VI_READONLY && applet_name[2]) {
 		SET_READONLY_MODE(readonly_mode);
 	}
@@ -682,7 +679,7 @@ int vi_main(int argc, char **argv)
 #endif
 		case 'H':
 			show_help();
-			/* fall through */
+			// fall through
 		default:
 			bb_show_usage();
 			return 1;
@@ -699,7 +696,7 @@ int vi_main(int argc, char **argv)
 	// "Save cursor, use alternate screen buffer, clear screen"
 	write1(ESC"[?1049h");
 	while (1) {
-		edit_file(argv[optind]); /* param might be NULL */
+		edit_file(argv[optind]); // param might be NULL
 		if (++optind >= argc)
 			break;
 	}
@@ -804,13 +801,15 @@ static void edit_file(char *fn)
 	ccol = 0;
 
 #if ENABLE_FEATURE_VI_USE_SIGNALS
-	signal(SIGINT, catch_sig);
-	signal(SIGWINCH, winch_sig);
-	signal(SIGTSTP, suspend_sig);
+	signal(SIGWINCH, winch_handler);
+	signal(SIGTSTP, tstp_handler);
 	sig = sigsetjmp(restart, 1);
 	if (sig != 0) {
 		screenbegin = dot = text;
 	}
+	// int_handler() can jump to "restart",
+	// must install handler *after* initializing "restart"
+	signal(SIGINT, int_handler);
 #endif
 
 	cmd_mode = 0;		// 0=command  1=insert  2='R'eplace
@@ -994,7 +993,7 @@ static void setops(const char *args, const char *opname, int flg_no,
 			const char *short_opname, int opt)
 {
 	const char *a = args + flg_no;
-	int l = strlen(opname) - 1; /* opname have + ' ' */
+	int l = strlen(opname) - 1; // opname have + ' '
 
 	// maybe strncmp? we had tons of erroneous strncasecmp's...
 	if (strncasecmp(a, opname, l) == 0
@@ -1014,7 +1013,7 @@ static void setops(const char *args, const char *opname, int flg_no,
 static void colon(char *buf)
 {
 #if !ENABLE_FEATURE_VI_COLON
-	/* Simple ":cmd" handler with minimal set of commands */
+	// Simple ":cmd" handler with minimal set of commands
 	char *p = buf;
 	int cnt;
 
@@ -1357,7 +1356,7 @@ static void colon(char *buf)
 			status_line_bold("No write since last change (:%s! overrides)", cmd);
 		} else {
 			// reset the filenames to edit
-			optind = -1; /* start from 0th file */
+			optind = -1; // start from 0th file
 			editing = 0;
 		}
 # if ENABLE_FEATURE_VI_SET
@@ -2218,7 +2217,7 @@ static char *find_pair(char *p, const char c)
 	dir = strchr(braces, c) - braces;
 	dir ^= 1;
 	match = braces[dir];
-	dir = ((dir & 1) << 1) - 1; /* 1 for ([{, -1 for )\} */
+	dir = ((dir & 1) << 1) - 1; // 1 for ([{, -1 for )\}
 
 	// look for match, count levels of pairs  (( ))
 	level = 1;
@@ -2271,7 +2270,8 @@ static void flush_undo_data(void)
 }
 
 // Undo functions and hooks added by Jody Bruchon (jody@jodybruchon.com)
-static void undo_push(char *src, unsigned int length, uint8_t u_type)	// Add to the undo stack
+// Add to the undo stack
+static void undo_push(char *src, unsigned length, uint8_t u_type)
 {
 	struct undo_object *undo_entry;
 
@@ -2389,7 +2389,8 @@ static void undo_push_insert(char *p, int len, int undo)
 	}
 }
 
-static void undo_pop(void)	// Undo the last operation
+// Undo the last operation
+static void undo_pop(void)
 {
 	int repeat;
 	char *u_start, *u_end;
@@ -2453,7 +2454,8 @@ static void undo_pop(void)	// Undo the last operation
 }
 
 #if ENABLE_FEATURE_VI_UNDO_QUEUE
-static void undo_queue_commit(void)	// Flush any queued objects to the undo stack
+// Flush any queued objects to the undo stack
+static void undo_queue_commit(void)
 {
 	// Pushes the queue object onto the undo stack
 	if (undo_q > 0) {
@@ -2758,49 +2760,44 @@ static void cookmode(void)
 }
 
 #if ENABLE_FEATURE_VI_USE_SIGNALS
-//----- Come here when we get a window resize signal ---------
-static void winch_sig(int sig UNUSED_PARAM)
+static void winch_handler(int sig UNUSED_PARAM)
 {
 	int save_errno = errno;
 	// FIXME: do it in main loop!!!
-	signal(SIGWINCH, winch_sig);
+	signal(SIGWINCH, winch_handler);
 	query_screen_dimensions();
 	new_screen(rows, columns);	// get memory for virtual screen
 	redraw(TRUE);		// re-draw the screen
 	errno = save_errno;
 }
-
-//----- Come here when we get a continue signal -------------------
-static void cont_sig(int sig UNUSED_PARAM)
+static void cont_handler(int sig UNUSED_PARAM)
 {
 	int save_errno = errno;
 	rawmode(); // terminal to "raw"
 	last_status_cksum = 0; // force status update
 	redraw(TRUE); // re-draw the screen
 
-	signal(SIGTSTP, suspend_sig);
+	signal(SIGTSTP, tstp_handler);
 	signal(SIGCONT, SIG_DFL);
 	//kill(my_pid, SIGCONT); // huh? why? we are already "continued"...
 	errno = save_errno;
 }
-
-//----- Come here when we get a Suspend signal -------------------
-static void suspend_sig(int sig UNUSED_PARAM)
+static void tstp_handler(int sig UNUSED_PARAM)
 {
 	int save_errno = errno;
 	go_bottom_and_clear_to_eol();
 	cookmode(); // terminal to "cooked"
 
-	signal(SIGCONT, cont_sig);
+	signal(SIGCONT, cont_handler);
 	signal(SIGTSTP, SIG_DFL);
 	kill(my_pid, SIGTSTP);
 	errno = save_errno;
 }
 
 //----- Come here when we get a signal ---------------------------
-static void catch_sig(int sig)
+static void int_handler(int sig)
 {
-	signal(SIGINT, catch_sig);
+	signal(SIGINT, int_handler);
 	siglongjmp(restart, sig);
 }
 #endif /* FEATURE_VI_USE_SIGNALS */
@@ -2934,7 +2931,7 @@ static int file_insert(const char *fn, char *p, int initial)
 		return cnt;
 	}
 
-	/* Validate file */
+	// Validate file
 	if (fstat(fd, &statbuf) < 0) {
 		status_line_bold_errno(fn);
 		goto fi;
@@ -2960,8 +2957,8 @@ static int file_insert(const char *fn, char *p, int initial)
 #if ENABLE_FEATURE_VI_READONLY
 	if (initial
 	 && ((access(fn, W_OK) < 0) ||
-		/* root will always have access()
-		 * so we check fileperms too */
+		// root will always have access()
+		// so we check fileperms too
 		!(statbuf.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH))
 	    )
 	) {
@@ -2979,10 +2976,9 @@ static int file_write(char *fn, char *first, char *last)
 		status_line_bold("No current filename");
 		return -2;
 	}
-	/* By popular request we do not open file with O_TRUNC,
-	 * but instead ftruncate() it _after_ successful write.
-	 * Might reduce amount of data lost on power fail etc.
-	 */
+	// By popular request we do not open file with O_TRUNC,
+	// but instead ftruncate() it _after_ successful write.
+	// Might reduce amount of data lost on power fail etc.
 	fd = open(fn, (O_WRONLY | O_CREAT), 0666);
 	if (fd < 0)
 		return -1;
@@ -3036,12 +3032,6 @@ static void go_bottom_and_clear_to_eol(void)
 	clear_to_eol();
 }
 
-//----- Erase from cursor to end of screen -----------------------
-static void clear_to_eos(void)
-{
-	write1(ESC_CLEAR2EOS);
-}
-
 //----- Start standout mode ------------------------------------
 static void standout_start(void)
 {
@@ -3068,7 +3058,7 @@ static void indicate_error(void)
 {
 #if ENABLE_FEATURE_VI_CRASHME
 	if (crashme > 0)
-		return;			// generate a random command
+		return;
 #endif
 	if (!err_method) {
 		write1(ESC_BELL);
@@ -3177,7 +3167,7 @@ static void print_literal(char *buf, const char *s)
 		}
 		if (c < ' ' || c == 0x7f) {
 			*d++ = '^';
-			c |= '@'; /* 0x40 */
+			c |= '@'; // 0x40
 			if (c == 0x7f)
 				c = '?';
 		}
@@ -3259,17 +3249,17 @@ static int format_edit_status(void)
 		cur, tot, percent);
 
 	if (ret >= 0 && ret < trunc_at)
-		return ret;  /* it all fit */
+		return ret;  // it all fit
 
-	return trunc_at;  /* had to truncate */
+	return trunc_at;  // had to truncate
 #undef tot
 }
 
 //----- Force refresh of all Lines -----------------------------
 static void redraw(int full_screen)
 {
-	place_cursor(0, 0);
-	clear_to_eos();
+	// cursor to top,left; clear to the end of screen
+	write1(ESC_SET_CURSOR_TOPLEFT ESC_CLEAR2EOS);
 	screen_erase();		// erase the internal screen buffer
 	last_status_cksum = 0;	// force status update
 	refresh(full_screen);	// this will redraw the entire display
@@ -3354,7 +3344,7 @@ static void refresh(int full_screen)
 #else
 		if (c != columns || r != rows) {
 			full_screen = TRUE;
-			/* update screen memory since SIGWINCH won't have done it */
+			// update screen memory since SIGWINCH won't have done it
 			new_screen(rows, columns);
 		}
 #endif
@@ -3431,7 +3421,6 @@ static void refresh(int full_screen)
 
 //---------------------------------------------------------------------
 //----- the Ascii Chart -----------------------------------------------
-//
 //  00 nul   01 soh   02 stx   03 etx   04 eot   05 enq   06 ack   07 bel
 //  08 bs    09 ht    0a nl    0b vt    0c np    0d cr    0e so    0f si
 //  10 dle   11 dc1   12 dc2   13 dc3   14 dc4   15 nak   16 syn   17 etb
@@ -3466,7 +3455,7 @@ static void do_cmd(int c)
 
 	show_status_line();
 
-	/* if this is a cursor key, skip these checks */
+	// if this is a cursor key, skip these checks
 	switch (c) {
 		case KEYCODE_UP:
 		case KEYCODE_DOWN:
@@ -3499,7 +3488,7 @@ static void do_cmd(int c)
 		}
 	}
 	if (cmd_mode == 1) {
-		//  hitting "Insert" twice means "R" replace mode
+		// hitting "Insert" twice means "R" replace mode
 		if (c == KEYCODE_INSERT) goto dc5;
 		// insert the char c at "dot"
 		if (1 <= c || Isprint(c)) {
@@ -3958,7 +3947,7 @@ static void do_cmd(int c)
 		}
 		if (cmdcnt == 0)
 			cmdcnt = 1;
-		/* fall through */
+		// fall through
 	case 'G':		// G- goto to a line number (default= E-O-F)
 		dot = end - 1;				// assume E-O-F
 		if (cmdcnt > 0) {
