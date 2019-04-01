@@ -5,19 +5,19 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-/*
- * Things To Do:
- *	EXINIT
- *	$HOME/.exrc  and  ./.exrc
- *	add magic to search	/foo.*bar
- *	add :help command
- *	:map macros
- *	if mark[] values were line numbers rather than pointers
- *      it would be easier to change the mark when add/delete lines
- *	More intelligence in refresh()
- *	":r !cmd"  and  "!cmd"  to filter text through an external command
- *	An "ex" line oriented mode- maybe using "cmdedit"
- */
+//
+//Things To Do:
+//	EXINIT
+//	$HOME/.exrc  and  ./.exrc
+//	add magic to search	/foo.*bar
+//	add :help command
+//	:map macros
+//	if mark[] values were line numbers rather than pointers
+//	it would be easier to change the mark when add/delete lines
+//	More intelligence in refresh()
+//	":r !cmd"  and  "!cmd"  to filter text through an external command
+//	An "ex" line oriented mode- maybe using "cmdedit"
+
 //config:config VI
 //config:	bool "vi (23 kb)"
 //config:	default y
@@ -178,12 +178,12 @@
 //usage:     "\n	-H	List available features"
 
 #include "libbb.h"
-/* Should be after libbb.h: on some systems regex.h needs sys/types.h: */
+// Should be after libbb.h: on some systems regex.h needs sys/types.h:
 #if ENABLE_FEATURE_VI_REGEX_SEARCH
 # include <regex.h>
 #endif
 
-/* the CRASHME code is unmaintained, and doesn't currently build */
+// the CRASHME code is unmaintained, and doesn't currently build
 #define ENABLE_FEATURE_VI_CRASHME 0
 
 
@@ -198,7 +198,7 @@
 
 #else
 
-/* 0x9b is Meta-ESC */
+// 0x9b is Meta-ESC
 #if ENABLE_FEATURE_VI_8BIT
 # define Isprint(c) ((unsigned char)(c) >= ' ' && (c) != 0x7f && (unsigned char)(c) != 0x9b)
 #else
@@ -218,29 +218,27 @@ enum {
 	MAX_SCR_ROWS = CONFIG_FEATURE_VI_MAX_LEN,
 };
 
-/* VT102 ESC sequences.
- * See "Xterm Control Sequences"
- * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
- */
+// VT102 ESC sequences.
+// See "Xterm Control Sequences"
+// http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 #define ESC "\033"
-/* Inverse/Normal text */
+// Inverse/Normal text
 #define ESC_BOLD_TEXT ESC"[7m"
 #define ESC_NORM_TEXT ESC"[m"
-/* Bell */
+// Bell
 #define ESC_BELL "\007"
-/* Clear-to-end-of-line */
+// Clear-to-end-of-line
 #define ESC_CLEAR2EOL ESC"[K"
-/* Clear-to-end-of-screen.
- * (We use default param here.
- * Full sequence is "ESC [ <num> J",
- * <num> is 0/1/2 = "erase below/above/all".)
- */
+// Clear-to-end-of-screen.
+// (We use default param here.
+// Full sequence is "ESC [ <num> J",
+// <num> is 0/1/2 = "erase below/above/all".)
 #define ESC_CLEAR2EOS          ESC"[J"
-/* Cursor to given coordinate (1,1: top left) */
+// Cursor to given coordinate (1,1: top left)
 #define ESC_SET_CURSOR_POS     ESC"[%u;%uH"
 #define ESC_SET_CURSOR_TOPLEFT ESC"[H"
 //UNUSED
-///* Cursor up and down */
+//// Cursor up and down
 //#define ESC_CURSOR_UP   ESC"[A"
 //#define ESC_CURSOR_DOWN "\n"
 
@@ -267,17 +265,17 @@ enum {
 };
 
 
-/* vi.c expects chars to be unsigned. */
-/* busybox build system provides that, but it's better */
-/* to audit and fix the source */
+// vi.c expects chars to be unsigned.
+// busybox build system provides that, but it's better
+// to audit and fix the source
 
 struct globals {
-	/* many references - keep near the top of globals */
+	// many references - keep near the top of globals
 	char *text, *end;       // pointers to the user data in memory
 	char *dot;              // where all the action takes place
 	int text_size;		// size of the allocated buffer
 
-	/* the rest */
+	// the rest
 	smallint vi_setops;
 #define VI_AUTOINDENT 1
 #define VI_SHOWMATCH  2
@@ -286,7 +284,7 @@ struct globals {
 #define autoindent (vi_setops & VI_AUTOINDENT)
 #define showmatch  (vi_setops & VI_SHOWMATCH )
 #define ignorecase (vi_setops & VI_IGNORECASE)
-/* indicate error with beep or flash */
+// indicate error with beep or flash
 #define err_method (vi_setops & VI_ERR_METHOD)
 
 #if ENABLE_FEATURE_VI_READONLY
@@ -334,14 +332,14 @@ struct globals {
 	char *last_search_pattern; // last pattern from a '/' or '?' search
 #endif
 
-	/* former statics */
+	// former statics
 #if ENABLE_FEATURE_VI_YANKMARK
 	char *edit_file__cur_line;
 #endif
 	int refresh__old_offset;
 	int format_edit_status__tot;
 
-	/* a few references only */
+	// a few references only
 #if ENABLE_FEATURE_VI_YANKMARK
 	smalluint YDreg;//,Ureg;// default delete register and orig line for "U"
 #define Ureg 27
@@ -368,9 +366,10 @@ struct globals {
 #if ENABLE_FEATURE_VI_DOT_CMD
 	char last_modifying_cmd[MAX_INPUT_LEN];	// last modifying cmd for "."
 #endif
-	char get_input_line__buf[MAX_INPUT_LEN]; /* former static */
+	char get_input_line__buf[MAX_INPUT_LEN]; // former static
 
 	char scr_out_buf[MAX_SCR_COLS + MAX_TABSTOP * 2];
+
 #if ENABLE_FEATURE_VI_UNDO
 // undo_push() operations
 #define UNDO_INS         0
@@ -397,7 +396,6 @@ struct globals {
 // If undo queuing disabled, don't invoke the missing queue logic
 #define ALLOW_UNDO_QUEUED 1
 # endif
-
 	struct undo_object {
 		struct undo_object *prev;	// Linking back avoids list traversal (LIFO)
 		int start;		// Offset where the data should be restored/deleted
@@ -1969,7 +1967,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		undo_push_insert(p, 1, undo);
 #else
 		modified_count++;
-#endif /* ENABLE_FEATURE_VI_UNDO */
+#endif
 		p++;
 	} else if (c == 27) {	// Is this an ESC?
 		cmd_mode = 0;
@@ -1997,7 +1995,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		undo_push_insert(p, 1, undo);
 #else
 		modified_count++;
-#endif /* ENABLE_FEATURE_VI_UNDO */
+#endif
 		p += 1 + stupid_insert(p, c);	// insert the char
 #if ENABLE_FEATURE_VI_SETOPTS
 		if (showmatch && strchr(")]}", c) != NULL) {
@@ -2777,7 +2775,7 @@ static void colon(char *buf)
 				bias = string_insert(found, R, ALLOW_UNDO_CHAIN);
 				found += bias;
 				ls += bias;
-				/*q += bias; - recalculated anyway */
+				//q += bias; - recalculated anyway
 				// check for "global"  :s/foo/bar/g
 				if (gflag == 'g') {
 					if ((found + len_R) < end_line(ls)) {
@@ -2873,18 +2871,14 @@ static void colon(char *buf)
 #endif /* FEATURE_VI_COLON */
 }
 
-//----- Helper Utility Routines --------------------------------
-
-//----------------------------------------------------------------
 //----- Char Routines --------------------------------------------
-/* Chars that are part of a word-
- *    0123456789_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
- * Chars that are Not part of a word (stoppers)
- *    !"#$%&'()*+,-./:;<=>?@[\]^`{|}~
- * Chars that are WhiteSpace
- *    TAB NEWLINE VT FF RETURN SPACE
- * DO NOT COUNT NEWLINE AS WHITESPACE
- */
+// Chars that are part of a word-
+//    0123456789_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+// Chars that are Not part of a word (stoppers)
+//    !"#$%&'()*+,-./:;<=>?@[\]^`{|}~
+// Chars that are WhiteSpace
+//    TAB NEWLINE VT FF RETURN SPACE
+// DO NOT COUNT NEWLINE AS WHITESPACE
 
 static char *new_screen(int ro, int co)
 {
@@ -3242,7 +3236,7 @@ static void do_cmd(int c)
 			dot_skip_over_ws();
 		} while (--cmdcnt > 0);
 		break;
-	case 21:			// ctrl-U  scroll up   half screen
+	case 21:			// ctrl-U  scroll up half screen
 		dot_scroll((rows - 2) / 2, -1);
 		break;
 	case 25:			// ctrl-Y  scroll up one line
@@ -3251,7 +3245,7 @@ static void do_cmd(int c)
 	case 27:			// esc
 		if (cmd_mode == 0)
 			indicate_error();
-		cmd_mode = 0;	// stop insrting
+		cmd_mode = 0;	// stop inserting
 		undo_queue_commit();
 		end_cmd_q();
 		last_status_cksum = 0;	// force status update
@@ -3948,7 +3942,7 @@ static void do_cmd(int c)
 		dot--;
 }
 
-/* NB!  the CRASHME code is unmaintained, and doesn't currently build */
+// NB!  the CRASHME code is unmaintained, and doesn't currently build
 #if ENABLE_FEATURE_VI_CRASHME
 static int totalcmds = 0;
 static int Mp = 85;             // Movement command Probability
@@ -4253,7 +4247,7 @@ static void edit_file(char *fn)
 				crash_dummy();	// generate a random command
 			} else {
 				crashme = 0;
-				string_insert(text, "\n\n#####  Ran out of text to work on.  #####\n\n", NO_UNDO); // insert the string
+				string_insert(text, "\n\n#####  Ran out of text to work on.  #####\n\n", NO_UNDO);
 				dot = text;
 				refresh(FALSE);
 			}
@@ -4268,8 +4262,8 @@ static void edit_file(char *fn)
 		}
 #endif
 #if ENABLE_FEATURE_VI_DOT_CMD
-		// These are commands that change text[].
-		// Remember the input for the "." command
+		// If c is a command that changes text[],
+		// (re)start remembering the input for the "." command.
 		if (!adding2q
 		 && ioq_start == NULL
 		 && cmd_mode == 0 // command mode
@@ -4310,10 +4304,10 @@ int vi_main(int argc, char **argv)
 	INIT_G();
 
 #if ENABLE_FEATURE_VI_UNDO
-	/* undo_stack_tail = NULL; - already is */
+	//undo_stack_tail = NULL; - already is
 # if ENABLE_FEATURE_VI_UNDO_QUEUE
 	undo_queue_state = UNDO_EMPTY;
-	/* undo_q = 0; - already is  */
+	//undo_q = 0; - already is
 # endif
 #endif
 
