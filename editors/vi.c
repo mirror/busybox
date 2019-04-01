@@ -511,7 +511,6 @@ static char *char_insert(char *, char, int);	// insert the char c at 'p'
 // might reallocate text[]! use p += stupid_insert(p, ...),
 // and be careful to not use pointers into potentially freed text[]!
 static uintptr_t stupid_insert(char *, char);	// stupidly insert the char c at 'p'
-static int find_range(char **, char **, char);	// return pointers for an object
 static int st_test(char *, int, int, char *);	// helper for skip_thing()
 static char *skip_thing(char *, int, int, int);	// skip some object
 static char *find_pair(char *, char);	// find matching pair ()  []  {}
@@ -1874,79 +1873,6 @@ static uintptr_t stupid_insert(char *p, char c) // stupidly insert the char c at
 	return bias;
 }
 
-static int find_range(char **start, char **stop, char c)
-{
-	char *save_dot, *p, *q, *t;
-	int cnt, multiline = 0;
-
-	save_dot = dot;
-	p = q = dot;
-
-	if (strchr("cdy><", c)) {
-		// these cmds operate on whole lines
-		p = q = begin_line(p);
-		for (cnt = 1; cnt < cmdcnt; cnt++) {
-			q = next_line(q);
-		}
-		q = end_line(q);
-	} else if (strchr("^%$0bBeEfth\b\177", c)) {
-		// These cmds operate on char positions
-		do_cmd(c);		// execute movement cmd
-		q = dot;
-	} else if (strchr("wW", c)) {
-		do_cmd(c);		// execute movement cmd
-		// if we are at the next word's first char
-		// step back one char
-		// but check the possibilities when it is true
-		if (dot > text && ((isspace(dot[-1]) && !isspace(dot[0]))
-				|| (ispunct(dot[-1]) && !ispunct(dot[0]))
-				|| (isalnum(dot[-1]) && !isalnum(dot[0]))))
-			dot--;		// move back off of next word
-		if (dot > text && *dot == '\n')
-			dot--;		// stay off NL
-		q = dot;
-	} else if (strchr("H-k{", c)) {
-		// these operate on multi-lines backwards
-		q = end_line(dot);	// find NL
-		do_cmd(c);		// execute movement cmd
-		dot_begin();
-		p = dot;
-	} else if (strchr("L+j}\r\n", c)) {
-		// these operate on multi-lines forwards
-		p = begin_line(dot);
-		do_cmd(c);		// execute movement cmd
-		dot_end();		// find NL
-		q = dot;
-	} else {
-		// nothing -- this causes any other values of c to
-		// represent the one-character range under the
-		// cursor.  this is correct for ' ' and 'l', but
-		// perhaps no others.
-		//
-	}
-	if (q < p) {
-		t = q;
-		q = p;
-		p = t;
-	}
-
-	// backward char movements don't include start position
-	if (q > p && strchr("^0bBh\b\177", c)) q--;
-
-	multiline = 0;
-	for (t = p; t <= q; t++) {
-		if (*t == '\n') {
-			multiline = 1;
-			break;
-		}
-	}
-
-	*start = p;
-	*stop = q;
-	dot = save_dot;
-	return multiline;
-}
-
 static int st_test(char *p, int type, int dir, char *tested)
 {
 	char c, c0, ci;
@@ -3175,6 +3101,81 @@ static void refresh(int full_screen)
 
 	old_offset = offset;
 #undef old_offset
+}
+
+static void do_cmd(int c);
+
+static int find_range(char **start, char **stop, char c)
+{
+	char *save_dot, *p, *q, *t;
+	int cnt, multiline = 0;
+
+	save_dot = dot;
+	p = q = dot;
+
+	if (strchr("cdy><", c)) {
+		// these cmds operate on whole lines
+		p = q = begin_line(p);
+		for (cnt = 1; cnt < cmdcnt; cnt++) {
+			q = next_line(q);
+		}
+		q = end_line(q);
+	} else if (strchr("^%$0bBeEfth\b\177", c)) {
+		// These cmds operate on char positions
+		do_cmd(c);		// execute movement cmd
+		q = dot;
+	} else if (strchr("wW", c)) {
+		do_cmd(c);		// execute movement cmd
+		// if we are at the next word's first char
+		// step back one char
+		// but check the possibilities when it is true
+		if (dot > text && ((isspace(dot[-1]) && !isspace(dot[0]))
+				|| (ispunct(dot[-1]) && !ispunct(dot[0]))
+				|| (isalnum(dot[-1]) && !isalnum(dot[0]))))
+			dot--;		// move back off of next word
+		if (dot > text && *dot == '\n')
+			dot--;		// stay off NL
+		q = dot;
+	} else if (strchr("H-k{", c)) {
+		// these operate on multi-lines backwards
+		q = end_line(dot);	// find NL
+		do_cmd(c);		// execute movement cmd
+		dot_begin();
+		p = dot;
+	} else if (strchr("L+j}\r\n", c)) {
+		// these operate on multi-lines forwards
+		p = begin_line(dot);
+		do_cmd(c);		// execute movement cmd
+		dot_end();		// find NL
+		q = dot;
+	} else {
+		// nothing -- this causes any other values of c to
+		// represent the one-character range under the
+		// cursor.  this is correct for ' ' and 'l', but
+		// perhaps no others.
+		//
+	}
+	if (q < p) {
+		t = q;
+		q = p;
+		p = t;
+	}
+
+	// backward char movements don't include start position
+	if (q > p && strchr("^0bBh\b\177", c)) q--;
+
+	multiline = 0;
+	for (t = p; t <= q; t++) {
+		if (*t == '\n') {
+			multiline = 1;
+			break;
+		}
+	}
+
+	*start = p;
+	*stop = q;
+	dot = save_dot;
+	return multiline;
 }
 
 //---------------------------------------------------------------------
