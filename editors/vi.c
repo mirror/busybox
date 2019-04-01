@@ -1029,43 +1029,41 @@ static int readit(void) // read (maybe cursor) key from stdin
 	return c;
 }
 
+#if ENABLE_FEATURE_VI_DOT_CMD
 static int get_one_char(void)
 {
 	int c;
 
-#if ENABLE_FEATURE_VI_DOT_CMD
 	if (!adding2q) {
 		// we are not adding to the q.
-		// but, we may be reading from a q
-		if (ioq == 0) {
-			// there is no current q, read from STDIN
-			c = readit();	// get the users input
-		} else {
-			// there is a queue to get chars from first
+		// but, we may be reading from a saved q.
+		// (checking "ioq" for NULL is wrong, it's not reset to NULL
+		// when done - "ioq_start" is reset instead).
+		if (ioq_start != NULL) {
+			// there is a queue to get chars from.
 			// careful with correct sign expansion!
 			c = (unsigned char)*ioq++;
-			if (c == '\0') {
-				// the end of the q, read from STDIN
-				free(ioq_start);
-				ioq_start = ioq = 0;
-				c = readit();	// get the users input
-			}
+			if (c != '\0')
+				return c;
+			// the end of the q
+			free(ioq_start);
+			ioq_start = NULL;
+			// read from STDIN:
 		}
-	} else {
-		// adding STDIN chars to q
-		c = readit();	// get the users input
-		if (lmc_len >= MAX_INPUT_LEN - 1) {
-			status_line_bold("last_modifying_cmd overrun");
-		} else {
-			// add new char to q
-			last_modifying_cmd[lmc_len++] = c;
-		}
+		return readit();
 	}
-#else
-	c = readit();		// get the users input
-#endif /* FEATURE_VI_DOT_CMD */
+	// we are adding STDIN chars to q.
+	c = readit();
+	if (lmc_len >= MAX_INPUT_LEN - 1) {
+		status_line_bold("last_modifying_cmd overrun");
+	} else {
+		last_modifying_cmd[lmc_len++] = c;
+	}
 	return c;
 }
+#else
+# define get_one_char() readit()
+#endif
 
 // Get input line (uses "status line" area)
 static char *get_input_line(const char *prompt)
@@ -1781,7 +1779,7 @@ static void start_new_cmd_q(char c)
 	// get buffer for new cmd
 	// if there is a current cmd count put it in the buffer first
 	if (cmdcnt > 0) {
-		lmc_len = sprintf(last_modifying_cmd, "%d%c", cmdcnt, c);
+		lmc_len = sprintf(last_modifying_cmd, "%u%c", cmdcnt, c);
 	} else { // just save char c onto queue
 		last_modifying_cmd[0] = c;
 		lmc_len = 1;
@@ -3415,9 +3413,8 @@ static void do_cmd(int c)
 	case '.':			// .- repeat the last modifying command
 		// Stuff the last_modifying_cmd back into stdin
 		// and let it be re-executed.
-		if (lmc_len > 0) {
-			last_modifying_cmd[lmc_len] = 0;
-			ioq = ioq_start = xstrdup(last_modifying_cmd);
+		if (lmc_len != 0) {
+			ioq = ioq_start = xstrndup(last_modifying_cmd, lmc_len);
 		}
 		break;
 #endif
@@ -4221,7 +4218,7 @@ static void edit_file(char *fn)
 	c = '\0';
 #if ENABLE_FEATURE_VI_DOT_CMD
 	free(ioq_start);
-	ioq = ioq_start = NULL;
+	ioq_start = NULL;
 	lmc_len = 0;
 	adding2q = 0;
 #endif
@@ -4273,7 +4270,8 @@ static void edit_file(char *fn)
 #if ENABLE_FEATURE_VI_DOT_CMD
 		// These are commands that change text[].
 		// Remember the input for the "." command
-		if (!adding2q && ioq_start == NULL
+		if (!adding2q
+		 && ioq_start == NULL
 		 && cmd_mode == 0 // command mode
 		 && c > '\0' // exclude NUL and non-ASCII chars
 		 && c < 0x7f // (Unicode and such)
