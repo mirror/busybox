@@ -483,7 +483,6 @@ struct globals {
 } while (0)
 
 
-static void edit_file(char *);	// edit one file
 static void do_cmd(int);	// execute a command
 static int next_tabstop(int);
 static void sync_cursor(char *, int *, int *);	// synchronize the screen cursor to dot
@@ -527,7 +526,6 @@ static uintptr_t text_hole_make(char *, int);	// at "p", make a 'size' byte hole
 #define yank_delete(a,b,c,d,e) yank_delete(a,b,c,d)
 #endif
 static char *yank_delete(char *, char *, int, int, int);	// yank text[] into register then delete
-static void show_help(void);	// display some help info
 static void rawmode(void);	// set "raw" mode on tty
 static void cookmode(void);	// return to "cooked" mode on tty
 // sleep for 'h' 1/100 seconds, return 1/0 if stdin is (ready for read)/(not ready)
@@ -610,94 +608,42 @@ static void crash_test();
 static int crashme = 0;
 #endif
 
+static void show_help(void)
+{
+	puts("These features are available:"
+#if ENABLE_FEATURE_VI_SEARCH
+	"\n\tPattern searches with / and ?"
+#endif
+#if ENABLE_FEATURE_VI_DOT_CMD
+	"\n\tLast command repeat with ."
+#endif
+#if ENABLE_FEATURE_VI_YANKMARK
+	"\n\tLine marking with 'x"
+	"\n\tNamed buffers with \"x"
+#endif
+#if ENABLE_FEATURE_VI_READONLY
+	//not implemented: "\n\tReadonly if vi is called as \"view\""
+	//redundant: usage text says this too: "\n\tReadonly with -R command line arg"
+#endif
+#if ENABLE_FEATURE_VI_SET
+	"\n\tSome colon mode commands with :"
+#endif
+#if ENABLE_FEATURE_VI_SETOPTS
+	"\n\tSettable options with \":set\""
+#endif
+#if ENABLE_FEATURE_VI_USE_SIGNALS
+	"\n\tSignal catching- ^C"
+	"\n\tJob suspend and resume with ^Z"
+#endif
+#if ENABLE_FEATURE_VI_WIN_RESIZE
+	"\n\tAdapt to window re-sizes"
+#endif
+	);
+}
+
 static void write1(const char *out)
 {
 	fputs(out, stdout);
-}
-
-int vi_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int vi_main(int argc, char **argv)
-{
-	int c;
-
-	INIT_G();
-
-#if ENABLE_FEATURE_VI_UNDO
-	/* undo_stack_tail = NULL; - already is */
-#if ENABLE_FEATURE_VI_UNDO_QUEUE
-	undo_queue_state = UNDO_EMPTY;
-	/* undo_q = 0; - already is  */
-#endif
-#endif
-
-#if ENABLE_FEATURE_VI_CRASHME
-	srand((long) getpid());
-#endif
-#ifdef NO_SUCH_APPLET_YET
-	// if we aren't "vi", we are "view"
-	if (ENABLE_FEATURE_VI_READONLY && applet_name[2]) {
-		SET_READONLY_MODE(readonly_mode);
-	}
-#endif
-
-	// autoindent is not default in vim 7.3
-	vi_setops = /*VI_AUTOINDENT |*/ VI_SHOWMATCH | VI_IGNORECASE;
-	//  1-  process $HOME/.exrc file (not inplemented yet)
-	//  2-  process EXINIT variable from environment
-	//  3-  process command line args
-#if ENABLE_FEATURE_VI_COLON
-	{
-		char *p = getenv("EXINIT");
-		if (p && *p)
-			initial_cmds[0] = xstrndup(p, MAX_INPUT_LEN);
-	}
-#endif
-	while ((c = getopt(argc, argv, "hCRH" IF_FEATURE_VI_COLON("c:"))) != -1) {
-		switch (c) {
-#if ENABLE_FEATURE_VI_CRASHME
-		case 'C':
-			crashme = 1;
-			break;
-#endif
-#if ENABLE_FEATURE_VI_READONLY
-		case 'R':		// Read-only flag
-			SET_READONLY_MODE(readonly_mode);
-			break;
-#endif
-#if ENABLE_FEATURE_VI_COLON
-		case 'c':		// cmd line vi command
-			if (*optarg)
-				initial_cmds[initial_cmds[0] != NULL] = xstrndup(optarg, MAX_INPUT_LEN);
-			break;
-#endif
-		case 'H':
-			show_help();
-			// fall through
-		default:
-			bb_show_usage();
-			return 1;
-		}
-	}
-
-	// The argv array can be used by the ":next"  and ":rewind" commands
-	argv += optind;
-	argc -= optind;
-
-	//----- This is the main file handling loop --------------
-	save_argc = argc;
-	optind = 0;
-	// "Save cursor, use alternate screen buffer, clear screen"
-	write1(ESC"[?1049h");
-	while (1) {
-		edit_file(argv[optind]); // param might be NULL
-		if (++optind >= argc)
-			break;
-	}
-	// "Use normal screen buffer, restore cursor"
-	write1(ESC"[?1049l");
-	//-----------------------------------------------------------
-
-	return 0;
 }
 
 /* read text from file or create an empty buf */
@@ -747,153 +693,6 @@ static ALWAYS_INLINE int query_screen_dimensions(void)
 	return 0;
 }
 #endif
-
-static void edit_file(char *fn)
-{
-#if ENABLE_FEATURE_VI_YANKMARK
-#define cur_line edit_file__cur_line
-#endif
-	int c;
-#if ENABLE_FEATURE_VI_USE_SIGNALS
-	int sig;
-#endif
-
-	editing = 1;	// 0 = exit, 1 = one file, 2 = multiple files
-	rawmode();
-	rows = 24;
-	columns = 80;
-	IF_FEATURE_VI_ASK_TERMINAL(G.get_rowcol_error =) query_screen_dimensions();
-#if ENABLE_FEATURE_VI_ASK_TERMINAL
-	if (G.get_rowcol_error /* TODO? && no input on stdin */) {
-		uint64_t k;
-		write1(ESC"[999;999H" ESC"[6n");
-		fflush_all();
-		k = read_key(STDIN_FILENO, readbuffer, /*timeout_ms:*/ 100);
-		if ((int32_t)k == KEYCODE_CURSOR_POS) {
-			uint32_t rc = (k >> 32);
-			columns = (rc & 0x7fff);
-			if (columns > MAX_SCR_COLS)
-				columns = MAX_SCR_COLS;
-			rows = ((rc >> 16) & 0x7fff);
-			if (rows > MAX_SCR_ROWS)
-				rows = MAX_SCR_ROWS;
-		}
-	}
-#endif
-	new_screen(rows, columns);	// get memory for virtual screen
-	init_text_buffer(fn);
-
-#if ENABLE_FEATURE_VI_YANKMARK
-	YDreg = 26;			// default Yank/Delete reg
-//	Ureg = 27; - const		// hold orig line for "U" cmd
-	mark[26] = mark[27] = text;	// init "previous context"
-#endif
-
-	last_forward_char = last_input_char = '\0';
-	crow = 0;
-	ccol = 0;
-
-#if ENABLE_FEATURE_VI_USE_SIGNALS
-	signal(SIGWINCH, winch_handler);
-	signal(SIGTSTP, tstp_handler);
-	sig = sigsetjmp(restart, 1);
-	if (sig != 0) {
-		screenbegin = dot = text;
-	}
-	// int_handler() can jump to "restart",
-	// must install handler *after* initializing "restart"
-	signal(SIGINT, int_handler);
-#endif
-
-	cmd_mode = 0;		// 0=command  1=insert  2='R'eplace
-	cmdcnt = 0;
-	tabstop = 8;
-	offset = 0;			// no horizontal offset
-	c = '\0';
-#if ENABLE_FEATURE_VI_DOT_CMD
-	free(ioq_start);
-	ioq = ioq_start = NULL;
-	lmc_len = 0;
-	adding2q = 0;
-#endif
-
-#if ENABLE_FEATURE_VI_COLON
-	{
-		char *p, *q;
-		int n = 0;
-
-		while ((p = initial_cmds[n]) != NULL) {
-			do {
-				q = p;
-				p = strchr(q, '\n');
-				if (p)
-					while (*p == '\n')
-						*p++ = '\0';
-				if (*q)
-					colon(q);
-			} while (p);
-			free(initial_cmds[n]);
-			initial_cmds[n] = NULL;
-			n++;
-		}
-	}
-#endif
-	redraw(FALSE);			// dont force every col re-draw
-	//------This is the main Vi cmd handling loop -----------------------
-	while (editing > 0) {
-#if ENABLE_FEATURE_VI_CRASHME
-		if (crashme > 0) {
-			if ((end - text) > 1) {
-				crash_dummy();	// generate a random command
-			} else {
-				crashme = 0;
-				string_insert(text, "\n\n#####  Ran out of text to work on.  #####\n\n", NO_UNDO); // insert the string
-				dot = text;
-				refresh(FALSE);
-			}
-		}
-#endif
-		last_input_char = c = get_one_char();	// get a cmd from user
-#if ENABLE_FEATURE_VI_YANKMARK
-		// save a copy of the current line- for the 'U" command
-		if (begin_line(dot) != cur_line) {
-			cur_line = begin_line(dot);
-			text_yank(begin_line(dot), end_line(dot), Ureg);
-		}
-#endif
-#if ENABLE_FEATURE_VI_DOT_CMD
-		// These are commands that change text[].
-		// Remember the input for the "." command
-		if (!adding2q && ioq_start == NULL
-		 && cmd_mode == 0 // command mode
-		 && c > '\0' // exclude NUL and non-ASCII chars
-		 && c < 0x7f // (Unicode and such)
-		 && strchr(modifying_cmds, c)
-		) {
-			start_new_cmd_q(c);
-		}
-#endif
-		do_cmd(c);		// execute the user command
-
-		// poll to see if there is input already waiting. if we are
-		// not able to display output fast enough to keep up, skip
-		// the display update until we catch up with input.
-		if (!readbuffer[0] && mysleep(0) == 0) {
-			// no input pending - so update output
-			refresh(FALSE);
-			show_status_line();
-		}
-#if ENABLE_FEATURE_VI_CRASHME
-		if (crashme > 0)
-			crash_test();	// test editor variables
-#endif
-	}
-	//-------------------------------------------------------------------
-
-	go_bottom_and_clear_to_eol();
-	cookmode();
-#undef cur_line
-}
 
 //----- The Colon commands -------------------------------------
 #if ENABLE_FEATURE_VI_COLON
@@ -2587,39 +2386,6 @@ static char *yank_delete(char *start, char *stop, int dist, int yf, int undo)
 		p = text_hole_delete(start, stop, undo);
 	}					// delete lines
 	return p;
-}
-
-static void show_help(void)
-{
-	puts("These features are available:"
-#if ENABLE_FEATURE_VI_SEARCH
-	"\n\tPattern searches with / and ?"
-#endif
-#if ENABLE_FEATURE_VI_DOT_CMD
-	"\n\tLast command repeat with ."
-#endif
-#if ENABLE_FEATURE_VI_YANKMARK
-	"\n\tLine marking with 'x"
-	"\n\tNamed buffers with \"x"
-#endif
-#if ENABLE_FEATURE_VI_READONLY
-	//not implemented: "\n\tReadonly if vi is called as \"view\""
-	//redundant: usage text says this too: "\n\tReadonly with -R command line arg"
-#endif
-#if ENABLE_FEATURE_VI_SET
-	"\n\tSome colon mode commands with :"
-#endif
-#if ENABLE_FEATURE_VI_SETOPTS
-	"\n\tSettable options with \":set\""
-#endif
-#if ENABLE_FEATURE_VI_USE_SIGNALS
-	"\n\tSignal catching- ^C"
-	"\n\tJob suspend and resume with ^Z"
-#endif
-#if ENABLE_FEATURE_VI_WIN_RESIZE
-	"\n\tAdapt to window re-sizes"
-#endif
-	);
 }
 
 #if ENABLE_FEATURE_VI_DOT_CMD
@@ -4495,3 +4261,235 @@ static void crash_test()
 	}
 }
 #endif
+
+static void edit_file(char *fn)
+{
+#if ENABLE_FEATURE_VI_YANKMARK
+#define cur_line edit_file__cur_line
+#endif
+	int c;
+#if ENABLE_FEATURE_VI_USE_SIGNALS
+	int sig;
+#endif
+
+	editing = 1;	// 0 = exit, 1 = one file, 2 = multiple files
+	rawmode();
+	rows = 24;
+	columns = 80;
+	IF_FEATURE_VI_ASK_TERMINAL(G.get_rowcol_error =) query_screen_dimensions();
+#if ENABLE_FEATURE_VI_ASK_TERMINAL
+	if (G.get_rowcol_error /* TODO? && no input on stdin */) {
+		uint64_t k;
+		write1(ESC"[999;999H" ESC"[6n");
+		fflush_all();
+		k = read_key(STDIN_FILENO, readbuffer, /*timeout_ms:*/ 100);
+		if ((int32_t)k == KEYCODE_CURSOR_POS) {
+			uint32_t rc = (k >> 32);
+			columns = (rc & 0x7fff);
+			if (columns > MAX_SCR_COLS)
+				columns = MAX_SCR_COLS;
+			rows = ((rc >> 16) & 0x7fff);
+			if (rows > MAX_SCR_ROWS)
+				rows = MAX_SCR_ROWS;
+		}
+	}
+#endif
+	new_screen(rows, columns);	// get memory for virtual screen
+	init_text_buffer(fn);
+
+#if ENABLE_FEATURE_VI_YANKMARK
+	YDreg = 26;			// default Yank/Delete reg
+//	Ureg = 27; - const		// hold orig line for "U" cmd
+	mark[26] = mark[27] = text;	// init "previous context"
+#endif
+
+	last_forward_char = last_input_char = '\0';
+	crow = 0;
+	ccol = 0;
+
+#if ENABLE_FEATURE_VI_USE_SIGNALS
+	signal(SIGWINCH, winch_handler);
+	signal(SIGTSTP, tstp_handler);
+	sig = sigsetjmp(restart, 1);
+	if (sig != 0) {
+		screenbegin = dot = text;
+	}
+	// int_handler() can jump to "restart",
+	// must install handler *after* initializing "restart"
+	signal(SIGINT, int_handler);
+#endif
+
+	cmd_mode = 0;		// 0=command  1=insert  2='R'eplace
+	cmdcnt = 0;
+	tabstop = 8;
+	offset = 0;			// no horizontal offset
+	c = '\0';
+#if ENABLE_FEATURE_VI_DOT_CMD
+	free(ioq_start);
+	ioq = ioq_start = NULL;
+	lmc_len = 0;
+	adding2q = 0;
+#endif
+
+#if ENABLE_FEATURE_VI_COLON
+	{
+		char *p, *q;
+		int n = 0;
+
+		while ((p = initial_cmds[n]) != NULL) {
+			do {
+				q = p;
+				p = strchr(q, '\n');
+				if (p)
+					while (*p == '\n')
+						*p++ = '\0';
+				if (*q)
+					colon(q);
+			} while (p);
+			free(initial_cmds[n]);
+			initial_cmds[n] = NULL;
+			n++;
+		}
+	}
+#endif
+	redraw(FALSE);			// dont force every col re-draw
+	//------This is the main Vi cmd handling loop -----------------------
+	while (editing > 0) {
+#if ENABLE_FEATURE_VI_CRASHME
+		if (crashme > 0) {
+			if ((end - text) > 1) {
+				crash_dummy();	// generate a random command
+			} else {
+				crashme = 0;
+				string_insert(text, "\n\n#####  Ran out of text to work on.  #####\n\n", NO_UNDO); // insert the string
+				dot = text;
+				refresh(FALSE);
+			}
+		}
+#endif
+		last_input_char = c = get_one_char();	// get a cmd from user
+#if ENABLE_FEATURE_VI_YANKMARK
+		// save a copy of the current line- for the 'U" command
+		if (begin_line(dot) != cur_line) {
+			cur_line = begin_line(dot);
+			text_yank(begin_line(dot), end_line(dot), Ureg);
+		}
+#endif
+#if ENABLE_FEATURE_VI_DOT_CMD
+		// These are commands that change text[].
+		// Remember the input for the "." command
+		if (!adding2q && ioq_start == NULL
+		 && cmd_mode == 0 // command mode
+		 && c > '\0' // exclude NUL and non-ASCII chars
+		 && c < 0x7f // (Unicode and such)
+		 && strchr(modifying_cmds, c)
+		) {
+			start_new_cmd_q(c);
+		}
+#endif
+		do_cmd(c);		// execute the user command
+
+		// poll to see if there is input already waiting. if we are
+		// not able to display output fast enough to keep up, skip
+		// the display update until we catch up with input.
+		if (!readbuffer[0] && mysleep(0) == 0) {
+			// no input pending - so update output
+			refresh(FALSE);
+			show_status_line();
+		}
+#if ENABLE_FEATURE_VI_CRASHME
+		if (crashme > 0)
+			crash_test();	// test editor variables
+#endif
+	}
+	//-------------------------------------------------------------------
+
+	go_bottom_and_clear_to_eol();
+	cookmode();
+#undef cur_line
+}
+
+int vi_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int vi_main(int argc, char **argv)
+{
+	int c;
+
+	INIT_G();
+
+#if ENABLE_FEATURE_VI_UNDO
+	/* undo_stack_tail = NULL; - already is */
+#if ENABLE_FEATURE_VI_UNDO_QUEUE
+	undo_queue_state = UNDO_EMPTY;
+	/* undo_q = 0; - already is  */
+#endif
+#endif
+
+#if ENABLE_FEATURE_VI_CRASHME
+	srand((long) getpid());
+#endif
+#ifdef NO_SUCH_APPLET_YET
+	// if we aren't "vi", we are "view"
+	if (ENABLE_FEATURE_VI_READONLY && applet_name[2]) {
+		SET_READONLY_MODE(readonly_mode);
+	}
+#endif
+
+	// autoindent is not default in vim 7.3
+	vi_setops = /*VI_AUTOINDENT |*/ VI_SHOWMATCH | VI_IGNORECASE;
+	//  1-  process $HOME/.exrc file (not inplemented yet)
+	//  2-  process EXINIT variable from environment
+	//  3-  process command line args
+#if ENABLE_FEATURE_VI_COLON
+	{
+		char *p = getenv("EXINIT");
+		if (p && *p)
+			initial_cmds[0] = xstrndup(p, MAX_INPUT_LEN);
+	}
+#endif
+	while ((c = getopt(argc, argv, "hCRH" IF_FEATURE_VI_COLON("c:"))) != -1) {
+		switch (c) {
+#if ENABLE_FEATURE_VI_CRASHME
+		case 'C':
+			crashme = 1;
+			break;
+#endif
+#if ENABLE_FEATURE_VI_READONLY
+		case 'R':		// Read-only flag
+			SET_READONLY_MODE(readonly_mode);
+			break;
+#endif
+#if ENABLE_FEATURE_VI_COLON
+		case 'c':		// cmd line vi command
+			if (*optarg)
+				initial_cmds[initial_cmds[0] != NULL] = xstrndup(optarg, MAX_INPUT_LEN);
+			break;
+#endif
+		case 'H':
+			show_help();
+			// fall through
+		default:
+			bb_show_usage();
+			return 1;
+		}
+	}
+
+	// The argv array can be used by the ":next"  and ":rewind" commands
+	argv += optind;
+	argc -= optind;
+
+	//----- This is the main file handling loop --------------
+	save_argc = argc;
+	optind = 0;
+	// "Save cursor, use alternate screen buffer, clear screen"
+	write1(ESC"[?1049h");
+	while (1) {
+		edit_file(argv[optind]); // param might be NULL
+		if (++optind >= argc)
+			break;
+	}
+	// "Use normal screen buffer, restore cursor"
+	write1(ESC"[?1049l");
+	//-----------------------------------------------------------
+
+	return 0;
+}
