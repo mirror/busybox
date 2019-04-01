@@ -320,8 +320,9 @@ struct globals {
 	int screensize;          //            and its size
 	int tabstop;
 	int last_forward_char;   // last char searched for with 'f' (int because of Unicode)
-	char erase_char;         // the users erase character
+#if ENABLE_FEATURE_VI_CRASHME
 	char last_input_char;    // last char read from user
+#endif
 
 #if ENABLE_FEATURE_VI_DOT_CMD
 	smallint adding2q;	 // are we currently adding user input to q
@@ -433,8 +434,9 @@ struct globals {
 #define screenbegin             (G.screenbegin        )
 #define tabstop                 (G.tabstop            )
 #define last_forward_char       (G.last_forward_char  )
-#define erase_char              (G.erase_char         )
+#if ENABLE_FEATURE_VI_CRASHME
 #define last_input_char         (G.last_input_char    )
+#endif
 #if ENABLE_FEATURE_VI_READONLY
 #define readonly_mode           (G.readonly_mode      )
 #else
@@ -560,7 +562,6 @@ static void rawmode(void)
 {
 	// no TERMIOS_CLEAR_ISIG: leave ISIG on - allow signals
 	set_termios_to_raw(STDIN_FILENO, &term_orig, TERMIOS_RAW_CRNL);
-	erase_char = term_orig.c_cc[VERASE];
 }
 
 static void cookmode(void)
@@ -1082,7 +1083,7 @@ static char *get_input_line(const char *prompt)
 		c = get_one_char();
 		if (c == '\n' || c == '\r' || c == 27)
 			break;		// this is end of input
-		if (c == erase_char || c == 8 || c == 127) {
+		if (c == term_orig.c_cc[VERASE] || c == 8 || c == 127) {
 			// user wants to erase prev char
 			buf[--i] = '\0';
 			write1("\b \b"); // erase char on screen
@@ -1978,7 +1979,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		if ((p[-1] != '\n') && (dot > text)) {
 			p--;
 		}
-	} else if (c == erase_char || c == 8 || c == 127) { // Is this a BS
+	} else if (c == term_orig.c_cc[VERASE] || c == 8 || c == 127) { // Is this a BS
 		if (p > text) {
 			p--;
 			p = text_hole_delete(p, p, ALLOW_UNDO_QUEUED);	// shrink buffer 1 char
@@ -4189,7 +4190,10 @@ static void edit_file(char *fn)
 	mark[26] = mark[27] = text;	// init "previous context"
 #endif
 
-	last_forward_char = last_input_char = '\0';
+	last_forward_char = '\0';
+#if ENABLE_FEATURE_VI_CRASHME
+	last_input_char = '\0';
+#endif
 	crow = 0;
 	ccol = 0;
 
@@ -4253,7 +4257,10 @@ static void edit_file(char *fn)
 			}
 		}
 #endif
-		last_input_char = c = get_one_char();	// get a cmd from user
+		c = get_one_char();	// get a cmd from user
+#if ENABLE_FEATURE_VI_CRASHME
+		last_input_char = c;
+#endif
 #if ENABLE_FEATURE_VI_YANKMARK
 		// save a copy of the current line- for the 'U" command
 		if (begin_line(dot) != cur_line) {
