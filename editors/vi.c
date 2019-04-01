@@ -482,15 +482,12 @@ struct globals {
 	IF_FEATURE_VI_SEARCH(last_search_pattern = xzalloc(2);) \
 } while (0)
 
+#if ENABLE_FEATURE_VI_CRASHME
+static int crashme = 0;
+#endif
 
 static void show_status_line(void);	// put a message on the bottom line
 static void status_line_bold(const char *, ...);
-
-#if ENABLE_FEATURE_VI_CRASHME
-static void crash_dummy();
-static void crash_test();
-static int crashme = 0;
-#endif
 
 static void show_help(void)
 {
@@ -1218,35 +1215,34 @@ static void show_status_line(void)
 }
 
 //----- format the status buffer, the bottom line of screen ------
-// format status buffer, with STANDOUT mode
+static void status_line(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf(status_buffer, STATUS_BUFFER_LEN, format, args);
+	va_end(args);
+
+	have_status_msg = 1;
+}
 static void status_line_bold(const char *format, ...)
 {
 	va_list args;
 
 	va_start(args, format);
 	strcpy(status_buffer, ESC_BOLD_TEXT);
-	vsprintf(status_buffer + sizeof(ESC_BOLD_TEXT)-1, format, args);
+	vsnprintf(status_buffer + (sizeof(ESC_BOLD_TEXT)-1),
+		STATUS_BUFFER_LEN - sizeof(ESC_BOLD_TEXT) - sizeof(ESC_NORM_TEXT),
+		format, args
+	);
 	strcat(status_buffer, ESC_NORM_TEXT);
 	va_end(args);
 
-	have_status_msg = 1 + sizeof(ESC_BOLD_TEXT) + sizeof(ESC_NORM_TEXT) - 2;
+	have_status_msg = 1 + (sizeof(ESC_BOLD_TEXT)-1) + (sizeof(ESC_NORM_TEXT)-1);
 }
-
 static void status_line_bold_errno(const char *fn)
 {
 	status_line_bold("'%s' "STRERROR_FMT, fn STRERROR_ERRNO);
-}
-
-// format status buffer
-static void status_line(const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	vsprintf(status_buffer, format, args);
-	va_end(args);
-
-	have_status_msg = 1;
 }
 
 // copy s to buf, convert unprintable
@@ -1290,15 +1286,14 @@ static void print_literal(char *buf, const char *s)
 			break;
 	}
 }
-
 static void not_implemented(const char *s)
 {
 	char buf[MAX_INPUT_LEN];
-
 	print_literal(buf, s);
-	status_line_bold("\'%s\' is not implemented", buf);
+	status_line_bold("'%s' is not implemented", buf);
 }
 
+//----- Block insert/delete, undo ops --------------------------
 #if ENABLE_FEATURE_VI_YANKMARK
 static char *text_yank(char *p, char *q, int dest)	// copy text into a register
 {
@@ -4318,10 +4313,10 @@ int vi_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_VI_UNDO
 	/* undo_stack_tail = NULL; - already is */
-#if ENABLE_FEATURE_VI_UNDO_QUEUE
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
 	undo_queue_state = UNDO_EMPTY;
 	/* undo_q = 0; - already is  */
-#endif
+# endif
 #endif
 
 #if ENABLE_FEATURE_VI_CRASHME
