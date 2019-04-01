@@ -693,6 +693,282 @@ static ALWAYS_INLINE int query_screen_dimensions(void)
 }
 #endif
 
+// sleep for 'h' 1/100 seconds, return 1/0 if stdin is (ready for read)/(not ready)
+static int mysleep(int hund)
+{
+	struct pollfd pfd[1];
+
+	if (hund != 0)
+		fflush_all();
+
+	pfd[0].fd = STDIN_FILENO;
+	pfd[0].events = POLLIN;
+	return safe_poll(pfd, 1, hund*10) > 0;
+}
+
+//----- Set terminal attributes --------------------------------
+static void rawmode(void)
+{
+	// no TERMIOS_CLEAR_ISIG: leave ISIG on - allow signals
+	set_termios_to_raw(STDIN_FILENO, &term_orig, TERMIOS_RAW_CRNL);
+	erase_char = term_orig.c_cc[VERASE];
+}
+
+static void cookmode(void)
+{
+	fflush_all();
+	tcsetattr_stdin_TCSANOW(&term_orig);
+}
+
+//----- Terminal Drawing ---------------------------------------
+// The terminal is made up of 'rows' line of 'columns' columns.
+// classically this would be 24 x 80.
+//  screen coordinates
+//  0,0     ...     0,79
+//  1,0     ...     1,79
+//  .       ...     .
+//  .       ...     .
+//  22,0    ...     22,79
+//  23,0    ...     23,79   <- status line
+
+//----- Move the cursor to row x col (count from 0, not 1) -------
+static void place_cursor(int row, int col)
+{
+	char cm1[sizeof(ESC_SET_CURSOR_POS) + sizeof(int)*3 * 2];
+
+	if (row < 0) row = 0;
+	if (row >= rows) row = rows - 1;
+	if (col < 0) col = 0;
+	if (col >= columns) col = columns - 1;
+
+	sprintf(cm1, ESC_SET_CURSOR_POS, row + 1, col + 1);
+	write1(cm1);
+}
+
+//----- Erase from cursor to end of line -----------------------
+static void clear_to_eol(void)
+{
+	write1(ESC_CLEAR2EOL);
+}
+
+static void go_bottom_and_clear_to_eol(void)
+{
+	place_cursor(rows - 1, 0);
+	clear_to_eol();
+}
+
+//----- Start standout mode ------------------------------------
+static void standout_start(void)
+{
+	write1(ESC_BOLD_TEXT);
+}
+
+//----- End standout mode --------------------------------------
+static void standout_end(void)
+{
+	write1(ESC_NORM_TEXT);
+}
+
+//----- Text Movement Routines ---------------------------------
+static char *begin_line(char *p) // return pointer to first char cur line
+{
+	if (p > text) {
+		p = memrchr(text, '\n', p - text);
+		if (!p)
+			return text;
+		return p + 1;
+	}
+	return p;
+}
+
+static char *end_line(char *p) // return pointer to NL of cur line
+{
+	if (p < end - 1) {
+		p = memchr(p, '\n', end - p - 1);
+		if (!p)
+			return end - 1;
+	}
+	return p;
+}
+
+static char *dollar_line(char *p) // return pointer to just before NL line
+{
+	p = end_line(p);
+	// Try to stay off of the Newline
+	if (*p == '\n' && (p - begin_line(p)) > 0)
+		p--;
+	return p;
+}
+
+static char *prev_line(char *p) // return pointer first char prev line
+{
+	p = begin_line(p);	// goto beginning of cur line
+	if (p > text && p[-1] == '\n')
+		p--;			// step to prev line
+	p = begin_line(p);	// goto beginning of prev line
+	return p;
+}
+
+static char *next_line(char *p) // return pointer first char next line
+{
+	p = end_line(p);
+	if (p < end - 1 && *p == '\n')
+		p++;			// step to next line
+	return p;
+}
+
+//----- Text Information Routines ------------------------------
+static char *end_screen(void)
+{
+	char *q;
+	int cnt;
+
+	// find new bottom line
+	q = screenbegin;
+	for (cnt = 0; cnt < rows - 2; cnt++)
+		q = next_line(q);
+	q = end_line(q);
+	return q;
+}
+
+// count line from start to stop
+static int count_lines(char *start, char *stop)
+{
+	char *q;
+	int cnt;
+
+	if (stop < start) { // start and stop are backwards- reverse them
+		q = start;
+		start = stop;
+		stop = q;
+	}
+	cnt = 0;
+	stop = end_line(stop);
+	while (start <= stop && start <= end - 1) {
+		start = end_line(start);
+		if (*start == '\n')
+			cnt++;
+		start++;
+	}
+	return cnt;
+}
+
+static char *find_line(int li)	// find beginning of line #li
+{
+	char *q;
+
+	for (q = text; li > 1; li--) {
+		q = next_line(q);
+	}
+	return q;
+}
+
+static int next_tabstop(int col)
+{
+	return col + ((tabstop - 1) - (col % tabstop));
+}
+
+//----- Erase the Screen[] memory ------------------------------
+static void screen_erase(void)
+{
+	memset(screen, ' ', screensize);	// clear new screen
+}
+
+//----- Synchronize the cursor to Dot --------------------------
+static NOINLINE void sync_cursor(char *d, int *row, int *col)
+{
+	char *beg_cur;	// begin and end of "d" line
+	char *tp;
+	int cnt, ro, co;
+
+	beg_cur = begin_line(d);	// first char of cur line
+
+	if (beg_cur < screenbegin) {
+		// "d" is before top line on screen
+		// how many lines do we have to move
+		cnt = count_lines(beg_cur, screenbegin);
+ sc1:
+		screenbegin = beg_cur;
+		if (cnt > (rows - 1) / 2) {
+			// we moved too many lines. put "dot" in middle of screen
+			for (cnt = 0; cnt < (rows - 1) / 2; cnt++) {
+				screenbegin = prev_line(screenbegin);
+			}
+		}
+	} else {
+		char *end_scr;	// begin and end of screen
+		end_scr = end_screen();	// last char of screen
+		if (beg_cur > end_scr) {
+			// "d" is after bottom line on screen
+			// how many lines do we have to move
+			cnt = count_lines(end_scr, beg_cur);
+			if (cnt > (rows - 1) / 2)
+				goto sc1;	// too many lines
+			for (ro = 0; ro < cnt - 1; ro++) {
+				// move screen begin the same amount
+				screenbegin = next_line(screenbegin);
+				// now, move the end of screen
+				end_scr = next_line(end_scr);
+				end_scr = end_line(end_scr);
+			}
+		}
+	}
+	// "d" is on screen- find out which row
+	tp = screenbegin;
+	for (ro = 0; ro < rows - 1; ro++) {	// drive "ro" to correct row
+		if (tp == beg_cur)
+			break;
+		tp = next_line(tp);
+	}
+
+	// find out what col "d" is on
+	co = 0;
+	while (tp < d) { // drive "co" to correct column
+		if (*tp == '\n') //vda || *tp == '\0')
+			break;
+		if (*tp == '\t') {
+			// handle tabs like real vi
+			if (d == tp && cmd_mode) {
+				break;
+			}
+			co = next_tabstop(co);
+		} else if ((unsigned char)*tp < ' ' || *tp == 0x7f) {
+			co++; // display as ^X, use 2 columns
+		}
+		co++;
+		tp++;
+	}
+
+	// "co" is the column where "dot" is.
+	// The screen has "columns" columns.
+	// The currently displayed columns are  0+offset -- columns+ofset
+	// |-------------------------------------------------------------|
+	//               ^ ^                                ^
+	//        offset | |------- columns ----------------|
+	//
+	// If "co" is already in this range then we do not have to adjust offset
+	//      but, we do have to subtract the "offset" bias from "co".
+	// If "co" is outside this range then we have to change "offset".
+	// If the first char of a line is a tab the cursor will try to stay
+	//  in column 7, but we have to set offset to 0.
+
+	if (co < 0 + offset) {
+		offset = co;
+	}
+	if (co >= columns + offset) {
+		offset = co - columns + 1;
+	}
+	// if the first char of the line is a tab, and "dot" is sitting on it
+	//  force offset to 0.
+	if (d == beg_cur && *d == '\t') {
+		offset = 0;
+	}
+	co -= offset;
+
+	*row = ro;
+	*col = co;
+}
+
 //----- The Colon commands -------------------------------------
 #if ENABLE_FEATURE_VI_COLON
 static char *get_one_address(char *p, int *addr)	// get colon addr, if present
@@ -1353,200 +1629,6 @@ static void Hit_Return(void)
 	while ((c = get_one_char()) != '\n' && c != '\r')
 		continue;
 	redraw(TRUE);		// force redraw all
-}
-
-static int next_tabstop(int col)
-{
-	return col + ((tabstop - 1) - (col % tabstop));
-}
-
-//----- Synchronize the cursor to Dot --------------------------
-static NOINLINE void sync_cursor(char *d, int *row, int *col)
-{
-	char *beg_cur;	// begin and end of "d" line
-	char *tp;
-	int cnt, ro, co;
-
-	beg_cur = begin_line(d);	// first char of cur line
-
-	if (beg_cur < screenbegin) {
-		// "d" is before top line on screen
-		// how many lines do we have to move
-		cnt = count_lines(beg_cur, screenbegin);
- sc1:
-		screenbegin = beg_cur;
-		if (cnt > (rows - 1) / 2) {
-			// we moved too many lines. put "dot" in middle of screen
-			for (cnt = 0; cnt < (rows - 1) / 2; cnt++) {
-				screenbegin = prev_line(screenbegin);
-			}
-		}
-	} else {
-		char *end_scr;	// begin and end of screen
-		end_scr = end_screen();	// last char of screen
-		if (beg_cur > end_scr) {
-			// "d" is after bottom line on screen
-			// how many lines do we have to move
-			cnt = count_lines(end_scr, beg_cur);
-			if (cnt > (rows - 1) / 2)
-				goto sc1;	// too many lines
-			for (ro = 0; ro < cnt - 1; ro++) {
-				// move screen begin the same amount
-				screenbegin = next_line(screenbegin);
-				// now, move the end of screen
-				end_scr = next_line(end_scr);
-				end_scr = end_line(end_scr);
-			}
-		}
-	}
-	// "d" is on screen- find out which row
-	tp = screenbegin;
-	for (ro = 0; ro < rows - 1; ro++) {	// drive "ro" to correct row
-		if (tp == beg_cur)
-			break;
-		tp = next_line(tp);
-	}
-
-	// find out what col "d" is on
-	co = 0;
-	while (tp < d) { // drive "co" to correct column
-		if (*tp == '\n') //vda || *tp == '\0')
-			break;
-		if (*tp == '\t') {
-			// handle tabs like real vi
-			if (d == tp && cmd_mode) {
-				break;
-			}
-			co = next_tabstop(co);
-		} else if ((unsigned char)*tp < ' ' || *tp == 0x7f) {
-			co++; // display as ^X, use 2 columns
-		}
-		co++;
-		tp++;
-	}
-
-	// "co" is the column where "dot" is.
-	// The screen has "columns" columns.
-	// The currently displayed columns are  0+offset -- columns+ofset
-	// |-------------------------------------------------------------|
-	//               ^ ^                                ^
-	//        offset | |------- columns ----------------|
-	//
-	// If "co" is already in this range then we do not have to adjust offset
-	//      but, we do have to subtract the "offset" bias from "co".
-	// If "co" is outside this range then we have to change "offset".
-	// If the first char of a line is a tab the cursor will try to stay
-	//  in column 7, but we have to set offset to 0.
-
-	if (co < 0 + offset) {
-		offset = co;
-	}
-	if (co >= columns + offset) {
-		offset = co - columns + 1;
-	}
-	// if the first char of the line is a tab, and "dot" is sitting on it
-	//  force offset to 0.
-	if (d == beg_cur && *d == '\t') {
-		offset = 0;
-	}
-	co -= offset;
-
-	*row = ro;
-	*col = co;
-}
-
-//----- Text Movement Routines ---------------------------------
-static char *begin_line(char *p) // return pointer to first char cur line
-{
-	if (p > text) {
-		p = memrchr(text, '\n', p - text);
-		if (!p)
-			return text;
-		return p + 1;
-	}
-	return p;
-}
-
-static char *end_line(char *p) // return pointer to NL of cur line
-{
-	if (p < end - 1) {
-		p = memchr(p, '\n', end - p - 1);
-		if (!p)
-			return end - 1;
-	}
-	return p;
-}
-
-static char *dollar_line(char *p) // return pointer to just before NL line
-{
-	p = end_line(p);
-	// Try to stay off of the Newline
-	if (*p == '\n' && (p - begin_line(p)) > 0)
-		p--;
-	return p;
-}
-
-static char *prev_line(char *p) // return pointer first char prev line
-{
-	p = begin_line(p);	// goto beginning of cur line
-	if (p > text && p[-1] == '\n')
-		p--;			// step to prev line
-	p = begin_line(p);	// goto beginning of prev line
-	return p;
-}
-
-static char *next_line(char *p) // return pointer first char next line
-{
-	p = end_line(p);
-	if (p < end - 1 && *p == '\n')
-		p++;			// step to next line
-	return p;
-}
-
-//----- Text Information Routines ------------------------------
-static char *end_screen(void)
-{
-	char *q;
-	int cnt;
-
-	// find new bottom line
-	q = screenbegin;
-	for (cnt = 0; cnt < rows - 2; cnt++)
-		q = next_line(q);
-	q = end_line(q);
-	return q;
-}
-
-// count line from start to stop
-static int count_lines(char *start, char *stop)
-{
-	char *q;
-	int cnt;
-
-	if (stop < start) { // start and stop are backwards- reverse them
-		q = start;
-		start = stop;
-		stop = q;
-	}
-	cnt = 0;
-	stop = end_line(stop);
-	while (start <= stop && start <= end - 1) {
-		start = end_line(start);
-		if (*start == '\n')
-			cnt++;
-		start++;
-	}
-	return cnt;
-}
-
-static char *find_line(int li)	// find beginning of line #li
-{
-	char *q;
-
-	for (q = text; li > 1; li--) {
-		q = next_line(q);
-	}
-	return q;
 }
 
 //----- Dot Movement Routines ----------------------------------
@@ -2430,32 +2512,6 @@ static char *swap_context(char *p) // goto new context for '' command make this 
 }
 #endif /* FEATURE_VI_YANKMARK */
 
-//----- Set terminal attributes --------------------------------
-static void rawmode(void)
-{
-	// no TERMIOS_CLEAR_ISIG: leave ISIG on - allow signals
-	set_termios_to_raw(STDIN_FILENO, &term_orig, TERMIOS_RAW_CRNL);
-	erase_char = term_orig.c_cc[VERASE];
-}
-
-static void cookmode(void)
-{
-	fflush_all();
-	tcsetattr_stdin_TCSANOW(&term_orig);
-}
-
-static int mysleep(int hund)	// sleep for 'hund' 1/100 seconds or stdin ready
-{
-	struct pollfd pfd[1];
-
-	if (hund != 0)
-		fflush_all();
-
-	pfd[0].fd = STDIN_FILENO;
-	pfd[0].events = POLLIN;
-	return safe_poll(pfd, 1, hund*10) > 0;
-}
-
 //----- IO Routines --------------------------------------------
 static int readit(void) // read (maybe cursor) key from stdin
 {
@@ -2637,55 +2693,6 @@ static int file_write(char *fn, char *first, char *last)
 	return charcnt;
 }
 
-//----- Terminal Drawing ---------------------------------------
-// The terminal is made up of 'rows' line of 'columns' columns.
-// classically this would be 24 x 80.
-//  screen coordinates
-//  0,0     ...     0,79
-//  1,0     ...     1,79
-//  .       ...     .
-//  .       ...     .
-//  22,0    ...     22,79
-//  23,0    ...     23,79   <- status line
-
-//----- Move the cursor to row x col (count from 0, not 1) -------
-static void place_cursor(int row, int col)
-{
-	char cm1[sizeof(ESC_SET_CURSOR_POS) + sizeof(int)*3 * 2];
-
-	if (row < 0) row = 0;
-	if (row >= rows) row = rows - 1;
-	if (col < 0) col = 0;
-	if (col >= columns) col = columns - 1;
-
-	sprintf(cm1, ESC_SET_CURSOR_POS, row + 1, col + 1);
-	write1(cm1);
-}
-
-//----- Erase from cursor to end of line -----------------------
-static void clear_to_eol(void)
-{
-	write1(ESC_CLEAR2EOL);
-}
-
-static void go_bottom_and_clear_to_eol(void)
-{
-	place_cursor(rows - 1, 0);
-	clear_to_eol();
-}
-
-//----- Start standout mode ------------------------------------
-static void standout_start(void)
-{
-	write1(ESC_BOLD_TEXT);
-}
-
-//----- End standout mode --------------------------------------
-static void standout_end(void)
-{
-	write1(ESC_NORM_TEXT);
-}
-
 //----- Flash the screen  --------------------------------------
 static void flash(int h)
 {
@@ -2707,13 +2714,6 @@ static void indicate_error(void)
 	} else {
 		flash(10);
 	}
-}
-
-//----- Screen[] Routines --------------------------------------
-//----- Erase the Screen[] memory ------------------------------
-static void screen_erase(void)
-{
-	memset(screen, ' ', screensize);	// clear new screen
 }
 
 static int bufsum(char *buf, int count)
