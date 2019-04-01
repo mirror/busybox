@@ -2444,48 +2444,6 @@ static void cookmode(void)
 	tcsetattr_stdin_TCSANOW(&term_orig);
 }
 
-#if ENABLE_FEATURE_VI_USE_SIGNALS
-static void winch_handler(int sig UNUSED_PARAM)
-{
-	int save_errno = errno;
-	// FIXME: do it in main loop!!!
-	signal(SIGWINCH, winch_handler);
-	query_screen_dimensions();
-	new_screen(rows, columns);	// get memory for virtual screen
-	redraw(TRUE);		// re-draw the screen
-	errno = save_errno;
-}
-static void tstp_handler(int sig UNUSED_PARAM)
-{
-	int save_errno = errno;
-
-	// ioctl inside cookmode() was seen to generate SIGTTOU,
-	// stopping us too early. Prevent that:
-	signal(SIGTTOU, SIG_IGN);
-
-	go_bottom_and_clear_to_eol();
-	cookmode(); // terminal to "cooked"
-
-	// stop now
-	//signal(SIGTSTP, SIG_DFL);
-	//raise(SIGTSTP);
-	raise(SIGSTOP); // avoid "dance" with TSTP handler - use SIGSTOP instead
-	//signal(SIGTSTP, tstp_handler);
-
-	// we have been "continued" with SIGCONT, restore screen and termios
-	rawmode(); // terminal to "raw"
-	last_status_cksum = 0; // force status update
-	redraw(TRUE); // re-draw the screen
-
-	errno = save_errno;
-}
-static void int_handler(int sig)
-{
-	signal(SIGINT, int_handler);
-	siglongjmp(restart, sig);
-}
-#endif /* FEATURE_VI_USE_SIGNALS */
-
 static int mysleep(int hund)	// sleep for 'hund' 1/100 seconds or stdin ready
 {
 	struct pollfd pfd[1];
@@ -3102,6 +3060,48 @@ static void refresh(int full_screen)
 	old_offset = offset;
 #undef old_offset
 }
+
+#if ENABLE_FEATURE_VI_USE_SIGNALS
+static void winch_handler(int sig UNUSED_PARAM)
+{
+	int save_errno = errno;
+	// FIXME: do it in main loop!!!
+	signal(SIGWINCH, winch_handler);
+	query_screen_dimensions();
+	new_screen(rows, columns);	// get memory for virtual screen
+	redraw(TRUE);		// re-draw the screen
+	errno = save_errno;
+}
+static void tstp_handler(int sig UNUSED_PARAM)
+{
+	int save_errno = errno;
+
+	// ioctl inside cookmode() was seen to generate SIGTTOU,
+	// stopping us too early. Prevent that:
+	signal(SIGTTOU, SIG_IGN);
+
+	go_bottom_and_clear_to_eol();
+	cookmode(); // terminal to "cooked"
+
+	// stop now
+	//signal(SIGTSTP, SIG_DFL);
+	//raise(SIGTSTP);
+	raise(SIGSTOP); // avoid "dance" with TSTP handler - use SIGSTOP instead
+	//signal(SIGTSTP, tstp_handler);
+
+	// we have been "continued" with SIGCONT, restore screen and termios
+	rawmode(); // terminal to "raw"
+	last_status_cksum = 0; // force status update
+	redraw(TRUE); // re-draw the screen
+
+	errno = save_errno;
+}
+static void int_handler(int sig)
+{
+	signal(SIGINT, int_handler);
+	siglongjmp(restart, sig);
+}
+#endif /* FEATURE_VI_USE_SIGNALS */
 
 static void do_cmd(int c);
 
