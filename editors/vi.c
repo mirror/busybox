@@ -330,9 +330,6 @@ struct globals {
 	int lmc_len;             // length of last_modifying_cmd
 	char *ioq, *ioq_start;   // pointer to string for get_one_char to "read"
 #endif
-#if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
-	int my_pid;
-#endif
 #if ENABLE_FEATURE_VI_SEARCH
 	char *last_search_pattern; // last pattern from a '/' or '?' search
 #endif
@@ -449,7 +446,6 @@ struct globals {
 #define lmc_len                 (G.lmc_len            )
 #define ioq                     (G.ioq                )
 #define ioq_start               (G.ioq_start          )
-#define my_pid                  (G.my_pid             )
 #define last_search_pattern     (G.last_search_pattern)
 
 #define edit_file__cur_line     (G.edit_file__cur_line)
@@ -634,11 +630,8 @@ int vi_main(int argc, char **argv)
 #endif
 #endif
 
-#if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
-	my_pid = getpid();
-#endif
 #if ENABLE_FEATURE_VI_CRASHME
-	srand((long) my_pid);
+	srand((long) getpid());
 #endif
 #ifdef NO_SUCH_APPLET_YET
 	// if we aren't "vi", we are "view"
@@ -2770,31 +2763,30 @@ static void winch_handler(int sig UNUSED_PARAM)
 	redraw(TRUE);		// re-draw the screen
 	errno = save_errno;
 }
-static void cont_handler(int sig UNUSED_PARAM)
+static void tstp_handler(int sig UNUSED_PARAM)
 {
 	int save_errno = errno;
+
+	// ioctl inside cookmode() was seen to generate SIGTTOU,
+	// stopping us too early. Prevent that:
+	signal(SIGTTOU, SIG_IGN);
+
+	go_bottom_and_clear_to_eol();
+	cookmode(); // terminal to "cooked"
+
+	// stop now
+	//signal(SIGTSTP, SIG_DFL);
+	//raise(SIGTSTP);
+	raise(SIGSTOP); // avoid "dance" with TSTP handler - use SIGSTOP instead
+	//signal(SIGTSTP, tstp_handler);
+
+	// we have been "continued" with SIGCONT, restore screen and termios
 	rawmode(); // terminal to "raw"
 	last_status_cksum = 0; // force status update
 	redraw(TRUE); // re-draw the screen
 
-	signal(SIGTSTP, tstp_handler);
-	signal(SIGCONT, SIG_DFL);
-	//kill(my_pid, SIGCONT); // huh? why? we are already "continued"...
 	errno = save_errno;
 }
-static void tstp_handler(int sig UNUSED_PARAM)
-{
-	int save_errno = errno;
-	go_bottom_and_clear_to_eol();
-	cookmode(); // terminal to "cooked"
-
-	signal(SIGCONT, cont_handler);
-	signal(SIGTSTP, SIG_DFL);
-	kill(my_pid, SIGTSTP);
-	errno = save_errno;
-}
-
-//----- Come here when we get a signal ---------------------------
 static void int_handler(int sig)
 {
 	signal(SIGINT, int_handler);
