@@ -301,7 +301,7 @@ struct globals {
 	smallint cmd_mode;       // 0=command  1=insert 2=replace
 	int modified_count;      // buffer contents changed if !0
 	int last_modified_count; // = -1;
-	int save_argc;           // how many file names on cmd line
+	int cmdline_filecnt;     // how many file names on cmd line
 	int cmdcnt;              // repetition count
 	unsigned rows, columns;	 // the terminal screen is this size
 #if ENABLE_FEATURE_VI_ASK_TERMINAL
@@ -416,7 +416,7 @@ struct globals {
 #define cmd_mode                (G.cmd_mode           )
 #define modified_count          (G.modified_count     )
 #define last_modified_count     (G.last_modified_count)
-#define save_argc               (G.save_argc          )
+#define cmdline_filecnt         (G.cmdline_filecnt    )
 #define cmdcnt                  (G.cmdcnt             )
 #define rows                    (G.rows               )
 #define columns                 (G.columns            )
@@ -2367,7 +2367,7 @@ static void colon(char *buf)
 		} else {
 			modified_count = 0;
 			last_modified_count = -1;
-			status_line("'%s' %dL, %dC",
+			status_line("'%s' %uL, %uC",
 				current_filename,
 				count_lines(text, end - 1), cnt
 			);
@@ -2538,7 +2538,7 @@ static void colon(char *buf)
 		li = count_lines(text, end - 1);
 		status_line("'%s'%s"
 			IF_FEATURE_VI_READONLY("%s")
-			" %dL, %dC",
+			" %uL, %uC",
 			current_filename,
 			(size < 0 ? " [New file]" : ""),
 			IF_FEATURE_VI_READONLY(
@@ -2604,7 +2604,7 @@ static void colon(char *buf)
 		if (useforce) {
 			if (*cmd == 'q') {
 				// force end of argv list
-				optind = save_argc;
+				optind = cmdline_filecnt - 1;
 			}
 			editing = 0;
 			goto ret;
@@ -2615,9 +2615,9 @@ static void colon(char *buf)
 			goto ret;
 		}
 		// are there other file to edit
-		n = save_argc - optind - 1;
+		n = cmdline_filecnt - optind - 1;
 		if (*cmd == 'q' && n > 0) {
-			status_line_bold("%d more file(s) to edit", n);
+			status_line_bold("%u more file(s) to edit", n);
 			goto ret;
 		}
 		if (*cmd == 'n' && n <= 0) {
@@ -2662,7 +2662,7 @@ static void colon(char *buf)
 		li = count_lines(q, q + size - 1);
 		status_line("'%s'"
 			IF_FEATURE_VI_READONLY("%s")
-			" %dL, %dC",
+			" %uL, %uC",
 			fn,
 			IF_FEATURE_VI_READONLY((readonly_mode ? " [Readonly]" : ""),)
 			li, size
@@ -2834,7 +2834,7 @@ static void colon(char *buf)
 		} else {
 			// how many lines written
 			li = count_lines(q, q + l - 1);
-			status_line("'%s' %dL, %dC", fn, li, l);
+			status_line("'%s' %uL, %uC", fn, li, l);
 			if (l == size) {
 				if (q == text && q + l == end) {
 					modified_count = 0;
@@ -4368,23 +4368,22 @@ int vi_main(int argc, char **argv)
 		}
 	}
 
-	// The argv array can be used by the ":next"  and ":rewind" commands
 	argv += optind;
-	argc -= optind;
+	cmdline_filecnt = argc - optind;
 
-	//----- This is the main file handling loop --------------
-	save_argc = argc;
-	optind = 0;
 	// "Save cursor, use alternate screen buffer, clear screen"
 	write1(ESC"[?1049h");
+	// This is the main file handling loop
+	optind = 0;
 	while (1) {
-		edit_file(argv[optind]); // param might be NULL
-		if (++optind >= argc)
+		edit_file(argv[optind]); // might be NULL on 1st iteration
+		// NB: optind can be changed by ":next" and ":rewind" commands
+		optind++;
+		if (!argv[optind])
 			break;
 	}
 	// "Use normal screen buffer, restore cursor"
 	write1(ESC"[?1049l");
-	//-----------------------------------------------------------
 
 	return 0;
 }
