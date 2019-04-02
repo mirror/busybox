@@ -20,6 +20,7 @@
 //config:	sync -d FILE... executes fdatasync() on each FILE.
 //config:	sync -f FILE... executes syncfs() on each FILE.
 
+//               APPLET_NOFORK:name  main  location    suid_type     help
 //applet:IF_SYNC(APPLET_NOFORK(sync, sync, BB_DIR_BIN, BB_SUID_DROP, sync))
 
 //kbuild:lib-$(CONFIG_SYNC) += sync.o
@@ -52,7 +53,7 @@ int sync_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 	return EXIT_SUCCESS;
 #else
 	unsigned opts;
-	int ret = EXIT_SUCCESS;
+	int ret;
 
 	enum {
 		OPT_DATASYNC = (1 << 0),
@@ -66,17 +67,15 @@ int sync_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 	if (!argv[0])
 		sync();
 
+	ret = EXIT_SUCCESS;
 	while (*argv) {
-		int fd = open_or_warn(*argv, O_RDONLY);
+		/* GNU "sync FILE" uses O_NONBLOCK open */
+		int fd = open_or_warn(*argv, /*O_NOATIME |*/ O_NOCTTY | O_RDONLY | O_NONBLOCK);
+		/* open(NOATIME) can only be used by owner or root, don't use NOATIME here */
 
 		if (fd < 0) {
 			ret = EXIT_FAILURE;
 			goto next;
-		}
-		if (opts & OPT_DATASYNC) {
-			if (fdatasync(fd))
-				goto err;
-			goto do_close;
 		}
 		if (opts & OPT_SYNCFS) {
 			/*
@@ -84,17 +83,14 @@ int sync_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 			 * which can't happen here. So, no error checks.
 			 */
 			syncfs(fd);
-			goto do_close;
-		}
-		if (fsync(fd)) {
- err:
+		} else
+		if (((opts & OPT_DATASYNC) ? fdatasync(fd) : fsync(fd)) != 0) {
 			bb_simple_perror_msg(*argv);
 			ret = EXIT_FAILURE;
 		}
- do_close:
 		close(fd);
  next:
-		++argv;
+		argv++;
 	}
 
 	return ret;
