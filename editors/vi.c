@@ -244,9 +244,7 @@ enum {
 
 #if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
 // cmds modifying text[]
-// vda: removed "aAiIs" as they switch us into insert mode
-// and remembering input for replay after them makes no sense
-static const char modifying_cmds[] ALIGN1 = "cCdDJoOpPrRxX<>~";
+static const char modifying_cmds[] ALIGN1 = "aAcCdDiIJoOpPrRs""xX<>~";
 #endif
 
 enum {
@@ -1053,8 +1051,11 @@ static int get_one_char(void)
 	}
 	// we are adding STDIN chars to q.
 	c = readit();
-	if (lmc_len >= MAX_INPUT_LEN - 1) {
-		status_line_bold("last_modifying_cmd overrun");
+	if (lmc_len >= ARRAY_SIZE(last_modifying_cmd) - 1) {
+		// last_modifying_cmd[] is too small, can't remeber the cmd
+		// - drop it
+		adding2q = 0;
+		lmc_len = 0;
 	} else {
 		last_modifying_cmd[lmc_len++] = c;
 	}
