@@ -722,20 +722,25 @@ static void screen_erase(void)
 	memset(screen, ' ', screensize);	// clear new screen
 }
 
-static char *new_screen(int ro, int co)
+static void new_screen(int ro, int co)
 {
-	int li;
+	char *s;
 
 	free(screen);
 	screensize = ro * co + 8;
-	screen = xmalloc(screensize);
+	s = screen = xmalloc(screensize);
 	// initialize the new screen. assume this will be a empty file.
 	screen_erase();
-	//   non-existent text[] lines start with a tilde (~).
-	for (li = 1; li < ro - 1; li++) {
-		screen[(li * co) + 0] = '~';
+	// non-existent text[] lines start with a tilde (~).
+	//screen[(1 * co) + 0] = '~';
+	//screen[(2 * co) + 0] = '~';
+	//..
+	//screen[((ro-2) * co) + 0] = '~';
+	ro -= 2;
+	while (--ro >= 0) {
+		s += co;
+		*s = '~';
 	}
-	return screen;
 }
 
 //----- Synchronize the cursor to Dot --------------------------
