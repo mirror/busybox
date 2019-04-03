@@ -722,6 +722,22 @@ static void screen_erase(void)
 	memset(screen, ' ', screensize);	// clear new screen
 }
 
+static char *new_screen(int ro, int co)
+{
+	int li;
+
+	free(screen);
+	screensize = ro * co + 8;
+	screen = xmalloc(screensize);
+	// initialize the new screen. assume this will be a empty file.
+	screen_erase();
+	//   non-existent text[] lines start with a tilde (~).
+	for (li = 1; li < ro - 1; li++) {
+		screen[(li * co) + 0] = '~';
+	}
+	return screen;
+}
+
 //----- Synchronize the cursor to Dot --------------------------
 static NOINLINE void sync_cursor(char *d, int *row, int *col)
 {
@@ -2881,22 +2897,6 @@ static void colon(char *buf)
 // Chars that are WhiteSpace
 //    TAB NEWLINE VT FF RETURN SPACE
 // DO NOT COUNT NEWLINE AS WHITESPACE
-
-static char *new_screen(int ro, int co)
-{
-	int li;
-
-	free(screen);
-	screensize = ro * co + 8;
-	screen = xmalloc(screensize);
-	// initialize the new screen. assume this will be a empty file.
-	screen_erase();
-	//   non-existent text[] lines start with a tilde (~).
-	for (li = 1; li < ro - 1; li++) {
-		screen[(li * co) + 0] = '~';
-	}
-	return screen;
-}
 
 static int st_test(char *p, int type, int dir, char *tested)
 {
