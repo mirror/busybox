@@ -2625,7 +2625,7 @@ static void colon(char *buf)
 		if (useforce) {
 			if (*cmd == 'q') {
 				// force end of argv list
-				optind = cmdline_filecnt - 1;
+				optind = cmdline_filecnt;
 			}
 			editing = 0;
 			goto ret;
@@ -4384,7 +4384,7 @@ int vi_main(int argc, char **argv)
 		edit_file(argv[optind]); // might be NULL on 1st iteration
 		// NB: optind can be changed by ":next" and ":rewind" commands
 		optind++;
-		if (!argv[optind])
+		if (optind >= cmdline_filecnt)
 			break;
 	}
 	// "Use normal screen buffer, restore cursor"
