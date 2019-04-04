@@ -285,7 +285,7 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 			buf2[1] = NOP;
 			ts->wridx2 = 0;
 			ts->rdidx2 = ts->size2 = 2;
-                }
+		}
 		rc = 2;
 		goto update_and_return;
 	}
