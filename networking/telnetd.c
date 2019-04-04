@@ -278,9 +278,14 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 		goto update_and_return;
 	}
 	if (buf[1] == AYT) {
-		/* Send back evidence that AYT was seen. */
-		buf[1] = NOP;
-		/*rc =*/ safe_write(ts->sockfd_write, buf, 2);
+		if (ts->size2 == 0) { /* if nothing buffered yet... */
+			/* Send back evidence that AYT was seen */
+			unsigned char *buf2 = TS_BUF2(ts);
+			buf2[0] = IAC;
+			buf2[1] = NOP;
+			ts->wridx2 = 0;
+			ts->rdidx2 = ts->size2 = 2;
+                }
 		rc = 2;
 		goto update_and_return;
 	}
