@@ -135,6 +135,17 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 		pol = sched_getscheduler(pid);
 		if (pol < 0)
 			bb_perror_msg_and_die("can't %cet pid %u's policy", 'g', (int)pid);
+#ifdef SCHED_RESET_ON_FORK
+		/* "Since Linux 2.6.32, the SCHED_RESET_ON_FORK flag
+		 * can be ORed in policy when calling sched_setscheduler().
+		 * As a result of including this flag, children created by
+		 * fork(2) do not inherit privileged scheduling policies"
+		 *
+		 * This bit is also returned by sched_getscheduler()!
+		 * (TODO: do we want to show it?)
+		 */
+		pol &= ~SCHED_RESET_ON_FORK;
+#endif
 		printf("pid %u's %s scheduling policy: SCHED_%s\n",
 			pid, current_new, policy_name(pol)
 		);
