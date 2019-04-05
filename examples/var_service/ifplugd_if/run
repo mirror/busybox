@@ -9,7 +9,7 @@ pwd="$PWD"
 if="${PWD##*/ifplugd_}"
 
 echo "* Upping iface $if"
-ip link set dev "$if" up
+ip link set dev "$if" up || { sleep 5; exit; }
 
 echo "* Starting ifplugd on $if [$$]"
 exec \

@@ -8,9 +8,9 @@ pwd="$PWD"
 if="${PWD##*/zcip_}"
 
 echo "* Upping iface $if"
-ip link set dev "$if" up
+ip link set dev "$if" up || { sleep 5; exit; }
 
-echo "* Starting zcip"
+echo "* Starting zcip on $if [$$]"
 exec \
 env - PATH="$PATH" \
 softlimit \

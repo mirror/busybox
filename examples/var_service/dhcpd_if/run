@@ -8,12 +8,12 @@ pwd="$PWD"
 if="${PWD##*/dhcpd_}"
 
 echo "* Upping iface $if"
-ip link set dev $if up
+ip link set dev $if up || { sleep 5; exit; }
 
 >>udhcpd.leases
 sed 's/^interface.*$/interface '"$if/" -i udhcpd.conf
 
-echo "* Starting udhcpd"
+echo "* Starting udhcpd on $if [$$]"
 exec \
 env - PATH="$PATH" \
 softlimit \

@@ -14,7 +14,7 @@ ip link set dev "$if" up || { sleep 5; exit; }
 ##echo "* Powersave disable on $if"
 ##iw dev "$if" set power_save off
 
-echo "* Starting wpa_supplicant"
+echo "* Starting wpa_supplicant on $if [$$]"
 exec \
 env - PATH="$PATH" \
 softlimit \

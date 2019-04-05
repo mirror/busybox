@@ -8,9 +8,9 @@ pwd="$PWD"
 if="${PWD##*/dhcp_}"
 
 echo "* Upping iface $if"
-ip link set dev "$if" up
+ip link set dev "$if" up || { sleep 5; exit; }
 
-echo "* Starting udhcpc"
+echo "* Starting udhcpc on $if [$$]"
 exec \
 env - PATH="$PATH" \
 softlimit \
