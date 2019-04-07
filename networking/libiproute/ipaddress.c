@@ -424,7 +424,6 @@ int FAST_FUNC ipaddr_list_or_flush(char **argv, int flush)
 	struct nlmsg_list *l;
 	struct rtnl_handle rth;
 	char *filter_dev = NULL;
-	int no_link = 0;
 
 	ipaddr_reset_filter(oneline);
 	G_filter.showqueue = 1;
@@ -515,9 +514,6 @@ int FAST_FUNC ipaddr_list_or_flush(char **argv, int flush)
 	if (G_filter.family && G_filter.family != AF_PACKET) {
 		struct nlmsg_list **lp;
 		lp = &linfo;
-
-		if (G_filter.oneline)
-			no_link = 1;
 
 		while ((l = *lp) != NULL) {
 			int ok = 0;
