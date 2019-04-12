@@ -40,7 +40,7 @@ void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 	if (dhcp_verbose < 2)
 		return;
 
-	bb_error_msg(
+	bb_info_msg(
 		//" op %x"
 		//" htype %x"
 		" hlen %x"
@@ -73,7 +73,7 @@ void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 		//, packet->options[]
 	);
 	*bin2hex(buf, (void *) packet->chaddr, sizeof(packet->chaddr)) = '\0';
-	bb_error_msg(" chaddr %s", buf);
+	bb_info_msg(" chaddr %s", buf);
 }
 #endif
 
@@ -92,7 +92,7 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 	if (bytes < offsetof(struct dhcp_packet, options)
 	 || packet->cookie != htonl(DHCP_MAGIC)
 	) {
-		bb_error_msg("packet with bad magic, ignoring");
+		bb_info_msg("packet with bad magic, ignoring");
 		return -2;
 	}
 	log1("received %s", "a packet");

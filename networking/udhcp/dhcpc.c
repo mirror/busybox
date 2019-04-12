@@ -730,7 +730,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
 	 */
 	add_client_options(&packet);
 
-	bb_error_msg("sending %s", "discover");
+	bb_info_msg("sending %s", "discover");
 	return raw_bcast_from_client_config_ifindex(&packet, INADDR_ANY);
 }
 
@@ -774,7 +774,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 	add_client_options(&packet);
 
 	temp_addr.s_addr = requested;
-	bb_error_msg("sending select for %s", inet_ntoa(temp_addr));
+	bb_info_msg("sending select for %s", inet_ntoa(temp_addr));
 	return raw_bcast_from_client_config_ifindex(&packet, INADDR_ANY);
 }
 
@@ -815,7 +815,7 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	add_client_options(&packet);
 
 	temp_addr.s_addr = server;
-	bb_error_msg("sending renew to %s", inet_ntoa(temp_addr));
+	bb_info_msg("sending renew to %s", inet_ntoa(temp_addr));
 	return bcast_or_ucast(&packet, ciaddr, server);
 }
 
@@ -844,7 +844,7 @@ static NOINLINE int send_decline(/*uint32_t xid,*/ uint32_t server, uint32_t req
 
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
-	bb_error_msg("sending %s", "decline");
+	bb_info_msg("sending %s", "decline");
 	return raw_bcast_from_client_config_ifindex(&packet, INADDR_ANY);
 }
 #endif
@@ -866,7 +866,7 @@ int send_release(uint32_t server, uint32_t ciaddr)
 
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
-	bb_error_msg("sending %s", "release");
+	bb_info_msg("sending %s", "release");
 	/* Note: normally we unicast here since "server" is not zero.
 	 * However, there _are_ people who run "address-less" DHCP servers,
 	 * and reportedly ISC dhcp client and Windows allow that.
@@ -969,7 +969,7 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
  skip_udp_sum_check:
 
 	if (packet.data.cookie != htonl(DHCP_MAGIC)) {
-		bb_error_msg("packet with bad magic, ignoring");
+		bb_info_msg("packet with bad magic, ignoring");
 		return -2;
 	}
 
@@ -1117,7 +1117,7 @@ static void change_listen_mode(int new_mode)
 /* Called only on SIGUSR1 */
 static void perform_renew(void)
 {
-	bb_error_msg("performing DHCP renew");
+	bb_info_msg("performing DHCP renew");
 	switch (state) {
 	case BOUND:
 		change_listen_mode(LISTEN_KERNEL);
@@ -1151,11 +1151,11 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 		temp_addr.s_addr = server_addr;
 		strcpy(buffer, inet_ntoa(temp_addr));
 		temp_addr.s_addr = requested_ip;
-		bb_error_msg("unicasting a release of %s to %s",
+		bb_info_msg("unicasting a release of %s to %s",
 				inet_ntoa(temp_addr), buffer);
 		send_release(server_addr, requested_ip); /* unicast */
 	}
-	bb_error_msg("entering released state");
+	bb_info_msg("entering released state");
 /*
  * We can be here on: SIGUSR2,
  * or on exit (SIGTERM) and -R "release on quit" is specified.
@@ -1391,7 +1391,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	/* Create pidfile */
 	write_pidfile(client_config.pidfile);
 	/* Goes to stdout (unless NOMMU) and possibly syslog */
-	bb_error_msg("started, v"BB_VER);
+	bb_info_msg("started, v"BB_VER);
 	/* Set up the signal pipe */
 	udhcp_sp_setup();
 	/* We want random_xid to be random... */
@@ -1481,7 +1481,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				udhcp_run_script(NULL, "leasefail");
 #if BB_MMU /* -b is not supported on NOMMU */
 				if (opt & OPT_b) { /* background if no lease */
-					bb_error_msg("no lease, forking to background");
+					bb_info_msg("no lease, forking to background");
 					client_background();
 					/* do not background again! */
 					opt = ((opt & ~(OPT_b|OPT_n)) | OPT_f);
@@ -1494,7 +1494,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				} else
 #endif
 				if (opt & OPT_n) { /* abort if no lease */
-					bb_error_msg("no lease, failing");
+					bb_info_msg("no lease, failing");
 					retval = 1;
 					goto ret;
 				}
@@ -1570,7 +1570,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Timed out, enter init state */
-				bb_error_msg("lease lost, entering init state");
+				bb_info_msg("lease lost, entering init state");
 				udhcp_run_script(NULL, "deconfig");
 				state = INIT_SELECTING;
 				client_config.first_secs = 0; /* make secs field count from 0 */
@@ -1615,7 +1615,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			timeout = INT_MAX;
 			continue;
 		case SIGTERM:
-			bb_error_msg("received %s", "SIGTERM");
+			bb_info_msg("received %s", "SIGTERM");
 			goto ret0;
 		}
 
@@ -1662,7 +1662,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 		message = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
 		if (message == NULL) {
-			bb_error_msg("no message type option, ignoring packet");
+			bb_info_msg("no message type option, ignoring packet");
 			continue;
 		}
 
@@ -1691,7 +1691,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
  * might work too.
  * "Next server" and router are definitely wrong ones to use, though...
  */
-/* We used to ignore pcakets without DHCP_SERVER_ID.
+/* We used to ignore packets without DHCP_SERVER_ID.
  * I've got user reports from people who run "address-less" servers.
  * They either supply DHCP_SERVER_ID of 0.0.0.0 or don't supply it at all.
  * They say ISC DHCP client supports this case.
@@ -1699,7 +1699,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				server_addr = 0;
 				temp = udhcp_get_option32(&packet, DHCP_SERVER_ID);
 				if (!temp) {
-					bb_error_msg("no server ID, using 0.0.0.0");
+					bb_info_msg("no server ID, using 0.0.0.0");
 				} else {
 					/* it IS unaligned sometimes, don't "optimize" */
 					move_from_unaligned32(server_addr, temp);
@@ -1726,7 +1726,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 				temp = udhcp_get_option32(&packet, DHCP_LEASE_TIME);
 				if (!temp) {
-					bb_error_msg("no lease time with ACK, using 1 hour lease");
+					bb_info_msg("no lease time with ACK, using 1 hour lease");
 					lease_seconds = 60 * 60;
 				} else {
 					/* it IS unaligned sometimes, don't "optimize" */
@@ -1759,7 +1759,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 							client_config.interface,
 							arpping_ms)
 					) {
-						bb_error_msg("offered address is in use "
+						bb_info_msg("offered address is in use "
 							"(got ARP reply), declining");
 						send_decline(/*xid,*/ server_addr, packet.yiaddr);
 
@@ -1778,7 +1778,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 #endif
 				/* enter bound state */
 				temp_addr.s_addr = packet.yiaddr;
-				bb_error_msg("lease of %s obtained, lease time %u",
+				bb_info_msg("lease of %s obtained, lease time %u",
 					inet_ntoa(temp_addr), (unsigned)lease_seconds);
 				requested_ip = packet.yiaddr;
 
@@ -1831,7 +1831,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						goto non_matching_svid;
 				}
 				/* return to init state */
-				bb_error_msg("received %s", "DHCP NAK");
+				bb_info_msg("received %s", "DHCP NAK");
 				udhcp_run_script(&packet, "nak");
 				if (state != REQUESTING)
 					udhcp_run_script(NULL, "deconfig");

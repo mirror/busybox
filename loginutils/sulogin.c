@@ -68,17 +68,17 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		);
 		if (r < 0) {
 			/* ^D, ^C, timeout, or read error */
-			bb_error_msg("normal startup");
+			bb_info_msg("normal startup");
 			return 0;
 		}
 		if (r > 0) {
 			break;
 		}
 		bb_do_delay(LOGIN_FAIL_DELAY);
-		bb_error_msg("Login incorrect");
+		bb_info_msg("Login incorrect");
 	}
 
-	bb_error_msg("starting shell for system maintenance");
+	bb_info_msg("starting shell for system maintenance");
 
 	IF_SELINUX(renew_current_security_context());
 

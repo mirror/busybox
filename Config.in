@@ -339,6 +339,15 @@ config FEATURE_CLEAN_UP
 	Don't enable this unless you have a really good reason to clean
 	things up manually.
 
+config FEATURE_SYSLOG_INFO
+	bool "Support LOG_INFO level syslog messages"
+	default y
+	depends on FEATURE_SYSLOG
+	help
+	Applets which send their output to syslog use either LOG_INFO or
+	LOG_ERR log levels, but by disabling this option all messages will
+	be logged at the LOG_ERR level, saving just under 200 bytes.
+
 # These are auto-selected by other options
 
 config FEATURE_SYSLOG

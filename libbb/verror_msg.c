@@ -12,7 +12,7 @@
 #endif
 
 #if ENABLE_FEATURE_SYSLOG
-smallint syslog_level = LOG_ERR;
+static smallint syslog_level = LOG_ERR;
 #endif
 smallint logmode = LOGMODE_STDIO;
 const char *msg_eol = "\n";
@@ -154,7 +154,7 @@ void FAST_FUNC bb_verror_msg(const char *s, va_list p, const char* strerr)
 	}
 # if ENABLE_FEATURE_SYSLOG
 	if (logmode & LOGMODE_SYSLOG) {
-		syslog(LOG_ERR, "%s", msgc);
+		syslog(syslog_level, "%s", msgc);
 	}
 # endif
 	free(msgc);
@@ -180,3 +180,21 @@ void FAST_FUNC bb_error_msg(const char *s, ...)
 	bb_verror_msg(s, p, NULL);
 	va_end(p);
 }
+
+#if ENABLE_FEATURE_SYSLOG_INFO
+void FAST_FUNC bb_vinfo_msg(const char *s, va_list p)
+{
+	syslog_level = LOG_INFO;
+	bb_verror_msg(s, p, NULL);
+	syslog_level = LOG_ERR;
+}
+
+void FAST_FUNC bb_info_msg(const char *s, ...)
+{
+	va_list p;
+
+	va_start(p, s);
+	bb_vinfo_msg(s, p);
+	va_end(p);
+}
+#endif

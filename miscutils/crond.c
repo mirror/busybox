@@ -181,9 +181,7 @@ static void crondlog(unsigned level, const char *msg, va_list va)
 		 * need not touch syslog_level
 		 * (they are ok with LOG_ERR default).
 		 */
-		syslog_level = LOG_INFO;
-		bb_verror_msg(msg, va, /* strerr: */ NULL);
-		syslog_level = LOG_ERR;
+		bb_vinfo_msg(msg, va);
 	}
 }
 
@@ -1108,7 +1106,7 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 		process_cron_update_file();
 		log5("wakeup dt=%ld", dt);
 		if (dt < -60 * 60 || dt > 60 * 60) {
-			bb_error_msg("time disparity of %ld minutes detected", dt / 60);
+			bb_info_msg("time disparity of %ld minutes detected", dt / 60);
 			/* and we do not run any jobs in this case */
 		} else if (dt > 0) {
 			/* Usual case: time advances forward, as expected */

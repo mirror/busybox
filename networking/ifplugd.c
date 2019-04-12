@@ -326,7 +326,7 @@ static int run_script(const char *action)
 	char *argv[5];
 	int r;
 
-	bb_error_msg("executing '%s %s %s'", G.script_name, G.iface, action);
+	bb_info_msg("executing '%s %s %s'", G.script_name, G.iface, action);
 
 	argv[0] = (char*) G.script_name;
 	argv[1] = (char*) G.iface;
@@ -345,7 +345,7 @@ static int run_script(const char *action)
 	bb_unsetenv_and_free(env_PREVIOUS);
 	bb_unsetenv_and_free(env_CURRENT);
 
-	bb_error_msg("exit code: %d", r & 0xff);
+	bb_info_msg("exit code: %d", r & 0xff);
 	return (option_mask32 & FLAG_IGNORE_RETVAL) ? 0 : r;
 }
 
@@ -365,7 +365,7 @@ static void up_iface(void)
 	if (!(ifrequest.ifr_flags & IFF_UP)) {
 		ifrequest.ifr_flags |= IFF_UP;
 		/* Let user know we mess up with interface */
-		bb_error_msg("upping interface");
+		bb_info_msg("upping interface");
 		if (network_ioctl(SIOCSIFFLAGS, &ifrequest, "setting interface flags") < 0) {
 			if (errno != ENODEV && errno != EADDRNOTAVAIL)
 				xfunc_die();
@@ -414,7 +414,7 @@ static void maybe_up_new_iface(void)
 				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[5]));
 		}
 
-		bb_error_msg("using interface %s%s with driver<%s> (version: %s)",
+		bb_info_msg("using interface %s%s with driver<%s> (version: %s)",
 			G.iface, buf, driver_info.driver, driver_info.version);
 	}
 #endif
@@ -447,7 +447,7 @@ static smallint detect_link(void)
 			logmode = sv_logmode;
 			if (status != IFSTATUS_ERR) {
 				G.api_method_num = i;
-				bb_error_msg("using %s detection mode", method_table[i].name);
+				bb_info_msg("using %s detection mode", method_table[i].name);
 				break;
 			}
 		}
@@ -632,7 +632,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 		/* | (1 << SIGCHLD) - run_script does not use it anymore */
 		, record_signo);
 
-	bb_error_msg("started: %s", bb_banner);
+	bb_info_msg("started: %s", bb_banner);
 
 	if (opts & FLAG_MONITOR) {
 		struct ifreq ifrequest;
@@ -649,7 +649,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 	iface_status_str = strstatus(iface_status);
 
 	if (opts & FLAG_MONITOR) {
-		bb_error_msg("interface %s",
+		bb_info_msg("interface %s",
 			G.iface_exists ? "exists"
 			: "doesn't exist, waiting");
 	}
@@ -657,7 +657,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 	 * by potentially lying that it really exists */
 
 	if (G.iface_exists) {
-		bb_error_msg("link is %s", iface_status_str);
+		bb_info_msg("link is %s", iface_status_str);
 	}
 
 	if ((!(opts & FLAG_NO_STARTUP)
@@ -712,7 +712,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 			if (G.iface_exists < 0) /* error */
 				goto exiting;
 			if (iface_exists_old != G.iface_exists) {
-				bb_error_msg("interface %sappeared",
+				bb_info_msg("interface %sappeared",
 						G.iface_exists ? "" : "dis");
 				if (G.iface_exists)
 					maybe_up_new_iface();
@@ -730,7 +730,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 		iface_status_str = strstatus(iface_status);
 
 		if (iface_status_old != iface_status) {
-			bb_error_msg("link is %s", iface_status_str);
+			bb_info_msg("link is %s", iface_status_str);
 
 			if (delay_time) {
 				/* link restored its old status before

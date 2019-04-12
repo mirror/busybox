@@ -17,7 +17,7 @@ void FAST_FUNC d6_dump_packet(struct d6_packet *packet)
 	if (dhcp_verbose < 2)
 		return;
 
-	bb_error_msg(
+	bb_info_msg(
 		" xid %x"
 		, packet->d6_xid32
 	);
@@ -40,7 +40,7 @@ int FAST_FUNC d6_recv_kernel_packet(struct in6_addr *peer_ipv6
 	}
 
 	if (bytes < offsetof(struct d6_packet, d6_options)) {
-		bb_error_msg("packet with bad magic, ignoring");
+		bb_info_msg("packet with bad magic, ignoring");
 		return -2;
 	}
 	log1("received %s", "a packet");

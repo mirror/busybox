@@ -104,7 +104,7 @@ static void log_static_leases(struct static_lease **st_lease_pp)
 
 	cur = *st_lease_pp;
 	while (cur) {
-		bb_error_msg("static lease: mac:%02x:%02x:%02x:%02x:%02x:%02x nip:%x",
+		bb_info_msg("static lease: mac:%02x:%02x:%02x:%02x:%02x:%02x nip:%x",
 			cur->mac[0], cur->mac[1], cur->mac[2],
 			cur->mac[3], cur->mac[4], cur->mac[5],
 			cur->nip
@@ -242,7 +242,7 @@ static int nobody_responds_to_arp(uint32_t nip, const uint8_t *safe_mac, unsigne
 		return r;
 
 	temp.s_addr = nip;
-	bb_error_msg("%s belongs to someone, reserving it for %u seconds",
+	bb_info_msg("%s belongs to someone, reserving it for %u seconds",
 		inet_ntoa(temp), (unsigned)server_config.conflict_time);
 	add_lease(NULL, nip, server_config.conflict_time, NULL, 0);
 	return 0;
@@ -722,7 +722,7 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 	add_server_options(&packet);
 
 	addr.s_addr = packet.yiaddr;
-	bb_error_msg("sending OFFER of %s", inet_ntoa(addr));
+	bb_info_msg("sending OFFER of %s", inet_ntoa(addr));
 	/* send_packet emits error message itself if it detects failure */
 	send_packet(&packet, /*force_bcast:*/ 0);
 }
@@ -755,7 +755,7 @@ static NOINLINE void send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 	add_server_options(&packet);
 
 	addr.s_addr = yiaddr;
-	bb_error_msg("sending ACK to %s", inet_ntoa(addr));
+	bb_info_msg("sending ACK to %s", inet_ntoa(addr));
 	send_packet(&packet, /*force_bcast:*/ 0);
 
 	p_host_name = (const char*) udhcp_get_option(oldpacket, DHCP_HOST_NAME);
@@ -865,7 +865,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	write_pidfile(server_config.pidfile);
 	/* if (!..) bb_perror_msg("can't create pidfile %s", pidfile); */
 
-	bb_error_msg("started, v"BB_VER);
+	bb_info_msg("started, v"BB_VER);
 
 	option = udhcp_find_option(server_config.options, DHCP_LEASE_TIME);
 	server_config.max_lease_sec = DEFAULT_LEASE_TIME;
@@ -944,12 +944,12 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 		if (pfds[0].revents) switch (udhcp_sp_read()) {
 		case SIGUSR1:
-			bb_error_msg("received %s", "SIGUSR1");
+			bb_info_msg("received %s", "SIGUSR1");
 			write_leases();
 			/* why not just reset the timeout, eh */
 			goto continue_with_autotime;
 		case SIGTERM:
-			bb_error_msg("received %s", "SIGTERM");
+			bb_info_msg("received %s", "SIGTERM");
 			write_leases();
 			goto ret0;
 		}
@@ -973,16 +973,16 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 		if (packet.hlen != 6) {
-			bb_error_msg("MAC length != 6, ignoring packet");
+			bb_info_msg("MAC length != 6, ignoring packet");
 			continue;
 		}
 		if (packet.op != BOOTREQUEST) {
-			bb_error_msg("not a REQUEST, ignoring packet");
+			bb_info_msg("not a REQUEST, ignoring packet");
 			continue;
 		}
 		state = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
 		if (state == NULL || state[0] < DHCP_MINTYPE || state[0] > DHCP_MAXTYPE) {
-			bb_error_msg("no or bad message type option, ignoring packet");
+			bb_info_msg("no or bad message type option, ignoring packet");
 			continue;
 		}
 
@@ -1001,7 +1001,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		/* Look for a static/dynamic lease */
 		static_lease_nip = get_static_nip_by_mac(server_config.static_leases, &packet.chaddr);
 		if (static_lease_nip) {
-			bb_error_msg("found static lease: %x", static_lease_nip);
+			bb_info_msg("found static lease: %x", static_lease_nip);
 			memcpy(&fake_lease.lease_mac, &packet.chaddr, 6);
 			fake_lease.lease_nip = static_lease_nip;
 			fake_lease.expires = 0;

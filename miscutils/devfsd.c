@@ -343,7 +343,7 @@ static const char bb_msg_variable_not_found[] ALIGN1 = "variable: %s not found";
 
 /* Busybox stuff */
 #if ENABLE_DEVFSD_VERBOSE || ENABLE_DEBUG
-#define info_logger(p, fmt, args...)                 bb_error_msg(fmt, ## args)
+#define info_logger(p, fmt, args...)                 bb_info_msg(fmt, ## args)
 #define msg_logger(p, fmt, args...)                  bb_error_msg(fmt, ## args)
 #define msg_logger_and_die(p, fmt, args...)          bb_error_msg_and_die(fmt, ## args)
 #define error_logger(p, fmt, args...)                bb_perror_msg(fmt, ## args)

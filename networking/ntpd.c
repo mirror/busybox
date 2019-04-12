@@ -1130,7 +1130,7 @@ step_time(double offset)
 	}
 	tval = tvn.tv_sec;
 	strftime_YYYYMMDDHHMMSS(buf, sizeof(buf), &tval);
-	bb_error_msg("setting time to %s.%06u (offset %+fs)", buf, (unsigned)tvn.tv_usec, offset);
+	bb_info_msg("setting time to %s.%06u (offset %+fs)", buf, (unsigned)tvn.tv_usec, offset);
 	//maybe? G.FREQHOLD_cnt = 0;
 
 	/* Correct various fields which contain time-relative values: */
@@ -2132,7 +2132,7 @@ recv_and_process_peer_pkt(peer_t *p)
 
 	p->reachable_bits |= 1;
 	if ((MAX_VERBOSE && G.verbose) || (option_mask32 & OPT_w)) {
-		bb_error_msg("reply from %s: offset:%+f delay:%f status:0x%02x strat:%d refid:0x%08x rootdelay:%f reach:0x%02x",
+		bb_info_msg("reply from %s: offset:%+f delay:%f status:0x%02x strat:%d refid:0x%08x rootdelay:%f reach:0x%02x",
 			p->p_dotted,
 			offset,
 			p->p_raw_delay,

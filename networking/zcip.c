@@ -195,7 +195,7 @@ static int run(char *argv[3], const char *param, uint32_t nip)
 		putenv(env_ip);
 		fmt -= 3;
 	}
-	bb_error_msg(fmt, argv[2], argv[0], addr);
+	bb_info_msg(fmt, argv[2], argv[0], addr);
 	status = spawn_and_wait(argv + 1);
 	if (nip != 0)
 		bb_unsetenv_and_free(env_ip);
@@ -339,7 +339,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 #if BB_MMU
 		bb_daemonize(0 /*was: DAEMON_CHDIR_ROOT*/);
 #endif
-		bb_error_msg("start, interface %s", argv_intf);
+		bb_info_msg("start, interface %s", argv_intf);
 	}
 
 	// Run the dynamic address negotiation protocol,

@@ -670,7 +670,7 @@ static NOINLINE int send_d6_discover(uint32_t xid, struct in6_addr *requested_ip
 	 */
 	opt_ptr = add_d6_client_options(opt_ptr);
 
-	bb_error_msg("sending %s", "discover");
+	bb_info_msg("sending %s", "discover");
 	return d6_mcast_from_client_config_ifindex(&packet, opt_ptr);
 }
 
@@ -727,7 +727,7 @@ static NOINLINE int send_d6_select(uint32_t xid)
 	 */
 	opt_ptr = add_d6_client_options(opt_ptr);
 
-	bb_error_msg("sending %s", "select");
+	bb_info_msg("sending %s", "select");
 	return d6_mcast_from_client_config_ifindex(&packet, opt_ptr);
 }
 
@@ -800,7 +800,7 @@ static NOINLINE int send_d6_renew(uint32_t xid, struct in6_addr *server_ipv6, st
 	 */
 	opt_ptr = add_d6_client_options(opt_ptr);
 
-	bb_error_msg("sending %s", "renew");
+	bb_info_msg("sending %s", "renew");
 	if (server_ipv6)
 		return d6_send_kernel_packet(
 			&packet, (opt_ptr - (uint8_t*) &packet),
@@ -830,7 +830,7 @@ int send_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
 	if (client6_data.ia_pd)
 		opt_ptr = mempcpy(opt_ptr, client6_data.ia_pd, client6_data.ia_pd->len + 2+2);
 
-	bb_error_msg("sending %s", "release");
+	bb_info_msg("sending %s", "release");
 	return d6_send_kernel_packet(
 		&packet, (opt_ptr - (uint8_t*) &packet),
 		our_cur_ipv6, CLIENT_PORT6,
@@ -1033,7 +1033,7 @@ static void change_listen_mode(int new_mode)
 /* Called only on SIGUSR1 */
 static void perform_renew(void)
 {
-	bb_error_msg("performing DHCP renew");
+	bb_info_msg("performing DHCP renew");
 	switch (state) {
 	case BOUND:
 		change_listen_mode(LISTEN_KERNEL);
@@ -1061,10 +1061,10 @@ static void perform_d6_release(struct in6_addr *server_ipv6, struct in6_addr *ou
 	 || state == REBINDING
 	 || state == RENEW_REQUESTED
 	) {
-		bb_error_msg("unicasting a release");
+		bb_info_msg("unicasting a release");
 		send_d6_release(server_ipv6, our_cur_ipv6); /* unicast */
 	}
-	bb_error_msg("entering released state");
+	bb_info_msg("entering released state");
 /*
  * We can be here on: SIGUSR2,
  * or on exit (SIGTERM) and -R "release on quit" is specified.
@@ -1274,7 +1274,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	/* Create pidfile */
 	write_pidfile(client_config.pidfile);
 	/* Goes to stdout (unless NOMMU) and possibly syslog */
-	bb_error_msg("started, v"BB_VER);
+	bb_info_msg("started, v"BB_VER);
 	/* Set up the signal pipe */
 	udhcp_sp_setup();
 
@@ -1363,7 +1363,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				d6_run_script_no_option("leasefail");
 #if BB_MMU /* -b is not supported on NOMMU */
 				if (opt & OPT_b) { /* background if no lease */
-					bb_error_msg("no lease, forking to background");
+					bb_info_msg("no lease, forking to background");
 					client_background();
 					/* do not background again! */
 					opt = ((opt & ~(OPT_b|OPT_n)) | OPT_f);
@@ -1376,7 +1376,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				} else
 #endif
 				if (opt & OPT_n) { /* abort if no lease */
-					bb_error_msg("no lease, failing");
+					bb_info_msg("no lease, failing");
 					retval = 1;
 					goto ret;
 				}
@@ -1439,7 +1439,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Timed out, enter init state */
-				bb_error_msg("lease lost, entering init state");
+				bb_info_msg("lease lost, entering init state");
 				d6_run_script_no_option("deconfig");
 				state = INIT_SELECTING;
 				client_config.first_secs = 0; /* make secs field count from 0 */
@@ -1484,7 +1484,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			timeout = INT_MAX;
 			continue;
 		case SIGTERM:
-			bb_error_msg("received %s", "SIGTERM");
+			bb_info_msg("received %s", "SIGTERM");
 			goto ret0;
 		}
 
@@ -1544,7 +1544,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				option = d6_find_option(packet.d6_options, packet_end, D6_OPT_STATUS_CODE);
 				if (option && (option->data[0] | option->data[1]) != 0) {
 					/* return to init state */
-					bb_error_msg("received DHCP NAK (%u)", option->data[4]);
+					bb_info_msg("received DHCP NAK (%u)", option->data[4]);
 					d6_run_script(packet.d6_options,
 							packet_end, "nak");
 					if (state != REQUESTING)
@@ -1561,7 +1561,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				}
 				option = d6_copy_option(packet.d6_options, packet_end, D6_OPT_SERVERID);
 				if (!option) {
-					bb_error_msg("no server ID, ignoring packet");
+					bb_info_msg("no server ID, ignoring packet");
 					continue;
 					/* still selecting - this server looks bad */
 				}
@@ -1670,11 +1670,11 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					free(client6_data.ia_na);
 					client6_data.ia_na = d6_copy_option(packet.d6_options, packet_end, D6_OPT_IA_NA);
 					if (!client6_data.ia_na) {
-						bb_error_msg("no %s option, ignoring packet", "IA_NA");
+						bb_info_msg("no %s option, ignoring packet", "IA_NA");
 						continue;
 					}
 					if (client6_data.ia_na->len < (4 + 4 + 4) + (2 + 2 + 16 + 4 + 4)) {
-						bb_error_msg("%s option is too short:%d bytes",
+						bb_info_msg("%s option is too short:%d bytes",
 							"IA_NA", client6_data.ia_na->len);
 						continue;
 					}
@@ -1683,11 +1683,11 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 							D6_OPT_IAADDR
 					);
 					if (!iaaddr) {
-						bb_error_msg("no %s option, ignoring packet", "IAADDR");
+						bb_info_msg("no %s option, ignoring packet", "IAADDR");
 						continue;
 					}
 					if (iaaddr->len < (16 + 4 + 4)) {
-						bb_error_msg("%s option is too short:%d bytes",
+						bb_info_msg("%s option is too short:%d bytes",
 							"IAADDR", iaaddr->len);
 						continue;
 					}
@@ -1698,7 +1698,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					move_from_unaligned32(lease_seconds, iaaddr->data + 16 + 4);
 					lease_seconds = ntohl(lease_seconds);
 /// TODO: check for 0 lease time?
-					bb_error_msg("%s obtained, lease time %u",
+					bb_info_msg("%s obtained, lease time %u",
 						"IPv6", /*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
 					address_timeout = lease_seconds;
 				}
@@ -1708,11 +1708,11 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					free(client6_data.ia_pd);
 					client6_data.ia_pd = d6_copy_option(packet.d6_options, packet_end, D6_OPT_IA_PD);
 					if (!client6_data.ia_pd) {
-						bb_error_msg("no %s option, ignoring packet", "IA_PD");
+						bb_info_msg("no %s option, ignoring packet", "IA_PD");
 						continue;
 					}
 					if (client6_data.ia_pd->len < (4 + 4 + 4) + (2 + 2 + 4 + 4 + 1 + 16)) {
-						bb_error_msg("%s option is too short:%d bytes",
+						bb_info_msg("%s option is too short:%d bytes",
 							"IA_PD", client6_data.ia_pd->len);
 						continue;
 					}
@@ -1721,17 +1721,17 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 							D6_OPT_IAPREFIX
 					);
 					if (!iaprefix) {
-						bb_error_msg("no %s option, ignoring packet", "IAPREFIX");
+						bb_info_msg("no %s option, ignoring packet", "IAPREFIX");
 						continue;
 					}
 					if (iaprefix->len < (4 + 4 + 1 + 16)) {
-						bb_error_msg("%s option is too short:%d bytes",
+						bb_info_msg("%s option is too short:%d bytes",
 							"IAPREFIX", iaprefix->len);
 						continue;
 					}
 					move_from_unaligned32(lease_seconds, iaprefix->data + 4);
 					lease_seconds = ntohl(lease_seconds);
-					bb_error_msg("%s obtained, lease time %u",
+					bb_info_msg("%s obtained, lease time %u",
 						"prefix", /*inet_ntoa(temp_addr),*/ (unsigned)lease_seconds);
 					prefix_timeout = lease_seconds;
 				}
@@ -1781,4 +1781,3 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	/*if (client_config.pidfile) - remove_pidfile has its own check */
 		remove_pidfile(client_config.pidfile);
 	return retval;
-}
