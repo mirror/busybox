@@ -2,15 +2,13 @@
 /*
  * DHCPv6 client.
  *
- * WARNING: THIS CODE IS INCOMPLETE.
- *
  * Copyright (C) 2011-2017 Denys Vlasenko.
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config UDHCPC6
 //config:	bool "udhcpc6 (21 kb)"
-//config:	default n  # not yet ready
+//config:	default y
 //config:	depends on FEATURE_IPV6
 //config:	help
 //config:	udhcpc6 is a DHCPv6 client
