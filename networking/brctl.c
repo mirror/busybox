@@ -9,9 +9,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-/* This applet currently uses only the ioctl interface and no sysfs at all.
- * At the time of this writing this was considered a feature.
- */
 //config:config BRCTL
 //config:	bool "brctl (4.7 kb)"
 //config:	default y
@@ -46,7 +43,7 @@
 //usage:#define brctl_trivial_usage
 //usage:       "COMMAND [BRIDGE [ARGS]]"
 //usage:#define brctl_full_usage "\n\n"
-//usage:       "Manage ethernet bridges\n"
+//usage:       "Manage ethernet bridges"
 //usage:     "\nCommands:"
 //usage:	IF_FEATURE_BRCTL_SHOW(
 //usage:     "\n	show [BRIDGE]...	Show bridges"
@@ -364,6 +361,23 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			//goto done_next_argv;
 			return EXIT_SUCCESS;
 		}
+
+/* TODO: "showmacs BR"
+ *	port no\tmac addr\t\tis local?\tageing timer
+ *	<sp><sp>1\txx:xx:xx:xx:xx:xx\tno\t\t<sp><sp><sp>1.31
+ *	port no	mac addr		is local?	ageing timer
+ *	  1	xx:xx:xx:xx:xx:xx	no		   1.31
+ * Read fixed-sized records from /sys/class/net/BR/brforward:
+ *	struct __fdb_entry {
+ *		uint8_t  mac_addr[ETH_ALEN];
+ *		uint8_t  port_no; //lsb
+ *		uint8_t  is_local;
+ *		uint32_t ageing_timer_value;
+ *		uint8_t  port_hi;
+ *		uint8_t  pad0;
+ *		uint16_t unused;
+ *	};
+ */
 #endif
 		/* always true: if (key == ARG_addif || key == ARG_delif) */ {
 			/* addif or delif */
