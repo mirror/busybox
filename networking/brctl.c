@@ -66,9 +66,9 @@
 //usage:     "\n	setpathcost BRIDGE IFACE COST	Set path cost"
 //usage:	)
 // Not yet implemented:
-//			hairpin   	BRIDGE IFACE on|off	Hairpin on/off
-//			showmacs  	BRIDGE			List mac addrs
-//			showstp   	BRIDGE			Show stp info
+//			hairpin BRIDGE IFACE on|off	Hairpin on/off
+//			showmacs BRIDGE			List mac addrs
+//			showstp	BRIDGE			Show stp info
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -88,51 +88,23 @@
 # define SIOCBRDELIF BRCTL_DEL_IF
 #endif
 
-/* Use internal number parsing and not the "exact" conversion.  */
-/* #define BRCTL_USE_INTERNAL 0 */ /* use exact conversion */
-#define BRCTL_USE_INTERNAL 1
-
 #if ENABLE_FEATURE_BRCTL_FANCY
-/* FIXME: These 4 funcs are not really clean and could be improved */
-static ALWAYS_INLINE void bb_strtotimeval(struct timeval *tv,
-		const char *time_str)
+static unsigned str_to_jiffies(const char *time_str)
 {
-	double secs;
-# if BRCTL_USE_INTERNAL
+	double dd;
 	char *endptr;
-	secs = /*bb_*/strtod(time_str, &endptr);
-	if (endptr == time_str)
-# else
-	if (sscanf(time_str, "%lf", &secs) != 1)
-# endif
+	dd = /*bb_*/strtod(time_str, &endptr);
+	if (endptr == time_str || dd < 0)
 		bb_error_msg_and_die(bb_msg_invalid_arg_to, time_str, "timespec");
-	tv->tv_sec = secs;
-	tv->tv_usec = 1000000 * (secs - tv->tv_sec);
-}
 
-static ALWAYS_INLINE unsigned long tv_to_jiffies(const struct timeval *tv)
-{
-	unsigned long long jif;
+	dd *= 100;
+	/* For purposes of brctl,
+	 * capping SECONDS by ~20 million seconds is quite enough:
+	 */
+	if (dd > INT_MAX)
+		dd = INT_MAX;
 
-	jif = 1000000ULL * tv->tv_sec + tv->tv_usec;
-
-	return jif/10000;
-}
-# if 0
-static void jiffies_to_tv(struct timeval *tv, unsigned long jiffies)
-{
-	unsigned long long tvusec;
-
-	tvusec = 10000ULL*jiffies;
-	tv->tv_sec = tvusec/1000000;
-	tv->tv_usec = tvusec - 1000000 * tv->tv_sec;
-}
-# endif
-static unsigned long str_to_jiffies(const char *time_str)
-{
-	struct timeval tv;
-	bb_strtotimeval(&tv, time_str);
-	return tv_to_jiffies(&tv);
+	return dd;
 }
 #endif
 
@@ -208,7 +180,7 @@ static int show_bridge(const char *name, int need_hdr)
 	return 0;
 }
 
-static void write_ulong(const char *name, const char *leaf, unsigned long val)
+static void write_uint(const char *name, const char *leaf, unsigned val)
 {
 	char pathbuf[IFNAMSIZ + sizeof("/bridge/bridge_id") + 32];
 	int fd, n;
@@ -219,7 +191,7 @@ static void write_ulong(const char *name, const char *leaf, unsigned long val)
 	sprintf(pathbuf, "%.*s/%s", (int)IFNAMSIZ, name, leaf);
 #endif
 	fd = xopen(pathbuf, O_WRONLY);
-	n = sprintf(filedata, "%lu\n", val);
+	n = sprintf(filedata, "%u\n", val);
 	if (write(fd, filedata, n) < 0)
 		bb_simple_perror_msg_and_die(name);
 	close(fd);
@@ -338,7 +310,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			if (onoff < 0)
 				bb_error_msg_and_die(bb_msg_invalid_arg_to, *argv, applet_name);
 			onoff = (unsigned)onoff / 4;
-			write_ulong(br, "bridge/stp_state", onoff);
+			write_uint(br, "bridge/stp_state", onoff);
 			//goto done_next_argv;
 			return EXIT_SUCCESS;
 		}
@@ -349,7 +321,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			 * sethello BR N:  "N*100\n" to /sys/class/net/BR/bridge/hello_time
 			 * setmaxage BR N: "N*100\n" to /sys/class/net/BR/bridge/max_age
 			 */
-			write_ulong(br,
+			write_uint(br,
 				nth_string(
 					"bridge/ageing_time"  "\0" /* ARG_setageing */
 					"bridge/forward_delay""\0" /* ARG_setfd     */
@@ -364,7 +336,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		if (key == ARG_setbridgeprio) {
-			write_ulong(br, "bridge/priority", xatoi_positive(*argv));
+			write_uint(br, "bridge/priority", xatoi_positive(*argv));
 			//goto done_next_argv;
 			return EXIT_SUCCESS;
 		}
@@ -380,7 +352,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			 * "setportprio BR PORT N" writes "N\n" to
 			 * /sys/class/net/PORT/brport/priority
 			 */
-			write_ulong(argv[0],
+			write_uint(argv[0],
 				nth_string(
 					"brport/path_cost" "\0" /* ARG_setpathcost */
 					"brport/priority",      /* ARG_setportprio */
