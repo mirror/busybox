@@ -531,6 +531,7 @@ static uint8_t *add_d6_client_options(uint8_t *ptr)
 
 static int d6_mcast_from_client_config_ifindex(struct d6_packet *packet, uint8_t *end)
 {
+	/* FF02::1:2 is "All_DHCP_Relay_Agents_and_Servers" address */
 	static const uint8_t FF02__1_2[16] = {
 		0xFF, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02,

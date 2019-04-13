@@ -38,6 +38,15 @@ int FAST_FUNC d6_read_interface(const char *interface, int *ifindex, struct in6_
 			log1("IP %s", inet_ntoa(((struct sockaddr_in *)ifa->ifa_addr)->sin_addr));
 		}
 #endif
+/* RFC 3315
+ * 16. Client Source Address and Interface Selection
+ *
+ * "When a client sends a DHCP message to the
+ * All_DHCP_Relay_Agents_and_Servers address, ... ... The client
+ * MUST use a link-local address assigned to the interface for which it
+ * is requesting configuration information as the source address in the
+ * header of the IP datagram."
+ */
 		if (ifa->ifa_addr->sa_family == AF_INET6
 		 && IN6_IS_ADDR_LINKLOCAL(&sip6->sin6_addr)
 		) {
