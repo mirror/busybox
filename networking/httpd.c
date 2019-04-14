@@ -2271,15 +2271,20 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				bb_error_msg("header: '%s'", iobuf);
 
 #if ENABLE_FEATURE_HTTPD_PROXY
-			/* We need 2 more bytes for yet another "\r\n" -
-			 * see near fdprintf(proxy_fd...) further below */
-			if (proxy_entry && (header_ptr - header_buf) < IOBUF_SIZE - 4) {
-				int len = strnlen(iobuf, IOBUF_SIZE - (header_ptr - header_buf) - 4);
-				memcpy(header_ptr, iobuf, len);
-				header_ptr += len;
-				header_ptr[0] = '\r';
-				header_ptr[1] = '\n';
-				header_ptr += 2;
+			if (proxy_entry) {
+				/* Why 4, not 2?
+				 * We need 2 more bytes for yet another "\r\n" -
+				 * see near fdprintf(proxy_fd...) further below.
+				 */
+				int maxlen = (IOBUF_SIZE-4) - (int)(header_ptr - header_buf);
+				if (maxlen > 0) {
+					int len = strnlen(iobuf, maxlen);
+					memcpy(header_ptr, iobuf, len);
+					header_ptr += len;
+					header_ptr[0] = '\r';
+					header_ptr[1] = '\n';
+					header_ptr += 2;
+				}
 			}
 #endif
 
@@ -2401,7 +2406,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	}
 
 #if ENABLE_FEATURE_HTTPD_PROXY
-	if (proxy_entry != NULL) {
+	if (proxy_entry) {
 		int proxy_fd;
 		len_and_sockaddr *lsa;
 
@@ -2423,7 +2428,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		header_ptr[0] = '\r';
 		header_ptr[1] = '\n';
 		header_ptr += 2;
-		write(proxy_fd, header_buf, header_ptr - header_buf);
+		full_write(proxy_fd, header_buf, header_ptr - header_buf);
 		free(header_buf); /* on the order of 8k, free it */
 		cgi_io_loop_and_exit(proxy_fd, proxy_fd, length);
 	}
