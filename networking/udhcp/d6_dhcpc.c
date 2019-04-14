@@ -204,7 +204,6 @@ static void *d6_copy_option(uint8_t *option, uint8_t *option_end, unsigned code)
 	return xmemdup(opt, opt[3] + 4);
 }
 
-
 /*** Script execution code ***/
 
 static char** new_env(void)
@@ -902,7 +901,6 @@ static NOINLINE int d6_recv_raw_packet(struct in6_addr *peer_ipv6, struct d6_pac
 	return bytes;
 }
 
-
 /*** Main ***/
 
 static int sockfd = -1;
@@ -1145,7 +1143,6 @@ static void client_background(void)
 //usage:     "\nSignals:"
 //usage:     "\n	USR1	Renew lease"
 //usage:     "\n	USR2	Release lease"
-
 
 int udhcpc6_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
