@@ -95,9 +95,7 @@
  * If -c is not set, an attempt will be made to open the default
  * root configuration file.  If -c is set and the file is not found, the
  * server exits with an error.
- *
  */
- /* TODO: use TCP_CORK, parse_config() */
 //config:config HTTPD
 //config:	bool "httpd (32 kb)"
 //config:	default y
@@ -245,6 +243,8 @@
 //usage:     "\n	-m STRING	MD5 crypt STRING")
 //usage:     "\n	-e STRING	HTML encode STRING"
 //usage:     "\n	-d STRING	URL decode STRING"
+
+/* TODO: use TCP_CORK, parse_config() */
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -1817,7 +1817,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 	log_and_exit();
 }
 
-static int checkPermIP(void)
+static void send_HTTP_FORBIDDEN_and_exit_if_denied_ip(void)
 {
 	Htaccess_IP *cur;
 
@@ -1837,10 +1837,13 @@ static int checkPermIP(void)
 		);
 #endif
 		if ((rmt_ip & cur->mask) == cur->ip)
-			return (cur->allow_deny == 'A'); /* A -> 1 */
+			if (cur->allow_deny == 'A')
+				return;
+			send_headers_and_exit(HTTP_FORBIDDEN);
 	}
 
-	return !flg_deny_all; /* depends on whether we saw "D:*" */
+	if (flg_deny_all) /* depends on whether we saw "D:*" */
+		send_headers_and_exit(HTTP_FORBIDDEN);
 }
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -2090,7 +2093,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	smallint authorized = -1;
 #endif
-	smallint ip_allowed;
 	char http_major_version;
 #if ENABLE_FEATURE_HTTPD_PROXY
 	char http_minor_version;
@@ -2240,14 +2242,14 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		bb_error_msg("url:%s", urlcopy);
 
 	tptr = urlcopy;
-	ip_allowed = checkPermIP();
-	while (ip_allowed && (tptr = strchr(tptr + 1, '/')) != NULL) {
+	send_HTTP_FORBIDDEN_and_exit_if_denied_ip();
+	while ((tptr = strchr(tptr + 1, '/')) != NULL) {
 		/* have path1/path2 */
 		*tptr = '\0';
 		if (is_directory(urlcopy + 1, /*followlinks:*/ 1)) {
 			/* may have subdir config */
 			parse_conf(urlcopy + 1, SUBDIR_PARSE);
-			ip_allowed = checkPermIP();
+			send_HTTP_FORBIDDEN_and_exit_if_denied_ip();
 		}
 		*tptr = '/';
 	}
@@ -2380,7 +2382,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	/* We are done reading headers, disable peer timeout */
 	alarm(0);
 
-	if (strcmp(bb_basename(urlcopy), HTTPD_CONF) == 0 || !ip_allowed) {
+	if (strcmp(bb_basename(urlcopy), HTTPD_CONF) == 0) {
 		/* protect listing [/path]/httpd.conf or IP deny */
 		send_headers_and_exit(HTTP_FORBIDDEN);
 	}
@@ -2593,7 +2595,9 @@ static void mini_httpd_inetd(void)
 
 static void sighup_handler(int sig UNUSED_PARAM)
 {
+	int sv = errno;
 	parse_conf(DEFAULT_PATH_HTTPD_CONF, SIGNALED_PARSE);
+	errno = sv;
 }
 
 enum {
