@@ -2364,6 +2364,10 @@ setvareq(char *s, int flags)
 		}
 
 		flags |= vp->flags & ~(VTEXTFIXED|VSTACK|VNOSAVE|VUNSET);
+#if ENABLE_ASH_RANDOM_SUPPORT
+		if (flags & VUNSET)
+			flags &= ~VDYNAMIC;
+#endif
 	} else {
 		/* variable s is not found */
 		if (flags & VNOSET)
