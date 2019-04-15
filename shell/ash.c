@@ -220,6 +220,7 @@
 #define    BASH_SOURCE          ENABLE_ASH_BASH_COMPAT
 #define    BASH_PIPEFAIL        ENABLE_ASH_BASH_COMPAT
 #define    BASH_HOSTNAME_VAR    ENABLE_ASH_BASH_COMPAT
+#define    BASH_EPOCH_VARS      ENABLE_ASH_BASH_COMPAT
 #define    BASH_SHLVL_VAR       ENABLE_ASH_BASH_COMPAT
 #define    BASH_XTRACEFD        ENABLE_ASH_BASH_COMPAT
 #define    BASH_READ_D          ENABLE_ASH_BASH_COMPAT
@@ -2053,6 +2054,10 @@ static void changepath(const char *) FAST_FUNC;
 #if ENABLE_ASH_RANDOM_SUPPORT
 static void change_random(const char *) FAST_FUNC;
 #endif
+#if BASH_EPOCH_VARS
+static void change_seconds(const char *) FAST_FUNC;
+static void change_realtime(const char *) FAST_FUNC;
+#endif
 
 static const struct {
 	int flags;
@@ -2078,6 +2083,10 @@ static const struct {
 	{ VSTRFIXED|VTEXTFIXED       , NULL /* inited to linenovar */, NULL },
 #if ENABLE_ASH_RANDOM_SUPPORT
 	{ VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "RANDOM", change_random },
+#endif
+#if BASH_EPOCH_VARS
+	{ VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "EPOCHSECONDS", change_seconds },
+	{ VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "EPOCHREALTIME", change_realtime },
 #endif
 #if ENABLE_LOCALE_SUPPORT
 	{ VSTRFIXED|VTEXTFIXED|VUNSET, "LC_ALL"    , change_lc_all   },
@@ -2110,26 +2119,26 @@ extern struct globals_var *BB_GLOBAL_CONST ash_ptr_to_globals_var;
 #define linenovar     (G_var.linenovar    )
 #define vifs      varinit[0]
 #if ENABLE_ASH_MAIL
-# define vmail    (&vifs)[1]
-# define vmpath   (&vmail)[1]
-# define vpath    (&vmpath)[1]
-#else
-# define vpath    (&vifs)[1]
+# define vmail    varinit[1]
+# define vmpath   varinit[2]
 #endif
-#define vps1      (&vpath)[1]
-#define vps2      (&vps1)[1]
-#define vps4      (&vps2)[1]
+#define VAR_OFFSET1 (ENABLE_ASH_MAIL*2)
+#define vpath     varinit[VAR_OFFSET1 + 1]
+#define vps1      varinit[VAR_OFFSET1 + 2]
+#define vps2      varinit[VAR_OFFSET1 + 3]
+#define vps4      varinit[VAR_OFFSET1 + 4]
 #if ENABLE_ASH_GETOPTS
-# define voptind  (&vps4)[1]
-# define vlineno  (&voptind)[1]
-# if ENABLE_ASH_RANDOM_SUPPORT
-#  define vrandom (&vlineno)[1]
-# endif
-#else
-# define vlineno  (&vps4)[1]
-# if ENABLE_ASH_RANDOM_SUPPORT
-#  define vrandom (&vlineno)[1]
-# endif
+# define voptind  varinit[VAR_OFFSET1 + 5]
+#endif
+#define VAR_OFFSET2 (VAR_OFFSET1 + ENABLE_ASH_GETOPTS)
+#define vlineno   varinit[VAR_OFFSET2 + 5]
+#if ENABLE_ASH_RANDOM_SUPPORT
+# define vrandom  varinit[VAR_OFFSET2 + 6]
+#endif
+#define VAR_OFFSET3 (VAR_OFFSET2 + ENABLE_ASH_RANDOM_SUPPORT)
+#if BASH_EPOCH_VARS
+# define vepochs  varinit[VAR_OFFSET3 + 6]
+# define vepochr  varinit[VAR_OFFSET3 + 7]
 #endif
 #define INIT_G_var() do { \
 	unsigned i; \
@@ -2268,7 +2277,7 @@ lookupvar(const char *name)
 
 	v = *findvar(hashvar(name), name);
 	if (v) {
-#if ENABLE_ASH_RANDOM_SUPPORT
+#if ENABLE_ASH_RANDOM_SUPPORT || BASH_EPOCH_VARS
 	/*
 	 * Dynamic variables are implemented roughly the same way they are
 	 * in bash. Namely, they're "special" so long as they aren't unset.
@@ -2364,7 +2373,7 @@ setvareq(char *s, int flags)
 		}
 
 		flags |= vp->flags & ~(VTEXTFIXED|VSTACK|VNOSAVE|VUNSET);
-#if ENABLE_ASH_RANDOM_SUPPORT
+#if ENABLE_ASH_RANDOM_SUPPORT || BASH_EPOCH_VARS
 		if (flags & VUNSET)
 			flags &= ~VDYNAMIC;
 #endif
@@ -11246,6 +11255,32 @@ change_random(const char *value)
 		t = strtoul(value, NULL, 10);
 		INIT_RANDOM_T(&random_gen, (t ? t : 1), t);
 	}
+}
+#endif
+
+#if BASH_EPOCH_VARS
+static void FAST_FUNC
+change_epoch(struct var *vepoch, const char *fmt)
+{
+	struct timeval tv;
+	char buffer[sizeof("%lu.nnnnnn") + sizeof(long)*3];
+
+	gettimeofday(&tv, NULL);
+	sprintf(buffer, fmt, (unsigned long)tv.tv_sec, (unsigned)tv.tv_usec);
+	setvar(vepoch->var_text, buffer, VNOFUNC);
+	vepoch->flags &= ~VNOFUNC;
+}
+
+static void FAST_FUNC
+change_seconds(const char *value UNUSED_PARAM)
+{
+	change_epoch(&vepochs, "%lu");
+}
+
+static void FAST_FUNC
+change_realtime(const char *value UNUSED_PARAM)
+{
+	change_epoch(&vepochr, "%lu.%06u");
 }
 #endif
 
