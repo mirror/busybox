@@ -379,6 +379,7 @@
 #define BASH_SUBSTR        ENABLE_HUSH_BASH_COMPAT
 #define BASH_SOURCE        ENABLE_HUSH_BASH_COMPAT
 #define BASH_HOSTNAME_VAR  ENABLE_HUSH_BASH_COMPAT
+#define BASH_EPOCH_VARS    ENABLE_HUSH_BASH_COMPAT
 #define BASH_TEST2         (ENABLE_HUSH_BASH_COMPAT && ENABLE_HUSH_TEST)
 #define BASH_READ_D        ENABLE_HUSH_BASH_COMPAT
 
@@ -1011,6 +1012,9 @@ struct globals {
 	int debug_indent;
 #endif
 	struct sigaction sa;
+#if BASH_EPOCH_VARS
+	char epoch_buf[sizeof("%lu.nnnnnn") + sizeof(long)*3];
+#endif
 #if ENABLE_FEATURE_EDITING
 	char user_input_buf[CONFIG_FEATURE_EDITING_MAX_LEN];
 #endif
@@ -2227,6 +2231,22 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 #if ENABLE_HUSH_RANDOM_SUPPORT
 	if (strcmp(name, "RANDOM") == 0)
 		return utoa(next_random(&G.random_gen));
+#endif
+#if BASH_EPOCH_VARS
+	{
+		const char *fmt = NULL;
+		if (strcmp(name, "EPOCHSECONDS") == 0)
+			fmt = "%lu";
+		else if (strcmp(name, "EPOCHREALTIME") == 0)
+			fmt = "%lu.%06u";
+		if (fmt) {
+			struct timeval tv;
+			gettimeofday(&tv, NULL);
+			sprintf(G.epoch_buf, fmt, (unsigned long)tv.tv_sec,
+					(unsigned)tv.tv_usec);
+			return G.epoch_buf;
+		}
+	}
 #endif
 	return NULL;
 }
