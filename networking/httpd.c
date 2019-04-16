@@ -267,6 +267,7 @@
 #define DEBUG 0
 
 #define IOBUF_SIZE 8192
+#define MAX_HTTP_HEADERS_SIZE ((8*1024) - 16)
 #if PIPE_BUF >= IOBUF_SIZE
 # error "PIPE_BUF >= IOBUF_SIZE"
 #endif
@@ -305,6 +306,13 @@ typedef struct Htaccess_Proxy {
 	char *url_to;
 } Htaccess_Proxy;
 
+typedef enum CGI_type {
+	CGI_NONE = 0,
+	CGI_NORMAL,
+	CGI_INDEX,
+	CGI_INTERPRETER,
+} CGI_type;
+
 enum {
 	HTTP_OK = 200,
 	HTTP_PARTIAL_CONTENT = 206,
@@ -316,6 +324,7 @@ enum {
 	HTTP_REQUEST_TIMEOUT = 408,
 	HTTP_NOT_IMPLEMENTED = 501,   /* used for unrecognized requests */
 	HTTP_INTERNAL_SERVER_ERROR = 500,
+	HTTP_ENTITY_TOO_LARGE = 413,
 	HTTP_CONTINUE = 100,
 #if 0   /* future use */
 	HTTP_SWITCHING_PROTOCOLS = 101,
@@ -347,6 +356,7 @@ static const uint16_t http_response_type[] ALIGN2 = {
 	HTTP_BAD_REQUEST,
 	HTTP_FORBIDDEN,
 	HTTP_INTERNAL_SERVER_ERROR,
+	HTTP_ENTITY_TOO_LARGE,
 #if 0   /* not implemented */
 	HTTP_CREATED,
 	HTTP_ACCEPTED,
@@ -377,6 +387,7 @@ static const struct {
 	{ "Bad Request", "Unsupported method" },
 	{ "Forbidden", ""  },
 	{ "Internal Server Error", "Internal Server Error" },
+	{ "Entity Too Large", "Entity Too Large" },
 #if 0   /* not implemented */
 	{ "Created" },
 	{ "Accepted" },
@@ -412,11 +423,6 @@ struct globals {
 
 	IF_FEATURE_HTTPD_BASIC_AUTH(const char *g_realm;)
 	IF_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
-	IF_FEATURE_HTTPD_CGI(char *referer;)
-	IF_FEATURE_HTTPD_CGI(char *user_agent;)
-	IF_FEATURE_HTTPD_CGI(char *host;)
-	IF_FEATURE_HTTPD_CGI(char *http_accept;)
-	IF_FEATURE_HTTPD_CGI(char *http_accept_language;)
 
 	off_t file_size;        /* -1 - unknown */
 #if ENABLE_FEATURE_HTTPD_RANGES
@@ -1439,23 +1445,17 @@ static void setenv1(const char *name, const char *value)
  * const char *url              The requested URL (with leading /).
  * const char *orig_uri         The original URI before rewriting (if any)
  * int post_len                 Length of the POST body.
- * const char *cookie           For set HTTP_COOKIE.
- * const char *content_type     For set CONTENT_TYPE.
  */
 static void send_cgi_and_exit(
 		const char *url,
 		const char *orig_uri,
 		const char *request,
-		int post_len,
-		const char *cookie,
-		const char *content_type) NORETURN;
+		int post_len) NORETURN;
 static void send_cgi_and_exit(
 		const char *url,
 		const char *orig_uri,
 		const char *request,
-		int post_len,
-		const char *cookie,
-		const char *content_type)
+		int post_len)
 {
 	struct fd_pair fromCgi;  /* CGI -> httpd pipe */
 	struct fd_pair toCgi;    /* httpd -> CGI pipe */
@@ -1533,26 +1533,14 @@ static void send_cgi_and_exit(
 #endif
 		}
 	}
-	setenv1("HTTP_USER_AGENT", G.user_agent);
-	if (G.http_accept)
-		setenv1("HTTP_ACCEPT", G.http_accept);
-	if (G.http_accept_language)
-		setenv1("HTTP_ACCEPT_LANGUAGE", G.http_accept_language);
 	if (post_len)
 		putenv(xasprintf("CONTENT_LENGTH=%u", post_len));
-	if (cookie)
-		setenv1("HTTP_COOKIE", cookie);
-	if (content_type)
-		setenv1("CONTENT_TYPE", content_type);
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	if (remoteuser) {
 		setenv1("REMOTE_USER", remoteuser);
 		putenv((char*)"AUTH_TYPE=Basic");
 	}
 #endif
-	if (G.referer)
-		setenv1("HTTP_REFERER", G.referer);
-	setenv1("HTTP_HOST", G.host); /* set to "" if NULL */
 	/* setenv1("SERVER_NAME", safe_gethostname()); - don't do this,
 	 * just run "env SERVER_NAME=xyz httpd ..." instead */
 
@@ -2083,12 +2071,12 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	char *urlcopy;
 	char *urlp;
 	char *tptr;
+	unsigned header_len;
 #if ENABLE_FEATURE_HTTPD_CGI
 	static const char request_HEAD[] ALIGN1 = "HEAD";
 	const char *prequest;
-	char *cookie = NULL;
-	char *content_type = NULL;
 	unsigned long length = 0;
+	enum CGI_type cgi_type = CGI_NONE;
 #elif ENABLE_FEATURE_HTTPD_PROXY
 #define prequest request_GET
 	unsigned long length = 0;
@@ -2201,7 +2189,9 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_PROXY
 	proxy_entry = find_proxy_entry(urlcopy);
 	if (proxy_entry)
-		header_buf = header_ptr = xmalloc(IOBUF_SIZE);
+		header_buf = header_ptr = xmalloc(MAX_HTTP_HEADERS_SIZE + 2);
+//TODO: why we don't just start pumping data to proxy here,
+//without decoding URL, saving headers and such???
 	else
 #endif
 	{
@@ -2275,31 +2265,79 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		*tptr = '/';
 	}
 
+	tptr = urlcopy + 1;      /* skip first '/' */
+
+#if ENABLE_FEATURE_HTTPD_CGI
+	if (is_prefixed_with(tptr, "cgi-bin/")) {
+		if (tptr[8] == '\0') {
+			/* protect listing "cgi-bin/" */
+			send_headers_and_exit(HTTP_FORBIDDEN);
+		}
+		cgi_type = CGI_NORMAL;
+	}
+#endif
+
+	if (urlp[-1] == '/') {
+		/* When index_page string is appended to <dir>/ URL, it overwrites
+		 * the query string. If we fall back to call /cgi-bin/index.cgi,
+		 * query string would be lost and not available to the CGI.
+		 * Work around it by making a deep copy.
+		 */
+		if (ENABLE_FEATURE_HTTPD_CGI)
+			g_query = xstrdup(g_query); /* ok for NULL too */
+		strcpy(urlp, index_page);
+	}
+	if (stat(tptr, &sb) == 0) {
+#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+		char *suffix = strrchr(tptr, '.');
+		if (suffix) {
+			Htaccess *cur;
+			for (cur = script_i; cur; cur = cur->next) {
+				if (strcmp(cur->before_colon + 1, suffix) == 0) {
+					cgi_type = CGI_INTERPRETER;
+					break;
+				}
+			}
+		}
+#endif
+		if (!found_moved_temporarily) {
+			file_size = sb.st_size;
+			last_mod = sb.st_mtime;
+		}
+	}
+#if ENABLE_FEATURE_HTTPD_CGI
+	else if (urlp[-1] == '/') {
+		/* It's a dir URL and there is no index.html
+		 * Try cgi-bin/index.cgi */
+		if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
+			cgi_type = CGI_INDEX;
+		}
+	}
+#endif
+	urlp[0] = '\0';
+
+	header_len = 0;
 	if (http_major_version >= '0') {
 		/* Request was with "... HTTP/nXXX", and n >= 0 */
 
 		/* Read until blank line */
 		while (1) {
-			if (!get_line())
+			int iobuf_len = get_line();
+			if (!iobuf_len)
 				break; /* EOF or error or empty line */
+			header_len += iobuf_len + 2;
+			if (header_len >= MAX_HTTP_HEADERS_SIZE)
+				send_headers_and_exit(HTTP_ENTITY_TOO_LARGE);
 			if (DEBUG)
 				bb_error_msg("header: '%s'", iobuf);
-
 #if ENABLE_FEATURE_HTTPD_PROXY
 			if (proxy_entry) {
-				/* Why 4, not 2?
-				 * We need 2 more bytes for yet another "\r\n" -
-				 * see near fdprintf(proxy_fd...) further below.
-				 */
-				int maxlen = (IOBUF_SIZE-4) - (int)(header_ptr - header_buf);
-				if (maxlen > 0) {
-					int len = strnlen(iobuf, maxlen);
-					memcpy(header_ptr, iobuf, len);
-					header_ptr += len;
-					header_ptr[0] = '\r';
-					header_ptr[1] = '\n';
-					header_ptr += 2;
-				}
+				/* protected from overflow by header_len check above */
+				memcpy(header_ptr, iobuf, iobuf_len);
+				header_ptr += iobuf_len;
+				header_ptr[0] = '\r';
+				header_ptr[1] = '\n';
+				header_ptr += 2;
 			}
 #endif
 
@@ -2321,30 +2359,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 					if (errno || length > INT_MAX)
 						send_headers_and_exit(HTTP_BAD_REQUEST);
 				}
-			}
-#endif
-#if ENABLE_FEATURE_HTTPD_CGI
-			else if (STRNCASECMP(iobuf, "Cookie:") == 0) {
-				if (!cookie) /* in case they send millions of these, do not OOM */
-					cookie = xstrdup(skip_whitespace(iobuf + sizeof("Cookie:")-1));
-			} else if (STRNCASECMP(iobuf, "Content-Type:") == 0) {
-				if (!content_type)
-					content_type = xstrdup(skip_whitespace(iobuf + sizeof("Content-Type:")-1));
-			} else if (STRNCASECMP(iobuf, "Referer:") == 0) {
-				if (!G.referer)
-					G.referer = xstrdup(skip_whitespace(iobuf + sizeof("Referer:")-1));
-			} else if (STRNCASECMP(iobuf, "User-Agent:") == 0) {
-				if (!G.user_agent)
-					G.user_agent = xstrdup(skip_whitespace(iobuf + sizeof("User-Agent:")-1));
-			} else if (STRNCASECMP(iobuf, "Host:") == 0) {
-				if (!G.host)
-					G.host = xstrdup(skip_whitespace(iobuf + sizeof("Host:")-1));
-			} else if (STRNCASECMP(iobuf, "Accept:") == 0) {
-				if (!G.http_accept)
-					G.http_accept = xstrdup(skip_whitespace(iobuf + sizeof("Accept:")-1));
-			} else if (STRNCASECMP(iobuf, "Accept-Language:") == 0) {
-				if (!G.http_accept_language)
-					G.http_accept_language = xstrdup(skip_whitespace(iobuf + sizeof("Accept-Language:")-1));
+				continue;
 			}
 #endif
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -2360,6 +2375,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				/* decodeBase64() skips whitespace itself */
 				decodeBase64(tptr);
 				authorized = check_user_passwd(urlcopy, tptr);
+				continue;
 			}
 #endif
 #if ENABLE_FEATURE_HTTPD_RANGES
@@ -2377,6 +2393,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 							range_start = -1;
 					}
 				}
+				continue;
 			}
 #endif
 #if ENABLE_FEATURE_HTTPD_GZIP
@@ -2394,6 +2411,35 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 						content_gzip = 1;
 					//}
 				}
+				continue;
+			}
+#endif
+#if ENABLE_FEATURE_HTTPD_CGI
+			if (cgi_type != CGI_NONE) {
+				bool ct = (STRNCASECMP(iobuf, "Content-Type:") == 0);
+				char *cp;
+				char *colon = strchr(iobuf, ':');
+
+				if (!colon)
+					continue;
+				cp = iobuf;
+				while (cp < colon) {
+					/* a-z => A-Z, not-alnum => _ */
+					char c = (*cp & ~0x20); /* toupper for A-Za-z, undef for others */
+					if ((unsigned)(c - 'A') <= ('Z' - 'A')) {
+						*cp++ = c;
+						continue;
+					}
+					if (!isdigit(*cp))
+						*cp = '_';
+					cp++;
+				}
+				/* "Content-Type:" gets no HTTP_ prefix, all others do */
+				cp = xasprintf(ct ? "HTTP_%.*s=%s" + 5 : "HTTP_%.*s=%s",
+					(int)(colon - iobuf), iobuf,
+					skip_whitespace(colon + 1)
+				);
+				putenv(cp);
 			}
 #endif
 		} /* while extra header reading */
@@ -2452,51 +2498,20 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	tptr = urlcopy + 1;      /* skip first '/' */
 
 #if ENABLE_FEATURE_HTTPD_CGI
-	if (is_prefixed_with(tptr, "cgi-bin/")) {
-		if (tptr[8] == '\0') {
-			/* protect listing "cgi-bin/" */
-			send_headers_and_exit(HTTP_FORBIDDEN);
-		}
-		send_cgi_and_exit(urlcopy, urlcopy, prequest, length, cookie, content_type);
+	if (cgi_type != CGI_NONE) {
+		send_cgi_and_exit(
+			(cgi_type == CGI_INDEX) ? "/cgi-bin/index.cgi"
+			/*CGI_NORMAL or CGI_INTERPRETER*/ : urlcopy,
+			urlcopy, prequest, length
+		);
 	}
 #endif
 
 	if (urlp[-1] == '/') {
-		/* When index_page string is appended to <dir>/ URL, it overwrites
-		 * the query string. If we fall back to call /cgi-bin/index.cgi,
-		 * query string would be lost and not available to the CGI.
-		 * Work around it by making a deep copy.
-		 */
-		if (ENABLE_FEATURE_HTTPD_CGI)
-			g_query = xstrdup(g_query); /* ok for NULL too */
 		strcpy(urlp, index_page);
 	}
-	if (stat(tptr, &sb) == 0) {
-#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-		char *suffix = strrchr(tptr, '.');
-		if (suffix) {
-			Htaccess *cur;
-			for (cur = script_i; cur; cur = cur->next) {
-				if (strcmp(cur->before_colon + 1, suffix) == 0) {
-					send_cgi_and_exit(urlcopy, urlcopy, prequest, length, cookie, content_type);
-				}
-			}
-		}
-#endif
-		file_size = sb.st_size;
-		last_mod = sb.st_mtime;
-	}
-#if ENABLE_FEATURE_HTTPD_CGI
-	else if (urlp[-1] == '/') {
-		/* It's a dir URL and there is no index.html
-		 * Try cgi-bin/index.cgi */
-		if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
-			urlp[0] = '\0'; /* remove index_page */
-			send_cgi_and_exit("/cgi-bin/index.cgi", urlcopy, prequest, length, cookie, content_type);
-		}
-	}
-	/* else fall through to send_file, it errors out if open fails: */
 
+#if ENABLE_FEATURE_HTTPD_CGI
 	if (prequest != request_GET && prequest != request_HEAD) {
 		/* POST for files does not make sense */
 		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
