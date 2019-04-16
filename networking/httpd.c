@@ -2085,12 +2085,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	smallint authorized = -1;
 #endif
 	char http_major_version;
-#if ENABLE_FEATURE_HTTPD_PROXY
-	char http_minor_version;
-	char *header_buf = header_buf; /* for gcc */
-	char *header_ptr = header_ptr;
-	Htaccess_Proxy *proxy_entry;
-#endif
+	char *HTTP_slash;
 
 	/* Allocation of iobuf is postponed until now
 	 * (IOW, server process doesn't need to waste 8k) */
@@ -2152,18 +2147,18 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		send_headers_and_exit(HTTP_BAD_REQUEST);
 
 	/* Find end of URL and parse HTTP version, if any */
-	http_major_version = '0';
-	IF_FEATURE_HTTPD_PROXY(http_minor_version = '0';)
-	tptr = strchrnul(urlp, ' ');
+//TODO: mayybe just reject all queries which have no " HTTP/xyz" suffix?
+//Then 'http_major_version' can be deleted
+	http_major_version = ('0' - 1); /* "less than 0th" version */
+	HTTP_slash = strchrnul(urlp, ' ');
 	/* Is it " HTTP/"? */
-	if (tptr[0] && strncmp(tptr + 1, HTTP_200, 5) == 0) {
-		http_major_version = tptr[6];
-		IF_FEATURE_HTTPD_PROXY(http_minor_version = tptr[8];)
+	if (HTTP_slash[0] && strncmp(HTTP_slash + 1, HTTP_200, 5) == 0) {
+		http_major_version = HTTP_slash[6];
+		*HTTP_slash++ = '\0';
 	}
-	*tptr = '\0';
 
 	/* Copy URL from after "GET "/"POST " to stack-allocated char[] */
-	urlcopy = alloca((tptr - urlp) + 2 + strlen(index_page));
+	urlcopy = alloca((HTTP_slash - urlp) + 2 + strlen(index_page));
 	/*if (urlcopy == NULL)
 	 *	send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);*/
 	strcpy(urlcopy, urlp);
@@ -2178,23 +2173,45 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	}
 
 #if ENABLE_FEATURE_HTTPD_PROXY
-	proxy_entry = find_proxy_entry(urlcopy);
-	if (proxy_entry)
-		header_buf = header_ptr = xmalloc(MAX_HTTP_HEADERS_SIZE + 2);
-//TODO: why we don't just start pumping data to proxy here,
-//without decoding URL, saving headers and such???
-	else
-#endif
 	{
-		/* (If not proxying,) decode URL escape sequences */
-		tptr = percent_decode_in_place(urlcopy, /*strict:*/ 1);
-		if (tptr == NULL)
-			send_headers_and_exit(HTTP_BAD_REQUEST);
-		if (tptr == urlcopy + 1) {
-			/* '/' or NUL is encoded */
-			send_headers_and_exit(HTTP_NOT_FOUND);
+		int proxy_fd;
+		len_and_sockaddr *lsa;
+		Htaccess_Proxy *proxy_entry = find_proxy_entry(urlcopy);
+
+		if (proxy_entry) {
+			lsa = host2sockaddr(proxy_entry->host_port, 80);
+			if (!lsa)
+				send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+			proxy_fd = socket(lsa->u.sa.sa_family, SOCK_STREAM, 0);
+			if (proxy_fd < 0)
+				send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+			if (connect(proxy_fd, &lsa->u.sa, lsa->len) < 0)
+				send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+			/* Config directive was of the form:
+			 *   P:/url:[http://]hostname[:port]/new/path
+			 * When /urlSFX is requested, reverse proxy it
+			 * to http://hostname[:port]/new/pathSFX
+			 */
+			fdprintf(proxy_fd, "%s %s%s%s%s %s\r\n",
+					prequest, /* "GET" or "POST" */
+					proxy_entry->url_to, /* "/new/path" */
+					urlcopy + strlen(proxy_entry->url_from), /* "SFX" */
+					(g_query ? "?" : ""), /* "?" (maybe) */
+					(g_query ? g_query : ""), /* query string (maybe) */
+					HTTP_slash /* HTTP/xyz" or "" */
+			);
+			cgi_io_loop_and_exit(proxy_fd, proxy_fd, /*max POST length:*/ INT_MAX);
 		}
-//should path canonicalization also be conditional on not proxying?
+	}
+#endif
+
+	/* Decode URL escape sequences */
+	tptr = percent_decode_in_place(urlcopy, /*strict:*/ 1);
+	if (tptr == NULL)
+		send_headers_and_exit(HTTP_BAD_REQUEST);
+	if (tptr == urlcopy + 1) {
+		/* '/' or NUL is encoded */
+		send_headers_and_exit(HTTP_NOT_FOUND);
 	}
 
 	/* Canonicalize path */
@@ -2321,16 +2338,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				send_headers_and_exit(HTTP_ENTITY_TOO_LARGE);
 			if (DEBUG)
 				bb_error_msg("header: '%s'", iobuf);
-#if ENABLE_FEATURE_HTTPD_PROXY
-			if (proxy_entry) {
-				/* protected from overflow by header_len check above */
-				memcpy(header_ptr, iobuf, iobuf_len);
-				header_ptr += iobuf_len;
-				header_ptr[0] = '\r';
-				header_ptr[1] = '\n';
-				header_ptr += 2;
-			}
-#endif
 
 #if ENABLE_FEATURE_HTTPD_CGI || ENABLE_FEATURE_HTTPD_PROXY
 			/* Try and do our best to parse more lines */
@@ -2456,35 +2463,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (found_moved_temporarily) {
 		send_headers_and_exit(HTTP_MOVED_TEMPORARILY);
 	}
-
-#if ENABLE_FEATURE_HTTPD_PROXY
-	if (proxy_entry) {
-		int proxy_fd;
-		len_and_sockaddr *lsa;
-
-		lsa = host2sockaddr(proxy_entry->host_port, 80);
-		if (lsa == NULL)
-			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
-		proxy_fd = socket(lsa->u.sa.sa_family, SOCK_STREAM, 0);
-		if (proxy_fd < 0)
-			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
-		if (connect(proxy_fd, &lsa->u.sa, lsa->len) < 0)
-			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
-		fdprintf(proxy_fd, "%s %s%s%s%s HTTP/%c.%c\r\n",
-				prequest, /* GET or POST */
-				proxy_entry->url_to, /* url part 1 */
-				urlcopy + strlen(proxy_entry->url_from), /* url part 2 */
-				(g_query ? "?" : ""), /* "?" (maybe) */
-				(g_query ? g_query : ""), /* query string (maybe) */
-				http_major_version, http_minor_version);
-		header_ptr[0] = '\r';
-		header_ptr[1] = '\n';
-		header_ptr += 2;
-		full_write(proxy_fd, header_buf, header_ptr - header_buf);
-		free(header_buf); /* on the order of 8k, free it */
-		cgi_io_loop_and_exit(proxy_fd, proxy_fd, length);
-	}
-#endif
 
 	tptr = urlcopy + 1;      /* skip first '/' */
 
