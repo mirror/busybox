@@ -1836,10 +1836,11 @@ static void if_ip_denied_send_HTTP_FORBIDDEN_and_exit(void)
 			(unsigned char)(cur->mask)
 		);
 #endif
-		if ((rmt_ip & cur->mask) == cur->ip)
+		if ((rmt_ip & cur->mask) == cur->ip) {
 			if (cur->allow_deny == 'A')
 				return;
 			send_headers_and_exit(HTTP_FORBIDDEN);
+		}
 	}
 
 	if (flg_deny_all) /* depends on whether we saw "D:*" */
