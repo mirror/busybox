@@ -407,7 +407,6 @@ struct globals {
 	/* client can handle gzip / we are going to send gzip */
 	smallint content_gzip;
 #endif
-	unsigned rmt_ip;        /* used for IP-based allow/deny rules */
 	time_t last_mod;
 	char *rmt_ip_str;       /* for $REMOTE_ADDR and $REMOTE_PORT */
 	const char *bind_addr_or_port;
@@ -458,7 +457,6 @@ struct globals {
 #else
 # define content_gzip     0
 #endif
-#define rmt_ip            (G.rmt_ip           )
 #define bind_addr_or_port (G.bind_addr_or_port)
 #define g_query           (G.g_query          )
 #define opt_c_configFile  (G.opt_c_configFile )
@@ -1207,9 +1205,9 @@ static void send_headers_and_exit(int responseNum)
  * ('\r' and '\n' are not counted).
  * Data is returned in iobuf.
  */
-static int get_line(void)
+static unsigned get_line(void)
 {
-	int count;
+	unsigned count;
 	char c;
 
 	alarm(HEADER_READ_TIMEOUT);
@@ -1807,7 +1805,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 	log_and_exit();
 }
 
-static void if_ip_denied_send_HTTP_FORBIDDEN_and_exit(void)
+static void if_ip_denied_send_HTTP_FORBIDDEN_and_exit(unsigned remote_ip)
 {
 	Htaccess_IP *cur;
 
@@ -1826,7 +1824,7 @@ static void if_ip_denied_send_HTTP_FORBIDDEN_and_exit(void)
 			(unsigned char)(cur->mask)
 		);
 #endif
-		if ((rmt_ip & cur->mask) == cur->ip) {
+		if ((remote_ip & cur->mask) == cur->ip) {
 			if (cur->allow_deny == 'A')
 				return;
 			send_headers_and_exit(HTTP_FORBIDDEN);
@@ -2071,7 +2069,10 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	char *urlcopy;
 	char *urlp;
 	char *tptr;
-	unsigned header_len;
+	unsigned remote_ip;
+#if ENABLE_FEATURE_HTTPD_CGI
+	unsigned total_headers_len;
+#endif
 #if ENABLE_FEATURE_HTTPD_CGI
 	static const char request_HEAD[] ALIGN1 = "HEAD";
 	const char *prequest;
@@ -2091,16 +2092,16 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	 * (IOW, server process doesn't need to waste 8k) */
 	iobuf = xmalloc(IOBUF_SIZE);
 
-	rmt_ip = 0;
+	remote_ip = 0;
 	if (fromAddr->u.sa.sa_family == AF_INET) {
-		rmt_ip = ntohl(fromAddr->u.sin.sin_addr.s_addr);
+		remote_ip = ntohl(fromAddr->u.sin.sin_addr.s_addr);
 	}
 #if ENABLE_FEATURE_IPV6
 	if (fromAddr->u.sa.sa_family == AF_INET6
 	 && fromAddr->u.sin6.sin6_addr.s6_addr32[0] == 0
 	 && fromAddr->u.sin6.sin6_addr.s6_addr32[1] == 0
 	 && ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[2]) == 0xffff)
-		rmt_ip = ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[3]);
+		remote_ip = ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[3]);
 #endif
 	if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
 		/* NB: can be NULL (user runs httpd -i by hand?) */
@@ -2113,7 +2114,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		if (verbose > 2)
 			bb_error_msg("connected");
 	}
-	if_ip_denied_send_HTTP_FORBIDDEN_and_exit();
+	if_ip_denied_send_HTTP_FORBIDDEN_and_exit(remote_ip);
 
 	/* Install timeout handler. get_line() needs it. */
 	signal(SIGALRM, send_REQUEST_TIMEOUT_and_exit);
@@ -2268,7 +2269,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		if (is_directory(urlcopy + 1, /*followlinks:*/ 1)) {
 			/* may have subdir config */
 			parse_conf(urlcopy + 1, SUBDIR_PARSE);
-			if_ip_denied_send_HTTP_FORBIDDEN_and_exit();
+			if_ip_denied_send_HTTP_FORBIDDEN_and_exit(remote_ip);
 		}
 		*tptr = '/';
 	}
@@ -2324,21 +2325,25 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #endif
 	urlp[0] = '\0';
 
-	header_len = 0;
+#if ENABLE_FEATURE_HTTPD_CGI
+	total_headers_len = 0;
+#endif
 	if (http_major_version >= '0') {
 		/* Request was with "... HTTP/nXXX", and n >= 0 */
 
 		/* Read until blank line */
 		while (1) {
-			int iobuf_len = get_line();
+			unsigned iobuf_len = get_line();
 			if (!iobuf_len)
 				break; /* EOF or error or empty line */
-			header_len += iobuf_len + 2;
-			if (header_len >= MAX_HTTP_HEADERS_SIZE)
+#if ENABLE_FEATURE_HTTPD_CGI
+			/* Prevent unlimited growth of HTTP_xyz envvars */
+			total_headers_len += iobuf_len;
+			if (total_headers_len >= MAX_HTTP_HEADERS_SIZE)
 				send_headers_and_exit(HTTP_ENTITY_TOO_LARGE);
+#endif
 			if (DEBUG)
 				bb_error_msg("header: '%s'", iobuf);
-
 #if ENABLE_FEATURE_HTTPD_CGI || ENABLE_FEATURE_HTTPD_PROXY
 			/* Try and do our best to parse more lines */
 			if ((STRNCASECMP(iobuf, "Content-Length:") == 0)) {
