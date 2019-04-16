@@ -1194,7 +1194,8 @@ static void send_headers_and_exit(int responseNum)
 }
 
 /*
- * Read from the socket until '\n' or EOF. '\r' chars are removed.
+ * Read from the socket until '\n' or EOF.
+ * '\r' chars are removed.
  * '\n' is replaced with NUL.
  * Return number of characters read or 0 if nothing is read
  * ('\r' and '\n' are not counted).
@@ -1202,29 +1203,30 @@ static void send_headers_and_exit(int responseNum)
  */
 static int get_line(void)
 {
-	int count = 0;
+	int count;
 	char c;
 
 	alarm(HEADER_READ_TIMEOUT);
+	count = 0;
 	while (1) {
 		if (hdr_cnt <= 0) {
 			hdr_cnt = safe_read(STDIN_FILENO, hdr_buf, sizeof_hdr_buf);
 			if (hdr_cnt <= 0)
-				break;
+				goto ret;
 			hdr_ptr = hdr_buf;
 		}
-		iobuf[count] = c = *hdr_ptr++;
 		hdr_cnt--;
-
+		c = *hdr_ptr++;
 		if (c == '\r')
 			continue;
-		if (c == '\n') {
-			iobuf[count] = '\0';
+		if (c == '\n')
 			break;
-		}
+		iobuf[count] = c;
 		if (count < (IOBUF_SIZE - 1))      /* check overflow */
 			count++;
 	}
+ ret:
+	iobuf[count] = '\0';
 	return count;
 }
 
