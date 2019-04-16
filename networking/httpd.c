@@ -2177,15 +2177,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		g_query = tptr;
 	}
 
-	/* Decode URL escape sequences */
-	tptr = percent_decode_in_place(urlcopy, /*strict:*/ 1);
-	if (tptr == NULL)
-		send_headers_and_exit(HTTP_BAD_REQUEST);
-	if (tptr == urlcopy + 1) {
-		/* '/' or NUL is encoded */
-		send_headers_and_exit(HTTP_NOT_FOUND);
-	}
-
 #if ENABLE_FEATURE_HTTPD_PROXY
 	proxy_entry = find_proxy_entry(urlcopy);
 	if (proxy_entry)
