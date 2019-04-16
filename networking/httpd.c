@@ -411,7 +411,7 @@ struct globals {
 	char *rmt_ip_str;       /* for $REMOTE_ADDR and $REMOTE_PORT */
 	const char *bind_addr_or_port;
 
-	const char *g_query;
+	char *g_query;
 	const char *opt_c_configFile;
 	const char *home_httpd;
 	const char *index_page;
@@ -2166,14 +2166,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	strcpy(urlcopy, urlp);
 	/* NB: urlcopy ptr is never changed after this */
 
-	/* Extract url args if present */
-	/* g_query = NULL; - already is */
-	tptr = strchr(urlcopy, '?');
-	if (tptr) {
-		*tptr++ = '\0';
-		g_query = tptr;
-	}
-
 #if ENABLE_FEATURE_HTTPD_PROXY
 	{
 		int proxy_fd;
@@ -2194,18 +2186,21 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			 * When /urlSFX is requested, reverse proxy it
 			 * to http://hostname[:port]/new/pathSFX
 			 */
-			fdprintf(proxy_fd, "%s %s%s%s%s %s\r\n",
+			fdprintf(proxy_fd, "%s %s%s %s\r\n",
 					prequest, /* "GET" or "POST" */
 					proxy_entry->url_to, /* "/new/path" */
 					urlcopy + strlen(proxy_entry->url_from), /* "SFX" */
-					(g_query ? "?" : ""), /* "?" (maybe) */
-					(g_query ? g_query : ""), /* query string (maybe) */
 					HTTP_slash /* HTTP/xyz" or "" */
 			);
 			cgi_io_loop_and_exit(proxy_fd, proxy_fd, /*max POST length:*/ INT_MAX);
 		}
 	}
 #endif
+
+	/* Extract url args if present */
+	g_query = strchr(urlcopy, '?');
+	if (g_query)
+		*g_query++ = '\0';
 
 	/* Decode URL escape sequences */
 	tptr = percent_decode_in_place(urlcopy, /*strict:*/ 1);
