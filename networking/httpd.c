@@ -2113,6 +2113,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		if (verbose > 2)
 			bb_error_msg("connected");
 	}
+	if_ip_denied_send_HTTP_FORBIDDEN_and_exit();
 
 	/* Install timeout handler. get_line() needs it. */
 	signal(SIGALRM, send_REQUEST_TIMEOUT_and_exit);
@@ -2147,7 +2148,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		send_headers_and_exit(HTTP_BAD_REQUEST);
 
 	/* Find end of URL and parse HTTP version, if any */
-//TODO: mayybe just reject all queries which have no " HTTP/xyz" suffix?
+//TODO: maybe just reject all queries which have no " HTTP/xyz" suffix?
 //Then 'http_major_version' can be deleted
 	http_major_version = ('0' - 1); /* "less than 0th" version */
 	HTTP_slash = strchrnul(urlp, ' ');
@@ -2261,7 +2262,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		bb_error_msg("url:%s", urlcopy);
 
 	tptr = urlcopy;
-	if_ip_denied_send_HTTP_FORBIDDEN_and_exit();
 	while ((tptr = strchr(tptr + 1, '/')) != NULL) {
 		/* have path1/path2 */
 		*tptr = '\0';
