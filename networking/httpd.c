@@ -1817,7 +1817,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 	log_and_exit();
 }
 
-static void send_HTTP_FORBIDDEN_and_exit_if_denied_ip(void)
+static void if_ip_denied_send_HTTP_FORBIDDEN_and_exit(void)
 {
 	Htaccess_IP *cur;
 
@@ -2195,6 +2195,24 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		send_headers_and_exit(HTTP_NOT_FOUND);
 	}
 
+#if ENABLE_FEATURE_HTTPD_PROXY
+	proxy_entry = find_proxy_entry(urlcopy);
+	if (proxy_entry)
+		header_buf = header_ptr = xmalloc(IOBUF_SIZE);
+	else
+#endif
+	{
+		/* (If not proxying,) decode URL escape sequences */
+		tptr = percent_decode_in_place(urlcopy, /*strict:*/ 1);
+		if (tptr == NULL)
+			send_headers_and_exit(HTTP_BAD_REQUEST);
+		if (tptr == urlcopy + 1) {
+			/* '/' or NUL is encoded */
+			send_headers_and_exit(HTTP_NOT_FOUND);
+		}
+//should path canonicalization also be conditional on not proxying?
+	}
+
 	/* Canonicalize path */
 	/* Algorithm stolen from libbb bb_simplify_path(),
 	 * but don't strdup, retain trailing slash, protect root */
@@ -2224,7 +2242,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			}
 		}
 		*++urlp = *tptr;
-		if (*urlp == '\0')
+		if (*tptr == '\0')
 			break;
  next_char:
 		tptr++;
@@ -2242,23 +2260,17 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		bb_error_msg("url:%s", urlcopy);
 
 	tptr = urlcopy;
-	send_HTTP_FORBIDDEN_and_exit_if_denied_ip();
+	if_ip_denied_send_HTTP_FORBIDDEN_and_exit();
 	while ((tptr = strchr(tptr + 1, '/')) != NULL) {
 		/* have path1/path2 */
 		*tptr = '\0';
 		if (is_directory(urlcopy + 1, /*followlinks:*/ 1)) {
 			/* may have subdir config */
 			parse_conf(urlcopy + 1, SUBDIR_PARSE);
-			send_HTTP_FORBIDDEN_and_exit_if_denied_ip();
+			if_ip_denied_send_HTTP_FORBIDDEN_and_exit();
 		}
 		*tptr = '/';
 	}
-
-#if ENABLE_FEATURE_HTTPD_PROXY
-	proxy_entry = find_proxy_entry(urlcopy);
-	if (proxy_entry)
-		header_buf = header_ptr = xmalloc(IOBUF_SIZE);
-#endif
 
 	if (http_major_version >= '0') {
 		/* Request was with "... HTTP/nXXX", and n >= 0 */
