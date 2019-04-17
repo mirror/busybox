@@ -1150,18 +1150,61 @@ static void send_headers(unsigned responseNum)
 			file_size = range_end - range_start + 1;
 		}
 #endif
+
+//RFC 2616 4.4 Message Length
+// The transfer-length of a message is the length of the message-body as
+// it appears in the message; that is, after any transfer-codings have
+// been applied. When a message-body is included with a message, the
+// transfer-length of that body is determined by one of the following
+// (in order of precedence):
+// 1.Any response message which "MUST NOT" include a message-body (such
+//   as the 1xx, 204, and 304 responses and any response to a HEAD
+//   request) is always terminated by the first empty line after the
+//   header fields, regardless of the entity-header fields present in
+//   the message.
+// 2.If a Transfer-Encoding header field (section 14.41) is present and
+//   has any value other than "identity", then the transfer-length is
+//   defined by use of the "chunked" transfer-coding (section 3.6),
+//   unless the message is terminated by closing the connection.
+// 3.If a Content-Length header field (section 14.13) is present, its
+//   decimal value in OCTETs represents both the entity-length and the
+//   transfer-length. The Content-Length header field MUST NOT be sent
+//   if these two lengths are different (i.e., if a Transfer-Encoding
+//   header field is present). If a message is received with both a
+//   Transfer-Encoding header field and a Content-Length header field,
+//   the latter MUST be ignored.
+// 4.If the message uses the media type "multipart/byteranges" ...
+// 5.By the server closing the connection.
+//
+// (NB: standards do not define "Transfer-Length:" _header_,
+// transfer-length above is just a concept).
+
 		len += sprintf(iobuf + len,
 #if ENABLE_FEATURE_HTTPD_RANGES
 			"Accept-Ranges: bytes\r\n"
 #endif
 			"Last-Modified: %s\r\n"
-			"%s-Length: %"OFF_FMT"u\r\n",
+	/* Because of 4.4 (5), we can forgo sending of "Content-Length"
+	 * since we close connection afterwards, but it helps clients
+	 * to e.g. estimate download times, show progress bars etc.
+	 * Theoretically we should not send it if page is compressed,
+	 * but de-facto standard is to send it (see comment below).
+	 */
+			"Content-Length: %"OFF_FMT"u\r\n",
 				date_str,
-				content_gzip ? "Transfer" : "Content",
 				file_size
 		);
 	}
 
+	/* This should be "Transfer-Encoding", not "Content-Encoding":
+	 * "data is compressed for transfer", not "data is an archive".
+	 * But many clients were not handling "Transfer-Encoding" correctly
+	 * (they were not uncompressing gzipped pages, tried to show
+	 * raw compressed data), and servers worked around it by using
+	 * "Content-Encoding" instead... and this become de-facto standard.
+	 * https://bugzilla.mozilla.org/show_bug.cgi?id=68517
+	 * https://bugs.chromium.org/p/chromium/issues/detail?id=94730
+	 */
 	if (content_gzip)
 		len += sprintf(iobuf + len, "Content-Encoding: gzip\r\n");
 
