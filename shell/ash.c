@@ -13042,6 +13042,7 @@ expandstr(const char *ps, int syntax_type)
 {
 	union node n;
 	int saveprompt;
+	struct parsefile *file_stop = g_parsefile;
 
 	/* XXX Fix (char *) cast. */
 	setinputstring((char *)ps);
@@ -13068,7 +13069,8 @@ expandstr(const char *ps, int syntax_type)
 
 	doprompt = saveprompt;
 
-	popfile();
+	/* Try: PS1='`xxx(`' */
+	unwindfiles(file_stop);
 
 	n.narg.type = NARG;
 	n.narg.next = NULL;
