@@ -13043,6 +13043,9 @@ expandstr(const char *ps, int syntax_type)
 	union node n;
 	int saveprompt;
 	struct parsefile *file_stop = g_parsefile;
+	volatile int saveint;
+	struct jmploc *volatile savehandler = exception_handler;
+	struct jmploc jmploc;
 
 	/* XXX Fix (char *) cast. */
 	setinputstring((char *)ps);
@@ -13054,18 +13057,13 @@ expandstr(const char *ps, int syntax_type)
 	 * Try a prompt with syntactically wrong command:
 	 * PS1='$(date "+%H:%M:%S) > '
 	 */
-	{
-		volatile int saveint;
-		struct jmploc *volatile savehandler = exception_handler;
-		struct jmploc jmploc;
-		SAVE_INT(saveint);
-		if (setjmp(jmploc.loc) == 0) {
-			exception_handler = &jmploc;
-			readtoken1(pgetc(), syntax_type, FAKEEOFMARK, 0);
-		}
-		exception_handler = savehandler;
-		RESTORE_INT(saveint);
+	SAVE_INT(saveint);
+	if (setjmp(jmploc.loc) == 0) {
+		exception_handler = &jmploc;
+		readtoken1(pgetc(), syntax_type, FAKEEOFMARK, 0);
 	}
+	exception_handler = savehandler;
+	RESTORE_INT(saveint);
 
 	doprompt = saveprompt;
 
@@ -13077,7 +13075,17 @@ expandstr(const char *ps, int syntax_type)
 	n.narg.text = wordtext;
 	n.narg.backquote = backquotelist;
 
-	expandarg(&n, NULL, EXP_QUOTED);
+	/* expandarg() might fail too:
+	 * PS1='$((123+))'
+	 */
+	SAVE_INT(saveint);
+	if (setjmp(jmploc.loc) == 0) {
+		exception_handler = &jmploc;
+		expandarg(&n, NULL, EXP_QUOTED);
+	}
+	exception_handler = savehandler;
+	RESTORE_INT(saveint);
+
 	return stackblock();
 }
 
