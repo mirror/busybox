@@ -2384,7 +2384,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				bb_error_msg("header: '%s'", iobuf);
 #if ENABLE_FEATURE_HTTPD_CGI || ENABLE_FEATURE_HTTPD_PROXY
 			/* Try and do our best to parse more lines */
-			if ((STRNCASECMP(iobuf, "Content-Length:") == 0)) {
+			if (STRNCASECMP(iobuf, "Content-Length:") == 0) {
 				/* extra read only for POST */
 				if (prequest != request_GET
 # if ENABLE_FEATURE_HTTPD_CGI
@@ -2410,13 +2410,13 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				 * "<user>:<passwd>" is base64 encoded.
 				 */
 				tptr = skip_whitespace(iobuf + sizeof("Authorization:")-1);
-				if (STRNCASECMP(tptr, "Basic") != 0)
+				if (STRNCASECMP(tptr, "Basic") == 0) {
+					tptr += sizeof("Basic")-1;
+					/* decodeBase64() skips whitespace itself */
+					decodeBase64(tptr);
+					authorized = check_user_passwd(urlcopy, tptr);
 					continue;
-				tptr += sizeof("Basic")-1;
-				/* decodeBase64() skips whitespace itself */
-				decodeBase64(tptr);
-				authorized = check_user_passwd(urlcopy, tptr);
-				continue;
+				}
 			}
 #endif
 #if ENABLE_FEATURE_HTTPD_RANGES
