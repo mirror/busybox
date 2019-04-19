@@ -259,18 +259,11 @@
 #if ENABLE_FEATURE_USE_SENDFILE
 # include <sys/sendfile.h>
 #endif
-/* amount of buffering in a pipe */
-#ifndef PIPE_BUF
-# define PIPE_BUF 4096
-#endif
 
 #define DEBUG 0
 
 #define IOBUF_SIZE 8192
-#define MAX_HTTP_HEADERS_SIZE ((8*1024) - 16)
-#if PIPE_BUF >= IOBUF_SIZE
-# error "PIPE_BUF >= IOBUF_SIZE"
-#endif
+#define MAX_HTTP_HEADERS_SIZE (32*1024)
 
 #define HEADER_READ_TIMEOUT 60
 
@@ -1413,10 +1406,10 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 				 * CGI may output a few first bytes and then wait
 				 * for POSTDATA without closing stdout.
 				 * With full_read we may wait here forever. */
-				count = safe_read(fromCgi_rd, rbuf + out_cnt, PIPE_BUF - 8);
+				count = safe_read(fromCgi_rd, rbuf + out_cnt, IOBUF_SIZE - 8);
 				if (count <= 0) {
 					/* eof (or error) and there was no "HTTP",
-					 * so write it, then write received data */
+					 * send "HTTP/1.0 200 OK\r\n", then send received data */
 					if (out_cnt) {
 						full_write(STDOUT_FILENO, HTTP_200, sizeof(HTTP_200)-1);
 						full_write(STDOUT_FILENO, rbuf, out_cnt);
@@ -1454,7 +1447,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 					out_cnt = -1; /* buffering off */
 				}
 			} else {
-				count = safe_read(fromCgi_rd, rbuf, PIPE_BUF);
+				count = safe_read(fromCgi_rd, rbuf, IOBUF_SIZE);
 				if (count <= 0)
 					break;  /* eof (or error) */
 			}

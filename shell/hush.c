@@ -363,9 +363,6 @@
 #ifndef F_DUPFD_CLOEXEC
 # define F_DUPFD_CLOEXEC F_DUPFD
 #endif
-#ifndef PIPE_BUF
-# define PIPE_BUF 4096  /* amount of buffering in a pipe */
-#endif
 
 #if ENABLE_FEATURE_SH_EMBEDDED_SCRIPTS && !(ENABLE_ASH || ENABLE_SH_IS_ASH || ENABLE_BASH_IS_ASH)
 # include "embedded_scripts.h"
