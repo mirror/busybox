@@ -2128,7 +2128,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	smallint authorized = -1;
 #endif
-	char http_major_version;
 	char *HTTP_slash;
 
 	/* Allocation of iobuf is postponed until now
@@ -2191,16 +2190,12 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (urlp[0] != '/')
 		send_headers_and_exit(HTTP_BAD_REQUEST);
 
-	/* Find end of URL and parse HTTP version, if any */
-//TODO: maybe just reject all queries which have no " HTTP/xyz" suffix?
-//Then 'http_major_version' can be deleted
-	http_major_version = ('0' - 1); /* "less than 0th" version */
-	HTTP_slash = strchrnul(urlp, ' ');
+	/* Find end of URL */
+	HTTP_slash = strchr(urlp, ' ');
 	/* Is it " HTTP/"? */
-	if (HTTP_slash[0] && strncmp(HTTP_slash + 1, HTTP_200, 5) == 0) {
-		http_major_version = HTTP_slash[6];
-		*HTTP_slash++ = '\0';
-	}
+	if (!HTTP_slash || strncmp(HTTP_slash + 1, HTTP_200, 5) != 0)
+		send_headers_and_exit(HTTP_BAD_REQUEST);
+	*HTTP_slash++ = '\0';
 
 	/* Copy URL from after "GET "/"POST " to stack-allocated char[] */
 	urlcopy = alloca((HTTP_slash - urlp) + 2 + strlen(index_page));
@@ -2216,6 +2211,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		Htaccess_Proxy *proxy_entry = find_proxy_entry(urlcopy);
 
 		if (proxy_entry) {
+			if (verbose > 1)
+				bb_error_msg("proxy:%s", urlcopy);
 			lsa = host2sockaddr(proxy_entry->host_port, 80);
 			if (!lsa)
 				send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
@@ -2233,7 +2230,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 					prequest, /* "GET" or "POST" */
 					proxy_entry->url_to, /* "/new/path" */
 					urlcopy + strlen(proxy_entry->url_from), /* "SFX" */
-					HTTP_slash /* HTTP/xyz" or "" */
+					HTTP_slash /* "HTTP/xyz" */
 			);
 			cgi_io_loop_and_exit(proxy_fd, proxy_fd, /*max POST length:*/ INT_MAX);
 		}
@@ -2366,8 +2363,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_CGI
 	total_headers_len = 0;
 #endif
-	if (http_major_version >= '0') {
-		/* Request was with "... HTTP/nXXX", and n >= 0 */
 
 		/* Read until blank line */
 		while (1) {
@@ -2484,7 +2479,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			}
 #endif
 		} /* while extra header reading */
-	}
 
 	/* We are done reading headers, disable peer timeout */
 	alarm(0);
