@@ -2214,6 +2214,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
 			if (connect(proxy_fd, &lsa->u.sa, lsa->len) < 0)
 				send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+			/* Disable peer header reading timeout */
+			alarm(0);
 			/* Config directive was of the form:
 			 *   P:/url:[http://]hostname[:port]/new/path
 			 * When /urlSFX is requested, reverse proxy it
