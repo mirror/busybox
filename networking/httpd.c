@@ -2364,121 +2364,121 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	total_headers_len = 0;
 #endif
 
-		/* Read until blank line */
-		while (1) {
-			unsigned iobuf_len = get_line();
-			if (!iobuf_len)
-				break; /* EOF or error or empty line */
+	/* Read until blank line */
+	while (1) {
+		unsigned iobuf_len = get_line();
+		if (!iobuf_len)
+			break; /* EOF or error or empty line */
 #if ENABLE_FEATURE_HTTPD_CGI
-			/* Prevent unlimited growth of HTTP_xyz envvars */
-			total_headers_len += iobuf_len;
-			if (total_headers_len >= MAX_HTTP_HEADERS_SIZE)
-				send_headers_and_exit(HTTP_ENTITY_TOO_LARGE);
+		/* Prevent unlimited growth of HTTP_xyz envvars */
+		total_headers_len += iobuf_len;
+		if (total_headers_len >= MAX_HTTP_HEADERS_SIZE)
+			send_headers_and_exit(HTTP_ENTITY_TOO_LARGE);
 #endif
-			if (DEBUG)
-				bb_error_msg("header: '%s'", iobuf);
+		if (DEBUG)
+			bb_error_msg("header: '%s'", iobuf);
 #if ENABLE_FEATURE_HTTPD_CGI || ENABLE_FEATURE_HTTPD_PROXY
-			/* Try and do our best to parse more lines */
-			if (STRNCASECMP(iobuf, "Content-Length:") == 0) {
-				/* extra read only for POST */
-				if (prequest != request_GET
+		/* Try and do our best to parse more lines */
+		if (STRNCASECMP(iobuf, "Content-Length:") == 0) {
+			/* extra read only for POST */
+			if (prequest != request_GET
 # if ENABLE_FEATURE_HTTPD_CGI
-				 && prequest != request_HEAD
+			 && prequest != request_HEAD
 # endif
-				) {
-					tptr = skip_whitespace(iobuf + sizeof("Content-Length:") - 1);
-					if (!tptr[0])
-						send_headers_and_exit(HTTP_BAD_REQUEST);
-					/* not using strtoul: it ignores leading minus! */
-					length = bb_strtou(tptr, NULL, 10);
-					/* length is "ulong", but we need to pass it to int later */
-					if (errno || length > INT_MAX)
-						send_headers_and_exit(HTTP_BAD_REQUEST);
-				}
-				continue;
+			) {
+				tptr = skip_whitespace(iobuf + sizeof("Content-Length:") - 1);
+				if (!tptr[0])
+					send_headers_and_exit(HTTP_BAD_REQUEST);
+				/* not using strtoul: it ignores leading minus! */
+				length = bb_strtou(tptr, NULL, 10);
+				/* length is "ulong", but we need to pass it to int later */
+				if (errno || length > INT_MAX)
+					send_headers_and_exit(HTTP_BAD_REQUEST);
 			}
+			continue;
+		}
 #endif
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-			if (STRNCASECMP(iobuf, "Authorization:") == 0) {
-				/* We only allow Basic credentials.
-				 * It shows up as "Authorization: Basic <user>:<passwd>" where
-				 * "<user>:<passwd>" is base64 encoded.
-				 */
-				tptr = skip_whitespace(iobuf + sizeof("Authorization:")-1);
-				if (STRNCASECMP(tptr, "Basic") == 0) {
-					tptr += sizeof("Basic")-1;
-					/* decodeBase64() skips whitespace itself */
-					decodeBase64(tptr);
-					authorized = check_user_passwd(urlcopy, tptr);
-					continue;
-				}
+		if (STRNCASECMP(iobuf, "Authorization:") == 0) {
+			/* We only allow Basic credentials.
+			 * It shows up as "Authorization: Basic <user>:<passwd>" where
+			 * "<user>:<passwd>" is base64 encoded.
+			 */
+			tptr = skip_whitespace(iobuf + sizeof("Authorization:")-1);
+			if (STRNCASECMP(tptr, "Basic") == 0) {
+				tptr += sizeof("Basic")-1;
+				/* decodeBase64() skips whitespace itself */
+				decodeBase64(tptr);
+				authorized = check_user_passwd(urlcopy, tptr);
+				continue;
 			}
+		}
 #endif
 #if ENABLE_FEATURE_HTTPD_RANGES
-			if (STRNCASECMP(iobuf, "Range:") == 0) {
-				/* We know only bytes=NNN-[MMM] */
-				char *s = skip_whitespace(iobuf + sizeof("Range:")-1);
-				if (is_prefixed_with(s, "bytes=")) {
-					s += sizeof("bytes=")-1;
-					range_start = BB_STRTOOFF(s, &s, 10);
-					if (s[0] != '-' || range_start < 0) {
+		if (STRNCASECMP(iobuf, "Range:") == 0) {
+			/* We know only bytes=NNN-[MMM] */
+			char *s = skip_whitespace(iobuf + sizeof("Range:")-1);
+			if (is_prefixed_with(s, "bytes=")) {
+				s += sizeof("bytes=")-1;
+				range_start = BB_STRTOOFF(s, &s, 10);
+				if (s[0] != '-' || range_start < 0) {
+					range_start = -1;
+				} else if (s[1]) {
+					range_end = BB_STRTOOFF(s+1, NULL, 10);
+					if (errno || range_end < range_start)
 						range_start = -1;
-					} else if (s[1]) {
-						range_end = BB_STRTOOFF(s+1, NULL, 10);
-						if (errno || range_end < range_start)
-							range_start = -1;
-					}
 				}
-				continue;
 			}
+			continue;
+		}
 #endif
 #if ENABLE_FEATURE_HTTPD_GZIP
-			if (STRNCASECMP(iobuf, "Accept-Encoding:") == 0) {
-				/* Note: we do not support "gzip;q=0"
-				 * method of _disabling_ gzip
-				 * delivery. No one uses that, though */
-				const char *s = strstr(iobuf, "gzip");
-				if (s) {
-					// want more thorough checks?
-					//if (s[-1] == ' '
-					// || s[-1] == ','
-					// || s[-1] == ':'
-					//) {
-						content_gzip = 1;
-					//}
-				}
-				continue;
+		if (STRNCASECMP(iobuf, "Accept-Encoding:") == 0) {
+			/* Note: we do not support "gzip;q=0"
+			 * method of _disabling_ gzip
+			 * delivery. No one uses that, though */
+			const char *s = strstr(iobuf, "gzip");
+			if (s) {
+				// want more thorough checks?
+				//if (s[-1] == ' '
+				// || s[-1] == ','
+				// || s[-1] == ':'
+				//) {
+					content_gzip = 1;
+				//}
 			}
+			continue;
+		}
 #endif
 #if ENABLE_FEATURE_HTTPD_CGI
-			if (cgi_type != CGI_NONE) {
-				bool ct = (STRNCASECMP(iobuf, "Content-Type:") == 0);
-				char *cp;
-				char *colon = strchr(iobuf, ':');
+		if (cgi_type != CGI_NONE) {
+			bool ct = (STRNCASECMP(iobuf, "Content-Type:") == 0);
+			char *cp;
+			char *colon = strchr(iobuf, ':');
 
-				if (!colon)
+			if (!colon)
+				continue;
+			cp = iobuf;
+			while (cp < colon) {
+				/* a-z => A-Z, not-alnum => _ */
+				char c = (*cp & ~0x20); /* toupper for A-Za-z, undef for others */
+				if ((unsigned)(c - 'A') <= ('Z' - 'A')) {
+					*cp++ = c;
 					continue;
-				cp = iobuf;
-				while (cp < colon) {
-					/* a-z => A-Z, not-alnum => _ */
-					char c = (*cp & ~0x20); /* toupper for A-Za-z, undef for others */
-					if ((unsigned)(c - 'A') <= ('Z' - 'A')) {
-						*cp++ = c;
-						continue;
-					}
-					if (!isdigit(*cp))
-						*cp = '_';
-					cp++;
 				}
-				/* "Content-Type:" gets no HTTP_ prefix, all others do */
-				cp = xasprintf(ct ? "HTTP_%.*s=%s" + 5 : "HTTP_%.*s=%s",
-					(int)(colon - iobuf), iobuf,
-					skip_whitespace(colon + 1)
-				);
-				putenv(cp);
+				if (!isdigit(*cp))
+					*cp = '_';
+				cp++;
 			}
+			/* "Content-Type:" gets no HTTP_ prefix, all others do */
+			cp = xasprintf(ct ? "HTTP_%.*s=%s" + 5 : "HTTP_%.*s=%s",
+				(int)(colon - iobuf), iobuf,
+				skip_whitespace(colon + 1)
+			);
+			putenv(cp);
+		}
 #endif
-		} /* while extra header reading */
+	} /* while extra header reading */
 
 	/* We are done reading headers, disable peer timeout */
 	alarm(0);
