@@ -1253,10 +1253,10 @@ static unsigned get_line(void)
 	unsigned count;
 	char c;
 
-	alarm(HEADER_READ_TIMEOUT);
 	count = 0;
 	while (1) {
 		if (hdr_cnt <= 0) {
+			alarm(HEADER_READ_TIMEOUT);
 			hdr_cnt = safe_read(STDIN_FILENO, hdr_buf, sizeof_hdr_buf);
 			if (hdr_cnt <= 0)
 				goto ret;
