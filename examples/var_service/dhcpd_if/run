@@ -8,7 +8,7 @@ pwd="$PWD"
 if="${PWD##*/dhcpd_}"
 
 echo "* Upping iface $if"
-ip link set dev $if up || { sleep 5; exit; }
+ip link set dev $if up || exec sleep 5
 
 >>udhcpd.leases
 sed 's/^interface.*$/interface '"$if/" -i udhcpd.conf

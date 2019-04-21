@@ -8,7 +8,7 @@ pwd="$PWD"
 if="${PWD##*/zcip_}"
 
 echo "* Upping iface $if"
-ip link set dev "$if" up || { sleep 5; exit; }
+ip link set dev "$if" up || exec sleep 5
 
 echo "* Starting zcip on $if [$$]"
 exec \
