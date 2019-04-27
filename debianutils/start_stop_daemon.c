@@ -94,7 +94,7 @@ Misc options:
 //usage:     "\n	-n NAME		Match processes with NAME"
 //usage:     "\n			in comm field in /proc/PID/stat"
 //usage:     "\n	-x EXECUTABLE	Match processes with this command"
-//usage:     "\n			command in /proc/PID/cmdline"
+//usage:     "\n			in /proc/PID/cmdline"
 //usage:     "\n	-p FILE		Match a process with PID from FILE"
 //usage:     "\n	All specified conditions must match"
 //usage:     "\n-S only:"
@@ -452,31 +452,34 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 // "start-stop-daemon -S -a sleep      -- 5"
 // NB: -n option does _not_ behave in this way: this will try to execute "5":
 // "start-stop-daemon -S -n sleep      -- 5"
-	if (!execname) { /* -x is not given */
-		execname = startas;
-		if (!execname) { /* neither -x nor -a is given */
-			execname = argv[0];
-			if (!execname)
-				bb_show_usage();
-			argv++;
+	if (opt & CTX_START) {
+		if (!execname) { /* -x is not given */
+			execname = startas;
+			if (!execname) { /* neither -x nor -a is given */
+				execname = argv[0];
+				if (!execname)
+					bb_show_usage();
+				argv++;
+			}
 		}
+		if (!startas) /* -a is not given: use -x EXECUTABLE or argv[0] */
+			startas = execname;
+		*--argv = startas;
 	}
-	if (!startas) /* -a is not given: use -x EXECUTABLE or argv[0] */
-		startas = execname;
-	*--argv = startas;
-	G.execname_sizeof = strlen(execname) + 1;
-	G.execname_cmpbuf = xmalloc(G.execname_sizeof + 1);
-
+	if (execname) {
+		G.execname_sizeof = strlen(execname) + 1;
+		G.execname_cmpbuf = xmalloc(G.execname_sizeof + 1);
+	}
 //	IF_FEATURE_START_STOP_DAEMON_FANCY(
 //		if (retry_arg)
 //			retries = xatoi_positive(retry_arg);
 //	)
-
 	if (userspec) {
 		user_id = bb_strtou(userspec, NULL, 10);
 		if (errno)
 			user_id = xuname2uid(userspec);
 	}
+
 	/* Both start and stop need to know current processes */
 	do_procinit();
 
@@ -484,6 +487,8 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		int i = do_stop();
 		return (opt & OPT_OKNODO) ? 0 : (i <= 0);
 	}
+
+	/* else: CTX_START (-S). execname can't be NULL. */
 
 	if (G.found_procs) {
 		if (!QUIET)
