@@ -354,22 +354,22 @@ static const struct limits limits_tbl[] = {
 	{ RLIMIT_CORE,		9,	"core file size (blocks)" }, // -c
 #endif
 #ifdef RLIMIT_RSS
-	{ RLIMIT_RSS,		10,	"resident set size (kb)" },  // -m
+	{ RLIMIT_RSS,		10,	"max memory size (kb)" },    // -m
 #endif
 #ifdef RLIMIT_MEMLOCK
-	{ RLIMIT_MEMLOCK,	10,	"locked memory (kb)" },      // -l
+	{ RLIMIT_MEMLOCK,	10,	"max locked memory (kb)" },  // -l
 #endif
 #ifdef RLIMIT_NPROC
-	{ RLIMIT_NPROC,		0,	"processes" },               // -p
+	{ RLIMIT_NPROC,		0,	"max user processes" },      // -u
 #endif
 #ifdef RLIMIT_NOFILE
-	{ RLIMIT_NOFILE,	0,	"file descriptors" },        // -n
+	{ RLIMIT_NOFILE,	0,	"open files" },              // -n
 #endif
 #ifdef RLIMIT_AS
-	{ RLIMIT_AS,		10,	"address space (kb)" },      // -v
+	{ RLIMIT_AS,		10,	"virtual memory (kb)" },     // -v
 #endif
 #ifdef RLIMIT_LOCKS
-	{ RLIMIT_LOCKS,		0,	"locks" },                   // -w
+	{ RLIMIT_LOCKS,		0,	"file locks" },              // -x
 #endif
 #ifdef RLIMIT_NICE
 	{ RLIMIT_NICE,		0,	"scheduling priority" },     // -e
@@ -378,6 +378,10 @@ static const struct limits limits_tbl[] = {
 	{ RLIMIT_RTPRIO,	0,	"real-time priority" },      // -r
 #endif
 };
+// bash also has these:
+//pending signals                 (-i) 61858   //RLIMIT_SIGPENDING
+//pipe size            (512 bytes, -p) 8
+//POSIX message queues     (bytes, -q) 819200  //RLIMIT_MSGQUEUE
 
 static const char limit_chars[] ALIGN1 =
 			"f"
@@ -400,7 +404,7 @@ static const char limit_chars[] ALIGN1 =
 			"l"
 #endif
 #ifdef RLIMIT_NPROC
-			"p"
+			"u"
 #endif
 #ifdef RLIMIT_NOFILE
 			"n"
@@ -409,7 +413,7 @@ static const char limit_chars[] ALIGN1 =
 			"v"
 #endif
 #ifdef RLIMIT_LOCKS
-			"w"
+			"x"
 #endif
 #ifdef RLIMIT_NICE
 			"e"
@@ -441,7 +445,7 @@ static const char ulimit_opt_string[] ALIGN1 = "-HSa"
 			"l::"
 #endif
 #ifdef RLIMIT_NPROC
-			"p::"
+			"u::"
 #endif
 #ifdef RLIMIT_NOFILE
 			"n::"
@@ -450,7 +454,7 @@ static const char ulimit_opt_string[] ALIGN1 = "-HSa"
 			"v::"
 #endif
 #ifdef RLIMIT_LOCKS
-			"w::"
+			"x::"
 #endif
 #ifdef RLIMIT_NICE
 			"e::"
@@ -571,7 +575,7 @@ shell_builtin_ulimit(char **argv)
 	if (opts & OPT_all) {
 		for (i = 0; i < ARRAY_SIZE(limits_tbl); i++) {
 			getrlimit(limits_tbl[i].cmd, &limit);
-			printf("-%c: %-30s ", limit_chars[i], limits_tbl[i].name);
+			printf("%-32s(-%c) ", limits_tbl[i].name, limit_chars[i]);
 			printlim(opts, &limit, &limits_tbl[i]);
 		}
 		return EXIT_SUCCESS;
@@ -604,7 +608,7 @@ shell_builtin_ulimit(char **argv)
 		getrlimit(limits_tbl[i].cmd, &limit);
 		if (!val_str) {
 			if (opt_cnt > 1)
-				printf("-%c: %-30s ", limit_chars[i], limits_tbl[i].name);
+				printf("%-32s(-%c) ", limits_tbl[i].name, limit_chars[i]);
 			printlim(opts, &limit, &limits_tbl[i]);
 		} else {
 			rlim_t val = RLIM_INFINITY;
