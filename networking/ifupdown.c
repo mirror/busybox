@@ -1177,8 +1177,15 @@ static int doit(char *str)
 
 static int execute_all(struct interface_defn_t *ifd, const char *opt)
 {
+	/* 'opt' is always short, the longest value is "post-down".
+	 * Can use on-stack buffer instead of xasprintf'ed one.
+	 */
+	char buf[sizeof("run-parts /etc/network/if-%s.d")
+		+ sizeof("post-down")
+		/*paranoia:*/ + 8
+	];
 	int i;
-	char *buf;
+
 	for (i = 0; i < ifd->n_options; i++) {
 		if (strcmp(ifd->option[i].name, opt) == 0) {
 			if (!doit(ifd->option[i].value)) {
@@ -1192,8 +1199,7 @@ static int execute_all(struct interface_defn_t *ifd, const char *opt)
 	 * complains, and this message _is_ annoyingly visible.
 	 * Don't "fix" this (unless newer Debian does).
 	 */
-	buf = xasprintf("run-parts /etc/network/if-%s.d", opt);
-	/* heh, we don't bother free'ing it */
+	sprintf(buf, "run-parts /etc/network/if-%s.d", opt);
 	return doit(buf);
 }
 
