@@ -339,43 +339,37 @@ struct limits {
 };
 
 static const struct limits limits_tbl[] = {
-/* No RLIMIT_FSIZE define guard since -f is the default limit and this must exist */
-	{ RLIMIT_FSIZE,		9,	"file size (blocks)" },      // -f
-#ifdef RLIMIT_CPU
-	{ RLIMIT_CPU,		0,	"cpu time (seconds)" },      // -t
-#endif
-#ifdef RLIMIT_DATA
-	{ RLIMIT_DATA,		10,	"data seg size (kb)" },      // -d
-#endif
-#ifdef RLIMIT_STACK
-	{ RLIMIT_STACK,		10,	"stack size (kb)" },         // -s
-#endif
-#ifdef RLIMIT_CORE
 	{ RLIMIT_CORE,		9,	"core file size (blocks)" }, // -c
+	{ RLIMIT_DATA,		10,	"data seg size (kb)" },      // -d
+	{ RLIMIT_NICE,		0,	"scheduling priority" },     // -e
+	{ RLIMIT_FSIZE,		9,	"file size (blocks)" },      // -f
+#define LIMIT_F_IDX     3
+#ifdef RLIMIT_MEMLOCK
+	{ RLIMIT_MEMLOCK,	10,	"max locked memory (kb)" },  // -l
 #endif
 #ifdef RLIMIT_RSS
 	{ RLIMIT_RSS,		10,	"max memory size (kb)" },    // -m
 #endif
-#ifdef RLIMIT_MEMLOCK
-	{ RLIMIT_MEMLOCK,	10,	"max locked memory (kb)" },  // -l
+#ifdef RLIMIT_NOFILE
+	{ RLIMIT_NOFILE,	0,	"open files" },              // -n
+#endif
+#ifdef RLIMIT_RTPRIO
+	{ RLIMIT_RTPRIO,	0,	"real-time priority" },      // -r
+#endif
+#ifdef RLIMIT_STACK
+	{ RLIMIT_STACK,		10,	"stack size (kb)" },         // -s
+#endif
+#ifdef RLIMIT_CPU
+	{ RLIMIT_CPU,		0,	"cpu time (seconds)" },      // -t
 #endif
 #ifdef RLIMIT_NPROC
 	{ RLIMIT_NPROC,		0,	"max user processes" },      // -u
-#endif
-#ifdef RLIMIT_NOFILE
-	{ RLIMIT_NOFILE,	0,	"open files" },              // -n
 #endif
 #ifdef RLIMIT_AS
 	{ RLIMIT_AS,		10,	"virtual memory (kb)" },     // -v
 #endif
 #ifdef RLIMIT_LOCKS
 	{ RLIMIT_LOCKS,		0,	"file locks" },              // -x
-#endif
-#ifdef RLIMIT_NICE
-	{ RLIMIT_NICE,		0,	"scheduling priority" },     // -e
-#endif
-#ifdef RLIMIT_RTPRIO
-	{ RLIMIT_RTPRIO,	0,	"real-time priority" },      // -r
 #endif
 };
 // bash also has these:
@@ -384,30 +378,30 @@ static const struct limits limits_tbl[] = {
 //POSIX message queues     (bytes, -q) 819200  //RLIMIT_MSGQUEUE
 
 static const char limit_chars[] ALIGN1 =
-			"f"
-#ifdef RLIMIT_CPU
-			"t"
-#endif
-#ifdef RLIMIT_DATA
-			"d"
-#endif
-#ifdef RLIMIT_STACK
-			"s"
-#endif
-#ifdef RLIMIT_CORE
 			"c"
+			"d"
+			"e"
+			"f"
+#ifdef RLIMIT_MEMLOCK
+			"l"
 #endif
 #ifdef RLIMIT_RSS
 			"m"
 #endif
-#ifdef RLIMIT_MEMLOCK
-			"l"
+#ifdef RLIMIT_NOFILE
+			"n"
+#endif
+#ifdef RLIMIT_RTPRIO
+			"r"
+#endif
+#ifdef RLIMIT_STACK
+			"s"
+#endif
+#ifdef RLIMIT_CPU
+			"t"
 #endif
 #ifdef RLIMIT_NPROC
 			"u"
-#endif
-#ifdef RLIMIT_NOFILE
-			"n"
 #endif
 #ifdef RLIMIT_AS
 			"v"
@@ -415,40 +409,34 @@ static const char limit_chars[] ALIGN1 =
 #ifdef RLIMIT_LOCKS
 			"x"
 #endif
-#ifdef RLIMIT_NICE
-			"e"
-#endif
-#ifdef RLIMIT_RTPRIO
-			"r"
-#endif
 ;
 
 /* "-": treat args as parameters of option with ASCII code 1 */
 static const char ulimit_opt_string[] ALIGN1 = "-HSa"
-			"f::"
-#ifdef RLIMIT_CPU
-			"t::"
-#endif
-#ifdef RLIMIT_DATA
-			"d::"
-#endif
-#ifdef RLIMIT_STACK
-			"s::"
-#endif
-#ifdef RLIMIT_CORE
 			"c::"
+			"d::"
+			"e::"
+			"f::"
+#ifdef RLIMIT_MEMLOCK
+			"l::"
 #endif
 #ifdef RLIMIT_RSS
 			"m::"
 #endif
-#ifdef RLIMIT_MEMLOCK
-			"l::"
+#ifdef RLIMIT_NOFILE
+			"n::"
+#endif
+#ifdef RLIMIT_RTPRIO
+			"r::"
+#endif
+#ifdef RLIMIT_STACK
+			"s::"
+#endif
+#ifdef RLIMIT_CPU
+			"t::"
 #endif
 #ifdef RLIMIT_NPROC
 			"u::"
-#endif
-#ifdef RLIMIT_NOFILE
-			"n::"
 #endif
 #ifdef RLIMIT_AS
 			"v::"
@@ -456,13 +444,7 @@ static const char ulimit_opt_string[] ALIGN1 = "-HSa"
 #ifdef RLIMIT_LOCKS
 			"x::"
 #endif
-#ifdef RLIMIT_NICE
-			"e::"
-#endif
-#ifdef RLIMIT_RTPRIO
-			"r::"
-#endif
-			;
+;
 
 enum {
 	OPT_hard = (1 << 0),
@@ -595,11 +577,10 @@ shell_builtin_ulimit(char **argv)
 			continue;
 		//if (opt_char == 'a') - impossible
 
-		i = 0; /* if "ulimit NNN", -f is assumed */
-		if (opt_char != 1) {
-			i = strchrnul(limit_chars, opt_char) - limit_chars;
-			//if (i >= ARRAY_SIZE(limits_tbl)) - bad option, impossible
-		}
+		if (opt_char == 1) /* if "ulimit NNN", -f is assumed */
+			opt_char = 'f';
+		i = strchrnul(limit_chars, opt_char) - limit_chars;
+		//if (i >= ARRAY_SIZE(limits_tbl)) - bad option, impossible
 
 		val_str = optarg;
 		if (!val_str && argv[optind] && argv[optind][0] != '-')
@@ -643,8 +624,8 @@ shell_builtin_ulimit(char **argv)
 
 	if (opt_cnt == 0) {
 		/* "bare ulimit": treat it as if it was -f */
-		getrlimit(limits_tbl[0].cmd, &limit);
-		printlim(opts, &limit, &limits_tbl[0]);
+		getrlimit(limits_tbl[LIMIT_F_IDX].cmd, &limit);
+		printlim(opts, &limit, &limits_tbl[LIMIT_F_IDX]);
 	}
 
 	return EXIT_SUCCESS;
