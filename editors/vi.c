@@ -3001,10 +3001,13 @@ static void do_cmd(int c);
 static int find_range(char **start, char **stop, char c)
 {
 	char *save_dot, *p, *q, *t;
-	int cnt, multiline = 0;
+	int cnt, multiline = 0, forward;
 
 	save_dot = dot;
 	p = q = dot;
+
+	// will a 'G' command move forwards or backwards?
+	forward = cmdcnt == 0 || cmdcnt > count_lines(text, dot);
 
 	if (strchr("cdy><", c)) {
 		// these cmds operate on whole lines
@@ -3029,13 +3032,13 @@ static int find_range(char **start, char **stop, char c)
 		if (dot > text && *dot == '\n')
 			dot--;		// stay off NL
 		q = dot;
-	} else if (strchr("H-k{", c)) {
+	} else if (strchr("H-k{", c) || (c == 'G' && !forward)) {
 		// these operate on multi-lines backwards
 		q = end_line(dot);	// find NL
 		do_cmd(c);		// execute movement cmd
 		dot_begin();
 		p = dot;
-	} else if (strchr("L+j}\r\n", c)) {
+	} else if (strchr("L+j}\r\n", c) || (c == 'G' && forward)) {
 		// these operate on multi-lines forwards
 		p = begin_line(dot);
 		do_cmd(c);		// execute movement cmd
@@ -3781,7 +3784,7 @@ static void do_cmd(int c)
 		} else if (strchr("^0bBeEft%$ lh\b\177", c1)) {
 			// partial line copy text into a register and delete
 			dot = yank_delete(p, q, ml, yf, ALLOW_UNDO);	// delete word
-		} else if (strchr("cdykjHL+-{}\r\n", c1)) {
+		} else if (strchr("cdykjGHL+-{}\r\n", c1)) {
 			// whole line copy text into a register and delete
 			dot = yank_delete(p, q, ml, yf, ALLOW_UNDO);	// delete lines
 			whole = 1;
