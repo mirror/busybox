@@ -3770,11 +3770,10 @@ static void do_cmd(int c)
 		if (c1 == 27) {	// ESC- user changed mind and wants out
 			c = c1 = 27;	// Escape- do nothing
 		} else if (strchr("wW", c1)) {
+			ml = 0;	// multi-line ranges aren't allowed for words
 			if (c == 'c') {
 				// don't include trailing WS as part of word
-				while (isblank(*q)) {
-					if (q <= text || q[-1] == '\n')
-						break;
+				while (isspace(*q) && q > p) {
 					q--;
 				}
 			}
