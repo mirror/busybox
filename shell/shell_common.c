@@ -344,6 +344,9 @@ static const struct limits limits_tbl[] = {
 	{ RLIMIT_NICE,		0,	"scheduling priority" },     // -e
 	{ RLIMIT_FSIZE,		9,	"file size (blocks)" },      // -f
 #define LIMIT_F_IDX     3
+#ifdef RLIMIT_SIGPENDING
+	{ RLIMIT_SIGPENDING,	0,	"pending signals" },         // -i
+#endif
 #ifdef RLIMIT_MEMLOCK
 	{ RLIMIT_MEMLOCK,	10,	"max locked memory (kb)" },  // -l
 #endif
@@ -352,6 +355,9 @@ static const struct limits limits_tbl[] = {
 #endif
 #ifdef RLIMIT_NOFILE
 	{ RLIMIT_NOFILE,	0,	"open files" },              // -n
+#endif
+#ifdef RLIMIT_MSGQUEUE
+	{ RLIMIT_MSGQUEUE,	0,	"POSIX message queues (bytes)" }, // -q
 #endif
 #ifdef RLIMIT_RTPRIO
 	{ RLIMIT_RTPRIO,	0,	"real-time priority" },      // -r
@@ -372,16 +378,17 @@ static const struct limits limits_tbl[] = {
 	{ RLIMIT_LOCKS,		0,	"file locks" },              // -x
 #endif
 };
-// bash also has these:
-//pending signals                 (-i) 61858   //RLIMIT_SIGPENDING
+// bash also shows:
 //pipe size            (512 bytes, -p) 8
-//POSIX message queues     (bytes, -q) 819200  //RLIMIT_MSGQUEUE
 
 static const char limit_chars[] ALIGN1 =
 			"c"
 			"d"
 			"e"
 			"f"
+#ifdef RLIMIT_SIGPENDING
+			"i"
+#endif
 #ifdef RLIMIT_MEMLOCK
 			"l"
 #endif
@@ -390,6 +397,9 @@ static const char limit_chars[] ALIGN1 =
 #endif
 #ifdef RLIMIT_NOFILE
 			"n"
+#endif
+#ifdef RLIMIT_MSGQUEUE
+			"q"
 #endif
 #ifdef RLIMIT_RTPRIO
 			"r"
@@ -417,6 +427,9 @@ static const char ulimit_opt_string[] ALIGN1 = "-HSa"
 			"d::"
 			"e::"
 			"f::"
+#ifdef RLIMIT_SIGPENDING
+			"i::"
+#endif
 #ifdef RLIMIT_MEMLOCK
 			"l::"
 #endif
@@ -425,6 +438,9 @@ static const char ulimit_opt_string[] ALIGN1 = "-HSa"
 #endif
 #ifdef RLIMIT_NOFILE
 			"n::"
+#endif
+#ifdef RLIMIT_MSGQUEUE
+			"q::"
 #endif
 #ifdef RLIMIT_RTPRIO
 			"r::"
