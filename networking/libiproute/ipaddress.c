@@ -571,8 +571,8 @@ int FAST_FUNC ipaddr_list_or_flush(char **argv, int flush)
 
 	for (l = linfo; l; l = l->next) {
 		if ((oneline && G_filter.family != AF_PACKET)
-		 || (print_linkinfo(&l->h) == 0)
 		/* ^^^^^^^^^ "ip -oneline a" does not print link info */
+		 || (print_linkinfo(&l->h) == 0)
 		) {
 			struct ifinfomsg *ifi = NLMSG_DATA(&l->h);
 			if (G_filter.family != AF_PACKET)
