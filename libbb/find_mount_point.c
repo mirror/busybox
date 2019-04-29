@@ -56,11 +56,22 @@ struct mntent* FAST_FUNC find_mount_point(const char *name, int subdir_too)
 			continue;
 
 		/* Is device's dev_t == name's dev_t? */
-		if (stat(mountEntry->mnt_fsname, &s) == 0 && s.st_rdev == devno_of_name)
+		if (mountEntry->mnt_fsname[0] == '/'
+		/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		 * avoid stat'ing "sysfs", "proc", "none" and such,
+		 * useless at best, can stat unrelated files at worst.
+		 */
+		 && stat(mountEntry->mnt_fsname, &s) == 0
+		 && s.st_rdev == devno_of_name
+		) {
 			break;
+		}
 		/* Match the directory's mount point. */
-		if (stat(mountEntry->mnt_dir, &s) == 0 && s.st_dev == devno_of_name)
+		if (stat(mountEntry->mnt_dir, &s) == 0
+		 && s.st_dev == devno_of_name
+		) {
 			break;
+		}
 	}
 	endmntent(mtab_fp);
 
