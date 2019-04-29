@@ -263,12 +263,6 @@ void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 	if (flags & DAEMON_CHDIR_ROOT)
 		xchdir("/");
 
-	if (flags & DAEMON_DEVNULL_STDIO) {
-		close(0);
-		close(1);
-		close(2);
-	}
-
 	fd = open(bb_dev_null, O_RDWR);
 	if (fd < 0) {
 		/* NB: we can be called as bb_sanitize_stdio() from init
@@ -278,8 +272,15 @@ void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 		fd = xopen("/", O_RDONLY); /* don't believe this can fail */
 	}
 
-	while ((unsigned)fd < 2)
-		fd = dup(fd); /* have 0,1,2 open at least to /dev/null */
+	if (flags & DAEMON_DEVNULL_STDIO) {
+		xdup2(fd, 0);
+		xdup2(fd, 1);
+		xdup2(fd, 2);
+	} else {
+		/* have 0,1,2 open at least to /dev/null */
+		while ((unsigned)fd < 2)
+			fd = dup(fd);
+	}
 
 	if (!(flags & DAEMON_ONLY_SANITIZE)) {
 
