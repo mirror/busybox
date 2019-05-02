@@ -534,7 +534,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 			wait_for_exitstatus(child_pid);
 			update_utmp_DEAD_PROCESS(child_pid);
 		}
-		IF_PAM(login_pam_end(pamh);)
+		login_pam_end(pamh);
 		return 0;
 	}
 #endif
