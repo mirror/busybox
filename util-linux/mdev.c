@@ -1047,6 +1047,86 @@ static void signal_mdevs(unsigned my_pid)
 	}
 }
 
+static void process_action(char *temp, unsigned my_pid)
+{
+	char *fw;
+	char *seq;
+	char *action;
+	char *env_devname;
+	char *env_devpath;
+	unsigned seqnum = seqnum; /* for compiler */
+	int seq_fd;
+	smalluint op;
+
+	/* Hotplug:
+	 * env ACTION=... DEVPATH=... SUBSYSTEM=... [SEQNUM=...] mdev
+	 * ACTION can be "add", "remove", "change"
+	 * DEVPATH is like "/block/sda" or "/class/input/mice"
+	 */
+	env_devname = getenv("DEVNAME"); /* can be NULL */
+	G.subsystem = getenv("SUBSYSTEM");
+	action = getenv("ACTION");
+	env_devpath = getenv("DEVPATH");
+	if (!action || !env_devpath /*|| !G.subsystem*/)
+		bb_show_usage();
+	fw = getenv("FIRMWARE");
+	seq = getenv("SEQNUM");
+	op = index_in_strings(keywords, action);
+
+	open_mdev_log(seq, my_pid);
+
+	seq_fd = -1;
+	if (seq) {
+		seqnum = atoll(seq);
+		seq_fd = wait_for_seqfile(seqnum);
+	}
+
+	dbg1("%s "
+		"ACTION:%s SEQNUM:%s SUBSYSTEM:%s DEVNAME:%s DEVPATH:%s"
+		"%s%s",
+		curtime(),
+		action, seq, G.subsystem, env_devname, env_devpath,
+		fw ? " FW:" : "", fw ? fw : ""
+	);
+
+	snprintf(temp, PATH_MAX, "/sys%s", env_devpath);
+	if (op == OP_remove) {
+		/* Ignoring "remove firmware". It was reported
+		 * to happen and to cause erroneous deletion
+		 * of device nodes. */
+		if (!fw)
+			make_device(env_devname, temp, op);
+	}
+	else {
+		make_device(env_devname, temp, op);
+		if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE) {
+			if (op == OP_add && fw)
+				load_firmware(fw, temp);
+		}
+	}
+
+	if (seq_fd >= 0) {
+		xwrite_str(seq_fd, utoa(seqnum + 1));
+		signal_mdevs(my_pid);
+	}
+}
+
+static void initial_scan(char *temp)
+{
+	struct stat st;
+
+	xstat("/", &st);
+	G.root_major = major(st.st_dev);
+	G.root_minor = minor(st.st_dev);
+
+	putenv((char*)"ACTION=add");
+
+	/* Create all devices from /sys/dev hierarchy */
+	recursive_action("/sys/dev",
+			 ACTION_RECURSE | ACTION_FOLLOWLINKS,
+			 fileAction, dirAction, temp, 0);
+}
+
 int mdev_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mdev_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -1071,86 +1151,16 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		/*
 		 * Scan: mdev -s
 		 */
-		struct stat st;
-
 #if ENABLE_FEATURE_MDEV_CONF
 		/* Same as xrealloc_vector(NULL, 4, 0): */
 		G.rule_vec = xzalloc((1 << 4) * sizeof(*G.rule_vec));
 #endif
-		xstat("/", &st);
-		G.root_major = major(st.st_dev);
-		G.root_minor = minor(st.st_dev);
 
-		putenv((char*)"ACTION=add");
-
-		/* Create all devices from /sys/dev hierarchy */
-		recursive_action("/sys/dev",
-				 ACTION_RECURSE | ACTION_FOLLOWLINKS,
-				 fileAction, dirAction, temp, 0);
+		initial_scan(temp);
 	} else {
-		char *fw;
-		char *seq;
-		char *action;
-		char *env_devname;
-		char *env_devpath;
-		unsigned my_pid;
-		unsigned seqnum = seqnum; /* for compiler */
-		int seq_fd;
-		smalluint op;
-
-		/* Hotplug:
-		 * env ACTION=... DEVPATH=... SUBSYSTEM=... [SEQNUM=...] mdev
-		 * ACTION can be "add", "remove", "change"
-		 * DEVPATH is like "/block/sda" or "/class/input/mice"
-		 */
-		env_devname = getenv("DEVNAME"); /* can be NULL */
-		G.subsystem = getenv("SUBSYSTEM");
-		action = getenv("ACTION");
-		env_devpath = getenv("DEVPATH");
-		if (!action || !env_devpath /*|| !G.subsystem*/)
-			bb_show_usage();
-		fw = getenv("FIRMWARE");
-		seq = getenv("SEQNUM");
-		op = index_in_strings(keywords, action);
-
-		my_pid = getpid();
-		open_mdev_log(seq, my_pid);
-
-		seq_fd = -1;
-		if (seq) {
-			seqnum = atoll(seq);
-			seq_fd = wait_for_seqfile(seqnum);
-		}
-
-		dbg1("%s "
-			"ACTION:%s SUBSYSTEM:%s DEVNAME:%s DEVPATH:%s"
-			"%s%s",
-			curtime(),
-			action, G.subsystem, env_devname, env_devpath,
-			fw ? " FW:" : "", fw ? fw : ""
-		);
-
-		snprintf(temp, PATH_MAX, "/sys%s", env_devpath);
-		if (op == OP_remove) {
-			/* Ignoring "remove firmware". It was reported
-			 * to happen and to cause erroneous deletion
-			 * of device nodes. */
-			if (!fw)
-				make_device(env_devname, temp, op);
-		}
-		else {
-			make_device(env_devname, temp, op);
-			if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE) {
-				if (op == OP_add && fw)
-					load_firmware(fw, temp);
-			}
-		}
+		process_action(temp, getpid());
 
 		dbg1("%s exiting", curtime());
-		if (seq_fd >= 0) {
-			xwrite_str(seq_fd, utoa(seqnum + 1));
-			signal_mdevs(my_pid);
-		}
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP)
