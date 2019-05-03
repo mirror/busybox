@@ -533,7 +533,7 @@ static void format_process(const procps_status_t *ps)
 		len = out[i].width - len + 1;
 		if (++i == out_cnt) /* do not pad last field */
 			break;
-		p += sprintf(p, "%*s", len, "");
+		p += sprintf(p, "%*s", len, " "); /* " ", not "", to ensure separation of fields */
 	}
 	printf("%.*s\n", terminal_width, buffer);
 }
