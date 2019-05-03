@@ -249,6 +249,10 @@
 #endif
 
 
+enum {
+	MDEV_OPT_SCAN       = 1 << 0,
+};
+
 static const char keywords[] ALIGN1 = "add\0remove\0"; // "change\0"
 enum { OP_add, OP_remove };
 
@@ -1047,7 +1051,7 @@ static void signal_mdevs(unsigned my_pid)
 	}
 }
 
-static void process_action(char *temp, unsigned my_pid)
+static NOINLINE void process_action(char *temp, unsigned my_pid)
 {
 	char *fw;
 	char *seq;
@@ -1130,6 +1134,7 @@ static void initial_scan(char *temp)
 int mdev_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mdev_main(int argc UNUSED_PARAM, char **argv)
 {
+	int opt;
 	RESERVE_CONFIG_BUFFER(temp, PATH_MAX + SCRATCH_SIZE);
 
 	INIT_G();
@@ -1147,7 +1152,9 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 
 	xchdir("/dev");
 
-	if (argv[1] && strcmp(argv[1], "-s") == 0) {
+	opt = getopt32(argv, "s");
+
+	if (opt & MDEV_OPT_SCAN) {
 		/*
 		 * Scan: mdev -s
 		 */
