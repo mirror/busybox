@@ -29,7 +29,7 @@
 //usage:     "\n	-n	Don't dereference symlinks - treat like normal file"
 //usage:     "\n	-b	Make a backup of the target (if exists) before link operation"
 //usage:     "\n	-S suf	Use suffix instead of ~ when making backup files"
-//usage:     "\n	-T	2nd arg must be a DIR"
+//usage:     "\n	-T	Treat LINK as a file, not DIR"
 //usage:     "\n	-v	Verbose"
 //usage:
 //usage:#define ln_example_usage
