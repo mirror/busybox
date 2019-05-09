@@ -35,10 +35,12 @@ enum { STACK_SIZE = (COMMON_BUFSIZE - offsetof(struct globals, stack)) / sizeof(
 	base = 10; \
 } while (0)
 
-static void check_under(void)
+static unsigned check_under(void)
 {
-	if (pointer == 0)
+	unsigned p = pointer;
+	if (p == 0)
 		bb_error_msg_and_die("stack underflow");
+	return p - 1;
 }
 
 static void push(double a)
@@ -50,8 +52,9 @@ static void push(double a)
 
 static double pop(void)
 {
-	check_under();
-	return stack[--pointer];
+	unsigned p = check_under();
+	pointer = p;
+	return stack[p];
 }
 
 static void add(void)
@@ -90,6 +93,14 @@ static void divide(void)
 static void mod(void)
 {
 	data_t d = pop();
+
+	//if (d == 0) {
+	//	bb_error_msg("remainder by zero");
+	//	pop();
+	//	push(0);
+	//	return;
+	//}
+	//^^^^ without this, we simply get SIGFPE and die
 
 	push((data_t) pop() % d);
 }
@@ -171,8 +182,7 @@ static void print_stack_no_pop(void)
 
 static void print_no_pop(void)
 {
-	check_under();
-	print_base(stack[pointer-1]);
+	print_base(stack[check_under()]);
 }
 
 struct op {
