@@ -70,8 +70,10 @@ static void add_static_lease(struct static_lease **st_lease_pp,
 }
 
 /* Find static lease IP by mac */
-static uint32_t get_static_nip_by_mac(struct static_lease *st_lease, void *mac)
+static uint32_t get_static_nip_by_mac(void *mac)
 {
+	struct static_lease *st_lease = server_config.static_leases;
+
 	while (st_lease) {
 		if (memcmp(st_lease->mac, mac, 6) == 0)
 			return st_lease->nip;
@@ -81,8 +83,10 @@ static uint32_t get_static_nip_by_mac(struct static_lease *st_lease, void *mac)
 	return 0;
 }
 
-static int is_nip_reserved(struct static_lease *st_lease, uint32_t nip)
+static int is_nip_reserved_as_static(uint32_t nip)
 {
+	struct static_lease *st_lease = server_config.static_leases;
+
 	while (st_lease) {
 		if (st_lease->nip == nip)
 			return 1;
@@ -288,7 +292,7 @@ static uint32_t find_free_or_expired_nip(const uint8_t *safe_mac, unsigned arppi
 		if (nip == server_config.server_nip)
 			goto next_addr;
 		/* is this a static lease addr? */
-		if (is_nip_reserved(server_config.static_leases, nip))
+		if (is_nip_reserved_as_static(nip))
 			goto next_addr;
 
 		lease = find_lease_by_nip(nip);
@@ -518,13 +522,13 @@ static NOINLINE void read_leases(const char *file)
 				expires = 0;
 
 			/* Check if there is a different static lease for this IP or MAC */
-			static_nip = get_static_nip_by_mac(server_config.static_leases, lease.lease_mac);
+			static_nip = get_static_nip_by_mac(lease.lease_mac);
 			if (static_nip) {
 				/* NB: we do not add lease even if static_nip == lease.lease_nip.
 				 */
 				continue;
 			}
-			if (is_nip_reserved(server_config.static_leases, lease.lease_nip))
+			if (is_nip_reserved_as_static(lease.lease_nip))
 				continue;
 
 			/* NB: add_lease takes "relative time", IOW,
@@ -999,7 +1003,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		/* Look for a static/dynamic lease */
-		static_lease_nip = get_static_nip_by_mac(server_config.static_leases, &packet.chaddr);
+		static_lease_nip = get_static_nip_by_mac(&packet.chaddr);
 		if (static_lease_nip) {
 			bb_info_msg("found static lease: %x", static_lease_nip);
 			memcpy(&fake_lease.lease_mac, &packet.chaddr, 6);
