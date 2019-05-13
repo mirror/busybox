@@ -361,6 +361,12 @@ testing "sed /regex/,+N{...} addresses work" \
 	"" \
 	"1\n2\n3\n4\n5\n"
 
+testing "sed /regex/,+N{...} addresses work 2" \
+	"sed -n '/a/,+1 p'" \
+	"a\n1\na\n2\na\n3\n" \
+	"" \
+	"a\n1\nc\nc\na\n2\na\n3\n"
+
 testing "sed /regex/,+N{...} -i works" \
 	"cat - >input2; sed /^4/,+2{d} -i input input2; echo \$?; cat input input2; rm input2" \
 	"0\n""1\n2\n3\n7\n8\n""1\n2\n7\n8\n" \
