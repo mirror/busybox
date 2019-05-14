@@ -2248,9 +2248,12 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 	return NULL;
 }
 
+#if (ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT) \
+ || (ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS)
 static void handle_changed_special_names(const char *name, unsigned name_len)
 {
 	if (ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT
+	 && G_interactive_fd
 	 && name_len == 3 && name[0] == 'P' && name[1] == 'S'
 	) {
 		cmdedit_update_prompt();
@@ -2274,6 +2277,10 @@ static void handle_changed_special_names(const char *name, unsigned name_len)
 #endif
 	}
 }
+#else
+/* Do not even bother evaluating arguments */
+# define handle_changed_special_names(...) ((void)0)
+#endif
 
 /* str holds "NAME=VAL" and is expected to be malloced.
  * We take ownership of it.
@@ -2289,6 +2296,7 @@ static int set_local_var(char *str, unsigned flags)
 	char *free_me = NULL;
 	char *eq_sign;
 	int name_len;
+	int retval;
 	unsigned local_lvl = (flags >> SETFLAG_VARLVL_SHIFT);
 
 	eq_sign = strchr(str, '=');
@@ -2402,24 +2410,24 @@ static int set_local_var(char *str, unsigned flags)
 #endif
 	if (flags & SETFLAG_EXPORT)
 		cur->flg_export = 1;
+	retval = 0;
 	if (cur->flg_export) {
 		if (flags & SETFLAG_UNEXPORT) {
 			cur->flg_export = 0;
 			/* unsetenv was already done */
 		} else {
-			int i;
 			debug_printf_env("%s: putenv '%s'/%u\n", __func__, cur->varstr, cur->var_nest_level);
-			i = putenv(cur->varstr);
-			/* only now we can free old exported malloced string */
-			free(free_me);
-			return i;
+			retval = putenv(cur->varstr);
+			/* fall through to "free(free_me)" -
+			 * only now we can free old exported malloced string
+			 */
 		}
 	}
 	free(free_me);
 
 	handle_changed_special_names(cur->varstr, name_len - 1);
 
-	return 0;
+	return retval;
 }
 
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
@@ -2492,6 +2500,11 @@ static void add_vars(struct variable *var)
 		} else {
 			debug_printf_env("%s: restoring variable '%s'/%u\n", __func__, var->varstr, var->var_nest_level);
 		}
+		/* Testcase (interactive):
+		 * f() { local PS1='\w \$ '; }; f
+		 * the below call is needed to notice restored PS1 when f returns.
+		 */
+		handle_changed_special_names(var->varstr, endofname(var->varstr) - var->varstr);
 		var = next;
 	}
 }
@@ -4198,7 +4211,7 @@ static int done_word(struct parse_context *ctx)
 #if ENABLE_HUSH_LOOPS
 	if (ctx->ctx_res_w == RES_FOR) {
 		if (ctx->word.has_quoted_part
-		 || !is_well_formed_var_name(command->argv[0], '\0')
+		 || endofname(command->argv[0])[0] != '\0'
 		) {
 			/* bash says just "not a valid identifier" */
 			syntax_error("not a valid identifier in for");
@@ -5372,7 +5385,7 @@ static struct pipe *parse_stream(char **pstring,
 			if ((ctx.is_assignment == MAYBE_ASSIGNMENT
 			    || ctx.is_assignment == WORD_IS_KEYWORD)
 			 && ch == '='
-			 && is_well_formed_var_name(ctx.word.data, '=')
+			 && endofname(ctx.word.data)[0] == '='
 			) {
 				ctx.is_assignment = DEFINITELY_ASSIGNMENT;
 				debug_printf_parse("ctx.is_assignment='%s'\n", assignment_flag[ctx.is_assignment]);
@@ -7598,10 +7611,10 @@ static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 		avoid_fd = 9;
 
 #if ENABLE_HUSH_INTERACTIVE
-	if (fd == G.interactive_fd) {
+	if (fd == G_interactive_fd) {
 		/* Testcase: "ls -l /proc/$$/fd 255>&-" should work */
-		G.interactive_fd = xdup_CLOEXEC_and_close(G.interactive_fd, avoid_fd);
-		debug_printf_redir("redirect_fd %d: matches interactive_fd, moving it to %d\n", fd, G.interactive_fd);
+		G_interactive_fd = xdup_CLOEXEC_and_close(G_interactive_fd, avoid_fd);
+		debug_printf_redir("redirect_fd %d: matches interactive_fd, moving it to %d\n", fd, G_interactive_fd);
 		return 1; /* "we closed fd" */
 	}
 #endif
@@ -7677,7 +7690,7 @@ static void restore_redirects(struct squirrel *sq)
 		free(sq);
 	}
 
-	/* If moved, G.interactive_fd stays on new fd, not restoring it */
+	/* If moved, G_interactive_fd stays on new fd, not restoring it */
 }
 
 #if ENABLE_FEATURE_SH_STANDALONE && BB_MMU
@@ -7694,7 +7707,7 @@ static int internally_opened_fd(int fd, struct squirrel *sq)
 	int i;
 
 #if ENABLE_HUSH_INTERACTIVE
-	if (fd == G.interactive_fd)
+	if (fd == G_interactive_fd)
 		return 1;
 #endif
 	/* If this one of script's fds? */
@@ -7885,6 +7898,11 @@ static void remove_nested_vars(void)
 		*cur_pp = cur->next;
 		/* Free */
 		if (!cur->max_len) {
+			/* Testcase (interactive):
+			 * f() { local PS1='\w \$ '; }; f
+			 * we should forget local PS1:
+			 */
+			handle_changed_special_names(cur->varstr, endofname(cur->varstr) - cur->varstr);
 			debug_printf_env("freeing nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
 			free(cur->varstr);
 		}
@@ -10687,9 +10705,7 @@ static int helper_export_local(char **argv, unsigned flags)
 {
 	do {
 		char *name = *argv;
-		char *name_end = strchrnul(name, '=');
-
-		/* So far we do not check that name is valid (TODO?) */
+		const char *name_end = endofname(name);
 
 		if (*name_end == '\0') {
 			struct variable *var, **vpp;
@@ -10747,8 +10763,15 @@ static int helper_export_local(char **argv, unsigned flags)
 			 */
 			name = xasprintf("%s=", name);
 		} else {
+			if (*name_end != '=') {
+				bb_error_msg("'%s': bad variable name", name);
+				/* do not parse following argv[]s: */
+				return 1;
+			}
 			/* (Un)exporting/making local NAME=VALUE */
 			name = xstrdup(name);
+			/* Testcase: export PS1='\w \$ ' */
+			unbackslash(name);
 		}
 		debug_printf_env("%s: set_local_var('%s')\n", __func__, name);
 		if (set_local_var(name, flags))

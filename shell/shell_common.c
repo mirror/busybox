@@ -22,19 +22,6 @@
 const char defifsvar[] ALIGN1 = "IFS= \t\n";
 const char defoptindvar[] ALIGN1 = "OPTIND=1";
 
-
-int FAST_FUNC is_well_formed_var_name(const char *s, char terminator)
-{
-	if (!s || !(isalpha(*s) || *s == '_'))
-		return 0;
-
-	do
-		s++;
-	while (isalnum(*s) || *s == '_');
-
-	return *s == terminator;
-}
-
 /* read builtin */
 
 /* Needs to be interruptible: shell must handle traps and shell-special signals
@@ -70,7 +57,7 @@ shell_builtin_read(struct builtin_read_params *params)
 	argv = params->argv;
 	pp = argv;
 	while (*pp) {
-		if (!is_well_formed_var_name(*pp, '\0')) {
+		if (endofname(*pp)[0] != '\0') {
 			/* Mimic bash message */
 			bb_error_msg("read: '%s': not a valid identifier", *pp);
 			return (const char *)(uintptr_t)1;
