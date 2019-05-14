@@ -1194,7 +1194,10 @@ static int daemonize(void)
 	return 1;
 }
 #else
-static inline int daemonize(void) { return -ENOSYS; }
+static inline int daemonize(void)
+{
+	return -ENOSYS;
+}
 #endif
 
 /* TODO */

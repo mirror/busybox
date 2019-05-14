@@ -124,7 +124,8 @@ static char* print_tc_classid(uint32_t cid)
 }
 
 /* Get a qdisc handle.  Return 0 on success, !0 otherwise.  */
-static int get_qdisc_handle(uint32_t *h, const char *str) {
+static int get_qdisc_handle(uint32_t *h, const char *str)
+{
 	uint32_t maj;
 	char *p;
 
@@ -143,7 +144,8 @@ static int get_qdisc_handle(uint32_t *h, const char *str) {
 }
 
 /* Get class ID.  Return 0 on success, !0 otherwise.  */
-static int get_tc_classid(uint32_t *h, const char *str) {
+static int get_tc_classid(uint32_t *h, const char *str)
+{
 	uint32_t maj, min;
 	char *p;
 

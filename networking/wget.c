@@ -312,7 +312,7 @@ static void progress_meter(int flag)
 	}
 }
 #else
-static ALWAYS_INLINE void progress_meter(int flag UNUSED_PARAM) { }
+static ALWAYS_INLINE void progress_meter(int flag UNUSED_PARAM) {}
 #endif
 
 

@@ -70,13 +70,20 @@
 #if ENABLE_UNICODE_SUPPORT
 # define BB_NUL ((wchar_t)0)
 # define CHAR_T wchar_t
-static bool BB_isspace(CHAR_T c) { return ((unsigned)c < 256 && isspace(c)); }
+static bool BB_isspace(CHAR_T c)
+{
+	return ((unsigned)c < 256 && isspace(c));
+}
 # if ENABLE_FEATURE_EDITING_VI
-static bool BB_isalnum_or_underscore(CHAR_T c) {
+static bool BB_isalnum_or_underscore(CHAR_T c)
+{
 	return ((unsigned)c < 256 && isalnum(c)) || c == '_';
 }
 # endif
-static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
+static bool BB_ispunct(CHAR_T c)
+{
+	return ((unsigned)c < 256 && ispunct(c));
+}
 # undef isspace
 # undef isalnum
 # undef ispunct

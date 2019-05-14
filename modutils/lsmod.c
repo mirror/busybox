@@ -66,7 +66,10 @@ static void check_tainted(void)
 	}
 }
 #else
-static void check_tainted(void) { putchar('\n'); }
+static ALWAYS_INLINE void check_tainted(void)
+{
+	putchar('\n');
+}
 #endif
 
 int lsmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
