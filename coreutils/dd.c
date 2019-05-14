@@ -192,23 +192,15 @@ static void dd_output_status(int UNUSED_PARAM cur_signal)
 #endif
 }
 
-static ssize_t full_write_or_warn(const void *buf, size_t len,
-	const char *const filename)
-{
-	ssize_t n = full_write(ofd, buf, len);
-	if (n < 0)
-		bb_perror_msg("writing '%s'", filename);
-	return n;
-}
-
 static bool write_and_stats(const void *buf, size_t len, size_t obs,
 	const char *filename)
 {
-	ssize_t n = full_write_or_warn(buf, len, filename);
-	if (n < 0)
-		return 1;
+	ssize_t n;
+
+	n = full_write(ofd, buf, len);
 #if ENABLE_FEATURE_DD_THIRD_STATUS_LINE
-	G.total_bytes += n;
+	if (n > 0)
+		G.total_bytes += n;
 #endif
 	if ((size_t)n == obs) {
 		G.out_full++;
@@ -218,6 +210,14 @@ static bool write_and_stats(const void *buf, size_t len, size_t obs,
 		G.out_part++;
 		return 0;
 	}
+	/* n is < len (and possibly is -1).
+	 * Even if n >= 0, errno is usually set correctly.
+	 * For example, if writing to block device and getting ENOSPC,
+	 * full_write() first sees a short write, then tries to write
+	 * the remainder and gets errno set to ENOSPC.
+	 * It returns n > 0 (the amount which it did write).
+	 */
+	bb_perror_msg("error writing '%s'", filename);
 	return 1;
 }
 
