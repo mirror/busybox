@@ -1781,3 +1781,4 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	/*if (client_config.pidfile) - remove_pidfile has its own check */
 		remove_pidfile(client_config.pidfile);
 	return retval;
+}
