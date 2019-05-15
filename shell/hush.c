@@ -6132,6 +6132,12 @@ static int encode_then_append_var_plusminus(o_string *output, int n,
 		/* string has no special chars
 		 * && string has no $IFS chars
 		 */
+		if (dquoted) {
+			/* Prints 1 (quoted expansion is a "" word, not nothing):
+			 * set -- "${notexist-}"; echo $#
+			 */
+			output->has_quoted_part = 1;
+		}
 		return expand_vars_to_list(output, n, str);
 	}
 

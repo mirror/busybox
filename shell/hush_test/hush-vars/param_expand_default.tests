@@ -22,3 +22,8 @@ echo _$f _${f-} _${f:-} _${f-word} _${f:-word}
 
 f=fff
 echo _$f _${f-} _${f:-} _${f-word} _${f:-word}
+
+set --
+set -- "${1-}"; echo 1:$#
+set --
+set -- ${1-}; echo 0:$#
