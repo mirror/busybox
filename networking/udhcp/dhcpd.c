@@ -662,7 +662,7 @@ static uint32_t select_lease_time(struct dhcp_packet *packet)
 static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 		uint32_t static_lease_nip,
 		struct dyn_lease *lease,
-		uint8_t *requested_ip_opt,
+		uint32_t requested_nip,
 		unsigned arpping_ms)
 {
 	struct dhcp_packet packet;
@@ -676,7 +676,6 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 	/* Else: */
 	if (!static_lease_nip) {
 		/* We have no static lease for client's chaddr */
-		uint32_t req_nip;
 		const char *p_host_name;
 
 		if (lease) {
@@ -687,18 +686,16 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 			packet.yiaddr = lease->lease_nip;
 		}
 		/* Or: if client has requested an IP */
-		else if (requested_ip_opt != NULL
-		 /* (read IP) */
-		 && (move_from_unaligned32(req_nip, requested_ip_opt), 1)
+		else if (requested_nip != 0
 		 /* and the IP is in the lease range */
-		 && ntohl(req_nip) >= server_config.start_ip
-		 && ntohl(req_nip) <= server_config.end_ip
+		 && ntohl(requested_nip) >= server_config.start_ip
+		 && ntohl(requested_nip) <= server_config.end_ip
 		 /* and */
-		 && (  !(lease = find_lease_by_nip(req_nip)) /* is not already taken */
+		 && (  !(lease = find_lease_by_nip(requested_nip)) /* is not already taken */
 		    || is_expired_lease(lease) /* or is taken, but expired */
 		    )
 		) {
-			packet.yiaddr = req_nip;
+			packet.yiaddr = requested_nip;
 		}
 		else {
 			/* Otherwise, find a free IP */
@@ -913,7 +910,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		int tv;
 		uint8_t *server_id_opt;
 		uint8_t *requested_ip_opt;
-		uint32_t requested_nip = requested_nip; /* for compiler */
+		uint32_t requested_nip;
 		uint32_t static_lease_nip;
 		struct dyn_lease *lease, fake_lease;
 
@@ -1016,6 +1013,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		/* Get REQUESTED_IP if present */
+		requested_nip = 0;
 		requested_ip_opt = udhcp_get_option32(&packet, DHCP_REQUESTED_IP);
 		if (requested_ip_opt) {
 			move_from_unaligned32(requested_nip, requested_ip_opt);
@@ -1026,7 +1024,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		case DHCPDISCOVER:
 			log1("received %s", "DISCOVER");
 
-			send_offer(&packet, static_lease_nip, lease, requested_ip_opt, arpping_ms);
+			send_offer(&packet, static_lease_nip, lease, requested_nip, arpping_ms);
 			break;
 
 		case DHCPREQUEST:
