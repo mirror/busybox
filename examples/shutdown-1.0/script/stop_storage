@@ -4,7 +4,7 @@
 # Repeat.
 
 umountcnt=2
-writeout=0	# increase if your kernel doesn ot guarantee writes to complete
+writeout=0	# increase if your kernel does not guarantee writes to complete
 
 # No /usr - we are expecting all binaries to be accessible
 # from root fs alone
