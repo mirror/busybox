@@ -2253,10 +2253,10 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 static void handle_changed_special_names(const char *name, unsigned name_len)
 {
 	if (ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	 && G_interactive_fd
 	 && name_len == 3 && name[0] == 'P' && name[1] == 'S'
 	) {
-		cmdedit_update_prompt();
+		if (G_interactive_fd)
+			cmdedit_update_prompt();
 		return;
 	}
 
