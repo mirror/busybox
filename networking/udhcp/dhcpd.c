@@ -48,14 +48,23 @@
 #define g_leases ((struct dyn_lease*)ptr_to_globals)
 /* struct server_config_t server_config is in bb_common_bufsiz1 */
 
+struct static_lease {
+	struct static_lease *next;
+	uint32_t nip;
+	uint8_t mac[6];
+	uint8_t opt[1];
+};
+
 /* Takes the address of the pointer to the static_leases linked list,
  * address to a 6 byte mac address,
  * 4 byte IP address */
 static void add_static_lease(struct static_lease **st_lease_pp,
 		uint8_t *mac,
-		uint32_t nip)
+		uint32_t nip,
+		const char *opts)
 {
 	struct static_lease *st_lease;
+	unsigned optlen;
 
 	/* Find the tail of the list */
 	while ((st_lease = *st_lease_pp) != NULL) {
@@ -63,10 +72,17 @@ static void add_static_lease(struct static_lease **st_lease_pp,
 	}
 
 	/* Add new node */
-	*st_lease_pp = st_lease = xzalloc(sizeof(*st_lease));
+	optlen = (opts ? 1+1+strnlen(opts, 120) : 0);
+	*st_lease_pp = st_lease = xzalloc(sizeof(*st_lease) + optlen);
 	memcpy(st_lease->mac, mac, 6);
 	st_lease->nip = nip;
 	/*st_lease->next = NULL;*/
+	if (optlen) {
+		st_lease->opt[OPT_CODE] = DHCP_HOST_NAME;
+		optlen -= 2;
+		st_lease->opt[OPT_LEN] = optlen;
+		memcpy(&st_lease->opt[OPT_DATA], opts, optlen);
+	}
 }
 
 /* Find static lease IP by mac */
@@ -344,6 +360,7 @@ static int FAST_FUNC read_staticlease(const char *const_line, void *arg)
 	char *line;
 	char *mac_string;
 	char *ip_string;
+	char *opts;
 	struct ether_addr mac_bytes; /* it's "struct { uint8_t mac[6]; }" */
 	uint32_t nip;
 
@@ -358,7 +375,10 @@ static int FAST_FUNC read_staticlease(const char *const_line, void *arg)
 	if (!ip_string || !udhcp_str2nip(ip_string, &nip))
 		return 0;
 
-	add_static_lease(arg, (uint8_t*) &mac_bytes, nip);
+	opts = strtok_r(NULL, " \t", &line);
+	/* opts might be NULL, that's not an error */
+
+	add_static_lease(arg, (uint8_t*) &mac_bytes, nip, opts);
 
 	log_static_leases(arg);
 
@@ -626,13 +646,48 @@ static void init_packet(struct dhcp_packet *packet, struct dhcp_packet *oldpacke
  */
 static void add_server_options(struct dhcp_packet *packet)
 {
-	struct option_set *curr = server_config.options;
+	struct option_set *config_opts;
+	uint8_t *client_hostname_opt;
 
-	while (curr) {
-		if (curr->data[OPT_CODE] != DHCP_LEASE_TIME)
-			udhcp_add_binary_option(packet, curr->data);
-		curr = curr->next;
+	client_hostname_opt = NULL;
+	if (packet->yiaddr) { /* if we aren't from send_inform()... */
+		struct static_lease *st_lease = server_config.static_leases;
+		while (st_lease) {
+			if (st_lease->nip == packet->yiaddr) {
+				if (st_lease->opt[0] != 0)
+					client_hostname_opt = st_lease->opt;
+				break;
+			}
+			st_lease = st_lease->next;
+		}
 	}
+
+	config_opts = server_config.options;
+	while (config_opts) {
+		if (config_opts->data[OPT_CODE] != DHCP_LEASE_TIME) {
+			/* ^^^^
+			 * DHCP_LEASE_TIME is already filled, or in case of
+			 * send_inform(), should not be filled at all.
+			 */
+			if (config_opts->data[OPT_CODE] != DHCP_HOST_NAME
+			 || !client_hostname_opt
+			) {
+				/* Why "!client_hostname_opt":
+				 * add hostname only if client has no hostname
+				 * on its static lease line.
+				 * (Not that "opt hostname HOST"
+				 * makes much sense in udhcpd.conf,
+				 * that'd give all clients the same hostname,
+				 * but it's a valid configuration).
+				 */
+				udhcp_add_binary_option(packet, config_opts->data);
+			}
+		}
+		config_opts = config_opts->next;
+	}
+
+	if (client_hostname_opt)
+		udhcp_add_binary_option(packet, client_hostname_opt);
 
 	packet->siaddr_nip = server_config.siaddr_nip;
 
@@ -753,7 +808,6 @@ static NOINLINE void send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 
 	lease_time_sec = select_lease_time(oldpacket);
 	udhcp_add_simple_option(&packet, DHCP_LEASE_TIME, htonl(lease_time_sec));
-
 	add_server_options(&packet);
 
 	addr.s_addr = yiaddr;
