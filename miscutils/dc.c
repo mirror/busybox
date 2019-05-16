@@ -94,13 +94,18 @@ static void mod(void)
 {
 	data_t d = pop();
 
-	//if (d == 0) {
-	//	bb_error_msg("remainder by zero");
-	//	pop();
-	//	push(0);
-	//	return;
-	//}
-	//^^^^ without this, we simply get SIGFPE and die
+	/* compat with dc (GNU bc 1.07.1) 1.4.1:
+	 * $ dc -e '4 0 % p'
+	 * dc: remainder by zero
+	 * 0
+	 */
+	if (d == 0) {
+		bb_error_msg("remainder by zero");
+		pop();
+		push(0);
+		return;
+	}
+	/* ^^^^ without this, we simply get SIGFPE and die */
 
 	push((data_t) pop() % d);
 }
