@@ -627,6 +627,15 @@ static void send_packet(struct dhcp_packet *dhcp_pkt, int force_broadcast)
 		send_packet_to_client(dhcp_pkt, force_broadcast);
 }
 
+static void send_packet_verbose(struct dhcp_packet *dhcp_pkt, const char *fmt)
+{
+	struct in_addr addr;
+	addr.s_addr = dhcp_pkt->yiaddr;
+	bb_info_msg(fmt, inet_ntoa(addr));
+	/* send_packet emits error message itself if it detects failure */
+	send_packet(dhcp_pkt, /*force_bcast:*/ 0);
+}
+
 static void init_packet(struct dhcp_packet *packet, struct dhcp_packet *oldpacket, char type)
 {
 	/* Sets op, htype, hlen, cookie fields
@@ -722,7 +731,6 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 {
 	struct dhcp_packet packet;
 	uint32_t lease_time_sec;
-	struct in_addr addr;
 
 	init_packet(&packet, oldpacket, DHCPOFFER);
 
@@ -778,10 +786,8 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 	udhcp_add_simple_option(&packet, DHCP_LEASE_TIME, htonl(lease_time_sec));
 	add_server_options(&packet);
 
-	addr.s_addr = packet.yiaddr;
-	bb_info_msg("sending OFFER of %s", inet_ntoa(addr));
 	/* send_packet emits error message itself if it detects failure */
-	send_packet(&packet, /*force_bcast:*/ 0);
+	send_packet_verbose(&packet, "sending OFFER to %s");
 }
 
 /* NOINLINE: limit stack usage in caller */
@@ -800,7 +806,6 @@ static NOINLINE void send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 {
 	struct dhcp_packet packet;
 	uint32_t lease_time_sec;
-	struct in_addr addr;
 	const char *p_host_name;
 
 	init_packet(&packet, oldpacket, DHCPACK);
@@ -810,9 +815,7 @@ static NOINLINE void send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 	udhcp_add_simple_option(&packet, DHCP_LEASE_TIME, htonl(lease_time_sec));
 	add_server_options(&packet);
 
-	addr.s_addr = yiaddr;
-	bb_info_msg("sending ACK to %s", inet_ntoa(addr));
-	send_packet(&packet, /*force_bcast:*/ 0);
+	send_packet_verbose(&packet, "sending ACK to %s");
 
 	p_host_name = (const char*) udhcp_get_option(oldpacket, DHCP_HOST_NAME);
 	add_lease(packet.chaddr, packet.yiaddr,
@@ -852,6 +855,7 @@ static NOINLINE void send_inform(struct dhcp_packet *oldpacket)
 	add_server_options(&packet);
 
 	send_packet(&packet, /*force_bcast:*/ 0);
+	// or maybe? send_packet_verbose(&packet, "sending ACK to %s");
 }
 
 int udhcpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
