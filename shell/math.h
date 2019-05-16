@@ -72,6 +72,8 @@ typedef long arith_t;
 #define ARITH_FMT "%ld"
 #define strto_arith_t strtoul
 #endif
+//TODO: bash supports "BASE#nnnnn" numeric literals, e.g. 2#1111 = 15.
+//Make strto_arith_t() support that?
 
 typedef const char* FAST_FUNC (*arith_var_lookup_t)(const char *name);
 typedef void        FAST_FUNC (*arith_var_set_t)(const char *name, const char *val);
