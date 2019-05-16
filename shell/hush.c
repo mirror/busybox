@@ -854,8 +854,7 @@ struct globals {
 	/* 'interactive_fd' is a fd# open to ctty, if we have one
 	 * _AND_ if we decided to act interactively */
 	int interactive_fd;
-	const char *PS1;
-	IF_FEATURE_EDITING_FANCY_PROMPT(const char *PS2;)
+	IF_NOT_FEATURE_EDITING_FANCY_PROMPT(char *PS1;)
 # define G_interactive_fd (G.interactive_fd)
 #else
 # define G_interactive_fd 0
@@ -1445,13 +1444,6 @@ static void syntax_error_unexpected_ch(unsigned lineno UNUSED_PARAM, int ch)
 # define syntax_error_unterm_ch(ch)     syntax_error_unterm_ch(__LINE__, ch)
 # define syntax_error_unterm_str(s)     syntax_error_unterm_str(__LINE__, s)
 # define syntax_error_unexpected_ch(ch) syntax_error_unexpected_ch(__LINE__, ch)
-#endif
-
-
-#if ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT
-static void cmdedit_update_prompt(void);
-#else
-# define cmdedit_update_prompt() ((void)0)
 #endif
 
 
@@ -2248,33 +2240,22 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 	return NULL;
 }
 
-#if (ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT) \
- || (ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS)
+#if ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS
 static void handle_changed_special_names(const char *name, unsigned name_len)
 {
-	if (ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	 && name_len == 3 && name[0] == 'P' && name[1] == 'S'
-	) {
-		if (G_interactive_fd)
-			cmdedit_update_prompt();
-		return;
-	}
-
-	if ((ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS)
-	 && name_len == 6
-	) {
-#if ENABLE_HUSH_LINENO_VAR
+	if (name_len == 6) {
+# if ENABLE_HUSH_LINENO_VAR
 		if (strncmp(name, "LINENO", 6) == 0) {
 			G.lineno_var = NULL;
 			return;
 		}
-#endif
-#if ENABLE_HUSH_GETOPTS
+# endif
+# if ENABLE_HUSH_GETOPTS
 		if (strncmp(name, "OPTIND", 6) == 0) {
 			G.getopt_count = 0;
 			return;
 		}
-#endif
+# endif
 	}
 }
 #else
@@ -2470,7 +2451,7 @@ static int unset_local_var_len(const char *name, int name_len)
 		cur_pp = &cur->next;
 	}
 
-	/* Handle "unset PS1" et al even if did not find the variable to unset */
+	/* Handle "unset LINENO" et al even if did not find the variable to unset */
 	handle_changed_special_names(name, name_len);
 
 	return EXIT_SUCCESS;
@@ -2500,11 +2481,6 @@ static void add_vars(struct variable *var)
 		} else {
 			debug_printf_env("%s: restoring variable '%s'/%u\n", __func__, var->varstr, var->var_nest_level);
 		}
-		/* Testcase (interactive):
-		 * f() { local PS1='\w \$ '; }; f
-		 * the below call is needed to notice restored PS1 when f returns.
-		 */
-		handle_changed_special_names(var->varstr, endofname(var->varstr) - var->varstr);
 		var = next;
 	}
 }
@@ -2594,36 +2570,27 @@ static void reinit_unicode_for_hush(void)
  *	\
  * It exercises a lot of corner cases.
  */
-# if ENABLE_FEATURE_EDITING_FANCY_PROMPT
-static void cmdedit_update_prompt(void)
-{
-	G.PS1 = get_local_var_value("PS1");
-	if (G.PS1 == NULL)
-		G.PS1 = "";
-	G.PS2 = get_local_var_value("PS2");
-	if (G.PS2 == NULL)
-		G.PS2 = "";
-}
-# endif
 static const char *setup_prompt_string(void)
 {
 	const char *prompt_str;
 
 	debug_printf_prompt("%s promptmode:%d\n", __func__, G.promptmode);
 
-	IF_FEATURE_EDITING_FANCY_PROMPT(    prompt_str = G.PS2;)
-	IF_NOT_FEATURE_EDITING_FANCY_PROMPT(prompt_str = "> ";)
+# if ENABLE_FEATURE_EDITING_FANCY_PROMPT
+	prompt_str = get_local_var_value(G.promptmode == 0 ? "PS1" : "PS2");
+	if (!prompt_str)
+		prompt_str = "";
+# else
+	prompt_str = "> "; /* if PS2, else... */
 	if (G.promptmode == 0) { /* PS1 */
-		if (!ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
-			/* No fancy prompts supported, (re)generate "CURDIR $ " by hand */
-			free((char*)G.PS1);
-			/* bash uses $PWD value, even if it is set by user.
-			 * It uses current dir only if PWD is unset.
-			 * We always use current dir. */
-			G.PS1 = xasprintf("%s %c ", get_cwd(0), (geteuid() != 0) ? '$' : '#');
-		}
-		prompt_str = G.PS1;
+		/* No fancy prompts supported, (re)generate "CURDIR $ " by hand */
+		free(G.PS1);
+		/* bash uses $PWD value, even if it is set by user.
+		 * It uses current dir only if PWD is unset.
+		 * We always use current dir. */
+		G.PS1 = xasprintf("%s %c ", get_cwd(0), (geteuid() != 0) ? '$' : '#');
 	}
+# endif
 	debug_printf("prompt_str '%s'\n", prompt_str);
 	return prompt_str;
 }
@@ -7904,11 +7871,6 @@ static void remove_nested_vars(void)
 		*cur_pp = cur->next;
 		/* Free */
 		if (!cur->max_len) {
-			/* Testcase (interactive):
-			 * f() { local PS1='\w \$ '; }; f
-			 * we should forget local PS1:
-			 */
-			handle_changed_special_names(cur->varstr, endofname(cur->varstr) - cur->varstr);
 			debug_printf_env("freeing nested '%s'/%u\n", cur->varstr, cur->var_nest_level);
 			free(cur->varstr);
 		}
@@ -9997,8 +9959,6 @@ int hush_main(int argc, char **argv)
 #endif
 
 	/* Initialize some more globals to non-zero values */
-	cmdedit_update_prompt();
-
 	die_func = restore_ttypgrp_and__exit;
 
 	/* Shell is non-interactive at first. We need to call
