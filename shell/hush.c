@@ -466,9 +466,9 @@
 
 #define JOB_STATUS_FORMAT    "[%u] %-22s %.40s\n"
 
-#define _SPECIAL_VARS_STR     "_*@$!?#"
-#define SPECIAL_VARS_STR     ("_*@$!?#" + 1)
-#define NUMERIC_SPECVARS_STR ("_*@$!?#" + 3)
+#define _SPECIAL_VARS_STR     "_*@$!?#-"
+#define SPECIAL_VARS_STR     ("_*@$!?#-" + 1)
+#define NUMERIC_SPECVARS_STR ("_*@$!?#-" + 3)
 #if BASH_PATTERN_SUBST
 /* Support / and // replace ops */
 /* Note that // is stored as \ in "encoded" string representation */
@@ -1008,6 +1008,7 @@ struct globals {
 	int debug_indent;
 #endif
 	struct sigaction sa;
+	char optstring_buf[sizeof("eix")];
 #if BASH_EPOCH_VARS
 	char epoch_buf[sizeof("%lu.nnnnnn") + sizeof(long)*3];
 #endif
@@ -4888,6 +4889,7 @@ static int parse_dollar(o_string *as_string,
 	case '#': /* number of args */
 	case '*': /* args */
 	case '@': /* args */
+	case '-': /* $- option flags set by set builtin or shell options (-i etc) */
 		goto make_one_char_var;
 	case '{': {
 		char len_single_ch;
@@ -5062,11 +5064,10 @@ static int parse_dollar(o_string *as_string,
 	case '_':
 		goto make_var;
 #if 0
-	/* TODO: $_ and $-: */
+	/* TODO: $_: */
 	/* $_ Shell or shell script name; or last argument of last command
 	 * (if last command wasn't a pipe; if it was, bash sets $_ to "");
 	 * but in command's env, set to full pathname used to invoke it */
-	/* $- Option flags set by set builtin or shell options (-i etc) */
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
 		ch = i_peek_and_eat_bkslash_nl(input);
@@ -6397,6 +6398,23 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 		case '#': /* argc */
 			val = utoa(G.global_argc ? G.global_argc-1 : 0);
 			break;
+		case '-': { /* active options */
+			/* Check set_mode() to see what option chars we support */
+			char *cp;
+			val = cp = G.optstring_buf;
+			if (G.o_opt[OPT_O_ERREXIT])
+				*cp++ = 'e';
+			if (G_interactive_fd)
+				*cp++ = 'i';
+			if (G_x_mode)
+				*cp++ = 'x';
+			/* If G.o_opt[OPT_O_NOEXEC] is true,
+			 * commands read but are not executed,
+			 * so $- can not execute too, 'n' is never seen in $-.
+			 */
+			*cp = '\0';
+			break;
+		}
 		default:
 			val = get_local_var_value(var);
 		}
@@ -9898,6 +9916,9 @@ int hush_main(int argc, char **argv)
 #endif
 	/* IFS is not inherited from the parent environment */
 	set_local_var_from_halves("IFS", defifs);
+
+	if (!get_local_var_value("PATH"))
+		set_local_var_from_halves("PATH", bb_default_root_path);
 
 	/* PS1/PS2 are set later, if we determine that we are interactive */
 
