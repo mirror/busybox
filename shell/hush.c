@@ -967,8 +967,8 @@ struct globals {
 	smallint we_have_children;
 #endif
 #if ENABLE_HUSH_LINENO_VAR
-	unsigned lineno;
-	char *lineno_var;
+	unsigned parse_lineno;
+	unsigned execute_lineno;
 #endif
 	HFILE *HFILE_list;
 	/* Which signals have non-DFL handler (even with no traps set)?
@@ -2221,6 +2221,10 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 	if (strcmp(name, "RANDOM") == 0)
 		return utoa(next_random(&G.random_gen));
 #endif
+#if ENABLE_HUSH_LINENO_VAR
+	if (strcmp(name, "LINENO") == 0)
+		return utoa(G.execute_lineno);
+#endif
 #if BASH_EPOCH_VARS
 	{
 		const char *fmt = NULL;
@@ -2240,22 +2244,14 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 	return NULL;
 }
 
-#if ENABLE_HUSH_LINENO_VAR || ENABLE_HUSH_GETOPTS
+#if ENABLE_HUSH_GETOPTS
 static void handle_changed_special_names(const char *name, unsigned name_len)
 {
 	if (name_len == 6) {
-# if ENABLE_HUSH_LINENO_VAR
-		if (strncmp(name, "LINENO", 6) == 0) {
-			G.lineno_var = NULL;
-			return;
-		}
-# endif
-# if ENABLE_HUSH_GETOPTS
 		if (strncmp(name, "OPTIND", 6) == 0) {
 			G.getopt_count = 0;
 			return;
 		}
-# endif
 	}
 }
 #else
@@ -2727,8 +2723,8 @@ static int i_getch(struct in_str *i)
 	i->last_char = ch;
 #if ENABLE_HUSH_LINENO_VAR
 	if (ch == '\n') {
-		G.lineno++;
-		debug_printf_parse("G.lineno++ = %u\n", G.lineno);
+		G.parse_lineno++;
+		debug_printf_parse("G.parse_lineno++ = %u\n", G.parse_lineno);
 	}
 #endif
 	return ch;
@@ -3730,8 +3726,8 @@ static int done_command(struct parse_context *ctx)
  clear_and_ret:
 	memset(command, 0, sizeof(*command));
 #if ENABLE_HUSH_LINENO_VAR
-	command->lineno = G.lineno;
-	debug_printf_parse("command->lineno = G.lineno (%u)\n", G.lineno);
+	command->lineno = G.parse_lineno;
+	debug_printf_parse("command->lineno = G.parse_lineno (%u)\n", G.parse_lineno);
 #endif
 	return pi->num_cmds; /* used only for 0/nonzero check */
 }
@@ -7261,22 +7257,22 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 static void parse_and_run_string(const char *s)
 {
 	struct in_str input;
-	//IF_HUSH_LINENO_VAR(unsigned sv = G.lineno;)
+	//IF_HUSH_LINENO_VAR(unsigned sv = G.parse_lineno;)
 
 	setup_string_in_str(&input, s);
 	parse_and_run_stream(&input, '\0');
-	//IF_HUSH_LINENO_VAR(G.lineno = sv;)
+	//IF_HUSH_LINENO_VAR(G.parse_lineno = sv;)
 }
 
 static void parse_and_run_file(HFILE *fp)
 {
 	struct in_str input;
-	IF_HUSH_LINENO_VAR(unsigned sv = G.lineno;)
+	IF_HUSH_LINENO_VAR(unsigned sv = G.parse_lineno;)
 
-	IF_HUSH_LINENO_VAR(G.lineno = 1;)
+	IF_HUSH_LINENO_VAR(G.parse_lineno = 1;)
 	setup_file_in_str(&input, fp);
 	parse_and_run_stream(&input, ';');
-	IF_HUSH_LINENO_VAR(G.lineno = sv;)
+	IF_HUSH_LINENO_VAR(G.parse_lineno = sv;)
 }
 
 #if ENABLE_HUSH_TICK
@@ -8975,8 +8971,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		struct variable *old_vars;
 
 #if ENABLE_HUSH_LINENO_VAR
-		if (G.lineno_var)
-			strcpy(G.lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
+		G.execute_lineno = command->lineno;
 #endif
 
 		if (argv[command->assignment_cnt] == NULL) {
@@ -9209,8 +9204,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			xpiped_pair(pipefds);
 
 #if ENABLE_HUSH_LINENO_VAR
-		if (G.lineno_var)
-			strcpy(G.lineno_var + sizeof("LINENO=")-1, utoa(command->lineno));
+		G.execute_lineno = command->lineno;
 #endif
 
 		command->pid = BB_MMU ? fork() : vfork();
@@ -9945,14 +9939,6 @@ int hush_main(int argc, char **argv)
 	 * OPTIND=1
 	 * PS4='+ '
 	 */
-
-#if ENABLE_HUSH_LINENO_VAR
-	if (ENABLE_HUSH_LINENO_VAR) {
-		char *p = xasprintf("LINENO=%*s", (int)(sizeof(int)*3), "");
-		set_local_var(p, /*flags*/ 0);
-		G.lineno_var = p; /* can't assign before set_local_var("LINENO=...") */
-	}
-#endif
 
 #if ENABLE_FEATURE_EDITING
 	G.line_input_state = new_line_input_t(FOR_SHELL);
