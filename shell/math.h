@@ -65,15 +65,19 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 #if ENABLE_FEATURE_SH_MATH_64
 typedef long long arith_t;
-#define ARITH_FMT "%lld"
-#define strto_arith_t strtoull
+# define ARITH_FMT "%lld"
 #else
 typedef long arith_t;
-#define ARITH_FMT "%ld"
-#define strto_arith_t strtoul
+# define ARITH_FMT "%ld"
 #endif
-//TODO: bash supports "BASE#nnnnn" numeric literals, e.g. 2#1111 = 15.
-//Make strto_arith_t() support that?
+
+#if !ENABLE_FEATURE_SH_MATH_BASE
+# if ENABLE_FEATURE_SH_MATH_64
+#  define strto_arith_t strtoull
+# else
+#  define strto_arith_t strtoul
+# endif
+#endif
 
 typedef const char* FAST_FUNC (*arith_var_lookup_t)(const char *name);
 typedef void        FAST_FUNC (*arith_var_set_t)(const char *name, const char *val);

@@ -99,6 +99,11 @@ config FEATURE_SH_MATH_64
 	slightly larger, but will allow computation with very large numbers.
 	This is not in POSIX, so do not rely on this in portable code.
 
+config FEATURE_SH_MATH_BASE
+	bool "Support BASE#nnnn literals"
+	default y
+	depends on FEATURE_SH_MATH
+
 config FEATURE_SH_EXTRA_QUIET
 	bool "Hide message on interactive shell startup"
 	default y
