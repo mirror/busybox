@@ -9888,14 +9888,6 @@ int hush_main(int argc, char **argv)
 	/* Export PWD */
 	set_pwd_var(SETFLAG_EXPORT);
 
-#if ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	/* Set (but not export) PS1/2 unless already set */
-	if (!get_local_var_value("PS1"))
-		set_local_var_from_halves("PS1", "\\w \\$ ");
-	if (!get_local_var_value("PS2"))
-		set_local_var_from_halves("PS2", "> ");
-#endif
-
 #if BASH_HOSTNAME_VAR
 	/* Set (but not export) HOSTNAME unless already set */
 	if (!get_local_var_value("HOSTNAME")) {
@@ -9906,6 +9898,8 @@ int hush_main(int argc, char **argv)
 #endif
 	/* IFS is not inherited from the parent environment */
 	set_local_var_from_halves("IFS", defifs);
+
+	/* PS1/PS2 are set later, if we determine that we are interactive */
 
 	/* bash also exports SHLVL and _,
 	 * and sets (but doesn't export) the following variables:
@@ -10278,14 +10272,23 @@ int hush_main(int argc, char **argv)
 	 * (--norc turns this off, --rcfile <file> overrides)
 	 */
 
-	if (!ENABLE_FEATURE_SH_EXTRA_QUIET && G_interactive_fd) {
-		/* note: ash and hush share this string */
-		printf("\n\n%s %s\n"
-			IF_HUSH_HELP("Enter 'help' for a list of built-in commands.\n")
-			"\n",
-			bb_banner,
-			"hush - the humble shell"
-		);
+	if (G_interactive_fd) {
+#if ENABLE_HUSH_INTERACTIVE && ENABLE_FEATURE_EDITING_FANCY_PROMPT
+		/* Set (but not export) PS1/2 unless already set */
+		if (!get_local_var_value("PS1"))
+			set_local_var_from_halves("PS1", "\\w \\$ ");
+		if (!get_local_var_value("PS2"))
+			set_local_var_from_halves("PS2", "> ");
+#endif
+		if (!ENABLE_FEATURE_SH_EXTRA_QUIET) {
+			/* note: ash and hush share this string */
+			printf("\n\n%s %s\n"
+				IF_HUSH_HELP("Enter 'help' for a list of built-in commands.\n")
+				"\n",
+				bb_banner,
+				"hush - the humble shell"
+			);
+		}
 	}
 
 	parse_and_run_file(hfopen(NULL)); /* stdin */
