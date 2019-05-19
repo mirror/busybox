@@ -902,6 +902,7 @@ struct globals {
 #else
 # define G_x_mode 0
 #endif
+	char opt_s;
 #if ENABLE_HUSH_INTERACTIVE
 	smallint promptmode; /* 0: PS1, 1: PS2 */
 #endif
@@ -1008,7 +1009,7 @@ struct globals {
 	int debug_indent;
 #endif
 	struct sigaction sa;
-	char optstring_buf[sizeof("eix")];
+	char optstring_buf[sizeof("eixs")];
 #if BASH_EPOCH_VARS
 	char epoch_buf[sizeof("%lu.nnnnnn") + sizeof(long)*3];
 #endif
@@ -6413,8 +6414,9 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 			 * commands read but are not executed,
 			 * so $- can not execute too, 'n' is never seen in $-.
 			 */
+			if (G.opt_s)
+				*cp++ = 's';
 //TODO: show 'c' if executed via "hush -c 'CMDS'" (bash only, not ash)
-//TODO: show 's' if executed via "hush -s ARG1 ARG2", or if there were no args except options (ash does this too)
 			*cp = '\0';
 			break;
 		}
@@ -9958,7 +9960,6 @@ int hush_main(int argc, char **argv)
 	 * PS4='+ '
 	 */
 
-
 	/* Initialize some more globals to non-zero values */
 	die_func = restore_ttypgrp_and__exit;
 
@@ -10177,6 +10178,7 @@ int hush_main(int argc, char **argv)
 #endif
 		goto final_return;
 	}
+	G.opt_s = 1;
 
 	/* Up to here, shell was non-interactive. Now it may become one.
 	 * NB: don't forget to (re)run install_special_sighandlers() as needed.
