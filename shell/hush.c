@@ -2032,7 +2032,8 @@ static sighandler_t pick_sighandler(unsigned sig)
 static void hush_exit(int exitcode)
 {
 #if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
-	save_history(G.line_input_state);
+	if (G.line_input_state)
+		save_history(G.line_input_state);
 #endif
 
 	fflush_all();
@@ -6412,6 +6413,8 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 			 * commands read but are not executed,
 			 * so $- can not execute too, 'n' is never seen in $-.
 			 */
+//TODO: show 'c' if executed via "hush -c 'CMDS'" (bash only, not ash)
+//TODO: show 's' if executed via "hush -s ARG1 ARG2", or if there were no args except options (ash does this too)
 			*cp = '\0';
 			break;
 		}
@@ -9955,9 +9958,6 @@ int hush_main(int argc, char **argv)
 	 * PS4='+ '
 	 */
 
-#if ENABLE_FEATURE_EDITING
-	G.line_input_state = new_line_input_t(FOR_SHELL);
-#endif
 
 	/* Initialize some more globals to non-zero values */
 	die_func = restore_ttypgrp_and__exit;
@@ -10245,6 +10245,9 @@ int hush_main(int argc, char **argv)
 		}
 		enable_restore_tty_pgrp_on_exit();
 
+# if ENABLE_FEATURE_EDITING
+		G.line_input_state = new_line_input_t(FOR_SHELL);
+# endif
 # if ENABLE_HUSH_SAVEHISTORY && MAX_HISTORY > 0
 		{
 			const char *hp = get_local_var_value("HISTFILE");
@@ -10372,7 +10375,8 @@ static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
 #if MAX_HISTORY && ENABLE_FEATURE_EDITING
 static int FAST_FUNC builtin_history(char **argv UNUSED_PARAM)
 {
-	show_history(G.line_input_state);
+	if (G.line_input_state)
+		show_history(G.line_input_state);
 	return EXIT_SUCCESS;
 }
 #endif
