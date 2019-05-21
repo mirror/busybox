@@ -66,13 +66,14 @@ static void add_static_lease(struct static_lease **st_lease_pp,
 	struct static_lease *st_lease;
 	unsigned optlen;
 
+	optlen = (opts ? 1+1+strnlen(opts, 120) : 0);
+
 	/* Find the tail of the list */
 	while ((st_lease = *st_lease_pp) != NULL) {
 		st_lease_pp = &st_lease->next;
 	}
 
 	/* Add new node */
-	optlen = (opts ? 1+1+strnlen(opts, 120) : 0);
 	*st_lease_pp = st_lease = xzalloc(sizeof(*st_lease) + optlen);
 	memcpy(st_lease->mac, mac, 6);
 	st_lease->nip = nip;
@@ -83,6 +84,17 @@ static void add_static_lease(struct static_lease **st_lease_pp,
 		st_lease->opt[OPT_LEN] = optlen;
 		memcpy(&st_lease->opt[OPT_DATA], opts, optlen);
 	}
+
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
+	/* Print out static leases just to check what's going on */
+	if (dhcp_verbose >= 2) {
+		bb_info_msg("static lease: mac:%02x:%02x:%02x:%02x:%02x:%02x nip:%x",
+			st_lease->mac[0], st_lease->mac[1], st_lease->mac[2],
+			st_lease->mac[3], st_lease->mac[4], st_lease->mac[5],
+			st_lease->nip
+		);
+	}
+#endif
 }
 
 /* Find static lease IP by mac */
@@ -111,30 +123,6 @@ static int is_nip_reserved_as_static(uint32_t nip)
 
 	return 0;
 }
-
-#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
-/* Print out static leases just to check what's going on */
-/* Takes the address of the pointer to the static_leases linked list */
-static void log_static_leases(struct static_lease **st_lease_pp)
-{
-	struct static_lease *cur;
-
-	if (dhcp_verbose < 2)
-		return;
-
-	cur = *st_lease_pp;
-	while (cur) {
-		bb_info_msg("static lease: mac:%02x:%02x:%02x:%02x:%02x:%02x nip:%x",
-			cur->mac[0], cur->mac[1], cur->mac[2],
-			cur->mac[3], cur->mac[4], cur->mac[5],
-			cur->nip
-		);
-		cur = cur->next;
-	}
-}
-#else
-# define log_static_leases(st_lease_pp) ((void)0)
-#endif
 
 /* Find the oldest expired lease, NULL if there are no expired leases */
 static struct dyn_lease *oldest_expired_lease(void)
@@ -379,8 +367,6 @@ static int FAST_FUNC read_staticlease(const char *const_line, void *arg)
 	/* opts might be NULL, that's not an error */
 
 	add_static_lease(arg, (uint8_t*) &mac_bytes, nip, opts);
-
-	log_static_leases(arg);
 
 	return 1;
 }
