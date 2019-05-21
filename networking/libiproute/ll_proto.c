@@ -15,7 +15,7 @@
 
 /* Please conditionalize exotic protocols on CONFIG_something */
 
-static const uint16_t llproto_ids[] = {
+static const uint16_t llproto_ids[] ALIGN2 = {
 #define __PF(f,n) ETH_P_##f,
 __PF(LOOP,loop)
 __PF(PUP,pup)

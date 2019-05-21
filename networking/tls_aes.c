@@ -130,7 +130,7 @@ static int KeyExpansion(uint32_t *RoundKey, const void *key, unsigned key_len)
 	// The round constant word array, Rcon[i], contains the values given by
 	// x to th e power (i-1) being powers of x (x is denoted as {02}) in the field GF(2^8).
 	// Note that i starts at 2, not 0.
-	static const uint8_t Rcon[] = {
+	static const uint8_t Rcon[] ALIGN1 = {
 		0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
 	//..... 0x6c, 0xd8, 0xab, 0x4d, 0x9a, 0x2f, 0x5e, 0xbc, 0x63, 0xc6,...
 	// but aes256 only uses values up to 0x36

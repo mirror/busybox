@@ -1387,12 +1387,12 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 	/* enter subjectPublicKeyInfo */
 	der = enter_der_item(der, &end);
 	{ /* check subjectPublicKeyInfo.algorithm */
-		static const uint8_t OID_RSA_KEY_ALG[] = {
+		static const uint8_t OID_RSA_KEY_ALG[] ALIGN1 = {
 			0x30,0x0d, // SEQ 13 bytes
 			0x06,0x09, 0x2a,0x86,0x48,0x86,0xf7,0x0d,0x01,0x01,0x01, //OID_RSA_KEY_ALG 42.134.72.134.247.13.1.1.1
 			//0x05,0x00, // NULL
 		};
-		static const uint8_t OID_ECDSA_KEY_ALG[] = {
+		static const uint8_t OID_ECDSA_KEY_ALG[] ALIGN1 = {
 			0x30,0x13, // SEQ 0x13 bytes
 			0x06,0x07, 0x2a,0x86,0x48,0xce,0x3d,0x02,0x01,      //OID_ECDSA_KEY_ALG 42.134.72.206.61.2.1
 		//allow any curve code for now...
@@ -2083,7 +2083,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	}
 }
 
-static const uint8_t rec_CHANGE_CIPHER_SPEC[] = {
+static const uint8_t rec_CHANGE_CIPHER_SPEC[] ALIGN1 = {
 	RECORD_TYPE_CHANGE_CIPHER_SPEC, TLS_MAJ, TLS_MIN, 00, 01,
 	01
 };
