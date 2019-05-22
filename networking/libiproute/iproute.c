@@ -26,7 +26,10 @@
 
 struct filter_t {
 	int tb;
+	/* Misnomer. Does not mean "flushed something" */
+	/* More like "flush commands were constructed by print_route()" */
 	smallint flushed;
+	/* Flush cmd buf. If !NULL, print_route() constructs flush commands in it */
 	char *flushb;
 	int flushp;
 	int flushe;
@@ -53,7 +56,7 @@ typedef struct filter_t filter_t;
 
 static int flush_update(void)
 {
-	if (rtnl_send(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
+	if (rtnl_send_check(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
 		bb_perror_msg("can't send flush request");
 		return -1;
 	}

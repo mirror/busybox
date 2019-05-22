@@ -32,7 +32,10 @@ struct filter_t {
 	int state;
 	int unused_only;
 	inet_prefix pfx;
+	/* Misnomer. Does not mean "flushed N something" */
+	/* More like "no_of_flush_commands_constructed_by_print_neigh()" */
 	int flushed;
+	/* Flush cmd buf. If !NULL, print_neigh() constructs flush commands in it */
 	char *flushb;
 	int flushp;
 	int flushe;
@@ -45,7 +48,7 @@ typedef struct filter_t filter_t;
 
 static int flush_update(void)
 {
-	if (rtnl_send(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
+	if (rtnl_send_check(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
 		bb_perror_msg("can't send flush request");
 		return -1;
 	}
@@ -299,9 +302,7 @@ static int FAST_FUNC ipneigh_list_or_flush(char **argv, int flush)
 		G_filter.rth = &rth;
 
 		while (round < MAX_ROUNDS) {
-			if (xrtnl_wilddump_request(&rth, G_filter.family, RTM_GETNEIGH) < 0) {
-				bb_perror_msg_and_die("can't send dump request");
-			}
+			xrtnl_wilddump_request(&rth, G_filter.family, RTM_GETNEIGH);
 			G_filter.flushed = 0;
 			if (xrtnl_dump_filter(&rth, print_neigh, NULL) < 0) {
 				bb_perror_msg_and_die("flush terminated");

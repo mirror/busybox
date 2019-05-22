@@ -20,7 +20,7 @@ struct rtnl_handle {
 
 extern void xrtnl_open(struct rtnl_handle *rth) FAST_FUNC;
 #define rtnl_close(rth) (close((rth)->fd))
-extern int xrtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type) FAST_FUNC;
+extern void xrtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type) FAST_FUNC;
 extern int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len) FAST_FUNC;
 extern int xrtnl_dump_filter(struct rtnl_handle *rth,
 		int (*filter)(const struct sockaddr_nl*, struct nlmsghdr *n, void*) FAST_FUNC,
@@ -34,8 +34,23 @@ extern int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 		int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
 		void *jarg) FAST_FUNC;
 
-extern int rtnl_send(struct rtnl_handle *rth, char *buf, int) FAST_FUNC;
+int rtnl_send_check(struct rtnl_handle *rth, const void *buf, int len) FAST_FUNC;
+//TODO: pass rth->fd instead of full rth?
+static ALWAYS_INLINE void rtnl_send(struct rtnl_handle *rth, const void *buf, int len)
+{
+	// Used to be:
+	//struct sockaddr_nl nladdr;
+	//memset(&nladdr, 0, sizeof(nladdr));
+	//nladdr.nl_family = AF_NETLINK;
+	//return xsendto(rth->fd, buf, len, (struct sockaddr*)&nladdr, sizeof(nladdr));
 
+	// iproute2-4.2.0 simplified the above to:
+	//return send(rth->fd, buf, len, 0);
+
+	// We are using even shorter:
+	xwrite(rth->fd, buf, len);
+	// and convert to void, inline.
+}
 
 extern int addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data) FAST_FUNC;
 extern int addattr_l(struct nlmsghdr *n, int maxlen, int type, void *data, int alen) FAST_FUNC;
