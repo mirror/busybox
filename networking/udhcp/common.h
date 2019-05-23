@@ -40,7 +40,7 @@ struct dhcp_packet {
 	uint32_t yiaddr; /* 'your' (client) IP address */
 	/* IP address of next server to use in bootstrap, returned in DHCPOFFER, DHCPACK by server */
 	uint32_t siaddr_nip;
-	uint32_t gateway_nip; /* relay agent IP address */
+	uint32_t gateway_nip; /* aka 'giaddr': relay agent IP address */
 	uint8_t chaddr[16];   /* link-layer client hardware address (MAC) */
 	uint8_t sname[64];    /* server host name (ASCIZ) */
 	uint8_t file[128];    /* boot file name (ASCIZ) */
@@ -222,10 +222,9 @@ uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) 
 #endif
 struct option_set *udhcp_find_option(struct option_set *opt_list, uint8_t code) FAST_FUNC;
 
-
 // RFC 2131  Table 5: Fields and options used by DHCP clients
 //
-// Fields 'hops', 'yiaddr', 'siaddr', 'giaddr' are always zero
+// Fields 'hops', 'yiaddr', 'siaddr', 'giaddr' are always zero, 'chaddr' is always client's MAC
 //
 // Field      DHCPDISCOVER          DHCPINFORM            DHCPREQUEST           DHCPDECLINE         DHCPRELEASE
 // -----      ------------          ------------          -----------           -----------         -----------
@@ -234,40 +233,33 @@ struct option_set *udhcp_find_option(struct option_set *opt_list, uint8_t code) 
 // 'secs'     0 or seconds since    0 or seconds since    0 or seconds since    0                   0
 //            DHCP process started  DHCP process started  DHCP process started
 // 'flags'    Set 'BROADCAST'       Set 'BROADCAST'       Set 'BROADCAST'       0                   0
-//            flag if client        flag if client        flag if client
-//            requires broadcast    requires broadcast    requires broadcast
-//            reply                 reply                 reply
+//            flag if client needs  flag if client needs  flag if client needs
+//            broadcast reply       broadcast reply       broadcast reply
 // 'ciaddr'   0                     client's IP           0 or client's IP      0                   client's IP
 //                                                        (BOUND/RENEW/REBIND)
-// 'chaddr'   client's MAC          client's MAC          client's MAC          client's MAC        client's MAC
 // 'sname'    options or sname      options or sname      options or sname      (unused)            (unused)
 // 'file'     options or file       options or file       options or file       (unused)            (unused)
 // 'options'  options               options               options               message type opt    message type opt
 //
-// Option                     DHCPDISCOVER  DHCPINFORM  DHCPREQUEST      DHCPDECLINE  DHCPRELEASE
-// ------                     ------------  ----------  -----------      -----------  -----------
-// Requested IP address       MAY           MUST NOT    MUST (in         MUST         MUST NOT
-//                                                      SELECTING or
-//                                                      INIT-REBOOT)
-//                                                      MUST NOT (in
-//                                                      BOUND or
-//                                                      RENEWING)
-// IP address lease time      MAY           MUST NOT    MAY              MUST NOT     MUST NOT
-// Use 'file'/'sname' fields  MAY           MAY         MAY              MAY          MAY
-// Client identifier          MAY           MAY         MAY              MAY          MAY
-// Vendor class identifier    MAY           MAY         MAY              MUST NOT     MUST NOT
-// Server identifier          MUST NOT      MUST NOT    MUST (after      MUST         MUST
-//                                                      SELECTING)
+// Option                     DHCPDISCOVER  DHCPINFORM  DHCPREQUEST             DHCPDECLINE  DHCPRELEASE
+// ------                     ------------  ----------  -----------             -----------  -----------
+// Requested IP address       MAY           MUST NOT    MUST (in SELECTING      MUST         MUST NOT
+//                                                      or INIT-REBOOT)
+//                                                      MUST NOT (in BOUND
+//                                                      or RENEWING)
+// IP address lease time      MAY           MUST NOT    MAY                     MUST NOT     MUST NOT
+// Use 'file'/'sname' fields  MAY           MAY         MAY                     MAY          MAY
+// Client identifier          MAY           MAY         MAY                     MAY          MAY
+// Vendor class identifier    MAY           MAY         MAY                     MUST NOT     MUST NOT
+// Server identifier          MUST NOT      MUST NOT    MUST (after SELECTING)  MUST         MUST
 //                                                      MUST NOT (after
-//                                                      INIT-REBOOT,
-//                                                      BOUND, RENEWING
-//                                                      or REBINDING)
-// Parameter request list     MAY           MAY         MAY              MUST NOT     MUST NOT
-// Maximum message size       MAY           MAY         MAY              MUST NOT     MUST NOT
-// Message                    SHOULD NOT    SHOULD NOT  SHOULD NOT       SHOULD       SHOULD
-// Site-specific              MAY           MAY         MAY              MUST NOT     MUST NOT
-// All others                 MAY           MAY         MAY              MUST NOT     MUST NOT
-
+//                                                      INIT-REBOOT, BOUND,
+//                                                      RENEWING or REBINDING)
+// Parameter request list     MAY           MAY         MAY                     MUST NOT     MUST NOT
+// Maximum message size       MAY           MAY         MAY                     MUST NOT     MUST NOT
+// Message                    SHOULD NOT    SHOULD NOT  SHOULD NOT              SHOULD       SHOULD
+// Site-specific              MAY           MAY         MAY                     MUST NOT     MUST NOT
+// All others                 MAY           MAY         MAY                     MUST NOT     MUST NOT
 
 /*** Logging ***/
 
