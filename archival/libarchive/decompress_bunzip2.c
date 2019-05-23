@@ -235,9 +235,9 @@ static int get_next_block(bunzip_data *bd)
 		/* Get next value */
 		int n = 0;
 		while (get_bits(bd, 1)) {
+			n++;
 			if (n >= groupCount)
 				return RETVAL_DATA_ERROR;
-			n++;
 		}
 		/* Decode MTF to get the next selector */
 		tmp_byte = mtfSymbol[n];
