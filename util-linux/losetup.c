@@ -20,10 +20,11 @@
 //kbuild:lib-$(CONFIG_LOSETUP) += losetup.o
 
 //usage:#define losetup_trivial_usage
-//usage:       "[-r] [-o OFS] {-f|LOOPDEV} FILE - associate loop devices\n"
-//usage:       "	losetup -d LOOPDEV - disassociate\n"
-//usage:       "	losetup -a - show status\n"
-//usage:       "	losetup -f - show next free loop device"
+//usage:       "[-r] [-o OFS] {-f|LOOPDEV} FILE: associate loop devices\n"
+//usage:       "	losetup -c LOOPDEV: reread file size\n"
+//usage:       "	losetup -d LOOPDEV: disassociate\n"
+//usage:       "	losetup -a: show status\n"
+//usage:       "	losetup -f: show next free loop device"
 //usage:#define losetup_full_usage "\n\n"
 //usage:       "	-o OFS	Start OFS bytes into FILE"
 //usage:     "\n	-r	Read-only"
@@ -50,14 +51,15 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 	char *opt_o;
 	char dev[LOOP_NAMESIZE];
 	enum {
-		OPT_d = (1 << 0),
-		OPT_o = (1 << 1),
-		OPT_f = (1 << 2),
-		OPT_a = (1 << 3),
-		OPT_r = (1 << 4), /* must be last */
+		OPT_c = (1 << 0),
+		OPT_d = (1 << 1),
+		OPT_o = (1 << 2),
+		OPT_f = (1 << 3),
+		OPT_a = (1 << 4),
+		OPT_r = (1 << 5),
 	};
 
-	opt = getopt32(argv, "^" "do:far" "\0" "?2:d--ofar:a--ofr", &opt_o);
+	opt = getopt32(argv, "^" "cdo:far" "\0" "?2:d--ofar:a--ofr", &opt_o);
 	argv += optind;
 
 	/* LOOPDEV */
@@ -70,6 +72,16 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 		printf("%s: %s\n", argv[0], s);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(s);
+		return EXIT_SUCCESS;
+	}
+
+	/* -c LOOPDEV */
+	if (opt == OPT_c && argv[0]) {
+		int fd = xopen(argv[0], O_RDONLY);
+#ifndef LOOP_SET_CAPACITY
+# define LOOP_SET_CAPACITY 0x4C07
+#endif
+		xioctl(fd, LOOP_SET_CAPACITY, /*ignored:*/0);
 		return EXIT_SUCCESS;
 	}
 
