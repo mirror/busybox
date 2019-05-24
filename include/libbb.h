@@ -881,6 +881,7 @@ extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz) FA
 extern char *xmalloc_reads(int fd, size_t *maxsz_p) FAST_FUNC;
 /* Reads block up to *maxsz_p (default: INT_MAX - 4095) */
 extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
+extern void *xmalloc_read_with_initial_buf(int fd, size_t *maxsz_p, char *buf, size_t total) FAST_FUNC;
 /* Returns NULL if file can't be opened (default max size: INT_MAX - 4095) */
 extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Never returns NULL */

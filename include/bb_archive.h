@@ -235,6 +235,12 @@ typedef struct transformer_state_t {
 	off_t    bytes_in;  /* used in unzip code only: needs to know packed size */
 	uint32_t crc32;
 	time_t   mtime;     /* gunzip code may set this on exit */
+
+	union {             /* if we read magic, it's saved here */
+		uint8_t b[8];
+		uint16_t b16[4];
+		uint32_t b32[2];
+	} magic;
 } transformer_state_t;
 
 void init_transformer_state(transformer_state_t *xstate) FAST_FUNC;

@@ -159,47 +159,44 @@ void FAST_FUNC fork_transformer(int fd, const char *transform_prog)
  */
 static transformer_state_t *setup_transformer_on_fd(int fd, int fail_if_not_compressed)
 {
-	union {
-		uint8_t b[4];
-		uint16_t b16[2];
-		uint32_t b32[1];
-	} magic;
 	transformer_state_t *xstate;
 
 	xstate = xzalloc(sizeof(*xstate));
 	xstate->src_fd = fd;
-	xstate->signature_skipped = 2;
 
 	/* .gz and .bz2 both have 2-byte signature, and their
 	 * unpack_XXX_stream wants this header skipped. */
-	xread(fd, magic.b16, sizeof(magic.b16[0]));
+	xstate->signature_skipped = 2;
+	xread(fd, xstate->magic.b16, 2);
 	if (ENABLE_FEATURE_SEAMLESS_GZ
-	 && magic.b16[0] == GZIP_MAGIC
+	 && xstate->magic.b16[0] == GZIP_MAGIC
 	) {
 		xstate->xformer = unpack_gz_stream;
 		USE_FOR_NOMMU(xstate->xformer_prog = "gunzip";)
 		goto found_magic;
 	}
 	if (ENABLE_FEATURE_SEAMLESS_Z
-	 && magic.b16[0] == COMPRESS_MAGIC
+	 && xstate->magic.b16[0] == COMPRESS_MAGIC
 	) {
 		xstate->xformer = unpack_Z_stream;
 		USE_FOR_NOMMU(xstate->xformer_prog = "uncompress";)
 		goto found_magic;
 	}
 	if (ENABLE_FEATURE_SEAMLESS_BZ2
-	 && magic.b16[0] == BZIP2_MAGIC
+	 && xstate->magic.b16[0] == BZIP2_MAGIC
 	) {
 		xstate->xformer = unpack_bz2_stream;
 		USE_FOR_NOMMU(xstate->xformer_prog = "bunzip2";)
 		goto found_magic;
 	}
 	if (ENABLE_FEATURE_SEAMLESS_XZ
-	 && magic.b16[0] == XZ_MAGIC1
+	 && xstate->magic.b16[0] == XZ_MAGIC1
 	) {
+		uint32_t v32;
 		xstate->signature_skipped = 6;
-		xread(fd, magic.b32, sizeof(magic.b32[0]));
-		if (magic.b32[0] == XZ_MAGIC2) {
+		xread(fd, &xstate->magic.b16[1], 4);
+		move_from_unaligned32(v32, &xstate->magic.b16[1]);
+		if (v32 == XZ_MAGIC2) {
 			xstate->xformer = unpack_xz_stream;
 			USE_FOR_NOMMU(xstate->xformer_prog = "unxz";)
 			goto found_magic;
@@ -344,11 +341,24 @@ void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_
 				*maxsz_p = xstate->mem_output_size;
 		}
 	} else {
-		/* File is not compressed */
-//FIXME: avoid seek
-		xlseek(xstate->src_fd, - xstate->signature_skipped, SEEK_CUR);
+		/* File is not compressed.
+		 * We already read first few bytes, account for that.
+		 * Exmaple where it happens:
+		 * "modinfo MODULE.ko" (not compressed)
+		 *   open("MODULE.ko", O_RDONLY|O_LARGEFILE) = 4
+		 *   read(4, "\177E", 2)                     = 2
+		 *   fstat64(4, ...)
+		 *   mmap(...)
+		 *   read(4, "LF\2\1\1\0\0\0\0"...
+		 * ...and we avoided seeking on the fd! :)
+		 */
 		xstate->signature_skipped = 0;
-		image = xmalloc_read(xstate->src_fd, maxsz_p);
+		image = xmalloc_read_with_initial_buf(
+			xstate->src_fd,
+			maxsz_p,
+			xmemdup(&xstate->magic, xstate->signature_skipped),
+			xstate->signature_skipped
+		);
 	}
 
 	if (!image)
