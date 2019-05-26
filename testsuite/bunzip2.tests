@@ -562,7 +562,7 @@ if test "${0##*/}" = "bunzip2.tests"; then
     fi
 
     errout="`${bb}bunzip2 <bz2_issue_12.bz2 2>&1 >/dev/null`"
-    if test x"$errout:$?" = x"bunzip2: bunzip error -3:1"; then
+    if test x"$errout:$?" = x"bunzip2: bunzip error -5:1"; then
 	echo "PASS: $unpack: bz2_issue_12.bz2 corrupted example"
     else
 	echo "FAIL: $unpack: bz2_issue_12.bz2 corrupted example"
