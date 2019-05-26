@@ -343,7 +343,7 @@ void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_
 	} else {
 		/* File is not compressed.
 		 * We already read first few bytes, account for that.
-		 * Exmaple where it happens:
+		 * Example where it happens:
 		 * "modinfo MODULE.ko" (not compressed)
 		 *   open("MODULE.ko", O_RDONLY|O_LARGEFILE) = 4
 		 *   read(4, "\177E", 2)                     = 2
