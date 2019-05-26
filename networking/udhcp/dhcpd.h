@@ -54,7 +54,7 @@ struct server_config_t {
 } FIX_ALIASING;
 
 #define server_config (*(struct server_config_t*)bb_common_bufsiz1)
-/* client_config sits in 2nd half of bb_common_bufsiz1 */
+/* client_data sits in 2nd half of bb_common_bufsiz1 */
 
 #if ENABLE_FEATURE_UDHCP_PORT
 #define SERVER_PORT  (server_config.port)
