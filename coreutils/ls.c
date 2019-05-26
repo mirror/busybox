@@ -1086,7 +1086,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	static const char ls_longopts[] ALIGN1 =
 		"full-time\0" No_argument "\xff"
 		"group-directories-first\0" No_argument "\xfe"
-		"color\0" Optional_argument "\xfd"
+		IF_FEATURE_LS_COLOR("color\0" Optional_argument "\xfd")
 	;
 #endif
 
