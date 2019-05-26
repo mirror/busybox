@@ -71,14 +71,6 @@ typedef long arith_t;
 # define ARITH_FMT "%ld"
 #endif
 
-#if !ENABLE_FEATURE_SH_MATH_BASE
-# if ENABLE_FEATURE_SH_MATH_64
-#  define strto_arith_t strtoull
-# else
-#  define strto_arith_t strtoul
-# endif
-#endif
-
 typedef const char* FAST_FUNC (*arith_var_lookup_t)(const char *name);
 typedef void        FAST_FUNC (*arith_var_set_t)(const char *name, const char *val);
 //typedef const char* FAST_FUNC (*arith_var_endofname_t)(const char *name);

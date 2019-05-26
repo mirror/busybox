@@ -545,8 +545,12 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 	*endptr = (char*)nptr;
 	return n;
 }
-#define strto_arith_t(nptr, endptr, base_is_always_0) \
-	strto_arith_t(nptr, endptr)
+#else /* !ENABLE_FEATURE_SH_MATH_BASE */
+# if ENABLE_FEATURE_SH_MATH_64
+#  define strto_arith_t(nptr, endptr) strtoull(nptr, endptr, 0)
+# else
+#  define strto_arith_t(nptr, endptr) strtoul(nptr, endptr, 0)
+# endif
 #endif
 
 static arith_t FAST_FUNC
@@ -627,7 +631,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			/* Number */
 			numstackptr->var = NULL;
 			errno = 0;
-			numstackptr->val = strto_arith_t(expr, (char**) &expr, 0);
+			numstackptr->val = strto_arith_t(expr, (char**) &expr);
 			if (errno)
 				numstackptr->val = 0; /* bash compat */
 			goto num;
