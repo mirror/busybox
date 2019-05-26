@@ -141,7 +141,7 @@ struct client6_data_t {
 	unsigned env_idx;
 	/* link-local IPv6 address */
 	struct in6_addr ll_ip6;
-};
+} FIX_ALIASING;
 
 #define client6_data (*(struct client6_data_t*)(&bb_common_bufsiz1[COMMON_BUFSIZE - sizeof(struct client6_data_t)]))
 
