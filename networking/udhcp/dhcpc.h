@@ -24,6 +24,10 @@ struct client_config_t {
 
 	uint16_t first_secs;
 	uint16_t last_secs;
+
+	int sockfd;
+	smallint listen_mode;
+	smallint state;
 } FIX_ALIASING;
 
 /* server_config sits in 1st half of bb_common_bufsiz1 */

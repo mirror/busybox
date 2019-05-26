@@ -984,13 +984,12 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 
 /*** Main ***/
 
-static int sockfd = -1;
-
+/* Values for client_config.listen_mode */
 #define LISTEN_NONE   0
 #define LISTEN_KERNEL 1
 #define LISTEN_RAW    2
-static smallint listen_mode;
 
+/* Values for client_config.state */
 /* initial state: (re)start DHCP negotiation */
 #define INIT_SELECTING  0
 /* discover was sent, DHCPOFFER reply received */
@@ -1005,7 +1004,6 @@ static smallint listen_mode;
 #define RENEW_REQUESTED 5
 /* release, possibly manually requested (SIGUSR2) */
 #define RELEASED        6
-static smallint state;
 
 static int udhcp_raw_socket(int ifindex)
 {
@@ -1102,35 +1100,35 @@ static void change_listen_mode(int new_mode)
 			: "none"
 	);
 
-	listen_mode = new_mode;
-	if (sockfd >= 0) {
-		close(sockfd);
-		sockfd = -1;
+	client_config.listen_mode = new_mode;
+	if (client_config.sockfd >= 0) {
+		close(client_config.sockfd);
+		client_config.sockfd = -1;
 	}
 	if (new_mode == LISTEN_KERNEL)
-		sockfd = udhcp_listen_socket(/*INADDR_ANY,*/ CLIENT_PORT, client_config.interface);
+		client_config.sockfd = udhcp_listen_socket(/*INADDR_ANY,*/ CLIENT_PORT, client_config.interface);
 	else if (new_mode != LISTEN_NONE)
-		sockfd = udhcp_raw_socket(client_config.ifindex);
-	/* else LISTEN_NONE: sockfd stays closed */
+		client_config.sockfd = udhcp_raw_socket(client_config.ifindex);
+	/* else LISTEN_NONE: client_config.sockfd stays closed */
 }
 
 /* Called only on SIGUSR1 */
 static void perform_renew(void)
 {
 	bb_info_msg("performing DHCP renew");
-	switch (state) {
+	switch (client_config.state) {
 	case BOUND:
 		change_listen_mode(LISTEN_KERNEL);
 	case RENEWING:
 	case REBINDING:
-		state = RENEW_REQUESTED;
+		client_config.state = RENEW_REQUESTED;
 		break;
 	case RENEW_REQUESTED: /* impatient are we? fine, square 1 */
 		udhcp_run_script(NULL, "deconfig");
 	case REQUESTING:
 	case RELEASED:
 		change_listen_mode(LISTEN_RAW);
-		state = INIT_SELECTING;
+		client_config.state = INIT_SELECTING;
 		break;
 	case INIT_SELECTING:
 		break;
@@ -1143,10 +1141,10 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 	struct in_addr temp_addr;
 
 	/* send release packet */
-	if (state == BOUND
-	 || state == RENEWING
-	 || state == REBINDING
-	 || state == RENEW_REQUESTED
+	if (client_config.state == BOUND
+	 || client_config.state == RENEWING
+	 || client_config.state == REBINDING
+	 || client_config.state == RENEW_REQUESTED
 	) {
 		temp_addr.s_addr = server_addr;
 		strcpy(buffer, inet_ntoa(temp_addr));
@@ -1165,7 +1163,7 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 	udhcp_run_script(NULL, "deconfig");
 
 	change_listen_mode(LISTEN_NONE);
-	state = RELEASED;
+	client_config.state = RELEASED;
 }
 
 static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
@@ -1270,6 +1268,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
 	client_config.interface = "eth0";
 	client_config.script = CONFIG_UDHCPC_DEFAULT_SCRIPT;
+	client_config.sockfd = -1;
 	str_V = "udhcp "BB_VER;
 
 	/* Parse command line */
@@ -1397,7 +1396,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	/* We want random_xid to be random... */
 	srand(monotonic_us());
 
-	state = INIT_SELECTING;
+	client_config.state = INIT_SELECTING;
 	udhcp_run_script(NULL, "deconfig");
 	change_listen_mode(LISTEN_RAW);
 	packet_num = 0;
@@ -1415,16 +1414,16 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		/* silence "uninitialized!" warning */
 		unsigned timestamp_before_wait = timestamp_before_wait;
 
-		//bb_error_msg("sockfd:%d, listen_mode:%d", sockfd, listen_mode);
+		//bb_error_msg("sockfd:%d, listen_mode:%d", client_config.sockfd, client_config.listen_mode);
 
 		/* Was opening raw or udp socket here
-		 * if (listen_mode != LISTEN_NONE && sockfd < 0),
+		 * if (client_config.listen_mode != LISTEN_NONE && client_config.sockfd < 0),
 		 * but on fast network renew responses return faster
 		 * than we open sockets. Thus this code is moved
 		 * to change_listen_mode(). Thus we open listen socket
 		 * BEFORE we send renew request (see "case BOUND:"). */
 
-		udhcp_sp_fd_set(pfds, sockfd);
+		udhcp_sp_fd_set(pfds, client_config.sockfd);
 
 		tv = timeout - already_waited_sec;
 		retval = 0;
@@ -1466,7 +1465,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			/* We will restart the wait in any case */
 			already_waited_sec = 0;
 
-			switch (state) {
+			switch (client_config.state) {
 			case INIT_SELECTING:
 				if (!discover_retries || packet_num < discover_retries) {
 					if (packet_num == 0)
@@ -1515,11 +1514,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				 * were seen in the wild. Treat them similarly
 				 * to "no response to discover" case */
 				change_listen_mode(LISTEN_RAW);
-				state = INIT_SELECTING;
+				client_config.state = INIT_SELECTING;
 				goto leasefail;
 			case BOUND:
 				/* 1/2 lease passed, enter renewing state */
-				state = RENEWING;
+				client_config.state = RENEWING;
 				client_config.first_secs = 0; /* make secs field count from 0 */
 				change_listen_mode(LISTEN_KERNEL);
 				log1("entering renew state");
@@ -1556,7 +1555,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				}
 				/* Timed out or error, enter rebinding state */
 				log1("entering rebinding state");
-				state = REBINDING;
+				client_config.state = REBINDING;
 				/* fall right through */
 			case REBINDING:
 				/* Switch to bcast receive */
@@ -1572,7 +1571,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				/* Timed out, enter init state */
 				bb_info_msg("lease lost, entering init state");
 				udhcp_run_script(NULL, "deconfig");
-				state = INIT_SELECTING;
+				client_config.state = INIT_SELECTING;
 				client_config.first_secs = 0; /* make secs field count from 0 */
 				/*timeout = 0; - already is */
 				packet_num = 0;
@@ -1592,7 +1591,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			client_config.first_secs = 0; /* make secs field count from 0 */
 			already_waited_sec = 0;
 			perform_renew();
-			if (state == RENEW_REQUESTED) {
+			if (client_config.state == RENEW_REQUESTED) {
 				/* We might be either on the same network
 				 * (in which case renew might work),
 				 * or we might be on a completely different one
@@ -1627,15 +1626,15 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			int len;
 
 			/* A packet is ready, read it */
-			if (listen_mode == LISTEN_KERNEL)
-				len = udhcp_recv_kernel_packet(&packet, sockfd);
+			if (client_config.listen_mode == LISTEN_KERNEL)
+				len = udhcp_recv_kernel_packet(&packet, client_config.sockfd);
 			else
-				len = udhcp_recv_raw_packet(&packet, sockfd);
+				len = udhcp_recv_raw_packet(&packet, client_config.sockfd);
 			if (len == -1) {
 				/* Error is severe, reopen socket */
 				bb_error_msg("read error: "STRERROR_FMT", reopening socket" STRERROR_ERRNO);
 				sleep(discover_timeout); /* 3 seconds by default */
-				change_listen_mode(listen_mode); /* just close and reopen */
+				change_listen_mode(client_config.listen_mode); /* just close and reopen */
 			}
 			/* If this packet will turn out to be unrelated/bogus,
 			 * we will go back and wait for next one.
@@ -1666,7 +1665,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 
-		switch (state) {
+		switch (client_config.state) {
 		case INIT_SELECTING:
 			/* Must be a DHCPOFFER */
 			if (*message == DHCPOFFER) {
@@ -1708,7 +1707,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				requested_ip = packet.yiaddr;
 
 				/* enter requesting state */
-				state = REQUESTING;
+				client_config.state = REQUESTING;
 				timeout = 0;
 				packet_num = 0;
 				already_waited_sec = 0;
@@ -1763,10 +1762,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 							"(got ARP reply), declining");
 						send_decline(/*xid,*/ server_addr, packet.yiaddr);
 
-						if (state != REQUESTING)
+						if (client_config.state != REQUESTING)
 							udhcp_run_script(NULL, "deconfig");
 						change_listen_mode(LISTEN_RAW);
-						state = INIT_SELECTING;
+						client_config.state = INIT_SELECTING;
 						client_config.first_secs = 0; /* make secs field count from 0 */
 						requested_ip = 0;
 						timeout = tryagain_timeout;
@@ -1783,7 +1782,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				requested_ip = packet.yiaddr;
 
 				start = monotonic_sec();
-				udhcp_run_script(&packet, state == REQUESTING ? "bound" : "renew");
+				udhcp_run_script(&packet, client_config.state == REQUESTING ? "bound" : "renew");
 				already_waited_sec = (unsigned)monotonic_sec() - start;
 				timeout = lease_seconds / 2;
 				if ((unsigned)timeout < already_waited_sec) {
@@ -1791,7 +1790,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					timeout = already_waited_sec = 0;
 				}
 
-				state = BOUND;
+				client_config.state = BOUND;
 				change_listen_mode(LISTEN_NONE);
 				if (opt & OPT_q) { /* quit after lease */
 					goto ret0;
@@ -1833,11 +1832,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				/* return to init state */
 				bb_info_msg("received %s", "DHCP NAK");
 				udhcp_run_script(&packet, "nak");
-				if (state != REQUESTING)
+				if (client_config.state != REQUESTING)
 					udhcp_run_script(NULL, "deconfig");
 				change_listen_mode(LISTEN_RAW);
 				sleep(3); /* avoid excessive network traffic */
-				state = INIT_SELECTING;
+				client_config.state = INIT_SELECTING;
 				client_config.first_secs = 0; /* make secs field count from 0 */
 				requested_ip = 0;
 				timeout = 0;
