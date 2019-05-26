@@ -352,13 +352,13 @@ void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_
 		 *   read(4, "LF\2\1\1\0\0\0\0"...
 		 * ...and we avoided seeking on the fd! :)
 		 */
-		xstate->signature_skipped = 0;
 		image = xmalloc_read_with_initial_buf(
 			xstate->src_fd,
 			maxsz_p,
 			xmemdup(&xstate->magic, xstate->signature_skipped),
 			xstate->signature_skipped
 		);
+		xstate->signature_skipped = 0;
 	}
 
 	if (!image)
