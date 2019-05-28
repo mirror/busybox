@@ -20,13 +20,14 @@
 //kbuild:lib-$(CONFIG_LOSETUP) += losetup.o
 
 //usage:#define losetup_trivial_usage
-//usage:       "[-r] [-o OFS] {-f|LOOPDEV} FILE: associate loop devices\n"
+//usage:       "[-rP] [-o OFS] {-f|LOOPDEV} FILE: associate loop devices\n"
 //usage:       "	losetup -c LOOPDEV: reread file size\n"
 //usage:       "	losetup -d LOOPDEV: disassociate\n"
 //usage:       "	losetup -a: show status\n"
 //usage:       "	losetup -f: show next free loop device"
 //usage:#define losetup_full_usage "\n\n"
 //usage:       "	-o OFS	Start OFS bytes into FILE"
+//usage:     "\n	-P	Scan for partitions"
 //usage:     "\n	-r	Read-only"
 //usage:     "\n	-f	Show/use next free loop device"
 //usage:
@@ -35,8 +36,9 @@
 //usage:       "(if any), or disassociate it (with -d). The display shows the offset\n"
 //usage:       "and filename of the file the loop device is currently bound to.\n\n"
 //usage:       "Two arguments (losetup /dev/loop1 file.img) create a new association,\n"
-//usage:       "with an optional offset (-o 12345). Encryption is not yet supported.\n"
-//usage:       "losetup -f will show the first loop free loop device\n\n"
+//usage:       "with optional partition scanning (creates /dev/loop1p1, /dev/loop1p2\n"
+//usage:       "etc. with -P) and with an optional offset (-o 12345). Encryption is\n"
+//usage:       "not yet supported. losetup -f will show the first free loop device\n\n"
 
 #include "libbb.h"
 
@@ -53,13 +55,14 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 	enum {
 		OPT_c = (1 << 0),
 		OPT_d = (1 << 1),
-		OPT_o = (1 << 2),
-		OPT_f = (1 << 3),
-		OPT_a = (1 << 4),
-		OPT_r = (1 << 5),
+		OPT_P = (1 << 2),
+		OPT_o = (1 << 3),
+		OPT_f = (1 << 4),
+		OPT_a = (1 << 5),
+		OPT_r = (1 << 6),
 	};
 
-	opt = getopt32(argv, "^" "cdo:far" "\0" "?2:d--ofar:a--ofr", &opt_o);
+	opt = getopt32(argv, "^" "cdPo:far" "\0" "?2:d--Pofar:a--Pofr", &opt_o);
 	argv += optind;
 
 	/* LOOPDEV */
@@ -127,7 +130,7 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 
-	/* [-r] [-o OFS] {-f|LOOPDEV} FILE */
+	/* [-rP] [-o OFS] {-f|LOOPDEV} FILE */
 	if (argv[0] && ((opt & OPT_f) || argv[1])) {
 		unsigned long long offset = 0;
 		char *d = dev;
@@ -138,7 +141,11 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 			d = *argv++;
 
 		if (argv[0]) {
-			if (set_loop(&d, argv[0], offset, (opt & OPT_r) ? BB_LO_FLAGS_READ_ONLY : 0) < 0)
+			unsigned flags = (opt & OPT_r) ? BB_LO_FLAGS_READ_ONLY : 0;
+			if (opt & OPT_P) {
+				flags |= BB_LO_FLAGS_PARTSCAN;
+			}
+			if (set_loop(&d, argv[0], offset, flags) < 0)
 				bb_simple_perror_msg_and_die(argv[0]);
 			return EXIT_SUCCESS;
 		}

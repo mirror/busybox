@@ -1471,6 +1471,7 @@ extern int set_loop(char **devname, const char *file, unsigned long long offset,
 /* These constants match linux/loop.h (without BB_ prefix): */
 #define BB_LO_FLAGS_READ_ONLY 1
 #define BB_LO_FLAGS_AUTOCLEAR 4
+#define BB_LO_FLAGS_PARTSCAN  8
 
 /* Returns malloced str */
 char *bb_ask_noecho(int fd, int timeout, const char *prompt) FAST_FUNC;
