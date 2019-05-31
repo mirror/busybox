@@ -1017,7 +1017,7 @@ static int udhcp_raw_socket(int ifindex)
 	 * SOCK_DGRAM: remove link-layer headers on input (SOCK_RAW keeps them)
 	 * ETH_P_IP: want to receive only packets with IPv4 eth type
 	 */
-	log2("got raw socket fd");
+	log3("got raw socket fd %d", fd);
 
 	memset(&sock, 0, sizeof(sock)); /* let's be deterministic */
 	sock.sll_family = AF_PACKET;

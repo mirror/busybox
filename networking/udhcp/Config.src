@@ -116,7 +116,7 @@ config FEATURE_UDHCP_PORT
 
 config UDHCP_DEBUG
 	int "Maximum verbosity level (0..9)"
-	default 9
+	default 2
 	range 0 9
 	depends on UDHCPD || UDHCPC || UDHCPC6 || DHCPRELAY
 	help
