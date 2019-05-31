@@ -37,6 +37,8 @@
 //usage:	IF_FEATURE_UDHCP_PORT(
 //usage:     "\n	-P N	Use port N (default 67)"
 //usage:	)
+//usage:     "\nSignals:"
+//usage:     "\n	USR1	Update lease file"
 
 #include <netinet/ether.h>
 #include <syslog.h>
@@ -863,6 +865,10 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_UDHCP_PORT(SERVER_PORT = 67;)
 	IF_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
 
+	/* Make sure fd 0,1,2 are open */
+	/* Setup the signal pipe on fds 3,4 - must be before openlog() */
+	udhcp_sp_setup();
+
 	opt = getopt32(argv, "^"
 		"fSI:va:"IF_FEATURE_UDHCP_PORT("P:")
 		"\0"
@@ -904,9 +910,6 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	if (server_data.auto_time > INT_MAX / 1000)
 		server_data.auto_time = INT_MAX / 1000;
 
-	/* Make sure fd 0,1,2 are open */
-	bb_sanitize_stdio();
-
 	/* Create pidfile */
 	write_pidfile(server_data.pidfile);
 	/* if (!..) bb_perror_msg("can't create pidfile %s", pidfile); */
@@ -941,9 +944,6 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		retval = 1;
 		goto ret;
 	}
-
-	/* Setup the signal pipe */
-	udhcp_sp_setup();
 
  continue_with_autotime:
 	timeout_end = monotonic_sec() + server_data.auto_time;

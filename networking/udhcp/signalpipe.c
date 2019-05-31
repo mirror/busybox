@@ -20,14 +20,14 @@
  */
 #include "common.h"
 
-/* Global variable: we access it from signal handler */
-static struct fd_pair signal_pipe;
+#define READ_FD  3
+#define WRITE_FD 4
 
 static void signal_handler(int sig)
 {
 	int sv = errno;
 	unsigned char ch = sig; /* use char, avoid dealing with partial writes */
-	if (write(signal_pipe.wr, &ch, 1) != 1)
+	if (write(WRITE_FD, &ch, 1) != 1)
 		bb_perror_msg("can't send signal");
 	errno = sv;
 }
@@ -36,12 +36,25 @@ static void signal_handler(int sig)
  * and installs the signal handler */
 void FAST_FUNC udhcp_sp_setup(void)
 {
+	struct fd_pair signal_pipe;
+
+	/* All callers also want this, so... */
+	bb_sanitize_stdio();
+
 	/* was socketpair, but it needs AF_UNIX in kernel */
 	xpiped_pair(signal_pipe);
-	close_on_exec_on(signal_pipe.rd);
-	close_on_exec_on(signal_pipe.wr);
-	ndelay_on(signal_pipe.rd);
-	ndelay_on(signal_pipe.wr);
+
+	/* usually we get fds 3 and 4, but if we get higher ones... */
+	if (signal_pipe.rd != READ_FD)
+		xmove_fd(signal_pipe.rd, READ_FD);
+	if (signal_pipe.wr != WRITE_FD)
+		xmove_fd(signal_pipe.wr, WRITE_FD);
+
+	close_on_exec_on(READ_FD);
+	close_on_exec_on(WRITE_FD);
+	ndelay_on(READ_FD);
+	ndelay_on(WRITE_FD);
+
 	bb_signals(0
 		+ (1 << SIGUSR1)
 		+ (1 << SIGUSR2)
@@ -54,7 +67,7 @@ void FAST_FUNC udhcp_sp_setup(void)
  */
 void FAST_FUNC udhcp_sp_fd_set(struct pollfd pfds[2], int extra_fd)
 {
-	pfds[0].fd = signal_pipe.rd;
+	pfds[0].fd = READ_FD;
 	pfds[0].events = POLLIN;
 	pfds[1].fd = -1;
 	if (extra_fd >= 0) {
@@ -74,7 +87,7 @@ int FAST_FUNC udhcp_sp_read(void)
 	unsigned char sig;
 
 	/* Can't block here, fd is in nonblocking mode */
-	if (safe_read(signal_pipe.rd, &sig, 1) != 1)
+	if (safe_read(READ_FD, &sig, 1) != 1)
 		return 0;
 
 	return sig;

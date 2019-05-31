@@ -1174,6 +1174,10 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	client_data.script = CONFIG_UDHCPC_DEFAULT_SCRIPT;
 	client_data.sockfd = -1;
 
+	/* Make sure fd 0,1,2 are open */
+	/* Set up the signal pipe on fds 3,4 - must be before openlog() */
+	udhcp_sp_setup();
+
 	/* Parse command line */
 	opt = getopt32long(argv, "^"
 		/* O,x: list; -T,-t,-A take numeric param */
@@ -1268,14 +1272,10 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		logmode |= LOGMODE_SYSLOG;
 	}
 
-	/* Make sure fd 0,1,2 are open */
-	bb_sanitize_stdio();
 	/* Create pidfile */
 	write_pidfile(client_data.pidfile);
 	/* Goes to stdout (unless NOMMU) and possibly syslog */
 	bb_info_msg("started, v"BB_VER);
-	/* Set up the signal pipe */
-	udhcp_sp_setup();
 
 	client_data.state = INIT_SELECTING;
 	d6_run_script_no_option("deconfig");
