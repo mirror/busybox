@@ -315,9 +315,16 @@ static const char *const optletters_optnames[] = {
 	"e"   "errexit",
 	"f"   "noglob",
 	"I"   "ignoreeof",
+/* The below allows this invocation:
+ * ash -c 'set -i; echo $-; sleep 5; echo $-'
+ * to be ^C-ed and get to interactive ash prompt.
+ * bash does not support this "set -i". bash also has no
+ * "set -o interactive".
+ */
 	"i"   "interactive",
 	"m"   "monitor",
 	"n"   "noexec",
+/* Ditto: bash has no "set -s" and "set -o stdin" */
 	"s"   "stdin",
 	"x"   "xtrace",
 	"v"   "verbose",
@@ -334,9 +341,24 @@ static const char *const optletters_optnames[] = {
 	,"\0"  "debug"
 #endif
 };
+//bash 4.4.23 also has these opts (with these defaults):
+//braceexpand           on
+//emacs                 on
+//errtrace              off
+//functrace             off
+//hashall               on
+//histexpand            off
+//history               on
+//interactive-comments  on
+//keyword               off
+//onecmd                off
+//physical              off
+//posix                 off
+//privileged            off
 
 #define optletters(n)  optletters_optnames[n][0]
 #define optnames(n)   (optletters_optnames[n] + 1)
+
 
 enum { NOPTS = ARRAY_SIZE(optletters_optnames) };
 
@@ -9514,8 +9536,8 @@ setinteractive(int on)
 	setsignal(SIGINT);
 	setsignal(SIGQUIT);
 	setsignal(SIGTERM);
-#if !ENABLE_FEATURE_SH_EXTRA_QUIET
 	if (is_interactive > 1) {
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
 		/* Looks like they want an interactive shell */
 		static smallint did_banner;
 
@@ -9529,8 +9551,12 @@ setinteractive(int on)
 			);
 			did_banner = 1;
 		}
-	}
 #endif
+#if ENABLE_FEATURE_EDITING
+		if (!line_input_state)
+			line_input_state = new_line_input_t(FOR_SHELL | WITH_PATH_LOOKUP);
+#endif
+	}
 }
 
 static void
@@ -9542,10 +9568,12 @@ optschanged(void)
 	setinteractive(iflag);
 	setjobctl(mflag);
 #if ENABLE_FEATURE_EDITING_VI
-	if (viflag)
-		line_input_state->flags |= VI_MODE;
-	else
-		line_input_state->flags &= ~VI_MODE;
+	if (line_input_state) {
+		if (viflag)
+			line_input_state->flags |= VI_MODE;
+		else
+			line_input_state->flags &= ~VI_MODE;
+	}
 #else
 	viflag = 0; /* forcibly keep the option off */
 #endif
@@ -10519,13 +10547,11 @@ preadfd(void)
 	else {
 # if ENABLE_ASH_IDLE_TIMEOUT
 		int timeout = -1;
-		if (iflag) {
-			const char *tmout_var = lookupvar("TMOUT");
-			if (tmout_var) {
-				timeout = atoi(tmout_var) * 1000;
-				if (timeout <= 0)
-					timeout = -1;
-			}
+		const char *tmout_var = lookupvar("TMOUT");
+		if (tmout_var) {
+			timeout = atoi(tmout_var) * 1000;
+			if (timeout <= 0)
+				timeout = -1;
 		}
 		line_input_state->timeout = timeout;
 # endif
@@ -11086,14 +11112,17 @@ setoption(int flag, int val)
 	ash_msg_and_raise_error("illegal option %c%c", val ? '-' : '+', flag);
 	/* NOTREACHED */
 }
+/* If login_sh is not NULL, we are called to parse command line opts,
+ * not "set -opts"
+ */
 static int
-options(int cmdline, int *login_sh)
+options(int *login_sh)
 {
 	char *p;
 	int val;
 	int c;
 
-	if (cmdline)
+	if (login_sh)
 		minusc = NULL;
 	while ((p = *argptr) != NULL) {
 		c = *p++;
@@ -11104,7 +11133,7 @@ options(int cmdline, int *login_sh)
 		if (c == '-') {
 			val = 1;
 			if (p[0] == '\0' || LONE_DASH(p)) {
-				if (!cmdline) {
+				if (!login_sh) {
 					/* "-" means turn off -x and -v */
 					if (p[0] == '\0')
 						xflag = vflag = 0;
@@ -11117,26 +11146,31 @@ options(int cmdline, int *login_sh)
 		}
 		/* first char was + or - */
 		while ((c = *p++) != '\0') {
-			/* bash 3.2 indeed handles -c CMD and +c CMD the same */
-			if (c == 'c' && cmdline) {
-				minusc = p;     /* command is after shell args */
-			} else if (c == 'o') {
+			if (login_sh) {
+				/* bash 3.2 indeed handles -c CMD and +c CMD the same */
+				if (c == 'c') {
+					minusc = p; /* command is after shell args */
+					continue;
+				}
+				if (c == 'l') {
+					*login_sh = 1; /* -l or +l == --login */
+					continue;
+				}
+				/* bash does not accept +-login, we also won't */
+				if (val && (c == '-')) { /* long options */
+					if (strcmp(p, "login") == 0) {
+						*login_sh = 1;
+					}
+					break;
+				}
+			}
+			if (c == 'o') {
 				if (plus_minus_o(*argptr, val)) {
 					/* it already printed err message */
 					return 1; /* error */
 				}
 				if (*argptr)
 					argptr++;
-			} else if (cmdline && (c == 'l')) { /* -l or +l == --login */
-				if (login_sh)
-					*login_sh = 1;
-			/* bash does not accept +-login, we also won't */
-			} else if (cmdline && val && (c == '-')) { /* long options */
-				if (strcmp(p, "login") == 0) {
-					if (login_sh)
-						*login_sh = 1;
-				}
-				break;
 			} else {
 				setoption(c, val);
 			}
@@ -11227,7 +11261,7 @@ setcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		return showvars(nullstr, 0, VUNSET);
 
 	INT_OFF;
-	retval = options(/*cmdline:*/ 0, NULL);
+	retval = options(/*login_sh:*/ NULL);
 	if (retval == 0) { /* if no parse error... */
 		optschanged();
 		if (*argptr != NULL) {
@@ -13685,7 +13719,8 @@ helpcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 static int FAST_FUNC
 historycmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	show_history(line_input_state);
+	if (line_input_state)
+		show_history(line_input_state);
 	return EXIT_SUCCESS;
 }
 #endif
@@ -14001,7 +14036,8 @@ exitshell(void)
 	int status;
 
 #if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
-	save_history(line_input_state);
+	if (line_input_state)
+		save_history(line_input_state);
 #endif
 	status = exitstatus;
 	TRACE(("pid %d, exitshell(%d)\n", getpid(), status));
@@ -14123,7 +14159,7 @@ procargs(char **argv)
 	argptr = xargv;
 	for (i = 0; i < NOPTS; i++)
 		optlist[i] = 2;
-	if (options(/*cmdline:*/ 1, &login_sh)) {
+	if (options(&login_sh)) {
 		/* it already printed err message */
 		raise_exception(EXERROR);
 	}
@@ -14249,9 +14285,6 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	monitor(4, etext, profile_buf, sizeof(profile_buf), 50);
 #endif
 
-#if ENABLE_FEATURE_EDITING
-	line_input_state = new_line_input_t(FOR_SHELL | WITH_PATH_LOOKUP);
-#endif
 	state = 0;
 	if (setjmp(jmploc.loc)) {
 		smallint e;
