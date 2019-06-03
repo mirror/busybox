@@ -315,17 +315,18 @@ static const char *const optletters_optnames[] = {
 	"e"   "errexit",
 	"f"   "noglob",
 	"I"   "ignoreeof",
-/* The below allows this invocation:
+/* The below allowed this invocation:
  * ash -c 'set -i; echo $-; sleep 5; echo $-'
  * to be ^C-ed and get to interactive ash prompt.
- * bash does not support this "set -i". bash also has no
- * "set -o interactive".
+ * bash does not support such "set -i".
+ * In our code, this is denoted by empty long name:
  */
-	"i"   "interactive",
+	"i"   "",
 	"m"   "monitor",
 	"n"   "noexec",
-/* Ditto: bash has no "set -s" and "set -o stdin" */
-	"s"   "stdin",
+/* Ditto: bash has no "set -s" */
+	"s"   "",
+	"c"   "",
 	"x"   "xtrace",
 	"v"   "verbose",
 	"C"   "noclobber",
@@ -358,7 +359,6 @@ static const char *const optletters_optnames[] = {
 
 #define optletters(n)  optletters_optnames[n][0]
 #define optnames(n)   (optletters_optnames[n] + 1)
-
 
 enum { NOPTS = ARRAY_SIZE(optletters_optnames) };
 
@@ -419,21 +419,22 @@ struct globals_misc {
 #define mflag optlist[4]
 #define nflag optlist[5]
 #define sflag optlist[6]
-#define xflag optlist[7]
-#define vflag optlist[8]
-#define Cflag optlist[9]
-#define aflag optlist[10]
-#define bflag optlist[11]
-#define uflag optlist[12]
-#define viflag optlist[13]
+#define cflag optlist[7]
+#define xflag optlist[8]
+#define vflag optlist[9]
+#define Cflag optlist[10]
+#define aflag optlist[11]
+#define bflag optlist[12]
+#define uflag optlist[13]
+#define viflag optlist[14]
 #if BASH_PIPEFAIL
-# define pipefail optlist[14]
+# define pipefail optlist[15]
 #else
 # define pipefail 0
 #endif
 #if DEBUG
-# define nolog optlist[14 + BASH_PIPEFAIL]
-# define debug optlist[15 + BASH_PIPEFAIL]
+# define nolog optlist[15 + BASH_PIPEFAIL]
+# define debug optlist[16 + BASH_PIPEFAIL]
 #endif
 
 	/* trap handler commands */
@@ -11104,7 +11105,7 @@ setoption(int flag, int val)
 	int i;
 
 	for (i = 0; i < NOPTS; i++) {
-		if (optletters(i) == flag) {
+		if (optletters(i) == flag && optnames(i)[0] != '\0') {
 			optlist[i] = val;
 			return;
 		}
@@ -11150,6 +11151,15 @@ options(int *login_sh)
 				/* bash 3.2 indeed handles -c CMD and +c CMD the same */
 				if (c == 'c') {
 					minusc = p; /* command is after shell args */
+					cflag = 1;
+					continue;
+				}
+				if (c == 's') { /* -s, +s */
+					sflag = 1;
+					continue;
+				}
+				if (c == 'i') { /* -i, +i */
+					iflag = 1;
 					continue;
 				}
 				if (c == 'l') {
@@ -14170,8 +14180,13 @@ procargs(char **argv)
 			ash_msg_and_raise_error(bb_msg_requires_arg, "-c");
 		sflag = 1;
 	}
-	if (iflag == 2 && sflag == 1 && isatty(0) && isatty(1))
+	if (iflag == 2 /* no explicit -i given */
+	 && sflag == 1 /* -s given (or implied) */
+	 && !minusc /* bash compat: ash -sc 'echo $-' is not interactive (dash is) */
+	 && isatty(0) && isatty(1) /* we are on tty */
+	) {
 		iflag = 1;
+	}
 	if (mflag == 2)
 		mflag = iflag;
 	for (i = 0; i < NOPTS; i++)
@@ -14359,10 +14374,17 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		 * Ensure we don't falsely claim that 0 (stdin)
 		 * is one of stacked source fds.
 		 * Testcase: ash -c 'exec 1>&0' must not complain. */
+
 		// if (!sflag) g_parsefile->pf_fd = -1;
 		// ^^ not necessary since now we special-case fd 0
 		// in save_fd_on_redirect()
-		evalstring(minusc, sflag ? 0 : EV_EXIT);
+
+		// dash: evalstring(minusc, sflag ? 0 : EV_EXIT);
+		// The above makes
+		//  ash -sc 'echo $-'
+		// continue reading input from stdin after running 'echo'.
+		// bash does not do this: it prints "hBcs" and exits.
+		evalstring(minusc, EV_EXIT);
 	}
 
 	if (sflag || minusc == NULL) {

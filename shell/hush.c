@@ -903,6 +903,7 @@ struct globals {
 # define G_x_mode 0
 #endif
 	char opt_s;
+	char opt_c;
 #if ENABLE_HUSH_INTERACTIVE
 	smallint promptmode; /* 0: PS1, 1: PS2 */
 #endif
@@ -1009,7 +1010,7 @@ struct globals {
 	int debug_indent;
 #endif
 	struct sigaction sa;
-	char optstring_buf[sizeof("eixs")];
+	char optstring_buf[sizeof("eixcs")];
 #if BASH_EPOCH_VARS
 	char epoch_buf[sizeof("%lu.nnnnnn") + sizeof(long)*3];
 #endif
@@ -6414,9 +6415,10 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 			 * commands read but are not executed,
 			 * so $- can not execute too, 'n' is never seen in $-.
 			 */
+			if (G.opt_c)
+				*cp++ = 'c';
 			if (G.opt_s)
 				*cp++ = 's';
-//TODO: show 'c' if executed via "hush -c 'CMDS'" (bash only, not ash)
 			*cp = '\0';
 			break;
 		}
@@ -9859,7 +9861,6 @@ int hush_main(int argc, char **argv)
 {
 	enum {
 		OPT_login = (1 << 0),
-		OPT_s     = (1 << 1),
 	};
 	unsigned flags;
 	unsigned builtin_argc;
@@ -10029,6 +10030,7 @@ int hush_main(int argc, char **argv)
 				}
 				goto final_return;
 			}
+			G.opt_c = 1;
 			if (!G.global_argv[0]) {
 				/* -c 'script' (no params): prevent empty $0 */
 				G.global_argv--; /* points to argv[i] of 'script' */
@@ -10044,7 +10046,7 @@ int hush_main(int argc, char **argv)
 			/* G_interactive_fd++; */
 			break;
 		case 's':
-			flags |= OPT_s;
+			G.opt_s = 1;
 			break;
 		case 'l':
 			flags |= OPT_login;
@@ -10154,7 +10156,7 @@ int hush_main(int argc, char **argv)
 	}
 
 	/* -s is: hush -s ARGV1 ARGV2 (no SCRIPT) */
-	if (!(flags & OPT_s) && G.global_argv[1]) {
+	if (!G.opt_s && G.global_argv[1]) {
 		HFILE *input;
 		/*
 		 * "bash <script>" (which is never interactive (unless -i?))
@@ -10178,6 +10180,7 @@ int hush_main(int argc, char **argv)
 #endif
 		goto final_return;
 	}
+	/* "implicit" -s: bare interactive hush shows 's' in $- */
 	G.opt_s = 1;
 
 	/* Up to here, shell was non-interactive. Now it may become one.
