@@ -604,15 +604,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 
 	xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), ioctl_fd);
 	if (opts & FLAG_MONITOR) {
-		struct sockaddr_nl addr;
-		int fd = xsocket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
-
-		memset(&addr, 0, sizeof(addr));
-		addr.nl_family = AF_NETLINK;
-		addr.nl_groups = RTMGRP_LINK;
-		addr.nl_pid = getpid();
-
-		xbind(fd, (struct sockaddr*)&addr, sizeof(addr));
+		int fd = create_and_bind_to_netlink(NETLINK_ROUTE, RTMGRP_LINK, 0);
 		xmove_fd(fd, netlink_fd);
 	}
 

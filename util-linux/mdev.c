@@ -1225,28 +1225,16 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		/*
 		 * Daemon mode listening on uevent netlink socket.
 		 */
-		struct sockaddr_nl sa;
 		int fd;
 
-//TODO: reuse same code in uevent
-		// Subscribe for UEVENT kernel messages
-		sa.nl_family = AF_NETLINK;
-		sa.nl_pad = 0;
-		sa.nl_pid = getpid();
-		sa.nl_groups = 1 << 0;
-		fd = xsocket(AF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
-		xbind(fd, (struct sockaddr *) &sa, sizeof(sa));
-		close_on_exec_on(fd);
-
-		// Without a sufficiently big RCVBUF, a ton of simultaneous events
-		// can trigger ENOBUFS on read, which is unrecoverable.
-		// Reproducer:
-		//	mdev -d
-		// 	find /sys -name uevent -exec sh -c 'echo add >"{}"' ';'
-		//
-		// SO_RCVBUFFORCE (root only) can go above net.core.rmem_max sysctl
-		setsockopt_SOL_SOCKET_int(fd, SO_RCVBUF,      RCVBUF);
-		setsockopt_SOL_SOCKET_int(fd, SO_RCVBUFFORCE, RCVBUF);
+		/* Subscribe for UEVENT kernel messages */
+		/* Without a sufficiently big RCVBUF, a ton of simultaneous events
+		 * can trigger ENOBUFS on read, which is unrecoverable.
+		 * Reproducer:
+		 *	mdev -d
+		 *	find /sys -name uevent -exec sh -c 'echo add >"{}"' ';'
+		 */
+		fd = create_and_bind_to_netlink(NETLINK_KOBJECT_UEVENT, 1 << 0, RCVBUF);
 
 		/*
 		 * Make inital scan after the uevent socket is alive and
