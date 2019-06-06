@@ -1726,6 +1726,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 			".jpg.jpeg\0" "image/jpeg\0"
 			".gif\0"      "image/gif\0"
 			".png\0"      "image/png\0"
+			".svg\0"      "image/svg+xml\0"
 			/* .css line must be after .c line */
 			".css\0"      "text/css\0"
 			".wav\0"      "audio/wav\0"
