@@ -270,10 +270,16 @@ int FAST_FUNC update_passwd(const char *filename,
 			if (shadow && *cp == ':') {
 				/* /etc/shadow's field 3 (passwd change date) needs updating */
 				/* move past old change date */
+				unsigned time_days = (unsigned long)(time(NULL)) / (24*60*60);
+
+				if (time_days == 0) {
+					/* 0 as change date has special meaning, avoid it */
+					time_days = 1;
+				}
 				cp = strchrnul(cp + 1, ':');
 				/* "name:" + "new_passwd" + ":" + "change date" + ":rest of line" */
 				fprintf(new_fp, "%s%s:%u%s\n", name_colon, new_passwd,
-					(unsigned)(time(NULL)) / (24*60*60), cp);
+					time_days, cp);
 			} else {
 				/* "name:" + "new_passwd" + ":rest of line" */
 				fprintf(new_fp, "%s%s%s\n", name_colon, new_passwd, cp);
