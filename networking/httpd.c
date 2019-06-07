@@ -1729,7 +1729,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 			".svg\0"      "image/svg+xml\0"
 			/* .css line must be after .c line */
 			".css\0"      "text/css\0"
-			".js\0"       "application/x-javascript\0"
+			".js\0"       "application/javascript\0"
 			".wav\0"      "audio/wav\0"
 			".avi\0"      "video/x-msvideo\0"
 			".qt.mov\0"   "video/quicktime\0"
