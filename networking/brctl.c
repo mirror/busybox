@@ -120,6 +120,7 @@ static int read_file(const char *name)
 	return n;
 }
 
+#if ENABLE_FEATURE_BRCTL_SHOW
 /* NB: we are in /sys/class/net
  */
 static int show_bridge(const char *name, int need_hdr)
@@ -176,7 +177,9 @@ static int show_bridge(const char *name, int need_hdr)
 		bb_putchar('\n');
 	return 0;
 }
+#endif
 
+#if ENABLE_FEATURE_BRCTL_FANCY
 static void write_uint(const char *name, const char *leaf, unsigned val)
 {
 	char pathbuf[IFNAMSIZ + sizeof("/bridge/bridge_id") + 32];
@@ -193,6 +196,7 @@ static void write_uint(const char *name, const char *leaf, unsigned val)
 		bb_simple_perror_msg_and_die(name);
 	close(fd);
 }
+#endif
 
 int brctl_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int brctl_main(int argc UNUSED_PARAM, char **argv)
