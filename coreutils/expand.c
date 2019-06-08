@@ -63,6 +63,8 @@ enum {
 	OPT_ALL         = 1 << 2,
 };
 
+//FIXME: does not work properly with input containing NULs
+
 #if ENABLE_EXPAND
 static void expand(FILE *file, unsigned tab_size, unsigned opt)
 {
