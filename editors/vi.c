@@ -1331,7 +1331,7 @@ static char what_reg(void)
 	char c;
 
 	c = 'D';			// default to D-reg
-	if (0 <= YDreg && YDreg <= 25)
+	if (YDreg <= 25)
 		c = 'a' + (char) YDreg;
 	if (YDreg == 26)
 		c = 'D';
@@ -2550,7 +2550,7 @@ static void colon(char *buf)
 			free(reg[Ureg]);	//   free orig line reg- for 'U'
 			reg[Ureg] = NULL;
 		}
-		if (YDreg >= 0 && YDreg < 28) {
+		/*if (YDreg < 28) - always true*/ {
 			free(reg[YDreg]);	//   free default yank/delete register
 			reg[YDreg] = NULL;
 		}
