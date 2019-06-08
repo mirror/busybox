@@ -29,7 +29,17 @@
 //usage:     "\n	--getsize64	Get device size in bytes"
 //usage:     "\n	--flushbufs	Flush buffers"
 //usage:     "\n	--rereadpt	Reread partition table"
-
+// util-linux 2.31 also has:
+//	--getdiscardzeroes	BLKDISCARDZEROES	Get discard zeroes support status
+//	--getpbsz		BLKPBSZGET	Get physical block (sector) size
+//	--getiomin		BLKIOMIN	Get minimum I/O size
+//	--getioopt		BLKIOOPT	Get optimal I/O size
+//	--getalignoff		BLKALIGNOFF	Get alignment offset in bytes
+//	--getmaxsect		BLKSECTGET	Get max sectors per request
+//	--setra SECTORS		BLKRASET	Set readahead
+//	--getra			BLKRAGET	Get readahead
+//	--setfra SECTORS	BLKFRASET	Set filesystem readahead
+//	--getfra		BLKFRAGET	Get filesystem readahead
 
 #include "libbb.h"
 #include <linux/fs.h>
