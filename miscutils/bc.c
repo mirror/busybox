@@ -997,10 +997,12 @@ static ERRORFUNC int bc_error_bad_character(char c)
 		IF_ERROR_RETURN_POSSIBLE(return) bc_error("NUL character");
 	IF_ERROR_RETURN_POSSIBLE(return) bc_error_fmt("bad character '%c'", c);
 }
+#if ENABLE_BC
 static ERRORFUNC int bc_error_bad_function_definition(void)
 {
 	IF_ERROR_RETURN_POSSIBLE(return) bc_error_at("bad function definition");
 }
+#endif
 static ERRORFUNC int bc_error_bad_expression(void)
 {
 	IF_ERROR_RETURN_POSSIBLE(return) bc_error_at("bad expression");
@@ -1273,14 +1275,12 @@ static int bc_map_insert(BcVec *v, const void *ptr, size_t *i)
 	return 1; // "was inserted"
 }
 
-#if ENABLE_BC
 static size_t bc_map_find_exact(const BcVec *v, const void *ptr)
 {
 	size_t i = bc_map_find_ge(v, ptr);
 	if (i >= v->len) return BC_VEC_INVALID_IDX;
 	return bc_id_cmp(ptr, bc_vec_item(v, i)) ? BC_VEC_INVALID_IDX : i;
 }
-#endif
 
 static void bc_num_setToZero(BcNum *n, size_t scale)
 {
