@@ -776,7 +776,15 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		unsigned i = 1;
 		while (argv[i]) {
-			if (strcmp(argv[i], "-c") == 0) {
+			/* Accept not only -c, but also
+			 * -lc, -cl, -llcclcllcc etc:
+			 * "-l Literal mode (do not recognize HOST:FILE)"
+			 * since we do not recognize that syntax anyway,
+			 * might as well allow the option.
+			 */
+			if (argv[i][0] == '-' && strchr(argv[i], 'c')
+			 /*&& argv[i][1+strspn(argv[i]+1, "lc")] == '\0'*/
+			) {
 				if (!argv[++i])
 					break;
 				if (strcmp(argv[i], "get") == 0) {
