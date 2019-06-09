@@ -133,6 +133,7 @@ unsigned FAST_FUNC bb_lookup_port(const char *port, const char *protocol, unsign
 			port_nr = default_port;
 			if (tserv)
 				port_nr = ntohs(tserv->s_port);
+//FIXME: else: port string was garbage, but we don't report that???
 		}
 		errno = old_errno;
 	}
