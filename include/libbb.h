@@ -1461,14 +1461,15 @@ extern void bb_warn_ignoring_args(char *arg) FAST_FUNC;
 
 extern int get_linux_version_code(void) FAST_FUNC;
 
-extern char *query_loop(const char *device) FAST_FUNC;
-extern int del_loop(const char *device) FAST_FUNC;
+char *query_loop(const char *device) FAST_FUNC;
+int get_free_loop(void) FAST_FUNC;
+int del_loop(const char *device) FAST_FUNC;
 /*
  * If *devname is not NULL, use that name, otherwise try to find free one,
  * malloc and return it in *devname.
  * return value is the opened fd to the loop device, or < on error
  */
-extern int set_loop(char **devname, const char *file, unsigned long long offset, unsigned flags) FAST_FUNC;
+int set_loop(char **devname, const char *file, unsigned long long offset, unsigned flags) FAST_FUNC;
 /* These constants match linux/loop.h (without BB_ prefix): */
 #define BB_LO_FLAGS_READ_ONLY 1
 #define BB_LO_FLAGS_AUTOCLEAR 4

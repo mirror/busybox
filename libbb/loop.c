@@ -78,6 +78,24 @@ int FAST_FUNC del_loop(const char *device)
 	return rc;
 }
 
+/* Obtain an unused loop device number */
+int FAST_FUNC get_free_loop(void)
+{
+	int fd;
+	int loopdevno;
+
+	fd = open("/dev/loop-control", O_RDWR | O_CLOEXEC);
+	if (fd == -1)
+		return fd - 1; /* -2: "no /dev/loop-control" */
+
+#ifndef LOOP_CTL_GET_FREE
+# define LOOP_CTL_GET_FREE 0x4C82
+#endif
+	loopdevno = ioctl(fd, LOOP_CTL_GET_FREE);
+	close(fd);
+	return loopdevno; /* can be -1 if error */
+}
+
 /* Returns opened fd to the loop device, <0 on error.
  * *device is loop device to use, or if *device==NULL finds a loop device to
  * mount it on and sets *device to a strdup of that loop device name.  This
@@ -106,12 +124,24 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 		return -errno;
 	}
 
-//TODO: use LOOP_CTL_GET_FREE instead of trying every loopN in sequence? a-la:
-// fd = open("/dev/loop-control", O_RDWR);
-// loopN = ioctl(fd, LOOP_CTL_GET_FREE);
-//
+	try = *device;
+	if (!try) {
+		i = get_free_loop();
+		if (i == -2) { /* no /dev/loop-control */
+			i = 0;
+			try = dev;
+			goto old_style;
+		}
+		if (i == -1) {
+			close(ffd);
+			return -1; /* no free loop devices */
+		}
+		try = *device = xasprintf(LOOP_FORMAT, i);
+		goto try_to_open;
+	}
+
+ old_style:
 	/* Find a loop device.  */
-	try = *device ? *device : dev;
 	/* 1048575 (0xfffff) is a max possible minor number in Linux circa 2010 */
 	for (i = 0; rc && i < 1048576; i++) {
 		sprintf(dev, LOOP_FORMAT, i);
@@ -170,7 +200,7 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 					rc = ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo);
 				}
 				if (rc != 0) {
-					ioctl(dfd, LOOP_CLR_FD, 0);
+					ioctl(dfd, LOOP_CLR_FD, 0); // actually, 0 param is unnecessary
 				}
 			}
 		} else {

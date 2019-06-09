@@ -114,8 +114,14 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 	/* contains -f */
 	if (opt & OPT_f) {
 		char *s;
-		int n = 0;
+		int n;
 
+		n = get_free_loop();
+		if (n == -1)
+			bb_error_msg_and_die("no free loop devices");
+		if (n < 0) /* n == -2: no /dev/loop-control, use legacy method */
+			n = 0;
+		/* or: n >= 0: the number of next free loopdev, just verify it */
 		do {
 			if (n > MAX_LOOP_NUM)
 				bb_error_msg_and_die("no free loop devices");
