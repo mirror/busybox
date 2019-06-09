@@ -888,7 +888,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	peer_lsa->len = our_lsa->len;
 
 	/* Shifting to not collide with TFTP_OPTs */
-	opt = option_mask32 = TFTPD_OPT | (getopt32(argv, "rcu:lm:", &user_opt, NULL) << 8);
+	opt = option_mask32 = TFTPD_OPT | (getopt32(argv, "rcu:l", &user_opt) << 8);
 	argv += optind;
 	if (opt & TFTPD_OPT_l) {
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
