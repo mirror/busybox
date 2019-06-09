@@ -64,34 +64,61 @@ enum {
 };
 
 //FIXME: does not work properly with input containing NULs
+//coreutils 8.30 preserves NULs but treats them as chars of width zero:
+//AB<nul><tab>C will expand <tab> to 6 spaces, not 5.
 
 #if ENABLE_EXPAND
 static void expand(FILE *file, unsigned tab_size, unsigned opt)
 {
-	char *line;
 
-	while ((line = xmalloc_fgets(file)) != NULL) {
-		unsigned char c;
+	for (;;) {
+		char *line;
 		char *ptr;
 		char *ptr_strbeg;
+//commented-out code handles NULs, +90 bytes of code, not tested much
+//		size_t linelen;
+//		unsigned len = 0;
 
+//		linelen = 1024 * 1024;
+//		line = xmalloc_fgets_str_len(file, "\n", &linelen);
+		line = xmalloc_fgets(file); //
+		if (!line)
+			break;
 		ptr = ptr_strbeg = line;
-		while ((c = *ptr) != '\0') {
+		for (;;) {
+			unsigned char c = *ptr;
+			if (c == '\0') {
+//				size_t rem = line + linelen - ptr;
+//				if (rem > 0) {
+//# if ENABLE_UNICODE_SUPPORT
+//					len += unicode_strwidth(ptr_strbeg);
+//# else
+//					len += ptr - ptr_strbeg;
+//# endif
+//					printf("%s%c", ptr_strbeg, '\0');
+//					memmove(ptr, ptr + 1, rem + 1);
+//					ptr_strbeg = ptr;
+//					linelen--;
+//					continue;
+//				}
+				break;
+			}
 			if ((opt & OPT_INITIAL) && !isblank(c)) {
 				/* not space or tab */
 				break;
 			}
 			if (c == '\t') {
-				unsigned len;
+				unsigned len = 0; //
 				*ptr = '\0';
 # if ENABLE_UNICODE_SUPPORT
-				len = unicode_strwidth(ptr_strbeg);
+				len += unicode_strwidth(ptr_strbeg);
 # else
-				len = ptr - ptr_strbeg;
+				len += ptr - ptr_strbeg;
 # endif
 				len = tab_size - (len % tab_size);
 				/*while (ptr[1] == '\t') { ptr++; len += tab_size; } - can handle many tabs at once */
 				printf("%s%*s", ptr_strbeg, len, "");
+//				len = 0;
 				ptr_strbeg = ptr + 1;
 			}
 			ptr++;
