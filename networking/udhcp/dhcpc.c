@@ -449,15 +449,16 @@ static char **fill_envp(struct dhcp_packet *packet)
 
 	memset(found_opts, 0, sizeof(found_opts));
 
-	/* We need 6 elements for:
+	/* We need 7 elements for:
 	 * "interface=IFACE"
 	 * "ip=N.N.N.N" from packet->yiaddr
+	 * "giaddr=IP" from packet->gateway_nip (unless 0)
 	 * "siaddr=IP" from packet->siaddr_nip (unless 0)
 	 * "boot_file=FILE" from packet->file (unless overloaded)
 	 * "sname=SERVER_HOSTNAME" from packet->sname (unless overloaded)
 	 * terminating NULL
 	 */
-	envc = 6;
+	envc = 7;
 	/* +1 element for each option, +2 for subnet option: */
 	if (packet) {
 		/* note: do not search for "pad" (0) and "end" (255) options */
@@ -493,9 +494,7 @@ static char **fill_envp(struct dhcp_packet *packet)
 	 * uint16_t flags;  // only one flag so far: bcast. Never set by server
 	 * uint32_t ciaddr; // client IP (usually == yiaddr. can it be different
 	 *                  // if during renew server wants to give us different IP?)
-	 * uint32_t gateway_nip; // relay agent IP address
 	 * uint8_t chaddr[16]; // link-layer client hardware address (MAC)
-	 * TODO: export gateway_nip as $giaddr?
 	 */
 	/* Most important one: yiaddr as $ip */
 	*curr = xmalloc(sizeof("ip=255.255.255.255"));
@@ -505,6 +504,12 @@ static char **fill_envp(struct dhcp_packet *packet)
 		/* IP address of next server to use in bootstrap */
 		*curr = xmalloc(sizeof("siaddr=255.255.255.255"));
 		sprint_nip(*curr, "siaddr=", (uint8_t *) &packet->siaddr_nip);
+		putenv(*curr++);
+	}
+	if (packet->gateway_nip) {
+		/* IP address of DHCP relay agent to use in bootstrap */
+		*curr = xmalloc(sizeof("giaddr=255.255.255.255"));
+		sprint_nip(*curr, "giaddr=", (uint8_t *) &packet->gateway_nip);
 		putenv(*curr++);
 	}
 	if (!(overload & FILE_FIELD) && packet->file[0]) {
