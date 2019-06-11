@@ -643,7 +643,7 @@ static NOINLINE int send_d6_discover(uint32_t xid, struct in6_addr *requested_ip
 		client6_data.ia_na = xzalloc(len);
 		client6_data.ia_na->code = D6_OPT_IA_NA;
 		client6_data.ia_na->len = len - 4;
-		*(uint32_t*)client6_data.ia_na->data = rand(); /* IAID */
+		*(bb__aliased_uint32_t*)client6_data.ia_na->data = rand(); /* IAID */
 		if (requested_ipv6) {
 			struct d6_option *iaaddr = (void*)(client6_data.ia_na->data + 4+4+4);
 			iaaddr->code = D6_OPT_IAADDR;
@@ -661,7 +661,7 @@ static NOINLINE int send_d6_discover(uint32_t xid, struct in6_addr *requested_ip
 		client6_data.ia_pd = xzalloc(len);
 		client6_data.ia_pd->code = D6_OPT_IA_PD;
 		client6_data.ia_pd->len = len - 4;
-		*(uint32_t*)client6_data.ia_pd->data = rand(); /* IAID */
+		*(bb__aliased_uint32_t*)client6_data.ia_pd->data = rand(); /* IAID */
 		opt_ptr = mempcpy(opt_ptr, client6_data.ia_pd, len);
 	}
 
