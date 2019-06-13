@@ -507,7 +507,7 @@ static char **fill_envp(struct dhcp_packet *packet)
 		putenv(*curr++);
 	}
 	if (packet->gateway_nip) {
-		/* IP address of DHCP relay agent to use in bootstrap */
+		/* IP address of DHCP relay agent */
 		*curr = xmalloc(sizeof("giaddr=255.255.255.255"));
 		sprint_nip(*curr, "giaddr=", (uint8_t *) &packet->gateway_nip);
 		putenv(*curr++);
