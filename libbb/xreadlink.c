@@ -148,10 +148,10 @@ char* FAST_FUNC xmalloc_realpath_coreutils(const char *path)
 				strcpy(buf + len, last_slash);
 			}
 		} else {
-			char *link = xmalloc_readlink(path);
-			if (link) {
+			char *target = xmalloc_readlink(path);
+			if (target) {
 				char *cwd;
-				if (link[0] == '/') {
+				if (target[0] == '/') {
 					/*
 					 * $ ln -s /bin/qwe symlink  # note: /bin is a link to /usr/bin
 					 * $ readlink -f symlink
@@ -159,8 +159,8 @@ char* FAST_FUNC xmalloc_realpath_coreutils(const char *path)
 					 * $ realpath symlink
 					 * /usr/bin/qwe/target_does_not_exist
 					 */
-					buf = xmalloc_realpath_coreutils(link);
-					free(link);
+					buf = xmalloc_realpath_coreutils(target);
+					free(target);
 					return buf;
 				}
 				/*
@@ -171,9 +171,9 @@ char* FAST_FUNC xmalloc_realpath_coreutils(const char *path)
 				 * /CURDIR/target_does_not_exist
 				 */
 				cwd = xrealloc_getcwd_or_warn(NULL);
-				buf = concat_path_file(cwd, link);
+				buf = concat_path_file(cwd, target);
 				free(cwd);
-				free(link);
+				free(target);
 				return buf;
 			}
 		}
