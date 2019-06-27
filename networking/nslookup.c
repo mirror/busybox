@@ -615,9 +615,15 @@ static int send_queries(struct ns *ns)
 					G.query[qn].name, rcodes[rcode]);
 			G.exitcode = EXIT_FAILURE;
 		} else {
-			if (parse_reply(reply, recvlen) < 0) {
+			switch (parse_reply(reply, recvlen)) {
+			case -1:
 				printf("*** Can't find %s: Parse error\n", G.query[qn].name);
 				G.exitcode = EXIT_FAILURE;
+				break;
+
+			case 0:
+				printf("*** Can't find %s: No answer\n", G.query[qn].name);
+				break;
 			}
 		}
 		bb_putchar('\n');
