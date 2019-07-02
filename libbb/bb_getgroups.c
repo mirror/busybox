@@ -38,7 +38,7 @@ gid_t* FAST_FUNC bb_getgroups(int *ngroups, gid_t *group_array)
 			continue;
 		}
 		/* Some other error (should never happen on Linux) */
-		bb_perror_msg_and_die("getgroups");
+		bb_simple_perror_msg_and_die("getgroups");
 	}
 
 	if (ngroups)

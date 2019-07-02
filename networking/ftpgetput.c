@@ -214,7 +214,7 @@ int ftp_receive(const char *local_path, char *server_path)
 		struct stat sbuf;
 		/* lstat would be wrong here! */
 		if (stat(local_path, &sbuf) < 0) {
-			bb_perror_msg_and_die("stat");
+			bb_simple_perror_msg_and_die("stat");
 		}
 		if (sbuf.st_size > 0) {
 			beg_range = sbuf.st_size;

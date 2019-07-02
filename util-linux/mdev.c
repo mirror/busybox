@@ -250,18 +250,24 @@
 
 #if DEBUG_LVL >= 1
 # define dbg1(...) do { if (G.verbose) bb_error_msg(__VA_ARGS__); } while(0)
+# define dbg1s(msg) do { if (G.verbose) bb_simple_error_msg(msg); } while(0)
 #else
 # define dbg1(...) ((void)0)
+# define dbg1s(msg) ((void)0)
 #endif
 #if DEBUG_LVL >= 2
 # define dbg2(...) do { if (G.verbose >= 2) bb_error_msg(__VA_ARGS__); } while(0)
+# define dbg2s(msg) do { if (G.verbose >= 2) bb_simple_error_msg(msg); } while(0)
 #else
 # define dbg2(...) ((void)0)
+# define dbg2s(msg) ((void)0)
 #endif
 #if DEBUG_LVL >= 3
 # define dbg3(...) do { if (G.verbose >= 3) bb_error_msg(__VA_ARGS__); } while(0)
+# define dbg3s(msg) do { if (G.verbose >= 3) bb_simple_error_msg(msg); } while(0)
 #else
 # define dbg3(...) ((void)0)
+# define dbg3s(msg) ((void)0)
 #endif
 
 
@@ -1021,7 +1027,7 @@ wait_for_seqfile(unsigned expected_seq)
 			/* seed file: write out seq ASAP */
 			xwrite_str(seq_fd, utoa(expected_seq));
 			xlseek(seq_fd, 0, SEEK_SET);
-			dbg2("first seq written");
+			dbg2s("first seq written");
 			break;
 		}
 		seqbufnum = atoll(seqbuf);
@@ -1165,7 +1171,7 @@ static void daemon_loop(char *temp, int fd)
 
 		len = safe_read(fd, netbuf, sizeof(netbuf) - 1);
 		if (len < 0) {
-			bb_perror_msg_and_die("read");
+			bb_simple_perror_msg_and_die("read");
 		}
 		end = netbuf + len;
 		*end = '\0';

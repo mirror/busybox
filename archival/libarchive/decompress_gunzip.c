@@ -1012,7 +1012,7 @@ inflate_unzip_internal(STATE_PARAM transformer_state_t *xstate)
 	error_msg = "corrupted data";
 	if (setjmp(error_jmp)) {
 		/* Error from deep inside zip machinery */
-		bb_error_msg(error_msg);
+		bb_simple_error_msg(error_msg);
 		n = -1;
 		goto ret;
 	}
@@ -1085,7 +1085,7 @@ static int top_up(STATE_PARAM unsigned n)
 		bytebuffer_offset = 0;
 		bytebuffer_size = full_read(gunzip_src_fd, &bytebuffer[count], bytebuffer_max - count);
 		if ((int)bytebuffer_size < 0) {
-			bb_error_msg(bb_msg_read_error);
+			bb_simple_error_msg(bb_msg_read_error);
 			return 0;
 		}
 		bytebuffer_size += count;
@@ -1211,7 +1211,7 @@ unpack_gz_stream(transformer_state_t *xstate)
 
 		if (full_read(xstate->src_fd, &magic2, 2) != 2) {
  bad_magic:
-			bb_error_msg("invalid magic");
+			bb_simple_error_msg("invalid magic");
 			return -1;
 		}
 		if (magic2 == COMPRESS_MAGIC) {
@@ -1233,7 +1233,7 @@ unpack_gz_stream(transformer_state_t *xstate)
 
  again:
 	if (!check_header_gzip(PASS_STATE xstate)) {
-		bb_error_msg("corrupted data");
+		bb_simple_error_msg("corrupted data");
 		total = -1;
 		goto ret;
 	}
@@ -1246,7 +1246,7 @@ unpack_gz_stream(transformer_state_t *xstate)
 	total += n;
 
 	if (!top_up(PASS_STATE 8)) {
-		bb_error_msg("corrupted data");
+		bb_simple_error_msg("corrupted data");
 		total = -1;
 		goto ret;
 	}
@@ -1254,7 +1254,7 @@ unpack_gz_stream(transformer_state_t *xstate)
 	/* Validate decompression - crc */
 	v32 = buffer_read_le_u32(PASS_STATE_ONLY);
 	if ((~gunzip_crc) != v32) {
-		bb_error_msg("crc error");
+		bb_simple_error_msg("crc error");
 		total = -1;
 		goto ret;
 	}
@@ -1262,7 +1262,7 @@ unpack_gz_stream(transformer_state_t *xstate)
 	/* Validate decompression - size */
 	v32 = buffer_read_le_u32(PASS_STATE_ONLY);
 	if ((uint32_t)gunzip_bytes_out != v32) {
-		bb_error_msg("incorrect length");
+		bb_simple_error_msg("incorrect length");
 		total = -1;
 	}
 

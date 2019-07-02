@@ -235,7 +235,7 @@ static char *string_option_to_env(const uint8_t *option,
  found:
 	val_len = (option[2] << 8) | option[3];
 	if (val_len + &option[D6_OPT_DATA] > option_end) {
-		bb_error_msg("option data exceeds option length");
+		bb_simple_error_msg("option data exceeds option length");
 		return NULL;
 	}
 	return xasprintf("%s=%.*s", name, val_len, (char*)option + 4);
@@ -848,19 +848,19 @@ static NOINLINE int d6_recv_raw_packet(struct in6_addr *peer_ipv6, struct d6_pac
 
 	bytes = safe_read(fd, &packet, sizeof(packet));
 	if (bytes < 0) {
-		log1("packet read error, ignoring");
+		log1s("packet read error, ignoring");
 		/* NB: possible down interface, etc. Caller should pause. */
 		return bytes; /* returns -1 */
 	}
 
 	if (bytes < (int) (sizeof(packet.ip6) + sizeof(packet.udp))) {
-		log1("packet is too short, ignoring");
+		log1s("packet is too short, ignoring");
 		return -2;
 	}
 
 	if (bytes < sizeof(packet.ip6) + ntohs(packet.ip6.ip6_plen)) {
 		/* packet is bigger than sizeof(packet), we did partial read */
-		log1("oversized packet, ignoring");
+		log1s("oversized packet, ignoring");
 		return -2;
 	}
 
@@ -874,7 +874,7 @@ static NOINLINE int d6_recv_raw_packet(struct in6_addr *peer_ipv6, struct d6_pac
 	/* || bytes > (int) sizeof(packet) - can't happen */
 	 || packet.udp.len != packet.ip6.ip6_plen
 	) {
-		log1("unrelated/bogus packet, ignoring");
+		log1s("unrelated/bogus packet, ignoring");
 		return -2;
 	}
 
@@ -1003,7 +1003,7 @@ static int d6_raw_socket(int ifindex)
 	}
 #endif
 
-	log1("created raw socket");
+	log1s("created raw socket");
 
 	return fd;
 }
@@ -1031,7 +1031,7 @@ static void change_listen_mode(int new_mode)
 /* Called only on SIGUSR1 */
 static void perform_renew(void)
 {
-	bb_info_msg("performing DHCP renew");
+	bb_simple_info_msg("performing DHCP renew");
 	switch (client_data.state) {
 	case BOUND:
 		change_listen_mode(LISTEN_KERNEL);
@@ -1059,10 +1059,10 @@ static void perform_d6_release(struct in6_addr *server_ipv6, struct in6_addr *ou
 	 || client_data.state == REBINDING
 	 || client_data.state == RENEW_REQUESTED
 	) {
-		bb_info_msg("unicasting a release");
+		bb_simple_info_msg("unicasting a release");
 		send_d6_release(server_ipv6, our_cur_ipv6); /* unicast */
 	}
-	bb_info_msg("entering released state");
+	bb_simple_info_msg("entering released state");
 /*
  * We can be here on: SIGUSR2,
  * or on exit (SIGTERM) and -R "release on quit" is specified.
@@ -1275,7 +1275,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	/* Create pidfile */
 	write_pidfile(client_data.pidfile);
 	/* Goes to stdout (unless NOMMU) and possibly syslog */
-	bb_info_msg("started, v"BB_VER);
+	bb_simple_info_msg("started, v"BB_VER);
 
 	client_data.state = INIT_SELECTING;
 	d6_run_script_no_option("deconfig");
@@ -1321,7 +1321,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Else: an error occured, panic! */
-				bb_perror_msg_and_die("poll");
+				bb_simple_perror_msg_and_die("poll");
 			}
 		}
 
@@ -1362,7 +1362,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				d6_run_script_no_option("leasefail");
 #if BB_MMU /* -b is not supported on NOMMU */
 				if (opt & OPT_b) { /* background if no lease */
-					bb_info_msg("no lease, forking to background");
+					bb_simple_info_msg("no lease, forking to background");
 					client_background();
 					/* do not background again! */
 					opt = ((opt & ~(OPT_b|OPT_n)) | OPT_f);
@@ -1375,7 +1375,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				} else
 #endif
 				if (opt & OPT_n) { /* abort if no lease */
-					bb_info_msg("no lease, failing");
+					bb_simple_info_msg("no lease, failing");
 					retval = 1;
 					goto ret;
 				}
@@ -1403,7 +1403,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				client_data.state = RENEWING;
 				client_data.first_secs = 0; /* make secs field count from 0 */
 				change_listen_mode(LISTEN_KERNEL);
-				log1("entering renew state");
+				log1s("entering renew state");
 				/* fall right through */
 			case RENEW_REQUESTED: /* manual (SIGUSR1) renew */
 			case_RENEW_REQUESTED:
@@ -1423,7 +1423,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Timed out, enter rebinding state */
-				log1("entering rebinding state");
+				log1s("entering rebinding state");
 				client_data.state = REBINDING;
 				/* fall right through */
 			case REBINDING:
@@ -1438,7 +1438,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Timed out, enter init state */
-				bb_info_msg("lease lost, entering init state");
+				bb_simple_info_msg("lease lost, entering init state");
 				d6_run_script_no_option("deconfig");
 				client_data.state = INIT_SELECTING;
 				client_data.first_secs = 0; /* make secs field count from 0 */
@@ -1560,7 +1560,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				}
 				option = d6_copy_option(packet.d6_options, packet_end, D6_OPT_SERVERID);
 				if (!option) {
-					bb_info_msg("no server ID, ignoring packet");
+					bb_simple_info_msg("no server ID, ignoring packet");
 					continue;
 					/* still selecting - this server looks bad */
 				}

@@ -2600,7 +2600,7 @@ static void new_get_kernel_symbols(void)
 			module_names = xrealloc(module_names, bufsize);
 			goto retry_modules_load;
 		}
-		bb_perror_msg_and_die("QM_MODULES");
+		bb_simple_perror_msg_and_die("QM_MODULES");
 	}
 
 	n_ext_modules = nmod = ret;
@@ -2661,7 +2661,7 @@ static void new_get_kernel_symbols(void)
 			syms = xrealloc(syms, bufsize);
 			goto retry_kern_sym_load;
 		}
-		bb_perror_msg_and_die("kernel: QM_SYMBOLS");
+		bb_simple_perror_msg_and_die("kernel: QM_SYMBOLS");
 	}
 	nksyms = nsyms = ret;
 	ksyms = syms;
@@ -3247,21 +3247,21 @@ static struct obj_file *obj_load(char *image, size_t image_size, int loadprogbit
 	f->load_order_search_start = &f->load_order;
 
 	if (image_size < sizeof(f->header))
-		bb_error_msg_and_die("error while loading ELF header");
+		bb_simple_error_msg_and_die("error while loading ELF header");
 	memcpy(&f->header, image, sizeof(f->header));
 
 	if (*(aliased_uint32_t*)(&f->header.e_ident) != ELFMAG_U32) {
-		bb_error_msg_and_die("not an ELF file");
+		bb_simple_error_msg_and_die("not an ELF file");
 	}
 	if (f->header.e_ident[EI_CLASS] != ELFCLASSM
 	 || f->header.e_ident[EI_DATA] != (BB_BIG_ENDIAN ? ELFDATA2MSB : ELFDATA2LSB)
 	 || f->header.e_ident[EI_VERSION] != EV_CURRENT
 	 || !MATCH_MACHINE(f->header.e_machine)
 	) {
-		bb_error_msg_and_die("ELF file not for this architecture");
+		bb_simple_error_msg_and_die("ELF file not for this architecture");
 	}
 	if (f->header.e_type != ET_REL) {
-		bb_error_msg_and_die("ELF file not a relocatable object");
+		bb_simple_error_msg_and_die("ELF file not a relocatable object");
 	}
 
 	/* Read the section headers.  */
@@ -3280,7 +3280,7 @@ static struct obj_file *obj_load(char *image, size_t image_size, int loadprogbit
 
 	section_headers = alloca(sizeof(ElfW(Shdr)) * shnum);
 	if (image_size < f->header.e_shoff + sizeof(ElfW(Shdr)) * shnum)
-		bb_error_msg_and_die("error while loading section headers");
+		bb_simple_error_msg_and_die("error while loading section headers");
 	memcpy(section_headers, image + f->header.e_shoff, sizeof(ElfW(Shdr)) * shnum);
 
 	/* Read the section data.  */
@@ -3317,16 +3317,16 @@ static struct obj_file *obj_load(char *image, size_t image_size, int loadprogbit
 				if (sec->header.sh_size > 0) {
 					sec->contents = xmalloc(sec->header.sh_size);
 					if (image_size < (sec->header.sh_offset + sec->header.sh_size))
-						bb_error_msg_and_die("error while loading section data");
+						bb_simple_error_msg_and_die("error while loading section data");
 					memcpy(sec->contents, image + sec->header.sh_offset, sec->header.sh_size);
 				}
 				break;
 #if SHT_RELM == SHT_REL
 			case SHT_RELA:
-				bb_error_msg_and_die("RELA relocations not supported on this architecture");
+				bb_simple_error_msg_and_die("RELA relocations not supported on this architecture");
 #else
 			case SHT_REL:
-				bb_error_msg_and_die("REL relocations not supported on this architecture");
+				bb_simple_error_msg_and_die("REL relocations not supported on this architecture");
 #endif
 			default:
 				if (sec->header.sh_type >= SHT_LOPROC) {
@@ -3447,7 +3447,7 @@ static int obj_load_progbits(char *image, size_t image_size, struct obj_file *f,
 			continue;
 		sec->contents = imagebase + (sec->header.sh_addr - base);
 		if (image_size < (sec->header.sh_offset + sec->header.sh_size)) {
-			bb_error_msg("error reading ELF section data");
+			bb_simple_error_msg("error reading ELF section data");
 			return 0; /* need to delete half-loaded module! */
 		}
 		memcpy(sec->contents, image + sec->header.sh_offset, sec->header.sh_size);
@@ -3845,7 +3845,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 		if (m_has_modinfo) {
 			int m_version = new_get_module_version(f, m_strversion);
 			if (m_version == -1) {
-				bb_error_msg_and_die("can't find the kernel version "
+				bb_simple_error_msg_and_die("can't find the kernel version "
 					"the module was compiled for");
 			}
 		}
@@ -3864,7 +3864,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 #endif
 
 	if (query_module(NULL, 0, NULL, 0, NULL))
-		bb_error_msg_and_die("old (unsupported) kernel");
+		bb_simple_error_msg_and_die("old (unsupported) kernel");
 	new_get_kernel_symbols();
 	k_crcs = new_is_kernel_checksummed();
 

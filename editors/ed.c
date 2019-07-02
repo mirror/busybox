@@ -165,7 +165,7 @@ static NOINLINE int searchLines(const char *str, int num1, int num2)
 
 	if (*str == '\0') {
 		if (searchString[0] == '\0') {
-			bb_error_msg("no previous search string");
+			bb_simple_error_msg("no previous search string");
 			return 0;
 		}
 		str = searchString;
@@ -228,7 +228,7 @@ static const char* getNum(const char *cp, smallint *retHaveNum, int *retNum)
 			case '\'':
 				cp++;
 				if ((unsigned)(*cp - 'a') >= 26) {
-					bb_error_msg("bad mark name");
+					bb_simple_error_msg("bad mark name");
 					return NULL;
 				}
 				haveNum = TRUE;
@@ -314,7 +314,7 @@ static int insertLine(int num, const char *data, int len)
 	LINE *newLp, *lp;
 
 	if ((num < 1) || (num > lastNum + 1)) {
-		bb_error_msg("inserting at bad line number");
+		bb_simple_error_msg("inserting at bad line number");
 		return FALSE;
 	}
 
@@ -384,7 +384,7 @@ static int readLines(const char *file, int num)
 	char *cp;
 
 	if ((num < 1) || (num > lastNum + 1)) {
-		bb_error_msg("bad line for read");
+		bb_simple_error_msg("bad line for read");
 		return FALSE;
 	}
 
@@ -629,7 +629,7 @@ static void subCommand(const char *cmd, int num1, int num2)
 	cp = buf;
 
 	if (isblank(*cp) || (*cp == '\0')) {
-		bb_error_msg("bad delimiter for substitute");
+		bb_simple_error_msg("bad delimiter for substitute");
 		return;
 	}
 
@@ -638,7 +638,7 @@ static void subCommand(const char *cmd, int num1, int num2)
 
 	cp = strchr(cp, delim);
 	if (cp == NULL) {
-		bb_error_msg("missing 2nd delimiter for substitute");
+		bb_simple_error_msg("missing 2nd delimiter for substitute");
 		return;
 	}
 
@@ -660,13 +660,13 @@ static void subCommand(const char *cmd, int num1, int num2)
 			printFlag = TRUE;
 			break;
 		default:
-			bb_error_msg("unknown option for substitute");
+			bb_simple_error_msg("unknown option for substitute");
 			return;
 	}
 
 	if (*oldStr == '\0') {
 		if (searchString[0] == '\0') {
-			bb_error_msg("no previous search string");
+			bb_simple_error_msg("no previous search string");
 			return;
 		}
 		oldStr = searchString;
@@ -846,7 +846,7 @@ static void doCommands(void)
 
 		case 'f':
 			if (*cp != '\0' && *cp != ' ') {
-				bb_error_msg("bad file command");
+				bb_simple_error_msg("bad file command");
 				break;
 			}
 			cp = skip_whitespace(cp);
@@ -870,7 +870,7 @@ static void doCommands(void)
 		case 'k':
 			cp = skip_whitespace(cp);
 			if ((unsigned)(*cp - 'a') >= 26 || cp[1]) {
-				bb_error_msg("bad mark name");
+				bb_simple_error_msg("bad mark name");
 				break;
 			}
 			marks[(unsigned)(*cp - 'a')] = num2;
@@ -887,7 +887,7 @@ static void doCommands(void)
 		case 'q':
 			cp = skip_whitespace(cp);
 			if (have1 || *cp) {
-				bb_error_msg("bad quit command");
+				bb_simple_error_msg("bad quit command");
 				break;
 			}
 			if (!dirty)
@@ -903,12 +903,12 @@ static void doCommands(void)
 
 		case 'r':
 			if (*cp != '\0' && *cp != ' ') {
-				bb_error_msg("bad read command");
+				bb_simple_error_msg("bad read command");
 				break;
 			}
 			cp = skip_whitespace(cp);
 			if (*cp == '\0') {
-				bb_error_msg("no file name");
+				bb_simple_error_msg("no file name");
 				break;
 			}
 			if (!have1)
@@ -925,14 +925,14 @@ static void doCommands(void)
 
 		case 'w':
 			if (*cp != '\0' && *cp != ' ') {
-				bb_error_msg("bad write command");
+				bb_simple_error_msg("bad write command");
 				break;
 			}
 			cp = skip_whitespace(cp);
 			if (*cp == '\0') {
 				cp = fileName;
 				if (!cp) {
-					bb_error_msg("no file name specified");
+					bb_simple_error_msg("no file name specified");
 					break;
 				}
 			}
@@ -960,7 +960,7 @@ static void doCommands(void)
 
 		case '.':
 			if (have1) {
-				bb_error_msg("no arguments allowed");
+				bb_simple_error_msg("no arguments allowed");
 				break;
 			}
 			printLines(curNum, curNum, FALSE);
@@ -984,7 +984,7 @@ static void doCommands(void)
 			break;
 
 		default:
-			bb_error_msg("unimplemented command");
+			bb_simple_error_msg("unimplemented command");
 			break;
 		}
 	}

@@ -582,11 +582,11 @@ static void send_packet_to_client(struct dhcp_packet *dhcp_pkt, int force_broadc
 	 || (dhcp_pkt->flags & htons(BROADCAST_FLAG))
 	 || dhcp_pkt->ciaddr == 0
 	) {
-		log1("broadcasting packet to client");
+		log1s("broadcasting packet to client");
 		ciaddr = INADDR_BROADCAST;
 		chaddr = MAC_BCAST_ADDR;
 	} else {
-		log1("unicasting packet to client ciaddr");
+		log1s("unicasting packet to client ciaddr");
 		ciaddr = dhcp_pkt->ciaddr;
 		chaddr = dhcp_pkt->chaddr;
 	}
@@ -600,7 +600,7 @@ static void send_packet_to_client(struct dhcp_packet *dhcp_pkt, int force_broadc
 /* Send a packet to gateway_nip using the kernel ip stack */
 static void send_packet_to_relay(struct dhcp_packet *dhcp_pkt)
 {
-	log1("forwarding packet to relay");
+	log1s("forwarding packet to relay");
 
 	udhcp_send_kernel_packet(dhcp_pkt,
 			server_data.server_nip, SERVER_PORT,
@@ -754,7 +754,7 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 		}
 
 		if (!packet.yiaddr) {
-			bb_error_msg("no free IP addresses. OFFER abandoned");
+			bb_simple_error_msg("no free IP addresses. OFFER abandoned");
 			return;
 		}
 		/* Reserve the IP for a short time hoping to get DHCPREQUEST soon */
@@ -765,7 +765,7 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 				p_host_name ? (unsigned char)p_host_name[OPT_LEN - OPT_DATA] : 0
 		);
 		if (!lease) {
-			bb_error_msg("no free IP addresses. OFFER abandoned");
+			bb_simple_error_msg("no free IP addresses. OFFER abandoned");
 			return;
 		}
 	}
@@ -914,7 +914,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	write_pidfile(server_data.pidfile);
 	/* if (!..) bb_perror_msg("can't create pidfile %s", pidfile); */
 
-	bb_info_msg("started, v"BB_VER);
+	bb_simple_info_msg("started, v"BB_VER);
 
 	option = udhcp_find_option(server_data.options, DHCP_LEASE_TIME);
 	server_data.max_lease_sec = DEFAULT_LEASE_TIME;
@@ -985,7 +985,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			if (errno == EINTR)
 				goto new_tv;
 			/* < 0 and not EINTR: should not happen */
-			bb_perror_msg_and_die("poll");
+			bb_simple_perror_msg_and_die("poll");
 		}
 
 		if (pfds[0].revents) switch (udhcp_sp_read()) {
@@ -1019,16 +1019,16 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 		if (packet.hlen != 6) {
-			bb_info_msg("MAC length != 6, ignoring packet");
+			bb_info_msg("MAC length != 6%s", ", ignoring packet");
 			continue;
 		}
 		if (packet.op != BOOTREQUEST) {
-			bb_info_msg("not a REQUEST, ignoring packet");
+			bb_info_msg("not a REQUEST%s", ", ignoring packet");
 			continue;
 		}
 		state = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
 		if (state == NULL || state[0] < DHCP_MINTYPE || state[0] > DHCP_MAXTYPE) {
-			bb_info_msg("no or bad message type option, ignoring packet");
+			bb_info_msg("no or bad message type option%s", ", ignoring packet");
 			continue;
 		}
 
@@ -1039,7 +1039,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			move_from_unaligned32(server_id_network_order, server_id_opt);
 			if (server_id_network_order != server_data.server_nip) {
 				/* client talks to somebody else */
-				log1("server ID doesn't match, ignoring");
+				log1("server ID doesn't match%s", ", ignoring");
 				continue;
 			}
 		}
@@ -1162,7 +1162,7 @@ o DHCPREQUEST generated during REBINDING state:
 			if (!requested_ip_opt) {
 				requested_nip = packet.ciaddr;
 				if (requested_nip == 0) {
-					log1("no requested IP and no ciaddr, ignoring");
+					log1("no requested IP and no ciaddr%s", ", ignoring");
 					break;
 				}
 			}

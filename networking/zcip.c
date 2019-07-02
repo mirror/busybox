@@ -276,7 +276,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 		if (inet_aton(l_opt, &net) == 0
 		 || (net.s_addr & htonl(IN_CLASSB_NET)) != net.s_addr
 		) {
-			bb_error_msg_and_die("invalid network address");
+			bb_simple_error_msg_and_die("invalid network address");
 		}
 		G.localnet_ip = ntohl(net.s_addr);
 	}
@@ -285,7 +285,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 		if (inet_aton(r_opt, &ip) == 0
 		 || (ntohl(ip.s_addr) & IN_CLASSB_NET) != G.localnet_ip
 		) {
-			bb_error_msg_and_die("invalid link address");
+			bb_simple_error_msg_and_die("invalid link address");
 		}
 		chosen_nip = ip.s_addr;
 	}
@@ -473,7 +473,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 
 		// Read ARP packet
 		if (safe_read(sock_fd, &p, sizeof(p)) < 0) {
-			bb_perror_msg_and_die(bb_msg_read_error);
+			bb_simple_perror_msg_and_die(bb_msg_read_error);
 		}
 
 		if (p.eth.ether_type != htons(ETHERTYPE_ARP))

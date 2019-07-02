@@ -1398,7 +1398,7 @@ static void syntax_error(unsigned lineno UNUSED_PARAM, const char *msg)
 	if (msg)
 		bb_error_msg("syntax error: %s", msg);
 	else
-		bb_error_msg("syntax error");
+		bb_simple_error_msg("syntax error");
 	die_if_script();
 }
 
@@ -1637,7 +1637,7 @@ static int refill_HFILE_and_getc(HFILE *fp)
 	fp->cur = fp->buf;
 	n = safe_read(fp->fd, fp->buf, sizeof(fp->buf));
 	if (n < 0) {
-		bb_perror_msg("read error");
+		bb_simple_perror_msg("read error");
 		n = 0;
 	}
 	fp->end = fp->buf + n;
@@ -2282,7 +2282,7 @@ static int set_local_var(char *str, unsigned flags)
 
 	eq_sign = strchr(str, '=');
 	if (HUSH_DEBUG && !eq_sign)
-		bb_error_msg_and_die("BUG in setvar");
+		bb_simple_error_msg_and_die("BUG in setvar");
 
 	name_len = eq_sign - str + 1; /* including '=' */
 	cur_pp = &G.top_var;
@@ -2505,7 +2505,7 @@ static void set_vars_and_save_old(char **strings)
 
 		eq = strchr(*s, '=');
 		if (HUSH_DEBUG && !eq)
-			bb_error_msg_and_die("BUG in varexp4");
+			bb_simple_error_msg_and_die("BUG in varexp4");
 		var_pp = get_ptr_to_local_var(*s, eq - *s);
 		if (var_pp) {
 			var_p = *var_pp;
@@ -4246,7 +4246,7 @@ static int parse_redir_right_fd(o_string *as_string, struct in_str *input)
 
 //TODO: this is the place to catch ">&file" bashism (redirect both fd 1 and 2)
 
-	bb_error_msg("ambiguous redirect");
+	bb_simple_error_msg("ambiguous redirect");
 	return REDIRFD_SYNTAX_ERR;
 }
 
@@ -6956,7 +6956,7 @@ static char *expand_string_to_string(const char *str, int EXP_flags, int do_unba
 	} else {
 		if (HUSH_DEBUG)
 			if (list[1])
-				bb_error_msg_and_die("BUG in varexp2");
+				bb_simple_error_msg_and_die("BUG in varexp2");
 		/* actually, just move string 2*sizeof(char*) bytes back */
 		overlapping_strcpy((char*)list, list[0]);
 		if (do_unbackslash)
@@ -7217,7 +7217,7 @@ static void re_execute_shell(char ***to_free, const char *s,
 	if (argv[0][0] == '/')
 		execve(argv[0], argv, pp);
 	xfunc_error_retval = 127;
-	bb_error_msg_and_die("can't re-execute the shell");
+	bb_simple_error_msg_and_die("can't re-execute the shell");
 }
 #endif  /* !BB_MMU */
 
@@ -7919,7 +7919,7 @@ static void leave_var_nest_level(void)
 	G.var_nest_level--;
 	debug_printf_env("var_nest_level-- %u\n", G.var_nest_level);
 	if (HUSH_DEBUG && (int)G.var_nest_level < 0)
-		bb_error_msg_and_die("BUG: nesting underflow");
+		bb_simple_error_msg_and_die("BUG: nesting underflow");
 
 	remove_nested_vars();
 }
@@ -8776,7 +8776,7 @@ static int checkjobs(struct pipe *fg_pipe, pid_t waitfor_pid)
 		childpid = waitpid(-1, &status, attributes);
 		if (childpid <= 0) {
 			if (childpid && errno != ECHILD)
-				bb_perror_msg("waitpid");
+				bb_simple_perror_msg("waitpid");
 #if ENABLE_HUSH_FAST
 			else { /* Until next SIGCHLD, waitpid's are useless */
 				G.we_have_children = (childpid == 0);
@@ -9308,7 +9308,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		argv_expanded = NULL;
 		if (command->pid < 0) { /* [v]fork failed */
 			/* Clearly indicate, was it fork or vfork */
-			bb_perror_msg(BB_MMU ? "vfork"+1 : "vfork");
+			bb_simple_perror_msg(BB_MMU ? "vfork"+1 : "vfork");
 		} else {
 			pi->alive_cmds++;
 #if ENABLE_HUSH_JOB
@@ -10617,7 +10617,7 @@ static int FAST_FUNC builtin_read(char **argv)
 	}
 
 	if ((uintptr_t)r > 1) {
-		bb_error_msg("%s", r);
+		bb_simple_error_msg(r);
 		r = (char*)(uintptr_t)1;
 	}
 
@@ -10862,7 +10862,7 @@ static int FAST_FUNC builtin_unset(char **argv)
 	if (opts == (unsigned)-1)
 		return EXIT_FAILURE;
 	if (opts == 3) {
-		bb_error_msg("unset: -v and -f are exclusive");
+		bb_simple_error_msg("unset: -v and -f are exclusive");
 		return EXIT_FAILURE;
 	}
 	argv += optind;
@@ -11025,7 +11025,7 @@ Test that VAR is a valid variable name?
 
 	optstring = *++argv;
 	if (!optstring || !(var = *++argv)) {
-		bb_error_msg("usage: getopts OPTSTRING VAR [ARGS]");
+		bb_simple_error_msg("usage: getopts OPTSTRING VAR [ARGS]");
 		return EXIT_FAILURE;
 	}
 
@@ -11254,7 +11254,7 @@ static int FAST_FUNC builtin_trap(char **argv)
 	}
 
 	if (!argv[1]) { /* no second arg */
-		bb_error_msg("trap: invalid arguments");
+		bb_simple_error_msg("trap: invalid arguments");
 		return EXIT_FAILURE;
 	}
 
@@ -11295,7 +11295,7 @@ static struct pipe *parse_jobspec(const char *str)
 		/* It is "%%", "%+" or "%" - current job */
 		jobnum = G.last_jobid;
 		if (jobnum == 0) {
-			bb_error_msg("no current job");
+			bb_simple_error_msg("no current job");
 			return NULL;
 		}
 	}
@@ -11372,7 +11372,7 @@ static int FAST_FUNC builtin_fg_bg(char **argv)
 			delete_finished_job(pi);
 			return EXIT_SUCCESS;
 		}
-		bb_perror_msg("kill (SIGCONT)");
+		bb_simple_perror_msg("kill (SIGCONT)");
 	}
 
 	if (argv[0][0] == 'f') {

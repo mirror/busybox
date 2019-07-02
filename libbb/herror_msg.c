@@ -26,3 +26,13 @@ void FAST_FUNC bb_herror_msg_and_die(const char *s, ...)
 	va_end(p);
 	xfunc_die();
 }
+
+void FAST_FUNC bb_simple_herror_msg(const char *s)
+{
+	bb_herror_msg("%s", s);
+}
+
+void FAST_FUNC bb_simple_herror_msg_and_die(const char *s)
+{
+	bb_herror_msg_and_die("%s", s);
+}

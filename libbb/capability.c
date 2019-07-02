@@ -119,7 +119,7 @@ void FAST_FUNC getcaps(void *arg)
 			caps->u32s = _LINUX_CAPABILITY_U32S_3;
 			break;
 		default:
-			bb_error_msg_and_die("unsupported capability version");
+			bb_simple_error_msg_and_die("unsupported capability version");
 	}
 
 	if (capget(&caps->header, caps->data) != 0)

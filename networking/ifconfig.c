@@ -361,7 +361,7 @@ int ifconfig_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_IFCONFIG_STATUS
 		return display_interfaces(argv[0] ? argv[0] : show_all_param);
 #else
-		bb_error_msg_and_die("no support for status display");
+		bb_simple_error_msg_and_die("no support for status display");
 #endif
 	}
 

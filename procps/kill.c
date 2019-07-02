@@ -268,7 +268,7 @@ int kill_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_KILL || ENABLE_KILLALL
 	/* Pid or name is required for kill/killall */
 	if (!arg) {
-		bb_error_msg("you need to specify whom to kill");
+		bb_simple_error_msg("you need to specify whom to kill");
 		return EXIT_FAILURE;
 	}
 

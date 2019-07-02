@@ -931,7 +931,7 @@ int mpstat_main(int argc UNUSED_PARAM, char **argv)
 				/* Get CPU number */
 				unsigned n = xatoi_positive(t);
 				if (n >= G.cpu_nr)
-					bb_error_msg_and_die("not that many processors");
+					bb_simple_error_msg_and_die("not that many processors");
 				n++;
 				G.cpu_bitmap[n >> 3] |= 1 << (n & 7);
 			}

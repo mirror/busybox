@@ -114,7 +114,7 @@ int FAST_FUNC bbunpack(char **argv,
 
 		/* Check that the input is sane */
 		if (!(option_mask32 & BBUNPK_OPT_FORCE) && isatty(STDIN_FILENO)) {
-			bb_error_msg_and_die("compressed data not read from terminal, "
+			bb_simple_error_msg_and_die("compressed data not read from terminal, "
 					"use -f to force it");
 		}
 

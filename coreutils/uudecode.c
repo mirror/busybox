@@ -82,7 +82,7 @@ static void FAST_FUNC read_stduu(FILE *src_stream, FILE *dst_stream, int flags U
 			continue;
 		}
 		if (encoded_len > 60) {
-			bb_error_msg_and_die("line too long");
+			bb_simple_error_msg_and_die("line too long");
 		}
 
 		dst = line;
@@ -108,7 +108,7 @@ static void FAST_FUNC read_stduu(FILE *src_stream, FILE *dst_stream, int flags U
 		fwrite(line, 1, dst - line, dst_stream);
 		free(line);
 	}
-	bb_error_msg_and_die("short file");
+	bb_simple_error_msg_and_die("short file");
 }
 #endif
 
@@ -166,7 +166,7 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 		/* fclose_if_not_stdin(src_stream); - redundant */
 		return EXIT_SUCCESS;
 	}
-	bb_error_msg_and_die("no 'begin' line");
+	bb_simple_error_msg_and_die("no 'begin' line");
 }
 #endif
 
@@ -216,7 +216,7 @@ int base64_main(int argc UNUSED_PARAM, char **argv)
 			if (!size)
 				break;
 			if ((ssize_t)size < 0)
-				bb_perror_msg_and_die(bb_msg_read_error);
+				bb_simple_perror_msg_and_die(bb_msg_read_error);
 			/* Encode the buffer we just read in */
 			bb_uuencode(dst_buf, src_buf, size, bb_uuenc_tbl_base64);
 			xwrite(STDOUT_FILENO, dst_buf, 4 * ((size + 2) / 3));

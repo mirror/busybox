@@ -85,14 +85,14 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 	memset(packet, 0, sizeof(*packet));
 	bytes = safe_read(fd, packet, sizeof(*packet));
 	if (bytes < 0) {
-		log1("packet read error, ignoring");
+		log1s("packet read error, ignoring");
 		return bytes; /* returns -1 */
 	}
 
 	if (bytes < offsetof(struct dhcp_packet, options)
 	 || packet->cookie != htonl(DHCP_MAGIC)
 	) {
-		bb_info_msg("packet with bad magic, ignoring");
+		bb_simple_info_msg("packet with bad magic, ignoring");
 		return -2;
 	}
 	log1("received %s", "a packet");

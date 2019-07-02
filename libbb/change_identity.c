@@ -51,7 +51,7 @@ void FAST_FUNC change_identity(const struct passwd *pw)
 			return;
 		}
 
-		bb_perror_msg_and_die("can't set groups");
+		bb_simple_perror_msg_and_die("can't set groups");
 	}
 
 	xsetgid(pw->pw_gid);

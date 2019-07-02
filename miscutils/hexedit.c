@@ -193,7 +193,7 @@ static int remap(unsigned cur_pos)
 	);
 	if (G.baseaddr == MAP_FAILED) {
 		restore_term();
-		bb_perror_msg_and_die("mmap");
+		bb_simple_perror_msg_and_die("mmap");
 	}
 
 	G.current_byte = G.baseaddr + cur_pos;

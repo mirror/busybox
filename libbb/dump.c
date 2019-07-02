@@ -199,7 +199,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 				pr->bcnt = fu->bcnt;
 				if (fu->bcnt == 0) {
 					if (!prec)
-						bb_error_msg_and_die("%%s needs precision or byte count");
+						bb_simple_error_msg_and_die("%%s needs precision or byte count");
 					pr->bcnt = atoi(prec);
 				}
 			} else
@@ -266,7 +266,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 
 			/* only one conversion character if byte count */
 			if (!(pr->flags & F_ADDRESS) && fu->bcnt && nconv++) {
-				bb_error_msg_and_die("byte count with multiple conversion characters");
+				bb_simple_error_msg_and_die("byte count with multiple conversion characters");
 			}
 		}
 		/*

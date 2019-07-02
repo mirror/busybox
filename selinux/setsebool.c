@@ -46,7 +46,7 @@ int setsebool_main(int argc, char **argv)
 	}
 
 	if (security_set_boolean(argv[1], value) < 0)
-		bb_error_msg_and_die("can't set boolean");
+		bb_simple_error_msg_and_die("can't set boolean");
 
 	return 0;
 }

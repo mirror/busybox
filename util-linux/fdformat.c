@@ -117,7 +117,7 @@ int fdformat_main(int argc UNUSED_PARAM, char **argv)
 			read_bytes = safe_read(fd, data, n);
 			if (read_bytes != n) {
 				if (read_bytes < 0) {
-					bb_perror_msg(bb_msg_read_error);
+					bb_simple_perror_msg(bb_msg_read_error);
 				}
 				bb_error_msg_and_die("problem reading cylinder %d, "
 					"expected %d, read %d", cyl, n, read_bytes);

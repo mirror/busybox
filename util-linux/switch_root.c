@@ -117,7 +117,7 @@ static void drop_capset(int cap_idx)
 	getcaps(&caps);
 	caps.data[CAP_TO_INDEX(cap_idx)].inheritable &= ~CAP_TO_MASK(cap_idx);
 	if (capset(&caps.header, caps.data) != 0)
-		bb_perror_msg_and_die("capset");
+		bb_simple_perror_msg_and_die("capset");
 }
 
 static void drop_bounding_set(int cap_idx)
@@ -253,7 +253,7 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 	if ((unsigned)stfs.f_type != RAMFS_MAGIC
 	 && (unsigned)stfs.f_type != TMPFS_MAGIC
 	) {
-		bb_error_msg_and_die("root filesystem is not ramfs/tmpfs");
+		bb_simple_error_msg_and_die("root filesystem is not ramfs/tmpfs");
 	}
 
 	if (!dry_run) {
@@ -263,7 +263,7 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 		// Overmount / with newdir and chroot into it
 		if (mount(".", "/", NULL, MS_MOVE, NULL)) {
 			// For example, fails when newroot is not a mountpoint
-			bb_perror_msg_and_die("error moving root");
+			bb_simple_perror_msg_and_die("error moving root");
 		}
 	}
 	xchroot(".");

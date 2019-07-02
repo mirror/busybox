@@ -543,7 +543,7 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (bb_copyfd_eof(rpm_fd, STDOUT_FILENO) < 0)
-		bb_error_msg_and_die("error unpacking");
+		bb_simple_error_msg_and_die("error unpacking");
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		close(rpm_fd);

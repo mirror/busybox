@@ -495,7 +495,7 @@ make_new_session(
 		free(ts);
 		close(fd);
 		/* sock will be closed by caller */
-		bb_perror_msg("vfork");
+		bb_simple_perror_msg("vfork");
 		return NULL;
 	}
 	if (pid > 0) {

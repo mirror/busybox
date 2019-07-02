@@ -1042,7 +1042,7 @@ static int readit(void) // read (maybe cursor) key from stdin
 			goto again;
 		go_bottom_and_clear_to_eol();
 		cookmode(); // terminal to "cooked"
-		bb_error_msg_and_die("can't read user input");
+		bb_simple_error_msg_and_die("can't read user input");
 	}
 	return c;
 }

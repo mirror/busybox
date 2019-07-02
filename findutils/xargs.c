@@ -665,7 +665,7 @@ int xargs_main(int argc UNUSED_PARAM, char **argv)
 	}
 	/* Sanity check */
 	if (n_max_chars <= 0) {
-		bb_error_msg_and_die("can't fit single argument within argument list size limit");
+		bb_simple_error_msg_and_die("can't fit single argument within argument list size limit");
 	}
 
 	buf = xzalloc(n_max_chars + 1);
@@ -716,7 +716,7 @@ int xargs_main(int argc UNUSED_PARAM, char **argv)
 
 		if (!G.args[initial_idx]) { /* not even one ARG was added? */
 			if (*rem != '\0')
-				bb_error_msg_and_die("argument line too long");
+				bb_simple_error_msg_and_die("argument line too long");
 			if (opt & OPT_NO_EMPTY)
 				break;
 		}

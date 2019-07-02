@@ -62,7 +62,7 @@ int FAST_FUNC get_console_fd_or_die(void)
 		}
 	}
 
-	bb_error_msg_and_die("can't open console");
+	bb_simple_error_msg_and_die("can't open console");
 }
 
 /* From <linux/vt.h> */

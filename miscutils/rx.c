@@ -120,7 +120,7 @@ static int receive(/*int read_fd, */int file_fd)
 		/* Write previously received block */
 		errno = 0;
 		if (full_write(file_fd, blockBuf, blockLength) != blockLength) {
-			bb_perror_msg(bb_msg_write_error);
+			bb_simple_perror_msg(bb_msg_write_error);
 			goto fatal;
 		}
 
@@ -150,7 +150,7 @@ static int receive(/*int read_fd, */int file_fd)
 			goto timeout;
 
 		if (blockNo != (255 - blockNoOnesCompl)) {
-			bb_error_msg("bad block ones compl");
+			bb_simple_error_msg("bad block ones compl");
 			goto error;
 		}
 
@@ -229,7 +229,7 @@ static int receive(/*int read_fd, */int file_fd)
 				do_crc = 0;
 				goto timeout;
 			}
-			bb_error_msg("too many errors; giving up");
+			bb_simple_error_msg("too many errors; giving up");
  fatal:
 			/* 5 CAN followed by 5 BS. Don't try too hard... */
 			safe_write(write_fd, "\030\030\030\030\030\010\010\010\010\010", 10);

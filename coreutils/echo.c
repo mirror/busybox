@@ -188,7 +188,7 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 	/*r =*/ full_write(STDOUT_FILENO, buffer, out - buffer);
 	free(buffer);
 	if (/*WRONG:r < 0*/ errno) {
-		bb_perror_msg(bb_msg_write_error);
+		bb_simple_perror_msg(bb_msg_write_error);
 		return 1;
 	}
 	return 0;

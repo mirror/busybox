@@ -893,7 +893,7 @@ static void fflush_and_check(void)
 {
 	fflush_all();
 	if (ferror(stdout) || ferror(stderr))
-		bb_perror_msg_and_die("output error");
+		bb_simple_perror_msg_and_die("output error");
 }
 
 #if ENABLE_FEATURE_CLEAN_UP
@@ -908,7 +908,7 @@ static void quit(void) NORETURN;
 static void quit(void)
 {
 	if (ferror(stdin))
-		bb_perror_msg_and_die("input error");
+		bb_simple_perror_msg_and_die("input error");
 	fflush_and_check();
 	dbg_exec("quit(): exiting with exitcode SUCCESS");
 	exit(0);
@@ -2576,7 +2576,7 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 				goto get_char;
 			if (c == EOF) {
 				if (ferror(fp))
-					bb_perror_msg_and_die("input error");
+					bb_simple_perror_msg_and_die("input error");
 				// Note: EOF does not append '\n'
 				break;
 			}
@@ -6925,9 +6925,9 @@ static BC_STATUS zxc_vm_process(const char *text)
 		ip = (void*)G.prog.exestack.v;
 #if SANITY_CHECKS
 		if (G.prog.exestack.len != 1) // should have only main's IP
-			bb_error_msg_and_die("BUG:call stack");
+			bb_simple_error_msg_and_die("BUG:call stack");
 		if (ip->func != BC_PROG_MAIN)
-			bb_error_msg_and_die("BUG:not MAIN");
+			bb_simple_error_msg_and_die("BUG:not MAIN");
 #endif
 		f = xc_program_func_BC_PROG_MAIN();
 		// bc discards strings, constants and code after each
@@ -6943,7 +6943,7 @@ static BC_STATUS zxc_vm_process(const char *text)
 		if (IS_BC) {
 #if SANITY_CHECKS
 			if (G.prog.results.len != 0) // should be empty
-				bb_error_msg_and_die("BUG:data stack");
+				bb_simple_error_msg_and_die("BUG:data stack");
 #endif
 			IF_BC(bc_vec_pop_all(&f->strs);)
 			IF_BC(bc_vec_pop_all(&f->consts);)

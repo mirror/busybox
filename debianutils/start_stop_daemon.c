@@ -317,7 +317,7 @@ static void do_procinit(void)
 	}
 	closedir(procdir);
 	if (!pid)
-		bb_error_msg_and_die("nothing in /proc - not mounted?");
+		bb_simple_error_msg_and_die("nothing in /proc - not mounted?");
 }
 
 static int do_stop(void)
@@ -337,7 +337,7 @@ static int do_stop(void)
 	} else if (userspec) {
 		what = xasprintf("process(es) owned by '%s'", userspec);
 	} else {
-		bb_error_msg_and_die("internal error, please report");
+		bb_simple_error_msg_and_die("internal error, please report");
 	}
 
 	if (!G.found_procs) {

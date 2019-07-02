@@ -358,7 +358,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	opt = getopt32(argv, "f:h:p", &opt_user, &opt_host);
 	if (opt & LOGIN_OPT_f) {
 		if (!run_by_root)
-			bb_error_msg_and_die("-f is for root only");
+			bb_simple_error_msg_and_die("-f is for root only");
 		safe_strncpy(username, opt_user, sizeof(username));
 	}
 	argv += optind;
@@ -529,7 +529,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	child_pid = vfork();
 	if (child_pid != 0) {
 		if (child_pid < 0)
-			bb_perror_msg("vfork");
+			bb_simple_perror_msg("vfork");
 		else {
 			wait_for_exitstatus(child_pid);
 			update_utmp_DEAD_PROCESS(child_pid);

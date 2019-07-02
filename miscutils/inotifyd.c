@@ -117,7 +117,7 @@ int inotifyd_main(int argc, char **argv)
 	// open inotify
 	pfd.fd = inotify_init();
 	if (pfd.fd < 0)
-		bb_perror_msg_and_die("no kernel support");
+		bb_simple_perror_msg_and_die("no kernel support");
 
 	// setup watches
 	while (*++argv) {

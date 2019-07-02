@@ -375,7 +375,7 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 			xconnect(probe_fd, (struct sockaddr *) &G.probe_saddr, sizeof(G.probe_saddr));
 			bb_getsockname(probe_fd, (struct sockaddr *) &G.probe_saddr, sizeof(G.probe_saddr));
 			if (G.probe_saddr.sin_family != AF_INET)
-				bb_error_msg_and_die("no IP address configured");
+				bb_simple_error_msg_and_die("no IP address configured");
 			src = G.probe_saddr.sin_addr;
 		}
 		close(probe_fd);
@@ -430,7 +430,7 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 		/* Don't allow SIGALRMs while we process the reply */
 		sigprocmask(SIG_BLOCK, &G.sset, NULL);
 		if (cc < 0) {
-			bb_perror_msg("recvfrom");
+			bb_simple_perror_msg("recvfrom");
 			continue;
 		}
 		recv_pack(G.packet, cc, &from);

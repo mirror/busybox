@@ -244,7 +244,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 		if (n < 0) {
 			if (errno == EINTR)
 				continue;
-			bb_perror_msg(READ_ERROR);
+			bb_simple_perror_msg(READ_ERROR);
 			break;
 		}
 		start[n] = '\0';

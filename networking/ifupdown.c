@@ -665,7 +665,7 @@ static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 		if (executable_exists(ext_dhcp_clients[i].name))
 			return execute(ext_dhcp_clients[i].startcmd, ifd, exec);
 	}
-	bb_error_msg("no dhcp clients found");
+	bb_simple_error_msg("no dhcp clients found");
 	return 0;
 }
 # elif ENABLE_UDHCPC
@@ -707,7 +707,7 @@ static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	}
 
 	if (!result)
-		bb_error_msg("warning: no dhcp clients found and stopped");
+		bb_simple_error_msg("warning: no dhcp clients found and stopped");
 
 	/* Sleep a bit, otherwise static_down tries to bring down interface too soon,
 	   and it may come back up because udhcpc is still shutting down */

@@ -549,7 +549,7 @@ static int send_queries(struct ns *ns)
 
 		recvlen = read(pfd.fd, reply, sizeof(reply));
 		if (recvlen < 0) {
-			bb_perror_msg("read");
+			bb_simple_perror_msg("read");
  next:
 			tcur = monotonic_ms();
 			continue;

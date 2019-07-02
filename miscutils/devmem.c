@@ -89,7 +89,7 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 			fd,
 			target & ~(off_t)(page_size - 1));
 	if (map_base == MAP_FAILED)
-		bb_perror_msg_and_die("mmap");
+		bb_simple_perror_msg_and_die("mmap");
 
 //	printf("Memory mapped at address %p.\n", map_base);
 
@@ -110,7 +110,7 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 			read_result = *(volatile uint64_t*)virt_addr;
 			break;
 		default:
-			bb_error_msg_and_die("bad width");
+			bb_simple_error_msg_and_die("bad width");
 		}
 //		printf("Value at address 0x%"OFF_FMT"X (%p): 0x%llX\n",
 //			target, virt_addr,
@@ -136,7 +136,7 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 //			read_result = *(volatile uint64_t*)virt_addr;
 			break;
 		default:
-			bb_error_msg_and_die("bad width");
+			bb_simple_error_msg_and_die("bad width");
 		}
 //		printf("Written 0x%llX; readback 0x%llX\n",
 //				(unsigned long long)writeval,
@@ -145,7 +145,7 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		if (munmap(map_base, mapped_size) == -1)
-			bb_perror_msg_and_die("munmap");
+			bb_simple_perror_msg_and_die("munmap");
 		close(fd);
 	}
 

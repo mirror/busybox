@@ -267,26 +267,45 @@ struct option_set *udhcp_find_option(struct option_set *opt_list, uint8_t code) 
 # define IF_UDHCP_VERBOSE(...) __VA_ARGS__
 extern unsigned dhcp_verbose;
 # define log1(...) do { if (dhcp_verbose >= 1) bb_info_msg(__VA_ARGS__); } while (0)
+# define log1s(msg) do { if (dhcp_verbose >= 1) bb_simple_info_msg(msg); } while (0)
 # if CONFIG_UDHCP_DEBUG >= 2
 void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;
 #  define log2(...) do { if (dhcp_verbose >= 2) bb_info_msg(__VA_ARGS__); } while (0)
+#  define log2s(msg) do { if (dhcp_verbose >= 2) bb_simple_info_msg(msg); } while (0)
 # else
 #  define udhcp_dump_packet(...) ((void)0)
 #  define log2(...) ((void)0)
+#  define log2s(msg) ((void)0)
 # endif
 # if CONFIG_UDHCP_DEBUG >= 3
 #  define log3(...) do { if (dhcp_verbose >= 3) bb_info_msg(__VA_ARGS__); } while (0)
+#  define log3s(msg) do { if (dhcp_verbose >= 3) bb_simple_info_msg(msg); } while (0)
 # else
 #  define log3(...) ((void)0)
+#  define log3s(msg) ((void)0)
 # endif
 #else
 # define IF_UDHCP_VERBOSE(...)
 # define udhcp_dump_packet(...) ((void)0)
 # define log1(...) ((void)0)
+# define log1s(msg) ((void)0)
 # define log2(...) ((void)0)
+# define log2s(msg) ((void)0)
 # define log3(...) ((void)0)
+# define log3s(msg) ((void)0)
 #endif
 
+#if defined(__mips__)
+/*
+ * The 'simple' message functions have a negative impact on the size of the
+ * DHCP code when compiled for MIPS, so don't use them in this case.
+ */
+#define bb_simple_info_msg bb_info_msg
+#define bb_simple_error_msg bb_error_msg
+#define bb_simple_perror_msg_and_die bb_perror_msg_and_die
+#undef log1s
+#define log1s log1
+#endif
 
 /*** Other shared functions ***/
 

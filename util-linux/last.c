@@ -100,7 +100,7 @@ int last_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	pos = lseek(file, pos - sizeof(ut), SEEK_SET);
 	while ((n = full_read(file, &ut, sizeof(ut))) > 0) {
 		if (n != sizeof(ut)) {
-			bb_perror_msg_and_die("short read");
+			bb_simple_perror_msg_and_die("short read");
 		}
 		n = index_in_strings(_ut_lin, ut.ut_line);
 		if (n == _TILDE) { /* '~' */

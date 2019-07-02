@@ -107,7 +107,7 @@ static int FAST_FUNC change_filedir_context(
 
 	context_string = context_str(context);
 	if (!context_string) {
-		bb_error_msg("can't obtain security context in text expression");
+		bb_simple_error_msg("can't obtain security context in text expression");
 		goto skip;
 	}
 
@@ -194,7 +194,7 @@ int chcon_main(int argc UNUSED_PARAM, char **argv)
 		/* specified_context is never NULL -
 		 * "-1" in opt_complementary prevents this. */
 		if (!argv[0])
-			bb_error_msg_and_die("too few arguments");
+			bb_simple_error_msg_and_die("too few arguments");
 	}
 
 	for (i = 0; (fname = argv[i]) != NULL; i++) {

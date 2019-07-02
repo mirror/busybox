@@ -875,7 +875,7 @@ common_traceroute_main(int op, char **argv)
 		 * probe (e.g., on a multi-homed host).
 		 */
 		if (getuid() != 0)
-			bb_error_msg_and_die(bb_msg_you_must_be_root);
+			bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
 	}
 	if (op & OPT_WAITTIME)
 		waittime = xatou_range(waittime_str, 1, 24 * 60 * 60);
@@ -1003,7 +1003,7 @@ common_traceroute_main(int op, char **argv)
 		if (af == AF_INET)
 			if (setsockopt(sndsock, IPPROTO_IP, IP_MULTICAST_IF,
 					&source_lsa->u.sa, source_lsa->len))
-				bb_error_msg_and_die("can't set multicast source interface");
+				bb_simple_error_msg_and_die("can't set multicast source interface");
 //TODO: we can query source port we bound to,
 // and check it in replies... if we care enough
 		xbind(sndsock, &source_lsa->u.sa, source_lsa->len);
@@ -1025,7 +1025,7 @@ common_traceroute_main(int op, char **argv)
 		/* read IP and port */
 		source_lsa = get_sock_lsa(probe_fd);
 		if (source_lsa == NULL)
-			bb_error_msg_and_die("can't get probe addr");
+			bb_simple_error_msg_and_die("can't get probe addr");
 
 		close(probe_fd);
 

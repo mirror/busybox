@@ -107,7 +107,7 @@ int crontab_main(int argc UNUSED_PARAM, char **argv)
 	if (sanitize_env_if_suid()) { /* Clears dangerous stuff, sets PATH */
 		/* Run by non-root */
 		if (opt_ler & (OPT_u|OPT_c))
-			bb_error_msg_and_die(bb_msg_you_must_be_root);
+			bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
 	}
 
 	if (opt_ler & OPT_u) {

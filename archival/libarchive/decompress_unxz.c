@@ -74,7 +74,7 @@ unpack_xz_stream(transformer_state_t *xstate)
 		if (iobuf.in_pos == iobuf.in_size) {
 			int rd = safe_read(xstate->src_fd, membuf, BUFSIZ);
 			if (rd < 0) {
-				bb_error_msg(bb_msg_read_error);
+				bb_simple_error_msg(bb_msg_read_error);
 				total = -1;
 				break;
 			}
@@ -123,7 +123,7 @@ unpack_xz_stream(transformer_state_t *xstate)
 			continue;
 		}
 		if (xz_result != XZ_OK && xz_result != XZ_UNSUPPORTED_CHECK) {
-			bb_error_msg("corrupted data");
+			bb_simple_error_msg("corrupted data");
 			total = -1;
 			break;
 		}

@@ -88,7 +88,7 @@ static void error_exit(const char *str)
 }
 #else
 /* On Linux, shmdt is not mandatory on exit */
-# define error_exit(str) bb_perror_msg_and_die(str)
+# define error_exit(str) bb_simple_perror_msg_and_die(str)
 #endif
 
 /*

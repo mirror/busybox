@@ -88,7 +88,7 @@ static void resuse_end(pid_t pid, resource_t *resp)
 	 * returns the child process, set the time the command finished. */
 	while ((caught = wait3(&resp->waitstatus, 0, &resp->ru)) != pid) {
 		if (caught == -1 && errno != EINTR) {
-			bb_perror_msg("wait");
+			bb_simple_perror_msg("wait");
 			return;
 		}
 	}

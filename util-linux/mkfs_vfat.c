@@ -278,7 +278,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	if (!S_ISBLK(st.st_mode)) {
 		if (!S_ISREG(st.st_mode)) {
 			if (!argv[1])
-				bb_error_msg_and_die("image size must be specified");
+				bb_simple_error_msg_and_die("image size must be specified");
 		}
 		// not a block device, skip bad sectors check
 		opts &= ~OPT_c;
@@ -399,7 +399,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	// "mkdosfs -v -F 32 image5k 5" is the minimum:
 	// 2 sectors for FATs and 2 data sectors
 	if ((off_t)(volume_size_sect - reserved_sect) < 4)
-		bb_error_msg_and_die("the image is too small for FAT32");
+		bb_simple_error_msg_and_die("the image is too small for FAT32");
 	sect_per_fat = 1;
 	while (1) {
 		while (1) {
@@ -439,7 +439,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		}
  next:
 		if (sect_per_clust == 128)
-			bb_error_msg_and_die("can't make FAT32 with >128 sectors/cluster");
+			bb_simple_error_msg_and_die("can't make FAT32 with >128 sectors/cluster");
 		sect_per_clust *= 2;
 		sect_per_fat = (sect_per_fat / 2) | 1;
 	}

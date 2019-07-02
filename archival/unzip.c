@@ -322,7 +322,7 @@ static uint32_t read_next_cdf(uint32_t cdf_offset, cdf_header_t *cdf)
 static void die_if_bad_fnamesize(unsigned sz)
 {
 	if (sz > 0xfff) /* more than 4k?! no funny business please */
-		bb_error_msg_and_die("bad archive");
+		bb_simple_error_msg_and_die("bad archive");
 }
 
 static void unzip_skip(off_t skip)
@@ -359,7 +359,7 @@ static void unzip_extract_symlink(llist_t **symlink_placeholders,
 		xread(zip_fd, target, zip->fmt.ucmpsize);
 	} else {
 #if 1
-		bb_error_msg_and_die("compressed symlink is not supported");
+		bb_simple_error_msg_and_die("compressed symlink is not supported");
 #else
 		transformer_state_t xstate;
 		init_transformer_state(&xstate);
@@ -399,10 +399,10 @@ static void unzip_extract(zip_header_t *zip, int dst_fd)
 	if (zip->fmt.method == 8) {
 		/* Method 8 - inflate */
 		if (inflate_unzip(&xstate) < 0)
-			bb_error_msg_and_die("inflate error");
+			bb_simple_error_msg_and_die("inflate error");
 		/* Validate decompression - crc */
 		if (zip->fmt.crc32 != (xstate.crc32 ^ 0xffffffffL)) {
-			bb_error_msg_and_die("crc error");
+			bb_simple_error_msg_and_die("crc error");
 		}
 	}
 #if ENABLE_FEATURE_UNZIP_BZIP2
@@ -412,7 +412,7 @@ static void unzip_extract(zip_header_t *zip, int dst_fd)
 		 */
 		xstate.bytes_out = unpack_bz2_stream(&xstate);
 		if (xstate.bytes_out < 0)
-			bb_error_msg_and_die("inflate error");
+			bb_simple_error_msg_and_die("inflate error");
 	}
 #endif
 #if ENABLE_FEATURE_UNZIP_LZMA
@@ -420,7 +420,7 @@ static void unzip_extract(zip_header_t *zip, int dst_fd)
 		/* Not tested yet */
 		xstate.bytes_out = unpack_lzma_stream(&xstate);
 		if (xstate.bytes_out < 0)
-			bb_error_msg_and_die("inflate error");
+			bb_simple_error_msg_and_die("inflate error");
 	}
 #endif
 #if ENABLE_FEATURE_UNZIP_XZ
@@ -428,7 +428,7 @@ static void unzip_extract(zip_header_t *zip, int dst_fd)
 		/* Not tested yet */
 		xstate.bytes_out = unpack_xz_stream(&xstate);
 		if (xstate.bytes_out < 0)
-			bb_error_msg_and_die("inflate error");
+			bb_simple_error_msg_and_die("inflate error");
 	}
 #endif
 	else {
@@ -439,7 +439,7 @@ static void unzip_extract(zip_header_t *zip, int dst_fd)
 	if (zip->fmt.ucmpsize != xstate.bytes_out) {
 		/* Don't die. Who knows, maybe len calculation
 		 * was botched somewhere. After all, crc matched! */
-		bb_error_msg("bad length");
+		bb_simple_error_msg("bad length");
 	}
 }
 
@@ -447,7 +447,7 @@ static void my_fgets80(char *buf80)
 {
 	fflush_all();
 	if (!fgets(buf80, 80, stdin)) {
-		bb_perror_msg_and_die("can't read standard input");
+		bb_simple_perror_msg_and_die("can't read standard input");
 	}
 }
 

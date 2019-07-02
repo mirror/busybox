@@ -142,7 +142,7 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 				small++;
 		}
 		if (big > small) {
-			bb_error_msg("assuming reversed byte order, "
+			bb_simple_error_msg("assuming reversed byte order, "
 				"use -n to force native byte order");
 			BUILD_BUG_ON(sizeof(*p) > 8);
 			for (p = buf; p < buf+len; p++) {
@@ -204,7 +204,7 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		if (indx >= len)
-			bb_error_msg_and_die("profile address out of range. "
+			bb_simple_error_msg_and_die("profile address out of range. "
 					"Wrong map file?");
 
 		this = 0;

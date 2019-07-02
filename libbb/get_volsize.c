@@ -18,7 +18,7 @@ uoff_t FAST_FUNC get_volume_size_in_bytes(int fd,
 	if (override) {
 		result = XATOOFF(override);
 		if (result >= (uoff_t)(MAXINT(off_t)) / override_units)
-			bb_error_msg_and_die("image size is too big");
+			bb_simple_error_msg_and_die("image size is too big");
 		result *= override_units;
 		/* seek past end fails on block devices but works on files */
 		if (lseek(fd, result - 1, SEEK_SET) != (off_t)-1) {
@@ -42,7 +42,7 @@ uoff_t FAST_FUNC get_volume_size_in_bytes(int fd,
 	 *
 	 * Picked 16k arbitrarily: */
 	if (result < 16*1024)
-		bb_error_msg_and_die("image is too small");
+		bb_simple_error_msg_and_die("image is too small");
 
 	return result;
 }

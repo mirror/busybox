@@ -504,7 +504,7 @@ static void register_rpc(servtab_t *sep)
 
 	if (bb_getsockname(sep->se_fd, (struct sockaddr *) &ir_sin, sizeof(ir_sin)) < 0) {
 //TODO: verify that such failure is even possible in Linux kernel
-		bb_perror_msg("getsockname");
+		bb_simple_perror_msg("getsockname");
 		return;
 	}
 
@@ -544,7 +544,7 @@ static void bump_nofile(void)
 	}
 
 	if (setrlimit(RLIMIT_NOFILE, &rl) < 0) {
-		bb_perror_msg("setrlimit");
+		bb_simple_perror_msg("setrlimit");
 		return;
 	}
 
@@ -599,7 +599,7 @@ static void prepare_socket_fd(servtab_t *sep)
 
 	fd = socket(sep->se_family, sep->se_socktype, 0);
 	if (fd < 0) {
-		bb_perror_msg("socket");
+		bb_simple_perror_msg("socket");
 		return;
 	}
 	setsockopt_reuseaddr(fd);
@@ -815,7 +815,7 @@ static NOINLINE servtab_t *parse_one_line(void)
 			n = bb_strtou(p, &p, 10);
 			if (n > INT_MAX) {
  bad_ver_spec:
-				bb_error_msg("bad rpc version");
+				bb_simple_error_msg("bad rpc version");
 				goto parse_err;
 			}
 			sep->se_rpcver_lo = sep->se_rpcver_hi = n;
@@ -829,7 +829,7 @@ static NOINLINE servtab_t *parse_one_line(void)
 			if (*p != '\0')
 				goto bad_ver_spec;
 #else
-			bb_error_msg("no support for rpc services");
+			bb_simple_error_msg("no support for rpc services");
 			goto parse_err;
 #endif
 		}
@@ -1235,7 +1235,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[0])
 		config_filename = argv[0];
 	if (config_filename == NULL)
-		bb_error_msg_and_die("non-root must specify config file");
+		bb_simple_error_msg_and_die("non-root must specify config file");
 	if (!(opt & 2))
 		bb_daemonize_or_rexec(0, argv - optind);
 	else
@@ -1304,7 +1304,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 		ready_fd_cnt = select(maxsock + 1, &readable, NULL, NULL, NULL);
 		if (ready_fd_cnt < 0) {
 			if (errno != EINTR) {
-				bb_perror_msg("select");
+				bb_simple_perror_msg("select");
 				sleep(1);
 			}
 			continue;
@@ -1405,7 +1405,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 					pid = vfork();
 
 				if (pid < 0) { /* fork error */
-					bb_perror_msg("vfork"+1);
+					bb_simple_perror_msg("vfork"+1);
 					sleep(1);
 					restore_sigmask(&omask);
 					maybe_close(new_udp_fd);
@@ -1488,7 +1488,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if (real_uid != 0 && real_uid != pwd->pw_uid) {
 				/* a user running private inetd */
-				bb_error_msg("non-root must run services as himself");
+				bb_simple_error_msg("non-root must run services as himself");
 				goto do_exit1;
 			}
 			if (pwd->pw_uid != real_uid) {
@@ -1502,7 +1502,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if (rlim_ofile.rlim_cur != rlim_ofile_cur)
 				if (setrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0)
-					bb_perror_msg("setrlimit");
+					bb_simple_perror_msg("setrlimit");
 
 			/* closelog(); - WRONG. we are after vfork,
 			 * this may confuse syslog() internal state.

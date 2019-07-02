@@ -57,7 +57,7 @@ typedef struct filter_t filter_t;
 static int flush_update(void)
 {
 	if (rtnl_send_check(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
-		bb_perror_msg("can't send flush request");
+		bb_simple_perror_msg("can't send flush request");
 		return -1;
 	}
 	G_filter.flushp = 0;
@@ -756,7 +756,7 @@ static void iproute_flush_cache(void)
 	}
 
 	if (write(flush_fd, "-1", 2) < 2) {
-		bb_perror_msg("can't flush routing cache");
+		bb_simple_perror_msg("can't flush routing cache");
 		return;
 	}
 	close(flush_fd);
@@ -948,7 +948,7 @@ static int iproute_list_or_flush(char **argv, int flush)
 	if (G_filter.tb != -1) {
 		xrtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE);
 	} else if (rtnl_rtcache_request(&rth, do_ipv6) < 0) {
-		bb_perror_msg_and_die("can't send dump request");
+		bb_simple_perror_msg_and_die("can't send dump request");
 	}
 	xrtnl_dump_filter(&rth, print_route, NULL);
 
@@ -1041,7 +1041,7 @@ static int iproute_get(char **argv)
 	}
 
 	if (req.r.rtm_dst_len == 0) {
-		bb_error_msg_and_die("need at least destination address");
+		bb_simple_error_msg_and_die("need at least destination address");
 	}
 
 	xrtnl_open(&rth);
@@ -1077,7 +1077,7 @@ static int iproute_get(char **argv)
 		print_route(NULL, &req.n, NULL);
 
 		if (req.n.nlmsg_type != RTM_NEWROUTE) {
-			bb_error_msg_and_die("not a route?");
+			bb_simple_error_msg_and_die("not a route?");
 		}
 		len -= NLMSG_LENGTH(sizeof(*r));
 		if (len < 0) {
@@ -1091,7 +1091,7 @@ static int iproute_get(char **argv)
 			tb[RTA_PREFSRC]->rta_type = RTA_SRC;
 			r->rtm_src_len = 8*RTA_PAYLOAD(tb[RTA_PREFSRC]);
 		} else if (!tb[RTA_SRC]) {
-			bb_error_msg_and_die("can't connect the route");
+			bb_simple_error_msg_and_die("can't connect the route");
 		}
 		if (!odev && tb[RTA_OIF]) {
 			tb[RTA_OIF]->rta_type = 0;

@@ -53,12 +53,12 @@ int FAST_FUNC arpping(uint32_t test_nip,
 
 	s = socket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP));
 	if (s == -1) {
-		bb_perror_msg(bb_msg_can_not_create_raw_socket);
+		bb_simple_perror_msg(bb_msg_can_not_create_raw_socket);
 		return -1;
 	}
 
 	if (setsockopt_broadcast(s) == -1) {
-		bb_perror_msg("can't enable bcast on raw socket");
+		bb_simple_perror_msg("can't enable bcast on raw socket");
 		goto ret;
 	}
 

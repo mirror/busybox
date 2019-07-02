@@ -368,7 +368,7 @@ static void alarm_handler(int sig UNUSED_PARAM)
 {
 	/* This is theoretically unsafe (uses stdio and malloc in signal handler) */
 	if (G.die_if_timed_out)
-		bb_error_msg_and_die("download timed out");
+		bb_simple_error_msg_and_die("download timed out");
 }
 static void set_alarm(void)
 {
@@ -452,7 +452,7 @@ static char fgets_trim_sanitize(FILE *fp, const char *fmt)
 
 	set_alarm();
 	if (fgets(G.wget_buf, sizeof(G.wget_buf), fp) == NULL)
-		bb_perror_msg_and_die("error getting response");
+		bb_simple_perror_msg_and_die("error getting response");
 	clear_alarm();
 
 	buf_ptr = strchrnul(G.wget_buf, '\n');
@@ -633,7 +633,7 @@ static char *get_sanitized_hdr(FILE *fp)
 
 static void reset_beg_range_to_zero(void)
 {
-	bb_error_msg("restart failed");
+	bb_simple_error_msg("restart failed");
 	G.beg_range = 0;
 	xlseek(G.output_fd, 0, SEEK_SET);
 	/* Done at the end instead: */
@@ -651,7 +651,7 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sp) != 0)
 		/* Kernel can have AF_UNIX support disabled */
-		bb_perror_msg_and_die("socketpair");
+		bb_simple_perror_msg_and_die("socketpair");
 
 	if (!strchr(host, ':'))
 		host = allocated = xasprintf("%s:%u", host, port);
@@ -724,7 +724,7 @@ static void spawn_ssl_client(const char *host, int network_fd, int flags)
 
 	if (!(option_mask32 & WGET_OPT_NO_CHECK_CERT)) {
 		option_mask32 |= WGET_OPT_NO_CHECK_CERT;
-		bb_error_msg("note: TLS certificate validation not implemented");
+		bb_simple_error_msg("note: TLS certificate validation not implemented");
 	}
 
 	servername = xstrdup(host);
@@ -733,7 +733,7 @@ static void spawn_ssl_client(const char *host, int network_fd, int flags)
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sp) != 0)
 		/* Kernel can have AF_UNIX support disabled */
-		bb_perror_msg_and_die("socketpair");
+		bb_simple_perror_msg_and_die("socketpair");
 
 	fflush_all();
 	pid = BB_MMU ? xfork() : xvfork();
@@ -785,7 +785,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 #endif
 
 	if (ftpcmd(NULL, NULL, sfp) != 220)
-		bb_error_msg_and_die("%s", G.wget_buf);
+		bb_simple_error_msg_and_die(G.wget_buf);
 		/* note: ftpcmd() sanitizes G.wget_buf, ok to print */
 
 	/* Split username:password pair */
@@ -948,7 +948,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 			if (errno != EAGAIN) {
 				if (ferror(dfp)) {
 					progress_meter(PROGRESS_END);
-					bb_perror_msg_and_die(bb_msg_read_error);
+					bb_simple_perror_msg_and_die(bb_msg_read_error);
 				}
 				break; /* EOF, not error */
 			}
@@ -961,7 +961,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 # if ENABLE_FEATURE_WGET_TIMEOUT
 				if (second_cnt != 0 && --second_cnt == 0) {
 					progress_meter(PROGRESS_END);
-					bb_error_msg_and_die("download timed out");
+					bb_simple_error_msg_and_die("download timed out");
 				}
 # endif
 				/* We used to loop back to poll here,
@@ -1014,7 +1014,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 	G.got_clen = 1; /* makes it show 100% even for download of (formerly) unknown size */
 	progress_meter(PROGRESS_END);
 	if (G.content_len != 0) {
-		bb_perror_msg_and_die("connection closed prematurely");
+		bb_simple_perror_msg_and_die("connection closed prematurely");
 		/* GNU wget says "DATE TIME (NN MB/s) - Connection closed at byte NNN. Retrying." */
 	}
 
@@ -1348,7 +1348,7 @@ However, in real world it was observed that some web servers
 			}
 			if (key == KEY_location && status >= 300) {
 				if (--redir_limit == 0)
-					bb_error_msg_and_die("too many redirections");
+					bb_simple_error_msg_and_die("too many redirections");
 				fclose(sfp);
 				if (str[0] == '/') {
 					free(redirected_path);

@@ -33,7 +33,7 @@ enum { RFC_868_BIAS = 2208988800UL };
 
 static void socket_timeout(int sig UNUSED_PARAM)
 {
-	bb_error_msg_and_die("timeout connecting to time server");
+	bb_simple_error_msg_and_die("timeout connecting to time server");
 }
 
 static time_t askremotedate(const char *host)
@@ -94,10 +94,10 @@ int rdate_main(int argc UNUSED_PARAM, char **argv)
 
 	if (!(flags & 2)) { /* no -p (-s may be present) */
 		if (time(NULL) == remote_time)
-			bb_error_msg("current time matches remote time");
+			bb_simple_error_msg("current time matches remote time");
 		else
 			if (stime(&remote_time) < 0)
-				bb_perror_msg_and_die("can't set time of day");
+				bb_simple_perror_msg_and_die("can't set time of day");
 	}
 
 	if (flags != 1) /* not lone -s */

@@ -817,7 +817,7 @@ unpack_bz2_stream(transformer_state_t *xstate)
 			break;
 		}
 		if (bd->headerCRC != bd->totalCRC) {
-			bb_error_msg("CRC error");
+			bb_simple_error_msg("CRC error");
 			break;
 		}
 

@@ -234,10 +234,10 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 			//	bb_error_msg_and_die("%s invalid maximum size calculated", "UBI");
 		} else
 		if (!(opts & OPTION_s))
-			bb_error_msg_and_die("size not specified");
+			bb_simple_error_msg_and_die("size not specified");
 
 		if (!(opts & OPTION_N))
-			bb_error_msg_and_die("name not specified");
+			bb_simple_error_msg_and_die("name not specified");
 
 		/* the structure is memset(0) above */
 		mkvol_req.vol_id = vol_id;
@@ -264,7 +264,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 //usage:     "\n	-N VOLNAME	Volume name"
 	if (do_rmvol) {
 		if (!(opts & (OPTION_n|OPTION_N)))
-			bb_error_msg_and_die("volume id not specified");
+			bb_simple_error_msg_and_die("volume id not specified");
 
 		if (opts & OPTION_N) {
 			unsigned num = ubi_devnum_from_devname(ubi_ctrl);
@@ -288,9 +288,9 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 //usage:     "\n	-s SIZE		Size in bytes"
 	if (do_rsvol) {
 		if (!(opts & OPTION_s))
-			bb_error_msg_and_die("size not specified");
+			bb_simple_error_msg_and_die("size not specified");
 		if (!(opts & OPTION_n))
-			bb_error_msg_and_die("volume id not specified");
+			bb_simple_error_msg_and_die("volume id not specified");
 
 		rsvol_req.bytes = size_bytes; /* signed int64_t */
 		rsvol_req.vol_id = vol_id;

@@ -1229,7 +1229,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #endif
 		} /* end of "while we read /proc" */
 		if (ntop == 0) {
-			bb_error_msg("no process info in /proc");
+			bb_simple_error_msg("no process info in /proc");
 			break;
 		}
 

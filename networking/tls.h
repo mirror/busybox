@@ -90,7 +90,7 @@ void xorbuf_aligned_AES_BLOCK_SIZE(void* buf, const void* mask) FAST_FUNC;
 #define matrixCryptoGetPrngData(buf, len, userPtr) (tls_get_random(buf, len), PS_SUCCESS)
 
 #define psFree(p, pool)    free(p)
-#define psTraceCrypto(...) bb_error_msg_and_die(__VA_ARGS__)
+#define psTraceCrypto(msg) bb_simple_error_msg_and_die(msg)
 
 /* Secure zerofill */
 #define memset_s(A,B,C,D) memset((A),(C),(D))

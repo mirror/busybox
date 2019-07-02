@@ -184,8 +184,8 @@ create_icmp_socket(void)
 		sock = socket(AF_INET, SOCK_RAW, 1); /* 1 == ICMP */
 	if (sock < 0) {
 		if (errno == EPERM)
-			bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-		bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
+			bb_simple_error_msg_and_die(bb_msg_perm_denied_are_you_root);
+		bb_simple_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
 	}
 
 	xmove_fd(sock, pingsock);
@@ -235,7 +235,7 @@ static void ping4(len_and_sockaddr *lsa)
 #endif
 		if (c < 0) {
 			if (errno != EINTR)
-				bb_perror_msg("recvfrom");
+				bb_simple_perror_msg("recvfrom");
 			continue;
 		}
 		if (c >= 76) {			/* ip + icmp */
@@ -280,7 +280,7 @@ static void ping6(len_and_sockaddr *lsa)
 #endif
 		if (c < 0) {
 			if (errno != EINTR)
-				bb_perror_msg("recvfrom");
+				bb_simple_perror_msg("recvfrom");
 			continue;
 		}
 		if (c >= ICMP_MINLEN) {	/* icmp6_hdr */
@@ -482,7 +482,7 @@ static void sendping_tail(void (*sp)(int), int size_pkt)
 	 * it doesn't matter */
 	sz = xsendto(pingsock, G.snd_packet, size_pkt, &pingaddr.sa, sizeof(pingaddr));
 	if (sz != size_pkt)
-		bb_error_msg_and_die(bb_msg_write_error);
+		bb_simple_error_msg_and_die(bb_msg_write_error);
 
 	if (pingcount == 0 || G.ntransmitted < pingcount) {
 		/* Didn't send all pings yet - schedule next in -i SEC interval */
@@ -723,7 +723,7 @@ static void ping4(len_and_sockaddr *lsa)
 	if (source_lsa) {
 		if (setsockopt(pingsock, IPPROTO_IP, IP_MULTICAST_IF,
 				&source_lsa->u.sa, source_lsa->len))
-			bb_error_msg_and_die("can't set multicast source interface");
+			bb_simple_error_msg_and_die("can't set multicast source interface");
 		xbind(pingsock, &source_lsa->u.sa, source_lsa->len);
 	}
 
@@ -757,7 +757,7 @@ static void ping4(len_and_sockaddr *lsa)
 				(struct sockaddr *) &from, &fromlen);
 		if (c < 0) {
 			if (errno != EINTR)
-				bb_perror_msg("recvfrom");
+				bb_simple_perror_msg("recvfrom");
 			continue;
 		}
 		c = unpack4(G.rcv_packet, c, &from);
@@ -838,7 +838,7 @@ static void ping6(len_and_sockaddr *lsa)
 		c = recvmsg(pingsock, &msg, 0);
 		if (c < 0) {
 			if (errno != EINTR)
-				bb_perror_msg("recvfrom");
+				bb_simple_perror_msg("recvfrom");
 			continue;
 		}
 		for (mp = CMSG_FIRSTHDR(&msg); mp; mp = CMSG_NXTHDR(&msg, mp)) {

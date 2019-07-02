@@ -65,7 +65,7 @@ static context_t runcon_compute_new_context(char *user, char *role, char *type, 
 	security_context_t cur_context;
 
 	if (getcon(&cur_context))
-		bb_error_msg_and_die("can't get current context");
+		bb_simple_error_msg_and_die("can't get current context");
 
 	if (compute_trans) {
 		security_context_t file_context, new_context;
@@ -75,7 +75,7 @@ static context_t runcon_compute_new_context(char *user, char *role, char *type, 
 					command);
 		if (security_compute_create(cur_context, file_context,
 					SECCLASS_PROCESS, &new_context))
-			bb_error_msg_and_die("unable to compute a new context");
+			bb_simple_error_msg_and_die("unable to compute a new context");
 		cur_context = new_context;
 	}
 
@@ -137,7 +137,7 @@ int runcon_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opts & OPTS_CONTEXT_COMPONENT)) {
 		context = *argv++;
 		if (!argv[0])
-			bb_error_msg_and_die("no command given");
+			bb_simple_error_msg_and_die("no command given");
 	}
 
 	if (context) {

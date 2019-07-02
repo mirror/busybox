@@ -185,7 +185,7 @@ static void handle_accept(isrv_state_t *state, int fd)
 		/* Most probably someone gave us wrong fd type
 		 * (for example, non-socket). Don't want
 		 * to loop forever. */
-		bb_perror_msg_and_die("accept");
+		bb_simple_perror_msg_and_die("accept");
 	}
 
 	DPRINTF("new_peer(%d)", newfd);
@@ -311,7 +311,7 @@ void isrv_run(
 
 		if (n < 0) {
 			if (errno != EINTR)
-				bb_perror_msg("select");
+				bb_simple_perror_msg("select");
 			continue;
 		}
 

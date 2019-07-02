@@ -404,7 +404,7 @@ int pstree_main(int argc UNUSED_PARAM, char **argv)
 	else {
 		dump_by_user(find_proc(1), uid);
 		if (!G.dumped) {
-			bb_error_msg_and_die("no processes found");
+			bb_simple_error_msg_and_die("no processes found");
 		}
 	}
 

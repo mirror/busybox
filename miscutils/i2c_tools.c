@@ -344,7 +344,7 @@ static void get_funcs_matrix(int fd, unsigned long *funcs)
 static void check_funcs_test_end(int funcs, int pec, const char *err)
 {
 	if (pec && !(funcs & (I2C_FUNC_SMBUS_PEC | I2C_FUNC_I2C)))
-		bb_error_msg("warning: adapter does not support PEC");
+		bb_simple_error_msg("warning: adapter does not support PEC");
 
 	if (err)
 		bb_error_msg_and_die(
@@ -392,7 +392,7 @@ static void check_read_funcs(int fd, int mode, int data_addr, int pec)
 		break;
 #endif /* ENABLE_I2CDUMP */
 	default:
-		bb_error_msg_and_die("internal error");
+		bb_simple_error_msg_and_die("internal error");
 	}
 	check_funcs_test_end(funcs, pec, err);
 }
@@ -438,7 +438,7 @@ static void confirm_or_abort(void)
 {
 	fprintf(stderr, "Continue? [y/N] ");
 	if (!bb_ask_y_confirmation())
-		bb_error_msg_and_die("aborting");
+		bb_simple_error_msg_and_die("aborting");
 }
 
 /*
@@ -449,20 +449,20 @@ static void confirm_or_abort(void)
  */
 static void confirm_action(int bus_addr, int mode, int data_addr, int pec)
 {
-	bb_error_msg("WARNING! This program can confuse your I2C bus");
+	bb_simple_error_msg("WARNING! This program can confuse your I2C bus");
 
 	/* Don't let the user break his/her EEPROMs */
 	if (bus_addr >= 0x50 && bus_addr <= 0x57 && pec) {
-		bb_error_msg_and_die("this is I2C not smbus - using PEC on I2C "
+		bb_simple_error_msg_and_die("this is I2C not smbus - using PEC on I2C "
 			"devices may result in data loss, aborting");
 	}
 
 	if (mode == I2C_SMBUS_BYTE && data_addr >= 0 && pec)
-		bb_error_msg("WARNING! May interpret a write byte command "
+		bb_simple_error_msg("WARNING! May interpret a write byte command "
 			"with PEC as a write byte data command");
 
 	if (pec)
-		bb_error_msg("PEC checking enabled");
+		bb_simple_error_msg("PEC checking enabled");
 
 	confirm_or_abort();
 }
@@ -507,7 +507,7 @@ int i2cget_main(int argc UNUSED_PARAM, char **argv)
 			case 'w':	mode = I2C_SMBUS_WORD_DATA;	break;
 			case 'c':	mode = I2C_SMBUS_BYTE;		break;
 			default:
-				bb_error_msg("invalid mode");
+				bb_simple_error_msg("invalid mode");
 				bb_show_usage();
 			}
 			pec = argv[3][1] == 'p';
@@ -529,7 +529,7 @@ int i2cget_main(int argc UNUSED_PARAM, char **argv)
 		if (data_addr >= 0) {
 			status = i2c_smbus_write_byte(fd, data_addr);
 			if (status < 0)
-				bb_error_msg("warning - write failed");
+				bb_simple_error_msg("warning - write failed");
 		}
 		status = i2c_smbus_read_byte(fd);
 		break;
@@ -542,7 +542,7 @@ int i2cget_main(int argc UNUSED_PARAM, char **argv)
 	close(fd);
 
 	if (status < 0)
-		bb_perror_msg_and_die("read failed");
+		bb_simple_perror_msg_and_die("read failed");
 
 	printf("0x%0*x\n", mode == I2C_SMBUS_WORD_DATA ? 4 : 2, status);
 
@@ -611,7 +611,7 @@ int i2cset_main(int argc, char **argv)
 			case 'i': mode = I2C_SMBUS_I2C_BLOCK_DATA;
 				break;
 			default:
-				bb_error_msg("invalid mode");
+				bb_simple_error_msg("invalid mode");
 				bb_show_usage();
 			}
 
@@ -620,11 +620,11 @@ int i2cset_main(int argc, char **argv)
 			 || mode == I2C_SMBUS_I2C_BLOCK_DATA
 			) {
 				if (pec && mode == I2C_SMBUS_I2C_BLOCK_DATA)
-					bb_error_msg_and_die(
+					bb_simple_error_msg_and_die(
 						"PEC not supported for I2C "
 						"block writes");
 				if (opts & opt_m)
-					bb_error_msg_and_die(
+					bb_simple_error_msg_and_die(
 						"mask not supported for block "
 						"writes");
 			}
@@ -685,7 +685,7 @@ int i2cset_main(int argc, char **argv)
 		}
 
 		if (tmpval < 0)
-			bb_perror_msg_and_die("can't read old value");
+			bb_simple_perror_msg_and_die("can't read old value");
 
 		val = (val & mask) | (tmpval & ~mask);
 
@@ -724,7 +724,7 @@ int i2cset_main(int argc, char **argv)
 		break;
 	}
 	if (status < 0)
-		bb_perror_msg_and_die("write failed");
+		bb_simple_perror_msg_and_die("write failed");
 
 	if (pec)
 		i2c_set_pec(fd, 0); /* Clear PEC. */
@@ -978,12 +978,12 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 		case 's': mode = I2C_SMBUS_BLOCK_DATA;		break;
 		case 'i': mode = I2C_SMBUS_I2C_BLOCK_DATA;	break;
 		default:
-			bb_error_msg_and_die("invalid mode");
+			bb_simple_error_msg_and_die("invalid mode");
 		}
 
 		if (argv[2][1] == 'p') {
 			if (argv[2][0] == 'W' || argv[2][0] == 'i') {
-				bb_error_msg_and_die(
+				bb_simple_error_msg_and_die(
 					"pec not supported for -W and -i");
 			} else {
 				pec = 1;
@@ -994,7 +994,7 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 	if (opts & opt_r) {
 		first = strtol(opt_r_str, &dash, 0);
 		if (dash == opt_r_str || *dash != '-' || first > 0xff)
-			bb_error_msg_and_die("invalid range");
+			bb_simple_error_msg_and_die("invalid range");
 		last = xstrtou_range(++dash, 0, first, 0xff);
 
 		/* Range is not available for every mode. */
@@ -1007,7 +1007,7 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 				break;
 			/* Fall through */
 		default:
-			bb_error_msg_and_die(
+			bb_simple_error_msg_and_die(
 				"range not compatible with selected mode");
 		}
 	}
@@ -1032,7 +1032,7 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 		if (mode == I2C_SMBUS_BYTE) {
 			res = i2c_smbus_write_byte(fd, first);
 			if (res < 0)
-				bb_perror_msg_and_die("write start address");
+				bb_simple_perror_msg_and_die("write start address");
 		}
 
 		dump_data(fd, mode, first, last, block, blen);
@@ -1398,7 +1398,7 @@ static void check_i2c_func(int fd)
 	get_funcs_matrix(fd, &funcs);
 
 	if (!(funcs & I2C_FUNC_I2C))
-		bb_error_msg_and_die("adapter does not support I2C transfers");
+		bb_simple_error_msg_and_die("adapter does not support I2C transfers");
 }
 
 //usage:#define i2ctransfer_trivial_usage
@@ -1451,7 +1451,7 @@ int i2ctransfer_main(int argc UNUSED_PARAM, char **argv)
 		char *end;
 
 		if (nmsgs >= I2C_RDWR_IOCTL_MAX_MSGS)
-			bb_error_msg_and_die("too many messages, max: "I2C_RDWR_IOCTL_MAX_MSGS_STR);
+			bb_simple_error_msg_and_die("too many messages, max: "I2C_RDWR_IOCTL_MAX_MSGS_STR);
 
 		flags = 0;
 		arg_ptr = *argv;

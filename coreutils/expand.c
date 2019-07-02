@@ -247,7 +247,7 @@ int expand_main(int argc UNUSED_PARAM, char **argv)
 	/* Now close stdin also */
 	/* (if we didn't read from it, it's a no-op) */
 	if (fclose(stdin))
-		bb_perror_msg_and_die(bb_msg_standard_input);
+		bb_simple_perror_msg_and_die(bb_msg_standard_input);
 
 	fflush_stdout_and_exit(exit_status);
 }

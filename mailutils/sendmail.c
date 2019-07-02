@@ -338,7 +338,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			smtp_check(NULL, 250);
 		else
 		if (code != 250)
-			bb_error_msg_and_die("SMTP init failed");
+			bb_simple_error_msg_and_die("SMTP init failed");
 	} else {
 		// vanilla connection
 		int fd;

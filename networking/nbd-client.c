@@ -179,7 +179,7 @@ int nbdclient_main(int argc, char **argv)
 		if (memcmp(&nbd_header.magic1, "NBDMAGIC",
 				sizeof(nbd_header.magic1)) != 0
 		) {
-			bb_error_msg_and_die("login failed");
+			bb_simple_error_msg_and_die("login failed");
 		}
 		if (memcmp(&nbd_header.magic2,
 				"\x00\x00\x42\x02\x81\x86\x12\x53",
@@ -189,7 +189,7 @@ int nbdclient_main(int argc, char **argv)
 		} else if (memcmp(&nbd_header.magic2, "IHAVEOPT", 8) == 0) {
 			proto_new = 1;
 		} else {
-			bb_error_msg_and_die("login failed");
+			bb_simple_error_msg_and_die("login failed");
 		}
 
 		if (!proto_new) {
@@ -240,17 +240,17 @@ int nbdclient_main(int argc, char **argv)
 		}
 
 		if (ioctl(nbd, BLKROSET, &ro) < 0) {
-			bb_perror_msg_and_die("BLKROSET");
+			bb_simple_perror_msg_and_die("BLKROSET");
 		}
 
 		if (timeout) {
 			if (ioctl(nbd, NBD_SET_TIMEOUT, (unsigned long) timeout)) {
-				bb_perror_msg_and_die("NBD_SET_TIMEOUT");
+				bb_simple_perror_msg_and_die("NBD_SET_TIMEOUT");
 			}
 		}
 
 		if (ioctl(nbd, NBD_SET_SOCK, sock)) {
-			bb_perror_msg_and_die("NBD_SET_SOCK");
+			bb_simple_perror_msg_and_die("NBD_SET_SOCK");
 		}
 
 		//if (swap) mlockall(MCL_CURRENT|MCL_FUTURE);

@@ -89,7 +89,7 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 
 	r = full_read(fd, buf, count);
 	if (r < 0) {
-		bb_perror_msg(bb_msg_read_error);
+		bb_simple_perror_msg(bb_msg_read_error);
 		G.exitcode = EXIT_FAILURE;
 	}
 
@@ -186,7 +186,7 @@ int tail_main(int argc, char **argv)
 	} while (++i < argc);
 
 	if (!nfiles)
-		bb_error_msg_and_die("no files");
+		bb_simple_error_msg_and_die("no files");
 
 	/* prepare the buffer */
 	tailbufsize = BUFSIZ;

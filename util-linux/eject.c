@@ -70,7 +70,7 @@ static void eject_scsi(const char *dev)
 	sg_io_hdr_t io_hdr;
 
 	if ((ioctl(dev_fd, SG_GET_VERSION_NUM, &i) < 0) || (i < 30000))
-		bb_error_msg_and_die("not a sg device or old sg driver");
+		bb_simple_error_msg_and_die("not a sg device or old sg driver");
 
 	memset(&io_hdr, 0, sizeof(sg_io_hdr_t));
 	io_hdr.interface_id = 'S';

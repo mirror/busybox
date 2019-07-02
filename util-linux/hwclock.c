@@ -132,7 +132,7 @@ static void to_sys_clock(const char **pp_rtcname, int utc)
 	tv.tv_sec = read_rtc(pp_rtcname, NULL, utc);
 	tv.tv_usec = 0;
 	if (settimeofday(&tv, &tz))
-		bb_perror_msg_and_die("settimeofday");
+		bb_simple_perror_msg_and_die("settimeofday");
 }
 
 static void from_sys_clock(const char **pp_rtcname, int utc)
@@ -284,7 +284,7 @@ static void set_system_clock_timezone(int utc)
 	if (!utc)
 		tv.tv_sec += tz.tz_minuteswest * 60;
 	if (settimeofday(&tv, &tz))
-		bb_perror_msg_and_die("settimeofday");
+		bb_simple_perror_msg_and_die("settimeofday");
 }
 
 //usage:#define hwclock_trivial_usage

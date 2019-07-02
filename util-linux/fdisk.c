@@ -511,7 +511,7 @@ static sector_t bb_BLKGETSIZE_sectors(int fd)
 			 * we support can't record more than 32 bit
 			 * sector counts or offsets
 			 */
-			bb_error_msg("device has more than 2^32 sectors, can't use all of them");
+			bb_simple_error_msg("device has more than 2^32 sectors, can't use all of them");
 			v64 = (uint32_t)-1L;
 		}
 		return v64;

@@ -49,7 +49,7 @@ int setenforce_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		rc = security_setenforce(i & 1);
 		if (rc < 0)
-			bb_perror_msg_and_die("setenforce() failed");
+			bb_simple_perror_msg_and_die("setenforce() failed");
 		return 0;
 	}
 

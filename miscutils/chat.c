@@ -307,7 +307,7 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 			} else if (DIR_SAY == key) {
 				// just print argument verbatim
 				// TODO: should we use full_write() to avoid unistd/stdio conflict?
-				bb_error_msg("%s", arg);
+				bb_simple_error_msg(arg);
 			}
 			// next, please!
 			argv++;

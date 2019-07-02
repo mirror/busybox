@@ -73,7 +73,7 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 	) {
 		argv++;
 		if (argv[1])
-			bb_error_msg_and_die("-c takes only one argument");
+			bb_simple_error_msg_and_die("-c takes only one argument");
 		opt |= OPT_c;
 	}
 

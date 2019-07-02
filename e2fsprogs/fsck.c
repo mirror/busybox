@@ -431,10 +431,10 @@ static int wait_one(int flags)
 			if (errno == EINTR)
 				continue;
 			if (errno == ECHILD) { /* paranoia */
-				bb_error_msg("wait: no more children");
+				bb_simple_error_msg("wait: no more children");
 				return -1;
 			}
-			bb_perror_msg("wait");
+			bb_simple_perror_msg("wait");
 			continue;
 		}
 		prev = NULL;
@@ -919,7 +919,7 @@ static void compile_fs_type(char *fs_type)
 			if (G.fs_type_negated == -1)
 				G.fs_type_negated = negate;
 			if (G.fs_type_negated != negate)
-				bb_error_msg_and_die(
+				bb_simple_error_msg_and_die(
 "either all or none of the filesystem types passed to -t must be prefixed "
 "with 'no' or '!'");
 		}

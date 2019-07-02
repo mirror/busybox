@@ -32,7 +32,7 @@ static unsigned long long getOctal(char *str, int len)
 	if (*end != '\0' && *end != ' ') {
 		int8_t first = str[0];
 		if (!(first & 0x80))
-			bb_error_msg_and_die("corrupted octal value in tar header");
+			bb_simple_error_msg_and_die("corrupted octal value in tar header");
 		/*
 		 * GNU tar uses "base-256 encoding" for very large numbers.
 		 * Encoding is binary, with highest bit always set as a marker
@@ -100,7 +100,7 @@ static void process_pax_hdr(archive_handle_t *archive_handle, unsigned sz, int g
 		 || errno != EINVAL
 		 || *end != ' '
 		) {
-			bb_error_msg("malformed extended header, skipped");
+			bb_simple_error_msg("malformed extended header, skipped");
 			// More verbose version:
 			//bb_error_msg("malformed extended header at %"OFF_FMT"d, skipped",
 			//		archive_handle->offset - (sz + len));
@@ -194,13 +194,13 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		 * the very first read fails. Grrr.
 		 */
 		if (archive_handle->offset == 0)
-			bb_error_msg("short read");
+			bb_simple_error_msg("short read");
 		/* this merely signals end of archive, not exit(1): */
 		return EXIT_FAILURE;
 	}
 	if (i != 512) {
 		IF_FEATURE_TAR_AUTODETECT(goto autodetect;)
-		bb_error_msg_and_die("short read");
+		bb_simple_error_msg_and_die("short read");
 	}
 
 #else
@@ -243,11 +243,11 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 			goto err;
 		if (setup_unzip_on_fd(archive_handle->src_fd, /*fail_if_not_compressed:*/ 0) != 0)
  err:
-			bb_error_msg_and_die("invalid tar magic");
+			bb_simple_error_msg_and_die("invalid tar magic");
 		archive_handle->offset = 0;
 		goto again_after_align;
 #endif
-		bb_error_msg_and_die("invalid tar magic");
+		bb_simple_error_msg_and_die("invalid tar magic");
 	}
 
 	/* Do checksum on headers.
@@ -282,7 +282,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	if (sum_u != sum
 	    IF_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum)
 	) {
-		bb_error_msg_and_die("invalid tar header checksum");
+		bb_simple_error_msg_and_die("invalid tar header checksum");
 	}
 
 	/* GET_OCTAL trashes subsequent field, therefore we call it

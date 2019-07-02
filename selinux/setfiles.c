@@ -182,7 +182,7 @@ static void inc_err(void)
 {
 	nerr++;
 	if (nerr > 9 && !FLAG_d_debug) {
-		bb_error_msg_and_die("exiting after 10 errors");
+		bb_simple_error_msg_and_die("exiting after 10 errors");
 	}
 }
 

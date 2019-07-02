@@ -225,7 +225,7 @@ static void do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize,
 				if (unicode == PSF2_SEPARATOR) {
 					break;
 				} else if (unicode == PSF2_STARTSEQ) {
-					bb_error_msg_and_die("unicode sequences not implemented");
+					bb_simple_error_msg_and_die("unicode sequences not implemented");
 				} else if (unicode >= 0xC0) {
 					if (unicode >= 0xFC)
 						unicode &= 0x01, maxct = 5;
@@ -239,12 +239,12 @@ static void do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize,
 						unicode &= 0x1F, maxct = 1;
 					do {
 						if (tailsz <= 0 || *inbuf < 0x80 || *inbuf > 0xBF)
-							bb_error_msg_and_die("illegal UTF-8 character");
+							bb_simple_error_msg_and_die("illegal UTF-8 character");
 						--tailsz;
 						unicode = (unicode << 6) + (*inbuf++ & 0x3F);
 					} while (--maxct > 0);
 				} else if (unicode >= 0x80) {
-					bb_error_msg_and_die("illegal UTF-8 character");
+					bb_simple_error_msg_and_die("illegal UTF-8 character");
 				}
 #else
 				return;
@@ -281,7 +281,7 @@ static void do_load(int fd, unsigned char *buffer, size_t len)
 
 	if (len >= sizeof(struct psf1_header) && PSF1_MAGIC_OK(psf1h(buffer))) {
 		if (psf1h(buffer)->mode > PSF1_MAXMODE)
-			bb_error_msg_and_die("unsupported psf file mode");
+			bb_simple_error_msg_and_die("unsupported psf file mode");
 		if (psf1h(buffer)->mode & PSF1_MODE512)
 			fontsize = 512;
 		if (psf1h(buffer)->mode & PSF1_MODEHASTAB)
@@ -292,7 +292,7 @@ static void do_load(int fd, unsigned char *buffer, size_t len)
 #if ENABLE_FEATURE_LOADFONT_PSF2
 	if (len >= sizeof(struct psf2_header) && PSF2_MAGIC_OK(psf2h(buffer))) {
 		if (psf2h(buffer)->version > PSF2_MAXVERSION)
-			bb_error_msg_and_die("unsupported psf file version");
+			bb_simple_error_msg_and_die("unsupported psf file version");
 		fontsize = psf2h(buffer)->length;
 		if (psf2h(buffer)->flags & PSF2_HAS_UNICODE_TABLE)
 			has_table = 2;
@@ -311,19 +311,19 @@ static void do_load(int fd, unsigned char *buffer, size_t len)
 	} else
 #endif
 	{
-		bb_error_msg_and_die("input file: bad length or unsupported font type");
+		bb_simple_error_msg_and_die("input file: bad length or unsupported font type");
 	}
 
 #if !defined(PIO_FONTX) || defined(__sparc__)
 	if (fontsize != 256)
-		bb_error_msg_and_die("only fontsize 256 supported");
+		bb_simple_error_msg_and_die("only fontsize 256 supported");
 #endif
 
 	table = font + fontsize * charsize;
 	buffer += len;
 
 	if (table > buffer || (!has_table && table != buffer))
-		bb_error_msg_and_die("input file: bad length");
+		bb_simple_error_msg_and_die("input file: bad length");
 
 	do_loadfont(fd, font, height, width, charsize, fontsize);
 
@@ -361,7 +361,7 @@ int loadfont_main(int argc UNUSED_PARAM, char **argv)
 	buffer = xmalloc_read(STDIN_FILENO, &len);
 	// xmalloc_open_zipped_read_close(filename, &len);
 	if (!buffer)
-		bb_perror_msg_and_die("error reading input font");
+		bb_simple_perror_msg_and_die("error reading input font");
 	do_load(get_console_fd_or_die(), buffer, len);
 
 	return EXIT_SUCCESS;
@@ -502,7 +502,7 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 				if (a < 0 || a >= E_TABSZ
 				 || b < 0 || b > 65535
 				) {
-					bb_error_msg_and_die("map format");
+					bb_simple_error_msg_and_die("map format");
 				}
 				// patch map
 				unicodes[a] = b;

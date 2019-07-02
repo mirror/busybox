@@ -27,7 +27,7 @@
 
 void FAST_FUNC bb_die_memory_exhausted(void)
 {
-	bb_error_msg_and_die(bb_msg_memory_exhausted);
+	bb_simple_error_msg_and_die(bb_msg_memory_exhausted);
 }
 
 #ifndef DMALLOC
@@ -40,7 +40,7 @@ void* FAST_FUNC malloc_or_warn(size_t size)
 {
 	void *ptr = malloc(size);
 	if (ptr == NULL && size != 0)
-		bb_error_msg(bb_msg_memory_exhausted);
+		bb_simple_error_msg(bb_msg_memory_exhausted);
 	return ptr;
 }
 
@@ -97,7 +97,7 @@ char* FAST_FUNC xstrndup(const char *s, int n)
 	char *t;
 
 	if (ENABLE_DEBUG && s == NULL)
-		bb_error_msg_and_die("xstrndup bug");
+		bb_simple_error_msg_and_die("xstrndup bug");
 
 	/* We can just xmalloc(n+1) and strncpy into it, */
 	/* but think about xstrndup("abc", 10000) wastage! */
@@ -215,13 +215,13 @@ int FAST_FUNC rename_or_warn(const char *oldpath, const char *newpath)
 void FAST_FUNC xpipe(int filedes[2])
 {
 	if (pipe(filedes))
-		bb_perror_msg_and_die("can't create pipe");
+		bb_simple_perror_msg_and_die("can't create pipe");
 }
 
 void FAST_FUNC xdup2(int from, int to)
 {
 	if (dup2(from, to) != to)
-		bb_perror_msg_and_die("can't duplicate file descriptor");
+		bb_simple_perror_msg_and_die("can't duplicate file descriptor");
 		//		" %d to %d", from, to);
 }
 
@@ -245,7 +245,7 @@ void FAST_FUNC xwrite(int fd, const void *buf, size_t count)
 			 * or some writes succeeded, then we hit an error.
 			 * In either case, errno is set.
 			 */
-			bb_perror_msg_and_die(
+			bb_simple_perror_msg_and_die(
 				size >= 0 ? "short write" : "write error"
 			);
 		}
@@ -259,7 +259,7 @@ void FAST_FUNC xwrite_str(int fd, const char *str)
 void FAST_FUNC xclose(int fd)
 {
 	if (close(fd))
-		bb_perror_msg_and_die("close failed");
+		bb_simple_perror_msg_and_die("close failed");
 }
 
 // Die with an error message if we can't lseek to the right spot.
@@ -267,9 +267,7 @@ off_t FAST_FUNC xlseek(int fd, off_t offset, int whence)
 {
 	off_t off = lseek(fd, offset, whence);
 	if (off == (off_t)-1) {
-		if (whence == SEEK_SET)
-			bb_perror_msg_and_die("lseek(%"OFF_FMT"u)", offset);
-		bb_perror_msg_and_die("lseek");
+		bb_perror_msg_and_die("lseek(%"OFF_FMT"u, %d)", offset, whence);
 	}
 	return off;
 }
@@ -384,23 +382,23 @@ void FAST_FUNC bb_unsetenv_and_free(char *var)
 // setgid() will fail and we'll _still_be_root_, which is bad.)
 void FAST_FUNC xsetgid(gid_t gid)
 {
-	if (setgid(gid)) bb_perror_msg_and_die("setgid");
+	if (setgid(gid)) bb_simple_perror_msg_and_die("setgid");
 }
 
 // Die with an error message if we can't set uid.  (See xsetgid() for why.)
 void FAST_FUNC xsetuid(uid_t uid)
 {
-	if (setuid(uid)) bb_perror_msg_and_die("setuid");
+	if (setuid(uid)) bb_simple_perror_msg_and_die("setuid");
 }
 
 void FAST_FUNC xsetegid(gid_t egid)
 {
-	if (setegid(egid)) bb_perror_msg_and_die("setegid");
+	if (setegid(egid)) bb_simple_perror_msg_and_die("setegid");
 }
 
 void FAST_FUNC xseteuid(uid_t euid)
 {
-	if (seteuid(euid)) bb_perror_msg_and_die("seteuid");
+	if (seteuid(euid)) bb_simple_perror_msg_and_die("seteuid");
 }
 
 // Die if we can't chdir to a new path.
@@ -413,7 +411,7 @@ void FAST_FUNC xchdir(const char *path)
 void FAST_FUNC xfchdir(int fd)
 {
 	if (fchdir(fd))
-		bb_perror_msg_and_die("fchdir");
+		bb_simple_perror_msg_and_die("fchdir");
 }
 
 void FAST_FUNC xchroot(const char *path)
@@ -463,7 +461,7 @@ int FAST_FUNC xsocket(int domain, int type, int protocol)
 IF_FEATURE_IPV6(if (domain == AF_INET6) s = "INET6";)
 		bb_perror_msg_and_die("socket(AF_%s,%d,%d)", s, type, protocol);
 #else
-		bb_perror_msg_and_die("socket");
+		bb_simple_perror_msg_and_die("socket");
 #endif
 	}
 
@@ -473,13 +471,13 @@ IF_FEATURE_IPV6(if (domain == AF_INET6) s = "INET6";)
 // Die with an error message if we can't bind a socket to an address.
 void FAST_FUNC xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen)
 {
-	if (bind(sockfd, my_addr, addrlen)) bb_perror_msg_and_die("bind");
+	if (bind(sockfd, my_addr, addrlen)) bb_simple_perror_msg_and_die("bind");
 }
 
 // Die with an error message if we can't listen for connections on a socket.
 void FAST_FUNC xlisten(int s, int backlog)
 {
-	if (listen(s, backlog)) bb_perror_msg_and_die("listen");
+	if (listen(s, backlog)) bb_simple_perror_msg_and_die("listen");
 }
 
 /* Die with an error message if sendto failed.
@@ -491,7 +489,7 @@ ssize_t FAST_FUNC xsendto(int s, const void *buf, size_t len, const struct socka
 	if (ret < 0) {
 		if (ENABLE_FEATURE_CLEAN_UP)
 			close(s);
-		bb_perror_msg_and_die("sendto");
+		bb_simple_perror_msg_and_die("sendto");
 	}
 	return ret;
 }
@@ -519,12 +517,12 @@ void FAST_FUNC selinux_or_die(void)
 #if ENABLE_SELINUX
 	int rc = is_selinux_enabled();
 	if (rc == 0) {
-		bb_error_msg_and_die("SELinux is disabled");
+		bb_simple_error_msg_and_die("SELinux is disabled");
 	} else if (rc < 0) {
-		bb_error_msg_and_die("is_selinux_enabled() failed");
+		bb_simple_error_msg_and_die("is_selinux_enabled() failed");
 	}
 #else
-	bb_error_msg_and_die("SELinux support is disabled");
+	bb_simple_error_msg_and_die("SELinux support is disabled");
 #endif
 }
 
@@ -675,7 +673,7 @@ pid_t FAST_FUNC xfork(void)
 	pid_t pid;
 	pid = fork();
 	if (pid < 0) /* wtf? */
-		bb_perror_msg_and_die("vfork"+1);
+		bb_simple_perror_msg_and_die("vfork"+1);
 	return pid;
 }
 #endif

@@ -69,7 +69,7 @@ int ln_main(int argc, char **argv)
 	argc -= optind;
 
 	if ((opts & LN_LINKFILE) && argc > 2) {
-		bb_error_msg_and_die("-T accepts 2 args max");
+		bb_simple_error_msg_and_die("-T accepts 2 args max");
 	}
 
 	if (!argv[1]) {

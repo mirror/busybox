@@ -56,7 +56,7 @@ static void xset1(struct termios *t)
 {
 	int ret = tcsetattr(STDIN_FILENO, TCSAFLUSH, t);
 	if (ret) {
-		bb_perror_msg("can't tcsetattr for stdin");
+		bb_simple_perror_msg("can't tcsetattr for stdin");
 	}
 }
 

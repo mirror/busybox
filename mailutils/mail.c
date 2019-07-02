@@ -15,7 +15,7 @@ static void signal_handler(int signo)
 {
 #define err signo
 	if (SIGALRM == signo) {
-		bb_error_msg_and_die("timed out");
+		bb_simple_error_msg_and_die("timed out");
 	}
 
 	// SIGCHLD. reap zombies
@@ -128,7 +128,7 @@ static void encode_n_base64(const char *fname, const char *text, size_t len)
 		if (fname) {
 			size = fread((char *)src_buf, 1, SRC_BUF_SIZE, fp);
 			if ((ssize_t)size < 0)
-				bb_perror_msg_and_die(bb_msg_read_error);
+				bb_simple_perror_msg_and_die(bb_msg_read_error);
 		} else {
 			size = len;
 			if (len > SRC_BUF_SIZE)
@@ -179,5 +179,5 @@ void FAST_FUNC get_cred_or_die(int fd)
 		G.pass = xmalloc_reads(fd, /* maxsize: */ NULL);
 	}
 	if (!G.user || !*G.user || !G.pass)
-		bb_error_msg_and_die("no username or password");
+		bb_simple_error_msg_and_die("no username or password");
 }

@@ -426,6 +426,6 @@ int FAST_FUNC wait_for_exitstatus(pid_t pid)
 
 	n = safe_waitpid(pid, &exit_status, 0);
 	if (n < 0)
-		bb_perror_msg_and_die("waitpid");
+		bb_simple_perror_msg_and_die("waitpid");
 	return exit_status;
 }

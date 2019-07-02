@@ -61,7 +61,7 @@ static void do_sethostname(char *s, int isfile)
 	} else if (sethostname(s, strlen(s))) {
 //		if (errno == EPERM)
 //			bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-		bb_perror_msg_and_die("sethostname");
+		bb_simple_perror_msg_and_die("sethostname");
 	}
 }
 

@@ -178,7 +178,7 @@ int mkfs_reiser_main(int argc UNUSED_PARAM, char **argv)
 	// N.B. what if we format a file? find_mount_point will return false negative since
 	// it is loop block device which is mounted!
 	if (find_mount_point(argv[0], 0))
-		bb_error_msg_and_die("can't format mounted filesystem");
+		bb_simple_error_msg_and_die("can't format mounted filesystem");
 
 	// open the device, get size in blocks
 	blocks = get_volume_size_in_bytes(fd, argv[1], blocksize, /*extend:*/ 1) / blocksize;

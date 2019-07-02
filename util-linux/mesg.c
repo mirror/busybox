@@ -65,7 +65,7 @@ int mesg_main(int argc UNUSED_PARAM, char **argv)
 	 */
 
 	if (!isatty(STDIN_FILENO))
-		bb_error_msg_and_die("not a tty");
+		bb_simple_error_msg_and_die("not a tty");
 
 	xfstat(STDIN_FILENO, &sb, "stdin");
 	if (c == 0) {

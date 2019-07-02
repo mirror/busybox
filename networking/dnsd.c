@@ -395,11 +395,11 @@ static int process_packet(struct dns_entry *conf_data,
 
 	head = (struct dns_head *)buf;
 	if (head->nquer == 0) {
-		bb_error_msg("packet has 0 queries, ignored");
+		bb_simple_error_msg("packet has 0 queries, ignored");
 		return 0; /* don't reply */
 	}
 	if (head->flags & htons(0x8000)) { /* QR bit */
-		bb_error_msg("response packet, ignored");
+		bb_simple_error_msg("response packet, ignored");
 		return 0; /* don't reply */
 	}
 	/* QR = 1 "response", RCODE = 4 "Not Implemented" */
@@ -474,7 +474,7 @@ static int process_packet(struct dns_entry *conf_data,
 	 * RCODE = 0 "success"
 	 */
 	if (OPT_verbose)
-		bb_info_msg("returning positive reply");
+		bb_simple_info_msg("returning positive reply");
 	outr_flags = htons(0x8000 | 0x0400 | 0);
 	/* we have one answer */
 	head->nansw = htons(1);
@@ -557,7 +557,7 @@ int dnsd_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 		if (OPT_verbose)
-			bb_info_msg("got UDP packet");
+			bb_simple_info_msg("got UDP packet");
 		buf[r] = '\0'; /* paranoia */
 		r = process_packet(conf_data, conf_ttl, buf);
 		if (r <= 0)

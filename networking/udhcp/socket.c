@@ -87,7 +87,7 @@ int FAST_FUNC udhcp_listen_socket(/*uint32_t ip,*/ int port, const char *inf)
 
 	setsockopt_reuseaddr(fd);
 	if (setsockopt_broadcast(fd) == -1)
-		bb_perror_msg_and_die("SO_BROADCAST");
+		bb_simple_perror_msg_and_die("SO_BROADCAST");
 
 	/* SO_BINDTODEVICE doesn't work on ethernet aliases (ethN:M) */
 	colon = strrchr(inf, ':');

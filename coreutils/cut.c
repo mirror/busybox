@@ -209,11 +209,11 @@ int cut_main(int argc UNUSED_PARAM, char **argv)
 //	argc -= optind;
 	argv += optind;
 	if (!(opt & (CUT_OPT_BYTE_FLGS | CUT_OPT_CHAR_FLGS | CUT_OPT_FIELDS_FLGS)))
-		bb_error_msg_and_die("expected a list of bytes, characters, or fields");
+		bb_simple_error_msg_and_die("expected a list of bytes, characters, or fields");
 
 	if (opt & CUT_OPT_DELIM_FLGS) {
 		if (ltok[0] && ltok[1]) { /* more than 1 char? */
-			bb_error_msg_and_die("the delimiter must be a single character");
+			bb_simple_error_msg_and_die("the delimiter must be a single character");
 		}
 		delim = ltok[0];
 	}
@@ -288,7 +288,7 @@ int cut_main(int argc UNUSED_PARAM, char **argv)
 
 		/* make sure we got some cut positions out of all that */
 		if (nlists == 0)
-			bb_error_msg_and_die("missing list of positions");
+			bb_simple_error_msg_and_die("missing list of positions");
 
 		/* now that the lists are parsed, we need to sort them to make life
 		 * easier on us when it comes time to print the chars / fields / lines

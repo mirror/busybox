@@ -60,6 +60,6 @@ int unit_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		return EXIT_FAILURE;
 	}
 
-	bb_error_msg("All tests passed");
+	bb_simple_error_msg("All tests passed");
 	return EXIT_SUCCESS;
 }

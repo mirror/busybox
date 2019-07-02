@@ -365,7 +365,7 @@ static void up_iface(void)
 	if (!(ifrequest.ifr_flags & IFF_UP)) {
 		ifrequest.ifr_flags |= IFF_UP;
 		/* Let user know we mess up with interface */
-		bb_info_msg("upping interface");
+		bb_simple_info_msg("upping interface");
 		if (network_ioctl(SIOCSIFFLAGS, &ifrequest, "setting interface flags") < 0) {
 			if (errno != ENODEV && errno != EADDRNOTAVAIL)
 				xfunc_die();
@@ -461,7 +461,7 @@ static smallint detect_link(void)
 		else if (option_mask32 & FLAG_IGNORE_FAIL_POSITIVE)
 			status = IFSTATUS_UP;
 		else if (G.api_mode[0] == 'a')
-			bb_error_msg("can't detect link status");
+			bb_simple_error_msg("can't detect link status");
 	}
 
 	if (status != G.iface_last_status) {
@@ -493,14 +493,14 @@ static NOINLINE int check_existence_through_netlink(void)
 				goto ret;
 			if (errno == EINTR)
 				continue;
-			bb_perror_msg("netlink: recv");
+			bb_simple_perror_msg("netlink: recv");
 			return -1;
 		}
 
 		mhdr = (struct nlmsghdr*)replybuf;
 		while (bytes > 0) {
 			if (!NLMSG_OK(mhdr, bytes)) {
-				bb_error_msg("netlink packet too small or truncated");
+				bb_simple_error_msg("netlink packet too small or truncated");
 				return -1;
 			}
 
@@ -509,7 +509,7 @@ static NOINLINE int check_existence_through_netlink(void)
 				int attr_len;
 
 				if (mhdr->nlmsg_len < NLMSG_LENGTH(sizeof(struct ifinfomsg))) {
-					bb_error_msg("netlink packet too small or truncated");
+					bb_simple_error_msg("netlink packet too small or truncated");
 					return -1;
 				}
 
@@ -591,7 +591,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (pid_from_pidfile > 0 && kill(pid_from_pidfile, 0) == 0)
-		bb_error_msg_and_die("daemon already running");
+		bb_simple_error_msg_and_die("daemon already running");
 #endif
 
 	api_mode_found = strchr(api_modes, G.api_mode[0]);
@@ -690,7 +690,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 		) {
 			if (errno == EINTR)
 				continue;
-			bb_perror_msg("poll");
+			bb_simple_perror_msg("poll");
 			goto exiting;
 		}
 
@@ -763,5 +763,5 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 
  exiting:
 	remove_pidfile(pidfile_name);
-	bb_error_msg_and_die("exiting");
+	bb_simple_error_msg_and_die("exiting");
 }

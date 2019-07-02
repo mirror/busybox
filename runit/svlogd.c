@@ -274,7 +274,7 @@ static void warnx(const char *m0, const char *m1)
 }
 static void pause_nomem(void)
 {
-	bb_error_msg(PAUSE"out of memory");
+	bb_simple_error_msg(PAUSE"out of memory");
 	sleep(3);
 }
 static void pause1cannot(const char *m0)

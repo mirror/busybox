@@ -116,7 +116,7 @@ int paste_main(int argc UNUSED_PARAM, char **argv)
 
 	if (opt & PASTE_OPT_DELIMITERS) {
 		if (!delims[0])
-			bb_error_msg_and_die("-d '' is not supported");
+			bb_simple_error_msg_and_die("-d '' is not supported");
 		/* unknown mappings are not changed: "\z" -> '\\' 'z' */
 		/* trailing backslash, if any, is preserved */
 		del_cnt = strcpy_and_process_escape_sequences(delims, delims) - delims;

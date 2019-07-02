@@ -33,14 +33,14 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 		goto create_hardlinks;
 	}
 	if (size != 110) {
-		bb_error_msg_and_die("short read");
+		bb_simple_error_msg_and_die("short read");
 	}
 	archive_handle->offset += 110;
 
 	if (!is_prefixed_with(&cpio_header[0], "07070")
 	 || (cpio_header[5] != '1' && cpio_header[5] != '2')
 	) {
-		bb_error_msg_and_die("unsupported cpio format, use newc or crc");
+		bb_simple_error_msg_and_die("unsupported cpio format, use newc or crc");
 	}
 
 	if (sscanf(cpio_header + 6,
@@ -50,7 +50,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 			&inode, &mode, &uid, &gid,
 			&nlink, &mtime, &size,
 			&major, &minor, &namesize) != 10)
-		bb_error_msg_and_die("damaged cpio file");
+		bb_simple_error_msg_and_die("damaged cpio file");
 	file_header->mode = mode;
 	/* "cpio -R USER:GRP" support: */
 	if (archive_handle->cpio__owner.uid != (uid_t)-1L)

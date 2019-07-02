@@ -56,5 +56,5 @@ int logname_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		return fflush_all();
 	}
 
-	bb_perror_msg_and_die("getlogin");
+	bb_simple_perror_msg_and_die("getlogin");
 }

@@ -76,7 +76,7 @@ int deluser_main(int argc, char **argv)
 #endif
 
 	if (geteuid() != 0)
-		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
+		bb_simple_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
 	name = argv[1];
 	member = NULL;

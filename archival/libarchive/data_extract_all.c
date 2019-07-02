@@ -103,7 +103,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		struct stat existing_sb;
 		if (lstat(dst_name, &existing_sb) == -1) {
 			if (errno != ENOENT) {
-				bb_perror_msg_and_die("can't stat old file");
+				bb_simple_perror_msg_and_die("can't stat old file");
 			}
 		}
 		else if (existing_sb.st_mtime >= file_header->mtime) {
@@ -207,7 +207,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		}
 		break;
 	default:
-		bb_error_msg_and_die("unrecognized file type");
+		bb_simple_error_msg_and_die("unrecognized file type");
 	}
 
 	if (!S_ISLNK(file_header->mode)) {

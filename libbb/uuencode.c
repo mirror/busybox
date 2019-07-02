@@ -213,7 +213,7 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 			if (*in_tail == '\0')
 				return;
 			/* No */
-			bb_error_msg_and_die("truncated base64 input");
+			bb_simple_error_msg_and_die("truncated base64 input");
 		}
 
 		/* It was partial decode */

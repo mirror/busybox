@@ -48,7 +48,7 @@ void FAST_FUNC selinux_preserve_fcontext(int fdesc)
 	if (fgetfilecon(fdesc, &context) < 0) {
 		if (errno == ENODATA || errno == ENOTSUP)
 			return;
-		bb_perror_msg_and_die("fgetfilecon failed");
+		bb_simple_perror_msg_and_die("fgetfilecon failed");
 	}
 	setfscreatecon_or_die(context);
 	freecon(context);

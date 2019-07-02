@@ -752,7 +752,7 @@ static FAST_FUNC void lzo_check(
 	 */
 	uint32_t c = fn(init, buf, len);
 	if (c != ref)
-		bb_error_msg_and_die("checksum error");
+		bb_simple_error_msg_and_die("checksum error");
 }
 
 /**********************************************************************/
@@ -785,15 +785,15 @@ static NOINLINE int lzo_decompress(uint32_t h_flags32)
 		/* error if split file */
 		if (dst_len == 0xffffffffL)
 			/* should not happen - not yet implemented */
-			bb_error_msg_and_die("this file is a split lzop file");
+			bb_simple_error_msg_and_die("this file is a split lzop file");
 
 		if (dst_len > MAX_BLOCK_SIZE)
-			bb_error_msg_and_die("corrupted data");
+			bb_simple_error_msg_and_die("corrupted data");
 
 		/* read compressed block size */
 		src_len = read32();
 		if (src_len <= 0 || src_len > dst_len)
-			bb_error_msg_and_die("corrupted data");
+			bb_simple_error_msg_and_die("corrupted data");
 
 		if (dst_len > block_size) {
 			if (b2) {
@@ -846,7 +846,7 @@ static NOINLINE int lzo_decompress(uint32_t h_flags32)
 				r = lzo1x_decompress_safe(b1, src_len, b2, &d /*, NULL*/);
 
 			if (r != 0 /*LZO_E_OK*/ || dst_len != d) {
-				bb_error_msg_and_die("corrupted data");
+				bb_simple_error_msg_and_die("corrupted data");
 			}
 			dst = b2;
 		} else {
@@ -913,7 +913,7 @@ static void check_magic(void)
 	unsigned char magic[sizeof(lzop_magic)];
 	xread(0, magic, sizeof(magic));
 	if (memcmp(magic, lzop_magic, sizeof(lzop_magic)) != 0)
-		bb_error_msg_and_die("bad magic number");
+		bb_simple_error_msg_and_die("bad magic number");
 }
 
 /**********************************************************************/
@@ -1049,7 +1049,7 @@ static void lzo_set_method(header_t *h)
 		else if (option_mask32 & OPT_8)
 			level = 8;
 #else
-		bb_error_msg_and_die("high compression not compiled in");
+		bb_simple_error_msg_and_die("high compression not compiled in");
 #endif
 	}
 

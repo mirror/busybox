@@ -240,7 +240,7 @@ uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
 	while (1) {
 		if (rem <= 0) {
  complain:
-			bb_error_msg("bad packet, malformed option field");
+			bb_simple_error_msg("bad packet, malformed option field");
 			return NULL;
 		}
 

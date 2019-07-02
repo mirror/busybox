@@ -1086,7 +1086,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		if (getpid() != 1
 		 && (!ENABLE_LINUXRC || applet_name[0] != 'l') /* not linuxrc? */
 		) {
-			bb_error_msg_and_die("must be run as PID 1");
+			bb_simple_error_msg_and_die("must be run as PID 1");
 		}
 #ifdef RB_DISABLE_CAD
 		/* Turn off rebooting via CTL-ALT-DEL - we get a

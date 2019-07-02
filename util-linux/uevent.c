@@ -75,12 +75,12 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 					MAP_PRIVATE | MAP_ANON,
 					/* ignored: */ -1, 0);
 		if (netbuf == MAP_FAILED)
-			bb_perror_msg_and_die("mmap");
+			bb_simple_perror_msg_and_die("mmap");
 
 		// Here we block, possibly for a very long time
 		len = safe_read(fd, netbuf, BUFFER_SIZE - 1);
 		if (len < 0)
-			bb_perror_msg_and_die("read");
+			bb_simple_perror_msg_and_die("read");
 		end = netbuf + len;
 		*end = '\0';
 

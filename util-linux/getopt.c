@@ -308,7 +308,7 @@ static struct option *add_long_options(struct option *long_options, char *option
 				}
 				tokptr[tlen] = '\0';
 				if (tlen == 0)
-					bb_error_msg_and_die("empty long option specified");
+					bb_simple_error_msg_and_die("empty long option specified");
 			}
 			long_options = xrealloc_vector(long_options, 4, long_nr);
 			long_options[long_nr].has_arg = arg_opt;
@@ -380,7 +380,7 @@ int getopt_main(int argc, char **argv)
 			puts(" --");
 			return 0;
 		}
-		bb_error_msg_and_die("missing optstring argument");
+		bb_simple_error_msg_and_die("missing optstring argument");
 	}
 
 	if (argv[1][0] != '-' || compatible) {
@@ -416,7 +416,7 @@ int getopt_main(int argc, char **argv)
 	if (!optstr) {
 		optstr = argv[++n];
 		if (!optstr)
-			bb_error_msg_and_die("missing optstring argument");
+			bb_simple_error_msg_and_die("missing optstring argument");
 	}
 
 	argv[n] = name ? name : argv[0];

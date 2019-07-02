@@ -336,7 +336,7 @@ static NOINLINE void INET_setroute(int action, char **args)
 		}
 		mask = ((struct sockaddr_in *) &rt->rt_dst)->sin_addr.s_addr;
 		if (mask & ~(uint32_t)mask_in_addr(*rt)) {
-			bb_error_msg_and_die("netmask and route address conflict");
+			bb_simple_error_msg_and_die("netmask and route address conflict");
 		}
 	}
 
@@ -532,7 +532,7 @@ void FAST_FUNC bb_displayroutes(int noresolve, int netstatfmt)
 			if ((r < 0) && feof(fp)) { /* EOF with no (nonspace) chars read. */
 				break;
 			}
-			bb_perror_msg_and_die(bb_msg_read_error);
+			bb_simple_perror_msg_and_die(bb_msg_read_error);
 		}
 
 		if (!(flgs & RTF_UP)) { /* Skip interfaces that are down. */
@@ -598,7 +598,7 @@ static void INET6_displayroutes(void)
 				break;
 			}
  ERROR:
-			bb_perror_msg_and_die(bb_msg_read_error);
+			bb_simple_perror_msg_and_die(bb_msg_read_error);
 		}
 
 		/* Do the addr6x shift-and-insert changes to ':'-delimit addresses.

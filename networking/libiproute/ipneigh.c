@@ -49,7 +49,7 @@ typedef struct filter_t filter_t;
 static int flush_update(void)
 {
 	if (rtnl_send_check(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
-		bb_perror_msg("can't send flush request");
+		bb_simple_perror_msg("can't send flush request");
 		return -1;
 	}
 	G_filter.flushp = 0;
@@ -305,7 +305,7 @@ static int FAST_FUNC ipneigh_list_or_flush(char **argv, int flush)
 			xrtnl_wilddump_request(&rth, G_filter.family, RTM_GETNEIGH);
 			G_filter.flushed = 0;
 			if (xrtnl_dump_filter(&rth, print_neigh, NULL) < 0) {
-				bb_perror_msg_and_die("flush terminated");
+				bb_simple_perror_msg_and_die("flush terminated");
 			}
 			if (G_filter.flushed == 0) {
 				if (round == 0)
@@ -325,11 +325,11 @@ static int FAST_FUNC ipneigh_list_or_flush(char **argv, int flush)
 	ndm.ndm_family = G_filter.family;
 
 	if (rtnl_dump_request(&rth, RTM_GETNEIGH, &ndm, sizeof(struct ndmsg)) < 0) {
-		bb_perror_msg_and_die("can't send dump request");
+		bb_simple_perror_msg_and_die("can't send dump request");
 	}
 
 	if (xrtnl_dump_filter(&rth, print_neigh, NULL) < 0) {
-		bb_error_msg_and_die("dump terminated");
+		bb_simple_error_msg_and_die("dump terminated");
 	}
 
 	return 0;

@@ -39,14 +39,14 @@ static unsigned check_under(void)
 {
 	unsigned p = pointer;
 	if (p == 0)
-		bb_error_msg_and_die("stack underflow");
+		bb_simple_error_msg_and_die("stack underflow");
 	return p - 1;
 }
 
 static void push(double a)
 {
 	if (pointer >= STACK_SIZE)
-		bb_error_msg_and_die("stack overflow");
+		bb_simple_error_msg_and_die("stack overflow");
 	stack[pointer++] = a;
 }
 

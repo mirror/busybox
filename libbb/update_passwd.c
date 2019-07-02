@@ -25,7 +25,7 @@ static void check_selinux_update_passwd(const char *username)
 		return;  /* No need to check */
 
 	if (getprevcon_raw(&context) < 0)
-		bb_perror_msg_and_die("getprevcon failed");
+		bb_simple_perror_msg_and_die("getprevcon failed");
 	seuser = strtok(context, ":");
 	if (!seuser)
 		bb_error_msg_and_die("invalid context '%s'", context);
@@ -42,7 +42,7 @@ static void check_selinux_update_passwd(const char *username)
 
 		if (selinux_check_passwd_access(av) != 0)
  die:
-			bb_error_msg_and_die("SELinux: access denied");
+			bb_simple_error_msg_and_die("SELinux: access denied");
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		freecon(context);

@@ -69,7 +69,7 @@ int loadkmap_main(int argc UNUSED_PARAM, char **argv)
 
 	xread(STDIN_FILENO, flags, 7);
 	if (!is_prefixed_with(flags, BINARY_KEYMAP_MAGIC))
-		bb_error_msg_and_die("not a valid binary keymap");
+		bb_simple_error_msg_and_die("not a valid binary keymap");
 
 	xread(STDIN_FILENO, flags, MAX_NR_KEYMAPS);
 

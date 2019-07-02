@@ -28,7 +28,7 @@ static void signal_handler(int sig)
 	int sv = errno;
 	unsigned char ch = sig; /* use char, avoid dealing with partial writes */
 	if (write(WRITE_FD, &ch, 1) != 1)
-		bb_perror_msg("can't send signal");
+		bb_simple_perror_msg("can't send signal");
 	errno = sv;
 }
 

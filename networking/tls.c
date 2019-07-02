@@ -446,7 +446,7 @@ static void hmac_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size,
 	// than INSIZE bytes will first hash the key using H and then use the
 	// resultant OUTSIZE byte string as the actual key to HMAC."
 	if (key_size > SHA_INSIZE) {
-		bb_error_msg_and_die("HMAC key>64"); //does not happen (yet?)
+		bb_simple_error_msg_and_die("HMAC key>64"); //does not happen (yet?)
 //		md5sha_ctx_t ctx;
 //		begin(&ctx);
 //		md5sha_hash(&ctx, key, key_size);
@@ -1132,7 +1132,7 @@ static int tls_xread_record(tls_state_t *tls, const char *expected)
 		}
 	}
 	if (sz < 0)
-		bb_error_msg_and_die("encrypted data too short");
+		bb_simple_error_msg_and_die("encrypted data too short");
 
 	//dump_hex("<< %s\n", tls->inbuf, RECHDR_LEN + sz);
 
@@ -1411,7 +1411,7 @@ static void find_key_in_der_cert(tls_state_t *tls, uint8_t *der, int len)
 			dbg("ECDSA key\n");
 			//UNUSED: tls->flags |= GOT_CERT_ECDSA_KEY_ALG;
 		} else
-			bb_error_msg_and_die("not RSA or ECDSA cert");
+			bb_simple_error_msg_and_die("not RSA or ECDSA cert");
 	}
 
 	if (tls->flags & GOT_CERT_RSA_KEY_ALG) {
@@ -1882,7 +1882,7 @@ static void process_server_key(tls_state_t *tls, int len)
 	/* So far we only support curve_x25519 */
 	move_from_unaligned32(t32, keybuf);
 	if (t32 != htonl(0x03001d20))
-		bb_error_msg_and_die("elliptic curve is not x25519");
+		bb_simple_error_msg_and_die("elliptic curve is not x25519");
 
 	memcpy(tls->hsd->ecc_pub_key32, keybuf + 4, 32);
 	tls->flags |= GOT_EC_KEY;
@@ -1929,7 +1929,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	if (!(tls->flags & NEED_EC_KEY)) {
 		/* RSA */
 		if (!(tls->flags & GOT_CERT_RSA_KEY_ALG))
-			bb_error_msg("server cert is not RSA");
+			bb_simple_error_msg("server cert is not RSA");
 
 		tls_get_random(rsa_premaster, sizeof(rsa_premaster));
 		if (TLS_DEBUG_FIXED_SECRETS)
@@ -1959,7 +1959,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 		uint8_t privkey[CURVE25519_KEYSIZE]; //[32]
 
 		if (!(tls->flags & GOT_EC_KEY))
-			bb_error_msg("server did not provide EC key");
+			bb_simple_error_msg("server did not provide EC key");
 
 		/* Generate random private key, see RFC 7748 */
 		tls_get_random(privkey, sizeof(privkey));
@@ -2322,7 +2322,7 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls, unsigned flags)
 		int nread;
 
 		if (safe_poll(pfds, 2, -1) < 0)
-			bb_perror_msg_and_die("poll");
+			bb_simple_perror_msg_and_die("poll");
 
 		if (pfds[0].revents) {
 			void *buf;

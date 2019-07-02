@@ -208,7 +208,7 @@ static char *make_tempdir(void)
 			bb_perror_msg_and_die("can't %smount tmpfs", "un");
 		}
 #else
-		bb_perror_msg_and_die("can't create temporary directory");
+		bb_simple_perror_msg_and_die("can't create temporary directory");
 #endif
 	} else {
 		xchdir(tempdir);

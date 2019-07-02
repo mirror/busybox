@@ -63,7 +63,7 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 	int opt;
 
 	if (getuid() != 0)
-		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
+		bb_simple_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
 	opt = getopt32long(argv, "^" "emc:R:" "\0" "m--ec:e--mc:c--em",
 			chpasswd_longopts,
@@ -81,7 +81,7 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 
 		pass = strchr(name, ':');
 		if (!pass)
-			bb_error_msg_and_die("missing new password");
+			bb_simple_error_msg_and_die("missing new password");
 		*pass++ = '\0';
 
 		xuname2uid(name); /* dies if there is no such user */

@@ -87,7 +87,7 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 		rd = safe_read(src_fd, buffer,
 			size > buffer_size ? buffer_size : size);
 		if (rd < 0) {
-			bb_perror_msg(bb_msg_read_error);
+			bb_simple_perror_msg(bb_msg_read_error);
 			break;
 		}
  read_ok:
@@ -100,7 +100,7 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 			ssize_t wr = full_write(dst_fd, buffer, rd);
 			if (wr < rd) {
 				if (!continue_on_write_error) {
-					bb_perror_msg(bb_msg_write_error);
+					bb_simple_perror_msg(bb_msg_write_error);
 					break;
 				}
 				dst_fd = -1;
@@ -151,7 +151,7 @@ void FAST_FUNC bb_copyfd_exact_size(int fd1, int fd2, off_t size)
 	if (sz == (size >= 0 ? size : -size))
 		return;
 	if (sz != -1)
-		bb_error_msg_and_die("short read");
+		bb_simple_error_msg_and_die("short read");
 	/* if sz == -1, bb_copyfd_XX already complained */
 	xfunc_die();
 }

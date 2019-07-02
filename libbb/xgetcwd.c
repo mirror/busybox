@@ -33,7 +33,7 @@ xrealloc_getcwd_or_warn(char *cwd)
 			if (errno == ERANGE)
 				continue;
 			free(cwd);
-			bb_perror_msg("getcwd");
+			bb_simple_perror_msg("getcwd");
 			return NULL;
 		}
 		cwd = xrealloc(cwd, strlen(cwd) + 1);

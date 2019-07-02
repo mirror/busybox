@@ -661,6 +661,19 @@ config WERROR
 
 	Most people should answer N.
 
+config WARN_SIMPLE_MSG
+	bool "Warn about single parameter bb_xx_msg calls"
+	default n
+	help
+	This will cause warnings to be shown for any instances of
+	bb_error_msg(), bb_error_msg_and_die(), bb_perror_msg(),
+	bb_perror_msg_and_die(), bb_herror_msg() or bb_herror_msg_and_die()
+	being called with a single parameter. In these cases the equivalent
+	bb_simple_xx_msg function should be used instead.
+	Note that use of STRERROR_FMT may give false positives.
+
+	If you aren't developing busybox, say N here.
+
 choice
 	prompt "Additional debugging library"
 	default NO_DEBUG_LIB

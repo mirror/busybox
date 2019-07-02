@@ -262,7 +262,7 @@ static int get_free_block(void)
 	int blk;
 
 	if (G.used_good_blocks + 1 >= MAX_GOOD_BLOCKS)
-		bb_error_msg_and_die("too many bad blocks");
+		bb_simple_error_msg_and_die("too many bad blocks");
 	if (G.used_good_blocks)
 		blk = G.good_blocks_table[G.used_good_blocks - 1] + 1;
 	else
@@ -270,7 +270,7 @@ static int get_free_block(void)
 	while (blk < SB_ZONES && zone_in_use(blk))
 		blk++;
 	if (blk >= SB_ZONES)
-		bb_error_msg_and_die("not enough good blocks");
+		bb_simple_error_msg_and_die("not enough good blocks");
 	G.good_blocks_table[G.used_good_blocks] = blk;
 	G.used_good_blocks++;
 	return blk;
@@ -342,7 +342,7 @@ static void make_bad_inode(void)
 				goto end_bad;
 		}
 	}
-	bb_error_msg_and_die("too many bad blocks");
+	bb_simple_error_msg_and_die("too many bad blocks");
  end_bad:
 	if (ind)
 		write_block(ind, (char *) ind_block);
@@ -398,7 +398,7 @@ static void make_bad_inode2(void)
 		}
 	}
 	/* Could make triple indirect block here */
-	bb_error_msg_and_die("too many bad blocks");
+	bb_simple_error_msg_and_die("too many bad blocks");
  end_bad:
 	if (ind)
 		write_block(ind, (char *) ind_block);
@@ -514,7 +514,7 @@ static void check_blocks(void)
 		if (got == try)
 			continue;
 		if (G.currently_testing < SB_FIRSTZONE)
-			bb_error_msg_and_die("bad blocks before data-area: cannot make fs");
+			bb_simple_error_msg_and_die("bad blocks before data-area: cannot make fs");
 		mark_zone(G.currently_testing);
 		G.badblocks++;
 		G.currently_testing++;
@@ -588,7 +588,7 @@ static void setup_tables(void)
 		SB_ZMAPS = sb_zmaps;
 		/* new SB_ZMAPS, need to recalc NORM_FIRSTZONE */
 	} while (--i);
-	bb_error_msg_and_die("incompatible size/inode count, try different -i N");
+	bb_simple_error_msg_and_die("incompatible size/inode count, try different -i N");
  got_it:
 
 	SB_FIRSTZONE = norm_firstzone;
@@ -623,10 +623,10 @@ int mkfs_minix_main(int argc UNUSED_PARAM, char **argv)
 	G.magic = MINIX1_SUPER_MAGIC2;
 
 	if (INODE_SIZE1 * MINIX1_INODES_PER_BLOCK != BLOCK_SIZE)
-		bb_error_msg_and_die("bad inode size");
+		bb_simple_error_msg_and_die("bad inode size");
 #if ENABLE_FEATURE_MINIX2
 	if (INODE_SIZE2 * MINIX2_INODES_PER_BLOCK != BLOCK_SIZE)
-		bb_error_msg_and_die("bad inode size");
+		bb_simple_error_msg_and_die("bad inode size");
 #endif
 
 	opt = getopt32(argv, "ci:l:n:+v", &str_i, &listfile, &G.namelen);
@@ -644,7 +644,7 @@ int mkfs_minix_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_MINIX2
 		version2 = 1;
 #else
-		bb_error_msg_and_die("not compiled with minix v2 support");
+		bb_simple_error_msg_and_die("not compiled with minix v2 support");
 #endif
 	}
 
@@ -654,14 +654,14 @@ int mkfs_minix_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Check if it is mounted */
 	if (find_mount_point(G.device_name, 0))
-		bb_error_msg_and_die("can't format mounted filesystem");
+		bb_simple_error_msg_and_die("can't format mounted filesystem");
 
 	xmove_fd(xopen(G.device_name, O_RDWR), dev_fd);
 
 	G.total_blocks = get_volume_size_in_bytes(dev_fd, argv[1], 1024, /*extend:*/ 1) / 1024;
 
 	if (G.total_blocks < 10)
-		bb_error_msg_and_die("must have at least 10 blocks");
+		bb_simple_error_msg_and_die("must have at least 10 blocks");
 
 	if (version2) {
 		G.magic = MINIX2_SUPER_MAGIC2;

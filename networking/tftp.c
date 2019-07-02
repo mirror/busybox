@@ -453,7 +453,7 @@ static int tftp_protocol(
 		/* fill in packet if the filename fits into xbuf */
 		len = strlen(remote_file) + 1;
 		if (2 + len + sizeof("octet") >= io_bufsize) {
-			bb_error_msg("remote filename is too long");
+			bb_simple_error_msg("remote filename is too long");
 			goto ret;
 		}
 		strcpy(cp, remote_file);
@@ -468,7 +468,7 @@ static int tftp_protocol(
 
 		/* Need to add option to pkt */
 		if ((&xbuf[io_bufsize - 1] - cp) < sizeof("blksize NNNNN tsize ") + sizeof(off_t)*3) {
-			bb_error_msg("remote filename is too long");
+			bb_simple_error_msg("remote filename is too long");
 			goto ret;
 		}
 		expect_OACK = 1;
@@ -569,7 +569,7 @@ static int tftp_protocol(
 			retries--;
 			if (retries == 0) {
 				tftp_progress_done();
-				bb_error_msg("timeout");
+				bb_simple_error_msg("timeout");
 				goto ret; /* no err packet sent */
 			}
 
@@ -674,7 +674,7 @@ static int tftp_protocol(
 			 * must be ignored by the client and server
 			 * as if it were never requested." */
 			if (blksize != TFTP_BLKSIZE_DEFAULT)
-				bb_error_msg("falling back to blocksize "TFTP_BLKSIZE_DEFAULT_STR);
+				bb_simple_error_msg("falling back to blocksize "TFTP_BLKSIZE_DEFAULT_STR);
 			blksize = TFTP_BLKSIZE_DEFAULT;
 			io_bufsize = TFTP_BLKSIZE_DEFAULT + 4;
 		}
@@ -739,7 +739,7 @@ static int tftp_protocol(
 	strcpy(G_error_pkt_str, bb_msg_read_error);
  send_err_pkt:
 	if (G_error_pkt_str[0])
-		bb_error_msg("%s", G_error_pkt_str);
+		bb_simple_error_msg(G_error_pkt_str);
 	G.error_pkt[1] = TFTP_ERROR;
 	xsendto(socket_fd, G.error_pkt, 4 + 1 + strlen(G_error_pkt_str),
 			&peer_lsa->u.sa, peer_lsa->len);

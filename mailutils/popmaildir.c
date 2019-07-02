@@ -222,7 +222,7 @@ int popmaildir_main(int argc UNUSED_PARAM, char **argv)
 			fp = popen(delivery, "w");
 			unsetenv("FILENAME");
 			if (!fp) {
-				bb_perror_msg("delivery helper");
+				bb_simple_perror_msg("delivery helper");
 				break;
 			}
 		} else

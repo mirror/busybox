@@ -344,14 +344,19 @@ static const char bb_msg_variable_not_found[] ALIGN1 = "variable: %s not found";
 /* Busybox stuff */
 #if ENABLE_DEVFSD_VERBOSE || ENABLE_DEBUG
 #define info_logger(p, fmt, args...)                 bb_info_msg(fmt, ## args)
+#define simple_info_logger(p, msg)                   bb_simple_info_msg(msg)
 #define msg_logger(p, fmt, args...)                  bb_error_msg(fmt, ## args)
+#define simple_msg_logger(p, msg)                    bb_simple_error_msg(msg)
 #define msg_logger_and_die(p, fmt, args...)          bb_error_msg_and_die(fmt, ## args)
+#define simple_msg_logger_and_die(p, msg)            bb_simple_error_msg_and_die(msg)
 #define error_logger(p, fmt, args...)                bb_perror_msg(fmt, ## args)
 #define error_logger_and_die(p, fmt, args...)        bb_perror_msg_and_die(fmt, ## args)
 #else
 #define info_logger(p, fmt, args...)
 #define msg_logger(p, fmt, args...)
+#define simple_msg_logger(p, msg)
 #define msg_logger_and_die(p, fmt, args...)           exit(EXIT_FAILURE)
+#define simple_msg_logger_and_die(p, msg)             exit(EXIT_FAILURE)
 #define error_logger(p, fmt, args...)
 #define error_logger_and_die(p, fmt, args...)         exit(EXIT_FAILURE)
 #endif
@@ -727,7 +732,7 @@ static int do_servicing(int fd, unsigned long event_mask)
 		caught_sighup = FALSE;
 		return c_sighup;
 	}
-	msg_logger_and_die(LOG_ERR, "read error on control file");
+	simple_msg_logger_and_die(LOG_ERR, "read error on control file");
 }   /*  End Function do_servicing  */
 
 static void service_name(const struct devfsd_notify_struct *info)
@@ -786,7 +791,7 @@ static void service_name(const struct devfsd_notify_struct *info)
 				action_compat(info, entry->action.what);
 				break;
 			default:
-				msg_logger_and_die(LOG_ERR, "Unknown action");
+				simple_msg_logger_and_die(LOG_ERR, "Unknown action");
 		}
 	}
 }   /*  End Function service_name  */
@@ -1691,7 +1696,7 @@ int st_expr_expand(char *output, unsigned int length, const char *input,
 	}
 	return FALSE;
 st_expr_expand_out:
-	info_logger(LOG_INFO, bb_msg_small_buffer);
+	simple_info_logger(LOG_INFO, bb_msg_small_buffer);
 	return FALSE;
 }   /*  End Function st_expr_expand  */
 
@@ -1775,7 +1780,7 @@ static const char *expand_variable(char *buffer, unsigned int length,
 		return input + len;
 	}
 	if (ch != ':' || ptr[1] != '-') {
-		info_logger(LOG_INFO, "illegal char in var name");
+		simple_info_logger(LOG_INFO, "illegal char in var name");
 		return NULL;
 	}
 	/*  It's that handy "${var:-word}" expression. Check if var is defined  */
@@ -1838,7 +1843,7 @@ static const char *expand_variable(char *buffer, unsigned int length,
 	*out_pos += len;
 	return input;
 expand_variable_out:
-	info_logger(LOG_INFO, bb_msg_small_buffer);
+	simple_info_logger(LOG_INFO, bb_msg_small_buffer);
 	return NULL;
 }   /*  End Function expand_variable  */
 

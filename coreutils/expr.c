@@ -249,7 +249,7 @@ static arith_t arithmetic_common(VALUE *l, VALUE *r, int op)
 	arith_t li, ri;
 
 	if (!toarith(l) || !toarith(r))
-		bb_error_msg_and_die("non-numeric argument");
+		bb_simple_error_msg_and_die("non-numeric argument");
 	li = l->u.i;
 	ri = r->u.i;
 	if (op == '+')
@@ -259,7 +259,7 @@ static arith_t arithmetic_common(VALUE *l, VALUE *r, int op)
 	if (op == '*')
 		return li * ri;
 	if (ri == 0)
-		bb_error_msg_and_die("division by zero");
+		bb_simple_error_msg_and_die("division by zero");
 	if (op == '/')
 		return li / ri;
 	return li % ri;
@@ -319,19 +319,19 @@ static VALUE *eval7(void)
 	VALUE *v;
 
 	if (!*G.args)
-		bb_error_msg_and_die("syntax error");
+		bb_simple_error_msg_and_die("syntax error");
 
 	if (nextarg("(")) {
 		G.args++;
 		v = eval();
 		if (!nextarg(")"))
-			bb_error_msg_and_die("syntax error");
+			bb_simple_error_msg_and_die("syntax error");
 		G.args++;
 		return v;
 	}
 
 	if (nextarg(")"))
-		bb_error_msg_and_die("syntax error");
+		bb_simple_error_msg_and_die("syntax error");
 
 	return str_value(*G.args++);
 }
@@ -353,7 +353,7 @@ static VALUE *eval6(void)
 	G.args++; /* We have a valid token, so get the next argument.  */
 	if (key == 1) { /* quote */
 		if (!*G.args)
-			bb_error_msg_and_die("syntax error");
+			bb_simple_error_msg_and_die("syntax error");
 		return str_value(*G.args++);
 	}
 	if (key == 2) { /* length */
@@ -546,11 +546,11 @@ int expr_main(int argc UNUSED_PARAM, char **argv)
 	xfunc_error_retval = 2; /* coreutils compat */
 	G.args = argv + 1;
 	if (*G.args == NULL) {
-		bb_error_msg_and_die("too few arguments");
+		bb_simple_error_msg_and_die("too few arguments");
 	}
 	v = eval();
 	if (*G.args)
-		bb_error_msg_and_die("syntax error");
+		bb_simple_error_msg_and_die("syntax error");
 	if (v->type == INTEGER)
 		printf("%" PF_REZ "d\n", PF_REZ_TYPE v->u.i);
 	else

@@ -164,7 +164,7 @@ static void set_inh_caps(char *capstring)
 	}
 
 	if (capset(&caps.header, caps.data) != 0)
-		bb_perror_msg_and_die("capset");
+		bb_simple_perror_msg_and_die("capset");
 }
 
 static void set_ambient_caps(char *string)
@@ -178,10 +178,10 @@ static void set_ambient_caps(char *string)
 		idx = parse_cap(cap);
 		if (cap[0] == '+') {
 			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, idx, 0, 0) < 0)
-				bb_perror_msg("cap_ambient_raise");
+				bb_simple_perror_msg("cap_ambient_raise");
 		} else {
 			if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, idx, 0, 0) < 0)
-				bb_perror_msg("cap_ambient_lower");
+				bb_simple_perror_msg("cap_ambient_lower");
 		}
 		cap = strtok(NULL, ",");
 	}
@@ -236,7 +236,7 @@ static int dump(void)
 		unsigned idx = CAP_TO_INDEX(i);
 		if (idx >= caps.u32s) {
 			printf("\nindex: %u u32s: %u capability: %u\n", idx, caps.u32s, i);
-			bb_error_msg_and_die("unsupported capability");
+			bb_simple_error_msg_and_die("unsupported capability");
 		}
 		if (caps.data[idx].inheritable & CAP_TO_MASK(i)) {
 			printf_cap(fmt, i);

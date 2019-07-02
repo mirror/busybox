@@ -197,4 +197,19 @@ void FAST_FUNC bb_info_msg(const char *s, ...)
 	bb_vinfo_msg(s, p);
 	va_end(p);
 }
+
+void FAST_FUNC bb_simple_info_msg(const char *s)
+{
+	bb_info_msg("%s", s);
+}
 #endif
+
+void FAST_FUNC bb_simple_error_msg(const char *s)
+{
+	bb_error_msg("%s", s);
+}
+
+void FAST_FUNC bb_simple_error_msg_and_die(const char *s)
+{
+	bb_error_msg_and_die("%s", s);
+}

@@ -149,7 +149,7 @@ int addgroup_main(int argc UNUSED_PARAM, char **argv)
 
 	/* need to be root */
 	if (geteuid()) {
-		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
+		bb_simple_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
 	/* Syntax:
 	 *  addgroup group

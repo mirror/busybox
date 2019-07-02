@@ -1320,7 +1320,7 @@ int stty_main(int argc UNUSED_PARAM, char **argv)
 					break;
 				case 'F':
 					if (file_name)
-						bb_error_msg_and_die("only one device may be specified");
+						bb_simple_error_msg_and_die("only one device may be specified");
 					file_name = &arg[i+1]; /* "-Fdevice" ? */
 					if (!file_name[0]) { /* nope, "-F device" */
 						int p = k+1; /* argv[p] is argnext */
@@ -1405,13 +1405,13 @@ int stty_main(int argc UNUSED_PARAM, char **argv)
 	if ((stty_state & (STTY_verbose_output | STTY_recoverable_output)) ==
 		(STTY_verbose_output | STTY_recoverable_output)
 	) {
-		bb_error_msg_and_die("-a and -g are mutually exclusive");
+		bb_simple_error_msg_and_die("-a and -g are mutually exclusive");
 	}
 	/* Specifying -a or -g with non-options is an error */
 	if ((stty_state & (STTY_verbose_output | STTY_recoverable_output))
 	 && !(stty_state & STTY_noargs)
 	) {
-		bb_error_msg_and_die("modes may not be set when -a or -g is used");
+		bb_simple_error_msg_and_die("modes may not be set when -a or -g is used");
 	}
 
 	/* Now it is safe to start doing things */

@@ -66,7 +66,7 @@ int FAST_FUNC setsockopt_bindtodevice(int fd, const char *iface)
 int FAST_FUNC setsockopt_bindtodevice(int fd UNUSED_PARAM,
 		const char *iface UNUSED_PARAM)
 {
-	bb_error_msg("SO_BINDTODEVICE is not supported on this system");
+	bb_simple_error_msg("SO_BINDTODEVICE is not supported on this system");
 	return -1;
 }
 #endif
@@ -109,7 +109,7 @@ void FAST_FUNC xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)
 			bb_perror_msg_and_die("%s (%s)",
 				"can't connect to remote host",
 				inet_ntoa(((struct sockaddr_in *)s_addr)->sin_addr));
-		bb_perror_msg_and_die("can't connect to remote host");
+		bb_simple_perror_msg_and_die("can't connect to remote host");
 	}
 }
 

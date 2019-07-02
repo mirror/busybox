@@ -216,5 +216,5 @@ int sestatus_main(int argc UNUSED_PARAM, char **argv)
 	return 0;
 
   error:
-	bb_perror_msg_and_die("libselinux returns unknown state");
+	bb_simple_perror_msg_and_die("libselinux returns unknown state");
 }

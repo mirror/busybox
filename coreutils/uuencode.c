@@ -66,7 +66,7 @@ int uuencode_main(int argc UNUSED_PARAM, char **argv)
 		if (!size)
 			break;
 		if ((ssize_t)size < 0)
-			bb_perror_msg_and_die(bb_msg_read_error);
+			bb_simple_perror_msg_and_die(bb_msg_read_error);
 		/* Encode the buffer we just read in */
 		bb_uuencode(dst_buf, src_buf, size, tbl);
 		bb_putchar('\n');

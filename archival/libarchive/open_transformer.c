@@ -15,7 +15,7 @@ int FAST_FUNC check_signature16(transformer_state_t *xstate, unsigned magic16)
 	if (!xstate->signature_skipped) {
 		uint16_t magic2;
 		if (full_read(xstate->src_fd, &magic2, 2) != 2 || magic2 != magic16) {
-			bb_error_msg("invalid magic");
+			bb_simple_error_msg("invalid magic");
 			return -1;
 		}
 		xstate->signature_skipped = 2;
@@ -46,7 +46,7 @@ ssize_t FAST_FUNC transformer_write(transformer_state_t *xstate, const void *buf
 	} else {
 		nwrote = full_write(xstate->dst_fd, buf, bufsize);
 		if (nwrote != (ssize_t)bufsize) {
-			bb_perror_msg("write");
+			bb_simple_perror_msg("write");
 			nwrote = -1;
 			goto ret;
 		}
@@ -205,7 +205,7 @@ static transformer_state_t *setup_transformer_on_fd(int fd, int fail_if_not_comp
 
 	/* No known magic seen */
 	if (fail_if_not_compressed)
-		bb_error_msg_and_die("no gzip"
+		bb_simple_error_msg_and_die("no gzip"
 			IF_FEATURE_SEAMLESS_BZ2("/bzip2")
 			IF_FEATURE_SEAMLESS_XZ("/xz")
 			" magic");

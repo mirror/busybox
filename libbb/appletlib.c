@@ -631,7 +631,7 @@ static void check_suid(int applet_no)
 			/* same group / in group */
 			m >>= 3;
 		if (!(m & S_IXOTH)) /* is x bit not set? */
-			bb_error_msg_and_die("you have no permission to run this applet");
+			bb_simple_error_msg_and_die("you have no permission to run this applet");
 
 		/* We set effective AND saved ids. If saved-id is not set
 		 * like we do below, seteuid(0) can still later succeed! */
@@ -643,7 +643,7 @@ static void check_suid(int applet_no)
 			rgid = sct->m_ugid.gid;
 		/* else: we will set egid = rgid, thus dropping sgid effect */
 		if (setresgid(-1, rgid, rgid))
-			bb_perror_msg_and_die("setresgid");
+			bb_simple_perror_msg_and_die("setresgid");
 
 		/* Are we directed to change uid
 		 * (APPLET = s** USER.GROUP or APPLET = S** USER.GROUP)?
@@ -653,7 +653,7 @@ static void check_suid(int applet_no)
 			uid = sct->m_ugid.uid;
 		/* else: we will set euid = ruid, thus dropping suid effect */
 		if (setresuid(-1, uid, uid))
-			bb_perror_msg_and_die("setresuid");
+			bb_simple_perror_msg_and_die("setresuid");
 
 		goto ret;
 	}
@@ -663,7 +663,7 @@ static void check_suid(int applet_no)
 
 		if (!onetime) {
 			onetime = 1;
-			bb_error_msg("using fallback suid method");
+			bb_simple_error_msg("using fallback suid method");
 		}
 	}
 #   endif
@@ -673,7 +673,7 @@ static void check_suid(int applet_no)
 		/* Real uid is not 0. If euid isn't 0 too, suid bit
 		 * is most probably not set on our executable */
 		if (geteuid())
-			bb_error_msg_and_die("must be suid to work properly");
+			bb_simple_error_msg_and_die("must be suid to work properly");
 	} else if (APPLET_SUID(applet_no) == BB_SUID_DROP) {
 		/*
 		 * Drop all privileges.

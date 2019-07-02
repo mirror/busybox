@@ -29,12 +29,12 @@ int getenforce_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 	rc = is_selinux_enabled();
 	if (rc < 0)
-		bb_error_msg_and_die("is_selinux_enabled() failed");
+		bb_simple_error_msg_and_die("is_selinux_enabled() failed");
 
 	if (rc == 1) {
 		rc = security_getenforce();
 		if (rc < 0)
-			bb_error_msg_and_die("getenforce() failed");
+			bb_simple_error_msg_and_die("getenforce() failed");
 
 		if (rc)
 			puts("Enforcing");

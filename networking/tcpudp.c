@@ -325,7 +325,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 	client = 0;
 	if ((getuid() == 0) && !(opts & OPT_u)) {
 		xfunc_error_retval = 100;
-		bb_error_msg_and_die(bb_msg_you_must_be_root);
+		bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
 	}
 	if (opts & OPT_u)
 		if (!uidgid_get(&sslugid, ssluser, 1)) {
@@ -419,7 +419,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 	sig_block(SIGCHLD);
 	if (conn < 0) {
 		if (errno != EINTR)
-			bb_perror_msg(tcp ? "accept" : "recv");
+			bb_simple_perror_msg(tcp ? "accept" : "recv");
 		goto again2;
 	}
 	xmove_fd(tcp ? conn : sock, 0);
@@ -484,7 +484,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 
 	pid = vfork();
 	if (pid == -1) {
-		bb_perror_msg("vfork");
+		bb_simple_perror_msg("vfork");
 		goto again;
 	}
 

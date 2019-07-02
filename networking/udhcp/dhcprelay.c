@@ -186,7 +186,7 @@ static int sendto_ip4(int sock, const void *msg, int msg_len, struct sockaddr_in
 	err = sendto(sock, msg, msg_len, 0, (struct sockaddr*) to, sizeof(*to));
 	err -= msg_len;
 	if (err)
-		bb_perror_msg("sendto");
+		bb_simple_perror_msg("sendto");
 	return err;
 }
 
@@ -273,7 +273,7 @@ int dhcprelay_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 	if (argv[3]) {
 		if (!inet_aton(argv[3], &server_addr.sin_addr))
-			bb_perror_msg_and_die("bad server IP");
+			bb_simple_perror_msg_and_die("bad server IP");
 	}
 
 	iface_list = make_iface_list(argv + 1, &num_sockets);

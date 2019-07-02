@@ -217,7 +217,7 @@ int cp_main(int argc, char **argv)
 		//	flags, FILEUTILS_RMDEST, OPT_parents);
 		if (flags & OPT_parents) {
 			if (!(d_flags & 2)) {
-				bb_error_msg_and_die("with --parents, the destination must be a directory");
+				bb_simple_error_msg_and_die("with --parents, the destination must be a directory");
 			}
 		}
 		if (flags & FILEUTILS_RMDEST) {
@@ -236,7 +236,7 @@ int cp_main(int argc, char **argv)
 			goto DO_COPY; /* NB: argc==2 -> *++argv==last */
 		}
 	} else if (flags & FILEUTILS_NO_TARGET_DIR) {
-		bb_error_msg_and_die("too many arguments");
+		bb_simple_error_msg_and_die("too many arguments");
 	}
 
 	while (1) {

@@ -120,7 +120,7 @@ int flash_eraseall_main(int argc UNUSED_PARAM, char **argv)
 				if (clmlen > 8)
 					clmlen = 8;
 				if (clmlen == 0)
-					bb_error_msg_and_die("autoplacement selected and no empty space in oob");
+					bb_simple_error_msg_and_die("autoplacement selected and no empty space in oob");
 			} else {
 				/* Legacy mode */
 				switch (meminfo.oobsize) {
@@ -168,9 +168,9 @@ int flash_eraseall_main(int argc UNUSED_PARAM, char **argv)
 				if (errno == EOPNOTSUPP) {
 					flags |= OPTION_N;
 					if (flags & IS_NAND)
-						bb_error_msg_and_die("bad block check not available");
+						bb_simple_error_msg_and_die("bad block check not available");
 				} else {
-					bb_perror_msg_and_die("MEMGETBADBLOCK error");
+					bb_simple_perror_msg_and_die("MEMGETBADBLOCK error");
 				}
 			}
 		}

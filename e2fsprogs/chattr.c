@@ -196,11 +196,11 @@ int chattr_main(int argc UNUSED_PARAM, char **argv)
 
 	/* run sanity checks on all the arguments given us */
 	if ((g.flags & OPT_SET) && (g.flags & (OPT_ADD|OPT_REM)))
-		bb_error_msg_and_die("= is incompatible with - and +");
+		bb_simple_error_msg_and_die("= is incompatible with - and +");
 	if (g.rf & g.af)
-		bb_error_msg_and_die("can't set and unset a flag");
+		bb_simple_error_msg_and_die("can't set and unset a flag");
 	if (!g.flags)
-		bb_error_msg_and_die("must use '-v', =, - or +");
+		bb_simple_error_msg_and_die("must use '-v', =, - or +");
 
 	/* now run chattr on all the files passed to us */
 	do change_attributes(*argv, &g); while (*++argv);

@@ -270,7 +270,7 @@ static void limit(int what, long l)
 	else
 		r.rlim_cur = l;
 	if (setrlimit(what, &r) == -1)
-		bb_perror_msg_and_die("setrlimit");
+		bb_simple_perror_msg_and_die("setrlimit");
 }
 
 int chpst_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -467,12 +467,12 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_n) {
 		errno = 0;
 		if (nice(xatoi(nicestr)) == -1)
-			bb_perror_msg_and_die("nice");
+			bb_simple_perror_msg_and_die("nice");
 	}
 
 	if (opt & OPT_u) {
 		if (setgroups(1, &ugid.gid) == -1)
-			bb_perror_msg_and_die("setgroups");
+			bb_simple_perror_msg_and_die("setgroups");
 		xsetgid(ugid.gid);
 		xsetuid(ugid.uid);
 	}

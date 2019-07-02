@@ -230,7 +230,7 @@ uint32_t FAST_FUNC get_addr32(char *name)
 char** FAST_FUNC next_arg(char **argv)
 {
 	if (!*++argv)
-		bb_error_msg_and_die("command line is not complete, try \"help\"");
+		bb_simple_error_msg_and_die("command line is not complete, try \"help\"");
 	return argv;
 }
 

@@ -52,7 +52,7 @@ int rmmod_main(int argc UNUSED_PARAM, char **argv)
 		/* Unload _all_ unused modules via NULL delete_module() call */
 		err = bb_delete_module(NULL, flags);
 		if (err && err != EFAULT)
-			bb_perror_msg_and_die("rmmod");
+			bb_simple_perror_msg_and_die("rmmod");
 		return EXIT_SUCCESS;
 	}
 

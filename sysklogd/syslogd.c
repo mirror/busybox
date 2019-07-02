@@ -572,12 +572,12 @@ static void ipcsyslog_init(void)
 
 	G.shmid = shmget(KEY_ID, G.shm_size, IPC_CREAT | 0644);
 	if (G.shmid == -1) {
-		bb_perror_msg_and_die("shmget");
+		bb_simple_perror_msg_and_die("shmget");
 	}
 
 	G.shbuf = shmat(G.shmid, NULL, 0);
 	if (G.shbuf == (void*) -1L) { /* shmat has bizarre error return */
-		bb_perror_msg_and_die("shmat");
+		bb_simple_perror_msg_and_die("shmat");
 	}
 
 	memset(G.shbuf, 0, G.shm_size);
@@ -592,7 +592,7 @@ static void ipcsyslog_init(void)
 			if (G.s_semid != -1)
 				return;
 		}
-		bb_perror_msg_and_die("semget");
+		bb_simple_perror_msg_and_die("semget");
 	}
 }
 
@@ -603,7 +603,7 @@ static void log_to_shmem(const char *msg)
 	int len;
 
 	if (semop(G.s_semid, G.SMwdn, 3) == -1) {
-		bb_perror_msg_and_die("SMwdn");
+		bb_simple_perror_msg_and_die("SMwdn");
 	}
 
 	/* Circular Buffer Algorithm:
@@ -631,7 +631,7 @@ static void log_to_shmem(const char *msg)
 		goto again;
 	}
 	if (semop(G.s_semid, G.SMwup, 1) == -1) {
-		bb_perror_msg_and_die("SMwup");
+		bb_simple_perror_msg_and_die("SMwup");
 	}
 	if (DEBUG)
 		printf("tail:%d\n", G.shbuf->tail);

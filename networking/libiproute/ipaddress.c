@@ -119,7 +119,7 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 	//memset(tb, 0, sizeof(tb)); - parse_rtattr does this
 	parse_rtattr(tb, IFLA_MAX, IFLA_RTA(ifi), len);
 	if (tb[IFLA_IFNAME] == NULL) {
-		bb_error_msg("nil ifname");
+		bb_simple_error_msg("nil ifname");
 		return -1;
 	}
 	if (G_filter.label
@@ -205,7 +205,7 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 static int flush_update(void)
 {
 	if (rtnl_send_check(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
-		bb_perror_msg("can't send flush request");
+		bb_simple_perror_msg("can't send flush request");
 		return -1;
 	}
 	G_filter.flushp = 0;
@@ -439,7 +439,7 @@ int FAST_FUNC ipaddr_list_or_flush(char **argv, int flush)
 			bb_error_msg_and_die(bb_msg_requires_arg, "flush");
 		}
 		if (G_filter.family == AF_PACKET) {
-			bb_error_msg_and_die("can't flush link addresses");
+			bb_simple_error_msg_and_die("can't flush link addresses");
 		}
 	}
 
@@ -700,7 +700,7 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 
 	if (!d) {
 		/* There was no "dev IFACE", but we need that */
-		bb_error_msg_and_die("need \"dev IFACE\"");
+		bb_simple_error_msg_and_die("need \"dev IFACE\"");
 	}
 	if (l && !is_prefixed_with(l, d)) {
 		bb_error_msg_and_die("\"dev\" (%s) must match \"label\" (%s)", d, l);
@@ -717,7 +717,7 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 		inet_prefix brd;
 		int i;
 		if (req.ifa.ifa_family != AF_INET) {
-			bb_error_msg_and_die("broadcast can be set only for IPv4 addresses");
+			bb_simple_error_msg_and_die("broadcast can be set only for IPv4 addresses");
 		}
 		brd = peer;
 		if (brd.bitlen <= 30) {

@@ -731,7 +731,7 @@ fork_job(const char *user, int mailFd, CronLine *line, bool run_sendmail)
 	logmode = sv_logmode;
 
 	if (pid < 0) {
-		bb_perror_msg("vfork");
+		bb_simple_perror_msg("vfork");
  err:
 		pid = 0;
 	} /* else: PARENT, FORK SUCCESS */
@@ -861,7 +861,7 @@ static pid_t start_one_job(const char *user, CronLine *line)
 		bb_error_msg_and_die("can't execute '%s' for user %s", shell, user);
 	}
 	if (pid < 0) {
-		bb_perror_msg("vfork");
+		bb_simple_perror_msg("vfork");
  err:
 		pid = 0;
 	}

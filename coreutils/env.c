@@ -79,7 +79,7 @@ int env_main(int argc UNUSED_PARAM, char **argv)
 
 	while (*argv && (strchr(*argv, '=') != NULL)) {
 		if (putenv(*argv) < 0) {
-			bb_perror_msg_and_die("putenv");
+			bb_simple_perror_msg_and_die("putenv");
 		}
 		++argv;
 	}

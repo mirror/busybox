@@ -12,7 +12,7 @@
 void FAST_FUNC bb_warn_ignoring_args(char *arg)
 {
 	if (arg) {
-		bb_error_msg("ignoring all arguments");
+		bb_simple_error_msg("ignoring all arguments");
 	}
 }
 #endif

@@ -369,7 +369,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		/* If it is larger than 100 bytes, bail out */
 		if (header.linkname[sizeof(header.linkname)-1]) {
 			free(lpath);
-			bb_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
+			bb_simple_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
 			return FALSE;
 		}
 # endif
@@ -542,7 +542,7 @@ static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statb
 
 # if !ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	if (strlen(header_name) >= NAME_SIZE) {
-		bb_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
+		bb_simple_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
 		return TRUE;
 	}
 # endif
@@ -715,13 +715,13 @@ static NOINLINE int writeTarFile(
 		freeHardLinkInfo(&tbInfo->hlInfoHead);
 
 	if (errorFlag)
-		bb_error_msg("error exit delayed from previous errors");
+		bb_simple_error_msg("error exit delayed from previous errors");
 
 # if SEAMLESS_COMPRESSION
 	if (gzip) {
 		int status;
 		if (safe_waitpid(-1, &status, 0) == -1)
-			bb_perror_msg("waitpid");
+			bb_simple_perror_msg("waitpid");
 		else if (!WIFEXITED(status) || WEXITSTATUS(status))
 			/* gzip was killed or has exited with nonzero! */
 			errorFlag = TRUE;
@@ -1150,7 +1150,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		if (opt & OPT_CREATE) {
 			/* Make sure there is at least one file to tar up */
 			if (tar_handle->accept == NULL)
-				bb_error_msg_and_die("empty archive");
+				bb_simple_error_msg_and_die("empty archive");
 
 			tar_fd = STDOUT_FILENO;
 			/* Mimicking GNU tar 1.15.1: */

@@ -430,7 +430,7 @@ int printf_main(int argc UNUSED_PARAM, char **argv)
 		if (ENABLE_ASH_PRINTF
 		 && applet_name[0] != 'p'
 		) {
-			bb_error_msg("usage: printf FORMAT [ARGUMENT...]");
+			bb_simple_error_msg("usage: printf FORMAT [ARGUMENT...]");
 			return 2; /* bash compat */
 		}
 		bb_show_usage();

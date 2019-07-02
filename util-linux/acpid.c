@@ -148,7 +148,7 @@ static void process_event(const char *event)
 	const char *args[] = { "run-parts", handler, NULL };
 
 	// log the event
-	bb_error_msg("%s", event);
+	bb_simple_error_msg(event);
 
 	// spawn handler
 	// N.B. run-parts would require scripts to have #!/bin/sh

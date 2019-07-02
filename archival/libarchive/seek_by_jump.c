@@ -13,6 +13,6 @@ void FAST_FUNC seek_by_jump(int fd, off_t amount)
 		if (errno == ESPIPE)
 			seek_by_read(fd, amount);
 		else
-			bb_perror_msg_and_die("seek failure");
+			bb_simple_perror_msg_and_die("seek failure");
 	}
 }

@@ -239,7 +239,7 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 	if (setgrp_str) {
 		if (strcmp(setgrp_str, "allow") == 0) {
 			if (opts & OPT_map_root) {
-				bb_error_msg_and_die(
+				bb_simple_error_msg_and_die(
 					"--setgroups=allow and --map-root-user "
 					"are mutually exclusive"
 				);

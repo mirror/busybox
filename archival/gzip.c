@@ -99,7 +99,7 @@ aa:      85.1% -- replaced with aa.gz
 /* Diagnostic functions */
 #ifdef DEBUG
 static int verbose;
-#  define Assert(cond,msg) { if (!(cond)) bb_error_msg(msg); }
+#  define Assert(cond,msg) { if (!(cond)) bb_simple_error_msg(msg); }
 #  define Trace(x) fprintf x
 #  define Tracev(x) {if (verbose) fprintf x; }
 #  define Tracevv(x) {if (verbose > 1) fprintf x; }
@@ -787,7 +787,7 @@ static void check_match(IPos start, IPos match, int length)
 	/* check that the match is indeed a match */
 	if (memcmp(G1.window + match, G1.window + start, length) != 0) {
 		bb_error_msg(" start %d, match %d, length %d", start, match, length);
-		bb_error_msg("invalid match");
+		bb_simple_error_msg("invalid match");
 	}
 	if (verbose > 1) {
 		bb_error_msg("\\[%d,%d]", start - match, length);

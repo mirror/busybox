@@ -72,7 +72,7 @@ int ubirename_main(int argc, char **argv)
 	rnvol = xzalloc(sizeof(*rnvol));
 	rnvol->count = --argc;
 	if (argc > ARRAY_SIZE(rnvol->ents))
-		bb_error_msg_and_die("too many renames requested");
+		bb_simple_error_msg_and_die("too many renames requested");
 
 	ubi_devname = argv[1];
 	ubi_devnum = ubi_devnum_from_devname(ubi_devname);

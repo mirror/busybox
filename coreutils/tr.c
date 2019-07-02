@@ -308,7 +308,7 @@ int tr_main(int argc UNUSED_PARAM, char **argv)
 		str1_length = complement(str1, str1_length);
 	if (*argv) {
 		if (argv[0][0] == '\0')
-			bb_error_msg_and_die("STRING2 cannot be empty");
+			bb_simple_error_msg_and_die("STRING2 cannot be empty");
 		str2_length = expand(*argv, &str2);
 		map(vector, str1, str1_length,
 				str2, str2_length);
@@ -333,7 +333,7 @@ int tr_main(int argc UNUSED_PARAM, char **argv)
 			read_chars = safe_read(STDIN_FILENO, str1, TR_BUFSIZ);
 			if (read_chars <= 0) {
 				if (read_chars < 0)
-					bb_perror_msg_and_die(bb_msg_read_error);
+					bb_simple_perror_msg_and_die(bb_msg_read_error);
 				break;
 			}
 			in_index = 0;

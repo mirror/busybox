@@ -300,7 +300,7 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 				}
 				if (filename_ptr == NULL) {
 					if (flags & FLAG_WARN) {
-						bb_error_msg("invalid format");
+						bb_simple_error_msg("invalid format");
 					}
 					count_failed++;
 					return_value = EXIT_FAILURE;

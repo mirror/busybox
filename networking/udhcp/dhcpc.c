@@ -906,7 +906,7 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 		if (bytes < 0) {
 			if (errno == EINTR)
 				continue;
-			log1("packet read error, ignoring");
+			log1s("packet read error, ignoring");
 			/* NB: possible down interface, etc. Caller should pause. */
 			return bytes; /* returns -1 */
 		}
@@ -914,13 +914,13 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	}
 
 	if (bytes < (int) (sizeof(packet.ip) + sizeof(packet.udp))) {
-		log1("packet is too short, ignoring");
+		log1s("packet is too short, ignoring");
 		return -2;
 	}
 
 	if (bytes < ntohs(packet.ip.tot_len)) {
 		/* packet is bigger than sizeof(packet), we did partial read */
-		log1("oversized packet, ignoring");
+		log1s("oversized packet, ignoring");
 		return -2;
 	}
 
@@ -935,7 +935,7 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	/* || bytes > (int) sizeof(packet) - can't happen */
 	 || ntohs(packet.udp.len) != (uint16_t)(bytes - sizeof(packet.ip))
 	) {
-		log1("unrelated/bogus packet, ignoring");
+		log1s("unrelated/bogus packet, ignoring");
 		return -2;
 	}
 
@@ -943,7 +943,7 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	check = packet.ip.check;
 	packet.ip.check = 0;
 	if (check != inet_cksum((uint16_t *)&packet.ip, sizeof(packet.ip))) {
-		log1("bad IP header checksum, ignoring");
+		log1s("bad IP header checksum, ignoring");
 		return -2;
 	}
 
@@ -968,13 +968,13 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	check = packet.udp.check;
 	packet.udp.check = 0;
 	if (check && check != inet_cksum((uint16_t *)&packet, bytes)) {
-		log1("packet with bad UDP checksum received, ignoring");
+		log1s("packet with bad UDP checksum received, ignoring");
 		return -2;
 	}
  skip_udp_sum_check:
 
 	if (packet.data.cookie != htonl(DHCP_MAGIC)) {
-		bb_info_msg("packet with bad magic, ignoring");
+		bb_simple_info_msg("packet with bad magic, ignoring");
 		return -2;
 	}
 
@@ -1089,10 +1089,10 @@ static int udhcp_raw_socket(int ifindex)
 
 	if (setsockopt_1(fd, SOL_PACKET, PACKET_AUXDATA) != 0) {
 		if (errno != ENOPROTOOPT)
-			log1("can't set PACKET_AUXDATA on raw socket");
+			log1s("can't set PACKET_AUXDATA on raw socket");
 	}
 
-	log1("created raw socket");
+	log1s("created raw socket");
 
 	return fd;
 }
@@ -1120,7 +1120,7 @@ static void change_listen_mode(int new_mode)
 /* Called only on SIGUSR1 */
 static void perform_renew(void)
 {
-	bb_info_msg("performing DHCP renew");
+	bb_simple_info_msg("performing DHCP renew");
 	switch (client_data.state) {
 	case BOUND:
 		change_listen_mode(LISTEN_KERNEL);
@@ -1158,7 +1158,7 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 				inet_ntoa(temp_addr), buffer);
 		send_release(server_addr, requested_ip); /* unicast */
 	}
-	bb_info_msg("entering released state");
+	bb_simple_info_msg("entering released state");
 /*
  * We can be here on: SIGUSR2,
  * or on exit (SIGTERM) and -R "release on quit" is specified.
@@ -1303,7 +1303,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	);
 	if (opt & (OPT_h|OPT_H)) {
 		//msg added 2011-11
-		bb_error_msg("option -h NAME is deprecated, use -x hostname:NAME");
+		bb_simple_error_msg("option -h NAME is deprecated, use -x hostname:NAME");
 		client_data.hostname = alloc_dhcp_option(DHCP_HOST_NAME, str_h, 0);
 	}
 	if (opt & OPT_F) {
@@ -1397,7 +1397,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	/* Create pidfile */
 	write_pidfile(client_data.pidfile);
 	/* Goes to stdout (unless NOMMU) and possibly syslog */
-	bb_info_msg("started, v"BB_VER);
+	bb_simple_info_msg("started, v"BB_VER);
 	/* We want random_xid to be random... */
 	srand(monotonic_us());
 
@@ -1444,7 +1444,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Else: an error occurred, panic! */
-				bb_perror_msg_and_die("poll");
+				bb_simple_perror_msg_and_die("poll");
 			}
 		}
 
@@ -1485,7 +1485,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				udhcp_run_script(NULL, "leasefail");
 #if BB_MMU /* -b is not supported on NOMMU */
 				if (opt & OPT_b) { /* background if no lease */
-					bb_info_msg("no lease, forking to background");
+					bb_simple_info_msg("no lease, forking to background");
 					client_background();
 					/* do not background again! */
 					opt = ((opt & ~(OPT_b|OPT_n)) | OPT_f);
@@ -1498,7 +1498,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				} else
 #endif
 				if (opt & OPT_n) { /* abort if no lease */
-					bb_info_msg("no lease, failing");
+					bb_simple_info_msg("no lease, failing");
 					retval = 1;
 					goto ret;
 				}
@@ -1526,7 +1526,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				client_data.state = RENEWING;
 				client_data.first_secs = 0; /* make secs field count from 0 */
 				change_listen_mode(LISTEN_KERNEL);
-				log1("entering renew state");
+				log1s("entering renew state");
 				/* fall right through */
 			case RENEW_REQUESTED: /* manual (SIGUSR1) renew */
 			case_RENEW_REQUESTED:
@@ -1559,7 +1559,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					 */
 				}
 				/* Timed out or error, enter rebinding state */
-				log1("entering rebinding state");
+				log1s("entering rebinding state");
 				client_data.state = REBINDING;
 				/* fall right through */
 			case REBINDING:
@@ -1574,7 +1574,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Timed out, enter init state */
-				bb_info_msg("lease lost, entering init state");
+				bb_simple_info_msg("lease lost, entering init state");
 				udhcp_run_script(NULL, "deconfig");
 				client_data.state = INIT_SELECTING;
 				client_data.first_secs = 0; /* make secs field count from 0 */
@@ -1660,13 +1660,13 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		 || memcmp(packet.chaddr, client_data.client_mac, 6) != 0
 		) {
 //FIXME: need to also check that last 10 bytes are zero
-			log1("chaddr does not match, ignoring packet"); // log2?
+			log1("chaddr does not match%s", ", ignoring packet"); // log2?
 			continue;
 		}
 
 		message = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
 		if (message == NULL) {
-			bb_info_msg("no message type option, ignoring packet");
+			bb_info_msg("no message type option%s", ", ignoring packet");
 			continue;
 		}
 
@@ -1703,7 +1703,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				server_addr = 0;
 				temp = udhcp_get_option32(&packet, DHCP_SERVER_ID);
 				if (!temp) {
-					bb_info_msg("no server ID, using 0.0.0.0");
+					bb_simple_info_msg("no server ID, using 0.0.0.0");
 				} else {
 					/* it IS unaligned sometimes, don't "optimize" */
 					move_from_unaligned32(server_addr, temp);
@@ -1730,7 +1730,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 				temp = udhcp_get_option32(&packet, DHCP_LEASE_TIME);
 				if (!temp) {
-					bb_info_msg("no lease time with ACK, using 1 hour lease");
+					bb_simple_info_msg("no lease time with ACK, using 1 hour lease");
 					lease_seconds = 60 * 60;
 				} else {
 					/* it IS unaligned sometimes, don't "optimize" */
@@ -1763,7 +1763,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 							client_data.interface,
 							arpping_ms)
 					) {
-						bb_info_msg("offered address is in use "
+						bb_simple_info_msg("offered address is in use "
 							"(got ARP reply), declining");
 						send_decline(/*xid,*/ server_addr, packet.yiaddr);
 
@@ -1827,7 +1827,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					if (!temp) {
  non_matching_svid:
 						log1("received DHCP NAK with wrong"
-							" server ID, ignoring packet");
+							" server ID%s", ", ignoring packet");
 						continue;
 					}
 					move_from_unaligned32(svid, temp);

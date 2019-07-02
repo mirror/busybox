@@ -536,7 +536,7 @@ check_and_close(void)
 	}
 
 	if (ferror(stdout)) {
-		bb_error_msg_and_die(bb_msg_write_error);
+		bb_simple_error_msg_and_die(bb_msg_write_error);
 	}
 }
 
@@ -841,7 +841,7 @@ skip(off_t n_skip)
 	}
 
 	if (n_skip)
-		bb_error_msg_and_die("can't skip past end of combined input");
+		bb_simple_error_msg_and_die("can't skip past end of combined input");
 }
 
 
@@ -1308,10 +1308,10 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 					pseudo_start = o2;
 					argv[1] = NULL;
 				} else {
-					bb_error_msg_and_die("the last two arguments must be offsets");
+					bb_simple_error_msg_and_die("the last two arguments must be offsets");
 				}
 			} else { /* >3 args */
-				bb_error_msg_and_die("too many arguments");
+				bb_simple_error_msg_and_die("too many arguments");
 			}
 
 			if (pseudo_start >= 0) {
@@ -1332,7 +1332,7 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	if (option_mask32 & OPT_N) {
 		end_offset = n_bytes_to_skip + max_bytes_to_format;
 		if (end_offset < n_bytes_to_skip)
-			bb_error_msg_and_die("SKIP + SIZE is too large");
+			bb_simple_error_msg_and_die("SKIP + SIZE is too large");
 	}
 
 	if (G.n_specs == 0) {
@@ -1389,7 +1389,7 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 		dump(n_bytes_to_skip, end_offset);
 
 	if (fclose(stdin))
-		bb_perror_msg_and_die(bb_msg_standard_input);
+		bb_simple_perror_msg_and_die(bb_msg_standard_input);
 
 	return G.exit_code;
 }

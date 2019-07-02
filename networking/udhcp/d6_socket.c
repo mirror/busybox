@@ -115,7 +115,7 @@ int FAST_FUNC d6_listen_socket(int port, const char *inf)
 
 	setsockopt_reuseaddr(fd);
 	if (setsockopt_broadcast(fd) == -1)
-		bb_perror_msg_and_die("SO_BROADCAST");
+		bb_simple_perror_msg_and_die("SO_BROADCAST");
 
 	/* NB: bug 1032 says this doesn't work on ethernet aliases (ethN:M) */
 	if (setsockopt_bindtodevice(fd, inf))

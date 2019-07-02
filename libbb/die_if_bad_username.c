@@ -57,5 +57,5 @@ void FAST_FUNC die_if_bad_username(const char *name)
 	 * including the terminating null byte.
 	 */
 	if (name - start >= LOGIN_NAME_MAX)
-		bb_error_msg_and_die("name is too long");
+		bb_simple_error_msg_and_die("name is too long");
 }

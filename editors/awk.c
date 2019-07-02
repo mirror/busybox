@@ -2633,7 +2633,7 @@ static var *evaluate(node *op, var *res)
 					if (opn == '|') {
 						rsm->F = popen(R.s, "w");
 						if (rsm->F == NULL)
-							bb_perror_msg_and_die("popen");
+							bb_simple_perror_msg_and_die("popen");
 						rsm->is_pipe = 1;
 					} else {
 						rsm->F = xfopen(R.s, opn=='w' ? "w" : "a");
@@ -3246,7 +3246,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 	//argc -= optind;
 	if (opt & OPT_W)
-		bb_error_msg("warning: option -W is ignored");
+		bb_simple_error_msg("warning: option -W is ignored");
 	if (opt & OPT_F) {
 		unescape_string_in_place(opt_F);
 		setvar_s(intvar[FS], opt_F);

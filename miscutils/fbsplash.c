@@ -183,7 +183,7 @@ static void fb_open(const char *strfb_device)
 			(G.scr_var.yres_virtual ?: G.scr_var.yres) * G.scr_fix.line_length,
 			PROT_WRITE, MAP_SHARED, fbfd, 0);
 	if (G.addr == MAP_FAILED)
-		bb_perror_msg_and_die("mmap");
+		bb_simple_perror_msg_and_die("mmap");
 
 	// point to the start of the visible screen
 	G.addr += G.scr_var.yoffset * G.scr_fix.line_length + G.scr_var.xoffset * G.bytes_per_pixel;

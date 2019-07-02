@@ -343,9 +343,9 @@ static void prg_cache_load(void)
 		return;
 
 	if (prg_cache_loaded == 1)
-		bb_error_msg("can't scan /proc - are you root?");
+		bb_simple_error_msg("can't scan /proc - are you root?");
 	else
-		bb_error_msg("showing only processes with your user ID");
+		bb_simple_error_msg("showing only processes with your user ID");
 }
 
 #else

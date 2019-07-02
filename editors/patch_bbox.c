@@ -30,7 +30,7 @@ static unsigned copy_lines(FILE *src_stream, FILE *dst_stream, unsigned lines_co
 			break;
 		}
 		if (fputs(line, dst_stream) == EOF) {
-			bb_perror_msg_and_die("error writing to new file");
+			bb_simple_perror_msg_and_die("error writing to new file");
 		}
 		free(line);
 		lines_count--;
@@ -148,7 +148,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 
 		new_filename = extract_filename(patch_line, patch_level, "+++ ");
 		if (!new_filename) {
-			bb_error_msg_and_die("invalid patch");
+			bb_simple_error_msg_and_die("invalid patch");
 		}
 
 		/* Get access rights from the file to be patched */
@@ -209,7 +209,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 				/* src_beg_line will be 0 if it's a new file */
 				count = src_beg_line - src_cur_line;
 				if (copy_lines(src_stream, dst_stream, count)) {
-					bb_error_msg_and_die("bad src file");
+					bb_simple_error_msg_and_die("bad src file");
 				}
 				src_cur_line += count;
 				dst_cur_line += count;

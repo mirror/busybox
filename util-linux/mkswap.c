@@ -75,7 +75,7 @@ static void mkswap_selinux_setcontext(int fd, const char *path)
 	}
 	return;
  error:
-	bb_perror_msg_and_die("SELinux relabeling failed");
+	bb_simple_perror_msg_and_die("SELinux relabeling failed");
 }
 #else
 # define mkswap_selinux_setcontext(fd, path) ((void)0)
