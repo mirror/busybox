@@ -2018,7 +2018,7 @@ recv_and_process_peer_pkt(peer_t *p)
 
 #if ENABLE_FEATURE_NTP_AUTH
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE_MD5_AUTH && size != NTP_MSGSIZE_SHA1_AUTH) {
-		bb_error_msg("malformed packet received from %s", p->p_dotted);
+		bb_error_msg("malformed packet received from %s: size %u", p->p_dotted, (int)size);
 		return;
 	}
 	if (p->key_entry && hashes_differ(p, &msg)) {
@@ -2027,7 +2027,7 @@ recv_and_process_peer_pkt(peer_t *p)
 	}
 #else
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE_MD5_AUTH) {
-		bb_error_msg("malformed packet received from %s", p->p_dotted);
+		bb_error_msg("malformed packet received from %s: size %u", p->p_dotted, (int)size);
 		return;
 	}
 #endif
