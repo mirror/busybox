@@ -2436,7 +2436,8 @@ static NOINLINE void ntp_init(char **argv)
 			"d" /* compat */
 			"46aAbgL" /* compat, ignored */
 				"\0"
-				"dd:wn"  /* -d: counter; -p: list; -w implies -n */
+				"=0"      /* should have no arguments */
+				":dd:wn"  /* -d: counter; -p: list; -w implies -n */
 				IF_FEATURE_NTPD_SERVER(":Il") /* -I implies -l */
 			IF_FEATURE_NTP_AUTH(, &key_file_path)
 			, &peers, &G.script_name
