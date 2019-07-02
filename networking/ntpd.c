@@ -2238,6 +2238,13 @@ recv_and_process_client_pkt(void /*int fd*/)
 	from = xzalloc(to->len);
 
 	size = recv_from_to(G_listen_fd, &msg, sizeof(msg), MSG_DONTWAIT, from, &to->u.sa, to->len);
+
+	/* "ntpq -p" (4.2.8p13) sends a 12-byte NTPv2 request:
+	 * m_status is 0x16: leap:0 version:2 mode:6(reserved1)
+	 *  https://docs.ntpsec.org/latest/mode6.html
+	 * We don't support this.
+	 */
+
 #if ENABLE_FEATURE_NTP_AUTH
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE_MD5_AUTH && size != NTP_MSGSIZE_SHA1_AUTH)
 #else
