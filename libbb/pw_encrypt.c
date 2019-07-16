@@ -6,7 +6,9 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+#if !ENABLE_USE_BB_CRYPT
 #include <crypt.h>
+#endif
 #include "libbb.h"
 
 /* static const uint8_t ascii64[] ALIGN1 =
