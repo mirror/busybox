@@ -156,12 +156,13 @@ config FEATURE_PIDFILE
 config PID_FILE_PATH
 	string "Directory for pidfiles"
 	default "/var/run"
-	depends on FEATURE_PIDFILE
+	depends on FEATURE_PIDFILE || FEATURE_CROND_SPECIAL_TIMES
 	help
 	This is the default path where pidfiles are created.  Applets which
 	allow you to set the pidfile path on the command line will override
 	this value.  The option has no effect on applets that require you to
-	specify a pidfile path.
+	specify a pidfile path.  When crond has the 'Support special times'
+	option enabled, the 'crond.reboot' file is also stored here.
 
 config BUSYBOX
 	bool "Include busybox applet"
