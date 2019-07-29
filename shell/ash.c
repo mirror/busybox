@@ -13126,6 +13126,8 @@ expandstr(const char *ps, int syntax_type)
 	if (setjmp(jmploc.loc) == 0) {
 		exception_handler = &jmploc;
 		expandarg(&n, NULL, EXP_QUOTED);
+	} else if (exception_type == EXEXIT) {
+		exitshell();
 	}
 	exception_handler = savehandler;
 	RESTORE_INT(saveint);
