@@ -232,7 +232,7 @@ static HardLinkInfo *findHardLinkInfo(HardLinkInfo *hlInfo, struct stat *statbuf
 }
 
 /* Put an octal string into the specified buffer.
- * The number is zero padded and possibly null terminated.
+ * The number is zero padded and possibly NUL terminated.
  * Stores low-order bits only if whole value does not fit. */
 static void putOctal(char *cp, int len, off_t value)
 {
@@ -283,31 +283,32 @@ static void chksum_and_xwrite(int fd, struct tar_header_t* hp)
 # if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 static void writeLongname(int fd, int type, const char *name, int dir)
 {
-	static const struct {
+	struct prefilled {
 		char mode[8];             /* 100-107 */
 		char uid[8];              /* 108-115 */
 		char gid[8];              /* 116-123 */
 		char size[12];            /* 124-135 */
 		char mtime[12];           /* 136-147 */
-	} prefilled = {
-		"0000000",
-		"0000000",
-		"0000000",
-		"00000000000",
-		"00000000000",
 	};
 	struct tar_header_t header;
 	int size;
+
+	memset(&header, 0, sizeof(header));
+	header.typeflag = type;
+	strcpy(header.name, "././@LongLink");
+	/* This sets mode/uid/gid/mtime to "00...00<NUL>" strings */
+	memset(header.mode, '0', sizeof(struct prefilled));
+	header.mode [sizeof(header.mode ) - 1] = '\0';
+	header.uid  [sizeof(header.uid  ) - 1] = '\0';
+	header.gid  [sizeof(header.gid  ) - 1] = '\0';
+	/* header.size is filled by '0' now, will be corrected below */
+	header.mtime[sizeof(header.mtime) - 1] = '\0';
 
 	dir = !!dir; /* normalize: 0/1 */
 	size = strlen(name) + 1 + dir; /* GNU tar uses strlen+1 */
 	/* + dir: account for possible '/' */
 
-	memset(&header, 0, sizeof(header));
-	strcpy(header.name, "././@LongLink");
-	memcpy(header.mode, prefilled.mode, sizeof(prefilled));
 	PUT_OCTAL(header.size, size);
-	header.typeflag = type;
 	chksum_and_xwrite(fd, &header);
 
 	/* Write filename[/] and pad the block. */
