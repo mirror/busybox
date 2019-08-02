@@ -637,8 +637,14 @@ static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 		}
 		xmove_fd(data.rd, 0);
 		xmove_fd(tfd, 1);
-		/* exec gzip/bzip2 program/applet */
-		BB_EXECLP(gzip, gzip, "-f", (char *)0);
+
+		/* exec gzip/bzip2/... program */
+		//BB_EXECLP(gzip, gzip, "-f", (char *)0); - WRONG for "xz",
+		// if xz is an enabled applet, it'll be a version which
+		// can only decompress. We do need to execute external
+		// program, not applet.
+		execlp(gzip, gzip, "-f", (char *)0);
+
 		vfork_exec_errno = errno;
 		_exit(EXIT_FAILURE);
 	}
@@ -762,7 +768,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	IF_FEATURE_SEAMLESS_GZ("z")
 //usage:	IF_FEATURE_SEAMLESS_XZ("J")
 //usage:	IF_FEATURE_SEAMLESS_BZ2("j")
-//usage:	IF_FEATURE_SEAMLESS_LZMA("a")
+//usage:	"a"
 //usage:	IF_FEATURE_TAR_CREATE("h")
 //usage:	IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 //usage:	"vokO] "
@@ -801,9 +807,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	IF_FEATURE_SEAMLESS_BZ2(
 //usage:     "\n	-j	(De)compress using bzip2"
 //usage:	)
-//usage:	IF_FEATURE_SEAMLESS_LZMA(
-//usage:     "\n	-a	(De)compress using lzma"
-//usage:	)
+//usage:     "\n	-a	(De)compress based on extension"
 //usage:	IF_FEATURE_TAR_CREATE(
 //usage:     "\n	-h	Follow symlinks"
 //usage:	)
@@ -820,6 +824,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:       "$ tar -cf /tmp/tarball.tar /usr/local\n"
 
 // Supported but aren't in --help:
+//	lzma
 //	no-recursion
 //	numeric-owner
 //	no-same-permissions
@@ -833,15 +838,16 @@ enum {
 	IF_FEATURE_TAR_CREATE(   OPTBIT_CREATE      ,)
 	IF_FEATURE_TAR_CREATE(   OPTBIT_DEREFERENCE ,)
 	IF_FEATURE_SEAMLESS_BZ2( OPTBIT_BZIP2       ,)
-	IF_FEATURE_SEAMLESS_LZMA(OPTBIT_LZMA        ,)
 	IF_FEATURE_TAR_FROM(     OPTBIT_INCLUDE_FROM,)
 	IF_FEATURE_TAR_FROM(     OPTBIT_EXCLUDE_FROM,)
 	IF_FEATURE_SEAMLESS_GZ(  OPTBIT_GZIP        ,)
-	IF_FEATURE_SEAMLESS_XZ(  OPTBIT_XZ          ,) // 16th bit
-	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,)
+	IF_FEATURE_SEAMLESS_XZ(  OPTBIT_XZ          ,)
+	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,) // 16th bit
+	OPTBIT_AUTOCOMPRESS_BY_EXT,
 	IF_FEATURE_TAR_NOPRESERVE_TIME(OPTBIT_NOPRESERVE_TIME,)
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	OPTBIT_STRIP_COMPONENTS,
+	IF_FEATURE_SEAMLESS_LZMA(OPTBIT_LZMA        ,)
 	OPTBIT_NORECURSION,
 	IF_FEATURE_TAR_TO_COMMAND(OPTBIT_2COMMAND   ,)
 	OPTBIT_NUMERIC_OWNER,
@@ -860,14 +866,15 @@ enum {
 	OPT_CREATE       = IF_FEATURE_TAR_CREATE(   (1 << OPTBIT_CREATE      )) + 0, // c
 	OPT_DEREFERENCE  = IF_FEATURE_TAR_CREATE(   (1 << OPTBIT_DEREFERENCE )) + 0, // h
 	OPT_BZIP2        = IF_FEATURE_SEAMLESS_BZ2( (1 << OPTBIT_BZIP2       )) + 0, // j
-	OPT_LZMA         = IF_FEATURE_SEAMLESS_LZMA((1 << OPTBIT_LZMA        )) + 0, // a
 	OPT_INCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_INCLUDE_FROM)) + 0, // T
 	OPT_EXCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_EXCLUDE_FROM)) + 0, // X
 	OPT_GZIP         = IF_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
 	OPT_XZ           = IF_FEATURE_SEAMLESS_XZ(  (1 << OPTBIT_XZ          )) + 0, // J
 	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
+	OPT_AUTOCOMPRESS_BY_EXT = 1 << OPTBIT_AUTOCOMPRESS_BY_EXT,                   // a
 	OPT_NOPRESERVE_TIME  = IF_FEATURE_TAR_NOPRESERVE_TIME((1 << OPTBIT_NOPRESERVE_TIME)) + 0, // m
 	OPT_STRIP_COMPONENTS = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_STRIP_COMPONENTS)) + 0, // strip-components
+	OPT_LZMA             = IF_FEATURE_TAR_LONG_OPTIONS(IF_FEATURE_SEAMLESS_LZMA((1 << OPTBIT_LZMA))) + 0, // lzma
 	OPT_NORECURSION      = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NORECURSION    )) + 0, // no-recursion
 	OPT_2COMMAND         = IF_FEATURE_TAR_TO_COMMAND(  (1 << OPTBIT_2COMMAND       )) + 0, // to-command
 	OPT_NUMERIC_OWNER    = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NUMERIC_OWNER  )) + 0, // numeric-owner
@@ -897,9 +904,6 @@ static const char tar_longopts[] ALIGN1 =
 # if ENABLE_FEATURE_SEAMLESS_BZ2
 	"bzip2\0"               No_argument       "j"
 # endif
-# if ENABLE_FEATURE_SEAMLESS_LZMA
-	"lzma\0"                No_argument       "a"
-# endif
 # if ENABLE_FEATURE_TAR_FROM
 	"files-from\0"          Required_argument "T"
 	"exclude-from\0"        Required_argument "X"
@@ -913,10 +917,14 @@ static const char tar_longopts[] ALIGN1 =
 # if ENABLE_FEATURE_SEAMLESS_Z
 	"compress\0"            No_argument       "Z"
 # endif
+	"auto-compress\0"       No_argument       "a"
 # if ENABLE_FEATURE_TAR_NOPRESERVE_TIME
 	"touch\0"               No_argument       "m"
 # endif
-	"strip-components\0"	Required_argument "\xf9"
+	"strip-components\0"	Required_argument "\xf8"
+# if ENABLE_FEATURE_SEAMLESS_LZMA
+	"lzma\0"                No_argument       "\xf9"
+# endif
 	"no-recursion\0"	No_argument       "\xfa"
 # if ENABLE_FEATURE_TAR_TO_COMMAND
 	"to-command\0"		Required_argument "\xfb"
@@ -1005,13 +1013,13 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		"txC:f:Oopvk"
 		IF_FEATURE_TAR_CREATE(   "ch"    )
 		IF_FEATURE_SEAMLESS_BZ2( "j"     )
-		IF_FEATURE_SEAMLESS_LZMA("a"     )
 		IF_FEATURE_TAR_FROM(     "T:*X:*")
 		IF_FEATURE_SEAMLESS_GZ(  "z"     )
 		IF_FEATURE_SEAMLESS_XZ(  "J"     )
 		IF_FEATURE_SEAMLESS_Z(   "Z"     )
+		"a"
 		IF_FEATURE_TAR_NOPRESERVE_TIME("m")
-		IF_FEATURE_TAR_LONG_OPTIONS("\xf9:") // --strip-components
+		IF_FEATURE_TAR_LONG_OPTIONS("\xf8:") // --strip-components
 		"\0"
 		"tt:vv:" // count -t,-v
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS && ENABLE_FEATURE_TAR_FROM
@@ -1040,7 +1048,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		);
 #if DBG_OPTION_PARSING
 	bb_error_msg("opt: 0x%08x", opt);
-# define showopt(o) bb_error_msg("opt & %s(%x): %x", #o, o, opt & o);
+# define showopt(o) bb_error_msg("opt & %s(%x):\t%x", #o, o, opt & o);
 	showopt(OPT_TEST            );
 	showopt(OPT_EXTRACT         );
 	showopt(OPT_BASEDIR         );
@@ -1053,14 +1061,15 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	showopt(OPT_CREATE          );
 	showopt(OPT_DEREFERENCE     );
 	showopt(OPT_BZIP2           );
-	showopt(OPT_LZMA            );
 	showopt(OPT_INCLUDE_FROM    );
 	showopt(OPT_EXCLUDE_FROM    );
 	showopt(OPT_GZIP            );
 	showopt(OPT_XZ              );
 	showopt(OPT_COMPRESS        );
+	showopt(OPT_AUTOCOMPRESS_BY_EXT);
 	showopt(OPT_NOPRESERVE_TIME );
 	showopt(OPT_STRIP_COMPONENTS);
+	showopt(OPT_LZMA            );
 	showopt(OPT_NORECURSION     );
 	showopt(OPT_2COMMAND        );
 	showopt(OPT_NUMERIC_OWNER   );
@@ -1179,6 +1188,21 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 				bb_perror_msg_and_die("can't open '%s'", tar_filename);
 		} else {
 			tar_handle->src_fd = xopen(tar_filename, flags);
+#if ENABLE_FEATURE_TAR_CREATE
+			if ((OPT_GZIP | OPT_BZIP2 | OPT_XZ | OPT_LZMA) != 0 /* at least one is config-enabled */
+			 && (opt & OPT_AUTOCOMPRESS_BY_EXT)
+			 && flags != O_RDONLY
+			) {
+				if (OPT_GZIP != 0 && is_suffixed_with(tar_filename, "gz"))
+					opt |= OPT_GZIP;
+				if (OPT_BZIP2 != 0 && is_suffixed_with(tar_filename, "bz2"))
+					opt |= OPT_BZIP2;
+				if (OPT_XZ != 0 && is_suffixed_with(tar_filename, "xz"))
+					opt |= OPT_XZ;
+				if (OPT_LZMA != 0 && is_suffixed_with(tar_filename, "lzma"))
+					opt |= OPT_LZMA;
+			}
+#endif
 		}
 	}
 
