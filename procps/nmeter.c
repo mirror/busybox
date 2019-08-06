@@ -351,7 +351,7 @@ static s_stat* init_cr(const char *param UNUSED_PARAM)
 enum { CPU_FIELDCNT = 7 };
 S_STAT(cpu_stat)
 	ullong old[CPU_FIELDCNT];
-	int bar_sz;
+	unsigned bar_sz;
 	char bar[1];
 S_STAT_END(cpu_stat)
 
@@ -360,8 +360,8 @@ static void FAST_FUNC collect_cpu(cpu_stat *s)
 	ullong data[CPU_FIELDCNT] = { 0, 0, 0, 0, 0, 0, 0 };
 	unsigned frac[CPU_FIELDCNT] = { 0, 0, 0, 0, 0, 0, 0 };
 	ullong all = 0;
-	int norm_all = 0;
-	int bar_sz = s->bar_sz;
+	unsigned norm_all = 0;
+	unsigned bar_sz = s->bar_sz;
 	char *bar = s->bar;
 	int i;
 
@@ -420,8 +420,8 @@ static s_stat* init_cpu(const char *param)
 {
 	int sz;
 	cpu_stat *s;
-	sz = strtoul(param, NULL, 0); /* param can be "" */
-	if (sz < 10) sz = 10;
+	sz = param[0] ? strtoul(param, NULL, 0) : 10;
+	if (sz <= 0) sz = 1;
 	if (sz > 1000) sz = 1000;
 	s = xzalloc(sizeof(*s) + sz);
 	/*s->bar[sz] = '\0'; - xzalloc did it */
