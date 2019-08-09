@@ -34,7 +34,7 @@ struct d6_packet {
 		uint8_t d6_msg_type;
 		uint32_t d6_xid32;
 	} d6_u;
-	uint8_t d6_options[576 - sizeof(struct iphdr) - sizeof(struct udphdr) - 4
+	uint8_t d6_options[576 - sizeof(struct ip6_hdr) - sizeof(struct udphdr) - 4
 			+ CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
 } PACKED;
 #define d6_msg_type d6_u.d6_msg_type
