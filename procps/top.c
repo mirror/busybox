@@ -979,6 +979,9 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 		IF_FEATURE_TOPMEM(&& scan_mask != TOPMEM_MASK)
 		) {
 			scan_mask ^= PSSCAN_TASKS;
+			free(prev_hist);
+			prev_hist = NULL;
+			prev_hist_count = 0;
 			continue;
 		}
 # endif
@@ -1000,10 +1003,10 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 #  if ENABLE_FEATURE_TOPMEM
 		if (c == 's') {
 			scan_mask = TOPMEM_MASK;
+			sort_field = (sort_field + 1) % NUM_SORT_FIELD;
 			free(prev_hist);
 			prev_hist = NULL;
 			prev_hist_count = 0;
-			sort_field = (sort_field + 1) % NUM_SORT_FIELD;
 			continue;
 		}
 #  endif
