@@ -53,7 +53,6 @@ case "$1" in
 			done
 		fi
 
-		echo "Recreating $RESOLV_CONF"
 		# If the file is a symlink somewhere (like /etc/resolv.conf
 		# pointing to /run/resolv.conf), make sure things work.
 		if test -L "$RESOLV_CONF"; then
@@ -61,6 +60,7 @@ case "$1" in
 			test -e "$RESOLV_CONF" || touch "$RESOLV_CONF"
 		fi
 		realconf=$(readlink -f "$RESOLV_CONF" 2>/dev/null || echo "$RESOLV_CONF")
+		echo "Recreating $realconf"
 		tmpfile="$realconf-$$"
 		> "$tmpfile"
 		[ -n "$domain" ] && echo "search $domain" >> "$tmpfile"
