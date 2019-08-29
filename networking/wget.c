@@ -1109,7 +1109,7 @@ static void download_one_url(const char *url)
 		 * We are not sure it exists on remote side */
 	}
 
-	redir_limit = 5;
+	redir_limit = 16;
  resolve_lsa:
 	lsa = xhost2sockaddr(server.host, server.port);
 	if (!(option_mask32 & WGET_OPT_QUIET)) {
