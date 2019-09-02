@@ -52,7 +52,7 @@ aa:      85.1% -- replaced with aa.gz
 //config:	help
 //config:	Enable support for compression levels 4-9. The default level
 //config:	is 6. If levels 1-3 are specified, 4 is used.
-//config:	If this option is not selected, -N options are ignored and -9
+//config:	If this option is not selected, -N options are ignored and -6
 //config:	is used.
 //config:
 //config:config FEATURE_GZIP_DECOMPRESS
@@ -259,13 +259,13 @@ enum {
 
 #if !ENABLE_FEATURE_GZIP_LEVELS
 
-	comp_level = 9,
-	max_chain_length = 4096,
+	comp_level = 6,
+	max_chain_length = 128,
 /* To speed up deflation, hash chains are never searched beyond this length.
  * A higher limit improves compression ratio but degrades the speed.
  */
 
-	max_lazy_match = 258,
+	max_lazy_match = 16,
 /* Attempt to find a better match only when the current match is strictly
  * smaller than this value. This mechanism is used only for compression
  * levels >= 4.
@@ -277,7 +277,7 @@ enum {
  * max_insert_length is used only for compression levels <= 3.
  */
 
-	good_match = 32,
+	good_match = 8,
 /* Use a faster search when the previous match is longer than this */
 
 /* Values for max_lazy_match, good_match and max_chain_length, depending on
@@ -286,7 +286,7 @@ enum {
  * found for specific files.
  */
 
-	nice_match = 258,	/* Stop searching when current match exceeds this */
+	nice_match = 128,	/* Stop searching when current match exceeds this */
 /* Note: the deflate() code requires max_lazy >= MIN_MATCH and max_chain >= 4
  * For deflate_fast() (levels <= 3) good is ignored and lazy has a different
  * meaning.
