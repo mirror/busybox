@@ -259,6 +259,7 @@ enum {
 
 #if !ENABLE_FEATURE_GZIP_LEVELS
 
+	comp_level = 9,
 	max_chain_length = 4096,
 /* To speed up deflation, hash chains are never searched beyond this length.
  * A higher limit improves compression ratio but degrades the speed.
@@ -334,14 +335,16 @@ struct globals {
 #define head (G1.prev + WSIZE) /* hash head (see deflate.c) */
 
 #if ENABLE_FEATURE_GZIP_LEVELS
+	unsigned comp_level;
 	unsigned max_chain_length;
 	unsigned max_lazy_match;
 	unsigned good_match;
 	unsigned nice_match;
+#define comp_level       (G1.comp_level)
 #define max_chain_length (G1.max_chain_length)
 #define max_lazy_match   (G1.max_lazy_match)
-#define good_match	 (G1.good_match)
-#define nice_match	 (G1.nice_match)
+#define good_match       (G1.good_match)
+#define nice_match       (G1.nice_match)
 #endif
 
 /* =========================================================================== */
@@ -1919,7 +1922,7 @@ static void bi_init(void)
 /* ===========================================================================
  * Initialize the "longest match" routines for a new file
  */
-static void lm_init(unsigned *flags16p)
+static void lm_init(void)
 {
 	unsigned j;
 
@@ -1927,8 +1930,6 @@ static void lm_init(unsigned *flags16p)
 	memset(head, 0, HASH_SIZE * sizeof(*head));
 	/* prev will be initialized on the fly */
 
-	/* speed options for the general purpose bit flag */
-	*flags16p |= 2;	/* FAST 4, SLOW 2 */
 	/* ??? reduce max_chain_length for binary files */
 
 	//G1.strstart = 0; // globals are zeroed in pack_gzip()
@@ -2076,10 +2077,16 @@ static void zip(void)
 
 	bi_init();
 	ct_init();
-	deflate_flags = 0;  /* pkzip -es, -en or -ex equivalent */
-	lm_init(&deflate_flags);
+	lm_init();
 
-	put_16bit(deflate_flags | 0x300); /* extra flags. OS id = 3 (Unix) */
+	deflate_flags = 0x300; /* extra flags. OS id = 3 (Unix) */
+#if ENABLE_FEATURE_GZIP_LEVELS
+	/* Note that comp_level < 4 do not exist in this version of gzip */
+	if (comp_level == 9) {
+		deflate_flags |= 0x02; /* SLOW flag */
+	}
+#endif
+	put_16bit(deflate_flags);
 
 	/* The above 32-bit misaligns outbuf (10 bytes are stored), flush it */
 	flush_outbuf_if_32bit_optimized();
@@ -2224,6 +2231,9 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	if (opt == 0)
 		opt = 1 << 5; /* default: 6 */
 	opt = ffs(opt >> 4); /* Maps -1..-4 to [0], -5 to [1] ... -9 to [5] */
+
+	comp_level = opt + 4;
+
 	max_chain_length = 1 << gzip_level_config[opt].chain_shift;
 	good_match	 = gzip_level_config[opt].good;
 	max_lazy_match	 = gzip_level_config[opt].lazy2 * 2;
