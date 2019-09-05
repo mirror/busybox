@@ -12393,7 +12393,13 @@ checkend: {
 		for (p = eofmark; STPUTC(c, out), *p; p++) {
 			if (c != *p)
 				goto more_heredoc;
-
+			/* FIXME: fails for backslash-newlined terminator:
+			 * cat <<EOF
+			 * ...
+			 * EO\
+			 * F
+			 * (see heredoc_bkslash_newline2.tests)
+			 */
 			c = pgetc_without_PEOA();
 		}
 
