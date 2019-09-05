@@ -4973,7 +4973,9 @@ static void dc_parse_string(void)
 	xc_parse_pushInst_and_Index(XC_INST_STR, len);
 	bc_vec_push(&G.prog.strs, &str);
 
-	// Explanation needed here
+	// Add an empty function so that if zdc_program_execStr ever needs to
+	// parse the string into code (from the 'x' command) there's somewhere
+	// to store the bytecode.
 	xc_program_add_fn();
 	p->func = xc_program_func(p->fidx);
 
@@ -6398,7 +6400,11 @@ static BC_STATUS zdc_program_asciify(void)
 	str = xzalloc(2);
 	str[0] = c;
 	//str[1] = '\0'; - already is
-	bc_vec_push(&G.prog.strs, &str);
+	idx = bc_vec_push(&G.prog.strs, &str);
+	// Add an empty function so that if zdc_program_execStr ever needs to
+	// parse the string into code (from the 'x' command) there's somewhere
+	// to store the bytecode.
+	xc_program_add_fn();
  dup:
 	res.t = XC_RESULT_STR;
 	res.d.id.idx = idx;
