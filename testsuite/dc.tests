@@ -54,6 +54,11 @@ testing "dc: x should not execute or pop non-strings" \
 	"42\n" \
 	"" ""
 
+testing "dc: x should work with strings created from a" \
+	"dc -e'42 112 a x'" \
+	"42\n" \
+	"" ""
+
 testing "dc read" \
 	"dc -finput" \
 	"2\n9\n1\n" \
