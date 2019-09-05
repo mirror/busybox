@@ -6521,7 +6521,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 			if (s || !BC_PROG_STR(n)) goto exit;
 			sidx = n->rdx;
 		} else
-			goto exit;
+			goto exit_nopop;
 	}
 
 	fidx = sidx + BC_PROG_REQ_FUNCS;
@@ -6561,6 +6561,7 @@ static BC_STATUS zdc_program_execStr(char *code, size_t *bgn, bool cond)
 	RETURN_STATUS(BC_STATUS_SUCCESS);
  exit:
 	bc_vec_pop(&G.prog.results);
+ exit_nopop:
 	RETURN_STATUS(s);
 }
 #define zdc_program_execStr(...) (zdc_program_execStr(__VA_ARGS__) COMMA_SUCCESS)

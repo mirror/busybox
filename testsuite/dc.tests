@@ -44,6 +44,16 @@ testing "dc complex without spaces (multiple args)" \
 optional FEATURE_DC_BIG
 # All tests below depend on FEATURE_DC_BIG
 
+testing "dc: x should execute strings" \
+	"dc -e'[40 2 +] x f'" \
+	"42\n" \
+	"" ""
+
+testing "dc: x should not execute or pop non-strings" \
+	"dc -e'42 x f'" \
+	"42\n" \
+	"" ""
+
 testing "dc read" \
 	"dc -finput" \
 	"2\n9\n1\n" \
