@@ -259,7 +259,7 @@ enum {
 
 #if !ENABLE_FEATURE_GZIP_LEVELS
 
-	comp_level = 6,
+	comp_level_minus4 = 6 - 4,
 	max_chain_length = 128,
 /* To speed up deflation, hash chains are never searched beyond this length.
  * A higher limit improves compression ratio but degrades the speed.
@@ -335,16 +335,16 @@ struct globals {
 #define head (G1.prev + WSIZE) /* hash head (see deflate.c) */
 
 #if ENABLE_FEATURE_GZIP_LEVELS
-	unsigned comp_level;
+	unsigned comp_level_minus4;	/* can be a byte */
 	unsigned max_chain_length;
 	unsigned max_lazy_match;
 	unsigned good_match;
 	unsigned nice_match;
-#define comp_level       (G1.comp_level)
-#define max_chain_length (G1.max_chain_length)
-#define max_lazy_match   (G1.max_lazy_match)
-#define good_match       (G1.good_match)
-#define nice_match       (G1.nice_match)
+#define comp_level_minus4 (G1.comp_level_minus4)
+#define max_chain_length  (G1.max_chain_length)
+#define max_lazy_match    (G1.max_lazy_match)
+#define good_match        (G1.good_match)
+#define nice_match        (G1.nice_match)
 #endif
 
 /* =========================================================================== */
@@ -2082,7 +2082,7 @@ static void zip(void)
 	deflate_flags = 0x300; /* extra flags. OS id = 3 (Unix) */
 #if ENABLE_FEATURE_GZIP_LEVELS
 	/* Note that comp_level < 4 do not exist in this version of gzip */
-	if (comp_level == 9) {
+	if (comp_level_minus4 == 9 - 4) {
 		deflate_flags |= 0x02; /* SLOW flag */
 	}
 #endif
@@ -2232,7 +2232,7 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 		opt = 1 << 5; /* default: 6 */
 	opt = ffs(opt >> 4); /* Maps -1..-4 to [0], -5 to [1] ... -9 to [5] */
 
-	comp_level = opt + 4;
+	comp_level_minus4 = opt;
 
 	max_chain_length = 1 << gzip_level_config[opt].chain_shift;
 	good_match	 = gzip_level_config[opt].good;
