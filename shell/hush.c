@@ -9824,9 +9824,12 @@ static int set_mode(int state, char mode, const char *o_opt)
 		IF_HUSH_MODE_X(G_x_mode = state;)
 		IF_HUSH_MODE_X(if (G.x_mode_fd <= 0) G.x_mode_fd = dup_CLOEXEC(2, 10);)
 		break;
+	case 'e':
+		G.o_opt[OPT_O_ERREXIT] = state;
+		break;
 	case 'o':
 		if (!o_opt) {
-			/* "set -+o" without parameter.
+			/* "set -o" or "set +o" without parameter.
 			 * in bash, set -o produces this output:
 			 *  pipefail        off
 			 * and set +o:
@@ -9847,9 +9850,7 @@ static int set_mode(int state, char mode, const char *o_opt)
 			G.o_opt[idx] = state;
 			break;
 		}
-	case 'e':
-		G.o_opt[OPT_O_ERREXIT] = state;
-		break;
+		/* fall through to error */
 	default:
 		return EXIT_FAILURE;
 	}
@@ -10931,8 +10932,10 @@ static int FAST_FUNC builtin_set(char **argv)
 		if (arg[0] != '+' && arg[0] != '-')
 			break;
 		for (n = 1; arg[n]; ++n) {
-			if (set_mode((arg[0] == '-'), arg[n], argv[1]))
-				goto error;
+			if (set_mode((arg[0] == '-'), arg[n], argv[1])) {
+				bb_error_msg("%s: %s: invalid option", "set", arg);
+				return EXIT_FAILURE;
+			}
 			if (arg[n] == 'o' && argv[1])
 				argv++;
 		}
@@ -10962,11 +10965,6 @@ static int FAST_FUNC builtin_set(char **argv)
 	G.global_argc = 1 + string_array_len(pp + 1);
 
 	return EXIT_SUCCESS;
-
-	/* Nothing known, so abort */
- error:
-	bb_error_msg("%s: %s: invalid option", "set", arg);
-	return EXIT_FAILURE;
 }
 #endif
 
