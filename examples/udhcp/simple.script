@@ -16,9 +16,10 @@ BROADCAST="broadcast +"
 
 case "$1" in
 	deconfig)
-		echo "Setting IP address 0.0.0.0 on $interface"
+		echo "Clearing IP addresses on $interface, upping it"
 		if command -v ip >/dev/null; then
 			ip addr flush dev $interface
+			ip link set dev $interface up
 		else
 			ifconfig $interface 0.0.0.0
 		fi
