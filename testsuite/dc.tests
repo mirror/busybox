@@ -59,6 +59,26 @@ testing "dc: x should work with strings created from a" \
 	"42\n" \
 	"" ""
 
+testing "dc: p should print invalid escapes" \
+	"dc -e '[\q] p'" \
+	"\\q\n" \
+	"" ""
+
+testing "dc: p should print trailing backslashes" \
+	"dc -e '[q\] p'" \
+	"q\\\\\n" \
+	"" ""
+
+testing "dc: p should parse/print single backslashes" \
+	"dc -e '[\] p'" \
+	"\\\\\n" \
+	"" ""
+
+testing "dc: p should print single backslash strings" \
+	"dc -e '92 a p'" \
+	"\\\\\n" \
+	"" ""
+
 testing "dc read" \
 	"dc -finput" \
 	"2\n9\n1\n" \

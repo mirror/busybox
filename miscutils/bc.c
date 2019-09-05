@@ -5456,11 +5456,13 @@ static void xc_program_printString(const char *str)
 			char *n;
 
 			c = *str++;
-			n = strchr(esc, c); // note: c can be NUL
-			if (!n) {
+			n = strchr(esc, c); // note: if c is NUL, n = \0 at end of esc
+			if (!n || !c) {
 				// Just print the backslash and following character
 				bb_putchar('\\');
 				++G.prog.nchars;
+				// But if we're at the end of the string, stop
+				if (!c) break;
 			} else {
 				if (n - esc == 0) // "\n" ?
 					G.prog.nchars = SIZE_MAX;
