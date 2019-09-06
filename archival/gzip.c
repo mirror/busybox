@@ -507,7 +507,7 @@ static ALWAYS_INLINE void flush_outbuf_if_32bit_optimized(void)
  * pointer, then initialize the crc shift register contents instead.
  * Return the current crc in either case.
  */
-static void updcrc(uch * s, unsigned n)
+static void updcrc(uch *s, unsigned n)
 {
 	G1.crc = crc32_block_endian0(G1.crc, s, n, global_crc32_table /*G1.crc_32_tab*/);
 }
@@ -610,7 +610,7 @@ static void bi_windup(void)
  * Copy a stored block to the zip file, storing first the length and its
  * one's complement if requested.
  */
-static void copy_block(char *buf, unsigned len, int header)
+static void copy_block(const char *buf, unsigned len, int header)
 {
 	bi_windup();		/* align on byte boundary */
 
@@ -1010,7 +1010,8 @@ struct globals2 {
 	tree_desc d_desc;
 	tree_desc bl_desc;
 
-	ush bl_count[MAX_BITS + 1];
+	/* was "ush", but "unsigned" results in smaller code */
+	unsigned bl_count[MAX_BITS + 1];
 
 /* The lengths of the bit length codes are sent in order of decreasing
  * probability, to avoid transmitting the lengths for unused bit length codes.
@@ -1121,7 +1122,7 @@ static void init_block(void)
 	(tree[n].Freq < tree[m].Freq \
 	|| (tree[n].Freq == tree[m].Freq && G2.depth[n] <= G2.depth[m]))
 
-static void pqdownheap(ct_data * tree, int k)
+static void pqdownheap(const ct_data *tree, int k)
 {
 	int v = G2.heap[k];
 	int j = k << 1;		/* left son of k */
@@ -1155,22 +1156,15 @@ static void pqdownheap(ct_data * tree, int k)
  *     The length opt_len is updated; static_len is also updated if stree is
  *     not null.
  */
-static void gen_bitlen(tree_desc * desc)
+static void gen_bitlen(const tree_desc *desc)
 {
-	ct_data *tree = desc->dyn_tree;
-	const uint8_t *extra = desc->extra_bits;
-	int base = desc->extra_base;
-	int max_code = desc->max_code;
-	int max_length = desc->max_length;
-	ct_data *stree = desc->static_tree;
-	int h;				/* heap index */
-	int n, m;			/* iterate over the tree elements */
-	int bits;			/* bit length */
-	int xbits;			/* extra bits */
-	ush f;				/* frequency */
-	int overflow = 0;	/* number of elements with bit length too large */
+#define tree desc->dyn_tree
+	int h;          /* heap index */
+	int n, m;       /* iterate over the tree elements */
+	int bits;       /* bit length */
+	int overflow;   /* number of elements with bit length too large */
 
-	for (bits = 0; bits <= MAX_BITS; bits++)
+	for (bits = 0; bits < ARRAY_SIZE(G2.bl_count); bits++)
 		G2.bl_count[bits] = 0;
 
 	/* In a first pass, compute the optimal bit lengths (which may
@@ -1178,28 +1172,32 @@ static void gen_bitlen(tree_desc * desc)
 	 */
 	tree[G2.heap[G2.heap_max]].Len = 0;	/* root of the heap */
 
+	overflow = 0;
 	for (h = G2.heap_max + 1; h < HEAP_SIZE; h++) {
+		ulg f;          /* frequency */
+		int xbits;      /* extra bits */
+
 		n = G2.heap[h];
 		bits = tree[tree[n].Dad].Len + 1;
-		if (bits > max_length) {
-			bits = max_length;
+		if (bits > desc->max_length) {
+			bits = desc->max_length;
 			overflow++;
 		}
 		tree[n].Len = (ush) bits;
 		/* We overwrite tree[n].Dad which is no longer needed */
 
-		if (n > max_code)
+		if (n > desc->max_code)
 			continue;	/* not a leaf node */
 
 		G2.bl_count[bits]++;
 		xbits = 0;
-		if (n >= base)
-			xbits = extra[n - base];
+		if (n >= desc->extra_base)
+			xbits = desc->extra_bits[n - desc->extra_base];
 		f = tree[n].Freq;
-		G2.opt_len += (ulg) f *(bits + xbits);
+		G2.opt_len += f * (bits + xbits);
 
-		if (stree)
-			G2.static_len += (ulg) f * (stree[n].Len + xbits);
+		if (desc->static_tree)
+			G2.static_len += f * (desc->static_tree[n].Len + xbits);
 	}
 	if (overflow == 0)
 		return;
@@ -1209,14 +1207,14 @@ static void gen_bitlen(tree_desc * desc)
 
 	/* Find the first bit length which could increase: */
 	do {
-		bits = max_length - 1;
+		bits = desc->max_length - 1;
 		while (G2.bl_count[bits] == 0)
 			bits--;
 		G2.bl_count[bits]--;	/* move one leaf down the tree */
 		G2.bl_count[bits + 1] += 2;	/* move one overflow item as its brother */
-		G2.bl_count[max_length]--;
+		G2.bl_count[desc->max_length]--;
 		/* The brother of the overflow item also moves one step up,
-		 * but this does not affect bl_count[max_length]
+		 * but this does not affect bl_count[desc->max_length]
 		 */
 		overflow -= 2;
 	} while (overflow > 0);
@@ -1226,11 +1224,11 @@ static void gen_bitlen(tree_desc * desc)
 	 * lengths instead of fixing only the wrong ones. This idea is taken
 	 * from 'ar' written by Haruhiko Okumura.)
 	 */
-	for (bits = max_length; bits != 0; bits--) {
+	for (bits = desc->max_length; bits != 0; bits--) {
 		n = G2.bl_count[bits];
 		while (n != 0) {
 			m = G2.heap[--h];
-			if (m > max_code)
+			if (m > desc->max_code)
 				continue;
 			if (tree[m].Len != (unsigned) bits) {
 				Trace((stderr, "code %d bits %d->%d\n", m, tree[m].Len, bits));
@@ -1240,6 +1238,7 @@ static void gen_bitlen(tree_desc * desc)
 			n--;
 		}
 	}
+#undef tree
 }
 
 /* ===========================================================================
@@ -1250,12 +1249,13 @@ static void gen_bitlen(tree_desc * desc)
  * OUT assertion: the field code is set for all tree elements of non
  *     zero code length.
  */
-static void gen_codes(ct_data * tree, int max_code)
+static void gen_codes(ct_data *tree, int max_code)
 {
-	ush next_code[MAX_BITS + 1];	/* next code value for each bit length */
-	ush code = 0;		/* running code value */
-	int bits;			/* bit index */
-	int n;				/* code index */
+	/* next_code[] and code used to be "ush", but "unsigned" results in smaller code */
+	unsigned next_code[MAX_BITS + 1]; /* next code value for each bit length */
+	unsigned code = 0;      /* running code value */
+	int bits;               /* bit index */
+	int n;                  /* code index */
 
 	/* The distribution counts are first used to generate the code values
 	 * without bit reversal.
@@ -1307,7 +1307,7 @@ do { \
 	pqdownheap(tree, SMALLEST); \
 } while (0)
 
-static void build_tree(tree_desc * desc)
+static void build_tree(tree_desc *desc)
 {
 	ct_data *tree = desc->dyn_tree;
 	ct_data *stree = desc->static_tree;
@@ -1385,10 +1385,10 @@ static void build_tree(tree_desc * desc)
 	/* At this point, the fields freq and dad are set. We can now
 	 * generate the bit lengths.
 	 */
-	gen_bitlen((tree_desc *) desc);
+	gen_bitlen(desc);
 
 	/* The field len is now set, we can generate the bit codes */
-	gen_codes((ct_data *) tree, max_code);
+	gen_codes(tree, max_code);
 }
 
 /* ===========================================================================
@@ -1397,7 +1397,7 @@ static void build_tree(tree_desc * desc)
  * counts. (The contribution of the bit length codes will be added later
  * during the construction of bl_tree.)
  */
-static void scan_tree(ct_data * tree, int max_code)
+static void scan_tree(ct_data *tree, int max_code)
 {
 	int n;				/* iterates over all tree elements */
 	int prevlen = -1;	/* last emitted length */
@@ -1449,7 +1449,7 @@ static void scan_tree(ct_data * tree, int max_code)
  * Send a literal or distance tree in compressed form, using the codes in
  * bl_tree.
  */
-static void send_tree(ct_data * tree, int max_code)
+static void send_tree(const ct_data *tree, int max_code)
 {
 	int n;				/* iterates over all tree elements */
 	int prevlen = -1;	/* last emitted length */
@@ -1625,7 +1625,7 @@ static int ct_tally(int dist, int lc)
 /* ===========================================================================
  * Send the block data compressed using the given Huffman trees
  */
-static void compress_block(ct_data * ltree, ct_data * dtree)
+static void compress_block(const ct_data *ltree, const ct_data *dtree)
 {
 	unsigned dist;          /* distance of matched string */
 	int lc;                 /* match length or unmatched char (if dist == 0) */
@@ -1675,7 +1675,7 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
  * trees or store, and output the encoded block to the zip file. This function
  * returns the total compressed length for the file so far.
  */
-static void flush_block(char *buf, ulg stored_len, int eof)
+static void flush_block(const char *buf, ulg stored_len, int eof)
 {
 	ulg opt_lenb, static_lenb;      /* opt_len and static_len in bytes */
 	int max_blindex;                /* index of last bit length code of non zero freq */
