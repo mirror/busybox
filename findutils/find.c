@@ -203,6 +203,14 @@
 //config:	WARNING: This option can do much harm if used wrong. Busybox will not
 //config:	try to protect the user from doing stupid things. Use with care.
 //config:
+//config:config FEATURE_FIND_EMPTY
+//config:	bool "Enable -empty: match empty files or directories"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	Support the 'find -empty' option to find empty regular files
+//config:	or directories.
+//config:
 //config:config FEATURE_FIND_PATH
 //config:	bool "Enable -path: match pathname with shell pattern"
 //config:	default y
@@ -315,6 +323,9 @@
 //usage:	IF_FEATURE_FIND_CONTEXT(
 //usage:     "\n	-context CTX	File has specified security context"
 //usage:	)
+//usage:	IF_FEATURE_FIND_EMPTY(
+//usage:     "\n	-empty		Match empty file/directory"
+//usage:	)
 //usage:	IF_FEATURE_FIND_PRUNE(
 //usage:     "\n	-prune		If current file is directory, don't descend into it"
 //usage:	)
@@ -396,6 +407,7 @@ IF_FEATURE_FIND_PAREN(  ACTS(paren, action ***subexpr;))
 IF_FEATURE_FIND_PRUNE(  ACTS(prune))
 IF_FEATURE_FIND_QUIT(   ACTS(quit))
 IF_FEATURE_FIND_DELETE( ACTS(delete))
+IF_FEATURE_FIND_EMPTY(  ACTS(empty))
 IF_FEATURE_FIND_EXEC(   ACTS(exec,
 				char **exec_argv; /* -exec ARGS */
 				unsigned *subst_count;
@@ -824,6 +836,30 @@ ACTF(delete)
 	return TRUE;
 }
 #endif
+#if ENABLE_FEATURE_FIND_EMPTY
+ACTF(empty)
+{
+	if (S_ISDIR(statbuf->st_mode)) {
+		DIR *dir;
+		struct dirent *dent;
+
+		dir = opendir(fileName);
+		if (!dir) {
+			bb_simple_perror_msg(fileName);
+			return FALSE;
+		}
+
+		while ((dent = readdir(dir)) != NULL
+		 && DOT_OR_DOTDOT(dent->d_name)
+		) {
+			continue;
+		}
+		closedir(dir);
+		return dent == NULL;
+	}
+	return S_ISREG(statbuf->st_mode) && statbuf->st_size == 0;
+}
+#endif
 #if ENABLE_FEATURE_FIND_CONTEXT
 ACTF(context)
 {
@@ -989,6 +1025,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_PRUNE(  PARM_prune     ,)
 	IF_FEATURE_FIND_QUIT(   PARM_quit      ,)
 	IF_FEATURE_FIND_DELETE( PARM_delete    ,)
+	IF_FEATURE_FIND_EMPTY(	PARM_empty     ,)
 	IF_FEATURE_FIND_EXEC(   PARM_exec      ,)
 	IF_FEATURE_FIND_EXECUTABLE(PARM_executable,)
 	IF_FEATURE_FIND_PAREN(  PARM_char_brace,)
@@ -1034,6 +1071,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_PRUNE(  "-prune\0"  )
 	IF_FEATURE_FIND_QUIT(   "-quit\0"  )
 	IF_FEATURE_FIND_DELETE( "-delete\0" )
+	IF_FEATURE_FIND_EMPTY(	"-empty\0"  )
 	IF_FEATURE_FIND_EXEC(   "-exec\0"   )
 	IF_FEATURE_FIND_EXECUTABLE("-executable\0")
 	IF_FEATURE_FIND_PAREN(  "(\0"       )
@@ -1201,6 +1239,12 @@ static action*** parse_params(char **argv)
 			G.need_print = 0;
 			G.recurse_flags |= ACTION_DEPTHFIRST;
 			(void) ALLOC_ACTION(delete);
+		}
+#endif
+#if ENABLE_FEATURE_FIND_EMPTY
+		else if (parm == PARM_empty) {
+			dbg("%d", __LINE__);
+			(void) ALLOC_ACTION(empty);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_EXEC
