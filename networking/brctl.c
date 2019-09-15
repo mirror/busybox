@@ -61,10 +61,10 @@
 //usage:     "\n	setbridgeprio BRIDGE PRIO	Set bridge priority"
 //usage:     "\n	setportprio BRIDGE IFACE PRIO	Set port priority"
 //usage:     "\n	setpathcost BRIDGE IFACE COST	Set path cost"
+//usage:     "\n	showmacs BRIDGE			List MAC addresses"
 //usage:	)
 // Not yet implemented:
 //			hairpin BRIDGE IFACE on|off	Hairpin on/off
-//			showmacs BRIDGE			List mac addrs
 //			showstp	BRIDGE			Show stp info
 
 #include "libbb.h"
@@ -196,6 +196,89 @@ static void write_uint(const char *name, const char *leaf, unsigned val)
 		bb_simple_perror_msg_and_die(name);
 	close(fd);
 }
+
+struct fdb_entry {
+	uint8_t mac_addr[6];
+	uint8_t port_no;
+	uint8_t is_local;
+	uint32_t ageing_timer_value;
+	uint8_t port_hi;
+	uint8_t pad0;
+	uint16_t unused;
+};
+
+static int compare_fdbs(const void *_f0, const void *_f1)
+{
+	const struct fdb_entry *f0 = _f0;
+	const struct fdb_entry *f1 = _f1;
+
+	return memcmp(f0->mac_addr, f1->mac_addr, 6);
+}
+
+static size_t read_bridge_forward_db(const char *name, struct fdb_entry **_fdb)
+{
+	struct fdb_entry *fdb;
+	size_t nentries;
+	char *path;
+	int fd;
+	ssize_t cc;
+
+	path = concat_path_file(name, "brforward");
+	fd = open(path, O_RDONLY);
+	free(path);
+	if (fd < 0)
+		bb_error_msg_and_die("bridge %s does not exist", name);
+
+	fdb = NULL;
+	nentries = 0;
+	for (;;) {
+		fdb = xrealloc_vector(fdb, 4, nentries);
+		cc = full_read(fd, &fdb[nentries], sizeof(*fdb));
+		if (cc == 0) {
+			break;
+		}
+		if (cc != sizeof(*fdb)) {
+			bb_perror_msg_and_die("can't read bridge %s forward db", name);
+		}
+		++nentries;
+	}
+
+	close(fd);
+
+	qsort(fdb, nentries, sizeof(*fdb), compare_fdbs);
+
+	*_fdb = fdb;
+	return nentries;
+}
+
+static void show_bridge_macs(const char *name)
+{
+	struct fdb_entry *fdb;
+	size_t nentries;
+	size_t i;
+
+	nentries = read_bridge_forward_db(name, &fdb);
+
+	printf("port no\tmac addr\t\tis local?\tageing timer\n");
+	for (i = 0; i < nentries; ++i) {
+		const struct fdb_entry *f = &fdb[i];
+		unsigned long tvmsec = 10UL * f->ageing_timer_value;
+		unsigned tv_sec = tvmsec / 1000;
+		unsigned tv_msec = tvmsec % 1000;
+		printf("%3u\t"
+			"%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\t"
+			"%s\t\t"
+			"%4u.%.2u\n",
+			f->port_no,
+			f->mac_addr[0], f->mac_addr[1], f->mac_addr[2],
+			f->mac_addr[3], f->mac_addr[4], f->mac_addr[5],
+			(f->is_local ? "yes" : "no"),
+			tv_sec, tv_msec / 10
+		);
+	}
+
+	free(fdb);
+}
 #endif
 
 int brctl_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -208,6 +291,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		"setageing\0" "setfd\0" "sethello\0" "setmaxage\0"
 		"setpathcost\0" "setportprio\0"
 		"setbridgeprio\0"
+		"showmacs\0"
 	)
 	IF_FEATURE_BRCTL_SHOW("show\0");
 	enum { ARG_addbr = 0, ARG_delbr, ARG_addif, ARG_delif
@@ -215,7 +299,8 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			ARG_stp,
 			ARG_setageing, ARG_setfd, ARG_sethello, ARG_setmaxage,
 			ARG_setpathcost, ARG_setportprio,
-			ARG_setbridgeprio
+			ARG_setbridgeprio,
+			ARG_showmacs
 		)
 		IF_FEATURE_BRCTL_SHOW(, ARG_show)
 	};
@@ -299,6 +384,11 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			return EXIT_SUCCESS;
 		}
 
+		if (key == ARG_showmacs) {
+			show_bridge_macs(br);
+			return EXIT_SUCCESS;
+		}
+
 		if (!*argv) /* all but 'addbr/delbr' need at least two arguments */
 			bb_show_usage();
 
@@ -365,23 +455,6 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			//goto done_next_argv;
 			return EXIT_SUCCESS;
 		}
-
-/* TODO: "showmacs BR"
- *	port no\tmac addr\t\tis local?\tageing timer
- *	<sp><sp>1\txx:xx:xx:xx:xx:xx\tno\t\t<sp><sp><sp>1.31
- *	port no	mac addr		is local?	ageing timer
- *	  1	xx:xx:xx:xx:xx:xx	no		   1.31
- * Read fixed-sized records from /sys/class/net/BR/brforward:
- *	struct __fdb_entry {
- *		uint8_t  mac_addr[ETH_ALEN];
- *		uint8_t  port_no; //lsb
- *		uint8_t  is_local;
- *		uint32_t ageing_timer_value;
- *		uint8_t  port_hi;
- *		uint8_t  pad0;
- *		uint16_t unused;
- *	};
- */
 #endif
 		/* always true: if (key == ARG_addif || key == ARG_delif) */ {
 			/* addif or delif */
