@@ -538,9 +538,16 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 	n = 0;
 	nptr = *endptr + 1;
 	/* bash allows "N#" (empty "nnnn" part) */
-	while (isdigit(*nptr)) {
+	for (;;) {
+		unsigned digit = (unsigned)*nptr - '0';
+		if (digit >= 10 || digit >= base) {
+			digit = (unsigned)(*nptr | 0x20) - ('a' - 10);
+			if (digit >= base)
+				break;
+		}
 		/* bash does not check for overflows */
-		n = n * base + (*nptr++ - '0');
+		n = n * base + digit;
+		nptr++;
 	}
 	*endptr = (char*)nptr;
 	return n;
