@@ -540,11 +540,29 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 	/* bash allows "N#" (empty "nnnn" part) */
 	for (;;) {
 		unsigned digit = (unsigned)*nptr - '0';
-		if (digit >= 10 || digit >= base) {
+		if (digit >= 10) {
+			/* *nptr is not 0..9 */
+			if (*nptr > 'z')
+				break; /* this rejects e.g. $((64#~)) */
+			/* in bases up to 36, case does not matter for a-z */
 			digit = (unsigned)(*nptr | 0x20) - ('a' - 10);
-			if (digit >= base)
-				break;
+			if (base > 36 && *nptr <= '_') {
+				/* otherwise, A-Z,@,_ are 36..61,62,63 */
+				if (*nptr == '@')
+					digit = 62;
+				else if (*nptr == '_')
+					digit = 63;
+				else if (digit < 36) /* A-Z */
+					digit += 36 - 10;
+				else
+					break; /* error, such as [ or \ */
+			}
+			//bb_error_msg("ch:'%c'%d digit:%u", *nptr, *nptr, digit);
+			//if (digit < 10) - example where we need this?
+			//	break;
 		}
+		if (digit >= base)
+			break;
 		/* bash does not check for overflows */
 		n = n * base + digit;
 		nptr++;
