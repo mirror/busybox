@@ -606,7 +606,7 @@ static ALWAYS_INLINE uint32_t random_xid(void)
 /* Initialize the packet with the proper defaults */
 static void init_packet(struct dhcp_packet *packet, char type)
 {
-	uint16_t secs;
+	unsigned secs;
 
 	/* Fill in: op, htype, hlen, cookie fields; message type option: */
 	udhcp_init_header(packet, type);
@@ -617,7 +617,7 @@ static void init_packet(struct dhcp_packet *packet, char type)
 	if (client_data.first_secs == 0)
 		client_data.first_secs = client_data.last_secs;
 	secs = client_data.last_secs - client_data.first_secs;
-	packet->secs = htons(secs);
+	packet->secs = (secs < 0xffff) ? htons(secs) : 0xffff;
 
 	memcpy(packet->chaddr, client_data.client_mac, 6);
 	if (client_data.clientid)

@@ -481,15 +481,31 @@ static ALWAYS_INLINE uint32_t random_xid(void)
 /* Initialize the packet with the proper defaults */
 static uint8_t *init_d6_packet(struct d6_packet *packet, char type, uint32_t xid)
 {
+	uint8_t *ptr;
 	struct d6_option *clientid;
+	unsigned secs;
 
 	memset(packet, 0, sizeof(*packet));
 
 	packet->d6_xid32 = xid;
 	packet->d6_msg_type = type;
 
+	/* ELAPSED_TIME option is required to be present by the RFC,
+	 * and some servers do check for its presense. [which?]
+	 */
+	ptr = packet->d6_options; /* NB: it is 32-bit aligned */
+	*((uint32_t*)ptr) = htonl((D6_OPT_ELAPSED_TIME << 16) + 2);
+	ptr += 4;
+	client_data.last_secs = monotonic_sec();
+	if (client_data.first_secs == 0)
+		client_data.first_secs = client_data.last_secs;
+	secs = client_data.last_secs - client_data.first_secs;
+	*((uint16_t*)ptr) = (secs < 0xffff) ? htons(secs) : 0xffff;
+	ptr += 2;
+
+	/* add CLIENTID option */
 	clientid = (void*)client_data.clientid;
-	return mempcpy(packet->d6_options, clientid, clientid->len + 2+2);
+	return mempcpy(ptr, clientid, clientid->len + 2+2);
 }
 
 static uint8_t *add_d6_client_options(uint8_t *ptr)

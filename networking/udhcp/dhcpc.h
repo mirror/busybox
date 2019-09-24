@@ -22,8 +22,8 @@ struct client_data_t {
 	uint8_t *hostname;              /* Optional hostname to use */
 	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
 
-	uint16_t first_secs;
-	uint16_t last_secs;
+	unsigned first_secs;
+	unsigned last_secs;
 
 	int sockfd;
 	smallint listen_mode;
