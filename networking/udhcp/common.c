@@ -539,7 +539,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg,
 
 		if (optflag->flags == OPTION_BIN) {
 			val = strtok(NULL, ""); /* do not split "'q w e'" */
-			trim(val);
+			if (val) trim(val);
 		} else
 			val = strtok(NULL, ", \t");
 		if (!val)
