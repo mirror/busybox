@@ -491,7 +491,7 @@ add_sun_partition(int n, int sys)
 			return;
 		}
 	}
-	snprintf(mesg, sizeof(mesg), "First %s", str_units(SINGULAR));
+	snprintf(mesg, sizeof(mesg), "First %s", str_units());
 	while (1) {
 		if (whole_disk)
 			first = read_int(0, 0, 0, 0, mesg);
@@ -546,7 +546,7 @@ and is of type 'Whole disk'\n");
 	}
 	snprintf(mesg, sizeof(mesg),
 		"Last %s or +size or +sizeM or +sizeK",
-		str_units(SINGULAR));
+		str_units());
 	if (whole_disk)
 		last = read_int(scround(stop2), scround(stop2), scround(stop2),
 				0, mesg);
@@ -567,8 +567,8 @@ and is of type 'Whole disk'\n");
 "You haven't covered the whole disk with the 3rd partition,\n"
 "but your value %u %s covers some other partition.\n"
 "Your entry has been changed to %u %s\n",
-				scround(last), str_units(SINGULAR),
-				scround(stop), str_units(SINGULAR));
+				scround(last), str_units(),
+				scround(stop), str_units());
 			last = stop;
 		}
 	} else if (!whole_disk && last > stop)
@@ -636,20 +636,20 @@ sun_list_table(int xtra)
 		"%u cylinders, %u alternate cylinders, %u physical cylinders\n"
 		"%u extra sects/cyl, interleave %u:1\n"
 		"%s\n"
-		"Units = %s of %u * 512 bytes\n\n",
+		"Units = %ss of %u * 512 bytes\n\n",
 			disk_device, g_heads, g_sectors, SUN_SSWAP16(sunlabel->rspeed),
 			g_cylinders, SUN_SSWAP16(sunlabel->nacyl),
 			SUN_SSWAP16(sunlabel->pcylcount),
 			SUN_SSWAP16(sunlabel->sparecyl),
 			SUN_SSWAP16(sunlabel->ilfact),
 			(char *)sunlabel,
-			str_units(PLURAL), units_per_sector);
+			str_units(), units_per_sector);
 	else
 		printf(
 	"\nDisk %s (Sun disk label): %u heads, %u sectors, %u cylinders\n"
-	"Units = %s of %u * 512 bytes\n\n",
+	"Units = %ss of %u * 512 bytes\n\n",
 			disk_device, g_heads, g_sectors, g_cylinders,
-			str_units(PLURAL), units_per_sector);
+			str_units(), units_per_sector);
 
 	printf("%*s Flag    Start       End    Blocks   Id  System\n",
 		w + 1, "Device");

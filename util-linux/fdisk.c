@@ -299,9 +299,6 @@ static int get_boot(enum action what);
 static int get_boot(void);
 #endif
 
-#define PLURAL   0
-#define SINGULAR 1
-
 static sector_t get_start_sect(const struct partition *p);
 static sector_t get_nr_sects(const struct partition *p);
 
@@ -597,12 +594,10 @@ get_part_table(int i)
 	return ptes[i].part_table;
 }
 
-static const char *
-str_units(int n)
-{      /* n==1: use singular */
-	if (n == 1)
-		return display_in_cyl_units ? "cylinder" : "sector";
-	return display_in_cyl_units ? "cylinders" : "sectors";
+static ALWAYS_INLINE const char *
+str_units(void)
+{
+	return display_in_cyl_units ? "cylinder" : "sector";
 }
 
 static int
@@ -1778,8 +1773,8 @@ change_units(void)
 {
 	display_in_cyl_units = !display_in_cyl_units;
 	update_units();
-	printf("Changing display/entry units to %s\n",
-		str_units(PLURAL));
+	printf("Changing display/entry units to %ss\n",
+		str_units());
 }
 
 static void
@@ -2030,8 +2025,7 @@ check_consistency(const struct partition *p, int partition)
 static void
 list_disk_geometry(void)
 {
-	ullong bytes = ((ullong)total_number_of_sectors << 9);
-	ullong xbytes = bytes / (1024*1024);
+	ullong xbytes = total_number_of_sectors / (1024*1024 / 512);
 	char x = 'M';
 
 	if (xbytes >= 10000) {
@@ -2041,11 +2035,12 @@ list_disk_geometry(void)
 	}
 	printf("Disk %s: %llu %cB, %llu bytes, %"SECT_FMT"u sectors\n"
 		"%u cylinders, %u heads, %u sectors/track\n"
-		"Units: %s of %u * %u = %u bytes\n\n",
+		"Units: %ss of %u * %u = %u bytes\n"
+		"\n",
 		disk_device, xbytes, x,
-		bytes, total_number_of_sectors,
+		((ullong)total_number_of_sectors * 512), total_number_of_sectors,
 		g_cylinders, g_heads, g_sectors,
-		str_units(PLURAL),
+		str_units(),
 		units_per_sector, sector_size, units_per_sector * sector_size
 	);
 }
@@ -2486,7 +2481,7 @@ add_partition(int n, int sys)
 		for (i = 0; i < g_partitions; i++)
 			first[i] = (cround(first[i]) - 1) * units_per_sector;
 
-	snprintf(mesg, sizeof(mesg), "First %s", str_units(SINGULAR));
+	snprintf(mesg, sizeof(mesg), "First %s", str_units());
 	do {
 		temp = start;
 		for (i = 0; i < g_partitions; i++) {
@@ -2548,7 +2543,7 @@ add_partition(int n, int sys)
 	} else {
 		snprintf(mesg, sizeof(mesg),
 			 "Last %s or +size{,K,M,G,T}",
-			 str_units(SINGULAR)
+			 str_units()
 		);
 		stop = read_int(cround(start), cround(limit), cround(limit), cround(start), mesg);
 		if (display_in_cyl_units) {

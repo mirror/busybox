@@ -470,7 +470,7 @@ xbsd_new_part(void)
 	end = xbsd_dlabel.d_secperunit - 1;
 #endif
 
-	snprintf(mesg, sizeof(mesg), "First %s", str_units(SINGULAR));
+	snprintf(mesg, sizeof(mesg), "First %s", str_units());
 	begin = read_int(bsd_cround(begin), bsd_cround(begin), bsd_cround(end),
 		0, mesg);
 
@@ -478,7 +478,7 @@ xbsd_new_part(void)
 		begin = (begin - 1) * xbsd_dlabel.d_secpercyl;
 
 	snprintf(mesg, sizeof(mesg), "Last %s or +size or +sizeM or +sizeK",
-		str_units(SINGULAR));
+		str_units());
 	end = read_int(bsd_cround(begin), bsd_cround(end), bsd_cround(end),
 		bsd_cround(begin), mesg);
 
