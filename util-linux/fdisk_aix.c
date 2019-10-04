@@ -6,10 +6,10 @@
  */
 
 typedef struct {
-	unsigned int   magic;        /* expect AIX_LABEL_MAGIC */
-	unsigned int   fillbytes1[124];
-	unsigned int   physical_volume_id;
-	unsigned int   fillbytes2[124];
+	uint32_t magic;        /* expect AIX_LABEL_MAGIC */
+	uint32_t fillbytes1[124];
+	uint32_t physical_volume_id;
+	uint32_t fillbytes2[124];
 } aix_partition;
 
 #define AIX_LABEL_MAGIC         0xc9c2d4c1
@@ -17,20 +17,18 @@ typedef struct {
 #define AIX_INFO_MAGIC          0x00072959
 #define AIX_INFO_MAGIC_SWAPPED  0x59290700
 
-#define aixlabel ((aix_partition *)MBRbuffer)
-
-
 /*
-  Changes:
-  * 1999-03-20 Arnaldo Carvalho de Melo <acme@conectiva.com.br>
-  *     Internationalization
-  *
-  * 2003-03-20 Phillip Kesling <pkesling@sgi.com>
-  *      Some fixes
-*/
+ * Changes:
+ * 1999-03-20 Arnaldo Carvalho de Melo <acme@conectiva.com.br>
+ *     Internationalization
+ *
+ * 2003-03-20 Phillip Kesling <pkesling@sgi.com>
+ *      Some fixes
+ */
 
-static smallint aix_other_endian; /* bool */
-static smallint aix_volumes = 1; /* max 15 */
+// Write-only vars, unfinished code?
+//static smallint aix_other_endian; /* bool */
+//static smallint aix_volumes = 1; /* max 15 */
 
 /*
  * only dealing with free blocks here
@@ -54,18 +52,20 @@ aix_info(void)
 static int
 check_aix_label(void)
 {
+	aix_partition *aixlabel = (void*)MBRbuffer;
+
 	if (aixlabel->magic != AIX_LABEL_MAGIC
 	 && aixlabel->magic != AIX_LABEL_MAGIC_SWAPPED
 	) {
-		current_label_type = 0;
-		aix_other_endian = 0;
+		current_label_type = LABEL_DOS;
+//		aix_other_endian = 0;
 		return 0;
 	}
-	aix_other_endian = (aixlabel->magic == AIX_LABEL_MAGIC_SWAPPED);
+//	aix_other_endian = (aixlabel->magic == AIX_LABEL_MAGIC_SWAPPED);
 	update_units();
 	current_label_type = LABEL_AIX;
 	g_partitions = 1016;
-	aix_volumes = 15;
+//	aix_volumes = 15;
 	aix_info();
 	/*aix_nolabel();*/              /* %% */
 	/*aix_label = 1;*/              /* %% */
