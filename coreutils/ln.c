@@ -41,7 +41,6 @@
 
 /* This is a NOEXEC applet. Be very careful! */
 
-
 #define LN_SYMLINK          (1 << 0)
 #define LN_FORCE            (1 << 1)
 #define LN_NODEREFERENCE    (1 << 2)
@@ -63,7 +62,22 @@ int ln_main(int argc, char **argv)
 	int (*link_func)(const char *, const char *);
 
 	opts = getopt32(argv, "^" "sfnbS:vT" "\0" "-1", &suffix);
-
+/*
+	-s, --symbolic		make symbolic links instead of hard links
+	-f, --force		remove existing destination files
+	-n, --no-dereference	treat LINK_NAME as a normal file if it is a symbolic link to a directory
+	-b			like --backup but does not accept an argument
+	--backup[=CONTROL]	make a backup of each existing destination file
+	-S, --suffix=SUFFIX	override the usual backup suffix
+	-v, --verbose
+	-T, --no-target-directory
+	-d, -F, --directory	allow the superuser to attempt to hard link directories
+	-i, --interactive	prompt whether to remove destinations
+	-L, --logical		dereference TARGETs that are symbolic links
+	-P, --physical		make hard links directly to symbolic links
+	-r, --relative		create symbolic links relative to link location
+	-t, --target-directory=DIRECTORY	specify the DIRECTORY in which to create the links
+ */
 	last = argv[argc - 1];
 	argv += optind;
 	argc -= optind;
@@ -86,8 +100,11 @@ int ln_main(int argc, char **argv)
 		src = last;
 
 		if (is_directory(src,
-		                (opts & LN_NODEREFERENCE) ^ LN_NODEREFERENCE
-		                )
+				/*followlinks:*/ !(opts & (LN_NODEREFERENCE|LN_LINKFILE))
+				/* Why LN_LINKFILE does not follow links:
+				 * -T/--no-target-directory implies -n/--no-dereference
+				 */
+				)
 		) {
 			if (opts & LN_LINKFILE) {
 				bb_error_msg_and_die("'%s' is a directory", src);
