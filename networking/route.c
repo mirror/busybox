@@ -628,6 +628,7 @@ static void INET6_displayroutes(void)
 
 		r = 0;
 		while (1) {
+			memset(&snaddr6, 0, sizeof(snaddr6));
 			inet_pton(AF_INET6, addr6x + r,
 					  (struct sockaddr *) &snaddr6.sin6_addr);
 			snaddr6.sin6_family = AF_INET6;
