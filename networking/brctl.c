@@ -54,6 +54,7 @@
 //usage:     "\n	delif BRIDGE IFACE	Delete IFACE from BRIDGE"
 //usage:	IF_FEATURE_BRCTL_FANCY(
 //usage:     "\n	stp BRIDGE 1/yes/on|0/no/off	STP on/off"
+//usage:     "\n	showstp	BRIDGE			Show stp info"
 //usage:     "\n	setageing BRIDGE SECONDS	Set ageing time"
 //usage:     "\n	setfd BRIDGE SECONDS		Set bridge forward delay"
 //usage:     "\n	sethello BRIDGE SECONDS		Set hello time"
@@ -65,7 +66,7 @@
 //usage:	)
 // Not yet implemented:
 //			hairpin BRIDGE IFACE on|off	Hairpin on/off
-//			showstp	BRIDGE			Show stp info
+
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -146,8 +147,7 @@ static int show_bridge(const char *name, int need_hdr)
 
 	if (need_hdr)
 		puts("bridge name\tbridge id\t\tSTP enabled\tinterfaces");
-	printf("%s\t\t", name);
-	printf("%s\t", filedata);
+	printf("%s\t\t%s\t", name, filedata);
 
 	strcpy(sfx, "stp_state");
 	read_file(pathbuf);
@@ -279,6 +279,212 @@ static void show_bridge_macs(const char *name)
 
 	free(fdb);
 }
+
+static void show_bridge_timer(const char *msg)
+{
+	unsigned long long tvmsec = 10 * xstrtoull(filedata, 0);
+	unsigned tv_sec = tvmsec / 1000;
+	unsigned tv_msec = tvmsec % 1000;
+	printf("%s%4u.%.2u", msg, tv_sec, tv_msec / 10);
+}
+
+static const char *show_bridge_state(unsigned state)
+{
+	/* See linux/if_bridge.h, BR_STATE_ constants */
+	static const char state_names[] =
+		"disabled\0"	//BR_STATE_DISABLED   0
+		"listening\0"   //BR_STATE_LISTENING  1
+		"learning\0"    //BR_STATE_LEARNING   2
+		"forwarding\0"  //BR_STATE_FORWARDING 3
+		"blocking"      //BR_STATE_BLOCKING   4
+	;
+	if (state < 5)
+		return nth_string(state_names, state);
+	return utoa(state);
+}
+
+static void printf_xstrtou(const char *fmt)
+{
+	printf(fmt, xstrtou(filedata, 0));
+}
+
+static void show_bridge_port(const char *name)
+{
+	char pathbuf[IFNAMSIZ + sizeof("/brport/forward_delay_timer") + 32];
+	char *sfx;
+
+#if IFNAMSIZ == 16
+	sfx = pathbuf + sprintf(pathbuf, "%.16s/brport/", name);
+#else
+	sfx = pathbuf + sprintf(pathbuf, "%.*s/brport/", (int)IFNAMSIZ, name);
+#endif
+
+	strcpy(sfx, "port_no");
+	read_file(pathbuf);
+	printf("%s (%u)\n", name, xstrtou(filedata, 0));
+
+	strcpy(sfx + 5, "id"); // "port_id"
+	read_file(pathbuf);
+	printf_xstrtou(" port id\t\t%.4x");
+
+	strcpy(sfx, "state");
+	read_file(pathbuf);
+	printf("\t\t\tstate\t\t%15s\n", show_bridge_state(xstrtou(filedata, 0)));
+
+	strcpy(sfx, "designated_root");
+	read_file(pathbuf);
+	printf(" designated root\t%s", filedata);
+
+	strcpy(sfx, "path_cost");
+	read_file(pathbuf);
+	printf_xstrtou("\tpath cost\t\t%4u\n");
+
+	strcpy(sfx, "designated_bridge");
+	read_file(pathbuf);
+	printf(" designated bridge\t%s", filedata);
+
+	strcpy(sfx, "message_age_timer");
+	read_file(pathbuf);
+	show_bridge_timer("\tmessage age timer\t");
+
+	strcpy(sfx, "designated_port");
+	read_file(pathbuf);
+	printf_xstrtou("\n designated port\t%.4x");
+
+	strcpy(sfx, "forward_delay_timer");
+	read_file(pathbuf);
+	show_bridge_timer("\t\t\tforward delay timer\t");
+
+	strcpy(sfx, "designated_cost");
+	read_file(pathbuf);
+	printf_xstrtou("\n designated cost\t%4u");
+
+	strcpy(sfx, "hold_timer");
+	read_file(pathbuf);
+	show_bridge_timer("\t\t\thold timer\t\t");
+
+	printf("\n flags\t\t\t");
+
+	strcpy(sfx, "config_pending");
+	read_file(pathbuf);
+	if (!LONE_CHAR(filedata, '0'))
+		printf("CONFIG_PENDING ");
+
+	strcpy(sfx, "change_ack");
+	read_file(pathbuf);
+	if (!LONE_CHAR(filedata, '0'))
+		printf("TOPOLOGY_CHANGE_ACK ");
+
+	strcpy(sfx, "hairpin_mode");
+	read_file(pathbuf);
+	if (!LONE_CHAR(filedata, '0'))
+		printf_xstrtou("\n hairpin mode\t\t%4u");
+
+	printf("\n\n");
+}
+
+static void show_bridge_ports(const char *name)
+{
+	DIR *ifaces;
+	struct dirent *ent;
+	char pathbuf[IFNAMSIZ + sizeof("/brif") + 8];
+
+#if IFNAMSIZ == 16
+	sprintf(pathbuf, "%.16s/brif", name);
+#else
+	sprintf(pathbuf, "%.*s/brif", (int)IFNAMSIZ, name);
+#endif
+	ifaces = opendir(pathbuf);
+	if (ifaces) {
+		while ((ent = readdir(ifaces)) != NULL) {
+			if (DOT_OR_DOTDOT(ent->d_name))
+				continue; /* . or .. */
+			show_bridge_port(ent->d_name);
+		}
+		closedir(ifaces);
+	}
+}
+
+static void show_bridge_stp(const char *name)
+{
+	char pathbuf[IFNAMSIZ + sizeof("/bridge/topology_change_timer") + 32];
+	char *sfx;
+
+#if IFNAMSIZ == 16
+	sfx = pathbuf + sprintf(pathbuf, "%.16s/bridge/", name);
+#else
+	sfx = pathbuf + sprintf(pathbuf, "%.*s/bridge/", (int)IFNAMSIZ, name);
+#endif
+
+	strcpy(sfx, "bridge_id");
+	if (read_file(pathbuf) < 0)
+		bb_error_msg_and_die("bridge %s does not exist", name);
+
+	printf("%s\n"
+		" bridge id\t\t%s", name, filedata);
+
+	strcpy(sfx, "root_id");
+	read_file(pathbuf);
+	printf("\n designated root\t%s", filedata);
+
+	strcpy(sfx + 5, "port"); // "root_port"
+	read_file(pathbuf);
+	printf_xstrtou("\n root port\t\t%4u\t\t\t");
+
+	strcpy(sfx + 6, "ath_cost"); // "root_path_cost"
+	read_file(pathbuf);
+	printf_xstrtou("path cost\t\t%4u\n");
+
+	strcpy(sfx, "max_age");
+	read_file(pathbuf);
+	show_bridge_timer(" max age\t\t");
+	show_bridge_timer("\t\t\tbridge max age\t\t");
+
+	strcpy(sfx, "hello_time");
+	read_file(pathbuf);
+	show_bridge_timer("\n hello time\t\t");
+	show_bridge_timer("\t\t\tbridge hello time\t");
+
+	strcpy(sfx, "forward_delay");
+	read_file(pathbuf);
+	show_bridge_timer("\n forward delay\t\t");
+	show_bridge_timer("\t\t\tbridge forward delay\t");
+
+	strcpy(sfx, "ageing_time");
+	read_file(pathbuf);
+	show_bridge_timer("\n ageing time\t\t");
+
+	strcpy(sfx, "hello_timer");
+	read_file(pathbuf);
+	show_bridge_timer("\n hello timer\t\t");
+
+	strcpy(sfx, "tcn_timer");
+	read_file(pathbuf);
+	show_bridge_timer("\t\t\ttcn timer\t\t");
+
+	strcpy(sfx, "topology_change_timer");
+	read_file(pathbuf);
+	show_bridge_timer("\n topology change timer\t");
+
+	strcpy(sfx, "gc_timer");
+	read_file(pathbuf);
+	show_bridge_timer("\t\t\tgc timer\t\t");
+
+	printf("\n flags\t\t\t");
+
+	strcpy(sfx, "topology_change");
+	read_file(pathbuf);
+	if (!LONE_CHAR(filedata, '0'))
+		printf("TOPOLOGY_CHANGE ");
+
+	strcpy(sfx, "topology_change_detected");
+	read_file(pathbuf);
+	if (!LONE_CHAR(filedata, '0'))
+		printf("TOPOLOGY_CHANGE_DETECTED ");
+	printf("\n\n\n");
+
+	show_bridge_ports(name);
+}
 #endif
 
 int brctl_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -288,6 +494,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		"addbr\0" "delbr\0" "addif\0" "delif\0"
 	IF_FEATURE_BRCTL_FANCY(
 		"stp\0"
+		"showstp\0"
 		"setageing\0" "setfd\0" "sethello\0" "setmaxage\0"
 		"setpathcost\0" "setportprio\0"
 		"setbridgeprio\0"
@@ -297,6 +504,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 	enum { ARG_addbr = 0, ARG_delbr, ARG_addif, ARG_delif
 		IF_FEATURE_BRCTL_FANCY(,
 			ARG_stp,
+			ARG_showstp,
 			ARG_setageing, ARG_setfd, ARG_sethello, ARG_setmaxage,
 			ARG_setpathcost, ARG_setportprio,
 			ARG_setbridgeprio,
@@ -386,6 +594,10 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 
 		if (key == ARG_showmacs) {
 			show_bridge_macs(br);
+			return EXIT_SUCCESS;
+		}
+		if (key == ARG_showstp) {
+			show_bridge_stp(br);
 			return EXIT_SUCCESS;
 		}
 
