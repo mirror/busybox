@@ -18,7 +18,7 @@
  * was seen to cause largish delays when user tries to ^C a file copy.
  * Let's use a saner size.
  * Note: needs to be >= max(CONFIG_FEATURE_COPYBUF_KB),
- * or else "copy to eof" code will use neddlesly short reads.
+ * or else "copy to eof" code will use needlesly short reads.
  */
 #define SENDFILE_BIGBUF (16*1024*1024)
 
@@ -60,10 +60,13 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 		ssize_t rd;
 
 		if (sendfile_sz) {
-			rd = sendfile(dst_fd, src_fd, NULL,
-				size > sendfile_sz ? sendfile_sz : size);
-			if (rd >= 0)
-				goto read_ok;
+			/* dst_fd == -1 is a fake, else... */
+			if (dst_fd >= 0) {
+				rd = sendfile(dst_fd, src_fd, NULL,
+					size > sendfile_sz ? sendfile_sz : size);
+				if (rd >= 0)
+					goto read_ok;
+			}
 			sendfile_sz = 0; /* do not try sendfile anymore */
 		}
 #if CONFIG_FEATURE_COPYBUF_KB > 4
