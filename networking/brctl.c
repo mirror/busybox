@@ -54,7 +54,7 @@
 //usage:     "\n	delif BRIDGE IFACE	Delete IFACE from BRIDGE"
 //usage:	IF_FEATURE_BRCTL_FANCY(
 //usage:     "\n	stp BRIDGE 1/yes/on|0/no/off	STP on/off"
-//usage:     "\n	showstp	BRIDGE			Show stp info"
+//usage:     "\n	showstp	BRIDGE			Show STP info"
 //usage:     "\n	setageing BRIDGE SECONDS	Set ageing time"
 //usage:     "\n	setfd BRIDGE SECONDS		Set bridge forward delay"
 //usage:     "\n	sethello BRIDGE SECONDS		Set hello time"
@@ -66,7 +66,6 @@
 //usage:	)
 // Not yet implemented:
 //			hairpin BRIDGE IFACE on|off	Hairpin on/off
-
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -130,7 +129,7 @@ static int show_bridge(const char *name, int need_hdr)
  *bridge name	bridge id		STP enabled	interfaces
  *br0		8000.000000000000	no		eth0
  */
-	char pathbuf[IFNAMSIZ + sizeof("/bridge/bridge_id") + 32];
+	char pathbuf[IFNAMSIZ + sizeof("/bridge/bridge_id") + 8];
 	int tabs;
 	DIR *ifaces;
 	struct dirent *ent;
@@ -194,7 +193,11 @@ static void write_uint(const char *name, const char *leaf, unsigned val)
 	n = sprintf(filedata, "%u\n", val);
 	if (write(fd, filedata, n) < 0)
 		bb_simple_perror_msg_and_die(name);
-	close(fd);
+	/* So far all callers exit very soon after calling us.
+	 * Do not bother closing fd (unless debugging):
+	 */
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(fd);
 }
 
 struct fdb_entry {
@@ -217,15 +220,18 @@ static int compare_fdbs(const void *_f0, const void *_f1)
 
 static size_t read_bridge_forward_db(const char *name, struct fdb_entry **_fdb)
 {
+	char pathbuf[IFNAMSIZ + sizeof("/brforward") + 8];
 	struct fdb_entry *fdb;
 	size_t nentries;
-	char *path;
 	int fd;
 	ssize_t cc;
 
-	path = concat_path_file(name, "brforward");
-	fd = open(path, O_RDONLY);
-	free(path);
+#if IFNAMSIZ == 16
+	sprintf(pathbuf, "%.16s/brforward", name);
+#else
+	sprintf(pathbuf, "%.*s/brforward", (int)IFNAMSIZ, name);
+#endif
+	fd = open(pathbuf, O_RDONLY);
 	if (fd < 0)
 		bb_error_msg_and_die("bridge %s does not exist", name);
 
@@ -243,7 +249,8 @@ static size_t read_bridge_forward_db(const char *name, struct fdb_entry **_fdb)
 		++nentries;
 	}
 
-	close(fd);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(fd);
 
 	qsort(fdb, nentries, sizeof(*fdb), compare_fdbs);
 
@@ -262,9 +269,8 @@ static void show_bridge_macs(const char *name)
 	printf("port no\tmac addr\t\tis local?\tageing timer\n");
 	for (i = 0; i < nentries; ++i) {
 		const struct fdb_entry *f = &fdb[i];
-		unsigned long tvmsec = 10UL * f->ageing_timer_value;
-		unsigned tv_sec = tvmsec / 1000;
-		unsigned tv_msec = tvmsec % 1000;
+		unsigned tv_sec = f->ageing_timer_value / 100;
+		unsigned tv_csec = f->ageing_timer_value % 100;
 		printf("%3u\t"
 			"%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\t"
 			"%s\t\t"
@@ -273,25 +279,26 @@ static void show_bridge_macs(const char *name)
 			f->mac_addr[0], f->mac_addr[1], f->mac_addr[2],
 			f->mac_addr[3], f->mac_addr[4], f->mac_addr[5],
 			(f->is_local ? "yes" : "no"),
-			tv_sec, tv_msec / 10
+			tv_sec, tv_csec
 		);
 	}
 
-	free(fdb);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(fdb);
 }
 
 static void show_bridge_timer(const char *msg)
 {
-	unsigned long long tvmsec = 10 * xstrtoull(filedata, 0);
-	unsigned tv_sec = tvmsec / 1000;
-	unsigned tv_msec = tvmsec % 1000;
-	printf("%s%4u.%.2u", msg, tv_sec, tv_msec / 10);
+	unsigned long long centisec = xstrtoull(filedata, 0);
+	unsigned tv_sec = centisec / 100;
+	unsigned tv_csec = centisec % 100;
+	printf("%s%4u.%.2u", msg, tv_sec, tv_csec);
 }
 
 static const char *show_bridge_state(unsigned state)
 {
 	/* See linux/if_bridge.h, BR_STATE_ constants */
-	static const char state_names[] =
+	static const char state_names[] ALIGN1 =
 		"disabled\0"	//BR_STATE_DISABLED   0
 		"listening\0"   //BR_STATE_LISTENING  1
 		"learning\0"    //BR_STATE_LEARNING   2
@@ -310,7 +317,7 @@ static void printf_xstrtou(const char *fmt)
 
 static void show_bridge_port(const char *name)
 {
-	char pathbuf[IFNAMSIZ + sizeof("/brport/forward_delay_timer") + 32];
+	char pathbuf[IFNAMSIZ + sizeof("/brport/forward_delay_timer") + 8];
 	char *sfx;
 
 #if IFNAMSIZ == 16
@@ -407,7 +414,7 @@ static void show_bridge_ports(const char *name)
 
 static void show_bridge_stp(const char *name)
 {
-	char pathbuf[IFNAMSIZ + sizeof("/bridge/topology_change_timer") + 32];
+	char pathbuf[IFNAMSIZ + sizeof("/bridge/topology_change_timer") + 8];
 	char *sfx;
 
 #if IFNAMSIZ == 16
@@ -614,7 +621,6 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 				bb_error_msg_and_die(bb_msg_invalid_arg_to, *argv, applet_name);
 			onoff = (unsigned)onoff / 4;
 			write_uint(br, "bridge/stp_state", onoff);
-			//goto done_next_argv;
 			return EXIT_SUCCESS;
 		}
 
@@ -634,13 +640,11 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 				),
 				str_to_jiffies(*argv)
 			);
-			//goto done_next_argv;
 			return EXIT_SUCCESS;
 		}
 
 		if (key == ARG_setbridgeprio) {
 			write_uint(br, "bridge/priority", xatoi_positive(*argv));
-			//goto done_next_argv;
 			return EXIT_SUCCESS;
 		}
 
@@ -663,8 +667,6 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 				),
 				xatoi_positive(argv[1])
 			);
-			//argv++;
-			//goto done_next_argv;
 			return EXIT_SUCCESS;
 		}
 #endif
@@ -682,16 +684,10 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 				key == ARG_addif ? SIOCBRADDIF : SIOCBRDELIF,
 				&ifr, "bridge %s", br
 			);
-			//close(fd);
-			//goto done_next_argv;
 			if (ENABLE_FEATURE_CLEAN_UP)
 				close(fd);
 			return EXIT_SUCCESS;
 		}
-
-// done_next_argv:
-//		argv++;
-// done:
 	}
 
 	return EXIT_SUCCESS;
