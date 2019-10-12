@@ -390,28 +390,6 @@ static void show_bridge_port(const char *name)
 	printf("\n\n");
 }
 
-static void show_bridge_ports(const char *name)
-{
-	DIR *ifaces;
-	struct dirent *ent;
-	char pathbuf[IFNAMSIZ + sizeof("/brif") + 8];
-
-#if IFNAMSIZ == 16
-	sprintf(pathbuf, "%.16s/brif", name);
-#else
-	sprintf(pathbuf, "%.*s/brif", (int)IFNAMSIZ, name);
-#endif
-	ifaces = opendir(pathbuf);
-	if (ifaces) {
-		while ((ent = readdir(ifaces)) != NULL) {
-			if (DOT_OR_DOTDOT(ent->d_name))
-				continue; /* . or .. */
-			show_bridge_port(ent->d_name);
-		}
-		closedir(ifaces);
-	}
-}
-
 static void show_bridge_stp(const char *name)
 {
 	char pathbuf[IFNAMSIZ + sizeof("/bridge/topology_change_timer") + 8];
@@ -490,7 +468,24 @@ static void show_bridge_stp(const char *name)
 		printf("TOPOLOGY_CHANGE_DETECTED ");
 	printf("\n\n\n");
 
-	show_bridge_ports(name);
+	/* Show bridge ports */
+	{
+		DIR *ifaces;
+
+		/* sfx points past "BR/bridge/", turn it to "BR/brif": */
+		strcpy(sfx - 4, "f");
+		ifaces = opendir(pathbuf);
+		if (ifaces) {
+			struct dirent *ent;
+			while ((ent = readdir(ifaces)) != NULL) {
+				if (DOT_OR_DOTDOT(ent->d_name))
+					continue; /* . or .. */
+				show_bridge_port(ent->d_name);
+			}
+			if (ENABLE_FEATURE_CLEAN_UP)
+				closedir(ifaces);
+		}
+	}
 }
 #endif
 
@@ -519,6 +514,8 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		)
 		IF_FEATURE_BRCTL_SHOW(, ARG_show)
 	};
+	int key;
+	char *br;
 
 	argv++;
 	if (!*argv) {
@@ -528,166 +525,157 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 
 	xchdir("/sys/class/net");
 
-//	while (*argv)
-	{
-		smallint key;
-		char *br;
-
-		key = index_in_strings(keywords, *argv);
-		if (key == -1) /* no match found in keywords array, bail out. */
-			bb_error_msg_and_die(bb_msg_invalid_arg_to, *argv, applet_name);
-		argv++;
+	key = index_in_strings(keywords, *argv);
+	if (key == -1) /* no match found in keywords array, bail out. */
+		bb_error_msg_and_die(bb_msg_invalid_arg_to, *argv, applet_name);
+	argv++;
 
 #if ENABLE_FEATURE_BRCTL_SHOW
-		if (key == ARG_show) { /* show [BR]... */
-			DIR *net;
-			struct dirent *ent;
-			int need_hdr = 1;
-			int exitcode = EXIT_SUCCESS;
+	if (key == ARG_show) { /* show [BR]... */
+		DIR *net;
+		struct dirent *ent;
+		int need_hdr = 1;
+		int exitcode = EXIT_SUCCESS;
 
-			if (*argv) {
-				/* "show BR1 BR2 BR3" */
-				do {
-					if (show_bridge(*argv, need_hdr) >= 0) {
-						need_hdr = 0;
-					} else {
-						bb_error_msg("bridge %s does not exist", *argv);
+		if (*argv) {
+			/* "show BR1 BR2 BR3" */
+			do {
+				if (show_bridge(*argv, need_hdr) >= 0) {
+					need_hdr = 0;
+				} else {
+					bb_error_msg("bridge %s does not exist", *argv);
 //TODO: if device exists, but is not a BR, brctl from bridge-utils 1.6
 //says this instead: "device eth0 is not a bridge"
-						exitcode = EXIT_FAILURE;
-					}
-				} while (*++argv != NULL);
-				return exitcode;
-			}
-
-			/* "show" (if no ifaces, shows nothing, not even header) */
-			net = xopendir(".");
-			while ((ent = readdir(net)) != NULL) {
-				if (DOT_OR_DOTDOT(ent->d_name))
-					continue; /* . or .. */
-				if (show_bridge(ent->d_name, need_hdr) >= 0)
-					need_hdr = 0;
-			}
-			if (ENABLE_FEATURE_CLEAN_UP)
-				closedir(net);
+					exitcode = EXIT_FAILURE;
+				}
+			} while (*++argv != NULL);
 			return exitcode;
 		}
+
+		/* "show" (if no ifaces, shows nothing, not even header) */
+		net = xopendir(".");
+		while ((ent = readdir(net)) != NULL) {
+			if (DOT_OR_DOTDOT(ent->d_name))
+				continue; /* . or .. */
+			if (show_bridge(ent->d_name, need_hdr) >= 0)
+				need_hdr = 0;
+		}
+		if (ENABLE_FEATURE_CLEAN_UP)
+			closedir(net);
+		return exitcode;
+	}
 #endif
 
-		if (!*argv) /* all but 'show' need at least one argument */
-			bb_show_usage();
+	if (!*argv) /* all but 'show' need at least one argument */
+		bb_show_usage();
 
-		br = *argv++;
+	br = *argv++;
 
-		if (key == ARG_addbr || key == ARG_delbr) {
-			/* addbr or delbr */
-			/* brctl from bridge-utils 1.6 still uses ioctl
-			 * for SIOCBRADDBR / SIOCBRDELBR, not /sys accesses
-			 */
-			int fd = xsocket(AF_INET, SOCK_STREAM, 0);
-			ioctl_or_perror_and_die(fd,
-				key == ARG_addbr ? SIOCBRADDBR : SIOCBRDELBR,
-				br, "bridge %s", br
-			);
-			//close(fd);
-			//goto done;
-			/* bridge-utils 1.6 simply ignores trailing args:
-			 * "brctl addbr BR1 ARGS" ignores ARGS
-			 */
-			if (ENABLE_FEATURE_CLEAN_UP)
-				close(fd);
-			return EXIT_SUCCESS;
-		}
+	if (key == ARG_addbr || key == ARG_delbr) {
+		/* brctl from bridge-utils 1.6 still uses ioctl
+		 * for SIOCBRADDBR / SIOCBRDELBR, not /sys accesses
+		 */
+		int fd = xsocket(AF_INET, SOCK_STREAM, 0);
+		ioctl_or_perror_and_die(fd,
+			key == ARG_addbr ? SIOCBRADDBR : SIOCBRDELBR,
+			br, "bridge %s", br
+		);
+		//close(fd);
+		//goto done;
+		/* bridge-utils 1.6 simply ignores trailing args:
+		 * "brctl addbr BR1 ARGS" ignores ARGS
+		 */
+		if (ENABLE_FEATURE_CLEAN_UP)
+			close(fd);
+		return EXIT_SUCCESS;
+	}
 
-		if (key == ARG_showmacs) {
-			show_bridge_macs(br);
-			return EXIT_SUCCESS;
-		}
-		if (key == ARG_showstp) {
-			show_bridge_stp(br);
-			return EXIT_SUCCESS;
-		}
+	if (key == ARG_showmacs) {
+		show_bridge_macs(br);
+		return EXIT_SUCCESS;
+	}
+	if (key == ARG_showstp) {
+		show_bridge_stp(br);
+		return EXIT_SUCCESS;
+	}
 
-		if (!*argv) /* all but 'addbr/delbr' need at least two arguments */
-			bb_show_usage();
+	if (!*argv) /* all but 'addbr/delbr' need at least two arguments */
+		bb_show_usage();
 
 #if ENABLE_FEATURE_BRCTL_FANCY
-		if (key == ARG_stp) { /* stp */
-			static const char no_yes[] ALIGN1 =
-				"0\0" "off\0" "n\0" "no\0"   /* 0 .. 3 */
-				"1\0" "on\0"  "y\0" "yes\0"; /* 4 .. 7 */
-			int onoff = index_in_strings(no_yes, *argv);
-			if (onoff < 0)
-				bb_error_msg_and_die(bb_msg_invalid_arg_to, *argv, applet_name);
-			onoff = (unsigned)onoff / 4;
-			write_uint(br, "bridge/stp_state", onoff);
-			return EXIT_SUCCESS;
-		}
+	if (key == ARG_stp) {
+		static const char no_yes[] ALIGN1 =
+			"0\0" "off\0" "n\0" "no\0"   /* 0 .. 3 */
+			"1\0" "on\0"  "y\0" "yes\0"; /* 4 .. 7 */
+		int onoff = index_in_strings(no_yes, *argv);
+		if (onoff < 0)
+			bb_error_msg_and_die(bb_msg_invalid_arg_to, *argv, applet_name);
+		onoff = (unsigned)onoff / 4;
+		write_uint(br, "bridge/stp_state", onoff);
+		return EXIT_SUCCESS;
+	}
 
-		if ((unsigned)(key - ARG_setageing) < 4) { /* time related ops */
-			/* setageing BR N: "N*100\n" to /sys/class/net/BR/bridge/ageing_time
-			 * setfd BR N:     "N*100\n" to /sys/class/net/BR/bridge/forward_delay
-			 * sethello BR N:  "N*100\n" to /sys/class/net/BR/bridge/hello_time
-			 * setmaxage BR N: "N*100\n" to /sys/class/net/BR/bridge/max_age
-			 */
-			write_uint(br,
-				nth_string(
-					"bridge/ageing_time"  "\0" /* ARG_setageing */
-					"bridge/forward_delay""\0" /* ARG_setfd     */
-					"bridge/hello_time"   "\0" /* ARG_sethello  */
-					"bridge/max_age",          /* ARG_setmaxage */
-					key - ARG_setageing
-				),
-				str_to_jiffies(*argv)
-			);
-			return EXIT_SUCCESS;
-		}
+	if ((unsigned)(key - ARG_setageing) < 4) { /* time related ops */
+		/* setageing BR N: "N*100\n" to /sys/class/net/BR/bridge/ageing_time
+		 * setfd BR N:     "N*100\n" to /sys/class/net/BR/bridge/forward_delay
+		 * sethello BR N:  "N*100\n" to /sys/class/net/BR/bridge/hello_time
+		 * setmaxage BR N: "N*100\n" to /sys/class/net/BR/bridge/max_age
+		 */
+		write_uint(br,
+			nth_string(
+				"bridge/ageing_time"  "\0" /* ARG_setageing */
+				"bridge/forward_delay""\0" /* ARG_setfd     */
+				"bridge/hello_time"   "\0" /* ARG_sethello  */
+				"bridge/max_age",          /* ARG_setmaxage */
+				key - ARG_setageing
+			),
+			str_to_jiffies(*argv)
+		);
+		return EXIT_SUCCESS;
+	}
 
-		if (key == ARG_setbridgeprio) {
-			write_uint(br, "bridge/priority", xatoi_positive(*argv));
-			return EXIT_SUCCESS;
-		}
+	if (key == ARG_setbridgeprio) {
+		write_uint(br, "bridge/priority", xatoi_positive(*argv));
+		return EXIT_SUCCESS;
+	}
 
-		if (key == ARG_setpathcost
-		 || key == ARG_setportprio
-		) {
-			if (!argv[1])
-				bb_show_usage();
-			/* BR is not used (and ignored!) for these commands:
-			 * "setpathcost BR PORT N" writes "N\n" to
-			 * /sys/class/net/PORT/brport/path_cost
-			 * "setportprio BR PORT N" writes "N\n" to
-			 * /sys/class/net/PORT/brport/priority
-			 */
-			write_uint(argv[0],
-				nth_string(
-					"brport/path_cost" "\0" /* ARG_setpathcost */
-					"brport/priority",      /* ARG_setportprio */
-					key - ARG_setpathcost
-				),
-				xatoi_positive(argv[1])
-			);
-			return EXIT_SUCCESS;
-		}
+	if (key == ARG_setpathcost
+	 || key == ARG_setportprio
+	) {
+		if (!argv[1])
+			bb_show_usage();
+		/* BR is not used (and ignored!) for these commands:
+		 * "setpathcost BR PORT N" writes "N\n" to
+		 * /sys/class/net/PORT/brport/path_cost
+		 * "setportprio BR PORT N" writes "N\n" to
+		 * /sys/class/net/PORT/brport/priority
+		 */
+		write_uint(argv[0],
+			nth_string(
+				"brport/path_cost" "\0" /* ARG_setpathcost */
+				"brport/priority",      /* ARG_setportprio */
+				key - ARG_setpathcost
+			),
+			xatoi_positive(argv[1])
+		);
+		return EXIT_SUCCESS;
+	}
 #endif
-		/* always true: if (key == ARG_addif || key == ARG_delif) */ {
-			/* addif or delif */
-			struct ifreq ifr;
-			int fd = xsocket(AF_INET, SOCK_STREAM, 0);
+	/* always true: if (key == ARG_addif || key == ARG_delif) */ {
+		struct ifreq ifr;
+		int fd = xsocket(AF_INET, SOCK_STREAM, 0);
 
-			strncpy_IFNAMSIZ(ifr.ifr_name, br);
-			ifr.ifr_ifindex = if_nametoindex(*argv);
-			if (ifr.ifr_ifindex == 0) {
-				bb_perror_msg_and_die("iface %s", *argv);
-			}
-			ioctl_or_perror_and_die(fd,
-				key == ARG_addif ? SIOCBRADDIF : SIOCBRDELIF,
-				&ifr, "bridge %s", br
-			);
-			if (ENABLE_FEATURE_CLEAN_UP)
-				close(fd);
-			return EXIT_SUCCESS;
+		strncpy_IFNAMSIZ(ifr.ifr_name, br);
+		ifr.ifr_ifindex = if_nametoindex(*argv);
+		if (ifr.ifr_ifindex == 0) {
+			bb_perror_msg_and_die("iface %s", *argv);
 		}
+		ioctl_or_perror_and_die(fd,
+			key == ARG_addif ? SIOCBRADDIF : SIOCBRDELIF,
+			&ifr, "bridge %s", br
+		);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			close(fd);
 	}
 
 	return EXIT_SUCCESS;
