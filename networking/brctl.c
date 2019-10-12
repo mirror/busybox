@@ -53,8 +53,9 @@
 //usage:     "\n	addif BRIDGE IFACE	Add IFACE to BRIDGE"
 //usage:     "\n	delif BRIDGE IFACE	Delete IFACE from BRIDGE"
 //usage:	IF_FEATURE_BRCTL_FANCY(
-//usage:     "\n	stp BRIDGE 1/yes/on|0/no/off	STP on/off"
+//usage:     "\n	showmacs BRIDGE			List MAC addresses"
 //usage:     "\n	showstp	BRIDGE			Show STP info"
+//usage:     "\n	stp BRIDGE 1/yes/on|0/no/off	Set STP on/off"
 //usage:     "\n	setageing BRIDGE SECONDS	Set ageing time"
 //usage:     "\n	setfd BRIDGE SECONDS		Set bridge forward delay"
 //usage:     "\n	sethello BRIDGE SECONDS		Set hello time"
@@ -62,10 +63,9 @@
 //usage:     "\n	setbridgeprio BRIDGE PRIO	Set bridge priority"
 //usage:     "\n	setportprio BRIDGE IFACE PRIO	Set port priority"
 //usage:     "\n	setpathcost BRIDGE IFACE COST	Set path cost"
-//usage:     "\n	showmacs BRIDGE			List MAC addresses"
 //usage:	)
 // Not yet implemented:
-//			hairpin BRIDGE IFACE on|off	Hairpin on/off
+//			hairpin BRIDGE IFACE on|off	Set hairpin on/off
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -566,7 +566,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	if (!*argv) /* all but 'show' need at least one argument */
+	if (!*argv) /* All of the below need at least one argument */
 		bb_show_usage();
 
 	br = *argv++;
@@ -599,7 +599,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	if (!*argv) /* all but 'addbr/delbr' need at least two arguments */
+	if (!*argv) /* All of the below need at least two arguments */
 		bb_show_usage();
 
 #if ENABLE_FEATURE_BRCTL_FANCY
