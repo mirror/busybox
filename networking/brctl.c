@@ -157,7 +157,8 @@ static int show_bridge(const char *name, int need_hdr)
 		strcpy(filedata, "yes");
 	fputs(filedata, stdout);
 
-	strcpy(sfx - (sizeof("bridge/")-1), "brif");
+	/* sfx points past "BR/bridge/", turn it into "BR/brif": */
+	sfx[-4] = 'f'; sfx[-3] = '\0';
 	tabs = 0;
 	ifaces = opendir(pathbuf);
 	if (ifaces) {
@@ -472,8 +473,8 @@ static void show_bridge_stp(const char *name)
 	{
 		DIR *ifaces;
 
-		/* sfx points past "BR/bridge/", turn it to "BR/brif": */
-		strcpy(sfx - 4, "f");
+		/* sfx points past "BR/bridge/", turn it into "BR/brif": */
+		sfx[-4] = 'f'; sfx[-3] = '\0';
 		ifaces = opendir(pathbuf);
 		if (ifaces) {
 			struct dirent *ent;
