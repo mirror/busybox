@@ -238,6 +238,18 @@ static void handle_net_output(int len)
 			*dst = '\r'; /* Enter -> CR LF */
 			*++dst = '\n';
 		}
+#if 0
+/* putty's "special commands" mode does this: */
+/* Korenix 3005 switch needs at least the backspace tweak */
+		if (c == 0x08 || c == 0x7f) { /* ctrl+h || backspace */
+			*dst = IAC;
+			*++dst = EC;
+		}
+		if (c == 0x03) { /* ctrl+c */
+			*dst = IAC;
+			*++dst = IP;
+		}
+#endif
 		dst++;
 	}
 	if (dst - outbuf != 0)
