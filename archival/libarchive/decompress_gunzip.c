@@ -277,22 +277,19 @@ static unsigned fill_bitbuffer(STATE_PARAM unsigned bitbuffer, unsigned *current
 
 
 /* Given a list of code lengths and a maximum table size, make a set of
- * tables to decode that set of codes.  Return zero on success, one if
- * the given code set is incomplete (the tables are still built in this
- * case), two if the input is invalid (an oversubscribed set of lengths)
- * - in this case stores NULL in *t.
+ * tables to decode that set of codes.
  *
  * b:	code lengths in bits (all assumed <= BMAX)
  * n:	number of codes (assumed <= N_MAX)
  * s:	number of simple-valued codes (0..s-1)
  * d:	list of base values for non-simple codes
  * e:	list of extra bits for non-simple codes
- * t:	result: starting table
  * m:	maximum lookup bits, returns actual
+ * result: starting table
  */
-static int huft_build(const unsigned *b, const unsigned n,
-			const unsigned s, const unsigned short *d,
-			const unsigned char *e, huft_t **t, unsigned *m)
+static huft_t* huft_build(const unsigned *b, const unsigned n,
+			const unsigned s, const uint16_t *d,
+			const uint8_t *e, unsigned *m)
 {
 	unsigned a;             /* counter for codes of length k */
 	unsigned c[BMAX + 1];   /* bit length count table */
@@ -314,11 +311,11 @@ static int huft_build(const unsigned *b, const unsigned n,
 	unsigned *xp;           /* pointer into x */
 	int y;                  /* number of dummy codes added */
 	unsigned z;             /* number of entries in current table */
+	huft_t *result;
+	huft_t **t;
 
 	/* Length of EOB code, if any */
 	eob_len = n > 256 ? b[256] : BMAX;
-
-	*t = NULL;
 
 	/* Generate counts for each bit length */
 	memset(c, 0, sizeof(c));
@@ -335,9 +332,8 @@ static int huft_build(const unsigned *b, const unsigned n,
 		q[1].b = 1;
 		q[2].e = 99;    /* invalid code marker */
 		q[2].b = 1;
-		*t = q + 1;
 		*m = 1;
-		return 0;
+		return q + 1;
 	}
 
 	/* Find minimum and maximum length, bound *m by those */
@@ -353,11 +349,11 @@ static int huft_build(const unsigned *b, const unsigned n,
 	for (y = 1 << j; j < i; j++, y <<= 1) {
 		y -= c[j];
 		if (y < 0)
-			return 2; /* bad input: more codes than bits */
+			return NULL; /* bad input: more codes than bits */
 	}
 	y -= c[i];
 	if (y < 0)
-		return 2;
+		return NULL;
 	c[i] += y;
 
 	/* Generate starting offsets into the value table for each length */
@@ -384,6 +380,8 @@ static int huft_build(const unsigned *b, const unsigned n,
 	} while (++i < n);
 
 	/* Generate the Huffman codes and for each, make the table entries */
+	result = NULL;
+	t = &result;
 	x[0] = i = 0;   /* first Huffman code is zero */
 	p = v;          /* grab values in bit order */
 	htl = -1;       /* no tables yet--level -1 */
@@ -475,8 +473,10 @@ static int huft_build(const unsigned *b, const unsigned n,
 	/* return actual size of base table */
 	*m = ws[1];
 
-	/* Return 1 if we were given an incomplete table */
-	return y != 0 && g != 1;
+	if (y != 0 && g != 1) /* we were given an incomplete table */
+		return NULL;
+
+	return result;
 }
 
 
@@ -777,14 +777,14 @@ static int inflate_block(STATE_PARAM smallint *e)
 		for (; i < 288; i++) /* make a complete, but wrong code set */
 			ll[i] = 8;
 		bl = 7;
-		huft_build(ll, 288, 257, cplens, cplext, &inflate_codes_tl, &bl);
-		/* huft_build() never return nonzero - we use known data */
+		inflate_codes_tl = huft_build(ll, 288, 257, cplens, cplext, &bl);
+		/* huft_build() never returns error here - we use known data */
 
 		/* set up distance table */
 		for (i = 0; i < 30; i++) /* make an incomplete code set */
 			ll[i] = 5;
 		bd = 5;
-		huft_build(ll, 30, 0, cpdist, cpdext, &inflate_codes_td, &bd);
+		inflate_codes_td = huft_build(ll, 30, 0, cpdist, cpdext, &bd);
 
 		/* set up data for inflate_codes() */
 		inflate_codes_setup(PASS_STATE bl, bd);
@@ -850,9 +850,9 @@ static int inflate_block(STATE_PARAM smallint *e)
 
 		/* build decoding table for trees - single level, 7 bit lookup */
 		bl = 7;
-		i = huft_build(ll, 19, 19, NULL, NULL, &inflate_codes_tl, &bl);
-		if (i != 0) {
-			abort_unzip(PASS_STATE_ONLY); //return i;	/* incomplete code set */
+		inflate_codes_tl = huft_build(ll, 19, 19, NULL, NULL, &bl);
+		if (!inflate_codes_tl) {
+			abort_unzip(PASS_STATE_ONLY);	/* incomplete code set */
 		}
 
 		/* read in literal and distance code lengths */
@@ -915,14 +915,13 @@ static int inflate_block(STATE_PARAM smallint *e)
 
 		/* build the decoding tables for literal/length and distance codes */
 		bl = lbits;
-
-		i = huft_build(ll, nl, 257, cplens, cplext, &inflate_codes_tl, &bl);
-		if (i != 0) {
+		inflate_codes_tl = huft_build(ll, nl, 257, cplens, cplext, &bl);
+		if (!inflate_codes_tl) {
 			abort_unzip(PASS_STATE_ONLY);
 		}
 		bd = dbits;
-		i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &inflate_codes_td, &bd);
-		if (i != 0) {
+		inflate_codes_td = huft_build(ll + nl, nd, 0, cpdist, cpdext, &bd);
+		if (!inflate_codes_td) {
 			abort_unzip(PASS_STATE_ONLY);
 		}
 
