@@ -39,7 +39,8 @@ typedef struct huft_t {
 	unsigned char e;	/* number of extra bits or operation */
 	unsigned char b;	/* number of bits in this code or subcode */
 	union {
-		unsigned short n;	/* literal, length base, or distance base */
+		unsigned n;	/* literal, length base, or distance base */
+		/* ^^^^^ was "unsigned short", but that results in larger code */
 		struct huft_t *t;	/* pointer to next level of table */
 	} v;
 } huft_t;
