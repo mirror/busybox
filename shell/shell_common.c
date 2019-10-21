@@ -322,51 +322,90 @@ shell_builtin_read(struct builtin_read_params *params)
 struct limits {
 	uint8_t cmd;            /* RLIMIT_xxx fit into it */
 	uint8_t factor_shift;   /* shift by to get rlim_{cur,max} values */
-	const char *name;
 };
 
 static const struct limits limits_tbl[] = {
-	{ RLIMIT_CORE,		9,	"core file size (blocks)" }, // -c
-	{ RLIMIT_DATA,		10,	"data seg size (kb)" },      // -d
-	{ RLIMIT_NICE,		0,	"scheduling priority" },     // -e
-	{ RLIMIT_FSIZE,		9,	"file size (blocks)" },      // -f
+	{ RLIMIT_CORE,		9,	}, // -c
+	{ RLIMIT_DATA,		10,	}, // -d
+	{ RLIMIT_NICE,		0,	}, // -e
+	{ RLIMIT_FSIZE,		9,	}, // -f
 #define LIMIT_F_IDX     3
 #ifdef RLIMIT_SIGPENDING
-	{ RLIMIT_SIGPENDING,	0,	"pending signals" },         // -i
+	{ RLIMIT_SIGPENDING,	0,	}, // -i
 #endif
 #ifdef RLIMIT_MEMLOCK
-	{ RLIMIT_MEMLOCK,	10,	"max locked memory (kb)" },  // -l
+	{ RLIMIT_MEMLOCK,	10,	}, // -l
 #endif
 #ifdef RLIMIT_RSS
-	{ RLIMIT_RSS,		10,	"max memory size (kb)" },    // -m
+	{ RLIMIT_RSS,		10,	}, // -m
 #endif
 #ifdef RLIMIT_NOFILE
-	{ RLIMIT_NOFILE,	0,	"open files" },              // -n
+	{ RLIMIT_NOFILE,	0,	}, // -n
 #endif
 #ifdef RLIMIT_MSGQUEUE
-	{ RLIMIT_MSGQUEUE,	0,	"POSIX message queues (bytes)" }, // -q
+	{ RLIMIT_MSGQUEUE,	0,	}, // -q
 #endif
 #ifdef RLIMIT_RTPRIO
-	{ RLIMIT_RTPRIO,	0,	"real-time priority" },      // -r
+	{ RLIMIT_RTPRIO,	0,	}, // -r
 #endif
 #ifdef RLIMIT_STACK
-	{ RLIMIT_STACK,		10,	"stack size (kb)" },         // -s
+	{ RLIMIT_STACK,		10,	}, // -s
 #endif
 #ifdef RLIMIT_CPU
-	{ RLIMIT_CPU,		0,	"cpu time (seconds)" },      // -t
+	{ RLIMIT_CPU,		0,	}, // -t
 #endif
 #ifdef RLIMIT_NPROC
-	{ RLIMIT_NPROC,		0,	"max user processes" },      // -u
+	{ RLIMIT_NPROC,		0,	}, // -u
 #endif
 #ifdef RLIMIT_AS
-	{ RLIMIT_AS,		10,	"virtual memory (kb)" },     // -v
+	{ RLIMIT_AS,		10,	}, // -v
 #endif
 #ifdef RLIMIT_LOCKS
-	{ RLIMIT_LOCKS,		0,	"file locks" },              // -x
+	{ RLIMIT_LOCKS,		0,	}, // -x
 #endif
 };
 // bash also shows:
 //pipe size            (512 bytes, -p) 8
+
+static const char limits_help[] ALIGN1 =
+	"core file size (blocks)"          // -c
+	"\0""data seg size (kb)"           // -d
+	"\0""scheduling priority"          // -e
+	"\0""file size (blocks)"           // -f
+#ifdef RLIMIT_SIGPENDING
+	"\0""pending signals"              // -i
+#endif
+#ifdef RLIMIT_MEMLOCK
+	"\0""max locked memory (kb)"       // -l
+#endif
+#ifdef RLIMIT_RSS
+	"\0""max memory size (kb)"         // -m
+#endif
+#ifdef RLIMIT_NOFILE
+	"\0""open files"                   // -n
+#endif
+#ifdef RLIMIT_MSGQUEUE
+	"\0""POSIX message queues (bytes)" // -q
+#endif
+#ifdef RLIMIT_RTPRIO
+	"\0""real-time priority"           // -r
+#endif
+#ifdef RLIMIT_STACK
+	"\0""stack size (kb)"              // -s
+#endif
+#ifdef RLIMIT_CPU
+	"\0""cpu time (seconds)"           // -t
+#endif
+#ifdef RLIMIT_NPROC
+	"\0""max user processes"           // -u
+#endif
+#ifdef RLIMIT_AS
+	"\0""virtual memory (kb)"          // -v
+#endif
+#ifdef RLIMIT_LOCKS
+	"\0""file locks"                   // -x
+#endif
+;
 
 static const char limit_chars[] ALIGN1 =
 			"c"
@@ -558,10 +597,12 @@ shell_builtin_ulimit(char **argv)
 	if (!(opts & (OPT_hard | OPT_soft)))
 		opts |= (OPT_hard | OPT_soft);
 	if (opts & OPT_all) {
+		const char *help = limits_help;
 		for (i = 0; i < ARRAY_SIZE(limits_tbl); i++) {
 			getrlimit(limits_tbl[i].cmd, &limit);
-			printf("%-32s(-%c) ", limits_tbl[i].name, limit_chars[i]);
+			printf("%-32s(-%c) ", help, limit_chars[i]);
 			printlim(opts, &limit, &limits_tbl[i]);
+			help += strlen(help) + 1;
 		}
 		return EXIT_SUCCESS;
 	}
@@ -592,7 +633,7 @@ shell_builtin_ulimit(char **argv)
 		getrlimit(limits_tbl[i].cmd, &limit);
 		if (!val_str) {
 			if (opt_cnt > 1)
-				printf("%-32s(-%c) ", limits_tbl[i].name, limit_chars[i]);
+				printf("%-32s(-%c) ", nth_string(limits_help, i), limit_chars[i]);
 			printlim(opts, &limit, &limits_tbl[i]);
 		} else {
 			rlim_t val = RLIM_INFINITY;
