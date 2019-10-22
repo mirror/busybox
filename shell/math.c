@@ -537,25 +537,23 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 	base = (unsigned)n;
 	n = 0;
 	nptr = *endptr + 1;
-	/* bash allows "N#" (empty "nnnn" part) */
 	for (;;) {
 		unsigned digit = (unsigned)*nptr - '0';
-		if (digit >= 10) {
-			/* *nptr is not 0..9 */
-			if (*nptr > 'z')
-				break; /* this rejects e.g. $((64#~)) */
+		if (digit >= 10 /* not 0..9 */
+		 && digit <= 'z' - '0' /* needed to reject e.g. $((64#~)) */
+		) {
 			/* in bases up to 36, case does not matter for a-z */
 			digit = (unsigned)(*nptr | 0x20) - ('a' - 10);
 			if (base > 36 && *nptr <= '_') {
-				/* otherwise, A-Z,@,_ are 36..61,62,63 */
-				if (*nptr == '@')
-					digit = 62;
-				else if (*nptr == '_')
+				/* otherwise, A-Z,@,_ are 36-61,62,63 */
+				if (*nptr == '_')
 					digit = 63;
+				else if (*nptr == '@')
+					digit = 62;
 				else if (digit < 36) /* A-Z */
 					digit += 36 - 10;
 				else
-					break; /* error, such as [ or \ */
+					break; /* error: one of [\]^ */
 			}
 			//bb_error_msg("ch:'%c'%d digit:%u", *nptr, *nptr, digit);
 			//if (digit < 10) - example where we need this?
@@ -567,6 +565,12 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 		n = n * base + digit;
 		nptr++;
 	}
+	/* Note: we do not set errno on bad chars, we just set a pointer
+	 * to the first invalid char. For example, this allows
+	 * "N#" (empty "nnnn" part): 64#+1 is a valid expression,
+	 * it means 64# + 1, whereas 64#~... is not, since ~ is not a valid
+	 * operator.
+	 */
 	*endptr = (char*)nptr;
 	return n;
 }
