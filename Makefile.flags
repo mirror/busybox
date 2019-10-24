@@ -129,10 +129,12 @@ endif
 # fall back to using a temp file:
 CRYPT_AVAILABLE := $(shell echo 'int main(void){return 0;}' >crypttest.c; $(CC) $(CFLAGS) -lcrypt -o /dev/null crypttest.c >/dev/null 2>&1 && echo "y"; rm crypttest.c)
 ifeq ($(CRYPT_AVAILABLE),y)
-LDLIBS += m crypt
+LDLIBS += m rt crypt
 else
-LDLIBS += m
+LDLIBS += m rt
 endif
+# libm may be needed for dc, awk, ntpd
+# librt may be needed for clock_gettime()
 
 # libpam may use libpthread, libdl and/or libaudit.
 # On some platforms that requires an explicit -lpthread, -ldl, -laudit.

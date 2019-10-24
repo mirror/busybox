@@ -51,18 +51,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if ENABLE_MONOTONIC_SYSCALL
 #include <sys/syscall.h>
 
-/* libc has incredibly messy way of doing this,
- * typically requiring -lrt. We just skip all this mess */
 static void gettimeofday_ns(struct timespec *ts)
 {
-#if defined(__NR_clock_gettime)
-	syscall(__NR_clock_gettime, CLOCK_REALTIME, ts);
-#elif __TIMESIZE == 64
-	syscall(__NR_clock_gettime64, CLOCK_REALTIME, ts);
-#else
-# error "We currently don't support architectures without " \
-	"the __NR_clock_gettime syscall and 32-bit time_t"
-#endif
+	clock_gettime(CLOCK_REALTIME, ts);
 }
 #else
 static void gettimeofday_ns(struct timespec *ts)

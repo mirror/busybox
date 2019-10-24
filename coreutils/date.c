@@ -33,10 +33,9 @@
 //config:	Enable option (-I) to output an ISO-8601 compliant
 //config:	date/time string.
 //config:
-//config:# defaults to "no": stat's nanosecond field is a bit non-portable
 //config:config FEATURE_DATE_NANO
 //config:	bool "Support %[num]N nanosecond format specifier"
-//config:	default n  # syscall(__NR_clock_gettime) or syscall(__NR_clock_gettime64)
+//config:	default n # stat's nanosecond field is a bit non-portable
 //config:	depends on DATE
 //config:	select PLATFORM_LINUX
 //config:	help
@@ -271,17 +270,8 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		 */
 #endif
 	} else {
-#if ENABLE_FEATURE_DATE_NANO && defined(__NR_clock_gettime)
-		/* libc has incredibly messy way of doing this,
-		 * typically requiring -lrt. We just skip all this mess */
-		syscall(__NR_clock_gettime, CLOCK_REALTIME, &ts);
-#elif ENABLE_FEATURE_DATE_NANO && __TIMESIZE == 64
-		/* Let's only support the 64 suffix syscalls for 64-bit time_t.
-		 * This simplifies the code for us as we don't need to convert
-		 * between 64-bit and 32-bit. We also don't have a way to
-		 * report overflow errors here.
-		 */
-		syscall(__NR_clock_gettime64, CLOCK_REALTIME, &ts);
+#if ENABLE_FEATURE_DATE_NANO
+		clock_gettime(CLOCK_REALTIME, &ts);
 #else
 		time(&ts.tv_sec);
 #endif

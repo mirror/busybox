@@ -253,18 +253,9 @@ char* FAST_FUNC strftime_YYYYMMDDHHMMSS(char *buf, unsigned len, time_t *tp)
 #define CLOCK_MONOTONIC 1
 #endif
 
-/* libc has incredibly messy way of doing this,
- * typically requiring -lrt. We just skip all this mess */
 static void get_mono(struct timespec *ts)
 {
-#if defined(__NR_clock_gettime)
-	if (syscall(__NR_clock_gettime, CLOCK_MONOTONIC, ts))
-#elif __TIMESIZE == 64
-	if (syscall(__NR_clock_gettime64, CLOCK_MONOTONIC, ts))
-#else
-# error "We currently don't support architectures without " \
-	"the __NR_clock_gettime syscall and 32-bit time_t"
-#endif
+	if (clock_gettime(CLOCK_MONOTONIC, ts))
 		bb_simple_error_msg_and_die("clock_gettime(MONOTONIC) failed");
 }
 unsigned long long FAST_FUNC monotonic_ns(void)
