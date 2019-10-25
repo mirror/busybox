@@ -259,7 +259,8 @@ int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
 
 			buffer[-1] = 0;
 			/* Pack into "1 <row15bits> <col16bits>" 32-bit sequence */
-			col |= (((-1 << 15) | row) << 16);
+			row |= ((unsigned)(-1) << 15);
+			col |= (row << 16);
 			/* Return it in high-order word */
 			return ((int64_t) col << 32) | (uint32_t)KEYCODE_CURSOR_POS;
 		}
