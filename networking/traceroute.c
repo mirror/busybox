@@ -546,11 +546,11 @@ pr_type(unsigned char t)
 	};
 # if ENABLE_TRACEROUTE6
 	static const char *const ttab6[] = {
-[0]	"Error", "Dest Unreachable", "Packet Too Big", "Time Exceeded",
-[4]	"Param Problem",
-[8]	"Echo Request", "Echo Reply", "Membership Query", "Membership Report",
-[12]	"Membership Reduction", "Router Solicit", "Router Advert", "Neighbor Solicit",
-[16]	"Neighbor Advert", "Redirect",
+[0]	= "Error", "Dest Unreachable", "Packet Too Big", "Time Exceeded",
+[4]	= "Param Problem",
+[8]	= "Echo Request", "Echo Reply", "Membership Query", "Membership Report",
+[12]	= "Membership Reduction", "Router Solicit", "Router Advert", "Neighbor Solicit",
+[16]	= "Neighbor Advert", "Redirect",
 	};
 
 	if (dest_lsa->u.sa.sa_family == AF_INET6) {
