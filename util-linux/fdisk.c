@@ -588,11 +588,13 @@ partname(const char *dev, int pno, int lth)
 	return bufp;
 }
 
+#if ENABLE_FEATURE_SGI_LABEL || ENABLE_FEATURE_OSF_LABEL
 static ALWAYS_INLINE struct partition *
 get_part_table(int i)
 {
 	return ptes[i].part_table;
 }
+#endif
 
 static ALWAYS_INLINE const char *
 str_units(void)

@@ -504,12 +504,14 @@ static ALWAYS_INLINE double MAXD(double a, double b)
 		return a;
 	return b;
 }
+#if !USING_KERNEL_PLL_LOOP
 static ALWAYS_INLINE double MIND(double a, double b)
 {
 	if (a < b)
 		return a;
 	return b;
 }
+#endif
 static NOINLINE double my_SQRT(double X)
 {
 	union {

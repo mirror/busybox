@@ -122,11 +122,6 @@ static inline void reset_outbuf(void)
 	cur_outbuf = outbuf;
 }
 
-static inline int outbuf_count(void)
-{
-	return cur_outbuf - outbuf;
-}
-
 static void print_outbuf(void)
 {
 	int sz = cur_outbuf - outbuf;

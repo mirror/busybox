@@ -13,6 +13,7 @@ typedef uint32_t word32;
 
 /* from wolfssl-3.15.3/wolfcrypt/src/aes.c */
 
+#ifdef UNUSED
 static ALWAYS_INLINE void FlattenSzInBits(byte* buf, word32 sz)
 {
     /* Multiply the sz by 8 */
@@ -32,6 +33,7 @@ static ALWAYS_INLINE void FlattenSzInBits(byte* buf, word32 sz)
 //    buf[7] = sz & 0xff;
     *(uint32_t*)(buf + 4) = SWAP_BE32(sz);
 }
+#endif
 
 static void RIGHTSHIFTX(byte* x)
 {
