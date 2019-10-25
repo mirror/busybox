@@ -3490,7 +3490,7 @@ static void do_cmd(int c)
 		} while (--cmdcnt > 0);
 		break;
 	case '{':			// {- move backward paragraph
-		q = char_search(dot, "\n\n", (BACK << 1) | FULL);
+		q = char_search(dot, "\n\n", ((unsigned)BACK << 1) | FULL);
 		if (q != NULL) {	// found blank line
 			dot = next_line(q);	// move to next blank line
 		}
