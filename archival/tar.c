@@ -1029,7 +1029,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_TAR_CREATE("c--tx:t--cx:x--ct") // mutually exclusive
 		IF_NOT_FEATURE_TAR_CREATE("t--x:x--t") // mutually exclusive
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
-		":\xf9+" // --strip-components=NUM
+		":\xf8+" // --strip-components=NUM
 #endif
 		LONGOPTS
 		, &base_dir // -C dir
