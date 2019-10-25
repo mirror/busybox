@@ -304,7 +304,7 @@ void lbb_prepare(const char *applet
 		IF_FEATURE_INDIVIDUAL(, char **argv))
 {
 #ifdef __GLIBC__
-	(*(int **)&bb_errno) = __errno_location();
+	(*(int **)not_const_pp(&bb_errno)) = __errno_location();
 	barrier();
 #endif
 	applet_name = applet;

@@ -2153,12 +2153,32 @@ struct globals;
  * Magic prevents ptr_to_globals from going into rodata.
  * If you want to assign a value, use SET_PTR_TO_GLOBALS(x) */
 extern struct globals *const ptr_to_globals;
+
+#if defined(__clang_major__) && __clang_major__ >= 9
+/* Clang/llvm drops assignment to "constant" storage. Silently.
+ * Needs serious convincing to not eliminate the store.
+ */
+static ALWAYS_INLINE void* not_const_pp(const void *p)
+{
+	void *pp;
+	__asm__ __volatile__(
+		"# forget that p points to const"
+		: /*outputs*/ "=r" (pp)
+		: /*inputs*/ "0" (p)
+	);
+	return pp;
+}
+#else
+static ALWAYS_INLINE void* not_const_pp(const void *p) { return (void*)p; }
+#endif
+
 /* At least gcc 3.4.6 on mipsel system needs optimization barrier */
 #define barrier() __asm__ __volatile__("":::"memory")
 #define SET_PTR_TO_GLOBALS(x) do { \
-	(*(struct globals**)&ptr_to_globals) = (void*)(x); \
+	(*(struct globals**)not_const_pp(&ptr_to_globals)) = (void*)(x); \
 	barrier(); \
 } while (0)
+
 #define FREE_PTR_TO_GLOBALS() do { \
 	if (ENABLE_FEATURE_CLEAN_UP) { \
 		free(ptr_to_globals); \

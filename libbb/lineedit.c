@@ -203,7 +203,7 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 #define delbuf           (S.delbuf          )
 
 #define INIT_S() do { \
-	(*(struct lineedit_statics**)&lineedit_ptr_to_statics) = xzalloc(sizeof(S)); \
+	(*(struct lineedit_statics**)not_const_pp(&lineedit_ptr_to_statics)) = xzalloc(sizeof(S)); \
 	barrier(); \
 	cmdedit_termw = 80; \
 	IF_USERNAME_OR_HOMEDIR(home_pwd_buf = (char*)null_str;) \

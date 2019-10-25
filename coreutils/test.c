@@ -411,7 +411,7 @@ extern struct test_statics *const test_ptr_to_statics;
 #define leaving         (S.leaving      )
 
 #define INIT_S() do { \
-	(*(struct test_statics**)&test_ptr_to_statics) = xzalloc(sizeof(S)); \
+	(*(struct test_statics**)not_const_pp(&test_ptr_to_statics)) = xzalloc(sizeof(S)); \
 	barrier(); \
 } while (0)
 #define DEINIT_S() do { \
