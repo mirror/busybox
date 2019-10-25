@@ -47,18 +47,37 @@ endif
 # gcc 3.x emits bogus "old style proto" warning on find.c:alloc_action()
 CFLAGS += $(call cc-ifversion, -ge, 0400, -Wold-style-definition)
 
-CFLAGS += $(call cc-option,-fno-builtin-strlen -finline-limit=0 -fomit-frame-pointer -ffunction-sections -fdata-sections,)
+ifneq ($(CC),clang)
+# "clang-9: warning: optimization flag '-finline-limit=0' is not supported
+CFLAGS += $(call cc-option,-finline-limit=0,)
+endif
+
+CFLAGS += $(call cc-option,-fno-builtin-strlen -fomit-frame-pointer -ffunction-sections -fdata-sections,)
 # -fno-guess-branch-probability: prohibit pseudo-random guessing
 # of branch probabilities (hopefully makes bloatcheck more stable):
 CFLAGS += $(call cc-option,-fno-guess-branch-probability,)
-CFLAGS += $(call cc-option,-funsigned-char -static-libgcc,)
-CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-labels=1 -falign-loops=1,)
+CFLAGS += $(call cc-option,-funsigned-char,)
+
+ifneq ($(CC),clang)
+# "clang-9: warning: argument unused during compilation: '-static-libgcc'"
+CFLAGS += $(call cc-option,-static-libgcc,)
+endif
+
+CFLAGS += $(call cc-option,-falign-functions=1,)
+ifneq ($(CC),clang)
+# "clang-9: warning: optimization flag '-falign-jumps=1' is not supported" (and same for other two)
+CFLAGS += $(call cc-option,-falign-jumps=1 -falign-labels=1 -falign-loops=1,)
+endif
+
 # Defeat .eh_frame bloat (gcc 4.6.3 x86-32 defconfig: 20% smaller busybox binary):
 CFLAGS += $(call cc-option,-fno-unwind-tables,)
 CFLAGS += $(call cc-option,-fno-asynchronous-unwind-tables,)
 # No automatic printf->puts,putchar conversions
 # (try disabling this and comparing assembly, it's instructive)
 CFLAGS += $(call cc-option,-fno-builtin-printf,)
+
+# clang-9 does not like "str" + N and "if (CONFIG_ITEM && cond)" constructs
+CFLAGS += $(call cc-option,-Wno-string-plus-int -Wno-constant-logical-operand)
 
 # FIXME: These warnings are at least partially to be concerned about and should
 # be fixed..
