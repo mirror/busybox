@@ -172,7 +172,7 @@ struct prg_node {
 #define PRG_HASH_SIZE 211
 
 struct globals {
-	smallint flags;
+	smalluint flags;
 #if ENABLE_FEATURE_NETSTAT_PRG
 	smallint prg_cache_loaded;
 	struct prg_node *prg_hash[PRG_HASH_SIZE];
