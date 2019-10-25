@@ -996,7 +996,7 @@ static void identify(uint16_t *val)
 					/* check Endian of capacity bytes */
 					nn = val[LCYLS_CUR] * val[LHEADS_CUR] * val[LSECTS_CUR];
 					oo = (uint32_t)val[CAPACITY_LSB] << 16 | val[CAPACITY_MSB];
-					if (abs(mm - nn) > abs(oo - nn))
+					if (abs((int)(mm - nn)) > abs((int)(oo - nn)))
 						mm = oo;
 				}
 				printf("\tCHS current addressable sectors:%11u\n", mm);
