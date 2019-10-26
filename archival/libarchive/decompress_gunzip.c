@@ -280,11 +280,17 @@ static unsigned fill_bitbuffer(STATE_PARAM unsigned bitbuffer, unsigned *current
  * b:	code lengths in bits (all assumed <= BMAX)
  * n:	number of codes (assumed <= N_MAX)
  * s:	number of simple-valued codes (0..s-1)
- * d:	list of base values for non-simple codes
- * e:	list of extra bits for non-simple codes
+ * cp_ext->cp,ext: list of base values/extra bits for non-simple codes
  * m:	maximum lookup bits, returns actual
  * result: starting table
+ *
+ * On error, returns a value with lowest-bit set on error.
+ * It can be just the value of 0x1,
+ * or a valid pointer to a Huffman table, ORed with 0x1 if incompete table
+ * is given: "fixed inflate" decoder feeds us such data.
  */
+#define BAD_HUFT(p) ((uintptr_t)(p) & 1)
+#define ERR_RET     ((huft_t*)(uintptr_t)1)
 static huft_t* huft_build(const unsigned *b, const unsigned n,
 			const unsigned s, const struct cp_ext *cp_ext,
 			unsigned *m)
@@ -347,11 +353,11 @@ static huft_t* huft_build(const unsigned *b, const unsigned n,
 	for (y = 1 << j; j < i; j++, y <<= 1) {
 		y -= c[j];
 		if (y < 0)
-			return NULL; /* bad input: more codes than bits */
+			return ERR_RET; /* bad input: more codes than bits */
 	}
 	y -= c[i];
 	if (y < 0)
-		return NULL;
+		return ERR_RET;
 	c[i] += y;
 
 	/* Generate starting offsets into the value table for each length */
@@ -378,7 +384,7 @@ static huft_t* huft_build(const unsigned *b, const unsigned n,
 	} while (++i < n);
 
 	/* Generate the Huffman codes and for each, make the table entries */
-	result = NULL;
+	result = ERR_RET;
 	t = &result;
 	x[0] = i = 0;   /* first Huffman code is zero */
 	p = v;          /* grab values in bit order */
@@ -472,7 +478,8 @@ static huft_t* huft_build(const unsigned *b, const unsigned n,
 	*m = ws[1];
 
 	if (y != 0 && g != 1) /* we were given an incomplete table */
-		return NULL;
+		/* return "result" ORed with 1 */
+		return (void*)((uintptr_t)result | 1);
 
 	return result;
 }
@@ -776,13 +783,16 @@ static int inflate_block(STATE_PARAM smallint *e)
 			ll[i] = 8;
 		bl = 7;
 		inflate_codes_tl = huft_build(ll, 288, 257, &lit, &bl);
-		/* huft_build() never returns error here - we use known data */
+		/* ^^^ never returns error here - we use known data */
 
 		/* set up distance table */
 		for (i = 0; i < 30; i++) /* make an incomplete code set */
 			ll[i] = 5;
 		bd = 5;
 		inflate_codes_td = huft_build(ll, 30, 0, &dist, &bd);
+		/* ^^^ does return error here! (lsb bit is set) - we gave it incomplete code set */
+		/* clearing error bit: */
+		inflate_codes_td = (void*)((uintptr_t)inflate_codes_td & ~(uintptr_t)1);
 
 		/* set up data for inflate_codes() */
 		inflate_codes_setup(PASS_STATE bl, bd);
@@ -849,7 +859,7 @@ static int inflate_block(STATE_PARAM smallint *e)
 		/* build decoding table for trees - single level, 7 bit lookup */
 		bl = 7;
 		inflate_codes_tl = huft_build(ll, 19, 19, NULL, &bl);
-		if (!inflate_codes_tl) {
+		if (BAD_HUFT(inflate_codes_tl)) {
 			abort_unzip(PASS_STATE_ONLY);	/* incomplete code set */
 		}
 
@@ -914,12 +924,12 @@ static int inflate_block(STATE_PARAM smallint *e)
 		/* build the decoding tables for literal/length and distance codes */
 		bl = lbits;
 		inflate_codes_tl = huft_build(ll, nl, 257, &lit, &bl);
-		if (!inflate_codes_tl) {
+		if (BAD_HUFT(inflate_codes_tl)) {
 			abort_unzip(PASS_STATE_ONLY);
 		}
 		bd = dbits;
 		inflate_codes_td = huft_build(ll + nl, nd, 0, &dist, &bd);
-		if (!inflate_codes_td) {
+		if (BAD_HUFT(inflate_codes_td)) {
 			abort_unzip(PASS_STATE_ONLY);
 		}
 
