@@ -573,7 +573,6 @@ typedef struct HFILE {
 	char *cur;
 	char *end;
 	struct HFILE *next_hfile;
-	int is_stdin;
 	int fd;
 	char buf[1024];
 } HFILE;
@@ -973,6 +972,7 @@ struct globals {
 	unsigned execute_lineno;
 #endif
 	HFILE *HFILE_list;
+	HFILE *HFILE_stdin;
 	/* Which signals have non-DFL handler (even with no traps set)?
 	 * Set at the start to:
 	 * (SIGQUIT + maybe SPECIAL_INTERACTIVE_SIGS + maybe SPECIAL_JOBSTOP_SIGS)
@@ -1603,7 +1603,8 @@ static HFILE *hfopen(const char *name)
 	}
 
 	fp = xmalloc(sizeof(*fp));
-	fp->is_stdin = (name == NULL);
+	if (name == NULL)
+		G.HFILE_stdin = fp;
 	fp->fd = fd;
 	fp->cur = fp->end = fp->buf;
 	fp->next_hfile = G.HFILE_list;
@@ -2666,7 +2667,7 @@ static int fgetc_interactive(struct in_str *i)
 {
 	int ch;
 	/* If it's interactive stdin, get new line. */
-	if (G_interactive_fd && i->file->is_stdin) {
+	if (G_interactive_fd && i->file == G.HFILE_stdin) {
 		/* Returns first char (or EOF), the rest is in i->p[] */
 		ch = get_user_input(i);
 		G.promptmode = 1; /* PS2 */
@@ -7605,7 +7606,9 @@ static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 		avoid_fd = 9;
 
 #if ENABLE_HUSH_INTERACTIVE
-	if (fd == G_interactive_fd) {
+	if (fd != 0 /* don't trigger for G_interactive_fd == 0 (that's "not interactive" flag) */
+	 && fd == G_interactive_fd
+	) {
 		/* Testcase: "ls -l /proc/$$/fd 255>&-" should work */
 		G_interactive_fd = xdup_CLOEXEC_and_close(G_interactive_fd, avoid_fd);
 		debug_printf_redir("redirect_fd %d: matches interactive_fd, moving it to %d\n", fd, G_interactive_fd);
@@ -7619,7 +7622,7 @@ static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 		/* No need to move script fds.
 		 * For NOMMU case, it's actively wrong: we'd change ->fd
 		 * fields in memory for the parent, but parent's fds
-		 * aren't be moved, it would use wrong fd!
+		 * aren't moved, it would use wrong fd!
 		 * Reproducer: "cmd 3>FILE" in script.
 		 * If we would call move_HFILEs_on_redirect(), child would:
 		 *  fcntl64(3, F_DUPFD_CLOEXEC, 10)   = 10
@@ -7682,6 +7685,20 @@ static void restore_redirects(struct squirrel *sq)
 			}
 		}
 		free(sq);
+	}
+	if (G.HFILE_stdin
+	 && G.HFILE_stdin->fd != STDIN_FILENO
+	) {
+		/* Testcase: interactive "read r <FILE; echo $r; read r; echo $r".
+		 * Redirect moves ->fd to e.g. 10,
+		 * and it is not restored above (we do not restore script fds
+		 * after redirects, we just use new, "moved" fds).
+		 * However for stdin, get_user_input() -> read_line_input(),
+		 * and read builtin, depend on fd == STDIN_FILENO.
+		 */
+		debug_printf_redir("restoring %d to stdin\n", G.HFILE_stdin->fd);
+		xmove_fd(G.HFILE_stdin->fd, STDIN_FILENO);
+		G.HFILE_stdin->fd = STDIN_FILENO;
 	}
 
 	/* If moved, G_interactive_fd stays on new fd, not restoring it */
@@ -10214,8 +10231,6 @@ int hush_main(int argc, char **argv)
 				G_saved_tty_pgrp = 0;
 			}
 		}
-// TODO: track & disallow any attempts of user
-// to (inadvertently) close/redirect G_interactive_fd
 	}
 	debug_printf("interactive_fd:%d\n", G_interactive_fd);
 	if (G_interactive_fd) {
