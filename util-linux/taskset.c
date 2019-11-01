@@ -20,6 +20,14 @@
 //config:	Needed for machines with more than 32-64 CPUs:
 //config:	affinity parameter 0xHHHHHHHHHHHHHHHHHHHH can be arbitrarily long
 //config:	in this case. Otherwise, it is limited to sizeof(long).
+//config:
+//config:config FEATURE_TASKSET_CPULIST
+//config:	bool "CPU list support (-c option)"
+//config:	default y
+//config:	depends on FEATURE_TASKSET_FANCY
+//config:	help
+//config:	Add support for taking/printing affinity as CPU list when '-c'
+//config:	option is used. For example, it prints '0-3,7' instead of mask '8f'.
 
 //applet:IF_TASKSET(APPLET_NOEXEC(taskset, taskset, BB_DIR_USR_BIN, BB_SUID_DROP, taskset))
 
@@ -108,26 +116,109 @@ static unsigned long *get_aff(int pid, unsigned *sz)
 	return mask;
 }
 
+#if ENABLE_FEATURE_TASKSET_CPULIST
+/*
+ * Parse the CPU list and set the mask accordingly.
+ *
+ * The list element can be either a CPU index or a range of CPU indices.
+ * Example: "1,3,5-7".
+ *
+ * note1: pattern specifiers after a range (e.g. 0-255:2/64) are not supported
+ * note2: leading/trailing white-spaces are not allowed
+ */
+static void parse_cpulist(ul *mask, unsigned max, char *s)
+{
+	char *aff = s;
+	for (;;) {
+		unsigned bit, end;
+
+		bit = end = bb_strtou(s, &s, 10);
+		if (*s == '-') {
+			s++;
+			end = bb_strtou(s, &s, 10);
+		}
+		if ((*s != ',' && *s != '\0')
+		 || bit > end
+		 || end == UINT_MAX /* bb_strtou returns this on malformed / ERANGE numbers */
+		) {
+			bb_error_msg_and_die("bad affinity '%s'", aff);
+		}
+		while (bit <= end && bit < max) {
+			mask[bit / BITS_UL] |= (1UL << (bit & MASK_UL));
+			bit++;
+		}
+		if (*s == '\0')
+			break;
+		s++;
+	}
+}
+static void print_cpulist(const ul *mask, unsigned mask_size_in_bytes)
+{
+	const ul *mask_end;
+	const char *delim;
+	unsigned pos;
+	ul bit;
+
+	mask_end = mask + mask_size_in_bytes / sizeof(mask[0]);
+	delim = "";
+	pos = 0;
+	bit = 1;
+	for (;;) {
+		if (*mask & bit) {
+			unsigned onebit = pos + 1;
+			printf("%s%u", delim, pos);
+			do {
+				pos++;
+				bit <<= 1;
+				if (bit == 0) {
+					mask++;
+					if (mask >= mask_end)
+						break;
+					bit = 1;
+				}
+			} while (*mask & bit);
+			if (onebit != pos)
+				printf("-%u", pos - 1);
+			delim = ",";
+		}
+		pos++;
+		bit <<= 1;
+		if (bit == 0) {
+			mask++;
+			if (mask >= mask_end)
+				break;
+			bit = 1;
+		}
+	}
+	bb_putchar('\n');
+}
+#endif
+
 int taskset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int taskset_main(int argc UNUSED_PARAM, char **argv)
 {
 	ul *mask;
 	unsigned mask_size_in_bytes;
 	pid_t pid = 0;
-	unsigned opt_p;
 	const char *current_new;
 	char *aff;
+	unsigned opts;
+	enum {
+		OPT_p = 1 << 0,
+		OPT_c = (1 << 1) * ENABLE_FEATURE_TASKSET_CPULIST,
+	};
 
 	/* NB: we mimic util-linux's taskset: -p does not take
 	 * an argument, i.e., "-pN" is NOT valid, only "-p N"!
 	 * Indeed, util-linux-2.13-pre7 uses:
 	 * getopt_long(argc, argv, "+pchV", ...), not "...p:..." */
 
-	opt_p = getopt32(argv, "^+" "p" "\0" "-1" /* at least 1 arg */);
+	opts = getopt32(argv, "^+" "p"IF_FEATURE_TASKSET_CPULIST("c")
+			"\0" "-1" /* at least 1 arg */);
 	argv += optind;
 
 	aff = *argv++;
-	if (opt_p) {
+	if (opts & OPT_p) {
 		char *pid_str = aff;
 		if (*argv) { /* "-p <aff> <pid> ...rest.is.ignored..." */
 			pid_str = *argv; /* NB: *argv != NULL in this case */
@@ -144,8 +235,14 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 	current_new = "current";
  print_aff:
 	mask = get_aff(pid, &mask_size_in_bytes);
-	if (opt_p) {
-		printf("pid %d's %s affinity mask: "TASKSET_PRINTF_MASK"\n",
+	if (opts & OPT_p) {
+#if ENABLE_FEATURE_TASKSET_CPULIST
+		if (opts & OPT_c) {
+			printf("pid %d's %s affinity list: ", pid, current_new);
+			print_cpulist(mask, mask_size_in_bytes);
+		} else
+#endif
+			printf("pid %d's %s affinity mask: "TASKSET_PRINTF_MASK"\n",
 				pid, current_new, from_mask(mask, mask_size_in_bytes));
 		if (*argv == NULL) {
 			/* Either it was just "-p <pid>",
@@ -158,16 +255,26 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 	}
 	memset(mask, 0, mask_size_in_bytes);
 
-	/* Affinity was specified, translate it into mask */
-	/* it is always in hex, skip "0x" if it exists */
-	if (aff[0] == '0' && (aff[1]|0x20) == 'x')
-		aff += 2;
-
 	if (!ENABLE_FEATURE_TASKSET_FANCY) {
+		/* Affinity was specified, translate it into mask */
+		/* it is always in hex, skip "0x" if it exists */
+		if (aff[0] == '0' && (aff[1]|0x20) == 'x')
+			aff += 2;
 		mask[0] = xstrtoul(aff, 16);
-	} else {
+	}
+#if ENABLE_FEATURE_TASKSET_CPULIST
+	else if (opts & OPT_c) {
+		parse_cpulist(mask, mask_size_in_bytes * 8, aff);
+	}
+#endif
+	else {
 		unsigned i;
 		char *last_char;
+
+		/* Affinity was specified, translate it into mask */
+		/* it is always in hex, skip "0x" if it exists */
+		if (aff[0] == '0' && (aff[1]|0x20) == 'x')
+			aff += 2;
 
 		i = 0; /* bit pos in mask[] */
 
