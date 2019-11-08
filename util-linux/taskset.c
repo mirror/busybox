@@ -123,8 +123,14 @@ static unsigned long *get_aff(int pid, unsigned *sz)
  * The list element can be either a CPU index or a range of CPU indices.
  * Example: "1,3,5-7".
  *
- * note1: pattern specifiers after a range (e.g. 0-255:2/64) are not supported
- * note2: leading/trailing white-spaces are not allowed
+ * note1: stride (e.g. 0-255:2) is not supported
+ * note2: leading and trailing whitespace is not allowed
+ *  util-linux 2.31 allows leading and sometimes trailing whitespace:
+ *  ok:     taskset -c ' 1,  2'
+ *  ok:     taskset -c ' 1 , 2'
+ *  ok:     taskset -c ' 1-7: 2 ,8'
+ *  not ok: taskset -c ' 1 '
+ *  not ok: taskset -c ' 1-7: 2 '
  */
 static void parse_cpulist(ul *mask, unsigned max, char *s)
 {
