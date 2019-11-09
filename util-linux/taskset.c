@@ -121,10 +121,8 @@ static unsigned long *get_aff(int pid, unsigned *sz)
  * Parse the CPU list and set the mask accordingly.
  *
  * The list element can be either a CPU index or a range of CPU indices.
- * Example: "1,3,5-7".
- *
- * note1: stride (e.g. 0-255:2) is not supported
- * note2: leading and trailing whitespace is not allowed
+ * Example: "1,3,5-7". Stride can be specified: "0-7:2" is "0,2,4,6".
+ * Note: leading and trailing whitespace is not allowed.
  *  util-linux 2.31 allows leading and sometimes trailing whitespace:
  *  ok:     taskset -c ' 1,  2'
  *  ok:     taskset -c ' 1 , 2'
@@ -137,21 +135,28 @@ static void parse_cpulist(ul *mask, unsigned max, char *s)
 	char *aff = s;
 	for (;;) {
 		unsigned bit, end;
+		unsigned stride = 1;
 
 		bit = end = bb_strtou(s, &s, 10);
 		if (*s == '-') {
 			s++;
 			end = bb_strtou(s, &s, 10);
+			if (*s == ':') {
+				s++;
+				stride = bb_strtou(s, &s, 10);
+			}
 		}
 		if ((*s != ',' && *s != '\0')
 		 || bit > end
 		 || end == UINT_MAX /* bb_strtou returns this on malformed / ERANGE numbers */
+		 || stride == 0
+		 || stride == UINT_MAX
 		) {
 			bb_error_msg_and_die("bad affinity '%s'", aff);
 		}
 		while (bit <= end && bit < max) {
 			mask[bit / BITS_UL] |= (1UL << (bit & MASK_UL));
-			bit++;
+			bit += stride;
 		}
 		if (*s == '\0')
 			break;
