@@ -149,8 +149,8 @@ static void parse_cpulist(ul *mask, unsigned max, char *s)
 		if ((*s != ',' && *s != '\0')
 		 || bit > end
 		 || end == UINT_MAX /* bb_strtou returns this on malformed / ERANGE numbers */
-		 || stride == 0
-		 || stride == UINT_MAX
+		 || (stride - 1) > (UINT_MAX / 4)
+		/* disallow 0, malformed input, and too large stride prone to overflows */
 		) {
 			bb_error_msg_and_die("bad affinity '%s'", aff);
 		}
