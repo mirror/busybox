@@ -19,30 +19,43 @@
 #
 # <runlevels>: The runlevels field is completely ignored.
 #
-# <action>: Valid actions include: sysinit, respawn, askfirst, wait, once,
-#                                  restart, ctrlaltdel, and shutdown.
+# <action>: Valid actions include: sysinit, wait, once, respawn, askfirst,
+#                                  shutdown, restart and ctrlaltdel.
 #
-#       Note: askfirst acts just like respawn, but before running the specified
-#       process it displays the line "Please press Enter to activate this
-#       console." and then waits for the user to press enter before starting
-#       the specified process.
+#	sysinit actions are started first, and init waits for them to complete.
+#	wait actions are started next, and init waits for them to complete.
+#	once actions are started next (and not waited for).
 #
-#       Note: unrecognized actions (like initdefault) will cause init to emit
-#       an error message, and then go along with its business.
+#	askfirst and respawn are started next.
+#	For askfirst, before running the specified process, init displays
+#	the line "Please press Enter to activate this console"
+#	and then waits for the user to press enter before starting it.
+#
+#	shutdown actions are run on halt/reboot/poweroff, or on SIGQUIT.
+#	Then the machine is halted/rebooted/powered off, or for SIGQUIT,
+#	restart action is exec'ed (init process is replaced by that process).
+#	If no restart action specified, SIGQUIT has no effect.
+#
+#	ctrlaltdel actions are run when SIGINT is received
+#	(this might be initiated by Ctrl-Alt-Del key combination).
+#	After they complete, normal processing of askfirst / respawn resumes.
+#
+#	Note: unrecognized actions (like initdefault) will cause init to emit
+#	an error message, and then go along with its business.
 #
 # <process>: Specifies the process to be executed and it's command line.
 #
 # Note: BusyBox init works just fine without an inittab. If no inittab is
 # found, it has the following default behavior:
-#         ::sysinit:/etc/init.d/rcS
-#         ::askfirst:/bin/sh
-#         ::ctrlaltdel:/sbin/reboot
-#         ::shutdown:/sbin/swapoff -a
-#         ::shutdown:/bin/umount -a -r
-#         ::restart:/sbin/init
-#         tty2::askfirst:/bin/sh
-#         tty3::askfirst:/bin/sh
-#         tty4::askfirst:/bin/sh
+#	::sysinit:/etc/init.d/rcS
+#	::askfirst:/bin/sh
+#	::ctrlaltdel:/sbin/reboot
+#	::shutdown:/sbin/swapoff -a
+#	::shutdown:/bin/umount -a -r
+#	::restart:/sbin/init
+#	tty2::askfirst:/bin/sh
+#	tty3::askfirst:/bin/sh
+#	tty4::askfirst:/bin/sh
 #
 # Boot-time system configuration/initialization script.
 # This is run first except when booting in single-user mode.
