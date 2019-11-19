@@ -15,14 +15,6 @@ pid_t getsid(pid_t pid)
 	return syscall(__NR_getsid, pid);
 }
 
-int stime(const time_t *t)
-{
-	struct timeval tv;
-	tv.tv_sec = *t;
-	tv.tv_usec = 0;
-	return settimeofday(&tv, NULL);
-}
-
 int sethostname(const char *name, size_t len)
 {
 	return syscall(__NR_sethostname, name, len);

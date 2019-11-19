@@ -276,6 +276,9 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		time(&ts.tv_sec);
 #endif
 	}
+#if !ENABLE_FEATURE_DATE_NANO
+	ts.tv_nsec = 0;
+#endif
 	localtime_r(&ts.tv_sec, &tm_time);
 
 	/* If date string is given, update tm_time, and maybe set date */
@@ -298,9 +301,10 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		if (date_str[0] != '@')
 			tm_time.tm_isdst = -1;
 		ts.tv_sec = validate_tm_time(date_str, &tm_time);
+		ts.tv_nsec = 0;
 
 		/* if setting time, set it */
-		if ((opt & OPT_SET) && stime(&ts.tv_sec) < 0) {
+		if ((opt & OPT_SET) && clock_settime(CLOCK_REALTIME, &ts) < 0) {
 			bb_simple_perror_msg("can't set date");
 		}
 	}
