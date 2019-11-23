@@ -187,6 +187,11 @@ testing "bc { print 1 }" \
 	"1" \
 	"" "{ print 1 }"
 
+testing "bc comparison 1" \
+	"bc" \
+	"1\n" \
+	"" "-10 < -9"
+
 testing "bc nested loops and breaks" \
 	"bc" \
 	"\

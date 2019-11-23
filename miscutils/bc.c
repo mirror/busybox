@@ -1465,7 +1465,10 @@ static ssize_t bc_num_cmp(BcNum *a, BcNum *b)
 	b_int = BC_NUM_INT(b);
 	a_int -= b_int;
 
-	if (a_int != 0) return (ssize_t) a_int;
+	if (a_int != 0) {
+		if (neg) return - (ssize_t) a_int;
+		return (ssize_t) a_int;
+	}
 
 	a_max = (a->rdx > b->rdx);
 	if (a_max) {
