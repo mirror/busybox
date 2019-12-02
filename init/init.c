@@ -145,13 +145,6 @@
 # include <sys/ucontext.h>
 #endif
 
-/* Used only for sanitizing purposes in set_sane_term() below. On systems where
- * the baud rate is stored in a separate field, we can safely disable them. */
-#ifndef CBAUD
-# define CBAUD 0
-# define CBAUDEX 0
-#endif
-
 /* Was a CONFIG_xxx option. A lot of people were building
  * not fully functional init by switching it on! */
 #define DEBUG_INIT 0
@@ -347,7 +340,8 @@ static void set_sane_term(void)
 {
 	struct termios tty;
 
-	tcgetattr(STDIN_FILENO, &tty);
+	if (tcgetattr(STDIN_FILENO, &tty) != 0)
+		return;
 
 	/* set control chars */
 	tty.c_cc[VINTR] = 3;	/* C-c */
@@ -365,10 +359,15 @@ static void set_sane_term(void)
 #endif
 
 	/* Make it be sane */
+/* On systems where the baud rate is stored in a separate field, we can safely disable these. */
+#ifndef CBAUD
+# define CBAUD 0
+# define CBAUDEX 0
+#endif
+/* Added CRTSCTS to fix Debian bug 528560 */
 #ifndef CRTSCTS
 # define CRTSCTS 0
 #endif
-	/* added CRTSCTS to fix Debian bug 528560 */
 	tty.c_cflag &= CBAUD | CBAUDEX | CSIZE | CSTOPB | PARENB | PARODD | CRTSCTS;
 	tty.c_cflag |= CREAD | HUPCL | CLOCAL;
 
