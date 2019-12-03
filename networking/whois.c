@@ -53,7 +53,9 @@ static char *query(const char *host, int port, const char *domain)
 	fp = xfdopen_for_read(fd);
 
 	success = 0;
-	while (fgets(linebuf, sizeof(linebuf)-1, fp)) {
+	while (bufpos < 32*1024 /* paranoia */
+	 && fgets(linebuf, sizeof(linebuf)-1, fp)
+	) {
 		unsigned len;
 
 		len = strcspn(linebuf, "\r\n");
