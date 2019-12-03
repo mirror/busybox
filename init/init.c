@@ -210,6 +210,8 @@ struct globals {
 #if !ENABLE_FEATURE_INIT_SYSLOG
 	const char *log_console;
 #endif
+	sigset_t delayed_sigset;
+	struct timespec zero_ts;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
@@ -411,14 +413,8 @@ static int open_stdio_to_tty(const char* tty_name)
 static void reset_sighandlers_and_unblock_sigs(void)
 {
 	bb_signals(0
-		+ (1 << SIGUSR1)
-		+ (1 << SIGUSR2)
-		+ (1 << SIGTERM)
-		+ (1 << SIGQUIT)
-		+ (1 << SIGINT)
-		+ (1 << SIGHUP)
-		+ (1 << SIGTSTP)
-		+ (1 << SIGSTOP)
+		| (1 << SIGTSTP)
+		| (1 << SIGSTOP)
 		, SIG_DFL);
 	sigprocmask_allsigs(SIG_UNBLOCK);
 }
@@ -484,16 +480,13 @@ static pid_t run(const struct init_action *a)
 {
 	pid_t pid;
 
-	/* Careful: don't be affected by a signal in vforked child */
-	sigprocmask_allsigs(SIG_BLOCK);
 	if (BB_MMU && (a->action_type & ASKFIRST))
 		pid = fork();
 	else
 		pid = vfork();
-	if (pid < 0)
-		message(L_LOG | L_CONSOLE, "can't fork");
 	if (pid) {
-		sigprocmask_allsigs(SIG_UNBLOCK);
+		if (pid < 0)
+			message(L_LOG | L_CONSOLE, "can't fork");
 		return pid; /* Parent or error */
 	}
 
@@ -587,9 +580,11 @@ static void waitfor(pid_t pid)
 	while (1) {
 		pid_t wpid = wait(NULL);
 		mark_terminated(wpid);
-		/* Unsafe. SIGTSTP handler might have wait'ed it already */
-		/*if (wpid == pid) break;*/
-		/* More reliable: */
+		if (wpid == pid) /* this was the process we waited for */
+			break;
+		/* The above is not reliable enough: SIGTSTP handler might have
+		 * wait'ed it already. Double check, exit if process is gone:
+		 */
 		if (kill(pid, 0))
 			break;
 	}
@@ -798,13 +793,10 @@ static void run_shutdown_and_kill_processes(void)
  * Delayed handlers just set a flag variable. The variable is checked
  * in the main loop and acted upon.
  *
- * halt/poweroff/reboot and restart have immediate handlers.
- * They only traverse linked list of struct action's, never modify it,
- * this should be safe to do even in signal handler. Also they
- * never return.
- *
  * SIGSTOP and SIGTSTP have immediate handlers. They just wait
  * for SIGCONT to happen.
+ *
+ * halt/poweroff/reboot and restart have delayed handlers.
  *
  * SIGHUP has a delayed handler, because modifying linked list
  * of struct action's from a signal handler while it is manipulated
@@ -812,9 +804,6 @@ static void run_shutdown_and_kill_processes(void)
  *
  * Ctrl-Alt-Del has a delayed handler. Not a must, but allowing
  * it to happen even somewhere inside "sysinit" would be a bit awkward.
- *
- * There is a tiny probability that SIGHUP and Ctrl-Alt-Del will collide
- * and only one will be remembered and acted upon.
  */
 
 /* The SIGPWR/SIGUSR[12]/SIGTERM handler */
@@ -898,11 +887,9 @@ static void exec_restart_action(void)
  */
 static void stop_handler(int sig UNUSED_PARAM)
 {
-	smallint saved_bb_got_signal;
-	int saved_errno;
+	int saved_errno = errno;
 
-	saved_bb_got_signal = bb_got_signal;
-	saved_errno = errno;
+	bb_got_signal = 0;
 	signal(SIGCONT, record_signo);
 
 	while (1) {
@@ -916,12 +903,12 @@ static void stop_handler(int sig UNUSED_PARAM)
 		 */
 		wpid = wait_any_nohang(NULL);
 		mark_terminated(wpid);
-		sleep(1);
+		if (wpid <= 0) /* no processes exited? sleep a bit */
+			sleep(1);
 	}
 
 	signal(SIGCONT, SIG_DFL);
 	errno = saved_errno;
-	bb_got_signal = saved_bb_got_signal;
 }
 
 #if ENABLE_FEATURE_USE_INITTAB
@@ -986,43 +973,39 @@ static void reload_inittab(void)
 }
 #endif
 
-static int check_delayed_sigs(void)
+static void check_delayed_sigs(struct timespec *ts)
 {
-	int sigs_seen = 0;
+	int sig = sigtimedwait(&G.delayed_sigset, /* siginfo_t */ NULL, ts);
+	if (sig <= 0)
+		return;
 
-	while (1) {
-		smallint sig = bb_got_signal;
+	/* The signal "sig" was caught */
 
-		if (!sig)
-			return sigs_seen;
-		bb_got_signal = 0;
-		sigs_seen = 1;
 #if ENABLE_FEATURE_USE_INITTAB
-		if (sig == SIGHUP)
-			reload_inittab();
+	if (sig == SIGHUP)
+		reload_inittab();
 #endif
-		if (sig == SIGINT)
-			run_actions(CTRLALTDEL);
-		if (sig == SIGQUIT) {
-			exec_restart_action();
-			/* returns only if no restart action defined */
-		}
-		if ((1 << sig) & (0
-#ifdef SIGPWR
-		    + (1 << SIGPWR)
-#endif
-		    + (1 << SIGUSR1)
-		    + (1 << SIGUSR2)
-		    + (1 << SIGTERM)
-		)) {
-			halt_reboot_pwoff(sig);
-		}
+	if (sig == SIGINT)
+		run_actions(CTRLALTDEL);
+	if (sig == SIGQUIT) {
+		exec_restart_action();
+		/* returns only if no restart action defined */
 	}
+	if ((1 << sig) & (0
+#ifdef SIGPWR
+	    | (1 << SIGPWR)
+#endif
+	    | (1 << SIGUSR1)
+	    | (1 << SIGUSR2)
+	    | (1 << SIGTERM)
+	)) {
+		halt_reboot_pwoff(sig);
+	}
+	/* if (sig == SIGCHLD) do nothing */
 }
 
 #if DEBUG_SEGV_HANDLER
-static
-void handle_sigsegv(int sig, siginfo_t *info, void *ucontext)
+static void handle_sigsegv(int sig, siginfo_t *info, void *ucontext)
 {
 	long ip;
 	ucontext_t *uc;
@@ -1049,50 +1032,62 @@ void handle_sigsegv(int sig, siginfo_t *info, void *ucontext)
 
 static void sleep_much(void)
 {
-        sleep(30 * 24*60*60);
+	sleep(30 * 24*60*60);
 }
 
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int init_main(int argc UNUSED_PARAM, char **argv)
 {
+	struct sigaction sa;
+
 	INIT_G();
+
+	/* Some users send poweroff signals to init VERY early.
+	 * To handle this, mask signals early.
+	 */
+	/* sigemptyset(&G.delayed_sigset); - done by INIT_G() */
+	sigaddset(&G.delayed_sigset, SIGINT);  /* Ctrl-Alt-Del */
+	sigaddset(&G.delayed_sigset, SIGQUIT); /* re-exec another init */
+#ifdef SIGPWR
+	sigaddset(&G.delayed_sigset, SIGPWR);  /* halt */
+#endif
+	sigaddset(&G.delayed_sigset, SIGUSR1); /* halt */
+	sigaddset(&G.delayed_sigset, SIGTERM); /* reboot */
+	sigaddset(&G.delayed_sigset, SIGUSR2); /* poweroff */
+#if ENABLE_FEATURE_USE_INITTAB
+	sigaddset(&G.delayed_sigset, SIGHUP);  /* reread /etc/inittab */
+#endif
+	sigaddset(&G.delayed_sigset, SIGCHLD); /* make sigtimedwait() exit on SIGCHLD */
+	sigprocmask(SIG_BLOCK, &G.delayed_sigset, NULL);
+
+#if DEBUG_SEGV_HANDLER
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_sigaction = handle_sigsegv;
+	sa.sa_flags = SA_SIGINFO;
+	sigaction_set(SIGSEGV, &sa);
+	sigaction_set(SIGILL, &sa);
+	sigaction_set(SIGFPE, &sa);
+	sigaction_set(SIGBUS, &sa);
+#endif
 
 	if (argv[1] && strcmp(argv[1], "-q") == 0) {
 		return kill(1, SIGHUP);
 	}
 
-#if DEBUG_SEGV_HANDLER
-	{
-		struct sigaction sa;
-		memset(&sa, 0, sizeof(sa));
-		sa.sa_sigaction = handle_sigsegv;
-		sa.sa_flags = SA_SIGINFO;
-		sigaction(SIGSEGV, &sa, NULL);
-		sigaction(SIGILL, &sa, NULL);
-		sigaction(SIGFPE, &sa, NULL);
-		sigaction(SIGBUS, &sa, NULL);
+#if !DEBUG_INIT
+	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
+	if (getpid() != 1
+	 && (!ENABLE_LINUXRC || applet_name[0] != 'l') /* not linuxrc? */
+	) {
+		bb_simple_error_msg_and_die("must be run as PID 1");
 	}
-#endif
 
-	if (!DEBUG_INIT) {
-		/* Some users send poweroff signals to init VERY early.
-		 * To handle this, mask signals early,
-		 * and unmask them only after signal handlers are installed.
-		 */
-		sigprocmask_allsigs(SIG_BLOCK);
-
-		/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
-		if (getpid() != 1
-		 && (!ENABLE_LINUXRC || applet_name[0] != 'l') /* not linuxrc? */
-		) {
-			bb_simple_error_msg_and_die("must be run as PID 1");
-		}
-#ifdef RB_DISABLE_CAD
-		/* Turn off rebooting via CTL-ALT-DEL - we get a
-		 * SIGINT on CAD so we can shut things down gracefully... */
-		reboot(RB_DISABLE_CAD); /* misnomer */
+# ifdef RB_DISABLE_CAD
+	/* Turn off rebooting via CTL-ALT-DEL - we get a
+	 * SIGINT on CAD so we can shut things down gracefully... */
+	reboot(RB_DISABLE_CAD); /* misnomer */
+# endif
 #endif
-	}
 
 	/* If, say, xmalloc would ever die, we don't want to oops kernel
 	 * by exiting.
@@ -1156,106 +1151,65 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	if (ENABLE_FEATURE_INIT_MODIFY_CMDLINE) {
-		/* Make the command line just say "init"  - that's all, nothing else */
-		strncpy(argv[0], "init", strlen(argv[0]));
-		/* Wipe argv[1]-argv[N] so they don't clutter the ps listing */
-		while (*++argv)
-			nuke_str(*argv);
-	}
-
-	/* Set up signal handlers */
-	if (!DEBUG_INIT) {
-		struct sigaction sa;
-
-		/* Stop handler must allow only SIGCONT inside itself */
-		memset(&sa, 0, sizeof(sa));
-		sigfillset(&sa.sa_mask);
-		sigdelset(&sa.sa_mask, SIGCONT);
-		sa.sa_handler = stop_handler;
-		/* NB: sa_flags doesn't have SA_RESTART.
-		 * It must be able to interrupt wait().
-		 */
-		sigaction_set(SIGTSTP, &sa); /* pause */
-		/* Does not work as intended, at least in 2.6.20.
-		 * SIGSTOP is simply ignored by init:
-		 */
-		sigaction_set(SIGSTOP, &sa); /* pause */
-
-		/* These signals must interrupt wait(),
-		 * setting handler without SA_RESTART flag.
-		 */
-		bb_signals_recursive_norestart(0
-			+ (1 << SIGINT)  /* Ctrl-Alt-Del */
-			+ (1 << SIGQUIT) /* re-exec another init */
-#ifdef SIGPWR
-			+ (1 << SIGPWR)  /* halt */
+#if ENABLE_FEATURE_INIT_MODIFY_CMDLINE
+	/* Make the command line just say "init"  - that's all, nothing else */
+	strncpy(argv[0], "init", strlen(argv[0]));
+	/* Wipe argv[1]-argv[N] so they don't clutter the ps listing */
+	while (*++argv)
+		nuke_str(*argv);
 #endif
-			+ (1 << SIGUSR1) /* halt */
-			+ (1 << SIGTERM) /* reboot */
-			+ (1 << SIGUSR2) /* poweroff */
-#if ENABLE_FEATURE_USE_INITTAB
-			+ (1 << SIGHUP)  /* reread /etc/inittab */
-#endif
-			, record_signo);
 
-		sigprocmask_allsigs(SIG_UNBLOCK);
-	}
+	/* Set up STOP signal handlers */
+	/* Stop handler must allow only SIGCONT inside itself */
+	memset(&sa, 0, sizeof(sa));
+	sigfillset(&sa.sa_mask);
+	sigdelset(&sa.sa_mask, SIGCONT);
+	sa.sa_handler = stop_handler;
+	sa.sa_flags = SA_RESTART;
+	sigaction_set(SIGTSTP, &sa); /* pause */
+	/* Does not work as intended, at least in 2.6.20.
+	 * SIGSTOP is simply ignored by init
+	 * (NB: behavior might differ under strace):
+	 */
+	sigaction_set(SIGSTOP, &sa); /* pause */
 
 	/* Now run everything that needs to be run */
 	/* First run the sysinit command */
 	run_actions(SYSINIT);
-	check_delayed_sigs();
+	check_delayed_sigs(&G.zero_ts);
 	/* Next run anything that wants to block */
 	run_actions(WAIT);
-	check_delayed_sigs();
+	check_delayed_sigs(&G.zero_ts);
 	/* Next run anything to be run only once */
 	run_actions(ONCE);
 
-	/* Now run the looping stuff for the rest of forever.
-	 */
+	/* Now run the looping stuff for the rest of forever */
 	while (1) {
-		int maybe_WNOHANG;
-
-		maybe_WNOHANG = check_delayed_sigs();
-
 		/* (Re)run the respawn/askfirst stuff */
 		run_actions(RESPAWN | ASKFIRST);
-		maybe_WNOHANG |= check_delayed_sigs();
 
-		/* Don't consume all CPU time - sleep a bit */
-		sleep(1);
-		maybe_WNOHANG |= check_delayed_sigs();
+		/* Wait for any signal (typically it's SIGCHLD) */
+		check_delayed_sigs(NULL); /* NULL timespec makes it wait */
 
-		/* Wait for any child process(es) to exit.
-		 *
-		 * If check_delayed_sigs above reported that a signal
-		 * was caught, wait will be nonblocking. This ensures
-		 * that if SIGHUP has reloaded inittab, respawn and askfirst
-		 * actions will not be delayed until next child death.
-		 */
-		if (maybe_WNOHANG)
-			maybe_WNOHANG = WNOHANG;
+		/* Wait for any child process(es) to exit */
 		while (1) {
 			pid_t wpid;
 			struct init_action *a;
 
-			/* If signals happen _in_ the wait, they interrupt it,
-			 * bb_signals_recursive_norestart set them up that way
-			 */
-			wpid = waitpid(-1, NULL, maybe_WNOHANG);
+			wpid = waitpid(-1, NULL, WNOHANG);
 			if (wpid <= 0)
 				break;
 
 			a = mark_terminated(wpid);
 			if (a) {
-				message(L_LOG, "process '%s' (pid %d) exited. "
+				message(L_LOG, "process '%s' (pid %u) exited. "
 						"Scheduling for restart.",
-						a->command, wpid);
+						a->command, (unsigned)wpid);
 			}
-			/* See if anyone else is waiting to be reaped */
-			maybe_WNOHANG = WNOHANG;
 		}
+
+		/* Don't consume all CPU time - sleep a bit */
+		sleep(1);
 	} /* while (1) */
 }
 
@@ -1268,11 +1222,17 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "Init is the first process started during boot. It never exits."
 //usage:	IF_FEATURE_USE_INITTAB(
 //usage:   "\n""It (re)spawns children according to /etc/inittab."
+//usage:   "\n""Signals:"
+//usage:   "\n""HUP: reload /etc/inittab"
 //usage:	)
 //usage:	IF_NOT_FEATURE_USE_INITTAB(
 //usage:   "\n""This version of init doesn't use /etc/inittab,"
 //usage:   "\n""has fixed set of processed to run."
+//usage:   "\n""Signals:"
 //usage:	)
+//usage:   "\n""TSTP: stop respawning until CONT"
+//usage:   "\n""QUIT: re-exec another init"
+//usage:   "\n""USR1/TERM/USR2/INT: run halt/reboot/poweroff/Ctrl-Alt-Del script"
 //usage:
 //usage:#define init_notes_usage
 //usage:	"This version of init is designed to be run only by the kernel.\n"
