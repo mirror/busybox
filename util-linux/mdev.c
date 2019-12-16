@@ -80,13 +80,16 @@
 //kbuild:lib-$(CONFIG_MDEV) += mdev.o
 
 //usage:#define mdev_trivial_usage
-//usage:       "[-s]" IF_FEATURE_MDEV_DAEMON(" | [-df]")
+//usage:       "[-S] " IF_FEATURE_MDEV_DAEMON("[") "[-s]" IF_FEATURE_MDEV_DAEMON(" | [-df]]")
 //usage:#define mdev_full_usage "\n\n"
 //usage:       "mdev -s is to be run during boot to scan /sys and populate /dev.\n"
 //usage:	IF_FEATURE_MDEV_DAEMON(
 //usage:       "mdev -d[f]: daemon, listen on netlink.\n"
 //usage:       "	-f: stay in foreground.\n"
 //usage:	)
+//usage:       "\n"
+//usage:       "optional arguments:\n"
+//usage:       "	-S: Log to syslog too\n"
 //usage:       "\n"
 //usage:       "Bare mdev is a kernel hotplug helper. To activate it:\n"
 //usage:       "	echo /sbin/mdev >/proc/sys/kernel/hotplug\n"
@@ -113,6 +116,7 @@
 #include "common_bufsiz.h"
 #include "xregex.h"
 #include <linux/netlink.h>
+#include <syslog.h>
 
 /* "mdev -s" scans /sys/class/xxx, looking for directories which have dev
  * file (it is of the form "M:m\n"). Example: /sys/class/tty/tty0/dev
@@ -1237,8 +1241,9 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 {
 	enum {
 		MDEV_OPT_SCAN       = 1 << 0,
-		MDEV_OPT_DAEMON     = 1 << 1,
-		MDEV_OPT_FOREGROUND = 1 << 2,
+		MDEV_OPT_SYSLOG     = 1 << 1,
+		MDEV_OPT_DAEMON     = 1 << 2,
+		MDEV_OPT_FOREGROUND = 1 << 3,
 	};
 	int opt;
 	RESERVE_CONFIG_BUFFER(temp, PATH_MAX + SCRATCH_SIZE);
@@ -1254,7 +1259,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 
 	xchdir("/dev");
 
-	opt = getopt32(argv, "s" IF_FEATURE_MDEV_DAEMON("df"));
+	opt = getopt32(argv, "sS" IF_FEATURE_MDEV_DAEMON("df"));
 
 #if ENABLE_FEATURE_MDEV_CONF
 	G.filename = "/etc/mdev.conf";
@@ -1264,8 +1269,17 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
+	if (opt & MDEV_OPT_SYSLOG) {
+		openlog(applet_name, LOG_PID, LOG_DAEMON);
+		logmode |= LOGMODE_SYSLOG;
+	}
+
 #if ENABLE_FEATURE_MDEV_DAEMON
 	if (opt & MDEV_OPT_DAEMON) {
+		// there is no point in write()ing to /dev/null
+		if (!(opt & MDEV_OPT_FOREGROUND))
+			logmode &= ~LOGMODE_STDIO;
+
 		/*
 		 * Daemon mode listening on uevent netlink socket. Fork away
 		 * after initial scan so that caller can be sure everything
@@ -1275,8 +1289,6 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 
 		if (!(opt & MDEV_OPT_FOREGROUND))
 			bb_daemonize_or_rexec(0, argv);
-
-		open_mdev_log(NULL, getpid());
 
 		daemon_loop(temp, fd);
 	}
