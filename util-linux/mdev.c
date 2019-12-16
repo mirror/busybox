@@ -80,7 +80,7 @@
 //kbuild:lib-$(CONFIG_MDEV) += mdev.o
 
 //usage:#define mdev_trivial_usage
-//usage:       "[-S] " IF_FEATURE_MDEV_DAEMON("[") "[-s]" IF_FEATURE_MDEV_DAEMON(" | [-df]]")
+//usage:       "[-Sv] " IF_FEATURE_MDEV_DAEMON("[") "[-s]" IF_FEATURE_MDEV_DAEMON(" | [-df]]")
 //usage:#define mdev_full_usage "\n\n"
 //usage:       "mdev -s is to be run during boot to scan /sys and populate /dev.\n"
 //usage:	IF_FEATURE_MDEV_DAEMON(
@@ -90,6 +90,7 @@
 //usage:       "\n"
 //usage:       "optional arguments:\n"
 //usage:       "	-S: Log to syslog too\n"
+//usage:       "	-v: Increase log verbosity\n"
 //usage:       "\n"
 //usage:       "Bare mdev is a kernel hotplug helper. To activate it:\n"
 //usage:       "	echo /sbin/mdev >/proc/sys/kernel/hotplug\n"
@@ -297,7 +298,7 @@ struct rule {
 
 struct globals {
 	int root_major, root_minor;
-	smallint verbose;
+	int verbose;
 	char *subsystem;
 	char *subsys_env; /* for putenv("SUBSYSTEM=subsystem") */
 #if ENABLE_FEATURE_MDEV_CONF
@@ -1259,7 +1260,11 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 
 	xchdir("/dev");
 
-	opt = getopt32(argv, "sS" IF_FEATURE_MDEV_DAEMON("df"));
+	opt = getopt32(argv, "^"
+		"sS" IF_FEATURE_MDEV_DAEMON("df") "v"
+		"\0"
+		"vv",
+		&G.verbose);
 
 #if ENABLE_FEATURE_MDEV_CONF
 	G.filename = "/etc/mdev.conf";
