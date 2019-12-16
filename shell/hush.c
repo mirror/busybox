@@ -10461,8 +10461,7 @@ static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
 #if MAX_HISTORY && ENABLE_FEATURE_EDITING
 static int FAST_FUNC builtin_history(char **argv UNUSED_PARAM)
 {
-	if (G.line_input_state)
-		show_history(G.line_input_state);
+	show_history(G.line_input_state);
 	return EXIT_SUCCESS;
 }
 #endif

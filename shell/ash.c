@@ -13824,8 +13824,7 @@ helpcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 static int FAST_FUNC
 historycmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	if (line_input_state)
-		show_history(line_input_state);
+	show_history(line_input_state);
 	return EXIT_SUCCESS;
 }
 #endif
