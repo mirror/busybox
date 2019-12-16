@@ -422,17 +422,14 @@ int FAST_FUNC create_and_bind_to_netlink(int proto, int grp, unsigned rcvbuf)
 	struct sockaddr_nl sa;
 	int fd;
 
-	memset(&sa, 0, sizeof(sa));
-	sa.nl_family = AF_NETLINK;
-	sa.nl_pid = getpid();
-	sa.nl_groups = grp;
 	fd = xsocket(AF_NETLINK, SOCK_DGRAM, proto);
-	xbind(fd, (struct sockaddr *) &sa, sizeof(sa));
-	close_on_exec_on(fd);
 
+	/* Set receive buffer size before binding the socket
+	 * We want to have enough space before we start receiving messages.
+	 */
 	if (rcvbuf != 0) {
-		// SO_RCVBUFFORCE (root only) can go above net.core.rmem_max sysctl
-		setsockopt_SOL_SOCKET_int(fd, SO_RCVBUF,      rcvbuf);
+		setsockopt_SOL_SOCKET_int(fd, SO_RCVBUF, rcvbuf);
+		/* SO_RCVBUFFORCE (root only) can go above net.core.rmem_max */
 		setsockopt_SOL_SOCKET_int(fd, SO_RCVBUFFORCE, rcvbuf);
 # if 0
 		{
@@ -443,6 +440,13 @@ int FAST_FUNC create_and_bind_to_netlink(int proto, int grp, unsigned rcvbuf)
 		}
 # endif
 	}
+
+	memset(&sa, 0, sizeof(sa));
+	sa.nl_family = AF_NETLINK;
+	sa.nl_pid = getpid();
+	sa.nl_groups = grp;
+	xbind(fd, (struct sockaddr *) &sa, sizeof(sa));
+	close_on_exec_on(fd);
 
 	return fd;
 }
