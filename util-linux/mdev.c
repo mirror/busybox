@@ -269,10 +269,6 @@
 # define dbg3s(msg) ((void)0)
 #endif
 
-
-#ifndef SO_RCVBUFFORCE
-#define SO_RCVBUFFORCE 33
-#endif
 static const char keywords[] ALIGN1 = "add\0remove\0"; // "change\0"
 enum { OP_add, OP_remove };
 
@@ -1152,15 +1148,27 @@ static void initial_scan(char *temp)
 
 #if ENABLE_FEATURE_MDEV_DAEMON
 
-/* uevent applet uses 16k buffer, and mmaps it before every read */
-# define BUFFER_SIZE (2 * 1024)
-# define RCVBUF (2 * 1024 * 1024)
+/*
+ * The kernel (as of v5.4) will pass up to 32 environment variables with a
+ * total of 2kiB on each event. On top of that the action string and device
+ * path are added. Using a 3kiB buffer for the event should suffice in any
+ * case.
+ *
+ * As far as the socket receive buffer size is concerned 2MiB proved to be too
+ * small (see [1]). Udevd seems to use a whooping 128MiB. The socket receive
+ * buffer size is just a resource limit. The buffers are allocated lazily so
+ * the memory is not wasted.
+ *
+ * [1] http://lists.busybox.net/pipermail/busybox/2019-December/087665.html
+ */
+# define USER_RCVBUF (3 * 1024)
+# define KERN_RCVBUF (128 * 1024 * 1024)
 # define MAX_ENV 32
 
 static void daemon_loop(char *temp, int fd)
 {
 	for (;;) {
-		char netbuf[BUFFER_SIZE];
+		char netbuf[USER_RCVBUF];
 		char *env[MAX_ENV];
 		char *s, *end;
 		ssize_t len;
@@ -1237,7 +1245,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		 *	mdev -d
 		 *	find /sys -name uevent -exec sh -c 'echo add >"{}"' ';'
 		 */
-		fd = create_and_bind_to_netlink(NETLINK_KOBJECT_UEVENT, 1 << 0, RCVBUF);
+		fd = create_and_bind_to_netlink(NETLINK_KOBJECT_UEVENT, 1 << 0, KERN_RCVBUF);
 
 		/*
 		 * Make inital scan after the uevent socket is alive and
