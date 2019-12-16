@@ -1199,6 +1199,16 @@ static void daemon_loop(char *temp, int fd)
 
 		len = safe_read(fd, netbuf, sizeof(netbuf) - 1);
 		if (len < 0) {
+			if (errno == ENOBUFS) {
+				/*
+				 * We ran out of socket receive buffer space.
+				 * Start from scratch.
+				 */
+				dbg1s("uevent overrun, rescanning");
+				close(fd);
+				fd = daemon_init(temp);
+				continue;
+			}
 			bb_simple_perror_msg_and_die("read");
 		}
 		end = netbuf + len;
