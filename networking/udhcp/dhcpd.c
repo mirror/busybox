@@ -192,6 +192,8 @@ static struct dyn_lease *add_lease(
 			 * but merely make dumpleases output safe for shells to use.
 			 * We accept "0-9A-Za-z._-", all other chars turn to dots.
 			 */
+			if (*p == '-')
+				*p = '.'; /* defeat "-option" attacks too */
 			while (*p) {
 				if (!isalnum(*p) && *p != '-' && *p != '_')
 					*p = '.';
