@@ -1818,10 +1818,19 @@ unsigned size_from_HISTFILESIZE(const char *hp) FAST_FUNC;
 # else
 #  define MAX_HISTORY 0
 # endif
+typedef const char *get_exe_name_t(int i) FAST_FUNC;
 typedef struct line_input_t {
 	int flags;
 	int timeout;
 	const char *path_lookup;
+# if ENABLE_FEATURE_TAB_COMPLETION \
+&& (ENABLE_ASH  || ENABLE_SH_IS_ASH  || ENABLE_BASH_IS_ASH \
+||  ENABLE_HUSH || ENABLE_SH_IS_HUSH || ENABLE_BASH_IS_HUSH \
+)
+	/* function to fetch additional application-specific names to match */
+	get_exe_name_t *get_exe_name;
+#  define EDITING_HAS_get_exe_name 1
+# endif
 # if MAX_HISTORY
 	int cnt_history;
 	int cur_history;
@@ -1866,6 +1875,10 @@ void save_history(line_input_t *st);
 int read_line_input(const char* prompt, char* command, int maxsize) FAST_FUNC;
 #define read_line_input(state, prompt, command, maxsize) \
 	read_line_input(prompt, command, maxsize)
+#endif
+
+#ifndef EDITING_HAS_get_exe_name
+# define EDITING_HAS_get_exe_name 0
 #endif
 
 

@@ -7889,6 +7889,20 @@ static const struct built_in_command *find_builtin(const char *name)
 	return find_builtin_helper(name, bltins2, &bltins2[ARRAY_SIZE(bltins2)]);
 }
 
+#if EDITING_HAS_get_exe_name
+static const char * FAST_FUNC get_builtin_name(int i)
+{
+	if (/*i >= 0 && */ i < ARRAY_SIZE(bltins1)) {
+		return bltins1[i].b_cmd;
+	}
+	i -= ARRAY_SIZE(bltins1);
+	if (i < ARRAY_SIZE(bltins2)) {
+		return bltins2[i].b_cmd;
+	}
+	return NULL;
+}
+#endif
+
 static void remove_nested_vars(void)
 {
 	struct variable *cur;
@@ -10268,6 +10282,9 @@ int hush_main(int argc, char **argv)
 
 # if ENABLE_FEATURE_EDITING
 		G.line_input_state = new_line_input_t(FOR_SHELL);
+#  if EDITING_HAS_get_exe_name
+		G.line_input_state->get_exe_name = get_builtin_name;
+#  endif
 # endif
 # if ENABLE_HUSH_SAVEHISTORY && MAX_HISTORY > 0
 		{

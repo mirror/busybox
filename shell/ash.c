@@ -9523,6 +9523,11 @@ evalpipe(union node *n, int flags)
 	return status;
 }
 
+/* setinteractive needs this forward reference */
+#if EDITING_HAS_get_exe_name
+static const char *get_builtin_name(int i) FAST_FUNC;
+#endif
+
 /*
  * Controls whether the shell is interactive or not.
  */
@@ -9554,8 +9559,12 @@ setinteractive(int on)
 		}
 #endif
 #if ENABLE_FEATURE_EDITING
-		if (!line_input_state)
+		if (!line_input_state) {
 			line_input_state = new_line_input_t(FOR_SHELL | WITH_PATH_LOOKUP);
+# if EDITING_HAS_get_exe_name
+			line_input_state->get_exe_name = get_builtin_name;
+# endif
+		}
 #endif
 	}
 }
@@ -10022,6 +10031,14 @@ find_builtin(const char *name)
 	);
 	return bp;
 }
+
+#if EDITING_HAS_get_exe_name
+static const char * FAST_FUNC
+get_builtin_name(int i)
+{
+	return /*i >= 0 &&*/ i < ARRAY_SIZE(builtintab) ? builtintab[i].name + 1 : NULL;
+}
+#endif
 
 /*
  * Execute a simple command.
