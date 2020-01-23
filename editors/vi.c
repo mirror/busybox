@@ -2251,7 +2251,6 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 	int st;
 	char *q;
 	IF_FEATURE_VI_YANKMARK(char c;)
-	IF_FEATURE_VI_SEARCH(char *pat;)
 
 	*addr = -1;			// assume no addr
 	if (*p == '.') {	// the current line
@@ -2276,16 +2275,20 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 #endif
 #if ENABLE_FEATURE_VI_SEARCH
 	else if (*p == '/') {	// a search pattern
-		q = strchrnul(++p, '/');
-		pat = xstrndup(p, q - p); // save copy of pattern
+		q = strchrnul(p + 1, '/');
+		if (p + 1 != q) {
+			// save copy of new pattern
+			free(last_search_pattern);
+			last_search_pattern = xstrndup(p, q - p);
+		}
 		p = q;
 		if (*p == '/')
 			p++;
-		q = char_search(dot, pat, (FORWARD << 1) | FULL);
+		q = char_search(next_line(dot), last_search_pattern + 1,
+						(FORWARD << 1) | FULL);
 		if (q != NULL) {
 			*addr = count_lines(text, q);
 		}
-		free(pat);
 	}
 #endif
 	else if (*p == '$') {	// the last line in file
