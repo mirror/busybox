@@ -41,4 +41,13 @@ testing "xargs -sNUM test 2" \
 	"echo 1 2 3 4 5 6 7 8 9 0\n""echo 1 2 3 4 5 6 7 8 9\n""echo 1 00\n" \
 	"" "2 3 4 5 6 7 8 9 0 2 3 4 5 6 7 8 9 00\n"
 
+# see that we don't get "argument line too long",
+# but do see the last word, 99999, instead
+optional FEATURE_XARGS_SUPPORT_QUOTES
+testing "xargs argument line too long" \
+	"seq 10000 99999 | sed -e 's/^/\"/' -e 's/$/\"/' | xargs echo | grep -o 99999; echo \$?" \
+	"99999\n0\n" \
+	"" ""
+SKIP=
+
 exit $FAILCOUNT

@@ -114,17 +114,28 @@ struct globals {
 	int max_procs;
 #endif
 	smalluint xargs_exitcode;
+#if ENABLE_FEATURE_XARGS_SUPPORT_QUOTES
+#define NORM      0
+#define QUOTE     1
+#define BACKSLASH 2
+#define SPACE     4
+	smalluint process_stdin__state;
+	char process_stdin__q;
+#endif
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	setup_common_bufsiz(); \
-	G.eof_str = NULL; /* need to clear by hand because we are NOEXEC applet */ \
+	IF_FEATURE_XARGS_SUPPORT_REPL_STR(G.repl_str = "{}";) \
+	IF_FEATURE_XARGS_SUPPORT_REPL_STR(G.eol_ch = '\n';) \
+	/* Even zero values are set because we are NOEXEC applet */ \
+	G.eof_str = NULL; \
 	G.idx = 0; \
 	IF_FEATURE_XARGS_SUPPORT_PARALLEL(G.running_procs = 0;) \
 	IF_FEATURE_XARGS_SUPPORT_PARALLEL(G.max_procs = 1;) \
 	G.xargs_exitcode = 0; \
-	IF_FEATURE_XARGS_SUPPORT_REPL_STR(G.repl_str = "{}";) \
-	IF_FEATURE_XARGS_SUPPORT_REPL_STR(G.eol_ch = '\n';) \
+	IF_FEATURE_XARGS_SUPPORT_QUOTES(G.process_stdin__state = NORM;) \
+	IF_FEATURE_XARGS_SUPPORT_QUOTES(G.process_stdin__q = '\0';) \
 } while (0)
 
 
@@ -257,12 +268,8 @@ static void store_param(char *s)
 #if ENABLE_FEATURE_XARGS_SUPPORT_QUOTES
 static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 {
-#define NORM      0
-#define QUOTE     1
-#define BACKSLASH 2
-#define SPACE     4
-	char q = '\0';             /* quote char */
-	char state = NORM;
+#define q     G.process_stdin__q
+#define state G.process_stdin__state
 	char *s = buf;             /* start of the word */
 	char *p = s + strlen(buf); /* end of the word */
 
@@ -339,6 +346,8 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 	/* store_param(NULL) - caller will do it */
 	dbg_msg("return:'%s'", s);
 	return s;
+#undef q
+#undef state
 }
 #else
 /* The variant does not support single quotes, double quotes or backslash */
