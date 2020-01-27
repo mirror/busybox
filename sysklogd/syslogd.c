@@ -64,6 +64,14 @@
 //config:	help
 //config:	Supports restricted syslogd config. See docs/syslog.conf.txt
 //config:
+//config:config FEATURE_SYSLOGD_PRECISE_TIMESTAMPS
+//config:	bool "Include milliseconds in timestamps"
+//config:	default n
+//config:	depends on SYSLOGD
+//config:	help
+//config:	Includes milliseconds (HH:MM:SS.mmm) in timestamp when
+//config:	timestamps are added.
+//config:
 //config:config FEATURE_SYSLOGD_READ_BUFFER_SIZE
 //config:	int "Read buffer size in bytes"
 //config:	default 256
@@ -276,7 +284,7 @@ struct globals {
 	/* ...then copy to parsebuf, escaping control chars */
 	/* (can grow x2 max) */
 	char parsebuf[MAX_READ*2];
-	/* ...then sprintf into printbuf, adding timestamp (15 chars),
+	/* ...then sprintf into printbuf, adding timestamp (15 or 19 chars),
 	 * host (64), fac.prio (20) to the message */
 	/* (growth by: 15 + 64 + 20 + delims = ~110) */
 	char printbuf[MAX_READ*2 + 128];
@@ -832,12 +840,24 @@ static void timestamp_and_log(int pri, char *msg, int len)
 		msg += 16;
 	}
 
+#if ENABLE_FEATURE_SYSLOGD_PRECISE_TIMESTAMPS
+	if (!timestamp) {
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		now = tv.tv_sec;
+		timestamp = ctime(&now) + 4; /* skip day of week */
+		/* overwrite year by milliseconds, zero terminate */
+		sprintf(timestamp + 15, ".%03u", (unsigned)tv.tv_usec / 1000u);
+	} else {
+		timestamp[15] = '\0';
+	}
+#else
 	if (!timestamp) {
 		time(&now);
 		timestamp = ctime(&now) + 4; /* skip day of week */
 	}
-
 	timestamp[15] = '\0';
+#endif
 
 	if (option_mask32 & OPT_kmsg) {
 		log_to_kmsg(pri, msg);
