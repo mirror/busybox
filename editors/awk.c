@@ -272,7 +272,8 @@ typedef struct tsplitter_s {
 /* if previous token class is CONCAT1 and next is CONCAT2, concatenation */
 /* operator is inserted between them */
 #define	TC_CONCAT1 (TC_VARIABLE | TC_ARRTERM | TC_SEQTERM \
-                   | TC_STRING | TC_NUMBER | TC_UOPPOST)
+                   | TC_STRING | TC_NUMBER | TC_UOPPOST \
+                   | TC_LENGTH)
 #define	TC_CONCAT2 (TC_OPERAND | TC_UOPPRE)
 
 #define	OF_RES1     0x010000
@@ -1070,8 +1071,10 @@ static uint32_t next_token(uint32_t expected)
 	const uint32_t *ti;
 
 	if (t_rollback) {
+		debug_printf_parse("%s: using rolled-back token\n", __func__);
 		t_rollback = FALSE;
 	} else if (concat_inserted) {
+		debug_printf_parse("%s: using concat-inserted token\n", __func__);
 		concat_inserted = FALSE;
 		t_tclass = save_tclass;
 		t_info = save_info;
@@ -1200,7 +1203,11 @@ static uint32_t next_token(uint32_t expected)
 			goto readnext;
 
 		/* insert concatenation operator when needed */
-		if ((ltclass & TC_CONCAT1) && (tc & TC_CONCAT2) && (expected & TC_BINOP)) {
+		debug_printf_parse("%s: %x %x %x concat_inserted?\n", __func__,
+			(ltclass & TC_CONCAT1), (tc & TC_CONCAT2), (expected & TC_BINOP));
+		if ((ltclass & TC_CONCAT1) && (tc & TC_CONCAT2) && (expected & TC_BINOP)
+		 && !(ltclass == TC_LENGTH && tc == TC_SEQSTART) /* but not for "length(..." */
+		) {
 			concat_inserted = TRUE;
 			save_tclass = tc;
 			save_info = t_info;
@@ -1208,6 +1215,7 @@ static uint32_t next_token(uint32_t expected)
 			t_info = OC_CONCAT | SS | P(35);
 		}
 
+		debug_printf_parse("%s: t_tclass=tc=%x\n", __func__, t_tclass);
 		t_tclass = tc;
 	}
 	ltclass = t_tclass;
@@ -1218,6 +1226,7 @@ static uint32_t next_token(uint32_t expected)
 				EMSG_UNEXP_EOS : EMSG_UNEXP_TOKEN);
 	}
 
+	debug_printf_parse("%s: returning, ltclass:%x t_double:%f\n", __func__, ltclass, t_double);
 	return ltclass;
 #undef concat_inserted
 #undef save_tclass
@@ -1282,7 +1291,7 @@ static node *parse_expr(uint32_t iexp)
 			glptr = NULL;
 
 		} else if (tc & (TC_BINOP | TC_UOPPOST)) {
-			debug_printf_parse("%s: TC_BINOP | TC_UOPPOST\n", __func__);
+			debug_printf_parse("%s: TC_BINOP | TC_UOPPOST tc:%x\n", __func__, tc);
 			/* for binary and postfix-unary operators, jump back over
 			 * previous operators with higher priority */
 			vn = cn;
@@ -1387,7 +1396,12 @@ static node *parse_expr(uint32_t iexp)
 
 				case TC_LENGTH:
 					debug_printf_parse("%s: TC_LENGTH\n", __func__);
-					next_token(TC_SEQSTART | TC_OPTERM | TC_GRPTERM);
+					next_token(TC_SEQSTART /* length(...) */
+						| TC_OPTERM    /* length; (or newline)*/
+						| TC_GRPTERM   /* length } */
+						| TC_BINOPX    /* length <op> NUM */
+						| TC_COMMA     /* print length, 1 */
+					);
 					rollback_token();
 					if (t_tclass & TC_SEQSTART) {
 						/* It was a "(" token. Handle just like TC_BUILTIN */
