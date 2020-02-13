@@ -459,16 +459,14 @@ static int tftp_protocol(
 		}
 		/* add filename and mode */
 		/* fill in packet if the filename fits into xbuf */
-		len = strlen(remote_file) + 1;
-		if (2 + len + sizeof("octet") >= io_bufsize) {
+		len = strlen(remote_file);
+		if (len + 3 + sizeof("octet") >= io_bufsize) {
 			bb_simple_error_msg("remote filename is too long");
 			goto ret;
 		}
-		strcpy(cp, remote_file);
-		cp += len;
+		cp = stpcpy(cp, remote_file) + 1;
 		/* add "mode" part of the packet */
-		strcpy(cp, "octet");
-		cp += sizeof("octet");
+		cp = stpcpy(cp, "octet");
 
 # if ENABLE_FEATURE_TFTP_BLOCKSIZE
 		if (blksize == TFTP_BLKSIZE_DEFAULT && !want_transfer_size)
@@ -757,7 +755,6 @@ static int tftp_protocol(
 }
 
 #if ENABLE_TFTP
-
 int tftp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tftp_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -873,7 +870,6 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 	}
 	return result;
 }
-
 #endif /* ENABLE_TFTP */
 
 #if ENABLE_TFTPD
@@ -1010,7 +1006,6 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	strcpy(G_error_pkt_str, error_msg);
 	goto do_proto;
 }
-
 #endif /* ENABLE_TFTPD */
 
 #endif /* ENABLE_FEATURE_TFTP_GET || ENABLE_FEATURE_TFTP_PUT */
