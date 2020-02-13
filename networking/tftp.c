@@ -466,7 +466,7 @@ static int tftp_protocol(
 		}
 		cp = stpcpy(cp, remote_file) + 1;
 		/* add "mode" part of the packet */
-		cp = stpcpy(cp, "octet");
+		cp = stpcpy(cp, "octet") + 1;
 
 # if ENABLE_FEATURE_TFTP_BLOCKSIZE
 		if (blksize == TFTP_BLKSIZE_DEFAULT && !want_transfer_size)
