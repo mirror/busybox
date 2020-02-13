@@ -402,9 +402,17 @@ static int tftp_protocol(
 		/* Open file (must be after changing user) */
 		local_fd = open(local_file, open_mode, 0666);
 		if (local_fd < 0) {
+			/* sanitize name, it came from untrusted remote side */
+			unsigned char *p = (void *) local_file;
+			while (*p) {
+				if (*p < ' ')
+					*p = '?';
+				p++;
+			}
+			bb_perror_msg("can't open '%s'", local_file);
 			G_error_pkt_reason = ERR_NOFILE;
 			strcpy(G_error_pkt_str, "can't open file");
-			goto send_err_pkt;
+			goto send_err_pkt_nomsg;
 		}
 /* gcc 4.3.1 would NOT optimize it out as it should! */
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
@@ -721,7 +729,7 @@ static int tftp_protocol(
 		 *  must never resend the current DATA packet on receipt
 		 *  of a duplicate ACK".
 		 * DATA pkts are resent ONLY on timeout.
-		 * Thus "goto send_again" will ba a bad mistake above.
+		 * Thus "goto send_again" will be a bad mistake above.
 		 * See:
 		 * http://en.wikipedia.org/wiki/Sorcerer's_Apprentice_Syndrome
 		 */
@@ -740,6 +748,7 @@ static int tftp_protocol(
  send_err_pkt:
 	if (G_error_pkt_str[0])
 		bb_simple_error_msg(G_error_pkt_str);
+ send_err_pkt_nomsg:
 	G.error_pkt[1] = TFTP_ERROR;
 	xsendto(socket_fd, G.error_pkt, 4 + 1 + strlen(G_error_pkt_str),
 			&peer_lsa->u.sa, peer_lsa->len);
