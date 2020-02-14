@@ -12194,7 +12194,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			}
 			USTPUTC(c, out);
 			nlprompt();
-			c = pgetc();
+			c = synstack->syntax == SQSYNTAX ? pgetc() : pgetc_eatbnl();
 			goto loop;              /* continue outer loop */
 		case CWORD:
 			USTPUTC(c, out);
@@ -12226,8 +12226,6 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				USTPUTC(CTLESC, out);
 				USTPUTC('\\', out);
 				pungetc();
-			} else if (c == '\n') {
-				nlprompt();
 			} else {
 				if (pssyntax && c == '$') {
 					USTPUTC(CTLESC, out);
@@ -12347,7 +12345,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			IF_ASH_ALIAS(if (c != PEOA))
 				USTPUTC(c, out);
 		}
-		c = pgetc();
+		c = synstack->syntax == SQSYNTAX ? pgetc() : pgetc_eatbnl();
 	} /* for (;;) */
  endword:
 
@@ -13093,8 +13091,10 @@ parseheredoc(void)
 	while (here) {
 		tokpushback = 0;
 		setprompt_if(needprompt, 2);
-		readtoken1(pgetc(), here->here->type == NHERE ? SQSYNTAX : DQSYNTAX,
-				here->eofmark, here->striptabs);
+		if (here->here->type == NHERE)
+			readtoken1(pgetc(), SQSYNTAX, here->eofmark, here->striptabs);
+		else
+			readtoken1(pgetc_eatbnl(), DQSYNTAX, here->eofmark, here->striptabs);
 		n = stzalloc(sizeof(struct narg));
 		n->narg.type = NARG;
 		/*n->narg.next = NULL; - stzalloc did it */
