@@ -344,6 +344,7 @@ static const char *const i386_sys_types[] = {
 	"\xa8" "Darwin UFS",
 	"\xa9" "NetBSD",
 	"\xab" "Darwin boot",
+	"\xaf" "HFS / HFS+",
 	"\xb7" "BSDI fs",
 	"\xb8" "BSDI swap",
 	"\xbe" "Solaris boot",
@@ -390,15 +391,12 @@ static const char *const i386_sys_types[] = {
 	"\xc6" "DRDOS/sec (FAT-16)",
 	"\xc7" "Syrinx",
 	"\xda" "Non-FS data",
-	"\xdb" "CP/M / CTOS / ...",/* CP/M or Concurrent CP/M or
-	                              Concurrent DOS or CTOS */
+	"\xdb" "CP/M / CTOS / ...",/* CP/M or Concurrent CP/M or Concurrent DOS or CTOS */
 	"\xde" "Dell Utility",     /* Dell PowerEdge Server utilities */
 	"\xdf" "BootIt",           /* BootIt EMBRM */
-	"\xe1" "DOS access",       /* DOS access or SpeedStor 12-bit FAT
-	                              extended partition */
+	"\xe1" "DOS access",       /* DOS access or SpeedStor 12-bit FAT extended partition */
 	"\xe3" "DOS R/O",          /* DOS R/O or SpeedStor */
-	"\xe4" "SpeedStor",        /* SpeedStor 16-bit FAT extended
-	                              partition < 1024 cyl. */
+	"\xe4" "SpeedStor",        /* SpeedStor 16-bit FAT extended partition <1024 cyl. */
 	"\xf1" "SpeedStor",
 	"\xf4" "SpeedStor",        /* SpeedStor large partition */
 	"\xfe" "LANstep",          /* SpeedStor >1024 cyl. or LANstep */
