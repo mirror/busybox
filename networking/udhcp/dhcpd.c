@@ -46,7 +46,7 @@
 #include "dhcpc.h"
 #include "dhcpd.h"
 
-#if ENABLE_PID_FILE_PATH == 1
+#if ENABLE_PID_FILE_PATH
 #define PID_FILE_PATH CONFIG_PID_FILE_PATH
 #else
 #define PID_FILE_PATH "/var/run"

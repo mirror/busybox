@@ -42,7 +42,9 @@
 //usage:     "\n	-c DIR	Config directory [/etc/acpi]"
 //usage:     "\n	-e FILE	/proc event file [/proc/acpi/event]"
 //usage:     "\n	-l FILE	Log file [/var/log/acpid.log]"
-//usage:     "\n	-p FILE	Pid file [/var/run/acpid.pid]"
+//usage:	IF_FEATURE_PIDFILE(
+//usage:     "\n	-p FILE	Pid file [" CONFIG_PID_FILE_PATH "/acpid.pid]"
+//usage:	)
 //usage:     "\n	-a FILE	Action file [/etc/acpid.conf]"
 //usage:     "\n	-M FILE Map file [/etc/acpi.map]"
 //usage:	IF_FEATURE_ACPID_COMPAT(
