@@ -1204,6 +1204,27 @@ static char **create_list(const char *filename)
 	return file_list;
 }
 
+/** This tests if the filename is an "important" directory, which might be symlinked.
+ *  Debians dpkg test if directories are used by other packages, this
+ *  implementation doesn't and would remove for ex. an lib -> usr/lib symlink.
+ */
+static int is_builtin_exclude(const char *name)
+{
+	if (*name++ != '/')
+		return 0;
+	if (index_in_strings(".\0" "etc\0" "opt\0" "srv\0" "var\0" "var/lib\0",
+			name) >= 0)
+		return 1;
+	if (is_prefixed_with(name, "usr/")) {
+		name += sizeof("usr/") - 1;
+		if (is_prefixed_with(name, "local/"))
+			name += sizeof("local/") - 1;
+	}
+
+	return index_in_strings("bin\0" "lib\0" "lib32\0" "lib64\0" "sbin\0",
+			name) >= 0;
+}
+
 /* maybe i should try and hook this into remove_file.c somehow */
 static int remove_file_array(char **remove_names, char **exclude_names)
 {
@@ -1215,6 +1236,8 @@ static int remove_file_array(char **remove_names, char **exclude_names)
 		return 0;
 	}
 	for (i = 0; remove_names[i] != NULL; i++) {
+		if (is_builtin_exclude(remove_names[i]))
+			continue;
 		if (exclude_names != NULL) {
 			for (j = 0; exclude_names[j] != NULL; j++) {
 				if (strcmp(remove_names[i], exclude_names[j]) == 0) {
