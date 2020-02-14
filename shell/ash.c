@@ -10829,6 +10829,12 @@ struct synstack {
 	struct synstack *next;
 };
 
+static int
+pgetc_top(struct synstack *stack)
+{
+	return stack->syntax == SQSYNTAX ? pgetc() : pgetc_eatbnl();
+}
+
 static void
 synstack_push(struct synstack **stack, struct synstack *next, int syntax)
 {
@@ -12194,7 +12200,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			}
 			USTPUTC(c, out);
 			nlprompt();
-			c = synstack->syntax == SQSYNTAX ? pgetc() : pgetc_eatbnl();
+			c = pgetc_top(synstack);
 			goto loop;              /* continue outer loop */
 		case CWORD:
 			USTPUTC(c, out);
@@ -12345,7 +12351,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			IF_ASH_ALIAS(if (c != PEOA))
 				USTPUTC(c, out);
 		}
-		c = synstack->syntax == SQSYNTAX ? pgetc() : pgetc_eatbnl();
+		c = pgetc_top(synstack);
 	} /* for (;;) */
  endword:
 
