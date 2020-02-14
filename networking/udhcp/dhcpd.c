@@ -46,6 +46,12 @@
 #include "dhcpc.h"
 #include "dhcpd.h"
 
+#if ENABLE_PID_FILE_PATH == 1
+#define PID_FILE_PATH CONFIG_PID_FILE_PATH
+#else
+#define PID_FILE_PATH "/var/run"
+#endif
+
 /* globals */
 #define g_leases ((struct dyn_lease*)ptr_to_globals)
 /* struct server_data_t server_data is in bb_common_bufsiz1 */
@@ -406,7 +412,7 @@ static const struct config_keyword keywords[] = {
 	{"offer_time"   , read_u32        , OFS(offer_time   ), "60"},
 	{"min_lease"    , read_u32        , OFS(min_lease_sec), "60"},
 	{"lease_file"   , read_str        , OFS(lease_file   ), LEASES_FILE},
-	{"pidfile"      , read_str        , OFS(pidfile      ), "/var/run/udhcpd.pid"},
+	{"pidfile"      , read_str        , OFS(pidfile      ), PID_FILE_PATH "/udhcpd.pid"},
 	{"siaddr"       , udhcp_str2nip   , OFS(siaddr_nip   ), "0.0.0.0"},
 	/* keywords with no defaults must be last! */
 	{"option"       , read_optset     , OFS(options      ), ""},
