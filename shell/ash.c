@@ -384,6 +384,7 @@ struct globals_misc {
 	uint8_t exitstatus;     /* exit status of last command */
 	uint8_t back_exitstatus;/* exit status of backquoted command */
 	smallint job_warning;   /* user was warned about stopped jobs (can be 2, 1 or 0). */
+	int savestatus;         /* exit status of last command outside traps */
 	int rootpid;            /* pid of main shell */
 	/* shell level: 0 for the main shell, 1 for its children, and so on */
 	int shlvl;
@@ -466,6 +467,7 @@ extern struct globals_misc *BB_GLOBAL_CONST ash_ptr_to_globals_misc;
 #define exitstatus        (G_misc.exitstatus )
 #define back_exitstatus   (G_misc.back_exitstatus )
 #define job_warning       (G_misc.job_warning)
+#define savestatus  (G_misc.savestatus )
 #define rootpid     (G_misc.rootpid    )
 #define shlvl       (G_misc.shlvl      )
 #define errlinno    (G_misc.errlinno   )
@@ -491,6 +493,7 @@ extern struct globals_misc *BB_GLOBAL_CONST ash_ptr_to_globals_misc;
 #define INIT_G_misc() do { \
 	(*(struct globals_misc**)not_const_pp(&ash_ptr_to_globals_misc)) = xzalloc(sizeof(G_misc)); \
 	barrier(); \
+	savestatus = -1; \
 	curdir = nullstr; \
 	physdir = nullstr; \
 	trap_ptr = trap; \
@@ -9055,12 +9058,17 @@ dotrap(void)
 {
 	uint8_t *g;
 	int sig;
-	uint8_t last_status;
+	int status, last_status;
 
 	if (!pending_sig)
 		return;
 
-	last_status = exitstatus;
+	status = savestatus;
+	last_status = status;
+	if (status < 0) {
+		status = exitstatus;
+		savestatus = status;
+	}
 	pending_sig = 0;
 	barrier();
 
@@ -9087,8 +9095,10 @@ dotrap(void)
 		if (!p)
 			continue;
 		evalstring(p, 0);
+		exitstatus = status;
 	}
-	exitstatus = last_status;
+
+	savestatus = last_status;
 	TRACE(("dotrap returns\n"));
 }
 
@@ -13416,8 +13426,15 @@ exitcmd(int argc UNUSED_PARAM, char **argv)
 {
 	if (stoppedjobs())
 		return 0;
-	if (argv[1])
-		exitstatus = number(argv[1]);
+
+	if (argv[1]) {
+		int status = number(argv[1]);
+
+		exitstatus = status;
+		if (savestatus >= 0)
+			savestatus = status;
+	}
+
 	raise_exception(EXEXIT);
 	/* NOTREACHED */
 }
@@ -14077,19 +14094,15 @@ exitshell(void)
 {
 	struct jmploc loc;
 	char *p;
-	int status;
 
 #if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
 	if (line_input_state)
 		save_history(line_input_state);
 #endif
-	status = exitstatus;
-	TRACE(("pid %d, exitshell(%d)\n", getpid(), status));
-	if (setjmp(loc.loc)) {
-		if (exception_type == EXEXIT)
-			status = exitstatus;
+	savestatus = exitstatus;
+	TRACE(("pid %d, exitshell(%d)\n", getpid(), savestatus));
+	if (setjmp(loc.loc))
 		goto out;
-	}
 	exception_handler = &loc;
 	p = trap[0];
 	if (p) {
@@ -14104,7 +14117,7 @@ exitshell(void)
 	 */
 	setjobctl(0);
 	flush_stdout_stderr();
-	_exit(status);
+	_exit(savestatus);
 	/* NOTREACHED */
 }
 
@@ -14280,6 +14293,10 @@ reset(void)
 	/* from eval.c: */
 	evalskip = 0;
 	loopnest = 0;
+	if (savestatus >= 0) {
+		exitstatus = savestatus;
+		savestatus = -1;
+	}
 
 	/* from expand.c: */
 	ifsfree();
