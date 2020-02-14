@@ -84,6 +84,7 @@
 //usage:	)
 //usage:     "\n	-n	Don't do DNS resolution"
 //usage:     "\n	-u	UDP mode"
+//usage:     "\n	-b	Allow broadcasts"
 //usage:     "\n	-v	Verbose"
 //usage:	IF_NC_EXTRA(
 //usage:     "\n	-o FILE	Hex dump traffic"
@@ -171,17 +172,19 @@ enum {
 	OPT_p = (1 << 1),
 	OPT_s = (1 << 2),
 	OPT_u = (1 << 3),
-	OPT_v = (1 << 4),
-	OPT_w = (1 << 5),
-	OPT_l = (1 << 6) * ENABLE_NC_SERVER,
-	OPT_k = (1 << 7) * ENABLE_NC_SERVER,
-	OPT_i = (1 << (6+2*ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
-	OPT_o = (1 << (7+2*ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
-	OPT_z = (1 << (8+2*ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
+	OPT_b = (1 << 4),
+	OPT_v = (1 << 5),
+	OPT_w = (1 << 6),
+	OPT_l = (1 << 7) * ENABLE_NC_SERVER,
+	OPT_k = (1 << 8) * ENABLE_NC_SERVER,
+	OPT_i = (1 << (7+2*ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
+	OPT_o = (1 << (8+2*ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
+	OPT_z = (1 << (9+2*ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
 };
 
 #define o_nflag   (option_mask32 & OPT_n)
 #define o_udpmode (option_mask32 & OPT_u)
+#define o_bcmode  (option_mask32 & OPT_b)
 #if ENABLE_NC_EXTRA
 #define o_ofile   (option_mask32 & OPT_o)
 #define o_zero    (option_mask32 & OPT_z)
@@ -788,7 +791,7 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 
 	// -g -G -t -r deleted, unimplemented -a deleted too
 	getopt32(argv, "^"
-		"np:s:uvw:+"/* -w N */ IF_NC_SERVER("lk")
+		"np:s:ubvw:+"/* -w N */ IF_NC_SERVER("lk")
 		IF_NC_EXTRA("i:o:z")
 			"\0"
 			"?2:vv"IF_NC_SERVER(":ll"), /* max 2 params; -v and -l are counters */
@@ -851,8 +854,11 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 	}
 	xmove_fd(x, netfd);
 	setsockopt_reuseaddr(netfd);
-	if (o_udpmode)
+	if (o_udpmode) {
+		if (o_bcmode)
+			setsockopt_broadcast(netfd);
 		socket_want_pktinfo(netfd);
+	}
 	if (!ENABLE_FEATURE_UNIX_LOCAL
 	 || cnt_l != 0 /* listen */
 	 || ouraddr->u.sa.sa_family != AF_UNIX
