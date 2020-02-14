@@ -13427,13 +13427,8 @@ exitcmd(int argc UNUSED_PARAM, char **argv)
 	if (stoppedjobs())
 		return 0;
 
-	if (argv[1]) {
-		int status = number(argv[1]);
-
-		exitstatus = status;
-		if (savestatus >= 0)
-			savestatus = status;
-	}
+	if (argv[1])
+		savestatus = number(argv[1]);
 
 	raise_exception(EXEXIT);
 	/* NOTREACHED */
