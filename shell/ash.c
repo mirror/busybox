@@ -6440,7 +6440,7 @@ exptilde(char *startp, char *p, int flags)
 			goto lose;
 		home = pw->pw_dir;
 	}
-	if (!home || !*home)
+	if (!home)
 		goto lose;
 	*p = c;
 	strtodest(home, SQSYNTAX, quotes);
