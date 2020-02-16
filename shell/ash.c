@@ -7506,6 +7506,8 @@ evalvar(char *p, int flag)
 		goto record;
 	}
 
+	varlen = 0;
+
  end:
 	if (subtype != VSNORMAL) {      /* skip to end of alternative */
 		int nesting = 1;
