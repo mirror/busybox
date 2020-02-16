@@ -713,7 +713,7 @@ fmtstr(char *outbuf, size_t length, const char *fmt, ...)
 	ret = vsnprintf(outbuf, length, fmt, ap);
 	va_end(ap);
 	INT_ON;
-	return ret;
+	return ret > (int)length ? length : ret;
 }
 
 static void
