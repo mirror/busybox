@@ -9445,11 +9445,10 @@ expredir(union node *n)
 		case NFROMFD:
 		case NTOFD: /* >& */
 			if (redir->ndup.vname) {
-				expandarg(redir->ndup.vname, &fn, EXP_FULL | EXP_TILDE);
+				expandarg(redir->ndup.vname, &fn, EXP_TILDE | EXP_REDIR);
 				if (fn.list == NULL)
 					ash_msg_and_raise_error("redir error");
 #if BASH_REDIR_OUTPUT
-//FIXME: we used expandarg with different args!
 				if (!isdigit_str9(fn.list->text)) {
 					/* >&file, not >&fd */
 					if (redir->nfile.fd != 1) /* 123>&file - BAD */
