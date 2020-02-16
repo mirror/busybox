@@ -4203,12 +4203,11 @@ fg_bgcmd(int argc UNUSED_PARAM, char **argv)
 #endif
 
 static int
-sprint_status48(char *s, int status, int sigonly)
+sprint_status48(char *os, int status, int sigonly)
 {
-	int col;
+	char *s = os;
 	int st;
 
-	col = 0;
 	if (!WIFEXITED(status)) {
 #if JOBS
 		if (WIFSTOPPED(status))
@@ -4226,17 +4225,17 @@ sprint_status48(char *s, int status, int sigonly)
 		}
 		st &= 0x7f;
 //TODO: use bbox's get_signame? strsignal adds ~600 bytes to text+rodata
-		col = fmtstr(s, 32, strsignal(st));
+		//s = stpncpy(s, strsignal(st), 32); //not all libc have stpncpy()
+		s += fmtstr(s, 32, strsignal(st));
 		if (WCOREDUMP(status)) {
-			strcpy(s + col, " (core dumped)");
-			col += sizeof(" (core dumped)")-1;
+			s = stpcpy(s, " (core dumped)");
 		}
 	} else if (!sigonly) {
 		st = WEXITSTATUS(status);
-		col = fmtstr(s, 16, (st ? "Done(%d)" : "Done"), st);
+		s += fmtstr(s, 16, (st ? "Done(%d)" : "Done"), st);
 	}
  out:
-	return col;
+	return s - os;
 }
 
 static int
