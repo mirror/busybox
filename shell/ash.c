@@ -2560,17 +2560,17 @@ listvars(int on, int off, struct strlist *lp, char ***end)
 /* ============ Path search helper
  *
  * The variable path (passed by reference) should be set to the start
- * of the path before the first call; path_advance will update
- * this value as it proceeds.  Successive calls to path_advance will return
+ * of the path before the first call; padvance will update
+ * this value as it proceeds.  Successive calls to padvance will return
  * the possible path expansions in sequence.  If an option (indicated by
  * a percent sign) appears in the path entry then the global variable
  * pathopt will be set to point to it; otherwise pathopt will be set to
  * NULL.
  */
-static const char *pathopt;     /* set by path_advance */
+static const char *pathopt;     /* set by padvance */
 
-static char *
-path_advance(const char **path, const char *name)
+static int
+padvance(const char **path, const char *name)
 {
 	const char *p;
 	char *q;
@@ -2578,7 +2578,7 @@ path_advance(const char **path, const char *name)
 	size_t len;
 
 	if (*path == NULL)
-		return NULL;
+		return -1;
 	start = *path;
 	for (p = start; *p && *p != ':' && *p != '%'; p++)
 		continue;
@@ -2599,7 +2599,7 @@ path_advance(const char **path, const char *name)
 		*path = p + 1;
 	else
 		*path = NULL;
-	return stalloc(len);
+	return len;
 }
 
 
@@ -2840,6 +2840,7 @@ cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	char c;
 	struct stat statb;
 	int flags;
+	int len;
 
 	flags = cdopt();
 	dest = *argptr;
@@ -2869,9 +2870,10 @@ cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	if (!*dest)
 		dest = ".";
 	path = bltinlookup("CDPATH");
-	while (path) {
-		c = *path;
-		p = path_advance(&path, dest);
+	while (p = path, (len = padvance(&path, dest)) >= 0) {
+		c = *p;
+		p = stalloc(len);
+
 		if (stat(p, &statb) >= 0 && S_ISDIR(statb.st_mode)) {
 			if (c && c != ':')
 				flags |= CD_PRINT;
@@ -8169,13 +8171,13 @@ static void shellexec(char *prog, char **argv, const char *path, int idx)
 	} else {
  try_PATH:
 		e = ENOENT;
-		while ((cmdname = path_advance(&path, prog)) != NULL) {
+		while (padvance(&path, argv[0]) >= 0) {
+			cmdname = stackblock();
 			if (--idx < 0 && pathopt == NULL) {
 				tryexec(IF_FEATURE_SH_STANDALONE(-1,) cmdname, argv, envp);
 				if (errno != ENOENT && errno != ENOTDIR)
 					e = errno;
 			}
-			stunalloc(cmdname);
 		}
 	}
 
@@ -8208,9 +8210,9 @@ printentry(struct tblentry *cmdp)
 	idx = cmdp->param.index;
 	path = pathval();
 	do {
-		name = path_advance(&path, cmdp->cmdname);
-		stunalloc(name);
+		padvance(&path, cmdp->cmdname);
 	} while (--idx >= 0);
+	name = stackblock();
 	out1fmt("%s%s\n", name, (cmdp->rehash ? "*" : nullstr));
 }
 
@@ -8603,9 +8605,9 @@ describe_command(char *command, const char *path, int describe_command_verbose)
 			p = command;
 		} else {
 			do {
-				p = path_advance(&path, command);
-				stunalloc(p);
+				padvance(&path, command);
 			} while (--j >= 0);
+			p = stackblock();
 		}
 		if (describe_command_verbose) {
 			out1fmt(" is %s", p);
@@ -11020,8 +11022,12 @@ chkmail(void)
 	mpath = mpathset() ? mpathval() : mailval();
 	new_hash = 0;
 	for (;;) {
-		p = path_advance(&mpath, nullstr);
-		if (p == NULL)
+		int len;
+
+		len = padvance(&mpath, nullstr);
+		if (!len)
+			break;
+		p = stackblock();
 			break;
 		if (*p == '\0')
 			continue;
@@ -13341,33 +13347,30 @@ cmdloop(int top)
  * search for the file, which is necessary to find sub-commands.
  */
 static char *
-find_dot_file(char *name)
+find_dot_file(char *basename)
 {
 	char *fullname;
 	const char *path = pathval();
 	struct stat statb;
+	int len;
 
 	/* don't try this for absolute or relative paths */
-	if (strchr(name, '/'))
-		return name;
+	if (strchr(basename, '/'))
+		return basename;
 
-	while ((fullname = path_advance(&path, name)) != NULL) {
+	while ((len = padvance(&path, basename)) >= 0) {
+		fullname = stackblock();
 		if ((stat(fullname, &statb) == 0) && S_ISREG(statb.st_mode)) {
-			/*
-			 * Don't bother freeing here, since it will
-			 * be freed by the caller.
-			 */
-			return fullname;
+			/* This will be freed by the caller. */
+			return stalloc(len);
 		}
-		if (fullname != name)
-			stunalloc(fullname);
 	}
 	/* not found in PATH */
 
 #if ENABLE_ASH_BASH_SOURCE_CURDIR
-	return name;
+	return basename;
 #else
-	ash_msg_and_raise_error("%s: not found", name);
+	ash_msg_and_raise_error("%s: not found", basename);
 	/* NOTREACHED */
 #endif
 }
@@ -13470,6 +13473,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 	int e;
 	int updatetbl;
 	struct builtincmd *bcmd;
+	int len;
 
 	/* If name contains a slash, don't use PATH or hash table */
 	if (strchr(name, '/') != NULL) {
@@ -13561,10 +13565,8 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 	e = ENOENT;
 	idx = -1;
  loop:
-	while ((fullname = path_advance(&path, name)) != NULL) {
-		stunalloc(fullname);
-		/* NB: code below will still use fullname
-		 * despite it being "unallocated" */
+	while ((len = padvance(&path, name)) >= 0) {
+		fullname = stackblock();
 		idx++;
 		if (pathopt) {
 			if (prefix(pathopt, "builtin")) {
@@ -13598,7 +13600,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 		if (!S_ISREG(statb.st_mode))
 			continue;
 		if (pathopt) {          /* this is a %func directory */
-			stalloc(strlen(fullname) + 1);
+			stalloc(len);
 			/* NB: stalloc will return space pointed by fullname
 			 * (because we don't have any intervening allocations
 			 * between stunalloc above and this stalloc) */
