@@ -6578,7 +6578,7 @@ expbackq(union node *cmd, int flag)
 
 	/* Eat all trailing newlines */
 	dest = expdest;
-	for (; dest > (char *)stackblock() && dest[-1] == '\n';)
+	for (; dest > ((char *)stackblock() + startloc) && dest[-1] == '\n';)
 		STUNPUTC(dest);
 	expdest = dest;
 
