@@ -12733,6 +12733,7 @@ parsebackq: {
 	union node *n;
 	char *str;
 	size_t savelen;
+	struct heredoc *saveheredoclist;
 	smallint saveprompt = 0;
 
 	str = NULL;
@@ -12808,6 +12809,9 @@ parsebackq: {
 	*nlpp = stzalloc(sizeof(**nlpp));
 	/* (*nlpp)->next = NULL; - stzalloc did it */
 
+	saveheredoclist = heredoclist;
+	heredoclist = NULL;
+
 	if (oldstyle) {
 		saveprompt = doprompt;
 		doprompt = 0;
@@ -12817,18 +12821,21 @@ parsebackq: {
 
 	if (oldstyle)
 		doprompt = saveprompt;
-	else if (readtoken() != TRP)
-		raise_error_unexpected_syntax(TRP);
+	else {
+		if (readtoken() != TRP)
+			raise_error_unexpected_syntax(TRP);
+		setinputstring(nullstr);
+		parseheredoc();
+	}
+
+	heredoclist = saveheredoclist;
 
 	(*nlpp)->n = n;
-	if (oldstyle) {
-		/*
-		 * Start reading from old file again, ignoring any pushed back
-		 * tokens left from the backquote parsing
-		 */
-		popfile();
+	/* Start reading from old file again. */
+	popfile();
+	/* Ignore any pushed back tokens left from the backquote parsing. */
+	if (oldstyle)
 		tokpushback = 0;
-	}
 	while (stackblocksize() <= savelen)
 		growstackblock();
 	STARTSTACKSTR(out);
