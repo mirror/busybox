@@ -12602,7 +12602,7 @@ parsesub: {
 			do {
 				STPUTC(c, out);
 				c = pgetc_eatbnl();
-			} while (isdigit(c));
+			} while (!subtype && isdigit(c));
 		} else if (c != '}') {
 			/* $[{[#]]<specialchar>[}] */
 			int cc = c;
