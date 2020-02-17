@@ -1740,6 +1740,15 @@ growstackstr(void)
 	return (char *)stackblock() + len;
 }
 
+static char *
+growstackto(size_t len)
+{
+	while (stackblocksize() < len)
+		growstackblock();
+
+	return stackblock();
+}
+
 /*
  * Called from CHECKSTRSPACE.
  */
@@ -1747,18 +1756,8 @@ static char *
 makestrspace(size_t newlen, char *p)
 {
 	size_t len = p - g_stacknxt;
-	size_t size;
 
-	for (;;) {
-		size_t nleft;
-
-		size = stackblocksize();
-		nleft = size - len;
-		if (nleft >= newlen)
-			break;
-		growstackblock();
-	}
-	return (char *)stackblock() + len;
+	return growstackto(len + newlen) + len;
 }
 
 static char *
@@ -2584,9 +2583,7 @@ path_advance(const char **path, const char *name)
 	for (p = start; *p && *p != ':' && *p != '%'; p++)
 		continue;
 	len = p - start + strlen(name) + 2;     /* "2" is for '/' and '\0' */
-	while (stackblocksize() < len)
-		growstackblock();
-	q = stackblock();
+	q = growstackto(len);
 	if (p != start) {
 		q = mempcpy(q, start, p - start);
 		*q++ = '/';
@@ -12836,9 +12833,7 @@ parsebackq: {
 	/* Ignore any pushed back tokens left from the backquote parsing. */
 	if (oldstyle)
 		tokpushback = 0;
-	while (stackblocksize() <= savelen)
-		growstackblock();
-	STARTSTACKSTR(out);
+	out = growstackto(savelen + 1);
 	if (str) {
 		memcpy(out, str, savelen);
 		STADJUST(savelen, out);
