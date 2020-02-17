@@ -8284,7 +8284,10 @@ clearcmdentry(void)
 		pp = tblp;
 		while ((cmdp = *pp) != NULL) {
 			if (cmdp->cmdtype == CMDNORMAL
-			 || (cmdp->cmdtype == CMDBUILTIN && builtinloc > 0)
+			 || (cmdp->cmdtype == CMDBUILTIN
+			    && !IS_BUILTIN_REGULAR(cmdp->param.cmd)
+			    && builtinloc > 0
+			    )
 			) {
 				*pp = cmdp->next;
 				free(cmdp);
@@ -8403,7 +8406,11 @@ hashcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		cmdp = cmdlookup(name, 0);
 		if (cmdp != NULL
 		 && (cmdp->cmdtype == CMDNORMAL
-		     || (cmdp->cmdtype == CMDBUILTIN && builtinloc >= 0))
+		    || (cmdp->cmdtype == CMDBUILTIN
+			&& !IS_BUILTIN_REGULAR(cmdp->param.cmd)
+			&& builtinloc > 0
+			)
+		    )
 		) {
 			delete_cmd_entry();
 		}
@@ -13556,7 +13563,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 			bit = DO_NOFUNC;
 			break;
 		case CMDBUILTIN:
-			bit = DO_ALTBLTIN;
+			bit = IS_BUILTIN_REGULAR(cmdp->param.cmd) ? 0 : DO_ALTBLTIN;
 			break;
 		}
 		if (act & bit) {
