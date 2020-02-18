@@ -9775,10 +9775,14 @@ static void install_sighandlers(unsigned mask)
 		 */
 		if (sig == SIGCHLD)
 			continue;
-		/* bash re-enables SIGHUP which is SIG_IGNed on entry.
-		 * Try: "trap '' HUP; bash; echo RET" and type "kill -HUP $$"
+		/* Interactive bash re-enables SIGHUP which is SIG_IGNed on entry.
+		 * Try:
+		 * trap '' hup; bash; echo RET  # type "kill -hup $$", see SIGHUP having effect
+		 * trap '' hup; bash -c 'kill -hup $$; echo ALIVE'  # here SIGHUP is SIG_IGNed
 		 */
-		//if (sig == SIGHUP) continue; - TODO?
+		if (sig == SIGHUP && G_interactive_fd)
+			continue;
+		/* Unless one of the above signals, is it SIG_IGN? */
 		if (old_handler == SIG_IGN) {
 			/* oops... restore back to IGN, and record this fact */
 			install_sighandler(sig, old_handler);
@@ -11554,6 +11558,16 @@ static int wait_for_child_or_signal(struct pipe *waitfor_pipe, pid_t waitfor_pid
 		/* It is vitally important for sigsuspend that SIGCHLD has non-DFL handler! */
 		/* Note: sigsuspend invokes signal handler */
 		sigsuspend(&oldset);
+		/* ^^^ add "sigdelset(&oldset, SIGCHLD)" before sigsuspend
+		 * to make sure SIGCHLD is not masked off?
+		 * It was reported that this:
+		 *	fn() { : | return; }
+		 *	shopt -s lastpipe
+		 *	fn
+		 *	exec hush SCRIPT
+		 * under bash 4.4.23 runs SCRIPT with SIGCHLD masked,
+		 * making "wait" commands in SCRIPT block forever.
+		 */
  restore:
 		sigprocmask(SIG_SETMASK, &oldset, NULL);
  check_sig:

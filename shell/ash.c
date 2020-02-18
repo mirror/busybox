@@ -4307,8 +4307,19 @@ wait_block_or_sig(int *status)
 #if 1
 		sigfillset(&mask);
 		sigprocmask2(SIG_SETMASK, &mask); /* mask is updated */
-		while (!got_sigchld && !pending_sig)
+		while (!got_sigchld && !pending_sig) {
 			sigsuspend(&mask);
+			/* ^^^ add "sigdelset(&mask, SIGCHLD);" before sigsuspend
+			 * to make sure SIGCHLD is not masked off?
+			 * It was reported that this:
+			 *	fn() { : | return; }
+			 *	shopt -s lastpipe
+			 *	fn
+			 *	exec ash SCRIPT
+			 * under bash 4.4.23 runs SCRIPT with SIGCHLD masked,
+			 * making "wait" commands in SCRIPT block forever.
+			 */
+		}
 		sigprocmask(SIG_SETMASK, &mask, NULL);
 #else /* unsafe: a signal can set pending_sig after check, but before pause() */
 		while (!got_sigchld && !pending_sig)
@@ -14170,11 +14181,6 @@ init(void)
 	sigmode[SIGCHLD - 1] = S_DFL; /* ensure we install handler even if it is SIG_IGNed */
 	setsignal(SIGCHLD);
 
-	/* bash re-enables SIGHUP which is SIG_IGNed on entry.
-	 * Try: "trap '' HUP; bash; echo RET" and type "kill -HUP $$"
-	 */
-	signal(SIGHUP, SIG_DFL);
-
 	{
 		char **envp;
 		const char *p;
@@ -14512,6 +14518,14 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		}
 #endif
  state4: /* XXX ??? - why isn't this before the "if" statement */
+
+		/* Interactive bash re-enables SIGHUP which is SIG_IGNed on entry.
+		 * Try:
+		 * trap '' hup; bash; echo RET	# type "kill -hup $$", see SIGHUP having effect
+		 * trap '' hup; bash -c 'kill -hup $$; echo ALIVE'  # here SIGHUP is SIG_IGNed
+		 */
+		signal(SIGHUP, SIG_DFL);
+
 		cmdloop(1);
 	}
 #if PROFILE
