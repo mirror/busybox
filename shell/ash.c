@@ -5355,10 +5355,10 @@ waitforjob(struct job *jp)
 {
 	int st;
 
-	TRACE(("waitforjob(%%%d) called\n", jobno(jp)));
+	TRACE(("waitforjob(%%%d) called\n", jp ? jobno(jp) : 0));
 
 	INT_OFF;
-	while (jp->state == JOBRUNNING) {
+	while ((jp && jp->state == JOBRUNNING) || got_sigchld) {
 		/* In non-interactive shells, we _can_ get
 		 * a keyboard signal here and be EINTRed,
 		 * but we just loop back, waiting for command to complete.
@@ -5393,6 +5393,8 @@ waitforjob(struct job *jp)
 	}
 	INT_ON;
 
+	if (!jp)
+		return exitstatus;
 	st = getstatus(jp);
 #if JOBS
 	if (jp->jobctl) {
@@ -10311,6 +10313,8 @@ evalcommand(union node *cmd, int flags)
 		goto out;
 	}
 
+	jp = NULL;
+
 	/* Execute the command. */
 	switch (cmdentry.cmdtype) {
 	default: {
@@ -10365,7 +10369,6 @@ evalcommand(union node *cmd, int flags)
 			jp = makejob(/*cmd,*/ 1);
 			if (forkshell(jp, cmd, FORK_FG) != 0) {
 				/* parent */
-				status = waitforjob(jp);
 				INT_ON;
 				TRACE(("forked child exited with %d\n", status));
 				break;
@@ -10384,32 +10387,23 @@ evalcommand(union node *cmd, int flags)
 			if (cmd_is_exec && argc > 1)
 				listsetvar(varlist.list, VEXPORT);
 		}
-
-		/* Tight loop with builtins only:
-		 * "while kill -0 $child; do true; done"
-		 * will never exit even if $child died, unless we do this
-		 * to reap the zombie and make kill detect that it's gone: */
-		dowait(DOWAIT_NONBLOCK, NULL);
-
 		if (evalbltin(cmdentry.u.cmd, argc, argv, flags)) {
 			if (exception_type == EXERROR && spclbltin <= 0) {
 				FORCE_INT_ON;
-				goto readstatus;
+				break;
 			}
  raise:
 			longjmp(exception_handler->loc, 1);
 		}
-		goto readstatus;
+		break;
 
 	case CMDFUNCTION:
-		/* See above for the rationale */
-		dowait(DOWAIT_NONBLOCK, NULL);
 		if (evalfun(cmdentry.u.func, argc, argv, flags))
 			goto raise;
- readstatus:
-		status = exitstatus;
 		break;
 	} /* switch */
+
+	status = waitforjob(jp);
 
  out:
 	if (cmd->ncmd.redirect)
