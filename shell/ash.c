@@ -5357,8 +5357,16 @@ waitforjob(struct job *jp)
 
 	TRACE(("waitforjob(%%%d) called\n", jp ? jobno(jp) : 0));
 
-	INT_OFF;
-	while ((jp && jp->state == JOBRUNNING) || got_sigchld) {
+	if (!jp) {
+		int pid = got_sigchld;
+
+		while (pid > 0)
+			pid = dowait(DOWAIT_NONBLOCK, NULL);
+
+		return exitstatus;
+	}
+
+	while (jp->state == JOBRUNNING) {
 		/* In non-interactive shells, we _can_ get
 		 * a keyboard signal here and be EINTRed,
 		 * but we just loop back, waiting for command to complete.
@@ -5391,10 +5399,7 @@ waitforjob(struct job *jp)
 		 */
 		dowait(DOWAIT_BLOCK, jp);
 	}
-	INT_ON;
 
-	if (!jp)
-		return exitstatus;
 	st = getstatus(jp);
 #if JOBS
 	if (jp->jobctl) {
@@ -10369,7 +10374,6 @@ evalcommand(union node *cmd, int flags)
 			jp = makejob(/*cmd,*/ 1);
 			if (forkshell(jp, cmd, FORK_FG) != 0) {
 				/* parent */
-				INT_ON;
 				TRACE(("forked child exited with %d\n", status));
 				break;
 			}
@@ -10387,11 +10391,9 @@ evalcommand(union node *cmd, int flags)
 			if (cmd_is_exec && argc > 1)
 				listsetvar(varlist.list, VEXPORT);
 		}
-		if (evalbltin(cmdentry.u.cmd, argc, argv, flags)) {
-			if (exception_type == EXERROR && spclbltin <= 0) {
-				FORCE_INT_ON;
-				break;
-			}
+		if (evalbltin(cmdentry.u.cmd, argc, argv, flags)
+		 && !(exception_type == EXERROR && spclbltin <= 0)
+		) {
  raise:
 			longjmp(exception_handler->loc, 1);
 		}
@@ -10404,6 +10406,7 @@ evalcommand(union node *cmd, int flags)
 	} /* switch */
 
 	status = waitforjob(jp);
+	FORCE_INT_ON;
 
  out:
 	if (cmd->ncmd.redirect)
