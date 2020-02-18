@@ -3810,8 +3810,6 @@ static struct job *jobtab; //5
 static unsigned njobs; //4
 /* current job */
 static struct job *curjob; //lots
-/* number of presumed living untracked jobs */
-static int jobless; //4
 
 #if 0
 /* Bash has a feature: it restores termios after a successful wait for
@@ -4331,7 +4329,7 @@ wait_block_or_sig(int *status)
 #endif
 
 static int
-dowait(int block, struct job *job)
+waitone(int block, struct job *job)
 {
 	int pid;
 	int status;
@@ -4432,10 +4430,6 @@ dowait(int block, struct job *job)
 		goto out;
 	}
 	/* The process wasn't found in job list */
-#if JOBS
-	if (!WIFSTOPPED(status))
-		jobless--;
-#endif
  out:
 	INT_ON;
 
@@ -4457,6 +4451,20 @@ dowait(int block, struct job *job)
 			out2str(s);
 		}
 	}
+	return pid;
+}
+
+static int
+dowait(int block, struct job *jp)
+{
+	int pid = block == DOWAIT_NONBLOCK ? got_sigchld : 1;
+
+	while (jp ? jp->state == JOBRUNNING : pid > 0) {
+		if (!jp)
+			got_sigchld = 0;
+		pid = waitone(block, jp);
+	}
+
 	return pid;
 }
 
@@ -4548,8 +4556,7 @@ showjobs(int mode)
 	TRACE(("showjobs(0x%x) called\n", mode));
 
 	/* Handle all finished jobs */
-	while (dowait(DOWAIT_NONBLOCK, NULL) > 0)
-		continue;
+	dowait(DOWAIT_NONBLOCK, NULL);
 
 	for (jp = curjob; jp; jp = jp->prev_job) {
 		if (!(mode & SHOW_CHANGED) || jp->changed) {
@@ -4666,10 +4673,10 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 #else
 			dowait(DOWAIT_BLOCK_OR_SIG, NULL);
 #endif
-	/* if child sends us a signal *and immediately exits*,
-	 * dowait() returns pid > 0. Check this case,
-	 * not "if (dowait() < 0)"!
-	 */
+			/* if child sends us a signal *and immediately exits*,
+			 * dowait() returns pid > 0. Check this case,
+			 * not "if (dowait() < 0)"!
+			 */
 			if (pending_sig)
 				goto sigout;
 #if BASH_WAIT_N
@@ -4705,11 +4712,9 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 			job = getjob(*argv, 0);
 		}
 		/* loop until process terminated or stopped */
-		while (job->state == JOBRUNNING) {
-			dowait(DOWAIT_BLOCK_OR_SIG, NULL);
-			if (pending_sig)
-				goto sigout;
-		}
+		dowait(DOWAIT_BLOCK_OR_SIG, NULL);
+		if (pending_sig)
+			goto sigout;
 		job->waited = 1;
 		retval = getstatus(job);
  repeat: ;
@@ -5261,7 +5266,6 @@ forkchild(struct job *jp, union node *n, int mode)
 #endif
 	for (jp = curjob; jp; jp = jp->prev_job)
 		freejob(jp);
-	jobless = 0;
 }
 
 /* Called after fork(), in parent */
@@ -5272,13 +5276,8 @@ static void
 forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 {
 	TRACE(("In parent shell: child = %d\n", pid));
-	if (!jp) {
-		/* jp is NULL when called by openhere() for heredoc support */
-		while (jobless && dowait(DOWAIT_NONBLOCK, NULL) > 0)
-			continue;
-		jobless++;
+	if (!jp) /* jp is NULL when called by openhere() for heredoc support */
 		return;
-	}
 #if JOBS
 	if (mode != FORK_NOJOB && jp->jobctl) {
 		int pgrp;
@@ -5357,48 +5356,39 @@ waitforjob(struct job *jp)
 
 	TRACE(("waitforjob(%%%d) called\n", jp ? jobno(jp) : 0));
 
-	if (!jp) {
-		int pid = got_sigchld;
-
-		while (pid > 0)
-			pid = dowait(DOWAIT_NONBLOCK, NULL);
-
+	/* In non-interactive shells, we _can_ get
+	 * a keyboard signal here and be EINTRed, but we just loop
+	 * inside dowait(), waiting for command to complete.
+	 *
+	 * man bash:
+	 * "If bash is waiting for a command to complete and receives
+	 * a signal for which a trap has been set, the trap
+	 * will not be executed until the command completes."
+	 *
+	 * Reality is that even if trap is not set, bash
+	 * will not act on the signal until command completes.
+	 * Try this. sleep5intoff.c:
+	 * #include <signal.h>
+	 * #include <unistd.h>
+	 * int main() {
+	 *         sigset_t set;
+	 *         sigemptyset(&set);
+	 *         sigaddset(&set, SIGINT);
+	 *         sigaddset(&set, SIGQUIT);
+	 *         sigprocmask(SIG_BLOCK, &set, NULL);
+	 *         sleep(5);
+	 *         return 0;
+	 * }
+	 * $ bash -c './sleep5intoff; echo hi'
+	 * ^C^C^C^C <--- pressing ^C once a second
+	 * $ _
+	 * $ bash -c './sleep5intoff; echo hi'
+	 * ^\^\^\^\hi <--- pressing ^\ (SIGQUIT)
+	 * $ _
+	 */
+	dowait(jp ? DOWAIT_BLOCK : DOWAIT_NONBLOCK, jp);
+	if (!jp)
 		return exitstatus;
-	}
-
-	while (jp->state == JOBRUNNING) {
-		/* In non-interactive shells, we _can_ get
-		 * a keyboard signal here and be EINTRed,
-		 * but we just loop back, waiting for command to complete.
-		 *
-		 * man bash:
-		 * "If bash is waiting for a command to complete and receives
-		 * a signal for which a trap has been set, the trap
-		 * will not be executed until the command completes."
-		 *
-		 * Reality is that even if trap is not set, bash
-		 * will not act on the signal until command completes.
-		 * Try this. sleep5intoff.c:
-		 * #include <signal.h>
-		 * #include <unistd.h>
-		 * int main() {
-		 *         sigset_t set;
-		 *         sigemptyset(&set);
-		 *         sigaddset(&set, SIGINT);
-		 *         sigaddset(&set, SIGQUIT);
-		 *         sigprocmask(SIG_BLOCK, &set, NULL);
-		 *         sleep(5);
-		 *         return 0;
-		 * }
-		 * $ bash -c './sleep5intoff; echo hi'
-		 * ^C^C^C^C <--- pressing ^C once a second
-		 * $ _
-		 * $ bash -c './sleep5intoff; echo hi'
-		 * ^\^\^\^\hi <--- pressing ^\ (SIGQUIT)
-		 * $ _
-		 */
-		dowait(DOWAIT_BLOCK, jp);
-	}
 
 	st = getstatus(jp);
 #if JOBS
