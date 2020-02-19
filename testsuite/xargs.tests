@@ -48,6 +48,17 @@ testing "xargs argument line too long" \
 	"seq 10000 99999 | sed -e 's/^/\"/' -e 's/$/\"/' | xargs echo | grep -o 99999; echo \$?" \
 	"99999\n0\n" \
 	"" ""
+
+testing "xargs -n1" \
+	"xargs -n1 echo" \
+	"1\n2\n3\n4\n5\n" \
+	"" "1 2 3 4 5\n"
+
+testing "xargs -n2" \
+	"xargs -n2 echo" \
+	"1 2\n3 4\n5\n" \
+	"" "1 2 3 4 5\n"
+
 SKIP=
 
 exit $FAILCOUNT

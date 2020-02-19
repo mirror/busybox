@@ -315,6 +315,7 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 			}
 		}
 		if (state == SPACE) {   /* word's delimiter or EOF detected */
+			state = NORM;
 			if (q) {
 				bb_error_msg_and_die("unmatched %s quote",
 					q == '\'' ? "single" : "double");
@@ -335,7 +336,6 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 			if (n_max_arg == 0) {
 				goto ret;
 			}
-			state = NORM;
 		}
 		if (p == buf) {
 			goto ret;
