@@ -1,0 +1,9 @@
+# "exit" in trap should not use last command's exitcode,
+# but exitcode on entering the trap.
+$THIS_SH -c '
+ trap "false;exit" term
+ kill $$ &
+ (exit 42)
+ wait
+'
+echo 42:$?
