@@ -2477,24 +2477,6 @@ unsetvar(const char *s)
 }
 
 /*
- * Process a linked list of variable assignments.
- */
-static void
-listsetvar(struct strlist *list_set_var, int flags)
-{
-	struct strlist *lp = list_set_var;
-
-	if (!lp)
-		return;
-	INT_OFF;
-	do {
-		setvareq(lp->text, flags);
-		lp = lp->next;
-	} while (lp);
-	INT_ON;
-}
-
-/*
  * Generate a list of variables satisfying the given conditions.
  */
 #if !ENABLE_FEATURE_SH_NOFORK
@@ -9810,7 +9792,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
  * (options will be restored on return from the function).
  */
 static void
-mklocal(char *name)
+mklocal(char *name, int flags)
 {
 	struct localvar *lvp;
 	struct var **vpp;
@@ -9847,9 +9829,9 @@ mklocal(char *name)
 		if (vp == NULL) {
 			/* variable did not exist yet */
 			if (eq)
-				vp = setvareq(name, VSTRFIXED);
+				vp = setvareq(name, VSTRFIXED | flags);
 			else
-				vp = setvar(name, NULL, VSTRFIXED);
+				vp = setvar(name, NULL, VSTRFIXED | flags);
 			lvp->flags = VUNSET;
 		} else {
 			lvp->text = vp->var_text;
@@ -9859,7 +9841,7 @@ mklocal(char *name)
 			 */
 			vp->flags |= VSTRFIXED|VTEXTFIXED;
 			if (eq)
-				setvareq(name, 0);
+				setvareq(name, flags);
 			else
 				/* "local VAR" unsets VAR: */
 				setvar0(name, NULL);
@@ -9885,7 +9867,7 @@ localcmd(int argc UNUSED_PARAM, char **argv)
 
 	argv = argptr;
 	while ((name = *argv++) != NULL) {
-		mklocal(name);
+		mklocal(name, 0);
 	}
 	return 0;
 }
@@ -10166,6 +10148,8 @@ evalcommand(union node *cmd, int flags)
 	int status;
 	char **nargv;
 	smallint cmd_is_exec;
+	int vflags;
+	int vlocal;
 
 	errlinno = lineno = cmd->ncmd.linno;
 	if (funcline)
@@ -10173,7 +10157,6 @@ evalcommand(union node *cmd, int flags)
 
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
-	localvar_stop = pushlocalvars();
 	file_stop = g_parsefile;
 	back_exitstatus = 0;
 
@@ -10187,6 +10170,8 @@ evalcommand(union node *cmd, int flags)
 	cmd_flag = 0;
 	cmd_is_exec = 0;
 	spclbltin = -1;
+	vflags = 0;
+	vlocal = 0;
 	path = NULL;
 
 	argc = 0;
@@ -10199,6 +10184,8 @@ evalcommand(union node *cmd, int flags)
 			find_command(arglist.list->text, &cmdentry,
 					cmd_flag | DO_REGBLTIN, pathval());
 
+			vlocal++;
+
 			/* implement bltin and command here */
 			if (cmdentry.cmdtype != CMDBUILTIN)
 				break;
@@ -10206,6 +10193,7 @@ evalcommand(union node *cmd, int flags)
 			pseudovarflag = IS_BUILTIN_ASSIGN(cmdentry.u.cmd);
 			if (spclbltin < 0) {
 				spclbltin = IS_BUILTIN_SPECIAL(cmdentry.u.cmd);
+				vlocal = !spclbltin;
 			}
 			cmd_is_exec = cmdentry.u.cmd == EXECCMD;
 			if (cmdentry.u.cmd != COMMANDCMD)
@@ -10224,6 +10212,9 @@ evalcommand(union node *cmd, int flags)
 
 		for (sp = arglist.list; sp; sp = sp->next)
 			argc++;
+
+		if (cmd_is_exec && argc > 1)
+			vflags = VEXPORT;
 	}
 
 	/* Reserve one extra spot at the front for shellexec. */
@@ -10254,6 +10245,7 @@ evalcommand(union node *cmd, int flags)
 	status = redirectsafe(cmd->ncmd.redirect, REDIR_PUSH | REDIR_SAVEFD2);
 
 	if (status) {
+		vlocal = 0;
  bail:
 		exitstatus = status;
 
@@ -10264,13 +10256,20 @@ evalcommand(union node *cmd, int flags)
 		goto out;
 	}
 
+	localvar_stop = NULL;
+	if (vlocal)
+		localvar_stop = pushlocalvars();
+
 	for (argp = cmd->ncmd.assign; argp; argp = argp->narg.next) {
 		struct strlist **spp;
 
 		spp = varlist.lastp;
 		expandarg(argp, &varlist, EXP_VARTILDE);
 
-		mklocal((*spp)->text);
+		if (vlocal)
+			mklocal((*spp)->text, VEXPORT);
+		else
+			setvareq((*spp)->text, vflags);
 	}
 
 	/* Print the command if xflag is set. */
@@ -10313,8 +10312,8 @@ evalcommand(union node *cmd, int flags)
 	if (cmdentry.cmdtype != CMDBUILTIN
 	 || !(IS_BUILTIN_REGULAR(cmdentry.u.cmd))
 	) {
-		find_command(argv[0], &cmdentry, cmd_flag | DO_ERR,
-				path ? path : pathval());
+		path = path ? path : pathval();
+		find_command(argv[0], &cmdentry, cmd_flag | DO_ERR, path);
 	}
 
 	jp = NULL;
@@ -10385,17 +10384,10 @@ evalcommand(union node *cmd, int flags)
 			FORCE_INT_ON;
 			/* fall through to exec'ing external program */
 		}
-		listsetvar(varlist.list, VEXPORT|VSTACK);
-		path = path ? path : pathval();
 		shellexec(argv[0], argv, path, cmdentry.u.index);
 		/* NOTREACHED */
 	} /* default */
 	case CMDBUILTIN:
-		if (spclbltin > 0 || argc == 0) {
-			poplocalvars(1);
-			if (cmd_is_exec && argc > 1)
-				listsetvar(varlist.list, VEXPORT);
-		}
 		if (evalbltin(cmdentry.u.cmd, argc, argv, flags)
 		 && !(exception_type == EXERROR && spclbltin <= 0)
 		) {
@@ -10418,7 +10410,8 @@ evalcommand(union node *cmd, int flags)
 		popredir(/*drop:*/ cmd_is_exec);
 	unwindredir(redir_stop);
 	unwindfiles(file_stop);
-	unwindlocalvars(localvar_stop);
+	if (vlocal)
+		unwindlocalvars(localvar_stop);
 	if (lastarg) {
 		/* dsl: I think this is intended to be used to support
 		 * '_' in 'vi' command mode during line editing...
