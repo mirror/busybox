@@ -6030,6 +6030,8 @@ static int substr_atoi(const char *s)
 #define EXP_VARTILDE2   0x20    /* expand tildes after colons only */
 #define EXP_WORD        0x40    /* expand word in parameter expansion */
 #define EXP_QUOTED      0x100   /* expand word in double quotes */
+#define EXP_KEEPNUL     0x200   /* do not skip NUL characters */
+
 /*
  * rmescape() flags
  */
@@ -6040,8 +6042,6 @@ static int substr_atoi(const char *s)
 
 /* Add CTLESC when necessary. */
 #define QUOTES_ESC     (EXP_FULL | EXP_CASE)
-/* Do not skip NUL characters. */
-#define QUOTES_KEEPNUL EXP_TILDE
 
 /*
  * Structure specifying which parts of the string should be searched
@@ -6348,27 +6348,28 @@ preglob(const char *pattern, int flag)
  * Put a string on the stack.
  */
 static void
-memtodest(const char *p, size_t len, int syntax, int quotes)
+memtodest(const char *p, size_t len, int flags)
 {
+	int syntax = flags & EXP_QUOTED ? DQSYNTAX : BASESYNTAX;
 	char *q;
 
 	if (!len)
 		return;
 
-	q = makestrspace((quotes & QUOTES_ESC) ? len * 2 : len, expdest);
+	q = makestrspace(len * 2, expdest);
 
 	do {
 		unsigned char c = *p++;
 		if (c) {
-			if (quotes & QUOTES_ESC) {
+			if (flags & QUOTES_ESC) {
 				int n = SIT(c, syntax);
 				if (n == CCTL
-				 || (syntax != BASESYNTAX && n == CBACK)
+				 || ((flags & EXP_QUOTED) && n == CBACK)
 				) {
 					USTPUTC(CTLESC, q);
 				}
 			}
-		} else if (!(quotes & QUOTES_KEEPNUL))
+		} else if (!(flags & EXP_KEEPNUL))
 			continue;
 		USTPUTC(c, q);
 	} while (--len);
@@ -6377,10 +6378,10 @@ memtodest(const char *p, size_t len, int syntax, int quotes)
 }
 
 static size_t
-strtodest(const char *p, int syntax, int quotes)
+strtodest(const char *p, int flags)
 {
 	size_t len = strlen(p);
-	memtodest(p, len, syntax, quotes);
+	memtodest(p, len, flags);
 	return len;
 }
 
@@ -6448,13 +6449,12 @@ removerecordregions(int endoff)
 }
 
 static char *
-exptilde(char *startp, char *p, int flags)
+exptilde(char *startp, char *p, int flag)
 {
 	unsigned char c;
 	char *name;
 	struct passwd *pw;
 	const char *home;
-	int quotes = flags & QUOTES_ESC;
 
 	name = p + 1;
 
@@ -6465,7 +6465,7 @@ exptilde(char *startp, char *p, int flags)
 		case CTLQUOTEMARK:
 			return startp;
 		case ':':
-			if (flags & EXP_VARTILDE)
+			if (flag & EXP_VARTILDE)
 				goto done;
 			break;
 		case '/':
@@ -6486,7 +6486,7 @@ exptilde(char *startp, char *p, int flags)
 	if (!home)
 		goto lose;
 	*p = c;
-	strtodest(home, SQSYNTAX, quotes);
+	strtodest(home, flag | EXP_QUOTED);
 	return p;
  lose:
 	*p = c;
@@ -6586,7 +6586,6 @@ expbackq(union node *cmd, int flag)
 	char *p;
 	char *dest;
 	int startloc;
-	int syntax = flag & EXP_QUOTED ? DQSYNTAX : BASESYNTAX;
 	struct stackmark smark;
 
 	INT_OFF;
@@ -6600,7 +6599,7 @@ expbackq(union node *cmd, int flag)
 	if (i == 0)
 		goto read;
 	for (;;) {
-		memtodest(p, i, syntax, flag & QUOTES_ESC);
+		memtodest(p, i, flag);
  read:
 		if (in.fd < 0)
 			break;
@@ -7309,11 +7308,10 @@ varvalue(char *name, int varflags, int flags, int quoted)
 	int sep;
 	int subtype = varflags & VSTYPE;
 	int discard = subtype == VSPLUS || subtype == VSLENGTH;
-	int quotes = (discard ? 0 : (flags & QUOTES_ESC)) | QUOTES_KEEPNUL;
-	int syntax;
 
+	flags |= EXP_KEEPNUL;
+	flags &= discard ? ~QUOTES_ESC : ~0;
 	sep = (flags & EXP_FULL) << CHAR_BIT;
-	syntax = quoted ? DQSYNTAX : BASESYNTAX;
 
 	switch (*name) {
 	case '$':
@@ -7379,11 +7377,11 @@ varvalue(char *name, int varflags, int flags, int quoted)
 		if (!ap)
 			return -1;
 		while ((p = *ap++) != NULL) {
-			len += strtodest(p, syntax, quotes);
+			len += strtodest(p, flags);
 
 			if (*ap && sep) {
 				len++;
-				memtodest(&sepc, 1, syntax, quotes);
+				memtodest(&sepc, 1, flags);
 			}
 		}
 		break;
@@ -7410,7 +7408,7 @@ varvalue(char *name, int varflags, int flags, int quoted)
 		if (!p)
 			return -1;
 
-		len = strtodest(p, syntax, quotes);
+		len = strtodest(p, flags);
 #if ENABLE_UNICODE_SUPPORT
 		if (subtype == VSLENGTH && len > 0) {
 			reinit_unicode_for_ash();
