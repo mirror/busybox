@@ -988,6 +988,9 @@ struct globals {
 # define G_fatal_sig_mask 0
 #endif
 #if ENABLE_HUSH_TRAP
+# if ENABLE_HUSH_FUNCTIONS
+	int return_exitcode;
+# endif
 	char **traps; /* char *traps[NSIG] */
 # define G_traps G.traps
 #else
@@ -2097,6 +2100,7 @@ static int check_and_run_traps(void)
 		} while (sig < NSIG);
 		break;
  got_sig:
+#if ENABLE_HUSH_TRAP
 		if (G_traps && G_traps[sig]) {
 			debug_printf_exec("%s: sig:%d handler:'%s'\n", __func__, sig, G.traps[sig]);
 			if (G_traps[sig][0]) {
@@ -2110,12 +2114,18 @@ static int check_and_run_traps(void)
 				save_rcode = G.last_exitcode;
 				builtin_eval(argv);
 				free(argv[1]);
-//FIXME: shouldn't it be set to 128 + sig instead?
 				G.last_exitcode = save_rcode;
+# if ENABLE_HUSH_FUNCTIONS
+				if (G.return_exitcode >= 0) {
+					debug_printf_exec("trap exitcode:%d\n", G.return_exitcode);
+					G.last_exitcode = G.return_exitcode;
+				}
+# endif
 				last_sig = sig;
 			} /* else: "" trap, ignoring signal */
 			continue;
 		}
+#endif
 		/* not a trap: special action */
 		switch (sig) {
 		case SIGINT:
@@ -8127,6 +8137,10 @@ static int run_function(const struct function *funcp, char **argv)
 	IF_HUSH_LOCAL(leave_var_nest_level();)
 
 	G_flag_return_in_progress = sv_flg;
+# if ENABLE_HUSH_TRAP
+	debug_printf_exec("G.return_exitcode=-1\n");
+	G.return_exitcode = -1; /* invalidate stashed return value */
+# endif
 
 	restore_G_args(&sv, argv);
 
@@ -9628,6 +9642,9 @@ static int run_list(struct pipe *pi)
 			debug_printf_exec(": builtin/func exitcode %d\n", rcode);
 			G.last_exitcode = rcode;
 			check_and_run_traps();
+#if ENABLE_HUSH_TRAP && ENABLE_HUSH_FUNCTIONS
+			rcode = G.last_exitcode; /* "return" in trap can change it, read back */
+#endif
 #if ENABLE_HUSH_LOOPS
 			/* Was it "break" or "continue"? */
 			if (G.flag_break_continue) {
@@ -9684,6 +9701,9 @@ static int run_list(struct pipe *pi)
  check_traps:
 			G.last_exitcode = rcode;
 			check_and_run_traps();
+#if ENABLE_HUSH_TRAP && ENABLE_HUSH_FUNCTIONS
+			rcode = G.last_exitcode; /* "return" in trap can change it, read back */
+#endif
 		}
 
 		/* Handle "set -e" */
@@ -9907,6 +9927,9 @@ int hush_main(int argc, char **argv)
 	INIT_G();
 	if (EXIT_SUCCESS != 0) /* if EXIT_SUCCESS == 0, it is already done */
 		G.last_exitcode = EXIT_SUCCESS;
+#if ENABLE_HUSH_TRAP && ENABLE_HUSH_FUNCTIONS
+	G.return_exitcode = -1;
+#endif
 
 #if ENABLE_HUSH_FAST
 	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
@@ -11745,6 +11768,12 @@ static int FAST_FUNC builtin_return(char **argv)
 	 * 255  <== we also do this
 	 */
 	rc = parse_numeric_argv1(argv, G.last_exitcode, 0);
+# if ENABLE_HUSH_TRAP
+	if (argv[1]) { /* "return ARG" inside a running trap sets $? */
+		debug_printf_exec("G.return_exitcode=%d\n", rc);
+		G.return_exitcode = rc;
+	}
+# endif
 	return rc;
 }
 #endif
