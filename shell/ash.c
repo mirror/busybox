@@ -9091,6 +9091,7 @@ defun(union node *func)
 #define SKIPBREAK      (1 << 0)
 #define SKIPCONT       (1 << 1)
 #define SKIPFUNC       (1 << 2)
+#define SKIPFUNCDEF    (1 << 3)
 static smallint evalskip;       /* set to SKIPxxx if we are skipping commands */
 static int skipcount;           /* number of levels to skip */
 static int loopnest;            /* current loop nesting level */
@@ -9148,7 +9149,8 @@ dotrap(void)
 		if (!p)
 			continue;
 		evalstring(p, 0);
-		exitstatus = status;
+		if (evalskip != SKIPFUNC)
+			exitstatus = status;
 	}
 
 	savestatus = last_status;
@@ -9783,7 +9785,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	shellparam = saveparam;
 	exception_handler = savehandler;
 	INT_ON;
-	evalskip &= ~SKIPFUNC;
+	evalskip &= ~(SKIPFUNC | SKIPFUNCDEF);
 	return e;
 }
 
@@ -9928,12 +9930,23 @@ execcmd(int argc UNUSED_PARAM, char **argv)
 static int FAST_FUNC
 returncmd(int argc UNUSED_PARAM, char **argv)
 {
+	int skip;
+	int status;
+
 	/*
 	 * If called outside a function, do what ksh does;
 	 * skip the rest of the file.
 	 */
-	evalskip = SKIPFUNC;
-	return argv[1] ? number(argv[1]) : exitstatus;
+	if (argv[1]) {
+		skip = SKIPFUNC;
+		status = number(argv[1]);
+	} else {
+		skip = SKIPFUNCDEF;
+		status = exitstatus;
+	}
+	evalskip = skip;
+
+	return status;
 }
 
 /* Forward declarations for builtintab[] */
@@ -13372,7 +13385,7 @@ cmdloop(int top)
 		skip = evalskip;
 
 		if (skip) {
-			evalskip &= ~SKIPFUNC;
+			evalskip &= ~(SKIPFUNC | SKIPFUNCDEF);
 			break;
 		}
 	}
