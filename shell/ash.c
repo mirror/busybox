@@ -9722,18 +9722,23 @@ poplocalvars(int keep)
  * Create a new localvar environment.
  */
 static struct localvar_list *
-pushlocalvars(void)
+pushlocalvars(int push)
 {
 	struct localvar_list *ll;
+	struct localvar_list *top;
+
+	top = localvar_stack;
+	if (!push)
+		goto out;
 
 	INT_OFF;
 	ll = ckzalloc(sizeof(*ll));
 	/*ll->lv = NULL; - zalloc did it */
-	ll->next = localvar_stack;
+	ll->next = top;
 	localvar_stack = ll;
 	INT_ON;
-
-	return ll->next;
+ out:
+	return top;
 }
 
 static void
@@ -10217,6 +10222,8 @@ evalcommand(union node *cmd, int flags)
 			vflags = VEXPORT;
 	}
 
+	localvar_stop = pushlocalvars(vlocal);
+
 	/* Reserve one extra spot at the front for shellexec. */
 	nargv = stalloc(sizeof(char *) * (argc + 2));
 	argv = ++nargv;
@@ -10245,7 +10252,6 @@ evalcommand(union node *cmd, int flags)
 	status = redirectsafe(cmd->ncmd.redirect, REDIR_PUSH | REDIR_SAVEFD2);
 
 	if (status) {
-		vlocal = 0;
  bail:
 		exitstatus = status;
 
@@ -10255,10 +10261,6 @@ evalcommand(union node *cmd, int flags)
 
 		goto out;
 	}
-
-	localvar_stop = NULL;
-	if (vlocal)
-		localvar_stop = pushlocalvars();
 
 	for (argp = cmd->ncmd.assign; argp; argp = argp->narg.next) {
 		struct strlist **spp;
@@ -10410,8 +10412,7 @@ evalcommand(union node *cmd, int flags)
 		popredir(/*drop:*/ cmd_is_exec);
 	unwindredir(redir_stop);
 	unwindfiles(file_stop);
-	if (vlocal)
-		unwindlocalvars(localvar_stop);
+	unwindlocalvars(localvar_stop);
 	if (lastarg) {
 		/* dsl: I think this is intended to be used to support
 		 * '_' in 'vi' command mode during line editing...
