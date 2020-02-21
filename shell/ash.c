@@ -1678,15 +1678,16 @@ popstackmark(struct stackmark *mark)
  * part of the block that has been used.
  */
 static void
-growstackblock(void)
+growstackblock(size_t min)
 {
 	size_t newlen;
 
 	newlen = g_stacknleft * 2;
 	if (newlen < g_stacknleft)
 		ash_msg_and_raise_error(bb_msg_memory_exhausted);
-	if (newlen < 128)
-		newlen += 128;
+	min = SHELL_ALIGN(min | 128);
+	if (newlen < min)
+		newlen += min;
 
 	if (g_stacknxt == g_stackp->space && g_stackp != &stackbase) {
 		struct stack_block *sp;
@@ -1736,16 +1737,15 @@ static void *
 growstackstr(void)
 {
 	size_t len = stackblocksize();
-	growstackblock();
+	growstackblock(0);
 	return (char *)stackblock() + len;
 }
 
 static char *
 growstackto(size_t len)
 {
-	while (stackblocksize() < len)
-		growstackblock();
-
+	if (stackblocksize() < len)
+		growstackblock(len);
 	return stackblock();
 }
 
