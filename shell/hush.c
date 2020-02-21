@@ -3007,7 +3007,10 @@ static void x_mode_flush(void)
 static void o_addqchr(o_string *o, int ch)
 {
 	int sz = 1;
-	char *found = strchr("*?[\\" MAYBE_BRACES, ch);
+	/* '-' is included because of this case:
+	 * >filename0 >filename1 >filename9; v='-'; echo filename[0"$v"9]
+	 */
+	char *found = strchr("*?[-\\" MAYBE_BRACES, ch);
 	if (found)
 		sz++;
 	o_grow_by(o, sz);
@@ -3024,7 +3027,7 @@ static void o_addQchr(o_string *o, int ch)
 {
 	int sz = 1;
 	if ((o->o_expflags & EXP_FLAG_ESC_GLOB_CHARS)
-	 && strchr("*?[\\" MAYBE_BRACES, ch)
+	 && strchr("*?[-\\" MAYBE_BRACES, ch)
 	) {
 		sz++;
 		o->data[o->length] = '\\';
@@ -3041,7 +3044,7 @@ static void o_addqblock(o_string *o, const char *str, int len)
 	while (len) {
 		char ch;
 		int sz;
-		int ordinary_cnt = strcspn(str, "*?[\\" MAYBE_BRACES);
+		int ordinary_cnt = strcspn(str, "*?[-\\" MAYBE_BRACES);
 		if (ordinary_cnt > len) /* paranoia */
 			ordinary_cnt = len;
 		o_addblock(o, str, ordinary_cnt);
@@ -3052,7 +3055,7 @@ static void o_addqblock(o_string *o, const char *str, int len)
 
 		ch = *str++;
 		sz = 1;
-		if (ch) { /* it is necessarily one of "*?[\\" MAYBE_BRACES */
+		if (ch) { /* it is necessarily one of "*?[-\\" MAYBE_BRACES */
 			sz++;
 			o->data[o->length] = '\\';
 			o->length++;
@@ -5049,7 +5052,7 @@ static int parse_dollar(o_string *as_string,
 			ch = i_getch(input);
 			nommu_addchr(as_string, ch);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
-			o_addchr(dest, /*quote_mask |*/ '+');
+			o_addchr(dest, quote_mask | '+');
 			if (!BB_MMU)
 				pos = dest->length;
 			if (!add_till_closing_bracket(dest, input, ')' | DOUBLE_CLOSE_CHAR_FLAG))
@@ -6851,6 +6854,17 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			res = expand_and_evaluate_arith(arg, NULL);
 			debug_printf_subst("ARITH RES '"ARITH_FMT"'\n", res);
 			sprintf(arith_buf, ARITH_FMT, res);
+			if (res < 0
+			 && first_ch == (char)('+'|0x80)
+			/* && (output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS) */
+			) {
+				/* Quoted negative ariths, like filename[0"$((-9))"],
+				 * should not be interpreted as glob ranges.
+				 * Convert leading '-' to '\-':
+				 */
+				o_grow_by(output, 1);
+				output->data[output->length++] = '\\';
+			}
 			o_addstr(output, arith_buf);
 			break;
 		}
