@@ -6071,26 +6071,6 @@ static struct ifsregion *ifslastp;
 static struct arglist exparg;
 
 /*
- * Our own itoa().
- * cvtnum() is used even if math support is off (to prepare $? values and such).
- */
-static int
-cvtnum(arith_t num)
-{
-	int len;
-
-	/* 32-bit and wider ints require buffer size of bytes*3 (or less) */
-	len = sizeof(arith_t) * 3;
-	/* If narrower: worst case, 1-byte ints: need 5 bytes: "-127<NUL>" */
-	if (sizeof(arith_t) < 4) len += 2;
-
-	expdest = makestrspace(len, expdest);
-	len = fmtstr(expdest, len, ARITH_FMT, num);
-	STADJUST(len, expdest);
-	return len;
-}
-
-/*
  * Break the argument string into pieces based upon IFS and add the
  * strings to the argument list.  The regions of the string to be
  * searched for IFS characters have been stored by recordregion.
@@ -6347,16 +6327,18 @@ preglob(const char *pattern, int flag)
 /*
  * Put a string on the stack.
  */
-static void
+static size_t
 memtodest(const char *p, size_t len, int flags)
 {
 	int syntax = flags & EXP_QUOTED ? DQSYNTAX : BASESYNTAX;
 	char *q;
+	char *s;
 
 	if (!len)
-		return;
+		return 0;
 
 	q = makestrspace(len * 2, expdest);
+	s = q;
 
 	do {
 		unsigned char c = *p++;
@@ -6375,6 +6357,7 @@ memtodest(const char *p, size_t len, int flags)
 	} while (--len);
 
 	expdest = q;
+	return q - s;
 }
 
 static size_t
@@ -6383,6 +6366,22 @@ strtodest(const char *p, int flags)
 	size_t len = strlen(p);
 	memtodest(p, len, flags);
 	return len;
+}
+
+/*
+ * Our own itoa().
+ * cvtnum() is used even if math support is off (to prepare $? values and such).
+ */
+static int
+cvtnum(arith_t num, int flags)
+{
+	/* 32-bit and wider ints require buffer size of bytes*3 (or less) */
+	/* If narrower: worst case, 1-byte ints: need 5 bytes: "-127<NUL>" */
+	int len = (sizeof(arith_t) >= 4) ? sizeof(arith_t) * 3 : sizeof(arith_t) * 3 + 2;
+	char buf[len];
+
+	len = fmtstr(buf, len, ARITH_FMT, num);
+	return memtodest(buf, len, flags);
 }
 
 /*
@@ -6683,7 +6682,7 @@ expari(int flag)
 	if (flag & QUOTES_ESC)
 		rmescapes(p + 1, 0, NULL);
 
-	len = cvtnum(ash_arith(p + 1));
+	len = cvtnum(ash_arith(p + 1), flag);
 
 	if (!(flag & EXP_QUOTED))
 		recordregion(begoff, begoff + len, 0);
@@ -7328,7 +7327,7 @@ varvalue(char *name, int varflags, int flags, int quoted)
 		if (num == 0)
 			return -1;
  numvar:
-		len = cvtnum(num);
+		len = cvtnum(num, flags);
 		goto check_1char_name;
 	case '-':
 		expdest = makestrspace(NOPTS, expdest);
@@ -7494,7 +7493,7 @@ evalvar(char *p, int flag)
 		varunset(p, var, 0, 0);
 
 	if (subtype == VSLENGTH) {
-		cvtnum(varlen > 0 ? varlen : 0);
+		cvtnum(varlen > 0 ? varlen : 0, flag);
 		goto record;
 	}
 
