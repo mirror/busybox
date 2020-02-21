@@ -2107,16 +2107,18 @@ static int check_and_run_traps(void)
 			if (G_traps[sig][0]) {
 				/* We have user-defined handler */
 				smalluint save_rcode;
+				int save_pre;
 				char *argv[3];
 				/* argv[0] is unused */
 				argv[1] = xstrdup(G_traps[sig]);
 				/* why strdup? trap can modify itself: trap 'trap "echo oops" INT' INT */
 				argv[2] = NULL;
+				save_pre = G.pre_trap_exitcode;
 				G.pre_trap_exitcode = save_rcode = G.last_exitcode;
 				builtin_eval(argv);
 				free(argv[1]);
+				G.pre_trap_exitcode = save_pre;
 				G.last_exitcode = save_rcode;
-				G.pre_trap_exitcode = -1;
 # if ENABLE_HUSH_FUNCTIONS
 				if (G.return_exitcode >= 0) {
 					debug_printf_exec("trap exitcode:%d\n", G.return_exitcode);
