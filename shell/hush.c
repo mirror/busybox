@@ -988,6 +988,7 @@ struct globals {
 # define G_fatal_sig_mask 0
 #endif
 #if ENABLE_HUSH_TRAP
+	int pre_trap_exitcode;
 # if ENABLE_HUSH_FUNCTIONS
 	int return_exitcode;
 # endif
@@ -2111,10 +2112,11 @@ static int check_and_run_traps(void)
 				argv[1] = xstrdup(G_traps[sig]);
 				/* why strdup? trap can modify itself: trap 'trap "echo oops" INT' INT */
 				argv[2] = NULL;
-				save_rcode = G.last_exitcode;
+				G.pre_trap_exitcode = save_rcode = G.last_exitcode;
 				builtin_eval(argv);
 				free(argv[1]);
 				G.last_exitcode = save_rcode;
+				G.pre_trap_exitcode = -1;
 # if ENABLE_HUSH_FUNCTIONS
 				if (G.return_exitcode >= 0) {
 					debug_printf_exec("trap exitcode:%d\n", G.return_exitcode);
@@ -9927,8 +9929,11 @@ int hush_main(int argc, char **argv)
 	INIT_G();
 	if (EXIT_SUCCESS != 0) /* if EXIT_SUCCESS == 0, it is already done */
 		G.last_exitcode = EXIT_SUCCESS;
-#if ENABLE_HUSH_TRAP && ENABLE_HUSH_FUNCTIONS
+#if ENABLE_HUSH_TRAP
+# if ENABLE_HUSH_FUNCTIONS
 	G.return_exitcode = -1;
+# endif
+	G.pre_trap_exitcode = -1;
 #endif
 
 #if ENABLE_HUSH_FAST
@@ -10575,8 +10580,13 @@ static int FAST_FUNC builtin_exit(char **argv)
 
 	/* note: EXIT trap is run by hush_exit */
 	argv = skip_dash_dash(argv);
-	if (argv[0] == NULL)
+	if (argv[0] == NULL) {
+#if ENABLE_HUSH_TRAP
+		if (G.pre_trap_exitcode >= 0) /* "exit" in trap uses $? from before the trap */
+			hush_exit(G.pre_trap_exitcode);
+#endif
 		hush_exit(G.last_exitcode);
+	}
 	/* mimic bash: exit 123abc == exit 255 + error msg */
 	xfunc_error_retval = 255;
 	/* bash: exit -2 == exit 254, no error msg */
