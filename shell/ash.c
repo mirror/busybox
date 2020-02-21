@@ -10392,7 +10392,6 @@ evalcommand(union node *cmd, int flags)
 			jp = makejob(/*cmd,*/ 1);
 			if (forkshell(jp, cmd, FORK_FG) != 0) {
 				/* parent */
-				TRACE(("forked child exited with %d\n", status));
 				break;
 			}
 			/* child */
@@ -10418,6 +10417,8 @@ evalcommand(union node *cmd, int flags)
 	} /* switch */
 
 	status = waitforjob(jp);
+	if (jp)
+		TRACE(("forked child exited with %d\n", status));
 	FORCE_INT_ON;
 
  out:
