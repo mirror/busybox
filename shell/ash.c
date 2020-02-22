@@ -1761,7 +1761,7 @@ makestrspace(size_t newlen, char *p)
 }
 
 static char *
-stack_nputstr(const char *s, size_t n, char *p)
+stnputs(const char *s, size_t n, char *p)
 {
 	p = makestrspace(n, p);
 	p = (char *)mempcpy(p, s, n);
@@ -1771,7 +1771,7 @@ stack_nputstr(const char *s, size_t n, char *p)
 static char *
 stack_putstr(const char *s, char *p)
 {
-	return stack_nputstr(s, strlen(s), p);
+	return stnputs(s, strlen(s), p);
 }
 
 static char *
@@ -6756,7 +6756,7 @@ argstr(char *p, int flags)
 		}
 		if (length > 0) {
 			int newloc;
-			expdest = stack_nputstr(p, length, expdest);
+			expdest = stnputs(p, length, expdest);
 			newloc = expdest - (char *)stackblock();
 			if (breakall && !inquotes && newloc > startloc) {
 				recordregion(startloc, newloc, 0);
