@@ -12877,9 +12877,9 @@ parsebackq: {
 		if (readtoken() != TRP)
 			raise_error_unexpected_syntax(TRP);
 		setinputstring(nullstr);
-		parseheredoc();
 	}
 
+	parseheredoc();
 	heredoclist = saveheredoclist;
 
 	(*nlpp)->n = n;
