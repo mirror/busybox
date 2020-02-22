@@ -5444,22 +5444,29 @@ stoppedjobs(void)
  * the pipe without forking.
  */
 /* openhere needs this forward reference */
-static void expandhere(union node *arg, int fd);
+static void expandhere(union node *arg);
 static int
 openhere(union node *redir)
 {
+	char *p;
 	int pip[2];
 	size_t len = 0;
 
 	if (pipe(pip) < 0)
 		ash_msg_and_raise_perror("can't create pipe");
-	if (redir->type == NHERE) {
-		len = strlen(redir->nhere.doc->narg.text);
-		if (len <= PIPE_BUF) {
-			full_write(pip[1], redir->nhere.doc->narg.text, len);
-			goto out;
-		}
+
+	p = redir->nhere.doc->narg.text;
+	if (redir->type == NXHERE) {
+		expandhere(redir->nhere.doc);
+		p = stackblock();
 	}
+
+	len = strlen(p);
+	if (len <= PIPE_BUF) {
+		xwrite(pip[1], p, len);
+		goto out;
+	}
+
 	if (forkshell((struct job *)NULL, (union node *)NULL, FORK_NOJOB) == 0) {
 		/* child */
 		close(pip[0]);
@@ -5468,10 +5475,7 @@ openhere(union node *redir)
 		ignoresig(SIGHUP);  //signal(SIGHUP, SIG_IGN);
 		ignoresig(SIGTSTP); //signal(SIGTSTP, SIG_IGN);
 		signal(SIGPIPE, SIG_DFL);
-		if (redir->type == NHERE)
-			full_write(pip[1], redir->nhere.doc->narg.text, len);
-		else /* NXHERE */
-			expandhere(redir->nhere.doc, pip[1]);
+		xwrite(pip[1], p, len);
 		_exit(EXIT_SUCCESS);
 	}
  out:
@@ -8016,10 +8020,9 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
  * Expand shell variables and backquotes inside a here document.
  */
 static void
-expandhere(union node *arg, int fd)
+expandhere(union node *arg)
 {
 	expandarg(arg, (struct arglist *)NULL, EXP_QUOTED);
-	full_write(fd, stackblock(), expdest - (char *)stackblock());
 }
 
 /*
