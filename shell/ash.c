@@ -6702,7 +6702,7 @@ static char *evalvar(char *p, int flags);
  * $@ like $* since no splitting will be performed.
  */
 static void
-argstr(char *p, int flags)
+argstr(char *p, int flag)
 {
 	static const char spclchars[] ALIGN1 = {
 		'=',
@@ -6718,26 +6718,26 @@ argstr(char *p, int flags)
 		'\0'
 	};
 	const char *reject = spclchars;
-	int breakall = (flags & (EXP_WORD | EXP_QUOTED)) == EXP_WORD;
+	int breakall = (flag & (EXP_WORD | EXP_QUOTED)) == EXP_WORD;
 	int inquotes;
 	size_t length;
 	int startloc;
 
-	if (!(flags & EXP_VARTILDE)) {
+	if (!(flag & EXP_VARTILDE)) {
 		reject += 2;
-	} else if (flags & EXP_VARTILDE2) {
+	} else if (flag & EXP_VARTILDE2) {
 		reject++;
 	}
 	inquotes = 0;
 	length = 0;
-	if (flags & EXP_TILDE) {
+	if (flag & EXP_TILDE) {
 		char *q;
 
-		flags &= ~EXP_TILDE;
+		flag &= ~EXP_TILDE;
  tilde:
 		q = p;
 		if (*q == '~')
-			p = exptilde(p, q, flags);
+			p = exptilde(p, q, flag);
 	}
  start:
 	startloc = expdest - (char *)stackblock();
@@ -6770,11 +6770,11 @@ argstr(char *p, int flags)
 		case '\0':
 			goto breakloop;
 		case '=':
-			if (flags & EXP_VARTILDE2) {
+			if (flag & EXP_VARTILDE2) {
 				p--;
 				continue;
 			}
-			flags |= EXP_VARTILDE2;
+			flag |= EXP_VARTILDE2;
 			reject++;
 			/* fall through */
 		case ':':
@@ -6794,12 +6794,12 @@ argstr(char *p, int flags)
 		case CTLQUOTEMARK:
 			/* "$@" syntax adherence hack */
 			if (!inquotes && !memcmp(p, dolatstr + 1, DOLATSTRLEN - 1)) {
-				p = evalvar(p + 1, flags | EXP_QUOTED) + 1;
+				p = evalvar(p + 1, flag | EXP_QUOTED) + 1;
 				goto start;
 			}
 			inquotes ^= EXP_QUOTED;
  addquote:
-			if (flags & QUOTES_ESC) {
+			if (flag & QUOTES_ESC) {
 				p--;
 				length++;
 				startloc++;
@@ -6811,17 +6811,17 @@ argstr(char *p, int flags)
 			goto addquote;
 		case CTLVAR:
 			TRACE(("argstr: evalvar('%s')\n", p));
-			p = evalvar(p, flags | inquotes);
+			p = evalvar(p, flag | inquotes);
 			TRACE(("argstr: evalvar:'%s'\n", (char *)stackblock()));
 			goto start;
 		case CTLBACKQ:
-			expbackq(argbackq->n, flags | inquotes);
+			expbackq(argbackq->n, flag | inquotes);
 			argbackq = argbackq->next;
 			goto start;
 #if ENABLE_FEATURE_SH_MATH
 		case CTLENDARI:
 			p--;
-			expari(flags | inquotes);
+			expari(flag | inquotes);
 			goto start;
 #endif
 		}
@@ -6952,7 +6952,7 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 }
 
 static const char *
-subevalvar(char *p, char *varname, int strloc, int subtype,
+subevalvar(char *p, char *str, int strloc, int subtype,
 		int startloc, int varflags, int flag)
 {
 	struct nodelist *saveargbackq = argbackq;
@@ -6960,7 +6960,6 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	char *startp;
 	char *loc;
 	char *rmesc, *rmescend;
-	char *str;
 	int amount, resetloc;
 	int argstr_flags;
 	IF_BASH_PATTERN_SUBST(int workloc;)
@@ -6969,8 +6968,8 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	int zero;
 	char *(*scan)(char*, char*, char*, char*, int, int);
 
-	//bb_error_msg("subevalvar(p:'%s',varname:'%s',strloc:%d,subtype:%d,startloc:%d,varflags:%x,quotes:%d)",
-	//		p, varname, strloc, subtype, startloc, varflags, quotes);
+	//bb_error_msg("subevalvar(p:'%s',str:'%s',strloc:%d,subtype:%d,startloc:%d,varflags:%x,quotes:%d)",
+	//		p, str, strloc, subtype, startloc, varflags, quotes);
 
 #if BASH_PATTERN_SUBST
 	/* For "${v/pattern/repl}", we must find the delimiter _before_
@@ -7034,21 +7033,22 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 
 	switch (subtype) {
 	case VSASSIGN:
-		setvar0(varname, startp);
+		setvar0(str, startp);
 		amount = startp - expdest;
 		STADJUST(amount, expdest);
 		return startp;
 
 	case VSQUESTION:
-		varunset(p, varname, startp, varflags);
+		varunset(p, str, startp, varflags);
 		/* NOTREACHED */
 
 #if BASH_SUBSTR
 	case VSSUBSTR: {
 		int pos, len, orig_len;
 		char *colon;
+		char *vstr;
 
-		loc = str = stackblock() + strloc;
+		loc = vstr = stackblock() + strloc;
 
 		/* Read POS in ${var:POS:LEN} */
 		colon = strchr(loc, ':');
@@ -7057,12 +7057,12 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		if (colon) *colon = ':';
 
 		/* Read LEN in ${var:POS:LEN} */
-		len = str - startp - 1;
+		len = vstr - startp - 1;
 		/* *loc != '\0', guaranteed by parser */
 		if (quotes) {
 			char *ptr;
 			/* Adjust the length by the number of escapes */
-			for (ptr = startp; ptr < (str - 1); ptr++) {
+			for (ptr = startp; ptr < (vstr - 1); ptr++) {
 				if ((unsigned char)*ptr == CTLESC) {
 					len--;
 					ptr++;
@@ -7100,14 +7100,14 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		if ((unsigned)len > (orig_len - pos))
 			len = orig_len - pos;
 
-		for (str = startp; pos; str++, pos--) {
-			if (quotes && (unsigned char)*str == CTLESC)
-				str++;
+		for (vstr = startp; pos; vstr++, pos--) {
+			if (quotes && (unsigned char)*vstr == CTLESC)
+				vstr++;
 		}
 		for (loc = startp; len; len--) {
-			if (quotes && (unsigned char)*str == CTLESC)
-				*loc++ = *str++;
-			*loc++ = *str++;
+			if (quotes && (unsigned char)*vstr == CTLESC)
+				*loc++ = *vstr++;
+			*loc++ = *vstr++;
 		}
 		*loc = '\0';
 		amount = loc - expdest;
