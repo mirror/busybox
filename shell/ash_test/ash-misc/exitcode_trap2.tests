@@ -3,7 +3,6 @@
 $THIS_SH -c '
  trap "false;exit" term
  kill $$ &
- (exit 42)
- wait
+ (sleep 1; exit 42)
 '
 echo 42:$?

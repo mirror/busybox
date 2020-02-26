@@ -5,7 +5,6 @@ $THIS_SH -c '
  trap "echo INT" int
  trap "kill -int $$;exit" term
  kill $$ &
- (exit 42)
- wait
+ (sleep 1; exit 42)
 '
 echo 42:$?
