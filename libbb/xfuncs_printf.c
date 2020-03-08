@@ -93,26 +93,17 @@ char* FAST_FUNC xstrdup(const char *s)
 // the (possibly truncated to length n) string into it.
 char* FAST_FUNC xstrndup(const char *s, int n)
 {
-	int m;
 	char *t;
 
 	if (ENABLE_DEBUG && s == NULL)
 		bb_simple_error_msg_and_die("xstrndup bug");
 
-	/* We can just xmalloc(n+1) and strncpy into it, */
-	/* but think about xstrndup("abc", 10000) wastage! */
-	m = n;
-	t = (char*) s;
-	while (m) {
-		if (!*t) break;
-		m--;
-		t++;
-	}
-	n -= m;
-	t = xmalloc(n + 1);
-	t[n] = '\0';
+	t = strndup(s, n);
 
-	return memcpy(t, s, n);
+	if (t == NULL)
+		bb_die_memory_exhausted();
+
+	return t;
 }
 
 void* FAST_FUNC xmemdup(const void *s, int n)
