@@ -650,6 +650,13 @@ static void load_regexes_from_file(llist_t *fopt)
 	}
 }
 
+static void load_pattern_list(llist_t **lst, char *pattern)
+{
+	char *p;
+	while ((p = strsep(&pattern, "\n")) != NULL)
+		llist_add_to(lst, new_grep_list_data(p, 0));
+}
+
 static int FAST_FUNC file_action_grep(const char *filename,
 			struct stat *statbuf,
 			void* matched,
@@ -754,10 +761,12 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	invert_search = ((option_mask32 & OPT_v) != 0); /* 0 | 1 */
 
-	{	/* convert char **argv to grep_list_data_t */
-		llist_t *cur;
+	{	/* convert char **argv to pattern_list */
+		llist_t *cur, *new = NULL;
 		for (cur = pattern_head; cur; cur = cur->link)
-			cur->data = new_grep_list_data(cur->data, 0);
+			load_pattern_list(&new, cur->data);
+		llist_free(pattern_head, NULL);
+		pattern_head = new;
 	}
 	if (option_mask32 & OPT_f) {
 		load_regexes_from_file(fopt);
@@ -806,11 +815,9 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 	/* if we didn't get a pattern from -e and no command file was specified,
 	 * first parameter should be the pattern. no pattern, no worky */
 	if (pattern_head == NULL) {
-		char *pattern;
 		if (*argv == NULL)
 			bb_show_usage();
-		pattern = new_grep_list_data(*argv++, 0);
-		llist_add_to(&pattern_head, pattern);
+		load_pattern_list(&pattern_head, *argv++);
 	}
 
 	/* argv[0..(argc-1)] should be names of file to grep through. If

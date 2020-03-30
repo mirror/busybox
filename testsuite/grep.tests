@@ -190,6 +190,18 @@ testing "grep -x -v -e EXP1 -e EXP2 finds nothing if either EXP matches" \
 	"" \
 	"  aa bb cc\n"
 
+testing "grep PATTERN can be a newline-delimited list" \
+	'grep -Fv "$(printf "foo\nbar\n")"' \
+	"baz\n" \
+	"" \
+	"foo\nbar\nbaz\n"
+
+testing "grep -e PATTERN can be a newline-delimited list" \
+	'grep -Fv -e "$(printf "foo\nbar\n")"' \
+	"baz\n" \
+	"" \
+	"foo\nbar\nbaz\n"
+
 # -r on symlink to dir should recurse into dir
 mkdir -p grep.testdir/foo
 echo bar > grep.testdir/foo/file
