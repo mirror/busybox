@@ -2737,7 +2737,12 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	xchdir(home_httpd);
+	/* Chdir to home (unless we were re-execed for NOMMU case:
+	 * we are already in the home dir then).
+	 */
+	if (!re_execed)
+		xchdir(home_httpd);
+
 	if (!(opt & OPT_INETD)) {
 		signal(SIGCHLD, SIG_IGN);
 		server_socket = openServer();
