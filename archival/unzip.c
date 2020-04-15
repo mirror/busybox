@@ -646,8 +646,14 @@ int unzip_main(int argc, char **argv)
 	}
 
 	/* Change dir if necessary */
-	if (base_dir)
+	if (base_dir) {
+		/* -p DIR: try to create, errors don't matter.
+		 * UnZip 6.00 does no multi-level mkdir (-p DIR1/DIR2 syntax),
+		 * not using bb_make_directory() here (yet?)
+		 */
+		mkdir(base_dir, 0777);
 		xchdir(base_dir);
+	}
 
 	if (quiet <= 1) { /* not -qq */
 		if (quiet == 0) {
