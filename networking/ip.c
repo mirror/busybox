@@ -152,7 +152,7 @@
 //usage:#define iplink_trivial_usage
 //usage:       /*Usage:iplink*/"set IFACE [up|down] [arp on|off] [multicast on|off]\n"
 //usage:       "	[promisc on|off] [mtu NUM] [name NAME] [qlen NUM] [address MAC]\n"
-//usage:       "	[master IFACE | nomaster]"
+//usage:       "	[master IFACE | nomaster] [netns PID]"
 // * short help shows only "set" command, long help continues (with just one "\n")
 // * and shows all other commands:
 //usage:#define iplink_full_usage "\n"
