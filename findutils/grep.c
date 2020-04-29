@@ -762,8 +762,9 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 	if (option_mask32 & OPT_f) {
 		load_regexes_from_file(fopt);
 		if (!pattern_head) { /* -f EMPTY_FILE? */
-			/* GNU grep treats it as "nothing matches" */
-			llist_add_to(&pattern_head, new_grep_list_data((char*) "", 0));
+			/* GNU grep treats it as "nothing matches" except when -x */
+			const char *data = (option_mask32 & OPT_x) ? ".*" : "";
+			llist_add_to(&pattern_head, new_grep_list_data((char*)data, 0));
 			invert_search ^= 1;
 		}
 	}

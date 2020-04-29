@@ -129,6 +129,12 @@ testing "grep -v -f EMPTY_FILE" \
 	"" \
 	"test\n"
 
+testing "grep -vxf EMPTY_FILE" \
+	"grep -vxf input" \
+	"test\n" \
+	"" \
+	"test\n"
+
 testing "grep -Fw matches only words" \
 	"grep -Fw foo input" \
 	"" \
