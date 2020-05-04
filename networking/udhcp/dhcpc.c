@@ -159,61 +159,27 @@ static int mton(uint32_t mask)
 }
 
 #if ENABLE_FEATURE_UDHCPC_SANITIZEOPT
-/* Check if a given label represents a valid DNS label
- * Return pointer to the first character after the label
- * (NUL or dot) upon success, NULL otherwise.
- * See RFC1035, 2.3.1
- */
-/* We don't need to be particularly anal. For example, allowing _, hyphen
- * at the end, or leading and trailing dots would be ok, since it
- * can't be used for attacks. (Leading hyphen can be, if someone uses
- * cmd "$hostname"
- * in the script: then hostname may be treated as an option)
- */
-static const char *valid_domain_label(const char *label)
-{
-	unsigned char ch;
-	//unsigned pos = 0;
-
-	if (label[0] == '-')
-		return NULL;
-	for (;;) {
-		ch = *label;
-		if ((ch|0x20) < 'a' || (ch|0x20) > 'z') {
-			if (ch < '0' || ch > '9') {
-				if (ch == '\0' || ch == '.')
-					return label;
-				/* DNS allows only '-', but we are more permissive */
-				if (ch != '-' && ch != '_')
-					return NULL;
-			}
-		}
-		label++;
-		//pos++;
-		//Do we want this?
-		//if (pos > 63) /* NS_MAXLABEL; labels must be 63 chars or less */
-		//	return NULL;
-	}
-}
-
 /* Check if a given name represents a valid DNS name */
 /* See RFC1035, 2.3.1 */
+/* We don't need to be particularly anal. For example, allowing _, hyphen
+ * at the end, or leading and trailing dots would be ok, since it
+ * can't be used for attacks. (Leading hyphen can be, if someone uses cmd "$hostname"
+ * in the script: then hostname may be treated as an option)
+ */
 static int good_hostname(const char *name)
 {
-	//const char *start = name;
+	if (*name == '-') /* Can't start with '-' */
+		return 0;
 
-	for (;;) {
-		name = valid_domain_label(name);
-		if (!name)
-			return 0;
-		if (!name[0])
-			return 1;
-			//Do we want this?
-			//return ((name - start) < 1025); /* NS_MAXDNAME */
-		name++;
-		if (*name == '\0')
-			return 1; // We allow trailing dot too
+	while (*name) {
+		unsigned char ch = *name++;
+		if (!isalnum(ch))
+			/* DNS allows only '-', but we are more permissive */
+			if (ch != '-' && ch != '_' && ch != '.')
+				return 0;
+		// TODO: do we want to validate lengths against NS_MAXLABEL and NS_MAXDNAME?
 	}
+	return 1;
 }
 #else
 # define good_hostname(name) 1
