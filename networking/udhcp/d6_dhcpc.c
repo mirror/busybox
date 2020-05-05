@@ -1163,7 +1163,7 @@ static void client_background(void)
 //usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"odR] [-i IFACE] [-r IPv6] [-s PROG] [-p PIDFILE]\n"
 //usage:       "	[-x OPT:VAL]... [-O OPT]..." IF_FEATURE_UDHCP_PORT(" [-P PORT]")
 //usage:#define udhcpc6_full_usage "\n"
-//usage:     "\n	-i IFACE	Interface to use (default eth0)"
+//usage:     "\n	-i IFACE	Interface to use (default "CONFIG_UDHCPC_DEFAULT_INTERFACE")"
 //usage:     "\n	-p FILE		Create pidfile"
 //usage:     "\n	-s PROG		Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
 //usage:     "\n	-B		Request broadcast replies"
@@ -1231,7 +1231,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	/* Default options */
 	IF_FEATURE_UDHCP_PORT(SERVER_PORT6 = 547;)
 	IF_FEATURE_UDHCP_PORT(CLIENT_PORT6 = 546;)
-	client_data.interface = "eth0";
+	client_data.interface = CONFIG_UDHCPC_DEFAULT_INTERFACE;
 	client_data.script = CONFIG_UDHCPC_DEFAULT_SCRIPT;
 	client_data.sockfd = -1;
 
