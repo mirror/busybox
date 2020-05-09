@@ -60,7 +60,7 @@
 
 #include "libbb.h"
 #include "bb_archive.h"
-#include "ar.h"
+#include "ar_.h"
 
 #if ENABLE_FEATURE_AR_CREATE
 /* filter out entries with same names as specified on the command line */

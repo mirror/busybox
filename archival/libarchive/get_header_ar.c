@@ -6,7 +6,7 @@
  */
 #include "libbb.h"
 #include "bb_archive.h"
-#include "ar.h"
+#include "ar_.h"
 
 /* WARNING: Clobbers str[len], so fields must be read in reverse order! */
 static unsigned read_num(char *str, int base, int len)

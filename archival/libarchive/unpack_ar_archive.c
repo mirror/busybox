@@ -4,7 +4,7 @@
  */
 #include "libbb.h"
 #include "bb_archive.h"
-#include "ar.h"
+#include "ar_.h"
 
 void FAST_FUNC unpack_ar_archive(archive_handle_t *ar_archive)
 {
