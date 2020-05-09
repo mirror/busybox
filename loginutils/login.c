@@ -341,6 +341,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_LOGIN_SESSION_AS_CHILD
 	pid_t child_pid;
 #endif
+	pid_t my_pid;
 
 	INIT_G();
 
@@ -525,6 +526,9 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	if (pw->pw_uid != 0)
 		die_if_nologin();
 
+	my_pid = getpid();
+	update_utmp(my_pid, USER_PROCESS, short_tty, username, run_by_root ? opt_host : NULL);
+
 #if ENABLE_LOGIN_SESSION_AS_CHILD
 	child_pid = vfork();
 	if (child_pid != 0) {
@@ -532,8 +536,8 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 			bb_simple_perror_msg("vfork");
 		else {
 			wait_for_exitstatus(child_pid);
-			update_utmp_DEAD_PROCESS(child_pid);
 		}
+		update_utmp_DEAD_PROCESS(my_pid);
 		login_pam_end(pamh);
 		return 0;
 	}
@@ -545,8 +549,6 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	 * _f_chown is safe wrt race t=ttyname(0);...;chown(t); */
 	fchown(0, pw->pw_uid, pw->pw_gid);
 	fchmod(0, 0600);
-
-	update_utmp(getpid(), USER_PROCESS, short_tty, username, run_by_root ? opt_host : NULL);
 
 	/* We trust environment only if we run by root */
 	if (ENABLE_LOGIN_SCRIPTS && run_by_root)
