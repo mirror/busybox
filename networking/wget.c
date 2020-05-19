@@ -91,6 +91,9 @@
 //config:	patches, but do want to waste bandwidth expaining how wrong
 //config:	it is, you will be ignored.
 //config:
+//config:	FEATURE_WGET_OPENSSL does implement TLS verification
+//config:	using the certificates available to OpenSSL.
+//config:
 //config:config FEATURE_WGET_OPENSSL
 //config:	bool "Try to connect to HTTPS using openssl"
 //config:	default y
@@ -115,6 +118,9 @@
 //config:	If openssl can't be executed, internal TLS code will be used
 //config:	(if you enabled it); if openssl can be executed but fails later,
 //config:	wget can't detect this, and download will fail.
+//config:
+//config:	By default TLS verification is performed, unless
+//config:	--no-check-certificate option is passed.
 
 //applet:IF_WGET(APPLET(wget, BB_DIR_USR_BIN, BB_SUID_DROP))
 
@@ -124,8 +130,11 @@
 //usage:	IF_FEATURE_WGET_LONG_OPTIONS(
 //usage:       "[-c|--continue] [--spider] [-q|--quiet] [-O|--output-document FILE]\n"
 //usage:       "	[-o|--output-file FILE] [--header 'header: value'] [-Y|--proxy on/off]\n"
+//usage:	IF_FEATURE_WGET_OPENSSL(
+//usage:       "	[--no-check-certificate]\n"
+//usage:	)
 /* Since we ignore these opts, we don't show them in --help */
-/* //usage:    "	[--no-check-certificate] [--no-cache] [--passive-ftp] [-t TRIES]" */
+/* //usage:    "	[--no-cache] [--passive-ftp] [-t TRIES]" */
 /* //usage:    "	[-nv] [-nc] [-nH] [-np]" */
 //usage:       "	[-P DIR] [-S|--server-response] [-U|--user-agent AGENT]" IF_FEATURE_WGET_TIMEOUT(" [-T SEC]") " URL..."
 //usage:	)
@@ -137,7 +146,9 @@
 //usage:       "Retrieve files via HTTP or FTP\n"
 //usage:	IF_FEATURE_WGET_LONG_OPTIONS(
 //usage:     "\n	--spider	Only check URL existence: $? is 0 if exists"
-///////:     "\n	--no-check-certificate	Don't validate the server's certificate"
+//usage:	IF_FEATURE_WGET_OPENSSL(
+//usage:     "\n	--no-check-certificate	Don't validate the server's certificate"
+//usage:	)
 //usage:	)
 //usage:     "\n	-c		Continue retrieval of aborted transfer"
 //usage:     "\n	-q		Quiet"
@@ -662,7 +673,7 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 	pid = xvfork();
 	if (pid == 0) {
 		/* Child */
-		char *argv[8];
+		char *argv[9];
 
 		close(sp[0]);
 		xmove_fd(sp[1], 0);
@@ -688,6 +699,9 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 		if (!is_ip_address(servername)) {
 			argv[5] = (char*)"-servername";
 			argv[6] = (char*)servername;
+		}
+		if (!(option_mask32 & WGET_OPT_NO_CHECK_CERT)) {
+			argv[7] = (char*)"-verify_return_error";
 		}
 
 		BB_EXECVP(argv[0], argv);
