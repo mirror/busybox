@@ -31,6 +31,39 @@ testing "unexpand case 7" "unexpand" \
 testing "unexpand case 8" "unexpand" \
 	"a b\n" "" "a b\n" \
 
+testcase()
+{
+    testing "unexpand flags $*" "unexpand $*" \
+        "$want" "" '        a       b    c'
+}
+
+# tabs=8, Convert only leading sequences of blanks
+want='\ta       b    c'
+testcase
+testcase -f
+testcase -f -t8
+testcase -t8 -f
+testcase -t8 --first-only
+
+# tabs=8, Convert all blanks
+want='\ta\tb    c'
+testcase -a
+testcase -t8
+testcase -a -t8
+
+# tabs=4, Convert all blanks
+want='\t\ta\t\tb\t c'
+testcase -t4
+testcase -a -t4
+testcase -t4 -a
+
+# tabs=4, Convert only leading sequences of blanks
+want='\t\ta       b    c'
+testcase -t4 -f
+testcase -f -t4
+testcase -t4 --first-only
+testcase --first-only -t4
+
 test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
 && test x"$CONFIG_UNICODE_USING_LOCALE" != x"y" \
 && testing "unexpand with unicode characher 0x394" "unexpand" \
