@@ -1359,8 +1359,10 @@ static node *parse_expr(uint32_t iexp)
 					v = cn->l.v = xzalloc(sizeof(var));
 					if (tc & TC_NUMBER)
 						setvar_i(v, t_double);
-					else
+					else {
 						setvar_s(v, t_string);
+						xtc &= ~TC_UOPPOST; /* "str"++ is not allowed */
+					}
 					break;
 
 				case TC_REGEXP:

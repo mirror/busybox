@@ -390,5 +390,13 @@ testing 'awk negative field access' \
 	'' \
 	'anything'
 
+# was misinterpreted as (("str"++) i) instead of ("str" (++i))
+# (and was executed: "str"++ is "0", thus concatenating "0" and "1"):
+testing 'awk do not allow "str"++' \
+	'awk -v i=1 "BEGIN {print \"str\" ++i}"' \
+	"str2\n" \
+	'' \
+	'anything'
+
 
 exit $FAILCOUNT
