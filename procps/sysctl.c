@@ -169,13 +169,15 @@ static int sysctl_act_on_setting(char *setting)
 
 	if (fd < 0) {
 		switch (errno) {
-		case EACCES:
-			/* Happens for write-only settings, e.g. net.ipv6.route.flush */
-			goto end;
 		case ENOENT:
 			if (option_mask32 & FLAG_SHOW_KEY_ERRORS)
 				bb_error_msg("error: '%s' is an unknown key", outname);
 			break;
+		case EACCES:
+			/* Happens for write-only settings, e.g. net.ipv6.route.flush */
+			if (!writing)
+				goto end;
+			/* fall through */
 		default:
 			bb_perror_msg("error %sing key '%s'",
 					writing ?
@@ -236,6 +238,7 @@ static int sysctl_act_recursive(const char *path)
 	int retval = 0;
 
 	if (!(option_mask32 & FLAG_WRITE)
+	 && !strchr(path, '=')  /* do not try to resurse on "var=val" */
 	 && stat(path, &buf) == 0
 	 && S_ISDIR(buf.st_mode)
 	) {
