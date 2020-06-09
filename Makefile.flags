@@ -77,7 +77,9 @@ CFLAGS += $(call cc-option,-fno-asynchronous-unwind-tables,)
 CFLAGS += $(call cc-option,-fno-builtin-printf,)
 
 # clang-9 does not like "str" + N and "if (CONFIG_ITEM && cond)" constructs
+ifeq ($(CC),clang)
 CFLAGS += $(call cc-option,-Wno-string-plus-int -Wno-constant-logical-operand)
+endif
 
 # FIXME: These warnings are at least partially to be concerned about and should
 # be fixed..
