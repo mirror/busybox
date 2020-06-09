@@ -208,9 +208,8 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 		case OPTION_IP:
 		case OPTION_IP_PAIR:
 			dest += sprint_nip(dest, "", option);
-			if (type == OPTION_IP)
-				break;
-			dest += sprint_nip(dest, "/", option + 4);
+			if (type == OPTION_IP_PAIR)
+				dest += sprint_nip(dest, "/", option + 4);
 			break;
 //		case OPTION_BOOLEAN:
 //			dest += sprintf(dest, *option ? "yes" : "no");
@@ -312,7 +311,7 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			 * IPv4MaskLen <= 32,
 			 * 6rdPrefixLen <= 128,
 			 * 6rdPrefixLen + (32 - IPv4MaskLen) <= 128
-			 * (2nd condition need no check - it follows from 1st and 3rd).
+			 * (2nd condition needs no check - it follows from 1st and 3rd).
 			 * Else, return envvar with empty value ("optname=")
 			 */
 			if (len >= (1 + 1 + 16 + 4)
@@ -326,17 +325,12 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 				/* 6rdPrefix */
 				dest += sprint_nip6(dest, /* "", */ option);
 				option += 16;
-				len -= 1 + 1 + 16 + 4;
-				/* "+ 4" above corresponds to the length of IPv4 addr
-				 * we consume in the loop below */
-				while (1) {
-					/* 6rdBRIPv4Address(es) */
-					dest += sprint_nip(dest, " ", option);
-					option += 4;
-					len -= 4; /* do we have yet another 4+ bytes? */
-					if (len < 0)
-						break; /* no */
-				}
+				len -= 1 + 1 + 16;
+				*dest++ = ' ';
+				/* 6rdBRIPv4Address(es), use common IPv4 logic to process them */
+				type = OPTION_IP;
+				optlen = 4;
+				continue;
 			}
 
 			return ret;
@@ -358,22 +352,17 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			 */
 			option++;
 			len--;
+			if (option[-1] == 1) {
+				/* use common IPv4 logic to process IP addrs */
+				type = OPTION_IP;
+				optlen = 4;
+				continue;
+			}
 			if (option[-1] == 0) {
 				dest = dname_dec(option, len, ret);
 				if (dest) {
 					free(ret);
 					return dest;
-				}
-			} else
-			if (option[-1] == 1) {
-				const char *pfx = "";
-				while (1) {
-					len -= 4;
-					if (len < 0)
-						break;
-					dest += sprint_nip(dest, pfx, option);
-					pfx = " ";
-					option += 4;
 				}
 			}
 			return ret;

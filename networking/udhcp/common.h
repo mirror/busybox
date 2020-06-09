@@ -78,7 +78,7 @@ struct BUG_bad_sizeof_struct_ip_udp_dhcp_packet {
 /*** Options ***/
 
 enum {
-	OPTION_IP = 1,
+	OPTION_IP = 0,
 	OPTION_IP_PAIR,
 	OPTION_STRING,
 	/* Opts of STRING_HOST type will be sanitized before they are passed
