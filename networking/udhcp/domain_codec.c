@@ -109,11 +109,11 @@ char* FAST_FUNC dname_dec(const uint8_t *cstr, int clen, const char *pre)
 	return ret;
 }
 
-/* Convert a domain name (src) from human-readable "foo.blah.com" format into
+/* Convert a domain name (src) from human-readable "foo.BLAH.com" format into
  * RFC1035 encoding "\003foo\004blah\003com\000". Return allocated string, or
  * NULL if an error occurs.
  */
-static uint8_t *convert_dname(const char *src)
+static uint8_t *convert_dname(const char *src, int *retlen)
 {
 	uint8_t c, *res, *lenptr, *dst;
 	int len;
@@ -129,6 +129,7 @@ static uint8_t *convert_dname(const char *src)
 			/* label too long, too short, or two '.'s in a row? abort */
 			if (len > NS_MAXLABEL || len == 0 || (c == '.' && *src == '.')) {
 				free(res);
+				*retlen = 0;
 				return NULL;
 			}
 			*lenptr = len;
@@ -144,13 +145,16 @@ static uint8_t *convert_dname(const char *src)
 
 	if (dst - res >= NS_MAXCDNAME) {  /* dname too long? abort */
 		free(res);
+		*retlen = 0;
 		return NULL;
 	}
 
-	*dst = 0;
+	*dst++ = 0;
+	*retlen = dst - res;
 	return res;
 }
 
+#if 0 //UNUSED
 /* Returns the offset within cstr at which dname can be found, or -1 */
 static int find_offset(const uint8_t *cstr, int clen, const uint8_t *dname)
 {
@@ -188,28 +192,27 @@ static int find_offset(const uint8_t *cstr, int clen, const uint8_t *dname)
 
 	return -1;
 }
+#endif
 
+uint8_t* FAST_FUNC dname_enc(/*const uint8_t *cstr, int clen,*/ const char *src, int *retlen)
+{
+#if 0 //UNUSED, was intended for long, repetitive DHCP_DOMAIN_SEARCH options?
+	uint8_t *d, *dname;
 /* Computes string to be appended to cstr so that src would be added to
  * the compression (best case, it's a 2-byte pointer to some offset within
  * cstr; worst case, it's all of src, converted to <4>host<3>com<0> format).
  * The computed string is returned directly; its length is returned via retlen;
  * NULL and 0, respectively, are returned if an error occurs.
  */
-uint8_t* FAST_FUNC dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen)
-{
-	uint8_t *d, *dname;
-	int off;
-
-	dname = convert_dname(src);
+	dname = convert_dname(src, retlen);
 	if (dname == NULL) {
-		*retlen = 0;
 		return NULL;
 	}
 
 	d = dname;
 	while (*d) {
 		if (cstr) {
-			off = find_offset(cstr, clen, d);
+			int off = find_offset(cstr, clen, d);
 			if (off >= 0) {	/* found a match, add pointer and return */
 				*d++ = NS_CMPRSFLGS | (off >> 8);
 				*d = off;
@@ -221,6 +224,8 @@ uint8_t* FAST_FUNC dname_enc(const uint8_t *cstr, int clen, const char *src, int
 
 	*retlen = d - dname + 1;
 	return dname;
+#endif
+	return convert_dname(src, retlen);
 }
 
 #ifdef DNS_COMPR_TESTING

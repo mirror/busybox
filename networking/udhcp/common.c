@@ -431,7 +431,7 @@ static NOINLINE void attach_option(
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
 		/* reuse buffer and length for RFC1035-formatted string */
-		allocated = buffer = (char *)dname_enc(NULL, 0, buffer, &length);
+		allocated = buffer = (char *)dname_enc(/*NULL, 0,*/ buffer, &length);
 	}
 #endif
 

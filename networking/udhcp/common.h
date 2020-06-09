@@ -218,7 +218,7 @@ void udhcp_add_simple_option(struct dhcp_packet *packet, uint8_t code, uint32_t 
 #endif
 #if ENABLE_FEATURE_UDHCP_RFC3397 || ENABLE_FEATURE_UDHCPC6_RFC3646 || ENABLE_FEATURE_UDHCPC6_RFC4704
 char *dname_dec(const uint8_t *cstr, int clen, const char *pre) FAST_FUNC;
-uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) FAST_FUNC;
+uint8_t *dname_enc(/*const uint8_t *cstr, int clen,*/ const char *src, int *retlen) FAST_FUNC;
 #endif
 struct option_set *udhcp_find_option(struct option_set *opt_list, uint8_t code) FAST_FUNC;
 
