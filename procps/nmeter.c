@@ -37,6 +37,7 @@
 //usage:     "\n %[pn]		# of processes"
 //usage:     "\n %b		Block io"
 //usage:     "\n %Nt		Time (with N decimal points)"
+//usage:     "\n %NT		Zero-based timestamp (with N decimal points)"
 //usage:     "\n %r		Print <cr> instead of <lf> at EOL"
 
 //TODO:
@@ -88,6 +89,7 @@ struct globals {
 	int delta;
 	unsigned deltanz;
 	struct timeval tv;
+	struct timeval start;
 #define first_proc_file proc_stat
 	proc_file proc_stat;	// Must match the order of proc_name's!
 	proc_file proc_loadavg;
@@ -101,7 +103,6 @@ struct globals {
 #define is26               (G.is26              )
 #define need_seconds       (G.need_seconds      )
 #define cur_outbuf         (G.cur_outbuf        )
-#define tv                 (G.tv                )
 #define proc_stat          (G.proc_stat         )
 #define proc_loadavg       (G.proc_loadavg      )
 #define proc_net_dev       (G.proc_net_dev      )
@@ -754,23 +755,51 @@ S_STAT(time_stat)
 	unsigned scale;
 S_STAT_END(time_stat)
 
-static void FAST_FUNC collect_time(time_stat *s)
+static void FAST_FUNC collect_tv(time_stat *s, struct timeval *tv, int local)
 {
 	char buf[sizeof("12:34:56.123456")];
 	struct tm* tm;
-	unsigned us = tv.tv_usec + s->scale/2;
-	time_t t = tv.tv_sec;
+	unsigned us = tv->tv_usec + s->scale/2;
+	time_t t = tv->tv_sec;
 
 	if (us >= 1000000) {
 		t++;
 		us -= 1000000;
 	}
-	tm = localtime(&t);
+	if (local)
+		tm = localtime(&t);
+	else
+		tm = gmtime(&t);
 
-	sprintf(buf, "%02d:%02d:%02d", tm->tm_hour, tm->tm_min, tm->tm_sec);
+	sprintf(buf, "%02u:%02u:%02u", tm->tm_hour, tm->tm_min, tm->tm_sec);
 	if (s->prec)
-		sprintf(buf+8, ".%0*d", s->prec, us / s->scale);
+		sprintf(buf+8, ".%0*u", s->prec, us / s->scale);
 	put(buf);
+}
+
+static void FAST_FUNC collect_time(time_stat *s)
+{
+	collect_tv(s, &G.tv, /*local:*/ 1);
+}
+
+static void FAST_FUNC collect_monotonic(time_stat *s)
+{
+	struct timeval tv_mono;
+
+	tv_mono.tv_sec = G.tv.tv_sec - G.start.tv_sec;
+#if 0 /* Do we want this? */
+	if (tv_mono.tv_sec < 0) {
+		/* Time went backwards, reset start time to "now" */
+		tv_mono.tv_sec = 0;
+		G.start = G.tv;
+	}
+#endif
+	tv_mono.tv_usec = G.tv.tv_usec - G.start.tv_usec;
+	if ((int32_t)tv_mono.tv_usec < 0) {
+		tv_mono.tv_usec += 1000000;
+		tv_mono.tv_sec--;
+	}
+	collect_tv(s, &tv_mono, /*local:*/ 0);
 }
 
 static s_stat* init_time(const char *param)
@@ -789,6 +818,13 @@ static s_stat* init_time(const char *param)
 	return (s_stat*)s;
 }
 
+static s_stat* init_monotonic(const char *param)
+{
+	time_stat *s = (void*)init_time(param);
+	s->collect = collect_monotonic;
+	return (s_stat*)s;
+}
+
 static void FAST_FUNC collect_info(s_stat *s)
 {
 	gen ^= 1;
@@ -801,7 +837,7 @@ static void FAST_FUNC collect_info(s_stat *s)
 
 typedef s_stat* init_func(const char *param);
 
-static const char options[] ALIGN1 = "ncmsfixptbr";
+static const char options[] ALIGN1 = "ncmsfixptTbr";
 static init_func *const init_functions[] = {
 	init_if,
 	init_cpu,
@@ -812,6 +848,7 @@ static init_func *const init_functions[] = {
 	init_ctx,
 	init_fork,
 	init_time,
+	init_monotonic,
 	init_blk,
 	init_cr
 };
@@ -913,13 +950,15 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 	// Generate first samples but do not print them, they're bogus
 	collect_info(first);
 	reset_outbuf();
+
 	if (G.delta >= 0) {
-		gettimeofday(&tv, NULL);
-		usleep(G.delta > 1000000 ? 1000000 : G.delta - tv.tv_usec % G.deltanz);
+		gettimeofday(&G.tv, NULL);
+		usleep(G.delta > 1000000 ? 1000000 : G.delta - G.tv.tv_usec % G.deltanz);
 	}
 
+	gettimeofday(&G.start, NULL);
+	G.tv = G.start;
 	while (1) {
-		gettimeofday(&tv, NULL);
 		collect_info(first);
 		put_c(G.final_char);
 		print_outbuf();
@@ -932,11 +971,11 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 		if (G.delta >= 0) {
 			int rem;
 			// can be commented out, will sacrifice sleep time precision a bit
-			gettimeofday(&tv, NULL);
+			gettimeofday(&G.tv, NULL);
 			if (need_seconds)
-				rem = G.delta - ((ullong)tv.tv_sec*1000000 + tv.tv_usec) % G.deltanz;
+				rem = G.delta - ((ullong)G.tv.tv_sec*1000000 + G.tv.tv_usec) % G.deltanz;
 			else
-				rem = G.delta - (unsigned)tv.tv_usec % G.deltanz;
+				rem = G.delta - (unsigned)G.tv.tv_usec % G.deltanz;
 			// Sometimes kernel wakes us up just a tiny bit earlier than asked
 			// Do not go to very short sleep in this case
 			if (rem < (unsigned)G.delta / 128) {
@@ -944,6 +983,7 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 			}
 			usleep(rem);
 		}
+		gettimeofday(&G.tv, NULL);
 	}
 
 	/*return 0;*/
