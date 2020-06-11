@@ -117,8 +117,11 @@ int FAST_FUNC index_in_substrings(const char *strings, const char *key)
 const char* FAST_FUNC nth_string(const char *strings, int n)
 {
 	while (n) {
-		n--;
-		strings += strlen(strings) + 1;
+		if (*strings++ == '\0') {
+			if (*strings == '\0') /* reached end of strings */
+				break;
+			n--;
+		}
 	}
 	return strings;
 }
