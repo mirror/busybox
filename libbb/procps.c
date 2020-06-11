@@ -177,6 +177,15 @@ static char *skip_fields(char *str, int count)
 }
 #endif
 
+static char* skip_whitespace_if_prefixed_with(char *buf, const char *prefix)
+{
+	char *tp = is_prefixed_with(buf, prefix);
+	if (tp) {
+		tp = skip_whitespace(tp);
+	}
+	return tp;
+}
+
 #if ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
 int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
 		void (*cb)(struct smaprec *, void *), void *data)
@@ -207,8 +216,7 @@ int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
 		char *tp, *p;
 
 #define SCAN(S, X) \
-		if ((tp = is_prefixed_with(buf, S)) != NULL) {       \
-			tp = skip_whitespace(tp);                    \
+		if ((tp = skip_whitespace_if_prefixed_with(buf, S)) != NULL) { \
 			total->X += currec.X = fast_strtoul_10(&tp); \
 			continue;                                    \
 		}
