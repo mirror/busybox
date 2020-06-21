@@ -553,11 +553,15 @@ static int d6_mcast_from_client_data_ifindex(struct d6_packet *packet, uint8_t *
 		0xFF, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02,
 	};
+	/* IPv6 requires different multicast contents in Ethernet Frame (RFC 2464) */
+	static const uint8_t MAC_DHCP6MCAST_ADDR[6] ALIGN2 = {
+		0x33, 0x33, 0x00, 0x01, 0x00, 0x02,
+	};
 
 	return d6_send_raw_packet(
 		packet, (end - (uint8_t*) packet),
 		/*src*/ &client6_data.ll_ip6, CLIENT_PORT6,
-		/*dst*/ (struct in6_addr*)FF02__1_2, SERVER_PORT6, MAC_BCAST_ADDR,
+		/*dst*/ (struct in6_addr*)FF02__1_2, SERVER_PORT6, MAC_DHCP6MCAST_ADDR,
 		client_data.ifindex
 	);
 }
