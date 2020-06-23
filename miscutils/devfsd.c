@@ -353,6 +353,7 @@ static const char bb_msg_variable_not_found[] ALIGN1 = "variable: %s not found";
 #define error_logger_and_die(p, fmt, args...)        bb_perror_msg_and_die(fmt, ## args)
 #else
 #define info_logger(p, fmt, args...)
+#define simple_info_logger(p, msg)
 #define msg_logger(p, fmt, args...)
 #define simple_msg_logger(p, msg)
 #define msg_logger_and_die(p, fmt, args...)           exit(EXIT_FAILURE)
