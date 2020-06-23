@@ -591,6 +591,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		return EXIT_SUCCESS;
 	}
 
+#if ENABLE_FEATURE_BRCTL_FANCY
 	if (key == ARG_showmacs) {
 		show_bridge_macs(br);
 		return EXIT_SUCCESS;
@@ -599,6 +600,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		show_bridge_stp(br);
 		return EXIT_SUCCESS;
 	}
+#endif
 
 	if (!*argv) /* All of the below need at least two arguments */
 		bb_show_usage();

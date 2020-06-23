@@ -1385,7 +1385,9 @@ static inline void __attribute__ ((deprecated("use bb_simple_info_msg instead"))
 #define bb_perror_msg_and_die(...) BB_MSG(_perror_msg_and_die, BB_MSG_KIND(__VA_ARGS__), __VA_ARGS__)
 #define bb_herror_msg(...)         BB_MSG(_herror_msg, BB_MSG_KIND(__VA_ARGS__), __VA_ARGS__)
 #define bb_herror_msg_and_die(...) BB_MSG(_herror_msg_and_die, BB_MSG_KIND(__VA_ARGS__), __VA_ARGS__)
+#if ENABLE_FEATURE_SYSLOG_INFO
 #define bb_info_msg(...)           BB_MSG(_info_msg, BB_MSG_KIND(__VA_ARGS__), __VA_ARGS__)
+#endif
 #endif
 
 /* We need to export XXX_main from libbusybox
