@@ -113,6 +113,28 @@ if test x"$LIBC" = x"uclibc"; then
 	echo 'CONFIG_ASH_INTERNAL_GLOB=y' >>.config
 fi
 
+# If musl
+if test x"$LIBC" = x"musl"; then
+	cat .config \
+	| grep -v CONFIG_STATIC \
+	| grep -v CONFIG_LFS \
+	| grep -v CONFIG_EXTRA_COMPAT \
+	| grep -v CONFIG_FEATURE_2_4_MODULES \
+	| grep -v CONFIG_FEATURE_VI_REGEX_SEARCH \
+	| grep -v CONFIG_FEATURE_MOUNT_NFS \
+	| grep -v CONFIG_FEATURE_INETD_RPC \
+	>.config.new
+	mv .config.new .config
+	echo 'CONFIG_STATIC=y' >>.config
+	# with LFS off, uoff_t will have wrong width:
+	echo 'CONFIG_LFS=y' >>.config
+	echo '# CONFIG_EXTRA_COMPAT is not set' >>.config
+	echo '# CONFIG_FEATURE_2_4_MODULES is not set' >>.config
+	echo '# CONFIG_FEATURE_VI_REGEX_SEARCH is not set' >>.config
+	echo '# CONFIG_FEATURE_MOUNT_NFS is not set' >>.config
+	echo '# CONFIG_FEATURE_INETD_RPC is not set' >>.config
+fi
+
 # If STATIC, remove some things.
 # PAM with static linking is probably pointless
 # (but I need to try - now I don't have libpam.a on my system, only libpam.so)

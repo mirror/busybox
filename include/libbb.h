@@ -298,6 +298,7 @@ typedef unsigned long uoff_t;
 /* scary. better ideas? (but do *test* them first!) */
 #define OFF_T_MAX  ((off_t)~((off_t)1 << (sizeof(off_t)*8-1)))
 /* Users report bionic to use 32-bit off_t even if LARGEFILE support is requested.
+ * On musl, !ENABLE_LFS on 32-bit arches thinks that off_t is 32-bit.
  * We misdetected that. Don't let it build:
  */
 struct BUG_off_t_size_is_misdetected {
