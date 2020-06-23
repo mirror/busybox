@@ -30,6 +30,10 @@
 # endif
 #endif
 
+#if !__GNUC_PREREQ(5,0)
+# define deprecated(msg) deprecated
+#endif
+
 #undef inline
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ > 199901L
 /* it's a keyword */
