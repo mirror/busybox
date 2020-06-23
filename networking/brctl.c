@@ -107,7 +107,7 @@ static unsigned str_to_jiffies(const char *time_str)
 
 #define filedata bb_common_bufsiz1
 
-#if ENABLE_FEATURE_BRCTL_SHOW
+#if ENABLE_FEATURE_BRCTL_SHOW || ENABLE_FEATURE_BRCTL_FANCY
 static int read_file(const char *name)
 {
 	int n = open_read_close(name, filedata, COMMON_BUFSIZE - 1);
@@ -120,7 +120,9 @@ static int read_file(const char *name)
 	}
 	return n;
 }
+#endif
 
+#if ENABLE_FEATURE_BRCTL_SHOW
 /* NB: we are in /sys/class/net
  */
 static int show_bridge(const char *name, int need_hdr)

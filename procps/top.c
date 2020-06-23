@@ -979,9 +979,11 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 		IF_FEATURE_TOPMEM(&& scan_mask != TOPMEM_MASK)
 		) {
 			scan_mask ^= PSSCAN_TASKS;
+#  if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 			free(prev_hist);
 			prev_hist = NULL;
 			prev_hist_count = 0;
+#   endif
 			continue;
 		}
 # endif
