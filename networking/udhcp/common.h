@@ -107,6 +107,12 @@ enum {
 	OPTION_LIST = 0x20,
 };
 
+struct dhcp_scan_state {
+	int overload;
+	int rem;
+	uint8_t *optionptr;
+};
+
 /* DHCP option codes (partial list). See RFC 2132 and
  * http://www.iana.org/assignments/bootp-dhcp-parameters/
  * Commented out options are handled by common option machinery,
@@ -206,6 +212,8 @@ extern const uint8_t dhcp_option_lengths[] ALIGN1;
 
 unsigned FAST_FUNC udhcp_option_idx(const char *name, const char *option_strings);
 
+void init_scan_state(struct dhcp_packet *packet, struct dhcp_scan_state *scan_state) FAST_FUNC;
+uint8_t *udhcp_scan_options(struct dhcp_packet *packet, struct dhcp_scan_state *scan_state) FAST_FUNC;
 uint8_t *udhcp_get_option(struct dhcp_packet *packet, int code) FAST_FUNC;
 /* Same as above + ensures that option length is 4 bytes
  * (returns NULL if size is different)

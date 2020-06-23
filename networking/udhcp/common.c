@@ -15,7 +15,7 @@ const uint8_t MAC_BCAST_ADDR[6] ALIGN2 = {
 };
 
 #if ENABLE_UDHCPC || ENABLE_UDHCPD
-/* Supported options are easily added here.
+/* Supported options are easily added here, they need to be sorted.
  * See RFC2132 for more options.
  * OPTION_REQ: these options are requested by udhcpc (unless -o).
  */
@@ -222,79 +222,91 @@ unsigned FAST_FUNC udhcp_option_idx(const char *name, const char *option_strings
 	}
 }
 
-/* Get an option with bounds checking (warning, result is not aligned) */
-uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
+/* Initialize state to be used between subsequent udhcp_scan_options calls */
+void FAST_FUNC init_scan_state(struct dhcp_packet *packet, struct dhcp_scan_state *scan_state)
 {
-	uint8_t *optionptr;
+	scan_state->overload = 0;
+	scan_state->rem = sizeof(packet->options);
+	scan_state->optionptr = packet->options;
+}
+
+/* Iterate over packet's options, each call returning the next option.
+ * scan_state needs to be initialized with init_scan_state beforehand.
+ * Warning, result is not aligned. */
+uint8_t* FAST_FUNC udhcp_scan_options(struct dhcp_packet *packet, struct dhcp_scan_state *scan_state)
+{
 	int len;
-	int rem;
-	int overload = 0;
 	enum {
 		FILE_FIELD101  = FILE_FIELD  * 0x101,
 		SNAME_FIELD101 = SNAME_FIELD * 0x101,
 	};
 
 	/* option bytes: [code][len][data1][data2]..[dataLEN] */
-	optionptr = packet->options;
-	rem = sizeof(packet->options);
 	while (1) {
-		if (rem <= 0) {
+		if (scan_state->rem <= 0) {
  complain:
 			bb_simple_error_msg("bad packet, malformed option field");
 			return NULL;
 		}
 
 		/* DHCP_PADDING and DHCP_END have no [len] byte */
-		if (optionptr[OPT_CODE] == DHCP_PADDING) {
-			rem--;
-			optionptr++;
+		if (scan_state->optionptr[OPT_CODE] == DHCP_PADDING) {
+			scan_state->rem--;
+			scan_state->optionptr++;
 			continue;
 		}
-		if (optionptr[OPT_CODE] == DHCP_END) {
-			if ((overload & FILE_FIELD101) == FILE_FIELD) {
+		if (scan_state->optionptr[OPT_CODE] == DHCP_END) {
+			if ((scan_state->overload & FILE_FIELD101) == FILE_FIELD) {
 				/* can use packet->file, and didn't look at it yet */
-				overload |= FILE_FIELD101; /* "we looked at it" */
-				optionptr = packet->file;
-				rem = sizeof(packet->file);
+				scan_state->overload |= FILE_FIELD101; /* "we looked at it" */
+				scan_state->optionptr = packet->file;
+				scan_state->rem = sizeof(packet->file);
 				continue;
 			}
-			if ((overload & SNAME_FIELD101) == SNAME_FIELD) {
+			if ((scan_state->overload & SNAME_FIELD101) == SNAME_FIELD) {
 				/* can use packet->sname, and didn't look at it yet */
-				overload |= SNAME_FIELD101; /* "we looked at it" */
-				optionptr = packet->sname;
-				rem = sizeof(packet->sname);
+				scan_state->overload |= SNAME_FIELD101; /* "we looked at it" */
+				scan_state->optionptr = packet->sname;
+				scan_state->rem = sizeof(packet->sname);
 				continue;
 			}
 			break;
 		}
 
-		if (rem <= OPT_LEN)
+		if (scan_state->rem <= OPT_LEN)
 			goto complain; /* complain and return NULL */
-		len = 2 + optionptr[OPT_LEN];
-		rem -= len;
-		if (rem < 0)
+		len = 2 + scan_state->optionptr[OPT_LEN];
+		scan_state->rem -= len;
+		/* So far no valid option with length 0 known. */
+		if (scan_state->rem < 0 || scan_state->optionptr[OPT_LEN] == 0)
 			goto complain; /* complain and return NULL */
 
-		if (optionptr[OPT_CODE] == code) {
-			if (optionptr[OPT_LEN] == 0) {
-				/* So far no valid option with length 0 known.
-				 * Having this check means that searching
-				 * for DHCP_MESSAGE_TYPE need not worry
-				 * that returned pointer might be unsafe
-				 * to dereference.
-				 */
-				goto complain; /* complain and return NULL */
-			}
-			log_option("option found", optionptr);
-			return optionptr + OPT_DATA;
-		}
-
-		if (optionptr[OPT_CODE] == DHCP_OPTION_OVERLOAD) {
+		if (scan_state->optionptr[OPT_CODE] == DHCP_OPTION_OVERLOAD) {
 			if (len >= 3)
-				overload |= optionptr[OPT_DATA];
-			/* fall through */
+				scan_state->overload |= scan_state->optionptr[OPT_DATA];
+		} else {
+			uint8_t *return_ptr = scan_state->optionptr;
+			scan_state->optionptr += len;
+			return return_ptr;
 		}
-		optionptr += len;
+		scan_state->optionptr += len;
+	}
+
+	return NULL;
+}
+
+/* Get an option with bounds checking (warning, result is not aligned) */
+uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
+{
+	uint8_t *optptr;
+	struct dhcp_scan_state scan_state;
+
+	init_scan_state(packet, &scan_state);
+	while ((optptr = udhcp_scan_options(packet, &scan_state)) != NULL) {
+		if (optptr[OPT_CODE] == code) {
+			log_option("option found", optptr);
+			return optptr + OPT_DATA;
+		}
 	}
 
 	/* log3 because udhcpc uses it a lot - very noisy */
