@@ -516,6 +516,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	if (archive_handle->cpio__blocks != (off_t)-1
 	 && !(opt & OPT_QUIET)
 	) {
+		fflush_all();
 		fprintf(stderr, "%"OFF_FMT"u blocks\n", archive_handle->cpio__blocks);
 	}
 

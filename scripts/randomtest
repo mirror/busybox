@@ -117,6 +117,7 @@ fi
 if test x"$LIBC" = x"musl"; then
 	cat .config \
 	| grep -v CONFIG_STATIC \
+	| grep -v CONFIG_DEBUG_SANITIZE \
 	| grep -v CONFIG_LFS \
 	| grep -v CONFIG_EXTRA_COMPAT \
 	| grep -v CONFIG_FEATURE_2_4_MODULES \
@@ -126,6 +127,8 @@ if test x"$LIBC" = x"musl"; then
 	>.config.new
 	mv .config.new .config
 	echo 'CONFIG_STATIC=y' >>.config
+	# "error: cannot specify -static with -fsanitize=address":
+	echo '# CONFIG_DEBUG_SANITIZE is not set' >>.config
 	# with LFS off, uoff_t will have wrong width:
 	echo 'CONFIG_LFS=y' >>.config
 	echo '# CONFIG_EXTRA_COMPAT is not set' >>.config
