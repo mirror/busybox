@@ -29,6 +29,8 @@ for app in $apps; do
 done
 # remove "busybox" as well
 allno="`echo "$allno" | sed "s/^CONFIG_BUSYBOX=y\$/# CONFIG_BUSYBOX is not set/"`"
+# disable any CONFIG_script_DEPENDENCIES as well
+allno="`echo "$allno" | sed "s/^\(CONFIG_.*_DEPENDENCIES\)=y\$/# \1 is not set/"`"
 #echo "$allno" >.config_allno
 
 trap 'test -f .config.SV && mv .config.SV .config && touch .config' EXIT
