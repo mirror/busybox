@@ -15,10 +15,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config SHELL_ASH
+//config:	bool #hidden option
+//config:	depends on !NOMMU
+//config:
 //config:config ASH
 //config:	bool "ash (78 kb)"
 //config:	default y
 //config:	depends on !NOMMU
+//config:	select SHELL_ASH
 //config:	help
 //config:	The most complete and most pedantically correct shell included with
 //config:	busybox. This shell is actually a derivative of the Debian 'dash'
@@ -28,17 +33,17 @@
 //config:# ash options
 //config:# note: Don't remove !NOMMU part in the next line; it would break
 //config:# menuconfig's indenting.
-//config:if !NOMMU && (ASH || SH_IS_ASH || BASH_IS_ASH)
+//config:if !NOMMU && (SHELL_ASH || ASH || SH_IS_ASH || BASH_IS_ASH)
 //config:
 //config:config ASH_OPTIMIZE_FOR_SIZE
 //config:	bool "Optimize for size instead of speed"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:
 //config:config ASH_INTERNAL_GLOB
 //config:	bool "Use internal glob() implementation"
 //config:	default y	# Y is bigger, but because of uclibc glob() bug, let Y be default for now
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:	help
 //config:	Do not use glob() function from libc, use internal implementation.
 //config:	Use this if you are getting "glob.h: No such file or directory"
@@ -49,7 +54,7 @@
 //config:config ASH_BASH_COMPAT
 //config:	bool "bash-compatible extensions"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:
 //config:config ASH_BASH_SOURCE_CURDIR
 //config:	bool "'source' and '.' builtins search current directory after $PATH"
@@ -70,17 +75,17 @@
 //config:config ASH_JOB_CONTROL
 //config:	bool "Job control"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:
 //config:config ASH_ALIAS
 //config:	bool "Alias support"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:
 //config:config ASH_RANDOM_SUPPORT
 //config:	bool "Pseudorandom generator and $RANDOM variable"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:	help
 //config:	Enable pseudorandom generator and dynamic variable "$RANDOM".
 //config:	Each read of "$RANDOM" will generate a new pseudorandom value.
@@ -91,7 +96,7 @@
 //config:config ASH_EXPAND_PRMT
 //config:	bool "Expand prompt string"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:	help
 //config:	$PS# may contain volatile content, such as backquote commands.
 //config:	This option recreates the prompt string from the environment
@@ -100,14 +105,14 @@
 //config:config ASH_IDLE_TIMEOUT
 //config:	bool "Idle timeout variable $TMOUT"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:	help
 //config:	Enable bash-like auto-logout after $TMOUT seconds of idle time.
 //config:
 //config:config ASH_MAIL
 //config:	bool "Check for new mail in interactive shell"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:	help
 //config:	Enable "check for new mail" function:
 //config:	if set, $MAIL file and $MAILPATH list of files
@@ -117,32 +122,32 @@
 //config:config ASH_ECHO
 //config:	bool "echo builtin"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:
 //config:config ASH_PRINTF
 //config:	bool "printf builtin"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:
 //config:config ASH_TEST
 //config:	bool "test builtin"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:
 //config:config ASH_HELP
 //config:	bool "help builtin"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:
 //config:config ASH_GETOPTS
 //config:	bool "getopts builtin"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:
 //config:config ASH_CMDCMD
 //config:	bool "command builtin"
 //config:	default y
-//config:	depends on ASH || SH_IS_ASH || BASH_IS_ASH
+//config:	depends on SHELL_ASH
 //config:	help
 //config:	Enable support for the 'command' builtin, which allows
 //config:	you to run the specified command or builtin,
@@ -155,9 +160,7 @@
 //applet:IF_SH_IS_ASH(  APPLET_ODDNAME(sh,   ash, BB_DIR_BIN, BB_SUID_DROP, ash))
 //applet:IF_BASH_IS_ASH(APPLET_ODDNAME(bash, ash, BB_DIR_BIN, BB_SUID_DROP, ash))
 
-//kbuild:lib-$(CONFIG_ASH) += ash.o ash_ptr_hack.o shell_common.o
-//kbuild:lib-$(CONFIG_SH_IS_ASH) += ash.o ash_ptr_hack.o shell_common.o
-//kbuild:lib-$(CONFIG_BASH_IS_ASH) += ash.o ash_ptr_hack.o shell_common.o
+//kbuild:lib-$(CONFIG_SHELL_ASH) += ash.o ash_ptr_hack.o shell_common.o
 //kbuild:lib-$(CONFIG_ASH_RANDOM_SUPPORT) += random.o
 
 /*

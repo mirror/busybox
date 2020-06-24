@@ -754,7 +754,9 @@ static void install_links(const char *busybox UNUSED_PARAM,
 }
 # endif
 
+# if ENABLE_BUSYBOX || NUM_APPLETS > 0
 static void run_applet_and_exit(const char *name, char **argv) NORETURN;
+#endif
 
 # if NUM_SCRIPTS > 0
 static int find_script_by_name(const char *name)
@@ -775,13 +777,13 @@ int scripted_main(int argc UNUSED_PARAM, char **argv)
 {
 	int script = find_script_by_name(applet_name);
 	if (script >= 0)
-#if ENABLE_ASH || ENABLE_SH_IS_ASH || ENABLE_BASH_IS_ASH
+#  if ENABLE_SHELL_ASH
 		exit(ash_main(-script - 1, argv));
-#elif ENABLE_HUSH || ENABLE_SH_IS_HUSH || ENABLE_BASH_IS_HUSH
+#  elif ENABLE_SHELL_HUSH
 		exit(hush_main(-script - 1, argv));
-#else
+#  else
 		return 1;
-#endif
+#  endif
 	return 0;
 }
 
@@ -1024,7 +1026,33 @@ static NORETURN void run_applet_and_exit(const char *name, char **argv)
 }
 # endif
 
-#endif /* !defined(SINGLE_APPLET_MAIN) */
+#else /* defined(SINGLE_APPLET_MAIN) */
+
+# if NUM_SCRIPTS > 0
+/* if SINGLE_APPLET_MAIN, these two functions are simpler: */
+int scripted_main(int argc UNUSED_PARAM, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int scripted_main(int argc UNUSED_PARAM, char **argv)
+{
+#  if ENABLE_SHELL_ASH
+	int script = 0;
+	exit(ash_main(-script - 1, argv));
+#  elif ENABLE_SHELL_HUSH
+	int script = 0;
+	exit(hush_main(-script - 1, argv));
+#  else
+	return 1;
+#  endif
+}
+char* FAST_FUNC
+get_script_content(unsigned n UNUSED_PARAM)
+{
+	char *t = unpack_bz2_data(packed_scripts, sizeof(packed_scripts),
+					UNPACKED_SCRIPTS_LENGTH);
+	return t;
+}
+# endif /* NUM_SCRIPTS > 0 */
+
+#endif /* defined(SINGLE_APPLET_MAIN) */
 
 
 #if ENABLE_BUILD_LIBBUSYBOX

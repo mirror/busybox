@@ -95,6 +95,7 @@
 //config:config HUSH
 //config:	bool "hush (68 kb)"
 //config:	default y
+//config:	select SHELL_HUSH
 //config:	help
 //config:	hush is a small shell. It handles the normal flow control
 //config:	constructs such as if/then/elif/else/fi, for/in/do/done, while loops,
@@ -106,10 +107,20 @@
 //config:	It does not handle select, aliases, tilde expansion,
 //config:	&>file and >&file redirection of stdout+stderr.
 //config:
+// This option is visible (has a description) to make it possible to select
+// a "scripted" applet (such as NOLOGIN) but avoid selecting any shells:
+//config:config SHELL_HUSH
+//config:	bool "Internal shell for embedded script support"
+//config:	default n
+//config:
+//config:# hush options
+//config:# It's only needed to get "nice" menuconfig indenting.
+//config:if SHELL_HUSH || HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:
 //config:config HUSH_BASH_COMPAT
 //config:	bool "bash-compatible extensions"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_BRACE_EXPANSION
 //config:	bool "Brace expansion"
@@ -133,7 +144,7 @@
 //config:config HUSH_INTERACTIVE
 //config:	bool "Interactive mode"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:	help
 //config:	Enable interactive mode (prompt and command editing).
 //config:	Without this, hush simply reads and executes commands
@@ -159,31 +170,31 @@
 //config:config HUSH_TICK
 //config:	bool "Support command substitution"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:	help
 //config:	Enable `command` and $(command).
 //config:
 //config:config HUSH_IF
 //config:	bool "Support if/then/elif/else/fi"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_LOOPS
 //config:	bool "Support for, while and until loops"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_CASE
 //config:	bool "Support case ... esac statement"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:	help
 //config:	Enable case ... esac statement. +400 bytes.
 //config:
 //config:config HUSH_FUNCTIONS
 //config:	bool "Support funcname() { commands; } syntax"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:	help
 //config:	Enable support for shell functions. +800 bytes.
 //config:
@@ -197,7 +208,7 @@
 //config:config HUSH_RANDOM_SUPPORT
 //config:	bool "Pseudorandom generator and $RANDOM variable"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:	help
 //config:	Enable pseudorandom generator and dynamic variable "$RANDOM".
 //config:	Each read of "$RANDOM" will generate a new pseudorandom value.
@@ -205,7 +216,7 @@
 //config:config HUSH_MODE_X
 //config:	bool "Support 'hush -x' option and 'set -x' command"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:	help
 //config:	This instructs hush to print commands before execution.
 //config:	Adds ~300 bytes.
@@ -213,27 +224,27 @@
 //config:config HUSH_ECHO
 //config:	bool "echo builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_PRINTF
 //config:	bool "printf builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_TEST
 //config:	bool "test builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_HELP
 //config:	bool "help builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_EXPORT
 //config:	bool "export builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_EXPORT_N
 //config:	bool "Support 'export -n' option"
@@ -245,83 +256,83 @@
 //config:config HUSH_READONLY
 //config:	bool "readonly builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:	help
 //config:	Enable support for read-only variables.
 //config:
 //config:config HUSH_KILL
 //config:	bool "kill builtin (supports kill %jobspec)"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_WAIT
 //config:	bool "wait builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_COMMAND
 //config:	bool "command builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_TRAP
 //config:	bool "trap builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_TYPE
 //config:	bool "type builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_TIMES
 //config:	bool "times builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_READ
 //config:	bool "read builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_SET
 //config:	bool "set builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_UNSET
 //config:	bool "unset builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_ULIMIT
 //config:	bool "ulimit builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_UMASK
 //config:	bool "umask builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_GETOPTS
 //config:	bool "getopts builtin"
 //config:	default y
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_MEMLEAK
 //config:	bool "memleak builtin (debugging)"
 //config:	default n
-//config:	depends on HUSH || SH_IS_HUSH || BASH_IS_HUSH
+//config:	depends on SHELL_HUSH
+//config:
+//config:endif # hush options
 
 //applet:IF_HUSH(APPLET(hush, BB_DIR_BIN, BB_SUID_DROP))
 //                       APPLET_ODDNAME:name  main  location    suid_type     help
 //applet:IF_SH_IS_HUSH(  APPLET_ODDNAME(sh,   hush, BB_DIR_BIN, BB_SUID_DROP, hush))
 //applet:IF_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, BB_DIR_BIN, BB_SUID_DROP, hush))
 
-//kbuild:lib-$(CONFIG_HUSH) += hush.o match.o shell_common.o
-//kbuild:lib-$(CONFIG_SH_IS_HUSH) += hush.o match.o shell_common.o
-//kbuild:lib-$(CONFIG_BASH_IS_HUSH) += hush.o match.o shell_common.o
+//kbuild:lib-$(CONFIG_SHELL_HUSH) += hush.o match.o shell_common.o
 //kbuild:lib-$(CONFIG_HUSH_RANDOM_SUPPORT) += random.o
 
 /* -i (interactive) is also accepted,

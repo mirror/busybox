@@ -7,7 +7,7 @@
 //config:
 //config:config NOLOGIN_DEPENDENCIES
 //config:	bool "Enable dependencies for nologin"
-//config:	default y
+//config:	default n  # Y default makes it harder to select single-applet test
 //config:	depends on NOLOGIN
 //config:	select CAT
 //config:	select ECHO
