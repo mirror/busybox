@@ -2522,7 +2522,9 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 
 #if ENABLE_FEATURE_BC_INTERACTIVE
 	if (G_interrupt) { // ^C was pressed
+# if ENABLE_FEATURE_EDITING
  intr:
+# endif
 		if (fp != stdin) {
 			// ^C while running a script (bc SCRIPT): die.
 			// We do not return to interactive prompt:
