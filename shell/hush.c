@@ -7917,7 +7917,7 @@ static const struct built_in_command *find_builtin(const char *name)
 	return find_builtin_helper(name, bltins2, &bltins2[ARRAY_SIZE(bltins2)]);
 }
 
-#if EDITING_HAS_get_exe_name
+#if ENABLE_HUSH_JOB && EDITING_HAS_get_exe_name
 static const char * FAST_FUNC get_builtin_name(int i)
 {
 	if (/*i >= 0 && */ i < ARRAY_SIZE(bltins1)) {
