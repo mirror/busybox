@@ -673,7 +673,8 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 	pid = xvfork();
 	if (pid == 0) {
 		/* Child */
-		char *argv[9];
+		char *argv[13];
+		char **argp;
 
 		close(sp[0]);
 		xmove_fd(sp[1], 0);
@@ -696,13 +697,25 @@ static int spawn_https_helper_openssl(const char *host, unsigned port)
 		 * TLS server_name (SNI) field are FQDNs (DNS hostnames).
 		 * IPv4 and IPv6 addresses, port numbers are not allowed.
 		 */
+		argp = &argv[5];
 		if (!is_ip_address(servername)) {
-			argv[5] = (char*)"-servername";
-			argv[6] = (char*)servername;
+			*argp++ = (char*)"-servername"; //[5]
+			*argp++ = (char*)servername;    //[6]
 		}
 		if (!(option_mask32 & WGET_OPT_NO_CHECK_CERT)) {
-			argv[7] = (char*)"-verify_return_error";
+			/* Abort on bad server certificate */
+			*argp++ = (char*)"-verify";              //[7]
+			*argp++ = (char*)"100";                  //[8]
+			*argp++ = (char*)"-verify_return_error"; //[9]
+			if (!is_ip_address(servername)) {
+				*argp++ = (char*)"-verify_hostname"; //[10]
+				*argp++ = (char*)servername;         //[11]
+			} else {
+				*argp++ = (char*)"-verify_ip"; //[10]
+				*argp++ = (char*)host;         //[11]
+			}
 		}
+		//[12] (or earlier) is NULL terminator
 
 		BB_EXECVP(argv[0], argv);
 		xmove_fd(3, 2);
