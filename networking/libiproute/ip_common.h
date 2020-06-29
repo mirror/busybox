@@ -33,4 +33,8 @@ int FAST_FUNC do_iplink(char **argv);
 
 POP_SAVED_FUNCTION_VISIBILITY
 
+#ifndef	INFINITY_LIFE_TIME
+#define     INFINITY_LIFE_TIME      0xFFFFFFFFU
+#endif
+
 #endif
