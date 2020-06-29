@@ -146,11 +146,13 @@
 //usage:#define ipaddr_trivial_usage
 //usage:       "add|del IFADDR dev IFACE | show|flush [dev IFACE] [to PREFIX]"
 //usage:#define ipaddr_full_usage "\n\n"
-//usage:       "ipaddr add|change|replace|delete dev IFACE IFADDR\n"
+//usage:       "ipaddr add|change|replace|delete dev IFACE [CONFFLAG-LIST] IFADDR\n"
 //usage:       "	IFADDR := PREFIX | ADDR peer PREFIX [broadcast ADDR|+|-]\n"
 //usage:       "		[anycast ADDR] [label STRING] [scope SCOPE]\n"
 //usage:       "	PREFIX := ADDR[/MASK]\n"
 //usage:       "	SCOPE := [host|link|global|NUMBER]\n"
+//usage:       "	CONFFLAG-LIST := [CONFFLAG-LIST] CONFFLAG\n"
+//usage:       "	CONFFLAG := [noprefixroute]\n"
 //usage:       "ipaddr show|flush [dev IFACE] [scope SCOPE] [to PREFIX] [label PATTERN]"
 //usage:
 //--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79

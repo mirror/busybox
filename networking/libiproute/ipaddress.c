@@ -217,6 +217,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 {
 	struct ifaddrmsg *ifa = NLMSG_DATA(n);
 	int len = n->nlmsg_len;
+	unsigned int ifa_flags;
 	struct rtattr *rta_tb[IFA_MAX+1];
 
 	if (n->nlmsg_type != RTM_NEWADDR && n->nlmsg_type != RTM_DELADDR)
@@ -233,6 +234,8 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 	//memset(rta_tb, 0, sizeof(rta_tb)); - parse_rtattr does this
 	parse_rtattr(rta_tb, IFA_MAX, IFA_RTA(ifa), n->nlmsg_len - NLMSG_LENGTH(sizeof(*ifa)));
 
+	ifa_flags = rta_tb[IFA_FLAGS] ? *(__u32*)RTA_DATA(rta_tb[IFA_FLAGS]) : ifa->ifa_flags;
+
 	if (!rta_tb[IFA_LOCAL])
 		rta_tb[IFA_LOCAL] = rta_tb[IFA_ADDRESS];
 	if (!rta_tb[IFA_ADDRESS])
@@ -242,7 +245,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 		return 0;
 	if ((G_filter.scope ^ ifa->ifa_scope) & G_filter.scopemask)
 		return 0;
-	if ((G_filter.flags ^ ifa->ifa_flags) & G_filter.flagmask)
+	if ((G_filter.flags ^ ifa_flags) & G_filter.flagmask)
 		return 0;
 	if (G_filter.label) {
 		const char *label;
@@ -322,28 +325,32 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 		);
 	}
 	printf("scope %s ", rtnl_rtscope_n2a(ifa->ifa_scope));
-	if (ifa->ifa_flags & IFA_F_SECONDARY) {
-		ifa->ifa_flags &= ~IFA_F_SECONDARY;
+	if (ifa_flags & IFA_F_SECONDARY) {
+		ifa_flags &= ~IFA_F_SECONDARY;
 		printf("secondary ");
 	}
-	if (ifa->ifa_flags & IFA_F_TENTATIVE) {
-		ifa->ifa_flags &= ~IFA_F_TENTATIVE;
+	if (ifa_flags & IFA_F_TENTATIVE) {
+		ifa_flags &= ~IFA_F_TENTATIVE;
 		printf("tentative ");
 	}
-	if (ifa->ifa_flags & IFA_F_DADFAILED) {
-		ifa->ifa_flags &= ~IFA_F_DADFAILED;
+	if (ifa_flags & IFA_F_DADFAILED) {
+		ifa_flags &= ~IFA_F_DADFAILED;
 		printf("dadfailed ");
 	}
-	if (ifa->ifa_flags & IFA_F_DEPRECATED) {
-		ifa->ifa_flags &= ~IFA_F_DEPRECATED;
+	if (ifa_flags & IFA_F_DEPRECATED) {
+		ifa_flags &= ~IFA_F_DEPRECATED;
 		printf("deprecated ");
 	}
-	if (!(ifa->ifa_flags & IFA_F_PERMANENT)) {
+	if (!(ifa_flags & IFA_F_PERMANENT)) {
 		printf("dynamic ");
 	} else
-		ifa->ifa_flags &= ~IFA_F_PERMANENT;
-	if (ifa->ifa_flags)
-		printf("flags %02x ", ifa->ifa_flags);
+		ifa_flags &= ~IFA_F_PERMANENT;
+	if (ifa_flags & IFA_F_NOPREFIXROUTE) {
+		ifa_flags &= ~IFA_F_NOPREFIXROUTE;
+		printf("noprefixroute ");
+	}
+	if (ifa_flags)
+		printf("flags %02x ", ifa_flags);
 	if (rta_tb[IFA_LABEL])
 		fputs((char*)RTA_DATA(rta_tb[IFA_LABEL]), stdout);
 	if (rta_tb[IFA_CACHEINFO]) {
@@ -600,7 +607,7 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 	/* If you add stuff here, update ipaddr_full_usage */
 	static const char option[] ALIGN1 =
 		"peer\0""remote\0""broadcast\0""brd\0"
-		"anycast\0""scope\0""dev\0""label\0""local\0";
+		"anycast\0""scope\0""dev\0""label\0""noprefixroute\0""local\0";
 #define option_peer      option
 #define option_broadcast (option           + sizeof("peer") + sizeof("remote"))
 #define option_anycast   (option_broadcast + sizeof("broadcast") + sizeof("brd"))
@@ -619,6 +626,7 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 	int brd_len = 0;
 	int any_len = 0;
 	bool scoped = 0;
+	unsigned int ifa_flags = 0;
 
 	memset(&req, 0, sizeof(req));
 
@@ -630,7 +638,7 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 	while (*argv) {
 		unsigned arg = index_in_strings(option, *argv);
 		/* if search fails, "local" is assumed */
-		if ((int)arg >= 0)
+		if ((int)arg >= 0 && arg != 8)
 			NEXT_ARG();
 
 		if (arg <= 1) { /* peer, remote */
@@ -683,6 +691,8 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 		} else if (arg == 7) { /* label */
 			l = *argv;
 			addattr_l(&req.n, sizeof(req), IFA_LABEL, l, strlen(l) + 1);
+		} else if (arg == 8) { /* noprefixroute */
+			ifa_flags |= IFA_F_NOPREFIXROUTE;
 		} else {
 			/* local (specified or assumed) */
 			if (local_len) {
@@ -697,6 +707,11 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 		}
 		argv++;
 	}
+
+	if (ifa_flags <= 0xff)
+		req.ifa.ifa_flags = ifa_flags;
+	else
+		addattr32(&req.n, sizeof(req), IFA_FLAGS, ifa_flags);
 
 	if (!d) {
 		/* There was no "dev IFACE", but we need that */
