@@ -8,16 +8,17 @@
  */
 #include "libbb.h"
 
-/* Find out if the last character of a string matches the one given.
- * Don't underrun the buffer if the string length is 0.
- */
+/* Find out if the last character of a string matches the one given */
 char* FAST_FUNC last_char_is(const char *s, int c)
 {
-	if (s && *s) {
-		size_t sz = strlen(s) - 1;
-		s += sz;
-		if ( (unsigned char)*s == c)
-			return (char*)s;
+	if (s) {
+		size_t sz = strlen(s);
+		/* Don't underrun the buffer if the string length is 0 */
+		if (sz != 0) {
+			s += sz - 1;
+			if ((unsigned char)*s == c)
+				return (char*)s;
+		}
 	}
 	return NULL;
 }
