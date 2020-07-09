@@ -10,10 +10,14 @@
 # define _GNU_SOURCE
 # define FAST_FUNC /* nothing */
 # define xmalloc malloc
+# define xzalloc(s) calloc(s, 1)
+# define xstrdup strdup
+# define xrealloc realloc
 # include <stdlib.h>
 # include <stdint.h>
 # include <string.h>
 # include <stdio.h>
+# include <ctype.h>
 #else
 # include "common.h"
 #endif
@@ -26,86 +30,77 @@
 
 
 /* Expand a RFC1035-compressed list of domain names "cstr", of length "clen";
- * returns a newly allocated string containing the space-separated domains,
+ * return a newly allocated string containing the space-separated domains,
  * prefixed with the contents of string pre, or NULL if an error occurs.
  */
 char* FAST_FUNC dname_dec(const uint8_t *cstr, int clen, const char *pre)
 {
-	char *ret = ret; /* for compiler */
-	char *dst = NULL;
+	char *ret, *end;
+	unsigned len, crtpos, retpos, depth;
 
-	/* We make two passes over the cstr string. First, we compute
-	 * how long the resulting string would be. Then we allocate a
-	 * new buffer of the required length, and fill it in with the
-	 * expanded content. The advantage of this approach is not
-	 * having to deal with requiring callers to supply their own
-	 * buffer, then having to check if it's sufficiently large, etc.
-	 */
-	while (1) {
-		/* note: "return NULL" below are leak-safe since
-		 * dst isn't allocated yet */
+	crtpos = retpos = depth = 0;
+	len = strlen(pre);
+	end = ret = xstrdup(pre);
+
+	/* Scan the string once, allocating new memory as needed */
+	while (crtpos < clen) {
 		const uint8_t *c;
-		unsigned crtpos, retpos, depth, len;
+		c = cstr + crtpos;
 
-		crtpos = retpos = depth = len = 0;
-		while (crtpos < clen) {
-			c = cstr + crtpos;
+		if ((*c & NS_CMPRSFLGS) == NS_CMPRSFLGS) {
+			/* pointer */
+			if (crtpos + 2 > clen) /* no offset to jump to? abort */
+				goto error;
+			if (retpos == 0) /* toplevel? save return spot */
+				retpos = crtpos + 2;
+			depth++;
+			crtpos = ((c[0] << 8) | c[1]) & 0x3fff; /* jump */
+		} else if (*c) {
+			unsigned label_len;
+			/* label */
+			if (crtpos + *c + 1 > clen) /* label too long? abort */
+				goto error;
+			ret = xrealloc(ret, len + *c + 1);
+			/* \3com ---> "com." */
+			end = (char *)mempcpy(ret + len, c + 1, *c);
+			*end = '.';
 
-			if ((*c & NS_CMPRSFLGS) == NS_CMPRSFLGS) {
-				/* pointer */
-				if (crtpos + 2 > clen) /* no offset to jump to? abort */
-					return NULL;
-				if (retpos == 0) /* toplevel? save return spot */
-					retpos = crtpos + 2;
-				depth++;
-				crtpos = ((c[0] & 0x3f) << 8) | c[1]; /* jump */
-			} else if (*c) {
-				/* label */
-				if (crtpos + *c + 1 > clen) /* label too long? abort */
-					return NULL;
-				if (dst)
-					/* \3com ---> "com." */
-					((char*)mempcpy(dst + len, c + 1, *c))[0] = '.';
-				len += *c + 1;
-				crtpos += *c + 1;
+			label_len = *c + 1;
+			len += label_len;
+			crtpos += label_len;
+		} else {
+			/* NUL: end of current domain name */
+			if (retpos == 0) {
+				/* toplevel? keep going */
+				crtpos++;
 			} else {
-				/* NUL: end of current domain name */
-				if (retpos == 0) {
-					/* toplevel? keep going */
-					crtpos++;
-				} else {
-					/* return to toplevel saved spot */
-					crtpos = retpos;
-					retpos = depth = 0;
-				}
-				if (dst && len != 0)
-					/* \4host\3com\0\4host and we are at \0:
-					 * \3com was converted to "com.", change dot to space.
-					 */
-					dst[len - 1] = ' ';
+				/* return to toplevel saved spot */
+				crtpos = retpos;
+				retpos = depth = 0;
 			}
 
-			if (depth > NS_MAXDNSRCH /* too many jumps? abort, it's a loop */
-			 || len > NS_MAXDNAME * NS_MAXDNSRCH /* result too long? abort */
-			) {
-				return NULL;
+			if (len != 0) {
+				/* \4host\3com\0\4host and we are at \0:
+				 * \3com was converted to "com.", change dot to space.
+				 */
+				ret[len - 1] = ' ';
 			}
 		}
 
-		if (!len) /* expanded string has 0 length? abort */
-			return NULL;
-
-		if (!dst) { /* first pass? */
-			/* allocate dst buffer and copy pre */
-			unsigned plen = strlen(pre);
-			ret = xmalloc(plen + len);
-			dst = stpcpy(ret, pre);
-		} else {
-			dst[len - 1] = '\0';
-			break;
+		if (depth > NS_MAXDNSRCH /* too many jumps? abort, it's a loop */
+		 || len > NS_MAXDNAME * NS_MAXDNSRCH /* result too long? abort */
+		) {
+			goto error;
 		}
 	}
 
+	if (ret == end) { /* expanded string is empty? abort */
+ error:
+		free(ret);
+		return NULL;
+	}
+
+	*end = '\0';
 	return ret;
 }
 
@@ -115,42 +110,40 @@ char* FAST_FUNC dname_dec(const uint8_t *cstr, int clen, const char *pre)
  */
 static uint8_t *convert_dname(const char *src, int *retlen)
 {
-	uint8_t c, *res, *lenptr, *dst;
-	int len;
+	uint8_t *res, *lenptr, *dst;
 
-	res = xmalloc(strlen(src) + 2);
+	res = xzalloc(strlen(src) + 2);
 	dst = lenptr = res;
 	dst++;
 
 	for (;;) {
+		uint8_t c;
+		int len;
+
 		c = (uint8_t)*src++;
 		if (c == '.' || c == '\0') {  /* end of label */
 			len = dst - lenptr - 1;
-			/* label too long, too short, or two '.'s in a row? abort */
-			if (len > NS_MAXLABEL || len == 0 || (c == '.' && *src == '.')) {
-				free(res);
-				*retlen = 0;
-				return NULL;
-			}
+			/* label too long, too short, or two '.'s in a row (len will be 0) */
+			if (len > NS_MAXLABEL || len == 0)
+				goto error;
+
 			*lenptr = len;
 			if (c == '\0' || *src == '\0')	/* "" or ".": end of src */
 				break;
 			lenptr = dst++;
 			continue;
 		}
-		if (c >= 'A' && c <= 'Z')  /* uppercase? convert to lower */
-			c += ('a' - 'A');
-		*dst++ = c;
+		*dst++ = tolower(c);
 	}
 
-	if (dst - res >= NS_MAXCDNAME) {  /* dname too long? abort */
+	*retlen = dst + 1 - res;
+	if (*retlen > NS_MAXCDNAME) {  /* dname too long? abort */
+ error:
 		free(res);
 		*retlen = 0;
 		return NULL;
 	}
 
-	*dst++ = 0;
-	*retlen = dst - res;
 	return res;
 }
 
@@ -245,6 +238,7 @@ int main(int argc, char **argv)
 	printf("test4:'%s'\n", DNAME_DEC("\4host\3com\0\xC0\5", ""));
 	printf("test5:'%s'\n", DNAME_DEC("\4host\3com\0\xC0\5\1z\xC0\xA", ""));
 
+#if 0
 #define DNAME_ENC(cache,source,lenp) dname_enc((uint8_t*)(cache), sizeof(cache), (source), (lenp))
 	encoded = dname_enc(NULL, 0, "test.net", &len);
 	printf("test6:'%s' len:%d\n", dname_dec(encoded, len, ""), len);
@@ -252,6 +246,13 @@ int main(int argc, char **argv)
 	printf("test7:'%s' len:%d\n", dname_dec(encoded, len, ""), len);
 	encoded = DNAME_ENC("\4test\3net\0", "test.net", &len);
 	printf("test8:'%s' len:%d\n", dname_dec(encoded, len, ""), len);
+#endif
+
+	encoded = dname_enc("test.net", &len);
+	printf("test6:'%s' len:%d\n", dname_dec(encoded, len, ""), len);
+	encoded = dname_enc("test.host.com", &len);
+	printf("test7:'%s' len:%d\n", dname_dec(encoded, len, ""), len);
+
 	return 0;
 }
 #endif
