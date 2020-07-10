@@ -76,9 +76,8 @@ httpd_indexcgi.c -o index.cgi
   "border-color:black;" /* black black black black; */ \
   "white-space:nowrap"                                 \
 "}"                                                    \
+"tr:nth-child(odd) { background-color:#ffffff }"       \
 "tr.hdr { background-color:#eee5de }"                  \
-"tr.o { background-color:#ffffff }"                    \
-/* tr.e { ... } - for even rows (currently none) */    \
 "tr.foot { background-color:#eee5de }"                 \
 "th.cnt { text-align:left }"                           \
 "th.sz { text-align:right }"                           \
@@ -220,7 +219,6 @@ int main(int argc, char *argv[])
 	unsigned count_dirs;
 	unsigned count_files;
 	unsigned long long size_total;
-	int odd;
 	DIR *dirp;
 	char *location;
 
@@ -291,7 +289,6 @@ int main(int argc, char *argv[])
 		"<col class=nm><col class=sz><col class=dt>" "\n"
 		"<tr class=hdr><th class=cnt>Name<th class=sz>Size<th class=dt>Last modified" "\n");
 
-	odd = 0;
 	count_dirs = 0;
 	count_files = 0;
 	size_total = 0;
@@ -307,9 +304,7 @@ int main(int argc, char *argv[])
 		} else
 			goto next;
 
-		fmt_str("<tr class=");
-		*dst++ = (odd ? 'o' : 'e');
-		fmt_str("><td class=nm><a href='");
+		fmt_str("<tr><td class=nm><a href='");
 		fmt_url(cdir->dl_name); /* %20 etc */
 		if (S_ISDIR(cdir->dl_mode))
 			*dst++ = '/';
@@ -330,7 +325,6 @@ int main(int argc, char *argv[])
 		fmt_02u(ptm->tm_sec);
 		*dst++ = '\n';
 
-		odd = 1 - odd;
  next:
 		cdir++;
 	}
