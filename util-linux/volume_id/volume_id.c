@@ -106,6 +106,9 @@ static const probe_fptr fs1[] = {
 #if ENABLE_FEATURE_VOLUMEID_SQUASHFS
 	volume_id_probe_squashfs,
 #endif
+#if ENABLE_FEATURE_VOLUMEID_EROFS
+	volume_id_probe_erofs,
+#endif
 #if ENABLE_FEATURE_VOLUMEID_XFS
 	volume_id_probe_xfs,
 #endif
