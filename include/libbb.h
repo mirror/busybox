@@ -2063,6 +2063,13 @@ unsigned sha3_end(sha3_ctx_t *ctx, void *resbuf) FAST_FUNC;
 typedef struct md5_ctx_t md5sha_ctx_t;
 #define md5sha_hash md5_hash
 #define sha_end sha1_end
+enum {
+	MD5_OUTSIZE    = 16,
+	SHA1_OUTSIZE   = 20,
+	SHA256_OUTSIZE = 32,
+	SHA512_OUTSIZE = 64,
+	SHA3_OUTSIZE   = 28,
+};
 
 extern uint32_t *global_crc32_table;
 uint32_t *crc32_filltable(uint32_t *tbl256, int endian) FAST_FUNC;

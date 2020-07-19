@@ -156,7 +156,7 @@ int popmaildir_main(int argc UNUSED_PARAM, char **argv)
 				md5_ctx_t ctx;
 				char hex[16 * 2 + 1];
 			} md5;
-			uint32_t res[16 / 4];
+			uint32_t res[MD5_OUTSIZE / 4];
 
 			char *s = strchr(buf, '>');
 			if (s)
