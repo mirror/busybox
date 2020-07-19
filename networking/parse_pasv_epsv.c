@@ -38,6 +38,8 @@ int FAST_FUNC parse_pasv_epsv(char *buf)
 		 * Server's IP is N1.N2.N3.N4 (we ignore it)
 		 * Server's port for data connection is P1*256+P2 */
 		ptr = strrchr(buf, ')');
+		if (!ptr) ptr = strrchr(buf, '\r'); /* for PASV responses not ending with ')' */
+		if (!ptr) ptr = strrchr(buf, '\n'); /* for PASV responses not ending with ')' */
 		if (ptr) *ptr = '\0';
 
 		ptr = strrchr(buf, ',');
