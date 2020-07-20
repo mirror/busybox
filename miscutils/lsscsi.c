@@ -27,25 +27,21 @@
 
 static const char scsi_dir[] ALIGN1 = "/sys/bus/scsi/devices";
 
-static char *get_line(const char *filename, char *buf, unsigned *bufsize_p)
+static char *get_line(const char *filename, char *buf, char *bufend)
 {
-	unsigned bufsize = *bufsize_p;
-	ssize_t sz;
+	ssize_t sz = bufend - buf - 2; /* -2 for two NULs */
 
-	if ((int)(bufsize - 2) <= 0)
+	if (sz <= 0)
 		return buf;
 
-	sz = open_read_close(filename, buf, bufsize - 2);
+	sz = open_read_close(filename, buf, sz);
 	if (sz < 0)
 		sz = 0;
 	buf[sz] = '\0';
 
-	sz = (trim(buf) - buf) + 1;
-	bufsize -= sz;
-	buf += sz;
+	buf = trim(buf) + 1;
 	buf[0] = '\0';
 
-	*bufsize_p = bufsize;
 	return buf;
 }
 
@@ -61,7 +57,6 @@ int lsscsi_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	while ((de = readdir(dir)) != NULL) {
 		char buf[256];
 		char *ptr;
-		unsigned bufsize;
 		const char *vendor;
 		const char *type_str;
 		const char *type_name;
@@ -76,15 +71,17 @@ int lsscsi_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		if (chdir(de->d_name) != 0)
 			continue;
 
-		bufsize = sizeof(buf);
 		vendor = buf;
-		ptr = get_line("vendor", buf, &bufsize);
+		ptr = get_line("vendor", buf, buf + sizeof(buf));
+
 		type_str = ptr;
-		ptr = get_line("type", ptr, &bufsize);
+		ptr = get_line("type", ptr, buf + sizeof(buf));
+
 		model = ptr;
-		ptr = get_line("model", ptr, &bufsize);
+		ptr = get_line("model", ptr, buf + sizeof(buf));
+
 		rev = ptr;
-		ptr = get_line("rev", ptr, &bufsize);
+		/*ptr =*/ get_line("rev", ptr, buf + sizeof(buf));
 
 		printf("[%s]\t", de->d_name);
 
