@@ -426,6 +426,8 @@ typedef unsigned smalluint;
 #define HAVE_SYS_STATFS_H 1
 #define HAVE_PRINTF_PERCENTM 1
 #define HAVE_WAIT3 1
+#define HAVE_DEV_FD 1
+#define DEV_FD_PREFIX "/dev/fd/"
 
 #if defined(__UCLIBC__)
 # if UCLIBC_VERSION < KERNEL_VERSION(0, 9, 32)
