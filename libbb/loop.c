@@ -102,7 +102,8 @@ int FAST_FUNC get_free_loop(void)
  * search will re-use an existing loop device already bound to that
  * file/offset if it finds one.
  */
-int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offset, unsigned flags)
+int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offset,
+		unsigned long long sizelimit, unsigned flags)
 {
 	char dev[LOOP_NAMESIZE];
 	char *try;
@@ -185,6 +186,7 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 				memset(&loopinfo, 0, sizeof(loopinfo));
 				safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
 				loopinfo.lo_offset = offset;
+				loopinfo.lo_sizelimit = sizelimit;
 				/*
 				 * Used by mount to set LO_FLAGS_AUTOCLEAR.
 				 * LO_FLAGS_READ_ONLY is not set because RO is controlled by open type of the file.

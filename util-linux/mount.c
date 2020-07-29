@@ -1886,6 +1886,58 @@ static int nfsmount(struct mntent *mp, unsigned long vfsflags, char *filteropts)
 
 #endif // !ENABLE_FEATURE_MOUNT_NFS
 
+// Find "...,NAME=NUM,..." in the option string, remove "NAME=NUM" option
+// and return NUM.
+// Return 0 if not found.
+// All instances must be parsed and removed (for example, since kernel 5.4
+//      squashfs: Unknown parameter 'sizelimit'
+// will result if loopback mount option "sizelimit=NNN" is not removed
+// and squashfs sees it in option string).
+static unsigned long long cut_out_ull_opt(char *opts, const char *name_eq)
+{
+	unsigned long long ret = 0;
+
+	if (!opts) // allow NULL opts (simplifies callers' work)
+		return ret;
+
+	for (;;) {
+		char *end;
+		char *opt;
+
+		// Find comma-delimited "NAME="
+		for (;;) {
+			opt = strstr(opts, name_eq);
+			if (!opt)
+				return ret;
+			if (opt == opts)
+				break; // found it (it's first opt)
+			if (opt[-1] == ',') {
+				opts = opt - 1;
+				break; // found it (it's not a first opt)
+			}
+			// False positive like "VNAME=", we are at "N".
+			// - skip it, loop back to searching
+			opts = opt + 1;
+		}
+
+		ret = bb_strtoull(opt + strlen(name_eq), &end, 0);
+		if (errno && errno != EINVAL) {
+ err:
+			bb_error_msg_and_die("bad option '%s'", opt);
+		}
+		if (*end == '\0') {
+			// It is "[,]NAME=NUM\0" - truncate it and return
+			*opts = '\0';
+			return ret;
+		}
+		if (*end != ',')
+			goto err;
+		// We are at trailing comma
+		// Remove "NAME=NUM," and loop back to check for duplicate opts
+		overlapping_strcpy(opt, end + 1);
+	}
+}
+
 // Mount one directory.  Handles CIFS, NFS, loopback, autobind, and filesystem
 // type detection.  Returns 0 for success, nonzero for failure.
 // NB: mp->xxx fields may be trashed on exit
@@ -2029,8 +2081,15 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	) {
 		// Do we need to allocate a loopback device for it?
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
+			unsigned long long offset;
+			unsigned long long sizelimit;
+
 			loopFile = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_fsname = NULL; // will receive malloced loop dev name
+
+			// Parse and remove loopback options
+			offset = cut_out_ull_opt(filteropts, "offset=");
+			sizelimit = cut_out_ull_opt(filteropts, "sizelimit=");
 
 			// mount always creates AUTOCLEARed loopdevs, so that umounting
 			// drops them without any code in the userspace.
@@ -2040,7 +2099,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 			// Subject: Allow auto-destruction of loop devices
 			loopfd = set_loop(&mp->mnt_fsname,
 					loopFile,
-					0,
+					offset,
+					sizelimit,
 					((vfsflags & MS_RDONLY) ? BB_LO_FLAGS_READ_ONLY : 0)
 						| BB_LO_FLAGS_AUTOCLEAR
 			);

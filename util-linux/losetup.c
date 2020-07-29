@@ -150,7 +150,7 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 			if (opt & OPT_P) {
 				flags |= BB_LO_FLAGS_PARTSCAN;
 			}
-			if (set_loop(&d, argv[0], offset, flags) < 0)
+			if (set_loop(&d, argv[0], offset, 0, flags) < 0)
 				bb_simple_perror_msg_and_die(argv[0]);
 			return EXIT_SUCCESS;
 		}

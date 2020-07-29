@@ -1515,7 +1515,8 @@ int del_loop(const char *device) FAST_FUNC;
  * malloc and return it in *devname.
  * return value is the opened fd to the loop device, or < on error
  */
-int set_loop(char **devname, const char *file, unsigned long long offset, unsigned flags) FAST_FUNC;
+int set_loop(char **devname, const char *file, unsigned long long offset,
+		unsigned long long sizelimit, unsigned flags) FAST_FUNC;
 /* These constants match linux/loop.h (without BB_ prefix): */
 #define BB_LO_FLAGS_READ_ONLY 1
 #define BB_LO_FLAGS_AUTOCLEAR 4
