@@ -21,6 +21,7 @@ struct client_data_t {
 	uint8_t *vendorclass;           /* Optional vendor class-id to use */
 	uint8_t *hostname;              /* Optional hostname to use */
 	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
+	llist_t *envp;                  /* list of DHCP options used for env vars */
 
 	unsigned first_secs;
 	unsigned last_secs;

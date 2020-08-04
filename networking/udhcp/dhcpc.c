@@ -115,6 +115,13 @@ enum {
 
 
 /*** Script execution code ***/
+struct dhcp_optitem {
+	unsigned len;
+	uint8_t code;
+	uint8_t malloced;
+	uint8_t *data;
+	char *env;
+};
 
 /* get a rough idea of how long an option will be (rounding up...) */
 static const uint8_t len_of_option_as_string[] ALIGN1 = {
@@ -186,15 +193,15 @@ static int good_hostname(const char *name)
 #endif
 
 /* Create "opt_name=opt_value" string */
-static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_optflag *optflag, const char *opt_name)
+static NOINLINE char *xmalloc_optname_optval(const struct dhcp_optitem *opt_item, const struct dhcp_optflag *optflag, const char *opt_name)
 {
 	unsigned upper_length;
 	int len, type, optlen;
 	char *dest, *ret;
+	uint8_t *option;
 
-	/* option points to OPT_DATA, need to go back to get OPT_LEN */
-	len = option[-OPT_DATA + OPT_LEN];
-
+	option = opt_item->data;
+	len = opt_item->len;
 	type = optflag->flags & OPTION_TYPE_MASK;
 	optlen = dhcp_option_lengths[type];
 	upper_length = len_of_option_as_string[type]
@@ -386,11 +393,70 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 	return ret;
 }
 
-static void putenvp(llist_t **envp, char *new_opt)
+static void optitem_unset_env_and_free(void *item)
 {
-	putenv(new_opt);
+	struct dhcp_optitem *opt_item = item;
+	bb_unsetenv_and_free(opt_item->env);
+	if (opt_item->malloced)
+		free(opt_item->data);
+	free(opt_item);
+}
+
+/* Used by static options (interface, siaddr, etc) */
+static void putenvp(char *new_opt)
+{
+	struct dhcp_optitem *opt_item;
+
+	opt_item = xzalloc(sizeof(*opt_item));
+	/* opt_item->code = 0, so it won't appear in concat_option's lookup */
+	/* opt_item->malloced = 0 */
+	/* opt_item->data = NULL */
+	opt_item->env = new_opt;
+	llist_add_to(&client_data.envp, opt_item);
 	log2(" %s", new_opt);
-	llist_add_to(envp, new_opt);
+	putenv(new_opt);
+}
+
+/* Support RFC3396 Long Encoded Options */
+static struct dhcp_optitem *concat_option(uint8_t *data, uint8_t len, uint8_t code)
+{
+	llist_t *item;
+	struct dhcp_optitem *opt_item;
+
+	/* Check if an option with the code already exists.
+	 * A possible optimization is to create a bitmap of all existing options in the packet,
+	 * and iterate over the option list only if they exist.
+	 * This will result in bigger code, and because dhcp packets don't have too many options it
+	 * shouldn't have a big impact on performance.
+	 */
+	for (item = client_data.envp; item != NULL; item = item->link) {
+		opt_item = (struct dhcp_optitem *)item->data;
+		if (opt_item->code == code) {
+			/* This option was seen already, concatenate */
+			uint8_t *new_data;
+
+			new_data = xmalloc(len + opt_item->len);
+			memcpy(
+				mempcpy(new_data, opt_item->data, opt_item->len),
+				data, len
+			);
+			opt_item->len += len;
+			if (opt_item->malloced)
+				free(opt_item->data);
+			opt_item->malloced = 1;
+			opt_item->data = new_data;
+			return opt_item;
+		}
+	}
+
+	/* This is a new option, add a new dhcp_optitem to the list */
+	opt_item = xzalloc(sizeof(*opt_item));
+	opt_item->code = code;
+	/* opt_item->malloced = 0 */
+	opt_item->data = data;
+	opt_item->len = len;
+	llist_add_to(&client_data.envp, opt_item);
+	return opt_item;
 }
 
 static const char* get_optname(uint8_t code, const struct dhcp_optflag **dh)
@@ -403,7 +469,7 @@ static const char* get_optname(uint8_t code, const struct dhcp_optflag **dh)
 	 * and they'll count as unknown options.
 	 */
 	for (*dh = dhcp_optflags; (*dh)->code && (*dh)->code < code; (*dh)++)
-		    continue;
+		continue;
 
 	if ((*dh)->code == code)
 		return nth_string(dhcp_option_strings, (*dh - dhcp_optflags));
@@ -412,50 +478,54 @@ static const char* get_optname(uint8_t code, const struct dhcp_optflag **dh)
 }
 
 /* put all the parameters into the environment */
-static llist_t *fill_envp(struct dhcp_packet *packet)
+static void fill_envp(struct dhcp_packet *packet)
 {
 	uint8_t *optptr;
 	struct dhcp_scan_state scan_state;
 	char *new_opt;
-	llist_t *envp = NULL;
 
-	putenvp(&envp, xasprintf("interface=%s", client_data.interface));
+	putenvp(xasprintf("interface=%s", client_data.interface));
 
 	if (!packet)
-		return envp;
+		return;
 
 	init_scan_state(packet, &scan_state);
 
 	/* Iterate over the packet options.
 	 * Handle each option based on whether it's an unknown / known option.
-	 * There may be (although unlikely) duplicate options. For now, only the last
-	 * appearing option will be stored in the environment, and all duplicates
-	 * are freed properly.
-	 * Long options may be implemented in the future (see RFC 3396) if needed.
+	 * Long options are supported in compliance with RFC 3396.
 	 */
 	while ((optptr = udhcp_scan_options(packet, &scan_state)) != NULL) {
 		const struct dhcp_optflag *dh;
 		const char *opt_name;
+		struct dhcp_optitem *opt_item;
 		uint8_t code = optptr[OPT_CODE];
 		uint8_t len = optptr[OPT_LEN];
 		uint8_t *data = optptr + OPT_DATA;
 
+		opt_item = concat_option(data, len, code);
 		opt_name = get_optname(code, &dh);
 		if (opt_name) {
-			new_opt = xmalloc_optname_optval(data, dh, opt_name);
-			if (code == DHCP_SUBNET && len == 4) {
+			new_opt = xmalloc_optname_optval(opt_item, dh, opt_name);
+			if (opt_item->code == DHCP_SUBNET && opt_item->len == 4) {
+				/* Generate extra envvar for DHCP_SUBNET, $mask */
 				uint32_t subnet;
-				putenvp(&envp, new_opt);
-				move_from_unaligned32(subnet, data);
-				new_opt = xasprintf("mask=%u", mton(subnet));
+				move_from_unaligned32(subnet, opt_item->data);
+				putenvp(xasprintf("mask=%u", mton(subnet)));
 			}
 		} else {
 			unsigned ofs;
-			new_opt = xmalloc(sizeof("optNNN=") + 1 + len*2);
-			ofs = sprintf(new_opt, "opt%u=", code);
-			bin2hex(new_opt + ofs, (char *)data, len)[0] = '\0';
+			new_opt = xmalloc(sizeof("optNNN=") + 1 + opt_item->len*2);
+			ofs = sprintf(new_opt, "opt%u=", opt_item->code);
+			bin2hex(new_opt + ofs, (char *)opt_item->data, opt_item->len)[0] = '\0';
 		}
-		putenvp(&envp, new_opt);
+		log2(" %s", new_opt);
+		putenv(new_opt);
+		/* putenv will replace the existing environment variable in case of a duplicate.
+		 * Free the previous occurrence (NULL if it's the first one).
+		 */
+		free(opt_item->env);
+		opt_item->env = new_opt;
 	}
 
 	/* Export BOOTP fields. Fields we don't (yet?) export:
@@ -473,41 +543,38 @@ static llist_t *fill_envp(struct dhcp_packet *packet)
 	/* Most important one: yiaddr as $ip */
 	new_opt = xmalloc(sizeof("ip=255.255.255.255"));
 	sprint_nip(new_opt, "ip=", (uint8_t *) &packet->yiaddr);
-	putenvp(&envp, new_opt);
+	putenvp(new_opt);
 
 	if (packet->siaddr_nip) {
 		/* IP address of next server to use in bootstrap */
 		new_opt = xmalloc(sizeof("siaddr=255.255.255.255"));
 		sprint_nip(new_opt, "siaddr=", (uint8_t *) &packet->siaddr_nip);
-		putenvp(&envp, new_opt);
+		putenvp(new_opt);
 	}
 	if (packet->gateway_nip) {
 		/* IP address of DHCP relay agent */
 		new_opt = xmalloc(sizeof("giaddr=255.255.255.255"));
 		sprint_nip(new_opt, "giaddr=", (uint8_t *) &packet->gateway_nip);
-		putenvp(&envp, new_opt);
+		putenvp(new_opt);
 	}
 	if (!(scan_state.overload & FILE_FIELD) && packet->file[0]) {
 		/* watch out for invalid packets */
 		new_opt = xasprintf("boot_file=%."DHCP_PKT_FILE_LEN_STR"s", packet->file);
-		putenvp(&envp, new_opt);
+		putenvp(new_opt);
 	}
 	if (!(scan_state.overload & SNAME_FIELD) && packet->sname[0]) {
 		/* watch out for invalid packets */
 		new_opt = xasprintf("sname=%."DHCP_PKT_SNAME_LEN_STR"s", packet->sname);
-		putenvp(&envp, new_opt);
+		putenvp(new_opt);
 	}
-
-	return envp;
 }
 
 /* Call a script with a par file and env vars */
 static void udhcp_run_script(struct dhcp_packet *packet, const char *name)
 {
-	llist_t *envp;
 	char *argv[3];
 
-	envp = fill_envp(packet);
+	fill_envp(packet);
 
 	/* call script */
 	log1("executing %s %s", client_data.script, name);
@@ -517,7 +584,8 @@ static void udhcp_run_script(struct dhcp_packet *packet, const char *name)
 	spawn_and_wait(argv);
 
 	/* Free all allocated environment variables */
-	llist_free(envp, (void (*)(void *))bb_unsetenv_and_free);
+	llist_free(client_data.envp, optitem_unset_env_and_free);
+	client_data.envp = NULL;
 }
 
 
