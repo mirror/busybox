@@ -9,7 +9,6 @@
 //config:config NSENTER
 //config:	bool "nsenter (6.5 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Run program with namespaces of other processes.
 

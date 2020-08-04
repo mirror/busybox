@@ -34,7 +34,6 @@
 //config:config READPROFILE
 //config:	bool "readprofile (7.1 kb)"
 //config:	default y
-//config:	#select PLATFORM_LINUX
 //config:	help
 //config:	This allows you to parse /proc/profile for basic profiling.
 

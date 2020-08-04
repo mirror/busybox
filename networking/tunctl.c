@@ -12,7 +12,6 @@
 //config:config TUNCTL
 //config:	bool "tunctl (6.2 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	tunctl creates or deletes tun devices.
 //config:

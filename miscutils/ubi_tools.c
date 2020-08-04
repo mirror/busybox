@@ -6,42 +6,36 @@
 //config:config UBIATTACH
 //config:	bool "ubiattach (4.2 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Attach MTD device to an UBI device.
 //config:
 //config:config UBIDETACH
 //config:	bool "ubidetach (4.1 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Detach MTD device from an UBI device.
 //config:
 //config:config UBIMKVOL
 //config:	bool "ubimkvol (5.3 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Create a UBI volume.
 //config:
 //config:config UBIRMVOL
 //config:	bool "ubirmvol (4.9 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Delete a UBI volume.
 //config:
 //config:config UBIRSVOL
 //config:	bool "ubirsvol (4.2 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Resize a UBI volume.
 //config:
 //config:config UBIUPDATEVOL
 //config:	bool "ubiupdatevol (5.2 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Update a UBI volume.
 

@@ -14,7 +14,6 @@
 //config:config FBSET
 //config:	bool "fbset (5.9 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	fbset is used to show or change the settings of a Linux frame buffer
 //config:	device. The frame buffer device provides a simple and unique

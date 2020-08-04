@@ -23,7 +23,6 @@
 //config:config FBSPLASH
 //config:	bool "fbsplash (26 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Shows splash image and progress bar on framebuffer device.
 //config:	Can be used during boot phase of an embedded device.

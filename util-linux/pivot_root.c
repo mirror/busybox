@@ -11,7 +11,6 @@
 //config:config PIVOT_ROOT
 //config:	bool "pivot_root (1.1 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The pivot_root utility swaps the mount points for the root filesystem
 //config:	with some other mounted filesystem. This allows you to do all sorts

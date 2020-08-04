@@ -9,7 +9,6 @@
 //config:config IFPLUGD
 //config:	bool "ifplugd (10 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Network interface plug detection daemon.
 

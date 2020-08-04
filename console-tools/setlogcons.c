@@ -11,7 +11,6 @@
 //config:config SETLOGCONS
 //config:	bool "setlogcons (1.8 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	This program redirects the output console of kernel messages.
 

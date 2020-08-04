@@ -11,7 +11,6 @@
 //config:config KBD_MODE
 //config:	bool "kbd_mode (4.1 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	This program reports and sets keyboard mode.
 

@@ -31,7 +31,6 @@
 //config:	bool "Enable display of filesystem status (-f)"
 //config:	default y
 //config:	depends on STAT
-//config:	select PLATFORM_LINUX # statfs()
 //config:	help
 //config:	Without this, stat will not support the '-f' option to display
 //config:	information about filesystem status.

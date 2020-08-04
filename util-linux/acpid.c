@@ -9,7 +9,6 @@
 //config:config ACPID
 //config:	bool "acpid (9 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	acpid listens to ACPI events coming either in textual form from
 //config:	/proc/acpi/event (though it is marked deprecated it is still widely

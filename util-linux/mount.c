@@ -20,7 +20,6 @@
 //config:config MOUNT
 //config:	bool "mount (23 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	All files and filesystems in Unix are arranged into one big directory
 //config:	tree. The 'mount' utility is used to graft a filesystem onto a

@@ -10,14 +10,12 @@
 //config:config NANDWRITE
 //config:	bool "nandwrite (4.8 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Write to the specified MTD device, with bad blocks awareness
 //config:
 //config:config NANDDUMP
 //config:	bool "nanddump (5.2 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Dump the content of raw NAND chip
 

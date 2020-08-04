@@ -10,7 +10,6 @@
 //config:config IPCS
 //config:	bool "ipcs (11 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The ipcs utility is used to provide information on the currently
 //config:	allocated System V interprocess (IPC) objects in the system.

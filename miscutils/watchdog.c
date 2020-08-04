@@ -11,7 +11,6 @@
 //config:config WATCHDOG
 //config:	bool "watchdog (5.3 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The watchdog utility is used with hardware or software watchdog
 //config:	device drivers. It opens the specified watchdog device special file

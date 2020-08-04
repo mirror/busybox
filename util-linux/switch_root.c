@@ -9,7 +9,6 @@
 //config:config SWITCH_ROOT
 //config:	bool "switch_root (5.5 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The switch_root utility is used from initramfs to select a new
 //config:	root device. Under initramfs, you have to use this instead of

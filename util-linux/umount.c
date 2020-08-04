@@ -10,7 +10,6 @@
 //config:config UMOUNT
 //config:	bool "umount (5.1 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	When you want to remove a mounted filesystem from its current mount
 //config:	point, for example when you are shutting down the system, the

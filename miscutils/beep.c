@@ -9,7 +9,6 @@
 //config:config BEEP
 //config:	bool "beep (2.4 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The beep applets beeps in a given freq/Hz.
 //config:

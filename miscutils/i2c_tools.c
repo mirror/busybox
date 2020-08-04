@@ -11,35 +11,30 @@
 //config:config I2CGET
 //config:	bool "i2cget (5.5 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Read from I2C/SMBus chip registers.
 //config:
 //config:config I2CSET
 //config:	bool "i2cset (6.7 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Set I2C registers.
 //config:
 //config:config I2CDUMP
 //config:	bool "i2cdump (7.1 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Examine I2C registers.
 //config:
 //config:config I2CDETECT
 //config:	bool "i2cdetect (7.1 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Detect I2C chips.
 //config:
 //config:config I2CTRANSFER
 //config:	bool "i2ctransfer (4.0 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Send user-defined I2C messages in one transfer.
 //config:

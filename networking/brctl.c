@@ -12,7 +12,6 @@
 //config:config BRCTL
 //config:	bool "brctl (4.7 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Manage ethernet bridges.
 //config:	Supports addbr/delbr and addif/delif.

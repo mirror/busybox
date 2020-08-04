@@ -10,7 +10,6 @@
 //config:config SETCONSOLE
 //config:	bool "setconsole (3.6 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Redirect writes to /dev/console to another device,
 //config:	like the current tty while logged in via telnet.

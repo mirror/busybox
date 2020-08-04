@@ -8,7 +8,6 @@
 //config:config FDFORMAT
 //config:	bool "fdformat (4.4 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	fdformat is used to low-level format a floppy disk.
 

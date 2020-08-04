@@ -37,7 +37,6 @@
 //config:	bool "Support %[num]N nanosecond format specifier"
 //config:	default n # stat's nanosecond field is a bit non-portable
 //config:	depends on DATE
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Support %[num]N format specifier. Adds ~250 bytes of code.
 //config:

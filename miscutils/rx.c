@@ -17,7 +17,6 @@
 //config:config RX
 //config:	bool "rx (2.9 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Receive files using the Xmodem protocol.
 

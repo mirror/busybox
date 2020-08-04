@@ -9,7 +9,6 @@
 //config:config RFKILL
 //config:	bool "rfkill (4.4 kb)"
 //config:	default n # doesn't build on Ubuntu 9.04
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Enable/disable wireless devices.
 //config:

@@ -109,7 +109,6 @@
 //config:	bool "Linux kernel printk buffer support"
 //config:	default y
 //config:	depends on SYSLOGD
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	When you enable this feature, the syslogd utility will
 //config:	write system log message to the Linux kernel's printk buffer.

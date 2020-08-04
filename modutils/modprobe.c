@@ -10,7 +10,6 @@
 //config:config MODPROBE
 //config:	bool "modprobe (28 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Handle the loading of modules, and their dependencies on a high
 //config:	level.

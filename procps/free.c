@@ -9,7 +9,6 @@
 //config:config FREE
 //config:	bool "free (3.1 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX #sysinfo()
 //config:	help
 //config:	free displays the total amount of free and used physical and swap
 //config:	memory in the system, as well as the buffers used by the kernel.

@@ -66,7 +66,6 @@
 //config:config ETHER_WAKE
 //config:	bool "ether-wake (4.9 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Send a magic packet to wake up sleeping machines.
 

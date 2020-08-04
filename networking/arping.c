@@ -8,7 +8,6 @@
 //config:config ARPING
 //config:	bool "arping (9 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Ping hosts by ARP packets.
 

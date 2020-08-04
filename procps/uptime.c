@@ -14,7 +14,6 @@
 //config:config UPTIME
 //config:	bool "uptime (3.7 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX #sysinfo()
 //config:	help
 //config:	uptime gives a one line display of the current time, how long
 //config:	the system has been running, how many users are currently logged

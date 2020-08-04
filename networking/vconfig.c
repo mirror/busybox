@@ -9,7 +9,6 @@
 //config:config VCONFIG
 //config:	bool "vconfig (2.3 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Creates, removes, and configures VLAN interfaces
 

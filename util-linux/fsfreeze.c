@@ -7,7 +7,6 @@
 //config:config FSFREEZE
 //config:	bool "fsfreeze (3.5 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	select LONG_OPTS
 //config:	help
 //config:	Halt new accesses and flush writes on a mounted filesystem.

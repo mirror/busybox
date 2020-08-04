@@ -9,7 +9,6 @@
 //config:config SETPRIV
 //config:	bool "setpriv (6.6 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	select LONG_OPTS
 //config:	help
 //config:	Run a program with different Linux privilege settings.

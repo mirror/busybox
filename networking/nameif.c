@@ -12,7 +12,6 @@
 //config:config NAMEIF
 //config:	bool "nameif (6.6 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	select FEATURE_SYSLOG
 //config:	help
 //config:	nameif is used to rename network interface by its MAC address.

@@ -11,7 +11,6 @@
 //config:config FDFLUSH
 //config:	bool "fdflush (1.3 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	fdflush is only needed when changing media on slightly-broken
 //config:	removable media drives. It is used to make Linux believe that a
@@ -24,7 +23,6 @@
 //config:config FREERAMDISK
 //config:	bool "freeramdisk (1.3 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Linux allows you to create ramdisks. This utility allows you to
 //config:	delete them and completely free all memory that was used for the

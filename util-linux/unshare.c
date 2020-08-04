@@ -10,7 +10,6 @@
 //config:	bool "unshare (7.2 kb)"
 //config:	default y
 //config:	depends on !NOMMU
-//config:	select PLATFORM_LINUX
 //config:	select LONG_OPTS
 //config:	help
 //config:	Run program with some namespaces unshared from parent.

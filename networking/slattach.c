@@ -15,7 +15,6 @@
 //config:config SLATTACH
 //config:	bool "slattach (6.2 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	slattach configures serial line as SLIP network interface.
 

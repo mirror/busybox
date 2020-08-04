@@ -16,7 +16,6 @@
 //config:config NETSTAT
 //config:	bool "netstat (10 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	netstat prints information about the Linux networking subsystem.
 //config:

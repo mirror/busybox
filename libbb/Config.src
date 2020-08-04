@@ -334,7 +334,6 @@ config FEATURE_VERBOSE_CP_MESSAGE
 config FEATURE_USE_SENDFILE
 	bool "Use sendfile system call"
 	default y
-	select PLATFORM_LINUX
 	help
 	When enabled, busybox will use the kernel sendfile() function
 	instead of read/write loops to copy data between file descriptors
@@ -376,7 +375,6 @@ config FEATURE_SKIP_ROOTFS
 config MONOTONIC_SYSCALL
 	bool "Use clock_gettime(CLOCK_MONOTONIC) syscall"
 	default y
-	select PLATFORM_LINUX
 	help
 	Use clock_gettime(CLOCK_MONOTONIC) syscall for measuring
 	time intervals (time, ping, traceroute etc need this).

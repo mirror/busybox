@@ -27,7 +27,6 @@
 //config:config ROUTE
 //config:	bool "route (8.7 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Route displays or manipulates the kernel's IP routing tables.
 

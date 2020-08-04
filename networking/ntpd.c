@@ -43,7 +43,6 @@
 //config:config NTPD
 //config:	bool "ntpd (22 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The NTP client/server daemon.
 //config:

@@ -112,7 +112,8 @@ lib-y += xgethostbyname.o
 lib-y += xreadlink.o
 lib-y += xrealloc_vector.o
 
-lib-$(CONFIG_PLATFORM_LINUX) += match_fstype.o
+lib-$(CONFIG_MOUNT) += match_fstype.o
+lib-$(CONFIG_UMOUNT) += match_fstype.o
 
 lib-$(CONFIG_FEATURE_UTMP) += utmp.o
 

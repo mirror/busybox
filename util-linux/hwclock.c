@@ -9,7 +9,6 @@
 //config:config HWCLOCK
 //config:	bool "hwclock (5.8 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The hwclock utility is used to read and set the hardware clock
 //config:	on a system. This is primarily used to set the current time on

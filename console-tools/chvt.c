@@ -9,7 +9,6 @@
 //config:config CHVT
 //config:	bool "chvt (2 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	This program is used to change to another terminal.
 //config:	Example: chvt 4 (change to terminal /dev/tty4)

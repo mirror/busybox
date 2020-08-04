@@ -9,7 +9,6 @@
 //config:config LSSCSI
 //config:	bool "lsscsi (2.5 kb)"
 //config:	default y
-//config:	#select PLATFORM_LINUX
 //config:	help
 //config:	lsscsi is a utility for displaying information about SCSI buses in the
 //config:	system and devices connected to them.
