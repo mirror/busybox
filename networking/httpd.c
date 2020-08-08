@@ -269,7 +269,7 @@
 
 static const char DEFAULT_PATH_HTTPD_CONF[] ALIGN1 = "/etc";
 static const char HTTPD_CONF[] ALIGN1 = "httpd.conf";
-static const char HTTP_200[] ALIGN1 = "HTTP/1.0 200 OK\r\n";
+static const char HTTP_200[] ALIGN1 = "HTTP/1.1 200 OK\r\n";
 static const char index_html[] ALIGN1 = "index.html";
 
 typedef struct has_next_ptr {
@@ -1074,7 +1074,7 @@ static void send_headers(unsigned responseNum)
 	strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime_r(&timer, &tm));
 	/* ^^^ using gmtime_r() instead of gmtime() to not use static data */
 	len = sprintf(iobuf,
-			"HTTP/1.0 %u %s\r\n"
+			"HTTP/1.1 %u %s\r\n"
 			"Date: %s\r\n"
 			"Connection: close\r\n",
 			responseNum, responseString,
@@ -1099,7 +1099,7 @@ static void send_headers(unsigned responseNum)
 #endif
 	if (responseNum == HTTP_MOVED_TEMPORARILY) {
 		/* Responding to "GET /dir" with
-		 * "HTTP/1.0 302 Found" "Location: /dir/"
+		 * "HTTP/1.1 302 Found" "Location: /dir/"
 		 * - IOW, asking them to repeat with a slash.
 		 * Here, overflow IS possible, can't use sprintf:
 		 * mkdir test
@@ -1409,7 +1409,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 				count = safe_read(fromCgi_rd, rbuf + out_cnt, IOBUF_SIZE - 8);
 				if (count <= 0) {
 					/* eof (or error) and there was no "HTTP",
-					 * send "HTTP/1.0 200 OK\r\n", then send received data */
+					 * send "HTTP/1.1 200 OK\r\n", then send received data */
 					if (out_cnt) {
 						full_write(STDOUT_FILENO, HTTP_200, sizeof(HTTP_200)-1);
 						full_write(STDOUT_FILENO, rbuf, out_cnt);
@@ -1420,10 +1420,10 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 				count = 0;
 				/* "Status" header format is: "Status: 302 Redirected\r\n" */
 				if (out_cnt >= 8 && memcmp(rbuf, "Status: ", 8) == 0) {
-					/* send "HTTP/1.0 " */
+					/* send "HTTP/1.1 " */
 					if (full_write(STDOUT_FILENO, HTTP_200, 9) != 9)
 						break;
-					/* skip "Status: " (including space, sending "HTTP/1.0  NNN" is wrong) */
+					/* skip "Status: " (including space, sending "HTTP/1.1  NNN" is wrong) */
 					rbuf += 8;
 					count = out_cnt - 8;
 					out_cnt = -1; /* buffering off */
@@ -1439,7 +1439,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 						full_write(s, "Content-type: text/plain\r\n\r\n", 28);
 					}
 					 * Counter-example of valid CGI without Content-type:
-					 * echo -en "HTTP/1.0 302 Found\r\n"
+					 * echo -en "HTTP/1.1 302 Found\r\n"
 					 * echo -en "Location: http://www.busybox.net\r\n"
 					 * echo -en "\r\n"
 					 */
@@ -1546,7 +1546,7 @@ static void send_cgi_and_exit(
 	/* (Older versions of bbox seem to do some decoding) */
 	setenv1("QUERY_STRING", g_query);
 	putenv((char*)"SERVER_SOFTWARE=busybox httpd/"BB_VER);
-	putenv((char*)"SERVER_PROTOCOL=HTTP/1.0");
+	putenv((char*)"SERVER_PROTOCOL=HTTP/1.1");
 	putenv((char*)"GATEWAY_INTERFACE=CGI/1.1");
 	/* Having _separate_ variables for IP and port defeats
 	 * the purpose of having socket abstraction. Which "port"
