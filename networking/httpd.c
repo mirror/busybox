@@ -215,6 +215,16 @@
 //config:	Makes httpd send files using GZIP content encoding if the
 //config:	client supports it and a pre-compressed <file>.gz exists.
 //config:
+//config:config FEATURE_HTTPD_LAST_MODIFIED
+//config:	bool "Add Last-Modified header to response"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	The Last-Modified header is used for cache validation.
+//config:	The client sends last seen mtime to server in If-Modified-Since.
+//config:	Both headers MUST be an RFC 1123 formatted, which is hard to parse.
+//config:	Use ETag header instead.
+//config:
 //config:config FEATURE_HTTPD_DATE
 //config:	bool "Add Date header to response"
 //config:	default y
@@ -1046,11 +1056,12 @@ static void log_and_exit(void)
  */
 static void send_headers(unsigned responseNum)
 {
+#if ENABLE_FEATURE_HTTPD_DATE || ENABLE_FEATURE_HTTPD_LAST_MODIFIED
 	static const char RFC1123FMT[] ALIGN1 = "%a, %d %b %Y %H:%M:%S GMT";
 	/* Fixed size 29-byte string. Example: Sun, 06 Nov 1994 08:49:37 GMT */
 	char date_str[40]; /* using a bit larger buffer to paranoia reasons */
-
 	struct tm tm;
+#endif
 	const char *responseString = "";
 	const char *infoString = NULL;
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
@@ -1058,7 +1069,6 @@ static void send_headers(unsigned responseNum)
 #endif
 	unsigned len;
 	unsigned i;
-	time_t timer = time(NULL);
 
 	for (i = 0; i < ARRAY_SIZE(http_response_type); i++) {
 		if (http_response_type[i] == responseNum) {
@@ -1079,11 +1089,13 @@ static void send_headers(unsigned responseNum)
 	 * always fit into those kbytes.
 	 */
 
+	{
 #if ENABLE_FEATURE_HTTPD_DATE
-	strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime_r(&timer, &tm));
-	/* ^^^ using gmtime_r() instead of gmtime() to not use static data */
+		time_t timer = time(NULL);
+		strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime_r(&timer, &tm));
+		/* ^^^ using gmtime_r() instead of gmtime() to not use static data */
 #endif
-	len = sprintf(iobuf,
+		len = sprintf(iobuf,
 			"HTTP/1.1 %u %s\r\n"
 #if ENABLE_FEATURE_HTTPD_DATE
 			"Date: %s\r\n"
@@ -1093,7 +1105,8 @@ static void send_headers(unsigned responseNum)
 #if ENABLE_FEATURE_HTTPD_DATE
 			,date_str
 #endif
-	);
+		);
+	}
 
 	if (responseNum != HTTP_OK || found_mime_type) {
 		len += sprintf(iobuf + len,
@@ -1145,7 +1158,9 @@ static void send_headers(unsigned responseNum)
 #endif
 
 	if (file_size != -1) {    /* file */
+#if ENABLE_FEATURE_HTTPD_LAST_MODIFIED
 		strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime_r(&last_mod, &tm));
+#endif
 #if ENABLE_FEATURE_HTTPD_RANGES
 		if (responseNum == HTTP_PARTIAL_CONTENT) {
 			len += sprintf(iobuf + len,
@@ -1190,7 +1205,9 @@ static void send_headers(unsigned responseNum)
 #if ENABLE_FEATURE_HTTPD_RANGES
 			"Accept-Ranges: bytes\r\n"
 #endif
+#if ENABLE_FEATURE_HTTPD_LAST_MODIFIED
 			"Last-Modified: %s\r\n"
+#endif
 	/* Because of 4.4 (5), we can forgo sending of "Content-Length"
 	 * since we close connection afterwards, but it helps clients
 	 * to e.g. estimate download times, show progress bars etc.
@@ -1198,7 +1215,9 @@ static void send_headers(unsigned responseNum)
 	 * but de-facto standard is to send it (see comment below).
 	 */
 			"Content-Length: %"OFF_FMT"u\r\n",
+#if ENABLE_FEATURE_HTTPD_LAST_MODIFIED
 				date_str,
+#endif
 				file_size
 		);
 	}
