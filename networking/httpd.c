@@ -214,6 +214,14 @@
 //config:	help
 //config:	Makes httpd send files using GZIP content encoding if the
 //config:	client supports it and a pre-compressed <file>.gz exists.
+//config:
+//config:config FEATURE_HTTPD_DATE
+//config:	bool "Add Date header to response"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	RFC2616 says that server MUST add Date header to response.
+//config:	But it is almost useless and can be omitted.
 
 //applet:IF_HTTPD(APPLET(httpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
 
@@ -1071,14 +1079,20 @@ static void send_headers(unsigned responseNum)
 	 * always fit into those kbytes.
 	 */
 
+#if ENABLE_FEATURE_HTTPD_DATE
 	strftime(date_str, sizeof(date_str), RFC1123FMT, gmtime_r(&timer, &tm));
 	/* ^^^ using gmtime_r() instead of gmtime() to not use static data */
+#endif
 	len = sprintf(iobuf,
 			"HTTP/1.1 %u %s\r\n"
+#if ENABLE_FEATURE_HTTPD_DATE
 			"Date: %s\r\n"
+#endif
 			"Connection: close\r\n",
-			responseNum, responseString,
-			date_str
+			responseNum, responseString
+#if ENABLE_FEATURE_HTTPD_DATE
+			,date_str
+#endif
 	);
 
 	if (responseNum != HTTP_OK || found_mime_type) {
