@@ -96,6 +96,14 @@ testing "grep -x -F (partial match 1)" "grep -x -F foo input ; echo \$?" \
 testing "grep -x -F (partial match 2)" "grep -x -F foo input ; echo \$?" \
 	"1\n" "bar foo\n" ""
 
+# -L "show filenames which do not match" has inverted exitcode (if it printed something, it's "success")
+testing "grep -L exitcode 0" "grep -L qwe input; echo \$?" \
+	"input\n0\n" "asd\n" ""
+testing "grep -L exitcode 0 #2" "grep -L qwe input -; echo \$?" \
+	"(standard input)\n0\n" "qwe\n" "asd\n"
+testing "grep -L exitcode 1" "grep -L qwe input; echo \$?" \
+	"1\n" "qwe\n" ""
+
 optional EGREP
 testing "grep -E supports extended regexps" "grep -E fo+" "foo\n" "" \
 	"b\ar\nfoo\nbaz"

@@ -167,13 +167,11 @@ enum {
 	OPT_z = IF_EXTRA_COMPAT(            (1 << OPTBIT_z)) + 0,
 };
 
-#define PRINT_FILES_WITH_MATCHES    (option_mask32 & OPT_l)
 #define PRINT_LINE_NUM              (option_mask32 & OPT_n)
 #define BE_QUIET                    (option_mask32 & OPT_q)
 #define SUPPRESS_ERR_MSGS           (option_mask32 & OPT_s)
 #define PRINT_MATCH_COUNTS          (option_mask32 & OPT_c)
 #define FGREP_FLAG                  (option_mask32 & OPT_F)
-#define PRINT_FILES_WITHOUT_MATCHES (option_mask32 & OPT_L)
 #define NUL_DELIMITED               (option_mask32 & OPT_z)
 
 struct globals {
@@ -476,13 +474,13 @@ static int grep_file(FILE *file)
 					 * even if errors were detected" */
 					exit(EXIT_SUCCESS);
 				}
-				/* if we're just printing filenames, we stop after the first match */
-				if (PRINT_FILES_WITH_MATCHES) {
+				/* -l "print filenames with matches": stop after the first match */
+				if (option_mask32 & OPT_l) {
 					puts(cur_file);
-					/* fall through to "return 1" */
+					return 1;
 				}
-				/* OPT_L aka PRINT_FILES_WITHOUT_MATCHES: return early */
-				return 1; /* one match */
+				/* -L "print filenames without matches": return early too */
+				return 0; /* 0: we do not print fname, hence it's "not a match" */
 			}
 
 #if ENABLE_FEATURE_GREP_CONTEXT
@@ -602,15 +600,16 @@ static int grep_file(FILE *file)
 		printf("%d\n", nmatches);
 	}
 
-	/* grep -L: print just the filename */
-	if (PRINT_FILES_WITHOUT_MATCHES) {
+	/* grep -L: "print filenames without matches" */
+	if (option_mask32 & OPT_L) {
 		/* nmatches is zero, no need to check it:
-		 * we return 1 early if we detected a match
-		 * and PRINT_FILES_WITHOUT_MATCHES is set */
+		 * we return 0 early if -L and we detect a match
+		 */
 		puts(cur_file);
+		return 1; /* 1: we printed fname, hence it's "a match" */
 	}
 
-	return nmatches;
+	return nmatches != 0; /* we return not a count, but a boolean */
 }
 
 #if ENABLE_FEATURE_CLEAN_UP
@@ -687,7 +686,7 @@ static int FAST_FUNC file_action_grep(const char *filename,
 		return 0;
 	}
 	cur_file = filename;
-	*(int*)matched += grep_file(file);
+	*(int*)matched |= grep_file(file);
 	fclose(file);
 	return 1;
 }
@@ -844,7 +843,7 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 				if (stat(cur_file, &st) == 0 && S_ISDIR(st.st_mode)) {
 					if (!(option_mask32 & OPT_h))
 						print_filename = 1;
-					matched += grep_dir(cur_file);
+					matched |= grep_dir(cur_file);
 					goto grep_done;
 				}
 			}
@@ -857,7 +856,7 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 			}
 		}
-		matched += grep_file(file);
+		matched |= grep_file(file);
 		fclose_if_not_stdin(file);
  grep_done: ;
 	} while (*argv && *++argv);
