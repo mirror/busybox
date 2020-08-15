@@ -215,6 +215,19 @@
 //config:	Makes httpd send files using GZIP content encoding if the
 //config:	client supports it and a pre-compressed <file>.gz exists.
 //config:
+//config:config FEATURE_HTTPD_ETAG
+//config:	bool "Support caching via ETag header"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	If server responds with ETag then next time client (browser)
+//config:	resend it via If-None-Match header.
+//config:	Then httpd will check if file wasn't modified and if not,
+//config:	return 304 Not Modified status code.
+//config:	The ETag value is constructed from last modification date
+//config:	in unix epoch, and size: "hex(last_mod)-hex(file_size)".
+//config:	It's not completely reliable as hash functions but fair enough.
+//config:
 //config:config FEATURE_HTTPD_LAST_MODIFIED
 //config:	bool "Add Last-Modified header to response"
 //config:	default y
@@ -328,6 +341,7 @@ enum {
 	HTTP_OK = 200,
 	HTTP_PARTIAL_CONTENT = 206,
 	HTTP_MOVED_TEMPORARILY = 302,
+	HTTP_NOT_MODIFIED = 304,
 	HTTP_BAD_REQUEST = 400,       /* malformed syntax */
 	HTTP_UNAUTHORIZED = 401, /* authentication needed, respond with auth hdr */
 	HTTP_NOT_FOUND = 404,
@@ -345,7 +359,6 @@ enum {
 	HTTP_NO_CONTENT = 204,
 	HTTP_MULTIPLE_CHOICES = 300,
 	HTTP_MOVED_PERMANENTLY = 301,
-	HTTP_NOT_MODIFIED = 304,
 	HTTP_PAYMENT_REQUIRED = 402,
 	HTTP_BAD_GATEWAY = 502,
 	HTTP_SERVICE_UNAVAILABLE = 503, /* overload, maintenance */
@@ -358,6 +371,9 @@ static const uint16_t http_response_type[] ALIGN2 = {
 	HTTP_PARTIAL_CONTENT,
 #endif
 	HTTP_MOVED_TEMPORARILY,
+#if ENABLE_FEATURE_HTTPD_ETAG
+	HTTP_NOT_MODIFIED,
+#endif
 	HTTP_REQUEST_TIMEOUT,
 	HTTP_NOT_IMPLEMENTED,
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -374,7 +390,6 @@ static const uint16_t http_response_type[] ALIGN2 = {
 	HTTP_NO_CONTENT,
 	HTTP_MULTIPLE_CHOICES,
 	HTTP_MOVED_PERMANENTLY,
-	HTTP_NOT_MODIFIED,
 	HTTP_BAD_GATEWAY,
 	HTTP_SERVICE_UNAVAILABLE,
 #endif
@@ -389,6 +404,9 @@ static const struct {
 	{ "Partial Content", NULL },
 #endif
 	{ "Found", NULL },
+#if ENABLE_FEATURE_HTTPD_ETAG
+	{ "Not Modified" },
+#endif
 	{ "Request Timeout", "No request appeared within 60 seconds" },
 	{ "Not Implemented", "The requested method is not recognized" },
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -405,7 +423,6 @@ static const struct {
 	{ "No Content" },
 	{ "Multiple Choices" },
 	{ "Moved Permanently" },
-	{ "Not Modified" },
 	{ "Bad Gateway", "" },
 	{ "Service Unavailable", "" },
 #endif
@@ -419,6 +436,9 @@ struct globals {
 	smallint content_gzip;
 #endif
 	time_t last_mod;
+#if ENABLE_FEATURE_HTTPD_ETAG
+	char *if_none_match;
+#endif
 	char *rmt_ip_str;       /* for $REMOTE_ADDR and $REMOTE_PORT */
 	const char *bind_addr_or_port;
 
@@ -453,6 +473,9 @@ struct globals {
 #define sizeof_hdr_buf COMMON_BUFSIZE
 	char *hdr_ptr;
 	int hdr_cnt;
+#if ENABLE_FEATURE_HTTPD_ETAG
+	char etag[sizeof("'%llx-%llx'") + 2 * sizeof(long long)*3];
+#endif
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
 	const char *http_error_page[ARRAY_SIZE(http_response_type)];
 #endif
@@ -1208,6 +1231,10 @@ static void send_headers(unsigned responseNum)
 #if ENABLE_FEATURE_HTTPD_LAST_MODIFIED
 			"Last-Modified: %s\r\n"
 #endif
+#if ENABLE_FEATURE_HTTPD_ETAG
+			"ETag: %s\r\n"
+#endif
+
 	/* Because of 4.4 (5), we can forgo sending of "Content-Length"
 	 * since we close connection afterwards, but it helps clients
 	 * to e.g. estimate download times, show progress bars etc.
@@ -1217,6 +1244,9 @@ static void send_headers(unsigned responseNum)
 			"Content-Length: %"OFF_FMT"u\r\n",
 #if ENABLE_FEATURE_HTTPD_LAST_MODIFIED
 				date_str,
+#endif
+#if ENABLE_FEATURE_HTTPD_ETAG
+				G.etag,
 #endif
 				file_size
 		);
@@ -1730,6 +1760,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 		}
 	} else {
 		fd = open(url, O_RDONLY);
+		/* file_size and last_mod are already populated */
 	}
 	if (fd < 0) {
 		if (DEBUG)
@@ -1741,6 +1772,19 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 			send_headers_and_exit(HTTP_NOT_FOUND);
 		log_and_exit();
 	}
+#if ENABLE_FEATURE_HTTPD_ETAG
+	/* ETag is "hex(last_mod)-hex(file_size)" e.g. "5e132e20-417" */
+	sprintf(G.etag, "\"%llx-%llx\"", (unsigned long long)last_mod, (unsigned long long)file_size);
+
+	if (G.if_none_match) {
+		if (DEBUG)
+			bb_perror_msg("If-None-Match and file's ETag are: '%s' '%s'\n", G.if_none_match, G.etag);
+		/* Weak ETag comparision.
+		 * If-None-Match may have many ETags but they are quoted so we can use simple substring search */
+		if (strstr(G.if_none_match, G.etag))
+			send_headers_and_exit(HTTP_NOT_MODIFIED);
+	}
+#endif
 	/* If you want to know about EPIPE below
 	 * (happens if you abort downloads from local httpd): */
 	signal(SIGPIPE, SIG_IGN);
@@ -2477,6 +2521,13 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 					content_gzip = 1;
 				//}
 			}
+			continue;
+		}
+#endif
+#if ENABLE_FEATURE_HTTPD_ETAG
+		if (STRNCASECMP(iobuf, "If-None-Match:") == 0) {
+			free(G.if_none_match);
+			G.if_none_match = xstrdup(skip_whitespace(iobuf + sizeof("If-None-Match:") - 1));
 			continue;
 		}
 #endif
