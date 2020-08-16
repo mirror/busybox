@@ -245,6 +245,13 @@
 //config:	help
 //config:	RFC2616 says that server MUST add Date header to response.
 //config:	But it is almost useless and can be omitted.
+//config:
+//config:config FEATURE_HTTPD_ACL_IP
+//config:	bool "ACL IP"
+//config:	default y
+//config:	depends on HTTPD
+//config:	help
+//config:	Support IP deny/allow rules
 
 //applet:IF_HTTPD(APPLET(httpd, BB_DIR_USR_SBIN, BB_SUID_DROP))
 
@@ -314,6 +321,7 @@ typedef struct Htaccess {
 	char before_colon[1];  /* really bigger, must be last */
 } Htaccess;
 
+#if ENABLE_FEATURE_HTTPD_ACL_IP
 /* Must have "next" as a first member */
 typedef struct Htaccess_IP {
 	struct Htaccess_IP *next;
@@ -321,6 +329,7 @@ typedef struct Htaccess_IP {
 	unsigned mask;
 	int allow_deny;
 } Htaccess_IP;
+#endif
 
 /* Must have "next" as a first member */
 typedef struct Htaccess_Proxy {
@@ -449,7 +458,9 @@ struct globals {
 
 	const char *found_mime_type;
 	const char *found_moved_temporarily;
+#if ENABLE_FEATURE_HTTPD_ACL_IP
 	Htaccess_IP *ip_a_d;    /* config allow/deny lines */
+#endif
 
 	IF_FEATURE_HTTPD_BASIC_AUTH(const char *g_realm;)
 	IF_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
@@ -499,7 +510,6 @@ struct globals {
 #define found_mime_type   (G.found_mime_type  )
 #define found_moved_temporarily (G.found_moved_temporarily)
 #define last_mod          (G.last_mod         )
-#define ip_a_d            (G.ip_a_d           )
 #define g_realm           (G.g_realm          )
 #define remoteuser        (G.remoteuser       )
 #define file_size         (G.file_size        )
@@ -560,11 +570,14 @@ static ALWAYS_INLINE void free_Htaccess_list(Htaccess **pptr)
 	free_llist((has_next_ptr**)pptr);
 }
 
+#if ENABLE_FEATURE_HTTPD_ACL_IP
 static ALWAYS_INLINE void free_Htaccess_IP_list(Htaccess_IP **pptr)
 {
 	free_llist((has_next_ptr**)pptr);
 }
+#endif
 
+#if ENABLE_FEATURE_HTTPD_ACL_IP
 /* Returns presumed mask width in bits or < 0 on error.
  * Updates strp, stores IP at provided pointer */
 static int scan_ip(const char **strp, unsigned *ipp, unsigned char endc)
@@ -649,6 +662,7 @@ static int scan_ip_mask(const char *str, unsigned *ipp, unsigned *maskp)
 	*maskp = (uint32_t)(~mask);
 	return 0;
 }
+#endif
 
 /*
  * Parse configuration file into in-memory linked list.
@@ -678,7 +692,9 @@ static void parse_conf(const char *path, int flag)
 	char buf[160];
 
 	/* discard old rules */
-	free_Htaccess_IP_list(&ip_a_d);
+#if ENABLE_FEATURE_HTTPD_ACL_IP
+	free_Htaccess_IP_list(&G.ip_a_d);
+#endif
 	flg_deny_all = 0;
 	/* retain previous auth and mime config only for subdir parse */
 	if (flag != SUBDIR_PARSE) {
@@ -783,6 +799,7 @@ static void parse_conf(const char *path, int flag)
 			continue;
 		}
 
+#if ENABLE_FEATURE_HTTPD_ACL_IP
 		if (ch == 'A' || ch == 'D') {
 			Htaccess_IP *pip;
 
@@ -804,13 +821,13 @@ static void parse_conf(const char *path, int flag)
 			pip->allow_deny = ch;
 			if (ch == 'D') {
 				/* Deny:from_IP - prepend */
-				pip->next = ip_a_d;
-				ip_a_d = pip;
+				pip->next = G.ip_a_d;
+				G.ip_a_d = pip;
 			} else {
 				/* A:from_IP - append (thus all D's precedes A's) */
-				Htaccess_IP *prev_IP = ip_a_d;
+				Htaccess_IP *prev_IP = G.ip_a_d;
 				if (prev_IP == NULL) {
-					ip_a_d = pip;
+					G.ip_a_d = pip;
 				} else {
 					while (prev_IP->next)
 						prev_IP = prev_IP->next;
@@ -819,6 +836,7 @@ static void parse_conf(const char *path, int flag)
 			}
 			continue;
 		}
+#endif
 
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
 		if (flag == FIRST_PARSE && ch == 'E') {
@@ -1920,11 +1938,12 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 	log_and_exit();
 }
 
+#if ENABLE_FEATURE_HTTPD_ACL_IP
 static void if_ip_denied_send_HTTP_FORBIDDEN_and_exit(unsigned remote_ip)
 {
 	Htaccess_IP *cur;
 
-	for (cur = ip_a_d; cur; cur = cur->next) {
+	for (cur = G.ip_a_d; cur; cur = cur->next) {
 #if DEBUG
 		fprintf(stderr,
 			"checkPermIP: '%s' ? '%u.%u.%u.%u/%u.%u.%u.%u'\n",
@@ -1949,6 +1968,9 @@ static void if_ip_denied_send_HTTP_FORBIDDEN_and_exit(unsigned remote_ip)
 	if (flg_deny_all) /* depends on whether we saw "D:*" */
 		send_headers_and_exit(HTTP_FORBIDDEN);
 }
+#else
+# define if_ip_denied_send_HTTP_FORBIDDEN_and_exit(arg) ((void)0)
+#endif
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 
@@ -2184,7 +2206,9 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	char *urlcopy;
 	char *urlp;
 	char *tptr;
+#if ENABLE_FEATURE_HTTPD_ACL_IP
 	unsigned remote_ip;
+#endif
 #if ENABLE_FEATURE_HTTPD_CGI
 	unsigned total_headers_len;
 #endif
@@ -2206,17 +2230,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	 * (IOW, server process doesn't need to waste 8k) */
 	iobuf = xmalloc(IOBUF_SIZE);
 
-	remote_ip = 0;
-	if (fromAddr->u.sa.sa_family == AF_INET) {
-		remote_ip = ntohl(fromAddr->u.sin.sin_addr.s_addr);
-	}
-#if ENABLE_FEATURE_IPV6
-	if (fromAddr->u.sa.sa_family == AF_INET6
-	 && fromAddr->u.sin6.sin6_addr.s6_addr32[0] == 0
-	 && fromAddr->u.sin6.sin6_addr.s6_addr32[1] == 0
-	 && ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[2]) == 0xffff)
-		remote_ip = ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[3]);
-#endif
 	if (ENABLE_FEATURE_HTTPD_CGI || DEBUG || verbose) {
 		/* NB: can be NULL (user runs httpd -i by hand?) */
 		rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr->u.sa);
@@ -2228,7 +2241,20 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		if (verbose > 2)
 			bb_simple_error_msg("connected");
 	}
+#if ENABLE_FEATURE_HTTPD_ACL_IP
+	remote_ip = 0;
+	if (fromAddr->u.sa.sa_family == AF_INET) {
+		remote_ip = ntohl(fromAddr->u.sin.sin_addr.s_addr);
+	}
+# if ENABLE_FEATURE_IPV6
+	if (fromAddr->u.sa.sa_family == AF_INET6
+	 && fromAddr->u.sin6.sin6_addr.s6_addr32[0] == 0
+	 && fromAddr->u.sin6.sin6_addr.s6_addr32[1] == 0
+	 && ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[2]) == 0xffff)
+		remote_ip = ntohl(fromAddr->u.sin6.sin6_addr.s6_addr32[3]);
+# endif
 	if_ip_denied_send_HTTP_FORBIDDEN_and_exit(remote_ip);
+#endif
 
 	/* Install timeout handler. get_line() needs it. */
 	signal(SIGALRM, send_REQUEST_TIMEOUT_and_exit);
