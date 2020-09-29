@@ -4453,15 +4453,28 @@ waitone(int block, struct job *job)
 static int
 dowait(int block, struct job *jp)
 {
-	int pid = block == DOWAIT_NONBLOCK ? got_sigchld : 1;
+	smallint gotchld = *(volatile smallint *)&got_sigchld;
+	int rpid;
+	int pid;
 
-	while (jp ? jp->state == JOBRUNNING : pid > 0) {
-		if (!jp)
-			got_sigchld = 0;
+	if (jp && jp->state != JOBRUNNING)
+		block = DOWAIT_NONBLOCK;
+
+	if (block == DOWAIT_NONBLOCK && !gotchld)
+		return 1;
+
+	rpid = 1;
+
+	do {
+		got_sigchld = 0;
 		pid = waitone(block, jp);
-	}
+		rpid &= !!pid;
 
-	return pid;
+		if (!pid || (jp && jp->state != JOBRUNNING))
+			block = DOWAIT_NONBLOCK;
+	} while (pid >= 0);
+
+	return rpid;
 }
 
 #if JOBS
