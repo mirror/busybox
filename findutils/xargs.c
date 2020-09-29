@@ -80,9 +80,11 @@
 /* This is a NOEXEC applet. Be very careful! */
 
 
-//#define dbg_msg(...) bb_error_msg(__VA_ARGS__)
-#define dbg_msg(...) ((void)0)
-
+#if 0
+# define dbg_msg(...) bb_error_msg(__VA_ARGS__)
+#else
+# define dbg_msg(...) ((void)0)
+#endif
 
 #ifdef TEST
 # ifndef ENABLE_FEATURE_XARGS_SUPPORT_CONFIRMATION
@@ -466,9 +468,18 @@ static char* FAST_FUNC process_stdin_with_replace(int n_max_chars, int n_max_arg
 
 	while (1) {
 		int c = getchar();
+		if (p == buf) {
+			if (c == EOF)
+				goto ret; /* last line is empty, return "" */
+			if (c == G.eol_ch)
+				continue; /* empty line, ignore */
+			/* Skip leading whitespace of each line: try
+			 * echo -e ' \t\v1 2 3 ' | xargs -I% echo '[%]'
+			 */
+			if (ISSPACE(c))
+				continue;
+		}
 		if (c == EOF || c == G.eol_ch) {
-			if (p == buf)
-				goto ret; /* empty line */
 			c = '\0';
 		}
 		*p++ = c;
