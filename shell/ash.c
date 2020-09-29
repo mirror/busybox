@@ -12811,7 +12811,7 @@ parsebackq: {
 				goto done;
 
 			case '\\':
-				pc = pgetc(); /* or pgetc_eatbnl()? why (example)? */
+				pc = pgetc(); /* not pgetc_eatbnl! */
 				if (pc != '\\' && pc != '`' && pc != '$'
 				 && (!synstack->dblquote || pc != '"')
 				) {
