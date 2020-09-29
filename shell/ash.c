@@ -4273,50 +4273,6 @@ sprint_status48(char *os, int status, int sigonly)
 	return s - os;
 }
 
-static int
-wait_block_or_sig(int *status)
-{
-	int pid;
-
-	do {
-		sigset_t mask;
-
-		/* Poll all children for changes in their state */
-		got_sigchld = 0;
-		/* if job control is active, accept stopped processes too */
-		pid = waitpid(-1, status, doing_jobctl ? (WNOHANG|WUNTRACED) : WNOHANG);
-		if (pid != 0)
-			break; /* Error (e.g. EINTR, ECHILD) or pid */
-
-		/* Children exist, but none are ready. Sleep until interesting signal */
-#if 1
-		sigfillset(&mask);
-		sigprocmask2(SIG_SETMASK, &mask); /* mask is updated */
-		while (!got_sigchld && !pending_sig) {
-			sigsuspend(&mask);
-			/* ^^^ add "sigdelset(&mask, SIGCHLD);" before sigsuspend
-			 * to make sure SIGCHLD is not masked off?
-			 * It was reported that this:
-			 *	fn() { : | return; }
-			 *	shopt -s lastpipe
-			 *	fn
-			 *	exec ash SCRIPT
-			 * under bash 4.4.23 runs SCRIPT with SIGCHLD masked,
-			 * making "wait" commands in SCRIPT block forever.
-			 */
-		}
-		sigprocmask(SIG_SETMASK, &mask, NULL);
-#else /* unsafe: a signal can set pending_sig after check, but before pause() */
-		while (!got_sigchld && !pending_sig)
-			pause();
-#endif
-
-		/* If it was SIGCHLD, poll children again */
-	} while (got_sigchld);
-
-	return pid;
-}
-
 #define DOWAIT_NONBLOCK 0
 #define DOWAIT_BLOCK    1
 #define DOWAIT_BLOCK_OR_SIG 2
@@ -4325,12 +4281,47 @@ wait_block_or_sig(int *status)
 #endif
 
 static int
+waitproc(int block, int *status)
+{
+	sigset_t oldmask;
+	int flags = block == DOWAIT_BLOCK ? 0 : WNOHANG;
+	int err;
+
+#if JOBS
+	if (doing_jobctl)
+		flags |= WUNTRACED;
+#endif
+
+	do {
+		got_sigchld = 0;
+		do
+			err = waitpid(-1, status, flags);
+		while (err < 0 && errno == EINTR);
+
+		if (err || (err = -!block))
+			break;
+
+		sigfillset(&oldmask);
+		sigprocmask2(SIG_SETMASK, &oldmask); /* mask is updated */
+		while (!got_sigchld && !pending_sig)
+			sigsuspend(&oldmask);
+		sigprocmask(SIG_SETMASK, &oldmask, NULL);
+		//simpler, but unsafe: a signal can set pending_sig after check, but before pause():
+		//while (!got_sigchld && !pending_sig)
+		//	pause();
+
+	} while (got_sigchld);
+
+	return err;
+}
+
+static int
 waitone(int block, struct job *job)
 {
 	int pid;
 	int status;
 	struct job *jp;
-	struct job *thisjob;
+	struct job *thisjob = NULL;
 #if BASH_WAIT_N
 	bool want_jobexitstatus = (block & DOWAIT_JOBSTATUS);
 	block = (block & ~DOWAIT_JOBSTATUS);
@@ -4357,21 +4348,8 @@ waitone(int block, struct job *job)
 	 * SIG_DFL handler does not wake sigsuspend().
 	 */
 	INT_OFF;
-	if (block == DOWAIT_BLOCK_OR_SIG) {
-		pid = wait_block_or_sig(&status);
-	} else {
-		int wait_flags = 0;
-		if (block == DOWAIT_NONBLOCK)
-			wait_flags = WNOHANG;
-		/* if job control is active, accept stopped processes too */
-		if (doing_jobctl)
-			wait_flags |= WUNTRACED;
-		/* NB: _not_ safe_waitpid, we need to detect EINTR */
-		pid = waitpid(-1, &status, wait_flags);
-	}
-	TRACE(("wait returns pid=%d, status=0x%x, errno=%d(%s)\n",
-				pid, status, errno, strerror(errno)));
-	thisjob = NULL;
+	pid = waitproc(block, &status);
+	TRACE(("wait returns pid %d, status=%d\n", pid, status));
 	if (pid <= 0)
 		goto out;
 
@@ -4466,7 +4444,6 @@ dowait(int block, struct job *jp)
 	rpid = 1;
 
 	do {
-		got_sigchld = 0;
 		pid = waitone(block, jp);
 		rpid &= !!pid;
 
@@ -4721,7 +4698,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 			job = getjob(*argv, 0);
 		}
 		/* loop until process terminated or stopped */
-		dowait(DOWAIT_BLOCK_OR_SIG, NULL);
+		dowait(DOWAIT_BLOCK_OR_SIG, job);
 		if (pending_sig)
 			goto sigout;
 		job->waited = 1;
