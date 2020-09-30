@@ -38,35 +38,6 @@ static ALWAYS_INLINE uint64_t rotl64(uint64_t x, unsigned n)
 	return (x << n) | (x >> (64 - n));
 }
 
-/* Feed data through a temporary buffer.
- * The internal buffer remembers previous data until it has 64
- * bytes worth to pass on.
- */
-static void FAST_FUNC common64_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
-{
-	unsigned bufpos = ctx->total64 & 63;
-
-	ctx->total64 += len;
-
-	while (1) {
-		unsigned remaining = 64 - bufpos;
-		if (remaining > len)
-			remaining = len;
-		/* Copy data into aligned buffer */
-		memcpy(ctx->wbuffer + bufpos, buffer, remaining);
-		len -= remaining;
-		buffer = (const char *)buffer + remaining;
-		bufpos += remaining;
-		/* Clever way to do "if (bufpos != N) break; ... ; bufpos = 0;" */
-		bufpos -= 64;
-		if (bufpos != 0)
-			break;
-		/* Buffer is filled up, process it */
-		ctx->process_block(ctx);
-		/*bufpos = 0; - already is */
-	}
-}
-
 /* Process the remaining bytes in the buffer */
 static void FAST_FUNC common64_end(md5_ctx_t *ctx, int swap_needed)
 {
@@ -449,7 +420,29 @@ void FAST_FUNC md5_begin(md5_ctx_t *ctx)
 /* Used also for sha1 and sha256 */
 void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
 {
-	common64_hash(ctx, buffer, len);
+	unsigned bufpos = ctx->total64 & 63;
+
+	ctx->total64 += len;
+
+	while (1) {
+		unsigned remaining = 64 - bufpos;
+		if (remaining > len)
+			remaining = len;
+		/* Copy data into aligned buffer */
+		memcpy(ctx->wbuffer + bufpos, buffer, remaining);
+		len -= remaining;
+		buffer = (const char *)buffer + remaining;
+		bufpos += remaining;
+
+		/* Clever way to do "if (bufpos != N) break; ... ; bufpos = 0;" */
+		bufpos -= 64;
+		if (bufpos != 0)
+			break;
+
+		/* Buffer is filled up, process it */
+		ctx->process_block(ctx);
+		/*bufpos = 0; - already is */
+	}
 }
 
 /* Process the remaining bytes in the buffer and put result from CTX
@@ -816,7 +809,7 @@ void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 	int i;
 	/* Two extra iterations zero out ctx->total64[2] */
 	uint64_t *tp = ctx->total64;
-	for (i = 0; i < 2+8; i++)
+	for (i = 0; i < 8 + 2; i++)
 		tp[i] = ((uint64_t)(init256[i]) << 32) + init512_lo[i];
 	/*ctx->total64[0] = ctx->total64[1] = 0; - already done */
 }
@@ -832,22 +825,7 @@ void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 	ctx->total64[0] += len;
 	if (ctx->total64[0] < len)
 		ctx->total64[1]++;
-# if 0
-	remaining = 128 - bufpos;
 
-	/* Hash whole blocks */
-	while (len >= remaining) {
-		memcpy(ctx->wbuffer + bufpos, buffer, remaining);
-		buffer = (const char *)buffer + remaining;
-		len -= remaining;
-		remaining = 128;
-		bufpos = 0;
-		sha512_process_block128(ctx);
-	}
-
-	/* Save last, partial blosk */
-	memcpy(ctx->wbuffer + bufpos, buffer, len);
-# else
 	while (1) {
 		remaining = 128 - bufpos;
 		if (remaining > len)
@@ -857,15 +835,16 @@ void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 		len -= remaining;
 		buffer = (const char *)buffer + remaining;
 		bufpos += remaining;
+
 		/* Clever way to do "if (bufpos != N) break; ... ; bufpos = 0;" */
 		bufpos -= 128;
 		if (bufpos != 0)
 			break;
+
 		/* Buffer is filled up, process it */
 		sha512_process_block128(ctx);
 		/*bufpos = 0; - already is */
 	}
-# endif
 }
 #endif /* NEED_SHA512 */
 
@@ -1398,10 +1377,12 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len)
 			bufpos++;
 			remaining--;
 		}
+
 		/* Clever way to do "if (bufpos != N) break; ... ; bufpos = 0;" */
 		bufpos -= ctx->input_block_bytes;
 		if (bufpos != 0)
 			break;
+
 		/* Buffer is filled up, process it */
 		sha3_process_block72(ctx->state);
 		/*bufpos = 0; - already is */
