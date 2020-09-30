@@ -25,6 +25,11 @@
  *
  * FEATURE_INSTALLER or FEATURE_SUID will still link printf routines in. :(
  */
+
+/* Define this accessor before we #define "errno" our way */
+#include <errno.h>
+static inline int *get_perrno(void) { return &errno; }
+
 #include "busybox.h"
 
 #if !(defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) \
@@ -304,7 +309,7 @@ void lbb_prepare(const char *applet
 		IF_FEATURE_INDIVIDUAL(, char **argv))
 {
 #ifdef bb_cached_errno_ptr
-	(*(int **)not_const_pp(&bb_errno)) = __errno_location();
+	(*(int **)not_const_pp(&bb_errno)) = get_perrno();
 	barrier();
 #endif
 	applet_name = applet;
