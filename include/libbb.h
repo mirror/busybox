@@ -339,12 +339,13 @@ struct BUG_off_t_size_is_misdetected {
 #endif
 #endif
 
-#if defined(__GLIBC__)
-/* glibc uses __errno_location() to get a ptr to errno */
-/* We can just memorize it once - no multithreading in busybox :) */
+#if defined(errno)
+/* If errno is a define, assume it's "define errno (*__errno_location())"
+ * and we will cache it's result in this variable */
 extern int *const bb_errno;
 #undef errno
 #define errno (*bb_errno)
+#define bb_cached_errno_ptr 1
 #endif
 
 #if !(ULONG_MAX > 0xffffffff)

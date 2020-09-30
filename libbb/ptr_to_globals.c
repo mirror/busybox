@@ -14,7 +14,7 @@ struct globals;
  * but here we make it live in R/W memory */
 struct globals *ptr_to_globals;
 
-#ifdef __GLIBC__
+#ifdef errno
 int *bb_errno;
 #endif
 
@@ -27,7 +27,7 @@ int *bb_errno;
  * on weird architectures, compilers, linkers and so on */
 struct globals *const ptr_to_globals __attribute__ ((section (".data")));
 
-#ifdef __GLIBC__
+#ifdef errno
 int *const bb_errno __attribute__ ((section (".data")));
 #endif
 
