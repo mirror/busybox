@@ -251,7 +251,7 @@ typedef struct remembered_name {
 } remembered_name;
 
 
-static arith_t FAST_FUNC
+static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr);
 
 static const char*
@@ -582,7 +582,7 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 # endif
 #endif
 
-static arith_t FAST_FUNC
+static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr)
 {
 	operator lasttok;
