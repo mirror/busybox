@@ -65,12 +65,14 @@
  * symbolic links encountered during recursive directory traversals.
  */
 
-static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf, void* param, int depth)
+static int FAST_FUNC fileAction(struct recursive_state *state,
+		const char *fileName,
+		struct stat *statbuf)
 {
 	mode_t newmode;
 
 	/* match coreutils behavior */
-	if (depth == 0) {
+	if (state->depth == 0) {
 		/* statbuf holds lstat result, but we need stat (follow link) */
 		if (stat(fileName, statbuf))
 			goto err;
@@ -79,9 +81,9 @@ static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf, void
 			return TRUE;
 	}
 
-	newmode = bb_parse_mode((char *)param, statbuf->st_mode);
+	newmode = bb_parse_mode((char *)state->userData, statbuf->st_mode);
 	if (newmode == (mode_t)-1)
-		bb_error_msg_and_die("invalid mode '%s'", (char *)param);
+		bb_error_msg_and_die("invalid mode '%s'", (char *)state->userData);
 
 	if (chmod(fileName, newmode) == 0) {
 		if (OPT_VERBOSE
@@ -136,8 +138,7 @@ int chmod_main(int argc UNUSED_PARAM, char **argv)
 			OPT_RECURSE,    // recurse
 			fileAction,     // file action
 			fileAction,     // dir action
-			smode,          // user data
-			0)              // depth
+			smode)          // user data
 		) {
 			retval = EXIT_FAILURE;
 		}

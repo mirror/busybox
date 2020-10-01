@@ -889,10 +889,10 @@ ACTF(links)
 }
 #endif
 
-static int FAST_FUNC fileAction(const char *fileName,
-		struct stat *statbuf,
-		void *userData UNUSED_PARAM,
-		int depth IF_NOT_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM))
+static int FAST_FUNC fileAction(
+		struct recursive_state *state IF_NOT_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM),
+		const char *fileName,
+		struct stat *statbuf)
 {
 	int r;
 	int same_fs = 1;
@@ -911,12 +911,12 @@ static int FAST_FUNC fileAction(const char *fileName,
 #endif
 
 #if ENABLE_FEATURE_FIND_MAXDEPTH
-	if (depth < G.minmaxdepth[0]) {
+	if (state->depth < G.minmaxdepth[0]) {
 		if (same_fs)
 			return TRUE; /* skip this, continue recursing */
 		return SKIP; /* stop recursing */
 	}
-	if (depth > G.minmaxdepth[1])
+	if (state->depth > G.minmaxdepth[1])
 		return SKIP; /* stop recursing */
 #endif
 
@@ -927,7 +927,7 @@ static int FAST_FUNC fileAction(const char *fileName,
 
 #if ENABLE_FEATURE_FIND_MAXDEPTH
 	if (S_ISDIR(statbuf->st_mode)) {
-		if (depth == G.minmaxdepth[1])
+		if (state->depth == G.minmaxdepth[1])
 			return SKIP;
 	}
 #endif
@@ -1570,8 +1570,7 @@ int find_main(int argc UNUSED_PARAM, char **argv)
 				G.recurse_flags,/* flags */
 				fileAction,     /* file action */
 				fileAction,     /* dir action */
-				NULL,           /* user data */
-				0)              /* depth */
+				NULL)           /* user data */
 		) {
 			G.exitstatus |= EXIT_FAILURE;
 		}

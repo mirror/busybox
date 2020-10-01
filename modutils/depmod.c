@@ -32,10 +32,11 @@
  *   for each depends, look through our list of full paths and emit if found
  */
 
-static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARAM,
-				void *data, int depth UNUSED_PARAM)
+static int FAST_FUNC parse_module(struct recursive_state *state,
+		const char *fname,
+		struct stat *sb UNUSED_PARAM)
 {
-	module_db *modules = data;
+	module_db *modules = state->userData;
 	char *image, *ptr;
 	module_entry *e;
 
@@ -201,11 +202,12 @@ int depmod_main(int argc UNUSED_PARAM, char **argv)
 	memset(&modules, 0, sizeof(modules));
 	if (*argv) {
 		do {
-			parse_module(*argv, /*sb (unused):*/ NULL, &modules, 0);
+			recursive_action(*argv, 0 /* no ACTION_RECURSE! */,
+				parse_module, NULL, &modules);
 		} while (*++argv);
 	} else {
 		recursive_action(".", ACTION_RECURSE,
-				parse_module, NULL, &modules, 0);
+				parse_module, NULL, &modules);
 	}
 
 	/* Generate dependency and alias files */

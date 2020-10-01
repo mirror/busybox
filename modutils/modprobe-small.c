@@ -751,8 +751,7 @@ static int process_module(char *name, const char *cmdline_options)
 			ACTION_RECURSE, /* flags */
 			fileAction, /* file action */
 			NULL, /* dir action */
-			name, /* user data */
-			0 /* depth */
+			name /* user data */
 		);
 		dbg1_error_msg("dirscan complete");
 		/* Module was not found, or load failed, or is_remove */

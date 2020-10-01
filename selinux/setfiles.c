@@ -463,11 +463,9 @@ static int restore(const char *file)
  * This function is called by recursive_action on each file during
  * the directory traversal.
  */
-static int FAST_FUNC apply_spec(
+static int FAST_FUNC apply_spec(struct recursive_state *state UNUSED_PARAM,
 		const char *file,
-		struct stat *sb,
-		void *userData UNUSED_PARAM,
-		int depth UNUSED_PARAM)
+		struct stat *sb)
 {
 	if (!follow_mounts) {
 		/* setfiles does not process across different mount points */
@@ -535,7 +533,7 @@ static int process_one(char *name)
 				ACTION_RECURSE,
 				apply_spec,
 				apply_spec,
-				NULL, 0) != TRUE
+				NULL) != TRUE
 		) {
 			bb_error_msg("error while labeling %s", name);
 			goto err;

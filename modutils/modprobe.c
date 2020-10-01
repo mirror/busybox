@@ -235,10 +235,9 @@ static void add_probe(const char *name)
 	}
 }
 
-static int FAST_FUNC config_file_action(const char *filename,
-					struct stat *statbuf UNUSED_PARAM,
-					void *userdata UNUSED_PARAM,
-					int depth)
+static int FAST_FUNC config_file_action(struct recursive_state *state,
+		const char *filename,
+		struct stat *statbuf UNUSED_PARAM)
 {
 	char *tokens[3];
 	parser_t *p;
@@ -255,7 +254,7 @@ static int FAST_FUNC config_file_action(const char *filename,
 	 * that we shouldn't recurse into /etc/modprobe.d/dir/
 	 * _subdirectories_:
 	 */
-	if (depth > 1)
+	if (state->depth > 1)
 		return SKIP; /* stop recursing */
 //TODO: instead, can use dirAction in recursive_action() to SKIP dirs
 //on depth == 1 level. But that's more code...
@@ -264,7 +263,7 @@ static int FAST_FUNC config_file_action(const char *filename,
 	 * depth==0: read_config("modules.{symbols,alias}") must work,
 	 * "include FILE_NOT_ENDING_IN_CONF" must work too.
 	 */
-	if (depth != 0) {
+	if (state->depth != 0) {
 		if (!is_suffixed_with(base, ".conf"))
 			goto error;
 	}
@@ -329,8 +328,7 @@ static int FAST_FUNC config_file_action(const char *filename,
 static int read_config(const char *path)
 {
 	return recursive_action(path, ACTION_RECURSE | ACTION_QUIET,
-				config_file_action, NULL, NULL,
-				/*depth:*/ 0);
+				config_file_action, NULL, NULL);
 }
 
 static const char *humanly_readable_name(struct module_entry *m)

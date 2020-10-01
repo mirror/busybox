@@ -62,11 +62,9 @@ static char *type = NULL;
 static char *range = NULL;
 static char *specified_context = NULL;
 
-static int FAST_FUNC change_filedir_context(
+static int FAST_FUNC change_filedir_context(struct recursive_state *state UNUSED_PARAM,
 		const char *fname,
-		struct stat *stbuf UNUSED_PARAM,
-		void *userData UNUSED_PARAM,
-		int depth UNUSED_PARAM)
+		struct stat *stbuf UNUSED_PARAM)
 {
 	context_t context = NULL;
 	security_context_t file_context = NULL;
@@ -207,7 +205,7 @@ int chcon_main(int argc UNUSED_PARAM, char **argv)
 					((option_mask32 & OPT_RECURSIVE) ? ACTION_RECURSE : 0),
 					change_filedir_context,
 					change_filedir_context,
-					NULL, 0) != TRUE)
+					NULL) != TRUE)
 			errors = 1;
 	}
 	return errors;

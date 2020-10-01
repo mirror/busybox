@@ -37,11 +37,9 @@ enum {
 /*
  * PCI_SLOT_NAME PCI_CLASS: PCI_VID:PCI_DID [PCI_SUBSYS_VID:PCI_SUBSYS_DID] [DRIVER]
  */
-static int FAST_FUNC fileAction(
+static int FAST_FUNC fileAction(struct recursive_state *state UNUSED_PARAM,
 		const char *fileName,
-		struct stat *statbuf UNUSED_PARAM,
-		void *userData UNUSED_PARAM,
-		int depth UNUSED_PARAM)
+		struct stat *statbuf UNUSED_PARAM)
 {
 	parser_t *parser;
 	char *tokens[3];
@@ -117,8 +115,7 @@ int lspci_main(int argc UNUSED_PARAM, char **argv)
 			ACTION_RECURSE,
 			fileAction,
 			NULL, /* dirAction */
-			NULL, /* userData */
-			0 /* depth */);
-
+			NULL /* userData */
+	);
 	return EXIT_SUCCESS;
 }

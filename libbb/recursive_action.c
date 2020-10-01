@@ -21,10 +21,9 @@
  * is so stinking huge.
  */
 
-static int FAST_FUNC true_action(const char *fileName UNUSED_PARAM,
-		struct stat *statbuf UNUSED_PARAM,
-		void* userData UNUSED_PARAM,
-		int depth UNUSED_PARAM)
+static int FAST_FUNC true_action(struct recursive_state *state UNUSED_PARAM,
+		const char *fileName UNUSED_PARAM,
+		struct stat *statbuf UNUSED_PARAM)
 {
 	return TRUE;
 }
@@ -65,12 +64,7 @@ static int FAST_FUNC true_action(const char *fileName UNUSED_PARAM,
  * 1: stat(statbuf). Calls dirAction and optionally recurse on link to dir.
  */
 
-int FAST_FUNC recursive_action(const char *fileName,
-		unsigned flags,
-		int FAST_FUNC (*fileAction)(const char *fileName, struct stat *statbuf, void* userData, int depth),
-		int FAST_FUNC (*dirAction)(const char *fileName, struct stat *statbuf, void* userData, int depth),
-		void* userData,
-		unsigned depth)
+static int recursive_action1(recursive_state_t *state, const char *fileName)
 {
 	struct stat statbuf;
 	unsigned follow;
@@ -78,24 +72,21 @@ int FAST_FUNC recursive_action(const char *fileName,
 	DIR *dir;
 	struct dirent *next;
 
-	if (!fileAction) fileAction = true_action;
-	if (!dirAction) dirAction = true_action;
-
 	follow = ACTION_FOLLOWLINKS;
-	if (depth == 0)
+	if (state->depth == 0)
 		follow = ACTION_FOLLOWLINKS | ACTION_FOLLOWLINKS_L0;
-	follow &= flags;
+	follow &= state->flags;
 	status = (follow ? stat : lstat)(fileName, &statbuf);
 	if (status < 0) {
 #ifdef DEBUG_RECURS_ACTION
-		bb_error_msg("status=%d flags=%x", status, flags);
+		bb_error_msg("status=%d flags=%x", status, state->flags);
 #endif
-		if ((flags & ACTION_DANGLING_OK)
+		if ((state->flags & ACTION_DANGLING_OK)
 		 && errno == ENOENT
 		 && lstat(fileName, &statbuf) == 0
 		) {
 			/* Dangling link */
-			return fileAction(fileName, &statbuf, userData, depth);
+			return state->fileAction(state, fileName, &statbuf);
 		}
 		goto done_nak_warn;
 	}
@@ -103,20 +94,20 @@ int FAST_FUNC recursive_action(const char *fileName,
 	/* If S_ISLNK(m), then we know that !S_ISDIR(m).
 	 * Then we can skip checking first part: if it is true, then
 	 * (!dir) is also true! */
-	if ( /* (!(flags & ACTION_FOLLOWLINKS) && S_ISLNK(statbuf.st_mode)) || */
+	if ( /* (!(state->flags & ACTION_FOLLOWLINKS) && S_ISLNK(statbuf.st_mode)) || */
 	 !S_ISDIR(statbuf.st_mode)
 	) {
-		return fileAction(fileName, &statbuf, userData, depth);
+		return state->fileAction(state, fileName, &statbuf);
 	}
 
 	/* It's a directory (or a link to one, and followLinks is set) */
 
-	if (!(flags & ACTION_RECURSE)) {
-		return dirAction(fileName, &statbuf, userData, depth);
+	if (!(state->flags & ACTION_RECURSE)) {
+		return state->dirAction(state, fileName, &statbuf);
 	}
 
-	if (!(flags & ACTION_DEPTHFIRST)) {
-		status = dirAction(fileName, &statbuf, userData, depth);
+	if (!(state->flags & ACTION_DEPTHFIRST)) {
+		status = state->dirAction(state, fileName, &statbuf);
 		if (status == FALSE)
 			goto done_nak_warn;
 		if (status == SKIP)
@@ -140,11 +131,13 @@ int FAST_FUNC recursive_action(const char *fileName,
 			continue;
 
 		/* process every file (NB: ACTION_RECURSE is set in flags) */
-		s = recursive_action(nextFile, flags, fileAction, dirAction,
-						userData, depth + 1);
+		state->depth++;
+		s = recursive_action1(state, nextFile);
 		if (s == FALSE)
 			status = FALSE;
 		free(nextFile);
+		state->depth--;
+
 //#define RECURSE_RESULT_ABORT -1
 //		if (s == RECURSE_RESULT_ABORT) {
 //			closedir(dir);
@@ -153,15 +146,36 @@ int FAST_FUNC recursive_action(const char *fileName,
 	}
 	closedir(dir);
 
-	if (flags & ACTION_DEPTHFIRST) {
-		if (!dirAction(fileName, &statbuf, userData, depth))
+	if (state->flags & ACTION_DEPTHFIRST) {
+		if (!state->dirAction(state, fileName, &statbuf))
 			goto done_nak_warn;
 	}
 
 	return status;
 
  done_nak_warn:
-	if (!(flags & ACTION_QUIET))
+	if (!(state->flags & ACTION_QUIET))
 		bb_simple_perror_msg(fileName);
 	return FALSE;
+}
+
+int FAST_FUNC recursive_action(const char *fileName,
+		unsigned flags,
+		int FAST_FUNC (*fileAction)(struct recursive_state *state, const char *fileName, struct stat* statbuf),
+		int FAST_FUNC  (*dirAction)(struct recursive_state *state, const char *fileName, struct stat* statbuf),
+		void *userData)
+{
+	/* Keeping a part of variables of recusive descent in a "state structure"
+	 * instead of passing ALL of them down as parameters of recursive_action1()
+	 * relieves register pressure, both in recursive_action1()
+	 * and in every file/dirAction().
+	 */
+	recursive_state_t state;
+	state.flags = flags;
+	state.depth = 0;
+	state.userData = userData;
+	state.fileAction = fileAction ? fileAction : true_action;
+	state.dirAction  =  dirAction ?  dirAction : true_action;
+
+	return recursive_action1(&state, fileName);
 }

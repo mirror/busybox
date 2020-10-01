@@ -441,10 +441,18 @@ enum {
 	ACTION_DANGLING_OK    = (1 << 5),
 };
 typedef uint8_t recurse_flags_t;
-extern int recursive_action(const char *fileName, unsigned flags,
-	int FAST_FUNC (*fileAction)(const char *fileName, struct stat* statbuf, void* userData, int depth),
-	int FAST_FUNC (*dirAction)(const char *fileName, struct stat* statbuf, void* userData, int depth),
-	void* userData, unsigned depth) FAST_FUNC;
+typedef struct recursive_state {
+	unsigned flags;
+	unsigned depth;
+	void *userData;
+	int FAST_FUNC (*fileAction)(struct recursive_state *state, const char *fileName, struct stat* statbuf);
+	int FAST_FUNC  (*dirAction)(struct recursive_state *state, const char *fileName, struct stat* statbuf);
+} recursive_state_t;
+int recursive_action(const char *fileName, unsigned flags,
+	int FAST_FUNC (*fileAction)(struct recursive_state *state, const char *fileName, struct stat* statbuf),
+	int FAST_FUNC  (*dirAction)(struct recursive_state *state, const char *fileName, struct stat* statbuf),
+	void *userData
+) FAST_FUNC;
 
 extern int device_open(const char *device, int mode) FAST_FUNC;
 enum { GETPTY_BUFSIZE = 16 }; /* more than enough for "/dev/ttyXXX" */

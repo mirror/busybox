@@ -102,10 +102,9 @@ uuidcache_addentry(char *device, /*int major, int minor,*/ char *label, char *uu
  * add a cache entry for this device.
  * If device node does not exist, it will be temporarily created. */
 static int FAST_FUNC
-uuidcache_check_device(const char *device,
-		struct stat *statbuf,
-		void *userData UNUSED_PARAM,
-		int depth UNUSED_PARAM)
+uuidcache_check_device(struct recursive_state *state UNUSED_PARAM,
+		const char *device,
+		struct stat *statbuf)
 {
 	/* note: this check rejects links to devices, among other nodes */
 	if (!S_ISBLK(statbuf->st_mode)
@@ -145,12 +144,13 @@ uuidcache_init(int scan_devices)
 	 * This is unacceptably complex. Let's just scan /dev.
 	 * (Maybe add scanning of /sys/block/XXX/dev for devices
 	 * somehow not having their /dev/XXX entries created?) */
-	if (scan_devices)
+	if (scan_devices) {
 		recursive_action("/dev", ACTION_RECURSE,
 			uuidcache_check_device, /* file_action */
 			NULL, /* dir_action */
-			NULL, /* userData */
-			0 /* depth */);
+			NULL /* userData */
+		);
+	}
 
 	return uuidCache;
 }

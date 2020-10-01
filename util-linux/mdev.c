@@ -845,13 +845,12 @@ static ssize_t readlink2(char *buf, size_t bufsize)
 /* File callback for /sys/ traversal.
  * We act only on "/sys/.../dev" (pseudo)file
  */
-static int FAST_FUNC fileAction(const char *fileName,
-		struct stat *statbuf UNUSED_PARAM,
-		void *userData,
-		int depth UNUSED_PARAM)
+static int FAST_FUNC fileAction(struct recursive_state *state,
+		const char *fileName,
+		struct stat *statbuf UNUSED_PARAM)
 {
 	size_t len = strlen(fileName) - 4; /* can't underflow */
-	char *path = userData;	/* char array[PATH_MAX + SCRATCH_SIZE] */
+	char *path = state->userData;	/* char array[PATH_MAX + SCRATCH_SIZE] */
 	char subsys[PATH_MAX];
 	int res;
 
@@ -888,12 +887,11 @@ static int FAST_FUNC fileAction(const char *fileName,
 }
 
 /* Directory callback for /sys/ traversal */
-static int FAST_FUNC dirAction(const char *fileName UNUSED_PARAM,
-		struct stat *statbuf UNUSED_PARAM,
-		void *userData UNUSED_PARAM,
-		int depth)
+static int FAST_FUNC dirAction(struct recursive_state *state,
+		const char *fileName UNUSED_PARAM,
+		struct stat *statbuf UNUSED_PARAM)
 {
-	return (depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);
+	return (state->depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);
 }
 
 /* For the full gory details, see linux/Documentation/firmware_class/README
@@ -1149,7 +1147,7 @@ static void initial_scan(char *temp)
 	/* Create all devices from /sys/dev hierarchy */
 	recursive_action("/sys/dev",
 			 ACTION_RECURSE | ACTION_FOLLOWLINKS,
-			 fileAction, dirAction, temp, 0);
+			 fileAction, dirAction, temp);
 }
 
 #if ENABLE_FEATURE_MDEV_DAEMON

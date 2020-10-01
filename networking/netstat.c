@@ -272,10 +272,9 @@ static long extract_socket_inode(const char *lname)
 	return inode;
 }
 
-static int FAST_FUNC add_to_prg_cache_if_socket(const char *fileName,
-		struct stat *statbuf UNUSED_PARAM,
-		void *pid_slash_progname,
-		int depth UNUSED_PARAM)
+static int FAST_FUNC add_to_prg_cache_if_socket(struct recursive_state *state,
+		const char *fileName,
+		struct stat *statbuf UNUSED_PARAM)
 {
 	char *linkname;
 	long inode;
@@ -284,16 +283,17 @@ static int FAST_FUNC add_to_prg_cache_if_socket(const char *fileName,
 	if (linkname != NULL) {
 		inode = extract_socket_inode(linkname);
 		free(linkname);
-		if (inode >= 0)
-			prg_cache_add(inode, (char *)pid_slash_progname);
+		if (inode >= 0) {
+			char *pid_slash_progname = state->userData;
+			prg_cache_add(inode, pid_slash_progname);
+		}
 	}
 	return TRUE;
 }
 
-static int FAST_FUNC dir_act(const char *fileName,
-		struct stat *statbuf UNUSED_PARAM,
-		void *userData UNUSED_PARAM,
-		int depth)
+static int FAST_FUNC dir_act(struct recursive_state *state,
+		const char *fileName,
+		struct stat *statbuf UNUSED_PARAM)
 {
 	const char *pid;
 	char *pid_slash_progname;
@@ -301,7 +301,7 @@ static int FAST_FUNC dir_act(const char *fileName,
 	char cmdline_buf[512];
 	int n, len;
 
-	if (depth == 0) /* "/proc" itself */
+	if (state->depth == 0) /* "/proc" itself */
 		return TRUE; /* continue looking one level below /proc */
 
 	pid = fileName + sizeof("/proc/")-1; /* point after "/proc/" */
@@ -321,8 +321,8 @@ static int FAST_FUNC dir_act(const char *fileName,
 			ACTION_RECURSE | ACTION_QUIET,
 			add_to_prg_cache_if_socket,
 			NULL,
-			(void *)pid_slash_progname,
-			0);
+			(void *)pid_slash_progname
+	);
 	free(pid_slash_progname);
 
 	if (!n)
@@ -337,7 +337,7 @@ static void prg_cache_load(void)
 
 	prg_cache_loaded = 1;
 	load_ok = recursive_action("/proc", ACTION_RECURSE | ACTION_QUIET,
-				NULL, dir_act, NULL, 0);
+				NULL, dir_act, NULL);
 	if (load_ok)
 		return;
 

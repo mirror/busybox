@@ -24,11 +24,9 @@
 
 #include "libbb.h"
 
-static int FAST_FUNC fileAction(
+static int FAST_FUNC fileAction(struct recursive_state *state UNUSED_PARAM,
 		const char *fileName,
-		struct stat *statbuf UNUSED_PARAM,
-		void *userData UNUSED_PARAM,
-		int depth UNUSED_PARAM)
+		struct stat *statbuf UNUSED_PARAM)
 {
 	parser_t *parser;
 	char *tokens[4];
@@ -80,8 +78,8 @@ int lsusb_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			ACTION_RECURSE,
 			fileAction,
 			NULL, /* dirAction */
-			NULL, /* userData */
-			0 /* depth */);
+			NULL /* userData */
+	);
 
 	return EXIT_SUCCESS;
 }

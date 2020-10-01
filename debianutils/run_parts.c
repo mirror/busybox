@@ -131,12 +131,13 @@ static int bb_alphasort(const void *p1, const void *p2)
 	return (option_mask32 & OPT_r) ? -r : r;
 }
 
-static int FAST_FUNC act(const char *file, struct stat *statbuf, void *args UNUSED_PARAM, int depth)
+static int FAST_FUNC act(struct recursive_state *state,
+		const char *file, struct stat *statbuf)
 {
-	if (depth == 0)
+	if (state->depth == 0)
 		return TRUE;
 
-	if (depth == 1
+	if (state->depth == 1
 	 && (  !(statbuf->st_mode & (S_IFREG | S_IFLNK))
 	    || invalid_name(file)
 	    || (!(option_mask32 & OPT_l) && access(file, X_OK) != 0))
@@ -199,8 +200,7 @@ int run_parts_main(int argc UNUSED_PARAM, char **argv)
 			ACTION_RECURSE|ACTION_FOLLOWLINKS,
 			act,            /* file action */
 			act,            /* dir action */
-			NULL,           /* user data */
-			0               /* depth */
+			NULL            /* user data */
 	);
 
 	if (!names)

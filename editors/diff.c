@@ -803,11 +803,11 @@ struct dlist {
 };
 
 /* This function adds a filename to dl, the directory listing. */
-static int FAST_FUNC add_to_dirlist(const char *filename,
-		struct stat *sb UNUSED_PARAM,
-		void *userdata, int depth UNUSED_PARAM)
+static int FAST_FUNC add_to_dirlist(struct recursive_state *state,
+		const char *filename,
+		struct stat *sb UNUSED_PARAM)
 {
-	struct dlist *const l = userdata;
+	struct dlist *const l = state->userData;
 	const char *file = filename + l->len;
 	while (*file == '/')
 		file++;
@@ -820,12 +820,12 @@ static int FAST_FUNC add_to_dirlist(const char *filename,
 /* If recursion is not set, this function adds the directory
  * to the list and prevents recursive_action from recursing into it.
  */
-static int FAST_FUNC skip_dir(const char *filename,
-		struct stat *sb, void *userdata,
-		int depth)
+static int FAST_FUNC skip_dir(struct recursive_state *state,
+		const char *filename,
+		struct stat *sb)
 {
-	if (!(option_mask32 & FLAG(r)) && depth) {
-		add_to_dirlist(filename, sb, userdata, depth);
+	if (!(option_mask32 & FLAG(r)) && state->depth) {
+		add_to_dirlist(state, filename, sb);
 		return SKIP;
 	}
 	if (!(option_mask32 & FLAG(N))) {
@@ -833,7 +833,7 @@ static int FAST_FUNC skip_dir(const char *filename,
 		 * which do not exist on the "other side".
 		 * Testcase: diff -r /tmp /
 		 * (it would recurse deep into /proc without this code) */
-		struct dlist *const l = userdata;
+		struct dlist *const l = state->userData;
 		filename += l->len;
 		if (filename[0]) {
 			struct stat osb;
@@ -868,7 +868,7 @@ static void diffdir(char *p[2], const char *s_start)
 		 * add_to_dirlist will remove it. */
 		list[i].len = strlen(p[i]);
 		recursive_action(p[i], ACTION_RECURSE | ACTION_FOLLOWLINKS,
-				add_to_dirlist, skip_dir, &list[i], 0);
+				add_to_dirlist, skip_dir, &list[i]);
 		/* Sort dl alphabetically.
 		 * GNU diff does this ignoring any number of trailing dots.
 		 * We don't, so for us dotted files almost always are

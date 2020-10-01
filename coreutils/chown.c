@@ -97,10 +97,10 @@ struct param_t {
 	chown_fptr chown_func;
 };
 
-static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf,
-		void *vparam, int depth UNUSED_PARAM)
+static int FAST_FUNC fileAction(struct recursive_state *state UNUSED_PARAM,
+		const char *fileName, struct stat *statbuf)
 {
-#define param  (*(struct param_t*)vparam)
+#define param  (*(struct param_t*)state->userData)
 #define opt option_mask32
 	uid_t u = (param.ugid.uid == (uid_t)-1L) ? statbuf->st_uid : param.ugid.uid;
 	gid_t g = (param.ugid.gid == (gid_t)-1L) ? statbuf->st_gid : param.ugid.gid;
@@ -159,8 +159,7 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 				flags,          /* flags */
 				fileAction,     /* file action */
 				fileAction,     /* dir action */
-				&param,         /* user data */
-				0)              /* depth */
+				&param)         /* user data */
 		) {
 			retval = EXIT_FAILURE;
 		}
