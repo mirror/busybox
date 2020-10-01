@@ -694,15 +694,16 @@ static int FAST_FUNC file_action_grep(const char *filename,
 static int grep_dir(const char *dir)
 {
 	int matched = 0;
-	recursive_action(dir,
-		/* recurse=yes */ ACTION_RECURSE |
-		/* followLinks=always */ ((option_mask32 & OPT_R) ? ACTION_FOLLOWLINKS : 0) |
-		/* followLinks=command line only */ ACTION_FOLLOWLINKS_L0 |
-		/* depthFirst=yes */ ACTION_DEPTHFIRST,
+	recursive_action(dir, 0
+		| ACTION_RECURSE
+		| ((option_mask32 & OPT_R) ? ACTION_FOLLOWLINKS : 0)
+		| ACTION_FOLLOWLINKS_L0 /* grep -r ... SYMLINK follows it */
+		| ACTION_DEPTHFIRST
+		| 0,
 		/* fileAction= */ file_action_grep,
 		/* dirAction= */ NULL,
 		/* userData= */ &matched,
-		/* depth= */ 0);
+		0);
 	return matched;
 }
 

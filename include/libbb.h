@@ -437,15 +437,15 @@ enum {
 	ACTION_FOLLOWLINKS    = (1 << 1),
 	ACTION_FOLLOWLINKS_L0 = (1 << 2),
 	ACTION_DEPTHFIRST     = (1 << 3),
-	/*ACTION_REVERSE      = (1 << 4), - unused */
-	ACTION_QUIET          = (1 << 5),
-	ACTION_DANGLING_OK    = (1 << 6),
+	ACTION_QUIET          = (1 << 4),
+	ACTION_DANGLING_OK    = (1 << 5),
 };
 typedef uint8_t recurse_flags_t;
 extern int recursive_action(const char *fileName, unsigned flags,
 	int FAST_FUNC (*fileAction)(const char *fileName, struct stat* statbuf, void* userData, int depth),
 	int FAST_FUNC (*dirAction)(const char *fileName, struct stat* statbuf, void* userData, int depth),
 	void* userData, unsigned depth) FAST_FUNC;
+
 extern int device_open(const char *device, int mode) FAST_FUNC;
 enum { GETPTY_BUFSIZE = 16 }; /* more than enough for "/dev/ttyXXX" */
 extern int xgetpty(char *line) FAST_FUNC;

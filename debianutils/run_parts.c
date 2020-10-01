@@ -133,10 +133,10 @@ static int bb_alphasort(const void *p1, const void *p2)
 
 static int FAST_FUNC act(const char *file, struct stat *statbuf, void *args UNUSED_PARAM, int depth)
 {
-	if (depth == 1)
+	if (depth == 0)
 		return TRUE;
 
-	if (depth == 2
+	if (depth == 1
 	 && (  !(statbuf->st_mode & (S_IFREG | S_IFLNK))
 	    || invalid_name(file)
 	    || (!(option_mask32 & OPT_l) && access(file, X_OK) != 0))
@@ -200,8 +200,8 @@ int run_parts_main(int argc UNUSED_PARAM, char **argv)
 			act,            /* file action */
 			act,            /* dir action */
 			NULL,           /* user data */
-			1               /* depth */
-		);
+			0               /* depth */
+	);
 
 	if (!names)
 		return 0;
