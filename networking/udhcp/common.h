@@ -46,7 +46,7 @@ struct dhcp_packet {
 	uint8_t file[128];    /* boot file name (ASCIZ) */
 	uint32_t cookie;      /* fixed first four option bytes (99,130,83,99 dec) */
 	uint8_t options[DHCP_OPTIONS_BUFSIZE + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
-} PACKED;
+};
 #define DHCP_PKT_SNAME_LEN      64
 #define DHCP_PKT_FILE_LEN      128
 #define DHCP_PKT_SNAME_LEN_STR "64"
@@ -56,12 +56,12 @@ struct ip_udp_dhcp_packet {
 	struct iphdr ip;
 	struct udphdr udp;
 	struct dhcp_packet data;
-} PACKED;
+};
 
 struct udp_dhcp_packet {
 	struct udphdr udp;
 	struct dhcp_packet data;
-} PACKED;
+};
 
 enum {
 	IP_UDP_DHCP_SIZE = sizeof(struct ip_udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
