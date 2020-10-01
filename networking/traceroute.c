@@ -468,7 +468,7 @@ send_probe(int seq, int ttl)
 			/* Always calculate checksum for icmp packets */
 			outicmp->icmp_cksum = 0;
 			outicmp->icmp_cksum = inet_cksum(
-					(uint16_t *)outicmp,
+					outicmp,
 					((char*)outip + packlen) - (char*)outicmp
 			);
 			if (outicmp->icmp_cksum == 0)

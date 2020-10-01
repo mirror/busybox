@@ -935,7 +935,7 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	/* verify IP checksum */
 	check = packet.ip.check;
 	packet.ip.check = 0;
-	if (check != inet_cksum((uint16_t *)&packet.ip, sizeof(packet.ip))) {
+	if (check != inet_cksum(&packet.ip, sizeof(packet.ip))) {
 		log1s("bad IP header checksum, ignoring");
 		return -2;
 	}
@@ -960,7 +960,7 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	packet.ip.tot_len = packet.udp.len; /* yes, this is needed */
 	check = packet.udp.check;
 	packet.udp.check = 0;
-	if (check && check != inet_cksum((uint16_t *)&packet, bytes)) {
+	if (check && check != inet_cksum(&packet, bytes)) {
 		log1s("packet with bad UDP checksum received, ignoring");
 		return -2;
 	}

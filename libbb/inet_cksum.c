@@ -6,8 +6,10 @@
 
 #include "libbb.h"
 
-uint16_t FAST_FUNC inet_cksum(uint16_t *addr, int nleft)
+uint16_t FAST_FUNC inet_cksum(const void *ptr, int nleft)
 {
+	const uint16_t *addr = ptr;
+
 	/*
 	 * Our algorithm is simple, using a 32 bit accumulator,
 	 * we add sequential 16 bit words to it, and at the end, fold

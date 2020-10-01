@@ -297,7 +297,8 @@ static void writeLongname(int fd, int type, const char *name, int dir)
 	header.typeflag = type;
 	strcpy(header.name, "././@LongLink");
 	/* This sets mode/uid/gid/mtime to "00...00<NUL>" strings */
-	memset(header.mode, '0', sizeof(struct prefilled));
+	memset((char*)&header + offsetof(struct tar_header_t, mode), /* make gcc-9.x happy */
+			'0', sizeof(struct prefilled));
 	header.mode [sizeof(header.mode ) - 1] = '\0';
 	header.uid  [sizeof(header.uid  ) - 1] = '\0';
 	header.gid  [sizeof(header.gid  ) - 1] = '\0';

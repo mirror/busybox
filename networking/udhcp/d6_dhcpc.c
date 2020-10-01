@@ -947,7 +947,7 @@ static NOINLINE int d6_recv_raw_packet(struct in6_addr *peer_ipv6, struct d6_pac
 //	packet.ip.tot_len = packet.udp.len; /* yes, this is needed */
 //	check = packet.udp.check;
 //	packet.udp.check = 0;
-//	if (check && check != inet_cksum((uint16_t *)&packet, bytes)) {
+//	if (check && check != inet_cksum(&packet, bytes)) {
 //		log1("packet with bad UDP checksum received, ignoring");
 //		return -2;
 //	}

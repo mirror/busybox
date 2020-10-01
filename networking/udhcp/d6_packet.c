@@ -103,7 +103,7 @@ int FAST_FUNC d6_send_raw_packet(
 	 */
 	packet.ip6.ip6_hlim = IPPROTO_UDP;
 	packet.udp.check = inet_cksum(
-				(uint16_t *)&packet + 2,
+				(uint8_t *)&packet + 4,
 				offsetof(struct ip6_udp_d6_packet, data) - 4 + d6_pkt_size
 	);
 	/* fix 'hop limit' and 'next header' after UDP checksumming */

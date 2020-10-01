@@ -217,7 +217,7 @@ static void ping4(len_and_sockaddr *lsa)
 	/*memset(pkt, 0, sizeof(G.packet)); already is */
 	pkt->icmp_type = ICMP_ECHO;
 	pkt->icmp_id = G.myid;
-	pkt->icmp_cksum = inet_cksum((uint16_t *) pkt, sizeof(G.packet));
+	pkt->icmp_cksum = inet_cksum(pkt, sizeof(G.packet));
 
 	xsendto(pingsock, G.packet, DEFDATALEN + ICMP_MINLEN, &lsa->u.sa, lsa->len);
 
@@ -529,7 +529,7 @@ static void sendping4(int junk UNUSED_PARAM)
 		/* No hton: we'll read it back on the same machine */
 		*(uint32_t*)&pkt->icmp_dun = G.cur_us = monotonic_us();
 
-	pkt->icmp_cksum = inet_cksum((uint16_t *) pkt, datalen + ICMP_MINLEN);
+	pkt->icmp_cksum = inet_cksum(pkt, datalen + ICMP_MINLEN);
 
 	sendping_tail(sendping4, ICMP_MINLEN);
 }
