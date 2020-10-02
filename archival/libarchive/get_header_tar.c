@@ -352,7 +352,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	/* case 0: */
 	case '0':
 #if ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
-		if (last_char_is(file_header->name, '/')) {
+		if (file_header->name && last_char_is(file_header->name, '/')) {
 			goto set_dir;
 		}
 #endif
