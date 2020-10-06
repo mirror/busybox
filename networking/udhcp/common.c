@@ -526,7 +526,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg,
 
 	/* Cheat, the only *const* str possible is "" */
 	str = (char *) const_str;
-	opt = strtok(str, " \t=:");
+	opt = strtok_r(str, " \t=:", &str);
 	if (!opt)
 		return 0;
 
@@ -550,10 +550,10 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg,
 		char *val;
 
 		if (optflag->flags == OPTION_BIN) {
-			val = strtok(NULL, ""); /* do not split "'q w e'" */
+			val = strtok_r(NULL, "", &str); /* do not split "'q w e'" */
 			if (val) trim(val);
 		} else
-			val = strtok(NULL, ", \t");
+			val = strtok_r(NULL, ", \t", &str);
 		if (!val)
 			break;
 
@@ -567,7 +567,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg,
 			break;
 		case OPTION_IP_PAIR:
 			retval = udhcp_str2nip(val, buffer);
-			val = strtok(NULL, ", \t/-");
+			val = strtok_r(NULL, ", \t/-", &str);
 			if (!val)
 				retval = 0;
 			if (retval)
@@ -631,7 +631,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg,
 				*slash = '\0';
 				retval = udhcp_str2nip(val, buffer + 1);
 				buffer[0] = mask = bb_strtou(slash + 1, NULL, 10);
-				val = strtok(NULL, ", \t/-");
+				val = strtok_r(NULL, ", \t/-", &str);
 				if (!val || mask > 32 || errno)
 					retval = 0;
 				if (retval) {

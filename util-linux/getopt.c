@@ -289,12 +289,13 @@ static struct option *add_long_options(struct option *long_options, char *option
 {
 	int long_nr = 0;
 	int arg_opt, tlen;
-	char *tokptr = strtok(options, ", \t\n");
+	char *tokptr;
 
 	if (long_options)
 		while (long_options[long_nr].name)
 			long_nr++;
 
+	tokptr = strtok_r(options, ", \t\n", &options);
 	while (tokptr) {
 		arg_opt = no_argument;
 		tlen = strlen(tokptr);
@@ -318,7 +319,7 @@ static struct option *add_long_options(struct option *long_options, char *option
 			long_nr++;
 			/*memset(&long_options[long_nr], 0, sizeof(long_options[0])); - xrealloc_vector did it */
 		}
-		tokptr = strtok(NULL, ", \t\n");
+		tokptr = strtok_r(NULL, ", \t\n", &options);
 	}
 	return long_options;
 }

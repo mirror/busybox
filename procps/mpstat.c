@@ -923,7 +923,7 @@ int mpstat_main(int argc UNUSED_PARAM, char **argv)
 		char *t;
 		G.p_option = 1;
 
-		for (t = strtok(opt_set_cpu, ","); t; t = strtok(NULL, ",")) {
+		for (t = strtok_r(opt_set_cpu, ",", &opt_set_cpu); t; t = strtok_r(NULL, ",", &opt_set_cpu)) {
 			if (strcmp(t, "ALL") == 0) {
 				/* Select every CPU */
 				memset(G.cpu_bitmap, 0xff, G.cpu_bitmap_len);

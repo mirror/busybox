@@ -115,6 +115,7 @@ static int parse(const char *boundary, char **argv)
 		/* Split to tokens */
 		{
 			char *s, *p;
+			char *tokstate;
 			unsigned ntokens;
 			const char *delims = ";=\" \t\n";
 
@@ -127,13 +128,13 @@ static int parse(const char *boundary, char **argv)
 			}
 			dbg_error_msg("L:'%s'", p);
 			ntokens = 0;
-			s = strtok(s, delims);
+			s = strtok_r(s, delims, &tokstate);
 			while (s) {
 				tokens[ntokens] = s;
 				if (ntokens < ARRAY_SIZE(tokens) - 1)
 					ntokens++;
 				dbg_error_msg("L[%d]='%s'", ntokens, s);
-				s = strtok(NULL, delims);
+				s = strtok_r(NULL, delims, &tokstate);
 			}
 			tokens[ntokens] = NULL;
 			dbg_error_msg("EMPTYLINE, ntokens:%d", ntokens);

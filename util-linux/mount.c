@@ -1230,6 +1230,7 @@ static NOINLINE int nfsmount(struct mntent *mp, unsigned long vfsflags, char *fi
 	 * then data pointer is interpreted as a string. */
 	struct nfs_mount_data data;
 	char *opt;
+	char *tokstate;
 	struct hostent *hp;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in mount_server_addr;
@@ -1348,7 +1349,7 @@ static NOINLINE int nfsmount(struct mntent *mp, unsigned long vfsflags, char *fi
 	nfsvers = 0;
 
 	/* parse options */
-	if (filteropts)	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
+	if (filteropts)	for (opt = strtok_r(filteropts, ",", &tokstate); opt; opt = strtok_r(NULL, ",", &tokstate)) {
 		char *opteq = strchr(opt, '=');
 		if (opteq) {
 			int val, idx;

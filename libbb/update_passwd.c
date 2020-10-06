@@ -18,17 +18,20 @@
 #if ENABLE_SELINUX
 static void check_selinux_update_passwd(const char *username)
 {
-	security_context_t context;
-	char *seuser;
+	security_context_t seuser;
+	char *p;
 
 	if (getuid() != (uid_t)0 || is_selinux_enabled() == 0)
 		return;  /* No need to check */
 
-	if (getprevcon_raw(&context) < 0)
+	if (getprevcon_raw(&seuser) < 0)
 		bb_simple_perror_msg_and_die("getprevcon failed");
-	seuser = strtok(context, ":");
-	if (!seuser)
-		bb_error_msg_and_die("invalid context '%s'", context);
+
+	p = strchr(seuser, ':');
+	if (!p)
+		bb_error_msg_and_die("invalid context '%s'", seuser);
+	*p = '\0';
+
 	if (strcmp(seuser, username) != 0) {
 		security_class_t tclass;
 		access_vector_t av;

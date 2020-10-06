@@ -2770,7 +2770,7 @@ updatepwd(const char *dir)
 			lim++;
 		}
 	}
-	p = strtok(cdcomppath, "/");
+	p = strtok_r(cdcomppath, "/", &cdcomppath);
 	while (p) {
 		switch (*p) {
 		case '.':
@@ -2789,7 +2789,7 @@ updatepwd(const char *dir)
 			new = stack_putstr(p, new);
 			USTPUTC('/', new);
 		}
-		p = strtok(NULL, "/");
+		p = strtok_r(NULL, "/", &cdcomppath);
 	}
 	if (new > lim)
 		STUNPUTC(new);

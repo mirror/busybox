@@ -164,7 +164,7 @@ static void drop_capabilities(char *string)
 {
 	char *cap;
 
-	cap = strtok(string, ",");
+	cap = strtok_r(string, ",", &string);
 	while (cap) {
 		unsigned cap_idx;
 
@@ -174,7 +174,7 @@ static void drop_capabilities(char *string)
 		drop_bounding_set(cap_idx);
 		drop_capset(cap_idx);
 		bb_error_msg("dropped capability: %s", cap);
-		cap = strtok(NULL, ",");
+		cap = strtok_r(NULL, ",", &string);
 	}
 }
 #endif

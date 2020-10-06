@@ -703,12 +703,13 @@ static void parse_resolvconf(void)
 
 		while (fgets(line, sizeof(line), resolv)) {
 			char *p, *arg;
+			char *tokstate;
 
-			p = strtok(line, " \t\n");
+			p = strtok_r(line, " \t\n", &tokstate);
 			if (!p)
 				continue;
 			dbg("resolv_key:'%s'\n", p);
-			arg = strtok(NULL, "\n");
+			arg = strtok_r(NULL, "\n", &tokstate);
 			dbg("resolv_arg:'%s'\n", arg);
 			if (!arg)
 				continue;
