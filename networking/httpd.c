@@ -1017,6 +1017,12 @@ static char *encodeString(const char *string)
  */
 static void decodeBase64(char *Data)
 {
+# if ENABLE_BASE64 || ENABLE_UUDECODE
+	/* Call decode_base64() from uuencode.c */
+	char *eptr = Data;
+	decode_base64(&eptr, Data);
+	*eptr = '\0';
+# else
 	const unsigned char *in = (const unsigned char *)Data;
 	/* The decoded size will be at most 3/4 the size of the encoded */
 	unsigned ch = 0;
@@ -1050,6 +1056,7 @@ static void decodeBase64(char *Data)
 		}
 	}
 	*Data = '\0';
+# endif
 }
 #endif
 
