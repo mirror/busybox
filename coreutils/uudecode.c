@@ -110,9 +110,7 @@ static void FAST_FUNC read_stduu(FILE *src_stream, FILE *dst_stream, int flags U
 	}
 	bb_simple_error_msg_and_die("short file");
 }
-#endif
 
-#if ENABLE_UUDECODE
 int uudecode_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uudecode_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -202,10 +200,10 @@ int base64_main(int argc UNUSED_PARAM, char **argv)
 		*--argv = (char*)"-";
 	src_stream = xfopen_stdin(argv[0]);
 	if (opts) {
-		read_base64(src_stream, stdout, /*flags:*/ (char)EOF);
+		read_base64(src_stream, stdout, /*flags:*/ (unsigned char)EOF);
 	} else {
 		enum {
-			SRC_BUF_SIZE = 76/4*3,  /* This *MUST* be a multiple of 3 */
+			SRC_BUF_SIZE = 76 / 4 * 3, /* this *MUST* be a multiple of 3 */
 			DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
 		};
 		char src_buf[SRC_BUF_SIZE];
