@@ -432,7 +432,6 @@ static unsigned char *get(priv_dumper_t *dumper)
 				if (dumper->pub.dump_vflag != DUP) {
 					puts("*");
 				}
-				return NULL;
 			}
 			memset(dumper->get__curp + nread, 0, need);
 			dumper->eaddress = dumper->address + nread;
