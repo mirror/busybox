@@ -141,6 +141,7 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 		bb_dump_add(dumper, buf);
 	} else {
 		bb_dump_add(dumper, "\"\n\"");
+		dumper->eofstring = "\n";
 	}
 
 	return bb_dump_dump(dumper, argv);
