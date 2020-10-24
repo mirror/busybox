@@ -17,5 +17,5 @@ Ok
 trap -- '' HUP
 trap -- '' QUIT
 trap -- '' SYS
-TERM
+Terminated
 Done
