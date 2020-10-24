@@ -8704,8 +8704,8 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 					 */
 					 && i == fg_pipe->num_cmds-1
 					) {
-						/* TODO: use strsignal() instead for bash compat? but that's bloat... */
-						puts(sig == SIGINT || sig == SIGPIPE ? "" : get_signame(sig));
+						/* strsignal() is for bash compat. ~600 bloat versus bbox's get_signame() */
+						puts(sig == SIGINT || sig == SIGPIPE ? "" : strsignal(sig));
 					}
 					/* TODO: if (WCOREDUMP(status)) + " (core dumped)"; */
 					/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
