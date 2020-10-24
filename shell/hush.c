@@ -8698,9 +8698,15 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 				 */
 				if (WIFSIGNALED(status)) {
 					int sig = WTERMSIG(status);
-					if (i == fg_pipe->num_cmds-1)
+					if (G.run_list_level == 1
+					/* ^^^^^ Do not print in nested contexts, example:
+					 * echo `sleep 1; sh -c 'kill -9 $$'` - prints "137", NOT "Killed 137"
+					 */
+					 && i == fg_pipe->num_cmds-1
+					) {
 						/* TODO: use strsignal() instead for bash compat? but that's bloat... */
 						puts(sig == SIGINT || sig == SIGPIPE ? "" : get_signame(sig));
+					}
 					/* TODO: if (WCOREDUMP(status)) + " (core dumped)"; */
 					/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
 					 * Maybe we need to use sig | 128? */
