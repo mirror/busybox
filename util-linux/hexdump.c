@@ -15,16 +15,6 @@
 //config:	The hexdump utility is used to display binary data in a readable
 //config:	way that is comparable to the output from most hex editors.
 //config:
-//config:config FEATURE_HEXDUMP_REVERSE
-//config:	bool "Support -R, reverse of 'hexdump -Cv'"
-//config:	default y
-//config:	depends on HEXDUMP
-//config:	help
-//config:	The hexdump utility is used to display binary data in an ascii
-//config:	readable way. This option creates binary data from an ascii input.
-//config:	NB: this option is non-standard. It's unwise to use it in scripts
-//config:	aimed to be portable.
-//config:
 //config:config HD
 //config:	bool "hd (7.8 kb)"
 //config:	default y
@@ -38,7 +28,7 @@
 //kbuild:lib-$(CONFIG_HD) += hexdump.o
 
 //usage:#define hexdump_trivial_usage
-//usage:       "[-bcCdefnosvx" IF_FEATURE_HEXDUMP_REVERSE("R") "] [FILE]..."
+//usage:       "[-bcCdefnosvx] [FILE]..."
 //usage:#define hexdump_full_usage "\n\n"
 //usage:       "Display FILEs (or stdin) in a user specified format\n"
 //usage:     "\n	-b		1-byte octal display"
@@ -53,9 +43,6 @@
 // exactly the same help text lines in hexdump and xxd:
 //usage:     "\n	-n LENGTH	Show only first LENGTH bytes"
 //usage:     "\n	-s OFFSET	Skip OFFSET bytes"
-//usage:	IF_FEATURE_HEXDUMP_REVERSE(
-//usage:     "\n	-R		Reverse of 'hexdump -Cv'")
-// TODO: NONCOMPAT!!! move -R to xxd -r
 //usage:
 //usage:#define hd_trivial_usage
 //usage:       "FILE..."
@@ -94,7 +81,7 @@ static const char *const add_strings[] = {
 
 static const char add_first[] ALIGN1 = "\"%07.7_Ax\n\"";
 
-static const char hexdump_opts[] ALIGN1 = "bcdoxCe:f:n:s:v" IF_FEATURE_HEXDUMP_REVERSE("R");
+static const char hexdump_opts[] ALIGN1 = "bcdoxCe:f:n:s:v";
 
 int hexdump_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hexdump_main(int argc, char **argv)
@@ -102,10 +89,6 @@ int hexdump_main(int argc, char **argv)
 	dumper_t *dumper = alloc_dumper();
 	const char *p;
 	int ch;
-#if ENABLE_FEATURE_HEXDUMP_REVERSE
-	FILE *fp;
-	smallint rdump = 0;
-#endif
 
 	if (ENABLE_HD
 	 && (!ENABLE_HEXDUMP || !applet_name[2])
@@ -153,11 +136,6 @@ int hexdump_main(int argc, char **argv)
 		if (ch == 'v') {
 			dumper->dump_vflag = ALL;
 		}
-#if ENABLE_FEATURE_HEXDUMP_REVERSE
-		if (ch == 'R') {
-			rdump = 1;
-		}
-#endif
 	}
 
 	if (!dumper->fshead) {
@@ -167,40 +145,5 @@ int hexdump_main(int argc, char **argv)
 
 	argv += optind;
 
-#if !ENABLE_FEATURE_HEXDUMP_REVERSE
 	return bb_dump_dump(dumper, argv);
-#else
-	if (!rdump) {
-		return bb_dump_dump(dumper, argv);
-	}
-
-	/* -R: reverse of 'hexdump -Cv' */
-	fp = stdin;
-	if (!*argv) {
-		argv--;
-		goto jump_in;
-	}
-
-	do {
-		char *buf;
-		fp = xfopen_for_read(*argv);
- jump_in:
-		while ((buf = xmalloc_fgetline(fp)) != NULL) {
-			p = buf;
-			while (1) {
-				/* skip address or previous byte */
-				while (isxdigit(*p)) p++;
-				while (*p == ' ') p++;
-				/* '|' char will break the line */
-				if (!isxdigit(*p) || sscanf(p, "%x ", &ch) != 1)
-					break;
-				putchar(ch);
-			}
-			free(buf);
-		}
-		fclose(fp);
-	} while (*++argv);
-
-	fflush_stdout_and_exit(EXIT_SUCCESS);
-#endif
 }

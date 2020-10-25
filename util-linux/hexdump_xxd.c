@@ -50,12 +50,78 @@
 // exactly the same help text lines in hexdump and xxd:
 //usage:     "\n	-l LENGTH	Show only first LENGTH bytes"
 //usage:     "\n	-s OFFSET	Skip OFFSET bytes"
+//usage:     "\n	-r		Reverse (with -p, assumes no offsets in input)"
 // TODO: implement -r (see hexdump -R)
 
 #include "libbb.h"
 #include "dump.h"
 
 /* This is a NOEXEC applet. Be very careful! */
+
+#define OPT_l (1 << 0)
+#define OPT_s (1 << 1)
+#define OPT_a (1 << 2)
+#define OPT_p (1 << 3)
+#define OPT_r (1 << 4)
+
+static void reverse(unsigned opt, unsigned cols, const char *filename)
+{
+	FILE *fp;
+	char *buf;
+
+	fp = filename ? xfopen_for_read(filename) : stdin;
+
+	while ((buf = xmalloc_fgetline(fp)) != NULL) {
+		char *p = buf;
+		unsigned cnt = cols;
+
+		if (!(opt & OPT_p)) {
+			/* skip address */
+			while (isxdigit(*p)) p++;
+			/* NB: for xxd -r, first hex portion is address even without colon */
+			/* If it's there, skip it: */
+			if (*p == ':') p++;
+
+//TODO: seek (or zero-pad if unseekable) to the address position
+//NOTE: -s SEEK value should be added to the address before seeking
+		}
+
+		/* Process hex bytes optionally separated by whitespace */
+		do {
+			uint8_t val, c;
+
+			p = skip_whitespace(p);
+
+			c = *p++;
+			if (isdigit(c))
+				val = c - '0';
+			else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
+				val = (c|0x20) - ('a' - 10);
+			else
+				break;
+			val <<= 4;
+
+			/* Works the same with xxd V1.10:
+			 *  echo "31 09 32 0a" | xxd -r -p
+			 *  echo "31 0 9 32 0a" | xxd -r -p
+			 * thus allow whitespace even within the byte:
+			 */
+			p = skip_whitespace(p);
+
+			c = *p++;
+			if (isdigit(c))
+				val |= c - '0';
+			else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
+				val |= (c|0x20) - ('a' - 10);
+			else
+				break;
+			putchar(val);
+		} while (!(opt & OPT_p) || --cnt != 0);
+		free(buf);
+	}
+	//fclose(fp);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
+}
 
 int xxd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int xxd_main(int argc UNUSED_PARAM, char **argv)
@@ -69,11 +135,7 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 
 	dumper = alloc_dumper();
 
-#define OPT_l (1 << 0)
-#define OPT_s (1 << 1)
-#define OPT_a (1 << 2)
-#define OPT_p (1 << 3)
-	opt = getopt32(argv, "^" "l:s:apg:+c:+" "\0" "?1" /* 1 argument max */,
+	opt = getopt32(argv, "^" "l:s:aprg:+c:+" "\0" "?1" /* 1 argument max */,
 			&opt_l, &opt_s, &bytes, &cols
 	);
 	argv += optind;
@@ -105,6 +167,10 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 		if (cols == 0)
 			cols = 16;
 		bb_dump_add(dumper, "\"%08.8_ax: \""); // "address: "
+	}
+
+	if (opt & OPT_r) {
+		reverse(opt, cols, argv[0]);
 	}
 
 	if (bytes < 1 || bytes >= cols) {
