@@ -27,30 +27,6 @@
 #define	F_UINT		0x200		/* %[ouXx] */
 #define	F_TEXT		0x400		/* no conversions */
 
-typedef struct PR {
-	struct PR *nextpr;		/* next print unit */
-	unsigned flags;			/* flag values */
-	int bcnt;			/* byte count */
-	char *cchar;			/* conversion character */
-	char *fmt;			/* printf format */
-	char *nospace;			/* no whitespace version */
-} PR;
-
-typedef struct FU {
-	struct FU *nextfu;		/* next format unit */
-	struct PR *nextpr;		/* next print unit */
-	unsigned flags;			/* flag values */
-	int reps;			/* repetition count */
-	int bcnt;			/* byte count */
-	char *fmt;			/* format string */
-} FU;
-
-typedef struct FS {			/* format strings */
-	struct FS *nextfs;		/* linked list of format strings */
-	struct FU *nextfu;		/* linked list of format units */
-	int bcnt;
-} FS;
-
 typedef struct priv_dumper_t {
 	dumper_t pub;
 

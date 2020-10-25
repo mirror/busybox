@@ -4,7 +4,29 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 enum dump_vflag_t { ALL, DUP, FIRST, WAIT };	/* -v values */
 
-typedef struct FS FS;
+typedef struct PR {
+	struct PR *nextpr;		/* next print unit */
+	unsigned flags;			/* flag values */
+	int bcnt;			/* byte count */
+	char *cchar;			/* conversion character */
+	char *fmt;			/* printf format */
+	char *nospace;			/* no whitespace version */
+} PR;
+
+typedef struct FU {
+	struct FU *nextfu;		/* next format unit */
+	struct PR *nextpr;		/* next print unit */
+	unsigned flags;			/* flag values */
+	int reps;			/* repetition count */
+	int bcnt;			/* byte count */
+	char *fmt;			/* format string */
+} FU;
+
+typedef struct FS {			/* format strings */
+	struct FS *nextfs;		/* linked list of format strings */
+	struct FU *nextfu;		/* linked list of format units */
+	int bcnt;
+} FS;
 
 typedef struct dumper_t {
 	off_t dump_skip;                /* bytes to skip */
