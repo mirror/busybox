@@ -76,6 +76,8 @@
 //usage:       "1\n"
 
 #include "libbb.h"
+#include <regex.h>
+#include <fnmatch.h>
 
 /* This is a NOFORK applet. Be very careful! */
 
@@ -146,6 +148,14 @@
 
 #define TEST_DEBUG 0
 
+#if ENABLE_TEST2 \
+ || (ENABLE_ASH_BASH_COMPAT && ENABLE_ASH_TEST) \
+ || (ENABLE_HUSH_BASH_COMPAT && ENABLE_HUSH_TEST)
+# define BASH_TEST2 1
+#else
+# define BASH_TEST2 0
+#endif
+
 enum token {
 	EOI,
 
@@ -183,6 +193,10 @@ enum token {
 	STRNE,
 	STRLT,
 	STRGT,
+
+#if BASH_TEST2
+	REGEX,
+#endif
 
 	INTEQ, /* int ops */
 	INTNE,
@@ -257,6 +271,9 @@ static const char *const TOKSTR[] = {
 	"STRNE",
 	"STRLT",
 	"STRGT",
+#if BASH_TEST2
+	"REGEX",
+#endif
 	"INTEQ",
 	"INTNE",
 	"INTGE",
@@ -320,6 +337,9 @@ static const struct operator_t ops_table[] = {
 	{ /* "!=" */ STRNE   , BINOP  },
 	{ /* "<"  */ STRLT   , BINOP  },
 	{ /* ">"  */ STRGT   , BINOP  },
+#if BASH_TEST2
+	{ /* "=~" */ REGEX   , BINOP  },
+#endif
 	{ /* "-eq"*/ INTEQ   , BINOP  },
 	{ /* "-ne"*/ INTNE   , BINOP  },
 	{ /* "-ge"*/ INTGE   , BINOP  },
@@ -332,6 +352,10 @@ static const struct operator_t ops_table[] = {
 	{ /* "!"  */ UNOT    , BUNOP  },
 	{ /* "-a" */ BAND    , BBINOP },
 	{ /* "-o" */ BOR     , BBINOP },
+#if BASH_TEST2
+	{ /* "&&" */ BAND    , BBINOP },
+	{ /* "||" */ BOR     , BBINOP },
+#endif
 	{ /* "("  */ LPAREN  , PAREN  },
 	{ /* ")"  */ RPAREN  , PAREN  },
 };
@@ -365,6 +389,9 @@ static const char ops_texts[] ALIGN1 =
 	"!="  "\0"
 	"<"   "\0"
 	">"   "\0"
+#if BASH_TEST2
+	"=~"  "\0"
+#endif
 	"-eq" "\0"
 	"-ne" "\0"
 	"-ge" "\0"
@@ -377,6 +404,10 @@ static const char ops_texts[] ALIGN1 =
 	"!"   "\0"
 	"-a"  "\0"
 	"-o"  "\0"
+#if BASH_TEST2
+	"&&"  "\0"
+	"||"  "\0"
+#endif
 	"("   "\0"
 	")"   "\0"
 ;
@@ -397,6 +428,9 @@ struct test_statics {
 	const struct operator_t *last_operator;
 	gid_t *group_array;
 	int ngroups;
+#if BASH_TEST2
+	bool bash_test2;
+#endif
 	jmp_buf leaving;
 };
 
@@ -408,6 +442,7 @@ extern struct test_statics *const test_ptr_to_statics;
 #define last_operator   (S.last_operator)
 #define group_array     (S.group_array  )
 #define ngroups         (S.ngroups      )
+#define bash_test2      (S.bash_test2   )
 #define leaving         (S.leaving      )
 
 #define INIT_S() do { \
@@ -501,6 +536,20 @@ static enum token check_operator(const char *s)
 	n = index_in_strings(ops_texts, s);
 	if (n < 0)
 		return OPERAND;
+
+#if BASH_TEST2
+	if (ops_table[n].op_num == REGEX && !bash_test2) {
+		/* =~ is only for [[ ]] */
+		return OPERAND;
+	}
+	if (ops_table[n].op_num == BAND || ops_table[n].op_num == BOR) {
+		/* [ ]   accepts -a and -o but not && and || */
+		/* [[ ]] accepts && and || but not -a and -o */
+		if (bash_test2 == (s[0] == '-'))
+			return OPERAND;
+	}
+#endif
+
 	last_operator = &ops_table[n];
 	return ops_table[n].op_num;
 }
@@ -536,6 +585,29 @@ static int binop(void)
 		/*if (op->op_num == INTLT)*/
 		return val1 <  val2;
 	}
+#if BASH_TEST2
+	if (bash_test2) {
+		if (op->op_num == STREQ) {
+			val1 = fnmatch(opnd2, opnd1, 0);
+			return val1 == 0;
+		}
+		if (op->op_num == STRNE) {
+			val1 = fnmatch(opnd2, opnd1, 0);
+			return val1 != 0;
+		}
+		if (op->op_num == REGEX) {
+			regex_t re_buffer;
+			memset(&re_buffer, 0, sizeof(re_buffer));
+			if (regcomp(&re_buffer, opnd2, REG_EXTENDED)) { // REG_NEWLINE?
+				/* Bad regex */
+				longjmp(leaving, 2); /* [[ a =~ * ]]; echo $? - prints 2 (silently, no error msg) */
+			}
+			val1 = regexec(&re_buffer, opnd1, 0, NULL, 0);
+			regfree(&re_buffer);
+			return val1 == 0;
+		}
+	}
+#endif
 	if (is_str_op(op->op_num)) {
 		val1 = strcmp(opnd1, opnd2);
 		if (op->op_num == STREQ)
@@ -824,6 +896,9 @@ int test_main(int argc, char **argv)
 {
 	int res;
 	const char *arg0;
+#if BASH_TEST2
+	bool bt2 = 0;
+#endif
 
 	arg0 = bb_basename(argv[0]);
 	if ((ENABLE_TEST1 || ENABLE_TEST2 || ENABLE_ASH_TEST || ENABLE_HUSH_TEST)
@@ -840,6 +915,9 @@ int test_main(int argc, char **argv)
 				bb_simple_error_msg("missing ]]");
 				return 2;
 			}
+#if BASH_TEST2
+			bt2 = 1;
+#endif
 		}
 		argv[argc] = NULL;
 	}
@@ -847,6 +925,10 @@ int test_main(int argc, char **argv)
 
 	/* We must do DEINIT_S() prior to returning */
 	INIT_S();
+
+#if BASH_TEST2
+	bash_test2 = bt2;
+#endif
 
 	res = setjmp(leaving);
 	if (res)

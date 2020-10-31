@@ -84,13 +84,12 @@
  * [[ args ]] are CMD_SINGLEWORD_NOGLOB:
  *   v='a b'; [[ $v = 'a b' ]]; echo 0:$?
  *   [[ /bin/n* ]]; echo 0:$?
+ *   = is glob match operator, not equality operator: STR = GLOB
+ *   (in GLOB, quoting is significant on char-by-char basis: a*cd"*")
+ *   == same as =
+ *   =~ is regex match operator: STR =~ REGEX
  * TODO:
- * &&/|| are AND/OR ops, -a/-o are not
  * quoting needs to be considered (-f is an operator, "-f" and ""-f are not; etc)
- * = is glob match operator, not equality operator: STR = GLOB
- * (in GLOB, quoting is significant on char-by-char basis: a*cd"*")
- * == same as =
- * add =~ regex match operator: STR =~ REGEX
  */
 //config:config HUSH
 //config:	bool "hush (68 kb)"
@@ -651,14 +650,16 @@ struct command {
 	smallint cmd_type;          /* CMD_xxx */
 #define CMD_NORMAL   0
 #define CMD_SUBSHELL 1
-#if BASH_TEST2 || ENABLE_HUSH_LOCAL || ENABLE_HUSH_EXPORT || ENABLE_HUSH_READONLY
-/* used for "[[ EXPR ]]", and to prevent word splitting and globbing in
- * "export v=t*"
- */
-# define CMD_SINGLEWORD_NOGLOB 2
+#if BASH_TEST2
+/* used for "[[ EXPR ]]" */
+# define CMD_TEST2_SINGLEWORD_NOGLOB 2
+#endif
+#if ENABLE_HUSH_LOCAL || ENABLE_HUSH_EXPORT || ENABLE_HUSH_READONLY
+/* used to prevent word splitting and globbing in "export v=t*" */
+# define CMD_SINGLEWORD_NOGLOB 3
 #endif
 #if ENABLE_HUSH_FUNCTIONS
-# define CMD_FUNCDEF 3
+# define CMD_FUNCDEF 4
 #endif
 
 	smalluint cmd_exitcode;
@@ -4112,6 +4113,14 @@ static int done_word(struct parse_context *ctx)
 			ctx->ctx_dsemicolon = 0;
 		} else
 # endif
+# if defined(CMD_TEST2_SINGLEWORD_NOGLOB)
+		if (command->cmd_type == CMD_TEST2_SINGLEWORD_NOGLOB
+		 && strcmp(ctx->word.data, "]]") == 0
+		) {
+			/* allow "[[ ]] >file" etc */
+			command->cmd_type = CMD_SINGLEWORD_NOGLOB;
+		} else
+# endif
 		if (!command->argv /* if it's the first word... */
 # if ENABLE_HUSH_LOOPS
 		 && ctx->ctx_res_w != RES_FOR /* ...not after FOR or IN */
@@ -4146,11 +4155,13 @@ static int done_word(struct parse_context *ctx)
 						(ctx->ctx_res_w == RES_SNTX));
 				return (ctx->ctx_res_w == RES_SNTX);
 			}
+# if defined(CMD_TEST2_SINGLEWORD_NOGLOB)
+			if (strcmp(ctx->word.data, "[[") == 0) {
+				command->cmd_type = CMD_TEST2_SINGLEWORD_NOGLOB;
+			} else
+# endif
 # if defined(CMD_SINGLEWORD_NOGLOB)
 			if (0
-#  if BASH_TEST2
-			 || strcmp(ctx->word.data, "[[") == 0
-#  endif
 			/* In bash, local/export/readonly are special, args
 			 * are assignments and therefore expansion of them
 			 * should be "one-word" expansion:
@@ -4172,7 +4183,8 @@ static int done_word(struct parse_context *ctx)
 			) {
 				command->cmd_type = CMD_SINGLEWORD_NOGLOB;
 			}
-			/* fall through */
+# else
+			{ /* empty block to pair "if ... else" */ }
 # endif
 		}
 #endif /* HAS_KEYWORDS */
@@ -5354,9 +5366,15 @@ static struct pipe *parse_stream(char **pstring,
 		if (ch != '\n')
 			next = i_peek_and_eat_bkslash_nl(input);
 
-		is_special = "{}<>;&|()#" /* special outside of "str" */
+		is_special = "{}<>&|();#" /* special outside of "str" */
 				"$\"" IF_HUSH_TICK("`") /* always special */
 				SPECIAL_VAR_SYMBOL_STR;
+#if defined(CMD_TEST2_SINGLEWORD_NOGLOB)
+		if (ctx.command->cmd_type == CMD_TEST2_SINGLEWORD_NOGLOB) {
+			/* In [[ ]], {}<>&|() are not special */
+			is_special += 8;
+		} else
+#endif
 		/* Are { and } special here? */
 		if (ctx.command->argv /* word [word]{... - non-special */
 		 || ctx.word.length       /* word{... - non-special */
@@ -6953,7 +6971,7 @@ static char **expand_strvec_to_strvec(char **argv)
 	return expand_variables(argv, EXP_FLAG_GLOB | EXP_FLAG_ESC_GLOB_CHARS);
 }
 
-#if defined(CMD_SINGLEWORD_NOGLOB)
+#if defined(CMD_SINGLEWORD_NOGLOB) || defined(CMD_TEST2_SINGLEWORD_NOGLOB)
 static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
 {
 	return expand_variables(argv, EXP_FLAG_SINGLEWORD);
@@ -9133,6 +9151,11 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		}
 
 		/* Expand the rest into (possibly) many strings each */
+#if defined(CMD_TEST2_SINGLEWORD_NOGLOB)
+		if (command->cmd_type == CMD_TEST2_SINGLEWORD_NOGLOB)
+			argv_expanded = expand_strvec_to_strvec_singleword_noglob(argv + command->assignment_cnt);
+		else
+#endif
 #if defined(CMD_SINGLEWORD_NOGLOB)
 		if (command->cmd_type == CMD_SINGLEWORD_NOGLOB)
 			argv_expanded = expand_strvec_to_strvec_singleword_noglob(argv + command->assignment_cnt);
