@@ -63,7 +63,6 @@
  *      reserved words: function select
  *      advanced test: [[ ]]
  *      process substitution: <(list) and >(list)
- *      =~: regex operator
  *      let EXPR [EXPR...]
  *          Each EXPR is an arithmetic expression (ARITHMETIC EVALUATION)
  *          If the last arg evaluates to 0, let returns 1; 0 otherwise.
@@ -85,11 +84,11 @@
  *   v='a b'; [[ $v = 'a b' ]]; echo 0:$?
  *   [[ /bin/n* ]]; echo 0:$?
  *   = is glob match operator, not equality operator: STR = GLOB
- *   (in GLOB, quoting is significant on char-by-char basis: a*cd"*")
  *   == same as =
  *   =~ is regex match operator: STR =~ REGEX
  * TODO:
  * quoting needs to be considered (-f is an operator, "-f" and ""-f are not; etc)
+ * in word = GLOB, quoting should be significant on char-by-char basis: a*cd"*"
  */
 //config:config HUSH
 //config:	bool "hush (68 kb)"

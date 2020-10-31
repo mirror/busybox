@@ -209,15 +209,15 @@
  * Status of [[ support:
  *   && and || work as they should
  *   = is glob match operator, not equality operator: STR = GLOB
- *   (in GLOB, quoting is significant on char-by-char basis: a*cd"*")
  *   == same as =
- *   add =~ regex match operator: STR =~ REGEX
+ *   =~ is regex match operator: STR =~ REGEX
  * TODO:
  * singleword+noglob expansion:
  *   v='a b'; [[ $v = 'a b' ]]; echo 0:$?
  *   [[ /bin/n* ]]; echo 0:$?
  * quoting needs to be considered (-f is an operator, "-f" and ""-f are not; etc)
- * ( ) < > should not have special meaning
+ * ( ) < > should not have special meaning (IOW: should not require quoting)
+ * in word = GLOB, quoting should be significant on char-by-char basis: a*cd"*"
  */
 #define    BASH_TEST2           (ENABLE_ASH_BASH_COMPAT * ENABLE_ASH_TEST)
 #define    BASH_SOURCE          ENABLE_ASH_BASH_COMPAT
