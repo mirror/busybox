@@ -663,6 +663,25 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		load_modules_dep();
 	}
 
+	/* Handle modprobe.blacklist=module1,module2,... */
+	if (ENABLE_FEATURE_MODPROBE_BLACKLIST) {
+		char *options;
+		char *substr;
+
+		options = parse_and_add_kcmdline_module_options(NULL, "modprobe");
+		while ((substr = strsep(&options, " ")) != NULL) {
+			char *fn = is_prefixed_with(substr, "blacklist=");
+			if (!fn)
+				continue;
+			while ((substr = strsep(&fn, ",")) != NULL) {
+				/* blacklist <modulename> */
+				get_or_add_modentry(substr)->flags |= MODULE_FLAG_BLACKLISTED;
+				DBG("blacklist: %s", substr);
+			}
+		}
+		/*free(options); - WRONG, strsep may have advanced it */
+	}
+
 	rc = 0;
 	while ((me = llist_pop(&G.probes)) != NULL) {
 		if (me->realnames == NULL) {
