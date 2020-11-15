@@ -39,6 +39,17 @@
 # define SCHED_IDLE 5
 #endif
 
+//musl has no __MUSL__ or similar define to check for,
+//but its <sys/types.h> has these lines:
+// #define __NEED_fsblkcnt_t
+// #define __NEED_fsfilcnt_t
+#if defined(__linux__) && defined(__NEED_fsblkcnt_t) && defined(__NEED_fsfilcnt_t)
+# define LIBC_IS_MUSL 1
+# include <sys/syscall.h>
+#else
+# define LIBC_IS_MUSL 0
+#endif
+
 static const char *policy_name(int pol)
 {
 	if (pol > 6)
@@ -85,6 +96,7 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 	char *priority = priority; /* for compiler */
 	const char *current_new;
 	int policy = SCHED_RR;
+	int ret;
 
 	opt = getopt32(argv, "^"
 			"+" "mprfobi"
@@ -132,7 +144,15 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_p) {
 		int pol;
  print_rt_info:
+#if LIBC_IS_MUSL
+		/* musl libc returns ENOSYS for its sched_getscheduler library
+		 * function, because the sched_getscheduler Linux kernel system call
+		 * does not conform to Posix; so we use the system call directly
+		 */
+		pol = syscall(SYS_sched_getscheduler, pid);
+#else
 		pol = sched_getscheduler(pid);
+#endif
 		if (pol < 0)
 			bb_perror_msg_and_die("can't %cet pid %u's policy", 'g', (int)pid);
 #ifdef SCHED_RESET_ON_FORK
@@ -149,7 +169,12 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 		printf("pid %u's %s scheduling policy: SCHED_%s\n",
 			pid, current_new, policy_name(pol)
 		);
-		if (sched_getparam(pid, &sp))
+#if LIBC_IS_MUSL
+		ret = syscall(SYS_sched_getparam, pid, &sp);
+#else
+		ret = sched_getparam(pid, &sp);
+#endif
+		if (ret)
 			bb_perror_msg_and_die("can't get pid %u's attributes", (int)pid);
 		printf("pid %u's %s scheduling priority: %d\n",
 			(int)pid, current_new, sp.sched_priority
@@ -168,7 +193,12 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 		sched_get_priority_min(policy), sched_get_priority_max(policy)
 	);
 
-	if (sched_setscheduler(pid, policy, &sp) < 0)
+#if LIBC_IS_MUSL
+	ret = syscall(SYS_sched_setscheduler, pid, policy, &sp);
+#else
+	ret = sched_setscheduler(pid, policy, &sp);
+#endif
+	if (ret)
 		bb_perror_msg_and_die("can't %cet pid %u's policy", 's', (int)pid);
 
 	if (!argv[0]) /* "-p PRIO PID [...]" */
