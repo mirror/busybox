@@ -916,6 +916,9 @@ struct globals {
 	char opt_c;
 #if ENABLE_HUSH_INTERACTIVE
 	smallint promptmode; /* 0: PS1, 1: PS2 */
+# if ENABLE_FEATURE_EDITING
+	smallint flag_ctrlC; /* when set, suppresses syntax error messages */
+# endif
 #endif
 	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
@@ -1425,7 +1428,10 @@ static void syntax_error_at(unsigned lineno UNUSED_PARAM, const char *msg)
 
 static void syntax_error_unterm_str(unsigned lineno UNUSED_PARAM, const char *s)
 {
-	bb_error_msg("syntax error: unterminated %s", s);
+#if ENABLE_FEATURE_EDITING
+	if (!G.flag_ctrlC)
+#endif
+		bb_error_msg("syntax error: unterminated %s", s);
 //? source4.tests fails: in bash, echo ${^} in script does not terminate the script
 //	die_if_script();
 }
@@ -2629,26 +2635,27 @@ static int get_user_input(struct in_str *i)
 # if ENABLE_FEATURE_EDITING
 	for (;;) {
 		reinit_unicode_for_hush();
-		if (G.flag_SIGINT) {
-			/* There was ^C'ed, make it look prettier: */
-			bb_putchar('\n');
-			G.flag_SIGINT = 0;
-		}
+		G.flag_SIGINT = 0;
 		/* buglet: SIGINT will not make new prompt to appear _at once_,
 		 * only after <Enter>. (^C works immediately) */
 		r = read_line_input(G.line_input_state, prompt_str,
 				G.user_input_buf, CONFIG_FEATURE_EDITING_MAX_LEN-1
 		);
 		/* read_line_input intercepts ^C, "convert" it to SIGINT */
-		if (r == 0)
+		if (r == 0) {
+			G.flag_ctrlC = 1;
 			raise(SIGINT);
+		}
 		check_and_run_traps();
 		if (r != 0 && !G.flag_SIGINT)
 			break;
-		/* ^C or SIGINT: repeat */
+		/* ^C or SIGINT: return EOF */
 		/* bash prints ^C even on real SIGINT (non-kbd generated) */
-		write(STDOUT_FILENO, "^C", 2);
+		write(STDOUT_FILENO, "^C\n", 3);
 		G.last_exitcode = 128 + SIGINT;
+		i->p = NULL;
+		i->peek_buf[0] = r = EOF;
+		return r;
 	}
 	if (r < 0) {
 		/* EOF/error detected */
@@ -5260,22 +5267,31 @@ static struct pipe *parse_stream(char **pstring,
 				ch, ch, !!(ctx.word.o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 		if (ch == EOF) {
 			struct pipe *pi;
-
+#if ENABLE_FEATURE_EDITING
+			if (G.flag_ctrlC) {
+				/* testcase: interactively entering
+				 *  'qwe <cr> ^C
+				 * should not leave input in PS2 mode, waiting to close single quote.
+				 */
+				G.flag_ctrlC = 0;
+				goto parse_error;
+			}
+#endif
 			if (heredoc_cnt) {
 				syntax_error_unterm_str("here document");
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			if (end_trigger == ')') {
 				syntax_error_unterm_ch('(');
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			if (end_trigger == '}') {
 				syntax_error_unterm_ch('{');
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 
 			if (done_word(&ctx)) {
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			o_free_and_set_NULL(&ctx.word);
 			done_pipe(&ctx, PIPE_SEQ);
@@ -5345,7 +5361,7 @@ static struct pipe *parse_stream(char **pstring,
 			while (1) {
 				if (ch == EOF) {
 					syntax_error_unterm_ch('\'');
-					goto parse_error;
+					goto parse_error_exitcode1;
 				}
 				nommu_addchr(&ctx.as_string, ch);
 				if (ch == '\'')
@@ -5424,7 +5440,7 @@ static struct pipe *parse_stream(char **pstring,
 			/* ch == last eaten whitespace char */
 #endif
 			if (done_word(&ctx)) {
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			if (ch == '\n') {
 				/* Is this a case when newline is simply ignored?
@@ -5467,7 +5483,7 @@ static struct pipe *parse_stream(char **pstring,
 				if (heredoc_cnt) {
 					heredoc_cnt = fetch_heredocs(&ctx.as_string, ctx.list_head, heredoc_cnt, input);
 					if (heredoc_cnt != 0)
-						goto parse_error;
+						goto parse_error_exitcode1;
 				}
 				ctx.is_assignment = MAYBE_ASSIGNMENT;
 				debug_printf_parse("ctx.is_assignment='%s'\n", assignment_flag[ctx.is_assignment]);
@@ -5517,7 +5533,7 @@ static struct pipe *parse_stream(char **pstring,
 #endif
 		) {
 			if (done_word(&ctx)) {
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			done_pipe(&ctx, PIPE_SEQ);
 			ctx.is_assignment = MAYBE_ASSIGNMENT;
@@ -5538,7 +5554,7 @@ static struct pipe *parse_stream(char **pstring,
 					/* Example: bare "{ }", "()" */
 					G.last_exitcode = 2; /* bash compat */
 					syntax_error_unexpected_ch(ch);
-					goto parse_error2;
+					goto parse_error;
 				}
 				if (heredoc_cnt_ptr)
 					*heredoc_cnt_ptr = heredoc_cnt;
@@ -5560,7 +5576,7 @@ static struct pipe *parse_stream(char **pstring,
 		case '>':
 			redir_fd = redirect_opt_num(&ctx.word);
 			if (done_word(&ctx)) {
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			redir_style = REDIRECT_OVERWRITE;
 			if (next == '>') {
@@ -5571,16 +5587,16 @@ static struct pipe *parse_stream(char **pstring,
 #if 0
 			else if (next == '(') {
 				syntax_error(">(process) not supported");
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 #endif
 			if (parse_redirect(&ctx, redir_fd, redir_style, input))
-				goto parse_error;
+				goto parse_error_exitcode1;
 			continue; /* get next char */
 		case '<':
 			redir_fd = redirect_opt_num(&ctx.word);
 			if (done_word(&ctx)) {
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			redir_style = REDIRECT_INPUT;
 			if (next == '<') {
@@ -5597,11 +5613,11 @@ static struct pipe *parse_stream(char **pstring,
 #if 0
 			else if (next == '(') {
 				syntax_error("<(process) not supported");
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 #endif
 			if (parse_redirect(&ctx, redir_fd, redir_style, input))
-				goto parse_error;
+				goto parse_error_exitcode1;
 			continue; /* get next char */
 		case '#':
 			if (ctx.word.length == 0 && !ctx.word.has_quoted_part) {
@@ -5655,7 +5671,7 @@ static struct pipe *parse_stream(char **pstring,
 			if (!parse_dollar(&ctx.as_string, &ctx.word, input, /*quote_mask:*/ 0)) {
 				debug_printf_parse("parse_stream parse error: "
 					"parse_dollar returned 0 (error)\n");
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			continue; /* get next char */
 		case '"':
@@ -5671,7 +5687,7 @@ static struct pipe *parse_stream(char **pstring,
 			if (ctx.is_assignment == NOT_ASSIGNMENT)
 				ctx.word.o_expflags |= EXP_FLAG_ESC_GLOB_CHARS;
 			if (!encode_string(&ctx.as_string, &ctx.word, input, '"'))
-				goto parse_error;
+				goto parse_error_exitcode1;
 			ctx.word.o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 			continue; /* get next char */
 #if ENABLE_HUSH_TICK
@@ -5682,7 +5698,7 @@ static struct pipe *parse_stream(char **pstring,
 			o_addchr(&ctx.word, '`');
 			USE_FOR_NOMMU(pos = ctx.word.length;)
 			if (!add_till_backquote(&ctx.word, input, /*in_dquote:*/ 0))
-				goto parse_error;
+				goto parse_error_exitcode1;
 # if !BB_MMU
 			o_addstr(&ctx.as_string, ctx.word.data + pos);
 			o_addchr(&ctx.as_string, '`');
@@ -5697,7 +5713,7 @@ static struct pipe *parse_stream(char **pstring,
  case_semi:
 #endif
 			if (done_word(&ctx)) {
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			done_pipe(&ctx, PIPE_SEQ);
 #if ENABLE_HUSH_CASE
@@ -5724,7 +5740,7 @@ static struct pipe *parse_stream(char **pstring,
 			continue; /* get next char */
 		case '&':
 			if (done_word(&ctx)) {
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			if (next == '&') {
 				ch = i_getch(input);
@@ -5736,7 +5752,7 @@ static struct pipe *parse_stream(char **pstring,
 			goto new_cmd;
 		case '|':
 			if (done_word(&ctx)) {
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 #if ENABLE_HUSH_CASE
 			if (ctx.ctx_res_w == RES_MATCH)
@@ -5768,7 +5784,7 @@ static struct pipe *parse_stream(char **pstring,
 		case '{': {
 			int n = parse_group(&ctx, input, ch);
 			if (n < 0) {
-				goto parse_error;
+				goto parse_error_exitcode1;
 			}
 			debug_printf_heredoc("parse_group done, needs heredocs:%d\n", n);
 			heredoc_cnt += n;
@@ -5786,16 +5802,16 @@ static struct pipe *parse_stream(char **pstring,
 			 * and it will match } earlier (not here). */
 			G.last_exitcode = 2;
 			syntax_error_unexpected_ch(ch);
-			goto parse_error2;
+			goto parse_error;
 		default:
 			if (HUSH_DEBUG)
 				bb_error_msg_and_die("BUG: unexpected %c", ch);
 		}
 	} /* while (1) */
 
- parse_error:
+ parse_error_exitcode1:
 	G.last_exitcode = 1;
- parse_error2:
+ parse_error:
 	{
 		struct parse_context *pctx;
 		IF_HAS_KEYWORDS(struct parse_context *p2;)
