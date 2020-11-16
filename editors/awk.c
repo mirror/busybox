@@ -1765,10 +1765,9 @@ static void fsrealloc(int size)
 
 static int awk_split(const char *s, node *spl, char **slist)
 {
-	int l, n;
+	int n;
 	char c[4];
 	char *s1;
-	regmatch_t pmatch[2]; // TODO: why [2]? [1] is enough...
 
 	/* in worst case, each char would be a separate field */
 	*slist = s1 = xzalloc(strlen(s) * 2 + 3);
@@ -1785,12 +1784,18 @@ static int awk_split(const char *s, node *spl, char **slist)
 			return n; /* "": zero fields */
 		n++; /* at least one field will be there */
 		do {
+			int l;
+			regmatch_t pmatch[2]; // TODO: why [2]? [1] is enough...
+
 			l = strcspn(s, c+2); /* len till next NUL or \n */
 			if (regexec(icase ? spl->r.ire : spl->l.re, s, 1, pmatch, 0) == 0
 			 && pmatch[0].rm_so <= l
 			) {
 				l = pmatch[0].rm_so;
 				if (pmatch[0].rm_eo == 0) {
+					/* For example, happens when FS can match
+					 * an empthy string (awk -F ' *')
+					 */
 					l++;
 					pmatch[0].rm_eo++;
 				}
@@ -1800,14 +1805,16 @@ static int awk_split(const char *s, node *spl, char **slist)
 				if (s[l])
 					pmatch[0].rm_eo++;
 			}
-			memcpy(s1, s, l);
-			/* make sure we remove *all* of the separator chars */
-			do {
-				s1[l] = '\0';
-			} while (++l < pmatch[0].rm_eo);
-			nextword(&s1);
+			s1 = mempcpy(s1, s, l);
+			*s1++ = '\0';
 			s += pmatch[0].rm_eo;
 		} while (*s);
+
+		/* echo a-- | awk -F-- '{ print NF, length($NF), $NF }'
+		 * should print "2 0 ":
+		 */
+		*s1 = '\0';
+
 		return n;
 	}
 	if (c[0] == '\0') {  /* null split */
@@ -2011,7 +2018,7 @@ static int ptest(node *pattern)
 static int awk_getline(rstream *rsm, var *v)
 {
 	char *b;
-	regmatch_t pmatch[2];
+	regmatch_t pmatch[2]; // TODO: why [2]? [1] is enough...
 	int size, a, p, pp = 0;
 	int fd, so, eo, r, rp;
 	char c, *m, *s;
