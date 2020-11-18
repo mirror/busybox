@@ -7277,7 +7277,9 @@ subevalvar(char *start, char *str, int strloc,
  out:
 	amount = loc - expdest;
 	STADJUST(amount, expdest);
+#if BASH_PATTERN_SUBST
  out1:
+#endif
 	/* Remove any recorded regions beyond start of variable */
 	removerecordregions(startloc);
 
