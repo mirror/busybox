@@ -66,6 +66,9 @@ struct volume_id {
 	uint8_t		*sbbuf;
 	uint8_t		*seekbuf;
 	uint64_t	seekbuf_off;
+#if ENABLE_FEATURE_BLKID_TYPE
+	const char	*type;
+#endif
 #ifdef UNUSED_PARTITION_CODE
 	struct volume_id_partition *partitions;
 	size_t		partition_count;
@@ -80,9 +83,6 @@ struct volume_id {
 //	char		type_version[VOLUME_ID_FORMAT_SIZE];
 //	smallint	usage_id;
 //	const char	*usage;
-#if ENABLE_FEATURE_BLKID_TYPE
-	const char	*type;
-#endif
 };
 
 struct volume_id* FAST_FUNC volume_id_open_node(int fd);
