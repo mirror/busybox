@@ -2029,10 +2029,17 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 			if (c == '\n')
 				cmdedit_prmt_len = 0;
 			else if (flg_not_length != ']') {
-#if 0 /*ENABLE_UNICODE_SUPPORT*/
-/* Won't work, pbuf is one BYTE string here instead of an one Unicode char string. */
-/* FIXME */
-				cmdedit_prmt_len += unicode_strwidth(pbuf);
+#if ENABLE_UNICODE_SUPPORT
+				if (n == 1) {
+					/* Only count single-byte characters and the first of multi-byte characters */
+					if ((unsigned char)*pbuf < 0x80  /* single byte character */
+					 || (unsigned char)*pbuf >= 0xc0 /* first of multi-byte characters */
+					) {
+						cmdedit_prmt_len += n;
+					}
+				} else {
+					cmdedit_prmt_len += unicode_strwidth(pbuf);
+				}
 #else
 				cmdedit_prmt_len += n;
 #endif
