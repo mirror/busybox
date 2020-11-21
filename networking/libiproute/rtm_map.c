@@ -11,33 +11,55 @@
 #include "rt_names.h"
 #include "utils.h"
 
+static const char keywords[] ALIGN1 =
+	"local\0""nat\0""broadcast\0""brd\0""anycast\0"
+	"multicast\0""prohibit\0""unreachable\0""blackhole\0"
+	"xresolve\0""unicast\0""throw\0";
+enum {
+	ARG_local = 1, ARG_nat, ARG_broadcast, ARG_brd, ARG_anycast,
+	ARG_multicast, ARG_prohibit, ARG_unreachable, ARG_blackhole,
+	ARG_xresolve, ARG_unicast, ARG_throw
+};
+#define str_local       keywords
+#define str_nat         (str_local       + sizeof("local"))
+#define str_broadcast   (str_nat         + sizeof("nat"))
+#define str_brd         (str_broadcast   + sizeof("broadcast"))
+#define str_anycast     (str_brd         + sizeof("brd"))
+#define str_multicast   (str_anycast     + sizeof("anycast"))
+#define str_prohibit    (str_multicast   + sizeof("multicast"))
+#define str_unreachable (str_prohibit    + sizeof("prohibit"))
+#define str_blackhole   (str_unreachable + sizeof("unreachable"))
+#define str_xresolve    (str_blackhole   + sizeof("blackhole"))
+#define str_unicast     (str_xresolve    + sizeof("xresolve"))
+#define str_throw       (str_unicast     + sizeof("unicast"))
+
 const char* FAST_FUNC rtnl_rtntype_n2a(int id)
 {
 	switch (id) {
 	case RTN_UNSPEC:
 		return "none";
 	case RTN_UNICAST:
-		return "unicast";
+		return str_unicast;
 	case RTN_LOCAL:
-		return "local";
+		return str_local;
 	case RTN_BROADCAST:
-		return "broadcast";
+		return str_broadcast;
 	case RTN_ANYCAST:
-		return "anycast";
+		return str_anycast;
 	case RTN_MULTICAST:
-		return "multicast";
+		return str_multicast;
 	case RTN_BLACKHOLE:
-		return "blackhole";
+		return str_blackhole;
 	case RTN_UNREACHABLE:
-		return "unreachable";
+		return str_unreachable;
 	case RTN_PROHIBIT:
-		return "prohibit";
+		return str_prohibit;
 	case RTN_THROW:
-		return "throw";
+		return str_throw;
 	case RTN_NAT:
-		return "nat";
+		return str_nat;
 	case RTN_XRESOLVE:
-		return "xresolve";
+		return str_xresolve;
 	default:
 		return itoa(id);
 	}
@@ -45,15 +67,6 @@ const char* FAST_FUNC rtnl_rtntype_n2a(int id)
 
 int FAST_FUNC rtnl_rtntype_a2n(int *id, char *arg)
 {
-	static const char keywords[] ALIGN1 =
-		"local\0""nat\0""broadcast\0""brd\0""anycast\0"
-		"multicast\0""prohibit\0""unreachable\0""blackhole\0"
-		"xresolve\0""unicast\0""throw\0";
-	enum {
-		ARG_local = 1, ARG_nat, ARG_broadcast, ARG_brd, ARG_anycast,
-		ARG_multicast, ARG_prohibit, ARG_unreachable, ARG_blackhole,
-		ARG_xresolve, ARG_unicast, ARG_throw
-	};
 	const smalluint key = index_in_substrings(keywords, arg) + 1;
 	char *end;
 	unsigned long res;
