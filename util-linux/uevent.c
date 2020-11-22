@@ -26,8 +26,6 @@
 #include "common_bufsiz.h"
 #include <linux/netlink.h>
 
-#define BUFFER_SIZE 16*1024
-
 #define env ((char **)bb_common_bufsiz1)
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
 enum {
@@ -37,10 +35,16 @@ enum {
 	 */
 };
 
-#ifndef SO_RCVBUFFORCE
-#define SO_RCVBUFFORCE 33
-#endif
-enum { RCVBUF = 2 * 1024 * 1024 };
+enum {
+	/* socket receive buffer of 2MiB proved to be too small:
+	 * http://lists.busybox.net/pipermail/busybox/2019-December/087665.html
+	 * Udevd seems to use a whooping 128MiB.
+	 * The socket receive buffer size is just a resource limit.
+	 * The buffers are allocated lazily so the memory is not wasted.
+	 */
+	KERN_RCVBUF = 128 * 1024 * 1024,
+	USER_RCVBUF = 16 * 1024,
+};
 
 int uevent_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uevent_main(int argc UNUSED_PARAM, char **argv)
@@ -57,7 +61,7 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 	// Reproducer:
 	//	uevent mdev &
 	// 	find /sys -name uevent -exec sh -c 'echo add >"{}"' ';'
-	fd = create_and_bind_to_netlink(NETLINK_KOBJECT_UEVENT, /*groups:*/ 1 << 0, RCVBUF);
+	fd = create_and_bind_to_netlink(NETLINK_KOBJECT_UEVENT, /*groups:*/ 1 << 0, KERN_RCVBUF);
 
 	for (;;) {
 		char *netbuf;
@@ -69,7 +73,7 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 		// for a new uevent notification to come in.
 		// We use a fresh mmap so that buffer is not allocated
 		// until kernel actually starts filling it.
-		netbuf = mmap(NULL, BUFFER_SIZE,
+		netbuf = mmap(NULL, USER_RCVBUF,
 					PROT_READ | PROT_WRITE,
 					MAP_PRIVATE | MAP_ANON,
 					/* ignored: */ -1, 0);
@@ -77,7 +81,7 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 			bb_simple_perror_msg_and_die("mmap");
 
 		// Here we block, possibly for a very long time
-		len = safe_read(fd, netbuf, BUFFER_SIZE - 1);
+		len = safe_read(fd, netbuf, USER_RCVBUF - 1);
 		if (len < 0)
 			bb_simple_perror_msg_and_die("read");
 		end = netbuf + len;
@@ -108,7 +112,7 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 			while (env[idx])
 				bb_unsetenv(env[idx++]);
 		}
-		munmap(netbuf, BUFFER_SIZE);
+		munmap(netbuf, USER_RCVBUF);
 	}
 
 	return 0; // not reached
