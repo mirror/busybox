@@ -1165,6 +1165,29 @@ static void initial_scan(char *temp)
 # define KERN_RCVBUF (128 * 1024 * 1024)
 # define MAX_ENV 32
 
+static int daemon_init(char *temp)
+{
+	int fd;
+
+	/* Subscribe for UEVENT kernel messages */
+	/* Without a sufficiently big RCVBUF, a ton of simultaneous events
+	 * can trigger ENOBUFS on read, which is unrecoverable.
+	 * Reproducer:
+	 *	mdev -d
+	 *	find /sys -name uevent -exec sh -c 'echo add >"{}"' ';'
+	 */
+	fd = create_and_bind_to_netlink(NETLINK_KOBJECT_UEVENT, 1 << 0, KERN_RCVBUF);
+
+	/*
+	 * Make inital scan after the uevent socket is alive and
+	 * _before_ we fork away. Already open mdev.log because we work
+	 * in daemon mode.
+	 */
+	initial_scan(temp);
+
+	return fd;
+}
+
 static void daemon_loop(char *temp, int fd)
 {
 	for (;;) {
@@ -1234,24 +1257,11 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_MDEV_DAEMON
 	if (opt & MDEV_OPT_DAEMON) {
 		/*
-		 * Daemon mode listening on uevent netlink socket.
+		 * Daemon mode listening on uevent netlink socket. Fork away
+		 * after initial scan so that caller can be sure everything
+		 * is up-to-date when mdev process returns.
 		 */
-		int fd;
-
-		/* Subscribe for UEVENT kernel messages */
-		/* Without a sufficiently big RCVBUF, a ton of simultaneous events
-		 * can trigger ENOBUFS on read, which is unrecoverable.
-		 * Reproducer:
-		 *	mdev -d
-		 *	find /sys -name uevent -exec sh -c 'echo add >"{}"' ';'
-		 */
-		fd = create_and_bind_to_netlink(NETLINK_KOBJECT_UEVENT, 1 << 0, KERN_RCVBUF);
-
-		/*
-		 * Make inital scan after the uevent socket is alive and
-		 * _before_ we fork away.
-		 */
-		initial_scan(temp);
+		int fd = daemon_init(temp);
 
 		if (!(opt & MDEV_OPT_FOREGROUND))
 			bb_daemonize_or_rexec(0, argv);
