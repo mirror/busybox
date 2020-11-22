@@ -80,17 +80,15 @@
 //kbuild:lib-$(CONFIG_MDEV) += mdev.o
 
 //usage:#define mdev_trivial_usage
-//usage:       "[-Sv] " IF_FEATURE_MDEV_DAEMON("[") "[-s]" IF_FEATURE_MDEV_DAEMON(" | [-df]]")
+//usage:       "[-vS] " IF_FEATURE_MDEV_DAEMON("{ ") "[-s]" IF_FEATURE_MDEV_DAEMON(" | [-df] }")
 //usage:#define mdev_full_usage "\n\n"
-//usage:       "mdev -s is to be run during boot to scan /sys and populate /dev.\n"
+//usage:       "	-v	verbose\n"
+//usage:       "	-S	log to syslog too\n"
+//usage:       "	-s	scan /sys and populate /dev\n"
 //usage:	IF_FEATURE_MDEV_DAEMON(
-//usage:       "mdev -d[f]: daemon, listen on netlink.\n"
-//usage:       "	-f: stay in foreground.\n"
+//usage:       "	-d	daemon, listen on netlink\n"
+//usage:       "	-f	stay in foreground\n"
 //usage:	)
-//usage:       "\n"
-//usage:       "optional arguments:\n"
-//usage:       "	-S: Log to syslog too\n"
-//usage:       "	-v: Increase log verbosity\n"
 //usage:       "\n"
 //usage:       "Bare mdev is a kernel hotplug helper. To activate it:\n"
 //usage:       "	echo /sbin/mdev >/proc/sys/kernel/hotplug\n"
@@ -1281,7 +1279,9 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_MDEV_DAEMON
 	if (opt & MDEV_OPT_DAEMON) {
-		// there is no point in write()ing to /dev/null
+		int fd;
+
+		/* there is no point in write()ing to /dev/null */
 		if (!(opt & MDEV_OPT_FOREGROUND))
 			logmode &= ~LOGMODE_STDIO;
 
@@ -1290,7 +1290,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		 * after initial scan so that caller can be sure everything
 		 * is up-to-date when mdev process returns.
 		 */
-		int fd = daemon_init(temp);
+		fd = daemon_init(temp);
 
 		if (!(opt & MDEV_OPT_FOREGROUND))
 			bb_daemonize_or_rexec(0, argv);
