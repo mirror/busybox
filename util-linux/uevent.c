@@ -30,19 +30,19 @@
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
 enum {
 	MAX_ENV = COMMON_BUFSIZE / sizeof(char*) - 1,
-	/* sizeof(env[0]) instead of sizeof(char*)
-	 * makes gcc-6.3.0 emit "strict-aliasing" warning.
-	 */
-};
+	// ^^^sizeof(env[0]) instead of sizeof(char*)
+	// makes gcc-6.3.0 emit "strict-aliasing" warning.
 
-enum {
-	/* socket receive buffer of 2MiB proved to be too small:
-	 * http://lists.busybox.net/pipermail/busybox/2019-December/087665.html
-	 * Udevd seems to use a whooping 128MiB.
-	 * The socket receive buffer size is just a resource limit.
-	 * The buffers are allocated lazily so the memory is not wasted.
-	 */
+	// socket receive buffer of 2MiB proved to be too small:
+	//  http://lists.busybox.net/pipermail/busybox/2019-December/087665.html
+	// udevd seems to use a whooping 128MiB.
+	// The socket receive buffer size is just a resource limit.
+	// The buffers are allocated lazily so the memory is not wasted.
 	KERN_RCVBUF = 128 * 1024 * 1024,
+
+	// Might be made smaller: the kernel v5.4 passes up to 32 environment
+	// variables with a total of 2kb on each event.
+	// On top of that the action string and device path are added.
 	USER_RCVBUF = 16 * 1024,
 };
 
@@ -61,6 +61,7 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 	// Reproducer:
 	//	uevent mdev &
 	// 	find /sys -name uevent -exec sh -c 'echo add >"{}"' ';'
+ reopen:
 	fd = create_and_bind_to_netlink(NETLINK_KOBJECT_UEVENT, /*groups:*/ 1 << 0, KERN_RCVBUF);
 
 	for (;;) {
@@ -82,8 +83,16 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 
 		// Here we block, possibly for a very long time
 		len = safe_read(fd, netbuf, USER_RCVBUF - 1);
-		if (len < 0)
+		if (len < 0) {
+			if (errno == ENOBUFS) {
+				// Ran out of socket receive buffer
+				bb_simple_error_msg("uevent overrun");
+				close(fd);
+				munmap(netbuf, USER_RCVBUF);
+				goto reopen;
+			}
 			bb_simple_perror_msg_and_die("read");
+		}
 		end = netbuf + len;
 		*end = '\0';
 
