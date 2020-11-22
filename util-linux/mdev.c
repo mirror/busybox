@@ -1279,21 +1279,17 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_MDEV_DAEMON
 	if (opt & MDEV_OPT_DAEMON) {
-		int fd;
-
-		/* there is no point in write()ing to /dev/null */
-		if (!(opt & MDEV_OPT_FOREGROUND))
-			logmode &= ~LOGMODE_STDIO;
-
-		/*
-		 * Daemon mode listening on uevent netlink socket. Fork away
+		/* Daemon mode listening on uevent netlink socket. Fork away
 		 * after initial scan so that caller can be sure everything
 		 * is up-to-date when mdev process returns.
 		 */
-		fd = daemon_init(temp);
+		int fd = daemon_init(temp);
 
-		if (!(opt & MDEV_OPT_FOREGROUND))
+		if (!(opt & MDEV_OPT_FOREGROUND)) {
+			/* there is no point in logging to /dev/null */
+			logmode &= ~LOGMODE_STDIO;
 			bb_daemonize_or_rexec(0, argv);
+		}
 
 		daemon_loop(temp, fd);
 	}
