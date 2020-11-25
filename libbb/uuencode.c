@@ -8,7 +8,8 @@
  */
 #include "libbb.h"
 
-/* Conversion table.  for base 64 */
+/* Conversion tables */
+/* for base 64 */
 const char bb_uuenc_tbl_base64[65 + 1] ALIGN1 = {
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -21,7 +22,16 @@ const char bb_uuenc_tbl_base64[65 + 1] ALIGN1 = {
 	'=' /* termination character */,
 	'\0' /* needed for uudecode.c only */
 };
-
+#if ENABLE_BASE32
+const char bb_uuenc_tbl_base32[33 + 1] ALIGN1 = {
+	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+	'Y', 'Z', '2', '3', '4', '5', '6', '7',
+	'=',
+	'\0'
+};
+#endif
 const char bb_uuenc_tbl_std[65] ALIGN1 = {
 	'`', '!', '"', '#', '$', '%', '&', '\'',
 	'(', ')', '*', '+', ',', '-', '.', '/',
@@ -153,6 +163,68 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 	return src_tail;
 }
 
+#if ENABLE_BASE32
+const char* FAST_FUNC decode_base32(char **pp_dst, const char *src)
+{
+	char *dst = *pp_dst;
+	const char *src_tail;
+
+	while (1) {
+		unsigned char five_bit[8];
+		int count = 0;
+
+		/* Fetch up to eight 5-bit values */
+		src_tail = src;
+		while (count < 8) {
+			char *table_ptr;
+			int ch;
+
+			/* Get next _valid_ character.
+			 * bb_uuenc_tbl_base32[] contains this string:
+			 *  0         1         2         3
+			 *  01234567890123456789012345678901
+			 * "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567="
+			 */
+			do {
+				ch = *src;
+				if (ch == '\0') {
+					if (count == 0) {
+						src_tail = src;
+					}
+					goto ret;
+				}
+				src++;
+				table_ptr = strchr(bb_uuenc_tbl_base32, toupper(ch));
+			} while (!table_ptr);
+
+			/* Convert encoded character to decimal */
+			ch = table_ptr - bb_uuenc_tbl_base32;
+
+			/* ch is 32 if char was '=', otherwise 0..31 */
+			if (ch == 32)
+				break;
+			five_bit[count] = ch;
+			count++;
+		}
+
+		/* Transform 5-bit values to 8-bit ones */
+		if (count > 1)                                        // xxxxx xxx-- ----- ----- ----- ----- ----- -----
+			*dst++ = five_bit[0] << 3 | five_bit[1] >> 2;
+		if (count > 3)                                        // ----- ---xx xxxxx x---- ----- ----- ----- -----
+			*dst++ = five_bit[1] << 6 | five_bit[2] << 1 | five_bit[3] >> 4;
+		if (count > 4)                                        // ----- ----- ----- -xxxx xxxx- ----- ----- -----
+			*dst++ = five_bit[3] << 4 | five_bit[4] >> 1;
+		if (count > 6)                                        // ----- ----- ----- ----- ----x xxxxx xx--- -----
+			*dst++ = five_bit[4] << 7 | five_bit[5] << 2 | five_bit[6] >> 3;
+		if (count > 7)                                        // ----- ----- ----- ----- ----- ----- --xxx xxxxx
+			*dst++ = five_bit[6] << 5 | five_bit[7];
+	} /* while (1) */
+ ret:
+	*pp_dst = dst;
+	return src_tail;
+}
+#endif
+
 /*
  * Decode base64 encoded stream.
  * Can stop on EOF, specified char, or on uuencode-style "====" line:
@@ -163,6 +235,7 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 /* Note that EOF _can_ be passed as exit_char too */
 #define exit_char    ((int)(signed char)flags)
 #define uu_style_end (flags & BASE64_FLAG_UU_STOP)
+#define base32       (flags & BASE64_32)
 
 	/* uuencoded files have 61 byte lines. Use 64 byte buffer
 	 * to process line at a time.
@@ -204,7 +277,12 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 			return;
 
 		out_tail = out_buf;
-		in_tail = decode_base64(&out_tail, in_buf);
+#if ENABLE_BASE32
+		if (base32)
+			in_tail = decode_base32(&out_tail, in_buf);
+		else
+#endif
+			in_tail = decode_base64(&out_tail, in_buf);
 
 		fwrite(out_buf, (out_tail - out_buf), 1, dst_stream);
 

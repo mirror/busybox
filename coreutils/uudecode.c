@@ -168,15 +168,25 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 }
 #endif
 
-//applet:IF_BASE64(APPLET(base64, BB_DIR_BIN, BB_SUID_DROP))
-
-//kbuild:lib-$(CONFIG_BASE64) += uudecode.o
+//config:config BASE32
+//config:	bool "base32 (4.9 kb)"
+//config:	default y
+//config:	help
+//config:	Base32 encode and decode
 
 //config:config BASE64
 //config:	bool "base64 (4.9 kb)"
 //config:	default y
 //config:	help
 //config:	Base64 encode and decode
+
+//usage:#define base32_trivial_usage
+//usage:	"[-d] [FILE]"
+//usage:#define base32_full_usage "\n\n"
+//usage:       "Base32 encode or decode FILE to standard output"
+//usage:     "\n	-d	Decode data"
+////usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
+////usage:     "\n	-i	When decoding, ignore non-alphabet characters"
 
 //usage:#define base64_trivial_usage
 //usage:	"[-d] [FILE]"
@@ -186,9 +196,77 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 ////usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
 ////usage:     "\n	-i	When decoding, ignore non-alphabet characters"
 
-#if ENABLE_BASE64
-int base64_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int base64_main(int argc UNUSED_PARAM, char **argv)
+//                 APPLET_ODDNAME:name    main     location    suid_type     help
+//applet:IF_BASE32(APPLET_ODDNAME(base32, baseNUM, BB_DIR_BIN, BB_SUID_DROP, base32))
+//applet:IF_BASE64(APPLET_ODDNAME(base64, baseNUM, BB_DIR_BIN, BB_SUID_DROP, base64))
+
+//kbuild:lib-$(CONFIG_BASE64) += uudecode.o
+//kbuild:lib-$(CONFIG_BASE32) += uudecode.o
+
+#if ENABLE_BASE32 || ENABLE_BASE64
+
+# if ENABLE_BASE32
+static void bb_b32encode(char *p, const void *src, int length)
+{
+#define tbl bb_uuenc_tbl_base32
+	const unsigned char *s = src;
+
+	/* Transform 5x8 bits to 8x5 bits */
+	while (length > 0) {
+		unsigned cur, next;
+
+		length--;
+		cur = *s++;
+		*p++ = tbl[cur >> 3];			// xxxxx--- -------- -------- -------- --------
+		cur &= 7;
+
+		next = 0;
+		if (--length >= 0)
+			next = *s++;
+		*p++ = tbl[(cur << 2) + (next >> 6)];	// -----xxx xx------ -------- -------- --------
+		cur = next & 0x3f;
+
+		*p++ = tbl[cur >> 1];			// -------- --xxxxx- -------- -------- --------
+		cur &= 1;
+
+		next = 0;
+		if (--length >= 0)
+			next = *s++;
+		*p++ = tbl[(cur << 4) + (next >> 4)];	// -------- -------x xxxx---- -------- --------
+		cur = next & 0xf;
+
+		next = 0;
+		if (--length >= 0)
+			next = *s++;
+		*p++ = tbl[(cur << 1) + (next >> 7)];	// -------- -------- ----xxxx x------- --------
+		cur = next & 0x7f;
+
+		*p++ = tbl[cur >> 2];			// -------- -------- -------- -xxxxx-- --------
+		cur &= 3;
+
+		next = 0;
+		if (--length >= 0)
+			next = *s++;
+		*p++ = tbl[(cur << 3) + (next >> 5)];	// -------- -------- -------- ------xx xxx-----
+		cur = next & 0x1f;
+
+		*p++ = tbl[cur];			// -------- -------- -------- -------- ---xxxxx
+	}
+#undef tbl
+	/* Zero-terminate */
+	*p = '\0';
+	/* Pad as necessary */
+	length = ((-length) * 3) >> 1; /* -4 => 6 pad chars, -3 => 4, -2 => 3, -1 => 1 */
+	while (length--) {
+		*--p = '=';
+	}
+}
+# else
+void bb_b32encode(char *p, const void *src, int length); /* undefined */
+# endif
+
+int baseNUM_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 {
 	FILE *src_stream;
 	unsigned opts;
@@ -200,7 +278,10 @@ int base64_main(int argc UNUSED_PARAM, char **argv)
 		*--argv = (char*)"-";
 	src_stream = xfopen_stdin(argv[0]);
 	if (opts) {
-		read_base64(src_stream, stdout, /*flags:*/ (unsigned char)EOF);
+		int flags = (unsigned char)EOF;
+		if (ENABLE_BASE32 && (!ENABLE_BASE64 || applet_name[4] == '3'))
+			flags = ((unsigned char)EOF) | BASE64_32;
+		read_base64(src_stream, stdout, flags);
 	} else {
 		enum {
 			SRC_BUF_SIZE = 76 / 4 * 3, /* this *MUST* be a multiple of 3 */
@@ -210,14 +291,31 @@ int base64_main(int argc UNUSED_PARAM, char **argv)
 		char dst_buf[DST_BUF_SIZE + 1];
 		int src_fd = fileno(src_stream);
 		while (1) {
-			size_t size = full_read(src_fd, src_buf, SRC_BUF_SIZE);
+			size_t size;
+			if (ENABLE_BASE32 && (!ENABLE_BASE64 || applet_name[4] == '3'))
+				size = 72 / 8 * 5;
+//FIXME: wrong, default width of base32 is not 72, but 76 chars
+//(not a multiple of 8 - requires adding wrapping logic)
+//when this is fixed, can implement -w COL too
+			else
+				size = SRC_BUF_SIZE;
+
+			size = full_read(src_fd, src_buf, size);
 			if (!size)
 				break;
 			if ((ssize_t)size < 0)
 				bb_simple_perror_msg_and_die(bb_msg_read_error);
+
 			/* Encode the buffer we just read in */
-			bb_uuencode(dst_buf, src_buf, size, bb_uuenc_tbl_base64);
-			xwrite(STDOUT_FILENO, dst_buf, 4 * ((size + 2) / 3));
+			if (ENABLE_BASE32 && (!ENABLE_BASE64 || applet_name[4] == '3')) {
+				bb_b32encode(dst_buf, src_buf, size);
+				size = 8 * ((size + 4) / 5);
+			} else {
+				bb_uuencode(dst_buf, src_buf, size, bb_uuenc_tbl_base64);
+				size = 4 * ((size + 2) / 3);
+			}
+
+			xwrite(STDOUT_FILENO, dst_buf, size);
 			bb_putchar('\n');
 			fflush(stdout);
 		}
