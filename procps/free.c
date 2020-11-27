@@ -97,10 +97,10 @@ int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 		case 'k': /* 2^10 */
 			/* G.unit_steps = 10; - already is */
 			break;
-		case 'm': /* 2^(2*10) */
+		case 'm': /* 2^20 */
 			G.unit_steps = 20;
 			break;
-		case 'g': /* 2^(3*10) */
+		case 'g': /* 2^30 */
 			G.unit_steps = 30;
 			break;
 		default:
@@ -117,15 +117,23 @@ int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 	);
 
 	sysinfo(&info);
-	/* Kernels prior to 2.4.x will return info.mem_unit==0, so cope... */
-	G.mem_unit = (info.mem_unit ? info.mem_unit : 1);
 	/* Extract cached and memavailable from /proc/meminfo and convert to mem_units */
 	seen_available = parse_meminfo(&G);
+	G.mem_unit = (info.mem_unit ? info.mem_unit : 1); /* kernels < 2.4.x return mem_unit==0, so cope */
 	available = ((unsigned long long) G.available_kb * 1024) / G.mem_unit;
 	cached = ((unsigned long long) G.cached_kb * 1024) / G.mem_unit;
 	cached += info.bufferram;
 	cached += ((unsigned long long) G.reclaimable_kb * 1024) / G.mem_unit;
 	cached_plus_free = cached + info.freeram;
+
+/* In case (long long * G.mem_unit) can overflow, this can be used to reduce the chances */
+#if 0 //ENABLE_DESKTOP
+	while (!(G.mem_unit & 1) && G.unit_steps != 0) {
+		G.mem_unit >>= 1;
+		G.unit_steps--;
+		//bb_error_msg("mem_unit:%d unit_steps:%d", G.mem_unit, G.unit_steps);
+	}
+#endif
 
 #define FIELDS_6 "%12llu %11llu %11llu %11llu %11llu %11llu\n"
 #define FIELDS_3 (FIELDS_6 + 6 + 7 + 7)
