@@ -286,13 +286,19 @@ int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 	} else {
 		enum {
 			SRC_BUF_SIZE = 3 * 5 * 32, /* this *MUST* be a multiple of 3 and 5 */
-			DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
+			DST_BUF_SIZE = 8 * ((SRC_BUF_SIZE + 4) / 5), /* max growth on decode (base32 case) */
 		};
-		char src_buf[SRC_BUF_SIZE];
-		char dst_buf[DST_BUF_SIZE + 1];
-		int src_fd = fileno(src_stream);
-		int rem = 0;
+		/* Use one buffer for both input and output:
+		 * decoding reads input "left-to-right",
+		 * it's safe to place source at the end of the buffer and
+		 * overwrite it while decoding, just be careful to have a gap.
+		 */
+		char dst_buf[((DST_BUF_SIZE + /*gap:*/ 16) /*round up to 16:*/ | 0xf) + 1];
+#define src_buf (dst_buf + sizeof(dst_buf) - SRC_BUF_SIZE)
+		int src_fd, rem;
 
+		src_fd = fileno(src_stream);
+		rem = 0;
 		while (1) {
 			size_t size = full_read(src_fd, src_buf, SRC_BUF_SIZE);
 			if ((ssize_t)size < 0)
@@ -331,6 +337,7 @@ int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 				}
 			}
 		}
+#undef src_buf
 	}
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
