@@ -82,7 +82,7 @@ void FAST_FUNC bb_uuencode(char *p, const void *src, int length, const char *tbl
 }
 
 /*
- * Decode base64 encoded string. Stops on NUL after terminating "=" or "==".
+ * Decode base64 encoded string.
  *
  * Returns: pointer to the undecoded part of source.
  * If points to '\0', then the source was fully decoded.
@@ -139,61 +139,45 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 const char* FAST_FUNC decode_base32(char **pp_dst, const char *src)
 {
 	char *dst = *pp_dst;
-	const char *src_tail;
+	uint64_t ch = 0;
+	int i = 0;
 
-	while (1) {
-		unsigned char five_bit[8];
-		int count = 0;
+	while (*src) {
+		int t = (unsigned char)*src++;
 
-		/* Fetch up to eight 5-bit values */
-		src_tail = src;
-		while (count < 8) {
-			char *table_ptr;
-			int ch;
+		/* "if" forest is faster than strchr(bb_uuenc_tbl_base32, t) */
+		if (t >= '2' && t <= '7')
+			t = t - '2' + 26;
+		else if ((t|0x20) >= 'a' && (t|0x20) <= 'z')
+			t = (t|0x20) - 'a';
+		else if (t == '=' && i > 1)
+			t = 0;
+		else
+//TODO: add BASE64_FLAG_foo to die on bad char?
+			continue;
 
-			/* Get next _valid_ character.
-			 * bb_uuenc_tbl_base32[] contains this string:
-			 *  0         1         2         3
-			 *  01234567890123456789012345678901
-			 * "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567="
-			 */
-			do {
-				ch = *src;
-				if (ch == '\0') {
-					if (count == 0) {
-						src_tail = src;
-					}
-					goto ret;
-				}
-				src++;
-				table_ptr = strchr(bb_uuenc_tbl_base32, toupper(ch));
-			} while (!table_ptr);
-
-			/* Convert encoded character to decimal */
-			ch = table_ptr - bb_uuenc_tbl_base32;
-
-			/* ch is 32 if char was '=', otherwise 0..31 */
-			if (ch == 32)
+		ch = (ch << 5) | t;
+		if (++i == 8) {
+			*dst++ = (char) (ch >> 32);
+			*dst++ = (char) (ch >> 24);
+			*dst++ = (char) (ch >> 16);
+			*dst++ = (char) (ch >> 8);
+			*dst++ = (char) ch;
+			if (t == 0 && src[-1] == '=') { /* was last input char '='? */
+				const char *s = src;
+				while (*--s == '=' && --i != 0)
+					continue;
+				i = 8 - i; /* count of =, must be 1, 3, 4 or 6 */
+				dst -= (i+1) * 2 / 3; /* discard last 1, 2, 3 or 4 bytes */
+				i = 0;
 				break;
-			five_bit[count] = ch;
-			count++;
+			}
+			i = 0;
 		}
-
-		/* Transform 5-bit values to 8-bit ones */
-		if (count > 1)                                        // xxxxx xxx-- ----- ----- ----- ----- ----- -----
-			*dst++ = five_bit[0] << 3 | five_bit[1] >> 2;
-		if (count > 3)                                        // ----- ---xx xxxxx x---- ----- ----- ----- -----
-			*dst++ = five_bit[1] << 6 | five_bit[2] << 1 | five_bit[3] >> 4;
-		if (count > 4)                                        // ----- ----- ----- -xxxx xxxx- ----- ----- -----
-			*dst++ = five_bit[3] << 4 | five_bit[4] >> 1;
-		if (count > 6)                                        // ----- ----- ----- ----- ----x xxxxx xx--- -----
-			*dst++ = five_bit[4] << 7 | five_bit[5] << 2 | five_bit[6] >> 3;
-		if (count > 7)                                        // ----- ----- ----- ----- ----- ----- --xxx xxxxx
-			*dst++ = five_bit[6] << 5 | five_bit[7];
-	} /* while (1) */
- ret:
+	}
 	*pp_dst = dst;
-	return src_tail;
+	/* i should be zero here if full 8-char block was decoded */
+	return src - i;
 }
 #endif
 
