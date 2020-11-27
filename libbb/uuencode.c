@@ -82,7 +82,7 @@ void FAST_FUNC bb_uuencode(char *p, const void *src, int length, const char *tbl
 }
 
 /*
- * Decode base64 encoded string. Stops on '\0'.
+ * Decode base64 encoded string. Stops on NUL after terminating "=" or "==".
  *
  * Returns: pointer to the undecoded part of source.
  * If points to '\0', then the source was fully decoded.
@@ -91,76 +91,48 @@ void FAST_FUNC bb_uuencode(char *p, const void *src, int length, const char *tbl
 const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 {
 	char *dst = *pp_dst;
-	const char *src_tail;
+	unsigned ch = 0;
+	int i = 0;
 
-	while (1) {
-		unsigned char six_bit[4];
-		int count = 0;
+	while (*src) {
+		int t = (unsigned char)*src++;
 
-		/* Fetch up to four 6-bit values */
-		src_tail = src;
-		while (count < 4) {
-			char *table_ptr;
-			int ch;
-
-			/* Get next _valid_ character.
-			 * bb_uuenc_tbl_base64[] contains this string:
-			 *  0         1         2         3         4         5         6
-			 *  01234567890123456789012345678901234567890123456789012345678901234
-			 * "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
-			 */
-			do {
-				ch = *src;
-				if (ch == '\0') {
-					if (count == 0) {
-						/* Example:
-						 * If we decode "QUJD <NUL>", we want
-						 * to return ptr to NUL, not to ' ',
-						 * because we did fully decode
-						 * the string (to "ABC").
-						 */
-						src_tail = src;
-					}
-					goto ret;
-				}
-				src++;
-				table_ptr = strchr(bb_uuenc_tbl_base64, ch);
+		/* "if" forest is faster than strchr(bb_uuenc_tbl_base64, t) */
+		if (t >= '0' && t <= '9')
+			t = t - '0' + 52;
+		else if (t >= 'A' && t <= 'Z')
+			t = t - 'A';
+		else if (t >= 'a' && t <= 'z')
+			t = t - 'a' + 26;
+		else if (t == '+')
+			t = 62;
+		else if (t == '/')
+			t = 63;
+		else if (t == '=' && (i == 3 || (i == 2 && *src == '=')))
+			/* the above disallows "==AA", "A===", "AA=A" etc */
+			t = 0x1000000;
+		else
 //TODO: add BASE64_FLAG_foo to die on bad char?
-			} while (!table_ptr);
+			continue;
 
-			/* Convert encoded character to decimal */
-			ch = table_ptr - bb_uuenc_tbl_base64;
-
-			/* ch is 64 if char was '=', otherwise 0..63 */
-			if (ch == 64)
+		ch = (ch << 6) | t;
+		if (++i == 4) {
+			*dst++ = (char) (ch >> 16);
+			*dst++ = (char) (ch >> 8);
+			*dst++ = (char) ch;
+			i = 0;
+			if (ch & 0x1000000) { /* was last input char '='? */
+				dst--;
+				if (ch & (0x1000000 << 6)) /* was it "=="? */
+					dst--;
 				break;
-			six_bit[count] = ch;
-			count++;
+			}
+			ch = 0;
 		}
-
-		/* Transform 6-bit values to 8-bit ones.
-		 * count can be < 4 when we decode the tail:
-		 * "eQ==" -> "y", not "y NUL NUL".
-		 * Note that (count > 1) is always true,
-		 * "x===" encoding is not valid:
-		 * even a single zero byte encodes as "AA==".
-		 * However, with current logic we come here with count == 1
-		 * when we decode "==" tail.
-		 */
-		if (count > 1)
-			*dst++ = six_bit[0] << 2 | six_bit[1] >> 4;
-		if (count > 2)
-			*dst++ = six_bit[1] << 4 | six_bit[2] >> 2;
-		if (count > 3)
-			*dst++ = six_bit[2] << 6 | six_bit[3];
-		/* Note that if we decode "AA==" and ate first '=',
-		 * we just decoded one char (count == 2) and now we'll
-		 * do the loop once more to decode second '='.
-		 */
-	} /* while (1) */
- ret:
+	}
 	*pp_dst = dst;
-	return src_tail;
+	/* i should be zero here if full 4-char block was decoded */
+	return src - i; /* -i rejects truncations: e.g. "MQ" and "MQ=" (correct encoding is "MQ==" -> "1") */
 }
 
 #if ENABLE_BASE32
