@@ -181,19 +181,19 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 //config:	Base64 encode and decode
 
 //usage:#define base32_trivial_usage
-//usage:	"[-d] [FILE]"
+//usage:	"[-d] [-w COL] [FILE]"
 //usage:#define base32_full_usage "\n\n"
 //usage:       "Base32 encode or decode FILE to standard output"
 //usage:     "\n	-d	Decode data"
-////usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
+//usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
 ////usage:     "\n	-i	When decoding, ignore non-alphabet characters"
 
 //usage:#define base64_trivial_usage
-//usage:	"[-d] [FILE]"
+//usage:	"[-d] [-w COL] [FILE]"
 //usage:#define base64_full_usage "\n\n"
 //usage:       "Base64 encode or decode FILE to standard output"
 //usage:     "\n	-d	Decode data"
-////usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
+//usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
 ////usage:     "\n	-i	When decoding, ignore non-alphabet characters"
 
 //                 APPLET_ODDNAME:name    main     location    suid_type     help
@@ -270,41 +270,37 @@ int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 {
 	FILE *src_stream;
 	unsigned opts;
+	unsigned col = 76;
 
-	opts = getopt32(argv, "^" "d" "\0" "?1"/* 1 arg max*/);
+	opts = getopt32(argv, "^" "dw:+" "\0" "?1"/* 1 arg max*/, &col);
 	argv += optind;
 
 	if (!argv[0])
 		*--argv = (char*)"-";
 	src_stream = xfopen_stdin(argv[0]);
-	if (opts) {
+	if (opts & 1) {
 		int flags = (unsigned char)EOF;
 		if (ENABLE_BASE32 && (!ENABLE_BASE64 || applet_name[4] == '3'))
 			flags = ((unsigned char)EOF) | BASE64_32;
 		read_base64(src_stream, stdout, flags);
 	} else {
 		enum {
-			SRC_BUF_SIZE = 76 / 4 * 3, /* this *MUST* be a multiple of 3 */
+			SRC_BUF_SIZE = 3 * 5 * 32, /* this *MUST* be a multiple of 3 and 5 */
 			DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
 		};
 		char src_buf[SRC_BUF_SIZE];
 		char dst_buf[DST_BUF_SIZE + 1];
 		int src_fd = fileno(src_stream);
-		while (1) {
-			size_t size;
-			if (ENABLE_BASE32 && (!ENABLE_BASE64 || applet_name[4] == '3'))
-				size = 72 / 8 * 5;
-//FIXME: wrong, default width of base32 is not 72, but 76 chars
-//(not a multiple of 8 - requires adding wrapping logic)
-//when this is fixed, can implement -w COL too
-			else
-				size = SRC_BUF_SIZE;
+		int rem = 0;
 
-			size = full_read(src_fd, src_buf, size);
-			if (!size)
-				break;
+		while (1) {
+			size_t size = full_read(src_fd, src_buf, SRC_BUF_SIZE);
 			if ((ssize_t)size < 0)
 				bb_simple_perror_msg_and_die(bb_msg_read_error);
+			if (size == 0) {
+				if (rem != 0) bb_putchar('\n');
+				break;
+			}
 
 			/* Encode the buffer we just read in */
 			if (ENABLE_BASE32 && (!ENABLE_BASE64 || applet_name[4] == '3')) {
@@ -315,9 +311,25 @@ int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 				size = 4 * ((size + 2) / 3);
 			}
 
-			xwrite(STDOUT_FILENO, dst_buf, size);
-			bb_putchar('\n');
-			fflush(stdout);
+			if (col == 0) {
+				fputs(dst_buf, stdout);
+			} else {
+				char *result = dst_buf;
+				if (rem == 0)
+					rem = col;
+				while (1) {
+					int out = size < rem ? size : rem;
+					rem -= out;
+					printf(rem != 0 ? "%.*s" : "%.*s\n", out, result);
+					if (rem != 0)
+						break;
+					size -= out;
+					if (size == 0)
+						break;
+					result += out;
+					rem = col;
+				}
+			}
 		}
 	}
 
