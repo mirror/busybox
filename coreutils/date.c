@@ -383,10 +383,6 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		/* With no format string, just print a blank line */
 		date_buf[0] = '\0';
 	} else {
-		/* Handle special conversions */
-		if (is_prefixed_with(fmt_dt2str, "%f")) {
-			fmt_dt2str = (char*)"%Y.%m.%d-%H:%M:%S";
-		}
 		/* Generate output string */
 		strftime(date_buf, COMMON_BUFSIZE, fmt_dt2str, &tm_time);
 	}
