@@ -93,9 +93,10 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 	char *dst = *pp_dst;
 	unsigned ch = 0;
 	int i = 0;
+	int t;
 
-	while (*src) {
-		int t = (unsigned char)*src++;
+	while ((t = (unsigned char)*src) != '\0') {
+		src++;
 
 		/* "if" forest is faster than strchr(bb_uuenc_tbl_base64, t) */
 		if (t >= '0' && t <= '9')
@@ -131,7 +132,7 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 		}
 	}
 	*pp_dst = dst;
-	/* i should be zero here if full 4-char block was decoded */
+	/* i is zero here if full 4-char block was decoded */
 	return src - i; /* -i rejects truncations: e.g. "MQ" and "MQ=" (correct encoding is "MQ==" -> "1") */
 }
 
@@ -141,9 +142,10 @@ const char* FAST_FUNC decode_base32(char **pp_dst, const char *src)
 	char *dst = *pp_dst;
 	uint64_t ch = 0;
 	int i = 0;
+	int t;
 
-	while (*src) {
-		int t = (unsigned char)*src++;
+	while ((t = (unsigned char)*src) != '\0') {
+		src++;
 
 		/* "if" forest is faster than strchr(bb_uuenc_tbl_base32, t) */
 		if (t >= '2' && t <= '7')
@@ -156,27 +158,35 @@ const char* FAST_FUNC decode_base32(char **pp_dst, const char *src)
 //TODO: add BASE64_FLAG_foo to die on bad char?
 			continue;
 
-		ch = (ch << 5) | t;
+		ch = (ch << 5) | (unsigned)t; /* cast prevents pointless sign-extension of t */
 		if (++i == 8) {
+			/* testcase:
+			 * echo ' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18' | base32 | base32 -d
+			 * IOW, decoding of
+			 * EAYSAMRAGMQDIIBVEA3CANZAHAQDSIBRGAQDCMJAGEZCAMJTEAYTIIBRGUQDCNRAGE3SAMJYBI==
+			 * ====
+			 * should correctly stitch together the tail.
+			 */
+			if (t == 0) {
+				const char *s = src;
+				while (*--s == '=')
+					t--;
+			}
 			*dst++ = (char) (ch >> 32);
 			*dst++ = (char) (ch >> 24);
 			*dst++ = (char) (ch >> 16);
 			*dst++ = (char) (ch >> 8);
 			*dst++ = (char) ch;
-			if (t == 0 && src[-1] == '=') { /* was last input char '='? */
-				const char *s = src;
-				while (*--s == '=' && --i != 0)
-					continue;
-				i = 8 - i; /* count of =, must be 1, 3, 4 or 6 */
-				dst -= (i+1) * 2 / 3; /* discard last 1, 2, 3 or 4 bytes */
-				i = 0;
-				break;
-			}
 			i = 0;
+			if (t < 0) /* was last input char '='? */
+				break;
 		}
 	}
+	if (t < 0) /* was last input char '='? */
+		/* -t is the count of =, must be 1, 3, 4 or 6 */
+		dst -= (-t + 1) * 2 / 3; /* discard last 1, 2, 3 or 4 bytes */
 	*pp_dst = dst;
-	/* i should be zero here if full 8-char block was decoded */
+	/* i is zero here if full 8-char block was decoded */
 	return src - i;
 }
 #endif
@@ -193,19 +203,20 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 #define uu_style_end (flags & BASE64_FLAG_UU_STOP)
 #define base32       (flags & BASE64_32)
 
-	/* uuencoded files have 61 byte lines. Use 64 byte buffer
-	 * to process line at a time.
+	/* uuencoded files have 61 byte lines.
+	 * base32/64 have 76 byte lines by default.
+	 * Use 80 byte buffer to process one line at a time.
 	 */
-	enum { BUFFER_SIZE = 64 };
-
-	char in_buf[BUFFER_SIZE + 2];
-	char out_buf[BUFFER_SIZE / 4 * 3 + 2];
-	char *out_tail;
-	const char *in_tail;
+	enum { BUFFER_SIZE = 80 };
+	/* decoded data is shorter than input, can use single buffer for both */
+	char buf[BUFFER_SIZE + 2];
 	int term_seen = 0;
 	int in_count = 0;
 
 	while (1) {
+		char *out_tail;
+		const char *in_tail;
+
 		while (in_count < BUFFER_SIZE) {
 			int ch = fgetc(src_stream);
 			if (ch == exit_char) {
@@ -224,23 +235,23 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 			 */
 			if (ch <= ' ')
 				break;
-			in_buf[in_count++] = ch;
+			buf[in_count++] = ch;
 		}
-		in_buf[in_count] = '\0';
+		buf[in_count] = '\0';
 
 		/* Did we encounter "====" line? */
-		if (uu_style_end && strcmp(in_buf, "====") == 0)
+		if (uu_style_end && strcmp(buf, "====") == 0)
 			return;
 
-		out_tail = out_buf;
+		out_tail = buf;
 #if ENABLE_BASE32
 		if (base32)
-			in_tail = decode_base32(&out_tail, in_buf);
+			in_tail = decode_base32(&out_tail, buf);
 		else
 #endif
-			in_tail = decode_base64(&out_tail, in_buf);
+			in_tail = decode_base64(&out_tail, buf);
 
-		fwrite(out_buf, (out_tail - out_buf), 1, dst_stream);
+		fwrite(buf, (out_tail - buf), 1, dst_stream);
 
 		if (term_seen) {
 			/* Did we consume ALL characters? */
@@ -252,6 +263,6 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 
 		/* It was partial decode */
 		in_count = strlen(in_tail);
-		memmove(in_buf, in_tail, in_count);
+		memmove(buf, in_tail, in_count);
 	}
 }
