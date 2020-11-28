@@ -279,6 +279,7 @@ int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 		*--argv = (char*)"-";
 	src_stream = xfopen_stdin(argv[0]);
 	if (opts & 1) {
+		/* -d: decode */
 		int flags = (unsigned char)EOF;
 		if (ENABLE_BASE32 && (!ENABLE_BASE64 || applet_name[4] == '3'))
 			flags = ((unsigned char)EOF) | BASE64_32;
@@ -286,12 +287,12 @@ int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 	} else {
 		enum {
 			SRC_BUF_SIZE = 3 * 5 * 32, /* this *MUST* be a multiple of 3 and 5 */
-			DST_BUF_SIZE = 8 * ((SRC_BUF_SIZE + 4) / 5), /* max growth on decode (base32 case) */
+			DST_BUF_SIZE = 8 * ((SRC_BUF_SIZE + 4) / 5), /* max growth on encode (base32 case) */
 		};
 		/* Use one buffer for both input and output:
-		 * decoding reads input "left-to-right",
+		 * encoding reads input "left-to-right",
 		 * it's safe to place source at the end of the buffer and
-		 * overwrite it while decoding, just be careful to have a gap.
+		 * overwrite it while encoding, just be careful to have a gap.
 		 */
 		char dst_buf[((DST_BUF_SIZE + /*gap:*/ 16) /*round up to 16:*/ | 0xf) + 1];
 #define src_buf (dst_buf + sizeof(dst_buf) - SRC_BUF_SIZE)
