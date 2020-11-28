@@ -28,7 +28,7 @@ const char bb_uuenc_tbl_base64[] ALIGN1 = {
 	'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
 	'w', 'x', 'y', 'z', '0', '1', '2', '3',
 	'4', '5', '6', '7', '8', '9', '+', '/',
-	'=' /* termination character */,
+	'=' /* termination character */
 };
 const char bb_uuenc_tbl_std[] ALIGN1 = {
 	'`', '!', '"', '#', '$', '%', '&', '\'',
@@ -38,7 +38,7 @@ const char bb_uuenc_tbl_std[] ALIGN1 = {
 	'@', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
 	'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
 	'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-	'X', 'Y', 'Z', '[', '\\', ']', '^', '_',
+	'X', 'Y', 'Z', '[', '\\',']', '^', '_',
 	'`' /* termination character */
 };
 
@@ -82,9 +82,10 @@ void FAST_FUNC bb_uuencode(char *p, const void *src, int length, const char *tbl
 /*
  * Decode base64 encoded string.
  *
- * Returns: pointer to the undecoded part of source.
+ * Returns: pointer past the last written output byte,
+ * the result is not NUL-terminated.
+ * (*pp_src) is advanced past the last read byte.
  * If points to '\0', then the source was fully decoded.
- * (*pp_dst): advanced past the last written byte.
  */
 char* FAST_FUNC decode_base64(char *dst, const char **pp_src)
 {
@@ -131,7 +132,7 @@ char* FAST_FUNC decode_base64(char *dst, const char **pp_src)
 	}
 	/* i is zero here if full 4-char block was decoded */
 	if (pp_src)
-		*pp_src = src - i; /* -i rejects truncations: e.g. "MQ" and "MQ=" (correct encoding is "MQ==" -> "1") */
+		*pp_src = src - i; /* -i signals truncation: e.g. "MQ" and "MQ=" (correct encoding is "MQ==" -> "1") */
 	return dst;
 }
 
@@ -265,7 +266,7 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 			if (*in_tail == '\0')
 				return;
 			/* No */
-			bb_simple_error_msg_and_die("truncated base64 input");
+			bb_simple_error_msg_and_die("truncated input");
 		}
 
 		/* It was partial decode */
