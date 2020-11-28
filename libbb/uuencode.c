@@ -9,8 +9,17 @@
 #include "libbb.h"
 
 /* Conversion tables */
+#if ENABLE_BASE32
+const char bb_uuenc_tbl_base32[] ALIGN1 = {
+	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+	'Y', 'Z', '2', '3', '4', '5', '6', '7',
+	/* unused: '=', */
+};
+#endif
 /* for base 64 */
-const char bb_uuenc_tbl_base64[65 + 1] ALIGN1 = {
+const char bb_uuenc_tbl_base64[] ALIGN1 = {
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -20,19 +29,8 @@ const char bb_uuenc_tbl_base64[65 + 1] ALIGN1 = {
 	'w', 'x', 'y', 'z', '0', '1', '2', '3',
 	'4', '5', '6', '7', '8', '9', '+', '/',
 	'=' /* termination character */,
-	'\0' /* needed for uudecode.c only */
 };
-#if ENABLE_BASE32
-const char bb_uuenc_tbl_base32[33 + 1] ALIGN1 = {
-	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-	'Y', 'Z', '2', '3', '4', '5', '6', '7',
-	'=',
-	'\0'
-};
-#endif
-const char bb_uuenc_tbl_std[65] ALIGN1 = {
+const char bb_uuenc_tbl_std[] ALIGN1 = {
 	'`', '!', '"', '#', '$', '%', '&', '\'',
 	'(', ')', '*', '+', ',', '-', '.', '/',
 	'0', '1', '2', '3', '4', '5', '6', '7',
