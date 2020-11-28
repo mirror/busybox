@@ -1015,11 +1015,9 @@ static char *encodeString(const char *string)
  * Parameter: a pointer to a base64 encoded string.
  * Decoded data is stored in-place.
  */
-static void decodeBase64(char *Data)
+static void decodeBase64(char *data)
 {
-	char *eptr = Data;
-	decode_base64(&eptr, Data);
-	*eptr = '\0';
+	decode_base64(data, NULL)[0] = '\0';
 }
 #endif
 

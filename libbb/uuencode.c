@@ -86,9 +86,9 @@ void FAST_FUNC bb_uuencode(char *p, const void *src, int length, const char *tbl
  * If points to '\0', then the source was fully decoded.
  * (*pp_dst): advanced past the last written byte.
  */
-const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
+char* FAST_FUNC decode_base64(char *dst, const char **pp_src)
 {
-	char *dst = *pp_dst;
+	const char *src = pp_src ? *pp_src : dst; /* for httpd.c, support NULL 2nd param */
 	unsigned ch = 0;
 	unsigned t;
 	int i = 0;
@@ -129,16 +129,17 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 			ch = 0;
 		}
 	}
-	*pp_dst = dst;
 	/* i is zero here if full 4-char block was decoded */
-	return src - i; /* -i rejects truncations: e.g. "MQ" and "MQ=" (correct encoding is "MQ==" -> "1") */
+	if (pp_src)
+		*pp_src = src - i; /* -i rejects truncations: e.g. "MQ" and "MQ=" (correct encoding is "MQ==" -> "1") */
+	return dst;
 }
 
 #if ENABLE_BASE32
-const char* FAST_FUNC decode_base32(char **pp_dst, const char *src)
+char* FAST_FUNC decode_base32(char *dst, const char **pp_src)
 {
-	char *dst = *pp_dst;
-	int64_t ch = 0;
+	const char *src = *pp_src;
+	uint64_t ch = 0;
 	unsigned t;
 	int i = 0;
 
@@ -169,9 +170,9 @@ const char* FAST_FUNC decode_base32(char **pp_dst, const char *src)
 			*dst++ = (char) ch;
 		}
 	}
-	*pp_dst = dst;
 	/* i is zero here if full 8-char block was decoded */
-	return src - i;
+	*pp_src = src - i;
+	return dst;
  tail:
 	{
 		const char *s = src;
@@ -192,8 +193,8 @@ const char* FAST_FUNC decode_base32(char **pp_dst, const char *src)
 		*dst++ = (char) ch;
 		dst -= (i+1) * 2 / 3; /* discard last 1, 2, 3 or 4 bytes */
 	}
-	*pp_dst = dst;
-	return src;
+	*pp_src = src;
+	return dst;
 }
 #endif
 
@@ -249,13 +250,13 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 		if (uu_style_end && strcmp(buf, "====") == 0)
 			return;
 
-		out_tail = buf;
+		in_tail = buf;
 #if ENABLE_BASE32
 		if (base32)
-			in_tail = decode_base32(&out_tail, buf);
+			out_tail = decode_base32(buf, &in_tail);
 		else
 #endif
-			in_tail = decode_base64(&out_tail, buf);
+			out_tail = decode_base64(buf, &in_tail);
 
 		fwrite(buf, (out_tail - buf), 1, dst_stream);
 

@@ -2035,8 +2035,8 @@ enum {
 	/* Sign-extends to a value which never matches fgetc result: */
 	BASE64_FLAG_NO_STOP_CHAR = 0x80,
 };
-const char *decode_base64(char **pp_dst, const char *src) FAST_FUNC;
-const char *decode_base32(char **pp_dst, const char *src) FAST_FUNC;
+char *decode_base64(char *dst, const char **pp_src) FAST_FUNC;
+char *decode_base32(char *dst, const char **pp_src) FAST_FUNC;
 void read_base64(FILE *src_stream, FILE *dst_stream, int flags) FAST_FUNC;
 
 typedef struct md5_ctx_t {
