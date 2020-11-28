@@ -93,23 +93,21 @@
  */
 
 //usage:#define date_trivial_usage
-//usage:       "[OPTIONS] [+FMT] [TIME]"
+//usage:       "[OPTIONS] [+FMT] [[-s] TIME]"
 //usage:#define date_full_usage "\n\n"
 //usage:       "Display time (using +FMT), or set time\n"
 //usage:     "\n	-u		Work in UTC (don't convert to local time)"
 //usage:     "\n	[-s] TIME	Set time to TIME"
 //usage:     "\n	-d TIME		Display TIME, not 'now'"
 //usage:	IF_FEATURE_DATE_ISOFMT(
-//usage:     "\n	-D FMT		Use FMT (strptime format) for -d TIME conversion"
-////////		^^^^^^ busybox invention, not compat
+//usage:     "\n	-D FMT		FMT (strptime format) for -s/-d TIME conversion"
+////////^^^^^^^^^^^^^^^^^^^^^^ busybox invention, not compat
 //usage:	)
 //usage:     "\n	-r FILE		Display last modification time of FILE"
 //usage:     "\n	-R		Output RFC-2822 date"
 //usage:	IF_FEATURE_DATE_ISOFMT(
 //usage:     "\n	-I[SPEC]	Output ISO-8601 date"
-//usage:     "\n			SPEC='date' (default) for date only,"
-//usage:     "\n			'hours', 'minutes', 'seconds' or 'ns'"
-//usage:     "\n			for date and time"
+//usage:     "\n			SPEC=date (default), hours, minutes, seconds or ns"
 //usage:	)
 //usage:     "\n"
 //usage:     "\nRecognized TIME formats:"
@@ -137,8 +135,8 @@ enum {
 	OPT_UTC       = (1 << 2), /* u */
 	OPT_DATE      = (1 << 3), /* d */
 	OPT_REFERENCE = (1 << 4), /* r */
-	OPT_TIMESPEC  = (1 << 5) * ENABLE_FEATURE_DATE_ISOFMT, /* I */
-	OPT_HINT      = (1 << 6) * ENABLE_FEATURE_DATE_ISOFMT, /* D */
+	OPT_ISO8601   = (1 << 5) * ENABLE_FEATURE_DATE_ISOFMT, /* I */
+	OPT_STR2DT    = (1 << 6) * ENABLE_FEATURE_DATE_ISOFMT, /* D */
 };
 
 #if ENABLE_LONG_OPTS
@@ -160,12 +158,6 @@ static const char date_longopts[] ALIGN1 =
  * - after xasprintf we use other xfuncs
  */
 
-static void maybe_set_utc(int opt)
-{
-	if (opt & OPT_UTC)
-		putenv((char*)"TZ=UTC0");
-}
-
 int date_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int date_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -173,7 +165,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 	struct tm tm_time;
 	char buf_fmt_dt2str[64];
 	unsigned opt;
-	int ifmt = -1;
+	int isofmt = -1;
 	char *date_str;
 	char *fmt_dt2str;
 	char *fmt_str2dt;
@@ -192,15 +184,16 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 	);
 	argv += optind;
 
-	maybe_set_utc(opt);
+	if (opt & OPT_UTC)
+		putenv((char*)"TZ=UTC0");
 
-	if (ENABLE_FEATURE_DATE_ISOFMT && (opt & OPT_TIMESPEC)) {
-		ifmt = 0; /* default is date */
+	if (ENABLE_FEATURE_DATE_ISOFMT && (opt & OPT_ISO8601)) {
+		isofmt = 0; /* default is date */
 		if (isofmt_arg) {
 			static const char isoformats[] ALIGN1 =
 				"date\0""hours\0""minutes\0""seconds\0ns\0";
-			ifmt = index_in_substrings(isoformats, isofmt_arg);
-			if (ifmt < 0)
+			isofmt = index_in_substrings(isoformats, isofmt_arg);
+			if (isofmt < 0)
 				bb_show_usage();
 		}
 	}
@@ -210,7 +203,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		fmt_dt2str = &argv[0][1]; /* skip over the '+' */
 		argv++;
 	}
-	if (!(opt & (OPT_SET | OPT_DATE))) {
+	if (!(opt & (OPT_SET | OPT_DATE))) { /* neither -s TIME nor -d TIME? */
 		opt |= OPT_SET;
 		date_str = argv[0]; /* can be NULL */
 		if (date_str) {
@@ -278,7 +271,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		tm_time.tm_hour = 0;
 
 		/* Process any date input to UNIX time since 1 Jan 1970 */
-		if (ENABLE_FEATURE_DATE_ISOFMT && (opt & OPT_HINT)) {
+		if (ENABLE_FEATURE_DATE_ISOFMT && (opt & OPT_STR2DT)) {
 			if (strptime(date_str, fmt_str2dt, &tm_time) == NULL)
 				bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 		} else {
@@ -304,13 +297,13 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 	if (fmt_dt2str == NULL) {
 		int i;
 		fmt_dt2str = buf_fmt_dt2str;
-		if (ENABLE_FEATURE_DATE_ISOFMT && ifmt >= 0) {
+		if (ENABLE_FEATURE_DATE_ISOFMT && isofmt >= 0) {
 			/* -I[SPEC]: 0:date 1:hours 2:minutes 3:seconds 4:ns*/
 			strcpy(fmt_dt2str, "%Y-%m-%dT%H:%M:%S");
-			i = 8 + 3 * ifmt;
-			if (ifmt != 0) {
+			i = 8 + 3 * isofmt;
+			if (isofmt != 0) {
 				int n;
-				if (ifmt == 4) {
+				if (isofmt == 4) {
 					i -= 3;
 					i += sprintf(&fmt_dt2str[i], ",%09u", (unsigned)ts.tv_nsec);
 				}
