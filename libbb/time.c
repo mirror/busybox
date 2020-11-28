@@ -90,7 +90,11 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 		ptm->tm_mon -= 1; /* Adjust month from 1-12 to 0-11 */
 	} else
 	if (date_str[0] == '@') {
-		time_t t = bb_strtol(date_str + 1, NULL, 10);
+		time_t t;
+		if (sizeof(t) <= sizeof(long))
+			t = bb_strtol(date_str + 1, NULL, 10);
+		else /* time_t is 64 bits but longs are smaller */
+			t = bb_strtoll(date_str + 1, NULL, 10);
 		if (!errno) {
 			struct tm *lt = localtime(&t);
 			if (lt) {

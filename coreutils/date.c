@@ -111,6 +111,7 @@
 //usage:	)
 //usage:     "\n"
 //usage:     "\nRecognized TIME formats:"
+//usage:     "\n	@seconds_since_1970"
 //usage:     "\n	hh:mm[:ss]"
 //usage:     "\n	[YYYY.]MM.DD-hh:mm[:ss]"
 //usage:     "\n	YYYY-MM-DD hh:mm[:ss]"
