@@ -96,30 +96,20 @@
 //usage:       "[OPTIONS] [+FMT] [TIME]"
 //usage:#define date_full_usage "\n\n"
 //usage:       "Display time (using +FMT), or set time\n"
-//usage:	IF_NOT_LONG_OPTS(
-//usage:     "\n	[-s] TIME	Set time to TIME"
 //usage:     "\n	-u		Work in UTC (don't convert to local time)"
-//usage:     "\n	-R		Output RFC-2822 compliant date string"
-//usage:	) IF_LONG_OPTS(
-//usage:     "\n	[-s,--set] TIME	Set time to TIME"
-//usage:     "\n	-u,--utc	Work in UTC (don't convert to local time)"
-//usage:     "\n	-R,--rfc-2822	Output RFC-2822 compliant date string"
-//usage:	)
-//usage:	IF_FEATURE_DATE_ISOFMT(
-//usage:     "\n	-I[SPEC]	Output ISO-8601 compliant date string"
-//usage:     "\n			SPEC='date' (default) for date only,"
-//usage:     "\n			'hours', 'minutes', or 'seconds' for date and"
-//usage:     "\n			time to the indicated precision"
-//usage:	)
-//usage:	IF_NOT_LONG_OPTS(
-//usage:     "\n	-r FILE		Display last modification time of FILE"
+//usage:     "\n	[-s] TIME	Set time to TIME"
 //usage:     "\n	-d TIME		Display TIME, not 'now'"
-//usage:	) IF_LONG_OPTS(
-//usage:     "\n	-r,--reference FILE	Display last modification time of FILE"
-//usage:     "\n	-d,--date TIME	Display TIME, not 'now'"
-//usage:	)
 //usage:	IF_FEATURE_DATE_ISOFMT(
 //usage:     "\n	-D FMT		Use FMT (strptime format) for -d TIME conversion"
+////////		^^^^^^ busybox invention, not compat
+//usage:	)
+//usage:     "\n	-r FILE		Display last modification time of FILE"
+//usage:     "\n	-R		Output RFC-2822 date"
+//usage:	IF_FEATURE_DATE_ISOFMT(
+//usage:     "\n	-I[SPEC]	Output ISO-8601 date"
+//usage:     "\n			SPEC='date' (default) for date only,"
+//usage:     "\n			'hours', 'minutes', 'seconds' or 'ns'"
+//usage:     "\n			for date and time"
 //usage:	)
 //usage:     "\n"
 //usage:     "\nRecognized TIME formats:"
