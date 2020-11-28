@@ -208,7 +208,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		ifmt = 0; /* default is date */
 		if (isofmt_arg) {
 			static const char isoformats[] ALIGN1 =
-				"date\0""hours\0""minutes\0""seconds\0"; /* ns? */
+				"date\0""hours\0""minutes\0""seconds\0ns\0";
 			ifmt = index_in_substrings(isoformats, isofmt_arg);
 			if (ifmt < 0)
 				bb_show_usage();
@@ -315,21 +315,33 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		int i;
 		fmt_dt2str = buf_fmt_dt2str;
 		if (ENABLE_FEATURE_DATE_ISOFMT && ifmt >= 0) {
-			/* -I[SPEC]: 0:date 1:hours 2:minutes 3:seconds */
+			/* -I[SPEC]: 0:date 1:hours 2:minutes 3:seconds 4:ns*/
 			strcpy(fmt_dt2str, "%Y-%m-%dT%H:%M:%S");
 			i = 8 + 3 * ifmt;
 			if (ifmt != 0) {
-				/* TODO: if (ifmt==4) i += sprintf(&fmt_dt2str[i], ",%09u", nanoseconds); */
-				fmt_dt2str[i++] = '%';
-				fmt_dt2str[i++] = 'z';
-				/* FIXME: %z prints "+hhmm" timezone, but coreutils-8.30 prints "+hh:mm" */
+				int n;
+				if (ifmt == 4) {
+					i -= 3;
+					i += sprintf(&fmt_dt2str[i], ",%09u", (unsigned)ts.tv_nsec);
+				}
+				/* %z prints "+hhmm" timezone, but coreutils-8.30 prints "+hh:mm"! */
+				/* ...therefore this atrocity: */
+				n = strftime(&fmt_dt2str[i], 8, "%z", &tm_time);
+				i += n;
+				if (n == 5 && (fmt_dt2str[i-5] == '+' || fmt_dt2str[i-5] == '-')) {
+					/* "mm" -> ":mm" */
+					fmt_dt2str[i    ] = fmt_dt2str[i - 1];
+					fmt_dt2str[i - 1] = fmt_dt2str[i - 2];
+					fmt_dt2str[i - 2] = ':';
+					i++;
+				}
 			}
 			fmt_dt2str[i] = '\0';
 		} else if (opt & OPT_RFC2822) {
 			/* -R. undo busybox.c setlocale */
 			if (ENABLE_LOCALE_SUPPORT)
 				setlocale(LC_TIME, "C");
-			strcpy(fmt_dt2str, "%a, %d %b %Y %H:%M:%S %z");
+			fmt_dt2str = (char*)"%a, %d %b %Y %H:%M:%S %z";
 		} else { /* default case */
 			fmt_dt2str = (char*)"%a %b %e %H:%M:%S %Z %Y";
 		}
