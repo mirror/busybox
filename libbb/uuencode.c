@@ -92,8 +92,8 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 {
 	char *dst = *pp_dst;
 	unsigned ch = 0;
+	unsigned t;
 	int i = 0;
-	int t;
 
 	while ((t = (unsigned char)*src) != '\0') {
 		src++;
@@ -117,11 +117,11 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 			continue;
 
 		ch = (ch << 6) | t;
-		if (++i == 4) {
+		i = (i + 1) & 3;
+		if (i == 0) {
 			*dst++ = (char) (ch >> 16);
 			*dst++ = (char) (ch >> 8);
 			*dst++ = (char) ch;
-			i = 0;
 			if (ch & 0x1000000) { /* was last input char '='? */
 				dst--;
 				if (ch & (0x1000000 << 6)) /* was it "=="? */
@@ -140,9 +140,9 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 const char* FAST_FUNC decode_base32(char **pp_dst, const char *src)
 {
 	char *dst = *pp_dst;
-	uint64_t ch = 0;
+	int64_t ch = 0;
+	unsigned t;
 	int i = 0;
-	int t;
 
 	while ((t = (unsigned char)*src) != '\0') {
 		src++;
@@ -150,44 +150,52 @@ const char* FAST_FUNC decode_base32(char **pp_dst, const char *src)
 		/* "if" forest is faster than strchr(bb_uuenc_tbl_base32, t) */
 		if (t >= '2' && t <= '7')
 			t = t - '2' + 26;
-		else if ((t|0x20) >= 'a' && (t|0x20) <= 'z')
-			t = (t|0x20) - 'a';
 		else if (t == '=' && i > 1)
 			t = 0;
-		else
+		else {
+			t = (t | 0x20) - 'a';
+			if (t > 25)
 //TODO: add BASE64_FLAG_foo to die on bad char?
-			continue;
+				continue;
+		}
 
-		ch = (ch << 5) | (unsigned)t; /* cast prevents pointless sign-extension of t */
-		if (++i == 8) {
-			/* testcase:
-			 * echo ' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18' | base32 | base32 -d
-			 * IOW, decoding of
-			 * EAYSAMRAGMQDIIBVEA3CANZAHAQDSIBRGAQDCMJAGEZCAMJTEAYTIIBRGUQDCNRAGE3SAMJYBI==
-			 * ====
-			 * should correctly stitch together the tail.
-			 */
-			if (t == 0) {
-				const char *s = src;
-				while (*--s == '=')
-					t--;
-			}
+		ch = (ch << 5) | t;
+		i = (i + 1) & 7;
+		if (i == 0) {
 			*dst++ = (char) (ch >> 32);
+			if (src[-1] == '=') /* was last input char '='? */
+				goto tail;
 			*dst++ = (char) (ch >> 24);
 			*dst++ = (char) (ch >> 16);
 			*dst++ = (char) (ch >> 8);
 			*dst++ = (char) ch;
-			i = 0;
-			if (t < 0) /* was last input char '='? */
-				break;
 		}
 	}
-	if (t < 0) /* was last input char '='? */
-		/* -t is the count of =, must be 1, 3, 4 or 6 */
-		dst -= (-t + 1) * 2 / 3; /* discard last 1, 2, 3 or 4 bytes */
 	*pp_dst = dst;
 	/* i is zero here if full 8-char block was decoded */
 	return src - i;
+ tail:
+	{
+		const char *s = src;
+		while (*--s == '=')
+			i++;
+		/* Why duplicate the below code? Testcase:
+		 * echo ' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18' | base32 | base32 -d
+		 * IOW, decoding of
+		 * EAYSAMRAGMQDIIBVEA3CANZAHAQDSIBRGAQDCMJAGEZCAMJTEAYTIIBRGUQDCNRAGE3SAMJYBI==
+		 * ====
+		 * must correctly stitch together the tail, must not overwrite
+		 * the tail before it is analyzed! (we can be decoding in-place)
+		 * Else testcase fails, prints trailing extra NUL bytes.
+		 */
+		*dst++ = (char) (ch >> 24);
+		*dst++ = (char) (ch >> 16);
+		*dst++ = (char) (ch >> 8);
+		*dst++ = (char) ch;
+		dst -= (i+1) * 2 / 3; /* discard last 1, 2, 3 or 4 bytes */
+	}
+	*pp_dst = dst;
+	return src;
 }
 #endif
 
