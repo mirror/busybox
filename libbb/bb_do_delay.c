@@ -8,7 +8,7 @@
  */
 #include "libbb.h"
 
-/* void FAST_FUNC bb_do_delay(int seconds) { ... } - no users yet */
+/* void FAST_FUNC bb_do_delay(unsigned seconds) { ... } - no users yet */
 
 #ifndef LOGIN_FAIL_DELAY
 #define LOGIN_FAIL_DELAY 3
@@ -34,3 +34,16 @@ void FAST_FUNC sleep1(void)
 	sleep(1);
 }
 
+void FAST_FUNC msleep(unsigned ms)
+{
+	/* 1. usleep(n) is not guaranteed by standards to accept n >= 1000000
+	 * 2. multiplication in usleep(ms * 1000) can overflow if ms > 4294967
+	 *    (sleep of ~71.5 minutes)
+	 * Let's play safe and loop:
+	 */
+	while (ms > 500) {
+		usleep(500000);
+		ms -= 500;
+	}
+	usleep(ms * 1000);
+}

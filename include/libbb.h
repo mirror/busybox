@@ -1602,7 +1602,8 @@ char *bb_simplify_path(const char *path) FAST_FUNC;
 char *bb_simplify_abs_path_inplace(char *path) FAST_FUNC;
 
 void pause_after_failed_login(void) FAST_FUNC;
-void bb_do_delay(int seconds) FAST_FUNC;
+void bb_do_delay(unsigned seconds) FAST_FUNC;
+void msleep(unsigned ms) FAST_FUNC;
 void sleep1(void) FAST_FUNC;
 void change_identity(const struct passwd *pw) FAST_FUNC;
 void run_shell(const char *shell, int loginshell, const char **args) NORETURN FAST_FUNC;

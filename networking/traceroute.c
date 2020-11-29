@@ -1071,7 +1071,7 @@ common_traceroute_main(int op, char **argv)
 
 			fflush_all();
 			if (probe != 0 && pausemsecs > 0)
-				usleep(pausemsecs * 1000);
+				msleep(pausemsecs);
 
 			send_probe(++seq, ttl);
 			t2 = t1 = monotonic_us();

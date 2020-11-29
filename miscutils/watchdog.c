@@ -143,7 +143,7 @@ int watchdog_main(int argc UNUSED_PARAM, char **argv)
 		 * as the counter value is undefined at this point -- PFM
 		 */
 		write(3, "", 1); /* write zero byte */
-		usleep(stimer_duration * 1000L);
+		msleep(stimer_duration);
 	}
 	return EXIT_SUCCESS; /* - not reached, but gcc 4.2.1 is too dumb! */
 }
