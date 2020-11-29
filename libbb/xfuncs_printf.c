@@ -633,14 +633,11 @@ void FAST_FUNC generate_uuid(uint8_t *buf)
 	pid_t pid;
 	int i;
 
-	i = open("/dev/urandom", O_RDONLY);
-	if (i >= 0) {
-		read(i, buf, 16);
-		close(i);
-	}
+	open_read_close("/dev/urandom", buf, 16);
 	/* Paranoia. /dev/urandom may be missing.
 	 * rand() is guaranteed to generate at least [0, 2^15) range,
-	 * but lowest bits in some libc are not so "random".  */
+	 * but lowest bits in some libc are not so "random".
+	 */
 	srand(monotonic_us()); /* pulls in printf */
 	pid = getpid();
 	while (1) {
