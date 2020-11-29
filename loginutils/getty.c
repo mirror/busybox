@@ -434,7 +434,7 @@ static void auto_baud(void)
 	 * Wait for a while, then read everything the modem has said so far and
 	 * try to extract the speed of the dial-in call.
 	 */
-	sleep(1);
+	sleep1();
 	nread = safe_read(STDIN_FILENO, G.line_buf, sizeof(G.line_buf) - 1);
 	if (nread > 0) {
 		int speed;

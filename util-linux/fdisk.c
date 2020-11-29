@@ -2667,7 +2667,7 @@ reread_partition_table(int leave)
 	/* Users with slow external USB disks on a 320MHz ARM system (year 2011)
 	 * report that sleep is needed, otherwise BLKRRPART may fail with -EIO:
 	 */
-	sleep(1);
+	sleep1();
 	i = ioctl_or_perror(dev_fd, BLKRRPART, NULL,
 			"WARNING: rereading partition table "
 			"failed, kernel still uses old table");

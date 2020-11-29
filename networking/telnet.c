@@ -673,7 +673,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 			if (bb_got_signal)
 				con_escape();
 			else
-				sleep(1);
+				sleep1();
 			continue;
 		}
 

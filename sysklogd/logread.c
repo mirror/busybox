@@ -180,7 +180,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 			if (cur == shbuf_tail) {
 				sem_up(log_semid);
 				fflush_all();
-				sleep(1); /* TODO: replace me with a sleep_on */
+				sleep1(); /* TODO: replace me with a sleep_on */
 				continue;
 			}
 		}

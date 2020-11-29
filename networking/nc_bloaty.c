@@ -196,7 +196,7 @@ enum {
 /* Debug: squirt whatever message and sleep a bit so we can see it go by. */
 /* Beware: writes to stdOUT... */
 #if 0
-#define Debug(...) do { printf(__VA_ARGS__); printf("\n"); fflush_all(); sleep(1); } while (0)
+#define Debug(...) do { printf(__VA_ARGS__); printf("\n"); fflush_all(); sleep1(); } while (0)
 #else
 #define Debug(...) do { } while (0)
 #endif

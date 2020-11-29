@@ -1436,7 +1436,7 @@ static void flush_buffer_cache(/*int fd*/ void)
 	fsync(fd);				/* flush buffers */
 	ioctl_or_warn(fd, BLKFLSBUF, NULL); /* do it again, big time */
 #ifdef HDIO_DRIVE_CMD
-	sleep(1);
+	sleep1();
 	if (ioctl(fd, HDIO_DRIVE_CMD, NULL) && errno != EINVAL) {	/* await completion */
 		if (ENABLE_IOCTL_HEX2STR_ERROR) /* To be coherent with ioctl_or_warn */
 			bb_simple_perror_msg("HDIO_DRIVE_CMD");
@@ -1511,7 +1511,7 @@ static void do_time(int cache /*,int fd*/)
 	 * NB: *small* delay. User is expected to have a clue and to not run
 	 * heavy io in parallel with measurements. */
 	sync();
-	sleep(1);
+	sleep1();
 	if (cache) { /* Time cache */
 		seek_to_zero();
 		read_big_block(buf);

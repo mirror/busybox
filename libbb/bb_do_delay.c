@@ -28,3 +28,9 @@ void FAST_FUNC pause_after_failed_login(void)
 	sleep(LOGIN_FAIL_DELAY);
 #endif
 }
+
+void FAST_FUNC sleep1(void)
+{
+	sleep(1);
+}
+

@@ -1305,7 +1305,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 		if (ready_fd_cnt < 0) {
 			if (errno != EINTR) {
 				bb_simple_perror_msg("select");
-				sleep(1);
+				sleep1();
 			}
 			continue;
 		}
@@ -1406,7 +1406,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 
 				if (pid < 0) { /* fork error */
 					bb_simple_perror_msg("vfork"+1);
-					sleep(1);
+					sleep1();
 					restore_sigmask(&omask);
 					maybe_close(new_udp_fd);
 					maybe_close(accepted_fd);

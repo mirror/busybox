@@ -651,7 +651,7 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 				gettimeofday_ns(&svd[0].start);
 				update_status(&svd[0]);
 				if (LESS(svd[0].start.tv_sec, deadline))
-					sleep(1);
+					sleep1();
 			}
 			if (haslog) {
 				if (child == svd[1].pid) {
@@ -664,7 +664,7 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 					gettimeofday_ns(&svd[1].start);
 					update_status(&svd[1]);
 					if (LESS(svd[1].start.tv_sec, deadline))
-						sleep(1);
+						sleep1();
 				}
 			}
 		} /* for (;;) */

@@ -480,7 +480,7 @@ static int wait_one(int flags)
 			 * time to set up the signal handler
 			 */
 			if (inst2->start_time >= time(NULL) - 1)
-				sleep(1);
+				sleep1();
 			kill(inst2->pid, SIGUSR1);
 			inst2->flags |= FLAG_PROGRESS;
 			break;

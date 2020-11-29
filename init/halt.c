@@ -144,14 +144,14 @@ static int init_was_not_there(void)
 	 */
 #if 0
 	while (kill(1, 0) != 0 && --cnt >= 0)
-		sleep(1);
+		sleep1();
 #endif
 	/* ... so let's wait for some evidence a usual startup event,
 	 * mounting of /proc, happened. By that time init should be ready
 	 * for signals.
 	 */
 	while (access("/proc/meminfo", F_OK) != 0 && --cnt >= 0)
-		sleep(1);
+		sleep1();
 
 	/* Does it look like init wasn't there? */
 	return (cnt != initial - 1);

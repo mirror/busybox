@@ -735,7 +735,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 					delay_time += G.delay_down;
 #if 0  /* if you are back in 1970... */
 				if (delay_time == 0) {
-					sleep(1);
+					sleep1();
 					delay_time = 1;
 				}
 #endif

@@ -270,7 +270,7 @@ int nbdclient_main(int argc, char **argv)
 						close(fd);
 					break;
 				}
-				sleep(1);
+				sleep1();
 			}
 			open(device, O_RDONLY);
 			return 0;

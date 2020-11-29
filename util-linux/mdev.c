@@ -920,7 +920,7 @@ static void load_firmware(const char *firmware, const char *sysfs_path)
 		loading_fd = open("loading", O_WRONLY);
 		if (loading_fd >= 0)
 			goto loading;
-		sleep(1);
+		sleep1();
 	}
 	goto out;
 

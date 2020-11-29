@@ -473,7 +473,7 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 					if ('\\' == c) {
 						c = *++buf;
 						if ('d' == c) {
-							sleep(1);
+							sleep1();
 							len--;
 							continue;
 						}

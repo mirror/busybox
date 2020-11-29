@@ -105,7 +105,7 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
  grandchild:
 		/* Just sleep(HUGE_NUM); kill(parent) may kill wrong process! */
 		while (1) {
-			sleep(1);
+			sleep1();
 			if (--timeout <= 0)
 				break;
 			if (kill(parent, 0)) {
