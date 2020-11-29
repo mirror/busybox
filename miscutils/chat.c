@@ -379,7 +379,7 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 					// dump device input if ECHO ON
 					if (echo) {
 //						if (buf[buf_len] < ' ') {
-//							full_write(STDERR_FILENO, "^", 1);
+//							full_write2_str("^");
 //							buf[buf_len] += '@';
 //						}
 						full_write(STDERR_FILENO, buf+buf_len, 1);
@@ -509,7 +509,7 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_CHAT_IMPLICIT_CR
 				// or terminate command with \r (if not inhibited)
 				else if (!nocr)
-					xwrite(STDOUT_FILENO, "\r", 1);
+					xwrite_str(STDOUT_FILENO, "\r");
 #endif
 				// bail out unless we sent command successfully
 				if (exitcode)
