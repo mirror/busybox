@@ -139,7 +139,7 @@ int pscan_main(int argc UNUSED_PARAM, char **argv)
 			 * We check rtt BEFORE we usleep, otherwise
 			 * on localhost we'll have no writes done (!)
 			 * before we exceed (rather small) rtt */
-			usleep(rtt_4/8);
+			usleep(rtt_4 / 8);
  open:
 			diff = MONOTONIC_US() - start;
 			DMSG("write to port %u @%u", port, diff - start);
