@@ -25,7 +25,7 @@ uint8_t unicode_status;
 
 void FAST_FUNC reinit_unicode(const char *LANG)
 {
-	static const char unicode_0x394[] = { 0xce, 0x94, 0 };
+	static const char unicode_0x394[] ALIGN1 = { 0xce, 0x94, 0 };
 	size_t width;
 
 	/* We pass "" instead of "C" because some libc's have
@@ -589,12 +589,12 @@ int FAST_FUNC wcwidth(unsigned ucs)
 		BIG_(0xFE20, 0xFE23) \
 		BIG_(0xFEFF, 0xFEFF) \
 		BIG_(0xFFF9, 0xFFFB)
-	static const struct interval combining[] = { ARRAY };
+	static const struct interval combining[] ALIGN4 = { ARRAY };
 #  undef BIG_
 #  undef PAIR
 #  define BIG_(a,b)
 #  define PAIR(a,b) (a << 2) | (b-a),
-	static const uint16_t combining1[] = { ARRAY };
+	static const uint16_t combining1[] ALIGN2 = { ARRAY };
 #  undef BIG_
 #  undef PAIR
 #  define BIG_(a,b) char big_##a[b < 0x4000 && b-a <= 3 ? -1 : 1];
@@ -648,7 +648,7 @@ int FAST_FUNC wcwidth(unsigned ucs)
 #   if CONFIG_LAST_SUPPORTED_WCHAR >= 0x10000
 	if (ucs >= 0x10000) {
 		/* Combining chars in Supplementary Multilingual Plane 0x1xxxx */
-		static const struct interval combining0x10000[] = {
+		static const struct interval combining0x10000[] ALIGN4 = {
 			{ 0x0A01, 0x0A03 }, { 0x0A05, 0x0A06 }, { 0x0A0C, 0x0A0F },
 			{ 0x0A38, 0x0A3A }, { 0x0A3F, 0x0A3F }, { 0xD167, 0xD169 },
 			{ 0xD173, 0xD182 }, { 0xD185, 0xD18B }, { 0xD1AA, 0xD1AD },
@@ -759,12 +759,12 @@ int FAST_FUNC unicode_bidi_isrtl(wint_t wc)
 		{0x10E7F, 0x10FFF},
 		{0x1E800, 0x1EFFF}
 		*/
-	static const struct interval rtl_b[] = { ARRAY };
+	static const struct interval rtl_b[] ALIGN4 = { ARRAY };
 #  undef BIG_
 #  undef PAIR
 #  define BIG_(a,b)
 #  define PAIR(a,b) (a << 2) | (b-a),
-	static const uint16_t rtl_p[] = { ARRAY };
+	static const uint16_t rtl_p[] ALIGN2 = { ARRAY };
 #  undef BIG_
 #  undef PAIR
 #  define BIG_(a,b) char big_##a[b < 0x4000 && b-a <= 3 ? -1 : 1];
@@ -963,12 +963,12 @@ int FAST_FUNC unicode_bidi_is_neutral_wchar(wint_t wc)
 		{0x1F030, 0x1F093},
 		{0x1F100, 0x1F10A}
 		*/
-	static const struct interval neutral_b[] = { ARRAY };
+	static const struct interval neutral_b[] ALIGN4 = { ARRAY };
 #  undef BIG_
 #  undef PAIR
 #  define BIG_(a,b)
 #  define PAIR(a,b) (a << 2) | (b-a),
-	static const uint16_t neutral_p[] = { ARRAY };
+	static const uint16_t neutral_p[] ALIGN2 = { ARRAY };
 #  undef BIG_
 #  undef PAIR
 #  define BIG_(a,b) char big_##a[b < 0x4000 && b-a <= 3 ? -1 : 1];
