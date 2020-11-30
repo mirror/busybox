@@ -641,7 +641,7 @@ static unsigned long parse_mount_options(char *options, char **unrecognized)
 // Return a list of all block device backed filesystems
 static llist_t *get_block_backed_filesystems(void)
 {
-	static const char filesystems[2][sizeof("/proc/filesystems")] = {
+	static const char filesystems[2][sizeof("/proc/filesystems")] ALIGN1 = {
 		"/etc/filesystems",
 		"/proc/filesystems",
 	};
