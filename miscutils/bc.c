@@ -517,7 +517,7 @@ struct BcLexKeyword {
 };
 #define LEX_KW_ENTRY(a, b) \
 	{ .name8 = a /*, .posix = b */ }
-static const struct BcLexKeyword bc_lex_kws[20] = {
+static const struct BcLexKeyword bc_lex_kws[20] ALIGN8 = {
 	LEX_KW_ENTRY("auto"    , 1), // 0
 	LEX_KW_ENTRY("break"   , 1), // 1
 	LEX_KW_ENTRY("continue", 0), // 2 note: this one has no terminating NUL

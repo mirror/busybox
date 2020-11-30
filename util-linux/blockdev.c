@@ -60,7 +60,7 @@ static const char bdcmd_names[] ALIGN1 =
 	"flushbufs" "\0"
 	"rereadpt"  "\0"
 ;
-static const uint32_t bdcmd_ioctl[] = {
+static const uint32_t bdcmd_ioctl[] ALIGN4 = {
 	BLKROSET,       //setro
 	BLKROSET,       //setrw
 	BLKROGET,       //getro

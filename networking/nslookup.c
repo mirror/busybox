@@ -273,7 +273,7 @@ struct query {
 static const struct {
 	unsigned char type;
 	char name[7];
-} qtypes[] = {
+} qtypes[] ALIGN1 = {
 	{ ns_t_soa,   "SOA"   },
 	{ ns_t_ns,    "NS"    },
 	{ ns_t_a,     "A"     },
@@ -288,7 +288,7 @@ static const struct {
 	{ ns_t_any,   "ANY"   },
 };
 
-static const char *const rcodes[] = {
+static const char *const rcodes[] ALIGN_PTR = {
 	"NOERROR",    // 0
 	"FORMERR",    // 1
 	"SERVFAIL",   // 2

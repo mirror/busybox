@@ -536,7 +536,7 @@ send_probe(int seq, int ttl)
 static const char *
 pr_type(unsigned char t)
 {
-	static const char *const ttab[] = {
+	static const char *const ttab[] ALIGN_PTR = {
 	"Echo Reply",   "ICMP 1",       "ICMP 2",       "Dest Unreachable",
 	"Source Quench", "Redirect",    "ICMP 6",       "ICMP 7",
 	"Echo",         "Router Advert", "Router Solicit", "Time Exceeded",
@@ -544,7 +544,7 @@ pr_type(unsigned char t)
 	"Info Reply",   "Mask Request", "Mask Reply"
 	};
 # if ENABLE_TRACEROUTE6
-	static const char *const ttab6[] = {
+	static const char *const ttab6[] ALIGN_PTR = {
 [0]	= "Error", "Dest Unreachable", "Packet Too Big", "Time Exceeded",
 [4]	= "Param Problem",
 [8]	= "Echo Request", "Echo Reply", "Membership Query", "Membership Report",

@@ -361,7 +361,7 @@ struct builtin {
 	void (*bi_dgram_fn)(int, servtab_t *) FAST_FUNC;
 };
 
-static const struct builtin builtins[] = {
+static const struct builtin builtins[] ALIGN_PTR = {
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 	{ "echo", 1, echo_stream, echo_dg },
 #endif

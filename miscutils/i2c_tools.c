@@ -1052,7 +1052,7 @@ struct adap_desc {
 	const char *algo;
 };
 
-static const struct adap_desc adap_descs[] = {
+static const struct adap_desc adap_descs[] ALIGN_PTR = {
 	{ .funcs = "dummy", .algo = "Dummy bus", },
 	{ .funcs = "isa",   .algo = "ISA bus", },
 	{ .funcs = "i2c",   .algo = "I2C adapter", },
@@ -1064,7 +1064,7 @@ struct i2c_func {
 	const char* name;
 };
 
-static const struct i2c_func i2c_funcs_tab[] = {
+static const struct i2c_func i2c_funcs_tab[] ALIGN_PTR = {
 	{ .value = I2C_FUNC_I2C,
 	  .name = "I2C" },
 	{ .value = I2C_FUNC_SMBUS_QUICK,
