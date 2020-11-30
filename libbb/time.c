@@ -250,7 +250,6 @@ char* FAST_FUNC strftime_YYYYMMDDHHMMSS(char *buf, unsigned len, time_t *tp)
 
 #if ENABLE_MONOTONIC_SYSCALL
 
-#include <sys/syscall.h>
 /* Old glibc (< 2.3.4) does not provide this constant. We use syscall
  * directly so this definition is safe. */
 #ifndef CLOCK_MONOTONIC

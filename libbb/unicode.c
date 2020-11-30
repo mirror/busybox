@@ -306,8 +306,10 @@ static int in_uint16_table(unsigned ucs, const uint16_t *table, unsigned max)
 	unsigned first, last;
 
 	first = table[0] >> 2;
-	last = first + (table[0] & 3);
-	if (ucs < first || ucs > last)
+	if (ucs < first)
+		return 0;
+	last = (table[max] >> 2) + (table[max] & 3);
+	if (ucs > last)
 		return 0;
 
 	min = 0;
