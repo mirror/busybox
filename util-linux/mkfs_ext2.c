@@ -131,7 +131,7 @@ static void allocate(uint8_t *bitmap, uint32_t blocksize, uint32_t start, uint32
 static uint32_t has_super(uint32_t x)
 {
 	// 0, 1 and powers of 3, 5, 7 up to 2^32 limit
-	static const uint32_t supers[] = {
+	static const uint32_t supers[] ALIGN4 = {
 		0, 1, 3, 5, 7, 9, 25, 27, 49, 81, 125, 243, 343, 625, 729,
 		2187, 2401, 3125, 6561, 15625, 16807, 19683, 59049, 78125,
 		117649, 177147, 390625, 531441, 823543, 1594323, 1953125,

@@ -775,7 +775,7 @@ static NOINLINE unsigned logdir_open(struct logdir *ld, const char *fn)
 				ld->nmin = xatoi_positive(&s[1]);
 				break;
 			case 't': {
-				static const struct suffix_mult mh_suffixes[] = {
+				static const struct suffix_mult mh_suffixes[] ALIGN_SUFFIX = {
 					{ "m", 60 },
 					{ "h", 60*60 },
 					/*{ "d", 24*60*60 },*/

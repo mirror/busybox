@@ -405,7 +405,7 @@ static const char tokenlist[] ALIGN1 =
 
 #define OC_B  OC_BUILTIN
 
-static const uint32_t tokeninfo[] = {
+static const uint32_t tokeninfo[] ALIGN4 = {
 	0,
 	0,
 	OC_REGEXP,

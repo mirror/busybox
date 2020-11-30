@@ -303,7 +303,7 @@ static sector_t get_nr_sects(const struct partition *p);
 
 /* DOS partition types */
 
-static const char *const i386_sys_types[] = {
+static const char *const i386_sys_types[] ALIGN_PTR = {
 	"\x00" "Empty",
 	"\x01" "FAT12",
 	"\x04" "FAT16 <32M",

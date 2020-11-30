@@ -1026,8 +1026,9 @@ void generate_uuid(uint8_t *buf) FAST_FUNC;
 /* Last element is marked by mult == 0 */
 struct suffix_mult {
 	char suffix[4];
-	unsigned mult;
+	uint32_t mult;
 };
+#define ALIGN_SUFFIX ALIGN4
 extern const struct suffix_mult bkm_suffixes[];
 #define km_suffixes (bkm_suffixes + 1)
 extern const struct suffix_mult cwbkMG_suffixes[];

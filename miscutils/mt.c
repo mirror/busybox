@@ -30,7 +30,7 @@
 #include <sys/mtio.h>
 
 /* missing: eod/seod, stoptions, stwrthreshold, densities */
-static const short opcode_value[] = {
+static const short opcode_value[] ALIGN2 = {
 	MTBSF,
 	MTBSFM,
 	MTBSR,

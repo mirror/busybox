@@ -398,7 +398,7 @@ struct config_keyword {
 
 #define OFS(field) offsetof(struct server_data_t, field)
 
-static const struct config_keyword keywords[] = {
+static const struct config_keyword keywords[] ALIGN_PTR = {
 	/* keyword        handler           variable address    default */
 	{"start"        , udhcp_str2nip   , OFS(start_ip     ), "192.168.0.20"},
 	{"end"          , udhcp_str2nip   , OFS(end_ip       ), "192.168.0.254"},

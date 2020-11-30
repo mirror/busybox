@@ -88,7 +88,7 @@ int watchdog_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int watchdog_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const int enable = WDIOS_ENABLECARD;
-	static const struct suffix_mult suffixes[] = {
+	static const struct suffix_mult suffixes[] ALIGN_SUFFIX = {
 		{ "ms", 1 },
 		{ "", 1000 },
 		{ "", 0 }

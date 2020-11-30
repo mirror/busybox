@@ -174,7 +174,7 @@ isinfreelist(unsigned int b)
  * end of free blocks section
  */
 
-static const char *const sgi_sys_types[] = {
+static const char *const sgi_sys_types[] ALIGN_PTR = {
 /* SGI_VOLHDR   */	"\x00" "SGI volhdr"  ,
 /* 0x01         */	"\x01" "SGI trkrepl" ,
 /* 0x02         */	"\x02" "SGI secrepl" ,

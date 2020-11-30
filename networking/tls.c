@@ -1953,7 +1953,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 		premaster_size = sizeof(rsa_premaster);
 	} else {
 		/* ECDHE */
-		static const uint8_t basepoint9[CURVE25519_KEYSIZE] = {9};
+		static const uint8_t basepoint9[CURVE25519_KEYSIZE] ALIGN1 = {9};
 		uint8_t privkey[CURVE25519_KEYSIZE]; //[32]
 
 		if (!(tls->flags & GOT_EC_KEY))

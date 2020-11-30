@@ -492,7 +492,7 @@ static void load_crontab(const char *fileName)
 					const char *name;
 					const char tokens[8];
 				} SpecialEntry;
-				static const SpecialEntry SpecAry[] = {
+				static const SpecialEntry SpecAry[] ALIGN8 = {
 					/*              hour  day   month weekday */
 					{ "yearly",     "0\0" "1\0" "1\0" "*" },
 					{ "annually",   "0\0" "1\0" "1\0" "*" },

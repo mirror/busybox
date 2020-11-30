@@ -20,7 +20,7 @@ enum {
 	TAR_MAX,
 };
 
-static const char *const tar_var[] = {
+static const char *const tar_var[] ALIGN_PTR = {
 	// "FILETYPE",
 	"MODE",
 	"FILENAME",

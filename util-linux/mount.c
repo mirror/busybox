@@ -323,7 +323,7 @@ enum {
 
 // Standard mount options (from -o options or --options),
 // with corresponding flags
-static const int32_t mount_options[] = {
+static const int32_t mount_options[] ALIGN4 = {
 	// MS_FLAGS set a bit.  ~MS_FLAGS disable that bit.  0 flags are NOPs.
 
 	IF_FEATURE_MOUNT_LOOP(

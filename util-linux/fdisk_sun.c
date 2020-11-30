@@ -61,7 +61,7 @@ guess_device_type(void)
 	}
 }
 
-static const char *const sun_sys_types[] = {
+static const char *const sun_sys_types[] ALIGN_PTR = {
 	"\x00" "Empty"       , /* 0            */
 	"\x01" "Boot"        , /* 1            */
 	"\x02" "SunOS root"  , /* 2            */
@@ -133,7 +133,7 @@ static const struct sun_predefined_drives {
 	unsigned short ntrks;
 	unsigned short nsect;
 	unsigned short rspeed;
-} sun_drives[] = {
+} sun_drives[] ALIGN_PTR = {
 	{ "Quantum","ProDrive 80S",1,832,2,834,6,34,3662},
 	{ "Quantum","ProDrive 105S",1,974,2,1019,6,35,3662},
 	{ "CDC","Wren IV 94171-344",3,1545,2,1549,9,46,3600},

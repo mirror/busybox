@@ -97,7 +97,7 @@ static unsigned get_num_from_file(const char *path, unsigned max)
 int ubi_tools_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 {
-	static const struct suffix_mult size_suffixes[] = {
+	static const struct suffix_mult size_suffixes[] ALIGN_SUFFIX = {
 		{ "KiB", 1024 },
 		{ "MiB", 1024*1024 },
 		{ "GiB", 1024*1024*1024 },

@@ -627,7 +627,7 @@ decode_one_format(const char *s_orig, const char *s, struct tspec *tspec)
 				bytes_to_unsigned_dec_digits,
 				bytes_to_hex_digits,
 			};
-			static const char doux_fmtstring[][sizeof(" %%0%u%s")] = {
+			static const char doux_fmtstring[][sizeof(" %%0%u%s")] ALIGN1 = {
 				" %%%u%s",
 				" %%0%u%s",
 				" %%%u%s",
@@ -1148,7 +1148,7 @@ dump_strings(off_t address, off_t end_offset)
 static int
 parse_old_offset(const char *s, off_t *offset)
 {
-	static const struct suffix_mult Bb[] = {
+	static const struct suffix_mult Bb[] ALIGN_SUFFIX = {
 		{ "B", 1024 },
 		{ "b", 512 },
 		{ "", 0 }

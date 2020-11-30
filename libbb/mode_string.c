@@ -27,7 +27,7 @@
 #define mode_t unsigned short
 #endif
 
-static const mode_t mode_flags[] = {
+static const mode_t mode_flags[] ALIGN4 = {
 	S_IRUSR, S_IWUSR, S_IXUSR, S_ISUID,
 	S_IRGRP, S_IWGRP, S_IXGRP, S_ISGID,
 	S_IROTH, S_IWOTH, S_IXOTH, S_ISVTX

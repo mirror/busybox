@@ -77,7 +77,7 @@ static rtnl_tab_t *rtnl_rtprot_tab;
 
 static void rtnl_rtprot_initialize(void)
 {
-	static const char *const init_tab[] = {
+	static const char *const init_tab[] ALIGN_PTR = {
 		"none",
 		"redirect",
 		"kernel",

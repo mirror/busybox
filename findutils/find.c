@@ -1441,7 +1441,7 @@ static action*** parse_params(char **argv)
 #else
 #define XATOU_SFX xatoul_sfx
 #endif
-			static const struct suffix_mult find_suffixes[] = {
+			static const struct suffix_mult find_suffixes[] ALIGN_SUFFIX = {
 				{ "c", 1 },
 				{ "w", 2 },
 				{ "", 512 },

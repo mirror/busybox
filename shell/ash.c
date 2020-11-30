@@ -2091,7 +2091,7 @@ static const struct {
 	int flags;
 	const char *var_text;
 	void (*var_func)(const char *) FAST_FUNC;
-} varinit_data[] = {
+} varinit_data[] ALIGN_PTR = {
 	/*
 	 * Note: VEXPORT would not work correctly here for NOFORK applets:
 	 * some environment strings may be constant.
@@ -4811,7 +4811,7 @@ static char *cmdnextc;
 static void
 cmdputs(const char *s)
 {
-	static const char vstype[VSTYPE + 1][3] = {
+	static const char vstype[VSTYPE + 1][3] ALIGN1 = {
 		"", "}", "-", "+", "?", "=",
 		"%", "%%", "#", "##"
 		IF_BASH_SUBSTR(, ":")
@@ -8510,7 +8510,7 @@ enum {
 	, /* thus far 29 bits used */
 };
 
-static const char *const tokname_array[] = {
+static const char *const tokname_array[] ALIGN_PTR = {
 	"end of file",
 	"newline",
 	"redirection",

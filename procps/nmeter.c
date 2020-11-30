@@ -838,7 +838,7 @@ static void FAST_FUNC collect_info(s_stat *s)
 typedef s_stat* init_func(const char *param);
 
 static const char options[] ALIGN1 = "ncmsfixptTbr";
-static init_func *const init_functions[] = {
+static init_func *const init_functions[] ALIGN_PTR = {
 	init_if,
 	init_cpu,
 	init_mem,

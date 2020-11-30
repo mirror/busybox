@@ -306,7 +306,7 @@ struct operator_t {
 	unsigned char op_num, op_type;
 };
 
-static const struct operator_t ops_table[] = {
+static const struct operator_t ops_table[] ALIGN2 = {
 	{ /* "-r" */ FILRD   , UNOP   },
 	{ /* "-w" */ FILWR   , UNOP   },
 	{ /* "-x" */ FILEX   , UNOP   },

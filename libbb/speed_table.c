@@ -28,7 +28,7 @@ struct speed_map {
 };
 
 /* On Linux, Bxx constants are 0..15 (up to B38400) and 0x1001..0x100f */
-static const struct speed_map speeds[] = {
+static const struct speed_map speeds[] ALIGN4 = {
 	{B0, 0},
 	{B50, 50},
 	{B75, 75},

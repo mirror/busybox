@@ -400,7 +400,7 @@ int ip_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_IP_RULE("rule\0")
 		IF_FEATURE_IP_NEIGH("neigh\0")
 		;
-	static const ip_func_ptr_t ip_func_ptrs[] = {
+	static const ip_func_ptr_t ip_func_ptrs[] ALIGN_PTR = {
 		ip_print_help,
 		IF_FEATURE_IP_ADDRESS(do_ipaddr,)
 		IF_FEATURE_IP_ROUTE(do_iproute,)

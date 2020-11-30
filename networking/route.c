@@ -460,9 +460,9 @@ static NOINLINE void INET6_setroute(int action, char **args)
 #endif
 
 static const
-IF_NOT_FEATURE_IPV6(uint16_t)
-IF_FEATURE_IPV6(unsigned)
-flagvals[] = { /* Must agree with flagchars[]. */
+IF_NOT_FEATURE_IPV6(uint16_t flagvals[] ALIGN2 = )
+IF_FEATURE_IPV6(uint32_t flagvals[] ALIGN4 = )
+{ /* Must agree with flagchars[]. */
 	RTF_UP,
 	RTF_GATEWAY,
 	RTF_HOST,

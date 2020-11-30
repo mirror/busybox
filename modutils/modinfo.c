@@ -20,7 +20,7 @@
 #include "libbb.h"
 #include "modutils.h"
 
-static const char *const shortcuts[] = {
+static const char *const shortcuts[] ALIGN_PTR = {
 	"filename",	// -n
 	"author",	// -a
 	"description",	// -d

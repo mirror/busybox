@@ -1053,18 +1053,13 @@ struct adap_desc {
 };
 
 static const struct adap_desc adap_descs[] = {
-	{ .funcs	= "dummy",
-	  .algo		= "Dummy bus", },
-	{ .funcs	= "isa",
-	  .algo		= "ISA bus", },
-	{ .funcs	= "i2c",
-	  .algo		= "I2C adapter", },
-	{ .funcs	= "smbus",
-	  .algo		= "SMBus adapter", },
+	{ .funcs = "dummy", .algo = "Dummy bus", },
+	{ .funcs = "isa",   .algo = "ISA bus", },
+	{ .funcs = "i2c",   .algo = "I2C adapter", },
+	{ .funcs = "smbus", .algo = "SMBus adapter", },
 };
 
-struct i2c_func
-{
+struct i2c_func {
 	long value;
 	const char* name;
 };

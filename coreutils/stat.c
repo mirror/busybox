@@ -208,7 +208,7 @@ FS_TYPE(0x62656572, "sysfs")
 static const char *human_fstype(uint32_t f_type)
 {
 # define FS_TYPE(type, name) type,
-	static const uint32_t fstype[] = {
+	static const uint32_t fstype[] ALIGN4 = {
 		FS_TYPE_LIST
 	};
 # undef FS_TYPE

@@ -304,7 +304,7 @@ static const char api_modes[] ALIGN1 = "empwia";
 static const struct {
 	const char *name;
 	smallint (*func)(void);
-} method_table[] = {
+} method_table[] ALIGN_PTR = {
 	{ "SIOCETHTOOL"       , &detect_link_ethtool },
 	{ "SIOCGMIIPHY"       , &detect_link_mii     },
 	{ "SIOCDEVPRIVATE"    , &detect_link_priv    },

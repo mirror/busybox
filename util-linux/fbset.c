@@ -193,7 +193,7 @@ static const struct cmdoptions_t {
 	const char name[9];
 	const unsigned char param_count;
 	const unsigned char code;
-} g_cmdoptions[] = {
+} g_cmdoptions[] ALIGN1 = {
 	/*"12345678" + NUL */
 //TODO: convert to index_in_strings()
 	{ "fb"      , 1, CMD_FB       },

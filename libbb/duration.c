@@ -21,7 +21,7 @@
 
 #include "libbb.h"
 
-static const struct suffix_mult duration_suffixes[] = {
+static const struct suffix_mult duration_suffixes[] ALIGN_SUFFIX = {
 	{ "s", 1 },
 	{ "m", 60 },
 	{ "h", 60*60 },

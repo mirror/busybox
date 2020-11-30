@@ -487,7 +487,7 @@ static const char mode_name[] ALIGN1 =
 #undef MI_ENTRY
 #define MI_ENTRY(N,T,F,B,M) { T, F, M, B },
 
-static const struct mode_info mode_info[] = {
+static const struct mode_info mode_info[] ALIGN4 = {
 	/* This should be verbatim cut-n-paste copy of the above MI_ENTRYs */
 	MI_ENTRY("evenp",    combination, REV        | OMIT, 0,          0 )
 	MI_ENTRY("parity",   combination, REV        | OMIT, 0,          0 )
@@ -905,7 +905,7 @@ static void display_window_size(int fancy)
 	}
 }
 
-static const struct suffix_mult stty_suffixes[] = {
+static const struct suffix_mult stty_suffixes[] ALIGN_SUFFIX = {
 	{ "b",  512 },
 	{ "k", 1024 },
 	{ "B", 1024 },

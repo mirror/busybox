@@ -44,7 +44,7 @@
 #include "common_bufsiz.h"
 
 #if ENABLE_FEATURE_SPLIT_FANCY
-static const struct suffix_mult split_suffixes[] = {
+static const struct suffix_mult split_suffixes[] ALIGN_SUFFIX = {
 	{ "b", 512 },
 	{ "k", 1024 },
 	{ "m", 1024*1024 },

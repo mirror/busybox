@@ -99,7 +99,7 @@ struct acpi_event {
 	const char *desc;
 };
 
-static const struct acpi_event f_evt_tab[] = {
+static const struct acpi_event f_evt_tab[] ALIGN_PTR = {
 	{ "EV_KEY", 0x01, "KEY_POWER", 116, 1, "button/power PWRF 00000080" },
 	{ "EV_KEY", 0x01, "KEY_POWER", 116, 1, "button/power PWRB 00000080" },
 	{ "EV_SW", 0x05, "SW_LID", 0x00, 1, "button/lid LID0 00000080" },
@@ -110,7 +110,7 @@ struct acpi_action {
 	const char *action;
 };
 
-static const struct acpi_action f_act_tab[] = {
+static const struct acpi_action f_act_tab[] ALIGN_PTR = {
 	{ "PWRF", "PWRF/00000080" },
 	{ "LID0", "LID/00000080" },
 };

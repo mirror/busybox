@@ -746,7 +746,7 @@ static const struct hwtype *const hwtypes[] = {
 };
 
 #ifdef IFF_PORTSEL
-static const char *const if_port_text[] = {
+static const char *const if_port_text[] ALIGN_PTR = {
 	/* Keep in step with <linux/netdevice.h> */
 	"unknown",
 	"10base2",

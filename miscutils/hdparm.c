@@ -1366,7 +1366,7 @@ static NOINLINE void dump_identity(const struct hd_driveid *id)
 	}
 	if (id->capability & 1) {
 		if (id->dma_1word | id->dma_mword) {
-			static const int dma_wmode_masks[] = { 0x100, 1, 0x200, 2, 0x400, 4, 0xf800, 0xf8 };
+			static const int dma_wmode_masks[] ALIGN4 = { 0x100, 1, 0x200, 2, 0x400, 4, 0xf800, 0xf8 };
 			printf("\n DMA modes:  ");
 			print_flags_separated(dma_wmode_masks,
 				"*\0""sdma0 \0""*\0""sdma1 \0""*\0""sdma2 \0""*\0""sdma? \0",

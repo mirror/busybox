@@ -17,7 +17,7 @@ extern int capget(cap_user_header_t header, const cap_user_data_t data);
 // This way, libcap needs not be installed in build environment.
 #include "libbb.h"
 
-static const char *const capabilities[] = {
+static const char *const capabilities[] ALIGN_PTR = {
 	"chown",
 	"dac_override",
 	"dac_read_search",

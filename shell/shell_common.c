@@ -324,7 +324,7 @@ struct limits {
 	uint8_t factor_shift;   /* shift by to get rlim_{cur,max} values */
 };
 
-static const struct limits limits_tbl[] = {
+static const struct limits limits_tbl[] ALIGN2 = {
 	{ RLIMIT_CORE,		9,	}, // -c
 	{ RLIMIT_DATA,		10,	}, // -d
 	{ RLIMIT_NICE,		0,	}, // -e

@@ -596,10 +596,10 @@ typedef struct in_str {
 /* The descrip member of this structure is only used to make
  * debugging output pretty */
 static const struct {
-	int mode;
+	int32_t mode;
 	signed char default_fd;
 	char descrip[3];
-} redir_table[] = {
+} redir_table[] ALIGN4 = {
 	{ O_RDONLY,                  0, "<"  },
 	{ O_CREAT|O_TRUNC|O_WRONLY,  1, ">"  },
 	{ O_CREAT|O_APPEND|O_WRONLY, 1, ">>" },
@@ -1143,7 +1143,7 @@ struct built_in_command {
 #endif
 };
 
-static const struct built_in_command bltins1[] = {
+static const struct built_in_command bltins1[] ALIGN_PTR = {
 	BLTIN("."        , builtin_source  , "Run commands in file"),
 	BLTIN(":"        , builtin_true    , NULL),
 #if ENABLE_HUSH_JOB
@@ -1228,7 +1228,7 @@ static const struct built_in_command bltins1[] = {
 /* These builtins won't be used if we are on NOMMU and need to re-exec
  * (it's cheaper to run an external program in this case):
  */
-static const struct built_in_command bltins2[] = {
+static const struct built_in_command bltins2[] ALIGN_PTR = {
 #if ENABLE_HUSH_TEST
 	BLTIN("["        , builtin_test    , NULL),
 #endif
@@ -3895,7 +3895,7 @@ struct reserved_combo {
 	char literal[6];
 	unsigned char res;
 	unsigned char assignment_flag;
-	int flag;
+	uint32_t flag;
 };
 enum {
 	FLAG_END   = (1 << RES_NONE ),
@@ -3928,7 +3928,7 @@ static const struct reserved_combo* match_reserved_word(o_string *word)
 	 * to turn the compound list into a command.
 	 * FLAG_START means the word must start a new compound list.
 	 */
-	static const struct reserved_combo reserved_list[] = {
+	static const struct reserved_combo reserved_list[] ALIGN4 = {
 # if ENABLE_HUSH_IF
 		{ "!",     RES_NONE,  NOT_ASSIGNMENT  , 0 },
 		{ "if",    RES_IF,    MAYBE_ASSIGNMENT, FLAG_THEN | FLAG_START },

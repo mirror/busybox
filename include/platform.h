@@ -342,6 +342,8 @@ typedef unsigned smalluint;
 # define ALIGN2
 # define ALIGN4
 #endif
+#define ALIGN8     __attribute__((aligned(8)))
+#define ALIGN_PTR  __attribute__((aligned(sizeof(void*))))
 
 /*
  * For 0.9.29 and svn, __ARCH_USE_MMU__ indicates no-mmu reliably.

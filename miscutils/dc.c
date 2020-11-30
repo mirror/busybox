@@ -195,7 +195,7 @@ struct op {
 	void (*function) (void);
 };
 
-static const struct op operators[] = {
+static const struct op operators[] ALIGN_PTR = {
 #if ENABLE_FEATURE_DC_LIBM
 	{"^",   power},
 //	{"exp", power},

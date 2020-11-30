@@ -68,14 +68,14 @@ uint16_t FAST_FUNC xatou16(const char *numstr)
 	return xatou_range(numstr, 0, 0xffff);
 }
 
-const struct suffix_mult bkm_suffixes[] = {
+const struct suffix_mult bkm_suffixes[] ALIGN_SUFFIX = {
 	{ "b", 512 },
 	{ "k", 1024 },
 	{ "m", 1024*1024 },
 	{ "", 0 }
 };
 
-const struct suffix_mult cwbkMG_suffixes[] = {
+const struct suffix_mult cwbkMG_suffixes[] ALIGN_SUFFIX = {
 	{ "c", 1 },
 	{ "w", 2 },
 	{ "b", 512 },
@@ -96,7 +96,7 @@ const struct suffix_mult cwbkMG_suffixes[] = {
 	{ "", 0 }
 };
 
-const struct suffix_mult kmg_i_suffixes[] = {
+const struct suffix_mult kmg_i_suffixes[] ALIGN_SUFFIX = {
 	{ "KiB", 1024 },
 	{ "kiB", 1024 },
 	{ "K", 1024 },

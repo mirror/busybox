@@ -111,7 +111,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 	   They are defined in RFC 1321 as
 	   T[i] = (int)(2^32 * fabs(sin(i))), i=1..64
 	 */
-	static const uint32_t C_array[] = {
+	static const uint32_t C_array[] ALIGN4 = {
 		/* round 1 */
 		0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
 		0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -492,7 +492,7 @@ unsigned FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 
 static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 {
-	static const uint32_t rconsts[] = {
+	static const uint32_t rconsts[] ALIGN4 = {
 		0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6
 	};
 	int i, j;
@@ -567,7 +567,7 @@ typedef uint64_t sha_K_int;
 typedef uint32_t sha_K_int;
 # define K(v) (uint32_t)(v >> 32)
 #endif
-static const sha_K_int sha_K[] = {
+static const sha_K_int sha_K[] ALIGN8 = {
 	K(0x428a2f98d728ae22ULL), K(0x7137449123ef65cdULL),
 	K(0xb5c0fbcfec4d3b2fULL), K(0xe9b5dba58189dbbcULL),
 	K(0x3956c25bf348b538ULL), K(0x59f111f1b605d019ULL),
@@ -760,7 +760,7 @@ void FAST_FUNC sha1_begin(sha1_ctx_t *ctx)
 	ctx->process_block = sha1_process_block64;
 }
 
-static const uint32_t init256[] = {
+static const uint32_t init256[] ALIGN4 = {
 	0,
 	0,
 	0x6a09e667,
@@ -773,7 +773,7 @@ static const uint32_t init256[] = {
 	0x5be0cd19,
 };
 #if NEED_SHA512
-static const uint32_t init512_lo[] = {
+static const uint32_t init512_lo[] ALIGN4 = {
 	0,
 	0,
 	0xf3bcc908,
@@ -1009,7 +1009,7 @@ static void sha3_process_block72(uint64_t *state)
 
 #if OPTIMIZE_SHA3_FOR_32
 	/*
-	static const uint32_t IOTA_CONST_0[NROUNDS] = {
+	static const uint32_t IOTA_CONST_0[NROUNDS] ALIGN4 = {
 		0x00000001UL,
 		0x00000000UL,
 		0x00000000UL,
@@ -1038,7 +1038,7 @@ static void sha3_process_block72(uint64_t *state)
 	** bits are in lsb: 0101 0000 1111 0100 1111 0001
 	*/
 	uint32_t IOTA_CONST_0bits = (uint32_t)(0x0050f4f1);
-	static const uint32_t IOTA_CONST_1[NROUNDS] = {
+	static const uint32_t IOTA_CONST_1[NROUNDS] ALIGN4 = {
 		0x00000000UL,
 		0x00000089UL,
 		0x8000008bUL,
@@ -1174,7 +1174,7 @@ static void sha3_process_block72(uint64_t *state)
 	combine_halves(state);
 #else
 	/* Native 64-bit algorithm */
-	static const uint16_t IOTA_CONST[NROUNDS] = {
+	static const uint16_t IOTA_CONST[NROUNDS] ALIGN2 = {
 		/* Elements should be 64-bit, but top half is always zero
 		 * or 0x80000000. We encode 63rd bits in a separate word below.
 		 * Same is true for 31th bits, which lets us use 16-bit table
@@ -1210,15 +1210,15 @@ static void sha3_process_block72(uint64_t *state)
 	/* bit for CONST[0] is in msb: 0001 0110 0011 1000 0001 1011 */
 	const uint32_t IOTA_CONST_bit31 = (uint32_t)(0x16381b00);
 
-	static const uint8_t ROT_CONST[24] = {
+	static const uint8_t ROT_CONST[24] ALIGN1 = {
 		1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 2, 14,
 		27, 41, 56, 8, 25, 43, 62, 18, 39, 61, 20, 44,
 	};
-	static const uint8_t PI_LANE[24] = {
+	static const uint8_t PI_LANE[24] ALIGN1 = {
 		10, 7, 11, 17, 18, 3, 5, 16, 8, 21, 24, 4,
 		15, 23, 19, 13, 12, 2, 20, 14, 22, 9, 6, 1,
 	};
-	/*static const uint8_t MOD5[10] = { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, };*/
+	/*static const uint8_t MOD5[10] ALIGN1 = { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, };*/
 
 	unsigned x;
 	unsigned round;

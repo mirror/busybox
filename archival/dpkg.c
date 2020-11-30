@@ -1304,7 +1304,7 @@ postrm abort-install <old_version>
 postrm abort-upgrade <old_version>
 postrm disappear <overwriter> <version>
 */
-static const char *const all_control_files[] = {
+static const char *const all_control_files[] ALIGN_PTR = {
 	"preinst", "postinst", "prerm", "postrm",
 	"list", "md5sums", "shlibs", "conffiles",
 	"config", "templates"
