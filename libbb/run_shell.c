@@ -59,7 +59,7 @@ void FAST_FUNC exec_shell(const char *shell, int loginshell, const char **additi
 	while (args && *args)
 		args++;
 
-	args = xmalloc(sizeof(char*) * (2 + (args - additional_args)));
+	args = xzalloc(sizeof(args[0]) * (2 + (args - additional_args)));
 
 	if (!shell || !shell[0])
 		shell = DEFAULT_SHELL;
@@ -67,12 +67,11 @@ void FAST_FUNC exec_shell(const char *shell, int loginshell, const char **additi
 	args[0] = bb_get_last_path_component_nostrip(shell);
 	if (loginshell)
 		args[0] = xasprintf("-%s", args[0]);
-	args[1] = NULL;
+	/*args[1] = NULL; - already is */
 	if (additional_args) {
-		int cnt = 1;
-		for (;;)
-			if ((args[cnt++] = *additional_args++) == NULL)
-				break;
+		int cnt = 0;
+		while (*additional_args)
+			args[++cnt] = *additional_args++;
 	}
 
 #if ENABLE_SELINUX
@@ -91,5 +90,8 @@ void FAST_FUNC exec_prog_or_SHELL(char **argv)
 	if (argv[0]) {
 		BB_EXECVP_or_die(argv);
 	}
+	/* Why login=1? Both users (nsenter and unshare) do indeed exec
+	 * a _login_ shell (with dash in argv[0])!
+	 */
 	exec_shell(getenv("SHELL"), /*login:*/ 1, NULL);
 }
