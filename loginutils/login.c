@@ -508,13 +508,11 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		pause_after_failed_login();
 		/* TODO: doesn't sound like correct English phrase to me */
 		puts("Login incorrect");
+		syslog(LOG_WARNING, "invalid password for '%s'%s",
+					username, fromhost);
 		if (++count == 3) {
-			syslog(LOG_WARNING, "invalid password for '%s'%s",
-						username, fromhost);
-
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(fromhost);
-
 			return EXIT_FAILURE;
 		}
 		username[0] = '\0';
