@@ -2066,6 +2066,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// Might this be an NFS filesystem?
 	if ((!mp->mnt_type || is_prefixed_with(mp->mnt_type, "nfs"))
 	 && strchr(mp->mnt_fsname, ':') != NULL
+	 && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))
 	) {
 		if (!mp->mnt_type)
 			mp->mnt_type = (char*)"nfs";
