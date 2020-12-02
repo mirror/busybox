@@ -1763,6 +1763,29 @@ static void fsrealloc(int size)
 	nfields = size;
 }
 
+static int regexec1_nonempty(const regex_t *preg, const char *s, regmatch_t pmatch[])
+{
+	int r = regexec(preg, s, 1, pmatch, 0);
+	if (r == 0 && pmatch[0].rm_eo == 0) {
+		/* For example, happens when FS can match
+		 * an empty string (awk -F ' *'). Logically,
+		 * this should split into one-char fields.
+		 * However, gawk 5.0.1 searches for first
+		 * _non-empty_ separator string match:
+		 */
+		size_t ofs = 0;
+		do {
+			ofs++;
+			if (!s[ofs])
+				return REG_NOMATCH;
+			regexec(preg, s + ofs, 1, pmatch, 0);
+		} while (pmatch[0].rm_eo == 0);
+		pmatch[0].rm_so += ofs;
+		pmatch[0].rm_eo += ofs;
+	}
+	return r;
+}
+
 static int awk_split(const char *s, node *spl, char **slist)
 {
 	int n;
@@ -1788,17 +1811,11 @@ static int awk_split(const char *s, node *spl, char **slist)
 			regmatch_t pmatch[2]; // TODO: why [2]? [1] is enough...
 
 			l = strcspn(s, c+2); /* len till next NUL or \n */
-			if (regexec(icase ? spl->r.ire : spl->l.re, s, 1, pmatch, 0) == 0
+			if (regexec1_nonempty(icase ? spl->r.ire : spl->l.re, s, pmatch) == 0
 			 && pmatch[0].rm_so <= l
 			) {
+				/* if (pmatch[0].rm_eo == 0) ... - impossible */
 				l = pmatch[0].rm_so;
-				if (pmatch[0].rm_eo == 0) {
-					/* For example, happens when FS can match
-					 * an empthy string (awk -F ' *')
-					 */
-					l++;
-					pmatch[0].rm_eo++;
-				}
 				n++; /* we saw yet another delimiter */
 			} else {
 				pmatch[0].rm_eo = l;
