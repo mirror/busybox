@@ -204,7 +204,7 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 	 */
 
 	/* Never returns */
-	run_shell(opt_shell, flags & SU_OPT_l, (const char**)argv);
+	exec_shell(opt_shell, flags & SU_OPT_l, (const char**)argv);
 
 	/* return EXIT_FAILURE; - not reached */
 }

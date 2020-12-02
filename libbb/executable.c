@@ -91,12 +91,3 @@ void FAST_FUNC BB_EXECVP_or_die(char **argv)
 	xfunc_error_retval = (errno == ENOENT) ? 127 : 126;
 	bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 }
-
-/* Typical idiom for applets which exec *optional* PROG [ARGS] */
-void FAST_FUNC exec_prog_or_SHELL(char **argv)
-{
-	if (argv[0]) {
-		BB_EXECVP_or_die(argv);
-	}
-	run_shell(getenv("SHELL"), /*login:*/ 1, NULL);
-}

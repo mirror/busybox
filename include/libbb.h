@@ -1140,7 +1140,6 @@ int BB_EXECVP(const char *file, char *const argv[]) FAST_FUNC;
 #define BB_EXECLP(prog,cmd,...) execlp(prog,cmd,__VA_ARGS__)
 #endif
 void BB_EXECVP_or_die(char **argv) NORETURN FAST_FUNC;
-void exec_prog_or_SHELL(char **argv) NORETURN FAST_FUNC;
 
 /* xvfork() can't be a _function_, return after vfork in child mangles stack
  * in the parent. It must be a macro. */
@@ -1607,7 +1606,8 @@ void bb_do_delay(unsigned seconds) FAST_FUNC;
 void msleep(unsigned ms) FAST_FUNC;
 void sleep1(void) FAST_FUNC;
 void change_identity(const struct passwd *pw) FAST_FUNC;
-void run_shell(const char *shell, int loginshell, const char **args) NORETURN FAST_FUNC;
+void exec_shell(const char *shell, int loginshell, const char **args) NORETURN FAST_FUNC;
+void exec_prog_or_SHELL(char **argv) NORETURN FAST_FUNC;
 
 /* Returns $SHELL, getpwuid(getuid())->pw_shell, or DEFAULT_SHELL.
  * Note that getpwuid result might need xstrdup'ing

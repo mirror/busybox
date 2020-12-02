@@ -48,10 +48,10 @@ void FAST_FUNC set_current_security_context(security_context_t sid)
 
 #endif
 
-/* Run SHELL, or DEFAULT_SHELL if SHELL is "" or NULL.
+/* Exec SHELL, or DEFAULT_SHELL if SHELL is "" or NULL.
  * If ADDITIONAL_ARGS is not NULL, pass them to the shell.
  */
-void FAST_FUNC run_shell(const char *shell, int loginshell, const char **additional_args)
+void FAST_FUNC exec_shell(const char *shell, int loginshell, const char **additional_args)
 {
 	const char **args;
 
@@ -83,4 +83,13 @@ void FAST_FUNC run_shell(const char *shell, int loginshell, const char **additio
 #endif
 	execv(shell, (char **) args);
 	bb_perror_msg_and_die("can't execute '%s'", shell);
+}
+
+/* Typical idiom for applets which exec *optional* PROG [ARGS] */
+void FAST_FUNC exec_prog_or_SHELL(char **argv)
+{
+	if (argv[0]) {
+		BB_EXECVP_or_die(argv);
+	}
+	exec_shell(getenv("SHELL"), /*login:*/ 1, NULL);
 }
