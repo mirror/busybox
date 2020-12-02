@@ -84,14 +84,19 @@ void FAST_FUNC exec_shell(const char *shell, int loginshell, const char **additi
 	bb_perror_msg_and_die("can't execute '%s'", shell);
 }
 
+void FAST_FUNC exec_login_shell(const char *shell)
+{
+	exec_shell(shell, 1, NULL);
+}
+
 /* Typical idiom for applets which exec *optional* PROG [ARGS] */
 void FAST_FUNC exec_prog_or_SHELL(char **argv)
 {
 	if (argv[0]) {
 		BB_EXECVP_or_die(argv);
 	}
-	/* Why login=1? Both users (nsenter and unshare) do indeed exec
+	/* Both users (nsenter and unshare) do indeed exec
 	 * a _login_ shell (with dash in argv[0])!
 	 */
-	exec_shell(getenv("SHELL"), /*login:*/ 1, NULL);
+	exec_login_shell(getenv("SHELL"));
 }

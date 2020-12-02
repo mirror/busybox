@@ -1607,6 +1607,7 @@ void msleep(unsigned ms) FAST_FUNC;
 void sleep1(void) FAST_FUNC;
 void change_identity(const struct passwd *pw) FAST_FUNC;
 void exec_shell(const char *shell, int loginshell, const char **args) NORETURN FAST_FUNC;
+void exec_login_shell(const char *shell) NORETURN FAST_FUNC;
 void exec_prog_or_SHELL(char **argv) NORETURN FAST_FUNC;
 
 /* Returns $SHELL, getpwuid(getuid())->pw_shell, or DEFAULT_SHELL.

@@ -602,7 +602,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	signal(SIGINT, SIG_DFL);
 
 	/* Exec login shell with no additional parameters */
-	exec_shell(pw->pw_shell, 1, NULL);
+	exec_login_shell(pw->pw_shell);
 
 	/* return EXIT_FAILURE; - not reached */
 }
