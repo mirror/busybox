@@ -398,12 +398,19 @@ testing 'awk do not allow "str"++' \
 	'' \
 	'anything'
 
-#gawk compat: FS regex matches only non-empty separators:
-#with -*, the splitting is NOT f o o b a r, but foo bar:
+# gawk compat: FS regex matches only non-empty separators:
+# with -*, the splitting is NOT f o o b a r, but foo bar:
 testing 'awk FS regex which can match empty string' \
 	"awk -F '-*' '{print \$1 \"-\" \$2 \"=\" \$3 \"*\" \$4}'" \
 	"foo-bar=*\n" \
 	'' \
 	'foo--bar'
+
+# last+1 field should be empty (had a bug where it wasn't)
+testing 'awk $NF is empty' \
+	"awk -F '=+' '{print \$NF}'" \
+	"\n" \
+	'' \
+	'a=====123='
 
 exit $FAILCOUNT
