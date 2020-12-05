@@ -2064,14 +2064,18 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	}
 
 	// Might this be an NFS filesystem?
-	if ((!mp->mnt_type || is_prefixed_with(mp->mnt_type, "nfs"))
-	 && strchr(mp->mnt_fsname, ':') != NULL
-	 && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))
+	if (!(vfsflags & (MS_BIND | MS_MOVE))
+	 && (!mp->mnt_type || is_prefixed_with(mp->mnt_type, "nfs"))
 	) {
-		if (!mp->mnt_type)
-			mp->mnt_type = (char*)"nfs";
-		rc = nfsmount(mp, vfsflags, filteropts);
-		goto report_error;
+		char *colon = strchr(mp->mnt_fsname, ':');
+		if (colon /* looks like "hostname:..." */
+		 && strchrnul(mp->mnt_fsname, '/') > colon /* "hostname:" has no slashes */
+		) {
+			if (!mp->mnt_type)
+				mp->mnt_type = (char*)"nfs";
+			rc = nfsmount(mp, vfsflags, filteropts);
+			goto report_error;
+		}
 	}
 
 	// Look at the file.  (Not found isn't a failure for remount, or for
