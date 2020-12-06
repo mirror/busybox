@@ -188,8 +188,8 @@
 #ifndef MS_DIRSYNC
 # define MS_DIRSYNC     (1 << 7) // Directory modifications are synchronous
 #endif
-#ifndef MS_UNION
-# define MS_UNION       (1 << 8)
+#ifndef MS_NOSYMFOLLOW
+# define MS_NOSYMFOLLOW (1 << 8)
 #endif
 #ifndef MS_BIND
 # define MS_BIND        (1 << 12)
@@ -368,13 +368,13 @@ static const int32_t mount_options[] ALIGN4 = {
 		/* "nostrictatime"*/ ~MS_STRICTATIME,
 		/* "lazytime"    */ MS_LAZYTIME,
 		/* "nolazytime"  */ ~MS_LAZYTIME,
+		/* "nosymfollow" */ MS_NOSYMFOLLOW,
 		/* "mand"        */ MS_MANDLOCK,
 		/* "nomand"      */ ~MS_MANDLOCK,
 		/* "loud"      	 */ ~MS_SILENT,
 
 		// action flags
 		/* "rbind"       */ MS_BIND|MS_RECURSIVE,
-		/* "union"       */ MS_UNION,
 		/* "bind"        */ MS_BIND,
 		/* "move"        */ MS_MOVE,
 		/* "shared"      */ MS_SHARED,
@@ -430,13 +430,13 @@ static const char mount_option_str[] ALIGN1 =
 		"nostrictatime""\0"
 		"lazytime"     "\0"
 		"nolazytime"   "\0"
+		"nosymfollow"  "\0"
 		"mand"         "\0"
 		"nomand"       "\0"
 		"loud"         "\0"
 
 		// action flags
 		"rbind\0"
-		"union\0"
 		"bind\0"
 		"move\0"
 		"make-shared\0"
