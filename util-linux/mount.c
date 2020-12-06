@@ -216,11 +216,15 @@
 #ifndef MS_SHARED
 # define MS_SHARED      (1 << 20)
 #endif
+
 #ifndef MS_RELATIME
 # define MS_RELATIME    (1 << 21)
 #endif
 #ifndef MS_STRICTATIME
 # define MS_STRICTATIME (1 << 24)
+#endif
+#ifndef MS_LAZYTIME
+# define MS_LAZYTIME    (1 << 25)
 #endif
 
 /* Any ~MS_FOO value has this bit set: */
@@ -358,15 +362,18 @@ static const int32_t mount_options[] ALIGN4 = {
 		/* "noatime"     */ MS_NOATIME,
 		/* "diratime"    */ ~MS_NODIRATIME,
 		/* "nodiratime"  */ MS_NODIRATIME,
-		/* "mand"        */ MS_MANDLOCK,
-		/* "nomand"      */ ~MS_MANDLOCK,
 		/* "relatime"    */ MS_RELATIME,
 		/* "norelatime"  */ ~MS_RELATIME,
 		/* "strictatime" */ MS_STRICTATIME,
-		/* "loud"        */ ~MS_SILENT,
-		/* "rbind"       */ MS_BIND|MS_RECURSIVE,
+		/* "nostrictatime"*/ ~MS_STRICTATIME,
+		/* "lazytime"    */ MS_LAZYTIME,
+		/* "nolazytime"  */ ~MS_LAZYTIME,
+		/* "mand"        */ MS_MANDLOCK,
+		/* "nomand"      */ ~MS_MANDLOCK,
+		/* "loud"      	 */ ~MS_SILENT,
 
 		// action flags
+		/* "rbind"       */ MS_BIND|MS_RECURSIVE,
 		/* "union"       */ MS_UNION,
 		/* "bind"        */ MS_BIND,
 		/* "move"        */ MS_MOVE,
@@ -404,28 +411,31 @@ static const char mount_option_str[] ALIGN1 =
 	)
 	IF_FEATURE_MOUNT_FLAGS(
 		// vfs flags
-		"nosuid\0"
-		"suid\0"
-		"dev\0"
-		"nodev\0"
-		"exec\0"
-		"noexec\0"
-		"sync\0"
-		"dirsync\0"
-		"async\0"
-		"atime\0"
-		"noatime\0"
-		"diratime\0"
-		"nodiratime\0"
-		"mand\0"
-		"nomand\0"
-		"relatime\0"
-		"norelatime\0"
-		"strictatime\0"
-		"loud\0"
-		"rbind\0"
+		"nosuid"       "\0"
+		"suid"         "\0"
+		"dev"          "\0"
+		"nodev"        "\0"
+		"exec"         "\0"
+		"noexec"       "\0"
+		"sync"         "\0"
+		"dirsync"      "\0"
+		"async"        "\0"
+		"atime"        "\0"
+		"noatime"      "\0"
+		"diratime"     "\0"
+		"nodiratime"   "\0"
+		"relatime"     "\0"
+		"norelatime"   "\0"
+		"strictatime"  "\0"
+		"nostrictatime""\0"
+		"lazytime"     "\0"
+		"nolazytime"   "\0"
+		"mand"         "\0"
+		"nomand"       "\0"
+		"loud"         "\0"
 
 		// action flags
+		"rbind\0"
 		"union\0"
 		"bind\0"
 		"move\0"
