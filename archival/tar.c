@@ -775,7 +775,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 //usage:	"vokO] "
 //usage:	"[-f TARFILE] [-C DIR] "
-//usage:	IF_FEATURE_TAR_FROM("[-T FILE] [-X FILE] "IF_FEATURE_TAR_LONG_OPTIONS("[--exclude PATTERN]... "))
+//usage:	IF_FEATURE_TAR_FROM("[-T FILE] [-X FILE] "IF_FEATURE_TAR_LONG_OPTIONS("[OPTION]... "))
 //usage:	"[FILE]..."
 //usage:#define tar_full_usage "\n\n"
 //usage:	IF_FEATURE_TAR_CREATE("Create, extract, ")
@@ -809,6 +809,11 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	IF_FEATURE_SEAMLESS_BZ2(
 //usage:     "\n	-j	(De)compress using bzip2"
 //usage:	)
+//usage:	IF_FEATURE_SEAMLESS_LZMA(
+//usage:	IF_FEATURE_TAR_LONG_OPTIONS(
+//usage:     "\n	--lzma	(De)compress using lzma"
+//usage:	)
+//usage:	)
 //usage:     "\n	-a	(De)compress based on extension"
 //usage:	IF_FEATURE_TAR_CREATE(
 //usage:     "\n	-h	Follow symlinks"
@@ -820,20 +825,20 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:     "\n	--exclude PATTERN	Glob pattern to exclude"
 //usage:	)
 //usage:	)
+//usage:	IF_FEATURE_TAR_LONG_OPTIONS(
+//usage:     "\n	--overwrite		Replace existing files"
+//usage:     "\n	--strip-components NUM	NUM of leading components to strip"
+//usage:     "\n	--no-recursion		Don't descend in directories"
+//usage:     "\n	--numeric-owner		Use numeric user:group"
+//usage:     "\n	--no-same-permissions	Don't restore access permissions"
+//usage:	IF_FEATURE_TAR_TO_COMMAND(
+//usage:     "\n	--to-command COMMAND	Pipe files to COMMAND"
+//usage:	)
+//usage:	)
 //usage:
 //usage:#define tar_example_usage
 //usage:       "$ zcat /tmp/tarball.tar.gz | tar -xf -\n"
 //usage:       "$ tar -cf /tmp/tarball.tar /usr/local\n"
-
-// Supported but aren't in --help:
-//	lzma
-//	no-recursion
-//	numeric-owner
-//	no-same-permissions
-//	overwrite
-//IF_FEATURE_TAR_TO_COMMAND(
-//	to-command
-//)
 
 enum {
 	OPTBIT_KEEP_OLD = 8,
