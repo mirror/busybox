@@ -287,6 +287,8 @@ enum {
 	WGET_OPT_POST_DATA  = (1 << 12) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
 	WGET_OPT_SPIDER     = (1 << 13) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
 	WGET_OPT_NO_CHECK_CERT = (1 << 14) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	/* hijack this bit for other than opts purposes: */
+	WGET_NO_FTRUNCATE   = (1 << 31)
 };
 
 enum {
@@ -1052,8 +1054,13 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 	 */
 	{
 		off_t pos = lseek(G.output_fd, 0, SEEK_CUR);
-		if (pos != (off_t)-1)
-			ftruncate(G.output_fd, pos);
+		if (pos != (off_t)-1) {
+			/* do not truncate if -O- is in use, a user complained about
+			 * "wget -qO- 'http://example.com/empty' >>FILE" truncating FILE.
+			 */
+			if (!(option_mask32 & WGET_NO_FTRUNCATE))
+				ftruncate(G.output_fd, pos);
+		}
 	}
 
 	if (!(option_mask32 & WGET_OPT_QUIET)) {
@@ -1566,7 +1573,7 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 	if (G.fname_out) { /* -O FILE ? */
 		if (LONE_DASH(G.fname_out)) { /* -O - ? */
 			G.output_fd = 1;
-			option_mask32 &= ~WGET_OPT_CONTINUE;
+			option_mask32 = (option_mask32 & (~WGET_OPT_CONTINUE)) | WGET_NO_FTRUNCATE;
 		}
 		/* compat with wget: -O FILE can overwrite */
 		G.o_flags = O_WRONLY | O_CREAT | O_TRUNC;
