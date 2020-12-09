@@ -2078,8 +2078,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	 && (!mp->mnt_type || is_prefixed_with(mp->mnt_type, "nfs"))
 	) {
 		char *colon = strchr(mp->mnt_fsname, ':');
-		if (colon /* looks like "hostname:..." */
-		 && strchrnul(mp->mnt_fsname, '/') > colon /* "hostname:" has no slashes */
+		if (colon // looks like "hostname:..."
+		 && strchrnul(mp->mnt_fsname, '/') > colon // "hostname:" has no slashes
 		) {
 			if (!mp->mnt_type)
 				mp->mnt_type = (char*)"nfs";
@@ -2125,7 +2125,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 					bb_simple_error_msg(bb_msg_perm_denied_are_you_root);
 				else
 					bb_simple_perror_msg("can't setup loop device");
-				return errno;
+				return loopfd; // was "return errno", but it can be 0 here
 			}
 
 		// Autodetect bind mounts
