@@ -871,6 +871,9 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 			strcpy(found, name_found);
 
 			if (S_ISDIR(st.st_mode)) {
+				/* skip directories if searching PATH */
+				if (type == FIND_EXE_ONLY && !dirbuf)
+					goto cont;
 				/* name is a directory, add slash */
 				found[len] = '/';
 				found[len + 1] = '\0';
