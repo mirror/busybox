@@ -1357,15 +1357,15 @@ static FILE *open_new_state_file(void)
 					IFSTATE_FILE_PATH".new");
 		}
 		/* Someone else created the .new file */
-		if (cnt > 30 * 1000) {
+		if (cnt > 30) {
 			/* Waited for 30*30/2 = 450 milliseconds, still EEXIST.
 			 * Assuming a stale file, rewriting it.
 			 */
 			flags = (O_WRONLY | O_CREAT | O_TRUNC);
 			continue;
 		}
-		usleep(cnt);
-		cnt += 1000;
+		msleep(cnt);
+		cnt++;
 	}
 
 	return xfdopen_for_write(fd);

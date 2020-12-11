@@ -27,7 +27,6 @@ int FAST_FUNC usleep(unsigned usec)
 	 * If a signal has non-default handler, nanosleep returns early.
 	 * Our version of usleep doesn't return early
 	 * if interrupted by such signals:
-	 *
 	 */
 	while (nanosleep(&ts, &ts) != 0)
 		continue;
