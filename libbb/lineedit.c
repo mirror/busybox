@@ -753,7 +753,7 @@ static int path_parse(char ***p)
 		return 1;
 
 	tmp = (char*)pth;
-	npth = 1; /* path component count */
+	npth = 2; /* path component count */
 	while (1) {
 		tmp = strchr(tmp, ':');
 		if (!tmp)
@@ -776,6 +776,8 @@ static int path_parse(char ***p)
 			break; /* :<empty> */
 		res[npth++] = tmp;
 	}
+	/* special case: match subdirectories of the current directory */
+	res[npth++] = NULL;
 	return npth;
 }
 
@@ -842,6 +844,11 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 		struct dirent *next;
 		struct stat st;
 		char *found;
+
+		if (paths[i] == NULL) {
+			type = FIND_DIR_ONLY;
+			paths[i] = (char *)".";
+		}
 
 		dir = opendir(paths[i]);
 		if (!dir)
