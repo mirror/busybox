@@ -475,7 +475,7 @@ send_probe(int seq, int ttl)
 #if ENABLE_TRACEROUTE6
 	if (dest_lsa->u.sa.sa_family == AF_INET6) {
 		struct outdata6_t *pkt = (void *) outdata;
-		pkt->ident6 = htonl(ident);
+		pkt->ident6 = ident;
 		pkt->seq6   = htonl(seq);
 		/*gettimeofday(&pkt->tv, &tz);*/
 		icp = outicmp6;
@@ -631,7 +631,7 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 
 	if ((option_mask32 & OPT_USE_ICMP)
 	 && type == ICMP_ECHOREPLY
-	 && icp->icmp_id == htons(ident)
+	 && icp->icmp_id == ident
 	 && icp->icmp_seq == htons(seq)
 	) {
 		/* In UDP mode, when we reach the machine, we (usually)
@@ -655,7 +655,7 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 			hicmp = (struct icmp *)((unsigned char *)hip + hlen);
 			if (hlen + SIZEOF_ICMP_HDR <= read_len
 			 && hip->ip_p == IPPROTO_ICMP
-			 && hicmp->icmp_id == htons(ident)
+			 && hicmp->icmp_id == ident
 			 && hicmp->icmp_seq == htons(seq)
 			) {
 				return (type == ICMP_TIMXCEED ? -1 : code + 1);
@@ -667,7 +667,7 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 // Off: since we do not form the entire IP packet,
 // but defer it to kernel, we can't set source port,
 // and thus can't check it here in the reply
-			/* && up->source == htons(ident) */
+			/* && up->source == ident */
 			 && up->dest == htons(port + seq)
 			) {
 				return (type == ICMP_TIMXCEED ? -1 : code + 1);
@@ -679,10 +679,10 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 		int i;
 		uint32_t *lp = (uint32_t *)&icp->icmp_ip;
 
-		printf("\n%d bytes from %s to "
-		       "%s: icmp type %d (%s) code %d\n",
-			read_len, inet_ntoa(from->sin_addr),
-//BUG: inet_ntoa() returns static buf! x2 is NONO!
+		printf("\n%d bytes from %s",
+			read_len, inet_ntoa(from->sin_addr));
+		/* Two separate printf() because inet_ntoa() returns static string */
+		printf(" to %s: icmp type %d (%s) code %d\n",
 			inet_ntoa(ip->ip_dst),
 			type, pr_type(type), icp->icmp_code);
 		for (i = 4; i < read_len; i += sizeof(*lp))
@@ -693,20 +693,18 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 }
 
 #if ENABLE_TRACEROUTE6
+
 # if !ENABLE_FEATURE_TRACEROUTE_VERBOSE
-#define packet_ok(read_len, from_lsa, to, seq) \
-	packet_ok(read_len, from_lsa, seq)
+#define packet6_ok(read_len, from_lsa, to, seq) \
+	packet6_ok(read_len, from_lsa, seq)
 # endif
 static int
-packet_ok(int read_len, len_and_sockaddr *from_lsa,
+packet6_ok(int read_len, const struct sockaddr_in6 *from,
 			struct sockaddr *to,
 			int seq)
 {
 	const struct icmp6_hdr *icp;
 	unsigned char type, code;
-
-	if (from_lsa->u.sa.sa_family == AF_INET)
-		return packet4_ok(read_len, &from_lsa->u.sin, seq);
 
 	/* NB: reads from (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6) socket
 	 * return only ICMP packet (IOW: they strip IPv6 header).
@@ -719,7 +717,7 @@ packet_ok(int read_len, len_and_sockaddr *from_lsa,
 
 	if ((option_mask32 & OPT_USE_ICMP)
 	 && type == ICMP6_ECHO_REPLY
-	 && icp->icmp6_id == htons(ident)
+	 && icp->icmp6_id == ident
 	 && icp->icmp6_seq == htons(seq)
 	) {
 		/* In UDP mode, when we reach the machine, we (usually)
@@ -749,7 +747,7 @@ packet_ok(int read_len, len_and_sockaddr *from_lsa,
 
 			pkt = (struct outdata6_t *) (up + 1);
 
-			if (ntohl(pkt->ident6) == ident
+			if (pkt->ident6 == ident
 			 && ntohl(pkt->seq6) == seq
 			) {
 				return (type == ICMP6_TIME_EXCEEDED ? -1 : (code<<8)+1);
@@ -763,17 +761,17 @@ packet_ok(int read_len, len_and_sockaddr *from_lsa,
 #   define MAXHOSTNAMELEN 80
 #  endif
 		unsigned char *p;
-		char pa1[MAXHOSTNAMELEN];
-		char pa2[MAXHOSTNAMELEN];
+		char pa[MAXHOSTNAMELEN];
 		int i;
 
 		p = (unsigned char *) (icp + 1);
 
-		printf("\n%d bytes from %s to "
-		       "%s: icmp type %d (%s) code %d\n",
+		printf("\n%d bytes from %s",
 			read_len,
-			inet_ntop(AF_INET6, &from_lsa->u.sin6.sin6_addr, pa1, sizeof(pa1)),
-			inet_ntop(AF_INET6, &((struct sockaddr_in6*)to)->sin6_addr, pa2, sizeof(pa2)),
+			inet_ntop(AF_INET6, &from->sin6_addr, pa, sizeof(pa)));
+		/* Two printf() instead of one - reuse string constants */
+		printf(" to %s: icmp type %d (%s) code %d\n",
+			inet_ntop(AF_INET6, &((struct sockaddr_in6*)to)->sin6_addr, pa, sizeof(pa)),
 			type, pr_type(type), icp->icmp6_code);
 
 		read_len -= sizeof(struct icmp6_hdr);
@@ -792,7 +790,22 @@ packet_ok(int read_len, len_and_sockaddr *from_lsa,
 
 	return 0;
 }
+# if !ENABLE_FEATURE_TRACEROUTE_VERBOSE
+#define packet_ok(read_len, from_lsa, to, seq) \
+	packet_ok(read_len, from_lsa, seq)
+# endif
+static int
+packet_ok(int read_len, len_and_sockaddr *from_lsa,
+			struct sockaddr *to,
+			int seq)
+{
+	if (from_lsa->u.sa.sa_family == AF_INET)
+		return packet4_ok(read_len, &from_lsa->u.sin, seq);
+	return packet6_ok(read_len, &from_lsa->u.sin6, to, seq);
+}
+
 #else /* !ENABLE_TRACEROUTE6 */
+
 static ALWAYS_INLINE int
 packet_ok(int read_len,
 		len_and_sockaddr *from_lsa IF_NOT_FEATURE_TRACEROUTE_VERBOSE(UNUSED_PARAM),
@@ -801,6 +814,7 @@ packet_ok(int read_len,
 {
 	return packet4_ok(read_len, &from_lsa->u.sin, seq);
 }
+
 #endif
 
 /*
@@ -927,14 +941,6 @@ common_traceroute_main(int op, char **argv)
 		port = xatou16(port_str);
 	if (op & OPT_NPROBES)
 		nprobes = xatou_range(nprobes_str, 1, INT_MAX);
-	if (op & OPT_SOURCE) {
-		/*
-		 * set the ip source address of the outbound
-		 * probe (e.g., on a multi-homed host).
-		 */
-		if (getuid() != 0)
-			bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
-	}
 	if (op & OPT_WAITTIME)
 		waittime = xatou_range(waittime_str, 1, 24 * 60 * 60);
 	if (op & OPT_PAUSE_MS)
@@ -993,23 +999,26 @@ common_traceroute_main(int op, char **argv)
 	if (op & OPT_BYPASS_ROUTE)
 		setsockopt_SOL_SOCKET_1(rcvsock, SO_DONTROUTE);
 
-#if ENABLE_TRACEROUTE6
-	if (af == AF_INET6) {
-		if (setsockopt_int(rcvsock, SOL_RAW, IPV6_CHECKSUM, 2) != 0)
-			bb_perror_msg_and_die("setsockopt(%s)", "IPV6_CHECKSUM");
-		if (op & OPT_USE_ICMP)
-			xmove_fd(xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6), sndsock);
-		else
-			xmove_fd(xsocket(AF_INET6, SOCK_DGRAM, 0), sndsock);
-	} else
-#endif
 	{
-		if (op & OPT_USE_ICMP)
-			xmove_fd(xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP), sndsock);
-		else
-			xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), sndsock);
+		int snd;
+#if ENABLE_TRACEROUTE6
+		if (af == AF_INET6) {
+			if (setsockopt_int(rcvsock, SOL_RAW, IPV6_CHECKSUM, 2) != 0)
+				bb_perror_msg_and_die("setsockopt(%s)", "IPV6_CHECKSUM");
+			if (op & OPT_USE_ICMP)
+				snd = xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
+			else
+				snd = xsocket(AF_INET6, SOCK_DGRAM, 0);
+		} else
+#endif
+		{
+			if (op & OPT_USE_ICMP)
+				snd = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+			else
+				snd = xsocket(AF_INET, SOCK_DGRAM, 0);
+		}
+		xmove_fd(snd, sndsock);
 	}
-//TODO xmove_fd to here!
 
 #ifdef SO_SNDBUF
 	if (setsockopt_SOL_SOCKET_int(sndsock, SO_SNDBUF, packlen) != 0) {
@@ -1036,13 +1045,12 @@ common_traceroute_main(int op, char **argv)
 
 	ident = getpid();
 
+	outdata = (void*)(outudp + 1);
 	if (!ENABLE_TRACEROUTE6 || af == AF_INET) {
-		outdata = (void*)(outudp + 1);
 		if (op & OPT_USE_ICMP) {
-			ident |= 0x8000;
 			outicmp->icmp_type = ICMP_ECHO;
 			/*outicmp->icmp_code = 0; - set by xzalloc */
-			outicmp->icmp_id = htons(ident);
+			outicmp->icmp_id = ident;
 			outdata = (void*)((char *)outicmp + SIZEOF_ICMP_HDR);
 		}
 	}
@@ -1050,10 +1058,9 @@ common_traceroute_main(int op, char **argv)
 	if (af == AF_INET6) {
 		outdata = (void*)(outudp6 + 1);
 		if (op & OPT_USE_ICMP) {
-			ident |= 0x8000;
 			outicmp6->icmp_type = ICMP6_ECHO_REQUEST;
 			/*outicmp->icmp_code = 0; - set by xzalloc */
-			outicmp6->icmp_id = htons(ident);
+			outicmp6->icmp_id = ident;
 			outdata = (void*)((char *)outicmp6 + SIZEOF_ICMP_HDR);
 		}
 	}
@@ -1069,6 +1076,8 @@ common_traceroute_main(int op, char **argv)
 #else
 		len_and_sockaddr *source_lsa = xdotted2sockaddr(source, 0);
 #endif
+		if (getuid() != 0)
+			bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
 		/* Ping4 does this (why?) */
 		if (af == AF_INET)
 			if (setsockopt(sndsock, IPPROTO_IP, IP_MULTICAST_IF,
