@@ -394,8 +394,12 @@ struct globals {
 	int packlen;                    /* total length of packet */
 	int pmtu;                       /* Path MTU Discovery (RFC1191) */
 	uint32_t ident;
-	uint16_t port; // 33434;        /* start udp dest port # for probe packets */
-	int waittime; // 5;             /* time to wait for response (in seconds) */
+	uint16_t port;                  /* start udp dest port # for probe packets */
+	int waittime;                   /* time to wait for response (in seconds) */
+	int first_ttl;
+	int nprobes;
+	unsigned pausemsecs;
+	int max_ttl;
 	unsigned char recv_pkt[512];    /* last inbound (icmp) packet */
 };
 
@@ -412,8 +416,6 @@ struct globals {
 #define gwlist    (G.gwlist   )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
-	port = 33434; \
-	waittime = 5; \
 } while (0)
 
 #define outudp   ((struct udphdr *)(outip + 1))
@@ -862,22 +864,16 @@ print_delta_ms(unsigned t1p, unsigned t2p)
 	printf("  %u.%03u ms", tt / 1000, tt % 1000);
 }
 
-/*
- * Usage: [-dFIlnrvx] [-g gateway] [-i iface] [-f first_ttl]
- * [-m max_ttl] [ -p port] [-q nqueries] [-s src_addr] [-t tos]
- * [-w waittime] [-z pausemsecs] host [packetlen]"
+/* Keeping init code in a separate (not inlined!) function
+ * for stack use reduction and better register allocation in main loop.
  */
-static int
-common_traceroute_main(int op, char **argv)
+static NOINLINE void
+traceroute_init(int op, char **argv)
 {
 	int minpacket;
 #ifdef IP_TOS
 	int tos = 0;
 #endif
-	int max_ttl = 30;
-	int nprobes = 3;
-	int first_ttl = 1;
-	unsigned pausemsecs = 0;
 	char *source;
 	char *device;
 	char *tos_str;
@@ -893,14 +889,16 @@ common_traceroute_main(int op, char **argv)
 #else
 	enum { af = AF_INET };
 #endif
-	int ttl;
-	int seq;
-	struct sockaddr *lastaddr;
 
 	/* Ensure the socket fds won't be 0, 1 or 2 */
 	bb_sanitize_stdio();
 
 	INIT_G();
+	port = 33434;
+	waittime = 5;
+	G.first_ttl = 1;
+	G.nprobes = 3;
+	G.max_ttl = 30;
 
 	op |= getopt32(argv, "^"
 		OPT_STRING
@@ -919,17 +917,17 @@ common_traceroute_main(int op, char **argv)
 		tos = xatou_range(tos_str, 0, 255);
 #endif
 	if (op & OPT_MAX_TTL)
-		max_ttl = xatou_range(max_ttl_str, 1, 255);
+		G.max_ttl = xatou_range(max_ttl_str, 1, 255);
 	if (op & OPT_PORT)
 		port = xatou16(port_str);
 	if (op & OPT_NPROBES)
-		nprobes = xatou_range(nprobes_str, 1, INT_MAX);
+		G.nprobes = xatou_range(nprobes_str, 1, INT_MAX);
 	if (op & OPT_WAITTIME)
 		waittime = xatou_range(waittime_str, 1, 24 * 60 * 60);
 	if (op & OPT_PAUSE_MS)
-		pausemsecs = xatou_range(pausemsecs_str, 0, 60 * 60 * 1000);
+		G.pausemsecs = xatou_range(pausemsecs_str, 0, 60 * 60 * 1000);
 	if (op & OPT_FIRST_TTL)
-		first_ttl = xatou_range(first_ttl_str, 1, max_ttl);
+		G.first_ttl = xatou_range(first_ttl_str, 1, G.max_ttl);
 
 	/* Process destination and optional packet size */
 	minpacket = sizeof(struct ip)
@@ -961,6 +959,9 @@ common_traceroute_main(int op, char **argv)
 #else
 	dest_lsa = xhost2sockaddr(argv[0], port);
 #endif
+	G.from_lsa = xmemdup(dest_lsa, LSA_LEN_SIZE + dest_lsa->len);
+	G.to = xzalloc(dest_lsa->len);
+
 	packlen = minpacket;
 	if (argv[1])
 		packlen = xatoul_range(argv[1], minpacket, 32 * 1024);
@@ -1102,20 +1103,28 @@ common_traceroute_main(int op, char **argv)
 
 	if (op & OPT_SOURCE)
 		printf(" from %s", source);
-	printf(", %d hops max, %d byte packets\n", max_ttl, packlen);
+	printf(", %d hops max, %d byte packets\n", G.max_ttl, packlen);
+}
+
+static int
+common_traceroute_main(int op, char **argv)
+{
+	int ttl;
+	int seq;
+	struct sockaddr *lastaddr;
+
+	traceroute_init(op, argv);
 
 	lastaddr = xzalloc(dest_lsa->len);
-	G.from_lsa = xmemdup(dest_lsa, LSA_LEN_SIZE + dest_lsa->len);
-	G.to = xzalloc(dest_lsa->len);
 	seq = 0;
-	for (ttl = first_ttl; ttl <= max_ttl; ++ttl) {
+	for (ttl = G.first_ttl; ttl <= G.max_ttl; ++ttl) {
 		int probe;
 		int unreachable = 0; /* counter */
 		int gotlastaddr = 0; /* flags */
 		int got_there = 0;
 
 		printf("%2d", ttl);
-		for (probe = 0; probe < nprobes; ++probe) {
+		for (probe = 0; probe < G.nprobes; ++probe) {
 			int read_len;
 			unsigned t1;
 			unsigned t2;
@@ -1123,14 +1132,15 @@ common_traceroute_main(int op, char **argv)
 
 			fflush_all();
 			if (probe != 0)
-				msleep(pausemsecs);
+				msleep(G.pausemsecs);
 
 			send_probe(++seq, ttl);
 			t2 = t1 = monotonic_us();
 
 			left_ms = waittime * 1000;
-			/* NB: wait_for_reply() fills "G.from_lsa" and "G.to"
-			 * with "where it came from" and "to which local address it arrived".
+			/* NB: wait_for_reply() fills "G.from_lsa" and "G.to" with
+			 * "where it came from" and "what local address it arrived to"
+			 * addresses.
 			 */
 			while ((read_len = wait_for_reply(&t2, &left_ms)) != 0) {
 				int icmp_code;
@@ -1255,7 +1265,7 @@ common_traceroute_main(int op, char **argv)
 
 		bb_putchar('\n');
 		if (got_there
-		 || (unreachable > 0 && unreachable >= nprobes - 1)
+		 || (unreachable > 0 && unreachable >= G.nprobes - 1)
 		) {
 			break;
 		}
