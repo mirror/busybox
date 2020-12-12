@@ -1522,7 +1522,7 @@ int find_main(int argc UNUSED_PARAM, char **argv)
 	}
 	*past_HLP = NULL;
 	/* "+": stop on first non-option */
-	i = getopt32(argv, "+HLP");
+	i = getopt32(argv, "+""HLP");
 	if (i & (1<<0))
 		G.recurse_flags |= ACTION_FOLLOWLINKS_L0 | ACTION_DANGLING_OK;
 	if (i & (1<<1))
