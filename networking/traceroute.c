@@ -413,7 +413,6 @@ struct globals {
 #define port      (G.port     )
 #define waittime  (G.waittime )
 #define recv_pkt  (G.recv_pkt )
-#define gwlist    (G.gwlist   )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
@@ -683,12 +682,15 @@ packet4_ok(int read_len, int seq)
 		int i;
 		uint32_t *lp = (uint32_t *)&icp->icmp_ip;
 
-		printf("\n%d bytes from %s",
-			read_len, inet_ntoa(G.from_lsa->u.sin.sin_addr));
-		/* Two separate printf() because inet_ntoa() returns static string */
-		printf(" to %s: icmp type %d (%s) code %d\n",
+		printf("\n%d bytes from %s to %s: icmp type %d (%s) code %d\n",
+			read_len,
+			/* inet_ntoa(G.from_lsa->u.sin.sin_addr) - two calls of inet_ntoa()
+			 * are unsafe (use the same buffer), using this instead:
+			 */
+			auto_string(xmalloc_sockaddr2dotted_noport(&G.from_lsa->u.sa)),
 			inet_ntoa(ip->ip_dst),
-			type, pr_type(type), icp->icmp_code);
+			type, pr_type(type), icp->icmp_code
+		);
 		for (i = 4; i < read_len; i += sizeof(*lp))
 			printf("%2d: x%8.8x\n", i, *lp++);
 	}
@@ -756,19 +758,16 @@ packet6_ok(int read_len, int seq)
 # if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose) {
 		unsigned char *p;
-		char pa[sizeof("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") + 4];
 		int i;
 
 		p = (unsigned char *) (icp + 1);
 
-		printf("\n%d bytes from %s",
+		printf("\n%d bytes from %s to %s: icmp type %d (%s) code %d\n",
 			read_len,
-			inet_ntop(AF_INET6, &G.from_lsa->u.sin6.sin6_addr, pa, sizeof(pa)));
-		/* Two printf() instead of one - reuse string constants */
-		printf(" to %s: icmp type %d (%s) code %d\n",
-			inet_ntop(AF_INET6, &((struct sockaddr_in6*)G.to)->sin6_addr, pa, sizeof(pa)),
-			type, pr_type(type), icp->icmp6_code);
-
+			auto_string(xmalloc_sockaddr2dotted_noport(&G.from_lsa->u.sa)),
+			auto_string(xmalloc_sockaddr2dotted_noport(G.to)),
+			type, pr_type(type), icp->icmp6_code
+		);
 		read_len -= sizeof(struct icmp6_hdr);
 		for (i = 0; i < read_len; i++) {
 			if (i % 16 == 0)
@@ -796,55 +795,36 @@ packet_ok(int read_len, int seq)
 
 #else /* !ENABLE_TRACEROUTE6 */
 
-static ALWAYS_INLINE int
-packet_ok(int read_len, int seq)
-{
-	return packet4_ok(read_len, seq);
-}
+# define packet_ok(read_len, seq) packet4_ok(read_len, seq)
 
 #endif
 
-/*
- * Construct an Internet address representation.
- * If the -n flag has been supplied, give
- * numeric value, otherwise try for symbolic name.
- */
 static void
-print_inetname(const struct sockaddr *from)
+print(int read_len)
 {
-	char *ina = xmalloc_sockaddr2dotted_noport(from);
+	char *ina = auto_string(xmalloc_sockaddr2dotted_noport(&G.from_lsa->u.sa));
 
 	if (option_mask32 & OPT_ADDR_NUM) {
 		printf("  %s", ina);
 	} else {
 		char *n = NULL;
-
-		if (from->sa_family != AF_INET
-		 || ((struct sockaddr_in*)from)->sin_addr.s_addr != INADDR_ANY
+		if (G.from_lsa->u.sa.sa_family != AF_INET
+		 || G.from_lsa->u.sin.sin_addr.s_addr != INADDR_ANY
 		) {
 			/* Try to reverse resolve if it is not 0.0.0.0 */
-			n = xmalloc_sockaddr2host_noport((struct sockaddr*)from);
+			n = auto_string(xmalloc_sockaddr2host_noport(&G.from_lsa->u.sa));
 		}
 		printf("  %s (%s)", (n ? n : ina), ina);
-		free(n);
 	}
-	free(ina);
-}
-
-static void
-print(int read_len)
-{
-	print_inetname(&G.from_lsa->u.sa);
 
 	if (verbose) {
-		char *ina = xmalloc_sockaddr2dotted_noport(G.to);
 #if ENABLE_TRACEROUTE6
 		/* NB: reads from (AF_INET, SOCK_RAW, IPPROTO_ICMP) socket
 		 * return the entire IP packet (IOW: they do not strip IP header).
 		 * Reads from (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6) do strip IPv6
 		 * header and return only ICMP6 packet. Weird.
 		 */
-		if (G.to->sa_family == AF_INET6) {
+		if (G.from_lsa->u.sa.sa_family == AF_INET6) {
 			/* read_len -= sizeof(struct ip6_hdr); - WRONG! */
 		} else
 #endif
@@ -852,8 +832,9 @@ print(int read_len)
 			struct ip *ip4packet = (struct ip*)recv_pkt;
 			read_len -= ip4packet->ip_hl << 2;
 		}
-		printf(" %d bytes to %s", read_len, ina);
-		free(ina);
+		printf(" %d bytes to %s", read_len,
+			auto_string(xmalloc_sockaddr2dotted_noport(G.to))
+		);
 	}
 }
 
@@ -870,10 +851,6 @@ print_delta_ms(unsigned t1p, unsigned t2p)
 static NOINLINE void
 traceroute_init(int op, char **argv)
 {
-	int minpacket;
-#ifdef IP_TOS
-	int tos = 0;
-#endif
 	char *source;
 	char *device;
 	char *tos_str;
@@ -912,10 +889,6 @@ traceroute_init(int op, char **argv)
 	if (op & OPT_IP_CHKSUM)
 		bb_error_msg("warning: ip checksums disabled");
 #endif
-#ifdef IP_TOS
-	if (op & OPT_TOS)
-		tos = xatou_range(tos_str, 0, 255);
-#endif
 	if (op & OPT_MAX_TTL)
 		G.max_ttl = xatou_range(max_ttl_str, 1, 255);
 	if (op & OPT_PORT)
@@ -930,11 +903,11 @@ traceroute_init(int op, char **argv)
 		G.first_ttl = xatou_range(first_ttl_str, 1, G.max_ttl);
 
 	/* Process destination and optional packet size */
-	minpacket = sizeof(struct ip)
+	packlen = sizeof(struct ip)
 			+ sizeof(struct udphdr)
 			+ sizeof(struct outdata_t);
 	if (op & OPT_USE_ICMP) {
-		minpacket = sizeof(struct ip)
+		packlen = sizeof(struct ip)
 			+ SIZEOF_ICMP_HDR
 			+ sizeof(struct outdata_t);
 		port = 0; /* on ICMP6 sockets, sendto(ipv6.nonzero_port) throws EINVAL */
@@ -948,11 +921,11 @@ traceroute_init(int op, char **argv)
 	dest_lsa = xhost_and_af2sockaddr(argv[0], port, af);
 	af = dest_lsa->u.sa.sa_family;
 	if (af == AF_INET6) {
-		minpacket = sizeof(struct ip6_hdr)
+		packlen = sizeof(struct ip6_hdr)
 				+ sizeof(struct udphdr)
 				+ sizeof(struct outdata6_t);
 		if (op & OPT_USE_ICMP)
-			minpacket = sizeof(struct ip6_hdr)
+			packlen = sizeof(struct ip6_hdr)
 				+ SIZEOF_ICMP_HDR
 				+ sizeof(struct outdata6_t);
 	}
@@ -961,19 +934,20 @@ traceroute_init(int op, char **argv)
 #endif
 	G.from_lsa = xmemdup(dest_lsa, LSA_LEN_SIZE + dest_lsa->len);
 	G.to = xzalloc(dest_lsa->len);
-
-	packlen = minpacket;
 	if (argv[1])
-		packlen = xatoul_range(argv[1], minpacket, 32 * 1024);
+		packlen = xatoul_range(argv[1], packlen, 32 * 1024);
 
 #if ENABLE_TRACEROUTE6
 	if (af == AF_INET6) {
 		xmove_fd(xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6), rcvsock);
-		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO); //why?
+		/* want recvmsg to report target local address (for -v) */
+		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO);
 	} else
 #endif
 	{
 		xmove_fd(xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP), rcvsock);
+		/* want recvmsg to report target local address (for -v) */
+		setsockopt_1(rcvsock, IPPROTO_IP, IP_PKTINFO);
 	}
 
 #if TRACEROUTE_SO_DEBUG
@@ -1010,8 +984,10 @@ traceroute_init(int op, char **argv)
 	}
 #endif
 #ifdef IP_TOS
-	if ((op & OPT_TOS) && setsockopt_int(sndsock, IPPROTO_IP, IP_TOS, tos) != 0) {
-		bb_perror_msg_and_die("setsockopt(%s) %d", "TOS", tos);
+	if (op & OPT_TOS) {
+		int tos = xatou_range(tos_str, 0, 255);
+		if (setsockopt_int(sndsock, IPPROTO_IP, IP_TOS, tos) != 0)
+			bb_perror_msg_and_die("setsockopt(%s,%d)", "TOS", tos);
 	}
 #endif
 #ifdef IP_DONTFRAG
@@ -1070,7 +1046,8 @@ traceroute_init(int op, char **argv)
 //TODO: we can query source port we bound to,
 // and check it in replies... if we care enough
 		xbind(sndsock, &source_lsa->u.sa, source_lsa->len);
-		free(source_lsa);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(source_lsa);
 	}
 #if ENABLE_TRACEROUTE6
 	else if (af == AF_INET6) {
@@ -1087,7 +1064,8 @@ traceroute_init(int op, char **argv)
 		/* bind our recv socket to this IP (but not port) */
 		set_nport(&source_lsa->u.sa, 0);
 		xbind(rcvsock, &source_lsa->u.sa, source_lsa->len);
-		free(source_lsa);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(source_lsa);
 	}
 #endif
 
@@ -1097,9 +1075,8 @@ traceroute_init(int op, char **argv)
 
 	dest_str = xmalloc_sockaddr2dotted_noport(&dest_lsa->u.sa);
 	printf("traceroute to %s (%s)", argv[0], dest_str);
-	if (ENABLE_FEATURE_CLEAN_UP) {
+	if (ENABLE_FEATURE_CLEAN_UP)
 		free(dest_str);
-	}
 
 	if (op & OPT_SOURCE)
 		printf(" from %s", source);
