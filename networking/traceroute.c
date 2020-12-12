@@ -389,6 +389,8 @@ struct globals {
 	struct outdata_t *outdata;
 
 	len_and_sockaddr *dest_lsa;
+	len_and_sockaddr *from_lsa;	/* response came from this address */
+	struct sockaddr *to; 		/* response came to this (local) address */
 	int packlen;                    /* total length of packet */
 	int pmtu;                       /* Path MTU Discovery (RFC1191) */
 	uint32_t ident;
@@ -442,7 +444,7 @@ struct globals {
  */
 
 static int
-wait_for_reply(len_and_sockaddr *from_lsa, struct sockaddr *to, unsigned *timestamp_us, int *left_ms)
+wait_for_reply(unsigned *timestamp_us, int *left_ms)
 {
 	struct pollfd pfd[1];
 	int read_len = 0;
@@ -455,7 +457,7 @@ wait_for_reply(len_and_sockaddr *from_lsa, struct sockaddr *to, unsigned *timest
 		read_len = recv_from_to(rcvsock,
 				recv_pkt, sizeof(recv_pkt),
 				/*flags:*/ MSG_DONTWAIT,
-				&from_lsa->u.sa, to, from_lsa->len);
+				&G.from_lsa->u.sa, G.to, G.from_lsa->len);
 		t = monotonic_us();
 		*left_ms -= (t - *timestamp_us) / 1000;
 		*timestamp_us = t;
@@ -598,7 +600,7 @@ pr_type(unsigned char t)
 	packet4_ok(read_len, seq)
 #endif
 static int
-packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
+packet4_ok(int read_len, int seq)
 {
 	const struct icmp *icp;
 	unsigned char type, code;
@@ -616,7 +618,7 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 		if (verbose)
 			printf("packet too short (%d bytes) from %s\n", read_len,
-				inet_ntoa(from->sin_addr));
+				inet_ntoa(G.from_lsa->u.sin.sin_addr));
 #endif
 		return 0;
 	}
@@ -680,7 +682,7 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 		uint32_t *lp = (uint32_t *)&icp->icmp_ip;
 
 		printf("\n%d bytes from %s",
-			read_len, inet_ntoa(from->sin_addr));
+			read_len, inet_ntoa(G.from_lsa->u.sin.sin_addr));
 		/* Two separate printf() because inet_ntoa() returns static string */
 		printf(" to %s: icmp type %d (%s) code %d\n",
 			inet_ntoa(ip->ip_dst),
@@ -694,14 +696,8 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 
 #if ENABLE_TRACEROUTE6
 
-# if !ENABLE_FEATURE_TRACEROUTE_VERBOSE
-#define packet6_ok(read_len, from_lsa, to, seq) \
-	packet6_ok(read_len, from_lsa, seq)
-# endif
 static int
-packet6_ok(int read_len, const struct sockaddr_in6 *from,
-			struct sockaddr *to,
-			int seq)
+packet6_ok(int read_len, int seq)
 {
 	const struct icmp6_hdr *icp;
 	unsigned char type, code;
@@ -757,21 +753,18 @@ packet6_ok(int read_len, const struct sockaddr_in6 *from,
 
 # if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose) {
-#  ifndef MAXHOSTNAMELEN
-#   define MAXHOSTNAMELEN 80
-#  endif
 		unsigned char *p;
-		char pa[MAXHOSTNAMELEN];
+		char pa[sizeof("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") + 4];
 		int i;
 
 		p = (unsigned char *) (icp + 1);
 
 		printf("\n%d bytes from %s",
 			read_len,
-			inet_ntop(AF_INET6, &from->sin6_addr, pa, sizeof(pa)));
+			inet_ntop(AF_INET6, &G.from_lsa->u.sin6.sin6_addr, pa, sizeof(pa)));
 		/* Two printf() instead of one - reuse string constants */
 		printf(" to %s: icmp type %d (%s) code %d\n",
-			inet_ntop(AF_INET6, &((struct sockaddr_in6*)to)->sin6_addr, pa, sizeof(pa)),
+			inet_ntop(AF_INET6, &((struct sockaddr_in6*)G.to)->sin6_addr, pa, sizeof(pa)),
 			type, pr_type(type), icp->icmp6_code);
 
 		read_len -= sizeof(struct icmp6_hdr);
@@ -790,29 +783,21 @@ packet6_ok(int read_len, const struct sockaddr_in6 *from,
 
 	return 0;
 }
-# if !ENABLE_FEATURE_TRACEROUTE_VERBOSE
-#define packet_ok(read_len, from_lsa, to, seq) \
-	packet_ok(read_len, from_lsa, seq)
-# endif
+
 static int
-packet_ok(int read_len, len_and_sockaddr *from_lsa,
-			struct sockaddr *to,
-			int seq)
+packet_ok(int read_len, int seq)
 {
-	if (from_lsa->u.sa.sa_family == AF_INET)
-		return packet4_ok(read_len, &from_lsa->u.sin, seq);
-	return packet6_ok(read_len, &from_lsa->u.sin6, to, seq);
+	if (G.from_lsa->u.sa.sa_family == AF_INET)
+		return packet4_ok(read_len, seq);
+	return packet6_ok(read_len, seq);
 }
 
 #else /* !ENABLE_TRACEROUTE6 */
 
 static ALWAYS_INLINE int
-packet_ok(int read_len,
-		len_and_sockaddr *from_lsa IF_NOT_FEATURE_TRACEROUTE_VERBOSE(UNUSED_PARAM),
-		struct sockaddr *to UNUSED_PARAM,
-		int seq)
+packet_ok(int read_len, int seq)
 {
-	return packet4_ok(read_len, &from_lsa->u.sin, seq);
+	return packet4_ok(read_len, seq);
 }
 
 #endif
@@ -845,19 +830,19 @@ print_inetname(const struct sockaddr *from)
 }
 
 static void
-print(int read_len, const struct sockaddr *from, const struct sockaddr *to)
+print(int read_len)
 {
-	print_inetname(from);
+	print_inetname(&G.from_lsa->u.sa);
 
 	if (verbose) {
-		char *ina = xmalloc_sockaddr2dotted_noport(to);
+		char *ina = xmalloc_sockaddr2dotted_noport(G.to);
 #if ENABLE_TRACEROUTE6
 		/* NB: reads from (AF_INET, SOCK_RAW, IPPROTO_ICMP) socket
 		 * return the entire IP packet (IOW: they do not strip IP header).
 		 * Reads from (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6) do strip IPv6
 		 * header and return only ICMP6 packet. Weird.
 		 */
-		if (to->sa_family == AF_INET6) {
+		if (G.to->sa_family == AF_INET6) {
 			/* read_len -= sizeof(struct ip6_hdr); - WRONG! */
 		} else
 #endif
@@ -910,9 +895,7 @@ common_traceroute_main(int op, char **argv)
 #endif
 	int ttl;
 	int seq;
-	len_and_sockaddr *from_lsa;
 	struct sockaddr *lastaddr;
-	struct sockaddr *to;
 
 	/* Ensure the socket fds won't be 0, 1 or 2 */
 	bb_sanitize_stdio();
@@ -1121,9 +1104,9 @@ common_traceroute_main(int op, char **argv)
 		printf(" from %s", source);
 	printf(", %d hops max, %d byte packets\n", max_ttl, packlen);
 
-	from_lsa = xmemdup(dest_lsa, LSA_LEN_SIZE + dest_lsa->len);
 	lastaddr = xzalloc(dest_lsa->len);
-	to = xzalloc(dest_lsa->len);
+	G.from_lsa = xmemdup(dest_lsa, LSA_LEN_SIZE + dest_lsa->len);
+	G.to = xzalloc(dest_lsa->len);
 	seq = 0;
 	for (ttl = first_ttl; ttl <= max_ttl; ++ttl) {
 		int probe;
@@ -1146,7 +1129,10 @@ common_traceroute_main(int op, char **argv)
 			t2 = t1 = monotonic_us();
 
 			left_ms = waittime * 1000;
-			while ((read_len = wait_for_reply(from_lsa, to, &t2, &left_ms)) != 0) {
+			/* NB: wait_for_reply() fills "G.from_lsa" and "G.to"
+			 * with "where it came from" and "to which local address it arrived".
+			 */
+			while ((read_len = wait_for_reply(&t2, &left_ms)) != 0) {
 				int icmp_code;
 
 				/* Recv'ed a packet, or read error */
@@ -1154,22 +1140,22 @@ common_traceroute_main(int op, char **argv)
 
 				if (read_len < 0)
 					continue;
-				icmp_code = packet_ok(read_len, from_lsa, to, seq);
+				icmp_code = packet_ok(read_len, seq);
 				/* Skip short packet */
 				if (icmp_code == 0)
 					continue;
 
 				if (!gotlastaddr
-				 || (memcmp(lastaddr, &from_lsa->u.sa, from_lsa->len) != 0)
+				 || (memcmp(lastaddr, &G.from_lsa->u.sa, G.from_lsa->len) != 0)
 				) {
-					print(read_len, &from_lsa->u.sa, to);
-					memcpy(lastaddr, &from_lsa->u.sa, from_lsa->len);
+					print(read_len);
+					memcpy(lastaddr, &G.from_lsa->u.sa, G.from_lsa->len);
 					gotlastaddr = 1;
 				}
 
 				print_delta_ms(t1, t2);
 
-				if (from_lsa->u.sa.sa_family == AF_INET) {
+				if (G.from_lsa->u.sa.sa_family == AF_INET) {
 					if (op & OPT_TTL_FLAG) {
 						struct ip *ip = (struct ip *)recv_pkt;
 						printf(" (%d)", ip->ip_ttl);
@@ -1276,9 +1262,9 @@ common_traceroute_main(int op, char **argv)
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		free(to);
+		free(G.to);
 		free(lastaddr);
-		free(from_lsa);
+		free(G.from_lsa);
 	}
 
 	return 0;
