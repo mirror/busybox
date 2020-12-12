@@ -463,6 +463,8 @@ wait_for_reply(unsigned *timestamp_us, int *left_ms)
 				recv_pkt, sizeof(recv_pkt),
 				/*flags:*/ MSG_DONTWAIT,
 				&G.from_lsa->u.sa, G.to, G.from_lsa->len);
+		if (read_len < 0)
+			bb_perror_msg_and_die("recv");
 		t = monotonic_us();
 		*left_ms -= (t - *timestamp_us) / 1000;
 		*timestamp_us = t;
@@ -1076,147 +1078,139 @@ common_traceroute_main(int op, char **argv)
 	for (ttl = G.first_ttl; ttl <= G.max_ttl; ++ttl) {
 		int probe;
 		int unreachable = 0; /* counter */
-		int gotlastaddr = 0; /* flags */
 		int got_there = 0;
 
 		printf("%2d", ttl);
 		for (probe = 0; probe < G.nprobes; ++probe) {
-			int read_len;
 			unsigned t1;
 			unsigned t2;
 			int left_ms;
+			int read_len;
+			int icmp_code;
 
 			fflush_all();
 			if (probe != 0)
 				msleep(G.pausemsecs);
 
 			send_probe(++seq, ttl);
+
 			t2 = t1 = monotonic_us();
-
 			left_ms = waittime * 1000;
-			/* NB: wait_for_reply() fills "G.from_lsa" and "G.to" with
-			 * "where it came from" and "what local address it arrived to"
-			 * addresses.
-			 */
-			while ((read_len = wait_for_reply(&t2, &left_ms)) != 0) {
-				int icmp_code;
+			for (;;) {
+				/* NB: wait_for_reply() fills "G.from_lsa" and "G.to" with
+				 * "where it came from" and "what local address it arrived to"
+				 * addresses. Sets t2 = monotonic_us(), updates left_ms.
+				 */
+				read_len = wait_for_reply(&t2, &left_ms);
 
-				/* Recv'ed a packet, or read error */
-				/* t2 = monotonic_us() - set by wait_for_reply */
-
-				if (read_len < 0)
-					continue;
+				if (read_len == 0) { /* there was no packet at all? */
+					printf("  *");
+					goto next_probe;
+				}
 				icmp_code = packet_ok(read_len, seq);
-				/* Skip short packet */
-				if (icmp_code == 0)
-					continue;
+				if (icmp_code != 0)
+					break; /* got a good response */
+				/* unrecognized type/code or too short, back to recv */
+			}
 
-				if (!gotlastaddr
-				 || (memcmp(lastaddr, &G.from_lsa->u.sa, G.from_lsa->len) != 0)
-				) {
-					print(read_len);
-					memcpy(lastaddr, &G.from_lsa->u.sa, G.from_lsa->len);
-					gotlastaddr = 1;
-				}
-
-				print_delta_ms(t1, t2);
-
-				if (G.from_lsa->u.sa.sa_family == AF_INET) {
-					if (op & OPT_TTL_FLAG) {
-						struct ip *ip = (struct ip *)recv_pkt;
-						printf(" (%d)", ip->ip_ttl);
-					}
-				}
-
-				/* Got a "time exceeded in transit" icmp message? */
-				if (icmp_code == -1)
-					break;
-
-				icmp_code--;
-				switch (icmp_code) {
-#if ENABLE_TRACEROUTE6
-				case ICMP6_DST_UNREACH_NOPORT << 8:
-					got_there = 1;
-					break;
-#endif
-				case ICMP_UNREACH_PORT: {
+			if (probe == 0
+			 || (memcmp(lastaddr, &G.from_lsa->u.sa, G.from_lsa->len) != 0)
+			) {
+				print(read_len);
+				memcpy(lastaddr, &G.from_lsa->u.sa, G.from_lsa->len);
+			}
+			print_delta_ms(t1, t2);
+			if (G.from_lsa->u.sa.sa_family == AF_INET) {
+				if (op & OPT_TTL_FLAG) {
 					struct ip *ip = (struct ip *)recv_pkt;
-					if (ip->ip_ttl <= 1)
-						printf(" !");
-					got_there = 1;
-					break;
+					printf(" (%d)", ip->ip_ttl);
 				}
-				case ICMP_UNREACH_NET:
-#if ENABLE_TRACEROUTE6 && (ICMP6_DST_UNREACH_NOROUTE != ICMP_UNREACH_NET)
-				case ICMP6_DST_UNREACH_NOROUTE << 8:
-#endif
-					printf(" !N");
-					++unreachable;
-					break;
-				case ICMP_UNREACH_HOST:
-#if ENABLE_TRACEROUTE6
-				case ICMP6_DST_UNREACH_ADDR << 8:
-#endif
-					printf(" !H");
-					++unreachable;
-					break;
-				case ICMP_UNREACH_PROTOCOL:
-					printf(" !P");
-					got_there = 1;
-					break;
-				case ICMP_UNREACH_NEEDFRAG:
-					printf(" !F-%d", pmtu);
-					++unreachable;
-					break;
-				case ICMP_UNREACH_SRCFAIL:
-#if ENABLE_TRACEROUTE6
-				case ICMP6_DST_UNREACH_ADMIN << 8:
-#endif
-					printf(" !S");
-					++unreachable;
-					break;
-				case ICMP_UNREACH_FILTER_PROHIB:
-				case ICMP_UNREACH_NET_PROHIB:   /* misuse */
-					printf(" !A");
-					++unreachable;
-					break;
-				case ICMP_UNREACH_HOST_PROHIB:
-					printf(" !C");
-					++unreachable;
-					break;
-				case ICMP_UNREACH_HOST_PRECEDENCE:
-					printf(" !V");
-					++unreachable;
-					break;
-				case ICMP_UNREACH_PRECEDENCE_CUTOFF:
-					printf(" !C");
-					++unreachable;
-					break;
-				case ICMP_UNREACH_NET_UNKNOWN:
-				case ICMP_UNREACH_HOST_UNKNOWN:
-					printf(" !U");
-					++unreachable;
-					break;
-				case ICMP_UNREACH_ISOLATED:
-					printf(" !I");
-					++unreachable;
-					break;
-				case ICMP_UNREACH_TOSNET:
-				case ICMP_UNREACH_TOSHOST:
-					printf(" !T");
-					++unreachable;
-					break;
-				default:
-					printf(" !<%d>", icmp_code);
-					++unreachable;
-					break;
-				}
-				break;
-			} /* while (wait and read a packet) */
+			}
 
-			/* there was no packet at all? */
-			if (read_len == 0)
-				printf("  *");
+			/* Got a "time exceeded in transit" icmp message? */
+			if (icmp_code == -1)
+				continue;
+
+			icmp_code--;
+			switch (icmp_code) {
+#if ENABLE_TRACEROUTE6
+			case ICMP6_DST_UNREACH_NOPORT << 8:
+				got_there = 1;
+				break;
+#endif
+			case ICMP_UNREACH_PORT: {
+				struct ip *ip = (struct ip *)recv_pkt;
+				if (ip->ip_ttl <= 1)
+					printf(" !");
+				got_there = 1;
+				break;
+			}
+			case ICMP_UNREACH_NET:
+#if ENABLE_TRACEROUTE6 && (ICMP6_DST_UNREACH_NOROUTE != ICMP_UNREACH_NET)
+			case ICMP6_DST_UNREACH_NOROUTE << 8:
+#endif
+				printf(" !N");
+				++unreachable;
+				break;
+			case ICMP_UNREACH_HOST:
+#if ENABLE_TRACEROUTE6
+			case ICMP6_DST_UNREACH_ADDR << 8:
+#endif
+				printf(" !H");
+				++unreachable;
+				break;
+			case ICMP_UNREACH_PROTOCOL:
+				printf(" !P");
+				got_there = 1;
+				break;
+			case ICMP_UNREACH_NEEDFRAG:
+				printf(" !F-%d", pmtu);
+				++unreachable;
+				break;
+			case ICMP_UNREACH_SRCFAIL:
+#if ENABLE_TRACEROUTE6
+			case ICMP6_DST_UNREACH_ADMIN << 8:
+#endif
+				printf(" !S");
+				++unreachable;
+				break;
+			case ICMP_UNREACH_FILTER_PROHIB:
+			case ICMP_UNREACH_NET_PROHIB:   /* misuse */
+				printf(" !A");
+				++unreachable;
+				break;
+			case ICMP_UNREACH_HOST_PROHIB:
+				printf(" !C");
+				++unreachable;
+				break;
+			case ICMP_UNREACH_HOST_PRECEDENCE:
+				printf(" !V");
+				++unreachable;
+				break;
+			case ICMP_UNREACH_PRECEDENCE_CUTOFF:
+				printf(" !C");
+				++unreachable;
+				break;
+			case ICMP_UNREACH_NET_UNKNOWN:
+			case ICMP_UNREACH_HOST_UNKNOWN:
+				printf(" !U");
+				++unreachable;
+				break;
+			case ICMP_UNREACH_ISOLATED:
+				printf(" !I");
+				++unreachable;
+				break;
+			case ICMP_UNREACH_TOSNET:
+			case ICMP_UNREACH_TOSHOST:
+				printf(" !T");
+				++unreachable;
+				break;
+			default:
+				printf(" !<%d>", icmp_code);
+				++unreachable;
+				break;
+			}
+ next_probe: ;
 		} /* for (nprobes) */
 
 		bb_putchar('\n');
