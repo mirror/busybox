@@ -358,7 +358,11 @@ enum {
 	OPT_IPV4         = (1 << 17),   /* 4 */
 	OPT_IPV6         = (1 << 18) * ENABLE_TRACEROUTE6, /* 6 */
 };
-#define verbose (option_mask32 & OPT_VERBOSE)
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
+# define verbose (option_mask32 & OPT_VERBOSE)
+#else
+# define verbose 0
+#endif
 
 enum {
 	SIZEOF_ICMP_HDR = 8,
@@ -559,9 +563,7 @@ send_probe(int seq, int ttl)
 }
 
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
-/*
- * Convert an ICMP "type" field to a printable string.
- */
+/* Convert an ICMP "type" field to a printable string */
 static const char *
 pr_type(unsigned char t)
 {
@@ -594,12 +596,35 @@ pr_type(unsigned char t)
 
 	return ttab[t];
 }
+static void
+hexdump(const struct icmp *icp, int len)
+{
+	const unsigned char *p;
+	int i;
+
+	printf("\n%d bytes from %s to %s: icmp type %d (%s) code %d\n",
+		len,
+		auto_string(xmalloc_sockaddr2dotted_noport(&G.from_lsa->u.sa)),
+		auto_string(xmalloc_sockaddr2dotted_noport(G.to)),
+		icp->icmp_type, pr_type(icp->icmp_type),
+		icp->icmp_code
+	);
+	p = (const void *)icp;
+	for (i = 0; i < len; i++) {
+		if (i % 16 == 0)
+			printf("%04x:", i);
+		if (i % 4 == 0)
+			bb_putchar(' ');
+		printf("%02x", p[i]);
+		if ((i % 16 == 15) && (i + 1 < len))
+			bb_putchar('\n');
+	}
+	bb_putchar('\n');
+}
+#else
+# define hexdump(...) ((void)0)
 #endif
 
-#if !ENABLE_FEATURE_TRACEROUTE_VERBOSE
-#define packet4_ok(read_len, from, seq) \
-	packet4_ok(read_len, seq)
-#endif
 static int
 packet4_ok(int read_len, int seq)
 {
@@ -616,11 +641,9 @@ packet4_ok(int read_len, int seq)
 
 	hlen = ip->ip_hl << 2;
 	if (read_len < hlen + ICMP_MINLEN) {
-#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 		if (verbose)
 			printf("packet too short (%d bytes) from %s\n", read_len,
 				inet_ntoa(G.from_lsa->u.sin.sin_addr));
-#endif
 		return 0;
 	}
 	read_len -= hlen;
@@ -677,24 +700,8 @@ packet4_ok(int read_len, int seq)
 			}
 		}
 	}
-#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
-	if (verbose) {
-		int i;
-		uint32_t *lp = (uint32_t *)&icp->icmp_ip;
-
-		printf("\n%d bytes from %s to %s: icmp type %d (%s) code %d\n",
-			read_len,
-			/* inet_ntoa(G.from_lsa->u.sin.sin_addr) - two calls of inet_ntoa()
-			 * are unsafe (use the same buffer), using this instead:
-			 */
-			auto_string(xmalloc_sockaddr2dotted_noport(&G.from_lsa->u.sa)),
-			inet_ntoa(ip->ip_dst),
-			type, pr_type(type), icp->icmp_code
-		);
-		for (i = 4; i < read_len; i += sizeof(*lp))
-			printf("%2d: x%8.8x\n", i, *lp++);
-	}
-#endif
+	if (verbose)
+		hexdump(icp, read_len);
 	return 0;
 }
 
@@ -754,34 +761,9 @@ packet6_ok(int read_len, int seq)
 			}
 		}
 	}
-
-# if ENABLE_FEATURE_TRACEROUTE_VERBOSE
-	if (verbose) {
-		unsigned char *p;
-		int i;
-
-		p = (unsigned char *) (icp + 1);
-
-		printf("\n%d bytes from %s to %s: icmp type %d (%s) code %d\n",
-			read_len,
-			auto_string(xmalloc_sockaddr2dotted_noport(&G.from_lsa->u.sa)),
-			auto_string(xmalloc_sockaddr2dotted_noport(G.to)),
-			type, pr_type(type), icp->icmp6_code
-		);
-		read_len -= sizeof(struct icmp6_hdr);
-		for (i = 0; i < read_len; i++) {
-			if (i % 16 == 0)
-				printf("%04x:", i);
-			if (i % 4 == 0)
-				bb_putchar(' ');
-			printf("%02x", p[i]);
-			if ((i % 16 == 15) && (i + 1 < read_len))
-				bb_putchar('\n');
-		}
-		bb_putchar('\n');
-	}
-# endif
-
+	if (verbose)
+		/* cast is safe since the beginning of icmp4 and icmp6 layouts match */
+		hexdump((const struct icmp *)icp, read_len);
 	return 0;
 }
 
@@ -910,7 +892,7 @@ traceroute_init(int op, char **argv)
 		packlen = sizeof(struct ip)
 			+ SIZEOF_ICMP_HDR
 			+ sizeof(struct outdata_t);
-		port = 0; /* on ICMP6 sockets, sendto(ipv6.nonzero_port) throws EINVAL */
+		port = 0; /* on ICMP6 sockets, sendto(ipv6.nonzero_port) throws EINVAL! */
 	}
 #if ENABLE_TRACEROUTE6
 	af = AF_UNSPEC;
@@ -932,23 +914,24 @@ traceroute_init(int op, char **argv)
 #else
 	dest_lsa = xhost2sockaddr(argv[0], port);
 #endif
+//TODO: make sure af == AF_INET[6]? (FEATURE_UNIX_LOCAL=y allows "local:/PATH" to be translated to AF_UNIX)
 	G.from_lsa = xmemdup(dest_lsa, LSA_LEN_SIZE + dest_lsa->len);
 	G.to = xzalloc(dest_lsa->len);
 	if (argv[1])
 		packlen = xatoul_range(argv[1], packlen, 32 * 1024);
 
-#if ENABLE_TRACEROUTE6
-	if (af == AF_INET6) {
-		xmove_fd(xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6), rcvsock);
-		/* want recvmsg to report target local address (for -v) */
-		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO);
-	} else
-#endif
-	{
+	if (af == AF_INET) {
 		xmove_fd(xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP), rcvsock);
 		/* want recvmsg to report target local address (for -v) */
 		setsockopt_1(rcvsock, IPPROTO_IP, IP_PKTINFO);
 	}
+#if ENABLE_TRACEROUTE6
+	else {
+		xmove_fd(xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6), rcvsock);
+		/* want recvmsg to report target local address (for -v) */
+		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO);
+	}
+#endif
 
 #if TRACEROUTE_SO_DEBUG
 	if (op & OPT_DEBUG)
@@ -959,22 +942,22 @@ traceroute_init(int op, char **argv)
 
 	{
 		int snd;
+		if (af == AF_INET) {
+			if (op & OPT_USE_ICMP)
+				snd = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+			else
+				snd = xsocket(AF_INET, SOCK_DGRAM, 0);
+		}
 #if ENABLE_TRACEROUTE6
-		if (af == AF_INET6) {
+		else {
 			if (setsockopt_int(rcvsock, SOL_RAW, IPV6_CHECKSUM, 2) != 0)
 				bb_perror_msg_and_die("setsockopt(%s)", "IPV6_CHECKSUM");
 			if (op & OPT_USE_ICMP)
 				snd = xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
 			else
 				snd = xsocket(AF_INET6, SOCK_DGRAM, 0);
-		} else
-#endif
-		{
-			if (op & OPT_USE_ICMP)
-				snd = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-			else
-				snd = xsocket(AF_INET, SOCK_DGRAM, 0);
 		}
+#endif
 		xmove_fd(snd, sndsock);
 	}
 
@@ -1006,7 +989,7 @@ traceroute_init(int op, char **argv)
 	ident = getpid();
 
 	outdata = (void*)(outudp + 1);
-	if (!ENABLE_TRACEROUTE6 || af == AF_INET) {
+	if (af == AF_INET) {
 		if (op & OPT_USE_ICMP) {
 			outicmp->icmp_type = ICMP_ECHO;
 			/*outicmp->icmp_code = 0; - set by xzalloc */
@@ -1015,7 +998,7 @@ traceroute_init(int op, char **argv)
 		}
 	}
 #if ENABLE_TRACEROUTE6
-	if (af == AF_INET6) {
+	else {
 		outdata = (void*)(outudp6 + 1);
 		if (op & OPT_USE_ICMP) {
 			outicmp6->icmp_type = ICMP6_ECHO_REQUEST;
@@ -1048,26 +1031,22 @@ traceroute_init(int op, char **argv)
 		xbind(sndsock, &source_lsa->u.sa, source_lsa->len);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(source_lsa);
-	}
-#if ENABLE_TRACEROUTE6
-	else if (af == AF_INET6) {
-//TODO: why we don't do it for IPv4?
+	} else {
 		len_and_sockaddr *source_lsa;
 
 		set_nport(&dest_lsa->u.sa, htons(port));
-		/* Connect makes kernel pick source IP and port */
+		/* Connect makes kernel pick source IP (and port if UDP) */
 		xconnect(sndsock, &dest_lsa->u.sa, dest_lsa->len);
 		/* Read IP and port */
 		source_lsa = get_sock_lsa(sndsock);
 		if (source_lsa == NULL)
-			bb_simple_error_msg_and_die("can't get probe addr");
-		/* bind our recv socket to this IP (but not port) */
-		set_nport(&source_lsa->u.sa, 0);
+			bb_simple_perror_msg_and_die("getsockname");
+		/* bind our recv ICMP socket to this IP (but not port, ICMP has no ports) */
+		//set_nport(&source_lsa->u.sa, 0); - paranoia, seems to work without this for both ipv4 and ipv6
 		xbind(rcvsock, &source_lsa->u.sa, source_lsa->len);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(source_lsa);
 	}
-#endif
 
 	/* Revert to non-privileged user after opening sockets */
 	xsetgid(getgid());
