@@ -414,9 +414,32 @@ struct globals {
 	waittime = 5; \
 } while (0)
 
-#define outicmp ((struct icmp *)(outip + 1))
-#define outudp  ((struct udphdr *)(outip + 1))
-
+#define outudp   ((struct udphdr *)(outip + 1))
+#define outudp6  ((struct udphdr *)(((struct ip6_hdr*)outip) + 1))
+#define outicmp  ((struct icmp *)(outip + 1))
+#define outicmp6 ((struct icmp *)(((struct ip6_hdr*)outip) + 1))
+/* NB: for icmp echo, IPv4 and IPv6 fields are the same size and offset:
+ * struct icmp:
+ *	uint8_t  icmp_type;
+ *	uint8_t  icmp_code;
+ *	uint16_t icmp_cksum;
+ *	uint16_t icmp_id;
+ *	uint16_t icmp_seq;
+ * struct icmp6_hdr:
+ *	uint8_t  icmp6_type;
+ *	uint8_t  icmp6_code;
+ *	uint16_t icmp6_cksum;
+ *	uint16_t icmp6_id;
+ *	uint16_t icmp6_seq;
+ * therefore both outicmp and outicmp6 are pointers to *IPv4* icmp struct.
+ * SIZEOF_ICMP_HDR == 8 is the same for both, as well.
+ * However, values of these pointers are not the same (since IPv6 IP header is larger),
+ * and icmp_type constants are not the same:
+ * #define ICMP_ECHO               8
+ * #define ICMP_ECHOREPLY          0
+ * #define ICMP6_ECHO_REQUEST    128
+ * #define ICMP6_ECHO_REPLY      129
+ */
 
 static int
 wait_for_reply(len_and_sockaddr *from_lsa, struct sockaddr *to, unsigned *timestamp_us, int *left_ms)
@@ -446,14 +469,16 @@ send_probe(int seq, int ttl)
 {
 	int len, res;
 	void *out;
+	struct icmp *icp;
 
 	/* Payload */
 #if ENABLE_TRACEROUTE6
 	if (dest_lsa->u.sa.sa_family == AF_INET6) {
-		struct outdata6_t *pkt = (struct outdata6_t *) outdata;
+		struct outdata6_t *pkt = (void *) outdata;
 		pkt->ident6 = htonl(ident);
 		pkt->seq6   = htonl(seq);
 		/*gettimeofday(&pkt->tv, &tz);*/
+		icp = outicmp6;
 	} else
 #endif
 	{
@@ -461,19 +486,23 @@ send_probe(int seq, int ttl)
 		outdata->ttl = ttl;
 // UNUSED: was storing gettimeofday's result there, but never ever checked it
 		/*memcpy(&outdata->tv, tp, sizeof(outdata->tv));*/
-
-		if (option_mask32 & OPT_USE_ICMP) {
-			outicmp->icmp_seq = htons(seq);
-
-			/* Always calculate checksum for icmp packets */
-			outicmp->icmp_cksum = 0;
-			outicmp->icmp_cksum = inet_cksum(
-					outicmp,
-					((char*)outip + packlen) - (char*)outicmp
-			);
-			if (outicmp->icmp_cksum == 0)
-				outicmp->icmp_cksum = 0xffff;
-		}
+		icp = outicmp;
+	}
+	out = outdata;
+	if (option_mask32 & OPT_USE_ICMP) {
+		out = icp;
+		/*icp->icmp_type = ICMP[6]_ECHO; - already set */
+		/*icp->icmp_code = 0; - already set */
+		/*icp->icmp_id = ident; - already set */
+		icp->icmp_seq = htons(seq);
+		/* Always calculate checksum for icmp packets */
+		icp->icmp_cksum = 0;
+		icp->icmp_cksum = inet_cksum(
+				icp,
+				((char*)outip + packlen) - (char*)icp
+		);
+		if (icp->icmp_cksum == 0)
+			icp->icmp_cksum = 0xffff;
 	}
 
 //BUG! verbose is (x & OPT_VERBOSE), not a counter!
@@ -502,7 +531,6 @@ send_probe(int seq, int ttl)
 	}
 #endif
 
-	out = outdata;
 #if ENABLE_TRACEROUTE6
 	if (dest_lsa->u.sa.sa_family == AF_INET6) {
 		res = setsockopt_int(sndsock, SOL_IPV6, IPV6_UNICAST_HOPS, ttl);
@@ -516,8 +544,6 @@ send_probe(int seq, int ttl)
 		if (res != 0)
 			bb_perror_msg_and_die("setsockopt(%s) %d", "TTL", ttl);
 #endif
-		if (option_mask32 & OPT_USE_ICMP)
-			out = outicmp;
 	}
 
 	if (!(option_mask32 & OPT_USE_ICMP)) {
@@ -579,7 +605,12 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 	int hlen;
 	const struct ip *ip;
 
+	/* NB: reads from (AF_INET, SOCK_RAW, IPPROTO_ICMP) socket
+	 * return the entire IP packet (IOW: they do not strip IP header).
+	 * This differs from (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6) sockets!?
+	 */
 	ip = (struct ip *) recv_pkt;
+
 	hlen = ip->ip_hl << 2;
 	if (read_len < hlen + ICMP_MINLEN) {
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
@@ -598,9 +629,20 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 	if (code == ICMP_UNREACH_NEEDFRAG)
 		pmtu = ntohs(icp->icmp_nextmtu);
 
+	if ((option_mask32 & OPT_USE_ICMP)
+	 && type == ICMP_ECHOREPLY
+	 && icp->icmp_id == htons(ident)
+	 && icp->icmp_seq == htons(seq)
+	) {
+		/* In UDP mode, when we reach the machine, we (usually)
+		 * would get "port unreachable" - in ICMP we got "echo reply".
+		 * Simulate "port unreachable" for caller:
+		 */
+		return ICMP_UNREACH_PORT+1;
+	}
+
 	if ((type == ICMP_TIMXCEED && code == ICMP_TIMXCEED_INTRANS)
 	 || type == ICMP_UNREACH
-	 || type == ICMP_ECHOREPLY
 	) {
 		const struct ip *hip;
 		const struct udphdr *up;
@@ -609,14 +651,6 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 		hlen = hip->ip_hl << 2;
 		if (option_mask32 & OPT_USE_ICMP) {
 			struct icmp *hicmp;
-
-			/* XXX */
-			if (type == ICMP_ECHOREPLY
-			 && icp->icmp_id == htons(ident)
-			 && icp->icmp_seq == htons(seq)
-			) {
-				return ICMP_UNREACH_PORT+1;
-			}
 
 			hicmp = (struct icmp *)((unsigned char *)hip + hlen);
 			if (hlen + SIZEOF_ICMP_HDR <= read_len
@@ -648,6 +682,7 @@ packet4_ok(int read_len, const struct sockaddr_in *from, int seq)
 		printf("\n%d bytes from %s to "
 		       "%s: icmp type %d (%s) code %d\n",
 			read_len, inet_ntoa(from->sin_addr),
+//BUG: inet_ntoa() returns static buf! x2 is NONO!
 			inet_ntoa(ip->ip_dst),
 			type, pr_type(type), icp->icmp_code);
 		for (i = 4; i < read_len; i += sizeof(*lp))
@@ -673,10 +708,26 @@ packet_ok(int read_len, len_and_sockaddr *from_lsa,
 	if (from_lsa->u.sa.sa_family == AF_INET)
 		return packet4_ok(read_len, &from_lsa->u.sin, seq);
 
+	/* NB: reads from (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6) socket
+	 * return only ICMP packet (IOW: they strip IPv6 header).
+	 * This differs from (AF_INET, SOCK_RAW, IPPROTO_ICMP) sockets!?
+	 */
 	icp = (struct icmp6_hdr *) recv_pkt;
 
 	type = icp->icmp6_type;
 	code = icp->icmp6_code;
+
+	if ((option_mask32 & OPT_USE_ICMP)
+	 && type == ICMP6_ECHO_REPLY
+	 && icp->icmp6_id == htons(ident)
+	 && icp->icmp6_seq == htons(seq)
+	) {
+		/* In UDP mode, when we reach the machine, we (usually)
+		 * would get "port unreachable" - in ICMP we got "echo reply".
+		 * Simulate "port unreachable" for caller:
+		 */
+		return (ICMP6_DST_UNREACH_NOPORT << 8) + 1;
+	}
 
 	if ((type == ICMP6_TIME_EXCEEDED && code == ICMP6_TIME_EXCEED_TRANSIT)
 	 || type == ICMP6_DST_UNREACH
@@ -787,8 +838,13 @@ print(int read_len, const struct sockaddr *from, const struct sockaddr *to)
 	if (verbose) {
 		char *ina = xmalloc_sockaddr2dotted_noport(to);
 #if ENABLE_TRACEROUTE6
+		/* NB: reads from (AF_INET, SOCK_RAW, IPPROTO_ICMP) socket
+		 * return the entire IP packet (IOW: they do not strip IP header).
+		 * Reads from (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6) do strip IPv6
+		 * header and return only ICMP6 packet. Weird.
+		 */
 		if (to->sa_family == AF_INET6) {
-			read_len -= sizeof(struct ip6_hdr);
+			/* read_len -= sizeof(struct ip6_hdr); - WRONG! */
 		} else
 #endif
 		{
@@ -844,6 +900,9 @@ common_traceroute_main(int op, char **argv)
 	struct sockaddr *lastaddr;
 	struct sockaddr *to;
 
+	/* Ensure the socket fds won't be 0, 1 or 2 */
+	bb_sanitize_stdio();
+
 	INIT_G();
 
 	op |= getopt32(argv, "^"
@@ -885,12 +944,14 @@ common_traceroute_main(int op, char **argv)
 
 	/* Process destination and optional packet size */
 	minpacket = sizeof(struct ip)
-			+ SIZEOF_ICMP_HDR
-			+ sizeof(struct outdata_t);
-	if (!(op & OPT_USE_ICMP))
-		minpacket = sizeof(struct ip)
 			+ sizeof(struct udphdr)
 			+ sizeof(struct outdata_t);
+	if (op & OPT_USE_ICMP) {
+		minpacket = sizeof(struct ip)
+			+ SIZEOF_ICMP_HDR
+			+ sizeof(struct outdata_t);
+		port = 0; /* on ICMP6 sockets, sendto(ipv6.nonzero_port) throws EINVAL */
+	}
 #if ENABLE_TRACEROUTE6
 	af = AF_UNSPEC;
 	if (op & OPT_IPV4)
@@ -899,10 +960,15 @@ common_traceroute_main(int op, char **argv)
 		af = AF_INET6;
 	dest_lsa = xhost_and_af2sockaddr(argv[0], port, af);
 	af = dest_lsa->u.sa.sa_family;
-	if (af == AF_INET6)
+	if (af == AF_INET6) {
 		minpacket = sizeof(struct ip6_hdr)
-			+ sizeof(struct udphdr)
-			+ sizeof(struct outdata6_t);
+				+ sizeof(struct udphdr)
+				+ sizeof(struct outdata6_t);
+		if (op & OPT_USE_ICMP)
+			minpacket = sizeof(struct ip6_hdr)
+				+ SIZEOF_ICMP_HDR
+				+ sizeof(struct outdata6_t);
+	}
 #else
 	dest_lsa = xhost2sockaddr(argv[0], port);
 #endif
@@ -910,13 +976,10 @@ common_traceroute_main(int op, char **argv)
 	if (argv[1])
 		packlen = xatoul_range(argv[1], minpacket, 32 * 1024);
 
-	/* Ensure the socket fds won't be 0, 1 or 2 */
-	bb_sanitize_stdio();
-
 #if ENABLE_TRACEROUTE6
 	if (af == AF_INET6) {
 		xmove_fd(xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6), rcvsock);
-		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO);
+		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO); //why?
 	} else
 #endif
 	{
@@ -934,7 +997,10 @@ common_traceroute_main(int op, char **argv)
 	if (af == AF_INET6) {
 		if (setsockopt_int(rcvsock, SOL_RAW, IPV6_CHECKSUM, 2) != 0)
 			bb_perror_msg_and_die("setsockopt(%s)", "IPV6_CHECKSUM");
-		xmove_fd(xsocket(af, SOCK_DGRAM, 0), sndsock);
+		if (op & OPT_USE_ICMP)
+			xmove_fd(xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6), sndsock);
+		else
+			xmove_fd(xsocket(AF_INET6, SOCK_DGRAM, 0), sndsock);
 	} else
 #endif
 	{
@@ -943,6 +1009,7 @@ common_traceroute_main(int op, char **argv)
 		else
 			xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), sndsock);
 	}
+//TODO xmove_fd to here!
 
 #ifdef SO_SNDBUF
 	if (setsockopt_SOL_SOCKET_int(sndsock, SO_SNDBUF, packlen) != 0) {
@@ -970,21 +1037,25 @@ common_traceroute_main(int op, char **argv)
 	ident = getpid();
 
 	if (!ENABLE_TRACEROUTE6 || af == AF_INET) {
+		outdata = (void*)(outudp + 1);
 		if (op & OPT_USE_ICMP) {
 			ident |= 0x8000;
 			outicmp->icmp_type = ICMP_ECHO;
+			/*outicmp->icmp_code = 0; - set by xzalloc */
 			outicmp->icmp_id = htons(ident);
-			outdata = (struct outdata_t *)((char *)outicmp + SIZEOF_ICMP_HDR);
-		} else {
-			outdata = (struct outdata_t *)(outudp + 1);
+			outdata = (void*)((char *)outicmp + SIZEOF_ICMP_HDR);
 		}
 	}
 #if ENABLE_TRACEROUTE6
 	if (af == AF_INET6) {
-		outdata = (void*)((char*)outip
-				+ sizeof(struct ip6_hdr)
-				+ sizeof(struct udphdr)
-				);
+		outdata = (void*)(outudp6 + 1);
+		if (op & OPT_USE_ICMP) {
+			ident |= 0x8000;
+			outicmp6->icmp_type = ICMP6_ECHO_REQUEST;
+			/*outicmp->icmp_code = 0; - set by xzalloc */
+			outicmp6->icmp_id = htons(ident);
+			outdata = (void*)((char *)outicmp6 + SIZEOF_ICMP_HDR);
+		}
 	}
 #endif
 
@@ -1013,26 +1084,16 @@ common_traceroute_main(int op, char **argv)
 //TODO: why we don't do it for IPv4?
 		len_and_sockaddr *source_lsa;
 
-		int probe_fd = xsocket(af, SOCK_DGRAM, 0);
-		if (op & OPT_DEVICE)
-			setsockopt_bindtodevice(probe_fd, device);
-		set_nport(&dest_lsa->u.sa, htons(1025));
-		/* dummy connect. makes kernel pick source IP (and port) */
-		xconnect(probe_fd, &dest_lsa->u.sa, dest_lsa->len);
 		set_nport(&dest_lsa->u.sa, htons(port));
-
-		/* read IP and port */
-		source_lsa = get_sock_lsa(probe_fd);
+		/* Connect makes kernel pick source IP and port */
+		xconnect(sndsock, &dest_lsa->u.sa, dest_lsa->len);
+		/* Read IP and port */
+		source_lsa = get_sock_lsa(sndsock);
 		if (source_lsa == NULL)
 			bb_simple_error_msg_and_die("can't get probe addr");
-
-		close(probe_fd);
-
-		/* bind our sockets to this IP (but not port) */
+		/* bind our recv socket to this IP (but not port) */
 		set_nport(&source_lsa->u.sa, 0);
-		xbind(sndsock, &source_lsa->u.sa, source_lsa->len);
 		xbind(rcvsock, &source_lsa->u.sa, source_lsa->len);
-
 		free(source_lsa);
 	}
 #endif
@@ -1067,10 +1128,9 @@ common_traceroute_main(int op, char **argv)
 			unsigned t1;
 			unsigned t2;
 			int left_ms;
-			struct ip *ip;
 
 			fflush_all();
-			if (probe != 0 && pausemsecs > 0)
+			if (probe != 0)
 				msleep(pausemsecs);
 
 			send_probe(++seq, ttl);
@@ -1099,15 +1159,18 @@ common_traceroute_main(int op, char **argv)
 				}
 
 				print_delta_ms(t1, t2);
-				ip = (struct ip *)recv_pkt;
 
-				if (from_lsa->u.sa.sa_family == AF_INET)
-					if (op & OPT_TTL_FLAG)
+				if (from_lsa->u.sa.sa_family == AF_INET) {
+					if (op & OPT_TTL_FLAG) {
+						struct ip *ip = (struct ip *)recv_pkt;
 						printf(" (%d)", ip->ip_ttl);
+					}
+				}
 
-				/* time exceeded in transit */
+				/* Got a "time exceeded in transit" icmp message? */
 				if (icmp_code == -1)
 					break;
+
 				icmp_code--;
 				switch (icmp_code) {
 #if ENABLE_TRACEROUTE6
@@ -1115,12 +1178,13 @@ common_traceroute_main(int op, char **argv)
 					got_there = 1;
 					break;
 #endif
-				case ICMP_UNREACH_PORT:
+				case ICMP_UNREACH_PORT: {
+					struct ip *ip = (struct ip *)recv_pkt;
 					if (ip->ip_ttl <= 1)
 						printf(" !");
 					got_there = 1;
 					break;
-
+				}
 				case ICMP_UNREACH_NET:
 #if ENABLE_TRACEROUTE6 && (ICMP6_DST_UNREACH_NOROUTE != ICMP_UNREACH_NET)
 				case ICMP6_DST_UNREACH_NOROUTE << 8:
