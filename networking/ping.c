@@ -332,6 +332,11 @@ static int common_ping_main(sa_family_t af, char **argv)
 
 	create_icmp_socket(lsa);
 	G.myid = (uint16_t) getpid();
+	/* we can use native-endian ident, but other Unix ping/traceroute
+	 * utils use *big-endian pid*, and e.g. traceroute on our machine may be
+	 * *not* from busybox, idents may collide. Follow the convention:
+	 */
+	G.myid = htons(G.myid);
 #if ENABLE_PING6
 	if (lsa->u.sa.sa_family == AF_INET6)
 		ping6(lsa);
@@ -927,6 +932,11 @@ static int common_ping_main(int opt, char **argv)
 	G.interval_us = interval * 1000000;
 
 	myid = (uint16_t) getpid();
+	/* we can use native-endian ident, but other Unix ping/traceroute
+	 * utils use *big-endian pid*, and e.g. traceroute on our machine may be
+	 * *not* from busybox, idents may collide. Follow the convention:
+	 */
+	myid = htons(myid);
 	hostname = argv[optind];
 #if ENABLE_PING6
 	{

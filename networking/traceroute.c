@@ -659,9 +659,11 @@ packet4_ok(int read_len, int seq)
 
 	if ((option_mask32 & OPT_USE_ICMP)
 	 && type == ICMP_ECHOREPLY
-	 && icp->icmp_id == ident
 	 && icp->icmp_seq == htons(seq)
 	) {
+		if (icp->icmp_id != ident)
+			/* reply to another ping/traceroute from this box? */
+			return 0; /* ignore, silently */
 		/* In UDP mode, when we reach the machine, we (usually)
 		 * would get "port unreachable" - in ICMP we got "echo reply".
 		 * Simulate "port unreachable" for caller:
@@ -726,9 +728,11 @@ packet6_ok(int read_len, int seq)
 
 	if ((option_mask32 & OPT_USE_ICMP)
 	 && type == ICMP6_ECHO_REPLY
-	 && icp->icmp6_id == ident
 	 && icp->icmp6_seq == htons(seq)
 	) {
+		if (icp->icmp6_id != ident)
+			/* reply to another ping/traceroute from this box? */
+			return 0; /* ignore, silently */
 		/* In UDP mode, when we reach the machine, we (usually)
 		 * would get "port unreachable" - in ICMP we got "echo reply".
 		 * Simulate "port unreachable" for caller:
@@ -988,6 +992,11 @@ traceroute_init(int op, char **argv)
 	outip = xzalloc(packlen);
 
 	ident = getpid();
+	/* we can use native-endian ident, but other Unix ping/traceroute
+	 * utils use *big-endian pid*, and e.g. ping on our machine may be
+	 * *not* from busybox, idents may collide. Follow the convention:
+	 */
+	ident = htons(ident);
 
 	outdata = (void*)(outudp + 1);
 	if (af == AF_INET) {
