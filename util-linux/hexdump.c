@@ -28,7 +28,7 @@
 //kbuild:lib-$(CONFIG_HD) += hexdump.o
 
 //usage:#define hexdump_trivial_usage
-//usage:       "[-bcCdefnosvx] [FILE]..."
+//usage:       "[-bcdoxCv] [-e FMT] [-f FMT_FILE] [-n LEN] [-s OFS] [FILE]..."
 //usage:#define hexdump_full_usage "\n\n"
 //usage:       "Display FILEs (or stdin) in a user specified format\n"
 //usage:     "\n	-b		1-byte octal display"

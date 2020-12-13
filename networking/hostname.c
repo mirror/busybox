@@ -29,9 +29,9 @@
 //kbuild: lib-$(CONFIG_DNSDOMAINNAME) += hostname.o
 
 //usage:#define hostname_trivial_usage
-//usage:       "[OPTIONS] [HOSTNAME | -F FILE]"
+//usage:       "[-sidf] [HOSTNAME | -F FILE]"
 //usage:#define hostname_full_usage "\n\n"
-//usage:       "Get or set hostname or DNS domain name\n"
+//usage:       "Show or set hostname or DNS domain name\n"
 //usage:     "\n	-s	Short"
 //usage:     "\n	-i	Addresses for the hostname"
 //usage:     "\n	-d	DNS domain name"

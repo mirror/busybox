@@ -22,7 +22,7 @@
 //kbuild:lib-$(CONFIG_ADJTIMEX) += adjtimex.o
 
 //usage:#define adjtimex_trivial_usage
-//usage:       "[-q] [-o OFF] [-f FREQ] [-p TCONST] [-t TICK]"
+//usage:       "[-q] [-o OFS] [-f FREQ] [-p TCONST] [-t TICK]"
 //usage:#define adjtimex_full_usage "\n\n"
 //usage:       "Read or set kernel time variables. See adjtimex(2)\n"
 //usage:     "\n	-q	Quiet"

@@ -41,7 +41,7 @@
 //    -u          use upper case hex letters.
 
 //usage:#define xxd_trivial_usage
-//usage:       "[OPTIONS] [FILE]"
+//usage:       "[-pr] [-g N] [-c N] [-n LEN] [-s OFS] [FILE]"
 //usage:#define xxd_full_usage "\n\n"
 //usage:       "Hex dump FILE (or stdin)\n"
 //usage:     "\n	-g N		Bytes per group"
@@ -51,7 +51,6 @@
 //usage:     "\n	-l LENGTH	Show only first LENGTH bytes"
 //usage:     "\n	-s OFFSET	Skip OFFSET bytes"
 //usage:     "\n	-r		Reverse (with -p, assumes no offsets in input)"
-// TODO: implement -r (see hexdump -R)
 
 #include "libbb.h"
 #include "dump.h"
