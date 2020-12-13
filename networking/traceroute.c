@@ -608,7 +608,7 @@ hexdump(const struct icmp *icp, int len)
 	const unsigned char *p;
 	int i;
 
-	printf("\n%d bytes from %s to %s: icmp type %d (%s) code %d\n",
+	printf("\n%d bytes from %s to %s: icmp type %u (%s) code %u\n",
 		len,
 		auto_string(xmalloc_sockaddr2dotted_noport(&G.from_lsa->u.sa)),
 		auto_string(xmalloc_sockaddr2dotted_noport(G.to)),
@@ -617,13 +617,9 @@ hexdump(const struct icmp *icp, int len)
 	);
 	p = (const void *)icp;
 	for (i = 0; i < len; i++) {
-		if (i % 16 == 0)
-			printf("%04x:", i);
-		if (i % 4 == 0)
-			bb_putchar(' ');
-		printf("%02x", p[i]);
-		if ((i % 16 == 15) && (i + 1 < len))
-			bb_putchar('\n');
+		if (!(i & 0xf))
+			printf("\n%04x:" + (i==0), i);
+		printf(" %02x", p[i]);
 	}
 	bb_putchar('\n');
 }
@@ -706,7 +702,7 @@ packet4_ok(int read_len, int seq)
 			}
 		}
 	}
-	if (verbose)
+	if (verbose) /* testcase: traceroute -vI 127.0.0.1 (sees its own echo requests) */
 		hexdump(icp, read_len);
 	return 0;
 }
