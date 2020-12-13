@@ -10096,6 +10096,19 @@ int hush_main(int argc, char **argv)
 	 * PS4='+ '
 	 */
 
+#if NUM_SCRIPTS > 0
+	if (argc < 0) {
+		char *script = get_script_content(-argc - 1);
+		G.global_argv = argv;
+		G.global_argc = string_array_len(argv);
+		G.root_pid = getpid();
+		G.root_ppid = getppid();
+		//install_special_sighandlers(); - needed?
+		parse_and_run_string(script);
+		goto final_return;
+	}
+#endif
+
 	/* Initialize some more globals to non-zero values */
 	die_func = restore_ttypgrp_and__exit;
 
@@ -10110,16 +10123,8 @@ int hush_main(int argc, char **argv)
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
 	flags = (argv[0] && argv[0][0] == '-') ? OPT_login : 0;
 	builtin_argc = 0;
-#if NUM_SCRIPTS > 0
-	if (argc < 0) {
-		optarg = get_script_content(-argc - 1);
-		optind = 0;
-		argc = string_array_len(argv);
-		goto run_script;
-	}
-#endif
 	while (1) {
-		int opt = getopt(argc, argv, "+c:exinsl"
+		int opt = getopt(argc, argv, "+cexinsl"
 #if !BB_MMU
 				"<:$:R:V:"
 # if ENABLE_HUSH_FUNCTIONS
@@ -10131,50 +10136,11 @@ int hush_main(int argc, char **argv)
 			break;
 		switch (opt) {
 		case 'c':
-			/* Possibilities:
-			 * sh ... -c 'script'
-			 * sh ... -c 'script' ARG0 [ARG1...]
-			 * On NOMMU, if builtin_argc != 0,
-			 * sh ... -c 'builtin' BARGV... "" ARG0 [ARG1...]
-			 * "" needs to be replaced with NULL
-			 * and BARGV vector fed to builtin function.
-			 * Note: the form without ARG0 never happens:
-			 * sh ... -c 'builtin' BARGV... ""
+			/* Note: -c is not a param with option!
+			 * "hush -c -l SCRIPT" is valid. "hush -cSCRIPT" is not.
 			 */
-#if NUM_SCRIPTS > 0
- run_script:
-#endif
-			if (!G.root_pid) {
-				G.root_pid = getpid();
-				G.root_ppid = getppid();
-			}
-			G.global_argv = argv + optind;
-			G.global_argc = argc - optind;
-			if (builtin_argc) {
-				/* -c 'builtin' [BARGV...] "" ARG0 [ARG1...] */
-				const struct built_in_command *x;
-
-				install_special_sighandlers();
-				x = find_builtin(optarg);
-				if (x) { /* paranoia */
-					G.global_argc -= builtin_argc; /* skip [BARGV...] "" */
-					G.global_argv += builtin_argc;
-					G.global_argv[-1] = NULL; /* replace "" */
-					fflush_all();
-					G.last_exitcode = x->b_function(argv + optind - 1);
-				}
-				goto final_return;
-			}
 			G.opt_c = 1;
-			if (!G.global_argv[0]) {
-				/* -c 'script' (no params): prevent empty $0 */
-				G.global_argv--; /* points to argv[i] of 'script' */
-				G.global_argv[0] = argv[0];
-				G.global_argc++;
-			} /* else -c 'script' ARG0 [ARG1...]: $0 is ARG0 */
-			install_special_sighandlers();
-			parse_and_run_string(optarg);
-			goto final_return;
+			break;
 		case 'i':
 			/* Well, we cannot just declare interactiveness,
 			 * we have to have some stuff (ctty, etc) */
@@ -10288,6 +10254,52 @@ int hush_main(int argc, char **argv)
 		 * bash also sources ~/.bash_logout on exit.
 		 * If called as sh, skips .bash_XXX files.
 		 */
+	}
+
+	/* -c takes effect *after* -l */
+	if (G.opt_c) {
+		/* Possibilities:
+		 * sh ... -c 'script'
+		 * sh ... -c 'script' ARG0 [ARG1...]
+		 * On NOMMU, if builtin_argc != 0,
+		 * sh ... -c 'builtin' BARGV... "" ARG0 [ARG1...]
+		 * "" needs to be replaced with NULL
+		 * and BARGV vector fed to builtin function.
+		 * Note: the form without ARG0 never happens:
+		 * sh ... -c 'builtin' BARGV... ""
+		 */
+		char *script;
+
+		install_special_sighandlers();
+
+		G.global_argc--;
+		G.global_argv++;
+		if (builtin_argc) {
+			/* -c 'builtin' [BARGV...] "" ARG0 [ARG1...] */
+			const struct built_in_command *x;
+			x = find_builtin(G.global_argv[0]);
+			if (x) { /* paranoia */
+				argv = G.global_argv;
+				G.global_argc -= builtin_argc + 1; /* skip [BARGV...] "" */
+				G.global_argv += builtin_argc + 1;
+				G.global_argv[-1] = NULL; /* replace "" */
+				G.last_exitcode = x->b_function(argv);
+			}
+			goto final_return;
+		}
+
+		script = G.global_argv[0];
+		if (!script)
+			bb_error_msg_and_die(bb_msg_requires_arg, "-c");
+		if (!G.global_argv[1]) {
+			/* -c 'script' (no params): prevent empty $0 */
+			G.global_argv[0] = argv[0];
+		} else { /* else -c 'script' ARG0 [ARG1...]: $0 is ARG0 */
+			G.global_argc--;
+			G.global_argv++;
+		}
+		parse_and_run_string(script);
+		goto final_return;
 	}
 
 	/* -s is: hush -s ARGV1 ARGV2 (no SCRIPT) */
