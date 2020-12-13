@@ -10187,6 +10187,11 @@ int hush_main(int argc, char **argv)
 			optarg++;
 			G.depth_of_loop = bb_strtou(optarg, &optarg, 16);
 # endif
+			/* Suppress "killed by signal" message, -$ hack is used
+			 * for subshells: echo `sh -c 'kill -9 $$'`
+			 * should be silent.
+			 */
+			IF_HUSH_JOB(G.run_list_level = 1;)
 # if ENABLE_HUSH_FUNCTIONS
 			/* nommu uses re-exec trick for "... | func | ...",
 			 * should allow "return".
@@ -10274,6 +10279,7 @@ int hush_main(int argc, char **argv)
 
 		G.global_argc--;
 		G.global_argv++;
+#if !BB_MMU
 		if (builtin_argc) {
 			/* -c 'builtin' [BARGV...] "" ARG0 [ARG1...] */
 			const struct built_in_command *x;
@@ -10287,6 +10293,7 @@ int hush_main(int argc, char **argv)
 			}
 			goto final_return;
 		}
+#endif
 
 		script = G.global_argv[0];
 		if (!script)
