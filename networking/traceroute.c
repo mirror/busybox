@@ -602,11 +602,14 @@ pr_type(unsigned char t)
 
 	return ttab[t];
 }
-static void
-hexdump(const struct icmp *icp, int len)
+static int
+hexdump_if_verbose(const struct icmp *icp, int len)
 {
 	const unsigned char *p;
 	int i;
+
+	if (!verbose)
+		return 0;
 
 	printf("\n%d bytes from %s to %s: icmp type %u (%s) code %u\n",
 		len,
@@ -622,9 +625,10 @@ hexdump(const struct icmp *icp, int len)
 		printf(" %02x", p[i]);
 	}
 	bb_putchar('\n');
+	return 0;
 }
 #else
-# define hexdump(...) ((void)0)
+# define hexdump_if_verbose(...) 0
 #endif
 
 static int
@@ -704,9 +708,8 @@ packet4_ok(int read_len, int seq)
 			}
 		}
 	}
-	if (verbose) /* testcase: traceroute -vI 127.0.0.1 (sees its own echo requests) */
-		hexdump(icp, read_len);
-	return 0;
+	/* testcase: traceroute -vI 127.0.0.1 (sees its own echo requests) */
+	return hexdump_if_verbose(icp, read_len);
 }
 
 #if ENABLE_TRACEROUTE6
@@ -767,10 +770,8 @@ packet6_ok(int read_len, int seq)
 			}
 		}
 	}
-	if (verbose)
-		/* cast is safe since the beginning of icmp4 and icmp6 layouts match */
-		hexdump((const struct icmp *)icp, read_len);
-	return 0;
+	/* cast is safe since the beginning of icmp4 and icmp6 layouts match */
+	return hexdump_if_verbose((const struct icmp *)icp, read_len);
 }
 
 static int
