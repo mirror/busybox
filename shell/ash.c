@@ -14340,6 +14340,17 @@ procargs(char **argv)
 		shellparam.nparam++;
 		xargv++;
 	}
+
+	/* Interactive bash re-enables SIGHUP which is SIG_IGNed on entry.
+	 * Try:
+	 * trap '' hup; bash; echo RET	# type "kill -hup $$", see SIGHUP having effect
+	 * trap '' hup; bash -c 'kill -hup $$; echo ALIVE'  # here SIGHUP is SIG_IGNed
+	 * NB: must do it before setting up signals (in optschanged())
+	 * and reading .profile etc (after we return from here):
+	 */
+	if (iflag)
+		signal(SIGHUP, SIG_DFL);
+
 	optschanged();
 
 	return login_sh;
@@ -14510,14 +14521,6 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		}
 #endif
  state4: /* XXX ??? - why isn't this before the "if" statement */
-
-		/* Interactive bash re-enables SIGHUP which is SIG_IGNed on entry.
-		 * Try:
-		 * trap '' hup; bash; echo RET	# type "kill -hup $$", see SIGHUP having effect
-		 * trap '' hup; bash -c 'kill -hup $$; echo ALIVE'  # here SIGHUP is SIG_IGNed
-		 */
-		signal(SIGHUP, SIG_DFL);
-
 		cmdloop(1);
 	}
 #if PROFILE
