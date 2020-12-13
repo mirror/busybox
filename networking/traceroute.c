@@ -934,13 +934,10 @@ traceroute_init(int op, char **argv)
 		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO);
 	}
 #endif
-
 #if TRACEROUTE_SO_DEBUG
 	if (op & OPT_DEBUG)
 		setsockopt_SOL_SOCKET_1(rcvsock, SO_DEBUG);
 #endif
-	if (op & OPT_BYPASS_ROUTE)
-		setsockopt_SOL_SOCKET_1(rcvsock, SO_DONTROUTE);
 
 	{
 		int snd;
