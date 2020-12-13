@@ -166,7 +166,7 @@
 //kbuild:lib-$(CONFIG_VI) += vi.o
 
 //usage:#define vi_trivial_usage
-//usage:       "[OPTIONS] [FILE]..."
+//usage:       IF_FEATURE_VI_COLON("[-c CMD] ")IF_FEATURE_VI_READONLY("[-R] ")"[FILE]..."
 //usage:#define vi_full_usage "\n\n"
 //usage:       "Edit FILE\n"
 //usage:	IF_FEATURE_VI_COLON(

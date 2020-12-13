@@ -19,7 +19,7 @@
 //usage:#define nl_full_usage "\n\n"
 //usage:       "Write FILEs to standard output with line numbers added\n"
 //usage:     "\n	-b STYLE	Which lines to number - a: all, t: nonempty, n: none"
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^TODO: support "pBRE": number only lines thatmatch regexp BRE"
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^TODO: support "pBRE": number only lines that match regexp BRE"
 ////usage:     "\n	-f STYLE	footer lines"
 ////usage:     "\n	-h STYLE	header lines"
 ////usage:     "\n	-d CC		use CC for separating logical pages"

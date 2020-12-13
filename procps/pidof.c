@@ -39,7 +39,7 @@
 
 //usage:#if (ENABLE_FEATURE_PIDOF_SINGLE || ENABLE_FEATURE_PIDOF_OMIT)
 //usage:#define pidof_trivial_usage
-//usage:       "[OPTIONS] [NAME]..."
+//usage:       IF_FEATURE_PIDOF_SINGLE("[-s] ")IF_FEATURE_PIDOF_OMIT("[-o PID] ")"[NAME]..."
 //usage:#define USAGE_PIDOF "\n"
 //usage:#else
 //usage:#define pidof_trivial_usage

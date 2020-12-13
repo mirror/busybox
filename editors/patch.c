@@ -31,7 +31,7 @@
 //kbuild:lib-$(CONFIG_PATCH) += patch.o
 
 //usage:#define patch_trivial_usage
-//usage:       "[OPTIONS] [ORIGFILE [PATCHFILE]]"
+//usage:       "[-RNE] [-p N] [-i DIFF] [ORIGFILE [PATCHFILE]]"
 //usage:#define patch_full_usage "\n\n"
 //usage:       "	-p N	Strip N leading components from file names"
 //usage:     "\n	-i DIFF	Read DIFF instead of stdin"

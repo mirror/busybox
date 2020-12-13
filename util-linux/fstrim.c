@@ -20,18 +20,10 @@
 //usage:#define fstrim_trivial_usage
 //usage:       "[OPTIONS] MOUNTPOINT"
 //usage:#define fstrim_full_usage "\n\n"
-//usage:	IF_LONG_OPTS(
-//usage:       "	-o,--offset OFFSET	Offset in bytes to discard from"
-//usage:     "\n	-l,--length LEN		Bytes to discard"
-//usage:     "\n	-m,--minimum MIN	Minimum extent length"
-//usage:     "\n	-v,--verbose		Print number of discarded bytes"
-//usage:	)
-//usage:	IF_NOT_LONG_OPTS(
 //usage:       "	-o OFFSET	Offset in bytes to discard from"
 //usage:     "\n	-l LEN		Bytes to discard"
 //usage:     "\n	-m MIN		Minimum extent length"
 //usage:     "\n	-v		Print number of discarded bytes"
-//usage:	)
 
 #include "libbb.h"
 #include <linux/fs.h>

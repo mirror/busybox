@@ -26,7 +26,7 @@
 
 //usage:#if !ENABLE_MODPROBE_SMALL
 //usage:#define insmod_trivial_usage
-//usage:	IF_FEATURE_2_4_MODULES("[OPTIONS] MODULE")
+//usage:	IF_FEATURE_2_4_MODULES("[-fkvqLx] MODULE")
 //usage:	IF_NOT_FEATURE_2_4_MODULES("FILE")
 //usage:	IF_FEATURE_CMDLINE_MODULE_OPTIONS(" [SYMBOL=VALUE]...")
 //usage:#define insmod_full_usage "\n\n"

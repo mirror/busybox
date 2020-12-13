@@ -19,7 +19,7 @@
 //kbuild:lib-$(CONFIG_FUSER) += fuser.o
 
 //usage:#define fuser_trivial_usage
-//usage:       "[OPTIONS] FILE or PORT/PROTO"
+//usage:       "[-msk46] [-SIGNAL] FILE or PORT/PROTO"
 //usage:#define fuser_full_usage "\n\n"
 //usage:       "Find processes which use FILEs or PORTs\n"
 //usage:     "\n	-m	Find processes which use same fs as FILEs"

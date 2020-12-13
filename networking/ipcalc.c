@@ -36,7 +36,7 @@
 //kbuild:lib-$(CONFIG_IPCALC) += ipcalc.o
 
 //usage:#define ipcalc_trivial_usage
-//usage:       "[OPTIONS] ADDRESS"
+//usage:       "[-bnm"IF_FEATURE_IPCALC_FANCY("phs")"] ADDRESS"
 //usage:       IF_FEATURE_IPCALC_FANCY("[/PREFIX]") " [NETMASK]"
 //usage:#define ipcalc_full_usage "\n\n"
 //usage:       "Calculate and display network settings from IP address\n"

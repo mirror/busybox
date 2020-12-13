@@ -41,16 +41,16 @@
 //kbuild:lib-$(CONFIG_UMOUNT) += umount.o
 
 //usage:#define umount_trivial_usage
-//usage:       "[OPTIONS] FILESYSTEM|DIRECTORY"
+//usage:       "[-rlf"IF_FEATURE_MTAB_SUPPORT("m")IF_FEATURE_MOUNT_LOOP("d")IF_FEATURE_UMOUNT_ALL("a")"] [-t FSTYPE] FILESYSTEM|DIRECTORY"
 //usage:#define umount_full_usage "\n\n"
-//usage:       "Unmount file systems\n"
+//usage:       "Unmount filesystems\n"
 //usage:	IF_FEATURE_UMOUNT_ALL(
-//usage:     "\n	-a	Unmount all file systems" IF_FEATURE_MTAB_SUPPORT(" in /etc/mtab")
+//usage:     "\n	-a	Unmount all filesystems" IF_FEATURE_MTAB_SUPPORT(" in /etc/mtab")
 //usage:	)
 //usage:	IF_FEATURE_MTAB_SUPPORT(
 //usage:     "\n	-n	Don't erase /etc/mtab entries"
 //usage:	)
-//usage:     "\n	-r	Try to remount devices as read-only if mount is busy"
+//usage:     "\n	-r	Remount devices read-only if mount is busy"
 //usage:     "\n	-l	Lazy umount (detach filesystem)"
 //usage:     "\n	-f	Force umount (i.e., unreachable NFS server)"
 //usage:	IF_FEATURE_MOUNT_LOOP(

@@ -21,14 +21,14 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/ln.html */
 
 //usage:#define ln_trivial_usage
-//usage:       "[OPTIONS] TARGET... LINK|DIR"
+//usage:       "[-sfnbtv] [-S SUF] TARGET... LINK|DIR"
 //usage:#define ln_full_usage "\n\n"
 //usage:       "Create a link LINK or DIR/TARGET to the specified TARGET(s)\n"
 //usage:     "\n	-s	Make symlinks instead of hardlinks"
 //usage:     "\n	-f	Remove existing destinations"
 //usage:     "\n	-n	Don't dereference symlinks - treat like normal file"
 //usage:     "\n	-b	Make a backup of the target (if exists) before link operation"
-//usage:     "\n	-S suf	Use suffix instead of ~ when making backup files"
+//usage:     "\n	-S SUF	Use suffix instead of ~ when making backup files"
 //usage:     "\n	-T	Treat LINK as a file, not DIR"
 //usage:     "\n	-v	Verbose"
 //usage:

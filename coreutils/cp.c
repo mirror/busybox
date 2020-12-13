@@ -38,7 +38,7 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/cp.html */
 
 //usage:#define cp_trivial_usage
-//usage:       "[OPTIONS] SOURCE... DEST"
+//usage:       "[-arPLHpfilsTu] SOURCE... DEST"
 //usage:#define cp_full_usage "\n\n"
 //usage:       "Copy SOURCE(s) to DEST\n"
 //usage:     "\n	-a	Same as -dpR"
