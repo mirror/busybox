@@ -324,7 +324,6 @@
 #ifndef IPPROTO_IP
 # define IPPROTO_IP 0
 #endif
-
 /* Some operating systems, like GNU/Hurd, don't define SOL_RAW, but do have
  * IPPROTO_RAW. Since the IPPROTO definitions are also valid to use for
  * setsockopt (and take the same value as their corresponding SOL definitions,
@@ -391,19 +390,24 @@ struct globals {
 	struct ip *outip;
 	/* Pointer to ICMP or UDP payload (not header): */
 	struct outdata_t *outdata;
-
 	len_and_sockaddr *dest_lsa;
 	len_and_sockaddr *from_lsa;	/* response came from this address */
 	struct sockaddr *to; 		/* response came to this (local) address */
-	int packlen;                    /* total length of packet */
-	int pmtu;                       /* Path MTU Discovery (RFC1191) */
 	uint32_t ident;
 	uint16_t port;                  /* start udp dest port # for probe packets */
+#if ENABLE_TRACEROUTE6
+	smallint ipv6;
+# define G_ipv6 G.ipv6
+#else
+# define G_ipv6 0
+#endif
+	int packlen;                    /* total length of packet */
+	int pmtu;                       /* Path MTU Discovery (RFC1191) */
 	int waittime;                   /* time to wait for response (in seconds) */
 	int first_ttl;
 	int nprobes;
-	unsigned pausemsecs;
 	int max_ttl;
+	unsigned pausemsecs;
 	unsigned char recv_pkt[512];    /* last inbound (icmp) packet */
 };
 
@@ -482,7 +486,7 @@ send_probe(int seq, int ttl)
 
 	/* Payload */
 #if ENABLE_TRACEROUTE6
-	if (dest_lsa->u.sa.sa_family == AF_INET6) {
+	if (G_ipv6) {
 		struct outdata6_t *pkt = (void *) outdata;
 		pkt->ident6 = ident;
 		pkt->seq6   = htonl(seq);
@@ -541,7 +545,7 @@ send_probe(int seq, int ttl)
 #endif
 
 #if ENABLE_TRACEROUTE6
-	if (dest_lsa->u.sa.sa_family == AF_INET6) {
+	if (G_ipv6) {
 		res = setsockopt_int(sndsock, SOL_IPV6, IPV6_UNICAST_HOPS, ttl);
 		if (res != 0)
 			bb_perror_msg_and_die("setsockopt(%s) %d", "UNICAST_HOPS", ttl);
@@ -585,7 +589,7 @@ pr_type(unsigned char t)
 [16]	= "Neighbor Advert", "Redirect",
 	};
 
-	if (dest_lsa->u.sa.sa_family == AF_INET6) {
+	if (G_ipv6) {
 		if (t < 5)
 			return ttab6[t];
 		if (t < 128 || t > ND_REDIRECT)
@@ -772,7 +776,7 @@ packet6_ok(int read_len, int seq)
 static int
 packet_ok(int read_len, int seq)
 {
-	if (G.from_lsa->u.sa.sa_family == AF_INET)
+	if (!G_ipv6)
 		return packet4_ok(read_len, seq);
 	return packet6_ok(read_len, seq);
 }
@@ -792,10 +796,10 @@ print(int read_len)
 		printf("  %s", ina);
 	} else {
 		char *n = NULL;
-		if (G.from_lsa->u.sa.sa_family != AF_INET
+		if (G_ipv6
 		 || G.from_lsa->u.sin.sin_addr.s_addr != INADDR_ANY
 		) {
-			/* Try to reverse resolve if it is not 0.0.0.0 */
+			/* Reverse resolve if IPV6 or not 0.0.0.0 */
 			n = auto_string(xmalloc_sockaddr2host_noport(&G.from_lsa->u.sa));
 		}
 		printf("  %s (%s)", (n ? n : ina), ina);
@@ -808,7 +812,7 @@ print(int read_len)
 		 * Reads from (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6) do strip IPv6
 		 * header and return only ICMP6 packet. Weird.
 		 */
-		if (G.from_lsa->u.sa.sa_family == AF_INET6) {
+		if (G_ipv6) {
 			/* read_len -= sizeof(struct ip6_hdr); - WRONG! */
 		} else
 #endif
@@ -904,7 +908,9 @@ traceroute_init(int op, char **argv)
 		af = AF_INET6;
 	dest_lsa = xhost_and_af2sockaddr(argv[0], port, af);
 	af = dest_lsa->u.sa.sa_family;
+//TODO: make sure af == AF_INET[6]? (FEATURE_UNIX_LOCAL=y allows "local:/PATH" to be translated to AF_UNIX)
 	if (af == AF_INET6) {
+		G_ipv6 = 1;
 		packlen = sizeof(struct ip6_hdr)
 				+ sizeof(struct udphdr)
 				+ sizeof(struct outdata6_t);
@@ -914,9 +920,9 @@ traceroute_init(int op, char **argv)
 				+ sizeof(struct outdata6_t);
 	}
 #else
-	dest_lsa = xhost2sockaddr(argv[0], port);
+	/* accept only IPv4 addresses */
+	dest_lsa = xhost_and_af2sockaddr(argv[0], port, AF_INET);
 #endif
-//TODO: make sure af == AF_INET[6]? (FEATURE_UNIX_LOCAL=y allows "local:/PATH" to be translated to AF_UNIX)
 	G.from_lsa = xmemdup(dest_lsa, LSA_LEN_SIZE + dest_lsa->len);
 	G.to = xzalloc(dest_lsa->len);
 	if (argv[1])
@@ -1117,7 +1123,7 @@ common_traceroute_main(int op, char **argv)
 				memcpy(lastaddr, &G.from_lsa->u.sa, G.from_lsa->len);
 			}
 			print_delta_ms(t1, t2);
-			if (G.from_lsa->u.sa.sa_family == AF_INET) {
+			if (!G_ipv6) {
 				if (op & OPT_TTL_FLAG) {
 					struct ip *ip = (struct ip *)recv_pkt;
 					printf(" (%d)", ip->ip_ttl);
