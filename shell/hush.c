@@ -9992,7 +9992,9 @@ int hush_main(int argc, char **argv)
 		OPT_login = (1 << 0),
 	};
 	unsigned flags;
-	unsigned builtin_argc;
+#if !BB_MMU
+	unsigned builtin_argc = 0;
+#endif
 	char **e;
 	struct variable *cur_var;
 	struct variable *shell_ver;
@@ -10122,7 +10124,6 @@ int hush_main(int argc, char **argv)
 	/* Parse options */
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
 	flags = (argv[0] && argv[0][0] == '-') ? OPT_login : 0;
-	builtin_argc = 0;
 	while (1) {
 		int opt = getopt(argc, argv, "+cexinsl"
 #if !BB_MMU
@@ -10222,13 +10223,7 @@ int hush_main(int argc, char **argv)
 			if (set_mode(1, opt, NULL) == 0) /* no error */
 				break;
 		default:
-#ifndef BB_VER
-			fprintf(stderr, "Usage: sh [FILE]...\n"
-					"   or: sh -c command [args]...\n\n");
-			exit(EXIT_FAILURE);
-#else
 			bb_show_usage();
-#endif
 		}
 	} /* option parsing loop */
 
@@ -10244,9 +10239,12 @@ int hush_main(int argc, char **argv)
 
 	/* If we are login shell... */
 	if (flags & OPT_login) {
+		const char *hp = NULL;
 		HFILE *input;
+
 		debug_printf("sourcing /etc/profile\n");
 		input = hfopen("/etc/profile");
+ run_profile:
 		if (input != NULL) {
 			install_special_sighandlers();
 			parse_and_run_file(input);
@@ -10259,6 +10257,16 @@ int hush_main(int argc, char **argv)
 		 * bash also sources ~/.bash_logout on exit.
 		 * If called as sh, skips .bash_XXX files.
 		 */
+		if (!hp) { /* unless we looped on the "goto" already */
+			hp = get_local_var_value("HOME");
+			if (hp && hp[0]) {
+				debug_printf("sourcing ~/.profile\n");
+				hp = concat_path_file(hp, ".profile");
+				input = hfopen(hp);
+				free((char*)hp);
+				goto run_profile;
+			}
+		}
 	}
 
 	/* -c takes effect *after* -l */
