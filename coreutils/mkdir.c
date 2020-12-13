@@ -27,7 +27,7 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/mkdir.html */
 
 //usage:#define mkdir_trivial_usage
-//usage:       "[OPTIONS] DIRECTORY..."
+//usage:       "[-m MODE] [-p] DIRECTORY..."
 //usage:#define mkdir_full_usage "\n\n"
 //usage:       "Create DIRECTORY\n"
 //usage:     "\n	-m MODE	Mode"

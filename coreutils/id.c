@@ -33,7 +33,7 @@
 /* BB_AUDIT SUSv3 compliant. */
 
 //usage:#define id_trivial_usage
-//usage:       "[OPTIONS] [USER]"
+//usage:       "[-ugGnr"IF_SELINUX("Z")"] [USER]"
 //usage:#define id_full_usage "\n\n"
 //usage:       "Print information about USER or the current user\n"
 //usage:	IF_SELINUX(

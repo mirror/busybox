@@ -28,7 +28,7 @@
 //kbuild:lib-$(CONFIG_PASSWD) += passwd.o
 
 //usage:#define passwd_trivial_usage
-//usage:       "[OPTIONS] [USER]"
+//usage:       "[-a ALG] [-dlu] [USER]"
 //usage:#define passwd_full_usage "\n\n"
 //usage:       "Change USER's password (default: current user)"
 //usage:     "\n"

@@ -40,7 +40,7 @@
 //kbuild:lib-$(CONFIG_STAT) += stat.o
 
 //usage:#define stat_trivial_usage
-//usage:       "[OPTIONS] FILE..."
+//usage:       "[-lt"IF_FEATURE_STAT_FILESYSTEM("f")"] "IF_FEATURE_STAT_FORMAT("[-c FMT] ")"FILE..."
 //usage:#define stat_full_usage "\n\n"
 //usage:       "Display file"
 //usage:            IF_FEATURE_STAT_FILESYSTEM(" (default) or filesystem")

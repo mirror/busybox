@@ -20,7 +20,7 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/rmdir.html */
 
 //usage:#define rmdir_trivial_usage
-//usage:       "[OPTIONS] DIRECTORY..."
+//usage:       "[-p] DIRECTORY..."
 //usage:#define rmdir_full_usage "\n\n"
 //usage:       "Remove DIRECTORY if it is empty\n"
 //usage:     "\n	-p	Include parents"

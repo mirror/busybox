@@ -50,7 +50,7 @@
 //kbuild:lib-$(CONFIG_BZIP2) += bzip2.o
 
 //usage:#define bzip2_trivial_usage
-//usage:       "[OPTIONS] [FILE]..."
+//usage:       "[-cfk" IF_FEATURE_BZIP2_DECOMPRESS("dt") "123456789] [FILE]..."
 //usage:#define bzip2_full_usage "\n\n"
 //usage:       "Compress FILEs (or stdin) with bzip2 algorithm\n"
 //usage:     "\n	-1..9	Compression level"

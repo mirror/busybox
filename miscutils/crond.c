@@ -63,7 +63,7 @@
 //kbuild:lib-$(CONFIG_CROND) += crond.o
 
 //usage:#define crond_trivial_usage
-//usage:       "-fbS -l N " IF_FEATURE_CROND_D("-d N ") "-L LOGFILE -c DIR"
+//usage:       "[-fbS] [-l N] " IF_FEATURE_CROND_D("[-d N] ") "[-L LOGFILE] [-c DIR]"
 //usage:#define crond_full_usage "\n\n"
 //usage:       "	-f	Foreground"
 //usage:     "\n	-b	Background (default)"

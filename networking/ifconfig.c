@@ -76,7 +76,7 @@
 //kbuild:lib-$(CONFIG_IFCONFIG) += ifconfig.o interface.o
 
 //usage:#define ifconfig_trivial_usage
-//usage:	IF_FEATURE_IFCONFIG_STATUS("[-a]") " interface [address]"
+//usage:	IF_FEATURE_IFCONFIG_STATUS("[-a]") " [IFACE] [ADDRESS]"
 //usage:#define ifconfig_full_usage "\n\n"
 //usage:       "Configure a network interface\n"
 //usage:     "\n"
