@@ -59,7 +59,7 @@
 //usage:       "[if=FILE] [of=FILE] [" IF_FEATURE_DD_IBS_OBS("ibs=N obs=N/") "bs=N] [count=N] [skip=N] [seek=N]\n"
 //usage:	IF_FEATURE_DD_IBS_OBS(
 //usage:       "	[conv=notrunc|noerror|sync|fsync]\n"
-//usage:       "	[iflag=skip_bytes|fullblock] [oflag=seek_bytes|append]"
+//usage:       "	[iflag=skip_bytes|fullblock|direct] [oflag=seek_bytes|append|direct]"
 //usage:	)
 //usage:#define dd_full_usage "\n\n"
 //usage:       "Copy a file with converting and formatting\n"
@@ -82,9 +82,11 @@
 //usage:     "\n	conv=fsync	Physically write data out before finishing"
 //usage:     "\n	conv=swab	Swap every pair of bytes"
 //usage:     "\n	iflag=skip_bytes	skip=N is in bytes"
-//usage:     "\n	iflag=fullblock	Read full blocks"
 //usage:     "\n	oflag=seek_bytes	seek=N is in bytes"
-//usage:     "\n	oflag=append	Open output file in append mode"
+//usage:     "\n	iflag=direct	O_DIRECT input"
+//usage:     "\n	oflag=direct	O_DIRECT output"
+//usage:     "\n	iflag=fullblock	Read full blocks"
+//usage:     "\n	oflag=append	Open output in append mode"
 //usage:	)
 //usage:	IF_FEATURE_DD_STATUS(
 //usage:     "\n	status=noxfer	Suppress rate output"
@@ -137,16 +139,18 @@ enum {
 	FLAG_IFLAG_SHIFT = 5,
 	FLAG_SKIP_BYTES = (1 << 5) * ENABLE_FEATURE_DD_IBS_OBS,
 	FLAG_FULLBLOCK = (1 << 6) * ENABLE_FEATURE_DD_IBS_OBS,
+	FLAG_IDIRECT = (1 << 7) * ENABLE_FEATURE_DD_IBS_OBS,
 	/* end of input flags */
 	/* start of output flags */
-	FLAG_OFLAG_SHIFT = 7,
-	FLAG_SEEK_BYTES = (1 << 7) * ENABLE_FEATURE_DD_IBS_OBS,
-	FLAG_APPEND = (1 << 8) * ENABLE_FEATURE_DD_IBS_OBS,
+	FLAG_OFLAG_SHIFT = 8,
+	FLAG_SEEK_BYTES = (1 << 8) * ENABLE_FEATURE_DD_IBS_OBS,
+	FLAG_APPEND = (1 << 9) * ENABLE_FEATURE_DD_IBS_OBS,
+	FLAG_ODIRECT = (1 << 10) * ENABLE_FEATURE_DD_IBS_OBS,
 	/* end of output flags */
-	FLAG_TWOBUFS = (1 << 9) * ENABLE_FEATURE_DD_IBS_OBS,
-	FLAG_COUNT   = 1 << 10,
-	FLAG_STATUS_NONE = 1 << 11,
-	FLAG_STATUS_NOXFER = 1 << 12,
+	FLAG_TWOBUFS = (1 << 11) * ENABLE_FEATURE_DD_IBS_OBS,
+	FLAG_COUNT   = 1 << 12,
+	FLAG_STATUS_NONE = 1 << 13,
+	FLAG_STATUS_NOXFER = 1 << 14,
 };
 
 static void dd_output_status(int UNUSED_PARAM cur_signal)
@@ -192,12 +196,50 @@ static void dd_output_status(int UNUSED_PARAM cur_signal)
 #endif
 }
 
+#if ENABLE_FEATURE_DD_IBS_OBS
+static int clear_O_DIRECT(int fd)
+{
+	if (errno == EINVAL) {
+		int fl = fcntl(fd, F_GETFL);
+		if (fl & O_DIRECT) {
+			fcntl(fd, F_SETFL, fl & ~O_DIRECT);
+			return 1;
+		}
+	}
+	return 0;
+}
+#endif
+
+static ssize_t dd_read(void *ibuf, size_t ibs)
+{
+	ssize_t n;
+
+#if ENABLE_FEATURE_DD_IBS_OBS
+ read_again:
+	if (G.flags & FLAG_FULLBLOCK)
+		n = full_read(ifd, ibuf, ibs);
+	else
+#endif
+		n = safe_read(ifd, ibuf, ibs);
+#if ENABLE_FEATURE_DD_IBS_OBS
+	if (n < 0 && (G.flags & FLAG_IDIRECT) && clear_O_DIRECT(ifd))
+		goto read_again;
+#endif
+	return n;
+}
+
 static bool write_and_stats(const void *buf, size_t len, size_t obs,
 	const char *filename)
 {
 	ssize_t n;
 
+ IF_FEATURE_DD_IBS_OBS(write_again:)
 	n = full_write(ofd, buf, len);
+#if ENABLE_FEATURE_DD_IBS_OBS
+	if (n < 0 && (G.flags & FLAG_ODIRECT) && clear_O_DIRECT(ofd))
+		goto write_again;
+#endif
+
 #if ENABLE_FEATURE_DD_THIRD_STATUS_LINE
 	if (n > 0)
 		G.total_bytes += n;
@@ -254,6 +296,14 @@ static int parse_comma_flags(char *val, const char *words, const char *error_in)
 }
 #endif
 
+static void *alloc_buf(size_t size)
+{
+	/* Important for "{i,o}flag=direct" - buffers must be page aligned */
+	if (size >= bb_getpagesize())
+		return xmmap_anon(size);
+	return xmalloc(size);
+}
+
 int dd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dd_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -267,9 +317,9 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	static const char conv_words[] ALIGN1 =
 		"notrunc\0""sync\0""noerror\0""fsync\0""swab\0";
 	static const char iflag_words[] ALIGN1 =
-		"skip_bytes\0""fullblock\0";
+		"skip_bytes\0""fullblock\0""direct\0";
 	static const char oflag_words[] ALIGN1 =
-		"seek_bytes\0append\0";
+		"seek_bytes\0append\0""direct\0";
 #endif
 #if ENABLE_FEATURE_DD_STATUS
 	static const char status_words[] ALIGN1 =
@@ -310,7 +360,9 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	//swab          swap every pair of input bytes: will abort on non-even reads
 		OP_iflag_skip_bytes,
 		OP_iflag_fullblock,
+		OP_iflag_direct,
 		OP_oflag_seek_bytes,
+		OP_oflag_direct,
 #endif
 	};
 	smallint exitcode = EXIT_FAILURE;
@@ -426,13 +478,12 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	} /* end of "for (argv[i])" */
 
-//XXX:FIXME for huge ibs or obs, malloc'ing them isn't the brightest idea ever
-	ibuf = xmalloc(ibs);
+	ibuf = alloc_buf(ibs);
 	obuf = ibuf;
 #if ENABLE_FEATURE_DD_IBS_OBS
 	if (ibs != obs) {
 		G.flags |= FLAG_TWOBUFS;
-		obuf = xmalloc(obs);
+		obuf = alloc_buf(obs);
 	}
 #endif
 
@@ -444,7 +495,12 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	if (infile) {
-		xmove_fd(xopen(infile, O_RDONLY), ifd);
+		int iflag = O_RDONLY;
+#if ENABLE_FEATURE_DD_IBS_OBS
+		if (G.flags & FLAG_IDIRECT)
+			iflag |= O_DIRECT;
+#endif
+		xmove_fd(xopen(infile, iflag), ifd);
 	} else {
 		infile = bb_msg_standard_input;
 	}
@@ -455,7 +511,10 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			oflag |= O_TRUNC;
 		if (G.flags & FLAG_APPEND)
 			oflag |= O_APPEND;
-
+#if ENABLE_FEATURE_DD_IBS_OBS
+		if (G.flags & FLAG_ODIRECT)
+			oflag |= O_DIRECT;
+#endif
 		xmove_fd(xopen(outfile, oflag), ofd);
 
 		if (seek && !(G.flags & FLAG_NOTRUNC)) {
@@ -478,13 +537,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 		size_t blocksz = (G.flags & FLAG_SKIP_BYTES) ? 1 : ibs;
 		if (lseek(ifd, skip * blocksz, SEEK_CUR) < 0) {
 			do {
-				ssize_t n;
-#if ENABLE_FEATURE_DD_IBS_OBS
-				if (G.flags & FLAG_FULLBLOCK)
-					n = full_read(ifd, ibuf, blocksz);
-				else
-#endif
-					n = safe_read(ifd, ibuf, blocksz);
+				ssize_t n = dd_read(ibuf, blocksz);
 				if (n < 0)
 					goto die_infile;
 				if (n == 0)
@@ -499,13 +552,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	while (!(G.flags & FLAG_COUNT) || (G.in_full + G.in_part != count)) {
-		ssize_t n;
-#if ENABLE_FEATURE_DD_IBS_OBS
-		if (G.flags & FLAG_FULLBLOCK)
-			n = full_read(ifd, ibuf, ibs);
-		else
-#endif
-			n = safe_read(ifd, ibuf, ibs);
+		ssize_t n = dd_read(ibuf, ibs);
 		if (n == 0)
 			break;
 		if (n < 0) {
@@ -600,11 +647,13 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	if (!ENABLE_FEATURE_DD_STATUS || !(G.flags & FLAG_STATUS_NONE))
 		dd_output_status(0);
 
+#if 0 /* can't just free(), they can be mmap()ed */
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(obuf);
 		if (G.flags & FLAG_TWOBUFS)
 			free(ibuf);
 	}
+#endif
 
 	return exitcode;
 }
