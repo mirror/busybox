@@ -387,6 +387,9 @@ void* xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, int idx) F
 char *xstrdup(const char *s) FAST_FUNC RETURNS_MALLOC;
 char *xstrndup(const char *s, int n) FAST_FUNC RETURNS_MALLOC;
 void *xmemdup(const void *s, int n) FAST_FUNC RETURNS_MALLOC;
+void *mmap_read(int fd, size_t size) FAST_FUNC;
+void *mmap_anon(size_t size) FAST_FUNC;
+void *xmmap_anon(size_t size) FAST_FUNC;
 
 
 //TODO: supply a pointer to char[11] buffer (avoid statics)?

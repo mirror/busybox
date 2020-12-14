@@ -111,6 +111,27 @@ void* FAST_FUNC xmemdup(const void *s, int n)
 	return memcpy(xmalloc(n), s, n);
 }
 
+void* FAST_FUNC mmap_read(int fd, size_t size)
+{
+	return mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+}
+
+void* FAST_FUNC mmap_anon(size_t size)
+{
+	return mmap(NULL, size,
+			PROT_READ | PROT_WRITE,
+			MAP_PRIVATE | MAP_ANONYMOUS,
+			/* ignored: */ -1, 0);
+}
+
+void* FAST_FUNC xmmap_anon(size_t size)
+{
+	void *p = mmap_anon(size);
+	if (p == MAP_FAILED)
+		bb_die_memory_exhausted();
+	return p;
+}
+
 // Die if we can't open a file and return a FILE* to it.
 // Notice we haven't got xfread(), This is for use with fscanf() and friends.
 FILE* FAST_FUNC xfopen(const char *path, const char *mode)

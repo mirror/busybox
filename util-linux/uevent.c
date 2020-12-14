@@ -74,12 +74,7 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 		// for a new uevent notification to come in.
 		// We use a fresh mmap so that buffer is not allocated
 		// until kernel actually starts filling it.
-		netbuf = mmap(NULL, USER_RCVBUF,
-					PROT_READ | PROT_WRITE,
-					MAP_PRIVATE | MAP_ANON,
-					/* ignored: */ -1, 0);
-		if (netbuf == MAP_FAILED)
-			bb_simple_perror_msg_and_die("mmap");
+		netbuf = xmmap_anon(USER_RCVBUF);
 
 		// Here we block, possibly for a very long time
 		len = safe_read(fd, netbuf, USER_RCVBUF - 1);

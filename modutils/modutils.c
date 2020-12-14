@@ -169,7 +169,7 @@ void* FAST_FUNC try_to_mmap_module(const char *filename, size_t *image_size_p)
 	/* st.st_size is off_t, we can't just pass it to mmap */
 	if (st.st_size <= *image_size_p) {
 		size_t image_size = st.st_size;
-		image = mmap(NULL, image_size, PROT_READ, MAP_PRIVATE, fd, 0);
+		image = mmap_read(fd, image_size);
 		if (image == MAP_FAILED) {
 			image = NULL;
 		} else if (*(uint32_t*)image != SWAP_BE32(0x7f454C46)) {

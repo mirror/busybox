@@ -145,7 +145,7 @@ static int rpm_gettags(const char *filename)
 	/* remember size for munmap */
 	G.mapsize = storepos;
 	/* some NOMMU systems prefer MAP_PRIVATE over MAP_SHARED */
-	G.map = mmap(0, storepos, PROT_READ, MAP_PRIVATE, fd, 0);
+	G.map = mmap_read(fd, storepos);
 	if (G.map == MAP_FAILED)
 		bb_perror_msg_and_die("mmap '%s'", filename);
 
