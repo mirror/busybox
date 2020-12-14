@@ -83,7 +83,9 @@ struct globals {
 	void *map;
 	rpm_index *mytags;
 	int tagcount;
-	unsigned mapsize, pagesize;
+	unsigned mapsize;
+	IF_VARIABLE_ARCH_PAGESIZE(unsigned pagesize;)
+#define G_pagesize cached_pagesize(G.pagesize)
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
@@ -141,7 +143,7 @@ static int rpm_gettags(const char *filename)
 	G.mytags = tags;
 
 	/* Map the store */
-	storepos = (storepos + G.pagesize) & -(int)G.pagesize;
+	storepos = (storepos + G_pagesize) & -(int)G_pagesize;
 	/* remember size for munmap */
 	G.mapsize = storepos;
 	/* some NOMMU systems prefer MAP_PRIVATE over MAP_SHARED */
@@ -356,7 +358,7 @@ int rpm_main(int argc, char **argv)
 	int opt, func = 0;
 
 	INIT_G();
-	G.pagesize = getpagesize();
+	INIT_PAGESIZE(G.pagesize);
 
 	while ((opt = getopt(argc, argv, "iqpldc")) != -1) {
 		switch (opt) {
@@ -523,7 +525,7 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	int rpm_fd;
 
 	INIT_G();
-	G.pagesize = getpagesize();
+	INIT_PAGESIZE(G.pagesize);
 
 	rpm_fd = rpm_gettags(argv[1]);
 

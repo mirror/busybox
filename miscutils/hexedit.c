@@ -31,7 +31,8 @@ struct globals {
 	int fd;
 	unsigned height;
 	unsigned row;
-	unsigned pagesize;
+	IF_VARIABLE_ARCH_PAGESIZE(unsigned pagesize;)
+#define G_pagesize cached_pagesize(G.pagesize)
 	uint8_t *baseaddr;
 	uint8_t *current_byte;
 	uint8_t *eof_byte;
@@ -45,15 +46,6 @@ struct globals {
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
-
-//TODO: move to libbb
-#if defined(__x86_64__) || defined(i386)
-# define G_pagesize 4096
-# define INIT_PAGESIZE() ((void)0)
-#else
-# define G_pagesize (G.pagesize)
-# define INIT_PAGESIZE() ((void)(G.pagesize = getpagesize()))
-#endif
 
 /* hopefully there aren't arches with PAGE_SIZE > 64k */
 #define G_mapsize  (64*1024)
@@ -262,7 +254,7 @@ int hexedit_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hexedit_main(int argc UNUSED_PARAM, char **argv)
 {
 	INIT_G();
-	INIT_PAGESIZE();
+	INIT_PAGESIZE(G.pagesize);
 
 	get_terminal_width_height(-1, NULL, &G.height);
 	if (1) {

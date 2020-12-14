@@ -75,7 +75,7 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage(); /* one of bb_strtouXX failed */
 
 	fd = xopen("/dev/mem", argv[3] ? (O_RDWR | O_SYNC) : (O_RDONLY | O_SYNC));
-	mapped_size = page_size = getpagesize();
+	mapped_size = page_size = bb_getpagesize();
 	offset_in_page = (unsigned)target & (page_size - 1);
 	if (offset_in_page + width > page_size) {
 		/* This access spans pages.

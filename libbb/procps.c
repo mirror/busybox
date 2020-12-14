@@ -94,15 +94,15 @@ static int read_to_buf(const char *filename, void *buf)
 
 static procps_status_t* FAST_FUNC alloc_procps_scan(void)
 {
-	unsigned n = getpagesize();
 	procps_status_t* sp = xzalloc(sizeof(procps_status_t));
-	sp->dir = xopendir("/proc");
+	unsigned n = bb_getpagesize();
 	while (1) {
 		n >>= 1;
 		if (!n) break;
 		sp->shift_pages_to_bytes++;
 	}
 	sp->shift_pages_to_kb = sp->shift_pages_to_bytes - 10;
+	sp->dir = xopendir("/proc");
 	return sp;
 }
 

@@ -391,6 +391,24 @@ void *mmap_read(int fd, size_t size) FAST_FUNC;
 void *mmap_anon(size_t size) FAST_FUNC;
 void *xmmap_anon(size_t size) FAST_FUNC;
 
+#if defined(__x86_64__) || defined(i386)
+# define BB_ARCH_FIXED_PAGESIZE 4096
+#else /* if defined(ARCH) */
+/* add you favorite arch today! */
+#endif
+
+#if defined BB_ARCH_FIXED_PAGESIZE
+# define IF_VARIABLE_ARCH_PAGESIZE(...) /*nothing*/
+# define bb_getpagesize()     BB_ARCH_FIXED_PAGESIZE
+# define INIT_PAGESIZE(var)   ((void)0)
+# define cached_pagesize(var) BB_ARCH_FIXED_PAGESIZE
+#else
+# define IF_VARIABLE_ARCH_PAGESIZE(...) __VA_ARGS__
+# define bb_getpagesize()     getpagesize()
+# define INIT_PAGESIZE(var)   ((var) = getpagesize())
+# define cached_pagesize(var) (var)
+#endif
+
 
 //TODO: supply a pointer to char[11] buffer (avoid statics)?
 extern const char *bb_mode_string(mode_t mode) FAST_FUNC;
