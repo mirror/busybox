@@ -10499,7 +10499,7 @@ static int FAST_FUNC builtin_true(char **argv UNUSED_PARAM)
 }
 
 #if ENABLE_HUSH_TEST || ENABLE_HUSH_ECHO || ENABLE_HUSH_PRINTF || ENABLE_HUSH_KILL
-static int run_applet_main(char **argv, int (*applet_main_func)(int argc, char **argv))
+static NOINLINE int run_applet_main(char **argv, int (*applet_main_func)(int argc, char **argv))
 {
 	int argc = string_array_len(argv);
 	return applet_main_func(argc, argv);
