@@ -393,8 +393,13 @@ void *xmmap_anon(size_t size) FAST_FUNC;
 
 #if defined(__x86_64__) || defined(i386)
 # define BB_ARCH_FIXED_PAGESIZE 4096
+#elif defined(__arm__) /* only 32bit, 64bit ARM has variable page size */
+# define BB_ARCH_FIXED_PAGESIZE 4096
 #else /* if defined(ARCH) */
 /* add you favorite arch today! */
+//From Linux kernel inspection:
+//xtenza,s390[x],riscv,nios2,csky,sparc32: fixed 4k pages
+//sparc64,alpha,openrisc: fixed 8k pages
 #endif
 
 #if defined BB_ARCH_FIXED_PAGESIZE
