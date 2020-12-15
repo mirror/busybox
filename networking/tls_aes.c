@@ -313,15 +313,15 @@ static void InvMixColumns(unsigned astate[16])
 		d = astate[i + 3];
 		x = (a << 1) ^ (a << 2) ^ (a << 3) ^ b ^ (b << 1) ^ (b << 3)
 		/***/ ^ c ^ (c << 2) ^ (c << 3) ^ d ^ (d << 3);
+		astate[i + 0] = Multiply(x);
 		y = a ^ (a << 3) ^ (b << 1) ^ (b << 2) ^ (b << 3)
 		/***/ ^ c ^ (c << 1) ^ (c << 3) ^ d ^ (d << 2) ^ (d << 3);
+		astate[i + 1] = Multiply(y);
 		z = a ^ (a << 2) ^ (a << 3) ^ b ^ (b << 3)
 		/***/ ^ (c << 1) ^ (c << 2) ^ (c << 3) ^ d ^ (d << 1) ^ (d << 3);
+		astate[i + 2] = Multiply(z);
 		t = a ^ (a << 1) ^ (a << 3) ^ b ^ (b << 2) ^ (b << 3)
 		/***/ ^ c ^ (c << 3) ^ (d << 1) ^ (d << 2) ^ (d << 3);
-		astate[i + 0] = Multiply(x);
-		astate[i + 1] = Multiply(y);
-		astate[i + 2] = Multiply(z);
 		astate[i + 3] = Multiply(t);
 	}
 }
