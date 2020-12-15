@@ -2462,9 +2462,6 @@ static NOINLINE void ntp_init(char **argv)
 
 	srand(getpid());
 
-	if (getuid())
-		bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
-
 	/* Set some globals */
 	G.discipline_jitter = G_precision_sec;
 	G.stratum = MAXSTRAT;
