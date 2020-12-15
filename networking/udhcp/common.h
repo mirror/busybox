@@ -343,7 +343,8 @@ int udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 
 int udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 		uint32_t source_nip, int source_port,
-		uint32_t dest_nip, int dest_port) FAST_FUNC;
+		uint32_t dest_nip, int dest_port,
+		const char *ifname) FAST_FUNC;
 
 void udhcp_sp_setup(void) FAST_FUNC;
 void udhcp_sp_fd_set(struct pollfd *pfds, int extra_fd) FAST_FUNC;

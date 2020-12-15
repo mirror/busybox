@@ -702,7 +702,8 @@ static int bcast_or_ucast(struct dhcp_packet *packet, uint32_t ciaddr, uint32_t 
 	if (server)
 		return udhcp_send_kernel_packet(packet,
 			ciaddr, CLIENT_PORT,
-			server, SERVER_PORT);
+			server, SERVER_PORT,
+			client_data.interface);
 	return raw_bcast_from_client_data_ifindex(packet, ciaddr);
 }
 
