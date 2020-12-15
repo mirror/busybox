@@ -120,6 +120,7 @@ static char *my_crypt(const char *key, const char *salt)
 	if (!des_cctx)
 		des_cctx = const_des_init();
 	des_ctx = des_init(des_ctx, des_cctx);
+	/* Can return NULL if salt is bad ("" or "<one_char>") */
 	return des_crypt(des_ctx, xzalloc(DES_OUT_BUFSIZE), (unsigned char*)key, (unsigned char*)salt);
 }
 
@@ -137,6 +138,8 @@ char* FAST_FUNC pw_encrypt(const char *clear, const char *salt, int cleanup)
 	char *encrypted;
 
 	encrypted = my_crypt(clear, salt);
+	if (!encrypted)
+		bb_simple_error_msg_and_die("bad salt");
 
 	if (cleanup)
 		my_crypt_cleanup();
@@ -148,14 +151,16 @@ char* FAST_FUNC pw_encrypt(const char *clear, const char *salt, int cleanup)
 
 char* FAST_FUNC pw_encrypt(const char *clear, const char *salt, int cleanup)
 {
-	char *s;
+	char *encrypted;
 
-	s = crypt(clear, salt);
+	encrypted = crypt(clear, salt);
 	/*
 	 * glibc used to return "" on malformed salts (for example, ""),
 	 * but since 2.17 it returns NULL.
 	 */
-	return xstrdup(s ? s : "");
+	if (!encrypted || !encrypted[0])
+		bb_simple_error_msg_and_die("bad salt");
+	return xstrdup(encrypted);
 }
 
 #endif

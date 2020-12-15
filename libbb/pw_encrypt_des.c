@@ -713,10 +713,14 @@ to64_msb_first(char *s, unsigned v)
 static char *
 NOINLINE
 des_crypt(struct des_ctx *ctx, char output[DES_OUT_BUFSIZE],
-		const unsigned char *key, const unsigned char *setting)
+		const unsigned char *key, const unsigned char *salt_str)
 {
 	uint32_t salt, r0, r1, keybuf[2];
 	uint8_t *q;
+
+	/* Bad salt? Mimic crypt() API - return NULL */
+	if (!salt_str[0] || !salt_str[1])
+		return NULL;
 
 	/*
 	 * Copy the key, shifting each character up by one bit
@@ -732,22 +736,15 @@ des_crypt(struct des_ctx *ctx, char output[DES_OUT_BUFSIZE],
 	des_setkey(ctx, (char *)keybuf);
 
 	/*
-	 * setting - 2 bytes of salt
+	 * salt_str - 2 bytes of salt
 	 * key - up to 8 characters
 	 */
-	salt = (ascii_to_bin(setting[1]) << 6)
-	     |  ascii_to_bin(setting[0]);
-
-	output[0] = setting[0];
-	/*
-	 * If the encrypted password that the salt was extracted from
-	 * is only 1 character long, the salt will be corrupted.  We
-	 * need to ensure that the output string doesn't have an extra
-	 * NUL in it!
-	 */
-	output[1] = setting[1] ? setting[1] : output[0];
-
+	output[0] = salt_str[0];
+	output[1] = salt_str[1];
+	salt = (ascii_to_bin(salt_str[1]) << 6)
+	     |  ascii_to_bin(salt_str[0]);
 	setup_salt(ctx, salt);
+
 	/* Do it. */
 	do_des(ctx, /*0, 0,*/ &r0, &r1, 25 /* count */);
 
