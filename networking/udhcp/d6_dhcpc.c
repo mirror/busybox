@@ -558,11 +558,10 @@ static int d6_mcast_from_client_data_ifindex(struct d6_packet *packet, uint8_t *
 		0x33, 0x33, 0x00, 0x01, 0x00, 0x02,
 	};
 
-	return d6_send_raw_packet(
+	return d6_send_raw_packet_from_client_data_ifindex(
 		packet, (end - (uint8_t*) packet),
 		/*src*/ &client6_data.ll_ip6, CLIENT_PORT6,
-		/*dst*/ (struct in6_addr*)FF02__1_2, SERVER_PORT6, MAC_DHCP6MCAST_ADDR,
-		client_data.ifindex
+		/*dst*/ (struct in6_addr*)FF02__1_2, SERVER_PORT6, MAC_DHCP6MCAST_ADDR
 	);
 }
 
@@ -864,11 +863,10 @@ static NOINLINE int send_d6_renew(uint32_t xid, struct in6_addr *server_ipv6, st
 
 	bb_info_msg("sending %s", "renew");
 	if (server_ipv6)
-		return d6_send_kernel_packet(
+		return d6_send_kernel_packet_from_client_data_ifindex(
 			&packet, (opt_ptr - (uint8_t*) &packet),
 			our_cur_ipv6, CLIENT_PORT6,
-			server_ipv6, SERVER_PORT6,
-			client_data.ifindex
+			server_ipv6, SERVER_PORT6
 		);
 	return d6_mcast_from_client_data_ifindex(&packet, opt_ptr);
 }
@@ -893,11 +891,10 @@ int send_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
 		opt_ptr = mempcpy(opt_ptr, client6_data.ia_pd, client6_data.ia_pd->len + 2+2);
 
 	bb_info_msg("sending %s", "release");
-	return d6_send_kernel_packet(
+	return d6_send_kernel_packet_from_client_data_ifindex(
 		&packet, (opt_ptr - (uint8_t*) &packet),
 		our_cur_ipv6, CLIENT_PORT6,
-		server_ipv6, SERVER_PORT6,
-		client_data.ifindex
+		server_ipv6, SERVER_PORT6
 	);
 }
 

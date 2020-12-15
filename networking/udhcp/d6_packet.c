@@ -6,6 +6,7 @@
  */
 #include "common.h"
 #include "d6_common.h"
+#include "dhcpc.h"
 #include "dhcpd.h"
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
@@ -50,11 +51,10 @@ int FAST_FUNC d6_recv_kernel_packet(struct in6_addr *peer_ipv6
 }
 
 /* Construct a ipv6+udp header for a packet, send packet */
-int FAST_FUNC d6_send_raw_packet(
+int FAST_FUNC d6_send_raw_packet_from_client_data_ifindex(
 		struct d6_packet *d6_pkt, unsigned d6_pkt_size,
 		struct in6_addr *src_ipv6, int source_port,
-		struct in6_addr *dst_ipv6, int dest_port, const uint8_t *dest_arp,
-		int ifindex)
+		struct in6_addr *dst_ipv6, int dest_port, const uint8_t *dest_arp)
 {
 	struct sockaddr_ll dest_sll;
 	struct ip6_udp_d6_packet packet;
@@ -74,7 +74,7 @@ int FAST_FUNC d6_send_raw_packet(
 
 	dest_sll.sll_family = AF_PACKET;
 	dest_sll.sll_protocol = htons(ETH_P_IPV6);
-	dest_sll.sll_ifindex = ifindex;
+	dest_sll.sll_ifindex = client_data.ifindex;
 	/*dest_sll.sll_hatype = ARPHRD_???;*/
 	/*dest_sll.sll_pkttype = PACKET_???;*/
 	dest_sll.sll_halen = 6;
@@ -103,8 +103,8 @@ int FAST_FUNC d6_send_raw_packet(
 	 */
 	packet.ip6.ip6_hlim = IPPROTO_UDP;
 	packet.udp.check = inet_cksum(
-				(uint8_t *)&packet + 4,
-				offsetof(struct ip6_udp_d6_packet, data) - 4 + d6_pkt_size
+			(uint8_t *)&packet + 4,
+			offsetof(struct ip6_udp_d6_packet, data) - 4 + d6_pkt_size
 	);
 	/* fix 'hop limit' and 'next header' after UDP checksumming */
 	packet.ip6.ip6_hlim = 1; /* observed Windows machines to use hlim=1 */
@@ -126,11 +126,10 @@ int FAST_FUNC d6_send_raw_packet(
 }
 
 /* Let the kernel do all the work for packet generation */
-int FAST_FUNC d6_send_kernel_packet(
+int FAST_FUNC d6_send_kernel_packet_from_client_data_ifindex(
 		struct d6_packet *d6_pkt, unsigned d6_pkt_size,
 		struct in6_addr *src_ipv6, int source_port,
-		struct in6_addr *dst_ipv6, int dest_port,
-		int ifindex)
+		struct in6_addr *dst_ipv6, int dest_port)
 {
 	struct sockaddr_in6 sa;
 	int fd;
@@ -157,7 +156,7 @@ int FAST_FUNC d6_send_kernel_packet(
 	sa.sin6_family = AF_INET6;
 	sa.sin6_port = htons(dest_port);
 	sa.sin6_addr = *dst_ipv6; /* struct copy */
-	sa.sin6_scope_id = ifindex;
+	sa.sin6_scope_id = client_data.ifindex;
 	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
 		msg = "connect";
 		goto ret_close;
