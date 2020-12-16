@@ -96,11 +96,10 @@ int rdate_main(int argc UNUSED_PARAM, char **argv)
 		if (time(NULL) == remote_time)
 			bb_simple_error_msg("current time matches remote time");
 		else {
-			struct timespec ts;
+			struct timeval ts;
 			ts.tv_sec = remote_time;
-			ts.tv_nsec = 0;
-			if (clock_settime(CLOCK_REALTIME, &ts) < 0)
-				bb_simple_perror_msg_and_die("can't set time of day");
+			ts.tv_usec = 0;
+			xsettimeofday(&ts);
 		}
 	}
 

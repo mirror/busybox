@@ -1147,8 +1147,7 @@ step_time(double offset)
 	gettimeofday(&tvc, NULL); /* never fails */
 	dtime = tvc.tv_sec + (1.0e-6 * tvc.tv_usec) + offset;
 	d_to_tv(dtime, &tvn);
-	if (settimeofday(&tvn, NULL) == -1)
-		bb_simple_perror_msg_and_die("settimeofday");
+	xsettimeofday(&tvn);
 
 	VERB2 {
 		tval = tvc.tv_sec;

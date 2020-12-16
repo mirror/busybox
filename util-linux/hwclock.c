@@ -184,10 +184,8 @@ static void set_kernel_timezone_and_clock(int utc, const struct timeval *hctosys
 	/*tz.tz_dsttime = 0; already is */
 	set_kernel_tz(&tz); /* MIGHT warp_clock() if 1st call since boot */
 
-	if (hctosys) { /* it's --hctosys: set time too */
-		if (settimeofday(hctosys, NULL))
-			bb_simple_perror_msg_and_die("settimeofday");
-	}
+	if (hctosys) /* it's --hctosys: set time too */
+		xsettimeofday(hctosys);
 }
 
 static void to_sys_clock(const char **pp_rtcname, int utc)

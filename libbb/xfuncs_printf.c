@@ -702,3 +702,21 @@ void FAST_FUNC xvfork_parent_waits_and_exits(void)
 	}
 	/* Child continues */
 }
+
+// Useful when we do know that pid is valid, and we just want to wait
+// for it to exit. Not existing pid is fatal. waitpid() status is not returned.
+int FAST_FUNC wait_for_exitstatus(pid_t pid)
+{
+	int exit_status, n;
+
+	n = safe_waitpid(pid, &exit_status, 0);
+	if (n < 0)
+		bb_simple_perror_msg_and_die("waitpid");
+	return exit_status;
+}
+
+void FAST_FUNC xsettimeofday(const struct timeval *tv)
+{
+	if (settimeofday(tv, NULL))
+		bb_simple_perror_msg_and_die("settimeofday");
+}
