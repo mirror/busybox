@@ -10,18 +10,10 @@
 //usage:       "[-r|-a] [-d] [-f LEASEFILE]"
 //usage:#define dumpleases_full_usage "\n\n"
 //usage:       "Display DHCP leases granted by udhcpd\n"
-//usage:	IF_LONG_OPTS(
-//usage:     "\n	-f,--file FILE	Lease file"
-//usage:     "\n	-r,--remaining	Show remaining time"
-//usage:     "\n	-a,--absolute	Show expiration time"
-//usage:     "\n	-d,--decimal	Show time in seconds"
-//usage:	)
-//usage:	IF_NOT_LONG_OPTS(
 //usage:     "\n	-f FILE	Lease file"
 //usage:     "\n	-r	Show remaining time"
 //usage:     "\n	-a	Show expiration time"
 //usage:     "\n	-d	Show time in seconds"
-//usage:	)
 
 #include "common.h"
 #include "dhcpd.h"

@@ -296,16 +296,15 @@ static void set_system_clock_timezone(int utc)
 
 //usage:#define hwclock_trivial_usage
 //usage:	IF_LONG_OPTS(
-//usage:       "[-r|--show] [-s|--hctosys] [-w|--systohc] [--systz]"
-//usage:       " [--localtime] [-u|--utc]"
-//usage:       " [-f|--rtc FILE]"
+//usage:       "[-swu] [--systz] [--localtime] [-f FILE]"
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(
-//usage:       "[-r] [-s] [-w] [-t] [-l] [-u] [-f FILE]"
+//usage:       "[-swtlu] [-f FILE]"
 //usage:	)
 //usage:#define hwclock_full_usage "\n\n"
-//usage:       "Query and set hardware clock (RTC)\n"
-//usage:     "\n	-r	Show hardware clock time"
+//usage:       "Show or set hardware clock (RTC)\n"
+///////:     "\n	-r	Show hardware clock time"
+///////-r is default, don't bother showing it in help
 //usage:     "\n	-s	Set system time from hardware clock"
 //usage:     "\n	-w	Set hardware clock from system time"
 //usage:	IF_LONG_OPTS(

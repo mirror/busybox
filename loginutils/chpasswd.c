@@ -24,21 +24,13 @@
 //kbuild:lib-$(CONFIG_CHPASSWD) += chpasswd.o
 
 //usage:#define chpasswd_trivial_usage
-//usage:	IF_LONG_OPTS("[--md5|--encrypted|--crypt-method|--root]") IF_NOT_LONG_OPTS("[-m|-e|-c|-R]")
+//usage:	"[-me] [-c ALG] [-R DIR]"
 //usage:#define chpasswd_full_usage "\n\n"
 //usage:       "Read user:password from stdin and update /etc/passwd\n"
-//usage:	IF_LONG_OPTS(
-//usage:     "\n	-e,--encrypted		Supplied passwords are in encrypted form"
-//usage:     "\n	-m,--md5		Encrypt using md5, not des"
-//usage:     "\n	-c,--crypt-method ALG	"CRYPT_METHODS_HELP_STR
-//usage:     "\n	-R,--root DIR		Directory to chroot into"
-//usage:	)
-//usage:	IF_NOT_LONG_OPTS(
 //usage:     "\n	-e	Supplied passwords are in encrypted form"
 //usage:     "\n	-m	Encrypt using md5, not des"
 //usage:     "\n	-c ALG	"CRYPT_METHODS_HELP_STR
 //usage:     "\n	-R DIR	Directory to chroot into"
-//usage:	)
 
 #include "libbb.h"
 

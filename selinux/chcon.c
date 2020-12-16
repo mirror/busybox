@@ -19,10 +19,10 @@
 //kbuild:lib-$(CONFIG_CHCON) += chcon.o
 
 //usage:#define chcon_trivial_usage
-//usage:       "[OPTIONS] CONTEXT FILE..."
-//usage:       "\n	chcon [OPTIONS] [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE..."
+//usage:       "[-chfRv] CONTEXT FILE..."
+//usage:       "\n	chcon [-chfRv] [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE..."
 //usage:	IF_LONG_OPTS(
-//usage:       "\n	chcon [OPTIONS] --reference=RFILE FILE..."
+//usage:       "\n	chcon [-chfRv] --reference=RFILE FILE..."
 //usage:	)
 //usage:
 //usage:#define chcon_full_usage "\n\n"
@@ -37,7 +37,7 @@
 //usage:     "\n	-u USER	Set user/role/type/range in the target security context"
 //usage:     "\n	-r ROLE"
 //usage:     "\n	-t TYPE"
-//usage:     "\n	-l RNG"
+//usage:     "\n	-l RANGE"
 //usage:     "\n	-R	Recurse"
 
 #include <selinux/context.h>

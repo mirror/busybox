@@ -32,28 +32,22 @@
 
 //kbuild:lib-$(CONFIG_RTCWAKE) += rtcwake.o
 
+//usage:#if ENABLE_FEATURE_HWCLOCK_ADJTIME_FHS
+//usage:# define ADJTIME_PATH "/var/lib/hwclock/adjtime"
+//usage:#else
+//usage:# define ADJTIME_PATH "/etc/adjtime"
+//usage:#endif
 //usage:#define rtcwake_trivial_usage
 //usage:       "[-a | -l | -u] [-d DEV] [-m MODE] [-s SEC | -t TIME]"
 //usage:#define rtcwake_full_usage "\n\n"
 //usage:       "Enter a system sleep state until specified wakeup time\n"
-//usage:	IF_LONG_OPTS(
-//usage:     "\n	-a,--auto	Read clock mode from adjtime"
-//usage:     "\n	-l,--local	Clock is set to local time"
-//usage:     "\n	-u,--utc	Clock is set to UTC time"
-//usage:     "\n	-d,--device DEV	Specify the RTC device"
-//usage:     "\n	-m,--mode MODE	Set sleep state (default: standby)"
-//usage:     "\n	-s,--seconds SEC Set timeout in SEC seconds from now"
-//usage:     "\n	-t,--time TIME	Set timeout to TIME seconds from epoch"
-//usage:	)
-//usage:	IF_NOT_LONG_OPTS(
-//usage:     "\n	-a	Read clock mode from adjtime"
+//usage:     "\n	-a	Read clock mode from "ADJTIME_PATH" (default)"
 //usage:     "\n	-l	Clock is set to local time"
 //usage:     "\n	-u	Clock is set to UTC time"
 //usage:     "\n	-d DEV	Specify the RTC device"
 //usage:     "\n	-m MODE	Set sleep state (default: standby)"
 //usage:     "\n	-s SEC	Set timeout in SEC seconds from now"
 //usage:     "\n	-t TIME	Set timeout to TIME seconds from epoch"
-//usage:	)
 
 #include "libbb.h"
 #include "rtc_.h"
