@@ -743,9 +743,11 @@ static int path_parse(char ***p)
 	char *tmp;
 	char **res;
 
+#if EDITING_HAS_path_lookup
 	if (state->flags & WITH_PATH_LOOKUP)
 		pth = state->path_lookup;
 	else
+#endif
 		pth = getenv("PATH");
 
 	/* PATH="" or PATH=":"? */

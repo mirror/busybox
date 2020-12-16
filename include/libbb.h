@@ -1863,14 +1863,20 @@ typedef const char *get_exe_name_t(int i) FAST_FUNC;
 typedef struct line_input_t {
 	int flags;
 	int timeout;
+# if ENABLE_FEATURE_TAB_COMPLETION
+#  if ENABLE_SHELL_ASH
 	const char *path_lookup;
-# if ENABLE_FEATURE_TAB_COMPLETION \
-&& (ENABLE_ASH  || ENABLE_SH_IS_ASH  || ENABLE_BASH_IS_ASH \
-||  ENABLE_HUSH || ENABLE_SH_IS_HUSH || ENABLE_BASH_IS_HUSH \
-)
+#   define EDITING_HAS_path_lookup 1
+#  else
+#   define EDITING_HAS_path_lookup 0
+#  endif
+#  if ENABLE_SHELL_ASH || ENABLE_SHELL_HUSH
 	/* function to fetch additional application-specific names to match */
 	get_exe_name_t *get_exe_name;
-#  define EDITING_HAS_get_exe_name 1
+#   define EDITING_HAS_get_exe_name 1
+#  else
+#   define EDITING_HAS_get_exe_name 0
+#  endif
 # endif
 # if MAX_HISTORY
 	int cnt_history;
