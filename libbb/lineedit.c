@@ -736,9 +736,9 @@ enum {
 	FIND_FILE_ONLY = 2,
 };
 
-static int path_parse(char ***p)
+static unsigned path_parse(char ***p)
 {
-	int npth;
+	unsigned npth;
 	const char *pth;
 	char *tmp;
 	char **res;
@@ -755,7 +755,7 @@ static int path_parse(char ***p)
 		return 1;
 
 	tmp = (char*)pth;
-	npth = 2; /* path component count */
+	npth = 1; /* path component count */
 	while (1) {
 		tmp = strchr(tmp, ':');
 		if (!tmp)
@@ -766,7 +766,7 @@ static int path_parse(char ***p)
 		npth++;
 	}
 
-	*p = res = xmalloc(npth * sizeof(res[0]));
+	*p = res = xzalloc((npth + 1) * sizeof(res[0]));
 	res[0] = tmp = xstrdup(pth);
 	npth = 1;
 	while (1) {
@@ -778,8 +778,8 @@ static int path_parse(char ***p)
 			break; /* :<empty> */
 		res[npth++] = tmp;
 	}
-	/* special case: match subdirectories of the current directory */
-	res[npth++] = NULL;
+	/* special case: "match subdirectories of the current directory" */
+	/*res[npth++] = NULL; - filled by xzalloc() */
 	return npth;
 }
 
@@ -790,38 +790,38 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 {
 	char *path1[1];
 	char **paths = path1;
-	int npaths;
-	int i;
-	unsigned pf_len;
-	const char *pfind;
+	unsigned npaths;
+	unsigned i;
+	unsigned baselen;
+	const char *basecmd;
 	char *dirbuf = NULL;
 
 	npaths = 1;
 	path1[0] = (char*)".";
 
-	pfind = strrchr(command, '/');
-	if (!pfind) {
+	basecmd = strrchr(command, '/');
+	if (!basecmd) {
 		if (type == FIND_EXE_ONLY)
 			npaths = path_parse(&paths);
-		pfind = command;
+		basecmd = command;
 	} else {
 		/* point to 'l' in "..../last_component" */
-		pfind++;
+		basecmd++;
 		/* dirbuf = ".../.../.../" */
-		dirbuf = xstrndup(command, pfind - command);
+		dirbuf = xstrndup(command, basecmd - command);
 # if ENABLE_FEATURE_USERNAME_COMPLETION
 		if (dirbuf[0] == '~')   /* ~/... or ~user/... */
 			dirbuf = username_path_completion(dirbuf);
 # endif
 		path1[0] = dirbuf;
 	}
-	pf_len = strlen(pfind);
+	baselen = strlen(basecmd);
 
 	if (type == FIND_EXE_ONLY && !dirbuf) {
 # if ENABLE_FEATURE_SH_STANDALONE && NUM_APPLETS != 1
 		const char *p = applet_names;
 		while (*p) {
-			if (strncmp(pfind, p, pf_len) == 0)
+			if (strncmp(basecmd, p, baselen) == 0)
 				add_match(xstrdup(p));
 			while (*p++ != '\0')
 				continue;
@@ -834,7 +834,7 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 				const char *b = state->get_exe_name(i++);
 				if (!b)
 					break;
-				if (strncmp(pfind, b, pf_len) == 0)
+				if (strncmp(basecmd, b, baselen) == 0)
 					add_match(xstrdup(b));
 			}
 		}
@@ -847,7 +847,10 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 		struct stat st;
 		char *found;
 
-		if (paths[i] == NULL) {
+		if (paths[i] == NULL) { /* path_parse()'s last component? */
+			/* in PATH completion, current dir's subdir names
+			 * can be completions (but only subdirs, not files).
+			 */
 			type = FIND_DIR_ONLY;
 			paths[i] = (char *)".";
 		}
@@ -861,10 +864,10 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 			const char *name_found = next->d_name;
 
 			/* .../<tab>: bash 3.2.0 shows dotfiles, but not . and .. */
-			if (!pfind[0] && DOT_OR_DOTDOT(name_found))
+			if (!basecmd[0] && DOT_OR_DOTDOT(name_found))
 				continue;
 			/* match? */
-			if (!is_prefixed_with(name_found, pfind))
+			if (strncmp(basecmd, name_found, baselen) != 0)
 				continue; /* no */
 
 			found = concat_path_file(paths[i], name_found);
@@ -906,7 +909,7 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 	}
 	free(dirbuf);
 
-	return pf_len;
+	return baselen;
 }
 
 /* build_match_prefix:
