@@ -529,6 +529,14 @@ config STACK_OPTIMIZATION_386
 	do not work with it (they use SSE instructions without
 	ensuring stack alignment).
 
+config STATIC_LIBGCC
+	bool "Use -static-libgcc"
+	default y
+	help
+	This option instructs gcc to link in a static version of its
+	support library, libgcc. This means that the binary will require
+	one fewer dynamic library at run time.
+
 comment 'Installation Options ("make install" behavior)'
 
 choice

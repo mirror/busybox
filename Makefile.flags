@@ -58,7 +58,8 @@ CFLAGS += $(call cc-option,-fno-builtin-strlen -fomit-frame-pointer -ffunction-s
 CFLAGS += $(call cc-option,-fno-guess-branch-probability,)
 CFLAGS += $(call cc-option,-funsigned-char,)
 
-ifneq ($(CC),clang)
+ifeq ($(CONFIG_STATIC_LIBGCC),y)
+# Disable it, for example, if you get
 # "clang-9: warning: argument unused during compilation: '-static-libgcc'"
 CFLAGS += $(call cc-option,-static-libgcc,)
 endif
