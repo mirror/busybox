@@ -57,12 +57,23 @@
 #if ENABLE_FEATURE_EDITING
 
 
+#if !ENABLE_SHELL_ASH && !ENABLE_SHELL_HUSH
+/* so far only shells use these features */
+# undef ENABLE_FEATURE_EDITING_FANCY_PROMPT
+# undef ENABLE_FEATURE_TAB_COMPLETION
+# undef ENABLE_FEATURE_USERNAME_COMPLETION
+# define ENABLE_FEATURE_EDITING_FANCY_PROMPT 0
+# define ENABLE_FEATURE_TAB_COMPLETION       0
+# define ENABLE_FEATURE_USERNAME_COMPLETION  0
+#endif
+
+
 #define ENABLE_USERNAME_OR_HOMEDIR \
 	(ENABLE_FEATURE_USERNAME_COMPLETION || ENABLE_FEATURE_EDITING_FANCY_PROMPT)
-#define IF_USERNAME_OR_HOMEDIR(...)
 #if ENABLE_USERNAME_OR_HOMEDIR
-# undef IF_USERNAME_OR_HOMEDIR
 # define IF_USERNAME_OR_HOMEDIR(...) __VA_ARGS__
+#else
+# define IF_USERNAME_OR_HOMEDIR(...) /*nothing*/
 #endif
 
 
@@ -743,11 +754,11 @@ static unsigned path_parse(char ***p)
 	char *tmp;
 	char **res;
 
-#if EDITING_HAS_path_lookup
+# if EDITING_HAS_path_lookup
 	if (state->flags & WITH_PATH_LOOKUP)
 		pth = state->path_lookup;
 	else
-#endif
+# endif
 		pth = getenv("PATH");
 
 	/* PATH="" or PATH=":"? */
@@ -1885,9 +1896,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 {
 	int prmt_size = 0;
 	char *prmt_mem_ptr = xzalloc(1);
-# if ENABLE_USERNAME_OR_HOMEDIR
 	char *cwd_buf = NULL;
-# endif
 	char flg_not_length = '[';
 	char cbuf[2];
 
@@ -1954,11 +1963,9 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				c = *prmt_ptr++;
 
 				switch (c) {
-# if ENABLE_USERNAME_OR_HOMEDIR
 				case 'u':
 					pbuf = user_buf ? user_buf : (char*)"";
 					break;
-# endif
 				case 'H':
 				case 'h':
 					pbuf = free_me = safe_gethostname();
@@ -1976,7 +1983,6 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 					strftime_HHMMSS(timebuf, sizeof(timebuf), NULL)[-3] = '\0';
 					pbuf = timebuf;
 					break;
-# if ENABLE_USERNAME_OR_HOMEDIR
 				case 'w': /* current dir */
 				case 'W': /* basename of cur dir */
 					if (!cwd_buf) {
@@ -2003,7 +2009,6 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 					if (cp)
 						pbuf = (char*)cp + 1;
 					break;
-# endif
 // bb_process_escape_sequence does this now:
 //				case 'e': case 'E':     /* \e \E = \033 */
 //					c = '\033';
@@ -2064,10 +2069,8 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 		free(free_me);
 	} /* while */
 
-# if ENABLE_USERNAME_OR_HOMEDIR
 	if (cwd_buf != (char *)bb_msg_unknown)
 		free(cwd_buf);
-# endif
 	/* see comment (above this function) about multiline prompt redrawing */
 	cmdedit_prompt = prompt_last_line = prmt_mem_ptr;
 	prmt_ptr = strrchr(cmdedit_prompt, '\n');
@@ -2075,7 +2078,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 		prompt_last_line = prmt_ptr + 1;
 	put_prompt();
 }
-#endif
+#endif /* FEATURE_EDITING_FANCY_PROMPT */
 
 #if ENABLE_FEATURE_EDITING_WINCH
 static void cmdedit_setwidth(void)
