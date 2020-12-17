@@ -7,12 +7,6 @@
 #include "libbb.h"
 #include "rtc_.h"
 
-#if ENABLE_FEATURE_HWCLOCK_ADJTIME_FHS
-# define ADJTIME_PATH "/var/lib/hwclock/adjtime"
-#else
-# define ADJTIME_PATH "/etc/adjtime"
-#endif
-
 int FAST_FUNC rtc_adjtime_is_utc(void)
 {
 	int utc = 0;

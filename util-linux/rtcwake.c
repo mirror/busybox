@@ -32,11 +32,6 @@
 
 //kbuild:lib-$(CONFIG_RTCWAKE) += rtcwake.o
 
-//usage:#if ENABLE_FEATURE_HWCLOCK_ADJTIME_FHS
-//usage:# define ADJTIME_PATH "/var/lib/hwclock/adjtime"
-//usage:#else
-//usage:# define ADJTIME_PATH "/etc/adjtime"
-//usage:#endif
 //usage:#define rtcwake_trivial_usage
 //usage:       "[-a | -l | -u] [-d DEV] [-m MODE] [-s SEC | -t TIME]"
 //usage:#define rtcwake_full_usage "\n\n"

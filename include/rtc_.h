@@ -11,6 +11,12 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
+#if ENABLE_FEATURE_HWCLOCK_ADJTIME_FHS
+# define ADJTIME_PATH "/var/lib/hwclock/adjtime"
+#else
+# define ADJTIME_PATH "/etc/adjtime"
+#endif
+
 int rtc_adjtime_is_utc(void) FAST_FUNC;
 int rtc_xopen(const char **default_rtc, int flags) FAST_FUNC;
 void rtc_read_tm(struct tm *ptm, int fd) FAST_FUNC;

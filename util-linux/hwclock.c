@@ -344,11 +344,6 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 //     --test           dry run; implies --verbose
 // -v, --verbose        display more details
 
-//usage:#if ENABLE_FEATURE_HWCLOCK_ADJTIME_FHS
-//usage:# define ADJTIME_PATH "/var/lib/hwclock/adjtime"
-//usage:#else
-//usage:# define ADJTIME_PATH "/etc/adjtime"
-//usage:#endif
 //usage:#define hwclock_trivial_usage
 //usage:	IF_LONG_OPTS(
 //usage:       "[-swul] [--systz] [-f DEV]"
