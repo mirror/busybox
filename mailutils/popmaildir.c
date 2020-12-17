@@ -68,6 +68,7 @@
 static void pop3_checkr(const char *fmt, const char *param, char **ret)
 {
 	char *msg = send_mail_command(fmt, param);
+//FIXME: limit max len!!!
 	char *answer = xmalloc_fgetline(stdin);
 	if (answer && '+' == answer[0]) {
 		free(msg);

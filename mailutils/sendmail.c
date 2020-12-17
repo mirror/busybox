@@ -102,13 +102,6 @@
 // set to 0 to not limit
 #define MAX_HEADERS 256
 
-static void send_r_n(const char *s)
-{
-	if (G.verbose)
-		bb_error_msg("send:'%s'", s);
-	printf("%s\r\n", s);
-}
-
 static int smtp_checkp(const char *fmt, const char *param, int code)
 {
 	char *answer;
@@ -119,6 +112,7 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 	// if code = -1 then just return this number
 	// if code != -1 then checks whether the number equals the code
 	// if not equal -> die saying msg
+//FIXME: limit max len!!!
 	while ((answer = xmalloc_fgetline(stdin)) != NULL) {
 		if (G.verbose)
 			bb_error_msg("recv:'%.*s'", (int)(strchrnul(answer, '\r') - answer), answer);
@@ -426,6 +420,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	// this means we scan stdin for To:, Cc:, Bcc: lines until an empty line
 	// and then use the rest of stdin as message body
 	code = 0; // set "analyze headers" mode
+//FIXME: limit max len!!!
 	while ((s = xmalloc_fgetline(G.fp0)) != NULL) {
  dump:
 		// put message lines doubling leading dots

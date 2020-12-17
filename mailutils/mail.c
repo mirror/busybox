@@ -69,6 +69,13 @@ void FAST_FUNC launch_helper(const char **argv)
 	// parent goes on
 }
 
+void FAST_FUNC send_r_n(const char *s)
+{
+	if (G.verbose)
+		bb_error_msg("send:'%s'", s);
+	printf("%s\r\n", s);
+}
+
 char* FAST_FUNC send_mail_command(const char *fmt, const char *param)
 {
 	char *msg;
@@ -77,9 +84,7 @@ char* FAST_FUNC send_mail_command(const char *fmt, const char *param)
 	msg = (char*)fmt;
 	if (fmt) {
 		msg = xasprintf(fmt, param);
-		if (G.verbose)
-			bb_error_msg("send:'%s'", msg);
-		printf("%s\r\n", msg);
+		send_r_n(msg);
 	}
 	fflush_all();
 	return msg;

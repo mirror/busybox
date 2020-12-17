@@ -28,6 +28,7 @@ struct globals {
 void launch_helper(const char **argv) FAST_FUNC;
 void get_cred_or_die(int fd) FAST_FUNC;
 
+void send_r_n(const char *s) FAST_FUNC;
 char *send_mail_command(const char *fmt, const char *param) FAST_FUNC;
 
 void printbuf_base64(const char *buf, unsigned len) FAST_FUNC;
