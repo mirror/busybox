@@ -243,7 +243,7 @@
 //kbuild:lib-$(CONFIG_TRACEROUTE6) += traceroute.o
 
 //usage:#define traceroute_trivial_usage
-//usage:       "[-"IF_TRACEROUTE6("46")"FIlnrv] [-f 1ST_TTL] [-m MAXTTL] [-q PROBES] [-p PORT]\n"
+//usage:       "[-"IF_TRACEROUTE6("46")IF_FEATURE_TRACEROUTE_USE_ICMP("I")"Flnrv] [-f 1ST_TTL] [-m MAXTTL] [-q PROBES] [-p PORT]\n"
 //usage:       "	[-t TOS] [-w WAIT_SEC] [-s SRC_IP] [-i IFACE]\n"
 //usage:       "	[-z PAUSE_MSEC] HOST [BYTES]"
 //usage:#define traceroute_full_usage "\n\n"
@@ -271,15 +271,20 @@
 //usage:     "\n	-s IP	Source address"
 //usage:     "\n	-i IFACE Source interface"
 //usage:     "\n	-t N	Type-of-service in probe packets (default 0)"
-//usage:     "\n	-w SEC	Time to wait for a response (default 3)"
-//usage:     "\n	-g IP	Loose source route gateway (8 max)"
+//usage:     "\n	-w SEC	Wait for a response (default 3)"
+//usage:     "\n	-z MSEC	Wait before each send"
 //usage:
 //usage:#define traceroute6_trivial_usage
-//usage:       "[-nrv] [-m MAXTTL] [-q PROBES] [-p PORT]\n"
+//usage:       "[-"IF_FEATURE_TRACEROUTE_USE_ICMP("I")"nrv] [-f 1ST_TTL] [-m MAXTTL] [-q PROBES] [-p PORT]\n"
 //usage:       "	[-t TOS] [-w WAIT_SEC] [-s SRC_IP] [-i IFACE]\n"
-//usage:       "	HOST [BYTES]"
+//usage:       "	[-z PAUSE_MSEC] HOST [BYTES]"
 //usage:#define traceroute6_full_usage "\n\n"
 //usage:       "Trace the route to HOST\n"
+////NOP?     "\n	-F	Set don't fragment bit"
+//usage:	IF_FEATURE_TRACEROUTE_USE_ICMP(
+//usage:     "\n	-I	Use ICMP ECHO instead of UDP datagrams"
+//usage:	)
+////NOP:     "\n	-l	Display TTL value of the returned packet"
 //Currently disabled (TRACEROUTE_SO_DEBUG==0)
 ////usage:     "\n	-d	Set SO_DEBUG options to socket"
 //usage:     "\n	-n	Print numeric addresses"
@@ -287,6 +292,7 @@
 //usage:	IF_FEATURE_TRACEROUTE_VERBOSE(
 //usage:     "\n	-v	Verbose"
 //usage:	)
+//usage:     "\n	-f N	First number of hops (default 1)"
 //usage:     "\n	-m N	Max number of hops"
 //usage:     "\n	-q N	Number of probes per hop (default 3)"
 //usage:     "\n	-p N	Base UDP port number used in probes"
@@ -294,7 +300,8 @@
 //usage:     "\n	-s IP	Source address"
 //usage:     "\n	-i IFACE Source interface"
 //usage:     "\n	-t N	Type-of-service in probe packets (default 0)"
-//usage:     "\n	-w SEC	Time wait for a response (default 3)"
+//usage:     "\n	-w SEC	Wait for a response (default 3)"
+//usage:     "\n	-z MSEC	Wait before each send"
 
 #define TRACEROUTE_SO_DEBUG 0
 
@@ -334,7 +341,7 @@
 
 
 #define OPT_STRING \
-	"FIlnrdvxt:i:m:p:q:s:w:z:f:" \
+	"FIlnrdvt:i:m:p:q:s:w:z:f:" \
 	"4" IF_TRACEROUTE6("6")
 enum {
 	OPT_DONT_FRAGMNT = (1 << 0),    /* F */
@@ -344,18 +351,17 @@ enum {
 	OPT_BYPASS_ROUTE = (1 << 4),    /* r */
 	OPT_DEBUG        = (1 << 5),    /* d */
 	OPT_VERBOSE      = (1 << 6) * ENABLE_FEATURE_TRACEROUTE_VERBOSE, /* v */
-	OPT_IP_CHKSUM    = (1 << 7),    /* x */
-	OPT_TOS          = (1 << 8),    /* t */
-	OPT_DEVICE       = (1 << 9),    /* i */
-	OPT_MAX_TTL      = (1 << 10),   /* m */
-	OPT_PORT         = (1 << 11),   /* p */
-	OPT_NPROBES      = (1 << 12),   /* q */
-	OPT_SOURCE       = (1 << 13),   /* s */
-	OPT_WAITTIME     = (1 << 14),   /* w */
-	OPT_PAUSE_MS     = (1 << 15),   /* z */
-	OPT_FIRST_TTL    = (1 << 16),   /* f */
-	OPT_IPV4         = (1 << 17),   /* 4 */
-	OPT_IPV6         = (1 << 18) * ENABLE_TRACEROUTE6, /* 6 */
+	OPT_TOS          = (1 << 7),    /* t */
+	OPT_DEVICE       = (1 << 8),    /* i */
+	OPT_MAX_TTL      = (1 << 9),    /* m */
+	OPT_PORT         = (1 << 10),   /* p */
+	OPT_NPROBES      = (1 << 11),   /* q */
+	OPT_SOURCE       = (1 << 12),   /* s */
+	OPT_WAITTIME     = (1 << 13),   /* w */
+	OPT_PAUSE_MS     = (1 << 14),   /* z */
+	OPT_FIRST_TTL    = (1 << 15),   /* f */
+	OPT_IPV4         = (1 << 16),   /* 4 */
+	OPT_IPV6         = (1 << 17) * ENABLE_TRACEROUTE6, /* 6 */
 };
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 # define verbose (option_mask32 & OPT_VERBOSE)
@@ -896,10 +902,6 @@ traceroute_init(int op, char **argv)
 	);
 	argv += optind;
 
-#if 0 /* IGNORED */
-	if (op & OPT_IP_CHKSUM)
-		bb_error_msg("warning: ip checksums disabled");
-#endif
 	if (op & OPT_MAX_TTL)
 		G.max_ttl = xatou_range(max_ttl_str, 1, 255);
 	if (op & OPT_PORT)
