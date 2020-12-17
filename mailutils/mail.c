@@ -72,12 +72,12 @@ void FAST_FUNC launch_helper(const char **argv)
 char* FAST_FUNC send_mail_command(const char *fmt, const char *param)
 {
 	char *msg;
-	if (timeout)
-		alarm(timeout);
+	if (G.timeout)
+		alarm(G.timeout);
 	msg = (char*)fmt;
 	if (fmt) {
 		msg = xasprintf(fmt, param);
-		if (verbose)
+		if (G.verbose)
 			bb_error_msg("send:'%s'", msg);
 		printf("%s\r\n", msg);
 	}

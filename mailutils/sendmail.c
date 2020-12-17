@@ -104,7 +104,7 @@
 
 static void send_r_n(const char *s)
 {
-	if (verbose)
+	if (G.verbose)
 		bb_error_msg("send:'%s'", s);
 	printf("%s\r\n", s);
 }
@@ -120,7 +120,7 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 	// if code != -1 then checks whether the number equals the code
 	// if not equal -> die saying msg
 	while ((answer = xmalloc_fgetline(stdin)) != NULL) {
-		if (verbose)
+		if (G.verbose)
 			bb_error_msg("recv:'%.*s'", (int)(strchrnul(answer, '\r') - answer), answer);
 		if (strlen(answer) <= 3 || '-' != answer[3])
 			break;
@@ -128,7 +128,7 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 	}
 	if (answer) {
 		int n = atoi(answer);
-		if (timeout)
+		if (G.timeout)
 			alarm(0);
 		free(answer);
 		if (-1 == code || n == code) {
@@ -223,6 +223,7 @@ static void rcptto_list(const char *list)
 int sendmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendmail_main(int argc UNUSED_PARAM, char **argv)
 {
+	unsigned opts;
 	char *opt_connect;
 	char *opt_from = NULL;
 	char *s;
@@ -276,7 +277,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			// -v is a counter, -H and -S are mutually exclusive, -a is a list
 			"vv:H--S:S--H",
 			&opt_from, NULL,
-			&timeout, &opt_connect, &opt_connect, &list, &verbose
+			&G.timeout, &opt_connect, &opt_connect, &list, &G.verbose
 	);
 	//argc -= optind;
 	argv += optind;

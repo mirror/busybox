@@ -173,6 +173,7 @@ Content-Transfer-Encoding: 7bit
 int makemime_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int makemime_main(int argc UNUSED_PARAM, char **argv)
 {
+	unsigned opts;
 	llist_t *opt_headers = NULL, *l;
 	const char *opt_output;
 	const char *content_type = "application/octet-stream";

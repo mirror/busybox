@@ -11,7 +11,6 @@ struct globals {
 	pid_t helper_pid;
 	unsigned timeout;
 	unsigned verbose;
-	unsigned opts;
 	char *user;
 	char *pass;
 	FILE *fp0; // initial stdin
@@ -19,9 +18,6 @@ struct globals {
 };
 
 #define G (*ptr_to_globals)
-#define timeout         (G.timeout  )
-#define verbose         (G.verbose  )
-#define opts            (G.opts     )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	G.opt_charset = (char *)CONFIG_FEATURE_MIME_CHARSET; \
