@@ -324,12 +324,18 @@ struct limits {
 	uint8_t factor_shift;   /* shift by to get rlim_{cur,max} values */
 };
 
+/* Order of entries matches order in which bash prints "ulimit -a" */
 static const struct limits limits_tbl[] ALIGN2 = {
 	{ RLIMIT_CORE,		9,	}, // -c
 	{ RLIMIT_DATA,		10,	}, // -d
+#ifdef RLIMIT_NICE
 	{ RLIMIT_NICE,		0,	}, // -e
-	{ RLIMIT_FSIZE,		9,	}, // -f
 #define LIMIT_F_IDX     3
+#else
+/* for example, Hurd */
+#define LIMIT_F_IDX     2
+#endif
+	{ RLIMIT_FSIZE,		9,	}, // -f
 #ifdef RLIMIT_SIGPENDING
 	{ RLIMIT_SIGPENDING,	0,	}, // -i
 #endif
@@ -364,13 +370,16 @@ static const struct limits limits_tbl[] ALIGN2 = {
 	{ RLIMIT_LOCKS,		0,	}, // -x
 #endif
 };
-// bash also shows:
+// 1) bash also shows:
 //pipe size            (512 bytes, -p) 8
+// 2) RLIMIT_RTTIME ("timeout for RT tasks in us") is not in the table
 
 static const char limits_help[] ALIGN1 =
 	"core file size (blocks)"          // -c
 	"\0""data seg size (kb)"           // -d
+#ifdef RLIMIT_NICE
 	"\0""scheduling priority"          // -e
+#endif
 	"\0""file size (blocks)"           // -f
 #ifdef RLIMIT_SIGPENDING
 	"\0""pending signals"              // -i
@@ -410,7 +419,9 @@ static const char limits_help[] ALIGN1 =
 static const char limit_chars[] ALIGN1 =
 			"c"
 			"d"
+#ifdef RLIMIT_NICE
 			"e"
+#endif
 			"f"
 #ifdef RLIMIT_SIGPENDING
 			"i"
@@ -451,7 +462,9 @@ static const char limit_chars[] ALIGN1 =
 static const char ulimit_opt_string[] ALIGN1 = "-HSa"
 			"c::"
 			"d::"
+#ifdef RLIMIT_NICE
 			"e::"
+#endif
 			"f::"
 #ifdef RLIMIT_SIGPENDING
 			"i::"
@@ -668,7 +681,7 @@ shell_builtin_ulimit(char **argv)
 
 	if (opt_cnt == 0) {
 		/* "bare ulimit": treat it as if it was -f */
-		getrlimit(limits_tbl[LIMIT_F_IDX].cmd, &limit);
+		getrlimit(RLIMIT_FSIZE, &limit);
 		printlim(opts, &limit, &limits_tbl[LIMIT_F_IDX]);
 	}
 
