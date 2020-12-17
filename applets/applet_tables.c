@@ -20,6 +20,10 @@
 #undef ARRAY_SIZE
 #define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
 
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
+
 #include "../include/autoconf.h"
 #include "../include/applet_metadata.h"
 
