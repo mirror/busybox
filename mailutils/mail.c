@@ -46,7 +46,8 @@ void FAST_FUNC launch_helper(const char **argv)
 		+ (1 << SIGALRM)
 		, signal_handler);
 
-	G.helper_pid = pid = xvfork();
+	fflush_all();
+	pid = xvfork();
 	if (pid == 0) {
 		// child
 		close(child_in.wr);
@@ -59,6 +60,7 @@ void FAST_FUNC launch_helper(const char **argv)
 		// NB: SIGCHLD & SIGALRM revert to SIG_DFL on exec
 		BB_EXECVP_or_die((char**)argv);
 	}
+	G.helper_pid = pid;
 	close(child_out.wr);
 	close(child_in.rd);
 	xmove_fd(child_out.rd, STDIN_FILENO);
