@@ -187,7 +187,7 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 //TODO: add "if (--failcount != 0) ..."?
 					goto get_free_loopN;
 				}
-				goto try_next_loopN;
+				goto close_and_try_next_loopN;
 			}
 			memset(&loopinfo, 0, sizeof(loopinfo));
 			safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
@@ -220,6 +220,7 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 			ioctl(lfd, LOOP_CLR_FD, 0); // actually, 0 param is unnecessary
 		}
 		/* else: device is not free (rc == 0) or error other than ENXIO */
+ close_and_try_next_loopN:
 		close(lfd);
  try_next_loopN:
 		rc = -1;
