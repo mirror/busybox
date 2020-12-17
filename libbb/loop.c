@@ -98,9 +98,7 @@ int FAST_FUNC get_free_loop(void)
 
 /* Returns opened fd to the loop device, <0 on error.
  * *device is loop device to use, or if *device==NULL finds a loop device to
- * mount it on and sets *device to a strdup of that loop device name.  This
- * search will re-use an existing loop device already bound to that
- * file/offset if it finds one.
+ * mount it on and sets *device to a strdup of that loop device name.
  */
 int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offset,
 		unsigned long long sizelimit, unsigned flags)
@@ -109,9 +107,7 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 	char *try;
 	bb_loop_info loopinfo;
 	struct stat statbuf;
-	int i, dfd, ffd, mode, rc;
-
-	rc = dfd = -1;
+	int i, lfd, ffd, mode, rc;
 
 	/* Open the file.  Barf if this doesn't work.  */
 	mode = (flags & BB_LO_FLAGS_READ_ONLY) ? O_RDONLY : O_RDWR;
@@ -127,24 +123,23 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 
 	try = *device;
 	if (!try) {
+ get_free_loopN:
 		i = get_free_loop();
-		if (i == -2) { /* no /dev/loop-control */
-			i = 0;
-			try = dev;
-			goto old_style;
-		}
 		if (i == -1) {
 			close(ffd);
 			return -1; /* no free loop devices */
 		}
-		try = *device = xasprintf(LOOP_FORMAT, i);
-		goto try_to_open;
+		if (i >= 0) {
+			try = xasprintf(LOOP_FORMAT, i);
+			goto open_lfd;
+		}
+		/* i == -2: no /dev/loop-control. Do an old-style search for a free device */
+		try = dev;
 	}
 
- old_style:
-	/* Find a loop device.  */
-	/* 1048575 (0xfffff) is a max possible minor number in Linux circa 2010 */
-	for (i = 0; rc && i < 1048576; i++) {
+	/* Find a loop device */
+	/* 0xfffff is a max possible minor number in Linux circa 2010 */
+	for (i = 0; i <= 0xfffff; i++) {
 		sprintf(dev, LOOP_FORMAT, i);
 
 		IF_FEATURE_MOUNT_LOOP_CREATE(errno = 0;)
@@ -153,72 +148,85 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 			 && errno == ENOENT
 			 && try == dev
 			) {
-				/* Node doesn't exist, try to create it.  */
+				/* Node doesn't exist, try to create it */
 				if (mknod(dev, S_IFBLK|0644, makedev(7, i)) == 0)
-					goto try_to_open;
+					goto open_lfd;
 			}
-			/* Ran out of block devices, return failure.  */
+			/* Ran out of block devices, return failure */
 			rc = -1;
 			break;
 		}
- try_to_open:
-		/* Open the sucker and check its loopiness.  */
-		dfd = open(try, mode);
-		if (dfd < 0 && errno == EROFS) {
+ open_lfd:
+		/* Open the sucker and check its loopiness */
+		lfd = rc = open(try, mode);
+		if (lfd < 0 && errno == EROFS) {
 			mode = O_RDONLY;
-			dfd = open(try, mode);
+			lfd = rc = open(try, mode);
 		}
-		if (dfd < 0) {
+		if (lfd < 0) {
 			if (errno == ENXIO) {
 				/* Happens if loop module is not loaded */
-				rc = -1;
+				/* rc is -1; */
 				break;
 			}
-			goto try_again;
+			goto try_next_loopN;
 		}
 
-		rc = ioctl(dfd, BB_LOOP_GET_STATUS, &loopinfo);
+		rc = ioctl(lfd, BB_LOOP_GET_STATUS, &loopinfo);
 
-		/* If device is free, claim it.  */
+		/* If device is free, try to claim it */
 		if (rc && errno == ENXIO) {
-			/* Associate free loop device with file.  */
-			if (ioctl(dfd, LOOP_SET_FD, ffd) == 0) {
-				memset(&loopinfo, 0, sizeof(loopinfo));
-				safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
-				loopinfo.lo_offset = offset;
-				loopinfo.lo_sizelimit = sizelimit;
-				/*
-				 * Used by mount to set LO_FLAGS_AUTOCLEAR.
-				 * LO_FLAGS_READ_ONLY is not set because RO is controlled by open type of the file.
-				 * Note that closing LO_FLAGS_AUTOCLEARed dfd before mount
-				 * is wrong (would free the loop device!)
-				 */
-				loopinfo.lo_flags = (flags & ~BB_LO_FLAGS_READ_ONLY);
-				rc = ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo);
-				if (rc != 0 && (loopinfo.lo_flags & BB_LO_FLAGS_AUTOCLEAR)) {
-					/* Old kernel, does not support LO_FLAGS_AUTOCLEAR? */
-					/* (this code path is not tested) */
-					loopinfo.lo_flags -= BB_LO_FLAGS_AUTOCLEAR;
-					rc = ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo);
+			/* Associate free loop device with file */
+			if (ioctl(lfd, LOOP_SET_FD, ffd)) {
+				/* Ouch. Are we racing with other mount? */
+				if (!*device   /* yes */
+				 && try != dev /* tried a _kernel-offered_ loopN? */
+				) {
+					free(try);
+					close(lfd);
+//TODO: add "if (--failcount != 0) ..."?
+					goto get_free_loopN;
 				}
-				if (rc != 0) {
-					ioctl(dfd, LOOP_CLR_FD, 0); // actually, 0 param is unnecessary
-				}
+				goto try_next_loopN;
 			}
-		} else {
-			rc = -1;
+			memset(&loopinfo, 0, sizeof(loopinfo));
+			safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
+			loopinfo.lo_offset = offset;
+			loopinfo.lo_sizelimit = sizelimit;
+			/*
+			 * Used by mount to set LO_FLAGS_AUTOCLEAR.
+			 * LO_FLAGS_READ_ONLY is not set because RO is controlled by open type of the file.
+			 * Note that closing LO_FLAGS_AUTOCLEARed lfd before mount
+			 * is wrong (would free the loop device!)
+			 */
+			loopinfo.lo_flags = (flags & ~BB_LO_FLAGS_READ_ONLY);
+			rc = ioctl(lfd, BB_LOOP_SET_STATUS, &loopinfo);
+			if (rc != 0 && (loopinfo.lo_flags & BB_LO_FLAGS_AUTOCLEAR)) {
+				/* Old kernel, does not support LO_FLAGS_AUTOCLEAR? */
+				/* (this code path is not tested) */
+				loopinfo.lo_flags -= BB_LO_FLAGS_AUTOCLEAR;
+				rc = ioctl(lfd, BB_LOOP_SET_STATUS, &loopinfo);
+			}
+			if (rc == 0) {
+				/* SUCCESS! */
+				if (try != dev) /* tried a kernel-offered free loopN? */
+					*device = try; /* malloced */
+				if (!*device)   /* was looping in search of free "/dev/loopN"? */
+					*device = xstrdup(dev);
+				rc = lfd; /* return this */
+				break;
+			}
+			/* failure, undo LOOP_SET_FD */
+			ioctl(lfd, LOOP_CLR_FD, 0); // actually, 0 param is unnecessary
 		}
-		if (rc != 0) {
-			close(dfd);
-		}
- try_again:
-		if (*device) break;
-	}
+		/* else: device is not free (rc == 0) or error other than ENXIO */
+		close(lfd);
+ try_next_loopN:
+		rc = -1;
+		if (*device) /* was looking for a particular "/dev/loopN"? */
+			break; /* yes, do not try other names */
+	} /* for() */
+
 	close(ffd);
-	if (rc == 0) {
-		if (!*device)
-			*device = xstrdup(dev);
-		return dfd;
-	}
 	return rc;
 }
