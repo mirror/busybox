@@ -392,7 +392,9 @@ struct globals {
 	struct outdata_t *outdata;
 	len_and_sockaddr *dest_lsa;
 	len_and_sockaddr *from_lsa;	/* response came from this address */
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	struct sockaddr *to; 		/* response came to this (local) address */
+#endif
 	uint32_t ident;
 	uint16_t port;                  /* start udp dest port # for probe packets */
 #if ENABLE_TRACEROUTE6
@@ -463,10 +465,17 @@ wait_for_reply(unsigned *timestamp_us, int *left_ms)
 	if (*left_ms >= 0 && safe_poll(pfd, 1, *left_ms) > 0) {
 		unsigned t;
 
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 		read_len = recv_from_to(rcvsock,
 				recv_pkt, sizeof(recv_pkt),
 				/*flags:*/ MSG_DONTWAIT,
 				&G.from_lsa->u.sa, G.to, G.from_lsa->len);
+#else
+		read_len = recvfrom(rcvsock,
+				recv_pkt, sizeof(recv_pkt),
+				/*flags:*/ MSG_DONTWAIT,
+				&G.from_lsa->u.sa, &G.from_lsa->len);
+#endif
 		if (read_len < 0)
 			bb_perror_msg_and_die("recv");
 		t = monotonic_us();
@@ -724,6 +733,12 @@ packet6_ok(int read_len, int seq)
 	 * return only ICMP packet (IOW: they strip IPv6 header).
 	 * This differs from (AF_INET, SOCK_RAW, IPPROTO_ICMP) sockets!?
 	 */
+	if (read_len < ICMP_MINLEN) {
+		if (verbose)
+			printf("packet too short (%d bytes) from %s\n", read_len,
+				auto_string(xmalloc_sockaddr2dotted_noport(&G.from_lsa->u.sa)));
+		return 0;
+	}
 	icp = (struct icmp6_hdr *) recv_pkt;
 
 	type = icp->icmp6_type;
@@ -789,7 +804,12 @@ packet_ok(int read_len, int seq)
 #endif
 
 static void
+#if !ENABLE_FEATURE_TRACEROUTE_VERBOSE
+print(void)
+# define print(len) print()
+#else
 print(int read_len)
+#endif
 {
 	char *ina = auto_string(xmalloc_sockaddr2dotted_noport(&G.from_lsa->u.sa));
 
@@ -806,8 +826,9 @@ print(int read_len)
 		printf("  %s (%s)", (n ? n : ina), ina);
 	}
 
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose) {
-#if ENABLE_TRACEROUTE6
+# if ENABLE_TRACEROUTE6
 		/* NB: reads from (AF_INET, SOCK_RAW, IPPROTO_ICMP) socket
 		 * return the entire IP packet (IOW: they do not strip IP header).
 		 * Reads from (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6) do strip IPv6
@@ -816,7 +837,7 @@ print(int read_len)
 		if (G_ipv6) {
 			/* read_len -= sizeof(struct ip6_hdr); - WRONG! */
 		} else
-#endif
+# endif
 		{
 			struct ip *ip4packet = (struct ip*)recv_pkt;
 			read_len -= ip4packet->ip_hl << 2;
@@ -825,6 +846,7 @@ print(int read_len)
 			auto_string(xmalloc_sockaddr2dotted_noport(G.to))
 		);
 	}
+#endif
 }
 
 static void
@@ -925,20 +947,26 @@ traceroute_init(int op, char **argv)
 	dest_lsa = xhost_and_af2sockaddr(argv[0], port, AF_INET);
 #endif
 	G.from_lsa = xmemdup(dest_lsa, LSA_LEN_SIZE + dest_lsa->len);
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	G.to = xzalloc(dest_lsa->len);
+#endif
 	if (argv[1])
 		packlen = xatoul_range(argv[1], packlen, 32 * 1024);
 
 	if (af == AF_INET) {
 		xmove_fd(xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP), rcvsock);
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 		/* want recvmsg to report target local address (for -v) */
 		setsockopt_1(rcvsock, IPPROTO_IP, IP_PKTINFO);
+#endif
 	}
 #if ENABLE_TRACEROUTE6
 	else {
 		xmove_fd(xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6), rcvsock);
+# if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 		/* want recvmsg to report target local address (for -v) */
 		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO);
+# endif
 	}
 #endif
 #if TRACEROUTE_SO_DEBUG
@@ -1231,7 +1259,9 @@ common_traceroute_main(int op, char **argv)
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 		free(G.to);
+#endif
 		free(lastaddr);
 		free(G.from_lsa);
 	}
