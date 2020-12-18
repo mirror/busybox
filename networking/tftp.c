@@ -120,7 +120,7 @@
 //usage:       "	udpsvd -vE 0.0.0.0 69 tftpd /files/to/serve\n"
 //usage:     "\n	-r	Prohibit upload"
 //usage:     "\n	-c	Allow file creation via upload"
-//usage:     "\n	-u	Access files as USER"
+//usage:     "\n	-u USER	Access files as USER"
 //usage:     "\n	-l	Log to syslog (inetd mode requires this)"
 
 #include "libbb.h"
