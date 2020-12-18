@@ -1161,7 +1161,7 @@ static void client_background(void)
 //usage:#endif
 //usage:#define udhcpc6_trivial_usage
 //usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"odR] [-i IFACE] [-r IPv6] [-s PROG] [-p PIDFILE]\n"
-//usage:       "	[-x OPT:VAL]... [-O OPT]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
+//usage:       "	[-x OPT:VAL]... [-O OPT]..." IF_FEATURE_UDHCP_PORT(" [-P PORT]")
 //usage:#define udhcpc6_full_usage "\n"
 //usage:     "\n	-i IFACE	Interface to use (default eth0)"
 //usage:     "\n	-p FILE		Create pidfile"
@@ -1179,7 +1179,7 @@ static void client_background(void)
 //usage:     "\n	-R		Release IP on exit"
 //usage:     "\n	-S		Log to syslog too"
 //usage:	IF_FEATURE_UDHCP_PORT(
-//usage:     "\n	-P N		Use port N (default 546)"
+//usage:     "\n	-P PORT		Use PORT (default 546)"
 //usage:	)
 ////usage:	IF_FEATURE_UDHCPC_ARPING(
 ////usage:     "\n	-a		Use arping to validate offered address"

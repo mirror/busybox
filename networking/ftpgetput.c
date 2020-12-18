@@ -43,7 +43,7 @@
 //usage:     "\n	-v	Verbose"
 //usage:     "\n	-u USER	Username"
 //usage:     "\n	-p PASS	Password"
-//usage:     "\n	-P NUM	Port"
+//usage:     "\n	-P PORT"
 //usage:
 //usage:#define ftpput_trivial_usage
 //usage:       "[OPTIONS] HOST [REMOTE_FILE] LOCAL_FILE"
@@ -52,7 +52,7 @@
 //usage:     "\n	-v	Verbose"
 //usage:     "\n	-u USER	Username"
 //usage:     "\n	-p PASS	Password"
-//usage:     "\n	-P NUM	Port number"
+//usage:     "\n	-P PORT"
 
 #include "libbb.h"
 #include "common_bufsiz.h"

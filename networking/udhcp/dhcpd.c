@@ -27,7 +27,7 @@
 //kbuild:lib-$(CONFIG_FEATURE_UDHCP_RFC3397) += domain_codec.o
 
 //usage:#define udhcpd_trivial_usage
-//usage:       "[-fS] [-I ADDR]" IF_FEATURE_UDHCP_PORT(" [-P N]") " [CONFFILE]"
+//usage:       "[-fS] [-I ADDR]" IF_FEATURE_UDHCP_PORT(" [-P PORT]") " [CONFFILE]"
 //usage:#define udhcpd_full_usage "\n\n"
 //usage:       "DHCP server\n"
 //usage:     "\n	-f	Run in foreground"
@@ -35,7 +35,7 @@
 //usage:     "\n	-I ADDR	Local address"
 //usage:     "\n	-a MSEC	Timeout for ARP ping (default 2000)"
 //usage:	IF_FEATURE_UDHCP_PORT(
-//usage:     "\n	-P N	Use port N (default 67)"
+//usage:     "\n	-P PORT	Use PORT (default 67)"
 //usage:	)
 //usage:     "\nSignals:"
 //usage:     "\n	USR1	Update lease file"
