@@ -17,7 +17,7 @@
 //kbuild:lib-$(CONFIG_CHRT) += chrt.o
 
 //usage:#define chrt_trivial_usage
-//usage:       "-m | -p [PRIO] PID | [-rfobi] PRIO PROG [ARGS]"
+//usage:       "-m | -p [PRIO] PID | [-rfobi] PRIO PROG ARGS"
 //usage:#define chrt_full_usage "\n\n"
 //usage:       "Change scheduling priority and class for a process\n"
 //usage:     "\n	-m	Show min/max priorities"

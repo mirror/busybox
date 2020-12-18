@@ -18,11 +18,11 @@
 //kbuild:lib-$(CONFIG_IONICE) += ionice.o
 
 //usage:#define ionice_trivial_usage
-//usage:	"[-c 1-3] [-n 0-7] [-p PID] [PROG]"
+//usage:	"[-c 1-3] [-n 0-7] [-p PID] [PROG ARGS]"
 //usage:#define ionice_full_usage "\n\n"
 //usage:       "Change I/O priority and class\n"
-//usage:     "\n	-c	Class. 1:realtime 2:best-effort 3:idle"
-//usage:     "\n	-n	Priority"
+//usage:     "\n	-c N	Class. 1:realtime 2:best-effort 3:idle"
+//usage:     "\n	-n N	Priority"
 
 #include <sys/syscall.h>
 #include <asm/unistd.h>
@@ -61,7 +61,7 @@ int ionice_main(int argc UNUSED_PARAM, char **argv)
 	/* Defaults */
 	int ioclass = 0;
 	int pri = 0;
-	int pid = 0; /* affect own porcess */
+	int pid = 0; /* affect own process */
 	int opt;
 	enum {
 		OPT_n = 1,

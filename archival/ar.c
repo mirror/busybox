@@ -48,16 +48,6 @@
 
 //kbuild:lib-$(CONFIG_AR) += ar.o
 
-//usage:#define ar_trivial_usage
-//usage:       "[-optxv] ARCHIVE FILES"
-//usage:#define ar_full_usage "\n\n"
-//usage:       "Extract or list FILES from an ar archive\n"
-//usage:     "\n	-o	Preserve original dates"
-//usage:     "\n	-p	Extract to stdout"
-//usage:     "\n	-t	List"
-//usage:     "\n	-x	Extract"
-//usage:     "\n	-v	Verbose"
-
 #include "libbb.h"
 #include "bb_archive.h"
 #include "ar_.h"
@@ -220,23 +210,36 @@ static void FAST_FUNC header_verbose_list_ar(const file_header_t *file_header)
 	);
 }
 
-#define AR_OPT_VERBOSE          (1 << 0)
-#define AR_OPT_PRESERVE_DATE    (1 << 1)
-/* "ar r" implies create, but warns about it. c suppresses warning.
- * bbox accepts but ignores it: */
-#define AR_OPT_CREATE           (1 << 2)
-
-#define AR_CMD_PRINT            (1 << 3)
-#define FIRST_CMD               AR_CMD_PRINT
-#define AR_CMD_LIST             (1 << 4)
-#define AR_CMD_EXTRACT          (1 << 5)
-#define AR_CMD_INSERT           (1 << 6)
+//usage:#define ar_trivial_usage
+//usage:       "x|p|t"IF_FEATURE_AR_CREATE("|r")" [-ov] ARCHIVE [FILE]..."
+//usage:#define ar_full_usage "\n\n"
+//usage:       "Extract or list FILEs from an ar archive"IF_FEATURE_AR_CREATE(", or create it")"\n"
+//usage:     "\n	x	Extract"
+//usage:     "\n	p	Extract to stdout"
+//usage:     "\n	t	List"
+//usage:	IF_FEATURE_AR_CREATE(
+//usage:     "\n	r	Create"
+//usage:	)
+//usage:     "\n	-o	Restore mtime"
+//usage:     "\n	-v	Verbose"
 
 int ar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ar_main(int argc UNUSED_PARAM, char **argv)
 {
 	archive_handle_t *archive_handle;
 	unsigned opt, t;
+	enum {
+		OPT_VERBOSE       = (1 << 0),
+		OPT_PRESERVE_DATE = (1 << 1),
+		/* "ar r" implies create, but warns about it. c suppresses warning.
+		 * bbox accepts but ignores it: */
+		OPT_CREATE        = (1 << 2),
+		CMD_PRINT         = (1 << 3),
+		FIRST_CMD         = CMD_PRINT,
+		CMD_LIST          = (1 << 4),
+		CMD_EXTRACT       = (1 << 5),
+		CMD_INSERT        = ((1 << 6) * ENABLE_FEATURE_AR_CREATE),
+	};
 
 	archive_handle = init_handle();
 
@@ -256,26 +259,26 @@ int ar_main(int argc UNUSED_PARAM, char **argv)
 	if (t & (t-1)) /* more than one of p,t,x[,r] are specified */
 		bb_show_usage();
 
-	if (opt & AR_CMD_PRINT) {
+	if (opt & CMD_PRINT) {
 		archive_handle->action_data = data_extract_to_stdout;
 	}
-	if (opt & AR_CMD_LIST) {
+	if (opt & CMD_LIST) {
 		archive_handle->action_header = header_list;
 	}
-	if (opt & AR_CMD_EXTRACT) {
+	if (opt & CMD_EXTRACT) {
 		archive_handle->action_data = data_extract_all;
 	}
-	if (opt & AR_OPT_PRESERVE_DATE) {
+	if (opt & OPT_PRESERVE_DATE) {
 		archive_handle->ah_flags |= ARCHIVE_RESTORE_DATE;
 	}
-	if (opt & AR_OPT_VERBOSE) {
+	if (opt & OPT_VERBOSE) {
 		archive_handle->action_header = header_verbose_list_ar;
 	}
 #if ENABLE_FEATURE_AR_CREATE
 	archive_handle->ar__name = *argv;
 #endif
 	archive_handle->src_fd = xopen(*argv++,
-			(opt & AR_CMD_INSERT)
+			(opt & CMD_INSERT)
 				? O_RDWR | O_CREAT
 				: O_RDONLY
 	);
@@ -287,7 +290,7 @@ int ar_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 #if ENABLE_FEATURE_AR_CREATE
-	if (opt & AR_CMD_INSERT)
+	if (opt & CMD_INSERT)
 		return write_ar_archive(archive_handle);
 #endif
 

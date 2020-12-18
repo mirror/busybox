@@ -219,7 +219,7 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 //usage:#define uncompress_trivial_usage
 //usage:       "[-cf] [FILE]..."
 //usage:#define uncompress_full_usage "\n\n"
-//usage:       "Decompress .Z file[s]\n"
+//usage:       "Decompress FILEs (or stdin)\n"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Overwrite"
 
@@ -461,7 +461,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define unlzma_trivial_usage
 //usage:       "[-cfk] [FILE]..."
 //usage:#define unlzma_full_usage "\n\n"
-//usage:       "Decompress FILE (or stdin)\n"
+//usage:       "Decompress FILEs (or stdin)\n"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:     "\n	-k	Keep input files"
@@ -469,7 +469,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define lzma_trivial_usage
 //usage:       "-d [-cfk] [FILE]..."
 //usage:#define lzma_full_usage "\n\n"
-//usage:       "Decompress FILE (or stdin)\n"
+//usage:       "Decompress FILEs (or stdin)\n"
 //usage:     "\n	-d	Decompress"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
@@ -532,7 +532,7 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define unxz_trivial_usage
 //usage:       "[-cfk] [FILE]..."
 //usage:#define unxz_full_usage "\n\n"
-//usage:       "Decompress FILE (or stdin)\n"
+//usage:       "Decompress FILEs (or stdin)\n"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:     "\n	-k	Keep input files"
@@ -541,7 +541,7 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define xz_trivial_usage
 //usage:       "-d [-cfk] [FILE]..."
 //usage:#define xz_full_usage "\n\n"
-//usage:       "Decompress FILE (or stdin)\n"
+//usage:       "Decompress FILEs (or stdin)\n"
 //usage:     "\n	-d	Decompress"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"

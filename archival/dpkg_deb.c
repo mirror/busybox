@@ -28,7 +28,7 @@
 //usage:     "\n	-f	Print control fields"
 //usage:     "\n	-e	Extract control files to DIR (default: ./DEBIAN)"
 //usage:     "\n	-x	Extract files to DIR (no default)"
-//usage:     "\n	-X	Verbose -x"
+//usage:     "\n	-X	Verbose extract"
 //usage:
 //usage:#define dpkg_deb_example_usage
 //usage:       "$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"

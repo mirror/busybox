@@ -28,16 +28,16 @@
 //kbuild:lib-$(CONFIG_TUNCTL) += tunctl.o
 
 //usage:#define tunctl_trivial_usage
-//usage:       "[-f device] ([-t name] | -d name)" IF_FEATURE_TUNCTL_UG(" [-u owner] [-g group] [-b]")
+//usage:       "[-f DEVICE] [-t NAME | -d NAME]" IF_FEATURE_TUNCTL_UG(" [-u USER] [-g GRP] [-b]")
 //usage:#define tunctl_full_usage "\n\n"
-//usage:       "Create or delete tun interfaces\n"
-//usage:     "\n	-f name		tun device (/dev/net/tun)"
-//usage:     "\n	-t name		Create iface 'name'"
-//usage:     "\n	-d name		Delete iface 'name'"
+//usage:       "Create or delete TUN/TAP interfaces\n"
+//usage:     "\n	-f DEV	TUN device (default /dev/net/tun)"
+//usage:     "\n	-t NAME	Create iface (default: tapN)"
+//usage:     "\n	-d NAME	Delete iface"
 //usage:	IF_FEATURE_TUNCTL_UG(
-//usage:     "\n	-u owner	Set iface owner"
-//usage:     "\n	-g group	Set iface group"
-//usage:     "\n	-b		Brief output"
+//usage:     "\n	-u USER	Set iface owner"
+//usage:     "\n	-g GRP	Set iface group"
+//usage:     "\n	-b	Brief output"
 //usage:	)
 //usage:
 //usage:#define tunctl_example_usage

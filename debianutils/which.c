@@ -17,9 +17,9 @@
 //kbuild:lib-$(CONFIG_WHICH) += which.o
 
 //usage:#define which_trivial_usage
-//usage:       "[COMMAND]..."
+//usage:       "COMMAND..."
 //usage:#define which_full_usage "\n\n"
-//usage:       "Locate a COMMAND"
+//usage:       "Locate COMMAND"
 //usage:
 //usage:#define which_example_usage
 //usage:       "$ which login\n"

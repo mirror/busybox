@@ -47,7 +47,7 @@
 //kbuild:lib-$(CONFIG_SETPRIV) += setpriv.o
 
 //usage:#define setpriv_trivial_usage
-//usage:	"[OPTIONS] PROG [ARGS]"
+//usage:	"[OPTIONS] PROG ARGS"
 //usage:#define setpriv_full_usage "\n\n"
 //usage:       "Run PROG with different privilege settings\n"
 //usage:	IF_FEATURE_SETPRIV_DUMP(

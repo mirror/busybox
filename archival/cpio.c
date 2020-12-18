@@ -68,7 +68,7 @@
 //usage:     "\n	-H newc	Archive format"
 //usage:	)
 //usage:     "\n	-d	Make leading directories"
-//usage:     "\n	-m	Preserve mtime"
+//usage:     "\n	-m	Restore mtime"
 //usage:     "\n	-v	Verbose"
 //usage:     "\n	-u	Overwrite"
 //usage:     "\n	-F FILE	Input (-t,-i,-p) or output (-o) file"

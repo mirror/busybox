@@ -15,7 +15,7 @@
 //kbuild:lib-$(CONFIG_UEVENT) += uevent.o
 
 //usage:#define uevent_trivial_usage
-//usage:       "[PROG [ARGS]]"
+//usage:       "[PROG ARGS]"
 //usage:#define uevent_full_usage "\n\n"
 //usage:       "uevent runs PROG for every netlink notification."
 //usage:   "\n""PROG's environment contains data passed from the kernel."

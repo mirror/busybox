@@ -20,7 +20,7 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/uniq.html */
 
 //usage:#define uniq_trivial_usage
-//usage:       "[-cdu][-f,s,w N] [INPUT [OUTPUT]]"
+//usage:       "[-cdui] [-f,s,w N] [INPUT [OUTPUT]]"
 //usage:#define uniq_full_usage "\n\n"
 //usage:       "Discard duplicate lines\n"
 //usage:     "\n	-c	Prefix lines by the number of occurrences"

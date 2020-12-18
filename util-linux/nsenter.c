@@ -17,7 +17,7 @@
 //kbuild:lib-$(CONFIG_NSENTER) += nsenter.o
 
 //usage:#define nsenter_trivial_usage
-//usage:       "[OPTIONS] [PROG [ARGS]]"
+//usage:       "[OPTIONS] [PROG ARGS]"
 //usage:#define nsenter_full_usage "\n"
 //usage:     "\n	-t PID		Target process to get namespaces from"
 //usage:     "\n	-m[FILE]	Enter mount namespace"

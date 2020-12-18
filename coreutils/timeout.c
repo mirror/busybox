@@ -41,7 +41,7 @@
 //usage:#define timeout_trivial_usage
 //usage:       "[-s SIG] SECS PROG ARGS"
 //usage:#define timeout_full_usage "\n\n"
-//usage:       "Runs PROG. Sends SIG to it if it is not gone in SECS seconds.\n"
+//usage:       "Run PROG. Send SIG to it if it is not gone in SECS seconds.\n"
 //usage:       "Default SIG: TERM."
 
 #include "libbb.h"
