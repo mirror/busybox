@@ -34,14 +34,6 @@
 
 //kbuild:lib-$(CONFIG_ROUTE) += route.o
 
-//usage:#define route_trivial_usage
-//usage:       "[{add|del|delete}]"
-//usage:#define route_full_usage "\n\n"
-//usage:       "Edit kernel routing tables\n"
-//usage:     "\n	-n	Don't resolve names"
-//usage:     "\n	-e	Display other/more information"
-//usage:     "\n	-A inet" IF_FEATURE_IPV6("{6}") "	Select address family"
-
 #include <net/route.h>
 #include <net/if.h>
 
@@ -208,7 +200,7 @@ static NOINLINE void INET_setroute(int action, char **args)
 			/* Default netmask. */
 			netmask = "default";
 		}
-		/* Prefer hostname lookup is -host flag (xflag==1) was given. */
+		/* Prefer hostname lookup if -host flag (xflag==1) was given. */
 		isnet = INET_resolve(target, (struct sockaddr_in *) &rt->rt_dst,
 							 (xflag & HOST_FLAG));
 		if (isnet < 0) {
@@ -652,6 +644,17 @@ static void INET6_displayroutes(void)
 }
 
 #endif
+
+//usage:#define route_trivial_usage
+///////:       "[-ne]"IF_FEATURE_IPV6(" [-A inet[6]]")" [{add|del|delete} [-net|-host] TARGET [netmask MASK] [gw GATEWAY] [metric N] [mss BYTES] [window BYTES] [irtt MSEC] [reject] [mod] [dyn] [reinstate] [[dev] IFACE]]"
+///////too wordy
+//usage:       "[-ne]"IF_FEATURE_IPV6(" [-A inet[6]]")" [{add|del} TARGET [netmask MASK]\n"
+//usage:       "	[gw GATEWAY] [metric N] [mss BYTES] [window BYTES] [reject] [IFACE]]"
+//usage:#define route_full_usage "\n\n"
+//usage:       "Show or edit kernel routing tables\n"
+//usage:     "\n	-n	Don't resolve names"
+//usage:     "\n	-e	Display other/more information"
+//usage:     "\n	-A inet" IF_FEATURE_IPV6("[6]") "	Select address family"
 
 #define ROUTE_OPT_A     0x01
 #define ROUTE_OPT_n     0x02

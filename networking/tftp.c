@@ -104,7 +104,7 @@
 //usage:     "\n	-p	Put file"
 //usage:	)
 //usage:	IF_FEATURE_TFTP_BLOCKSIZE(
-//usage:     "\n	-b SIZE	Transfer blocks of SIZE octets"
+//usage:     "\n	-b SIZE	Transfer blocks in bytes"
 //usage:	)
 ///////:     "\n	-m STR	Accepted and ignored ('-m binary' compat with tftp-hpa 5.2)"
 //usage:

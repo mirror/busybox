@@ -58,16 +58,16 @@
 //usage:# define ping_trivial_usage
 //usage:       "HOST"
 //usage:# define ping_full_usage "\n\n"
-//usage:       "Send ICMP ECHO_REQUEST packets to network hosts"
+//usage:       "Send ICMP ECHO_REQUESTs to HOST"
 //usage:# define ping6_trivial_usage
 //usage:       "HOST"
 //usage:# define ping6_full_usage "\n\n"
-//usage:       "Send ICMP ECHO_REQUEST packets to network hosts"
+//usage:       "Send ICMP ECHO_REQUESTs to HOST"
 //usage:#else
 //usage:# define ping_trivial_usage
 //usage:       "[OPTIONS] HOST"
 //usage:# define ping_full_usage "\n\n"
-//usage:       "Send ICMP ECHO_REQUEST packets to network hosts\n"
+//usage:       "Send ICMP ECHO_REQUESTs to HOST\n"
 //usage:	IF_PING6(
 //usage:     "\n	-4,-6		Force IP or IPv6 name resolution"
 //usage:	)
@@ -88,7 +88,7 @@
 //usage:# define ping6_trivial_usage
 //usage:       "[OPTIONS] HOST"
 //usage:# define ping6_full_usage "\n\n"
-//usage:       "Send ICMP ECHO_REQUEST packets to network hosts\n"
+//usage:       "Send ICMP ECHO_REQUESTs to HOST\n"
 //usage:     "\n	-c CNT		Send only CNT pings"
 //usage:     "\n	-s SIZE		Send SIZE data bytes in packets (default 56)"
 //usage:     "\n	-i SECS		Interval"
