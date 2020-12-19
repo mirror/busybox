@@ -544,6 +544,61 @@ var_end(const char *var)
 }
 
 
+/* ============ Parser data */
+
+/*
+ * ash_vmsg() needs parsefile->fd, hence parsefile definition is moved up.
+ */
+struct strlist {
+	struct strlist *next;
+	char *text;
+};
+
+struct alias;
+
+struct strpush {
+	struct strpush *prev;   /* preceding string on stack */
+	char *prev_string;
+	int prev_left_in_line;
+#if ENABLE_ASH_ALIAS
+	struct alias *ap;       /* if push was associated with an alias */
+#endif
+	char *string;           /* remember the string since it may change */
+
+	/* Remember last two characters for pungetc. */
+	int lastc[2];
+
+	/* Number of outstanding calls to pungetc. */
+	int unget;
+};
+
+/*
+ * The parsefile structure pointed to by the global variable parsefile
+ * contains information about the current file being read.
+ */
+struct parsefile {
+	struct parsefile *prev; /* preceding file on stack */
+	int linno;              /* current line */
+	int pf_fd;              /* file descriptor (or -1 if string) */
+	int left_in_line;       /* number of chars left in this line */
+	int left_in_buffer;     /* number of chars left in this buffer past the line */
+	char *next_to_pgetc;    /* next char in buffer */
+	char *buf;              /* input buffer */
+	struct strpush *strpush; /* for pushing strings at this level */
+	struct strpush basestrpush; /* so pushing one is fast */
+
+	/* Remember last two characters for pungetc. */
+	int lastc[2];
+
+	/* Number of outstanding calls to pungetc. */
+	int unget;
+};
+
+static struct parsefile basepf;        /* top level input file */
+static struct parsefile *g_parsefile = &basepf;  /* current input file */
+static char *commandname;              /* currently executing command */
+
+
 /* ============ Interrupts / exceptions */
 
 static void exitshell(void) NORETURN;
@@ -581,6 +636,8 @@ raise_exception(int e)
 		abort();
 #endif
 	INT_OFF;
+	/* Prevent this: ";l" -> syntax error, then "s" -> runs "ls" */
+	g_parsefile->unget = 0;
 	exception_type = e;
 	longjmp(exception_handler->loc, 1);
 }
@@ -1297,61 +1354,6 @@ showtree(union node *n)
 }
 
 #endif /* DEBUG */
-
-
-/* ============ Parser data */
-
-/*
- * ash_vmsg() needs parsefile->fd, hence parsefile definition is moved up.
- */
-struct strlist {
-	struct strlist *next;
-	char *text;
-};
-
-struct alias;
-
-struct strpush {
-	struct strpush *prev;   /* preceding string on stack */
-	char *prev_string;
-	int prev_left_in_line;
-#if ENABLE_ASH_ALIAS
-	struct alias *ap;       /* if push was associated with an alias */
-#endif
-	char *string;           /* remember the string since it may change */
-
-	/* Remember last two characters for pungetc. */
-	int lastc[2];
-
-	/* Number of outstanding calls to pungetc. */
-	int unget;
-};
-
-/*
- * The parsefile structure pointed to by the global variable parsefile
- * contains information about the current file being read.
- */
-struct parsefile {
-	struct parsefile *prev; /* preceding file on stack */
-	int linno;              /* current line */
-	int pf_fd;              /* file descriptor (or -1 if string) */
-	int left_in_line;       /* number of chars left in this line */
-	int left_in_buffer;     /* number of chars left in this buffer past the line */
-	char *next_to_pgetc;    /* next char in buffer */
-	char *buf;              /* input buffer */
-	struct strpush *strpush; /* for pushing strings at this level */
-	struct strpush basestrpush; /* so pushing one is fast */
-
-	/* Remember last two characters for pungetc. */
-	int lastc[2];
-
-	/* Number of outstanding calls to pungetc. */
-	int unget;
-};
-
-static struct parsefile basepf;        /* top level input file */
-static struct parsefile *g_parsefile = &basepf;  /* current input file */
-static char *commandname;              /* currently executing command */
 
 
 /* ============ Message printing */
