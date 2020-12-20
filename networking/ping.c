@@ -81,9 +81,8 @@
 //usage:     "\n			(after all -c CNT packets are sent)"
 //usage:     "\n	-w SEC		Seconds until ping exits (default:infinite)"
 //usage:     "\n			(can exit earlier with -c CNT)"
-//usage:     "\n	-q		Quiet, only display output at start"
-//usage:     "\n			and when finished"
-//usage:     "\n	-p HEXBYTE	Pattern to use for payload"
+//usage:     "\n	-q		Quiet, only display output at start/finish"
+//usage:     "\n	-p HEXBYTE	Payload pattern"
 //usage:
 //usage:# define ping6_trivial_usage
 //usage:       "[OPTIONS] HOST"
@@ -93,10 +92,15 @@
 //usage:     "\n	-s SIZE		Send SIZE data bytes in packets (default 56)"
 //usage:     "\n	-i SECS		Interval"
 //usage:     "\n	-A		Ping as soon as reply is recevied"
+///////:     "\n	-t TTL		Set TTL"
+///////^^^^^ -t not tested for IPv6, might be not working
 //usage:     "\n	-I IFACE/IP	Source interface or IP address"
-//usage:     "\n	-q		Quiet, only display output at start"
-//usage:     "\n			and when finished"
-//usage:     "\n	-p HEXBYTE	Pattern to use for payload"
+//usage:     "\n	-W SEC		Seconds to wait for the first response (default 10)"
+//usage:     "\n			(after all -c CNT packets are sent)"
+//usage:     "\n	-w SEC		Seconds until ping exits (default:infinite)"
+//usage:     "\n			(can exit earlier with -c CNT)"
+//usage:     "\n	-q		Quiet, only display output at start/finish"
+//usage:     "\n	-p HEXBYTE	Payload pattern"
 //usage:
 //usage:#endif
 //usage:
