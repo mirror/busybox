@@ -9988,6 +9988,7 @@ static int set_mode(int state, char mode, const char *o_opt)
 int hush_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hush_main(int argc, char **argv)
 {
+	pid_t cached_getpid;
 	enum {
 		OPT_login = (1 << 0),
 	};
@@ -10015,6 +10016,10 @@ int hush_main(int argc, char **argv)
 #if !BB_MMU
 	G.argv0_for_re_execing = argv[0];
 #endif
+
+	cached_getpid = getpid();   /* for tcsetpgrp() during init */
+	G.root_pid = cached_getpid; /* for $PID   (NOMMU can override via -$HEXPID:HEXPPID:...) */
+	G.root_ppid = getppid();    /* for $$PPID (NOMMU can override)  */
 
 	/* Deal with HUSH_VERSION */
 	debug_printf_env("unsetenv '%s'\n", "HUSH_VERSION");
@@ -10103,8 +10108,6 @@ int hush_main(int argc, char **argv)
 		char *script = get_script_content(-argc - 1);
 		G.global_argv = argv;
 		G.global_argc = string_array_len(argv);
-		G.root_pid = getpid();
-		G.root_ppid = getppid();
 		//install_special_sighandlers(); - needed?
 		parse_and_run_string(script);
 		goto final_return;
@@ -10231,11 +10234,6 @@ int hush_main(int argc, char **argv)
 	G.global_argc = argc - (optind - 1);
 	G.global_argv = argv + (optind - 1);
 	G.global_argv[0] = argv[0];
-
-	if (!G.root_pid) {
-		G.root_pid = getpid();
-		G.root_ppid = getppid();
-	}
 
 	/* If we are login shell... */
 	if (flags & OPT_login) {
@@ -10406,7 +10404,7 @@ int hush_main(int argc, char **argv)
 			 * (bash, too, does this only if ctty is available) */
 			bb_setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
 			/* Grab control of the terminal */
-			tcsetpgrp(G_interactive_fd, getpid());
+			tcsetpgrp(G_interactive_fd, cached_getpid);
 		}
 		enable_restore_tty_pgrp_on_exit();
 
