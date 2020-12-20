@@ -471,16 +471,15 @@ static void sendping_tail(void (*sp)(int), int size_pkt)
 {
 	int sz;
 
-	CLR((uint16_t)G.ntransmitted % MAX_DUP_CHK);
-	G.ntransmitted++;
-
-	size_pkt += datalen;
-
 	if (G.deadline_us) {
 		unsigned n = G.cur_us - G.deadline_us;
 		if ((int)n >= 0)
 			print_stats_and_exit(0);
 	}
+
+	CLR((uint16_t)G.ntransmitted % MAX_DUP_CHK);
+	G.ntransmitted++;
+	size_pkt += datalen;
 
 	/* sizeof(pingaddr) can be larger than real sa size, but I think
 	 * it doesn't matter */
