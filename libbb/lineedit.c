@@ -2911,6 +2911,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 		 * before it comes in. UGLY!
 		 */
 		usleep(20*1000);
+// MAYBE? tcflush(STDIN_FILENO, TCIFLUSH); /* flushes data received but not read */
 	}
 #endif
 
