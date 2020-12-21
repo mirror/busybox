@@ -49,12 +49,11 @@ typedef unsigned long half_t;
  * (adding just one prime, 13, results in 5766 element sieve).
  */
 #define R(a,b,c,d,e,f,g,h,i,j,A,B,C,D,E,F,G,H,I,J) \
-	(((uint64_t)(a<<0) | (b<<3) | (c<<6) | (d<<9) | (e<<12) | (f<<15) | (g<<18) | (h<<21) | (i<<24) | (j<<27))      ) | \
-	(((uint64_t)(A<<0) | (B<<3) | (C<<6) | (D<<9) | (E<<12) | (F<<15) | (G<<18) | (H<<21) | (I<<24) | (J<<27)) << 30) | \
-	(((uint64_t)7 << 60))
+	(((uint64_t)(a<<0) | (b<<3) | (c<<6) | (d<<9) | (e<<12) | (f<<15) | (g<<18) | (h<<21) | (i<<24) | (j<<27)) << 1) | \
+	(((uint64_t)(A<<0) | (B<<3) | (C<<6) | (D<<9) | (E<<12) | (F<<15) | (G<<18) | (H<<21) | (I<<24) | (J<<27)) << 31)
 #define P(a,b,c,d,e,f,g,h,i,j,A,B,C,D,E,F,G,H,I,J) \
-	R(	(a/2-1),(b/2-1),(c/2-1),(d/2-1),(e/2-1),(f/2-1),(g/2-1),(h/2-1),(i/2-1),(j/2-1), \
-		(A/2-1),(B/2-1),(C/2-1),(D/2-1),(E/2-1),(F/2-1),(G/2-1),(H/2-1),(I/2-1),(J/2-1)  )
+	R(	(a/2),(b/2),(c/2),(d/2),(e/2),(f/2),(g/2),(h/2),(i/2),(j/2), \
+		(A/2),(B/2),(C/2),(D/2),(E/2),(F/2),(G/2),(H/2),(I/2),(J/2)  )
 static const uint64_t packed_wheel[] = {
 	/*1, 2, 2, 4, 2,*/
 	P( 4, 2, 4, 6, 2, 6, 4, 2, 4, 6, 6, 2, 6, 4, 2, 6, 4, 6, 8, 4), //01
@@ -94,7 +93,7 @@ static const uint64_t packed_wheel[] = {
  *	wheel_tab                 -     485    +485
  * 3-bit-packed insanity:
  *	packed_wheel              -     192    +192
- *	factor_main             108     176     +68
+ *	factor_main             108     176     +63
  */
 static void unpack_wheel(void)
 {
@@ -110,12 +109,12 @@ static void unpack_wheel(void)
 	p = &wheel_tab[5];
 	for (i = 0; i < ARRAY_SIZE(packed_wheel); i++) {
 		uint64_t v = packed_wheel[i];
-		do {
-			*p = ((unsigned)(v & 7) + 1) * 2;
+		while ((v & 0xe) != 0) {
+			*p = v & 0xe;
 			//printf("%2u,", *p);
 			p++;
 			v >>= 3;
-		} while ((unsigned)v != 7);
+		}
 		//printf("\n");
 	}
 }
