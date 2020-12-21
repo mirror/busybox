@@ -1906,7 +1906,11 @@ enum {
 	FOR_SHELL        = DO_HISTORY | TAB_COMPLETION | USERNAME_COMPLETION,
 };
 line_input_t *new_line_input_t(int flags) FAST_FUNC;
+#if ENABLE_FEATURE_EDITING_SAVEHISTORY
 void free_line_input_t(line_input_t *n) FAST_FUNC;
+#else
+# define free_line_input_t(n) free(n)
+#endif
 /*
  * maxsize must be >= 2.
  * Returns:

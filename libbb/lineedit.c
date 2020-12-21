@@ -1417,15 +1417,19 @@ void FAST_FUNC show_history(const line_input_t *st)
 		printf("%4d %s\n", i, st->history[i]);
 }
 
+# if ENABLE_FEATURE_EDITING_SAVEHISTORY
 void FAST_FUNC free_line_input_t(line_input_t *n)
 {
-# if ENABLE_FEATURE_EDITING_SAVEHISTORY
-	int i = n->cnt_history;
-	while (i > 0)
-		free(n->history[--i]);
-#endif
-	free(n);
+	if (n) {
+		int i = n->cnt_history;
+		while (i > 0)
+			free(n->history[--i]);
+		free(n);
+	}
 }
+# else
+/* #defined to free() in libbb.h */
+# endif
 
 # if ENABLE_FEATURE_EDITING_SAVEHISTORY
 /* We try to ensure that concurrent additions to the history
@@ -1506,7 +1510,7 @@ void save_history(line_input_t *st)
 {
 	FILE *fp;
 
-	if (!st->hist_file)
+	if (!st || !st->hist_file)
 		return;
 	if (st->cnt_history <= st->cnt_history_in_file)
 		return;

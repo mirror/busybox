@@ -14177,8 +14177,7 @@ exitshell(void)
 	char *p;
 
 #if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
-	if (line_input_state)
-		save_history(line_input_state);
+	save_history(line_input_state); /* may be NULL */
 #endif
 	savestatus = exitstatus;
 	TRACE(("pid %d, exitshell(%d)\n", getpid(), savestatus));

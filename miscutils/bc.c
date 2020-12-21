@@ -2545,6 +2545,8 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 # if ENABLE_FEATURE_EDITING
 	if (G_ttyin && fp == stdin) {
 		int n, i;
+		if (!G.line_input_state)
+			G.line_input_state = new_line_input_t(DO_HISTORY);
 #  define line_buf bb_common_bufsiz1
 		n = read_line_input(G.line_input_state, "", line_buf, COMMON_BUFSIZE);
 		if (n <= 0) { // read errors or EOF, or ^D, or ^C
@@ -6872,22 +6874,6 @@ static BC_STATUS zxc_program_exec(void)
 }
 #define zxc_program_exec(...) (zxc_program_exec(__VA_ARGS__) COMMA_SUCCESS)
 
-static unsigned xc_vm_envLen(const char *var)
-{
-	char *lenv;
-	unsigned len;
-
-	lenv = getenv(var);
-	len = BC_NUM_PRINT_WIDTH;
-	if (!lenv) return len;
-
-	len = bb_strtou(lenv, NULL, 10) - 1;
-	if (errno || len < 2 || len >= INT_MAX)
-		len = BC_NUM_PRINT_WIDTH;
-
-	return len;
-}
-
 static BC_STATUS zxc_vm_process(const char *text)
 {
 	BcStatus s;
@@ -7377,12 +7363,25 @@ static void xc_program_init(void)
 	bc_char_vec_init(&G.input_buffer);
 }
 
+static unsigned xc_vm_envLen(const char *var)
+{
+	char *lenv;
+	unsigned len;
+
+	lenv = getenv(var);
+	len = BC_NUM_PRINT_WIDTH;
+	if (!lenv) return len;
+
+	len = bb_strtou(lenv, NULL, 10) - 1;
+	if (errno || len < 2 || len >= INT_MAX)
+		len = BC_NUM_PRINT_WIDTH;
+
+	return len;
+}
+
 static int xc_vm_init(const char *env_len)
 {
 	G.prog.len = xc_vm_envLen(env_len);
-#if ENABLE_FEATURE_EDITING
-	G.line_input_state = new_line_input_t(DO_HISTORY);
-#endif
 	bc_vec_init(&G.files, sizeof(char *), NULL);
 
 	xc_program_init();

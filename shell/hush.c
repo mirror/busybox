@@ -2056,8 +2056,7 @@ static sighandler_t pick_sighandler(unsigned sig)
 static void hush_exit(int exitcode)
 {
 #if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
-	if (G.line_input_state)
-		save_history(G.line_input_state);
+	save_history(G.line_input_state); /* may be NULL */
 #endif
 
 	fflush_all();
