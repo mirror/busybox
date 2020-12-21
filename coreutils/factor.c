@@ -82,7 +82,7 @@ static const uint64_t packed_wheel[] = {
 	P( 4, 6, 2, 4, 6, 2, 6, 6, 4, 2, 4, 6, 2, 6, 4, 2, 4,12, 2,12), //24
 };
 #undef P
-#undef r
+#undef R
 #define WHEEL_START 5
 #define WHEEL_SIZE (5 + 24 * 20)
 #define wheel_tab ((uint8_t*)&bb_common_bufsiz1)
