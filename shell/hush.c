@@ -6506,9 +6506,11 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 			 * Word is expanded to produce a glob pattern.
 			 * Then var's value is matched to it and matching part removed.
 			 */
-//FIXME: ${x#...${...}...}
-//should evaluate inner ${...} even if x is "" and no shrinking of it is possible -
-//inner ${...} may have side effects!
+			/* bash compat: if x is "" and no shrinking of it is possible,
+			 * inner ${...} is not evaluated. Example:
+			 *  unset b; : ${a%${b=B}}; echo $b
+			 * assignment b=B only happens if $a is not "".
+			 */
 			if (val && val[0]) {
 				char *t;
 				char *exp_exp_word;
@@ -6547,7 +6549,12 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 			 * and if // is used, it is encoded as \:
 			 * var\pattern<SPECIAL_VAR_SYMBOL>repl<SPECIAL_VAR_SYMBOL>
 			 */
-			if (val && val[0]) {
+			/* bash compat: if var is "", both pattern and repl
+			 * are still evaluated, if it is unset, then not:
+			 * unset b; a=; : ${a/z/${b=3}}; echo $b      # b=3
+			 * unset b; unset a; : ${a/z/${b=3}}; echo $b # b not set
+			 */
+			if (val /*&& val[0]*/) {
 				/* pattern uses non-standard expansion.
 				 * repl should be unbackslashed and globbed
 				 * by the usual expansion rules:
@@ -6583,8 +6590,9 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 				free(pattern);
 				free(repl);
 			} else {
-				/* Empty variable always gives nothing */
-				// "v=''; echo ${v/*/w}" prints "", not "w"
+				/* Unset variable always gives nothing */
+				//  a=; echo ${a/*/w}      # "w"
+				//  unset a; echo ${a/*/w} # ""
 				/* Just skip "replace" part */
 				*p++ = SPECIAL_VAR_SYMBOL;
 				p = strchr(p, SPECIAL_VAR_SYMBOL);
@@ -6599,40 +6607,48 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 			 * var:N<SPECIAL_VAR_SYMBOL>M<SPECIAL_VAR_SYMBOL>
 			 */
 			arith_t beg, len;
+			unsigned vallen;
 			const char *errmsg;
 
 			beg = expand_and_evaluate_arith(exp_word, &errmsg);
 			if (errmsg)
-				goto arith_err;
+				goto empty_result;
 			debug_printf_varexp("beg:'%s'=%lld\n", exp_word, (long long)beg);
 			*p++ = SPECIAL_VAR_SYMBOL;
 			exp_word = p;
 			p = strchr(p, SPECIAL_VAR_SYMBOL);
 			*p = '\0';
-			len = expand_and_evaluate_arith(exp_word, &errmsg);
-			if (errmsg)
-				goto arith_err;
-			debug_printf_varexp("len:'%s'=%lld\n", exp_word, (long long)len);
+			vallen = strlen(val);
 			if (beg < 0) {
 				/* negative beg counts from the end */
-				beg = (arith_t)strlen(val) + beg;
-				if (beg < 0) /* ${v: -999999} is "" */
-					beg = len = 0;
+				beg = (arith_t)vallen + beg;
 			}
+			/* If expansion will be empty, do not even evaluate len */
+			if (!val || beg < 0 || beg > vallen) {
+				/* Why > vallen, not >=? bash:
+				 * unset b; a=ab; : ${a:2:${b=3}}; echo $b  # "", b=3 (!!!)
+				 * unset b; a=a; : ${a:2:${b=3}}; echo $b   # "", b not set
+				 */
+				goto empty_result;
+			}
+			len = expand_and_evaluate_arith(exp_word, &errmsg);
+			if (errmsg)
+				goto empty_result;
+			debug_printf_varexp("len:'%s'=%lld\n", exp_word, (long long)len);
 			debug_printf_varexp("from val:'%s'\n", val);
 			if (len < 0) {
 				/* in bash, len=-n means strlen()-n */
-				len = (arith_t)strlen(val) - beg + len;
+				len = (arith_t)vallen - beg + len;
 				if (len < 0) /* bash compat */
 					msg_and_die_if_script("%s: substring expression < 0", var);
 			}
-			if (len <= 0 || !val || beg >= strlen(val)) {
- arith_err:
+			if (len <= 0 || !val /*|| beg >= vallen*/) {
+ empty_result:
 				val = NULL;
 			} else {
 				/* Paranoia. What if user entered 9999999999999
 				 * which fits in arith_t but not int? */
-				if (len >= INT_MAX)
+				if (len > INT_MAX)
 					len = INT_MAX;
 				val = to_be_freed = xstrndup(val + beg, len);
 			}
