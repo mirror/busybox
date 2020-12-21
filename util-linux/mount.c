@@ -182,7 +182,9 @@
 //usage:       "Returns 0 for success, number of failed mounts for -a, or errno for one mount."
 
 #include <mntent.h>
+#if ENABLE_FEATURE_SYSLOG
 #include <syslog.h>
+#endif
 #include <sys/mount.h>
 // Grab more as needed from util-linux's mount/mount_constants.h
 #ifndef MS_DIRSYNC
