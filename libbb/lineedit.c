@@ -216,9 +216,6 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 #define INIT_S() do { \
 	(*(struct lineedit_statics**)not_const_pp(&lineedit_ptr_to_statics)) = xzalloc(sizeof(S)); \
 	barrier(); \
-	cmdedit_termw = 80; \
-	IF_USERNAME_OR_HOMEDIR(home_pwd_buf = (char*)null_str;) \
-	IF_FEATURE_EDITING_VI(delptr = delbuf;) \
 } while (0)
 
 static void deinit_S(void)
@@ -2393,6 +2390,11 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	char read_key_buffer[KEYCODE_BUFFER_SIZE];
 
 	INIT_S();
+	//command_len = 0; - done by INIT_S()
+	//cmdedit_y = 0;  /* quasireal y, not true if line > xt*yt */
+	cmdedit_termw = 80;
+	IF_USERNAME_OR_HOMEDIR(home_pwd_buf = (char*)null_str;)
+	IF_FEATURE_EDITING_VI(delptr = delbuf;)
 
 	n = get_termios_and_make_raw(STDIN_FILENO, &new_settings, &initial_settings, 0
 		| TERMIOS_CLEAR_ISIG /* turn off INTR (ctrl-C), QUIT, SUSP */
@@ -2441,8 +2443,6 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 #endif
 
 	/* prepare before init handlers */
-	cmdedit_y = 0;  /* quasireal y, not true if line > xt*yt */
-	command_len = 0;
 #if ENABLE_UNICODE_SUPPORT
 	command_ps = xzalloc(maxsize * sizeof(command_ps[0]));
 #else
