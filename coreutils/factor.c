@@ -85,7 +85,8 @@ static const uint64_t packed_wheel[] = {
 #undef R
 #define WHEEL_START 5
 #define WHEEL_SIZE (5 + 24 * 20)
-#define wheel_tab ((uint8_t*)&bb_common_bufsiz1)
+#define square_count (((uint8_t*)&bb_common_bufsiz1)[0])
+#define wheel_tab    (((uint8_t*)&bb_common_bufsiz1) + 1)
 /*
  * Why, you ask?
  * plain byte array:
@@ -119,9 +120,39 @@ static void unpack_wheel(void)
 	}
 }
 
+/* Prevent inlining, factorize() needs all help it can get with reducing register pressure */
+static NOINLINE void print_w(wide_t n)
+{
+	unsigned rep = square_count;
+	do
+		printf(" %llu", n);
+	while (--rep != 0);
+}
+static NOINLINE void print_h(half_t n)
+{
+	print_w(n);
+}
+
+static void factorize(wide_t N);
+
 static half_t isqrt_odd(wide_t N)
 {
 	half_t s = isqrt(N);
+	/* s^2 is <= N, (s+1)^2 > N */
+
+	/* If s^2 in fact is EQUAL to N, it's very lucky.
+	 * Examples:
+	 * factor 18446743988964486098 = 2 * 3037000493 * 3037000493
+	 * factor 18446743902517389507 = 3 * 2479700513 * 2479700513
+	 */
+	if ((wide_t)s * s == N) {
+		/* factorize sqrt(N), printing each factor twice */
+		square_count *= 2;
+		factorize(s);
+		/* Let caller know we recursed */
+		return 0;
+	}
+
 	/* Subtract 1 from even s, odd s won't change: */
 	/* (doesnt work for zero, but we know that s != 0 here) */
 	s = (s - 1) | 1;
@@ -152,6 +183,8 @@ static NOINLINE void factorize(wide_t N)
 	 * factor 18446744073709551557 (0xffffffffffffffc5).
 	 */
 	max_factor = isqrt_odd(N);
+	if (!max_factor)
+		return; /* square was detected and recursively factored */
 	factor = 2;
 	w = 0;
 	for (;;) {
@@ -162,8 +195,10 @@ static NOINLINE void factorize(wide_t N)
 		 */
 		while ((N % factor) == 0) { /* not likely */
 			N = N / factor;
-			printf(" %"HALF_FMT"u", factor);
+			print_h(factor);
 			max_factor = isqrt_odd(N);
+			if (!max_factor)
+				return; /* square was detected */
 		}
 		if (factor >= max_factor)
 			break;
@@ -178,7 +213,7 @@ static NOINLINE void factorize(wide_t N)
 	}
  end:
 	if (N > 1)
-		printf(" %llu", N);
+		print_w(N);
 	bb_putchar('\n');
 }
 
@@ -193,6 +228,7 @@ static void factorize_numstr(const char *numstr)
 	if (errno)
 		bb_show_usage();
 	printf("%llu:", N);
+	square_count = 1;
 	factorize(N);
 }
 
