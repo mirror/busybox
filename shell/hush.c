@@ -1649,6 +1649,26 @@ static int refill_HFILE_and_getc(HFILE *fp)
 		/* Already saw EOF */
 		return EOF;
 	}
+#if ENABLE_HUSH_INTERACTIVE && !ENABLE_FEATURE_EDITING
+	/* If user presses ^C, read() restarts after SIGINT (we use SA_RESTART).
+	 * IOW: ^C will not immediately stop line input.
+	 * But poll() is different: it does NOT restart after signals.
+	 */
+	if (fp == G.HFILE_stdin) {
+		struct pollfd pfd[1];
+		pfd[0].fd = fp->fd;
+		pfd[0].events = POLLIN;
+		n = poll(pfd, 1, -1);
+		if (n < 0
+		 /*&& errno == EINTR - assumed true */
+		 && sigismember(&G.pending_set, SIGINT)
+		) {
+			return '\0';
+		}
+	}
+#else
+/* if FEATURE_EDITING=y, we do not use this routine for interactive input */
+#endif
 	/* Try to buffer more input */
 	n = safe_read(fp->fd, fp->buf, sizeof(fp->buf));
 	if (n < 0) {
@@ -2089,7 +2109,6 @@ static void hush_exit(int exitcode)
 	_exit(exitcode);
 #endif
 }
-
 
 //TODO: return a mask of ALL handled sigs?
 static int check_and_run_traps(void)
@@ -2665,19 +2684,23 @@ static int get_user_input(struct in_str *i)
 			 */
 			check_and_run_traps();
 			fputs(prompt_str, stdout);
+			fflush_all();
 		}
-		fflush_all();
-//FIXME: here ^C or SIGINT will have effect only after <Enter>
 		r = hfgetc(i->file);
 		/* In !ENABLE_FEATURE_EDITING we don't use read_line_input,
 		 * no ^C masking happens during fgetc, no special code for ^C:
 		 * it generates SIGINT as usual.
 		 */
 		check_and_run_traps();
-		if (G.flag_SIGINT)
-			G.last_exitcode = 128 | SIGINT;
-		if (r != '\0')
+		if (r != '\0' && !G.flag_SIGINT)
 			break;
+		if (G.flag_SIGINT) {
+			/* ^C or SIGINT: repeat */
+			/* bash prints ^C even on real SIGINT (non-kbd generated) */
+			/* kernel prints "^C" itself, just print newline: */
+			write(STDOUT_FILENO, "\n", 1);
+			G.last_exitcode = 128 | SIGINT;
+		}
 	}
 	return r;
 # endif
