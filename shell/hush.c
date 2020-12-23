@@ -6617,7 +6617,7 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 			exp_word = p;
 			p = strchr(p, SPECIAL_VAR_SYMBOL);
 			*p = '\0';
-			vallen = strlen(val);
+			vallen = val ? strlen(val) : 0;
 			if (beg < 0) {
 				/* negative beg counts from the end */
 				beg = (arith_t)vallen + beg;
