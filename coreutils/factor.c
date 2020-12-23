@@ -94,7 +94,7 @@ static const uint64_t packed_wheel[] = {
  *	wheel_tab                 -     485    +485
  * 3-bit-packed insanity:
  *	packed_wheel              -     192    +192
- *	factor_main             108     176     +63
+ *	factor_main             108     171     +63
  */
 static void unpack_wheel(void)
 {
