@@ -636,8 +636,6 @@ raise_exception(int e)
 		abort();
 #endif
 	INT_OFF;
-	/* Prevent this: ";l" -> syntax error, then "s" -> runs "ls" */
-	g_parsefile->unget = 0;
 	exception_type = e;
 	longjmp(exception_handler->loc, 1);
 }
@@ -14161,6 +14159,7 @@ reset(void)
 	/* from input.c: */
 	g_parsefile->left_in_buffer = 0;
 	g_parsefile->left_in_line = 0;      /* clear input buffer */
+	g_parsefile->unget = 0;
 	popallfiles();
 
 	/* from var.c: */
