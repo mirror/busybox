@@ -2619,7 +2619,7 @@ static const char *setup_prompt_string(void)
 		/* bash uses $PWD value, even if it is set by user.
 		 * It uses current dir only if PWD is unset.
 		 * We always use current dir. */
-		G.PS1 = xasprintf("%s %c ", get_cwd(0), (geteuid() != 0) ? '$' : '#');
+		prompt_str = G.PS1 = xasprintf("%s %c ", get_cwd(0), (geteuid() != 0) ? '$' : '#');
 	}
 # endif
 	debug_printf("prompt_str '%s'\n", prompt_str);
@@ -2709,14 +2709,14 @@ static int fgetc_interactive(struct in_str *i)
 	}
 	return ch;
 }
-#else
+#else  /* !INTERACTIVE */
 static ALWAYS_INLINE int fgetc_interactive(struct in_str *i)
 {
 	int ch;
 	do ch = hfgetc(i->file); while (ch == '\0');
 	return ch;
 }
-#endif  /* INTERACTIVE */
+#endif  /* !INTERACTIVE */
 
 static int i_getch(struct in_str *i)
 {
