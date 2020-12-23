@@ -916,9 +916,6 @@ struct globals {
 	char opt_c;
 #if ENABLE_HUSH_INTERACTIVE
 	smallint promptmode; /* 0: PS1, 1: PS2 */
-# if ENABLE_FEATURE_EDITING
-	smallint flag_ctrlC; /* when set, suppresses syntax error messages */
-# endif
 #endif
 	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
@@ -1428,10 +1425,7 @@ static void syntax_error_at(unsigned lineno UNUSED_PARAM, const char *msg)
 
 static void syntax_error_unterm_str(unsigned lineno UNUSED_PARAM, const char *s)
 {
-#if ENABLE_FEATURE_EDITING
-	if (!G.flag_ctrlC)
-#endif
-		bb_error_msg("syntax error: unterminated %s", s);
+	bb_error_msg("syntax error: unterminated %s", s);
 //? source4.tests fails: in bash, echo ${^} in script does not terminate the script
 //	die_if_script();
 }
@@ -2642,19 +2636,15 @@ static int get_user_input(struct in_str *i)
 		);
 		/* read_line_input intercepts ^C, "convert" it to SIGINT */
 		if (r == 0) {
-			G.flag_ctrlC = 1;
 			raise(SIGINT);
 		}
 		check_and_run_traps();
 		if (r != 0 && !G.flag_SIGINT)
 			break;
-		/* ^C or SIGINT: return EOF */
+		/* ^C or SIGINT: repeat */
 		/* bash prints ^C even on real SIGINT (non-kbd generated) */
 		write(STDOUT_FILENO, "^C\n", 3);
 		G.last_exitcode = 128 | SIGINT;
-		i->p = NULL;
-		i->peek_buf[0] = r = EOF;
-		return r;
 	}
 	if (r < 0) {
 		/* EOF/error detected */
@@ -5266,16 +5256,7 @@ static struct pipe *parse_stream(char **pstring,
 				ch, ch, !!(ctx.word.o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 		if (ch == EOF) {
 			struct pipe *pi;
-#if ENABLE_FEATURE_EDITING
-			if (G.flag_ctrlC) {
-				/* testcase: interactively entering
-				 *  'qwe <cr> ^C
-				 * should not leave input in PS2 mode, waiting to close single quote.
-				 */
-				G.flag_ctrlC = 0;
-				goto parse_error;
-			}
-#endif
+
 			if (heredoc_cnt) {
 				syntax_error_unterm_str("here document");
 				goto parse_error_exitcode1;
