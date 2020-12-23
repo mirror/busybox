@@ -10155,7 +10155,7 @@ int hush_main(int argc, char **argv)
 			break;
 		switch (opt) {
 		case 'c':
-			/* Note: -c is not a param with option!
+			/* Note: -c is not an option with param!
 			 * "hush -c -l SCRIPT" is valid. "hush -cSCRIPT" is not.
 			 */
 			G.opt_c = 1;
