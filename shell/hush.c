@@ -1656,12 +1656,12 @@ static int refill_HFILE_and_getc(HFILE *fp)
 		return EOF;
 	}
 	/* Try to buffer more input */
-	fp->cur = fp->buf;
 	n = safe_read(fp->fd, fp->buf, sizeof(fp->buf));
 	if (n < 0) {
 		bb_simple_perror_msg("read error");
 		n = 0;
 	}
+	fp->cur = fp->buf;
 	fp->end = fp->buf + n;
 	if (n == 0) {
 		/* EOF/error */
@@ -2651,7 +2651,7 @@ static int get_user_input(struct in_str *i)
 		/* ^C or SIGINT: return EOF */
 		/* bash prints ^C even on real SIGINT (non-kbd generated) */
 		write(STDOUT_FILENO, "^C\n", 3);
-		G.last_exitcode = 128 + SIGINT;
+		G.last_exitcode = 128 | SIGINT;
 		i->p = NULL;
 		i->peek_buf[0] = r = EOF;
 		return r;
@@ -2685,7 +2685,7 @@ static int get_user_input(struct in_str *i)
 		 */
 		check_and_run_traps();
 		if (G.flag_SIGINT)
-			G.last_exitcode = 128 + SIGINT;
+			G.last_exitcode = 128 | SIGINT;
 		if (r != '\0')
 			break;
 	}
@@ -8756,9 +8756,10 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 						puts(sig == SIGINT || sig == SIGPIPE ? "" : strsignal(sig));
 					}
 					/* TODO: if (WCOREDUMP(status)) + " (core dumped)"; */
-					/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
-					 * Maybe we need to use sig | 128? */
-					ex = sig + 128;
+					/* MIPS has 128 sigs (1..128), if sig==128,
+					 * 128 + sig would result in exitcode 256 -> 0!
+					 */
+					ex = 128 | sig;
 				}
 				fg_pipe->cmds[i].cmd_exitcode = ex;
 			} else {
@@ -8805,7 +8806,8 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 		/* child exited */
 		int rcode = WEXITSTATUS(status);
 		if (WIFSIGNALED(status))
-			rcode = 128 + WTERMSIG(status);
+			/* NB: not 128 + sig, MIPS has sig 128 */
+			rcode = 128 | WTERMSIG(status);
 		pi->cmds[i].cmd_exitcode = rcode;
 		if (G.last_bg_pid == pi->cmds[i].pid)
 			G.last_bg_pid_exitcode = rcode;
@@ -8925,10 +8927,10 @@ static int checkjobs(struct pipe *fg_pipe, pid_t waitfor_pid)
 			debug_printf_exec("childpid==waitfor_pid:%d status:0x%08x\n", childpid, status);
 			rcode = WEXITSTATUS(status);
 			if (WIFSIGNALED(status))
-				rcode = 128 + WTERMSIG(status);
+				rcode = 128 | WTERMSIG(status);
 			if (WIFSTOPPED(status))
-				/* bash: "cmd & wait $!" and cmd stops: $? = 128 + stopsig */
-				rcode = 128 + WSTOPSIG(status);
+				/* bash: "cmd & wait $!" and cmd stops: $? = 128 | stopsig */
+				rcode = 128 | WSTOPSIG(status);
 			rcode++;
 			break; /* "wait PID" called us, give it exitcode+1 */
 		}
@@ -9318,7 +9320,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			 * during builtin/nofork.
 			 */
 			if (sigismember(&G.pending_set, SIGINT))
-				rcode = 128 + SIGINT;
+				rcode = 128 | SIGINT;
 		}
 		free(argv_expanded);
 		IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
@@ -11718,7 +11720,7 @@ static int wait_for_child_or_signal(struct pipe *waitfor_pipe, pid_t waitfor_pid
 		sig = check_and_run_traps();
 		if (sig /*&& sig != SIGCHLD - always true */) {
 			/* Do this for any (non-ignored) signal, not only for ^C */
-			ret = 128 + sig;
+			ret = 128 | sig;
 			break;
 		}
 		/* SIGCHLD, or no signal, or ignored one, such as SIGQUIT. Repeat */
@@ -11818,7 +11820,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 			process_wait_result(NULL, pid, status);
 			ret = WEXITSTATUS(status);
 			if (WIFSIGNALED(status))
-				ret = 128 + WTERMSIG(status);
+				ret = 128 | WTERMSIG(status);
 		}
 	} while (*++argv);
 
