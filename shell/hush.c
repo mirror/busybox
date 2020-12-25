@@ -7787,7 +7787,11 @@ static void restore_redirects(struct squirrel *sq)
 		free(sq);
 	}
 	if (G.HFILE_stdin
-	 && G.HFILE_stdin->fd != STDIN_FILENO
+	 && G.HFILE_stdin->fd > STDIN_FILENO
+	/* we compare > STDIN, not == STDIN, since hfgetc()
+	 * closes fd and sets ->fd to -1 if EOF is reached.
+	 * Testcase: echo 'pwd' | hush
+	 */
 	) {
 		/* Testcase: interactive "read r <FILE; echo $r; read r; echo $r".
 		 * Redirect moves ->fd to e.g. 10,
