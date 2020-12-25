@@ -2640,11 +2640,14 @@ static const char *setup_prompt_string(void)
 }
 static int get_user_input(struct in_str *i)
 {
+# if ENABLE_FEATURE_EDITING
+	/* In EDITING case, this function reads next input line,
+	 * saves it in i->p, then returns 1st char of it.
+	 */
 	int r;
 	const char *prompt_str;
 
 	prompt_str = setup_prompt_string();
-# if ENABLE_FEATURE_EDITING
 	for (;;) {
 		reinit_unicode_for_hush();
 		G.flag_SIGINT = 0;
@@ -2674,9 +2677,15 @@ static int get_user_input(struct in_str *i)
 	i->p = G.user_input_buf;
 	return (unsigned char)*i->p++;
 # else
+	/* In !EDITING case, this function gets called for every char.
+	 * Buffering happens deeper in the call chain, in hfgetc(i->file).
+	 */
+	int r;
+
 	for (;;) {
 		G.flag_SIGINT = 0;
 		if (i->last_char == '\0' || i->last_char == '\n') {
+			const char *prompt_str = setup_prompt_string();
 			/* Why check_and_run_traps here? Try this interactively:
 			 * $ trap 'echo INT' INT; (sleep 2; kill -INT $$) &
 			 * $ <[enter], repeatedly...>
@@ -8171,7 +8180,6 @@ static void exec_function(char ***to_free,
 
 	/* On MMU, funcp->body is always non-NULL */
 	n = run_list(funcp->body);
-	fflush_all();
 	_exit(n);
 # else
 //?	close_saved_fds_and_FILE_fds();
@@ -8246,7 +8254,6 @@ static void exec_builtin(char ***to_free,
 {
 #if BB_MMU
 	int rcode;
-	fflush_all();
 //?	close_saved_fds_and_FILE_fds();
 	rcode = x->b_function(argv);
 	fflush_all();
@@ -10039,8 +10046,8 @@ int hush_main(int argc, char **argv)
 #endif
 
 	cached_getpid = getpid();   /* for tcsetpgrp() during init */
-	G.root_pid = cached_getpid; /* for $PID   (NOMMU can override via -$HEXPID:HEXPPID:...) */
-	G.root_ppid = getppid();    /* for $$PPID (NOMMU can override)  */
+	G.root_pid = cached_getpid; /* for $PID  (NOMMU can override via -$HEXPID:HEXPPID:...) */
+	G.root_ppid = getppid();    /* for $PPID (NOMMU can override)  */
 
 	/* Deal with HUSH_VERSION */
 	debug_printf_env("unsetenv '%s'\n", "HUSH_VERSION");
