@@ -13,7 +13,7 @@
 //kbuild:lib-$(CONFIG_MAN) += man.o
 
 //usage:#define man_trivial_usage
-//usage:       "[-aw] MANPAGE..."
+//usage:       "[-aw] [SECTION] MANPAGE[.SECTION]..."
 //usage:#define man_full_usage "\n\n"
 //usage:       "Display manual page\n"
 //usage:     "\n	-a	Display all pages"
@@ -240,10 +240,21 @@ static const char *if_redefined(const char *var, const char *key, const char *li
 	return xstrdup(skip_whitespace(line));
 }
 
+static int is_section_name(const char *sections, const char *str)
+{
+	const char *s = strstr(sections, str);
+	if (s) {
+		int l = strlen(str);
+		return (s[l] == ':' || s[l] == '\0');
+	}
+	return 0;
+}
+
 int man_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int man_main(int argc UNUSED_PARAM, char **argv)
 {
 	parser_t *parser;
+	char *conf_sec_list;
 	char *sec_list;
 	char **man_path_list;
 	int count_mp;
@@ -255,7 +266,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	opt = getopt32(argv, "^+" "aw" "\0" "-1"/*at least one arg*/);
 	argv += optind;
 
-	sec_list = xstrdup("0p:1:1p:2:3:3p:4:5:6:7:8:9");
+	conf_sec_list = xstrdup("0p:1:1p:2:3:3p:4:5:6:7:8:9");
 
 	count_mp = 0;
 	man_path_list = add_MANPATH(NULL, &count_mp,
@@ -285,8 +296,8 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 			man_path_list = add_MANPATH(man_path_list, &count_mp, token[1]);
 		}
 		if (strcmp("MANSECT", token[0]) == 0) {
-			free(sec_list);
-			sec_list = xstrdup(token[1]);
+			free(conf_sec_list);
+			conf_sec_list = xstrdup(token[1]);
 		}
 	}
 	config_close(parser);
@@ -311,6 +322,13 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		G.pager = xasprintf("%s -b -p -x", G.col);
 	}
 
+	/* is 1st ARG a SECTION? */
+	sec_list = conf_sec_list;
+	if (is_section_name(conf_sec_list, *argv)) {
+		/* yes */
+		sec_list = *argv++;
+	}
+
 	not_found = 0;
 	do { /* for each argv[] */
 		const char *cur_path;
@@ -321,11 +339,20 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 			found = show_manpage(*argv, /*man:*/ 1, 0);
 			goto check_found;
 		}
+
+		/* for each MANPATH */
 		cur_mp = 0;
 		while ((cur_path = man_path_list[cur_mp++]) != NULL) {
-			/* for each MANPATH */
 			const char *cur_sect = sec_list;
-			do { /* for each section */
+
+			/* is MANPAGE of the form NAME.SECTION? */
+			char *sect_ext = strrchr(*argv, '.');
+			if (sect_ext && is_section_name(conf_sec_list, sect_ext + 1)) {
+				*sect_ext = '\0';
+				cur_sect = sect_ext + 1;
+			}
+
+			do { /* for each SECTION in cur_sect */
 				char *next_sect = strchrnul(cur_sect, ':');
 				int sect_len = next_sect - cur_sect;
 				char *man_filename;
@@ -352,6 +379,8 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 				while (*cur_sect == ':')
 					cur_sect++;
 			} while (*cur_sect);
+
+			if (sect_ext) *sect_ext = '.';
 		}
  check_found:
 		if (!found) {
