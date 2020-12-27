@@ -6694,12 +6694,13 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 			 *
 			 * Word-splitting and single quote behavior:
 			 *
-			 * $ f() { for i; do echo "|$i|"; done; };
+			 * $ f() { for i; do echo "|$i|"; done; }
 			 *
-			 * $ x=; f ${x:?'x y' z}
-			 * bash: x: x y z              #BUG: does not abort, ${} results in empty expansion
+			 * $ x=; f ${x:?'x y' z}; echo $?
+			 * bash: x: x y z       # neither f nor "echo $?" executes
+			 * (if interactive, bash does not exit, but merely aborts to prompt. $? is set to 1)
 			 * $ x=; f "${x:?'x y' z}"
-			 * bash: x: x y z       # dash prints: dash: x: 'x y' z   #BUG: does not abort, ${} results in ""
+			 * bash: x: x y z       # dash prints: dash: x: 'x y' z
 			 *
 			 * $ x=; f ${x:='x y' z}
 			 * |x|
