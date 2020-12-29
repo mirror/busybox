@@ -377,11 +377,11 @@ static int parse_module(module_info *info, const char *pathname)
 	return info->open_read_failed;
 }
 
-static FAST_FUNC int fileAction(const char *pathname,
-		struct stat *sb UNUSED_PARAM,
-		void *modname_to_match,
-		int depth UNUSED_PARAM)
+static FAST_FUNC int fileAction(struct recursive_state *state,
+		const char *pathname,
+		struct stat *sb UNUSED_PARAM)
 {
+	const char *modname_to_match = state->userData;
 	int cur;
 	const char *fname;
 	bool is_remove = (ENABLE_RMMOD && ONLY_APPLET)
