@@ -58,11 +58,19 @@ static void gettimeofday_ns(struct timespec *ts)
 #else
 static void gettimeofday_ns(struct timespec *ts)
 {
-	BUILD_BUG_ON(sizeof(struct timeval) != sizeof(struct timespec));
-	BUILD_BUG_ON(sizeof(((struct timeval*)ts)->tv_usec) != sizeof(ts->tv_nsec));
-	/* Cheat */
-	gettimeofday((void*)ts, NULL);
-	ts->tv_nsec *= 1000;
+	if (sizeof(struct timeval) == sizeof(struct timespec)
+	 && sizeof(((struct timeval*)ts)->tv_usec) == sizeof(ts->tv_nsec)
+	) {
+		/* Cheat */
+		gettimeofday((void*)ts, NULL);
+		ts->tv_nsec *= 1000;
+	} else {
+		/* For example, musl has "incompatible" layouts */
+		struct timeval tv;
+	        gettimeofday(&tv, NULL);
+		ts->tv_sec = tv.tv_sec;
+		ts->tv_nsec = tv.tv_usec * 1000;
+	}
 }
 #endif
 

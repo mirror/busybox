@@ -368,12 +368,16 @@ static void put_iac2_msb_lsb(unsigned x_y)
 }
 #define put_iac2_x_y(x,y) put_iac2_msb_lsb(((x)<<8) + (y))
 
+#if ENABLE_FEATURE_TELNET_WIDTH \
+ || ENABLE_FEATURE_TELNET_TTYPE \
+ || ENABLE_FEATURE_TELNET_AUTOLOGIN
 static void put_iac4_msb_lsb(unsigned x_y_z_t)
 {
 	put_iac2_msb_lsb(x_y_z_t >> 16);
 	put_iac2_msb_lsb(x_y_z_t);  /* "... & 0xffff" is implicit */
 }
 #define put_iac4_x_y_z_t(x,y,z,t) put_iac4_msb_lsb(((x)<<24) + ((y)<<16) + ((z)<<8) + (t))
+#endif
 
 static void put_iac3_IAC_x_y_merged(unsigned wwdd_and_c)
 {

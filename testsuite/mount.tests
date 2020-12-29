@@ -34,6 +34,8 @@ umount -d "$testdir" 2>/dev/null
 #   file input will be file called "input"
 #   test can create a file "actual" instead of writing to stdout
 
+# This will always fail on !CONFIG_MANDATORY_FILE_LOCKING kernels
+test "$SKIP_MOUNT_MAND_TESTS" = "1" || \
 testing "mount -o remount,mand" \
 "mount -o loop mount.image1m $testdir "\
 "&& grep -Fc $testdir </proc/mounts "\

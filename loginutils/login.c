@@ -341,7 +341,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_LOGIN_SESSION_AS_CHILD
 	pid_t child_pid;
 #endif
-	pid_t my_pid;
+	IF_FEATURE_UTMP(pid_t my_pid;)
 
 	INIT_G();
 
@@ -524,7 +524,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	if (pw->pw_uid != 0)
 		die_if_nologin();
 
-	my_pid = getpid();
+	IF_FEATURE_UTMP(my_pid = getpid();)
 	update_utmp(my_pid, USER_PROCESS, short_tty, username, run_by_root ? opt_host : NULL);
 
 #if ENABLE_LOGIN_SESSION_AS_CHILD

@@ -177,6 +177,7 @@ static char *skip_fields(char *str, int count)
 }
 #endif
 
+#if ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
 static char* skip_whitespace_if_prefixed_with(char *buf, const char *prefix)
 {
 	char *tp = is_prefixed_with(buf, prefix);
@@ -186,7 +187,6 @@ static char* skip_whitespace_if_prefixed_with(char *buf, const char *prefix)
 	return tp;
 }
 
-#if ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
 int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
 		void (*cb)(struct smaprec *, void *), void *data)
 {

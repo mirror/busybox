@@ -21,6 +21,12 @@
 #define IFF_LOWER_UP  0x10000  /* driver signals L1 up */
 #endif
 
+#ifndef IFA_F_NOPREFIXROUTE
+# define IFA_FLAGS           8
+/* ifa_flags */
+# define IFA_F_NOPREFIXROUTE 0x200
+#endif
+
 struct filter_t {
 	char *label;
 	/* Flush cmd buf. If !NULL, print_addrinfo() constructs flush commands in it */

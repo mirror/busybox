@@ -185,8 +185,11 @@ struct hd_geometry {
 
 #define HDIO_GETGEO     0x0301  /* get device geometry */
 
-/* TODO: #if ENABLE_FEATURE_FDISK_WRITABLE */
+/* TODO: just #if ENABLE_FEATURE_FDISK_WRITABLE */
 /* (currently fdisk_sun/sgi.c do not have proper WRITABLE #ifs) */
+#if ENABLE_FEATURE_FDISK_WRITABLE \
+ || ENABLE_FEATURE_SGI_LABEL \
+ || ENABLE_FEATURE_SUN_LABEL
 static const char msg_building_new_label[] ALIGN1 =
 "Building a new %s. Changes will remain in memory only,\n"
 "until you decide to write them. After that the previous content\n"
@@ -194,7 +197,7 @@ static const char msg_building_new_label[] ALIGN1 =
 
 static const char msg_part_already_defined[] ALIGN1 =
 "Partition %u is already defined, delete it before re-adding\n";
-/* #endif */
+#endif
 
 
 struct partition {

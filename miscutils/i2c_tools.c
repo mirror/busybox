@@ -273,7 +273,7 @@ static int i2c_bus_lookup(const char *bus_str)
 	return xstrtou_range(bus_str, 10, 0, 0xfffff);
 }
 
-#if ENABLE_I2CGET || ENABLE_I2CSET || ENABLE_I2CDUMP || ENABLE_I2CTRANSFER
+#if ENABLE_I2CGET || ENABLE_I2CSET || ENABLE_I2CDUMP
 static int i2c_parse_bus_addr(const char *addr_str)
 {
 	/* Slave address must be in range 0x03 - 0x77. */
@@ -286,14 +286,16 @@ static void i2c_set_pec(int fd, int pec)
 				itoptr(pec ? 1 : 0),
 				"can't set PEC");
 }
+#endif
 
+#if ENABLE_I2CGET || ENABLE_I2CSET || ENABLE_I2CDUMP || ENABLE_I2CTRANSFER
 static void i2c_set_slave_addr(int fd, int addr, int force)
 {
 	ioctl_or_perror_and_die(fd, force ? I2C_SLAVE_FORCE : I2C_SLAVE,
 				itoptr(addr),
 				"can't set address to 0x%02x", addr);
 }
-#endif /* ENABLE_I2CGET || ENABLE_I2CSET || ENABLE_I2CDUMP */
+#endif
 
 #if ENABLE_I2CGET || ENABLE_I2CSET
 static int i2c_parse_data_addr(const char *data_addr)

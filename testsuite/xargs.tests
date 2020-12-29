@@ -61,7 +61,7 @@ testing "xargs -n2" \
 
 SKIP=
 
-optional FEATURE_XARGS_SUPPORT_QUOTES
+optional FEATURE_XARGS_SUPPORT_QUOTES FEATURE_XARGS_SUPPORT_REPL_STR
 testing "xargs -I skips empty lines and leading whitespace" \
 	"xargs -I% echo '[%]'" \
 	"[2]\n[4]\n[6 6 ]\n[7]\n" \

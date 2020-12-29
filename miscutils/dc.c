@@ -100,7 +100,7 @@ static void mod(void)
 	 * 0
 	 */
 	if (d == 0) {
-		bb_error_msg("remainder by zero");
+		bb_simple_error_msg("remainder by zero");
 		pop();
 		push(0);
 		return;

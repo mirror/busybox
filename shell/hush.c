@@ -653,7 +653,7 @@ struct command {
 /* used for "[[ EXPR ]]" */
 # define CMD_TEST2_SINGLEWORD_NOGLOB 2
 #endif
-#if ENABLE_HUSH_LOCAL || ENABLE_HUSH_EXPORT || ENABLE_HUSH_READONLY
+#if BASH_TEST2 || ENABLE_HUSH_LOCAL || ENABLE_HUSH_EXPORT || ENABLE_HUSH_READONLY
 /* used to prevent word splitting and globbing in "export v=t*" */
 # define CMD_SINGLEWORD_NOGLOB 3
 #endif
@@ -8762,6 +8762,7 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 				 */
 				if (WIFSIGNALED(status)) {
 					int sig = WTERMSIG(status);
+#if ENABLE_HUSH_JOB
 					if (G.run_list_level == 1
 					/* ^^^^^ Do not print in nested contexts, example:
 					 * echo `sleep 1; sh -c 'kill -9 $$'` - prints "137", NOT "Killed 137"
@@ -8771,6 +8772,7 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 						/* strsignal() is for bash compat. ~600 bloat versus bbox's get_signame() */
 						puts(sig == SIGINT || sig == SIGPIPE ? "" : strsignal(sig));
 					}
+#endif
 					/* TODO: if (WCOREDUMP(status)) + " (core dumped)"; */
 					/* MIPS has 128 sigs (1..128), if sig==128,
 					 * 128 + sig would result in exitcode 256 -> 0!

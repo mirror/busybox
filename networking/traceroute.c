@@ -483,7 +483,7 @@ wait_for_reply(unsigned *timestamp_us, int *left_ms)
 				&G.from_lsa->u.sa, &G.from_lsa->len);
 #endif
 		if (read_len < 0)
-			bb_perror_msg_and_die("recv");
+			bb_simple_perror_msg_and_die("recv");
 		t = monotonic_us();
 		*left_ms -= (t - *timestamp_us) / 1000;
 		*timestamp_us = t;
