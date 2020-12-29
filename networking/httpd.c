@@ -1871,7 +1871,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 		send_headers(HTTP_OK);
 #if ENABLE_FEATURE_USE_SENDFILE
 	{
-		off_t offset = range_start;
+		off_t offset = (range_start < 0) ? 0 : range_start;
 		while (1) {
 			/* sz is rounded down to 64k */
 			ssize_t sz = MAXINT(ssize_t) - 0xffff;
@@ -2486,8 +2486,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		if (STRNCASECMP(iobuf, "Range:") == 0) {
 			/* We know only bytes=NNN-[MMM] */
 			char *s = skip_whitespace(iobuf + sizeof("Range:")-1);
-			if (is_prefixed_with(s, "bytes=")) {
-				s += sizeof("bytes=")-1;
+			s = is_prefixed_with(s, "bytes=");
+			if (s) {
 				range_start = BB_STRTOOFF(s, &s, 10);
 				if (s[0] != '-' || range_start < 0) {
 					range_start = -1;
