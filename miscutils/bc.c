@@ -2201,8 +2201,8 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 	BcStatus s;
 	BcNum num1, num2, half, f, fprime, *x0, *x1, *temp;
 	BcDig half_digs[1];
-	size_t pow, len, digs, digs1, resrdx, req, times = 0;
-	ssize_t cmp = 1, cmp1 = SSIZE_MAX, cmp2 = SSIZE_MAX;
+	size_t pow, len, digs, digs1, resrdx, req, times;
+	ssize_t cmp, cmp1, cmp2;
 
 	req = BC_MAX(scale, a->rdx) + ((BC_NUM_INT(a) + 1) >> 1) + 1;
 	bc_num_expand(b, req);
@@ -2255,11 +2255,12 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 		x0->rdx -= pow;
 	}
 
-	x0->rdx = digs = digs1 = 0;
+	x0->rdx = digs = digs1 = times = 0;
 	resrdx = scale + 2;
-	len = BC_NUM_INT(x0) + resrdx - 1;
-
-	while (cmp != 0 || digs < len) {
+	len = x0->len + resrdx - 1;
+	cmp = 1;
+	cmp1 = cmp2 = SSIZE_MAX;
+	do {
 		s = zbc_num_div(a, x0, &f, resrdx);
 		if (s) goto err;
 		s = zbc_num_add(x0, &f, &fprime, resrdx);
@@ -2284,11 +2285,12 @@ static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 		temp = x0;
 		x0 = x1;
 		x1 = temp;
-	}
+	} while (cmp != 0 || digs < len);
 
 	bc_num_copy(b, x0);
 	scale -= 1;
-	if (b->rdx > scale) bc_num_truncate(b, b->rdx - scale);
+	if (b->rdx > scale)
+		bc_num_truncate(b, b->rdx - scale);
  err:
 	bc_num_free(&fprime);
 	bc_num_free(&f);
