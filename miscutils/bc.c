@@ -231,7 +231,7 @@ typedef struct BcNum {
 #define BC_NUM_MAX_IBASE        36
 // larger value might speed up BIGNUM calculations a bit:
 #define BC_NUM_DEF_SIZE         16
-#define BC_NUM_PRINT_WIDTH      69
+#define BC_NUM_PRINT_WIDTH      70
 
 #define BC_NUM_KARATSUBA_LEN    32
 
@@ -7372,11 +7372,29 @@ static unsigned xc_vm_envLen(const char *var)
 
 	lenv = getenv(var);
 	len = BC_NUM_PRINT_WIDTH;
-	if (!lenv) return len;
+	if (lenv) {
+		len = bb_strtou(lenv, NULL, 10);
+		if (len == 0 || len > INT_MAX)
+			len = INT_MAX;
+		if (errno)
+			len = BC_NUM_PRINT_WIDTH;
+	}
 
-	len = bb_strtou(lenv, NULL, 10) - 1;
-	if (errno || len < 2 || len >= INT_MAX)
-		len = BC_NUM_PRINT_WIDTH;
+	// dc (GNU bc 1.07.1) 1.4.1 seems to use width
+	// 1 char wider than bc from the same package.
+	// Both default width, and xC_LINE_LENGTH=N are wider:
+	// "DC_LINE_LENGTH=5 dc -e'123456 p'" prints:
+	//	|1234\   |
+	//	|56      |
+	// "echo '123456' | BC_LINE_LENGTH=5 bc" prints:
+	//	|123\    |
+	//	|456     |
+	// Do the same, but it might be a bug in GNU package
+	if (IS_BC)
+		len--;
+
+	if (len < 2)
+		len = IS_BC ? BC_NUM_PRINT_WIDTH - 1 : BC_NUM_PRINT_WIDTH;
 
 	return len;
 }
@@ -7467,16 +7485,6 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	// TODO: dc (GNU bc 1.07.1) 1.4.1 seems to use width
-	// 1 char wider than bc from the same package.
-	// Both default width, and xC_LINE_LENGTH=N are wider:
-	// "DC_LINE_LENGTH=5 dc -e'123456 p'" prints:
-	//	|1234\   |
-	//	|56      |
-	// "echo '123456' | BC_LINE_LENGTH=5 bc" prints:
-	//	|123\    |
-	//	|456     |
-	// Do the same, or it's a bug?
 	xc_vm_init("DC_LINE_LENGTH");
 
 	// Run -e'SCRIPT' and -fFILE in order of appearance, then handle FILEs
