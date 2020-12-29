@@ -218,10 +218,10 @@ static char *make_tempdir(void)
 
 static void do_logging(unsigned sample_period_us, int process_accounting)
 {
-	FILE *proc_stat = xfopen("proc_stat.log", "w");
-	FILE *proc_diskstats = xfopen("proc_diskstats.log", "w");
-	//FILE *proc_netdev = xfopen("proc_netdev.log", "w");
-	FILE *proc_ps = xfopen("proc_ps.log", "w");
+	FILE *proc_stat = xfopen_for_write("proc_stat.log");
+	FILE *proc_diskstats = xfopen_for_write("proc_diskstats.log");
+	//FILE *proc_netdev = xfopen_for_write("proc_netdev.log");
+	FILE *proc_ps = xfopen_for_write("proc_ps.log");
 	int look_for_login_process = (getppid() == 1);
 	unsigned count = 60*1000*1000 / sample_period_us; /* ~1 minute */
 
@@ -268,7 +268,7 @@ static void finalize(char *tempdir, const char *prog, int process_accounting)
 	//local pacct=
 	//[ -e kernel_pacct ] && pacct=kernel_pacct
 
-	FILE *header_fp = xfopen("header", "w");
+	FILE *header_fp = xfopen_for_write("header");
 
 	if (process_accounting)
 		acct(NULL);

@@ -1149,12 +1149,12 @@ static void NORETURN list_i2c_busses_and_exit(void)
 		/* Simple version for ISA chips. */
 		snprintf(path, NAME_MAX, "%s/%s/name",
 			 i2cdev_path, de->d_name);
-		fp = fopen(path, "r");
+		fp = fopen_for_read(path);
 		if (fp == NULL) {
 			snprintf(path, NAME_MAX,
 				 "%s/%s/device/name",
 				 i2cdev_path, de->d_name);
-			fp = fopen(path, "r");
+			fp = fopen_for_read(path);
 		}
 
 		/* Non-ISA chips require the hard-way. */
@@ -1175,7 +1175,7 @@ static void NORETURN list_i2c_busses_and_exit(void)
 						 "%s/%s/device/%s/name",
 						 i2cdev_path, de->d_name,
 						 subde->d_name);
-					fp = fopen(path, "r");
+					fp = fopen_for_read(path);
 					break;
 				}
 			}
