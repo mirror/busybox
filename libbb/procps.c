@@ -21,40 +21,29 @@ typedef struct cache_t {
 	int size;
 } cache_t;
 
-static cache_t username, groupname;
+static cache_t *cache_user_group;
 
-static void clear_cache(cache_t *cp)
-{
-	free(cp->cache);
-	cp->cache = NULL;
-	cp->size = 0;
-}
 void FAST_FUNC clear_username_cache(void)
 {
-	clear_cache(&username);
-	clear_cache(&groupname);
+	if (cache_user_group) {
+		free(cache_user_group[0].cache);
+		free(cache_user_group[1].cache);
+		free(cache_user_group);
+		cache_user_group = NULL;
+	}
 }
 
-#if 0 /* more generic, but we don't need that yet */
-/* Returns -N-1 if not found. */
-/* cp->cache[N] is allocated and must be filled in this case */
-static int get_cached(cache_t *cp, uid_t id)
-{
-	int i;
-	for (i = 0; i < cp->size; i++)
-		if (cp->cache[i].id == id)
-			return i;
-	i = cp->size++;
-	cp->cache = xrealloc_vector(cp->cache, 2, i);
-	cp->cache[i++].id = id;
-	return -i;
-}
-#endif
-
-static char* get_cached(cache_t *cp, uid_t id,
+static char* get_cached(int user_group, uid_t id,
 			char* FAST_FUNC x2x_utoa(uid_t id))
 {
+	cache_t *cp;
 	int i;
+
+	if (!cache_user_group)
+		cache_user_group = xzalloc(sizeof(cache_user_group[0]) * 2);
+
+	cp = &cache_user_group[user_group];
+
 	for (i = 0; i < cp->size; i++)
 		if (cp->cache[i].id == id)
 			return cp->cache[i].name;
@@ -67,11 +56,11 @@ static char* get_cached(cache_t *cp, uid_t id,
 }
 const char* FAST_FUNC get_cached_username(uid_t uid)
 {
-	return get_cached(&username, uid, uid2uname_utoa);
+	return get_cached(0, uid, uid2uname_utoa);
 }
 const char* FAST_FUNC get_cached_groupname(gid_t gid)
 {
-	return get_cached(&groupname, gid, gid2group_utoa);
+	return get_cached(1, gid, gid2group_utoa);
 }
 
 
