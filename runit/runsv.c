@@ -62,12 +62,12 @@ static void gettimeofday_ns(struct timespec *ts)
 	 && sizeof(((struct timeval*)ts)->tv_usec) == sizeof(ts->tv_nsec)
 	) {
 		/* Cheat */
-		gettimeofday((void*)ts, NULL);
+		xgettimeofday((void*)ts);
 		ts->tv_nsec *= 1000;
 	} else {
 		/* For example, musl has "incompatible" layouts */
 		struct timeval tv;
-	        gettimeofday(&tv, NULL);
+		xgettimeofday(&tv);
 		ts->tv_sec = tv.tv_sec;
 		ts->tv_nsec = tv.tv_usec * 1000;
 	}

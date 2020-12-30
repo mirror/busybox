@@ -505,7 +505,7 @@ send_probe(int seq, int ttl)
 		struct outdata6_t *pkt = (void *) outdata;
 		pkt->ident6 = ident;
 		pkt->seq6   = htonl(seq);
-		/*gettimeofday(&pkt->tv, &tz);*/
+		/*xgettimeofday(&pkt->tv);*/
 		icp = outicmp6;
 	} else
 #endif

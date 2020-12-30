@@ -291,19 +291,19 @@ unsigned FAST_FUNC monotonic_sec(void)
 unsigned long long FAST_FUNC monotonic_ns(void)
 {
 	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	xgettimeofday(&tv);
 	return tv.tv_sec * 1000000000ULL + tv.tv_usec * 1000;
 }
 unsigned long long FAST_FUNC monotonic_us(void)
 {
 	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	xgettimeofday(&tv);
 	return tv.tv_sec * 1000000ULL + tv.tv_usec;
 }
 unsigned long long FAST_FUNC monotonic_ms(void)
 {
 	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	xgettimeofday(&tv);
 	return tv.tv_sec * 1000ULL + tv.tv_usec / 1000;
 }
 unsigned FAST_FUNC monotonic_sec(void)

@@ -79,7 +79,7 @@ static time_t read_rtc(const char **pp_rtcname, struct timeval *sys_tv, int utc)
 		int before = tm_time.tm_sec;
 		while (1) {
 			rtc_read_tm(&tm_time, fd);
-			gettimeofday(sys_tv, NULL);
+			xgettimeofday(sys_tv);
 			if (before != (int)tm_time.tm_sec)
 				break;
 		}
@@ -205,7 +205,7 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 	int rtc;
 
 	rtc = rtc_xopen(pp_rtcname, O_WRONLY);
-	gettimeofday(&tv, NULL);
+	xgettimeofday(&tv);
 	/* Prepare tm_time */
 	if (sizeof(time_t) == sizeof(tv.tv_sec)) {
 		if (utc)
@@ -253,7 +253,7 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 		unsigned rem_usec;
 		time_t t;
 
-		gettimeofday(&tv, NULL);
+		xgettimeofday(&tv);
 
 		t = tv.tv_sec;
 		rem_usec = 1000000 - tv.tv_usec;
@@ -274,7 +274,7 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 		}
 
 		/* gmtime/localtime took some time, re-get cur time */
-		gettimeofday(&tv, NULL);
+		xgettimeofday(&tv);
 
 		if (tv.tv_sec < t /* we are still in old second */
 		 || (tv.tv_sec == t && tv.tv_usec < adj) /* not too far into next second */

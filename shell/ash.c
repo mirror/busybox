@@ -11371,10 +11371,10 @@ static void FAST_FUNC
 change_epoch(struct var *vepoch, const char *fmt)
 {
 	struct timeval tv;
-	char buffer[sizeof("%lu.nnnnnn") + sizeof(long)*3];
+	char buffer[sizeof("%llu.nnnnnn") + sizeof(long long)*3];
 
-	gettimeofday(&tv, NULL);
-	sprintf(buffer, fmt, (unsigned long)tv.tv_sec, (unsigned)tv.tv_usec);
+	xgettimeofday(&tv);
+	sprintf(buffer, fmt, (unsigned long long)tv.tv_sec, (unsigned)tv.tv_usec);
 	setvar(vepoch->var_text, buffer, VNOFUNC);
 	vepoch->flags &= ~VNOFUNC;
 }
@@ -11382,13 +11382,13 @@ change_epoch(struct var *vepoch, const char *fmt)
 static void FAST_FUNC
 change_seconds(const char *value UNUSED_PARAM)
 {
-	change_epoch(&vepochs, "%lu");
+	change_epoch(&vepochs, "%llu");
 }
 
 static void FAST_FUNC
 change_realtime(const char *value UNUSED_PARAM)
 {
-	change_epoch(&vepochr, "%lu.%06u");
+	change_epoch(&vepochr, "%llu.%06u");
 }
 #endif
 

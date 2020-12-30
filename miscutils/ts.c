@@ -47,13 +47,13 @@ int ts_main(int argc UNUSED_PARAM, char **argv)
 
 #define date_buf bb_common_bufsiz1
 	setup_common_bufsiz();
-	gettimeofday(&base, NULL);
+	xgettimeofday(&base);
 
 	while ((line = xmalloc_fgets(stdin)) != NULL) {
 		struct timeval ts;
 		struct tm tm_time;
 
-		gettimeofday(&ts, NULL);
+		xgettimeofday(&ts);
 		if (opt) {
 			/* -i and/or -s */
 			struct timeval ts1 = ts1;

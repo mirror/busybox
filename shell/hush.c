@@ -1027,7 +1027,7 @@ struct globals {
 	struct sigaction sa;
 	char optstring_buf[sizeof("eixcs")];
 #if BASH_EPOCH_VARS
-	char epoch_buf[sizeof("%lu.nnnnnn") + sizeof(long)*3];
+	char epoch_buf[sizeof("%llu.nnnnnn") + sizeof(long long)*3];
 #endif
 #if ENABLE_FEATURE_EDITING
 	char user_input_buf[CONFIG_FEATURE_EDITING_MAX_LEN];
@@ -2277,13 +2277,13 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 	{
 		const char *fmt = NULL;
 		if (strcmp(name, "EPOCHSECONDS") == 0)
-			fmt = "%lu";
+			fmt = "%llu";
 		else if (strcmp(name, "EPOCHREALTIME") == 0)
-			fmt = "%lu.%06u";
+			fmt = "%llu.%06u";
 		if (fmt) {
 			struct timeval tv;
-			gettimeofday(&tv, NULL);
-			sprintf(G.epoch_buf, fmt, (unsigned long)tv.tv_sec,
+			xgettimeofday(&tv);
+			sprintf(G.epoch_buf, fmt, (unsigned long long)tv.tv_sec,
 					(unsigned)tv.tv_usec);
 			return G.epoch_buf;
 		}

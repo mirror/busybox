@@ -720,3 +720,14 @@ void FAST_FUNC xsettimeofday(const struct timeval *tv)
 	if (settimeofday(tv, NULL))
 		bb_simple_perror_msg_and_die("settimeofday");
 }
+
+void FAST_FUNC xgettimeofday(struct timeval *tv)
+{
+#if 0
+	if (gettimeofday(tv, NULL))
+		bb_simple_perror_msg_and_die("gettimeofday");
+#else
+	/* Never fails on Linux */
+	gettimeofday(tv, NULL);
+#endif
+}

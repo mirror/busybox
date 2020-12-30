@@ -560,7 +560,7 @@ static double
 gettime1900d(void)
 {
 	struct timeval tv;
-	gettimeofday(&tv, NULL); /* never fails */
+	xgettimeofday(&tv);
 	G.cur_time = tv.tv_sec + (1.0e-6 * tv.tv_usec) + OFFSET_1900_1970;
 	return G.cur_time;
 }
@@ -1144,7 +1144,7 @@ step_time(double offset)
 	char buf[sizeof("yyyy-mm-dd hh:mm:ss") + /*paranoia:*/ 4];
 	time_t tval;
 
-	gettimeofday(&tvc, NULL); /* never fails */
+	xgettimeofday(&tvc);
 	dtime = tvc.tv_sec + (1.0e-6 * tvc.tv_usec) + offset;
 	d_to_tv(dtime, &tvn);
 	xsettimeofday(&tvn);

@@ -952,11 +952,11 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 	reset_outbuf();
 
 	if (G.delta >= 0) {
-		gettimeofday(&G.tv, NULL);
+		xgettimeofday(&G.tv);
 		usleep(G.delta > 1000000 ? 1000000 : G.delta - G.tv.tv_usec % G.deltanz);
 	}
 
-	gettimeofday(&G.start, NULL);
+	xgettimeofday(&G.start);
 	G.tv = G.start;
 	while (1) {
 		collect_info(first);
@@ -971,7 +971,7 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 		if (G.delta >= 0) {
 			int rem;
 			// can be commented out, will sacrifice sleep time precision a bit
-			gettimeofday(&G.tv, NULL);
+			xgettimeofday(&G.tv);
 			if (need_seconds)
 				rem = G.delta - ((ullong)G.tv.tv_sec*1000000 + G.tv.tv_usec) % G.deltanz;
 			else
@@ -983,7 +983,7 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 			}
 			usleep(rem);
 		}
-		gettimeofday(&G.tv, NULL);
+		xgettimeofday(&G.tv);
 	}
 
 	/*return 0;*/

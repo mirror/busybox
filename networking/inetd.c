@@ -1701,7 +1701,7 @@ static uint32_t machtime(void)
 {
 	struct timeval tv;
 
-	gettimeofday(&tv, NULL);
+	xgettimeofday(&tv);
 	return htonl((uint32_t)(tv.tv_sec + 2208988800U));
 }
 /* ARGSUSED */

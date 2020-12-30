@@ -963,7 +963,7 @@ static void load_firmware(const char *firmware, const char *sysfs_path)
 static char *curtime(void)
 {
 	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	xgettimeofday(&tv);
 	sprintf(
 		strftime_HHMMSS(G.timestr, sizeof(G.timestr), &tv.tv_sec),
 		".%06u",
