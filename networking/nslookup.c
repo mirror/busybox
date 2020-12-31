@@ -349,6 +349,8 @@ static int parse_reply(const unsigned char *msg, size_t len)
 	header = (HEADER *)msg;
 	if (!header->aa)
 		printf("Non-authoritative answer:\n");
+	else if (option_mask32 & OPT_debug)
+		printf("Non-authoritative answer:\n" + 4);
 
 	if (ns_initparse(msg, len, &handle) != 0) {
 		//printf("Unable to parse reply: %s\n", strerror(errno));
@@ -381,7 +383,7 @@ static int parse_reply(const unsigned char *msg, size_t len)
 				return -1;
 			}
 			inet_ntop(AF_INET6, ns_rr_rdata(rr), astr, sizeof(astr));
-			/* bind-utils-9.11.3 uses the same format for A and AAAA answers */
+			/* bind-utils 9.11.3 uses the same format for A and AAAA answers */
 			printf("Name:\t%s\nAddress: %s\n", ns_rr_name(rr), astr);
 			break;
 #endif
@@ -580,7 +582,7 @@ static int send_queries(struct ns *ns)
 			printf("Address:\t%s\n\n",
 				auto_string(xmalloc_sockaddr2dotted(&ns->lsa->u.sa))
 			);
-			/* In "Address", bind-utils-9.11.3 show port after a hash: "1.2.3.4#53" */
+			/* In "Address", bind-utils 9.11.3 show port after a hash: "1.2.3.4#53" */
 			/* Should we do the same? */
 		}
 
@@ -640,12 +642,26 @@ static int send_queries(struct ns *ns)
 				printf("*** Can't find %s: Parse error\n", G.query[qn].name);
 				G.exitcode = EXIT_FAILURE;
 				break;
-
-			case 0:
-				printf("*** Can't find %s: No answer\n", G.query[qn].name);
-				break;
+			/* bind-utils 9.11.25 just says nothing in this case */
+			//case 0:
+			//	break;
 			}
 		}
+/* NB: in case of authoritative, empty answer (NODATA), IOW: one with
+ * ns_msg_count() == 0, bind-utils 9.11.25 shows no trace of this answer
+ * (unless -debug, where it says:
+ * ------------
+ *     QUESTIONS:
+ *     host.com, type = AAAA, class = IN
+ *     ANSWERS:
+ *     AUTHORITY RECORDS:
+ *     ADDITIONAL RECORDS:
+ * ------------
+ * ). Due to printing of below '\n', we do show an additional empty line.
+ * This is better than not showing any indication of this reply at all,
+ * yet maintains "compatibility". I wonder whether it's better to break compat
+ * and emit something more meaningful, e.g. print "Empty answer (NODATA)"?
+ */
 		bb_putchar('\n');
 		n_replies++;
 		if (n_replies >= G.query_count)
