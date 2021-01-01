@@ -159,6 +159,10 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		break;
 	}
 	case S_IFDIR:
+//TODO: this causes problems if tarball contains a r-xr-xr-x directory:
+// we create this directory, and then fail to create files inside it
+// (if tar xf isn't run as root).
+// GNU tar works around this by chmod-ing directories *after* all files are extracted.
 		res = mkdir(dst_name, file_header->mode);
 		if ((res != 0)
 		 && (errno != EISDIR) /* btw, Linux doesn't return this */

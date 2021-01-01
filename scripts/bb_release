@@ -8,6 +8,7 @@
 
 #svn co svn://busybox.net/trunk/busybox
 cd busybox || { echo "cd busybox failed"; exit 1; }
+chmod -Rc u+w,a+rX,go-w .
 make release || { echo "make release failed"; exit 1; }
 cd ..
 
