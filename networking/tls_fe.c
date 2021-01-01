@@ -383,12 +383,10 @@ static void fe_inv__distinct(byte *r, const byte *x)
 	 * to avoid copying temporaries.
 	 */
 
-	/* 1 1 */
-	fe_mul__distinct(s, x, x);
-	fe_mul__distinct(r, s, x);
+	lm_copy(r, x);
 
-	/* 1 x 248 */
-	for (i = 0; i < 248; i++) {
+	/* 1, 1 x 249 */
+	for (i = 0; i < 249; i++) {
 		fe_mul__distinct(s, r, r);
 		fe_mul__distinct(r, s, x);
 	}
@@ -403,13 +401,11 @@ static void fe_inv__distinct(byte *r, const byte *x)
 	/* 0 */
 	fe_mul__distinct(r, s, s);
 
-	/* 1 */
-	fe_mul__distinct(s, r, r);
-	fe_mul__distinct(r, s, x);
-
-	/* 1 */
-	fe_mul__distinct(s, r, r);
-	fe_mul__distinct(r, s, x);
+	/* 1, 1 */
+	for (i = 0; i < 2; i++) {
+		fe_mul__distinct(s, r, r);
+		fe_mul__distinct(r, s, x);
+	}
 }
 
 #if 0 //UNUSED
@@ -435,12 +431,10 @@ static void exp2523(byte *r, const byte *x, byte *s)
 	 *     111111... 01
 	 */
 
-	/* 1 1 */
-	fe_mul__distinct(r, x, x);
-	fe_mul__distinct(s, r, x);
+	lm_copy(s, x);
 
-	/* 1 x 248 */
-	for (i = 0; i < 248; i++) {
+	/* 1, 1 x 249 */
+	for (i = 0; i < 249; i++) {
 		fe_mul__distinct(r, s, s);
 		fe_mul__distinct(s, r, x);
 	}
