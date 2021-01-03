@@ -5,7 +5,7 @@
  */
 //config:config NUKE
 //config:	bool "nuke (2.9 kb)"
-//config:	default y
+//config:	default n  # off by default: too "accidentally destructive"
 //config:	help
 //config:	Alias to "rm -rf".
 
