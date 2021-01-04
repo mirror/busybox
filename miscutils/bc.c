@@ -1827,7 +1827,7 @@ static FAST_FUNC BC_STATUS zbc_num_k(BcNum *restrict a, BcNum *restrict b,
 #define zbc_num_k(...) (zbc_num_k(__VA_ARGS__) COMMA_SUCCESS)
 {
 	BcStatus s;
-	size_t max = BC_MAX(a->len, b->len), max2 = (max + 1) / 2;
+	size_t max, max2;
 	BcNum l1, h1, l2, h2, m2, m1, z0, z1, z2, temp;
 	bool aone;
 
@@ -1877,6 +1877,7 @@ static FAST_FUNC BC_STATUS zbc_num_k(BcNum *restrict a, BcNum *restrict b,
 		RETURN_STATUS(BC_STATUS_SUCCESS);
 	}
 
+	max = BC_MAX(a->len, b->len);
 	bc_num_init(&l1, max);
 	bc_num_init(&h1, max);
 	bc_num_init(&l2, max);
@@ -1888,6 +1889,7 @@ static FAST_FUNC BC_STATUS zbc_num_k(BcNum *restrict a, BcNum *restrict b,
 	bc_num_init(&z2, max);
 	bc_num_init(&temp, max + max);
 
+	max2 = (max + 1) / 2;
 	bc_num_split(a, max2, &l1, &h1);
 	bc_num_split(b, max2, &l2, &h2);
 
@@ -2524,9 +2526,6 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 
 #if ENABLE_FEATURE_BC_INTERACTIVE
 	if (G_interrupt) { // ^C was pressed
-# if ENABLE_FEATURE_EDITING
- intr:
-# endif
 		if (fp != stdin) {
 			// ^C while running a script (bc SCRIPT): die.
 			// We do not return to interactive prompt:
@@ -2537,11 +2536,11 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 			// the shell would be unexpected.
 			xfunc_die();
 		}
-		// ^C while interactive input
+		// There was ^C while running calculations
 		G_interrupt = 0;
-		// GNU bc says "interrupted execution."
+		// GNU bc says "interrupted execution." (to stdout, not stderr)
 		// GNU dc says "Interrupt!"
-		fputs("\ninterrupted execution\n", stderr);
+		puts("\ninterrupted execution");
 	}
 
 # if ENABLE_FEATURE_EDITING
@@ -2552,9 +2551,10 @@ static void xc_read_line(BcVec *vec, FILE *fp)
 #  define line_buf bb_common_bufsiz1
 		n = read_line_input(G.line_input_state, "", line_buf, COMMON_BUFSIZE);
 		if (n <= 0) { // read errors or EOF, or ^D, or ^C
-			if (n == 0) // ^C
-				goto intr;
-			bc_vec_pushZeroByte(vec); // ^D or EOF (or error)
+			//GNU bc prints this on ^C:
+			//if (n == 0) // ^C
+			//	puts("(interrupt) Exiting bc.");
+			bc_vec_pushZeroByte(vec);
 			return;
 		}
 		i = 0;
