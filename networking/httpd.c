@@ -298,6 +298,11 @@
 # include <sys/sendfile.h>
 #endif
 
+/* see sys/netinet6/in6.h */
+#if defined(__FreeBSD__)
+# define s6_addr32 __u6_addr.__u6_addr32
+#endif
+
 #define DEBUG 0
 
 #define IOBUF_SIZE 8192
