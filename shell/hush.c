@@ -10163,7 +10163,8 @@ int hush_main(int argc, char **argv)
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
 	flags = (argv[0] && argv[0][0] == '-') ? OPT_login : 0;
 	while (1) {
-		int opt = getopt(argc, argv, "+cexinsl"
+		int opt = getopt(argc, argv, "+" /* stop at 1st non-option */
+				"cexinsl"
 #if !BB_MMU
 				"<:$:R:V:"
 # if ENABLE_HUSH_FUNCTIONS
@@ -10255,12 +10256,13 @@ int hush_main(int argc, char **argv)
 		}
 # endif
 #endif
-		case 'n':
-		case 'x':
-		case 'e':
+		/*case '?': invalid option encountered (set_mode('?') will fail) */
+		/*case 'n':*/
+		/*case 'x':*/
+		/*case 'e':*/
+		default:
 			if (set_mode(1, opt, NULL) == 0) /* no error */
 				break;
-		default:
 			bb_show_usage();
 		}
 	} /* option parsing loop */
