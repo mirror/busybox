@@ -6,7 +6,13 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-#include <sys/prctl.h>
+#if defined(__linux__)
+# include <sys/prctl.h>
+# define PRCTL
+#elif defined(__FreeBSD__)
+# include <sys/procctl.h>
+# define PROCCTL
+#endif
 #include "libbb.h"
 #include "mail.h"
 
@@ -55,7 +61,14 @@ void FAST_FUNC launch_helper(const char **argv)
 		xmove_fd(child_in.rd, STDIN_FILENO);
 		xmove_fd(child_out.wr, STDOUT_FILENO);
 		// if parent dies, get SIGTERM
+#if defined(PRCTL)
 		prctl(PR_SET_PDEATHSIG, SIGTERM, 0, 0, 0);
+#elif defined(PROCCTL)
+		{
+			int signum = SIGTERM;
+			procctl(P_PID, 0, PROC_PDEATHSIG_CTL, &signum);
+		}
+#endif
 		// try to execute connection helper
 		// NB: SIGCHLD & SIGALRM revert to SIG_DFL on exec
 		BB_EXECVP_or_die((char**)argv);
