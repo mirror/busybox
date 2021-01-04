@@ -113,6 +113,13 @@
 # define IPTOS_DSCP_AF21 0x48
 #endif
 
+#if defined(__FreeBSD__)
+/* see sys/timex.h */
+# define adjtimex ntp_adjtime
+# define ADJ_OFFSET     MOD_OFFSET
+# define ADJ_STATUS     MOD_STATUS
+# define ADJ_TIMECONST  MOD_TIMECONST
+#endif
 
 /* Verbosity control (max level of -dddd options accepted).
  * max 6 is very talkative (and bloated). 3 is non-bloated,
