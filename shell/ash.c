@@ -314,9 +314,12 @@ typedef long arith_t;
 
 /* ============ Shell options */
 
+/* If you add/change options hare, update --help text too */
 static const char *const optletters_optnames[] = {
 	"e"   "errexit",
 	"f"   "noglob",
+/* bash has '-o ignoreeof', but no short synonym -I for it */
+/* (in bash, set -I disables invisible variables (what's that?)) */
 	"I"   "ignoreeof",
 /* The below allowed this invocation:
  * ash -c 'set -i; echo $-; sleep 5; echo $-'
@@ -325,9 +328,10 @@ static const char *const optletters_optnames[] = {
  * In our code, this is denoted by empty long name:
  */
 	"i"   "",
+/* (removing "i" altogether would remove it from "$-", not good) */
 	"m"   "monitor",
 	"n"   "noexec",
-/* Ditto: bash has no "set -s" */
+/* Ditto: bash has no "set -s", "set -c" */
 	"s"   "",
 	"c"   "",
 	"x"   "xtrace",
@@ -14265,7 +14269,8 @@ init(void)
 
 
 //usage:#define ash_trivial_usage
-//usage:	"[-/+OPTIONS] [-/+o OPT]... [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS] / -s [ARGS]]"
+//usage:	"[-il] [-/+Cabefmnuvx] [-/+o OPT]... [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS] / -s [ARGS]]"
+////////	comes from ^^^^^^^^^^optletters
 //usage:#define ash_full_usage "\n\n"
 //usage:	"Unix shell interpreter"
 
