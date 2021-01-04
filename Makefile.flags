@@ -181,7 +181,9 @@ LDLIBS += $(if $(SELINUX_LIBS),$(SELINUX_LIBS:-l%=%),$(SELINUX_PC_MODULES:lib%=%
 endif
 
 ifeq ($(CONFIG_FEATURE_NSLOOKUP_BIG),y)
+ifeq ($(CONFIG_UNAME_OSNAME),Linux)
 LDLIBS += resolv
+endif
 endif
 
 ifeq ($(CONFIG_EFENCE),y)
