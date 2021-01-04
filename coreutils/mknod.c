@@ -36,7 +36,9 @@
 //usage:       "$ mknod /dev/fd0 b 2 0\n"
 //usage:       "$ mknod -m 644 /tmp/pipe p\n"
 
-#include <sys/sysmacros.h>  // For makedev
+#ifdef __linux__
+# include <sys/sysmacros.h>  // For makedev
+#endif
 
 #include "libbb.h"
 #include "libcoreutils/coreutils.h"
