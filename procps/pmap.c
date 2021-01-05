@@ -27,20 +27,14 @@
 
 #include "libbb.h"
 
-#if ULONG_MAX == 0xffffffff
+#if ULLONG_MAX == 0xffffffff
 # define TABS "\t"
-# define AFMT "8"
+# define AFMTLL "8"
 # define DASHES ""
 #else
 # define TABS "\t\t"
-# define AFMT "16"
-# define DASHES "--------"
-#endif
-
-#if ULLONG_MAX == 0xffffffff
-# define AFMTLL "8"
-#else
 # define AFMTLL "16"
+# define DASHES "--------"
 #endif
 
 enum {
