@@ -1841,9 +1841,9 @@ static FAST_FUNC BC_STATUS zbc_num_k(BcNum *restrict a, BcNum *restrict b,
 		RETURN_STATUS(BC_STATUS_SUCCESS);
 	}
 
-	if (a->len + b->len < BC_NUM_KARATSUBA_LEN
-	 || a->len < BC_NUM_KARATSUBA_LEN
+	if (a->len < BC_NUM_KARATSUBA_LEN
 	 || b->len < BC_NUM_KARATSUBA_LEN
+	/* || a->len + b->len < BC_NUM_KARATSUBA_LEN - redundant check */
 	) {
 		size_t i, j, len;
 
