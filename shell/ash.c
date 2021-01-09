@@ -7015,7 +7015,8 @@ subevalvar(char *start, char *str, int strloc,
 	slash_pos = -1;
 	if (repl) {
 		slash_pos = expdest - ((char *)stackblock() + strloc);
-		STPUTC('/', expdest);
+		if (!(flag & EXP_DISCARD))
+			STPUTC('/', expdest);
 		//bb_error_msg("repl+1:'%s'", repl + 1);
 		p = argstr(repl + 1, (flag & EXP_DISCARD) | EXP_TILDE); /* EXP_TILDE: echo "${v/x/~}" expands ~ ! */
 		*repl = '/';
