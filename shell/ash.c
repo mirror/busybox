@@ -7178,7 +7178,7 @@ subevalvar(char *start, char *str, int strloc,
 		len = 0;
 		idx = startp;
 		end = str - 1;
-		while (idx < end) {
+		while (idx <= end) {
  try_to_match:
 			loc = scanright(idx, rmesc, rmescend, str, quotes, 1);
 			//bb_error_msg("scanright('%s'):'%s'", str, loc);
@@ -7186,6 +7186,8 @@ subevalvar(char *start, char *str, int strloc,
 				/* No match, advance */
 				char *restart_detect = stackblock();
  skip_matching:
+				if (idx >= end)
+					break;
 				STPUTC(*idx, expdest);
 				if (quotes && (unsigned char)*idx == CTLESC) {
 					idx++;
@@ -7198,8 +7200,6 @@ subevalvar(char *start, char *str, int strloc,
 				len++;
 				rmesc++;
 				/* continue; - prone to quadratic behavior, smarter code: */
-				if (idx >= end)
-					break;
 				if (str[0] == '*') {
 					/* Pattern is "*foo". If "*foo" does not match "long_string",
 					 * it would never match "ong_string" etc, no point in trying.
