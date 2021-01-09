@@ -18,7 +18,7 @@
 # ^M    <--------- extra empty line
 # -----------------------------29995809218093749221856446032--^M
 
-file=/tmp/$$-$RANDOM
+file=$(mktemp)
 
 CR=`printf '\r'`
 
