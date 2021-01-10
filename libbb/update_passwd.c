@@ -48,7 +48,7 @@ static void check_selinux_update_passwd(const char *username)
 			bb_simple_error_msg_and_die("SELinux: access denied");
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
-		freecon(context);
+		freecon(seuser);
 }
 #else
 # define check_selinux_update_passwd(username) ((void)0)
