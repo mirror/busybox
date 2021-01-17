@@ -25,6 +25,13 @@
 //config:	default y
 //config:	depends on WGET
 //config:
+//config:config FEATURE_WGET_FTP
+//config:	bool "Enable FTP protocol (+1k)"
+//config:	default y
+//config:	depends on WGET
+//config:	help
+//config:	To support FTPS, enable FEATURE_WGET_HTTPS as well.
+//config:
 //config:config FEATURE_WGET_AUTHENTICATION
 //config:	bool "Enable HTTP authentication"
 //config:	default y
@@ -48,12 +55,12 @@
 //config:
 //config:config FEATURE_WGET_HTTPS
 //config:	bool "Support HTTPS using internal TLS code"
-//it also enables FTPS support, but it's not well tested yet
 //config:	default y
 //config:	depends on WGET
 //config:	select TLS
 //config:	help
 //config:	wget will use internal TLS code to connect to https:// URLs.
+//config:	It also enables FTPS support, but it's not well tested yet.
 //config:	Note:
 //config:	On NOMMU machines, ssl_helper applet should be available
 //config:	in the $PATH for this to work. Make sure to select that applet.
@@ -173,6 +180,7 @@
 
 
 #define SSL_SUPPORTED (ENABLE_FEATURE_WGET_OPENSSL || ENABLE_FEATURE_WGET_HTTPS)
+#define FTPS_SUPPORTED (ENABLE_FEATURE_WGET_FTP && ENABLE_FEATURE_WGET_HTTPS)
 
 struct host_info {
 	char *allocated;
@@ -182,13 +190,15 @@ struct host_info {
 	char       *host;
 	int         port;
 };
-static const char P_FTP[] ALIGN1 = "ftp";
 static const char P_HTTP[] ALIGN1 = "http";
 #if SSL_SUPPORTED
-# if ENABLE_FEATURE_WGET_HTTPS
-static const char P_FTPS[] ALIGN1 = "ftps";
-# endif
 static const char P_HTTPS[] ALIGN1 = "https";
+#endif
+#if ENABLE_FEATURE_WGET_FTP
+static const char P_FTP[] ALIGN1 = "ftp";
+#endif
+#if FTPS_SUPPORTED
+static const char P_FTPS[] ALIGN1 = "ftps";
 #endif
 
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
@@ -482,6 +492,7 @@ static char fgets_trim_sanitize(FILE *fp, const char *fmt)
 	return c;
 }
 
+#if ENABLE_FEATURE_WGET_FTP
 static int ftpcmd(const char *s1, const char *s2, FILE *fp)
 {
 	int result;
@@ -507,6 +518,7 @@ static int ftpcmd(const char *s1, const char *s2, FILE *fp)
 	G.wget_buf[3] = ' ';
 	return result;
 }
+#endif
 
 static void parse_url(const char *src_url, struct host_info *h)
 {
@@ -515,30 +527,31 @@ static void parse_url(const char *src_url, struct host_info *h)
 	free(h->allocated);
 	h->allocated = url = xstrdup(src_url);
 
-	h->protocol = P_FTP;
+	h->protocol = P_HTTP;
 	p = strstr(url, "://");
 	if (p) {
 		*p = '\0';
 		h->host = p + 3;
+#if ENABLE_FEATURE_WGET_FTP
 		if (strcmp(url, P_FTP) == 0) {
 			h->port = bb_lookup_std_port(P_FTP, "tcp", 21);
+			h->protocol = P_FTP;
 		} else
-#if SSL_SUPPORTED
-# if ENABLE_FEATURE_WGET_HTTPS
+#endif
+#if FTPS_SUPPORTED
 		if (strcmp(url, P_FTPS) == 0) {
 			h->port = bb_lookup_std_port(P_FTPS, "tcp", 990);
 			h->protocol = P_FTPS;
 		} else
-# endif
+#endif
+#if SSL_SUPPORTED
 		if (strcmp(url, P_HTTPS) == 0) {
 			h->port = bb_lookup_std_port(P_HTTPS, "tcp", 443);
 			h->protocol = P_HTTPS;
 		} else
 #endif
 		if (strcmp(url, P_HTTP) == 0) {
- http:
-			h->port = bb_lookup_std_port(P_HTTP, "tcp", 80);
-			h->protocol = P_HTTP;
+			goto http;
 		} else {
 			*p = ':';
 			bb_error_msg_and_die("not an http or ftp url: %s", url);
@@ -546,7 +559,8 @@ static void parse_url(const char *src_url, struct host_info *h)
 	} else {
 		// GNU wget is user-friendly and falls back to http://
 		h->host = url;
-		goto http;
+ http:
+		h->port = bb_lookup_std_port(P_HTTP, "tcp", 80);
 	}
 
 	// FYI:
@@ -796,6 +810,7 @@ static void spawn_ssl_client(const char *host, int network_fd, int flags)
 }
 #endif
 
+#if ENABLE_FEATURE_WGET_FTP
 static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_sockaddr *lsa)
 {
 	FILE *sfp;
@@ -803,7 +818,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 	int port;
 
 	sfp = open_socket(lsa);
-#if ENABLE_FEATURE_WGET_HTTPS
+#if FTPS_SUPPORTED
 	if (target->protocol == P_FTPS)
 		spawn_ssl_client(target->host, fileno(sfp), TLSLOOP_EXIT_ON_LOCAL_EOF);
 #endif
@@ -859,7 +874,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 
 	*dfpp = open_socket(lsa);
 
-#if ENABLE_FEATURE_WGET_HTTPS
+#if FTPS_SUPPORTED
 	if (target->protocol == P_FTPS) {
 		/* "PROT P" enables encryption of data stream.
 		 * Without it (or with "PROT C"), data is sent unencrypted.
@@ -885,6 +900,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 
 	return sfp;
 }
+#endif
 
 static void NOINLINE retrieve_file_data(FILE *dfp)
 {
@@ -1407,10 +1423,12 @@ However, in real world it was observed that some web servers
 		/* For HTTP, data is pumped over the same connection */
 		dfp = sfp;
 	} else {
+#if ENABLE_FEATURE_WGET_FTP
 		/*
 		 *  FTP session
 		 */
 		sfp = prepare_ftp_session(&dfp, &target, lsa);
+#endif
 	}
 
 	free(lsa);
@@ -1428,6 +1446,7 @@ However, in real world it was observed that some web servers
 			fprintf(stderr, "remote file exists\n");
 	}
 
+#if ENABLE_FEATURE_WGET_FTP
 	if (dfp != sfp) {
 		/* It's ftp. Close data connection properly */
 		fclose(dfp);
@@ -1435,6 +1454,7 @@ However, in real world it was observed that some web servers
 			bb_error_msg_and_die("ftp error: %s", G.wget_buf);
 		/* ftpcmd("QUIT", NULL, sfp); - why bother? */
 	}
+#endif
 	fclose(sfp);
 
 	free(server.allocated);
