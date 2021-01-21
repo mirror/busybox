@@ -22,10 +22,11 @@ int FAST_FUNC print_numbered_lines(struct number_state *ns, const char *filename
 		if (ns->all
 		 || (ns->nonempty && line[0])
 		) {
-			printf("%*u%s%s\n", ns->width, N, ns->sep, line);
+			printf("%*u%s", ns->width, N, ns->sep);
 			N += ns->inc;
 		} else if (ns->empty_str)
 			fputs(ns->empty_str, stdout);
+		puts(line);
 		free(line);
 	}
 	ns->start = N;

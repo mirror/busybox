@@ -22,4 +22,28 @@ testing 'cat -v' \
 	'foo\n'
 SKIP=
 
+optional FEATURE_CATN
+testing 'cat -n' \
+	'cat -n' \
+"\
+     1	line 1
+     2	
+     3	line 3
+" \
+	'' \
+	'line 1\n\nline 3\n'
+SKIP=
+
+optional FEATURE_CATN
+testing 'cat -b' \
+	'cat -b' \
+"\
+     1	line 1
+
+     2	line 3
+" \
+	'' \
+	'line 1\n\nline 3\n'
+SKIP=
+
 exit $FAILCOUNT
