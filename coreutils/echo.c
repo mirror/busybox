@@ -97,6 +97,7 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 #else
 	char nflag = 1;
 	char eflag = 0;
+	int err;
 
 	while ((arg = *++argv) != NULL) {
 		char n, e;
@@ -185,13 +186,12 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
  do_write:
 	/* Careful to error out on partial writes too (think ENOSPC!) */
 	errno = 0;
-	/*r =*/ full_write(STDOUT_FILENO, buffer, out - buffer);
-	free(buffer);
-	if (/*WRONG:r < 0*/ errno) {
+	err = full_write(STDOUT_FILENO, buffer, out - buffer) != out - buffer;
+	if (err) {
 		bb_simple_perror_msg(bb_msg_write_error);
-		return 1;
 	}
-	return 0;
+	free(buffer);
+	return err;
 }
 
 /*
