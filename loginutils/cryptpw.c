@@ -32,7 +32,7 @@
 //kbuild:lib-$(CONFIG_MKPASSWD) += cryptpw.o
 
 //usage:#define cryptpw_trivial_usage
-//usage:       "[-s] [-p N] [-m TYPE] [-S SALT] [PASSWORD] [SALT]"
+//usage:       "[-P FD] [-m TYPE] [-S SALT] [PASSWORD] [SALT]"
 /* We do support -s, we just don't mention it */
 //usage:#define cryptpw_full_usage "\n\n"
 //usage:       "Print crypt(3) hashed PASSWORD\n"
@@ -72,8 +72,8 @@ ENVIRONMENT
     A list of options which will be evaluated before the ones
     specified on the command line.
 BUGS
-    This programs suffers of a bad case of featuritis.
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    This program suffers of a bad case of featuritis.
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Very true...
 
