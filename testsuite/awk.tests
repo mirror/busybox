@@ -383,6 +383,11 @@ testing "awk errors on missing delete arg" \
 	"awk -e '{delete}' 2>&1" "awk: cmd. line:1: Too few arguments\n" "" ""
 SKIP=
 
+optional FEATURE_AWK_GNU_EXTENSIONS
+testing "awk printf('%c') can output NUL" \
+	"awk '{printf(\"hello%c null\n\", 0)}'" "hello\0 null\n" "" "\n"
+SKIP=
+
 # testing "description" "command" "result" "infile" "stdin"
 testing 'awk negative field access' \
 	'awk 2>&1 -- '\''{ $(-1) }'\' \
