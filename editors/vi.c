@@ -3047,12 +3047,15 @@ static int find_range(char **start, char **stop, char c)
 		do_cmd(c);		// execute movement cmd
 		dot_end();		// find NL
 		q = dot;
-	} else {
-		// nothing -- this causes any other values of c to
-		// represent the one-character range under the
-		// cursor.  this is correct for ' ' and 'l', but
-		// perhaps no others.
-		//
+	} else /* if (c == ' ' || c == 'l') */ {
+		// forward motion by character
+		int tmpcnt = (cmdcnt ?: 1);
+		do_cmd(c);		// execute movement cmd
+		// exclude last char unless range isn't what we expected
+		// this indicates we've hit EOL
+		if (tmpcnt == dot - p)
+			dot--;
+		q = dot;
 	}
 	if (q < p) {
 		t = q;
