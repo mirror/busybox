@@ -896,7 +896,7 @@ traceroute_init(int op, char **argv)
 
 	op |= getopt32(argv, "^"
 		OPT_STRING
-		"\0" "-1:x-x" /* minimum 1 arg */
+		"\0" "-1" /* minimum 1 arg */
 		, &tos_str, &device, &max_ttl_str, &port_str, &nprobes_str
 		, &source, &waittime_str, &pausemsecs_str, &first_ttl_str
 	);
