@@ -123,7 +123,7 @@ static void expand(FILE *file, unsigned tab_size, unsigned opt)
 			}
 			ptr++;
 		}
-		fputs(ptr_strbeg, stdout);
+		fputs_stdout(ptr_strbeg);
 		free(line);
 	}
 }

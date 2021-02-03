@@ -19,6 +19,6 @@ int main(int argc, char **argv)
 
 void bb_show_usage(void)
 {
-	fputs(APPLET_full_usage "\n", stdout);
+	fputs_stdout(APPLET_full_usage "\n");
 	exit(EXIT_FAILURE);
 }

@@ -818,7 +818,7 @@ int powertop_main(int argc UNUSED_PARAM, char UNUSED_PARAM **argv)
 
 		for (i = 0; i < MAX_CSTATE_COUNT + 2; i++)
 			if (cstate_lines[i][0])
-				fputs(cstate_lines[i], stdout);
+				fputs_stdout(cstate_lines[i]);
 
 		i = process_timer_stats();
 #if ENABLE_FEATURE_POWERTOP_PROCIRQ

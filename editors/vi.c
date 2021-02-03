@@ -522,7 +522,7 @@ static void show_help(void)
 
 static void write1(const char *out)
 {
-	fputs(out, stdout);
+	fputs_stdout(out);
 }
 
 #if ENABLE_FEATURE_VI_WIN_RESIZE

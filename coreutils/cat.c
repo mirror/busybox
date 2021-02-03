@@ -152,7 +152,7 @@ static int catv(unsigned opts, char **argv)
 				eol_seen = (c == eol_char);
 #endif
 				visible(c, buf, opts);
-				fputs(buf, stdout);
+				fputs_stdout(buf);
 			}
 		}
 		if (ENABLE_FEATURE_CLEAN_UP && fd)

@@ -855,7 +855,7 @@ static void wrapf(const char *message, ...)
 			}
 		}
 	}
-	fputs(buf, stdout);
+	fputs_stdout(buf);
 	G.current_col += buflen;
 	if (buf[buflen-1] == '\n')
 		G.current_col = 0;

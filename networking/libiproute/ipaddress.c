@@ -192,20 +192,20 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 		printf("%c    link/%s ", _SL_, ll_type_n2a(ifi->ifi_type, b1));
 
 		if (tb[IFLA_ADDRESS]) {
-			fputs(ll_addr_n2a(RTA_DATA(tb[IFLA_ADDRESS]),
+			fputs_stdout(ll_addr_n2a(RTA_DATA(tb[IFLA_ADDRESS]),
 						      RTA_PAYLOAD(tb[IFLA_ADDRESS]),
 						      ifi->ifi_type,
-						      b1, sizeof(b1)), stdout);
+						      b1, sizeof(b1)));
 		}
 		if (tb[IFLA_BROADCAST]) {
 			if (ifi->ifi_flags & IFF_POINTOPOINT)
 				printf(" peer ");
 			else
 				printf(" brd ");
-			fputs(ll_addr_n2a(RTA_DATA(tb[IFLA_BROADCAST]),
+			fputs_stdout(ll_addr_n2a(RTA_DATA(tb[IFLA_BROADCAST]),
 						      RTA_PAYLOAD(tb[IFLA_BROADCAST]),
 						      ifi->ifi_type,
-						      b1, sizeof(b1)), stdout);
+						      b1, sizeof(b1)));
 		}
 	}
 	bb_putchar('\n');
@@ -307,9 +307,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 		printf("    family %d ", ifa->ifa_family);
 
 	if (rta_tb[IFA_LOCAL]) {
-		fputs(rt_addr_n2a(ifa->ifa_family, RTA_DATA(rta_tb[IFA_LOCAL])),
-			stdout
-		);
+		fputs_stdout(rt_addr_n2a(ifa->ifa_family, RTA_DATA(rta_tb[IFA_LOCAL])));
 
 		if (rta_tb[IFA_ADDRESS] == NULL
 		 || memcmp(RTA_DATA(rta_tb[IFA_ADDRESS]), RTA_DATA(rta_tb[IFA_LOCAL]), 4) == 0
@@ -363,7 +361,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (ifa_flags)
 		printf("flags %02x ", ifa_flags);
 	if (rta_tb[IFA_LABEL])
-		fputs((char*)RTA_DATA(rta_tb[IFA_LABEL]), stdout);
+		fputs_stdout((char*)RTA_DATA(rta_tb[IFA_LABEL]));
 	if (rta_tb[IFA_CACHEINFO]) {
 		struct ifa_cacheinfo *ci = RTA_DATA(rta_tb[IFA_CACHEINFO]);
 		char buf[128];

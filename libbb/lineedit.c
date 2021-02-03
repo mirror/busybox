@@ -312,7 +312,7 @@ static void BB_PUTCHAR(wchar_t c)
 		ssize_t len = wcrtomb(buf, c, &mbst);
 		if (len > 0) {
 			buf[len] = '\0';
-			fputs(buf, stdout);
+			fputs_stdout(buf);
 		}
 	} else {
 		/* In this case, c is always one byte */
@@ -460,7 +460,7 @@ static void beep(void)
  */
 static void put_prompt_custom(bool is_full)
 {
-	fputs((is_full ? cmdedit_prompt : prompt_last_line), stdout);
+	fputs_stdout((is_full ? cmdedit_prompt : prompt_last_line));
 	cursor = 0;
 	cmdedit_y = cmdedit_prmt_len / cmdedit_termw; /* new quasireal y */
 	cmdedit_x = cmdedit_prmt_len % cmdedit_termw;
@@ -1851,7 +1851,7 @@ static void ask_terminal(void)
 	pfd.events = POLLIN;
 	if (safe_poll(&pfd, 1, 0) == 0) {
 		S.sent_ESC_br6n = 1;
-		fputs(ESC"[6n", stdout);
+		fputs_stdout(ESC"[6n");
 		fflush_all(); /* make terminal see it ASAP! */
 	}
 }
@@ -2957,7 +2957,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 #undef read_line_input
 int FAST_FUNC read_line_input(const char* prompt, char* command, int maxsize)
 {
-	fputs(prompt, stdout);
+	fputs_stdout(prompt);
 	fflush_all();
 	if (!fgets(command, maxsize, stdin))
 		return -1;

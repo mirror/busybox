@@ -2692,7 +2692,7 @@ static int get_user_input(struct in_str *i)
 			 * Without check_and_run_traps, handler never runs.
 			 */
 			check_and_run_traps();
-			fputs(prompt_str, stdout);
+			fputs_stdout(prompt_str);
 			fflush_all();
 		}
 		r = hfgetc(i->file);

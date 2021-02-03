@@ -2788,12 +2788,12 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 			, &verbose
 		);
 	if (opt & OPT_DECODE_URL) {
-		fputs(percent_decode_in_place(url_for_decode, /*strict:*/ 0), stdout);
+		fputs_stdout(percent_decode_in_place(url_for_decode, /*strict:*/ 0));
 		return 0;
 	}
 #if ENABLE_FEATURE_HTTPD_ENCODE_URL_STR
 	if (opt & OPT_ENCODE_URL) {
-		fputs(encodeString(url_for_encode), stdout);
+		fputs_stdout(encodeString(url_for_encode));
 		return 0;
 	}
 #endif

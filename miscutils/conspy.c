@@ -107,8 +107,8 @@ enum {
 
 static void putcsi(const char *s)
 {
-	fputs(ESC"[", stdout);
-	fputs(s, stdout);
+	fputs_stdout(ESC"[");
+	fputs_stdout(s);
 }
 
 static void clrscr(void)

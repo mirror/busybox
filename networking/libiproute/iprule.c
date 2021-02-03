@@ -88,10 +88,9 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 				r->rtm_src_len
 			);
 		} else {
-			fputs(format_host(r->rtm_family,
+			fputs_stdout(format_host(r->rtm_family,
 						RTA_PAYLOAD(tb[RTA_SRC]),
-						RTA_DATA(tb[RTA_SRC])),
-				stdout
+						RTA_DATA(tb[RTA_SRC]))
 			);
 		}
 	} else if (r->rtm_src_len) {
@@ -178,7 +177,7 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 		} else
 			printf("masquerade");
 	} else if (r->rtm_type != RTN_UNICAST)
-		fputs(rtnl_rtntype_n2a(r->rtm_type), stdout);
+		fputs_stdout(rtnl_rtntype_n2a(r->rtm_type));
 
 	bb_putchar('\n');
 	/*fflush_all();*/

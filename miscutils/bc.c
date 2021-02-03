@@ -6448,7 +6448,7 @@ static BC_STATUS zdc_program_printStream(void)
 		char *str;
 		idx = (r->t == XC_RESULT_STR) ? r->d.id.idx : n->rdx;
 		str = *xc_program_str(idx);
-		fputs(str, stdout);
+		fputs_stdout(str);
 	}
 
 	RETURN_STATUS(s);

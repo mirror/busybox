@@ -319,7 +319,7 @@ int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			if (col == 0) {
-				fputs(dst_buf, stdout);
+				fputs_stdout(dst_buf);
 			} else {
 				char *result = dst_buf;
 				if (rem == 0)

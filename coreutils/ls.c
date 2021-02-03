@@ -453,7 +453,7 @@ static unsigned print_name(const char *name)
 	name = printable_string2(&uni_stat, name);
 
 	if (!(option_mask32 & OPT_Q)) {
-		fputs(name, stdout);
+		fputs_stdout(name);
 		return uni_stat.unicode_width;
 	}
 

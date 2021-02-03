@@ -205,7 +205,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 		cur = shbuf_tail;
 #else
 		while (cur != shbuf_tail) {
-			fputs(shbuf_data + cur, stdout);
+			fputs_stdout(shbuf_data + cur);
 			cur += strlen(shbuf_data + cur) + 1;
 			if (cur >= shbuf_size)
 				cur = 0;
@@ -217,7 +217,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_LOGREAD_REDUCED_LOCKING
 		for (i = 0; i < len_total; i += strlen(copy + i) + 1) {
-			fputs(copy + i, stdout);
+			fputs_stdout(copy + i);
 		}
 		free(copy);
 #endif

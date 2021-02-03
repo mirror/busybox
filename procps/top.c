@@ -712,7 +712,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 		);
 		if ((int)(scr_width - col) > 1)
 			read_cmdline(line_buf + col, scr_width - col, s->pid, s->comm);
-		fputs(line_buf, stdout);
+		fputs_stdout(line_buf);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
 			cur_jif.busy - prev_jif.busy, cur_jif.total - prev_jif.total); */
 		s++;

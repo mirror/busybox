@@ -560,7 +560,7 @@ static void display(priv_dumper_t* dumper)
 						) {
 							if (dumper->pub.eofstring) {
 								/* xxd support: requested to not pad incomplete blocks */
-								fputs(dumper->pub.eofstring, stdout);
+								fputs_stdout(dumper->pub.eofstring);
 								return;
 							}
 							if (!(pr->flags & (F_TEXT | F_BPAD)))

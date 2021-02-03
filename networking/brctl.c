@@ -156,7 +156,7 @@ static int show_bridge(const char *name, int need_hdr)
 	else
 	if (LONE_CHAR(filedata, '1'))
 		strcpy(filedata, "yes");
-	fputs(filedata, stdout);
+	fputs_stdout(filedata);
 
 	/* sfx points past "BR/bridge/", turn it into "BR/brif": */
 	sfx[-4] = 'f'; sfx[-3] = '\0';

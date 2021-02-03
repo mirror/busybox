@@ -25,7 +25,7 @@ char* FAST_FUNC bb_ask_noecho(int fd, int timeout, const char *prompt)
 	/* Was buggy: was printing prompt *before* flushing input,
 	 * which was upsetting "expect" based scripts of some users.
 	 */
-	fputs(prompt, stdout);
+	fputs_stdout(prompt);
 	fflush_all();
 
 	tcgetattr(fd, &oldtio);

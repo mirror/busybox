@@ -422,19 +422,19 @@ print_named_ascii(size_t n_bytes, const char *block,
 
 		masked_c &= 0x7f;
 		if (masked_c == 0x7f) {
-			fputs(" del", stdout);
+			fputs_stdout(" del");
 			continue;
 		}
 		if (masked_c > ' ') {
 			buf[3] = masked_c;
-			fputs(buf, stdout);
+			fputs_stdout(buf);
 			continue;
 		}
 		/* Why? Because printf(" %3.3s") is much slower... */
 		buf[6] = charname[masked_c][0];
 		buf[7] = charname[masked_c][1];
 		buf[8] = charname[masked_c][2];
-		fputs(buf+5, stdout);
+		fputs_stdout(buf+5);
 	}
 }
 
@@ -451,7 +451,7 @@ print_ascii(size_t n_bytes, const char *block,
 
 		if (ISPRINT(c)) {
 			buf[3] = c;
-			fputs(buf, stdout);
+			fputs_stdout(buf);
 			continue;
 		}
 		switch (c) {
@@ -485,7 +485,7 @@ print_ascii(size_t n_bytes, const char *block,
 			buf[8] = (c & 7) + '0';
 			s = buf + 5;
 		}
-		fputs(s, stdout);
+		fputs_stdout(s);
 	}
 }
 
@@ -881,7 +881,7 @@ format_address_label(off_t address, char c)
 static void
 dump_hexl_mode_trailer(size_t n_bytes, const char *block)
 {
-	fputs("  >", stdout);
+	fputs_stdout("  >");
 	while (n_bytes--) {
 		unsigned c = *(unsigned char *) block++;
 		c = (ISPRINT(c) ? c : '.');
@@ -1121,13 +1121,13 @@ dump_strings(off_t address, off_t end_offset)
 
 		for (i = 0; (c = buf[i]); i++) {
 			switch (c) {
-			case '\007': fputs("\\a", stdout); break;
-			case '\b': fputs("\\b", stdout); break;
-			case '\f': fputs("\\f", stdout); break;
-			case '\n': fputs("\\n", stdout); break;
-			case '\r': fputs("\\r", stdout); break;
-			case '\t': fputs("\\t", stdout); break;
-			case '\v': fputs("\\v", stdout); break;
+			case '\007': fputs_stdout("\\a"); break;
+			case '\b': fputs_stdout("\\b"); break;
+			case '\f': fputs_stdout("\\f"); break;
+			case '\n': fputs_stdout("\\n"); break;
+			case '\r': fputs_stdout("\\r"); break;
+			case '\t': fputs_stdout("\\t"); break;
+			case '\v': fputs_stdout("\\v"); break;
 			default: putchar(c);
 			}
 		}

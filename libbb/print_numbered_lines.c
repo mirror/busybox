@@ -25,7 +25,7 @@ int FAST_FUNC print_numbered_lines(struct number_state *ns, const char *filename
 			printf("%*u%s", ns->width, N, ns->sep);
 			N += ns->inc;
 		} else if (ns->empty_str)
-			fputs(ns->empty_str, stdout);
+			fputs_stdout(ns->empty_str);
 		puts(line);
 		free(line);
 	}

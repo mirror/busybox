@@ -92,7 +92,7 @@ int strings_main(int argc UNUSED_PARAM, char **argv)
 						if (option_mask32 & (PRINT_OFFSET | PRINT_RADIX)) {
 							printf(radix_fmt, offset - n);
 						}
-						fputs(string, stdout);
+						fputs_stdout(string);
 					}
 					count++;
 				}

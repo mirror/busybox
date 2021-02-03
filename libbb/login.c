@@ -120,7 +120,7 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 				buf[0] = c;
 			}
 		}
-		fputs(outbuf, stdout);
+		fputs_stdout(outbuf);
 	}
 	fclose(fp);
 	fflush_all();
@@ -130,8 +130,8 @@ void FAST_FUNC print_login_prompt(void)
 {
 	char *hostname = safe_gethostname();
 
-	fputs(hostname, stdout);
-	fputs(LOGIN, stdout);
+	fputs_stdout(hostname);
+	fputs_stdout(LOGIN);
 	fflush_all();
 	free(hostname);
 }

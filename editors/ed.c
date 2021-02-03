@@ -553,7 +553,7 @@ static int printLines(int num1, int num2, int expandFlag)
 			fputc_printable(ch | PRINTABLE_META, stdout);
 		}
 
-		fputs("$\n", stdout);
+		fputs_stdout("$\n");
 
 		setCurNum(num1++);
 		lp = lp->next;

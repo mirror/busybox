@@ -117,7 +117,7 @@ print_except_N_last_lines(FILE *fp, unsigned count)
 		char *c;
 		if (head == count)
 			head = 0;
-		fputs(circle[head], stdout);
+		fputs_stdout(circle[head]);
 		c = xmalloc_fgets(fp);
 		if (!c)
 			goto ret;

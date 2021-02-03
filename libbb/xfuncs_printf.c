@@ -318,6 +318,11 @@ int FAST_FUNC bb_putchar(int ch)
 	return putchar(ch);
 }
 
+int FAST_FUNC fputs_stdout(const char *s)
+{
+	return fputs(s, stdout);
+}
+
 /* Die with an error message if we can't copy an entire FILE* to stdout,
  * then close that file. */
 void FAST_FUNC xprint_and_close_file(FILE *file)

@@ -258,7 +258,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 			bb_error_msg_and_die("can't get process context%s",
 				username ? " for a different user" : "");
 		}
-		fputs(scontext, stdout);
+		fputs_stdout(scontext);
 	}
 	/* freecon(NULL) seems to be harmless */
 	if (ENABLE_FEATURE_CLEAN_UP)

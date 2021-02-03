@@ -167,7 +167,7 @@ static void cut_file(FILE *file, char delim, const struct cut_list *cut_lists, u
 						 * printed */
 						if (nfields_printed > 0)
 							putchar(delim);
-						fputs(field, stdout);
+						fputs_stdout(field);
 						printed[ndelim] = 'X';
 						nfields_printed++;	/* shouldn't overflow.. */
 					}
