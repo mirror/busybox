@@ -295,12 +295,11 @@ static uint32_t find_free_or_expired_nip(const uint8_t *safe_mac, unsigned arppi
 		uint32_t nip;
 		struct dyn_lease *lease;
 
-		/* ie, 192.168.55.0 */
-		if ((addr & 0xff) == 0)
-			goto next_addr;
-		/* ie, 192.168.55.255 */
-		if ((addr & 0xff) == 0xff)
-			goto next_addr;
+		/* (Addresses ending in .0 or .255 can legitimately be allocated
+		 * in various situations, so _don't_ skip these.  The user needs
+		 * to choose start_ip and end_ip correctly for a particular
+		 * network environment.) */
+
 		nip = htonl(addr);
 		/* skip our own address */
 		if (nip == server_data.server_nip)
