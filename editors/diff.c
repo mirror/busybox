@@ -1050,7 +1050,7 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 		/* diffreg can get non-regular files here */
 		print_status(gotstdin > 1 ? STATUS_SAME : diffreg(file), file);
 
-		if (dirfile)
+		if (ENABLE_FEATURE_CLEAN_UP && dirfile)
 			free(file[dir]);
 	}
 
