@@ -769,8 +769,6 @@ static unsigned path_parse(char ***p)
 		if (!tmp)
 			break;
 		tmp++;
-		if (*tmp == '\0')
-			break;  /* :<empty> */
 		npth++;
 	}
 
@@ -782,8 +780,6 @@ static unsigned path_parse(char ***p)
 		if (!tmp)
 			break;
 		*tmp++ = '\0'; /* ':' -> '\0' */
-		if (*tmp == '\0')
-			break; /* :<empty> */
 		res[npth++] = tmp;
 	}
 	/* special case: "match subdirectories of the current directory" */
@@ -854,6 +850,7 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 		struct dirent *next;
 		struct stat st;
 		char *found;
+		const char *lpath;
 
 		if (paths[i] == NULL) { /* path_parse()'s last component? */
 			/* in PATH completion, current dir's subdir names
@@ -863,7 +860,8 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 			paths[i] = (char *)".";
 		}
 
-		dir = opendir(paths[i]);
+		lpath = *paths[i] ? paths[i] : ".";
+		dir = opendir(lpath);
 		if (!dir)
 			continue; /* don't print an error */
 
@@ -878,7 +876,7 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 			if (strncmp(basecmd, name_found, baselen) != 0)
 				continue; /* no */
 
-			found = concat_path_file(paths[i], name_found);
+			found = concat_path_file(lpath, name_found);
 			/* NB: stat() first so that we see is it a directory;
 			 * but if that fails, use lstat() so that
 			 * we still match dangling links */
