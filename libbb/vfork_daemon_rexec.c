@@ -109,8 +109,13 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 		char *tmp_argv[argc+1];
 		memcpy(tmp_argv, argv, (argc+1) * sizeof(tmp_argv[0]));
 		applet_name = tmp_argv[0];
+
+		/* longjmp's (instead of returning) if --help is seen */
+		show_usage_if_dash_dash_help(applet_no, argv);
+
 		/* Finally we can call NOFORK applet's main() */
 		rc = applet_main[applet_no](argc, tmp_argv);
+
 		/* Important for shells: `which CMD` was failing */
 		fflush_all();
 	} else {

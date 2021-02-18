@@ -1219,6 +1219,7 @@ void run_noexec_applet_and_exit(int a, const char *name, char **argv) NORETURN F
 int find_applet_by_name(const char *name) FAST_FUNC;
 void run_applet_no_and_exit(int a, const char *name, char **argv) NORETURN FAST_FUNC;
 #endif
+void show_usage_if_dash_dash_help(int applet_no, char **argv) FAST_FUNC;
 #if defined(__linux__)
 void set_task_comm(const char *comm) FAST_FUNC;
 #else

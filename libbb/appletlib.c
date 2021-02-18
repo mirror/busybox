@@ -905,16 +905,8 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 # endif
 
 # if NUM_APPLETS > 0
-void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **argv)
+void FAST_FUNC show_usage_if_dash_dash_help(int applet_no, char **argv)
 {
-	int argc = string_array_len(argv);
-
-	/*
-	 * We do not use argv[0]: do not want to repeat massaging of
-	 * "-/sbin/halt" -> "halt", for example.
-	 */
-	applet_name = name;
-
 	/* Special case. POSIX says "test --help"
 	 * should be no different from e.g. "test --foo".
 	 * Thus for "test", we skip --help check.
@@ -931,15 +923,32 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **ar
 	 && applet_no != APPLET_NO_false
 #  endif
 	) {
-		if (argc == 2 && strcmp(argv[1], "--help") == 0) {
+		if (argv[1] && !argv[2] && strcmp(argv[1], "--help") == 0) {
 			/* Make "foo --help" exit with 0: */
 			xfunc_error_retval = 0;
 			bb_show_usage();
 		}
 	}
+}
+
+void FAST_FUNC run_applet_no_and_exit(int applet_no, const char *name, char **argv)
+{
+	int argc;
+
+	/*
+	 * We do not use argv[0]: do not want to repeat massaging of
+	 * "-/sbin/halt" -> "halt", for example.
+	 */
+	applet_name = name;
+
+	show_usage_if_dash_dash_help(applet_no, argv);
+
 	if (ENABLE_FEATURE_SUID)
 		check_suid(applet_no);
+
+	argc = string_array_len(argv);
 	xfunc_error_retval = applet_main[applet_no](argc, argv);
+
 	/* Note: applet_main() may also not return (die on a xfunc or such) */
 	xfunc_die();
 }
