@@ -166,6 +166,18 @@ char* FAST_FUNC stpcpy(char *p, const char *to_add)
 }
 #endif
 
+#ifndef HAVE_STPNCPY
+char* FAST_FUNC stpncpy(char *p, const char *to_add, size_t n)
+{
+	while (n != 0 && (*p = *to_add) != '\0') {
+		p++;
+		to_add++;
+		n--;
+	}
+	return p;
+}
+#endif
+
 #ifndef HAVE_GETLINE
 ssize_t FAST_FUNC getline(char **lineptr, size_t *n, FILE *stream)
 {
