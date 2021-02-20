@@ -729,7 +729,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
 	 */
 	add_client_options(&packet);
 
-	bb_info_msg("sending %s", "discover");
+	bb_simple_info_msg("broadcasting discover");
 	return raw_bcast_from_client_data_ifindex(&packet, INADDR_ANY);
 }
 
@@ -742,6 +742,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 {
 	struct dhcp_packet packet;
 	struct in_addr temp_addr;
+	char server_str[sizeof("255.255.255.255")];
 
 /*
  * RFC 2131 4.3.2 DHCPREQUEST message
@@ -772,8 +773,13 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 	 */
 	add_client_options(&packet);
 
+	temp_addr.s_addr = server;
+	strcpy(server_str, inet_ntoa(temp_addr));
 	temp_addr.s_addr = requested;
-	bb_info_msg("sending select for %s", inet_ntoa(temp_addr));
+	bb_info_msg("broadcasting select for %s, server %s",
+			inet_ntoa(temp_addr),
+			server_str
+	);
 	return raw_bcast_from_client_data_ifindex(&packet, INADDR_ANY);
 }
 
@@ -782,7 +788,6 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
-	struct in_addr temp_addr;
 
 /*
  * RFC 2131 4.3.2 DHCPREQUEST message
@@ -813,8 +818,14 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	 */
 	add_client_options(&packet);
 
-	temp_addr.s_addr = server;
-	bb_info_msg("sending renew to %s", inet_ntoa(temp_addr));
+	if (server) {
+		struct in_addr temp_addr;
+		temp_addr.s_addr = server;
+		bb_info_msg("sending renew to server %s", inet_ntoa(temp_addr));
+	} else {
+		bb_simple_info_msg("broadcasting renew");
+	}
+
 	return bcast_or_ucast(&packet, ciaddr, server);
 }
 
@@ -843,7 +854,7 @@ static NOINLINE int send_decline(/*uint32_t xid,*/ uint32_t server, uint32_t req
 
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
-	bb_info_msg("sending %s", "decline");
+	bb_simple_info_msg("broadcasting decline");
 	return raw_bcast_from_client_data_ifindex(&packet, INADDR_ANY);
 }
 #endif
@@ -1720,6 +1731,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				unsigned start;
 				uint32_t lease_seconds;
 				struct in_addr temp_addr;
+				char server_str[sizeof("255.255.255.255")];
 				uint8_t *temp;
 
 				temp = udhcp_get_option32(&packet, DHCP_LEASE_TIME);
@@ -1775,9 +1787,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				}
 #endif
 				/* enter bound state */
+				temp_addr.s_addr = server_addr;
+				strcpy(server_str, inet_ntoa(temp_addr));
 				temp_addr.s_addr = packet.yiaddr;
-				bb_info_msg("lease of %s obtained, lease time %u",
-					inet_ntoa(temp_addr), (unsigned)lease_seconds);
+				bb_info_msg("lease of %s obtained from %s, lease time %u",
+					inet_ntoa(temp_addr), server_str, (unsigned)lease_seconds);
 				requested_ip = packet.yiaddr;
 
 				start = monotonic_sec();
