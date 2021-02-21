@@ -461,12 +461,7 @@ struct globals {
 #define G_precision_sec  0.002
 	uint8_t  stratum;
 
-#define STATE_NSET      0       /* initial state, "nothing is set" */
-//#define STATE_FSET    1       /* frequency set from file */
-//#define STATE_SPIK    2       /* spike detected */
-//#define STATE_FREQ    3       /* initial frequency */
-#define STATE_SYNC      4       /* clock synchronized (normal operation) */
-	uint8_t  discipline_state;      // doc calls it c.state
+	//uint8_t  discipline_state;      // doc calls it c.state
 	uint8_t  poll_exp;              // s.poll
 	int      polladj_count;         // c.count
 	int      FREQHOLD_cnt;
@@ -1453,15 +1448,14 @@ select_and_cluster(void)
  * Local clock discipline and its helpers
  */
 static void
-set_new_values(int disc_state, double offset, double recv_time)
+set_new_values(double offset, double recv_time)
 {
 	/* Enter new state and set state variables. Note we use the time
 	 * of the last clock filter sample, which must be earlier than
 	 * the current time.
 	 */
-	VERB4 bb_error_msg("disc_state=%d last update offset=%f recv_time=%f",
-			disc_state, offset, recv_time);
-	G.discipline_state = disc_state;
+	VERB4 bb_error_msg("last update offset=%f recv_time=%f",
+			offset, recv_time);
 	G.last_update_offset = offset;
 	G.last_update_recv_time = recv_time;
 }
@@ -1550,8 +1544,15 @@ update_local_clock(peer_t *p)
 		recv_time += offset;
 
 		abs_offset = offset = 0;
-		set_new_values(STATE_SYNC, offset, recv_time);
+		set_new_values(offset, recv_time);
 	} else { /* abs_offset <= STEP_THRESHOLD */
+
+		if (option_mask32 & OPT_q) {
+			/* We were only asked to set time once.
+			 * The clock is precise enough, no need to step.
+			 */
+			exit(0);
+		}
 
 		/* The ratio is calculated before jitter is updated to make
 		 * poll adjust code more sensitive to large offsets.
@@ -1567,46 +1568,31 @@ update_local_clock(peer_t *p)
 		if (G.discipline_jitter < G_precision_sec)
 			G.discipline_jitter = G_precision_sec;
 
-		switch (G.discipline_state) {
-		case STATE_NSET:
-			if (option_mask32 & OPT_q) {
-				/* We were only asked to set time once.
-				 * The clock is precise enough, no need to step.
-				 */
-				exit(0);
-			}
-			set_new_values(STATE_SYNC, offset, recv_time);
-			VERB4 bb_simple_error_msg("transitioning to FREQ, datapoint ignored");
-			return 0; /* "leave poll interval as is" */
-
-		default:
 #if !USING_KERNEL_PLL_LOOP
-			/* Compute freq_drift due to PLL and FLL contributions.
-			 *
-			 * The FLL and PLL frequency gain constants
-			 * depend on the poll interval and Allan
-			 * intercept. The FLL is not used below one-half
-			 * the Allan intercept. Above that the loop gain
-			 * increases in steps to 1 / AVG.
-			 */
-			if ((1 << G.poll_exp) > ALLAN / 2) {
-				etemp = FLL - G.poll_exp;
-				if (etemp < AVG)
-					etemp = AVG;
-				freq_drift += (offset - G.last_update_offset) / (MAXD(since_last_update, ALLAN) * etemp);
-			}
-			/* For the PLL the integration interval
-			 * (numerator) is the minimum of the update
-			 * interval and poll interval. This allows
-			 * oversampling, but not undersampling.
-			 */
-			etemp = MIND(since_last_update, (1 << G.poll_exp));
-			dtemp = (4 * PLL) << G.poll_exp;
-			freq_drift += offset * etemp / SQUARE(dtemp);
-#endif
-			set_new_values(STATE_SYNC, offset, recv_time);
-			break;
+		/* Compute freq_drift due to PLL and FLL contributions.
+		 *
+		 * The FLL and PLL frequency gain constants
+		 * depend on the poll interval and Allan
+		 * intercept. The FLL is not used below one-half
+		 * the Allan intercept. Above that the loop gain
+		 * increases in steps to 1 / AVG.
+		 */
+		if ((1 << G.poll_exp) > ALLAN / 2) {
+			etemp = FLL - G.poll_exp;
+			if (etemp < AVG)
+				etemp = AVG;
+			freq_drift += (offset - G.last_update_offset) / (MAXD(since_last_update, ALLAN) * etemp);
 		}
+		/* For the PLL the integration interval
+		 * (numerator) is the minimum of the update
+		 * interval and poll interval. This allows
+		 * oversampling, but not undersampling.
+		 */
+		etemp = MIND(since_last_update, (1 << G.poll_exp));
+		dtemp = (4 * PLL) << G.poll_exp;
+		freq_drift += offset * etemp / SQUARE(dtemp);
+#endif
+		set_new_values(offset, recv_time);
 		if (G.stratum != p->lastpkt_stratum + 1) {
 			G.stratum = p->lastpkt_stratum + 1;
 			run_script("stratum", offset);
@@ -1625,9 +1611,7 @@ update_local_clock(peer_t *p)
 	G.rootdisp = p->lastpkt_rootdisp + dtemp;
 	VERB4 bb_error_msg("updating leap/refid/reftime/rootdisp from peer %s", p->p_dotted);
 
-	/* We are in STATE_SYNC now, but did not do adjtimex yet.
-	 * (Any other state does not reach this, they all return earlier)
-	 * By this time, freq_drift and offset are set
+	/* By this time, freq_drift and offset are set
 	 * to values suitable for adjtimex.
 	 */
 #if !USING_KERNEL_PLL_LOOP
