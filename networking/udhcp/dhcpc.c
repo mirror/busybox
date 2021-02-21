@@ -1655,8 +1655,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		if (packet.xid != xid) {
-			log1("xid %x (our is %x), ignoring packet",
-				(unsigned)packet.xid, (unsigned)xid);
+			log1("xid %x (our is %x)%s",
+				(unsigned)packet.xid, (unsigned)xid,
+				", ignoring packet"
+			);
 			continue;
 		}
 

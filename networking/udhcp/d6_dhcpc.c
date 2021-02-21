@@ -1589,8 +1589,10 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		if ((packet.d6_xid32 & htonl(0x00ffffff)) != xid) {
-			log1("xid %x (our is %x), ignoring packet",
-				(unsigned)(packet.d6_xid32 & htonl(0x00ffffff)), (unsigned)xid);
+			log1("xid %x (our is %x)%s",
+				(unsigned)(packet.d6_xid32 & htonl(0x00ffffff)), (unsigned)xid,
+				", ignoring packet"
+			);
 			continue;
 		}
 
@@ -1743,7 +1745,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					free(client6_data.ia_na);
 					client6_data.ia_na = d6_copy_option(packet.d6_options, packet_end, D6_OPT_IA_NA);
 					if (!client6_data.ia_na) {
-						bb_info_msg("no %s option, ignoring packet", "IA_NA");
+						bb_info_msg("no %s option%s", "IA_NA", ", ignoring packet");
 						continue;
 					}
 					if (client6_data.ia_na->len < (4 + 4 + 4) + (2 + 2 + 16 + 4 + 4)) {
@@ -1756,7 +1758,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 							D6_OPT_IAADDR
 					);
 					if (!iaaddr) {
-						bb_info_msg("no %s option, ignoring packet", "IAADDR");
+						bb_info_msg("no %s option%s", "IAADDR", ", ignoring packet");
 						continue;
 					}
 					if (iaaddr->len < (16 + 4 + 4)) {
@@ -1781,7 +1783,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					free(client6_data.ia_pd);
 					client6_data.ia_pd = d6_copy_option(packet.d6_options, packet_end, D6_OPT_IA_PD);
 					if (!client6_data.ia_pd) {
-						bb_info_msg("no %s option, ignoring packet", "IA_PD");
+						bb_info_msg("no %s option%s", "IA_PD", ", ignoring packet");
 						continue;
 					}
 					if (client6_data.ia_pd->len < (4 + 4 + 4) + (2 + 2 + 4 + 4 + 1 + 16)) {
@@ -1794,7 +1796,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 							D6_OPT_IAPREFIX
 					);
 					if (!iaprefix) {
-						bb_info_msg("no %s option, ignoring packet", "IAPREFIX");
+						bb_info_msg("no %s option%s", "IAPREFIX", ", ignoring packet");
 						continue;
 					}
 					if (iaprefix->len < (4 + 4 + 1 + 16)) {

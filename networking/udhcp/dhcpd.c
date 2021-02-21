@@ -1048,7 +1048,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			move_from_unaligned32(server_id_network_order, server_id_opt);
 			if (server_id_network_order != server_data.server_nip) {
 				/* client talks to somebody else */
-				log1("server ID doesn't match%s", ", ignoring");
+				log1("server ID doesn't match%s", ", ignoring packet");
 				continue;
 			}
 		}
@@ -1171,7 +1171,7 @@ o DHCPREQUEST generated during REBINDING state:
 			if (!requested_ip_opt) {
 				requested_nip = packet.ciaddr;
 				if (requested_nip == 0) {
-					log1("no requested IP and no ciaddr%s", ", ignoring");
+					log1("no requested IP and no ciaddr%s", ", ignoring packet");
 					break;
 				}
 			}
