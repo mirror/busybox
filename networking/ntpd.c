@@ -2767,7 +2767,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 		timeout++; /* (nextaction - G.cur_time) rounds down, compensating */
 
 		/* Here we may block */
-		VERB2 {
+		VERB3 {
 			if (i > (ENABLE_FEATURE_NTPD_SERVER && G_listen_fd != -1)) {
 				/* We wait for at least one reply.
 				 * Poll for it, without wasting time for message.
