@@ -2153,6 +2153,12 @@ recv_and_process_client_pkt(void /*int fd*/)
 	do_sendto(G_listen_fd,
 		/*from:*/ &to->u.sa, /*to:*/ from, /*addrlen:*/ to->len,
 		&msg, size);
+	VERB3 {
+		char *addr;
+		addr = xmalloc_sockaddr2dotted_noport(from);
+		bb_error_msg("responded to query from %s", addr);
+		free(addr);
+	}
 
  bail:
 	free(to);
