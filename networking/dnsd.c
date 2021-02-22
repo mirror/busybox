@@ -379,7 +379,8 @@ Domain name in a message can be represented as either:
  */
 static int process_packet(struct dns_entry *conf_data,
 		uint32_t conf_ttl,
-		uint8_t *buf)
+		uint8_t *buf,
+		unsigned buflen)
 {
 	struct dns_head *head;
 	struct type_and_class *unaligned_type_class;
@@ -402,9 +403,6 @@ static int process_packet(struct dns_entry *conf_data,
 		bb_simple_error_msg("response packet, ignored");
 		return 0; /* don't reply */
 	}
-	/* QR = 1 "response", RCODE = 4 "Not Implemented" */
-	outr_flags = htons(0x8000 | 4);
-	err_msg = NULL;
 
 	/* start of query string */
 	query_string = (void *)(head + 1);
@@ -415,6 +413,15 @@ static int process_packet(struct dns_entry *conf_data,
 	query_len += sizeof(*unaligned_type_class);
 	/* where to append answer block */
 	answb = (void *)(unaligned_type_class + 1);
+
+	if (buflen < answb - buf) {
+		bb_simple_error_msg("packet too short");
+		return 0; /* don't reply */
+	}
+
+	/* QR = 1 "response", RCODE = 4 "Not Implemented" */
+	outr_flags = htons(0x8000 | 4);
+	err_msg = NULL;
 
 	/* OPCODE != 0 "standard query"? */
 	if ((head->flags & htons(0x7800)) != 0) {
@@ -559,7 +566,7 @@ int dnsd_main(int argc UNUSED_PARAM, char **argv)
 		if (OPT_verbose)
 			bb_simple_info_msg("got UDP packet");
 		buf[r] = '\0'; /* paranoia */
-		r = process_packet(conf_data, conf_ttl, buf);
+		r = process_packet(conf_data, conf_ttl, buf, r);
 		if (r <= 0)
 			continue;
 		send_to_from(udps, buf, r, 0, &from->u.sa, &to->u.sa, lsa->len);
