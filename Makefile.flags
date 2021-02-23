@@ -209,11 +209,6 @@ LDFLAGS += $(strip $(subst ",,$(CONFIG_EXTRA_LDFLAGS)))
 #"))
 endif
 
-ifneq ($(CONFIG_EXTRA_LDLIBS),)
-LDLIBS += $(strip $(subst ",,$(CONFIG_EXTRA_LDLIBS)))
-#"))
-endif
-
 # Busybox is a stack-fatty so make sure we increase default size
 # TODO: use "make stksizes" to find & fix big stack users
 # (we stole scripts/checkstack.pl from the kernel... thanks guys!)
