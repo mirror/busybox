@@ -143,12 +143,13 @@
 //usage:     "\n~ - divide with remainder"
 //usage:     "\n| - modular exponentiation"
 //usage:     "\nv - square root"
-////////     "\n_NNN -                  push neagtive number -NNN
-////////     "\n[string] -              push string
+////////     "\nA-F -                   digits 10..15
+////////     "\n_NNN -                  push negative number -NNN
+////////     "\n[string] -              push string (in FreeBSD, \[, \] and \\ are escapes, not implemented here and in GNU)
 ////////     "\nR - DC_LEX_POP          pop and discard
 ////////     "\nc - DC_LEX_CLEAR_STACK  clear stack
-////////     "\nd - DC_LEX_DUPLICATE    pop, push, push
-////////     "\nr - DC_LEX_SWAP         pop 1, pop 2, push 1, push 2
+////////     "\nd - DC_LEX_DUPLICATE    duplicate top-of-stack
+////////     "\nr - DC_LEX_SWAP         swap top-of-stack
 ////////     "\n:r - DC_LEX_COLON       pop index, pop value, store to array 'r'
 ////////     "\n;r - DC_LEX_SCOLON      pop index, fetch from array 'r', push
 ////////     "\nLr - DC_LEX_LOAD_PO,    pop register 'r', push
@@ -157,21 +158,21 @@
 ////////     "\nsr - DC_LEX_OP_ASSIGN   pop, assign to register 'r'
 ////////     "\n? - DC_LEX_READ         read line and execute
 ////////     "\nx - DC_LEX_EXECUTE      pop string and execute
-////////     "\n<r - XC_LEX_OP_REL_GT   pop, pop, execute register 'r' if top-of-stack was greater
-////////     "\n>r - XC_LEX_OP_REL_LT   pop, pop, execute register 'r' if top-of-stack was less
+////////     "\n<r - XC_LEX_OP_REL_GT   pop, pop, execute register 'r' if top-of-stack was less
+////////     "\n>r - XC_LEX_OP_REL_LT   pop, pop, execute register 'r' if top-of-stack was greater
 ////////     "\n=r - XC_LEX_OP_REL_EQ   pop, pop, execute register 'r' if equal
-////////     "\n!<r !>r !=r -           negated forms
-////////     "\ne - DC_LEX_ELSE         >tef: "if greater execute 't' else execute 'f'"
+////////     "\n                        !<r !>r !=r - negated forms
+////////     "\n                        >tef - "if greater execute register 't' else execute 'f'"
 ////////     "\nQ - DC_LEX_NQUIT        pop, "break N" from macro invocations
 ////////     "\nq - DC_LEX_QUIT         "break 2" (if less than 2 levels of macros, exit dc)
 ////////     "\nX - DC_LEX_SCALE_FACTOR pop, push number of fractional digits
 ////////     "\nZ - DC_LEX_LENGTH       pop, push number of digits it has (or number of characters in string)
 ////////     "\na - DC_LEX_ASCIIFY      pop, push low-order byte as char or 1st char of string
-////////     "\n( - DC_LEX_LPAREN       (not in GNU) pop, pop, if top-of-stack was less push 1 else push 0
-////////     "\n{ - DC_LEX_LBRACE       (not in GNU) pop, pop, if top-of-stack was less-or-equal push 1 else push 0
-////////     "\nG - DC_LEX_EQ_NO_REG    (not in GNU) pop, pop, if equal push 1 else push 0
-////////     "\nN - DC_LEX_OP_BOOL_NOT  (not in GNU) pop, if 0 push 1 else push 0
-////////     "\n_ - XC_LEX_NEG          (not a command - starts negative number)
+////////     "\n( - DC_LEX_LPAREN       (FreeBSD, not in GNU) pop, pop, if top-of-stack was less push 1 else push 0
+////////     "\n{ - DC_LEX_LBRACE       (FreeBSD, not in GNU) pop, pop, if top-of-stack was less-or-equal push 1 else push 0
+////////     "\nG - DC_LEX_EQ_NO_REG    (FreeBSD, not in GNU) pop, pop, if equal push 1 else push 0
+////////     "\nN - DC_LEX_OP_BOOL_NOT  (FreeBSD, not in GNU) pop, if 0 push 1 else push 0
+////////                                FreeBSD also has J and M commands, used internally by bc
 ////////     "\nn - DC_LEX_PRINT_POP    pop, print without newline
 ////////     "\nP - DC_LEX_PRINT_STREAM pop, print string or hex bytes
 //usage:	)
