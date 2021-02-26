@@ -138,11 +138,53 @@
 //usage:
 //usage:#define dc_full_usage "\n"
 //usage:     "\nTiny RPN calculator. Operations:"
-//usage:     "\n+, -, *, /, %, ~, ^," IF_FEATURE_DC_BIG(" |,")
+//usage:     "\nArithmetic: + - * / % ^"
+//usage:	IF_FEATURE_DC_BIG(
+//usage:     "\n~ - divide with remainder"
+//usage:     "\n| - modular exponentiation"
+//usage:     "\nv - square root"
+////////     "\n_NNN -                  push neagtive number -NNN
+////////     "\n[string] -              push string
+////////     "\nR - DC_LEX_POP          pop and discard
+////////     "\nc - DC_LEX_CLEAR_STACK  clear stack
+////////     "\nd - DC_LEX_DUPLICATE    pop, push, push
+////////     "\nr - DC_LEX_SWAP         pop 1, pop 2, push 1, push 2
+////////     "\n:r - DC_LEX_COLON       pop index, pop value, store to array 'r'
+////////     "\n;r - DC_LEX_SCOLON      pop index, fetch from array 'r', push
+////////     "\nLr - DC_LEX_LOAD_PO,    pop register 'r', push
+////////     "\nSr - DC_LEX_STORE_PUSH  pop, push to register 'r'
+////////     "\nlr - DC_LEX_LOAD        read register 'r', push
+////////     "\nsr - DC_LEX_OP_ASSIGN   pop, assign to register 'r'
+////////     "\n? - DC_LEX_READ         read line and execute
+////////     "\nx - DC_LEX_EXECUTE      pop string and execute
+////////     "\n<r - XC_LEX_OP_REL_GT   pop, pop, execute register 'r' if top-of-stack was greater
+////////     "\n>r - XC_LEX_OP_REL_LT   pop, pop, execute register 'r' if top-of-stack was less
+////////     "\n=r - XC_LEX_OP_REL_EQ   pop, pop, execute register 'r' if equal
+////////     "\n!<r !>r !=r -           negated forms
+////////     "\ne - DC_LEX_ELSE         >tef: "if greater execute 't' else execute 'f'"
+////////     "\nQ - DC_LEX_NQUIT        pop, "break N" from macro invocations
+////////     "\nq - DC_LEX_QUIT         "break 2" (if less than 2 levels of macros, exit dc)
+////////     "\nX - DC_LEX_SCALE_FACTOR pop, push number of fractional digits
+////////     "\nZ - DC_LEX_LENGTH       pop, push number of digits it has (or number of characters in string)
+////////     "\na - DC_LEX_ASCIIFY      pop, push low-order byte as char or 1st string char
+////////     "\n( - DC_LEX_LPAREN       ?
+////////     "\n{ - DC_LEX_LBRACE       ?
+////////     "\n_ - XC_LEX_NEG          (not a command - starts negative number)
+////////     "\nG - DC_LEX_EQ_NO_REG    (? GNU dc has no such cmd)
+////////     "\nN - DC_LEX_OP_BOOL_NOT  (? GNU dc has no such cmd)
+////////     "\nn - DC_LEX_PRINT_POP    pop, print without newline
+////////     "\nP - DC_LEX_PRINT_STREAM pop, print string or hex bytes
+//usage:	)
 //usage:     "\np - print top of the stack without popping"
 //usage:     "\nf - print entire stack"
-//usage:     "\nk - pop the value and set the precision"
+////////     "\nz - DC_LEX_STACK_LEVEL  push stack depth
+////////     "\nK - DC_LEX_SCALE        push precision
+////////     "\nI - DC_LEX_IBASE        push input radix
+////////     "\nO - DC_LEX_OBASE        push output radix
+//usage:	IF_FEATURE_DC_BIG(
+//usage:     "\nk - pop the value and set precision"
 //usage:     "\ni - pop the value and set input radix"
+//usage:	)
 //usage:     "\no - pop the value and set output radix"
 //usage:     "\nExamples: dc -e'2 2 + p' -> 4, dc -e'8 8 * 2 2 + / p' -> 16"
 //usage:
