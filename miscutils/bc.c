@@ -6259,13 +6259,20 @@ static unsigned long xc_program_len(BcNum *n)
 {
 	size_t len = n->len;
 
-	if (n->rdx != len) return len;
+	if (n->rdx != len)
+		// length(100): rdx 0 len 3, return 3
+		// length(0.01-0.01): rdx 2 len 0, return 2
+		// dc: 0.01 0.01 - Zp: rdx 2 len 0, return 1
+		return len != 0 ? len : (IS_BC ? n->rdx : 1);
+
+	// length(0): return 1
+	// length(0.000nnn): count nnn
 	for (;;) {
 		if (len == 0) break;
 		len--;
 		if (n->num[len] != 0) break;
 	}
-	return len;
+	return len + 1;
 }
 
 static BC_STATUS zxc_program_builtin(char inst)
@@ -6293,12 +6300,12 @@ static BC_STATUS zxc_program_builtin(char inst)
 	if (inst == XC_INST_SQRT)
 		s = zbc_num_sqrt(num, &res.d.n, G.prog.scale);
 #if ENABLE_BC
-	else if (len != 0 && opnd->t == XC_RESULT_ARRAY) {
+	else if (len && opnd->t == XC_RESULT_ARRAY) {
 		bc_num_ulong2num(&res.d.n, (unsigned long) ((BcVec *) num)->len);
 	}
 #endif
 #if ENABLE_DC
-	else if (len != 0 && !BC_PROG_NUM(opnd, num)) {
+	else if (len && !BC_PROG_NUM(opnd, num)) {
 		char **str;
 		size_t idx = opnd->t == XC_RESULT_STR ? opnd->d.id.idx : num->rdx;
 
@@ -6307,6 +6314,8 @@ static BC_STATUS zxc_program_builtin(char inst)
 	}
 #endif
 	else {
+//TODO: length(.00) and scale(.00) should return 2, they return 1 and 0 now
+//(don't forget to check that dc Z and X commands do not break)
 		bc_num_ulong2num(&res.d.n, len ? xc_program_len(num) : xc_program_scale(num));
 	}
 

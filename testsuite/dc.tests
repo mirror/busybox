@@ -114,6 +114,11 @@ testing "dc newline can be a register" \
 	"2\n9\n" \
 	"" "[2p]s\n[3p]l\nx\n9p"
 
+testing "dc Z (length) for numbers" \
+	"dc" \
+	"1\n1\n3\n1\n3\n1\n" \
+	"" "0Zp\n0.000Zp\n100Zp\n0.01Zp\n0.00120Zp\n0.0012 0.0012 - Zp\n"
+
 for f in dc_*.dc; do
 	r="`basename "$f" .dc`_results.txt"
 	test -f "$r" || continue
