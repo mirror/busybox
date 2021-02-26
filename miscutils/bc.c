@@ -166,12 +166,12 @@
 ////////     "\nq - DC_LEX_QUIT         "break 2" (if less than 2 levels of macros, exit dc)
 ////////     "\nX - DC_LEX_SCALE_FACTOR pop, push number of fractional digits
 ////////     "\nZ - DC_LEX_LENGTH       pop, push number of digits it has (or number of characters in string)
-////////     "\na - DC_LEX_ASCIIFY      pop, push low-order byte as char or 1st string char
-////////     "\n( - DC_LEX_LPAREN       ?
-////////     "\n{ - DC_LEX_LBRACE       ?
+////////     "\na - DC_LEX_ASCIIFY      pop, push low-order byte as char or 1st char of string
+////////     "\n( - DC_LEX_LPAREN       (not in GNU) pop, pop, if top-of-stack was less push 1 else push 0
+////////     "\n{ - DC_LEX_LBRACE       (not in GNU) pop, pop, if top-of-stack was less-or-equal push 1 else push 0
+////////     "\nG - DC_LEX_EQ_NO_REG    (not in GNU) pop, pop, if equal push 1 else push 0
+////////     "\nN - DC_LEX_OP_BOOL_NOT  (not in GNU) pop, if 0 push 1 else push 0
 ////////     "\n_ - XC_LEX_NEG          (not a command - starts negative number)
-////////     "\nG - DC_LEX_EQ_NO_REG    (? GNU dc has no such cmd)
-////////     "\nN - DC_LEX_OP_BOOL_NOT  (? GNU dc has no such cmd)
 ////////     "\nn - DC_LEX_PRINT_POP    pop, print without newline
 ////////     "\nP - DC_LEX_PRINT_STREAM pop, print string or hex bytes
 //usage:	)
