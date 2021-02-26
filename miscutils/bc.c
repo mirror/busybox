@@ -152,7 +152,7 @@
 ////////     "\nr - DC_LEX_SWAP         swap top-of-stack
 ////////     "\n:r - DC_LEX_COLON       pop index, pop value, store to array 'r'
 ////////     "\n;r - DC_LEX_SCOLON      pop index, fetch from array 'r', push
-////////     "\nLr - DC_LEX_LOAD_PO,    pop register 'r', push
+////////     "\nLr - DC_LEX_LOAD_POP    pop register 'r', push
 ////////     "\nSr - DC_LEX_STORE_PUSH  pop, push to register 'r'
 ////////     "\nlr - DC_LEX_LOAD        read register 'r', push
 ////////     "\nsr - DC_LEX_OP_ASSIGN   pop, assign to register 'r'
