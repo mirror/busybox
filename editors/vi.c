@@ -2709,7 +2709,6 @@ static void colon(char *buf)
 #  if ENABLE_FEATURE_VI_SETOPTS
 		char *argp;
 #  endif
-		i = 0;			// offset into args
 		// only blank is regarded as args delimiter. What about tab '\t'?
 		if (!args[0] || strcasecmp(args, "all") == 0) {
 			// print out values of all options
@@ -2732,15 +2731,16 @@ static void colon(char *buf)
 #  if ENABLE_FEATURE_VI_SETOPTS
 		argp = args;
 		while (*argp) {
-			if (strncmp(argp, "no", 2) == 0)
-				i = 2;		// ":set noautoindent"
+			i = 0;
+			if (argp[0] == 'n' && argp[1] == 'o') // "noXXX"
+				i = 2;
 			setops(argp, "autoindent ", i, "ai", VI_AUTOINDENT);
 			setops(argp, "flash "     , i, "fl", VI_ERR_METHOD);
 			setops(argp, "ignorecase ", i, "ic", VI_IGNORECASE);
 			setops(argp, "showmatch " , i, "sm", VI_SHOWMATCH );
-			if (strncmp(argp + i, "tabstop=", 8) == 0) {
+			if (strncmp(argp, "tabstop=", 8) == 0) {
 				int t = 0;
-				sscanf(argp + i+8, "%u", &t);
+				sscanf(argp + 8, "%u", &t);
 				if (t > 0 && t <= MAX_TABSTOP)
 					tabstop = t;
 			}
