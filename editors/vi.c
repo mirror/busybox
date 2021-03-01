@@ -2258,7 +2258,7 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 		q = begin_line(dot);
 		*addr = count_lines(text, q);
 	}
-#if ENABLE_FEATURE_VI_YANKMARK
+# if ENABLE_FEATURE_VI_YANKMARK
 	else if (*p == '\'') {	// is this a mark addr
 		p++;
 		c = tolower(*p);
@@ -2272,8 +2272,8 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 			}
 		}
 	}
-#endif
-#if ENABLE_FEATURE_VI_SEARCH
+# endif
+# if ENABLE_FEATURE_VI_SEARCH
 	else if (*p == '/') {	// a search pattern
 		q = strchrnul(p + 1, '/');
 		if (p + 1 != q) {
@@ -2290,7 +2290,7 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 			*addr = count_lines(text, q);
 		}
 	}
-#endif
+# endif
 	else if (*p == '$') {	// the last line in file
 		p++;
 		q = begin_line(end - 1);
@@ -2333,16 +2333,13 @@ static char *get_address(char *p, int *b, int *e)	// get two colon addrs, if pre
 	return p;
 }
 
-#if ENABLE_FEATURE_VI_SET && ENABLE_FEATURE_VI_SETOPTS
-static void setops(const char *args, const char *opname, int flg_no,
-			const char *short_opname, int opt)
+# if ENABLE_FEATURE_VI_SET && ENABLE_FEATURE_VI_SETOPTS
+static void setops(const char *args, const char *nm_longname, int flg_no, int opt)
 {
 	const char *a = args + flg_no;
-	int l = strlen(opname) - 1; // opname have + ' '
 
-	// maybe strncmp? we had tons of erroneous strncasecmp's...
-	if (strncasecmp(a, opname, l) == 0
-	 || strncasecmp(a, short_opname, 2) == 0
+	if (strcmp(a, nm_longname) == 0
+	 || strcmp(a, nm_longname + 3) == 0
 	) {
 		if (flg_no)
 			vi_setops &= ~opt;
@@ -2350,7 +2347,7 @@ static void setops(const char *args, const char *opname, int flg_no,
 			vi_setops |= opt;
 	}
 }
-#endif
+# endif
 
 #endif /* FEATURE_VI_COLON */
 
@@ -2734,13 +2731,12 @@ static void colon(char *buf)
 			i = 0;
 			if (argp[0] == 'n' && argp[1] == 'o') // "noXXX"
 				i = 2;
-			setops(argp, "autoindent ", i, "ai", VI_AUTOINDENT);
-			setops(argp, "flash "     , i, "fl", VI_ERR_METHOD);
-			setops(argp, "ignorecase ", i, "ic", VI_IGNORECASE);
-			setops(argp, "showmatch " , i, "sm", VI_SHOWMATCH );
+			setops(argp, "ai""\0""autoindent", i, VI_AUTOINDENT);
+			setops(argp, "fl""\0""flash"     , i, VI_ERR_METHOD);
+			setops(argp, "ic""\0""ignorecase", i, VI_IGNORECASE);
+			setops(argp, "sm""\0""showmatch" , i, VI_SHOWMATCH );
 			if (strncmp(argp, "tabstop=", 8) == 0) {
-				int t = 0;
-				sscanf(argp + 8, "%u", &t);
+				int t = bb_strtou(argp + 8, NULL, 10);
 				if (t > 0 && t <= MAX_TABSTOP)
 					tabstop = t;
 			}
