@@ -127,24 +127,15 @@
  */
 #define MAX_VERBOSE     3
 
-
 /* High-level description of the algorithm:
  *
  * We start running with very small poll_exp, BURSTPOLL,
  * in order to quickly accumulate INITIAL_SAMPLES datapoints
  * for each peer. Then, time is stepped if the offset is larger
- * than STEP_THRESHOLD, otherwise it isn't; anyway, we enlarge
- * poll_exp to MINPOLL and enter frequency measurement step:
- * we collect new datapoints but ignore them for WATCH_THRESHOLD
- * seconds. After WATCH_THRESHOLD seconds we look at accumulated
- * offset and estimate frequency drift.
+ * than STEP_THRESHOLD, otherwise it isn't stepped.
  *
- * (frequency measurement step seems to not be strictly needed,
- * it is conditionally disabled with USING_INITIAL_FREQ_ESTIMATION
- * define set to 0)
- *
- * After this, we enter "steady state": we collect a datapoint,
- * we select the best peer, if this datapoint is not a new one
+ * Then poll_exp is set to MINPOLL, and we enter "steady state": we collect
+ * a datapoint, we select the best peer, if this datapoint is not a new one
  * (IOW: if this datapoint isn't for selected peer), sleep
  * and collect another one; otherwise, use its offset to update
  * frequency drift, if offset is somewhat large, reduce poll_exp,
@@ -189,13 +180,10 @@
 // ^^^^ used to be 0.125.
 // Since Linux 2.6.26 (circa 2006), kernel accepts (-0.5s, +0.5s) range
 
-/* Stepout threshold (sec). std ntpd uses 900 (11 mins (!)) */
-//UNUSED: #define WATCH_THRESHOLD  128
-/* NB: set WATCH_THRESHOLD to ~60 when debugging to save time) */
-//UNUSED: #define PANIC_THRESHOLD 1000    /* panic threshold (sec) */
 
-/*
- * If we got |offset| > BIGOFF from a peer, cap next query interval
+// #define PANIC_THRESHOLD 1000    /* panic threshold (sec) */
+
+/* If we got |offset| > BIGOFF from a peer, cap next query interval
  * for this peer by this many seconds:
  */
 #define BIGOFF          STEP_THRESHOLD
@@ -204,18 +192,16 @@
 #define FREQ_TOLERANCE  0.000015 /* frequency tolerance (15 PPM) */
 #define BURSTPOLL       0       /* initial poll */
 #define MINPOLL         5       /* minimum poll interval. std ntpd uses 6 (6: 64 sec) */
-/*
- * If offset > discipline_jitter * POLLADJ_GATE, and poll interval is > 2^BIGPOLL,
+/* If offset > discipline_jitter * POLLADJ_GATE, and poll interval is > 2^BIGPOLL,
  * then it is decreased _at once_. (If <= 2^BIGPOLL, it will be decreased _eventually_).
  */
 #define BIGPOLL         9       /* 2^9 sec ~= 8.5 min */
 #define MAXPOLL         12      /* maximum poll interval (12: 1.1h, 17: 36.4h). std ntpd uses 17 */
-/*
- * Actively lower poll when we see such big offsets.
+/* Actively lower poll when we see such big offsets.
  * With SLEW_THRESHOLD = 0.125, it means we try to sync more aggressively
  * if offset increases over ~0.04 sec
  */
-//#define POLLDOWN_OFFSET (SLEW_THRESHOLD / 3)
+// #define POLLDOWN_OFFSET (SLEW_THRESHOLD / 3)
 #define MINDISP         0.01    /* minimum dispersion (sec) */
 #define MAXDISP         16      /* maximum dispersion (sec) */
 #define MAXSTRAT        16      /* maximum stratum (infinity metric) */
