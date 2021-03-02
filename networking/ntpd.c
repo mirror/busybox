@@ -169,7 +169,7 @@
  *   datapoints after the step.
  */
 
-#define INITIAL_SAMPLES    4    /* how many samples do we want for init */
+#define INITIAL_SAMPLES    3    /* how many samples do we want for init */
 #define MIN_FREQHOLD      10    /* adjust offset, but not freq in this many first adjustments */
 #define BAD_DELAY_GROWTH   4    /* drop packet if its delay grew by more than this factor */
 
@@ -223,7 +223,16 @@
 #define MIN_SELECTED    1       /* minimum intersection survivors */
 #define MIN_CLUSTERED   3       /* minimum cluster survivors */
 
-#define MAXDRIFT        0.000500 /* frequency drift we can correct (500 PPM) */
+/* Correct frequency ourself (0) or let kernel do it (1)? */
+#define USING_KERNEL_PLL_LOOP 1
+// /* frequency drift we can correct (500 PPM) */
+// #define MAXDRIFT        0.000500
+// /* Compromise Allan intercept (sec). doc uses 1500, std ntpd uses 512 */
+// #define ALLAN           512
+// /* PLL loop gain */
+// #define PLL             65536
+// /* FLL loop gain [why it depends on MAXPOLL??] */
+// #define FLL             (MAXPOLL + 1)
 
 /* Poll-adjust threshold.
  * When we see that offset is small enough compared to discipline jitter,
@@ -239,12 +248,6 @@
  */
 #define POLLADJ_GATE    4
 #define TIMECONST_HACK_GATE 2
-/* Compromise Allan intercept (sec). doc uses 1500, std ntpd uses 512 */
-#define ALLAN           512
-/* PLL loop gain */
-#define PLL             65536
-/* FLL loop gain [why it depends on MAXPOLL??] */
-#define FLL             (MAXPOLL + 1)
 /* Parameter averaging constant */
 #define AVG             4
 
@@ -372,9 +375,6 @@ typedef struct {
 	char             p_hostname[1];
 } peer_t;
 
-
-#define USING_KERNEL_PLL_LOOP 1
-
 enum {
 	OPT_n = (1 << 0),
 	OPT_q = (1 << 1),
@@ -453,7 +453,7 @@ struct globals {
 	 */
 #define G_precision_exp  -9
 	/*
-	 * G_precision_exp is used only for construction outgoing packets.
+	 * G_precision_exp is used only for constructing outgoing packets.
 	 * It's ok to set G_precision_sec to a slightly different value
 	 * (One which is "nicer looking" in logs).
 	 * Exact value would be (1.0 / (1 << (- G_precision_exp))):
@@ -483,7 +483,6 @@ struct globals {
 #endif
 };
 #define G (*ptr_to_globals)
-
 
 #define VERB1 if (MAX_VERBOSE && G.verbose)
 #define VERB2 if (MAX_VERBOSE >= 2 && G.verbose >= 2)
@@ -988,7 +987,6 @@ send_query_to_peer(peer_t *p)
 
 	set_next(p, RESPONSE_INTERVAL);
 }
-
 
 /* Note that there is no provision to prevent several run_scripts
  * to be started in quick succession. In fact, it happens rather often
@@ -1766,7 +1764,6 @@ update_local_clock(peer_t *p)
 
 	return 1; /* "ok to increase poll interval" */
 }
-
 
 /*
  * We've got a new reply packet from a peer, process it
