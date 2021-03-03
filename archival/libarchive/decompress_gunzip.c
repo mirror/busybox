@@ -220,9 +220,19 @@ static const uint8_t border[] ALIGN1 = {
  * each table.
  * t: table to free
  */
+#define BAD_HUFT(p) ((uintptr_t)(p) & 1)
+#define ERR_RET     ((huft_t*)(uintptr_t)1)
 static void huft_free(huft_t *p)
 {
 	huft_t *q;
+
+	/*
+	 * If 'p' has the error bit set we have to clear it, otherwise we might run
+	 * into a segmentation fault or an invalid pointer to free(p)
+	 */
+	if (BAD_HUFT(p)) {
+		p = (huft_t*)((uintptr_t)(p) ^ (uintptr_t)(ERR_RET));
+	}
 
 	/* Go through linked list, freeing from the malloced (t[-1]) address. */
 	while (p) {
@@ -289,8 +299,6 @@ static unsigned fill_bitbuffer(STATE_PARAM unsigned bitbuffer, unsigned *current
  * or a valid pointer to a Huffman table, ORed with 0x1 if incompete table
  * is given: "fixed inflate" decoder feeds us such data.
  */
-#define BAD_HUFT(p) ((uintptr_t)(p) & 1)
-#define ERR_RET     ((huft_t*)(uintptr_t)1)
 static huft_t* huft_build(const unsigned *b, const unsigned n,
 			const unsigned s, const struct cp_ext *cp_ext,
 			unsigned *m)
