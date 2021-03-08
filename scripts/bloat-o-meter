@@ -43,7 +43,15 @@ if f1 is None or f2 is None:
 
 sym_args = " ".join(sys.argv[3 + flag_timing + dashes:])
 def getsizes(file):
-    sym, alias, lut = {}, {}, {}
+    sym, alias, lut, section = {}, {}, {}, {}
+    for l in os.popen("readelf -W -S " + file).readlines():
+        x = l.replace("[ ", "[", 1).split()
+        if len(x)<6: continue
+        # Should take these into account too!
+        #if x[1] not in [".text", ".rodata", ".symtab", ".strtab"]: continue
+        if x[1] not in [".rodata"]: continue
+        sym[x[1]] = {"addr" : int(x[3], 16), "size" : int(x[5], 16)}
+        section[x[0][1:-1]] = {"name" : x[1]}
     for l in os.popen("readelf -W -s %s %s" % (sym_args, file)).readlines():
         l = l.strip()
         if not (len(l) and l[0].isdigit() and len(l.split()) == 8):
@@ -59,6 +67,10 @@ def getsizes(file):
         else:
             sym[name] = {"addr" : value, "size":  size}
             lut[(value, size)] = 0
+            # If this item is in a known section deduct its size from
+            # the size of the section
+            if ndx in section:
+                sym[section[ndx]["name"]]["size"] -= size
     for addr, sz in iter(alias.keys()):
         # If the non-GLOBAL sym has an implementation elsewhere then
         # it's an alias, disregard it.
@@ -66,13 +78,6 @@ def getsizes(file):
             # If this non-GLOBAL sym does not have an implementation at
             # another address, then treat it as a normal symbol.
             sym[alias[(addr, sz)]["name"]] = {"addr" : addr, "size": sz}
-    for l in os.popen("readelf -W -S " + file).readlines():
-        x = l.split()
-        if len(x)<6: continue
-        # Should take these into account too!
-        #if x[1] not in [".text", ".rodata", ".symtab", ".strtab"]: continue
-        if x[1] not in [".rodata"]: continue
-        sym[x[1]] = {"addr" : int(x[3], 16), "size" : int(x[5], 16)}
     return sym
 
 if flag_timing:
