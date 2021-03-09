@@ -21,8 +21,13 @@ testing "start-stop-daemon without -x and -a" \
 	"1\n" \
 	"" ""
 
+# This runs /bin/false with argv[0..2] of { "qwerty", "false", NULL }.
+#
 # Unfortunately, this does not actually check argv[0] correctness,
 # but at least it checks that pathname to exec() is correct
+#
+# NB: this fails if /bin/false is a busybox symlink:
+# busybox looks at argv[0] and says "qwerty: applet not found"
 testing "start-stop-daemon with both -x and -a" \
 	'start-stop-daemon -S -x /bin/false -a qwerty false 2>&1; echo $?' \
 	"1\n" \
