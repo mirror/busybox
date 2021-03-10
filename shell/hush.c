@@ -127,17 +127,17 @@
 //config:	help
 //config:	Enable {abc,def} extension.
 //config:
-//config:config HUSH_LINENO_VAR
-//config:	bool "$LINENO variable"
-//config:	default y
-//config:	depends on HUSH_BASH_COMPAT
-//config:
 //config:config HUSH_BASH_SOURCE_CURDIR
 //config:	bool "'source' and '.' builtins search current directory after $PATH"
 //config:	default n   # do not encourage non-standard behavior
 //config:	depends on HUSH_BASH_COMPAT
 //config:	help
 //config:	This is not compliant with standards. Avoid if possible.
+//config:
+//config:config HUSH_LINENO_VAR
+//config:	bool "$LINENO variable (bashism)"
+//config:	default y
+//config:	depends on SHELL_HUSH
 //config:
 //config:config HUSH_INTERACTIVE
 //config:	bool "Interactive mode"
