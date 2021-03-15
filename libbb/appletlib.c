@@ -263,9 +263,14 @@ void lbb_prepare(const char *applet
 	 && strcmp(argv[1], "--help") == 0
 	 && !is_prefixed_with(applet, "busybox")
 	) {
-		/* Special case. POSIX says "test --help"
-		 * should be no different from e.g. "test --foo".  */
-		if (!ENABLE_TEST || strcmp(applet_name, "test") != 0)
+		/* Special cases. POSIX says "test --help"
+		 * should be no different from e.g. "test --foo".
+		 */
+		if (!(ENABLE_TEST && strcmp(applet_name, "test") == 0)
+		 && !(ENABLE_TRUE && strcmp(applet_name, "true") == 0)
+		 && !(ENABLE_FALSE && strcmp(applet_name, "false") == 0)
+		 && !(ENABLE_ECHO && strcmp(applet_name, "echo") == 0)
+		)
 			bb_show_usage();
 	}
 #endif
@@ -891,15 +896,21 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 		if (!argv[2])
 			goto help;
 		/* convert to "<applet> --help" */
-		argv[0] = argv[2];
+		applet_name = argv[0] = argv[2];
 		argv[2] = NULL;
+		if (find_applet_by_name(applet_name) >= 0) {
+			/* Make "--help foo" exit with 0: */
+			xfunc_error_retval = 0;
+			bb_show_usage();
+		} /* else: unknown applet, fall through (causes "applet not found" later) */
 	} else {
 		/* "busybox <applet> arg1 arg2 ..." */
 		argv++;
+		/* We support "busybox /a/path/to/applet args..." too. Allows for
+		 * "#!/bin/busybox"-style wrappers
+		 */
+		applet_name = bb_get_last_path_component_nostrip(argv[0]);
 	}
-	/* We support "busybox /a/path/to/applet args..." too. Allows for
-	 * "#!/bin/busybox"-style wrappers */
-	applet_name = bb_get_last_path_component_nostrip(argv[0]);
 	run_applet_and_exit(applet_name, argv);
 }
 # endif
@@ -910,7 +921,7 @@ void FAST_FUNC show_usage_if_dash_dash_help(int applet_no, char **argv)
 	/* Special case. POSIX says "test --help"
 	 * should be no different from e.g. "test --foo".
 	 * Thus for "test", we skip --help check.
-	 * "true" and "false" are also special.
+	 * "true", "false", "echo" are also special.
 	 */
 	if (1
 #  if defined APPLET_NO_test
@@ -921,6 +932,9 @@ void FAST_FUNC show_usage_if_dash_dash_help(int applet_no, char **argv)
 #  endif
 #  if defined APPLET_NO_false
 	 && applet_no != APPLET_NO_false
+#  endif
+#  if defined APPLET_NO_echo
+	 && applet_no != APPLET_NO_echo
 #  endif
 	) {
 		if (argv[1] && !argv[2] && strcmp(argv[1], "--help") == 0) {
