@@ -282,11 +282,11 @@ uint8_t* FAST_FUNC udhcp_scan_options(struct dhcp_packet *packet, struct dhcp_sc
 		 * (this violates RFC 2132 section 3.14).
 		 */
 		if (len == 0) {
-			scan_state->rem -= OPT_LEN;
-			scan_state->optionptr += OPT_LEN;
+			scan_state->rem -= 2;
+			scan_state->optionptr += 2;
 			continue;
 		}
-		len += OPT_LEN;
+		len += 2;
 		scan_state->rem -= len;
 		if (scan_state->rem < 0) /* option is longer than options field? */
 			goto complain; /* yes, complain and return NULL */
