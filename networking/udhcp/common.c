@@ -273,17 +273,27 @@ uint8_t* FAST_FUNC udhcp_scan_options(struct dhcp_packet *packet, struct dhcp_sc
 			break;
 		}
 
-		if (scan_state->rem <= OPT_LEN)
-			goto complain; /* complain and return NULL */
-		len = 2 + scan_state->optionptr[OPT_LEN];
+		if (scan_state->rem <= OPT_LEN) /* [len] byte exists? */
+			goto complain; /* no, complain and return NULL */
+		len = scan_state->optionptr[OPT_LEN];
+		/* Skip options with zero length.
+		 * Users report that DHCP server on a TrendNet router (unknown model)
+		 * provides a zero-length option 12 (Host Name)
+		 * (this violates RFC 2132 section 3.14).
+		 */
+		if (len == 0) {
+			scan_state->rem -= OPT_LEN;
+			scan_state->optionptr += OPT_LEN;
+			continue;
+		}
+		len += OPT_LEN;
 		scan_state->rem -= len;
-		/* So far no valid option with length 0 known. */
-		if (scan_state->rem < 0 || scan_state->optionptr[OPT_LEN] == 0)
-			goto complain; /* complain and return NULL */
+		if (scan_state->rem < 0) /* option is longer than options field? */
+			goto complain; /* yes, complain and return NULL */
 
 		if (scan_state->optionptr[OPT_CODE] == DHCP_OPTION_OVERLOAD) {
-			if (len >= 3)
-				scan_state->overload |= scan_state->optionptr[OPT_DATA];
+			/* len is known to be >= 3 now, [data] byte exists */
+			scan_state->overload |= scan_state->optionptr[OPT_DATA];
 		} else {
 			uint8_t *return_ptr = scan_state->optionptr;
 			scan_state->optionptr += len;
