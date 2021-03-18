@@ -60,6 +60,11 @@
 //usage:     "\n	-f	Don't authenticate (user already authenticated)"
 //usage:     "\n	-h HOST	Host user came from (for network logins)"
 //usage:     "\n	-p	Preserve environment"
+//usage:     "\n"
+//usage:     "\n$LOGIN_TIMEOUT		Seconds (default 60, 0 - disable)"
+//usage:	IF_LOGIN_SCRIPTS(
+//usage:     "\n$LOGIN_PRE_SUID_SCRIPT	Execute before user ID change"
+//usage:	)
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -130,7 +135,6 @@ static const struct pam_conv conv = {
 #endif
 
 enum {
-	TIMEOUT = 60,
 	EMPTY_USERNAME_COUNT = 10,
 	/* Some users found 32 chars limit to be too low: */
 	USERNAME_SIZE = 64,
@@ -139,6 +143,7 @@ enum {
 
 struct globals {
 	struct termios tty_attrs;
+	int timeout;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
@@ -302,7 +307,7 @@ static void alarm_handler(int sig UNUSED_PARAM)
 	 * when you are back at shell prompt, echo will be still off.
 	 */
 	tcsetattr_stdin_TCSANOW(&G.tty_attrs);
-	printf("\r\nLogin timed out after %u seconds\r\n", TIMEOUT);
+	printf("\r\nLogin timed out after %u seconds\r\n", G.timeout);
 	fflush_all();
 	/* unix API is brain damaged regarding O_NONBLOCK,
 	 * we should undo it, or else we can affect other processes */
@@ -345,6 +350,8 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
+	G.timeout = xatoi_positive(getenv("LOGIN_TIMEOUT") ? : "60");
+
 	/* More of suid paranoia if called by non-root: */
 	/* Clear dangerous stuff, set PATH */
 	run_by_root = !sanitize_env_if_suid();
@@ -376,7 +383,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	/* We install timeout handler only _after_ we saved G.tty_attrs */
 	signal(SIGALRM, alarm_handler);
-	alarm(TIMEOUT);
+	alarm(G.timeout);
 
 	/* Find out and memorize our tty name */
 	full_tty = xmalloc_ttyname(STDIN_FILENO);
