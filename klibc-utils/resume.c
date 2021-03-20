@@ -103,10 +103,17 @@ int resume_main(int argc UNUSED_PARAM, char **argv)
 	if (major(resume_device) == 0) {
 		bb_error_msg_and_die("invalid resume device: %s", argv[0]);
 	}
+
 	ofs = (argv[1] ? xstrtoull(argv[1], 0) : 0);
+	/* Old kernels have no /sys/power/resume_offset, set it only if necessary */
+	if (ofs != 0) {
+		fd = xopen("/sys/power/resume_offset", O_WRONLY);
+		s = xasprintf("%llu", ofs);
+		xwrite_str(fd, s);
+	}
 
 	fd = xopen("/sys/power/resume", O_WRONLY);
-	s = xasprintf("%u:%u:%llu", major(resume_device), minor(resume_device), ofs);
+	s = xasprintf("%u:%u", major(resume_device), minor(resume_device));
 
 	xwrite_str(fd, s);
 	/* if write() returns, resume did not succeed */
