@@ -37,8 +37,18 @@ duration_t FAST_FUNC parse_duration_str(char *str)
 	if (strchr(str, '.')) {
 		double d;
 		char *pp;
-		int len = strspn(str, "0123456789.");
-		char sv = str[len];
+		int len;
+		char sv;
+
+# if ENABLE_LOCALE_SUPPORT
+		/* Undo busybox.c: on input, we want to use dot
+		 * as fractional separator in strtod(),
+		 * regardless of current locale
+		 */
+		setlocale(LC_NUMERIC, "C");
+# endif
+		len = strspn(str, "0123456789.");
+		sv = str[len];
 		str[len] = '\0';
 		errno = 0;
 		d = strtod(str, &pp);

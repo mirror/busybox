@@ -229,6 +229,7 @@ static void stack_machine(const char *argument)
 	const struct op *o;
 
  next:
+//TODO: needs setlocale(LC_NUMERIC, "C")?
 	number = strtod(argument, &end);
 	if (end != argument) {
 		argument = end;

@@ -122,6 +122,7 @@ static void FAST_FUNC conv_strtod(const char *arg, void *result)
 	char *end;
 	/* Well, this one allows leading whitespace... so what? */
 	/* What I like much less is that "-" accepted too! :( */
+//TODO: needs setlocale(LC_NUMERIC, "C")?
 	*(double*)result = strtod(arg, &end);
 	if (end[0]) {
 		errno = ERANGE;

@@ -89,6 +89,7 @@ static unsigned str_to_jiffies(const char *time_str)
 {
 	double dd;
 	char *endptr;
+//TODO: needs setlocale(LC_NUMERIC, "C")?
 	dd = /*bb_*/strtod(time_str, &endptr);
 	if (endptr == time_str || dd < 0)
 		bb_error_msg_and_die(bb_msg_invalid_arg_to, time_str, "timespec");

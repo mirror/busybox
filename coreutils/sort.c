@@ -295,6 +295,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 #if ENABLE_FEATURE_SORT_BIG
 		case FLAG_g: {
 			char *xx, *yy;
+//TODO: needs setlocale(LC_NUMERIC, "C")?
 			double dx = strtod(x, &xx);
 			double dy = strtod(y, &yy);
 			/* not numbers < NaN < -infinity < numbers < +infinity) */
