@@ -3774,14 +3774,16 @@ static void do_cmd(int c)
 		place_cursor(0, 0);
 		if (c1 == 27) {	// ESC- user changed mind and wants out
 			c = c1 = 27;	// Escape- do nothing
-		} else if (strchr("wW", c1)) {
-			ml = 0;	// multi-line ranges aren't allowed for words
-			if (c == 'c') {
-				// don't include trailing WS as part of word
-				while (isspace(*q) && q > p) {
-					q--;
-				}
+		} else if (c1 == 'w' || c1 == 'W') {
+			char *q0 = q;
+			// don't include trailing WS as part of word
+			while (q > p && isspace(*q)) {
+				if (*q-- == '\n')
+					q0 = q;
 			}
+			// for non-change operations WS after NL is not part of word
+			if (c != 'c' && q != p && *q != '\n')
+				q = q0;
 			dot = yank_delete(p, q, ml, yf, ALLOW_UNDO);	// delete word
 		} else if (strchr("^0bBeEft%$ lh\b\177", c1)) {
 			// partial line copy text into a register and delete
