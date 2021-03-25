@@ -3021,15 +3021,9 @@ static int find_range(char **start, char **stop, char c)
 		q = dot;
 	} else if (strchr("wW", c)) {
 		do_cmd(c);		// execute movement cmd
-		// if we are at the next word's first char
-		// step back one char
-		// but check the possibilities when it is true
-		if (dot > text && ((isspace(dot[-1]) && !isspace(dot[0]))
-				|| (ispunct(dot[-1]) && !ispunct(dot[0]))
-				|| (isalnum(dot[-1]) && !isalnum(dot[0]))))
-			dot--;		// move back off of next word
-		if (dot > text && *dot == '\n')
-			dot--;		// stay off NL
+		// step back one char, but not if we're at end of file
+		if (dot > p && !((dot == end - 2 && end[-1] == '\n') || dot == end - 1))
+			dot--;
 		q = dot;
 	} else if (strchr("H-k{", c) || (c == 'G' && !forward)) {
 		// these operate on multi-lines backwards
