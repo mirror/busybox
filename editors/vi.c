@@ -254,6 +254,9 @@ enum {
 	BACK = -1,	// code depends on "-1" for array index
 	LIMITED = 0,	// char_search() only current line
 	FULL = 1,	// char_search() to the end/beginning of entire text
+	PARTIAL = 0,	// buffer contains partial line
+	WHOLE = 1,	// buffer contains whole lines
+	MULTI = 2,	// buffer may include newlines
 
 	S_BEFORE_WS = 1,	// used in skip_thing() for moving "dot"
 	S_TO_WS = 2,		// used in skip_thing() for moving "dot"
@@ -343,6 +346,7 @@ struct globals {
 	smalluint YDreg;//,Ureg;// default delete register and orig line for "U"
 #define Ureg 27
 	char *reg[28];          // named register a-z, "D", and "U" 0-25,26,27
+	char regtype[28];       // buffer type: WHOLE, MULTI or PARTIAL
 	char *mark[28];         // user marks points somewhere in text[]-  a-z and previous context ''
 	char *context_start, *context_end;
 #endif
@@ -452,6 +456,7 @@ struct globals {
 
 #define YDreg          (G.YDreg         )
 //#define Ureg           (G.Ureg          )
+#define regtype        (G.regtype       )
 #define mark           (G.mark          )
 #define context_start  (G.context_start )
 #define context_end    (G.context_end   )
@@ -1314,7 +1319,8 @@ static void not_implemented(const char *s)
 
 //----- Block insert/delete, undo ops --------------------------
 #if ENABLE_FEATURE_VI_YANKMARK
-static char *text_yank(char *p, char *q, int dest)	// copy text into a register
+// copy text into a register
+static char *text_yank(char *p, char *q, int dest, int buftype)
 {
 	int cnt = q - p;
 	if (cnt < 0) {		// they are backwards- reverse them
@@ -1323,6 +1329,7 @@ static char *text_yank(char *p, char *q, int dest)	// copy text into a register
 	}
 	free(reg[dest]);	//  if already a yank register, free it
 	reg[dest] = xstrndup(p, cnt + 1);
+	regtype[dest] = buftype;
 	return p;
 }
 
@@ -1819,12 +1826,11 @@ static void end_cmd_q(void)
 #endif /* FEATURE_VI_DOT_CMD */
 
 // copy text into register, then delete text.
-// if dist <= 0, do not include, or go past, a NewLine
 //
 #if !ENABLE_FEATURE_VI_UNDO
 #define yank_delete(a,b,c,d,e) yank_delete(a,b,c,d)
 #endif
-static char *yank_delete(char *start, char *stop, int dist, int yf, int undo)
+static char *yank_delete(char *start, char *stop, int buftype, int yf, int undo)
 {
 	char *p;
 
@@ -1835,22 +1841,11 @@ static char *yank_delete(char *start, char *stop, int dist, int yf, int undo)
 		start = stop;
 		stop = p;
 	}
-	if (dist <= 0) {
-		// we cannot cross NL boundaries
-		p = start;
-		if (*p == '\n')
-			return p;
-		// dont go past a NewLine
-		for (; p + 1 <= stop; p++) {
-			if (p[1] == '\n') {
-				stop = p;	// "stop" just before NewLine
-				break;
-			}
-		}
-	}
+	if (buftype == PARTIAL && *start == '\n')
+		return start;
 	p = start;
 #if ENABLE_FEATURE_VI_YANKMARK
-	text_yank(start, stop, YDreg);
+	text_yank(start, stop, YDreg, buftype);
 #endif
 	if (yf == YANKDEL) {
 		p = text_hole_delete(start, stop, undo);
@@ -2521,7 +2516,7 @@ static void colon(char *buf)
 			q = begin_line(dot);	// assume .,. for the range
 			r = end_line(dot);
 		}
-		dot = yank_delete(q, r, 1, YANKDEL, ALLOW_UNDO);	// save, then delete lines
+		dot = yank_delete(q, r, WHOLE, YANKDEL, ALLOW_UNDO);	// save, then delete lines
 		dot_skip_over_ws();
 	} else if (strncmp(cmd, "edit", i) == 0) {	// Edit a file
 		int size;
@@ -2874,7 +2869,7 @@ static void colon(char *buf)
 			q = begin_line(dot);	// assume .,. for the range
 			r = end_line(dot);
 		}
-		text_yank(q, r, YDreg);
+		text_yank(q, r, YDreg, WHOLE);
 		li = count_lines(q, r);
 		status_line("Yank %d lines (%d chars) into [%c]",
 				li, strlen(reg[YDreg]), what_reg());
@@ -3000,74 +2995,65 @@ static void do_cmd(int c);
 static int find_range(char **start, char **stop, char c)
 {
 	char *save_dot, *p, *q, *t;
-	int cnt, multiline = 0, forward;
+	int buftype = -1;
 
 	save_dot = dot;
 	p = q = dot;
 
-	// will a 'G' command move forwards or backwards?
-	forward = cmdcnt == 0 || cmdcnt > count_lines(text, dot);
-
 	if (strchr("cdy><", c)) {
 		// these cmds operate on whole lines
-		p = q = begin_line(p);
-		for (cnt = 1; cnt < cmdcnt; cnt++) {
-			q = next_line(q);
-		}
-		q = end_line(q);
+		buftype = WHOLE;
+		if (--cmdcnt > 0)
+			do_cmd('j');
 	} else if (strchr("^%$0bBeEfth\b\177", c)) {
 		// These cmds operate on char positions
+		buftype = PARTIAL;
 		do_cmd(c);		// execute movement cmd
-		q = dot;
+		if (p == dot)	// no movement is an error
+			buftype = -1;
 	} else if (strchr("wW", c)) {
+		buftype = MULTI;
 		do_cmd(c);		// execute movement cmd
 		// step back one char, but not if we're at end of file
 		if (dot > p && !((dot == end - 2 && end[-1] == '\n') || dot == end - 1))
 			dot--;
-		q = dot;
-	} else if (strchr("H-k{", c) || (c == 'G' && !forward)) {
-		// these operate on multi-lines backwards
-		q = end_line(dot);	// find NL
+	} else if (strchr("GHL+-jk{}\r\n", c)) {
+		// these operate on whole lines
+		buftype = WHOLE;
 		do_cmd(c);		// execute movement cmd
-		dot_begin();
-		p = dot;
-	} else if (strchr("L+j}\r\n", c) || (c == 'G' && forward)) {
-		// these operate on multi-lines forwards
-		p = begin_line(dot);
-		do_cmd(c);		// execute movement cmd
-		dot_end();		// find NL
-		q = dot;
-	} else /* if (c == ' ' || c == 'l') */ {
+	} else if (c == ' ' || c == 'l') {
 		// forward motion by character
 		int tmpcnt = (cmdcnt ?: 1);
+		buftype = PARTIAL;
 		do_cmd(c);		// execute movement cmd
 		// exclude last char unless range isn't what we expected
 		// this indicates we've hit EOL
 		if (tmpcnt == dot - p)
 			dot--;
-		q = dot;
 	}
+
+	if (buftype == -1)
+		return buftype;
+
+	q = dot;
 	if (q < p) {
 		t = q;
 		q = p;
 		p = t;
 	}
 
+	if (buftype == WHOLE) {
+		p = begin_line(p);
+		q = end_line(q);
+	}
+
 	// backward char movements don't include start position
 	if (q > p && strchr("^0bBh\b\177", c)) q--;
-
-	multiline = 0;
-	for (t = p; t <= q; t++) {
-		if (*t == '\n') {
-			multiline = 1;
-			break;
-		}
-	}
 
 	*start = p;
 	*stop = q;
 	dot = save_dot;
-	return multiline;
+	return buftype;
 }
 
 //---------------------------------------------------------------------
@@ -3132,7 +3118,7 @@ static void do_cmd(int c)
 		} else {
 			if (1 <= c || Isprint(c)) {
 				if (c != 27)
-					dot = yank_delete(dot, dot, 0, YANKDEL, ALLOW_UNDO);	// delete char
+					dot = yank_delete(dot, dot, PARTIAL, YANKDEL, ALLOW_UNDO);	// delete char
 				dot = char_insert(dot, c, ALLOW_UNDO_CHAIN);	// insert new char
 			}
 			goto dc1;
@@ -3312,7 +3298,7 @@ static void do_cmd(int c)
 			break;
 		}
 		// are we putting whole lines or strings
-		if (strchr(p, '\n') != NULL) {
+		if (regtype[YDreg] == WHOLE) {
 			if (c == 'P') {
 				dot_begin();	// putting lines- Put above
 			}
@@ -3523,7 +3509,7 @@ static void do_cmd(int c)
 		cnt = count_lines(text, dot);	// remember what line we are on
 		c1 = get_one_char();	// get the type of thing to delete
 		find_range(&p, &q, c1);
-		yank_delete(p, q, 1, YANKONLY, NO_UNDO);	// save copy before change
+		yank_delete(p, q, WHOLE, YANKONLY, NO_UNDO);	// save copy before change
 		p = begin_line(p);
 		q = end_line(q);
 		i = count_lines(p, q);	// # of lines we are shifting
@@ -3576,7 +3562,7 @@ static void do_cmd(int c)
 		save_dot = dot;
 		dot = dollar_line(dot);	// move to before NL
 		// copy text into a register and delete
-		dot = yank_delete(save_dot, dot, 0, YANKDEL, ALLOW_UNDO);	// delete to e-o-l
+		dot = yank_delete(save_dot, dot, PARTIAL, YANKDEL, ALLOW_UNDO);	// delete to e-o-l
 		if (c == 'C')
 			goto dc_i;	// start inserting
 #if ENABLE_FEATURE_VI_DOT_CMD
@@ -3682,7 +3668,7 @@ static void do_cmd(int c)
 		break;
 	case KEYCODE_DELETE:
 		if (dot < end - 1)
-			dot = yank_delete(dot, dot, 1, YANKDEL, ALLOW_UNDO);
+			dot = yank_delete(dot, dot, PARTIAL, YANKDEL, ALLOW_UNDO);
 		break;
 	case 'X':			// X- delete char before dot
 	case 'x':			// x- delete the current char
@@ -3694,7 +3680,7 @@ static void do_cmd(int c)
 			if (dot[dir] != '\n') {
 				if (c == 'X')
 					dot--;	// delete prev char
-				dot = yank_delete(dot, dot, 0, YANKDEL, ALLOW_UNDO);	// delete char
+				dot = yank_delete(dot, dot, PARTIAL, YANKDEL, ALLOW_UNDO);	// delete char
 			}
 		} while (--cmdcnt > 0);
 		end_cmd_q();	// stop adding to q
@@ -3754,21 +3740,29 @@ static void do_cmd(int c)
 	case 'Y':			// Y- Yank a line
 #endif
 	{
-		int yf, ml, whole = 0;
+#if ENABLE_FEATURE_VI_YANKMARK
+		char *savereg = reg[YDreg];
+#endif
+		int yf, buftype = 0;
 		yf = YANKDEL;	// assume either "c" or "d"
 #if ENABLE_FEATURE_VI_YANKMARK
 		if (c == 'y' || c == 'Y')
 			yf = YANKONLY;
 #endif
 		c1 = 'y';
-		if (c != 'Y')
+		if (c != 'Y') {
 			c1 = get_one_char();	// get the type of thing to delete
+			if (c1 == 27)	// ESC- user changed mind and wants out
+				goto dc6;
+		}
 		// determine range, and whether it spans lines
-		ml = find_range(&p, &q, c1);
+		buftype = find_range(&p, &q, c1);
 		place_cursor(0, 0);
-		if (c1 == 27) {	// ESC- user changed mind and wants out
-			c = c1 = 27;	// Escape- do nothing
-		} else if (c1 == 'w' || c1 == 'W') {
+		if (buftype == -1) { // invalid range
+			indicate_error();
+			goto dc6;
+		}
+		if (c1 == 'w' || c1 == 'W') {
 			char *q0 = q;
 			// don't include trailing WS as part of word
 			while (q > p && isspace(*q)) {
@@ -3778,25 +3772,13 @@ static void do_cmd(int c)
 			// for non-change operations WS after NL is not part of word
 			if (c != 'c' && q != p && *q != '\n')
 				q = q0;
-			dot = yank_delete(p, q, ml, yf, ALLOW_UNDO);	// delete word
-		} else if (strchr("^0bBeEft%$ lh\b\177", c1)) {
-			// partial line copy text into a register and delete
-			dot = yank_delete(p, q, ml, yf, ALLOW_UNDO);	// delete word
-		} else if (strchr("cdykjGHL+-{}\r\n", c1)) {
-			// whole line copy text into a register and delete
-			dot = yank_delete(p, q, ml, yf, ALLOW_UNDO);	// delete lines
-			whole = 1;
-		} else {
-			// could not recognize object
-			c = c1 = 27;	// error-
-			ml = 0;
-			indicate_error();
 		}
-		if (ml && whole) {
+		dot = yank_delete(p, q, buftype, yf, ALLOW_UNDO);	// delete word
+		if (buftype == WHOLE) {
 			if (c == 'c') {
 				dot = char_insert(dot, '\n', ALLOW_UNDO_CHAIN);
 				// on the last line of file don't move to prev line
-				if (whole && dot != (end-1)) {
+				if (dot != (end-1)) {
 					dot_prev();
 				}
 			} else if (c == 'd') {
@@ -3804,16 +3786,17 @@ static void do_cmd(int c)
 				dot_skip_over_ws();
 			}
 		}
-		if (c1 != 27) {
-			// if CHANGING, not deleting, start inserting after the delete
-			if (c == 'c') {
-				strcpy(buf, "Change");
-				goto dc_i;	// start inserting
-			}
+		// if CHANGING, not deleting, start inserting after the delete
+		if (c == 'c') {
+			//strcpy(buf, "Change");
+			goto dc_i;	// start inserting
+		}
+#if ENABLE_FEATURE_VI_YANKMARK
+		// only update status if a yank has actually happened
+		if (reg[YDreg] != savereg) {
 			if (c == 'd') {
 				strcpy(buf, "Delete");
 			}
-#if ENABLE_FEATURE_VI_YANKMARK
 			if (c == 'y' || c == 'Y') {
 				strcpy(buf, "Yank");
 			}
@@ -3825,9 +3808,10 @@ static void do_cmd(int c)
 			}
 			status_line("%s %u lines (%u chars) using [%c]",
 				buf, cnt, (unsigned)strlen(reg[YDreg]), what_reg());
-#endif
-			end_cmd_q();	// stop adding to q
 		}
+#endif
+ dc6:
+		end_cmd_q();	// stop adding to q
 		break;
 	}
 	case 'k':			// k- goto prev line, same col
@@ -4271,7 +4255,7 @@ static void edit_file(char *fn)
 		// save a copy of the current line- for the 'U" command
 		if (begin_line(dot) != cur_line) {
 			cur_line = begin_line(dot);
-			text_yank(begin_line(dot), end_line(dot), Ureg);
+			text_yank(begin_line(dot), end_line(dot), Ureg, PARTIAL);
 		}
 #endif
 #if ENABLE_FEATURE_VI_DOT_CMD
