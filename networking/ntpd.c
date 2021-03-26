@@ -552,13 +552,13 @@ gettime1900d(void)
 }
 
 static void
-d_to_tv(double d, struct timeval *tv)
+d_to_tv(struct timeval *tv, double d)
 {
 	tv->tv_sec = (long)d;
 	tv->tv_usec = (d - tv->tv_sec) * 1000000;
 }
 
-static double
+static NOINLINE double
 lfp_to_d(l_fixedpt_t lfp)
 {
 	double ret;
@@ -567,7 +567,7 @@ lfp_to_d(l_fixedpt_t lfp)
 	ret = (double)lfp.int_partl + ((double)lfp.fractionl / UINT_MAX);
 	return ret;
 }
-static double
+static NOINLINE double
 sfp_to_d(s_fixedpt_t sfp)
 {
 	double ret;
@@ -577,25 +577,25 @@ sfp_to_d(s_fixedpt_t sfp)
 	return ret;
 }
 #if ENABLE_FEATURE_NTPD_SERVER
-static l_fixedpt_t
-d_to_lfp(double d)
+static void
+d_to_lfp(l_fixedpt_t *lfp, double d)
 {
-	l_fixedpt_t lfp;
-	lfp.int_partl = (uint32_t)d;
-	lfp.fractionl = (uint32_t)((d - lfp.int_partl) * UINT_MAX);
-	lfp.int_partl = htonl(lfp.int_partl);
-	lfp.fractionl = htonl(lfp.fractionl);
-	return lfp;
+	uint32_t intl;
+	uint32_t frac;
+	intl = (uint32_t)d;
+	frac = (uint32_t)((d - intl) * UINT_MAX);
+	lfp->int_partl = htonl(intl);
+	lfp->fractionl = htonl(frac);
 }
-static s_fixedpt_t
-d_to_sfp(double d)
+static NOINLINE void
+d_to_sfp(s_fixedpt_t *sfp, double d)
 {
-	s_fixedpt_t sfp;
-	sfp.int_parts = (uint16_t)d;
-	sfp.fractions = (uint16_t)((d - sfp.int_parts) * USHRT_MAX);
-	sfp.int_parts = htons(sfp.int_parts);
-	sfp.fractions = htons(sfp.fractions);
-	return sfp;
+	uint16_t ints;
+	uint16_t frac;
+	ints = (uint16_t)d;
+	frac = (uint16_t)((d - ints) * USHRT_MAX);
+	sfp->int_parts = htons(ints);
+	sfp->fractions = htons(frac);
 }
 #endif
 
@@ -1037,7 +1037,7 @@ step_time(double offset)
 
 	xgettimeofday(&tvc);
 	dtime = tvc.tv_sec + (1.0e-6 * tvc.tv_usec) + offset;
-	d_to_tv(dtime, &tvn);
+	d_to_tv(&tvn, dtime);
 	xsettimeofday(&tvn);
 
 	VERB2 {
@@ -2117,17 +2117,17 @@ recv_and_process_client_pkt(void /*int fd*/)
 	msg.m_ppoll = G.poll_exp;
 	msg.m_precision_exp = G_precision_exp;
 	/* this time was obtained between poll() and recv() */
-	msg.m_rectime = d_to_lfp(G.cur_time);
-	msg.m_xmttime = d_to_lfp(gettime1900d()); /* this instant */
+	d_to_lfp(&msg.m_rectime, G.cur_time);
+	d_to_lfp(&msg.m_xmttime, gettime1900d()); /* this instant */
 	if (G.peer_cnt == 0) {
 		/* we have no peers: "stratum 1 server" mode. reftime = our own time */
 		G.reftime = G.cur_time;
 	}
-	msg.m_reftime = d_to_lfp(G.reftime);
+	d_to_lfp(&msg.m_reftime, G.reftime);
 	msg.m_orgtime = query_xmttime;
-	msg.m_rootdelay = d_to_sfp(G.rootdelay);
+	d_to_sfp(&msg.m_rootdelay, G.rootdelay);
 //simple code does not do this, fix simple code!
-	msg.m_rootdisp = d_to_sfp(G.rootdisp);
+	d_to_sfp(&msg.m_rootdisp, G.rootdisp);
 	//version = (query_status & VERSION_MASK); /* ... >> VERSION_SHIFT - done below instead */
 	msg.m_refid = G.refid; // (version > (3 << VERSION_SHIFT)) ? G.refid : G.refid3;
 
