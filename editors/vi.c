@@ -263,6 +263,8 @@ enum {
 	S_OVER_WS = 3,		// used in skip_thing() for moving "dot"
 	S_END_PUNCT = 4,	// used in skip_thing() for moving "dot"
 	S_END_ALNUM = 5,	// used in skip_thing() for moving "dot"
+
+	C_END = -1,	// cursor is at end of line due to '$' command
 };
 
 
@@ -354,6 +356,8 @@ struct globals {
 	sigjmp_buf restart;     // int_handler() jumps to location remembered here
 #endif
 	struct termios term_orig; // remember what the cooked mode was
+	int cindex;               // saved character index for up/down motion
+	smallint keep_index;      // retain saved character index
 #if ENABLE_FEATURE_VI_COLON
 	char *initial_cmds[3];  // currently 2 entries, NULL terminated
 #endif
@@ -462,6 +466,8 @@ struct globals {
 #define context_end    (G.context_end   )
 #define restart        (G.restart       )
 #define term_orig      (G.term_orig     )
+#define cindex         (G.cindex        )
+#define keep_index     (G.keep_index    )
 #define initial_cmds   (G.initial_cmds  )
 #define readbuffer     (G.readbuffer    )
 #define scr_out_buf    (G.scr_out_buf   )
@@ -991,6 +997,9 @@ static void refresh(int full_screen)
 	}
 
 	place_cursor(crow, ccol);
+
+	if (!keep_index)
+		cindex = ccol + offset;
 
 	old_offset = offset;
 #undef old_offset
@@ -3096,6 +3105,7 @@ static void do_cmd(int c)
 //	cnt = yf = 0; // quiet the compiler
 //	p = q = save_dot = buf; // quiet the compiler
 	memset(buf, '\0', sizeof(buf));
+	keep_index = FALSE;
 
 	show_status_line();
 
@@ -3220,9 +3230,10 @@ static void do_cmd(int c)
 	case KEYCODE_DOWN:	// cursor key Down
 		do {
 			dot_next();		// go to next B-o-l
-			// try stay in same col
-			dot = move_to_col(dot, ccol + offset);
 		} while (--cmdcnt > 0);
+		// try to stay in saved column
+		dot = cindex == C_END ? end_line(dot) : move_to_col(dot, cindex);
+		keep_index = TRUE;
 		break;
 	case 12:			// ctrl-L  force redraw whole screen
 	case 18:			// ctrl-R  force redraw
@@ -3348,6 +3359,8 @@ static void do_cmd(int c)
 				break;
 			dot_next();
 		}
+		cindex = C_END;
+		keep_index = TRUE;
 		break;
 	case '%':			// %- find matching char of pair () [] {}
 		for (q = dot; q < end && *q != '\n'; q++) {
@@ -3827,8 +3840,10 @@ static void do_cmd(int c)
 	case KEYCODE_UP:		// cursor key Up
 		do {
 			dot_prev();
-			dot = move_to_col(dot, ccol + offset);	// try stay in same col
 		} while (--cmdcnt > 0);
+		// try to stay in saved column
+		dot = cindex == C_END ? end_line(dot) : move_to_col(dot, cindex);
+		keep_index = TRUE;
 		break;
 	case 'r':			// r- replace the current char with user input
 		c1 = get_one_char();	// get the replacement char
