@@ -3596,6 +3596,7 @@ static void do_cmd(int c)
 		if (cmdcnt > 0) {
 			dot = find_line(cmdcnt);	// what line is #cmdcnt
 		}
+		dot_begin();
 		dot_skip_over_ws();
 		break;
 	case 'H':			// H- goto top line on screen
@@ -3652,6 +3653,7 @@ static void do_cmd(int c)
 		dot = screenbegin;
 		for (cnt = 0; cnt < (rows-1) / 2; cnt++)
 			dot = next_line(dot);
+		dot_skip_over_ws();
 		break;
 	case 'O':			// O- open a empty line above
 		//    0i\n ESC -i
