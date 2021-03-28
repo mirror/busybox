@@ -3048,7 +3048,7 @@ static int find_range(char **start, char **stop, char c)
 		buftype = WHOLE;
 		if (--cmdcnt > 0)
 			do_cmd('j');
-	} else if (strchr("^%$0bBeEfth\b\177", c)) {
+	} else if (strchr("^%$0bBeEfFtTh|\b\177", c)) {
 		// These cmds operate on char positions
 		buftype = PARTIAL;
 		do_cmd(c);		// execute movement cmd
@@ -3090,8 +3090,8 @@ static int find_range(char **start, char **stop, char c)
 		q = end_line(q);
 	}
 
-	// backward char movements don't include start position
-	if (q > p && strchr("^0bBh\b\177", c)) q--;
+	// movements which don't include end of range
+	if (q > p && strchr("^0bBFTh|\b\177", c)) q--;
 
 	*start = p;
 	*stop = q;
