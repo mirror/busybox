@@ -757,7 +757,7 @@ static void new_screen(int ro, int co)
 }
 
 //----- Synchronize the cursor to Dot --------------------------
-static NOINLINE void sync_cursor(char *d, int *row, int *col)
+static void sync_cursor(char *d, int *row, int *col)
 {
 	char *beg_cur;	// begin and end of "d" line
 	char *tp;
@@ -3302,8 +3302,8 @@ static void do_cmd(int c)
 	case '+':			// +- goto next line
 		do {
 			dot_next();
-			dot_skip_over_ws();
 		} while (--cmdcnt > 0);
+		dot_skip_over_ws();
 		break;
 	case 21:			// ctrl-U  scroll up half screen
 		dot_scroll((rows - 2) / 2, -1);
@@ -3451,8 +3451,8 @@ static void do_cmd(int c)
 	case '-':			// -- goto prev line
 		do {
 			dot_prev();
-			dot_skip_over_ws();
 		} while (--cmdcnt > 0);
+		dot_skip_over_ws();
 		break;
 #if ENABLE_FEATURE_VI_DOT_CMD
 	case '.':			// .- repeat the last modifying command
