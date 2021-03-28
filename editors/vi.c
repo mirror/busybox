@@ -3051,6 +3051,12 @@ static void int_handler(int sig)
 
 static void do_cmd(int c);
 
+static int at_eof(const char *s)
+{
+	// does 's' point to end of file, even with no terminating newline?
+	return ((s == end - 2 && s[1] == '\n') || s == end - 1);
+}
+
 static int find_range(char **start, char **stop, char c)
 {
 	char *save_dot, *p, *q, *t;
@@ -3064,7 +3070,7 @@ static int find_range(char **start, char **stop, char c)
 		buftype = WHOLE;
 		if (--cmdcnt > 0)
 			do_cmd('j');
-	} else if (strchr("^%$0bBeEfFtTh|\b\177", c)) {
+	} else if (strchr("^%$0bBeEfFtTh|{}\b\177", c)) {
 		// These cmds operate on char positions
 		buftype = PARTIAL;
 		do_cmd(c);		// execute movement cmd
@@ -3074,9 +3080,9 @@ static int find_range(char **start, char **stop, char c)
 		buftype = MULTI;
 		do_cmd(c);		// execute movement cmd
 		// step back one char, but not if we're at end of file
-		if (dot > p && !((dot == end - 2 && end[-1] == '\n') || dot == end - 1))
+		if (dot > p && !at_eof(dot))
 			dot--;
-	} else if (strchr("GHL+-jk{}\r\n", c)) {
+	} else if (strchr("GHL+-jk\r\n", c)) {
 		// these operate on whole lines
 		buftype = WHOLE;
 		do_cmd(c);		// execute movement cmd
@@ -3101,13 +3107,25 @@ static int find_range(char **start, char **stop, char c)
 		p = t;
 	}
 
+	// movements which don't include end of range
+	if (q > p) {
+		if (strchr("^0bBFTh|\b\177", c)) {
+			q--;
+		} else if (strchr("{}", c)) {
+			buftype = (p == begin_line(p) && (*q == '\n' || at_eof(q))) ?
+							WHOLE : MULTI;
+			if (!at_eof(q)) {
+				q--;
+				if (q > p && p != begin_line(p))
+					q--;
+			}
+		}
+	}
+
 	if (buftype == WHOLE) {
 		p = begin_line(p);
 		q = end_line(q);
 	}
-
-	// movements which don't include end of range
-	if (q > p && strchr("^0bBFTh|\b\177", c)) q--;
 
 	*start = p;
 	*stop = q;
