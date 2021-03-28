@@ -3515,11 +3515,19 @@ static void do_cmd(int c)
 	case '{':			// {- move backward paragraph
 	case '}':			// }- move forward paragraph
 		do {
-			q = char_search(dot, "\n\n", c == '{' ?
-						((unsigned)BACK << 1) | FULL :
-						(FORWARD << 1) | FULL);
+			dir = c == '}' ? FORWARD : BACK;
+			// skip over consecutive empty lines
+			while ((dir == FORWARD ? dot < end - 1 : dot > text) &&
+						*dot == '\n' && dot[dir] == '\n') {
+				dot += dir;
+			}
+			q = char_search(dot, "\n\n", ((unsigned)dir << 1) | FULL);
 			if (q != NULL) {	// found blank line
 				dot = next_line(q);	// move to next blank line
+			}
+			else {	// blank line not found, move to end of file
+				dot = dir == FORWARD ? end - 1 : text;
+				break;
 			}
 		} while (--cmdcnt > 0);
 		break;
