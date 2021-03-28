@@ -2816,6 +2816,13 @@ static void colon(char *buf)
 
 		// is there a file name to write to?
 		if (args[0]) {
+			struct stat statbuf;
+
+			if (!useforce && (fn == NULL || strcmp(fn, args) != 0) &&
+					stat(args, &statbuf) == 0) {
+				status_line_bold("File exists (:w! overrides)");
+				goto ret;
+			}
 			fn = args;
 		}
 # if ENABLE_FEATURE_VI_READONLY
