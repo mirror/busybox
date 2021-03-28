@@ -3513,16 +3513,15 @@ static void do_cmd(int c)
 		} while (--cmdcnt > 0);
 		break;
 	case '{':			// {- move backward paragraph
-		q = char_search(dot, "\n\n", ((unsigned)BACK << 1) | FULL);
-		if (q != NULL) {	// found blank line
-			dot = next_line(q);	// move to next blank line
-		}
-		break;
 	case '}':			// }- move forward paragraph
-		q = char_search(dot, "\n\n", (FORWARD << 1) | FULL);
-		if (q != NULL) {	// found blank line
-			dot = next_line(q);	// move to next blank line
-		}
+		do {
+			q = char_search(dot, "\n\n", c == '{' ?
+						((unsigned)BACK << 1) | FULL :
+						(FORWARD << 1) | FULL);
+			if (q != NULL) {	// found blank line
+				dot = next_line(q);	// move to next blank line
+			}
+		} while (--cmdcnt > 0);
 		break;
 #endif /* FEATURE_VI_SEARCH */
 	case '0':			// 0- goto beginning of line
