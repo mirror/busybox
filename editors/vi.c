@@ -1102,6 +1102,22 @@ static int get_one_char(void)
 # define get_one_char() readit()
 #endif
 
+// Get type of thing to operate on and adjust count
+static int get_motion_char(void)
+{
+	int c, cnt;
+
+	c = get_one_char();
+	if (c != '0' && isdigit(c)) {
+		// get any non-zero motion count
+		for (cnt = 0; isdigit(c); c = get_one_char())
+			cnt = cnt * 10 + (c - '0');
+		cmdcnt = (cmdcnt ?: 1) * cnt;
+	}
+
+	return c;
+}
+
 // Get input line (uses "status line" area)
 static char *get_input_line(const char *prompt)
 {
@@ -3532,7 +3548,7 @@ static void do_cmd(int c)
 	case '<':			// <- Left  shift something
 	case '>':			// >- Right shift something
 		cnt = count_lines(text, dot);	// remember what line we are on
-		c1 = get_one_char();	// get the type of thing to delete
+		c1 = get_motion_char();	// get the type of thing to operate on
 		find_range(&p, &q, c1);
 		yank_delete(p, q, WHOLE, YANKONLY, NO_UNDO);	// save copy before change
 		p = begin_line(p);
@@ -3778,7 +3794,7 @@ static void do_cmd(int c)
 #endif
 		c1 = 'y';
 		if (c != 'Y') {
-			c1 = get_one_char();	// get the type of thing to delete
+			c1 = get_motion_char(); // get the type of thing to operate on
 			if (c1 == 27)	// ESC- user changed mind and wants out
 				goto dc6;
 		}
