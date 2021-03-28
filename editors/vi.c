@@ -322,7 +322,8 @@ struct globals {
 	char *screen;            // pointer to the virtual screen buffer
 	int screensize;          //            and its size
 	int tabstop;
-	int last_forward_char;   // last char searched for with 'f' (int because of Unicode)
+	int last_search_char;    // last char searched for (int because of Unicode)
+	smallint last_search_cmd;    // command used to invoke last char search
 #if ENABLE_FEATURE_VI_CRASHME
 	char last_input_char;    // last char read from user
 #endif
@@ -439,7 +440,8 @@ struct globals {
 #define screensize              (G.screensize         )
 #define screenbegin             (G.screenbegin        )
 #define tabstop                 (G.tabstop            )
-#define last_forward_char       (G.last_forward_char  )
+#define last_search_char        (G.last_search_char   )
+#define last_search_cmd         (G.last_search_cmd    )
 #if ENABLE_FEATURE_VI_CRASHME
 #define last_input_char         (G.last_input_char    )
 #endif
@@ -1770,6 +1772,31 @@ static void dot_skip_over_ws(void)
 	// skip WS
 	while (isspace(*dot) && *dot != '\n' && dot < end - 1)
 		dot++;
+}
+
+static void dot_to_char(int cmd)
+{
+	char *q = dot;
+	int dir = islower(cmd) ? FORWARD : BACK;
+
+	if (last_search_char == 0)
+		return;
+
+	do {
+		do {
+			q += dir;
+			if ((dir == FORWARD ? q > end - 1 : q < text) || *q == '\n')
+				return;
+		} while (*q != last_search_char);
+	} while (--cmdcnt > 0);
+
+	dot = q;
+
+	// place cursor before/after char as required
+	if (cmd == 't')
+		dot_left();
+	else if (cmd == 'T')
+		dot_right();
 }
 
 static void dot_scroll(int cnt, int dir)
@@ -3181,11 +3208,9 @@ static void do_cmd(int c)
 		//case '*':	// *-
 		//case '=':	// =-
 		//case '@':	// @-
-		//case 'F':	// F-
 		//case 'K':	// K-
 		//case 'Q':	// Q-
 		//case 'S':	// S-
-		//case 'T':	// T-
 		//case 'V':	// V-
 		//case '[':	// [-
 		//case '\\':	// \-
@@ -3379,36 +3404,16 @@ static void do_cmd(int c)
 			indicate_error();
 		break;
 	case 'f':			// f- forward to a user specified char
-		last_forward_char = get_one_char();	// get the search char
-		//
-		// dont separate these two commands. 'f' depends on ';'
-		//
-		//**** fall through to ... ';'
-	case ';':			// ;- look at rest of line for last forward char
-		do {
-			if (last_forward_char == 0)
-				break;
-			q = dot + 1;
-			while (q < end - 1 && *q != '\n' && *q != last_forward_char) {
-				q++;
-			}
-			if (*q == last_forward_char)
-				dot = q;
-		} while (--cmdcnt > 0);
+	case 'F':			// F- backward to a user specified char
+	case 't':			// t- move to char prior to next x
+	case 'T':			// T- move to char after previous x
+		last_search_char = get_one_char();	// get the search char
+		last_search_cmd = c;
+		// fall through
+	case ';':			// ;- look at rest of line for last search char
+	case ',':           // ,- repeat latest search in opposite direction
+		dot_to_char(c != ',' ? last_search_cmd : last_search_cmd ^ 0x20);
 		break;
-	case ',':           // repeat latest 'f' in opposite direction
-		if (last_forward_char == 0)
-			break;
-		do {
-			q = dot - 1;
-			while (q >= text && *q != '\n' && *q != last_forward_char) {
-				q--;
-			}
-			if (q >= text && *q == last_forward_char)
-				dot = q;
-		} while (--cmdcnt > 0);
-		break;
-
 	case '-':			// -- goto prev line
 		do {
 			dot_prev();
@@ -3854,13 +3859,6 @@ static void do_cmd(int c)
 		}
 		end_cmd_q();	// stop adding to q
 		break;
-	case 't':			// t- move to char prior to next x
-		last_forward_char = get_one_char();
-		do_cmd(';');
-		if (*dot == last_forward_char)
-			dot_left();
-		last_forward_char = 0;
-		break;
 	case 'w':			// w- forward a word
 		do {
 			if (isalnum(*dot) || *dot == '_') {	// we are on ALNUM
@@ -4204,7 +4202,7 @@ static void edit_file(char *fn)
 	mark[26] = mark[27] = text;	// init "previous context"
 #endif
 
-	last_forward_char = '\0';
+	last_search_char = '\0';
 #if ENABLE_FEATURE_VI_CRASHME
 	last_input_char = '\0';
 #endif
