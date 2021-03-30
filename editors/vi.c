@@ -7,7 +7,6 @@
  */
 //
 //Things To Do:
-//	EXINIT
 //	$HOME/.exrc  and  ./.exrc
 //	add magic to search	/foo.*bar
 //	add :help command
@@ -3574,7 +3573,10 @@ static void do_cmd(int c)
 	case '>':			// >- Right shift something
 		cnt = count_lines(text, dot);	// remember what line we are on
 		c1 = get_motion_char();	// get the type of thing to operate on
-		find_range(&p, &q, c1);
+		if (find_range(&p, &q, c1) == -1) {
+			indicate_error();
+			goto dc6;
+		}
 		yank_delete(p, q, WHOLE, YANKONLY, NO_UNDO);	// save copy before change
 		p = begin_line(p);
 		q = end_line(q);
