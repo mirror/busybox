@@ -2817,10 +2817,8 @@ static void colon(char *buf)
 	} else if (cmd[0] == 's') {	// substitute a pattern with a replacement pattern
 		char *F, *R, *flags;
 		size_t len_F, len_R;
-		int gflag;		// global replace flag
-#  if ENABLE_FEATURE_VI_UNDO
-		int dont_chain_first_item = ALLOW_UNDO;
-#  endif
+		int gflag = 0;		// global replace flag
+		int subs = 0;	// number of substitutions
 
 		// F points to the "find" pattern
 		// R points to the "replace" pattern
@@ -2833,11 +2831,11 @@ static void colon(char *buf)
 		len_F = R - F;
 		*R++ = '\0';	// terminate "find"
 		flags = strchr(R, c);
-		if (!flags)
-			goto colon_s_fail;
-		len_R = flags - R;
-		*flags++ = '\0';	// terminate "replace"
-		gflag = *flags;
+		if (flags) {
+			*flags++ = '\0';	// terminate "replace"
+			gflag = *flags;
+		}
+		len_R = strlen(R);
 
 		q = begin_line(q);
 		if (b < 0) {	// maybe :s/foo/bar/
@@ -2856,14 +2854,15 @@ static void colon(char *buf)
 				uintptr_t bias;
 				// we found the "find" pattern - delete it
 				// For undo support, the first item should not be chained
-				text_hole_delete(found, found + len_F - 1, dont_chain_first_item);
-#  if ENABLE_FEATURE_VI_UNDO
-				dont_chain_first_item = ALLOW_UNDO_CHAIN;
-#  endif
+				text_hole_delete(found, found + len_F - 1,
+							subs ? ALLOW_UNDO_CHAIN: ALLOW_UNDO);
+				// can't do this above, no undo => no third argument
+				subs++;
 				// insert the "replace" patern
 				bias = string_insert(found, R, ALLOW_UNDO_CHAIN);
 				found += bias;
 				ls += bias;
+				dot = ls;
 				//q += bias; - recalculated anyway
 				// check for "global"  :s/foo/bar/g
 				if (gflag == 'g') {
@@ -2874,6 +2873,11 @@ static void colon(char *buf)
 				}
 			}
 			q = next_line(ls);
+		}
+		if (subs == 0) {
+			status_line_bold("No match");
+		} else {
+			dot_skip_over_ws();
 		}
 # endif /* FEATURE_VI_SEARCH */
 	} else if (strncmp(cmd, "version", i) == 0) {  // show software version
