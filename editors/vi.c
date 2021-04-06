@@ -338,6 +338,7 @@ struct globals {
 	smallint adding2q;	 // are we currently adding user input to q
 	int lmc_len;             // length of last_modifying_cmd
 	char *ioq, *ioq_start;   // pointer to string for get_one_char to "read"
+	int dotcnt;              // number of times to repeat '.' command
 #endif
 #if ENABLE_FEATURE_VI_SEARCH
 	char *last_search_pattern; // last pattern from a '/' or '?' search
@@ -460,6 +461,7 @@ struct globals {
 #define lmc_len                 (G.lmc_len            )
 #define ioq                     (G.ioq                )
 #define ioq_start               (G.ioq_start          )
+#define dotcnt                  (G.dotcnt             )
 #define last_search_pattern     (G.last_search_pattern)
 
 #define edit_file__cur_line     (G.edit_file__cur_line)
@@ -1094,8 +1096,8 @@ static int get_one_char(void)
 	}
 	// we are adding STDIN chars to q.
 	c = readit();
-	if (lmc_len >= ARRAY_SIZE(last_modifying_cmd) - 1) {
-		// last_modifying_cmd[] is too small, can't remeber the cmd
+	if (lmc_len >= ARRAY_SIZE(last_modifying_cmd) - 2) {
+		// last_modifying_cmd[] is too small, can't remember the cmd
 		// - drop it
 		adding2q = 0;
 		lmc_len = 0;
@@ -1863,13 +1865,9 @@ static char *bound_dot(char *p) // make sure  text[0] <= P < "end"
 static void start_new_cmd_q(char c)
 {
 	// get buffer for new cmd
-	// if there is a current cmd count put it in the buffer first
-	if (cmdcnt > 0) {
-		lmc_len = sprintf(last_modifying_cmd, "%u%c", cmdcnt, c);
-	} else { // just save char c onto queue
-		last_modifying_cmd[0] = c;
-		lmc_len = 1;
-	}
+	dotcnt = cmdcnt ?: 1;
+	last_modifying_cmd[0] = c;
+	lmc_len = 1;
 	adding2q = 1;
 }
 static void end_cmd_q(void)
@@ -3515,7 +3513,10 @@ static void do_cmd(int c)
 		// Stuff the last_modifying_cmd back into stdin
 		// and let it be re-executed.
 		if (lmc_len != 0) {
-			ioq = ioq_start = xstrndup(last_modifying_cmd, lmc_len);
+			if (cmdcnt)	// update saved count if current count is non-zero
+				dotcnt = cmdcnt;
+			last_modifying_cmd[lmc_len] = '\0';
+			ioq = ioq_start = xasprintf("%u%s", dotcnt, last_modifying_cmd);
 		}
 		break;
 #endif
