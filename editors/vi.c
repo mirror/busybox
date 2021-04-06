@@ -278,16 +278,23 @@ struct globals {
 	int text_size;		// size of the allocated buffer
 
 	// the rest
-	smallint vi_setops;
-#define VI_AUTOINDENT 1
-#define VI_SHOWMATCH  2
-#define VI_IGNORECASE 4
-#define VI_ERR_METHOD 8
+	smallint vi_setops;     // set by setops()
+#define VI_AUTOINDENT (1 << 0)
+#define VI_ERR_METHOD (1 << 1)
+#define VI_IGNORECASE (1 << 2)
+#define VI_SHOWMATCH  (1 << 3)
+#define VI_TABSTOP    (1 << 4)
 #define autoindent (vi_setops & VI_AUTOINDENT)
-#define showmatch  (vi_setops & VI_SHOWMATCH )
+#define err_method (vi_setops & VI_ERR_METHOD) // indicate error with beep or flash
 #define ignorecase (vi_setops & VI_IGNORECASE)
-// indicate error with beep or flash
-#define err_method (vi_setops & VI_ERR_METHOD)
+#define showmatch  (vi_setops & VI_SHOWMATCH )
+// order of constants and strings must match
+#define OPTS_STR \
+		"ai\0""autoindent\0" \
+		"fl\0""flash\0" \
+		"ic\0""ignorecase\0" \
+		"sm\0""showmatch\0" \
+		"ts\0""tabstop\0"
 
 #if ENABLE_FEATURE_VI_READONLY
 	smallint readonly_mode;
@@ -2380,17 +2387,38 @@ static char *get_address(char *p, int *b, int *e)	// get two colon addrs, if pre
 }
 
 # if ENABLE_FEATURE_VI_SET && ENABLE_FEATURE_VI_SETOPTS
-static void setops(const char *args, const char *nm_longname, int flg_no, int opt)
+static void setops(char *args, int flg_no)
 {
-	const char *a = args + flg_no;
+	char *eq;
+	int index;
 
-	if (strcmp(a, nm_longname) == 0
-	 || strcmp(a, nm_longname + 3) == 0
-	) {
-		if (flg_no)
-			vi_setops &= ~opt;
-		else
-			vi_setops |= opt;
+	eq = strchr(args, '=');
+	if (eq) *eq = '\0';
+	index = index_in_strings(OPTS_STR, args + flg_no);
+	if (eq) *eq = '=';
+	if (index < 0) {
+ bad:
+		status_line_bold("bad option: %s", args);
+		return;
+	}
+
+	index = 1 << (index >> 1); // convert to VI_bit
+
+	if (index & VI_TABSTOP) {
+		int t;
+		if (!eq || flg_no) // no "=NNN" or it is "notabstop"?
+			goto bad;
+		t = bb_strtou(eq + 1, NULL, 10);
+		if (t <= 0 || t > MAX_TABSTOP)
+			goto bad;
+		tabstop = t;
+		return;
+	}
+	if (eq)	goto bad; // boolean option has "="?
+	if (flg_no) {
+		vi_setops &= ~index;
+	} else {
+		vi_setops |= index;
 	}
 }
 # endif
@@ -2750,10 +2778,10 @@ static void colon(char *buf)
 # if ENABLE_FEATURE_VI_SET
 	} else if (strncmp(cmd, "set", i) == 0) {	// set or clear features
 #  if ENABLE_FEATURE_VI_SETOPTS
-		char *argp;
+		char *argp, *argn, oldch;
 #  endif
 		// only blank is regarded as args delimiter. What about tab '\t'?
-		if (!args[0] || strcasecmp(args, "all") == 0) {
+		if (!args[0] || strcmp(args, "all") == 0) {
 			// print out values of all options
 #  if ENABLE_FEATURE_VI_SETOPTS
 			status_line_bold(
@@ -2777,17 +2805,12 @@ static void colon(char *buf)
 			i = 0;
 			if (argp[0] == 'n' && argp[1] == 'o') // "noXXX"
 				i = 2;
-			setops(argp, "ai""\0""autoindent", i, VI_AUTOINDENT);
-			setops(argp, "fl""\0""flash"     , i, VI_ERR_METHOD);
-			setops(argp, "ic""\0""ignorecase", i, VI_IGNORECASE);
-			setops(argp, "sm""\0""showmatch" , i, VI_SHOWMATCH );
-			if (strncmp(argp, "tabstop=", 8) == 0) {
-				int t = bb_strtou(argp + 8, NULL, 10);
-				if (t > 0 && t <= MAX_TABSTOP)
-					tabstop = t;
-			}
-			argp = skip_non_whitespace(argp);
-			argp = skip_whitespace(argp);
+			argn = skip_non_whitespace(argp);
+			oldch = *argn;
+			*argn = '\0';
+			setops(argp, i);
+			*argn = oldch;
+			argp = skip_whitespace(argn);
 		}
 #  endif /* FEATURE_VI_SETOPTS */
 # endif /* FEATURE_VI_SET */
@@ -4383,10 +4406,10 @@ int vi_main(int argc, char **argv)
 	}
 #endif
 
-	// autoindent is not default in vim 7.3
-	vi_setops = /*VI_AUTOINDENT |*/ VI_SHOWMATCH | VI_IGNORECASE;
-	//  1-  process $HOME/.exrc file (not inplemented yet)
-	//  2-  process EXINIT variable from environment
+	// 0: all of our options are disabled by default in vim
+	//vi_setops = 0;
+	//  1-  process EXINIT variable from environment
+	//  2-  if EXINIT is unset process $HOME/.exrc file (not inplemented yet)
 	//  3-  process command line args
 #if ENABLE_FEATURE_VI_COLON
 	{
