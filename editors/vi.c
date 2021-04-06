@@ -3079,22 +3079,38 @@ static int at_eof(const char *s)
 	return ((s == end - 2 && s[1] == '\n') || s == end - 1);
 }
 
-static int find_range(char **start, char **stop, char c)
+static int find_range(char **start, char **stop, int cmd)
 {
 	char *save_dot, *p, *q, *t;
 	int buftype = -1;
+	int c;
 
 	save_dot = dot;
 	p = q = dot;
 
-	if (strchr("cdy><", c)) {
+#if ENABLE_FEATURE_VI_YANKMARK
+	if (cmd == 'Y') {
+		c = 'y';
+	} else
+#endif
+	{
+		c = get_motion_char();
+	}
+
+#if ENABLE_FEATURE_VI_YANKMARK
+	if ((cmd == 'Y' || cmd == c) && strchr("cdy><", c)) {
+#else
+	if (cmd == c && strchr("cd><", c)) {
+#endif
 		// these cmds operate on whole lines
 		buftype = WHOLE;
 		if (--cmdcnt > 0)
 			do_cmd('j');
-	} else if (strchr("^%$0bBeEfFtTh|{}\b\177", c)) {
-		// These cmds operate on char positions
-		buftype = PARTIAL;
+	} else if (strchr("^%$0bBeEfFtThnN/?|{}\b\177", c)) {
+		// Most operate on char positions within a line.  Of those that
+		// don't '%' needs no special treatment, search commands are
+		// marked as MULTI and  "{}" are handled below.
+		buftype = strchr("nN/?", c) ? MULTI : PARTIAL;
 		do_cmd(c);		// execute movement cmd
 		if (p == dot)	// no movement is an error
 			buftype = -1;
@@ -3104,7 +3120,16 @@ static int find_range(char **start, char **stop, char c)
 		// step back one char, but not if we're at end of file
 		if (dot > p && !at_eof(dot))
 			dot--;
-	} else if (strchr("GHL+-jk\r\n", c)) {
+		t = dot;
+		// don't include trailing WS as part of word
+		while (dot > p && isspace(*dot)) {
+			if (*dot-- == '\n')
+				t = dot;
+		}
+		// for non-change operations WS after NL is not part of word
+		if (cmd != 'c' && dot != p && *dot != '\n')
+			dot = t;
+	} else if (strchr("GHL+-jk'\r\n", c)) {
 		// these operate on whole lines
 		buftype = WHOLE;
 		do_cmd(c);		// execute movement cmd
@@ -3119,8 +3144,11 @@ static int find_range(char **start, char **stop, char c)
 			dot--;
 	}
 
-	if (buftype == -1)
+	if (buftype == -1) {
+		if (c != 27)
+			indicate_error();
 		return buftype;
+	}
 
 	q = dot;
 	if (q < p) {
@@ -3131,7 +3159,7 @@ static int find_range(char **start, char **stop, char c)
 
 	// movements which don't include end of range
 	if (q > p) {
-		if (strchr("^0bBFTh|\b\177", c)) {
+		if (strchr("^0bBFThnN/?|\b\177", c)) {
 			q--;
 		} else if (strchr("{}", c)) {
 			buftype = (p == begin_line(p) && (*q == '\n' || at_eof(q))) ?
@@ -3144,7 +3172,7 @@ static int find_range(char **start, char **stop, char c)
 		}
 	}
 
-	if (buftype == WHOLE) {
+	if (buftype == WHOLE || cmd == '<' || cmd == '>') {
 		p = begin_line(p);
 		q = end_line(q);
 	}
@@ -3582,14 +3610,9 @@ static void do_cmd(int c)
 	case '<':			// <- Left  shift something
 	case '>':			// >- Right shift something
 		cnt = count_lines(text, dot);	// remember what line we are on
-		c1 = get_motion_char();	// get the type of thing to operate on
-		if (find_range(&p, &q, c1) == -1) {
-			indicate_error();
+		if (find_range(&p, &q, c) == -1)
 			goto dc6;
-		}
 		yank_delete(p, q, WHOLE, YANKONLY, NO_UNDO);	// save copy before change
-		p = begin_line(p);
-		q = end_line(q);
 		i = count_lines(p, q);	// # of lines we are shifting
 		for ( ; i > 0; i--, p = next_line(p)) {
 			if (c == '<') {
@@ -3820,39 +3843,17 @@ static void do_cmd(int c)
 	case 'Y':			// Y- Yank a line
 #endif
 	{
+		int yf = YANKDEL;	// assume either "c" or "d"
+		int buftype;
 #if ENABLE_FEATURE_VI_YANKMARK
 		char *savereg = reg[YDreg];
-#endif
-		int yf, buftype = 0;
-		yf = YANKDEL;	// assume either "c" or "d"
-#if ENABLE_FEATURE_VI_YANKMARK
 		if (c == 'y' || c == 'Y')
 			yf = YANKONLY;
 #endif
-		c1 = 'y';
-		if (c != 'Y') {
-			c1 = get_motion_char(); // get the type of thing to operate on
-			if (c1 == 27)	// ESC- user changed mind and wants out
-				goto dc6;
-		}
 		// determine range, and whether it spans lines
-		buftype = find_range(&p, &q, c1);
-		place_cursor(0, 0);
-		if (buftype == -1) { // invalid range
-			indicate_error();
+		buftype = find_range(&p, &q, c);
+		if (buftype == -1)	// invalid range
 			goto dc6;
-		}
-		if (c1 == 'w' || c1 == 'W') {
-			char *q0 = q;
-			// don't include trailing WS as part of word
-			while (q > p && isspace(*q)) {
-				if (*q-- == '\n')
-					q0 = q;
-			}
-			// for non-change operations WS after NL is not part of word
-			if (c != 'c' && q != p && *q != '\n')
-				q = q0;
-		}
 		dot = yank_delete(p, q, buftype, yf, ALLOW_UNDO);	// delete word
 		if (buftype == WHOLE) {
 			if (c == 'c') {
