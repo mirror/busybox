@@ -1809,8 +1809,10 @@ static void dot_to_char(int cmd)
 	do {
 		do {
 			q += dir;
-			if ((dir == FORWARD ? q > end - 1 : q < text) || *q == '\n')
+			if ((dir == FORWARD ? q > end - 1 : q < text) || *q == '\n') {
+				indicate_error();
 				return;
+			}
 		} while (*q != last_search_char);
 	} while (--cmdcnt > 0);
 
