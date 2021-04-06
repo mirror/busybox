@@ -18,6 +18,21 @@
 //config:	watchdog applet ever fails to write the magic character within a
 //config:	certain amount of time, the watchdog device assumes the system has
 //config:	hung, and will cause the hardware to reboot.
+//config:
+//config:config FEATURE_WATCHDOG_OPEN_TWICE
+//config:	bool "Open watchdog device twice, closing it gracefully in between"
+//config:	depends on WATCHDOG
+//config:	default n   # this behavior was essentially a hack for a broken driver
+//config:	help
+//config:	When enabled, the watchdog device is opened and then immediately
+//config:	magic-closed, before being opened a second time. This may be necessary
+//config:	for some watchdog devices, but can cause spurious warnings in the
+//config:	kernel log if the nowayout feature is enabled. Also, if this workaround
+//config:	is really needed for you machine to work properly, consider whether
+//config:	it should be fixed in the kernel driver instead. Even when disabled,
+//config:	the behaviour is easily emulated with a "printf 'V' > /dev/watchdog"
+//config:	immediately before starting the busybox watchdog daemon. Say n unless
+//config:	you know that you absolutely need this.
 
 //applet:IF_WATCHDOG(APPLET(watchdog, BB_DIR_SBIN, BB_SUID_DROP))
 
@@ -50,10 +65,6 @@
 # define WDIOS_ENABLECARD 2
 #endif
 
-#define OPT_FOREGROUND  (1 << 0)
-#define OPT_STIMER      (1 << 1)
-#define OPT_HTIMER      (1 << 2)
-
 static void shutdown_watchdog(void)
 {
 	static const char V = 'V';
@@ -73,6 +84,7 @@ static void watchdog_open(const char* device)
 	/* Use known fd # - avoid needing global 'int fd' */
 	xmove_fd(xopen(device, O_WRONLY), 3);
 
+#if ENABLE_FEATURE_WATCHDOG_OPEN_TWICE
 	/* If the watchdog driver can do something other than cause a reboot
 	 * on a timeout, then it's possible this program may be starting from
 	 * a state when the watchdog hadn't been previously stopped with
@@ -82,6 +94,7 @@ static void watchdog_open(const char* device)
 	shutdown_watchdog();
 
 	xmove_fd(xopen(device, O_WRONLY), 3);
+#endif
 }
 
 int watchdog_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -100,6 +113,9 @@ int watchdog_main(int argc UNUSED_PARAM, char **argv)
 	char *st_arg;
 	char *ht_arg;
 
+#define OPT_FOREGROUND  (1 << 0)
+#define OPT_STIMER      (1 << 1)
+#define OPT_HTIMER      (1 << 2)
 	opts = getopt32(argv, "^" "Ft:T:" "\0" "=1"/*must have exactly 1 arg*/,
 				&st_arg, &ht_arg
 	);
@@ -132,7 +148,7 @@ int watchdog_main(int argc UNUSED_PARAM, char **argv)
 #if 0
 	ioctl_or_warn(3, WDIOC_GETTIMEOUT, &htimer_duration);
 	printf("watchdog: SW timer is %dms, HW timer is %ds\n",
-		stimer_duration, htimer_duration * 1000);
+		stimer_duration, htimer_duration);
 #endif
 
 	write_pidfile_std_path_and_ext("watchdog");
