@@ -3117,8 +3117,10 @@ static int find_range(char **start, char **stop, int cmd)
 	} else if (strchr("wW", c)) {
 		buftype = MULTI;
 		do_cmd(c);		// execute movement cmd
-		// step back one char, but not if we're at end of file
-		if (dot > p && !at_eof(dot))
+		// step back one char, but not if we're at end of file,
+		// or if we are at EOF and search was for 'w' and we're at
+		// the start of a 'W' word.
+		if (dot > p && (!at_eof(dot) || (c == 'w' && ispunct(*dot))))
 			dot--;
 		t = dot;
 		// don't include trailing WS as part of word
@@ -3127,7 +3129,7 @@ static int find_range(char **start, char **stop, int cmd)
 				t = dot;
 		}
 		// for non-change operations WS after NL is not part of word
-		if (cmd != 'c' && dot != p && *dot != '\n')
+		if (cmd != 'c' && dot != t && *dot != '\n')
 			dot = t;
 	} else if (strchr("GHL+-jk'\r\n", c)) {
 		// these operate on whole lines
