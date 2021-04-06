@@ -159,6 +159,14 @@
 //config:	and will generally malloc() larger objects and less frequently.
 //config:	Unless you want more (or less) frequent "undo points" while typing,
 //config:	you should probably leave this unchanged.
+//config:
+//config:config FEATURE_VI_VERBOSE_STATUS
+//config:	bool "Enable verbose status reporting"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	Enable more verbose reporting of the results of yank, change,
+//config:	delete, undo and substitution commands.
 
 //applet:IF_VI(APPLET(vi, BB_DIR_BIN, BB_SUID_DROP))
 
@@ -1357,14 +1365,17 @@ static void not_implemented(const char *s)
 // copy text into a register
 static char *text_yank(char *p, char *q, int dest, int buftype)
 {
+	char *oldreg = reg[dest];
 	int cnt = q - p;
 	if (cnt < 0) {		// they are backwards- reverse them
 		p = q;
 		cnt = -cnt;
 	}
-	free(reg[dest]);	//  if already a yank register, free it
+	// Don't free register yet.  This prevents the memory allocator
+	// from reusing the free block so we can detect if it's changed.
 	reg[dest] = xstrndup(p, cnt + 1);
 	regtype[dest] = buftype;
+	free(oldreg);
 	return p;
 }
 
@@ -1415,6 +1426,22 @@ static char *swap_context(char *p) // goto new context for '' command make this 
 	}
 	return p;
 }
+
+# if ENABLE_FEATURE_VI_VERBOSE_STATUS
+static void yank_status(const char *op, const char *p, int cnt)
+{
+	int lines, chars;
+
+	lines = chars = 0;
+	while (*p) {
+		++chars;
+		if (*p++ == '\n')
+			++lines;
+	}
+	status_line("%s %d lines (%d chars) from [%c]",
+				op, lines * cnt, chars * cnt, what_reg());
+}
+# endif
 #endif /* FEATURE_VI_YANKMARK */
 
 #if ENABLE_FEATURE_VI_UNDO
@@ -1687,10 +1714,12 @@ static void undo_pop(void)
 		u_start = text + undo_entry->start;
 		text_hole_make(u_start, undo_entry->length);
 		memcpy(u_start, undo_entry->undo_text, undo_entry->length);
+# if ENABLE_FEATURE_VI_VERBOSE_STATUS
 		status_line("Undo [%d] %s %d chars at position %d",
 			modified_count, "restored",
 			undo_entry->length, undo_entry->start
 		);
+# endif
 		break;
 	case UNDO_INS:
 	case UNDO_INS_CHAIN:
@@ -1698,10 +1727,12 @@ static void undo_pop(void)
 		u_start = undo_entry->start + text;
 		u_end = u_start - 1 + undo_entry->length;
 		text_hole_delete(u_start, u_end, NO_UNDO);
+# if ENABLE_FEATURE_VI_VERBOSE_STATUS
 		status_line("Undo [%d] %s %d chars at position %d",
 			modified_count, "deleted",
 			undo_entry->length, undo_entry->start
 		);
+# endif
 		break;
 	}
 	repeat = 0;
@@ -2150,16 +2181,6 @@ static uintptr_t string_insert(char *p, const char *s, int undo) // insert the s
 	bias = text_hole_make(p, i);
 	p += bias;
 	memcpy(p, s, i);
-#if ENABLE_FEATURE_VI_YANKMARK
-	{
-		int cnt;
-		for (cnt = 0; *s != '\0'; s++) {
-			if (*s == '\n')
-				cnt++;
-		}
-		status_line("Put %d lines (%d chars) from [%c]", cnt, i, what_reg());
-	}
-#endif
 	return bias;
 }
 #endif
@@ -2821,6 +2842,9 @@ static void colon(char *buf)
 		size_t len_F, len_R;
 		int gflag = 0;		// global replace flag
 		int subs = 0;	// number of substitutions
+#  if ENABLE_FEATURE_VI_VERBOSE_STATUS
+		int last_line = 0, lines = 0;
+#  endif
 
 		// F points to the "find" pattern
 		// R points to the "replace" pattern
@@ -2860,6 +2884,12 @@ static void colon(char *buf)
 							subs ? ALLOW_UNDO_CHAIN: ALLOW_UNDO);
 				// can't do this above, no undo => no third argument
 				subs++;
+#  if ENABLE_FEATURE_VI_VERBOSE_STATUS
+				if (last_line != i) {
+					last_line = i;
+					++lines;
+				}
+#  endif
 				// insert the "replace" patern
 				bias = string_insert(found, R, ALLOW_UNDO_CHAIN);
 				found += bias;
@@ -2880,6 +2910,10 @@ static void colon(char *buf)
 			status_line_bold("No match");
 		} else {
 			dot_skip_over_ws();
+#  if ENABLE_FEATURE_VI_VERBOSE_STATUS
+			if (subs > 1)
+				status_line("%d substitutions on %d lines", subs, lines);
+#  endif
 		}
 # endif /* FEATURE_VI_SEARCH */
 	} else if (strncmp(cmd, "version", i) == 0) {  // show software version
@@ -3434,8 +3468,9 @@ static void do_cmd(int c)
 			status_line_bold("Nothing in register %c", what_reg());
 			break;
 		}
-		// are we putting whole lines or strings
 		cnt = 0;
+		i = cmdcnt ?: 1;
+		// are we putting whole lines or strings
 		if (regtype[YDreg] == WHOLE) {
 			if (c == 'P') {
 				dot_begin();	// putting lines- Put above
@@ -3453,7 +3488,7 @@ static void do_cmd(int c)
 				dot_right();	// move to right, can move to NL
 			// how far to move cursor if register doesn't have a NL
 			if (strchr(p, '\n') == NULL)
-				cnt = (cmdcnt ?: 1) * strlen(p) - 1;
+				cnt = i * strlen(p) - 1;
 		}
 		do {
 			// dot is adjusted if text[] is reallocated so we don't have to
@@ -3463,6 +3498,9 @@ static void do_cmd(int c)
 # endif
 		} while (--cmdcnt > 0);
 		dot += cnt;
+# if ENABLE_FEATURE_VI_YANKMARK && ENABLE_FEATURE_VI_VERBOSE_STATUS
+		yank_status("Put", p, i);
+# endif
 		end_cmd_q();	// stop adding to q
 		break;
 	case 'U':			// U- Undo; replace current line with original version
@@ -3473,6 +3511,9 @@ static void do_cmd(int c)
 			p += string_insert(p, reg[Ureg], ALLOW_UNDO_CHAIN);	// insert orig line
 			dot = p;
 			dot_skip_over_ws();
+# if ENABLE_FEATURE_VI_YANKMARK && ENABLE_FEATURE_VI_VERBOSE_STATUS
+			yank_status("Undo", reg[Ureg], 1);
+# endif
 		}
 		break;
 #endif /* FEATURE_VI_YANKMARK */
@@ -3878,7 +3919,9 @@ static void do_cmd(int c)
 		int yf = YANKDEL;	// assume either "c" or "d"
 		int buftype;
 #if ENABLE_FEATURE_VI_YANKMARK
+# if ENABLE_FEATURE_VI_VERBOSE_STATUS
 		char *savereg = reg[YDreg];
+# endif
 		if (c == 'y' || c == 'Y')
 			yf = YANKONLY;
 #endif
@@ -3901,27 +3944,12 @@ static void do_cmd(int c)
 		}
 		// if CHANGING, not deleting, start inserting after the delete
 		if (c == 'c') {
-			//strcpy(buf, "Change");
 			goto dc_i;	// start inserting
 		}
-#if ENABLE_FEATURE_VI_YANKMARK
+#if ENABLE_FEATURE_VI_YANKMARK && ENABLE_FEATURE_VI_VERBOSE_STATUS
 		// only update status if a yank has actually happened
-		if (reg[YDreg] != savereg) {
-			if (c == 'd') {
-				strcpy(buf, "Delete");
-			}
-			if (c == 'y' || c == 'Y') {
-				strcpy(buf, "Yank");
-			}
-			p = reg[YDreg];
-			q = p + strlen(p);
-			for (cnt = 0; p <= q; p++) {
-				if (*p == '\n')
-					cnt++;
-			}
-			status_line("%s %u lines (%u chars) using [%c]",
-				buf, cnt, (unsigned)strlen(reg[YDreg]), what_reg());
-		}
+		if (reg[YDreg] != savereg)
+			yank_status(c == 'd' ? "Delete" : "Yank", reg[YDreg], 1);
 #endif
  dc6:
 		end_cmd_q();	// stop adding to q
