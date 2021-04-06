@@ -3486,70 +3486,57 @@ static void do_cmd(int c)
 		break;
 #endif
 #if ENABLE_FEATURE_VI_SEARCH
-	case '?':			// /- search for a pattern
-	case '/':			// /- search for a pattern
+	case 'N':			// N- backward search for last pattern
+		dir = last_search_pattern[0] == '/' ? BACK : FORWARD;
+		goto dc4;		// now search for pattern
+		break;
+	case '?':			// ?- backward search for a pattern
+	case '/':			// /- forward search for a pattern
 		buf[0] = c;
 		buf[1] = '\0';
 		q = get_input_line(buf);	// get input line- use "status line"
-		if (q[0] && !q[1]) {
+		if (!q[0])	// user changed mind and erased the "/"-  do nothing
+			break;
+		if (!q[1]) {	// if no pat re-use old pat
 			if (last_search_pattern[0])
 				last_search_pattern[0] = c;
-			goto dc3; // if no pat re-use old pat
-		}
-		if (q[0]) {       // strlen(q) > 1: new pat- save it and find
-			// there is a new pat
+		} else {	// strlen(q) > 1: new pat- save it and find
 			free(last_search_pattern);
 			last_search_pattern = xstrdup(q);
-			goto dc3;	// now find the pattern
 		}
-		// user changed mind and erased the "/"-  do nothing
-		break;
-	case 'N':			// N- backward search for last pattern
-		dir = BACK;		// assume BACKWARD search
-		p = dot - 1;
-		if (last_search_pattern[0] == '?') {
-			dir = FORWARD;
-			p = dot + 1;
-		}
-		goto dc4;		// now search for pattern
-		break;
+		// fall through
 	case 'n':			// n- repeat search for last pattern
 		// search rest of text[] starting at next char
-		// if search fails return orignal "p" not the "p+1" address
-		do {
-			const char *msg;
- dc3:
-			dir = FORWARD;	// assume FORWARD search
-			p = dot + 1;
-			if (last_search_pattern[0] == '?') {
-				dir = BACK;
-				p = dot - 1;
-			}
+		// if search fails "dot" is unchanged
+		dir = last_search_pattern[0] == '/' ? FORWARD : BACK;
  dc4:
-			q = char_search(p, last_search_pattern + 1, (dir << 1) | FULL);
+		if (last_search_pattern[1] == '\0') {
+			status_line_bold("No previous search");
+			break;
+		}
+		do {
+			q = char_search(dot + dir, last_search_pattern + 1,
+						(dir << 1) | FULL);
 			if (q != NULL) {
 				dot = q;	// good search, update "dot"
-				msg = NULL;
-				goto dc2;
-			}
-			// no pattern found between "dot" and "end"- continue at top
-			p = text;
-			if (dir == BACK) {
-				p = end - 1;
-			}
-			q = char_search(p, last_search_pattern + 1, (dir << 1) | FULL);
-			if (q != NULL) {	// found something
-				dot = q;	// found new pattern- goto it
-				msg = "search hit BOTTOM, continuing at TOP";
-				if (dir == BACK) {
-					msg = "search hit TOP, continuing at BOTTOM";
-				}
 			} else {
-				msg = "Pattern not found";
+				// no pattern found between "dot" and top/bottom of file
+				// continue from other end of file
+				const char *msg;
+				q = char_search(dir == FORWARD ? text : end - 1,
+						last_search_pattern + 1, (dir << 1) | FULL);
+				if (q != NULL) {	// found something
+					dot = q;	// found new pattern- goto it
+					msg = "search hit %s, continuing at %s";
+				} else {	// pattern is nowhere in file
+					cmdcnt = 0;	// force exit from loop
+					msg = "Pattern not found";
+				}
+				if (dir == FORWARD)
+					status_line_bold(msg, "BOTTOM", "TOP");
+				else
+					status_line_bold(msg, "TOP", "BOTTOM");
 			}
- dc2:
-			if (msg)
-				status_line_bold("%s", msg);
 		} while (--cmdcnt > 0);
 		break;
 	case '{':			// {- move backward paragraph
