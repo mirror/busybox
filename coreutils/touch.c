@@ -147,7 +147,8 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	if (reference_file) {
 		struct stat stbuf;
 		xstat(reference_file, &stbuf);
-		timebuf[1].tv_sec = timebuf[0].tv_sec = stbuf.st_mtime;
+		timebuf[0].tv_sec = stbuf.st_atime;
+		timebuf[1].tv_sec = stbuf.st_mtime;
 		/* Can use .st_mtim.tv_nsec
 		 * (or is it .st_mtimensec?? see date.c)
 		 * to set microseconds too.
