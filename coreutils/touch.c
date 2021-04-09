@@ -97,23 +97,18 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		OPT_m = (1 << 5) * ENABLE_FEATURE_TOUCH_SUSV3,
 		OPT_h = (1 << 6) * ENABLE_FEATURE_TOUCH_NODEREF,
 	};
-#if ENABLE_FEATURE_TOUCH_SUSV3
 	/* NULL = use current time */
 	const struct timeval *newtime = NULL;
-# if ENABLE_LONG_OPTS
+#if ENABLE_LONG_OPTS
 	static const char touch_longopts[] ALIGN1 =
 		/* name, has_arg, val */
 		"no-create\0"         No_argument       "c"
-		"reference\0"         Required_argument "r"
-		"date\0"              Required_argument "d"
+		IF_FEATURE_TOUCH_SUSV3("reference\0"        Required_argument "r")
+		IF_FEATURE_TOUCH_SUSV3("date\0"             Required_argument "d")
 		IF_FEATURE_TOUCH_NODEREF("no-dereference\0" No_argument "h")
 	;
-#  define GETOPT32 getopt32long
-#  define LONGOPTS ,touch_longopts
-# else
-#  define GETOPT32 getopt32
-#  define LONGOPTS
-# endif
+#endif
+#if ENABLE_FEATURE_TOUCH_SUSV3
 	char *reference_file = NULL;
 	char *date_str = NULL;
 	/* timebuf[0] is atime, timebuf[1] is mtime */
@@ -123,20 +118,20 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 # define reference_file NULL
 # define date_str       NULL
 # define timebuf        ((struct timeval*)NULL)
-# define GETOPT32 getopt32
-# define LONGOPTS
 #endif
 
 	/* -d and -t both set time. In coreutils,
 	 * accepted data format differs a bit between -d and -t.
 	 * We accept the same formats for both */
-	opts = GETOPT32(argv, "c" IF_FEATURE_TOUCH_SUSV3("r:d:t:am")
+	opts = getopt32long(argv, "c" IF_FEATURE_TOUCH_SUSV3("r:d:t:am")
 				IF_FEATURE_TOUCH_NODEREF("h")
-				/*ignored:*/ "f" IF_NOT_FEATURE_TOUCH_SUSV3("am")
-				LONGOPTS
-				IF_FEATURE_TOUCH_SUSV3(, &reference_file)
-				IF_FEATURE_TOUCH_SUSV3(, &date_str)
-				IF_FEATURE_TOUCH_SUSV3(, &date_str)
+				/*ignored:*/ "f" IF_NOT_FEATURE_TOUCH_SUSV3("am"),
+				touch_longopts
+#if ENABLE_FEATURE_TOUCH_SUSV3
+				, &reference_file
+				, &date_str
+				, &date_str
+#endif
 	);
 
 	argv += optind;
