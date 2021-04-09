@@ -28,7 +28,7 @@
 //config:	This requires libc support for lutimes() function.
 //config:
 //config:config FEATURE_TOUCH_SUSV3
-//config:	bool "Add support for SUSV3 features (-d -t -r)"
+//config:	bool "Add support for SUSV3 features (-a -d -m -t -r)"
 //config:	default y
 //config:	depends on TOUCH
 //config:	help
@@ -38,11 +38,10 @@
 
 //kbuild:lib-$(CONFIG_TOUCH) += touch.o
 
-/* BB_AUDIT SUSv3 _NOT_ compliant -- options -a, -m not supported. */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/touch.html */
-
 //usage:#define touch_trivial_usage
-//usage:       "[-c]" IF_FEATURE_TOUCH_SUSV3(" [-d DATE] [-t DATE] [-r FILE]") " FILE..."
+//usage:       "[-c" IF_FEATURE_TOUCH_SUSV3("am") "]"
+//usage:       IF_FEATURE_TOUCH_SUSV3(" [-d DATE] [-t DATE] [-r FILE]")
+//usage:       " FILE..."
 //usage:#define touch_full_usage "\n\n"
 //usage:       "Update the last-modified date on the given FILE[s]\n"
 //usage:     "\n	-c	Don't create files"
@@ -50,6 +49,8 @@
 //usage:     "\n	-h	Don't follow links"
 //usage:	)
 //usage:	IF_FEATURE_TOUCH_SUSV3(
+//usage:     "\n	-a	Change only atime"
+//usage:     "\n	-m	Change only mtime"
 //usage:     "\n	-d DT	Date/time to use"
 //usage:     "\n	-t DT	Date/time to use"
 //usage:     "\n	-r FILE	Use FILE's date/time"
@@ -92,9 +93,13 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		OPT_r = (1 << 1) * ENABLE_FEATURE_TOUCH_SUSV3,
 		OPT_d = (1 << 2) * ENABLE_FEATURE_TOUCH_SUSV3,
 		OPT_t = (1 << 3) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_h = (1 << 4) * ENABLE_FEATURE_TOUCH_NODEREF,
+		OPT_a = (1 << 4) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_m = (1 << 5) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_h = (1 << 6) * ENABLE_FEATURE_TOUCH_NODEREF,
 	};
 #if ENABLE_FEATURE_TOUCH_SUSV3
+	/* NULL = use current time */
+	const struct timeval *newtime = NULL;
 # if ENABLE_LONG_OPTS
 	static const char touch_longopts[] ALIGN1 =
 		/* name, has_arg, val */
@@ -111,6 +116,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 # endif
 	char *reference_file = NULL;
 	char *date_str = NULL;
+	/* timebuf[0] is atime, timebuf[1] is mtime */
 	struct timeval timebuf[2];
 	timebuf[1].tv_usec = timebuf[0].tv_usec = 0;
 #else
@@ -124,9 +130,9 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	/* -d and -t both set time. In coreutils,
 	 * accepted data format differs a bit between -d and -t.
 	 * We accept the same formats for both */
-	opts = GETOPT32(argv, "c" IF_FEATURE_TOUCH_SUSV3("r:d:t:")
+	opts = GETOPT32(argv, "c" IF_FEATURE_TOUCH_SUSV3("r:d:t:am")
 				IF_FEATURE_TOUCH_NODEREF("h")
-				/*ignored:*/ "fma"
+				/*ignored:*/ "f" IF_NOT_FEATURE_TOUCH_SUSV3("am")
 				LONGOPTS
 				IF_FEATURE_TOUCH_SUSV3(, &reference_file)
 				IF_FEATURE_TOUCH_SUSV3(, &date_str)
@@ -146,6 +152,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		 * (or is it .st_mtimensec?? see date.c)
 		 * to set microseconds too.
 		 */
+		newtime = timebuf;
 	}
 
 	if (date_str) {
@@ -163,15 +170,39 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		t = validate_tm_time(date_str, &tm_time);
 
 		timebuf[1].tv_sec = timebuf[0].tv_sec = t;
+		newtime = timebuf;
+	}
+
+	if ((opts & (OPT_a | OPT_m)) && !newtime) {
+		time(&timebuf[0].tv_sec);
+		timebuf[1].tv_sec = timebuf[0].tv_sec;
+		newtime = timebuf;
 	}
 
 	do {
 		int result;
-		result = (
-#if ENABLE_FEATURE_TOUCH_NODEREF
-			(opts & OPT_h) ? lutimes :
-#endif
-			utimes)(*argv, (reference_file || date_str) ? timebuf : NULL);
+
+		if (opts & (OPT_a | OPT_m)) {
+			/* Save original times */
+			struct stat stbuf;
+			if (stat(*argv, &stbuf) == 0) {
+				/* As we must set both times, we lose original
+				 * file time microseconds.
+				 * Can use .st_mtim.tv_nsec
+				 * (or is it .st_mtimensec?? see date.c)
+				 * to set microseconds too.
+				 * Also, utimensat(2) allows to omit one of the
+				 * times to be set. But it is SUSv4.
+				 */
+				if (!(opts & OPT_a))
+					timebuf[0].tv_sec = stbuf.st_atime;
+				if (!(opts & OPT_m))
+					timebuf[1].tv_sec = stbuf.st_mtime;
+			}
+		}
+
+		result = (ENABLE_FEATURE_TOUCH_NODEREF && (opts & OPT_h) ? lutimes : utimes)(*argv, newtime);
+
 		if (result != 0) {
 			if (errno == ENOENT) { /* no such file? */
 				if (opts & OPT_c) {
@@ -183,7 +214,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 				if (fd >= 0) {
 					xclose(fd);
 					if (reference_file || date_str)
-						utimes(*argv, timebuf);
+						utimes(*argv, newtime);
 					continue;
 				}
 			}
