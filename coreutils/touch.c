@@ -120,14 +120,18 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	 * accepted data format differs a bit between -d and -t.
 	 * We accept the same formats for both
 	 */
-	opts = getopt32long(argv, "c" IF_FEATURE_TOUCH_NODEREF("h")
-				IF_FEATURE_TOUCH_SUSV3("r:d:t:am")
-				/*ignored:*/ "f" IF_NOT_FEATURE_TOUCH_SUSV3("am"),
-				touch_longopts
+	opts = getopt32long(argv, "^"
+		"c" IF_FEATURE_TOUCH_NODEREF("h")
+		IF_FEATURE_TOUCH_SUSV3("r:d:t:am")
+		/*ignored:*/ "f" IF_NOT_FEATURE_TOUCH_SUSV3("am")
+		"\0" /* opt_complementary: */
+		/* coreutils forbids -r and -t at once: */ IF_FEATURE_TOUCH_SUSV3("r--t:t--r")
+		/* but allows these combinations: "r--d:d--r:t--d:d--t" */,
+		touch_longopts
 #if ENABLE_FEATURE_TOUCH_SUSV3
-				, &reference_file
-				, &date_str
-				, &date_str
+		, &reference_file
+		, &date_str
+		, &date_str
 #endif
 	);
 
