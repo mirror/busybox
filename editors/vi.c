@@ -3429,11 +3429,12 @@ static void do_cmd(int c)
 			break;
 		}
 		// are we putting whole lines or strings
+		cnt = 0;
 		if (regtype[YDreg] == WHOLE) {
 			if (c == 'P') {
 				dot_begin();	// putting lines- Put above
 			}
-			if (c == 'p') {
+			else /* if ( c == 'p') */ {
 				// are we putting after very last line?
 				if (end_line(dot) == (end - 1)) {
 					dot = end;	// force dot to end of text[]
@@ -3444,8 +3445,18 @@ static void do_cmd(int c)
 		} else {
 			if (c == 'p')
 				dot_right();	// move to right, can move to NL
+			// how far to move cursor if register doesn't have a NL
+			if (strchr(p, '\n') == NULL)
+				cnt = (cmdcnt ?: 1) * strlen(p) - 1;
 		}
-		string_insert(dot, p, ALLOW_UNDO);	// insert the string
+		do {
+			// dot is adjusted if text[] is reallocated so we don't have to
+			string_insert(dot, p, allow_undo);	// insert the string
+# if ENABLE_FEATURE_VI_UNDO
+			allow_undo = ALLOW_UNDO_CHAIN;
+# endif
+		} while (--cmdcnt > 0);
+		dot += cnt;
 		end_cmd_q();	// stop adding to q
 		break;
 	case 'U':			// U- Undo; replace current line with original version
