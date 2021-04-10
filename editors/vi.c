@@ -3213,6 +3213,10 @@ static void do_cmd(int c)
 	int dir;
 	int cnt, i, j;
 	int c1;
+#if ENABLE_FEATURE_VI_UNDO
+	int allow_undo = ALLOW_UNDO;
+	int undo_del = UNDO_DEL;
+#endif
 
 //	c1 = c; // quiet the compiler
 //	cnt = yf = 0; // quiet the compiler
@@ -3614,24 +3618,29 @@ static void do_cmd(int c)
 		cnt = count_lines(text, dot);	// remember what line we are on
 		if (find_range(&p, &q, c) == -1)
 			goto dc6;
-		yank_delete(p, q, WHOLE, YANKONLY, NO_UNDO);	// save copy before change
 		i = count_lines(p, q);	// # of lines we are shifting
 		for ( ; i > 0; i--, p = next_line(p)) {
 			if (c == '<') {
 				// shift left- remove tab or 8 spaces
 				if (*p == '\t') {
 					// shrink buffer 1 char
-					text_hole_delete(p, p, NO_UNDO);
+					text_hole_delete(p, p, allow_undo);
 				} else if (*p == ' ') {
 					// we should be calculating columns, not just SPACE
 					for (j = 0; *p == ' ' && j < tabstop; j++) {
-						text_hole_delete(p, p, NO_UNDO);
+						text_hole_delete(p, p, allow_undo);
+#if ENABLE_FEATURE_VI_UNDO
+						allow_undo = ALLOW_UNDO_CHAIN;
+#endif
 					}
 				}
-			} else if (c == '>') {
+			} else /* if (c == '>') */ {
 				// shift right -- add tab or 8 spaces
-				char_insert(p, '\t', ALLOW_UNDO);
+				char_insert(p, '\t', allow_undo);
 			}
+#if ENABLE_FEATURE_VI_UNDO
+			allow_undo = ALLOW_UNDO_CHAIN;
+#endif
 		}
 		dot = find_line(cnt);	// what line were we on
 		dot_skip_over_ws();
@@ -3785,7 +3794,10 @@ static void do_cmd(int c)
 			if (dot[dir] != '\n') {
 				if (c == 'X')
 					dot--;	// delete prev char
-				dot = yank_delete(dot, dot, PARTIAL, YANKDEL, ALLOW_UNDO);	// delete char
+				dot = yank_delete(dot, dot, PARTIAL, YANKDEL, allow_undo);	// delete char
+#if ENABLE_FEATURE_VI_UNDO
+				allow_undo = ALLOW_UNDO_CHAIN;
+#endif
 			}
 		} while (--cmdcnt > 0);
 		end_cmd_q();	// stop adding to q
@@ -3945,14 +3957,11 @@ static void do_cmd(int c)
 	case '~':			// ~- flip the case of letters   a-z -> A-Z
 		do {
 #if ENABLE_FEATURE_VI_UNDO
-			if (islower(*dot)) {
-				undo_push(dot, 1, UNDO_DEL);
-				*dot = toupper(*dot);
+			if (isalpha(*dot)) {
+				undo_push(dot, 1, undo_del);
+				*dot = islower(*dot) ? toupper(*dot) : tolower(*dot);
 				undo_push(dot, 1, UNDO_INS_CHAIN);
-			} else if (isupper(*dot)) {
-				undo_push(dot, 1, UNDO_DEL);
-				*dot = tolower(*dot);
-				undo_push(dot, 1, UNDO_INS_CHAIN);
+				undo_del = UNDO_DEL_CHAIN;
 			}
 #else
 			if (islower(*dot)) {
