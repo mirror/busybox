@@ -3920,9 +3920,18 @@ static void do_cmd(int c)
 		break;
 	case 'r':			// r- replace the current char with user input
 		c1 = get_one_char();	// get the replacement char
-		if (*dot != '\n') {
-			dot = text_hole_delete(dot, dot, ALLOW_UNDO);
-			dot = char_insert(dot, c1, ALLOW_UNDO_CHAIN);
+		if (c1 != 27) {
+			if (end_line(dot) - dot < (cmdcnt ?: 1)) {
+				indicate_error();
+				goto dc6;
+			}
+			do {
+				dot = text_hole_delete(dot, dot, allow_undo);
+#if ENABLE_FEATURE_VI_UNDO
+				allow_undo = ALLOW_UNDO_CHAIN;
+#endif
+				dot = char_insert(dot, c1, allow_undo);
+			} while (--cmdcnt > 0);
 			dot_left();
 		}
 		end_cmd_q();	// stop adding to q
