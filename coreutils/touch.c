@@ -25,7 +25,6 @@
 //config:	depends on TOUCH
 //config:	help
 //config:	Enable touch to have the -h option.
-//config:	This requires libc support for lutimes() function.
 //config:
 //config:config FEATURE_TOUCH_SUSV3
 //config:	bool "Add support for SUSV3 features (-a -d -m -t -r)"
@@ -97,8 +96,6 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		OPT_a = (1 << (4+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
 		OPT_m = (1 << (5+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
 	};
-	/* NULL = use current time */
-	const struct timeval *newtime = NULL;
 #if ENABLE_LONG_OPTS
 	static const char touch_longopts[] ALIGN1 =
 		/* name, has_arg, val */
@@ -112,12 +109,11 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	char *reference_file = NULL;
 	char *date_str = NULL;
 	/* timebuf[0] is atime, timebuf[1] is mtime */
-	struct timeval timebuf[2];
-	timebuf[1].tv_usec = timebuf[0].tv_usec = 0;
+	struct timespec timebuf[2];
 #else
 # define reference_file NULL
 # define date_str       NULL
-# define timebuf        ((struct timeval*)NULL)
+# define timebuf        ((struct timespec*)NULL)
 #endif
 
 	/* -d and -t both set time. In coreutils,
@@ -140,16 +136,15 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 	}
 
+	timebuf[0].tv_nsec = timebuf[1].tv_nsec = UTIME_NOW;
+
 	if (reference_file) {
 		struct stat stbuf;
 		xstat(reference_file, &stbuf);
 		timebuf[0].tv_sec = stbuf.st_atime;
 		timebuf[1].tv_sec = stbuf.st_mtime;
-		/* Can use .st_mtim.tv_nsec
-		 * (or is it .st_mtimensec?? see date.c)
-		 * to set microseconds too.
-		 */
-		newtime = timebuf;
+		timebuf[0].tv_nsec = stbuf.st_atim.tv_nsec;
+		timebuf[1].tv_nsec = stbuf.st_mtim.tv_nsec;
 	}
 
 	if (date_str) {
@@ -167,39 +162,19 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		t = validate_tm_time(date_str, &tm_time);
 
 		timebuf[1].tv_sec = timebuf[0].tv_sec = t;
-		newtime = timebuf;
+		timebuf[1].tv_nsec = timebuf[0].tv_nsec = 0;
 	}
 
-	if ((opts & (OPT_a | OPT_m)) && !newtime) {
-		time(&timebuf[0].tv_sec);
-		timebuf[1].tv_sec = timebuf[0].tv_sec;
-		newtime = timebuf;
+	if (opts & OPT_a) {
+		timebuf[1].tv_nsec = UTIME_OMIT;
+	}
+	if (opts & OPT_m) {
+		timebuf[0].tv_nsec = UTIME_OMIT;
 	}
 
 	do {
-		int result;
-
-		if (opts & (OPT_a | OPT_m)) {
-			/* Save original times */
-			struct stat stbuf;
-			if (stat(*argv, &stbuf) == 0) {
-				/* As we must set both times, we lose original
-				 * file time microseconds.
-				 * Can use .st_mtim.tv_nsec
-				 * (or is it .st_mtimensec?? see date.c)
-				 * to set microseconds too.
-				 * Also, utimensat(2) allows to omit one of the
-				 * times to be set. But it is SUSv4.
-				 */
-				if (!(opts & OPT_a))
-					timebuf[0].tv_sec = stbuf.st_atime;
-				if (!(opts & OPT_m))
-					timebuf[1].tv_sec = stbuf.st_mtime;
-			}
-		}
-
-		result = (ENABLE_FEATURE_TOUCH_NODEREF && (opts & OPT_h) ? lutimes : utimes)(*argv, newtime);
-
+		int result = utimensat(AT_FDCWD, *argv, timebuf,
+				(opts & OPT_h) ? AT_SYMLINK_NOFOLLOW : 0);
 		if (result != 0) {
 			if (errno == ENOENT) { /* no such file? */
 				if (opts & OPT_c) {
@@ -209,9 +184,9 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 				/* Try to create the file */
 				fd = open(*argv, O_RDWR | O_CREAT, 0666);
 				if (fd >= 0) {
-					xclose(fd);
 					if (reference_file || date_str)
-						utimes(*argv, newtime);
+						futimens(fd, timebuf);
+					xclose(fd);
 					continue;
 				}
 			}
