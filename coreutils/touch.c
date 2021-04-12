@@ -90,12 +90,12 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	int opts;
 	enum {
 		OPT_c = (1 << 0),
-		OPT_r = (1 << 1) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_d = (1 << 2) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_t = (1 << 3) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_a = (1 << 4) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_m = (1 << 5) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_h = (1 << 6) * ENABLE_FEATURE_TOUCH_NODEREF,
+		OPT_h = (1 << 1) * ENABLE_FEATURE_TOUCH_NODEREF,
+		OPT_r = (1 << (1+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_d = (1 << (2+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_t = (1 << (3+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_a = (1 << (4+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_m = (1 << (5+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
 	};
 	/* NULL = use current time */
 	const struct timeval *newtime = NULL;
@@ -122,9 +122,10 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 
 	/* -d and -t both set time. In coreutils,
 	 * accepted data format differs a bit between -d and -t.
-	 * We accept the same formats for both */
-	opts = getopt32long(argv, "c" IF_FEATURE_TOUCH_SUSV3("r:d:t:am")
-				IF_FEATURE_TOUCH_NODEREF("h")
+	 * We accept the same formats for both
+	 */
+	opts = getopt32long(argv, "c" IF_FEATURE_TOUCH_NODEREF("h")
+				IF_FEATURE_TOUCH_SUSV3("r:d:t:am")
 				/*ignored:*/ "f" IF_NOT_FEATURE_TOUCH_SUSV3("am"),
 				touch_longopts
 #if ENABLE_FEATURE_TOUCH_SUSV3
