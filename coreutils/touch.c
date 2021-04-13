@@ -88,8 +88,8 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	int opts;
 	smalluint status = EXIT_SUCCESS;
 #if ENABLE_FEATURE_TOUCH_SUSV3
-	char *reference_file = NULL;
-	char *date_str = NULL;
+	char *reference_file;
+	char *date_str;
 	/* timebuf[0] is atime, timebuf[1] is mtime */
 	struct timespec timebuf[2];
 #else
@@ -137,7 +137,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	);
 
 	timebuf[0].tv_nsec = timebuf[1].tv_nsec = UTIME_NOW;
-	if (reference_file) {
+	if (opts & OPT_r) {
 		struct stat stbuf;
 		xstat(reference_file, &stbuf);
 		timebuf[0].tv_sec = stbuf.st_atime;
@@ -145,7 +145,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		timebuf[0].tv_nsec = stbuf.st_atim.tv_nsec;
 		timebuf[1].tv_nsec = stbuf.st_mtim.tv_nsec;
 	}
-	if (date_str) {
+	if (opts & (OPT_d|OPT_t)) {
 		struct tm tm_time;
 		time_t t;
 
