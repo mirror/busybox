@@ -19,13 +19,6 @@
 //config:	touch is used to create or change the access and/or
 //config:	modification timestamp of specified files.
 //config:
-//config:config FEATURE_TOUCH_NODEREF
-//config:	bool "Add support for -h"
-//config:	default y
-//config:	depends on TOUCH
-//config:	help
-//config:	Enable touch to have the -h option.
-//config:
 //config:config FEATURE_TOUCH_SUSV3
 //config:	bool "Add support for SUSV3 features (-a -d -m -t -r)"
 //config:	default y
@@ -44,9 +37,7 @@
 //usage:#define touch_full_usage "\n\n"
 //usage:       "Update the last-modified date on the given FILE[s]\n"
 //usage:     "\n	-c	Don't create files"
-//usage:	IF_FEATURE_TOUCH_NODEREF(
 //usage:     "\n	-h	Don't follow links"
-//usage:	)
 //usage:	IF_FEATURE_TOUCH_SUSV3(
 //usage:     "\n	-a	Change only atime"
 //usage:     "\n	-m	Change only mtime"
@@ -100,20 +91,20 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 
 	enum {
 		OPT_c = (1 << 0),
-		OPT_h = (1 << 1) * ENABLE_FEATURE_TOUCH_NODEREF,
-		OPT_r = (1 << (1+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_d = (1 << (2+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_t = (1 << (3+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_a = (1 << (4+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
-		OPT_m = (1 << (5+ENABLE_FEATURE_TOUCH_NODEREF)) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_h = (1 << 1),
+		OPT_r = (1 << 2) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_d = (1 << 3) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_t = (1 << 4) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_a = (1 << 5) * ENABLE_FEATURE_TOUCH_SUSV3,
+		OPT_m = (1 << 6) * ENABLE_FEATURE_TOUCH_SUSV3,
 	};
 #if ENABLE_LONG_OPTS
 	static const char touch_longopts[] ALIGN1 =
 		/* name, has_arg, val */
-		"no-create\0"         No_argument       "c"
+		"no-create\0"        No_argument       "c"
+		"no-dereference\0"   No_argument       "h"
 		IF_FEATURE_TOUCH_SUSV3("reference\0"        Required_argument "r")
 		IF_FEATURE_TOUCH_SUSV3("date\0"             Required_argument "d")
-		IF_FEATURE_TOUCH_NODEREF("no-dereference\0" No_argument "h")
 	;
 #endif
 	/* -d and -t both set time. In coreutils,
@@ -121,7 +112,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	 * We accept the same formats for both
 	 */
 	opts = getopt32long(argv, "^"
-		"c" IF_FEATURE_TOUCH_NODEREF("h")
+		"ch"
 		IF_FEATURE_TOUCH_SUSV3("r:d:t:am")
 		/*ignored:*/ "f" IF_NOT_FEATURE_TOUCH_SUSV3("am")
 		"\0" /* opt_complementary: */
