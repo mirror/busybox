@@ -173,7 +173,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 				/* Try to create the file */
 				fd = open(*argv, O_RDWR | O_CREAT, 0666);
 				if (fd >= 0) {
-					if (reference_file || date_str)
+					if (opts & (OPT_r|OPT_d|OPT_t))
 						futimens(fd, timebuf);
 					xclose(fd);
 					continue;
