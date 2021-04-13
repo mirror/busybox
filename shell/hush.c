@@ -2670,6 +2670,8 @@ static int get_user_input(struct in_str *i)
 	}
 	if (r < 0) {
 		/* EOF/error detected */
+		/* ^D on interactive input goes to next line before exiting: */
+		write(STDOUT_FILENO, "\n", 1);
 		i->p = NULL;
 		i->peek_buf[0] = r = EOF;
 		return r;
