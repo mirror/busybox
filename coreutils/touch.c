@@ -85,8 +85,19 @@ int touch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int touch_main(int argc UNUSED_PARAM, char **argv)
 {
 	int fd;
-	int status = EXIT_SUCCESS;
 	int opts;
+	smalluint status = EXIT_SUCCESS;
+#if ENABLE_FEATURE_TOUCH_SUSV3
+	char *reference_file = NULL;
+	char *date_str = NULL;
+	/* timebuf[0] is atime, timebuf[1] is mtime */
+	struct timespec timebuf[2];
+#else
+# define reference_file NULL
+# define date_str       NULL
+# define timebuf        ((struct timespec*)NULL)
+#endif
+
 	enum {
 		OPT_c = (1 << 0),
 		OPT_h = (1 << 1) * ENABLE_FEATURE_TOUCH_NODEREF,
@@ -105,17 +116,6 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_TOUCH_NODEREF("no-dereference\0" No_argument "h")
 	;
 #endif
-#if ENABLE_FEATURE_TOUCH_SUSV3
-	char *reference_file = NULL;
-	char *date_str = NULL;
-	/* timebuf[0] is atime, timebuf[1] is mtime */
-	struct timespec timebuf[2];
-#else
-# define reference_file NULL
-# define date_str       NULL
-# define timebuf        ((struct timespec*)NULL)
-#endif
-
 	/* -d and -t both set time. In coreutils,
 	 * accepted data format differs a bit between -d and -t.
 	 * We accept the same formats for both
@@ -125,9 +125,10 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_TOUCH_SUSV3("r:d:t:am")
 		/*ignored:*/ "f" IF_NOT_FEATURE_TOUCH_SUSV3("am")
 		"\0" /* opt_complementary: */
-		/* coreutils forbids -r and -t at once: */ IF_FEATURE_TOUCH_SUSV3("r--t:t--r")
-		/* but allows these combinations: "r--d:d--r:t--d:d--t" */,
-		touch_longopts
+		/* at least one arg: */ "-1"
+		/* coreutils forbids -r and -t at once: */ IF_FEATURE_TOUCH_SUSV3(":r--t:t--r")
+		/* but allows these combinations: "r--d:d--r:t--d:d--t" */
+		, touch_longopts
 #if ENABLE_FEATURE_TOUCH_SUSV3
 		, &reference_file
 		, &date_str
@@ -135,13 +136,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	);
 
-	argv += optind;
-	if (!*argv) {
-		bb_show_usage();
-	}
-
 	timebuf[0].tv_nsec = timebuf[1].tv_nsec = UTIME_NOW;
-
 	if (reference_file) {
 		struct stat stbuf;
 		xstat(reference_file, &stbuf);
@@ -150,7 +145,6 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		timebuf[0].tv_nsec = stbuf.st_atim.tv_nsec;
 		timebuf[1].tv_nsec = stbuf.st_mtim.tv_nsec;
 	}
-
 	if (date_str) {
 		struct tm tm_time;
 		time_t t;
@@ -168,7 +162,6 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		timebuf[1].tv_sec = timebuf[0].tv_sec = t;
 		timebuf[1].tv_nsec = timebuf[0].tv_nsec = 0;
 	}
-
 	if (opts & OPT_a) {
 		timebuf[1].tv_nsec = UTIME_OMIT;
 	}
@@ -176,6 +169,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		timebuf[0].tv_nsec = UTIME_OMIT;
 	}
 
+	argv += optind;
 	do {
 		int result = utimensat(AT_FDCWD, *argv, timebuf,
 				(opts & OPT_h) ? AT_SYMLINK_NOFOLLOW : 0);
