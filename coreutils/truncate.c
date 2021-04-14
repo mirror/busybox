@@ -19,9 +19,9 @@
 //usage:#define truncate_trivial_usage
 //usage:       "[-c] -s SIZE FILE..."
 //usage:#define truncate_full_usage "\n\n"
-//usage:	"Truncate FILEs to the given size\n"
+//usage:	"Truncate FILEs to SIZE\n"
 //usage:	"\n	-c	Do not create files"
-//usage:	"\n	-s SIZE	Truncate to SIZE"
+//usage:	"\n	-s SIZE"
 //usage:
 //usage:#define truncate_example_usage
 //usage:	"$ truncate -s 1G foo"

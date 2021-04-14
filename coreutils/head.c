@@ -29,7 +29,7 @@
 //usage:#define head_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define head_full_usage "\n\n"
-//usage:       "Print first 10 lines of each FILE (or stdin) to stdout.\n"
+//usage:       "Print first 10 lines of FILEs (or stdin) to stdout.\n"
 //usage:       "With more than one FILE, precede each with a filename header.\n"
 //usage:     "\n	-n N[kbm]	Print first N lines"
 //usage:	IF_FEATURE_FANCY_HEAD(

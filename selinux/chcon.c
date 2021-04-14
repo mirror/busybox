@@ -26,7 +26,7 @@
 //usage:	)
 //usage:
 //usage:#define chcon_full_usage "\n\n"
-//usage:       "Change the security context of each FILE to CONTEXT\n"
+//usage:       "Change the security context of FILEs to CONTEXT\n"
 //usage:     "\n	-v	Verbose"
 //usage:     "\n	-c	Report changes made"
 //usage:     "\n	-h	Affect symlinks instead of their targets"

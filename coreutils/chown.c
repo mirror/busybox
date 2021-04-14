@@ -28,7 +28,7 @@
 //usage:#define chown_trivial_usage
 //usage:       "[-Rh"IF_DESKTOP("LHPcvf")"]... USER[:[GRP]] FILE..."
 //usage:#define chown_full_usage "\n\n"
-//usage:       "Change the owner and/or group of each FILE to USER and/or GRP\n"
+//usage:       "Change the owner and/or group of FILEs to USER and/or GRP\n"
 //usage:     "\n	-R	Recurse"
 //usage:     "\n	-h	Affect symlinks instead of symlink targets"
 //usage:	IF_DESKTOP(

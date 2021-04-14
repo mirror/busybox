@@ -27,7 +27,7 @@
 //config:	When enabled, the watchdog device is opened and then immediately
 //config:	magic-closed, before being opened a second time. This may be necessary
 //config:	for some watchdog devices, but can cause spurious warnings in the
-//config:	kernel log if the nowayout feature is enabled. Also, if this workaround
+//config:	kernel log if the nowayout feature is enabled. If this workaround
 //config:	is really needed for you machine to work properly, consider whether
 //config:	it should be fixed in the kernel driver instead. Even when disabled,
 //config:	the behaviour is easily emulated with a "printf 'V' > /dev/watchdog"

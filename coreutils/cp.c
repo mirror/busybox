@@ -40,7 +40,7 @@
 //usage:#define cp_trivial_usage
 //usage:       "[-arPLHpfilsTu] SOURCE... DEST"
 //usage:#define cp_full_usage "\n\n"
-//usage:       "Copy SOURCE(s) to DEST\n"
+//usage:       "Copy SOURCEs to DEST\n"
 //usage:     "\n	-a	Same as -dpR"
 //usage:	IF_SELINUX(
 //usage:     "\n	-c	Preserve security context"

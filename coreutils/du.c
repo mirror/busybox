@@ -40,7 +40,7 @@
 //usage:#define du_trivial_usage
 //usage:       "[-aHLdclsx" IF_FEATURE_HUMAN_READABLE("hm") "k] [FILE]..."
 //usage:#define du_full_usage "\n\n"
-//usage:       "Summarize disk space used for each FILE and/or directory\n"
+//usage:       "Summarize disk space used for FILEs (or directories)\n"
 //usage:     "\n	-a	Show file sizes too"
 //usage:     "\n	-L	Follow all symlinks"
 //usage:     "\n	-H	Follow symlinks on command line"

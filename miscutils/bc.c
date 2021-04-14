@@ -108,14 +108,14 @@
 
 //See www.gnu.org/software/bc/manual/bc.html
 //usage:#define bc_trivial_usage
-//usage:       "[-sqlw] FILE..."
+//usage:       "[-sqlw] [FILE...]"
 //usage:
 //usage:#define bc_full_usage "\n"
 //usage:     "\nArbitrary precision calculator"
 //usage:     "\n"
 ///////:     "\n	-i	Interactive" - has no effect for now
 //usage:     "\n	-q	Quiet"
-//usage:     "\n	-l	Load standard math library"
+//usage:     "\n	-l	Load standard library"
 //usage:     "\n	-s	Be POSIX compatible"
 //usage:     "\n	-w	Warn if extensions are used"
 ///////:     "\n	-v	Version"

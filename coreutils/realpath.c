@@ -23,7 +23,7 @@
 //usage:#define realpath_trivial_usage
 //usage:       "FILE..."
 //usage:#define realpath_full_usage "\n\n"
-//usage:       "Return the absolute pathnames of given FILE"
+//usage:       "Print absolute pathnames of FILEs"
 
 #include "libbb.h"
 

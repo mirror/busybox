@@ -23,7 +23,7 @@
 //usage:#define chgrp_trivial_usage
 //usage:       "[-Rh"IF_DESKTOP("LHPcvf")"]... GROUP FILE..."
 //usage:#define chgrp_full_usage "\n\n"
-//usage:       "Change the group membership of each FILE to GROUP\n"
+//usage:       "Change the group membership of FILEs to GROUP\n"
 //usage:     "\n	-R	Recurse"
 //usage:     "\n	-h	Affect symlinks instead of symlink targets"
 //usage:	IF_DESKTOP(

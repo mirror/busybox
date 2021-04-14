@@ -22,12 +22,12 @@
 //usage:#define cut_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define cut_full_usage "\n\n"
-//usage:       "Print selected fields from each input FILE to stdout\n"
+//usage:       "Print selected fields from FILEs to stdout\n"
 //usage:     "\n	-b LIST	Output only bytes from LIST"
 //usage:     "\n	-c LIST	Output only characters from LIST"
-//usage:     "\n	-d CHAR	Use CHAR instead of tab as the field delimiter"
-//usage:     "\n	-s	Output only the lines containing delimiter"
-//usage:     "\n	-f N	Print only these fields"
+//usage:     "\n	-d CHAR	Use CHAR instead of tab as field delimiter"
+//usage:     "\n	-s	Output only lines containing delimiter"
+//usage:     "\n	-f LIST	Print only these fields"
 //usage:     "\n	-n	Ignored"
 //usage:
 //usage:#define cut_example_usage
