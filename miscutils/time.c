@@ -33,6 +33,13 @@
 
 #include "libbb.h"
 
+#ifndef HAVE_WAIT3
+static pid_t wait3(int *status, int options, struct rusage *rusage)
+{
+	return wait4(-1, status, options, rusage);
+}
+#endif
+
 /* Information on the resources used by a child process.  */
 typedef struct {
 	int waitstatus;
