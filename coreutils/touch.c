@@ -156,12 +156,10 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	/* If both -a and -m specified, both times should be set.
 	 * IOW: set OMIT only if one, not both, of them is given!
 	 */
-	if ((opts & (OPT_a|OPT_m)) != (OPT_a|OPT_m)) {
-		if (opts & OPT_a)
-			timebuf[1].tv_nsec = UTIME_OMIT;
-		if (opts & OPT_m)
-			timebuf[0].tv_nsec = UTIME_OMIT;
-	}
+	if ((opts & (OPT_a|OPT_m)) == OPT_a)
+		timebuf[1].tv_nsec = UTIME_OMIT;
+	if ((opts & (OPT_a|OPT_m)) == OPT_m)
+		timebuf[0].tv_nsec = UTIME_OMIT;
 
 	argv += optind;
 	do {
