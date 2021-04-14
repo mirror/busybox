@@ -771,7 +771,7 @@ static void conf(struct menu *menu)
 		if (!type)
 			continue;
 
-		for (i = 0; input_buf[i] && !isspace(input_buf[i]); i++)
+		for (i = 0; input_buf[i] && !isspace((unsigned char)input_buf[i]); i++)
 			;
 		if (i >= sizeof(active_entry))
 			i = sizeof(active_entry) - 1;

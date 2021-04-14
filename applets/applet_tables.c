@@ -56,7 +56,7 @@ static int cmp_name(const void *a, const void *b)
 static int str_isalnum_(const char *s)
 {
 	while (*s) {
-		if (!isalnum(*s) && *s != '_')
+		if (!isalnum((unsigned char)*s) && *s != '_')
 			return 0;
 		s++;
 	}

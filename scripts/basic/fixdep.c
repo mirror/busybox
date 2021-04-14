@@ -226,10 +226,10 @@ void use_config(char *m, int slen)
 void parse_config_file(char *map, size_t len)
 {
 	/* modified for bbox */
-	char *end_3 = map + len - 3; /* 3 == length of "IF_" */
-	char *end_7 = map + len - 7;
-	char *p = map;
-	char *q;
+	unsigned char *end_3 = (unsigned char *)map + len - 3; /* 3 == length of "IF_" */
+	unsigned char *end_7 = (unsigned char *)map + len - 7;
+	unsigned char *p = (unsigned char *)map;
+	unsigned char *q;
 	int off;
 
 	for (; p <= end_3; p++) {
@@ -263,7 +263,7 @@ void parse_config_file(char *map, size_t len)
 				break;
 		}
 		if (q != p) {
-			use_config(p, q-p);
+			use_config((char*)p, q - p);
 		}
 	}
 }
@@ -335,7 +335,7 @@ void parse_dep_file(void *map, size_t len)
 		p = m;
 		while (p < end && *p != ' ') p++;
 		if (p == end) {
-			do p--; while (!isalnum(*p));
+			do p--; while (!isalnum((unsigned char)*p));
 			p++;
 		}
 		memcpy(s, m, p-m); s[p-m] = 0;

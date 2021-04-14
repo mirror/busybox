@@ -54,7 +54,7 @@ static char *conf_expand_value(const char *in)
 		strncat(res_value, in, src - in);
 		src++;
 		dst = name;
-		while (isalnum(*src) || *src == '_')
+		while (isalnum((unsigned char)*src) || *src == '_')
 			*dst++ = *src++;
 		*dst = 0;
 		sym = sym_lookup(name, 0);

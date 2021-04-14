@@ -44,7 +44,7 @@ static void strip(char *str)
 	char *p = str;
 	int l;
 
-	while ((isspace(*p)))
+	while ((isspace((unsigned char)*p)))
 		p++;
 	l = strlen(p);
 	if (p != str)
@@ -52,7 +52,7 @@ static void strip(char *str)
 	if (!l)
 		return;
 	p = str + l - 1;
-	while ((isspace(*p)))
+	while ((isspace((unsigned char)*p)))
 		*p-- = 0;
 }
 
@@ -401,7 +401,7 @@ static int conf_choice(struct menu *menu)
 			}
 			if (!line[0])
 				cnt = def;
-			else if (isdigit(line[0]))
+			else if (isdigit((unsigned char)line[0]))
 				cnt = atoi(line);
 			else
 				continue;

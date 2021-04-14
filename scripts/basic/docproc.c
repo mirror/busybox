@@ -182,10 +182,10 @@ void find_export_symbols(char * filename)
 			perror(real_filename);
 		}
 		while (fgets(line, MAXLINESZ, fp)) {
-			char *p;
-			char *e;
-			if (((p = strstr(line, "EXPORT_SYMBOL_GPL")) != 0) ||
-			    ((p = strstr(line, "EXPORT_SYMBOL")) != 0)) {
+			unsigned char *p;
+			unsigned char *e;
+			if (((p = (unsigned char *)strstr(line, "EXPORT_SYMBOL_GPL")) != 0) ||
+			    ((p = (unsigned char *)strstr(line, "EXPORT_SYMBOL")) != 0)) {
 				/* Skip EXPORT_SYMBOL{_GPL} */
 				while (isalnum(*p) || *p == '_')
 					p++;
@@ -202,7 +202,7 @@ void find_export_symbols(char * filename)
 				while (isalnum(*e) || *e == '_')
 					e++;
 				*e = '\0';
-				add_new_symbol(sym, p);
+				add_new_symbol(sym, (char*)p);
 			}
 		}
 		fclose(fp);
@@ -266,7 +266,7 @@ void singfunc(char * filename, char * line)
 
 	/* Split line up in individual parameters preceded by FUNCTION */
 	for (i=0; line[i]; i++) {
-		if (isspace(line[i])) {
+		if (isspace((unsigned char) line[i])) {
 			line[i] = '\0';
 			startofsym = 1;
 			continue;
@@ -293,10 +293,10 @@ void singfunc(char * filename, char * line)
 void parse_file(FILE *infile)
 {
 	char line[MAXLINESZ];
-	char * s;
+	unsigned char * s;
 	while (fgets(line, MAXLINESZ, infile)) {
 		if (line[0] == '!') {
-			s = line + 2;
+			s = (unsigned char *)line + 2;
 			switch (line[1]) {
 				case 'E':
 					while (*s && !isspace(*s)) s++;
@@ -320,7 +320,7 @@ void parse_file(FILE *infile)
 					/* function names */
 					while (isspace(*s))
 						s++;
-					singlefunctions(line +2, s);
+					singlefunctions(line +2, (char*)s);
 					break;
 				default:
 					defaultline(line);
