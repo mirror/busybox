@@ -1314,7 +1314,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 			strcpy(&command[cursor_mb], chosen_match + match_pfx_len);
 			len = load_string(command);
 			/* add match and tail */
-			sprintf(&command[cursor_mb], "%s%s", chosen_match + match_pfx_len, match_buf);
+			stpcpy(stpcpy(&command[cursor_mb], chosen_match + match_pfx_len), match_buf);
 			command_len = load_string(command);
 			/* write out the matched command */
 			/* paranoia: load_string can return 0 on conv error,

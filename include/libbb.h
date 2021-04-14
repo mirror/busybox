@@ -623,7 +623,7 @@ uoff_t FAST_FUNC get_volume_size_in_bytes(int fd,
 		unsigned override_units,
 		int extend);
 
-void xpipe(int filedes[2]) FAST_FUNC;
+void xpipe(int *filedes) FAST_FUNC;
 /* In this form code with pipes is much more readable */
 struct fd_pair { int rd; int wr; };
 #define piped_pair(pair)  pipe(&((pair).rd))

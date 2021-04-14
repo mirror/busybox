@@ -65,7 +65,7 @@ void FAST_FUNC udhcp_sp_setup(void)
 /* Quick little function to setup the pfds.
  * Limited in that you can only pass one extra fd.
  */
-void FAST_FUNC udhcp_sp_fd_set(struct pollfd pfds[2], int extra_fd)
+void FAST_FUNC udhcp_sp_fd_set(struct pollfd *pfds, int extra_fd)
 {
 	pfds[0].fd = READ_FD;
 	pfds[0].events = POLLIN;

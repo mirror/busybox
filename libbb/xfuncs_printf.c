@@ -224,7 +224,7 @@ int FAST_FUNC rename_or_warn(const char *oldpath, const char *newpath)
 	return n;
 }
 
-void FAST_FUNC xpipe(int filedes[2])
+void FAST_FUNC xpipe(int *filedes)
 {
 	if (pipe(filedes))
 		bb_simple_perror_msg_and_die("can't create pipe");
