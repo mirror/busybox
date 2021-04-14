@@ -87,6 +87,7 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 	char *out;
 	char *buffer;
 	unsigned buflen;
+	int err;
 #if !ENABLE_FEATURE_FANCY_ECHO
 	enum {
 		eflag = 0,  /* 0 -- disable escape sequences */
@@ -97,7 +98,6 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 #else
 	char nflag = 1;
 	char eflag = 0;
-	int err;
 
 	while ((arg = *++argv) != NULL) {
 		char n, e;
