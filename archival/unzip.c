@@ -64,6 +64,7 @@
 //usage:     "\n	-o	Overwrite"
 //usage:     "\n	-j	Do not restore paths"
 //usage:     "\n	-p	Print to stdout"
+//usage:     "\n	-t	Test"
 //usage:     "\n	-q	Quiet"
 //usage:     "\n	-x FILE	Exclude FILEs"
 //usage:     "\n	-d DIR	Extract into DIR"
@@ -556,7 +557,7 @@ int unzip_main(int argc, char **argv)
 
 	opts = 0;
 	/* '-' makes getopt return 1 for non-options */
-	while ((i = getopt(argc, argv, "-d:lnopqxjv")) != -1) {
+	while ((i = getopt(argc, argv, "-d:lnotpqxjv")) != -1) {
 		switch (i) {
 		case 'd':  /* Extract to base directory */
 			base_dir = optarg;
@@ -574,8 +575,13 @@ int unzip_main(int argc, char **argv)
 			overwrite = O_ALWAYS;
 			break;
 
-		case 'p': /* Extract files to stdout and fall through to set verbosity */
+		case 't': /* Extract files to /dev/null */
+			xmove_fd(xopen("/dev/null", O_WRONLY), STDOUT_FILENO);
+			/*fallthrough*/
+
+		case 'p': /* Extract files to stdout */
 			dst_fd = STDOUT_FILENO;
+			/*fallthrough*/
 
 		case 'q': /* Be quiet */
 			quiet++;
@@ -984,7 +990,6 @@ int unzip_main(int argc, char **argv)
 			/* O_NOFOLLOW defends against symlink attacks */
 			dst_fd = xopen(dst_fn, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW);
 #endif
- do_extract:
 			if (!quiet) {
 				printf(/* zip.fmt.method == 0
 					? " extracting: %s\n"
@@ -992,6 +997,7 @@ int unzip_main(int argc, char **argv)
 					printable_string(dst_fn)
 				);
 			}
+ do_extract:
 #if ENABLE_FEATURE_UNZIP_CDF
 			if (S_ISLNK(file_mode)) {
 				if (dst_fd != STDOUT_FILENO) /* not -p? */
