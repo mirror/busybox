@@ -35,7 +35,7 @@
 //usage:       IF_FEATURE_TOUCH_SUSV3(" [-d DATE] [-t DATE] [-r FILE]")
 //usage:       " FILE..."
 //usage:#define touch_full_usage "\n\n"
-//usage:       "Update the last-modified date on the given FILE[s]\n"
+//usage:       "Update mtime of FILE\n"
 //usage:     "\n	-c	Don't create files"
 //usage:     "\n	-h	Don't follow links"
 //usage:	IF_FEATURE_TOUCH_SUSV3(
