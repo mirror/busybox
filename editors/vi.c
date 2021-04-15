@@ -3934,6 +3934,7 @@ static void do_cmd(int c)
 # endif
 		if (c == 'y' || c == 'Y')
 			yf = YANKONLY;
+		save_dot = dot;
 #endif
 		// determine range, and whether it spans lines
 		buftype = find_range(&p, &q, c);
@@ -3951,6 +3952,11 @@ static void do_cmd(int c)
 				dot_begin();
 				dot_skip_over_ws();
 			}
+#if ENABLE_FEATURE_VI_YANKMARK
+			else /* (c == 'y' || c == 'Y') */ {
+				dot = save_dot;
+			}
+#endif
 		}
 		// if CHANGING, not deleting, start inserting after the delete
 		if (c == 'c') {
