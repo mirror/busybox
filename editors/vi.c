@@ -2072,6 +2072,11 @@ static uintptr_t stupid_insert(char *p, char c) // stupidly insert the char c at
 #endif
 static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 {
+#if ENABLE_FEATURE_VI_SETOPTS
+		char *q;
+		size_t len;
+#endif
+
 	if (c == 22) {		// Is this an ctrl-V?
 		p += stupid_insert(p, '^');	// use ^ to indicate literal next
 		refresh(FALSE);	// show the ^
@@ -2092,6 +2097,15 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		if ((p[-1] != '\n') && (dot > text)) {
 			p--;
 		}
+#if ENABLE_FEATURE_VI_SETOPTS
+	} else if (c == 4 && autoindent) {	// ctrl-D reduces indentation
+		q = begin_line(p);
+		len = strspn(q, " \t");
+		if (len && q + len == p) {
+			p--;
+			p = text_hole_delete(p, p, ALLOW_UNDO_QUEUED);
+		}
+#endif
 	} else if (c == term_orig.c_cc[VERASE] || c == 8 || c == 127) { // Is this a BS
 		if (p > text) {
 			p--;
@@ -2116,8 +2130,6 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 			showmatching(p - 1);
 		}
 		if (autoindent && c == '\n') {	// auto indent the new line
-			char *q;
-			size_t len;
 			q = prev_line(p);	// use prev line as template
 			len = strspn(q, " \t"); // space or tab
 			if (len) {
