@@ -2360,14 +2360,15 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 		p++;
 		c = tolower(*p);
 		p++;
+		q = NULL;
 		if (c >= 'a' && c <= 'z') {
 			// we have a mark
 			c = c - 'a';
 			q = mark[(unsigned char) c];
-			if (q != NULL) {	// is mark valid
-				*addr = count_lines(text, q);
-			}
 		}
+		if (q == NULL)	// is mark valid
+			return NULL;
+		*addr = count_lines(text, q);
 	}
 # endif
 # if ENABLE_FEATURE_VI_SEARCH
@@ -2383,9 +2384,9 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 			p++;
 		q = char_search(next_line(dot), last_search_pattern + 1,
 						(FORWARD << 1) | FULL);
-		if (q != NULL) {
-			*addr = count_lines(text, q);
-		}
+		if (q == NULL)
+			return NULL;
+		*addr = count_lines(text, q);
 	}
 # endif
 	else if (*p == '$') {	// the last line in file
@@ -2422,6 +2423,8 @@ static char *get_address(char *p, int *b, int *e)	// get two colon addrs, if pre
 			state = GET_SECOND;
 		} else if (state == GET_FIRST || state == GET_SECOND) {
 			p = get_one_address(p, state == GET_FIRST ? b : e);
+			if (p == NULL)
+				break;
 			state |= GOT;
 		} else {
 			break;
@@ -2536,9 +2539,7 @@ static void colon(char *buf)
 	char *fn, cmd[MAX_INPUT_LEN], args[MAX_INPUT_LEN];
 	int i, l, li, b, e;
 	int useforce;
-# if ENABLE_FEATURE_VI_SEARCH || ENABLE_FEATURE_ALLOW_EXEC
 	char *orig_buf;
-# endif
 
 	// :3154	// if (-e line 3154) goto it  else stay put
 	// :4,33w! foo	// write a portion of buffer to file "foo"
@@ -2568,7 +2569,12 @@ static void colon(char *buf)
 	fn = current_filename;
 
 	// look for optional address(es)  :.  :1  :1,9   :'q,'a   :%
+	orig_buf = buf;
 	buf = get_address(buf, &b, &e);
+	if (buf == NULL) {
+		status_line_bold("Bad address: %s", orig_buf);
+		goto ret;
+	}
 
 # if ENABLE_FEATURE_VI_SEARCH || ENABLE_FEATURE_ALLOW_EXEC
 	// remember orig command line
