@@ -286,6 +286,7 @@ struct globals {
 	int text_size;		// size of the allocated buffer
 
 	// the rest
+#if ENABLE_FEATURE_VI_SETOPTS
 	smallint vi_setops;     // set by setops()
 #define VI_AUTOINDENT (1 << 0)
 #define VI_ERR_METHOD (1 << 1)
@@ -296,6 +297,7 @@ struct globals {
 #define err_method (vi_setops & VI_ERR_METHOD) // indicate error with beep or flash
 #define ignorecase (vi_setops & VI_IGNORECASE)
 #define showmatch  (vi_setops & VI_SHOWMATCH )
+#define openabove  (vi_setops & VI_TABSTOP   )
 // order of constants and strings must match
 #define OPTS_STR \
 		"ai\0""autoindent\0" \
@@ -303,6 +305,15 @@ struct globals {
 		"ic\0""ignorecase\0" \
 		"sm\0""showmatch\0" \
 		"ts\0""tabstop\0"
+#define set_openabove() (vi_setops |= VI_TABSTOP)
+#define clear_openabove() (vi_setops &= ~VI_TABSTOP)
+#else
+#define autoindent (0)
+#define err_method (0)
+#define openabove  (0)
+#define set_openabove() ((void)0)
+#define clear_openabove() ((void)0)
+#endif
 
 #if ENABLE_FEATURE_VI_READONLY
 	smallint readonly_mode;
@@ -2130,8 +2141,13 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 			showmatching(p - 1);
 		}
 		if (autoindent && c == '\n') {	// auto indent the new line
-			q = prev_line(p);	// use prev line as template
+			// use current/previous line as template
+			q = openabove ? p : prev_line(p);
 			len = strspn(q, " \t"); // space or tab
+			if (openabove) {
+				p--;		// this replaces dot_prev() in do_cmd()
+				q += len;	// template will be shifted by text_hole_make()
+			}
 			if (len) {
 				uintptr_t bias;
 				bias = text_hole_make(p, len);
@@ -2445,6 +2461,7 @@ static void setops(char *args, int flg_no)
 	index = 1 << (index >> 1); // convert to VI_bit
 
 	if (index & VI_TABSTOP) {
+		// don't set this bit in vi_setops, it's reused as 'openabove'
 		int t;
 		if (!eq || flg_no) // no "=NNN" or it is "notabstop"?
 			goto bad;
@@ -3841,19 +3858,19 @@ static void do_cmd(int c)
 			dot = next_line(dot);
 		dot_skip_over_ws();
 		break;
-	case 'O':			// O- open a empty line above
-		//    0i\n ESC -i
-		p = begin_line(dot);
-		if (p[-1] == '\n') {
+	case 'O':			// O- open an empty line above
+		dot_begin();
+		set_openabove();
+		goto dc3;
+	case 'o':			// o- open an empty line below
+		dot_end();
+ dc3:
+		dot = char_insert(dot, '\n', ALLOW_UNDO);
+		if (c == 'O' && !autoindent) {
+			// done in char_insert() for openabove+autoindent
 			dot_prev();
-	case 'o':			// o- open a empty line below; Yes, I know it is in the middle of the "if (..."
-			dot_end();
-			dot = char_insert(dot, '\n', ALLOW_UNDO);
-		} else {
-			dot_begin();	// 0
-			dot = char_insert(dot, '\n', ALLOW_UNDO);	// i\n ESC
-			dot_prev();	// -
 		}
+		clear_openabove();
 		goto dc_i;
 		break;
 	case 'R':			// R- continuous Replace char
