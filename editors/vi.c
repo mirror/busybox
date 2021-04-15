@@ -826,21 +826,20 @@ static void sync_cursor(char *d, int *row, int *col)
 
 	// find out what col "d" is on
 	co = 0;
-	while (tp < d) { // drive "co" to correct column
+	do { // drive "co" to correct column
 		if (*tp == '\n') //vda || *tp == '\0')
 			break;
 		if (*tp == '\t') {
-			// handle tabs like real vi
-			if (d == tp && cmd_mode) {
-				break;
-			}
 			co = next_tabstop(co);
 		} else if ((unsigned char)*tp < ' ' || *tp == 0x7f) {
 			co++; // display as ^X, use 2 columns
 		}
-		co++;
-		tp++;
-	}
+		// inserting text before a tab, don't include its position
+		if (cmd_mode && tp == d - 1 && *d == '\t') {
+			co++;
+			break;
+		}
+	} while (tp++ < d && ++co);
 
 	// "co" is the column where "dot" is.
 	// The screen has "columns" columns.
@@ -1801,7 +1800,7 @@ static char *move_to_col(char *p, int l)
 
 	p = begin_line(p);
 	co = 0;
-	while (co < l && p < end) {
+	do {
 		if (*p == '\n') //vda || *p == '\0')
 			break;
 		if (*p == '\t') {
@@ -1809,9 +1808,7 @@ static char *move_to_col(char *p, int l)
 		} else if (*p < ' ' || *p == 127) {
 			co++; // display as ^X, use 2 columns
 		}
-		co++;
-		p++;
-	}
+	} while (++co <= l && p++ < end);
 	return p;
 }
 
