@@ -2346,9 +2346,9 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 {
 	int st;
 # if ENABLE_FEATURE_VI_YANKMARK || ENABLE_FEATURE_VI_SEARCH
-	char *q;
+	char *q, c;
 # endif
-	IF_FEATURE_VI_YANKMARK(char c;)
+	IF_FEATURE_VI_SEARCH(int dir;)
 
 	*addr = -1;			// assume no addr
 	if (*p == '.') {	// the current line
@@ -2372,18 +2372,25 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 	}
 # endif
 # if ENABLE_FEATURE_VI_SEARCH
-	else if (*p == '/') {	// a search pattern
-		q = strchrnul(p + 1, '/');
+	else if (*p == '/' || *p == '?') {	// a search pattern
+		c = *p;
+		q = strchrnul(p + 1, c);
 		if (p + 1 != q) {
 			// save copy of new pattern
 			free(last_search_pattern);
 			last_search_pattern = xstrndup(p, q - p);
 		}
 		p = q;
-		if (*p == '/')
+		if (*p == c)
 			p++;
-		q = char_search(next_line(dot), last_search_pattern + 1,
-						(FORWARD << 1) | FULL);
+		if (c == '/') {
+			q = next_line(dot);
+			dir = (FORWARD << 1) | FULL;
+		} else {
+			q = begin_line(dot);
+			dir = ((unsigned)BACK << 1) | FULL;
+		}
+		q = char_search(q, last_search_pattern + 1, dir);
 		if (q == NULL)
 			return NULL;
 		*addr = count_lines(text, q);
