@@ -2345,14 +2345,15 @@ static char *char_search(char *p, const char *pat, int dir_and_range)
 static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 {
 	int st;
+# if ENABLE_FEATURE_VI_YANKMARK || ENABLE_FEATURE_VI_SEARCH
 	char *q;
+# endif
 	IF_FEATURE_VI_YANKMARK(char c;)
 
 	*addr = -1;			// assume no addr
 	if (*p == '.') {	// the current line
 		p++;
-		q = begin_line(dot);
-		*addr = count_lines(text, q);
+		*addr = count_lines(text, dot);
 	}
 # if ENABLE_FEATURE_VI_YANKMARK
 	else if (*p == '\'') {	// is this a mark addr
@@ -2389,43 +2390,43 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 # endif
 	else if (*p == '$') {	// the last line in file
 		p++;
-		q = begin_line(end - 1);
-		*addr = count_lines(text, q);
+		*addr = count_lines(text, end - 1);
 	} else if (isdigit(*p)) {	// specific line number
 		sscanf(p, "%d%n", addr, &st);
 		p += st;
-	} else {
-		// unrecognized address - assume -1
-		*addr = -1;
 	}
 	return p;
 }
 
+# define GET_FIRST  0
+# define GET_SECOND 1
+# define GOT_FIRST  2
+# define GOT_SECOND 3
+# define GOT 2
+
 static char *get_address(char *p, int *b, int *e)	// get two colon addrs, if present
 {
+	int state = GET_FIRST;
+
 	//----- get the address' i.e., 1,3   'a,'b  -----
-	// get FIRST addr, if present
-	while (isblank(*p))
-		p++;				// skip over leading spaces
-	if (*p == '%') {			// alias for 1,$
-		p++;
-		*b = 1;
-		*e = count_lines(text, end-1);
-		goto ga0;
-	}
-	p = get_one_address(p, b);
-	while (isblank(*p))
-		p++;
-	if (*p == ',') {			// is there a address separator
-		p++;
-		while (isblank(*p))
+	for (;;) {
+		if (isblank(*p)) {
 			p++;
-		// get SECOND addr, if present
-		p = get_one_address(p, e);
+		} else if (*p == '%' && state == GET_FIRST) {	// alias for 1,$
+			p++;
+			*b = 1;
+			*e = count_lines(text, end-1);
+			state = GOT_SECOND;
+		} else if (*p == ',' && state == GOT_FIRST) {
+			p++;
+			state = GET_SECOND;
+		} else if (state == GET_FIRST || state == GET_SECOND) {
+			p = get_one_address(p, state == GET_FIRST ? b : e);
+			state |= GOT;
+		} else {
+			break;
+		}
 	}
- ga0:
-	while (isblank(*p))
-		p++;				// skip over trailing spaces
 	return p;
 }
 
