@@ -3636,21 +3636,24 @@ static void do_cmd(int c)
 		break;
 	case '{':			// {- move backward paragraph
 	case '}':			// }- move forward paragraph
+		dir = c == '}' ? FORWARD : BACK;
 		do {
-			dir = c == '}' ? FORWARD : BACK;
-			// skip over consecutive empty lines
-			while ((dir == FORWARD ? dot < end - 1 : dot > text) &&
-						*dot == '\n' && dot[dir] == '\n') {
+			int skip = TRUE; // initially skip consecutive empty lines
+			while (dir == FORWARD ? dot < end - 1 : dot > text) {
+				if (*dot == '\n' && dot[dir] == '\n') {
+					if (!skip) {
+						if (dir == FORWARD)
+							++dot;	// move to next blank line
+						goto dc2;
+					}
+				}
+				else {
+					skip = FALSE;
+				}
 				dot += dir;
 			}
-			q = char_search(dot, "\n\n", ((unsigned)dir << 1) | FULL);
-			if (q != NULL) {	// found blank line
-				dot = next_line(q);	// move to next blank line
-			}
-			else {	// blank line not found, move to end of file
-				dot = dir == FORWARD ? end - 1 : text;
-				break;
-			}
+			goto dc6; // end of file
+ dc2:		continue;
 		} while (--cmdcnt > 0);
 		break;
 #endif /* FEATURE_VI_SEARCH */
