@@ -377,7 +377,6 @@ struct globals {
 	char *reg[28];          // named register a-z, "D", and "U" 0-25,26,27
 	char regtype[28];       // buffer type: WHOLE, MULTI or PARTIAL
 	char *mark[28];         // user marks points somewhere in text[]-  a-z and previous context ''
-	char *context_start, *context_end;
 #endif
 #if ENABLE_FEATURE_VI_USE_SIGNALS
 	sigjmp_buf restart;     // int_handler() jumps to location remembered here
@@ -496,8 +495,6 @@ struct globals {
 //#define Ureg           (G.Ureg          )
 #define regtype        (G.regtype       )
 #define mark           (G.mark          )
-#define context_start  (G.context_start )
-#define context_end    (G.context_end   )
 #define restart        (G.restart       )
 #define term_orig      (G.term_orig     )
 #define cindex         (G.cindex        )
@@ -1415,18 +1412,10 @@ static char what_reg(void)
 
 static void check_context(char cmd)
 {
-	// A context is defined to be "modifying text"
-	// Any modifying command establishes a new context.
-
-	if (dot < context_start || dot > context_end) {
-		if (strchr(modifying_cmds, cmd) != NULL) {
-			// we are trying to modify text[]- make this the current context
-			mark[27] = mark[26];	// move cur to prev
-			mark[26] = dot;	// move local to cur
-			context_start = prev_line(prev_line(dot));
-			context_end = next_line(next_line(dot));
-			//loiter= start_loiter= now;
-		}
+	// Certain movement commands update the context.
+	if (strchr(":%{}'GHLMz/?Nn", cmd) != NULL) {
+		mark[27] = mark[26];	// move cur to prev
+		mark[26] = dot;	// move local to cur
 	}
 }
 
@@ -1441,8 +1430,6 @@ static char *swap_context(char *p) // goto new context for '' command make this 
 		tmp = mark[27];
 		mark[27] = p;
 		mark[26] = p = tmp;
-		context_start = prev_line(prev_line(prev_line(p)));
-		context_end = next_line(next_line(next_line(p)));
 	}
 	return p;
 }
@@ -3287,6 +3274,9 @@ static void do_cmd(int c)
 	int dir;
 	int cnt, i, j;
 	int c1;
+#if ENABLE_FEATURE_VI_YANKMARK
+	char *orig_dot = dot;
+#endif
 #if ENABLE_FEATURE_VI_UNDO
 	int allow_undo = ALLOW_UNDO;
 	int undo_del = UNDO_DEL;
@@ -3480,6 +3470,9 @@ static void do_cmd(int c)
 			dot = swap_context(dot);	// swap current and previous context
 			dot_begin();	// go to B-o-l
 			dot_skip_over_ws();
+#if ENABLE_FEATURE_VI_YANKMARK
+			orig_dot = dot;	// this doesn't update stored contexts
+#endif
 		} else {
 			indicate_error();
 		}
@@ -4109,7 +4102,8 @@ static void do_cmd(int c)
 		dot = bound_dot(dot);	// make sure "dot" is valid
 	}
 #if ENABLE_FEATURE_VI_YANKMARK
-	check_context(c);	// update the current context
+	if (dot != orig_dot)
+		check_context(c);	// update the current context
 #endif
 
 	if (!isdigit(c))
