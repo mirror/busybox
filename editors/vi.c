@@ -1128,11 +1128,16 @@ static int get_motion_char(void)
 	int c, cnt;
 
 	c = get_one_char();
-	if (c != '0' && isdigit(c)) {
-		// get any non-zero motion count
-		for (cnt = 0; isdigit(c); c = get_one_char())
-			cnt = cnt * 10 + (c - '0');
-		cmdcnt = (cmdcnt ?: 1) * cnt;
+	if (isdigit(c)) {
+		if (c != '0') {
+			// get any non-zero motion count
+			for (cnt = 0; isdigit(c); c = get_one_char())
+				cnt = cnt * 10 + (c - '0');
+			cmdcnt = (cmdcnt ?: 1) * cnt;
+		} else {
+			// ensure standalone '0' works
+			cmdcnt = 0;
+		}
 	}
 
 	return c;
