@@ -399,26 +399,31 @@ struct globals {
 #define UNDO_DEL         1
 #define UNDO_INS_CHAIN   2
 #define UNDO_DEL_CHAIN   3
-// UNDO_*_QUEUED must be equal to UNDO_xxx ORed with UNDO_QUEUED_FLAG
-#define UNDO_QUEUED_FLAG 4
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
 #define UNDO_INS_QUEUED  4
 #define UNDO_DEL_QUEUED  5
-#define UNDO_USE_SPOS   32
-#define UNDO_EMPTY      64
+# endif
+
 // Pass-through flags for functions that can be undone
 #define NO_UNDO          0
 #define ALLOW_UNDO       1
 #define ALLOW_UNDO_CHAIN 2
 # if ENABLE_FEATURE_VI_UNDO_QUEUE
 #define ALLOW_UNDO_QUEUED 3
-	char undo_queue_state;
+# else
+// If undo queuing disabled, don't invoke the missing queue logic
+#define ALLOW_UNDO_QUEUED ALLOW_UNDO
+# endif
+
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+#define UNDO_USE_SPOS   32
+#define UNDO_EMPTY      64
+	char undo_queue_state;	// One of UNDO_INS, UNDO_DEL, UNDO_EMPTY
 	int undo_q;
 	char *undo_queue_spos;	// Start position of queued operation
 	char undo_queue[CONFIG_FEATURE_VI_UNDO_QUEUE_MAX];
-# else
-// If undo queuing disabled, don't invoke the missing queue logic
-#define ALLOW_UNDO_QUEUED 1
 # endif
+
 	struct undo_object {
 		struct undo_object *prev;	// Linking back avoids list traversal (LIFO)
 		int start;		// Offset where the data should be restored/deleted
@@ -1445,7 +1450,7 @@ static void yank_status(const char *op, const char *p, int cnt)
 #endif /* FEATURE_VI_YANKMARK */
 
 #if ENABLE_FEATURE_VI_UNDO
-static void undo_push(char *, unsigned, unsigned char);
+static void undo_push(char *, unsigned, int);
 #endif
 
 // open a hole in text[]
@@ -1572,9 +1577,12 @@ static void flush_undo_data(void)
 
 // Undo functions and hooks added by Jody Bruchon (jody@jodybruchon.com)
 // Add to the undo stack
-static void undo_push(char *src, unsigned length, uint8_t u_type)
+static void undo_push(char *src, unsigned length, int u_type)
 {
 	struct undo_object *undo_entry;
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+	int use_spos = u_type & UNDO_USE_SPOS;
+# endif
 
 	// "u_type" values
 	// UNDO_INS: insertion, undo will remove from buffer
@@ -1583,8 +1591,8 @@ static void undo_push(char *src, unsigned length, uint8_t u_type)
 	// The CHAIN operations are for handling multiple operations that the user
 	// performs with a single action, i.e. REPLACE mode or find-and-replace commands
 	// UNDO_{INS,DEL}_QUEUED: If queuing feature is enabled, allow use of the queue
-	// for the INS/DEL operation. The raw values should be equal to the values of
-	// UNDO_{INS,DEL} ORed with UNDO_QUEUED_FLAG
+	// for the INS/DEL operation.
+	// UNDO_{INS,DEL} ORed with UNDO_USE_SPOS: commit the undo queue
 
 # if ENABLE_FEATURE_VI_UNDO_QUEUE
 	// This undo queuing functionality groups multiple character typing or backspaces
@@ -1637,9 +1645,7 @@ static void undo_push(char *src, unsigned length, uint8_t u_type)
 		}
 		break;
 	}
-# else
-	// If undo queuing is disabled, ignore the queuing flag entirely
-	u_type = u_type & ~UNDO_QUEUED_FLAG;
+	u_type &= ~UNDO_USE_SPOS;
 # endif
 
 	// Allocate a new undo object
@@ -1656,12 +1662,11 @@ static void undo_push(char *src, unsigned length, uint8_t u_type)
 	}
 	undo_entry->length = length;
 # if ENABLE_FEATURE_VI_UNDO_QUEUE
-	if ((u_type & UNDO_USE_SPOS) != 0) {
+	if (use_spos) {
 		undo_entry->start = undo_queue_spos - text;	// use start position from queue
 	} else {
 		undo_entry->start = src - text;	// use offset from start of text buffer
 	}
-	u_type = (u_type & ~UNDO_USE_SPOS);
 # else
 	undo_entry->start = src - text;
 # endif
