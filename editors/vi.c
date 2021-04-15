@@ -352,6 +352,9 @@ struct globals {
 #if ENABLE_FEATURE_VI_CRASHME
 	char last_input_char;    // last char read from user
 #endif
+#if ENABLE_FEATURE_VI_UNDO_QUEUE
+	char undo_queue_state;   // One of UNDO_INS, UNDO_DEL, UNDO_EMPTY
+#endif
 
 #if ENABLE_FEATURE_VI_DOT_CMD
 	smallint adding2q;	 // are we currently adding user input to q
@@ -425,15 +428,6 @@ struct globals {
 #define ALLOW_UNDO_QUEUED ALLOW_UNDO
 # endif
 
-# if ENABLE_FEATURE_VI_UNDO_QUEUE
-#define UNDO_USE_SPOS   32
-#define UNDO_EMPTY      64
-	char undo_queue_state;	// One of UNDO_INS, UNDO_DEL, UNDO_EMPTY
-	int undo_q;
-	char *undo_queue_spos;	// Start position of queued operation
-	char undo_queue[CONFIG_FEATURE_VI_UNDO_QUEUE_MAX];
-# endif
-
 	struct undo_object {
 		struct undo_object *prev;	// Linking back avoids list traversal (LIFO)
 		int start;		// Offset where the data should be restored/deleted
@@ -441,6 +435,13 @@ struct globals {
 		uint8_t u_type;		// 0=deleted, 1=inserted, 2=swapped
 		char undo_text[1];	// text that was deleted (if deletion)
 	} *undo_stack_tail;
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+#define UNDO_USE_SPOS   32
+#define UNDO_EMPTY      64
+	char *undo_queue_spos;	// Start position of queued operation
+	int undo_q;
+	char undo_queue[CONFIG_FEATURE_VI_UNDO_QUEUE_MAX];
+# endif
 #endif /* ENABLE_FEATURE_VI_UNDO */
 };
 #define G (*ptr_to_globals)
@@ -2071,8 +2072,8 @@ static uintptr_t stupid_insert(char *p, char c) // stupidly insert the char c at
 static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 {
 #if ENABLE_FEATURE_VI_SETOPTS
-		char *q;
-		size_t len;
+	char *q;
+	size_t len;
 #endif
 
 	if (c == 22) {		// Is this an ctrl-V?
@@ -2140,9 +2141,9 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 				bias = text_hole_make(p, len);
 				p += bias;
 				q += bias;
-#if ENABLE_FEATURE_VI_UNDO
+# if ENABLE_FEATURE_VI_UNDO
 				undo_push_insert(p, len, undo);
-#endif
+# endif
 				memcpy(p, q, len);
 				p += len;
 			}
