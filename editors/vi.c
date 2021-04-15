@@ -2342,67 +2342,93 @@ static char *char_search(char *p, const char *pat, int dir_and_range)
 
 //----- The Colon commands -------------------------------------
 #if ENABLE_FEATURE_VI_COLON
-static char *get_one_address(char *p, int *addr)	// get colon addr, if present
+static char *get_one_address(char *p, int *result)	// get colon addr, if present
 {
-	int st;
+	int st, num, sign, addr, new_addr;
 # if ENABLE_FEATURE_VI_YANKMARK || ENABLE_FEATURE_VI_SEARCH
 	char *q, c;
 # endif
 	IF_FEATURE_VI_SEARCH(int dir;)
 
-	*addr = -1;			// assume no addr
-	if (*p == '.') {	// the current line
-		p++;
-		*addr = count_lines(text, dot);
-	}
-# if ENABLE_FEATURE_VI_YANKMARK
-	else if (*p == '\'') {	// is this a mark addr
-		p++;
-		c = tolower(*p);
-		p++;
-		q = NULL;
-		if (c >= 'a' && c <= 'z') {
-			// we have a mark
-			c = c - 'a';
-			q = mark[(unsigned char) c];
+	addr = -1;			// assume no addr
+	sign = 0;
+	for (;;) {
+		new_addr = -1;
+		if (isblank(*p)) {
+			p++;
+		} else if (*p == '.') {	// the current line
+			p++;
+			new_addr = count_lines(text, dot);
 		}
-		if (q == NULL)	// is mark valid
-			return NULL;
-		*addr = count_lines(text, q);
-	}
+# if ENABLE_FEATURE_VI_YANKMARK
+		else if (*p == '\'') {	// is this a mark addr
+			p++;
+			c = tolower(*p);
+			p++;
+			q = NULL;
+			if (c >= 'a' && c <= 'z') {
+				// we have a mark
+				c = c - 'a';
+				q = mark[(unsigned char) c];
+			}
+			if (q == NULL)	// is mark valid
+				return NULL;
+			new_addr = count_lines(text, q);
+		}
 # endif
 # if ENABLE_FEATURE_VI_SEARCH
-	else if (*p == '/' || *p == '?') {	// a search pattern
-		c = *p;
-		q = strchrnul(p + 1, c);
-		if (p + 1 != q) {
-			// save copy of new pattern
-			free(last_search_pattern);
-			last_search_pattern = xstrndup(p, q - p);
+		else if (*p == '/' || *p == '?') {	// a search pattern
+			c = *p;
+			q = strchrnul(p + 1, c);
+			if (p + 1 != q) {
+				// save copy of new pattern
+				free(last_search_pattern);
+				last_search_pattern = xstrndup(p, q - p);
+			}
+			p = q;
+			if (*p == c)
+				p++;
+			if (c == '/') {
+				q = next_line(dot);
+				dir = (FORWARD << 1) | FULL;
+			} else {
+				q = begin_line(dot);
+				dir = ((unsigned)BACK << 1) | FULL;
+			}
+			q = char_search(q, last_search_pattern + 1, dir);
+			if (q == NULL)
+				return NULL;
+			new_addr = count_lines(text, q);
 		}
-		p = q;
-		if (*p == c)
-			p++;
-		if (c == '/') {
-			q = next_line(dot);
-			dir = (FORWARD << 1) | FULL;
-		} else {
-			q = begin_line(dot);
-			dir = ((unsigned)BACK << 1) | FULL;
-		}
-		q = char_search(q, last_search_pattern + 1, dir);
-		if (q == NULL)
-			return NULL;
-		*addr = count_lines(text, q);
-	}
 # endif
-	else if (*p == '$') {	// the last line in file
-		p++;
-		*addr = count_lines(text, end - 1);
-	} else if (isdigit(*p)) {	// specific line number
-		sscanf(p, "%d%n", addr, &st);
-		p += st;
+		else if (*p == '$') {	// the last line in file
+			p++;
+			new_addr = count_lines(text, end - 1);
+		} else if (isdigit(*p)) {
+			sscanf(p, "%d%n", &num, &st);
+			p += st;
+			if (addr < 0) {	// specific line number
+				addr = num;
+			} else {	// offset from current addr
+				addr += sign >= 0 ? num : -num;
+			}
+			sign = 0;
+		} else if (*p == '-' || *p == '+') {
+			sign = *p++ == '-' ? -1 : 1;
+			if (addr < 0) {	// default address is dot
+				addr = count_lines(text, dot);
+			}
+		} else {
+			addr += sign;	// consume unused trailing sign
+			break;
+		}
+		if (new_addr >= 0) {
+			if (addr >= 0)	// only one new address per expression
+				return NULL;
+			addr = new_addr;
+		}
 	}
+	*result = addr;
 	return p;
 }
 
