@@ -289,11 +289,13 @@ struct globals {
 #if ENABLE_FEATURE_VI_SETOPTS
 	smallint vi_setops;     // set by setops()
 #define VI_AUTOINDENT (1 << 0)
-#define VI_ERR_METHOD (1 << 1)
-#define VI_IGNORECASE (1 << 2)
-#define VI_SHOWMATCH  (1 << 3)
-#define VI_TABSTOP    (1 << 4)
+#define VI_EXPANDTAB  (1 << 1)
+#define VI_ERR_METHOD (1 << 2)
+#define VI_IGNORECASE (1 << 3)
+#define VI_SHOWMATCH  (1 << 4)
+#define VI_TABSTOP    (1 << 5)
 #define autoindent (vi_setops & VI_AUTOINDENT)
+#define expandtab  (vi_setops & VI_EXPANDTAB )
 #define err_method (vi_setops & VI_ERR_METHOD) // indicate error with beep or flash
 #define ignorecase (vi_setops & VI_IGNORECASE)
 #define showmatch  (vi_setops & VI_SHOWMATCH )
@@ -301,6 +303,7 @@ struct globals {
 // order of constants and strings must match
 #define OPTS_STR \
 		"ai\0""autoindent\0" \
+		"et\0""expandtab\0" \
 		"fl\0""flash\0" \
 		"ic\0""ignorecase\0" \
 		"sm\0""showmatch\0" \
@@ -309,6 +312,7 @@ struct globals {
 #define clear_openabove() (vi_setops &= ~VI_TABSTOP)
 #else
 #define autoindent (0)
+#define expandtab  (0)
 #define err_method (0)
 #define openabove  (0)
 #define set_openabove() ((void)0)
@@ -759,6 +763,27 @@ static int next_tabstop(int col)
 	return col + ((tabstop - 1) - (col % tabstop));
 }
 
+static int next_column(char c, int co)
+{
+	if (c == '\t')
+		co = next_tabstop(co);
+	else if ((unsigned char)c < ' ' || c == 0x7f)
+		co++; // display as ^X, use 2 columns
+	return co + 1;
+}
+
+#if ENABLE_FEATURE_VI_SETOPTS
+static int get_column(char *p)
+{
+	const char *r;
+	int co = 0;
+
+	for (r = begin_line(p); r < p; r++)
+		co = next_column(*r, co);
+	return co;
+}
+#endif
+
 //----- Erase the Screen[] memory ------------------------------
 static void screen_erase(void)
 {
@@ -838,11 +863,7 @@ static void sync_cursor(char *d, int *row, int *col)
 	do { // drive "co" to correct column
 		if (*tp == '\n') //vda || *tp == '\0')
 			break;
-		if (*tp == '\t') {
-			co = next_tabstop(co);
-		} else if ((unsigned char)*tp < ' ' || *tp == 0x7f) {
-			co++; // display as ^X, use 2 columns
-		}
+		co = next_column(*tp, co) - 1;
 		// inserting text before a tab, don't include its position
 		if (cmd_mode && tp == d - 1 && *d == '\t') {
 			co++;
@@ -1807,12 +1828,8 @@ static char *move_to_col(char *p, int l)
 	do {
 		if (*p == '\n') //vda || *p == '\0')
 			break;
-		if (*p == '\t') {
-			co = next_tabstop(co);
-		} else if (*p < ' ' || *p == 127) {
-			co++; // display as ^X, use 2 columns
-		}
-	} while (++co <= l && p++ < end);
+		co = next_column(*p, co);
+	} while (co <= l && p++ < end);
 	return p;
 }
 
@@ -2103,6 +2120,17 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		if (len && q + len == p) {
 			p--;
 			p = text_hole_delete(p, p, ALLOW_UNDO_QUEUED);
+		}
+	} else if (c == '\t' && expandtab) {	// expand tab
+		int col = get_column(p);
+		col = next_tabstop(col) - col + 1;
+		while (col--) {
+# if ENABLE_FEATURE_VI_UNDO
+			undo_push_insert(p, 1, undo);
+# else
+			modified_count++;
+# endif
+			p += 1 + stupid_insert(p, ' ');
 		}
 #endif
 	} else if (c == term_orig.c_cc[VERASE] || c == 8 || c == 127) { // Is this a BS
@@ -2871,11 +2899,13 @@ static void colon(char *buf)
 #  if ENABLE_FEATURE_VI_SETOPTS
 			status_line_bold(
 				"%sautoindent "
+				"%sexpandtab "
 				"%sflash "
 				"%signorecase "
 				"%sshowmatch "
 				"tabstop=%u",
 				autoindent ? "" : "no",
+				expandtab ? "" : "no",
 				err_method ? "" : "no",
 				ignorecase ? "" : "no",
 				showmatch ? "" : "no",
@@ -3753,7 +3783,7 @@ static void do_cmd(int c)
 		i = count_lines(p, q);	// # of lines we are shifting
 		for ( ; i > 0; i--, p = next_line(p)) {
 			if (c == '<') {
-				// shift left- remove tab or 8 spaces
+				// shift left- remove tab or tabstop spaces
 				if (*p == '\t') {
 					// shrink buffer 1 char
 					text_hole_delete(p, p, allow_undo);
@@ -3767,7 +3797,7 @@ static void do_cmd(int c)
 					}
 				}
 			} else /* if (c == '>') */ {
-				// shift right -- add tab or 8 spaces
+				// shift right -- add tab or tabstop spaces
 				char_insert(p, '\t', allow_undo);
 			}
 #if ENABLE_FEATURE_VI_UNDO
