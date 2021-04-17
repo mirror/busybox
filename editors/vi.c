@@ -763,6 +763,11 @@ static int next_tabstop(int col)
 	return col + ((tabstop - 1) - (col % tabstop));
 }
 
+static int prev_tabstop(int col)
+{
+	return col - ((col % tabstop) ?: tabstop);
+}
+
 static int next_column(char c, int co)
 {
 	if (c == '\t')
@@ -772,7 +777,6 @@ static int next_column(char c, int co)
 	return co + 1;
 }
 
-#if ENABLE_FEATURE_VI_SETOPTS
 static int get_column(char *p)
 {
 	const char *r;
@@ -782,7 +786,6 @@ static int get_column(char *p)
 		co = next_column(*r, co);
 	return co;
 }
-#endif
 
 //----- Erase the Screen[] memory ------------------------------
 static void screen_erase(void)
@@ -2113,14 +2116,23 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		if ((p[-1] != '\n') && (dot > text)) {
 			p--;
 		}
-#if ENABLE_FEATURE_VI_SETOPTS
-	} else if (c == 4 && autoindent) {	// ctrl-D reduces indentation
-		q = begin_line(p);
-		len = strspn(q, " \t");
-		if (len && q + len == p) {
-			p--;
-			p = text_hole_delete(p, p, ALLOW_UNDO_QUEUED);
+	} else if (c == 4) {	// ctrl-D reduces indentation
+		int prev;
+		char *r, *bol;
+		bol = begin_line(p);
+		for (r = bol; r < end_line(p); ++r) {
+			if (!isblank(*r))
+				break;
 		}
+
+		prev = prev_tabstop(get_column(r));
+		while (r > bol && get_column(r) > prev) {
+			if (p > bol)
+				p--;
+			r--;
+			r = text_hole_delete(r, r, ALLOW_UNDO_QUEUED);
+		}
+#if ENABLE_FEATURE_VI_SETOPTS
 	} else if (c == '\t' && expandtab) {	// expand tab
 		int col = get_column(p);
 		col = next_tabstop(col) - col + 1;
