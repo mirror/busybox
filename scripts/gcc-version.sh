@@ -8,5 +8,5 @@
 
 compiler="$*"
 
-MAJ_MIN=$(echo __GNUC__ __GNUC_MINOR__ | $compiler -E -xc - | tail -n 1)
+MAJ_MIN=$(echo __GNUC__ __GNUC_MINOR__ | $compiler -E -xc - | grep . | tail -n 1)
 printf '%02d%02d\n' $MAJ_MIN
