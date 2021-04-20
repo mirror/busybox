@@ -62,6 +62,7 @@
 #define LOOP_START \
    mu = c[x] * mp
 
+#if 0
 #define INNERMUL                                          \
 asm(                                                      \
    "movl %5,%%eax \n\t"                                   \
@@ -74,6 +75,29 @@ asm(                                                      \
 :"=g"(_c[LO]), "=r"(cy)                                   \
 :"0"(_c[LO]), "1"(cy), "g"(mu), "g"(*tmpm++)              \
 : "%eax", "%edx", "cc")
+/*
+ * The above generated "error: 'asm' operand has impossible constraints" on Android.
+ * Do they reserve in their ABI a register for something, and there aren't enough left?
+ */
+#else
+/* Let's avoid two explicit "movl" by telling compiler to put input value of *tmpm++
+ * into EAX, and to expect cy result in EDX:
+ */
+#define INNERMUL                                          \
+asm(                                                      \
+   "mull %4       \n\t"                                   \
+   "addl %3,%%eax \n\t"                                   \
+   "adcl $0,%%edx \n\t"                                   \
+   "addl %%eax,%0 \n\t"                                   \
+   "adcl $0,%%edx \n\t"                                   \
+:"=g"(_c[LO]), "=&d"(cy)                                  \
+:"0"(_c[LO]), "g"(cy), "g"(mu), "a"(*tmpm++)              \
+:"cc")
+/* This doesn't tell compiler that we clobber EAX, but it probably won't need
+ * the value of *tmpm anyway, thus won't try to reuse EAX contents.
+ * TODO: fix it with dummy "=a"(clobbered_eax) output?
+ */
+#endif
 
 #define PROPCARRY                           \
 asm(                                        \
