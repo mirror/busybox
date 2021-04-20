@@ -102,11 +102,11 @@ asm(                                                      \
 #define PROPCARRY                           \
 asm(                                        \
    "addl   %1,%0    \n\t"                   \
-   "setb   %%al     \n\t"                   \
-   "movzbl %%al,%1 \n\t"                    \
+   "sbb    %1,%1    \n\t"                   \
+   "neg    %1       \n\t"                   \
 :"=g"(_c[LO]), "=r"(cy)                     \
 :"0"(_c[LO]), "1"(cy)                       \
-: "%eax", "cc")
+:"cc")
 
 /******************************************************************************/
 #elif defined(PSTM_X86_64)
