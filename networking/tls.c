@@ -1957,7 +1957,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 		uint8_t privkey[CURVE25519_KEYSIZE]; //[32]
 
 		if (!(tls->flags & GOT_EC_KEY))
-			bb_simple_error_msg("server did not provide EC key");
+			bb_simple_error_msg_and_die("server did not provide EC key");
 
 		/* Generate random private key, see RFC 7748 */
 		tls_get_random(privkey, sizeof(privkey));
