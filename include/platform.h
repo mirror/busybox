@@ -195,6 +195,7 @@
 #endif
 
 #if ULONG_MAX > 0xffffffff
+/* inline 64-bit bswap only on 64-bit arches */
 # define bb_bswap_64(x) bswap_64(x)
 #endif
 

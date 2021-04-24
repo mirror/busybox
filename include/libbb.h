@@ -192,6 +192,28 @@ int klogctl(int type, char *b, int len);
 # define BUFSIZ 4096
 #endif
 
+#if __GNUC_PREREQ(5,0)
+/* Since musl is apparently unable to get it right and would use
+ * a function call to a single-instruction function of "bswap %eax",
+ * reroute to gcc builtins:
+ */
+# undef  bswap_16
+# undef  bswap_32
+# undef  bswap_64
+# define bswap_16(x) __builtin_bswap16(x)
+# define bswap_32(x) __builtin_bswap32(x)
+# define bswap_64(x) __builtin_bswap64(x)
+# if BB_LITTLE_ENDIAN
+#   undef ntohs
+#   undef htons
+#   undef ntohl
+#   undef htonl
+#   define ntohs(x) __builtin_bswap16(x)
+#   define htons(x) __builtin_bswap16(x)
+#   define ntohl(x) __builtin_bswap32(x)
+#   define htonl(x) __builtin_bswap32(x)
+# endif
+#endif
 
 /* Busybox does not use threads, we can speed up stdio. */
 #ifdef HAVE_UNLOCKED_STDIO

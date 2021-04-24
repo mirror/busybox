@@ -577,7 +577,7 @@ sfp_to_d(s_fixedpt_t sfp)
 	return ret;
 }
 #if ENABLE_FEATURE_NTPD_SERVER
-static void
+static NOINLINE void
 d_to_lfp(l_fixedpt_t *lfp, double d)
 {
 	uint32_t intl;
