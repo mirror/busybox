@@ -1697,7 +1697,7 @@ static void FAST_FUNC chargen_dg(int s, servtab_t *sep)
  * we must add 2208988800 seconds to this figure to make up for
  * some seventy years Bell Labs was asleep.
  */
-static uint32_t machtime(void)
+static NOINLINE uint32_t machtime(void)
 {
 	struct timeval tv;
 
