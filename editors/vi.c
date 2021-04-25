@@ -4010,6 +4010,14 @@ static void do_cmd(int c)
 		} else {
 			editing = 0;
 		}
+		// are there other files to edit?
+		j = cmdline_filecnt - optind - 1;
+		if (editing == 0 && j > 0) {
+			editing = 1;
+			modified_count = 0;
+			last_modified_count = -1;
+			status_line_bold("%u more file(s) to edit", j);
+		}
 		break;
 	case '^':			// ^- move to first non-blank on line
 		dot_begin();
