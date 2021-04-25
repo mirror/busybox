@@ -2007,6 +2007,11 @@ static int file_insert(const char *fn, char *p, int initial)
 		p = text_hole_delete(p + cnt, p + size - 1, NO_UNDO);
 		status_line_bold("can't read '%s'", fn);
 	}
+# if ENABLE_FEATURE_VI_UNDO
+	else {
+		undo_push_insert(p, size, ALLOW_UNDO);
+	}
+# endif
  fi:
 	close(fd);
 
@@ -2743,10 +2748,7 @@ static void colon(char *buf)
 		if (args[0]) {
 			// the user supplied a file name
 			fn = args;
-		} else if (current_filename && current_filename[0]) {
-			// no user supplied name- use the current filename
-			// fn = current_filename;  was set by default
-		} else {
+		} else if (current_filename == NULL) {
 			// no user file name, no current name- punt
 			status_line_bold("No current filename");
 			goto ret;
@@ -2864,11 +2866,14 @@ static void colon(char *buf)
 		}
 		editing = 0;
 	} else if (strncmp(cmd, "read", i) == 0) {	// read file into text[]
-		int size;
+		int size, num;
 
-		fn = args;
-		if (!fn[0]) {
-			status_line_bold("No filename given");
+		if (args[0]) {
+			// the user supplied a file name
+			fn = args;
+		} else if (current_filename == NULL) {
+			// no user file name, no current name- punt
+			status_line_bold("No current filename");
 			goto ret;
 		}
 		if (e < 0) {	// no addr given- read after current line
@@ -2881,6 +2886,9 @@ static void colon(char *buf)
 			if (q == end-1)
 				++q;
 		}
+		num = count_lines(text, q);
+		if (q == end)
+			num++;
 		{ // dance around potentially-reallocated text[]
 			uintptr_t ofs = q - text;
 			size = file_insert(fn, q, 0);
@@ -2897,11 +2905,7 @@ static void colon(char *buf)
 			IF_FEATURE_VI_READONLY((readonly_mode ? " [Readonly]" : ""),)
 			li, size
 		);
-		if (size > 0) {
-			// if the insert is before "dot" then we need to update
-			if (q <= dot)
-				dot += size;
-		}
+		dot = find_line(num);
 	} else if (strncmp(cmd, "rewind", i) == 0) {	// rewind cmd line args
 		if (modified_count && !useforce) {
 			status_line_bold("No write since last change (:%s! overrides)", cmd);
