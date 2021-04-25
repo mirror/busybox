@@ -4462,7 +4462,6 @@ static void edit_file(char *fn)
 	mark[26] = mark[27] = text;	// init "previous context"
 #endif
 
-	last_search_char = '\0';
 #if ENABLE_FEATURE_VI_CRASHME
 	last_input_char = '\0';
 #endif
@@ -4489,7 +4488,6 @@ static void edit_file(char *fn)
 #if ENABLE_FEATURE_VI_DOT_CMD
 	free(ioq_start);
 	ioq_start = NULL;
-	lmc_len = 0;
 	adding2q = 0;
 #endif
 
