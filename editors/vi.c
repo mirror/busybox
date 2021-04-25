@@ -3054,7 +3054,7 @@ static void colon(char *buf)
 			fn = args;
 		}
 # if ENABLE_FEATURE_VI_READONLY
-		else if (readonly_mode && !useforce) {
+		else if (readonly_mode && !useforce && fn) {
 			status_line_bold("'%s' is read only", fn);
 			goto ret;
 		}
@@ -3996,7 +3996,7 @@ static void do_cmd(int c)
 			break;
 		}
 		if (modified_count) {
-			if (ENABLE_FEATURE_VI_READONLY && readonly_mode) {
+			if (ENABLE_FEATURE_VI_READONLY && readonly_mode && current_filename) {
 				status_line_bold("'%s' is read only", current_filename);
 				break;
 			}
