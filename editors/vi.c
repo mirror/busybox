@@ -53,6 +53,14 @@
 //config:	Enable a limited set of colon commands. This does not
 //config:	provide an "ex" mode.
 //config:
+//config:config FEATURE_VI_COLON_EXPAND
+//config:	bool "Expand \"%\" and \"#\" in colon commands"
+//config:	default y
+//config:	depends on FEATURE_VI_COLON
+//config:	help
+//config:	Expand the special characters \"%\" (current filename)
+//config:	and \"#\" (alternate filename) in colon commands.
+//config:
 //config:config FEATURE_VI_YANKMARK
 //config:	bool "Enable yank/put commands and mark cmds"
 //config:	default y
@@ -347,6 +355,9 @@ struct globals {
 	                         // [don't make smallint!]
 	int last_status_cksum;   // hash of current status line
 	char *current_filename;
+#if ENABLE_FEATURE_VI_COLON_EXPAND
+	char *alt_filename;
+#endif
 	char *screenbegin;       // index into text[], of top line on the screen
 	char *screen;            // pointer to the virtual screen buffer
 	int screensize;          //            and its size
@@ -471,6 +482,7 @@ struct globals {
 #define have_status_msg         (G.have_status_msg    )
 #define last_status_cksum       (G.last_status_cksum  )
 #define current_filename        (G.current_filename   )
+#define alt_filename            (G.alt_filename       )
 #define screen                  (G.screen             )
 #define screensize              (G.screensize         )
 #define screenbegin             (G.screenbegin        )
@@ -2198,6 +2210,41 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 	return p;
 }
 
+#if ENABLE_FEATURE_VI_COLON_EXPAND
+static void init_filename(char *fn)
+{
+	char *copy = xstrdup(fn);
+
+	if (current_filename == NULL) {
+		current_filename = copy;
+	} else {
+		free(alt_filename);
+		alt_filename = copy;
+	}
+}
+#else
+# define init_filename(f) ((void)(0))
+#endif
+
+static void update_filename(char *fn)
+{
+#if ENABLE_FEATURE_VI_COLON_EXPAND
+	if (fn == NULL)
+		return;
+
+	if (current_filename == NULL || strcmp(fn, current_filename) != 0) {
+		free(alt_filename);
+		alt_filename = current_filename;
+		current_filename = xstrdup(fn);
+	}
+#else
+	if (fn != current_filename) {
+		free(current_filename);
+		current_filename = xstrdup(fn);
+	}
+#endif
+}
+
 // read text from file or create an empty buf
 // will also update current_filename
 static int init_text_buffer(char *fn)
@@ -2209,10 +2256,7 @@ static int init_text_buffer(char *fn)
 	text_size = 10240;
 	screenbegin = dot = end = text = xzalloc(text_size);
 
-	if (fn != current_filename) {
-		free(current_filename);
-		current_filename = xstrdup(fn);
-	}
+	update_filename(fn);
 	rc = file_insert(fn, text, 1);
 	if (rc < 0) {
 		// file doesnt exist. Start empty buf with dummy line
@@ -2556,6 +2600,43 @@ static void setops(char *args, int flg_no)
 }
 # endif
 
+# if ENABLE_FEATURE_VI_COLON_EXPAND
+static char *expand_args(char *args)
+{
+	char *s, *t;
+	const char *replace;
+
+	args = xstrdup(args);
+	for (s = args; *s; s++) {
+		if (*s == '%') {
+			replace = current_filename;
+		} else if (*s == '#') {
+			replace = alt_filename;
+		} else {
+			if (*s == '\\' && s[1] != '\0') {
+				for (t = s++; *t; t++)
+					*t = t[1];
+			}
+			continue;
+		}
+
+		if (replace == NULL) {
+			free(args);
+			status_line_bold("No previous filename");
+			return NULL;
+		}
+
+		*s = '\0';
+		t = xasprintf("%s%s%s", args, replace, s+1);
+		s = t + (s - args) + strlen(replace);
+		free(args);
+		args = t;
+	}
+	return args;
+}
+# else
+#  define expand_args(a) (a)
+# endif
 #endif /* FEATURE_VI_COLON */
 
 // buf must be no longer than MAX_INPUT_LEN!
@@ -2620,7 +2701,7 @@ static void colon(char *buf)
 #else
 
 	char c, *buf1, *q, *r;
-	char *fn, cmd[MAX_INPUT_LEN], *cmdend, *args;
+	char *fn, cmd[MAX_INPUT_LEN], *cmdend, *args, *exp = NULL;
 	int i, l, li, b, e;
 	int useforce;
 
@@ -2708,9 +2789,12 @@ static void colon(char *buf)
 	else if (cmd[0] == '!') {	// run a cmd
 		int retcode;
 		// :!ls   run the <cmd>
+		exp = expand_args(buf + 1);
+		if (exp == NULL)
+			goto ret;
 		go_bottom_and_clear_to_eol();
 		cookmode();
-		retcode = system(buf + 1);	// run the cmd
+		retcode = system(exp);	// run the cmd
 		if (retcode)
 			printf("\nshell returned %i\n\n", retcode);
 		rawmode();
@@ -2739,7 +2823,9 @@ static void colon(char *buf)
 		}
 		if (args[0]) {
 			// the user supplied a file name
-			fn = args;
+			fn = exp = expand_args(args);
+			if (exp == NULL)
+				goto ret;
 		} else if (current_filename == NULL) {
 			// no user file name, no current name- punt
 			status_line_bold("No current filename");
@@ -2763,7 +2849,7 @@ static void colon(char *buf)
 		status_line("'%s'%s"
 			IF_FEATURE_VI_READONLY("%s")
 			" %uL, %uC",
-			current_filename,
+			fn,
 			(size < 0 ? " [New file]" : ""),
 			IF_FEATURE_VI_READONLY(
 				((readonly_mode) ? " [Readonly]" : ""),
@@ -2777,8 +2863,10 @@ static void colon(char *buf)
 		}
 		if (args[0]) {
 			// user wants a new filename
-			free(current_filename);
-			current_filename = xstrdup(args);
+			exp = expand_args(args);
+			if (exp == NULL)
+				goto ret;
+			update_filename(exp);
 		} else {
 			// user wants file status info
 			last_status_cksum = 0;	// force status update
@@ -2862,7 +2950,10 @@ static void colon(char *buf)
 
 		if (args[0]) {
 			// the user supplied a file name
-			fn = args;
+			fn = exp = expand_args(args);
+			if (exp == NULL)
+				goto ret;
+			init_filename(fn);
 		} else if (current_filename == NULL) {
 			// no user file name, no current name- punt
 			status_line_bold("No current filename");
@@ -3042,12 +3133,16 @@ static void colon(char *buf)
 		if (args[0]) {
 			struct stat statbuf;
 
-			if (!useforce && (fn == NULL || strcmp(fn, args) != 0) &&
-					stat(args, &statbuf) == 0) {
+			exp = expand_args(args);
+			if (exp == NULL)
+				goto ret;
+			if (!useforce && (fn == NULL || strcmp(fn, exp) != 0) &&
+					stat(exp, &statbuf) == 0) {
 				status_line_bold("File exists (:w! overrides)");
 				goto ret;
 			}
-			fn = args;
+			fn = exp;
+			init_filename(fn);
 		}
 # if ENABLE_FEATURE_VI_READONLY
 		else if (readonly_mode && !useforce && fn) {
@@ -3109,6 +3204,9 @@ static void colon(char *buf)
 		not_implemented(cmd);
 	}
  ret:
+# if ENABLE_FEATURE_VI_COLON_EXPAND
+	free(exp);
+# endif
 	dot = bound_dot(dot);	// make sure "dot" is valid
 	return;
 # if ENABLE_FEATURE_VI_SEARCH
