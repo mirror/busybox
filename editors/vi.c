@@ -2473,37 +2473,43 @@ static char *get_one_address(char *p, int *result)	// get colon addr, if present
 	return p;
 }
 
-# define GET_FIRST  0
-# define GET_SECOND 1
-# define GOT_FIRST  2
-# define GOT_SECOND 3
-# define GOT 2
+# define GET_ADDRESS   0
+# define GET_SEPARATOR 1
 
-static char *get_address(char *p, int *b, int *e)	// get two colon addrs, if present
+// Read line addresses for a colon command.  The user can enter as
+// many as they like but only the last two will be used.
+static char *get_address(char *p, int *b, int *e)
 {
-	int state = GET_FIRST;
+	int state = GET_ADDRESS;
+	char *save_dot = dot;
 
 	//----- get the address' i.e., 1,3   'a,'b  -----
 	for (;;) {
 		if (isblank(*p)) {
 			p++;
-		} else if (*p == '%' && state == GET_FIRST) {	// alias for 1,$
+		} else if (*p == '%' && state == GET_ADDRESS) {	// alias for 1,$
 			p++;
 			*b = 1;
 			*e = count_lines(text, end-1);
-			state = GOT_SECOND;
-		} else if (*p == ',' && state == GOT_FIRST) {
+			state = GET_SEPARATOR;
+		} else if (state == GET_SEPARATOR && (*p == ',' || *p == ';')) {
+			if (*p == ';')
+				dot = find_line(*e);
 			p++;
-			state = GET_SECOND;
-		} else if (state == GET_FIRST || state == GET_SECOND) {
-			p = get_one_address(p, state == GET_FIRST ? b : e);
+			*b = *e;
+			state = GET_ADDRESS;
+		} else if (state == GET_ADDRESS) {
+			p = get_one_address(p, e);
 			if (p == NULL)
 				break;
-			state |= GOT;
+			state = GET_SEPARATOR;
 		} else {
+			if (state == GET_SEPARATOR && *e < 0)
+				*e = count_lines(text, dot);
 			break;
 		}
 	}
+	dot = save_dot;
 	return p;
 }
 
@@ -2637,8 +2643,6 @@ static void colon(char *buf)
 
 	li = i = 0;
 	b = e = -1;
-	q = text;			// assume 1,$ for the range
-	r = end - 1;
 	li = count_lines(text, end - 1);
 	fn = current_filename;
 
@@ -2673,27 +2677,33 @@ static void colon(char *buf)
 		useforce = TRUE;
 		*buf1 = '\0';   // get rid of !
 	}
-	if (b >= 0) {
-		// if there is only one addr, then the addr
-		// is the line number of the single line the
-		// user wants. So, reset the end
-		// pointer to point at end of the "b" line
-		q = find_line(b);	// what line is #b
-		r = end_line(q);
-		li = 1;
-	}
-	if (e >= 0) {
-		// we were given two addrs.  change the
-		// end pointer to the addr given by user.
-		r = find_line(e);	// what line is #e
-		r = end_line(r);
-		li = e - b + 1;
+	// assume the command will want a range, certain commands
+	// (read, substitute) need to adjust these assumptions
+	if (e < 0) {
+		q = text;			// no addr, use 1,$ for the range
+		r = end - 1;
+	} else {
+		// at least one addr was given, get its details
+		q = r = find_line(e);
+		if (b < 0) {
+			// if there is only one addr, then it's the line
+			// number of the single line the user wants.
+			// Reset the end pointer to the end of that line.
+			r = end_line(q);
+			li = 1;
+		} else {
+			// we were given two addrs.  change the
+			// start pointer to the addr given by user.
+			q = find_line(b);	// what line is #b
+			r = end_line(r);
+			li = e - b + 1;
+		}
 	}
 	// ------------ now look for the command ------------
 	i = strlen(cmd);
 	if (i == 0) {		// :123CR goto line #123
-		if (b >= 0) {
-			dot = find_line(b);	// what line is #b
+		if (e >= 0) {
+			dot = find_line(e);	// what line is #e
 			dot_skip_over_ws();
 		}
 	}
@@ -2711,12 +2721,12 @@ static void colon(char *buf)
 	}
 # endif
 	else if (cmd[0] == '=' && !cmd[1]) {	// where is the address
-		if (b < 0) {	// no addr given- use defaults
-			b = e = count_lines(text, dot);
+		if (e < 0) {	// no addr given- use defaults
+			e = count_lines(text, dot);
 		}
-		status_line("%d", b);
+		status_line("%d", e);
 	} else if (strncmp(cmd, "delete", i) == 0) {	// delete lines
-		if (b < 0) {	// no addr given- use defaults
+		if (e < 0) {	// no addr given- use defaults
 			q = begin_line(dot);	// assume .,. for the range
 			r = end_line(dot);
 		}
@@ -2767,7 +2777,7 @@ static void colon(char *buf)
 			li, (int)(end - text)
 		);
 	} else if (strncmp(cmd, "file", i) == 0) {	// what File is this
-		if (b != -1 || e != -1) {
+		if (e >= 0) {
 			status_line_bold("No address allowed on this command");
 			goto ret;
 		}
@@ -2787,7 +2797,7 @@ static void colon(char *buf)
 		rawmode();
 		Hit_Return();
 	} else if (strncmp(cmd, "list", i) == 0) {	// literal print line
-		if (b < 0) {	// no addr given- use defaults
+		if (e < 0) {	// no addr given- use defaults
 			q = begin_line(dot);	// assume .,. for the range
 			r = end_line(dot);
 		}
@@ -2861,12 +2871,12 @@ static void colon(char *buf)
 			status_line_bold("No filename given");
 			goto ret;
 		}
-		if (b < 0) {	// no addr given- use defaults
-			q = begin_line(dot);	// assume "dot"
-		}
-		// read after current line- unless user said ":0r foo"
-		if (b != 0) {
-			q = next_line(q);
+		if (e < 0) {	// no addr given- read after current line
+			q = begin_line(dot);
+		} else if (e == 0) {	// user said ":0r foo"
+			q = text;
+		} else {	// addr given- read after that line
+			q = next_line(find_line(e));
 			// read after last line
 			if (q == end-1)
 				++q;
@@ -2969,13 +2979,13 @@ static void colon(char *buf)
 		}
 		len_R = strlen(R);
 
-		q = begin_line(q);
-		if (b < 0) {	// maybe :s/foo/bar/
+		if (e < 0) {	// no addr given
 			q = begin_line(dot);      // start with cur line
-			b = count_lines(text, q); // cur line number
+			r = end_line(dot);
+			b = e = count_lines(text, q); // cur line number
+		} else if (b < 0) {	// one addr given
+			b = e;
 		}
-		if (e < 0)
-			e = b;		// maybe :.s/foo/bar/
 
 		for (i = b; i <= e; i++) {	// so, :20,23 s \0 find \0 replace \0
 			char *ls = q;		// orig line start
