@@ -1191,7 +1191,7 @@ static char *get_input_line(const char *prompt)
 	write1(prompt);      // write out the :, /, or ? prompt
 
 	i = strlen(buf);
-	while (i < MAX_INPUT_LEN) {
+	while (i < MAX_INPUT_LEN - 1) {
 		c = get_one_char();
 		if (c == '\n' || c == '\r' || c == 27)
 			break;		// this is end of input
@@ -2572,7 +2572,7 @@ static void colon(char *buf)
 	if (cnt == 0)
 		return;
 	if (strncmp(p, "quit", cnt) == 0
-	 || strncmp(p, "q!", cnt) == 0
+	 || strcmp(p, "q!") == 0
 	) {
 		if (modified_count && p[1] != '!') {
 			status_line_bold("No write since last change (:%s! overrides)", p);
@@ -2582,8 +2582,8 @@ static void colon(char *buf)
 		return;
 	}
 	if (strncmp(p, "write", cnt) == 0
-	 || strncmp(p, "wq", cnt) == 0
-	 || strncmp(p, "wn", cnt) == 0
+	 || strcmp(p, "wq") == 0
+	 || strcmp(p, "wn") == 0
 	 || (p[0] == 'x' && !p[1])
 	) {
 		if (modified_count != 0 || p[0] != 'x') {
@@ -2601,7 +2601,6 @@ static void colon(char *buf)
 			);
 			if (p[0] == 'x'
 			 || p[1] == 'q' || p[1] == 'n'
-			 || p[1] == 'Q' || p[1] == 'N'
 			) {
 				editing = 0;
 			}
@@ -2621,10 +2620,9 @@ static void colon(char *buf)
 #else
 
 	char c, *buf1, *q, *r;
-	char *fn, cmd[MAX_INPUT_LEN], args[MAX_INPUT_LEN];
+	char *fn, cmd[MAX_INPUT_LEN], *cmdend, *args;
 	int i, l, li, b, e;
 	int useforce;
-	char *orig_buf;
 
 	// :3154	// if (-e line 3154) goto it  else stay put
 	// :4,33w! foo	// write a portion of buffer to file "foo"
@@ -2652,35 +2650,29 @@ static void colon(char *buf)
 	fn = current_filename;
 
 	// look for optional address(es)  :.  :1  :1,9   :'q,'a   :%
-	orig_buf = buf;
+	buf1 = buf;
 	buf = get_address(buf, &b, &e);
 	if (buf == NULL) {
-		status_line_bold("Bad address: %s", orig_buf);
+		status_line_bold("Bad address: %s", buf1);
 		goto ret;
 	}
 
-# if ENABLE_FEATURE_VI_SEARCH || ENABLE_FEATURE_ALLOW_EXEC
-	// remember orig command line
-	orig_buf = buf;
-# endif
-
 	// get the COMMAND into cmd[]
+	strcpy(cmd, buf);
 	buf1 = cmd;
-	while (*buf != '\0') {
-		if (isspace(*buf))
-			break;
-		*buf1++ = *buf++;
+	while (!isspace(*buf1) && *buf1 != '\0') {
+		buf1++;
 	}
-	*buf1 = '\0';
+	cmdend = buf1;
 	// get any ARGuments
-	while (isblank(*buf))
-		buf++;
-	strcpy(args, buf);
+	while (isblank(*buf1))
+		buf1++;
+	args = buf1;
+	*cmdend = '\0';
 	useforce = FALSE;
-	buf1 = last_char_is(cmd, '!');
-	if (buf1) {
+	if (cmdend > cmd && cmdend[-1] == '!') {
 		useforce = TRUE;
-		*buf1 = '\0';   // get rid of !
+		cmdend[-1] = '\0';   // get rid of !
 	}
 	// assume the command will want a range, certain commands
 	// (read, substitute) need to adjust these assumptions
@@ -2718,7 +2710,7 @@ static void colon(char *buf)
 		// :!ls   run the <cmd>
 		go_bottom_and_clear_to_eol();
 		cookmode();
-		retcode = system(orig_buf + 1);	// run the cmd
+		retcode = system(buf + 1);	// run the cmd
 		if (retcode)
 			printf("\nshell returned %i\n\n", retcode);
 		rawmode();
@@ -2969,8 +2961,8 @@ static void colon(char *buf)
 		// F points to the "find" pattern
 		// R points to the "replace" pattern
 		// replace the cmd line delimiters "/" with NULs
-		c = orig_buf[1];	// what is the delimiter
-		F = orig_buf + 2;	// start of "find"
+		c = buf[1];	// what is the delimiter
+		F = buf + 2;	// start of "find"
 		R = strchr(F, c);	// middle delimiter
 		if (!R)
 			goto colon_s_fail;
@@ -3039,8 +3031,8 @@ static void colon(char *buf)
 	} else if (strncmp(cmd, "version", i) == 0) {  // show software version
 		status_line(BB_VER);
 	} else if (strncmp(cmd, "write", i) == 0  // write text to file
-	        || strncmp(cmd, "wq", i) == 0
-	        || strncmp(cmd, "wn", i) == 0
+	        || strcmp(cmd, "wq") == 0
+	        || strcmp(cmd, "wn") == 0
 	        || (cmd[0] == 'x' && !cmd[1])
 	) {
 		int size;
@@ -3096,7 +3088,6 @@ static void colon(char *buf)
 				}
 				if (cmd[0] == 'x'
 				 || cmd[1] == 'q' || cmd[1] == 'n'
-				 || cmd[1] == 'Q' || cmd[1] == 'N'
 				) {
 					editing = 0;
 				}
