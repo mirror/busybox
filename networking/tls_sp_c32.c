@@ -72,18 +72,6 @@ static const sp_digit p256_mod[10] = {
 
 #define p256_mp_mod ((sp_digit)0x000001)
 
-/* The base point of curve P256. */
-static const sp_point p256_base = {
-	/* X ordinate */
-	{ 0x098c296,0x04e5176,0x33a0f4a,0x204b7ac,0x277037d,0x0e9103c,0x3ce6e56,0x1091fe2,0x1f2e12c,0x01ac5f4 },
-	/* Y ordinate */
-	{ 0x3bf51f5,0x1901a0d,0x1ececbb,0x15dacc5,0x22bce33,0x303e785,0x27eb4a7,0x1fe6e3b,0x2e2fe1a,0x013f8d0 },
-	/* Z ordinate */
-	{ 0x0000001,0x0000000,0x0000000,0x0000000,0x0000000,0x0000000,0x0000000,0x0000000,0x0000000,0x0000000 },
-	/* infinity */
-	0
-};
-
 /* Write r as big endian to byte aray.
  * Fixed length number of bytes written: 32
  *
@@ -798,6 +786,24 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
  */
 static void sp_256_ecc_mulmod_base_10(sp_point* r, sp_digit* k /*, int map*/)
 {
+	/* Since this function is called only once, save space:
+	 * don't have "static const sp_point p256_base = {...}",
+	 * it would have more zeros than data.
+	 */
+	static const sp_digit base_x[] = {
+		0x098c296,0x04e5176,0x33a0f4a,0x204b7ac,0x277037d,0x0e9103c,0x3ce6e56,0x1091fe2,0x1f2e12c,0x01ac5f4
+	};
+	static const sp_digit base_y[] = {
+		0x3bf51f5,0x1901a0d,0x1ececbb,0x15dacc5,0x22bce33,0x303e785,0x27eb4a7,0x1fe6e3b,0x2e2fe1a,0x013f8d0
+	};
+	sp_point p256_base;
+
+	memset(&p256_base, 0, sizeof(p256_base));
+	memcpy(p256_base.x, base_x, sizeof(base_x));
+	memcpy(p256_base.y, base_y, sizeof(base_y));
+	p256_base.z[0] = 1;
+	/*p256_base.infinity = 0;*/
+
 	sp_256_ecc_mulmod_10(r, &p256_base, k /*, map*/);
 }
 
