@@ -57,7 +57,6 @@ typedef int32_t sp_digit;
 
 /* Implementation by Sean Parkinson. */
 
-/* Point structure to use. */
 typedef struct sp_point {
 	sp_digit x[2 * 10];
 	sp_digit y[2 * 10];
@@ -165,8 +164,6 @@ static void sp_256_point_from_bin2x32(sp_point* p, const uint8_t *bin2x32)
 
 /* Compare a with b in constant time.
  *
- * a  A single precision integer.
- * b  A single precision integer.
  * return -ve, 0 or +ve if a is less than, equal to or greater than b
  * respectively.
  */
@@ -181,8 +178,6 @@ static sp_digit sp_256_cmp_10(const sp_digit* a, const sp_digit* b)
 
 /* Compare two numbers to determine if they are equal.
  *
- * a  First number to compare.
- * b  Second number to compare.
  * return 1 when equal and 0 otherwise.
  */
 static int sp_256_cmp_equal_10(const sp_digit* a, const sp_digit* b)
@@ -198,10 +193,7 @@ static int sp_256_cmp_equal_10(const sp_digit* a, const sp_digit* b)
 #endif
 }
 
-/* Normalize the values in each word to 26.
- *
- * a  Array of sp_digit to normalize.
- */
+/* Normalize the values in each word to 26 bits. */
 static void sp_256_norm_10(sp_digit* a)
 {
     int i;
@@ -211,12 +203,7 @@ static void sp_256_norm_10(sp_digit* a)
     }
 }
 
-/* Add b to a into r. (r = a + b)
- *
- * r  A single precision integer.
- * a  A single precision integer.
- * b  A single precision integer.
- */
+/* Add b to a into r. (r = a + b) */
 static void sp_256_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
 {
     int i;
@@ -226,11 +213,6 @@ static void sp_256_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
 
 /* Conditionally add a and b using the mask m.
  * m is -1 to add and 0 when not.
- *
- * r  A single precision number representing conditional add result.
- * a  A single precision number to add with.
- * b  A single precision number to add.
- * m  Mask value to apply.
  */
 static void sp_256_cond_add_10(sp_digit* r, const sp_digit* a,
         const sp_digit* b, const sp_digit m)
@@ -242,11 +224,6 @@ static void sp_256_cond_add_10(sp_digit* r, const sp_digit* a,
 
 /* Conditionally subtract b from a using the mask m.
  * m is -1 to subtract and 0 when not.
- *
- * r  A single precision number representing condition subtract result.
- * a  A single precision number to subtract from.
- * b  A single precision number to subtract.
- * m  Mask value to apply.
  */
 static void sp_256_cond_sub_10(sp_digit* r, const sp_digit* a,
         const sp_digit* b, const sp_digit m)
@@ -256,23 +233,7 @@ static void sp_256_cond_sub_10(sp_digit* r, const sp_digit* a,
         r[i] = a[i] - (b[i] & m);
 }
 
-/* Add 1 to a. (a = a + 1)
- *
- * r  A single precision integer.
- * a  A single precision integer.
- */
-static void sp_256_add_one_10(sp_digit* a)
-{
-    a[0]++;
-    sp_256_norm_10(a);
-}
-
-/* Shift number left one bit.
- * Bottom bit is lost.
- *
- * r  Result of shift.
- * a  Number to shift.
- */
+/* Shift number left one bit. Bottom bit is lost. */
 static void sp_256_rshift1_10(sp_digit* r, sp_digit* a)
 {
     int i;
@@ -381,14 +342,8 @@ static void sp_256_mod_mul_norm_10(sp_digit* r, const sp_digit* a)
     r[9] = (sp_digit)(t[7] >> 10);
 }
 
-/* Mul a by scalar b and add into r. (r += a * b)
- *
- * r  A single precision integer.
- * a  A single precision integer.
- * b  A scalar.
- */
-static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a,
-        const sp_digit b)
+/* Mul a by scalar b and add into r. (r += a * b) */
+static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a, sp_digit b)
 {
     int64_t tb = b;
     int64_t t = 0;
@@ -402,12 +357,7 @@ static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a,
     r[10] += t;
 }
 
-/* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m)
- *
- * r  Result of division by 2.
- * a  Number to divide.
- * m  Modulus (prime).
- */
+/* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m) */
 static void sp_256_div2_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
 {
     sp_256_cond_add_10(r, a, m, 0 - (a[0] & 1));
@@ -415,11 +365,7 @@ static void sp_256_div2_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
     sp_256_rshift1_10(r, r);
 }
 
-/* Shift the result in the high 256 bits down to the bottom.
- *
- * r  A single precision number.
- * a  A single precision number.
- */
+/* Shift the result in the high 256 bits down to the bottom. */
 static void sp_256_mont_shift_10(sp_digit* r, const sp_digit* a)
 {
     int i;
@@ -438,13 +384,7 @@ static void sp_256_mont_shift_10(sp_digit* r, const sp_digit* a)
     memset(&r[10], 0, sizeof(*r) * 10);
 }
 
-/* Add two Montgomery form numbers (r = a + b % m).
- *
- * r   Result of addition.
- * a   First number to add in Montogmery form.
- * b   Second number to add in Montogmery form.
- * m   Modulus (prime).
- */
+/* Add two Montgomery form numbers (r = a + b % m) */
 static void sp_256_mont_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
         const sp_digit* m)
 {
@@ -454,12 +394,7 @@ static void sp_256_mont_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b
     sp_256_norm_10(r);
 }
 
-/* Double a Montgomery form number (r = a + a % m).
- *
- * r   Result of doubling.
- * a   Number to double in Montogmery form.
- * m   Modulus (prime).
- */
+/* Double a Montgomery form number (r = a + a % m) */
 static void sp_256_mont_dbl_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
 {
     sp_256_add_10(r, a, a);
@@ -468,12 +403,7 @@ static void sp_256_mont_dbl_10(sp_digit* r, const sp_digit* a, const sp_digit* m
     sp_256_norm_10(r);
 }
 
-/* Triple a Montgomery form number (r = a + a + a % m).
- *
- * r   Result of Tripling.
- * a   Number to triple in Montogmery form.
- * m   Modulus (prime).
- */
+/* Triple a Montgomery form number (r = a + a + a % m) */
 static void sp_256_mont_tpl_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
 {
     sp_256_add_10(r, a, a);
@@ -486,27 +416,15 @@ static void sp_256_mont_tpl_10(sp_digit* r, const sp_digit* a, const sp_digit* m
     sp_256_norm_10(r);
 }
 
-/* Sub b from a into r. (r = a - b)
- *
- * r  A single precision integer.
- * a  A single precision integer.
- * b  A single precision integer.
- */
-static void sp_256_sub_10(sp_digit* r, const sp_digit* a,
-        const sp_digit* b)
+/* Sub b from a into r. (r = a - b) */
+static void sp_256_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
 {
     int i;
     for (i = 0; i < 10; i++)
         r[i] = a[i] - b[i];
 }
 
-/* Subtract two Montgomery form numbers (r = a - b % m).
- *
- * r   Result of subtration.
- * a   Number to subtract from in Montogmery form.
- * b   Number to subtract with in Montogmery form.
- * m   Modulus (prime).
- */
+/* Subtract two Montgomery form numbers (r = a - b % m) */
 static void sp_256_mont_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
         const sp_digit* m)
 {
@@ -554,12 +472,7 @@ static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
     sp_256_norm_10(a);
 }
 
-/* Multiply a and b into r. (r = a * b)
- *
- * r  A single precision integer.
- * a  A single precision integer.
- * b  A single precision integer.
- */
+/* Multiply a and b into r. (r = a * b) */
 static void sp_256_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
 {
     int i, j, k;
@@ -600,11 +513,7 @@ static void sp_256_mont_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b
     sp_256_mont_reduce_10(r, m, mp);
 }
 
-/* Square a and put result in r. (r = a * a)
- *
- * r  A single precision integer.
- * a  A single precision integer.
- */
+/* Square a and put result in r. (r = a * a) */
 static void sp_256_sqr_10(sp_digit* r, const sp_digit* a)
 {
     int i, j, k;
@@ -937,8 +846,8 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
     else
         memcpy(r, t[0], sizeof(sp_point));
 
-    memset(tmp, 0, sizeof(tmp));
-    memset(td, 0, sizeof(td));
+    memset(tmp, 0, sizeof(tmp)); //paranoia
+    memset(td, 0, sizeof(td)); //paranoia
 }
 
 /* Multiply the base point of P256 by the scalar and return the result.
@@ -956,20 +865,20 @@ static void sp_256_ecc_mulmod_base_10(sp_point* r, sp_digit* k /*, int map*/)
  * The number is 0 padded to maximum size on output.
  *
  * priv    Scalar to multiply the point by.
- * peerkey2x32   Point to multiply.
- * out     Buffer to hold X ordinate.
+ * pub2x32 Point to multiply.
+ * out32   Buffer to hold X ordinate.
  */
-static void sp_ecc_secret_gen_256(sp_digit priv[10], const uint8_t *peerkey2x32, uint8_t* out32)
+static void sp_ecc_secret_gen_256(sp_digit priv[10], const uint8_t *pub2x32, uint8_t* out32)
 {
     sp_point point[1];
 
 #if FIXED_PEER_PUBKEY
-    memset((void*)peerkey32, 0x55, 64);
+    memset((void*)pub2x32, 0x55, 64);
 #endif
-    dump_hex("peerkey32 %s\n", peerkey2x32, 32);
-    dump_hex("          %s\n", peerkey2x32 + 32, 32);
+    dump_hex("peerkey %s\n", pub2x32, 32); /* in TLS, this is peer's public key */
+    dump_hex("        %s\n", pub2x32 + 32, 32);
 
-    sp_256_point_from_bin2x32(point, peerkey2x32);
+    sp_256_point_from_bin2x32(point, pub2x32);
     dump_hex("point->x %s\n", point->x, sizeof(point->x));
     dump_hex("point->y %s\n", point->y, sizeof(point->y));
 
@@ -979,14 +888,18 @@ static void sp_ecc_secret_gen_256(sp_digit priv[10], const uint8_t *peerkey2x32,
     dump_hex("out32: %s\n", out32, 32);
 }
 
-/* Generates a scalar that is in the range 1..order-1.
- *
- * rng  Random number generator.
- * k    Scalar value.
- */
+/* Generates a scalar that is in the range 1..order-1. */
+#define SIMPLIFY 1
+/* Add 1 to a. (a = a + 1) */
+#if !SIMPLIFY
+static void sp_256_add_one_10(sp_digit* a)
+{
+    a[0]++;
+    sp_256_norm_10(a);
+}
+#endif
 static void sp_256_ecc_gen_k_10(sp_digit k[10])
 {
-#define SIMPLIFY 1
 #if !SIMPLIFY
 	/* The order of the curve P256 minus 2. */
 	static const sp_digit p256_order2[10] = {
@@ -1007,7 +920,7 @@ static void sp_256_ecc_gen_k_10(sp_digit k[10])
 			break;
 #else
 		/* non-loopy version (and not needing p256_order2[]):
-		 * if most-significant word seems that it can be larger
+		 * if most-significant word seems that k can be larger
 		 * than p256_order2, fix it up:
 		 */
 		if (k[9] >= 0x03fffff)
@@ -1015,21 +928,22 @@ static void sp_256_ecc_gen_k_10(sp_digit k[10])
 		break;
 #endif
 	}
+#if !SIMPLIFY
 	sp_256_add_one_10(k);
+#else
+	if (k[0] == 0)
+		k[0] = 1;
+#endif
 #undef SIMPLIFY
 }
 
-/* Makes a random EC key pair.
- *
- * priv   Generated private value.
- * pubkey Generated public point.
- */
-static void sp_ecc_make_key_256(sp_digit k[10], uint8_t *pubkey)
+/* Makes a random EC key pair. */
+static void sp_ecc_make_key_256(sp_digit privkey[10], uint8_t *pubkey)
 {
 	sp_point point[1];
 
-	sp_256_ecc_gen_k_10(k);
-	sp_256_ecc_mulmod_base_10(point, k);
+	sp_256_ecc_gen_k_10(privkey);
+	sp_256_ecc_mulmod_base_10(point, privkey);
 	sp_256_to_bin(point->x, pubkey);
 	sp_256_to_bin(point->y, pubkey + 32);
 
@@ -1037,16 +951,16 @@ static void sp_ecc_make_key_256(sp_digit k[10], uint8_t *pubkey)
 }
 
 void FAST_FUNC curve_P256_compute_pubkey_and_premaster(
-		uint8_t *pubkey, uint8_t *premaster32,
+		uint8_t *pubkey2x32, uint8_t *premaster32,
 		const uint8_t *peerkey2x32)
 {
 	sp_digit privkey[10];
 
-	sp_ecc_make_key_256(privkey, pubkey);
-	dump_hex("pubkey: %s\n", pubkey, 32);
-	dump_hex("        %s\n", pubkey + 32, 32);
+	sp_ecc_make_key_256(privkey, pubkey2x32);
+	dump_hex("pubkey: %s\n", pubkey2x32, 32);
+	dump_hex("        %s\n", pubkey2x32 + 32, 32);
 
-	/* Combine our privkey and peerkey32 to generate premaster */
+	/* Combine our privkey and peer's public key to generate premaster */
 	sp_ecc_secret_gen_256(privkey, /*x,y:*/peerkey2x32, premaster32);
 	dump_hex("premaster: %s\n", premaster32, 32);
 }

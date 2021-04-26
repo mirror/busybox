@@ -111,9 +111,9 @@ void xorbuf_aligned_AES_BLOCK_SIZE(void* buf, const void* mask) FAST_FUNC;
 #define CURVE25519_KEYSIZE 32
 
 void curve_x25519_compute_pubkey_and_premaster(
-		uint8_t *pubkey, uint8_t *premaster,
+		uint8_t *pubkey32, uint8_t *premaster32,
 		const uint8_t *peerkey32) FAST_FUNC;
 
 void curve_P256_compute_pubkey_and_premaster(
-		uint8_t *pubkey, uint8_t *premaster,
-		const uint8_t *peerkey32) FAST_FUNC;
+		uint8_t *pubkey2x32, uint8_t *premaster32,
+		const uint8_t *peerkey2x32) FAST_FUNC;
