@@ -220,6 +220,250 @@ static void sp_256_rshift1_10(sp_digit* r, sp_digit* a)
 	r[9] = a[9] >> 1;
 }
 
+/* Mul a by scalar b and add into r. (r += a * b) */
+static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a, sp_digit b)
+{
+	int64_t tb = b;
+	int64_t t = 0;
+	int i;
+
+	for (i = 0; i < 10; i++) {
+		t += (tb * a[i]) + r[i];
+		r[i] = t & 0x3ffffff;
+		t >>= 26;
+	}
+	r[10] += t;
+}
+
+/* Multiply a and b into r. (r = a * b) */
+static void sp_256_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
+{
+	int i, j, k;
+	int64_t c;
+
+	c = ((int64_t)a[9]) * b[9];
+	r[19] = (sp_digit)(c >> 26);
+	c = (c & 0x3ffffff) << 26;
+	for (k = 17; k >= 0; k--) {
+		for (i = 9; i >= 0; i--) {
+			j = k - i;
+			if (j >= 10)
+				break;
+			if (j < 0)
+				continue;
+			c += ((int64_t)a[i]) * b[j];
+		}
+		r[k + 2] += c >> 52;
+		r[k + 1] = (c >> 26) & 0x3ffffff;
+		c = (c & 0x3ffffff) << 26;
+	}
+	r[0] = (sp_digit)(c >> 26);
+}
+
+/* Square a and put result in r. (r = a * a) */
+static void sp_256_sqr_10(sp_digit* r, const sp_digit* a)
+{
+	int i, j, k;
+	int64_t c;
+
+	c = ((int64_t)a[9]) * a[9];
+	r[19] = (sp_digit)(c >> 26);
+	c = (c & 0x3ffffff) << 26;
+	for (k = 17; k >= 0; k--) {
+		for (i = 9; i >= 0; i--) {
+			j = k - i;
+			if (j >= 10 || i <= j)
+				break;
+			if (j < 0)
+				continue;
+			c += ((int64_t)a[i]) * a[j] * 2;
+		}
+		if (i == j)
+			c += ((int64_t)a[i]) * a[i];
+		r[k + 2] += c >> 52;
+		r[k + 1] = (c >> 26) & 0x3ffffff;
+		c = (c & 0x3ffffff) << 26;
+	}
+	r[0] = (sp_digit)(c >> 26);
+}
+
+/* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m) */
+static void sp_256_div2_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
+{
+	if (a[0] & 1)
+		sp_256_add_10(r, a, m);
+	sp_256_norm_10(r);
+	sp_256_rshift1_10(r, r);
+}
+
+/* Add two Montgomery form numbers (r = a + b % m) */
+static void sp_256_mont_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
+		const sp_digit* m)
+{
+	sp_256_add_10(r, a, b);
+	sp_256_norm_10(r);
+	if ((r[9] >> 22) > 0)
+		sp_256_sub_10(r, r, m);
+	sp_256_norm_10(r);
+}
+
+/* Subtract two Montgomery form numbers (r = a - b % m) */
+static void sp_256_mont_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
+		const sp_digit* m)
+{
+	sp_256_sub_10(r, a, b);
+	if (r[9] >> 22)
+		sp_256_add_10(r, r, m);
+	sp_256_norm_10(r);
+}
+
+/* Double a Montgomery form number (r = a + a % m) */
+static void sp_256_mont_dbl_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
+{
+	sp_256_add_10(r, a, a);
+	sp_256_norm_10(r);
+	if ((r[9] >> 22) > 0)
+		sp_256_sub_10(r, r, m);
+	sp_256_norm_10(r);
+}
+
+/* Triple a Montgomery form number (r = a + a + a % m) */
+static void sp_256_mont_tpl_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
+{
+	sp_256_add_10(r, a, a);
+	sp_256_norm_10(r);
+	if ((r[9] >> 22) > 0)
+		sp_256_sub_10(r, r, m);
+	sp_256_norm_10(r);
+	sp_256_add_10(r, r, a);
+	sp_256_norm_10(r);
+	if ((r[9] >> 22) > 0)
+		sp_256_sub_10(r, r, m);
+	sp_256_norm_10(r);
+}
+
+/* Shift the result in the high 256 bits down to the bottom. */
+static void sp_256_mont_shift_10(sp_digit* r, const sp_digit* a)
+{
+	int i;
+	sp_digit n, s;
+
+	s = a[10];
+	n = a[9] >> 22;
+	for (i = 0; i < 9; i++) {
+		n += (s & 0x3ffffff) << 4;
+		r[i] = n & 0x3ffffff;
+		n >>= 26;
+		s = a[11 + i] + (s >> 26);
+	}
+	n += s << 4;
+	r[9] = n;
+	memset(&r[10], 0, sizeof(*r) * 10);
+}
+
+/* Reduce the number back to 256 bits using Montgomery reduction.
+ *
+ * a   A single precision number to reduce in place.
+ * m   The single precision number representing the modulus.
+ * mp  The digit representing the negative inverse of m mod 2^n.
+ */
+static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
+{
+	int i;
+	sp_digit mu;
+
+	if (mp != 1) {
+		for (i = 0; i < 9; i++) {
+			mu = (a[i] * mp) & 0x3ffffff;
+			sp_256_mul_add_10(a+i, m, mu);
+			a[i+1] += a[i] >> 26;
+		}
+		mu = (a[i] * mp) & 0x3fffffl;
+		sp_256_mul_add_10(a+i, m, mu);
+		a[i+1] += a[i] >> 26;
+		a[i] &= 0x3ffffff;
+	}
+	else {
+		for (i = 0; i < 9; i++) {
+			mu = a[i] & 0x3ffffff;
+			sp_256_mul_add_10(a+i, p256_mod, mu);
+			a[i+1] += a[i] >> 26;
+		}
+		mu = a[i] & 0x3fffffl;
+		sp_256_mul_add_10(a+i, p256_mod, mu);
+		a[i+1] += a[i] >> 26;
+		a[i] &= 0x3ffffff;
+	}
+
+	sp_256_mont_shift_10(a, a);
+	if ((a[9] >> 22) > 0)
+		sp_256_sub_10(a, a, m);
+	sp_256_norm_10(a);
+}
+
+/* Multiply two Montogmery form numbers mod the modulus (prime).
+ * (r = a * b mod m)
+ *
+ * r   Result of multiplication.
+ * a   First number to multiply in Montogmery form.
+ * b   Second number to multiply in Montogmery form.
+ * m   Modulus (prime).
+ * mp  Montogmery mulitplier.
+ */
+static void sp_256_mont_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
+		const sp_digit* m, sp_digit mp)
+{
+	sp_256_mul_10(r, a, b);
+	sp_256_mont_reduce_10(r, m, mp);
+}
+
+/* Square the Montgomery form number. (r = a * a mod m)
+ *
+ * r   Result of squaring.
+ * a   Number to square in Montogmery form.
+ * m   Modulus (prime).
+ * mp  Montogmery mulitplier.
+ */
+static void sp_256_mont_sqr_10(sp_digit* r, const sp_digit* a, const sp_digit* m,
+		sp_digit mp)
+{
+	sp_256_sqr_10(r, a);
+	sp_256_mont_reduce_10(r, m, mp);
+}
+
+/* Invert the number, in Montgomery form, modulo the modulus (prime) of the
+ * P256 curve. (r = 1 / a mod m)
+ *
+ * r   Inverse result.
+ * a   Number to invert.
+ */
+#if 0
+/* Mod-2 for the P256 curve. */
+static const uint32_t p256_mod_2[8] = {
+	0xfffffffd,0xffffffff,0xffffffff,0x00000000,
+	0x00000000,0x00000000,0x00000001,0xffffffff,
+};
+//Bit pattern:
+//2    2         2         2         2         2         2         1...1
+//5    5         4         3         2         1         0         9...0         9...1
+//543210987654321098765432109876543210987654321098765432109876543210...09876543210...09876543210
+//111111111111111111111111111111110000000000000000000000000000000100...00000111111...11111111101
+#endif
+static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a)
+{
+	sp_digit t[2*10]; //can be just [10]?
+	int i;
+
+	memcpy(t, a, sizeof(sp_digit) * 10);
+	for (i = 254; i >= 0; i--) {
+		sp_256_mont_sqr_10(t, t, p256_mod, p256_mp_mod);
+		/*if (p256_mod_2[i / 32] & ((sp_digit)1 << (i % 32)))*/
+		if (i >= 224 || i == 192 || (i <= 95 && i != 1))
+			sp_256_mont_mul_10(t, t, a, p256_mod, p256_mp_mod);
+	}
+	memcpy(r, t, sizeof(sp_digit) * 10);
+}
+
 /* Multiply a number by Montogmery normalizer mod modulus (prime).
  *
  * r  The resulting Montgomery form number.
@@ -318,250 +562,6 @@ static void sp_256_mod_mul_norm_10(sp_digit* r, const sp_digit* a)
 	r[8] |= t[7] << 16;
 	r[8] &= 0x3ffffff;
 	r[9] = (sp_digit)(t[7] >> 10);
-}
-
-/* Mul a by scalar b and add into r. (r += a * b) */
-static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a, sp_digit b)
-{
-	int64_t tb = b;
-	int64_t t = 0;
-	int i;
-
-	for (i = 0; i < 10; i++) {
-		t += (tb * a[i]) + r[i];
-		r[i] = t & 0x3ffffff;
-		t >>= 26;
-	}
-	r[10] += t;
-}
-
-/* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m) */
-static void sp_256_div2_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
-{
-	if (a[0] & 1)
-		sp_256_add_10(r, a, m);
-	sp_256_norm_10(r);
-	sp_256_rshift1_10(r, r);
-}
-
-/* Shift the result in the high 256 bits down to the bottom. */
-static void sp_256_mont_shift_10(sp_digit* r, const sp_digit* a)
-{
-	int i;
-	sp_digit n, s;
-
-	s = a[10];
-	n = a[9] >> 22;
-	for (i = 0; i < 9; i++) {
-		n += (s & 0x3ffffff) << 4;
-		r[i] = n & 0x3ffffff;
-		n >>= 26;
-		s = a[11 + i] + (s >> 26);
-	}
-	n += s << 4;
-	r[9] = n;
-	memset(&r[10], 0, sizeof(*r) * 10);
-}
-
-/* Add two Montgomery form numbers (r = a + b % m) */
-static void sp_256_mont_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
-		const sp_digit* m)
-{
-	sp_256_add_10(r, a, b);
-	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0)
-		sp_256_sub_10(r, r, m);
-	sp_256_norm_10(r);
-}
-
-/* Double a Montgomery form number (r = a + a % m) */
-static void sp_256_mont_dbl_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
-{
-	sp_256_add_10(r, a, a);
-	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0)
-		sp_256_sub_10(r, r, m);
-	sp_256_norm_10(r);
-}
-
-/* Triple a Montgomery form number (r = a + a + a % m) */
-static void sp_256_mont_tpl_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
-{
-	sp_256_add_10(r, a, a);
-	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0)
-		sp_256_sub_10(r, r, m);
-	sp_256_norm_10(r);
-	sp_256_add_10(r, r, a);
-	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0)
-		sp_256_sub_10(r, r, m);
-	sp_256_norm_10(r);
-}
-
-/* Subtract two Montgomery form numbers (r = a - b % m) */
-static void sp_256_mont_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
-		const sp_digit* m)
-{
-	sp_256_sub_10(r, a, b);
-	if (r[9] >> 22)
-		sp_256_add_10(r, r, m);
-	sp_256_norm_10(r);
-}
-
-/* Reduce the number back to 256 bits using Montgomery reduction.
- *
- * a   A single precision number to reduce in place.
- * m   The single precision number representing the modulus.
- * mp  The digit representing the negative inverse of m mod 2^n.
- */
-static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
-{
-	int i;
-	sp_digit mu;
-
-	if (mp != 1) {
-		for (i = 0; i < 9; i++) {
-			mu = (a[i] * mp) & 0x3ffffff;
-			sp_256_mul_add_10(a+i, m, mu);
-			a[i+1] += a[i] >> 26;
-		}
-		mu = (a[i] * mp) & 0x3fffffl;
-		sp_256_mul_add_10(a+i, m, mu);
-		a[i+1] += a[i] >> 26;
-		a[i] &= 0x3ffffff;
-	}
-	else {
-		for (i = 0; i < 9; i++) {
-			mu = a[i] & 0x3ffffff;
-			sp_256_mul_add_10(a+i, p256_mod, mu);
-			a[i+1] += a[i] >> 26;
-		}
-		mu = a[i] & 0x3fffffl;
-		sp_256_mul_add_10(a+i, p256_mod, mu);
-		a[i+1] += a[i] >> 26;
-		a[i] &= 0x3ffffff;
-	}
-
-	sp_256_mont_shift_10(a, a);
-	if ((a[9] >> 22) > 0)
-		sp_256_sub_10(a, a, m);
-	sp_256_norm_10(a);
-}
-
-/* Multiply a and b into r. (r = a * b) */
-static void sp_256_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
-{
-	int i, j, k;
-	int64_t c;
-
-	c = ((int64_t)a[9]) * b[9];
-	r[19] = (sp_digit)(c >> 26);
-	c = (c & 0x3ffffff) << 26;
-	for (k = 17; k >= 0; k--) {
-		for (i = 9; i >= 0; i--) {
-			j = k - i;
-			if (j >= 10)
-				break;
-			if (j < 0)
-				continue;
-			c += ((int64_t)a[i]) * b[j];
-		}
-		r[k + 2] += c >> 52;
-		r[k + 1] = (c >> 26) & 0x3ffffff;
-		c = (c & 0x3ffffff) << 26;
-	}
-	r[0] = (sp_digit)(c >> 26);
-}
-
-/* Multiply two Montogmery form numbers mod the modulus (prime).
- * (r = a * b mod m)
- *
- * r   Result of multiplication.
- * a   First number to multiply in Montogmery form.
- * b   Second number to multiply in Montogmery form.
- * m   Modulus (prime).
- * mp  Montogmery mulitplier.
- */
-static void sp_256_mont_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
-		const sp_digit* m, sp_digit mp)
-{
-	sp_256_mul_10(r, a, b);
-	sp_256_mont_reduce_10(r, m, mp);
-}
-
-/* Square a and put result in r. (r = a * a) */
-static void sp_256_sqr_10(sp_digit* r, const sp_digit* a)
-{
-	int i, j, k;
-	int64_t c;
-
-	c = ((int64_t)a[9]) * a[9];
-	r[19] = (sp_digit)(c >> 26);
-	c = (c & 0x3ffffff) << 26;
-	for (k = 17; k >= 0; k--) {
-		for (i = 9; i >= 0; i--) {
-			j = k - i;
-			if (j >= 10 || i <= j)
-				break;
-			if (j < 0)
-				continue;
-			c += ((int64_t)a[i]) * a[j] * 2;
-		}
-		if (i == j)
-			c += ((int64_t)a[i]) * a[i];
-		r[k + 2] += c >> 52;
-		r[k + 1] = (c >> 26) & 0x3ffffff;
-		c = (c & 0x3ffffff) << 26;
-	}
-	r[0] = (sp_digit)(c >> 26);
-}
-
-/* Square the Montgomery form number. (r = a * a mod m)
- *
- * r   Result of squaring.
- * a   Number to square in Montogmery form.
- * m   Modulus (prime).
- * mp  Montogmery mulitplier.
- */
-static void sp_256_mont_sqr_10(sp_digit* r, const sp_digit* a, const sp_digit* m,
-		sp_digit mp)
-{
-	sp_256_sqr_10(r, a);
-	sp_256_mont_reduce_10(r, m, mp);
-}
-
-/* Invert the number, in Montgomery form, modulo the modulus (prime) of the
- * P256 curve. (r = 1 / a mod m)
- *
- * r   Inverse result.
- * a   Number to invert.
- */
-#if 0
-/* Mod-2 for the P256 curve. */
-static const uint32_t p256_mod_2[8] = {
-	0xfffffffd,0xffffffff,0xffffffff,0x00000000,
-	0x00000000,0x00000000,0x00000001,0xffffffff,
-};
-//Bit pattern:
-//2    2         2         2         2         2         2         1...1
-//5    5         4         3         2         1         0         9...0         9...1
-//543210987654321098765432109876543210987654321098765432109876543210...09876543210...09876543210
-//111111111111111111111111111111110000000000000000000000000000000100...00000111111...11111111101
-#endif
-static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a)
-{
-	sp_digit t[2*10]; //can be just [10]?
-	int i;
-
-	memcpy(t, a, sizeof(sp_digit) * 10);
-	for (i = 254; i >= 0; i--) {
-		sp_256_mont_sqr_10(t, t, p256_mod, p256_mp_mod);
-		/*if (p256_mod_2[i / 32] & ((sp_digit)1 << (i % 32)))*/
-		if (i >= 224 || i == 192 || (i <= 95 && i != 1))
-			sp_256_mont_mul_10(t, t, a, p256_mod, p256_mp_mod);
-	}
-	memcpy(r, t, sizeof(sp_digit) * 10);
 }
 
 /* Map the Montgomery form projective co-ordinate point to an affine point.
@@ -808,7 +808,7 @@ static void sp_256_ecc_mulmod_base_10(sp_point* r, sp_digit* k /*, int map*/)
  * pub2x32 Point to multiply.
  * out32   Buffer to hold X ordinate.
  */
-static void sp_ecc_secret_gen_256(sp_digit priv[10], const uint8_t *pub2x32, uint8_t* out32)
+static void sp_ecc_secret_gen_256(const sp_digit priv[10], const uint8_t *pub2x32, uint8_t* out32)
 {
 	sp_point point[1];
 
