@@ -170,8 +170,8 @@ static sp_digit sp_256_cmp_10(const sp_digit* a, const sp_digit* b)
     int i;
     for (i = 9; i >= 0; i--) {
         r = a[i] - b[i];
-	if (r != 0)
-	    break;
+        if (r != 0)
+            break;
     }
     return r;
 }
@@ -553,16 +553,15 @@ static void sp_256_mont_sqr_10(sp_digit* r, const sp_digit* a, const sp_digit* m
  *
  * r   Inverse result.
  * a   Number to invert.
- * td  Temporary data.
  */
 /* Mod-2 for the P256 curve. */
 static const uint32_t p256_mod_2[8] = {
-	0xfffffffd,0xffffffff,0xffffffff,0x00000000,
-	0x00000000,0x00000000,0x00000001,0xffffffff,
+    0xfffffffd,0xffffffff,0xffffffff,0x00000000,
+    0x00000000,0x00000000,0x00000001,0xffffffff,
 };
-static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a, sp_digit* td)
+static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a)
 {
-    sp_digit* t = td;
+    sp_digit t[2*10]; //can be just [10]?
     int i;
 
     memcpy(t, a, sizeof(sp_digit) * 10);
@@ -578,15 +577,14 @@ static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a, sp_digit* td)
  *
  * r  Resulting affine co-ordinate point.
  * p  Montgomery form projective co-ordinate point.
- * t  Temporary ordinate data.
  */
-static void sp_256_map_10(sp_point* r, sp_point* p, sp_digit* t)
+static void sp_256_map_10(sp_point* r, sp_point* p)
 {
-    sp_digit* t1 = t;
-    sp_digit* t2 = t + 2*10;
+    sp_digit t1[2*10];
+    sp_digit t2[2*10];
     int32_t n;
 
-    sp_256_mont_inv_10(t1, p->z, t + 2*10);
+    sp_256_mont_inv_10(t1, p->z);
 
     sp_256_mont_sqr_10(t2, t1, p256_mod, p256_mp_mod);
     sp_256_mont_mul_10(t1, t2, t1, p256_mod, p256_mp_mod);
@@ -617,21 +615,20 @@ static void sp_256_map_10(sp_point* r, sp_point* p, sp_digit* t)
  *
  * r  Result of doubling point.
  * p  Point to double.
- * t  Temporary ordinate data.
  */
-static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p, sp_digit* t)
+static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
 {
     sp_point tp;
-    sp_digit* t1 = t;
-    sp_digit* t2 = t + 2*10;
+    sp_digit t1[2*10];
+    sp_digit t2[2*10];
 
     /* Put point to double into result */
     if (r != p)
         *r = *p; /* struct copy */
 
     if (r->infinity) {
-	/* If infinity, don't double (work on dummy value) */
-	r = &tp;
+        /* If infinity, don't double (work on dummy value) */
+        r = &tp;
     }
     /* T1 = Z * Z */
     sp_256_mont_sqr_10(t1, r->z, p256_mod, p256_mp_mod);
@@ -676,16 +673,14 @@ static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p, sp_digit* t)
  * r  Result of addition.
  * p  Frist point to add.
  * q  Second point to add.
- * t  Temporary ordinate data.
  */
-static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q,
-        sp_digit* t)
+static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q)
 {
-    sp_digit* t1 = t;
-    sp_digit* t2 = t + 2*10;
-    sp_digit* t3 = t + 4*10;
-    sp_digit* t4 = t + 6*10;
-    sp_digit* t5 = t + 8*10;
+    sp_digit t1[2*10];
+    sp_digit t2[2*10];
+    sp_digit t3[2*10];
+    sp_digit t4[2*10];
+    sp_digit t5[2*10];
 
     /* Ensure only the first point is the same as the result. */
     if (q == r) {
@@ -701,7 +696,7 @@ static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q,
      && sp_256_cmp_equal_10(p->z, q->z)
      && (sp_256_cmp_equal_10(p->y, q->y) || sp_256_cmp_equal_10(p->y, t1))
     ) {
-        sp_256_proj_point_dbl_10(r, p, t);
+        sp_256_proj_point_dbl_10(r, p);
     }
     else {
         sp_point tp;
@@ -762,7 +757,6 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
 {
     enum { map = 1 }; /* we always convert result to affine coordinates */
     sp_point t[3];
-    sp_digit tmp[2 * 10 * 5];
     sp_digit n;
     int i;
     int c, y;
@@ -791,20 +785,17 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
         y = (n >> 25) & 1;
         n <<= 1;
 
-//FIXME: what's "tmp" and why do we pass it down?
-//is it scratch space for "sensitive" data, to be memset(0) after we are done?
-        sp_256_proj_point_add_10(&t[y^1], &t[0], &t[1], tmp);
+        sp_256_proj_point_add_10(&t[y^1], &t[0], &t[1]);
         memcpy(&t[2], &t[y], sizeof(sp_point));
-        sp_256_proj_point_dbl_10(&t[2], &t[2], tmp);
+        sp_256_proj_point_dbl_10(&t[2], &t[2]);
         memcpy(&t[y], &t[2], sizeof(sp_point));
     }
 
     if (map)
-        sp_256_map_10(r, &t[0], tmp);
+        sp_256_map_10(r, &t[0]);
     else
         memcpy(r, &t[0], sizeof(sp_point));
 
-    memset(tmp, 0, sizeof(tmp)); //paranoia
     memset(t, 0, sizeof(t)); //paranoia
 }
 
@@ -817,7 +808,7 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
  */
 static void sp_256_ecc_mulmod_base_10(sp_point* r, sp_digit* k /*, int map*/)
 {
-	sp_256_ecc_mulmod_10(r, &p256_base, k /*, map*/);
+    sp_256_ecc_mulmod_10(r, &p256_base, k /*, map*/);
 }
 
 /* Multiply the point by the scalar and serialize the X ordinate.
