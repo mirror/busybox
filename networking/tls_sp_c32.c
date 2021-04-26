@@ -788,29 +788,25 @@ static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q,
  * r     Resulting point.
  * g     Point to multiply.
  * k     Scalar to multiply by.
+ * map   Indicates whether to convert result to affine.
  */
 static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit* k /*, int map*/)
 {
     enum { map = 1 }; /* we always convert result to affine coordinates */
-    sp_point td[3];
-    sp_point* t[3];
+    sp_point t[3];
     sp_digit tmp[2 * 10 * 5];
     sp_digit n;
     int i;
     int c, y;
 
-    memset(td, 0, sizeof(td));
-
-    t[0] = &td[0];
-    t[1] = &td[1];
-    t[2] = &td[2];
+    memset(t, 0, sizeof(t));
 
     /* t[0] = {0, 0, 1} * norm */
-    t[0]->infinity = 1;
+    t[0].infinity = 1;
     /* t[1] = {g->x, g->y, g->z} * norm */
-    sp_256_mod_mul_norm_10(t[1]->x, g->x);
-    sp_256_mod_mul_norm_10(t[1]->y, g->y);
-    sp_256_mod_mul_norm_10(t[1]->z, g->z);
+    sp_256_mod_mul_norm_10(t[1].x, g->x);
+    sp_256_mod_mul_norm_10(t[1].y, g->y);
+    sp_256_mod_mul_norm_10(t[1].z, g->z);
 
     i = 9;
     c = 22;
@@ -827,19 +823,21 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
         y = (n >> 25) & 1;
         n <<= 1;
 
-        sp_256_proj_point_add_10(t[y^1], t[0], t[1], tmp);
-        memcpy(t[2], t[y], sizeof(sp_point));
-        sp_256_proj_point_dbl_10(t[2], t[2], tmp);
-        memcpy(t[y], t[2], sizeof(sp_point));
+//FIXME: what's "tmp" and why do we pass it down?
+//is it scratch space for "sensitive" data, to be memset(0) after we are done?
+        sp_256_proj_point_add_10(&t[y^1], &t[0], &t[1], tmp);
+        memcpy(&t[2], &t[y], sizeof(sp_point));
+        sp_256_proj_point_dbl_10(&t[2], &t[2], tmp);
+        memcpy(&t[y], &t[2], sizeof(sp_point));
     }
 
     if (map)
-        sp_256_map_10(r, t[0], tmp);
+        sp_256_map_10(r, &t[0], tmp);
     else
-        memcpy(r, t[0], sizeof(sp_point));
+        memcpy(r, &t[0], sizeof(sp_point));
 
     memset(tmp, 0, sizeof(tmp)); //paranoia
-    memset(td, 0, sizeof(td)); //paranoia
+    memset(t, 0, sizeof(t)); //paranoia
 }
 
 /* Multiply the base point of P256 by the scalar and return the result.
@@ -847,6 +845,7 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
  *
  * r     Resulting point.
  * k     Scalar to multiply by.
+ * map   Indicates whether to convert result to affine.
  */
 static void sp_256_ecc_mulmod_base_10(sp_point* r, sp_digit* k /*, int map*/)
 {
