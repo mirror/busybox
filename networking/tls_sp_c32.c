@@ -203,26 +203,12 @@ static void sp_256_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
 		r[i] = a[i] + b[i];
 }
 
-/* Conditionally add a and b using the mask m.
- * m is -1 to add and 0 when not.
- */
-static void sp_256_cond_add_10(sp_digit* r, const sp_digit* a,
-		const sp_digit* b, const sp_digit m)
+/* Sub b from a into r. (r = a - b) */
+static void sp_256_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
 {
 	int i;
 	for (i = 0; i < 10; i++)
-		r[i] = a[i] + (b[i] & m);
-}
-
-/* Conditionally subtract b from a using the mask m.
- * m is -1 to subtract and 0 when not.
- */
-static void sp_256_cond_sub_10(sp_digit* r, const sp_digit* a,
-		const sp_digit* b, const sp_digit m)
-{
-	int i;
-	for (i = 0; i < 10; i++)
-		r[i] = a[i] - (b[i] & m);
+		r[i] = a[i] - b[i];
 }
 
 /* Shift number left one bit. Bottom bit is lost. */
@@ -352,7 +338,8 @@ static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a, sp_digit b)
 /* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m) */
 static void sp_256_div2_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
 {
-	sp_256_cond_add_10(r, a, m, 0 - (a[0] & 1));
+	if (a[0] & 1)
+		sp_256_add_10(r, a, m);
 	sp_256_norm_10(r);
 	sp_256_rshift1_10(r, r);
 }
@@ -382,7 +369,8 @@ static void sp_256_mont_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b
 {
 	sp_256_add_10(r, a, b);
 	sp_256_norm_10(r);
-	sp_256_cond_sub_10(r, r, m, 0 - ((r[9] >> 22) > 0));
+	if ((r[9] >> 22) > 0)
+		sp_256_sub_10(r, r, m);
 	sp_256_norm_10(r);
 }
 
@@ -391,7 +379,8 @@ static void sp_256_mont_dbl_10(sp_digit* r, const sp_digit* a, const sp_digit* m
 {
 	sp_256_add_10(r, a, a);
 	sp_256_norm_10(r);
-	sp_256_cond_sub_10(r, r, m, 0 - ((r[9] >> 22) > 0));
+	if ((r[9] >> 22) > 0)
+		sp_256_sub_10(r, r, m);
 	sp_256_norm_10(r);
 }
 
@@ -400,20 +389,14 @@ static void sp_256_mont_tpl_10(sp_digit* r, const sp_digit* a, const sp_digit* m
 {
 	sp_256_add_10(r, a, a);
 	sp_256_norm_10(r);
-	sp_256_cond_sub_10(r, r, m, 0 - ((r[9] >> 22) > 0));
+	if ((r[9] >> 22) > 0)
+		sp_256_sub_10(r, r, m);
 	sp_256_norm_10(r);
 	sp_256_add_10(r, r, a);
 	sp_256_norm_10(r);
-	sp_256_cond_sub_10(r, r, m, 0 - ((r[9] >> 22) > 0));
+	if ((r[9] >> 22) > 0)
+		sp_256_sub_10(r, r, m);
 	sp_256_norm_10(r);
-}
-
-/* Sub b from a into r. (r = a - b) */
-static void sp_256_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
-{
-	int i;
-	for (i = 0; i < 10; i++)
-		r[i] = a[i] - b[i];
 }
 
 /* Subtract two Montgomery form numbers (r = a - b % m) */
@@ -421,7 +404,8 @@ static void sp_256_mont_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b
 		const sp_digit* m)
 {
 	sp_256_sub_10(r, a, b);
-	sp_256_cond_add_10(r, r, m, r[9] >> 22);
+	if (r[9] >> 22)
+		sp_256_add_10(r, r, m);
 	sp_256_norm_10(r);
 }
 
@@ -460,7 +444,8 @@ static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
 	}
 
 	sp_256_mont_shift_10(a, a);
-	sp_256_cond_sub_10(a, a, m, 0 - ((a[9] >> 22) > 0));
+	if ((a[9] >> 22) > 0)
+		sp_256_sub_10(a, a, m);
 	sp_256_norm_10(a);
 }
 
@@ -590,7 +575,6 @@ static void sp_256_map_10(sp_point* r, sp_point* p)
 {
 	sp_digit t1[2*10];
 	sp_digit t2[2*10];
-	int32_t n;
 
 	sp_256_mont_inv_10(t1, p->z);
 
@@ -602,8 +586,8 @@ static void sp_256_map_10(sp_point* r, sp_point* p)
 	memset(r->x + 10, 0, sizeof(r->x) / 2);
 	sp_256_mont_reduce_10(r->x, p256_mod, p256_mp_mod);
 	/* Reduce x to less than modulus */
-	n = sp_256_cmp_10(r->x, p256_mod);
-	sp_256_cond_sub_10(r->x, r->x, p256_mod, 0 - (n >= 0));
+	if (sp_256_cmp_10(r->x, p256_mod) >= 0)
+		sp_256_sub_10(r->x, r->x, p256_mod);
 	sp_256_norm_10(r->x);
 
 	/* y /= z^3 */
@@ -611,8 +595,8 @@ static void sp_256_map_10(sp_point* r, sp_point* p)
 	memset(r->y + 10, 0, sizeof(r->y) / 2);
 	sp_256_mont_reduce_10(r->y, p256_mod, p256_mp_mod);
 	/* Reduce y to less than modulus */
-	n = sp_256_cmp_10(r->y, p256_mod);
-	sp_256_cond_sub_10(r->y, r->y, p256_mod, 0 - (n >= 0));
+	if (sp_256_cmp_10(r->y, p256_mod) >= 0)
+		sp_256_sub_10(r->y, r->y, p256_mod);
 	sp_256_norm_10(r->y);
 
 	memset(r->z, 0, sizeof(r->z));
