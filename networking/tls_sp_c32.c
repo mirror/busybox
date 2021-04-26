@@ -72,9 +72,6 @@ static const sp_digit p256_mod[10] = {
 
 #define p256_mp_mod ((sp_digit)0x000001)
 
-/* Mask for address to obfuscate which of the two address will be used. */
-static const size_t addr_mask[2] = { 0, (size_t)-1 };
-
 /* The base point of curve P256. */
 static const sp_point p256_base = {
 	/* X ordinate */
@@ -831,14 +828,9 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
         n <<= 1;
 
         sp_256_proj_point_add_10(t[y^1], t[0], t[1], tmp);
-///FIXME type (or rewrite - get rid of t[] array)
-        memcpy(t[2], (void*)(((size_t)t[0] & addr_mask[y^1]) +
-                              ((size_t)t[1] & addr_mask[y])),
-                sizeof(sp_point));
+        memcpy(t[2], t[y], sizeof(sp_point));
         sp_256_proj_point_dbl_10(t[2], t[2], tmp);
-        memcpy((void*)(((size_t)t[0] & addr_mask[y^1]) +
-                        ((size_t)t[1] & addr_mask[y])), t[2],
-                sizeof(sp_point));
+        memcpy(t[y], t[2], sizeof(sp_point));
     }
 
     if (map)
