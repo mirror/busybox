@@ -626,68 +626,54 @@ static void sp_256_map_10(sp_point* r, sp_point* p, sp_digit* t)
  */
 static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p, sp_digit* t)
 {
-    sp_point *rp[2];
     sp_point tp;
     sp_digit* t1 = t;
     sp_digit* t2 = t + 2*10;
-    sp_digit* x;
-    sp_digit* y;
-    sp_digit* z;
-    int i;
 
-    /* When infinity don't double point passed in - constant time. */
-    rp[0] = r;
-    rp[1] = &tp;
-    x = rp[p->infinity]->x;
-    y = rp[p->infinity]->y;
-    z = rp[p->infinity]->z;
-    /* Put point to double into result - good for infinity. */
-    if (r != p) {
-        for (i = 0; i < 10; i++)
-            r->x[i] = p->x[i];
-        for (i = 0; i < 10; i++)
-            r->y[i] = p->y[i];
-        for (i = 0; i < 10; i++)
-            r->z[i] = p->z[i];
-        r->infinity = p->infinity;
+    /* Put point to double into result */
+    if (r != p)
+        *r = *p; /* struct copy */
+
+    if (r->infinity) {
+	/* If infinity, don't double (work on dummy value) */
+	r = &tp;
     }
-
     /* T1 = Z * Z */
-    sp_256_mont_sqr_10(t1, z, p256_mod, p256_mp_mod);
+    sp_256_mont_sqr_10(t1, r->z, p256_mod, p256_mp_mod);
     /* Z = Y * Z */
-    sp_256_mont_mul_10(z, y, z, p256_mod, p256_mp_mod);
+    sp_256_mont_mul_10(r->z, r->y, r->z, p256_mod, p256_mp_mod);
     /* Z = 2Z */
-    sp_256_mont_dbl_10(z, z, p256_mod);
+    sp_256_mont_dbl_10(r->z, r->z, p256_mod);
     /* T2 = X - T1 */
-    sp_256_mont_sub_10(t2, x, t1, p256_mod);
+    sp_256_mont_sub_10(t2, r->x, t1, p256_mod);
     /* T1 = X + T1 */
-    sp_256_mont_add_10(t1, x, t1, p256_mod);
+    sp_256_mont_add_10(t1, r->x, t1, p256_mod);
     /* T2 = T1 * T2 */
     sp_256_mont_mul_10(t2, t1, t2, p256_mod, p256_mp_mod);
     /* T1 = 3T2 */
     sp_256_mont_tpl_10(t1, t2, p256_mod);
     /* Y = 2Y */
-    sp_256_mont_dbl_10(y, y, p256_mod);
+    sp_256_mont_dbl_10(r->y, r->y, p256_mod);
     /* Y = Y * Y */
-    sp_256_mont_sqr_10(y, y, p256_mod, p256_mp_mod);
+    sp_256_mont_sqr_10(r->y, r->y, p256_mod, p256_mp_mod);
     /* T2 = Y * Y */
-    sp_256_mont_sqr_10(t2, y, p256_mod, p256_mp_mod);
+    sp_256_mont_sqr_10(t2, r->y, p256_mod, p256_mp_mod);
     /* T2 = T2/2 */
     sp_256_div2_10(t2, t2, p256_mod);
     /* Y = Y * X */
-    sp_256_mont_mul_10(y, y, x, p256_mod, p256_mp_mod);
+    sp_256_mont_mul_10(r->y, r->y, r->x, p256_mod, p256_mp_mod);
     /* X = T1 * T1 */
-    sp_256_mont_mul_10(x, t1, t1, p256_mod, p256_mp_mod);
+    sp_256_mont_mul_10(r->x, t1, t1, p256_mod, p256_mp_mod);
     /* X = X - Y */
-    sp_256_mont_sub_10(x, x, y, p256_mod);
+    sp_256_mont_sub_10(r->x, r->x, r->y, p256_mod);
     /* X = X - Y */
-    sp_256_mont_sub_10(x, x, y, p256_mod);
+    sp_256_mont_sub_10(r->x, r->x, r->y, p256_mod);
     /* Y = Y - X */
-    sp_256_mont_sub_10(y, y, x, p256_mod);
+    sp_256_mont_sub_10(r->y, r->y, r->x, p256_mod);
     /* Y = Y * T1 */
-    sp_256_mont_mul_10(y, y, t1, p256_mod, p256_mp_mod);
+    sp_256_mont_mul_10(r->y, r->y, t1, p256_mod, p256_mp_mod);
     /* Y = Y - T2 */
-    sp_256_mont_sub_10(y, y, t2, p256_mod);
+    sp_256_mont_sub_10(r->y, r->y, t2, p256_mod);
 }
 
 /* Add two Montgomery form projective points.
