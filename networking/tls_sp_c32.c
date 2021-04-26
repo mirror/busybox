@@ -554,11 +554,18 @@ static void sp_256_mont_sqr_10(sp_digit* r, const sp_digit* a, const sp_digit* m
  * r   Inverse result.
  * a   Number to invert.
  */
+#if 0
 /* Mod-2 for the P256 curve. */
 static const uint32_t p256_mod_2[8] = {
     0xfffffffd,0xffffffff,0xffffffff,0x00000000,
     0x00000000,0x00000000,0x00000001,0xffffffff,
 };
+//Bit pattern:
+//2    2         2         2         2         2         2         1...1
+//5    5         4         3         2         1         0         9...0         9...1
+//543210987654321098765432109876543210987654321098765432109876543210...09876543210...09876543210
+//111111111111111111111111111111110000000000000000000000000000000100...00000111111...11111111101
+#endif
 static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a)
 {
     sp_digit t[2*10]; //can be just [10]?
@@ -567,7 +574,8 @@ static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a)
     memcpy(t, a, sizeof(sp_digit) * 10);
     for (i = 254; i >= 0; i--) {
         sp_256_mont_sqr_10(t, t, p256_mod, p256_mp_mod);
-        if (p256_mod_2[i / 32] & ((sp_digit)1 << (i % 32)))
+        /*if (p256_mod_2[i / 32] & ((sp_digit)1 << (i % 32)))*/
+        if (i >= 224 || i == 192 || (i <= 95 && i != 1))
             sp_256_mont_mul_10(t, t, a, p256_mod, p256_mp_mod);
     }
     memcpy(r, t, sizeof(sp_digit) * 10);
