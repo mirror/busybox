@@ -18,6 +18,7 @@
 //kbuild:lib-$(CONFIG_TLS) += tls_aesgcm.o
 //kbuild:lib-$(CONFIG_TLS) += tls_rsa.o
 //kbuild:lib-$(CONFIG_TLS) += tls_fe.o
+//kbuild:lib-$(CONFIG_TLS) += tls_sp_c32.o
 
 #include "tls.h"
 
@@ -265,8 +266,9 @@ enum {
 	GOT_CERT_RSA_KEY_ALG   = 1 << 1,
 	GOT_CERT_ECDSA_KEY_ALG = 1 << 2, // so far unused
 	GOT_EC_KEY             = 1 << 3,
-	ENCRYPTION_AESGCM      = 1 << 4, // else AES-SHA (or NULL-SHA if ALLOW_RSA_NULL_SHA256=1)
-	ENCRYPT_ON_WRITE       = 1 << 5,
+	GOT_EC_CURVE_X25519    = 1 << 4, // else P256
+	ENCRYPTION_AESGCM      = 1 << 5, // else AES-SHA (or NULL-SHA if ALLOW_RSA_NULL_SHA256=1)
+	ENCRYPT_ON_WRITE       = 1 << 6,
 };
 
 struct record_hdr {
@@ -285,7 +287,11 @@ struct tls_handshake_data {
 //TODO: store just the DER key here, parse/use/delete it when sending client key
 //this way it will stay key type agnostic here.
 	psRsaKey_t server_rsa_pub_key;
-	uint8_t ecc_pub_key32[32];
+
+	/* peer's elliptic curve key data */
+	/* for x25519, it contains one point in first 32 bytes */
+	/* for P256, it contains x,y point pair, each 32 bytes long */
+	uint8_t ecc_pub_key32[2 * 32];
 
 /* HANDSHAKE HASH: */
 	//unsigned saved_client_hello_size;
@@ -1526,20 +1532,13 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 	};
 	static const uint8_t supported_groups[] = {
 		0x00,0x0a, //extension_type: "supported_groups"
-		0x00,0x04, //ext len
-		0x00,0x02, //list len
-		0x00,0x1d, //curve_x25519 (RFC 7748)
-		//0x00,0x1e, //curve_x448 (RFC 7748)
-		//0x00,0x17, //curve_secp256r1
+		0x00,0x06, //ext len
+		0x00,0x04, //list len
+		0x00,0x17, //curve_secp256r1
 		//0x00,0x18, //curve_secp384r1
 		//0x00,0x19, //curve_secp521r1
-//TODO: implement secp256r1 (at least): dl.fedoraproject.org immediately aborts
-//if only x25519/x448 are advertised, seems to support only secpNNNr1 curves:
-// openssl s_client -connect dl.fedoraproject.org:443 -debug -tls1_2 -cipher ECDHE-RSA-AES128-GCM-SHA256
-//Peer signing digest: SHA512
-//Peer signature type: RSA
-//Server Temp Key: ECDH, P-256, 256 bits
-//TLSv1.2, Cipher is ECDHE-RSA-AES128-GCM-SHA256
+		0x00,0x1d, //curve_x25519 (RFC 7748)
+		//0x00,0x1e, //curve_x448 (RFC 7748)
 	};
 	//static const uint8_t signature_algorithms[] = {
 	//	000d
@@ -1877,12 +1876,32 @@ static void process_server_key(tls_state_t *tls, int len)
 	if (len < (1+2+1+32)) tls_error_die(tls);
 	keybuf += 4;
 
-	/* So far we only support curve_x25519 */
+#if BB_BIG_ENDIAN
+# define _0x03001741 0x03001741
+# define _0x03001d20 0x03001d20
+#else
+# define _0x03001741 0x41170003
+# define _0x03001d20 0x201d0003
+#endif
 	move_from_unaligned32(t32, keybuf);
-	if (t32 != htonl(0x03001d20))
-		bb_simple_error_msg_and_die("elliptic curve is not x25519");
+	keybuf += 4;
+	switch (t32) {
+	case _0x03001d20: //curve_x25519
+		tls->flags |= GOT_EC_CURVE_X25519;
+		memcpy(tls->hsd->ecc_pub_key32, keybuf, 32);
+		break;
+	case _0x03001741: //curve_secp256r1
+		/* P256 point can be transmitted odd- or even-compressed
+		 * (first byte is 3 or 2) or uncompressed (4).
+		 */
+		if (*keybuf++ != 4)
+			bb_simple_error_msg_and_die("compressed EC points not supported");
+		memcpy(tls->hsd->ecc_pub_key32, keybuf, 2 * 32);
+		break;
+	default:
+		bb_error_msg_and_die("elliptic curve is not x25519 or P256: 0x%08x", t32);
+	}
 
-	memcpy(tls->hsd->ecc_pub_key32, keybuf + 4, 32);
 	tls->flags |= GOT_EC_KEY;
 	dbg("got eccPubKey\n");
 }
@@ -1918,9 +1937,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	};
 //FIXME: better size estimate
 	struct client_key_exchange *record = tls_get_zeroed_outbuf(tls, sizeof(*record));
-	uint8_t rsa_premaster[RSA_PREMASTER_SIZE];
-	uint8_t x25519_premaster[CURVE25519_KEYSIZE];
-	uint8_t *premaster;
+	uint8_t premaster[RSA_PREMASTER_SIZE > EC_CURVE_KEYSIZE ? RSA_PREMASTER_SIZE : EC_CURVE_KEYSIZE];
 	int premaster_size;
 	int len;
 
@@ -1929,19 +1946,19 @@ static void send_client_key_exchange(tls_state_t *tls)
 		if (!(tls->flags & GOT_CERT_RSA_KEY_ALG))
 			bb_simple_error_msg("server cert is not RSA");
 
-		tls_get_random(rsa_premaster, sizeof(rsa_premaster));
+		tls_get_random(premaster, RSA_PREMASTER_SIZE);
 		if (TLS_DEBUG_FIXED_SECRETS)
-			memset(rsa_premaster, 0x44, sizeof(rsa_premaster));
+			memset(premaster, 0x44, RSA_PREMASTER_SIZE);
 		// RFC 5246
 		// "Note: The version number in the PreMasterSecret is the version
 		// offered by the client in the ClientHello.client_version, not the
 		// version negotiated for the connection."
-		rsa_premaster[0] = TLS_MAJ;
-		rsa_premaster[1] = TLS_MIN;
-		dump_hex("premaster:%s\n", rsa_premaster, sizeof(rsa_premaster));
+		premaster[0] = TLS_MAJ;
+		premaster[1] = TLS_MIN;
+		dump_hex("premaster:%s\n", premaster, sizeof(premaster));
 		len = psRsaEncryptPub(/*pool:*/ NULL,
 			/* psRsaKey_t* */ &tls->hsd->server_rsa_pub_key,
-			rsa_premaster, /*inlen:*/ sizeof(rsa_premaster),
+			premaster, /*inlen:*/ RSA_PREMASTER_SIZE,
 			record->key + 2, sizeof(record->key) - 2,
 			data_param_ignored
 		);
@@ -1949,10 +1966,10 @@ static void send_client_key_exchange(tls_state_t *tls)
 		record->key[0] = len >> 8;
 		record->key[1] = len & 0xff;
 		len += 2;
-		premaster = rsa_premaster;
-		premaster_size = sizeof(rsa_premaster);
-	} else {
-		/* ECDHE */
+		premaster_size = RSA_PREMASTER_SIZE;
+	} else /* ECDHE */
+	if (tls->flags & GOT_EC_CURVE_X25519) {
+		/* ECDHE, curve x25519 */
 		static const uint8_t basepoint9[CURVE25519_KEYSIZE] ALIGN8 = {9};
 		uint8_t privkey[CURVE25519_KEYSIZE]; //[32]
 
@@ -1969,13 +1986,27 @@ static void send_client_key_exchange(tls_state_t *tls)
 
 		/* Compute premaster using peer's public key */
 		dbg("computing x25519_premaster\n");
-		curve25519(x25519_premaster, privkey, tls->hsd->ecc_pub_key32);
+		curve25519(premaster, privkey, tls->hsd->ecc_pub_key32);
 
 		len = CURVE25519_KEYSIZE;
 		record->key[0] = len;
 		len++;
-		premaster = x25519_premaster;
-		premaster_size = sizeof(x25519_premaster);
+		premaster_size = CURVE25519_KEYSIZE;
+	} else {
+		/* ECDHE, curve P256 */
+		if (!(tls->flags & GOT_EC_KEY))
+			bb_simple_error_msg_and_die("server did not provide EC key");
+
+		dbg("computing P256_premaster\n");
+		curve_P256_compute_pubkey_and_premaster(
+				record->key + 2, premaster,
+				/*point:*/ tls->hsd->ecc_pub_key32
+		);
+		premaster_size = P256_KEYSIZE;
+		len = 1 + P256_KEYSIZE * 2;
+		record->key[0] = len;
+		record->key[1] = 4;
+		len++;
 	}
 
 	record->type = HANDSHAKE_CLIENT_KEY_EXCHANGE;
