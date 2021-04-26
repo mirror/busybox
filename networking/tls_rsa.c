@@ -15,7 +15,7 @@
         pkcs1Pad(in, inlen, out, outlen, cryptType)
 static //bbox
 int32 pkcs1Pad(unsigned char *in, uint32 inlen, unsigned char *out,
-					   uint32 outlen, int32 cryptType, void *userPtr)
+			uint32 outlen, int32 cryptType, void *userPtr)
 {
 	unsigned char   *c;
 	int32           randomLen;
@@ -60,7 +60,7 @@ int32 pkcs1Pad(unsigned char *in, uint32 inlen, unsigned char *out,
         psRsaCrypt(      in, inlen, out, outlen, key, type)
 static //bbox
 int32 psRsaCrypt(psPool_t *pool, const unsigned char *in, uint32 inlen,
-			unsigned char *out, uint32 *outlen,	psRsaKey_t *key, int32 type,
+			unsigned char *out, uint32 *outlen, psRsaKey_t *key, int32 type,
 			void *data)
 {
 	pstm_int		tmp, tmpa, tmpb;

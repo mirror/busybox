@@ -64,8 +64,8 @@ static void fprime_select(byte *dst, const byte *zero, const byte *one, byte con
 #endif
 
 static void fe_select(byte *dst,
-		   const byte *zero, const byte *one,
-		   byte condition)
+		const byte *zero, const byte *one,
+		byte condition)
 {
 	const byte mask = -condition;
 	int i;
@@ -163,11 +163,11 @@ static void fprime_mul(byte *r, const byte *a, const byte *b,
 		const byte bit = (b[i >> 3] >> (i & 7)) & 1;
 		byte plusa[F25519_SIZE];
 
-	    for (j = 0; j < F25519_SIZE; j++) {
-		    c |= ((word16)r[j]) << 1;
-		    r[j] = (byte)c;
-		    c >>= 8;
-	    }
+		for (j = 0; j < F25519_SIZE; j++) {
+			c |= ((word16)r[j]) << 1;
+			r[j] = (byte)c;
+			c >>= 8;
+		}
 		raw_try_sub(r, modulus);
 
 		fprime_copy(plusa, r);
@@ -315,7 +315,7 @@ static void fe_mul__distinct(byte *r, const byte *a, const byte *b)
 
 		for (; j < F25519_SIZE; j++)
 			c += ((word32)a[j]) *
-			     ((word32)b[i + F25519_SIZE - j]) * 38;
+				((word32)b[i + F25519_SIZE - j]) * 38;
 
 		r[i] = c;
 	}
@@ -474,9 +474,9 @@ static void fe_sqrt(byte *r, const byte *a)
 
 /* Differential addition */
 static void xc_diffadd(byte *x5, byte *z5,
-		       const byte *x1, const byte *z1,
-		       const byte *x2, const byte *z2,
-		       const byte *x3, const byte *z3)
+		const byte *x1, const byte *z1,
+		const byte *x2, const byte *z2,
+		const byte *x3, const byte *z3)
 {
 	/* Explicit formulas database: dbl-1987-m3
 	 *
@@ -516,7 +516,7 @@ static void xc_diffadd(byte *x5, byte *z5,
 
 /* Double an X-coordinate */
 static void xc_double(byte *x3, byte *z3,
-		      const byte *x1, const byte *z1)
+		const byte *x1, const byte *z1)
 {
 	/* Explicit formulas database: dbl-1987-m
 	 *

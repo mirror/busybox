@@ -506,12 +506,10 @@ static void sp_256_sqr_10(sp_digit* r, const sp_digit* a)
 				break;
 			if (j < 0)
 				continue;
-
 			c += ((int64_t)a[i]) * a[j] * 2;
 		}
 		if (i == j)
-		   c += ((int64_t)a[i]) * a[i];
-
+			c += ((int64_t)a[i]) * a[i];
 		r[k + 2] += c >> 52;
 		r[k + 1] = (c >> 26) & 0x3ffffff;
 		c = (c & 0x3ffffff) << 26;

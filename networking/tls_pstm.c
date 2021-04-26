@@ -438,9 +438,9 @@ int32 FAST_FUNC pstm_read_unsigned_bin(pstm_int *a, unsigned char *b, int32 c)
 			int32 idx = (c - 1) & ~3;
 			switch (c % 4) {
 				case 0:	do { pd[idx+0] = *b++;
-					case 3:	     pd[idx+1] = *b++;
-					case 2:	     pd[idx+2] = *b++;
-					case 1:	     pd[idx+3] = *b++;
+					case 3: pd[idx+1] = *b++;
+					case 2: pd[idx+2] = *b++;
+					case 1: pd[idx+3] = *b++;
 					idx -= 4;
 				} while ((c -= 4) > 0);
 			}
@@ -1427,7 +1427,7 @@ static int32 pstm_div(psPool_t *pool, pstm_int *a, pstm_int *b, pstm_int *c,
 		}
 
 		/* while (q{i-t-1} * (yt * b + y{t-1})) >
-			 xi * b**2 + xi-1 * b + xi-2
+			xi * b**2 + xi-1 * b + xi-2
 
 			do q{i-t-1} -= 1;
 		*/
