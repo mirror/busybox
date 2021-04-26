@@ -1534,7 +1534,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		0x00,0x0a, //extension_type: "supported_groups"
 		0x00,0x06, //ext len
 		0x00,0x04, //list len
-		0x00,0x17, //curve_secp256r1
+		0x00,0x17, //curve_secp256r1 (aka P256)
 		//0x00,0x18, //curve_secp384r1
 		//0x00,0x19, //curve_secp521r1
 		0x00,0x1d, //curve_x25519 (RFC 7748)
@@ -1890,7 +1890,7 @@ static void process_server_key(tls_state_t *tls, int len)
 		tls->flags |= GOT_EC_CURVE_X25519;
 		memcpy(tls->hsd->ecc_pub_key32, keybuf, 32);
 		break;
-	case _0x03001741: //curve_secp256r1
+	case _0x03001741: //curve_secp256r1 (aka P256)
 		/* P256 point can be transmitted odd- or even-compressed
 		 * (first byte is 3 or 2) or uncompressed (4).
 		 */
@@ -1967,46 +1967,35 @@ static void send_client_key_exchange(tls_state_t *tls)
 		record->key[1] = len & 0xff;
 		len += 2;
 		premaster_size = RSA_PREMASTER_SIZE;
-	} else /* ECDHE */
-	if (tls->flags & GOT_EC_CURVE_X25519) {
-		/* ECDHE, curve x25519 */
-		static const uint8_t basepoint9[CURVE25519_KEYSIZE] ALIGN8 = {9};
-		uint8_t privkey[CURVE25519_KEYSIZE]; //[32]
-
-		if (!(tls->flags & GOT_EC_KEY))
-			bb_simple_error_msg_and_die("server did not provide EC key");
-
-		/* Generate random private key, see RFC 7748 */
-		tls_get_random(privkey, sizeof(privkey));
-		privkey[0] &= 0xf8;
-		privkey[CURVE25519_KEYSIZE-1] = ((privkey[CURVE25519_KEYSIZE-1] & 0x7f) | 0x40);
-
-		/* Compute public key */
-		curve25519(record->key + 1, privkey, basepoint9);
-
-		/* Compute premaster using peer's public key */
-		dbg("computing x25519_premaster\n");
-		curve25519(premaster, privkey, tls->hsd->ecc_pub_key32);
-
-		len = CURVE25519_KEYSIZE;
-		record->key[0] = len;
-		len++;
-		premaster_size = CURVE25519_KEYSIZE;
 	} else {
-		/* ECDHE, curve P256 */
+		/* ECDHE */
 		if (!(tls->flags & GOT_EC_KEY))
 			bb_simple_error_msg_and_die("server did not provide EC key");
 
-		dbg("computing P256_premaster\n");
-		curve_P256_compute_pubkey_and_premaster(
-				record->key + 2, premaster,
-				/*point:*/ tls->hsd->ecc_pub_key32
-		);
-		premaster_size = P256_KEYSIZE;
-		len = 1 + P256_KEYSIZE * 2;
+		if (tls->flags & GOT_EC_CURVE_X25519) {
+			/* ECDHE, curve x25519 */
+			dbg("computing x25519_premaster\n");
+			curve_x25519_compute_pubkey_and_premaster(
+					record->key + 1, premaster,
+					/*point:*/ tls->hsd->ecc_pub_key32
+			);
+			len = CURVE25519_KEYSIZE;
+			//record->key[0] = len;
+			//len++;
+			//premaster_size = CURVE25519_KEYSIZE;
+		} else {
+			/* ECDHE, curve P256 */
+			dbg("computing P256_premaster\n");
+			curve_P256_compute_pubkey_and_premaster(
+					record->key + 2, premaster,
+					/*point:*/ tls->hsd->ecc_pub_key32
+			);
+			record->key[1] = 4; /* "uncompressed point" */
+			len = 1 + P256_KEYSIZE * 2;
+		}
 		record->key[0] = len;
-		record->key[1] = 4;
 		len++;
+		premaster_size = P256_KEYSIZE; // = CURVE25519_KEYSIZE = 32
 	}
 
 	record->type = HANDSHAKE_CLIENT_KEY_EXCHANGE;

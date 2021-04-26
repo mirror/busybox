@@ -544,7 +544,7 @@ static void xc_double(byte *x3, byte *z3,
 	fe_mul_c(z3, x1sq, 4);
 }
 
-void FAST_FUNC curve25519(byte *result, const byte *e, const byte *q)
+static void curve25519(byte *result, const byte *e, const byte *q)
 {
 	int i;
 
@@ -598,4 +598,25 @@ void FAST_FUNC curve25519(byte *result, const byte *e, const byte *q)
 	fe_inv__distinct(zm1, zm);
 	fe_mul__distinct(result, zm1, xm);
 	fe_normalize(result);
+}
+
+/* interface to bbox's TLS code: */
+
+void FAST_FUNC curve_x25519_compute_pubkey_and_premaster(
+		uint8_t *pubkey, uint8_t *premaster,
+		const uint8_t *peerkey32)
+{
+	static const uint8_t basepoint9[CURVE25519_KEYSIZE] ALIGN8 = {9};
+	uint8_t privkey[CURVE25519_KEYSIZE]; //[32]
+
+	/* Generate random private key, see RFC 7748 */
+	tls_get_random(privkey, sizeof(privkey));
+	privkey[0] &= 0xf8;
+	privkey[CURVE25519_KEYSIZE-1] = ((privkey[CURVE25519_KEYSIZE-1] & 0x7f) | 0x40);
+
+	/* Compute public key */
+	curve25519(pubkey, privkey, basepoint9);
+
+	/* Compute premaster using peer's public key */
+	curve25519(premaster, privkey, peerkey32);
 }

@@ -105,11 +105,14 @@ void xorbuf_aligned_AES_BLOCK_SIZE(void* buf, const void* mask) FAST_FUNC;
 #include "tls_aes.h"
 #include "tls_aesgcm.h"
 #include "tls_rsa.h"
-#include "tls_fe.h"
 
 #define EC_CURVE_KEYSIZE   32
 #define P256_KEYSIZE       32
 #define CURVE25519_KEYSIZE 32
+
+void curve_x25519_compute_pubkey_and_premaster(
+		uint8_t *pubkey, uint8_t *premaster,
+		const uint8_t *peerkey32) FAST_FUNC;
 
 void curve_P256_compute_pubkey_and_premaster(
 		uint8_t *pubkey, uint8_t *premaster,
