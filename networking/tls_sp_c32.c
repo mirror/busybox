@@ -681,18 +681,11 @@ static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p, sp_digit* t)
 static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q,
         sp_digit* t)
 {
-    sp_point *ap[2];
-    sp_point *rp[2];
-    sp_point tp;
     sp_digit* t1 = t;
     sp_digit* t2 = t + 2*10;
     sp_digit* t3 = t + 4*10;
     sp_digit* t4 = t + 6*10;
     sp_digit* t5 = t + 8*10;
-    sp_digit* x;
-    sp_digit* y;
-    sp_digit* z;
-    int i;
 
     /* Ensure only the first point is the same as the result. */
     if (q == r) {
@@ -711,33 +704,27 @@ static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q,
         sp_256_proj_point_dbl_10(r, p, t);
     }
     else {
-        rp[0] = r;
-        rp[1] = &tp;
-        memset(&tp, 0, sizeof(tp));
-        x = rp[p->infinity | q->infinity]->x;
-        y = rp[p->infinity | q->infinity]->y;
-        z = rp[p->infinity | q->infinity]->z;
+        sp_point tp;
+        sp_point *v;
 
-        ap[0] = p;
-        ap[1] = q;
-        for (i=0; i<10; i++)
-            r->x[i] = ap[p->infinity]->x[i];
-        for (i=0; i<10; i++)
-            r->y[i] = ap[p->infinity]->y[i];
-        for (i=0; i<10; i++)
-            r->z[i] = ap[p->infinity]->z[i];
-        r->infinity = ap[p->infinity]->infinity;
+        v = r;
+        if (p->infinity | q->infinity) {
+            memset(&tp, 0, sizeof(tp));
+            v = &tp;
+        }
+
+        *r = p->infinity ? *q : *p; /* struct copy */
 
         /* U1 = X1*Z2^2 */
         sp_256_mont_sqr_10(t1, q->z, p256_mod, p256_mp_mod);
         sp_256_mont_mul_10(t3, t1, q->z, p256_mod, p256_mp_mod);
-        sp_256_mont_mul_10(t1, t1, x, p256_mod, p256_mp_mod);
+        sp_256_mont_mul_10(t1, t1, v->x, p256_mod, p256_mp_mod);
         /* U2 = X2*Z1^2 */
-        sp_256_mont_sqr_10(t2, z, p256_mod, p256_mp_mod);
-        sp_256_mont_mul_10(t4, t2, z, p256_mod, p256_mp_mod);
+        sp_256_mont_sqr_10(t2, v->z, p256_mod, p256_mp_mod);
+        sp_256_mont_mul_10(t4, t2, v->z, p256_mod, p256_mp_mod);
         sp_256_mont_mul_10(t2, t2, q->x, p256_mod, p256_mp_mod);
         /* S1 = Y1*Z2^3 */
-        sp_256_mont_mul_10(t3, t3, y, p256_mod, p256_mp_mod);
+        sp_256_mont_mul_10(t3, t3, v->y, p256_mod, p256_mp_mod);
         /* S2 = Y2*Z1^3 */
         sp_256_mont_mul_10(t4, t4, q->y, p256_mod, p256_mp_mod);
         /* H = U2 - U1 */
@@ -745,21 +732,21 @@ static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q,
         /* R = S2 - S1 */
         sp_256_mont_sub_10(t4, t4, t3, p256_mod);
         /* Z3 = H*Z1*Z2 */
-        sp_256_mont_mul_10(z, z, q->z, p256_mod, p256_mp_mod);
-        sp_256_mont_mul_10(z, z, t2, p256_mod, p256_mp_mod);
+        sp_256_mont_mul_10(v->z, v->z, q->z, p256_mod, p256_mp_mod);
+        sp_256_mont_mul_10(v->z, v->z, t2, p256_mod, p256_mp_mod);
         /* X3 = R^2 - H^3 - 2*U1*H^2 */
-        sp_256_mont_sqr_10(x, t4, p256_mod, p256_mp_mod);
+        sp_256_mont_sqr_10(v->x, t4, p256_mod, p256_mp_mod);
         sp_256_mont_sqr_10(t5, t2, p256_mod, p256_mp_mod);
-        sp_256_mont_mul_10(y, t1, t5, p256_mod, p256_mp_mod);
+        sp_256_mont_mul_10(v->y, t1, t5, p256_mod, p256_mp_mod);
         sp_256_mont_mul_10(t5, t5, t2, p256_mod, p256_mp_mod);
-        sp_256_mont_sub_10(x, x, t5, p256_mod);
-        sp_256_mont_dbl_10(t1, y, p256_mod);
-        sp_256_mont_sub_10(x, x, t1, p256_mod);
+        sp_256_mont_sub_10(v->x, v->x, t5, p256_mod);
+        sp_256_mont_dbl_10(t1, v->y, p256_mod);
+        sp_256_mont_sub_10(v->x, v->x, t1, p256_mod);
         /* Y3 = R*(U1*H^2 - X3) - S1*H^3 */
-        sp_256_mont_sub_10(y, y, x, p256_mod);
-        sp_256_mont_mul_10(y, y, t4, p256_mod, p256_mp_mod);
+        sp_256_mont_sub_10(v->y, v->y, v->x, p256_mod);
+        sp_256_mont_mul_10(v->y, v->y, t4, p256_mod, p256_mp_mod);
         sp_256_mont_mul_10(t5, t5, t3, p256_mod, p256_mp_mod);
-        sp_256_mont_sub_10(y, y, t5, p256_mod);
+        sp_256_mont_sub_10(v->y, v->y, t5, p256_mod);
     }
 }
 
