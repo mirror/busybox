@@ -159,17 +159,20 @@ static void sp_256_point_from_bin2x32(sp_point* p, const uint8_t *bin2x32)
     p->z[0] = 1;
 }
 
-/* Compare a with b in constant time.
+/* Compare a with b.
  *
  * return -ve, 0 or +ve if a is less than, equal to or greater than b
  * respectively.
  */
 static sp_digit sp_256_cmp_10(const sp_digit* a, const sp_digit* b)
 {
-    sp_digit r = 0;
+    sp_digit r;
     int i;
-    for (i = 9; i >= 0; i--)
-        r |= (a[i] - b[i]) & (0 - !r);
+    for (i = 9; i >= 0; i--) {
+        r = a[i] - b[i];
+	if (r != 0)
+	    break;
+    }
     return r;
 }
 
@@ -179,15 +182,7 @@ static sp_digit sp_256_cmp_10(const sp_digit* a, const sp_digit* b)
  */
 static int sp_256_cmp_equal_10(const sp_digit* a, const sp_digit* b)
 {
-#if 1
-    sp_digit r = 0;
-    int i;
-    for (i = 0; i < 10; i++)
-        r |= (a[i] ^ b[i]);
-    return r == 0;
-#else
     return sp_256_cmp_10(a, b) == 0;
-#endif
 }
 
 /* Normalize the values in each word to 26 bits. */
@@ -710,8 +705,8 @@ static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q,
     sp_256_sub_10(t1, p256_mod, q->y);
     sp_256_norm_10(t1);
     if (sp_256_cmp_equal_10(p->x, q->x)
-     & sp_256_cmp_equal_10(p->z, q->z)
-     & (sp_256_cmp_equal_10(p->y, q->y) | sp_256_cmp_equal_10(p->y, t1))
+     && sp_256_cmp_equal_10(p->z, q->z)
+     && (sp_256_cmp_equal_10(p->y, q->y) || sp_256_cmp_equal_10(p->y, t1))
     ) {
         sp_256_proj_point_dbl_10(r, p, t);
     }
