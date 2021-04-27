@@ -460,51 +460,90 @@ static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a)
 static void sp_256_mod_mul_norm_10(sp_digit* r, const sp_digit* a)
 {
 	int64_t t[8];
-	int64_t a32[8];
 	int64_t o;
-
-	a32[0] = a[0];
-	a32[0] |= a[1] << 26;
-	a32[0] &= 0xffffffff;
-	a32[1] = (sp_digit)(a[1] >> 6);
-	a32[1] |= a[2] << 20;
-	a32[1] &= 0xffffffff;
-	a32[2] = (sp_digit)(a[2] >> 12);
-	a32[2] |= a[3] << 14;
-	a32[2] &= 0xffffffff;
-	a32[3] = (sp_digit)(a[3] >> 18);
-	a32[3] |= a[4] << 8;
-	a32[3] &= 0xffffffff;
-	a32[4] = (sp_digit)(a[4] >> 24);
-	a32[4] |= a[5] << 2;
-	a32[4] |= a[6] << 28;
-	a32[4] &= 0xffffffff;
-	a32[5] = (sp_digit)(a[6] >> 4);
-	a32[5] |= a[7] << 22;
-	a32[5] &= 0xffffffff;
-	a32[6] = (sp_digit)(a[7] >> 10);
-	a32[6] |= a[8] << 16;
-	a32[6] &= 0xffffffff;
-	a32[7] = (sp_digit)(a[8] >> 16);
-	a32[7] |= a[9] << 10;
-	a32[7] &= 0xffffffff;
+	uint32_t a32;
 
 	/*  1  1  0 -1 -1 -1 -1  0 */
-	t[0] = 0 + a32[0] + a32[1] - a32[3] - a32[4] - a32[5] - a32[6];
 	/*  0  1  1  0 -1 -1 -1 -1 */
-	t[1] = 0 + a32[1] + a32[2] - a32[4] - a32[5] - a32[6] - a32[7];
 	/*  0  0  1  1  0 -1 -1 -1 */
-	t[2] = 0 + a32[2] + a32[3] - a32[5] - a32[6] - a32[7];
 	/* -1 -1  0  2  2  1  0 -1 */
-	t[3] = 0 - a32[0] - a32[1] + 2 * a32[3] + 2 * a32[4] + a32[5] - a32[7];
 	/*  0 -1 -1  0  2  2  1  0 */
-	t[4] = 0 - a32[1] - a32[2] + 2 * a32[4] + 2 * a32[5] + a32[6];
 	/*  0  0 -1 -1  0  2  2  1 */
-	t[5] = 0 - a32[2] - a32[3] + 2 * a32[5] + 2 * a32[6] + a32[7];
 	/* -1 -1  0  0  0  1  3  2 */
-	t[6] = 0 - a32[0] - a32[1] + a32[5] + 3 * a32[6] + 2 * a32[7];
 	/*  1  0 -1 -1 -1 -1  0  3 */
-	t[7] = 0 + a32[0] - a32[2] - a32[3] - a32[4] - a32[5] + 3 * a32[7];
+	// t[] should be calculated from "a" (converted from 26-bit to 32-bit vector a32[8])
+	// according to the above matrix:
+	//t[0] = 0 + a32[0] + a32[1]            - a32[3]   - a32[4]   - a32[5]   - a32[6]             ;
+	//t[1] = 0          + a32[1] + a32[2]              - a32[4]   - a32[5]   - a32[6]   - a32[7]  ;
+	//t[2] = 0                   + a32[2]   + a32[3]              - a32[5]   - a32[6]   - a32[7]  ;
+	//t[3] = 0 - a32[0] - a32[1]            + 2*a32[3] + 2*a32[4] + a32[5]              - a32[7]  ;
+	//t[4] = 0          - a32[1] - a32[2]              + 2*a32[4] + 2*a32[5] + a32[6]             ;
+	//t[5] = 0                   - a32[2]   - a32[3]              + 2*a32[5] + 2*a32[6] + a32[7]  ;
+	//t[6] = 0 - a32[0] - a32[1]                                  + a32[5]   + 3*a32[6] + 2*a32[7];
+	//t[7] = 0 + a32[0]          - a32[2]   - a32[3]   - a32[4]   - a32[5]              + 3*a32[7];
+	// We can do it "piecemeal" after each a32[i] is known, no need to store entire a32[8] vector:
+
+#define A32 (int64_t)a32
+	a32 = a[0] | (a[1] << 26);
+	t[0] = 0 + A32;
+	t[3] = 0 - A32;
+	t[6] = 0 - A32;
+	t[7] = 0 + A32;
+
+	a32 = (a[1] >> 6) | (a[2] << 20);
+	t[0] += A32    ;
+	t[1]  = 0 + A32;
+	t[3] -= A32    ;
+	t[4]  = 0 - A32;
+	t[6] -= A32    ;
+
+	a32 = (a[2] >> 12) | (a[3] << 14);
+	t[1] += A32    ;
+	t[2]  = 0 + A32;
+	t[4] -= A32    ;
+	t[5]  = 0 - A32;
+	t[7] -= A32    ;
+
+	a32 = (a[3] >> 18) | (a[4] << 8);
+	t[0] -= A32  ;
+	t[2] += A32  ;
+	t[3] += 2*A32;
+	t[5] -= A32  ;
+	t[7] -= A32  ;
+
+	a32 = (a[4] >> 24) | (a[5] << 2) | (a[6] << 28);
+	t[0] -= A32  ;
+	t[1] -= A32  ;
+	t[3] += 2*A32;
+	t[4] += 2*A32;
+	t[7] -= A32  ;
+
+	a32 = (a[6] >> 4) | (a[7] << 22);
+	t[0] -= A32  ;
+	t[1] -= A32  ;
+	t[2] -= A32  ;
+	t[3] += A32  ;
+	t[4] += 2*A32;
+	t[5] += 2*A32;
+	t[6] += A32  ;
+	t[7] -= A32  ;
+
+	a32 = (a[7] >> 10) | (a[8] << 16);
+	t[0] -= A32  ;
+	t[1] -= A32  ;
+	t[2] -= A32  ;
+	t[4] += A32  ;
+	t[5] += 2*A32;
+	t[6] += 3*A32;
+
+	a32 = (a[8] >> 16) | (a[9] << 10);
+	t[1] -= A32  ;
+	t[2] -= A32  ;
+	t[3] -= A32  ;
+	t[5] += A32  ;
+	t[6] += 2*A32;
+	t[7] += 3*A32;
+#undef A32
 
 	t[1] += t[0] >> 32; t[0] &= 0xffffffff;
 	t[2] += t[1] >> 32; t[1] &= 0xffffffff;
@@ -526,30 +565,16 @@ static void sp_256_mod_mul_norm_10(sp_digit* r, const sp_digit* a)
 	t[6] += t[5] >> 32; t[5] &= 0xffffffff;
 	t[7] += t[6] >> 32; t[6] &= 0xffffffff;
 
-	r[0] = (sp_digit)(t[0]) & 0x3ffffff;
-	r[1] = (sp_digit)(t[0] >> 26);
-	r[1] |= t[1] << 6;
-	r[1] &= 0x3ffffff;
-	r[2] = (sp_digit)(t[1] >> 20);
-	r[2] |= t[2] << 12;
-	r[2] &= 0x3ffffff;
-	r[3] = (sp_digit)(t[2] >> 14);
-	r[3] |= t[3] << 18;
-	r[3] &= 0x3ffffff;
-	r[4] = (sp_digit)(t[3] >> 8);
-	r[4] |= t[4] << 24;
-	r[4] &= 0x3ffffff;
-	r[5] = (sp_digit)(t[4] >> 2) & 0x3ffffff;
-	r[6] = (sp_digit)(t[4] >> 28);
-	r[6] |= t[5] << 4;
-	r[6] &= 0x3ffffff;
-	r[7] = (sp_digit)(t[5] >> 22);
-	r[7] |= t[6] << 10;
-	r[7] &= 0x3ffffff;
-	r[8] = (sp_digit)(t[6] >> 16);
-	r[8] |= t[7] << 16;
-	r[8] &= 0x3ffffff;
-	r[9] = (sp_digit)(t[7] >> 10);
+	r[0] = 0x3ffffff & ((sp_digit)(t[0]));
+	r[1] = 0x3ffffff & ((sp_digit)(t[0] >> 26) | ((sp_digit)t[1] <<  6));
+	r[2] = 0x3ffffff & ((sp_digit)(t[1] >> 20) | ((sp_digit)t[2] << 12));
+	r[3] = 0x3ffffff & ((sp_digit)(t[2] >> 14) | ((sp_digit)t[3] << 18));
+	r[4] = 0x3ffffff & ((sp_digit)(t[3] >>  8) | ((sp_digit)t[4] << 24));
+	r[5] = 0x3ffffff & ((sp_digit)t[4]  >>  2); /* small shift, ok to cast t[4] to narrower type */
+	r[6] = 0x3ffffff & ((sp_digit)(t[4] >> 28) | ((sp_digit)t[5] <<  4));
+	r[7] = 0x3ffffff & ((sp_digit)(t[5] >> 22) | ((sp_digit)t[6] << 10));
+	r[8] = 0x3ffffff & ((sp_digit)(t[6] >> 16) | ((sp_digit)t[7] << 16));
+	r[9] =             ((sp_digit)(t[7] >> 10));
 }
 
 /* Map the Montgomery form projective co-ordinate point to an affine point.
@@ -795,7 +820,7 @@ static void sp_256_ecc_mulmod_base_10(sp_point* r, sp_digit* k /*, int map*/)
 		0x6b,0x17,0xd1,0xf2,0xe1,0x2c,0x42,0x47,0xf8,0xbc,0xe6,0xe5,0x63,0xa4,0x40,0xf2,0x77,0x03,0x7d,0x81,0x2d,0xeb,0x33,0xa0,0xf4,0xa1,0x39,0x45,0xd8,0x98,0xc2,0x96,
 		/* y */
 		0x4f,0xe3,0x42,0xe2,0xfe,0x1a,0x7f,0x9b,0x8e,0xe7,0xeb,0x4a,0x7c,0x0f,0x9e,0x16,0x2b,0xce,0x33,0x57,0x6b,0x31,0x5e,0xce,0xcb,0xb6,0x40,0x68,0x37,0xbf,0x51,0xf5,
-		/* z will be set to 0, infinity flag to "false" */
+		/* z will be set to 1, infinity flag to "false" */
 	};
 	sp_point p256_base;
 
