@@ -859,13 +859,11 @@ static void sp_ecc_secret_gen_256(const sp_digit priv[10], const uint8_t *pub2x3
 /* Generates a scalar that is in the range 1..order-1. */
 #define SIMPLIFY 1
 /* Add 1 to a. (a = a + 1) */
-#if !SIMPLIFY
 static void sp_256_add_one_10(sp_digit* a)
 {
 	a[0]++;
 	sp_256_norm_10(a);
 }
-#endif
 static void sp_256_ecc_gen_k_10(sp_digit k[10])
 {
 #if !SIMPLIFY
@@ -896,12 +894,7 @@ static void sp_256_ecc_gen_k_10(sp_digit k[10])
 		break;
 #endif
 	}
-#if !SIMPLIFY
 	sp_256_add_one_10(k);
-#else
-	if (k[0] == 0)
-		k[0] = 1;
-#endif
 #undef SIMPLIFY
 }
 
