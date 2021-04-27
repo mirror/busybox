@@ -557,24 +557,24 @@ static void sp_256_mod_mul_norm_10(sp_digit* r, const sp_digit* a)
 	t[3] -= o;
 	t[6] -= o;
 	t[7] += o;
-	t[1] += t[0] >> 32; t[0] &= 0xffffffff;
-	t[2] += t[1] >> 32; t[1] &= 0xffffffff;
-	t[3] += t[2] >> 32; t[2] &= 0xffffffff;
-	t[4] += t[3] >> 32; t[3] &= 0xffffffff;
-	t[5] += t[4] >> 32; t[4] &= 0xffffffff;
-	t[6] += t[5] >> 32; t[5] &= 0xffffffff;
-	t[7] += t[6] >> 32; t[6] &= 0xffffffff;
+	t[1] += t[0] >> 32; //t[0] &= 0xffffffff;
+	t[2] += t[1] >> 32; //t[1] &= 0xffffffff;
+	t[3] += t[2] >> 32; //t[2] &= 0xffffffff;
+	t[4] += t[3] >> 32; //t[3] &= 0xffffffff;
+	t[5] += t[4] >> 32; //t[4] &= 0xffffffff;
+	t[6] += t[5] >> 32; //t[5] &= 0xffffffff;
+	t[7] += t[6] >> 32; //t[6] &= 0xffffffff; - (uint32_t)t[i] casts below accomplish masking
 
-	r[0] = 0x3ffffff & ((sp_digit)(t[0]));
-	r[1] = 0x3ffffff & ((sp_digit)(t[0] >> 26) | ((sp_digit)t[1] <<  6));
-	r[2] = 0x3ffffff & ((sp_digit)(t[1] >> 20) | ((sp_digit)t[2] << 12));
-	r[3] = 0x3ffffff & ((sp_digit)(t[2] >> 14) | ((sp_digit)t[3] << 18));
-	r[4] = 0x3ffffff & ((sp_digit)(t[3] >>  8) | ((sp_digit)t[4] << 24));
-	r[5] = 0x3ffffff & ((sp_digit)t[4]  >>  2); /* small shift, ok to cast t[4] to narrower type */
-	r[6] = 0x3ffffff & ((sp_digit)(t[4] >> 28) | ((sp_digit)t[5] <<  4));
-	r[7] = 0x3ffffff & ((sp_digit)(t[5] >> 22) | ((sp_digit)t[6] << 10));
-	r[8] = 0x3ffffff & ((sp_digit)(t[6] >> 16) | ((sp_digit)t[7] << 16));
-	r[9] =             ((sp_digit)(t[7] >> 10));
+	r[0] = 0x3ffffff & ((sp_digit)((uint32_t)t[0]));
+	r[1] = 0x3ffffff & ((sp_digit)((uint32_t)t[0] >> 26) | ((sp_digit)t[1] <<  6));
+	r[2] = 0x3ffffff & ((sp_digit)((uint32_t)t[1] >> 20) | ((sp_digit)t[2] << 12));
+	r[3] = 0x3ffffff & ((sp_digit)((uint32_t)t[2] >> 14) | ((sp_digit)t[3] << 18));
+	r[4] = 0x3ffffff & ((sp_digit)((uint32_t)t[3] >>  8) | ((sp_digit)t[4] << 24));
+	r[5] = 0x3ffffff & ((sp_digit)((uint32_t)t[4] >>  2));
+	r[6] = 0x3ffffff & ((sp_digit)((uint32_t)t[4] >> 28) | ((sp_digit)t[5] <<  4));
+	r[7] = 0x3ffffff & ((sp_digit)((uint32_t)t[5] >> 22) | ((sp_digit)t[6] << 10));
+	r[8] = 0x3ffffff & ((sp_digit)((uint32_t)t[6] >> 16) | ((sp_digit)t[7] << 16));
+	r[9] =             ((sp_digit)((uint32_t)t[7] >> 10));
 }
 
 /* Map the Montgomery form projective co-ordinate point to an affine point.
