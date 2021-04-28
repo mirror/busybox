@@ -108,26 +108,26 @@ static void raw_try_sub(byte *x, const byte *p)
 #if 0 //UNUSED
 static int prime_msb(const byte *p)
 {
-    int i;
-    byte x;
-    int shift = 1;
-    int z     = F25519_SIZE - 1;
+	int i;
+	byte x;
+	int shift = 1;
+	int z     = F25519_SIZE - 1;
 
-   /*
-       Test for any hot bits.
-       As soon as one instance is encountered set shift to 0.
-    */
+	/*
+	    Test for any hot bits.
+	    As soon as one instance is encountered set shift to 0.
+	 */
 	for (i = F25519_SIZE - 1; i >= 0; i--) {
-        shift &= ((shift ^ ((-p[i] | p[i]) >> 7)) & 1);
-        z -= shift;
-    }
+		shift &= ((shift ^ ((-p[i] | p[i]) >> 7)) & 1);
+		z -= shift;
+	}
 	x = p[z];
 	z <<= 3;
-    shift = 1;
-    for (i = 0; i < 8; i++) {
-        shift &= ((-(x >> i) | (x >> i)) >> (7 - i) & 1);
-        z += shift;
-    }
+	shift = 1;
+	for (i = 0; i < 8; i++) {
+		shift &= ((-(x >> i) | (x >> i)) >> (7 - i) & 1);
+		z += shift;
+	}
 
 	return z - 1;
 }
@@ -549,6 +549,9 @@ static void curve25519(byte *result, const byte *e, const byte *q)
 	int i;
 
 	struct {
+		/* for bbox's special case of q == NULL meaning "use basepoint" */
+		/*static const*/ uint8_t basepoint9[CURVE25519_KEYSIZE]; // = {9};
+
 		/* from wolfssl-3.15.3/wolfssl/wolfcrypt/fe_operations.h */
 		/*static const*/ byte f25519_one[F25519_SIZE]; // = {1};
 
@@ -559,6 +562,7 @@ static void curve25519(byte *result, const byte *e, const byte *q)
 		byte xm1[F25519_SIZE]; // = {1};
 		byte zm1[F25519_SIZE]; // = {0};
 	} z;
+#define basepoint9 z.basepoint9
 #define f25519_one z.f25519_one
 #define xm         z.xm
 #define zm         z.zm
@@ -568,6 +572,11 @@ static void curve25519(byte *result, const byte *e, const byte *q)
 	f25519_one[0] = 1;
 	zm[0] = 1;
 	xm1[0] = 1;
+
+	if (!q) {
+		basepoint9[0] = 9;
+		q = basepoint9;
+	}
 
 	/* Note: bit 254 is assumed to be 1 */
 	lm_copy(xm, q);
@@ -606,7 +615,6 @@ void FAST_FUNC curve_x25519_compute_pubkey_and_premaster(
 		uint8_t *pubkey, uint8_t *premaster,
 		const uint8_t *peerkey32)
 {
-	static const uint8_t basepoint9[CURVE25519_KEYSIZE] ALIGN8 = {9};
 	uint8_t privkey[CURVE25519_KEYSIZE]; //[32]
 
 	/* Generate random private key, see RFC 7748 */
@@ -615,7 +623,7 @@ void FAST_FUNC curve_x25519_compute_pubkey_and_premaster(
 	privkey[CURVE25519_KEYSIZE-1] = ((privkey[CURVE25519_KEYSIZE-1] & 0x7f) | 0x40);
 
 	/* Compute public key */
-	curve25519(pubkey, privkey, basepoint9);
+	curve25519(pubkey, privkey, NULL /* "use base point of x25519" */);
 
 	/* Compute premaster using peer's public key */
 	curve25519(premaster, privkey, peerkey32);
