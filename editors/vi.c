@@ -2553,7 +2553,7 @@ static char *get_address(char *p, int *b, int *e)
 				break;
 			state = GET_SEPARATOR;
 		} else {
-			if (state == GET_SEPARATOR && *e < 0)
+			if (state == GET_SEPARATOR && *b >= 0 && *e < 0)
 				*e = count_lines(text, dot);
 			break;
 		}
