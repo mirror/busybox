@@ -1346,6 +1346,8 @@ However, in real world it was observed that some web servers
 		case 301:
 		case 302:
 		case 303:
+		case 307:
+		case 308:
 			break;
 
 		case 206: /* Partial Content */
