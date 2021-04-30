@@ -3328,11 +3328,10 @@ static int at_eof(const char *s)
 
 static int find_range(char **start, char **stop, int cmd)
 {
-	char *save_dot, *p, *q, *t;
+	char *p, *q, *t;
 	int buftype = -1;
 	int c;
 
-	save_dot = dot;
 	p = q = dot;
 
 #if ENABLE_FEATURE_VI_YANKMARK
@@ -3421,14 +3420,8 @@ static int find_range(char **start, char **stop, int cmd)
 		}
 	}
 
-	if (buftype == WHOLE || cmd == '<' || cmd == '>') {
-		p = begin_line(p);
-		q = end_line(q);
-	}
-
 	*start = p;
 	*stop = q;
-	dot = save_dot;
 	return buftype;
 }
 
@@ -3896,7 +3889,7 @@ static void do_cmd(int c)
 		if (find_range(&p, &q, c) == -1)
 			goto dc6;
 		i = count_lines(p, q);	// # of lines we are shifting
-		for ( ; i > 0; i--, p = next_line(p)) {
+		for (p = begin_line(p); i > 0; i--, p = next_line(p)) {
 			if (c == '<') {
 				// shift left- remove tab or tabstop spaces
 				if (*p == '\t') {
@@ -4150,12 +4143,16 @@ static void do_cmd(int c)
 # endif
 		if (c == 'y' || c == 'Y')
 			yf = YANKONLY;
-		save_dot = dot;
 #endif
 		// determine range, and whether it spans lines
 		buftype = find_range(&p, &q, c);
 		if (buftype == -1)	// invalid range
 			goto dc6;
+		if (buftype == WHOLE) {
+			save_dot = p;	// final cursor position is start of range
+			p = begin_line(p);
+			q = end_line(q);
+		}
 		dot = yank_delete(p, q, buftype, yf, ALLOW_UNDO);	// delete word
 		if (buftype == WHOLE) {
 			if (c == 'c') {
@@ -4164,15 +4161,9 @@ static void do_cmd(int c)
 				if (dot != (end-1)) {
 					dot_prev();
 				}
-			} else if (c == 'd') {
-				dot_begin();
-				dot_skip_over_ws();
-			}
-#if ENABLE_FEATURE_VI_YANKMARK
-			else /* (c == 'y' || c == 'Y') */ {
+			} else {
 				dot = save_dot;
 			}
-#endif
 		}
 		// if CHANGING, not deleting, start inserting after the delete
 		if (c == 'c') {
