@@ -1040,7 +1040,6 @@ static int d6_raw_socket(int ifindex)
 	log2("opening raw socket on ifindex %d", ifindex);
 
 	fd = xsocket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IPV6));
-	log3("got raw socket fd %d", fd);
 
 	memset(&sock, 0, sizeof(sock)); /* let's be deterministic */
 	sock.sll_family = AF_PACKET;
@@ -1085,29 +1084,6 @@ static void change_listen_mode(int new_mode)
 	else if (new_mode != LISTEN_NONE)
 		client_data.sockfd = d6_raw_socket(client_data.ifindex);
 	/* else LISTEN_NONE: client_data.sockfd stays closed */
-}
-
-/* Called only on SIGUSR1 */
-static void perform_renew(void)
-{
-	bb_simple_info_msg("performing DHCP renew");
-	switch (client_data.state) {
-	case BOUND:
-		change_listen_mode(LISTEN_KERNEL);
-	case RENEWING:
-	case REBINDING:
-		client_data.state = RENEW_REQUESTED;
-		break;
-	case RENEW_REQUESTED: /* impatient are we? fine, square 1 */
-		d6_run_script_no_option("deconfig");
-	case REQUESTING:
-	case RELEASED:
-		change_listen_mode(LISTEN_RAW);
-		client_data.state = INIT_SELECTING;
-		break;
-	case INIT_SELECTING:
-		break;
-	}
 }
 
 static void perform_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
@@ -1535,10 +1511,26 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		switch (udhcp_sp_read()) {
 		case SIGUSR1:
 			client_data.first_secs = 0; /* make secs field count from 0 */
-			perform_renew();
-			if (client_data.state == RENEW_REQUESTED)
+			bb_simple_info_msg("performing DHCP renew");
+
+			switch (client_data.state) {
+			/* Try to renew/rebind */
+			case BOUND:
+			case RENEWING:
+			case REBINDING:
+				change_listen_mode(LISTEN_KERNEL);
+				client_data.state = RENEW_REQUESTED;
 				goto case_RENEW_REQUESTED;
+
 			/* Start things over */
+			case RENEW_REQUESTED: /* two or more SIGUSR1 received */
+				d6_run_script_no_option("deconfig");
+			/* case REQUESTING: break; */
+			/* case RELEASED: break; */
+			/* case INIT_SELECTING: break; */
+			}
+			change_listen_mode(LISTEN_RAW);
+			client_data.state = INIT_SELECTING;
 			packet_num = 0;
 			/* Kill any timeouts, user wants this to hurry along */
 			timeout = 0;

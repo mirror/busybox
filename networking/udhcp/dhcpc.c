@@ -1027,7 +1027,6 @@ static int udhcp_raw_socket(int ifindex)
 	 * SOCK_DGRAM: remove link-layer headers on input (SOCK_RAW keeps them)
 	 * ETH_P_IP: want to receive only packets with IPv4 eth type
 	 */
-	log3("got raw socket fd %d", fd);
 
 	memset(&sock, 0, sizeof(sock)); /* let's be deterministic */
 	sock.sll_family = AF_PACKET;
@@ -1120,29 +1119,6 @@ static void change_listen_mode(int new_mode)
 	else if (new_mode != LISTEN_NONE)
 		client_data.sockfd = udhcp_raw_socket(client_data.ifindex);
 	/* else LISTEN_NONE: client_data.sockfd stays closed */
-}
-
-/* Called only on SIGUSR1 */
-static void perform_renew(void)
-{
-	bb_simple_info_msg("performing DHCP renew");
-	switch (client_data.state) {
-	case BOUND:
-		change_listen_mode(LISTEN_KERNEL);
-	case RENEWING:
-	case REBINDING:
-		client_data.state = RENEW_REQUESTED;
-		break;
-	case RENEW_REQUESTED: /* impatient are we? fine, square 1 */
-		udhcp_run_script(NULL, "deconfig");
-	case REQUESTING:
-	case RELEASED:
-		change_listen_mode(LISTEN_RAW);
-		client_data.state = INIT_SELECTING;
-		break;
-	case INIT_SELECTING:
-		break;
-	}
 }
 
 static void perform_release(uint32_t server_addr, uint32_t requested_ip)
@@ -1246,7 +1222,6 @@ static void client_background(void)
 //usage:     "\nSignals:"
 //usage:     "\n	USR1	Renew lease"
 //usage:     "\n	USR2	Release lease"
-
 
 int udhcpc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpc_main(int argc UNUSED_PARAM, char **argv)
@@ -1597,10 +1572,26 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		switch (udhcp_sp_read()) {
 		case SIGUSR1:
 			client_data.first_secs = 0; /* make secs field count from 0 */
-			perform_renew();
-			if (client_data.state == RENEW_REQUESTED)
+			bb_simple_info_msg("performing DHCP renew");
+
+			switch (client_data.state) {
+			/* Try to renew/rebind */
+			case BOUND:
+			case RENEWING:
+			case REBINDING:
+				change_listen_mode(LISTEN_KERNEL);
+				client_data.state = RENEW_REQUESTED;
 				goto case_RENEW_REQUESTED;
+
 			/* Start things over */
+			case RENEW_REQUESTED: /* two or more SIGUSR1 received */
+				udhcp_run_script(NULL, "deconfig");
+			/* case REQUESTING: break; */
+			/* case RELEASED: break; */
+			/* case INIT_SELECTING: break; */
+			}
+			change_listen_mode(LISTEN_RAW);
+			client_data.state = INIT_SELECTING;
 			packet_num = 0;
 			/* Kill any timeouts, user wants this to hurry along */
 			timeout = 0;
@@ -1737,7 +1728,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				/* paranoia: must not be too small and not prone to overflows */
 				/* NB: 60s leases _are_ used in real world
 				 * (temporary IPs while ISP modem initializes)
-				 * do not break this case by bumplit it up.
+				 * do not break this case by bumping it up.
 				 */
 				if (lease_remaining < 0) /* signed overflow? */
 					lease_remaining = INT_MAX;
