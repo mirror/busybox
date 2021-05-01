@@ -1220,7 +1220,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	uint32_t xid = 0;
 	int packet_num;
 	int timeout; /* must be signed */
-	unsigned already_waited_sec;
+	int lease_remaining; /* must be signed */
 	unsigned opt;
 	int retval;
 
@@ -1348,19 +1348,16 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	change_listen_mode(LISTEN_RAW);
 	packet_num = 0;
 	timeout = 0;
-	already_waited_sec = 0;
+	lease_remaining = 0;
 
 	/* Main event loop. select() waits on signal pipe and possibly
 	 * on sockfd.
 	 * "continue" statements in code below jump to the top of the loop.
 	 */
 	for (;;) {
-		int tv;
 		struct pollfd pfds[2];
 		struct d6_packet packet;
 		uint8_t *packet_end;
-		/* silence "uninitialized!" warning */
-		unsigned timestamp_before_wait = timestamp_before_wait;
 
 		//bb_error_msg("sockfd:%d, listen_mode:%d", client_data.sockfd, client_data.listen_mode);
 
@@ -1373,17 +1370,24 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 
 		udhcp_sp_fd_set(pfds, client_data.sockfd);
 
-		tv = timeout - already_waited_sec;
 		retval = 0;
 		/* If we already timed out, fall through with retval = 0, else... */
-		if (tv > 0) {
-			log1("waiting %u seconds", tv);
-			timestamp_before_wait = (unsigned)monotonic_sec();
-			retval = poll(pfds, 2, tv < INT_MAX/1000 ? tv * 1000 : INT_MAX);
+		if (timeout > 0) {
+			unsigned diff;
+
+			if (timeout > INT_MAX/1000)
+				timeout = INT_MAX/1000;
+			log1("waiting %u seconds", timeout);
+			diff = (unsigned)monotonic_sec();
+			retval = poll(pfds, 2, timeout * 1000);
 			if (retval < 0) {
 				/* EINTR? A signal was caught, don't panic */
 				if (errno == EINTR) {
-					already_waited_sec += (unsigned)monotonic_sec() - timestamp_before_wait;
+					diff = (unsigned)monotonic_sec() - diff;
+					lease_remaining -= diff;
+					if (lease_remaining < 0)
+						lease_remaining = 0;
+					timeout -= diff;
 					continue;
 				}
 				/* Else: an error occured, panic! */
@@ -1409,9 +1413,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			memcpy(clientid_mac_ptr, client_data.client_mac, 6);
-
-			/* We will restart the wait in any case */
-			already_waited_sec = 0;
 
 			switch (client_data.state) {
 			case INIT_SELECTING:
@@ -1477,7 +1478,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			case RENEW_REQUESTED: /* manual (SIGUSR1) renew */
 			case_RENEW_REQUESTED:
 			case RENEWING:
-				if (timeout >= 60) {
+				if (packet_num < 3) {
+					packet_num++;
 					/* send an unicast renew request */
 			/* Sometimes observed to fail (EADDRNOTAVAIL) to bind
 			 * a new UDP socket for sending inside send_renew.
@@ -1491,7 +1493,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 						send_d6_info_request(xid);
 					else
 						send_d6_renew(xid, &srv6_buf, requested_ipv6);
-					timeout >>= 1;
+					timeout = discover_timeout;
+					/* ^^^ used to be = lease_remaining / 2 - WAY too long */
 					continue;
 				}
 				/* Timed out, enter rebinding state */
@@ -1503,12 +1506,12 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				change_listen_mode(LISTEN_RAW);
 				/* Lease is *really* about to run out,
 				 * try to find DHCP server using broadcast */
-				if (timeout > 0) {
+				if (lease_remaining > 0) {
 					if (opt & OPT_l)
 						send_d6_info_request(xid);
 					else /* send a broadcast renew request */
 						send_d6_renew(xid, /*server_ipv6:*/ NULL, requested_ipv6);
-					timeout >>= 1;
+					timeout = discover_timeout;
 					continue;
 				}
 				/* Timed out, enter init state */
@@ -1516,7 +1519,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				d6_run_script_no_option("deconfig");
 				client_data.state = INIT_SELECTING;
 				client_data.first_secs = 0; /* make secs field count from 0 */
-				/*timeout = 0; - already is */
+				timeout = 0;
 				packet_num = 0;
 				continue;
 			/* case RELEASED: */
@@ -1532,21 +1535,9 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		switch (udhcp_sp_read()) {
 		case SIGUSR1:
 			client_data.first_secs = 0; /* make secs field count from 0 */
-			already_waited_sec = 0;
 			perform_renew();
-			if (client_data.state == RENEW_REQUESTED) {
-				/* We might be either on the same network
-				 * (in which case renew might work),
-				 * or we might be on a completely different one
-				 * (in which case renew won't ever succeed).
-				 * For the second case, must make sure timeout
-				 * is not too big, or else we can send
-				 * futile renew requests for hours.
-				 */
-				if (timeout > 60)
-					timeout = 60;
+			if (client_data.state == RENEW_REQUESTED)
 				goto case_RENEW_REQUESTED;
-			}
 			/* Start things over */
 			packet_num = 0;
 			/* Kill any timeouts, user wants this to hurry along */
@@ -1579,10 +1570,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				sleep(discover_timeout); /* 3 seconds by default */
 				change_listen_mode(client_data.listen_mode); /* just close and reopen */
 			}
-			/* If this packet will turn out to be unrelated/bogus,
-			 * we will go back and wait for next one.
-			 * Be sure timeout is properly decreased. */
-			already_waited_sec += (unsigned)monotonic_sec() - timestamp_before_wait;
 			if (len < 0)
 				continue;
 			packet_end = (uint8_t*)&packet + len;
@@ -1609,6 +1596,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		case RENEW_REQUESTED:
 		case REBINDING:
 			if (packet.d6_msg_type == D6_MSG_REPLY) {
+				unsigned start;
 				uint32_t lease_seconds;
 				struct d6_option *option;
 				unsigned address_timeout;
@@ -1631,7 +1619,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					requested_ipv6 = NULL;
 					timeout = 0;
 					packet_num = 0;
-					already_waited_sec = 0;
 					continue;
 				}
 				option = d6_copy_option(packet.d6_options, packet_end, D6_OPT_SERVERID);
@@ -1650,7 +1637,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					client_data.state = REQUESTING;
 					timeout = 0;
 					packet_num = 0;
-					already_waited_sec = 0;
 					continue;
 				}
 				/* It's a D6_MSG_REPLY */
@@ -1814,21 +1800,26 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					address_timeout = prefix_timeout;
 				if (!prefix_timeout)
 					prefix_timeout = address_timeout;
-				/* note: "int timeout" will not overflow even with 0xffffffff inputs here: */
-				timeout = (prefix_timeout < address_timeout ? prefix_timeout : address_timeout) / 2;
+				lease_remaining = (prefix_timeout < address_timeout ? prefix_timeout : address_timeout);
+				if (lease_remaining < 0) /* signed overflow? */
+					lease_remaining = INT_MAX;
 				if (opt & OPT_l) {
 					/* TODO: request OPTION_INFORMATION_REFRESH_TIME (32)
 					 * and use its value instead of the default 1 day.
 					 */
-					timeout = 24 * 60 * 60;
+					lease_remaining = 24 * 60 * 60;
 				}
 				/* paranoia: must not be too small */
-				/* timeout > 60 - ensures at least one unicast renew attempt */
-				if (timeout < 61)
-					timeout = 61;
+				if (lease_remaining < 30)
+					lease_remaining = 30;
+
 				/* enter bound state */
+				start = monotonic_sec();
 				d6_run_script(packet.d6_options, packet_end,
 					(client_data.state == REQUESTING ? "bound" : "renew"));
+				timeout = (unsigned)lease_remaining / 2;
+				timeout -= (unsigned)monotonic_sec() - start;
+				packet_num = 0;
 
 				client_data.state = BOUND;
 				change_listen_mode(LISTEN_NONE);
@@ -1844,7 +1835,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					opt = ((opt & ~OPT_b) | OPT_f);
 				}
 #endif
-				already_waited_sec = 0;
 				continue; /* back to main loop */
 			}
 			continue;
