@@ -1200,7 +1200,7 @@ static char *get_input_line(const char *prompt)
 	strcpy(buf, prompt);
 	last_status_cksum = 0;	// force status update
 	go_bottom_and_clear_to_eol();
-	write1(prompt);      // write out the :, /, or ? prompt
+	write1(buf);      // write out the :, /, or ? prompt
 
 	i = strlen(buf);
 	while (i < MAX_INPUT_LEN - 1) {
@@ -1209,8 +1209,8 @@ static char *get_input_line(const char *prompt)
 			break;		// this is end of input
 		if (c == term_orig.c_cc[VERASE] || c == 8 || c == 127) {
 			// user wants to erase prev char
-			buf[--i] = '\0';
 			write1("\b \b"); // erase char on screen
+			buf[--i] = '\0';
 			if (i <= 0) // user backs up before b-o-l, exit
 				break;
 		} else if (c > 0 && c < 256) { // exclude Unicode
