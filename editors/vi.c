@@ -3181,9 +3181,20 @@ static void colon(char *buf)
 					modified_count = 0;
 					last_modified_count = -1;
 				}
-				if (cmd[0] == 'x'
-				 || cmd[1] == 'q' || cmd[1] == 'n'
-				) {
+				if (cmd[1] == 'n') {
+					editing = 0;
+				} else if (cmd[0] == 'x' || cmd[1] == 'q') {
+					// are there other files to edit?
+					int n = cmdline_filecnt - optind - 1;
+					if (n > 0) {
+						if (useforce) {
+							// force end of argv list
+							optind = cmdline_filecnt;
+						} else {
+							status_line_bold("%u more file(s) to edit", n);
+							goto ret;
+						}
+					}
 					editing = 0;
 				}
 			}
