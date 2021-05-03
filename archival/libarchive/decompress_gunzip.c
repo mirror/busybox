@@ -230,9 +230,8 @@ static void huft_free(huft_t *p)
 	 * If 'p' has the error bit set we have to clear it, otherwise we might run
 	 * into a segmentation fault or an invalid pointer to free(p)
 	 */
-	if (BAD_HUFT(p)) {
-		p = (huft_t*)((uintptr_t)(p) ^ (uintptr_t)(ERR_RET));
-	}
+	//if (BAD_HUFT(p)) // commented out, since bit clearing has effect only if condition is true
+		p = (huft_t*)((uintptr_t)p & ~(uintptr_t)ERR_RET);
 
 	/* Go through linked list, freeing from the malloced (t[-1]) address. */
 	while (p) {
