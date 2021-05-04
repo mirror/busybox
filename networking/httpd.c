@@ -2190,6 +2190,9 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		CGI_INTERPRETER,
 	} cgi_type = CGI_NONE;
 #endif
+#if ENABLE_FEATURE_HTTPD_PROXY
+	Htaccess_Proxy *proxy_entry;
+#endif
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	smallint authorized = -1;
 #endif
@@ -2231,13 +2234,57 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (!get_line()) /* EOF or error or empty line */
 		send_headers_and_exit(HTTP_BAD_REQUEST);
 
-	/* Determine type of request (GET/POST/...) */
+	/* Find URL */
 	// rfc2616: method and URI is separated by exactly one space
 	//urlp = strpbrk(iobuf, " \t"); - no, tab isn't allowed
 	urlp = strchr(iobuf, ' ');
 	if (urlp == NULL)
 		send_headers_and_exit(HTTP_BAD_REQUEST);
 	*urlp++ = '\0';
+	//urlp = skip_whitespace(urlp); - should not be necessary
+	if (urlp[0] != '/')
+		send_headers_and_exit(HTTP_BAD_REQUEST);
+	/* Find end of URL */
+	HTTP_slash = strchr(urlp, ' ');
+	/* Is it " HTTP/"? */
+	if (!HTTP_slash || strncmp(HTTP_slash + 1, HTTP_200, 5) != 0)
+		send_headers_and_exit(HTTP_BAD_REQUEST);
+	*HTTP_slash++ = '\0';
+
+#if ENABLE_FEATURE_HTTPD_PROXY
+	proxy_entry = find_proxy_entry(urlp);
+	if (proxy_entry) {
+		int proxy_fd;
+		len_and_sockaddr *lsa;
+
+		if (verbose > 1)
+			bb_error_msg("proxy:%s", urlp);
+		lsa = host2sockaddr(proxy_entry->host_port, 80);
+		if (!lsa)
+			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+		proxy_fd = socket(lsa->u.sa.sa_family, SOCK_STREAM, 0);
+		if (proxy_fd < 0)
+			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+		if (connect(proxy_fd, &lsa->u.sa, lsa->len) < 0)
+			send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
+		/* Disable peer header reading timeout */
+		alarm(0);
+		/* Config directive was of the form:
+		 *   P:/url:[http://]hostname[:port]/new/path
+		 * When /urlSFX is requested, reverse proxy it
+		 * to http://hostname[:port]/new/pathSFX
+		 */
+		fdprintf(proxy_fd, "%s %s%s %s\r\n",
+				iobuf, /* "GET" / "POST" / etc */
+				proxy_entry->url_to, /* "/new/path" */
+				urlp + strlen(proxy_entry->url_from), /* "SFX" */
+				HTTP_slash /* "HTTP/xyz" */
+		);
+		cgi_io_loop_and_exit(proxy_fd, proxy_fd, /*max POST length:*/ INT_MAX);
+	}
+#endif
+
+	/* Determine type of request (GET/POST/...) */
 #if ENABLE_FEATURE_HTTPD_CGI
 	prequest = request_GET;
 	if (strcasecmp(iobuf, prequest) == 0)
@@ -2248,7 +2295,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	prequest = request_POST;
 	if (strcasecmp(iobuf, prequest) == 0)
 		goto found;
-	/* For CGI, allow other requests too (DELETE, PUT, OPTIONS, etc) */
+	/* For CGI, allow DELETE, PUT, OPTIONS, etc too */
 	prequest = alloca(16);
 	safe_strncpy((char*)prequest, iobuf, 16);
  found:
@@ -2256,59 +2303,10 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (strcasecmp(iobuf, "GET") != 0)
 		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 #endif
-	// rfc2616: method and URI is separated by exactly one space
-	//urlp = skip_whitespace(urlp); - should not be necessary
-	if (urlp[0] != '/')
-		send_headers_and_exit(HTTP_BAD_REQUEST);
-
-	/* Find end of URL */
-	HTTP_slash = strchr(urlp, ' ');
-	/* Is it " HTTP/"? */
-	if (!HTTP_slash || strncmp(HTTP_slash + 1, HTTP_200, 5) != 0)
-		send_headers_and_exit(HTTP_BAD_REQUEST);
-	*HTTP_slash++ = '\0';
-
-	/* Copy URL from after "GET "/"POST " to stack-allocated char[] */
+	/* Copy URL to stack-allocated char[] */
 	urlcopy = alloca((HTTP_slash - urlp) + 2 + strlen(index_page));
-	/*if (urlcopy == NULL)
-	 *	send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);*/
 	strcpy(urlcopy, urlp);
 	/* NB: urlcopy ptr is never changed after this */
-
-#if ENABLE_FEATURE_HTTPD_PROXY
-	{
-		int proxy_fd;
-		len_and_sockaddr *lsa;
-		Htaccess_Proxy *proxy_entry = find_proxy_entry(urlcopy);
-
-		if (proxy_entry) {
-			if (verbose > 1)
-				bb_error_msg("proxy:%s", urlcopy);
-			lsa = host2sockaddr(proxy_entry->host_port, 80);
-			if (!lsa)
-				send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
-			proxy_fd = socket(lsa->u.sa.sa_family, SOCK_STREAM, 0);
-			if (proxy_fd < 0)
-				send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
-			if (connect(proxy_fd, &lsa->u.sa, lsa->len) < 0)
-				send_headers_and_exit(HTTP_INTERNAL_SERVER_ERROR);
-			/* Disable peer header reading timeout */
-			alarm(0);
-			/* Config directive was of the form:
-			 *   P:/url:[http://]hostname[:port]/new/path
-			 * When /urlSFX is requested, reverse proxy it
-			 * to http://hostname[:port]/new/pathSFX
-			 */
-			fdprintf(proxy_fd, "%s %s%s %s\r\n",
-					iobuf, /* "GET" / "POST" / etc */
-					proxy_entry->url_to, /* "/new/path" */
-					urlcopy + strlen(proxy_entry->url_from), /* "SFX" */
-					HTTP_slash /* "HTTP/xyz" */
-			);
-			cgi_io_loop_and_exit(proxy_fd, proxy_fd, /*max POST length:*/ INT_MAX);
-		}
-	}
-#endif
 
 	/* Extract url args if present */
 	g_query = strchr(urlcopy, '?');
@@ -2571,9 +2569,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		send_headers_and_exit(HTTP_UNAUTHORIZED);
 #endif
 
-	if (found_moved_temporarily) {
+	if (found_moved_temporarily)
 		send_headers_and_exit(HTTP_MOVED_TEMPORARILY);
-	}
 
 	tptr = urlcopy + 1;      /* skip first '/' */
 
@@ -2587,9 +2584,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	}
 #endif
 
-	if (urlp[-1] == '/') {
+	if (urlp[-1] == '/')
 		strcpy(urlp, index_page);
-	}
 
 #if ENABLE_FEATURE_HTTPD_CGI
 	if (prequest != request_GET && prequest != request_HEAD) {
