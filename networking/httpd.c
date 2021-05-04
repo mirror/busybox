@@ -679,7 +679,7 @@ enum {
 	SIGNALED_PARSE = 1, /* path will be "/etc" */
 	SUBDIR_PARSE   = 2, /* path will be derived from URL */
 };
-static void parse_conf(const char *path, int flag)
+static int parse_conf(const char *path, int flag)
 {
 	/* internally used extra flag state */
 	enum { TRY_CURDIR_PARSE = 3 };
@@ -713,7 +713,7 @@ static void parse_conf(const char *path, int flag)
 	while ((f = fopen_for_read(filename)) == NULL) {
 		if (flag >= SUBDIR_PARSE) { /* SUBDIR or TRY_CURDIR */
 			/* config file not found, no changes to config */
-			return;
+			return -1;
 		}
 		if (flag == FIRST_PARSE) {
 			/* -c CONFFILE given, but CONFFILE doesn't exist? */
@@ -971,6 +971,7 @@ static void parse_conf(const char *path, int flag)
 	} /* while (fgets) */
 
 	fclose(f);
+	return 0;
 }
 
 #if ENABLE_FEATURE_HTTPD_ENCODE_URL_STR
@@ -2363,12 +2364,9 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	while ((tptr = strchr(tptr + 1, '/')) != NULL) {
 		/* have path1/path2 */
 		*tptr = '\0';
-//TODO: can we avoid is_directory() test here?
-		if (is_directory(urlcopy + 1, /*followlinks:*/ 1)) {
-			/* may have subdir config */
-			parse_conf(urlcopy + 1, SUBDIR_PARSE);
+		/* may have subdir config */
+		if (parse_conf(urlcopy + 1, SUBDIR_PARSE) == 0)
 			if_ip_denied_send_HTTP_FORBIDDEN_and_exit(remote_ip);
-		}
 		*tptr = '/';
 	}
 
@@ -2420,9 +2418,9 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	else if (urlp[-1] == '/') {
 		/* It's a dir URL and there is no index.html
 		 * Try cgi-bin/index.cgi */
-		if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
-			cgi_type = CGI_INDEX;
-		}
+		if (access("/cgi-bin/index.cgi"+1, X_OK) != 0)
+			send_headers_and_exit(HTTP_NOT_FOUND);
+		cgi_type = CGI_INDEX;
 	}
 #endif
 	urlp[0] = '\0';
