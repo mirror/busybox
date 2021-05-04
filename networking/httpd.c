@@ -2355,13 +2355,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		tptr++;
 	}
 
-	/* If URL is a directory, add '/' */
-	if (urlp[-1] != '/') {
-		if (is_directory(urlcopy + 1, /*followlinks:*/ 1)) {
-			found_moved_temporarily = urlcopy;
-		}
-	}
-
 	/* Log it */
 	if (verbose > 1)
 		bb_error_msg("url:%s", urlcopy);
@@ -2370,6 +2363,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	while ((tptr = strchr(tptr + 1, '/')) != NULL) {
 		/* have path1/path2 */
 		*tptr = '\0';
+//TODO: can we avoid is_directory() test here?
 		if (is_directory(urlcopy + 1, /*followlinks:*/ 1)) {
 			/* may have subdir config */
 			parse_conf(urlcopy + 1, SUBDIR_PARSE);
@@ -2401,19 +2395,23 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		strcpy(urlp, index_page);
 	}
 	if (stat(tptr, &sb) == 0) {
+		/* If URL is a directory with no slash, set up
+		 * "HTTP/1.1 302 Found" "Location: /dir/" reply */
+		if (urlp[-1] != '/' && S_ISDIR(sb.st_mode)) {
+			found_moved_temporarily = urlcopy;
+		} else {
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-		char *suffix = strrchr(tptr, '.');
-		if (suffix) {
-			Htaccess *cur;
-			for (cur = script_i; cur; cur = cur->next) {
-				if (strcmp(cur->before_colon + 1, suffix) == 0) {
-					cgi_type = CGI_INTERPRETER;
-					break;
+			char *suffix = strrchr(tptr, '.');
+			if (suffix) {
+				Htaccess *cur;
+				for (cur = script_i; cur; cur = cur->next) {
+					if (strcmp(cur->before_colon + 1, suffix) == 0) {
+						cgi_type = CGI_INTERPRETER;
+						break;
+					}
 				}
 			}
-		}
 #endif
-		if (!found_moved_temporarily) {
 			file_size = sb.st_size;
 			last_mod = sb.st_mtime;
 		}
