@@ -344,13 +344,6 @@ typedef struct Htaccess_Proxy {
 	char *url_to;
 } Htaccess_Proxy;
 
-typedef enum CGI_type {
-	CGI_NONE = 0,
-	CGI_NORMAL,
-	CGI_INDEX,
-	CGI_INTERPRETER,
-} CGI_type;
-
 enum {
 	HTTP_OK = 200,
 	HTTP_PARTIAL_CONTENT = 206,
@@ -2174,7 +2167,6 @@ static void send_REQUEST_TIMEOUT_and_exit(int sig UNUSED_PARAM)
 static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr) NORETURN;
 static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 {
-	static const char request_GET[] ALIGN1 = "GET";
 	struct stat sb;
 	char *urlcopy;
 	char *urlp;
@@ -2186,13 +2178,17 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	unsigned total_headers_len;
 #endif
 #if ENABLE_FEATURE_HTTPD_CGI
+	static const char request_GET[]  ALIGN1 = "GET";
 	static const char request_HEAD[] ALIGN1 = "HEAD";
+	static const char request_POST[] ALIGN1 = "POST";
 	const char *prequest;
-	unsigned long length = 0;
-	enum CGI_type cgi_type = CGI_NONE;
-#elif ENABLE_FEATURE_HTTPD_PROXY
-#define prequest request_GET
-	unsigned long length = 0;
+	unsigned long POST_length;
+	enum CGI_type {
+		CGI_NONE = 0,
+		CGI_NORMAL,
+		CGI_INDEX,
+		CGI_INTERPRETER,
+	} cgi_type = CGI_NONE;
 #endif
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	smallint authorized = -1;
@@ -2235,7 +2231,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (!get_line()) /* EOF or error or empty line */
 		send_headers_and_exit(HTTP_BAD_REQUEST);
 
-	/* Determine type of request (GET/POST) */
+	/* Determine type of request (GET/POST/...) */
 	// rfc2616: method and URI is separated by exactly one space
 	//urlp = strpbrk(iobuf, " \t"); - no, tab isn't allowed
 	urlp = strchr(iobuf, ' ');
@@ -2244,16 +2240,20 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	*urlp++ = '\0';
 #if ENABLE_FEATURE_HTTPD_CGI
 	prequest = request_GET;
-	if (strcasecmp(iobuf, prequest) != 0) {
-		prequest = request_HEAD;
-		if (strcasecmp(iobuf, prequest) != 0) {
-			prequest = "POST";
-			if (strcasecmp(iobuf, prequest) != 0)
-				send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
-		}
-	}
+	if (strcasecmp(iobuf, prequest) == 0)
+		goto found;
+	prequest = request_HEAD;
+	if (strcasecmp(iobuf, prequest) == 0)
+		goto found;
+	prequest = request_POST;
+	if (strcasecmp(iobuf, prequest) == 0)
+		goto found;
+	/* For CGI, allow other requests too (DELETE, PUT, OPTIONS, etc) */
+	prequest = alloca(16);
+	safe_strncpy((char*)prequest, iobuf, 16);
+ found:
 #else
-	if (strcasecmp(iobuf, request_GET) != 0)
+	if (strcasecmp(iobuf, "GET") != 0)
 		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 #endif
 	// rfc2616: method and URI is separated by exactly one space
@@ -2300,7 +2300,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			 * to http://hostname[:port]/new/pathSFX
 			 */
 			fdprintf(proxy_fd, "%s %s%s %s\r\n",
-					prequest, /* "GET" or "POST" */
+					iobuf, /* "GET" / "POST" / etc */
 					proxy_entry->url_to, /* "/new/path" */
 					urlcopy + strlen(proxy_entry->url_from), /* "SFX" */
 					HTTP_slash /* "HTTP/xyz" */
@@ -2328,7 +2328,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	/* Algorithm stolen from libbb bb_simplify_path(),
 	 * but don't strdup, retain trailing slash, protect root */
 	urlp = tptr = urlcopy;
-	for (;;) {
+	while (1) {
 		if (*urlp == '/') {
 			/* skip duplicate (or initial) slash */
 			if (*tptr == '/') {
@@ -2435,6 +2435,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 
 #if ENABLE_FEATURE_HTTPD_CGI
 	total_headers_len = 0;
+	POST_length = 0;
 #endif
 
 	/* Read until blank line */
@@ -2450,24 +2451,17 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #endif
 		if (DEBUG)
 			bb_error_msg("header: '%s'", iobuf);
-#if ENABLE_FEATURE_HTTPD_CGI || ENABLE_FEATURE_HTTPD_PROXY
-		/* Try and do our best to parse more lines */
-		if (STRNCASECMP(iobuf, "Content-Length:") == 0) {
-			/* extra read only for POST */
-			if (prequest != request_GET
-# if ENABLE_FEATURE_HTTPD_CGI
-			 && prequest != request_HEAD
-# endif
-			) {
-				tptr = skip_whitespace(iobuf + sizeof("Content-Length:") - 1);
-				if (!tptr[0])
-					send_headers_and_exit(HTTP_BAD_REQUEST);
-				/* not using strtoul: it ignores leading minus! */
-				length = bb_strtou(tptr, NULL, 10);
-				/* length is "ulong", but we need to pass it to int later */
-				if (errno || length > INT_MAX)
-					send_headers_and_exit(HTTP_BAD_REQUEST);
-			}
+#if ENABLE_FEATURE_HTTPD_CGI
+		/* Only POST needs to know POST_length */
+		if (prequest == request_POST && STRNCASECMP(iobuf, "Content-Length:") == 0) {
+			tptr = skip_whitespace(iobuf + sizeof("Content-Length:") - 1);
+			if (!tptr[0])
+				send_headers_and_exit(HTTP_BAD_REQUEST);
+			/* not using strtoul: it ignores leading minus! */
+			POST_length = bb_strtou(tptr, NULL, 10);
+			/* length is "ulong", but we need to pass it to int later */
+			if (errno || POST_length > INT_MAX)
+				send_headers_and_exit(HTTP_BAD_REQUEST);
 			continue;
 		}
 #endif
@@ -2588,7 +2582,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		send_cgi_and_exit(
 			(cgi_type == CGI_INDEX) ? "/cgi-bin/index.cgi"
 			/*CGI_NORMAL or CGI_INTERPRETER*/ : urlcopy,
-			urlcopy, prequest, length
+			urlcopy, prequest, POST_length
 		);
 	}
 #endif
@@ -2599,13 +2593,14 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 
 #if ENABLE_FEATURE_HTTPD_CGI
 	if (prequest != request_GET && prequest != request_HEAD) {
-		/* POST for files does not make sense */
+		/* POST / DELETE / PUT / OPTIONS for files do not make sense */
 		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 	}
 	send_file_and_exit(tptr,
 		(prequest != request_HEAD ? SEND_HEADERS_AND_BODY : SEND_HEADERS)
 	);
 #else
+	/* It was verified earlier that it is a "GET" */
 	send_file_and_exit(tptr, SEND_HEADERS_AND_BODY);
 #endif
 }
