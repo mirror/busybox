@@ -548,7 +548,6 @@ enum {
 enum {
 	SEND_HEADERS     = (1 << 0),
 	SEND_BODY        = (1 << 1),
-	SEND_HEADERS_AND_BODY = SEND_HEADERS + SEND_BODY,
 };
 static void send_file_and_exit(const char *url, int what) NORETURN;
 
@@ -2177,11 +2176,11 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #if ENABLE_FEATURE_HTTPD_CGI
 	unsigned total_headers_len;
 #endif
-#if ENABLE_FEATURE_HTTPD_CGI
+	const char *prequest;
 	static const char request_GET[]  ALIGN1 = "GET";
 	static const char request_HEAD[] ALIGN1 = "HEAD";
+#if ENABLE_FEATURE_HTTPD_CGI
 	static const char request_POST[] ALIGN1 = "POST";
-	const char *prequest;
 	unsigned long POST_length;
 	enum CGI_type {
 		CGI_NONE = 0,
@@ -2285,24 +2284,23 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #endif
 
 	/* Determine type of request (GET/POST/...) */
-#if ENABLE_FEATURE_HTTPD_CGI
 	prequest = request_GET;
 	if (strcasecmp(iobuf, prequest) == 0)
 		goto found;
 	prequest = request_HEAD;
 	if (strcasecmp(iobuf, prequest) == 0)
 		goto found;
+#if !ENABLE_FEATURE_HTTPD_CGI
+	send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
+#else
 	prequest = request_POST;
 	if (strcasecmp(iobuf, prequest) == 0)
 		goto found;
 	/* For CGI, allow DELETE, PUT, OPTIONS, etc too */
 	prequest = alloca(16);
 	safe_strncpy((char*)prequest, iobuf, 16);
- found:
-#else
-	if (strcasecmp(iobuf, "GET") != 0)
-		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 #endif
+ found:
 	/* Copy URL to stack-allocated char[] */
 	urlcopy = alloca((HTTP_slash - urlp) + 2 + strlen(index_page));
 	strcpy(urlcopy, urlp);
@@ -2592,13 +2590,12 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		/* POST / DELETE / PUT / OPTIONS for files do not make sense */
 		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
 	}
-	send_file_and_exit(tptr,
-		(prequest != request_HEAD ? SEND_HEADERS_AND_BODY : SEND_HEADERS)
-	);
 #else
-	/* It was verified earlier that it is a "GET" */
-	send_file_and_exit(tptr, SEND_HEADERS_AND_BODY);
+	/* !CGI: it can be only GET or HEAD */
 #endif
+	send_file_and_exit(tptr,
+		(prequest != request_HEAD ? (SEND_HEADERS + SEND_BODY) : SEND_HEADERS)
+	);
 }
 
 /*
