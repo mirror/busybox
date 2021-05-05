@@ -305,6 +305,12 @@
 
 #define DEBUG 0
 
+#if DEBUG
+# define dbg(...) fprintf(stderr, __VA_ARGS__)
+#else
+# define dbg(...) ((void)0)
+#endif
+
 #define IOBUF_SIZE 8192
 #define MAX_HTTP_HEADERS_SIZE (32*1024)
 
@@ -1158,8 +1164,7 @@ static void send_headers(unsigned responseNum)
 			fprintf(stderr, "headers: '%s'\n", iobuf);
 		}
 		full_write(STDOUT_FILENO, iobuf, len);
-		if (DEBUG)
-			fprintf(stderr, "writing error page: '%s'\n", error_page);
+		dbg("writing error page: '%s'\n", error_page);
 		return send_file_and_exit(error_page, SEND_BODY);
 	}
 #endif
@@ -1500,8 +1505,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 			}
 			if (full_write(STDOUT_FILENO, rbuf, count) != count)
 				break;
-			if (DEBUG)
-				fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
+			dbg("cgi read %d bytes: '%.*s'\n", count, count, rbuf);
 		} /* if (pfd[FROM_CGI].revents) */
 	} /* while (1) */
 	log_and_exit();
@@ -1747,8 +1751,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 		/* file_size and last_mod are already populated */
 	}
 	if (fd < 0) {
-		if (DEBUG)
-			bb_perror_msg("can't open '%s'", url);
+		dbg("can't open '%s'\n", url);
 		/* Error pages are sent by using send_file_and_exit(SEND_BODY).
 		 * IOW: it is unsafe to call send_headers_and_exit
 		 * if what is SEND_BODY! Can recurse! */
@@ -1761,8 +1764,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 	sprintf(G.etag, "\"%llx-%llx\"", (unsigned long long)last_mod, (unsigned long long)file_size);
 
 	if (G.if_none_match) {
-		if (DEBUG)
-			bb_perror_msg("If-None-Match and file's ETag are: '%s' '%s'\n", G.if_none_match, G.etag);
+		dbg("If-None-Match:'%s' file's ETag:'%s'\n", G.if_none_match, G.etag);
 		/* Weak ETag comparision.
 		 * If-None-Match may have many ETags but they are quoted so we can use simple substring search */
 		if (strstr(G.if_none_match, G.etag))
@@ -1838,9 +1840,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 		}
 	}
 
-	if (DEBUG)
-		bb_error_msg("sending file '%s' content-type: %s",
-			url, found_mime_type);
+	dbg("sending file '%s' content-type:%s\n", url, found_mime_type);
 
 #if ENABLE_FEATURE_HTTPD_RANGES
 	if (what == SEND_BODY /* err pages and ranges don't mix */
@@ -1910,9 +1910,7 @@ static void if_ip_denied_send_HTTP_FORBIDDEN_and_exit(unsigned remote_ip)
 	Htaccess_IP *cur;
 
 	for (cur = G.ip_a_d; cur; cur = cur->next) {
-#if DEBUG
-		fprintf(stderr,
-			"checkPermIP: '%s' ? '%u.%u.%u.%u/%u.%u.%u.%u'\n",
+		dbg("checkPermIP: '%s' ? '%u.%u.%u.%u/%u.%u.%u.%u'\n",
 			rmt_ip_str,
 			(unsigned char)(cur->ip >> 24),
 			(unsigned char)(cur->ip >> 16),
@@ -1923,7 +1921,6 @@ static void if_ip_denied_send_HTTP_FORBIDDEN_and_exit(unsigned remote_ip)
 			(unsigned char)(cur->mask >> 8),
 			(unsigned char)(cur->mask)
 		);
-#endif
 		if ((remote_ip & cur->mask) == cur->ip) {
 			if (cur->allow_deny == 'A')
 				return;
@@ -2015,8 +2012,7 @@ static int check_user_passwd(const char *path, char *user_and_passwd)
 		if (prev && strcmp(prev, dir_prefix) != 0)
 			continue;
 
-		if (DEBUG)
-			fprintf(stderr, "checkPerm: '%s' ? '%s'\n", dir_prefix, user_and_passwd);
+		dbg("checkPerm: '%s' ? '%s'\n", dir_prefix, user_and_passwd);
 
 		/* If it's not a prefix match, continue searching */
 		len = strlen(dir_prefix);
@@ -2231,8 +2227,22 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	/* Install timeout handler. get_line() needs it. */
 	signal(SIGALRM, send_REQUEST_TIMEOUT_and_exit);
 
-	if (!get_line()) /* EOF or error or empty line */
-		send_headers_and_exit(HTTP_BAD_REQUEST);
+	if (!get_line()) { /* EOF or error or empty line */
+		/* Observed Firefox to "speculatively" open
+		 * extra connections to a new site on first access,
+		 * they are closed in ~5 seconds with nothing
+		 * being sent at all.
+		 * (Presumably it's a method to decrease latency?)
+		 */
+		if (verbose > 2)
+			bb_simple_error_msg("eof on read, closing");
+		/* Don't bother generating error page in this case,
+		 * just close the socket.
+		 */
+		//send_headers_and_exit(HTTP_BAD_REQUEST);
+		_exit(xfunc_error_retval);
+	}
+	dbg("Request:'%s'\n", iobuf);
 
 	/* Find URL */
 	// rfc2616: method and URI is separated by exactly one space
@@ -2445,8 +2455,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		if (total_headers_len >= MAX_HTTP_HEADERS_SIZE)
 			send_headers_and_exit(HTTP_ENTITY_TOO_LARGE);
 #endif
-		if (DEBUG)
-			bb_error_msg("header: '%s'", iobuf);
+		dbg("header:'%s'\n", iobuf);
 #if ENABLE_FEATURE_HTTPD_CGI
 		/* Only POST needs to know POST_length */
 		if (prequest == request_POST && STRNCASECMP(iobuf, "Content-Length:") == 0) {
