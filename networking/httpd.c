@@ -2632,6 +2632,13 @@ static void mini_httpd(int server_socket)
 		n = accept(server_socket, &fromAddr.u.sa, &fromAddr.len);
 		if (n < 0)
 			continue;
+//TODO: we can reject connects from denied IPs right away;
+//also, we might want to do one MSG_DONTWAIT'ed recv() here
+//to detect immediate EOF,
+//to avoid forking a whole new process for attackers
+//who open and close lots of connections.
+//(OTOH, the real mitigtion for this sort of thing is
+//to ratelimit connects in iptables)
 
 		/* set the KEEPALIVE option to cull dead connections */
 		setsockopt_keepalive(n);
