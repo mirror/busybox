@@ -2416,14 +2416,18 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	}
 #if ENABLE_FEATURE_HTTPD_CGI
 	else if (urlp[-1] == '/') {
-		/* It's a dir URL and there is no index.html
-		 * Try cgi-bin/index.cgi */
+		/* It's a dir URL and there is no index.html */
+		/* Is there cgi-bin/index.cgi? */
 		if (access("/cgi-bin/index.cgi"+1, X_OK) != 0)
-			send_headers_and_exit(HTTP_NOT_FOUND);
+			send_headers_and_exit(HTTP_NOT_FOUND); /* no */
 		cgi_type = CGI_INDEX;
 	}
 #endif
+
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH || ENABLE_FEATURE_HTTPD_CGI
+	/* check_user_passwd() would be confused by added .../index.html, truncate it */
 	urlp[0] = '\0';
+#endif
 
 #if ENABLE_FEATURE_HTTPD_CGI
 	total_headers_len = 0;
@@ -2566,8 +2570,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (found_moved_temporarily)
 		send_headers_and_exit(HTTP_MOVED_TEMPORARILY);
 
-	tptr = urlcopy + 1;      /* skip first '/' */
-
 #if ENABLE_FEATURE_HTTPD_CGI
 	if (cgi_type != CGI_NONE) {
 		send_cgi_and_exit(
@@ -2578,9 +2580,6 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	}
 #endif
 
-	if (urlp[-1] == '/')
-		strcpy(urlp, index_page);
-
 #if ENABLE_FEATURE_HTTPD_CGI
 	if (prequest != request_GET && prequest != request_HEAD) {
 		/* POST / DELETE / PUT / OPTIONS for files do not make sense */
@@ -2589,7 +2588,13 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #else
 	/* !CGI: it can be only GET or HEAD */
 #endif
-	send_file_and_exit(tptr,
+
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+	/* Restore truncated .../index.html */
+	if (urlp[-1] == '/')
+		urlp[0] = index_page[0];
+#endif
+	send_file_and_exit(urlcopy + 1,
 		(prequest != request_HEAD ? (SEND_HEADERS + SEND_BODY) : SEND_HEADERS)
 	);
 }
