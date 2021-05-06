@@ -442,6 +442,9 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		}
 		/* check that the account is healthy */
 		pamret = pam_acct_mgmt(pamh, 0);
+		if (pamret == PAM_NEW_AUTHTOK_REQD) {
+			pamret = pam_chauthtok(pamh, PAM_CHANGE_EXPIRED_AUTHTOK);
+		}
 		if (pamret != PAM_SUCCESS) {
 			failed_msg = "acct_mgmt";
 			goto pam_auth_failed;
