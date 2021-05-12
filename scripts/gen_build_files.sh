@@ -4,6 +4,8 @@
 # but users complain that many sed implementations
 # are misinterpreting --.
 
+export LC_ALL=C
+
 test $# -ge 2 || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
 
 # cd to objtree
