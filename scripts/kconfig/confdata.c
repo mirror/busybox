@@ -342,6 +342,8 @@ int conf_write(const char *name)
 	time_t now;
 	int use_timestamp = 1;
 	char *env;
+	char *source_date_epoch;
+	struct tm *build_time;
 
 	dirname[0] = 0;
 	if (name && name[0]) {
@@ -378,7 +380,16 @@ int conf_write(const char *name)
 	}
 	sym = sym_lookup("KERNELVERSION", 0);
 	sym_calc_value(sym);
-	time(&now);
+
+	source_date_epoch = getenv("SOURCE_DATE_EPOCH");
+	if (source_date_epoch && *source_date_epoch) {
+		now = strtoull(source_date_epoch, NULL, 10);
+		build_time = gmtime(&now);
+	} else {
+		time(&now);
+		build_time = localtime(&now);
+	}
+
 	env = getenv("KCONFIG_NOTIMESTAMP");
 	if (env && *env)
 		use_timestamp = 0;
@@ -398,14 +409,14 @@ int conf_write(const char *name)
 		if (use_timestamp) {
 			size_t ret = \
 				strftime(buf, sizeof(buf), "#define AUTOCONF_TIMESTAMP "
-					"\"%Y-%m-%d %H:%M:%S %Z\"\n", localtime(&now));
+					"\"%Y-%m-%d %H:%M:%S %Z\"\n", build_time);
 			/* if user has Factory timezone or some other odd install, the
 			 * %Z above will overflow the string leaving us with undefined
 			 * results ... so let's try again without the timezone.
 			 */
 			if (ret == 0)
 				strftime(buf, sizeof(buf), "#define AUTOCONF_TIMESTAMP "
-					"\"%Y-%m-%d %H:%M:%S\"\n", localtime(&now));
+					"\"%Y-%m-%d %H:%M:%S\"\n", build_time);
 		} else { /* bbox */
 			strcpy(buf, "#define AUTOCONF_TIMESTAMP \"\"\n");
 		}
