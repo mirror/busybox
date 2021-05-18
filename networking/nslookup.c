@@ -25,7 +25,7 @@
 //usage:#define nslookup_full_usage "\n\n"
 //usage:       "Query DNS about HOST"
 //usage:       IF_FEATURE_NSLOOKUP_BIG("\n")
-//usage:       IF_FEATURE_NSLOOKUP_BIG("\nQUERY_TYPE: soa,ns,a,"IF_FEATURE_IPV6("aaaa,")"cname,mx,txt,ptr,any")
+//usage:       IF_FEATURE_NSLOOKUP_BIG("\nQUERY_TYPE: soa,ns,a,"IF_FEATURE_IPV6("aaaa,")"cname,mx,txt,ptr,srv,any")
 //usage:#define nslookup_example_usage
 //usage:       "$ nslookup localhost\n"
 //usage:       "Server:     default\n"
