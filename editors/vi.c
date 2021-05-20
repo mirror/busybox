@@ -3717,6 +3717,7 @@ static void do_cmd(int c)
 # endif
 		} while (--cmdcnt > 0);
 		dot += cnt;
+		dot_skip_over_ws();
 # if ENABLE_FEATURE_VI_YANKMARK && ENABLE_FEATURE_VI_VERBOSE_STATUS
 		yank_status("Put", p, i);
 # endif
@@ -4172,6 +4173,9 @@ static void do_cmd(int c)
 				if (dot != (end-1)) {
 					dot_prev();
 				}
+			} else if (c == 'd') {
+				dot_begin();
+				dot_skip_over_ws();
 			} else {
 				dot = save_dot;
 			}
