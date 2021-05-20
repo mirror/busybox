@@ -2111,6 +2111,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 #if ENABLE_FEATURE_VI_SETOPTS
 	char *q;
 	size_t len;
+	int col, ntab, nspc;
 #endif
 
 	if (c == 22) {		// Is this an ctrl-V?
@@ -2151,7 +2152,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		}
 #if ENABLE_FEATURE_VI_SETOPTS
 	} else if (c == '\t' && expandtab) {	// expand tab
-		int col = get_column(p);
+		col = get_column(p);
 		col = next_tabstop(col) - col + 1;
 		while (col--) {
 # if ENABLE_FEATURE_VI_UNDO
@@ -2186,23 +2187,28 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 			showmatching(p - 1);
 		}
 		if (autoindent && c == '\n') {	// auto indent the new line
-			// use current/previous line as template
+			// use indent of current/previous line
 			q = openabove ? p : prev_line(p);
 			len = strspn(q, " \t"); // space or tab
-			if (openabove) {
-				p--;		// this replaces dot_prev() in do_cmd()
-				q += len;	// template will be shifted by text_hole_make()
-			}
+			if (openabove)
+				p--;	// indent goes before newly inserted NL
 			if (len) {
-				uintptr_t bias;
-				bias = text_hole_make(p, len);
-				p += bias;
-				q += bias;
+				col = get_column(q + len);
+				if (expandtab) {
+					ntab = 0;
+					nspc = col;
+				} else {
+					ntab = col / tabstop;
+					nspc = col % tabstop;
+				}
+				p += text_hole_make(p, ntab + nspc);
 # if ENABLE_FEATURE_VI_UNDO
-				undo_push_insert(p, len, undo);
+				undo_push_insert(p, ntab + nspc, undo);
 # endif
-				memcpy(p, q, len);
-				p += len;
+				memset(p, '\t', ntab);
+				p += ntab;
+				memset(p, ' ', nspc);
+				p += nspc;
 			}
 		}
 #endif
