@@ -307,7 +307,6 @@ struct globals {
 #define err_method (vi_setops & VI_ERR_METHOD) // indicate error with beep or flash
 #define ignorecase (vi_setops & VI_IGNORECASE)
 #define showmatch  (vi_setops & VI_SHOWMATCH )
-#define openabove  (vi_setops & VI_TABSTOP   )
 // order of constants and strings must match
 #define OPTS_STR \
 		"ai\0""autoindent\0" \
@@ -316,15 +315,10 @@ struct globals {
 		"ic\0""ignorecase\0" \
 		"sm\0""showmatch\0" \
 		"ts\0""tabstop\0"
-#define set_openabove() (vi_setops |= VI_TABSTOP)
-#define clear_openabove() (vi_setops &= ~VI_TABSTOP)
 #else
 #define autoindent (0)
 #define expandtab  (0)
 #define err_method (0)
-#define openabove  (0)
-#define set_openabove() ((void)0)
-#define clear_openabove() ((void)0)
 #endif
 
 #if ENABLE_FEATURE_VI_READONLY
@@ -379,6 +373,9 @@ struct globals {
 #endif
 #if ENABLE_FEATURE_VI_SEARCH
 	char *last_search_pattern; // last pattern from a '/' or '?' search
+#endif
+#if ENABLE_FEATURE_VI_SETOPTS
+	int indentcol;		// column of recently autoindent, 0 or -1
 #endif
 
 	// former statics
@@ -503,6 +500,7 @@ struct globals {
 #define ioq_start               (G.ioq_start          )
 #define dotcnt                  (G.dotcnt             )
 #define last_search_pattern     (G.last_search_pattern)
+#define indentcol               (G.indentcol          )
 
 #define edit_file__cur_line     (G.edit_file__cur_line)
 #define refresh__old_offset     (G.refresh__old_offset)
@@ -2103,16 +2101,26 @@ static uintptr_t stupid_insert(char *p, char c) // stupidly insert the char c at
 	return bias;
 }
 
+// find number of characters in indent, p must be at beginning of line
+static size_t indent_len(char *p)
+{
+	char *r = p;
+
+	while (r < (end - 1) && isblank(*r))
+		r++;
+	return r - p;
+}
+
 #if !ENABLE_FEATURE_VI_UNDO
 #define char_insert(a,b,c) char_insert(a,b)
 #endif
 static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 {
 #if ENABLE_FEATURE_VI_SETOPTS
-	char *q;
 	size_t len;
 	int col, ntab, nspc;
 #endif
+	char *bol = begin_line(p);
 
 	if (c == 22) {		// Is this an ctrl-V?
 		p += stupid_insert(p, '^');	// use ^ to indicate literal next
@@ -2134,22 +2142,33 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		if ((p[-1] != '\n') && (dot > text)) {
 			p--;
 		}
-	} else if (c == 4) {	// ctrl-D reduces indentation
-		int prev;
-		char *r, *bol;
-		bol = begin_line(p);
-		for (r = bol; r < end_line(p); ++r) {
-			if (!isblank(*r))
-				break;
+#if ENABLE_FEATURE_VI_SETOPTS
+		if (autoindent) {
+			len = indent_len(bol);
+			if (len && get_column(bol + len) == indentcol) {
+				// remove autoindent from otherwise empty line
+				text_hole_delete(bol, bol + len - 1, undo);
+				p = bol;
+			}
 		}
-
-		prev = prev_tabstop(get_column(r));
+#endif
+	} else if (c == 4) {	// ctrl-D reduces indentation
+		char *r = bol + indent_len(bol);
+		int prev = prev_tabstop(get_column(r));
 		while (r > bol && get_column(r) > prev) {
 			if (p > bol)
 				p--;
 			r--;
 			r = text_hole_delete(r, r, ALLOW_UNDO_QUEUED);
 		}
+
+#if ENABLE_FEATURE_VI_SETOPTS
+		if (autoindent && indentcol && r == end_line(p)) {
+			// record changed size of autoindent
+			indentcol = get_column(p);
+			return p;
+		}
+#endif
 #if ENABLE_FEATURE_VI_SETOPTS
 	} else if (c == '\t' && expandtab) {	// expand tab
 		col = get_column(p);
@@ -2188,12 +2207,23 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		}
 		if (autoindent && c == '\n') {	// auto indent the new line
 			// use indent of current/previous line
-			q = openabove ? p : prev_line(p);
-			len = strspn(q, " \t"); // space or tab
-			if (openabove)
-				p--;	// indent goes before newly inserted NL
+			bol = indentcol < 0 ? p : prev_line(p);
+			len = indent_len(bol);
+			col = get_column(bol + len);
+
+			if (len && col == indentcol) {
+				// previous line was empty except for autoindent
+				// move the indent to the current line
+				memmove(bol + 1, bol, len);
+				*bol = '\n';
+				return p;
+			}
+
+			if (indentcol < 0)
+				p--;	// open above, indent before newly inserted NL
+
 			if (len) {
-				col = get_column(q + len);
+				indentcol = col;
 				if (expandtab) {
 					ntab = 0;
 					nspc = col;
@@ -2208,11 +2238,14 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 				memset(p, '\t', ntab);
 				p += ntab;
 				memset(p, ' ', nspc);
-				p += nspc;
+				return p + nspc;
 			}
 		}
 #endif
 	}
+#if ENABLE_FEATURE_VI_SETOPTS
+	indentcol = 0;
+#endif
 	return p;
 }
 
@@ -2587,7 +2620,6 @@ static void setops(char *args, int flg_no)
 	index = 1 << (index >> 1); // convert to VI_bit
 
 	if (index & VI_TABSTOP) {
-		// don't set this bit in vi_setops, it's reused as 'openabove'
 		int t;
 		if (!eq || flg_no) // no "=NNN" or it is "notabstop"?
 			goto bad;
@@ -4050,17 +4082,18 @@ static void do_cmd(int c)
 		break;
 	case 'O':			// O- open an empty line above
 		dot_begin();
-		set_openabove();
+#if ENABLE_FEATURE_VI_SETOPTS
+		indentcol = -1;
+#endif
 		goto dc3;
 	case 'o':			// o- open an empty line below
 		dot_end();
  dc3:
 		dot = char_insert(dot, '\n', ALLOW_UNDO);
 		if (c == 'O' && !autoindent) {
-			// done in char_insert() for openabove+autoindent
+			// done in char_insert() for 'O'+autoindent
 			dot_prev();
 		}
-		clear_openabove();
 		goto dc_i;
 		break;
 	case 'R':			// R- continuous Replace char
