@@ -303,6 +303,12 @@ int FAST_FUNC get_terminal_width(int fd)
 	return width;
 }
 
+int FAST_FUNC is_dumb_term(void)
+{
+	char *term = getenv("TERM");
+	return term && strcmp(term, "dumb") == 0;
+}
+
 int FAST_FUNC tcsetattr_stdin_TCSANOW(const struct termios *tp)
 {
 	return tcsetattr(STDIN_FILENO, TCSANOW, tp);

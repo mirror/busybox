@@ -1145,11 +1145,15 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_LS_COLOR
 	/* set G_show_color = 1/0 */
-	if (ENABLE_FEATURE_LS_COLOR_IS_DEFAULT && isatty(STDOUT_FILENO)) {
+	if (ENABLE_FEATURE_LS_COLOR_IS_DEFAULT && !is_TERM_dumb()) {
 		char *p = getenv("LS_COLORS");
 		/* LS_COLORS is unset, or (not empty && not "none") ? */
-		if (!p || (p[0] && strcmp(p, "none") != 0))
-			G_show_color = 1;
+		if (!p || (p[0] && strcmp(p, "none") != 0)) {
+			if (isatty(STDOUT_FILENO)) {
+				/* check isatty() last because it's expensive (syscall) */
+				G_show_color = 1;
+			}
+		}
 	}
 	if (opt & OPT_color) {
 		if (color_opt[0] == 'n')
@@ -1158,7 +1162,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		case 3:
 		case 4:
 		case 5:
-			if (isatty(STDOUT_FILENO)) {
+			if (!is_TERM_dumb() && isatty(STDOUT_FILENO)) {
 		case 0:
 		case 1:
 		case 2:
