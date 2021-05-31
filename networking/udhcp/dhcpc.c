@@ -1417,14 +1417,17 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			log1("waiting %u seconds", timeout);
 			diff = (unsigned)monotonic_sec();
 			retval = poll(pfds, 2, timeout * 1000);
+			diff = (unsigned)monotonic_sec() - diff;
+			lease_remaining -= diff;
+			if (lease_remaining < 0)
+				lease_remaining = 0;
+			timeout -= diff;
+			if (timeout < 0)
+				timeout = 0;
+
 			if (retval < 0) {
 				/* EINTR? A signal was caught, don't panic */
 				if (errno == EINTR) {
-					diff = (unsigned)monotonic_sec() - diff;
-					lease_remaining -= diff;
-					if (lease_remaining < 0)
-						lease_remaining = 0;
-					timeout -= diff;
 					continue;
 				}
 				/* Else: an error occurred, panic! */
@@ -1513,7 +1516,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			case_RENEW_REQUESTED:
 			case RENEWING:
 				if (packet_num < 3) {
-					packet_num++;
 					/* send an unicast renew request */
 			/* Sometimes observed to fail (EADDRNOTAVAIL) to bind
 			 * a new UDP socket for sending inside send_renew.
@@ -1526,6 +1528,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					if (send_renew(xid, server_addr, requested_ip) >= 0) {
 						timeout = discover_timeout;
 						/* ^^^ used to be = lease_remaining / 2 - WAY too long */
+						packet_num++;
 						continue;
 					}
 					/* else: error sending.
@@ -1534,21 +1537,26 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					 * which wasn't reachable (and probably did not exist).
 					 */
 				}
-//TODO: if 3 renew's failed (no reply) but remaining lease is large,
-//it might make sense to make a large pause (~1 hour?) and try later?
+//TODO: if 3 renew's failed (no reply) but remaining lease is large enough,
+//it might make sense to go back to BOUND and try later? a-la
+// if (lease_remaining > 30) goto BOUND_for_half_lease;
+//If we do that, "packet_num < 3" test below might be superfluous
+//(lease_remaining will run out anyway)
 				/* Timed out or error, enter rebinding state */
 				log1s("entering rebinding state");
 				client_data.state = REBINDING;
+				packet_num = 0;
 				/* fall right through */
 			case REBINDING:
 				/* Switch to bcast receive */
 				change_listen_mode(LISTEN_RAW);
 				/* Lease is *really* about to run out,
 				 * try to find DHCP server using broadcast */
-				if (lease_remaining > 0) {
+				if (lease_remaining > 0 && packet_num < 3) {
 					/* send a broadcast renew request */
 					send_renew(xid, 0 /*INADDR_ANY*/, requested_ip);
 					timeout = discover_timeout;
+					packet_num++;
 					continue;
 				}
 				/* Timed out, enter init state */
@@ -1773,13 +1781,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				/* enter bound state */
 				start = monotonic_sec();
 				udhcp_run_script(&packet, client_data.state == REQUESTING ? "bound" : "renew");
-				timeout = (unsigned)lease_remaining / 2;
-//TODO: why / 2?
-				timeout -= (unsigned)monotonic_sec() - start;
-				packet_num = 0;
-
-				client_data.state = BOUND;
-				change_listen_mode(LISTEN_NONE);
+				lease_remaining -= (unsigned)monotonic_sec() - start;
+				if (lease_remaining < 0)
+					lease_remaining = 0;
 				if (opt & OPT_q) { /* quit after lease */
 					goto ret0;
 				}
@@ -1792,9 +1796,14 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					opt = ((opt & ~OPT_b) | OPT_f);
 				}
 #endif
+
+// BOUND_for_half_lease:
+				timeout = (unsigned)lease_remaining / 2;
+				client_data.state = BOUND;
+				change_listen_mode(LISTEN_NONE);
 				/* make future renew packets use different xid */
 				/* xid = random_xid(); ...but why bother? */
-
+				packet_num = 0;
 				continue; /* back to main loop */
 			}
 			if (*message == DHCPNAK) {
