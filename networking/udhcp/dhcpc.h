@@ -18,8 +18,6 @@ struct client_data_t {
 	char *pidfile;                  /* Optionally store the process ID */
 	const char *script;             /* User script to run at dhcp events */
 	struct option_set *options;     /* list of DHCP options to send to server */
-	uint8_t *vendorclass;           /* Optional vendor class-id to use */
-	uint8_t *hostname;              /* Optional hostname to use */
 	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
 	llist_t *envp;                  /* list of DHCP options used for env vars */
 

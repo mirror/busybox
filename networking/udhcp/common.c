@@ -49,6 +49,7 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_U32                              , 0x33 }, /* DHCP_LEASE_TIME    */
 	{ OPTION_IP                               , 0x36 }, /* DHCP_SERVER_ID     */
 	{ OPTION_STRING                           , 0x38 }, /* DHCP_ERR_MESSAGE   */
+	{ OPTION_STRING                           , 0x3c }, /* DHCP_VENDOR        */
 //TODO: must be combined with 'sname' and 'file' handling:
 	{ OPTION_STRING_HOST                      , 0x42 }, /* DHCP_TFTP_SERVER_NAME */
 	{ OPTION_STRING                           , 0x43 }, /* DHCP_BOOT_FILE     */
@@ -83,7 +84,6 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_U8                               , 0x35 }, /* DHCP_MESSAGE_TYPE  */
 	{ OPTION_U16                              , 0x39 }, /* DHCP_MAX_SIZE      */
 //looks like these opts will work just fine even without these defs:
-//	{ OPTION_STRING                           , 0x3c }, /* DHCP_VENDOR        */
 //	/* not really a string: */
 //	{ OPTION_STRING                           , 0x3d }, /* DHCP_CLIENT_ID     */
 	{ 0, 0 } /* zeroed terminating entry */
@@ -120,6 +120,7 @@ const char dhcp_option_strings[] ALIGN1 =
 	"lease" "\0"            /* DHCP_LEASE_TIME      */
 	"serverid" "\0"         /* DHCP_SERVER_ID       */
 	"message" "\0"          /* DHCP_ERR_MESSAGE     */
+	"vendor" "\0"           /* DHCP_VENDOR          */
 	"tftp" "\0"             /* DHCP_TFTP_SERVER_NAME*/
 	"bootfile" "\0"         /* DHCP_BOOT_FILE       */
 //	"userclass" "\0"        /* DHCP_USER_CLASS      */

@@ -1296,7 +1296,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		/* not set, set the default client ID */
 		client_data.clientid[1] = 3; /* DUID-LL */
 		client_data.clientid[3] = 1; /* ethernet */
-		clientid_mac_ptr = udhcp_insert_new_option(&client_data.options, D6_OPT_CLIENTID,
+		clientid_mac_ptr = udhcp_insert_new_option(
+				&client_data.options, D6_OPT_CLIENTID,
 				client_data.clientid, 2+2 + 6, /*dhcp6:*/ 1);
 		clientid_mac_ptr += 2+2 + 2+2; /* skip option code, len, DUID-LL, ethernet */
 	}
