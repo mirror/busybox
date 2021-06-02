@@ -119,7 +119,7 @@ int tail_main(int argc, char **argv)
 
 	char *tailbuf;
 	size_t tailbufsize;
-	unsigned header_threshhold = 1;
+	unsigned header_threshold = 1;
 	unsigned nfiles;
 	int i, opt;
 
@@ -152,10 +152,10 @@ int tail_main(int argc, char **argv)
 	if (opt & 0x2) count = eat_num(str_c); // -c
 	if (opt & 0x4) count = eat_num(str_n); // -n
 #if ENABLE_FEATURE_FANCY_TAIL
-	/* q: make it impossible for nfiles to be > header_threshhold */
-	if (opt & 0x8) header_threshhold = UINT_MAX; // -q
+	/* q: make it impossible for nfiles to be > header_threshold */
+	if (opt & 0x8) header_threshold = UINT_MAX; // -q
 	//if (opt & 0x10) // -s
-	if (opt & 0x20) header_threshhold = 0; // -v
+	if (opt & 0x20) header_threshold = 0; // -v
 # define FOLLOW_RETRY (opt & 0x40)
 #else
 # define FOLLOW_RETRY 0
@@ -216,7 +216,7 @@ int tail_main(int argc, char **argv)
 		if (ENABLE_FEATURE_FANCY_TAIL && fd < 0)
 			continue; /* may happen with -F */
 
-		if (nfiles > header_threshhold) {
+		if (nfiles > header_threshold) {
 			tail_xprint_header(fmt, argv[i]);
 			fmt = header_fmt_str;
 		}
@@ -373,7 +373,7 @@ int tail_main(int argc, char **argv)
 			}
 			if (ENABLE_FEATURE_FANCY_TAIL && fd < 0)
 				continue;
-			if (nfiles > header_threshhold) {
+			if (nfiles > header_threshold) {
 				fmt = header_fmt_str;
 			}
 			for (;;) {
