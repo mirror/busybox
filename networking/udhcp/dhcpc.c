@@ -1122,6 +1122,8 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 	char buffer[sizeof("255.255.255.255")];
 	struct in_addr temp_addr;
 
+	change_listen_mode(LISTEN_NONE);
+
 	/* send release packet */
 	if (client_data.state == BOUND
 	 || client_data.state == RENEWING
@@ -1143,8 +1145,6 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
  * of the states above.
  */
 	udhcp_run_script(NULL, "deconfig");
-
-	change_listen_mode(LISTEN_NONE);
 	client_data.state = RELEASED;
 }
 
@@ -1343,6 +1343,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		clientid_mac_ptr += OPT_DATA + 1; /* skip option code, len, ethernet */
 	}
 
+	/* Not really necessary (we redo it on every iteration)
+	 * but allows early (before daemonization) detection
+	 * of bad interface name.
+	 */
 	if (udhcp_read_interface(client_data.interface,
 			&client_data.ifindex,
 			NULL,
@@ -1372,7 +1376,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 	client_data.state = INIT_SELECTING;
 	udhcp_run_script(NULL, "deconfig");
-	change_listen_mode(LISTEN_RAW);
 	packet_num = 0;
 	timeout = 0;
 	lease_remaining = 0;
@@ -1446,8 +1449,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			switch (client_data.state) {
 			case INIT_SELECTING:
 				if (!discover_retries || packet_num < discover_retries) {
-					if (packet_num == 0)
+					if (packet_num == 0) {
+						change_listen_mode(LISTEN_RAW);
 						xid = random_xid();
+					}
 					/* broadcast */
 					send_discover(xid, requested_ip);
 					timeout = discover_timeout;
@@ -1455,6 +1460,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
  leasefail:
+				change_listen_mode(LISTEN_NONE);
 				udhcp_run_script(NULL, "leasefail");
 #if BB_MMU /* -b is not supported on NOMMU */
 				if (opt & OPT_b) { /* background if no lease */
@@ -1491,7 +1497,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				 * "discover...select...discover..." loops
 				 * were seen in the wild. Treat them similarly
 				 * to "no response to discover" case */
-				change_listen_mode(LISTEN_RAW);
 				client_data.state = INIT_SELECTING;
 				goto leasefail;
 			case BOUND:
@@ -1528,17 +1533,17 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				}
 //TODO: if 3 renew's failed (no reply) but remaining lease is large enough,
 //it might make sense to go back to BOUND and try later? a-la
-// if (lease_remaining > 30) goto BOUND_for_half_lease;
+// if (lease_remaining > 30) change_listen_mode(LISTEN_NONE) + goto BOUND_for_half_lease;
 //If we do that, "packet_num < 3" test below might be superfluous
 //(lease_remaining will run out anyway)
 				/* Timed out or error, enter rebinding state */
 				log1s("entering rebinding state");
 				client_data.state = REBINDING;
+				/* Switch to bcast receive */
+				change_listen_mode(LISTEN_RAW);
 				packet_num = 0;
 				/* fall right through */
 			case REBINDING:
-				/* Switch to bcast receive */
-				change_listen_mode(LISTEN_RAW);
 				/* Lease is *really* about to run out,
 				 * try to find DHCP server using broadcast */
 				if (lease_remaining > 0 && packet_num < 3) {
@@ -1549,6 +1554,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Timed out, enter init state */
+				change_listen_mode(LISTEN_NONE);
 				bb_simple_info_msg("lease lost, entering init state");
 				udhcp_run_script(NULL, "deconfig");
 				client_data.state = INIT_SELECTING;
@@ -1584,12 +1590,15 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 			/* Start things over */
 			case RENEW_REQUESTED: /* two or more SIGUSR1 received */
+				change_listen_mode(LISTEN_NONE);
 				udhcp_run_script(NULL, "deconfig");
-			/* case REQUESTING: break; */
-			/* case RELEASED: break; */
-			/* case INIT_SELECTING: break; */
+
+			default:
+			/* case REQUESTING: */
+			/* case RELEASED: */
+			/* case INIT_SELECTING: */
+				change_listen_mode(LISTEN_NONE);
 			}
-			change_listen_mode(LISTEN_RAW);
 			client_data.state = INIT_SELECTING;
 			packet_num = 0;
 			/* Kill any timeouts, user wants this to hurry along */
@@ -1597,6 +1606,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		case SIGUSR2:
 			perform_release(server_addr, requested_ip);
+			/* ^^^ switches to LISTEN_NONE */
 			timeout = INT_MAX;
 			continue;
 		case SIGTERM:
@@ -1706,6 +1716,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				char server_str[sizeof("255.255.255.255")];
 				uint8_t *temp;
 
+				change_listen_mode(LISTEN_NONE);
+
 				temp_addr.s_addr = server_addr;
 				strcpy(server_str, inet_ntoa(temp_addr));
 				temp_addr.s_addr = packet.yiaddr;
@@ -1758,7 +1770,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 						if (client_data.state != REQUESTING)
 							udhcp_run_script(NULL, "deconfig");
-						change_listen_mode(LISTEN_RAW);
 						client_data.state = INIT_SELECTING;
 						client_data.first_secs = 0; /* make secs field count from 0 */
 						requested_ip = 0;
@@ -1768,7 +1779,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					}
 				}
 #endif
-
 				/* enter bound state */
 				start = monotonic_sec();
 				udhcp_run_script(&packet, client_data.state == REQUESTING ? "bound" : "renew");
@@ -1791,7 +1801,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 // BOUND_for_half_lease:
 				timeout = (unsigned)lease_remaining / 2;
 				client_data.state = BOUND;
-				change_listen_mode(LISTEN_NONE);
 				/* make future renew packets use different xid */
 				/* xid = random_xid(); ...but why bother? */
 				packet_num = 0;
@@ -1818,11 +1827,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						goto non_matching_svid;
 				}
 				/* return to init state */
+				change_listen_mode(LISTEN_NONE);
 				bb_info_msg("received %s", "DHCP NAK");
 				udhcp_run_script(&packet, "nak");
 				if (client_data.state != REQUESTING)
 					udhcp_run_script(NULL, "deconfig");
-				change_listen_mode(LISTEN_RAW);
 				sleep(3); /* avoid excessive network traffic */
 				client_data.state = INIT_SELECTING;
 				client_data.first_secs = 0; /* make secs field count from 0 */

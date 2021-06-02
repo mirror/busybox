@@ -1090,6 +1090,8 @@ static void change_listen_mode(int new_mode)
 
 static void perform_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
 {
+	change_listen_mode(LISTEN_NONE);
+
 	/* send release packet */
 	if (client_data.state == BOUND
 	 || client_data.state == RENEWING
@@ -1107,7 +1109,6 @@ static void perform_d6_release(struct in6_addr *server_ipv6, struct in6_addr *ou
  * of the states above.
  */
 	d6_run_script_no_option("deconfig");
-	change_listen_mode(LISTEN_NONE);
 	client_data.state = RELEASED;
 }
 
@@ -1311,7 +1312,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 
 	client_data.state = INIT_SELECTING;
 	d6_run_script_no_option("deconfig");
-	change_listen_mode(LISTEN_RAW);
 	packet_num = 0;
 	timeout = 0;
 	lease_remaining = 0;
@@ -1387,8 +1387,10 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			switch (client_data.state) {
 			case INIT_SELECTING:
 				if (!discover_retries || packet_num < discover_retries) {
-					if (packet_num == 0)
+					if (packet_num == 0) {
+						change_listen_mode(LISTEN_RAW);
 						xid = random_xid();
+					}
 					/* multicast */
 					if (opt & OPT_l)
 						send_d6_info_request(xid);
@@ -1399,6 +1401,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
  leasefail:
+				change_listen_mode(LISTEN_NONE);
 				d6_run_script_no_option("leasefail");
 #if BB_MMU /* -b is not supported on NOMMU */
 				if (opt & OPT_b) { /* background if no lease */
@@ -1435,7 +1438,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				 * "discover...select...discover..." loops
 				 * were seen in the wild. Treat them similarly
 				 * to "no response to discover" case */
-				change_listen_mode(LISTEN_RAW);
 				client_data.state = INIT_SELECTING;
 				goto leasefail;
 			case BOUND:
@@ -1470,11 +1472,11 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				/* Timed out, enter rebinding state */
 				log1s("entering rebinding state");
 				client_data.state = REBINDING;
+				/* Switch to bcast receive */
+				change_listen_mode(LISTEN_RAW);
 				packet_num = 0;
 				/* fall right through */
 			case REBINDING:
-				/* Switch to bcast receive */
-				change_listen_mode(LISTEN_RAW);
 				/* Lease is *really* about to run out,
 				 * try to find DHCP server using broadcast */
 				if (lease_remaining > 0 && packet_num < 3) {
@@ -1487,6 +1489,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Timed out, enter init state */
+				change_listen_mode(LISTEN_NONE);
 				bb_simple_info_msg("lease lost, entering init state");
 				d6_run_script_no_option("deconfig");
 				client_data.state = INIT_SELECTING;
@@ -1522,12 +1525,15 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 
 			/* Start things over */
 			case RENEW_REQUESTED: /* two or more SIGUSR1 received */
+				change_listen_mode(LISTEN_NONE);
 				d6_run_script_no_option("deconfig");
-			/* case REQUESTING: break; */
-			/* case RELEASED: break; */
-			/* case INIT_SELECTING: break; */
+
+			default:
+			/* case REQUESTING: */
+			/* case RELEASED: */
+			/* case INIT_SELECTING: */
+				change_listen_mode(LISTEN_NONE);
 			}
-			change_listen_mode(LISTEN_RAW);
 			client_data.state = INIT_SELECTING;
 			packet_num = 0;
 			/* Kill any timeouts, user wants this to hurry along */
@@ -1535,6 +1541,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		case SIGUSR2:
 			perform_d6_release(&srv6_buf, requested_ipv6);
+			/* ^^^ switches to LISTEN_NONE */
 			timeout = INT_MAX;
 			continue;
 		case SIGTERM:
@@ -1592,6 +1599,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				unsigned address_timeout;
 				unsigned prefix_timeout;
  type_is_ok:
+				change_listen_mode(LISTEN_NONE);
+
 				address_timeout = 0;
 				prefix_timeout = 0;
 				option = d6_find_option(packet.d6_options, packet_end, D6_OPT_STATUS_CODE);
@@ -1602,7 +1611,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 							packet_end, "nak");
 					if (client_data.state != REQUESTING)
 						d6_run_script_no_option("deconfig");
-					change_listen_mode(LISTEN_RAW);
 					sleep(3); /* avoid excessive network traffic */
 					client_data.state = INIT_SELECTING;
 					client_data.first_secs = 0; /* make secs field count from 0 */
@@ -1624,6 +1632,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				client6_data.server_id = option;
 				if (packet.d6_msg_type == D6_MSG_ADVERTISE) {
 					/* enter requesting state */
+					change_listen_mode(LISTEN_RAW);
 					client_data.state = REQUESTING;
 					timeout = 0;
 					packet_num = 0;
@@ -1826,7 +1835,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 // BOUND_for_half_lease:
 				timeout = (unsigned)lease_remaining / 2;
 				client_data.state = BOUND;
-				change_listen_mode(LISTEN_NONE);
 				packet_num = 0;
 				continue; /* back to main loop */
 			}
