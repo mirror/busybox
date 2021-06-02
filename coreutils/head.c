@@ -29,17 +29,18 @@
 //usage:#define head_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define head_full_usage "\n\n"
-//usage:       "Print first 10 lines of FILEs (or stdin) to stdout.\n"
+//usage:       "Print first 10 lines of FILEs (or stdin).\n"
 //usage:       "With more than one FILE, precede each with a filename header.\n"
-//usage:     "\n	-n N[kbm]	Print first N lines"
+//usage:     "\n	-n N[bkm]	Print first N lines"
 //usage:	IF_FEATURE_FANCY_HEAD(
-//usage:     "\n	-n -N[kbm]	Print all except N last lines"
-//usage:     "\n	-c [-]N[kbm]	Print first N bytes"
+//usage:     "\n	-n -N[bkm]	Print all except N last lines"
+//usage:     "\n	-c [-]N[bkm]	Print first N bytes"
+//usage:	)
+//usage:     "\n			(b:*512 k:*1024 m:*1024^2)"
+//usage:	IF_FEATURE_FANCY_HEAD(
 //usage:     "\n	-q		Never print headers"
 //usage:     "\n	-v		Always print headers"
 //usage:	)
-//usage:     "\n"
-//usage:     "\nN may be suffixed by k (x1024), b (x512), or m (x1024^2)."
 //usage:
 //usage:#define head_example_usage
 //usage:       "$ head -n 2 /etc/passwd\n"

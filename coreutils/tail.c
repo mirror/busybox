@@ -48,19 +48,20 @@
 //usage:#define tail_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define tail_full_usage "\n\n"
-//usage:       "Print last 10 lines of FILEs (or stdin) to stdout.\n"
+//usage:       "Print last 10 lines of FILEs (or stdin) to.\n"
 //usage:       "With more than one FILE, precede each with a filename header.\n"
-//usage:     "\n	-f		Print data as file grows"
-//usage:     "\n	-c [+]N[kbm]	Print last N bytes"
-//usage:     "\n	-n N[kbm]	Print last N lines"
-//usage:     "\n	-n +N[kbm]	Start on Nth line and print the rest"
+//usage:     "\n	-c [+]N[bkm]	Print last N bytes"
+//usage:     "\n	-n N[bkm]	Print last N lines"
+//usage:     "\n	-n +N[bkm]	Start on Nth line and print the rest"
+//usage:     "\n			(b:*512 k:*1024 m:*1024^2)"
 //usage:	IF_FEATURE_FANCY_TAIL(
 //usage:     "\n	-q		Never print headers"
-//usage:     "\n	-s SECONDS	Wait SECONDS between reads with -f"
 //usage:     "\n	-v		Always print headers"
+//usage:	)
+//usage:     "\n	-f		Print data as file grows"
+//usage:	IF_FEATURE_FANCY_TAIL(
 //usage:     "\n	-F		Same as -f, but keep retrying"
-//usage:     "\n"
-//usage:     "\nN may be suffixed by k (x1024), b (x512), or m (x1024^2)."
+//usage:     "\n	-s SECONDS	Wait SECONDS between reads with -f"
 //usage:	)
 //usage:
 //usage:#define tail_example_usage
