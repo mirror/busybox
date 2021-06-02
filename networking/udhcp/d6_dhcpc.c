@@ -1111,17 +1111,6 @@ static void perform_d6_release(struct in6_addr *server_ipv6, struct in6_addr *ou
 	client_data.state = RELEASED;
 }
 
-///static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
-///{
-///	uint8_t *storage;
-///	int len = strnlen(str, 255);
-///	storage = xzalloc(len + extra + OPT_DATA);
-///	storage[OPT_CODE] = code;
-///	storage[OPT_LEN] = len + extra;
-///	memcpy(storage + extra + OPT_DATA, str, len);
-///	return storage;
-///}
-
 #if BB_MMU
 static void client_background(void)
 {
@@ -1283,23 +1272,24 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		free(optstr);
 	}
 
-	if (d6_read_interface(client_data.interface,
-			&client_data.ifindex,
-			&client6_data.ll_ip6,
-			client_data_client_mac)
-	) {
-		return 1;
-	}
-
 	clientid_mac_ptr = NULL;
 	if (!udhcp_find_option(client_data.options, D6_OPT_CLIENTID)) {
 		/* not set, set the default client ID */
-		client_data.clientid[1] = 3; /* DUID-LL */
-		client_data.clientid[3] = 1; /* ethernet */
 		clientid_mac_ptr = udhcp_insert_new_option(
 				&client_data.options, D6_OPT_CLIENTID,
-				client_data.clientid, 2+2 + 6, /*dhcp6:*/ 1);
-		clientid_mac_ptr += 2+2 + 2+2; /* skip option code, len, DUID-LL, ethernet */
+				2+2 + 6, /*dhcp6:*/ 1);
+		clientid_mac_ptr += 2+2; /* skip option code, len */
+		clientid_mac_ptr[1] = 3; /* DUID-LL */
+		clientid_mac_ptr[3] = 1; /* type: ethernet */
+		clientid_mac_ptr += 2+2; /* skip DUID-LL, ethernet */
+	}
+
+	if (d6_read_interface(client_data.interface,
+			&client_data.ifindex,
+			&client6_data.ll_ip6,
+			client_data.client_mac)
+	) {
+		return 1;
 	}
 
 #if !BB_MMU
@@ -1386,13 +1376,13 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			if (d6_read_interface(client_data.interface,
 					&client_data.ifindex,
 					&client6_data.ll_ip6,
-					client_data_client_mac)
+					client_data.client_mac)
 			) {
 				goto ret0; /* iface is gone? */
 			}
 
 			if (clientid_mac_ptr)
-				memcpy(clientid_mac_ptr, client_data_client_mac, 6);
+				memcpy(clientid_mac_ptr, client_data.client_mac, 6);
 
 			switch (client_data.state) {
 			case INIT_SELECTING:

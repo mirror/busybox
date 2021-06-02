@@ -424,7 +424,6 @@ int FAST_FUNC udhcp_str2nip(const char *str, void *arg)
 void* FAST_FUNC udhcp_insert_new_option(
 		struct option_set **opt_list,
 		unsigned code,
-		const void *buffer,
 		unsigned length,
 		bool dhcpv6)
 {
@@ -434,17 +433,15 @@ void* FAST_FUNC udhcp_insert_new_option(
 	log2("attaching option %02x to list", code);
 	new = xmalloc(sizeof(*new));
 	if (!dhcpv6) {
-		new->data = xmalloc(length + OPT_DATA);
+		new->data = xzalloc(length + OPT_DATA);
 		new->data[OPT_CODE] = code;
 		new->data[OPT_LEN] = length;
-		memcpy(new->data + OPT_DATA, buffer, length);
 	} else {
-		new->data = xmalloc(length + D6_OPT_DATA);
+		new->data = xzalloc(length + D6_OPT_DATA);
 		new->data[D6_OPT_CODE] = code >> 8;
 		new->data[D6_OPT_CODE + 1] = code & 0xff;
 		new->data[D6_OPT_LEN] = length >> 8;
 		new->data[D6_OPT_LEN + 1] = length & 0xff;
-		memcpy(new->data + D6_OPT_DATA, buffer,	length);
 	}
 
 	curr = opt_list;
@@ -498,7 +495,11 @@ static NOINLINE void attach_option(
 	existing = udhcp_find_option(*opt_list, optflag->code);
 	if (!existing) {
 		/* make a new option */
-		udhcp_insert_new_option(opt_list, optflag->code, buffer, length, dhcpv6);
+		uint8_t *p = udhcp_insert_new_option(opt_list, optflag->code, length, dhcpv6);
+		if (!dhcpv6)
+			memcpy(p + OPT_DATA, buffer, length);
+		else
+			memcpy(p + D6_OPT_DATA, buffer, length);
 		goto ret;
 	}
 

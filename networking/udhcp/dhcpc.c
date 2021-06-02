@@ -609,7 +609,7 @@ static void init_packet(struct dhcp_packet *packet, char type)
 	secs = client_data.last_secs - client_data.first_secs;
 	packet->secs = (secs < 0xffff) ? htons(secs) : 0xffff;
 
-	memcpy(packet->chaddr, client_data_client_mac, 6);
+	memcpy(packet->chaddr, client_data.client_mac, 6);
 }
 
 static void add_client_options(struct dhcp_packet *packet)
@@ -634,9 +634,6 @@ static void add_client_options(struct dhcp_packet *packet)
 		packet->options[end + OPT_LEN] = len;
 		packet->options[end + OPT_DATA + len] = DHCP_END;
 	}
-
-	if (client_data.fqdn)
-		udhcp_add_binary_option(packet, client_data.fqdn);
 
 	/* Request broadcast replies if we have no IP addr */
 	if ((option_mask32 & OPT_B) && packet->ciaddr == 0)
@@ -715,7 +712,6 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
 		udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
 
 	/* Add options: maxsize,
-	 * optionally: fqdn, client-id,
 	 * "param req" option according to -O, options specified with -x
 	 */
 	add_client_options(&packet);
@@ -759,7 +755,6 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
 	/* Add options: maxsize,
-	 * optionally: fqdn, client-id,
 	 * "param req" option according to -O, and options specified with -x
 	 */
 	add_client_options(&packet);
@@ -804,7 +799,6 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	packet.ciaddr = ciaddr;
 
 	/* Add options: maxsize,
-	 * optionally: fqdn, client-id,
 	 * "param req" option according to -O, and options specified with -x
 	 */
 	add_client_options(&packet);
@@ -1154,17 +1148,6 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 	client_data.state = RELEASED;
 }
 
-static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
-{
-	uint8_t *storage;
-	int len = strnlen(str, 255);
-	storage = xzalloc(len + extra + OPT_DATA);
-	storage[OPT_CODE] = code;
-	storage[OPT_LEN] = len + extra;
-	memcpy(storage + extra + OPT_DATA, str, len);
-	return storage;
-}
-
 #if BB_MMU
 static void client_background(void)
 {
@@ -1284,8 +1267,13 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		IF_UDHCP_VERBOSE(, &dhcp_verbose)
 	);
 	if (opt & OPT_F) {
+		char *p;
+		unsigned len;
 		/* FQDN option format: [0x51][len][flags][0][0]<fqdn> */
-		client_data.fqdn = alloc_dhcp_option(DHCP_FQDN, str_F, 3);
+		len = strlen(str_F);
+		p = udhcp_insert_new_option(
+				&client_data.options, DHCP_FQDN,
+				len + 3, /*dhcp6:*/ 0);
 		/* Flag bits: 0000NEOS
 		 * S: 1 = Client requests server to update A RR in DNS as well as PTR
 		 * O: 1 = Server indicates to client that DNS has been updated regardless
@@ -1294,9 +1282,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		 * N: 1 = Client requests server to not update DNS (S must be 0 then)
 		 * Two [0] bytes which follow are deprecated and must be 0.
 		 */
-		client_data.fqdn[OPT_DATA + 0] = 0x1;
-		/*client_data.fqdn[OPT_DATA + 1] = 0; - xzalloc did it */
-		/*client_data.fqdn[OPT_DATA + 2] = 0; */
+		p[OPT_DATA + 0] = 0x1;
+		/*p[OPT_DATA + 1] = 0; - xzalloc did it */
+		/*p[OPT_DATA + 2] = 0; */
+		memcpy(p + OPT_DATA + 3, str_F, len); /* do not store NUL byte */
 	}
 	if (opt & OPT_r)
 		requested_ip = inet_addr(str_r);
@@ -1333,29 +1322,33 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		free(optstr);
 	}
 	if (str_V[0] != '\0') {
+		char *p;
+		unsigned len;
 		//msg added 2021-06
 		bb_error_msg("option -V VENDOR is deprecated, use -x vendor:VENDOR");
-		udhcp_insert_new_option(
+		len = strlen(str_V);
+		p = udhcp_insert_new_option(
 				&client_data.options, DHCP_VENDOR,
-				str_V, strlen(str_V), /*dhcp6:*/ 0);
+				len, /*dhcp6:*/ 0);
+		memcpy(p + OPT_DATA, str_V, len); /* do not store NUL byte */
+	}
+
+	clientid_mac_ptr = NULL;
+	if (!(opt & OPT_C) && !udhcp_find_option(client_data.options, DHCP_CLIENT_ID)) {
+		/* not suppressed and not set, create default client ID */
+		clientid_mac_ptr = udhcp_insert_new_option(
+				&client_data.options, DHCP_CLIENT_ID,
+				1 + 6, /*dhcp6:*/ 0);
+		clientid_mac_ptr[OPT_DATA] = 1; /* type: ethernet */
+		clientid_mac_ptr += OPT_DATA + 1; /* skip option code, len, ethernet */
 	}
 
 	if (udhcp_read_interface(client_data.interface,
 			&client_data.ifindex,
 			NULL,
-			client_data_client_mac)
+			client_data.client_mac)
 	) {
 		return 1;
-	}
-
-	clientid_mac_ptr = NULL;
-	if (!(opt & OPT_C) && !udhcp_find_option(client_data.options, DHCP_CLIENT_ID)) {
-		/* not suppressed and not set, set the default client ID */
-		client_data_client_mac[-1] = 1; /* type: ethernet */
-		clientid_mac_ptr = udhcp_insert_new_option(
-				&client_data.options, DHCP_CLIENT_ID,
-				client_data_client_mac - 1, 1 + 6, /*dhcp6:*/ 0);
-		clientid_mac_ptr += 3; /* skip option code, len, ethernet */
 	}
 
 #if !BB_MMU
@@ -1443,12 +1436,12 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			if (udhcp_read_interface(client_data.interface,
 					&client_data.ifindex,
 					NULL,
-					client_data_client_mac)
+					client_data.client_mac)
 			) {
 				goto ret0; /* iface is gone? */
 			}
 			if (clientid_mac_ptr)
-				memcpy(clientid_mac_ptr, client_data_client_mac, 6);
+				memcpy(clientid_mac_ptr, client_data.client_mac, 6);
 
 			switch (client_data.state) {
 			case INIT_SELECTING:
@@ -1643,7 +1636,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 		/* Ignore packets that aren't for us */
 		if (packet.hlen != 6
-		 || memcmp(packet.chaddr, client_data_client_mac, 6) != 0
+		 || memcmp(packet.chaddr, client_data.client_mac, 6) != 0
 		) {
 //FIXME: need to also check that last 10 bytes are zero
 			log1("chaddr does not match%s", ", ignoring packet"); // log2?
@@ -1755,7 +1748,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					if (!arpping(requested_ip,
 							NULL,
 							(uint32_t) 0,
-							client_data_client_mac,
+							client_data.client_mac,
 							client_data.interface,
 							arpping_ms)
 					) {

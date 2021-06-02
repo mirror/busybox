@@ -321,12 +321,11 @@ void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;
 int FAST_FUNC udhcp_str2nip(const char *str, void *arg);
 
 #if !ENABLE_UDHCPC6
-#define udhcp_insert_new_option(opt_list, code, buffer, length, dhcpv6) \
-	udhcp_insert_new_option(opt_list, code, buffer, length)
+#define udhcp_insert_new_option(opt_list, code, length, dhcpv6) \
+	udhcp_insert_new_option(opt_list, code, length)
 #endif
 void* FAST_FUNC udhcp_insert_new_option(struct option_set **opt_list,
 		unsigned code,
-		const void *buffer,
 		unsigned length,
 		bool dhcpv6);
 

@@ -8,8 +8,7 @@
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 struct client_data_t {
-	uint8_t clientid[2+2 + 6];      /* Our mac address (prefixed by padding used for client-id) */
-#define client_data_client_mac (client_data.clientid + 2+2)
+	uint8_t client_mac[6];          /* Our mac address */
 	IF_FEATURE_UDHCP_PORT(uint16_t port;)
 	int ifindex;                    /* Index number of the interface to use */
 	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
@@ -18,7 +17,6 @@ struct client_data_t {
 	char *pidfile;                  /* Optionally store the process ID */
 	const char *script;             /* User script to run at dhcp events */
 	struct option_set *options;     /* list of DHCP options to send to server */
-	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
 	llist_t *envp;                  /* list of DHCP options used for env vars */
 
 	unsigned first_secs;
