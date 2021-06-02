@@ -319,6 +319,17 @@ void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;
 
 /* 2nd param is "uint32_t*" */
 int FAST_FUNC udhcp_str2nip(const char *str, void *arg);
+
+#if !ENABLE_UDHCPC6
+#define udhcp_insert_new_option(opt_list, code, buffer, length, dhcpv6) \
+	udhcp_insert_new_option(opt_list, code, buffer, length)
+#endif
+void* FAST_FUNC udhcp_insert_new_option(struct option_set **opt_list,
+		unsigned code,
+		const void *buffer,
+		unsigned length,
+		bool dhcpv6);
+
 /* 2nd param is "struct option_set**" */
 #if !ENABLE_UDHCPC6
 #define udhcp_str2optset(str, arg, optflags, option_strings, dhcpv6) \

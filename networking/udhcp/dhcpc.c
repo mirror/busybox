@@ -612,9 +612,7 @@ static void init_packet(struct dhcp_packet *packet, char type)
 	secs = client_data.last_secs - client_data.first_secs;
 	packet->secs = (secs < 0xffff) ? htons(secs) : 0xffff;
 
-	memcpy(packet->chaddr, client_data.client_mac, 6);
-	if (client_data.clientid)
-		udhcp_add_binary_option(packet, client_data.clientid);
+	memcpy(packet->chaddr, client_data_client_mac, 6);
 }
 
 static void add_client_options(struct dhcp_packet *packet)
@@ -715,7 +713,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
 
 	/* Fill in: op, htype, hlen, cookie, chaddr fields,
 	 * random xid field (we override it below),
-	 * client-id option (unless -C), message type option:
+	 * message type option:
 	 */
 	init_packet(&packet, DHCPDISCOVER);
 
@@ -724,7 +722,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
 		udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
 
 	/* Add options: maxsize,
-	 * optionally: hostname, fqdn, vendorclass,
+	 * optionally: hostname, fqdn, vendorclass, client-id,
 	 * "param req" option according to -O, options specified with -x
 	 */
 	add_client_options(&packet);
@@ -758,7 +756,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
  */
 	/* Fill in: op, htype, hlen, cookie, chaddr fields,
 	 * random xid field (we override it below),
-	 * client-id option (unless -C), message type option:
+	 * message type option:
 	 */
 	init_packet(&packet, DHCPREQUEST);
 
@@ -768,7 +766,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
 	/* Add options: maxsize,
-	 * optionally: hostname, fqdn, vendorclass,
+	 * optionally: hostname, fqdn, vendorclass, client-id,
 	 * "param req" option according to -O, and options specified with -x
 	 */
 	add_client_options(&packet);
@@ -805,7 +803,7 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
  */
 	/* Fill in: op, htype, hlen, cookie, chaddr fields,
 	 * random xid field (we override it below),
-	 * client-id option (unless -C), message type option:
+	 * message type option:
 	 */
 	init_packet(&packet, DHCPREQUEST);
 
@@ -813,7 +811,7 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	packet.ciaddr = ciaddr;
 
 	/* Add options: maxsize,
-	 * optionally: hostname, fqdn, vendorclass,
+	 * optionally: hostname, fqdn, vendorclass, client-id,
 	 * "param req" option according to -O, and options specified with -x
 	 */
 	add_client_options(&packet);
@@ -837,7 +835,7 @@ static NOINLINE int send_decline(/*uint32_t xid,*/ uint32_t server, uint32_t req
 	struct dhcp_packet packet;
 
 	/* Fill in: op, htype, hlen, cookie, chaddr, random xid fields,
-	 * client-id option (unless -C), message type option:
+	 * message type option:
 	 */
 	init_packet(&packet, DHCPDECLINE);
 
@@ -854,6 +852,8 @@ static NOINLINE int send_decline(/*uint32_t xid,*/ uint32_t server, uint32_t req
 
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
+//TODO: add client-id opt?
+
 	bb_simple_info_msg("broadcasting decline");
 	return raw_bcast_from_client_data_ifindex(&packet, INADDR_ANY);
 }
@@ -865,9 +865,10 @@ ALWAYS_INLINE /* one caller, help compiler to use this fact */
 int send_release(uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
+	struct option_set *ci;
 
 	/* Fill in: op, htype, hlen, cookie, chaddr, random xid fields,
-	 * client-id option (unless -C), message type option:
+	 * message type option:
 	 */
 	init_packet(&packet, DHCPRELEASE);
 
@@ -875,6 +876,14 @@ int send_release(uint32_t server, uint32_t ciaddr)
 	packet.ciaddr = ciaddr;
 
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
+
+	/* RFC 2131 section 3.1.6:
+	 * If the client used a 'client identifier' when it obtained the lease,
+	 * it MUST use the same 'client identifier' in the DHCPRELEASE message.
+	 */
+	ci = udhcp_find_option(client_data.options, DHCP_CLIENT_ID);
+	if (ci)
+		udhcp_add_binary_option(&packet, ci->data);
 
 	bb_info_msg("sending %s", "release");
 	/* Note: normally we unicast here since "server" is not zero.
@@ -1230,7 +1239,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	const char *str_V, *str_h, *str_F, *str_r;
 	IF_FEATURE_UDHCPC_ARPING(const char *str_a = "2000";)
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
-	void *clientid_mac_ptr;
+	uint8_t *clientid_mac_ptr;
 	llist_t *list_O = NULL;
 	llist_t *list_x = NULL;
 	int tryagain_timeout = 20;
@@ -1339,7 +1348,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	if (udhcp_read_interface(client_data.interface,
 			&client_data.ifindex,
 			NULL,
-			client_data.client_mac)
+			client_data_client_mac)
 	) {
 		return 1;
 	}
@@ -1347,10 +1356,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	clientid_mac_ptr = NULL;
 	if (!(opt & OPT_C) && !udhcp_find_option(client_data.options, DHCP_CLIENT_ID)) {
 		/* not suppressed and not set, set the default client ID */
-		client_data.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, "", 7);
-		client_data.clientid[OPT_DATA] = 1; /* type: ethernet */
-		clientid_mac_ptr = client_data.clientid + OPT_DATA+1;
-		memcpy(clientid_mac_ptr, client_data.client_mac, 6);
+		client_data_client_mac[-1] = 1; /* type: ethernet */
+		clientid_mac_ptr = udhcp_insert_new_option(
+				&client_data.options, DHCP_CLIENT_ID,
+				client_data_client_mac - 1, 1 + 6, /*dhcp6:*/ 0);
+		clientid_mac_ptr += 3; /* skip option code, len, ethernet */
 	}
 	if (str_V[0] != '\0') {
 		// can drop -V, str_V, client_data.vendorclass,
@@ -1447,12 +1457,12 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			if (udhcp_read_interface(client_data.interface,
 					&client_data.ifindex,
 					NULL,
-					client_data.client_mac)
+					client_data_client_mac)
 			) {
 				goto ret0; /* iface is gone? */
 			}
 			if (clientid_mac_ptr)
-				memcpy(clientid_mac_ptr, client_data.client_mac, 6);
+				memcpy(clientid_mac_ptr, client_data_client_mac, 6);
 
 			switch (client_data.state) {
 			case INIT_SELECTING:
@@ -1569,7 +1579,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 			/* case RELEASED: */
 			}
-			/* yah, I know, *you* say it would never happen */
+			/* RELEASED state (when we got SIGUSR2) ends up here.
+			 * (wait for SIGUSR1 to re-init, or for TERM, etc)
+			 */
 			timeout = INT_MAX;
 			continue; /* back to main loop */
 		} /* if poll timed out */
@@ -1645,7 +1657,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 		/* Ignore packets that aren't for us */
 		if (packet.hlen != 6
-		 || memcmp(packet.chaddr, client_data.client_mac, 6) != 0
+		 || memcmp(packet.chaddr, client_data_client_mac, 6) != 0
 		) {
 //FIXME: need to also check that last 10 bytes are zero
 			log1("chaddr does not match%s", ", ignoring packet"); // log2?
@@ -1757,7 +1769,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					if (!arpping(requested_ip,
 							NULL,
 							(uint32_t) 0,
-							client_data.client_mac,
+							client_data_client_mac,
 							client_data.interface,
 							arpping_ms)
 					) {

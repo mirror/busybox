@@ -420,6 +420,43 @@ int FAST_FUNC udhcp_str2nip(const char *str, void *arg)
 	return 1;
 }
 
+void* FAST_FUNC udhcp_insert_new_option(
+		struct option_set **opt_list,
+		unsigned code,
+		const void *buffer,
+		unsigned length,
+		bool dhcpv6)
+{
+	IF_NOT_UDHCPC6(bool dhcpv6 = 0;)
+	struct option_set *new, **curr;
+
+	log2("attaching option %02x to list", code);
+	new = xmalloc(sizeof(*new));
+	if (!dhcpv6) {
+		new->data = xmalloc(length + OPT_DATA);
+		new->data[OPT_CODE] = code;
+		new->data[OPT_LEN] = length;
+		memcpy(new->data + OPT_DATA, buffer, length);
+	} else {
+		new->data = xmalloc(length + D6_OPT_DATA);
+		new->data[D6_OPT_CODE] = code >> 8;
+		new->data[D6_OPT_CODE + 1] = code & 0xff;
+		new->data[D6_OPT_LEN] = length >> 8;
+		new->data[D6_OPT_LEN + 1] = length & 0xff;
+		memcpy(new->data + D6_OPT_DATA, buffer,	length);
+	}
+
+	curr = opt_list;
+//FIXME: DHCP6 codes > 255!!
+	while (*curr && (*curr)->data[OPT_CODE] < code)
+		curr = &(*curr)->next;
+
+	new->next = *curr;
+	*curr = new;
+
+	return new->data;
+}
+
 /* udhcp_str2optset:
  * Parse string option representation to binary form and add it to opt_list.
  * Called to parse "udhcpc -x OPTNAME:OPTVAL"
@@ -459,32 +496,8 @@ static NOINLINE void attach_option(
 
 	existing = udhcp_find_option(*opt_list, optflag->code);
 	if (!existing) {
-		struct option_set *new, **curr;
-
 		/* make a new option */
-		log2("attaching option %02x to list", optflag->code);
-		new = xmalloc(sizeof(*new));
-		if (!dhcpv6) {
-			new->data = xmalloc(length + OPT_DATA);
-			new->data[OPT_CODE] = optflag->code;
-			new->data[OPT_LEN] = length;
-			memcpy(new->data + OPT_DATA, buffer, length);
-		} else {
-			new->data = xmalloc(length + D6_OPT_DATA);
-			new->data[D6_OPT_CODE] = optflag->code >> 8;
-			new->data[D6_OPT_CODE + 1] = optflag->code & 0xff;
-			new->data[D6_OPT_LEN] = length >> 8;
-			new->data[D6_OPT_LEN + 1] = length & 0xff;
-			memcpy(new->data + D6_OPT_DATA, buffer,
-					length);
-		}
-
-		curr = opt_list;
-		while (*curr && (*curr)->data[OPT_CODE] < optflag->code)
-			curr = &(*curr)->next;
-
-		new->next = *curr;
-		*curr = new;
+		udhcp_insert_new_option(opt_list, optflag->code, buffer, length, dhcpv6);
 		goto ret;
 	}
 

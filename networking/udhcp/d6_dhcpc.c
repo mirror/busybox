@@ -482,7 +482,6 @@ static ALWAYS_INLINE uint32_t random_xid(void)
 static uint8_t *init_d6_packet(struct d6_packet *packet, char type, uint32_t xid)
 {
 	uint8_t *ptr;
-	struct d6_option *clientid;
 	unsigned secs;
 
 	memset(packet, 0, sizeof(*packet));
@@ -503,9 +502,7 @@ static uint8_t *init_d6_packet(struct d6_packet *packet, char type, uint32_t xid
 	*((uint16_t*)ptr) = (secs < 0xffff) ? htons(secs) : 0xffff;
 	ptr += 2;
 
-	/* add CLIENTID option */
-	clientid = (void*)client_data.clientid;
-	return mempcpy(ptr, clientid, clientid->len + 2+2);
+	return ptr;
 }
 
 static uint8_t *add_d6_client_options(uint8_t *ptr)
@@ -593,10 +590,10 @@ static NOINLINE int send_d6_info_request(uint32_t xid)
 	struct d6_packet packet;
 	uint8_t *opt_ptr;
 
-	/* Fill in: msg type, client id */
+	/* Fill in: msg type */
 	opt_ptr = init_d6_packet(&packet, D6_MSG_INFORMATION_REQUEST, xid);
 
-	/* Add options:
+	/* Add options: client-id,
 	 * "param req" option according to -O, options specified with -x
 	 */
 	opt_ptr = add_d6_client_options(opt_ptr);
@@ -693,7 +690,7 @@ static NOINLINE int send_d6_discover(uint32_t xid, struct in6_addr *requested_ip
 	uint8_t *opt_ptr;
 	unsigned len;
 
-	/* Fill in: msg type, client id */
+	/* Fill in: msg type */
 	opt_ptr = init_d6_packet(&packet, D6_MSG_SOLICIT, xid);
 
 	/* Create new IA_NA, optionally with included IAADDR with requested IP */
@@ -726,7 +723,7 @@ static NOINLINE int send_d6_discover(uint32_t xid, struct in6_addr *requested_ip
 		opt_ptr = mempcpy(opt_ptr, client6_data.ia_pd, len);
 	}
 
-	/* Add options:
+	/* Add options: client-id,
 	 * "param req" option according to -O, options specified with -x
 	 */
 	opt_ptr = add_d6_client_options(opt_ptr);
@@ -771,7 +768,7 @@ static NOINLINE int send_d6_select(uint32_t xid)
 	struct d6_packet packet;
 	uint8_t *opt_ptr;
 
-	/* Fill in: msg type, client id */
+	/* Fill in: msg type */
 	opt_ptr = init_d6_packet(&packet, D6_MSG_REQUEST, xid);
 
 	/* server id */
@@ -783,7 +780,7 @@ static NOINLINE int send_d6_select(uint32_t xid)
 	if (client6_data.ia_pd)
 		opt_ptr = mempcpy(opt_ptr, client6_data.ia_pd, client6_data.ia_pd->len + 2+2);
 
-	/* Add options:
+	/* Add options: client-id,
 	 * "param req" option according to -O, options specified with -x
 	 */
 	opt_ptr = add_d6_client_options(opt_ptr);
@@ -844,7 +841,7 @@ static NOINLINE int send_d6_renew(uint32_t xid, struct in6_addr *server_ipv6, st
 	struct d6_packet packet;
 	uint8_t *opt_ptr;
 
-	/* Fill in: msg type, client id */
+	/* Fill in: msg type */
 	opt_ptr = init_d6_packet(&packet, DHCPREQUEST, xid);
 
 	/* server id */
@@ -856,7 +853,7 @@ static NOINLINE int send_d6_renew(uint32_t xid, struct in6_addr *server_ipv6, st
 	if (client6_data.ia_pd)
 		opt_ptr = mempcpy(opt_ptr, client6_data.ia_pd, client6_data.ia_pd->len + 2+2);
 
-	/* Add options:
+	/* Add options: client-id,
 	 * "param req" option according to -O, options specified with -x
 	 */
 	opt_ptr = add_d6_client_options(opt_ptr);
@@ -878,6 +875,7 @@ int send_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
 {
 	struct d6_packet packet;
 	uint8_t *opt_ptr;
+	struct option_set *ci;
 
 	/* Fill in: msg type, client id */
 	opt_ptr = init_d6_packet(&packet, D6_MSG_RELEASE, random_xid());
@@ -889,6 +887,10 @@ int send_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
 	/* IA PD */
 	if (client6_data.ia_pd)
 		opt_ptr = mempcpy(opt_ptr, client6_data.ia_pd, client6_data.ia_pd->len + 2+2);
+	/* Client-id */
+	ci = udhcp_find_option(client_data.options, D6_OPT_CLIENTID);
+	if (ci)
+		opt_ptr = mempcpy(opt_ptr, ci->data, D6_OPT_DATA + 2+2 + 6);
 
 	bb_info_msg("sending %s", "release");
 	return d6_send_kernel_packet_from_client_data_ifindex(
@@ -1184,7 +1186,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *str_r;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
-	void *clientid_mac_ptr;
+	uint8_t *clientid_mac_ptr;
 	llist_t *list_O = NULL;
 	llist_t *list_x = NULL;
 	int tryagain_timeout = 20;
@@ -1284,22 +1286,19 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	if (d6_read_interface(client_data.interface,
 			&client_data.ifindex,
 			&client6_data.ll_ip6,
-			client_data.client_mac)
+			client_data_client_mac)
 	) {
 		return 1;
 	}
 
-	/* Create client ID based on mac, set clientid_mac_ptr */
-	{
-		struct d6_option *clientid;
-		clientid = xzalloc(2+2+2+2+6);
-		clientid->code = D6_OPT_CLIENTID;
-		clientid->len = 2+2+6;
-		clientid->data[1] = 3; /* DUID-LL */
-		clientid->data[3] = 1; /* ethernet */
-		clientid_mac_ptr = clientid->data + 2+2;
-		memcpy(clientid_mac_ptr, client_data.client_mac, 6);
-		client_data.clientid = (void*)clientid;
+	clientid_mac_ptr = NULL;
+	if (!udhcp_find_option(client_data.options, D6_OPT_CLIENTID)) {
+		/* not set, set the default client ID */
+		client_data.clientid[1] = 3; /* DUID-LL */
+		client_data.clientid[3] = 1; /* ethernet */
+		clientid_mac_ptr = udhcp_insert_new_option(&client_data.options, D6_OPT_CLIENTID,
+				client_data.clientid, 2+2 + 6, /*dhcp6:*/ 1);
+		clientid_mac_ptr += 2+2 + 2+2; /* skip option code, len, DUID-LL, ethernet */
 	}
 
 #if !BB_MMU
@@ -1386,12 +1385,13 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			if (d6_read_interface(client_data.interface,
 					&client_data.ifindex,
 					&client6_data.ll_ip6,
-					client_data.client_mac)
+					client_data_client_mac)
 			) {
 				goto ret0; /* iface is gone? */
 			}
 
-			memcpy(clientid_mac_ptr, client_data.client_mac, 6);
+			if (clientid_mac_ptr)
+				memcpy(clientid_mac_ptr, client_data_client_mac, 6);
 
 			switch (client_data.state) {
 			case INIT_SELECTING:
@@ -1505,7 +1505,9 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 			/* case RELEASED: */
 			}
-			/* yah, I know, *you* say it would never happen */
+			/* RELEASED state (when we got SIGUSR2) ends up here.
+			 * (wait for SIGUSR1 to re-init, or for TERM, etc)
+			 */
 			timeout = INT_MAX;
 			continue; /* back to main loop */
 		} /* if poll timed out */
