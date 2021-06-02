@@ -346,9 +346,11 @@ int tail_main(int argc, char **argv)
 			int nread;
 			const char *filename = argv[i];
 			int fd = fds[i];
+			int new_fd = -1;
+			struct stat sbuf;
 
 			if (FOLLOW_RETRY) {
-				struct stat sbuf, fsbuf;
+				struct stat fsbuf;
 
 				if (fd < 0
 				 || fstat(fd, &fsbuf) < 0
@@ -356,19 +358,21 @@ int tail_main(int argc, char **argv)
 				 || fsbuf.st_dev != sbuf.st_dev
 				 || fsbuf.st_ino != sbuf.st_ino
 				) {
-					int new_fd;
-
-					if (fd >= 0)
-						close(fd);
+					/* Looks like file has been created/renamed/deleted */
 					new_fd = open(filename, O_RDONLY);
 					if (new_fd >= 0) {
 						bb_error_msg("%s has %s; following end of new file",
 							filename, (fd < 0) ? "appeared" : "been replaced"
 						);
+						if (fd < 0) {
+							/* No previously open fd for this file,
+							 * start using new_fd immediately. */
+							fds[i] = fd = new_fd;
+							new_fd = -1;
+						}
 					} else if (fd >= 0) {
-						bb_perror_msg("%s has become inaccessible", filename);
+						bb_perror_msg("%s has been renamed or deleted", filename);
 					}
-					fds[i] = fd = new_fd;
 				}
 			}
 			if (ENABLE_FEATURE_FANCY_TAIL && fd < 0)
@@ -378,17 +382,27 @@ int tail_main(int argc, char **argv)
 			}
 			for (;;) {
 				/* tail -f keeps following files even if they are truncated */
-				struct stat sbuf;
 				/* /proc files report zero st_size, don't lseek them */
-				if (fstat(fd, &sbuf) == 0 && sbuf.st_size > 0) {
+				if (fstat(fd, &sbuf) == 0
+				 /* && S_ISREG(sbuf.st_mode) TODO? */
+				 && sbuf.st_size > 0
+				) {
 					off_t current = lseek(fd, 0, SEEK_CUR);
-					if (sbuf.st_size < current)
+					if (sbuf.st_size < current) {
+						//bb_perror_msg("%s: file truncated", filename); - says coreutils 8.32
 						xlseek(fd, 0, SEEK_SET);
+					}
 				}
 
 				nread = tail_read(fd, tailbuf, BUFSIZ);
-				if (nread <= 0)
-					break;
+				if (nread <= 0) {
+					if (new_fd < 0)
+						break;
+					/* Switch to "tail -F"ing the new file */
+					xmove_fd(new_fd, fd);
+					new_fd = -1;
+					continue;
+				}
 				if (fmt && (fd != prev_fd)) {
 					tail_xprint_header(fmt, filename);
 					fmt = NULL;
