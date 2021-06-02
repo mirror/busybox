@@ -1093,8 +1093,6 @@ static int udhcp_raw_socket(int ifindex)
 			log1s("can't set PACKET_AUXDATA on raw socket");
 	}
 
-	log1s("created raw socket");
-
 	return fd;
 }
 
@@ -1701,7 +1699,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				}
 				/*xid = packet.xid; - already is */
 				temp_addr.s_addr = requested_ip = packet.yiaddr;
-				log1("received an offer of %s",	inet_ntoa(temp_addr));
+				log1("received offer of %s", inet_ntoa(temp_addr));
 
 				/* enter requesting state */
 				client_data.state = REQUESTING;

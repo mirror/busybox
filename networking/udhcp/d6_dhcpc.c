@@ -1063,9 +1063,6 @@ static int d6_raw_socket(int ifindex)
 			log1("attached filter to raw socket fd %d", fd); // log?
 	}
 #endif
-
-	log1s("created raw socket");
-
 	return fd;
 }
 

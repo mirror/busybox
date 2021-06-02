@@ -82,7 +82,7 @@ int FAST_FUNC udhcp_listen_socket(/*uint32_t ip,*/ int port, const char *inf)
 	struct sockaddr_in addr;
 	char *colon;
 
-	log1("opening listen socket on *:%d %s", port, inf);
+	log2("opening listen socket on *:%d %s", port, inf);
 	fd = xsocket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	setsockopt_reuseaddr(fd);
