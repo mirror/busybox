@@ -95,7 +95,8 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 		bb_simple_info_msg("packet with bad magic, ignoring");
 		return -2;
 	}
-	log1("received %s", "a packet");
+	log2("received %s", "a packet");
+	/* log2 because more informative msg for valid packets is printed later at log1 level */
 	udhcp_dump_packet(packet);
 
 	return bytes;

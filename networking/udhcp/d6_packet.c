@@ -44,7 +44,8 @@ int FAST_FUNC d6_recv_kernel_packet(struct in6_addr *peer_ipv6
 		bb_simple_info_msg("packet with bad magic, ignoring");
 		return -2;
 	}
-	log1("received %s", "a packet");
+	log2("received %s", "a packet");
+	/* log2 because more informative msg for valid packets is printed later at log1 level */
 	d6_dump_packet(packet);
 
 	return bytes;

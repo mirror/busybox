@@ -975,11 +975,12 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
  skip_udp_sum_check:
 
 	if (packet.data.cookie != htonl(DHCP_MAGIC)) {
-		bb_simple_info_msg("packet with bad magic, ignoring");
+		log1s("packet with bad magic, ignoring");
 		return -2;
 	}
 
-	log1("received %s", "a packet");
+	log2("received %s", "a packet");
+	/* log2 because more informative msg for valid packets is printed later at log1 level */
 	udhcp_dump_packet(&packet.data);
 
 	bytes -= sizeof(packet.ip) + sizeof(packet.udp);
@@ -1649,13 +1650,13 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		 || memcmp(packet.chaddr, client_data.client_mac, 6) != 0
 		) {
 //FIXME: need to also check that last 10 bytes are zero
-			log1("chaddr does not match%s", ", ignoring packet"); // log2?
+			log1("chaddr does not match%s", ", ignoring packet");
 			continue;
 		}
 
 		message = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
 		if (message == NULL) {
-			bb_info_msg("no message type option%s", ", ignoring packet");
+			log1("no message type option%s", ", ignoring packet");
 			continue;
 		}
 
@@ -1663,6 +1664,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		case INIT_SELECTING:
 			/* Must be a DHCPOFFER */
 			if (*message == DHCPOFFER) {
+				struct in_addr temp_addr;
 				uint8_t *temp;
 
 /* What exactly is server's IP? There are several values.
@@ -1698,7 +1700,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					move_from_unaligned32(server_addr, temp);
 				}
 				/*xid = packet.xid; - already is */
-				requested_ip = packet.yiaddr;
+				temp_addr.s_addr = requested_ip = packet.yiaddr;
+				log1("received an offer of %s",	inet_ntoa(temp_addr));
 
 				/* enter requesting state */
 				client_data.state = REQUESTING;
