@@ -418,7 +418,8 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		if (argv[0] == NULL)
 			bb_show_usage();
 		if (opt & OPT_CREATE_LEADING_DIR)
-			mkdir(argv[0], 0777);
+			/* GNU cpio 2.13: "cpio -d -p a/b/c" works */
+			bb_make_directory(argv[0], -1, FILEUTILS_RECUR);
 		/* Crude existence check:
 		 * close(xopen(argv[0], O_RDONLY | O_DIRECTORY));
 		 * We can also xopen, fstat, IS_DIR, later fchdir.
@@ -428,6 +429,11 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		 * a diffrerent problem earlier.
 		 * This is good enough for now.
 		 */
+//FIXME: GNU cpio -d -p DIR does not immediately create DIR -
+//it just prepends "DIR/" to the names of files to be created.
+//The first file (fails to) be copied, and then the -d logic
+//triggers and creates all necessary directories.
+//IOW: bare "cpio -d -p DIR" + ^C shouldn't create anything.
 #if !BB_MMU
 		pp.rd = 3;
 		pp.wr = 4;
