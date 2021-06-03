@@ -47,6 +47,7 @@ int FAST_FUNC arpping(uint32_t test_nip,
 	int rv = 1;             /* "no reply received" yet */
 	struct sockaddr addr;   /* for interface name */
 	struct arpMsg arp;
+	const char *msg;
 
 	if (!timeo)
 		return 1;
@@ -58,7 +59,7 @@ int FAST_FUNC arpping(uint32_t test_nip,
 	}
 
 	if (setsockopt_broadcast(s) == -1) {
-		bb_simple_perror_msg("can't enable bcast on raw socket");
+		bb_simple_perror_msg("can't enable bcast on ARP socket");
 		goto ret;
 	}
 
@@ -131,6 +132,9 @@ int FAST_FUNC arpping(uint32_t test_nip,
 
  ret:
 	close(s);
-	log1("%srp reply received for this address", rv ? "no a" : "A");
+	msg = "no ARP reply received for this address";
+	if (rv == 0)
+		msg += 3;
+	log1s(msg);
 	return rv;
 }
