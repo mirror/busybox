@@ -1582,6 +1582,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			if (client_data.state <= REQUESTING)
 				/* Initial negotiations in progress, do not disturb */
 				break;
+			if (client_data.state == REBINDING)
+				/* Do not go back from rebind to renew state */
+				break;
 
 			if (lease_remaining > 30) /* if renew fails, do not go back to BOUND */
 				lease_remaining = 30;
@@ -1589,21 +1592,20 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			packet_num = 0;
 
 			switch (client_data.state) {
-			/* Try to renew/rebind */
 			case BOUND:
 			case RENEWING:
-			case REBINDING:
+				/* Try to renew/rebind */
 				client_data.state = RENEW_REQUESTED;
 				goto got_SIGUSR1;
 
-			/* Two SIGUSR1 received, start things over */
 			case RENEW_REQUESTED:
+				/* Two SIGUSR1 received, start things over */
 				change_listen_mode(LISTEN_NONE);
 				d4_run_script_deconfig();
 
-			/* Wake from SIGUSR2-induced deconfigured state */
 			default:
 			/* case RELEASED: */
+				/* Wake from SIGUSR2-induced deconfigured state */
 				change_listen_mode(LISTEN_NONE);
 			}
 			client_data.state = INIT_SELECTING;
