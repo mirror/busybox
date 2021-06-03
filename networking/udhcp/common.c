@@ -185,6 +185,13 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
 	 */
 };
 
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+void FAST_FUNC log1s(const char *msg)
+{
+	if (dhcp_verbose >= 1)
+		bb_simple_info_msg(msg);
+}
+#endif
 
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
 static void log_option(const char *pfx, const uint8_t *opt)
