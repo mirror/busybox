@@ -1420,7 +1420,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					retval = 1;
 					goto ret;
 				}
-				/* wait before trying again */
+				/* Wait before trying again */
 				timeout = tryagain_timeout;
 				packet_num = 0;
 				continue;
@@ -1442,14 +1442,14 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				/* 1/2 lease passed, enter renewing state */
 				client_data.state = RENEWING;
 				client_data.first_secs = 0; /* make secs field count from 0 */
-				change_listen_mode(LISTEN_KERNEL);
+			got_SIGUSR1:
 				log1s("entering renew state");
+				change_listen_mode(LISTEN_KERNEL);
 				/* fall right through */
-			case RENEW_REQUESTED: /* manual (SIGUSR1) renew */
-			case_RENEW_REQUESTED:
+			case RENEW_REQUESTED: /* in manual (SIGUSR1) renew */
 			case RENEWING:
-				if (packet_num < 3) {
-					/* send an unicast renew request */
+				if (packet_num == 0) {
+					/* Send an unicast renew request */
 			/* Sometimes observed to fail (EADDRNOTAVAIL) to bind
 			 * a new UDP socket for sending inside send_renew.
 			 * I hazard to guess existing listening socket
@@ -1463,13 +1463,18 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					else
 						send_d6_renew(xid, &srv6_buf, requested_ipv6);
 					timeout = discover_timeout;
-					/* ^^^ used to be = lease_remaining / 2 - WAY too long */
 					packet_num++;
 					continue;
+				} /* else: we had sent one packet, but got no reply */
+				log1s("no response to renew");
+				if (lease_remaining > 30) {
+					/* Some lease time remains, try to renew later */
+					change_listen_mode(LISTEN_NONE);
+					goto BOUND_for_half_lease;
 				}
-				/* Timed out, enter rebinding state */
-				log1s("entering rebinding state");
+				/* Enter rebinding state */
 				client_data.state = REBINDING;
+				log1s("entering rebinding state");
 				/* Switch to bcast receive */
 				change_listen_mode(LISTEN_RAW);
 				packet_num = 0;
@@ -1509,8 +1514,14 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		/* Is it a signal? */
 		switch (udhcp_sp_read()) {
 		case SIGUSR1:
+			if (client_data.state <= REQUESTING)
+				/* Initial negotiations in progress, do not disturb */
+				break;
+
+			if (lease_remaining > 30) /* if renew fails, do not go back to BOUND */
+				lease_remaining = 30;
 			client_data.first_secs = 0; /* make secs field count from 0 */
-			bb_simple_info_msg("performing DHCP renew");
+			packet_num = 0;
 
 			switch (client_data.state) {
 			/* Try to renew/rebind */
@@ -1519,21 +1530,19 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			case REBINDING:
 				change_listen_mode(LISTEN_KERNEL);
 				client_data.state = RENEW_REQUESTED;
-				goto case_RENEW_REQUESTED;
+				goto got_SIGUSR1;
 
-			/* Start things over */
-			case RENEW_REQUESTED: /* two or more SIGUSR1 received */
+			/* Two SIGUSR1 received, start things over */
+			case RENEW_REQUESTED:
 				change_listen_mode(LISTEN_NONE);
 				d6_run_script_no_option("deconfig");
 
+			/* Wake from SIGUSR2-induced deconfigured state */
 			default:
-			/* case REQUESTING: */
 			/* case RELEASED: */
-			/* case INIT_SELECTING: */
 				change_listen_mode(LISTEN_NONE);
 			}
 			client_data.state = INIT_SELECTING;
-			packet_num = 0;
 			/* Kill any timeouts, user wants this to hurry along */
 			timeout = 0;
 			continue;
@@ -1830,7 +1839,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				}
 #endif
 
-// BOUND_for_half_lease:
+ BOUND_for_half_lease:
 				timeout = (unsigned)lease_remaining / 2;
 				client_data.state = BOUND;
 				packet_num = 0;
