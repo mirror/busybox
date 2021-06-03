@@ -441,7 +441,7 @@ static char **fill_envp(const uint8_t *option, const uint8_t *option_end)
 	return envp;
 }
 
-/* Call a script with a par file and env vars */
+/* Call a script with env vars */
 static void d6_run_script(const uint8_t *option, const uint8_t *option_end,
 		const char *name)
 {
@@ -464,7 +464,7 @@ static void d6_run_script(const uint8_t *option, const uint8_t *option_end,
 	free(envp);
 }
 
-/* Call a script with a par file and no env var */
+/* Call a script with no env var */
 static void d6_run_script_no_option(const char *name)
 {
 	d6_run_script(NULL, NULL, name);

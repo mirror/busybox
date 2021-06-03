@@ -566,8 +566,8 @@ static void fill_envp(struct dhcp_packet *packet)
 	}
 }
 
-/* Call a script with a par file and env vars */
-static void udhcp_run_script(struct dhcp_packet *packet, const char *name)
+/* Call a script with env vars */
+static void d4_run_script(struct dhcp_packet *packet, const char *name)
 {
 	char *argv[3];
 
@@ -585,6 +585,10 @@ static void udhcp_run_script(struct dhcp_packet *packet, const char *name)
 	client_data.envp = NULL;
 }
 
+static void d4_run_script_deconfig(void)
+{
+	d4_run_script(NULL, "deconfig");
+}
 
 /*** Sending/receiving packets ***/
 
@@ -882,7 +886,7 @@ int send_release(uint32_t server, uint32_t ciaddr)
 
 /* Returns -1 on errors that are fatal for the socket, -2 for those that aren't */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
+static NOINLINE int d4_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 {
 	int bytes;
 	struct ip_udp_dhcp_packet packet;
@@ -1143,7 +1147,7 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
  * Users requested to be notified in all cases, even if not in one
  * of the states above.
  */
-	udhcp_run_script(NULL, "deconfig");
+	d4_run_script_deconfig();
 	client_data.state = RELEASED;
 }
 
@@ -1374,7 +1378,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	srand(monotonic_us());
 
 	client_data.state = INIT_SELECTING;
-	udhcp_run_script(NULL, "deconfig");
+	d4_run_script_deconfig();
 	packet_num = 0;
 	timeout = 0;
 	lease_remaining = 0;
@@ -1460,7 +1464,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				}
  leasefail:
 				change_listen_mode(LISTEN_NONE);
-				udhcp_run_script(NULL, "leasefail");
+				d4_run_script(NULL, "leasefail");
 #if BB_MMU /* -b is not supported on NOMMU */
 				if (opt & OPT_b) { /* background if no lease */
 					bb_simple_info_msg("no lease, forking to background");
@@ -1555,7 +1559,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				/* Timed out, enter init state */
 				change_listen_mode(LISTEN_NONE);
 				bb_simple_info_msg("lease lost, entering init state");
-				udhcp_run_script(NULL, "deconfig");
+				d4_run_script_deconfig();
 				client_data.state = INIT_SELECTING;
 				client_data.first_secs = 0; /* make secs field count from 0 */
 				timeout = 0;
@@ -1595,7 +1599,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			/* Two SIGUSR1 received, start things over */
 			case RENEW_REQUESTED:
 				change_listen_mode(LISTEN_NONE);
-				udhcp_run_script(NULL, "deconfig");
+				d4_run_script_deconfig();
 
 			/* Wake from SIGUSR2-induced deconfigured state */
 			default:
@@ -1627,7 +1631,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			if (client_data.listen_mode == LISTEN_KERNEL)
 				len = udhcp_recv_kernel_packet(&packet, client_data.sockfd);
 			else
-				len = udhcp_recv_raw_packet(&packet, client_data.sockfd);
+				len = d4_recv_raw_packet(&packet, client_data.sockfd);
 			if (len == -1) {
 				/* Error is severe, reopen socket */
 				bb_error_msg("read error: "STRERROR_FMT", reopening socket" STRERROR_ERRNO);
@@ -1772,7 +1776,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						send_decline(/*xid,*/ server_addr, packet.yiaddr);
 
 						if (client_data.state != REQUESTING)
-							udhcp_run_script(NULL, "deconfig");
+							d4_run_script_deconfig();
 						client_data.state = INIT_SELECTING;
 						client_data.first_secs = 0; /* make secs field count from 0 */
 						requested_ip = 0;
@@ -1784,7 +1788,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 #endif
 				/* enter bound state */
 				start = monotonic_sec();
-				udhcp_run_script(&packet, client_data.state == REQUESTING ? "bound" : "renew");
+				d4_run_script(&packet, client_data.state == REQUESTING ? "bound" : "renew");
 				lease_remaining -= (unsigned)monotonic_sec() - start;
 				if (lease_remaining < 0)
 					lease_remaining = 0;
@@ -1831,9 +1835,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				/* return to init state */
 				change_listen_mode(LISTEN_NONE);
 				bb_info_msg("received %s", "DHCP NAK");
-				udhcp_run_script(&packet, "nak");
+				d4_run_script(&packet, "nak");
 				if (client_data.state != REQUESTING)
-					udhcp_run_script(NULL, "deconfig");
+					d4_run_script_deconfig();
 				sleep(3); /* avoid excessive network traffic */
 				client_data.state = INIT_SELECTING;
 				client_data.first_secs = 0; /* make secs field count from 0 */
