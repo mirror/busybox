@@ -113,13 +113,24 @@ enum {
 };
 
 /* Is this a valid filename (upper/lower alpha, digits,
- * underscores, and hyphens only?)
+ * underscores, hyphens, and non-leading dots only?)
  */
 static bool invalid_name(const char *c)
 {
 	c = bb_basename(c);
 
-	while (*c && (isalnum(*c) || *c == '_' || *c == '-'))
+	if (*c == '.')
+		return *c;
+
+	/* Debian run-parts 4.8.3, manpage:
+	 * "...the names must consist entirely of ASCII letters,
+	 * ASCII digits, ASCII underscores, and ASCII minus-hyphens.
+	 * However, the name must not begin with a period."
+	 * The last sentence is a giveaway that something is fishy
+	 * (why mention leading dot if dots are not allowed anyway?).
+	 * Yes, you guessed it right: in fact non-leading dots ARE allowed.
+	 */
+	while (isalnum(*c) || *c == '_' || *c == '-' || *c == '.')
 		c++;
 
 	return *c; /* TRUE (!0) if terminating NUL is not reached */
