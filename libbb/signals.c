@@ -56,7 +56,7 @@ void FAST_FUNC bb_signals(int sigs, void (*f)(int))
 	}
 }
 
-void FAST_FUNC bb_signals_recursive_norestart(int sigs, void (*f)(int))
+void FAST_FUNC bb_signals_norestart(int sigs, void (*f)(int))
 {
 	int sig_no = 0;
 	int bit = 1;

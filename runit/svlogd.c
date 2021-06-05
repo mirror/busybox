@@ -1111,10 +1111,10 @@ int svlogd_main(int argc, char **argv)
 	sigaddset(&blocked_sigset, SIGALRM);
 	sigaddset(&blocked_sigset, SIGHUP);
 	sigprocmask(SIG_BLOCK, &blocked_sigset, NULL);
-	bb_signals_recursive_norestart(1 << SIGTERM, sig_term_handler);
-	bb_signals_recursive_norestart(1 << SIGCHLD, sig_child_handler);
-	bb_signals_recursive_norestart(1 << SIGALRM, sig_alarm_handler);
-	bb_signals_recursive_norestart(1 << SIGHUP, sig_hangup_handler);
+	bb_signals_norestart(1 << SIGTERM, sig_term_handler);
+	bb_signals_norestart(1 << SIGCHLD, sig_child_handler);
+	bb_signals_norestart(1 << SIGALRM, sig_alarm_handler);
+	bb_signals_norestart(1 << SIGHUP, sig_hangup_handler);
 
 	/* Without timestamps, we don't have to print each line
 	 * separately, so we can look for _last_ newline, not first,

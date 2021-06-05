@@ -106,7 +106,7 @@ int showkey_main(int argc UNUSED_PARAM, char **argv)
 		xioctl(STDIN_FILENO, KDSKBMODE, (void *)(ptrdiff_t)((option_mask32 & OPT_k) ? K_MEDIUMRAW : K_RAW));
 
 		// we should exit on any signal; signals should interrupt read
-		bb_signals_recursive_norestart(BB_FATAL_SIGS, record_signo);
+		bb_signals_norestart(BB_FATAL_SIGS, record_signo);
 
 		// inform user that program ends after time of inactivity
 		printf(press_keys, "10s after last keypress");

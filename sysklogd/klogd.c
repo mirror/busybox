@@ -226,7 +226,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 
 	signal(SIGHUP, SIG_IGN);
 	/* We want klogd_read to not be restarted, thus _norestart: */
-	bb_signals_recursive_norestart(BB_FATAL_SIGS, record_signo);
+	bb_signals_norestart(BB_FATAL_SIGS, record_signo);
 
 	syslog(LOG_NOTICE, "klogd started: %s", bb_banner);
 
