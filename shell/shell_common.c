@@ -230,7 +230,7 @@ shell_builtin_read(struct builtin_read_params *params)
 		 * without variable names (bash compat).
 		 * Thus, "read" and "read REPLY" are not the same.
 		 */
-		if (!params->opt_d && argv[0]) {
+		if (argv[0]) {
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_05 */
 			const char *is_ifs = strchr(ifs, c);
 			if (startword && is_ifs) {
