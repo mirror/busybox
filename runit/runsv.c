@@ -149,19 +149,16 @@ static void warn_cannot(const char *m)
 	warn2_cannot(m, "");
 }
 
-/* SIGCHLD/TERM handlers are reentrancy-safe because they are unmasked
+/* SIGCHLD/TERM handler is reentrancy-safe because they are unmasked
  * only over poll() call, not over memory allocations
  * or printouts. Do not need to save/restore errno either,
  * as poll() error is not checked there.
  */
-static void s_child(int sig_no UNUSED_PARAM)
+static void s_chld_term(int sig_no)
 {
+	if (sig_no == SIGTERM)
+		sigterm = 1;
 	write(selfpipe.wr, "", 1);
-}
-static void s_term(int sig_no UNUSED_PARAM)
-{
-	sigterm = 1;
-	write(selfpipe.wr, "", 1); /* XXX */
 }
 
 static int open_trunc_or_warn(const char *name)
@@ -523,8 +520,10 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 	 * (poll() wouldn't restart regardless of that flag),
 	 * we just follow what runit-2.1.2 does:
 	 */
-	bb_signals_norestart(1 << SIGCHLD, s_child);
-	bb_signals_norestart(1 << SIGTERM, s_term);
+	bb_signals_norestart(0
+			+ (1 << SIGCHLD)
+			+ (1 << SIGTERM)
+			, s_chld_term);
 
 	xchdir(dir);
 	/* bss: svd[0].pid = 0; */
