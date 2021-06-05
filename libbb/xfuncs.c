@@ -303,7 +303,7 @@ int FAST_FUNC get_terminal_width(int fd)
 	return width;
 }
 
-int FAST_FUNC is_dumb_term(void)
+int FAST_FUNC is_TERM_dumb(void)
 {
 	char *term = getenv("TERM");
 	return term && strcmp(term, "dumb") == 0;
