@@ -109,11 +109,11 @@
 //usage:#define ls_full_usage "\n\n"
 //usage:       "List directory contents\n"
 //usage:     "\n	-1	One column output"
-//usage:     "\n	-a	Include entries which start with ."
+//usage:     "\n	-a	Include names starting with ."
 //usage:     "\n	-A	Like -a, but exclude . and .."
 ////usage:     "\n	-C	List by columns" - don't show, this is a default anyway
 //usage:     "\n	-x	List by lines"
-//usage:     "\n	-d	List directory entries instead of contents"
+//usage:     "\n	-d	List directory names, not contents"
 //usage:	IF_FEATURE_LS_FOLLOWLINKS(
 //usage:     "\n	-L	Follow symlinks"
 //usage:     "\n	-H	Follow symlinks on command line"
@@ -122,10 +122,10 @@
 //usage:     "\n	-R	Recurse"
 //usage:	)
 //usage:	IF_FEATURE_LS_FILETYPES(
-//usage:     "\n	-p	Append / to dir entries"
-//usage:     "\n	-F	Append indicator (one of */=@|) to entries"
+//usage:     "\n	-p	Append / to directory names"
+//usage:     "\n	-F	Append indicator (one of */=@|) to names"
 //usage:	)
-//usage:     "\n	-l	Long listing format"
+//usage:     "\n	-l	Long format"
 //usage:     "\n	-i	List inode numbers"
 //usage:     "\n	-n	List numeric UIDs and GIDs instead of names"
 //usage:     "\n	-s	List allocated blocks"
@@ -134,7 +134,7 @@
 //usage:     "\n	-lu	List atime"
 //usage:	)
 //usage:	IF_FEATURE_LS_TIMESTAMPS(IF_LONG_OPTS(
-//usage:     "\n	--full-time	List full date and time"
+//usage:     "\n	--full-time	List full date/time"
 //usage:	))
 //usage:	IF_FEATURE_HUMAN_READABLE(
 //usage:     "\n	-h	Human readable sizes (1K 243M 2G)"
@@ -160,7 +160,7 @@
 //usage:     "\n	-w N	Format N columns wide"
 //usage:	)
 //usage:	IF_FEATURE_LS_COLOR(
-//usage:     "\n	--color[={always,never,auto}]	Control coloring"
+//usage:     "\n	--color[={always,never,auto}]"
 //usage:	)
 
 #include "libbb.h"
@@ -187,7 +187,7 @@
 
 
 enum {
-TERMINAL_WIDTH  = 80,           /* use 79 if terminal has linefold bug */
+TERMINAL_WIDTH  = 80, /* use 79 if terminal has linefold bug */
 
 SPLIT_FILE      = 0,
 SPLIT_DIR       = 1,
@@ -298,7 +298,7 @@ struct dnode {
 // but there are invisible fields as well
 // (such as nanosecond-resolution timespamps)
 // and padding, which we also don't want to store.
-// We also can pre-parse dev_t dn_rdev (in glibc, it's huge).
+// We also pre-parse dev_t dn_rdev (in glibc, it's huge).
 // On 32-bit uclibc: dnode size went from 112 to 84 bytes.
 //
 	/* Same names as in struct stat, but with dn_ instead of st_ pfx: */
