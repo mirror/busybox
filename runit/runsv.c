@@ -380,7 +380,10 @@ static void startservice(struct svdir *s)
 				xdup2(logpipe.wr, 1);
 			}
 		}
-		/* Non-ignored signals revert to SIG_DFL on exec anyway */
+		/* Non-ignored signals revert to SIG_DFL on exec anyway.
+		 * But we can get signals BEFORE execl(), this is unlikely
+		 * but wouldn't be good...
+		 */
 		/*bb_signals(0
 			+ (1 << SIGCHLD)
 			+ (1 << SIGTERM)

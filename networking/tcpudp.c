@@ -216,17 +216,25 @@ enum {
 	OPT_K = (1 << 16),
 };
 
-static void connection_status(void)
+static void if_verbose_print_connection_status(void)
 {
-	/* "only 1 client max" desn't need this */
-	if (cmax > 1)
-		bb_error_msg("status %u/%u", cnum, cmax);
+	if (verbose) {
+		/* "only 1 client max" desn't need this */
+		if (cmax > 1)
+			bb_error_msg("status %u/%u", cnum, cmax);
+	}
 }
 
+/* SIGCHLD handler is reentrancy-safe because SIGCHLD is unmasked
+ * only over accept() or recvfrom() calls, not over memory allocations
+ * or printouts. Do need to save/restore errno in order not to mangle
+ * these syscalls' error code, if any.
+ */
 static void sig_child_handler(int sig UNUSED_PARAM)
 {
 	int wstat;
 	pid_t pid;
+	int sv_errno = errno;
 
 	while ((pid = wait_any_nohang(&wstat)) > 0) {
 		if (max_per_host)
@@ -236,8 +244,8 @@ static void sig_child_handler(int sig UNUSED_PARAM)
 		if (verbose)
 			print_waitstat(pid, wstat);
 	}
-	if (verbose)
-		connection_status();
+	if_verbose_print_connection_status();
+	errno = sv_errno;
 }
 
 int tcpudpsvd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -458,7 +466,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 		xconnect(0, &remote.u.sa, sa_len);
 	/* hole? at this point we have no wildcard udp socket...
 	 * can this cause clients to get "port unreachable" icmp?
-	 * Yup, time window is very small, but it exists (is it?) */
+	 * Yup, time window is very small, but it exists (does it?) */
 		/* ..."open new socket", continued */
 		xbind(sock, &lsa->u.sa, sa_len);
 		socket_want_pktinfo(sock);
@@ -491,8 +499,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 	if (pid != 0) {
 		/* Parent */
 		cnum++;
-		if (verbose)
-			connection_status();
+		if_verbose_print_connection_status();
 		if (hccp)
 			hccp->pid = pid;
 		/* clean up changes done by vforked child */
@@ -586,8 +593,14 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 
 	xdup2(0, 1);
 
+	/* Restore signal handling for the to-be-execed process */
 	signal(SIGPIPE, SIG_DFL); /* this one was SIG_IGNed */
-	/* Non-ignored signals revert to SIG_DFL on exec anyway */
+	/* Non-ignored signals revert to SIG_DFL on exec anyway
+	 * But we can get signals BEFORE execvp(), this is unlikely
+	 * but it would invoke sig_child_handler(), which would
+	 * check waitpid(WNOHANG), then print "status N/M" if verbose.
+	 * I guess we can live with that possibility.
+	 */
 	/*signal(SIGCHLD, SIG_DFL);*/
 	sig_unblock(SIGCHLD);
 
