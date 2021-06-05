@@ -412,19 +412,32 @@ static void processorstart(struct logdir *ld)
 		int fd;
 
 		/* child */
-		/* Non-ignored signals revert to SIG_DFL on exec anyway */
+		/* Non-ignored signals revert to SIG_DFL on exec anyway.
+		 * But we can get signals BEFORE execl(), this is unlikely
+		 * but wouldn't be good...
+		 */
 		/*bb_signals(0
 			+ (1 << SIGTERM)
+			//+ (1 << SIGCHLD)
 			+ (1 << SIGALRM)
 			+ (1 << SIGHUP)
 			, SIG_DFL);*/
-		sig_unblock(SIGTERM);
-		sig_unblock(SIGALRM);
-		sig_unblock(SIGHUP);
+		/* runit 2.1.2 does not unblock SIGCHLD, a bug? we do: */
+		sigprocmask(SIG_UNBLOCK, &blocked_sigset, NULL);
 
 		if (verbose)
 			bb_error_msg(INFO"processing: %s/%s", ld->name, ld->fnsave);
-		fd = xopen(ld->fnsave, O_RDONLY|O_NDELAY);
+
+		fd = open_or_warn(ld->fnsave, O_RDONLY|O_NDELAY);
+		/* Used to have xopen() above, but it causes infinite restarts of processor
+		 * if file is gone - which can happen even because of _us_!
+		 * Users report that if on reboot, time is reset to before existing
+		 * logfiles creation time, rmoldest() deletes the newest logfile (!)
+		 * and we end up here trying to open this now-deleted file.
+		 */
+		if (fd < 0)
+			_exit(0); /* fake "success": do not run processor again */
+
 		xmove_fd(fd, 0);
 		ld->fnsave[26] = 't'; /* <- that's why we need sv_ch! */
 		fd = xopen(ld->fnsave, O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT);
