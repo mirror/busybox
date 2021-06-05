@@ -1326,10 +1326,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	}
 	if (str_V[0] != '\0') {
 		char *p;
-		unsigned len;
-		//msg added 2021-06
-		bb_error_msg("option -V VENDOR is deprecated, use -x vendor:VENDOR");
-		len = strlen(str_V);
+		unsigned len = strnlen(str_V, 254);
 		p = udhcp_insert_new_option(
 				&client_data.options, DHCP_VENDOR,
 				len, /*dhcp6:*/ 0);
