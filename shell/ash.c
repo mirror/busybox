@@ -14161,6 +14161,10 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		}
 	}
 
+	if (!ENABLE_ASH_BASH_COMPAT && !argptr) {
+		bb_simple_error_msg("read: need variable name");
+		return 1;
+	}
 	params.argv = argptr;
 	params.setvar = setvar0;
 	params.ifs = bltinlookup("IFS"); /* can be NULL */

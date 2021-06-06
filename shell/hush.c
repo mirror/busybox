@@ -4251,7 +4251,7 @@ static int done_word(struct parse_context *ctx)
 		 || endofname(command->argv[0])[0] != '\0'
 		) {
 			/* bash says just "not a valid identifier" */
-			syntax_error("not a valid identifier in for");
+			syntax_error("bad variable name in for");
 			return 1;
 		}
 		/* Force FOR to have just one word (variable name) */
@@ -10799,10 +10799,17 @@ static int FAST_FUNC builtin_read(char **argv)
 	 */
 	params.read_flags = getopt32(argv,
 # if BASH_READ_D
-		"!srn:p:t:u:d:", &params.opt_n, &params.opt_p, &params.opt_t, &params.opt_u, &params.opt_d
+		IF_NOT_HUSH_BASH_COMPAT("^")
+		"!srn:p:t:u:d:" IF_NOT_HUSH_BASH_COMPAT("\0" "-1"/*min 1 arg*/),
+		&params.opt_n, &params.opt_p, &params.opt_t, &params.opt_u, &params.opt_d
 # else
-		"!srn:p:t:u:", &params.opt_n, &params.opt_p, &params.opt_t, &params.opt_u
+		IF_NOT_HUSH_BASH_COMPAT("^")
+		"!srn:p:t:u:" IF_NOT_HUSH_BASH_COMPAT("\0" "-1"/*min 1 arg*/),
+		&params.opt_n, &params.opt_p, &params.opt_t, &params.opt_u
 # endif
+//TODO: print "read: need variable name"
+//for the case of !BASH "read" with no args (now it fails silently)
+//(or maybe extend getopt32() to emit a message if "-1" fails)
 	);
 	if ((uint32_t)params.read_flags == (uint32_t)-1)
 		return EXIT_FAILURE;

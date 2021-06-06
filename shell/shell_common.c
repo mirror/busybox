@@ -59,7 +59,7 @@ shell_builtin_read(struct builtin_read_params *params)
 	while (*pp) {
 		if (endofname(*pp)[0] != '\0') {
 			/* Mimic bash message */
-			bb_error_msg("read: '%s': not a valid identifier", *pp);
+			bb_error_msg("read: '%s': bad variable name", *pp);
 			return (const char *)(uintptr_t)1;
 		}
 		pp++;
