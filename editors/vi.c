@@ -2998,12 +2998,10 @@ static void colon(char *buf)
 			status_line_bold("No current filename");
 			goto ret;
 		}
-		if (e < 0) {	// no addr given- read after current line
-			q = begin_line(dot);
-		} else if (e == 0) {	// user said ":0r foo"
+		if (e == 0) {	// user said ":0r foo"
 			q = text;
-		} else {	// addr given- read after that line
-			q = next_line(find_line(e));
+		} else {	// read after given line or current line if none given
+			q = next_line(e > 0 ? find_line(e) : dot);
 			// read after last line
 			if (q == end-1)
 				++q;
