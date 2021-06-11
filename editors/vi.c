@@ -536,6 +536,7 @@ struct globals {
 	last_modified_count = -1; \
 	/* "" but has space for 2 chars: */ \
 	IF_FEATURE_VI_SEARCH(last_search_pattern = xzalloc(2);) \
+	tabstop = 8; \
 } while (0)
 
 #if ENABLE_FEATURE_VI_CRASHME
@@ -4619,7 +4620,6 @@ static void edit_file(char *fn)
 
 	cmd_mode = 0;		// 0=command  1=insert  2='R'eplace
 	cmdcnt = 0;
-	tabstop = 8;
 	offset = 0;			// no horizontal offset
 	c = '\0';
 #if ENABLE_FEATURE_VI_DOT_CMD
