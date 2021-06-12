@@ -22,7 +22,7 @@
 //usage:       "[-n SEC] [-t] PROG ARGS"
 //usage:#define watch_full_usage "\n\n"
 //usage:       "Run PROG periodically\n"
-//usage:     "\n	-n SEC	Loop period (default 2)"
+//usage:     "\n	-n SEC	Period (default 2)"
 //usage:     "\n	-t	Don't print header"
 //usage:
 //usage:#define watch_example_usage

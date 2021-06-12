@@ -183,7 +183,7 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define base32_trivial_usage
 //usage:	"[-d] [-w COL] [FILE]"
 //usage:#define base32_full_usage "\n\n"
-//usage:       "Base32 encode or decode FILE to standard output"
+//usage:       "Base32 encode or decode FILE to standard output\n"
 //usage:     "\n	-d	Decode data"
 //usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
 ////usage:     "\n	-i	When decoding, ignore non-alphabet characters"
@@ -191,7 +191,7 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define base64_trivial_usage
 //usage:	"[-d] [-w COL] [FILE]"
 //usage:#define base64_full_usage "\n\n"
-//usage:       "Base64 encode or decode FILE to standard output"
+//usage:       "Base64 encode or decode FILE to standard output\n"
 //usage:     "\n	-d	Decode data"
 //usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
 ////usage:     "\n	-i	When decoding, ignore non-alphabet characters"

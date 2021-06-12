@@ -45,7 +45,7 @@
 //usage:#define expr_trivial_usage
 //usage:       "EXPRESSION"
 //usage:#define expr_full_usage "\n\n"
-//usage:       "Print the value of EXPRESSION to stdout\n"
+//usage:       "Print the value of EXPRESSION\n"
 //usage:    "\n"
 //usage:       "EXPRESSION may be:\n"
 //usage:       "	ARG1 | ARG2	ARG1 if it is neither null nor 0, otherwise ARG2\n"
@@ -63,7 +63,7 @@
 //usage:       "	ARG1 % ARG2\n"
 //usage:       "	STRING : REGEXP		Anchored pattern match of REGEXP in STRING\n"
 //usage:       "	match STRING REGEXP	Same as STRING : REGEXP\n"
-//usage:       "	substr STRING POS LENGTH Substring of STRING, POS counted from 1\n"
+//usage:       "	substr STRING POS LEN	Substring of STRING, POS counts from 1\n"
 //usage:       "	index STRING CHARS	Index in STRING where any CHARS is found, or 0\n"
 //usage:       "	length STRING		Length of STRING\n"
 //usage:       "	quote TOKEN		Interpret TOKEN as a string, even if\n"

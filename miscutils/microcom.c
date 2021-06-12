@@ -18,14 +18,14 @@
 //kbuild:lib-$(CONFIG_MICROCOM) += microcom.o
 
 //usage:#define microcom_trivial_usage
-//usage:       "[-d DELAY] [-t TIMEOUT] [-s SPEED] [-X] TTY"
+//usage:       "[-d DELAY_MS] [-t TIMEOUT_MS ] [-s SPEED] [-X] TTY"
 //usage:#define microcom_full_usage "\n\n"
-//usage:       "Copy bytes for stdin to TTY and from TTY to stdout\n"
-//usage:     "\n	-d	Wait up to DELAY ms for TTY output before sending every"
-//usage:     "\n		next byte to it"
-//usage:     "\n	-t	Exit if both stdin and TTY are silent for TIMEOUT ms"
-//usage:     "\n	-s	Set serial line to SPEED"
-//usage:     "\n	-X	Disable special meaning of NUL and Ctrl-X from stdin"
+//usage:       "Copy bytes from stdin to TTY and from TTY to stdout\n"
+//usage:     "\n	-d DELAY	Wait up to DELAY ms for TTY output before sending"
+//usage:     "\n			every next byte to it"
+//usage:     "\n	-t TIMEOUT	Exit if both stdin and TTY are silent for TIMEOUT ms"
+//usage:     "\n	-s SPEED	Set serial line to SPEED"
+//usage:     "\n	-X		Disable special meaning of NUL and Ctrl-X from stdin"
 
 #include "libbb.h"
 #include "common_bufsiz.h"

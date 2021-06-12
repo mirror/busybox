@@ -39,12 +39,14 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/env.html */
 
 //usage:#define env_trivial_usage
-//usage:       "[-iu] [-] [name=value]... [PROG ARGS]"
+//usage:       "[-i] [-u NAME]... [-] [NAME=VALUE]... [PROG ARGS]"
+// The "-" can occur only once (unlike, say, -i): it terminates option processing,
+// so if it is followed by another "-" arg (or any option-looking arg),
+// that arg will be taken as PROG (or even as NAME=VALUE, example: "-z=QWE").
 //usage:#define env_full_usage "\n\n"
-//usage:       "Print the current environment or run PROG after setting up\n"
-//usage:       "the specified environment\n"
-//usage:     "\n	-, -i	Start with an empty environment"
-//usage:     "\n	-u	Remove variable from the environment"
+//usage:       "Print current environment or run PROG after setting up environment\n"
+//usage:     "\n	-, -i	Start with empty environment"
+//usage:     "\n	-u NAME	Remove variable from environment"
 
 #include "libbb.h"
 

@@ -20,12 +20,12 @@
 //usage:       "COMMAND [OPTIONS]"
 //usage:#define vconfig_full_usage "\n\n"
 //usage:       "Create and remove virtual ethernet devices\n"
-//usage:     "\n	add		IFACE VLAN_ID"
-//usage:     "\n	rem		VLAN_NAME"
-//usage:     "\n	set_flag	IFACE 0|1 VLAN_QOS"
-//usage:     "\n	set_egress_map	VLAN_NAME SKB_PRIO VLAN_QOS"
-//usage:     "\n	set_ingress_map	VLAN_NAME SKB_PRIO VLAN_QOS"
-//usage:     "\n	set_name_type	NAME_TYPE"
+//usage:     "\n	add IFACE VLAN_ID"
+//usage:     "\n	rem VLAN_NAME"
+//usage:     "\n	set_flag IFACE 0|1 VLAN_QOS"
+//usage:     "\n	set_egress_map VLAN_NAME SKB_PRIO VLAN_QOS"
+//usage:     "\n	set_ingress_map VLAN_NAME SKB_PRIO VLAN_QOS"
+//usage:     "\n	set_name_type NAME_TYPE"
 
 #include "libbb.h"
 #include <net/if.h>

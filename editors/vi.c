@@ -181,7 +181,7 @@
 //kbuild:lib-$(CONFIG_VI) += vi.o
 
 //usage:#define vi_trivial_usage
-//usage:       IF_FEATURE_VI_COLON("[-c CMD] ")IF_FEATURE_VI_READONLY("[-R] ")"[FILE]..."
+//usage:       IF_FEATURE_VI_COLON("[-c CMD] ")IF_FEATURE_VI_READONLY("[-R] ")"[-H] [FILE]..."
 //usage:#define vi_full_usage "\n\n"
 //usage:       "Edit FILE\n"
 //usage:	IF_FEATURE_VI_COLON(
@@ -191,6 +191,7 @@
 //usage:     "\n	-R	Read-only"
 //usage:	)
 //usage:     "\n	-H	List available features"
+// note: non-standard, "vim -H" is Hebrew mode (bidi support)
 
 #include "libbb.h"
 // Should be after libbb.h: on some systems regex.h needs sys/types.h:
@@ -4748,7 +4749,11 @@ int vi_main(int argc, char **argv)
 			initial_cmds[0] = xstrndup(p, MAX_INPUT_LEN);
 	}
 #endif
-	while ((c = getopt(argc, argv, "hCRH" IF_FEATURE_VI_COLON("c:"))) != -1) {
+	while ((c = getopt(argc, argv,
+#if ENABLE_FEATURE_VI_CRASHME
+			"C"
+#endif
+			"RHh" IF_FEATURE_VI_COLON("c:"))) != -1) {
 		switch (c) {
 #if ENABLE_FEATURE_VI_CRASHME
 		case 'C':

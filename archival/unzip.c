@@ -63,7 +63,7 @@
 //usage:     "\n	-n	Never overwrite files (default: ask)"
 //usage:     "\n	-o	Overwrite"
 //usage:     "\n	-j	Do not restore paths"
-//usage:     "\n	-p	Print to stdout"
+//usage:     "\n	-p	Write to stdout"
 //usage:     "\n	-t	Test"
 //usage:     "\n	-q	Quiet"
 //usage:     "\n	-x FILE	Exclude FILEs"

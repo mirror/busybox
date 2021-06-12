@@ -70,7 +70,7 @@
 //usage:#define sed_full_usage "\n\n"
 //usage:       "	-e CMD	Add CMD to sed commands to be executed"
 //usage:     "\n	-f FILE	Add FILE contents to sed commands to be executed"
-//usage:     "\n	-i[SFX]	Edit files in-place (otherwise sends to stdout)"
+//usage:     "\n	-i[SFX]	Edit files in-place (otherwise write to stdout)"
 //usage:     "\n		Optionally back files up, appending SFX"
 //usage:     "\n	-n	Suppress automatic printing of pattern space"
 //usage:     "\n	-r,-E	Use extended regex syntax"
