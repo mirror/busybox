@@ -1386,6 +1386,12 @@ static void bc_num_copy(BcNum *d, BcNum *s)
 	}
 }
 
+static void bc_num_init_and_copy(BcNum *d, BcNum *s)
+{
+	bc_num_init(d, s->len);
+	bc_num_copy(d, s);
+}
+
 static BC_STATUS zbc_num_ulong_abs(BcNum *n, unsigned long *result_p)
 {
 	size_t i;
@@ -1985,11 +1991,8 @@ static FAST_FUNC BC_STATUS zbc_num_m(BcNum *a, BcNum *b, BcNum *restrict c, size
 	scale = BC_MIN(a->rdx + b->rdx, scale);
 	maxrdx = BC_MAX(maxrdx, scale);
 
-	bc_num_init(&cpa, a->len);
-	bc_num_init(&cpb, b->len);
-
-	bc_num_copy(&cpa, a);
-	bc_num_copy(&cpb, b);
+	bc_num_init_and_copy(&cpa, a);
+	bc_num_init_and_copy(&cpb, b);
 	cpa.neg = cpb.neg = false;
 
 	s = zbc_num_shift(&cpa, maxrdx);
@@ -2181,8 +2184,7 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 	if (s) RETURN_STATUS(s);
 	// b is not used beyond this point
 
-	bc_num_init(&copy, a->len);
-	bc_num_copy(&copy, a);
+	bc_num_init_and_copy(&copy, a);
 	a_rdx = a->rdx; // pull it into a CPU register (hopefully)
 	// a is not used beyond this point
 
@@ -2508,8 +2510,7 @@ static void bc_array_copy(BcVec *d, const BcVec *s)
 	dnum = (void*)d->v;
 	snum = (void*)s->v;
 	for (i = 0; i < s->len; i++, dnum++, snum++) {
-		bc_num_init(dnum, snum->len);
-		bc_num_copy(dnum, snum);
+		bc_num_init_and_copy(dnum, snum);
 	}
 }
 
@@ -2523,8 +2524,7 @@ static void dc_result_copy(BcResult *d, BcResult *src)
 		case XC_RESULT_IBASE:
 		case XC_RESULT_SCALE:
 		case XC_RESULT_OBASE:
-			bc_num_init(&d->d.n, src->d.n.len);
-			bc_num_copy(&d->d.n, &src->d.n);
+			bc_num_init_and_copy(&d->d.n, &src->d.n);
 			break;
 		case XC_RESULT_VAR:
 		case XC_RESULT_ARRAY:
@@ -5626,11 +5626,10 @@ static BC_STATUS zxc_num_printNum(BcNum *n, unsigned base_t, size_t width, BcNum
 	}
 
 	bc_vec_init(&stack, sizeof(long), NULL);
-	bc_num_init(&intp, n->len);
+	bc_num_init_and_copy(&intp, n);
 	bc_num_init(&fracp, n->rdx);
 	bc_num_init(&digit, width);
 	bc_num_init(&frac_len, BC_NUM_INT(n));
-	bc_num_copy(&intp, n);
 	bc_num_one(&frac_len);
 	base.cap = ARRAY_SIZE(base_digs);
 	base.num = base_digs;
@@ -5799,8 +5798,7 @@ static BC_STATUS zxc_program_negate(void)
 	s = zxc_program_prep(&ptr, &num);
 	if (s) RETURN_STATUS(s);
 
-	bc_num_init(&res.d.n, num->len);
-	bc_num_copy(&res.d.n, num);
+	bc_num_init_and_copy(&res.d.n, num);
 	if (res.d.n.len) res.d.n.neg = !res.d.n.neg;
 
 	xc_program_retire(&res, XC_RESULT_TEMP);
@@ -6039,8 +6037,7 @@ static BC_STATUS zxc_program_assign(char inst)
 		s = BC_STATUS_SUCCESS;
 	}
 
-	bc_num_init(&res.d.n, l->len);
-	bc_num_copy(&res.d.n, l);
+	bc_num_init_and_copy(&res.d.n, l);
 	xc_program_binOpRetire(&res);
 
 	RETURN_STATUS(s);
@@ -6137,8 +6134,7 @@ static BC_STATUS zbc_program_incdec(char inst)
 
 	if (inst == BC_INST_INC_POST || inst == BC_INST_DEC_POST) {
 		copy.t = XC_RESULT_TEMP;
-		bc_num_init(&copy.d.n, num->len);
-		bc_num_copy(&copy.d.n, num);
+		bc_num_init_and_copy(&copy.d.n, num);
 	}
 
 	res.t = BC_RESULT_ONE;
@@ -6240,8 +6236,7 @@ static BC_STATUS zbc_program_return(char inst)
 
 		s = zxc_program_num(operand, &num);
 		if (s) RETURN_STATUS(s);
-		bc_num_init(&res.d.n, num->len);
-		bc_num_copy(&res.d.n, num);
+		bc_num_init_and_copy(&res.d.n, num);
 		bc_vec_pop(&G.prog.results);
 	} else {
 		if (f->voidfunc)
