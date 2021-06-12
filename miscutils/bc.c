@@ -5,7 +5,7 @@
  * Original code copyright (c) 2018 Gavin D. Howard and contributors.
  */
 //TODO:
-// maybe implement a^b for non-integer b?
+// maybe implement a^b for non-integer b? (see zbc_num_p())
 
 #define DEBUG_LEXER   0
 #define DEBUG_COMPILE 0
@@ -2163,6 +2163,9 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 		if (b->num[i] != 0)
 			RETURN_STATUS(bc_error("not an integer"));
 
+// a^b for non-integer b (for a>0) can be implemented as exp(ln(a)*b).
+// Possibly better precision would be given by a^int(b) * exp(ln(a)*frac(b)).
+
 	if (b->len == 0) {
 		bc_num_one(c);
 		RETURN_STATUS(BC_STATUS_SUCCESS);
@@ -2199,11 +2202,11 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 //but it can be improved to detect zero results etc. Example: with scale=0,
 //result of 0.01^N for any N>1 is 0: 0.01^2 = 0.0001 ~= 0.00 (trunc to scale)
 //then this would matter:
-		// if (new_scale >= pow) is false, we had overflow, correct
-		// "new_scale" value is larger than ULONG_MAX, thus larger
-		// than any possible current value of "scale",
+		// if a_rdx != 0 and new_scale < pow, we had overflow,
+		// correct "new_scale" value is larger than ULONG_MAX,
+		// thus larger than any possible current value of "scale",
 		// thus "scale = new_scale" should not be done:
-		if (new_scale >= pow)
+		if (a_rdx == 0 || new_scale >= pow)
 			if (new_scale < scale)
 				scale = new_scale;
 	}
