@@ -2152,6 +2152,7 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 	BcNum copy;
 	unsigned long pow;
 	size_t i, powrdx, resrdx;
+	size_t a_rdx;
 	bool neg;
 
 	// GNU bc does not allow 2^2.0 - we do
@@ -2182,16 +2183,30 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 
 	bc_num_init(&copy, a->len);
 	bc_num_copy(&copy, a);
+	a_rdx = a->rdx; // pull it into a CPU register (hopefully)
+	// a is not used beyond this point
 
 	if (!neg) {
-		if (a->rdx > scale)
-			scale = a->rdx;
-		if (a->rdx * pow < scale)
-			scale = a->rdx * pow;
+		unsigned long new_scale;
+		if (a_rdx > scale)
+			scale = a_rdx;
+		new_scale = a_rdx * pow;
+		// Don't fall for multiplication overflow. Example:
+		// 0.01^2147483648 a_rdx:2 pow:0x80000000, 32bit mul is 0.
+//not that it matters with current algorithm, it would OOM on such large powers,
+//but it can be improved to detect zero results etc. Example: with scale=0,
+//result of 0.01^N for any N>1 is 0: 0.01^2 = 0.0001 ~= 0.00 (trunc to scale)
+//then this would matter:
+		// if (new_scale >= pow) is false, we had overflow, correct
+		// "new_scale" value is larger than ULONG_MAX, thus larger
+		// than any possible current value of "scale",
+		// thus "scale = new_scale" should not be done:
+		if (new_scale >= pow)
+			if (new_scale < scale)
+				scale = new_scale;
 	}
 
-
-	for (powrdx = a->rdx; !(pow & 1); pow >>= 1) {
+	for (powrdx = a_rdx; !(pow & 1); pow >>= 1) {
 		powrdx <<= 1;
 		s = zbc_num_mul(&copy, &copy, &copy, powrdx);
 		if (s) goto err;
