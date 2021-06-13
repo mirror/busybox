@@ -194,7 +194,9 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "Base64 encode or decode FILE to standard output\n"
 //usage:     "\n	-d	Decode data"
 //usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
-////usage:     "\n	-i	When decoding, ignore non-alphabet characters"
+///////:     "\n	-i	When decoding, ignore non-alphabet characters"
+// -i is accepted but has no effect: currently, decode_base32/64() functions
+// (called via read_base64()) skip invalid chars unconditionally.
 
 //                 APPLET_ODDNAME:name    main     location    suid_type     help
 //applet:IF_BASE32(APPLET_ODDNAME(base32, baseNUM, BB_DIR_BIN, BB_SUID_DROP, base32))
@@ -272,7 +274,7 @@ int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opts;
 	unsigned col = 76;
 
-	opts = getopt32(argv, "^" "dw:+" "\0" "?1"/* 1 arg max*/, &col);
+	opts = getopt32(argv, "^" "diw:+" "\0" "?1"/* 1 arg max*/, &col);
 	argv += optind;
 
 	if (!argv[0])
