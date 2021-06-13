@@ -21,7 +21,7 @@
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/tty.html */
 
 //usage:#define tty_trivial_usage
-//usage:       ""
+//usage:       "" IF_INCLUDE_SUSv2("[-s]")
 //usage:#define tty_full_usage "\n\n"
 //usage:       "Print file name of stdin's terminal"
 //usage:	IF_INCLUDE_SUSv2( "\n"

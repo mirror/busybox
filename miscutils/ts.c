@@ -13,7 +13,10 @@
 
 //usage:#define ts_trivial_usage
 //usage:       "[-is] [STRFTIME]"
-//usage:#define ts_full_usage ""
+//usage:#define ts_full_usage "\n\n"
+//usage:       "Pipe stdin to stdout, add timestamp to each line\n"
+//usage:     "\n	-s	Time since start"
+//usage:     "\n	-i	Time since previous line"
 
 #include "libbb.h"
 #include "common_bufsiz.h"

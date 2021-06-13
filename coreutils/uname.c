@@ -79,13 +79,13 @@
 //usage:#define uname_full_usage "\n\n"
 //usage:       "Print system information\n"
 //usage:     "\n	-a	Print all"
-//usage:     "\n	-m	The machine (hardware) type"
+//usage:     "\n	-m	Machine (hardware) type"
 //usage:     "\n	-n	Hostname"
 //usage:     "\n	-r	Kernel release"
 //usage:     "\n	-s	Kernel name (default)"
 //usage:     "\n	-p	Processor type"
 //usage:     "\n	-v	Kernel version"
-//usage:     "\n	-i	The hardware platform"
+//usage:     "\n	-i	Hardware platform"
 //usage:     "\n	-o	OS name"
 //usage:
 //usage:#define uname_example_usage

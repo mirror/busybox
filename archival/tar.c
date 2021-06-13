@@ -775,7 +775,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 //usage:	"vokO] "
 //usage:	"[-f TARFILE] [-C DIR] "
-//usage:	IF_FEATURE_TAR_FROM("[-T FILE] [-X FILE] "IF_FEATURE_TAR_LONG_OPTIONS("[OPTION]... "))
+//usage:	IF_FEATURE_TAR_FROM("[-T FILE] [-X FILE] "IF_FEATURE_TAR_LONG_OPTIONS("[LONGOPT]... "))
 //usage:	"[FILE]..."
 //usage:#define tar_full_usage "\n\n"
 //usage:	IF_FEATURE_TAR_CREATE("Create, extract, ")

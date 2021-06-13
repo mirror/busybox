@@ -1052,9 +1052,9 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 //usage:       "[-b"IF_FEATURE_TOPMEM("m")IF_FEATURE_SHOW_THREADS("H")"]"
 //usage:       " [-n COUNT] [-d SECONDS]"
 //usage:#define top_full_usage "\n\n"
-//usage:       "Provide a view of process activity in real time."
+//usage:       "Show a view of process activity in real time."
 //usage:   "\n""Read the status of all processes from /proc each SECONDS"
-//usage:   "\n""and display a screenful of them."
+//usage:   "\n""and show a screenful of them."
 //usage:   "\n"
 //usage:	IF_FEATURE_TOP_INTERACTIVE(
 //usage:       "Keys:"

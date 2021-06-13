@@ -31,7 +31,7 @@
 //kbuild:lib-$(CONFIG_TOUCH) += touch.o
 
 //usage:#define touch_trivial_usage
-//usage:       "[-c" IF_FEATURE_TOUCH_SUSV3("am") "]"
+//usage:       "[-ch" IF_FEATURE_TOUCH_SUSV3("am") "]"
 //usage:       IF_FEATURE_TOUCH_SUSV3(" [-d DATE] [-t DATE] [-r FILE]")
 //usage:       " FILE..."
 //usage:#define touch_full_usage "\n\n"

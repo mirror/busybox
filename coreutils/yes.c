@@ -27,7 +27,7 @@
 //usage:#define yes_trivial_usage
 //usage:       "[STRING]"
 //usage:#define yes_full_usage "\n\n"
-//usage:       "Repeatedly output a line with STRING, or 'y'"
+//usage:       "Repeatedly print a line with STRING, or 'y'"
 
 #include "libbb.h"
 
