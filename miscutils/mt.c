@@ -19,7 +19,7 @@
 //usage:#define mt_full_usage "\n\n"
 //usage:       "Control magnetic tape drive operation\n"
 //usage:       "\n"
-//usage:       "Available Opcodes:\n"
+//usage:       "Opcodes:\n"
 //usage:       "\n"
 //usage:       "bsf bsfm bsr bss datacompression drvbuffer eof eom erase\n"
 //usage:       "fsf fsfm fsr fss load lock mkpart nop offline ras1 ras2\n"

@@ -14,7 +14,7 @@
 //kbuild:lib-$(CONFIG_NPROC) += nproc.o
 
 //usage:#define nproc_trivial_usage
-//usage:	""IF_LONG_OPTS("--all --ignore=N")
+//usage:	""IF_LONG_OPTS("[--all] [--ignore=N]")
 //usage:#define nproc_full_usage "\n\n"
 //usage:	"Print number of available CPUs"
 //usage:	IF_LONG_OPTS(

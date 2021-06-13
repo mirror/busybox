@@ -399,7 +399,7 @@ setfont [-O font+umap.orig] [-o font.orig] [-om cmap.orig]
 -V     Version
 */
 //usage:#define setfont_trivial_usage
-//usage:       "FONT [-m MAPFILE] [-C TTY]"
+//usage:       "[-m MAPFILE] [-C TTY] FILE"
 //usage:#define setfont_full_usage "\n\n"
 //usage:       "Load a console font\n"
 //usage:     "\n	-m MAPFILE	Load console screen map"

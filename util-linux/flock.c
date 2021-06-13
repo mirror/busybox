@@ -14,7 +14,7 @@
 //kbuild:lib-$(CONFIG_FLOCK) += flock.o
 
 //usage:#define flock_trivial_usage
-//usage:       "[-sxun] FD|{FILE [-c] PROG ARGS}"
+//usage:       "[-sxun] FD | { FILE [-c] PROG ARGS }"
 //usage:#define flock_full_usage "\n\n"
 //usage:       "[Un]lock file descriptor, or lock FILE, run PROG\n"
 //usage:     "\n	-s	Shared lock"

@@ -1394,7 +1394,7 @@ static void check_i2c_func(int fd)
 }
 
 //usage:#define i2ctransfer_trivial_usage
-//usage:       "[-fay] I2CBUS {rLENGTH[@ADDR] | wLENGTH[@ADDR] DATA...}..."
+//usage:       "[-fay] I2CBUS { rLENGTH[@ADDR] | wLENGTH[@ADDR] DATA...}..."
 //usage:#define i2ctransfer_full_usage "\n\n"
 //usage:       "Read/write I2C data in one transfer"
 //usage:     "\n"

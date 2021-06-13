@@ -44,17 +44,17 @@
 //usage:     "\n	-P	Match parent process ID"
 //usage:
 //usage:#define pkill_trivial_usage
-//usage:       "[-l|-SIGNAL] [-fnovx] [-s SID|-P PPID|PATTERN]"
+//usage:       "[-l|-SIGNAL] [-xfvno] [-s SID|-P PPID|PATTERN]"
 //usage:#define pkill_full_usage "\n\n"
-//usage:       "Send a signal to process(es) selected by regex PATTERN\n"
+//usage:       "Send signal to processes selected by regex PATTERN\n"
 //usage:     "\n	-l	List all signals"
+//usage:     "\n	-x	Match whole name (not substring)"
 //usage:     "\n	-f	Match against entire command line"
+//usage:     "\n	-s SID	Match session ID (0 for current)"
+//usage:     "\n	-P PPID	Match parent process ID"
+//usage:     "\n	-v	Negate the match"
 //usage:     "\n	-n	Signal the newest process only"
 //usage:     "\n	-o	Signal the oldest process only"
-//usage:     "\n	-v	Negate the match"
-//usage:     "\n	-x	Match whole name (not substring)"
-//usage:     "\n	-s	Match session ID (0 for current)"
-//usage:     "\n	-P	Match parent process ID"
 
 #include "libbb.h"
 #include "xregex.h"

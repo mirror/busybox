@@ -19,13 +19,14 @@
 //kbuild:lib-$(CONFIG_MOUNTPOINT) += mountpoint.o
 
 //usage:#define mountpoint_trivial_usage
-//usage:       "[-q] <[-dn] DIR | -x DEVICE>"
+//usage:       "[-q] { [-dn] DIR | -x DEVICE }"
 //usage:#define mountpoint_full_usage "\n\n"
-//usage:       "Check if the directory is a mountpoint\n"
+//usage:       "Check if DIR is a mountpoint\n"
 //usage:     "\n	-q	Quiet"
-//usage:     "\n	-d	Print major/minor device number of the filesystem"
+//usage:     "\n	-d	Print major:minor of the filesystem"
 //usage:     "\n	-n	Print device name of the filesystem"
-//usage:     "\n	-x	Print major/minor device number of the blockdevice"
+//////// -n is not supported by util-linux-2.36.1 ^^^^^^^^^^^^^^^^^^
+//usage:     "\n	-x	Print major:minor of DEVICE"
 //usage:
 //usage:#define mountpoint_example_usage
 //usage:       "$ mountpoint /proc\n"

@@ -52,10 +52,10 @@
 //usage:#define nameif_full_usage "\n\n"
 //usage:	"Rename network interface while it in the down state."
 //usage:	IF_NOT_FEATURE_NAMEIF_EXTENDED(
-//usage:     "\nThe device with address HWADDR is renamed to IFACE."
+//usage:     "\nThe device with address HWADDR is renamed to IFNAME."
 //usage:	)
 //usage:	IF_FEATURE_NAMEIF_EXTENDED(
-//usage:     "\nThe device matched by SELECTOR is renamed to IFACE."
+//usage:     "\nThe device matched by SELECTOR is renamed to IFNAME."
 //usage:     "\nSELECTOR can be a combination of:"
 //usage:     "\n	driver=STRING"
 //usage:     "\n	bus=STRING"
