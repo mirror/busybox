@@ -479,15 +479,15 @@ static ALWAYS_INLINE uint32_t random_xid(void)
 }
 
 /* Initialize the packet with the proper defaults */
-static uint8_t *init_d6_packet(struct d6_packet *packet, char type, uint32_t xid)
+static uint8_t *init_d6_packet(struct d6_packet *packet, char type)
 {
 	uint8_t *ptr;
 	unsigned secs;
 
 	memset(packet, 0, sizeof(*packet));
 
-	packet->d6_xid32 = xid;
-	packet->d6_msg_type = type;
+	packet->d6_xid32 = client_data.xid;
+	packet->d6_msg_type = type; /* union, overwrites lowest byte of d6_xid32 */
 
 	/* ELAPSED_TIME option is required to be present by the RFC,
 	 * and some servers do check for its presense. [which?]
@@ -585,13 +585,13 @@ static int d6_mcast_from_client_data_ifindex(struct d6_packet *packet, uint8_t *
  * about parameter values the client would like to have returned.
  */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int send_d6_info_request(uint32_t xid)
+static NOINLINE int send_d6_info_request(void)
 {
 	struct d6_packet packet;
 	uint8_t *opt_ptr;
 
-	/* Fill in: msg type */
-	opt_ptr = init_d6_packet(&packet, D6_MSG_INFORMATION_REQUEST, xid);
+	/* Fill in: msg type, xid, ELAPSED_TIME */
+	opt_ptr = init_d6_packet(&packet, D6_MSG_INFORMATION_REQUEST);
 
 	/* Add options: client-id,
 	 * "param req" option according to -O, options specified with -x
@@ -684,14 +684,14 @@ static NOINLINE int send_d6_info_request(uint32_t xid)
       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int send_d6_discover(uint32_t xid, struct in6_addr *requested_ipv6)
+static NOINLINE int send_d6_discover(struct in6_addr *requested_ipv6)
 {
 	struct d6_packet packet;
 	uint8_t *opt_ptr;
 	unsigned len;
 
-	/* Fill in: msg type */
-	opt_ptr = init_d6_packet(&packet, D6_MSG_SOLICIT, xid);
+	/* Fill in: msg type, xid, ELAPSED_TIME */
+	opt_ptr = init_d6_packet(&packet, D6_MSG_SOLICIT);
 
 	/* Create new IA_NA, optionally with included IAADDR with requested IP */
 	free(client6_data.ia_na);
@@ -763,13 +763,13 @@ static NOINLINE int send_d6_discover(uint32_t xid, struct in6_addr *requested_ip
  * messages from the server.
  */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int send_d6_select(uint32_t xid)
+static NOINLINE int send_d6_select(void)
 {
 	struct d6_packet packet;
 	uint8_t *opt_ptr;
 
-	/* Fill in: msg type */
-	opt_ptr = init_d6_packet(&packet, D6_MSG_REQUEST, xid);
+	/* Fill in: msg type, xid, ELAPSED_TIME */
+	opt_ptr = init_d6_packet(&packet, D6_MSG_REQUEST);
 
 	/* server id */
 	opt_ptr = mempcpy(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
@@ -836,13 +836,13 @@ static NOINLINE int send_d6_select(uint32_t xid)
  * about parameter values the client would like to have returned.
  */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int send_d6_renew(uint32_t xid, struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
+static NOINLINE int send_d6_renew(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
 {
 	struct d6_packet packet;
 	uint8_t *opt_ptr;
 
-	/* Fill in: msg type */
-	opt_ptr = init_d6_packet(&packet, DHCPREQUEST, xid);
+	/* Fill in: msg type, xid, ELAPSED_TIME */
+	opt_ptr = init_d6_packet(&packet, DHCPREQUEST);
 
 	/* server id */
 	opt_ptr = mempcpy(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
@@ -877,8 +877,8 @@ int send_d6_release(struct in6_addr *server_ipv6, struct in6_addr *our_cur_ipv6)
 	uint8_t *opt_ptr;
 	struct option_set *ci;
 
-	/* Fill in: msg type, client id */
-	opt_ptr = init_d6_packet(&packet, D6_MSG_RELEASE, random_xid());
+	/* Fill in: msg type, xid, ELAPSED_TIME */
+	opt_ptr = init_d6_packet(&packet, D6_MSG_RELEASE);
 	/* server id */
 	opt_ptr = mempcpy(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
 	/* IA NA (contains our current IP) */
@@ -1097,6 +1097,7 @@ static void perform_d6_release(struct in6_addr *server_ipv6, struct in6_addr *ou
 	 || client_data.state == RENEW_REQUESTED
 	) {
 		bb_simple_info_msg("unicasting a release");
+		client_data.xid = random_xid(); //TODO: can omit?
 		send_d6_release(server_ipv6, our_cur_ipv6); /* unicast */
 	}
 	bb_simple_info_msg("entering released state");
@@ -1183,7 +1184,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	struct in6_addr srv6_buf;
 	struct in6_addr ipv6_buf;
 	struct in6_addr *requested_ipv6;
-	uint32_t xid = 0;
 	int packet_num;
 	int timeout; /* must be signed */
 	int lease_remaining; /* must be signed */
@@ -1387,13 +1387,13 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				if (!discover_retries || packet_num < discover_retries) {
 					if (packet_num == 0) {
 						change_listen_mode(LISTEN_RAW);
-						xid = random_xid();
+						client_data.xid = random_xid();
 					}
 					/* multicast */
 					if (opt & OPT_l)
-						send_d6_info_request(xid);
+						send_d6_info_request();
 					else
-						send_d6_discover(xid, requested_ipv6);
+						send_d6_discover(requested_ipv6);
 					timeout = discover_timeout;
 					packet_num++;
 					continue;
@@ -1427,7 +1427,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			case REQUESTING:
 				if (!discover_retries || packet_num < discover_retries) {
 					/* send multicast select packet */
-					send_d6_select(xid);
+					send_d6_select();
 					timeout = discover_timeout;
 					packet_num++;
 					continue;
@@ -1459,9 +1459,9 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			 * into INIT_SELECTING state.
 			 */
 					if (opt & OPT_l)
-						send_d6_info_request(xid);
+						send_d6_info_request();
 					else
-						send_d6_renew(xid, &srv6_buf, requested_ipv6);
+						send_d6_renew(&srv6_buf, requested_ipv6);
 					timeout = discover_timeout;
 					packet_num++;
 					continue;
@@ -1484,9 +1484,9 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				 * try to find DHCP server using broadcast */
 				if (lease_remaining > 0 && packet_num < 3) {
 					if (opt & OPT_l)
-						send_d6_info_request(xid);
+						send_d6_info_request();
 					else /* send a broadcast renew request */
-						send_d6_renew(xid, /*server_ipv6:*/ NULL, requested_ipv6);
+						send_d6_renew(/*server_ipv6:*/ NULL, requested_ipv6);
 					timeout = discover_timeout;
 					packet_num++;
 					continue;
@@ -1581,9 +1581,9 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			packet_end = (uint8_t*)&packet + len;
 		}
 
-		if ((packet.d6_xid32 & htonl(0x00ffffff)) != xid) {
+		if ((packet.d6_xid32 & htonl(0x00ffffff)) != client_data.xid) {
 			log1("xid %x (our is %x)%s",
-				(unsigned)(packet.d6_xid32 & htonl(0x00ffffff)), (unsigned)xid,
+				(unsigned)(packet.d6_xid32 & htonl(0x00ffffff)), (unsigned)client_data.xid,
 				", ignoring packet"
 			);
 			continue;

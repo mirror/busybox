@@ -11,6 +11,7 @@ struct client_data_t {
 	uint8_t client_mac[6];          /* Our mac address */
 	IF_FEATURE_UDHCP_PORT(uint16_t port;)
 	int ifindex;                    /* Index number of the interface to use */
+	uint32_t xid;
 	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
 // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TODO: DHCPv6 has 16-bit option numbers
 	const char *interface;          /* The name of the interface to use */

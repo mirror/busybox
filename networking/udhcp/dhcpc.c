@@ -605,7 +605,7 @@ static void init_packet(struct dhcp_packet *packet, char type)
 	/* Fill in: op, htype, hlen, cookie fields; message type option: */
 	udhcp_init_header(packet, type);
 
-	packet->xid = random_xid();
+	packet->xid = client_data.xid;
 
 	client_data.last_secs = monotonic_sec();
 	if (client_data.first_secs == 0)
@@ -719,17 +719,15 @@ static int bcast_or_ucast(struct dhcp_packet *packet, uint32_t ciaddr, uint32_t 
 
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
+static NOINLINE int send_discover(uint32_t requested)
 {
 	struct dhcp_packet packet;
 
 	/* Fill in: op, htype, hlen, cookie, chaddr fields,
-	 * random xid field (we override it below),
-	 * message type option:
+	 * xid field, message type option:
 	 */
 	init_packet(&packet, DHCPDISCOVER);
 
-	packet.xid = xid;
 	if (requested)
 		udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
 
@@ -747,7 +745,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
  * "The client _broadcasts_ a DHCPREQUEST message..."
  */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requested)
+static NOINLINE int send_select(uint32_t server, uint32_t requested)
 {
 	struct dhcp_packet packet;
 	struct in_addr temp_addr;
@@ -766,12 +764,10 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
  * include that list in all subsequent messages.
  */
 	/* Fill in: op, htype, hlen, cookie, chaddr fields,
-	 * random xid field (we override it below),
-	 * message type option:
+	 * xid field, message type option:
 	 */
 	init_packet(&packet, DHCPREQUEST);
 
-	packet.xid = xid;
 	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
 
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
@@ -793,7 +789,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 
 /* Unicast or broadcast a DHCP renew message */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
+static NOINLINE int send_renew(uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
 
@@ -812,12 +808,10 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
  * replying to the client.
  */
 	/* Fill in: op, htype, hlen, cookie, chaddr fields,
-	 * random xid field (we override it below),
-	 * message type option:
+	 * xid field, message type option:
 	 */
 	init_packet(&packet, DHCPREQUEST);
 
-	packet.xid = xid;
 	packet.ciaddr = ciaddr;
 
 	/* Add options: maxsize,
@@ -839,7 +833,7 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 #if ENABLE_FEATURE_UDHCPC_ARPING
 /* Broadcast a DHCP decline message */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int send_decline(/*uint32_t xid,*/ uint32_t server, uint32_t requested)
+static NOINLINE int send_decline(uint32_t server, uint32_t requested)
 {
 	struct dhcp_packet packet;
 
@@ -848,14 +842,6 @@ static NOINLINE int send_decline(/*uint32_t xid,*/ uint32_t server, uint32_t req
 	 */
 	init_packet(&packet, DHCPDECLINE);
 
-#if 0
-	/* RFC 2131 says DHCPDECLINE's xid is randomly selected by client,
-	 * but in case the server is buggy and wants DHCPDECLINE's xid
-	 * to match the xid which started entire handshake,
-	 * we use the same xid we used in initial DHCPDISCOVER:
-	 */
-	packet.xid = xid;
-#endif
 	/* DHCPDECLINE uses "requested ip", not ciaddr, to store offered IP */
 	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
 
@@ -1145,6 +1131,7 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 		temp_addr.s_addr = requested_ip;
 		bb_info_msg("unicasting a release of %s to %s",
 				inet_ntoa(temp_addr), buffer);
+		client_data.xid = random_xid(); //TODO: can omit?
 		send_release(server_addr, requested_ip); /* unicast */
 	}
 	bb_simple_info_msg("entering released state");
@@ -1233,7 +1220,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	int discover_retries = 3;
 	uint32_t server_addr = server_addr; /* for compiler */
 	uint32_t requested_ip = 0;
-	uint32_t xid = xid; /* for compiler */
 	int packet_num;
 	int timeout; /* must be signed */
 	int lease_remaining; /* must be signed */
@@ -1458,10 +1444,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				if (!discover_retries || packet_num < discover_retries) {
 					if (packet_num == 0) {
 						change_listen_mode(LISTEN_RAW);
-						xid = random_xid();
+						client_data.xid = random_xid();
 					}
 					/* broadcast */
-					send_discover(xid, requested_ip);
+					send_discover(requested_ip);
 					timeout = discover_timeout;
 					packet_num++;
 					continue;
@@ -1495,7 +1481,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			case REQUESTING:
 				if (packet_num < 3) {
 					/* send broadcast select packet */
-					send_select(xid, server_addr, requested_ip);
+					send_select(server_addr, requested_ip);
 					timeout = discover_timeout;
 					packet_num++;
 					continue;
@@ -1526,7 +1512,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			 * Anyway, it does recover by eventually failing through
 			 * into INIT_SELECTING state.
 			 */
-					if (send_renew(xid, server_addr, requested_ip) >= 0) {
+					if (send_renew(server_addr, requested_ip) >= 0) {
 						timeout = discover_timeout;
 						packet_num++;
 						continue;
@@ -1555,7 +1541,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				 * try to find DHCP server using broadcast */
 				if (lease_remaining > 0 && packet_num < 3) {
 					/* send a broadcast renew request */
-					send_renew(xid, 0 /*INADDR_ANY*/, requested_ip);
+					send_renew(0 /*INADDR_ANY*/, requested_ip);
 					timeout = discover_timeout;
 					packet_num++;
 					continue;
@@ -1648,9 +1634,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 		}
 
-		if (packet.xid != xid) {
+		if (packet.xid != client_data.xid) {
 			log1("xid %x (our is %x)%s",
-				(unsigned)packet.xid, (unsigned)xid,
+				(unsigned)packet.xid, (unsigned)client_data.xid,
 				", ignoring packet"
 			);
 			continue;
@@ -1779,7 +1765,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					) {
 						bb_simple_info_msg("offered address is in use "
 							"(got ARP reply), declining");
-						send_decline(/*xid,*/ server_addr, packet.yiaddr);
+						client_data.xid = random_xid(); //TODO: can omit?
+						send_decline(server_addr, packet.yiaddr);
 
 						if (client_data.state != REQUESTING)
 							d4_run_script_deconfig();
@@ -1814,7 +1801,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				timeout = (unsigned)lease_remaining / 2;
 				client_data.state = BOUND;
 				/* make future renew packets use different xid */
-				/* xid = random_xid(); ...but why bother? */
+				/* client_data.xid = random_xid(); ...but why bother? */
 				packet_num = 0;
 				continue; /* back to main loop */
 			}
