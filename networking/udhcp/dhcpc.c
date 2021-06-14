@@ -1113,7 +1113,7 @@ static void change_listen_mode(int new_mode)
 	/* else LISTEN_NONE: client_data.sockfd stays closed */
 }
 
-static void perform_release(uint32_t server_addr, uint32_t requested_ip)
+static void perform_release(uint32_t server_id, uint32_t requested_ip)
 {
 	char buffer[sizeof("255.255.255.255")];
 	struct in_addr temp_addr;
@@ -1126,13 +1126,13 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 	 || client_data.state == REBINDING
 	 || client_data.state == RENEW_REQUESTED
 	) {
-		temp_addr.s_addr = server_addr;
+		temp_addr.s_addr = server_id;
 		strcpy(buffer, inet_ntoa(temp_addr));
 		temp_addr.s_addr = requested_ip;
 		bb_info_msg("unicasting a release of %s to %s",
 				inet_ntoa(temp_addr), buffer);
 		client_data.xid = random_xid(); //TODO: can omit?
-		send_release(server_addr, requested_ip); /* unicast */
+		send_release(server_id, requested_ip); /* unicast */
 	}
 	bb_simple_info_msg("entering released state");
 /*
@@ -1218,7 +1218,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	int tryagain_timeout = 20;
 	int discover_timeout = 3;
 	int discover_retries = 3;
-	uint32_t server_addr = server_addr; /* for compiler */
+	uint32_t server_id = server_id; /* for compiler */
 	uint32_t requested_ip = 0;
 	int packet_num;
 	int timeout; /* must be signed */
@@ -1481,7 +1481,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			case REQUESTING:
 				if (packet_num < 3) {
 					/* send broadcast select packet */
-					send_select(server_addr, requested_ip);
+					send_select(server_id, requested_ip);
 					timeout = discover_timeout;
 					packet_num++;
 					continue;
@@ -1512,7 +1512,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			 * Anyway, it does recover by eventually failing through
 			 * into INIT_SELECTING state.
 			 */
-					if (send_renew(server_addr, requested_ip) >= 0) {
+					if (send_renew(server_id, requested_ip) >= 0) {
 						timeout = discover_timeout;
 						packet_num++;
 						continue;
@@ -1603,7 +1603,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			timeout = 0;
 			continue;
 		case SIGUSR2:
-			perform_release(server_addr, requested_ip);
+			perform_release(server_id, requested_ip);
 			/* ^^^ switches to LISTEN_NONE */
 			timeout = INT_MAX;
 			continue;
@@ -1688,13 +1688,13 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
  * They either supply DHCP_SERVER_ID of 0.0.0.0 or don't supply it at all.
  * They say ISC DHCP client supports this case.
  */
-				server_addr = 0;
+				server_id = 0;
 				temp = udhcp_get_option32(&packet, DHCP_SERVER_ID);
 				if (!temp) {
 					bb_simple_info_msg("no server ID, using 0.0.0.0");
 				} else {
 					/* it IS unaligned sometimes, don't "optimize" */
-					move_from_unaligned32(server_addr, temp);
+					move_from_unaligned32(server_id, temp);
 				}
 				/*xid = packet.xid; - already is */
 				temp_addr.s_addr = requested_ip = packet.yiaddr;
@@ -1718,7 +1718,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 				change_listen_mode(LISTEN_NONE);
 
-				temp_addr.s_addr = server_addr;
+				temp_addr.s_addr = server_id;
 				strcpy(server_str, inet_ntoa(temp_addr));
 				temp_addr.s_addr = packet.yiaddr;
 
@@ -1766,7 +1766,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						bb_simple_info_msg("offered address is in use "
 							"(got ARP reply), declining");
 						client_data.xid = random_xid(); //TODO: can omit?
-						send_decline(server_addr, packet.yiaddr);
+						send_decline(server_id, packet.yiaddr);
 
 						if (client_data.state != REQUESTING)
 							d4_run_script_deconfig();
@@ -1810,20 +1810,14 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				 * "wrong" server can reply first, with a NAK.
 				 * Do not interpret it as a NAK from "our" server.
 				 */
-				if (server_addr != 0) {
-					uint32_t svid;
-					uint8_t *temp;
-
-					temp = udhcp_get_option32(&packet, DHCP_SERVER_ID);
-					if (!temp) {
- non_matching_svid:
-						log1("received DHCP NAK with wrong"
-							" server ID%s", ", ignoring packet");
-						continue;
-					}
+				uint32_t svid = 0; /* we treat no server id as 0.0.0.0 */
+				uint8_t *temp = udhcp_get_option32(&packet, DHCP_SERVER_ID);
+				if (temp)
 					move_from_unaligned32(svid, temp);
-					if (svid != server_addr)
-						goto non_matching_svid;
+				if (svid != server_id) {
+					log1("received DHCP NAK with wrong"
+						" server ID%s", ", ignoring packet");
+					continue;
 				}
 				/* return to init state */
 				change_listen_mode(LISTEN_NONE);
@@ -1847,7 +1841,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
  ret0:
 	if (opt & OPT_R) /* release on quit */
-		perform_release(server_addr, requested_ip);
+		perform_release(server_id, requested_ip);
 	retval = 0;
  ret:
 	/*if (client_data.pidfile) - remove_pidfile has its own check */
