@@ -19,7 +19,7 @@
 //kbuild:lib-$(CONFIG_FREE) += free.o
 
 //usage:#define free_trivial_usage
-//usage:       "" IF_DESKTOP("[-b/k/m/g]")
+//usage:       "" IF_DESKTOP("[-bkmg]")
 //usage:#define free_full_usage "\n\n"
 //usage:       "Display the amount of free and used system memory"
 //usage:

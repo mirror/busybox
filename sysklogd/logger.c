@@ -26,7 +26,7 @@
 //usage:       "Write MESSAGE (or stdin) to syslog\n"
 //usage:     "\n	-s	Log to stderr as well as the system log"
 //usage:     "\n	-t TAG	Log using the specified tag (defaults to user name)"
-//usage:     "\n	-p PRIO	Priority (numeric or facility.level pair)"
+//usage:     "\n	-p PRIO	Priority (number or FACILITY.LEVEL pair)"
 //usage:
 //usage:#define logger_example_usage
 //usage:       "$ logger \"hello\"\n"

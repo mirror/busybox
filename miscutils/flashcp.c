@@ -19,9 +19,9 @@
 //kbuild:lib-$(CONFIG_FLASHCP) += flashcp.o
 
 //usage:#define flashcp_trivial_usage
-//usage:       "-v FILE MTD_DEVICE"
+//usage:       "[-v] FILE MTD_DEVICE"
 //usage:#define flashcp_full_usage "\n\n"
-//usage:       "Copy an image to MTD device\n"
+//usage:       "Copy FILE to MTD device\n"
 //usage:     "\n	-v	Verbose"
 
 #include "libbb.h"

@@ -29,6 +29,7 @@
 //usage:     "\n	-s	Output only lines containing delimiter"
 //usage:     "\n	-f LIST	Print only these fields"
 //usage:     "\n	-n	Ignored"
+//(manpage:-n	with -b: don't split multibyte characters)
 //usage:
 //usage:#define cut_example_usage
 //usage:       "$ echo \"Hello world\" | cut -f 1 -d ' '\n"

@@ -43,10 +43,10 @@
 //usage:#define echo_trivial_usage
 //usage:	IF_FEATURE_FANCY_ECHO("[-neE] ") "[ARG]..."
 //usage:#define echo_full_usage "\n\n"
-//usage:       "Print the specified ARGs to stdout"
+//usage:       "Print ARGs to stdout"
 //usage:	IF_FEATURE_FANCY_ECHO( "\n"
-//usage:     "\n	-n	Suppress trailing newline"
-//usage:     "\n	-e	Interpret backslash escapes (i.e., \\t=tab)"
+//usage:     "\n	-n	No trailing newline"
+//usage:     "\n	-e	Interpret backslash escapes (\\t=tab etc)"
 //usage:     "\n	-E	Don't interpret backslash escapes (default)"
 //usage:	)
 //usage:

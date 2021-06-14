@@ -18,7 +18,8 @@
 //kbuild:lib-$(CONFIG_IONICE) += ionice.o
 
 //usage:#define ionice_trivial_usage
-//usage:	"[-c 1-3] [-n 0-7] [-p PID] [PROG ARGS]"
+//usage:	"[-c 1-3] [-n 0-7] { -p PID | PROG ARGS }"
+//TODO: | -P PGID | -u UID; also -pPu can take _list of_ IDs
 //usage:#define ionice_full_usage "\n\n"
 //usage:       "Change I/O priority and class\n"
 //usage:     "\n	-c N	Class. 1:realtime 2:best-effort 3:idle"

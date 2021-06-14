@@ -59,7 +59,7 @@
 //usage:       "$ kill 252\n"
 //usage:
 //usage:#define killall_trivial_usage
-//usage:       "[-l] [-q] [-SIG] PROCESS_NAME..."
+//usage:       "[-lq] [-SIG] PROCESS_NAME..."
 //usage:#define killall_full_usage "\n\n"
 //usage:       "Send a signal (default: TERM) to given processes\n"
 //usage:     "\n	-l	List all signal names and numbers"

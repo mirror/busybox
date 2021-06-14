@@ -52,7 +52,7 @@
 //usage:#define groups_trivial_usage
 //usage:       "[USER]"
 //usage:#define groups_full_usage "\n\n"
-//usage:       "Print the group memberships of USER or for the current process"
+//usage:       "Print the groups USER is in"
 //usage:
 //usage:#define groups_example_usage
 //usage:       "$ groups\n"

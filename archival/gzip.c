@@ -77,11 +77,13 @@ aa:      85.1% -- replaced with aa.gz
 //usage:	)
 //usage:	IF_FEATURE_GZIP_DECOMPRESS(
 //usage:     "\n	-d	Decompress"
-//usage:     "\n	-t	Test file integrity"
 //usage:	)
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:     "\n	-k	Keep input files"
+//usage:	IF_FEATURE_GZIP_DECOMPRESS(
+//usage:     "\n	-t	Test integrity"
+//usage:	)
 //usage:
 //usage:#define gzip_example_usage
 //usage:       "$ ls -la /tmp/busybox*\n"

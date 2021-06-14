@@ -28,15 +28,19 @@
 //usage:#define chown_trivial_usage
 //usage:       "[-Rh"IF_DESKTOP("LHPcvf")"]... USER[:[GRP]] FILE..."
 //usage:#define chown_full_usage "\n\n"
-//usage:       "Change the owner and/or group of FILEs to USER and/or GRP\n"
-//usage:     "\n	-R	Recurse"
+//usage:       "Change the owner and/or group of FILEs to USER and/or GRP"
+//usage:     "\n"
 //usage:     "\n	-h	Affect symlinks instead of symlink targets"
 //usage:	IF_DESKTOP(
 //usage:     "\n	-L	Traverse all symlinks to directories"
 //usage:     "\n	-H	Traverse symlinks on command line only"
 //usage:     "\n	-P	Don't traverse symlinks (default)"
+//usage:	)
+//next 4 options are the same for chmod/chown/chgrp:
+//usage:     "\n	-R	Recurse"
+//usage:	IF_DESKTOP(
 //usage:     "\n	-c	List changed files"
-//usage:     "\n	-v	List all files"
+//usage:     "\n	-v	Verbose"
 //usage:     "\n	-f	Hide errors"
 //usage:	)
 //usage:

@@ -63,8 +63,8 @@
 //usage:       "[-HhnlLoqvsrRiwFE"
 //usage:	IF_EXTRA_COMPAT("z")
 //usage:       "] [-m N] "
-//usage:	IF_FEATURE_GREP_CONTEXT("[-A/B/C N] ")
-//usage:       "PATTERN/-e PATTERN.../-f FILE [FILE]..."
+//usage:	IF_FEATURE_GREP_CONTEXT("[-A|B|C N] ")
+//usage:       "PATTERN | -e PATTERN... | -f FILE [FILE]..."
 //usage:#define grep_full_usage "\n\n"
 //usage:       "Search for PATTERN in FILEs (or stdin)\n"
 //usage:     "\n	-H	Add 'filename:' prefix"

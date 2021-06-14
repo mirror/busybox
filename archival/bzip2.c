@@ -56,11 +56,13 @@
 //usage:     "\n	-1..9	Compression level"
 //usage:	IF_FEATURE_BZIP2_DECOMPRESS(
 //usage:     "\n	-d	Decompress"
-//usage:     "\n	-t	Test file integrity"
 //usage:	)
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:     "\n	-k	Keep input files"
+//usage:	IF_FEATURE_BZIP2_DECOMPRESS(
+//usage:     "\n	-t	Test integrity"
+//usage:	)
 
 #include "libbb.h"
 #include "bb_archive.h"

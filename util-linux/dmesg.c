@@ -46,7 +46,7 @@
 //kbuild:lib-$(CONFIG_DMESG) += dmesg.o
 
 //usage:#define dmesg_trivial_usage
-//usage:       "[-c] [-n LEVEL] [-s SIZE]"
+//usage:       "[-cr] [-n LEVEL] [-s SIZE]"
 //usage:#define dmesg_full_usage "\n\n"
 //usage:       "Print or control the kernel ring buffer\n"
 //usage:     "\n	-c		Clear ring buffer after printing"

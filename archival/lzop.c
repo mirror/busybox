@@ -86,6 +86,7 @@
 //usage:     "\n	-f	Force"
 //usage:     "\n	-U	Delete input files"
 ///////:     "\n	-k	Keep input files" (default, so why bother documenting?)
+//usage:     "\n	-t	Test integrity"
 //usage:     "\n	-v	Verbose"
 //usage:     "\n	-F	Don't verify checksum"
 

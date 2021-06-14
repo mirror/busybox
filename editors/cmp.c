@@ -18,7 +18,7 @@
 //kbuild:lib-$(CONFIG_CMP) += cmp.o
 
 //usage:#define cmp_trivial_usage
-//usage:       "[-l] [-s] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]]") "]"
+//usage:       "[-ls] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]]") "]"
 //usage:#define cmp_full_usage "\n\n"
 //usage:       "Compare FILE1 with FILE2 (or stdin)\n"
 //usage:     "\n	-l	Write the byte numbers (decimal) and values (octal)"
