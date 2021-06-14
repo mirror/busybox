@@ -1284,7 +1284,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		memcpy(p + OPT_DATA + 3, str_F, len); /* do not store NUL byte */
 	}
 	if (opt & OPT_r)
-		requested_ip = inet_addr(str_r);
+		if (!inet_aton(str_r, (void*)&requested_ip))
+			bb_show_usage();
 #if ENABLE_FEATURE_UDHCP_PORT
 	if (opt & OPT_P) {
 		CLIENT_PORT = xatou16(str_P);
