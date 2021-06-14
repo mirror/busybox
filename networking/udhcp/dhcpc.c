@@ -663,6 +663,24 @@ static void add_client_options(struct dhcp_packet *packet)
 	//	...add (DHCP_VENDOR, "udhcp "BB_VER) opt...
 }
 
+static void add_serverid_and_clientid_options(struct dhcp_packet *packet, uint32_t server)
+{
+	struct option_set *ci;
+
+	udhcp_add_simple_option(packet, DHCP_SERVER_ID, server);
+
+	/* RFC 2131 section 2:
+	 * If the client uses a 'client identifier' in one message,
+	 * it MUST use that same identifier in all subsequent messages.
+	 * section 3.1.6:
+	 * If the client used a 'client identifier' when it obtained the lease,
+	 * it MUST use the same 'client identifier' in the DHCPRELEASE message.
+	 */
+	ci = udhcp_find_option(client_data.options, DHCP_CLIENT_ID);
+	if (ci)
+		udhcp_add_binary_option(packet, ci->data);
+}
+
 /* RFC 2131
  * 4.4.4 Use of broadcast and unicast
  *
@@ -759,7 +777,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
 	/* Add options: maxsize,
-	 * "param req" option according to -O, and options specified with -x
+	 * "param req" option according to -O, options specified with -x
 	 */
 	add_client_options(&packet);
 
@@ -803,7 +821,7 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	packet.ciaddr = ciaddr;
 
 	/* Add options: maxsize,
-	 * "param req" option according to -O, and options specified with -x
+	 * "param req" option according to -O, options specified with -x
 	 */
 	add_client_options(&packet);
 
@@ -841,9 +859,7 @@ static NOINLINE int send_decline(/*uint32_t xid,*/ uint32_t server, uint32_t req
 	/* DHCPDECLINE uses "requested ip", not ciaddr, to store offered IP */
 	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
 
-	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
-
-//TODO: add client-id opt?
+	add_serverid_and_clientid_options(&packet, server);
 
 	bb_simple_info_msg("broadcasting decline");
 	return raw_bcast_from_client_data_ifindex(&packet, INADDR_ANY);
@@ -856,7 +872,6 @@ ALWAYS_INLINE /* one caller, help compiler to use this fact */
 int send_release(uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
-	struct option_set *ci;
 
 	/* Fill in: op, htype, hlen, cookie, chaddr, random xid fields,
 	 * message type option:
@@ -866,15 +881,7 @@ int send_release(uint32_t server, uint32_t ciaddr)
 	/* DHCPRELEASE uses ciaddr, not "requested ip", to store IP being released */
 	packet.ciaddr = ciaddr;
 
-	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
-
-	/* RFC 2131 section 3.1.6:
-	 * If the client used a 'client identifier' when it obtained the lease,
-	 * it MUST use the same 'client identifier' in the DHCPRELEASE message.
-	 */
-	ci = udhcp_find_option(client_data.options, DHCP_CLIENT_ID);
-	if (ci)
-		udhcp_add_binary_option(&packet, ci->data);
+	add_serverid_and_clientid_options(&packet, server);
 
 	bb_info_msg("sending %s", "release");
 	/* Note: normally we unicast here since "server" is not zero.
