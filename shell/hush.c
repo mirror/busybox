@@ -3694,9 +3694,10 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 
 	pin = 0;
 	while (pi) {
-		fdprintf(2, "%*spipe %d %sres_word=%s followup=%d %s\n",
+		fdprintf(2, "%*spipe %d #cmds:%d %sres_word=%s followup=%d %s\n",
 				lvl*2, "",
 				pin,
+				pi->num_cmds,
 				(IF_HAS_KEYWORDS(pi->pi_inverted ? "! " :) ""),
 				RES[pi->res_word],
 				pi->followup, PIPE[pi->followup]
@@ -3839,6 +3840,9 @@ static void done_pipe(struct parse_context *ctx, pipe_style type)
 #endif
 		/* Replace all pipes in ctx with one newly created */
 		ctx->list_head = ctx->pipe = pi;
+		/* for cases like "cmd && &", do not be tricked by last command
+		 * being null - the entire {...} & is NOT null! */
+		not_null = 1;
 	} else {
  no_conv:
 		ctx->pipe->followup = type;
