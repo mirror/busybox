@@ -18,7 +18,7 @@
 //kbuild:lib-$(CONFIG_STRINGS) += strings.o
 
 //usage:#define strings_trivial_usage
-//usage:       "[-fo] [-t o/d/x] [-n LEN] [FILE]..."
+//usage:       "[-fo] [-t o|d|x] [-n LEN] [FILE]..."
 //usage:#define strings_full_usage "\n\n"
 //usage:       "Display printable strings in a binary file\n"
 //We usually don't bother user with "nop" options. They work, but are not shown:
@@ -26,7 +26,7 @@
 //unimplemented alternative is -d: Only strings from initialized, loaded data sections
 //usage:     "\n	-f		Precede strings with filenames"
 //usage:     "\n	-o		Precede strings with octal offsets"
-//usage:     "\n	-t o/d/x	Precede strings with offsets in base 8/10/16"
+//usage:     "\n	-t o|d|x	Precede strings with offsets in base 8/10/16"
 //usage:     "\n	-n LEN		At least LEN characters form a string (default 4)"
 
 #include "libbb.h"

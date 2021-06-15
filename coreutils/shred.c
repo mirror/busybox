@@ -15,7 +15,7 @@
 //kbuild:lib-$(CONFIG_SHRED) += shred.o
 
 //usage:#define shred_trivial_usage
-//usage:       "FILE..."
+//usage:       "[-fuz] [-n N] FILE..."
 //usage:#define shred_full_usage "\n\n"
 //usage:       "Overwrite/delete FILEs\n"
 //usage:     "\n	-f	Chmod to ensure writability"
@@ -54,15 +54,12 @@ int shred_main(int argc UNUSED_PARAM, char **argv)
 		OPT_x = (1 << 5),
 	};
 
-	opt = getopt32(argv, "fuzn:+vx", &num_iter);
+	opt = getopt32(argv, "^" "fuzn:+vx" "\0" "-1"/*min 1 arg*/, &num_iter);
 	argv += optind;
 
 	zero_fd = xopen("/dev/zero", O_RDONLY);
 	if (num_iter != 0)
 		rand_fd = xopen("/dev/urandom", O_RDONLY);
-
-	if (!*argv)
-		bb_show_usage();
 
 	for (;;) {
 		struct stat sb;
