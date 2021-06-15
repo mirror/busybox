@@ -5235,6 +5235,11 @@ static int encode_string(o_string *as_string,
 	}
 #endif
 	o_addQchr(dest, ch);
+	if (ch == SPECIAL_VAR_SYMBOL) {
+		/* Convert "^C" to corresponding special variable reference */
+		o_addchr(dest, SPECIAL_VAR_QUOTED_SVS);
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+	}
 	goto again;
 #undef as_string
 }
@@ -5346,6 +5351,11 @@ static struct pipe *parse_stream(char **pstring,
 			if (ch == '\n')
 				continue; /* drop \<newline>, get next char */
 			nommu_addchr(&ctx.as_string, '\\');
+			if (ch == SPECIAL_VAR_SYMBOL) {
+				nommu_addchr(&ctx.as_string, ch);
+				/* Convert \^C to corresponding special variable reference */
+				goto case_SPECIAL_VAR_SYMBOL;
+			}
 			o_addchr(&ctx.word, '\\');
 			if (ch == EOF) {
 				/* Testcase: eval 'echo Ok\' */
@@ -5670,6 +5680,7 @@ static struct pipe *parse_stream(char **pstring,
 		/* Note: nommu_addchr(&ctx.as_string, ch) is already done */
 
 		switch (ch) {
+		case_SPECIAL_VAR_SYMBOL:
 		case SPECIAL_VAR_SYMBOL:
 			/* Convert raw ^C to corresponding special variable reference */
 			o_addchr(&ctx.word, SPECIAL_VAR_SYMBOL);
