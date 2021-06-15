@@ -29,7 +29,7 @@
 //kbuild:lib-$(CONFIG_RENICE) += renice.o
 
 //usage:#define renice_trivial_usage
-//usage:       "[-n] PRIORITY [[-p | -g | -u] ID...]..."
+//usage:       "[-n] PRIORITY [[-p|g|u] ID...]..."
 //usage:#define renice_full_usage "\n\n"
 //usage:       "Change scheduling priority of a running process\n"
 //usage:     "\n	-n	Add PRIORITY to current nice value"

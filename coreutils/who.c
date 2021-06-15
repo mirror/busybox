@@ -78,7 +78,7 @@
 // root     pts/1     Mon13    3:24m  1:01   0.01s w
 
 //usage:#define who_trivial_usage
-//usage:       "[-a]"
+//usage:       "[-aH]"
 //usage:#define who_full_usage "\n\n"
 //usage:       "Show who is logged on\n"
 //usage:     "\n	-a	Show all"

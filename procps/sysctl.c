@@ -21,16 +21,16 @@
 //kbuild:lib-$(CONFIG_BB_SYSCTL) += sysctl.o
 
 //usage:#define sysctl_trivial_usage
-//usage:       "-p [-enq] [FILE...] / [-enqaw] [KEY[=VALUE]]..."
+//usage:       "[-enq] { -a | -p [FILE]... | [-w] [KEY[=VALUE]]... }"
 //usage:#define sysctl_full_usage "\n\n"
 //usage:       "Show/set kernel parameters\n"
-//usage:     "\n	-p	Set values from FILEs (default /etc/sysctl.conf)"
 //usage:     "\n	-e	Don't warn about unknown keys"
 //usage:     "\n	-n	Don't show key names"
 //usage:     "\n	-q      Quiet"
 //usage:     "\n	-a	Show all values"
 /* Same as -a, no need to show it */
 /* //usage:     "\n	-A	Show all values in table form" */
+//usage:     "\n	-p	Set values from FILEs (default /etc/sysctl.conf)"
 //usage:     "\n	-w	Set values"
 //usage:
 //usage:#define sysctl_example_usage

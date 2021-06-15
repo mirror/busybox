@@ -79,7 +79,7 @@
 //kbuild:lib-$(CONFIG_CHAT) += chat.o
 
 //usage:#define chat_trivial_usage
-//usage:       "EXPECT [SEND [EXPECT [SEND...]]]"
+//usage:       "EXPECT [SEND [EXPECT [SEND]]...]"
 //usage:#define chat_full_usage "\n\n"
 //usage:       "Useful for interacting with a modem connected to stdin/stdout.\n"
 //usage:       "A script consists of \"expect-send\" argument pairs.\n"

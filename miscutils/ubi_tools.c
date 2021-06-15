@@ -251,7 +251,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	} else
 
 //usage:#define ubirmvol_trivial_usage
-//usage:       "-n VOLID / -N VOLNAME UBI_DEVICE"
+//usage:       "-n VOLID | -N VOLNAME UBI_DEVICE"
 //usage:#define ubirmvol_full_usage "\n\n"
 //usage:       "Remove UBI volume\n"
 //usage:     "\n	-n VOLID	Volume ID"

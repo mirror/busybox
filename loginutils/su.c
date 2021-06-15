@@ -35,7 +35,7 @@
 //kbuild:lib-$(CONFIG_SU) += su.o
 
 //usage:#define su_trivial_usage
-//usage:       "[-lmp] [-] [-s SH] [USER [SCRIPT ARGS / -c 'CMD' ARG0 ARGS]]"
+//usage:       "[-lmp] [-s SH] [-] [USER [FILE ARGS | -c 'CMD' [ARG0 ARGS]]]"
 //usage:#define su_full_usage "\n\n"
 //usage:       "Run shell under USER (by default, root)\n"
 //usage:     "\n	-,-l	Clear environment, go to home dir, run shell as login shell"
