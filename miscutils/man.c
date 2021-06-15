@@ -324,7 +324,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 
 	/* is 1st ARG a SECTION? */
 	sec_list = conf_sec_list;
-	if (is_section_name(conf_sec_list, *argv)) {
+	if (is_section_name(conf_sec_list, *argv) && argv[1]) {
 		/* yes */
 		sec_list = *argv++;
 	}
