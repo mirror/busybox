@@ -8,14 +8,23 @@
 
 # Damaged encrypted streams
 testing "unlzma (bad archive 1)" \
-	"unlzma <unlzma_issue_1.lzma >/dev/null; echo \$?" \
-"1
+	"unlzma <unlzma_issue_1.lzma 2>&1 >/dev/null; echo \$?" \
+"unlzma: corrupted data
+1
 " "" ""
 
 # Damaged encrypted streams
 testing "unlzma (bad archive 2)" \
-	"unlzma <unlzma_issue_2.lzma >/dev/null; echo \$?" \
-"1
+	"unlzma <unlzma_issue_2.lzma 2>&1 >/dev/null; echo \$?" \
+"unlzma: corrupted data
+1
+" "" ""
+
+# Damaged encrypted streams
+testing "unlzma (bad archive 3)" \
+	"unlzma <unlzma_issue_3.lzma 2>&1 >/dev/null; echo \$?" \
+"unlzma: corrupted data
+1
 " "" ""
 
 exit $FAILCOUNT
