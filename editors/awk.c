@@ -1745,12 +1745,22 @@ static char* qrealloc(char *b, int n, int *size)
 /* resize field storage space */
 static void fsrealloc(int size)
 {
-	int i;
+	int i, newsize;
 
 	if (size >= maxfields) {
+		/* Sanity cap, easier than catering for overflows */
+		if (size > 0xffffff)
+			bb_die_memory_exhausted();
+
 		i = maxfields;
 		maxfields = size + 16;
-		Fields = xrealloc(Fields, maxfields * sizeof(Fields[0]));
+
+		newsize = maxfields * sizeof(Fields[0]);
+		debug_printf_eval("fsrealloc: xrealloc(%p, %u)\n", Fields, newsize);
+		Fields = xrealloc(Fields, newsize);
+		debug_printf_eval("fsrealloc: Fields=%p..%p\n", Fields, (char*)Fields + newsize - 1);
+		/* ^^^ did Fields[] move? debug aid for L.v getting "upstaged" by R.v in evaluate() */
+
 		for (; i < maxfields; i++) {
 			Fields[i].type = VF_SPECIAL;
 			Fields[i].string = NULL;
@@ -2614,19 +2624,29 @@ static var *evaluate(node *op, var *res)
 		/* execute inevitable things */
 		if (opinfo & OF_RES1)
 			L.v = evaluate(op1, v1);
-		if (opinfo & OF_RES2)
-			R.v = evaluate(op->r.n, v1+1);
 		if (opinfo & OF_STR1) {
 			L.s = getvar_s(L.v);
 			debug_printf_eval("L.s:'%s'\n", L.s);
 		}
-		if (opinfo & OF_STR2) {
-			R.s = getvar_s(R.v);
-			debug_printf_eval("R.s:'%s'\n", R.s);
-		}
 		if (opinfo & OF_NUM1) {
 			L_d = getvar_i(L.v);
 			debug_printf_eval("L_d:%f\n", L_d);
+		}
+		/* NB: Must get string/numeric values of L (done above)
+		 * _before_ evaluate()'ing R.v: if both L and R are $NNNs,
+		 * and right one is large, then L.v points to Fields[NNN1],
+		 * second evaluate() reallocates and moves (!) Fields[],
+		 * R.v points to Fields[NNN2] but L.v now points to freed mem!
+		 * (Seen trying to evaluate "$444 $44444")
+		 */
+		if (opinfo & OF_RES2) {
+			R.v = evaluate(op->r.n, v1+1);
+			//TODO: L.v may be invalid now, set L.v to NULL to catch bugs?
+			//L.v = NULL;
+		}
+		if (opinfo & OF_STR2) {
+			R.s = getvar_s(R.v);
+			debug_printf_eval("R.s:'%s'\n", R.s);
 		}
 
 		debug_printf_eval("switch(0x%x)\n", XC(opinfo & OPCLSMASK));
@@ -2636,6 +2656,7 @@ static var *evaluate(node *op, var *res)
 
 		/* test pattern */
 		case XC( OC_TEST ):
+			debug_printf_eval("TEST\n");
 			if ((op1->info & OPCLSMASK) == OC_COMMA) {
 				/* it's range pattern */
 				if ((opinfo & OF_CHECKED) || ptest(op1->l.n)) {
@@ -2653,25 +2674,32 @@ static var *evaluate(node *op, var *res)
 
 		/* just evaluate an expression, also used as unconditional jump */
 		case XC( OC_EXEC ):
+			debug_printf_eval("EXEC\n");
 			break;
 
 		/* branch, used in if-else and various loops */
 		case XC( OC_BR ):
+			debug_printf_eval("BR\n");
 			op = istrue(L.v) ? op->a.n : op->r.n;
 			break;
 
 		/* initialize for-in loop */
 		case XC( OC_WALKINIT ):
+			debug_printf_eval("WALKINIT\n");
 			hashwalk_init(L.v, iamarray(R.v));
 			break;
 
 		/* get next array item */
 		case XC( OC_WALKNEXT ):
+			debug_printf_eval("WALKNEXT\n");
 			op = hashwalk_next(L.v) ? op->a.n : op->r.n;
 			break;
 
 		case XC( OC_PRINT ):
-		case XC( OC_PRINTF ): {
+			debug_printf_eval("PRINT /\n");
+		case XC( OC_PRINTF ):
+			debug_printf_eval("PRINTF\n");
+		{
 			FILE *F = stdout;
 			IF_FEATURE_AWK_GNU_EXTENSIONS(int len;)
 
@@ -2726,22 +2754,28 @@ static var *evaluate(node *op, var *res)
 		/* case XC( OC_DELETE ): - moved to happen before arg evaluation */
 
 		case XC( OC_NEWSOURCE ):
+			debug_printf_eval("NEWSOURCE\n");
 			g_progname = op->l.new_progname;
 			break;
 
 		case XC( OC_RETURN ):
+			debug_printf_eval("RETURN\n");
 			copyvar(res, L.v);
 			break;
 
 		case XC( OC_NEXTFILE ):
+			debug_printf_eval("NEXTFILE\n");
 			nextfile = TRUE;
 		case XC( OC_NEXT ):
+			debug_printf_eval("NEXT\n");
 			nextrec = TRUE;
 		case XC( OC_DONE ):
+			debug_printf_eval("DONE\n");
 			clrvar(res);
 			break;
 
 		case XC( OC_EXIT ):
+			debug_printf_eval("EXIT\n");
 			awk_exit(L_d);
 
 		/* -- recursive node type -- */
@@ -2761,15 +2795,18 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_IN ):
+			debug_printf_eval("IN\n");
 			setvar_i(res, hash_search(iamarray(R.v), L.s) ? 1 : 0);
 			break;
 
 		case XC( OC_REGEXP ):
+			debug_printf_eval("REGEXP\n");
 			op1 = op;
 			L.s = getvar_s(intvar[F0]);
 			goto re_cont;
 
 		case XC( OC_MATCH ):
+			debug_printf_eval("MATCH\n");
 			op1 = op->r.n;
  re_cont:
 			{
@@ -2795,6 +2832,7 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_TERNARY ):
+			debug_printf_eval("TERNARY\n");
 			if ((op->r.n->info & OPCLSMASK) != OC_COLON)
 				syntax_error(EMSG_POSSIBLE_ERROR);
 			res = evaluate(istrue(L.v) ? op->r.n->l.n : op->r.n->r.n, res);
@@ -2803,6 +2841,7 @@ static var *evaluate(node *op, var *res)
 		case XC( OC_FUNC ): {
 			var *vbeg, *v;
 			const char *sv_progname;
+			debug_printf_eval("FUNC\n");
 
 			/* The body might be empty, still has to eval the args */
 			if (!op->r.n->info && !op->r.f->body.first)
@@ -2832,7 +2871,10 @@ static var *evaluate(node *op, var *res)
 		}
 
 		case XC( OC_GETLINE ):
-		case XC( OC_PGETLINE ): {
+			debug_printf_eval("GETLINE /\n");
+		case XC( OC_PGETLINE ):
+			debug_printf_eval("PGETLINE\n");
+		{
 			rstream *rsm;
 			int i;
 
@@ -2873,6 +2915,7 @@ static var *evaluate(node *op, var *res)
 		/* simple builtins */
 		case XC( OC_FBLTIN ): {
 			double R_d = R_d; /* for compiler */
+			debug_printf_eval("FBLTIN\n");
 
 			switch (opn) {
 			case F_in:
@@ -2986,14 +3029,18 @@ static var *evaluate(node *op, var *res)
 		}
 
 		case XC( OC_BUILTIN ):
+			debug_printf_eval("BUILTIN\n");
 			res = exec_builtin(op, res);
 			break;
 
 		case XC( OC_SPRINTF ):
+			debug_printf_eval("SPRINTF\n");
 			setvar_p(res, awk_printf(op1, NULL));
 			break;
 
-		case XC( OC_UNARY ): {
+		case XC( OC_UNARY ):
+			debug_printf_eval("UNARY\n");
+		{
 			double Ld, R_d;
 
 			Ld = R_d = getvar_i(R.v);
@@ -3023,7 +3070,9 @@ static var *evaluate(node *op, var *res)
 			break;
 		}
 
-		case XC( OC_FIELD ): {
+		case XC( OC_FIELD ):
+			debug_printf_eval("FIELD\n");
+		{
 			int i = (int)getvar_i(R.v);
 			if (i < 0)
 				syntax_error(EMSG_NEGATIVE_FIELD);
@@ -3040,8 +3089,10 @@ static var *evaluate(node *op, var *res)
 
 		/* concatenation (" ") and index joining (",") */
 		case XC( OC_CONCAT ):
+			debug_printf_eval("CONCAT /\n");
 		case XC( OC_COMMA ): {
 			const char *sep = "";
+			debug_printf_eval("COMMA\n");
 			if ((opinfo & OPCLSMASK) == OC_COMMA)
 				sep = getvar_s(intvar[SUBSEP]);
 			setvar_p(res, xasprintf("%s%s%s", L.s, sep, R.s));
@@ -3049,17 +3100,22 @@ static var *evaluate(node *op, var *res)
 		}
 
 		case XC( OC_LAND ):
+			debug_printf_eval("LAND\n");
 			setvar_i(res, istrue(L.v) ? ptest(op->r.n) : 0);
 			break;
 
 		case XC( OC_LOR ):
+			debug_printf_eval("LOR\n");
 			setvar_i(res, istrue(L.v) ? 1 : ptest(op->r.n));
 			break;
 
 		case XC( OC_BINARY ):
-		case XC( OC_REPLACE ): {
+			debug_printf_eval("BINARY /\n");
+		case XC( OC_REPLACE ):
+			debug_printf_eval("REPLACE\n");
+		{
 			double R_d = getvar_i(R.v);
-			debug_printf_eval("BINARY/REPLACE: R_d:%f opn:%c\n", R_d, opn);
+			debug_printf_eval("R_d:%f opn:%c\n", R_d, opn);
 			switch (opn) {
 			case '+':
 				L_d += R_d;
@@ -3095,6 +3151,7 @@ static var *evaluate(node *op, var *res)
 		case XC( OC_COMPARE ): {
 			int i = i; /* for compiler */
 			double Ld;
+			debug_printf_eval("COMPARE\n");
 
 			if (is_numeric(L.v) && is_numeric(R.v)) {
 				Ld = getvar_i(L.v) - getvar_i(R.v);
