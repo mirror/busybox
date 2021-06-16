@@ -2147,7 +2147,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 #if ENABLE_FEATURE_VI_SETOPTS
 		if (autoindent) {
 			len = indent_len(bol);
-			if (len && get_column(bol + len) == indentcol) {
+			if (len && get_column(bol + len) == indentcol && bol[len] == '\n') {
 				// remove autoindent from otherwise empty line
 				text_hole_delete(bol, bol + len - 1, undo);
 				p = bol;
