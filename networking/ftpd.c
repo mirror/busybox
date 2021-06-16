@@ -54,7 +54,7 @@
 //kbuild:lib-$(CONFIG_FTPD) += ftpd.o
 
 //usage:#define ftpd_trivial_usage
-//usage:       "[-wvS]"IF_FEATURE_FTPD_AUTHENTICATION(" [-a USER]")" [-t N] [-T N] [DIR]"
+//usage:       "[-wvS]"IF_FEATURE_FTPD_AUTHENTICATION(" [-a USER]")" [-t SEC] [-T SEC] [DIR]"
 //usage:#define ftpd_full_usage "\n\n"
 //usage:	IF_NOT_FEATURE_FTPD_AUTHENTICATION(
 //usage:       "Anonymous FTP server. Client access occurs under ftpd's UID.\n"

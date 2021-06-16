@@ -1127,23 +1127,23 @@ static void client_background(void)
 //usage:# define IF_UDHCP_VERBOSE(...)
 //usage:#endif
 //usage:#define udhcpc6_trivial_usage
-//usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"odR] [-i IFACE] [-r IPv6] [-s PROG] [-p PIDFILE]\n"
-//usage:       "	[-x OPT:VAL]... [-O OPT]..." IF_FEATURE_UDHCP_PORT(" [-P PORT]")
+//usage:       "[-fbq"IF_UDHCP_VERBOSE("v")"R] [-t N] [-T SEC] [-A SEC|-n] [-i IFACE] [-s PROG]\n"
+//usage:       "	[-p PIDFILE]"IF_FEATURE_UDHCP_PORT(" [-P PORT]")" [-ldo] [-r IPv6] [-x OPT:VAL]... [-O OPT]..."
 //usage:#define udhcpc6_full_usage "\n"
 //usage:     "\n	-i IFACE	Interface to use (default "CONFIG_UDHCPC_DEFAULT_INTERFACE")"
 //usage:     "\n	-p FILE		Create pidfile"
 //usage:     "\n	-s PROG		Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
 //usage:     "\n	-B		Request broadcast replies"
 //usage:     "\n	-t N		Send up to N discover packets"
-//usage:     "\n	-T N		Pause between packets (default 3 seconds)"
-//usage:     "\n	-A N		Wait N seconds (default 20) after failure"
-//usage:     "\n	-f		Run in foreground"
+//usage:     "\n	-T SEC		Pause between packets (default 3)"
+//usage:     "\n	-A SEC		Wait if lease is not obtained (default 20)"
 //usage:	USE_FOR_MMU(
 //usage:     "\n	-b		Background if lease is not obtained"
 //usage:	)
 //usage:     "\n	-n		Exit if lease is not obtained"
 //usage:     "\n	-q		Exit after obtaining lease"
 //usage:     "\n	-R		Release IP on exit"
+//usage:     "\n	-f		Run in foreground"
 //usage:     "\n	-S		Log to syslog too"
 //usage:	IF_FEATURE_UDHCP_PORT(
 //usage:     "\n	-P PORT		Use PORT (default 546)"
@@ -1151,12 +1151,12 @@ static void client_background(void)
 ////usage:	IF_FEATURE_UDHCPC_ARPING(
 ////usage:     "\n	-a		Use arping to validate offered address"
 ////usage:	)
-//usage:     "\n	-O OPT		Request option OPT from server (cumulative)"
-//usage:     "\n	-o		Don't request any options (unless -O is given)"
-//usage:     "\n	-r IPv6		Request this address ('no' to not request any IP)"
-//usage:     "\n	-d		Request prefix"
 //usage:     "\n	-l		Send 'information request' instead of 'solicit'"
 //usage:     "\n			(used for servers which do not assign IPv6 addresses)"
+//usage:     "\n	-r IPv6		Request this address ('no' to not request any IP)"
+//usage:     "\n	-d		Request prefix"
+//usage:     "\n	-o		Don't request any options (unless -O is given)"
+//usage:     "\n	-O OPT		Request option OPT from server (cumulative)"
 //usage:     "\n	-x OPT:VAL	Include option OPT in sent packets (cumulative)"
 //usage:     "\n			Examples of string, numeric, and hex byte opts:"
 //usage:     "\n			-x hostname:bbox - option 12"
