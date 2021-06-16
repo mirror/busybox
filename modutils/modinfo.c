@@ -131,7 +131,7 @@ static void modinfo(const char *path, const char *version,
 //usage:     "\n	-p		Shortcut for '-F parm'"
 ////usage:     "\n	-n		Shortcut for '-F filename'"
 //usage:     "\n	-F keyword	Keyword to look for"
-//usage:     "\n	-0		Separate output with NULs"
+//usage:     "\n	-0		NUL terminated output"
 //usage:#define modinfo_example_usage
 //usage:       "$ modinfo -F vermagic loop\n"
 

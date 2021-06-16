@@ -20,13 +20,14 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/uniq.html */
 
 //usage:#define uniq_trivial_usage
-//usage:       "[-cdui] [-f,s,w N] [INPUT [OUTPUT]]"
+//usage:       "[-cduiz] [-f,s,w N] [FILE [OUTFILE]]"
 //usage:#define uniq_full_usage "\n\n"
 //usage:       "Discard duplicate lines\n"
 //usage:     "\n	-c	Prefix lines by the number of occurrences"
 //usage:     "\n	-d	Only print duplicate lines"
 //usage:     "\n	-u	Only print unique lines"
 //usage:     "\n	-i	Ignore case"
+//usage:     "\n	-z	NUL terminated output"
 //usage:     "\n	-f N	Skip first N fields"
 //usage:     "\n	-s N	Skip first N chars (after any skipped fields)"
 //usage:     "\n	-w N	Compare N characters in line"
@@ -45,17 +46,19 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 	const char *input_filename;
 	unsigned skip_fields, skip_chars, max_chars;
 	unsigned opt;
+	char eol;
 	char *cur_line;
 	const char *cur_compare;
 
 	enum {
-		OPT_c = 0x1,
-		OPT_d = 0x2, /* print only dups */
-		OPT_u = 0x4, /* print only uniq */
-		OPT_f = 0x8,
-		OPT_s = 0x10,
-		OPT_w = 0x20,
-		OPT_i = 0x40,
+		OPT_c = 1 << 0,
+		OPT_d = 1 << 1, /* print only dups */
+		OPT_u = 1 << 2, /* print only uniq */
+		OPT_f = 1 << 3,
+		OPT_s = 1 << 4,
+		OPT_w = 1 << 5,
+		OPT_i = 1 << 6,
+		OPT_z = 1 << 7,
 	};
 
 	skip_fields = skip_chars = 0;
@@ -86,6 +89,7 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	cur_compare = cur_line = NULL; /* prime the pump */
+	eol = (opt & OPT_z) ? 0 : '\n';
 
 	do {
 		unsigned i;
@@ -127,7 +131,7 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 					/* %7lu matches GNU coreutils 6.9 */
 					printf("%7lu ", dups + 1);
 				}
-				puts(old_line);
+				printf("%s%c", old_line, eol);
 			}
 			free(old_line);
 		}

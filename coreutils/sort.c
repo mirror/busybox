@@ -67,7 +67,7 @@
 //usage:     "\n	-r	Reverse sort order"
 //usage:     "\n	-s	Stable (don't sort ties alphabetically)"
 //usage:     "\n	-u	Suppress duplicate lines"
-//usage:     "\n	-z	Lines are terminated by NUL, not newline"
+//usage:     "\n	-z	NUL terminated input and output"
 ///////:     "\n	-m	Ignored for GNU compatibility"
 ///////:     "\n	-S BUFSZ Ignored for GNU compatibility"
 ///////:     "\n	-T TMPDIR Ignored for GNU compatibility"
