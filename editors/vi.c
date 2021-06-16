@@ -378,6 +378,7 @@ struct globals {
 #if ENABLE_FEATURE_VI_SETOPTS
 	int indentcol;		// column of recently autoindent, 0 or -1
 #endif
+	smallint cmd_error;
 
 	// former statics
 #if ENABLE_FEATURE_VI_YANKMARK
@@ -502,6 +503,7 @@ struct globals {
 #define dotcnt                  (G.dotcnt             )
 #define last_search_pattern     (G.last_search_pattern)
 #define indentcol               (G.indentcol          )
+#define cmd_error               (G.cmd_error          )
 
 #define edit_file__cur_line     (G.edit_file__cur_line)
 #define refresh__old_offset     (G.refresh__old_offset)
@@ -1099,6 +1101,7 @@ static void indicate_error(void)
 	if (crashme > 0)
 		return;
 #endif
+	cmd_error = TRUE;
 	if (!err_method) {
 		write1(ESC_BELL);
 	} else {
@@ -3399,8 +3402,11 @@ static int find_range(char **start, char **stop, int cmd)
 #endif
 		// these cmds operate on whole lines
 		buftype = WHOLE;
-		if (--cmdcnt > 0)
+		if (--cmdcnt > 0) {
 			do_cmd('j');
+			if (cmd_error)
+				buftype = -1;
+		}
 	} else if (strchr("^%$0bBeEfFtThnN/?|{}\b\177", c)) {
 		// Most operate on char positions within a line.  Of those that
 		// don't '%' needs no special treatment, search commands are
@@ -3430,6 +3436,8 @@ static int find_range(char **start, char **stop, int cmd)
 		// these operate on whole lines
 		buftype = WHOLE;
 		do_cmd(c);		// execute movement cmd
+		if (cmd_error)
+			buftype = -1;
 	} else if (c == ' ' || c == 'l') {
 		// forward motion by character
 		int tmpcnt = (cmdcnt ?: 1);
@@ -3515,6 +3523,7 @@ static void do_cmd(int c)
 //	p = q = save_dot = buf; // quiet the compiler
 	memset(buf, '\0', sizeof(buf));
 	keep_index = FALSE;
+	cmd_error = FALSE;
 
 	show_status_line();
 
@@ -3699,6 +3708,8 @@ static void do_cmd(int c)
 				dot = q;
 				dot_begin();	// go to B-o-l
 				dot_skip_over_ws();
+			} else {
+				indicate_error();
 			}
 		} else if (c1 == '\'') {	// goto previous context
 			dot = swap_context(dot);	// swap current and previous context
