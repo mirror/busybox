@@ -63,7 +63,7 @@
 //usage:       "FTP server. "
 //usage:	)
 //usage:       "Chroots to DIR, if this fails (run by non-root), cds to it.\n"
-//usage:       "Should be used as inetd service, inetd.conf line:\n"
+//usage:       "It is an inetd service, inetd.conf line:\n"
 //usage:       "	21 stream tcp nowait root ftpd ftpd /files/to/serve\n"
 //usage:       "Can be run from tcpsvd:\n"
 //usage:       "	tcpsvd -vE 0.0.0.0 21 ftpd /files/to/serve"
