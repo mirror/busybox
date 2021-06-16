@@ -3635,23 +3635,29 @@ static void do_cmd(int c)
 	case 10:			// Newline ^J
 	case 'j':			// j- goto next line, same col
 	case KEYCODE_DOWN:	// cursor key Down
+	case 13:			// Carriage Return ^M
+	case '+':			// +- goto next line
+		q = dot;
 		do {
-			dot_next();		// go to next B-o-l
+			p = next_line(q);
+			if (p == end_line(q)) {
+				indicate_error();
+				goto dc1;
+			}
+			q = p;
 		} while (--cmdcnt > 0);
-		// try to stay in saved column
-		dot = cindex == C_END ? end_line(dot) : move_to_col(dot, cindex);
-		keep_index = TRUE;
+		dot = q;
+		if (c == 13 || c == '+') {
+			dot_skip_over_ws();
+		} else {
+			// try to stay in saved column
+			dot = cindex == C_END ? end_line(dot) : move_to_col(dot, cindex);
+			keep_index = TRUE;
+		}
 		break;
 	case 12:			// ctrl-L  force redraw whole screen
 	case 18:			// ctrl-R  force redraw
 		redraw(TRUE);	// this will redraw the entire display
-		break;
-	case 13:			// Carriage Return ^M
-	case '+':			// +- goto next line
-		do {
-			dot_next();
-		} while (--cmdcnt > 0);
-		dot_skip_over_ws();
 		break;
 	case 21:			// ctrl-U  scroll up half screen
 		dot_scroll((rows - 2) / 2, -1);
@@ -3817,12 +3823,6 @@ static void do_cmd(int c)
 	case ';':			// ;- look at rest of line for last search char
 	case ',':           // ,- repeat latest search in opposite direction
 		dot_to_char(c != ',' ? last_search_cmd : last_search_cmd ^ 0x20);
-		break;
-	case '-':			// -- goto prev line
-		do {
-			dot_prev();
-		} while (--cmdcnt > 0);
-		dot_skip_over_ws();
 		break;
 #if ENABLE_FEATURE_VI_DOT_CMD
 	case '.':			// .- repeat the last modifying command
@@ -4029,9 +4029,10 @@ static void do_cmd(int c)
 		if (cmdcnt > (rows - 1)) {
 			cmdcnt = (rows - 1);
 		}
-		if (--cmdcnt > 0) {
-			do_cmd('+');
+		while (--cmdcnt > 0) {
+			dot_next();
 		}
+		dot_begin();
 		dot_skip_over_ws();
 		break;
 	case 'I':			// I- insert before first non-blank
@@ -4068,8 +4069,8 @@ static void do_cmd(int c)
 		if (cmdcnt > (rows - 1)) {
 			cmdcnt = (rows - 1);
 		}
-		if (--cmdcnt > 0) {
-			do_cmd('-');
+		while (--cmdcnt > 0) {
+			dot_prev();
 		}
 		dot_begin();
 		dot_skip_over_ws();
@@ -4234,12 +4235,24 @@ static void do_cmd(int c)
 	}
 	case 'k':			// k- goto prev line, same col
 	case KEYCODE_UP:		// cursor key Up
+	case '-':			// -- goto prev line
+		q = dot;
 		do {
-			dot_prev();
+			p = prev_line(q);
+			if (p == begin_line(q)) {
+				indicate_error();
+				goto dc1;
+			}
+			q = p;
 		} while (--cmdcnt > 0);
-		// try to stay in saved column
-		dot = cindex == C_END ? end_line(dot) : move_to_col(dot, cindex);
-		keep_index = TRUE;
+		dot = q;
+		if (c == '-') {
+			dot_skip_over_ws();
+		} else {
+			// try to stay in saved column
+			dot = cindex == C_END ? end_line(dot) : move_to_col(dot, cindex);
+			keep_index = TRUE;
+		}
 		break;
 	case 'r':			// r- replace the current char with user input
 		c1 = get_one_char();	// get the replacement char
