@@ -25,8 +25,11 @@
 //usage:     "\n	--getbsz	Get block size"
 //usage:     "\n	--setbsz BYTES	Set block size"
 //usage:     "\n	--getsz		Get device size in 512-byte sectors"
-/*//usage:     "\n	--getsize	Get device size in sectors (deprecated)"*/
+///////:     "\n	--getsize	Get device size in sectors (deprecated)"
+///////^^^^^ supported, but not shown in help ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //usage:     "\n	--getsize64	Get device size in bytes"
+//usage:     "\n	--getra		Get readahead in 512-byte sectors"
+//usage:     "\n	--setra SECTORS	Set readahead"
 //usage:     "\n	--flushbufs	Flush buffers"
 //usage:     "\n	--rereadpt	Reread partition table"
 // util-linux 2.31 also has:
@@ -57,6 +60,9 @@ static const char bdcmd_names[] ALIGN1 =
 	"getsz"     "\0"
 	"getsize"   "\0"
 	"getsize64" "\0"
+	"getra"     "\0"
+	"setra"     "\0"
+#define CMD_SETRA 10
 	"flushbufs" "\0"
 	"rereadpt"  "\0"
 ;
@@ -70,6 +76,8 @@ static const uint32_t bdcmd_ioctl[] ALIGN4 = {
 	BLKGETSIZE64,   //getsz
 	BLKGETSIZE,     //getsize
 	BLKGETSIZE64,   //getsize64
+	BLKRAGET,       //getra
+	BLKRASET,       //setra
 	BLKFLSBUF,      //flushbufs
 	BLKRRPART,      //rereadpt
 };
@@ -95,6 +103,8 @@ static const uint8_t bdcmd_flags[] ALIGN1 = {
 	ARG_U64 + FL_SCALE512,             //getsz
 	ARG_ULONG,                         //getsize
 	ARG_U64,                           //getsize64
+	ARG_ULONG,                         //getra
+	ARG_ULONG + FL_NORESULT,           //setra
 	ARG_NONE + FL_NORESULT,            //flushbufs
 	ARG_NONE + FL_NORESULT,            //rereadpt
 };
@@ -130,8 +140,9 @@ int blockdev_main(int argc UNUSED_PARAM, char **argv)
 	/* setrw translates to BLKROSET(0), most other ioctls don't care... */
 	/* ...setro will do BLKROSET(1) */
 	u64 = (bdcmd == CMD_SETRO);
-	if (bdcmd == CMD_SETBSZ) {
+	if (bdcmd == CMD_SETBSZ || bdcmd == CMD_SETRA) {
 		/* ...setbsz is BLKBSZSET(bytes) */
+		/* ...setra is BLKRASET(512 bytes) */
 		u64 = xatoi_positive(*++argv);
 	}
 
@@ -145,8 +156,11 @@ int blockdev_main(int argc UNUSED_PARAM, char **argv)
 #if BB_BIG_ENDIAN
 	/* Store data properly wrt data size.
 	 * (1) It's no-op for little-endian.
-	 * (2) it's no-op for 0 and -1. Only --setro uses arg != 0 and != -1,
-	 * and it is ARG_INT. --setbsz USER_VAL is also ARG_INT.
+	 * (2) it's no-op for 0 and -1.
+	 * --setro uses arg != 0 and != -1, and it is ARG_INT
+	 * --setbsz USER_VAL is also ARG_INT
+	 * --setra USER_VAL is ARG_ULONG, but it is passed by value,
+	 * not reference (see below in ioctl call).
 	 * Thus, we don't need to handle ARG_ULONG.
 	 */
 	switch (flags & ARG_MASK) {
@@ -161,7 +175,11 @@ int blockdev_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	if (ioctl(fd, bdcmd_ioctl[bdcmd], &ioctl_val_on_stack.u64) == -1)
+	if (ioctl(fd, bdcmd_ioctl[bdcmd],
+			bdcmd == CMD_SETRA
+				? (void*)(uintptr_t)u64 /* BLKRASET passes _value_, not pointer to it */
+				: &ioctl_val_on_stack.u64
+		) == -1)
 		bb_simple_perror_msg_and_die(*argv);
 
 	/* Fetch it into register(s) */
