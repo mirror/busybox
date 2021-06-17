@@ -23,13 +23,15 @@
 //kbuild:lib-$(CONFIG_MV) += mv.o
 
 //usage:#define mv_trivial_usage
-//usage:       "[-fin] SOURCE DEST\n"
-//usage:       "or: mv [-fin] SOURCE... DIRECTORY"
+//usage:       "[-finT] SOURCE DEST\n"
+//usage:       "or: mv [-fin] SOURCE... { -t DIRECTORY | DIRECTORY }"
 //usage:#define mv_full_usage "\n\n"
 //usage:       "Rename SOURCE to DEST, or move SOURCEs to DIRECTORY\n"
 //usage:     "\n	-f	Don't prompt before overwriting"
 //usage:     "\n	-i	Interactive, prompt before overwrite"
 //usage:     "\n	-n	Don't overwrite an existing file"
+//usage:     "\n	-T	Refuse to move if DEST is a directory"
+//usage:     "\n	-t DIR	Move all SOURCEs into DIR"
 //usage:
 //usage:#define mv_example_usage
 //usage:       "$ mv /tmp/foo /bin/bar\n"
@@ -40,7 +42,7 @@
 int mv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mv_main(int argc, char **argv)
 {
-	struct stat dest_stat;
+	struct stat statbuf;
 	const char *last;
 	const char *dest;
 	unsigned flags;
@@ -51,41 +53,66 @@ int mv_main(int argc, char **argv)
 #define OPT_FORCE       (1 << 0)
 #define OPT_INTERACTIVE (1 << 1)
 #define OPT_NOCLOBBER   (1 << 2)
-#define OPT_VERBOSE     ((1 << 3) * ENABLE_FEATURE_VERBOSE)
-	/* Need at least two arguments.
-	 * If more than one of -f, -i, -n is specified , only the final one
-	 * takes effect (it unsets previous options).
-	 */
+#define OPT_DESTNOTDIR  (1 << 3)
+#define OPT_DESTDIR     (1 << 4)
+#define OPT_VERBOSE     ((1 << 5) * ENABLE_FEATURE_VERBOSE)
 	flags = getopt32long(argv, "^"
-			"finv"
+			"finTt:v"
 			"\0"
-			"-2:f-in:i-fn:n-fi",
+	/* At least one argument. (Usually two+, but -t DIR can have only one) */
+			"-1"
+	/* only the final one of -f, -i, -n takes effect */
+			":f-in:i-fn:n-fi"
+	/* -t and -T don't mix */
+			":t--T:T--t",
 			"interactive\0" No_argument "i"
 			"force\0"       No_argument "f"
 			"no-clobber\0"  No_argument "n"
+			"no-target-directory\0" No_argument "T"
+			"target-directory\0" Required_argument "t"
 			IF_FEATURE_VERBOSE(
-			"verbose\0"     No_argument "v"
+			"verbose\0"     No_argument "v",
+			&last
 			)
 	);
 	argc -= optind;
 	argv += optind;
-	last = argv[argc - 1];
 
-	if (argc == 2) {
-		dest_exists = cp_mv_stat(last, &dest_stat);
-		if (dest_exists < 0) {
-			return EXIT_FAILURE;
-		}
-
-		if (!(dest_exists & 2)) { /* last is not a directory */
-			dest = last;
-			goto DO_MOVE;
+	if (!(flags & OPT_DESTDIR)) {
+		last = argv[argc - 1];
+		if (argc < 2)
+			bb_show_usage();
+		if (argc != 2) {
+			if (flags & OPT_DESTNOTDIR)
+				bb_show_usage();
+			/* "mv A B C... DIR" - target must be dir */
+		} else /* argc == 2 */ {
+			/* "mv A B" - only case where target can be not a dir */
+			dest_exists = cp_mv_stat(last, &statbuf);
+			if (dest_exists < 0) { /* error other than ENOENT */
+				return EXIT_FAILURE;
+			}
+			if (!(dest_exists & 2)) {
+				/* last is not a directory */
+				dest = last;
+				goto DO_MOVE;
+			}
+			/* last is a directory */
+			if (flags & OPT_DESTNOTDIR) {
+				if (stat(argv[0], &statbuf) == 0 && !S_ISDIR(statbuf.st_mode))
+					bb_error_msg_and_die("'%s' is a directory", last);
+				/* "mv -T DIR1 DIR2" is allowed (renames a dir) */
+				dest = last;
+				goto DO_MOVE;
+			}
+			/* else: fall through into "do { move SRC to DIR/SRC } while" loop */
 		}
 	}
+	/* else: last is DIR from "t -DIR" */
 
 	do {
 		dest = concat_path_file(last, bb_get_last_path_component_strip(*argv));
-		dest_exists = cp_mv_stat(dest, &dest_stat);
+		dest_exists = cp_mv_stat(dest, &statbuf);
 		if (dest_exists < 0) {
 			goto RET_1;
 		}
@@ -108,11 +135,10 @@ int mv_main(int argc, char **argv)
 		}
 
 		if (rename(*argv, dest) < 0) {
-			struct stat source_stat;
 			int source_exists;
 
 			if (errno != EXDEV
-			 || (source_exists = cp_mv_stat2(*argv, &source_stat, lstat)) < 1
+			 || (source_exists = cp_mv_stat2(*argv, &statbuf, lstat)) < 1
 			) {
 				bb_perror_msg("can't rename '%s'", *argv);
 			} else {
