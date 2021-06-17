@@ -211,7 +211,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 				pr->bcnt = fu->bcnt;
 				if (fu->bcnt == 0) {
 					if (!prec)
-						bb_simple_error_msg_and_die("%%s needs precision or byte count");
+						bb_simple_error_msg_and_die("%s needs precision or byte count");
 					pr->bcnt = atoi(prec);
 				}
 			} else
