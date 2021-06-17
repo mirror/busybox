@@ -34,6 +34,7 @@ typedef struct dumper_t {
 	smallint dump_vflag;            /*enum dump_vflag_t*/
 	FS *fshead;
 	const char *xxd_eofstring;
+	off_t address;           /* address/offset in stream */
 	long long xxd_displayoff;
 } dumper_t;
 
