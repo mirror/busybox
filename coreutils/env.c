@@ -39,13 +39,14 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/env.html */
 
 //usage:#define env_trivial_usage
-//usage:       "[-i] [-u NAME]... [-] [NAME=VALUE]... [PROG ARGS]"
+//usage:       "[-i0] [-u NAME]... [-] [NAME=VALUE]... [PROG ARGS]"
 // The "-" can occur only once (unlike, say, -i): it terminates option processing,
 // so if it is followed by another "-" arg (or any option-looking arg),
 // that arg will be taken as PROG (or even as NAME=VALUE, example: "-z=QWE").
 //usage:#define env_full_usage "\n\n"
 //usage:       "Print current environment or run PROG after setting up environment\n"
 //usage:     "\n	-, -i	Start with empty environment"
+//usage:     "\n	-0	NUL terminated output"
 //usage:     "\n	-u NAME	Remove variable from environment"
 
 #include "libbb.h"
@@ -56,8 +57,9 @@ int env_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opts;
 	llist_t *unset_env = NULL;
 
-	opts = getopt32long(argv, "+iu:*",
+	opts = getopt32long(argv, "+i0u:*",
 			"ignore-environment\0" No_argument       "i"
+			"null\0"               No_argument       "0"
 			"unset\0"              Required_argument "u"
 			, &unset_env
 	);
@@ -92,8 +94,9 @@ int env_main(int argc UNUSED_PARAM, char **argv)
 
 	if (environ) { /* clearenv() may set environ == NULL! */
 		char **ep;
+		opts = (opts & 2) ? 0 : '\n';
 		for (ep = environ; *ep; ep++) {
-			puts(*ep);
+			printf("%s%c", *ep, opts);
 		}
 	}
 
