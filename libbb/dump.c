@@ -228,7 +228,8 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 					if ((p1[2] != 'd') && (p1[2] != 'o') && (p1[2] != 'x')) {
 						goto DO_BAD_CONV_CHAR;
 					}
-					*p1 = p1[2];
+					*p1++ = 'l';
+					*p1++ = 'l';
 					break;
 				case 'c':	/* %_c: chars, \ooo, \n \r \t etc */
 					pr->flags = F_C;
@@ -558,9 +559,9 @@ static void display(priv_dumper_t* dumper)
 						if (dumper->eaddress
 						 && dumper->address >= dumper->eaddress
 						) {
-							if (dumper->pub.eofstring) {
+							if (dumper->pub.xxd_eofstring) {
 								/* xxd support: requested to not pad incomplete blocks */
-								fputs_stdout(dumper->pub.eofstring);
+								fputs_stdout(dumper->pub.xxd_eofstring);
 								return;
 							}
 							if (!(pr->flags & (F_TEXT | F_BPAD)))
@@ -572,7 +573,7 @@ static void display(priv_dumper_t* dumper)
 						}
 						switch (pr->flags) {
 						case F_ADDRESS:
-							printf(pr->fmt, (unsigned) dumper->address);
+							printf(pr->fmt, (unsigned long long) dumper->address + dumper->pub.xxd_displayoff);
 							break;
 						case F_BPAD:
 							printf(pr->fmt, "");
@@ -674,7 +675,7 @@ static void display(priv_dumper_t* dumper)
 		for (pr = dumper->endfu->nextpr; pr; pr = pr->nextpr) {
 			switch (pr->flags) {
 			case F_ADDRESS:
-				printf(pr->fmt, (unsigned) dumper->eaddress);
+				printf(pr->fmt, (unsigned long long) dumper->eaddress + dumper->pub.xxd_displayoff);
 				break;
 			case F_TEXT:
 				printf(pr->fmt);
