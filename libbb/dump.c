@@ -357,6 +357,7 @@ static NOINLINE int next(priv_dumper_t *dumper)
 				if (!freopen(fname, "r", stdin)) {
 					bb_simple_perror_msg(fname);
 					dumper->exitval = 1;
+					dumper->next__done = 1;
 					continue;
 				}
 			}
