@@ -18,12 +18,13 @@
 //kbuild:lib-$(CONFIG_IONICE) += ionice.o
 
 //usage:#define ionice_trivial_usage
-//usage:	"[-c 1-3] [-n 0-7] { -p PID | PROG ARGS }"
+//usage:	"[-c 1-3] [-n 0-7] [-t] { -p PID | PROG ARGS }"
 //TODO: | -P PGID | -u UID; also -pPu can take _list of_ IDs
 //usage:#define ionice_full_usage "\n\n"
 //usage:       "Change I/O priority and class\n"
 //usage:     "\n	-c N	Class. 1:realtime 2:best-effort 3:idle"
 //usage:     "\n	-n N	Priority"
+//usage:     "\n	-t	Ignore errors"
 
 #include <sys/syscall.h>
 #include <asm/unistd.h>
@@ -65,14 +66,15 @@ int ionice_main(int argc UNUSED_PARAM, char **argv)
 	int pid = 0; /* affect own process */
 	int opt;
 	enum {
-		OPT_n = 1,
-		OPT_c = 2,
-		OPT_p = 4,
+		OPT_n = 1 << 0,
+		OPT_c = 1 << 1,
+		OPT_p = 1 << 2,
+		OPT_t = 1 << 3,
 	};
 
-	/* Numeric params */
 	/* '+': stop at first non-option */
-	opt = getopt32(argv, "+n:+c:+p:+", &pri, &ioclass, &pid);
+	/* numeric params for -n -c -p */
+	opt = getopt32(argv, "+""n:+c:+p:+t", &pri, &ioclass, &pid);
 	argv += optind;
 
 	if (opt & OPT_c) {
@@ -105,7 +107,8 @@ int ionice_main(int argc UNUSED_PARAM, char **argv)
 //pri, ioclass, pri | (ioclass << IOPRIO_CLASS_SHIFT));
 		pri |= (ioclass << IOPRIO_CLASS_SHIFT);
 		if (ioprio_set(IOPRIO_WHO_PROCESS, pid, pri) == -1)
-			bb_perror_msg_and_die("ioprio_%cet", 's');
+			if (!(opt & OPT_t))
+				bb_perror_msg_and_die("ioprio_%cet", 's');
 		if (argv[0]) {
 			BB_EXECVP_or_die(argv);
 		}
