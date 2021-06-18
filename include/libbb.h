@@ -1065,10 +1065,10 @@ char *smart_ulltoa5(unsigned long long ul, char buf[5], const char *scale) FAST_
 /* If block_size == 0, display size without fractional part,
  * else display (size * block_size) with one decimal digit.
  * If display_unit == 0, show value no bigger than 1024 with suffix (K,M,G...),
- * else divide by display_unit and do not use suffix. */
+ * else divide by display_unit and do not use suffix.
+ * Returns "auto pointer" */
 #define HUMAN_READABLE_MAX_WIDTH      7  /* "1024.0G" */
 #define HUMAN_READABLE_MAX_WIDTH_STR "7"
-//TODO: provide pointer to buf (avoid statics)?
 const char *make_human_readable_str(unsigned long long size,
 		unsigned long block_size, unsigned long display_unit) FAST_FUNC;
 /* Put a string of hex bytes ("1b2e66fe"...), return advanced pointer */
