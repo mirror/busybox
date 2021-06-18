@@ -66,6 +66,8 @@
 #endif
 #ifndef debug_printf_parse
 # define debug_printf_parse(...) (fprintf(stderr, __VA_ARGS__))
+#else
+# define debug_parse_print_tc(...) ((void)0)
 #endif
 
 
@@ -210,13 +212,13 @@ typedef struct tsplitter_s {
 #define	TC_SEQTERM	(1 << 1)		/* ) */
 #define	TC_REGEXP	(1 << 2)		/* /.../ */
 #define	TC_OUTRDR	(1 << 3)		/* | > >> */
-#define	TC_UOPPOST	(1 << 4)		/* unary postfix operator */
-#define	TC_UOPPRE1	(1 << 5)		/* unary prefix operator */
+#define	TC_UOPPOST	(1 << 4)		/* unary postfix operator ++ -- */
+#define	TC_UOPPRE1	(1 << 5)		/* unary prefix operator ++ -- $ */
 #define	TC_BINOPX	(1 << 6)		/* two-opnd operator */
 #define	TC_IN		(1 << 7)
 #define	TC_COMMA	(1 << 8)
 #define	TC_PIPE		(1 << 9)		/* input redirection pipe */
-#define	TC_UOPPRE2	(1 << 10)		/* unary prefix operator */
+#define	TC_UOPPRE2	(1 << 10)		/* unary prefix operator + - ! */
 #define	TC_ARRTERM	(1 << 11)		/* ] */
 #define	TC_GRPSTART	(1 << 12)		/* { */
 #define	TC_GRPTERM	(1 << 13)		/* } */
@@ -243,14 +245,51 @@ typedef struct tsplitter_s {
 #define	TC_STRING	(1 << 29)
 #define	TC_NUMBER	(1 << 30)
 
-#define	TC_UOPPRE  (TC_UOPPRE1 | TC_UOPPRE2)
+#ifndef debug_parse_print_tc
+#define debug_parse_print_tc(n) do { \
+if ((n) & TC_SEQSTART) debug_printf_parse(" SEQSTART"); \
+if ((n) & TC_SEQTERM ) debug_printf_parse(" SEQTERM" ); \
+if ((n) & TC_REGEXP  ) debug_printf_parse(" REGEXP"  ); \
+if ((n) & TC_OUTRDR  ) debug_printf_parse(" OUTRDR"  ); \
+if ((n) & TC_UOPPOST ) debug_printf_parse(" UOPPOST" ); \
+if ((n) & TC_UOPPRE1 ) debug_printf_parse(" UOPPRE1" ); \
+if ((n) & TC_BINOPX  ) debug_printf_parse(" BINOPX"  ); \
+if ((n) & TC_IN      ) debug_printf_parse(" IN"      ); \
+if ((n) & TC_COMMA   ) debug_printf_parse(" COMMA"   ); \
+if ((n) & TC_PIPE    ) debug_printf_parse(" PIPE"    ); \
+if ((n) & TC_UOPPRE2 ) debug_printf_parse(" UOPPRE2" ); \
+if ((n) & TC_ARRTERM ) debug_printf_parse(" ARRTERM" ); \
+if ((n) & TC_GRPSTART) debug_printf_parse(" GRPSTART"); \
+if ((n) & TC_GRPTERM ) debug_printf_parse(" GRPTERM" ); \
+if ((n) & TC_SEMICOL ) debug_printf_parse(" SEMICOL" ); \
+if ((n) & TC_NEWLINE ) debug_printf_parse(" NEWLINE" ); \
+if ((n) & TC_STATX   ) debug_printf_parse(" STATX"   ); \
+if ((n) & TC_WHILE   ) debug_printf_parse(" WHILE"   ); \
+if ((n) & TC_ELSE    ) debug_printf_parse(" ELSE"    ); \
+if ((n) & TC_BUILTIN ) debug_printf_parse(" BUILTIN" ); \
+if ((n) & TC_LENGTH  ) debug_printf_parse(" LENGTH"  ); \
+if ((n) & TC_GETLINE ) debug_printf_parse(" GETLINE" ); \
+if ((n) & TC_FUNCDECL) debug_printf_parse(" FUNCDECL"); \
+if ((n) & TC_BEGIN   ) debug_printf_parse(" BEGIN"   ); \
+if ((n) & TC_END     ) debug_printf_parse(" END"     ); \
+if ((n) & TC_EOF     ) debug_printf_parse(" EOF"     ); \
+if ((n) & TC_VARIABLE) debug_printf_parse(" VARIABLE"); \
+if ((n) & TC_ARRAY   ) debug_printf_parse(" ARRAY"   ); \
+if ((n) & TC_FUNCTION) debug_printf_parse(" FUNCTION"); \
+if ((n) & TC_STRING  ) debug_printf_parse(" STRING"  ); \
+if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
+} while (0)
+#endif
 
 /* combined token classes */
+#define	TC_UOPPRE  (TC_UOPPRE1 | TC_UOPPRE2)
+
 #define	TC_BINOP   (TC_BINOPX | TC_COMMA | TC_PIPE | TC_IN)
 //#define	TC_UNARYOP (TC_UOPPRE | TC_UOPPOST)
 #define	TC_OPERAND (TC_VARIABLE | TC_ARRAY | TC_FUNCTION \
                    | TC_BUILTIN | TC_LENGTH | TC_GETLINE \
                    | TC_SEQSTART | TC_STRING | TC_NUMBER)
+#define	TC_LVALUE (TC_VARIABLE | TC_ARRAY)
 
 #define	TC_STATEMNT (TC_STATX | TC_WHILE)
 #define	TC_OPTERM  (TC_SEMICOL | TC_NEWLINE)
@@ -284,7 +323,6 @@ typedef struct tsplitter_s {
 #define	OF_CHECKED  0x200000
 #define	OF_REQUIRED 0x400000
 
-
 /* combined operator flags */
 #define	xx	0
 #define	xV	OF_RES2
@@ -313,10 +351,8 @@ typedef struct tsplitter_s {
 #define PRIMASK2  0x7E000000
 
 /* Operation classes */
-
 #define	SHIFT_TIL_THIS	0x0600
 #define	RECUR_FROM_THIS	0x1000
-
 enum {
 	OC_DELETE = 0x0100,     OC_EXEC = 0x0200,       OC_NEWSOURCE = 0x0300,
 	OC_PRINT = 0x0400,      OC_PRINTF = 0x0500,     OC_WALKINIT = 0x0600,
@@ -411,7 +447,9 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 	OC_REGEXP,
 	xS|'a',                  xS|'w',                  xS|'|',
 	OC_UNARY|xV|P(9)|'p',    OC_UNARY|xV|P(9)|'m',
-	OC_UNARY|xV|P(9)|'P',    OC_UNARY|xV|P(9)|'M',    OC_FIELD|xV|P(5),
+#define TI_PREINC (OC_UNARY|xV|P(9)|'P')
+#define TI_PREDEC (OC_UNARY|xV|P(9)|'M')
+	TI_PREINC,               TI_PREDEC,               OC_FIELD|xV|P(5),
 	OC_COMPARE|VV|P(39)|5,   OC_MOVE|VV|P(74),        OC_REPLACE|NV|P(74)|'+', OC_REPLACE|NV|P(74)|'-',
 	OC_REPLACE|NV|P(74)|'*', OC_REPLACE|NV|P(74)|'/', OC_REPLACE|NV|P(74)|'%', OC_REPLACE|NV|P(74)|'&',
 	OC_BINARY|NV|P(29)|'+',  OC_BINARY|NV|P(29)|'-',  OC_REPLACE|NV|P(74)|'&', OC_BINARY|NV|P(15)|'&',
@@ -1070,6 +1108,10 @@ static uint32_t next_token(uint32_t expected)
 	uint32_t tc;
 	const uint32_t *ti;
 
+	debug_printf_parse("%s() expected(%x):", __func__, expected);
+	debug_parse_print_tc(expected);
+	debug_printf_parse("\n");
+
 	if (t_rollback) {
 		debug_printf_parse("%s: using rolled-back token\n", __func__);
 		t_rollback = FALSE;
@@ -1226,7 +1268,9 @@ static uint32_t next_token(uint32_t expected)
 				EMSG_UNEXP_EOS : EMSG_UNEXP_TOKEN);
 	}
 
-	debug_printf_parse("%s: returning, ltclass:%x t_double:%f\n", __func__, ltclass, t_double);
+	debug_printf_parse("%s: returning, t_double:%f ltclass:", __func__, t_double);
+	debug_parse_print_tc(ltclass);
+	debug_printf_parse("\n");
 	return ltclass;
 #undef concat_inserted
 #undef save_tclass
@@ -1266,7 +1310,7 @@ static node *condition(void)
 
 /* parse expression terminated by given argument, return ptr
  * to built subtree. Terminator is eaten by parse_expr */
-static node *parse_expr(uint32_t iexp)
+static node *parse_expr(uint32_t term_tc)
 {
 	node sn;
 	node *cn = &sn;
@@ -1274,13 +1318,15 @@ static node *parse_expr(uint32_t iexp)
 	uint32_t tc, xtc;
 	var *v;
 
-	debug_printf_parse("%s(%x)\n", __func__, iexp);
+	debug_printf_parse("%s() term_tc(%x):", __func__, term_tc);
+	debug_parse_print_tc(term_tc);
+	debug_printf_parse("\n");
 
 	sn.info = PRIMASK;
 	sn.r.n = sn.a.n = glptr = NULL;
-	xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP | iexp;
+	xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP | term_tc;
 
-	while (!((tc = next_token(xtc)) & iexp)) {
+	while (!((tc = next_token(xtc)) & term_tc)) {
 
 		if (glptr && (t_info == (OC_COMPARE | VV | P(39) | 2))) {
 			/* input redirection (<) attached to glptr node */
@@ -1313,25 +1359,28 @@ static node *parse_expr(uint32_t iexp)
 					next_token(TC_GETLINE);
 					/* give maximum priority to this pipe */
 					cn->info &= ~PRIMASK;
-					xtc = TC_OPERAND | TC_UOPPRE | TC_BINOP | iexp;
+					xtc = TC_OPERAND | TC_UOPPRE | TC_BINOP | term_tc;
 				}
 			} else {
 				cn->r.n = vn;
-				xtc = TC_OPERAND | TC_UOPPRE | TC_BINOP | iexp;
+				xtc = TC_OPERAND | TC_UOPPRE | TC_BINOP | term_tc;
 			}
 			vn->a.n = cn;
 
 		} else {
-			debug_printf_parse("%s: other\n", __func__);
+			debug_printf_parse("%s: other, t_info:%x\n", __func__, t_info);
 			/* for operands and prefix-unary operators, attach them
 			 * to last node */
 			vn = cn;
 			cn = vn->r.n = new_node(t_info);
 			cn->a.n = vn;
+
 			xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP;
+			if (t_info == TI_PREINC || t_info == TI_PREDEC)
+				xtc = TC_LVALUE | TC_UOPPRE1;
 			if (tc & (TC_OPERAND | TC_REGEXP)) {
 				debug_printf_parse("%s: TC_OPERAND | TC_REGEXP\n", __func__);
-				xtc = TC_UOPPRE | TC_UOPPOST | TC_BINOP | TC_OPERAND | iexp;
+				xtc = TC_UOPPRE | TC_UOPPOST | TC_BINOP | TC_OPERAND | term_tc;
 				/* one should be very careful with switch on tclass -
 				 * only simple tclasses should be used! */
 				switch (tc) {
@@ -1388,7 +1437,7 @@ static node *parse_expr(uint32_t iexp)
 				case TC_GETLINE:
 					debug_printf_parse("%s: TC_GETLINE\n", __func__);
 					glptr = cn;
-					xtc = TC_OPERAND | TC_UOPPRE | TC_BINOP | iexp;
+					xtc = TC_OPERAND | TC_UOPPRE | TC_BINOP | term_tc;
 					break;
 
 				case TC_BUILTIN:
@@ -1602,6 +1651,8 @@ static void parse_program(char *p)
 	node *cn;
 	func *f;
 	var *v;
+
+	debug_printf_parse("%s()\n", __func__);
 
 	g_pos = p;
 	t_lineno = 1;
