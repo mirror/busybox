@@ -34,10 +34,12 @@
 //kbuild:lib-$(CONFIG_TASKSET) += taskset.o
 
 //usage:#define taskset_trivial_usage
-//usage:       "[-p] [HEXMASK] PID | PROG ARGS"
+//usage:       "[-ap] [HEXMASK"IF_FEATURE_TASKSET_CPULIST(" | -c LIST")"] { PID | PROG ARGS }"
 //usage:#define taskset_full_usage "\n\n"
 //usage:       "Set or get CPU affinity\n"
-//usage:     "\n	-p	Operate on an existing PID"
+//usage:     "\n	-p	Operate on PID"
+//usage:     "\n	-a	Operate on all threads"
+//usage:     "\n	-c	Affinity is a list, not mask"
 //usage:
 //usage:#define taskset_example_usage
 //usage:       "$ taskset 0x7 ./dgemm_test&\n"
@@ -205,42 +207,18 @@ static void print_cpulist(const ul *mask, unsigned mask_size_in_bytes)
 }
 #endif
 
-int taskset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int taskset_main(int argc UNUSED_PARAM, char **argv)
+enum {
+	OPT_p = 1 << 0,
+	OPT_a = 1 << 1,
+	OPT_c = (1 << 2) * ENABLE_FEATURE_TASKSET_CPULIST,
+};
+
+static void process_pid_str(const char *pid_str, unsigned opts, char *aff)
 {
 	ul *mask;
 	unsigned mask_size_in_bytes;
-	pid_t pid = 0;
 	const char *current_new;
-	char *aff;
-	unsigned opts;
-	enum {
-		OPT_p = 1 << 0,
-		OPT_c = (1 << 1) * ENABLE_FEATURE_TASKSET_CPULIST,
-	};
-
-	/* NB: we mimic util-linux's taskset: -p does not take
-	 * an argument, i.e., "-pN" is NOT valid, only "-p N"!
-	 * Indeed, util-linux-2.13-pre7 uses:
-	 * getopt_long(argc, argv, "+pchV", ...), not "...p:..." */
-
-	opts = getopt32(argv, "^+" "p"IF_FEATURE_TASKSET_CPULIST("c")
-			"\0" "-1" /* at least 1 arg */);
-	argv += optind;
-
-	aff = *argv++;
-	if (opts & OPT_p) {
-		char *pid_str = aff;
-		if (*argv) { /* "-p <aff> <pid> ...rest.is.ignored..." */
-			pid_str = *argv; /* NB: *argv != NULL in this case */
-		}
-		/* else it was just "-p <pid>", and *argv == NULL */
-		pid = xatoul_range(pid_str, 1, ((unsigned)(pid_t)ULONG_MAX) >> 1);
-	} else {
-		/* <aff> <cmd...> */
-		if (!*argv)
-			bb_show_usage();
-	}
+	pid_t pid = xatoi_positive(pid_str);
 
 	mask_size_in_bytes = SZOF_UL;
 	current_new = "current";
@@ -255,13 +233,12 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 #endif
 			printf("pid %d's %s affinity mask: "TASKSET_PRINTF_MASK"\n",
 				pid, current_new, from_mask(mask, mask_size_in_bytes));
-		if (*argv == NULL) {
+		if (!aff) {
 			/* Either it was just "-p <pid>",
 			 * or it was "-p <aff> <pid>" and we came here
 			 * for the second time (see goto below) */
-			return EXIT_SUCCESS;
+			return;
 		}
-		*argv = NULL;
 		current_new = "new";
 	}
 	memset(mask, 0, mask_size_in_bytes);
@@ -331,8 +308,61 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 		bb_perror_msg_and_die("can't %cet pid %d's affinity", 's', pid);
 	//bb_error_msg("set mask[0]:%lx", mask[0]);
 
-	if (!argv[0]) /* "-p <aff> <pid> [...ignored...]" */
+	if ((opts & OPT_p) && aff) { /* "-p <aff> <pid> [...ignored...]" */
+		aff = NULL;
 		goto print_aff; /* print new affinity and exit */
+	}
+}
 
-	BB_EXECVP_or_die(argv);
+int taskset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int taskset_main(int argc UNUSED_PARAM, char **argv)
+{
+	const char *pid_str;
+	char *aff;
+	unsigned opts;
+
+	/* NB: we mimic util-linux's taskset: -p does not take
+	 * an argument, i.e., "-pN" is NOT valid, only "-p N"!
+	 * Indeed, util-linux-2.13-pre7 uses:
+	 * getopt_long(argc, argv, "+pchV", ...), not "...p:..." */
+
+	opts = getopt32(argv, "^+" "pa"IF_FEATURE_TASKSET_CPULIST("c")
+			"\0" "-1" /* at least 1 arg */);
+	argv += optind;
+
+	aff = *argv++;
+	if (!(opts & OPT_p)) {
+		/* <aff> <cmd...> */
+		if (!*argv)
+			bb_show_usage();
+		process_pid_str("0", opts, aff);
+		BB_EXECVP_or_die(argv);
+	}
+
+	pid_str = aff;
+	if (*argv) /* "-p <aff> <pid> ...rest.is.ignored..." */
+		pid_str = *argv; /* NB: *argv != NULL in this case */
+	else
+		aff = NULL;
+
+	if (opts & OPT_a) {
+		char dn[sizeof("/proc/%s/task") + 3 * sizeof(int)];
+		DIR *dir;
+		struct dirent *ent;
+
+		sprintf(dn, "/proc/%s/task", pid_str);
+		dir = opendir(dn);
+		if (!dir) {
+			goto no_threads;
+		}
+		while ((ent = readdir(dir)) != NULL) {
+			if (isdigit(ent->d_name[0]))
+				process_pid_str(ent->d_name, opts, aff);
+		}
+		IF_FEATURE_CLEAN_UP(closedir(dir);)
+	} else {
+ no_threads:
+		process_pid_str(pid_str, opts, aff);
+	}
+	return EXIT_SUCCESS;
 }
