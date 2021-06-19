@@ -4998,6 +4998,32 @@ static int parse_dollar(o_string *as_string,
 		 * which check invalid constructs like ${%}.
 		 * Oh well... let's check that the var name part is fine... */
 
+		if (isdigit(len_single_ch)
+		 || (len_single_ch == '#' && isdigit(i_peek_and_eat_bkslash_nl(input)))
+		) {
+			/* Execution engine uses plain xatoi_positive()
+			 * to interpret ${NNN} and {#NNN},
+			 * check syntax here in the parser.
+			 * (bash does not support expressions in ${#NN},
+			 * e.g. ${#$var} and {#1:+WORD} are not supported).
+			 */
+			unsigned cnt = 9; /* max 9 digits for ${NN} and 8 for {#NN} */
+			while (1) {
+				o_addchr(dest, ch);
+				debug_printf_parse(": '%c'\n", ch);
+				ch = i_getch_and_eat_bkslash_nl(input);
+				nommu_addchr(as_string, ch);
+				if (ch == '}')
+					break;
+				if (--cnt == 0)
+					goto bad_dollar_syntax;
+				if (len_single_ch != '#' && strchr(VAR_SUBST_OPS, ch))
+					/* ${NN<op>...} is valid */
+					goto eat_until_closing;
+				if (!isdigit(ch))
+					goto bad_dollar_syntax;
+			}
+		} else
 		while (1) {
 			unsigned pos;
 
@@ -5008,7 +5034,6 @@ static int parse_dollar(o_string *as_string,
 			nommu_addchr(as_string, ch);
 			if (ch == '}')
 				break;
-
 			if (!isalnum(ch) && ch != '_') {
 				unsigned end_ch;
 				unsigned char last_ch;
@@ -5027,6 +5052,7 @@ static int parse_dollar(o_string *as_string,
 					 * special var name, e.g. ${#!}.
 					 */
 				}
+ eat_until_closing:
 				/* Eat everything until closing '}' (or ':') */
 				end_ch = '}';
 				if (BASH_SUBSTR
