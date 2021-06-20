@@ -15,14 +15,15 @@
 //kbuild:lib-$(CONFIG_SHRED) += shred.o
 
 //usage:#define shred_trivial_usage
-//usage:       "[-fuz] [-n N] FILE..."
+//usage:       "[-fuz] [-n N] [-s SIZE] FILE..."
 //usage:#define shred_full_usage "\n\n"
 //usage:       "Overwrite/delete FILEs\n"
 //usage:     "\n	-f	Chmod to ensure writability"
+//usage:     "\n	-s SIZE	Size to write"
 //usage:     "\n	-n N	Overwrite N times (default 3)"
 //usage:     "\n	-z	Final overwrite with zeros"
 //usage:     "\n	-u	Remove file"
-//-x and -v are accepted but have no effect
+//-x (exact: don't round up to 4k) and -v (verbose) are accepted but have no effect
 
 /* shred (GNU coreutils) 8.25:
 -f, --force		change permissions to allow writing if necessary
@@ -41,6 +42,7 @@
 int shred_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int shred_main(int argc UNUSED_PARAM, char **argv)
 {
+	char *opt_s;
 	int rand_fd = rand_fd; /* for compiler */
 	int zero_fd;
 	unsigned num_iter = 3;
@@ -52,9 +54,10 @@ int shred_main(int argc UNUSED_PARAM, char **argv)
 		OPT_n = (1 << 3),
 		OPT_v = (1 << 4),
 		OPT_x = (1 << 5),
+		OPT_s = (1 << 6),
 	};
 
-	opt = getopt32(argv, "^" "fuzn:+vx" "\0" "-1"/*min 1 arg*/, &num_iter);
+	opt = getopt32(argv, "^" "fuzn:+vxs:" "\0" "-1"/*min 1 arg*/, &num_iter, &opt_s);
 	argv += optind;
 
 	zero_fd = xopen("/dev/zero", O_RDONLY);
@@ -81,6 +84,11 @@ int shred_main(int argc UNUSED_PARAM, char **argv)
 
 		if (fstat(fd, &sb) == 0 && sb.st_size > 0) {
 			off_t size = sb.st_size;
+
+			if (opt & OPT_s) {
+				size = BB_STRTOOFF(opt_s, NULL, 0); /* accepts oct/hex */
+				if (errno || size < 0) bb_show_usage();
+			}
 
 			for (i = 0; i < num_iter; i++) {
 				bb_copyfd_size(rand_fd, fd, size);
