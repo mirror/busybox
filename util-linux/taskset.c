@@ -346,12 +346,13 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 		aff = NULL;
 
 	if (opts & OPT_a) {
-		char dn[sizeof("/proc/%s/task") + 3 * sizeof(int)];
+		char *dn;
 		DIR *dir;
 		struct dirent *ent;
 
-		sprintf(dn, "/proc/%s/task", pid_str);
+		dn = xasprintf("/proc/%s/task", pid_str);
 		dir = opendir(dn);
+		IF_FEATURE_CLEAN_UP(free(dn);)
 		if (!dir) {
 			goto no_threads;
 		}
