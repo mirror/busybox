@@ -20,12 +20,12 @@
 //kbuild:lib-$(CONFIG_CHATTR) += chattr.o e2fs_lib.o
 
 //usage:#define chattr_trivial_usage
-//usage:       "[-R] [-v VERSION] [-+=AacDdijsStTu] FILE..."
+//usage:       "[-R] [-v VERSION] [-p PROJID] [-+=AacDdijsStTu] FILE..."
 //usage:#define chattr_full_usage "\n\n"
 //usage:       "Change ext2 file attributes\n"
 //usage:     "\n	-R	Recurse"
-//TODD?      "\n	-p NUM	Set project number"
 //usage:     "\n	-v NUM	Set version/generation number"
+//usage:     "\n	-p NUM	Set project number"
 //-V, -f accepted but ignored
 //usage:     "\nModifiers:"
 //usage:     "\n	-,+,=	Remove/add/set attributes"
@@ -45,16 +45,18 @@
 #include "libbb.h"
 #include "e2fs_lib.h"
 
-#define OPT_ADD 1
-#define OPT_REM 2
-#define OPT_SET 4
-#define OPT_SET_VER 8
+#define OPT_ADD      (1 << 0)
+#define OPT_REM      (1 << 1)
+#define OPT_SET      (1 << 2)
+#define OPT_SET_VER  (1 << 3)
+#define OPT_SET_PROJ (1 << 4)
 
 struct globals {
 	unsigned long version;
 	unsigned long af;
 	unsigned long rf;
 	int flags;
+	uint32_t projid;
 	smallint recursive;
 };
 
@@ -108,7 +110,13 @@ static char** decode_arg(char **argv, struct globals *gp)
 				gp->flags |= OPT_SET_VER;
 				continue;
 			}
-//TODO: "-p PROJECT_NUM" ?
+			if (*arg == 'p') {
+				if (!*++argv)
+					bb_show_usage();
+				gp->projid = xatou32(*argv);
+				gp->flags |= OPT_SET_PROJ;
+				continue;
+			}
 			/* not a known option, try as an attribute */
 		}
 		*fl |= get_flag(*arg);
@@ -151,7 +159,11 @@ static void change_attributes(const char *name, struct globals *gp)
 
 	if (gp->flags & OPT_SET_VER)
 		if (fsetversion(name, gp->version) != 0)
-			bb_perror_msg("setting version on %s", name);
+			bb_perror_msg("setting %s on %s", "version", name);
+
+	if (gp->flags & OPT_SET_PROJ)
+		if (fsetprojid(name, gp->projid) != 0)
+			bb_perror_msg("setting %s on %s", "project ID", name);
 
 	if (gp->flags & OPT_SET) {
 		fsflags = gp->af;

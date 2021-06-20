@@ -51,14 +51,14 @@ int fgetsetversion(const char *name, unsigned long *get_version, unsigned long s
 {
 #if HAVE_EXT2_IOCTLS
 	int fd, r;
-	IF_LONG_IS_WIDER(int ver;)
+	IF_LONG_IS_WIDER(unsigned ver;)
 
 	fd = open(name, O_RDONLY | O_NONBLOCK);
 	if (fd == -1)
 		return -1;
 	if (!get_version) {
 		IF_LONG_IS_WIDER(
-			ver = (int) set_version;
+			ver = (unsigned) set_version;
 			r = ioctl(fd, EXT2_IOC_SETVERSION, &ver);
 		)
 		IF_LONG_IS_SAME(
@@ -81,6 +81,32 @@ int fgetsetversion(const char *name, unsigned long *get_version, unsigned long s
 #endif /* ! HAVE_EXT2_IOCTLS */
 }
 
+int fgetsetprojid(const char *name, uint32_t *get, uint32_t set)
+{
+#if HAVE_EXT2_IOCTLS
+	struct ext2_fsxattr fsxattr;
+	int fd, r;
+
+	fd = open(name, O_RDONLY | O_NONBLOCK);
+	if (fd == -1)
+		return -1;
+	r = ioctl(fd, EXT2_IOC_FSGETXATTR, &fsxattr);
+	/* note: ^^^ may fail in 32-bit userspace on 64-bit kernel (seen on 4.12.0) */
+	if (r == 0) {
+		if (get) {
+			*get = fsxattr.fsx_projid;
+		} else {
+			fsxattr.fsx_projid = set;
+			r = ioctl(fd, EXT2_IOC_FSSETXATTR, &fsxattr);
+		}
+	}
+	close_silently(fd);
+	return r;
+#else /* ! HAVE_EXT2_IOCTLS */
+	errno = EOPNOTSUPP;
+	return -1;
+#endif /* ! HAVE_EXT2_IOCTLS */
+}
 
 /* Get/set a file flags on an ext2 file system */
 int fgetsetflags(const char *name, unsigned long *get_flags, unsigned long set_flags)
@@ -88,7 +114,7 @@ int fgetsetflags(const char *name, unsigned long *get_flags, unsigned long set_f
 #if HAVE_EXT2_IOCTLS
 	struct stat buf;
 	int fd, r;
-	IF_LONG_IS_WIDER(int f;)
+	IF_LONG_IS_WIDER(unsigned f;)
 
 	if (stat(name, &buf) == 0 /* stat is ok */
 	 && !S_ISREG(buf.st_mode) && !S_ISDIR(buf.st_mode)
@@ -101,7 +127,7 @@ int fgetsetflags(const char *name, unsigned long *get_flags, unsigned long set_f
 
 	if (!get_flags) {
 		IF_LONG_IS_WIDER(
-			f = (int) set_flags;
+			f = (unsigned) set_flags;
 			r = ioctl(fd, EXT2_IOC_SETFLAGS, &f);
 		)
 		IF_LONG_IS_SAME(

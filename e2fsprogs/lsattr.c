@@ -21,38 +21,48 @@
 //kbuild:lib-$(CONFIG_LSATTR) += lsattr.o e2fs_lib.o
 
 //usage:#define lsattr_trivial_usage
-//usage:       "[-Radlv] [FILE]..."
+//usage:       "[-Radlpv] [FILE]..."
 //usage:#define lsattr_full_usage "\n\n"
 //usage:       "List ext2 file attributes\n"
 //usage:     "\n	-R	Recurse"
-//usage:     "\n	-a	Don't hide entries starting with ."
-//usage:     "\n	-d	List directory entries instead of contents"
+//usage:     "\n	-a	Include names starting with ."
+//usage:     "\n	-d	List directory names, not contents"
+// -a,-d text should match ls --help
 //usage:     "\n	-l	List long flag names"
+//usage:     "\n	-p	List project ID"
 //usage:     "\n	-v	List version/generation number"
 
 #include "libbb.h"
 #include "e2fs_lib.h"
 
 enum {
-	OPT_RECUR      = 0x1,
-	OPT_ALL        = 0x2,
-	OPT_DIRS_OPT   = 0x4,
-	OPT_PF_LONG    = 0x8,
-	OPT_GENERATION = 0x10,
+	OPT_RECUR      = 1 << 0,
+	OPT_ALL        = 1 << 1,
+	OPT_DIRS_OPT   = 1 << 2,
+	OPT_PF_LONG    = 1 << 3,
+	OPT_GENERATION = 1 << 4,
+	OPT_PROJID     = 1 << 5,
 };
 
 static void list_attributes(const char *name)
 {
 	unsigned long fsflags;
-	unsigned long generation;
 
 	if (fgetflags(name, &fsflags) != 0)
 		goto read_err;
 
+	if (option_mask32 & OPT_PROJID) {
+		uint32_t p;
+		if (fgetprojid(name, &p) != 0)
+			goto read_err;
+		printf("%5lu ", (unsigned long)p);
+	}
+
 	if (option_mask32 & OPT_GENERATION) {
+		unsigned long generation;
 		if (fgetversion(name, &generation) != 0)
 			goto read_err;
-		printf("%5lu ", generation);
+		printf("%-10lu ", generation);
 	}
 
 	if (option_mask32 & OPT_PF_LONG) {
@@ -111,7 +121,7 @@ static void lsattr_args(const char *name)
 int lsattr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int lsattr_main(int argc UNUSED_PARAM, char **argv)
 {
-	getopt32(argv, "Radlv");
+	getopt32(argv, "Radlvp");
 	argv += optind;
 
 	if (!*argv)

@@ -21,6 +21,11 @@ int fgetsetversion(const char *name, unsigned long *get_version, unsigned long s
 #define fgetversion(name, version) fgetsetversion(name, version, 0)
 #define fsetversion(name, version) fgetsetversion(name, NULL, version)
 
+/* Get/set a file project ID on an ext2 file system */
+int fgetsetprojid(const char *name, uint32_t *get, uint32_t set);
+#define fgetprojid(name, projid) fgetsetprojid(name, projid, 0)
+#define fsetprojid(name, projid) fgetsetprojid(name, NULL, projid)
+
 /* Get/set a file flags on an ext2 file system */
 int fgetsetflags(const char *name, unsigned long *get_flags, unsigned long set_flags);
 #define fgetflags(name, flags) fgetsetflags(name, flags, 0)

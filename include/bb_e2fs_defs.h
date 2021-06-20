@@ -195,6 +195,18 @@ struct ext2_dx_countlimit {
 #define EXT2_IOC_SETFLAGS		_IOW('f', 2, long)
 #define EXT2_IOC_GETVERSION		_IOR('v', 1, long)
 #define EXT2_IOC_SETVERSION		_IOW('v', 2, long)
+//NB: despite "long" in defs above, these ioctls use an _int_!
+//passing them a pointer to long will read/write only int-sized data!
+struct ext2_fsxattr {
+	uint32_t	fsx_xflags;	/* xflags field value (get/set) */
+	uint32_t	fsx_extsize;	/* extsize field value (get/set)*/
+	uint32_t	fsx_nextents;	/* nextents field value (get)	*/
+	uint32_t	fsx_projid;	/* project identifier (get/set) */
+	uint32_t	fsx_cowextsize;	/* CoW extsize field value (get/set)*/
+	unsigned char	fsx_pad[8];
+};
+#define EXT2_IOC_FSGETXATTR		_IOR('X', 31, struct ext2_fsxattr)
+#define EXT2_IOC_FSSETXATTR		_IOW('X', 32, struct ext2_fsxattr)
 
 /*
  * Structure of an inode on the disk
