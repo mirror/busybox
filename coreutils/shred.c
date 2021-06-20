@@ -99,12 +99,12 @@ int shred_main(int argc UNUSED_PARAM, char **argv)
 				bb_copyfd_size(zero_fd, fd, size);
 				fdatasync(fd);
 			}
-			if (opt & OPT_u) {
-				ftruncate(fd, 0);
-				xunlink(fname);
-			}
-			xclose(fd);
 		}
+		if (opt & OPT_u) {
+			ftruncate(fd, 0);
+			xunlink(fname);
+		}
+		xclose(fd);
 	}
 
 	return EXIT_SUCCESS;
