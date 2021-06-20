@@ -182,11 +182,12 @@ struct ext2_dx_countlimit {
 #define EXT2_NOTAIL_FL			0x00008000 /* file tail should not be merged */
 #define EXT2_DIRSYNC_FL			0x00010000 /* Synchronous directory modifications */
 #define EXT2_TOPDIR_FL			0x00020000 /* Top of directory hierarchies*/
-#define EXT3_EXTENTS_FL			0x00080000 /* Inode uses extents */
-#define EXT2_RESERVED_FL		0x80000000 /* reserved for ext2 lib */
-
-#define EXT2_FL_USER_VISIBLE		0x0003DFFF /* User visible flags */
-#define EXT2_FL_USER_MODIFIABLE		0x000080FF /* User modifiable flags */
+#define EXT2_EXTENT_FL			0x00080000 /* Extents */
+#define EXT2_VERITY_FL			0x00100000
+#define EXT2_NOCOW_FL			0x00800000 /* Do not cow file */
+#define EXT2_INLINE_DATA_FL		0x10000000
+#define EXT2_PROJINHERIT_FL		0x20000000
+#define EXT2_CASEFOLD_FL		0x40000000
 
 /*
  * ioctl commands

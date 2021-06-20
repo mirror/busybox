@@ -158,9 +158,7 @@ const uint32_t e2attr_flags_value[] ALIGN4 = {
 	EXT2_COMPRBLK_FL,
 	EXT2_DIRTY_FL,
 	EXT2_NOCOMPR_FL,
-	EXT2_ECOMPR_FL,
 #endif
-	EXT2_INDEX_FL,
 	EXT2_SECRM_FL,
 	EXT2_UNRM_FL,
 	EXT2_SYNC_FL,
@@ -170,26 +168,31 @@ const uint32_t e2attr_flags_value[] ALIGN4 = {
 	EXT2_NODUMP_FL,
 	EXT2_NOATIME_FL,
 	EXT2_COMPR_FL,
+	EXT2_ECOMPR_FL,
 	EXT3_JOURNAL_DATA_FL,
+	EXT2_INDEX_FL,
 	EXT2_NOTAIL_FL,
-	EXT2_TOPDIR_FL
+	EXT2_TOPDIR_FL,
+	EXT2_EXTENT_FL,
+	EXT2_NOCOW_FL,
+	EXT2_CASEFOLD_FL,
+	EXT2_INLINE_DATA_FL,
+	EXT2_PROJINHERIT_FL,
+	EXT2_VERITY_FL,
 };
 
 const char e2attr_flags_sname[] ALIGN1 =
 #ifdef ENABLE_COMPRESSION
-	"BZXE"
+	"BZX"
 #endif
-	"I"
-	"suSDiadAcjtT";
+	"suSDiadAcEjItTeCFNPV";
 
 static const char e2attr_flags_lname[] ALIGN1 =
 #ifdef ENABLE_COMPRESSION
 	"Compressed_File" "\0"
 	"Compressed_Dirty_File" "\0"
 	"Compression_Raw_Access" "\0"
-	"Compression_Error" "\0"
 #endif
-	"Indexed_directory" "\0"
 	"Secure_Deletion" "\0"
 	"Undelete" "\0"
 	"Synchronous_Updates" "\0"
@@ -199,9 +202,17 @@ static const char e2attr_flags_lname[] ALIGN1 =
 	"No_Dump" "\0"
 	"No_Atime" "\0"
 	"Compression_Requested" "\0"
+	"Encrypted" "\0"
 	"Journaled_Data" "\0"
+	"Indexed_directory" "\0"
 	"No_Tailmerging" "\0"
 	"Top_of_Directory_Hierarchies" "\0"
+	"Extents" "\0"
+	"No_COW" "\0"
+	"Casefold" "\0"
+	"Inline_Data" "\0"
+	"Project_Hierarchy" "\0"
+	"Verity" "\0"
 	/* Another trailing NUL is added by compiler */;
 
 void print_e2flags(FILE *f, unsigned long flags, unsigned options)
