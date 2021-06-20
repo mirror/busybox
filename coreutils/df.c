@@ -113,6 +113,13 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 
 	init_unicode();
 
+	/* From the manpage of df from coreutils-6.10:
+	 * Disk space is shown in 1K blocks by default, unless the environment
+	 * variable POSIXLY_CORRECT is set, in which case 512-byte blocks are used.
+	 */
+	if (getenv("POSIXLY_CORRECT")) /* TODO - a new libbb function? */
+		df_disp_hr = 512;
+
 	opt = getopt32(argv, "^"
 			"kPT"
 			IF_FEATURE_DF_FANCY("aiB:")
@@ -141,13 +148,6 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 		df_disp_hr = xatoul_range_sfx(chp, 1, ULONG_MAX, kmg_i_suffixes);
  got_it: ;
 	}
-
-	/* From the manpage of df from coreutils-6.10:
-	 * Disk space is shown in 1K blocks by default, unless the environment
-	 * variable POSIXLY_CORRECT is set, in which case 512-byte blocks are used.
-	 */
-	if (getenv("POSIXLY_CORRECT")) /* TODO - a new libbb function? */
-		df_disp_hr = 512;
 
 	if (opt & OPT_HUMAN) {
 		df_disp_hr = 0;
