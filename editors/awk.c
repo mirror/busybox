@@ -455,7 +455,8 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 	OC_BINARY|NV|P(29)|'+',  OC_BINARY|NV|P(29)|'-',  OC_REPLACE|NV|P(74)|'&', OC_BINARY|NV|P(15)|'&',
 	OC_BINARY|NV|P(25)|'/',  OC_BINARY|NV|P(25)|'%',  OC_BINARY|NV|P(15)|'&',  OC_BINARY|NV|P(25)|'*',
 	OC_COMPARE|VV|P(39)|4,   OC_COMPARE|VV|P(39)|3,   OC_COMPARE|VV|P(39)|0,   OC_COMPARE|VV|P(39)|1,
-	OC_COMPARE|VV|P(39)|2,   OC_MATCH|Sx|P(45)|'!',   OC_MATCH|Sx|P(45)|'~',   OC_LAND|Vx|P(55),
+#define TI_LESS (OC_COMPARE|VV|P(39)|2)
+	TI_LESS,                 OC_MATCH|Sx|P(45)|'!',   OC_MATCH|Sx|P(45)|'~',   OC_LAND|Vx|P(55),
 	OC_LOR|Vx|P(59),         OC_TERNARY|Vx|P(64)|'?', OC_COLON|xx|P(67)|':',
 	OC_IN|SV|P(49), /* TC_IN */
 	OC_COMMA|SS|P(80),
@@ -1328,7 +1329,7 @@ static node *parse_expr(uint32_t term_tc)
 
 	while (!((tc = next_token(xtc)) & term_tc)) {
 
-		if (glptr && (t_info == (OC_COMPARE | VV | P(39) | 2))) {
+		if (glptr && (t_info == TI_LESS)) {
 			/* input redirection (<) attached to glptr node */
 			debug_printf_parse("%s: input redir\n", __func__);
 			cn = glptr->l.n = new_node(OC_CONCAT | SS | P(37));
