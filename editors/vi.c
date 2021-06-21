@@ -2376,9 +2376,7 @@ static char *char_search(char *p, const char *pat, int dir_and_range)
 	struct re_pattern_buffer preg;
 	const char *err;
 	char *q;
-	int i;
-	int size;
-	int range;
+	int i, size, range, start;
 
 	re_syntax_options = RE_SYNTAX_POSIX_EXTENDED;
 	if (ignorecase)
@@ -2403,31 +2401,26 @@ static char *char_search(char *p, const char *pat, int dir_and_range)
 
 	// RANGE could be negative if we are searching backwards
 	range = q - p;
-	q = p;
-	size = range;
 	if (range < 0) {
-		size = -size;
-		q = p - size;
-		if (q < text)
-			q = text;
+		size = -range;
+		start = size;
+	} else {
+		size = range;
+		start = 0;
 	}
+	q = p - start;
+	if (q < text)
+		q = text;
 	// search for the compiled pattern, preg, in p[]
-	// range < 0: search backward
-	// range > 0: search forward
-	// 0 < start < size
+	// range < 0, start == size: search backward
+	// range > 0, start == 0: search forward
 	// re_search() < 0: not found or error
 	// re_search() >= 0: index of found pattern
 	//           struct pattern   char     int   int    int    struct reg
 	// re_search(*pattern_buffer, *string, size, start, range, *regs)
-	i = re_search(&preg, q, size, /*start:*/ 0, range, /*struct re_registers*:*/ NULL);
+	i = re_search(&preg, q, size, start, range, /*struct re_registers*:*/ NULL);
 	regfree(&preg);
-	if (i < 0)
-		return NULL;
-	if (dir_and_range > 0) // FORWARD?
-		p = p + i;
-	else
-		p = p - i;
-	return p;
+	return i < 0 ? NULL : q + i;
 }
 # else
 #  if ENABLE_FEATURE_VI_SETOPTS
