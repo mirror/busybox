@@ -198,43 +198,43 @@ int cp_main(int argc, char **argv)
 	last = argv[argc - 1];
 	/* If there are only two arguments and...  */
 	if (argc == 2) {
-		s_flags = cp_mv_stat2(*argv, &source_stat,
-				(flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
-		if (s_flags < 0)
-			return EXIT_FAILURE;
-		d_flags = cp_mv_stat(last, &dest_stat);
-		if (d_flags < 0)
-			return EXIT_FAILURE;
+			s_flags = cp_mv_stat2(*argv, &source_stat,
+					(flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
+			if (s_flags < 0)
+				return EXIT_FAILURE;
+			d_flags = cp_mv_stat(last, &dest_stat);
+			if (d_flags < 0)
+				return EXIT_FAILURE;
 
-		if (flags & FILEUTILS_NO_TARGET_DIR) { /* -T */
-			if (!(s_flags & 2) && (d_flags & 2))
-				/* cp -T NOTDIR DIR */
-				bb_error_msg_and_die("'%s' is a directory", last);
-		}
+			if (flags & FILEUTILS_NO_TARGET_DIR) { /* -T */
+				if (!(s_flags & 2) && (d_flags & 2))
+					/* cp -T NOTDIR DIR */
+					bb_error_msg_and_die("'%s' is a directory", last);
+			}
 
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
-		//bb_error_msg("flags:%x FILEUTILS_RMDEST:%x OPT_parents:%x",
-		//	flags, FILEUTILS_RMDEST, OPT_parents);
-		if (flags & OPT_parents) {
-			if (!(d_flags & 2)) {
-				bb_simple_error_msg_and_die("with --parents, the destination must be a directory");
+			//bb_error_msg("flags:%x FILEUTILS_RMDEST:%x OPT_parents:%x",
+			//	flags, FILEUTILS_RMDEST, OPT_parents);
+			if (flags & OPT_parents) {
+				if (!(d_flags & 2)) {
+					bb_simple_error_msg_and_die("with --parents, the destination must be a directory");
+				}
 			}
-		}
-		if (flags & FILEUTILS_RMDEST) {
-			flags |= FILEUTILS_FORCE;
-		}
+			if (flags & FILEUTILS_RMDEST) {
+				flags |= FILEUTILS_FORCE;
+			}
 #endif
 
-		/* ...if neither is a directory...  */
-		if (!((s_flags | d_flags) & 2)
-		    /* ...or: recursing, the 1st is a directory, and the 2nd doesn't exist... */
-		 || ((flags & FILEUTILS_RECUR) && (s_flags & 2) && !d_flags)
-		 || (flags & FILEUTILS_NO_TARGET_DIR)
-		) {
-			/* Do a simple copy */
-			dest = last;
-			goto DO_COPY; /* NB: argc==2 -> *++argv==last */
-		}
+			/* ...if neither is a directory...  */
+			if (!((s_flags | d_flags) & 2)
+			    /* ...or: recursing, the 1st is a directory, and the 2nd doesn't exist... */
+			 || ((flags & FILEUTILS_RECUR) && (s_flags & 2) && !d_flags)
+			 || (flags & FILEUTILS_NO_TARGET_DIR)
+			) {
+				/* Do a simple copy */
+				dest = last;
+				goto DO_COPY; /* NB: argc==2 -> *++argv==last */
+			}
 	} else if (flags & FILEUTILS_NO_TARGET_DIR) {
 		bb_simple_error_msg_and_die("too many arguments");
 	}
