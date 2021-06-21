@@ -20,7 +20,7 @@ typedef struct hardlinks_t {
 char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 {
 	file_header_t *file_header = archive_handle->file_header;
-	char cpio_header[110];
+	char cpio_header[111];
 	int namesize;
 	int major, minor, nlink, mode, inode;
 	unsigned size, uid, gid, mtime;
@@ -43,6 +43,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 		bb_simple_error_msg_and_die("unsupported cpio format, use newc or crc");
 	}
 
+	cpio_header[110] = '\0'; /* sscanf may call strlen which may break without this */
 	if (sscanf(cpio_header + 6,
 			"%8x" "%8x" "%8x" "%8x"
 			"%8x" "%8x" "%8x" /*maj,min:*/ "%*16c"
