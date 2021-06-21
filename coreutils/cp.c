@@ -37,8 +37,55 @@
 
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/cp.html */
 
+// Options of cp from GNU coreutils 6.10:
+// -a, --archive
+// -f, --force
+// -i, --interactive
+// -l, --link
+// -L, --dereference
+// -P, --no-dereference
+// -R, -r, --recursive
+// -s, --symbolic-link
+// -v, --verbose
+// -H	follow command-line symbolic links in SOURCE
+// -d	same as --no-dereference --preserve=links
+// -p	same as --preserve=mode,ownership,timestamps
+// -c	same as --preserve=context
+// -u, --update
+//	copy only when the SOURCE file is newer than the destination
+//	file or when the destination file is missing
+// --remove-destination
+//	remove each existing destination file before attempting to open
+// --parents
+//	use full source file name under DIRECTORY
+// -T, --no-target-directory
+//	treat DEST as a normal file
+// NOT SUPPORTED IN BBOX:
+// --backup[=CONTROL]
+//	make a backup of each existing destination file
+// -b	like --backup but does not accept an argument
+// --copy-contents
+//	copy contents of special files when recursive
+// --preserve[=ATTR_LIST]
+//	preserve attributes (default: mode,ownership,timestamps),
+//	if possible additional attributes: security context,links,all
+// --no-preserve=ATTR_LIST
+// --sparse=WHEN
+//	control creation of sparse files
+// --strip-trailing-slashes
+//	remove any trailing slashes from each SOURCE argument
+// -S, --suffix=SUFFIX
+//	override the usual backup suffix
+// -t, --target-directory=DIRECTORY
+//	copy all SOURCE arguments into DIRECTORY
+// -x, --one-file-system
+//	stay on this file system
+// -Z, --context=CONTEXT
+//	(SELinux) set SELinux security context of copy to CONTEXT
+
 //usage:#define cp_trivial_usage
-//usage:       "[-arPLHpfilsTu] SOURCE... DEST"
+//usage:       "[-arPLHpfilsTu] SOURCE DEST\n"
+//usage:       "or: cp [-arPLHpfilsu] SOURCE... { -t DIRECTORY | DIRECTORY }"
 //usage:#define cp_full_usage "\n\n"
 //usage:       "Copy SOURCEs to DEST\n"
 //usage:     "\n	-a	Same as -dpR"
@@ -53,7 +100,8 @@
 //usage:     "\n	-f	Overwrite"
 //usage:     "\n	-i	Prompt before overwrite"
 //usage:     "\n	-l,-s	Create (sym)links"
-//usage:     "\n	-T	Treat DEST as a normal file"
+//usage:     "\n	-T	Refuse to copy if DEST is a directory"
+//usage:     "\n	-t DIR	Copy all SOURCEs into DIR"
 //usage:     "\n	-u	Copy only newer files"
 
 #include "libbb.h"
@@ -73,14 +121,12 @@ int cp_main(int argc, char **argv)
 	int flags;
 	int status;
 	enum {
-		FILEUTILS_CP_OPTNUM = sizeof(FILEUTILS_CP_OPTSTR)-1,
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
 		/*OPT_rmdest  = FILEUTILS_RMDEST = 1 << FILEUTILS_CP_OPTNUM */
 		OPT_parents = 1 << (FILEUTILS_CP_OPTNUM+1),
 		OPT_reflink = 1 << (FILEUTILS_CP_OPTNUM+2),
 #endif
 	};
-
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
 # if ENABLE_FEATURE_CP_REFLINK
 	char *reflink = NULL;
@@ -94,7 +140,8 @@ int cp_main(int argc, char **argv)
 		// -r and -R are the same
 		// -R (and therefore -r) turns on -d (coreutils does this)
 		// -a = -pdR
-		"-2:l--s:s--l:Pd:rRd:Rd:apdR",
+	/* At least one argument. (Usually two+, but -t DIR can have only one) */
+		"-1:l--s:s--l:Pd:rRd:Rd:apdR",
 		"archive\0"        No_argument "a"
 		"force\0"          No_argument "f"
 		"interactive\0"    No_argument "i"
@@ -110,6 +157,9 @@ int cp_main(int argc, char **argv)
 		"parents\0"        No_argument "\xfe"
 # if ENABLE_FEATURE_CP_REFLINK
 		"reflink\0"        Optional_argument "\xfd"
+# endif
+		, &last
+# if ENABLE_FEATURE_CP_REFLINK
 		, &reflink
 # endif
 	);
@@ -128,55 +178,10 @@ int cp_main(int argc, char **argv)
 	flags = getopt32(argv, "^"
 		FILEUTILS_CP_OPTSTR
 		"\0"
-		"-2:l--s:s--l:Pd:rRd:Rd:apdR"
+		"-1:l--s:s--l:Pd:rRd:Rd:apdR"
+		, &last
 	);
 #endif
-	/* Options of cp from GNU coreutils 6.10:
-	 * -a, --archive
-	 * -f, --force
-	 * -i, --interactive
-	 * -l, --link
-	 * -L, --dereference
-	 * -P, --no-dereference
-	 * -R, -r, --recursive
-	 * -s, --symbolic-link
-	 * -v, --verbose
-	 * -H	follow command-line symbolic links in SOURCE
-	 * -d	same as --no-dereference --preserve=links
-	 * -p	same as --preserve=mode,ownership,timestamps
-	 * -c	same as --preserve=context
-	 * -u, --update
-	 *	copy only when the SOURCE file is newer than the destination
-	 *	file or when the destination file is missing
-	 * --remove-destination
-	 *	remove each existing destination file before attempting to open
-	 * --parents
-	 *	use full source file name under DIRECTORY
-	 * -T, --no-target-directory
-	 *	treat DEST as a normal file
-	 * NOT SUPPORTED IN BBOX:
-	 * --backup[=CONTROL]
-	 *	make a backup of each existing destination file
-	 * -b	like --backup but does not accept an argument
-	 * --copy-contents
-	 *	copy contents of special files when recursive
-	 * --preserve[=ATTR_LIST]
-	 *	preserve attributes (default: mode,ownership,timestamps),
-	 *	if possible additional attributes: security context,links,all
-	 * --no-preserve=ATTR_LIST
-	 * --sparse=WHEN
-	 *	control creation of sparse files
-	 * --strip-trailing-slashes
-	 *	remove any trailing slashes from each SOURCE argument
-	 * -S, --suffix=SUFFIX
-	 *	override the usual backup suffix
-	 * -t, --target-directory=DIRECTORY
-	 *	copy all SOURCE arguments into DIRECTORY
-	 * -x, --one-file-system
-	 *	stay on this file system
-	 * -Z, --context=CONTEXT
-	 *	(SELinux) set SELinux security context of copy to CONTEXT
-	 */
 	argc -= optind;
 	argv += optind;
 	/* Reverse this bit. If there is -d, bit is not set: */
@@ -195,15 +200,22 @@ int cp_main(int argc, char **argv)
 #endif
 
 	status = EXIT_SUCCESS;
-	last = argv[argc - 1];
-	/* If there are only two arguments and...  */
-	if (argc == 2) {
+	if (!(flags & FILEUTILS_TARGET_DIR)) {
+		last = argv[argc - 1];
+		if (argc < 2)
+			bb_show_usage();
+		if (argc != 2) {
+			if (flags & FILEUTILS_NO_TARGET_DIR)
+				bb_show_usage();
+			/* "cp A B C... DIR" - target must be dir */
+		} else /* argc == 2 */ {
+			/* "cp A B" - only case where target can be not a dir */
 			s_flags = cp_mv_stat2(*argv, &source_stat,
 					(flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
-			if (s_flags < 0)
+			if (s_flags < 0) /* error other than ENOENT */
 				return EXIT_FAILURE;
 			d_flags = cp_mv_stat(last, &dest_stat);
-			if (d_flags < 0)
+			if (d_flags < 0) /* error other than ENOENT */
 				return EXIT_FAILURE;
 
 			if (flags & FILEUTILS_NO_TARGET_DIR) { /* -T */
@@ -235,9 +247,9 @@ int cp_main(int argc, char **argv)
 				dest = last;
 				goto DO_COPY; /* NB: argc==2 -> *++argv==last */
 			}
-	} else if (flags & FILEUTILS_NO_TARGET_DIR) {
-		bb_simple_error_msg_and_die("too many arguments");
+		}
 	}
+	/* else: last is DIR from "t -DIR" */
 
 	while (1) {
 #if ENABLE_FEATURE_CP_LONG_OPTIONS

@@ -460,13 +460,18 @@ enum {	/* cp.c, mv.c, install.c depend on these values. CAREFUL when changing th
 	FILEUTILS_VERBOSE         = (1 << 12) * ENABLE_FEATURE_VERBOSE,	/* -v */
 	FILEUTILS_UPDATE          = 1 << 13, /* -u */
 	FILEUTILS_NO_TARGET_DIR	  = 1 << 14, /* -T */
+	FILEUTILS_TARGET_DIR	  = 1 << 15, /* -t DIR */
 #if ENABLE_SELINUX
-	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 1 << 15, /* -c */
+	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 1 << 16, /* -c */
 #endif
-	FILEUTILS_RMDEST          = 1 << (16 - !ENABLE_SELINUX), /* --remove-destination */
-	/* bit 17 skipped for "cp --parents" */
-	FILEUTILS_REFLINK         = 1 << (18 - !ENABLE_SELINUX), /* cp --reflink=auto */
-	FILEUTILS_REFLINK_ALWAYS  = 1 << (19 - !ENABLE_SELINUX), /* cp --reflink[=always] */
+#define FILEUTILS_CP_OPTSTR "pdRfilsLHarPvuTt:" IF_SELINUX("c")
+/* How many bits in FILEUTILS_CP_OPTSTR? */
+	FILEUTILS_CP_OPTNUM       = 17 - !ENABLE_SELINUX,
+
+	FILEUTILS_RMDEST          = 1 << (17 - !ENABLE_SELINUX), /* --remove-destination */
+	/* bit 18 skipped for "cp --parents" */
+	FILEUTILS_REFLINK         = 1 << (19 - !ENABLE_SELINUX), /* cp --reflink=auto */
+	FILEUTILS_REFLINK_ALWAYS  = 1 << (20 - !ENABLE_SELINUX), /* cp --reflink[=always] */
 	/*
 	 * Hole. cp may have some bits set here,
 	 * they should not affect remove_file()/copy_file()
@@ -476,7 +481,7 @@ enum {	/* cp.c, mv.c, install.c depend on these values. CAREFUL when changing th
 #endif
 	FILEUTILS_IGNORE_CHMOD_ERR = 1 << 31,
 };
-#define FILEUTILS_CP_OPTSTR "pdRfilsLHarPvuT" IF_SELINUX("c")
+
 extern int remove_file(const char *path, int flags) FAST_FUNC;
 /* NB: without FILEUTILS_RECUR in flags, it will basically "cat"
  * the source, not copy (unless "source" is a directory).
