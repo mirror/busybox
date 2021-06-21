@@ -2144,7 +2144,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 		cmdcnt = 0;
 		end_cmd_q();	// stop adding to q
 		last_status_cksum = 0;	// force status update
-		if ((p[-1] != '\n') && (dot > text)) {
+		if ((dot > text) && (p[-1] != '\n')) {
 			p--;
 		}
 #if ENABLE_FEATURE_VI_SETOPTS
