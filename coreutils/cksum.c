@@ -14,8 +14,9 @@
 //config:	bool "crc32 (4.1 kb)"
 //config:	default y
 
+//                APPLET_NOEXEC:name   main   location        suid_type     help
 //applet:IF_CKSUM(APPLET_NOEXEC(cksum, cksum, BB_DIR_USR_BIN, BB_SUID_DROP, cksum))
-//applet:IF_CKSUM(APPLET_NOEXEC(crc32, cksum, BB_DIR_USR_BIN, BB_SUID_DROP, cksum))
+//applet:IF_CRC32(APPLET_NOEXEC(crc32, cksum, BB_DIR_USR_BIN, BB_SUID_DROP, cksum))
 /* bb_common_bufsiz1 usage here is safe wrt NOEXEC: not expecting it to be zeroed. */
 
 //kbuild:lib-$(CONFIG_CKSUM) += cksum.o
@@ -31,8 +32,8 @@
 
 /* This is a NOEXEC applet. Be very careful! */
 
-#define IS_CRC32 (ENABLE_CRC32 && (!ENABLE_CKSUM || applet_name[1] == 'r'))
 #define IS_CKSUM (ENABLE_CKSUM && (!ENABLE_CRC32 || applet_name[1] == 'k'))
+#define IS_CRC32 (ENABLE_CRC32 && (!ENABLE_CKSUM || applet_name[1] == 'r'))
 
 int cksum_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cksum_main(int argc UNUSED_PARAM, char **argv)
@@ -51,7 +52,8 @@ int cksum_main(int argc UNUSED_PARAM, char **argv)
 	do {
 		uint32_t crc;
 		off_t filesize;
-		int fd = open_or_warn_stdin(*argv ? *argv : bb_msg_standard_input);
+		const char *fname = *argv ? *argv : bb_msg_standard_input;
+		int fd = open_or_warn_stdin(fname);
 
 		if (fd < 0) {
 			exit_code = EXIT_FAILURE;
@@ -63,6 +65,8 @@ int cksum_main(int argc UNUSED_PARAM, char **argv)
 #define read_buf bb_common_bufsiz1
 		for (;;) {
 			int bytes_read = safe_read(fd, read_buf, COMMON_BUFSIZE);
+			if (bytes_read < 0)
+				bb_simple_perror_msg_and_die(fname);
 			if (bytes_read > 0) {
 				filesize += bytes_read;
 			} else {
