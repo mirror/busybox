@@ -51,7 +51,7 @@ int cksum_main(int argc UNUSED_PARAM, char **argv)
 	setup_common_bufsiz();
 	do {
 		uint32_t crc;
-		off_t filesize;
+		IF_CKSUM(off_t filesize;)
 		const char *fname = *argv ? *argv : bb_msg_standard_input;
 		int fd = open_or_warn_stdin(fname);
 
@@ -61,37 +61,43 @@ int cksum_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		crc = IS_CKSUM ? 0 : 0xffffffff;
-		filesize = 0;
+		IF_CKSUM(filesize = 0;)
 #define read_buf bb_common_bufsiz1
 		for (;;) {
 			int bytes_read = safe_read(fd, read_buf, COMMON_BUFSIZE);
 			if (bytes_read < 0)
 				bb_simple_perror_msg_and_die(fname);
 			if (bytes_read > 0) {
-				filesize += bytes_read;
+				IF_CKSUM(filesize += bytes_read;)
 			} else {
+				IF_CKSUM(uoff_t t;)
+
 				close(fd);
+				if (IS_CRC32)
+					break;
+#if ENABLE_CKSUM
 				fd = -1; /* break flag */
 				/* Checksum filesize bytes, LSB first */
-				if (IS_CKSUM) {
-					uoff_t t = filesize;
-					bytes_read = 0;
-					while (t != 0) {
-						read_buf[bytes_read++] = (uint8_t)t;
-						t >>= 8;
-					}
+				t = filesize;
+				/*bytes_read = 0; - already is */
+				while (t != 0) {
+					read_buf[bytes_read++] = (uint8_t)t;
+					t >>= 8;
 				}
+#endif
 			}
 			crc = (IS_CKSUM ? crc32_block_endian1 : crc32_block_endian0)(crc, read_buf, bytes_read, crc32_table);
-			if (fd < 0)
+			if (ENABLE_CKSUM && fd < 0)
 				break;
 		}
 
 		crc = ~crc;
+#if ENABLE_CKSUM
 		if (IS_CKSUM)
 			printf((*argv ? "%u %"OFF_FMT"u %s\n" : "%u %"OFF_FMT"u\n"),
 				(unsigned)crc, filesize, *argv);
 		else
+#endif
 			printf((*argv ? "%08x %s\n" : "%08x\n"),
 				(unsigned)crc, *argv);
 	} while (*argv && *++argv);
