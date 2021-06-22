@@ -450,28 +450,29 @@ enum {	/* cp.c, mv.c, install.c depend on these values. CAREFUL when changing th
 	FILEUTILS_RECUR           = 1 << 2, /* -R */
 	FILEUTILS_FORCE           = 1 << 3, /* -f */
 	FILEUTILS_INTERACTIVE     = 1 << 4, /* -i */
-	FILEUTILS_MAKE_HARDLINK   = 1 << 5, /* -l */
-	FILEUTILS_MAKE_SOFTLINK   = 1 << 6, /* -s */
-	FILEUTILS_DEREF_SOFTLINK  = 1 << 7, /* -L */
-	FILEUTILS_DEREFERENCE_L0  = 1 << 8, /* -H */
+	FILEUTILS_NO_OVERWRITE    = 1 << 5, /* -n */
+	FILEUTILS_MAKE_HARDLINK   = 1 << 6, /* -l */
+	FILEUTILS_MAKE_SOFTLINK   = 1 << 7, /* -s */
+	FILEUTILS_DEREF_SOFTLINK  = 1 << 8, /* -L */
+	FILEUTILS_DEREFERENCE_L0  = 1 << 9, /* -H */
 	/* -a = -pdR (mapped in cp.c) */
 	/* -r = -dR  (mapped in cp.c) */
 	/* -P = -d   (mapped in cp.c) */
-	FILEUTILS_VERBOSE         = (1 << 12) * ENABLE_FEATURE_VERBOSE,	/* -v */
-	FILEUTILS_UPDATE          = 1 << 13, /* -u */
-	FILEUTILS_NO_TARGET_DIR	  = 1 << 14, /* -T */
-	FILEUTILS_TARGET_DIR	  = 1 << 15, /* -t DIR */
+	FILEUTILS_VERBOSE         = (1 << 13) * ENABLE_FEATURE_VERBOSE,	/* -v */
+	FILEUTILS_UPDATE          = 1 << 14, /* -u */
+	FILEUTILS_NO_TARGET_DIR	  = 1 << 15, /* -T */
+	FILEUTILS_TARGET_DIR	  = 1 << 16, /* -t DIR */
 #if ENABLE_SELINUX
-	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 1 << 16, /* -c */
+	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 1 << 17, /* -c */
 #endif
-#define FILEUTILS_CP_OPTSTR "pdRfilsLHarPvuTt:" IF_SELINUX("c")
+#define FILEUTILS_CP_OPTSTR "pdRfinlsLHarPvuTt:" IF_SELINUX("c")
 /* How many bits in FILEUTILS_CP_OPTSTR? */
-	FILEUTILS_CP_OPTNUM       = 17 - !ENABLE_SELINUX,
+	FILEUTILS_CP_OPTBITS      = 18 - !ENABLE_SELINUX,
 
-	FILEUTILS_RMDEST          = 1 << (17 - !ENABLE_SELINUX), /* --remove-destination */
+	FILEUTILS_RMDEST          = 1 << (19 - !ENABLE_SELINUX), /* cp --remove-destination */
 	/* bit 18 skipped for "cp --parents" */
-	FILEUTILS_REFLINK         = 1 << (19 - !ENABLE_SELINUX), /* cp --reflink=auto */
-	FILEUTILS_REFLINK_ALWAYS  = 1 << (20 - !ENABLE_SELINUX), /* cp --reflink[=always] */
+	FILEUTILS_REFLINK         = 1 << (20 - !ENABLE_SELINUX), /* cp --reflink=auto */
+	FILEUTILS_REFLINK_ALWAYS  = 1 << (21 - !ENABLE_SELINUX), /* cp --reflink[=always] */
 	/*
 	 * Hole. cp may have some bits set here,
 	 * they should not affect remove_file()/copy_file()

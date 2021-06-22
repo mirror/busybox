@@ -84,8 +84,8 @@
 //	(SELinux) set SELinux security context of copy to CONTEXT
 
 //usage:#define cp_trivial_usage
-//usage:       "[-arPLHpfilsTu] SOURCE DEST\n"
-//usage:       "or: cp [-arPLHpfilsu] SOURCE... { -t DIRECTORY | DIRECTORY }"
+//usage:       "[-arPLHpfinlsTu] SOURCE DEST\n"
+//usage:       "or: cp [-arPLHpfinlsu] SOURCE... { -t DIRECTORY | DIRECTORY }"
 //usage:#define cp_full_usage "\n\n"
 //usage:       "Copy SOURCEs to DEST\n"
 //usage:     "\n	-a	Same as -dpR"
@@ -99,6 +99,7 @@
 //usage:     "\n	-p	Preserve file attributes if possible"
 //usage:     "\n	-f	Overwrite"
 //usage:     "\n	-i	Prompt before overwrite"
+//usage:     "\n	-n	Don't overwrite"
 //usage:     "\n	-l,-s	Create (sym)links"
 //usage:     "\n	-T	Refuse to copy if DEST is a directory"
 //usage:     "\n	-t DIR	Copy all SOURCEs into DIR"
@@ -122,9 +123,9 @@ int cp_main(int argc, char **argv)
 	int status;
 	enum {
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
-		/*OPT_rmdest  = FILEUTILS_RMDEST = 1 << FILEUTILS_CP_OPTNUM */
-		OPT_parents = 1 << (FILEUTILS_CP_OPTNUM+1),
-		OPT_reflink = 1 << (FILEUTILS_CP_OPTNUM+2),
+		/*OPT_rmdest  = FILEUTILS_RMDEST = 1 << FILEUTILS_CP_OPTBITS */
+		OPT_parents = 1 << (FILEUTILS_CP_OPTBITS+1),
+		OPT_reflink = 1 << (FILEUTILS_CP_OPTBITS+2),
 #endif
 	};
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
@@ -134,23 +135,25 @@ int cp_main(int argc, char **argv)
 	flags = getopt32long(argv, "^"
 		FILEUTILS_CP_OPTSTR
 		"\0"
-		// Need at least two arguments
+		// Need at least one argument. (Usually two+, but -t DIR can have only one)
 		// Soft- and hardlinking doesn't mix
 		// -P and -d are the same (-P is POSIX, -d is GNU)
 		// -r and -R are the same
 		// -R (and therefore -r) turns on -d (coreutils does this)
 		// -a = -pdR
-	/* At least one argument. (Usually two+, but -t DIR can have only one) */
-		"-1:l--s:s--l:Pd:rRd:Rd:apdR",
+		// -i overrides -n and vice versa (last wins)
+		"-1:l--s:s--l:Pd:rRd:Rd:apdR:i-n:n-i",
 		"archive\0"        No_argument "a"
 		"force\0"          No_argument "f"
 		"interactive\0"    No_argument "i"
+		"no-clobber\0"     No_argument "n"
 		"link\0"           No_argument "l"
 		"dereference\0"    No_argument "L"
 		"no-dereference\0" No_argument "P"
 		"recursive\0"      No_argument "R"
 		"symbolic-link\0"  No_argument "s"
 		"no-target-directory\0" No_argument "T"
+		"target-directory\0" Required_argument "t"
 		"verbose\0"        No_argument "v"
 		"update\0"         No_argument "u"
 		"remove-destination\0" No_argument "\xff"

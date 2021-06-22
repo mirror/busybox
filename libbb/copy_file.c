@@ -111,6 +111,8 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			bb_error_msg("'%s' and '%s' are the same file", source, dest);
 			return -1;
 		}
+		if (flags & FILEUTILS_NO_OVERWRITE) /* cp -n */
+			return 0;
 		dest_exists = 1;
 	}
 
