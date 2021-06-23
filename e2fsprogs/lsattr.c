@@ -46,24 +46,34 @@ enum {
 
 static void list_attributes(const char *name)
 {
-	unsigned long fsflags;
+	unsigned fsflags;
+	int fd, r;
 
-	if (fgetflags(name, &fsflags) != 0)
-		goto read_err;
+	fd = open_or_warn(name, O_RDONLY | O_NONBLOCK); /* neither read nor write asked for */
+	if (fd < 0) /* for example, dangling links */
+		return;
 
 	if (option_mask32 & OPT_PROJID) {
-		uint32_t p;
-		if (fgetprojid(name, &p) != 0)
+		struct ext2_fsxattr fsxattr;
+		r = ioctl(fd, EXT2_IOC_FSGETXATTR, &fsxattr);
+		if (r != 0)
 			goto read_err;
-		printf("%5lu ", (unsigned long)p);
+		printf("%5u ", (unsigned)fsxattr.fsx_projid);
 	}
 
 	if (option_mask32 & OPT_GENERATION) {
-		unsigned long generation;
-		if (fgetversion(name, &generation) != 0)
+		unsigned generation;
+		r = ioctl(fd, EXT2_IOC_GETVERSION, &generation);
+		if (r != 0)
 			goto read_err;
-		printf("%-10lu ", generation);
+		printf("%-10u ", generation);
 	}
+
+	r = ioctl(fd, EXT2_IOC_GETFLAGS, &fsflags);
+	if (r != 0)
+		goto read_err;
+
+	close(fd);
 
 	if (option_mask32 & OPT_PF_LONG) {
 		printf("%-28s ", name);
@@ -77,6 +87,7 @@ static void list_attributes(const char *name)
 	return;
  read_err:
 	bb_perror_msg("reading %s", name);
+	close(fd);
 }
 
 static int FAST_FUNC lsattr_dir_proc(const char *dir_name,

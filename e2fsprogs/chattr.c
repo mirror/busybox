@@ -61,9 +61,9 @@
 #define OPT_SET_PROJ (1 << 4)
 
 struct globals {
-	unsigned long version;
-	unsigned long af;
-	unsigned long rf;
+	unsigned version;
+	unsigned af;
+	unsigned rf;
 	int flags;
 	uint32_t projid;
 	smallint recursive;
@@ -79,7 +79,7 @@ static unsigned long get_flag(char c)
 
 static char** decode_arg(char **argv, struct globals *gp)
 {
-	unsigned long *fl;
+	unsigned *fl;
 	const char *arg = *argv;
 	char opt = *arg;
 
@@ -149,7 +149,8 @@ static int FAST_FUNC chattr_dir_proc(const char *dir_name, struct dirent *de, vo
 
 static void change_attributes(const char *name, struct globals *gp)
 {
-	unsigned long fsflags;
+	unsigned fsflags;
+	int fd;
 	struct stat st;
 
 	if (lstat(name, &st) != 0) {
@@ -166,33 +167,50 @@ static void change_attributes(const char *name, struct globals *gp)
 	if (!S_ISREG(st.st_mode) && !S_ISLNK(st.st_mode) && !S_ISDIR(st.st_mode))
 		return;
 
-	if (gp->flags & OPT_SET_VER)
-		if (fsetversion(name, gp->version) != 0)
-			bb_perror_msg("setting %s on %s", "version", name);
+	fd = open_or_warn(name, O_RDONLY | O_NONBLOCK); /* neither read nor write asked for */
+	if (fd >= 0) {
+		int r;
 
-	if (gp->flags & OPT_SET_PROJ)
-		if (fsetprojid(name, gp->projid) != 0)
-			bb_perror_msg("setting %s on %s", "project ID", name);
-
-	if (gp->flags & OPT_SET) {
-		fsflags = gp->af;
-	} else {
-		if (fgetflags(name, &fsflags) != 0) {
-			bb_perror_msg("reading flags on %s", name);
-			goto skip_setflags;
+		if (gp->flags & OPT_SET_VER) {
+			r = ioctl(fd, EXT2_IOC_SETVERSION, &gp->version);
+			if (r != 0)
+				bb_perror_msg("setting %s on %s", "version", name);
 		}
-		/*if (gp->flags & OPT_REM) - not needed, rf is zero otherwise */
-			fsflags &= ~gp->rf;
-		/*if (gp->flags & OPT_ADD) - not needed, af is zero otherwise */
-			fsflags |= gp->af;
-// What is this? And why it's not done for SET case?
-		if (!S_ISDIR(st.st_mode))
-			fsflags &= ~EXT2_DIRSYNC_FL;
-	}
-	if (fsetflags(name, fsflags) != 0)
-		bb_perror_msg("setting flags on %s", name);
 
+		if (gp->flags & OPT_SET_PROJ) {
+			struct ext2_fsxattr fsxattr;
+			r = ioctl(fd, EXT2_IOC_FSGETXATTR, &fsxattr);
+			if (r != 0)
+				bb_perror_msg("getting %s on %s", "project ID", name);
+			fsxattr.fsx_projid = gp->projid;
+			r = ioctl(fd, EXT2_IOC_FSSETXATTR, &fsxattr);
+			if (r != 0)
+				bb_perror_msg("setting %s on %s", "project ID", name);
+		}
+
+		if (gp->flags & OPT_SET) {
+			fsflags = gp->af;
+		} else {
+			r = ioctl(fd, EXT2_IOC_GETFLAGS, &fsflags);
+			if (r != 0) {
+				bb_perror_msg("getting %s on %s", "flags", name);
+				goto skip_setflags;
+			}
+			/*if (gp->flags & OPT_REM) - not needed, rf is zero otherwise */
+				fsflags &= ~gp->rf;
+			/*if (gp->flags & OPT_ADD) - not needed, af is zero otherwise */
+				fsflags |= gp->af;
+// What is this? And why it's not done for SET case?
+			if (!S_ISDIR(st.st_mode))
+				fsflags &= ~EXT2_DIRSYNC_FL;
+		}
+		r = ioctl(fd, EXT2_IOC_SETFLAGS, &fsflags);
+		if (r != 0)
+			bb_perror_msg("setting %s on %s", "flags", name);
  skip_setflags:
+		close(fd);
+	}
+
 	if (gp->recursive && S_ISDIR(st.st_mode))
 		iterate_on_dir(name, chattr_dir_proc, gp);
 }

@@ -8,8 +8,6 @@
 #include "libbb.h"
 #include "e2fs_lib.h"
 
-#define HAVE_EXT2_IOCTLS 1
-
 #if INT_MAX == LONG_MAX
 #define IF_LONG_IS_SAME(...) __VA_ARGS__
 #define IF_LONG_IS_WIDER(...)
@@ -17,14 +15,6 @@
 #define IF_LONG_IS_SAME(...)
 #define IF_LONG_IS_WIDER(...) __VA_ARGS__
 #endif
-
-static void close_silently(int fd)
-{
-	int e = errno;
-	close(fd);
-	errno = e;
-}
-
 
 /* Iterate a function on each entry of a directory */
 int iterate_on_dir(const char *dir_name,
@@ -44,113 +34,6 @@ int iterate_on_dir(const char *dir_name,
 	closedir(dir);
 	return 0;
 }
-
-
-/* Get/set a file version on an ext2 file system */
-int fgetsetversion(const char *name, unsigned long *get_version, unsigned long set_version)
-{
-#if HAVE_EXT2_IOCTLS
-	int fd, r;
-	IF_LONG_IS_WIDER(unsigned ver;)
-
-	fd = open(name, O_RDONLY | O_NONBLOCK);
-	if (fd == -1)
-		return -1;
-	if (!get_version) {
-		IF_LONG_IS_WIDER(
-			ver = (unsigned) set_version;
-			r = ioctl(fd, EXT2_IOC_SETVERSION, &ver);
-		)
-		IF_LONG_IS_SAME(
-			r = ioctl(fd, EXT2_IOC_SETVERSION, (void*)&set_version);
-		)
-	} else {
-		IF_LONG_IS_WIDER(
-			r = ioctl(fd, EXT2_IOC_GETVERSION, &ver);
-			*get_version = ver;
-		)
-		IF_LONG_IS_SAME(
-			r = ioctl(fd, EXT2_IOC_GETVERSION, (void*)get_version);
-		)
-	}
-	close_silently(fd);
-	return r;
-#else /* ! HAVE_EXT2_IOCTLS */
-	errno = EOPNOTSUPP;
-	return -1;
-#endif /* ! HAVE_EXT2_IOCTLS */
-}
-
-int fgetsetprojid(const char *name, uint32_t *get, uint32_t set)
-{
-#if HAVE_EXT2_IOCTLS
-	struct ext2_fsxattr fsxattr;
-	int fd, r;
-
-	fd = open(name, O_RDONLY | O_NONBLOCK);
-	if (fd == -1)
-		return -1;
-	r = ioctl(fd, EXT2_IOC_FSGETXATTR, &fsxattr);
-	/* note: ^^^ may fail in 32-bit userspace on 64-bit kernel (seen on 4.12.0) */
-	if (r == 0) {
-		if (get) {
-			*get = fsxattr.fsx_projid;
-		} else {
-			fsxattr.fsx_projid = set;
-			r = ioctl(fd, EXT2_IOC_FSSETXATTR, &fsxattr);
-		}
-	}
-	close_silently(fd);
-	return r;
-#else /* ! HAVE_EXT2_IOCTLS */
-	errno = EOPNOTSUPP;
-	return -1;
-#endif /* ! HAVE_EXT2_IOCTLS */
-}
-
-/* Get/set a file flags on an ext2 file system */
-int fgetsetflags(const char *name, unsigned long *get_flags, unsigned long set_flags)
-{
-#if HAVE_EXT2_IOCTLS
-	struct stat buf;
-	int fd, r;
-	IF_LONG_IS_WIDER(unsigned f;)
-
-	if (stat(name, &buf) == 0 /* stat is ok */
-	 && !S_ISREG(buf.st_mode) && !S_ISDIR(buf.st_mode)
-	) {
-		goto notsupp;
-	}
-	fd = open(name, O_RDONLY | O_NONBLOCK); /* neither read nor write asked for */
-	if (fd == -1)
-		return -1;
-
-	if (!get_flags) {
-		IF_LONG_IS_WIDER(
-			f = (unsigned) set_flags;
-			r = ioctl(fd, EXT2_IOC_SETFLAGS, &f);
-		)
-		IF_LONG_IS_SAME(
-			r = ioctl(fd, EXT2_IOC_SETFLAGS, (void*)&set_flags);
-		)
-	} else {
-		IF_LONG_IS_WIDER(
-			r = ioctl(fd, EXT2_IOC_GETFLAGS, &f);
-			*get_flags = f;
-		)
-		IF_LONG_IS_SAME(
-			r = ioctl(fd, EXT2_IOC_GETFLAGS, (void*)get_flags);
-		)
-	}
-
-	close_silently(fd);
-	return r;
- notsupp:
-#endif /* HAVE_EXT2_IOCTLS */
-	errno = EOPNOTSUPP;
-	return -1;
-}
-
 
 /* Print file attributes on an ext2 file system */
 const uint32_t e2attr_flags_value[] ALIGN4 = {
@@ -215,7 +98,7 @@ static const char e2attr_flags_lname[] ALIGN1 =
 	"Verity" "\0"
 	/* Another trailing NUL is added by compiler */;
 
-void print_e2flags(FILE *f, unsigned long flags, unsigned options)
+void print_e2flags(FILE *f, unsigned flags, unsigned options)
 {
 	const uint32_t *fv;
 	const char *fn;
