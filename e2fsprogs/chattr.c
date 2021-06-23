@@ -141,6 +141,8 @@ static void change_attributes(const char *name, struct globals *gp);
 
 static int FAST_FUNC chattr_dir_proc(const char *dir_name, struct dirent *de, void *gp)
 {
+//TODO: use de->d_type (if it's not DT_UNKNOWN) to skip !(REG || DIR || LNK) entries without lstat?
+
 	char *path = concat_subpath_file(dir_name, de->d_name);
 	/* path is NULL if de->d_name is "." or "..", else... */
 	if (path) {
@@ -184,12 +186,14 @@ static void change_attributes(const char *name, struct globals *gp)
 			struct ext2_fsxattr fsxattr;
 			r = ioctl(fd, EXT2_IOC_FSGETXATTR, &fsxattr);
 			/* note: ^^^ may fail in 32-bit userspace on 64-bit kernel (seen on 4.12.0) */
-			if (r != 0)
+			if (r != 0) {
 				bb_perror_msg("getting %s on %s", "project ID", name);
-			fsxattr.fsx_projid = gp->projid;
-			r = ioctl(fd, EXT2_IOC_FSSETXATTR, &fsxattr);
-			if (r != 0)
-				bb_perror_msg("setting %s on %s", "project ID", name);
+			} else {
+				fsxattr.fsx_projid = gp->projid;
+				r = ioctl(fd, EXT2_IOC_FSSETXATTR, &fsxattr);
+				if (r != 0)
+					bb_perror_msg("setting %s on %s", "project ID", name);
+			}
 		}
 
 		if (gp->flags & OPT_SET) {
