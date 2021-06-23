@@ -49,8 +49,13 @@ static void list_attributes(const char *name)
 	unsigned fsflags;
 	int fd, r;
 
-	fd = open_or_warn(name, O_RDONLY | O_NONBLOCK); /* neither read nor write asked for */
-	if (fd < 0) /* for example, dangling links */
+	/* There is no way to run needed ioctls on a symlink.
+	 * open(O_PATH | O_NOFOLLOW) _can_ be used to get a fd referring to the symlink,
+	 * but ioctls fail on such a fd (tried on 4.12.0 kernel).
+	 * e2fsprogs-1.46.2 uses open(O_NOFOLLOW), it fails on symlinks.
+	 */
+	fd = open_or_warn(name, O_RDONLY | O_NONBLOCK | O_NOCTTY | O_NOFOLLOW);
+	if (fd < 0)
 		return;
 
 	if (option_mask32 & OPT_PROJID) {
@@ -102,8 +107,12 @@ static int FAST_FUNC lsattr_dir_proc(const char *dir_name,
 
 	if (lstat(path, &st) != 0)
 		bb_perror_msg("can't stat '%s'", path);
+
 	else if (de->d_name[0] != '.' || (option_mask32 & OPT_ALL)) {
-		list_attributes(path);
+	        /* Don't try to open device files, fifos etc */
+		if (S_ISREG(st.st_mode) || S_ISLNK(st.st_mode) || S_ISDIR(st.st_mode))
+			list_attributes(path);
+
 		if (S_ISDIR(st.st_mode) && (option_mask32 & OPT_RECUR)
 		 && !DOT_OR_DOTDOT(de->d_name)
 		) {

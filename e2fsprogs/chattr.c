@@ -162,8 +162,6 @@ static void change_attributes(const char *name, struct globals *gp)
 		bb_perror_msg("can't stat '%s'", name);
 		return;
 	}
-	if (S_ISLNK(st.st_mode) && gp->recursive)
-		return;
 
 	/* Don't try to open device files, fifos etc.  We probably
 	 * ought to display an error if the file was explicitly given
@@ -172,7 +170,12 @@ static void change_attributes(const char *name, struct globals *gp)
 	if (!S_ISREG(st.st_mode) && !S_ISLNK(st.st_mode) && !S_ISDIR(st.st_mode))
 		return;
 
-	fd = open_or_warn(name, O_RDONLY | O_NONBLOCK); /* neither read nor write asked for */
+	/* There is no way to run needed ioctls on a symlink.
+	 * open(O_PATH | O_NOFOLLOW) _can_ be used to get a fd referring to the symlink,
+	 * but ioctls fail on such a fd (tried on 4.12.0 kernel).
+	 * e2fsprogs-1.46.2 uses open(O_NOFOLLOW), it fails on symlinks.
+	 */
+	fd = open_or_warn(name, O_RDONLY | O_NONBLOCK | O_NOCTTY | O_NOFOLLOW);
 	if (fd >= 0) {
 		int r;
 
