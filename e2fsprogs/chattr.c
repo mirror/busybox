@@ -85,7 +85,9 @@ static char** decode_arg(char **argv, struct globals *gp)
 
 	fl = &gp->af;
 	if (opt == '-') {
-		gp->flags |= OPT_REM;
+		/* gp->flags |= OPT_REM; - WRONG, it can be an option */
+		/* testcase: chattr =ae -R FILE should not complain "= is incompatible with - and +" */
+		/* (and should not read flags, with =FLAGS they can be just set directly) */
 		fl = &gp->rf;
 	} else if (opt == '+') {
 		gp->flags |= OPT_ADD;
@@ -115,7 +117,7 @@ static char** decode_arg(char **argv, struct globals *gp)
 			if (*arg == 'v') {
 				if (!*++argv)
 					bb_show_usage();
-				gp->version = xatoul(*argv);
+				gp->version = xatou(*argv);
 				gp->flags |= OPT_SET_VER;
 				continue;
 			}
@@ -127,8 +129,9 @@ static char** decode_arg(char **argv, struct globals *gp)
 				continue;
 			}
 			/* not a known option, try as an attribute */
+			gp->flags |= OPT_REM;
 		}
-		*fl |= get_flag(*arg);
+		*fl |= get_flag(*arg); /* aborts on bad flag letter */
 	}
 
 	return argv;
@@ -241,7 +244,7 @@ int chattr_main(int argc UNUSED_PARAM, char **argv)
 	if (g.rf & g.af)
 		bb_simple_error_msg_and_die("can't set and unset a flag");
 	if (!g.flags)
-		bb_simple_error_msg_and_die("must use '-v', =, - or +");
+		bb_simple_error_msg_and_die("must use -v, -p, =, - or +");
 
 	/* now run chattr on all the files passed to us */
 	do change_attributes(*argv, &g); while (*++argv);
