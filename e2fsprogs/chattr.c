@@ -154,7 +154,7 @@ static void change_attributes(const char *name, struct globals *gp)
 	struct stat st;
 
 	if (lstat(name, &st) != 0) {
-		bb_perror_msg("stat %s", name);
+		bb_perror_msg("can't stat '%s'", name);
 		return;
 	}
 	if (S_ISLNK(st.st_mode) && gp->recursive)
@@ -180,6 +180,7 @@ static void change_attributes(const char *name, struct globals *gp)
 		if (gp->flags & OPT_SET_PROJ) {
 			struct ext2_fsxattr fsxattr;
 			r = ioctl(fd, EXT2_IOC_FSGETXATTR, &fsxattr);
+			/* note: ^^^ may fail in 32-bit userspace on 64-bit kernel (seen on 4.12.0) */
 			if (r != 0)
 				bb_perror_msg("getting %s on %s", "project ID", name);
 			fsxattr.fsx_projid = gp->projid;

@@ -56,6 +56,7 @@ static void list_attributes(const char *name)
 	if (option_mask32 & OPT_PROJID) {
 		struct ext2_fsxattr fsxattr;
 		r = ioctl(fd, EXT2_IOC_FSGETXATTR, &fsxattr);
+		/* note: ^^^ may fail in 32-bit userspace on 64-bit kernel (seen on 4.12.0) */
 		if (r != 0)
 			goto read_err;
 		printf("%5u ", (unsigned)fsxattr.fsx_projid);
@@ -100,7 +101,7 @@ static int FAST_FUNC lsattr_dir_proc(const char *dir_name,
 	path = concat_path_file(dir_name, de->d_name);
 
 	if (lstat(path, &st) != 0)
-		bb_perror_msg("stat %s", path);
+		bb_perror_msg("can't stat '%s'", path);
 	else if (de->d_name[0] != '.' || (option_mask32 & OPT_ALL)) {
 		list_attributes(path);
 		if (S_ISDIR(st.st_mode) && (option_mask32 & OPT_RECUR)
@@ -121,7 +122,7 @@ static void lsattr_args(const char *name)
 	struct stat st;
 
 	if (lstat(name, &st) == -1) {
-		bb_perror_msg("stat %s", name);
+		bb_perror_msg("can't stat '%s'", name);
 	} else if (S_ISDIR(st.st_mode) && !(option_mask32 & OPT_DIRS_OPT)) {
 		iterate_on_dir(name, lsattr_dir_proc, NULL);
 	} else {
