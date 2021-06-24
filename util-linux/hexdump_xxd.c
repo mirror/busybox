@@ -186,9 +186,11 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 	} else {
 		if (cols == 0)
 			cols = (opt & OPT_i) ? 12 : 16;
-		if (opt & OPT_i)
-			bytes = 1; /* -i ignores -gN */
-		else
+		if (opt & OPT_i) {
+			bytes = 1; // -i ignores -gN
+			// output is "  0xXX, 0xXX, 0xXX...", add leading space
+			bb_dump_add(dumper, "\" \"");
+		} else
 			bb_dump_add(dumper, "\"%08.8_ax: \""); // "address: "
 	}
 
@@ -197,14 +199,15 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (bytes < 1 || bytes >= cols) {
-		sprintf(buf, "%u/1 \"%%02x\"", cols); // cols * "xx"
+		sprintf(buf, "%u/1 \"%%02x\"", cols); // cols * "XX"
 		bb_dump_add(dumper, buf);
 	}
 	else if (bytes == 1) {
 		if (opt & OPT_i)
-			sprintf(buf, "%u/1 \" 0x%%02x,\"", cols); // cols * " 0xxx,"
+			sprintf(buf, "%u/1 \" 0x%%02x,\"", cols); // cols * " 0xXX,"
+//TODO: compat: omit the last comma after the very last byte
 		else
-			sprintf(buf, "%u/1 \"%%02x \"", cols); // cols * "xx "
+			sprintf(buf, "%u/1 \"%%02x \"", cols); // cols * "XX "
 		bb_dump_add(dumper, buf);
 	}
 	else {
