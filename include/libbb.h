@@ -512,6 +512,11 @@ int recursive_action(const char *fileName, unsigned flags,
 	void *userData
 ) FAST_FUNC;
 
+/* Simpler version: call a function on each dirent in a directory */
+int iterate_on_dir(const char *dir_name,
+		int FAST_FUNC (*func)(const char *, struct dirent *, void *),
+		void *private) FAST_FUNC;
+
 extern int device_open(const char *device, int mode) FAST_FUNC;
 enum { GETPTY_BUFSIZE = 16 }; /* more than enough for "/dev/ttyXXX" */
 extern int xgetpty(char *line) FAST_FUNC;

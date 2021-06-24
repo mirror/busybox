@@ -8,33 +8,6 @@
 #include "libbb.h"
 #include "e2fs_lib.h"
 
-#if INT_MAX == LONG_MAX
-#define IF_LONG_IS_SAME(...) __VA_ARGS__
-#define IF_LONG_IS_WIDER(...)
-#else
-#define IF_LONG_IS_SAME(...)
-#define IF_LONG_IS_WIDER(...) __VA_ARGS__
-#endif
-
-/* Iterate a function on each entry of a directory */
-int iterate_on_dir(const char *dir_name,
-		int FAST_FUNC (*func)(const char *, struct dirent *, void *),
-		void *private)
-{
-	DIR *dir;
-	struct dirent *de;
-
-	dir = opendir(dir_name);
-	if (dir == NULL) {
-		return -1;
-	}
-	while ((de = readdir(dir)) != NULL) {
-		func(dir_name, de, private);
-	}
-	closedir(dir);
-	return 0;
-}
-
 /* Print file attributes on an ext2 file system */
 const uint32_t e2attr_flags_value[] ALIGN4 = {
 #ifdef ENABLE_COMPRESSION
