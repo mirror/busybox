@@ -60,11 +60,7 @@ int FAST_FUNC remove_file(const char *path, int flags)
 				status = -1;
 			free(new_path);
 		}
-
-		if (closedir(dp) < 0) {
-			bb_perror_msg("can't close '%s'", path);
-			return -1;
-		}
+		closedir(dp);
 
 		if (flags & FILEUTILS_INTERACTIVE) {
 			fprintf(stderr, "%s: remove directory '%s'? ",
