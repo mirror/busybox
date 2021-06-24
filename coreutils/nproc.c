@@ -48,7 +48,7 @@ int nproc_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 				if (cpuid && isdigit(cpuid[strlen(cpuid) - 1]))
 					count++;
 			}
-			closedir(cpusd);
+			IF_FEATURE_CLEAN_UP(closedir(cpusd);)
 		}
 	} else
 #endif
