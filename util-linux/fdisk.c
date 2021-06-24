@@ -232,8 +232,8 @@ struct pte {
 };
 
 #define unable_to_open "can't open '%s'"
-#define unable_to_read "can't read from %s"
-#define unable_to_seek "can't seek on %s"
+#define unable_to_read "can't read '%s'"
+#define unable_to_seek "can't seek '%s'"
 
 enum label_type {
 	LABEL_DOS, LABEL_SUN, LABEL_SGI, LABEL_AIX, LABEL_OSF, LABEL_GPT
