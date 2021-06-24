@@ -942,7 +942,7 @@ static struct dnode **scan_one_dir(const char *path, unsigned *nfiles_p)
 			}
 		}
 		fullname = concat_path_file(path, entry->d_name);
-		cur = my_stat(fullname, bb_basename(fullname), 0);
+		cur = my_stat(fullname, entry->d_name, 0);
 		if (!cur) {
 			free(fullname);
 			continue;
