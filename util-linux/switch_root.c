@@ -68,11 +68,22 @@ extern int capget(cap_user_header_t header, const cap_user_data_t data);
 # define MS_MOVE     8192
 #endif
 
+static void delete_contents(const char *directory, dev_t rootdev);
+
+static int FAST_FUNC rmrf(const char *directory, struct dirent *d, void *rootdevp)
+{
+	char *newdir = concat_subpath_file(directory, d->d_name);
+	if (newdir) { // not . or ..
+		// Recurse to delete contents
+		delete_contents(newdir, *(dev_t*)rootdevp);
+		free(newdir);
+	}
+	return 0;
+}
+
 // Recursively delete contents of rootfs
 static void delete_contents(const char *directory, dev_t rootdev)
 {
-	DIR *dir;
-	struct dirent *d;
 	struct stat st;
 
 	// Don't descend into other filesystems
@@ -81,25 +92,7 @@ static void delete_contents(const char *directory, dev_t rootdev)
 
 	// Recursively delete the contents of directories
 	if (S_ISDIR(st.st_mode)) {
-		dir = opendir(directory);
-		if (dir) {
-			while ((d = readdir(dir))) {
-				char *newdir = d->d_name;
-
-				// Skip . and ..
-				if (DOT_OR_DOTDOT(newdir))
-					continue;
-
-				// Recurse to delete contents
-				newdir = concat_path_file(directory, newdir);
-				delete_contents(newdir, rootdev);
-				free(newdir);
-			}
-			closedir(dir);
-
-			// Directory should now be empty, zap it
-			rmdir(directory);
-		}
+		iterate_on_dir(directory, rmrf, &rootdev);
 	} else {
 		// It wasn't a directory, zap it
 		unlink(directory);
