@@ -83,10 +83,10 @@ static void list_attributes(const char *name)
 
 	if (option_mask32 & OPT_PF_LONG) {
 		printf("%-28s ", name);
-		print_e2flags(stdout, fsflags, PFOPT_LONG);
+		print_e2flags_long(fsflags);
 		bb_putchar('\n');
 	} else {
-		print_e2flags(stdout, fsflags, 0);
+		print_e2flags(fsflags);
 		printf(" %s\n", name);
 	}
 

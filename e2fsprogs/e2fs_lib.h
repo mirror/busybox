@@ -16,10 +16,9 @@ int iterate_on_dir(const char *dir_name,
 		int FAST_FUNC (*func)(const char *, struct dirent *, void *),
 		void *private);
 
-/* Must be 1 for compatibility with 'int long_format'. */
-#define PFOPT_LONG  1
 /* Print file attributes on an ext2 file system */
-void print_e2flags(FILE *f, unsigned flags, unsigned options);
+void print_e2flags_long(unsigned flags);
+void print_e2flags(unsigned flags);
 
 extern const uint32_t e2attr_flags_value[];
 extern const char e2attr_flags_sname[];

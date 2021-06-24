@@ -98,36 +98,41 @@ static const char e2attr_flags_lname[] ALIGN1 =
 	"Verity" "\0"
 	/* Another trailing NUL is added by compiler */;
 
-void print_e2flags(FILE *f, unsigned flags, unsigned options)
+void print_e2flags_long(unsigned flags)
+{
+	const uint32_t *fv;
+	const char *fn;
+	int first = 1;
+
+	fv = e2attr_flags_value;
+	fn = e2attr_flags_lname;
+	do {
+		if (flags & *fv) {
+			if (!first)
+				fputs(", ", stdout);
+			fputs(fn, stdout);
+			first = 0;
+		}
+		fv++;
+		fn += strlen(fn) + 1;
+	} while (*fn);
+	if (first)
+		fputs("---", stdout);
+}
+
+void print_e2flags(unsigned flags)
 {
 	const uint32_t *fv;
 	const char *fn;
 
 	fv = e2attr_flags_value;
-	if (options & PFOPT_LONG) {
-		int first = 1;
-		fn = e2attr_flags_lname;
-		do {
-			if (flags & *fv) {
-				if (!first)
-					fputs(", ", f);
-				fputs(fn, f);
-				first = 0;
-			}
-			fv++;
-			fn += strlen(fn) + 1;
-		} while (*fn);
-		if (first)
-			fputs("---", f);
-	} else {
-		fn = e2attr_flags_sname;
-		do  {
-			char c = '-';
-			if (flags & *fv)
-				c = *fn;
-			fputc(c, f);
-			fv++;
-			fn++;
-		} while (*fn);
-	}
+	fn = e2attr_flags_sname;
+	do  {
+		char c = '-';
+		if (flags & *fv)
+			c = *fn;
+		putchar(c);
+		fv++;
+		fn++;
+	} while (*fn);
 }
