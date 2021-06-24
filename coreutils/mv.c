@@ -108,7 +108,7 @@ int mv_main(int argc, char **argv)
 			/* else: fall through into "do { move SRC to DIR/SRC } while" loop */
 		}
 	}
-	/* else: last is DIR from "t -DIR" */
+	/* else: last is DIR from "-t DIR" */
 
 	do {
 		dest = concat_path_file(last, bb_get_last_path_component_strip(*argv));
@@ -185,7 +185,7 @@ int mv_main(int argc, char **argv)
 		if (dest != last) {
 			free((void *) dest);
 		}
-	} while (*++argv != last);
+	} while (*++argv && *argv != last);
 
 	return status;
 }

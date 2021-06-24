@@ -252,7 +252,7 @@ int cp_main(int argc, char **argv)
 			}
 		}
 	}
-	/* else: last is DIR from "t -DIR" */
+	/* else: last is DIR from "-t DIR" */
 
 	while (1) {
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
@@ -274,7 +274,7 @@ int cp_main(int argc, char **argv)
 		if (copy_file(*argv, dest, flags) < 0) {
 			status = EXIT_FAILURE;
 		}
-		if (*++argv == last) {
+		if (!*++argv || *argv == last) {
 			/* possibly leaking dest... */
 			break;
 		}
