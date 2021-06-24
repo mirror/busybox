@@ -213,7 +213,7 @@ enum {
 	OPT_c = (1 << 2) * ENABLE_FEATURE_TASKSET_CPULIST,
 };
 
-static void process_pid_str(const char *pid_str, unsigned opts, char *aff)
+static int process_pid_str(const char *pid_str, unsigned opts, char *aff)
 {
 	ul *mask;
 	unsigned mask_size_in_bytes;
@@ -237,7 +237,7 @@ static void process_pid_str(const char *pid_str, unsigned opts, char *aff)
 			/* Either it was just "-p <pid>",
 			 * or it was "-p <aff> <pid>" and we came here
 			 * for the second time (see goto below) */
-			return;
+			return 0;
 		}
 		current_new = "new";
 	}
@@ -312,6 +312,14 @@ static void process_pid_str(const char *pid_str, unsigned opts, char *aff)
 		aff = NULL;
 		goto print_aff; /* print new affinity and exit */
 	}
+	return 0;
+}
+
+static int FAST_FUNC iter(const char *dn UNUSED_PARAM, struct dirent *ent, void *aff)
+{
+	if (isdigit(ent->d_name[0]))
+		return process_pid_str(ent->d_name, option_mask32, aff);
+	return 0;
 }
 
 int taskset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -341,29 +349,20 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 
 	pid_str = aff;
 	if (*argv) /* "-p <aff> <pid> ...rest.is.ignored..." */
-		pid_str = *argv; /* NB: *argv != NULL in this case */
+		pid_str = *argv;
 	else
 		aff = NULL;
 
 	if (opts & OPT_a) {
 		char *dn;
-		DIR *dir;
-		struct dirent *ent;
+		int r;
 
 		dn = xasprintf("/proc/%s/task", pid_str);
-		dir = opendir(dn);
+		r = iterate_on_dir(dn, iter, aff);
 		IF_FEATURE_CLEAN_UP(free(dn);)
-		if (!dir) {
-			goto no_threads;
-		}
-		while ((ent = readdir(dir)) != NULL) {
-			if (isdigit(ent->d_name[0]))
-				process_pid_str(ent->d_name, opts, aff);
-		}
-		IF_FEATURE_CLEAN_UP(closedir(dir);)
-	} else {
- no_threads:
-		process_pid_str(pid_str, opts, aff);
+		if (r == 0)
+			return r; /* EXIT_SUCCESS */
+		/* else: no /proc/PID/task, act as if no -a was given */
 	}
-	return EXIT_SUCCESS;
+	return process_pid_str(pid_str, opts, aff);
 }
