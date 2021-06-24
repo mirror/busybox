@@ -64,7 +64,7 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 	skip_fields = skip_chars = 0;
 	max_chars = INT_MAX;
 
-	opt = getopt32(argv, "cduf:+s:+w:+i", &skip_fields, &skip_chars, &max_chars);
+	opt = getopt32(argv, "cduf:+s:+w:+iz", &skip_fields, &skip_chars, &max_chars);
 	argv += optind;
 
 	input_filename = argv[0];
