@@ -1217,6 +1217,8 @@ static uint32_t next_token(uint32_t expected)
 			if (!isalnum_(*p))
 				syntax_error(EMSG_UNEXP_TOKEN); /* no */
 			/* yes */
+/* "move name one char back" trick: we need a byte for NUL terminator */
+/* NB: this results in argv[i][-1] being used (!!!) in e.g. "awk -e 'NAME'" case */
 			t_string = --p;
 			while (isalnum_(*++p)) {
 				p[-1] = *p;
@@ -3345,7 +3347,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
 	llist_t *list_e = NULL;
 #endif
-	int i, j;
+	int i;
 	var *v;
 	var tv;
 	char **envp;
@@ -3417,30 +3419,43 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 			bb_show_usage();
 	}
 	while (list_f) {
-		char *s = NULL;
-		FILE *from_file;
+		int fd;
+		char *s;
 
 		g_progname = llist_pop(&list_f);
-		from_file = xfopen_stdin(g_progname);
-		/* one byte is reserved for some trick in next_token */
-		for (i = j = 1; j > 0; i += j) {
-			s = xrealloc(s, i + 4096);
-			j = fread(s + i, 1, 4094, from_file);
+		fd = xopen_stdin(g_progname);
+		/* 1st byte is reserved for "move name one char back" trick in next_token */
+		i = 1;
+		s = NULL;
+		for (;;) {
+			int sz;
+			s = xrealloc(s, i + 1000);
+			sz = safe_read(fd, s + i, 1000);
+			if (sz <= 0)
+				break;
+			i += sz;
 		}
+		s = xrealloc(s, i + 1); /* trim unused 999 bytes */
 		s[i] = '\0';
-		fclose(from_file);
+		close(fd);
 		parse_program(s + 1);
 		free(s);
 	}
 	g_progname = "cmd. line";
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
 	while (list_e) {
+		/* NB: "move name one char back" trick in next_token
+		 * can use argv[i][-1] here.
+		 */
 		parse_program(llist_pop(&list_e));
 	}
 #endif
 	if (!(opt & (OPT_f | OPT_e))) {
 		if (!*argv)
 			bb_show_usage();
+		/* NB: "move name one char back" trick in next_token
+		 * can use argv[i][-1] here.
+		 */
 		parse_program(*argv++);
 	}
 
