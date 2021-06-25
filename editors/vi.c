@@ -3100,6 +3100,18 @@ static void colon(char *buf)
 		}
 		len_R = strlen(R);
 
+		if (len_F) {	// save "find" as last search pattern
+			free(last_search_pattern);
+			last_search_pattern = xstrdup(F - 1);
+			last_search_pattern[0] = '/';
+		} else if (last_search_pattern[1] == '\0') {
+			status_line_bold("No previous search");
+			goto ret;
+		} else {
+			F = last_search_pattern + 1;
+			len_F = strlen(F);
+		}
+
 		if (e < 0) {	// no addr given
 			q = begin_line(dot);      // start with cur line
 			r = end_line(dot);
