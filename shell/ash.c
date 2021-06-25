@@ -12751,7 +12751,7 @@ parsesub: {
 			do {
 				STPUTC(c, out);
 				c = pgetc_eatbnl();
-			} while ((subtype == 0 || subtype == VSLENGTH) && isdigit(c));
+			} while (!subtype && isdigit(c));
 		} else if (c != '}') {
 			/* $[{[#]]<specialchar>[}] */
 			int cc = c;
@@ -12780,6 +12780,11 @@ parsesub: {
 			USTPUTC(cc, out);
 		} else
 			goto badsub;
+
+		if (c != '}' && subtype == VSLENGTH) {
+			/* ${#VAR didn't end with } */
+			goto badsub;
+		}
 
 		if (subtype == 0) {
 			static const char types[] ALIGN1 = "}-+?=";
@@ -12837,8 +12842,6 @@ parsesub: {
 #endif
 			}
 		} else {
-			if (subtype == VSLENGTH && c != '}')
-				subtype = 0;
  badsub:
 			pungetc();
 		}
