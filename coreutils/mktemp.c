@@ -72,13 +72,27 @@ int mktemp_main(int argc UNUSED_PARAM, char **argv)
 		OPT_t = 1 << 2,
 		OPT_p = 1 << 3,
 		OPT_u = 1 << 4,
+		OPT_tmpdir = (1 << 5) * ENABLE_LONG_OPTS,
 	};
 
 	path = getenv("TMPDIR");
 	if (!path || path[0] == '\0')
 		path = "/tmp";
 
+#if ENABLE_LONG_OPTS
+	opts = getopt32long(argv, "^"
+		"dqtp:u"
+		"\0"
+		"?1" /* 1 arg max */,
+		"directory\0" No_argument       "d"
+		"quiet\0"     No_argument       "q"
+		"dry-run\0"   No_argument       "u"
+		"tmpdir\0"    Optional_argument "\xff"
+		, &path, &path
+	);
+#else
 	opts = getopt32(argv, "^" "dqtp:u" "\0" "?1"/*1 arg max*/, &path);
+#endif
 
 	chp = argv[optind];
 	if (!chp) {
@@ -95,7 +109,7 @@ int mktemp_main(int argc UNUSED_PARAM, char **argv)
 		goto error;
 	}
 #endif
-	if (opts & (OPT_t|OPT_p))
+	if (opts & (OPT_t|OPT_p|OPT_tmpdir))
 		chp = concat_path_file(path, chp);
 
 	if (opts & OPT_u) {
