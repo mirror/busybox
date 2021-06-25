@@ -3254,20 +3254,19 @@ static var *evaluate(node *op, var *res)
 
 static int awk_exit(int r)
 {
-	var tv;
 	unsigned i;
-	hash_item *hi;
-
-	zero_out_var(&tv);
 
 	if (!exiting) {
+		var tv;
 		exiting = TRUE;
 		nextrec = FALSE;
+		zero_out_var(&tv);
 		evaluate(endseq.first, &tv);
 	}
 
 	/* waiting for children */
 	for (i = 0; i < fdhash->csize; i++) {
+		hash_item *hi;
 		hi = fdhash->items[i];
 		while (hi) {
 			if (hi->data.rs.F && hi->data.rs.is_pipe)
@@ -3348,11 +3347,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	llist_t *list_e = NULL;
 #endif
 	int i;
-	var *v;
 	var tv;
-	char **envp;
-	char *vnames = (char *)vNames; /* cheat */
-	char *vvalues = (char *)vValues;
 
 	INIT_G();
 
@@ -3360,8 +3355,6 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	 * $1,$2 == '$1,' '$2', NOT '$1' ',' '$2' */
 	if (ENABLE_LOCALE_SUPPORT)
 		setlocale(LC_NUMERIC, "C");
-
-	zero_out_var(&tv);
 
 	/* allocate global buffer */
 	g_buf = xmalloc(MAXVARFMT + 1);
@@ -3372,16 +3365,21 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	fnhash = hash_init();
 
 	/* initialize variables */
-	for (i = 0; *vnames; i++) {
-		intvar[i] = v = newvar(nextword(&vnames));
-		if (*vvalues != '\377')
-			setvar_s(v, nextword(&vvalues));
-		else
-			setvar_i(v, 0);
+	{
+		char *vnames = (char *)vNames; /* cheat */
+		char *vvalues = (char *)vValues;
+		for (i = 0; *vnames; i++) {
+			var *v;
+			intvar[i] = v = newvar(nextword(&vnames));
+			if (*vvalues != '\377')
+				setvar_s(v, nextword(&vvalues));
+			else
+				setvar_i(v, 0);
 
-		if (*vnames == '*') {
-			v->type |= VF_SPECIAL;
-			vnames++;
+			if (*vnames == '*') {
+				v->type |= VF_SPECIAL;
+				vnames++;
+			}
 		}
 	}
 
@@ -3393,16 +3391,19 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	newfile("/dev/stderr")->F = stderr;
 
 	/* Huh, people report that sometimes environ is NULL. Oh well. */
-	if (environ) for (envp = environ; *envp; envp++) {
-		/* environ is writable, thus we don't strdup it needlessly */
-		char *s = *envp;
-		char *s1 = strchr(s, '=');
-		if (s1) {
-			*s1 = '\0';
-			/* Both findvar and setvar_u take const char*
-			 * as 2nd arg -> environment is not trashed */
-			setvar_u(findvar(iamarray(intvar[ENVIRON]), s), s1 + 1);
-			*s1 = '=';
+	if (environ) {
+		char **envp;
+		for (envp = environ; *envp; envp++) {
+			/* environ is writable, thus we don't strdup it needlessly */
+			char *s = *envp;
+			char *s1 = strchr(s, '=');
+			if (s1) {
+				*s1 = '\0';
+				/* Both findvar and setvar_u take const char*
+				 * as 2nd arg -> environment is not trashed */
+				setvar_u(findvar(iamarray(intvar[ENVIRON]), s), s1 + 1);
+				*s1 = '=';
+			}
 		}
 	}
 	opt = getopt32(argv, OPTSTR_AWK, &opt_F, &list_v, &list_f, IF_FEATURE_AWK_GNU_EXTENSIONS(&list_e,) NULL);
@@ -3466,6 +3467,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 		setari_u(intvar[ARGV], ++i, *argv++);
 	setvar_i(intvar[ARGC], i + 1);
 
+	zero_out_var(&tv);
 	evaluate(beginseq.first, &tv);
 	if (!mainseq.first && !endseq.first)
 		awk_exit(EXIT_SUCCESS);
