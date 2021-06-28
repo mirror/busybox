@@ -556,7 +556,6 @@ struct globals2 {
 
 	uint32_t next_token__save_tclass;
 	uint32_t next_token__save_info;
-	uint32_t next_token__ltclass;
 	smallint next_token__concat_inserted;
 
 	smallint next_input_file__files_happen;
@@ -615,7 +614,7 @@ struct globals2 {
 #define rsplitter    (G.rsplitter   )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS((char*)xzalloc(sizeof(G1)+sizeof(G)) + sizeof(G1)); \
-	G.next_token__ltclass = TC_OPTERM; \
+	t_tclass = TC_OPTERM; \
 	G.evaluate__seed = 1; \
 } while (0)
 
@@ -1102,13 +1101,13 @@ static uint32_t next_token(uint32_t expected)
 #define concat_inserted (G.next_token__concat_inserted)
 #define save_tclass     (G.next_token__save_tclass)
 #define save_info       (G.next_token__save_info)
-/* Initialized to TC_OPTERM: */
-#define ltclass         (G.next_token__ltclass)
 
 	char *p, *s;
 	const char *tl;
-	uint32_t tc;
 	const uint32_t *ti;
+	uint32_t tc, last_token_class;
+
+	last_token_class = t_tclass; /* t_tclass is initialized to TC_OPTERM */
 
 	debug_printf_parse("%s() expected(%x):", __func__, expected);
 	debug_parse_print_tc(expected);
@@ -1245,15 +1244,15 @@ static uint32_t next_token(uint32_t expected)
 		g_pos = p;
 
 		/* skipping newlines in some cases */
-		if ((ltclass & TC_NOTERM) && (tc & TC_NEWLINE))
+		if ((last_token_class & TC_NOTERM) && (tc & TC_NEWLINE))
 			goto readnext;
 
 		/* insert concatenation operator when needed */
 		debug_printf_parse("%s: concat_inserted if all nonzero: %x %x %x %x\n", __func__,
-			(ltclass & TC_CONCAT1), (tc & TC_CONCAT2), (expected & TC_BINOP),
-			!(ltclass == TC_LENGTH && tc == TC_SEQSTART));
-		if ((ltclass & TC_CONCAT1) && (tc & TC_CONCAT2) && (expected & TC_BINOP)
-		 && !(ltclass == TC_LENGTH && tc == TC_SEQSTART) /* but not for "length(..." */
+			(last_token_class & TC_CONCAT1), (tc & TC_CONCAT2), (expected & TC_BINOP),
+			!(last_token_class == TC_LENGTH && tc == TC_SEQSTART));
+		if ((last_token_class & TC_CONCAT1) && (tc & TC_CONCAT2) && (expected & TC_BINOP)
+		 && !(last_token_class == TC_LENGTH && tc == TC_SEQSTART) /* but not for "length(..." */
 		) {
 			concat_inserted = TRUE;
 			save_tclass = tc;
@@ -1267,7 +1266,7 @@ static uint32_t next_token(uint32_t expected)
 	}
 	/* Are we ready for this? */
 	if (!(t_tclass & expected)) {
-		syntax_error((ltclass & (TC_NEWLINE | TC_EOF)) ?
+		syntax_error((last_token_class & (TC_NEWLINE | TC_EOF)) ?
 				EMSG_UNEXP_EOS : EMSG_UNEXP_TOKEN);
 	}
 
@@ -1275,13 +1274,10 @@ static uint32_t next_token(uint32_t expected)
 	debug_parse_print_tc(t_tclass);
 	debug_printf_parse("\n");
 
-	ltclass = t_tclass;
-
 	return t_tclass;
 #undef concat_inserted
 #undef save_tclass
 #undef save_info
-#undef ltclass
 }
 
 static void rollback_token(void)
