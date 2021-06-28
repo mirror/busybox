@@ -207,48 +207,48 @@ typedef struct tsplitter_s {
 } tsplitter;
 
 /* simple token classes */
-/* Order and hex values are very important!!!  See next_token() */
-#define	TC_SEQSTART	(1 << 0)		/* ( */
-#define	TC_SEQTERM	(1 << 1)		/* ) */
+/* order and hex values are very important!!!  See next_token() */
+#define	TC_LPAREN	(1 << 0)		/* ( */
+#define	TC_RPAREN	(1 << 1)		/* ) */
 #define	TC_REGEXP	(1 << 2)		/* /.../ */
 #define	TC_OUTRDR	(1 << 3)		/* | > >> */
 #define	TC_UOPPOST	(1 << 4)		/* unary postfix operator ++ -- */
 #define	TC_UOPPRE1	(1 << 5)		/* unary prefix operator ++ -- $ */
 #define	TC_BINOPX	(1 << 6)		/* two-opnd operator */
-#define	TC_IN		(1 << 7)
-#define	TC_COMMA	(1 << 8)
-#define	TC_PIPE		(1 << 9)		/* input redirection pipe */
+#define	TC_IN		(1 << 7)		/* 'in' */
+#define	TC_COMMA	(1 << 8)		/* , */
+#define	TC_PIPE		(1 << 9)		/* input redirection pipe | */
 #define	TC_UOPPRE2	(1 << 10)		/* unary prefix operator + - ! */
 #define	TC_ARRTERM	(1 << 11)		/* ] */
 #define	TC_GRPSTART	(1 << 12)		/* { */
 #define	TC_GRPTERM	(1 << 13)		/* } */
-#define	TC_SEMICOL	(1 << 14)
+#define	TC_SEMICOL	(1 << 14)		/* ; */
 #define	TC_NEWLINE	(1 << 15)
 #define	TC_STATX	(1 << 16)		/* ctl statement (for, next...) */
-#define	TC_WHILE	(1 << 17)
-#define	TC_ELSE		(1 << 18)
+#define	TC_WHILE	(1 << 17)		/* 'while' */
+#define	TC_ELSE		(1 << 18)		/* 'else' */
 #define	TC_BUILTIN	(1 << 19)
 /* This costs ~50 bytes of code.
  * A separate class to support deprecated "length" form. If we don't need that
  * (i.e. if we demand that only "length()" with () is valid), then TC_LENGTH
  * can be merged with TC_BUILTIN:
  */
-#define	TC_LENGTH	(1 << 20)
-#define	TC_GETLINE	(1 << 21)
+#define	TC_LENGTH	(1 << 20)		/* 'length' */
+#define	TC_GETLINE	(1 << 21)		/* 'getline' */
 #define	TC_FUNCDECL	(1 << 22)		/* 'function' 'func' */
-#define	TC_BEGIN	(1 << 23)
-#define	TC_END		(1 << 24)
+#define	TC_BEGIN	(1 << 23)		/* 'BEGIN' */
+#define	TC_END		(1 << 24)		/* 'END' */
 #define	TC_EOF		(1 << 25)
-#define	TC_VARIABLE	(1 << 26)
-#define	TC_ARRAY	(1 << 27)
-#define	TC_FUNCTION	(1 << 28)
-#define	TC_STRING	(1 << 29)
+#define	TC_VARIABLE	(1 << 26)		/* name */
+#define	TC_ARRAY	(1 << 27)		/* name[ */
+#define	TC_FUNCTION	(1 << 28)		/* name( - but unlike TC_ARRAY, parser does not consume '(' */
+#define	TC_STRING	(1 << 29)		/* "..." */
 #define	TC_NUMBER	(1 << 30)
 
 #ifndef debug_parse_print_tc
 #define debug_parse_print_tc(n) do { \
-if ((n) & TC_SEQSTART) debug_printf_parse(" SEQSTART"); \
-if ((n) & TC_SEQTERM ) debug_printf_parse(" SEQTERM" ); \
+if ((n) & TC_LPAREN  ) debug_printf_parse(" LPAREN"  ); \
+if ((n) & TC_RPAREN  ) debug_printf_parse(" RPAREN"  ); \
 if ((n) & TC_REGEXP  ) debug_printf_parse(" REGEXP"  ); \
 if ((n) & TC_OUTRDR  ) debug_printf_parse(" OUTRDR"  ); \
 if ((n) & TC_UOPPOST ) debug_printf_parse(" UOPPOST" ); \
@@ -288,7 +288,7 @@ if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
 //#define TS_UNARYOP (TS_UOPPRE | TC_UOPPOST)
 #define	TS_OPERAND  (TC_VARIABLE | TC_ARRAY | TC_FUNCTION \
                     | TC_BUILTIN | TC_LENGTH | TC_GETLINE \
-                    | TC_SEQSTART | TC_STRING | TC_NUMBER)
+                    | TC_LPAREN | TC_STRING | TC_NUMBER)
 
 #define	TS_LVALUE   (TC_VARIABLE | TC_ARRAY)
 #define	TS_STATEMNT (TC_STATX | TC_WHILE)
@@ -310,7 +310,7 @@ if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
 
 /* if previous token class is CONCAT_L and next is CONCAT_R, concatenation */
 /* operator is inserted between them */
-#define	TS_CONCAT_L (TC_VARIABLE | TC_ARRTERM | TC_SEQTERM \
+#define	TS_CONCAT_L (TC_VARIABLE | TC_ARRTERM | TC_RPAREN \
                    | TC_STRING | TC_NUMBER | TC_UOPPOST \
                    | TC_LENGTH)
 #define	TS_CONCAT_R (TS_OPERAND | TS_UOPPRE)
@@ -394,8 +394,8 @@ enum {
 #define NTCC    '\377'
 
 static const char tokenlist[] ALIGN1 =
-	"\1("         NTC                                   /* TC_SEQSTART */
-	"\1)"         NTC                                   /* TC_SEQTERM */
+	"\1("         NTC                                   /* TC_LPAREN */
+	"\1)"         NTC                                   /* TC_RPAREN */
 	"\1/"         NTC                                   /* TC_REGEXP */
 	"\2>>"        "\1>"         "\1|"       NTC         /* TC_OUTRDR */
 	"\2++"        "\2--"        NTC                     /* TC_UOPPOST */
@@ -1250,9 +1250,9 @@ static uint32_t next_token(uint32_t expected)
 		/* insert concatenation operator when needed */
 		debug_printf_parse("%s: concat_inserted if all nonzero: %x %x %x %x\n", __func__,
 			(last_token_class & TS_CONCAT_L), (tc & TS_CONCAT_R), (expected & TS_BINOP),
-			!(last_token_class == TC_LENGTH && tc == TC_SEQSTART));
+			!(last_token_class == TC_LENGTH && tc == TC_LPAREN));
 		if ((last_token_class & TS_CONCAT_L) && (tc & TS_CONCAT_R) && (expected & TS_BINOP)
-		 && !(last_token_class == TC_LENGTH && tc == TC_SEQSTART) /* but not for "length(..." */
+		 && !(last_token_class == TC_LENGTH && tc == TC_LPAREN) /* but not for "length(..." */
 		) {
 			concat_inserted = TRUE;
 			save_tclass = tc;
@@ -1304,10 +1304,10 @@ static void mk_re_node(const char *s, node *n, regex_t *re)
 	xregcomp(re + 1, s, REG_EXTENDED | REG_ICASE);
 }
 
-static node *condition(void)
+static node *parse_lrparen_list(void)
 {
-	next_token(TC_SEQSTART);
-	return parse_expr(TC_SEQTERM);
+	next_token(TC_LPAREN);
+	return parse_expr(TC_RPAREN);
 }
 
 /* parse expression terminated by given argument, return ptr
@@ -1430,12 +1430,12 @@ static node *parse_expr(uint32_t term_tc)
 			debug_printf_parse("%s: TC_FUNCTION\n", __func__);
 			cn->info = OC_FUNC;
 			cn->r.f = newfunc(t_string);
-			cn->l.n = condition();
+			cn->l.n = parse_lrparen_list();
 			break;
 
-		case TC_SEQSTART:
-			debug_printf_parse("%s: TC_SEQSTART\n", __func__);
-			cn = vn->r.n = parse_expr(TC_SEQTERM);
+		case TC_LPAREN:
+			debug_printf_parse("%s: TC_LPAREN\n", __func__);
+			cn = vn->r.n = parse_expr(TC_RPAREN);
 			if (!cn)
 				syntax_error("Empty sequence");
 			cn->a.n = vn;
@@ -1449,21 +1449,21 @@ static node *parse_expr(uint32_t term_tc)
 
 		case TC_BUILTIN:
 			debug_printf_parse("%s: TC_BUILTIN\n", __func__);
-			cn->l.n = condition();
+			cn->l.n = parse_lrparen_list();
 			break;
 
 		case TC_LENGTH:
 			debug_printf_parse("%s: TC_LENGTH\n", __func__);
-			next_token(TC_SEQSTART /* length(...) */
+			next_token(TC_LPAREN /* length(...) */
 				| TS_OPTERM    /* length; (or newline)*/
 				| TC_GRPTERM   /* length } */
 				| TC_BINOPX    /* length <op> NUM */
 				| TC_COMMA     /* print length, 1 */
 			);
 			rollback_token();
-			if (t_tclass & TC_SEQSTART) {
+			if (t_tclass & TC_LPAREN) {
 				/* It was a "(" token. Handle just like TC_BUILTIN */
-				cn->l.n = condition();
+				cn->l.n = parse_lrparen_list();
 			}
 			break;
 		}
@@ -1562,7 +1562,7 @@ static void chain_group(void)
 		case ST_IF:
 			debug_printf_parse("%s: ST_IF\n", __func__);
 			n = chain_node(OC_BR | Vx);
-			n->l.n = condition();
+			n->l.n = parse_lrparen_list();
 			chain_group();
 			n2 = chain_node(OC_EXEC);
 			n->r.n = seq->last;
@@ -1576,7 +1576,7 @@ static void chain_group(void)
 
 		case ST_WHILE:
 			debug_printf_parse("%s: ST_WHILE\n", __func__);
-			n2 = condition();
+			n2 = parse_lrparen_list();
 			n = chain_loop(NULL);
 			n->l.n = n2;
 			break;
@@ -1587,14 +1587,14 @@ static void chain_group(void)
 			n = chain_loop(NULL);
 			n2->a.n = n->a.n;
 			next_token(TC_WHILE);
-			n->l.n = condition();
+			n->l.n = parse_lrparen_list();
 			break;
 
 		case ST_FOR:
 			debug_printf_parse("%s: ST_FOR\n", __func__);
-			next_token(TC_SEQSTART);
-			n2 = parse_expr(TC_SEMICOL | TC_SEQTERM);
-			if (t_tclass & TC_SEQTERM) {	/* for-in */
+			next_token(TC_LPAREN);
+			n2 = parse_expr(TC_SEMICOL | TC_RPAREN);
+			if (t_tclass & TC_RPAREN) {	/* for-in */
 				if (!n2 || (n2->info & OPCLSMASK) != OC_IN)
 					syntax_error(EMSG_UNEXP_TOKEN);
 				n = chain_node(OC_WALKINIT | VV);
@@ -1607,7 +1607,7 @@ static void chain_group(void)
 				n = chain_node(OC_EXEC | Vx);
 				n->l.n = n2;
 				n2 = parse_expr(TC_SEMICOL);
-				n3 = parse_expr(TC_SEQTERM);
+				n3 = parse_expr(TC_RPAREN);
 				n = chain_loop(n3);
 				n->l.n = n2;
 				if (!n2)
@@ -1686,13 +1686,13 @@ static void parse_program(char *p)
 			f->body.first = NULL;
 			f->nargs = 0;
 			/* Match func arg list: a comma sep list of >= 0 args, and a close paren */
-			while (next_token(TC_VARIABLE | TC_SEQTERM | TC_COMMA)) {
+			while (next_token(TC_VARIABLE | TC_RPAREN | TC_COMMA)) {
 				/* Either an empty arg list, or trailing comma from prev iter
 				 * must be followed by an arg */
-				if (f->nargs == 0 && t_tclass == TC_SEQTERM)
+				if (f->nargs == 0 && t_tclass == TC_RPAREN)
 					break;
 
-				/* TC_SEQSTART/TC_COMMA must be followed by TC_VARIABLE */
+				/* TC_LPAREN/TC_COMMA must be followed by TC_VARIABLE */
 				if (t_tclass != TC_VARIABLE)
 					syntax_error(EMSG_UNEXP_TOKEN);
 
@@ -1700,7 +1700,7 @@ static void parse_program(char *p)
 				v->x.aidx = f->nargs++;
 
 				/* Arg followed either by end of arg list or 1 comma */
-				if (next_token(TC_COMMA | TC_SEQTERM) & TC_SEQTERM)
+				if (next_token(TC_COMMA | TC_RPAREN) & TC_RPAREN)
 					break;
 //Impossible: next_token() above would error out and die
 //				if (t_tclass != TC_COMMA)
