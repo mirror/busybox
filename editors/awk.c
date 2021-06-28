@@ -281,39 +281,39 @@ if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
 } while (0)
 #endif
 
-/* combined token classes */
-#define	TC_UOPPRE  (TC_UOPPRE1 | TC_UOPPRE2)
+/* combined token classes ("token [class] sets") */
+#define	TS_UOPPRE   (TC_UOPPRE1 | TC_UOPPRE2)
 
-#define	TC_BINOP   (TC_BINOPX | TC_COMMA | TC_PIPE | TC_IN)
-//#define	TC_UNARYOP (TC_UOPPRE | TC_UOPPOST)
-#define	TC_OPERAND (TC_VARIABLE | TC_ARRAY | TC_FUNCTION \
-                   | TC_BUILTIN | TC_LENGTH | TC_GETLINE \
-                   | TC_SEQSTART | TC_STRING | TC_NUMBER)
-#define	TC_LVALUE (TC_VARIABLE | TC_ARRAY)
+#define	TS_BINOP    (TC_BINOPX | TC_COMMA | TC_PIPE | TC_IN)
+//#define TS_UNARYOP (TS_UOPPRE | TC_UOPPOST)
+#define	TS_OPERAND  (TC_VARIABLE | TC_ARRAY | TC_FUNCTION \
+                    | TC_BUILTIN | TC_LENGTH | TC_GETLINE \
+                    | TC_SEQSTART | TC_STRING | TC_NUMBER)
 
-#define	TC_STATEMNT (TC_STATX | TC_WHILE)
-#define	TC_OPTERM  (TC_SEMICOL | TC_NEWLINE)
+#define	TS_LVALUE   (TC_VARIABLE | TC_ARRAY)
+#define	TS_STATEMNT (TC_STATX | TC_WHILE)
+#define	TS_OPTERM   (TC_SEMICOL | TC_NEWLINE)
 
 /* word tokens, cannot mean something else if not expected */
-#define	TC_WORD    (TC_IN | TC_STATEMNT | TC_ELSE \
-                   | TC_BUILTIN | TC_LENGTH | TC_GETLINE \
-                   | TC_FUNCDECL | TC_BEGIN | TC_END)
+#define	TS_WORD     (TC_IN | TS_STATEMNT | TC_ELSE \
+                    | TC_BUILTIN | TC_LENGTH | TC_GETLINE \
+                    | TC_FUNCDECL | TC_BEGIN | TC_END)
 
 /* discard newlines after these */
-#define	TC_NOTERM  (TC_COMMA | TC_GRPSTART | TC_GRPTERM \
-                   | TC_BINOP | TC_OPTERM)
+#define	TS_NOTERM   (TC_COMMA | TC_GRPSTART | TC_GRPTERM \
+                    | TS_BINOP | TS_OPTERM)
 
 /* what can expression begin with */
-#define	TC_OPSEQ   (TC_OPERAND | TC_UOPPRE | TC_REGEXP)
+#define	TS_OPSEQ    (TS_OPERAND | TS_UOPPRE | TC_REGEXP)
 /* what can group begin with */
-#define	TC_GRPSEQ  (TC_OPSEQ | TC_OPTERM | TC_STATEMNT | TC_GRPSTART)
+#define	TS_GRPSEQ   (TS_OPSEQ | TS_OPTERM | TS_STATEMNT | TC_GRPSTART)
 
-/* if previous token class is CONCAT1 and next is CONCAT2, concatenation */
+/* if previous token class is CONCAT_L and next is CONCAT_R, concatenation */
 /* operator is inserted between them */
-#define	TC_CONCAT1 (TC_VARIABLE | TC_ARRTERM | TC_SEQTERM \
+#define	TS_CONCAT_L (TC_VARIABLE | TC_ARRTERM | TC_SEQTERM \
                    | TC_STRING | TC_NUMBER | TC_UOPPOST \
                    | TC_LENGTH)
-#define	TC_CONCAT2 (TC_OPERAND | TC_UOPPRE)
+#define	TS_CONCAT_R (TS_OPERAND | TS_UOPPRE)
 
 #define	OF_RES1     0x010000
 #define	OF_RES2     0x020000
@@ -614,7 +614,7 @@ struct globals2 {
 #define rsplitter    (G.rsplitter   )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS((char*)xzalloc(sizeof(G1)+sizeof(G)) + sizeof(G1)); \
-	t_tclass = TC_OPTERM; \
+	t_tclass = TS_OPTERM; \
 	G.evaluate__seed = 1; \
 } while (0)
 
@@ -1107,7 +1107,7 @@ static uint32_t next_token(uint32_t expected)
 	const uint32_t *ti;
 	uint32_t tc, last_token_class;
 
-	last_token_class = t_tclass; /* t_tclass is initialized to TC_OPTERM */
+	last_token_class = t_tclass; /* t_tclass is initialized to TS_OPTERM */
 
 	debug_printf_parse("%s() expected(%x):", __func__, expected);
 	debug_parse_print_tc(expected);
@@ -1198,9 +1198,9 @@ static uint32_t next_token(uint32_t expected)
 				 * token matches,
 				 * and it's not a longer word,
 				 */
-				if ((tc & (expected | TC_WORD | TC_NEWLINE))
+				if ((tc & (expected | TS_WORD | TC_NEWLINE))
 				 && strncmp(p, tl, l) == 0
-				 && !((tc & TC_WORD) && isalnum_(p[l]))
+				 && !((tc & TS_WORD) && isalnum_(p[l]))
 				) {
 					/* then this is what we are looking for */
 					t_info = *ti;
@@ -1244,14 +1244,14 @@ static uint32_t next_token(uint32_t expected)
 		g_pos = p;
 
 		/* skipping newlines in some cases */
-		if ((last_token_class & TC_NOTERM) && (tc & TC_NEWLINE))
+		if ((last_token_class & TS_NOTERM) && (tc & TC_NEWLINE))
 			goto readnext;
 
 		/* insert concatenation operator when needed */
 		debug_printf_parse("%s: concat_inserted if all nonzero: %x %x %x %x\n", __func__,
-			(last_token_class & TC_CONCAT1), (tc & TC_CONCAT2), (expected & TC_BINOP),
+			(last_token_class & TS_CONCAT_L), (tc & TS_CONCAT_R), (expected & TS_BINOP),
 			!(last_token_class == TC_LENGTH && tc == TC_SEQSTART));
-		if ((last_token_class & TC_CONCAT1) && (tc & TC_CONCAT2) && (expected & TC_BINOP)
+		if ((last_token_class & TS_CONCAT_L) && (tc & TS_CONCAT_R) && (expected & TS_BINOP)
 		 && !(last_token_class == TC_LENGTH && tc == TC_SEQSTART) /* but not for "length(..." */
 		) {
 			concat_inserted = TRUE;
@@ -1317,7 +1317,7 @@ static node *parse_expr(uint32_t term_tc)
 	node sn;
 	node *cn = &sn;
 	node *vn, *glptr;
-	uint32_t tc, xtc;
+	uint32_t tc, expected_tc;
 	var *v;
 
 	debug_printf_parse("%s() term_tc(%x):", __func__, term_tc);
@@ -1326,20 +1326,20 @@ static node *parse_expr(uint32_t term_tc)
 
 	sn.info = PRIMASK;
 	sn.r.n = sn.a.n = glptr = NULL;
-	xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP | term_tc;
+	expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP | term_tc;
 
-	while (!((tc = next_token(xtc)) & term_tc)) {
+	while (!((tc = next_token(expected_tc)) & term_tc)) {
 
 		if (glptr && (t_info == TI_LESS)) {
 			/* input redirection (<) attached to glptr node */
 			debug_printf_parse("%s: input redir\n", __func__);
 			cn = glptr->l.n = new_node(OC_CONCAT | SS | P(37));
 			cn->a.n = glptr;
-			xtc = TC_OPERAND | TC_UOPPRE;
+			expected_tc = TS_OPERAND | TS_UOPPRE;
 			glptr = NULL;
 
-		} else if (tc & (TC_BINOP | TC_UOPPOST)) {
-			debug_printf_parse("%s: TC_BINOP | TC_UOPPOST tc:%x\n", __func__, tc);
+		} else if (tc & (TS_BINOP | TC_UOPPOST)) {
+			debug_printf_parse("%s: TS_BINOP | TC_UOPPOST tc:%x\n", __func__, tc);
 			/* for binary and postfix-unary operators, jump back over
 			 * previous operators with higher priority */
 			vn = cn;
@@ -1353,19 +1353,19 @@ static node *parse_expr(uint32_t term_tc)
 				t_info += P(6);
 			cn = vn->a.n->r.n = new_node(t_info);
 			cn->a.n = vn->a.n;
-			if (tc & TC_BINOP) {
+			if (tc & TS_BINOP) {
 				cn->l.n = vn;
-				xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP;
+				expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP;
 				if ((t_info & OPCLSMASK) == OC_PGETLINE) {
 					/* it's a pipe */
 					next_token(TC_GETLINE);
 					/* give maximum priority to this pipe */
 					cn->info &= ~PRIMASK;
-					xtc = TC_OPERAND | TC_UOPPRE | TC_BINOP | term_tc;
+					expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
 				}
 			} else {
 				cn->r.n = vn;
-				xtc = TC_OPERAND | TC_UOPPRE | TC_BINOP | term_tc;
+				expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
 			}
 			vn->a.n = cn;
 
@@ -1377,14 +1377,14 @@ static node *parse_expr(uint32_t term_tc)
 			cn = vn->r.n = new_node(t_info);
 			cn->a.n = vn;
 
-			xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP;
+			expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP;
 			if (t_info == TI_PREINC || t_info == TI_PREDEC)
-				xtc = TC_LVALUE | TC_UOPPRE1;
-			if (tc & (TC_OPERAND | TC_REGEXP)) {
-				debug_printf_parse("%s: TC_OPERAND | TC_REGEXP\n", __func__);
-				xtc = TC_UOPPRE | TC_UOPPOST | TC_BINOP | TC_OPERAND | term_tc;
+				expected_tc = TS_LVALUE | TC_UOPPRE1;
+			if (tc & (TS_OPERAND | TC_REGEXP)) {
+				debug_printf_parse("%s: TS_OPERAND | TC_REGEXP\n", __func__);
+				expected_tc = TS_UOPPRE | TC_UOPPOST | TS_BINOP | TS_OPERAND | term_tc;
 				/* one should be very careful with switch on tclass -
-				 * only simple tclasses should be used! */
+				 * only simple tclasses should be used (TC_xyz, not TS_xyz) */
 				switch (tc) {
 				case TC_VARIABLE:
 				case TC_ARRAY:
@@ -1412,7 +1412,7 @@ static node *parse_expr(uint32_t term_tc)
 						setvar_i(v, t_double);
 					else {
 						setvar_s(v, t_string);
-						xtc &= ~TC_UOPPOST; /* "str"++ is not allowed */
+						expected_tc &= ~TC_UOPPOST; /* "str"++ is not allowed */
 					}
 					break;
 
@@ -1439,7 +1439,7 @@ static node *parse_expr(uint32_t term_tc)
 				case TC_GETLINE:
 					debug_printf_parse("%s: TC_GETLINE\n", __func__);
 					glptr = cn;
-					xtc = TC_OPERAND | TC_UOPPRE | TC_BINOP | term_tc;
+					expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
 					break;
 
 				case TC_BUILTIN:
@@ -1450,7 +1450,7 @@ static node *parse_expr(uint32_t term_tc)
 				case TC_LENGTH:
 					debug_printf_parse("%s: TC_LENGTH\n", __func__);
 					next_token(TC_SEQSTART /* length(...) */
-						| TC_OPTERM    /* length; (or newline)*/
+						| TS_OPTERM    /* length; (or newline)*/
 						| TC_GRPTERM   /* length } */
 						| TC_BINOPX    /* length <op> NUM */
 						| TC_COMMA     /* print length, 1 */
@@ -1464,7 +1464,7 @@ static node *parse_expr(uint32_t term_tc)
 				}
 			}
 		}
-	}
+	} /* while() */
 
 	debug_printf_parse("%s() returns %p\n", __func__, sn.r.n);
 	return sn.r.n;
@@ -1497,7 +1497,7 @@ static void chain_expr(uint32_t info)
 
 	n = chain_node(info);
 
-	n->l.n = parse_expr(TC_OPTERM | TC_GRPTERM);
+	n->l.n = parse_expr(TS_OPTERM | TC_GRPTERM);
 	if ((info & OF_REQUIRED) && !n->l.n)
 		syntax_error(EMSG_TOO_FEW_ARGS);
 
@@ -1535,12 +1535,12 @@ static void chain_group(void)
 	node *n, *n2, *n3;
 
 	do {
-		c = next_token(TC_GRPSEQ);
+		c = next_token(TS_GRPSEQ);
 	} while (c & TC_NEWLINE);
 
 	if (c & TC_GRPSTART) {
 		debug_printf_parse("%s: TC_GRPSTART\n", __func__);
-		while (next_token(TC_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
+		while (next_token(TS_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
 			debug_printf_parse("%s: !TC_GRPTERM\n", __func__);
 			if (t_tclass & TC_NEWLINE)
 				continue;
@@ -1548,13 +1548,13 @@ static void chain_group(void)
 			chain_group();
 		}
 		debug_printf_parse("%s: TC_GRPTERM\n", __func__);
-	} else if (c & (TC_OPSEQ | TC_OPTERM)) {
-		debug_printf_parse("%s: TC_OPSEQ | TC_OPTERM\n", __func__);
+	} else if (c & (TS_OPSEQ | TS_OPTERM)) {
+		debug_printf_parse("%s: TS_OPSEQ | TS_OPTERM\n", __func__);
 		rollback_token();
 		chain_expr(OC_EXEC | Vx);
 	} else {
-		/* TC_STATEMNT */
-		debug_printf_parse("%s: TC_STATEMNT(?)\n", __func__);
+		/* TS_STATEMNT */
+		debug_printf_parse("%s: TS_STATEMNT(?)\n", __func__);
 		switch (t_info & OPCLSMASK) {
 		case ST_IF:
 			debug_printf_parse("%s: ST_IF\n", __func__);
@@ -1563,7 +1563,7 @@ static void chain_group(void)
 			chain_group();
 			n2 = chain_node(OC_EXEC);
 			n->r.n = seq->last;
-			if (next_token(TC_GRPSEQ | TC_GRPTERM | TC_ELSE) == TC_ELSE) {
+			if (next_token(TS_GRPSEQ | TC_GRPTERM | TC_ELSE) == TC_ELSE) {
 				chain_group();
 				n2->a.n = seq->last;
 			} else {
@@ -1616,10 +1616,10 @@ static void chain_group(void)
 		case OC_PRINTF:
 			debug_printf_parse("%s: OC_PRINT[F]\n", __func__);
 			n = chain_node(t_info);
-			n->l.n = parse_expr(TC_OPTERM | TC_OUTRDR | TC_GRPTERM);
+			n->l.n = parse_expr(TS_OPTERM | TC_OUTRDR | TC_GRPTERM);
 			if (t_tclass & TC_OUTRDR) {
 				n->info |= t_info;
-				n->r.n = parse_expr(TC_OPTERM | TC_GRPTERM);
+				n->r.n = parse_expr(TS_OPTERM | TC_GRPTERM);
 			}
 			if (t_tclass & TC_GRPTERM)
 				rollback_token();
@@ -1658,11 +1658,11 @@ static void parse_program(char *p)
 
 	g_pos = p;
 	t_lineno = 1;
-	while ((tclass = next_token(TC_EOF | TC_OPSEQ | TC_GRPSTART |
-			TC_OPTERM | TC_BEGIN | TC_END | TC_FUNCDECL)) != TC_EOF) {
+	while ((tclass = next_token(TC_EOF | TS_OPSEQ | TC_GRPSTART |
+			TS_OPTERM | TC_BEGIN | TC_END | TC_FUNCDECL)) != TC_EOF) {
 
-		if (tclass & TC_OPTERM) {
-			debug_printf_parse("%s: TC_OPTERM\n", __func__);
+		if (tclass & TS_OPTERM) {
+			debug_printf_parse("%s: TS_OPTERM\n", __func__);
 			continue;
 		}
 
@@ -1706,11 +1706,11 @@ static void parse_program(char *p)
 			seq = &f->body;
 			chain_group();
 			clear_array(ahash);
-		} else if (tclass & TC_OPSEQ) {
-			debug_printf_parse("%s: TC_OPSEQ\n", __func__);
+		} else if (tclass & TS_OPSEQ) {
+			debug_printf_parse("%s: TS_OPSEQ\n", __func__);
 			rollback_token();
 			cn = chain_node(OC_TEST);
-			cn->l.n = parse_expr(TC_OPTERM | TC_EOF | TC_GRPSTART);
+			cn->l.n = parse_expr(TS_OPTERM | TC_EOF | TC_GRPSTART);
 			if (t_tclass & TC_GRPSTART) {
 				debug_printf_parse("%s: TC_GRPSTART\n", __func__);
 				rollback_token();
