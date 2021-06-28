@@ -1337,8 +1337,9 @@ static node *parse_expr(uint32_t term_tc)
 			cn->a.n = glptr;
 			expected_tc = TS_OPERAND | TS_UOPPRE;
 			glptr = NULL;
-
-		} else if (tc & (TS_BINOP | TC_UOPPOST)) {
+			continue;
+		}
+		if (tc & (TS_BINOP | TC_UOPPOST)) {
 			debug_printf_parse("%s: TS_BINOP | TC_UOPPOST tc:%x\n", __func__, tc);
 			/* for binary and postfix-unary operators, jump back over
 			 * previous operators with higher priority */
@@ -1368,101 +1369,103 @@ static node *parse_expr(uint32_t term_tc)
 				expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
 			}
 			vn->a.n = cn;
+			continue;
+		}
 
-		} else {
-			debug_printf_parse("%s: other, t_info:%x\n", __func__, t_info);
-			/* for operands and prefix-unary operators, attach them
-			 * to last node */
-			vn = cn;
-			cn = vn->r.n = new_node(t_info);
-			cn->a.n = vn;
+		debug_printf_parse("%s: other, t_info:%x\n", __func__, t_info);
+		/* for operands and prefix-unary operators, attach them
+		 * to last node */
+		vn = cn;
+		cn = vn->r.n = new_node(t_info);
+		cn->a.n = vn;
 
-			expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP;
-			if (t_info == TI_PREINC || t_info == TI_PREDEC)
-				expected_tc = TS_LVALUE | TC_UOPPRE1;
-			if (tc & (TS_OPERAND | TC_REGEXP)) {
-				debug_printf_parse("%s: TS_OPERAND | TC_REGEXP\n", __func__);
-				expected_tc = TS_UOPPRE | TC_UOPPOST | TS_BINOP | TS_OPERAND | term_tc;
-				/* one should be very careful with switch on tclass -
-				 * only simple tclasses should be used (TC_xyz, not TS_xyz) */
-				switch (tc) {
-				case TC_VARIABLE:
-				case TC_ARRAY:
-					debug_printf_parse("%s: TC_VARIABLE | TC_ARRAY\n", __func__);
-					cn->info = OC_VAR;
-					v = hash_search(ahash, t_string);
-					if (v != NULL) {
-						cn->info = OC_FNARG;
-						cn->l.aidx = v->x.aidx;
-					} else {
-						cn->l.v = newvar(t_string);
-					}
-					if (tc & TC_ARRAY) {
-						cn->info |= xS;
-						cn->r.n = parse_expr(TC_ARRTERM);
-					}
-					break;
+		expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP;
+		if (t_info == TI_PREINC || t_info == TI_PREDEC)
+			expected_tc = TS_LVALUE | TC_UOPPRE1;
 
-				case TC_NUMBER:
-				case TC_STRING:
-					debug_printf_parse("%s: TC_NUMBER | TC_STRING\n", __func__);
-					cn->info = OC_VAR;
-					v = cn->l.v = xzalloc(sizeof(var));
-					if (tc & TC_NUMBER)
-						setvar_i(v, t_double);
-					else {
-						setvar_s(v, t_string);
-						expected_tc &= ~TC_UOPPOST; /* "str"++ is not allowed */
-					}
-					break;
+		if (!(tc & (TS_OPERAND | TC_REGEXP)))
+			continue;
 
-				case TC_REGEXP:
-					debug_printf_parse("%s: TC_REGEXP\n", __func__);
-					mk_re_node(t_string, cn, xzalloc(sizeof(regex_t)*2));
-					break;
-
-				case TC_FUNCTION:
-					debug_printf_parse("%s: TC_FUNCTION\n", __func__);
-					cn->info = OC_FUNC;
-					cn->r.f = newfunc(t_string);
-					cn->l.n = condition();
-					break;
-
-				case TC_SEQSTART:
-					debug_printf_parse("%s: TC_SEQSTART\n", __func__);
-					cn = vn->r.n = parse_expr(TC_SEQTERM);
-					if (!cn)
-						syntax_error("Empty sequence");
-					cn->a.n = vn;
-					break;
-
-				case TC_GETLINE:
-					debug_printf_parse("%s: TC_GETLINE\n", __func__);
-					glptr = cn;
-					expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
-					break;
-
-				case TC_BUILTIN:
-					debug_printf_parse("%s: TC_BUILTIN\n", __func__);
-					cn->l.n = condition();
-					break;
-
-				case TC_LENGTH:
-					debug_printf_parse("%s: TC_LENGTH\n", __func__);
-					next_token(TC_SEQSTART /* length(...) */
-						| TS_OPTERM    /* length; (or newline)*/
-						| TC_GRPTERM   /* length } */
-						| TC_BINOPX    /* length <op> NUM */
-						| TC_COMMA     /* print length, 1 */
-					);
-					rollback_token();
-					if (t_tclass & TC_SEQSTART) {
-						/* It was a "(" token. Handle just like TC_BUILTIN */
-						cn->l.n = condition();
-					}
-					break;
-				}
+		debug_printf_parse("%s: TS_OPERAND | TC_REGEXP\n", __func__);
+		expected_tc = TS_UOPPRE | TC_UOPPOST | TS_BINOP | TS_OPERAND | term_tc;
+		/* one should be very careful with switch on tclass -
+		 * only simple tclasses should be used (TC_xyz, not TS_xyz) */
+		switch (tc) {
+		case TC_VARIABLE:
+		case TC_ARRAY:
+			debug_printf_parse("%s: TC_VARIABLE | TC_ARRAY\n", __func__);
+			cn->info = OC_VAR;
+			v = hash_search(ahash, t_string);
+			if (v != NULL) {
+				cn->info = OC_FNARG;
+				cn->l.aidx = v->x.aidx;
+			} else {
+				cn->l.v = newvar(t_string);
 			}
+			if (tc & TC_ARRAY) {
+				cn->info |= xS;
+				cn->r.n = parse_expr(TC_ARRTERM);
+			}
+			break;
+
+		case TC_NUMBER:
+		case TC_STRING:
+			debug_printf_parse("%s: TC_NUMBER | TC_STRING\n", __func__);
+			cn->info = OC_VAR;
+			v = cn->l.v = xzalloc(sizeof(var));
+			if (tc & TC_NUMBER)
+				setvar_i(v, t_double);
+			else {
+				setvar_s(v, t_string);
+				expected_tc &= ~TC_UOPPOST; /* "str"++ is not allowed */
+			}
+			break;
+
+		case TC_REGEXP:
+			debug_printf_parse("%s: TC_REGEXP\n", __func__);
+			mk_re_node(t_string, cn, xzalloc(sizeof(regex_t)*2));
+			break;
+
+		case TC_FUNCTION:
+			debug_printf_parse("%s: TC_FUNCTION\n", __func__);
+			cn->info = OC_FUNC;
+			cn->r.f = newfunc(t_string);
+			cn->l.n = condition();
+			break;
+
+		case TC_SEQSTART:
+			debug_printf_parse("%s: TC_SEQSTART\n", __func__);
+			cn = vn->r.n = parse_expr(TC_SEQTERM);
+			if (!cn)
+				syntax_error("Empty sequence");
+			cn->a.n = vn;
+			break;
+
+		case TC_GETLINE:
+			debug_printf_parse("%s: TC_GETLINE\n", __func__);
+			glptr = cn;
+			expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
+			break;
+
+		case TC_BUILTIN:
+			debug_printf_parse("%s: TC_BUILTIN\n", __func__);
+			cn->l.n = condition();
+			break;
+
+		case TC_LENGTH:
+			debug_printf_parse("%s: TC_LENGTH\n", __func__);
+			next_token(TC_SEQSTART /* length(...) */
+				| TS_OPTERM    /* length; (or newline)*/
+				| TC_GRPTERM   /* length } */
+				| TC_BINOPX    /* length <op> NUM */
+				| TC_COMMA     /* print length, 1 */
+			);
+			rollback_token();
+			if (t_tclass & TC_SEQSTART) {
+				/* It was a "(" token. Handle just like TC_BUILTIN */
+				cn->l.n = condition();
+			}
+			break;
 		}
 	} /* while() */
 
