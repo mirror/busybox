@@ -38,6 +38,13 @@
 //config:	depends on FEATURE_CPIO_O
 //config:	help
 //config:	Passthrough mode. Rarely used.
+//config:
+//config:config FEATURE_CPIO_IGNORE_DEVNO
+//config:	bool "Support --ignore-devno like GNU cpio"
+//config:	default y
+//config:	depends on FEATURE_CPIO_O && LONG_OPTS
+//config:	help
+//config:	Optionally ignore device numbers when creating archives.
 
 //applet:IF_CPIO(APPLET(cpio, BB_DIR_BIN, BB_SUID_DROP))
 
@@ -75,6 +82,9 @@
 //usage:     "\n	-R USER[:GRP]	Set owner of created files"
 //usage:     "\n	-L	Dereference symlinks"
 //usage:     "\n	-0	NUL terminated input"
+//usage:	IF_FEATURE_CPIO_IGNORE_DEVNO(
+//usage:     "\n	--ignore-devno"
+//usage:	)
 
 /* GNU cpio 2.9 --help (abridged):
 
@@ -162,11 +172,13 @@ enum {
 	IF_FEATURE_CPIO_P(OPTBIT_PASSTHROUGH,)
 	IF_LONG_OPTS(     OPTBIT_QUIET      ,)
 	IF_LONG_OPTS(     OPTBIT_2STDOUT    ,)
+	IF_FEATURE_CPIO_IGNORE_DEVNO(OPTBIT_IGNORE_DEVNO,)
 	OPT_CREATE             = IF_FEATURE_CPIO_O((1 << OPTBIT_CREATE     )) + 0,
 	OPT_FORMAT             = IF_FEATURE_CPIO_O((1 << OPTBIT_FORMAT     )) + 0,
 	OPT_PASSTHROUGH        = IF_FEATURE_CPIO_P((1 << OPTBIT_PASSTHROUGH)) + 0,
 	OPT_QUIET              = IF_LONG_OPTS(     (1 << OPTBIT_QUIET      )) + 0,
 	OPT_2STDOUT            = IF_LONG_OPTS(     (1 << OPTBIT_2STDOUT    )) + 0,
+	OPT_IGNORE_DEVNO       = IF_FEATURE_CPIO_IGNORE_DEVNO((1 << OPTBIT_IGNORE_DEVNO)) + 0,
 };
 
 #define OPTION_STR "it0uvdmLF:R:"
@@ -304,6 +316,11 @@ static NOINLINE int cpio_o(void)
 			}
 		}
 
+#if ENABLE_FEATURE_CPIO_IGNORE_DEVNO
+		if (option_mask32 & OPT_IGNORE_DEVNO)
+			st.st_dev = st.st_rdev = 0;
+#endif
+
 		bytes += printf("070701"
 				"%08X%08X%08X%08X%08X%08X%08X"
 				"%08X%08X%08X%08X" /* GNU cpio uses uppercase hex */
@@ -379,6 +396,9 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		"null\0"         No_argument       "0"
 		"quiet\0"        No_argument       "\xff"
 		"to-stdout\0"    No_argument       "\xfe"
+#if ENABLE_FEATURE_CPIO_IGNORE_DEVNO
+		"ignore-devno\0" No_argument	   "\xfd"
+#endif
 		;
 #endif
 
