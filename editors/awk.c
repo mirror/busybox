@@ -1093,8 +1093,9 @@ static void nvfree(var *v)
 
 /* ------- awk program text parsing ------- */
 
-/* Parse next token pointed by global pos, place results into global ttt.
- * If token isn't expected, give away. Return token class
+/* Parse next token pointed by global pos, place results into global t_XYZ variables.
+ * If token isn't expected, print error message and die.
+ * Return token class (also store it in t_tclass).
  */
 static uint32_t next_token(uint32_t expected)
 {
@@ -1248,33 +1249,35 @@ static uint32_t next_token(uint32_t expected)
 			goto readnext;
 
 		/* insert concatenation operator when needed */
-		debug_printf_parse("%s: %x %x %x concat_inserted?\n", __func__,
-			(ltclass & TC_CONCAT1), (tc & TC_CONCAT2), (expected & TC_BINOP));
+		debug_printf_parse("%s: concat_inserted if all nonzero: %x %x %x %x\n", __func__,
+			(ltclass & TC_CONCAT1), (tc & TC_CONCAT2), (expected & TC_BINOP),
+			!(ltclass == TC_LENGTH && tc == TC_SEQSTART));
 		if ((ltclass & TC_CONCAT1) && (tc & TC_CONCAT2) && (expected & TC_BINOP)
 		 && !(ltclass == TC_LENGTH && tc == TC_SEQSTART) /* but not for "length(..." */
 		) {
 			concat_inserted = TRUE;
 			save_tclass = tc;
 			save_info = t_info;
-			tc = TC_BINOP;
+			tc = TC_BINOPX;
 			t_info = OC_CONCAT | SS | P(35);
 		}
 
-		debug_printf_parse("%s: t_tclass=tc=%x\n", __func__, t_tclass);
 		t_tclass = tc;
+		debug_printf_parse("%s: t_tclass=tc=%x\n", __func__, tc);
 	}
-	ltclass = t_tclass;
-
 	/* Are we ready for this? */
-	if (!(ltclass & expected)) {
+	if (!(t_tclass & expected)) {
 		syntax_error((ltclass & (TC_NEWLINE | TC_EOF)) ?
 				EMSG_UNEXP_EOS : EMSG_UNEXP_TOKEN);
 	}
 
-	debug_printf_parse("%s: returning, t_double:%f ltclass:", __func__, t_double);
-	debug_parse_print_tc(ltclass);
+	debug_printf_parse("%s: returning, t_double:%f t_tclass:", __func__, t_double);
+	debug_parse_print_tc(t_tclass);
 	debug_printf_parse("\n");
-	return ltclass;
+
+	ltclass = t_tclass;
+
+	return t_tclass;
 #undef concat_inserted
 #undef save_tclass
 #undef save_info
@@ -1700,8 +1703,9 @@ static void parse_program(char *p)
 				/* Arg followed either by end of arg list or 1 comma */
 				if (next_token(TC_COMMA | TC_SEQTERM) & TC_SEQTERM)
 					break;
-				if (t_tclass != TC_COMMA)
-					syntax_error(EMSG_UNEXP_TOKEN);
+//Impossible: next_token() above would error out and die
+//				if (t_tclass != TC_COMMA)
+//					syntax_error(EMSG_UNEXP_TOKEN);
 			}
 			seq = &f->body;
 			chain_group();
