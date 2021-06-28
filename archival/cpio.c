@@ -45,6 +45,13 @@
 //config:	depends on FEATURE_CPIO_O && LONG_OPTS
 //config:	help
 //config:	Optionally ignore device numbers when creating archives.
+//config:
+//config:config FEATURE_CPIO_RENUMBER_INODES
+//config:	bool "Support --renumber-inodes like GNU cpio"
+//config:	default y
+//config:	depends on FEATURE_CPIO_O && LONG_OPTS
+//config:	help
+//config:	Optionally renumber inodes when creating archives.
 
 //applet:IF_CPIO(APPLET(cpio, BB_DIR_BIN, BB_SUID_DROP))
 
@@ -84,6 +91,9 @@
 //usage:     "\n	-0	NUL terminated input"
 //usage:	IF_FEATURE_CPIO_IGNORE_DEVNO(
 //usage:     "\n	--ignore-devno"
+//usage:	)
+//usage:	IF_FEATURE_CPIO_RENUMBER_INODES(
+//usage:     "\n	--renumber-inodes"
 //usage:	)
 
 /* GNU cpio 2.9 --help (abridged):
@@ -173,18 +183,21 @@ enum {
 	IF_LONG_OPTS(     OPTBIT_QUIET      ,)
 	IF_LONG_OPTS(     OPTBIT_2STDOUT    ,)
 	IF_FEATURE_CPIO_IGNORE_DEVNO(OPTBIT_IGNORE_DEVNO,)
+	IF_FEATURE_CPIO_RENUMBER_INODES(OPTBIT_RENUMBER_INODES,)
 	OPT_CREATE             = IF_FEATURE_CPIO_O((1 << OPTBIT_CREATE     )) + 0,
 	OPT_FORMAT             = IF_FEATURE_CPIO_O((1 << OPTBIT_FORMAT     )) + 0,
 	OPT_PASSTHROUGH        = IF_FEATURE_CPIO_P((1 << OPTBIT_PASSTHROUGH)) + 0,
 	OPT_QUIET              = IF_LONG_OPTS(     (1 << OPTBIT_QUIET      )) + 0,
 	OPT_2STDOUT            = IF_LONG_OPTS(     (1 << OPTBIT_2STDOUT    )) + 0,
 	OPT_IGNORE_DEVNO       = IF_FEATURE_CPIO_IGNORE_DEVNO((1 << OPTBIT_IGNORE_DEVNO)) + 0,
+	OPT_RENUMBER_INODES    = IF_FEATURE_CPIO_RENUMBER_INODES((1 << OPTBIT_RENUMBER_INODES)) + 0,
 };
 
 #define OPTION_STR "it0uvdmLF:R:"
 
 struct globals {
 	struct bb_uidgid_t owner_ugid;
+	ino_t next_inode;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 void BUG_cpio_globals_too_big(void);
@@ -218,6 +231,9 @@ static NOINLINE int cpio_o(void)
 		struct inodes_s *next;
 		struct name_s *names;
 		struct stat st;
+#if ENABLE_FEATURE_CPIO_RENUMBER_INODES
+		ino_t mapped_inode;
+#endif
 	};
 
 	struct inodes_s *links = NULL;
@@ -272,6 +288,10 @@ static NOINLINE int cpio_o(void)
 						l = xzalloc(sizeof(*l));
 						l->st = st;
 						l->next = links;
+#if ENABLE_FEATURE_CPIO_RENUMBER_INODES
+						if (option_mask32 & OPT_RENUMBER_INODES)
+							l->mapped_inode = ++G.next_inode;
+#endif
 						links = l;
 						break;
 					}
@@ -290,6 +310,11 @@ static NOINLINE int cpio_o(void)
 				free(line);
 				continue;
 			}
+#if ENABLE_FEATURE_CPIO_RENUMBER_INODES
+			else if (option_mask32 & OPT_RENUMBER_INODES) {
+				st.st_ino = ++G.next_inode;
+			}
+#endif
 		} else { /* line == NULL: EOF */
  next_link:
 			if (links) {
@@ -297,6 +322,10 @@ static NOINLINE int cpio_o(void)
 				st = links->st;
 				name = links->names->name;
 				links->names = links->names->next;
+#if ENABLE_FEATURE_CPIO_RENUMBER_INODES
+				if (links->mapped_inode)
+					st.st_ino = links->mapped_inode;
+#endif
 				/* GNU cpio is reported to emit file data
 				 * only for the last instance. Mimic that. */
 				if (links->names == NULL)
@@ -398,6 +427,9 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		"to-stdout\0"    No_argument       "\xfe"
 #if ENABLE_FEATURE_CPIO_IGNORE_DEVNO
 		"ignore-devno\0" No_argument	   "\xfd"
+#endif
+#if ENABLE_FEATURE_CPIO_RENUMBER_INODES
+		"renumber-inodes\0" No_argument    "\xfc"
 #endif
 		;
 #endif
