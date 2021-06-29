@@ -629,8 +629,9 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		config_close(parser);
 
 		parser = config_open2("modules.builtin", fopen_for_read);
+		/* this file contains lines like "kernel/fs/binfmt_script.ko" */
 		while (config_read(parser, &s, 1, 1, "# \t", PARSE_NORMAL))
-			get_or_add_modentry(s)->flags |= MODULE_FLAG_BUILTIN;
+			get_or_add_modentry(bb_basename(s))->flags |= MODULE_FLAG_BUILTIN;
 		config_close(parser);
 	}
 
