@@ -241,7 +241,7 @@ typedef struct tsplitter_s {
 #define	TC_EOF		(1 << 25)
 #define	TC_VARIABLE	(1 << 26)		/* name */
 #define	TC_ARRAY	(1 << 27)		/* name[ */
-#define	TC_FUNCTION	(1 << 28)		/* name( - but unlike TC_ARRAY, parser does not consume '(' */
+#define	TC_FUNCTION	(1 << 28)		/* name( */
 #define	TC_STRING	(1 << 29)		/* "..." */
 #define	TC_NUMBER	(1 << 30)
 
@@ -959,6 +959,7 @@ static double getvar_i(var *v)
 			v->number = my_strtod(&s);
 			debug_printf_eval("%f (s:'%s')\n", v->number, s);
 			if (v->type & VF_USER) {
+//TODO: skip_spaces() also skips backslash+newline, is it intended here?
 				s = skip_spaces(s);
 				if (*s != '\0')
 					v->type &= ~VF_USER;
@@ -1103,7 +1104,7 @@ static uint32_t next_token(uint32_t expected)
 #define save_tclass     (G.next_token__save_tclass)
 #define save_info       (G.next_token__save_info)
 
-	char *p, *s;
+	char *p;
 	const char *tl;
 	const uint32_t *ti;
 	uint32_t tc, last_token_class;
@@ -1131,15 +1132,12 @@ static uint32_t next_token(uint32_t expected)
 			while (*p != '\n' && *p != '\0')
 				p++;
 
-		if (*p == '\n')
-			t_lineno++;
-
 		if (*p == '\0') {
 			tc = TC_EOF;
 			debug_printf_parse("%s: token found: TC_EOF\n", __func__);
 		} else if (*p == '\"') {
 			/* it's a string */
-			t_string = s = ++p;
+			char *s = t_string = ++p;
 			while (*p != '\"') {
 				char *pp;
 				if (*p == '\0' || *p == '\n')
@@ -1154,7 +1152,7 @@ static uint32_t next_token(uint32_t expected)
 			debug_printf_parse("%s: token found:'%s' TC_STRING\n", __func__, t_string);
 		} else if ((expected & TC_REGEXP) && *p == '/') {
 			/* it's regexp */
-			t_string = s = ++p;
+			char *s	= t_string = ++p;
 			while (*p != '/') {
 				if (*p == '\0' || *p == '\n')
 					syntax_error(EMSG_UNEXP_EOS);
@@ -1185,6 +1183,9 @@ static uint32_t next_token(uint32_t expected)
 			tc = TC_NUMBER;
 			debug_printf_parse("%s: token found:%f TC_NUMBER\n", __func__, t_double);
 		} else {
+			if (*p == '\n')
+				t_lineno++;
+
 			/* search for something known */
 			tl = tokenlist;
 			tc = 0x00000001;
@@ -1230,15 +1231,15 @@ static uint32_t next_token(uint32_t expected)
 			if (!(expected & TC_VARIABLE) || (expected & TC_ARRAY))
 				p = skip_spaces(p);
 			if (*p == '(') {
+				p++;
 				tc = TC_FUNCTION;
 				debug_printf_parse("%s: token found:'%s' TC_FUNCTION\n", __func__, t_string);
+			} else if (*p == '[') {
+				p++;
+				tc = TC_ARRAY;
+				debug_printf_parse("%s: token found:'%s' TC_ARRAY\n", __func__, t_string);
 			} else {
-				if (*p == '[') {
-					p++;
-					tc = TC_ARRAY;
-					debug_printf_parse("%s: token found:'%s' TC_ARRAY\n", __func__, t_string);
-				} else
-					debug_printf_parse("%s: token found:'%s' TC_VARIABLE\n", __func__, t_string);
+				debug_printf_parse("%s: token found:'%s' TC_VARIABLE\n", __func__, t_string);
 			}
 		}
  token_found:
@@ -1431,7 +1432,7 @@ static node *parse_expr(uint32_t term_tc)
 			debug_printf_parse("%s: TC_FUNCTION\n", __func__);
 			cn->info = OC_FUNC;
 			cn->r.f = newfunc(t_string);
-			cn->l.n = parse_lrparen_list();
+			cn->l.n = parse_expr(TC_RPAREN);
 			break;
 
 		case TC_LPAREN:
@@ -1682,7 +1683,6 @@ static void parse_program(char *p)
 		} else if (tclass & TC_FUNCDECL) {
 			debug_printf_parse("%s: TC_FUNCDECL\n", __func__);
 			next_token(TC_FUNCTION);
-			g_pos++;
 			f = newfunc(t_string);
 			f->body.first = NULL;
 			f->nargs = 0;
