@@ -527,7 +527,10 @@ struct globals {
 	chain *seq;
 	node *break_ptr, *continue_ptr;
 	rstream *iF;
-	xhash *vhash, *ahash, *fdhash, *fnhash;
+	xhash *ahash;  /* argument names, used only while parsing function bodies */
+	xhash *fnhash; /* function names, used only in parsing stage */
+	xhash *vhash;  /* variables and arrays */
+	xhash *fdhash; /* file objects, used only in execution stage */
 	const char *g_progname;
 	int g_lineno;
 	int nfields;
@@ -1719,6 +1722,7 @@ static void parse_program(char *p)
 			debug_printf_parse("%s: TC_FUNCDECL\n", __func__);
 			next_token(TC_FUNCTION);
 			f = newfunc(t_string);
+//FIXME: dup check: functions can't be redefined, this is not ok: awk 'func f(){}; func f(){}'
 			f->body.first = NULL;
 			f->nargs = 0;
 			/* func arg list: comma sep list of args, and a close paren */
@@ -3389,12 +3393,8 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_LOCALE_SUPPORT)
 		setlocale(LC_NUMERIC, "C");
 
-	vhash = hash_init();
-	ahash = hash_init();
-	fdhash = hash_init();
-	fnhash = hash_init();
-
 	/* initialize variables */
+	vhash = hash_init();
 	{
 		char *vnames = (char *)vNames; /* cheat */
 		char *vvalues = (char *)vValues;
@@ -3415,10 +3415,6 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 
 	handle_special(intvar[FS]);
 	handle_special(intvar[RS]);
-
-	newfile("/dev/stdin")->F = stdin;
-	newfile("/dev/stdout")->F = stdout;
-	newfile("/dev/stderr")->F = stderr;
 
 	/* Huh, people report that sometimes environ is NULL. Oh well. */
 	if (environ) {
@@ -3449,6 +3445,10 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 		if (!is_assignment(llist_pop(&list_v)))
 			bb_show_usage();
 	}
+
+	/* Parse all supplied programs */
+	fnhash = hash_init();
+	ahash = hash_init();
 	while (list_f) {
 		int fd;
 		char *s;
@@ -3471,6 +3471,11 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 			bb_show_usage();
 		parse_program(*argv++);
 	}
+	//free_hash(ahash) // ~250 bytes, arg names, used only during parse of function bodies
+	//ahash = NULL; // debug
+	//free_hash(fnhash) // ~250 bytes, used only for function names
+	//fnhash = NULL; // debug
+	/* parsing done, on to executing */
 
 	/* fill in ARGV array */
 	setari_u(intvar[ARGV], 0, "awk");
@@ -3478,6 +3483,11 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	while (*argv)
 		setari_u(intvar[ARGV], ++i, *argv++);
 	setvar_i(intvar[ARGC], i + 1);
+
+	fdhash = hash_init();
+	newfile("/dev/stdin")->F = stdin;
+	newfile("/dev/stdout")->F = stdout;
+	newfile("/dev/stderr")->F = stderr;
 
 	zero_out_var(&tv);
 	evaluate(beginseq.first, &tv);
