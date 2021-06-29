@@ -1579,98 +1579,97 @@ static void chain_group(void)
 		chain_expr(OC_EXEC | Vx);
 		return;
 	}
-	{
-		/* TS_STATEMNT */
-		debug_printf_parse("%s: TS_STATEMNT(?)\n", __func__);
-		switch (t_info & OPCLSMASK) {
-		case ST_IF:
-			debug_printf_parse("%s: ST_IF\n", __func__);
-			n = chain_node(OC_BR | Vx);
-			n->l.n = parse_lrparen_list();
+
+	/* TS_STATEMNT */
+	debug_printf_parse("%s: TS_STATEMNT(?)\n", __func__);
+	switch (t_info & OPCLSMASK) {
+	case ST_IF:
+		debug_printf_parse("%s: ST_IF\n", __func__);
+		n = chain_node(OC_BR | Vx);
+		n->l.n = parse_lrparen_list();
+		chain_group();
+		n2 = chain_node(OC_EXEC);
+		n->r.n = seq->last;
+		if (next_token(TS_GRPSEQ | TC_GRPTERM | TC_ELSE) == TC_ELSE) {
 			chain_group();
-			n2 = chain_node(OC_EXEC);
-			n->r.n = seq->last;
-			if (next_token(TS_GRPSEQ | TC_GRPTERM | TC_ELSE) == TC_ELSE) {
-				chain_group();
-				n2->a.n = seq->last;
-			} else {
-				rollback_token();
-			}
-			break;
-
-		case ST_WHILE:
-			debug_printf_parse("%s: ST_WHILE\n", __func__);
-			n2 = parse_lrparen_list();
-			n = chain_loop(NULL);
-			n->l.n = n2;
-			break;
-
-		case ST_DO:
-			debug_printf_parse("%s: ST_DO\n", __func__);
-			n2 = chain_node(OC_EXEC);
-			n = chain_loop(NULL);
-			n2->a.n = n->a.n;
-			next_token(TC_WHILE);
-			n->l.n = parse_lrparen_list();
-			break;
-
-		case ST_FOR:
-			debug_printf_parse("%s: ST_FOR\n", __func__);
-			next_token(TC_LPAREN);
-			n2 = parse_expr(TC_SEMICOL | TC_RPAREN);
-			if (t_tclass & TC_RPAREN) {	/* for-in */
-				if (!n2 || (n2->info & OPCLSMASK) != OC_IN)
-					syntax_error(EMSG_UNEXP_TOKEN);
-				n = chain_node(OC_WALKINIT | VV);
-				n->l.n = n2->l.n;
-				n->r.n = n2->r.n;
-				n = chain_loop(NULL);
-				n->info = OC_WALKNEXT | Vx;
-				n->l.n = n2->l.n;
-			} else {			/* for (;;) */
-				n = chain_node(OC_EXEC | Vx);
-				n->l.n = n2;
-				n2 = parse_expr(TC_SEMICOL);
-				n3 = parse_expr(TC_RPAREN);
-				n = chain_loop(n3);
-				n->l.n = n2;
-				if (!n2)
-					n->info = OC_EXEC;
-			}
-			break;
-
-		case OC_PRINT:
-		case OC_PRINTF:
-			debug_printf_parse("%s: OC_PRINT[F]\n", __func__);
-			n = chain_node(t_info);
-			n->l.n = parse_expr(TS_OPTERM | TC_OUTRDR | TC_GRPTERM);
-			if (t_tclass & TC_OUTRDR) {
-				n->info |= t_info;
-				n->r.n = parse_expr(TS_OPTERM | TC_GRPTERM);
-			}
-			if (t_tclass & TC_GRPTERM)
-				rollback_token();
-			break;
-
-		case OC_BREAK:
-			debug_printf_parse("%s: OC_BREAK\n", __func__);
-			n = chain_node(OC_EXEC);
-			n->a.n = break_ptr;
-			chain_expr(t_info);
-			break;
-
-		case OC_CONTINUE:
-			debug_printf_parse("%s: OC_CONTINUE\n", __func__);
-			n = chain_node(OC_EXEC);
-			n->a.n = continue_ptr;
-			chain_expr(t_info);
-			break;
-
-		/* delete, next, nextfile, return, exit */
-		default:
-			debug_printf_parse("%s: default\n", __func__);
-			chain_expr(t_info);
+			n2->a.n = seq->last;
+		} else {
+			rollback_token();
 		}
+		break;
+
+	case ST_WHILE:
+		debug_printf_parse("%s: ST_WHILE\n", __func__);
+		n2 = parse_lrparen_list();
+		n = chain_loop(NULL);
+		n->l.n = n2;
+		break;
+
+	case ST_DO:
+		debug_printf_parse("%s: ST_DO\n", __func__);
+		n2 = chain_node(OC_EXEC);
+		n = chain_loop(NULL);
+		n2->a.n = n->a.n;
+		next_token(TC_WHILE);
+		n->l.n = parse_lrparen_list();
+		break;
+
+	case ST_FOR:
+		debug_printf_parse("%s: ST_FOR\n", __func__);
+		next_token(TC_LPAREN);
+		n2 = parse_expr(TC_SEMICOL | TC_RPAREN);
+		if (t_tclass & TC_RPAREN) {	/* for-in */
+			if (!n2 || (n2->info & OPCLSMASK) != OC_IN)
+				syntax_error(EMSG_UNEXP_TOKEN);
+			n = chain_node(OC_WALKINIT | VV);
+			n->l.n = n2->l.n;
+			n->r.n = n2->r.n;
+			n = chain_loop(NULL);
+			n->info = OC_WALKNEXT | Vx;
+			n->l.n = n2->l.n;
+		} else {			/* for (;;) */
+			n = chain_node(OC_EXEC | Vx);
+			n->l.n = n2;
+			n2 = parse_expr(TC_SEMICOL);
+			n3 = parse_expr(TC_RPAREN);
+			n = chain_loop(n3);
+			n->l.n = n2;
+			if (!n2)
+				n->info = OC_EXEC;
+		}
+		break;
+
+	case OC_PRINT:
+	case OC_PRINTF:
+		debug_printf_parse("%s: OC_PRINT[F]\n", __func__);
+		n = chain_node(t_info);
+		n->l.n = parse_expr(TS_OPTERM | TC_OUTRDR | TC_GRPTERM);
+		if (t_tclass & TC_OUTRDR) {
+			n->info |= t_info;
+			n->r.n = parse_expr(TS_OPTERM | TC_GRPTERM);
+		}
+		if (t_tclass & TC_GRPTERM)
+			rollback_token();
+		break;
+
+	case OC_BREAK:
+		debug_printf_parse("%s: OC_BREAK\n", __func__);
+		n = chain_node(OC_EXEC);
+		n->a.n = break_ptr;
+		chain_expr(t_info);
+		break;
+
+	case OC_CONTINUE:
+		debug_printf_parse("%s: OC_CONTINUE\n", __func__);
+		n = chain_node(OC_EXEC);
+		n->a.n = continue_ptr;
+		chain_expr(t_info);
+		break;
+
+	/* delete, next, nextfile, return, exit */
+	default:
+		debug_printf_parse("%s: default\n", __func__);
+		chain_expr(t_info);
 	}
 }
 
