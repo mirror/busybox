@@ -769,7 +769,7 @@ static void hash_remove(xhash *hash, const char *name)
 
 static char *skip_spaces(char *p)
 {
-	while (1) {
+	for (;;) {
 		if (*p == '\\' && p[1] == '\n') {
 			p++;
 			t_lineno++;
@@ -1685,26 +1685,20 @@ static void parse_program(char *p)
 			f = newfunc(t_string);
 			f->body.first = NULL;
 			f->nargs = 0;
-			/* Match func arg list: a comma sep list of >= 0 args, and a close paren */
-			while (next_token(TC_VARIABLE | TC_RPAREN | TC_COMMA)) {
-				/* Either an empty arg list, or trailing comma from prev iter
-				 * must be followed by an arg */
-				if (f->nargs == 0 && t_tclass == TC_RPAREN)
-					break;
-
-				/* TC_LPAREN/TC_COMMA must be followed by TC_VARIABLE */
-				if (t_tclass != TC_VARIABLE)
+			/* func arg list: comma sep list of args, and a close paren */
+			for (;;) {
+				if (next_token(TC_VARIABLE | TC_RPAREN) == TC_RPAREN) {
+					if (f->nargs == 0)
+						break; /* func() is ok */
+					/* func(a,) is not ok */
 					syntax_error(EMSG_UNEXP_TOKEN);
-
+				}
 				v = findvar(ahash, t_string);
 				v->x.aidx = f->nargs++;
-
 				/* Arg followed either by end of arg list or 1 comma */
-				if (next_token(TC_COMMA | TC_RPAREN) & TC_RPAREN)
+				if (next_token(TC_COMMA | TC_RPAREN) == TC_RPAREN)
 					break;
-//Impossible: next_token() above would error out and die
-//				if (t_tclass != TC_COMMA)
-//					syntax_error(EMSG_UNEXP_TOKEN);
+				/* it was a comma, we ate it */
 			}
 			seq = &f->body;
 			chain_group();
