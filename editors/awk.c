@@ -535,6 +535,7 @@ struct globals {
 	var *Fields;
 	nvblock *g_cb;
 	char *g_pos;
+	char g_saved_ch;
 	smallint icase;
 	smallint exiting;
 	smallint nextrec;
@@ -599,6 +600,7 @@ struct globals2 {
 #define Fields       (G1.Fields      )
 #define g_cb         (G1.g_cb        )
 #define g_pos        (G1.g_pos       )
+#define g_saved_ch   (G1.g_saved_ch  )
 #define icase        (G1.icase       )
 #define exiting      (G1.exiting     )
 #define nextrec      (G1.nextrec     )
@@ -1125,6 +1127,10 @@ static uint32_t next_token(uint32_t expected)
 		t_info = save_info;
 	} else {
 		p = g_pos;
+		if (g_saved_ch != '\0') {
+			*p = g_saved_ch;
+			g_saved_ch = '\0';
+		}
  readnext:
 		p = skip_spaces(p);
 		g_lineno = t_lineno;
@@ -1183,6 +1189,8 @@ static uint32_t next_token(uint32_t expected)
 			tc = TC_NUMBER;
 			debug_printf_parse("%s: token found:%f TC_NUMBER\n", __func__, t_double);
 		} else {
+			char *end_of_name;
+
 			if (*p == '\n')
 				t_lineno++;
 
@@ -1219,16 +1227,14 @@ static uint32_t next_token(uint32_t expected)
 			if (!isalnum_(*p))
 				syntax_error(EMSG_UNEXP_TOKEN); /* no */
 			/* yes */
-/* "move name one char back" trick: we need a byte for NUL terminator */
-/* NB: this results in argv[i][-1] being used (!!!) in e.g. "awk -e 'NAME'" case */
-			t_string = --p;
-			while (isalnum_(*++p)) {
-				p[-1] = *p;
-			}
-			p[-1] = '\0';
+			t_string = p;
+			while (isalnum_(*p))
+				p++;
+			end_of_name = p;
 			tc = TC_VARIABLE;
 			/* also consume whitespace between functionname and bracket */
 			if (!(expected & TC_VARIABLE) || (expected & TC_ARRAY))
+//TODO: why if variable can be here (but not array ref), skipping is not allowed? Example where it matters?
 				p = skip_spaces(p);
 			if (*p == '(') {
 				p++;
@@ -1240,7 +1246,19 @@ static uint32_t next_token(uint32_t expected)
 				debug_printf_parse("%s: token found:'%s' TC_ARRAY\n", __func__, t_string);
 			} else {
 				debug_printf_parse("%s: token found:'%s' TC_VARIABLE\n", __func__, t_string);
+				if (end_of_name == p) {
+					/* there is no space for trailing NUL in t_string!
+					 * We need to save the char we are going to NUL.
+					 * (we'll use it in future call to next_token())
+					 */
+					g_saved_ch = *end_of_name;
+// especially pathological example is V="abc"; V.2 - it's V concatenated to .2
+// (it evaluates to "abc0.2"). Because of this case, we can't simply cache
+// '.' and analyze it later: we also have to *store it back* in next
+// next_token(), in order to give my_strtod() the undamaged ".2" string.
+				}
 			}
+			*end_of_name = '\0'; /* terminate t_string */
 		}
  token_found:
 		g_pos = p;
@@ -3420,38 +3438,20 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 
 		g_progname = llist_pop(&list_f);
 		fd = xopen_stdin(g_progname);
-		/* 1st byte is reserved for "move name one char back" trick in next_token */
-		i = 1;
-		s = NULL;
-		for (;;) {
-			int sz;
-			s = xrealloc(s, i + 1000);
-			sz = safe_read(fd, s + i, 1000);
-			if (sz <= 0)
-				break;
-			i += sz;
-		}
-		s = xrealloc(s, i + 1); /* trim unused 999 bytes */
-		s[i] = '\0';
+		s = xmalloc_read(fd, NULL); /* it's NUL-terminated */
 		close(fd);
-		parse_program(s + 1);
+		parse_program(s);
 		free(s);
 	}
 	g_progname = "cmd. line";
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
 	while (list_e) {
-		/* NB: "move name one char back" trick in next_token
-		 * can use argv[i][-1] here.
-		 */
 		parse_program(llist_pop(&list_e));
 	}
 #endif
 	if (!(opt & (OPT_f | OPT_e))) {
 		if (!*argv)
 			bb_show_usage();
-		/* NB: "move name one char back" trick in next_token
-		 * can use argv[i][-1] here.
-		 */
 		parse_program(*argv++);
 	}
 
