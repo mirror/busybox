@@ -696,6 +696,7 @@ static void hash_clear(xhash *hash)
 		while (hi) {
 			thi = hi;
 			hi = hi->next;
+//FIXME: this assumes that it's a hash of *variables*:
 			free(thi->data.v.string);
 			free(thi);
 		}
@@ -714,17 +715,22 @@ static void hash_free(xhash *hash)
 #endif
 
 /* find item in hash, return ptr to data, NULL if not found */
-static void *hash_search(xhash *hash, const char *name)
+static NOINLINE void *hash_search3(xhash *hash, const char *name, unsigned idx)
 {
 	hash_item *hi;
 
-	hi = hash->items[hashidx(name) % hash->csize];
+	hi = hash->items[idx % hash->csize];
 	while (hi) {
 		if (strcmp(hi->name, name) == 0)
 			return &hi->data;
 		hi = hi->next;
 	}
 	return NULL;
+}
+
+static void *hash_search(xhash *hash, const char *name)
+{
+	return hash_search3(hash, name,	hashidx(name));
 }
 
 /* grow hash if it becomes too big */
@@ -762,16 +768,17 @@ static void *hash_find(xhash *hash, const char *name)
 	unsigned idx;
 	int l;
 
-	hi = hash_search(hash, name);
+	idx = hashidx(name);
+	hi = hash_search3(hash, name, idx);
 	if (!hi) {
-		if (++hash->nel / hash->csize > 10)
+		if (++hash->nel > hash->csize * 8)
 			hash_rebuild(hash);
 
 		l = strlen(name) + 1;
 		hi = xzalloc(sizeof(*hi) + l);
 		strcpy(hi->name, name);
 
-		idx = hashidx(name) % hash->csize;
+		idx = idx % hash->csize;
 		hi->next = hash->items[idx];
 		hash->items[idx] = hi;
 		hash->glen += l;
@@ -822,8 +829,10 @@ static char *skip_spaces(char *p)
 static char *nextword(char **s)
 {
 	char *p = *s;
-	while (*(*s)++ != '\0')
+	char *q = p;
+	while (*q++ != '\0')
 		continue;
+	*s = q;
 	return p;
 }
 
@@ -2116,8 +2125,7 @@ static void hashwalk_init(var *v, xhash *array)
 	for (i = 0; i < array->csize; i++) {
 		hi = array->items[i];
 		while (hi) {
-			strcpy(w->end, hi->name);
-			nextword(&w->end);
+			w->end = stpcpy(w->end, hi->name) + 1;
 			hi = hi->next;
 		}
 	}
@@ -3504,7 +3512,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 		setari_u(intvar[ARGV], ++i, *argv++);
 	setvar_i(intvar[ARGC], i + 1);
 
-	//fdhash = ahash - done via define
+	//fdhash = ahash; // done via define
 	newfile("/dev/stdin")->F = stdin;
 	newfile("/dev/stdout")->F = stdout;
 	newfile("/dev/stderr")->F = stderr;
