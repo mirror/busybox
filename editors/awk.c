@@ -535,7 +535,6 @@ struct globals {
 	var *Fields;
 	nvblock *g_cb;
 	char *g_pos;
-	char *g_buf;
 	smallint icase;
 	smallint exiting;
 	smallint nextrec;
@@ -571,6 +570,8 @@ struct globals2 {
 
 	/* biggest and least used members go last */
 	tsplitter fsplitter, rsplitter;
+
+	char g_buf[MAXVARFMT + 1];
 };
 #define G1 (ptr_to_globals[-1])
 #define G (*(struct globals2 *)ptr_to_globals)
@@ -598,7 +599,6 @@ struct globals2 {
 #define Fields       (G1.Fields      )
 #define g_cb         (G1.g_cb        )
 #define g_pos        (G1.g_pos       )
-#define g_buf        (G1.g_buf       )
 #define icase        (G1.icase       )
 #define exiting      (G1.exiting     )
 #define nextrec      (G1.nextrec     )
@@ -612,6 +612,7 @@ struct globals2 {
 #define intvar       (G.intvar      )
 #define fsplitter    (G.fsplitter   )
 #define rsplitter    (G.rsplitter   )
+#define g_buf        (G.g_buf       )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS((char*)xzalloc(sizeof(G1)+sizeof(G)) + sizeof(G1)); \
 	t_tclass = TS_OPTERM; \
@@ -3352,9 +3353,6 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	 * $1,$2 == '$1,' '$2', NOT '$1' ',' '$2' */
 	if (ENABLE_LOCALE_SUPPORT)
 		setlocale(LC_NUMERIC, "C");
-
-	/* allocate global buffer */
-	g_buf = xmalloc(MAXVARFMT + 1);
 
 	vhash = hash_init();
 	ahash = hash_init();
