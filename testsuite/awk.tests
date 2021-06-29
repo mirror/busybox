@@ -71,6 +71,17 @@ testing "awk properly handles undefined function" \
 	"L1\n\nawk: cmd. line:5: Call to undefined function\n" \
 	"" ""
 
+prg='
+BEGIN {
+  v=1
+  a=2
+  print v (a)
+}'
+testing "'v (a)' is not a function call, it is a concatenation" \
+	"awk '$prg' 2>&1" \
+	"12\n" \
+	"" ""
+
 
 optional DESKTOP
 testing "awk hex const 1" "awk '{ print or(0xffffffff,1) }'" "4294967295\n" "" "\n"

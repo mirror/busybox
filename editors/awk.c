@@ -1231,11 +1231,24 @@ static uint32_t next_token(uint32_t expected)
 			while (isalnum_(*p))
 				p++;
 			end_of_name = p;
-			tc = TC_VARIABLE;
-			/* also consume whitespace between functionname and bracket */
-			if (!(expected & TC_VARIABLE) || (expected & TC_ARRAY))
-//TODO: why if variable can be here (but not array ref), skipping is not allowed? Example where it matters?
+
+			if (last_token_class == TC_FUNCDECL)
+				/* eat space in "function FUNC (...) {...}" declaration */
 				p = skip_spaces(p);
+			else if (expected & TC_ARRAY) {
+				/* eat space between array name and [ */
+				char *s = skip_spaces(p);
+				if (*s == '[') /* array ref, not just a name? */
+					p = s;
+			}
+			/* else: do NOT consume whitespace after variable name!
+			 * gawk allows definition "function FUNC (p) {...}" - note space,
+			 * but disallows the call "FUNC (p)" because it isn't one -
+			 * expression "v (a)" should NOT be parsed as TC_FUNCTION:
+			 * it is a valid concatenation if "v" is a variable,
+			 * not a function name (and type of name is not known at parse time).
+			 */
+
 			if (*p == '(') {
 				p++;
 				tc = TC_FUNCTION;
@@ -1245,6 +1258,7 @@ static uint32_t next_token(uint32_t expected)
 				tc = TC_ARRAY;
 				debug_printf_parse("%s: token found:'%s' TC_ARRAY\n", __func__, t_string);
 			} else {
+				tc = TC_VARIABLE;
 				debug_printf_parse("%s: token found:'%s' TC_VARIABLE\n", __func__, t_string);
 				if (end_of_name == p) {
 					/* there is no space for trailing NUL in t_string!
