@@ -530,7 +530,8 @@ struct globals {
 	xhash *ahash;  /* argument names, used only while parsing function bodies */
 	xhash *fnhash; /* function names, used only in parsing stage */
 	xhash *vhash;  /* variables and arrays */
-	xhash *fdhash; /* file objects, used only in execution stage */
+	//xhash *fdhash; /* file objects, used only in execution stage */
+	//we are reusing ahash as fdhash, via define (see later)
 	const char *g_progname;
 	int g_lineno;
 	int nfields;
@@ -592,10 +593,13 @@ struct globals2 {
 #define break_ptr    (G1.break_ptr   )
 #define continue_ptr (G1.continue_ptr)
 #define iF           (G1.iF          )
-#define vhash        (G1.vhash       )
 #define ahash        (G1.ahash       )
-#define fdhash       (G1.fdhash      )
 #define fnhash       (G1.fnhash      )
+#define vhash        (G1.vhash       )
+#define fdhash       ahash
+//^^^^^^^^^^^^^^^^^^ ahash is cleared after every function parsing,
+// and ends up empty after parsing phase. Thus, we can simply reuse it
+// for fdhash in execution stage.
 #define g_progname   (G1.g_progname  )
 #define g_lineno     (G1.g_lineno    )
 #define nfields      (G1.nfields     )
@@ -681,6 +685,33 @@ static xhash *hash_init(void)
 
 	return newhash;
 }
+
+static void hash_clear(xhash *hash)
+{
+	unsigned i;
+	hash_item *hi, *thi;
+
+	for (i = 0; i < hash->csize; i++) {
+		hi = hash->items[i];
+		while (hi) {
+			thi = hi;
+			hi = hi->next;
+			free(thi->data.v.string);
+			free(thi);
+		}
+		hash->items[i] = NULL;
+	}
+	hash->glen = hash->nel = 0;
+}
+
+#if 0 //UNUSED
+static void hash_free(xhash *hash)
+{
+	hash_clear(hash);
+	free(hash->items);
+	free(hash);
+}
+#endif
 
 /* find item in hash, return ptr to data, NULL if not found */
 static void *hash_search(xhash *hash, const char *name)
@@ -869,23 +900,7 @@ static xhash *iamarray(var *v)
 	return a->x.array;
 }
 
-static void clear_array(xhash *array)
-{
-	unsigned i;
-	hash_item *hi, *thi;
-
-	for (i = 0; i < array->csize; i++) {
-		hi = array->items[i];
-		while (hi) {
-			thi = hi;
-			hi = hi->next;
-			free(thi->data.v.string);
-			free(thi);
-		}
-		array->items[i] = NULL;
-	}
-	array->glen = array->nel = 0;
-}
+#define clear_array(array) hash_clear(array)
 
 /* clear a variable */
 static var *clrvar(var *v)
@@ -1742,7 +1757,7 @@ static void parse_program(char *p)
 			}
 			seq = &f->body;
 			chain_group();
-			clear_array(ahash);
+			hash_clear(ahash);
 		} else if (tclass & TS_OPSEQ) {
 			debug_printf_parse("%s: TS_OPSEQ\n", __func__);
 			rollback_token();
@@ -3471,11 +3486,16 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 			bb_show_usage();
 		parse_program(*argv++);
 	}
-	//free_hash(ahash) // ~250 bytes, arg names, used only during parse of function bodies
-	//ahash = NULL; // debug
-	//free_hash(fnhash) // ~250 bytes, used only for function names
-	//fnhash = NULL; // debug
-	/* parsing done, on to executing */
+	/* Free unused parse structures */
+	//hash_free(fnhash); // ~250 bytes when empty, used only for function names
+	//^^^^^^^^^^^^^^^^^ does not work, hash_clear() inside SEGVs
+	// (IOW: hash_clear() assumes it's a hash of variables. fnhash is not).
+	free(fnhash->items);
+	free(fnhash);
+	fnhash = NULL; // debug
+	//hash_free(ahash); // empty after parsing, will reuse as fdhash instead of freeing
+
+	/* Parsing done, on to executing */
 
 	/* fill in ARGV array */
 	setari_u(intvar[ARGV], 0, "awk");
@@ -3484,7 +3504,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 		setari_u(intvar[ARGV], ++i, *argv++);
 	setvar_i(intvar[ARGC], i + 1);
 
-	fdhash = hash_init();
+	//fdhash = ahash - done via define
 	newfile("/dev/stdin")->F = stdin;
 	newfile("/dev/stdout")->F = stdout;
 	newfile("/dev/stderr")->F = stderr;
