@@ -1300,7 +1300,7 @@ static uint32_t next_token(uint32_t expected)
 #undef save_info
 }
 
-static void rollback_token(void)
+static ALWAYS_INLINE void rollback_token(void)
 {
 	t_rollback = TRUE;
 }
@@ -1474,14 +1474,14 @@ static node *parse_expr(uint32_t term_tc)
 
 		case TC_LENGTH:
 			debug_printf_parse("%s: TC_LENGTH\n", __func__);
-			next_token(TC_LPAREN /* length(...) */
+			tc = next_token(TC_LPAREN /* length(...) */
 				| TS_OPTERM    /* length; (or newline)*/
 				| TC_GRPTERM   /* length } */
 				| TC_BINOPX    /* length <op> NUM */
 				| TC_COMMA     /* print length, 1 */
 			);
 			rollback_token();
-			if (t_tclass & TC_LPAREN) {
+			if (tc & TC_LPAREN) {
 				/* It was a "(" token. Handle just like TC_BUILTIN */
 				cn->l.n = parse_lrparen_list();
 			}
@@ -1563,19 +1563,23 @@ static void chain_group(void)
 
 	if (c & TC_GRPSTART) {
 		debug_printf_parse("%s: TC_GRPSTART\n", __func__);
-		while (next_token(TS_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
+		while ((c = next_token(TS_GRPSEQ | TC_GRPTERM)) != TC_GRPTERM) {
 			debug_printf_parse("%s: !TC_GRPTERM\n", __func__);
-			if (t_tclass & TC_NEWLINE)
+			if (c & TC_NEWLINE)
 				continue;
 			rollback_token();
 			chain_group();
 		}
 		debug_printf_parse("%s: TC_GRPTERM\n", __func__);
-	} else if (c & (TS_OPSEQ | TS_OPTERM)) {
+		return;
+	}
+	if (c & (TS_OPSEQ | TS_OPTERM)) {
 		debug_printf_parse("%s: TS_OPSEQ | TS_OPTERM\n", __func__);
 		rollback_token();
 		chain_expr(OC_EXEC | Vx);
-	} else {
+		return;
+	}
+	{
 		/* TS_STATEMNT */
 		debug_printf_parse("%s: TS_STATEMNT(?)\n", __func__);
 		switch (t_info & OPCLSMASK) {
