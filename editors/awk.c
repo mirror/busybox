@@ -93,7 +93,6 @@ enum {
 };
 
 #define	MAXVARFMT       240
-#define	MINNVBLOCK      64
 
 /* variable flags */
 #define	VF_NUMBER       0x0001	/* 1 = primary type is number */
@@ -120,8 +119,8 @@ typedef struct walker_list {
 /* Variable */
 typedef struct var_s {
 	unsigned type;            /* flags */
-	double number;
 	char *string;
+	double number;
 	union {
 		int aidx;               /* func arg idx (for compilation stage) */
 		struct xhash_s *array;  /* array ptr */
@@ -191,15 +190,6 @@ typedef struct node_s {
 		struct node_s *n;
 	} a;
 } node;
-
-/* Block of temporary variables */
-typedef struct nvblock_s {
-	int size;
-	var *pos;
-	struct nvblock_s *prev;
-	struct nvblock_s *next;
-	var nv[];
-} nvblock;
 
 typedef struct tsplitter_s {
 	node n;
@@ -537,7 +527,6 @@ struct globals {
 	int nfields;
 	int maxfields; /* used in fsrealloc() only */
 	var *Fields;
-	nvblock *g_cb;
 	char *g_pos;
 	char g_saved_ch;
 	smallint icase;
@@ -605,7 +594,6 @@ struct globals2 {
 #define nfields      (G1.nfields     )
 #define maxfields    (G1.maxfields   )
 #define Fields       (G1.Fields      )
-#define g_cb         (G1.g_cb        )
 #define g_pos        (G1.g_pos       )
 #define g_saved_ch   (G1.g_saved_ch  )
 #define icase        (G1.icase       )
@@ -640,7 +628,6 @@ static int awk_exit(int) NORETURN;
 
 /* ---- error handling ---- */
 
-static const char EMSG_INTERNAL_ERROR[] ALIGN1 = "Internal error";
 static const char EMSG_UNEXP_EOS[] ALIGN1 = "Unexpected end of string";
 static const char EMSG_UNEXP_TOKEN[] ALIGN1 = "Unexpected token";
 static const char EMSG_DIV_BY_ZERO[] ALIGN1 = "Division by zero";
@@ -1048,77 +1035,6 @@ static int istrue(var *v)
 	if (is_numeric(v))
 		return (v->number != 0);
 	return (v->string && v->string[0]);
-}
-
-/* temporary variables allocator. Last allocated should be first freed */
-static var *nvalloc(int n)
-{
-	nvblock *pb = NULL;
-	var *v, *r;
-	int size;
-
-	while (g_cb) {
-		pb = g_cb;
-		if ((g_cb->pos - g_cb->nv) + n <= g_cb->size)
-			break;
-		g_cb = g_cb->next;
-	}
-
-	if (!g_cb) {
-		size = (n <= MINNVBLOCK) ? MINNVBLOCK : n;
-		g_cb = xzalloc(sizeof(nvblock) + size * sizeof(var));
-		g_cb->size = size;
-		g_cb->pos = g_cb->nv;
-		g_cb->prev = pb;
-		/*g_cb->next = NULL; - xzalloc did it */
-		if (pb)
-			pb->next = g_cb;
-	}
-
-	v = r = g_cb->pos;
-	g_cb->pos += n;
-
-	while (v < g_cb->pos) {
-		v->type = 0;
-		v->string = NULL;
-		v++;
-	}
-
-	return r;
-}
-
-static void nvfree(var *v)
-{
-	var *p;
-
-	if (v < g_cb->nv || v >= g_cb->pos)
-		syntax_error(EMSG_INTERNAL_ERROR);
-
-	for (p = v; p < g_cb->pos; p++) {
-		if ((p->type & (VF_ARRAY | VF_CHILD)) == VF_ARRAY) {
-			clear_array(iamarray(p));
-			free(p->x.array->items);
-			free(p->x.array);
-		}
-		if (p->type & VF_WALK) {
-			walker_list *n;
-			walker_list *w = p->x.walker;
-			debug_printf_walker("nvfree: freeing walker @%p\n", &p->x.walker);
-			p->x.walker = NULL;
-			while (w) {
-				n = w->prev;
-				debug_printf_walker(" free(%p)\n", w);
-				free(w);
-				w = n;
-			}
-		}
-		clrvar(p);
-	}
-
-	g_cb->pos = v;
-	while (g_cb->prev && g_cb->pos == g_cb->nv) {
-		g_cb = g_cb->prev;
-	}
 }
 
 /* ------- awk program text parsing ------- */
@@ -1793,6 +1709,41 @@ static void parse_program(char *p)
 
 /* -------- program execution part -------- */
 
+/* temporary variables allocator */
+static var *nvalloc(int sz)
+{
+	return xzalloc(sz * sizeof(var));
+}
+
+static void nvfree(var *v, int sz)
+{
+	var *p = v;
+
+	while (--sz >= 0) {
+		if ((p->type & (VF_ARRAY | VF_CHILD)) == VF_ARRAY) {
+			clear_array(iamarray(p));
+			free(p->x.array->items);
+			free(p->x.array);
+		}
+		if (p->type & VF_WALK) {
+			walker_list *n;
+			walker_list *w = p->x.walker;
+			debug_printf_walker("nvfree: freeing walker @%p\n", &p->x.walker);
+			p->x.walker = NULL;
+			while (w) {
+				n = w->prev;
+				debug_printf_walker(" free(%p)\n", w);
+				free(w);
+				w = n;
+			}
+		}
+		clrvar(p);
+		p++;
+	}
+
+	free(v);
+}
+
 static node *mk_splitter(const char *s, tsplitter *spl)
 {
 	regex_t *re, *ire;
@@ -1814,9 +1765,9 @@ static node *mk_splitter(const char *s, tsplitter *spl)
 	return n;
 }
 
-/* use node as a regular expression. Supplied with node ptr and regex_t
+/* Use node as a regular expression. Supplied with node ptr and regex_t
  * storage space. Return ptr to regex (if result points to preg, it should
- * be later regfree'd manually
+ * be later regfree'd manually).
  */
 static regex_t *as_regex(node *op, regex_t *preg)
 {
@@ -1840,7 +1791,7 @@ static regex_t *as_regex(node *op, regex_t *preg)
 		cflags &= ~REG_EXTENDED;
 		xregcomp(preg, s, cflags);
 	}
-	nvfree(v);
+	nvfree(v, 1);
 	return preg;
 }
 
@@ -2292,6 +2243,8 @@ static char *awk_printf(node *n, int *len)
 	var *v, *arg;
 
 	v = nvalloc(1);
+//TODO: above, to avoid allocating a single temporary var, take a pointer
+//to a temporary that our caller (evaluate()) already has?
 	fmt = f = xstrdup(getvar_s(evaluate(nextarg(&n), v)));
 
 	i = 0;
@@ -2333,7 +2286,7 @@ static char *awk_printf(node *n, int *len)
 	}
 
 	free(fmt);
-	nvfree(v);
+	nvfree(v, 1);
 	b = xrealloc(b, i + 1);
 	b[i] = '\0';
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
@@ -2661,14 +2614,14 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		break;
 	}
 
-	nvfree(tv);
+	nvfree(tv, 4);
 	return res;
 #undef tspl
 }
 
 /*
  * Evaluate node - the heart of the program. Supplied with subtree
- * and place where to store result. returns ptr to result.
+ * and place where to store result. Returns ptr to result.
  */
 #define XC(n) ((n) >> 8)
 
@@ -2953,33 +2906,38 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_FUNC ): {
-			var *vbeg, *v;
+			var *tv, *sv_fnargs;
 			const char *sv_progname;
+			int nargs1, i;
+
 			debug_printf_eval("FUNC\n");
 
-			/* The body might be empty, still has to eval the args */
 			if (!op->r.n->info && !op->r.f->body.first)
 				syntax_error(EMSG_UNDEF_FUNC);
 
-			vbeg = v = nvalloc(op->r.f->nargs + 1);
+			/* The body might be empty, still has to eval the args */
+			nargs1 = op->r.f->nargs + 1;
+			tv = nvalloc(nargs1);
+			i = 0;
 			while (op1) {
+//TODO: explain why one iteration is done even for the case p->r.f->nargs == 0
 				var *arg = evaluate(nextarg(&op1), v1);
-				copyvar(v, arg);
-				v->type |= VF_CHILD;
-				v->x.parent = arg;
-				if (++v - vbeg >= op->r.f->nargs)
+				copyvar(&tv[i], arg);
+				tv[i].type |= VF_CHILD;
+				tv[i].x.parent = arg;
+				if (++i >= op->r.f->nargs)
 					break;
 			}
 
-			v = fnargs;
-			fnargs = vbeg;
+			sv_fnargs = fnargs;
 			sv_progname = g_progname;
 
+			fnargs = tv;
 			res = evaluate(op->r.f->body.first, res);
+			nvfree(fnargs, nargs1);
 
 			g_progname = sv_progname;
-			nvfree(fnargs);
-			fnargs = v;
+			fnargs = sv_fnargs;
 
 			break;
 		}
@@ -3301,7 +3259,7 @@ static var *evaluate(node *op, var *res)
 			break;
 	} /* while (op) */
 
-	nvfree(v1);
+	nvfree(v1, 2);
 	debug_printf_eval("returning from %s(): %p\n", __func__, res);
 	return res;
 #undef fnargs
