@@ -87,9 +87,15 @@ BEGIN {
   a=2
   print v (a)
 }'
-testing "'v (a)' is not a function call, it is a concatenation" \
+testing "awk 'v (a)' is not a function call, it is a concatenation" \
 	"awk '$prg' 2>&1" \
 	"12\n" \
+	"" ""
+
+prg='func f(){print"F"};func g(){print"G"};BEGIN{f(g(),g())}'
+testing "awk unused function args are evaluated" \
+	"awk '$prg' 2>&1" \
+	"G\nG\nF\n" \
 	"" ""
 
 

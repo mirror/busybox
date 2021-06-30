@@ -2910,7 +2910,7 @@ static var *evaluate(node *op, var *res)
 		case XC( OC_FUNC ): {
 			var *tv, *sv_fnargs;
 			const char *sv_progname;
-			int nargs1, i;
+			int nargs, i;
 
 			debug_printf_eval("FUNC\n");
 
@@ -2918,17 +2918,22 @@ static var *evaluate(node *op, var *res)
 				syntax_error(EMSG_UNDEF_FUNC);
 
 			/* The body might be empty, still has to eval the args */
-			nargs1 = op->r.f->nargs + 1;
-			tv = nvalloc(nargs1);
+			nargs = op->r.f->nargs;
+			tv = nvalloc(nargs);
 			i = 0;
 			while (op1) {
-//TODO: explain why one iteration is done even for the case p->r.f->nargs == 0
 				var *arg = evaluate(nextarg(&op1), v1);
+				if (i == nargs) {
+					/* call with more arguments than function takes.
+					 * (gawk warns: "warning: function 'f' called with more arguments than declared").
+					 * They are still evaluated, but discarded: */
+					clrvar(arg);
+					continue;
+				}
 				copyvar(&tv[i], arg);
 				tv[i].type |= VF_CHILD;
 				tv[i].x.parent = arg;
-				if (++i >= op->r.f->nargs)
-					break;
+				i++;
 			}
 
 			sv_fnargs = fnargs;
@@ -2936,7 +2941,7 @@ static var *evaluate(node *op, var *res)
 
 			fnargs = tv;
 			res = evaluate(op->r.f->body.first, res);
-			nvfree(fnargs, nargs1);
+			nvfree(fnargs, nargs);
 
 			g_progname = sv_progname;
 			fnargs = sv_fnargs;
