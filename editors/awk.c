@@ -2912,7 +2912,7 @@ static var *evaluate(node *op, var *res)
 
 			debug_printf_eval("FUNC\n");
 
-			if (!op->r.n->info && !op->r.f->body.first)
+			if (op->r.f->nargs == 0 && !op->r.f->body.first)
 				syntax_error(EMSG_UNDEF_FUNC);
 
 			/* The body might be empty, still has to eval the args */
