@@ -139,6 +139,7 @@ typedef struct chain_s {
 /* Function */
 typedef struct func_s {
 	unsigned nargs;
+	smallint defined;
 	struct chain_s body;
 } func;
 
@@ -1662,9 +1663,11 @@ static void parse_program(char *p)
 			debug_printf_parse("%s: TC_FUNCDECL\n", __func__);
 			next_token(TC_FUNCTION);
 			f = newfunc(t_string);
-//FIXME: dup check: functions can't be redefined, this is not ok: awk 'func f(){}; func f(){}'
-			f->body.first = NULL;
-			f->nargs = 0;
+			if (f->defined)
+				syntax_error("Duplicate function");
+			f->defined = 1;
+			//f->body.first = NULL; - already is
+			//f->nargs = 0; - already is
 			/* func arg list: comma sep list of args, and a close paren */
 			for (;;) {
 				if (next_token(TC_VARIABLE | TC_RPAREN) == TC_RPAREN) {
@@ -2912,7 +2915,7 @@ static var *evaluate(node *op, var *res)
 
 			debug_printf_eval("FUNC\n");
 
-			if (op->r.f->nargs == 0 && !op->r.f->body.first)
+			if (!op->r.f->defined)
 				syntax_error(EMSG_UNDEF_FUNC);
 
 			/* The body might be empty, still has to eval the args */

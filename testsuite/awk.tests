@@ -45,6 +45,16 @@ testing "awk handles empty function f(arg){}" \
 	"" ""
 
 prg='
+function empty_fun(){}
+END {empty_fun()
+  print "Ok"
+}'
+testing "awk handles empty function f(){}" \
+	"awk '$prg'" \
+	"Ok\n" \
+	"" ""
+
+prg='
 function outer_fun() {
   return 1
 }
