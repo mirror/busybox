@@ -2792,7 +2792,7 @@ static var *evaluate(node *op, var *res)
 				if (!op1) {
 					fputs(getvar_s(intvar[F0]), F);
 				} else {
-					while (op1) {
+					for (;;) {
 						var *v = evaluate(nextarg(&op1), v1);
 						if (v->type & VF_NUMBER) {
 							fmt_num(g_buf, MAXVARFMT, getvar_s(intvar[OFMT]),
@@ -2801,13 +2801,12 @@ static var *evaluate(node *op, var *res)
 						} else {
 							fputs(getvar_s(v), F);
 						}
-
-						if (op1)
-							fputs(getvar_s(intvar[OFS]), F);
+						if (!op1)
+							break;
+						fputs(getvar_s(intvar[OFS]), F);
 					}
 				}
 				fputs(getvar_s(intvar[ORS]), F);
-
 			} else {	/* OC_PRINTF */
 				char *s = awk_printf(op1, &len);
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
