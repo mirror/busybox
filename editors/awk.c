@@ -559,7 +559,9 @@ struct globals2 {
 	unsigned evaluate__seed;
 	regex_t evaluate__sreg;
 
-	var ptest__v;
+	var ptest__tmpvar;
+	var awk_printf__tmpvar;
+	var as_regex__tmpvar;
 
 	tsplitter exec_builtin__tspl;
 
@@ -1775,14 +1777,19 @@ static node *mk_splitter(const char *s, tsplitter *spl)
 static regex_t *as_regex(node *op, regex_t *preg)
 {
 	int cflags;
-	var *tmpvar;
 	const char *s;
 
 	if ((op->info & OPCLSMASK) == OC_REGEXP) {
 		return icase ? op->r.ire : op->l.re;
 	}
-	tmpvar = nvalloc(1);
-	s = getvar_s(evaluate(op, tmpvar));
+
+#define TMPVAR (&G.as_regex__tmpvar)
+	//tmpvar = nvalloc(1);
+	// We use a single "static" tmpvar (instead of on-stack or malloced one)
+	// to decrease memory consumption in deeply-recursive awk programs.
+	// The rule to work safely is to never call evaluate() while our static
+	// TMPVAR's value is still needed.
+	s = getvar_s(evaluate(op, TMPVAR));
 
 	cflags = icase ? REG_EXTENDED | REG_ICASE : REG_EXTENDED;
 	/* Testcase where REG_EXTENDED fails (unpaired '{'):
@@ -1794,7 +1801,8 @@ static regex_t *as_regex(node *op, regex_t *preg)
 		cflags &= ~REG_EXTENDED;
 		xregcomp(preg, s, cflags);
 	}
-	nvfree(tmpvar, 1);
+	//nvfree(tmpvar, 1);
+#undef TMPVAR
 	return preg;
 }
 
@@ -2105,8 +2113,11 @@ static int hashwalk_next(var *v)
 /* evaluate node, return 1 when result is true, 0 otherwise */
 static int ptest(node *pattern)
 {
-	/* ptest__v is "static": to save stack space? */
-	return istrue(evaluate(pattern, &G.ptest__v));
+	// We use a single "static" tmpvar (instead of on-stack or malloced one)
+	// to decrease memory consumption in deeply-recursive awk programs.
+	// The rule to work safely is to never call evaluate() while our static
+	// TMPVAR's value is still needed.
+	return istrue(evaluate(pattern, &G.ptest__tmpvar));
 }
 
 /* read next record from stream rsm into a variable v */
@@ -2243,12 +2254,18 @@ static char *awk_printf(node *n, int *len)
 	const char *s1;
 	int i, j, incr, bsize;
 	char c, c1;
-	var *tmpvar, *arg;
+	var *arg;
 
-	tmpvar = nvalloc(1);
-//TODO: above, to avoid allocating a single temporary var, take a pointer
-//to a temporary that our caller (evaluate()) already has?
-	fmt = f = xstrdup(getvar_s(evaluate(nextarg(&n), tmpvar)));
+	//tmpvar = nvalloc(1);
+#define TMPVAR (&G.awk_printf__tmpvar)
+	// We use a single "static" tmpvar (instead of on-stack or malloced one)
+	// to decrease memory consumption in deeply-recursive awk programs.
+	// The rule to work safely is to never call evaluate() while our static
+	// TMPVAR's value is still needed.
+	fmt = f = xstrdup(getvar_s(evaluate(nextarg(&n), TMPVAR)));
+	// ^^^^^^^^^ here we immediately strdup() the value, so the later call
+	// to evaluate() potentially recursing into another awk_printf() can't
+	// mangle the value.
 
 	i = 0;
 	while (*f) {
@@ -2268,7 +2285,7 @@ static char *awk_printf(node *n, int *len)
 			f++;
 		c1 = *f;
 		*f = '\0';
-		arg = evaluate(nextarg(&n), tmpvar);
+		arg = evaluate(nextarg(&n), TMPVAR);
 
 		j = i;
 		if (c == 'c' || !c) {
@@ -2289,7 +2306,9 @@ static char *awk_printf(node *n, int *len)
 	}
 
 	free(fmt);
-	nvfree(tmpvar, 1);
+//	nvfree(tmpvar, 1);
+#undef TMPVAR
+
 	b = xrealloc(b, i + 1);
 	b[i] = '\0';
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
