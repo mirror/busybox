@@ -1775,14 +1775,14 @@ static node *mk_splitter(const char *s, tsplitter *spl)
 static regex_t *as_regex(node *op, regex_t *preg)
 {
 	int cflags;
-	var *v;
+	var *tmpvar;
 	const char *s;
 
 	if ((op->info & OPCLSMASK) == OC_REGEXP) {
 		return icase ? op->r.ire : op->l.re;
 	}
-	v = nvalloc(1);
-	s = getvar_s(evaluate(op, v));
+	tmpvar = nvalloc(1);
+	s = getvar_s(evaluate(op, tmpvar));
 
 	cflags = icase ? REG_EXTENDED | REG_ICASE : REG_EXTENDED;
 	/* Testcase where REG_EXTENDED fails (unpaired '{'):
@@ -1794,7 +1794,7 @@ static regex_t *as_regex(node *op, regex_t *preg)
 		cflags &= ~REG_EXTENDED;
 		xregcomp(preg, s, cflags);
 	}
-	nvfree(v, 1);
+	nvfree(tmpvar, 1);
 	return preg;
 }
 
@@ -2243,12 +2243,12 @@ static char *awk_printf(node *n, int *len)
 	const char *s1;
 	int i, j, incr, bsize;
 	char c, c1;
-	var *v, *arg;
+	var *tmpvar, *arg;
 
-	v = nvalloc(1);
+	tmpvar = nvalloc(1);
 //TODO: above, to avoid allocating a single temporary var, take a pointer
 //to a temporary that our caller (evaluate()) already has?
-	fmt = f = xstrdup(getvar_s(evaluate(nextarg(&n), v)));
+	fmt = f = xstrdup(getvar_s(evaluate(nextarg(&n), tmpvar)));
 
 	i = 0;
 	while (*f) {
@@ -2268,7 +2268,7 @@ static char *awk_printf(node *n, int *len)
 			f++;
 		c1 = *f;
 		*f = '\0';
-		arg = evaluate(nextarg(&n), v);
+		arg = evaluate(nextarg(&n), tmpvar);
 
 		j = i;
 		if (c == 'c' || !c) {
@@ -2289,7 +2289,7 @@ static char *awk_printf(node *n, int *len)
 	}
 
 	free(fmt);
-	nvfree(v, 1);
+	nvfree(tmpvar, 1);
 	b = xrealloc(b, i + 1);
 	b[i] = '\0';
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
@@ -2429,7 +2429,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 {
 #define tspl (G.exec_builtin__tspl)
 
-	var *tv;
+	var *tmpvars;
 	node *an[4];
 	var *av[4];
 	const char *as[4];
@@ -2441,7 +2441,12 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	time_t tt;
 	int i, l, ll, n;
 
-	tv = nvalloc(4);
+	tmpvars = nvalloc(4);
+#define TMPVAR0 (tmpvars)
+#define TMPVAR1 (tmpvars + 1)
+#define TMPVAR2 (tmpvars + 2)
+#define TMPVAR3 (tmpvars + 3)
+#define TMPVAR(i) (tmpvars + (i))
 	isr = info = op->info;
 	op = op->l.n;
 
@@ -2449,7 +2454,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	for (i = 0; i < 4 && op; i++) {
 		an[i] = nextarg(&op);
 		if (isr & 0x09000000)
-			av[i] = evaluate(an[i], &tv[i]);
+			av[i] = evaluate(an[i], TMPVAR(i));
 		if (isr & 0x08000000)
 			as[i] = getvar_s(av[i]);
 		isr >>= 1;
@@ -2474,7 +2479,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 
 		if (nargs > 2) {
 			spl = (an[2]->info & OPCLSMASK) == OC_REGEXP ?
-				an[2] : mk_splitter(getvar_s(evaluate(an[2], &tv[2])), &tspl);
+				an[2] : mk_splitter(getvar_s(evaluate(an[2], TMPVAR2)), &tspl);
 		} else {
 			spl = &fsplitter.n;
 		}
@@ -2617,7 +2622,13 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		break;
 	}
 
-	nvfree(tv, 4);
+	nvfree(tmpvars, 4);
+#undef TMPVAR0
+#undef TMPVAR1
+#undef TMPVAR2
+#undef TMPVAR3
+#undef TMPVAR
+
 	return res;
 #undef tspl
 }
@@ -2636,14 +2647,16 @@ static var *evaluate(node *op, var *res)
 #define seed   (G.evaluate__seed)
 #define sreg   (G.evaluate__sreg)
 
-	var *v1;
+	var *tmpvars;
+#define TMPVAR0 (tmpvars)
+#define TMPVAR1 (tmpvars + 1)
 
 	if (!op)
 		return setvar_s(res, NULL);
 
 	debug_printf_eval("entered %s()\n", __func__);
 
-	v1 = nvalloc(2);
+	tmpvars = nvalloc(2);
 
 	while (op) {
 		struct {
@@ -2683,7 +2696,7 @@ static var *evaluate(node *op, var *res)
 			}
 			if (op1->r.n) { /* array ref? */
 				const char *s;
-				s = getvar_s(evaluate(op1->r.n, v1));
+				s = getvar_s(evaluate(op1->r.n, TMPVAR0));
 				hash_remove(iamarray(v), s);
 			} else {
 				clear_array(iamarray(v));
@@ -2693,7 +2706,7 @@ static var *evaluate(node *op, var *res)
 
 		/* execute inevitable things */
 		if (opinfo & OF_RES1)
-			L.v = evaluate(op1, v1);
+			L.v = evaluate(op1, TMPVAR0);
 		if (opinfo & OF_STR1) {
 			L.s = getvar_s(L.v);
 			debug_printf_eval("L.s:'%s'\n", L.s);
@@ -2710,7 +2723,7 @@ static var *evaluate(node *op, var *res)
 		 * (Seen trying to evaluate "$444 $44444")
 		 */
 		if (opinfo & OF_RES2) {
-			R.v = evaluate(op->r.n, v1+1);
+			R.v = evaluate(op->r.n, TMPVAR1);
 			//TODO: L.v may be invalid now, set L.v to NULL to catch bugs?
 			//L.v = NULL;
 		}
@@ -2793,7 +2806,7 @@ static var *evaluate(node *op, var *res)
 					fputs(getvar_s(intvar[F0]), F);
 				} else {
 					for (;;) {
-						var *v = evaluate(nextarg(&op1), v1);
+						var *v = evaluate(nextarg(&op1), TMPVAR0);
 						if (v->type & VF_NUMBER) {
 							fmt_num(g_buf, MAXVARFMT, getvar_s(intvar[OFMT]),
 									getvar_i(v), TRUE);
@@ -2892,7 +2905,7 @@ static var *evaluate(node *op, var *res)
 			/* if source is a temporary string, jusk relink it to dest */
 //Disabled: if R.v is numeric but happens to have cached R.v->string,
 //then L.v ends up being a string, which is wrong
-//			if (R.v == v1+1 && R.v->string) {
+//			if (R.v == TMPVAR1 && R.v->string) {
 //				res = setvar_p(L.v, R.v->string);
 //				R.v->string = NULL;
 //			} else {
@@ -2908,7 +2921,7 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_FUNC ): {
-			var *tv, *sv_fnargs;
+			var *argvars, *sv_fnargs;
 			const char *sv_progname;
 			int nargs, i;
 
@@ -2919,10 +2932,10 @@ static var *evaluate(node *op, var *res)
 
 			/* The body might be empty, still has to eval the args */
 			nargs = op->r.f->nargs;
-			tv = nvalloc(nargs);
+			argvars = nvalloc(nargs);
 			i = 0;
 			while (op1) {
-				var *arg = evaluate(nextarg(&op1), v1);
+				var *arg = evaluate(nextarg(&op1), TMPVAR0);
 				if (i == nargs) {
 					/* call with more arguments than function takes.
 					 * (gawk warns: "warning: function 'f' called with more arguments than declared").
@@ -2930,18 +2943,18 @@ static var *evaluate(node *op, var *res)
 					clrvar(arg);
 					continue;
 				}
-				copyvar(&tv[i], arg);
-				tv[i].type |= VF_CHILD;
-				tv[i].x.parent = arg;
+				copyvar(&argvars[i], arg);
+				argvars[i].type |= VF_CHILD;
+				argvars[i].x.parent = arg;
 				i++;
 			}
 
 			sv_fnargs = fnargs;
 			sv_progname = g_progname;
 
-			fnargs = tv;
+			fnargs = argvars;
 			res = evaluate(op->r.f->body.first, res);
-			nvfree(fnargs, nargs);
+			nvfree(argvars, nargs);
 
 			g_progname = sv_progname;
 			fnargs = sv_fnargs;
@@ -3266,7 +3279,10 @@ static var *evaluate(node *op, var *res)
 			break;
 	} /* while (op) */
 
-	nvfree(v1, 2);
+	nvfree(tmpvars, 2);
+#undef TMPVAR0
+#undef TMPVAR1
+
 	debug_printf_eval("returning from %s(): %p\n", __func__, res);
 	return res;
 #undef fnargs
