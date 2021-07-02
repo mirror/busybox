@@ -2465,6 +2465,30 @@ static NOINLINE int do_mktime(const char *ds)
 	return mktime(&then);
 }
 
+/* Reduce stack usage in exec_builtin() by keeping match() code separate */
+static NOINLINE void exec_builtin_match(node *an1, const char *as0, var *res)
+{
+	regmatch_t pmatch[1];
+	regex_t sreg, *re;
+	int n;
+
+	re = as_regex(an1, &sreg);
+	n = regexec(re, as0, 1, pmatch, 0);
+	if (n == 0) {
+		pmatch[0].rm_so++;
+		pmatch[0].rm_eo++;
+	} else {
+		pmatch[0].rm_so = 0;
+		pmatch[0].rm_eo = -1;
+	}
+	if (re == &sreg)
+		regfree(re);
+	setvar_i(newvar("RSTART"), pmatch[0].rm_so);
+	setvar_i(newvar("RLENGTH"), pmatch[0].rm_eo - pmatch[0].rm_so);
+	setvar_i(res, pmatch[0].rm_so);
+}
+
+/* Reduce stack usage in evaluate() by keeping builtins' code separate */
 static NOINLINE var *exec_builtin(node *op, var *res)
 {
 #define tspl (G.exec_builtin__tspl)
@@ -2473,8 +2497,6 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	node *an[4];
 	var *av[4];
 	const char *as[4];
-	regmatch_t pmatch[1];
-	regex_t sreg, *re;
 	node *spl;
 	uint32_t isr, info;
 	int nargs;
@@ -2633,20 +2655,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		break;
 
 	case B_ma:
-		re = as_regex(an[1], &sreg);
-		n = regexec(re, as[0], 1, pmatch, 0);
-		if (n == 0) {
-			pmatch[0].rm_so++;
-			pmatch[0].rm_eo++;
-		} else {
-			pmatch[0].rm_so = 0;
-			pmatch[0].rm_eo = -1;
-		}
-		setvar_i(newvar("RSTART"), pmatch[0].rm_so);
-		setvar_i(newvar("RLENGTH"), pmatch[0].rm_eo - pmatch[0].rm_so);
-		setvar_i(res, pmatch[0].rm_so);
-		if (re == &sreg)
-			regfree(re);
+		exec_builtin_match(an[1], as[0], res);
 		break;
 
 	case B_ge:
@@ -2732,7 +2741,9 @@ static rstream *next_input_file(void)
 
 /*
  * Evaluate node - the heart of the program. Supplied with subtree
- * and place where to store result. Returns ptr to result.
+ * and "res" variable to assign the result to if we evaluate an expression.
+ * If node refers to e.g. a variable or a field, no assignment happens.
+ * Return ptr to the result (which may or may not be the "res" variable!)
  */
 #define XC(n) ((n) >> 8)
 
