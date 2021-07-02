@@ -319,7 +319,7 @@ if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
 #define	xV	OF_RES2
 #define	xS	(OF_RES2 | OF_STR2)
 #define	Vx	OF_RES1
-#define	Rx	(OF_RES1 | OF_NUM1 | OF_REQUIRED)
+#define	Rx	OF_REQUIRED
 #define	VV	(OF_RES1 | OF_RES2)
 #define	Nx	(OF_RES1 | OF_NUM1)
 #define	NV	(OF_RES1 | OF_NUM1 | OF_RES2)
@@ -2750,32 +2750,6 @@ static var *evaluate(node *op, var *res)
 		op1 = op->l.n;
 		debug_printf_eval("opinfo:%08x opn:%08x\n", opinfo, opn);
 
-		/* "delete" is special:
-		 * "delete array[var--]" must evaluate index expr only once,
-		 * must not evaluate it in "execute inevitable things" part.
-		 */
-		if (XC(opinfo & OPCLSMASK) == XC(OC_DELETE)) {
-			uint32_t info = op1->info & OPCLSMASK;
-			var *v;
-
-			debug_printf_eval("DELETE\n");
-			if (info == OC_VAR) {
-				v = op1->l.v;
-			} else if (info == OC_FNARG) {
-				v = &fnargs[op1->l.aidx];
-			} else {
-				syntax_error(EMSG_NOT_ARRAY);
-			}
-			if (op1->r.n) { /* array ref? */
-				const char *s;
-				s = getvar_s(evaluate(op1->r.n, TMPVAR0));
-				hash_remove(iamarray(v), s);
-			} else {
-				clear_array(iamarray(v));
-			}
-			goto next;
-		}
-
 		/* execute inevitable things */
 		if (opinfo & OF_RES1)
 			L.v = evaluate(op1, TMPVAR0);
@@ -2905,7 +2879,31 @@ static var *evaluate(node *op, var *res)
 			break;
 		}
 
-		/* case XC( OC_DELETE ): - moved to happen before arg evaluation */
+		case XC( OC_DELETE ):
+			debug_printf_eval("DELETE\n");
+		{
+			/* "delete" is special:
+			 * "delete array[var--]" must evaluate index expr only once.
+			 */
+			uint32_t info = op1->info & OPCLSMASK;
+			var *v;
+
+			if (info == OC_VAR) {
+				v = op1->l.v;
+			} else if (info == OC_FNARG) {
+				v = &fnargs[op1->l.aidx];
+			} else {
+				syntax_error(EMSG_NOT_ARRAY);
+			}
+			if (op1->r.n) { /* array ref? */
+				const char *s;
+				s = getvar_s(evaluate(op1->r.n, TMPVAR0));
+				hash_remove(iamarray(v), s);
+			} else {
+				clear_array(iamarray(v));
+			}
+			break;
+		}
 
 		case XC( OC_NEWSOURCE ):
 			debug_printf_eval("NEWSOURCE\n");
@@ -3342,7 +3340,7 @@ static var *evaluate(node *op, var *res)
 		default:
 			syntax_error(EMSG_POSSIBLE_ERROR);
 		} /* switch */
- next:
+
 		if ((opinfo & OPCLSMASK) <= SHIFT_TIL_THIS)
 			op = op->a.n;
 		if ((opinfo & OPCLSMASK) >= RECUR_FROM_THIS)
