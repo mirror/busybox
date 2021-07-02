@@ -331,8 +331,7 @@ if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
 #define	OPNMASK   0x007F
 
 /* operator priority is a highest byte (even: r->l, odd: l->r grouping)
- * For builtins it has different meaning: n n s3 s2 s1 v3 v2 v1,
- * n - min. number of args, vN - resolve Nth arg to var, sN - resolve to string
+ * (for builtins it has different meaning)
  */
 #undef P
 #undef PRIMASK
@@ -430,8 +429,6 @@ static const char tokenlist[] ALIGN1 =
 	/* compiler adds trailing "\0" */
 	;
 
-#define OC_B  OC_BUILTIN
-
 static const uint32_t tokeninfo[] ALIGN4 = {
 	0,
 	0,
@@ -464,20 +461,43 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 	OC_RETURN|Vx, OC_EXIT|Nx,
 	ST_WHILE,
 	0, /* else */
-	OC_B|B_an|P(0x83), OC_B|B_co|P(0x41), OC_B|B_ls|P(0x83), OC_B|B_or|P(0x83),
-	OC_B|B_rs|P(0x83), OC_B|B_xo|P(0x83),
-	OC_FBLTIN|Sx|F_cl, OC_FBLTIN|Sx|F_sy, OC_FBLTIN|Sx|F_ff, OC_B|B_a2|P(0x83),
-	OC_FBLTIN|Nx|F_co, OC_FBLTIN|Nx|F_ex, OC_FBLTIN|Nx|F_in, OC_FBLTIN|Nx|F_lg,
-	OC_FBLTIN|F_rn,    OC_FBLTIN|Nx|F_si, OC_FBLTIN|Nx|F_sq, OC_FBLTIN|Nx|F_sr,
-	OC_B|B_ge|P(0xd6), OC_B|B_gs|P(0xb6), OC_B|B_ix|P(0x9b), /* OC_FBLTIN|Sx|F_le, was here */
-	OC_B|B_ma|P(0x89), OC_B|B_sp|P(0x8b), OC_SPRINTF,        OC_B|B_su|P(0xb6),
-	OC_B|B_ss|P(0x8f), OC_FBLTIN|F_ti,    OC_B|B_ti|P(0x0b), OC_B|B_mt|P(0x0b),
-	OC_B|B_lo|P(0x49), OC_B|B_up|P(0x49),
-	OC_FBLTIN|Sx|F_le, /* TC_LENGTH */
-	OC_GETLINE|SV|P(0),
-	0,                 0,
-	0,
-	0 /* TC_END */
+// OC_B's are builtins with enforced minimum number of arguments (two upper bits).
+//  Highest byte bit pattern: nn s3s2s1 v3v2v1
+//  nn - min. number of args, sN - resolve Nth arg to string, vN - resolve to var
+// OC_FBLTIN's are builtins with one optional argument,
+//  TODO: enforce exactly one arg for: system, close, cos, sin, exp, int, log, sqrt
+//        zero args for: rand systime
+//  Do have one optional arg: fflush, srand, length
+#define OC_B  OC_BUILTIN
+#define A1     P(0x40) /*one arg*/
+#define A2     P(0x80) /*two args*/
+#define A3     P(0xc0) /*three args*/
+#define __v    P(1)
+#define _vv    P(3)
+#define __s__v P(9)
+#define __s_vv P(0x0b)
+#define __svvv P(0x0f)
+#define _ss_vv P(0x1b)
+#define _s_vv_ P(0x16)
+#define ss_vv_ P(0x36)
+	OC_B|B_an|_vv|A2,    OC_B|B_co|__v|A1,    OC_B|B_ls|_vv|A2,  OC_B|B_or|_vv|A2,    // and    compl   lshift   or
+	OC_B|B_rs|_vv|A2,    OC_B|B_xo|_vv|A2,                                            // rshift xor
+	OC_FBLTIN|Sx|F_cl,   OC_FBLTIN|Sx|F_sy,   OC_FBLTIN|Sx|F_ff, OC_B|B_a2|_vv|A2,    // close  system  fflush   atan2
+	OC_FBLTIN|Nx|F_co,   OC_FBLTIN|Nx|F_ex,   OC_FBLTIN|Nx|F_in, OC_FBLTIN|Nx|F_lg,   // cos    exp     int      log
+	OC_FBLTIN|F_rn,      OC_FBLTIN|Nx|F_si,   OC_FBLTIN|Nx|F_sq, OC_FBLTIN|Nx|F_sr,   // rand   sin     sqrt     srand
+	OC_B|B_ge|_s_vv_|A3, OC_B|B_gs|ss_vv_|A2, OC_B|B_ix|_ss_vv|A2,                    // gensub gsub    index  /*length was here*/
+	OC_B|B_ma|__s__v|A2, OC_B|B_sp|__s_vv|A2, OC_SPRINTF,        OC_B|B_su|ss_vv_|A2, // match  split   sprintf  sub
+	OC_B|B_ss|__svvv|A2, OC_FBLTIN|F_ti,      OC_B|B_ti|__s_vv,  OC_B|B_mt|__s_vv,    // substr systime strftime mktime
+	OC_B|B_lo|__s__v|A1, OC_B|B_up|__s__v|A1,                                         // tolower toupper
+	OC_FBLTIN|Sx|F_le,   // length
+	OC_GETLINE|SV,       // getline
+	0, 0, // func function
+	0, // BEGIN
+	0  // END
+#undef A1
+#undef A2
+#undef A3
+#undef OC_B
 };
 
 /* internal variable names and their initial values       */
@@ -1630,6 +1650,7 @@ static void chain_group(void)
 		debug_printf_parse("%s: OC_BREAK\n", __func__);
 		n = chain_node(OC_EXEC);
 		n->a.n = break_ptr;
+//TODO: if break_ptr is NULL, syntax error (not in the loop)?
 		chain_expr(t_info);
 		break;
 
@@ -1637,6 +1658,7 @@ static void chain_group(void)
 		debug_printf_parse("%s: OC_CONTINUE\n", __func__);
 		n = chain_node(OC_EXEC);
 		n->a.n = continue_ptr;
+//TODO: if continue_ptr is NULL, syntax error (not in the loop)?
 		chain_expr(t_info);
 		break;
 
@@ -1799,8 +1821,8 @@ static regex_t *as_regex(node *op, regex_t *preg)
 		return icase ? op->r.ire : op->l.re;
 	}
 
-#define TMPVAR (&G.as_regex__tmpvar)
 	//tmpvar = nvalloc(1);
+#define TMPVAR (&G.as_regex__tmpvar)
 	// We use a single "static" tmpvar (instead of on-stack or malloced one)
 	// to decrease memory consumption in deeply-recursive awk programs.
 	// The rule to work safely is to never call evaluate() while our static
@@ -2720,8 +2742,6 @@ static var *evaluate(node *op, var *res)
 #define sreg   (G.evaluate__sreg)
 
 	var *tmpvars;
-#define TMPVAR0 (tmpvars)
-#define TMPVAR1 (tmpvars + 1)
 
 	if (!op)
 		return setvar_s(res, NULL);
@@ -2729,6 +2749,8 @@ static var *evaluate(node *op, var *res)
 	debug_printf_eval("entered %s()\n", __func__);
 
 	tmpvars = nvalloc(2);
+#define TMPVAR0 (tmpvars)
+#define TMPVAR1 (tmpvars + 1)
 
 	while (op) {
 		struct {
@@ -3166,7 +3188,7 @@ static var *evaluate(node *op, var *res)
 				rstream *rsm;
 				int err = 0;
 				rsm = (rstream *)hash_search(fdhash, L.s);
-				debug_printf_eval("OC_FBLTIN F_cl rsm:%p\n", rsm);
+				debug_printf_eval("OC_FBLTIN close: op1:%p s:'%s' rsm:%p\n", op1, L.s, rsm);
 				if (rsm) {
 					debug_printf_eval("OC_FBLTIN F_cl "
 						"rsm->is_pipe:%d, ->F:%p\n",
@@ -3177,6 +3199,11 @@ static var *evaluate(node *op, var *res)
 					 */
 					if (rsm->F)
 						err = rsm->is_pipe ? pclose(rsm->F) : fclose(rsm->F);
+//TODO: fix this case:
+// $ awk 'BEGIN { print close(""); print ERRNO }'
+// -1
+// close of redirection that was never opened
+// (we print 0, 0)
 					free(rsm->buffer);
 					hash_remove(fdhash, L.s);
 				}
