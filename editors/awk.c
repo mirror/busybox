@@ -1549,29 +1549,35 @@ static node *chain_loop(node *nn)
 	return n;
 }
 
+static void chain_until_rbrace(void)
+{
+	uint32_t tc;
+	while ((tc = next_token(TS_GRPSEQ | TC_RBRACE)) != TC_RBRACE) {
+		debug_printf_parse("%s: !TC_RBRACE\n", __func__);
+		if (tc == TC_NEWLINE)
+			continue;
+		rollback_token();
+		chain_group();
+	}
+	debug_printf_parse("%s: TC_RBRACE\n", __func__);
+}
+
 /* parse group and attach it to chain */
 static void chain_group(void)
 {
-	uint32_t c;
+	uint32_t tc;
 	node *n, *n2, *n3;
 
 	do {
-		c = next_token(TS_GRPSEQ);
-	} while (c & TC_NEWLINE);
+		tc = next_token(TS_GRPSEQ);
+	} while (tc == TC_NEWLINE);
 
-	if (c & TC_LBRACE) {
+	if (tc == TC_LBRACE) {
 		debug_printf_parse("%s: TC_LBRACE\n", __func__);
-		while ((c = next_token(TS_GRPSEQ | TC_RBRACE)) != TC_RBRACE) {
-			debug_printf_parse("%s: !TC_RBRACE\n", __func__);
-			if (c & TC_NEWLINE)
-				continue;
-			rollback_token();
-			chain_group();
-		}
-		debug_printf_parse("%s: TC_RBRACE\n", __func__);
+		chain_until_rbrace();
 		return;
 	}
-	if (c & (TS_OPSEQ | TS_OPTERM)) {
+	if (tc & (TS_OPSEQ | TS_OPTERM)) {
 		debug_printf_parse("%s: TS_OPSEQ | TS_OPTERM\n", __func__);
 		rollback_token();
 		chain_expr(OC_EXEC | Vx);
@@ -1675,37 +1681,48 @@ static void chain_group(void)
 
 static void parse_program(char *p)
 {
-	uint32_t tclass;
-	node *cn;
-	func *f;
-	var *v;
-
 	debug_printf_parse("%s()\n", __func__);
 
 	g_pos = p;
 	t_lineno = 1;
-	while ((tclass = next_token(TC_EOF | TS_OPSEQ | TC_LBRACE |
-			TS_OPTERM | TC_BEGIN | TC_END | TC_FUNCDECL)) != TC_EOF) {
+	for (;;) {
+		uint32_t tclass;
 
-		if (tclass & TS_OPTERM) {
+		tclass = next_token(TC_EOF | TS_OPSEQ | TC_LBRACE |
+			TS_OPTERM | TC_BEGIN | TC_END | TC_FUNCDECL);
+
+		if (tclass == TC_EOF) {
+			debug_printf_parse("%s: TC_EOF\n", __func__);
+			break;
+		}
+		if (tclass & TS_OPTERM) { /* ; or <newline> */
 			debug_printf_parse("%s: TS_OPTERM\n", __func__);
+//NB: gawk allows many newlines, but does not allow more than one semicolon:
+//  BEGIN {...}<newline>;<newline>;
+//would complain "each rule must have a pattern or an action part".
+//Same message for
+//  ; BEGIN {...}
 			continue;
 		}
-
-		seq = &mainseq;
-		if (tclass & TC_BEGIN) {
+		if (tclass == TC_BEGIN) {
 			debug_printf_parse("%s: TC_BEGIN\n", __func__);
 			seq = &beginseq;
-//TODO: ensure there is no newline between BEGIN and {
-//next_token(TC_LBRACE); rollback_token();
-			chain_group();
-		} else if (tclass & TC_END) {
+			/* ensure there is no newline between BEGIN and { */
+			next_token(TC_LBRACE);
+			chain_until_rbrace();
+			continue;
+		}
+		if (tclass == TC_END) {
 			debug_printf_parse("%s: TC_END\n", __func__);
 			seq = &endseq;
-//TODO: ensure there is no newline between END and {
-//next_token(TC_LBRACE); rollback_token();
-			chain_group();
-		} else if (tclass & TC_FUNCDECL) {
+			/* ensure there is no newline between END and { */
+			next_token(TC_LBRACE);
+			chain_until_rbrace();
+			continue;
+		}
+		if (tclass == TC_FUNCDECL) {
+			func *f;
+
 			debug_printf_parse("%s: TC_FUNCDECL\n", __func__);
 			next_token(TC_FUNCTION);
 			f = newfunc(t_string);
@@ -1716,6 +1733,7 @@ static void parse_program(char *p)
 			//f->nargs = 0; - already is
 			/* func arg list: comma sep list of args, and a close paren */
 			for (;;) {
+				var *v;
 				if (next_token(TC_VARIABLE | TC_RPAREN) == TC_RPAREN) {
 					if (f->nargs == 0)
 						break; /* func() is ok */
@@ -1730,31 +1748,37 @@ static void parse_program(char *p)
 				/* it was a comma, we ate it */
 			}
 			seq = &f->body;
-//TODO: ensure there is { after "func F(...)" - but newlines are allowed
-//while (next_token(TC_LBRACE | TC_NEWLINE) == TC_NEWLINE) continue; rollback_token();
-			chain_group();
+			/* ensure there is { after "func F(...)" - but newlines are allowed */
+			while (next_token(TC_LBRACE | TC_NEWLINE) == TC_NEWLINE)
+				continue;
+			chain_until_rbrace();
 			hash_clear(ahash);
-		} else if (tclass & TS_OPSEQ) {
+			continue;
+		}
+		seq = &mainseq;
+		if (tclass & TS_OPSEQ) {
+			node *cn;
+
 			debug_printf_parse("%s: TS_OPSEQ\n", __func__);
 			rollback_token();
 			cn = chain_node(OC_TEST);
 			cn->l.n = parse_expr(TS_OPTERM | TC_EOF | TC_LBRACE);
-			if (t_tclass & TC_LBRACE) {
+			if (t_tclass == TC_LBRACE) {
 				debug_printf_parse("%s: TC_LBRACE\n", __func__);
 				rollback_token();
 				chain_group();
 			} else {
+				/* no action, assume default "{ print }" */
 				debug_printf_parse("%s: !TC_LBRACE\n", __func__);
 				chain_node(OC_PRINT);
 			}
 			cn->r.n = mainseq.last;
-		} else /* if (tclass & TC_LBRACE) */ {
-			debug_printf_parse("%s: TC_LBRACE(?)\n", __func__);
-			rollback_token();
-			chain_group();
+			continue;
 		}
+		/* tclass == TC_LBRACE */
+		debug_printf_parse("%s: TC_LBRACE(?)\n", __func__);
+		chain_until_rbrace();
 	}
-	debug_printf_parse("%s: TC_EOF\n", __func__);
 }
 
 
