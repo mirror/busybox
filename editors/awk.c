@@ -464,11 +464,12 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 // OC_B's are builtins with enforced minimum number of arguments (two upper bits).
 //  Highest byte bit pattern: nn s3s2s1 v3v2v1
 //  nn - min. number of args, sN - resolve Nth arg to string, vN - resolve to var
-// OC_FBLTIN's are builtins with zero or one argument.
+// OC_F's are builtins with zero or one argument.
 //  |Rx| enforces that arg is present for: system, close, cos, sin, exp, int, log, sqrt.
 //  Check for no args is present in builtins' code (not in this table): rand, systime.
 //  Have one _optional_ arg: fflush, srand, length
 #define OC_B   OC_BUILTIN
+#define OC_F   OC_FBLTIN
 #define A1     P(0x40) /*one arg*/
 #define A2     P(0x80) /*two args*/
 #define A3     P(0xc0) /*three args*/
@@ -480,17 +481,17 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 #define _ss_vv P(0x1b)
 #define _s_vv_ P(0x16)
 #define ss_vv_ P(0x36)
-	OC_B|B_an|_vv|A2,    OC_B|B_co|__v|A1,    OC_B|B_ls|_vv|A2,    OC_B|B_or|_vv|A2,    // and    compl   lshift   or
-	OC_B|B_rs|_vv|A2,    OC_B|B_xo|_vv|A2,                                              // rshift xor
-	OC_FBLTIN|Sx|Rx|F_cl,OC_FBLTIN|Sx|Rx|F_sy,OC_FBLTIN|Sx|F_ff,   OC_B|B_a2|_vv|A2,    // close  system  fflush   atan2
-	OC_FBLTIN|Nx|Rx|F_co,OC_FBLTIN|Nx|Rx|F_ex,OC_FBLTIN|Nx|Rx|F_in,OC_FBLTIN|Nx|Rx|F_lg,// cos    exp     int      log
-	OC_FBLTIN|F_rn,      OC_FBLTIN|Nx|Rx|F_si,OC_FBLTIN|Nx|Rx|F_sq,OC_FBLTIN|Nx|F_sr,   // rand   sin     sqrt     srand
-	OC_B|B_ge|_s_vv_|A3, OC_B|B_gs|ss_vv_|A2, OC_B|B_ix|_ss_vv|A2,                      // gensub gsub    index  /*length was here*/
-	OC_B|B_ma|__s__v|A2, OC_B|B_sp|__s_vv|A2, OC_SPRINTF,          OC_B|B_su|ss_vv_|A2, // match  split   sprintf  sub
-	OC_B|B_ss|__svvv|A2, OC_FBLTIN|F_ti,      OC_B|B_ti|__s_vv,    OC_B|B_mt|__s_vv,    // substr systime strftime mktime
-	OC_B|B_lo|__s__v|A1, OC_B|B_up|__s__v|A1,                                           // tolower toupper
-	OC_FBLTIN|Sx|F_le,   // length
-	OC_GETLINE|SV,       // getline
+	OC_B|B_an|_vv|A2,   OC_B|B_co|__v|A1,   OC_B|B_ls|_vv|A2,   OC_B|B_or|_vv|A2,   // and    compl   lshift   or
+	OC_B|B_rs|_vv|A2,   OC_B|B_xo|_vv|A2,                                           // rshift xor
+	OC_F|F_cl|Sx|Rx,    OC_F|F_sy|Sx|Rx,    OC_F|F_ff|Sx,       OC_B|B_a2|_vv|A2,   // close  system  fflush   atan2
+	OC_F|F_co|Nx|Rx,    OC_F|F_ex|Nx|Rx,    OC_F|F_in|Nx|Rx,    OC_F|F_lg|Nx|Rx,    // cos    exp     int      log
+	OC_F|F_rn,          OC_F|F_si|Nx|Rx,    OC_F|F_sq|Nx|Rx,    OC_F|F_sr|Nx,       // rand   sin     sqrt     srand
+	OC_B|B_ge|_s_vv_|A3,OC_B|B_gs|ss_vv_|A2,OC_B|B_ix|_ss_vv|A2,                    // gensub gsub    index  /*length was here*/
+	OC_B|B_ma|__s__v|A2,OC_B|B_sp|__s_vv|A2,OC_SPRINTF,         OC_B|B_su|ss_vv_|A2,// match  split   sprintf  sub
+	OC_B|B_ss|__svvv|A2,OC_F|F_ti,          OC_B|B_ti|__s_vv,   OC_B|B_mt|__s_vv,   // substr systime strftime mktime
+	OC_B|B_lo|__s__v|A1,OC_B|B_up|__s__v|A1,                                        // tolower toupper
+	OC_F|F_le|Sx,   // length
+	OC_GETLINE|SV,  // getline
 	0, 0, // func function
 	0, // BEGIN
 	0  // END
@@ -498,6 +499,7 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 #undef A2
 #undef A3
 #undef OC_B
+#undef OC_F
 };
 
 /* internal variable names and their initial values       */
