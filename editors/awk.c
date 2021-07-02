@@ -578,6 +578,8 @@ struct globals2 {
 	rstream next_input_file__rsm;
 	smallint next_input_file__files_happen;
 
+	smalluint exitcode;
+
 	unsigned evaluate__seed;
 	var *evaluate__fnargs;
 	regex_t evaluate__sreg;
@@ -655,7 +657,7 @@ static const char EMSG_UNDEF_FUNC[] ALIGN1 = "Call to undefined function";
 static const char EMSG_NO_MATH[] ALIGN1 = "Math support is not compiled in";
 static const char EMSG_NEGATIVE_FIELD[] ALIGN1 = "Access to negative field";
 
-static int awk_exit(int) NORETURN;
+static int awk_exit(void) NORETURN;
 
 static void syntax_error(const char *message) NORETURN;
 static void syntax_error(const char *message)
@@ -2779,14 +2781,14 @@ static var *evaluate(node *op, var *res)
 			if ((opinfo & OF_REQUIRED) && !op1)
 				syntax_error(EMSG_TOO_FEW_ARGS);
 			L.v = evaluate(op1, TMPVAR0);
-		}
-		if (opinfo & OF_STR1) {
-			L.s = getvar_s(L.v);
-			debug_printf_eval("L.s:'%s'\n", L.s);
-		}
-		if (opinfo & OF_NUM1) {
-			L_d = getvar_i(L.v);
-			debug_printf_eval("L_d:%f\n", L_d);
+			if (opinfo & OF_STR1) {
+				L.s = getvar_s(L.v);
+				debug_printf_eval("L.s:'%s'\n", L.s);
+			}
+			if (opinfo & OF_NUM1) {
+				L_d = getvar_i(L.v);
+				debug_printf_eval("L_d:%f\n", L_d);
+			}
 		}
 		/* NB: Must get string/numeric values of L (done above)
 		 * _before_ evaluate()'ing R.v: if both L and R are $NNNs,
@@ -2799,10 +2801,10 @@ static var *evaluate(node *op, var *res)
 			R.v = evaluate(op->r.n, TMPVAR1);
 			//TODO: L.v may be invalid now, set L.v to NULL to catch bugs?
 			//L.v = NULL;
-		}
-		if (opinfo & OF_STR2) {
-			R.s = getvar_s(R.v);
-			debug_printf_eval("R.s:'%s'\n", R.s);
+			if (opinfo & OF_STR2) {
+				R.s = getvar_s(R.v);
+				debug_printf_eval("R.s:'%s'\n", R.s);
+			}
 		}
 
 		debug_printf_eval("switch(0x%x)\n", XC(opinfo & OPCLSMASK));
@@ -2955,7 +2957,9 @@ static var *evaluate(node *op, var *res)
 
 		case XC( OC_EXIT ):
 			debug_printf_eval("EXIT\n");
-			awk_exit(L_d);
+			if (op1)
+				G.exitcode = (int)L_d;
+			awk_exit();
 
 		/* -- recursive node type -- */
 
@@ -3414,7 +3418,7 @@ static var *evaluate(node *op, var *res)
 
 /* -------- main & co. -------- */
 
-static int awk_exit(int r)
+static int awk_exit(void)
 {
 	unsigned i;
 
@@ -3435,7 +3439,7 @@ static int awk_exit(int r)
 		}
 	}
 
-	exit(r);
+	exit(G.exitcode);
 }
 
 int awk_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -3560,7 +3564,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 
 	evaluate(beginseq.first, &G.main__tmpvar);
 	if (!mainseq.first && !endseq.first)
-		awk_exit(EXIT_SUCCESS);
+		awk_exit();
 
 	/* input file could already be opened in BEGIN block */
 	if (!iF)
@@ -3587,6 +3591,6 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 		iF = next_input_file();
 	}
 
-	awk_exit(EXIT_SUCCESS);
+	awk_exit();
 	/*return 0;*/
 }

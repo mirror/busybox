@@ -445,4 +445,9 @@ testing 'awk $NF is empty' \
 	'' \
 	'a=====123='
 
+testing "awk exit N propagates through END's exit" \
+	"awk 'BEGIN { exit 42 } END { exit }'; echo \$?" \
+	"42\n" \
+	'' ''
+
 exit $FAILCOUNT
