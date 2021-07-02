@@ -562,6 +562,8 @@ struct globals2 {
 	var ptest__tmpvar;
 	var awk_printf__tmpvar;
 	var as_regex__tmpvar;
+	var exit__tmpvar;
+	var main__tmpvar;
 
 	tsplitter exec_builtin__tspl;
 
@@ -636,11 +638,6 @@ static void syntax_error(const char *message) NORETURN;
 static void syntax_error(const char *message)
 {
 	bb_error_msg_and_die("%s:%i: %s", g_progname, g_lineno, message);
-}
-
-static void zero_out_var(var *vp)
-{
-	memset(vp, 0, sizeof(*vp));
 }
 
 /* ---- hash stuff ---- */
@@ -3372,11 +3369,9 @@ static int awk_exit(int r)
 	unsigned i;
 
 	if (!exiting) {
-		var tv;
 		exiting = TRUE;
 		nextrec = FALSE;
-		zero_out_var(&tv);
-		evaluate(endseq.first, &tv);
+		evaluate(endseq.first, &G.exit__tmpvar);
 	}
 
 	/* waiting for children */
@@ -3404,7 +3399,6 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	llist_t *list_e = NULL;
 #endif
 	int i;
-	var tv;
 
 	INIT_G();
 
@@ -3514,8 +3508,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 	newfile("/dev/stdout")->F = stdout;
 	newfile("/dev/stderr")->F = stderr;
 
-	zero_out_var(&tv);
-	evaluate(beginseq.first, &tv);
+	evaluate(beginseq.first, &G.main__tmpvar);
 	if (!mainseq.first && !endseq.first)
 		awk_exit(EXIT_SUCCESS);
 
@@ -3532,7 +3525,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 			nextrec = FALSE;
 			incvar(intvar[NR]);
 			incvar(intvar[FNR]);
-			evaluate(mainseq.first, &tv);
+			evaluate(mainseq.first, &G.main__tmpvar);
 
 			if (nextfile)
 				break;
