@@ -909,7 +909,7 @@ static int fmt_num(char *b, int size, const char *format, double n, int int_as_i
 		do { c = *s; } while (c && *++s);
 		if (strchr("diouxX", c)) {
 			r = snprintf(b, size, format, (int)n);
-		} else if (strchr("eEfgG", c)) {
+		} else if (strchr("eEfFgGaA", c)) {
 			r = snprintf(b, size, format, n);
 		} else {
 			syntax_error(EMSG_INV_FMT);
