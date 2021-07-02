@@ -619,18 +619,6 @@ struct globals2 {
 	G.evaluate__seed = 1; \
 } while (0)
 
-
-/* function prototypes */
-static void handle_special(var *);
-static node *parse_expr(uint32_t);
-static void chain_group(void);
-static var *evaluate(node *, var *);
-static rstream *next_input_file(void);
-static int fmt_num(char *, int, const char *, double, int);
-static int awk_exit(int) NORETURN;
-
-/* ---- error handling ---- */
-
 static const char EMSG_UNEXP_EOS[] ALIGN1 = "Unexpected end of string";
 static const char EMSG_UNEXP_TOKEN[] ALIGN1 = "Unexpected token";
 static const char EMSG_DIV_BY_ZERO[] ALIGN1 = "Division by zero";
@@ -642,15 +630,17 @@ static const char EMSG_UNDEF_FUNC[] ALIGN1 = "Call to undefined function";
 static const char EMSG_NO_MATH[] ALIGN1 = "Math support is not compiled in";
 static const char EMSG_NEGATIVE_FIELD[] ALIGN1 = "Access to negative field";
 
-static void zero_out_var(var *vp)
-{
-	memset(vp, 0, sizeof(*vp));
-}
+static int awk_exit(int) NORETURN;
 
 static void syntax_error(const char *message) NORETURN;
 static void syntax_error(const char *message)
 {
 	bb_error_msg_and_die("%s:%i: %s", g_progname, g_lineno, message);
+}
+
+static void zero_out_var(var *vp)
+{
+	memset(vp, 0, sizeof(*vp));
 }
 
 /* ---- hash stuff ---- */
@@ -885,10 +875,29 @@ static double my_strtod(char **pp)
 
 /* -------- working with variables (set/get/copy/etc) -------- */
 
-static xhash *iamarray(var *v)
+static int fmt_num(char *b, int size, const char *format, double n, int int_as_int)
 {
-	var *a = v;
+	int r = 0;
+	char c;
+	const char *s = format;
 
+	if (int_as_int && n == (long long)n) {
+		r = snprintf(b, size, "%lld", (long long)n);
+	} else {
+		do { c = *s; } while (c && *++s);
+		if (strchr("diouxX", c)) {
+			r = snprintf(b, size, format, (int)n);
+		} else if (strchr("eEfgG", c)) {
+			r = snprintf(b, size, format, n);
+		} else {
+			syntax_error(EMSG_INV_FMT);
+		}
+	}
+	return r;
+}
+
+static xhash *iamarray(var *a)
+{
 	while (a->type & VF_CHILD)
 		a = a->x.parent;
 
@@ -912,6 +921,8 @@ static var *clrvar(var *v)
 	v->string = NULL;
 	return v;
 }
+
+static void handle_special(var *);
 
 /* assign string value to variable */
 static var *setvar_p(var *v, char *value)
@@ -1284,6 +1295,8 @@ static void mk_re_node(const char *s, node *n, regex_t *re)
 	xregcomp(re + 1, s, REG_EXTENDED | REG_ICASE);
 }
 
+static node *parse_expr(uint32_t);
+
 static node *parse_lrparen_list(void)
 {
 	next_token(TC_LPAREN);
@@ -1487,6 +1500,8 @@ static void chain_expr(uint32_t info)
 	if (t_tclass & TC_GRPTERM)
 		rollback_token();
 }
+
+static void chain_group(void);
 
 static node *chain_loop(node *nn)
 {
@@ -1769,6 +1784,8 @@ static node *mk_splitter(const char *s, tsplitter *spl)
 
 	return n;
 }
+
+static var *evaluate(node *, var *);
 
 /* Use node as a regular expression. Supplied with node ptr and regex_t
  * storage space. Return ptr to regex (if result points to preg, it should
@@ -2222,27 +2239,6 @@ static int awk_getline(rstream *rsm, var *v)
 	return r;
 }
 
-static int fmt_num(char *b, int size, const char *format, double n, int int_as_int)
-{
-	int r = 0;
-	char c;
-	const char *s = format;
-
-	if (int_as_int && n == (long long)n) {
-		r = snprintf(b, size, "%lld", (long long)n);
-	} else {
-		do { c = *s; } while (c && *++s);
-		if (strchr("diouxX", c)) {
-			r = snprintf(b, size, format, (int)n);
-		} else if (strchr("eEfgG", c)) {
-			r = snprintf(b, size, format, n);
-		} else {
-			syntax_error(EMSG_INV_FMT);
-		}
-	}
-	return r;
-}
-
 /* formatted output into an allocated buffer, return ptr to buffer */
 #if !ENABLE_FEATURE_AWK_GNU_EXTENSIONS
 # define awk_printf(a, b) awk_printf(a)
@@ -2306,7 +2302,7 @@ static char *awk_printf(node *n, int *len)
 	}
 
 	free(fmt);
-//	nvfree(tmpvar, 1);
+	//nvfree(tmpvar, 1);
 #undef TMPVAR
 
 	b = xrealloc(b, i + 1);
@@ -2650,6 +2646,64 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 
 	return res;
 #undef tspl
+}
+
+/* if expr looks like "var=value", perform assignment and return 1,
+ * otherwise return 0 */
+static int is_assignment(const char *expr)
+{
+	char *exprc, *val;
+
+	if (!isalnum_(*expr) || (val = strchr(expr, '=')) == NULL) {
+		return FALSE;
+	}
+
+	exprc = xstrdup(expr);
+	val = exprc + (val - expr);
+	*val++ = '\0';
+
+	unescape_string_in_place(val);
+	setvar_u(newvar(exprc), val);
+	free(exprc);
+	return TRUE;
+}
+
+/* switch to next input file */
+static rstream *next_input_file(void)
+{
+#define rsm          (G.next_input_file__rsm)
+#define files_happen (G.next_input_file__files_happen)
+
+	FILE *F;
+	const char *fname, *ind;
+
+	if (rsm.F)
+		fclose(rsm.F);
+	rsm.F = NULL;
+	rsm.pos = rsm.adv = 0;
+
+	for (;;) {
+		if (getvar_i(intvar[ARGIND])+1 >= getvar_i(intvar[ARGC])) {
+			if (files_happen)
+				return NULL;
+			fname = "-";
+			F = stdin;
+			break;
+		}
+		ind = getvar_s(incvar(intvar[ARGIND]));
+		fname = getvar_s(findvar(iamarray(intvar[ARGV]), ind));
+		if (fname && *fname && !is_assignment(fname)) {
+			F = xfopen_stdin(fname);
+			break;
+		}
+	}
+
+	files_happen = TRUE;
+	setvar_s(intvar[FILENAME], fname);
+	rsm.F = F;
+	return &rsm;
+#undef rsm
+#undef files_happen
 }
 
 /*
@@ -3336,64 +3390,6 @@ static int awk_exit(int r)
 	}
 
 	exit(r);
-}
-
-/* if expr looks like "var=value", perform assignment and return 1,
- * otherwise return 0 */
-static int is_assignment(const char *expr)
-{
-	char *exprc, *val;
-
-	if (!isalnum_(*expr) || (val = strchr(expr, '=')) == NULL) {
-		return FALSE;
-	}
-
-	exprc = xstrdup(expr);
-	val = exprc + (val - expr);
-	*val++ = '\0';
-
-	unescape_string_in_place(val);
-	setvar_u(newvar(exprc), val);
-	free(exprc);
-	return TRUE;
-}
-
-/* switch to next input file */
-static rstream *next_input_file(void)
-{
-#define rsm          (G.next_input_file__rsm)
-#define files_happen (G.next_input_file__files_happen)
-
-	FILE *F;
-	const char *fname, *ind;
-
-	if (rsm.F)
-		fclose(rsm.F);
-	rsm.F = NULL;
-	rsm.pos = rsm.adv = 0;
-
-	for (;;) {
-		if (getvar_i(intvar[ARGIND])+1 >= getvar_i(intvar[ARGC])) {
-			if (files_happen)
-				return NULL;
-			fname = "-";
-			F = stdin;
-			break;
-		}
-		ind = getvar_s(incvar(intvar[ARGIND]));
-		fname = getvar_s(findvar(iamarray(intvar[ARGV]), ind));
-		if (fname && *fname && !is_assignment(fname)) {
-			F = xfopen_stdin(fname);
-			break;
-		}
-	}
-
-	files_happen = TRUE;
-	setvar_s(intvar[FILENAME], fname);
-	rsm.F = F;
-	return &rsm;
-#undef rsm
-#undef files_happen
 }
 
 int awk_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
