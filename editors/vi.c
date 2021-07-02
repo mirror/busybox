@@ -2378,9 +2378,9 @@ static char *char_search(char *p, const char *pat, int dir_and_range)
 	char *q;
 	int i, size, range, start;
 
-	re_syntax_options = RE_SYNTAX_POSIX_EXTENDED;
+	re_syntax_options = RE_SYNTAX_POSIX_BASIC & (~RE_DOT_NEWLINE);
 	if (ignorecase)
-		re_syntax_options = RE_SYNTAX_POSIX_EXTENDED | RE_ICASE;
+		re_syntax_options |= RE_ICASE;
 
 	memset(&preg, 0, sizeof(preg));
 	err = re_compile_pattern(pat, strlen(pat), &preg);
