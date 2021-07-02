@@ -283,7 +283,6 @@ if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
 
 #define	TS_LVALUE   (TC_VARIABLE | TC_ARRAY)
 #define	TS_STATEMNT (TC_STATX | TC_WHILE)
-#define	TS_OPTERM   (TC_SEMICOL | TC_NEWLINE)
 
 /* word tokens, cannot mean something else if not expected */
 #define	TS_WORD     (TC_IN | TS_STATEMNT | TC_ELSE \
@@ -291,13 +290,14 @@ if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
                     | TC_FUNCDECL | TC_BEGIN | TC_END)
 
 /* discard newlines after these */
-#define	TS_NOTERM   (TC_COMMA | TC_LBRACE | TC_RBRACE \
-                    | TS_BINOP | TS_OPTERM)
+#define	TS_NOTERM   (TS_BINOP | TC_COMMA | TC_LBRACE | TC_RBRACE \
+                    | TC_SEMICOL | TC_NEWLINE)
 
 /* what can expression begin with */
 #define	TS_OPSEQ    (TS_OPERAND | TS_UOPPRE | TC_REGEXP)
 /* what can group begin with */
-#define	TS_GRPSEQ   (TS_OPSEQ | TS_OPTERM | TS_STATEMNT | TC_LBRACE)
+#define	TS_GRPSEQ   (TS_OPSEQ | TS_STATEMNT \
+                    | TC_SEMICOL | TC_NEWLINE | TC_LBRACE)
 
 /* if previous token class is CONCAT_L and next is CONCAT_R, concatenation */
 /* operator is inserted between them */
@@ -642,7 +642,7 @@ struct globals2 {
 #define g_buf        (G.g_buf       )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS((char*)xzalloc(sizeof(G1)+sizeof(G)) + sizeof(G1)); \
-	t_tclass = TS_OPTERM; \
+	t_tclass = TC_NEWLINE; \
 	G.evaluate__seed = 1; \
 } while (0)
 
@@ -1090,7 +1090,7 @@ static uint32_t next_token(uint32_t expected)
 	const uint32_t *ti;
 	uint32_t tc, last_token_class;
 
-	last_token_class = t_tclass; /* t_tclass is initialized to TS_OPTERM */
+	last_token_class = t_tclass; /* t_tclass is initialized to TC_NEWLINE */
 
 	debug_printf_parse("%s() expected(%x):", __func__, expected);
 	debug_parse_print_tc(expected);
@@ -1470,7 +1470,8 @@ static node *parse_expr(uint32_t term_tc)
 		case TC_LENGTH:
 			debug_printf_parse("%s: TC_LENGTH\n", __func__);
 			tc = next_token(TC_LPAREN /* length(...) */
-				| TS_OPTERM    /* length; (or newline)*/
+				| TC_SEMICOL   /* length; */
+				| TC_NEWLINE   /* length<newline> */
 				| TC_RBRACE    /* length } */
 				| TC_BINOPX    /* length <op> NUM */
 				| TC_COMMA     /* print length, 1 */
@@ -1516,7 +1517,7 @@ static void chain_expr(uint32_t info)
 
 	n = chain_node(info);
 
-	n->l.n = parse_expr(TS_OPTERM | TC_RBRACE);
+	n->l.n = parse_expr(TC_SEMICOL | TC_NEWLINE | TC_RBRACE);
 	if ((info & OF_REQUIRED) && !n->l.n)
 		syntax_error(EMSG_TOO_FEW_ARGS);
 
@@ -1577,8 +1578,8 @@ static void chain_group(void)
 		chain_until_rbrace();
 		return;
 	}
-	if (tc & (TS_OPSEQ | TS_OPTERM)) {
-		debug_printf_parse("%s: TS_OPSEQ | TS_OPTERM\n", __func__);
+	if (tc & (TS_OPSEQ | TC_SEMICOL | TC_NEWLINE)) {
+		debug_printf_parse("%s: TS_OPSEQ | TC_SEMICOL | TC_NEWLINE\n", __func__);
 		rollback_token();
 		chain_expr(OC_EXEC | Vx);
 		return;
@@ -1647,10 +1648,10 @@ static void chain_group(void)
 	case OC_PRINTF:
 		debug_printf_parse("%s: OC_PRINT[F]\n", __func__);
 		n = chain_node(t_info);
-		n->l.n = parse_expr(TS_OPTERM | TC_OUTRDR | TC_RBRACE);
+		n->l.n = parse_expr(TC_SEMICOL | TC_NEWLINE | TC_OUTRDR | TC_RBRACE);
 		if (t_tclass & TC_OUTRDR) {
 			n->info |= t_info;
-			n->r.n = parse_expr(TS_OPTERM | TC_RBRACE);
+			n->r.n = parse_expr(TC_SEMICOL | TC_NEWLINE | TC_RBRACE);
 		}
 		if (t_tclass & TC_RBRACE)
 			rollback_token();
@@ -1689,14 +1690,14 @@ static void parse_program(char *p)
 		uint32_t tclass;
 
 		tclass = next_token(TC_EOF | TS_OPSEQ | TC_LBRACE |
-			TS_OPTERM | TC_BEGIN | TC_END | TC_FUNCDECL);
+			TC_SEMICOL | TC_NEWLINE | TC_BEGIN | TC_END | TC_FUNCDECL);
 
 		if (tclass == TC_EOF) {
 			debug_printf_parse("%s: TC_EOF\n", __func__);
 			break;
 		}
-		if (tclass & TS_OPTERM) { /* ; or <newline> */
-			debug_printf_parse("%s: TS_OPTERM\n", __func__);
+		if (tclass & (TC_SEMICOL | TC_NEWLINE)) {
+			debug_printf_parse("%s: TC_SEMICOL | TC_NEWLINE\n", __func__);
 //NB: gawk allows many newlines, but does not allow more than one semicolon:
 //  BEGIN {...}<newline>;<newline>;
 //would complain "each rule must have a pattern or an action part".
@@ -1762,7 +1763,7 @@ static void parse_program(char *p)
 			debug_printf_parse("%s: TS_OPSEQ\n", __func__);
 			rollback_token();
 			cn = chain_node(OC_TEST);
-			cn->l.n = parse_expr(TS_OPTERM | TC_EOF | TC_LBRACE);
+			cn->l.n = parse_expr(TC_SEMICOL | TC_NEWLINE | TC_EOF | TC_LBRACE);
 			if (t_tclass == TC_LBRACE) {
 				debug_printf_parse("%s: TC_LBRACE\n", __func__);
 				rollback_token();
