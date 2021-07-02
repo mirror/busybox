@@ -1453,10 +1453,11 @@ static node *parse_expr(uint32_t term_tc)
 				| TC_BINOPX    /* length <op> NUM */
 				| TC_COMMA     /* print length, 1 */
 			);
-			rollback_token();
-			if (tc & TC_LPAREN) {
+			if (tc != TC_LPAREN)
+				rollback_token();
+			else {
 				/* It was a "(" token. Handle just like TC_BUILTIN */
-				cn->l.n = parse_lrparen_list();
+				cn->l.n = parse_expr(TC_RPAREN);
 			}
 			break;
 		}
