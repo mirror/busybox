@@ -211,8 +211,8 @@ typedef struct tsplitter_s {
 #define	TC_PIPE		(1 << 9)		/* input redirection pipe | */
 #define	TC_UOPPRE2	(1 << 10)		/* unary prefix operator + - ! */
 #define	TC_ARRTERM	(1 << 11)		/* ] */
-#define	TC_GRPSTART	(1 << 12)		/* { */
-#define	TC_GRPTERM	(1 << 13)		/* } */
+#define	TC_LBRACE	(1 << 12)		/* { */
+#define	TC_RBRACE	(1 << 13)		/* } */
 #define	TC_SEMICOL	(1 << 14)		/* ; */
 #define	TC_NEWLINE	(1 << 15)
 #define	TC_STATX	(1 << 16)		/* ctl statement (for, next...) */
@@ -250,8 +250,8 @@ if ((n) & TC_COMMA   ) debug_printf_parse(" COMMA"   ); \
 if ((n) & TC_PIPE    ) debug_printf_parse(" PIPE"    ); \
 if ((n) & TC_UOPPRE2 ) debug_printf_parse(" UOPPRE2" ); \
 if ((n) & TC_ARRTERM ) debug_printf_parse(" ARRTERM" ); \
-if ((n) & TC_GRPSTART) debug_printf_parse(" GRPSTART"); \
-if ((n) & TC_GRPTERM ) debug_printf_parse(" GRPTERM" ); \
+if ((n) & TC_LBRACE  ) debug_printf_parse(" LBRACE"  ); \
+if ((n) & TC_RBRACE  ) debug_printf_parse(" RBRACE"  ); \
 if ((n) & TC_SEMICOL ) debug_printf_parse(" SEMICOL" ); \
 if ((n) & TC_NEWLINE ) debug_printf_parse(" NEWLINE" ); \
 if ((n) & TC_STATX   ) debug_printf_parse(" STATX"   ); \
@@ -291,13 +291,13 @@ if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
                     | TC_FUNCDECL | TC_BEGIN | TC_END)
 
 /* discard newlines after these */
-#define	TS_NOTERM   (TC_COMMA | TC_GRPSTART | TC_GRPTERM \
+#define	TS_NOTERM   (TC_COMMA | TC_LBRACE | TC_RBRACE \
                     | TS_BINOP | TS_OPTERM)
 
 /* what can expression begin with */
 #define	TS_OPSEQ    (TS_OPERAND | TS_UOPPRE | TC_REGEXP)
 /* what can group begin with */
-#define	TS_GRPSEQ   (TS_OPSEQ | TS_OPTERM | TS_STATEMNT | TC_GRPSTART)
+#define	TS_GRPSEQ   (TS_OPSEQ | TS_OPTERM | TS_STATEMNT | TC_LBRACE)
 
 /* if previous token class is CONCAT_L and next is CONCAT_R, concatenation */
 /* operator is inserted between them */
@@ -402,8 +402,8 @@ static const char tokenlist[] ALIGN1 =
 	"\1|"         NTC                                   /* TC_PIPE */
 	"\1+"         "\1-"         "\1!"       NTC         /* TC_UOPPRE2 */
 	"\1]"         NTC                                   /* TC_ARRTERM */
-	"\1{"         NTC                                   /* TC_GRPSTART */
-	"\1}"         NTC                                   /* TC_GRPTERM */
+	"\1{"         NTC                                   /* TC_LBRACE */
+	"\1}"         NTC                                   /* TC_RBRACE */
 	"\1;"         NTC                                   /* TC_SEMICOL */
 	"\1\n"        NTC                                   /* TC_NEWLINE */
 	"\2if"        "\2do"        "\3for"     "\5break"   /* TC_STATX */
@@ -1471,7 +1471,7 @@ static node *parse_expr(uint32_t term_tc)
 			debug_printf_parse("%s: TC_LENGTH\n", __func__);
 			tc = next_token(TC_LPAREN /* length(...) */
 				| TS_OPTERM    /* length; (or newline)*/
-				| TC_GRPTERM   /* length } */
+				| TC_RBRACE    /* length } */
 				| TC_BINOPX    /* length <op> NUM */
 				| TC_COMMA     /* print length, 1 */
 			);
@@ -1516,11 +1516,11 @@ static void chain_expr(uint32_t info)
 
 	n = chain_node(info);
 
-	n->l.n = parse_expr(TS_OPTERM | TC_GRPTERM);
+	n->l.n = parse_expr(TS_OPTERM | TC_RBRACE);
 	if ((info & OF_REQUIRED) && !n->l.n)
 		syntax_error(EMSG_TOO_FEW_ARGS);
 
-	if (t_tclass & TC_GRPTERM)
+	if (t_tclass & TC_RBRACE)
 		rollback_token();
 }
 
@@ -1559,16 +1559,16 @@ static void chain_group(void)
 		c = next_token(TS_GRPSEQ);
 	} while (c & TC_NEWLINE);
 
-	if (c & TC_GRPSTART) {
-		debug_printf_parse("%s: TC_GRPSTART\n", __func__);
-		while ((c = next_token(TS_GRPSEQ | TC_GRPTERM)) != TC_GRPTERM) {
-			debug_printf_parse("%s: !TC_GRPTERM\n", __func__);
+	if (c & TC_LBRACE) {
+		debug_printf_parse("%s: TC_LBRACE\n", __func__);
+		while ((c = next_token(TS_GRPSEQ | TC_RBRACE)) != TC_RBRACE) {
+			debug_printf_parse("%s: !TC_RBRACE\n", __func__);
 			if (c & TC_NEWLINE)
 				continue;
 			rollback_token();
 			chain_group();
 		}
-		debug_printf_parse("%s: TC_GRPTERM\n", __func__);
+		debug_printf_parse("%s: TC_RBRACE\n", __func__);
 		return;
 	}
 	if (c & (TS_OPSEQ | TS_OPTERM)) {
@@ -1588,7 +1588,7 @@ static void chain_group(void)
 		chain_group();
 		n2 = chain_node(OC_EXEC);
 		n->r.n = seq->last;
-		if (next_token(TS_GRPSEQ | TC_GRPTERM | TC_ELSE) == TC_ELSE) {
+		if (next_token(TS_GRPSEQ | TC_RBRACE | TC_ELSE) == TC_ELSE) {
 			chain_group();
 			n2->a.n = seq->last;
 		} else {
@@ -1641,12 +1641,12 @@ static void chain_group(void)
 	case OC_PRINTF:
 		debug_printf_parse("%s: OC_PRINT[F]\n", __func__);
 		n = chain_node(t_info);
-		n->l.n = parse_expr(TS_OPTERM | TC_OUTRDR | TC_GRPTERM);
+		n->l.n = parse_expr(TS_OPTERM | TC_OUTRDR | TC_RBRACE);
 		if (t_tclass & TC_OUTRDR) {
 			n->info |= t_info;
-			n->r.n = parse_expr(TS_OPTERM | TC_GRPTERM);
+			n->r.n = parse_expr(TS_OPTERM | TC_RBRACE);
 		}
-		if (t_tclass & TC_GRPTERM)
+		if (t_tclass & TC_RBRACE)
 			rollback_token();
 		break;
 
@@ -1684,7 +1684,7 @@ static void parse_program(char *p)
 
 	g_pos = p;
 	t_lineno = 1;
-	while ((tclass = next_token(TC_EOF | TS_OPSEQ | TC_GRPSTART |
+	while ((tclass = next_token(TC_EOF | TS_OPSEQ | TC_LBRACE |
 			TS_OPTERM | TC_BEGIN | TC_END | TC_FUNCDECL)) != TC_EOF) {
 
 		if (tclass & TS_OPTERM) {
@@ -1696,10 +1696,14 @@ static void parse_program(char *p)
 		if (tclass & TC_BEGIN) {
 			debug_printf_parse("%s: TC_BEGIN\n", __func__);
 			seq = &beginseq;
+//TODO: ensure there is no newline between BEGIN and {
+//next_token(TC_LBRACE); rollback_token();
 			chain_group();
 		} else if (tclass & TC_END) {
 			debug_printf_parse("%s: TC_END\n", __func__);
 			seq = &endseq;
+//TODO: ensure there is no newline between END and {
+//next_token(TC_LBRACE); rollback_token();
 			chain_group();
 		} else if (tclass & TC_FUNCDECL) {
 			debug_printf_parse("%s: TC_FUNCDECL\n", __func__);
@@ -1726,24 +1730,26 @@ static void parse_program(char *p)
 				/* it was a comma, we ate it */
 			}
 			seq = &f->body;
+//TODO: ensure there is { after "func F(...)" - but newlines are allowed
+//while (next_token(TC_LBRACE | TC_NEWLINE) == TC_NEWLINE) continue; rollback_token();
 			chain_group();
 			hash_clear(ahash);
 		} else if (tclass & TS_OPSEQ) {
 			debug_printf_parse("%s: TS_OPSEQ\n", __func__);
 			rollback_token();
 			cn = chain_node(OC_TEST);
-			cn->l.n = parse_expr(TS_OPTERM | TC_EOF | TC_GRPSTART);
-			if (t_tclass & TC_GRPSTART) {
-				debug_printf_parse("%s: TC_GRPSTART\n", __func__);
+			cn->l.n = parse_expr(TS_OPTERM | TC_EOF | TC_LBRACE);
+			if (t_tclass & TC_LBRACE) {
+				debug_printf_parse("%s: TC_LBRACE\n", __func__);
 				rollback_token();
 				chain_group();
 			} else {
-				debug_printf_parse("%s: !TC_GRPSTART\n", __func__);
+				debug_printf_parse("%s: !TC_LBRACE\n", __func__);
 				chain_node(OC_PRINT);
 			}
 			cn->r.n = mainseq.last;
-		} else /* if (tclass & TC_GRPSTART) */ {
-			debug_printf_parse("%s: TC_GRPSTART(?)\n", __func__);
+		} else /* if (tclass & TC_LBRACE) */ {
+			debug_printf_parse("%s: TC_LBRACE(?)\n", __func__);
 			rollback_token();
 			chain_group();
 		}
