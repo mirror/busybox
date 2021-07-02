@@ -1937,7 +1937,7 @@ static int awk_split(const char *s, node *spl, char **slist)
 		n++; /* at least one field will be there */
 		do {
 			int l;
-			regmatch_t pmatch[2]; // TODO: why [2]? [1] is enough...
+			regmatch_t pmatch[1];
 
 			l = strcspn(s, c+2); /* len till next NUL or \n */
 			if (regexec1_nonempty(icase ? spl->r.ire : spl->l.re, s, pmatch) == 0
@@ -2166,7 +2166,7 @@ static int ptest(node *pattern)
 static int awk_getline(rstream *rsm, var *v)
 {
 	char *b;
-	regmatch_t pmatch[2]; // TODO: why [2]? [1] is enough...
+	regmatch_t pmatch[1];
 	int size, a, p, pp = 0;
 	int fd, so, eo, r, rp;
 	char c, *m, *s;
@@ -2473,7 +2473,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	node *an[4];
 	var *av[4];
 	const char *as[4];
-	regmatch_t pmatch[2];
+	regmatch_t pmatch[1];
 	regex_t sreg, *re;
 	node *spl;
 	uint32_t isr, info;
@@ -3533,6 +3533,8 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 		parse_program(llist_pop(&list_e));
 	}
 #endif
+//FIXME: preserve order of -e and -f
+//TODO: implement -i LIBRARY and -E FILE too, they are easy-ish
 	if (!(opt & (OPT_f | OPT_e))) {
 		if (!*argv)
 			bb_show_usage();
