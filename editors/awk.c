@@ -3118,9 +3118,20 @@ static var *evaluate(node *op, var *res)
 			case F_rn: /*rand*/
 				if (op1)
 					syntax_error("Too many arguments");
-				R_d = (double)rand() / (double)RAND_MAX;
+			{
+#if RAND_MAX >= 0x7fffffff
+				uint32_t u = ((uint32_t)rand() << 16) ^ rand();
+				uint64_t v = ((uint64_t)rand() << 32) | u;
+				/* the above shift+or is optimized out on 32-bit arches */
+# if RAND_MAX > 0x7fffffff
+				v &= 0x7fffffffffffffffUL;
+# endif
+				R_d = (double)v / 0x8000000000000000UL;
+#else
+# error Not implemented for this value of RAND_MAX
+#endif
 				break;
-
+			}
 			case F_co:
 				if (ENABLE_FEATURE_AWK_LIBM) {
 					R_d = cos(L_d);
