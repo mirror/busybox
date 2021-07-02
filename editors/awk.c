@@ -536,6 +536,11 @@ struct globals {
 	smallint nextfile;
 	smallint is_f0_split;
 	smallint t_rollback;
+
+	/* former statics from various functions */
+	smallint next_token__concat_inserted;
+	uint32_t next_token__save_tclass;
+	uint32_t next_token__save_info;
 };
 struct globals2 {
 	uint32_t t_info; /* often used */
@@ -548,15 +553,11 @@ struct globals2 {
 	/* former statics from various functions */
 	char *split_f0__fstrings;
 
-	uint32_t next_token__save_tclass;
-	uint32_t next_token__save_info;
-	smallint next_token__concat_inserted;
-
-	smallint next_input_file__files_happen;
 	rstream next_input_file__rsm;
+	smallint next_input_file__files_happen;
 
-	var *evaluate__fnargs;
 	unsigned evaluate__seed;
+	var *evaluate__fnargs;
 	regex_t evaluate__sreg;
 
 	var ptest__tmpvar;
@@ -575,10 +576,10 @@ struct globals2 {
 #define G1 (ptr_to_globals[-1])
 #define G (*(struct globals2 *)ptr_to_globals)
 /* For debug. nm --size-sort awk.o | grep -vi ' [tr] ' */
-/*char G1size[sizeof(G1)]; - 0x74 */
-/*char Gsize[sizeof(G)]; - 0x1c4 */
+//char G1size[sizeof(G1)]; // 0x70
+//char Gsize[sizeof(G)]; // 0x2f8
 /* Trying to keep most of members accessible with short offsets: */
-/*char Gofs_seed[offsetof(struct globals2, evaluate__seed)]; - 0x90 */
+//char Gofs_seed[offsetof(struct globals2, evaluate__seed)]; // 0x7c
 #define t_double     (G1.t_double    )
 #define beginseq     (G1.beginseq    )
 #define mainseq      (G1.mainseq     )
@@ -1056,9 +1057,9 @@ static int istrue(var *v)
  */
 static uint32_t next_token(uint32_t expected)
 {
-#define concat_inserted (G.next_token__concat_inserted)
-#define save_tclass     (G.next_token__save_tclass)
-#define save_info       (G.next_token__save_info)
+#define concat_inserted (G1.next_token__concat_inserted)
+#define save_tclass     (G1.next_token__save_tclass)
+#define save_info       (G1.next_token__save_info)
 
 	char *p;
 	const char *tl;
