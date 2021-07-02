@@ -2679,7 +2679,8 @@ static int is_assignment(const char *expr)
 {
 	char *exprc, *val;
 
-	if (!isalnum_(*expr) || (val = strchr(expr, '=')) == NULL) {
+	val = (char*)endofname(expr);
+	if (val == (char*)expr || *val != '=') {
 		return FALSE;
 	}
 
@@ -2699,7 +2700,6 @@ static rstream *next_input_file(void)
 #define rsm          (G.next_input_file__rsm)
 #define files_happen (G.next_input_file__files_happen)
 
-	FILE *F;
 	const char *fname, *ind;
 
 	if (rsm.F)
@@ -2712,20 +2712,19 @@ static rstream *next_input_file(void)
 			if (files_happen)
 				return NULL;
 			fname = "-";
-			F = stdin;
+			rsm.F = stdin;
 			break;
 		}
 		ind = getvar_s(incvar(intvar[ARGIND]));
 		fname = getvar_s(findvar(iamarray(intvar[ARGV]), ind));
 		if (fname && *fname && !is_assignment(fname)) {
-			F = xfopen_stdin(fname);
+			rsm.F = xfopen_stdin(fname);
 			break;
 		}
 	}
 
 	files_happen = TRUE;
 	setvar_s(intvar[FILENAME], fname);
-	rsm.F = F;
 	return &rsm;
 #undef rsm
 #undef files_happen
