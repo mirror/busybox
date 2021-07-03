@@ -432,7 +432,8 @@ static const char tokenlist[] ALIGN1 =
 static const uint32_t tokeninfo[] ALIGN4 = {
 	0,
 	0,
-	OC_REGEXP,
+#define TI_REGEXP OC_REGEXP
+	TI_REGEXP,
 	xS|'a',                  xS|'w',                  xS|'|',
 	OC_UNARY|xV|P(9)|'p',    OC_UNARY|xV|P(9)|'m',
 #define TI_PREINC (OC_UNARY|xV|P(9)|'P')
@@ -443,12 +444,17 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 	OC_BINARY|NV|P(29)|'+',  OC_BINARY|NV|P(29)|'-',  OC_REPLACE|NV|P(74)|'&', OC_BINARY|NV|P(15)|'&',
 	OC_BINARY|NV|P(25)|'/',  OC_BINARY|NV|P(25)|'%',  OC_BINARY|NV|P(15)|'&',  OC_BINARY|NV|P(25)|'*',
 	OC_COMPARE|VV|P(39)|4,   OC_COMPARE|VV|P(39)|3,   OC_COMPARE|VV|P(39)|0,   OC_COMPARE|VV|P(39)|1,
-#define TI_LESS (OC_COMPARE|VV|P(39)|2)
+#define TI_LESS     (OC_COMPARE|VV|P(39)|2)
 	TI_LESS,                 OC_MATCH|Sx|P(45)|'!',   OC_MATCH|Sx|P(45)|'~',   OC_LAND|Vx|P(55),
-	OC_LOR|Vx|P(59),         OC_TERNARY|Vx|P(64)|'?', OC_COLON|xx|P(67)|':',
-	OC_IN|SV|P(49), /* TC_IN */
-	OC_COMMA|SS|P(80),
-	OC_PGETLINE|SV|P(37),
+#define TI_TERNARY  (OC_TERNARY|Vx|P(64)|'?')
+#define TI_COLON    (OC_COLON|xx|P(67)|':')
+	OC_LOR|Vx|P(59),         TI_TERNARY,              TI_COLON,
+#define TI_IN       (OC_IN|SV|P(49))
+	TI_IN,
+#define TI_COMMA    (OC_COMMA|SS|P(80))
+	TI_COMMA,
+#define TI_PGETLINE (OC_PGETLINE|SV|P(37))
+	TI_PGETLINE,
 	OC_UNARY|xV|P(19)|'+',   OC_UNARY|xV|P(19)|'-',   OC_UNARY|xV|P(19)|'!',
 	0, /* ] */
 	0,
@@ -456,7 +462,8 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 	0,
 	0, /* \n */
 	ST_IF,        ST_DO,        ST_FOR,      OC_BREAK,
-	OC_CONTINUE,  OC_DELETE|Rx, OC_PRINT,
+#define TI_PRINT OC_PRINT
+	OC_CONTINUE,  OC_DELETE|Rx, TI_PRINT,
 	OC_PRINTF,    OC_NEXT,      OC_NEXTFILE,
 	OC_RETURN|Vx, OC_EXIT|Nx,
 	ST_WHILE,
@@ -465,8 +472,8 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 //  Highest byte bit pattern: nn s3s2s1 v3v2v1
 //  nn - min. number of args, sN - resolve Nth arg to string, vN - resolve to var
 // OC_F's are builtins with zero or one argument.
-//  |Rx| enforces that arg is present for: system, close, cos, sin, exp, int, log, sqrt.
-//  Check for no args is present in builtins' code (not in this table): rand, systime.
+//  |Rx| enforces that arg is present for: system, close, cos, sin, exp, int, log, sqrt
+//  Check for no args is present in builtins' code (not in this table): rand, systime
 //  Have one _optional_ arg: fflush, srand, length
 #define OC_B   OC_BUILTIN
 #define OC_F   OC_FBLTIN
@@ -1310,7 +1317,7 @@ static node *new_node(uint32_t info)
 
 static void mk_re_node(const char *s, node *n, regex_t *re)
 {
-	n->info = OC_REGEXP;
+	n->info = TI_REGEXP;
 	n->l.re = re;
 	n->r.ire = re + 1;
 	xregcomp(re, s, REG_EXTENDED);
@@ -1360,12 +1367,13 @@ static node *parse_expr(uint32_t term_tc)
 			 * previous operators with higher priority */
 			vn = cn;
 			while (((t_info & PRIMASK) > (vn->a.n->info & PRIMASK2))
-			    || ((t_info == vn->info) && ((t_info & OPCLSMASK) == OC_COLON))
+			    || ((t_info == vn->info) && t_info == TI_COLON)
 			) {
 				vn = vn->a.n;
 				if (!vn->a.n) syntax_error(EMSG_UNEXP_TOKEN);
 			}
-			if ((t_info & OPCLSMASK) == OC_TERNARY)
+			if (t_info == TI_TERNARY)
+//TODO: why?
 				t_info += P(6);
 			cn = vn->a.n->r.n = new_node(t_info);
 			cn->a.n = vn->a.n;
@@ -1378,7 +1386,7 @@ static node *parse_expr(uint32_t term_tc)
 // awk 'BEGIN { length("qwe") = 1 }'
 // awk 'BEGIN { (1+1) += 3 }'
 				expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP;
-				if ((t_info & OPCLSMASK) == OC_PGETLINE) {
+				if (t_info == TI_PGETLINE) {
 					/* it's a pipe */
 					next_token(TC_GETLINE);
 					/* give maximum priority to this pipe */
@@ -1630,7 +1638,7 @@ static void chain_group(void)
 		next_token(TC_LPAREN);
 		n2 = parse_expr(TC_SEMICOL | TC_RPAREN);
 		if (t_tclass & TC_RPAREN) {	/* for-in */
-			if (!n2 || (n2->info & OPCLSMASK) != OC_IN)
+			if (!n2 || n2->info != TI_IN)
 				syntax_error(EMSG_UNEXP_TOKEN);
 			n = chain_node(OC_WALKINIT | VV);
 			n->l.n = n2->l.n;
@@ -1834,7 +1842,7 @@ static node *mk_splitter(const char *s, tsplitter *spl)
 	re = &spl->re[0];
 	ire = &spl->re[1];
 	n = &spl->n;
-	if ((n->info & OPCLSMASK) == OC_REGEXP) {
+	if (n->info == TI_REGEXP) {
 		regfree(re);
 		regfree(ire); // TODO: nuke ire, use re+1?
 	}
@@ -1858,7 +1866,7 @@ static regex_t *as_regex(node *op, regex_t *preg)
 	int cflags;
 	const char *s;
 
-	if ((op->info & OPCLSMASK) == OC_REGEXP) {
+	if (op->info == TI_REGEXP) {
 		return icase ? op->r.ire : op->l.re;
 	}
 
@@ -1968,7 +1976,7 @@ static int awk_split(const char *s, node *spl, char **slist)
 		c[2] = '\n';
 
 	n = 0;
-	if ((spl->info & OPCLSMASK) == OC_REGEXP) {  /* regex split */
+	if (spl->info == TI_REGEXP) {  /* regex split */
 		if (!*s)
 			return n; /* "": zero fields */
 		n++; /* at least one field will be there */
@@ -2135,7 +2143,7 @@ static node *nextarg(node **pn)
 	node *n;
 
 	n = *pn;
-	if (n && (n->info & OPCLSMASK) == OC_COMMA) {
+	if (n && n->info == TI_COMMA) {
 		*pn = n->r.n;
 		n = n->l.n;
 	} else {
@@ -2229,7 +2237,7 @@ static int awk_getline(rstream *rsm, var *v)
 		so = eo = p;
 		r = 1;
 		if (p > 0) {
-			if ((rsplitter.n.info & OPCLSMASK) == OC_REGEXP) {
+			if (rsplitter.n.info == TI_REGEXP) {
 				if (regexec(icase ? rsplitter.n.r.ire : rsplitter.n.l.re,
 							b, 1, pmatch, 0) == 0) {
 					so = pmatch[0].rm_so;
@@ -2575,8 +2583,8 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		char *s, *s1;
 
 		if (nargs > 2) {
-			spl = (an[2]->info & OPCLSMASK) == OC_REGEXP ?
-				an[2] : mk_splitter(getvar_s(evaluate(an[2], TMPVAR2)), &tspl);
+			spl = (an[2]->info == TI_REGEXP) ? an[2]
+				: mk_splitter(getvar_s(evaluate(an[2], TMPVAR2)), &tspl);
 		} else {
 			spl = &fsplitter.n;
 		}
@@ -2860,7 +2868,7 @@ static var *evaluate(node *op, var *res)
 		/* test pattern */
 		case XC( OC_TEST ):
 			debug_printf_eval("TEST\n");
-			if ((op1->info & OPCLSMASK) == OC_COMMA) {
+			if (op1->info == TI_COMMA) {
 				/* it's range pattern */
 				if ((opinfo & OF_CHECKED) || ptest(op1->l.n)) {
 					op->info |= OF_CHECKED;
@@ -2921,7 +2929,7 @@ static var *evaluate(node *op, var *res)
 				F = rsm->F;
 			}
 
-			if ((opinfo & OPCLSMASK) == OC_PRINT) {
+			if (opinfo == TI_PRINT) {
 				if (!op1) {
 					fputs(getvar_s(intvar[F0]), F);
 				} else {
@@ -2940,7 +2948,7 @@ static var *evaluate(node *op, var *res)
 					}
 				}
 				fputs(getvar_s(intvar[ORS]), F);
-			} else {	/* OC_PRINTF */
+			} else {	/* PRINTF */
 				char *s = awk_printf(op1, &len);
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
 				fwrite(s, len, 1, F);
@@ -3064,7 +3072,7 @@ static var *evaluate(node *op, var *res)
 
 		case XC( OC_TERNARY ):
 			debug_printf_eval("TERNARY\n");
-			if ((op->r.n->info & OPCLSMASK) != OC_COLON)
+			if (op->r.n->info != TI_COLON)
 				syntax_error(EMSG_POSSIBLE_ERROR);
 			res = evaluate(istrue(L.v) ? op->r.n->l.n : op->r.n->r.n, res);
 			break;
@@ -3122,7 +3130,7 @@ static var *evaluate(node *op, var *res)
 			if (op1) {
 				rsm = newfile(L.s);
 				if (!rsm->F) {
-					if ((opinfo & OPCLSMASK) == OC_PGETLINE) {
+					if (opinfo == TI_PGETLINE) {
 						rsm->F = popen(L.s, "r");
 						rsm->is_pipe = TRUE;
 					} else {
@@ -3158,7 +3166,7 @@ static var *evaluate(node *op, var *res)
 			double R_d = R_d; /* for compiler */
 			debug_printf_eval("FBLTIN\n");
 
-			if (op1 && (op1->info & OPCLSMASK) == OC_COMMA)
+			if (op1 && op1->info == TI_COMMA)
 				/* Simple builtins take one arg maximum */
 				syntax_error("Too many arguments");
 
@@ -3358,7 +3366,7 @@ static var *evaluate(node *op, var *res)
 		case XC( OC_COMMA ): {
 			const char *sep = "";
 			debug_printf_eval("COMMA\n");
-			if ((opinfo & OPCLSMASK) == OC_COMMA)
+			if (opinfo == TI_COMMA)
 				sep = getvar_s(intvar[SUBSEP]);
 			setvar_p(res, xasprintf("%s%s%s", L.s, sep, R.s));
 			break;
