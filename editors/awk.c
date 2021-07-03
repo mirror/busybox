@@ -3169,9 +3169,9 @@ static var *evaluate(node *op, var *res)
 				uint64_t v = ((uint64_t)rand() << 32) | u;
 				/* the above shift+or is optimized out on 32-bit arches */
 # if RAND_MAX > 0x7fffffff
-				v &= 0x7fffffffffffffffUL;
+				v &= 0x7fffffffffffffffULL;
 # endif
-				R_d = (double)v / 0x8000000000000000UL;
+				R_d = (double)v / 0x8000000000000000ULL;
 #else
 # error Not implemented for this value of RAND_MAX
 #endif
