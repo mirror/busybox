@@ -2497,26 +2497,24 @@ static NOINLINE int do_mktime(const char *ds)
 }
 
 /* Reduce stack usage in exec_builtin() by keeping match() code separate */
-static NOINLINE void exec_builtin_match(node *an1, const char *as0, var *res)
+static NOINLINE var *do_match(node *an1, const char *as0)
 {
 	regmatch_t pmatch[1];
 	regex_t sreg, *re;
-	int n;
+	int n, start, len;
 
 	re = as_regex(an1, &sreg);
 	n = regexec(re, as0, 1, pmatch, 0);
-	if (n == 0) {
-		pmatch[0].rm_so++;
-		pmatch[0].rm_eo++;
-	} else {
-		pmatch[0].rm_so = 0;
-		pmatch[0].rm_eo = -1;
-	}
 	if (re == &sreg)
 		regfree(re);
-	setvar_i(newvar("RSTART"), pmatch[0].rm_so);
-	setvar_i(newvar("RLENGTH"), pmatch[0].rm_eo - pmatch[0].rm_so);
-	setvar_i(res, pmatch[0].rm_so);
+	start = 0;
+	len = -1;
+	if (n == 0) {
+		start = pmatch[0].rm_so + 1;
+		len = pmatch[0].rm_eo - pmatch[0].rm_so;
+	}
+	setvar_i(newvar("RLENGTH"), len);
+	return setvar_i(newvar("RSTART"), start);
 }
 
 /* Reduce stack usage in evaluate() by keeping builtins' code separate */
@@ -2686,7 +2684,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		break;
 
 	case B_ma:
-		exec_builtin_match(an[1], as[0], res);
+		res = do_match(an[1], as[0]);
 		break;
 
 	case B_ge:
