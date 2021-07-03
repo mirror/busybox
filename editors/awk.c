@@ -904,25 +904,23 @@ static double my_strtod(char **pp)
 
 /* -------- working with variables (set/get/copy/etc) -------- */
 
-static int fmt_num(char *b, int size, const char *format, double n, int int_as_int)
+static void fmt_num(const char *format, double n)
 {
-	int r = 0;
-	char c;
-	const char *s = format;
-
-	if (int_as_int && n == (long long)n) {
-		r = snprintf(b, size, "%lld", (long long)n);
+	if (n == (long long)n) {
+		snprintf(g_buf, MAXVARFMT, "%lld", (long long)n);
 	} else {
+		const char *s = format;
+		char c;
+
 		do { c = *s; } while (c && *++s);
 		if (strchr("diouxX", c)) {
-			r = snprintf(b, size, format, (int)n);
+			snprintf(g_buf, MAXVARFMT, format, (int)n);
 		} else if (strchr("eEfFgGaA", c)) {
-			r = snprintf(b, size, format, n);
+			snprintf(g_buf, MAXVARFMT, format, n);
 		} else {
 			syntax_error(EMSG_INV_FMT);
 		}
 	}
-	return r;
 }
 
 static xhash *iamarray(var *a)
@@ -999,7 +997,7 @@ static const char *getvar_s(var *v)
 {
 	/* if v is numeric and has no cached string, convert it to string */
 	if ((v->type & (VF_NUMBER | VF_CACHED)) == VF_NUMBER) {
-		fmt_num(g_buf, MAXVARFMT, getvar_s(intvar[CONVFMT]), v->number, TRUE);
+		fmt_num(getvar_s(intvar[CONVFMT]), v->number);
 		v->string = xstrdup(g_buf);
 		v->type |= VF_CACHED;
 	}
@@ -2315,12 +2313,9 @@ static int awk_getline(rstream *rsm, var *v)
 #endif
 static char *awk_printf(node *n, int *len)
 {
-	char *b = NULL;
-	char *fmt, *s, *f;
-	const char *s1;
-	int i, j, incr, bsize;
-	char c, c1;
-	var *arg;
+	char *b;
+	char *fmt, *f;
+	int i;
 
 	//tmpvar = nvalloc(1);
 #define TMPVAR (&G.awk_printf__tmpvar)
@@ -2333,8 +2328,14 @@ static char *awk_printf(node *n, int *len)
 	// to evaluate() potentially recursing into another awk_printf() can't
 	// mangle the value.
 
+	b = NULL;
 	i = 0;
-	while (*f) {
+	while (*f) { /* "print one format spec" loop */
+		char *s;
+		char c;
+		char sv;
+		var *arg;
+
 		s = f;
 		while (*f && (*f != '%' || *++f == '%'))
 			f++;
@@ -2343,40 +2344,55 @@ static char *awk_printf(node *n, int *len)
 				syntax_error("%*x formats are not supported");
 			f++;
 		}
-
-		incr = (f - s) + MAXVARFMT;
-		b = qrealloc(b, incr + i, &bsize);
 		c = *f;
-		if (c != '\0')
-			f++;
-		c1 = *f;
+		if (!c) {
+			/* Tail of fmt with no percent chars,
+			 * or "....%" (percent seen, but no format specifier char found)
+			 */
+			goto tail;
+		}
+		sv = *++f;
 		*f = '\0';
 		arg = evaluate(nextarg(&n), TMPVAR);
 
-		j = i;
-		if (c == 'c' || !c) {
-			i += sprintf(b+i, s, is_numeric(arg) ?
+		/* Result can be arbitrarily long. Example:
+		 *  printf "%99999s", "BOOM"
+		 */
+		if (c == 'c') {
+			s = xasprintf(s, is_numeric(arg) ?
 					(char)getvar_i(arg) : *getvar_s(arg));
 		} else if (c == 's') {
-			s1 = getvar_s(arg);
-			b = qrealloc(b, incr+i+strlen(s1), &bsize);
-			i += sprintf(b+i, s, s1);
+			s = xasprintf(s, getvar_s(arg));
 		} else {
-			i += fmt_num(b+i, incr, s, getvar_i(arg), FALSE);
+			double d = getvar_i(arg);
+			if (strchr("diouxX", c)) {
+//TODO: make it wider here (%x -> %llx etc)?
+				s = xasprintf(s, (int)d);
+			} else if (strchr("eEfFgGaA", c)) {
+				s = xasprintf(s, d);
+			} else {
+				syntax_error(EMSG_INV_FMT);
+			}
 		}
-		*f = c1;
+		*f = sv;
 
-		/* if there was an error while sprintf, return value is negative */
-		if (i < j)
-			i = j;
+		if (i == 0) {
+			b = s;
+			i = strlen(b);
+			continue;
+		}
+ tail:
+		b = xrealloc(b, i + strlen(s) + 1);
+		i = stpcpy(b + i, s) - b;
+		if (!c) /* tail? */
+			break;
+		free(s);
 	}
 
 	free(fmt);
 	//nvfree(tmpvar, 1);
 #undef TMPVAR
 
-	b = xrealloc(b, i + 1);
-	b[i] = '\0';
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
 	if (len)
 		*len = i;
@@ -2936,8 +2952,8 @@ static var *evaluate(node *op, var *res)
 					for (;;) {
 						var *v = evaluate(nextarg(&op1), TMPVAR0);
 						if (v->type & VF_NUMBER) {
-							fmt_num(g_buf, MAXVARFMT, getvar_s(intvar[OFMT]),
-									getvar_i(v), TRUE);
+							fmt_num(getvar_s(intvar[OFMT]),
+									getvar_i(v));
 							fputs(g_buf, F);
 						} else {
 							fputs(getvar_s(v), F);
