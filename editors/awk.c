@@ -102,7 +102,7 @@ enum {
 #define	VF_USER         0x0200	/* 1 = user input (may be numeric string) */
 #define	VF_SPECIAL      0x0400	/* 1 = requires extra handling when changed */
 #define	VF_WALK         0x0800	/* 1 = variable has alloc'd x.walker list */
-#define	VF_FSTR         0x1000	/* 1 = var::string points to fstring buffer */
+#define	VF_FSTR         0x1000	/* 1 = don't free() var::string (not malloced, or is owned by something else) */
 #define	VF_CHILD        0x2000	/* 1 = function arg; x.parent points to source */
 #define	VF_DIRTY        0x4000	/* 1 = variable was set explicitly */
 
@@ -1371,6 +1371,12 @@ static node *parse_expr(uint32_t term_tc)
 			cn->a.n = vn->a.n;
 			if (tc & TS_BINOP) {
 				cn->l.n = vn;
+//FIXME: this is the place to detect and reject assignments to non-lvalues.
+//Currently we allow "assignments" to consts and temporaries, nonsense like this:
+// awk 'BEGIN { "qwe" = 1 }'
+// awk 'BEGIN { 7 *= 7 }'
+// awk 'BEGIN { length("qwe") = 1 }'
+// awk 'BEGIN { (1+1) += 3 }'
 				expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP;
 				if ((t_info & OPCLSMASK) == OC_PGETLINE) {
 					/* it's a pipe */
@@ -3043,14 +3049,17 @@ static var *evaluate(node *op, var *res)
 		case XC( OC_MOVE ):
 			debug_printf_eval("MOVE\n");
 			/* if source is a temporary string, jusk relink it to dest */
-//Disabled: if R.v is numeric but happens to have cached R.v->string,
-//then L.v ends up being a string, which is wrong
-//			if (R.v == TMPVAR1 && R.v->string) {
-//				res = setvar_p(L.v, R.v->string);
-//				R.v->string = NULL;
-//			} else {
+			if (R.v == TMPVAR1
+			 && !(R.v->type & VF_NUMBER)
+				/* Why check !NUMBER? if R.v is a number but has cached R.v->string,
+				 * L.v ends up a string, which is wrong */
+			 /*&& R.v->string - always not NULL (right?) */
+			) {
+				res = setvar_p(L.v, R.v->string); /* avoids strdup */
+				R.v->string = NULL;
+			} else {
 				res = copyvar(L.v, R.v);
-//			}
+			}
 			break;
 
 		case XC( OC_TERNARY ):
