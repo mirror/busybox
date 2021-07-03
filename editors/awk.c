@@ -179,7 +179,7 @@ typedef struct node_s {
 		struct node_s *n;
 		var *v;
 		int aidx;
-		char *new_progname;
+		const char *new_progname;
 		regex_t *re;
 	} l;
 	union {
@@ -1501,7 +1501,7 @@ static node *chain_node(uint32_t info)
 	if (seq->programname != g_progname) {
 		seq->programname = g_progname;
 		n = chain_node(OC_NEWSOURCE);
-		n->l.new_progname = xstrdup(g_progname);
+		n->l.new_progname = g_progname;
 	}
 
 	n = seq->last;
