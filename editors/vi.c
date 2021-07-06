@@ -2384,6 +2384,8 @@ static char *char_search(char *p, const char *pat, int dir_and_range)
 
 	memset(&preg, 0, sizeof(preg));
 	err = re_compile_pattern(pat, strlen(pat), &preg);
+	preg.not_bol = p != text;
+	preg.not_eol = p != end - 1;
 	if (err != NULL) {
 		status_line_bold("bad search pattern '%s': %s", pat, err);
 		return p;
