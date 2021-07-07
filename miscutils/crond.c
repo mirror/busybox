@@ -209,6 +209,14 @@ static void log8(const char *msg, ...)
 	va_end(va);
 }
 
+static void log9(const char *msg, ...)
+{
+	va_list va;
+	va_start(va, msg);
+	crondlog(9, msg, va);
+	va_end(va);
+}
+
 
 static const char DowAry[] ALIGN1 =
 	"sun""mon""tue""wed""thu""fri""sat"
