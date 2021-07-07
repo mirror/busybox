@@ -13,7 +13,7 @@ char* FAST_FUNC safe_strncpy(char *dst, const char *src, size_t size)
 {
 	if (!size) return dst;
 	dst[--size] = '\0';
-	return strncpy(dst, src, size);
+	return strncpy(dst, src, --size);
 }
 
 /* Like strcpy but can copy overlapping strings. */
