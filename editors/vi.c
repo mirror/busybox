@@ -3437,7 +3437,7 @@ static int find_range(char **start, char **stop, int cmd)
 		// for non-change operations WS after NL is not part of word
 		if (cmd != 'c' && dot != t && *dot != '\n')
 			dot = t;
-	} else if (strchr("GHL+-jk'\r\n", c)) {
+	} else if (strchr("GHL+-gjk'\r\n", c)) {
 		// these operate on whole lines
 		buftype = WHOLE;
 		do_cmd(c);		// execute movement cmd
@@ -4027,6 +4027,7 @@ static void do_cmd(int c)
 			buf[1] = (c1 >= 0 ? c1 : '*');
 			buf[2] = '\0';
 			not_implemented(buf);
+			cmd_error = TRUE;
 			break;
 		}
 		if (cmdcnt == 0)
