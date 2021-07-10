@@ -2680,6 +2680,19 @@ static char *expand_args(char *args)
 #if ENABLE_FEATURE_VI_REGEX_SEARCH
 # define MAX_SUBPATTERN 10	// subpatterns \0 .. \9
 
+// Like strchr() but skipping backslash-escaped characters
+static char *strchr_backslash(const char *s, int c)
+{
+	for (; *s; ++s) {
+		if (*s == c) {
+			return (char *)s;
+		} else if (*s == '\\' && *++s == '\0') {
+			break;
+		}
+	}
+	return NULL;
+}
+
 // If the return value is not NULL the caller should free R
 static char *regex_search(char *q, regex_t *preg, const char *Rorig,
 				size_t *len_F, size_t *len_R, char **R)
@@ -2728,6 +2741,8 @@ static char *regex_search(char *q, regex_t *preg, const char *Rorig,
 
 	return found;
 }
+#else /* !ENABLE_FEATURE_VI_REGEX_SEARCH */
+# define strchr_backslash(s, c) strchr(s, c)
 #endif /* ENABLE_FEATURE_VI_REGEX_SEARCH */
 
 // buf must be no longer than MAX_INPUT_LEN!
@@ -3151,12 +3166,12 @@ static void colon(char *buf)
 		// replace the cmd line delimiters "/" with NULs
 		c = buf[1];	// what is the delimiter
 		F = buf + 2;	// start of "find"
-		R = strchr(F, c);	// middle delimiter
+		R = strchr_backslash(F, c);	// middle delimiter
 		if (!R)
 			goto colon_s_fail;
 		len_F = R - F;
 		*R++ = '\0';	// terminate "find"
-		flags = strchr(R, c);
+		flags = strchr_backslash(R, c);
 		if (flags) {
 			*flags++ = '\0';	// terminate "replace"
 			gflag = *flags;
