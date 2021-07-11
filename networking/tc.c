@@ -111,16 +111,14 @@ static char* print_tc_classid(uint32_t cid)
 #if 0 /* IMPOSSIBLE */
 	if (cid == TC_H_ROOT)
 		return xasprintf("root");
-	else
 #endif
 	if (cid == TC_H_UNSPEC)
 		return xasprintf("none");
-	else if (TC_H_MAJ(cid) == 0)
+	if (TC_H_MAJ(cid) == 0)
 		return xasprintf(":%x", TC_H_MIN(cid));
-	else if (TC_H_MIN(cid) == 0)
+	if (TC_H_MIN(cid) == 0)
 		return xasprintf("%x:", TC_H_MAJ(cid)>>16);
-	else
-		return xasprintf("%x:%x", TC_H_MAJ(cid)>>16, TC_H_MIN(cid));
+	return xasprintf("%x:%x", TC_H_MAJ(cid)>>16, TC_H_MIN(cid));
 }
 
 /* Get a qdisc handle.  Return 0 on success, !0 otherwise.  */
@@ -376,8 +374,10 @@ static FAST_FUNC int print_qdisc(
 			prio_print_opt(tb[TCA_OPTIONS]);
 		} else if (qqq == 1) { /* class based queuing */
 			cbq_print_opt(tb[TCA_OPTIONS]);
-		} else
-			bb_error_msg("unknown %s", name);
+		} else {
+			/* don't know how to print options for this qdisc */
+			printf("(options for %s)", name);
+		}
 	}
 	bb_putchar('\n');
 	return 0;
@@ -405,7 +405,7 @@ static FAST_FUNC int print_class(
 		return -1;
 	}
 	/* not the desired interface? */
-	if (filter_qdisc && TC_H_MAJ(msg->tcm_handle^filter_qdisc))
+	if (filter_qdisc && TC_H_MAJ(msg->tcm_handle ^ filter_qdisc))
 		return 0;
 	memset (tb, 0, sizeof(tb));
 	parse_rtattr(tb, TCA_MAX, TCA_RTA(msg), len);
@@ -418,8 +418,8 @@ static FAST_FUNC int print_class(
 
 	name = (char*)RTA_DATA(tb[TCA_KIND]);
 	classid = !msg->tcm_handle ? NULL : print_tc_classid(
-				filter_qdisc ? TC_H_MIN(msg->tcm_parent) : msg->tcm_parent);
-	printf ("class %s %s", name, classid);
+				filter_qdisc ? TC_H_MIN(msg->tcm_handle) : msg->tcm_handle);
+	printf ("class %s %s ", name, classid);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(classid);
 
@@ -445,8 +445,10 @@ static FAST_FUNC int print_class(
 		} else if (qqq == 1) { /* class based queuing */
 			/* cbq_print_copt() is identical to cbq_print_opt(). */
 			cbq_print_opt(tb[TCA_OPTIONS]);
-		} else
-			bb_error_msg("unknown %s", name);
+		} else {
+			/* don't know how to print options for this class */
+			printf("(options for %s)", name);
+		}
 	}
 	bb_putchar('\n');
 
@@ -511,12 +513,11 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 	ret = EXIT_SUCCESS;
 
 	obj = index_in_substrings(objects, *argv++);
-
 	if (obj < 0)
 		bb_show_usage();
-	if (!*argv)
-		cmd = CMD_show; /* list is the default */
-	else {
+
+	cmd = CMD_show; /* list (aka show) is the default */
+	if (*argv) {
 		cmd = index_in_substrings(commands, *argv);
 		if (cmd < 0)
 			invarg_1_to_2(*argv, argv[-1]);
@@ -538,16 +539,17 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			msg.tcm_ifindex = xll_name_to_index(dev);
 			if (cmd >= CMD_show)
 				filter_ifindex = msg.tcm_ifindex;
-		} else
-		if ((arg == ARG_qdisc && obj == OBJ_class && cmd >= CMD_show)
-		 || (arg == ARG_handle && obj == OBJ_qdisc && cmd == CMD_change)
+			continue;
+		}
+		if ((arg == ARG_qdisc && obj == OBJ_class && cmd >= CMD_show)    /* tc class show|list qdisc HANDLE */
+		 || (arg == ARG_handle && obj == OBJ_qdisc && cmd == CMD_change) /* tc qdisc change handle HANDLE */
 		) {
 			NEXT_ARG();
 			/* We don't care about duparg2("qdisc handle",*argv) for now */
 			if (get_qdisc_handle(&filter_qdisc, *argv))
 				invarg_1_to_2(*argv, "qdisc");
 		} else
-		if (obj != OBJ_qdisc
+		if (obj != OBJ_qdisc /* tc class|filter root|parent | tc filter preference|priority|protocol */
 		 && (arg == ARG_root
 		    || arg == ARG_parent
 		    || (obj == OBJ_filter && arg >= ARG_pref)
