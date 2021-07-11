@@ -3156,7 +3156,8 @@ static var *evaluate(node *op, var *res)
 			if (op1) {
 				rsm = newfile(L.s);
 				if (!rsm->F) {
-					if (opinfo == TI_PGETLINE) {
+					/* NB: can't use "opinfo == TI_PGETLINE", would break "cmd" | getline */
+					if ((opinfo & OPCLSMASK) == OC_PGETLINE) {
 						rsm->F = popen(L.s, "r");
 						rsm->is_pipe = TRUE;
 					} else {

@@ -455,4 +455,9 @@ testing "awk print + redirect" \
 	"STDERR %s\n" \
 	'' ''
 
+testing "awk \"cmd\" | getline" \
+	"awk 'BEGIN { \"echo HELLO\" | getline; print }'" \
+	"HELLO\n" \
+	'' ''
+
 exit $FAILCOUNT
