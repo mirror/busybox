@@ -2359,11 +2359,11 @@ static char *awk_printf(node *n, size_t *len)
 		 *  printf "%99999s", "BOOM"
 		 */
 		if (c == 'c') {
-			c = is_numeric(arg) ? getvar_i(arg) : *getvar_s(arg);
-			s = xasprintf(s, c);
-			/* + 1 if c == NUL: handle printf "%c" 0 case
+			char cc = is_numeric(arg) ? getvar_i(arg) : *getvar_s(arg);
+			s = xasprintf(s, cc);
+			/* + 1 if cc == NUL: handle printf "%c" 0 case
 			 * (and printf "%22c" 0 etc, but still fails for e.g. printf "%-22c" 0) */
-			slen = strlen(s) + (c == '\0');
+			slen = strlen(s) + (cc == '\0');
 		} else {
 			if (c == 's') {
 				s = xasprintf(s, getvar_s(arg));
