@@ -1778,8 +1778,7 @@ static void parse_program(char *p)
 			cn->l.n = parse_expr(TC_SEMICOL | TC_NEWLINE | TC_EOF | TC_LBRACE);
 			if (t_tclass == TC_LBRACE) {
 				debug_printf_parse("%s: TC_LBRACE\n", __func__);
-				rollback_token();
-				chain_group();
+				chain_until_rbrace();
 			} else {
 				/* no action, assume default "{ print }" */
 				debug_printf_parse("%s: !TC_LBRACE\n", __func__);
