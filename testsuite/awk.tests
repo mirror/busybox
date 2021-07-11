@@ -450,4 +450,9 @@ testing "awk exit N propagates through END's exit" \
 	"42\n" \
 	'' ''
 
+testing "awk print + redirect" \
+	"awk 'BEGIN { print \"STDERR %s\" >\"/dev/stderr\" }' 2>&1" \
+	"STDERR %s\n" \
+	'' ''
+
 exit $FAILCOUNT

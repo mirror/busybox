@@ -462,8 +462,7 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 	0,
 	0, /* \n */
 	ST_IF,        ST_DO,        ST_FOR,      OC_BREAK,
-#define TI_PRINT OC_PRINT
-	OC_CONTINUE,  OC_DELETE|Rx, TI_PRINT,
+	OC_CONTINUE,  OC_DELETE|Rx, OC_PRINT,
 	OC_PRINTF,    OC_NEXT,      OC_NEXTFILE,
 	OC_RETURN|Vx, OC_EXIT|Nx,
 	ST_WHILE,
@@ -2944,7 +2943,10 @@ static var *evaluate(node *op, var *res)
 				F = rsm->F;
 			}
 
-			if (opinfo == TI_PRINT) {
+			/* Can't just check 'opinfo == OC_PRINT' here, parser ORs
+			 * additional bits to opinfos of print/printf with redirects
+			 */
+			if ((opinfo & OPCLSMASK) == OC_PRINT) {
 				if (!op1) {
 					fputs(getvar_s(intvar[F0]), F);
 				} else {
