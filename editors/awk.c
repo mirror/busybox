@@ -2309,11 +2309,11 @@ static int awk_getline(rstream *rsm, var *v)
 #if !ENABLE_FEATURE_AWK_GNU_EXTENSIONS
 # define awk_printf(a, b) awk_printf(a)
 #endif
-static char *awk_printf(node *n, int *len)
+static char *awk_printf(node *n, size_t *len)
 {
 	char *b;
 	char *fmt, *f;
-	int i;
+	size_t i;
 
 	//tmpvar = nvalloc(1);
 #define TMPVAR (&G.awk_printf__tmpvar)
@@ -2333,6 +2333,7 @@ static char *awk_printf(node *n, int *len)
 		char c;
 		char sv;
 		var *arg;
+		size_t slen;
 
 		s = f;
 		while (*f && (*f != '%' || *++f == '%'))
@@ -2347,6 +2348,7 @@ static char *awk_printf(node *n, int *len)
 			/* Tail of fmt with no percent chars,
 			 * or "....%" (percent seen, but no format specifier char found)
 			 */
+			slen = strlen(s);
 			goto tail;
 		}
 		sv = *++f;
@@ -2357,31 +2359,38 @@ static char *awk_printf(node *n, int *len)
 		 *  printf "%99999s", "BOOM"
 		 */
 		if (c == 'c') {
-			s = xasprintf(s, is_numeric(arg) ?
-					(char)getvar_i(arg) : *getvar_s(arg));
-		} else if (c == 's') {
-			s = xasprintf(s, getvar_s(arg));
+			c = is_numeric(arg) ? getvar_i(arg) : *getvar_s(arg);
+			s = xasprintf(s, c);
+			/* + 1 if c == NUL: handle printf "%c" 0 case
+			 * (and printf "%22c" 0 etc, but still fails for e.g. printf "%-22c" 0) */
+			slen = strlen(s) + (c == '\0');
 		} else {
-			double d = getvar_i(arg);
-			if (strchr("diouxX", c)) {
-//TODO: make it wider here (%x -> %llx etc)?
-				s = xasprintf(s, (int)d);
-			} else if (strchr("eEfFgGaA", c)) {
-				s = xasprintf(s, d);
+			if (c == 's') {
+				s = xasprintf(s, getvar_s(arg));
 			} else {
-				syntax_error(EMSG_INV_FMT);
+				double d = getvar_i(arg);
+				if (strchr("diouxX", c)) {
+//TODO: make it wider here (%x -> %llx etc)?
+					s = xasprintf(s, (int)d);
+				} else if (strchr("eEfFgGaA", c)) {
+					s = xasprintf(s, d);
+				} else {
+					syntax_error(EMSG_INV_FMT);
+				}
 			}
+			slen = strlen(s);
 		}
 		*f = sv;
 
 		if (i == 0) {
 			b = s;
-			i = strlen(b);
+			i = slen;
 			continue;
 		}
  tail:
-		b = xrealloc(b, i + strlen(s) + 1);
-		i = stpcpy(b + i, s) - b;
+		b = xrealloc(b, i + slen + 1);
+		strcpy(b + i, s);
+		i += slen;
 		if (!c) /* tail? */
 			break;
 		free(s);
@@ -2926,7 +2935,6 @@ static var *evaluate(node *op, var *res)
 			debug_printf_eval("PRINTF\n");
 		{
 			FILE *F = stdout;
-			IF_FEATURE_AWK_GNU_EXTENSIONS(int len;)
 
 			if (op->r.n) {
 				rstream *rsm = newfile(R.s);
@@ -2966,6 +2974,7 @@ static var *evaluate(node *op, var *res)
 				}
 				fputs(getvar_s(intvar[ORS]), F);
 			} else {	/* PRINTF */
+				IF_FEATURE_AWK_GNU_EXTENSIONS(size_t len;)
 				char *s = awk_printf(op1, &len);
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
 				fwrite(s, len, 1, F);
