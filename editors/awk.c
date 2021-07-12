@@ -2360,10 +2360,11 @@ static char *awk_printf(node *n, size_t *len)
 		 */
 		if (c == 'c') {
 			char cc = is_numeric(arg) ? getvar_i(arg) : *getvar_s(arg);
-			s = xasprintf(s, cc);
-			/* + 1 if cc == NUL: handle printf "%c" 0 case
-			 * (and printf "%22c" 0 etc, but still fails for e.g. printf "%-22c" 0) */
-			slen = strlen(s) + (cc == '\0');
+			char *r = xasprintf(s, cc ? cc : '^' /* else strlen will be wrong */);
+			slen = strlen(r);
+			if (cc == '\0') /* if cc is NUL, re-format the string with it */
+				sprintf(r, s, cc);
+			s = r;
 		} else {
 			if (c == 's') {
 				s = xasprintf(s, getvar_s(arg));
