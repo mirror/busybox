@@ -1589,8 +1589,8 @@ static void chain_group(void)
 		chain_until_rbrace();
 		return;
 	}
-	if (tc & (TS_OPSEQ | TC_SEMICOL | TC_NEWLINE)) {
-		debug_printf_parse("%s: TS_OPSEQ | TC_SEMICOL | TC_NEWLINE\n", __func__);
+	if (tc & (TS_OPSEQ | TC_SEMICOL)) {
+		debug_printf_parse("%s: TS_OPSEQ | TC_SEMICOL\n", __func__);
 		rollback_token();
 		chain_expr(OC_EXEC | Vx);
 		return;
@@ -2582,10 +2582,11 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	av[2] = av[3] = NULL;
 	for (i = 0; i < 4 && op; i++) {
 		an[i] = nextarg(&op);
-		if (isr & 0x09000000)
+		if (isr & 0x09000000) {
 			av[i] = evaluate(an[i], TMPVAR(i));
-		if (isr & 0x08000000)
-			as[i] = getvar_s(av[i]);
+			if (isr & 0x08000000)
+				as[i] = getvar_s(av[i]);
+		}
 		isr >>= 1;
 	}
 
