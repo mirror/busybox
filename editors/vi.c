@@ -2677,6 +2677,59 @@ static char *expand_args(char *args)
 # endif
 #endif /* FEATURE_VI_COLON */
 
+#if ENABLE_FEATURE_VI_REGEX_SEARCH
+# define MAX_SUBPATTERN 10	// subpatterns \0 .. \9
+
+// If the return value is not NULL the caller should free R
+static char *regex_search(char *q, regex_t *preg, const char *Rorig,
+				size_t *len_F, size_t *len_R, char **R)
+{
+	regmatch_t regmatch[MAX_SUBPATTERN], *cur_match;
+	char *found = NULL;
+	const char *t;
+	char *r;
+
+	regmatch[0].rm_so = 0;
+	regmatch[0].rm_eo = end_line(q) - q;
+	if (regexec(preg, q, MAX_SUBPATTERN, regmatch, REG_STARTEND) != 0)
+		return found;
+
+	found = q + regmatch[0].rm_so;
+	*len_F = regmatch[0].rm_eo - regmatch[0].rm_so;
+	*R = NULL;
+
+ fill_result:
+	// first pass calculates len_R, second fills R
+	*len_R = 0;
+	for (t = Rorig, r = *R; *t; t++) {
+		size_t len = 1;	// default is to copy one char from replace pattern
+		const char *from = t;
+		if (*t == '\\') {
+			from = ++t;	// skip backslash
+			if (*t >= '0' && *t < '0' + MAX_SUBPATTERN) {
+				cur_match = regmatch + (*t - '0');
+				if (cur_match->rm_so >= 0) {
+					len = cur_match->rm_eo - cur_match->rm_so;
+					from = q + cur_match->rm_so;
+				}
+			}
+		}
+		*len_R += len;
+		if (*R) {
+			memcpy(r, from, len);
+			r += len;
+			/* *r = '\0'; - xzalloc did it */
+		}
+	}
+	if (*R == NULL) {
+		*R = xzalloc(*len_R + 1);
+		goto fill_result;
+	}
+
+	return found;
+}
+#endif /* ENABLE_FEATURE_VI_REGEX_SEARCH */
+
 // buf must be no longer than MAX_INPUT_LEN!
 static void colon(char *buf)
 {
@@ -3084,6 +3137,14 @@ static void colon(char *buf)
 #  if ENABLE_FEATURE_VI_VERBOSE_STATUS
 		int last_line = 0, lines = 0;
 #  endif
+#  if ENABLE_FEATURE_VI_REGEX_SEARCH
+		regex_t preg;
+		int cflags;
+		char *Rorig;
+#   if ENABLE_FEATURE_VI_UNDO
+		int undo = 0;
+#   endif
+#  endif
 
 		// F points to the "find" pattern
 		// R points to the "replace" pattern
@@ -3100,7 +3161,6 @@ static void colon(char *buf)
 			*flags++ = '\0';	// terminate "replace"
 			gflag = *flags;
 		}
-		len_R = strlen(R);
 
 		if (len_F) {	// save "find" as last search pattern
 			free(last_search_pattern);
@@ -3122,31 +3182,68 @@ static void colon(char *buf)
 			b = e;
 		}
 
+#  if ENABLE_FEATURE_VI_REGEX_SEARCH
+		Rorig = R;
+		cflags = 0;
+		if (ignorecase)
+			cflags = REG_ICASE;
+		memset(&preg, 0, sizeof(preg));
+		if (regcomp(&preg, F, cflags) != 0) {
+			status_line(":s bad search pattern");
+			goto regex_search_end;
+		}
+#  else
+		len_R = strlen(R);
+#  endif
+
 		for (i = b; i <= e; i++) {	// so, :20,23 s \0 find \0 replace \0
 			char *ls = q;		// orig line start
 			char *found;
  vc4:
+#  if ENABLE_FEATURE_VI_REGEX_SEARCH
+			found = regex_search(q, &preg, Rorig, &len_F, &len_R, &R);
+#  else
 			found = char_search(q, F, (FORWARD << 1) | LIMITED);	// search cur line only for "find"
+#  endif
 			if (found) {
 				uintptr_t bias;
 				// we found the "find" pattern - delete it
 				// For undo support, the first item should not be chained
-				text_hole_delete(found, found + len_F - 1,
-							subs ? ALLOW_UNDO_CHAIN: ALLOW_UNDO);
-				// can't do this above, no undo => no third argument
-				subs++;
-#  if ENABLE_FEATURE_VI_VERBOSE_STATUS
-				if (last_line != i) {
-					last_line = i;
-					++lines;
-				}
+				// This needs to be handled differently depending on
+				// whether or not regex support is enabled.
+#  if ENABLE_FEATURE_VI_REGEX_SEARCH
+#   define TEST_LEN_F len_F	// len_F may be zero
+#   define TEST_UNDO1 undo++
+#   define TEST_UNDO2 undo++
+#  else
+#   define TEST_LEN_F 1		// len_F is never zero
+#   define TEST_UNDO1 subs
+#   define TEST_UNDO2 1
 #  endif
-				// insert the "replace" patern
-				bias = string_insert(found, R, ALLOW_UNDO_CHAIN);
-				found += bias;
-				ls += bias;
-				dot = ls;
-				//q += bias; - recalculated anyway
+				if (TEST_LEN_F)	// match can be empty, no delete needed
+					text_hole_delete(found, found + len_F - 1,
+								TEST_UNDO1 ? ALLOW_UNDO_CHAIN: ALLOW_UNDO);
+				if (len_R) {	// insert the "replace" pattern, if required
+					bias = string_insert(found, R,
+								TEST_UNDO2 ? ALLOW_UNDO_CHAIN: ALLOW_UNDO);
+					found += bias;
+					ls += bias;
+					dot = ls;
+					//q += bias; - recalculated anyway
+				}
+#  if ENABLE_FEATURE_VI_REGEX_SEARCH
+				free(R);
+#  endif
+				if (TEST_LEN_F || len_R) {
+					dot = ls;
+					subs++;
+#  if ENABLE_FEATURE_VI_VERBOSE_STATUS
+					if (last_line != i) {
+						last_line = i;
+						++lines;
+					}
+#  endif
+				}
 				// check for "global"  :s/foo/bar/g
 				if (gflag == 'g') {
 					if ((found + len_R) < end_line(ls)) {
@@ -3166,6 +3263,10 @@ static void colon(char *buf)
 				status_line("%d substitutions on %d lines", subs, lines);
 #  endif
 		}
+#  if ENABLE_FEATURE_VI_REGEX_SEARCH
+ regex_search_end:
+		regfree(&preg);
+#  endif
 # endif /* FEATURE_VI_SEARCH */
 	} else if (strncmp(cmd, "version", i) == 0) {  // show software version
 		status_line(BB_VER);
