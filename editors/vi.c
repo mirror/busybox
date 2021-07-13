@@ -2683,12 +2683,13 @@ static char *expand_args(char *args)
 // Like strchr() but skipping backslash-escaped characters
 static char *strchr_backslash(const char *s, int c)
 {
-	for (; *s; ++s) {
+	while (*s) {
 		if (*s == c) {
 			return (char *)s;
-		} else if (*s == '\\' && *++s == '\0') {
-			break;
-		}
+		if (*s == '\\')
+			if (*++s == '\0')
+				break;
+		s++;
 	}
 	return NULL;
 }
@@ -3237,10 +3238,10 @@ static void colon(char *buf)
 #  endif
 				if (TEST_LEN_F)	// match can be empty, no delete needed
 					text_hole_delete(found, found + len_F - 1,
-								TEST_UNDO1 ? ALLOW_UNDO_CHAIN: ALLOW_UNDO);
-				if (len_R) {	// insert the "replace" pattern, if required
+								TEST_UNDO1 ? ALLOW_UNDO_CHAIN : ALLOW_UNDO);
+				if (len_R != 0) {	// insert the "replace" pattern, if required
 					bias = string_insert(found, R,
-								TEST_UNDO2 ? ALLOW_UNDO_CHAIN: ALLOW_UNDO);
+								TEST_UNDO2 ? ALLOW_UNDO_CHAIN : ALLOW_UNDO);
 					found += bias;
 					ls += bias;
 					dot = ls;
@@ -3249,7 +3250,7 @@ static void colon(char *buf)
 #  if ENABLE_FEATURE_VI_REGEX_SEARCH
 				free(R);
 #  endif
-				if (TEST_LEN_F || len_R) {
+				if (TEST_LEN_F || len_R != 0) {
 					dot = ls;
 					subs++;
 #  if ENABLE_FEATURE_VI_VERBOSE_STATUS
