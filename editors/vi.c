@@ -2684,7 +2684,7 @@ static char *expand_args(char *args)
 static char *strchr_backslash(const char *s, int c)
 {
 	while (*s) {
-		if (*s == c) {
+		if (*s == c)
 			return (char *)s;
 		if (*s == '\\')
 			if (*++s == '\0')
