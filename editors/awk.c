@@ -199,77 +199,78 @@ typedef struct tsplitter_s {
 
 /* simple token classes */
 /* order and hex values are very important!!!  See next_token() */
-#define	TC_LPAREN	(1 << 0)		/* ( */
-#define	TC_RPAREN	(1 << 1)		/* ) */
-#define	TC_REGEXP	(1 << 2)		/* /.../ */
-#define	TC_OUTRDR	(1 << 3)		/* | > >> */
-#define	TC_UOPPOST	(1 << 4)		/* unary postfix operator ++ -- */
-#define	TC_UOPPRE1	(1 << 5)		/* unary prefix operator ++ -- $ */
-#define	TC_BINOPX	(1 << 6)		/* two-opnd operator */
-#define	TC_IN		(1 << 7)		/* 'in' */
-#define	TC_COMMA	(1 << 8)		/* , */
-#define	TC_PIPE		(1 << 9)		/* input redirection pipe | */
-#define	TC_UOPPRE2	(1 << 10)		/* unary prefix operator + - ! */
-#define	TC_ARRTERM	(1 << 11)		/* ] */
-#define	TC_LBRACE	(1 << 12)		/* { */
-#define	TC_RBRACE	(1 << 13)		/* } */
-#define	TC_SEMICOL	(1 << 14)		/* ; */
-#define	TC_NEWLINE	(1 << 15)
-#define	TC_STATX	(1 << 16)		/* ctl statement (for, next...) */
-#define	TC_WHILE	(1 << 17)		/* 'while' */
-#define	TC_ELSE		(1 << 18)		/* 'else' */
-#define	TC_BUILTIN	(1 << 19)
+#define TC_LPAREN       (1 << 0)        /* ( */
+#define TC_RPAREN       (1 << 1)        /* ) */
+#define TC_REGEXP       (1 << 2)        /* /.../ */
+#define TC_OUTRDR       (1 << 3)        /* | > >> */
+#define TC_UOPPOST      (1 << 4)        /* unary postfix operator ++ -- */
+#define TC_UOPPRE1      (1 << 5)        /* unary prefix operator ++ -- $ */
+#define TC_BINOPX       (1 << 6)        /* two-opnd operator */
+#define TC_IN           (1 << 7)        /* 'in' */
+#define TC_COMMA        (1 << 8)        /* , */
+#define TC_PIPE         (1 << 9)        /* input redirection pipe | */
+#define TC_UOPPRE2      (1 << 10)       /* unary prefix operator + - ! */
+#define TC_ARRTERM      (1 << 11)       /* ] */
+#define TC_LBRACE       (1 << 12)       /* { */
+#define TC_RBRACE       (1 << 13)       /* } */
+#define TC_SEMICOL      (1 << 14)       /* ; */
+#define TC_NEWLINE      (1 << 15)
+#define TC_STATX        (1 << 16)       /* ctl statement (for, next...) */
+#define TC_WHILE        (1 << 17)       /* 'while' */
+#define TC_ELSE         (1 << 18)       /* 'else' */
+#define TC_BUILTIN      (1 << 19)
 /* This costs ~50 bytes of code.
  * A separate class to support deprecated "length" form. If we don't need that
  * (i.e. if we demand that only "length()" with () is valid), then TC_LENGTH
  * can be merged with TC_BUILTIN:
  */
-#define	TC_LENGTH	(1 << 20)		/* 'length' */
-#define	TC_GETLINE	(1 << 21)		/* 'getline' */
-#define	TC_FUNCDECL	(1 << 22)		/* 'function' 'func' */
-#define	TC_BEGIN	(1 << 23)		/* 'BEGIN' */
-#define	TC_END		(1 << 24)		/* 'END' */
-#define	TC_EOF		(1 << 25)
-#define	TC_VARIABLE	(1 << 26)		/* name */
-#define	TC_ARRAY	(1 << 27)		/* name[ */
-#define	TC_FUNCTION	(1 << 28)		/* name( */
-#define	TC_STRING	(1 << 29)		/* "..." */
-#define	TC_NUMBER	(1 << 30)
+#define TC_LENGTH       (1 << 20)       /* 'length' */
+#define TC_GETLINE      (1 << 21)       /* 'getline' */
+#define TC_FUNCDECL     (1 << 22)       /* 'function' 'func' */
+#define TC_BEGIN        (1 << 23)       /* 'BEGIN' */
+#define TC_END          (1 << 24)       /* 'END' */
+#define TC_EOF          (1 << 25)
+#define TC_VARIABLE     (1 << 26)       /* name */
+#define TC_ARRAY        (1 << 27)       /* name[ */
+#define TC_FUNCTION     (1 << 28)       /* name( */
+#define TC_STRING       (1 << 29)       /* "..." */
+#define TC_NUMBER       (1 << 30)
 
 #ifndef debug_parse_print_tc
-#define debug_parse_print_tc(n) do { \
-if ((n) & TC_LPAREN  ) debug_printf_parse(" LPAREN"  ); \
-if ((n) & TC_RPAREN  ) debug_printf_parse(" RPAREN"  ); \
-if ((n) & TC_REGEXP  ) debug_printf_parse(" REGEXP"  ); \
-if ((n) & TC_OUTRDR  ) debug_printf_parse(" OUTRDR"  ); \
-if ((n) & TC_UOPPOST ) debug_printf_parse(" UOPPOST" ); \
-if ((n) & TC_UOPPRE1 ) debug_printf_parse(" UOPPRE1" ); \
-if ((n) & TC_BINOPX  ) debug_printf_parse(" BINOPX"  ); \
-if ((n) & TC_IN      ) debug_printf_parse(" IN"      ); \
-if ((n) & TC_COMMA   ) debug_printf_parse(" COMMA"   ); \
-if ((n) & TC_PIPE    ) debug_printf_parse(" PIPE"    ); \
-if ((n) & TC_UOPPRE2 ) debug_printf_parse(" UOPPRE2" ); \
-if ((n) & TC_ARRTERM ) debug_printf_parse(" ARRTERM" ); \
-if ((n) & TC_LBRACE  ) debug_printf_parse(" LBRACE"  ); \
-if ((n) & TC_RBRACE  ) debug_printf_parse(" RBRACE"  ); \
-if ((n) & TC_SEMICOL ) debug_printf_parse(" SEMICOL" ); \
-if ((n) & TC_NEWLINE ) debug_printf_parse(" NEWLINE" ); \
-if ((n) & TC_STATX   ) debug_printf_parse(" STATX"   ); \
-if ((n) & TC_WHILE   ) debug_printf_parse(" WHILE"   ); \
-if ((n) & TC_ELSE    ) debug_printf_parse(" ELSE"    ); \
-if ((n) & TC_BUILTIN ) debug_printf_parse(" BUILTIN" ); \
-if ((n) & TC_LENGTH  ) debug_printf_parse(" LENGTH"  ); \
-if ((n) & TC_GETLINE ) debug_printf_parse(" GETLINE" ); \
-if ((n) & TC_FUNCDECL) debug_printf_parse(" FUNCDECL"); \
-if ((n) & TC_BEGIN   ) debug_printf_parse(" BEGIN"   ); \
-if ((n) & TC_END     ) debug_printf_parse(" END"     ); \
-if ((n) & TC_EOF     ) debug_printf_parse(" EOF"     ); \
-if ((n) & TC_VARIABLE) debug_printf_parse(" VARIABLE"); \
-if ((n) & TC_ARRAY   ) debug_printf_parse(" ARRAY"   ); \
-if ((n) & TC_FUNCTION) debug_printf_parse(" FUNCTION"); \
-if ((n) & TC_STRING  ) debug_printf_parse(" STRING"  ); \
-if ((n) & TC_NUMBER  ) debug_printf_parse(" NUMBER"  ); \
-} while (0)
+static void debug_parse_print_tc(uint32_t n)
+{
+	if (n & TC_LPAREN  ) debug_printf_parse(" LPAREN"  );
+	if (n & TC_RPAREN  ) debug_printf_parse(" RPAREN"  );
+	if (n & TC_REGEXP  ) debug_printf_parse(" REGEXP"  );
+	if (n & TC_OUTRDR  ) debug_printf_parse(" OUTRDR"  );
+	if (n & TC_UOPPOST ) debug_printf_parse(" UOPPOST" );
+	if (n & TC_UOPPRE1 ) debug_printf_parse(" UOPPRE1" );
+	if (n & TC_BINOPX  ) debug_printf_parse(" BINOPX"  );
+	if (n & TC_IN      ) debug_printf_parse(" IN"      );
+	if (n & TC_COMMA   ) debug_printf_parse(" COMMA"   );
+	if (n & TC_PIPE    ) debug_printf_parse(" PIPE"    );
+	if (n & TC_UOPPRE2 ) debug_printf_parse(" UOPPRE2" );
+	if (n & TC_ARRTERM ) debug_printf_parse(" ARRTERM" );
+	if (n & TC_LBRACE  ) debug_printf_parse(" LBRACE"  );
+	if (n & TC_RBRACE  ) debug_printf_parse(" RBRACE"  );
+	if (n & TC_SEMICOL ) debug_printf_parse(" SEMICOL" );
+	if (n & TC_NEWLINE ) debug_printf_parse(" NEWLINE" );
+	if (n & TC_STATX   ) debug_printf_parse(" STATX"   );
+	if (n & TC_WHILE   ) debug_printf_parse(" WHILE"   );
+	if (n & TC_ELSE    ) debug_printf_parse(" ELSE"    );
+	if (n & TC_BUILTIN ) debug_printf_parse(" BUILTIN" );
+	if (n & TC_LENGTH  ) debug_printf_parse(" LENGTH"  );
+	if (n & TC_GETLINE ) debug_printf_parse(" GETLINE" );
+	if (n & TC_FUNCDECL) debug_printf_parse(" FUNCDECL");
+	if (n & TC_BEGIN   ) debug_printf_parse(" BEGIN"   );
+	if (n & TC_END     ) debug_printf_parse(" END"     );
+	if (n & TC_EOF     ) debug_printf_parse(" EOF"     );
+	if (n & TC_VARIABLE) debug_printf_parse(" VARIABLE");
+	if (n & TC_ARRAY   ) debug_printf_parse(" ARRAY"   );
+	if (n & TC_FUNCTION) debug_printf_parse(" FUNCTION");
+	if (n & TC_STRING  ) debug_printf_parse(" STRING"  );
+	if (n & TC_NUMBER  ) debug_printf_parse(" NUMBER"  );
+}
 #endif
 
 /* combined token classes ("token [class] sets") */
@@ -417,7 +418,7 @@ static const char tokenlist[] ALIGN1 =
 	"\5close"     "\6system"    "\6fflush"  "\5atan2"
 	"\3cos"       "\3exp"       "\3int"     "\3log"
 	"\4rand"      "\3sin"       "\4sqrt"    "\5srand"
-	"\6gensub"    "\4gsub"      "\5index"	/* "\6length" was here */
+	"\6gensub"    "\4gsub"      "\5index"   /* "\6length" was here */
 	"\5match"     "\5split"     "\7sprintf" "\3sub"
 	"\6substr"    "\7systime"   "\10strftime" "\6mktime"
 	"\7tolower"   "\7toupper"   NTC
@@ -1801,7 +1802,6 @@ static void parse_program(char *p)
 		/* else: loop back - ate the semicolon, get and use _next_ token */
 	} /* for (;;) */
 }
-
 
 /* -------- program execution part -------- */
 
@@ -3509,7 +3509,6 @@ static var *evaluate(node *op, var *res)
 #undef seed
 #undef sreg
 }
-
 
 /* -------- main & co. -------- */
 
