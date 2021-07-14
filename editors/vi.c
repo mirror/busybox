@@ -3244,7 +3244,6 @@ static void colon(char *buf)
 								TEST_UNDO2 ? ALLOW_UNDO_CHAIN : ALLOW_UNDO);
 					found += bias;
 					ls += bias;
-					dot = ls;
 					//q += bias; - recalculated anyway
 				}
 #  if ENABLE_FEATURE_VI_REGEX_SEARCH
