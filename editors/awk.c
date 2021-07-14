@@ -1634,7 +1634,7 @@ static void chain_group(void)
 		debug_printf_parse("%s: ST_FOR\n", __func__);
 		next_token(TC_LPAREN);
 		n2 = parse_expr(TC_SEMICOL | TC_RPAREN);
-		if (t_tclass & TC_RPAREN) {	/* for-in */
+		if (t_tclass & TC_RPAREN) {	/* for (I in ARRAY) */
 			if (!n2 || n2->info != TI_IN)
 				syntax_error(EMSG_UNEXP_TOKEN);
 			n = chain_node(OC_WALKINIT | VV);
@@ -1700,20 +1700,15 @@ static void parse_program(char *p)
 	for (;;) {
 		uint32_t tclass;
 
-		tclass = next_token(TC_EOF | TS_OPSEQ | TC_LBRACE |
-			TC_SEMICOL | TC_NEWLINE | TC_BEGIN | TC_END | TC_FUNCDECL);
-
+		tclass = next_token(TS_OPSEQ | TC_LBRACE | TC_BEGIN | TC_END | TC_FUNCDECL
+			| TC_EOF | TC_NEWLINE /* but not TC_SEMICOL */);
+ got_tok:
 		if (tclass == TC_EOF) {
 			debug_printf_parse("%s: TC_EOF\n", __func__);
 			break;
 		}
-		if (tclass & (TC_SEMICOL | TC_NEWLINE)) {
-			debug_printf_parse("%s: TC_SEMICOL | TC_NEWLINE\n", __func__);
-//NB: gawk allows many newlines, but does not allow more than one semicolon:
-//  BEGIN {...}<newline>;<newline>;
-//would complain "each rule must have a pattern or an action part".
-//Same message for
-//  ; BEGIN {...}
+		if (tclass == TC_NEWLINE) {
+			debug_printf_parse("%s: TC_NEWLINE\n", __func__);
 			continue;
 		}
 		if (tclass == TC_BEGIN) {
@@ -1722,7 +1717,7 @@ static void parse_program(char *p)
 			/* ensure there is no newline between BEGIN and { */
 			next_token(TC_LBRACE);
 			chain_until_rbrace();
-			continue;
+			goto next_tok;
 		}
 		if (tclass == TC_END) {
 			debug_printf_parse("%s: TC_END\n", __func__);
@@ -1730,7 +1725,7 @@ static void parse_program(char *p)
 			/* ensure there is no newline between END and { */
 			next_token(TC_LBRACE);
 			chain_until_rbrace();
-			continue;
+			goto next_tok;
 		}
 		if (tclass == TC_FUNCDECL) {
 			func *f;
@@ -1765,7 +1760,7 @@ static void parse_program(char *p)
 				continue;
 			chain_until_rbrace();
 			hash_clear(ahash);
-			continue;
+			goto next_tok;
 		}
 		seq = &mainseq;
 		if (tclass & TS_OPSEQ) {
@@ -1784,12 +1779,25 @@ static void parse_program(char *p)
 				chain_node(OC_PRINT);
 			}
 			cn->r.n = mainseq.last;
-			continue;
+			goto next_tok;
 		}
 		/* tclass == TC_LBRACE */
 		debug_printf_parse("%s: TC_LBRACE(?)\n", __func__);
 		chain_until_rbrace();
-	}
+ next_tok:
+		/* Same as next_token() at the top of the loop, + TC_SEMICOL */
+		tclass = next_token(TS_OPSEQ | TC_LBRACE | TC_BEGIN | TC_END | TC_FUNCDECL
+			| TC_EOF | TC_NEWLINE | TC_SEMICOL);
+		/* gawk allows many newlines, but does not allow more than one semicolon:
+		 *  BEGIN {...}<newline>;<newline>;
+		 * would complain "each rule must have a pattern or an action part".
+		 * Same message for
+		 *  ; BEGIN {...}
+		 */
+		if (tclass != TC_SEMICOL)
+			goto got_tok; /* use this token */
+		/* else: loop back - ate the semicolon, get and use _next_ token */
+	} /* for (;;) */
 }
 
 
