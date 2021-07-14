@@ -1671,16 +1671,18 @@ static void chain_group(void)
 	case OC_BREAK:
 		debug_printf_parse("%s: OC_BREAK\n", __func__);
 		n = chain_node(OC_EXEC);
+		if (!break_ptr)
+			syntax_error("'break' not in a loop");
 		n->a.n = break_ptr;
-//TODO: if break_ptr is NULL, syntax error (not in the loop)?
 		chain_expr(t_info);
 		break;
 
 	case OC_CONTINUE:
 		debug_printf_parse("%s: OC_CONTINUE\n", __func__);
 		n = chain_node(OC_EXEC);
+		if (!continue_ptr)
+			syntax_error("'continue' not in a loop");
 		n->a.n = continue_ptr;
-//TODO: if continue_ptr is NULL, syntax error (not in the loop)?
 		chain_expr(t_info);
 		break;
 
