@@ -380,7 +380,8 @@ static void addLines(int num)
 static int readLines(const char *file, int num)
 {
 	int fd, cc;
-	int len, lineCount, charCount;
+	int len;
+	unsigned charCount;
 	char *cp;
 
 	if ((num < 1) || (num > lastNum + 1)) {
@@ -396,7 +397,6 @@ static int readLines(const char *file, int num)
 
 	bufPtr = bufBase;
 	bufUsed = 0;
-	lineCount = 0;
 	charCount = 0;
 	cc = 0;
 
@@ -415,7 +415,6 @@ static int readLines(const char *file, int num)
 			bufPtr += len;
 			bufUsed -= len;
 			charCount += len;
-			lineCount++;
 			num++;
 			continue;
 		}
@@ -449,15 +448,18 @@ static int readLines(const char *file, int num)
 			close(fd);
 			return -1;
 		}
-		lineCount++;
 		charCount += bufUsed;
 	}
 
 	close(fd);
 
-	printf("%d lines%s, %d chars\n", lineCount,
-		(bufUsed ? " (incomplete)" : ""), charCount);
-
+	/* https://pubs.opengroup.org/onlinepubs/9699919799/utilities/ed.html
+	 * "Read Command"
+	 * "...the number of bytes read shall be written to standard output
+	 * in the following format:
+	 * "%d\n", <number of bytes read>
+	 */
+	printf("%u\n", charCount);
 	return TRUE;
 }
 
@@ -468,12 +470,12 @@ static int readLines(const char *file, int num)
 static int writeLines(const char *file, int num1, int num2)
 {
 	LINE *lp;
-	int fd, lineCount, charCount;
+	int fd;
+	unsigned charCount;
 
 	if (bad_nums(num1, num2, "write"))
 		return FALSE;
 
-	lineCount = 0;
 	charCount = 0;
 
 	fd = creat(file, 0666);
@@ -481,9 +483,6 @@ static int writeLines(const char *file, int num1, int num2)
 		bb_simple_perror_msg(file);
 		return FALSE;
 	}
-
-	printf("\"%s\", ", file);
-	fflush_all();
 
 	lp = findLine(num1);
 	if (lp == NULL) {
@@ -498,7 +497,6 @@ static int writeLines(const char *file, int num1, int num2)
 			return FALSE;
 		}
 		charCount += lp->len;
-		lineCount++;
 		lp = lp->next;
 	}
 
@@ -507,7 +505,13 @@ static int writeLines(const char *file, int num1, int num2)
 		return FALSE;
 	}
 
-	printf("%d lines, %d chars\n", lineCount, charCount);
+	/* https://pubs.opengroup.org/onlinepubs/9699919799/utilities/ed.html
+	 * "Write Command"
+	 * "...the number of bytes written shall be written to standard output,
+	 * unless the -s option was specified, in the following format:
+	 * "%d\n", <number of bytes written>
+	 */
+	printf("%u\n", charCount);
 	return TRUE;
 }
 
