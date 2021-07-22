@@ -6970,7 +6970,8 @@ scanright(char *startp, char *rmesc, char *rmescend,
 	 * Logic:
 	 * loc starts at NUL at the end of startp, loc2 starts at the end of rmesc,
 	 * and on each iteration they go back two/one char until they reach the beginning.
-	 * We try to find a match in "raw_value_of_v", "raw_value_of_", "raw_value_of" etc.
+	 * We try to match "raw_value_of_v", "raw_value_of_", "raw_value_of" etc.
+	 * If one of these matches, return pointer past last matched char in startp.
 	 */
 	/* TODO: document in what other circumstances we are called. */
 
@@ -7258,6 +7259,7 @@ subevalvar(char *start, char *str, int strloc,
 #if BASH_PATTERN_SUBST
 	workloc = expdest - (char *)stackblock();
 	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
+		size_t no_meta_len;
 		int len;
 		char *idx, *end;
 
@@ -7275,16 +7277,38 @@ subevalvar(char *start, char *str, int strloc,
 		if (str[0] == '\0')
 			goto out1;
 
+		no_meta_len = (ENABLE_ASH_OPTIMIZE_FOR_SIZE || strpbrk(str, "*?[\\")) ? 0 : strlen(str);
 		len = 0;
 		idx = startp;
 		end = str - 1;
 		while (idx <= end) {
  try_to_match:
-			loc = scanright(idx, rmesc, rmescend, str, quotes, 1);
+			if (no_meta_len == 0) {
+				/* pattern has meta chars, have to glob; or ENABLE_ASH_OPTIMIZE_FOR_SIZE  */
+				loc = scanright(idx, rmesc, rmescend, str, quotes, /*match_at_start:*/ 1);
+			} else {
+				/* Testcase for very slow replace (performs about 22k replaces):
+				 * x=::::::::::::::::::::::
+				 * x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;echo ${#x}
+				 * echo "${x//:/|}"
+				 */
+				size_t n;
+				if (strncmp(rmesc, str, no_meta_len) != 0)
+					goto no_match;
+				n = no_meta_len;
+				loc = idx;
+				do {
+					if (quotes && (unsigned char)*loc == CTLESC)
+						loc++;
+					loc++;
+				} while (--n != 0);
+			}
 			//bb_error_msg("scanright('%s'):'%s'", str, loc);
 			if (!loc) {
+				char *restart_detect;
+ no_match:
 				/* No match, advance */
-				char *restart_detect = stackblock();
+				restart_detect = stackblock();
  skip_matching:
 				if (idx >= end)
 					break;
