@@ -7284,7 +7284,7 @@ subevalvar(char *start, char *str, int strloc,
 		while (idx <= end) {
  try_to_match:
 			if (no_meta_len == 0) {
-				/* pattern has meta chars, have to glob; or ENABLE_ASH_OPTIMIZE_FOR_SIZE  */
+				/* pattern has meta chars, have to glob; or ENABLE_ASH_OPTIMIZE_FOR_SIZE */
 				loc = scanright(idx, rmesc, rmescend, str, quotes, /*match_at_start:*/ 1);
 			} else {
 				/* Testcase for very slow replace (performs about 22k replaces):
@@ -7292,16 +7292,19 @@ subevalvar(char *start, char *str, int strloc,
 				 * x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;echo ${#x}
 				 * echo "${x//:/|}"
 				 */
-				size_t n;
 				if (strncmp(rmesc, str, no_meta_len) != 0)
 					goto no_match;
-				n = no_meta_len;
 				loc = idx;
-				do {
-					if (quotes && (unsigned char)*loc == CTLESC)
+				if (!quotes) {
+					loc += no_meta_len;
+				} else {
+					size_t n = no_meta_len;
+					do {
+						if ((unsigned char)*loc == CTLESC)
+							loc++;
 						loc++;
-					loc++;
-				} while (--n != 0);
+					} while (--n != 0);
+				}
 			}
 			//bb_error_msg("scanright('%s'):'%s'", str, loc);
 			if (!loc) {
