@@ -384,6 +384,7 @@
 #define BASH_PATTERN_SUBST ENABLE_HUSH_BASH_COMPAT
 #define BASH_SUBSTR        ENABLE_HUSH_BASH_COMPAT
 #define BASH_SOURCE        ENABLE_HUSH_BASH_COMPAT
+#define BASH_DOLLAR_SQUOTE ENABLE_HUSH_BASH_COMPAT
 #define BASH_HOSTNAME_VAR  ENABLE_HUSH_BASH_COMPAT
 #define BASH_EPOCH_VARS    ENABLE_HUSH_BASH_COMPAT
 #define BASH_TEST2         (ENABLE_HUSH_BASH_COMPAT && ENABLE_HUSH_TEST)
@@ -4919,6 +4920,100 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 }
 #endif /* ENABLE_HUSH_TICK || ENABLE_FEATURE_SH_MATH || ENABLE_HUSH_DOLLAR_OPS */
 
+#if BASH_DOLLAR_SQUOTE
+/* Return code: 1 for "found and parsed", 0 for "seen something else" */
+#if BB_MMU
+#define parse_dollar_squote(as_string, dest, input) \
+	parse_dollar_squote(dest, input)
+#define as_string NULL
+#endif
+static int parse_dollar_squote(o_string *as_string, o_string *dest, struct in_str *input)
+{
+	int start;
+	int ch = i_peek_and_eat_bkslash_nl(input);  /* first character after the $ */
+	debug_printf_parse("parse_dollar_squote entered: ch='%c'\n", ch);
+	if (ch != '\'')
+		return 0;
+
+	dest->has_quoted_part = 1;
+	start = dest->length;
+
+	ch = i_getch(input); /* eat ' */
+	nommu_addchr(as_string, ch);
+	while (1) {
+		ch = i_getch(input);
+		nommu_addchr(as_string, ch);
+		if (ch == EOF) {
+			syntax_error_unterm_ch('\'');
+			return 0;
+		}
+		if (ch == '\'')
+			break;
+		if (ch == SPECIAL_VAR_SYMBOL) {
+			/* Convert raw ^C to corresponding special variable reference */
+			o_addchr(dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(dest, SPECIAL_VAR_QUOTED_SVS);
+			/* will addchr() another SPECIAL_VAR_SYMBOL (see after the if() block) */
+		} else if (ch == '\\') {
+			static const char C_escapes[] ALIGN1 = "nrbtfav""x\\01234567";
+
+			ch = i_getch(input);
+			nommu_addchr(as_string, ch);
+			if (strchr(C_escapes, ch)) {
+				char buf[4];
+				char *p = buf;
+				int cnt = 2;
+
+				buf[0] = ch;
+				if ((unsigned char)(ch - '0') <= 7) { /* \ooo */
+					do {
+						ch = i_peek(input);
+						if ((unsigned char)(ch - '0') > 7)
+							break;
+						*++p = ch = i_getch(input);
+						nommu_addchr(as_string, ch);
+					} while (--cnt != 0);
+				} else if (ch == 'x') { /* \xHH */
+					do {
+						ch = i_peek(input);
+						if (!isxdigit(ch))
+							break;
+						*++p = ch = i_getch(input);
+						nommu_addchr(as_string, ch);
+					} while (--cnt != 0);
+					if (cnt == 2) { /* \x but next char is "bad" */
+						ch = 'x';
+						goto unrecognized;
+					}
+				} /* else simple seq like \\ or \t */
+				*++p = '\0';
+				p = buf;
+				ch = bb_process_escape_sequence((void*)&p);
+				//bb_error_msg("buf:'%s' ch:%x", buf, ch);
+				if (ch == '\0')
+					continue; /* bash compat: $'...\0...' emits nothing */
+			} else { /* unrecognized "\z": encode both chars unless ' or " */
+				if (ch != '\'' && ch != '"') {
+ unrecognized:
+					o_addqchr(dest, '\\');
+				}
+			}
+		} /* if (\...) */
+		o_addqchr(dest, ch);
+	}
+
+	if (dest->length == start) {
+		/* $'', $'\0', $'\000\x00' and the like */
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+	}
+
+	return 1;
+}
+#else
+# #define parse_dollar_squote(as_string, dest, input) 0
+#endif /* BASH_DOLLAR_SQUOTE */
+
 /* Return code: 0 for OK, 1 for syntax error */
 #if BB_MMU
 #define parse_dollar(as_string, dest, input, quote_mask) \
@@ -4931,7 +5026,7 @@ static int parse_dollar(o_string *as_string,
 {
 	int ch = i_peek_and_eat_bkslash_nl(input);  /* first character after the $ */
 
-	debug_printf_parse("parse_dollar entered: ch='%c'\n", ch);
+	debug_printf_parse("parse_dollar entered: ch='%c' quote_mask:0x%x\n", ch, quote_mask);
 	if (isalpha(ch)) {
  make_var:
 		ch = i_getch(input);
@@ -5247,6 +5342,8 @@ static int encode_string(o_string *as_string,
 		goto again;
 	}
 	if (ch == '$') {
+		//if (parse_dollar_squote(as_string, dest, input))
+		//	goto again;
 		if (!parse_dollar(as_string, dest, input, /*quote_mask:*/ 0x80)) {
 			debug_printf_parse("encode_string return 0: "
 					"parse_dollar returned 0 (error)\n");
@@ -5723,6 +5820,8 @@ static struct pipe *parse_stream(char **pstring,
 			o_addchr(&ctx.word, ch);
 			continue; /* get next char */
 		case '$':
+			if (parse_dollar_squote(&ctx.as_string, &ctx.word, input))
+				continue; /* get next char */
 			if (!parse_dollar(&ctx.as_string, &ctx.word, input, /*quote_mask:*/ 0)) {
 				debug_printf_parse("parse_stream parse error: "
 					"parse_dollar returned 0 (error)\n");
@@ -6166,6 +6265,8 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 			continue;
 		}
 		if (ch == '$') {
+			if (parse_dollar_squote(NULL, &dest, &input))
+				continue;
 			if (!parse_dollar(NULL, &dest, &input, /*quote_mask:*/ 0x80)) {
 				debug_printf_parse("%s: error: parse_dollar returned 0 (error)\n", __func__);
 				goto ret;
