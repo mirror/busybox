@@ -4922,11 +4922,11 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 
 #if BASH_DOLLAR_SQUOTE
 /* Return code: 1 for "found and parsed", 0 for "seen something else" */
-#if BB_MMU
+# if BB_MMU
 #define parse_dollar_squote(as_string, dest, input) \
 	parse_dollar_squote(dest, input)
 #define as_string NULL
-#endif
+# endif
 static int parse_dollar_squote(o_string *as_string, o_string *dest, struct in_str *input)
 {
 	int start;
@@ -5009,6 +5009,7 @@ static int parse_dollar_squote(o_string *as_string, o_string *dest, struct in_st
 	}
 
 	return 1;
+# undef as_string
 }
 #else
 # #define parse_dollar_squote(as_string, dest, input) 0
@@ -5949,7 +5950,6 @@ static struct pipe *parse_stream(char **pstring,
 			if (ctx.ctx_res_w == RES_MATCH)
 				goto case_semi;
 #endif
-
 		case '}':
 			/* proper use of this character is caught by end_trigger:
 			 * if we see {, we call parse_group(..., end_trigger='}')
