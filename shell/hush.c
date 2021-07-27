@@ -6466,17 +6466,16 @@ static arith_t expand_and_evaluate_arith(const char *arg, const char **errmsg_p)
 /* ${var/[/]pattern[/repl]} helpers */
 static char *strstr_pattern(char *val, const char *pattern, int *size)
 {
-	if (!strpbrk(pattern, "*?[\\")) {
+	int sz = strcspn(pattern, "*?[\\");
+	if (pattern[sz] == '\0') {
 		/* Optimization for trivial patterns.
 		 * Testcase for very slow replace (performs about 22k replaces):
 		 * x=::::::::::::::::::::::
 		 * x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;echo ${#x}
 		 * echo "${x//:/|}"
 		 */
-		char *found = strstr(val, pattern);
-		if (found)
-			*size = strlen(pattern);
-		return found;
+		*size = sz;
+		return strstr(val, pattern);
 	}
 
 	while (1) {
