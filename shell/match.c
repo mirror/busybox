@@ -64,11 +64,10 @@ char* FAST_FUNC scan_and_match(char *string, const char *pattern, unsigned flags
 	}
 
 	while (loc != end) {
-		char c;
 		int r;
 
-		c = *loc;
 		if (flags & SCAN_MATCH_LEFT_HALF) {
+			char c = *loc;
 			*loc = '\0';
 			r = fnmatch(pattern, string, 0);
 			//bb_error_msg("fnmatch('%s','%s',0):%d", pattern, string, r);
