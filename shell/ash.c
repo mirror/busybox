@@ -7185,14 +7185,19 @@ subevalvar(char *start, char *str, int strloc,
 		if ((unsigned)len > (orig_len - pos))
 			len = orig_len - pos;
 
-		for (vstr = startp; pos; vstr++, pos--) {
-			if (quotes && (unsigned char)*vstr == CTLESC)
+		if (!quotes) {
+			loc = mempcpy(startp, startp + pos, len);
+		} else {
+			for (vstr = startp; pos != 0; pos--) {
+				if ((unsigned char)*vstr == CTLESC)
+					vstr++;
 				vstr++;
-		}
-		for (loc = startp; len; len--) {
-			if (quotes && (unsigned char)*vstr == CTLESC)
+			}
+			for (loc = startp; len != 0; len--) {
+				if ((unsigned char)*vstr == CTLESC)
+					*loc++ = *vstr++;
 				*loc++ = *vstr++;
-			*loc++ = *vstr++;
+			}
 		}
 		*loc = '\0';
 		goto out;
