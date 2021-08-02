@@ -1132,14 +1132,15 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		tar_handle->ah_flags &= ~ARCHIVE_RESTORE_DATE;
 
 #if ENABLE_FEATURE_TAR_FROM
+	/* Convert each -X EXCLFILE to list of to-be-rejected glob patterns */
 	tar_handle->reject = append_file_list_to_list(tar_handle->reject);
 # if ENABLE_FEATURE_TAR_LONG_OPTIONS
-	/* Append excludes to reject */
-	while (excludes) {
-		llist_t *next = excludes->link;
-		excludes->link = tar_handle->reject;
-		tar_handle->reject = excludes;
-		excludes = next;
+	/* Append --exclude=GLOBPATTERNs to reject */
+	if (excludes) {
+		llist_t **p2next = &tar_handle->reject;
+		while (*p2next)
+			p2next = &((*p2next)->link);
+		*p2next = excludes;
 	}
 # endif
 	tar_handle->accept = append_file_list_to_list(tar_handle->accept);
