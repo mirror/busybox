@@ -24,7 +24,7 @@
 //usage:     "\n	-i L-H	Treat numbers L-H as lines"
 //usage:     "\n	-n NUM	Output at most NUM lines"
 //usage:     "\n	-o FILE	Write to FILE, not standard output"
-//usage:     "\n	-z	End lines with zero byte, not newline"
+//usage:     "\n	-z	NUL terminated output"
 
 #include "libbb.h"
 
@@ -39,8 +39,10 @@
 
 /*
  * Use the Fisher-Yates shuffle algorithm on an array of lines.
+ * If the required number of output lines is less than the total
+ * we can stop shuffling early.
  */
-static void shuffle_lines(char **lines, unsigned numlines)
+static void shuffle_lines(char **lines, unsigned numlines, unsigned outlines)
 {
 	unsigned i;
 	unsigned r;
@@ -48,7 +50,7 @@ static void shuffle_lines(char **lines, unsigned numlines)
 
 	srand(monotonic_us());
 
-	for (i = numlines-1; i > 0; i--) {
+	for (i = numlines-1; outlines > 0; i--, outlines--) {
 		r = rand();
 		/* RAND_MAX can be as small as 32767 */
 		if (i > RAND_MAX)
@@ -67,7 +69,7 @@ int shuf_main(int argc, char **argv)
 	char *opt_i_str, *opt_n_str, *opt_o_str;
 	unsigned i;
 	char **lines;
-	unsigned numlines;
+	unsigned numlines, outlines;
 	char eol;
 
 	opts = getopt32(argv, "^"
@@ -128,24 +130,23 @@ int shuf_main(int argc, char **argv)
 		fclose_if_not_stdin(fp);
 	}
 
-	if (numlines != 0)
-		shuffle_lines(lines, numlines);
+	outlines = numlines;
+	if (opts & OPT_n) {
+		outlines = xatou(opt_n_str);
+		if (outlines > numlines)
+			outlines = numlines;
+	}
+
+	shuffle_lines(lines, numlines, outlines);
 
 	if (opts & OPT_o)
 		xmove_fd(xopen(opt_o_str, O_WRONLY|O_CREAT|O_TRUNC), STDOUT_FILENO);
-
-	if (opts & OPT_n) {
-		unsigned maxlines;
-		maxlines = xatou(opt_n_str);
-		if (numlines > maxlines)
-			numlines = maxlines;
-	}
 
 	eol = '\n';
 	if (opts & OPT_z)
 		eol = '\0';
 
-	for (i = 0; i < numlines; i++) {
+	for (i = numlines - outlines; i < numlines; i++) {
 		if (opts & OPT_i)
 			printf("%u%c", (unsigned)(uintptr_t)lines[i], eol);
 		else
