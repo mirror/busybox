@@ -121,14 +121,12 @@ int cp_main(int argc, char **argv)
 	int d_flags;
 	int flags;
 	int status;
-	enum {
 #if ENABLE_FEATURE_CP_LONG_OPTIONS
+	enum {
 		/*OPT_rmdest  = FILEUTILS_RMDEST = 1 << FILEUTILS_CP_OPTBITS */
 		OPT_parents = 1 << (FILEUTILS_CP_OPTBITS+1),
 		OPT_reflink = 1 << (FILEUTILS_CP_OPTBITS+2),
-#endif
 	};
-#if ENABLE_FEATURE_CP_LONG_OPTIONS
 # if ENABLE_FEATURE_CP_REFLINK
 	char *reflink = NULL;
 # endif
