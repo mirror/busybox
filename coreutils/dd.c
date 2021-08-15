@@ -56,8 +56,8 @@
 //kbuild:lib-$(CONFIG_DD) += dd.o
 
 //usage:#define dd_trivial_usage
-//usage:       "[if=FILE] [of=FILE] [" IF_FEATURE_DD_IBS_OBS("ibs=N obs=N/") "bs=N] [count=N] [skip=N] [seek=N]\n"
-//usage:	IF_FEATURE_DD_IBS_OBS(
+//usage:       "[if=FILE] [of=FILE] [" IF_FEATURE_DD_IBS_OBS("ibs=N obs=N/") "bs=N] [count=N] [skip=N] [seek=N]"
+//usage:	IF_FEATURE_DD_IBS_OBS("\n"
 //usage:       "	[conv=notrunc|noerror|sync|fsync]\n"
 //usage:       "	[iflag=skip_bytes|count_bytes|fullblock|direct] [oflag=seek_bytes|append|direct]"
 //usage:	)
