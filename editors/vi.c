@@ -320,6 +320,7 @@ struct globals {
 #define autoindent (0)
 #define expandtab  (0)
 #define err_method (0)
+#define ignorecase (0)
 #endif
 
 #if ENABLE_FEATURE_VI_READONLY
