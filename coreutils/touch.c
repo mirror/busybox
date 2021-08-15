@@ -127,6 +127,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	);
 
+#if ENABLE_FEATURE_TOUCH_SUSV3
 	timebuf[0].tv_nsec = timebuf[1].tv_nsec = UTIME_NOW;
 	if (opts & OPT_r) {
 		struct stat stbuf;
@@ -160,6 +161,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		timebuf[1].tv_nsec = UTIME_OMIT;
 	if ((opts & (OPT_a|OPT_m)) == OPT_m)
 		timebuf[0].tv_nsec = UTIME_OMIT;
+#endif
 
 	argv += optind;
 	do {
