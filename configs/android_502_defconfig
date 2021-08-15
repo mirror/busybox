@@ -33,7 +33,6 @@
 ## Assorted header problems:
 ## # CONFIG_HOSTID is not set
 ## # CONFIG_FEATURE_SYNC_FANCY is not set - syncfs()
-## # CONFIG_FEATURE_TOUCH_NODEREF is not set - lutimes()
 ## # CONFIG_LOGNAME is not set - getlogin_r()
 ## # CONFIG_LOADFONT is not set
 ## # CONFIG_SETFONT is not set
@@ -269,7 +268,6 @@ CONFIG_SYNC=y
 CONFIG_TEST=y
 CONFIG_FEATURE_TEST_64=y
 CONFIG_TOUCH=y
-# CONFIG_FEATURE_TOUCH_NODEREF is not set
 CONFIG_FEATURE_TOUCH_SUSV3=y
 CONFIG_TR=y
 CONFIG_FEATURE_TR_CLASSES=y

@@ -83,7 +83,6 @@ if test x"$LIBC" = x"uclibc"; then
 	\
 	| grep -v CONFIG_FEATURE_2_4_MODULES \
 	| grep -v CONFIG_FEATURE_SYNC_FANCY \
-	| grep -v CONFIG_FEATURE_TOUCH_NODEREF \
 	| grep -v CONFIG_NANDWRITE \
 	| grep -v CONFIG_NANDDUMP \
 	| grep -v CONFIG_BLKDISCARD \
@@ -100,7 +99,6 @@ if test x"$LIBC" = x"uclibc"; then
 	echo '# CONFIG_PIE is not set' >>.config
 	echo '# CONFIG_FEATURE_2_4_MODULES is not set' >>.config
 	echo '# CONFIG_FEATURE_SYNC_FANCY is not set' >>.config
-	echo '# CONFIG_FEATURE_TOUCH_NODEREF is not set' >>.config
 	# My uclibc installation does not support some needed APIs...
 	echo '# CONFIG_NANDWRITE is not set' >>.config
 	echo '# CONFIG_NANDDUMP is not set' >>.config
