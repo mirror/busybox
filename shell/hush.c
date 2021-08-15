@@ -5012,7 +5012,7 @@ static int parse_dollar_squote(o_string *as_string, o_string *dest, struct in_st
 # undef as_string
 }
 #else
-# #define parse_dollar_squote(as_string, dest, input) 0
+# define parse_dollar_squote(as_string, dest, input) 0
 #endif /* BASH_DOLLAR_SQUOTE */
 
 /* Return code: 0 for OK, 1 for syntax error */
