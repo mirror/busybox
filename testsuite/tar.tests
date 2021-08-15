@@ -3,6 +3,7 @@
 # Licensed under GPLv2, see file LICENSE in this source tree.
 
 . ./testing.sh
+test -f "$bindir/.config" && . "$bindir/.config"
 
 unset LANG
 unset LANGUAGE
@@ -12,7 +13,7 @@ umask 022
 
 # testing "test name" "script" "expected result" "file input" "stdin"
 
-testing "Empty file is not a tarball" '\
+testing "tar Empty file is not a tarball" '\
 tar xvf - 2>&1; echo $?
 ' "\
 tar: short read
@@ -25,7 +26,7 @@ optional FEATURE_SEAMLESS_GZ GUNZIP
 # In NOMMU case, "invalid magic" message comes from gunzip child process.
 # Otherwise, it comes from tar.
 # Need to fix output up to avoid false positive.
-testing "Empty file is not a tarball.tar.gz" '\
+testing "tar Empty file is not a tarball.tar.gz" '\
 { tar xvzf - 2>&1; echo $?; } | grep -Fv "invalid magic"
 ' "\
 tar: short read
@@ -34,7 +35,7 @@ tar: short read
 "" ""
 SKIP=
 
-testing "Two zeroed blocks is a ('truncated') empty tarball" '\
+testing "tar Two zeroed blocks is a ('truncated') empty tarball" '\
 dd if=/dev/zero bs=512 count=2 2>/dev/null | tar xvf - 2>&1; echo $?
 ' "\
 0
@@ -42,7 +43,7 @@ dd if=/dev/zero bs=512 count=2 2>/dev/null | tar xvf - 2>&1; echo $?
 "" ""
 SKIP=
 
-testing "Twenty zeroed blocks is an empty tarball" '\
+testing "tar Twenty zeroed blocks is an empty tarball" '\
 dd if=/dev/zero bs=512 count=20 2>/dev/null | tar xvf - 2>&1; echo $?
 ' "\
 0
@@ -313,9 +314,10 @@ l4/V8LDoe90yiWJhOJvIypgEfxdyRThQkBVn/bI=
 SKIP=
 cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
 
+if test x"$CONFIG_UNICODE_USING_LOCALE" != x"y"; then
 mkdir tar.tempdir && cd tar.tempdir || exit 1
 optional UNICODE_SUPPORT FEATURE_TAR_GNU_EXTENSIONS FEATURE_SEAMLESS_BZ2 FEATURE_TAR_AUTODETECT
-testing "Pax-encoded UTF8 names and symlinks" '\
+testing "tar Pax-encoded UTF8 names and symlinks" '\
 tar xvf ../tar.utf8.tar.bz2 2>&1; echo $?
 export LANG=en_US.UTF-8
 ls -l etc/ssl/certs/* | sed "s:.*etc/:etc/:" | sort
@@ -334,10 +336,11 @@ etc/ssl/certs/f80cc7f6.0 -> EBG_Elektronik_Sertifika_Hizmet_Sağlayıcısı.pem
 "" ""
 SKIP=
 cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
+fi
 
 mkdir tar.tempdir && cd tar.tempdir || exit 1
 optional FEATURE_SEAMLESS_BZ2 FEATURE_TAR_AUTODETECT LS
-testing "Symlink attack: create symlink and then write through it" '\
+testing "tar Symlink attack: create symlink and then write through it" '\
 exec 2>&1
 uudecode -o input && tar xvf input; echo $?
 ls /tmp/bb_test_evilfile
@@ -367,7 +370,7 @@ cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
 
 mkdir tar.tempdir && cd tar.tempdir || exit 1
 optional FEATURE_TAR_CREATE
-testing "Symlinks and hardlinks coexist" '\
+testing "tar Symlinks and hardlinks coexist" '\
 mkdir dir
 >dir/a
 ln -s ../dir/a dir/b
