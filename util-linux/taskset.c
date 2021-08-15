@@ -218,7 +218,7 @@ static int process_pid_str(const char *pid_str, unsigned opts, char *aff)
 	ul *mask;
 	unsigned mask_size_in_bytes;
 	const char *current_new;
-	pid_t pid = xatoi_positive(pid_str);
+	pid_t pid = !pid_str ? 0 : xatou_range(pid_str, 1, INT_MAX); /* disallow "0": "taskset -p 0" should fail */
 
 	mask_size_in_bytes = SZOF_UL;
 	current_new = "current";
@@ -343,7 +343,7 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 		/* <aff> <cmd...> */
 		if (!*argv)
 			bb_show_usage();
-		process_pid_str("0", opts, aff);
+		process_pid_str(NULL, opts, aff);
 		BB_EXECVP_or_die(argv);
 	}
 
