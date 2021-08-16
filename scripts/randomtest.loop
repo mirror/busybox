@@ -6,12 +6,17 @@ run_testsuite=true
 run_single_test=false
 run_single_test=true
 
-test -d "$1" || { echo "'$1' is not a directory"; exit 1; }
-test -x "$1/scripts/randomtest" || { echo "No scripts/randomtest in '$1'"; exit 1; }
-
 export LIBC="uclibc"
 export CROSS_COMPILER_PREFIX="i686-"
 export MAKEOPTS="-j9"
+
+test -d "$1" || { echo "'$1' is not a directory"; exit 1; }
+test -x "$1/scripts/randomtest" || { echo "No scripts/randomtest in '$1'"; exit 1; }
+
+test "$SKIP_MOUNT_MAND_TESTS" = "1" || {
+	echo "SKIP_MOUNT_MAND_TESTS not set, some mount tests will fail"
+	echo "if current kernel has CONFIG_MANDATORY_FILE_LOCKING off."
+}
 
 cnt=0
 fail=0
