@@ -410,7 +410,7 @@ testing "awk printf('%c') can output NUL" \
 	"awk '{printf(\"hello%c null\n\", 0)}'" "hello\0 null\n" "" "\n"
 SKIP=
 
-optional FEATURE_AWK_GNU_EXTENSIONS
+optional FEATURE_AWK_GNU_EXTENSIONS DESKTOP
 testing "awk printf('%-10c') can output NUL" \
 	"awk 'BEGIN { printf \"[%-10c]\n\", 0 }' | od -tx1" "\
 0000000 5b 00 20 20 20 20 20 20 20 20 20 5d 0a
