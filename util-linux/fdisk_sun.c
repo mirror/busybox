@@ -292,10 +292,10 @@ create_sunlabel(void)
 		} else {
 			g_heads = read_int(1, g_heads, 1024, 0, "Heads");
 			g_sectors = read_int(1, g_sectors, 1024, 0, "Sectors/track");
-		if (g_cylinders)
-			g_cylinders = read_int(1, g_cylinders - 2, 65535, 0, "Cylinders");
-		else
-			g_cylinders = read_int(1, 0, 65535, 0, "Cylinders");
+			if (g_cylinders)
+				g_cylinders = read_int(1, g_cylinders - 2, 65535, 0, "Cylinders");
+			else
+				g_cylinders = read_int(1, 0, 65535, 0, "Cylinders");
 			sunlabel->nacyl = SUN_SSWAP16(read_int(0, 2, 65535, 0, "Alternate cylinders"));
 			sunlabel->pcylcount = SUN_SSWAP16(read_int(0, g_cylinders + SUN_SSWAP16(sunlabel->nacyl), 65535, 0, "Physical cylinders"));
 			sunlabel->rspeed = SUN_SSWAP16(read_int(1, 5400, 100000, 0, "Rotation speed (rpm)"));
