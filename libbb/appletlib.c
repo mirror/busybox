@@ -893,7 +893,11 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 
 	if (strcmp(argv[1], "--help") == 0) {
 		/* "busybox --help [<applet>]" */
-		if (!argv[2])
+		if (!argv[2]
+#  if ENABLE_FEATURE_SH_STANDALONE && ENABLE_FEATURE_TAB_COMPLETION
+		 || strcmp(argv[2], "busybox") == 0 /* prevent getting "No help available" */
+#  endif
+		)
 			goto help;
 		/* convert to "<applet> --help" */
 		applet_name = argv[0] = argv[2];
