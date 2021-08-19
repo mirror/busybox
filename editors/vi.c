@@ -7,7 +7,7 @@
  */
 //
 //Things To Do:
-//	$HOME/.exrc  and  ./.exrc
+//	./.exrc
 //	add magic to search	/foo.*bar
 //	add :help command
 //	:map macros
@@ -185,7 +185,7 @@
 //usage:#define vi_full_usage "\n\n"
 //usage:       "Edit FILE\n"
 //usage:	IF_FEATURE_VI_COLON(
-//usage:     "\n	-c CMD	Initial command to run ($EXINIT also available)"
+//usage:     "\n	-c CMD	Initial command to run ($EXINIT and ~/.exrc also available)"
 //usage:	)
 //usage:	IF_FEATURE_VI_READONLY(
 //usage:     "\n	-R	Read-only"
@@ -2829,10 +2829,12 @@ static void colon(char *buf)
 	// :!<cmd>	// run <cmd> then return
 	//
 
-	if (!buf[0])
-		goto ret;
-	if (*buf == ':')
-		buf++;			// move past the ':'
+	while (*buf == ':')
+		buf++;			// move past leading colons
+	while (isblank(*buf))
+		buf++;			// move past leading blanks
+	if (!buf[0] || buf[0] == '"')
+		goto ret;		// ignore empty lines or those starting with '"'
 
 	li = i = 0;
 	b = e = -1;
@@ -4923,14 +4925,37 @@ int vi_main(int argc, char **argv)
 	cmdline_filecnt = argc - optind;
 
 	//  1-  process EXINIT variable from environment
-	//  2-  if EXINIT is unset process $HOME/.exrc file (not implemented yet)
+	//  2-  if EXINIT is unset process $HOME/.exrc file
 	//  3-  process command line args
 #if ENABLE_FEATURE_VI_COLON
 	{
 		const char *exinit = getenv("EXINIT");
+		char *cmds = NULL;
 
 		if (exinit) {
-			char *cmds = xstrdup(exinit);
+			cmds = xstrdup(exinit);
+		} else {
+			const char *home = getenv("HOME");
+
+			if (home && *home) {
+				char *exrc = concat_path_file(home, ".exrc");
+				struct stat st;
+
+				// .exrc must belong to and only be writable by user
+				if (stat(exrc, &st) == 0) {
+					if ((st.st_mode & (S_IWGRP|S_IWOTH)) == 0
+					 && st.st_uid == getuid()
+					) {
+						cmds = xmalloc_open_read_close(exrc, NULL);
+					} else {
+						status_line_bold(".exrc: permission denied");
+					}
+				}
+				free(exrc);
+			}
+		}
+
+		if (cmds) {
 			init_text_buffer(NULL);
 			run_cmds(cmds);
 			free(cmds);
