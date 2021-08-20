@@ -304,18 +304,6 @@ void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;
 # define log3s(msg) ((void)0)
 #endif
 
-#if defined(__mips__)
-/*
- * The 'simple' message functions have a negative impact on the size of the
- * DHCP code when compiled for MIPS, so don't use them in this case.
- */
-#define bb_simple_info_msg bb_info_msg
-#define bb_simple_error_msg bb_error_msg
-#define bb_simple_perror_msg_and_die bb_perror_msg_and_die
-#undef log1s
-#define log1s log1
-#endif
-
 /*** Other shared functions ***/
 
 /* 2nd param is "uint32_t*" */
