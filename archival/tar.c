@@ -254,32 +254,6 @@ static void putOctal(char *cp, int len, off_t value)
 }
 #define PUT_OCTAL(a, b) putOctal((a), sizeof(a), (b))
 
-static void chksum_and_xwrite(int fd, struct tar_header_t* hp)
-{
-	/* POSIX says that checksum is done on unsigned bytes
-	 * (Sun and HP-UX gets it wrong... more details in
-	 * GNU tar source) */
-	const unsigned char *cp;
-	int chksum, size;
-
-	strcpy(hp->magic, "ustar  ");
-
-	/* Calculate and store the checksum (i.e., the sum of all of the bytes of
-	 * the header).  The checksum field must be filled with blanks for the
-	 * calculation.  The checksum field is formatted differently from the
-	 * other fields: it has 6 digits, a null, then a space -- rather than
-	 * digits, followed by a null like the other fields... */
-	memset(hp->chksum, ' ', sizeof(hp->chksum));
-	cp = (const unsigned char *) hp;
-	chksum = 0;
-	size = sizeof(*hp);
-	do { chksum += *cp++; } while (--size);
-	putOctal(hp->chksum, sizeof(hp->chksum)-1, chksum);
-
-	/* Now write the header out to disk */
-	xwrite(fd, hp, sizeof(*hp));
-}
-
 # if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 static void writeLongname(int fd, int type, const char *name, int dir)
 {
@@ -310,7 +284,7 @@ static void writeLongname(int fd, int type, const char *name, int dir)
 	/* + dir: account for possible '/' */
 
 	PUT_OCTAL(header.size, size);
-	chksum_and_xwrite(fd, &header);
+	chksum_and_xwrite_tar_header(fd, &header);
 
 	/* Write filename[/] and pad the block. */
 	/* dir=0: writes 'name<NUL>', pads */
@@ -441,8 +415,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 				header_name, S_ISDIR(statbuf->st_mode));
 # endif
 
-	/* Now write the header out to disk */
-	chksum_and_xwrite(tbInfo->tarFd, &header);
+	chksum_and_xwrite_tar_header(tbInfo->tarFd, &header);
 
 	/* Now do the verbose thing (or not) */
 	if (tbInfo->verboseFlag) {
