@@ -4092,8 +4092,8 @@ static void do_cmd(int c)
 #endif
 					}
 				}
-			} else /* if (c == '>') */ {
-				// shift right -- add tab or tabstop spaces
+			} else if (/* c == '>' && */ p != end_line(p)) {
+				// shift right -- add tab or tabstop spaces on non-empty lines
 				char_insert(p, '\t', allow_undo);
 			}
 #if ENABLE_FEATURE_VI_UNDO
