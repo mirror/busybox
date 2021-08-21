@@ -109,6 +109,7 @@ int rev_main(int argc UNUSED_PARAM, char **argv)
 			strrev(buf, strlen(buf));
 #endif
 			fputs_stdout(buf);
+			pos = 0;
 		}
 		fclose(fp);
 	} while (*argv);
