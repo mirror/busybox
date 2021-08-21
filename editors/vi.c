@@ -1377,21 +1377,14 @@ static void print_literal(char *buf, const char *s)
 	char *d;
 	unsigned char c;
 
-	buf[0] = '\0';
 	if (!s[0])
 		s = "(NULL)";
 
 	d = buf;
 	for (; *s; s++) {
-		int c_is_no_print;
-
 		c = *s;
-		c_is_no_print = (c & 0x80) && !Isprint(c);
-		if (c_is_no_print) {
-			strcpy(d, ESC_NORM_TEXT);
-			d += sizeof(ESC_NORM_TEXT)-1;
-			c = '.';
-		}
+		if ((c & 0x80) && !Isprint(c))
+			c = '?';
 		if (c < ' ' || c == 0x7f) {
 			*d++ = '^';
 			c |= '@'; // 0x40
@@ -1400,14 +1393,6 @@ static void print_literal(char *buf, const char *s)
 		}
 		*d++ = c;
 		*d = '\0';
-		if (c_is_no_print) {
-			strcpy(d, ESC_BOLD_TEXT);
-			d += sizeof(ESC_BOLD_TEXT)-1;
-		}
-		if (*s == '\n') {
-			*d++ = '$';
-			*d = '\0';
-		}
 		if (d - buf > MAX_INPUT_LEN - 10) // paranoia
 			break;
 	}
