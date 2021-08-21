@@ -2527,8 +2527,13 @@ static char *get_one_address(char *p, int *result)	// get colon addr, if present
 				dir = ((unsigned)BACK << 1) | FULL;
 			}
 			q = char_search(q, last_search_pattern + 1, dir);
-			if (q == NULL)
-				return NULL;
+			if (q == NULL) {
+				// no match, continue from other end of file
+				q = char_search(dir > 0 ? text : end - 1,
+								last_search_pattern + 1, dir);
+				if (q == NULL)
+					return NULL;
+			}
 			new_addr = count_lines(text, q);
 		}
 # endif
