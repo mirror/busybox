@@ -15,7 +15,7 @@ void FAST_FUNC chksum_and_xwrite_tar_header(int fd, struct tar_header_t *hp)
 	 * (Sun and HP-UX gets it wrong... more details in
 	 * GNU tar source) */
 	const unsigned char *cp;
-	int chksum, size;
+	unsigned int chksum, size;
 
 	strcpy(hp->magic, "ustar  ");
 
