@@ -83,7 +83,7 @@
 //usage:     "\n	-F	PATTERN is a literal (not regexp)"
 //usage:     "\n	-E	PATTERN is an extended regexp"
 //usage:	IF_EXTRA_COMPAT(
-//usage:     "\n	-z	Input is NUL terminated"
+//usage:     "\n	-z	NUL terminated input"
 //usage:	)
 //usage:     "\n	-m N	Match up to N times per file"
 //usage:	IF_FEATURE_GREP_CONTEXT(

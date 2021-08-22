@@ -537,7 +537,7 @@ static int xargs_ask_confirmation(void)
 //usage:#define xargs_full_usage "\n\n"
 //usage:       "Run PROG on every item given by stdin\n"
 //usage:	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(
-//usage:     "\n	-0	Input is separated by NULs"
+//usage:     "\n	-0	NUL terminated input"
 //usage:	)
 //usage:	IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(
 //usage:     "\n	-a FILE	Read from FILE instead of stdin"

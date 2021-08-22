@@ -74,7 +74,7 @@
 //usage:     "\n	-F FILE	Input (-t,-i,-p) or output (-o) file"
 //usage:     "\n	-R USER[:GRP]	Set owner of created files"
 //usage:     "\n	-L	Dereference symlinks"
-//usage:     "\n	-0	Input is separated by NULs"
+//usage:     "\n	-0	NUL terminated input"
 
 /* GNU cpio 2.9 --help (abridged):
 
