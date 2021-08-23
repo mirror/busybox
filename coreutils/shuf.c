@@ -17,14 +17,14 @@
 //kbuild:lib-$(CONFIG_SHUF) += shuf.o
 
 //usage:#define shuf_trivial_usage
-//usage:       "[-e|-i L-H] [-n NUM] [-o FILE] [-z] [FILE|ARG...]"
+//usage:       "[-n NUM] [-o FILE] [-z] [FILE | -e [ARG...] | -i L-H]"
 //usage:#define shuf_full_usage "\n\n"
 //usage:       "Randomly permute lines\n"
-//usage:     "\n	-e	Treat ARGs as lines"
-//usage:     "\n	-i L-H	Treat numbers L-H as lines"
 //usage:     "\n	-n NUM	Output at most NUM lines"
 //usage:     "\n	-o FILE	Write to FILE, not standard output"
 //usage:     "\n	-z	NUL terminated output"
+//usage:     "\n	-e	Treat ARGs as lines"
+//usage:     "\n	-i L-H	Treat numbers L-H as lines"
 
 #include "libbb.h"
 
@@ -50,7 +50,7 @@ static void shuffle_lines(char **lines, unsigned numlines, unsigned outlines)
 
 	srand(monotonic_us());
 
-	for (i = numlines-1; outlines > 0; i--, outlines--) {
+	for (i = numlines - 1; outlines > 0; i--, outlines--) {
 		r = rand();
 		/* RAND_MAX can be as small as 32767 */
 		if (i > RAND_MAX)
