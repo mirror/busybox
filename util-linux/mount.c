@@ -713,10 +713,12 @@ static int mount_it_now(struct mntent *mp, unsigned long vfsflags, char *filtero
 		errno = 0;
 		rc = verbose_mount(mp->mnt_fsname, mp->mnt_dir, mp->mnt_type,
 				vfsflags, filteropts);
+		if (rc == 0)
+			goto mtab; // success
 
-		// If mount failed, try
-		// helper program mount.<mnt_type>
-		if (HELPERS_ALLOWED && rc && mp->mnt_type) {
+		// mount failed, try helper program
+		// mount.<mnt_type>
+		if (HELPERS_ALLOWED && mp->mnt_type) {
 			char *args[8];
 			int errno_save = errno;
 			args[0] = xasprintf("mount.%s", mp->mnt_type);
@@ -734,13 +736,19 @@ static int mount_it_now(struct mntent *mp, unsigned long vfsflags, char *filtero
 			args[rc] = NULL;
 			rc = spawn_and_wait(args);
 			free(args[0]);
-			if (!rc)
-				break;
+			if (rc == 0)
+				goto mtab; // success
 			errno = errno_save;
 		}
 
-		if (!rc || (vfsflags & MS_RDONLY) || (errno != EACCES && errno != EROFS))
-			break;
+		// Should we retry read-only mount?
+		if (vfsflags & MS_RDONLY)
+			break;		// no, already was tried
+		if (option_mask32 & OPT_w)
+			break;		// no, "mount -w" never falls back to RO
+		if (errno != EACCES && errno != EROFS)
+			break;		// no, error isn't hinting that RO may work
+
 		if (!(vfsflags & MS_SILENT))
 			bb_error_msg("%s is write-protected, mounting read-only",
 						mp->mnt_fsname);
