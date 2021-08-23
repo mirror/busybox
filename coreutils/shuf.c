@@ -92,6 +92,9 @@ int shuf_main(int argc, char **argv)
 		char *dash;
 		unsigned lo, hi;
 
+		if (argv[0])
+			bb_show_usage();
+
 		dash = strchr(opt_i_str, '-');
 		if (!dash) {
 			bb_error_msg_and_die("bad range '%s'", opt_i_str);
