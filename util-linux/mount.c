@@ -562,9 +562,9 @@ static void append_mount_options(char **oldopts, const char *newopts)
 		// Do not insert options which are already there
 		while (newopts[0]) {
 			char *p;
-			int len = strlen(newopts);
-			p = strchr(newopts, ',');
-			if (p) len = p - newopts;
+			int len;
+
+			len = strchrnul(newopts, ',') - newopts;
 			p = *oldopts;
 			while (1) {
 				if (!strncmp(p, newopts, len)
@@ -579,7 +579,7 @@ static void append_mount_options(char **oldopts, const char *newopts)
 			*oldopts = p;
  skip:
 			newopts += len;
-			while (newopts[0] == ',') newopts++;
+			while (*newopts == ',') newopts++;
 		}
 	} else {
 		if (ENABLE_FEATURE_CLEAN_UP) free(*oldopts);
