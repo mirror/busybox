@@ -68,6 +68,12 @@
 //config:	help
 //config:	Selecting this will make telnetd able to run standalone.
 //config:
+//config:config FEATURE_TELNETD_PORT_DEFAULT
+//config:	int "Default port"
+//config:	default 23
+//config:	range 1 65535
+//config:	depends on FEATURE_TELNETD_STANDALONE
+//config:
 //config:config FEATURE_TELNETD_INETD_WAIT
 //config:	bool "Support -w SEC option (inetd wait mode)"
 //config:	default y
@@ -103,7 +109,7 @@
 //usage:     "\n	-K		Close connection as soon as login exits"
 //usage:     "\n			(normally wait until all programs close slave pty)"
 //usage:	IF_FEATURE_TELNETD_STANDALONE(
-//usage:     "\n	-p PORT		Port to listen on"
+//usage:     "\n	-p PORT		Port to listen on. Default "STR(CONFIG_FEATURE_TELNETD_PORT_DEFAULT)
 //usage:     "\n	-b ADDR[:PORT]	Address to bind to"
 //usage:     "\n	-F		Run in foreground"
 //usage:     "\n	-i		Inetd mode"
@@ -708,7 +714,7 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 	} else {
 		master_fd = 0;
 		if (!(opt & OPT_WAIT)) {
-			unsigned portnbr = 23;
+			unsigned portnbr = CONFIG_FEATURE_TELNETD_PORT_DEFAULT;
 			if (opt & OPT_PORT)
 				portnbr = xatou16(opt_portnbr);
 			master_fd = create_and_bind_stream_or_die(opt_bindaddr, portnbr);

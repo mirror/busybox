@@ -102,6 +102,11 @@
 //config:	help
 //config:	HTTP server.
 //config:
+//config:config FEATURE_HTTPD_PORT_DEFAULT
+//config:	int "Default port"
+//config:	default 80
+//config:	range 1 65535
+//config:
 //config:config FEATURE_HTTPD_RANGES
 //config:	bool "Support 'Ranges:' header"
 //config:	default y
@@ -270,7 +275,7 @@
 //usage:     "\n	-i		Inetd mode"
 //usage:     "\n	-f		Don't daemonize"
 //usage:     "\n	-v[v]		Verbose"
-//usage:     "\n	-p [IP:]PORT	Bind to IP:PORT (default *:80)"
+//usage:     "\n	-p [IP:]PORT	Bind to IP:PORT (default *:"STR(CONFIG_FEATURE_HTTPD_PORT_DEFAULT)")"
 //usage:	IF_FEATURE_HTTPD_SETUID(
 //usage:     "\n	-u USER[:GRP]	Set uid/gid after binding to port")
 //usage:	IF_FEATURE_HTTPD_BASIC_AUTH(
@@ -315,6 +320,9 @@
 #define MAX_HTTP_HEADERS_SIZE (32*1024)
 
 #define HEADER_READ_TIMEOUT 60
+
+#define STR1(s) #s
+#define STR(s) STR1(s)
 
 static const char DEFAULT_PATH_HTTPD_CONF[] ALIGN1 = "/etc";
 static const char HTTPD_CONF[] ALIGN1 = "httpd.conf";
@@ -542,7 +550,7 @@ enum {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	IF_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
 	IF_FEATURE_HTTPD_RANGES(range_start = -1;) \
-	bind_addr_or_port = "80"; \
+	bind_addr_or_port = STR(CONFIG_FEATURE_HTTPD_PORT_DEFAULT); \
 	index_page = index_html; \
 	file_size = -1; \
 } while (0)
