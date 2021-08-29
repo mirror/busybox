@@ -90,7 +90,7 @@ int shuf_main(int argc, char **argv)
 	if (opts & OPT_i) {
 		/* create a range of numbers */
 		char *dash;
-		unsigned lo, hi;
+		uintptr_t lo, hi;
 
 		if (argv[0])
 			bb_show_usage();
@@ -100,8 +100,17 @@ int shuf_main(int argc, char **argv)
 			bb_error_msg_and_die("bad range '%s'", opt_i_str);
 		}
 		*dash = '\0';
-		lo = xatou(opt_i_str);
-		hi = xatou(dash + 1);
+		if (sizeof(lo) == sizeof(int)) {
+			lo = xatou(opt_i_str);
+			hi = xatou(dash + 1);
+		} else
+		if (sizeof(lo) == sizeof(long)) {
+			lo = xatoul(opt_i_str);
+			hi = xatoul(dash + 1);
+		} else {
+			lo = xatoull(opt_i_str);
+			hi = xatoull(dash + 1);
+		}
 		*dash = '-';
 		if (hi < lo) {
 			bb_error_msg_and_die("bad range '%s'", opt_i_str);
@@ -110,17 +119,21 @@ int shuf_main(int argc, char **argv)
 		numlines = (hi+1) - lo;
 		lines = xmalloc(numlines * sizeof(lines[0]));
 		for (i = 0; i < numlines; i++) {
-			lines[i] = (char*)(uintptr_t)lo;
+			lines[i] = (char*)lo;
 			lo++;
 		}
 	} else {
 		/* default - read lines from stdin or the input file */
 		FILE *fp;
+		const char *fname = "-";
 
-		if (argc > 1)
-			bb_show_usage();
+		if (argv[0]) {
+			if (argv[1])
+				bb_show_usage();
+			fname = argv[0];
+		}
 
-		fp = xfopen_stdin(argv[0] ? argv[0] : "-");
+		fp = xfopen_stdin(fname);
 		lines = NULL;
 		numlines = 0;
 		for (;;) {
@@ -150,9 +163,14 @@ int shuf_main(int argc, char **argv)
 		eol = '\0';
 
 	for (i = numlines - outlines; i < numlines; i++) {
-		if (opts & OPT_i)
-			printf("%u%c", (unsigned)(uintptr_t)lines[i], eol);
-		else
+		if (opts & OPT_i) {
+			if (sizeof(lines[0]) == sizeof(int))
+				printf("%u%c", (unsigned)(uintptr_t)lines[i], eol);
+			else if (sizeof(lines[0]) == sizeof(long))
+				printf("%lu%c", (unsigned long)(uintptr_t)lines[i], eol);
+			else
+				printf("%llu%c", (unsigned long long)(uintptr_t)lines[i], eol);
+		} else
 			printf("%s%c", lines[i], eol);
 	}
 
