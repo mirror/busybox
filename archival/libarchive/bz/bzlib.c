@@ -99,9 +99,8 @@ void BZ2_bzCompressInit(bz_stream *strm, int blockSize100k)
 	s->ptr   = (uint32_t*)s->arr1;
 	s->arr2  = xmalloc((n + BZ_N_OVERSHOOT) * sizeof(uint32_t));
 	s->block = (uint8_t*)s->arr2;
-	s->ftab  = xmalloc(65537                * sizeof(uint32_t));
 
-	s->crc32table = crc32_filltable(NULL, 1);
+	crc32_filltable(s->crc32table, 1);
 
 	s->state             = BZ_S_INPUT;
 	s->mode              = BZ_M_RUNNING;
@@ -369,8 +368,8 @@ void BZ2_bzCompressEnd(bz_stream *strm)
 	s = strm->state;
 	free(s->arr1);
 	free(s->arr2);
-	free(s->ftab);
-	free(s->crc32table);
+	//free(s->ftab);       // made it array member of s
+	//free(s->crc32table); // ditto
 	free(s);
 }
 

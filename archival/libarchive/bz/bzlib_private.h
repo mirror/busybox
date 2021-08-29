@@ -134,7 +134,7 @@ typedef struct EState {
 	/* for doing the block sorting */
 	uint32_t *arr1;
 	uint32_t *arr2;
-	uint32_t *ftab;
+	//uint32_t *ftab; //moved into this struct, see below
 
 	uint16_t *quadrant;
 	int32_t  budget;
@@ -160,9 +160,6 @@ typedef struct EState {
 	uint32_t bsBuff;
 	int32_t  bsLive;
 
-	/* guess what */
-	uint32_t *crc32table;
-
 	/* block and combined CRCs */
 	uint32_t blockCRC;
 	uint32_t combinedCRC;
@@ -184,6 +181,12 @@ typedef struct EState {
 	uint8_t  selectorMtf[BZ_MAX_SELECTORS];
 
 	uint8_t  len[BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
+
+	/* guess what */
+	uint32_t crc32table[256];
+
+	/* for doing the block sorting */
+	uint32_t ftab[65537];
 
 	/* stack-saving measures: these can be local, but they are too big */
 	int32_t  sendMTFValues__code [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
