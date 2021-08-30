@@ -10278,6 +10278,9 @@ evalcommand(union node *cmd, int flags)
 
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
+#if BASH_PROCESS_SUBST
+	redir_stop = redirlist;
+#endif
 	file_stop = g_parsefile;
 	back_exitstatus = 0;
 
@@ -10356,7 +10359,11 @@ evalcommand(union node *cmd, int flags)
 		lastarg = nargv[-1];
 
 	expredir(cmd->ncmd.redirect);
+#if !BASH_PROCESS_SUBST
 	redir_stop = pushredir(cmd->ncmd.redirect);
+#else
+	pushredir(cmd->ncmd.redirect);
+#endif
 	preverrout_fd = 2;
 	if (BASH_XTRACEFD && xflag) {
 		/* NB: bash closes fd == $BASH_XTRACEFD when it is changed.
@@ -13476,9 +13483,6 @@ cmdloop(int top)
 #if JOBS
 		if (doing_jobctl)
 			showjobs(SHOW_CHANGED|SHOW_STDERR);
-#endif
-#if BASH_PROCESS_SUBST
-		unwindredir(NULL);
 #endif
 		inter = 0;
 		if (iflag && top) {
