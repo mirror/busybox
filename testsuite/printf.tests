@@ -79,6 +79,11 @@ testing "printf understands %Ld" \
 	"-5\n""0\n" \
 	"" ""
 
+testing "printf understands %%" \
+	"${bb}printf '%%\n' 2>&1; echo \$?" \
+	"%\n""0\n" \
+	"" ""
+
 testing "printf handles positive numbers for %d" \
 	"${bb}printf '%d\n' 3 +3 '   3' '   +3' 2>&1; echo \$?" \
 	"3\n"\

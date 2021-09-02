@@ -463,4 +463,10 @@ testing "awk \"cmd\" | getline" \
 	"HELLO\n" \
 	'' ''
 
+# printf %% should print one % (had a bug where it didn't)
+testing 'awk printf %% prints one %' \
+	"awk 'BEGIN { printf \"%%\n\" }'" \
+	"%\n" \
+	'' ''
+
 exit $FAILCOUNT
