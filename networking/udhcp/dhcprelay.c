@@ -131,7 +131,7 @@ static int get_dhcp_packet_type(struct dhcp_packet *p)
 static char **make_iface_list(char **client_and_server_ifaces, unsigned *client_number)
 {
 	char *s, **iface_list;
-	int i, cn;
+	unsigned i, cn;
 
 	/* get number of items */
 	cn = 2; /* 1 server iface + at least 1 client one */
