@@ -451,6 +451,8 @@ static NOINLINE void read_config(const char *file)
 
 	server_data.start_ip = ntohl(server_data.start_ip);
 	server_data.end_ip = ntohl(server_data.end_ip);
+	if (server_data.start_ip > server_data.end_ip)
+		bb_error_msg_and_die("bad start/end IP range in %s", file);
 }
 
 static void write_leases(void)
@@ -858,7 +860,6 @@ int udhcpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 {
 	int server_socket = -1, retval;
-	uint8_t *state;
 	unsigned timeout_end;
 	unsigned num_ips;
 	unsigned opt;
@@ -966,6 +967,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		struct dhcp_packet packet;
 		int bytes;
 		int tv;
+		uint8_t *msg_type;
 		uint8_t *server_id_opt;
 		uint8_t *requested_ip_opt;
 		uint32_t requested_nip;
@@ -1040,8 +1042,8 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			bb_info_msg("not a REQUEST%s", ", ignoring packet");
 			continue;
 		}
-		state = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
-		if (state == NULL || state[0] < DHCP_MINTYPE || state[0] > DHCP_MAXTYPE) {
+		msg_type = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
+		if (!msg_type || msg_type[0] < DHCP_MINTYPE || msg_type[0] > DHCP_MAXTYPE) {
 			bb_info_msg("no or bad message type option%s", ", ignoring packet");
 			continue;
 		}
@@ -1077,7 +1079,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			move_from_unaligned32(requested_nip, requested_ip_opt);
 		}
 
-		switch (state[0]) {
+		switch (msg_type[0]) {
 
 		case DHCPDISCOVER:
 			log1("received %s", "DISCOVER");
