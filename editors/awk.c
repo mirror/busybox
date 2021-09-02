@@ -2346,8 +2346,15 @@ static char *awk_printf(node *n, size_t *len)
 		size_t slen;
 
 		s = f;
-		while (*f && (*f != '%' || *++f == '%'))
+		while (*f && *f != '%')
 			f++;
+		c = *++f;
+		if (c == '%') { /* double % */
+			slen = f - s;
+			s = xstrndup(s, slen);
+			f++;
+			goto tail;
+		}
 		while (*f && !isalpha(*f)) {
 			if (*f == '*')
 				syntax_error("%*x formats are not supported");
