@@ -17,7 +17,8 @@
 //usage:#define dhcprelay_trivial_usage
 //usage:       "CLIENT_IFACE[,CLIENT_IFACE2]... SERVER_IFACE [SERVER_IP]"
 //usage:#define dhcprelay_full_usage "\n\n"
-//usage:       "Relay DHCP requests between clients and server"
+//usage:       "Relay DHCP requests between clients and server.\n"
+//usage:       "Without SERVER_IP, requests are broadcast on SERVER_IFACE."
 
 #include "common.h"
 
@@ -31,7 +32,7 @@
 /* This list holds information about clients. The xid_* functions manipulate this list. */
 struct xid_item {
 	unsigned timestamp;
-	int client;
+	unsigned iface_no;
 	uint32_t xid;
 	struct sockaddr_in ip;
 	struct xid_item *next;
@@ -40,7 +41,7 @@ struct xid_item {
 #define dhcprelay_xid_list (*(struct xid_item*)bb_common_bufsiz1)
 #define INIT_G() do { setup_common_bufsiz(); } while (0)
 
-static struct xid_item *xid_add(uint32_t xid, struct sockaddr_in *ip, int client)
+static struct xid_item *xid_add(uint32_t xid, struct sockaddr_in *ip, unsigned iface_no)
 {
 	struct xid_item *item;
 
@@ -50,7 +51,7 @@ static struct xid_item *xid_add(uint32_t xid, struct sockaddr_in *ip, int client
 	/* add xid entry */
 	item->ip = *ip;
 	item->xid = xid;
-	item->client = client;
+	item->iface_no = iface_no;
 	item->timestamp = monotonic_sec();
 	item->next = dhcprelay_xid_list.next;
 	dhcprelay_xid_list.next = item;
@@ -127,7 +128,7 @@ static int get_dhcp_packet_type(struct dhcp_packet *p)
  * make_iface_list - parses client/server interface names
  * returns array
  */
-static char **make_iface_list(char **client_and_server_ifaces, int *client_number)
+static char **make_iface_list(char **client_and_server_ifaces, unsigned *client_number)
 {
 	char *s, **iface_list;
 	int i, cn;
@@ -165,9 +166,9 @@ static char **make_iface_list(char **client_and_server_ifaces, int *client_numbe
 /* Creates listen sockets (in fds) bound to client and server ifaces,
  * and returns numerically max fd.
  */
-static int init_sockets(char **iface_list, int num_clients, int *fds)
+static unsigned init_sockets(char **iface_list, unsigned num_clients, int *fds)
 {
-	int i, n;
+	unsigned i, n;
 
 	n = 0;
 	for (i = 0; i < num_clients; i++) {
@@ -195,13 +196,14 @@ static int sendto_ip4(int sock, const void *msg, int msg_len, struct sockaddr_in
  * p - packet to send
  * client - number of the client
  */
-static void pass_to_server(struct dhcp_packet *p, int packet_len, int client, int *fds,
+static void pass_to_server(struct dhcp_packet *p, int packet_len, unsigned from_iface_no, int *fds,
 			struct sockaddr_in *client_addr, struct sockaddr_in *server_addr)
 {
 	int type;
 
 	/* check packet_type */
 	type = get_dhcp_packet_type(p);
+//FIXME: the above does not consider packet_len!
 	if (type != DHCPDISCOVER && type != DHCPREQUEST
 	 && type != DHCPDECLINE && type != DHCPRELEASE
 	 && type != DHCPINFORM
@@ -210,7 +212,10 @@ static void pass_to_server(struct dhcp_packet *p, int packet_len, int client, in
 	}
 
 	/* create new xid entry */
-	xid_add(p->xid, client_addr, client);
+	xid_add(p->xid, client_addr, from_iface_no);
+//TODO: since we key request/reply pairs on xid values, shouldn't we drop new requests
+//with xid accidentally matching a xid of one of requests we currently hold
+//waiting for their replies?
 
 	/* forward request to server */
 	/* note that we send from fds[0] which is bound to SERVER_PORT (67).
@@ -229,25 +234,30 @@ static void pass_to_client(struct dhcp_packet *p, int packet_len, int *fds)
 	int type;
 	struct xid_item *item;
 
+	/* check packet type */
+	type = get_dhcp_packet_type(p);
+//FIXME: the above does not consider packet_len!
+	if (type != DHCPOFFER && type != DHCPACK && type != DHCPNAK) {
+		return;
+	}
+
 	/* check xid */
 	item = xid_find(p->xid);
 	if (!item) {
 		return;
 	}
-
-	/* check packet type */
-	type = get_dhcp_packet_type(p);
-	if (type != DHCPOFFER && type != DHCPACK && type != DHCPNAK) {
-		return;
-	}
+//NB: RFC 1542 section 4.1 seems to envision the logic that
+//relay agents use giaddr (dhcp_msg.gateway_nip in our code)
+//to find out on which interface to reply.
+//(server is meant to copy giaddr from our request packet to its reply).
+//Above, we don't use that logic, instead we use xid as a key.
 
 //TODO: also do it if (p->flags & htons(BROADCAST_FLAG)) is set!
 	if (item->ip.sin_addr.s_addr == htonl(INADDR_ANY))
 		item->ip.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-	if (sendto_ip4(fds[item->client], p, packet_len, &item->ip) != 0) {
-		return; /* send error occurred */
-	}
+	sendto_ip4(fds[item->iface_no], p, packet_len, &item->ip);
+	/* ^^^ if send error occurred, we can't do much, hence no check */
 
 	/* remove xid entry */
 	xid_del(p->xid);
@@ -259,7 +269,7 @@ int dhcprelay_main(int argc UNUSED_PARAM, char **argv)
 	struct sockaddr_in server_addr;
 	char **iface_list;
 	int *fds;
-	int num_sockets, max_socket;
+	unsigned num_sockets, max_socket;
 	uint32_t our_nip;
 
 	INIT_G();
@@ -293,7 +303,7 @@ int dhcprelay_main(int argc UNUSED_PARAM, char **argv)
 // every N minutes?
 		fd_set rfds;
 		struct timeval tv;
-		int i;
+		unsigned i;
 
 		FD_ZERO(&rfds);
 		for (i = 0; i < num_sockets; i++)
@@ -304,15 +314,17 @@ int dhcprelay_main(int argc UNUSED_PARAM, char **argv)
 			int packlen;
 			struct dhcp_packet dhcp_msg;
 
-			/* server */
+			/* from server */
 			if (FD_ISSET(fds[0], &rfds)) {
 				packlen = udhcp_recv_kernel_packet(&dhcp_msg, fds[0]);
+//NB: we do not check source port here. Should we?
+//It should be SERVER_PORT.
 				if (packlen > 0) {
 					pass_to_client(&dhcp_msg, packlen, fds);
 				}
 			}
 
-			/* clients */
+			/* from clients */
 			for (i = 1; i < num_sockets; i++) {
 				struct sockaddr_in client_addr;
 				socklen_t addr_size;
@@ -325,6 +337,11 @@ int dhcprelay_main(int argc UNUSED_PARAM, char **argv)
 						(struct sockaddr *)(&client_addr), &addr_size);
 				if (packlen <= 0)
 					continue;
+//NB: we do not check source port here. Should we?
+//It should be CLIENT_PORT for clients.
+//It can be SERVER_PORT for relay agents (in which case giaddr must be != 0.0.0.0),
+//but is it even supported to chain relay agents like this?
+//(we still copy client_addr.port and use it to reply to the port we got request from)
 
 				/* Get our IP on corresponding client_iface */
 // RFC 1542

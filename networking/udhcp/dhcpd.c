@@ -614,6 +614,10 @@ static void send_packet_to_relay(struct dhcp_packet *dhcp_pkt)
 	udhcp_send_kernel_packet(dhcp_pkt,
 			server_data.server_nip, SERVER_PORT,
 			dhcp_pkt->gateway_nip, SERVER_PORT,
+	/* Yes, relay agents receive (and send) all their packets on SERVER_PORT,
+	 * even those which are clients' requests and would normally
+	 * (i.e. without relay) use CLIENT_PORT. See RFC 1542.
+	 */
 			server_data.interface);
 }
 
@@ -1025,6 +1029,9 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		 * socket read inside this call is restarted on caught signals.
 		 */
 		bytes = udhcp_recv_kernel_packet(&packet, server_socket);
+//NB: we do not check source port here. Should we?
+//It should be CLIENT_PORT for clients,
+//or SERVER_PORT for relay agents (in which case giaddr must be != 0.0.0.0)
 		if (bytes < 0) {
 			/* bytes can also be -2 ("bad packet data") */
 			if (bytes == -1 && errno != EINTR) {
