@@ -27,7 +27,7 @@
 //kbuild:lib-$(CONFIG_FEATURE_UDHCP_RFC3397) += domain_codec.o
 
 //usage:#define udhcpd_trivial_usage
-//usage:       "[-fS] [-I ADDR]" IF_FEATURE_UDHCP_PORT(" [-P PORT]") " [CONFFILE]"
+//usage:       "[-fS] [-I ADDR] [-a MSEC]" IF_FEATURE_UDHCP_PORT(" [-P PORT]") " [CONFFILE]"
 //usage:#define udhcpd_full_usage "\n\n"
 //usage:       "DHCP server\n"
 //usage:     "\n	-f	Run in foreground"
@@ -877,6 +877,12 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	/* Setup the signal pipe on fds 3,4 - must be before openlog() */
 	udhcp_sp_setup();
 
+#define OPT_f (1 << 0)
+#define OPT_S (1 << 1)
+#define OPT_I (1 << 2)
+#define OPT_v (1 << 3)
+#define OPT_a (1 << 4)
+#define OPT_P (1 << 5)
 	opt = getopt32(argv, "^"
 		"fSI:va:"IF_FEATURE_UDHCP_PORT("P:")
 		"\0"
@@ -887,24 +893,24 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		, &str_a
 		IF_FEATURE_UDHCP_PORT(, &str_P)
 		IF_UDHCP_VERBOSE(, &dhcp_verbose)
-		);
-	if (!(opt & 1)) { /* no -f */
+	);
+	if (!(opt & OPT_f)) { /* no -f */
 		bb_daemonize_or_rexec(0, argv);
 		logmode = LOGMODE_NONE;
 	}
 	/* update argv after the possible vfork+exec in daemonize */
 	argv += optind;
-	if (opt & 2) { /* -S */
+	if (opt & OPT_S) {
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode |= LOGMODE_SYSLOG;
 	}
-	if (opt & 4) { /* -I */
+	if (opt & OPT_I) {
 		len_and_sockaddr *lsa = xhost_and_af2sockaddr(str_I, 0, AF_INET);
 		server_data.server_nip = lsa->u.sin.sin_addr.s_addr;
 		free(lsa);
 	}
 #if ENABLE_FEATURE_UDHCP_PORT
-	if (opt & 32) { /* -P */
+	if (opt & OPT_P) {
 		SERVER_PORT = xatou16(str_P);
 		CLIENT_PORT = SERVER_PORT + 1;
 	}
