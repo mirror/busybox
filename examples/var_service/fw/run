@@ -179,7 +179,9 @@ ipt="iptables -t nat -A OUTPUT"
 #       OUTGOING TRAFFIC
 ipt="iptables -t nat -A POSTROUTING"
 # Masquerade boxes on my private net
-doit $ipt -s 192.168.0.0/24 -o $extif -j MASQUERADE
+for e in $extif; do
+	doit $ipt -s 192.168.0.0/24 -o $e -j MASQUERADE
+done
 
 #       *** mangle ***
 ### DEBUG
@@ -204,7 +206,9 @@ fi
 doit $ipt -p tcp -j REJECT	# Anything else isn't ok. REJECT = irc opens faster
 				# (it probes proxy ports, DROP will incur timeout delays)
 ipt="iptables -t filter -A INPUT"
-doit $ipt -i $extif -j iext
+for e in $extif; do
+	doit $ipt -i $e -j iext
+done
 
 
 echo; echo "* Enabling forwarding"
@@ -222,12 +226,12 @@ echo; echo "* Routing:"
 ip r l
 echo; echo "* Firewall:"
 {
-echo '---FILTER--';
-iptables -v -L -x -n;
-echo '---NAT-----';
-iptables -t nat -v -L -x -n;
-echo '---MANGLE--';
-iptables -t mangle -v -L -x -n;
+echo '---FILTER--'
+iptables -v -L -x -n
+echo '---NAT-----'
+iptables -t nat -v -L -x -n
+echo '---MANGLE--'
+iptables -t mangle -v -L -x -n
 } \
 | grep -v '^$' | grep -Fv 'bytes target'
 echo
