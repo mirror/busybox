@@ -348,6 +348,7 @@ static const char *const optletters_optnames[] = {
 	"a"   "allexport",
 	"b"   "notify",
 	"u"   "nounset",
+	"E"   "errtrace",
 	"\0"  "vi"
 #if BASH_PIPEFAIL
 	,"\0"  "pipefail"
@@ -442,15 +443,16 @@ struct globals_misc {
 #define aflag optlist[11]
 #define bflag optlist[12]
 #define uflag optlist[13]
-#define viflag optlist[14]
+#define Eflag optlist[14]
+#define viflag optlist[15]
 #if BASH_PIPEFAIL
-# define pipefail optlist[15]
+# define pipefail optlist[16]
 #else
 # define pipefail 0
 #endif
 #if DEBUG
-# define nolog optlist[15 + BASH_PIPEFAIL]
-# define debug optlist[16 + BASH_PIPEFAIL]
+# define nolog optlist[16 + BASH_PIPEFAIL]
+# define debug optlist[17 + BASH_PIPEFAIL]
 #endif
 
 	/* trap handler commands */
@@ -468,7 +470,11 @@ struct globals_misc {
 	/* indicates specified signal received */
 	uint8_t gotsig[NSIG - 1]; /* offset by 1: "signal" 0 is meaningless */
 	uint8_t may_have_traps; /* 0: definitely no traps are set, 1: some traps may be set */
-	char *trap[NSIG];
+	char *trap[NSIG + 1];
+/* trap[0] is EXIT trap, trap[NTRAP_ERR] is ERR trap, other trap[i] are signal traps */
+#define NTRAP_ERR  NSIG
+#define NTRAP_LAST NSIG
+
 	char **trap_ptr;        /* used only by "trap hack" */
 
 	/* Rarely referenced stuff */
@@ -2166,6 +2172,8 @@ struct globals_var {
 	struct var varinit[ARRAY_SIZE(varinit_data)];
 	int lineno;
 	char linenovar[sizeof("LINENO=") + sizeof(int)*3];
+	unsigned trap_depth;
+	bool in_trap_ERR; /* ERR cannot recurse, no need to be a counter */
 };
 extern struct globals_var *BB_GLOBAL_CONST ash_ptr_to_globals_var;
 #define G_var (*ash_ptr_to_globals_var)
@@ -2176,6 +2184,8 @@ extern struct globals_var *BB_GLOBAL_CONST ash_ptr_to_globals_var;
 #define varinit       (G_var.varinit      )
 #define lineno        (G_var.lineno       )
 #define linenovar     (G_var.linenovar    )
+#define trap_depth    (G_var.trap_depth   )
+#define in_trap_ERR   (G_var.in_trap_ERR  )
 #define vifs      varinit[0]
 #if ENABLE_ASH_MAIL
 # define vmail    varinit[1]
@@ -5163,13 +5173,13 @@ clear_traps(void)
 	char **tp;
 
 	INT_OFF;
-	for (tp = trap; tp < &trap[NSIG]; tp++) {
+	for (tp = trap; tp <= &trap[NTRAP_LAST]; tp++) {
 		if (*tp && **tp) {      /* trap not NULL or "" (SIG_IGN) */
 			if (trap_ptr == trap)
 				free(*tp);
 			/* else: it "belongs" to trap_ptr vector, don't free */
 			*tp = NULL;
-			if ((tp - trap) != 0)
+			if ((tp - trap) != 0 && (tp - trap) < NSIG)
 				setsignal(tp - trap);
 		}
 	}
@@ -9253,7 +9263,9 @@ dotrap(void)
 		*g = 0;
 		if (!p)
 			continue;
+		trap_depth++;
 		evalstring(p, 0);
+		trap_depth--;
 		if (evalskip != SKIPFUNC)
 			exitstatus = status;
 	}
@@ -9321,7 +9333,7 @@ evaltree(union node *n, int flags)
 	case NCMD:
 		evalfn = evalcommand;
  checkexit:
-		if (eflag && !(flags & EV_TESTED))
+		if (!(flags & EV_TESTED))
 			checkexit = ~0;
 		goto calleval;
 	case NFOR:
@@ -9395,8 +9407,32 @@ evaltree(union node *n, int flags)
 	 */
 	dotrap();
 
-	if (checkexit & status)
-		raise_exception(EXEND);
+	if (checkexit & status) {
+		if (trap[NTRAP_ERR] && !in_trap_ERR) {
+			int err;
+			struct jmploc *volatile savehandler = exception_handler;
+			struct jmploc jmploc;
+
+			in_trap_ERR = 1;
+			trap_depth++;
+			err = setjmp(jmploc.loc);
+			if (!err) {
+				exception_handler = &jmploc;
+				savestatus = exitstatus;
+				evalstring(trap[NTRAP_ERR], 0);
+			}
+			trap_depth--;
+			in_trap_ERR = 0;
+
+			exception_handler = savehandler;
+			if (err && exception_type != EXERROR)
+				longjmp(exception_handler->loc, 1);
+
+			exitstatus = savestatus;
+		}
+		if (eflag)
+			raise_exception(EXEND);
+	}
 	if (flags & EV_EXIT)
 		raise_exception(EXEND);
 
@@ -9861,7 +9897,12 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	struct jmploc jmploc;
 	int e;
 	int savefuncline;
+	char *savetrap = NULL;
 
+	if (!Eflag) {
+		savetrap = trap[NTRAP_ERR];
+		trap[NTRAP_ERR] = NULL;
+	}
 	saveparam = shellparam;
 	savefuncline = funcline;
 	savehandler = exception_handler;
@@ -9884,6 +9925,12 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	evaltree(func->n.ndefun.body, flags & EV_TESTED);
  funcdone:
 	INT_OFF;
+	if (savetrap) {
+		if (!trap[NTRAP_ERR])
+			trap[NTRAP_ERR] = savetrap;
+		else
+			free(savetrap);
+	}
 	funcline = savefuncline;
 	freefunc(func);
 	freeparam(&shellparam);
@@ -10912,13 +10959,15 @@ preadbuffer(void)
 static void
 nlprompt(void)
 {
-	g_parsefile->linno++;
+	if (trap_depth == 0)
+		g_parsefile->linno++;
 	setprompt_if(doprompt, 2);
 }
 static void
 nlnoprompt(void)
 {
-	g_parsefile->linno++;
+	if (trap_depth == 0)
+		g_parsefile->linno++;
 	needprompt = doprompt;
 }
 
@@ -12620,7 +12669,8 @@ checkend: {
 
 		if (c == '\n' || c == PEOF) {
 			c = PEOF;
-			g_parsefile->linno++;
+			if (trap_depth == 0)
+				g_parsefile->linno++;
 			needprompt = doprompt;
 		} else {
 			int len_here;
@@ -13869,7 +13919,7 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	nextopt(nullstr);
 	ap = argptr;
 	if (!*ap) {
-		for (signo = 0; signo < NSIG; signo++) {
+		for (signo = 0; signo <= NTRAP_LAST; signo++) {
 			char *tr = trap_ptr[signo];
 			if (tr) {
 				/* note: bash adds "SIG", but only if invoked
@@ -13878,7 +13928,7 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 				 * We are printing short names: */
 				out1fmt("trap -- %s %s\n",
 						single_quote(tr),
-						get_signame(signo));
+						(signo == NTRAP_ERR) ? "ERR" : get_signame(signo));
 		/* trap_ptr != trap only if we are in special-cased `trap` code.
 		 * In this case, we will exit very soon, no need to free(). */
 				/* if (trap_ptr != trap && tp[0]) */
@@ -13904,7 +13954,7 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 	exitcode = 0;
 	while (*ap) {
-		signo = get_signum(*ap);
+		signo = strcmp(*ap, "ERR") == 0 ? NTRAP_ERR : get_signum(*ap);
 		if (signo < 0) {
 			/* Mimic bash message exactly */
 			ash_msg("%s: invalid signal specification", *ap);
@@ -13923,7 +13973,7 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		}
 		free(trap[signo]);
 		trap[signo] = action;
-		if (signo != 0)
+		if (signo != 0 && signo < NSIG)
 			setsignal(signo);
 		INT_ON;
  next:
@@ -14348,7 +14398,9 @@ exitshell(void)
 	if (p) {
 		trap[0] = NULL;
 		evalskip = 0;
+		trap_depth++;
 		evalstring(p, 0);
+		trap_depth--;
 		evalskip = SKIPFUNCDEF;
 		/*free(p); - we'll exit soon */
 	}
