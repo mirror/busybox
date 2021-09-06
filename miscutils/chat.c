@@ -201,6 +201,9 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 		DIR_RECORD,
 	};
 
+#define inbuf bb_common_bufsiz1
+	setup_common_bufsiz();
+
 	// make x* functions fail with correct exitcode
 	xfunc_error_retval = ERR_IO;
 
@@ -361,35 +364,36 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 			// get reply
 			pfd.fd = STDIN_FILENO;
 			pfd.events = POLLIN;
-			while (!exitcode
+			while (exitcode == ERR_OK
 			    && poll(&pfd, 1, timeout) > 0
-			    && (pfd.revents & POLLIN)
+			    /* && (pfd.revents & POLLIN) - may be untrue (e.g. only POLLERR set) */
 			) {
 				llist_t *l;
 				ssize_t delta;
-#define buf bb_common_bufsiz1
-				setup_common_bufsiz();
 
 				// read next char from device
-				if (safe_read(STDIN_FILENO, buf+buf_len, 1) > 0) {
-					// dump device input if RECORD fname
-					if (record_fd > 0) {
-						full_write(record_fd, buf+buf_len, 1);
-					}
-					// dump device input if ECHO ON
-					if (echo) {
-//						if (buf[buf_len] < ' ') {
-//							full_write2_str("^");
-//							buf[buf_len] += '@';
-//						}
-						full_write(STDERR_FILENO, buf+buf_len, 1);
-					}
-					buf_len++;
-					// move input frame if we've reached higher bound
-					if (buf_len > COMMON_BUFSIZE) {
-						memmove(buf, buf+buf_len-max_len, max_len);
-						buf_len = max_len;
-					}
+				if (safe_read(STDIN_FILENO, inbuf + buf_len, 1) <= 0) {
+					exitcode = ERR_IO;
+					goto expect_done;
+				}
+
+				// dump device input if RECORD fname
+				if (record_fd > 0) {
+					full_write(record_fd, inbuf + buf_len, 1);
+				}
+				// dump device input if ECHO ON
+				if (echo) {
+//					if (inbuf[buf_len] < ' ') {
+//						full_write2_str("^");
+//						inbuf[buf_len] += '@';
+//					}
+					full_write(STDERR_FILENO, inbuf + buf_len, 1);
+				}
+				buf_len++;
+				// move input frame if we've reached higher bound
+				if (buf_len > COMMON_BUFSIZE) {
+					memmove(inbuf, inbuf + buf_len - max_len, max_len);
+					buf_len = max_len;
 				}
 				// N.B. rule of thumb: values being looked for can
 				// be found only at the end of input buffer
@@ -399,20 +403,20 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 				// abort condition is met? -> bail out
 				for (l = aborts, exitcode = ERR_ABORT; l; l = l->link, ++exitcode) {
 					size_t len = strlen(l->data);
-					delta = buf_len-len;
-					if (delta >= 0 && !memcmp(buf+delta, l->data, len))
+					delta = buf_len - len;
+					if (delta >= 0 && !memcmp(inbuf + delta, l->data, len))
 						goto expect_done;
 				}
 				exitcode = ERR_OK;
 
 				// expected reply received? -> goto next command
 				delta = buf_len - expect_len;
-				if (delta >= 0 && !memcmp(buf+delta, expect, expect_len))
+				if (delta >= 0 && memcmp(inbuf + delta, expect, expect_len) == 0)
 					goto expect_done;
-#undef buf
 			} /* while (have data) */
 
-			// device timed out or unexpected reply received
+			// device timed out, or unexpected reply received,
+			// or we got a signal (poll() returned -1 with EINTR).
 			exitcode = ERR_TIMEOUT;
  expect_done:
 #if ENABLE_FEATURE_CHAT_NOFAIL
@@ -434,7 +438,7 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 			}
 #endif
 			// bail out unless we expected successfully
-			if (exitcode)
+			if (exitcode != ERR_OK)
 				break;
 
 			//-----------------------
@@ -478,7 +482,7 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 							continue;
 						}
 						if ('p' == c) {
-							usleep(10000);
+							msleep(10);
 							len--;
 							continue;
 						}
