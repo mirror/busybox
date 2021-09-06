@@ -9299,6 +9299,9 @@ evaltree(union node *n, int flags)
 
 	setstackmark(&smark);
 
+	if (nflag)
+		goto out;
+
 	if (n == NULL) {
 		TRACE(("evaltree(NULL) called\n"));
 		goto out;
@@ -13557,7 +13560,7 @@ cmdloop(int top)
 				out2str("\nUse \"exit\" to leave shell.\n");
 			}
 			numeof++;
-		} else if (nflag == 0) {
+		} else {
 			int i;
 
 			/* job_warning can only be 2,1,0. Here 2->1, 1/0->0 */
