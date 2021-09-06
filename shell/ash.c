@@ -9336,8 +9336,7 @@ evaltree(union node *n, int flags)
 	case NCMD:
 		evalfn = evalcommand;
  checkexit:
-		if (!(flags & EV_TESTED))
-			checkexit = ~0;
+		checkexit = ~flags & EV_TESTED;
 		goto calleval;
 	case NFOR:
 		evalfn = evalfor;
@@ -9359,7 +9358,6 @@ evaltree(union node *n, int flags)
 	case NAND:
 	case NOR:
 	case NSEMI: {
-
 #if NAND + 1 != NOR
 #error NAND + 1 != NOR
 #endif
@@ -9387,8 +9385,7 @@ evaltree(union node *n, int flags)
 		if (!status) {
 			n = n->nif.ifpart;
 			goto evaln;
-		}
-		if (n->nif.elsepart) {
+		} else if (n->nif.elsepart) {
 			n = n->nif.elsepart;
 			goto evaln;
 		}
@@ -9410,7 +9407,7 @@ evaltree(union node *n, int flags)
 	 */
 	dotrap();
 
-	if (checkexit & status) {
+	if (checkexit && status) {
 		if (trap[NTRAP_ERR] && !in_trap_ERR) {
 			int err;
 			struct jmploc *volatile savehandler = exception_handler;
@@ -9434,10 +9431,12 @@ evaltree(union node *n, int flags)
 			exitstatus = savestatus;
 		}
 		if (eflag)
-			raise_exception(EXEND);
+			goto exexit;
 	}
-	if (flags & EV_EXIT)
+	if (flags & EV_EXIT) {
+ exexit:
 		raise_exception(EXEND);
+	}
 
 	popstackmark(&smark);
 	TRACE(("leaving evaltree (no interrupts)\n"));
