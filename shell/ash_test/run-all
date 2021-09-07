@@ -61,7 +61,8 @@ do_test()
 #		echo Running test: "$x"
 		echo -n "$1/$x:"
 		{
-			"$THIS_SH" "./$x" >"$name.xx" 2>&1
+			"$THIS_SH" "./$x" 2>&1 | \
+				grep -va "^ash: using fallback suid method$" >"$name.xx" 
 			diff -u "$name.xx" "$name.right" >"$TOPDIR/$noslash-$x.fail" \
 			&& rm -f "$name.xx" "$TOPDIR/$noslash-$x.fail"
 		} && echo " ok" || echo " fail"
