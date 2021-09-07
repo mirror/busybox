@@ -1,5 +1,14 @@
 #!/bin/sh
 
+unset LANG LANGUAGE
+unset LC_COLLATE
+unset LC_CTYPE
+unset LC_MONETARY
+unset LC_MESSAGES
+unset LC_NUMERIC
+unset LC_TIME
+unset LC_ALL
+
 TOPDIR=`pwd`
 
 if test ! -x ash; then
@@ -66,7 +75,7 @@ do_test()
 			diff -u "$name.xx" "$name.right" >"$TOPDIR/$noslash-$x.fail" \
 			&& rm -f "$name.xx" "$TOPDIR/$noslash-$x.fail"
 		} && echo " ok" || echo " fail"
-		done
+	done
 	)
 }
 
