@@ -13359,23 +13359,26 @@ parseheredoc(void)
 static const char *
 expandstr(const char *ps, int syntax_type)
 {
-	union node n;
+	struct parsefile *file_stop;
+	struct jmploc *volatile savehandler;
+	struct heredoc *saveheredoclist;
+	const char *result;
 	int saveprompt;
-	struct parsefile *file_stop = g_parsefile;
-	volatile int saveint;
-	struct jmploc *volatile savehandler = exception_handler;
 	struct jmploc jmploc;
-	const char *volatile result;
+	union node n;
 	int err;
+
+	file_stop = g_parsefile;
 
 	/* XXX Fix (char *) cast. */
 	setinputstring((char *)ps);
 
+	saveheredoclist = heredoclist;
+	heredoclist = NULL;
 	saveprompt = doprompt;
 	doprompt = 0;
 	result = ps;
-
-	SAVE_INT(saveint);
+	savehandler = exception_handler;
 	err = setjmp(jmploc.loc);
 	if (err)
 		goto out;
@@ -13402,11 +13405,11 @@ out:
 	exception_handler = savehandler;
 	if (err && exception_type != EXERROR)
 		longjmp(exception_handler->loc, 1);
-	RESTORE_INT(saveint);
 
 	doprompt = saveprompt;
 	/* Try: PS1='`xxx(`' */
 	unwindfiles(file_stop);
+	heredoclist = saveheredoclist;
 
 	return result;
 }
