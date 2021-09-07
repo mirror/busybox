@@ -9898,7 +9898,8 @@ static int run_list(struct pipe *pi)
 #if ENABLE_HUSH_LOOPS
 		G.flag_break_continue = 0;
 #endif
-		rcode = r = run_pipe(pi); /* NB: rcode is a smalluint, r is int */
+		rcode = r = G.o_opt[OPT_O_NOEXEC] ? 0 : run_pipe(pi);
+		/* NB: rcode is a smalluint, r is int */
 		if (r != -1) {
 			/* We ran a builtin, function, or group.
 			 * rcode is already known
@@ -10137,7 +10138,10 @@ static int set_mode(int state, char mode, const char *o_opt)
 	int idx;
 	switch (mode) {
 	case 'n':
-		G.o_opt[OPT_O_NOEXEC] = state;
+		/* set -n has no effect in interactive shell */
+		/* Try: while set -n; do echo $-; done */
+		if (!G_interactive_fd)
+			G.o_opt[OPT_O_NOEXEC] = state;
 		break;
 	case 'x':
 		IF_HUSH_MODE_X(G_x_mode = state;)
