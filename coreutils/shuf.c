@@ -44,21 +44,25 @@
  */
 static void shuffle_lines(char **lines, unsigned numlines, unsigned outlines)
 {
-	unsigned i;
-	unsigned r;
-	char *tmp;
-
 	srand(monotonic_us());
 
-	for (i = numlines - 1; outlines > 0; i--, outlines--) {
-		r = rand();
+	while (outlines != 0) {
+		char *tmp;
+		unsigned r = rand();
 		/* RAND_MAX can be as small as 32767 */
-		if (i > RAND_MAX)
+		if (numlines > RAND_MAX)
 			r ^= rand() << 15;
-		r %= i + 1;
-		tmp = lines[i];
-		lines[i] = lines[r];
+		r %= numlines;
+//TODO: the above method is seriously non-uniform when numlines is very large.
+//For example, with numlines of   0xf0000000,
+//values of (r % numlines) in [0, 0x0fffffff] range
+//are more likely: e.g. r=1 and r=0xf0000001 both map to 1,
+//whereas only one value, r=0xefffffff, maps to 0xefffffff.
+		numlines--;
+		tmp = lines[numlines];
+		lines[numlines] = lines[r];
 		lines[r] = tmp;
+		outlines--;
 	}
 }
 
