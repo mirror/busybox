@@ -13265,9 +13265,13 @@ readtoken(void)
 	if (kwd & CHKNL) {
 		while (t == TNL) {
 			parseheredoc();
+			checkkwd = 0;
 			t = xxreadtoken();
 		}
 	}
+
+	kwd |= checkkwd;
+	checkkwd = 0;
 
 	if (t != TWORD || quoteflag) {
 		goto out;
@@ -13287,7 +13291,7 @@ readtoken(void)
 		}
 	}
 
-	if (checkkwd & CHKALIAS) {
+	if (kwd & CHKALIAS) {
 #if ENABLE_ASH_ALIAS
 		struct alias *ap;
 		ap = lookupalias(wordtext, 1);
@@ -13300,7 +13304,6 @@ readtoken(void)
 #endif
 	}
  out:
-	checkkwd = 0;
 #if DEBUG
 	if (!alreadyseen)
 		TRACE(("token '%s' %s\n", tokname_array[t], t == TWORD ? wordtext : ""));
