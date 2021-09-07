@@ -11755,27 +11755,28 @@ static union node *andor(void);
 static union node *pipeline(void);
 static union node *parse_command(void);
 static void parseheredoc(void);
-static int peektoken(void);
 static int readtoken(void);
 
 static union node *
 list(int nlflag)
 {
+	int chknl = nlflag & 1 ? 0 : CHKNL;
 	union node *n1, *n2, *n3;
 	int tok;
 
 	n1 = NULL;
 	for (;;) {
-		switch (readtoken()) {
+		checkkwd = chknl | CHKKWD | CHKALIAS;
+		tok = readtoken();
+		switch (tok) {
 		case TNL:
-			if (!(nlflag & 1))
-				break;
 			parseheredoc();
 			return n1;
 
 		case TEOF:
-			if (!n1 && (nlflag & 1))
+			if (!n1 && !chknl)
 				n1 = NODE_EOF;
+ out_eof:
 			parseheredoc();
 			tokpushback++;
 			lasttoken = TEOF;
@@ -11783,8 +11784,7 @@ list(int nlflag)
 		}
 
 		tokpushback++;
-		checkkwd = CHKNL | CHKKWD | CHKALIAS;
-		if (nlflag == 2 && ((1 << peektoken()) & tokendlist))
+		if (nlflag == 2 && ((1 << tok) & tokendlist))
 			return n1;
 		nlflag |= 2;
 
@@ -11813,15 +11813,16 @@ list(int nlflag)
 			n1 = n3;
 		}
 		switch (tok) {
-		case TNL:
 		case TEOF:
+			goto out_eof;
+		case TNL:
 			tokpushback = 1;
 			/* fall through */
 		case TBACKGND:
 		case TSEMI:
 			break;
 		default:
-			if ((nlflag & 1))
+			if (!chknl)
 				raise_error_unexpected_syntax(-1);
 			tokpushback = 1;
 			return n1;
@@ -11995,8 +11996,9 @@ simplecmd(void)
 		switch (t) {
 #if BASH_FUNCTION
 		case TFUNCTION:
-			if (peektoken() != TWORD)
+			if (readtoken() != TWORD)
 				raise_error_unexpected_syntax(TWORD);
+			tokpushback = 1;
 			function_flag = 1;
 			break;
 #endif
@@ -12033,7 +12035,9 @@ simplecmd(void)
 #if BASH_FUNCTION
 			if (function_flag) {
 				checkkwd = CHKNL | CHKKWD;
-				switch (peektoken()) {
+				t = readtoken();
+				tokpushback = 1;
+				switch (t) {
 				case TBEGIN:
 				case TIF:
 				case TCASE:
@@ -13303,16 +13307,6 @@ readtoken(void)
 	else
 		TRACE(("reread token '%s' %s\n", tokname_array[t], t == TWORD ? wordtext : ""));
 #endif
-	return t;
-}
-
-static int
-peektoken(void)
-{
-	int t;
-
-	t = readtoken();
-	tokpushback = 1;
 	return t;
 }
 
