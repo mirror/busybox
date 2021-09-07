@@ -13388,7 +13388,7 @@ expandstr(const char *ps, int syntax_type)
 	 * PS1='$(date "+%H:%M:%S) > '
 	 */
 	exception_handler = &jmploc;
-	readtoken1(pgetc(), syntax_type, FAKEEOFMARK, 0);
+	readtoken1(pgetc_eatbnl(), syntax_type, FAKEEOFMARK, 0);
 
 	n.narg.type = NARG;
 	n.narg.next = NULL;
