@@ -1,4 +1,4 @@
-SHELL: line 1: syntax error: bad substitution
+SHELL: line 0: syntax error: bad substitution
 _0 _0
 _ _ _ _word _word
 _aaaa _aaaa _aaaa _aaaa _aaaa

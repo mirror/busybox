@@ -14698,7 +14698,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		// ^^ not necessary since now we special-case fd 0
 		// in save_fd_on_redirect()
 
-		lineno = 1;
+		lineno = 0; // bash compat
 		// dash: evalstring(minusc, sflag ? 0 : EV_EXIT);
 		// The above makes
 		//  ash -sc 'echo $-'
