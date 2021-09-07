@@ -2753,6 +2753,12 @@ static int i_getch(struct in_str *i)
 		if (ch != '\0') {
 			i->p++;
 			i->last_char = ch;
+#if ENABLE_HUSH_LINENO_VAR
+			if (ch == '\n') {
+				G.parse_lineno++;
+				debug_printf_parse("G.parse_lineno++ = %u\n", G.parse_lineno);
+			}
+#endif
 			return ch;
 		}
 		return EOF;
@@ -7540,11 +7546,11 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 static void parse_and_run_string(const char *s)
 {
 	struct in_str input;
-	//IF_HUSH_LINENO_VAR(unsigned sv = G.parse_lineno;)
+	IF_HUSH_LINENO_VAR(unsigned sv = G.parse_lineno;)
 
 	setup_string_in_str(&input, s);
 	parse_and_run_stream(&input, '\0');
-	//IF_HUSH_LINENO_VAR(G.parse_lineno = sv;)
+	IF_HUSH_LINENO_VAR(G.parse_lineno = sv;)
 }
 
 static void parse_and_run_file(HFILE *fp)
