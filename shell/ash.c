@@ -2357,7 +2357,7 @@ lookupvar(const char *name)
 			v->var_func(NULL);
 #endif
 		if (!(v->flags & VUNSET)) {
-			if (v == &vlineno && v->var_text == linenovar) {
+			if (v->var_text == linenovar) {
 				fmtstr(linenovar+7, sizeof(linenovar)-7, "%d", lineno);
 			}
 			return var_end(v->var_text);
@@ -9322,8 +9322,6 @@ evaltree(union node *n, int flags)
 		goto setstatus;
 	case NREDIR:
 		errlinno = lineno = n->nredir.linno;
-		if (funcline)
-			lineno -= funcline - 1;
 		expredir(n->nredir.redirect);
 		pushredir(n->nredir.redirect);
 		status = redirectsafe(n->nredir.redirect, REDIR_PUSH);
@@ -9502,8 +9500,6 @@ evalfor(union node *n, int flags)
 	int status = 0;
 
 	errlinno = lineno = n->ncase.linno;
-	if (funcline)
-		lineno -= funcline - 1;
 
 	arglist.list = NULL;
 	arglist.lastp = &arglist.list;
@@ -9534,8 +9530,6 @@ evalcase(union node *n, int flags)
 	int status = 0;
 
 	errlinno = lineno = n->ncase.linno;
-	if (funcline)
-		lineno -= funcline - 1;
 
 	arglist.list = NULL;
 	arglist.lastp = &arglist.list;
@@ -9569,8 +9563,6 @@ evalsubshell(union node *n, int flags)
 	int status;
 
 	errlinno = lineno = n->nredir.linno;
-	if (funcline)
-		lineno -= funcline - 1;
 
 	expredir(n->nredir.redirect);
 	if (!backgnd && (flags & EV_EXIT) && !may_have_traps)
@@ -9898,6 +9890,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	struct jmploc *volatile savehandler;
 	struct jmploc jmploc;
 	int e;
+	int savelineno;
 	int savefuncline;
 	char *savetrap = NULL;
 
@@ -9905,6 +9898,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 		savetrap = trap[NTRAP_ERR];
 		trap[NTRAP_ERR] = NULL;
 	}
+	savelineno = lineno;
 	saveparam = shellparam;
 	savefuncline = funcline;
 	savehandler = exception_handler;
@@ -9934,6 +9928,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 			free(savetrap);
 	}
 	funcline = savefuncline;
+	lineno = savelineno;
 	freefunc(func);
 	freeparam(&shellparam);
 	shellparam = saveparam;
@@ -10322,8 +10317,6 @@ evalcommand(union node *cmd, int flags)
 	int vlocal;
 
 	errlinno = lineno = cmd->ncmd.linno;
-	if (funcline)
-		lineno -= funcline - 1;
 
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
@@ -11201,7 +11194,7 @@ setinputstring(char *string)
 	g_parsefile->next_to_pgetc = string;
 	g_parsefile->left_in_line = strlen(string);
 	g_parsefile->buf = NULL;
-	g_parsefile->linno = 1;
+	g_parsefile->linno = lineno;
 	INT_ON;
 }
 
@@ -14705,6 +14698,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		// ^^ not necessary since now we special-case fd 0
 		// in save_fd_on_redirect()
 
+		lineno = 1;
 		// dash: evalstring(minusc, sflag ? 0 : EV_EXIT);
 		// The above makes
 		//  ash -sc 'echo $-'
