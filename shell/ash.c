@@ -295,6 +295,10 @@ typedef long arith_t;
 # define PIPE_BUF 4096           /* amount of buffering in a pipe */
 #endif
 
+#ifndef unlikely
+# define unlikely(cond) (cond)
+#endif
+
 #if !BB_MMU
 # error "Do not even bother, ash will not run on NOMMU machine"
 #endif
@@ -583,6 +587,9 @@ struct strpush {
 #endif
 	char *string;           /* remember the string since it may change */
 
+	/* Delay freeing so we can stop nested aliases. */
+	struct strpush *spfree;
+
 	/* Remember last two characters for pungetc. */
 	int lastc[2];
 
@@ -604,6 +611,9 @@ struct parsefile {
 	char *buf;              /* input buffer */
 	struct strpush *strpush; /* for pushing strings at this level */
 	struct strpush basestrpush; /* so pushing one is fast */
+
+	/* Delay freeing so we can stop nested aliases. */
+	struct strpush *spfree;
 
 	/* Remember last two characters for pungetc. */
 	int lastc[2];
@@ -3013,12 +3023,8 @@ pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #define CENDFILE 11             /* end of file */
 #define CCTL     12             /* like CWORD, except it must be escaped */
 #define CSPCL    13             /* these terminate a word */
-#define CIGN     14             /* character should be ignored */
 
 #define PEOF     256
-#if ENABLE_ASH_ALIAS
-# define PEOA    257
-#endif
 
 #define USE_SIT_FUNCTION ENABLE_ASH_OPTIMIZE_FOR_SIZE
 
@@ -3028,49 +3034,43 @@ pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 # define SIT_ITEM(a,b,c,d) (a | (b << 4) | (c << 8))
 #endif
 static const uint16_t S_I_T[] ALIGN2 = {
-#if ENABLE_ASH_ALIAS
-	SIT_ITEM(CSPCL   , CIGN     , CIGN , CIGN   ),    /* 0, PEOA */
-#endif
-	SIT_ITEM(CSPCL   , CWORD    , CWORD, CWORD  ),    /* 1, ' ' */
-	SIT_ITEM(CNL     , CNL      , CNL  , CNL    ),    /* 2, \n */
-	SIT_ITEM(CWORD   , CCTL     , CCTL , CWORD  ),    /* 3, !*-/:=?[]~ */
-	SIT_ITEM(CDQUOTE , CENDQUOTE, CWORD, CWORD  ),    /* 4, '"' */
-	SIT_ITEM(CVAR    , CVAR     , CWORD, CVAR   ),    /* 5, $ */
-	SIT_ITEM(CSQUOTE , CWORD    , CENDQUOTE, CWORD),  /* 6, "'" */
-	SIT_ITEM(CSPCL   , CWORD    , CWORD, CLP    ),    /* 7, ( */
-	SIT_ITEM(CSPCL   , CWORD    , CWORD, CRP    ),    /* 8, ) */
-	SIT_ITEM(CBACK   , CBACK    , CCTL , CBACK  ),    /* 9, \ */
-	SIT_ITEM(CBQUOTE , CBQUOTE  , CWORD, CBQUOTE),    /* 10, ` */
-	SIT_ITEM(CENDVAR , CENDVAR  , CWORD, CENDVAR),    /* 11, } */
+	SIT_ITEM(CSPCL   , CWORD    , CWORD, CWORD  ),    /* 0, ' ' */
+	SIT_ITEM(CNL     , CNL      , CNL  , CNL    ),    /* 1, \n */
+	SIT_ITEM(CWORD   , CCTL     , CCTL , CWORD  ),    /* 2, !*-/:=?[]~ */
+	SIT_ITEM(CDQUOTE , CENDQUOTE, CWORD, CWORD  ),    /* 3, '"' */
+	SIT_ITEM(CVAR    , CVAR     , CWORD, CVAR   ),    /* 4, $ */
+	SIT_ITEM(CSQUOTE , CWORD    , CENDQUOTE, CWORD),  /* 5, "'" */
+	SIT_ITEM(CSPCL   , CWORD    , CWORD, CLP    ),    /* 6, ( */
+	SIT_ITEM(CSPCL   , CWORD    , CWORD, CRP    ),    /* 7, ) */
+	SIT_ITEM(CBACK   , CBACK    , CCTL , CBACK  ),    /* 8, \ */
+	SIT_ITEM(CBQUOTE , CBQUOTE  , CWORD, CBQUOTE),    /* 9, ` */
+	SIT_ITEM(CENDVAR , CENDVAR  , CWORD, CENDVAR),    /* 10, } */
 #if !USE_SIT_FUNCTION
-	SIT_ITEM(CENDFILE, CENDFILE , CENDFILE, CENDFILE),/* 12, PEOF */
-	SIT_ITEM(CWORD   , CWORD    , CWORD, CWORD  ),    /* 13, 0-9A-Za-z */
-	SIT_ITEM(CCTL    , CCTL     , CCTL , CCTL   )     /* 14, CTLESC ... */
+	SIT_ITEM(CENDFILE, CENDFILE , CENDFILE, CENDFILE),/* 11, PEOF */
+	SIT_ITEM(CWORD   , CWORD    , CWORD, CWORD  ),    /* 12, 0-9A-Za-z */
+	SIT_ITEM(CCTL    , CCTL     , CCTL , CCTL   )     /* 13, CTLESC ... */
 #endif
 #undef SIT_ITEM
 };
 /* Constants below must match table above */
 enum {
-#if ENABLE_ASH_ALIAS
-	CSPCL_CIGN_CIGN_CIGN               , /*  0 */
-#endif
-	CSPCL_CWORD_CWORD_CWORD            , /*  1 */
-	CNL_CNL_CNL_CNL                    , /*  2 */
-	CWORD_CCTL_CCTL_CWORD              , /*  3 */
-	CDQUOTE_CENDQUOTE_CWORD_CWORD      , /*  4 */
-	CVAR_CVAR_CWORD_CVAR               , /*  5 */
-	CSQUOTE_CWORD_CENDQUOTE_CWORD      , /*  6 */
-	CSPCL_CWORD_CWORD_CLP              , /*  7 */
-	CSPCL_CWORD_CWORD_CRP              , /*  8 */
-	CBACK_CBACK_CCTL_CBACK             , /*  9 */
-	CBQUOTE_CBQUOTE_CWORD_CBQUOTE      , /* 10 */
-	CENDVAR_CENDVAR_CWORD_CENDVAR      , /* 11 */
-	CENDFILE_CENDFILE_CENDFILE_CENDFILE, /* 12 */
-	CWORD_CWORD_CWORD_CWORD            , /* 13 */
-	CCTL_CCTL_CCTL_CCTL                , /* 14 */
+	CSPCL_CWORD_CWORD_CWORD            , /*  0 */
+	CNL_CNL_CNL_CNL                    , /*  1 */
+	CWORD_CCTL_CCTL_CWORD              , /*  2 */
+	CDQUOTE_CENDQUOTE_CWORD_CWORD      , /*  3 */
+	CVAR_CVAR_CWORD_CVAR               , /*  4 */
+	CSQUOTE_CWORD_CENDQUOTE_CWORD      , /*  5 */
+	CSPCL_CWORD_CWORD_CLP              , /*  6 */
+	CSPCL_CWORD_CWORD_CRP              , /*  7 */
+	CBACK_CBACK_CCTL_CBACK             , /*  8 */
+	CBQUOTE_CBQUOTE_CWORD_CBQUOTE      , /*  9 */
+	CENDVAR_CENDVAR_CWORD_CENDVAR      , /* 10 */
+	CENDFILE_CENDFILE_CENDFILE_CENDFILE, /* 11 */
+	CWORD_CWORD_CWORD_CWORD            , /* 12 */
+	CCTL_CCTL_CCTL_CCTL                , /* 13 */
 };
 
-/* c in SIT(c, syntax) must be an *unsigned char* or PEOA or PEOF,
+/* c in SIT(c, syntax) must be an *unsigned char* or PEOF,
  * caller must ensure proper cast on it if c is *char_ptr!
  */
 #if USE_SIT_FUNCTION
@@ -3088,44 +3088,28 @@ SIT(int c, int syntax)
 	 * but glibc one isn't. With '/' always treated as CWORD,
 	 * both work fine.
 	 */
-# if ENABLE_ASH_ALIAS
-	static const uint8_t syntax_index_table[] ALIGN1 = {
-		1, 2, 1, 3, 4, 5, 1, 6,         /* "\t\n !\"$&'" */
-		7, 8, 3, 3,/*3,*/3, 1, 1,       /* "()*-/:;<" */
-		3, 1, 3, 3, 9, 3, 10, 1,        /* "=>?[\\]`|" */
-		11, 3                           /* "}~" */
-	};
-# else
 	static const uint8_t syntax_index_table[] ALIGN1 = {
 		0, 1, 0, 2, 3, 4, 0, 5,         /* "\t\n !\"$&'" */
 		6, 7, 2, 2,/*2,*/2, 0, 0,       /* "()*-/:;<" */
 		2, 0, 2, 2, 8, 2, 9, 0,         /* "=>?[\\]`|" */
 		10, 2                           /* "}~" */
 	};
-# endif
 	const char *s;
 	int indx;
 
 	if (c == PEOF)
 		return CENDFILE;
-# if ENABLE_ASH_ALIAS
-	if (c == PEOA)
-		indx = 0;
-	else
-# endif
-	{
-		/* Cast is purely for paranoia here,
-		 * just in case someone passed signed char to us */
-		if ((unsigned char)c >= CTL_FIRST
-		 && (unsigned char)c <= CTL_LAST
-		) {
-			return CCTL;
-		}
-		s = strchrnul(spec_symbls, c);
-		if (*s == '\0')
-			return CWORD;
-		indx = syntax_index_table[s - spec_symbls];
+	/* Cast is purely for paranoia here,
+	 * just in case someone passed signed char to us */
+	if ((unsigned char)c >= CTL_FIRST
+	 && (unsigned char)c <= CTL_LAST
+	) {
+		return CCTL;
 	}
+	s = strchrnul(spec_symbls, c);
+	if (*s == '\0')
+		return CWORD;
+	indx = syntax_index_table[s - spec_symbls];
 	return (S_I_T[indx] >> (syntax*4)) & 0xf;
 }
 
@@ -3396,9 +3380,6 @@ static const uint8_t syntax_index_table[] ALIGN1 = {
 	/* 254      */ CWORD_CWORD_CWORD_CWORD,
 	/* 255      */ CWORD_CWORD_CWORD_CWORD,
 	/* PEOF */     CENDFILE_CENDFILE_CENDFILE_CENDFILE,
-# if ENABLE_ASH_ALIAS
-	/* PEOA */     CSPCL_CIGN_CIGN_CIGN,
-# endif
 };
 
 #if 1
@@ -10712,7 +10693,7 @@ pushstring(char *s, struct alias *ap)
 
 	len = strlen(s);
 	INT_OFF;
-	if (g_parsefile->strpush) {
+	if (g_parsefile->strpush || g_parsefile->spfree) {
 		sp = ckzalloc(sizeof(*sp));
 		sp->prev = g_parsefile->strpush;
 	} else {
@@ -10722,6 +10703,7 @@ pushstring(char *s, struct alias *ap)
 	sp->prev_string = g_parsefile->next_to_pgetc;
 	sp->prev_left_in_line = g_parsefile->left_in_line;
 	sp->unget = g_parsefile->unget;
+	sp->spfree = g_parsefile->spfree;
 	memcpy(sp->lastc, g_parsefile->lastc, sizeof(sp->lastc));
 #if ENABLE_ASH_ALIAS
 	sp->ap = ap;
@@ -10733,11 +10715,11 @@ pushstring(char *s, struct alias *ap)
 	g_parsefile->next_to_pgetc = s;
 	g_parsefile->left_in_line = len;
 	g_parsefile->unget = 0;
+	g_parsefile->spfree = NULL;
 	INT_ON;
 }
 
-static void
-popstring(void)
+static void popstring(void)
 {
 	struct strpush *sp = g_parsefile->strpush;
 
@@ -10752,10 +10734,6 @@ popstring(void)
 		if (sp->string != sp->ap->val) {
 			free(sp->string);
 		}
-		sp->ap->flag &= ~ALIASINUSE;
-		if (sp->ap->flag & ALIASDEAD) {
-			unalias(sp->ap->name);
-		}
 	}
 #endif
 	g_parsefile->next_to_pgetc = sp->prev_string;
@@ -10763,8 +10741,7 @@ popstring(void)
 	g_parsefile->unget = sp->unget;
 	memcpy(g_parsefile->lastc, sp->lastc, sizeof(sp->lastc));
 	g_parsefile->strpush = sp->prev;
-	if (sp != &(g_parsefile->basestrpush))
-		free(sp);
+	g_parsefile->spfree = sp;
 	INT_ON;
 }
 
@@ -10853,26 +10830,16 @@ preadfd(void)
  */
 //#define pgetc_debug(...) bb_error_msg(__VA_ARGS__)
 #define pgetc_debug(...) ((void)0)
-static int pgetc(void);
+static int __pgetc(void);
 static int
 preadbuffer(void)
 {
 	char *q;
 	int more;
 
-	if (g_parsefile->strpush) {
-#if ENABLE_ASH_ALIAS
-		if (g_parsefile->left_in_line == -1
-		 && g_parsefile->strpush->ap
-		 && g_parsefile->next_to_pgetc[-1] != ' '
-		 && g_parsefile->next_to_pgetc[-1] != '\t'
-		) {
-			pgetc_debug("preadbuffer PEOA");
-			return PEOA;
-		}
-#endif
+	if (unlikely(g_parsefile->strpush)) {
 		popstring();
-		return pgetc();
+		return __pgetc();
 	}
 	/* on both branches above g_parsefile->left_in_line < 0.
 	 * "pgetc" needs refilling.
@@ -10966,8 +10933,31 @@ nlnoprompt(void)
 	needprompt = doprompt;
 }
 
-static int
-pgetc(void)
+static void freestrings(struct strpush *sp)
+{
+	INT_OFF;
+	do {
+		struct strpush *psp;
+
+		if (sp->ap) {
+			sp->ap->flag &= ~ALIASINUSE;
+			if (sp->ap->flag & ALIASDEAD) {
+				unalias(sp->ap->name);
+			}
+		}
+
+		psp = sp;
+		sp = sp->spfree;
+
+		if (psp != &(g_parsefile->basestrpush))
+			free(psp);
+	} while (sp);
+
+	g_parsefile->spfree = NULL;
+	INT_ON;
+}
+
+static int __pgetc(void)
 {
 	int c;
 
@@ -10989,23 +10979,19 @@ pgetc(void)
 	return c;
 }
 
-#if ENABLE_ASH_ALIAS
-static int
-pgetc_without_PEOA(void)
+/*
+ * Read a character from the script, returning PEOF on end of file.
+ * Nul characters in the input are silently discarded.
+ */
+static int pgetc(void)
 {
-	int c;
-	do {
-		pgetc_debug("pgetc at %d:%p'%s'",
-				g_parsefile->left_in_line,
-				g_parsefile->next_to_pgetc,
-				g_parsefile->next_to_pgetc);
-		c = pgetc();
-	} while (c == PEOA);
-	return c;
+	struct strpush *sp = g_parsefile->spfree;
+
+	if (unlikely(sp))
+		freestrings(sp);
+
+	return __pgetc();
 }
-#else
-# define pgetc_without_PEOA() pgetc()
-#endif
 
 /*
  * Undo a call to pgetc.  Only two characters may be pushed back.
@@ -11082,6 +11068,7 @@ pushfile(void)
 	pf->prev = g_parsefile;
 	pf->pf_fd = -1;
 	/*pf->strpush = NULL; - ckzalloc did it */
+	/*pf->spfree = NULL;*/
 	/*pf->basestrpush.prev = NULL;*/
 	/*pf->unget = 0;*/
 	g_parsefile = pf;
@@ -11099,8 +11086,12 @@ popfile(void)
 	if (pf->pf_fd >= 0)
 		close(pf->pf_fd);
 	free(pf->buf);
-	while (pf->strpush)
+	if (g_parsefile->spfree)
+		freestrings(g_parsefile->spfree);
+	while (pf->strpush) {
 		popstring();
+		freestrings(g_parsefile->spfree);
+	}
 	g_parsefile = pf->prev;
 	free(pf);
 	INT_ON;
@@ -12390,7 +12381,7 @@ static int
 readtoken1(int c, int syntax, char *eofmark, int striptabs)
 {
 	/* NB: syntax parameter fits into smallint */
-	/* c parameter is an unsigned char or PEOF or PEOA */
+	/* c parameter is an unsigned char or PEOF */
 	char *out;
 	size_t len;
 	struct nodelist *bqlist;
@@ -12460,7 +12451,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			USTPUTC(c, out);
 			break;
 		case CBACK:     /* backslash */
-			c = pgetc_without_PEOA();
+			c = pgetc();
 			if (c == PEOF) {
 				USTPUTC(CTLESC, out);
 				USTPUTC('\\', out);
@@ -12567,8 +12558,6 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			break;
 		case CENDFILE:
 			goto endword;           /* exit outer loop */
-		case CIGN:
-			break;
 		default:
 			if (synstack->varnest == 0) {
 #if BASH_REDIR_OUTPUT
@@ -12590,8 +12579,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 #endif
 				goto endword;   /* exit outer loop */
 			}
-			IF_ASH_ALIAS(if (c != PEOA))
-				USTPUTC(c, out);
+			USTPUTC(c, out);
 		}
 		c = pgetc_top(synstack);
 	} /* for (;;) */
@@ -12642,14 +12630,9 @@ checkend: {
 		int markloc;
 		char *p;
 
-#if ENABLE_ASH_ALIAS
-		if (c == PEOA)
-			c = pgetc_without_PEOA();
-#endif
 		if (striptabs) {
-			while (c == '\t') {
-				c = pgetc_without_PEOA();
-			}
+			while (c == '\t')
+				c = pgetc();
 		}
 
 		markloc = out - (char *)stackblock();
@@ -12663,7 +12646,7 @@ checkend: {
 			 * F
 			 * (see heredoc_bkslash_newline2.tests)
 			 */
-			c = pgetc_without_PEOA();
+			c = pgetc();
 		}
 
 		if (c == '\n' || c == PEOF) {
@@ -12788,7 +12771,6 @@ parsesub: {
 
 	c = pgetc_eatbnl();
 	if ((checkkwd & CHKEOFMARK)
-	 || c > 255 /* PEOA or PEOF */
 	 || (c != '(' && c != '{' && !is_name(c) && !is_special(c))
 	) {
 #if BASH_DOLLAR_SQUOTE
@@ -12811,7 +12793,7 @@ parsesub: {
 			PARSEBACKQNEW();
 		}
 	} else {
-		/* $VAR, $<specialchar>, ${...}, or PEOA/PEOF */
+		/* $VAR, $<specialchar>, ${...}, or PEOF */
 		smalluint newsyn = synstack->syntax;
 
 		USTPUTC(CTLVAR, out);
@@ -13006,13 +12988,9 @@ parsebackq: {
 				) {
 					STPUTC('\\', pout);
 				}
-				if (pc <= 255 /* not PEOA or PEOF */) {
-					break;
-				}
-				/* fall through */
+				break;
 
 			case PEOF:
-			IF_ASH_ALIAS(case PEOA:)
 				raise_error_syntax("EOF in backquote substitution");
 
 			case '\n':
@@ -13147,7 +13125,7 @@ xxreadtoken(void)
 	setprompt_if(needprompt, 2);
 	for (;;) {                      /* until token or start of word found */
 		c = pgetc_eatbnl();
-		if (c == ' ' || c == '\t' IF_ASH_ALIAS( || c == PEOA))
+		if (c == ' ' || c == '\t')
 			continue;
 
 		if (c == '#') {
@@ -13205,7 +13183,6 @@ xxreadtoken(void)
 		c = pgetc_eatbnl();
 		switch (c) {
 		case ' ': case '\t':
-		IF_ASH_ALIAS(case PEOA:)
 			continue;
 		case '#':
 			while ((c = pgetc()) != '\n' && c != PEOF)
