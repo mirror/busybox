@@ -18,10 +18,12 @@
 //usage:#define blkdiscard_trivial_usage
 //usage:       "[-o OFS] [-l LEN] [-s] DEVICE"
 //usage:#define blkdiscard_full_usage "\n\n"
-//usage:	"Discard sectors on DEVICE\n"
-//usage:	"\n	-o OFS	Byte offset into device"
-//usage:	"\n	-l LEN	Number of bytes to discard"
-//usage:	"\n	-s	Perform a secure discard"
+//usage:       "Discard sectors on DEVICE\n"
+//usage:     "\n	-o OFS	Byte offset into device"
+//usage:     "\n	-l LEN	Number of bytes to discard"
+//usage:     "\n	-s	Perform a secure discard"
+///////:     "\n	-f	Disable check for mounted filesystem"
+//////////////// -f: accepted but is a nop (we do no check anyway)
 //usage:
 //usage:#define blkdiscard_example_usage
 //usage:	"$ blkdiscard -o 0 -l 1G /dev/sdb"
@@ -51,9 +53,10 @@ int blkdiscard_main(int argc UNUSED_PARAM, char **argv)
 		OPT_OFFSET = (1 << 0),
 		OPT_LENGTH = (1 << 1),
 		OPT_SECURE = (1 << 2),
+		OPT_FORCE  = (1 << 3), //nop
 	};
 
-	opts = getopt32(argv, "^" "o:l:s" "\0" "=1", &offset_str, &length_str);
+	opts = getopt32(argv, "^" "o:l:sf" "\0" "=1", &offset_str, &length_str);
 	argv += optind;
 
 	fd = xopen(argv[0], O_RDWR|O_EXCL);
