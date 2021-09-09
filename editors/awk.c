@@ -2338,7 +2338,7 @@ static char *awk_printf(node *n, size_t *len)
 
 	b = NULL;
 	i = 0;
-	while (*f) { /* "print one format spec" loop */
+	while (1) { /* "print one format spec" loop */
 		char *s;
 		char c;
 		char sv;
@@ -2363,7 +2363,7 @@ static char *awk_printf(node *n, size_t *len)
 			slen = f - s;
 			s = xstrndup(s, slen);
 			f++;
-			goto tail; /* print "....%" part verbatim */
+			goto append; /* print "....%" part verbatim */
 		}
 		while (1) {
 			if (isalpha(c))
@@ -2412,7 +2412,7 @@ static char *awk_printf(node *n, size_t *len)
 			slen = strlen(s);
 		}
 		*f = sv;
-
+ append:
 		if (i == 0) {
 			b = s;
 			i = slen;
@@ -2422,7 +2422,7 @@ static char *awk_printf(node *n, size_t *len)
 		b = xrealloc(b, i + slen + 1);
 		strcpy(b + i, s);
 		i += slen;
-		if (!c) /* tail? */
+		if (!c) /* s is NOT allocated and this is the last part of string? */
 			break;
 		free(s);
 	}
