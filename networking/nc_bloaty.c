@@ -813,8 +813,6 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 	//if (option_mask32 & OPT_o) /* hexdump log */
 	if (option_mask32 & OPT_p) { /* local source port */
 		o_lport = bb_lookup_port(str_p, o_udpmode ? "udp" : "tcp", 0);
-		if (!o_lport)
-			bb_error_msg_and_die("bad local port '%s'", str_p);
 	}
 	//if (option_mask32 & OPT_r) /* randomize various things */
 	//if (option_mask32 & OPT_u) /* use UDP */
@@ -827,9 +825,8 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 
 	if (argv[0]) {
 		themaddr = xhost2sockaddr(argv[0],
-			argv[1]
-			? bb_lookup_port(argv[1], o_udpmode ? "udp" : "tcp", 0)
-			: 0);
+			bb_lookup_port(argv[1], o_udpmode ? "udp" : "tcp", 0)
+		);
 	}
 
 	/* create & bind network socket */
