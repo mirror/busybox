@@ -2351,16 +2351,15 @@ static char *awk_printf(node *n, size_t *len)
 			c = *f;
 			if (!c) /* no percent chars found at all */
 				goto nul;
-			if (c == '%') {
-				c = *++f;
-				if (!c) /* we are past % in "....%" */
-					goto nul;
-				break;
-			}
 			f++;
+			if (c == '%')
+				break;
 		}
-		/* we are past % in "....%...", c == char after % */
-		if (c == '%') { /* double % */
+		/* we are past % in "....%..." */
+		c = *f;
+		if (!c) /* "....%" */
+			goto nul;
+		if (c == '%') { /* "....%%...." */
 			slen = f - s;
 			s = xstrndup(s, slen);
 			f++;
