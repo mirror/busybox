@@ -404,6 +404,7 @@ struct globals_misc {
 	uint8_t exitstatus;     /* exit status of last command */
 	uint8_t back_exitstatus;/* exit status of backquoted command */
 	smallint job_warning;   /* user was warned about stopped jobs (can be 2, 1 or 0). */
+	smallint inps4;		/* Prevent PS4 nesting. */
 	int savestatus;         /* exit status of last command outside traps */
 	int rootpid;            /* pid of main shell */
 	/* shell level: 0 for the main shell, 1 for its children, and so on */
@@ -492,6 +493,7 @@ extern struct globals_misc *BB_GLOBAL_CONST ash_ptr_to_globals_misc;
 #define exitstatus        (G_misc.exitstatus )
 #define back_exitstatus   (G_misc.back_exitstatus )
 #define job_warning       (G_misc.job_warning)
+#define inps4       (G_misc.inps4      )
 #define savestatus  (G_misc.savestatus )
 #define rootpid     (G_misc.rootpid    )
 #define shlvl       (G_misc.shlvl      )
@@ -10423,10 +10425,12 @@ evalcommand(union node *cmd, int flags)
 	}
 
 	/* Print the command if xflag is set. */
-	if (xflag) {
+	if (xflag && !inps4) {
 		const char *pfx = "";
 
+		inps4 = 1;
 		fdprintf(preverrout_fd, "%s", expandstr(ps4val(), DQSYNTAX));
+		inps4 = 0;
 
 		sp = varlist.list;
 		while (sp) {
@@ -14323,6 +14327,7 @@ exitreset(void)
 	}
 	evalskip = 0;
 	loopnest = 0;
+	inps4 = 0;
 
 	/* from expand.c: */
 	ifsfree();
