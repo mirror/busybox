@@ -2345,38 +2345,49 @@ static char *awk_printf(node *n, size_t *len)
 		var *arg;
 		size_t slen;
 
+		/* Find end of the next format spec, or end of line */
 		s = f;
-		while (*f && *f != '%')
+		while (1) {
+			c = *f;
+			if (!c) /* no percent chars found at all */
+				goto nul;
+			if (c == '%') {
+				c = *++f;
+				if (!c) /* we are past % in "....%" */
+					goto nul;
+				break;
+			}
 			f++;
-		if (*f) {
+		}
+		/* we are past % in "....%...", c == char after % */
+		if (c == '%') { /* double % */
+			slen = f - s;
+			s = xstrndup(s, slen);
+			f++;
+			goto tail; /* print "....%" part verbatim */
+		}
+		while (1) {
+			if (isalpha(c))
+				break;
+			if (c == '*')
+				syntax_error("%*x formats are not supported");
 			c = *++f;
-			if (c == '%') { /* double % */
+			if (!c) { /* "....%...." and no letter found after % */
+				/* Example: awk 'BEGIN { printf "^^^%^^^\n"; }' */
+ nul:
 				slen = f - s;
-				s = xstrndup(s, slen);
-				f++;
-				goto tail;
-			}
-			while (*f && !isalpha(*f)) {
-				if (*f == '*')
-					syntax_error("%*x formats are not supported");
-				f++;
+				goto tail; /* print remaining string, exit loop */
 			}
 		}
-		c = *f;
-		if (!c) {
-			/* Tail of fmt with no percent chars,
-			 * or "....%" (percent seen, but no format specifier char found)
-			 */
-			slen = strlen(s);
-			goto tail;
-		}
-		sv = *++f;
-		*f = '\0';
+		/* we are at A in "....%...A..." */
+
 		arg = evaluate(nextarg(&n), TMPVAR);
 
 		/* Result can be arbitrarily long. Example:
 		 *  printf "%99999s", "BOOM"
 		 */
+		sv = *++f;
+		*f = '\0';
 		if (c == 'c') {
 			char cc = is_numeric(arg) ? getvar_i(arg) : *getvar_s(arg);
 			char *r = xasprintf(s, cc ? cc : '^' /* else strlen will be wrong */);
@@ -2395,6 +2406,7 @@ static char *awk_printf(node *n, size_t *len)
 				} else if (strchr("eEfFgGaA", c)) {
 					s = xasprintf(s, d);
 				} else {
+//TODO: GNU Awk 5.0.1: printf "%W" prints "%W", does not error out
 					syntax_error(EMSG_INV_FMT);
 				}
 			}
