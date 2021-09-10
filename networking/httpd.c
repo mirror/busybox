@@ -106,6 +106,7 @@
 //config:	int "Default port"
 //config:	default 80
 //config:	range 1 65535
+//config:	depends on HTTPD
 //config:
 //config:config FEATURE_HTTPD_RANGES
 //config:	bool "Support 'Ranges:' header"
