@@ -231,7 +231,7 @@ IF_NOT_FEATURE_IPV6(sa_family_t af = AF_INET;)
 		cp++; /* skip ':' */
 		port = bb_strtou(cp, NULL, 10);
 		if (errno || (unsigned)port > 0xffff) {
-			bb_error_msg("bad port spec '%s'", org_host);
+			bb_error_msg("bad port '%s'", cp);
 			if (ai_flags & DIE_ON_ERROR)
 				xfunc_die();
 			return NULL;
