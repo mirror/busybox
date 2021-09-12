@@ -13508,12 +13508,13 @@ cmdloop(int top)
 			if (!top || numeof >= 50)
 				break;
 			if (!stoppedjobs()) {
+				if (!iflag)
+					break;
 				if (!Iflag) {
-					if (iflag) {
-						newline_and_flush(stderr);
-					}
+					newline_and_flush(stderr);
 					break;
 				}
+				/* "set -o ignoreeof" active, do not exit command loop on ^D */
 				out2str("\nUse \"exit\" to leave shell.\n");
 			}
 			numeof++;
