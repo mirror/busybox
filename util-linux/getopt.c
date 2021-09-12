@@ -156,57 +156,43 @@ enum {
 static const char *normalize(const char *arg)
 {
 	char *bufptr;
-#if ENABLE_FEATURE_CLEAN_UP
-	static char *BUFFER = NULL;
-	free(BUFFER);
-#else
 	char *BUFFER;
-#endif
 
-	if (!quote) { /* Just copy arg */
-		BUFFER = xstrdup(arg);
-		return BUFFER;
+	if (!quote) { /* Just return arg */
+		return arg;
 	}
 
 	/* Each character in arg may take up to four characters in the result:
 	   For a quote we need a closing quote, a backslash, a quote and an
 	   opening quote! We need also the global opening and closing quote,
 	   and one extra character for '\0'. */
-	BUFFER = xmalloc(strlen(arg)*4 + 3);
+	BUFFER = auto_string(xmalloc(strlen(arg)*4 + 3));
 
 	bufptr = BUFFER;
 	*bufptr ++= '\'';
 
 	while (*arg) {
-		if (*arg == '\'') {
-			/* Quote: replace it with: '\'' */
-			*bufptr ++= '\'';
-			*bufptr ++= '\\';
-			*bufptr ++= '\'';
-			*bufptr ++= '\'';
-		} else if (shell_TCSH && *arg == '!') {
-			/* Exclamation mark: replace it with: \! */
-			*bufptr ++= '\'';
-			*bufptr ++= '\\';
-			*bufptr ++= '!';
-			*bufptr ++= '\'';
-		} else if (shell_TCSH && *arg == '\n') {
+		if (shell_TCSH && *arg == '\n') {
 			/* Newline: replace it with: \n */
-			*bufptr ++= '\\';
-			*bufptr ++= 'n';
-		} else if (shell_TCSH && isspace(*arg)) {
-			/* Non-newline whitespace: replace it with \<ws> */
-			*bufptr ++= '\'';
-			*bufptr ++= '\\';
-			*bufptr ++= *arg;
-			*bufptr ++= '\'';
+			*bufptr++ = '\\';
+			*bufptr++ = 'n';
 		} else
+		if ((shell_TCSH && (*arg == '!' || isspace(*arg)))
+		 || *arg == '\''
+		) {
+			/* Quote exclamation marks, non-NL whitespace and quotes */
+			*bufptr++ = '\'';
+			*bufptr++ = '\\';
+			*bufptr++ = *arg;
+			*bufptr++ = '\'';
+		} else {
 			/* Just copy */
 			*bufptr ++= *arg;
+		}
 		arg++;
 	}
-	*bufptr ++= '\'';
-	*bufptr ++= '\0';
+	*bufptr++ = '\'';
+	*bufptr++ = '\0';
 	return BUFFER;
 }
 
@@ -327,12 +313,18 @@ static struct option *add_long_options(struct option *long_options, char *option
 
 static void set_shell(const char *new_shell)
 {
-	if (strcmp(new_shell, "bash") == 0 || strcmp(new_shell, "sh") == 0)
-		return;
-	if (strcmp(new_shell, "tcsh") == 0 || strcmp(new_shell, "csh") == 0)
+	switch (index_in_strings("bash\0sh\0tcsh\0csh\0", new_shell)) {
+	case 0:
+	case 1:
+		break;
+	case 2:
+	case 3:
 		option_mask32 |= SHELL_IS_TCSH;
-	else
+		break;
+	default:
 		bb_error_msg("unknown shell '%s', assuming bash", new_shell);
+		break;
+	}
 }
 
 
