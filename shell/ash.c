@@ -10826,9 +10826,7 @@ preadfd(void)
  * Refill the input buffer and return the next input character:
  *
  * 1) If a string was pushed back on the input, pop it;
- * 2) If an EOF was pushed back (g_parsefile->left_in_line < -BIGNUM)
- *    or we are reading from a string so we can't refill the buffer,
- *    return EOF.
+ * 2) If we are reading from a string we can't refill the buffer, return EOF.
  * 3) If there is more stuff in this buffer, use it else call read to fill it.
  * 4) Process input up to the next newline, deleting nul characters.
  */
@@ -10845,21 +10843,9 @@ preadbuffer(void)
 		popstring();
 		return __pgetc();
 	}
-	/* on both branches above g_parsefile->left_in_line < 0.
-	 * "pgetc" needs refilling.
-	 */
 
-	/* -90 is our -BIGNUM. Below we use -99 to mark "EOF on read",
-	 * pungetc() may increment it a few times.
-	 * Assuming it won't increment it to less than -90.
-	 */
-	if (g_parsefile->left_in_line < -90 || g_parsefile->buf == NULL) {
+	if (g_parsefile->buf == NULL) {
 		pgetc_debug("preadbuffer PEOF1");
-		/* even in failure keep left_in_line and next_to_pgetc
-		 * in lock step, for correct multi-layer pungetc.
-		 * left_in_line was decremented before preadbuffer(),
-		 * must inc next_to_pgetc: */
-		g_parsefile->next_to_pgetc++;
 		return PEOF;
 	}
 
@@ -10869,10 +10855,8 @@ preadbuffer(void)
  again:
 		more = preadfd();
 		if (more <= 0) {
-			/* don't try reading again */
-			g_parsefile->left_in_line = -99;
+			g_parsefile->left_in_buffer = g_parsefile->left_in_line = 0;
 			pgetc_debug("preadbuffer PEOF2");
-			g_parsefile->next_to_pgetc++;
 			return PEOF;
 		}
 	}
