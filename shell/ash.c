@@ -5451,7 +5451,7 @@ stoppedjobs(void)
 	int retval;
 
 	retval = 0;
-	if (job_warning)
+	if (!iflag || job_warning)
 		goto out;
 	jp = curjob;
 	if (jp && jp->state == JOBSTOPPED) {
