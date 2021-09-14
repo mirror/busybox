@@ -11,13 +11,45 @@
 void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 {
 	char end = '\0';
+#if ENABLE_DESKTOP
+/*
+ * strptime is BIG: ~1k in uclibc, ~10k in glibc
+ * We need it for 'month_name d HH:MM:SS YYYY', supported by GNU date,
+ * but if we've linked it we might as well use it for everything.
+ */
+	static const char fmt_str[] ALIGN1 =
+		"%R" "\0"               /* HH:MM */
+		"%T" "\0"               /* HH:MM:SS */
+		"%m.%d-%R" "\0"         /* mm.dd-HH:MM */
+		"%m.%d-%T" "\0"         /* mm.dd-HH:MM:SS */
+		"%Y.%m.%d-%R" "\0"      /* yyyy.mm.dd-HH:MM */
+		"%Y.%m.%d-%T" "\0"      /* yyyy.mm.dd-HH:MM:SS */
+		"%b %d %T %Y" "\0"      /* month_name d HH:MM:SS YYYY */
+		"%Y-%m-%d %R" "\0"      /* yyyy-mm-dd HH:MM */
+		"%Y-%m-%d %T" "\0"      /* yyyy-mm-dd HH:MM:SS */
+		"%Y-%m-%d %H" "\0"      /* yyyy-mm-dd HH */
+		"%Y-%m-%d" "\0"         /* yyyy-mm-dd */
+		/* extra NUL */;
+	struct tm save;
+	const char *fmt;
+	char *endp;
+
+	save = *ptm;
+	fmt = fmt_str;
+	while (*fmt) {
+		endp = strptime(date_str, fmt, ptm);
+		if (endp && *endp == '\0')
+			return;
+		*ptm = save;
+		while (*++fmt)
+			continue;
+		++fmt;
+	}
+#else
 	const char *last_colon = strrchr(date_str, ':');
 
 	if (last_colon != NULL) {
 		/* Parse input and assign appropriately to ptm */
-#if ENABLE_DESKTOP
-		const char *endp;
-#endif
 
 		/* HH:MM */
 		if (sscanf(date_str, "%u:%u%c",
@@ -50,14 +82,6 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 			ptm->tm_year -= 1900; /* Adjust years */
 			ptm->tm_mon -= 1; /* Adjust month from 1-12 to 0-11 */
 		} else
-#if ENABLE_DESKTOP  /* strptime is BIG: ~1k in uclibc, ~10k in glibc */
-		/* month_name d HH:MM:SS YYYY. Supported by GNU date */
-		if ((endp = strptime(date_str, "%b %d %T %Y", ptm)) != NULL
-		 && *endp == '\0'
-		) {
-			return; /* don't fall through to end == ":" check */
-		} else
-#endif
 		{
 			bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 		}
@@ -89,6 +113,7 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 		ptm->tm_year -= 1900; /* Adjust years */
 		ptm->tm_mon -= 1; /* Adjust month from 1-12 to 0-11 */
 	} else
+#endif /* ENABLE_DESKTOP */
 	if (date_str[0] == '@') {
 		time_t t;
 		if (sizeof(t) <= sizeof(long))
