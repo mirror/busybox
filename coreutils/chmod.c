@@ -88,7 +88,8 @@ static int FAST_FUNC fileAction(struct recursive_state *state,
 
 	if (chmod(fileName, newmode) == 0) {
 		if (OPT_VERBOSE
-		 || (OPT_CHANGED && statbuf->st_mode != newmode)
+		 || (OPT_CHANGED
+		     && (statbuf->st_mode & 07777) != (newmode & 07777))
 		) {
 			printf("mode of '%s' changed to %04o (%s)\n", fileName,
 				newmode & 07777, bb_mode_string(newmode)+1);
