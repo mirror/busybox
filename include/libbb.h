@@ -1607,7 +1607,7 @@ char *bb_ask_noecho_stdin(const char *prompt) FAST_FUNC;
 int bb_ask_y_confirmation_FILE(FILE *fp) FAST_FUNC;
 int bb_ask_y_confirmation(void) FAST_FUNC;
 
-/* Returns -1 if input is invalid. current_mode is a base for e.g. "u+rw" */
+/* Returns -1 if input is invalid. cur_mode is a base for e.g. "u+rw" */
 int bb_parse_mode(const char* s, unsigned cur_mode) FAST_FUNC;
 
 /*

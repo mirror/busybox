@@ -16,13 +16,14 @@
 
 int FAST_FUNC bb_parse_mode(const char *s, unsigned current_mode)
 {
-	static const mode_t who_mask[] = {
+/* should be mode_t really, but in all Unixes these constants fit into uint16 */
+	static const uint16_t who_mask[] ALIGN2 = {
 		S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO, /* a */
 		S_ISUID | S_IRWXU,           /* u */
 		S_ISGID | S_IRWXG,           /* g */
 		S_IRWXO                      /* o */
 	};
-	static const mode_t perm_mask[] = {
+	static const uint16_t perm_mask[] ALIGN2 = {
 		S_IRUSR | S_IRGRP | S_IROTH, /* r */
 		S_IWUSR | S_IWGRP | S_IWOTH, /* w */
 		S_IXUSR | S_IXGRP | S_IXOTH, /* x */
