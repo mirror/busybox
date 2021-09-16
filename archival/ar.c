@@ -196,9 +196,10 @@ static int write_ar_archive(archive_handle_t *handle)
 
 static void FAST_FUNC header_verbose_list_ar(const file_header_t *file_header)
 {
-	const char *mode = bb_mode_string(file_header->mode);
+	char mode[12];
 	char *mtime;
 
+	bb_mode_string(mode, file_header->mode);
 	mtime = ctime(&file_header->mtime);
 	mtime[16] = ' ';
 	memmove(&mtime[17], &mtime[20], 4);

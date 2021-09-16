@@ -442,7 +442,7 @@ void *xmmap_anon(size_t size) FAST_FUNC;
 
 
 //TODO: supply a pointer to char[11] buffer (avoid statics)?
-extern const char *bb_mode_string(mode_t mode) FAST_FUNC;
+extern char *bb_mode_string(char buf[12], mode_t mode) FAST_FUNC;
 extern int is_directory(const char *name, int followLinks) FAST_FUNC;
 enum {	/* cp.c, mv.c, install.c depend on these values. CAREFUL when changing them! */
 	FILEUTILS_PRESERVE_STATUS = 1 << 0, /* -p */

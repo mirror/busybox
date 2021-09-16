@@ -43,9 +43,8 @@ static const char type_chars[16] ALIGN1 = "?pc?d?b?-?l?s???";
 /***************************************** 0123456789abcdef */
 static const char mode_chars[7] ALIGN1 = "rwxSTst";
 
-const char* FAST_FUNC bb_mode_string(mode_t mode)
+char* FAST_FUNC bb_mode_string(char buf[12], mode_t mode)
 {
-	static char buf[12];
 	char *p = buf;
 
 	int i, j, k;
@@ -83,9 +82,8 @@ static const char type_chars[16] ALIGN1 = "?pc?d?b?-?l?s???";
 /********************************** 0123456789abcdef */
 static const char mode_chars[7] ALIGN1 = "rwxSTst";
 
-const char* FAST_FUNC bb_mode_string(mode_t mode)
+char* FAST_FUNC bb_mode_string(char buf[12], mode_t mode)
 {
-	static char buf[12];
 	char *p = buf;
 
 	int i, j, k, m;

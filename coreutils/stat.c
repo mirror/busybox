@@ -339,7 +339,8 @@ static void FAST_FUNC print_stat(char *pformat, const char m,
 		strcat(pformat, "lo");
 		printf(pformat, (unsigned long) (statbuf->st_mode & (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)));
 	} else if (m == 'A') {
-		printfs(pformat, bb_mode_string(statbuf->st_mode));
+		char modestr[12];
+		printfs(pformat, bb_mode_string(modestr, statbuf->st_mode));
 	} else if (m == 'f') {
 		strcat(pformat, "lx");
 		printf(pformat, (unsigned long) statbuf->st_mode);
@@ -702,6 +703,7 @@ static bool do_stat(const char *filename, const char *format)
 			bb_putchar('\n');
 # endif
 	} else {
+		char modestr[12];
 		char *linkname = NULL;
 		struct passwd *pw_ent;
 		struct group *gw_ent;
@@ -736,7 +738,7 @@ static bool do_stat(const char *filename, const char *format)
 			bb_putchar('\n');
 		printf("Access: (%04lo/%10.10s)  Uid: (%5lu/%8s)   Gid: (%5lu/%8s)\n",
 		       (unsigned long) (statbuf.st_mode & (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)),
-		       bb_mode_string(statbuf.st_mode),
+		       bb_mode_string(modestr, statbuf.st_mode),
 		       (unsigned long) statbuf.st_uid,
 		       (pw_ent != NULL) ? pw_ent->pw_name : "UNKNOWN",
 		       (unsigned long) statbuf.st_gid,
