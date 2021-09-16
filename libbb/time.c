@@ -8,7 +8,9 @@
  */
 #include "libbb.h"
 
-void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
+/* Returns 0 if the time structure contains an absolute UTC time which
+ * should not be subject to DST adjustment by the caller. */
+int FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 {
 	char end = '\0';
 #if ENABLE_DESKTOP
@@ -27,6 +29,10 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 		"%b %d %T %Y" "\0"      /* month_name d HH:MM:SS YYYY */
 		"%Y-%m-%d %R" "\0"      /* yyyy-mm-dd HH:MM */
 		"%Y-%m-%d %T" "\0"      /* yyyy-mm-dd HH:MM:SS */
+#if ENABLE_FEATURE_TIMEZONE
+		"%Y-%m-%d %R %z" "\0"   /* yyyy-mm-dd HH:MM TZ */
+		"%Y-%m-%d %T %z" "\0"   /* yyyy-mm-dd HH:MM:SS TZ */
+#endif
 		"%Y-%m-%d %H" "\0"      /* yyyy-mm-dd HH */
 		"%Y-%m-%d" "\0"         /* yyyy-mm-dd */
 		/* extra NUL */;
@@ -38,8 +44,28 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 	fmt = fmt_str;
 	while (*fmt) {
 		endp = strptime(date_str, fmt, ptm);
-		if (endp && *endp == '\0')
-			return;
+		if (endp && *endp == '\0') {
+#if ENABLE_FEATURE_TIMEZONE
+			if (strchr(fmt, 'z')) {
+				time_t t;
+				struct tm *utm;
+
+				/* we have timezone offset: obtain Unix time_t */
+				ptm->tm_sec -= ptm->tm_gmtoff;
+				ptm->tm_isdst = 0;
+				t = timegm(ptm);
+				if (t == (time_t)-1)
+					break;
+				/* convert Unix time_t to struct tm in user's locale */
+				utm = localtime(&t);
+				if (!utm)
+					break;
+				*ptm = *utm;
+				return 0;
+			}
+#endif
+			return 1;
+		}
 		*ptm = save;
 		while (*++fmt)
 			continue;
@@ -124,7 +150,7 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 			struct tm *lt = localtime(&t);
 			if (lt) {
 				*ptm = *lt;
-				return;
+				return 0;
 			}
 		}
 		end = '1';
@@ -241,6 +267,7 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 	if (end != '\0') {
 		bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 	}
+	return 1;
 }
 
 time_t FAST_FUNC validate_tm_time(const char *date_str, struct tm *ptm)

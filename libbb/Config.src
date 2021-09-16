@@ -395,3 +395,14 @@ config FEATURE_HWIB
 	default y
 	help
 	Support for printing infiniband addresses in network applets.
+
+config FEATURE_TIMEZONE
+	bool "Allow timezone in dates"
+	default y
+	depends on DESKTOP
+	help
+	Permit the use of timezones when parsing user-provided data
+	strings, e.g. '1996-04-09 12:45:00 -0500'.
+
+	This requires support for the '%z' extension to strptime() which
+	may not be available in all implementations.

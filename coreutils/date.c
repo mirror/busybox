@@ -266,6 +266,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 
 	/* If date string is given, update tm_time, and maybe set date */
 	if (date_str != NULL) {
+		int check_dst = 1;
 		/* Zero out fields - take her back to midnight! */
 		tm_time.tm_sec = 0;
 		tm_time.tm_min = 0;
@@ -276,12 +277,12 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 			if (strptime(date_str, fmt_str2dt, &tm_time) == NULL)
 				bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 		} else {
-			parse_datestr(date_str, &tm_time);
+			check_dst = parse_datestr(date_str, &tm_time);
 		}
 
 		/* Correct any day of week and day of year etc. fields */
-		/* Be sure to recheck dst (but not if date is time_t format) */
-		if (date_str[0] != '@')
+		/* Be sure to recheck dst (but not if date is UTC) */
+		if (check_dst)
 			tm_time.tm_isdst = -1;
 		ts.tv_sec = validate_tm_time(date_str, &tm_time);
 		ts.tv_nsec = 0;

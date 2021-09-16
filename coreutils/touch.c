@@ -140,15 +140,17 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	if (opts & (OPT_d|OPT_t)) {
 		struct tm tm_time;
 		time_t t;
+		int check_dst;
 
 		//memset(&tm_time, 0, sizeof(tm_time));
 		/* Better than memset: makes "HH:MM" dates meaningful */
 		time(&t);
 		localtime_r(&t, &tm_time);
-		parse_datestr(date_str, &tm_time);
+		check_dst = parse_datestr(date_str, &tm_time);
 
 		/* Correct any day of week and day of year etc. fields */
-		tm_time.tm_isdst = -1;  /* Be sure to recheck dst */
+		if (check_dst)
+			tm_time.tm_isdst = -1;  /* recheck dst unless date is UTC */
 		t = validate_tm_time(date_str, &tm_time);
 
 		timebuf[1].tv_sec = timebuf[0].tv_sec = t;

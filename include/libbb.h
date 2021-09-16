@@ -690,7 +690,7 @@ struct BUG_too_small {
 };
 
 
-void parse_datestr(const char *date_str, struct tm *ptm) FAST_FUNC;
+int parse_datestr(const char *date_str, struct tm *ptm) FAST_FUNC;
 time_t validate_tm_time(const char *date_str, struct tm *ptm) FAST_FUNC;
 char *strftime_HHMMSS(char *buf, unsigned len, time_t *tp) FAST_FUNC;
 char *strftime_YYYYMMDDHHMMSS(char *buf, unsigned len, time_t *tp) FAST_FUNC;
