@@ -1133,7 +1133,16 @@ static void showfiles(void)
 
 static const char *is_special_char(char c)
 {
-	return strchr(" `\"#$%^&*()=+{}[]:;'|\\<>", c);
+	// {: It's mandatory to escape { only if entire name is "{"
+	// (otherwise it's not special. Example: file named "{ "
+	// can be escaped simply as "{\ "; "{a" or "a{" need no escaping),
+	// or if shell supports brace expansion
+	// (ash doesn't, hush optionally does).
+	// (): unlike {, shell treats () specially even in contexts
+	// where they clearly are not valid (e.g. "echo )" is an error).
+	// #: needs escaping to not start a shell comment.
+	return strchr(" `'\"\\#$~?*[{()&;|<>", c);
+	// Used to also have %^=+}]: but not necessary to escape?
 }
 
 static char *quote_special_chars(char *found)
