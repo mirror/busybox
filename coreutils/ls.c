@@ -504,7 +504,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 	if (opt & OPT_l) {
 		/* long listing: show mode */
 		char modestr[12];
-		column += printf("%-10s ", (char *) bb_mode_string(modestr, dn->dn_mode));
+		column += printf("%-10s ", bb_mode_string(modestr, dn->dn_mode));
 		/* long listing: show number of links */
 		column += printf("%4lu ", (long) dn->dn_nlink);
 		/* long listing: show user/group */
