@@ -66,10 +66,7 @@ char* FAST_FUNC bb_mode_string(char buf[12], mode_t mode)
 		i += 4;
 	} while (i < 12);
 
-	/* Note: We don't bother with nul termination because bss initialization
-	 * should have taken care of that for us.  If the user scribbled in buf
-	 * memory, they deserve whatever happens.  But we'll at least assert. */
-	assert(buf[10] == 0);
+	buf[10] = '\0';
 
 	return buf;
 }
@@ -79,7 +76,7 @@ char* FAST_FUNC bb_mode_string(char buf[12], mode_t mode)
 /* The previous version used "0pcCd?bB-?l?s???".  However, the '0', 'C',
  * and 'B' types don't appear to be available on linux.  So I removed them. */
 static const char type_chars[16] ALIGN1 = "?pc?d?b?-?l?s???";
-/********************************** 0123456789abcdef */
+/***************************************** 0123456789abcdef */
 static const char mode_chars[7] ALIGN1 = "rwxSTst";
 
 char* FAST_FUNC bb_mode_string(char buf[12], mode_t mode)
@@ -107,10 +104,7 @@ char* FAST_FUNC bb_mode_string(char buf[12], mode_t mode)
 		}
 	} while (i < 3);
 
-	/* Note: We don't bother with nul termination because bss initialization
-	 * should have taken care of that for us.  If the user scribbled in buf
-	 * memory, they deserve whatever happens.  But we'll at least assert. */
-	assert(buf[10] == 0);
+	buf[10] = '\0';
 
 	return buf;
 }
