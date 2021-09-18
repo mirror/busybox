@@ -13,6 +13,7 @@
 int FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 {
 	char end = '\0';
+	time_t t;
 #if ENABLE_DESKTOP
 /*
  * strptime is BIG: ~1k in uclibc, ~10k in glibc
@@ -29,10 +30,10 @@ int FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 		"%b %d %T %Y" "\0"      /* month_name d HH:MM:SS YYYY */
 		"%Y-%m-%d %R" "\0"      /* yyyy-mm-dd HH:MM */
 		"%Y-%m-%d %T" "\0"      /* yyyy-mm-dd HH:MM:SS */
-#if ENABLE_FEATURE_TIMEZONE
+# if ENABLE_FEATURE_TIMEZONE
 		"%Y-%m-%d %R %z" "\0"   /* yyyy-mm-dd HH:MM TZ */
 		"%Y-%m-%d %T %z" "\0"   /* yyyy-mm-dd HH:MM:SS TZ */
-#endif
+# endif
 		"%Y-%m-%d %H" "\0"      /* yyyy-mm-dd HH */
 		"%Y-%m-%d" "\0"         /* yyyy-mm-dd */
 		/* extra NUL */;
@@ -45,11 +46,8 @@ int FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 	while (*fmt) {
 		endp = strptime(date_str, fmt, ptm);
 		if (endp && *endp == '\0') {
-#if ENABLE_FEATURE_TIMEZONE
+# if ENABLE_FEATURE_TIMEZONE
 			if (strchr(fmt, 'z')) {
-				time_t t;
-				struct tm *utm;
-
 				/* we have timezone offset: obtain Unix time_t */
 				ptm->tm_sec -= ptm->tm_gmtoff;
 				ptm->tm_isdst = 0;
@@ -57,13 +55,9 @@ int FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 				if (t == (time_t)-1)
 					break;
 				/* convert Unix time_t to struct tm in user's locale */
-				utm = localtime(&t);
-				if (!utm)
-					break;
-				*ptm = *utm;
-				return 0;
+				goto localise;
 			}
-#endif
+# endif
 			return 1;
 		}
 		*ptm = save;
@@ -141,13 +135,14 @@ int FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 	} else
 #endif /* ENABLE_DESKTOP */
 	if (date_str[0] == '@') {
-		time_t t;
 		if (sizeof(t) <= sizeof(long))
 			t = bb_strtol(date_str + 1, NULL, 10);
 		else /* time_t is 64 bits but longs are smaller */
 			t = bb_strtoll(date_str + 1, NULL, 10);
 		if (!errno) {
-			struct tm *lt = localtime(&t);
+			struct tm *lt;
+ IF_FEATURE_TIMEZONE(localise:)
+			lt = localtime(&t);
 			if (lt) {
 				*ptm = *lt;
 				return 0;
