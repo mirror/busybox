@@ -27,10 +27,11 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/cal.html */
 
 //usage:#define cal_trivial_usage
-//usage:       "[-jy] [[MONTH] YEAR]"
+//usage:       "[-jmy] [[MONTH] YEAR]"
 //usage:#define cal_full_usage "\n\n"
 //usage:       "Display a calendar\n"
 //usage:     "\n	-j	Use julian dates"
+//usage:     "\n	-m	Week starts on Monday"
 //usage:     "\n	-y	Display the entire year"
 
 #include "libbb.h"
@@ -38,6 +39,8 @@
 
 /* We often use "unsigned" instead of "int", it's easier to div on most CPUs */
 
+#define	SUNDAY			0
+#define	MONDAY			1
 #define	THURSDAY		4		/* for reformation */
 #define	SATURDAY		6		/* 1 Jan 1 was a Saturday */
 
@@ -81,7 +84,7 @@ static int leap_year(unsigned yr)
 	((yr) / 4 - centuries_since_1700(yr) + quad_centuries_since_1700(yr))
 
 static void center(char *, unsigned, unsigned);
-static void day_array(unsigned, unsigned, unsigned *);
+static void day_array(unsigned, unsigned, unsigned, unsigned *);
 static void trim_trailing_spaces_and_print(char *);
 
 static void blank_string(char *buf, size_t buflen);
@@ -93,12 +96,18 @@ static char *build_row(char *p, unsigned *dp);
 #define	J_WEEK_LEN	(WEEK_LEN + 7)
 #define	HEAD_SEP	2		/* spaces between day headings */
 
+enum {
+	OPT_JULIAN = (1 << 0),
+	OPT_MONDAY = (1 << 1),
+	OPT_YEAR   = (1 << 2),
+};
+
 int cal_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cal_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct tm zero_tm;
 	time_t now;
-	unsigned month, year, flags, i;
+	unsigned month, year, flags, i, weekstart;
 	char *month_names[12];
 	/* normal heading: */
 	/* "Su Mo Tu We Th Fr Sa" */
@@ -110,10 +119,11 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 
 	init_unicode();
 
-	flags = getopt32(argv, "jy");
-	/* This sets julian = flags & 1: */
-	option_mask32 &= 1;
+	flags = getopt32(argv, "jmy");
+	/* This sets julian = flags & OPT_JULIAN: */
+	option_mask32 &= OPT_JULIAN;
 	month = 0;
+	weekstart = (flags & OPT_MONDAY) ? MONDAY : SUNDAY;
 	argv += optind;
 
 	if (!argv[0]) {
@@ -122,7 +132,7 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 		time(&now);
 		ptm = localtime(&now);
 		year = ptm->tm_year + 1900;
-		if (!(flags & 2)) { /* no -y */
+		if (!(flags & OPT_YEAR)) { /* no -y */
 			month = ptm->tm_mon + 1;
 		}
 	} else {
@@ -130,7 +140,7 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 			if (argv[2]) {
 				bb_show_usage();
 			}
-			if (!(flags & 2)) { /* no -y */
+			if (!(flags & OPT_YEAR)) { /* no -y */
 				month = xatou_range(*argv, 1, 12);
 			}
 			argv++;
@@ -148,7 +158,7 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 		month_names[i] = xstrdup(buf);
 
 		if (i < 7) {
-			zero_tm.tm_wday = i;
+			zero_tm.tm_wday = (i + weekstart) % 7;
 			/* abbreviated weekday name according to locale */
 			strftime(buf, sizeof(buf), "%a", &zero_tm);
 #if ENABLE_UNICODE_SUPPORT
@@ -173,7 +183,7 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 		unsigned *dp = days;
 		char lineout[30];
 
-		day_array(month, year, dp);
+		day_array(month, year, weekstart, dp);
 		len = sprintf(lineout, "%s %u", month_names[month - 1], year);
 		printf("%*s%s\n%s\n",
 				((7*julian + WEEK_LEN) - len) / 2, "",
@@ -197,7 +207,7 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 		);
 		puts("\n");		/* two \n's */
 		for (i = 0; i < 12; i++) {
-			day_array(i + 1, year, days[i]);
+			day_array(i + 1, year, weekstart, days[i]);
 		}
 		blank_string(lineout, sizeof(lineout));
 		week_len = WEEK_LEN + julian * (J_WEEK_LEN - WEEK_LEN);
@@ -233,7 +243,8 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
  *	out end to end.  You would have 42 numbers or spaces.  This routine
  *	builds that array for any month from Jan. 1 through Dec. 9999.
  */
-static void day_array(unsigned month, unsigned year, unsigned *days)
+static void day_array(unsigned month, unsigned year, unsigned weekstart,
+						unsigned *days)
 {
 	unsigned long temp;
 	unsigned i;
@@ -249,7 +260,7 @@ static void day_array(unsigned month, unsigned year, unsigned *days)
 		size_t oday = 0;
 
 		do {
-			days[oday+2] = sep1752[oday] + j_offset;
+			days[oday+2-weekstart] = sep1752[oday] + j_offset;
 		} while (++oday < sizeof(sep1752));
 
 		return;
@@ -280,6 +291,7 @@ static void day_array(unsigned month, unsigned year, unsigned *days)
 	} else {
 		dw = (((temp - 1 + SATURDAY) - NUMBER_MISSING_DAYS) % 7);
 	}
+	dw = (dw - weekstart + 7) % 7;
 
 	if (!julian) {
 		day = 1;
