@@ -1762,7 +1762,7 @@ vi_back_motion(void)
 			input_backward(1);
 	}
 }
-#endif
+#endif /* ENABLE_FEATURE_EDITING_VI */
 
 /* Modelled after bash 4.0 behavior of Ctrl-<arrow> */
 static void ctrl_left(void)
@@ -1863,7 +1863,7 @@ static void ask_terminal(void)
 	}
 }
 #else
-#define ask_terminal() ((void)0)
+# define ask_terminal() ((void)0)
 #endif
 
 /* Note about multi-line PS1 (e.g. "\n\w \u@\h\n> ") and prompt redrawing:
@@ -2057,7 +2057,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 			if (c == '\n')
 				cmdedit_prmt_len = 0;
 			else if (flg_not_length != ']') {
-#if ENABLE_UNICODE_SUPPORT
+# if ENABLE_UNICODE_SUPPORT
 				if (n == 1) {
 					/* Only count single-byte characters and the first of multi-byte characters */
 					if ((unsigned char)*pbuf < 0x80  /* single byte character */
@@ -2068,9 +2068,9 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				} else {
 					cmdedit_prmt_len += unicode_strwidth(pbuf);
 				}
-#else
+# else
 				cmdedit_prmt_len += n;
-#endif
+# endif
 			}
 		}
 		prmt_mem_ptr = strcat(xrealloc(prmt_mem_ptr, prmt_size+1), pbuf);
@@ -2297,7 +2297,7 @@ static int32_t reverse_i_search(int timeout)
 			}
 
 			/* Append this char */
-#if ENABLE_UNICODE_SUPPORT
+# if ENABLE_UNICODE_SUPPORT
 			if (unicode_status == UNICODE_ON) {
 				mbstate_t mbstate = { 0 };
 				char buf[MB_CUR_MAX + 1];
@@ -2308,7 +2308,7 @@ static int32_t reverse_i_search(int timeout)
 						strcpy(match_buf + match_buf_len, buf);
 				}
 			} else
-#endif
+# endif
 			if (match_buf_len < sizeof(match_buf) - 1) {
 				match_buf[match_buf_len] = ic;
 				match_buf[match_buf_len + 1] = '\0';
@@ -2360,7 +2360,7 @@ static int32_t reverse_i_search(int timeout)
 
 	return ic;
 }
-#endif
+#endif /* ENABLE_FEATURE_REVERSE_SEARCH */
 
 #if ENABLE_FEATURE_EDITING_WINCH
 static void sigaction2(int sig, struct sigaction *act)
