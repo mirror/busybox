@@ -255,8 +255,8 @@ echo 3 $x
 echo 4 $(( ++x ))
 echo 4 $x
 
-# bash 3.2 apparently thinks that ++7 is 7
-#ash# echo 7 $(( ++7 ))
+# ++ is not a inc operator on non-variable, it is the + + sequence
+echo 7 $(( ++7 ))
 (  echo $(( 7-- ))    )
 
 (  echo $(( --x=7 ))  )
@@ -270,9 +270,9 @@ echo 4 $x
 echo 7 $(( +7 ))
 echo -7 $(( -7 ))
 
-# bash 3.2 apparently thinks that ++7 is 7
-#ash# echo $(( ++7 ))
-#ash# echo $(( --7 ))
+# ++ is not a inc operator on non-variable, it is the + + sequence
+echo $(( ++7 ))
+echo $(( --7 ))
 
 ${THIS_SH} ./arith1.sub
 ${THIS_SH} ./arith2.sub

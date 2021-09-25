@@ -668,19 +668,26 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 
 		/* Should be an operator */
 
-		/* Special case: NUM-- and NUM++ are not recognized if NUM
-		 * is a literal number, not a variable. IOW:
+		/* Special case: XYZ--, XYZ++, --XYZ, ++XYZ are recognized
+		 * only if XYZ is a variable name, not a number or EXPR. IOW:
 		 * "a+++v" is a++ + v.
 		 * "7+++v" is 7 + ++v, not 7++ + v.
+		 * "--7" is - - 7, not --7.
+		 * "++++a" is + + ++a, not ++ ++ a.
+		 * (we still mishandle "(a)+++7", should be treated as (a) + + + 7, but we do increment a)
 		 */
-		if (lasttok == TOK_NUM && !numstackptr[-1].var /* number literal */
-		 && (expr[0] == '+' || expr[0] == '-')
+		if ((expr[0] == '+' || expr[0] == '-')
 		 && (expr[1] == expr[0])
 		) {
-			//bb_error_msg("special %c%c", expr[0], expr[0]);
-			op = (expr[0] == '+' ? TOK_ADD : TOK_SUB);
-			expr += 1;
-			goto tok_found1;
+			if (numstackptr == numstack || !numstackptr[-1].var) { /* not a VAR++ */
+				char next = skip_whitespace(expr + 2)[0];
+				if (!(isalpha(next) || next == '_')) { /* not a ++VAR */
+					//bb_error_msg("special %c%c", expr[0], expr[0]);
+					op = (expr[0] == '+' ? TOK_ADD : TOK_SUB);
+					expr++;
+					goto tok_found1;
+				}
+			}
 		}
 
 		p = op_tokens;

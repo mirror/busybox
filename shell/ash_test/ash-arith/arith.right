@@ -97,6 +97,7 @@ ghi
 3 3
 4 4
 4 4
+7 7
 ./arith.tests: line 257: arithmetic syntax error
 ./arith.tests: line 259: arithmetic syntax error
 ./arith.tests: line 260: arithmetic syntax error
@@ -105,6 +106,8 @@ ghi
 4 4
 7 7
 -7 -7
+7
+7
 ./arith1.sub: line 2: arithmetic syntax error
 ./arith1.sub: line 3: arithmetic syntax error
 ./arith1.sub: line 4: arithmetic syntax error
@@ -119,11 +122,12 @@ ghi
 2 2
 -2 -2
 1 1
-./arith1.sub: line 37: arithmetic syntax error
-./arith2.sub: line 2: arithmetic syntax error
-./arith2.sub: line 3: arithmetic syntax error
-./arith2.sub: line 4: arithmetic syntax error
-./arith2.sub: line 5: arithmetic syntax error
+7
+7
+7
+7
+7
+7
 5 5
 1 1
 6 6
@@ -132,8 +136,10 @@ ghi
 1 1
 4 4
 0 0
-./arith2.sub: line 42: arithmetic syntax error
-./arith2.sub: line 47: arithmetic syntax error
+-7
+-7
+7
+7
 8 12
 ./arith.tests: line 290: arithmetic syntax error
 42
