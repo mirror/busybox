@@ -43,40 +43,60 @@ Format: 'expected actual'
 4 4
 29 29
 5 5
+unary plus, minus
 -4 -4
 4 4
+conditional expressions
 1 1
 32 32
 32 32
 1 1
 1 1
 32 32
+check that the unevaluated part of the ternary operator does not do evaluation or assignment
 20 20
 30 30
 20 20
 30 30
-./arith.tests: line 117: arithmetic syntax error
+check precedence of assignment vs. conditional operator
+./arith.tests: line 116: arithmetic syntax error
+check precedence of assignment vs. conditional operator
+associativity of assignment-operator operator
 6 6
 6,5,3 6,5,3
+octal, hex
 263 263
 255 255
 40 40
-./arith.tests: line 163: arithmetic syntax error
-./arith.tests: line 165: divide by zero
-./arith.tests: let: line 166: arithmetic syntax error
-./arith.tests: line 167: arithmetic syntax error
-./arith.tests: let: line 168: arithmetic syntax error
+other bases
+10 10
+10 10
+10 10
+10 10
+10 10
+10 10
+36 36
+36 36
+62 62
+63 63
+missing number after base
+0 0
+./arith.tests: line 162: arithmetic syntax error
+./arith.tests: line 164: divide by zero
+./arith.tests: let: line 165: arithmetic syntax error
+./arith.tests: line 166: arithmetic syntax error
+./arith.tests: let: line 167: arithmetic syntax error
 abc
 def
 ghi
-./arith.tests: line 191: arithmetic syntax error
+./arith.tests: line 190: arithmetic syntax error
 16 16
-./arith.tests: line 196: arithmetic syntax error
-./arith.tests: line 197: malformed ?: operator
-./arith.tests: line 198: arithmetic syntax error
+./arith.tests: line 195: arithmetic syntax error
+./arith.tests: line 196: malformed ?: operator
+./arith.tests: line 197: arithmetic syntax error
 9 9
-./arith.tests: line 205: arithmetic syntax error
-./arith.tests: line 208: arithmetic syntax error
+./arith.tests: line 204: arithmetic syntax error
+./arith.tests: line 207: arithmetic syntax error
 9 9
 9 9
 9 9
@@ -98,11 +118,11 @@ ghi
 4 4
 4 4
 7 7
-./arith.tests: line 257: arithmetic syntax error
+./arith.tests: line 256: arithmetic syntax error
+./arith.tests: line 258: arithmetic syntax error
 ./arith.tests: line 259: arithmetic syntax error
-./arith.tests: line 260: arithmetic syntax error
+./arith.tests: line 261: arithmetic syntax error
 ./arith.tests: line 262: arithmetic syntax error
-./arith.tests: line 263: arithmetic syntax error
 4 4
 7 7
 -7 -7
@@ -140,9 +160,13 @@ ghi
 -7
 7
 7
+-7 -7
+-7 -7
+7 7
+7 7
 8 12
-./arith.tests: line 290: arithmetic syntax error
+./arith.tests: line 289: arithmetic syntax error
 42
 42
 42
-./arith.tests: line 302: a[b[c]d]=e: not found
+./arith.tests: line 301: a[b[c]d]=e: not found

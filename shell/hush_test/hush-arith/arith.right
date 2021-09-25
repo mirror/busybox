@@ -70,6 +70,19 @@ octal, hex
 263 263
 255 255
 40 40
+other bases
+10 10
+10 10
+10 10
+10 10
+10 10
+10 10
+36 36
+36 36
+62 62
+63 63
+missing number after base
+0 0
 hush: arithmetic syntax error
 hush: divide by zero
 hush: can't execute 'let': No such file or directory
@@ -149,6 +162,10 @@ hush: arithmetic syntax error
 -7
 7
 7
+-7 -7
+-7 -7
+7 7
+7 7
 8 12
 hush: arithmetic syntax error
 42
