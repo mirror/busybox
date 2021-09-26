@@ -116,10 +116,6 @@
 #include "libbb.h"
 #include "math.h"
 
-#define lookupvar (math_state->lookupvar)
-#define setvar    (math_state->setvar   )
-//#define endofname (math_state->endofname)
-
 typedef unsigned char operator;
 
 /* An operator's token id is a bit of a bitfield. The lower 5 bits are the
@@ -258,7 +254,7 @@ static const char*
 arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 {
 	if (t->var) {
-		const char *p = lookupvar(t->var);
+		const char *p = math_state->lookupvar(t->var);
 		if (p) {
 			remembered_name *cur;
 			remembered_name cur_save;
@@ -445,16 +441,15 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 
 		if (top_of_stack->var == NULL) {
 			/* Hmm, 1=2 ? */
-//TODO: actually, bash allows ++7 but for some reason it evals to 7, not 8
 			goto err;
 		}
 		/* Save to shell variable */
 		sprintf(buf, ARITH_FMT, rez);
-		setvar(top_of_stack->var, buf);
+		math_state->setvar(top_of_stack->var, buf);
 		/* After saving, make previous value for v++ or v-- */
 		if (op == TOK_POST_INC)
 			rez--;
-		else if (op == TOK_POST_DEC)
+		if (op == TOK_POST_DEC)
 			rez++;
 	}
 
@@ -607,11 +602,9 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		const char *p;
 		operator op;
 		operator prec;
-		char arithval;
 
 		expr = skip_whitespace(expr);
-		arithval = *expr;
-		if (arithval == '\0') {
+		if (*expr == '\0') {
 			if (expr == start_expr) {
 				/* Null expression */
 				numstack->val = 0;
@@ -628,6 +621,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				 * append a closing right paren
 				 * and let the loop process it */
 				expr = ptr_to_rparen;
+//bb_error_msg("expr=')'");
 				continue;
 			}
 			/* At this point, we're done with the expression */
@@ -635,19 +629,16 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				/* ...but if there isn't, it's bad */
 				goto err;
 			}
-			if (numstack->var) {
-				/* expression is $((var)) only, lookup now */
-				errmsg = arith_lookup_val(math_state, numstack);
-			}
 			goto ret;
 		}
 
 		p = endofname(expr);
 		if (p != expr) {
 			/* Name */
-			size_t var_name_size = (p-expr) + 1;  /* +1 for NUL */
+			size_t var_name_size = (p - expr) + 1;  /* +1 for NUL */
 			numstackptr->var = alloca(var_name_size);
 			safe_strncpy(numstackptr->var, expr, var_name_size);
+//bb_error_msg("var:'%s'", numstackptr->var);
 			expr = p;
  num:
 			numstackptr->second_val_present = 0;
@@ -656,11 +647,12 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			continue;
 		}
 
-		if (isdigit(arithval)) {
+		if (isdigit(*expr)) {
 			/* Number */
 			numstackptr->var = NULL;
 			errno = 0;
 			numstackptr->val = strto_arith_t(expr, (char**) &expr);
+//bb_error_msg("val:%lld", numstackptr->val);
 			if (errno)
 				numstackptr->val = 0; /* bash compat */
 			goto num;
@@ -671,10 +663,10 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		/* Special case: XYZ--, XYZ++, --XYZ, ++XYZ are recognized
 		 * only if XYZ is a variable name, not a number or EXPR. IOW:
 		 * "a+++v" is a++ + v.
+		 * "(a)+++7" is ( a ) + + + 7.
 		 * "7+++v" is 7 + ++v, not 7++ + v.
 		 * "--7" is - - 7, not --7.
-		 * "++++a" is + + ++a, not ++ ++ a.
-		 * (we still mishandle "(a)+++7", should be treated as (a) + + + 7, but we do increment a)
+		 * "++++a" is + + ++a, not ++ ++a.
 		 */
 		if ((expr[0] == '+' || expr[0] == '-')
 		 && (expr[1] == expr[0])
@@ -756,26 +748,40 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		 * "applied" in this way.
 		 */
 		prec = PREC(op);
+//bb_error_msg("prec:%02x", prec);
 		if ((prec > 0 && prec < UNARYPREC) || prec == SPEC_PREC) {
 			/* not left paren or unary */
 			if (lasttok != TOK_NUM) {
 				/* binary op must be preceded by a num */
 				goto err;
 			}
+			/* The algorithm employed here is simple: while we don't
+			 * hit an open paren nor the bottom of the stack, pop
+			 * tokens and apply them */
 			while (stackptr != stack) {
 				operator prev_op = *--stackptr;
 				if (op == TOK_RPAREN) {
-					/* The algorithm employed here is simple: while we don't
-					 * hit an open paren nor the bottom of the stack, pop
-					 * tokens and apply them */
+//bb_error_msg("op == TOK_RPAREN");
 					if (prev_op == TOK_LPAREN) {
+//bb_error_msg("prev_op == TOK_LPAREN");
+//bb_error_msg("  %p %p numstackptr[-1].var:'%s'", numstack, numstackptr-1, numstackptr[-1].var);
+						if (numstackptr[-1].var) {
+							/* Expression is (var), lookup now */
+							errmsg = arith_lookup_val(math_state, &numstackptr[-1]);
+							if (errmsg)
+								goto err_with_custom_msg;
+							/* Erase var name: (var) is just a number, for example, (var) = 1 is not valid */
+							numstackptr[-1].var = NULL;
+						}
 						/* Any operator directly after a
 						 * close paren should consider itself binary */
 						lasttok = TOK_NUM;
 						goto next;
 					}
+//bb_error_msg("prev_op != TOK_LPAREN");
 				} else {
 					operator prev_prec = PREC(prev_op);
+//bb_error_msg("op != TOK_RPAREN");
 					fix_assignment_prec(prec);
 					fix_assignment_prec(prev_prec);
 					if (prev_prec < prec
@@ -785,6 +791,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 						break;
 					}
 				}
+//bb_error_msg("arith_apply(prev_op:%02x)", prev_op);
 				errmsg = arith_apply(math_state, prev_op, numstack, &numstackptr);
 				if (errmsg)
 					goto err_with_custom_msg;
@@ -794,6 +801,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		}
 
 		/* Push this operator to the stack and remember it */
+//bb_error_msg("push op:%02x", op);
 		*stackptr++ = lasttok = op;
  next: ;
 	} /* while (1) */
