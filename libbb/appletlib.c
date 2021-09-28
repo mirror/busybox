@@ -726,9 +726,9 @@ int scripted_main(int argc UNUSED_PARAM, char **argv)
 	int script = find_script_by_name(applet_name);
 	if (script >= 0)
 #  if ENABLE_SHELL_ASH
-		exit(ash_main(-script - 1, argv));
+		return ash_main(-script - 1, argv);
 #  elif ENABLE_SHELL_HUSH
-		exit(hush_main(-script - 1, argv));
+		return hush_main(-script - 1, argv);
 #  else
 		return 1;
 #  endif
@@ -1005,10 +1005,10 @@ int scripted_main(int argc UNUSED_PARAM, char **argv)
 {
 #  if ENABLE_SHELL_ASH
 	int script = 0;
-	exit(ash_main(-script - 1, argv));
+	return ash_main(-script - 1, argv);
 #  elif ENABLE_SHELL_HUSH
 	int script = 0;
-	exit(hush_main(-script - 1, argv));
+	return hush_main(-script - 1, argv);
 #  else
 	return 1;
 #  endif
@@ -1094,7 +1094,7 @@ int main(int argc UNUSED_PARAM, char **argv)
 
 	full_write2_str(bb_basename(argv[0]));
 	full_write2_str(": no applets enabled\n");
-	exit(127);
+	return 127;
 
 #else
 
