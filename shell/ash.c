@@ -10941,14 +10941,14 @@ static void freestrings(struct strpush *sp)
 	INT_OFF;
 	do {
 		struct strpush *psp;
-
+#if ENABLE_ASH_ALIAS
 		if (sp->ap) {
 			sp->ap->flag &= ~ALIASINUSE;
 			if (sp->ap->flag & ALIASDEAD) {
 				unalias(sp->ap->name);
 			}
 		}
-
+#endif
 		psp = sp;
 		sp = sp->spfree;
 
