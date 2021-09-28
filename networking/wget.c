@@ -135,7 +135,8 @@
 
 //usage:#define wget_trivial_usage
 //usage:	IF_FEATURE_WGET_LONG_OPTIONS(
-//usage:       "[-cqS] [--spider] [-O FILE] [-o LOGFILE] [--header 'HEADER: VALUE'] [-Y on/off]\n"
+//usage:       "[-cqS] [--spider] [-O FILE] [-o LOGFILE] [--header STR]\n"
+//usage:       "	[--post-data STR | --post-file FILE] [-Y on/off]\n"
 /* Since we ignore these opts, we don't show them in --help */
 /* //usage:    "	[--no-cache] [--passive-ftp] [-t TRIES]" */
 /* //usage:    "	[-nv] [-nc] [-nH] [-np]" */
@@ -148,6 +149,9 @@
 //usage:       "Retrieve files via HTTP or FTP\n"
 //usage:	IF_FEATURE_WGET_LONG_OPTIONS(
 //usage:     "\n	--spider	Only check URL existence: $? is 0 if exists"
+//usage:     "\n	--header STR	Add STR (of form 'header: value') to headers"
+//usage:     "\n	--post-data STR	Send STR using POST method"
+//usage:     "\n	--post-file FILE	Send FILE using POST method"
 //usage:	IF_FEATURE_WGET_OPENSSL(
 //usage:     "\n	--no-check-certificate	Don't validate the server's certificate"
 //usage:	)
@@ -244,6 +248,7 @@ struct globals {
 	char *dir_prefix;
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 	char *post_data;
+	char *post_file;
 	char *extra_headers;
 	unsigned char user_headers; /* Headers mentioned by the user */
 #endif
@@ -292,9 +297,12 @@ enum {
 	WGET_OPT_POST_DATA  = (1 << 12) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
 	WGET_OPT_SPIDER     = (1 << 13) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
 	WGET_OPT_NO_CHECK_CERT = (1 << 14) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	WGET_OPT_POST_FILE  = (1 << 15) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
 	/* hijack this bit for other than opts purposes: */
 	WGET_NO_FTRUNCATE   = (1 << 31)
 };
+
+#define WGET_OPT_POST (WGET_OPT_POST_DATA | WGET_OPT_POST_FILE)
 
 enum {
 	PROGRESS_START = -1,
@@ -1213,7 +1221,7 @@ static void download_one_url(const char *url)
 				target.path);
 		} else {
 			SENDFMT(sfp, "%s /%s HTTP/1.1\r\n",
-				(option_mask32 & WGET_OPT_POST_DATA) ? "POST" : "GET",
+				(option_mask32 & WGET_OPT_POST) ? "POST" : "GET",
 				target.path);
 		}
 		if (!USR_HEADER_HOST)
@@ -1246,7 +1254,13 @@ static void download_one_url(const char *url)
 			fputs(G.extra_headers, sfp);
 		}
 
-		if (option_mask32 & WGET_OPT_POST_DATA) {
+		if (option_mask32 & WGET_OPT_POST_FILE) {
+			int fd = xopen_stdin(G.post_file);
+			G.post_data = xmalloc_read(fd, NULL);
+			close(fd);
+		}
+
+		if (G.post_data) {
 			SENDFMT(sfp,
 				"Content-Type: application/x-www-form-urlencoded\r\n"
 				"Content-Length: %u\r\n"
@@ -1489,6 +1503,7 @@ IF_DESKTOP(	"tries\0"            Required_argument "t")
 		"post-data\0"        Required_argument "\xfe"
 		"spider\0"           No_argument       "\xfd"
 		"no-check-certificate\0" No_argument   "\xfc"
+		"post-file\0"        Required_argument "\xfb"
 		/* Ignored (we always use PASV): */
 IF_DESKTOP(	"passive-ftp\0"      No_argument       "\xf0")
 		/* Ignored (we don't support caching) */
@@ -1532,6 +1547,9 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 		 */
 		"\0"
 		"-1" /* at least one URL */
+		IF_FEATURE_WGET_LONG_OPTIONS(":\xfe--\xfb")
+		IF_FEATURE_WGET_LONG_OPTIONS(":\xfe--\xfe")
+		IF_FEATURE_WGET_LONG_OPTIONS(":\xfb--\xfb")
 		IF_FEATURE_WGET_LONG_OPTIONS(":\xff::") /* --header is a list */
 		LONGOPTS
 		, &G.fname_out, &G.fname_log, &G.dir_prefix,
@@ -1541,6 +1559,7 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 		NULL  /* -n[ARG] */
 		IF_FEATURE_WGET_LONG_OPTIONS(, &headers_llist)
 		IF_FEATURE_WGET_LONG_OPTIONS(, &G.post_data)
+		IF_FEATURE_WGET_LONG_OPTIONS(, &G.post_file)
 	);
 #if 0 /* option bits debug */
 	if (option_mask32 & WGET_OPT_RETRIES) bb_error_msg("-t NUM");
@@ -1549,6 +1568,7 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 	if (option_mask32 & WGET_OPT_POST_DATA) bb_error_msg("--post-data");
 	if (option_mask32 & WGET_OPT_SPIDER) bb_error_msg("--spider");
 	if (option_mask32 & WGET_OPT_NO_CHECK_CERT) bb_error_msg("--no-check-certificate");
+	if (option_mask32 & WGET_OPT_POST_FILE) bb_error_msg("--post-file");
 	exit(0);
 #endif
 	argv += optind;
