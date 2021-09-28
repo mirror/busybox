@@ -1820,7 +1820,7 @@ int less_main(int argc, char **argv)
 	getopt32(argv, "EMmN~IF"
 		IF_FEATURE_LESS_TRUNCATE("S")
 		IF_FEATURE_LESS_RAW("R")
-		/*ignored:*/"s"
+		/*ignored:*/"sX"
 	);
 	argv += optind;
 	num_files = argc - optind;
