@@ -303,20 +303,6 @@ typedef long arith_t;
 # error "Do not even bother, ash will not run on NOMMU machine"
 #endif
 
-/* We use a trick to have more optimized code (fewer pointer reloads):
- *  ash.c:   extern struct globals *const ash_ptr_to_globals;
- *  ash_ptr_hack.c: struct globals *ash_ptr_to_globals;
- * This way, compiler in ash.c knows the pointer can not change.
- *
- * However, this may break on weird arches or toolchains. In this case,
- * set "-DBB_GLOBAL_CONST=''" in CONFIG_EXTRA_CFLAGS to disable
- * this optimization.
- */
-#ifndef BB_GLOBAL_CONST
-# define BB_GLOBAL_CONST const
-#endif
-
-
 /* ============ Hash table sizes. Configurable. */
 
 #define VTABSIZE 39
@@ -518,8 +504,7 @@ extern struct globals_misc *BB_GLOBAL_CONST ash_ptr_to_globals_misc;
 #define random_gen  (G_misc.random_gen )
 #define backgndpid  (G_misc.backgndpid )
 #define INIT_G_misc() do { \
-	(*(struct globals_misc**)not_const_pp(&ash_ptr_to_globals_misc)) = xzalloc(sizeof(G_misc)); \
-	barrier(); \
+	ASSIGN_CONST_PTR(ash_ptr_to_globals_misc, xzalloc(sizeof(G_misc))); \
 	savestatus = -1; \
 	curdir = nullstr; \
 	physdir = nullstr; \
@@ -1597,8 +1582,7 @@ extern struct globals_memstack *BB_GLOBAL_CONST ash_ptr_to_globals_memstack;
 #define g_stacknleft (G_memstack.g_stacknleft)
 #define stackbase    (G_memstack.stackbase   )
 #define INIT_G_memstack() do { \
-	(*(struct globals_memstack**)not_const_pp(&ash_ptr_to_globals_memstack)) = xzalloc(sizeof(G_memstack)); \
-	barrier(); \
+	ASSIGN_CONST_PTR(ash_ptr_to_globals_memstack, xzalloc(sizeof(G_memstack))); \
 	g_stackp = &stackbase; \
 	g_stacknxt = stackbase.space; \
 	g_stacknleft = MINSIZE; \
@@ -2229,8 +2213,7 @@ extern struct globals_var *BB_GLOBAL_CONST ash_ptr_to_globals_var;
 #endif
 #define INIT_G_var() do { \
 	unsigned i; \
-	(*(struct globals_var**)not_const_pp(&ash_ptr_to_globals_var)) = xzalloc(sizeof(G_var)); \
-	barrier(); \
+	ASSIGN_CONST_PTR(ash_ptr_to_globals_var, xzalloc(sizeof(G_var))); \
 	for (i = 0; i < ARRAY_SIZE(varinit_data); i++) { \
 		varinit[i].flags    = varinit_data[i].flags; \
 		varinit[i].var_text = varinit_data[i].var_text; \

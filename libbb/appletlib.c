@@ -247,8 +247,7 @@ void lbb_prepare(const char *applet
 		IF_FEATURE_INDIVIDUAL(, char **argv))
 {
 #ifdef bb_cached_errno_ptr
-	(*(int **)not_const_pp(&bb_errno)) = get_perrno();
-	barrier();
+	ASSIGN_CONST_PTR(bb_errno, get_perrno());
 #endif
 	applet_name = applet;
 

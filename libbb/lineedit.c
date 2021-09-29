@@ -192,7 +192,7 @@ struct lineedit_statics {
 };
 
 /* See lineedit_ptr_hack.c */
-extern struct lineedit_statics *const lineedit_ptr_to_statics;
+extern struct lineedit_statics *BB_GLOBAL_CONST lineedit_ptr_to_statics;
 
 #define S (*lineedit_ptr_to_statics)
 #define state            (S.state           )
@@ -214,8 +214,7 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 #define delbuf           (S.delbuf          )
 
 #define INIT_S() do { \
-	(*(struct lineedit_statics**)not_const_pp(&lineedit_ptr_to_statics)) = xzalloc(sizeof(S)); \
-	barrier(); \
+	ASSIGN_CONST_PTR(lineedit_ptr_to_statics, xzalloc(sizeof(S))); \
 } while (0)
 
 static void deinit_S(void)

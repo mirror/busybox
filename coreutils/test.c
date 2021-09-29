@@ -435,7 +435,7 @@ struct test_statics {
 };
 
 /* See test_ptr_hack.c */
-extern struct test_statics *const test_ptr_to_statics;
+extern struct test_statics *BB_GLOBAL_CONST test_ptr_to_statics;
 
 #define S (*test_ptr_to_statics)
 #define args            (S.args         )
@@ -446,8 +446,7 @@ extern struct test_statics *const test_ptr_to_statics;
 #define leaving         (S.leaving      )
 
 #define INIT_S() do { \
-	(*(struct test_statics**)not_const_pp(&test_ptr_to_statics)) = xzalloc(sizeof(S)); \
-	barrier(); \
+	ASSIGN_CONST_PTR(test_ptr_to_statics, xzalloc(sizeof(S))); \
 } while (0)
 #define DEINIT_S() do { \
 	free(group_array); \

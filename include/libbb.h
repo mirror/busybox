@@ -365,13 +365,27 @@ struct BUG_off_t_size_is_misdetected {
 #endif
 #endif
 
+/* We use a trick to have more optimized code (fewer pointer reloads
+ * and reduced binary size by a few kilobytes) like:
+ *  ash.c:   extern struct globals *const ash_ptr_to_globals;
+ *  ash_ptr_hack.c: struct globals *ash_ptr_to_globals;
+ * This way, compiler in ash.c knows the pointer can not change.
+ *
+ * However, this may break on weird arches or toolchains. In this case,
+ * set "-DBB_GLOBAL_CONST=''" in CONFIG_EXTRA_CFLAGS to disable
+ * this optimization.
+ */
+#ifndef BB_GLOBAL_CONST
+# define BB_GLOBAL_CONST const
+#endif
+
 #if defined(errno)
 /* If errno is a define, assume it's "define errno (*__errno_location())"
  * and we will cache it's result in this variable */
-extern int *const bb_errno;
-#undef errno
-#define errno (*bb_errno)
-#define bb_cached_errno_ptr 1
+extern int *BB_GLOBAL_CONST bb_errno;
+# undef errno
+# define errno (*bb_errno)
+# define bb_cached_errno_ptr 1
 #endif
 
 #if !(ULONG_MAX > 0xffffffff)
@@ -2270,6 +2284,8 @@ struct globals;
  * If you want to assign a value, use SET_PTR_TO_GLOBALS(x) */
 extern struct globals *const ptr_to_globals;
 
+#define barrier() asm volatile ("":::"memory")
+
 #if defined(__clang_major__) && __clang_major__ >= 9
 /* Clang/llvm drops assignment to "constant" storage. Silently.
  * Needs serious convincing to not eliminate the store.
@@ -2277,7 +2293,7 @@ extern struct globals *const ptr_to_globals;
 static ALWAYS_INLINE void* not_const_pp(const void *p)
 {
 	void *pp;
-	__asm__ __volatile__(
+	asm volatile (
 		"# forget that p points to const"
 		: /*outputs*/ "=r" (pp)
 		: /*inputs*/ "0" (p)
@@ -2288,13 +2304,13 @@ static ALWAYS_INLINE void* not_const_pp(const void *p)
 static ALWAYS_INLINE void* not_const_pp(const void *p) { return (void*)p; }
 #endif
 
-/* At least gcc 3.4.6 on mipsel system needs optimization barrier */
-#define barrier() __asm__ __volatile__("":::"memory")
-#define SET_PTR_TO_GLOBALS(x) do { \
-	(*(struct globals**)not_const_pp(&ptr_to_globals)) = (void*)(x); \
+#define ASSIGN_CONST_PTR(p, v) do { \
+	*(void**)not_const_pp(&p) = (void*)(v); \
+	/* At least gcc 3.4.6 on mipsel needs optimization barrier */ \
 	barrier(); \
 } while (0)
 
+#define SET_PTR_TO_GLOBALS(x) ASSIGN_CONST_PTR(ptr_to_globals, x)
 #define FREE_PTR_TO_GLOBALS() do { \
 	if (ENABLE_FEATURE_CLEAN_UP) { \
 		free(ptr_to_globals); \
