@@ -24,8 +24,6 @@ static void dump_hex(const char *fmt, const void *vp, int len)
 # define dump_hex(...) ((void)0)
 #endif
 
-#undef DIGIT_BIT
-#define DIGIT_BIT  32
 typedef int32_t sp_digit;
 
 /* The code below is taken from parts of
