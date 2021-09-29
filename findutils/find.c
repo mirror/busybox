@@ -618,30 +618,34 @@ ACTF(perm)
 	return (statbuf->st_mode & 07777) == ap->perm_mask;
 }
 #endif
+
+#if						\
+	ENABLE_FEATURE_FIND_MMIN  ||		\
+	ENABLE_FEATURE_FIND_MTIME
+static int time_cmp(time_t ftime, char time_char, time_t secs, time_t delta)
+{
+	time_t file_age = time(NULL) - ftime;
+	switch (time_char) {
+	case '+': return file_age >= secs + delta;
+	case '-': return file_age < secs;
+	/* just numeric time */
+	default:  return file_age >= secs && file_age < secs + delta;
+	}
+}
+#endif
+
 #if ENABLE_FEATURE_FIND_MTIME
 ACTF(mtime)
 {
-	time_t file_age = time(NULL) - statbuf->st_mtime;
-	time_t mtime_secs = ap->mtime_days * 24*60*60;
-	if (ap->mtime_char == '+')
-		return file_age >= mtime_secs + 24*60*60;
-	if (ap->mtime_char == '-')
-		return file_age < mtime_secs;
-	/* just numeric mtime */
-	return file_age >= mtime_secs && file_age < (mtime_secs + 24*60*60);
+	return time_cmp(statbuf->st_mtime, ap->mtime_char,
+			ap->mtime_days * 24*60*60, 24*60*60);
 }
 #endif
 #if ENABLE_FEATURE_FIND_MMIN
 ACTF(mmin)
 {
-	time_t file_age = time(NULL) - statbuf->st_mtime;
-	time_t mmin_secs = ap->mmin_mins * 60;
-	if (ap->mmin_char == '+')
-		return file_age >= mmin_secs + 60;
-	if (ap->mmin_char == '-')
-		return file_age < mmin_secs;
-	/* just numeric mmin */
-	return file_age >= mmin_secs && file_age < (mmin_secs + 60);
+	return time_cmp(statbuf->st_mtime, ap->mmin_char,
+			ap->mmin_mins * 60, 60);
 }
 #endif
 #if ENABLE_FEATURE_FIND_NEWER
