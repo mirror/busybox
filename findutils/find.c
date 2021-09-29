@@ -67,7 +67,7 @@
 //config:	interpreted by other programs.
 //config:
 //config:config FEATURE_FIND_MTIME
-//config:	bool "Enable -mtime: modified time matching"
+//config:	bool "Enable -mtime: modification time matching"
 //config:	default y
 //config:	depends on FIND
 //config:	help
@@ -75,7 +75,7 @@
 //config:	files, in days.
 //config:
 //config:config FEATURE_FIND_MMIN
-//config:	bool "Enable -mmin: modified time matching by minutes"
+//config:	bool "Enable -mmin: modification time matching by minutes"
 //config:	default y
 //config:	depends on FIND
 //config:	help
