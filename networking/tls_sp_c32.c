@@ -70,6 +70,16 @@ static const sp_digit p256_mod[10] = {
 
 #define p256_mp_mod ((sp_digit)0x000001)
 
+/* Normalize the values in each word to 26 bits. */
+static void sp_256_norm_10(sp_digit* a)
+{
+	int i;
+	for (i = 0; i < 9; i++) {
+		a[i+1] += a[i] >> 26;
+		a[i] &= 0x3ffffff;
+	}
+}
+
 /* Write r as big endian to byte aray.
  * Fixed length number of bytes written: 32
  *
@@ -80,10 +90,8 @@ static void sp_256_to_bin(sp_digit* r, uint8_t* a)
 {
 	int i, j, s = 0, b;
 
-	for (i = 0; i < 9; i++) {
-		r[i+1] += r[i] >> 26;
-		r[i] &= 0x3ffffff;
-	}
+	sp_256_norm_10(r);
+
 	j = 256 / 8 - 1;
 	a[j] = 0;
 	for (i = 0; i < 10 && j >= 0; i++) {
@@ -169,16 +177,6 @@ static sp_digit sp_256_cmp_10(const sp_digit* a, const sp_digit* b)
 static int sp_256_cmp_equal_10(const sp_digit* a, const sp_digit* b)
 {
 	return sp_256_cmp_10(a, b) == 0;
-}
-
-/* Normalize the values in each word to 26 bits. */
-static void sp_256_norm_10(sp_digit* a)
-{
-	int i;
-	for (i = 0; i < 9; i++) {
-		a[i+1] += a[i] >> 26;
-		a[i] &= 0x3ffffff;
-	}
 }
 
 /* Add b to a into r. (r = a + b) */
