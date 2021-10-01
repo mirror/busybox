@@ -1940,7 +1940,7 @@ static void send_client_key_exchange(tls_state_t *tls)
 	if (!(tls->flags & NEED_EC_KEY)) {
 		/* RSA */
 		if (!(tls->flags & GOT_CERT_RSA_KEY_ALG))
-			bb_simple_error_msg("server cert is not RSA");
+			bb_simple_error_msg_and_die("server cert is not RSA");
 
 		tls_get_random(premaster, RSA_PREMASTER_SIZE);
 		if (TLS_DEBUG_FIXED_SECRETS)
