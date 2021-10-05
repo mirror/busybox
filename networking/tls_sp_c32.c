@@ -136,6 +136,53 @@ static void sp_256_from_bin_10(sp_digit* r, const uint8_t* a)
 	}
 }
 
+#if SP_DEBUG
+static void dump_256(const char *fmt, const sp_digit* cr)
+{
+	sp_digit* r = (sp_digit*)cr;
+	uint8_t b32[32];
+	sp_256_to_bin_10(r, b32);
+	dump_hex(fmt, b32, 32);
+}
+static void dump_512(const char *fmt, const sp_digit* cr)
+{
+	sp_digit* r = (sp_digit*)cr;
+	uint8_t a[64];
+	int i, j, s, b;
+
+	/* sp_512_norm_10: */
+	for (i = 0; i < 19; i++) {
+		r[i+1] += r[i] >> 26;
+		r[i] &= 0x3ffffff;
+	}
+	/* sp_512_to_bin_10: */
+	s = 0;
+	j = 512 / 8 - 1;
+	a[j] = 0;
+	for (i = 0; i < 20 && j >= 0; i++) {
+		b = 0;
+		a[j--] |= r[i] << s; b += 8 - s;
+		if (j < 0)
+			break;
+		while (b < 26) {
+			a[j--] = r[i] >> b; b += 8;
+			if (j < 0)
+				break;
+		}
+		s = 8 - (b - 26);
+		if (j >= 0)
+			a[j] = 0;
+		if (s != 0)
+			j++;
+	}
+
+	dump_hex(fmt, a, 64);
+}
+#else
+# define dump_256(...) ((void)0)
+# define dump_512(...) ((void)0)
+#endif
+
 /* Convert a point of big-endian 32-byte x,y pair to type sp_point. */
 static void sp_256_point_from_bin2x32(sp_point* p, const uint8_t *bin2x32)
 {
@@ -743,6 +790,9 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
 	sp_256_mod_mul_norm_10(t[1].x, g->x);
 	sp_256_mod_mul_norm_10(t[1].y, g->y);
 	sp_256_mod_mul_norm_10(t[1].z, g->z);
+	dump_512("t[1].x %s\n", t[1].x);
+	dump_512("t[1].y %s\n", t[1].y);
+	dump_512("t[1].z %s\n", t[1].z);
 
 	i = 9;
 	c = 22;
@@ -875,7 +925,10 @@ static void sp_ecc_make_key_256(sp_digit privkey[10], uint8_t *pubkey)
 	sp_point point[1];
 
 	sp_256_ecc_gen_k_10(privkey);
+	dump_256("privkey %s\n", privkey);
 	sp_256_ecc_mulmod_base_10(point, privkey);
+	dump_512("point->x %s\n", point->x);
+	dump_512("point->y %s\n", point->y);
 	sp_256_to_bin_10(point->x, pubkey);
 	sp_256_to_bin_10(point->y, pubkey + 32);
 
