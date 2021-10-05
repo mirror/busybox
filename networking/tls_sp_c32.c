@@ -395,12 +395,8 @@ static void sp_256_mont_reduce_10(sp_digit* a /*, const sp_digit* m, sp_digit mp
 	}
 
 	sp_256_mont_shift_10(a, a);
-//TODO: can below condition ever be true? Doesn't it require 512+th bit(s) in a to be set?
 	if ((a[9] >> 22) > 0)
-{
-dbg("THIS HAPPENS\n");
 		sp_256_sub_10(a, a, m);
-}
 	sp_256_norm_10(a);
 }
 
