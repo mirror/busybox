@@ -2334,7 +2334,6 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls, unsigned flags)
 // e.g. at the very beginning of wget_main()
 //
 {
-//kbuild:lib-$(CONFIG_TLS) += tls_sp_c32_new.o
 	uint8_t ecc_pub_key32[2 * 32];
 	uint8_t pubkey2x32[2 * 32];
 	uint8_t premaster32[32];
@@ -2345,14 +2344,14 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls, unsigned flags)
 //	memset(ecc_pub_key32, 0x00, sizeof(ecc_pub_key32));
 //	ecc_pub_key32[18] = 0xab;
 //Random key:
-	tls_get_random(ecc_pub_key32, sizeof(ecc_pub_key32));
+//	tls_get_random(ecc_pub_key32, sizeof(ecc_pub_key32));
 //Biased random (almost all zeros or almost all ones):
-//	srand(time(NULL) ^ getpid());
-//	if (rand() & 1)
-//		memset(ecc_pub_key32, 0x00, sizeof(ecc_pub_key32));
-//	else
-//		memset(ecc_pub_key32, 0xff, sizeof(ecc_pub_key32));
-//	ecc_pub_key32[rand() & 0x3f] = rand();
+	srand(time(NULL) ^ getpid());
+	if (rand() & 1)
+		memset(ecc_pub_key32, 0x00, sizeof(ecc_pub_key32));
+	else
+		memset(ecc_pub_key32, 0xff, sizeof(ecc_pub_key32));
+	ecc_pub_key32[rand() & 0x3f] = rand();
 
 	xmove_fd(xopen("p256.OLD", O_WRONLY | O_CREAT | O_TRUNC), 2);
 	curve_P256_compute_pubkey_and_premaster(

@@ -9,6 +9,8 @@
 #define FIXED_SECRET      0
 #define FIXED_PEER_PUBKEY 0
 
+#define ALLOW_ASM         1
+
 #if SP_DEBUG
 # define dbg(...) fprintf(stderr, __VA_ARGS__)
 static void dump_hex(const char *fmt, const void *vp, int len)
@@ -24,7 +26,8 @@ static void dump_hex(const char *fmt, const void *vp, int len)
 # define dump_hex(...) ((void)0)
 #endif
 
-typedef int32_t sp_digit;
+typedef uint32_t sp_digit;
+typedef int32_t signed_sp_digit;
 
 /* The code below is taken from parts of
  *  wolfssl-3.15.3/wolfcrypt/src/sp_c32.c
@@ -32,53 +35,23 @@ typedef int32_t sp_digit;
  * Header comment is kept intact:
  */
 
-/* sp.c
- *
- * Copyright (C) 2006-2018 wolfSSL Inc.
- *
- * This file is part of wolfSSL.
- *
- * wolfSSL is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * wolfSSL is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
- */
-
-/* Implementation by Sean Parkinson. */
-
 typedef struct sp_point {
-	sp_digit x[2 * 10];
-	sp_digit y[2 * 10];
-	sp_digit z[2 * 10];
+	sp_digit x[2 * 8];
+	sp_digit y[2 * 8];
+	sp_digit z[2 * 8];
 	int infinity;
 } sp_point;
 
 /* The modulus (prime) of the curve P256. */
-static const sp_digit p256_mod[10] = {
-	0x3ffffff,0x3ffffff,0x3ffffff,0x003ffff,0x0000000,
-	0x0000000,0x0000000,0x0000400,0x3ff0000,0x03fffff,
+static const sp_digit p256_mod[8] = {
+	0xffffffff,0xffffffff,0xffffffff,0x00000000,
+	0x00000000,0x00000000,0x00000001,0xffffffff,
 };
 
 #define p256_mp_mod ((sp_digit)0x000001)
 
-/* Normalize the values in each word to 26 bits. */
-static void sp_256_norm_10(sp_digit* a)
-{
-	int i;
-	for (i = 0; i < 9; i++) {
-		a[i+1] += a[i] >> 26;
-		a[i] &= 0x3ffffff;
-	}
-}
+/* Normalize the values in each word to 32 bits - NOP */
+#define sp_256_norm_8(a) ((void)0)
 
 /* Write r as big endian to byte array.
  * Fixed length number of bytes written: 32
@@ -86,31 +59,17 @@ static void sp_256_norm_10(sp_digit* a)
  * r  A single precision integer.
  * a  Byte array.
  */
-static void sp_256_to_bin_10(sp_digit* r, uint8_t* a)
+static void sp_256_to_bin_8(const sp_digit* r, uint8_t* a)
 {
-	int i, j, s = 0, b;
+	int i;
 
-	sp_256_norm_10(r);
+	sp_256_norm_8(r);
 
-	j = 256 / 8 - 1;
-	a[j] = 0;
-	for (i = 0; i < 10 && j >= 0; i++) {
-		b = 0;
-		a[j--] |= r[i] << s;
-		b += 8 - s;
-		if (j < 0)
-			break;
-		while (b < 26) {
-			a[j--] = r[i] >> b;
-			b += 8;
-			if (j < 0)
-				break;
-		}
-		s = 8 - (b - 26);
-		if (j >= 0)
-			a[j] = 0;
-		if (s != 0)
-			j++;
+	r += 8;
+	for (i = 0; i < 8; i++) {
+		r--;
+		move_to_unaligned32(a, SWAP_BE32(*r));
+		a += 4;
 	}
 }
 
@@ -120,67 +79,32 @@ static void sp_256_to_bin_10(sp_digit* r, uint8_t* a)
  * a  Byte array.
  * n  Number of bytes in array to read.
  */
-static void sp_256_from_bin_10(sp_digit* r, const uint8_t* a)
+static void sp_256_from_bin_8(sp_digit* r, const uint8_t* a)
 {
-	int i, j = 0, s = 0;
+	int i;
 
-	r[0] = 0;
-	for (i = 32 - 1; i >= 0; i--) {
-		r[j] |= ((sp_digit)a[i]) << s;
-		if (s >= 18) {
-			r[j] &= 0x3ffffff;
-			s = 26 - s;
-			r[++j] = a[i] >> s;
-			s = 8 - s;
-		}
-		else
-			s += 8;
+	r += 8;
+	for (i = 0; i < 8; i++) {
+		sp_digit v;
+		move_from_unaligned32(v, a);
+		*--r = SWAP_BE32(v);
+		a += 4;
 	}
 }
 
 #if SP_DEBUG
-static void dump_256(const char *fmt, const sp_digit* cr)
+static void dump_256(const char *fmt, const sp_digit* r)
 {
-	sp_digit* r = (sp_digit*)cr;
 	uint8_t b32[32];
-	sp_256_to_bin_10(r, b32);
+	sp_256_to_bin_8(r, b32);
 	dump_hex(fmt, b32, 32);
 }
-static void dump_512(const char *fmt, const sp_digit* cr)
+static void dump_512(const char *fmt, const sp_digit* r)
 {
-	sp_digit* r = (sp_digit*)cr;
-	uint8_t a[64];
-	int i, j, s, b;
-
-	/* sp_512_norm_10: */
-	for (i = 0; i < 19; i++) {
-		r[i+1] += r[i] >> 26;
-		r[i] &= 0x3ffffff;
-	}
-	/* sp_512_to_bin_10: */
-	s = 0;
-	j = 512 / 8 - 1;
-	a[j] = 0;
-	for (i = 0; i < 20 && j >= 0; i++) {
-		b = 0;
-		a[j--] |= r[i] << s;
-		b += 8 - s;
-		if (j < 0)
-			break;
-		while (b < 26) {
-			a[j--] = r[i] >> b;
-			b += 8;
-			if (j < 0)
-				break;
-		}
-		s = 8 - (b - 26);
-		if (j >= 0)
-			a[j] = 0;
-		if (s != 0)
-			j++;
-	}
-
-	dump_hex(fmt, a, 64);
+	uint8_t b64[64];
+	sp_256_to_bin_8(r, b64 + 32);
+	sp_256_to_bin_8(r+8, b64);
+	dump_hex(fmt, b64, 64);
 }
 #else
 # define dump_256(...) ((void)0)
@@ -192,8 +116,8 @@ static void sp_256_point_from_bin2x32(sp_point* p, const uint8_t *bin2x32)
 {
 	memset(p, 0, sizeof(*p));
 	/*p->infinity = 0;*/
-	sp_256_from_bin_10(p->x, bin2x32);
-	sp_256_from_bin_10(p->y, bin2x32 + 32);
+	sp_256_from_bin_8(p->x, bin2x32);
+	sp_256_from_bin_8(p->y, bin2x32 + 32);
 	p->z[0] = 1; /* p->z = 1 */
 }
 
@@ -202,170 +126,303 @@ static void sp_256_point_from_bin2x32(sp_point* p, const uint8_t *bin2x32)
  * return -ve, 0 or +ve if a is less than, equal to or greater than b
  * respectively.
  */
-static sp_digit sp_256_cmp_10(const sp_digit* a, const sp_digit* b)
+static signed_sp_digit sp_256_cmp_8(const sp_digit* a, const sp_digit* b)
 {
-	sp_digit r;
 	int i;
-	for (i = 9; i >= 0; i--) {
-		r = a[i] - b[i];
-		if (r != 0)
-			break;
+	for (i = 7; i >= 0; i--) {
+/*		signed_sp_digit r = a[i] - b[i];
+ *		if (r != 0)
+ *			return r;
+ * does not work: think about a[i]=0, b[i]=0xffffffff
+ */
+		if (a[i] == b[i])
+			continue;
+		return (a[i] > b[i]) * 2 - 1;
 	}
-	return r;
+	return 0;
 }
 
 /* Compare two numbers to determine if they are equal.
  *
  * return 1 when equal and 0 otherwise.
  */
-static int sp_256_cmp_equal_10(const sp_digit* a, const sp_digit* b)
+static int sp_256_cmp_equal_8(const sp_digit* a, const sp_digit* b)
 {
-	return sp_256_cmp_10(a, b) == 0;
+	return sp_256_cmp_8(a, b) == 0;
 }
 
-/* Add b to a into r. (r = a + b) */
-static void sp_256_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
+/* Add b to a into r. (r = a + b). Return !0 on overflow */
+static int sp_256_add_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 {
+#if ALLOW_ASM && defined(__GNUC__) && defined(__i386__)
+	sp_digit reg;
+	asm volatile (
+"\n		movl	(%0), %3"
+"\n		addl	(%1), %3"
+"\n		movl	%3, (%2)"
+"\n"
+"\n		movl	1*4(%0), %3"
+"\n		adcl	1*4(%1), %3"
+"\n		movl	%3, 1*4(%2)"
+"\n"
+"\n		movl	2*4(%0), %3"
+"\n		adcl	2*4(%1), %3"
+"\n		movl	%3, 2*4(%2)"
+"\n"
+"\n		movl	3*4(%0), %3"
+"\n		adcl	3*4(%1), %3"
+"\n		movl	%3, 3*4(%2)"
+"\n"
+"\n		movl	4*4(%0), %3"
+"\n		adcl	4*4(%1), %3"
+"\n		movl	%3, 4*4(%2)"
+"\n"
+"\n		movl	5*4(%0), %3"
+"\n		adcl	5*4(%1), %3"
+"\n		movl	%3, 5*4(%2)"
+"\n"
+"\n		movl	6*4(%0), %3"
+"\n		adcl	6*4(%1), %3"
+"\n		movl	%3, 6*4(%2)"
+"\n"
+"\n		movl	7*4(%0), %3"
+"\n		adcl	7*4(%1), %3"
+"\n		movl	%3, 7*4(%2)"
+"\n"
+"\n		sbbl	%3, %3"
+"\n"
+		: "=r" (a), "=r" (b), "=r" (r), "=r" (reg)
+		: "0" (a), "1" (b), "2" (r)
+		: "memory"
+	);
+	return reg;
+#else
 	int i;
-	for (i = 0; i < 10; i++)
-		r[i] = a[i] + b[i];
+	sp_digit carry;
+
+	carry = 0;
+	for (i = 0; i < 8; i++) {
+		sp_digit w, v;
+		w = b[i] + carry;
+		v = a[i];
+		if (w != 0) {
+			v = a[i] + w;
+			carry = (v < a[i]);
+			/* hope compiler detects above as "carry flag set" */
+		}
+		/* else: b + carry == 0, two cases:
+		 * b:ffffffff, carry:1
+		 * b:00000000, carry:0
+		 * in either case, r[i] = a[i] and carry remains unchanged
+		 */
+		r[i] = v;
+	}
+	return carry;
+#endif
 }
 
-/* Sub b from a into r. (r = a - b) */
-static void sp_256_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
+/* Sub b from a into r. (r = a - b). Return !0 on underflow */
+static int sp_256_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 {
+#if ALLOW_ASM && defined(__GNUC__) && defined(__i386__)
+	sp_digit reg;
+	asm volatile (
+"\n		movl	(%0), %3"
+"\n		subl	(%1), %3"
+"\n		movl	%3, (%2)"
+"\n"
+"\n		movl	1*4(%0), %3"
+"\n		sbbl	1*4(%1), %3"
+"\n		movl	%3, 1*4(%2)"
+"\n"
+"\n		movl	2*4(%0), %3"
+"\n		sbbl	2*4(%1), %3"
+"\n		movl	%3, 2*4(%2)"
+"\n"
+"\n		movl	3*4(%0), %3"
+"\n		sbbl	3*4(%1), %3"
+"\n		movl	%3, 3*4(%2)"
+"\n"
+"\n		movl	4*4(%0), %3"
+"\n		sbbl	4*4(%1), %3"
+"\n		movl	%3, 4*4(%2)"
+"\n"
+"\n		movl	5*4(%0), %3"
+"\n		sbbl	5*4(%1), %3"
+"\n		movl	%3, 5*4(%2)"
+"\n"
+"\n		movl	6*4(%0), %3"
+"\n		sbbl	6*4(%1), %3"
+"\n		movl	%3, 6*4(%2)"
+"\n"
+"\n		movl	7*4(%0), %3"
+"\n		sbbl	7*4(%1), %3"
+"\n		movl	%3, 7*4(%2)"
+"\n"
+"\n		sbbl	%3, %3"
+"\n"
+		: "=r" (a), "=r" (b), "=r" (r), "=r" (reg)
+		: "0" (a), "1" (b), "2" (r)
+		: "memory"
+	);
+	return reg;
+#else
 	int i;
-	for (i = 0; i < 10; i++)
-		r[i] = a[i] - b[i];
+	sp_digit borrow;
+
+	borrow = 0;
+	for (i = 0; i < 8; i++) {
+		sp_digit w, v;
+		w = b[i] + borrow;
+		v = a[i];
+		if (w != 0) {
+			v = a[i] - w;
+			borrow = (v > a[i]);
+			/* hope compiler detects above as "carry flag set" */
+		}
+		/* else: b + borrow == 0, two cases:
+		 * b:ffffffff, borrow:1
+		 * b:00000000, borrow:0
+		 * in either case, r[i] = a[i] and borrow remains unchanged
+		 */
+		r[i] = v;
+	}
+	return borrow;
+#endif
 }
 
 /* Multiply a and b into r. (r = a * b) */
-static void sp_256_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
+static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 {
+	sp_digit rr[15]; /* in case r coincides with a or b */
 	int i, j, k;
-	int64_t c;
+	uint64_t acc;
 
-	c = ((int64_t)a[9]) * b[9];
-	r[19] = (sp_digit)(c >> 26);
-	c = (c & 0x3ffffff) << 26;
-	for (k = 17; k >= 0; k--) {
-		for (i = 9; i >= 0; i--) {
-			j = k - i;
-			if (j >= 10)
-				break;
-			if (j < 0)
-				continue;
-			c += ((int64_t)a[i]) * b[j];
+	acc = 0;
+	for (k = 0; k < 15; k++) {
+		uint32_t acc_hi;
+		i = k - 7;
+		if (i < 0)
+			i = 0;
+		j = k - i;
+		acc_hi = 0;
+		while (i != 8 && i <= k) {
+			uint64_t m = ((uint64_t)a[i]) * b[j];
+			acc += m;
+			if (acc < m)
+				acc_hi++;
+		        j--;
+			i++;
 		}
-		r[k + 2] += c >> 52;
-		r[k + 1] = (c >> 26) & 0x3ffffff;
-		c = (c & 0x3ffffff) << 26;
+		rr[k] = acc;
+		acc = (acc >> 32) | ((uint64_t)acc_hi << 32);
 	}
-	r[0] = (sp_digit)(c >> 26);
+	r[15] = acc;
+	memcpy(r, rr, sizeof(rr));
 }
 
 /* Shift number right one bit. Bottom bit is lost. */
-static void sp_256_rshift1_10(sp_digit* r, sp_digit* a)
+static void sp_256_rshift1_8(sp_digit* r, sp_digit* a, sp_digit carry)
 {
 	int i;
-	for (i = 0; i < 9; i++)
-		r[i] = ((a[i] >> 1) | (a[i + 1] << 25)) & 0x3ffffff;
-	r[9] = a[9] >> 1;
+
+	carry = (!!carry << 31);
+	for (i = 7; i >= 0; i--) {
+		sp_digit c = a[i] << 31;
+		r[i] = (a[i] >> 1) | carry;
+		carry = c;
+	}
 }
 
 /* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m) */
-static void sp_256_div2_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
+static void sp_256_div2_8(sp_digit* r, const sp_digit* a, const sp_digit* m)
 {
+	int carry = 0;
 	if (a[0] & 1)
-		sp_256_add_10(r, a, m);
-	sp_256_norm_10(r);
-	sp_256_rshift1_10(r, r);
+		carry = sp_256_add_8(r, a, m);
+	sp_256_norm_8(r);
+	sp_256_rshift1_8(r, r, carry);
 }
 
 /* Add two Montgomery form numbers (r = a + b % m) */
-static void sp_256_mont_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
+static void sp_256_mont_add_8(sp_digit* r, const sp_digit* a, const sp_digit* b,
 		const sp_digit* m)
 {
-	sp_256_add_10(r, a, b);
-	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0) {
-		sp_256_sub_10(r, r, m);
-		sp_256_norm_10(r);
+	int carry = sp_256_add_8(r, a, b);
+	sp_256_norm_8(r);
+	if (carry) {
+		sp_256_sub_8(r, r, m);
+		sp_256_norm_8(r);
 	}
 }
 
 /* Subtract two Montgomery form numbers (r = a - b % m) */
-static void sp_256_mont_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
+static void sp_256_mont_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b,
 		const sp_digit* m)
 {
-	sp_256_sub_10(r, a, b);
-	sp_256_norm_10(r);
-	if (r[9] >> 22) {
-		sp_256_add_10(r, r, m);
-		sp_256_norm_10(r);
-		r[9] &= 0x03fffff; /* truncate to 22 bits */
+	int borrow;
+	borrow = sp_256_sub_8(r, a, b);
+	sp_256_norm_8(r);
+	if (borrow) {
+		sp_256_add_8(r, r, m);
+		sp_256_norm_8(r);
 	}
 }
 
 /* Double a Montgomery form number (r = a + a % m) */
-static void sp_256_mont_dbl_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
+static void sp_256_mont_dbl_8(sp_digit* r, const sp_digit* a, const sp_digit* m)
 {
-	sp_256_add_10(r, a, a);
-	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0)
-		sp_256_sub_10(r, r, m);
-	sp_256_norm_10(r);
+	int carry = sp_256_add_8(r, a, a);
+	sp_256_norm_8(r);
+	if (carry)
+		sp_256_sub_8(r, r, m);
+	sp_256_norm_8(r);
 }
 
 /* Triple a Montgomery form number (r = a + a + a % m) */
-static void sp_256_mont_tpl_10(sp_digit* r, const sp_digit* a, const sp_digit* m)
+static void sp_256_mont_tpl_8(sp_digit* r, const sp_digit* a, const sp_digit* m)
 {
-	sp_256_add_10(r, a, a);
-	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0) {
-		sp_256_sub_10(r, r, m);
-		sp_256_norm_10(r);
+	int carry = sp_256_add_8(r, a, a);
+	sp_256_norm_8(r);
+	if (carry) {
+		sp_256_sub_8(r, r, m);
+		sp_256_norm_8(r);
 	}
-	sp_256_add_10(r, r, a);
-	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0) {
-		sp_256_sub_10(r, r, m);
-		sp_256_norm_10(r);
+	carry = sp_256_add_8(r, r, a);
+	sp_256_norm_8(r);
+	if (carry) {
+		sp_256_sub_8(r, r, m);
+		sp_256_norm_8(r);
 	}
-	r[9] &= 0x03fffff; /* truncate to 22 bits */
 }
 
 /* Shift the result in the high 256 bits down to the bottom. */
-static void sp_256_mont_shift_10(sp_digit* r, const sp_digit* a)
+static void sp_256_mont_shift_8(sp_digit* r, const sp_digit* a)
 {
 	int i;
-	sp_digit n, s;
 
-	s = a[10];
-	n = a[9] >> 22;
-	for (i = 0; i < 9; i++) {
-		n += (s & 0x3ffffff) << 4;
-		r[i] = n & 0x3ffffff;
-		n >>= 26;
-		s = a[11 + i] + (s >> 26);
+	for (i = 0; i < 8; i++) {
+		r[i] = a[i+8];
+		r[i+8] = 0;
 	}
-	n += s << 4;
-	r[9] = n;
-	memset(&r[10], 0, sizeof(*r) * 10);
 }
 
 /* Mul a by scalar b and add into r. (r += a * b) */
-static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a, sp_digit b)
+static int sp_256_mul_add_8(sp_digit* r, const sp_digit* a, sp_digit b)
 {
-	int64_t t = 0;
+	uint64_t t = 0;
 	int i;
 
-	for (i = 0; i < 10; i++) {
-		t += ((int64_t)b * a[i]) + r[i];
-		r[i] = t & 0x3ffffff;
-		t >>= 26;
+	for (i = 0; i < 8; i++) {
+		uint32_t t_hi;
+		uint64_t m = ((uint64_t)b * a[i]) + r[i];
+		t += m;
+		t_hi = (t < m);
+		r[i] = (sp_digit)t;
+		t = (t >> 32) | ((uint64_t)t_hi << 32);
 	}
-	r[10] += t;
+	r[8] += (sp_digit)t;
+	return (r[8] < (sp_digit)t); /* 1 if addition overflowed */
 }
 
 /* Reduce the number back to 256 bits using Montgomery reduction.
@@ -374,7 +431,7 @@ static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a, sp_digit b)
  * m   The single precision number representing the modulus.
  * mp  The digit representing the negative inverse of m mod 2^n.
  */
-static void sp_256_mont_reduce_10(sp_digit* a /*, const sp_digit* m, sp_digit mp*/)
+static void sp_256_mont_reduce_8(sp_digit* a/*, const sp_digit* m, sp_digit mp*/)
 {
 	const sp_digit* m = p256_mod;
 	sp_digit mp = p256_mp_mod;
@@ -383,33 +440,144 @@ static void sp_256_mont_reduce_10(sp_digit* a /*, const sp_digit* m, sp_digit mp
 	sp_digit mu;
 
 	if (mp != 1) {
-		for (i = 0; i < 9; i++) {
-			mu = (a[i] * mp) & 0x3ffffff;
-			sp_256_mul_add_10(a+i, m, mu);
-			a[i+1] += a[i] >> 26;
+		int too_wide;
+		for (i = 0; i < 7; i++) {
+			mu = (sp_digit)(a[i] * mp);
+			if (sp_256_mul_add_8(a+i, m, mu))
+				(a+i)[9]++;
 		}
-		mu = (a[i] * mp) & 0x03fffff;
-		sp_256_mul_add_10(a+i, m, mu);
-		a[i+1] += a[i] >> 26;
-		a[i] &= 0x3ffffff;
+		mu = (sp_digit)(a[7] * mp);
+		too_wide = sp_256_mul_add_8(a+7, m, mu);
+		sp_256_mont_shift_8(a, a);
+		if (too_wide)
+			sp_256_sub_8(a, a, m);
+		sp_256_norm_8(a);
 	}
 	else { /* Same code for explicit mp == 1 (which is always the case for P256) */
-		for (i = 0; i < 9; i++) {
-			mu = a[i] & 0x3ffffff;
-			sp_256_mul_add_10(a+i, m, mu);
-			a[i+1] += a[i] >> 26;
+		sp_digit word16th = 0;
+		for (i = 0; i < 8; i++) {
+			mu = a[i];
+//m = ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff
+			if (sp_256_mul_add_8(a+i, m, mu)) {
+				int j = i + 8;
+ inc_next_word:
+				if (++j > 15) { /* a[16] array has no more words? */
+					word16th++;
+					continue;
+				}
+				if (++a[j] == 0) /* did this overflow too? */
+					goto inc_next_word;
+			}
 		}
-		mu = a[i] & 0x03fffff;
-		sp_256_mul_add_10(a+i, m, mu);
-		a[i+1] += a[i] >> 26;
-		a[i] &= 0x3ffffff;
+		sp_256_mont_shift_8(a, a);
+		if (word16th != 0)
+			sp_256_sub_8(a, a, m);
+		sp_256_norm_8(a);
 	}
-
-	sp_256_mont_shift_10(a, a);
-	if ((a[9] >> 22) > 0)
-		sp_256_sub_10(a, a, m);
-	sp_256_norm_10(a);
 }
+#if 0
+//TODO: arm32 asm (also adapt for x86?)
+static void sp_256_mont_reduce_8(sp_digit* a, sp_digit* m, sp_digit mp)
+{
+	sp_digit ca = 0;
+
+	asm volatile (
+	# i = 0
+	mov	r12, #0                 #  i = 0
+	ldr	r10, [%[a], #0]         #  r10 = a[0]
+	ldr	r14, [%[a], #4]         #  r14 = a[1]
+1:
+	# mu = a[i] * mp                #
+	mul	r8, %[mp], r10          # mu = a[i] * mp
+	# a[i+0] += m[0] * mu           #
+	ldr	r7, [%[m], #0]          # a[i+0] += m[0] * mu
+	ldr	r9, [%[a], #0]          #
+	umull	r6, r7, r8, r7          #  r7:r6 = mu * m[0]
+	adds	r10, r10, r6            #  r5:r10 += r7:r6
+	adc	r5, r7, #0              #
+	# a[i+1] += m[1] * mu           #
+	ldr	r7, [%[m], #4]          # a[i+1] += m[1] * mu
+	ldr	r9, [%[a], #4]          #
+	umull	r6, r7, r8, r7          #  r7:r6 = mu * m[1]
+	adds	r10, r14, r6            #  r4:r10 = r7:r14 + r7:r6
+	adc	r4, r7, #0              #
+	adds	r10, r10, r5            #  r4:r10 += r5
+	adc	r4, r4, #0              #
+	# a[i+2] += m[2] * mu           #
+	ldr	r7, [%[m], #8]          # a[i+2] += m[2] * mu
+	ldr	r14, [%[a], #8]         #
+	umull	r6, r7, r8, r7          #
+	adds	r14, r14, r6            #
+	adc	r5, r7, #0              #
+	adds	r14, r14, r4            #
+	adc	r5, r5, #0              #
+	# a[i+3] += m[3] * mu           #
+	ldr	r7, [%[m], #12]         # a[i+3] += m[3] * mu
+	ldr	r9, [%[a], #12]         #
+	umull	r6, r7, r8, r7          #
+	adds	r9, r9, r6              #
+	adc	r4, r7, #0              #
+	adds	r9, r9, r5              #
+	str	r9, [%[a], #12]         #  a[3] = r9
+	adc	r4, r4, #0              #
+	# a[i+4] += m[4] * mu           #
+	ldr	r7, [%[m], #16]         # a[i+4] += m[4] * mu
+	ldr	r9, [%[a], #16]         #
+	umull	r6, r7, r8, r7          #
+	adds	r9, r9, r6              #
+	adc	r5, r7, #0              #
+	adds	r9, r9, r4              #
+	str	r9, [%[a], #16]         #  a[4] = r9
+	adc	r5, r5, #0              #
+	# a[i+5] += m[5] * mu           #
+	ldr	r7, [%[m], #20]         # a[i+5] += m[5] * mu
+	ldr	r9, [%[a], #20]         #
+	umull	r6, r7, r8, r7          #
+	adds	r9, r9, r6              #
+	adc	r4, r7, #0              #
+	adds	r9, r9, r5              #
+	str	r9, [%[a], #20]         #  a[5] = r9
+	adc	r4, r4, #0              #
+	# a[i+6] += m[6] * mu           #
+	ldr	r7, [%[m], #24]         # a[i+6] += m[6] * mu
+	ldr	r9, [%[a], #24]         #
+	umull	r6, r7, r8, r7          #
+	adds	r9, r9, r6              #
+	adc	r5, r7, #0              #
+	adds	r9, r9, r4              #
+	str	r9, [%[a], #24]         #  a[6] = r9
+	adc	r5, r5, #0              #
+	# a[i+7] += m[7] * mu           #
+	ldr	r7, [%[m], #28]         # a[i+7] += m[7] * mu
+	ldr	r9, [%[a], #28]         #
+	umull	r6, r7, r8, r7          #
+	adds	r5, r5, r6              #
+	adcs	r7, r7, %[ca]           #
+	mov	%[ca], #0               #
+	adc	%[ca], %[ca], %[ca]     #  ca = CF
+	adds	r9, r9, r5              #
+	str	r9, [%[a], #28]         #  a[7] = r9
+	ldr	r9, [%[a], #32]         #  r9 = a[8]
+	adcs	r9, r9, r7              #
+	str	r9, [%[a], #32]         #  a[8] = r9
+	adc	%[ca], %[ca], #0        #  ca += CF
+	# i += 1                        # i++
+	add	%[a], %[a], #4          #  a++
+	add	r12, r12, #4            #  i += 4
+	cmp	r12, #32                #  if (i < 32)
+	blt	1b                      #   goto 1
+
+	str	r10, [%[a], #0]         #  a[0] = r10
+	str	r14, [%[a], #4]         #  a[1] = r14
+	: [ca] "+r" (ca), [a] "+r" (a)
+	: [m] "r" (m), [mp] "r" (mp)
+	: "memory", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r14", "r12"
+	);
+
+	if (ca)
+		a -= m;
+}
+#endif
 
 /* Multiply two Montogmery form numbers mod the modulus (prime).
  * (r = a * b mod m)
@@ -420,14 +588,13 @@ static void sp_256_mont_reduce_10(sp_digit* a /*, const sp_digit* m, sp_digit mp
  * m   Modulus (prime).
  * mp  Montogmery mulitplier.
  */
-static void sp_256_mont_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b
+static void sp_256_mont_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b
 		/*, const sp_digit* m, sp_digit mp*/)
 {
 	//const sp_digit* m = p256_mod;
 	//sp_digit mp = p256_mp_mod;
-
-	sp_256_mul_10(r, a, b);
-	sp_256_mont_reduce_10(r /*, m, mp*/);
+	sp_256_mul_8(r, a, b);
+	sp_256_mont_reduce_8(r /*, m, mp*/);
 }
 
 /* Square the Montgomery form number. (r = a * a mod m)
@@ -437,13 +604,12 @@ static void sp_256_mont_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b
  * m   Modulus (prime).
  * mp  Montogmery mulitplier.
  */
-static void sp_256_mont_sqr_10(sp_digit* r, const sp_digit* a
+static void sp_256_mont_sqr_8(sp_digit* r, const sp_digit* a
 		/*, const sp_digit* m, sp_digit mp*/)
 {
 	//const sp_digit* m = p256_mod;
 	//sp_digit mp = p256_mp_mod;
-
-	sp_256_mont_mul_10(r, a, a /*, m, mp*/);
+	sp_256_mont_mul_8(r, a, a /*, m, mp*/);
 }
 
 /* Invert the number, in Montgomery form, modulo the modulus (prime) of the
@@ -464,19 +630,19 @@ static const uint32_t p256_mod_2[8] = {
 //543210987654321098765432109876543210987654321098765432109876543210...09876543210...09876543210
 //111111111111111111111111111111110000000000000000000000000000000100...00000111111...11111111101
 #endif
-static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a)
+static void sp_256_mont_inv_8(sp_digit* r, sp_digit* a)
 {
-	sp_digit t[2*10]; //can be just [10]?
+	sp_digit t[2*8]; //can be just [8]?
 	int i;
 
-	memcpy(t, a, sizeof(sp_digit) * 10);
+	memcpy(t, a, sizeof(sp_digit) * 8);
 	for (i = 254; i >= 0; i--) {
-		sp_256_mont_sqr_10(t, t /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_sqr_8(t, t /*, p256_mod, p256_mp_mod*/);
 		/*if (p256_mod_2[i / 32] & ((sp_digit)1 << (i % 32)))*/
 		if (i >= 224 || i == 192 || (i <= 95 && i != 1))
-			sp_256_mont_mul_10(t, t, a /*, p256_mod, p256_mp_mod*/);
+			sp_256_mont_mul_8(t, t, a /*, p256_mod, p256_mp_mod*/);
 	}
-	memcpy(r, t, sizeof(sp_digit) * 10);
+	memcpy(r, t, sizeof(sp_digit) * 8);
 }
 
 /* Multiply a number by Montogmery normalizer mod modulus (prime).
@@ -484,93 +650,29 @@ static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a)
  * r  The resulting Montgomery form number.
  * a  The number to convert.
  */
-static void sp_256_mod_mul_norm_10(sp_digit* r, const sp_digit* a)
+static void sp_256_mod_mul_norm_8(sp_digit* r, const sp_digit* a)
 {
 	int64_t t[8];
-	int64_t o;
-	uint32_t a32;
+	int32_t o;
 
+#define A(n) ((uint64_t)a[n])
 	/*  1  1  0 -1 -1 -1 -1  0 */
+	t[0] = 0 + A(0) + A(1) - A(3) - A(4) - A(5) - A(6);
 	/*  0  1  1  0 -1 -1 -1 -1 */
+	t[1] = 0 + A(1) + A(2) - A(4) - A(5) - A(6) - A(7);
 	/*  0  0  1  1  0 -1 -1 -1 */
+	t[2] = 0 + A(2) + A(3) - A(5) - A(6) - A(7);
 	/* -1 -1  0  2  2  1  0 -1 */
+	t[3] = 0 - A(0) - A(1) + 2 * A(3) + 2 * A(4) + A(5) - A(7);
 	/*  0 -1 -1  0  2  2  1  0 */
+	t[4] = 0 - A(1) - A(2) + 2 * A(4) + 2 * A(5) + A(6);
 	/*  0  0 -1 -1  0  2  2  1 */
+	t[5] = 0 - A(2) - A(3) + 2 * A(5) + 2 * A(6) + A(7);
 	/* -1 -1  0  0  0  1  3  2 */
+	t[6] = 0 - A(0) - A(1) + A(5) + 3 * A(6) + 2 * A(7);
 	/*  1  0 -1 -1 -1 -1  0  3 */
-	// t[] should be calculated from "a" (converted from 26-bit to 32-bit vector a32[8])
-	// according to the above matrix:
-	//t[0] = 0 + a32[0] + a32[1]            - a32[3]   - a32[4]   - a32[5]   - a32[6]             ;
-	//t[1] = 0          + a32[1] + a32[2]              - a32[4]   - a32[5]   - a32[6]   - a32[7]  ;
-	//t[2] = 0                   + a32[2]   + a32[3]              - a32[5]   - a32[6]   - a32[7]  ;
-	//t[3] = 0 - a32[0] - a32[1]            + 2*a32[3] + 2*a32[4] + a32[5]              - a32[7]  ;
-	//t[4] = 0          - a32[1] - a32[2]              + 2*a32[4] + 2*a32[5] + a32[6]             ;
-	//t[5] = 0                   - a32[2]   - a32[3]              + 2*a32[5] + 2*a32[6] + a32[7]  ;
-	//t[6] = 0 - a32[0] - a32[1]                                  + a32[5]   + 3*a32[6] + 2*a32[7];
-	//t[7] = 0 + a32[0]          - a32[2]   - a32[3]   - a32[4]   - a32[5]              + 3*a32[7];
-	// We can do it "piecemeal" after each a32[i] is known, no need to store entire a32[8] vector:
-
-#define A32 (int64_t)a32
-	a32 = a[0] | (a[1] << 26);
-	t[0] = 0 + A32;
-	t[3] = 0 - A32;
-	t[6] = 0 - A32;
-	t[7] = 0 + A32;
-
-	a32 = (a[1] >> 6) | (a[2] << 20);
-	t[0] += A32    ;
-	t[1]  = 0 + A32;
-	t[3] -= A32    ;
-	t[4]  = 0 - A32;
-	t[6] -= A32    ;
-
-	a32 = (a[2] >> 12) | (a[3] << 14);
-	t[1] += A32    ;
-	t[2]  = 0 + A32;
-	t[4] -= A32    ;
-	t[5]  = 0 - A32;
-	t[7] -= A32    ;
-
-	a32 = (a[3] >> 18) | (a[4] << 8);
-	t[0] -= A32  ;
-	t[2] += A32  ;
-	t[3] += 2*A32;
-	t[5] -= A32  ;
-	t[7] -= A32  ;
-
-	a32 = (a[4] >> 24) | (a[5] << 2) | (a[6] << 28);
-	t[0] -= A32  ;
-	t[1] -= A32  ;
-	t[3] += 2*A32;
-	t[4] += 2*A32;
-	t[7] -= A32  ;
-
-	a32 = (a[6] >> 4) | (a[7] << 22);
-	t[0] -= A32  ;
-	t[1] -= A32  ;
-	t[2] -= A32  ;
-	t[3] += A32  ;
-	t[4] += 2*A32;
-	t[5] += 2*A32;
-	t[6] += A32  ;
-	t[7] -= A32  ;
-
-	a32 = (a[7] >> 10) | (a[8] << 16);
-	t[0] -= A32  ;
-	t[1] -= A32  ;
-	t[2] -= A32  ;
-	t[4] += A32  ;
-	t[5] += 2*A32;
-	t[6] += 3*A32;
-
-	a32 = (a[8] >> 16) | (a[9] << 10);
-	t[1] -= A32  ;
-	t[2] -= A32  ;
-	t[3] -= A32  ;
-	t[5] += A32  ;
-	t[6] += 2*A32;
-	t[7] += 3*A32;
-#undef A32
+	t[7] = 0 + A(0) - A(2) - A(3) - A(4) - A(5) + 3 * A(7);
+#undef A
 
 	t[1] += t[0] >> 32; t[0] &= 0xffffffff;
 	t[2] += t[1] >> 32; t[1] &= 0xffffffff;
@@ -579,29 +681,27 @@ static void sp_256_mod_mul_norm_10(sp_digit* r, const sp_digit* a)
 	t[5] += t[4] >> 32; t[4] &= 0xffffffff;
 	t[6] += t[5] >> 32; t[5] &= 0xffffffff;
 	t[7] += t[6] >> 32; t[6] &= 0xffffffff;
-	o     = t[7] >> 32; t[7] &= 0xffffffff;
+	o     = t[7] >> 32; //t[7] &= 0xffffffff;
 	t[0] += o;
 	t[3] -= o;
 	t[6] -= o;
 	t[7] += o;
-	t[1] += t[0] >> 32; //t[0] &= 0xffffffff;
-	t[2] += t[1] >> 32; //t[1] &= 0xffffffff;
-	t[3] += t[2] >> 32; //t[2] &= 0xffffffff;
-	t[4] += t[3] >> 32; //t[3] &= 0xffffffff;
-	t[5] += t[4] >> 32; //t[4] &= 0xffffffff;
-	t[6] += t[5] >> 32; //t[5] &= 0xffffffff;
-	t[7] += t[6] >> 32; //t[6] &= 0xffffffff; - (uint32_t)t[i] casts below accomplish masking
-
-	r[0] = 0x3ffffff & ((sp_digit)((uint32_t)t[0]));
-	r[1] = 0x3ffffff & ((sp_digit)((uint32_t)t[0] >> 26) | ((sp_digit)t[1] <<  6));
-	r[2] = 0x3ffffff & ((sp_digit)((uint32_t)t[1] >> 20) | ((sp_digit)t[2] << 12));
-	r[3] = 0x3ffffff & ((sp_digit)((uint32_t)t[2] >> 14) | ((sp_digit)t[3] << 18));
-	r[4] = 0x3ffffff & ((sp_digit)((uint32_t)t[3] >>  8) | ((sp_digit)t[4] << 24));
-	r[5] = 0x3ffffff & ((sp_digit)((uint32_t)t[4] >>  2));
-	r[6] = 0x3ffffff & ((sp_digit)((uint32_t)t[4] >> 28) | ((sp_digit)t[5] <<  4));
-	r[7] = 0x3ffffff & ((sp_digit)((uint32_t)t[5] >> 22) | ((sp_digit)t[6] << 10));
-	r[8] = 0x3ffffff & ((sp_digit)((uint32_t)t[6] >> 16) | ((sp_digit)t[7] << 16));
-	r[9] =             ((sp_digit)((uint32_t)t[7] >> 10));
+	r[0] = (sp_digit)t[0];
+	t[1] += t[0] >> 32;
+	r[1] = (sp_digit)t[1];
+	t[2] += t[1] >> 32;
+	r[2] = (sp_digit)t[2];
+	t[3] += t[2] >> 32;
+	r[3] = (sp_digit)t[3];
+	t[4] += t[3] >> 32;
+	r[4] = (sp_digit)t[4];
+	t[5] += t[4] >> 32;
+	r[5] = (sp_digit)t[5];
+	t[6] += t[5] >> 32;
+	r[6] = (sp_digit)t[6];
+//	t[7] += t[6] >> 32;
+//	r[7] = (sp_digit)t[7];
+	r[7] = (sp_digit)t[7] + (sp_digit)(t[6] >> 32);
 }
 
 /* Map the Montgomery form projective co-ordinate point to an affine point.
@@ -609,33 +709,33 @@ static void sp_256_mod_mul_norm_10(sp_digit* r, const sp_digit* a)
  * r  Resulting affine co-ordinate point.
  * p  Montgomery form projective co-ordinate point.
  */
-static void sp_256_map_10(sp_point* r, sp_point* p)
+static void sp_256_map_8(sp_point* r, sp_point* p)
 {
-	sp_digit t1[2*10];
-	sp_digit t2[2*10];
+	sp_digit t1[2*8];
+	sp_digit t2[2*8];
 
-	sp_256_mont_inv_10(t1, p->z);
+	sp_256_mont_inv_8(t1, p->z);
 
-	sp_256_mont_sqr_10(t2, t1 /*, p256_mod, p256_mp_mod*/);
-	sp_256_mont_mul_10(t1, t2, t1 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_sqr_8(t2, t1 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(t1, t2, t1 /*, p256_mod, p256_mp_mod*/);
 
 	/* x /= z^2 */
-	sp_256_mont_mul_10(r->x, p->x, t2 /*, p256_mod, p256_mp_mod*/);
-	memset(r->x + 10, 0, sizeof(r->x) / 2);
-	sp_256_mont_reduce_10(r->x /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(r->x, p->x, t2 /*, p256_mod, p256_mp_mod*/);
+	memset(r->x + 8, 0, sizeof(r->x) / 2);
+	sp_256_mont_reduce_8(r->x /*, p256_mod, p256_mp_mod*/);
 	/* Reduce x to less than modulus */
-	if (sp_256_cmp_10(r->x, p256_mod) >= 0)
-		sp_256_sub_10(r->x, r->x, p256_mod);
-	sp_256_norm_10(r->x);
+	if (sp_256_cmp_8(r->x, p256_mod) >= 0)
+		sp_256_sub_8(r->x, r->x, p256_mod);
+	sp_256_norm_8(r->x);
 
 	/* y /= z^3 */
-	sp_256_mont_mul_10(r->y, p->y, t1 /*, p256_mod, p256_mp_mod*/);
-	memset(r->y + 10, 0, sizeof(r->y) / 2);
-	sp_256_mont_reduce_10(r->y /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(r->y, p->y, t1 /*, p256_mod, p256_mp_mod*/);
+	memset(r->y + 8, 0, sizeof(r->y) / 2);
+	sp_256_mont_reduce_8(r->y /*, p256_mod, p256_mp_mod*/);
 	/* Reduce y to less than modulus */
-	if (sp_256_cmp_10(r->y, p256_mod) >= 0)
-		sp_256_sub_10(r->y, r->y, p256_mod);
-	sp_256_norm_10(r->y);
+	if (sp_256_cmp_8(r->y, p256_mod) >= 0)
+		sp_256_sub_8(r->y, r->y, p256_mod);
+	sp_256_norm_8(r->y);
 
 	memset(r->z, 0, sizeof(r->z));
 	r->z[0] = 1;
@@ -646,16 +746,16 @@ static void sp_256_map_10(sp_point* r, sp_point* p)
  * r  Result of doubling point.
  * p  Point to double.
  */
-static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
+static void sp_256_proj_point_dbl_8(sp_point* r, sp_point* p)
 {
-	sp_digit t1[2*10];
-	sp_digit t2[2*10];
+	sp_digit t1[2*8];
+	sp_digit t2[2*8];
 
 	/* Put point to double into result */
 	if (r != p)
 		*r = *p; /* struct copy */
 
-	if (r->infinity) /* If infinity, don't double */
+	if (r->infinity)
 		return;
 
 	if (SP_DEBUG) {
@@ -666,41 +766,42 @@ static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
 	}
 
 	/* T1 = Z * Z */
-	sp_256_mont_sqr_10(t1, r->z /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_sqr_8(t1, r->z /*, p256_mod, p256_mp_mod*/);
 	/* Z = Y * Z */
-	sp_256_mont_mul_10(r->z, r->y, r->z /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(r->z, r->y, r->z /*, p256_mod, p256_mp_mod*/);
 	/* Z = 2Z */
-	sp_256_mont_dbl_10(r->z, r->z, p256_mod);
+	sp_256_mont_dbl_8(r->z, r->z, p256_mod);
 	/* T2 = X - T1 */
-	sp_256_mont_sub_10(t2, r->x, t1, p256_mod);
+	sp_256_mont_sub_8(t2, r->x, t1, p256_mod);
 	/* T1 = X + T1 */
-	sp_256_mont_add_10(t1, r->x, t1, p256_mod);
+	sp_256_mont_add_8(t1, r->x, t1, p256_mod);
 	/* T2 = T1 * T2 */
-	sp_256_mont_mul_10(t2, t1, t2 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(t2, t1, t2 /*, p256_mod, p256_mp_mod*/);
 	/* T1 = 3T2 */
-	sp_256_mont_tpl_10(t1, t2, p256_mod);
+	sp_256_mont_tpl_8(t1, t2, p256_mod);
 	/* Y = 2Y */
-	sp_256_mont_dbl_10(r->y, r->y, p256_mod);
+	sp_256_mont_dbl_8(r->y, r->y, p256_mod);
 	/* Y = Y * Y */
-	sp_256_mont_sqr_10(r->y, r->y /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_sqr_8(r->y, r->y /*, p256_mod, p256_mp_mod*/);
 	/* T2 = Y * Y */
-	sp_256_mont_sqr_10(t2, r->y /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_sqr_8(t2, r->y /*, p256_mod, p256_mp_mod*/);
 	/* T2 = T2/2 */
-	sp_256_div2_10(t2, t2, p256_mod);
+	sp_256_div2_8(t2, t2, p256_mod);
 	/* Y = Y * X */
-	sp_256_mont_mul_10(r->y, r->y, r->x /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(r->y, r->y, r->x /*, p256_mod, p256_mp_mod*/);
 	/* X = T1 * T1 */
-	sp_256_mont_mul_10(r->x, t1, t1 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(r->x, t1, t1 /*, p256_mod, p256_mp_mod*/);
 	/* X = X - Y */
-	sp_256_mont_sub_10(r->x, r->x, r->y, p256_mod);
+	sp_256_mont_sub_8(r->x, r->x, r->y, p256_mod);
 	/* X = X - Y */
-	sp_256_mont_sub_10(r->x, r->x, r->y, p256_mod);
+	sp_256_mont_sub_8(r->x, r->x, r->y, p256_mod);
 	/* Y = Y - X */
-	sp_256_mont_sub_10(r->y, r->y, r->x, p256_mod);
+	sp_256_mont_sub_8(r->y, r->y, r->x, p256_mod);
 	/* Y = Y * T1 */
-	sp_256_mont_mul_10(r->y, r->y, t1 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(r->y, r->y, t1 /*, p256_mod, p256_mp_mod*/);
 	/* Y = Y - T2 */
-	sp_256_mont_sub_10(r->y, r->y, t2, p256_mod);
+	sp_256_mont_sub_8(r->y, r->y, t2, p256_mod);
+	dump_512("y2 %s\n", r->y);
 }
 
 /* Add two Montgomery form projective points.
@@ -709,13 +810,13 @@ static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
  * p  Frist point to add.
  * q  Second point to add.
  */
-static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q)
+static void sp_256_proj_point_add_8(sp_point* r, sp_point* p, sp_point* q)
 {
-	sp_digit t1[2*10];
-	sp_digit t2[2*10];
-	sp_digit t3[2*10];
-	sp_digit t4[2*10];
-	sp_digit t5[2*10];
+	sp_digit t1[2*8];
+	sp_digit t2[2*8];
+	sp_digit t3[2*8];
+	sp_digit t4[2*8];
+	sp_digit t5[2*8];
 
 	/* Ensure only the first point is the same as the result. */
 	if (q == r) {
@@ -725,13 +826,13 @@ static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q)
 	}
 
 	/* Check double */
-	sp_256_sub_10(t1, p256_mod, q->y);
-	sp_256_norm_10(t1);
-	if (sp_256_cmp_equal_10(p->x, q->x)
-	 && sp_256_cmp_equal_10(p->z, q->z)
-	 && (sp_256_cmp_equal_10(p->y, q->y) || sp_256_cmp_equal_10(p->y, t1))
+	sp_256_sub_8(t1, p256_mod, q->y);
+	sp_256_norm_8(t1);
+	if (sp_256_cmp_equal_8(p->x, q->x)
+	 && sp_256_cmp_equal_8(p->z, q->z)
+	 && (sp_256_cmp_equal_8(p->y, q->y) || sp_256_cmp_equal_8(p->y, t1))
 	) {
-		sp_256_proj_point_dbl_10(r, p);
+		sp_256_proj_point_dbl_8(r, p);
 	}
 	else {
 		sp_point tp;
@@ -746,37 +847,37 @@ static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q)
 		*r = p->infinity ? *q : *p; /* struct copy */
 
 		/* U1 = X1*Z2^2 */
-		sp_256_mont_sqr_10(t1, q->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_10(t3, t1, q->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_10(t1, t1, v->x /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_sqr_8(t1, q->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(t3, t1, q->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(t1, t1, v->x /*, p256_mod, p256_mp_mod*/);
 		/* U2 = X2*Z1^2 */
-		sp_256_mont_sqr_10(t2, v->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_10(t4, t2, v->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_10(t2, t2, q->x /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_sqr_8(t2, v->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(t4, t2, v->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(t2, t2, q->x /*, p256_mod, p256_mp_mod*/);
 		/* S1 = Y1*Z2^3 */
-		sp_256_mont_mul_10(t3, t3, v->y /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(t3, t3, v->y /*, p256_mod, p256_mp_mod*/);
 		/* S2 = Y2*Z1^3 */
-		sp_256_mont_mul_10(t4, t4, q->y /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(t4, t4, q->y /*, p256_mod, p256_mp_mod*/);
 		/* H = U2 - U1 */
-		sp_256_mont_sub_10(t2, t2, t1, p256_mod);
+		sp_256_mont_sub_8(t2, t2, t1, p256_mod);
 		/* R = S2 - S1 */
-		sp_256_mont_sub_10(t4, t4, t3, p256_mod);
+		sp_256_mont_sub_8(t4, t4, t3, p256_mod);
 		/* Z3 = H*Z1*Z2 */
-		sp_256_mont_mul_10(v->z, v->z, q->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_10(v->z, v->z, t2 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(v->z, v->z, q->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(v->z, v->z, t2 /*, p256_mod, p256_mp_mod*/);
 		/* X3 = R^2 - H^3 - 2*U1*H^2 */
-		sp_256_mont_sqr_10(v->x, t4 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_sqr_10(t5, t2 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_10(v->y, t1, t5 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_10(t5, t5, t2 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_sub_10(v->x, v->x, t5, p256_mod);
-		sp_256_mont_dbl_10(t1, v->y, p256_mod);
-		sp_256_mont_sub_10(v->x, v->x, t1, p256_mod);
+		sp_256_mont_sqr_8(v->x, t4 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_sqr_8(t5, t2 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(v->y, t1, t5 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(t5, t5, t2 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_sub_8(v->x, v->x, t5, p256_mod);
+		sp_256_mont_dbl_8(t1, v->y, p256_mod);
+		sp_256_mont_sub_8(v->x, v->x, t1, p256_mod);
 		/* Y3 = R*(U1*H^2 - X3) - S1*H^3 */
-		sp_256_mont_sub_10(v->y, v->y, v->x, p256_mod);
-		sp_256_mont_mul_10(v->y, v->y, t4 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_10(t5, t5, t3 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_sub_10(v->y, v->y, t5, p256_mod);
+		sp_256_mont_sub_8(v->y, v->y, v->x, p256_mod);
+		sp_256_mont_mul_8(v->y, v->y, t4 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_8(t5, t5, t3 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_sub_8(v->y, v->y, t5, p256_mod);
 	}
 }
 
@@ -788,12 +889,11 @@ static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q)
  * k     Scalar to multiply by.
  * map   Indicates whether to convert result to affine.
  */
-static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit* k /*, int map*/)
+static void sp_256_ecc_mulmod_8(sp_point* r, const sp_point* g, const sp_digit* k /*, int map*/)
 {
 	enum { map = 1 }; /* we always convert result to affine coordinates */
 	sp_point t[3];
-	sp_digit n;
-	int i;
+	sp_digit n = n; /* for compiler */
 	int c, y;
 
 	memset(t, 0, sizeof(t));
@@ -801,36 +901,44 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
 	/* t[0] = {0, 0, 1} * norm */
 	t[0].infinity = 1;
 	/* t[1] = {g->x, g->y, g->z} * norm */
-	sp_256_mod_mul_norm_10(t[1].x, g->x);
-	sp_256_mod_mul_norm_10(t[1].y, g->y);
-	sp_256_mod_mul_norm_10(t[1].z, g->z);
-	dump_512("t[1].x %s\n", t[1].x);
-	dump_512("t[1].y %s\n", t[1].y);
-	dump_512("t[1].z %s\n", t[1].z);
+	sp_256_mod_mul_norm_8(t[1].x, g->x);
+	sp_256_mod_mul_norm_8(t[1].y, g->y);
+	sp_256_mod_mul_norm_8(t[1].z, g->z);
 
-	i = 9;
-	c = 22;
-	n = k[i--] << (26 - c);
-	for (; ; c--) {
-		if (c == 0) {
-			if (i == -1)
+	/* For every bit, starting from most significant... */
+	k += 7;
+	c = 256;
+	for (;;) {
+		if ((c & 0x1f) == 0) {
+			if (c == 0)
 				break;
-
-			n = k[i--];
-			c = 26;
+			n = *k--;
 		}
 
-		y = (n >> 25) & 1;
-		n <<= 1;
-
-		sp_256_proj_point_add_10(&t[y^1], &t[0], &t[1]);
+		y = (n >> 31);
+		dbg("y:%d t[%d] = t[0]+t[1]\n", y, y^1);
+		sp_256_proj_point_add_8(&t[y^1], &t[0], &t[1]);
+		dump_512("t[0].x %s\n", t[0].x);
+		dump_512("t[0].y %s\n", t[0].y);
+		dump_512("t[0].z %s\n", t[0].z);
+		dump_512("t[1].x %s\n", t[1].x);
+		dump_512("t[1].y %s\n", t[1].y);
+		dump_512("t[1].z %s\n", t[1].z);
+		dbg("t[2] = t[%d]\n", y);
 		memcpy(&t[2], &t[y], sizeof(sp_point));
-		sp_256_proj_point_dbl_10(&t[2], &t[2]);
+		dbg("t[2] *= 2\n");
+		sp_256_proj_point_dbl_8(&t[2], &t[2]);
+		dump_512("t[2].x %s\n", t[2].x);
+		dump_512("t[2].y %s\n", t[2].y);
+		dump_512("t[2].z %s\n", t[2].z);
 		memcpy(&t[y], &t[2], sizeof(sp_point));
+
+		n <<= 1;
+		c--;
 	}
 
 	if (map)
-		sp_256_map_10(r, &t[0]);
+		sp_256_map_8(r, &t[0]);
 	else
 		memcpy(r, &t[0], sizeof(sp_point));
 
@@ -844,7 +952,7 @@ static void sp_256_ecc_mulmod_10(sp_point* r, const sp_point* g, const sp_digit*
  * k     Scalar to multiply by.
  * map   Indicates whether to convert result to affine.
  */
-static void sp_256_ecc_mulmod_base_10(sp_point* r, sp_digit* k /*, int map*/)
+static void sp_256_ecc_mulmod_base_8(sp_point* r, sp_digit* k /*, int map*/)
 {
 	/* Since this function is called only once, save space:
 	 * don't have "static const sp_point p256_base = {...}",
@@ -861,7 +969,7 @@ static void sp_256_ecc_mulmod_base_10(sp_point* r, sp_digit* k /*, int map*/)
 
 	sp_256_point_from_bin2x32(&p256_base, p256_base_bin);
 
-	sp_256_ecc_mulmod_10(r, &p256_base, k /*, map*/);
+	sp_256_ecc_mulmod_8(r, &p256_base, k /*, map*/);
 }
 
 /* Multiply the point by the scalar and serialize the X ordinate.
@@ -871,7 +979,7 @@ static void sp_256_ecc_mulmod_base_10(sp_point* r, sp_digit* k /*, int map*/)
  * pub2x32 Point to multiply.
  * out32   Buffer to hold X ordinate.
  */
-static void sp_ecc_secret_gen_256(const sp_digit priv[10], const uint8_t *pub2x32, uint8_t* out32)
+static void sp_ecc_secret_gen_256(const sp_digit priv[8], const uint8_t *pub2x32, uint8_t* out32)
 {
 	sp_point point[1];
 
@@ -885,66 +993,48 @@ static void sp_ecc_secret_gen_256(const sp_digit priv[10], const uint8_t *pub2x3
 	dump_512("point->x %s\n", point->x);
 	dump_512("point->y %s\n", point->y);
 
-	sp_256_ecc_mulmod_10(point, point, priv);
+	sp_256_ecc_mulmod_8(point, point, priv);
 
-	sp_256_to_bin_10(point->x, out32);
+	sp_256_to_bin_8(point->x, out32);
 	dump_hex("out32: %s\n", out32, 32);
 }
 
-/* Generates a scalar that is in the range 1..order-1. */
-#define SIMPLIFY 1
-/* Add 1 to a. (a = a + 1) */
-static void sp_256_add_one_10(sp_digit* a)
+/* Generates a random scalar in [1..order-1] range. */
+static void sp_256_ecc_gen_k_8(sp_digit k[8])
 {
-	a[0]++;
-	sp_256_norm_10(a);
-}
-static void sp_256_ecc_gen_k_10(sp_digit k[10])
-{
-#if !SIMPLIFY
-	/* The order of the curve P256 minus 2. */
-	static const sp_digit p256_order2[10] = {
-		0x063254f,0x272b0bf,0x1e84f3b,0x2b69c5e,0x3bce6fa,
-		0x3ffffff,0x3ffffff,0x00003ff,0x3ff0000,0x03fffff,
-	};
-#endif
-	uint8_t buf[32];
-
-	for (;;) {
-		tls_get_random(buf, sizeof(buf));
+	/* Since 32-bit words are "dense", no need to use
+	 * sp_256_from_bin_8(k, buf) to convert random stream
+	 * to sp_digit array - just store random bits there directly.
+	 */
+	tls_get_random(k, 8 * sizeof(k[0]));
 #if FIXED_SECRET
-		memset(buf, 0x77, sizeof(buf));
+	memset(k, 0x77, 8 * sizeof(k[0]));
 #endif
-		sp_256_from_bin_10(k, buf);
-#if !SIMPLIFY
-		if (sp_256_cmp_10(k, p256_order2) < 0)
-			break;
-#else
-		/* non-loopy version (and not needing p256_order2[]):
-		 * if most-significant word seems that k can be larger
-		 * than p256_order2, fix it up:
-		 */
-		if (k[9] >= 0x03fffff)
-			k[9] = 0x03ffffe;
-		break;
-#endif
-	}
-	sp_256_add_one_10(k);
-#undef SIMPLIFY
+
+// If scalar is too large, try again (pseudo-code)
+//	if (k >= 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551 - 1) // order of P256
+//		goto pick_another_random;
+//	k++; // ensure non-zero
+	/* Simpler alternative, at the cost of not choosing some valid
+	 * random values, and slightly non-uniform distribution */
+	if (k[0] == 0)
+		k[0] = 1;
+	if (k[7] >= 0xffffffff)
+		k[7] = 0xfffffffe;
 }
 
 /* Makes a random EC key pair. */
-static void sp_ecc_make_key_256(sp_digit privkey[10], uint8_t *pubkey)
+static void sp_ecc_make_key_256(sp_digit privkey[8], uint8_t *pubkey)
 {
 	sp_point point[1];
 
-	sp_256_ecc_gen_k_10(privkey);
+	sp_256_ecc_gen_k_8(privkey);
 	dump_256("privkey %s\n", privkey);
-	sp_256_ecc_mulmod_base_10(point, privkey);
+	sp_256_ecc_mulmod_base_8(point, privkey);
 	dump_512("point->x %s\n", point->x);
 	dump_512("point->y %s\n", point->y);
-	sp_256_to_bin_10(point->x, pubkey);
-	sp_256_to_bin_10(point->y, pubkey + 32);
+	sp_256_to_bin_8(point->x, pubkey);
+	sp_256_to_bin_8(point->y, pubkey + 32);
 
 	memset(point, 0, sizeof(point)); //paranoia
 }
@@ -953,8 +1043,9 @@ void FAST_FUNC curve_P256_compute_pubkey_and_premaster(
 		uint8_t *pubkey2x32, uint8_t *premaster32,
 		const uint8_t *peerkey2x32)
 {
-	sp_digit privkey[10];
+	sp_digit privkey[8];
 
+	dump_hex("peerkey2x32: %s\n", peerkey2x32, 64);
 	sp_ecc_make_key_256(privkey, pubkey2x32);
 	dump_hex("pubkey: %s\n", pubkey2x32, 32);
 	dump_hex("        %s\n", pubkey2x32 + 32, 32);
