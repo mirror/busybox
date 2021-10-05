@@ -117,3 +117,7 @@ void curve_x25519_compute_pubkey_and_premaster(
 void curve_P256_compute_pubkey_and_premaster(
 		uint8_t *pubkey2x32, uint8_t *premaster32,
 		const uint8_t *peerkey2x32) FAST_FUNC;
+
+void curve_P256_compute_pubkey_and_premaster_NEW(
+		uint8_t *pubkey2x32, uint8_t *premaster32,
+		const uint8_t *peerkey2x32) FAST_FUNC;

@@ -163,11 +163,13 @@ static void dump_512(const char *fmt, const sp_digit* cr)
 	a[j] = 0;
 	for (i = 0; i < 20 && j >= 0; i++) {
 		b = 0;
-		a[j--] |= r[i] << s; b += 8 - s;
+		a[j--] |= r[i] << s;
+		b += 8 - s;
 		if (j < 0)
 			break;
 		while (b < 26) {
-			a[j--] = r[i] >> b; b += 8;
+			a[j--] = r[i] >> b;
+			b += 8;
 			if (j < 0)
 				break;
 		}
@@ -286,9 +288,10 @@ static void sp_256_mont_add_10(sp_digit* r, const sp_digit* a, const sp_digit* b
 {
 	sp_256_add_10(r, a, b);
 	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0)
+	if ((r[9] >> 22) > 0) {
 		sp_256_sub_10(r, r, m);
-	sp_256_norm_10(r);
+		sp_256_norm_10(r);
+	}
 }
 
 /* Subtract two Montgomery form numbers (r = a - b % m) */
@@ -296,10 +299,12 @@ static void sp_256_mont_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b
 		const sp_digit* m)
 {
 	sp_256_sub_10(r, a, b);
-	if (r[9] >> 22)
-		sp_256_add_10(r, r, m);
 	sp_256_norm_10(r);
-	r[9] &= 0x03fffff; /* truncate to 22 bits */
+	if (r[9] >> 22) {
+		sp_256_add_10(r, r, m);
+		sp_256_norm_10(r);
+		r[9] &= 0x03fffff; /* truncate to 22 bits */
+	}
 }
 
 /* Double a Montgomery form number (r = a + a % m) */
@@ -317,14 +322,17 @@ static void sp_256_mont_tpl_10(sp_digit* r, const sp_digit* a, const sp_digit* m
 {
 	sp_256_add_10(r, a, a);
 	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0)
+	if ((r[9] >> 22) > 0) {
 		sp_256_sub_10(r, r, m);
-	sp_256_norm_10(r);
+		sp_256_norm_10(r);
+	}
 	sp_256_add_10(r, r, a);
 	sp_256_norm_10(r);
-	if ((r[9] >> 22) > 0)
+	if ((r[9] >> 22) > 0) {
 		sp_256_sub_10(r, r, m);
-	sp_256_norm_10(r);
+		sp_256_norm_10(r);
+	}
+	r[9] &= 0x03fffff; /* truncate to 22 bits */
 }
 
 /* Shift the result in the high 256 bits down to the bottom. */
@@ -649,6 +657,13 @@ static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
 
 	if (r->infinity) /* If infinity, don't double */
 		return;
+
+	if (SP_DEBUG) {
+		/* unused part of t2, may result in spurios
+		 * differences in debug output. Clear it.
+		 */
+		memset(t2, 0, sizeof(t2));
+	}
 
 	/* T1 = Z * Z */
 	sp_256_mont_sqr_10(t1, r->z /*, p256_mod, p256_mp_mod*/);

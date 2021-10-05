@@ -2326,6 +2326,48 @@ void FAST_FUNC tls_run_copy_loop(tls_state_t *tls, unsigned flags)
 	const int INBUF_STEP = 4 * 1024;
 	struct pollfd pfds[2];
 
+#if 0
+// Debug aid for comparing P256 implementations.
+// Enable this, set SP_DEBUG and FIXED_SECRET to 1,
+// and add
+//	tls_run_copy_loop(NULL, 0);
+// e.g. at the very beginning of wget_main()
+//
+{
+//kbuild:lib-$(CONFIG_TLS) += tls_sp_c32_new.o
+	uint8_t ecc_pub_key32[2 * 32];
+	uint8_t pubkey2x32[2 * 32];
+	uint8_t premaster32[32];
+
+//Fixed input key:
+//	memset(ecc_pub_key32, 0xee, sizeof(ecc_pub_key32));
+//Fixed 000000000000000000000000000000000000ab000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+//	memset(ecc_pub_key32, 0x00, sizeof(ecc_pub_key32));
+//	ecc_pub_key32[18] = 0xab;
+//Random key:
+	tls_get_random(ecc_pub_key32, sizeof(ecc_pub_key32));
+//Biased random (almost all zeros or almost all ones):
+//	srand(time(NULL) ^ getpid());
+//	if (rand() & 1)
+//		memset(ecc_pub_key32, 0x00, sizeof(ecc_pub_key32));
+//	else
+//		memset(ecc_pub_key32, 0xff, sizeof(ecc_pub_key32));
+//	ecc_pub_key32[rand() & 0x3f] = rand();
+
+	xmove_fd(xopen("p256.OLD", O_WRONLY | O_CREAT | O_TRUNC), 2);
+	curve_P256_compute_pubkey_and_premaster(
+			pubkey2x32, premaster32,
+			/*point:*/ ecc_pub_key32
+	);
+	xmove_fd(xopen("p256.NEW", O_WRONLY | O_CREAT | O_TRUNC), 2);
+	curve_P256_compute_pubkey_and_premaster_NEW(
+			pubkey2x32, premaster32,
+			/*point:*/ ecc_pub_key32
+	);
+	exit(1);
+}
+#endif
+
 	pfds[0].fd = STDIN_FILENO;
 	pfds[0].events = POLLIN;
 	pfds[1].fd = tls->ifd;
