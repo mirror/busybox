@@ -96,11 +96,13 @@ static void sp_256_to_bin_10(sp_digit* r, uint8_t* a)
 	a[j] = 0;
 	for (i = 0; i < 10 && j >= 0; i++) {
 		b = 0;
-		a[j--] |= r[i] << s; b += 8 - s;
+		a[j--] |= r[i] << s;
+		b += 8 - s;
 		if (j < 0)
 			break;
 		while (b < 26) {
-			a[j--] = r[i] >> b; b += 8;
+			a[j--] = r[i] >> b;
+			b += 8;
 			if (j < 0)
 				break;
 		}
@@ -297,6 +299,7 @@ static void sp_256_mont_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b
 	if (r[9] >> 22)
 		sp_256_add_10(r, r, m);
 	sp_256_norm_10(r);
+	r[9] &= 0x03fffff; /* truncate to 22 bits */
 }
 
 /* Double a Montgomery form number (r = a + a % m) */
@@ -864,8 +867,8 @@ static void sp_ecc_secret_gen_256(const sp_digit priv[10], const uint8_t *pub2x3
 	dump_hex("        %s\n", pub2x32 + 32, 32);
 
 	sp_256_point_from_bin2x32(point, pub2x32);
-	dump_hex("point->x %s\n", point->x, sizeof(point->x));
-	dump_hex("point->y %s\n", point->y, sizeof(point->y));
+	dump_512("point->x %s\n", point->x);
+	dump_512("point->y %s\n", point->y);
 
 	sp_256_ecc_mulmod_10(point, point, priv);
 
