@@ -80,13 +80,13 @@ static void sp_256_norm_10(sp_digit* a)
 	}
 }
 
-/* Write r as big endian to byte aray.
+/* Write r as big endian to byte array.
  * Fixed length number of bytes written: 32
  *
  * r  A single precision integer.
  * a  Byte array.
  */
-static void sp_256_to_bin(sp_digit* r, uint8_t* a)
+static void sp_256_to_bin_10(sp_digit* r, uint8_t* a)
 {
 	int i, j, s = 0, b;
 
@@ -112,33 +112,28 @@ static void sp_256_to_bin(sp_digit* r, uint8_t* a)
 	}
 }
 
-/* Read big endian unsigned byte aray into r.
+/* Read big endian unsigned byte array into r.
  *
  * r  A single precision integer.
  * a  Byte array.
  * n  Number of bytes in array to read.
  */
-static void sp_256_from_bin(sp_digit* r, int max, const uint8_t* a, int n)
+static void sp_256_from_bin_10(sp_digit* r, const uint8_t* a)
 {
 	int i, j = 0, s = 0;
 
 	r[0] = 0;
-	for (i = n-1; i >= 0; i--) {
+	for (i = 32 - 1; i >= 0; i--) {
 		r[j] |= ((sp_digit)a[i]) << s;
 		if (s >= 18) {
 			r[j] &= 0x3ffffff;
 			s = 26 - s;
-			if (j + 1 >= max)
-				break;
 			r[++j] = a[i] >> s;
 			s = 8 - s;
 		}
 		else
 			s += 8;
 	}
-
-	for (j++; j < max; j++)
-		r[j] = 0;
 }
 
 /* Convert a point of big-endian 32-byte x,y pair to type sp_point. */
@@ -146,11 +141,9 @@ static void sp_256_point_from_bin2x32(sp_point* p, const uint8_t *bin2x32)
 {
 	memset(p, 0, sizeof(*p));
 	/*p->infinity = 0;*/
-	sp_256_from_bin(p->x, 2 * 10, bin2x32, 32);
-	sp_256_from_bin(p->y, 2 * 10, bin2x32 + 32, 32);
-	//static const uint8_t one[1] = { 1 };
-	//sp_256_from_bin(p->z, 2 * 10, one, 1);
-	p->z[0] = 1;
+	sp_256_from_bin_10(p->x, bin2x32);
+	sp_256_from_bin_10(p->y, bin2x32 + 32);
+	p->z[0] = 1; /* p->z = 1 */
 }
 
 /* Compare a with b.
@@ -193,30 +186,6 @@ static void sp_256_sub_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
 	int i;
 	for (i = 0; i < 10; i++)
 		r[i] = a[i] - b[i];
-}
-
-/* Shift number left one bit. Bottom bit is lost. */
-static void sp_256_rshift1_10(sp_digit* r, sp_digit* a)
-{
-	int i;
-	for (i = 0; i < 9; i++)
-		r[i] = ((a[i] >> 1) | (a[i + 1] << 25)) & 0x3ffffff;
-	r[9] = a[9] >> 1;
-}
-
-/* Mul a by scalar b and add into r. (r += a * b) */
-static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a, sp_digit b)
-{
-	int64_t tb = b;
-	int64_t t = 0;
-	int i;
-
-	for (i = 0; i < 10; i++) {
-		t += (tb * a[i]) + r[i];
-		r[i] = t & 0x3ffffff;
-		t >>= 26;
-	}
-	r[10] += t;
 }
 
 /* Multiply a and b into r. (r = a * b) */
@@ -269,6 +238,15 @@ static void sp_256_sqr_10(sp_digit* r, const sp_digit* a)
 		c = (c & 0x3ffffff) << 26;
 	}
 	r[0] = (sp_digit)(c >> 26);
+}
+
+/* Shift number left one bit. Bottom bit is lost. */
+static void sp_256_rshift1_10(sp_digit* r, sp_digit* a)
+{
+	int i;
+	for (i = 0; i < 9; i++)
+		r[i] = ((a[i] >> 1) | (a[i + 1] << 25)) & 0x3ffffff;
+	r[9] = a[9] >> 1;
 }
 
 /* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m) */
@@ -345,6 +323,20 @@ static void sp_256_mont_shift_10(sp_digit* r, const sp_digit* a)
 	memset(&r[10], 0, sizeof(*r) * 10);
 }
 
+/* Mul a by scalar b and add into r. (r += a * b) */
+static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a, sp_digit b)
+{
+	int64_t t = 0;
+	int i;
+
+	for (i = 0; i < 10; i++) {
+		t += ((int64_t)b * a[i]) + r[i];
+		r[i] = t & 0x3ffffff;
+		t >>= 26;
+	}
+	r[10] += t;
+}
+
 /* Reduce the number back to 256 bits using Montgomery reduction.
  *
  * a   A single precision number to reduce in place.
@@ -362,7 +354,7 @@ static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
 			sp_256_mul_add_10(a+i, m, mu);
 			a[i+1] += a[i] >> 26;
 		}
-		mu = (a[i] * mp) & 0x3fffffl;
+		mu = (a[i] * mp) & 0x03fffff;
 		sp_256_mul_add_10(a+i, m, mu);
 		a[i+1] += a[i] >> 26;
 		a[i] &= 0x3ffffff;
@@ -370,11 +362,11 @@ static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
 	else {
 		for (i = 0; i < 9; i++) {
 			mu = a[i] & 0x3ffffff;
-			sp_256_mul_add_10(a+i, p256_mod, mu);
+			sp_256_mul_add_10(a+i, m, mu);
 			a[i+1] += a[i] >> 26;
 		}
-		mu = a[i] & 0x3fffffl;
-		sp_256_mul_add_10(a+i, p256_mod, mu);
+		mu = a[i] & 0x03fffff;
+		sp_256_mul_add_10(a+i, m, mu);
 		a[i+1] += a[i] >> 26;
 		a[i] &= 0x3ffffff;
 	}
@@ -617,7 +609,6 @@ static void sp_256_map_10(sp_point* r, sp_point* p)
  */
 static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
 {
-	sp_point tp;
 	sp_digit t1[2*10];
 	sp_digit t2[2*10];
 
@@ -625,10 +616,9 @@ static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
 	if (r != p)
 		*r = *p; /* struct copy */
 
-	if (r->infinity) {
-		/* If infinity, don't double (work on dummy value) */
-		r = &tp;
-	}
+	if (r->infinity) /* If infinity, don't double */
+		return;
+
 	/* T1 = Z * Z */
 	sp_256_mont_sqr_10(t1, r->z, p256_mod, p256_mp_mod);
 	/* Z = Y * Z */
@@ -848,7 +838,7 @@ static void sp_ecc_secret_gen_256(const sp_digit priv[10], const uint8_t *pub2x3
 
 	sp_256_ecc_mulmod_10(point, point, priv);
 
-	sp_256_to_bin(point->x, out32);
+	sp_256_to_bin_10(point->x, out32);
 	dump_hex("out32: %s\n", out32, 32);
 }
 
@@ -876,7 +866,7 @@ static void sp_256_ecc_gen_k_10(sp_digit k[10])
 #if FIXED_SECRET
 		memset(buf, 0x77, sizeof(buf));
 #endif
-		sp_256_from_bin(k, 10, buf, sizeof(buf));
+		sp_256_from_bin_10(k, buf);
 #if !SIMPLIFY
 		if (sp_256_cmp_10(k, p256_order2) < 0)
 			break;
@@ -901,8 +891,8 @@ static void sp_ecc_make_key_256(sp_digit privkey[10], uint8_t *pubkey)
 
 	sp_256_ecc_gen_k_10(privkey);
 	sp_256_ecc_mulmod_base_10(point, privkey);
-	sp_256_to_bin(point->x, pubkey);
-	sp_256_to_bin(point->y, pubkey + 32);
+	sp_256_to_bin_10(point->x, pubkey);
+	sp_256_to_bin_10(point->y, pubkey + 32);
 
 	memset(point, 0, sizeof(point)); //paranoia
 }
