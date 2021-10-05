@@ -488,19 +488,118 @@ static void sp_256_mont_shift_8(sp_digit* r, const sp_digit* a)
 }
 
 /* Mul a by scalar b and add into r. (r += a * b) */
-static int sp_256_mul_add_8(sp_digit* r, const sp_digit* a, sp_digit b)
+static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
 {
+//	const sp_digit* a = p256_mod;
+//a[7..0] = ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff
+	sp_digit b = r[0];
 	uint64_t t = 0;
-	int i;
 
-	for (i = 0; i < 8; i++) {
-		uint32_t t_hi;
-		uint64_t m = ((uint64_t)b * a[i]) + r[i];
+//	for (i = 0; i < 8; i++) {
+//		uint32_t t_hi;
+//		uint64_t m = ((uint64_t)b * a[i]) + r[i];
+//		t += m;
+//		t_hi = (t < m);
+//		r[i] = (sp_digit)t;
+//		t = (t >> 32) | ((uint64_t)t_hi << 32);
+//	}
+//	r[8] += (sp_digit)t;
+
+	// Unroll, then optimize the above loop:
+		//uint32_t t_hi;
+		uint64_t m;
+
+		//m = ((uint64_t)b * a[0]) + r[0];
+		//  Since b is r[0] and a[0] is ffffffff, the above optimizes to:
+		//  m = r[0] * ffffffff + r[0] = (r[0] * 100000000 - r[0]) + r[0] = r[0] << 32;
+		//t += m;
+		//  t = (uint64_t)r[0] << 32;
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		//r[0] = (sp_digit)t;
+		r[0] = 0;
+		//t = (t >> 32) | ((uint64_t)t_hi << 32);
+		//  t = b;
+
+		//m = ((uint64_t)b * a[1]) + r[1];
+		//  Since a[1] is ffffffff, the above optimizes to:
+		//  m = b * ffffffff + r[1] = (b * 100000000 - b) + r[1] = (b << 32) - b + r[1];
+		//t += m;
+		//  t = b + (b << 32) - b + r[1] = (b << 32) + r[1];
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		//r[1] = (sp_digit)t;
+		//  r[1] = r[1];
+		//t = (t >> 32) | ((uint64_t)t_hi << 32);
+		//  t = b;
+
+		//m = ((uint64_t)b * a[2]) + r[2];
+		//  Since a[2] is ffffffff, the above optimizes to:
+		//  m = b * ffffffff + r[2] = (b * 100000000 - b) + r[2] = (b << 32) - b + r[2];
+		//t += m;
+		//  t = b + (b << 32) - b + r[2] = (b << 32) + r[2]
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		//r[2] = (sp_digit)t;
+		//  r[2] = r[2];
+		//t = (t >> 32) | ((uint64_t)t_hi << 32);
+		//  t = b;
+
+		//m = ((uint64_t)b * a[3]) + r[3];
+		//  Since a[3] is 00000000, the above optimizes to:
+		//  m = b * 0 + r[3] = r[3];
+		//t += m;
+		//  t += r[3];
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		//r[3] = (sp_digit)t;
+		r[3] = r[3] + b;
+		//t = (t >> 32) | ((uint64_t)t_hi << 32);
+		t = (r[3] < b);
+
+		//m = ((uint64_t)b * a[4]) + r[4];
+		//  Since a[4] is 00000000, the above optimizes to:
+		//  m = b * 0 + r[4] = r[4];
+		//t += m;
+		t += r[4];
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		r[4] = (sp_digit)t;
+		//t = (t >> 32) | ((uint64_t)t_hi << 32);
+		t = (t >> 32);
+
+		//m = ((uint64_t)b * a[5]) + r[5];
+		//  Since a[5] is 00000000, the above optimizes to:
+		//  m = b * 0 + r[5] = r[5];
+		//t += m;
+		t += r[5];
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		r[5] = (sp_digit)t;
+		//t = (t >> 32) | ((uint64_t)t_hi << 32);
+		t = (t >> 32);
+
+		//m = ((uint64_t)b * a[6]) + r[6];
+		//  Since a[6] is 00000001, the above optimizes to:
+		m = (uint64_t)b + r[6]; // 33 bits at most
 		t += m;
-		t_hi = (t < m);
-		r[i] = (sp_digit)t;
-		t = (t >> 32) | ((uint64_t)t_hi << 32);
-	}
+		//t_hi = (t < m);
+		//  t_hi = 0; //32bit_value + 33bit_value can't overflow 64 bits
+		r[6] = (sp_digit)t;
+		//t = (t >> 32) | ((uint64_t)t_hi << 32);
+		t = (t >> 32);
+
+		//m = ((uint64_t)b * a[7]) + r[7];
+		//  Since a[7] is ffffffff, the above optimizes to:
+		//  m = b * ffffffff + r[7] = (b * 100000000 - b) + r[7]
+		m = ((uint64_t)b << 32) - b + r[7];
+		t += m;
+		//t_hi = (t < m);
+		//  t_hi in fact is always 0 here
+		r[7] = (sp_digit)t;
+		//t = (t >> 32) | ((uint64_t)t_hi << 32);
+		t = (t >> 32);
+
 	r[8] += (sp_digit)t;
 	return (r[8] < (sp_digit)t); /* 1 if addition overflowed */
 }
@@ -517,28 +616,33 @@ static void sp_256_mont_reduce_8(sp_digit* a/*, const sp_digit* m, sp_digit mp*/
 	sp_digit mp = p256_mp_mod;
 
 	int i;
-	sp_digit mu;
+//	sp_digit mu;
 
 	if (mp != 1) {
-		int too_wide;
-		for (i = 0; i < 7; i++) {
-			mu = (sp_digit)(a[i] * mp);
-			if (sp_256_mul_add_8(a+i, m, mu))
-				(a+i)[9]++;
+		sp_digit word16th = 0;
+		for (i = 0; i < 8; i++) {
+//			mu = (sp_digit)(a[i] * mp);
+			if (sp_256_mul_add_8(a+i /*, m, mu*/)) {
+				int j = i + 8;
+ inc_next_word0:
+				if (++j > 15) { /* a[16] array has no more words? */
+					word16th++;
+					continue;
+				}
+				if (++a[j] == 0) /* did this overflow too? */
+					goto inc_next_word0;
+			}
 		}
-		mu = (sp_digit)(a[7] * mp);
-		too_wide = sp_256_mul_add_8(a+7, m, mu);
 		sp_256_mont_shift_8(a, a);
-		if (too_wide)
+		if (word16th != 0)
 			sp_256_sub_8(a, a, m);
 		sp_256_norm_8(a);
 	}
 	else { /* Same code for explicit mp == 1 (which is always the case for P256) */
 		sp_digit word16th = 0;
 		for (i = 0; i < 8; i++) {
-			mu = a[i];
-//m = ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff
-			if (sp_256_mul_add_8(a+i, m, mu)) {
+//			mu = a[i];
+			if (sp_256_mul_add_8(a+i /*, m, mu*/)) {
 				int j = i + 8;
  inc_next_word:
 				if (++j > 15) { /* a[16] array has no more words? */
