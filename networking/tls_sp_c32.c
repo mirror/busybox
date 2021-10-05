@@ -291,6 +291,74 @@ static int sp_256_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 #endif
 }
 
+/* Sub p256_mod from a into r. (r = a - p256_mod). */
+static void sp_256_sub_8_p256_mod(sp_digit* r, const sp_digit* a)
+{
+#if ALLOW_ASM && defined(__GNUC__) && defined(__i386__)
+	sp_digit reg;
+//p256_mod[7..0] = ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff
+	asm volatile (
+"\n		movl	(%0), %2"
+"\n		subl	$0xffffffff, %2"
+"\n		movl	%2, (%1)"
+"\n"
+"\n		movl	1*4(%0), %2"
+"\n		sbbl	$0xffffffff, %2"
+"\n		movl	%2, 1*4(%1)"
+"\n"
+"\n		movl	2*4(%0), %2"
+"\n		sbbl	$0xffffffff, %2"
+"\n		movl	%2, 2*4(%1)"
+"\n"
+"\n		movl	3*4(%0), %2"
+"\n		sbbl	$0, %2"
+"\n		movl	%2, 3*4(%1)"
+"\n"
+"\n		movl	4*4(%0), %2"
+"\n		sbbl	$0, %2"
+"\n		movl	%2, 4*4(%1)"
+"\n"
+"\n		movl	5*4(%0), %2"
+"\n		sbbl	$0, %2"
+"\n		movl	%2, 5*4(%1)"
+"\n"
+"\n		movl	6*4(%0), %2"
+"\n		sbbl	$1, %2"
+"\n		movl	%2, 6*4(%1)"
+"\n"
+"\n		movl	7*4(%0), %2"
+"\n		sbbl	$0xffffffff, %2"
+"\n		movl	%2, 7*4(%1)"
+"\n"
+		: "=r" (a), "=r" (r), "=r" (reg)
+		: "0" (a), "1" (r)
+		: "memory"
+	);
+#else
+	const sp_digit* b = p256_mod;
+	int i;
+	sp_digit borrow;
+
+	borrow = 0;
+	for (i = 0; i < 8; i++) {
+		sp_digit w, v;
+		w = b[i] + borrow;
+		v = a[i];
+		if (w != 0) {
+			v = a[i] - w;
+			borrow = (v > a[i]);
+			/* hope compiler detects above as "carry flag set" */
+		}
+		/* else: b + borrow == 0, two cases:
+		 * b:ffffffff, borrow:1
+		 * b:00000000, borrow:0
+		 * in either case, r[i] = a[i] and borrow remains unchanged
+		 */
+		r[i] = v;
+	}
+#endif
+}
+
 /* Multiply a and b into r. (r = a * b) */
 static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 {
@@ -425,21 +493,25 @@ static void sp_256_div2_8(sp_digit* r, const sp_digit* a, const sp_digit* m)
 }
 
 /* Add two Montgomery form numbers (r = a + b % m) */
-static void sp_256_mont_add_8(sp_digit* r, const sp_digit* a, const sp_digit* b,
-		const sp_digit* m)
+static void sp_256_mont_add_8(sp_digit* r, const sp_digit* a, const sp_digit* b
+		/*, const sp_digit* m*/)
 {
+//	const sp_digit* m = p256_mod;
+
 	int carry = sp_256_add_8(r, a, b);
 	sp_256_norm_8(r);
 	if (carry) {
-		sp_256_sub_8(r, r, m);
+		sp_256_sub_8_p256_mod(r, r /*, m*/);
 		sp_256_norm_8(r);
 	}
 }
 
 /* Subtract two Montgomery form numbers (r = a - b % m) */
-static void sp_256_mont_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b,
-		const sp_digit* m)
+static void sp_256_mont_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b
+		/*, const sp_digit* m*/)
 {
+	const sp_digit* m = p256_mod;
+
 	int borrow;
 	borrow = sp_256_sub_8(r, a, b);
 	sp_256_norm_8(r);
@@ -450,28 +522,32 @@ static void sp_256_mont_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b,
 }
 
 /* Double a Montgomery form number (r = a + a % m) */
-static void sp_256_mont_dbl_8(sp_digit* r, const sp_digit* a, const sp_digit* m)
+static void sp_256_mont_dbl_8(sp_digit* r, const sp_digit* a /*, const sp_digit* m*/)
 {
+//	const sp_digit* m = p256_mod;
+
 	int carry = sp_256_add_8(r, a, a);
 	sp_256_norm_8(r);
 	if (carry)
-		sp_256_sub_8(r, r, m);
+		sp_256_sub_8_p256_mod(r, r /*, m*/);
 	sp_256_norm_8(r);
 }
 
 /* Triple a Montgomery form number (r = a + a + a % m) */
-static void sp_256_mont_tpl_8(sp_digit* r, const sp_digit* a, const sp_digit* m)
+static void sp_256_mont_tpl_8(sp_digit* r, const sp_digit* a /*, const sp_digit* m*/)
 {
+//	const sp_digit* m = p256_mod;
+
 	int carry = sp_256_add_8(r, a, a);
 	sp_256_norm_8(r);
 	if (carry) {
-		sp_256_sub_8(r, r, m);
+		sp_256_sub_8_p256_mod(r, r /*, m*/);
 		sp_256_norm_8(r);
 	}
 	carry = sp_256_add_8(r, r, a);
 	sp_256_norm_8(r);
 	if (carry) {
-		sp_256_sub_8(r, r, m);
+		sp_256_sub_8_p256_mod(r, r /*, m*/);
 		sp_256_norm_8(r);
 	}
 }
@@ -612,7 +688,7 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
  */
 static void sp_256_mont_reduce_8(sp_digit* a/*, const sp_digit* m, sp_digit mp*/)
 {
-	const sp_digit* m = p256_mod;
+//	const sp_digit* m = p256_mod;
 	sp_digit mp = p256_mp_mod;
 
 	int i;
@@ -635,13 +711,13 @@ static void sp_256_mont_reduce_8(sp_digit* a/*, const sp_digit* m, sp_digit mp*/
 		}
 		sp_256_mont_shift_8(a, a);
 		if (word16th != 0)
-			sp_256_sub_8(a, a, m);
+			sp_256_sub_8_p256_mod(a, a /*, m*/);
 		sp_256_norm_8(a);
 	}
 	else { /* Same code for explicit mp == 1 (which is always the case for P256) */
 		sp_digit word16th = 0;
 		for (i = 0; i < 8; i++) {
-//			mu = a[i];
+			/*mu = a[i];*/
 			if (sp_256_mul_add_8(a+i /*, m, mu*/)) {
 				int j = i + 8;
  inc_next_word:
@@ -655,7 +731,7 @@ static void sp_256_mont_reduce_8(sp_digit* a/*, const sp_digit* m, sp_digit mp*/
 		}
 		sp_256_mont_shift_8(a, a);
 		if (word16th != 0)
-			sp_256_sub_8(a, a, m);
+			sp_256_sub_8_p256_mod(a, a /*, m*/);
 		sp_256_norm_8(a);
 	}
 }
@@ -909,7 +985,7 @@ static void sp_256_map_8(sp_point* r, sp_point* p)
 	sp_256_mont_reduce_8(r->x /*, p256_mod, p256_mp_mod*/);
 	/* Reduce x to less than modulus */
 	if (sp_256_cmp_8(r->x, p256_mod) >= 0)
-		sp_256_sub_8(r->x, r->x, p256_mod);
+		sp_256_sub_8_p256_mod(r->x, r->x /*, p256_mod*/);
 	sp_256_norm_8(r->x);
 
 	/* y /= z^3 */
@@ -918,7 +994,7 @@ static void sp_256_map_8(sp_point* r, sp_point* p)
 	sp_256_mont_reduce_8(r->y /*, p256_mod, p256_mp_mod*/);
 	/* Reduce y to less than modulus */
 	if (sp_256_cmp_8(r->y, p256_mod) >= 0)
-		sp_256_sub_8(r->y, r->y, p256_mod);
+		sp_256_sub_8_p256_mod(r->y, r->y /*, p256_mod*/);
 	sp_256_norm_8(r->y);
 
 	memset(r->z, 0, sizeof(r->z));
@@ -954,17 +1030,17 @@ static void sp_256_proj_point_dbl_8(sp_point* r, sp_point* p)
 	/* Z = Y * Z */
 	sp_256_mont_mul_8(r->z, r->y, r->z /*, p256_mod, p256_mp_mod*/);
 	/* Z = 2Z */
-	sp_256_mont_dbl_8(r->z, r->z, p256_mod);
+	sp_256_mont_dbl_8(r->z, r->z /*, p256_mod*/);
 	/* T2 = X - T1 */
-	sp_256_mont_sub_8(t2, r->x, t1, p256_mod);
+	sp_256_mont_sub_8(t2, r->x, t1 /*, p256_mod*/);
 	/* T1 = X + T1 */
-	sp_256_mont_add_8(t1, r->x, t1, p256_mod);
+	sp_256_mont_add_8(t1, r->x, t1 /*, p256_mod*/);
 	/* T2 = T1 * T2 */
 	sp_256_mont_mul_8(t2, t1, t2 /*, p256_mod, p256_mp_mod*/);
 	/* T1 = 3T2 */
-	sp_256_mont_tpl_8(t1, t2, p256_mod);
+	sp_256_mont_tpl_8(t1, t2 /*, p256_mod*/);
 	/* Y = 2Y */
-	sp_256_mont_dbl_8(r->y, r->y, p256_mod);
+	sp_256_mont_dbl_8(r->y, r->y /*, p256_mod*/);
 	/* Y = Y * Y */
 	sp_256_mont_sqr_8(r->y, r->y /*, p256_mod, p256_mp_mod*/);
 	/* T2 = Y * Y */
@@ -976,15 +1052,15 @@ static void sp_256_proj_point_dbl_8(sp_point* r, sp_point* p)
 	/* X = T1 * T1 */
 	sp_256_mont_mul_8(r->x, t1, t1 /*, p256_mod, p256_mp_mod*/);
 	/* X = X - Y */
-	sp_256_mont_sub_8(r->x, r->x, r->y, p256_mod);
+	sp_256_mont_sub_8(r->x, r->x, r->y /*, p256_mod*/);
 	/* X = X - Y */
-	sp_256_mont_sub_8(r->x, r->x, r->y, p256_mod);
+	sp_256_mont_sub_8(r->x, r->x, r->y /*, p256_mod*/);
 	/* Y = Y - X */
-	sp_256_mont_sub_8(r->y, r->y, r->x, p256_mod);
+	sp_256_mont_sub_8(r->y, r->y, r->x /*, p256_mod*/);
 	/* Y = Y * T1 */
 	sp_256_mont_mul_8(r->y, r->y, t1 /*, p256_mod, p256_mp_mod*/);
 	/* Y = Y - T2 */
-	sp_256_mont_sub_8(r->y, r->y, t2, p256_mod);
+	sp_256_mont_sub_8(r->y, r->y, t2 /*, p256_mod*/);
 	dump_512("y2 %s\n", r->y);
 }
 
@@ -1043,9 +1119,9 @@ static void sp_256_proj_point_add_8(sp_point* r, sp_point* p, sp_point* q)
 		/* S2 = Y2*Z1^3 */
 		sp_256_mont_mul_8(t4, t4, q->y /*, p256_mod, p256_mp_mod*/);
 		/* H = U2 - U1 */
-		sp_256_mont_sub_8(t2, t2, t1, p256_mod);
+		sp_256_mont_sub_8(t2, t2, t1 /*, p256_mod*/);
 		/* R = S2 - S1 */
-		sp_256_mont_sub_8(t4, t4, t3, p256_mod);
+		sp_256_mont_sub_8(t4, t4, t3 /*, p256_mod*/);
 		/* Z3 = H*Z1*Z2 */
 		sp_256_mont_mul_8(v->z, v->z, q->z /*, p256_mod, p256_mp_mod*/);
 		sp_256_mont_mul_8(v->z, v->z, t2 /*, p256_mod, p256_mp_mod*/);
@@ -1054,14 +1130,14 @@ static void sp_256_proj_point_add_8(sp_point* r, sp_point* p, sp_point* q)
 		sp_256_mont_sqr_8(t5, t2 /*, p256_mod, p256_mp_mod*/);
 		sp_256_mont_mul_8(v->y, t1, t5 /*, p256_mod, p256_mp_mod*/);
 		sp_256_mont_mul_8(t5, t5, t2 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_sub_8(v->x, v->x, t5, p256_mod);
-		sp_256_mont_dbl_8(t1, v->y, p256_mod);
-		sp_256_mont_sub_8(v->x, v->x, t1, p256_mod);
+		sp_256_mont_sub_8(v->x, v->x, t5 /*, p256_mod*/);
+		sp_256_mont_dbl_8(t1, v->y /*, p256_mod*/);
+		sp_256_mont_sub_8(v->x, v->x, t1 /*, p256_mod*/);
 		/* Y3 = R*(U1*H^2 - X3) - S1*H^3 */
-		sp_256_mont_sub_8(v->y, v->y, v->x, p256_mod);
+		sp_256_mont_sub_8(v->y, v->y, v->x /*, p256_mod*/);
 		sp_256_mont_mul_8(v->y, v->y, t4 /*, p256_mod, p256_mp_mod*/);
 		sp_256_mont_mul_8(t5, t5, t3 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_sub_8(v->y, v->y, t5, p256_mod);
+		sp_256_mont_sub_8(v->y, v->y, t5 /*, p256_mod*/);
 	}
 }
 
