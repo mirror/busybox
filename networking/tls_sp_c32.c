@@ -213,34 +213,7 @@ static void sp_256_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b)
 	r[0] = (sp_digit)(c >> 26);
 }
 
-/* Square a and put result in r. (r = a * a) */
-static void sp_256_sqr_10(sp_digit* r, const sp_digit* a)
-{
-	int i, j, k;
-	int64_t c;
-
-	c = ((int64_t)a[9]) * a[9];
-	r[19] = (sp_digit)(c >> 26);
-	c = (c & 0x3ffffff) << 26;
-	for (k = 17; k >= 0; k--) {
-		for (i = 9; i >= 0; i--) {
-			j = k - i;
-			if (j >= 10 || i <= j)
-				break;
-			if (j < 0)
-				continue;
-			c += ((int64_t)a[i]) * a[j] * 2;
-		}
-		if (i == j)
-			c += ((int64_t)a[i]) * a[i];
-		r[k + 2] += c >> 52;
-		r[k + 1] = (c >> 26) & 0x3ffffff;
-		c = (c & 0x3ffffff) << 26;
-	}
-	r[0] = (sp_digit)(c >> 26);
-}
-
-/* Shift number left one bit. Bottom bit is lost. */
+/* Shift number right one bit. Bottom bit is lost. */
 static void sp_256_rshift1_10(sp_digit* r, sp_digit* a)
 {
 	int i;
@@ -343,8 +316,11 @@ static void sp_256_mul_add_10(sp_digit* r, const sp_digit* a, sp_digit b)
  * m   The single precision number representing the modulus.
  * mp  The digit representing the negative inverse of m mod 2^n.
  */
-static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
+static void sp_256_mont_reduce_10(sp_digit* a /*, const sp_digit* m, sp_digit mp*/)
 {
+	const sp_digit* m = p256_mod;
+	sp_digit mp = p256_mp_mod;
+
 	int i;
 	sp_digit mu;
 
@@ -359,7 +335,7 @@ static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
 		a[i+1] += a[i] >> 26;
 		a[i] &= 0x3ffffff;
 	}
-	else {
+	else { /* Same code for explicit mp == 1 (which is always the case for P256) */
 		for (i = 0; i < 9; i++) {
 			mu = a[i] & 0x3ffffff;
 			sp_256_mul_add_10(a+i, m, mu);
@@ -372,8 +348,12 @@ static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
 	}
 
 	sp_256_mont_shift_10(a, a);
+//TODO: can below condition ever be true? Doesn't it require 512+th bit(s) in a to be set?
 	if ((a[9] >> 22) > 0)
+{
+dbg("THIS HAPPENS\n");
 		sp_256_sub_10(a, a, m);
+}
 	sp_256_norm_10(a);
 }
 
@@ -386,11 +366,14 @@ static void sp_256_mont_reduce_10(sp_digit* a, const sp_digit* m, sp_digit mp)
  * m   Modulus (prime).
  * mp  Montogmery mulitplier.
  */
-static void sp_256_mont_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b,
-		const sp_digit* m, sp_digit mp)
+static void sp_256_mont_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b
+		/*, const sp_digit* m, sp_digit mp*/)
 {
+	//const sp_digit* m = p256_mod;
+	//sp_digit mp = p256_mp_mod;
+
 	sp_256_mul_10(r, a, b);
-	sp_256_mont_reduce_10(r, m, mp);
+	sp_256_mont_reduce_10(r /*, m, mp*/);
 }
 
 /* Square the Montgomery form number. (r = a * a mod m)
@@ -400,11 +383,13 @@ static void sp_256_mont_mul_10(sp_digit* r, const sp_digit* a, const sp_digit* b
  * m   Modulus (prime).
  * mp  Montogmery mulitplier.
  */
-static void sp_256_mont_sqr_10(sp_digit* r, const sp_digit* a, const sp_digit* m,
-		sp_digit mp)
+static void sp_256_mont_sqr_10(sp_digit* r, const sp_digit* a
+		/*, const sp_digit* m, sp_digit mp*/)
 {
-	sp_256_sqr_10(r, a);
-	sp_256_mont_reduce_10(r, m, mp);
+	//const sp_digit* m = p256_mod;
+	//sp_digit mp = p256_mp_mod;
+
+	sp_256_mont_mul_10(r, a, a /*, m, mp*/);
 }
 
 /* Invert the number, in Montgomery form, modulo the modulus (prime) of the
@@ -432,10 +417,10 @@ static void sp_256_mont_inv_10(sp_digit* r, sp_digit* a)
 
 	memcpy(t, a, sizeof(sp_digit) * 10);
 	for (i = 254; i >= 0; i--) {
-		sp_256_mont_sqr_10(t, t, p256_mod, p256_mp_mod);
+		sp_256_mont_sqr_10(t, t /*, p256_mod, p256_mp_mod*/);
 		/*if (p256_mod_2[i / 32] & ((sp_digit)1 << (i % 32)))*/
 		if (i >= 224 || i == 192 || (i <= 95 && i != 1))
-			sp_256_mont_mul_10(t, t, a, p256_mod, p256_mp_mod);
+			sp_256_mont_mul_10(t, t, a /*, p256_mod, p256_mp_mod*/);
 	}
 	memcpy(r, t, sizeof(sp_digit) * 10);
 }
@@ -577,22 +562,22 @@ static void sp_256_map_10(sp_point* r, sp_point* p)
 
 	sp_256_mont_inv_10(t1, p->z);
 
-	sp_256_mont_sqr_10(t2, t1, p256_mod, p256_mp_mod);
-	sp_256_mont_mul_10(t1, t2, t1, p256_mod, p256_mp_mod);
+	sp_256_mont_sqr_10(t2, t1 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_10(t1, t2, t1 /*, p256_mod, p256_mp_mod*/);
 
 	/* x /= z^2 */
-	sp_256_mont_mul_10(r->x, p->x, t2, p256_mod, p256_mp_mod);
+	sp_256_mont_mul_10(r->x, p->x, t2 /*, p256_mod, p256_mp_mod*/);
 	memset(r->x + 10, 0, sizeof(r->x) / 2);
-	sp_256_mont_reduce_10(r->x, p256_mod, p256_mp_mod);
+	sp_256_mont_reduce_10(r->x /*, p256_mod, p256_mp_mod*/);
 	/* Reduce x to less than modulus */
 	if (sp_256_cmp_10(r->x, p256_mod) >= 0)
 		sp_256_sub_10(r->x, r->x, p256_mod);
 	sp_256_norm_10(r->x);
 
 	/* y /= z^3 */
-	sp_256_mont_mul_10(r->y, p->y, t1, p256_mod, p256_mp_mod);
+	sp_256_mont_mul_10(r->y, p->y, t1 /*, p256_mod, p256_mp_mod*/);
 	memset(r->y + 10, 0, sizeof(r->y) / 2);
-	sp_256_mont_reduce_10(r->y, p256_mod, p256_mp_mod);
+	sp_256_mont_reduce_10(r->y /*, p256_mod, p256_mp_mod*/);
 	/* Reduce y to less than modulus */
 	if (sp_256_cmp_10(r->y, p256_mod) >= 0)
 		sp_256_sub_10(r->y, r->y, p256_mod);
@@ -620,9 +605,9 @@ static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
 		return;
 
 	/* T1 = Z * Z */
-	sp_256_mont_sqr_10(t1, r->z, p256_mod, p256_mp_mod);
+	sp_256_mont_sqr_10(t1, r->z /*, p256_mod, p256_mp_mod*/);
 	/* Z = Y * Z */
-	sp_256_mont_mul_10(r->z, r->y, r->z, p256_mod, p256_mp_mod);
+	sp_256_mont_mul_10(r->z, r->y, r->z /*, p256_mod, p256_mp_mod*/);
 	/* Z = 2Z */
 	sp_256_mont_dbl_10(r->z, r->z, p256_mod);
 	/* T2 = X - T1 */
@@ -630,21 +615,21 @@ static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
 	/* T1 = X + T1 */
 	sp_256_mont_add_10(t1, r->x, t1, p256_mod);
 	/* T2 = T1 * T2 */
-	sp_256_mont_mul_10(t2, t1, t2, p256_mod, p256_mp_mod);
+	sp_256_mont_mul_10(t2, t1, t2 /*, p256_mod, p256_mp_mod*/);
 	/* T1 = 3T2 */
 	sp_256_mont_tpl_10(t1, t2, p256_mod);
 	/* Y = 2Y */
 	sp_256_mont_dbl_10(r->y, r->y, p256_mod);
 	/* Y = Y * Y */
-	sp_256_mont_sqr_10(r->y, r->y, p256_mod, p256_mp_mod);
+	sp_256_mont_sqr_10(r->y, r->y /*, p256_mod, p256_mp_mod*/);
 	/* T2 = Y * Y */
-	sp_256_mont_sqr_10(t2, r->y, p256_mod, p256_mp_mod);
+	sp_256_mont_sqr_10(t2, r->y /*, p256_mod, p256_mp_mod*/);
 	/* T2 = T2/2 */
 	sp_256_div2_10(t2, t2, p256_mod);
 	/* Y = Y * X */
-	sp_256_mont_mul_10(r->y, r->y, r->x, p256_mod, p256_mp_mod);
+	sp_256_mont_mul_10(r->y, r->y, r->x /*, p256_mod, p256_mp_mod*/);
 	/* X = T1 * T1 */
-	sp_256_mont_mul_10(r->x, t1, t1, p256_mod, p256_mp_mod);
+	sp_256_mont_mul_10(r->x, t1, t1 /*, p256_mod, p256_mp_mod*/);
 	/* X = X - Y */
 	sp_256_mont_sub_10(r->x, r->x, r->y, p256_mod);
 	/* X = X - Y */
@@ -652,7 +637,7 @@ static void sp_256_proj_point_dbl_10(sp_point* r, sp_point* p)
 	/* Y = Y - X */
 	sp_256_mont_sub_10(r->y, r->y, r->x, p256_mod);
 	/* Y = Y * T1 */
-	sp_256_mont_mul_10(r->y, r->y, t1, p256_mod, p256_mp_mod);
+	sp_256_mont_mul_10(r->y, r->y, t1 /*, p256_mod, p256_mp_mod*/);
 	/* Y = Y - T2 */
 	sp_256_mont_sub_10(r->y, r->y, t2, p256_mod);
 }
@@ -700,36 +685,36 @@ static void sp_256_proj_point_add_10(sp_point* r, sp_point* p, sp_point* q)
 		*r = p->infinity ? *q : *p; /* struct copy */
 
 		/* U1 = X1*Z2^2 */
-		sp_256_mont_sqr_10(t1, q->z, p256_mod, p256_mp_mod);
-		sp_256_mont_mul_10(t3, t1, q->z, p256_mod, p256_mp_mod);
-		sp_256_mont_mul_10(t1, t1, v->x, p256_mod, p256_mp_mod);
+		sp_256_mont_sqr_10(t1, q->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_10(t3, t1, q->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_10(t1, t1, v->x /*, p256_mod, p256_mp_mod*/);
 		/* U2 = X2*Z1^2 */
-		sp_256_mont_sqr_10(t2, v->z, p256_mod, p256_mp_mod);
-		sp_256_mont_mul_10(t4, t2, v->z, p256_mod, p256_mp_mod);
-		sp_256_mont_mul_10(t2, t2, q->x, p256_mod, p256_mp_mod);
+		sp_256_mont_sqr_10(t2, v->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_10(t4, t2, v->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_10(t2, t2, q->x /*, p256_mod, p256_mp_mod*/);
 		/* S1 = Y1*Z2^3 */
-		sp_256_mont_mul_10(t3, t3, v->y, p256_mod, p256_mp_mod);
+		sp_256_mont_mul_10(t3, t3, v->y /*, p256_mod, p256_mp_mod*/);
 		/* S2 = Y2*Z1^3 */
-		sp_256_mont_mul_10(t4, t4, q->y, p256_mod, p256_mp_mod);
+		sp_256_mont_mul_10(t4, t4, q->y /*, p256_mod, p256_mp_mod*/);
 		/* H = U2 - U1 */
 		sp_256_mont_sub_10(t2, t2, t1, p256_mod);
 		/* R = S2 - S1 */
 		sp_256_mont_sub_10(t4, t4, t3, p256_mod);
 		/* Z3 = H*Z1*Z2 */
-		sp_256_mont_mul_10(v->z, v->z, q->z, p256_mod, p256_mp_mod);
-		sp_256_mont_mul_10(v->z, v->z, t2, p256_mod, p256_mp_mod);
+		sp_256_mont_mul_10(v->z, v->z, q->z /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_10(v->z, v->z, t2 /*, p256_mod, p256_mp_mod*/);
 		/* X3 = R^2 - H^3 - 2*U1*H^2 */
-		sp_256_mont_sqr_10(v->x, t4, p256_mod, p256_mp_mod);
-		sp_256_mont_sqr_10(t5, t2, p256_mod, p256_mp_mod);
-		sp_256_mont_mul_10(v->y, t1, t5, p256_mod, p256_mp_mod);
-		sp_256_mont_mul_10(t5, t5, t2, p256_mod, p256_mp_mod);
+		sp_256_mont_sqr_10(v->x, t4 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_sqr_10(t5, t2 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_10(v->y, t1, t5 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_10(t5, t5, t2 /*, p256_mod, p256_mp_mod*/);
 		sp_256_mont_sub_10(v->x, v->x, t5, p256_mod);
 		sp_256_mont_dbl_10(t1, v->y, p256_mod);
 		sp_256_mont_sub_10(v->x, v->x, t1, p256_mod);
 		/* Y3 = R*(U1*H^2 - X3) - S1*H^3 */
 		sp_256_mont_sub_10(v->y, v->y, v->x, p256_mod);
-		sp_256_mont_mul_10(v->y, v->y, t4, p256_mod, p256_mp_mod);
-		sp_256_mont_mul_10(t5, t5, t3, p256_mod, p256_mp_mod);
+		sp_256_mont_mul_10(v->y, v->y, t4 /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_mul_10(t5, t5, t3 /*, p256_mod, p256_mp_mod*/);
 		sp_256_mont_sub_10(v->y, v->y, t5, p256_mod);
 	}
 }
