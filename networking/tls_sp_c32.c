@@ -294,6 +294,85 @@ static int sp_256_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 /* Multiply a and b into r. (r = a * b) */
 static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 {
+#if ALLOW_ASM && defined(__GNUC__) && defined(__i386__)
+	sp_digit rr[15]; /* in case r coincides with a or b */
+	int k;
+	uint32_t accl;
+	uint32_t acch;
+
+	acch = accl = 0;
+	for (k = 0; k < 15; k++) {
+		int i, j;
+		uint32_t acc_hi;
+		i = k - 7;
+		if (i < 0)
+			i = 0;
+		j = k - i;
+		acc_hi = 0;
+		do {
+////////////////////////
+//			uint64_t m = ((uint64_t)a[i]) * b[j];
+//			acc_hi:acch:accl += m;
+			asm volatile (
+			// a[i] is already loaded in %%eax
+"\n			mull	%7"
+"\n			addl	%%eax, %0"
+"\n			adcl	%%edx, %1"
+"\n			adcl	$0, %2"
+			: "=rm" (accl), "=rm" (acch), "=rm" (acc_hi)
+			: "0" (accl), "1" (acch), "2" (acc_hi), "a" (a[i]), "m" (b[j])
+			: "cc", "dx"
+			);
+////////////////////////
+		        j--;
+			i++;
+		} while (i != 8 && i <= k);
+		rr[k] = accl;
+		accl = acch;
+		acch = acc_hi;
+	}
+	r[15] = accl;
+	memcpy(r, rr, sizeof(rr));
+#elif 0
+	//TODO: arm assembly (untested)
+	sp_digit tmp[16];
+
+	asm volatile (
+"\n		mov	r5, #0"
+"\n		mov	r6, #0"
+"\n		mov	r7, #0"
+"\n		mov	r8, #0"
+"\n	1:"
+"\n		subs	r3, r5, #28"
+"\n		movcc	r3, #0"
+"\n		sub	r4, r5, r3"
+"\n		2:"
+"\n		ldr	r14, [%[a], r3]"
+"\n		ldr	r12, [%[b], r4]"
+"\n		umull	r9, r10, r14, r12"
+"\n		adds	r6, r6, r9"
+"\n		adcs	r7, r7, r10"
+"\n		adc	r8, r8, #0"
+"\n		add	r3, r3, #4"
+"\n		sub	r4, r4, #4"
+"\n		cmp	r3, #32"
+"\n		beq	3f"
+"\n		cmp	r3, r5"
+"\n		ble	2b"
+"\n	3:"
+"\n		str	r6, [%[r], r5]"
+"\n		mov	r6, r7"
+"\n		mov	r7, r8"
+"\n		mov	r8, #0"
+"\n		add	r5, r5, #4"
+"\n		cmp	r5, #56"
+"\n		ble	1b"
+"\n		str	r6, [%[r], r5]"
+		: [r] "r" (tmp), [a] "r" (a), [b] "r" (b)
+		: "memory", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r14", "r12"
+	);
+	memcpy(r, tmp, sizeof(tmp));
+#else
 	sp_digit rr[15]; /* in case r coincides with a or b */
 	int i, j, k;
 	uint64_t acc;
@@ -306,19 +385,20 @@ static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 			i = 0;
 		j = k - i;
 		acc_hi = 0;
-		while (i != 8 && i <= k) {
+		do {
 			uint64_t m = ((uint64_t)a[i]) * b[j];
 			acc += m;
 			if (acc < m)
 				acc_hi++;
 		        j--;
 			i++;
-		}
+		} while (i != 8 && i <= k);
 		rr[k] = acc;
 		acc = (acc >> 32) | ((uint64_t)acc_hi << 32);
 	}
 	r[15] = acc;
 	memcpy(r, rr, sizeof(rr));
+#endif
 }
 
 /* Shift number right one bit. Bottom bit is lost. */
