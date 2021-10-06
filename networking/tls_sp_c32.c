@@ -291,10 +291,10 @@ static int sp_256_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 #endif
 }
 
+#if ALLOW_ASM && defined(__GNUC__) && defined(__i386__)
 /* Sub p256_mod from a into r. (r = a - p256_mod). */
 static void sp_256_sub_8_p256_mod(sp_digit* r, const sp_digit* a)
 {
-#if ALLOW_ASM && defined(__GNUC__) && defined(__i386__)
 	sp_digit reg;
 //p256_mod[7..0] = ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff
 	asm volatile (
@@ -334,30 +334,10 @@ static void sp_256_sub_8_p256_mod(sp_digit* r, const sp_digit* a)
 		: "0" (a), "1" (r)
 		: "memory"
 	);
-#else
-	const sp_digit* b = p256_mod;
-	int i;
-	sp_digit borrow;
-
-	borrow = 0;
-	for (i = 0; i < 8; i++) {
-		sp_digit w, v;
-		w = b[i] + borrow;
-		v = a[i];
-		if (w != 0) {
-			v = a[i] - w;
-			borrow = (v > a[i]);
-			/* hope compiler detects above as "carry flag set" */
-		}
-		/* else: b + borrow == 0, two cases:
-		 * b:ffffffff, borrow:1
-		 * b:00000000, borrow:0
-		 * in either case, r[i] = a[i] and borrow remains unchanged
-		 */
-		r[i] = v;
-	}
-#endif
 }
+#else
+# define sp_256_sub_8_p256_mod(r, a) sp_256_sub_8((r), (a), p256_mod)
+#endif
 
 /* Multiply a and b into r. (r = a * b) */
 static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
