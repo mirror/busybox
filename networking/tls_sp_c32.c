@@ -346,8 +346,8 @@ static int sp_256_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 #endif
 }
 
-#if ALLOW_ASM && defined(__GNUC__) && defined(__i386__)
 /* Sub p256_mod from a into r. (r = a - p256_mod). */
+#if ALLOW_ASM && defined(__GNUC__) && defined(__i386__)
 static void sp_256_sub_8_p256_mod(sp_digit* r, const sp_digit* a)
 {
 	sp_digit reg;
@@ -387,6 +387,36 @@ static void sp_256_sub_8_p256_mod(sp_digit* r, const sp_digit* a)
 "\n"
 		: "=r" (a), "=r" (r), "=r" (reg)
 		: "0" (a), "1" (r)
+		: "memory"
+	);
+}
+#elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
+static void sp_256_sub_8_p256_mod(sp_digit* r, const sp_digit* a)
+{
+	uint64_t reg;
+	uint64_t ooff;
+//p256_mod[3..0] = ffffffff00000001 0000000000000000 00000000ffffffff ffffffffffffffff
+	asm volatile (
+"\n		movq	(%0), %3"
+"\n		addq	$1, %3"		// adding 1 is the same as subtracting ffffffffffffffff
+"\n		movq	%3, (%1)"	//
+"\n		cmc"			// only carry bit needs inverting
+"\n"
+"\n		movq	1*8(%0), %3"
+"\n		sbbq	%2, %3"		// %2 holds 00000000ffffffff
+"\n		movq	%3, 1*8(%1)"
+"\n"
+"\n		movq	2*8(%0), %3"
+"\n		sbbq	$0, %3"
+"\n		movq	%3, 2*8(%1)"
+"\n"
+"\n		movq	3*8(%0), %3"
+"\n		sbbq	$0, %3"		// adding 00000000ffffffff (in %2)
+"\n		addq	%2, %3"		// is the same as subtracting ffffffff00000001
+"\n		movq	%3, 3*8(%1)"
+"\n"
+		: "=r" (a), "=r" (r), "=r" (ooff), "=r" (reg)
+		: "0" (a), "1" (r), "2" (0x00000000ffffffff)
 		: "memory"
 	);
 }
