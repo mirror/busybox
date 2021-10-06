@@ -195,6 +195,34 @@ static int sp_256_add_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 		: "memory"
 	);
 	return reg;
+#elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
+	/* x86_64 has no alignment restrictions, and is little-endian,
+	 * so 64-bit and 32-bit representations are identical */
+	uint64_t reg;
+	asm volatile (
+"\n		movq	(%0), %3"
+"\n		addq	(%1), %3"
+"\n		movq	%3, (%2)"
+"\n"
+"\n		movq	1*8(%0), %3"
+"\n		adcq	1*8(%1), %3"
+"\n		movq	%3, 1*8(%2)"
+"\n"
+"\n		movq	2*8(%0), %3"
+"\n		adcq	2*8(%1), %3"
+"\n		movq	%3, 2*8(%2)"
+"\n"
+"\n		movq	3*8(%0), %3"
+"\n		adcq	3*8(%1), %3"
+"\n		movq	%3, 3*8(%2)"
+"\n"
+"\n		sbbq	%3, %3"
+"\n"
+		: "=r" (a), "=r" (b), "=r" (r), "=r" (reg)
+		: "0" (a), "1" (b), "2" (r)
+		: "memory"
+	);
+	return reg;
 #else
 	int i;
 	sp_digit carry;
@@ -259,6 +287,34 @@ static int sp_256_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 "\n		movl	%3, 7*4(%2)"
 "\n"
 "\n		sbbl	%3, %3"
+"\n"
+		: "=r" (a), "=r" (b), "=r" (r), "=r" (reg)
+		: "0" (a), "1" (b), "2" (r)
+		: "memory"
+	);
+	return reg;
+#elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
+	/* x86_64 has no alignment restrictions, and is little-endian,
+	 * so 64-bit and 32-bit representations are identical */
+	uint64_t reg;
+	asm volatile (
+"\n		movq	(%0), %3"
+"\n		subq	(%1), %3"
+"\n		movq	%3, (%2)"
+"\n"
+"\n		movq	1*8(%0), %3"
+"\n		sbbq	1*8(%1), %3"
+"\n		movq	%3, 1*8(%2)"
+"\n"
+"\n		movq	2*8(%0), %3"
+"\n		sbbq	2*8(%1), %3"
+"\n		movq	%3, 2*8(%2)"
+"\n"
+"\n		movq	3*8(%0), %3"
+"\n		sbbq	3*8(%1), %3"
+"\n		movq	%3, 3*8(%2)"
+"\n"
+"\n		sbbq	%3, %3"
 "\n"
 		: "=r" (a), "=r" (b), "=r" (r), "=r" (reg)
 		: "0" (a), "1" (b), "2" (r)
@@ -379,6 +435,49 @@ static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 		acch = acc_hi;
 	}
 	r[15] = accl;
+	memcpy(r, rr, sizeof(rr));
+#elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
+	/* x86_64 has no alignment restrictions, and is little-endian,
+	 * so 64-bit and 32-bit representations are identical */
+	const uint64_t* aa = (const void*)a;
+	const uint64_t* bb = (const void*)b;
+	uint64_t rr[8];
+	int k;
+	uint64_t accl;
+	uint64_t acch;
+
+	acch = accl = 0;
+	for (k = 0; k < 7; k++) {
+		int i, j;
+		uint64_t acc_hi;
+		i = k - 3;
+		if (i < 0)
+			i = 0;
+		j = k - i;
+		acc_hi = 0;
+		do {
+////////////////////////
+//			uint128_t m = ((uint128_t)a[i]) * b[j];
+//			acc_hi:acch:accl += m;
+			asm volatile (
+			// aa[i] is already loaded in %%rax
+"\n			mulq	%7"
+"\n			addq	%%rax, %0"
+"\n			adcq	%%rdx, %1"
+"\n			adcq	$0, %2"
+			: "=rm" (accl), "=rm" (acch), "=rm" (acc_hi)
+			: "0" (accl), "1" (acch), "2" (acc_hi), "a" (aa[i]), "m" (bb[j])
+			: "cc", "dx"
+			);
+////////////////////////
+		        j--;
+			i++;
+		} while (i != 4 && i <= k);
+		rr[k] = accl;
+		accl = acch;
+		acch = acc_hi;
+	}
+	rr[7] = accl;
 	memcpy(r, rr, sizeof(rr));
 #elif 0
 	//TODO: arm assembly (untested)
