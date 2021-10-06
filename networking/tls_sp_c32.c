@@ -346,82 +346,55 @@ static int sp_256_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 #endif
 }
 
-/* Sub p256_mod from a into r. (r = a - p256_mod). */
+/* Sub p256_mod from r. (r = r - p256_mod). */
 #if ALLOW_ASM && defined(__GNUC__) && defined(__i386__)
-static void sp_256_sub_8_p256_mod(sp_digit* r, const sp_digit* a)
+static void sp_256_sub_8_p256_mod(sp_digit* r)
 {
-	sp_digit reg;
 //p256_mod[7..0] = ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff
 	asm volatile (
-"\n		movl	(%0), %2"
-"\n		subl	$0xffffffff, %2"
-"\n		movl	%2, (%1)"
+"\n		subl	$0xffffffff, (%0)"
+"\n		sbbl	$0xffffffff, 1*4(%0)"
+"\n		sbbl	$0xffffffff, 2*4(%0)"
+"\n		sbbl	$0, 3*4(%0)"
+"\n		sbbl	$0, 4*4(%0)"
+"\n		sbbl	$0, 5*4(%0)"
+"\n		sbbl	$1, 6*4(%0)"
+"\n		sbbl	$0xffffffff, 7*4(%0)"
 "\n"
-"\n		movl	1*4(%0), %2"
-"\n		sbbl	$0xffffffff, %2"
-"\n		movl	%2, 1*4(%1)"
-"\n"
-"\n		movl	2*4(%0), %2"
-"\n		sbbl	$0xffffffff, %2"
-"\n		movl	%2, 2*4(%1)"
-"\n"
-"\n		movl	3*4(%0), %2"
-"\n		sbbl	$0, %2"
-"\n		movl	%2, 3*4(%1)"
-"\n"
-"\n		movl	4*4(%0), %2"
-"\n		sbbl	$0, %2"
-"\n		movl	%2, 4*4(%1)"
-"\n"
-"\n		movl	5*4(%0), %2"
-"\n		sbbl	$0, %2"
-"\n		movl	%2, 5*4(%1)"
-"\n"
-"\n		movl	6*4(%0), %2"
-"\n		sbbl	$1, %2"
-"\n		movl	%2, 6*4(%1)"
-"\n"
-"\n		movl	7*4(%0), %2"
-"\n		sbbl	$0xffffffff, %2"
-"\n		movl	%2, 7*4(%1)"
-"\n"
-		: "=r" (a), "=r" (r), "=r" (reg)
-		: "0" (a), "1" (r)
+		: "=r" (r)
+		: "0" (r)
 		: "memory"
 	);
 }
 #elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
-static void sp_256_sub_8_p256_mod(sp_digit* r, const sp_digit* a)
+static void sp_256_sub_8_p256_mod(sp_digit* r)
 {
 	uint64_t reg;
 	uint64_t ooff;
 //p256_mod[3..0] = ffffffff00000001 0000000000000000 00000000ffffffff ffffffffffffffff
 	asm volatile (
-"\n		movq	(%0), %3"
-"\n		addq	$1, %3"		// adding 1 is the same as subtracting ffffffffffffffff
-"\n		movq	%3, (%1)"	//
+"\n		addq	$1, (%0)"	// adding 1 is the same as subtracting ffffffffffffffff
 "\n		cmc"			// only carry bit needs inverting
+
+"\n		sbbq	%1, 1*8(%0)"	// %1 holds 00000000ffffffff
+
+"\n		sbbq	$0, 2*8(%0)"
 "\n"
-"\n		movq	1*8(%0), %3"
-"\n		sbbq	%2, %3"		// %2 holds 00000000ffffffff
-"\n		movq	%3, 1*8(%1)"
+"\n		movq	3*8(%0), %2"
+"\n		sbbq	$0, %2"		// adding 00000000ffffffff (in %1)
+"\n		addq	%1, %2"		// is the same as subtracting ffffffff00000001
+"\n		movq	%2, 3*8(%0)"
 "\n"
-"\n		movq	2*8(%0), %3"
-"\n		sbbq	$0, %3"
-"\n		movq	%3, 2*8(%1)"
-"\n"
-"\n		movq	3*8(%0), %3"
-"\n		sbbq	$0, %3"		// adding 00000000ffffffff (in %2)
-"\n		addq	%2, %3"		// is the same as subtracting ffffffff00000001
-"\n		movq	%3, 3*8(%1)"
-"\n"
-		: "=r" (a), "=r" (r), "=r" (ooff), "=r" (reg)
-		: "0" (a), "1" (r), "2" (0x00000000ffffffff)
+		: "=r" (r), "=r" (ooff), "=r" (reg)
+		: "0" (r), "1" (0x00000000ffffffff)
 		: "memory"
 	);
 }
 #else
-# define sp_256_sub_8_p256_mod(r, a) sp_256_sub_8((r), (a), p256_mod)
+static void sp_256_sub_8_p256_mod(sp_digit* r)
+{
+	sp_256_sub_8(r, r, p256_mod);
+}
 #endif
 
 /* Multiply a and b into r. (r = a * b) */
@@ -609,7 +582,7 @@ static void sp_256_mont_add_8(sp_digit* r, const sp_digit* a, const sp_digit* b
 	int carry = sp_256_add_8(r, a, b);
 	sp_256_norm_8(r);
 	if (carry) {
-		sp_256_sub_8_p256_mod(r, r /*, m*/);
+		sp_256_sub_8_p256_mod(r);
 		sp_256_norm_8(r);
 	}
 }
@@ -637,7 +610,7 @@ static void sp_256_mont_dbl_8(sp_digit* r, const sp_digit* a /*, const sp_digit*
 	int carry = sp_256_add_8(r, a, a);
 	sp_256_norm_8(r);
 	if (carry)
-		sp_256_sub_8_p256_mod(r, r /*, m*/);
+		sp_256_sub_8_p256_mod(r);
 	sp_256_norm_8(r);
 }
 
@@ -649,13 +622,13 @@ static void sp_256_mont_tpl_8(sp_digit* r, const sp_digit* a /*, const sp_digit*
 	int carry = sp_256_add_8(r, a, a);
 	sp_256_norm_8(r);
 	if (carry) {
-		sp_256_sub_8_p256_mod(r, r /*, m*/);
+		sp_256_sub_8_p256_mod(r);
 		sp_256_norm_8(r);
 	}
 	carry = sp_256_add_8(r, r, a);
 	sp_256_norm_8(r);
 	if (carry) {
-		sp_256_sub_8_p256_mod(r, r /*, m*/);
+		sp_256_sub_8_p256_mod(r);
 		sp_256_norm_8(r);
 	}
 }
@@ -829,7 +802,7 @@ static void sp_256_mont_reduce_8(sp_digit* a/*, const sp_digit* m, sp_digit mp*/
 		}
 		sp_256_mont_shift_8(a, a);
 		if (word16th != 0)
-			sp_256_sub_8_p256_mod(a, a /*, m*/);
+			sp_256_sub_8_p256_mod(a);
 		sp_256_norm_8(a);
 	}
 	else { /* Same code for explicit mp == 1 (which is always the case for P256) */
@@ -849,7 +822,7 @@ static void sp_256_mont_reduce_8(sp_digit* a/*, const sp_digit* m, sp_digit mp*/
 		}
 		sp_256_mont_shift_8(a, a);
 		if (word16th != 0)
-			sp_256_sub_8_p256_mod(a, a /*, m*/);
+			sp_256_sub_8_p256_mod(a);
 		sp_256_norm_8(a);
 	}
 }
@@ -1104,7 +1077,7 @@ static void sp_256_map_8(sp_point* r, sp_point* p)
 	sp_256_mont_reduce_8(r->x /*, p256_mod, p256_mp_mod*/);
 	/* Reduce x to less than modulus */
 	if (sp_256_cmp_8(r->x, p256_mod) >= 0)
-		sp_256_sub_8_p256_mod(r->x, r->x /*, p256_mod*/);
+		sp_256_sub_8_p256_mod(r->x);
 	sp_256_norm_8(r->x);
 
 	/* y /= z^3 */
@@ -1113,7 +1086,7 @@ static void sp_256_map_8(sp_point* r, sp_point* p)
 	sp_256_mont_reduce_8(r->y /*, p256_mod, p256_mp_mod*/);
 	/* Reduce y to less than modulus */
 	if (sp_256_cmp_8(r->y, p256_mod) >= 0)
-		sp_256_sub_8_p256_mod(r->y, r->y /*, p256_mod*/);
+		sp_256_sub_8_p256_mod(r->y);
 	sp_256_norm_8(r->y);
 
 	memset(r->z, 0, sizeof(r->z));
