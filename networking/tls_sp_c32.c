@@ -375,9 +375,9 @@ static void sp_256_sub_8_p256_mod(sp_digit* r)
 	asm volatile (
 "\n		addq	$1, (%0)"	// adding 1 is the same as subtracting ffffffffffffffff
 "\n		cmc"			// only carry bit needs inverting
-
+"\n"
 "\n		sbbq	%1, 1*8(%0)"	// %1 holds 00000000ffffffff
-
+"\n"
 "\n		sbbq	$0, 2*8(%0)"
 "\n"
 "\n		movq	3*8(%0), %2"
@@ -473,7 +473,7 @@ static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 			: "cc", "dx"
 			);
 ////////////////////////
-		        j--;
+			j--;
 			i++;
 		} while (i != 4 && i <= k);
 		rr[k] = accl;
