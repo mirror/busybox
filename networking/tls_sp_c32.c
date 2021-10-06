@@ -569,8 +569,10 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
 //	const sp_digit* a = p256_mod;
 //a[7..0] = ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff
 	sp_digit b = r[0];
-	uint64_t t = 0;
 
+	uint64_t t;
+
+//	t = 0;
 //	for (i = 0; i < 8; i++) {
 //		uint32_t t_hi;
 //		uint64_t m = ((uint64_t)b * a[i]) + r[i];
@@ -584,12 +586,13 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
 	// Unroll, then optimize the above loop:
 		//uint32_t t_hi;
 		uint64_t m;
+		uint32_t t32;
 
 		//m = ((uint64_t)b * a[0]) + r[0];
 		//  Since b is r[0] and a[0] is ffffffff, the above optimizes to:
 		//  m = r[0] * ffffffff + r[0] = (r[0] * 100000000 - r[0]) + r[0] = r[0] << 32;
 		//t += m;
-		//  t = (uint64_t)r[0] << 32;
+		//  t = r[0] << 32 = b << 32;
 		//t_hi = (t < m);
 		//  t_hi = 0;
 		//r[0] = (sp_digit)t;
@@ -625,42 +628,49 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
 		//  Since a[3] is 00000000, the above optimizes to:
 		//  m = b * 0 + r[3] = r[3];
 		//t += m;
-		//  t += r[3];
+		//  t = b + r[3];
 		//t_hi = (t < m);
 		//  t_hi = 0;
 		//r[3] = (sp_digit)t;
 		r[3] = r[3] + b;
 		//t = (t >> 32) | ((uint64_t)t_hi << 32);
-		t = (r[3] < b);
+		t32 = (r[3] < b); // 0 or 1
 
 		//m = ((uint64_t)b * a[4]) + r[4];
 		//  Since a[4] is 00000000, the above optimizes to:
 		//  m = b * 0 + r[4] = r[4];
 		//t += m;
-		t += r[4];
+		//  t = t32 + r[4];
 		//t_hi = (t < m);
 		//  t_hi = 0;
-		r[4] = (sp_digit)t;
+		//r[4] = (sp_digit)t;
 		//t = (t >> 32) | ((uint64_t)t_hi << 32);
-		t = (t >> 32);
+		if (t32 != 0) {
+			r[4]++;
+			t32 = (r[4] == 0); // 0 or 1
 
 		//m = ((uint64_t)b * a[5]) + r[5];
 		//  Since a[5] is 00000000, the above optimizes to:
 		//  m = b * 0 + r[5] = r[5];
 		//t += m;
-		t += r[5];
+		//  t = t32 + r[5]; (t32 is 0 or 1)
 		//t_hi = (t < m);
 		//  t_hi = 0;
-		r[5] = (sp_digit)t;
+		//r[5] = (sp_digit)t;
 		//t = (t >> 32) | ((uint64_t)t_hi << 32);
-		t = (t >> 32);
+			if (t32 != 0) {
+				r[5]++;
+				t32 = (r[5] == 0); // 0 or 1
+			}
+		}
 
 		//m = ((uint64_t)b * a[6]) + r[6];
 		//  Since a[6] is 00000001, the above optimizes to:
-		m = (uint64_t)b + r[6]; // 33 bits at most
-		t += m;
+		//  m = (uint64_t)b + r[6]; // 33 bits at most
+		//t += m;
+		t = t32 + (uint64_t)b + r[6];
 		//t_hi = (t < m);
-		//  t_hi = 0; //32bit_value + 33bit_value can't overflow 64 bits
+		//  t_hi = 0;
 		r[6] = (sp_digit)t;
 		//t = (t >> 32) | ((uint64_t)t_hi << 32);
 		t = (t >> 32);
@@ -671,7 +681,7 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
 		m = ((uint64_t)b << 32) - b + r[7];
 		t += m;
 		//t_hi = (t < m);
-		//  t_hi in fact is always 0 here
+		//  t_hi in fact is always 0 here (256bit * 32bit can't have more than 32 bits of overflow)
 		r[7] = (sp_digit)t;
 		//t = (t >> 32) | ((uint64_t)t_hi << 32);
 		t = (t >> 32);
