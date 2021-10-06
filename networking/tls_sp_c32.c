@@ -32,7 +32,6 @@ typedef int32_t signed_sp_digit;
 /* The code below is taken from parts of
  *  wolfssl-3.15.3/wolfcrypt/src/sp_c32.c
  * and heavily modified.
- * Header comment is kept intact:
  */
 
 typedef struct sp_point {
