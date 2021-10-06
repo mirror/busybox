@@ -393,7 +393,7 @@ static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 "\n		subs	r3, r5, #28"
 "\n		movcc	r3, #0"
 "\n		sub	r4, r5, r3"
-"\n		2:"
+"\n	2:"
 "\n		ldr	r14, [%[a], r3]"
 "\n		ldr	r12, [%[b], r4]"
 "\n		umull	r9, r10, r14, r12"
@@ -416,7 +416,7 @@ static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 "\n		ble	1b"
 "\n		str	r6, [%[r], r5]"
 		: [r] "r" (tmp), [a] "r" (a), [b] "r" (b)
-		: "memory", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r14", "r12"
+		: "memory", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r12", "r14"
 	);
 	memcpy(r, tmp, sizeof(tmp));
 #else
@@ -732,97 +732,98 @@ static void sp_256_mont_reduce_8(sp_digit* a, sp_digit* m, sp_digit mp)
 
 	asm volatile (
 	# i = 0
-	mov	r12, #0                 #  i = 0
-	ldr	r10, [%[a], #0]         #  r10 = a[0]
-	ldr	r14, [%[a], #4]         #  r14 = a[1]
+	mov	r12, #0
+	ldr	r10, [%[a], #0]
+	ldr	r14, [%[a], #4]
 1:
-	# mu = a[i] * mp                #
-	mul	r8, %[mp], r10          # mu = a[i] * mp
-	# a[i+0] += m[0] * mu           #
-	ldr	r7, [%[m], #0]          # a[i+0] += m[0] * mu
-	ldr	r9, [%[a], #0]          #
-	umull	r6, r7, r8, r7          #  r7:r6 = mu * m[0]
-	adds	r10, r10, r6            #  r5:r10 += r7:r6
-	adc	r5, r7, #0              #
-	# a[i+1] += m[1] * mu           #
-	ldr	r7, [%[m], #4]          # a[i+1] += m[1] * mu
-	ldr	r9, [%[a], #4]          #
-	umull	r6, r7, r8, r7          #  r7:r6 = mu * m[1]
-	adds	r10, r14, r6            #  r4:r10 = r7:r14 + r7:r6
-	adc	r4, r7, #0              #
-	adds	r10, r10, r5            #  r4:r10 += r5
-	adc	r4, r4, #0              #
-	# a[i+2] += m[2] * mu           #
-	ldr	r7, [%[m], #8]          # a[i+2] += m[2] * mu
-	ldr	r14, [%[a], #8]         #
-	umull	r6, r7, r8, r7          #
-	adds	r14, r14, r6            #
-	adc	r5, r7, #0              #
-	adds	r14, r14, r4            #
-	adc	r5, r5, #0              #
-	# a[i+3] += m[3] * mu           #
-	ldr	r7, [%[m], #12]         # a[i+3] += m[3] * mu
-	ldr	r9, [%[a], #12]         #
-	umull	r6, r7, r8, r7          #
-	adds	r9, r9, r6              #
-	adc	r4, r7, #0              #
-	adds	r9, r9, r5              #
-	str	r9, [%[a], #12]         #  a[3] = r9
-	adc	r4, r4, #0              #
-	# a[i+4] += m[4] * mu           #
-	ldr	r7, [%[m], #16]         # a[i+4] += m[4] * mu
-	ldr	r9, [%[a], #16]         #
-	umull	r6, r7, r8, r7          #
-	adds	r9, r9, r6              #
-	adc	r5, r7, #0              #
-	adds	r9, r9, r4              #
-	str	r9, [%[a], #16]         #  a[4] = r9
-	adc	r5, r5, #0              #
-	# a[i+5] += m[5] * mu           #
-	ldr	r7, [%[m], #20]         # a[i+5] += m[5] * mu
-	ldr	r9, [%[a], #20]         #
-	umull	r6, r7, r8, r7          #
-	adds	r9, r9, r6              #
-	adc	r4, r7, #0              #
-	adds	r9, r9, r5              #
-	str	r9, [%[a], #20]         #  a[5] = r9
-	adc	r4, r4, #0              #
-	# a[i+6] += m[6] * mu           #
-	ldr	r7, [%[m], #24]         # a[i+6] += m[6] * mu
-	ldr	r9, [%[a], #24]         #
-	umull	r6, r7, r8, r7          #
-	adds	r9, r9, r6              #
-	adc	r5, r7, #0              #
-	adds	r9, r9, r4              #
-	str	r9, [%[a], #24]         #  a[6] = r9
-	adc	r5, r5, #0              #
-	# a[i+7] += m[7] * mu           #
-	ldr	r7, [%[m], #28]         # a[i+7] += m[7] * mu
-	ldr	r9, [%[a], #28]         #
-	umull	r6, r7, r8, r7          #
-	adds	r5, r5, r6              #
-	adcs	r7, r7, %[ca]           #
-	mov	%[ca], #0               #
-	adc	%[ca], %[ca], %[ca]     #  ca = CF
-	adds	r9, r9, r5              #
-	str	r9, [%[a], #28]         #  a[7] = r9
-	ldr	r9, [%[a], #32]         #  r9 = a[8]
-	adcs	r9, r9, r7              #
-	str	r9, [%[a], #32]         #  a[8] = r9
-	adc	%[ca], %[ca], #0        #  ca += CF
-	# i += 1                        # i++
-	add	%[a], %[a], #4          #  a++
-	add	r12, r12, #4            #  i += 4
-	cmp	r12, #32                #  if (i < 32)
-	blt	1b                      #   goto 1
+	# mu = a[i] * mp
+	mul	r8, %[mp], r10
+	# a[i+0] += m[0] * mu
+	ldr	r7, [%[m], #0]
+	ldr	r9, [%[a], #0]
+	umull	r6, r7, r8, r7
+	adds	r10, r10, r6
+	adc	r5, r7, #0
+	# a[i+1] += m[1] * mu
+	ldr	r7, [%[m], #4]
+	ldr	r9, [%[a], #4]
+	umull	r6, r7, r8, r7
+	adds	r10, r14, r6
+	adc	r4, r7, #0
+	adds	r10, r10, r5
+	adc	r4, r4, #0
+	# a[i+2] += m[2] * mu
+	ldr	r7, [%[m], #8]
+	ldr	r14, [%[a], #8]
+	umull	r6, r7, r8, r7
+	adds	r14, r14, r6
+	adc	r5, r7, #0
+	adds	r14, r14, r4
+	adc	r5, r5, #0
+	# a[i+3] += m[3] * mu
+	ldr	r7, [%[m], #12]
+	ldr	r9, [%[a], #12]
+	umull	r6, r7, r8, r7
+	adds	r9, r9, r6
+	adc	r4, r7, #0
+	adds	r9, r9, r5
+	str	r9, [%[a], #12]
+	adc	r4, r4, #0
+	# a[i+4] += m[4] * mu
+	ldr	r7, [%[m], #16]
+	ldr	r9, [%[a], #16]
+	umull	r6, r7, r8, r7
+	adds	r9, r9, r6
+	adc	r5, r7, #0
+	adds	r9, r9, r4
+	str	r9, [%[a], #16]
+	adc	r5, r5, #0
+	# a[i+5] += m[5] * mu
+	ldr	r7, [%[m], #20]
+	ldr	r9, [%[a], #20]
+	umull	r6, r7, r8, r7
+	adds	r9, r9, r6
+	adc	r4, r7, #0
+	adds	r9, r9, r5
+	str	r9, [%[a], #20]
+	adc	r4, r4, #0
+	# a[i+6] += m[6] * mu
+	ldr	r7, [%[m], #24]
+	ldr	r9, [%[a], #24]
+	umull	r6, r7, r8, r7
+	adds	r9, r9, r6
+	adc	r5, r7, #0
+	adds	r9, r9, r4
+	str	r9, [%[a], #24]
+	adc	r5, r5, #0
+	# a[i+7] += m[7] * mu
+	ldr	r7, [%[m], #28]
+	ldr	r9, [%[a], #28]
+	umull	r6, r7, r8, r7
+	adds	r5, r5, r6
+	adcs	r7, r7, %[ca]
+	mov	%[ca], #0
+	adc	%[ca], %[ca], %[ca]
+	adds	r9, r9, r5
+	str	r9, [%[a], #28]
+	ldr	r9, [%[a], #32]
+	adcs	r9, r9, r7
+	str	r9, [%[a], #32]
+	adc	%[ca], %[ca], #0
+	# i += 1
+	add	%[a], %[a], #4
+	add	r12, r12, #4
+	cmp	r12, #32
+	blt	1b
 
-	str	r10, [%[a], #0]         #  a[0] = r10
-	str	r14, [%[a], #4]         #  a[1] = r14
+	str	r10, [%[a], #0]
+	str	r14, [%[a], #4]
 	: [ca] "+r" (ca), [a] "+r" (a)
 	: [m] "r" (m), [mp] "r" (mp)
-	: "memory", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r14", "r12"
+	: "memory", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r12", "r14"
 	);
 
+	memcpy(a, a + 8, 32);
 	if (ca)
 		a -= m;
 }
