@@ -443,17 +443,19 @@ static void parse_o(char* opt)
 			opt = comma + 1;
 			continue;
 		}
-		break;
-	}
-	// opt points to last spec in comma separated list.
-	// This one can have =HEADER part.
-	new = new_out_t();
-	if (equal)
-		*equal = '\0';
-	*new = *find_out_spec(opt);
-	if (equal) {
-		*equal = '=';
-		new->header = equal + 1;
+		// opt points to last spec in comma separated list.
+		// This one can have =HEADER part.
+		new = new_out_t();
+		if (equal)
+			*equal = '\0';
+		*new = *find_out_spec(opt);
+		if (!equal)
+			break;
+		*equal++ = '=';
+		new->header = equal;
+		comma = strchr(equal, ',');
+		if (comma)
+			*comma = '\0';
 		// POSIX: the field widths shall be ... at least as wide as
 		// the header text (default or overridden value).
 		// If the header text is null, such as -o user=,
@@ -461,10 +463,12 @@ static void parse_o(char* opt)
 		// default header text
 		if (new->header[0]) {
 			new->width = strlen(new->header);
-			print_header = 1;
 		}
-	} else
-		print_header = 1;
+		if (!comma)
+			break;
+		//*comma = ','; /* no, new->header should stay NUL-terminated */
+		opt = comma + 1;
+	}
 }
 
 static void alloc_line_buffer(void)
