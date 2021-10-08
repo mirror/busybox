@@ -69,7 +69,7 @@
 #define OPT_c (1 << 7)
 #define OPT_o (1 << 8)
 
-static void reverse(unsigned opt, unsigned cols, const char *filename)
+static void reverse(unsigned opt, const char *filename)
 {
 	FILE *fp;
 	char *buf;
@@ -77,9 +77,9 @@ static void reverse(unsigned opt, unsigned cols, const char *filename)
 	fp = filename ? xfopen_for_read(filename) : stdin;
 
 	while ((buf = xmalloc_fgetline(fp)) != NULL) {
-		char *p = buf;
-		unsigned cnt = cols;
+		char *p;
 
+		p = buf;
 		if (!(opt & OPT_p)) {
 			/* skip address */
 			while (isxdigit(*p)) p++;
@@ -92,9 +92,9 @@ static void reverse(unsigned opt, unsigned cols, const char *filename)
 		}
 
 		/* Process hex bytes optionally separated by whitespace */
-		do {
+		for (;;) {
 			uint8_t val, c;
-
+ nibble1:
 			p = skip_whitespace(p);
 
 			c = *p++;
@@ -102,8 +102,19 @@ static void reverse(unsigned opt, unsigned cols, const char *filename)
 				val = c - '0';
 			else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
 				val = (c|0x20) - ('a' - 10);
-			else
+			else {
+				/* xxd V1.10 is inconsistent here.
+				 *  echo -e "31 !3 0a 0a" | xxd -r -p
+				 * is "10<a0>" (no <cr>) - "!" is ignored,
+				 * but
+				 *  echo -e "31 !!343434\n30 0a" | xxd -r -p
+				 * is "10<cr>" - "!!" drops rest of the line.
+				 * We will ignore all invalid chars:
+				 */
+				if (c != '\0')
+					goto nibble1;
 				break;
+			}
 			val <<= 4;
 
 			/* Works the same with xxd V1.10:
@@ -111,6 +122,7 @@ static void reverse(unsigned opt, unsigned cols, const char *filename)
 			 *  echo "31 0 9 32 0a" | xxd -r -p
 			 * thus allow whitespace even within the byte:
 			 */
+ nibble2:
 			p = skip_whitespace(p);
 
 			c = *p++;
@@ -118,10 +130,23 @@ static void reverse(unsigned opt, unsigned cols, const char *filename)
 				val |= c - '0';
 			else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
 				val |= (c|0x20) - ('a' - 10);
-			else
-				break;
+			else {
+				if (c != '\0') {
+					/* "...3<not_hex_char>..." ignores both chars */
+					goto nibble1;
+				}
+				/* Nibbles can join even through newline:
+				 * echo -e "31 3\n2 0a" | xxd -r -p
+				 * is "12<cr>".
+				 */
+				free(buf);
+				p = buf = xmalloc_fgetline(fp);
+				if (!buf)
+					break;
+				goto nibble2;
+			}
 			putchar(val);
-		} while (!(opt & OPT_p) || --cnt != 0);
+		}
 		free(buf);
 	}
 	//fclose(fp);
@@ -174,6 +199,10 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 		//BUGGY for /proc/version (unseekable?)
 	}
 
+	if (opt & OPT_r) {
+		reverse(opt, argv[0]);
+	}
+
 	if (opt & OPT_o) {
 		/* -o accepts negative numbers too */
 		dumper->xxd_displayoff = xstrtoll(opt_o, /*base:*/ 0);
@@ -192,10 +221,6 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 			bb_dump_add(dumper, "\" \"");
 		} else
 			bb_dump_add(dumper, "\"%08.8_ax: \""); // "address: "
-	}
-
-	if (opt & OPT_r) {
-		reverse(opt, cols, argv[0]);
 	}
 
 	if (bytes < 1 || bytes >= cols) {
