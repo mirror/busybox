@@ -82,12 +82,12 @@
 //usage:#define mdev_trivial_usage
 //usage:       "[-vS] " IF_FEATURE_MDEV_DAEMON("{ ") "[-s]" IF_FEATURE_MDEV_DAEMON(" | [-df] }")
 //usage:#define mdev_full_usage "\n\n"
-//usage:       "	-v	verbose\n"
-//usage:       "	-S	log to syslog too\n"
-//usage:       "	-s	scan /sys and populate /dev\n"
+//usage:       "	-v	Verbose\n"
+//usage:       "	-S	Log to syslog too\n"
+//usage:       "	-s	Scan /sys and populate /dev\n"
 //usage:	IF_FEATURE_MDEV_DAEMON(
-//usage:       "	-d	daemon, listen on netlink\n"
-//usage:       "	-f	stay in foreground\n"
+//usage:       "	-d	Daemon, listen on netlink\n"
+//usage:       "	-f	Run in foreground\n"
 //usage:	)
 //usage:       "\n"
 //usage:       "Bare mdev is a kernel hotplug helper. To activate it:\n"
