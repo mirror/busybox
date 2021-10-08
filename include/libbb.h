@@ -305,9 +305,13 @@ typedef unsigned long long uoff_t;
 # endif
 #else
 /* CONFIG_LFS is off */
-# if UINT_MAX == 0xffffffff
-/* While sizeof(off_t) == sizeof(int), off_t is typedef'ed to long anyway.
- * gcc will throw warnings on printf("%d", off_t). Crap... */
+/* sizeof(off_t) == sizeof(long).
+ * May or may not be == sizeof(int). If it is, use xatoi_positive()
+ * and bb_strtou() instead of xatoul_range() and bb_strtoul().
+ * Even if sizeof(off_t) == sizeof(int), off_t is typedef'ed to long anyway.
+ * gcc will throw warnings on printf("%d", off_t)... Have to use %ld etc.
+ */
+# if UINT_MAX == ULONG_MAX
 typedef unsigned long uoff_t;
 #  define XATOOFF(a) xatoi_positive(a)
 #  define BB_STRTOOFF bb_strtou
