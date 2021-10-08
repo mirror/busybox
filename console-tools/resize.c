@@ -74,7 +74,19 @@ int resize_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		+ (1 << SIGTERM)
 		+ (1 << SIGALRM)
 		, onintr);
-	tcsetattr(STDERR_FILENO, TCSANOW, &new);
+	/* Users report:
+	 *	The resize command messes up the terminal.
+	 *	In my case it looks like it is hanging and
+	 *	I need to press ctrl-c to get a prompt.
+	 *	Actually the program does not hang but just
+	 *	the terminal is messed up.
+	 * Replaced TCSANOW with TCSAFLUSH:
+	 * "the change occurs after all output written to fd
+	 * has been transmitted, and all input that has been
+	 * received but not read will be discarded before
+	 * the change is made.
+	 */
+	tcsetattr(STDERR_FILENO, TCSAFLUSH, &new);
 
 	/* save_cursor_pos 7
 	 * scroll_whole_screen [r
