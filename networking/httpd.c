@@ -1878,14 +1878,17 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 		send_headers(HTTP_OK);
 #if ENABLE_FEATURE_USE_SENDFILE
 	{
-		off_t offset = (range_start < 0) ? 0 : range_start;
+		off_t offset;
+		if (range_start < 0)
+			range_start = 0;
+		offset = range_start;
 		while (1) {
 			/* sz is rounded down to 64k */
 			ssize_t sz = MAXINT(ssize_t) - 0xffff;
 			IF_FEATURE_HTTPD_RANGES(if (sz > range_len) sz = range_len;)
 			count = sendfile(STDOUT_FILENO, fd, &offset, sz);
 			if (count < 0) {
-				if (offset == range_start)
+				if (offset == range_start) /* was it the very 1st sendfile? */
 					break; /* fall back to read/write loop */
 				goto fin;
 			}
