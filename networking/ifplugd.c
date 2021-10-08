@@ -20,7 +20,7 @@
 //usage:       "[OPTIONS]"
 //usage:#define ifplugd_full_usage "\n\n"
 //usage:       "Network interface plug detection daemon\n"
-//usage:     "\n	-n		Don't daemonize"
+//usage:     "\n	-n		Run in foreground"
 //usage:     "\n	-s		Don't log to syslog"
 //usage:     "\n	-i IFACE	Interface"
 //usage:     "\n	-f/-F		Treat link detection error as link down/link up"

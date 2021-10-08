@@ -274,7 +274,7 @@
 //usage:#define httpd_full_usage "\n\n"
 //usage:       "Listen for incoming HTTP requests\n"
 //usage:     "\n	-i		Inetd mode"
-//usage:     "\n	-f		Don't daemonize"
+//usage:     "\n	-f		Run in foreground"
 //usage:     "\n	-v[v]		Verbose"
 //usage:     "\n	-p [IP:]PORT	Bind to IP:PORT (default *:"STR(CONFIG_FEATURE_HTTPD_PORT_DEFAULT)")"
 //usage:	IF_FEATURE_HTTPD_SETUID(
