@@ -74,12 +74,44 @@
 //config:	Allow searching based on the modification time of
 //config:	files, in days.
 //config:
+//config:config FEATURE_FIND_ATIME
+//config:	bool "Enable -atime: access time matching"
+//config:	default y
+//config:	depends on FEATURE_FIND_MTIME
+//config:	help
+//config:	Allow searching based on the access time of
+//config:	files, in days.
+//config:
+//config:config FEATURE_FIND_CTIME
+//config:	bool "Enable -ctime: status change timestamp matching"
+//config:	default y
+//config:	depends on FEATURE_FIND_MTIME
+//config:	help
+//config:	Allow searching based on the status change timestamp of
+//config:	files, in days.
+//config:
 //config:config FEATURE_FIND_MMIN
 //config:	bool "Enable -mmin: modification time matching by minutes"
 //config:	default y
 //config:	depends on FIND
 //config:	help
 //config:	Allow searching based on the modification time of
+//config:	files, in minutes.
+//config:
+//config:config FEATURE_FIND_AMIN
+//config:	bool "Enable -amin: access time matching by minutes"
+//config:	default y
+//config:	depends on FEATURE_FIND_MMIN
+//config:	help
+//config:	Allow searching based on the access time of
+//config:	files, in minutes.
+//config:
+//config:config FEATURE_FIND_CMIN
+//config:	bool "Enable -cmin: status change timestamp matching by minutes"
+//config:	default y
+//config:	depends on FEATURE_FIND_MMIN
+//config:	help
+//config:	Allow searching based on the status change timestamp of
 //config:	files, in minutes.
 //config:
 //config:config FEATURE_FIND_PERM
@@ -296,9 +328,21 @@
 //usage:     "\n	-mtime DAYS	mtime is greater than (+N), less than (-N),"
 //usage:     "\n			or exactly N days in the past"
 //usage:	)
+//usage:	IF_FEATURE_FIND_ATIME(
+//usage:     "\n	-atime DAYS	atime +N/-N/N days in the past"
+//usage:	)
+//usage:	IF_FEATURE_FIND_CTIME(
+//usage:     "\n	-ctime DAYS	ctime +N/-N/N days in the past"
+//usage:	)
 //usage:	IF_FEATURE_FIND_MMIN(
 //usage:     "\n	-mmin MINS	mtime is greater than (+N), less than (-N),"
 //usage:     "\n			or exactly N minutes in the past"
+//usage:	)
+//usage:	IF_FEATURE_FIND_AMIN(
+//usage:     "\n	-amin MINS	atime +N/-N/N minutes in the past"
+//usage:	)
+//usage:	IF_FEATURE_FIND_CMIN(
+//usage:     "\n	-cmin MINS	ctime +N/-N/N minutes in the past"
 //usage:	)
 //usage:	IF_FEATURE_FIND_NEWER(
 //usage:     "\n	-newer FILE	mtime is more recent than FILE's"
@@ -396,8 +440,8 @@ IF_FEATURE_FIND_PRINT0( ACTS(print0))
 IF_FEATURE_FIND_TYPE(   ACTS(type,  int type_mask;))
 IF_FEATURE_FIND_EXECUTABLE(ACTS(executable))
 IF_FEATURE_FIND_PERM(   ACTS(perm,  char perm_char; mode_t perm_mask;))
-IF_FEATURE_FIND_MTIME(  ACTS(mtime, char mtime_char; unsigned mtime_days;))
-IF_FEATURE_FIND_MMIN(   ACTS(mmin,  char mmin_char; unsigned mmin_mins;))
+IF_FEATURE_FIND_MTIME(  ACTS(mtime, char time_type; char mtime_char; unsigned mtime_days;))
+IF_FEATURE_FIND_MMIN(   ACTS(mmin,  char time_type; char mmin_char; unsigned mmin_mins;))
 IF_FEATURE_FIND_NEWER(  ACTS(newer, time_t newer_mtime;))
 IF_FEATURE_FIND_INUM(   ACTS(inum,  ino_t inode_num;))
 IF_FEATURE_FIND_USER(   ACTS(user,  uid_t uid;))
@@ -619,9 +663,13 @@ ACTF(perm)
 }
 #endif
 
-#if						\
-	ENABLE_FEATURE_FIND_MMIN  ||		\
-	ENABLE_FEATURE_FIND_MTIME
+#if 0 \
+ || ENABLE_FEATURE_FIND_AMIN  \
+ || ENABLE_FEATURE_FIND_ATIME \
+ || ENABLE_FEATURE_FIND_CMIN  \
+ || ENABLE_FEATURE_FIND_CTIME \
+ || ENABLE_FEATURE_FIND_MMIN  \
+ || ENABLE_FEATURE_FIND_MTIME
 static int time_cmp(time_t ftime, char time_char, time_t secs, time_t delta)
 {
 	time_t file_age = time(NULL) - ftime;
@@ -637,14 +685,32 @@ static int time_cmp(time_t ftime, char time_char, time_t secs, time_t delta)
 #if ENABLE_FEATURE_FIND_MTIME
 ACTF(mtime)
 {
-	return time_cmp(statbuf->st_mtime, ap->mtime_char,
+	time_t t = statbuf->st_mtime;
+# if ENABLE_FEATURE_FIND_ATIME
+	if (ap->time_type == 'a')
+		t = statbuf->st_atime;
+# endif
+# if ENABLE_FEATURE_FIND_CTIME
+	if (ap->time_type == 'c')
+		t = statbuf->st_ctime;
+# endif
+	return time_cmp(t, ap->mtime_char,
 			ap->mtime_days * 24*60*60, 24*60*60);
 }
 #endif
 #if ENABLE_FEATURE_FIND_MMIN
 ACTF(mmin)
 {
-	return time_cmp(statbuf->st_mtime, ap->mmin_char,
+	time_t t = statbuf->st_mtime;
+# if ENABLE_FEATURE_FIND_AMIN
+	if (ap->time_type == 'a')
+		t = statbuf->st_atime;
+# endif
+# if ENABLE_FEATURE_FIND_CMIN
+	if (ap->time_type == 'c')
+		t = statbuf->st_ctime;
+# endif
+	return time_cmp(t, ap->mmin_char,
 			ap->mmin_mins * 60, 60);
 }
 #endif
@@ -1047,7 +1113,11 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_TYPE(   PARM_type      ,)
 	IF_FEATURE_FIND_PERM(   PARM_perm      ,)
 	IF_FEATURE_FIND_MTIME(  PARM_mtime     ,)
+	IF_FEATURE_FIND_ATIME(  PARM_atime     ,)
+	IF_FEATURE_FIND_CTIME(  PARM_ctime     ,)
 	IF_FEATURE_FIND_MMIN(   PARM_mmin      ,)
+	IF_FEATURE_FIND_AMIN(   PARM_amin      ,)
+	IF_FEATURE_FIND_CMIN(   PARM_cmin      ,)
 	IF_FEATURE_FIND_NEWER(  PARM_newer     ,)
 	IF_FEATURE_FIND_INUM(   PARM_inum      ,)
 	IF_FEATURE_FIND_USER(   PARM_user      ,)
@@ -1091,7 +1161,11 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_TYPE(   "-type\0"   )
 	IF_FEATURE_FIND_PERM(   "-perm\0"   )
 	IF_FEATURE_FIND_MTIME(  "-mtime\0"  )
+	IF_FEATURE_FIND_ATIME(  "-atime\0"  )
+	IF_FEATURE_FIND_CTIME(  "-ctime\0"  )
 	IF_FEATURE_FIND_MMIN(   "-mmin\0"   )
+	IF_FEATURE_FIND_AMIN(   "-amin\0"   )
+	IF_FEATURE_FIND_CMIN(   "-cmin\0"   )
 	IF_FEATURE_FIND_NEWER(  "-newer\0"  )
 	IF_FEATURE_FIND_INUM(   "-inum\0"   )
 	IF_FEATURE_FIND_USER(   "-user\0"   )
@@ -1377,19 +1451,39 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_MTIME
-		else if (parm == PARM_mtime) {
+		else if (parm == PARM_mtime
+# if ENABLE_FEATURE_FIND_ATIME
+		 || parm == PARM_atime
+# endif
+# if ENABLE_FEATURE_FIND_CTIME
+		 || parm == PARM_ctime
+# endif
+		) {
 			action_mtime *ap;
 			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(mtime);
+# if ENABLE_FEATURE_FIND_AMIN || ENABLE_FEATURE_FIND_CMIN
+			ap->time_type = arg[1];
+# endif
 			ap->mtime_char = arg1[0];
 			ap->mtime_days = xatoul(plus_minus_num(arg1));
 		}
 #endif
 #if ENABLE_FEATURE_FIND_MMIN
-		else if (parm == PARM_mmin) {
+		else if (parm == PARM_mmin
+# if ENABLE_FEATURE_FIND_AMIN
+		 || parm == PARM_amin
+# endif
+# if ENABLE_FEATURE_FIND_CMIN
+		 || parm == PARM_cmin
+# endif
+		) {
 			action_mmin *ap;
 			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(mmin);
+# if ENABLE_FEATURE_FIND_AMIN || ENABLE_FEATURE_FIND_CMIN
+			ap->time_type = arg[1];
+# endif
 			ap->mmin_char = arg1[0];
 			ap->mmin_mins = xatoul(plus_minus_num(arg1));
 		}
