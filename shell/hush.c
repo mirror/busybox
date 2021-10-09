@@ -6472,16 +6472,21 @@ static arith_t expand_and_evaluate_arith(const char *arg, const char **errmsg_p)
 /* ${var/[/]pattern[/repl]} helpers */
 static char *strstr_pattern(char *val, const char *pattern, int *size)
 {
-	int sz = strcspn(pattern, "*?[\\");
-	if (pattern[sz] == '\0') {
+	int first_escaped = (pattern[0] == '\\' && pattern[1]);
+	/* "first_escaped" trick allows to treat e.g. "\*no_glob_chars"
+	 * as literal too (as it is semi-common, and easy to accomodate
+	 * by just using str + 1).
+	 */
+	int sz = strcspn(pattern + first_escaped * 2, "*?[\\");
+	if ((pattern + first_escaped * 2)[sz] == '\0') {
 		/* Optimization for trivial patterns.
 		 * Testcase for very slow replace (performs about 22k replaces):
 		 * x=::::::::::::::::::::::
 		 * x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;echo ${#x}
 		 * echo "${x//:/|}"
 		 */
-		*size = sz;
-		return strstr(val, pattern);
+		*size = sz + first_escaped;
+		return strstr(val, pattern + first_escaped);
 	}
 
 	while (1) {
