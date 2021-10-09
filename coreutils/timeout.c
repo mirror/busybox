@@ -39,12 +39,28 @@
 //kbuild:lib-$(CONFIG_TIMEOUT) += timeout.o
 
 //usage:#define timeout_trivial_usage
-//usage:       "[-s SIG] SECS PROG ARGS"
+//usage:       "[-s SIG] [-k KILL_SECS] SECS PROG ARGS"
 //usage:#define timeout_full_usage "\n\n"
 //usage:       "Run PROG. Send SIG to it if it is not gone in SECS seconds.\n"
 //usage:       "Default SIG: TERM."
+//usage:       "If it still exists in KILL_SECS seconds, send KILL.\n"
 
 #include "libbb.h"
+
+static NOINLINE int timeout_wait(int timeout, pid_t pid)
+{
+	/* Just sleep(HUGE_NUM); kill(parent) may kill wrong process! */
+	while (1) {
+		sleep1();
+		if (--timeout <= 0)
+			break;
+		if (kill(pid, 0)) {
+			/* process is gone */
+			return EXIT_SUCCESS;
+		}
+	}
+	return EXIT_FAILURE;
+}
 
 int timeout_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int timeout_main(int argc UNUSED_PARAM, char **argv)
@@ -53,22 +69,28 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 	int status;
 	int parent = 0;
 	int timeout;
+	int kill_timeout;
 	pid_t pid;
 #if !BB_MMU
 	char *sv1, *sv2;
 #endif
 	const char *opt_s = "TERM";
+	char *opt_k = NULL;
 
 	/* -p option is not documented, it is needed to support NOMMU. */
 
 	/* -t SECONDS; -p PARENT_PID */
 	/* '+': stop at first non-option */
-	getopt32(argv, "+s:" USE_FOR_NOMMU("p:+"), &opt_s, &parent);
+	getopt32(argv, "+s:k:" USE_FOR_NOMMU("p:+"), &opt_s, &opt_k, &parent);
 	/*argv += optind; - no, wait for bb_daemonize_or_rexec! */
 
 	signo = get_signum(opt_s);
 	if (signo < 0)
 		bb_error_msg_and_die("unknown signal '%s'", opt_s);
+
+	kill_timeout = 0;
+	if (opt_k)
+		kill_timeout = parse_duration_str(opt_k);
 
 	if (!argv[optind])
 		bb_show_usage();
@@ -103,17 +125,16 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 		bb_daemonize_or_rexec(0, argv);
 		/* Here we are grandchild. Sleep, then kill grandparent */
  grandchild:
-		/* Just sleep(HUGE_NUM); kill(parent) may kill wrong process! */
-		while (1) {
-			sleep1();
-			if (--timeout <= 0)
-				break;
-			if (kill(parent, 0)) {
-				/* process is gone */
-				return EXIT_SUCCESS;
-			}
-		}
+		if (timeout_wait(timeout, parent) == EXIT_SUCCESS)
+			return EXIT_SUCCESS;
 		kill(parent, signo);
+
+		if (kill_timeout > 0) {
+			if (timeout_wait(kill_timeout, parent) == EXIT_SUCCESS)
+				return EXIT_SUCCESS;
+			kill(parent, SIGKILL);
+		}
+
 		return EXIT_SUCCESS;
 	}
 
