@@ -7251,7 +7251,7 @@ subevalvar(char *start, char *str, int strloc,
 #if BASH_PATTERN_SUBST
 	workloc = expdest - (char *)stackblock();
 	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
-		size_t no_meta_len;
+		size_t no_meta_len, first_escaped;
 		int len;
 		char *idx, *end;
 
@@ -7269,28 +7269,34 @@ subevalvar(char *start, char *str, int strloc,
 		if (str[0] == '\0')
 			goto out1;
 
-		no_meta_len = (ENABLE_ASH_OPTIMIZE_FOR_SIZE || strpbrk(str, "*?[\\")) ? 0 : strlen(str);
+		first_escaped = (str[0] == '\\' && str[1]);
+		/* "first_escaped" trick allows to treat e.g. "\*no_glob_chars"
+		 * as literal too (as it is semi-common, and easy to accomodate
+		 * by just using str + 1).
+		 */
+		no_meta_len = strpbrk(str + first_escaped * 2, "*?[\\") ? 0 : strlen(str);
 		len = 0;
 		idx = startp;
 		end = str - 1;
 		while (idx <= end) {
  try_to_match:
 			if (no_meta_len == 0) {
-				/* pattern has meta chars, have to glob; or ENABLE_ASH_OPTIMIZE_FOR_SIZE */
+				/* pattern has meta chars, have to glob */
 				loc = scanright(idx, rmesc, rmescend, str, quotes, /*match_at_start:*/ 1);
 			} else {
 				/* Testcase for very slow replace (performs about 22k replaces):
 				 * x=::::::::::::::::::::::
 				 * x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;x=$x$x;echo ${#x}
 				 * echo "${x//:/|}"
+				 * To test "first_escaped" logic, replace : with *.
 				 */
-				if (strncmp(rmesc, str, no_meta_len) != 0)
+				if (strncmp(rmesc, str + first_escaped, no_meta_len - first_escaped) != 0)
 					goto no_match;
 				loc = idx;
 				if (!quotes) {
-					loc += no_meta_len;
+					loc += no_meta_len - first_escaped;
 				} else {
-					size_t n = no_meta_len;
+					size_t n = no_meta_len - first_escaped;
 					do {
 						if ((unsigned char)*loc == CTLESC)
 							loc++;
