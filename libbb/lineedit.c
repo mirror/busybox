@@ -214,7 +214,7 @@ extern struct lineedit_statics *BB_GLOBAL_CONST lineedit_ptr_to_statics;
 #define delbuf           (S.delbuf          )
 
 #define INIT_S() do { \
-	ASSIGN_CONST_PTR(lineedit_ptr_to_statics, xzalloc(sizeof(S))); \
+	XZALLOC_CONST_PTR(&lineedit_ptr_to_statics, sizeof(S)); \
 } while (0)
 
 static void deinit_S(void)

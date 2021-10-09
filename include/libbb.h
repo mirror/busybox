@@ -2280,6 +2280,7 @@ extern const char bb_PATH_root_path[] ALIGN1; /* BB_PATH_ROOT_PATH */
 extern const int const_int_0;
 //extern const int const_int_1;
 
+
 /* This struct is deliberately not defined. */
 /* See docs/keep_data_small.txt */
 struct globals;
@@ -2304,22 +2305,30 @@ static ALWAYS_INLINE void* not_const_pp(const void *p)
 	);
 	return pp;
 }
+# define ASSIGN_CONST_PTR(pptr, v) do { \
+	*(void**)not_const_pp(pptr) = (void*)(v); \
+	barrier(); \
+} while (0)
+/* XZALLOC_CONST_PTR() is an out-of-line function to prevent
+ * clang from reading pointer before it is assigned.
+ */
+void XZALLOC_CONST_PTR(const void *pptr, size_t size) FAST_FUNC;
 #else
-static ALWAYS_INLINE void* not_const_pp(const void *p) { return (void*)p; }
-#endif
-
-#define ASSIGN_CONST_PTR(p, v) do { \
-	*(void**)not_const_pp(&p) = (void*)(v); \
+# define ASSIGN_CONST_PTR(pptr, v) do { \
+	*(void**)(pptr) = (void*)(v); \
 	/* At least gcc 3.4.6 on mipsel needs optimization barrier */ \
 	barrier(); \
 } while (0)
+# define XZALLOC_CONST_PTR(pptr, size) ASSIGN_CONST_PTR(pptr, xzalloc(size))
+#endif
 
-#define SET_PTR_TO_GLOBALS(x) ASSIGN_CONST_PTR(ptr_to_globals, x)
+#define SET_PTR_TO_GLOBALS(x) ASSIGN_CONST_PTR(&ptr_to_globals, x)
 #define FREE_PTR_TO_GLOBALS() do { \
 	if (ENABLE_FEATURE_CLEAN_UP) { \
 		free(ptr_to_globals); \
 	} \
 } while (0)
+
 
 /* You can change LIBBB_DEFAULT_LOGIN_SHELL, but don't use it,
  * use bb_default_login_shell and following defines.

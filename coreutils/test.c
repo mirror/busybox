@@ -446,7 +446,7 @@ extern struct test_statics *BB_GLOBAL_CONST test_ptr_to_statics;
 #define leaving         (S.leaving      )
 
 #define INIT_S() do { \
-	ASSIGN_CONST_PTR(test_ptr_to_statics, xzalloc(sizeof(S))); \
+	XZALLOC_CONST_PTR(&test_ptr_to_statics, sizeof(S)); \
 } while (0)
 #define DEINIT_S() do { \
 	free(group_array); \

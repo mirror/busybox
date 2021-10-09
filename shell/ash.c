@@ -504,7 +504,7 @@ extern struct globals_misc *BB_GLOBAL_CONST ash_ptr_to_globals_misc;
 #define random_gen  (G_misc.random_gen )
 #define backgndpid  (G_misc.backgndpid )
 #define INIT_G_misc() do { \
-	ASSIGN_CONST_PTR(ash_ptr_to_globals_misc, xzalloc(sizeof(G_misc))); \
+	XZALLOC_CONST_PTR(&ash_ptr_to_globals_misc, sizeof(G_misc)); \
 	savestatus = -1; \
 	curdir = nullstr; \
 	physdir = nullstr; \
@@ -1582,7 +1582,7 @@ extern struct globals_memstack *BB_GLOBAL_CONST ash_ptr_to_globals_memstack;
 #define g_stacknleft (G_memstack.g_stacknleft)
 #define stackbase    (G_memstack.stackbase   )
 #define INIT_G_memstack() do { \
-	ASSIGN_CONST_PTR(ash_ptr_to_globals_memstack, xzalloc(sizeof(G_memstack))); \
+	XZALLOC_CONST_PTR(&ash_ptr_to_globals_memstack, sizeof(G_memstack)); \
 	g_stackp = &stackbase; \
 	g_stacknxt = stackbase.space; \
 	g_stacknleft = MINSIZE; \
@@ -2213,7 +2213,7 @@ extern struct globals_var *BB_GLOBAL_CONST ash_ptr_to_globals_var;
 #endif
 #define INIT_G_var() do { \
 	unsigned i; \
-	ASSIGN_CONST_PTR(ash_ptr_to_globals_var, xzalloc(sizeof(G_var))); \
+	XZALLOC_CONST_PTR(&ash_ptr_to_globals_var, sizeof(G_var)); \
 	for (i = 0; i < ARRAY_SIZE(varinit_data); i++) { \
 		varinit[i].flags    = varinit_data[i].flags; \
 		varinit[i].var_text = varinit_data[i].var_text; \

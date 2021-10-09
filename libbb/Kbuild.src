@@ -24,6 +24,7 @@ lib-y += chomp.o
 lib-y += compare_string_array.o
 lib-y += concat_path_file.o
 lib-y += concat_subpath_file.o
+lib-y += const_hack.o
 lib-y += copy_file.o
 lib-y += copyfd.o
 lib-y += crc32.o
