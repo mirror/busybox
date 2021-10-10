@@ -403,7 +403,7 @@ verify_sun_cmp(int *a, int *b)
 	return -1;
 }
 
-static void
+static NOINLINE void
 verify_sun(void)
 {
 	unsigned starts[8], lens[8], start, stop;

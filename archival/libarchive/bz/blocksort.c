@@ -107,7 +107,7 @@ void fallbackSimpleSort(uint32_t* fmap,
 #define FALLBACK_QSORT_SMALL_THRESH 10
 #define FALLBACK_QSORT_STACK_SIZE   100
 
-static
+static NOINLINE
 void fallbackQSort3(uint32_t* fmap,
 		uint32_t* eclass,
 		int32_t   loSt,

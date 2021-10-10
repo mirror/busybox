@@ -545,7 +545,7 @@ static enum xz_ret XZ_FUNC dec_block_header(struct xz_dec *s)
 	return XZ_OK;
 }
 
-static enum xz_ret XZ_FUNC dec_main(struct xz_dec *s, struct xz_buf *b)
+static NOINLINE enum xz_ret XZ_FUNC dec_main(struct xz_dec *s, struct xz_buf *b)
 {
 	enum xz_ret ret;
 
