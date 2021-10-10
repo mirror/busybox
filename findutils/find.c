@@ -440,8 +440,8 @@ IF_FEATURE_FIND_PRINT0( ACTS(print0))
 IF_FEATURE_FIND_TYPE(   ACTS(type,  int type_mask;))
 IF_FEATURE_FIND_EXECUTABLE(ACTS(executable))
 IF_FEATURE_FIND_PERM(   ACTS(perm,  char perm_char; mode_t perm_mask;))
-IF_FEATURE_FIND_MTIME(  ACTS(mtime, char time_type; char mtime_char; unsigned mtime_days;))
-IF_FEATURE_FIND_MMIN(   ACTS(mmin,  char time_type; char mmin_char; unsigned mmin_mins;))
+IF_FEATURE_FIND_MTIME(  ACTS(mtime, unsigned char time_type; unsigned char mtime_char; unsigned mtime_days;))
+IF_FEATURE_FIND_MMIN(   ACTS(mmin,  unsigned char time_type; unsigned char mmin_char; unsigned mmin_mins;))
 IF_FEATURE_FIND_NEWER(  ACTS(newer, time_t newer_mtime;))
 IF_FEATURE_FIND_INUM(   ACTS(inum,  ino_t inode_num;))
 IF_FEATURE_FIND_USER(   ACTS(user,  uid_t uid;))
@@ -670,14 +670,29 @@ ACTF(perm)
  || ENABLE_FEATURE_FIND_CTIME \
  || ENABLE_FEATURE_FIND_MMIN  \
  || ENABLE_FEATURE_FIND_MTIME
-static int time_cmp(time_t ftime, char time_char, time_t secs, time_t delta)
+static int time_cmp(const struct stat *statbuf, unsigned type_and_char, time_t N_from_user, unsigned unit)
 {
-	time_t file_age = time(NULL) - ftime;
-	switch (time_char) {
-	case '+': return file_age >= secs + delta;
-	case '-': return file_age < secs;
+	time_t ftime, file_age;
+
+	ftime = statbuf->st_mtime;
+# if ENABLE_FEATURE_FIND_ATIME || ENABLE_FEATURE_FIND_CTIME
+#  if ENABLE_FEATURE_FIND_ATIME
+	if ((type_and_char >> 8) == 'a')
+		ftime = statbuf->st_atime;
+#  endif
+#  if ENABLE_FEATURE_FIND_CTIME
+	if ((type_and_char >> 8) == 'c')
+		ftime = statbuf->st_ctime;
+#  endif
+	type_and_char &= 0xff;
+# endif
+	file_age = time(NULL) - ftime;
+	N_from_user *= unit;
+	switch (type_and_char) {
+	case '+': return file_age >= N_from_user + unit;
+	case '-': return file_age < N_from_user;
 	/* just numeric time */
-	default:  return file_age >= secs && file_age < secs + delta;
+	default:  return file_age >= N_from_user && file_age < N_from_user + unit;
 	}
 }
 #endif
@@ -685,33 +700,23 @@ static int time_cmp(time_t ftime, char time_char, time_t secs, time_t delta)
 #if ENABLE_FEATURE_FIND_MTIME
 ACTF(mtime)
 {
-	time_t t = statbuf->st_mtime;
-# if ENABLE_FEATURE_FIND_ATIME
-	if (ap->time_type == 'a')
-		t = statbuf->st_atime;
+	return time_cmp(statbuf,
+# if ENABLE_FEATURE_FIND_ATIME || ENABLE_FEATURE_FIND_CTIME
+			(ap->time_type << 8) |
 # endif
-# if ENABLE_FEATURE_FIND_CTIME
-	if (ap->time_type == 'c')
-		t = statbuf->st_ctime;
-# endif
-	return time_cmp(t, ap->mtime_char,
-			ap->mtime_days * 24*60*60, 24*60*60);
+				ap->mtime_char,
+			ap->mtime_days, 24*60*60);
 }
 #endif
 #if ENABLE_FEATURE_FIND_MMIN
 ACTF(mmin)
 {
-	time_t t = statbuf->st_mtime;
-# if ENABLE_FEATURE_FIND_AMIN
-	if (ap->time_type == 'a')
-		t = statbuf->st_atime;
+	return time_cmp(statbuf,
+# if ENABLE_FEATURE_FIND_ATIME || ENABLE_FEATURE_FIND_CTIME
+			(ap->time_type << 8) |
 # endif
-# if ENABLE_FEATURE_FIND_CMIN
-	if (ap->time_type == 'c')
-		t = statbuf->st_ctime;
-# endif
-	return time_cmp(t, ap->mmin_char,
-			ap->mmin_mins * 60, 60);
+				ap->mmin_char,
+			ap->mmin_mins, 60);
 }
 #endif
 #if ENABLE_FEATURE_FIND_NEWER
