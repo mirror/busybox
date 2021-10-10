@@ -93,7 +93,7 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	struct sched_param sp;
 	char *pid_str;
-	char *priority = priority; /* for compiler */
+	char *priority = NULL;
 	const char *current_new;
 	int policy = SCHED_RR;
 	int ret;
