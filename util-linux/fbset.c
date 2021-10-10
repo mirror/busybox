@@ -267,7 +267,7 @@ static void ss(uint32_t *x, uint32_t flag, char *buf, const char *what)
  *     vsync high
  * endmode
  */
-static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
+static NOINLINE int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
 {
 	char *token[2], *p, *s;

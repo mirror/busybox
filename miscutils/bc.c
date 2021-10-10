@@ -2261,7 +2261,7 @@ static FAST_FUNC BC_STATUS zbc_num_p(BcNum *a, BcNum *b, BcNum *restrict c, size
 }
 #define zbc_num_p(...) (zbc_num_p(__VA_ARGS__) COMMA_SUCCESS)
 
-static BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
+static NOINLINE BC_STATUS zbc_num_sqrt(BcNum *a, BcNum *restrict b, size_t scale)
 {
 	BcStatus s;
 	BcNum num1, num2, half, f, fprime, *x0, *x1, *temp;

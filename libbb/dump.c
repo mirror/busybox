@@ -532,7 +532,7 @@ static void conv_u(PR *pr, unsigned char *p)
 	}
 }
 
-static void display(priv_dumper_t* dumper)
+static NOINLINE void display(priv_dumper_t* dumper)
 {
 	unsigned char *bp;
 	unsigned char savech = '\0';

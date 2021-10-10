@@ -318,7 +318,7 @@ static void printf_xstrtou(const char *fmt)
 	printf(fmt, xstrtou(filedata, 0));
 }
 
-static void show_bridge_port(const char *name)
+static NOINLINE void show_bridge_port(const char *name)
 {
 	char pathbuf[IFNAMSIZ + sizeof("/brport/forward_delay_timer") + 8];
 	char *sfx;

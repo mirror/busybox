@@ -1162,7 +1162,7 @@ static void sp_256_proj_point_dbl_8(sp_point* r, sp_point* p)
  * p  Frist point to add.
  * q  Second point to add.
  */
-static void sp_256_proj_point_add_8(sp_point* r, sp_point* p, sp_point* q)
+static NOINLINE void sp_256_proj_point_add_8(sp_point* r, sp_point* p, sp_point* q)
 {
 	sp_digit t1[2*8];
 	sp_digit t2[2*8];

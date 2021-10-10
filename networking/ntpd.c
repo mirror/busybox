@@ -1152,7 +1152,7 @@ fit(peer_t *p, double rd)
 //		return 0;
 	return 1;
 }
-static peer_t*
+static NOINLINE peer_t*
 select_and_cluster(void)
 {
 	peer_t     *p;

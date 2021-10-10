@@ -6311,7 +6311,7 @@ static char *encode_then_expand_vararg(const char *str, int handle_squotes, int 
 
 /* Expanding ARG in ${var+ARG}, ${var-ARG}
  */
-static int encode_then_append_var_plusminus(o_string *output, int n,
+static NOINLINE int encode_then_append_var_plusminus(o_string *output, int n,
 		char *str, int dquoted)
 {
 	struct in_str input;

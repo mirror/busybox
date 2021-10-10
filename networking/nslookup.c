@@ -335,7 +335,7 @@ enum {
 	OPT_debug = (1 << 0),
 };
 
-static int parse_reply(const unsigned char *msg, size_t len)
+static NOINLINE int parse_reply(const unsigned char *msg, size_t len)
 {
 	HEADER *header;
 
