@@ -28,6 +28,22 @@
 # ifndef PR_GET_NAME
 # define PR_GET_NAME 16
 # endif
+# if ENABLE_FEATURE_SH_STANDALONE || ENABLE_FEATURE_PREFER_APPLETS || !BB_MMU
+int FAST_FUNC re_execed_comm(void)
+{
+	const char *e, *expected_comm;
+	char comm[16];
+
+	BUILD_BUG_ON(CONFIG_BUSYBOX_EXEC_PATH[0] != '/');
+	e = CONFIG_BUSYBOX_EXEC_PATH;
+	/* Hopefully (strrchr(e) - e) evaluates to constant at compile time: */
+	expected_comm = bb_busybox_exec_path + (strrchr(e, '/') - e) + 1;
+
+	prctl(PR_GET_NAME, (long)comm, 0, 0, 0);
+	//bb_error_msg("comm:'%.*s' expected:'%s'", 16, comm, expected_comm);
+	return strcmp(comm, expected_comm) == 0;
+}
+# endif
 void FAST_FUNC set_task_comm(const char *comm)
 {
 	/* okay if too long (truncates) */

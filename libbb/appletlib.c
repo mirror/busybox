@@ -1112,8 +1112,14 @@ int main(int argc UNUSED_PARAM, char **argv)
 	 || ENABLE_FEATURE_PREFER_APPLETS
 	 || !BB_MMU
 	) {
-		if (NUM_APPLETS > 1)
-			set_task_comm(applet_name);
+		if (NUM_APPLETS > 1) {
+			/* Careful, do not trash comm of "SCRIPT.sh" -
+			 * the case when started from e.g. #!/bin/ash script.
+			 * (not limited to shells - #!/bin/awk scripts also exist)
+			 */
+			if (re_execed_comm())
+				set_task_comm(applet_name);
+		}
 	}
 
 	parse_config_file(); /* ...maybe, if FEATURE_SUID_CONFIG */
