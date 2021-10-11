@@ -135,10 +135,6 @@ enum {
 	              : 0x7ff0
 };
 
-#if ENABLE_USERNAME_OR_HOMEDIR
-static const char null_str[] ALIGN1 = "";
-#endif
-
 /* We try to minimize both static and stack usage. */
 struct lineedit_statics {
 	line_input_t *state;
@@ -161,12 +157,13 @@ struct lineedit_statics {
 
 #if ENABLE_USERNAME_OR_HOMEDIR
 	char *user_buf;
-	char *home_pwd_buf; /* = (char*)null_str; */
+	char *home_pwd_buf;
+	smallint got_user_strings;
 #endif
 
 #if ENABLE_FEATURE_TAB_COMPLETION
-	char **matches;
 	unsigned num_matches;
+	char **matches;
 #endif
 
 #if ENABLE_FEATURE_EDITING_WINCH
@@ -207,8 +204,9 @@ extern struct lineedit_statics *BB_GLOBAL_CONST lineedit_ptr_to_statics;
 #define prompt_last_line (S.prompt_last_line)
 #define user_buf         (S.user_buf        )
 #define home_pwd_buf     (S.home_pwd_buf    )
-#define matches          (S.matches         )
+#define got_user_strings (S.got_user_strings)
 #define num_matches      (S.num_matches     )
+#define matches          (S.matches         )
 #define delptr           (S.delptr          )
 #define newdelflag       (S.newdelflag      )
 #define delbuf           (S.delbuf          )
@@ -226,13 +224,46 @@ static void deinit_S(void)
 #endif
 #if ENABLE_USERNAME_OR_HOMEDIR
 	free(user_buf);
-	if (home_pwd_buf != null_str)
-		free(home_pwd_buf);
+	free(home_pwd_buf);
 #endif
 	free(lineedit_ptr_to_statics);
 }
 #define DEINIT_S() deinit_S()
 
+
+#if ENABLE_USERNAME_OR_HOMEDIR
+/* Call getpwuid() only if necessary.
+ * E.g. if PS1=':', no user database reading is needed to generate prompt.
+ * (Unfortunately, default PS1='\w \$' needs it, \w abbreviates homedir
+ * as ~/... - for that it needs to *know* the homedir...)
+ */
+static void get_user_strings(void)
+{
+	struct passwd *entry;
+
+	got_user_strings = 1;
+	entry = getpwuid(geteuid());
+	if (entry) {
+		user_buf = xstrdup(entry->pw_name);
+		home_pwd_buf = xstrdup(entry->pw_dir);
+	}
+}
+
+static const char *get_username_str(void)
+{
+	if (!got_user_strings)
+		get_user_strings();
+	return user_buf ? user_buf : "";
+	/* btw, bash uses "I have no name!" string if uid has no entry */
+}
+
+static NOINLINE const char *get_homedir_or_NULL(void)
+{
+	if (!got_user_strings)
+		get_user_strings();
+	return home_pwd_buf;
+}
+#endif
 
 #if ENABLE_UNICODE_SUPPORT
 static size_t load_string(const char *src)
@@ -691,11 +722,11 @@ static char *username_path_completion(char *ud)
 {
 	struct passwd *entry;
 	char *tilde_name = ud;
-	char *home = NULL;
+	const char *home = NULL;
 
 	ud++; /* skip ~ */
 	if (*ud == '/') {       /* "~/..." */
-		home = home_pwd_buf;
+		home = get_homedir_or_NULL();
 	} else {
 		/* "~user/..." */
 		ud = strchr(ud, '/');
@@ -1971,7 +2002,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 
 				switch (c) {
 				case 'u':
-					pbuf = user_buf ? user_buf : (char*)"";
+					pbuf = (char*)get_username_str();
 					break;
 				case 'H':
 				case 'h':
@@ -1993,14 +2024,15 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				case 'w': /* current dir */
 				case 'W': /* basename of cur dir */
 					if (!cwd_buf) {
+						const char *home;
 						cwd_buf = xrealloc_getcwd_or_warn(NULL);
 						if (!cwd_buf)
 							cwd_buf = (char *)bb_msg_unknown;
-						else if (home_pwd_buf[0]) {
+						else if ((home = get_homedir_or_NULL()) != NULL && home[0]) {
 							char *after_home_user;
 
 							/* /home/user[/something] -> ~[/something] */
-							after_home_user = is_prefixed_with(cwd_buf, home_pwd_buf);
+							after_home_user = is_prefixed_with(cwd_buf, home);
 							if (after_home_user
 							 && (*after_home_user == '/' || *after_home_user == '\0')
 							) {
@@ -2399,7 +2431,6 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	//command_len = 0; - done by INIT_S()
 	//cmdedit_y = 0;  /* quasireal y, not true if line > xt*yt */
 	cmdedit_termw = 80;
-	IF_USERNAME_OR_HOMEDIR(home_pwd_buf = (char*)null_str;)
 	IF_FEATURE_EDITING_VI(delptr = delbuf;)
 
 	n = get_termios_and_make_raw(STDIN_FILENO, &new_settings, &initial_settings, 0
@@ -2458,18 +2489,6 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 #define command command_must_not_be_used
 
 	tcsetattr_stdin_TCSANOW(&new_settings);
-
-#if ENABLE_USERNAME_OR_HOMEDIR
-	{
-		struct passwd *entry;
-
-		entry = getpwuid(geteuid());
-		if (entry) {
-			user_buf = xstrdup(entry->pw_name);
-			home_pwd_buf = xstrdup(entry->pw_dir);
-		}
-	}
-#endif
 
 #if 0
 	for (i = 0; i <= state->max_history; i++)
