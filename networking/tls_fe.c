@@ -63,16 +63,22 @@ static void fprime_select(byte *dst, const byte *zero, const byte *one, byte con
 }
 #endif
 
+#if 0 /* constant-time */
 static void fe_select(byte *dst,
-		const byte *zero, const byte *one,
+		const byte *src,
 		byte condition)
 {
 	const byte mask = -condition;
 	int i;
 
 	for (i = 0; i < F25519_SIZE; i++)
-		dst[i] = zero[i] ^ (mask & (one[i] ^ zero[i]));
+		dst[i] = dst[i] ^ (mask & (src[i] ^ dst[i]));
 }
+#else
+# define fe_select(dst, src, condition) do { \
+	if (condition) lm_copy(dst, src); \
+} while (0)
+#endif
 
 #if 0 //UNUSED
 static void raw_add(byte *x, const byte *p)
@@ -225,7 +231,7 @@ static void fe_normalize(byte *x)
 	minusp[31] = (byte)c;
 
 	/* Load x-p if no underflow */
-	fe_select(x, minusp, x, (c >> 15) & 1);
+	fe_select(x, minusp, !(c & (1<<15)));
 }
 
 static void lm_add(byte* r, const byte* a, const byte* b)
@@ -548,26 +554,32 @@ static void curve25519(byte *result, const byte *e, const byte *q)
 {
 	int i;
 
-	struct {
+	struct Z {
 		/* for bbox's special case of q == NULL meaning "use basepoint" */
 		/*static const*/ uint8_t basepoint9[CURVE25519_KEYSIZE]; // = {9};
 
 		/* from wolfssl-3.15.3/wolfssl/wolfcrypt/fe_operations.h */
 		/*static const*/ byte f25519_one[F25519_SIZE]; // = {1};
 
-		/* Current point: P_m */
-		byte xm[F25519_SIZE];
-		byte zm[F25519_SIZE]; // = {1};
 		/* Predecessor: P_(m-1) */
 		byte xm1[F25519_SIZE]; // = {1};
 		byte zm1[F25519_SIZE]; // = {0};
+		/* Current point: P_m */
+		byte xm[F25519_SIZE];
+		byte zm[F25519_SIZE]; // = {1};
+		/* Temporaries */
+		byte xms[F25519_SIZE];
+		byte zms[F25519_SIZE];
 	} z;
+	uint8_t *XM1 = (uint8_t*)&z + offsetof(struct Z,xm1); // gcc 11.0.0 workaround
 #define basepoint9 z.basepoint9
 #define f25519_one z.f25519_one
-#define xm         z.xm
-#define zm         z.zm
 #define xm1        z.xm1
 #define zm1        z.zm1
+#define xm         z.xm
+#define zm         z.zm
+#define xms        z.xms
+#define zms        z.zms
 	memset(&z, 0, sizeof(z));
 	f25519_one[0] = 1;
 	zm[0] = 1;
@@ -583,8 +595,8 @@ static void curve25519(byte *result, const byte *e, const byte *q)
 
 	for (i = 253; i >= 0; i--) {
 		const int bit = (e[i >> 3] >> (i & 7)) & 1;
-		byte xms[F25519_SIZE];
-		byte zms[F25519_SIZE];
+//		byte xms[F25519_SIZE];
+//		byte zms[F25519_SIZE];
 
 		/* From P_m and P_(m-1), compute P_(2m) and P_(2m-1) */
 		xc_diffadd(xm1, zm1, q, f25519_one, xm, zm, xm1, zm1);
@@ -597,10 +609,22 @@ static void curve25519(byte *result, const byte *e, const byte *q)
 		 *   bit = 1 --> (P_(2m+1), P_(2m))
 		 *   bit = 0 --> (P_(2m), P_(2m-1))
 		 */
-		fe_select(xm1, xm1, xm, bit);
-		fe_select(zm1, zm1, zm, bit);
-		fe_select(xm, xm, xms, bit);
-		fe_select(zm, zm, zms, bit);
+#if 0
+		fe_select(xm1, xm, bit);
+		fe_select(zm1, zm, bit);
+		fe_select(xm, xms, bit);
+		fe_select(zm, zms, bit);
+#else
+// same as above in about 50 bytes smaller code, but
+// requires that in-memory order is exactly xm1,zm1,xm,zm,xms,zms
+		if (bit) {
+			//memcpy(xm1, xm, 4 * F25519_SIZE);
+			//^^^ gcc 11.0.0 warns of overlapping memcpy
+			//memmove(xm1, xm, 4 * F25519_SIZE);
+			//^^^ gcc 11.0.0 warns of out-of-bounds access to xm1[]
+			memmove(XM1, XM1 + 2 * F25519_SIZE, 4 * F25519_SIZE);
+		}
+#endif
 	}
 
 	/* Freeze out of projective coordinates */
