@@ -101,7 +101,6 @@ void xorbuf_aligned_AES_BLOCK_SIZE(void* buf, const void* mask) FAST_FUNC;
 
 
 #include "tls_pstm.h"
-#include "tls_symmetric.h"
 #include "tls_aes.h"
 #include "tls_aesgcm.h"
 #include "tls_rsa.h"
