@@ -283,4 +283,3 @@ extern int32 pstm_invmod(psPool_t *pool, pstm_int * a, pstm_int * b,
 	typedef int32 pstm_int;
 #endif /* !DISABLE_PSTM */
 #endif /* _h_PSTMATH */
-
