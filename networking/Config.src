@@ -46,6 +46,32 @@ config VERBOSE_RESOLUTION_ERRORS
 	"can't resolve 'hostname.com'" and want to know more.
 	This may increase size of your executable a bit.
 
+config FEATURE_ETC_NETWORKS
+	bool "Support /etc/networks"
+	default n
+	help
+	Enable support for network names in /etc/networks. This is
+	a rarely used feature which allows you to use names
+	instead of IP/mask pairs in route command.
+
+config FEATURE_ETC_SERVICES
+	bool "Consult /etc/services even for well-known ports"
+	default n
+	help
+	Look up e.g. "telnet" and "http" in /etc/services file
+	instead of assuming ports 23 and 80.
+	This is almost never necessary (everybody uses standard ports),
+	and it makes sense to avoid reading this file.
+	If you disable this option, in the cases where port is explicitly
+	specified as a service name (e.g. "telnet HOST PORTNAME"),
+	it will still be looked up in /etc/services.
+
+config FEATURE_HWIB
+	bool "Support infiniband HW"
+	default y
+	help
+	Support for printing infiniband addresses in network applets.
+
 config FEATURE_TLS_SHA1
 	bool "In TLS code, support ciphers which use deprecated SHA1"
 	depends on TLS

@@ -32,6 +32,26 @@
 //config:	-a Show all filesystems
 //config:	-i Inodes
 //config:	-B <SIZE> Blocksize
+//config:
+//config:config FEATURE_SKIP_ROOTFS
+//config:	bool "Skip rootfs in mount table"
+//config:	default y
+//config:	depends on DF
+//config:	help
+//config:	Ignore rootfs entry in mount table.
+//config:
+//config:	In Linux, kernel has a special filesystem, rootfs, which is initially
+//config:	mounted on /. It contains initramfs data, if kernel is configured
+//config:	to have one. Usually, another file system is mounted over / early
+//config:	in boot process, and therefore most tools which manipulate
+//config:	mount table, such as df, will skip rootfs entry.
+//config:
+//config:	However, some systems do not mount anything on /.
+//config:	If you need to configure busybox for one of these systems,
+//config:	you may find it useful to turn this option off to make df show
+//config:	initramfs statistics.
+//config:
+//config:	Otherwise, choose Y.
 
 //applet:IF_DF(APPLET_NOEXEC(df, df, BB_DIR_BIN, BB_SUID_DROP, df))
 

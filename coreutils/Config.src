@@ -5,10 +5,6 @@
 
 menu "Coreutils"
 
-INSERT
-
-comment "Common options"
-
 config FEATURE_VERBOSE
 	bool "Support verbose options (usually -v) for various applets"
 	default y
@@ -16,6 +12,19 @@ config FEATURE_VERBOSE
 	Enable cp -v, rm -v and similar messages.
 	Also enables long option (--verbose) if it exists.
 	Without this option, -v is accepted but ignored.
+
+comment "Common options for date and touch"
+
+config FEATURE_TIMEZONE
+	bool "Allow timezone in dates"
+	default y
+	depends on DESKTOP
+	help
+	Permit the use of timezones when parsing user-provided data
+	strings, e.g. '1996-04-09 12:45:00 -0500'.
+
+	This requires support for the '%z' extension to strptime() which
+	may not be available in all implementations.
 
 comment "Common options for cp and mv"
 	depends on CP || MV
@@ -36,5 +45,7 @@ config FEATURE_HUMAN_READABLE
 	depends on DF || DU || LS
 	help
 	Allow df, du, and ls to have human readable output.
+
+INSERT
 
 endmenu
