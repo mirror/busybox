@@ -3360,7 +3360,7 @@ static int glob_brace(char *pattern, o_string *o, int n)
 	 * NEXT points past the terminator of the first element, and REST
 	 * points past the final }.  We will accumulate result names from
 	 * recursive runs for each brace alternative in the buffer using
-	 * GLOB_APPEND.  */
+	 * GLOB_APPEND. */
 
 	p = begin + 1;
 	while (1) {
@@ -10225,7 +10225,7 @@ int hush_main(int argc, char **argv)
 
 	cached_getpid = getpid();   /* for tcsetpgrp() during init */
 	G.root_pid = cached_getpid; /* for $PID  (NOMMU can override via -$HEXPID:HEXPPID:...) */
-	G.root_ppid = getppid();    /* for $PPID (NOMMU can override)  */
+	G.root_ppid = getppid();    /* for $PPID (NOMMU can override) */
 
 	/* Deal with HUSH_VERSION */
 	debug_printf_env("unsetenv '%s'\n", "HUSH_VERSION");
@@ -10356,6 +10356,29 @@ int hush_main(int argc, char **argv)
 			/* Well, we cannot just declare interactiveness,
 			 * we have to have some stuff (ctty, etc) */
 			/* G_interactive_fd++; */
+//There are a few cases where bash -i -c 'SCRIPT'
+//has visible effect (differs from bash -c 'SCRIPT'):
+//it ignores TERM:
+//	bash -i -c 'kill $$; echo ALIVE'
+//	ALIVE
+//it resets SIG_INGed HUP to SIG_DFL:
+//	trap '' hup; bash -i -c 'kill -hup $$; echo ALIVE'
+//	Hangup   [the message is not printed by bash, it's the shell which started it]
+//is talkative about jobs and exiting:
+//	bash -i -c 'sleep 1 & exit'
+//	[1] 16170
+//	exit
+//includes $ENV file (only if run as "sh"):
+//	echo last >/tmp/ENV; ENV=/tmp/ENV sh -i -c 'echo HERE'
+//	last: cannot open /var/log/wtmp: No such file or directory
+//	HERE
+//(under "bash", it's the opposite: it runs $BASH_ENV file only *without* -i).
+//
+//ash -i -c 'sleep 3; sleep 3', on ^C, drops into a prompt instead of exiting
+//(this may be a bug, bash does not do this).
+//(ash -i -c 'sleep 3' won't show this, the last command gets auto-"exec"ed)
+//
+//None of the above feel like useful features people would rely on.
 			break;
 		case 's':
 			G.opt_s = 1;
@@ -11732,7 +11755,7 @@ static int FAST_FUNC builtin_fg_bg(char **argv)
 	/* TODO: bash prints a string representation
 	 * of job being foregrounded (like "sleep 1 | cat") */
 	if (argv[0][0] == 'f' && G_saved_tty_pgrp) {
-		/* Put the job into the foreground.  */
+		/* Put the job into the foreground. */
 		tcsetpgrp(G_interactive_fd, pi->pgrp);
 	}
 

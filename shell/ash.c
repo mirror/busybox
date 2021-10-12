@@ -14657,11 +14657,10 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	}
  state2:
 	state = 3;
-	if (
+	if (iflag
 #ifndef linux
-	 getuid() == geteuid() && getgid() == getegid() &&
+	 && getuid() == geteuid() && getgid() == getegid()
 #endif
-	 iflag
 	) {
 		const char *shinit = lookupvar("ENV");
 		if (shinit != NULL && *shinit != '\0')
