@@ -14455,7 +14455,7 @@ init(void)
 
 
 //usage:#define ash_trivial_usage
-//usage:	"[-il] [-|+Cabefmnuvx] [-|+o OPT]... [-c 'SCRIPT' [ARG0 ARGS] | FILE [ARGS] | -s [ARGS]]"
+//usage:	"[-il] [-|+Cabefmnuvx] [-|+o OPT]... [-c 'SCRIPT' [ARG0 ARGS] | FILE ARGS | -s ARGS]"
 ////////	comes from ^^^^^^^^^^optletters
 //usage:#define ash_full_usage "\n\n"
 //usage:	"Unix shell interpreter"
