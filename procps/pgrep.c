@@ -44,7 +44,7 @@
 //usage:     "\n	-P	Match parent process ID"
 //usage:
 //usage:#define pkill_trivial_usage
-//usage:       "[-l|-SIGNAL] [-xfvno] [-s SID|-P PPID|PATTERN]"
+//usage:       "[-l|-SIGNAL] [-xfvnoe] [-s SID|-P PPID|PATTERN]"
 //usage:#define pkill_full_usage "\n\n"
 //usage:       "Send signal to processes selected by regex PATTERN\n"
 //usage:     "\n	-l	List all signals"
@@ -55,6 +55,7 @@
 //usage:     "\n	-v	Negate the match"
 //usage:     "\n	-n	Signal the newest process only"
 //usage:     "\n	-o	Signal the oldest process only"
+//usage:     "\n	-e	Display name and PID of the process being killed"
 
 #include "libbb.h"
 #include "xregex.h"
@@ -64,7 +65,7 @@
 #define pkill (ENABLE_PKILL && (!ENABLE_PGREP || applet_name[1] == 'k'))
 
 enum {
-	/* "vlafxons:+P:+" */
+	/* "vlafxones:+P:+" */
 	OPTBIT_V = 0, /* must be first, we need OPT_INVERT = 0/1 */
 	OPTBIT_L,
 	OPTBIT_A,
@@ -72,6 +73,7 @@ enum {
 	OPTBIT_X,
 	OPTBIT_O,
 	OPTBIT_N,
+	OPTBIT_E, /* should be pkill-only, do we care? */
 	OPTBIT_S,
 	OPTBIT_P,
 };
@@ -83,6 +85,7 @@ enum {
 #define OPT_ANCHOR	(opt & (1 << OPTBIT_X))
 #define OPT_FIRST	(opt & (1 << OPTBIT_O))
 #define OPT_LAST	(opt & (1 << OPTBIT_N))
+#define OPT_ECHO	(opt & (1 << OPTBIT_E))
 #define OPT_SID		(opt & (1 << OPTBIT_S))
 #define OPT_PPID	(opt & (1 << OPTBIT_P))
 
@@ -93,8 +96,12 @@ static void act(unsigned pid, char *cmd, int signo)
 			printf("%u %s\n", pid, cmd);
 		else
 			printf("%u\n", pid);
-	} else
+	} else {
 		kill(pid, signo);
+		if (option_mask32 & (1 << OPTBIT_E)) {
+			printf("%s killed (pid %u)\n", cmd, pid);
+		}
+	}
 }
 
 int pgrep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -131,7 +138,7 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 	/* Parse remaining options */
 	ppid2match = -1;
 	sid2match = -1;
-	opt = getopt32(argv, "vlafxons:+P:+", &sid2match, &ppid2match);
+	opt = getopt32(argv, "vlafxones:+P:+", &sid2match, &ppid2match);
 	argv += optind;
 
 	if (pkill && OPT_LIST) { /* -l: print the whole signal list */
