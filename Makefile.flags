@@ -151,8 +151,8 @@ LDLIBS += m
 # gcc-4.2.1 fails if we try to feed C source on stdin:
 #  echo 'int main(void){return 0;}' | $(CC) $(CFLAGS) -lcrypt -o /dev/null -xc -
 # fall back to using a temp file:
-CRYPT_AVAILABLE := $(shell echo 'int main(void){return 0;}' >bb_libtest.c; $(CC) $(CFLAGS) -lcrypt -o /dev/null bb_libtest.c >/dev/null 2>&1 && echo "y"; rm bb_libtest.c)
-RT_AVAILABLE    := $(shell echo 'int main(void){return 0;}' >bb_libtest.c; $(CC) $(CFLAGS) -lrt    -o /dev/null bb_libtest.c >/dev/null 2>&1 && echo "y"; rm bb_libtest.c)
+CRYPT_AVAILABLE := $(shell echo 'int main(void){return 0;}' >bb_libtest.c; $(CC) $(CFLAGS) $(CFLAGS_busybox) -lcrypt -o /dev/null bb_libtest.c >/dev/null 2>&1 && echo "y"; rm bb_libtest.c)
+RT_AVAILABLE    := $(shell echo 'int main(void){return 0;}' >bb_libtest.c; $(CC) $(CFLAGS) $(CFLAGS_busybox) -lrt    -o /dev/null bb_libtest.c >/dev/null 2>&1 && echo "y"; rm bb_libtest.c)
 ifeq ($(CRYPT_AVAILABLE),y)
 LDLIBS += crypt
 endif
