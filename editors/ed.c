@@ -1016,8 +1016,6 @@ int ed_main(int argc UNUSED_PARAM, char **argv)
 		if (!readLines(fileName, 1)) {
 			return EXIT_SUCCESS;
 		}
-		if (lastNum)
-			setCurNum(1);
 		dirty = FALSE;
 	}
 
