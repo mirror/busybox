@@ -18,7 +18,7 @@
 
 //applet:IF_ED(APPLET(ed, BB_DIR_BIN, BB_SUID_DROP))
 
-//usage:#define ed_trivial_usage "[FILE]"
+//usage:#define ed_trivial_usage "[-p PROMPT] [FILE]"
 //usage:#define ed_full_usage ""
 
 #include "libbb.h"
@@ -48,6 +48,7 @@ struct globals {
 	char *bufBase;
 	char *bufPtr;
 	char *fileName;
+	const char *prompt;
 	LINE lines;
 	smallint dirty;
 	int marks[26];
@@ -57,6 +58,7 @@ struct globals {
 #define bufBase            (G.bufBase           )
 #define bufPtr             (G.bufPtr            )
 #define fileName           (G.fileName          )
+#define prompt             (G.prompt            )
 #define curNum             (G.curNum            )
 #define lastNum            (G.lastNum           )
 #define bufUsed            (G.bufUsed           )
@@ -793,7 +795,7 @@ static void doCommands(void)
 		 * 0  on ctrl-C,
 		 * >0 length of input string, including terminating '\n'
 		 */
-		len = read_line_input(NULL, ": ", buf, sizeof(buf));
+		len = read_line_input(NULL, prompt, buf, sizeof(buf));
 		if (len <= 0)
 			return;
 		while (len && isspace(buf[--len]))
@@ -1005,8 +1007,12 @@ int ed_main(int argc UNUSED_PARAM, char **argv)
 	lines.next = &lines;
 	lines.prev = &lines;
 
-	if (argv[1]) {
-		fileName = xstrdup(argv[1]);
+	prompt = ""; /* no prompt by default */
+	getopt32(argv, "p:", &prompt);
+	argv += optind;
+
+	if (argv[0]) {
+		fileName = xstrdup(argv[0]);
 		if (!readLines(fileName, 1)) {
 			return EXIT_SUCCESS;
 		}
