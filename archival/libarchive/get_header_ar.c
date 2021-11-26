@@ -92,8 +92,12 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 	/* Only size is always present, the rest may be missing in
 	 * long filename pseudo file. Thus we decode the rest
 	 * after dealing with long filename pseudo file.
+	 *
+	 * GNU binutils in deterministic mode hard codes mode to 0644 (NOT
+	 * 0100644). AR archives can only contain files, so force file
+	 * mode.
 	 */
-	typed->mode = read_num(ar.formatted.mode, 8, sizeof(ar.formatted.mode));
+	typed->mode = read_num(ar.formatted.mode, 8, sizeof(ar.formatted.mode)) | S_IFREG;
 	typed->gid = read_num(ar.formatted.gid, 10, sizeof(ar.formatted.gid));
 	typed->uid = read_num(ar.formatted.uid, 10, sizeof(ar.formatted.uid));
 	typed->mtime = read_num(ar.formatted.date, 10, sizeof(ar.formatted.date));
