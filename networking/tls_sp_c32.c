@@ -1361,13 +1361,13 @@ static void sp_256_ecc_mulmod_8(sp_point* r, const sp_point* g, const sp_digit* 
 		dump_512("t[1].y %s\n", t[1].y);
 		dump_512("t[1].z %s\n", t[1].z);
 		dbg("t[2] = t[%d]\n", y);
-		memcpy(&t[2], &t[y], sizeof(sp_point));
+		t[2] = t[y]; /* struct copy */
 		dbg("t[2] *= 2\n");
 		sp_256_proj_point_dbl_8(&t[2], &t[2]);
 		dump_512("t[2].x %s\n", t[2].x);
 		dump_512("t[2].y %s\n", t[2].y);
 		dump_512("t[2].z %s\n", t[2].z);
-		memcpy(&t[y], &t[2], sizeof(sp_point));
+		t[y] = t[2]; /* struct copy */
 
 		n <<= 1;
 		c--;
