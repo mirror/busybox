@@ -500,7 +500,7 @@ static void sp_256to512_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 #elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
 	const uint64_t* aa = (const void*)a;
 	const uint64_t* bb = (const void*)b;
-	const uint64_t* rr = (const void*)r;
+	uint64_t* rr = (void*)r;
 	int k;
 	uint64_t accl;
 	uint64_t acch;
