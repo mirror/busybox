@@ -1062,7 +1062,6 @@ static void sp_256_map_8(sp_point* r, sp_point* p)
 
 	/* x /= z^2 */
 	sp_256to512z_mont_mul_8(r->x, p->x, t2 /*, p256_mod, p256_mp_mod*/);
-	memset(r->x + 8, 0, sizeof(r->x) / 2);
 	sp_512to256_mont_reduce_8(r->x /*, p256_mod, p256_mp_mod*/);
 	/* Reduce x to less than modulus */
 	if (sp_256_cmp_8(r->x, p256_mod) >= 0)
@@ -1071,7 +1070,6 @@ static void sp_256_map_8(sp_point* r, sp_point* p)
 
 	/* y /= z^3 */
 	sp_256to512z_mont_mul_8(r->y, p->y, t1 /*, p256_mod, p256_mp_mod*/);
-	memset(r->y + 8, 0, sizeof(r->y) / 2);
 	sp_512to256_mont_reduce_8(r->y /*, p256_mod, p256_mp_mod*/);
 	/* Reduce y to less than modulus */
 	if (sp_256_cmp_8(r->y, p256_mod) >= 0)
