@@ -636,12 +636,14 @@ static void sp_256_rshift1_8(sp_digit* r, sp_digit carry)
 }
 #endif
 
-/* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m) */
-static void sp_256_div2_8(sp_digit* r, const sp_digit* a, const sp_digit* m)
+/* Divide the number by 2 mod the modulus (prime). (r = (r / 2) % m) */
+static void sp_256_div2_8(sp_digit* r /*, const sp_digit* m*/)
 {
+	const sp_digit* m = p256_mod;
+
 	int carry = 0;
-	if (a[0] & 1)
-		carry = sp_256_add_8(r, a, m);
+	if (r[0] & 1)
+		carry = sp_256_add_8(r, r, m);
 	sp_256_norm_8(r);
 	sp_256_rshift1_8(r, carry);
 }
@@ -1125,7 +1127,7 @@ static void sp_256_proj_point_dbl_8(sp_point* r, sp_point* p)
 	/* T2 = Y * Y */
 	sp_256to512z_mont_sqr_8(t2, r->y /*, p256_mod, p256_mp_mod*/);
 	/* T2 = T2/2 */
-	sp_256_div2_8(t2, t2, p256_mod);
+	sp_256_div2_8(t2 /*, p256_mod*/);
 	/* Y = Y * X */
 	sp_256to512z_mont_mul_8(r->y, r->y, r->x /*, p256_mod, p256_mp_mod*/);
 	/* X = T1 * T1 */
