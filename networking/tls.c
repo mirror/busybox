@@ -1883,10 +1883,12 @@ static void process_server_key(tls_state_t *tls, int len)
 	keybuf += 4;
 	switch (t32) {
 	case _0x03001d20: //curve_x25519
+		dbg("got x25519 eccPubKey\n");
 		tls->flags |= GOT_EC_CURVE_X25519;
 		memcpy(tls->hsd->ecc_pub_key32, keybuf, 32);
 		break;
 	case _0x03001741: //curve_secp256r1 (aka P256)
+		dbg("got P256 eccPubKey\n");
 		/* P256 point can be transmitted odd- or even-compressed
 		 * (first byte is 3 or 2) or uncompressed (4).
 		 */
@@ -1899,7 +1901,6 @@ static void process_server_key(tls_state_t *tls, int len)
 	}
 
 	tls->flags |= GOT_EC_KEY;
-	dbg("got eccPubKey\n");
 }
 
 static void send_empty_client_cert(tls_state_t *tls)
