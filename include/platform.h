@@ -239,6 +239,7 @@ typedef uint64_t bb__aliased_uint64_t FIX_ALIASING;
 # define move_from_unaligned_long(v, longp) ((v) = *(bb__aliased_long*)(longp))
 # define move_from_unaligned16(v, u16p) ((v) = *(bb__aliased_uint16_t*)(u16p))
 # define move_from_unaligned32(v, u32p) ((v) = *(bb__aliased_uint32_t*)(u32p))
+# define move_from_unaligned64(v, u64p) ((v) = *(bb__aliased_uint64_t*)(u64p))
 # define move_to_unaligned16(u16p, v)   (*(bb__aliased_uint16_t*)(u16p) = (v))
 # define move_to_unaligned32(u32p, v)   (*(bb__aliased_uint32_t*)(u32p) = (v))
 # define move_to_unaligned64(u64p, v)   (*(bb__aliased_uint64_t*)(u64p) = (v))
@@ -250,6 +251,7 @@ typedef uint64_t bb__aliased_uint64_t FIX_ALIASING;
 # define move_from_unaligned_long(v, longp) (memcpy(&(v), (longp), sizeof(long)))
 # define move_from_unaligned16(v, u16p) (memcpy(&(v), (u16p), 2))
 # define move_from_unaligned32(v, u32p) (memcpy(&(v), (u32p), 4))
+# define move_from_unaligned64(v, u64p) (memcpy(&(v), (u64p), 8))
 # define move_to_unaligned16(u16p, v) do { \
 	uint16_t __t = (v); \
 	memcpy((u16p), &__t, 2); \

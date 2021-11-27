@@ -29,6 +29,20 @@ static void dump_hex(const char *fmt, const void *vp, int len)
 typedef uint32_t sp_digit;
 typedef int32_t signed_sp_digit;
 
+/* 64-bit optimizations:
+ * if BB_UNALIGNED_MEMACCESS_OK && ULONG_MAX > 0xffffffff,
+ * then loads and stores can be done in 64-bit chunks.
+ *
+ * A narrower case is when arch is also little-endian (such as x86_64),
+ * then "LSW first", uint32[8] and uint64[4] representations are equivalent,
+ * and arithmetic can be done in 64 bits too.
+ */
+#if defined(__GNUC__) && defined(__x86_64__)
+# define UNALIGNED_LE_64BIT 1
+#else
+# define UNALIGNED_LE_64BIT 0
+#endif
+
 /* The code below is taken from parts of
  *  wolfssl-3.15.3/wolfcrypt/src/sp_c32.c
  * and heavily modified.
@@ -58,6 +72,22 @@ static const sp_digit p256_mod[8] = {
  * r  A single precision integer.
  * a  Byte array.
  */
+#if BB_UNALIGNED_MEMACCESS_OK && ULONG_MAX > 0xffffffff
+static void sp_256_to_bin_8(const sp_digit* rr, uint8_t* a)
+{
+	int i;
+	const uint64_t* r = (void*)rr;
+
+	sp_256_norm_8(rr);
+
+	r += 4;
+	for (i = 0; i < 4; i++) {
+		r--;
+		move_to_unaligned64(a, SWAP_BE64(*r));
+		a += 8;
+	}
+}
+#else
 static void sp_256_to_bin_8(const sp_digit* r, uint8_t* a)
 {
 	int i;
@@ -71,6 +101,7 @@ static void sp_256_to_bin_8(const sp_digit* r, uint8_t* a)
 		a += 4;
 	}
 }
+#endif
 
 /* Read big endian unsigned byte array into r.
  *
@@ -78,6 +109,21 @@ static void sp_256_to_bin_8(const sp_digit* r, uint8_t* a)
  * a  Byte array.
  * n  Number of bytes in array to read.
  */
+#if BB_UNALIGNED_MEMACCESS_OK && ULONG_MAX > 0xffffffff
+static void sp_256_from_bin_8(sp_digit* rr, const uint8_t* a)
+{
+	int i;
+	uint64_t* r = (void*)rr;
+
+	r += 4;
+	for (i = 0; i < 4; i++) {
+		uint64_t v;
+		move_from_unaligned64(v, a);
+		*--r = SWAP_BE64(v);
+		a += 8;
+	}
+}
+#else
 static void sp_256_from_bin_8(sp_digit* r, const uint8_t* a)
 {
 	int i;
@@ -90,6 +136,7 @@ static void sp_256_from_bin_8(sp_digit* r, const uint8_t* a)
 		a += 4;
 	}
 }
+#endif
 
 #if SP_DEBUG
 static void dump_256(const char *fmt, const sp_digit* r)
@@ -125,6 +172,20 @@ static void sp_256_point_from_bin2x32(sp_point* p, const uint8_t *bin2x32)
  * return -ve, 0 or +ve if a is less than, equal to or greater than b
  * respectively.
  */
+#if UNALIGNED_LE_64BIT
+static signed_sp_digit sp_256_cmp_8(const sp_digit* aa, const sp_digit* bb)
+{
+	const uint64_t* a = (void*)aa;
+	const uint64_t* b = (void*)bb;
+	int i;
+	for (i = 3; i >= 0; i--) {
+		if (a[i] == b[i])
+			continue;
+		return (a[i] > b[i]) * 2 - 1;
+	}
+	return 0;
+}
+#else
 static signed_sp_digit sp_256_cmp_8(const sp_digit* a, const sp_digit* b)
 {
 	int i;
@@ -140,6 +201,7 @@ static signed_sp_digit sp_256_cmp_8(const sp_digit* a, const sp_digit* b)
 	}
 	return 0;
 }
+#endif
 
 /* Compare two numbers to determine if they are equal.
  *
@@ -196,8 +258,6 @@ static int sp_256_add_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 	);
 	return reg;
 #elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
-	/* x86_64 has no alignment restrictions, and is little-endian,
-	 * so 64-bit and 32-bit representations are identical */
 	uint64_t reg;
 	asm volatile (
 "\n		movq	(%0), %3"
@@ -294,8 +354,6 @@ static int sp_256_sub_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 	);
 	return reg;
 #elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
-	/* x86_64 has no alignment restrictions, and is little-endian,
-	 * so 64-bit and 32-bit representations are identical */
 	uint64_t reg;
 	asm volatile (
 "\n		movq	(%0), %3"
@@ -440,8 +498,6 @@ static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 	r[15] = accl;
 	memcpy(r, rr, sizeof(rr));
 #elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
-	/* x86_64 has no alignment restrictions, and is little-endian,
-	 * so 64-bit and 32-bit representations are identical */
 	const uint64_t* aa = (const void*)a;
 	const uint64_t* bb = (const void*)b;
 	uint64_t rr[8];
@@ -551,17 +607,32 @@ static void sp_256_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b)
 }
 
 /* Shift number right one bit. Bottom bit is lost. */
-static void sp_256_rshift1_8(sp_digit* r, sp_digit* a, sp_digit carry)
+#if UNALIGNED_LE_64BIT
+static void sp_256_rshift1_8(sp_digit* rr, uint64_t carry)
 {
+	uint64_t *r = (void*)rr;
 	int i;
 
-	carry = (!!carry << 31);
-	for (i = 7; i >= 0; i--) {
-		sp_digit c = a[i] << 31;
-		r[i] = (a[i] >> 1) | carry;
+	carry = (((uint64_t)!!carry) << 63);
+	for (i = 3; i >= 0; i--) {
+		uint64_t c = r[i] << 63;
+		r[i] = (r[i] >> 1) | carry;
 		carry = c;
 	}
 }
+#else
+static void sp_256_rshift1_8(sp_digit* r, sp_digit carry)
+{
+	int i;
+
+	carry = (((sp_digit)!!carry) << 31);
+	for (i = 7; i >= 0; i--) {
+		sp_digit c = r[i] << 31;
+		r[i] = (r[i] >> 1) | carry;
+		carry = c;
+	}
+}
+#endif
 
 /* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m) */
 static void sp_256_div2_8(sp_digit* r, const sp_digit* a, const sp_digit* m)
@@ -570,7 +641,7 @@ static void sp_256_div2_8(sp_digit* r, const sp_digit* a, const sp_digit* m)
 	if (a[0] & 1)
 		carry = sp_256_add_8(r, a, m);
 	sp_256_norm_8(r);
-	sp_256_rshift1_8(r, r, carry);
+	sp_256_rshift1_8(r, carry);
 }
 
 /* Add two Montgomery form numbers (r = a + b % m) */
@@ -634,15 +705,28 @@ static void sp_256_mont_tpl_8(sp_digit* r, const sp_digit* a /*, const sp_digit*
 }
 
 /* Shift the result in the high 256 bits down to the bottom. */
-static void sp_256_mont_shift_8(sp_digit* r, const sp_digit* a)
+#if BB_UNALIGNED_MEMACCESS_OK && ULONG_MAX > 0xffffffff
+static void sp_256_mont_shift_8(sp_digit* rr)
+{
+	uint64_t *r = (void*)rr;
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		r[i] = r[i+4];
+		r[i+4] = 0;
+	}
+}
+#else
+static void sp_256_mont_shift_8(sp_digit* r)
 {
 	int i;
 
 	for (i = 0; i < 8; i++) {
-		r[i] = a[i+8];
+		r[i] = r[i+8];
 		r[i+8] = 0;
 	}
 }
+#endif
 
 /* Mul a by scalar b and add into r. (r += a * b) */
 static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
@@ -800,7 +884,7 @@ static void sp_256_mont_reduce_8(sp_digit* a/*, const sp_digit* m, sp_digit mp*/
 					goto inc_next_word0;
 			}
 		}
-		sp_256_mont_shift_8(a, a);
+		sp_256_mont_shift_8(a);
 		if (word16th != 0)
 			sp_256_sub_8_p256_mod(a);
 		sp_256_norm_8(a);
@@ -820,7 +904,7 @@ static void sp_256_mont_reduce_8(sp_digit* a/*, const sp_digit* m, sp_digit mp*/
 					goto inc_next_word;
 			}
 		}
-		sp_256_mont_shift_8(a, a);
+		sp_256_mont_shift_8(a);
 		if (word16th != 0)
 			sp_256_sub_8_p256_mod(a);
 		sp_256_norm_8(a);
