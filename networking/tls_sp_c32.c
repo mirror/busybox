@@ -1269,52 +1269,47 @@ static NOINLINE void sp_256_proj_point_add_8(sp_point* r, sp_point* p, sp_point*
 	 && (sp_256_cmp_equal_8(p->y, q->y) || sp_256_cmp_equal_8(p->y, t1))
 	) {
 		sp_256_proj_point_dbl_8(r, p);
+		return;
 	}
-	else {
-		sp_point tp;
-		sp_point *v;
 
-		v = r;
-		if (p->infinity | q->infinity) {
-			memset(&tp, 0, sizeof(tp));
-			v = &tp;
-		}
 
+	if (p->infinity || q->infinity) {
 		*r = p->infinity ? *q : *p; /* struct copy */
-
-		/* U1 = X1*Z2^2 */
-		sp_256_mont_sqr_8(t1, q->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_8(t3, t1, q->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_8(t1, t1, v->x /*, p256_mod, p256_mp_mod*/);
-		/* U2 = X2*Z1^2 */
-		sp_256_mont_sqr_8(t2, v->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_8(t4, t2, v->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_8(t2, t2, q->x /*, p256_mod, p256_mp_mod*/);
-		/* S1 = Y1*Z2^3 */
-		sp_256_mont_mul_8(t3, t3, v->y /*, p256_mod, p256_mp_mod*/);
-		/* S2 = Y2*Z1^3 */
-		sp_256_mont_mul_8(t4, t4, q->y /*, p256_mod, p256_mp_mod*/);
-		/* H = U2 - U1 */
-		sp_256_mont_sub_8(t2, t2, t1 /*, p256_mod*/);
-		/* R = S2 - S1 */
-		sp_256_mont_sub_8(t4, t4, t3 /*, p256_mod*/);
-		/* Z3 = H*Z1*Z2 */
-		sp_256_mont_mul_8(v->z, v->z, q->z /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_8(v->z, v->z, t2 /*, p256_mod, p256_mp_mod*/);
-		/* X3 = R^2 - H^3 - 2*U1*H^2 */
-		sp_256_mont_sqr_8(v->x, t4 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_sqr_8(t5, t2 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_8(v->y, t1, t5 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_8(t5, t5, t2 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_sub_8(v->x, v->x, t5 /*, p256_mod*/);
-		sp_256_mont_dbl_8(t1, v->y /*, p256_mod*/);
-		sp_256_mont_sub_8(v->x, v->x, t1 /*, p256_mod*/);
-		/* Y3 = R*(U1*H^2 - X3) - S1*H^3 */
-		sp_256_mont_sub_8(v->y, v->y, v->x /*, p256_mod*/);
-		sp_256_mont_mul_8(v->y, v->y, t4 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_mul_8(t5, t5, t3 /*, p256_mod, p256_mp_mod*/);
-		sp_256_mont_sub_8(v->y, v->y, t5 /*, p256_mod*/);
+		return;
 	}
+
+	/* U1 = X1*Z2^2 */
+	sp_256_mont_sqr_8(t1, q->z /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(t3, t1, q->z /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(t1, t1, r->x /*, p256_mod, p256_mp_mod*/);
+	/* U2 = X2*Z1^2 */
+	sp_256_mont_sqr_8(t2, r->z /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(t4, t2, r->z /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(t2, t2, q->x /*, p256_mod, p256_mp_mod*/);
+	/* S1 = Y1*Z2^3 */
+	sp_256_mont_mul_8(t3, t3, r->y /*, p256_mod, p256_mp_mod*/);
+	/* S2 = Y2*Z1^3 */
+	sp_256_mont_mul_8(t4, t4, q->y /*, p256_mod, p256_mp_mod*/);
+	/* H = U2 - U1 */
+	sp_256_mont_sub_8(t2, t2, t1 /*, p256_mod*/);
+	/* R = S2 - S1 */
+	sp_256_mont_sub_8(t4, t4, t3 /*, p256_mod*/);
+	/* Z3 = H*Z1*Z2 */
+	sp_256_mont_mul_8(r->z, r->z, q->z /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(r->z, r->z, t2 /*, p256_mod, p256_mp_mod*/);
+	/* X3 = R^2 - H^3 - 2*U1*H^2 */
+	sp_256_mont_sqr_8(r->x, t4 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_sqr_8(t5, t2 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(r->y, t1, t5 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(t5, t5, t2 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_sub_8(r->x, r->x, t5 /*, p256_mod*/);
+	sp_256_mont_dbl_8(t1, r->y /*, p256_mod*/);
+	sp_256_mont_sub_8(r->x, r->x, t1 /*, p256_mod*/);
+	/* Y3 = R*(U1*H^2 - X3) - S1*H^3 */
+	sp_256_mont_sub_8(r->y, r->y, r->x /*, p256_mod*/);
+	sp_256_mont_mul_8(r->y, r->y, t4 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_8(t5, t5, t3 /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_sub_8(r->y, r->y, t5 /*, p256_mod*/);
 }
 
 /* Multiply the point by the scalar and return the result.
