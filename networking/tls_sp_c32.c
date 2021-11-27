@@ -865,6 +865,8 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
 }
 
 /* Reduce the number back to 256 bits using Montgomery reduction.
+ * Note: the result is NOT guaranteed to be less than p256_mod!
+ * (it is only guaranteed to fit into 256 bits).
  *
  * a   Double-wide number to reduce in place.
  * m   The single precision number representing the modulus.
@@ -1276,7 +1278,7 @@ static void sp_256_ecc_mulmod_8(sp_point* r, const sp_point* g, const sp_digit* 
 	if (map)
 		sp_256_map_8(r, &t[0]);
 	else
-		memcpy(r, &t[0], sizeof(sp_point));
+		*r = t[0]; /* struct copy */
 
 	memset(t, 0, sizeof(t)); //paranoia
 }
