@@ -938,7 +938,7 @@ static void sp_256_mont_sqr_8(sp_digit* r, const sp_digit* a
 /* Invert the number, in Montgomery form, modulo the modulus (prime) of the
  * P256 curve. (r = 1 / a mod m)
  *
- * r   Inverse result.
+ * r   Inverse result. Must not coincide with a.
  * a   Number to invert.
  */
 #if 0
@@ -952,17 +952,15 @@ static void sp_256_mont_sqr_8(sp_digit* r, const sp_digit* a
 #endif
 static void sp_256_mont_inv_8(sp_digit* r, sp_digit* a)
 {
-	sp_digit t[8];
 	int i;
 
-	memcpy(t, a, sizeof(sp_digit) * 8);
+	memcpy(r, a, sizeof(sp_digit) * 8);
 	for (i = 254; i >= 0; i--) {
-		sp_256_mont_sqr_8(t, t /*, p256_mod, p256_mp_mod*/);
+		sp_256_mont_sqr_8(r, r /*, p256_mod, p256_mp_mod*/);
 		/*if (p256_mod_2[i / 32] & ((sp_digit)1 << (i % 32)))*/
 		if (i >= 224 || i == 192 || (i <= 95 && i != 1))
-			sp_256_mont_mul_8(t, t, a /*, p256_mod, p256_mp_mod*/);
+			sp_256_mont_mul_8(r, r, a /*, p256_mod, p256_mp_mod*/);
 	}
-	memcpy(r, t, sizeof(sp_digit) * 8);
 }
 
 /* Multiply a number by Montogmery normalizer mod modulus (prime).
