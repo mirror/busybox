@@ -363,7 +363,7 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 	old_rawkey0 = old_rawkey1 = 0;
 	old_salt = 0;
 #endif
-	saltbits = 0;
+	//saltbits = 0; /* not needed: we call setup_salt() before do_des() */
 	bits28 = bits32 + 4;
 	bits24 = bits28 + 4;
 
@@ -481,12 +481,11 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 	return ctx;
 }
 
-
+/* Accepts 24-bit salt at max */
 static void
 setup_salt(struct des_ctx *ctx, uint32_t salt)
 {
-	uint32_t obit, saltbit;
-	int i;
+	uint32_t invbits;
 
 #if USE_REPETITIVE_SPEEDUP
 	if (salt == old_salt)
@@ -494,15 +493,15 @@ setup_salt(struct des_ctx *ctx, uint32_t salt)
 	old_salt = salt;
 #endif
 
-	saltbits = 0;
-	saltbit = 1;
-	obit = 0x800000;
-	for (i = 0; i < 24; i++) {
-		if (salt & saltbit)
-			saltbits |= obit;
-		saltbit <<= 1;
-		obit >>= 1;
-	}
+	invbits = 0;
+
+	salt |= (1 << 24);
+	do {
+		invbits = (invbits << 1) + (salt & 1);
+		salt >>= 1;
+	} while (salt != 1);
+
+	saltbits = invbits;
 }
 
 static void
@@ -736,14 +735,14 @@ des_crypt(struct des_ctx *ctx, char output[DES_OUT_BUFSIZE],
 	des_setkey(ctx, (char *)keybuf);
 
 	/*
-	 * salt_str - 2 bytes of salt
+	 * salt_str - 2 chars of salt (converted to 12 bits)
 	 * key - up to 8 characters
 	 */
 	output[0] = salt_str[0];
 	output[1] = salt_str[1];
 	salt = (ascii_to_bin(salt_str[1]) << 6)
 	     |  ascii_to_bin(salt_str[0]);
-	setup_salt(ctx, salt);
+	setup_salt(ctx, salt); /* set ctx->saltbits for do_des() */
 
 	/* Do it. */
 	do_des(ctx, /*0, 0,*/ &r0, &r1, 25 /* count */);

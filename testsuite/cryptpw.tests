@@ -7,6 +7,20 @@
 
 # testing "description" "command" "result" "infile" "stdin"
 
+#optional USE_BB_CRYPT
+testing "cryptpw des 12" \
+	"cryptpw -m des QWErty '123456789012345678901234567890'" \
+	'12MnB3PqfVbMA\n' "" ""
+
+testing "cryptpw des 55" \
+	"cryptpw -m des QWErty 55" \
+	'55tgFLtkT1Y72\n' "" ""
+
+testing "cryptpw des zz" \
+	"cryptpw -m des QWErty zz" \
+	'zzIZaaXWOkxVk\n' "" ""
+#SKIP=
+
 optional USE_BB_CRYPT_SHA
 testing "cryptpw sha256" \
 	"cryptpw -m sha256 QWErty '123456789012345678901234567890'" \
