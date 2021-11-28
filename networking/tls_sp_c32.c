@@ -850,6 +850,20 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
  * a   Double-wide number to reduce. Clobbered.
  * m   The single precision number representing the modulus.
  * mp  The digit representing the negative inverse of m mod 2^n.
+ *
+ * Montgomery reduction on multiprecision integers:
+ * Montgomery reduction requires products modulo R.
+ * When R is a power of B [in our case R=2^128, B=2^32], there is a variant
+ * of Montgomery reduction which requires products only of machine word sized
+ * integers. T is stored as an little-endian word array a[0..n]. The algorithm
+ * reduces it one word at a time. First an appropriate multiple of modulus
+ * is added to make T divisible by B. [In our case, it is p256_mp_mod * a[0].]
+ * Then a multiple of modulus is added to make T divisible by B^2.
+ * [In our case, it is (p256_mp_mod * a[1]) << 32.]
+ * And so on. Eventually T is divisible by R, and after division by R
+ * the algorithm is in the same place as the usual Montgomery reduction was.
+ *
+ * TODO: Can conditionally use 64-bit (if bit-little-endian arch) logic?
  */
 static void sp_512to256_mont_reduce_8(sp_digit* r, sp_digit* a/*, const sp_digit* m, sp_digit mp*/)
 {
@@ -941,15 +955,6 @@ static void sp_256_mont_sqr_8(sp_digit* r, const sp_digit* a
  * r   Inverse result. Must not coincide with a.
  * a   Number to invert.
  */
-#if 0
-//p256_mod - 2:
-//ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff - 2
-//Bit pattern:
-//2    2         2         2         2         2         2         1...1
-//5    5         4         3         2         1         0         9...0         9...1
-//543210987654321098765432109876543210987654321098765432109876543210...09876543210...09876543210
-//111111111111111111111111111111110000000000000000000000000000000100...00000111111...11111111101
-#endif
 static void sp_256_mont_inv_8(sp_digit* r, sp_digit* a)
 {
 	int i;
@@ -957,7 +962,15 @@ static void sp_256_mont_inv_8(sp_digit* r, sp_digit* a)
 	memcpy(r, a, sizeof(sp_digit) * 8);
 	for (i = 254; i >= 0; i--) {
 		sp_256_mont_sqr_8(r, r /*, p256_mod, p256_mp_mod*/);
-		/*if (p256_mod_2[i / 32] & ((sp_digit)1 << (i % 32)))*/
+/* p256_mod - 2:
+ * ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff - 2
+ * Bit pattern:
+ * 2    2         2         2         2         2         2         1...1
+ * 5    5         4         3         2         1         0         9...0         9...1
+ * 543210987654321098765432109876543210987654321098765432109876543210...09876543210...09876543210
+ * 111111111111111111111111111111110000000000000000000000000000000100...00000111111...11111111101
+ */
+		/*if (p256_mod_minus_2[i / 32] & ((sp_digit)1 << (i % 32)))*/
 		if (i >= 224 || i == 192 || (i <= 95 && i != 1))
 			sp_256_mont_mul_8(r, r, a /*, p256_mod, p256_mp_mod*/);
 	}
