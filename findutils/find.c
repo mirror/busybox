@@ -155,6 +155,13 @@
 //config:	default y
 //config:	depends on FIND
 //config:
+//config:config FEATURE_FIND_SAMEFILE
+//config:	bool "Enable -samefile: reference file matching"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	Support the 'find -samefile' option for searching by a reference file.
+//config:
 //config:config FEATURE_FIND_EXEC
 //config:	bool "Enable -exec: execute commands"
 //config:	default y
@@ -350,6 +357,9 @@
 //usage:	IF_FEATURE_FIND_INUM(
 //usage:     "\n	-inum N		File has inode number N"
 //usage:	)
+//usage:	IF_FEATURE_FIND_SAMEFILE(
+//usage:     "\n	-samefile FILE	File is same as FILE"
+//usage:	)
 //usage:	IF_FEATURE_FIND_USER(
 //usage:     "\n	-user NAME/ID	File is owned by given user"
 //usage:	)
@@ -444,6 +454,7 @@ IF_FEATURE_FIND_MTIME(  ACTS(mtime, unsigned char time_type; unsigned char mtime
 IF_FEATURE_FIND_MMIN(   ACTS(mmin,  unsigned char time_type; unsigned char mmin_char; unsigned mmin_mins;))
 IF_FEATURE_FIND_NEWER(  ACTS(newer, time_t newer_mtime;))
 IF_FEATURE_FIND_INUM(   ACTS(inum,  ino_t inode_num;))
+IF_FEATURE_FIND_SAMEFILE(ACTS(samefile, ino_t inode_num; dev_t device;))
 IF_FEATURE_FIND_USER(   ACTS(user,  uid_t uid;))
 IF_FEATURE_FIND_SIZE(   ACTS(size,  char size_char; off_t size;))
 IF_FEATURE_FIND_CONTEXT(ACTS(context, security_context_t context;))
@@ -729,6 +740,13 @@ ACTF(newer)
 ACTF(inum)
 {
 	return (statbuf->st_ino == ap->inode_num);
+}
+#endif
+#if ENABLE_FEATURE_FIND_SAMEFILE
+ACTF(samefile)
+{
+	return statbuf->st_ino == ap->inode_num &&
+	       statbuf->st_dev == ap->device;
 }
 #endif
 #if ENABLE_FEATURE_FIND_EXEC
@@ -1125,6 +1143,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_CMIN(   PARM_cmin      ,)
 	IF_FEATURE_FIND_NEWER(  PARM_newer     ,)
 	IF_FEATURE_FIND_INUM(   PARM_inum      ,)
+	IF_FEATURE_FIND_SAMEFILE(PARM_samefile ,)
 	IF_FEATURE_FIND_USER(   PARM_user      ,)
 	IF_FEATURE_FIND_GROUP(  PARM_group     ,)
 	IF_FEATURE_FIND_SIZE(   PARM_size      ,)
@@ -1173,6 +1192,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_CMIN(   "-cmin\0"   )
 	IF_FEATURE_FIND_NEWER(  "-newer\0"  )
 	IF_FEATURE_FIND_INUM(   "-inum\0"   )
+	IF_FEATURE_FIND_SAMEFILE("-samefile\0")
 	IF_FEATURE_FIND_USER(   "-user\0"   )
 	IF_FEATURE_FIND_GROUP(  "-group\0"  )
 	IF_FEATURE_FIND_SIZE(   "-size\0"   )
@@ -1509,6 +1529,21 @@ static action*** parse_params(char **argv)
 			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(inum);
 			ap->inode_num = xatoul(arg1);
+		}
+#endif
+#if ENABLE_FEATURE_FIND_SAMEFILE
+		else if (parm == PARM_samefile) {
+			action_samefile *ap;
+			struct stat stbuf;
+			dbg("%d", __LINE__);
+			if (G.recurse_flags & (ACTION_FOLLOWLINKS |
+					       ACTION_FOLLOWLINKS_L0))
+				xstat(arg1, &stbuf);
+			else if (lstat(arg1, &stbuf))
+				bb_perror_msg_and_die("can't stat '%s'", arg1);
+			ap = ALLOC_ACTION(samefile);
+			ap->inode_num = stbuf.st_ino;
+			ap->device = stbuf.st_dev;
 		}
 #endif
 #if ENABLE_FEATURE_FIND_USER
