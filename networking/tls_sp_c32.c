@@ -711,12 +711,13 @@ static void sp_512to256_mont_shift_8(sp_digit* r, sp_digit* a)
 	memcpy(r, a + 8, sizeof(*r) * 8);
 }
 
-// Disabled for now. Seems to work, but ugly and 40 bytes larger on x86-64.
-#if 0 //UNALIGNED_LE_64BIT
+#if UNALIGNED_LE_64BIT
 /* 64-bit little-endian optimized version.
  * See generic 32-bit version below for explanation.
  * The benefit of this version is: even though r[3] calculation is atrocious,
  * we call sp_256_mul_add_4() four times, not 8.
+ * Measured run time improvement of curve_P256_compute_pubkey_and_premaster()
+ * call on x86-64: from ~1500us to ~900us. Code size +32 bytes.
  */
 static int sp_256_mul_add_4(uint64_t *r /*, const uint64_t* a, uint64_t b*/)
 {
@@ -794,18 +795,18 @@ static int sp_256_mul_add_4(uint64_t *r /*, const uint64_t* a, uint64_t b*/)
 		t64u = (t64 < b);
 		t64 += r[3];
 		t64u += (t64 < r[3]);
-		{
-			uint64_t lo,hi;
+		{ // add ((((uint128_t)b << 32) - b) << 32):
+			uint64_t lo, hi;
 			//lo = (((b << 32) - b) << 32
 			//hi = (((uint128_t)b << 32) - b) >> 32
 			//but without uint128_t:
-			hi = (b << 32) - b; /* form lower 32 bits of "hi" part 1 */
+			hi = (b << 32) - b; /* make lower 32 bits of "hi", part 1 */
 			b = (b >> 32) - (/*borrowed above?*/(b << 32) < b); /* upper 32 bits of "hi" are in b */
 			lo = hi << 32;      /* (use "hi" value to calculate "lo",... */
 			t64 += lo;          /* ...consume... */
 			t64u += (t64 < lo); /* ..."lo") */
-			hi >>= 32;          /* form lower 32 bits of "hi" part 2 */
-			hi |= (b << 32);    /* combine lower and upper */
+			hi >>= 32;          /* make lower 32 bits of "hi", part 2 */
+			hi |= (b << 32);    /* combine lower and upper 32 bits */
 			t64u += hi;         /* consume "hi" */
 		}
 		//t_hi = (t < m);
