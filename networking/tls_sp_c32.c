@@ -49,14 +49,19 @@ typedef int32_t signed_sp_digit;
  */
 
 typedef struct sp_point {
-	sp_digit x[8];
+	sp_digit x[8]
+#if ULONG_MAX > 0xffffffff
+		/* Make sp_point[] arrays to not be 64-bit misaligned */
+		ALIGNED(8)
+#endif
+	;
 	sp_digit y[8];
 	sp_digit z[8];
 	int infinity;
 } sp_point;
 
 /* The modulus (prime) of the curve P256. */
-static const sp_digit p256_mod[8] = {
+static const sp_digit p256_mod[8] ALIGNED(8) = {
 	0xffffffff,0xffffffff,0xffffffff,0x00000000,
 	0x00000000,0x00000000,0x00000001,0xffffffff,
 };
@@ -903,7 +908,7 @@ static void sp_512to256_mont_reduce_8(sp_digit* r, sp_digit* a/*, const sp_digit
  * a   First number to multiply in Montogmery form.
  * b   Second number to multiply in Montogmery form.
  * m   Modulus (prime).
- * mp  Montogmery mulitplier.
+ * mp  Montogmery multiplier.
  */
 static void sp_256_mont_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b
 		/*, const sp_digit* m, sp_digit mp*/)
@@ -920,7 +925,7 @@ static void sp_256_mont_mul_8(sp_digit* r, const sp_digit* a, const sp_digit* b
  * r   Result of squaring.
  * a   Number to square in Montogmery form.
  * m   Modulus (prime).
- * mp  Montogmery mulitplier.
+ * mp  Montogmery multiplier.
  */
 static void sp_256_mont_sqr_8(sp_digit* r, const sp_digit* a
 		/*, const sp_digit* m, sp_digit mp*/)
@@ -1144,7 +1149,6 @@ static NOINLINE void sp_256_proj_point_add_8(sp_point* r, sp_point* p, sp_point*
 		sp_256_proj_point_dbl_8(r, p);
 		return;
 	}
-
 
 	if (p->infinity || q->infinity) {
 		*r = p->infinity ? *q : *p; /* struct copy */
