@@ -705,12 +705,148 @@ static void sp_256_mont_tpl_8(sp_digit* r, const sp_digit* a /*, const sp_digit*
 	}
 }
 
-/* Shift the result in the high 256 bits down to the bottom.
- */
+/* Shift the result in the high 256 bits down to the bottom. */
 static void sp_512to256_mont_shift_8(sp_digit* r, sp_digit* a)
 {
 	memcpy(r, a + 8, sizeof(*r) * 8);
 }
+
+// Disabled for now. Seems to work, but ugly and 40 bytes larger on x86-64.
+#if 0 //UNALIGNED_LE_64BIT
+/* 64-bit little-endian optimized version.
+ * See generic 32-bit version below for explanation.
+ * The benefit of this version is: even though r[3] calculation is atrocious,
+ * we call sp_256_mul_add_4() four times, not 8.
+ */
+static int sp_256_mul_add_4(uint64_t *r /*, const uint64_t* a, uint64_t b*/)
+{
+	uint64_t b = r[0];
+
+# if 0
+	const uint64_t* a = (const void*)p256_mod;
+//a[3..0] = ffffffff00000001 0000000000000000 00000000ffffffff ffffffffffffffff
+	uint128_t t;
+	int i;
+	t = 0;
+	for (i = 0; i < 4; i++) {
+		uint32_t t_hi;
+		uint128_t m = ((uint128_t)b * a[i]) + r[i];
+		t += m;
+		t_hi = (t < m);
+		r[i] = (uint64_t)t;
+		t = (t >> 64) | ((uint128_t)t_hi << 64);
+	}
+	r[4] += (uint64_t)t;
+	return (r[4] < (uint64_t)t); /* 1 if addition overflowed */
+# else
+	// Unroll, then optimize the above loop:
+		//uint32_t t_hi;
+		//uint128_t m;
+		uint64_t t64, t64u;
+
+		//m = ((uint128_t)b * a[0]) + r[0];
+		//  Since b is r[0] and a[0] is ffffffffffffffff, the above optimizes to:
+		//  m = r[0] * ffffffffffffffff + r[0] = (r[0] << 64 - r[0]) + r[0] = r[0] << 64;
+		//t += m;
+		//  t = r[0] << 64 = b << 64;
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		//r[0] = (uint64_t)t;
+//		r[0] = 0;
+//the store can be eliminated since caller won't look at lower 256 bits of the result
+		//t = (t >> 64) | ((uint128_t)t_hi << 64);
+		//  t = b;
+
+		//m = ((uint128_t)b * a[1]) + r[1];
+		//  Since a[1] is 00000000ffffffff, the above optimizes to:
+		//  m = b * ffffffff + r[1] = (b * 100000000 - b) + r[1] = (b << 32) - b + r[1];
+		//t += m;
+		//  t = b + (b << 32) - b + r[1] = (b << 32) + r[1];
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		//r[1] = (uint64_t)t;
+		r[1] += (b << 32);
+		//t = (t >> 64) | ((uint128_t)t_hi << 64);
+		t64 = (r[1] < (b << 32));
+		t64 += (b >> 32);
+
+		//m = ((uint128_t)b * a[2]) + r[2];
+		//  Since a[2] is 0000000000000000, the above optimizes to:
+		//  m = b * 0 + r[2] = r[2];
+		//t += m;
+		//  t = t64 + r[2];
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		//r[2] = (uint64_t)t;
+		r[2] += t64;
+		//t = (t >> 64) | ((uint128_t)t_hi << 64);
+		t64 = (r[2] < t64);
+
+		//m = ((uint128_t)b * a[3]) + r[3];
+		//  Since a[3] is ffffffff00000001, the above optimizes to:
+		//  m = b * ffffffff00000001 + r[3];
+		//  m = b +  b*ffffffff00000000 + r[3]
+		//  m = b + (b*ffffffff << 32) + r[3]
+		//  m = b + (((b<<32) - b) << 32) + r[3]
+		//t += m;
+		//  t = t64 + (uint128_t)b + ((((uint128_t)b << 32) - b) << 32) + r[3];
+		t64 += b;
+		t64u = (t64 < b);
+		t64 += r[3];
+		t64u += (t64 < r[3]);
+		{
+			uint64_t lo,hi;
+			//lo = (((b << 32) - b) << 32
+			//hi = (((uint128_t)b << 32) - b) >> 32
+			//but without uint128_t:
+			hi = (b << 32) - b; /* form lower 32 bits of "hi" part 1 */
+			b = (b >> 32) - (/*borrowed above?*/(b << 32) < b); /* upper 32 bits of "hi" are in b */
+			lo = hi << 32;      /* (use "hi" value to calculate "lo",... */
+			t64 += lo;          /* ...consume... */
+			t64u += (t64 < lo); /* ..."lo") */
+			hi >>= 32;          /* form lower 32 bits of "hi" part 2 */
+			hi |= (b << 32);    /* combine lower and upper */
+			t64u += hi;         /* consume "hi" */
+		}
+		//t_hi = (t < m);
+		//  t_hi = 0;
+		//r[3] = (uint64_t)t;
+		r[3] = t64;
+		//t = (t >> 64) | ((uint128_t)t_hi << 64);
+		//  t = t64u;
+
+	r[4] += t64u;
+	return (r[4] < t64u); /* 1 if addition overflowed */
+# endif
+}
+
+static void sp_512to256_mont_reduce_8(sp_digit* r, sp_digit* aa/*, const sp_digit* m, sp_digit mp*/)
+{
+//	const sp_digit* m = p256_mod;
+	int i;
+	uint64_t *a = (void*)aa;
+
+	sp_digit carry = 0;
+	for (i = 0; i < 4; i++) {
+//		mu = a[i];
+		if (sp_256_mul_add_4(a+i /*, m, mu*/)) {
+			int j = i + 4;
+ inc_next_word:
+			if (++j > 7) { /* a[8] array has no more words? */
+				carry++;
+				continue;
+			}
+			if (++a[j] == 0) /* did this overflow too? */
+				goto inc_next_word;
+		}
+	}
+	sp_512to256_mont_shift_8(r, aa);
+	if (carry != 0)
+		sp_256_sub_8_p256_mod(r);
+	sp_256_norm_8(r);
+}
+
+#else /* Generic 32-bit version */
 
 /* Mul a by scalar b and add into r. (r += a * b)
  * a = p256_mod
@@ -718,23 +854,25 @@ static void sp_512to256_mont_shift_8(sp_digit* r, sp_digit* a)
  */
 static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
 {
-//	const sp_digit* a = p256_mod;
-//a[7..0] = ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff
 	sp_digit b = r[0];
-
 	uint64_t t;
 
-//	t = 0;
-//	for (i = 0; i < 8; i++) {
-//		uint32_t t_hi;
-//		uint64_t m = ((uint64_t)b * a[i]) + r[i];
-//		t += m;
-//		t_hi = (t < m);
-//		r[i] = (sp_digit)t;
-//		t = (t >> 32) | ((uint64_t)t_hi << 32);
-//	}
-//	r[8] += (sp_digit)t;
-
+# if 0
+	const sp_digit* a = p256_mod;
+//a[7..0] = ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff
+	int i;
+	t = 0;
+	for (i = 0; i < 8; i++) {
+		uint32_t t_hi;
+		uint64_t m = ((uint64_t)b * a[i]) + r[i];
+		t += m;
+		t_hi = (t < m);
+		r[i] = (sp_digit)t;
+		t = (t >> 32) | ((uint64_t)t_hi << 32);
+	}
+	r[8] += (sp_digit)t;
+	return (r[8] < (sp_digit)t); /* 1 if addition overflowed */
+# else
 	// Unroll, then optimize the above loop:
 		//uint32_t t_hi;
 		uint64_t m;
@@ -748,7 +886,8 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
 		//t_hi = (t < m);
 		//  t_hi = 0;
 		//r[0] = (sp_digit)t;
-		r[0] = 0;
+//		r[0] = 0;
+//the store can be eliminated since caller won't look at lower 256 bits of the result
 		//t = (t >> 32) | ((uint64_t)t_hi << 32);
 		//  t = b;
 
@@ -840,6 +979,7 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
 
 	r[8] += (sp_digit)t;
 	return (r[8] < (sp_digit)t); /* 1 if addition overflowed */
+# endif
 }
 
 /* Reduce the number back to 256 bits using Montgomery reduction.
@@ -861,7 +1001,7 @@ static int sp_256_mul_add_8(sp_digit* r /*, const sp_digit* a, sp_digit b*/)
  * Then a multiple of modulus is added to make T divisible by B^2.
  * [In our case, it is (p256_mp_mod * a[1]) << 32.]
  * And so on. Eventually T is divisible by R, and after division by R
- * the algorithm is in the same place as the usual Montgomery reduction was.
+ * the algorithm is in the same place as the usual Montgomery reduction.
  *
  * TODO: Can conditionally use 64-bit (if bit-little-endian arch) logic?
  */
@@ -914,6 +1054,7 @@ static void sp_512to256_mont_reduce_8(sp_digit* r, sp_digit* a/*, const sp_digit
 		sp_256_norm_8(r);
 	}
 }
+#endif
 
 /* Multiply two Montogmery form numbers mod the modulus (prime).
  * (r = a * b mod m)
