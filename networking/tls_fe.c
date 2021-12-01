@@ -187,7 +187,7 @@ static void fprime_mul(byte *r, const byte *a, const byte *b,
 #if 0 //UNUSED
 static void fe_load(byte *x, word32 c)
 {
-	word32 i;
+	int i;
 
 	for (i = 0; i < sizeof(c); i++) {
 		x[i] = c;
@@ -199,6 +199,21 @@ static void fe_load(byte *x, word32 c)
 }
 #endif
 
+static void fe_reduce(byte *x, word32 c)
+{
+	int i;
+
+	/* Reduce using 2^255 = 19 mod p */
+	x[31] = c & 127;
+	c = (c >> 7) * 19;
+
+	for (i = 0; i < F25519_SIZE; i++) {
+		c += x[i];
+		x[i] = (byte)c;
+		c >>= 8;
+	}
+}
+
 static void fe_normalize(byte *x)
 {
 	byte minusp[F25519_SIZE];
@@ -206,14 +221,7 @@ static void fe_normalize(byte *x)
 	int i;
 
 	/* Reduce using 2^255 = 19 mod p */
-	c = (x[31] >> 7) * 19;
-	x[31] &= 127;
-
-	for (i = 0; i < F25519_SIZE; i++) {
-		c += x[i];
-		x[i] = (byte)c;
-		c >>= 8;
-	}
+	fe_reduce(x, x[31]);
 
 	/* The number is now less than 2^255 + 18, and therefore less than
 	 * 2p. Try subtracting p, and conditionally load the subtracted
@@ -247,14 +255,7 @@ static void lm_add(byte* r, const byte* a, const byte* b)
 	}
 
 	/* Reduce with 2^255 = 19 mod p */
-	r[31] &= 127;
-	c = (c >> 7) * 19;
-
-	for (i = 0; i < F25519_SIZE; i++) {
-		c += r[i];
-		r[i] = (byte)c;
-		c >>= 8;
-	}
+	fe_reduce(r, c);
 }
 
 static void lm_sub(byte* r, const byte* a, const byte* b)
@@ -264,21 +265,15 @@ static void lm_sub(byte* r, const byte* a, const byte* b)
 
 	/* Calculate a + 2p - b, to avoid underflow */
 	c = 218;
-	for (i = 0; i + 1 < F25519_SIZE; i++) {
+	for (i = 0; i < F25519_SIZE - 1; i++) {
 		c += 65280 + ((word32)a[i]) - ((word32)b[i]);
 		r[i] = c;
 		c >>= 8;
 	}
 
 	c += ((word32)a[31]) - ((word32)b[31]);
-	r[31] = c & 127;
-	c = (c >> 7) * 19;
 
-	for (i = 0; i < F25519_SIZE; i++) {
-		c += r[i];
-		r[i] = c;
-		c >>= 8;
-	}
+	fe_reduce(r, c);
 }
 
 #if 0 //UNUSED
@@ -289,21 +284,15 @@ static void lm_neg(byte* r, const byte* a)
 
 	/* Calculate 2p - a, to avoid underflow */
 	c = 218;
-	for (i = 0; i + 1 < F25519_SIZE; i++) {
+	for (i = 0; i < F25519_SIZE - 1; i++) {
 		c += 65280 - ((word32)a[i]);
 		r[i] = c;
 		c >>= 8;
 	}
 
 	c -= ((word32)a[31]);
-	r[31] = c & 127;
-	c = (c >> 7) * 19;
 
-	for (i = 0; i < F25519_SIZE; i++) {
-		c += r[i];
-		r[i] = c;
-		c >>= 8;
-	}
+	fe_reduce(r, c);
 }
 #endif
 
@@ -326,14 +315,7 @@ static void fe_mul__distinct(byte *r, const byte *a, const byte *b)
 		r[i] = c;
 	}
 
-	r[31] &= 127;
-	c = (c >> 7) * 19;
-
-	for (i = 0; i < F25519_SIZE; i++) {
-		c += r[i];
-		r[i] = c;
-		c >>= 8;
-	}
+	fe_reduce(r, c);
 }
 
 #if 0 //UNUSED
@@ -357,15 +339,7 @@ static void fe_mul_c(byte *r, const byte *a, word32 b)
 		r[i] = c;
 	}
 
-	r[31] &= 127;
-	c >>= 7;
-	c *= 19;
-
-	for (i = 0; i < F25519_SIZE; i++) {
-		c += r[i];
-		r[i] = c;
-		c >>= 8;
-	}
+	fe_reduce(r, c);
 }
 
 static void fe_inv__distinct(byte *r, const byte *x)
