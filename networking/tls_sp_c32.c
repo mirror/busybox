@@ -1091,6 +1091,17 @@ static void sp_256_mont_sqr_8(sp_digit* r, const sp_digit* a
 	sp_256_mont_mul_8(r, a, a /*, m, mp*/);
 }
 
+static NOINLINE void sp_256_mont_mul_and_reduce_8(sp_digit* r,
+		const sp_digit* a, const sp_digit* b
+		/*, const sp_digit* m, sp_digit mp*/)
+{
+	sp_digit rr[2 * 8];
+
+	sp_256_mont_mul_8(rr, a, b /*, p256_mod, p256_mp_mod*/);
+	memset(rr + 8, 0, sizeof(rr) / 2);
+	sp_512to256_mont_reduce_8(r, rr /*, p256_mod, p256_mp_mod*/);
+}
+
 /* Invert the number, in Montgomery form, modulo the modulus (prime) of the
  * P256 curve. (r = 1 / a mod m)
  *
@@ -1186,7 +1197,6 @@ static void sp_256_map_8(sp_point* r, sp_point* p)
 {
 	sp_digit t1[8];
 	sp_digit t2[8];
-	sp_digit rr[2 * 8];
 
 	sp_256_mont_inv_8(t1, p->z);
 
@@ -1194,18 +1204,14 @@ static void sp_256_map_8(sp_point* r, sp_point* p)
 	sp_256_mont_mul_8(t1, t2, t1 /*, p256_mod, p256_mp_mod*/);
 
 	/* x /= z^2 */
-	sp_256_mont_mul_8(rr, p->x, t2 /*, p256_mod, p256_mp_mod*/);
-	memset(rr + 8, 0, sizeof(rr) / 2);
-	sp_512to256_mont_reduce_8(r->x, rr /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_and_reduce_8(r->x, p->x, t2 /*, p256_mod, p256_mp_mod*/);
 	/* Reduce x to less than modulus */
 	if (sp_256_cmp_8(r->x, p256_mod) >= 0)
 		sp_256_sub_8_p256_mod(r->x);
 	sp_256_norm_8(r->x);
 
 	/* y /= z^3 */
-	sp_256_mont_mul_8(rr, p->y, t1 /*, p256_mod, p256_mp_mod*/);
-	memset(rr + 8, 0, sizeof(rr) / 2);
-	sp_512to256_mont_reduce_8(r->y, rr /*, p256_mod, p256_mp_mod*/);
+	sp_256_mont_mul_and_reduce_8(r->y, p->y, t1 /*, p256_mod, p256_mp_mod*/);
 	/* Reduce y to less than modulus */
 	if (sp_256_cmp_8(r->y, p256_mod) >= 0)
 		sp_256_sub_8_p256_mod(r->y);
