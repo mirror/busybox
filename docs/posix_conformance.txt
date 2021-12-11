@@ -690,7 +690,7 @@ uniq Busybox specific options:
 
 uudecode POSIX options
  option           | exists | compliant | remarks
-  -o outfile      |  no    | no        |
+  -o outfile      |  yes   | no        |
 uudecode Busybox specific options: None
 
 uuencode POSIX options

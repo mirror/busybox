@@ -155,7 +155,16 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 				break;
 		}
 		dst_stream = stdout;
-		if (NOT_LONE_DASH(outname)) {
+		if (NOT_LONE_DASH(outname)
+/* https://pubs.opengroup.org/onlinepubs/9699919799/utilities/uudecode.html
+ * https://pubs.opengroup.org/onlinepubs/9699919799/utilities/uuencode.html
+ * The above says that output file name specified in input file
+ * or overridden by -o OUTFILE can be special "/dev/stdout" string.
+ * This usually works "implicitly": many systems have /dev/stdout.
+ * If ENABLE_DESKTOP, support that explicitly:
+ */
+		 && (!ENABLE_DESKTOP || strcmp(outname, "/dev/stdout") != 0)
+		) {
 			dst_stream = xfopen_for_write(outname);
 			fchmod(fileno(dst_stream), mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 		}
