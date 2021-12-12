@@ -935,7 +935,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 	bb_simple_info_msg("started, v"BB_VER);
 
-	option = udhcp_find_option(server_data.options, DHCP_LEASE_TIME);
+	option = udhcp_find_option(server_data.options, DHCP_LEASE_TIME, /*dhcpv6:*/ 0);
 	server_data.max_lease_sec = DEFAULT_LEASE_TIME;
 	if (option) {
 		move_from_unaligned32(server_data.max_lease_sec, option->data + OPT_DATA);

@@ -658,7 +658,7 @@ static void add_client_options(struct dhcp_packet *packet)
 
 	// This will be needed if we remove -V VENDOR_STR in favor of
 	// -x vendor:VENDOR_STR
-	//if (!udhcp_find_option(packet.options, DHCP_VENDOR))
+	//if (!udhcp_find_option(packet.options, DHCP_VENDOR, /*dhcpv6:*/ 0))
 	//	/* not set, set the default vendor ID */
 	//	...add (DHCP_VENDOR, "udhcp "BB_VER) opt...
 }
@@ -676,7 +676,7 @@ static void add_serverid_and_clientid_options(struct dhcp_packet *packet, uint32
 	 * If the client used a 'client identifier' when it obtained the lease,
 	 * it MUST use the same 'client identifier' in the DHCPRELEASE message.
 	 */
-	ci = udhcp_find_option(client_data.options, DHCP_CLIENT_ID);
+	ci = udhcp_find_option(client_data.options, DHCP_CLIENT_ID, /*dhcpv6:*/ 0);
 	if (ci)
 		udhcp_add_binary_option(packet, ci->data);
 }
@@ -1328,7 +1328,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	clientid_mac_ptr = NULL;
-	if (!(opt & OPT_C) && !udhcp_find_option(client_data.options, DHCP_CLIENT_ID)) {
+	if (!(opt & OPT_C) && !udhcp_find_option(client_data.options, DHCP_CLIENT_ID, /*dhcpv6:*/ 0)) {
 		/* not suppressed and not set, create default client ID */
 		clientid_mac_ptr = udhcp_insert_new_option(
 				&client_data.options, DHCP_CLIENT_ID,

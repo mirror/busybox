@@ -245,7 +245,11 @@ void udhcp_add_simple_option(struct dhcp_packet *packet, uint8_t code, uint32_t 
 char *dname_dec(const uint8_t *cstr, int clen, const char *pre) FAST_FUNC;
 uint8_t *dname_enc(/*const uint8_t *cstr, int clen,*/ const char *src, int *retlen) FAST_FUNC;
 #endif
-struct option_set *udhcp_find_option(struct option_set *opt_list, uint8_t code) FAST_FUNC;
+#if !ENABLE_UDHCPC6
+#define udhcp_find_option(opt_list, code, dhcpv6) \
+	udhcp_find_option(opt_list, code)
+#endif
+struct option_set *udhcp_find_option(struct option_set *opt_list, uint8_t code, bool dhcpv6) FAST_FUNC;
 
 // RFC 2131  Table 5: Fields and options used by DHCP clients
 //

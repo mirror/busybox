@@ -404,14 +404,29 @@ void FAST_FUNC udhcp_add_simple_option(struct dhcp_packet *packet, uint8_t code,
 #endif
 
 /* Find option 'code' in opt_list */
-struct option_set* FAST_FUNC udhcp_find_option(struct option_set *opt_list, uint8_t code)
+struct option_set* FAST_FUNC udhcp_find_option(struct option_set *opt_list, uint8_t code, bool dhcpv6)
 {
-	while (opt_list && opt_list->data[OPT_CODE] < code)
-		opt_list = opt_list->next;
+	IF_NOT_UDHCPC6(bool dhcpv6 = 0;)
+	uint8_t cur_code;
 
-	if (opt_list && opt_list->data[OPT_CODE] == code)
-		return opt_list;
-	return NULL;
+	for (;;) {
+		if (!opt_list)
+			return opt_list; /* NULL */
+		if (!dhcpv6) {
+			cur_code = opt_list->data[OPT_CODE];
+		} else {
+//FIXME: add support for code > 0xff
+			if (opt_list->data[D6_OPT_CODE] != 0)
+				return NULL;
+			cur_code = opt_list->data[D6_OPT_CODE + 1];
+		}
+		if (cur_code >= code) {
+			if (cur_code == code)
+				return opt_list;
+			return NULL;
+		}
+		opt_list = opt_list->next;
+	}
 }
 
 /* Parse string to IP in network order */
@@ -499,7 +514,7 @@ static NOINLINE void attach_option(
 	}
 #endif
 
-	existing = udhcp_find_option(*opt_list, optflag->code);
+	existing = udhcp_find_option(*opt_list, optflag->code, dhcpv6);
 	if (!existing) {
 		/* make a new option */
 		uint8_t *p = udhcp_insert_new_option(opt_list, optflag->code, length, dhcpv6);
