@@ -211,29 +211,33 @@ enum {
 	HDR_HOST          = (1<<0),
 	HDR_USER_AGENT    = (1<<1),
 	HDR_RANGE         = (1<<2),
-	HDR_AUTH          = (1<<3) * ENABLE_FEATURE_WGET_AUTHENTICATION,
-	HDR_PROXY_AUTH    = (1<<4) * ENABLE_FEATURE_WGET_AUTHENTICATION,
+	HDR_CONTENT_TYPE  = (1<<3),
+	HDR_AUTH          = (1<<4) * ENABLE_FEATURE_WGET_AUTHENTICATION,
+	HDR_PROXY_AUTH    = (1<<5) * ENABLE_FEATURE_WGET_AUTHENTICATION,
 };
 static const char wget_user_headers[] ALIGN1 =
 	"Host:\0"
 	"User-Agent:\0"
 	"Range:\0"
+	"Content-Type:\0"
 # if ENABLE_FEATURE_WGET_AUTHENTICATION
 	"Authorization:\0"
 	"Proxy-Authorization:\0"
 # endif
 	;
-# define USR_HEADER_HOST       (G.user_headers & HDR_HOST)
-# define USR_HEADER_USER_AGENT (G.user_headers & HDR_USER_AGENT)
-# define USR_HEADER_RANGE      (G.user_headers & HDR_RANGE)
-# define USR_HEADER_AUTH       (G.user_headers & HDR_AUTH)
-# define USR_HEADER_PROXY_AUTH (G.user_headers & HDR_PROXY_AUTH)
+# define USR_HEADER_HOST         (G.user_headers & HDR_HOST)
+# define USR_HEADER_USER_AGENT   (G.user_headers & HDR_USER_AGENT)
+# define USR_HEADER_RANGE        (G.user_headers & HDR_RANGE)
+# define USR_HEADER_CONTENT_TYPE (G.user_headers & HDR_CONTENT_TYPE)
+# define USR_HEADER_AUTH         (G.user_headers & HDR_AUTH)
+# define USR_HEADER_PROXY_AUTH   (G.user_headers & HDR_PROXY_AUTH)
 #else /* No long options, no user-headers :( */
-# define USR_HEADER_HOST       0
-# define USR_HEADER_USER_AGENT 0
-# define USR_HEADER_RANGE      0
-# define USR_HEADER_AUTH       0
-# define USR_HEADER_PROXY_AUTH 0
+# define USR_HEADER_HOST         0
+# define USR_HEADER_USER_AGENT   0
+# define USR_HEADER_RANGE        0
+# define USR_HEADER_CONTENT_TYPE 0
+# define USR_HEADER_AUTH         0
+# define USR_HEADER_PROXY_AUTH   0
 #endif
 
 /* Globals */
@@ -1261,8 +1265,13 @@ static void download_one_url(const char *url)
 		}
 
 		if (G.post_data) {
+			/* If user did not override it... */
+			if (!USR_HEADER_CONTENT_TYPE) {
+				SENDFMT(sfp,
+					"Content-Type: application/x-www-form-urlencoded\r\n"
+				);
+			}
 			SENDFMT(sfp,
-				"Content-Type: application/x-www-form-urlencoded\r\n"
 				"Content-Length: %u\r\n"
 				"\r\n"
 				"%s",
