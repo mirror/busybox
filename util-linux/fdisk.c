@@ -355,6 +355,7 @@ static const char *const i386_sys_types[] ALIGN_PTR = {
 	"\xef" "EFI (FAT-12/16/32)",         /* Intel EFI System Partition */
 	"\xf0" "Linux/PA-RISC boot",         /* Linux/PA-RISC boot loader */
 	"\xf2" "DOS secondary",              /* DOS 3.3+ secondary */
+	"\xf8" "EBBR protective",            /* Arm EBBR firmware protective partition */
 	"\xfd" "Linux raid autodetect",      /* New (2.2.x) raid partition with
 						autodetect using persistent
 						superblock */
