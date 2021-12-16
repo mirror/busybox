@@ -143,4 +143,14 @@ testing "printf aborts on %r" \
 	"printf: %r: invalid format\n""1\n" \
 	"" ""
 
+testing "printf treats leading 0 as flag" \
+	"${bb}printf '%0*d\n' 2 1 2>&1; echo \$?" \
+	"01\n""0\n" \
+	"" ""
+
+testing "printf handles multiple flags" \
+	"${bb}printf '%0 d\n' 2 2>&1; echo \$?" \
+	" 2\n""0\n" \
+	"" ""
+
 exit $FAILCOUNT

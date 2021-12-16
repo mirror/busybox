@@ -313,7 +313,7 @@ static char **print_formatted(char *f, char **argv, int *conv_err)
 				}
 				break;
 			}
-			if (*f && strchr("-+ #", *f)) {
+			while (*f && strchr("-+ #0", *f)) {
 				++f;
 				++direc_length;
 			}
