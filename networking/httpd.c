@@ -1125,7 +1125,7 @@ static void send_headers(unsigned responseNum)
 			"Connection: close\r\n",
 			responseNum, responseString
 #if ENABLE_FEATURE_HTTPD_DATE
-			,date_str
+			, date_str
 #endif
 		);
 	}
@@ -1222,17 +1222,29 @@ static void send_headers(unsigned responseNum)
 // (NB: standards do not define "Transfer-Length:" _header_,
 // transfer-length above is just a concept).
 
+#if ENABLE_FEATURE_HTTPD_RANGES \
+ || ENABLE_FEATURE_HTTPD_LAST_MODIFIED \
+ || ENABLE_FEATURE_HTTPD_ETAG
 		len += sprintf(iobuf + len,
-#if ENABLE_FEATURE_HTTPD_RANGES
+# if ENABLE_FEATURE_HTTPD_RANGES
 			"Accept-Ranges: bytes\r\n"
-#endif
-#if ENABLE_FEATURE_HTTPD_LAST_MODIFIED
+# endif
+# if ENABLE_FEATURE_HTTPD_LAST_MODIFIED
 			"Last-Modified: %s\r\n"
-#endif
-#if ENABLE_FEATURE_HTTPD_ETAG
+# endif
+# if ENABLE_FEATURE_HTTPD_ETAG
 			"ETag: %s\r\n"
+# endif
+# if ENABLE_FEATURE_HTTPD_LAST_MODIFIED
+				, date_str
+# endif
+# if ENABLE_FEATURE_HTTPD_ETAG
+				, G.etag
+# endif
 #endif
-
+		);
+		if (!infoString) {
+			len += sprintf(iobuf + len,
 	/* Because of 4.4 (5), we can forgo sending of "Content-Length"
 	 * since we close connection afterwards, but it helps clients
 	 * to e.g. estimate download times, show progress bars etc.
@@ -1240,14 +1252,9 @@ static void send_headers(unsigned responseNum)
 	 * but de-facto standard is to send it (see comment below).
 	 */
 			"Content-Length: %"OFF_FMT"u\r\n",
-#if ENABLE_FEATURE_HTTPD_LAST_MODIFIED
-				date_str,
-#endif
-#if ENABLE_FEATURE_HTTPD_ETAG
-				G.etag,
-#endif
 				file_size
-		);
+			);
+		}
 	}
 
 	/* This should be "Transfer-Encoding", not "Content-Encoding":
