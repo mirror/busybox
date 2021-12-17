@@ -55,19 +55,19 @@ Next we need the configuration data.  This is very similar to the example
 code for the native applet:
 
 //config:config MU
-//config:   bool "MU"
-//config:   default y
-//config:   help
-//config:   Returns an indeterminate value.
+//config:	bool "MU"
+//config:	default y
+//config:	help
+//config:	Returns an indeterminate value.
 
 //applet:IF_MU(APPLET_SCRIPTED(mu, scripted, BB_DIR_USR_BIN, BB_SUID_DROP, mu))
 
 //usage:#define mu_trivial_usage
-//usage:    "[-abcde] FILE..."
+//usage:	"[-abcde] FILE..."
 //usage:#define mu_full_usage
-//usage:    "Returns an indeterminate value\n"
-//usage:     "\n    -a  First function"
-//usage:     "\n    -b  Second function"
+//usage:	"Returns an indeterminate value\n"
+//usage:     "\n	-a	First function"
+//usage:     "\n	-b	Second function"
 
 The only difference is that the applet is specified as being of type
 APPLET_SCRIPTED.  It would also be useful to include details of any
