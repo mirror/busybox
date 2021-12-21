@@ -399,6 +399,12 @@ testing "sed uses previous regexp" \
 	"" \
 	"q\nw\ne\nr\n"
 
+testing "sed ^ OR not^" \
+	"sed -e 's/^a\|b//g'" \
+	"ca\n" \
+	"" \
+	"abca\n"
+
 # testing "description" "commands" "result" "infile" "stdin"
 
 exit $FAILCOUNT

@@ -435,8 +435,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 		switch (substr[idx]) {
 		/* Replace all occurrences */
 		case 'g':
-			if (match[0] != '^')
-				sed_cmd->which_match = 0;
+			sed_cmd->which_match = 0;
 			break;
 		/* Print pattern space */
 		case 'p':
