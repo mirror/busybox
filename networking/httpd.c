@@ -1880,9 +1880,13 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 #if ENABLE_FEATURE_USE_SENDFILE
 	{
 		off_t offset;
+# if ENABLE_FEATURE_HTTPD_RANGES
 		if (range_start < 0)
 			range_start = 0;
 		offset = range_start;
+# else
+		offset = 0;
+# endif
 		while (1) {
 			/* sz is rounded down to 64k */
 			ssize_t sz = MAXINT(ssize_t) - 0xffff;
