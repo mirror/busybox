@@ -523,9 +523,6 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 				work = (work & b) ^ d;
 				if (j <= 3)
 					goto ge16;
-				/* Used to do SWAP_BE32 here, but this
-				 * requires ctx (see comment above) */
-				work += W[cnt];
 			} else {
 				if (i == 2)
 					work = ((b | c) & d) | (b & c);
@@ -533,14 +530,14 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 					work ^= b;
  ge16:
 				W[cnt] = W[cnt+16] = rotl32(W[cnt+13] ^ W[cnt+8] ^ W[cnt+2] ^ W[cnt], 1);
-				work += W[cnt];
 			}
+			work += W[cnt];
 			work += e + rotl32(a, 5) + rconsts[i];
 
 			/* Rotate by one for next time */
 			e = d;
 			d = c;
-			c = /* b = */ rotl32(b, 30);
+			c = rotl32(b, 30);
 			b = a;
 			a = work;
 			cnt = (cnt + 1) & 15;
