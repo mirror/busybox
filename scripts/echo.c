@@ -153,25 +153,32 @@ int main(int argc, char **argv)
 		if (!eflag) {
 			/* optimization for very common case */
 			fputs(arg, stdout);
-		} else while ((c = *arg++)) {
-			if (c == eflag) {	/* Check for escape seq. */
+		} else
+		while ((c = *arg++) != '\0') {
+			if (c == eflag) {
+				/* This is an "\x" sequence */
+
 				if (*arg == 'c') {
-					/* '\c' means cancel newline and
+					/* "\c" means cancel newline and
 					 * ignore all subsequent chars. */
 					goto ret;
 				}
-				{
-					/* Since SUSv3 mandates a first digit of 0, 4-digit octals
-					* of the form \0### are accepted. */
-					if (*arg == '0') {
-						/* NB: don't turn "...\0" into "...\" */
-						if (arg[1] && ((unsigned char)(arg[1]) - '0') < 8) {
-							arg++;
-						}
+				/* Since SUSv3 mandates a first digit of 0, 4-digit octals
+				* of the form \0### are accepted. */
+				if (*arg == '0') {
+					if ((unsigned char)(arg[1] - '0') < 8) {
+						/* 2nd char is 0..7: skip leading '0' */
+						arg++;
 					}
-					/* bb_process_escape_sequence handles NUL correctly
-					 * ("...\" case. */
-					c = bb_process_escape_sequence(&arg);
+				}
+				/* bb_process_escape_sequence handles NUL correctly
+				 * ("...\" case). */
+				{
+					/* optimization: don't force arg to be on-stack,
+					 * use another variable for that. ~30 bytes win */
+					const char *z = arg;
+					c = bb_process_escape_sequence(&z);
+					arg = z;
 				}
 			}
 			putchar(c);
