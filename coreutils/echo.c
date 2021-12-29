@@ -321,6 +321,8 @@ int echo_main(int argc, char **argv)
 				if (*arg == '0' && (unsigned char)(arg[1] - '0') < 8) {
 					arg++;
 				}
+//FIXME? we also accept non-0 starting sequences (see echo-prints-slash_41 test)
+// echo -ne '-\41-' prints "-!-". bash 5.0.17 does not (prints "-\41-").
 				/* bb_process_escape_sequence can handle nul correctly */
 				c = bb_process_escape_sequence( (void*) &arg);
 			}
