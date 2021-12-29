@@ -18,7 +18,7 @@
 
 //applet:IF_ED(APPLET(ed, BB_DIR_BIN, BB_SUID_DROP))
 
-//usage:#define ed_trivial_usage "[-p PROMPT] [FILE]"
+//usage:#define ed_trivial_usage "[-p PROMPT] [-s] [FILE]"
 //usage:#define ed_full_usage ""
 
 #include "libbb.h"
@@ -70,6 +70,11 @@ struct globals {
 	setup_common_bufsiz(); \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
+
+#define OPTION_STR "sp:"
+enum {
+	OPT_s = (1 << 0),
+};
 
 static int bad_nums(int num1, int num2, const char *for_what)
 {
@@ -458,7 +463,8 @@ static int readLines(const char *file, int num)
 	 * in the following format:
 	 * "%d\n", <number of bytes read>
 	 */
-	printf("%u\n", charCount);
+	if (!(option_mask32 & OPT_s))
+		printf("%u\n", charCount);
 	return TRUE;
 }
 
@@ -510,7 +516,8 @@ static int writeLines(const char *file, int num1, int num2)
 	 * unless the -s option was specified, in the following format:
 	 * "%d\n", <number of bytes written>
 	 */
-	printf("%u\n", charCount);
+	if (!(option_mask32 & OPT_s))
+		printf("%u\n", charCount);
 	return TRUE;
 }
 
@@ -1005,7 +1012,7 @@ int ed_main(int argc UNUSED_PARAM, char **argv)
 	lines.prev = &lines;
 
 	prompt = ""; /* no prompt by default */
-	getopt32(argv, "p:", &prompt);
+	getopt32(argv, OPTION_STR, &prompt);
 	argv += optind;
 
 	if (argv[0]) {
