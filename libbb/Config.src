@@ -60,7 +60,8 @@ config SHA1_SMALL
 	                throughput MB/s   size of sha1_process_block64
 	value           486  x86-64       486   x86-64
 	0               339  374          4149  4167
-	1,2,3           200  195           358   380
+	1               224  229           654   732
+	2,3             200  195           358   380
 
 config SHA3_SMALL
 	int "SHA3: Trade bytes for speed (0:fast, 1:slow)"

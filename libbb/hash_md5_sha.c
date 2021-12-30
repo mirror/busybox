@@ -514,9 +514,9 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	do { \
 		uint32_t work = EXPR(B, C, D); \
 		if (n <= 15) \
-			work += W[n & 0xf] = SWAP_BE32(((uint32_t*)ctx->wbuffer)[n]); \
+			work += W[n & 15] = SWAP_BE32(((uint32_t*)ctx->wbuffer)[n]); \
 		if (n >= 16) \
-			work += W[n & 0xf] = rotl32(W[(n+13) & 0xf] ^ W[(n+8) & 0xf] ^ W[(n+2) & 0xf] ^ W[n & 0xf], 1); \
+			work += W[n & 15] = rotl32(W[(n+13) & 15] ^ W[(n+8) & 15] ^ W[(n+2) & 15] ^ W[n & 15], 1); \
 		E += work + rotl32(A, 5) + rconsts[n / 20]; \
 		B = rotl32(B, 30); \
 	} while (0)
@@ -549,9 +549,101 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	ctx->hash[3] += d;
 	ctx->hash[4] += e;
 }
-#else
-/* TODO: for CONFIG_SHA1_SMALL == 1, have a partially unrolled version? */
+#elif CONFIG_SHA1_SMALL == 1
+/* Middle-sized version, +300 bytes of code on x86. */
+static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
+{
+	static const uint32_t rconsts[] ALIGN4 = {
+		0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6
+	};
+	int j;
+	int n;
+	uint32_t W[16+16];
+	uint32_t a, b, c, d, e;
 
+	a = ctx->hash[0];
+	b = ctx->hash[1];
+	c = ctx->hash[2];
+	d = ctx->hash[3];
+	e = ctx->hash[4];
+
+	/* 1st round of 20 operations */
+	n = 0;
+	do {
+		uint32_t work = ((c ^ d) & b) ^ d;
+		W[n] = W[n+16] = SWAP_BE32(((uint32_t*)ctx->wbuffer)[n]);
+		work += W[n];
+		work += e + rotl32(a, 5) + rconsts[0];
+		/* Rotate by one for next time */
+		e = d;
+		d = c;
+		c = rotl32(b, 30);
+		b = a;
+		a = work;
+		n = (n + 1) & 15;
+	} while (n != 0);
+	do {
+		uint32_t work = ((c ^ d) & b) ^ d;
+		W[n] = W[n+16] = rotl32(W[n+13] ^ W[n+8] ^ W[n+2] ^ W[n], 1);
+		work += W[n];
+		work += e + rotl32(a, 5) + rconsts[0];
+		e = d;
+		d = c;
+		c = rotl32(b, 30);
+		b = a;
+		a = work;
+		n = (n + 1) & 15;
+	} while (n != 4);
+	/* 2nd round of 20 operations */
+	j = 19;
+	do {
+		uint32_t work = c ^ d ^ b;
+		W[n] = W[n+16] = rotl32(W[n+13] ^ W[n+8] ^ W[n+2] ^ W[n], 1);
+		work += W[n];
+		work += e + rotl32(a, 5) + rconsts[1];
+		e = d;
+		d = c;
+		c = rotl32(b, 30);
+		b = a;
+		a = work;
+		n = (n + 1) & 15;
+	} while (--j >= 0);
+	/* 3rd round */
+	j = 19;
+	do {
+		uint32_t work = ((b | c) & d) | (b & c);
+		W[n] = W[n+16] = rotl32(W[n+13] ^ W[n+8] ^ W[n+2] ^ W[n], 1);
+		work += W[n];
+		work += e + rotl32(a, 5) + rconsts[2];
+		e = d;
+		d = c;
+		c = rotl32(b, 30);
+		b = a;
+		a = work;
+		n = (n + 1) & 15;
+	} while (--j >= 0);
+	/* 4th round */
+	j = 19;
+	do {
+		uint32_t work = c ^ d ^ b;
+		W[n] = W[n+16] = rotl32(W[n+13] ^ W[n+8] ^ W[n+2] ^ W[n], 1);
+		work += W[n];
+		work += e + rotl32(a, 5) + rconsts[3];
+		e = d;
+		d = c;
+		c = rotl32(b, 30);
+		b = a;
+		a = work;
+		n = (n + 1) & 15;
+	} while (--j >= 0);
+
+	ctx->hash[0] += a;
+	ctx->hash[1] += b;
+	ctx->hash[2] += c;
+	ctx->hash[3] += d;
+	ctx->hash[4] += e;
+}
+#else
 /* Compact version, almost twice as slow as fully unrolled */
 static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 {
