@@ -390,7 +390,6 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 	OP(FI, D, A, B, C, 11, 10, 0xbd3af235);
 	OP(FI, C, D, A, B, 2, 15, 0x2ad7d2bb);
 	OP(FI, B, C, D, A, 9, 21, 0xeb86d391);
-# undef OP
 # endif
 	/* Add checksum to the starting values */
 	ctx->hash[0] += A;
@@ -399,6 +398,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 	ctx->hash[3] += D;
 #endif
 }
+#undef OP
 #undef FF
 #undef FG
 #undef FH
@@ -490,18 +490,87 @@ unsigned FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
  * then rebuild and compare "shaNNNsum bigfile" results.
  */
 
+#if CONFIG_SHA1_SMALL == 0
+/* Fast, fully-unrolled SHA1. +3800 bytes of code on x86.
+ * It seems further speedup can be achieved by handling more than
+ * 64 bytes per one function call (coreutils does that).
+ */
+static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
+{
+	static const uint32_t rconsts[] ALIGN4 = {
+		0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6
+	};
+	uint32_t W[16];
+	uint32_t a, b, c, d, e;
+
+	a = ctx->hash[0];
+	b = ctx->hash[1];
+	c = ctx->hash[2];
+	d = ctx->hash[3];
+	e = ctx->hash[4];
+
+#undef OP
+#define OP(A,B,C,D,E, n) \
+	do { \
+		uint32_t work = EXPR(B, C, D); \
+		if (n <= 15) \
+			work += W[n & 0xf] = SWAP_BE32(((uint32_t*)ctx->wbuffer)[n]); \
+		if (n >= 16) \
+			work += W[n & 0xf] = rotl32(W[(n+13) & 0xf] ^ W[(n+8) & 0xf] ^ W[(n+2) & 0xf] ^ W[n & 0xf], 1); \
+		E += work + rotl32(A, 5) + rconsts[n / 20]; \
+		B = rotl32(B, 30); \
+	} while (0)
+#define OP20(n) \
+	OP(a,b,c,d,e, (n+ 0)); OP(e,a,b,c,d, (n+ 1)); OP(d,e,a,b,c, (n+ 2)); OP(c,d,e,a,b, (n+ 3)); OP(b,c,d,e,a, (n+ 4)); \
+	OP(a,b,c,d,e, (n+ 5)); OP(e,a,b,c,d, (n+ 6)); OP(d,e,a,b,c, (n+ 7)); OP(c,d,e,a,b, (n+ 8)); OP(b,c,d,e,a, (n+ 9)); \
+	OP(a,b,c,d,e, (n+10)); OP(e,a,b,c,d, (n+11)); OP(d,e,a,b,c, (n+12)); OP(c,d,e,a,b, (n+13)); OP(b,c,d,e,a, (n+14)); \
+	OP(a,b,c,d,e, (n+15)); OP(e,a,b,c,d, (n+16)); OP(d,e,a,b,c, (n+17)); OP(c,d,e,a,b, (n+18)); OP(b,c,d,e,a, (n+19))
+
+	/* 4 rounds of 20 operations each */
+#define EXPR(b,c,d) (((c ^ d) & b) ^ d)
+	OP20(0);
+#undef EXPR
+#define EXPR(b,c,d) (c ^ d ^ b)
+	OP20(20);
+#undef EXPR
+#define EXPR(b,c,d) (((b | c) & d) | (b & c))
+	OP20(40);
+#undef EXPR
+#define EXPR(b,c,d) (c ^ d ^ b)
+	OP20(60);
+
+#undef EXPR
+#undef OP
+#undef OP20
+
+	ctx->hash[0] += a;
+	ctx->hash[1] += b;
+	ctx->hash[2] += c;
+	ctx->hash[3] += d;
+	ctx->hash[4] += e;
+}
+#else
+/* TODO: for CONFIG_SHA1_SMALL == 1, have a partially unrolled version? */
+
+/* Compact version, almost twice as slow as fully unrolled */
 static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 {
 	static const uint32_t rconsts[] ALIGN4 = {
 		0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6
 	};
 	int i, j;
-	int cnt;
+	int n;
 	uint32_t W[16+16];
 	uint32_t a, b, c, d, e;
 
 	/* On-stack work buffer frees up one register in the main loop
-	 * which otherwise will be needed to hold ctx pointer */
+	 * which otherwise will be needed to hold ctx pointer.
+	 *
+	 * The compiler is not smart enough to realize it, though. :(
+	 * If __attribute__((optimize("2"))) is added to the function,
+	 * only then gcc-9.3.1 spills "ctx" to stack and uses the freed
+	 * register (making code 6 bytes smaller, not just faster).
+	 */
 	for (i = 0; i < 16; i++)
 		W[i] = W[i+16] = SWAP_BE32(((uint32_t*)ctx->wbuffer)[i]);
 
@@ -512,7 +581,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	e = ctx->hash[4];
 
 	/* 4 rounds of 20 operations each */
-	cnt = 0;
+	n = 0;
 	for (i = 0; i < 4; i++) {
 		j = 19;
 		do {
@@ -529,9 +598,9 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 				else /* i = 1 or 3 */
 					work ^= b;
  ge16:
-				W[cnt] = W[cnt+16] = rotl32(W[cnt+13] ^ W[cnt+8] ^ W[cnt+2] ^ W[cnt], 1);
+				W[n] = W[n+16] = rotl32(W[n+13] ^ W[n+8] ^ W[n+2] ^ W[n], 1);
 			}
-			work += W[cnt];
+			work += W[n];
 			work += e + rotl32(a, 5) + rconsts[i];
 
 			/* Rotate by one for next time */
@@ -540,7 +609,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 			c = rotl32(b, 30);
 			b = a;
 			a = work;
-			cnt = (cnt + 1) & 15;
+			n = (n + 1) & 15;
 		} while (--j >= 0);
 	}
 
@@ -550,6 +619,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	ctx->hash[3] += d;
 	ctx->hash[4] += e;
 }
+#endif
 
 /* Constants for SHA512 from FIPS 180-2:4.2.3.
  * SHA256 constants from FIPS 180-2:4.2.2
