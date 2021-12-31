@@ -509,6 +509,27 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	d = ctx->hash[3];
 	e = ctx->hash[4];
 
+/* From kernel source comments:
+ * """
+ * If you have 32 registers or more, the compiler can (and should)
+ * try to change the array[] accesses into registers. However, on
+ * machines with less than ~25 registers, that won't really work,
+ * and at least gcc will make an unholy mess of it.
+ *
+ * So to avoid that mess which just slows things down, we force
+ * the stores to memory to actually happen (we might be better off
+ * with a 'W(t)=(val);asm("":"+m" (W(t))' there instead, as
+ * suggested by Artur Skawina - that will also make gcc unable to
+ * try to do the silly "optimize away loads" part because it won't
+ * see what the value will be).
+ * """
+ */
+#if defined(__i386__)
+# define DO_NOT_TRY_PROPAGATING(m) asm("":"+m"(m))
+#else
+# define DO_NOT_TRY_PROPAGATING(m) ((void)0)
+#endif
+
 #undef OP
 #define OP(A,B,C,D,E, n) \
 	do { \
@@ -517,6 +538,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 			work += W[n & 15] = SWAP_BE32(((uint32_t*)ctx->wbuffer)[n]); \
 		if (n >= 16) \
 			work += W[n & 15] = rotl32(W[(n+13) & 15] ^ W[(n+8) & 15] ^ W[(n+2) & 15] ^ W[n & 15], 1); \
+		DO_NOT_TRY_PROPAGATING(W[n & 15]); \
 		E += work + rotl32(A, 5) + rconsts[n / 20]; \
 		B = rotl32(B, 30); \
 	} while (0)
