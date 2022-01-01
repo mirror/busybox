@@ -59,7 +59,7 @@ config SHA1_SMALL
 	Trade binary size versus speed for the sha1 algorithm.
 	                throughput MB/s   size of sha1_process_block64
 	value           486  x86-64       486   x86-64
-	0               360  374          3950  4167
+	0               367  367          3657  3683
 	1               224  229           654   732
 	2,3             200  195           358   380
 

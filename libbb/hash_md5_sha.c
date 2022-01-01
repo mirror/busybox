@@ -8,6 +8,9 @@
  */
 #include "libbb.h"
 
+#define STR1(s) #s
+#define STR(s) STR1(s)
+
 #define NEED_SHA512 (ENABLE_SHA512SUM || ENABLE_USE_BB_CRYPT_SHA)
 
 /* gcc 4.2.1 optimizes rotr64 better with inline than with macro
@@ -491,6 +494,419 @@ unsigned FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
  */
 
 #if CONFIG_SHA1_SMALL == 0
+# if defined(__GNUC__) && defined(__i386__)
+static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
+{
+	BUILD_BUG_ON(offsetof(sha1_ctx_t, hash) != 76);
+	asm(
+"\n\
+	pushl	%ebp	#                                           \n\
+	pushl	%edi	#                                           \n\
+	pushl	%esi	#                                           \n\
+	pushl	%ebx	#                                           \n\
+	pushl	%eax                                                \n\
+	movl	$15, %edi                                           \n\
+1:                                                                  \n\
+	movl	(%eax,%edi,4), %esi                                 \n\
+	bswap	%esi                                                \n\
+	pushl	%esi                                                \n\
+	decl	%edi                                                \n\
+	jns	1b                                                  \n\
+	movl	80(%eax), %ebx	# b = ctx->hash[1]                  \n\
+	movl	84(%eax), %ecx	# c = ctx->hash[2]                  \n\
+	movl	88(%eax), %edx	# d = ctx->hash[3]                  \n\
+	movl	92(%eax), %ebp	# e = ctx->hash[4]                  \n\
+	movl	76(%eax), %eax	# a = ctx->hash[0]                  \n\
+#Register and stack use:                                            \n\
+# eax..edx: a..d                                                    \n\
+# ebp: e                                                            \n\
+# esi,edi: temps                                                    \n\
+# 4*n(%esp): W[n]                                                   \n\
+"
+#define RD1As(a,b,c,d,e, n, RCONST) \
+"\n\
+	##movl	4*"n"(%esp), %esi	# n=0, W[0] already in %esi \n\
+	movl	"c", %edi		# c                         \n\
+	xorl	"d", %edi		# ^d                        \n\
+	andl	"b", %edi		# &b                        \n\
+	xorl	"d", %edi		# (((c ^ d) & b) ^ d)       \n\
+	leal	"RCONST"("e",%esi), "e"	# e += RCONST + W[n]        \n\
+	addl	%edi, "e"		# e += (((c ^ d) & b) ^ d)  \n\
+	movl	"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, "e"		# e += rotl32(a,5)          \n\
+	rorl	$2, "b"			# b = rotl32(b,30)          \n\
+"
+#define RD1Bs(a,b,c,d,e, n, RCONST) \
+"\n\
+	movl	4*"n"(%esp), %esi	# W[n]                      \n\
+	movl	"c", %edi		# c                         \n\
+	xorl	"d", %edi		# ^d                        \n\
+	andl	"b", %edi		# &b                        \n\
+	xorl	"d", %edi		# (((c ^ d) & b) ^ d)       \n\
+	leal	"RCONST"("e",%esi), "e"	# e += RCONST + W[n]        \n\
+	addl	%edi, "e"		# e += (((c ^ d) & b) ^ d)  \n\
+	movl	"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, "e"		# e += rotl32(a,5)          \n\
+	rorl	$2, "b"			# b = rotl32(b,30)          \n\
+"
+#define RD1Cs(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	4*"n13"(%esp), %esi	# W[(n+13) & 15]            \n\
+	xorl	4*"n8"(%esp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	4*"n2"(%esp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	4*"n"(%esp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	movl	%esi, 4*"n"(%esp)	# store to W[n & 15]        \n\
+	movl	"c", %edi		# c                         \n\
+	xorl	"d", %edi		# ^d                        \n\
+	andl	"b", %edi		# &b                        \n\
+	xorl	"d", %edi		# (((c ^ d) & b) ^ d)       \n\
+	leal	"RCONST"("e",%esi), "e"	# e += RCONST + mixed_W     \n\
+	addl	%edi, "e"		# e += (((c ^ d) & b) ^ d)  \n\
+	movl	"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, "e"		# e += rotl32(a,5)          \n\
+	rorl	$2, "b"			# b = rotl32(b,30)          \n\
+"
+#define RD1A(a,b,c,d,e, n) RD1As("%e"STR(a),"%e"STR(b),"%e"STR(c),"%e"STR(d),"%e"STR(e), STR((n)), STR(RCONST))
+#define RD1B(a,b,c,d,e, n) RD1Bs("%e"STR(a),"%e"STR(b),"%e"STR(c),"%e"STR(d),"%e"STR(e), STR((n)), STR(RCONST))
+#define RD1C(a,b,c,d,e, n) RD1Cs("%e"STR(a),"%e"STR(b),"%e"STR(c),"%e"STR(d),"%e"STR(e), STR(((n+13)&15)), STR(((n+8)&15)), STR(((n+2)&15)), STR(((n)&15)), STR(RCONST))
+#undef  RCONST
+#define RCONST 0x5A827999
+	RD1A(ax,bx,cx,dx,bp, 0) RD1B(bp,ax,bx,cx,dx, 1) RD1B(dx,bp,ax,bx,cx, 2) RD1B(cx,dx,bp,ax,bx, 3) RD1B(bx,cx,dx,bp,ax, 4)
+	RD1B(ax,bx,cx,dx,bp, 5) RD1B(bp,ax,bx,cx,dx, 6) RD1B(dx,bp,ax,bx,cx, 7) RD1B(cx,dx,bp,ax,bx, 8) RD1B(bx,cx,dx,bp,ax, 9)
+	RD1B(ax,bx,cx,dx,bp,10) RD1B(bp,ax,bx,cx,dx,11) RD1B(dx,bp,ax,bx,cx,12) RD1B(cx,dx,bp,ax,bx,13) RD1B(bx,cx,dx,bp,ax,14)
+	RD1B(ax,bx,cx,dx,bp,15) RD1C(bp,ax,bx,cx,dx,16) RD1C(dx,bp,ax,bx,cx,17) RD1C(cx,dx,bp,ax,bx,18) RD1C(bx,cx,dx,bp,ax,19)
+#define RD2s(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	4*"n13"(%esp), %esi	# W[(n+13) & 15]            \n\
+	xorl	4*"n8"(%esp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	4*"n2"(%esp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	4*"n"(%esp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	movl	%esi, 4*"n"(%esp)	# store to W[n & 15]        \n\
+	movl	"c", %edi		# c                         \n\
+	xorl	"d", %edi		# ^d                        \n\
+	xorl	"b", %edi		# ^b                        \n\
+	leal	"RCONST"("e",%esi), "e"	# e += RCONST + mixed_W     \n\
+	addl	%edi, "e"		# e += (c ^ d ^ b)          \n\
+	movl	"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, "e"		# e += rotl32(a,5)          \n\
+	rorl	$2, "b"			# b = rotl32(b,30)          \n\
+"
+#define RD2(a,b,c,d,e, n) RD2s("%e"STR(a),"%e"STR(b),"%e"STR(c),"%e"STR(d),"%e"STR(e), STR(((20+n+13)&15)), STR(((20+n+8)&15)), STR(((20+n+2)&15)), STR(((20+n)&15)), STR(RCONST))
+#undef  RCONST
+#define RCONST 0x6ED9EBA1
+	RD2(ax,bx,cx,dx,bp, 0) RD2(bp,ax,bx,cx,dx, 1) RD2(dx,bp,ax,bx,cx, 2) RD2(cx,dx,bp,ax,bx, 3) RD2(bx,cx,dx,bp,ax, 4)
+	RD2(ax,bx,cx,dx,bp, 5) RD2(bp,ax,bx,cx,dx, 6) RD2(dx,bp,ax,bx,cx, 7) RD2(cx,dx,bp,ax,bx, 8) RD2(bx,cx,dx,bp,ax, 9)
+	RD2(ax,bx,cx,dx,bp,10) RD2(bp,ax,bx,cx,dx,11) RD2(dx,bp,ax,bx,cx,12) RD2(cx,dx,bp,ax,bx,13) RD2(bx,cx,dx,bp,ax,14)
+	RD2(ax,bx,cx,dx,bp,15) RD2(bp,ax,bx,cx,dx,16) RD2(dx,bp,ax,bx,cx,17) RD2(cx,dx,bp,ax,bx,18) RD2(bx,cx,dx,bp,ax,19)
+
+#define RD3s(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	"b", %edi		# di: b                     \n\
+	movl	"b", %esi		# si: b                     \n\
+	orl	"c", %edi		# di: b | c                 \n\
+	andl	"c", %esi		# si: b & c                 \n\
+	andl	"d", %edi		# di: (b | c) & d           \n\
+	orl	%esi, %edi		# ((b | c) & d) | (b & c)   \n\
+	movl	4*"n13"(%esp), %esi	# W[(n+13) & 15]            \n\
+	xorl	4*"n8"(%esp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	4*"n2"(%esp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	4*"n"(%esp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	movl	%esi, 4*"n"(%esp)	# store to W[n & 15]        \n\
+	addl	%edi, "e"		# += ((b | c) & d) | (b & c)\n\
+	leal	"RCONST"("e",%esi), "e"	# e += RCONST + mixed_W     \n\
+	movl	"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, "e"		# e += rotl32(a,5)          \n\
+	rorl	$2, "b"			# b = rotl32(b,30)          \n\
+"
+#define RD3(a,b,c,d,e, n) RD3s("%e"STR(a),"%e"STR(b),"%e"STR(c),"%e"STR(d),"%e"STR(e), STR(((40+n+13)&15)), STR(((40+n+8)&15)), STR(((40+n+2)&15)), STR(((40+n)&15)), STR(RCONST))
+#undef  RCONST
+#define RCONST 0x8F1BBCDC
+	RD3(ax,bx,cx,dx,bp, 0) RD3(bp,ax,bx,cx,dx, 1) RD3(dx,bp,ax,bx,cx, 2) RD3(cx,dx,bp,ax,bx, 3) RD3(bx,cx,dx,bp,ax, 4)
+	RD3(ax,bx,cx,dx,bp, 5) RD3(bp,ax,bx,cx,dx, 6) RD3(dx,bp,ax,bx,cx, 7) RD3(cx,dx,bp,ax,bx, 8) RD3(bx,cx,dx,bp,ax, 9)
+	RD3(ax,bx,cx,dx,bp,10) RD3(bp,ax,bx,cx,dx,11) RD3(dx,bp,ax,bx,cx,12) RD3(cx,dx,bp,ax,bx,13) RD3(bx,cx,dx,bp,ax,14)
+	RD3(ax,bx,cx,dx,bp,15) RD3(bp,ax,bx,cx,dx,16) RD3(dx,bp,ax,bx,cx,17) RD3(cx,dx,bp,ax,bx,18) RD3(bx,cx,dx,bp,ax,19)
+
+#define RD4As(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	4*"n13"(%esp), %esi	# W[(n+13) & 15]            \n\
+	xorl	4*"n8"(%esp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	4*"n2"(%esp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	4*"n"(%esp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	movl	%esi, 4*"n"(%esp)	# store to W[n & 15]        \n\
+	movl	"c", %edi		# c                         \n\
+	xorl	"d", %edi		# ^d                        \n\
+	xorl	"b", %edi		# ^b                        \n\
+	leal	"RCONST"("e",%esi), "e"	# e += RCONST + mixed_W     \n\
+	addl	%edi, "e"		# e += (c ^ d ^ b)          \n\
+	movl	"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, "e"		# e += rotl32(a,5)          \n\
+	rorl	$2, "b"			# b = rotl32(b,30)          \n\
+"
+#define RD4Bs(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	4*"n13"(%esp), %esi	# W[(n+13) & 15]            \n\
+	xorl	4*"n8"(%esp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	4*"n2"(%esp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	4*"n"(%esp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	##movl	%esi, 4*"n"(%esp)	# store to W[n & 15] elided \n\
+	movl	"c", %edi		# c                         \n\
+	xorl	"d", %edi		# ^d                        \n\
+	xorl	"b", %edi		# ^b                        \n\
+	leal	"RCONST"("e",%esi), "e"	# e += RCONST + mixed_W     \n\
+	addl	%edi, "e"		# e += (c ^ d ^ b)          \n\
+	movl	"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, "e"		# e += rotl32(a,5)          \n\
+	rorl	$2, "b"			# b = rotl32(b,30)          \n\
+"
+#define RD4A(a,b,c,d,e, n) RD4As("%e"STR(a),"%e"STR(b),"%e"STR(c),"%e"STR(d),"%e"STR(e), STR(((60+n+13)&15)), STR(((60+n+8)&15)), STR(((60+n+2)&15)), STR(((60+n)&15)), STR(RCONST))
+#define RD4B(a,b,c,d,e, n) RD4Bs("%e"STR(a),"%e"STR(b),"%e"STR(c),"%e"STR(d),"%e"STR(e), STR(((60+n+13)&15)), STR(((60+n+8)&15)), STR(((60+n+2)&15)), STR(((60+n)&15)), STR(RCONST))
+#undef  RCONST
+#define RCONST 0xCA62C1D6
+	RD4A(ax,bx,cx,dx,bp, 0) RD4A(bp,ax,bx,cx,dx, 1) RD4A(dx,bp,ax,bx,cx, 2) RD4A(cx,dx,bp,ax,bx, 3) RD4A(bx,cx,dx,bp,ax, 4)
+	RD4A(ax,bx,cx,dx,bp, 5) RD4A(bp,ax,bx,cx,dx, 6) RD4A(dx,bp,ax,bx,cx, 7) RD4A(cx,dx,bp,ax,bx, 8) RD4A(bx,cx,dx,bp,ax, 9)
+	RD4A(ax,bx,cx,dx,bp,10) RD4A(bp,ax,bx,cx,dx,11) RD4A(dx,bp,ax,bx,cx,12) RD4A(cx,dx,bp,ax,bx,13) RD4A(bx,cx,dx,bp,ax,14)
+	RD4A(ax,bx,cx,dx,bp,15) RD4A(bp,ax,bx,cx,dx,16) RD4B(dx,bp,ax,bx,cx,17) RD4B(cx,dx,bp,ax,bx,18) RD4B(bx,cx,dx,bp,ax,19)
+
+"\n\
+	movl	4*16(%esp), %esi	#                           \n\
+	addl	$4*(16+1), %esp		#                           \n\
+	addl	%eax, 76(%esi)  	# ctx->hash[0] += a         \n\
+	addl	%ebx, 80(%esi)  	# ctx->hash[1] += b         \n\
+	addl	%ecx, 84(%esi)  	# ctx->hash[2] += c         \n\
+	addl	%edx, 88(%esi)  	# ctx->hash[3] += d         \n\
+	addl	%ebp, 92(%esi)  	# ctx->hash[4] += e         \n\
+	popl	%ebx			#                           \n\
+	popl	%esi			#                           \n\
+	popl	%edi			#                           \n\
+	popl	%ebp			#                           \n\
+"
+	); /* asm */
+#undef RCONST
+}
+# elif defined(__GNUC__) && defined(__x86_64__)
+static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
+{
+	BUILD_BUG_ON(offsetof(sha1_ctx_t, hash) != 80);
+	asm(
+// TODO: store W[] in r8..r15? (r8..r11 are callee-clobbered, no need to save)
+"\n\
+	##pushq	%r15		#                                   \n\
+	##pushq	%r14		#                                   \n\
+	##pushq	%r13		#                                   \n\
+	##pushq	%r12		#                                   \n\
+	##pushq	%rbp		#                                   \n\
+	##pushq	%rbx		#                                   \n\
+	movq	%rbp, %r8	# callee-saved                      \n\
+	movq	%rbx, %r9	# callee-saved                      \n\
+	movq	%rdi, %r10	# we need ctx at the end            \n\
+	movl	$15, %eax                                           \n\
+1:                                                                  \n\
+	movl	(%rdi,%rax,4), %esi                                 \n\
+	bswap	%esi                                                \n\
+	movl	%esi, -64(%rsp,%rax,4)                              \n\
+	decl	%eax                                                \n\
+	jns	1b                                                  \n\
+	movl	80(%rdi), %eax	# a = ctx->hash[0]                  \n\
+	movl	84(%rdi), %ebx	# b = ctx->hash[1]                  \n\
+	movl	88(%rdi), %ecx	# c = ctx->hash[2]                  \n\
+	movl	92(%rdi), %edx	# d = ctx->hash[3]                  \n\
+	movl	96(%rdi), %ebp	# e = ctx->hash[4]                  \n\
+#Register and stack use:                                            \n\
+# eax..edx: a..d                                                    \n\
+# ebp: e                                                            \n\
+# esi,edi: temps                                                    \n\
+# -64+4*n(%rsp): W[n]                                               \n\
+"
+#define RD1As(a,b,c,d,e, n, RCONST) \
+"\n\
+	##movl	-64+4*"n"(%rsp), %esi	# n=0, W[0] already in %esi \n\
+	movl	%e"c", %edi		# c                         \n\
+	xorl	%e"d", %edi		# ^d                        \n\
+	andl	%e"b", %edi		# &b                        \n\
+	xorl	%e"d", %edi		# (((c ^ d) & b) ^ d)       \n\
+	leal	"RCONST"(%r"e",%rsi), %e"e" # e += RCONST + W[n]    \n\
+	addl	%edi, %e"e"		# e += (((c ^ d) & b) ^ d)  \n\
+	movl	%e"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
+	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
+"
+#define RD1Bs(a,b,c,d,e, n, RCONST) \
+"\n\
+	movl	-64+4*"n"(%rsp), %esi	# W[n]                      \n\
+	movl	%e"c", %edi		# c                         \n\
+	xorl	%e"d", %edi		# ^d                        \n\
+	andl	%e"b", %edi		# &b                        \n\
+	xorl	%e"d", %edi		# (((c ^ d) & b) ^ d)       \n\
+	leal	"RCONST"(%r"e",%rsi), %e"e" # e += RCONST + W[n]    \n\
+	addl	%edi, %e"e"		# e += (((c ^ d) & b) ^ d)  \n\
+	movl	%e"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
+	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
+"
+#define RD1Cs(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
+	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15]        \n\
+	movl	%e"c", %edi		# c                         \n\
+	xorl	%e"d", %edi		# ^d                        \n\
+	andl	%e"b", %edi		# &b                        \n\
+	xorl	%e"d", %edi		# (((c ^ d) & b) ^ d)       \n\
+	leal	"RCONST"(%r"e",%rsi), %e"e" # e += RCONST + mixed_W \n\
+	addl	%edi, %e"e"		# e += (((c ^ d) & b) ^ d)  \n\
+	movl	%e"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
+	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
+"
+#define RD1A(a,b,c,d,e, n) RD1As(STR(a),STR(b),STR(c),STR(d),STR(e), STR((n)), STR(RCONST))
+#define RD1B(a,b,c,d,e, n) RD1Bs(STR(a),STR(b),STR(c),STR(d),STR(e), STR((n)), STR(RCONST))
+#define RD1C(a,b,c,d,e, n) RD1Cs(STR(a),STR(b),STR(c),STR(d),STR(e), STR(((n+13)&15)), STR(((n+8)&15)), STR(((n+2)&15)), STR(((n)&15)), STR(RCONST))
+#undef  RCONST
+#define RCONST 0x5A827999
+	RD1A(ax,bx,cx,dx,bp, 0) RD1B(bp,ax,bx,cx,dx, 1) RD1B(dx,bp,ax,bx,cx, 2) RD1B(cx,dx,bp,ax,bx, 3) RD1B(bx,cx,dx,bp,ax, 4)
+	RD1B(ax,bx,cx,dx,bp, 5) RD1B(bp,ax,bx,cx,dx, 6) RD1B(dx,bp,ax,bx,cx, 7) RD1B(cx,dx,bp,ax,bx, 8) RD1B(bx,cx,dx,bp,ax, 9)
+	RD1B(ax,bx,cx,dx,bp,10) RD1B(bp,ax,bx,cx,dx,11) RD1B(dx,bp,ax,bx,cx,12) RD1B(cx,dx,bp,ax,bx,13) RD1B(bx,cx,dx,bp,ax,14)
+	RD1B(ax,bx,cx,dx,bp,15) RD1C(bp,ax,bx,cx,dx,16) RD1C(dx,bp,ax,bx,cx,17) RD1C(cx,dx,bp,ax,bx,18) RD1C(bx,cx,dx,bp,ax,19)
+#define RD2s(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
+	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15]        \n\
+	movl	%e"c", %edi		# c                         \n\
+	xorl	%e"d", %edi		# ^d                        \n\
+	xorl	%e"b", %edi		# ^b                        \n\
+	leal	"RCONST"(%r"e",%rsi), %e"e" # e += RCONST + mixed_W \n\
+	addl	%edi, %e"e"		# e += (c ^ d ^ b)          \n\
+	movl	%e"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
+	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
+"
+#define RD2(a,b,c,d,e, n) RD2s(STR(a),STR(b),STR(c),STR(d),STR(e), STR(((20+n+13)&15)), STR(((20+n+8)&15)), STR(((20+n+2)&15)), STR(((20+n)&15)), STR(RCONST))
+#undef  RCONST
+#define RCONST 0x6ED9EBA1
+	RD2(ax,bx,cx,dx,bp, 0) RD2(bp,ax,bx,cx,dx, 1) RD2(dx,bp,ax,bx,cx, 2) RD2(cx,dx,bp,ax,bx, 3) RD2(bx,cx,dx,bp,ax, 4)
+	RD2(ax,bx,cx,dx,bp, 5) RD2(bp,ax,bx,cx,dx, 6) RD2(dx,bp,ax,bx,cx, 7) RD2(cx,dx,bp,ax,bx, 8) RD2(bx,cx,dx,bp,ax, 9)
+	RD2(ax,bx,cx,dx,bp,10) RD2(bp,ax,bx,cx,dx,11) RD2(dx,bp,ax,bx,cx,12) RD2(cx,dx,bp,ax,bx,13) RD2(bx,cx,dx,bp,ax,14)
+	RD2(ax,bx,cx,dx,bp,15) RD2(bp,ax,bx,cx,dx,16) RD2(dx,bp,ax,bx,cx,17) RD2(cx,dx,bp,ax,bx,18) RD2(bx,cx,dx,bp,ax,19)
+
+#define RD3s(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	%e"b", %edi		# di: b                     \n\
+	movl	%e"b", %esi		# si: b                     \n\
+	orl	%e"c", %edi		# di: b | c                 \n\
+	andl	%e"c", %esi		# si: b & c                 \n\
+	andl	%e"d", %edi		# di: (b | c) & d           \n\
+	orl	%esi, %edi		# ((b | c) & d) | (b & c)   \n\
+	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
+	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15]        \n\
+	addl	%edi, %e"e"		# += ((b | c) & d) | (b & c)\n\
+	leal	"RCONST"(%r"e",%rsi), %e"e" # e += RCONST + mixed_W \n\
+	movl	%e"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
+	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
+"
+#define RD3(a,b,c,d,e, n) RD3s(STR(a),STR(b),STR(c),STR(d),STR(e), STR(((40+n+13)&15)), STR(((40+n+8)&15)), STR(((40+n+2)&15)), STR(((40+n)&15)), STR(RCONST))
+#undef  RCONST
+//#define RCONST 0x8F1BBCDC "out of range for signed 32bit displacement"
+#define RCONST  -0x70e44324
+	RD3(ax,bx,cx,dx,bp, 0) RD3(bp,ax,bx,cx,dx, 1) RD3(dx,bp,ax,bx,cx, 2) RD3(cx,dx,bp,ax,bx, 3) RD3(bx,cx,dx,bp,ax, 4)
+	RD3(ax,bx,cx,dx,bp, 5) RD3(bp,ax,bx,cx,dx, 6) RD3(dx,bp,ax,bx,cx, 7) RD3(cx,dx,bp,ax,bx, 8) RD3(bx,cx,dx,bp,ax, 9)
+	RD3(ax,bx,cx,dx,bp,10) RD3(bp,ax,bx,cx,dx,11) RD3(dx,bp,ax,bx,cx,12) RD3(cx,dx,bp,ax,bx,13) RD3(bx,cx,dx,bp,ax,14)
+	RD3(ax,bx,cx,dx,bp,15) RD3(bp,ax,bx,cx,dx,16) RD3(dx,bp,ax,bx,cx,17) RD3(cx,dx,bp,ax,bx,18) RD3(bx,cx,dx,bp,ax,19)
+
+#define RD4As(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
+	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15]        \n\
+	movl	%e"c", %edi		# c                         \n\
+	xorl	%e"d", %edi		# ^d                        \n\
+	xorl	%e"b", %edi		# ^b                        \n\
+	leal	"RCONST"(%r"e",%rsi), %e"e" # e += RCONST + mixed_W \n\
+	addl	%edi, %e"e"		# e += (c ^ d ^ b)          \n\
+	movl	%e"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
+	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
+"
+#define RD4Bs(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
+	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
+	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
+	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	roll	%esi			#                           \n\
+	##movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15] elided \n\
+	movl	%e"c", %edi		# c                         \n\
+	xorl	%e"d", %edi		# ^d                        \n\
+	xorl	%e"b", %edi		# ^b                        \n\
+	leal	"RCONST"(%r"e",%rsi), %e"e" # e += RCONST + mixed_W \n\
+	addl	%edi, %e"e"		# e += (c ^ d ^ b)          \n\
+	movl	%e"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
+	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
+"
+#define RD4A(a,b,c,d,e, n) RD4As(STR(a),STR(b),STR(c),STR(d),STR(e), STR(((60+n+13)&15)), STR(((60+n+8)&15)), STR(((60+n+2)&15)), STR(((60+n)&15)), STR(RCONST))
+#define RD4B(a,b,c,d,e, n) RD4Bs(STR(a),STR(b),STR(c),STR(d),STR(e), STR(((60+n+13)&15)), STR(((60+n+8)&15)), STR(((60+n+2)&15)), STR(((60+n)&15)), STR(RCONST))
+#undef  RCONST
+//#define RCONST 0xCA62C1D6 "out of range for signed 32bit displacement"
+#define RCONST  -0x359d3e2a
+	RD4A(ax,bx,cx,dx,bp, 0) RD4A(bp,ax,bx,cx,dx, 1) RD4A(dx,bp,ax,bx,cx, 2) RD4A(cx,dx,bp,ax,bx, 3) RD4A(bx,cx,dx,bp,ax, 4)
+	RD4A(ax,bx,cx,dx,bp, 5) RD4A(bp,ax,bx,cx,dx, 6) RD4A(dx,bp,ax,bx,cx, 7) RD4A(cx,dx,bp,ax,bx, 8) RD4A(bx,cx,dx,bp,ax, 9)
+	RD4A(ax,bx,cx,dx,bp,10) RD4A(bp,ax,bx,cx,dx,11) RD4A(dx,bp,ax,bx,cx,12) RD4A(cx,dx,bp,ax,bx,13) RD4A(bx,cx,dx,bp,ax,14)
+	RD4A(ax,bx,cx,dx,bp,15) RD4A(bp,ax,bx,cx,dx,16) RD4B(dx,bp,ax,bx,cx,17) RD4B(cx,dx,bp,ax,bx,18) RD4B(bx,cx,dx,bp,ax,19)
+
+"\n\
+	movq	%r10, %rdi	#                                   \n\
+	addl	%eax, 80(%rdi)  # ctx->hash[0] += a                 \n\
+	addl	%ebx, 84(%rdi)  # ctx->hash[1] += b                 \n\
+	addl	%ecx, 88(%rdi)  # ctx->hash[2] += c                 \n\
+	addl	%edx, 92(%rdi)  # ctx->hash[3] += d                 \n\
+	addl	%ebp, 96(%rdi)  # ctx->hash[4] += e                 \n\
+	movq	%r9, %rbx	# callee-saved                      \n\
+	movq	%r8, %rbp	# callee-saved                      \n\
+	##popq	%rbx		#                                   \n\
+	##popq	%rbp		#                                   \n\
+	##popq	%r12		#                                   \n\
+	##popq	%r13		#                                   \n\
+	##popq	%r14		#                                   \n\
+	##popq	%r15		#                                   \n\
+"
+	); /* asm */
+#undef RCONST
+}
+# else
 /* Fast, fully-unrolled SHA1. +3800 bytes of code on x86.
  * It seems further speedup can be achieved by handling more than
  * 64 bytes per one function call (coreutils does that).
@@ -571,6 +987,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	ctx->hash[3] += d;
 	ctx->hash[4] += e;
 }
+# endif
 #elif CONFIG_SHA1_SMALL == 1
 /* Middle-sized version, +300 bytes of code on x86. */
 static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
