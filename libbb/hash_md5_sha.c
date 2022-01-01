@@ -700,22 +700,194 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 {
 	BUILD_BUG_ON(offsetof(sha1_ctx_t, hash) != 80);
 	asm(
-// TODO: store W[] in r8..r15? (r8..r11 are callee-clobbered, no need to save)
 "\n\
-	##pushq	%r15		#                                   \n\
-	##pushq	%r14		#                                   \n\
-	##pushq	%r13		#                                   \n\
-	##pushq	%r12		#                                   \n\
-	##pushq	%rbp		#                                   \n\
-	##pushq	%rbx		#                                   \n\
-	movq	%rbp, %r8	# callee-saved                      \n\
-	movq	%rbx, %r9	# callee-saved                      \n\
-	movq	%rdi, %r10	# we need ctx at the end            \n\
-	movl	$15, %eax                                           \n\
+	pushq	%r15		#                                   \n\
+	pushq	%r14		#                                   \n\
+	pushq	%r13		#                                   \n\
+	pushq	%r12		#                                   \n\
+	pushq	%rbp		#                                   \n\
+	pushq	%rbx		#                                   \n\
+	pushq	%rdi		# we need ctx at the end            \n\
+                                                                    \n\
+#Register and stack use:                                            \n\
+# eax..edx: a..d                                                    \n\
+# ebp: e                                                            \n\
+# esi,edi: temps                                                    \n\
+# -32+4*n(%rsp),r8...r15: W[0..7,8..15]                             \n\
+	.macro	loadW n,r                                           \n\
+	.if \\n == 0                                                \n\
+	movl	-32+4*0(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 1                                                \n\
+	movl	-32+4*1(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 2                                                \n\
+	movl	-32+4*2(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 3                                                \n\
+	movl	-32+4*3(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 4                                                \n\
+	movl	-32+4*4(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 5                                                \n\
+	movl	-32+4*5(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 6                                                \n\
+	movl	-32+4*6(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 7                                                \n\
+	movl	-32+4*7(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 8                                                \n\
+	movl	%r8d,\\r                                            \n\
+	.endif                                                      \n\
+	.if \\n == 9                                                \n\
+	movl	%r9d,\\r                                            \n\
+	.endif                                                      \n\
+	.if \\n == 10                                               \n\
+	movl	%r10d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 11                                               \n\
+	movl	%r11d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 12                                               \n\
+	movl	%r12d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 13                                               \n\
+	movl	%r13d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 14                                               \n\
+	movl	%r14d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 15                                               \n\
+	movl	%r15d,\\r                                           \n\
+	.endif                                                      \n\
+	.endm                                                       \n\
+                                                                    \n\
+	.macro	storeW r,n                                          \n\
+	.if \\n == 0                                                \n\
+	movl	\\r,-32+4*0(%rsp)                                   \n\
+	.endif                                                      \n\
+	.if \\n == 1                                                \n\
+	movl	\\r,-32+4*1(%rsp)                                   \n\
+	.endif                                                      \n\
+	.if \\n == 2                                                \n\
+	movl	\\r,-32+4*2(%rsp)                                   \n\
+	.endif                                                      \n\
+	.if \\n == 3                                                \n\
+	movl	\\r,-32+4*3(%rsp)                                   \n\
+	.endif                                                      \n\
+	.if \\n == 4                                                \n\
+	movl	\\r,-32+4*4(%rsp)                                   \n\
+	.endif                                                      \n\
+	.if \\n == 5                                                \n\
+	movl	\\r,-32+4*5(%rsp)                                   \n\
+	.endif                                                      \n\
+	.if \\n == 6                                                \n\
+	movl	\\r,-32+4*6(%rsp)                                   \n\
+	.endif                                                      \n\
+	.if \\n == 7                                                \n\
+	movl	\\r,-32+4*7(%rsp)                                   \n\
+	.endif                                                      \n\
+	.if \\n == 8                                                \n\
+	movl	\\r,%r8d                                            \n\
+	.endif                                                      \n\
+	.if \\n == 9                                                \n\
+	movl	\\r,%r9d                                            \n\
+	.endif                                                      \n\
+	.if \\n == 10                                               \n\
+	movl	\\r,%r10d                                           \n\
+	.endif                                                      \n\
+	.if \\n == 11                                               \n\
+	movl	\\r,%r11d                                           \n\
+	.endif                                                      \n\
+	.if \\n == 12                                               \n\
+	movl	\\r,%r12d                                           \n\
+	.endif                                                      \n\
+	.if \\n == 13                                               \n\
+	movl	\\r,%r13d                                           \n\
+	.endif                                                      \n\
+	.if \\n == 14                                               \n\
+	movl	\\r,%r14d                                           \n\
+	.endif                                                      \n\
+	.if \\n == 15                                               \n\
+	movl	\\r,%r15d                                           \n\
+	.endif                                                      \n\
+	.endm                                                       \n\
+                                                                    \n\
+	.macro	xorW n,r                                            \n\
+	.if \\n == 0                                                \n\
+	xorl	-32+4*0(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 1                                                \n\
+	xorl	-32+4*1(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 2                                                \n\
+	xorl	-32+4*2(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 3                                                \n\
+	xorl	-32+4*3(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 4                                                \n\
+	xorl	-32+4*4(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 5                                                \n\
+	xorl	-32+4*5(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 6                                                \n\
+	xorl	-32+4*6(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 7                                                \n\
+	xorl	-32+4*7(%rsp),\\r                                   \n\
+	.endif                                                      \n\
+	.if \\n == 8                                                \n\
+	xorl	%r8d,\\r                                            \n\
+	.endif                                                      \n\
+	.if \\n == 9                                                \n\
+	xorl	%r9d,\\r                                            \n\
+	.endif                                                      \n\
+	.if \\n == 10                                               \n\
+	xorl	%r10d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 11                                               \n\
+	xorl	%r11d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 12                                               \n\
+	xorl	%r12d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 13                                               \n\
+	xorl	%r13d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 14                                               \n\
+	xorl	%r14d,\\r                                           \n\
+	.endif                                                      \n\
+	.if \\n == 15                                               \n\
+	xorl	%r15d,\\r                                           \n\
+	.endif                                                      \n\
+	.endm                                                       \n\
+                                                                    \n\
+	movl	4*8(%rdi), %r8d                                     \n\
+	bswap	%r8d                                                \n\
+	movl	4*9(%rdi), %r9d                                     \n\
+	bswap	%r9d                                                \n\
+	movl	4*10(%rdi), %r10d                                   \n\
+	bswap	%r10d                                               \n\
+	movl	4*11(%rdi), %r11d                                   \n\
+	bswap	%r11d                                               \n\
+	movl	4*12(%rdi), %r12d                                   \n\
+	bswap	%r12d                                               \n\
+	movl	4*13(%rdi), %r13d                                   \n\
+	bswap	%r13d                                               \n\
+	movl	4*14(%rdi), %r14d                                   \n\
+	bswap	%r14d                                               \n\
+	movl	4*15(%rdi), %r15d                                   \n\
+	bswap	%r15d                                               \n\
+	movl	$7, %eax                                            \n\
 1:                                                                  \n\
 	movl	(%rdi,%rax,4), %esi                                 \n\
 	bswap	%esi                                                \n\
-	movl	%esi, -64(%rsp,%rax,4)                              \n\
+	movl	%esi, -32(%rsp,%rax,4)                              \n\
 	decl	%eax                                                \n\
 	jns	1b                                                  \n\
 	movl	80(%rdi), %eax	# a = ctx->hash[0]                  \n\
@@ -723,15 +895,10 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 	movl	88(%rdi), %ecx	# c = ctx->hash[2]                  \n\
 	movl	92(%rdi), %edx	# d = ctx->hash[3]                  \n\
 	movl	96(%rdi), %ebp	# e = ctx->hash[4]                  \n\
-#Register and stack use:                                            \n\
-# eax..edx: a..d                                                    \n\
-# ebp: e                                                            \n\
-# esi,edi: temps                                                    \n\
-# -64+4*n(%rsp): W[n]                                               \n\
 "
 #define RD1As(a,b,c,d,e, n, RCONST) \
 "\n\
-	##movl	-64+4*"n"(%rsp), %esi	# n=0, W[0] already in %esi \n\
+	##loadW	"n", %esi		# n=0, W[0] already in %esi \n\
 	movl	%e"c", %edi		# c                         \n\
 	xorl	%e"d", %edi		# ^d                        \n\
 	andl	%e"b", %edi		# &b                        \n\
@@ -745,7 +912,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 "
 #define RD1Bs(a,b,c,d,e, n, RCONST) \
 "\n\
-	movl	-64+4*"n"(%rsp), %esi	# W[n]                      \n\
+	loadW	"n", %esi		# W[n]                      \n\
 	movl	%e"c", %edi		# c                         \n\
 	xorl	%e"d", %edi		# ^d                        \n\
 	andl	%e"b", %edi		# &b                        \n\
@@ -757,14 +924,27 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
 	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
 "
-#define RD1Cs(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+#define RD1Cs(a,b,c,d,e, n, RCONST) \
 "\n\
-	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
-	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
-	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
-	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	movl	%e"c", %edi		# c                         \n\
+	xorl	%e"d", %edi		# ^d                        \n\
+	andl	%e"b", %edi		# &b                        \n\
+	xorl	%e"d", %edi		# (((c ^ d) & b) ^ d)       \n\
+	leal	"RCONST"(%r"e",%r"n"), %e"e" # e += RCONST + W[n]   \n\
+	addl	%edi, %e"e"		# e += (((c ^ d) & b) ^ d)  \n\
+	movl	%e"a", %esi		#                           \n\
+	roll	$5, %esi		# rotl32(a,5)               \n\
+	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
+	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
+"
+#define RD1Ds(a,b,c,d,e, n13,n8,n2,n, RCONST) \
+"\n\
+	loadW	"n13", %esi		# W[(n+13) & 15]            \n\
+	xorW	"n8", %esi		# ^W[(n+8) & 15]            \n\
+	xorW	"n2", %esi		# ^W[(n+2) & 15]            \n\
+	xorW	"n", %esi		# ^W[n & 15]                \n\
 	roll	%esi			#                           \n\
-	movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15]        \n\
+	storeW	%esi, "n"		# store to W[n & 15]        \n\
 	movl	%e"c", %edi		# c                         \n\
 	xorl	%e"d", %edi		# ^d                        \n\
 	andl	%e"b", %edi		# &b                        \n\
@@ -776,23 +956,24 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 	addl	%esi, %e"e"		# e += rotl32(a,5)          \n\
 	rorl	$2, %e"b"		# b = rotl32(b,30)          \n\
 "
-#define RD1A(a,b,c,d,e, n) RD1As(STR(a),STR(b),STR(c),STR(d),STR(e), STR((n)), STR(RCONST))
-#define RD1B(a,b,c,d,e, n) RD1Bs(STR(a),STR(b),STR(c),STR(d),STR(e), STR((n)), STR(RCONST))
-#define RD1C(a,b,c,d,e, n) RD1Cs(STR(a),STR(b),STR(c),STR(d),STR(e), STR(((n+13)&15)), STR(((n+8)&15)), STR(((n+2)&15)), STR(((n)&15)), STR(RCONST))
+#define RD1A(a,b,c,d,e, n) RD1As(STR(a),STR(b),STR(c),STR(d),STR(e), STR(n), STR(RCONST))
+#define RD1B(a,b,c,d,e, n) RD1Bs(STR(a),STR(b),STR(c),STR(d),STR(e), STR(n), STR(RCONST))
+#define RD1C(a,b,c,d,e, n) RD1Cs(STR(a),STR(b),STR(c),STR(d),STR(e), STR(n), STR(RCONST))
+#define RD1D(a,b,c,d,e, n) RD1Ds(STR(a),STR(b),STR(c),STR(d),STR(e), STR(((n+13)&15)), STR(((n+8)&15)), STR(((n+2)&15)), STR(((n)&15)), STR(RCONST))
 #undef  RCONST
 #define RCONST 0x5A827999
 	RD1A(ax,bx,cx,dx,bp, 0) RD1B(bp,ax,bx,cx,dx, 1) RD1B(dx,bp,ax,bx,cx, 2) RD1B(cx,dx,bp,ax,bx, 3) RD1B(bx,cx,dx,bp,ax, 4)
-	RD1B(ax,bx,cx,dx,bp, 5) RD1B(bp,ax,bx,cx,dx, 6) RD1B(dx,bp,ax,bx,cx, 7) RD1B(cx,dx,bp,ax,bx, 8) RD1B(bx,cx,dx,bp,ax, 9)
-	RD1B(ax,bx,cx,dx,bp,10) RD1B(bp,ax,bx,cx,dx,11) RD1B(dx,bp,ax,bx,cx,12) RD1B(cx,dx,bp,ax,bx,13) RD1B(bx,cx,dx,bp,ax,14)
-	RD1B(ax,bx,cx,dx,bp,15) RD1C(bp,ax,bx,cx,dx,16) RD1C(dx,bp,ax,bx,cx,17) RD1C(cx,dx,bp,ax,bx,18) RD1C(bx,cx,dx,bp,ax,19)
+	RD1B(ax,bx,cx,dx,bp, 5) RD1B(bp,ax,bx,cx,dx, 6) RD1B(dx,bp,ax,bx,cx, 7) RD1C(cx,dx,bp,ax,bx, 8) RD1C(bx,cx,dx,bp,ax, 9)
+	RD1C(ax,bx,cx,dx,bp,10) RD1C(bp,ax,bx,cx,dx,11) RD1C(dx,bp,ax,bx,cx,12) RD1C(cx,dx,bp,ax,bx,13) RD1C(bx,cx,dx,bp,ax,14)
+	RD1C(ax,bx,cx,dx,bp,15) RD1D(bp,ax,bx,cx,dx,16) RD1D(dx,bp,ax,bx,cx,17) RD1D(cx,dx,bp,ax,bx,18) RD1D(bx,cx,dx,bp,ax,19)
 #define RD2s(a,b,c,d,e, n13,n8,n2,n, RCONST) \
 "\n\
-	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
-	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
-	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
-	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	loadW	"n13", %esi		# W[(n+13) & 15]            \n\
+	xorW	"n8", %esi		# ^W[(n+8) & 15]            \n\
+	xorW	"n2", %esi		# ^W[(n+2) & 15]            \n\
+	xorW	"n", %esi		# ^W[n & 15]                \n\
 	roll	%esi			#                           \n\
-	movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15]        \n\
+	storeW	%esi, "n"		# store to W[n & 15]        \n\
 	movl	%e"c", %edi		# c                         \n\
 	xorl	%e"d", %edi		# ^d                        \n\
 	xorl	%e"b", %edi		# ^b                        \n\
@@ -819,12 +1000,12 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 	andl	%e"c", %esi		# si: b & c                 \n\
 	andl	%e"d", %edi		# di: (b | c) & d           \n\
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)   \n\
-	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
-	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
-	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
-	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	loadW	"n13", %esi		# W[(n+13) & 15]            \n\
+	xorW	"n8", %esi		# ^W[(n+8) & 15]            \n\
+	xorW	"n2", %esi		# ^W[(n+2) & 15]            \n\
+	xorW	"n", %esi		# ^W[n & 15]                \n\
 	roll	%esi			#                           \n\
-	movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15]        \n\
+	storeW	%esi, "n"		# store to W[n & 15]        \n\
 	addl	%edi, %e"e"		# += ((b | c) & d) | (b & c)\n\
 	leal	"RCONST"(%r"e",%rsi), %e"e" # e += RCONST + mixed_W \n\
 	movl	%e"a", %esi		#                           \n\
@@ -843,12 +1024,12 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 
 #define RD4As(a,b,c,d,e, n13,n8,n2,n, RCONST) \
 "\n\
-	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
-	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
-	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
-	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	loadW	"n13", %esi		# W[(n+13) & 15]            \n\
+	xorW	"n8", %esi		# ^W[(n+8) & 15]            \n\
+	xorW	"n2", %esi		# ^W[(n+2) & 15]            \n\
+	xorW	"n", %esi		# ^W[n & 15]                \n\
 	roll	%esi			#                           \n\
-	movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15]        \n\
+	storeW	%esi, "n"		# store to W[n & 15]        \n\
 	movl	%e"c", %edi		# c                         \n\
 	xorl	%e"d", %edi		# ^d                        \n\
 	xorl	%e"b", %edi		# ^b                        \n\
@@ -861,12 +1042,12 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 "
 #define RD4Bs(a,b,c,d,e, n13,n8,n2,n, RCONST) \
 "\n\
-	movl	-64+4*"n13"(%rsp), %esi	# W[(n+13) & 15]            \n\
-	xorl	-64+4*"n8"(%rsp), %esi	# ^W[(n+8) & 15]            \n\
-	xorl	-64+4*"n2"(%rsp), %esi	# ^W[(n+2) & 15]            \n\
-	xorl	-64+4*"n"(%rsp), %esi	# ^W[n & 15]                \n\
+	loadW	"n13", %esi		# W[(n+13) & 15]            \n\
+	xorW	"n8", %esi		# ^W[(n+8) & 15]            \n\
+	xorW	"n2", %esi		# ^W[(n+2) & 15]            \n\
+	xorW	"n", %esi		# ^W[n & 15]                \n\
 	roll	%esi			#                           \n\
-	##movl	%esi, -64+4*"n"(%rsp)	# store to W[n & 15] elided \n\
+	#storeW	%esi, "n"		# store to W[n & 15] elided \n\
 	movl	%e"c", %edi		# c                         \n\
 	xorl	%e"d", %edi		# ^d                        \n\
 	xorl	%e"b", %edi		# ^b                        \n\
@@ -888,20 +1069,18 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 	RD4A(ax,bx,cx,dx,bp,15) RD4A(bp,ax,bx,cx,dx,16) RD4B(dx,bp,ax,bx,cx,17) RD4B(cx,dx,bp,ax,bx,18) RD4B(bx,cx,dx,bp,ax,19)
 
 "\n\
-	movq	%r10, %rdi	#                                   \n\
+	popq	%rdi		#                                   \n\
 	addl	%eax, 80(%rdi)  # ctx->hash[0] += a                 \n\
 	addl	%ebx, 84(%rdi)  # ctx->hash[1] += b                 \n\
 	addl	%ecx, 88(%rdi)  # ctx->hash[2] += c                 \n\
 	addl	%edx, 92(%rdi)  # ctx->hash[3] += d                 \n\
 	addl	%ebp, 96(%rdi)  # ctx->hash[4] += e                 \n\
-	movq	%r9, %rbx	# callee-saved                      \n\
-	movq	%r8, %rbp	# callee-saved                      \n\
-	##popq	%rbx		#                                   \n\
-	##popq	%rbp		#                                   \n\
-	##popq	%r12		#                                   \n\
-	##popq	%r13		#                                   \n\
-	##popq	%r14		#                                   \n\
-	##popq	%r15		#                                   \n\
+	popq	%rbx		#                                   \n\
+	popq	%rbp		#                                   \n\
+	popq	%r12		#                                   \n\
+	popq	%r13		#                                   \n\
+	popq	%r14		#                                   \n\
+	popq	%r15		#                                   \n\
 "
 	); /* asm */
 #undef RCONST
