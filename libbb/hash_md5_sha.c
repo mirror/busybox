@@ -867,27 +867,29 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx UNUSED_PARAM)
 	.endif                                                      \n\
 	.endm                                                       \n\
                                                                     \n\
-	movl	4*8(%rdi), %r8d                                     \n\
-	bswap	%r8d                                                \n\
-	movl	4*9(%rdi), %r9d                                     \n\
-	bswap	%r9d                                                \n\
-	movl	4*10(%rdi), %r10d                                   \n\
-	bswap	%r10d                                               \n\
-	movl	4*11(%rdi), %r11d                                   \n\
-	bswap	%r11d                                               \n\
-	movl	4*12(%rdi), %r12d                                   \n\
-	bswap	%r12d                                               \n\
-	movl	4*13(%rdi), %r13d                                   \n\
-	bswap	%r13d                                               \n\
-	movl	4*14(%rdi), %r14d                                   \n\
-	bswap	%r14d                                               \n\
-	movl	4*15(%rdi), %r15d                                   \n\
-	bswap	%r15d                                               \n\
-	movl	$7, %eax                                            \n\
+	movq	4*8(%rdi), %r8                                      \n\
+	bswap	%r8                                                 \n\
+	movl	%r8d, %r9d                                          \n\
+	shrq	$32, %r8                                            \n\
+	movq	4*10(%rdi), %r10                                    \n\
+	bswap	%r10                                                \n\
+	movl	%r10d, %r11d                                        \n\
+	shrq	$32, %r10                                           \n\
+	movq	4*12(%rdi), %r12                                    \n\
+	bswap	%r12                                                \n\
+	movl	%r12d, %r13d                                        \n\
+	shrq	$32, %r12                                           \n\
+	movq	4*14(%rdi), %r14                                    \n\
+	bswap	%r14                                                \n\
+	movl	%r14d, %r15d                                        \n\
+	shrq	$32, %r14                                           \n\
+                                                                    \n\
+	movl	$3, %eax                                            \n\
 1:                                                                  \n\
-	movl	(%rdi,%rax,4), %esi                                 \n\
-	bswap	%esi                                                \n\
-	movl	%esi, -32(%rsp,%rax,4)                              \n\
+	movq	(%rdi,%rax,8), %rsi                                 \n\
+	bswap	%rsi                                                \n\
+	rolq	$32, %rsi                                           \n\
+	movq	%rsi, -32(%rsp,%rax,8)                              \n\
 	decl	%eax                                                \n\
 	jns	1b                                                  \n\
 	movl	80(%rdi), %eax	# a = ctx->hash[0]                  \n\
