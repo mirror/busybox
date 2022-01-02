@@ -1121,7 +1121,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
  * see what the value will be).
  * """
  */
-#if defined(__i386__)
+#if defined(__GNUC__) && defined(__i386__)
 # define DO_NOT_TRY_PROPAGATING(m) asm("":"+m"(m))
 #else
 # define DO_NOT_TRY_PROPAGATING(m) ((void)0)
@@ -1212,7 +1212,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 		c = rotl32(b, 30);
 		b = a;
 		a = work;
-		n = (n + 1) & 15;
+		n = (n + 1) /* & 15*/;
 	} while (n != 4);
 	/* 2nd round of 20 operations */
 	j = 19;
