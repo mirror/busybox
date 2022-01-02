@@ -721,6 +721,7 @@ comment "Applets"
 
 source archival/Config.in
 source coreutils/Config.in
+source coreutils-json-producer/Config.in
 source console-tools/Config.in
 source debianutils/Config.in
 source klibc-utils/Config.in
