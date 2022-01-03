@@ -21,7 +21,7 @@ sha1_process_block64:
 # ebp: e
 # esi,edi: temps
 # -32+4*n(%rsp),r8...r15: W[0..7,8..15]
-# (TODO: actually W[0..7] are used a bit more often, put _thme_ into r8..r15?)
+# (TODO: actually W[0..7] are used a bit more often, put _them_ into r8..r15?)
 
 	movq	4*8(%rdi), %r8
 	bswapq	%r8
