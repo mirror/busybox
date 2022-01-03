@@ -60,7 +60,7 @@ sha1_process_block64:
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
 	xorl	%edx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbp,%rsi),%ebp # e += RCONST + W[n]
+	leal	0x5A827999(%rbp,%rsi), %ebp # e += RCONST + W[n]
 	addl	%edi, %ebp		# e += (((c ^ d) & b) ^ d)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -72,7 +72,7 @@ sha1_process_block64:
 	xorl	%ecx, %edi		# ^d
 	andl	%eax, %edi		# &b
 	xorl	%ecx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rdx,%rsi),%edx # e += RCONST + W[n]
+	leal	0x5A827999(%rdx,%rsi), %edx # e += RCONST + W[n]
 	addl	%edi, %edx		# e += (((c ^ d) & b) ^ d)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -84,7 +84,7 @@ sha1_process_block64:
 	xorl	%ebx, %edi		# ^d
 	andl	%ebp, %edi		# &b
 	xorl	%ebx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rcx,%rsi),%ecx # e += RCONST + W[n]
+	leal	0x5A827999(%rcx,%rsi), %ecx # e += RCONST + W[n]
 	addl	%edi, %ecx		# e += (((c ^ d) & b) ^ d)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -96,7 +96,7 @@ sha1_process_block64:
 	xorl	%eax, %edi		# ^d
 	andl	%edx, %edi		# &b
 	xorl	%eax, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbx,%rsi),%ebx # e += RCONST + W[n]
+	leal	0x5A827999(%rbx,%rsi), %ebx # e += RCONST + W[n]
 	addl	%edi, %ebx		# e += (((c ^ d) & b) ^ d)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -108,7 +108,7 @@ sha1_process_block64:
 	xorl	%ebp, %edi		# ^d
 	andl	%ecx, %edi		# &b
 	xorl	%ebp, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rax,%rsi),%eax # e += RCONST + W[n]
+	leal	0x5A827999(%rax,%rsi), %eax # e += RCONST + W[n]
 	addl	%edi, %eax		# e += (((c ^ d) & b) ^ d)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -120,7 +120,7 @@ sha1_process_block64:
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
 	xorl	%edx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbp,%rsi),%ebp # e += RCONST + W[n]
+	leal	0x5A827999(%rbp,%rsi), %ebp # e += RCONST + W[n]
 	addl	%edi, %ebp		# e += (((c ^ d) & b) ^ d)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -132,7 +132,7 @@ sha1_process_block64:
 	xorl	%ecx, %edi		# ^d
 	andl	%eax, %edi		# &b
 	xorl	%ecx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rdx,%rsi),%edx # e += RCONST + W[n]
+	leal	0x5A827999(%rdx,%rsi), %edx # e += RCONST + W[n]
 	addl	%edi, %edx		# e += (((c ^ d) & b) ^ d)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -144,7 +144,7 @@ sha1_process_block64:
 	xorl	%ebx, %edi		# ^d
 	andl	%ebp, %edi		# &b
 	xorl	%ebx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rcx,%rsi),%ecx # e += RCONST + W[n]
+	leal	0x5A827999(%rcx,%rsi), %ecx # e += RCONST + W[n]
 	addl	%edi, %ecx		# e += (((c ^ d) & b) ^ d)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -156,7 +156,7 @@ sha1_process_block64:
 	xorl	%eax, %edi		# ^d
 	andl	%edx, %edi		# &b
 	xorl	%eax, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbx,%r8),%ebx # e += RCONST + W[n]
+	leal	0x5A827999(%rbx,%r8), %ebx # e += RCONST + W[n]
 	addl	%edi, %ebx		# e += (((c ^ d) & b) ^ d)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -168,7 +168,7 @@ sha1_process_block64:
 	xorl	%ebp, %edi		# ^d
 	andl	%ecx, %edi		# &b
 	xorl	%ebp, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rax,%r9),%eax # e += RCONST + W[n]
+	leal	0x5A827999(%rax,%r9), %eax # e += RCONST + W[n]
 	addl	%edi, %eax		# e += (((c ^ d) & b) ^ d)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -180,7 +180,7 @@ sha1_process_block64:
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
 	xorl	%edx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbp,%r10),%ebp # e += RCONST + W[n]
+	leal	0x5A827999(%rbp,%r10), %ebp # e += RCONST + W[n]
 	addl	%edi, %ebp		# e += (((c ^ d) & b) ^ d)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -192,7 +192,7 @@ sha1_process_block64:
 	xorl	%ecx, %edi		# ^d
 	andl	%eax, %edi		# &b
 	xorl	%ecx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rdx,%r11),%edx # e += RCONST + W[n]
+	leal	0x5A827999(%rdx,%r11), %edx # e += RCONST + W[n]
 	addl	%edi, %edx		# e += (((c ^ d) & b) ^ d)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -204,7 +204,7 @@ sha1_process_block64:
 	xorl	%ebx, %edi		# ^d
 	andl	%ebp, %edi		# &b
 	xorl	%ebx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rcx,%r12),%ecx # e += RCONST + W[n]
+	leal	0x5A827999(%rcx,%r12), %ecx # e += RCONST + W[n]
 	addl	%edi, %ecx		# e += (((c ^ d) & b) ^ d)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -216,7 +216,7 @@ sha1_process_block64:
 	xorl	%eax, %edi		# ^d
 	andl	%edx, %edi		# &b
 	xorl	%eax, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbx,%r13),%ebx # e += RCONST + W[n]
+	leal	0x5A827999(%rbx,%r13), %ebx # e += RCONST + W[n]
 	addl	%edi, %ebx		# e += (((c ^ d) & b) ^ d)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -228,7 +228,7 @@ sha1_process_block64:
 	xorl	%ebp, %edi		# ^d
 	andl	%ecx, %edi		# &b
 	xorl	%ebp, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rax,%r14),%eax # e += RCONST + W[n]
+	leal	0x5A827999(%rax,%r14), %eax # e += RCONST + W[n]
 	addl	%edi, %eax		# e += (((c ^ d) & b) ^ d)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -240,7 +240,7 @@ sha1_process_block64:
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
 	xorl	%edx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbp,%r15),%ebp # e += RCONST + W[n]
+	leal	0x5A827999(%rbp,%r15), %ebp # e += RCONST + W[n]
 	addl	%edi, %ebp		# e += (((c ^ d) & b) ^ d)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)

@@ -74,22 +74,24 @@ test "$1" -ge 8 && echo "%r${1}d"
 RD1A() {
 local a=$1;local b=$2;local c=$3;local d=$4;local e=$5
 local n=$(($6))
-echo "# $n"
-test $n = 0 && echo "
+local n0=$(((n+0) & 15))
+echo "
+# $n
+";test $n0 = 0 && echo "
 	# W[0], already in %esi
-";test $n != 0 && test $n -lt 8 && echo "
-	movl	`W32 $n`, %esi		# W[n]
-";test $n -ge 8 && echo "
-	# W[n], in %r$n
+";test $n0 != 0 && test $n0 -lt 8 && echo "
+	movl	`W32 $n0`, %esi		# W[n]
+";test $n0 -ge 8 && echo "
+	# W[n], in %r$n0
 ";echo "
 	movl	%e$c, %edi		# c
 	xorl	%e$d, %edi		# ^d
 	andl	%e$b, %edi		# &b
 	xorl	%e$d, %edi		# (((c ^ d) & b) ^ d)
-";test $n -lt 8 && echo "
-	leal	$RCONST(%r$e,%rsi),%e$e # e += RCONST + W[n]
-";test $n -ge 8 && echo "
-	leal	$RCONST(%r$e,%r$n),%e$e # e += RCONST + W[n]
+";test $n0 -lt 8 && echo "
+	leal	$RCONST(%r$e,%rsi), %e$e # e += RCONST + W[n]
+";test $n0 -ge 8 && echo "
+	leal	$RCONST(%r$e,%r$n0), %e$e # e += RCONST + W[n]
 ";echo "
 	addl	%edi, %e$e		# e += (((c ^ d) & b) ^ d)
 	movl	%e$a, %esi		#
@@ -119,7 +121,7 @@ echo "
 	xorl	`W32 $n8`, `W32 $n0`	# ^W[(n+8) & 15]
 	xorl	`W32 $n2`, `W32 $n0`	# ^W[(n+2) & 15]
 	roll	`W32 $n0`		#
-"; echo "
+";echo "
 	movl	%e$c, %edi		# c
 	xorl	%e$d, %edi		# ^d
 	andl	%e$b, %edi		# &b
@@ -165,7 +167,7 @@ echo "
 	xorl	`W32 $n8`, `W32 $n0`	# ^W[(n+8) & 15]
 	xorl	`W32 $n2`, `W32 $n0`	# ^W[(n+2) & 15]
 	roll	`W32 $n0`		#
-"; echo "
+";echo "
 	movl	%e$c, %edi		# c
 	xorl	%e$d, %edi		# ^d
 	xorl	%e$b, %edi		# ^b
@@ -216,7 +218,7 @@ echo "
 	xorl	`W32 $n8`, `W32 $n0`	# ^W[(n+8) & 15]
 	xorl	`W32 $n2`, `W32 $n0`	# ^W[(n+2) & 15]
 	roll	`W32 $n0`		#
-"; echo "
+";echo "
 	addl	%edi, %e$e		# += ((b | c) & d) | (b & c)
 ";test $n0 -lt 8 && echo "
 	leal	$RCONST(%r$e,%rsi), %e$e # e += RCONST + W[n & 15]
@@ -246,6 +248,11 @@ RD2 ax bx cx dx bp 60; RD2 bp ax bx cx dx 61; RD2 dx bp ax bx cx 62; RD2 cx dx b
 RD2 ax bx cx dx bp 65; RD2 bp ax bx cx dx 66; RD2 dx bp ax bx cx 67; RD2 cx dx bp ax bx 68; RD2 bx cx dx bp ax 69
 RD2 ax bx cx dx bp 70; RD2 bp ax bx cx dx 71; RD2 dx bp ax bx cx 72; RD2 cx dx bp ax bx 73; RD2 bx cx dx bp ax 74
 RD2 ax bx cx dx bp 75; RD2 bp ax bx cx dx 76; RD2 dx bp ax bx cx 77; RD2 cx dx bp ax bx 78; RD2 bx cx dx bp ax 79
+# Note: new W[n&15] values generated in last 3 iterations
+# (W[13,14,15]) are unused after each of these iterations.
+# Since we use r8..r15 for W[8..15], this does not matter.
+# If we switch to e.g. using r8..r15 for W[0..7], then saving of W[13,14,15]
+# (the "movl %esi, `W32 $n0`" insn) is a dead store and can be removed.
 } | grep -v '^$'
 
 echo "
