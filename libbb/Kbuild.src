@@ -56,6 +56,7 @@ lib-y += login.o
 lib-y += make_directory.o
 lib-y += makedev.o
 lib-y += hash_md5_sha.o
+lib-y += hash_md5_sha_x86-64.o
 # Alternative (disabled) MD5 implementation
 #lib-y += hash_md5prime.o
 lib-y += messages.o
