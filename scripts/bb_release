@@ -17,7 +17,7 @@ VERSION=`ls busybox-*.tar.gz | sed 's/busybox-\(.*\)\.tar\.gz/\1/'`
 zcat busybox-$VERSION.tar.gz | bzip2 > busybox-$VERSION.tar.bz2
 
 for releasefile in busybox-$VERSION.tar.gz busybox-$VERSION.tar.bz2; do
-    test -f $releasefile || { echo "no $releasefile"; exit 1; }
-    gpg --detach-sign $releasefile
-    sha256sum $releasefile > $releasefile.sha256
+	test -f $releasefile || { echo "no $releasefile"; exit 1; }
+	gpg --detach-sign $releasefile
+	sha256sum $releasefile > $releasefile.sha256
 done

@@ -23,6 +23,12 @@ if test $? != 0; then
 	exit 1
 fi
 
+bzip2 </dev/null >/dev/null
+if test $? != 0; then
+	echo 'bzip2 is not installed'
+	exit 1
+fi
+
 custom_scripts=""
 if [ -d "$custom_loc" ]
 then

@@ -28,6 +28,17 @@
 
 config=.config
 
+od -v -b </dev/null >/dev/null
+if test $? != 0; then
+	echo 'od tool is not installed or cannot accept "-v -b" options'
+	exit 1
+fi
+bzip2 </dev/null >/dev/null
+if test $? != 0; then
+	echo 'bzip2 is not installed'
+	exit 1
+fi
+
 {
 echo "\
 #ifndef _BBCONFIGOPTS_H
