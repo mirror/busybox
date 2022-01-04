@@ -380,7 +380,9 @@ static int compare_keys(const void *xarg, const void *yarg)
 
 			/* If x > y, 1, else -1 */
 			retval = (x32 > y32) * 2 - 1;
-		} else
+			/* Here, -r has no effect! */
+			return retval;
+		}
 		if (!(option_mask32 & FLAG_no_tie_break)) {
 			/* fallback sort */
 			flags = option_mask32;

@@ -175,6 +175,19 @@ testing "sort file in place" \
 111
 " ""
 
+testing "sort -sr (stable and reverse) does NOT reverse 'stable' ordering" \
+"sort -k2 -r -s input" "\
+b 2
+d 2
+a 1
+c 1
+" "\
+a 1
+b 2
+c 1
+d 2
+" ""
+
 # testing "description" "command(s)" "result" "infile" "stdin"
 
 exit $FAILCOUNT
