@@ -97,6 +97,12 @@ enum {
 	OPT_in_place = 1 << 0,
 };
 
+struct sed_FILE {
+	struct sed_FILE *next; /* Next (linked list, NULL terminated) */
+	const char *fname;
+	FILE *fp;
+};
+
 /* Each sed command turns into one of these structures. */
 typedef struct sed_cmd_s {
 	/* Ordered by alignment requirements: currently 36 bytes on x86 */
@@ -150,6 +156,11 @@ struct globals {
 
 	/* linked list of append lines */
 	llist_t *append_head;
+
+	/* linked list of FILEs opened for 'w' and s///w'.
+	 * Needed to handle duplicate fnames: sed '/a/w F;/b/w F'
+	 */
+	struct sed_FILE *FILE_head;
 
 	char *add_cmd_line;
 
@@ -210,6 +221,22 @@ static void sed_free_and_close_stuff(void)
 #else
 void sed_free_and_close_stuff(void);
 #endif
+
+static FILE *sed_xfopen_w(const char *fname)
+{
+	struct sed_FILE **pp = &G.FILE_head;
+	struct sed_FILE *cur;
+	while ((cur = *pp) != NULL) {
+		if (strcmp(cur->fname, fname) == 0)
+			return cur->fp;
+		pp = &cur->next;
+	}
+	*pp = cur = xzalloc(sizeof(*cur));
+	/*cur->next = NULL; - already is */
+	cur->fname = xstrdup(fname);
+	cur->fp = xfopen_for_write(fname);
+	return cur->fp;
+}
 
 /* If something bad happens during -i operation, delete temp file */
 
@@ -446,7 +473,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 		{
 			char *fname;
 			idx += parse_file_cmd(/*sed_cmd,*/ substr+idx+1, &fname);
-			sed_cmd->sw_file = xfopen_for_write(fname);
+			sed_cmd->sw_file = sed_xfopen_w(fname);
 			sed_cmd->sw_last_char = '\n';
 			free(fname);
 			break;
@@ -561,7 +588,7 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 		}
 		cmdstr += parse_file_cmd(/*sed_cmd,*/ cmdstr, &sed_cmd->string);
 		if (sed_cmd->cmd == 'w') {
-			sed_cmd->sw_file = xfopen_for_write(sed_cmd->string);
+			sed_cmd->sw_file = sed_xfopen_w(sed_cmd->string);
 			sed_cmd->sw_last_char = '\n';
 		}
 	}

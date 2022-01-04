@@ -405,6 +405,15 @@ testing "sed ^ OR not^" \
 	"" \
 	"abca\n"
 
+# This only works if file name is exactly the same.
+# For example, w FILE; w ./FILE won't work.
+testing "sed understands duplicate file name" \
+	"sed -n -e '/a/w sed.output' -e '/c/w sed.output' 2>&1 && cat sed.output && rm sed.output" \
+	"a\nc\n" \
+	"" \
+	"a\nb\nc\n"
+
+
 # testing "description" "commands" "result" "infile" "stdin"
 
 exit $FAILCOUNT
