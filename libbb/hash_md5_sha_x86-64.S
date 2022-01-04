@@ -6,14 +6,14 @@
 	.hidden sha1_process_block64
 	.type	sha1_process_block64, @function
 
-	.balign	8	# allow decoders to fetch at least 4 first insns
+	.balign	8	# allow decoders to fetch at least 5 first insns
 sha1_process_block64:
-	pushq	%r15	#
-	pushq	%r14	#
-	pushq	%r13	#
-	pushq	%r12	#
-	pushq	%rbp	#
-	pushq	%rbx	#
+	pushq	%rbp	# 1 byte insn
+	pushq	%rbx	# 1 byte insn
+	pushq	%r15	# 2 byte insn
+	pushq	%r14	# 2 byte insn
+	pushq	%r13	# 2 byte insn
+	pushq	%r12	# 2 byte insn
 	pushq	%rdi	# we need ctx at the end
 
 #Register and stack use:
@@ -22,24 +22,6 @@ sha1_process_block64:
 # esi,edi: temps
 # -32+4*n(%rsp),r8...r15: W[0..7,8..15]
 # (TODO: actually W[0..7] are used a bit more often, put _them_ into r8..r15?)
-
-	movq	4*8(%rdi), %r8
-	bswapq	%r8
-	movl	%r8d, %r9d
-	shrq	$32, %r8
-	movq	4*10(%rdi), %r10
-	bswapq	%r10
-	movl	%r10d, %r11d
-	shrq	$32, %r10
-	movq	4*12(%rdi), %r12
-	bswapq	%r12
-	movl	%r12d, %r13d
-	shrq	$32, %r12
-	movq	4*14(%rdi), %r14
-	bswapq	%r14
-	movl	%r14d, %r15d
-	shrq	$32, %r14
-
 	movl	$3, %eax
 1:
 	movq	(%rdi,%rax,8), %rsi
@@ -48,11 +30,29 @@ sha1_process_block64:
 	movq	%rsi, -32(%rsp,%rax,8)
 	decl	%eax
 	jns	1b
+
 	movl	80(%rdi), %eax		# a = ctx->hash[0]
 	movl	84(%rdi), %ebx		# b = ctx->hash[1]
 	movl	88(%rdi), %ecx		# c = ctx->hash[2]
 	movl	92(%rdi), %edx		# d = ctx->hash[3]
 	movl	96(%rdi), %ebp		# e = ctx->hash[4]
+
+	movq	4*8(%rdi), %r8
+	movq	4*10(%rdi), %r10
+	bswapq	%r8
+	bswapq	%r10
+	movq	4*12(%rdi), %r12
+	movq	4*14(%rdi), %r14
+	bswapq	%r12
+	bswapq	%r14
+	movl	%r8d, %r9d
+	shrq	$32, %r8
+	movl	%r10d, %r11d
+	shrq	$32, %r10
+	movl	%r12d, %r13d
+	shrq	$32, %r12
+	movl	%r14d, %r15d
+	shrq	$32, %r14
 
 # 0
 	# W[0], already in %esi
@@ -1272,17 +1272,17 @@ sha1_process_block64:
 	rorl	$2, %ecx		# b = rotl32(b,30)
 
 	popq	%rdi		#
-	addl	%eax, 80(%rdi)  # ctx->hash[0] += a
-	addl	%ebx, 84(%rdi)  # ctx->hash[1] += b
-	addl	%ecx, 88(%rdi)  # ctx->hash[2] += c
-	addl	%edx, 92(%rdi)  # ctx->hash[3] += d
-	addl	%ebp, 96(%rdi)  # ctx->hash[4] += e
-	popq	%rbx		#
-	popq	%rbp		#
 	popq	%r12		#
+	addl	%eax, 80(%rdi)  # ctx->hash[0] += a
 	popq	%r13		#
+	addl	%ebx, 84(%rdi)  # ctx->hash[1] += b
 	popq	%r14		#
+	addl	%ecx, 88(%rdi)  # ctx->hash[2] += c
 	popq	%r15		#
+	addl	%edx, 92(%rdi)  # ctx->hash[3] += d
+	popq	%rbx		#
+	addl	%ebp, 96(%rdi)  # ctx->hash[4] += e
+	popq	%rbp		#
 
 	ret
 	.size	sha1_process_block64, .-sha1_process_block64
