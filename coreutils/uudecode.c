@@ -352,7 +352,7 @@ int baseNUM_main(int argc UNUSED_PARAM, char **argv)
 #undef src_buf
 	}
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }
 #endif
 

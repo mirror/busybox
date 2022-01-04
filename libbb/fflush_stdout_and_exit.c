@@ -20,3 +20,8 @@ void FAST_FUNC fflush_stdout_and_exit(int retval)
 	 * but use xfunc_die() */
 	xfunc_die();
 }
+
+void FAST_FUNC fflush_stdout_and_exit_SUCCESS(void)
+{
+	fflush_stdout_and_exit(EXIT_SUCCESS);
+}

@@ -96,5 +96,5 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 	printf((opt & 2) ? "%s" : "%s\n", buf);
 	free(buf);
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }

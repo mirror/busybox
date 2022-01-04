@@ -110,7 +110,7 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 		show_min_max(SCHED_RR);
 		show_min_max(SCHED_BATCH);
 		show_min_max(SCHED_IDLE);
-		fflush_stdout_and_exit(EXIT_SUCCESS);
+		fflush_stdout_and_exit_SUCCESS();
 	}
 	//if (opt & OPT_r)
 	//	policy = SCHED_RR; - default, already set

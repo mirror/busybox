@@ -296,5 +296,5 @@ int last_main(int argc UNUSED_PARAM, char **argv)
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(file);
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }

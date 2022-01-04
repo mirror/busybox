@@ -33,7 +33,7 @@ int nice_main(int argc UNUSED_PARAM, char **argv)
 
 	if (!*++argv) { /* No args, so (GNU) output current nice value. */
 		printf("%d\n", old_priority);
-		fflush_stdout_and_exit(EXIT_SUCCESS);
+		fflush_stdout_and_exit_SUCCESS();
 	}
 
 	adjustment = 10;  /* Set default adjustment. */

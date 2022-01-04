@@ -139,5 +139,5 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 
 	die_if_ferror(stdin, input_filename);
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }

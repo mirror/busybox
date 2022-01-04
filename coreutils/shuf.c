@@ -171,5 +171,5 @@ int shuf_main(int argc, char **argv)
 			printf("%s%c", lines[i], eol);
 	}
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }

@@ -78,5 +78,5 @@ int uuencode_main(int argc UNUSED_PARAM, char **argv)
 	}
 	printf(tbl == bb_uuenc_tbl_std ? "\n`\nend\n" : "\n====\n");
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }

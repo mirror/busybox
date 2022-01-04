@@ -644,5 +644,5 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 			printf("%s%c", lines[i], ch);
 	}
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }

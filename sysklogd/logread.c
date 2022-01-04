@@ -226,5 +226,5 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 
 	/* shmdt(shbuf); - on Linux, shmdt is not mandatory on exit */
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }

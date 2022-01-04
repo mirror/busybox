@@ -1054,6 +1054,7 @@ void die_if_ferror(FILE *file, const char *msg) FAST_FUNC;
 void die_if_ferror_stdout(void) FAST_FUNC;
 int fflush_all(void) FAST_FUNC;
 void fflush_stdout_and_exit(int retval) NORETURN FAST_FUNC;
+void fflush_stdout_and_exit_SUCCESS(void) NORETURN FAST_FUNC;
 int fclose_if_not_stdin(FILE *file) FAST_FUNC;
 FILE* xfopen(const char *filename, const char *mode) FAST_FUNC;
 /* Prints warning to stderr and returns NULL on failure: */

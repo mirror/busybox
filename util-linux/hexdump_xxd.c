@@ -150,7 +150,7 @@ static void reverse(unsigned opt, const char *filename)
 		free(buf);
 	}
 	//fclose(fp);
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }
 
 static void print_C_style(const char *p, const char *hdr)

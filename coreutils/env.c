@@ -100,7 +100,7 @@ int env_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 
-	fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit_SUCCESS();
 }
 
 /*

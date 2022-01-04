@@ -209,5 +209,5 @@ int uname_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #endif
 	}
 
-	fflush_stdout_and_exit(EXIT_SUCCESS); /* coreutils-6.9 compat */
+	fflush_stdout_and_exit_SUCCESS(); /* coreutils-6.9 compat */
 }
