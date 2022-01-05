@@ -470,7 +470,7 @@ static int grep_file(FILE *file)
 					 * "exit immediately with zero status
 					 * if any match is found,
 					 * even if errors were detected" */
-					exit(EXIT_SUCCESS);
+					exit_SUCCESS();
 				}
 				/* -l "print filenames with matches": stop after the first match */
 				if (option_mask32 & OPT_l) {

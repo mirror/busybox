@@ -308,7 +308,7 @@ void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 		/* fflush_all(); - add it in fork_or_rexec() if necessary */
 
 		if (fork_or_rexec(argv))
-			_exit(EXIT_SUCCESS); /* parent */
+			_exit_SUCCESS(); /* parent */
 		/* if daemonizing, detach from stdio & ctty */
 		setsid();
 		dup2(fd, 0);
@@ -320,7 +320,7 @@ void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 //			 * Prevent this: stop being a session leader.
 //			 */
 //			if (fork_or_rexec(argv))
-//				_exit(EXIT_SUCCESS); /* parent */
+//				_exit_SUCCESS(); /* parent */
 //		}
 	}
 	while (fd > 2) {

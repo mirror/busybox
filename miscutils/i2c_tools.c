@@ -1212,7 +1212,7 @@ static void NORETURN list_i2c_busses_and_exit(void)
 		}
 	}
 
-	exit(EXIT_SUCCESS);
+	exit_SUCCESS();
 }
 
 static void NORETURN no_support(const char *cmd)

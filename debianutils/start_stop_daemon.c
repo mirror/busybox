@@ -519,7 +519,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 			/* why _exit? the child may have changed the stack,
 			 * so "return 0" may do bad things
 			 */
-			_exit(EXIT_SUCCESS);
+			_exit_SUCCESS();
 		}
 		/* Child */
 		setsid(); /* detach from controlling tty */
@@ -531,7 +531,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		pid = xvfork();
 		if (pid != 0)
-			_exit(EXIT_SUCCESS); /* Parent */
+			_exit_SUCCESS(); /* Parent */
 	}
 	if (opt & OPT_MAKEPID) {
 		/* User wants _us_ to make the pidfile */

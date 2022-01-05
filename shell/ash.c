@@ -5505,7 +5505,7 @@ openhere(union node *redir)
 		ignoresig(SIGTSTP); //signal(SIGTSTP, SIG_IGN);
 		signal(SIGPIPE, SIG_DFL);
 		xwrite(pip[1], p, len);
-		_exit(EXIT_SUCCESS);
+		_exit_SUCCESS();
 	}
  out:
 	close(pip[1]);

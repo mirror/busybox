@@ -423,3 +423,13 @@ int FAST_FUNC wait4pid(pid_t pid)
 		return WTERMSIG(status) + 0x180;
 	return 0;
 }
+
+void FAST_FUNC exit_SUCCESS(void)
+{
+	exit(EXIT_SUCCESS);
+}
+
+void FAST_FUNC _exit_SUCCESS(void)
+{
+	_exit(EXIT_SUCCESS);
+}

@@ -1271,7 +1271,7 @@ static void identify(uint16_t *val)
 		}
 	}
 
-	exit(EXIT_SUCCESS);
+	exit_SUCCESS();
 }
 #endif
 

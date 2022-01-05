@@ -665,7 +665,7 @@ read_line(const char *prompt)
 
 	sz = read_line_input(NULL, prompt, line_buffer, sizeof(line_buffer));
 	if (sz <= 0)
-		exit(EXIT_SUCCESS); /* Ctrl-D or Ctrl-C */
+		exit_SUCCESS(); /* Ctrl-D or Ctrl-C */
 
 	if (line_buffer[sz-1] == '\n')
 		line_buffer[--sz] = '\0';
@@ -2855,7 +2855,7 @@ xselect(void)
 			if (ENABLE_FEATURE_CLEAN_UP)
 				close_dev_fd();
 			bb_putchar('\n');
-			exit(EXIT_SUCCESS);
+			exit_SUCCESS();
 		case 'r':
 			return;
 		case 's':

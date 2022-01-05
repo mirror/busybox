@@ -76,7 +76,7 @@ static void shutdown_on_signal(int sig UNUSED_PARAM)
 {
 	remove_pidfile_std_path_and_ext("watchdog");
 	shutdown_watchdog();
-	_exit(EXIT_SUCCESS);
+	_exit_SUCCESS();
 }
 
 static void watchdog_open(const char* device)

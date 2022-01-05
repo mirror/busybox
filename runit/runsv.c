@@ -700,7 +700,7 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 
 		if (svd[0].sd_want == W_EXIT && svd[0].state == S_DOWN) {
 			if (svd[1].pid == 0)
-				_exit(EXIT_SUCCESS);
+				_exit_SUCCESS();
 			if (svd[1].sd_want != W_EXIT) {
 				svd[1].sd_want = W_EXIT;
 				/* stopservice(&svd[1]); */

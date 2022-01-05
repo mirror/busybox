@@ -312,7 +312,7 @@ static void alarm_handler(int sig UNUSED_PARAM)
 	/* unix API is brain damaged regarding O_NONBLOCK,
 	 * we should undo it, or else we can affect other processes */
 	ndelay_off(STDOUT_FILENO);
-	_exit(EXIT_SUCCESS);
+	_exit_SUCCESS();
 }
 
 int login_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

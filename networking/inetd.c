@@ -1208,7 +1208,7 @@ static void clean_up_and_exit(int sig UNUSED_PARAM)
 			close(sep->se_fd);
 	}
 	remove_pidfile_std_path_and_ext("inetd");
-	exit(EXIT_SUCCESS);
+	exit_SUCCESS();
 }
 
 int inetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

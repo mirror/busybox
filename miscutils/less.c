@@ -333,10 +333,10 @@ static void restore_tty(void)
 	clear_line();
 }
 
-static void less_exit(void)
+static NOINLINE void less_exit(void)
 {
 	restore_tty();
-	exit(EXIT_SUCCESS);
+	exit_SUCCESS();
 }
 
 #if (ENABLE_FEATURE_LESS_DASHCMD && ENABLE_FEATURE_LESS_LINENUMS) \

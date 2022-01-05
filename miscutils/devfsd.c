@@ -453,7 +453,7 @@ int devfsd_main(int argc, char **argv)
 				DEVFSD_PROTOCOL_REVISION_DAEMON, bb_msg_proto_rev, proto_rev);
 		if (DEVFSD_PROTOCOL_REVISION_DAEMON != proto_rev)
 			bb_error_msg_and_die("%s mismatch!", bb_msg_proto_rev);
-		exit(EXIT_SUCCESS); /* -v */
+		exit_SUCCESS(); /* -v */
 	}
 	/*  Tell kernel we are special(i.e. we get to see hidden entries)  */
 	xioctl(fd, DEVFSDIOC_SET_EVENT_MASK, 0);
@@ -474,7 +474,7 @@ int devfsd_main(int argc, char **argv)
 	dir_operation(SERVICE, mount_point, 0, NULL);
 
 	if (ENABLE_DEVFSD_FG_NP && no_polling)
-		exit(EXIT_SUCCESS);
+		exit_SUCCESS();
 
 	if (ENABLE_DEVFSD_VERBOSE || ENABLE_DEBUG)
 		logmode = LOGMODE_BOTH;

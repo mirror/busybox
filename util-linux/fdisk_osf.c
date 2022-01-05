@@ -383,7 +383,7 @@ bsd_select(void)
 
 	if (xbsd_readlabel(NULL) == 0)
 		if (xbsd_create_disklabel() == 0)
-			exit(EXIT_SUCCESS);
+			exit_SUCCESS();
 
 #endif
 
@@ -411,7 +411,7 @@ bsd_select(void)
 		case 'q':
 			if (ENABLE_FEATURE_CLEAN_UP)
 				close_dev_fd();
-			exit(EXIT_SUCCESS);
+			exit_SUCCESS();
 		case 'r':
 			return;
 		case 's':

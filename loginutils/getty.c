@@ -484,7 +484,7 @@ static char *get_logname(void)
 			if (read(STDIN_FILENO, &c, 1) < 1) {
 				finalize_tty_attrs();
 				if (errno == EINTR || errno == EIO)
-					exit(EXIT_SUCCESS);
+					exit_SUCCESS();
 				bb_simple_perror_msg_and_die(bb_msg_read_error);
 			}
 
@@ -511,7 +511,7 @@ static char *get_logname(void)
 			case CTL('C'):
 			case CTL('D'):
 				finalize_tty_attrs();
-				exit(EXIT_SUCCESS);
+				exit_SUCCESS();
 			case '\0':
 				/* BREAK. If we have speeds to try,
 				 * return NULL (will switch speeds and return here) */
@@ -538,7 +538,7 @@ static char *get_logname(void)
 static void alarm_handler(int sig UNUSED_PARAM)
 {
 	finalize_tty_attrs();
-	_exit(EXIT_SUCCESS);
+	_exit_SUCCESS();
 }
 
 static void sleep10(void)

@@ -744,7 +744,7 @@ static void pause_and_low_level_reboot(unsigned magic)
 	pid = vfork();
 	if (pid == 0) { /* child */
 		reboot(magic);
-		_exit(EXIT_SUCCESS);
+		_exit_SUCCESS();
 	}
 	/* Used to have "while (1) sleep(1)" here.
 	 * However, in containers reboot() call is ignored, and with that loop
@@ -752,7 +752,7 @@ static void pause_and_low_level_reboot(unsigned magic)
 	 */
 	waitpid(pid, NULL, 0);
 	sleep1(); /* paranoia */
-	_exit(EXIT_SUCCESS);
+	_exit_SUCCESS();
 }
 
 static void run_shutdown_and_kill_processes(void)
@@ -942,7 +942,7 @@ static void reload_inittab(void)
 			for (a = G.init_action_list; a; a = a->next)
 				if (a->action_type == 0 && a->pid != 0)
 					kill(a->pid, SIGKILL);
-			_exit(EXIT_SUCCESS);
+			_exit_SUCCESS();
 		}
 	}
 #endif

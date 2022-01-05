@@ -8587,7 +8587,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 		 * expand_assignments(): think about ... | var=`sleep 1` | ...
 		 */
 		free_strings(new_env);
-		_exit(EXIT_SUCCESS);
+		_exit_SUCCESS();
 	}
 
 	sv_shadowed = G.shadowed_vars_pp;
@@ -8768,7 +8768,7 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 
 	/* Case when we are here: ... | >file */
 	debug_printf_exec("pseudo_exec'ed null command\n");
-	_exit(EXIT_SUCCESS);
+	_exit_SUCCESS();
 }
 
 #if ENABLE_HUSH_JOB

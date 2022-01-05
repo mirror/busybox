@@ -415,7 +415,7 @@ static FAST_FUNC int fileAction(struct recursive_state *state,
 			/* Load was successful, there is nothing else to do.
 			 * This can happen ONLY for "top-level" module load,
 			 * not a dep, because deps don't do dirscan. */
-			exit(EXIT_SUCCESS);
+			exit_SUCCESS();
 		}
 	}
 

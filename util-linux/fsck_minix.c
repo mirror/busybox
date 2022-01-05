@@ -423,7 +423,7 @@ static void check_mount(void)
 			cont = ask("Do you really want to continue", 0);
 		if (!cont) {
 			puts("Check aborted");
-			exit(EXIT_SUCCESS);
+			exit_SUCCESS();
 		}
 	}
 }

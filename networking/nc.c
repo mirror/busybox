@@ -268,7 +268,7 @@ int nc_main(int argc, char **argv)
 				nread = safe_read(pfds[fdidx].fd, iobuf, COMMON_BUFSIZE);
 				if (fdidx != 0) {
 					if (nread < 1)
-						exit(EXIT_SUCCESS);
+						exit_SUCCESS();
 					ofd = STDOUT_FILENO;
 				} else {
 					if (nread < 1) {

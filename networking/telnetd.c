@@ -582,7 +582,7 @@ free_session(struct tsession *ts)
 	struct tsession *t;
 
 	if (option_mask32 & OPT_INETD)
-		exit(EXIT_SUCCESS);
+		exit_SUCCESS();
 
 	/* Unlink this telnet session from the session list */
 	t = G.sessions;

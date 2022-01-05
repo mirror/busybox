@@ -1278,6 +1278,8 @@ void set_task_comm(const char *comm) FAST_FUNC;
 # define re_execed_comm() 0
 # define set_task_comm(name) ((void)0)
 #endif
+void exit_SUCCESS(void) NORETURN FAST_FUNC;
+void _exit_SUCCESS(void) NORETURN FAST_FUNC;
 
 /* Helpers for daemonization.
  *
