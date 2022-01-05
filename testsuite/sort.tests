@@ -188,6 +188,35 @@ c 1
 d 2
 " ""
 
+testing "sort -h" \
+"sort -h input" "\
+3e
+4m
+5y
+1023
+1024
+1025
+3000
+2K
+3k
+1M
+2E
+1Y
+" "\
+1Y
+5y
+1M
+2E
+3k
+3e
+2K
+4m
+1023
+1025
+3000
+1024
+" ""
+
 # testing "description" "command(s)" "result" "infile" "stdin"
 
 exit $FAILCOUNT

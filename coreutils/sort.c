@@ -18,7 +18,7 @@
 //config:	sort is used to sort lines of text in specified files.
 //config:
 //config:config FEATURE_SORT_BIG
-//config:	bool "Full SuSv3 compliant sort (support -ktcbdfiogM)"
+//config:	bool "Full SuSv3 compliant sort (support -ktcbdfioghM)"
 //config:	default y
 //config:	depends on SORT
 //config:	help
@@ -43,7 +43,7 @@
 
 //usage:#define sort_trivial_usage
 //usage:       "[-nru"
-//usage:	IF_FEATURE_SORT_BIG("gMcszbdfiokt] [-o FILE] [-k START[.OFS][OPTS][,END[.OFS][OPTS]] [-t CHAR")
+//usage:	IF_FEATURE_SORT_BIG("ghMcszbdfiokt] [-o FILE] [-k START[.OFS][OPTS][,END[.OFS][OPTS]] [-t CHAR")
 //usage:       "] [FILE]..."
 //usage:#define sort_full_usage "\n\n"
 //usage:       "Sort lines of text\n"
@@ -59,6 +59,7 @@
 //usage:     "\n	-n	Sort numbers"
 //usage:	IF_FEATURE_SORT_BIG(
 //usage:     "\n	-g	General numerical sort"
+//usage:     "\n	-h	Sort human readable numbers (2K 1G)"
 //usage:     "\n	-M	Sort month"
 //usage:     "\n	-V	Sort version"
 //usage:     "\n	-t CHAR	Field separator"
@@ -94,31 +95,32 @@
 enum {
 	FLAG_n  = 1 << 0,       /* Numeric sort */
 	FLAG_g  = 1 << 1,       /* Sort using strtod() */
-	FLAG_M  = 1 << 2,       /* Sort date */
-	FLAG_V  = 1 << 3,       /* Sort version */
+	FLAG_h  = 1 << 2,       /* Sort using strtod(), plus KMGT suffixes */
+	FLAG_M  = 1 << 3,       /* Sort date */
+	FLAG_V  = 1 << 4,       /* Sort version */
 /* ucsz apply to root level only, not keys.  b at root level implies bb */
-	FLAG_u  = 1 << 4,       /* Unique */
-	FLAG_c  = 1 << 5,       /* Check: no output, exit(!ordered) */
-	FLAG_s  = 1 << 6,       /* Stable sort, no ascii fallback at end */
-	FLAG_z  = 1 << 7,       /* Input and output is NUL terminated, not \n */
+	FLAG_u  = 1 << 5,       /* Unique */
+	FLAG_c  = 1 << 6,       /* Check: no output, exit(!ordered) */
+	FLAG_s  = 1 << 7,       /* Stable sort, no ascii fallback at end */
+	FLAG_z  = 1 << 8,       /* Input and output is NUL terminated, not \n */
 /* These can be applied to search keys, the previous four can't */
-	FLAG_b  = 1 << 8,       /* Ignore leading blanks */
-	FLAG_r  = 1 << 9,       /* Reverse */
-	FLAG_d  = 1 << 10,      /* Ignore !(isalnum()|isspace()) */
-	FLAG_f  = 1 << 11,      /* Force uppercase */
-	FLAG_i  = 1 << 12,      /* Ignore !isprint() */
-	FLAG_m  = 1 << 13,      /* ignored: merge already sorted files; do not sort */
-	FLAG_S  = 1 << 14,      /* ignored: -S, --buffer-size=SIZE */
-	FLAG_T  = 1 << 15,      /* ignored: -T, --temporary-directory=DIR */
-	FLAG_o  = 1 << 16,
-	FLAG_k  = 1 << 17,
-	FLAG_t  = 1 << 18,
+	FLAG_b  = 1 << 9,       /* Ignore leading blanks */
+	FLAG_r  = 1 << 10,      /* Reverse */
+	FLAG_d  = 1 << 11,      /* Ignore !(isalnum()|isspace()) */
+	FLAG_f  = 1 << 12,      /* Force uppercase */
+	FLAG_i  = 1 << 13,      /* Ignore !isprint() */
+	FLAG_m  = 1 << 14,      /* ignored: merge already sorted files; do not sort */
+	FLAG_S  = 1 << 15,      /* ignored: -S, --buffer-size=SIZE */
+	FLAG_T  = 1 << 16,      /* ignored: -T, --temporary-directory=DIR */
+	FLAG_o  = 1 << 17,
+	FLAG_k  = 1 << 18,
+	FLAG_t  = 1 << 19,
 	FLAG_bb = 0x80000000,   /* Ignore trailing blanks  */
 	FLAG_no_tie_break = 0x40000000,
 };
 
 static const char sort_opt_str[] ALIGN1 = "^"
-			"ngMVucszbrdfimS:T:o:k:*t:"
+			"nghMVucszbrdfimS:T:o:k:*t:"
 			"\0" "o--o:t--t"/*-t, -o: at most one of each*/;
 /*
  * OPT_STR must not be string literal, needs to have stable address:
@@ -253,6 +255,25 @@ static struct sort_key *add_key(void)
 #define GET_LINE(fp) xmalloc_fgetline(fp)
 #endif
 
+#if ENABLE_FEATURE_SORT_BIG
+static int scale_suffix(const char *tail)
+{
+	static const char suffix[] ALIGN1 = "kmgtpezy";
+	const char *s;
+	int n;
+
+	if (!tail[0])
+		return -1;
+	s = strchr(suffix, tail[0] | 0x20);
+	if (!s)
+		return -1;
+	n = s - suffix;
+	if (n != 0 && tail[0] >= 'a')
+		return -1; /* mg... not accepted, only MG... */
+	return n;
+}
+#endif
+
 /* Iterate through keys list and perform comparisons */
 static int compare_keys(const void *xarg, const void *yarg)
 {
@@ -275,7 +296,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 		y = *(char **)yarg;
 #endif
 		/* Perform actual comparison */
-		switch (flags & (FLAG_n | FLAG_g | FLAG_M | FLAG_V)) {
+		switch (flags & (FLAG_n | FLAG_g | FLAG_h | FLAG_M | FLAG_V)) {
 		default:
 			bb_simple_error_msg_and_die("unknown sort type");
 			break;
@@ -293,7 +314,8 @@ static int compare_keys(const void *xarg, const void *yarg)
 #endif
 			break;
 #if ENABLE_FEATURE_SORT_BIG
-		case FLAG_g: {
+		case FLAG_g:
+		case FLAG_h: {
 			char *xx, *yy;
 //TODO: needs setlocale(LC_NUMERIC, "C")?
 			double dx = strtod(x, &xx);
@@ -308,16 +330,26 @@ static int compare_keys(const void *xarg, const void *yarg)
 				retval = (dy != dy) ? 0 : -1;
 			else if (dy != dy)
 				retval = 1;
-			/* Check for infinity.  Could underflow, but it avoids libm. */
-			else if (1.0 / dx == 0.0) {
-				if (dx < 0)
-					retval = (1.0 / dy == 0.0 && dy < 0) ? 0 : -1;
+			else {
+				if (flags & FLAG_h) {
+					int xs = scale_suffix(xx);
+					int ys = scale_suffix(yy);
+					if (xs != ys) {
+						retval = xs - ys;
+						break;
+					}
+				}
+				/* Check for infinity.  Could underflow, but it avoids libm. */
+				if (1.0 / dx == 0.0) {
+					if (dx < 0)
+						retval = (1.0 / dy == 0.0 && dy < 0) ? 0 : -1;
+					else
+						retval = (1.0 / dy == 0.0 && dy > 0) ? 0 : 1;
+				} else if (1.0 / dy == 0.0)
+					retval = (dy < 0) ? 1 : -1;
 				else
-					retval = (1.0 / dy == 0.0 && dy > 0) ? 0 : 1;
-			} else if (1.0 / dy == 0.0)
-				retval = (dy < 0) ? 1 : -1;
-			else
-				retval = (dx > dy) ? 1 : ((dx < dy) ? -1 : 0);
+					retval = (dx > dy) ? 1 : ((dx < dy) ? -1 : 0);
+			}
 			break;
 		}
 		case FLAG_M: {
@@ -476,6 +508,7 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 			FLAG_allowed_for_k =
 				FLAG_n | /* Numeric sort */
 				FLAG_g | /* Sort using strtod() */
+				FLAG_h | /* Sort using strtod(), plus KMGT suffixes */
 				FLAG_M | /* Sort date */
 				FLAG_b | /* Ignore leading blanks */
 				FLAG_r | /* Reverse */
