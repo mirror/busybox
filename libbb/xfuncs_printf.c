@@ -91,12 +91,9 @@ char* FAST_FUNC xstrdup(const char *s)
 
 // Die if we can't allocate n+1 bytes (space for the null terminator) and copy
 // the (possibly truncated to length n) string into it.
-char* FAST_FUNC xstrndup(const char *s, int n)
+char* FAST_FUNC xstrndup(const char *s, size_t n)
 {
 	char *t;
-
-	if (ENABLE_DEBUG && s == NULL)
-		bb_simple_error_msg_and_die("xstrndup bug");
 
 	t = strndup(s, n);
 
@@ -106,7 +103,7 @@ char* FAST_FUNC xstrndup(const char *s, int n)
 	return t;
 }
 
-void* FAST_FUNC xmemdup(const void *s, int n)
+void* FAST_FUNC xmemdup(const void *s, size_t n)
 {
 	return memcpy(xmalloc(n), s, n);
 }

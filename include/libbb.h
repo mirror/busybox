@@ -429,8 +429,8 @@ void *xrealloc(void *old, size_t size) FAST_FUNC;
 	xrealloc_vector_helper((vector), (sizeof((vector)[0]) << 8) + (shift), (idx))
 void* xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, int idx) FAST_FUNC;
 char *xstrdup(const char *s) FAST_FUNC RETURNS_MALLOC;
-char *xstrndup(const char *s, int n) FAST_FUNC RETURNS_MALLOC;
-void *xmemdup(const void *s, int n) FAST_FUNC RETURNS_MALLOC;
+char *xstrndup(const char *s, size_t n) FAST_FUNC RETURNS_MALLOC;
+void *xmemdup(const void *s, size_t n) FAST_FUNC RETURNS_MALLOC;
 void *mmap_read(int fd, size_t size) FAST_FUNC;
 void *mmap_anon(size_t size) FAST_FUNC;
 void *xmmap_anon(size_t size) FAST_FUNC;
