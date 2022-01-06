@@ -63,6 +63,13 @@ config SHA1_SMALL
 	1               224  229           654   732
 	2,3             200  195           358   380
 
+config SHA1_HWACCEL
+	bool "SHA1: Use hardware accelerated instructions if possible"
+	default y
+	help
+	On x86, this adds ~590 bytes of code. Throughput
+	is about twice as fast as fully-unrolled generic code.
+
 config SHA3_SMALL
 	int "SHA3: Trade bytes for speed (0:fast, 1:slow)"
 	default 1  # all "fast or small" options default to small
