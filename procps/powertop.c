@@ -506,12 +506,9 @@ static void cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
 {
 	/* EAX value specifies what information to return */
 	asm (
-		"	pushl %%ebx\n"     /* Save EBX */
 		"	cpuid\n"
-		"	movl %%ebx, %1\n"  /* Save content of EBX */
-		"	popl %%ebx\n"      /* Restore EBX */
 		: "=a"(*eax), /* Output */
-		  "=r"(*ebx),
+		  "=b"(*ebx),
 		  "=c"(*ecx),
 		  "=d"(*edx)
 		: "0"(*eax),  /* Input */
