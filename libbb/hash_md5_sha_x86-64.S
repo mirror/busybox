@@ -2,8 +2,8 @@
 
 #if CONFIG_SHA1_SMALL == 0 && defined(__GNUC__) && defined(__x86_64__)
 	.section	.text.sha1_process_block64,"ax",@progbits
-	.globl  sha1_process_block64
-	.hidden sha1_process_block64
+	.globl	sha1_process_block64
+	.hidden	sha1_process_block64
 	.type	sha1_process_block64, @function
 
 	.balign	8	# allow decoders to fetch at least 5 first insns
@@ -1273,15 +1273,15 @@ sha1_process_block64:
 
 	popq	%rdi		#
 	popq	%r12		#
-	addl	%eax, 80(%rdi)  # ctx->hash[0] += a
+	addl	%eax, 80(%rdi)	# ctx->hash[0] += a
 	popq	%r13		#
-	addl	%ebx, 84(%rdi)  # ctx->hash[1] += b
+	addl	%ebx, 84(%rdi)	# ctx->hash[1] += b
 	popq	%r14		#
-	addl	%ecx, 88(%rdi)  # ctx->hash[2] += c
+	addl	%ecx, 88(%rdi)	# ctx->hash[2] += c
 	popq	%r15		#
-	addl	%edx, 92(%rdi)  # ctx->hash[3] += d
+	addl	%edx, 92(%rdi)	# ctx->hash[3] += d
 	popq	%rbx		#
-	addl	%ebp, 96(%rdi)  # ctx->hash[4] += e
+	addl	%ebp, 96(%rdi)	# ctx->hash[4] += e
 	popq	%rbp		#
 
 	ret
