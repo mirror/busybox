@@ -1143,6 +1143,25 @@ static void FAST_FUNC sha512_process_block128(sha512_ctx_t *ctx)
 #endif /* NEED_SHA512 */
 
 #if ENABLE_SHA1_HWACCEL
+# if defined(__GNUC__) && defined(__i386__)
+static void cpuid(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *edx)
+{
+	asm (
+		"	cpuid\n"
+		: "=a"(*eax), /* Output */
+		  "=b"(*ebx),
+		  "=c"(*ecx),
+		  "=d"(*edx)
+		: "0"(*eax),  /* Input */
+		  "1"(*ebx),
+		  "2"(*ecx),
+		  "3"(*edx)
+		/* No clobbered registers */
+	);
+}
+struct ASM_expects_76_shaNI { char t[1 - 2*(offsetof(sha1_ctx_t, hash) != 76)]; };
+void FAST_FUNC sha1_process_block64_shaNI(sha1_ctx_t *ctx);
+# endif
 # if defined(__GNUC__) && defined(__x86_64__)
 static void cpuid(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *edx)
 {
@@ -1174,7 +1193,7 @@ void FAST_FUNC sha1_begin(sha1_ctx_t *ctx)
 	ctx->total64 = 0;
 	ctx->process_block = sha1_process_block64;
 #if ENABLE_SHA1_HWACCEL
-# if defined(__GNUC__) && defined(__x86_64__)
+# if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 	{
 		static smallint shaNI;
 		if (!shaNI) {
