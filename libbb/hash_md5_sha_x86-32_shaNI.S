@@ -34,7 +34,7 @@
 #define MSG3		%xmm6
 #define SHUF_MASK	%xmm7
 
-	.balign	8	# allow decoders to fetch at least 2 first insns
+	.balign	8	# allow decoders to fetch at least 3 first insns
 sha1_process_block64_shaNI:
 	pushl		%ebp
 	movl		%esp, %ebp
@@ -44,8 +44,8 @@ sha1_process_block64_shaNI:
 	/* load initial hash values */
 	xor128		E0, E0
 	movu128		76(%eax), ABCD
-	pinsrd		$3, 76+4*4(%eax), E0	# load to upper 32-bit word
-	shuf128_32	$0x1B, ABCD, ABCD	# 00011011: bswap
+	pinsrd		$3, 76+4*4(%eax), E0	# load to uppermost 32-bit word
+	shuf128_32	$0x1B, ABCD, ABCD	# DCBA -> ABCD
 
 	mova128		PSHUFFLE_BYTE_FLIP_MASK, SHUF_MASK
 
