@@ -300,12 +300,10 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 				char *filename_ptr;
 
 				count_total++;
-				filename_ptr = strstr(line, "  ");
-				/* handle format for binary checksums */
-				if (filename_ptr == NULL) {
-					filename_ptr = strstr(line, " *");
-				}
-				if (filename_ptr == NULL) {
+				filename_ptr = strchr(line, ' ');
+				if (filename_ptr == NULL
+				 || (filename_ptr[1] != ' ' && filename_ptr[1] != '*')
+				) {
 					if (flags & FLAG_WARN) {
 						bb_simple_error_msg("invalid format");
 					}
