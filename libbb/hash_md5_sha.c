@@ -1143,43 +1143,21 @@ static void FAST_FUNC sha512_process_block128(sha512_ctx_t *ctx)
 #endif /* NEED_SHA512 */
 
 #if ENABLE_SHA1_HWACCEL
-# if defined(__GNUC__) && defined(__i386__)
+# if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 static void cpuid(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *edx)
 {
-	asm (
-		"	cpuid\n"
-		: "=a"(*eax), /* Output */
-		  "=b"(*ebx),
-		  "=c"(*ecx),
-		  "=d"(*edx)
-		: "0"(*eax),  /* Input */
-		  "1"(*ebx),
-		  "2"(*ecx),
-		  "3"(*edx)
-		/* No clobbered registers */
+	asm ("cpuid"
+		: "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+		: "0"(*eax),  "1"(*ebx),  "2"(*ecx),  "3"(*edx)
 	);
 }
+void FAST_FUNC sha1_process_block64_shaNI(sha1_ctx_t *ctx);
+#  if defined(__i386__)
 struct ASM_expects_76_shaNI { char t[1 - 2*(offsetof(sha1_ctx_t, hash) != 76)]; };
-void FAST_FUNC sha1_process_block64_shaNI(sha1_ctx_t *ctx);
-# endif
-# if defined(__GNUC__) && defined(__x86_64__)
-static void cpuid(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *edx)
-{
-	asm (
-		"cpuid\n"
-		: "=a"(*eax), /* Output */
-		  "=b"(*ebx),
-		  "=c"(*ecx),
-		  "=d"(*edx)
-		: "0"(*eax),  /* Input */
-		  "1"(*ebx),
-		  "2"(*ecx),
-		  "3"(*edx)
-		/* No clobbered registers */
-	);
-}
+#  endif
+#  if defined(__x86_64__)
 struct ASM_expects_80_shaNI { char t[1 - 2*(offsetof(sha1_ctx_t, hash) != 80)]; };
-void FAST_FUNC sha1_process_block64_shaNI(sha1_ctx_t *ctx);
+#  endif
 # endif
 #endif
 
@@ -1199,7 +1177,7 @@ void FAST_FUNC sha1_begin(sha1_ctx_t *ctx)
 		if (!shaNI) {
 			unsigned eax = 7, ebx = ebx, ecx = 0, edx = edx;
 			cpuid(&eax, &ebx, &ecx, &edx);
-			shaNI = ((ebx >> 28) & 2) - 1;
+			shaNI = ((ebx >> 29) << 1) - 1;
 		}
 		if (shaNI > 0)
 			ctx->process_block = sha1_process_block64_shaNI;
