@@ -27,6 +27,8 @@
 //usage:     "\n		(displays: S:system U:user N:niced D:iowait I:irq i:softirq)"
 //usage:     "\n %[nINTERFACE]	Network INTERFACE"
 //usage:     "\n %m		Allocated memory"
+//usage:     "\n %[md]		Dirty file-backed memory"
+//usage:     "\n %[mw]		Memory being written to storage"
 //usage:     "\n %[mf]		Free memory"
 //usage:     "\n %[mt]		Total memory"
 //usage:     "\n %s		Allocated swap"
@@ -208,7 +210,7 @@ enum conv_type {
 // Reads decimal values from line. Values start after key, for example:
 // "cpu  649369 0 341297 4336769..." - key is "cpu" here.
 // Values are stored in vec[].
-// posbits is a bit lit of positions we are interested in.
+// posbits is a bit list of positions we are interested in.
 // for example: 00100110 - we want 1st, 2nd and 5th value.
 // posbits.bit0 encodes conversion type.
 static int rdval(const char* p, const char* key, ullong *vec, long posbits)
@@ -661,13 +663,31 @@ S_STAT_END(mem_stat)
 //Hugepagesize:     4096 kB
 static void FAST_FUNC collect_mem(mem_stat *s)
 {
-	ullong m_total = 0;
-	ullong m_free = 0;
-	ullong m_bufs = 0;
-	ullong m_cached = 0;
-	ullong m_slab = 0;
+	ullong m_total;
+	ullong m_free;
+	ullong m_bufs;
+	ullong m_cached;
+	ullong m_slab;
 
-	if (rdval(get_file(&proc_meminfo), "MemTotal:", &m_total, 1 << 1)) {
+	const char *meminfo = get_file(&proc_meminfo);
+
+	if (s->opt == 'd' /* dirty page cache */
+	 || s->opt == 'w' /* under writeback */
+	) {
+		m_total = 0; /* temporary reuse m_total */
+		if (rdval(meminfo,
+				(s->opt == 'd' ? "Dirty:" : "Writeback:"),
+				&m_total, 1 << 1)
+		) {
+			put_question_marks(4);
+			return;
+		}
+		scale(m_total << 10);
+		return;
+	}
+
+	m_total = 0;
+	if (rdval(meminfo, "MemTotal:", &m_total, 1 << 1)) {
 		put_question_marks(4);
 		return;
 	}
@@ -676,10 +696,14 @@ static void FAST_FUNC collect_mem(mem_stat *s)
 		return;
 	}
 
-	if (rdval(proc_meminfo.file, "MemFree:", &m_free  , 1 << 1)
-	 || rdval(proc_meminfo.file, "Buffers:", &m_bufs  , 1 << 1)
-	 || rdval(proc_meminfo.file, "Cached:",  &m_cached, 1 << 1)
-	 || rdval(proc_meminfo.file, "Slab:",    &m_slab  , 1 << 1)
+	m_free = 0;
+	m_bufs = 0;
+	m_cached = 0;
+	m_slab = 0;
+	if (rdval(meminfo, "MemFree:", &m_free  , 1 << 1)
+	 || rdval(meminfo, "Buffers:", &m_bufs  , 1 << 1)
+	 || rdval(meminfo, "Cached:",  &m_cached, 1 << 1)
+	 || rdval(meminfo, "Slab:",    &m_slab  , 1 << 1)
 	) {
 		put_question_marks(4);
 		return;
