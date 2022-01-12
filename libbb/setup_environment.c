@@ -54,15 +54,15 @@ void FAST_FUNC setup_environment(const char *shell, int flags, const struct pass
 			xsetenv("TERM", term);
 		xsetenv("PATH", (pw->pw_uid ? bb_default_path : bb_default_root_path));
 		goto shortcut;
-		// No, gcc (4.2.1) is not clever enougn to do it itself.
+		// No, gcc (4.2.1) is not clever enough to do it itself.
 		//xsetenv("USER",    pw->pw_name);
 		//xsetenv("LOGNAME", pw->pw_name);
 		//xsetenv("HOME",    pw->pw_dir);
 		//xsetenv("SHELL",   shell);
 	} else if (flags & SETUP_ENV_CHANGEENV) {
-		/* Set HOME, SHELL, and if not becoming a super-user,
-		 * USER and LOGNAME.  */
-		if (pw->pw_uid) {
+		/* Set HOME, SHELL, and if not becoming a super-user
+		 * or if SETUP_ENV_CHANGEENV_LOGNAME, USER and LOGNAME.  */
+		if ((flags & SETUP_ENV_CHANGEENV_LOGNAME) || pw->pw_uid != 0) {
  shortcut:
 			xsetenv("USER",    pw->pw_name);
 			xsetenv("LOGNAME", pw->pw_name);

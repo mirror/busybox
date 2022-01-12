@@ -28,6 +28,7 @@
 int sulogin_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sulogin_main(int argc UNUSED_PARAM, char **argv)
 {
+	int tsid;
 	int timeout = 0;
 	struct passwd *pwd;
 	const char *shell;
@@ -87,6 +88,28 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		shell = getenv("sushell");
 	if (!shell)
 		shell = pwd->pw_shell;
+
+	/* util-linux 2.36.1 compat: cd to root's HOME, set a few envvars */
+	setup_environment(shell, SETUP_ENV_CHANGEENV | SETUP_ENV_CHANGEENV_LOGNAME, pwd);
+	// no SETUP_ENV_CLEARENV
+	// SETUP_ENV_CHANGEENV[+LOGNAME] - set HOME, SHELL, USER,and LOGNAME
+	// no SETUP_ENV_NO_CHDIR - IOW: cd to $HOME
+
+	/* util-linux 2.36.1 compat: steal ctty if we don't have it yet
+	 * (yes, util-linux uses force=1)  */
+	tsid = tcgetsid(STDIN_FILENO);
+	if (tsid < 0 || getpid() != tsid) {
+		if (ioctl(STDIN_FILENO, TIOCSCTTY, /*force:*/ (long)1) != 0) {
+//			bb_perror_msg("TIOCSCTTY1 tsid:%d", tsid);
+			if (setsid() > 0) {
+//				bb_error_msg("done setsid()");
+				/* If it still does not work, ignore */
+				if (ioctl(STDIN_FILENO, TIOCSCTTY, /*force:*/ (long)1) != 0) {
+//					bb_perror_msg("TIOCSCTTY2 tsid:%d", tsid);
+				}
+			}
+		}
+	}
 
 	/* Exec login shell with no additional parameters. Never returns. */
 	exec_login_shell(shell);
