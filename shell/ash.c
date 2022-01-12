@@ -11358,7 +11358,7 @@ options(int *login_sh)
 	int val;
 	int c;
 
-	if (login_sh)
+	if (login_sh != NULL) /* if we came from startup code */
 		minusc = NULL;
 	while ((p = *argptr) != NULL) {
 		c = *p++;
@@ -11369,7 +11369,7 @@ options(int *login_sh)
 		if (c == '-') {
 			val = 1;
 			if (p[0] == '\0' || LONE_DASH(p)) {
-				if (!login_sh) {
+				if (login_sh == NULL) { /* we came from setcmd() */
 					/* "-" means turn off -x and -v */
 					if (p[0] == '\0')
 						xflag = vflag = 0;
@@ -11382,7 +11382,7 @@ options(int *login_sh)
 		}
 		/* first char was + or - */
 		while ((c = *p++) != '\0') {
-			if (login_sh) {
+			if (login_sh != NULL) { /* if we came from startup code */
 				/* bash 3.2 indeed handles -c CMD and +c CMD the same */
 				if (c == 'c') {
 					minusc = p; /* command is after shell args */
@@ -11406,6 +11406,9 @@ options(int *login_sh)
 					if (strcmp(p, "login") == 0) {
 						*login_sh = 1;
 					}
+/* TODO: --noprofile: e.g. if I want to run emergency shell from sulogin,
+ * I want minimal/no shell init scripts - but it insists on running it as "-ash"...
+ */
 					break;
 				}
 			}

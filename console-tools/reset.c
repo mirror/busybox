@@ -21,7 +21,7 @@
 //usage:#define reset_trivial_usage
 //usage:       ""
 //usage:#define reset_full_usage "\n\n"
-//usage:       "Reset the screen"
+//usage:       "Reset terminal (ESC codes) and termios (signals, buffering, echo)"
 
 /* "Standard" version of this tool is in ncurses package */
 
