@@ -2292,7 +2292,7 @@ struct globals;
 /* '*const' ptr makes gcc optimize code much better.
  * Magic prevents ptr_to_globals from going into rodata.
  * If you want to assign a value, use SET_PTR_TO_GLOBALS(x) */
-extern struct globals *const ptr_to_globals;
+extern struct globals *BB_GLOBAL_CONST ptr_to_globals;
 
 #define barrier() asm volatile ("":::"memory")
 
