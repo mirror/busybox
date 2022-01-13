@@ -36,7 +36,7 @@ void FAST_FUNC setup_environment(const char *shell, int flags, const struct pass
 
 	/* Change the current working directory to be the home directory
 	 * of the user */
-	if (!(flags & SETUP_ENV_NO_CHDIR)) {
+	if (flags & SETUP_ENV_CHDIR) {
 		if (chdir(pw->pw_dir) != 0) {
 			bb_error_msg("can't change directory to '%s'", pw->pw_dir);
 			xchdir((flags & SETUP_ENV_TO_TMP) ? "/tmp" : "/");
@@ -59,7 +59,8 @@ void FAST_FUNC setup_environment(const char *shell, int flags, const struct pass
 		//xsetenv("LOGNAME", pw->pw_name);
 		//xsetenv("HOME",    pw->pw_dir);
 		//xsetenv("SHELL",   shell);
-	} else if (flags & SETUP_ENV_CHANGEENV) {
+	} else
+	if (flags & (SETUP_ENV_CHANGEENV|SETUP_ENV_CHANGEENV_LOGNAME)) {
 		/* Set HOME, SHELL, and if not becoming a super-user
 		 * or if SETUP_ENV_CHANGEENV_LOGNAME, USER and LOGNAME.  */
 		if ((flags & SETUP_ENV_CHANGEENV_LOGNAME) || pw->pw_uid != 0) {

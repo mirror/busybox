@@ -55,8 +55,8 @@ static void edit_file(const struct passwd *pas, const char *file)
 	/* initgroups, setgid, setuid */
 	change_identity(pas);
 	setup_environment(pas->pw_shell,
-			SETUP_ENV_CHANGEENV | SETUP_ENV_TO_TMP,
-			pas);
+		SETUP_ENV_CHANGEENV | SETUP_ENV_TO_TMP | SETUP_ENV_CHDIR,
+		pas);
 	ptr = getenv("VISUAL");
 	if (!ptr) {
 		ptr = getenv("EDITOR");

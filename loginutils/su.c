@@ -176,10 +176,9 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 
 	change_identity(pw);
 	setup_environment(opt_shell,
-			((flags & SU_OPT_l) / SU_OPT_l * SETUP_ENV_CLEARENV)
-			+ (!(flags & SU_OPT_mp) * SETUP_ENV_CHANGEENV)
-			+ (!(flags & SU_OPT_l) * SETUP_ENV_NO_CHDIR),
-			pw);
+		((flags & SU_OPT_l) ? (SETUP_ENV_CLEARENV + SETUP_ENV_CHDIR) : 0)
+			+ (!(flags & SU_OPT_mp) * SETUP_ENV_CHANGEENV),
+		pw);
 	IF_SELINUX(set_current_security_context(NULL);)
 
 	if (opt_command) {

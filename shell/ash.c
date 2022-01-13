@@ -10791,7 +10791,7 @@ preadfd(void)
 			write(STDOUT_FILENO, "^C", 2);
 			raise(SIGINT);
 			/* raise(SIGINT) did not work! (e.g. if SIGINT
-			 * is SIG_INGed on startup, it stays SIG_IGNed)
+			 * is SIG_IGNed on startup, it stays SIG_IGNed)
 			 */
 			if (trap[SIGINT]) {
 				buf[0] = '\n';

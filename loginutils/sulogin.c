@@ -94,10 +94,13 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		shell = pwd->pw_shell;
 
 	/* util-linux 2.36.1 compat: cd to root's HOME, set a few envvars */
-	setup_environment(shell, SETUP_ENV_CHANGEENV | SETUP_ENV_CHANGEENV_LOGNAME, pwd);
+	setup_environment(shell, 0
+		+ SETUP_ENV_CHANGEENV_LOGNAME
+		+ SETUP_ENV_CHDIR
+		, pwd);
 	// no SETUP_ENV_CLEARENV
-	// SETUP_ENV_CHANGEENV[+LOGNAME] - set HOME, SHELL, USER,and LOGNAME
-	// no SETUP_ENV_NO_CHDIR - IOW: cd to $HOME
+	// SETUP_ENV_CHANGEENV_LOGNAME - set HOME, SHELL, USER,and LOGNAME
+	// SETUP_ENV_CHDIR - cd to $HOME
 
 	/* util-linux 2.36.1 compat: steal ctty if we don't have it yet
 	 * (yes, util-linux uses force=1)  */

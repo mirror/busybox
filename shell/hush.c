@@ -10361,7 +10361,7 @@ int hush_main(int argc, char **argv)
 //it ignores TERM:
 //	bash -i -c 'kill $$; echo ALIVE'
 //	ALIVE
-//it resets SIG_INGed HUP to SIG_DFL:
+//it resets SIG_IGNed HUP to SIG_DFL:
 //	trap '' hup; bash -i -c 'kill -hup $$; echo ALIVE'
 //	Hangup   [the message is not printed by bash, it's the shell which started it]
 //is talkative about jobs and exiting:

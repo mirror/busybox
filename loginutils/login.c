@@ -564,7 +564,9 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	change_identity(pw);
 	setup_environment(pw->pw_shell,
-			(!(opt & LOGIN_OPT_p) * SETUP_ENV_CLEARENV) + SETUP_ENV_CHANGEENV,
+			(!(opt & LOGIN_OPT_p) * SETUP_ENV_CLEARENV)
+				+ SETUP_ENV_CHANGEENV
+				+ SETUP_ENV_CHDIR,
 			pw);
 
 #if ENABLE_PAM

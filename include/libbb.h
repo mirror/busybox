@@ -1726,7 +1726,7 @@ extern void selinux_or_die(void) FAST_FUNC;
 
 
 /* setup_environment:
- * if !SETUP_ENV_NO_CHDIR:
+ * if SETUP_ENV_CHDIR:
  *   if cd(pw->pw_dir): ok: else if SETUP_ENV_TO_TMP: cd(/tmp) else: cd(/) or die
  * if SETUP_ENV_CLEARENV: cd(pw->pw_dir), clear environment, then set
  *   TERM=(old value)
@@ -1734,7 +1734,7 @@ extern void selinux_or_die(void) FAST_FUNC;
  *   PATH=bb_default_[root_]path
  *   HOME=pw->pw_dir
  *   SHELL=shell
- * else if SETUP_ENV_CHANGEENV:
+ * else if SETUP_ENV_CHANGEENV | SETUP_ENV_CHANGEENV_LOGNAME:
  *   if not root (if pw->pw_uid != 0) or if SETUP_ENV_CHANGEENV_LOGNAME:
  *     USER=pw->pw_name, LOGNAME=pw->pw_name
  *   HOME=pw->pw_dir
@@ -1748,7 +1748,7 @@ extern void selinux_or_die(void) FAST_FUNC;
 #define SETUP_ENV_CHANGEENV_LOGNAME (1 << 1)
 #define SETUP_ENV_CLEARENV          (1 << 2)
 #define SETUP_ENV_TO_TMP            (1 << 3)
-#define SETUP_ENV_NO_CHDIR          (1 << 4)
+#define SETUP_ENV_CHDIR             (1 << 4)
 void setup_environment(const char *shell, int flags, const struct passwd *pw) FAST_FUNC;
 void nuke_str(char *str) FAST_FUNC;
 #if ENABLE_FEATURE_SECURETTY && !ENABLE_PAM
