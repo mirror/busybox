@@ -10784,18 +10784,24 @@ preadfd(void)
 		line_input_state->path_lookup = pathval();
 # endif
 		reinit_unicode_for_ash();
+ again:
 		nr = read_line_input(line_input_state, cmdedit_prompt, buf, IBUFSIZ);
 		if (nr == 0) {
 			/* ^C pressed, "convert" to SIGINT */
 			write(STDOUT_FILENO, "^C", 2);
 			raise(SIGINT);
+			/* raise(SIGINT) did not work! (e.g. if SIGINT
+			 * is SIG_INGed on startup, it stays SIG_IGNed)
+			 */
 			if (trap[SIGINT]) {
 				buf[0] = '\n';
 				buf[1] = '\0';
 				return 1;
 			}
 			exitstatus = 128 + SIGINT;
-			return -1;
+			/* bash behavior on ^C + ignored SIGINT: */
+			write(STDOUT_FILENO, "\n", 1);
+			goto again;
 		}
 		if (nr < 0) {
 			if (errno == 0) {

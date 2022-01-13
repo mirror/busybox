@@ -111,6 +111,11 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 
+	/*
+	 * Note: login does this (should we do it too?):
+	 */
+	/*signal(SIGINT, SIG_DFL);*/
+
 	/* Exec login shell with no additional parameters. Never returns. */
 	exec_login_shell(shell);
 }

@@ -608,7 +608,9 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	 * But without this, bash 3.0 will not enable ctrl-c either.
 	 * Maybe bash is buggy?
 	 * Need to find out what standards say about /bin/login -
-	 * should we leave SIGINT etc enabled or disabled? */
+	 * should we leave SIGINT etc enabled or disabled?
+	 * Also note: sulogin does not do it! Why?
+	 */
 	signal(SIGINT, SIG_DFL);
 
 	/* Exec login shell with no additional parameters */
