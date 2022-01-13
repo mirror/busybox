@@ -71,7 +71,8 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		);
 		if (r < 0) {
 			/* ^D, ^C, timeout, or read error */
-			bb_simple_info_msg("normal startup");
+			/* util-linux 2.36.1 compat: no message */
+			/*bb_simple_info_msg("normal startup");*/
 			return 0;
 		}
 		if (r > 0) {
