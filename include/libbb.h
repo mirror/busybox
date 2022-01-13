@@ -645,6 +645,7 @@ void xsetgid(gid_t gid) FAST_FUNC;
 void xsetuid(uid_t uid) FAST_FUNC;
 void xsetegid(gid_t egid) FAST_FUNC;
 void xseteuid(uid_t euid) FAST_FUNC;
+int chdir_or_warn(const char *path) FAST_FUNC;
 void xchdir(const char *path) FAST_FUNC;
 void xfchdir(int fd) FAST_FUNC;
 void xchroot(const char *path) FAST_FUNC;

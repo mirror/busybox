@@ -415,11 +415,18 @@ void FAST_FUNC xseteuid(uid_t euid)
 	if (seteuid(euid)) bb_simple_perror_msg_and_die("seteuid");
 }
 
+int FAST_FUNC chdir_or_warn(const char *path)
+{
+	int r = chdir(path);
+	if (r != 0)
+		bb_perror_msg("can't change directory to '%s'", path);
+	return r;
+}
 // Die if we can't chdir to a new path.
 void FAST_FUNC xchdir(const char *path)
 {
-	if (chdir(path))
-		bb_perror_msg_and_die("can't change directory to '%s'", path);
+	if (chdir_or_warn(path) != 0)
+		xfunc_die();
 }
 
 void FAST_FUNC xfchdir(int fd)

@@ -37,8 +37,7 @@ void FAST_FUNC setup_environment(const char *shell, int flags, const struct pass
 	/* Change the current working directory to be the home directory
 	 * of the user */
 	if (flags & SETUP_ENV_CHDIR) {
-		if (chdir(pw->pw_dir) != 0) {
-			bb_error_msg("can't change directory to '%s'", pw->pw_dir);
+		if (chdir_or_warn(pw->pw_dir) != 0) {
 			xchdir((flags & SETUP_ENV_TO_TMP) ? "/tmp" : "/");
 		}
 	}

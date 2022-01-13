@@ -675,8 +675,7 @@ static void change_user(struct passwd *pas)
 {
 	/* careful: we're after vfork! */
 	change_identity(pas); /* - initgroups, setgid, setuid */
-	if (chdir(pas->pw_dir) < 0) {
-		bb_error_msg("can't change directory to '%s'", pas->pw_dir);
+	if (chdir_or_warn(pas->pw_dir) != 0) {
 		xchdir(CRON_DIR);
 	}
 }

@@ -1667,8 +1667,7 @@ static void send_cgi_and_exit(
 		script = last_slash;
 		if (script != url) { /* paranoia */
 			*script = '\0';
-			if (chdir(url + 1) != 0) {
-				bb_perror_msg("can't change directory to '%s'", url + 1);
+			if (chdir_or_warn(url + 1) != 0) {
 				goto error_execing_cgi;
 			}
 			// not needed: *script = '/';
