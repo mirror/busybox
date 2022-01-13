@@ -20,7 +20,8 @@
 //usage:       "[-t N] [TTY]"
 //usage:#define sulogin_full_usage "\n\n"
 //usage:       "Single user login\n"
-//usage:     "\n	-t N	Timeout"
+//usage:     "\n	-p	Start a login shell"
+//usage:     "\n	-t SEC	Timeout"
 
 #include "libbb.h"
 #include <syslog.h>
@@ -30,6 +31,7 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 {
 	int tsid;
 	int timeout = 0;
+	unsigned opts;
 	struct passwd *pwd;
 	const char *shell;
 
@@ -44,7 +46,7 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 	logmode = LOGMODE_BOTH;
 	openlog(applet_name, 0, LOG_AUTH);
 
-	getopt32(argv, "t:+", &timeout);
+	opts = getopt32(argv, "pt:+", &timeout);
 	argv += optind;
 
 	if (argv[0]) {
@@ -64,8 +66,8 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		int r;
 
 		r = ask_and_check_password_extended(pwd, timeout,
-			"Give root password for system maintenance\n"
-			"(or type Control-D for normal startup):"
+			"Give root password for maintenance\n"
+			"(or type Ctrl-D to continue): "
 		);
 		if (r < 0) {
 			/* ^D, ^C, timeout, or read error */
@@ -79,7 +81,8 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		bb_simple_info_msg("Login incorrect");
 	}
 
-	bb_simple_info_msg("starting shell for system maintenance");
+	/* util-linux 2.36.1 compat: no message */
+	/*bb_simple_info_msg("starting shell for system maintenance");*/
 
 	IF_SELINUX(renew_current_security_context());
 
@@ -116,6 +119,6 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 	 */
 	/*signal(SIGINT, SIG_DFL);*/
 
-	/* Exec login shell with no additional parameters. Never returns. */
-	exec_login_shell(shell);
+	/* Exec shell with no additional parameters. Never returns. */
+	exec_shell(shell, /* -p? then shell is login:*/(opts & 1), NULL);
 }
