@@ -469,6 +469,7 @@ libs-y		:= \
 		console-tools/ \
 		coreutils/ \
 		coreutils/libcoreutils/ \
+		coreutils-json-producer/ \
 		debianutils/ \
 		klibc-utils/ \
 		e2fsprogs/ \

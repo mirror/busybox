@@ -122,21 +122,24 @@ static void unpack_wheel(void)
 }
 
 /* Prevent inlining, factorize() needs all help it can get with reducing register pressure */
-static NOINLINE void print_w(wide_t n)
+static NOINLINE void print_w(wide_t n, cJSON * factors)
 {
 	unsigned rep = square_count;
-	do
-		printf(" %llu", n);
+	do {
+        //cJSON_AddItemToArray
+        cJSON_AddItemToArray(factors, cJSON_CreateNumber(n));
+		//printf(" Adding factor in array  %llu \n", n);
+    }
 	while (--rep != 0);
 }
-static NOINLINE void print_h(half_t n)
+static NOINLINE void print_h(half_t n, cJSON * factors)
 {
-	print_w(n);
+	print_w(n, factors);
 }
 
-static void factorize(wide_t N);
+static void factorize(wide_t N, cJSON * factors);
 
-static half_t isqrt_odd(wide_t N)
+static half_t isqrt_odd(wide_t N, cJSON * factors)
 {
 	half_t s = isqrt(N);
 	/* s^2 is <= N, (s+1)^2 > N */
@@ -149,7 +152,7 @@ static half_t isqrt_odd(wide_t N)
 	if ((wide_t)s * s == N) {
 		/* factorize sqrt(N), printing each factor twice */
 		square_count *= 2;
-		factorize(s);
+		factorize(s, factors);
 		/* Let caller know we recursed */
 		return 0;
 	}
@@ -160,7 +163,7 @@ static half_t isqrt_odd(wide_t N)
 	return s;
 }
 
-static NOINLINE void factorize(wide_t N)
+static NOINLINE void factorize(wide_t N, cJSON * factors)
 {
 	unsigned w;
 	half_t factor;
@@ -183,7 +186,7 @@ static NOINLINE void factorize(wide_t N)
 	 * The slowest case (largest prime) for N < 2^64 is
 	 * factor 18446744073709551557 (0xffffffffffffffc5).
 	 */
-	max_factor = isqrt_odd(N);
+	max_factor = isqrt_odd(N, factors);
 	if (!max_factor)
 		return; /* square was detected and recursively factored */
 	factor = 2;
@@ -196,8 +199,8 @@ static NOINLINE void factorize(wide_t N)
 		 */
 		while ((N % factor) == 0) { /* not likely */
 			N = N / factor;
-			print_h(factor);
-			max_factor = isqrt_odd(N);
+			print_h(factor, factors);
+			max_factor = isqrt_odd(N, factors);
 			if (!max_factor)
 				return; /* square was detected */
 		}
@@ -214,13 +217,14 @@ static NOINLINE void factorize(wide_t N)
 	}
  end:
 	if (N > 1)
-		print_w(N);
-	bb_putchar('\n');
+		print_w(N, factors);
 }
 
 static void factorize_numstr(const char *numstr)
 {
 	wide_t N;
+    cJSON * number = cJSON_CreateObject();
+    cJSON * factors = cJSON_CreateArray();
 
 	/* Leading + is ok (coreutils compat) */
 	if (*numstr == '+')
@@ -228,9 +232,16 @@ static void factorize_numstr(const char *numstr)
 	N = bb_strtoull(numstr, NULL, 10);
 	if (errno)
 		bb_show_usage();
-	printf("%llu:", N);
+	//printf("It worked ! %llu:", N);
+    //cJSON_AddItemToObject(factors, numstr, cJSON_CreateNumber(10));
 	square_count = 1;
-	factorize(N);
+	factorize(N, factors);
+    cJSON_AddItemToObject(number, "number", cJSON_CreateNumber(N));
+    cJSON_AddItemToObject(number, "factors", factors);
+    char * json_str = cJSON_PrintUnformatted(number);
+    printf("%s\n", json_str);
+    free(json_str);
+    cJSON_Delete(number);
 }
 
 int jfactor_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

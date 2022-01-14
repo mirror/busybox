@@ -5,6 +5,7 @@
 # Licensed under GPLv2, see file LICENSE in this source tree.
 
 
+lib-y:=
+
 INSERT
 
-lib-$(CONFIG_JFACTOR)          += jfactor.o    # used by ftpd
