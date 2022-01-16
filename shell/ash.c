@@ -664,7 +664,7 @@ raise_exception(int e)
 /*
  * Called when a SIGINT is received.  (If the user specifies
  * that SIGINT is to be trapped or ignored using the trap builtin, then
- * this routine is not called.)  Suppressint is nonzero when interrupts
+ * this routine is not called.)  suppress_int is nonzero when interrupts
  * are held using the INT_OFF macro.  (The test for iflag is just
  * defensive programming.)
  */
@@ -695,13 +695,12 @@ raise_interrupt(void)
 } while (0)
 #endif
 
-static IF_ASH_OPTIMIZE_FOR_SIZE(inline) void
+static IF_NOT_ASH_OPTIMIZE_FOR_SIZE(inline) void
 int_on(void)
 {
 	barrier();
-	if (--suppress_int == 0 && pending_int) {
+	if (--suppress_int == 0 && pending_int)
 		raise_interrupt();
-	}
 }
 #if DEBUG_INTONOFF
 # define INT_ON do { \
@@ -711,7 +710,7 @@ int_on(void)
 #else
 # define INT_ON int_on()
 #endif
-static IF_ASH_OPTIMIZE_FOR_SIZE(inline) void
+static IF_NOT_ASH_OPTIMIZE_FOR_SIZE(inline) void
 force_int_on(void)
 {
 	barrier();
@@ -10785,6 +10784,10 @@ preadfd(void)
 # endif
 		reinit_unicode_for_ash();
  again:
+//BUG: not in INT_OFF/INT_ON section - SIGINT et al would longjmp out of read_line_input()!
+//This would cause a memory leak in interactive shell
+//(repeated internal allocations in read_line_input):
+// (while kill -INT $$; do :; done) &
 		nr = read_line_input(line_input_state, cmdedit_prompt, buf, IBUFSIZ);
 		if (nr == 0) {
 			/* ^C pressed, "convert" to SIGINT */
