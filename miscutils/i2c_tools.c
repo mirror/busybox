@@ -120,6 +120,7 @@ static int32_t i2c_smbus_access(int fd, char read_write, uint8_t cmd,
 	return ioctl(fd, I2C_SMBUS, &args);
 }
 
+#if ENABLE_I2CGET || ENABLE_I2CSET || ENABLE_I2CDUMP || ENABLE_I2CDETECT
 static int32_t i2c_smbus_read_byte(int fd)
 {
 	union i2c_smbus_data data;
@@ -131,6 +132,7 @@ static int32_t i2c_smbus_read_byte(int fd)
 
 	return data.byte;
 }
+#endif
 
 #if ENABLE_I2CGET || ENABLE_I2CSET || ENABLE_I2CDUMP
 static int32_t i2c_smbus_write_byte(int fd, uint8_t val)

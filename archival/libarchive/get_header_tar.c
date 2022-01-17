@@ -147,11 +147,13 @@ static void process_pax_hdr(archive_handle_t *archive_handle, unsigned sz, int g
 #endif
 }
 
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 static void die_if_bad_fnamesize(off_t sz)
 {
 	if ((uoff_t)sz > 0xfff) /* more than 4k?! no funny business please */
 		bb_simple_error_msg_and_die("bad archive");
 }
+#endif
 
 char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 {
