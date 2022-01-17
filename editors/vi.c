@@ -1122,7 +1122,7 @@ static int readit(void) // read (maybe cursor) key from stdin
 	// on nonblocking stdin.
 	// Note: read_key sets errno to 0 on success.
  again:
-	c = read_key(STDIN_FILENO, readbuffer, /*timeout:*/ -1);
+	c = safe_read_key(STDIN_FILENO, readbuffer, /*timeout:*/ -1);
 	if (c == -1) { // EOF/error
 		if (errno == EAGAIN) // paranoia
 			goto again;
@@ -4770,7 +4770,7 @@ static void edit_file(char *fn)
 		uint64_t k;
 		write1(ESC"[999;999H" ESC"[6n");
 		fflush_all();
-		k = read_key(STDIN_FILENO, readbuffer, /*timeout_ms:*/ 100);
+		k = safe_read_key(STDIN_FILENO, readbuffer, /*timeout_ms:*/ 100);
 		if ((int32_t)k == KEYCODE_CURSOR_POS) {
 			uint32_t rc = (k >> 32);
 			columns = (rc & 0x7fff);

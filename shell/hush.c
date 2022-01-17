@@ -918,6 +918,7 @@ struct globals {
 #if ENABLE_HUSH_INTERACTIVE
 	smallint promptmode; /* 0: PS1, 1: PS2 */
 #endif
+	/* set by signal handler if SIGINT is received _and_ its trap is not set */
 	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
 	smallint flag_break_continue;
@@ -1944,6 +1945,9 @@ enum {
 static void record_pending_signo(int sig)
 {
 	sigaddset(&G.pending_set, sig);
+#if ENABLE_FEATURE_EDITING
+	bb_got_signal = sig; /* for read_line_input: "we got a signal" */
+#endif
 #if ENABLE_HUSH_FAST
 	if (sig == SIGCHLD) {
 		G.count_SIGCHLD++;
@@ -2652,30 +2656,53 @@ static int get_user_input(struct in_str *i)
 	for (;;) {
 		reinit_unicode_for_hush();
 		G.flag_SIGINT = 0;
-		/* buglet: SIGINT will not make new prompt to appear _at once_,
-		 * only after <Enter>. (^C works immediately) */
-		r = read_line_input(G.line_input_state, prompt_str,
+
+		bb_got_signal = 0;
+		if (!sigisemptyset(&G.pending_set)) {
+			/* Whoops, already got a signal, do not call read_line_input */
+			bb_got_signal = r = -1;
+		} else {
+			/* For shell, LI_INTERRUPTIBLE is set:
+			 * read_line_input will abort on either
+			 * getting EINTR in poll(), or if it sees bb_got_signal != 0
+			 * (IOW: if signal arrives before poll() is reached).
+			 * Interactive testcases:
+			 * (while kill -INT $$; do sleep 1; done) &
+			 * #^^^ prints ^C, prints prompt, repeats
+			 * trap 'echo I' int; (while kill -INT $$; do sleep 1; done) &
+			 * #^^^ prints ^C, prints "I", prints prompt, repeats
+			 * trap 'echo T' term; (while kill $$; do sleep 1; done) &
+			 * #^^^ prints "T", prints prompt, repeats
+			 * #(bash 5.0.17 exits after first "T", looks like a bug)
+			 */
+			r = read_line_input(G.line_input_state, prompt_str,
 				G.user_input_buf, CONFIG_FEATURE_EDITING_MAX_LEN-1
-		);
-		/* read_line_input intercepts ^C, "convert" it to SIGINT */
-		if (r == 0) {
-			raise(SIGINT);
+			);
+			/* read_line_input intercepts ^C, "convert" it to SIGINT */
+			if (r == 0)
+				raise(SIGINT);
+		}
+		/* bash prints ^C (before running a trap, if any)
+		 * both on keyboard ^C and on real SIGINT (non-kbd generated).
+		 */
+		if (sigismember(&G.pending_set, SIGINT)) {
+			write(STDOUT_FILENO, "^C\n", 3);
+			G.last_exitcode = 128 | SIGINT;
 		}
 		check_and_run_traps();
-		if (r != 0 && !G.flag_SIGINT)
+		if (r == 0) /* keyboard ^C? */
+			continue; /* go back, read another input line */
+		if (r > 0) /* normal input? (no ^C, no ^D, no signals) */
 			break;
-		/* ^C or SIGINT: repeat */
-		/* bash prints ^C even on real SIGINT (non-kbd generated) */
-		write(STDOUT_FILENO, "^C\n", 3);
-		G.last_exitcode = 128 | SIGINT;
-	}
-	if (r < 0) {
-		/* EOF/error detected */
-		/* ^D on interactive input goes to next line before exiting: */
-		write(STDOUT_FILENO, "\n", 1);
-		i->p = NULL;
-		i->peek_buf[0] = r = EOF;
-		return r;
+		if (!bb_got_signal) {
+			/* r < 0: ^D/EOF/error detected (but not signal) */
+			/* ^D on interactive input goes to next line before exiting: */
+			write(STDOUT_FILENO, "\n", 1);
+			i->p = NULL;
+			i->peek_buf[0] = r = EOF;
+			return r;
+		}
+		/* it was a signal: go back, read another input line */
 	}
 	i->p = G.user_input_buf;
 	return (unsigned char)*i->p++;

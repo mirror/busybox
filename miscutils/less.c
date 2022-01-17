@@ -1137,9 +1137,9 @@ static int64_t getch_nowait(void)
 #endif
 	}
 
-	/* We have kbd_fd in O_NONBLOCK mode, read inside read_key()
+	/* We have kbd_fd in O_NONBLOCK mode, read inside safe_read_key()
 	 * would not block even if there is no input available */
-	key64 = read_key(kbd_fd, kbd_input, /*timeout off:*/ -2);
+	key64 = safe_read_key(kbd_fd, kbd_input, /*timeout off:*/ -2);
 	if ((int)key64 == -1) {
 		if (errno == EAGAIN) {
 			/* No keyboard input available. Since poll() did return,

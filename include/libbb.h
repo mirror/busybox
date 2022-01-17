@@ -1908,6 +1908,8 @@ enum {
  * >=0: poll() for TIMEOUT milliseconds, return -1/EAGAIN on timeout
  */
 int64_t read_key(int fd, char *buffer, int timeout) FAST_FUNC;
+/* This version loops on EINTR: */
+int64_t safe_read_key(int fd, char *buffer, int timeout) FAST_FUNC;
 void read_key_ungets(char *buffer, const char *str, unsigned len) FAST_FUNC;
 
 
@@ -1961,7 +1963,8 @@ enum {
 	USERNAME_COMPLETION = 4 * ENABLE_FEATURE_USERNAME_COMPLETION,
 	VI_MODE          = 8 * ENABLE_FEATURE_EDITING_VI,
 	WITH_PATH_LOOKUP = 0x10,
-	FOR_SHELL        = DO_HISTORY | TAB_COMPLETION | USERNAME_COMPLETION,
+	LI_INTERRUPTIBLE = 0x20,
+	FOR_SHELL        = DO_HISTORY | TAB_COMPLETION | USERNAME_COMPLETION | LI_INTERRUPTIBLE,
 };
 line_input_t *new_line_input_t(int flags) FAST_FUNC;
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY

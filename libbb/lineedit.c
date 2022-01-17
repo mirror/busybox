@@ -2161,12 +2161,30 @@ static int lineedit_read_key(char *read_key_buffer, int timeout)
 		 * insist on full MB_CUR_MAX buffer to declare input like
 		 * "\xff\n",pause,"ls\n" invalid and thus won't lose "ls".
 		 *
+		 * If LI_INTERRUPTIBLE, return -1 if got EINTR in poll()
+		 * inside read_key, or if bb_got_signal != 0 (IOW: if signal
+		 * arrived before poll() is reached).
+		 *
 		 * Note: read_key sets errno to 0 on success.
 		 */
-		IF_FEATURE_EDITING_WINCH(S.ok_to_redraw = 1;)
-		ic = read_key(STDIN_FILENO, read_key_buffer, timeout);
-		IF_FEATURE_EDITING_WINCH(S.ok_to_redraw = 0;)
+		do {
+			if ((state->flags & LI_INTERRUPTIBLE) && bb_got_signal) {
+				errno = EINTR;
+				return -1;
+			}
+//FIXME: still races here with signals, but small window to poll() inside read_key
+			IF_FEATURE_EDITING_WINCH(S.ok_to_redraw = 1;)
+			ic = read_key(STDIN_FILENO, read_key_buffer, timeout);
+			IF_FEATURE_EDITING_WINCH(S.ok_to_redraw = 0;)
+		} while (!(state->flags & LI_INTERRUPTIBLE) && errno == EINTR);
+
 		if (errno) {
+			/* LI_INTERRUPTIBLE can bail out with EINTR here,
+			 * but nothing really guarantees that bb_got_signal
+			 * is nonzero. Follow the least surprise principle:
+			 */
+			if (errno == EINTR && bb_got_signal == 0)
+				bb_got_signal = 255; /* something nonzero */
 #if ENABLE_UNICODE_SUPPORT
 			if (errno == EAGAIN && unicode_idx != 0)
 				goto pushback;

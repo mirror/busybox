@@ -913,7 +913,7 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 	while (1) {
 		int32_t c;
 
-		c = read_key(STDIN_FILENO, G.kbd_input, interval * 1000);
+		c = safe_read_key(STDIN_FILENO, G.kbd_input, interval * 1000);
 		if (c == -1 && errno != EAGAIN) {
 			/* error/EOF */
 			option_mask32 |= OPT_EOF;
