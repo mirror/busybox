@@ -441,7 +441,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	TT.filein = TT.fileout = -1;
 
 	// Loop through the lines in the patch
-	for(;;) {
+	for (;;) {
 		char *patchline;
 
 		patchline = get_line(TT.filepatch);

@@ -654,7 +654,7 @@ static int read_bunzip(bunzip_data *bd, char *outbuf, int len)
 				/* Subtract the 1 copy we'd output anyway to get extras */
 				--bd->writeCopies;
 			}
-		} /* for(;;) */
+		} /* for (;;) */
 
 		/* Decompression of this input block completed successfully */
 		bd->writeCRC = CRC = ~CRC;

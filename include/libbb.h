@@ -1900,6 +1900,8 @@ enum {
  * (unless fd is in non-blocking mode),
  * subsequent reads will time out after a few milliseconds.
  * Return of -1 means EOF or error (errno == 0 on EOF).
+ * Nonzero errno is not preserved across the call:
+ * if there was no error, errno will be cleared to 0.
  * buffer[0] is used as a counter of buffered chars and must be 0
  * on first call.
  * timeout:

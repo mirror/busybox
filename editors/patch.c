@@ -418,7 +418,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	// Loop through the lines in the patch
-	for(;;) {
+	for (;;) {
 		char *patchline;
 
 		patchline = xmalloc_fgetline(stdin);
