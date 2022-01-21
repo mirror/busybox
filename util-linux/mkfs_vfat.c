@@ -218,8 +218,11 @@ static const char boot_code[] ALIGN1 =
 int mkfs_vfat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 {
+	static const char NO_NAME_11[] = "NO NAME    ";
+
 	struct stat st;
-	const char *volume_label = "";
+	const char *arg_volume_label = NO_NAME_11; //default
+	char volume_label11[12];
 	char *buf;
 	char *device_name;
 	uoff_t volume_size_bytes;
@@ -257,14 +260,17 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, "^"
 		"Ab:cCf:F:h:Ii:l:m:n:r:R:s:S:v"
 		"\0" "-1", //:b+:f+:F+:h+:r+:R+:s+:S+:vv:c--l:l--c
-		NULL, NULL, NULL, NULL, NULL,
-		NULL, NULL, &volume_label, NULL, NULL, NULL, NULL);
+		/*b*/NULL, /*f*/NULL, /*F*/NULL, /*h*/NULL, /*i*/NULL,
+		/*l*/NULL, /*m*/NULL, /*n*/&arg_volume_label,
+		/*r*/NULL, /*R*/NULL, /*s*/NULL, /*S*/NULL);
 	argv += optind;
 
 	// cache device name
 	device_name = argv[0];
 	// default volume ID = creation time
 	volume_id = time(NULL);
+	// truncate to exactly 11 chars, pad with spaces
+	sprintf(volume_label11, "%-11.11s", arg_volume_label);
 
 	dev = xopen(device_name, O_RDWR);
 	xfstat(dev, &st, device_name);
@@ -459,7 +465,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 			(int)media_byte,
 			volume_size_sect, (int)total_clust, (int)sect_per_clust,
 			sect_per_fat,
-			(int)volume_id, volume_label
+			(int)volume_id, volume_label11
 		);
 	}
 
@@ -508,7 +514,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		STORE_LE(boot_blk->vi.ext_boot_sign, 0x29);
 		STORE_LE(boot_blk->vi.volume_id32, volume_id);
 		memcpy(boot_blk->vi.fs_type, "FAT32   ", sizeof(boot_blk->vi.fs_type));
-		strncpy(boot_blk->vi.volume_label, volume_label, sizeof(boot_blk->vi.volume_label));
+		memcpy(boot_blk->vi.volume_label, volume_label11, 11);
 		memcpy(boot_blk->boot_code, boot_code, sizeof(boot_code));
 		STORE_LE(boot_blk->boot_sign, BOOT_SIGN);
 
@@ -545,15 +551,18 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	// root directory
 	// empty directory is just a set of zero bytes
 	memset(buf, 0, sect_per_clust * bytes_per_sect);
-	if (volume_label[0]) {
-		// create dir entry for volume_label
+	// not "NO NAME", "NO NAME  " etc?
+	// (mkfs.fat 4.1 won't create dir entry even with explicit -n 'NO NAME',
+	// but will create one with e.g. -n '', -n '  zZz')
+	if (strcmp(volume_label11, NO_NAME_11) != 0) {
+		// create dir entry for volume label
 		struct msdos_dir_entry *de;
 #if 0
 		struct tm tm_time;
 		uint16_t t, d;
 #endif
 		de = (void*)buf;
-		strncpy(de->name, volume_label, sizeof(de->name));
+		memcpy(de->name, volume_label11, 11);
 		STORE_LE(de->attr, ATTR_VOLUME);
 #if 0
 		localtime_r(&create_time, &tm_time);
