@@ -324,6 +324,16 @@ testing "sed zero chars match/replace logic must not falsely trigger here 2" \
 	"sed 's/ *$/_/g'" \
 	"qwerty_\n" "" "qwerty\n"
 
+# the pattern here is interpreted as "9+", not as "9\+"
+testing "sed special char as s/// delimiter, in pattern" \
+	"sed 's+9\++X+'" \
+	"X8=17\n" "" "9+8=17\n"
+
+# but in replacement string, "\&" remains "\&", not interpreted as "&"
+testing "sed special char as s/// delimiter, in replacement" \
+	"sed 's&9&X\&&'" \
+	"X&+8=17\n" "" "9+8=17\n"
+
 testing "sed /\$_in_regex/ should not match newlines, only end-of-line" \
 	"sed ': testcont; /\\\\$/{ =; N; b testcont }'" \
 	"\
