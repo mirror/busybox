@@ -355,7 +355,10 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 	/* save the replacement string */
 	cmdstr_ptr += idx + 1;
 	idx = index_of_next_unescaped_regexp_delim(- (int)delimiter, cmdstr_ptr);
-	*replace = copy_parsing_escapes(cmdstr_ptr, idx, 0);
+//GNU sed 4.8:
+// echo 789 | sed 's&8&\&&'       - 7&9  ("\&" remained "\&")
+// echo 789 | sed 's1\(8\)1\1\11' - 7119 ("\1\1" become "11")
+	*replace = copy_parsing_escapes(cmdstr_ptr, idx, delimiter != '&' ? delimiter : 0);
 
 	return ((cmdstr_ptr - cmdstr) + idx);
 }

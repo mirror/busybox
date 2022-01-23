@@ -329,10 +329,15 @@ testing "sed special char as s/// delimiter, in pattern" \
 	"sed 's+9\++X+'" \
 	"X8=17\n" "" "9+8=17\n"
 
-# but in replacement string, "\&" remains "\&", not interpreted as "&"
-testing "sed special char as s/// delimiter, in replacement" \
+# Matching GNU sed 4.8:
+# in replacement string, "\&" remains "\&", not interpreted as "&"
+testing "sed special char as s/// delimiter, in replacement 1" \
 	"sed 's&9&X\&&'" \
 	"X&+8=17\n" "" "9+8=17\n"
+# in replacement string, "\1" is interpreted as "1"
+testing "sed special char as s/// delimiter, in replacement 2" \
+	"sed 's1\(9\)1X\11'" \
+	"X1+8=17\n" "" "9+8=17\n"
 
 testing "sed /\$_in_regex/ should not match newlines, only end-of-line" \
 	"sed ': testcont; /\\\\$/{ =; N; b testcont }'" \
