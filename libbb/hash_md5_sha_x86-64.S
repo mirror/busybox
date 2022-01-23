@@ -20,16 +20,10 @@ sha1_process_block64:
 # eax..edx: a..d
 # ebp: e
 # esi,edi: temps
-# -32+4*n(%rsp),r8...r15: W[0..7,8..15]
-# (TODO: actually W[0..7] are used a bit more often, put _them_ into r8..r15?)
-	movl	$3, %eax
-1:
-	movq	(%rdi,%rax,8), %rsi
-	bswapq	%rsi
-	rolq	$32, %rsi
-	movq	%rsi, -32(%rsp,%rax,8)
-	decl	%eax
-	jns	1b
+# xmm0..xmm3: W[]
+# xmm4,xmm5: temps
+# xmm6: current round constant
+# -64(%rsp): area for passing RCONST + W[] from vector to integer units
 
 	movl	80(%rdi), %eax		# a = ctx->hash[0]
 	movl	84(%rdi), %ebx		# b = ctx->hash[1]
@@ -37,587 +31,709 @@ sha1_process_block64:
 	movl	92(%rdi), %edx		# d = ctx->hash[3]
 	movl	96(%rdi), %ebp		# e = ctx->hash[4]
 
+	movaps	rconst0x5A827999(%rip), %xmm6
+
+	# For round 1, steps 0 and 8..15, we pass W[0,8..15] in esi,r8..r15
+	# instead of spilling them to stack.
+	# (We lose parallelized addition of RCONST, but LEA
+	# can do two additions at once, so...)
+	movq	4*0(%rdi), %rsi
+	movq	4*2(%rdi), %r10
+	bswapq	%rsi
+	bswapq	%r10
+	rolq	$32, %rsi		# rsi = W[1]:W[0]
+	rolq	$32, %r10
+	movq	%rsi, %xmm0
+	movq	%r10, %xmm4
+	punpcklqdq %xmm4, %xmm0	# xmm0 = r10:rsi = (W[0],W[1],W[2],W[3])
+	movaps	%xmm0, %xmm4
+	paddd	%xmm6, %xmm4
+	movups	%xmm4, -64+4*0(%rsp)
+
+	movq	4*4(%rdi), %r8
+	movq	4*6(%rdi), %r10
+	bswapq	%r8
+	bswapq	%r10
+	rolq	$32, %r8
+	rolq	$32, %r10
+	movq	%r8, %xmm1
+	movq	%r10, %xmm4
+	punpcklqdq %xmm4, %xmm1	# xmm1 = r10:r8 = (W[4],W[5],W[6],W[7])
+	movaps	%xmm1, %xmm4
+	paddd	%xmm6, %xmm4
+	movups	%xmm4, -64+4*4(%rsp)
+
 	movq	4*8(%rdi), %r8
 	movq	4*10(%rdi), %r10
 	bswapq	%r8
 	bswapq	%r10
+	movl	%r8d, %r9d		# r9d = W[9]
+	rolq	$32, %r8		# r8  = W[9]:W[8]
+	movl	%r10d, %r11d		# r11d = W[11]
+	rolq	$32, %r10		# r10  = W[11]:W[10]
+	movq	%r8, %xmm2
+	movq	%r10, %xmm4
+	punpcklqdq %xmm4, %xmm2	# xmm2 = r10:r8 = (W[8],W[9],W[10],W[11])
+
 	movq	4*12(%rdi), %r12
 	movq	4*14(%rdi), %r14
 	bswapq	%r12
 	bswapq	%r14
-	movl	%r8d, %r9d
-	shrq	$32, %r8
-	movl	%r10d, %r11d
-	shrq	$32, %r10
-	movl	%r12d, %r13d
-	shrq	$32, %r12
-	movl	%r14d, %r15d
-	shrq	$32, %r14
+	movl	%r12d, %r13d		# r13d = W[13]
+	rolq	$32, %r12		# r12  = W[13]:W[12]
+	movl	%r14d, %r15d		# r15d = W[15]
+	rolq	$32, %r14		# r14  = W[15]:W[14]
+	movq	%r12, %xmm3
+	movq	%r14, %xmm4
+	punpcklqdq %xmm4, %xmm3	# xmm3 = r14:r12 = (W[12],W[13],W[14],W[15])
 
 # 0
-	# W[0], already in %esi
+	leal	0x5A827999(%rbp,%rsi), %ebp # e += RCONST + W[n]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
 	xorl	%edx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbp,%rsi), %ebp # e += RCONST + W[n]
 	addl	%edi, %ebp		# e += (((c ^ d) & b) ^ d)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 1
-	movl	-32+4*1(%rsp), %esi		# W[n]
+	addl	-64+4*1(%rsp), %edx	# e += RCONST + W[n]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	andl	%eax, %edi		# &b
 	xorl	%ecx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rdx,%rsi), %edx # e += RCONST + W[n]
 	addl	%edi, %edx		# e += (((c ^ d) & b) ^ d)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 2
-	movl	-32+4*2(%rsp), %esi		# W[n]
+	addl	-64+4*2(%rsp), %ecx	# e += RCONST + W[n]
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	andl	%ebp, %edi		# &b
 	xorl	%ebx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rcx,%rsi), %ecx # e += RCONST + W[n]
 	addl	%edi, %ecx		# e += (((c ^ d) & b) ^ d)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 3
-	movl	-32+4*3(%rsp), %esi		# W[n]
+	addl	-64+4*3(%rsp), %ebx	# e += RCONST + W[n]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	andl	%edx, %edi		# &b
 	xorl	%eax, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbx,%rsi), %ebx # e += RCONST + W[n]
 	addl	%edi, %ebx		# e += (((c ^ d) & b) ^ d)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 4
-	movl	-32+4*4(%rsp), %esi		# W[n]
+	addl	-64+4*4(%rsp), %eax	# e += RCONST + W[n]
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	andl	%ecx, %edi		# &b
 	xorl	%ebp, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rax,%rsi), %eax # e += RCONST + W[n]
 	addl	%edi, %eax		# e += (((c ^ d) & b) ^ d)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 5
-	movl	-32+4*5(%rsp), %esi		# W[n]
+	addl	-64+4*5(%rsp), %ebp	# e += RCONST + W[n]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
 	xorl	%edx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbp,%rsi), %ebp # e += RCONST + W[n]
 	addl	%edi, %ebp		# e += (((c ^ d) & b) ^ d)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 6
-	movl	-32+4*6(%rsp), %esi		# W[n]
+	addl	-64+4*6(%rsp), %edx	# e += RCONST + W[n]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	andl	%eax, %edi		# &b
 	xorl	%ecx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rdx,%rsi), %edx # e += RCONST + W[n]
 	addl	%edi, %edx		# e += (((c ^ d) & b) ^ d)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 7
-	movl	-32+4*7(%rsp), %esi		# W[n]
+	addl	-64+4*7(%rsp), %ecx	# e += RCONST + W[n]
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	andl	%ebp, %edi		# &b
 	xorl	%ebx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rcx,%rsi), %ecx # e += RCONST + W[n]
 	addl	%edi, %ecx		# e += (((c ^ d) & b) ^ d)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
+# PREP %xmm0 %xmm1 %xmm2 %xmm3 -64+16*0(%rsp)
+	movaps	%xmm3, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm2, %xmm0	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm0	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm0, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm0, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm0, %xmm0	# shift left by 1
+	psubd	%xmm4, %xmm0	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm0	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm0	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm0, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*0(%rsp)
 # 8
-	# W[n], in %r8
+	leal	0x5A827999(%rbx,%r8), %ebx # e += RCONST + W[n]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	andl	%edx, %edi		# &b
 	xorl	%eax, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbx,%r8), %ebx # e += RCONST + W[n]
 	addl	%edi, %ebx		# e += (((c ^ d) & b) ^ d)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 9
-	# W[n], in %r9
+	leal	0x5A827999(%rax,%r9), %eax # e += RCONST + W[n]
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	andl	%ecx, %edi		# &b
 	xorl	%ebp, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rax,%r9), %eax # e += RCONST + W[n]
 	addl	%edi, %eax		# e += (((c ^ d) & b) ^ d)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 10
-	# W[n], in %r10
+	leal	0x5A827999(%rbp,%r10), %ebp # e += RCONST + W[n]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
 	xorl	%edx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbp,%r10), %ebp # e += RCONST + W[n]
 	addl	%edi, %ebp		# e += (((c ^ d) & b) ^ d)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 11
-	# W[n], in %r11
+	leal	0x5A827999(%rdx,%r11), %edx # e += RCONST + W[n]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	andl	%eax, %edi		# &b
 	xorl	%ecx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rdx,%r11), %edx # e += RCONST + W[n]
 	addl	%edi, %edx		# e += (((c ^ d) & b) ^ d)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
+	movaps	rconst0x6ED9EBA1(%rip), %xmm6
+# PREP %xmm1 %xmm2 %xmm3 %xmm0 -64+16*1(%rsp)
+	movaps	%xmm0, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm3, %xmm1	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm1	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm1, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm1, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm1, %xmm1	# shift left by 1
+	psubd	%xmm4, %xmm1	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm1	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm1	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm1, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*1(%rsp)
 # 12
-	# W[n], in %r12
+	leal	0x5A827999(%rcx,%r12), %ecx # e += RCONST + W[n]
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	andl	%ebp, %edi		# &b
 	xorl	%ebx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rcx,%r12), %ecx # e += RCONST + W[n]
 	addl	%edi, %ecx		# e += (((c ^ d) & b) ^ d)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 13
-	# W[n], in %r13
+	leal	0x5A827999(%rbx,%r13), %ebx # e += RCONST + W[n]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	andl	%edx, %edi		# &b
 	xorl	%eax, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbx,%r13), %ebx # e += RCONST + W[n]
 	addl	%edi, %ebx		# e += (((c ^ d) & b) ^ d)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 14
-	# W[n], in %r14
+	leal	0x5A827999(%rax,%r14), %eax # e += RCONST + W[n]
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	andl	%ecx, %edi		# &b
 	xorl	%ebp, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rax,%r14), %eax # e += RCONST + W[n]
 	addl	%edi, %eax		# e += (((c ^ d) & b) ^ d)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 15
-	# W[n], in %r15
+	leal	0x5A827999(%rbp,%r15), %ebp # e += RCONST + W[n]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
 	xorl	%edx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbp,%r15), %ebp # e += RCONST + W[n]
 	addl	%edi, %ebp		# e += (((c ^ d) & b) ^ d)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
+# PREP %xmm2 %xmm3 %xmm0 %xmm1 -64+16*2(%rsp)
+	movaps	%xmm1, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm0, %xmm2	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm2	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm2, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm2, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm2, %xmm2	# shift left by 1
+	psubd	%xmm4, %xmm2	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm2	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm2	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm2, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*2(%rsp)
 # 16
-	movl	%r13d, %esi	# W[(n+13) & 15]
-	xorl	%r8d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*2(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*0(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*0(%rsp)		# store to W[n & 15]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	andl	%eax, %edi		# &b
 	xorl	%ecx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rdx,%rsi), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*0(%rsp), %edx	# e += RCONST + W[n & 15]
 	addl	%edi, %edx		# e += (((c ^ d) & b) ^ d)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 17
-	movl	%r14d, %esi	# W[(n+13) & 15]
-	xorl	%r9d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*3(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*1(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*1(%rsp)		# store to W[n & 15]
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	andl	%ebp, %edi		# &b
 	xorl	%ebx, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rcx,%rsi), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*1(%rsp), %ecx	# e += RCONST + W[n & 15]
 	addl	%edi, %ecx		# e += (((c ^ d) & b) ^ d)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 18
-	movl	%r15d, %esi	# W[(n+13) & 15]
-	xorl	%r10d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*4(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*2(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*2(%rsp)		# store to W[n & 15]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	andl	%edx, %edi		# &b
 	xorl	%eax, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rbx,%rsi), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*2(%rsp), %ebx	# e += RCONST + W[n & 15]
 	addl	%edi, %ebx		# e += (((c ^ d) & b) ^ d)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 19
-	movl	-32+4*0(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r11d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*5(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*3(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*3(%rsp)		# store to W[n & 15]
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	andl	%ecx, %edi		# &b
 	xorl	%ebp, %edi		# (((c ^ d) & b) ^ d)
-	leal	0x5A827999(%rax,%rsi), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*3(%rsp), %eax	# e += RCONST + W[n & 15]
 	addl	%edi, %eax		# e += (((c ^ d) & b) ^ d)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
+# PREP %xmm3 %xmm0 %xmm1 %xmm2 -64+16*3(%rsp)
+	movaps	%xmm2, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm1, %xmm3	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm3	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm3, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm3, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm3, %xmm3	# shift left by 1
+	psubd	%xmm4, %xmm3	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm3	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm3	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm3, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*3(%rsp)
 # 20
-	movl	-32+4*1(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r12d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*6(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*4(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*4(%rsp)		# store to W[n & 15]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	xorl	%ebx, %edi		# ^b
-	leal	0x6ED9EBA1(%rbp,%rsi), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*4(%rsp), %ebp	# e += RCONST + W[n & 15]
 	addl	%edi, %ebp		# e += (c ^ d ^ b)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 21
-	movl	-32+4*2(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r13d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*7(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*5(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*5(%rsp)		# store to W[n & 15]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	xorl	%eax, %edi		# ^b
-	leal	0x6ED9EBA1(%rdx,%rsi), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*5(%rsp), %edx	# e += RCONST + W[n & 15]
 	addl	%edi, %edx		# e += (c ^ d ^ b)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 22
-	movl	-32+4*3(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r14d, %esi		# ^W[(n+8) & 15]
-	xorl	%r8d, %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*6(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*6(%rsp)		# store to W[n & 15]
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	xorl	%ebp, %edi		# ^b
-	leal	0x6ED9EBA1(%rcx,%rsi), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*6(%rsp), %ecx	# e += RCONST + W[n & 15]
 	addl	%edi, %ecx		# e += (c ^ d ^ b)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 23
-	movl	-32+4*4(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r15d, %esi		# ^W[(n+8) & 15]
-	xorl	%r9d, %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*7(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*7(%rsp)		# store to W[n & 15]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	xorl	%edx, %edi		# ^b
-	leal	0x6ED9EBA1(%rbx,%rsi), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*7(%rsp), %ebx	# e += RCONST + W[n & 15]
 	addl	%edi, %ebx		# e += (c ^ d ^ b)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
+# PREP %xmm0 %xmm1 %xmm2 %xmm3 -64+16*0(%rsp)
+	movaps	%xmm3, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm2, %xmm0	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm0	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm0, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm0, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm0, %xmm0	# shift left by 1
+	psubd	%xmm4, %xmm0	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm0	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm0	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm0, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*0(%rsp)
 # 24
-	xorl	-32+4*5(%rsp), %r8d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*0(%rsp), %r8d	# ^W[(n+8) & 15]
-	xorl	%r10d, %r8d	# ^W[(n+2) & 15]
-	roll	%r8d		#
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	xorl	%ecx, %edi		# ^b
-	leal	0x6ED9EBA1(%rax,%r8), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*8(%rsp), %eax	# e += RCONST + W[n & 15]
 	addl	%edi, %eax		# e += (c ^ d ^ b)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 25
-	xorl	-32+4*6(%rsp), %r9d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*1(%rsp), %r9d	# ^W[(n+8) & 15]
-	xorl	%r11d, %r9d	# ^W[(n+2) & 15]
-	roll	%r9d		#
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	xorl	%ebx, %edi		# ^b
-	leal	0x6ED9EBA1(%rbp,%r9), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*9(%rsp), %ebp	# e += RCONST + W[n & 15]
 	addl	%edi, %ebp		# e += (c ^ d ^ b)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 26
-	xorl	-32+4*7(%rsp), %r10d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*2(%rsp), %r10d	# ^W[(n+8) & 15]
-	xorl	%r12d, %r10d	# ^W[(n+2) & 15]
-	roll	%r10d		#
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	xorl	%eax, %edi		# ^b
-	leal	0x6ED9EBA1(%rdx,%r10), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*10(%rsp), %edx	# e += RCONST + W[n & 15]
 	addl	%edi, %edx		# e += (c ^ d ^ b)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 27
-	xorl	%r8d, %r11d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*3(%rsp), %r11d	# ^W[(n+8) & 15]
-	xorl	%r13d, %r11d	# ^W[(n+2) & 15]
-	roll	%r11d		#
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	xorl	%ebp, %edi		# ^b
-	leal	0x6ED9EBA1(%rcx,%r11), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*11(%rsp), %ecx	# e += RCONST + W[n & 15]
 	addl	%edi, %ecx		# e += (c ^ d ^ b)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
+# PREP %xmm1 %xmm2 %xmm3 %xmm0 -64+16*1(%rsp)
+	movaps	%xmm0, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm3, %xmm1	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm1	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm1, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm1, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm1, %xmm1	# shift left by 1
+	psubd	%xmm4, %xmm1	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm1	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm1	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm1, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*1(%rsp)
 # 28
-	xorl	%r9d, %r12d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*4(%rsp), %r12d	# ^W[(n+8) & 15]
-	xorl	%r14d, %r12d	# ^W[(n+2) & 15]
-	roll	%r12d		#
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	xorl	%edx, %edi		# ^b
-	leal	0x6ED9EBA1(%rbx,%r12), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*12(%rsp), %ebx	# e += RCONST + W[n & 15]
 	addl	%edi, %ebx		# e += (c ^ d ^ b)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 29
-	xorl	%r10d, %r13d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*5(%rsp), %r13d	# ^W[(n+8) & 15]
-	xorl	%r15d, %r13d	# ^W[(n+2) & 15]
-	roll	%r13d		#
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	xorl	%ecx, %edi		# ^b
-	leal	0x6ED9EBA1(%rax,%r13), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*13(%rsp), %eax	# e += RCONST + W[n & 15]
 	addl	%edi, %eax		# e += (c ^ d ^ b)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 30
-	xorl	%r11d, %r14d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*6(%rsp), %r14d	# ^W[(n+8) & 15]
-	xorl	-32+4*0(%rsp), %r14d	# ^W[(n+2) & 15]
-	roll	%r14d		#
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	xorl	%ebx, %edi		# ^b
-	leal	0x6ED9EBA1(%rbp,%r14), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*14(%rsp), %ebp	# e += RCONST + W[n & 15]
 	addl	%edi, %ebp		# e += (c ^ d ^ b)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 31
-	xorl	%r12d, %r15d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*7(%rsp), %r15d	# ^W[(n+8) & 15]
-	xorl	-32+4*1(%rsp), %r15d	# ^W[(n+2) & 15]
-	roll	%r15d		#
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	xorl	%eax, %edi		# ^b
-	leal	0x6ED9EBA1(%rdx,%r15), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*15(%rsp), %edx	# e += RCONST + W[n & 15]
 	addl	%edi, %edx		# e += (c ^ d ^ b)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
+	movaps	rconst0x8F1BBCDC(%rip), %xmm6
+# PREP %xmm2 %xmm3 %xmm0 %xmm1 -64+16*2(%rsp)
+	movaps	%xmm1, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm0, %xmm2	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm2	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm2, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm2, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm2, %xmm2	# shift left by 1
+	psubd	%xmm4, %xmm2	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm2	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm2	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm2, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*2(%rsp)
 # 32
-	movl	%r13d, %esi	# W[(n+13) & 15]
-	xorl	%r8d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*2(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*0(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*0(%rsp)		# store to W[n & 15]
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	xorl	%ebp, %edi		# ^b
-	leal	0x6ED9EBA1(%rcx,%rsi), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*0(%rsp), %ecx	# e += RCONST + W[n & 15]
 	addl	%edi, %ecx		# e += (c ^ d ^ b)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 33
-	movl	%r14d, %esi	# W[(n+13) & 15]
-	xorl	%r9d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*3(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*1(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*1(%rsp)		# store to W[n & 15]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	xorl	%edx, %edi		# ^b
-	leal	0x6ED9EBA1(%rbx,%rsi), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*1(%rsp), %ebx	# e += RCONST + W[n & 15]
 	addl	%edi, %ebx		# e += (c ^ d ^ b)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 34
-	movl	%r15d, %esi	# W[(n+13) & 15]
-	xorl	%r10d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*4(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*2(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*2(%rsp)		# store to W[n & 15]
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	xorl	%ecx, %edi		# ^b
-	leal	0x6ED9EBA1(%rax,%rsi), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*2(%rsp), %eax	# e += RCONST + W[n & 15]
 	addl	%edi, %eax		# e += (c ^ d ^ b)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 35
-	movl	-32+4*0(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r11d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*5(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*3(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*3(%rsp)		# store to W[n & 15]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	xorl	%ebx, %edi		# ^b
-	leal	0x6ED9EBA1(%rbp,%rsi), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*3(%rsp), %ebp	# e += RCONST + W[n & 15]
 	addl	%edi, %ebp		# e += (c ^ d ^ b)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
+# PREP %xmm3 %xmm0 %xmm1 %xmm2 -64+16*3(%rsp)
+	movaps	%xmm2, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm1, %xmm3	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm3	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm3, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm3, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm3, %xmm3	# shift left by 1
+	psubd	%xmm4, %xmm3	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm3	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm3	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm3, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*3(%rsp)
 # 36
-	movl	-32+4*1(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r12d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*6(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*4(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*4(%rsp)		# store to W[n & 15]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	xorl	%eax, %edi		# ^b
-	leal	0x6ED9EBA1(%rdx,%rsi), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*4(%rsp), %edx	# e += RCONST + W[n & 15]
 	addl	%edi, %edx		# e += (c ^ d ^ b)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 37
-	movl	-32+4*2(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r13d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*7(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*5(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*5(%rsp)		# store to W[n & 15]
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	xorl	%ebp, %edi		# ^b
-	leal	0x6ED9EBA1(%rcx,%rsi), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*5(%rsp), %ecx	# e += RCONST + W[n & 15]
 	addl	%edi, %ecx		# e += (c ^ d ^ b)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 38
-	movl	-32+4*3(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r14d, %esi		# ^W[(n+8) & 15]
-	xorl	%r8d, %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*6(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*6(%rsp)		# store to W[n & 15]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	xorl	%edx, %edi		# ^b
-	leal	0x6ED9EBA1(%rbx,%rsi), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*6(%rsp), %ebx	# e += RCONST + W[n & 15]
 	addl	%edi, %ebx		# e += (c ^ d ^ b)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 39
-	movl	-32+4*4(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r15d, %esi		# ^W[(n+8) & 15]
-	xorl	%r9d, %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*7(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*7(%rsp)		# store to W[n & 15]
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	xorl	%ecx, %edi		# ^b
-	leal	0x6ED9EBA1(%rax,%rsi), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*7(%rsp), %eax	# e += RCONST + W[n & 15]
 	addl	%edi, %eax		# e += (c ^ d ^ b)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
+# PREP %xmm0 %xmm1 %xmm2 %xmm3 -64+16*0(%rsp)
+	movaps	%xmm3, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm2, %xmm0	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm0	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm0, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm0, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm0, %xmm0	# shift left by 1
+	psubd	%xmm4, %xmm0	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm0	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm0	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm0, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*0(%rsp)
 # 40
 	movl	%ebx, %edi		# di: b
 	movl	%ebx, %esi		# si: b
@@ -625,12 +741,8 @@ sha1_process_block64:
 	andl	%ecx, %esi		# si: b & c
 	andl	%edx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	-32+4*5(%rsp), %r8d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*0(%rsp), %r8d	# ^W[(n+8) & 15]
-	xorl	%r10d, %r8d	# ^W[(n+2) & 15]
-	roll	%r8d		#
 	addl	%edi, %ebp		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rbp,%r8), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*8(%rsp), %ebp	# e += RCONST + W[n & 15]
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
@@ -642,12 +754,8 @@ sha1_process_block64:
 	andl	%ebx, %esi		# si: b & c
 	andl	%ecx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	-32+4*6(%rsp), %r9d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*1(%rsp), %r9d	# ^W[(n+8) & 15]
-	xorl	%r11d, %r9d	# ^W[(n+2) & 15]
-	roll	%r9d		#
 	addl	%edi, %edx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rdx,%r9), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*9(%rsp), %edx	# e += RCONST + W[n & 15]
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
@@ -659,12 +767,8 @@ sha1_process_block64:
 	andl	%eax, %esi		# si: b & c
 	andl	%ebx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	-32+4*7(%rsp), %r10d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*2(%rsp), %r10d	# ^W[(n+8) & 15]
-	xorl	%r12d, %r10d	# ^W[(n+2) & 15]
-	roll	%r10d		#
 	addl	%edi, %ecx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rcx,%r10), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*10(%rsp), %ecx	# e += RCONST + W[n & 15]
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
@@ -676,16 +780,37 @@ sha1_process_block64:
 	andl	%ebp, %esi		# si: b & c
 	andl	%eax, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	%r8d, %r11d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*3(%rsp), %r11d	# ^W[(n+8) & 15]
-	xorl	%r13d, %r11d	# ^W[(n+2) & 15]
-	roll	%r11d		#
 	addl	%edi, %ebx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rbx,%r11), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*11(%rsp), %ebx	# e += RCONST + W[n & 15]
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
+# PREP %xmm1 %xmm2 %xmm3 %xmm0 -64+16*1(%rsp)
+	movaps	%xmm0, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm3, %xmm1	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm1	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm1, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm1, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm1, %xmm1	# shift left by 1
+	psubd	%xmm4, %xmm1	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm1	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm1	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm1, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*1(%rsp)
 # 44
 	movl	%ecx, %edi		# di: b
 	movl	%ecx, %esi		# si: b
@@ -693,12 +818,8 @@ sha1_process_block64:
 	andl	%edx, %esi		# si: b & c
 	andl	%ebp, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	%r9d, %r12d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*4(%rsp), %r12d	# ^W[(n+8) & 15]
-	xorl	%r14d, %r12d	# ^W[(n+2) & 15]
-	roll	%r12d		#
 	addl	%edi, %eax		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rax,%r12), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*12(%rsp), %eax	# e += RCONST + W[n & 15]
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
@@ -710,12 +831,8 @@ sha1_process_block64:
 	andl	%ecx, %esi		# si: b & c
 	andl	%edx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	%r10d, %r13d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*5(%rsp), %r13d	# ^W[(n+8) & 15]
-	xorl	%r15d, %r13d	# ^W[(n+2) & 15]
-	roll	%r13d		#
 	addl	%edi, %ebp		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rbp,%r13), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*13(%rsp), %ebp	# e += RCONST + W[n & 15]
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
@@ -727,12 +844,8 @@ sha1_process_block64:
 	andl	%ebx, %esi		# si: b & c
 	andl	%ecx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	%r11d, %r14d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*6(%rsp), %r14d	# ^W[(n+8) & 15]
-	xorl	-32+4*0(%rsp), %r14d	# ^W[(n+2) & 15]
-	roll	%r14d		#
 	addl	%edi, %edx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rdx,%r14), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*14(%rsp), %edx	# e += RCONST + W[n & 15]
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
@@ -744,16 +857,37 @@ sha1_process_block64:
 	andl	%eax, %esi		# si: b & c
 	andl	%ebx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	%r12d, %r15d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*7(%rsp), %r15d	# ^W[(n+8) & 15]
-	xorl	-32+4*1(%rsp), %r15d	# ^W[(n+2) & 15]
-	roll	%r15d		#
 	addl	%edi, %ecx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rcx,%r15), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*15(%rsp), %ecx	# e += RCONST + W[n & 15]
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
+# PREP %xmm2 %xmm3 %xmm0 %xmm1 -64+16*2(%rsp)
+	movaps	%xmm1, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm0, %xmm2	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm2	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm2, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm2, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm2, %xmm2	# shift left by 1
+	psubd	%xmm4, %xmm2	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm2	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm2	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm2, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*2(%rsp)
 # 48
 	movl	%edx, %edi		# di: b
 	movl	%edx, %esi		# si: b
@@ -761,14 +895,8 @@ sha1_process_block64:
 	andl	%ebp, %esi		# si: b & c
 	andl	%eax, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	movl	%r13d, %esi	# W[(n+13) & 15]
-	xorl	%r8d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*2(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*0(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*0(%rsp)		# store to W[n & 15]
 	addl	%edi, %ebx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rbx,%rsi), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*0(%rsp), %ebx	# e += RCONST + W[n & 15]
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
@@ -780,14 +908,8 @@ sha1_process_block64:
 	andl	%edx, %esi		# si: b & c
 	andl	%ebp, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	movl	%r14d, %esi	# W[(n+13) & 15]
-	xorl	%r9d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*3(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*1(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*1(%rsp)		# store to W[n & 15]
 	addl	%edi, %eax		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rax,%rsi), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*1(%rsp), %eax	# e += RCONST + W[n & 15]
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
@@ -799,14 +921,8 @@ sha1_process_block64:
 	andl	%ecx, %esi		# si: b & c
 	andl	%edx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	movl	%r15d, %esi	# W[(n+13) & 15]
-	xorl	%r10d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*4(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*2(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*2(%rsp)		# store to W[n & 15]
 	addl	%edi, %ebp		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rbp,%rsi), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*2(%rsp), %ebp	# e += RCONST + W[n & 15]
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
@@ -818,18 +934,38 @@ sha1_process_block64:
 	andl	%ebx, %esi		# si: b & c
 	andl	%ecx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	movl	-32+4*0(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r11d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*5(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*3(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*3(%rsp)		# store to W[n & 15]
 	addl	%edi, %edx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rdx,%rsi), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*3(%rsp), %edx	# e += RCONST + W[n & 15]
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
+	movaps	rconst0xCA62C1D6(%rip), %xmm6
+# PREP %xmm3 %xmm0 %xmm1 %xmm2 -64+16*3(%rsp)
+	movaps	%xmm2, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm1, %xmm3	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm3	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm3, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm3, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm3, %xmm3	# shift left by 1
+	psubd	%xmm4, %xmm3	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm3	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm3	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm3, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*3(%rsp)
 # 52
 	movl	%ebp, %edi		# di: b
 	movl	%ebp, %esi		# si: b
@@ -837,14 +973,8 @@ sha1_process_block64:
 	andl	%eax, %esi		# si: b & c
 	andl	%ebx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	movl	-32+4*1(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r12d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*6(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*4(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*4(%rsp)		# store to W[n & 15]
 	addl	%edi, %ecx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rcx,%rsi), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*4(%rsp), %ecx	# e += RCONST + W[n & 15]
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
@@ -856,14 +986,8 @@ sha1_process_block64:
 	andl	%ebp, %esi		# si: b & c
 	andl	%eax, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	movl	-32+4*2(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r13d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*7(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*5(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*5(%rsp)		# store to W[n & 15]
 	addl	%edi, %ebx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rbx,%rsi), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*5(%rsp), %ebx	# e += RCONST + W[n & 15]
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
@@ -875,14 +999,8 @@ sha1_process_block64:
 	andl	%edx, %esi		# si: b & c
 	andl	%ebp, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	movl	-32+4*3(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r14d, %esi		# ^W[(n+8) & 15]
-	xorl	%r8d, %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*6(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*6(%rsp)		# store to W[n & 15]
 	addl	%edi, %eax		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rax,%rsi), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*6(%rsp), %eax	# e += RCONST + W[n & 15]
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
@@ -894,18 +1012,37 @@ sha1_process_block64:
 	andl	%ecx, %esi		# si: b & c
 	andl	%edx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	movl	-32+4*4(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r15d, %esi		# ^W[(n+8) & 15]
-	xorl	%r9d, %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*7(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*7(%rsp)		# store to W[n & 15]
 	addl	%edi, %ebp		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rbp,%rsi), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*7(%rsp), %ebp	# e += RCONST + W[n & 15]
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
+# PREP %xmm0 %xmm1 %xmm2 %xmm3 -64+16*0(%rsp)
+	movaps	%xmm3, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm2, %xmm0	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm0	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm0, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm0, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm0, %xmm0	# shift left by 1
+	psubd	%xmm4, %xmm0	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm0	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm0	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm0, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*0(%rsp)
 # 56
 	movl	%eax, %edi		# di: b
 	movl	%eax, %esi		# si: b
@@ -913,12 +1050,8 @@ sha1_process_block64:
 	andl	%ebx, %esi		# si: b & c
 	andl	%ecx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	-32+4*5(%rsp), %r8d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*0(%rsp), %r8d	# ^W[(n+8) & 15]
-	xorl	%r10d, %r8d	# ^W[(n+2) & 15]
-	roll	%r8d		#
 	addl	%edi, %edx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rdx,%r8), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*8(%rsp), %edx	# e += RCONST + W[n & 15]
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
@@ -930,12 +1063,8 @@ sha1_process_block64:
 	andl	%eax, %esi		# si: b & c
 	andl	%ebx, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	-32+4*6(%rsp), %r9d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*1(%rsp), %r9d	# ^W[(n+8) & 15]
-	xorl	%r11d, %r9d	# ^W[(n+2) & 15]
-	roll	%r9d		#
 	addl	%edi, %ecx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rcx,%r9), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*9(%rsp), %ecx	# e += RCONST + W[n & 15]
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
@@ -947,12 +1076,8 @@ sha1_process_block64:
 	andl	%ebp, %esi		# si: b & c
 	andl	%eax, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	-32+4*7(%rsp), %r10d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*2(%rsp), %r10d	# ^W[(n+8) & 15]
-	xorl	%r12d, %r10d	# ^W[(n+2) & 15]
-	roll	%r10d		#
 	addl	%edi, %ebx		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rbx,%r10), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*10(%rsp), %ebx	# e += RCONST + W[n & 15]
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
@@ -964,307 +1089,282 @@ sha1_process_block64:
 	andl	%edx, %esi		# si: b & c
 	andl	%ebp, %edi		# di: (b | c) & d
 	orl	%esi, %edi		# ((b | c) & d) | (b & c)
-	xorl	%r8d, %r11d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*3(%rsp), %r11d	# ^W[(n+8) & 15]
-	xorl	%r13d, %r11d	# ^W[(n+2) & 15]
-	roll	%r11d		#
 	addl	%edi, %eax		# += ((b | c) & d) | (b & c)
-	leal	-0x70E44324(%rax,%r11), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*11(%rsp), %eax	# e += RCONST + W[n & 15]
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
+# PREP %xmm1 %xmm2 %xmm3 %xmm0 -64+16*1(%rsp)
+	movaps	%xmm0, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm3, %xmm1	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm1	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm1, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm1, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm1, %xmm1	# shift left by 1
+	psubd	%xmm4, %xmm1	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm1	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm1	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm1, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*1(%rsp)
 # 60
-	xorl	%r9d, %r12d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*4(%rsp), %r12d	# ^W[(n+8) & 15]
-	xorl	%r14d, %r12d	# ^W[(n+2) & 15]
-	roll	%r12d		#
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	xorl	%ebx, %edi		# ^b
-	leal	-0x359D3E2A(%rbp,%r12), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*12(%rsp), %ebp	# e += RCONST + W[n & 15]
 	addl	%edi, %ebp		# e += (c ^ d ^ b)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 61
-	xorl	%r10d, %r13d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*5(%rsp), %r13d	# ^W[(n+8) & 15]
-	xorl	%r15d, %r13d	# ^W[(n+2) & 15]
-	roll	%r13d		#
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	xorl	%eax, %edi		# ^b
-	leal	-0x359D3E2A(%rdx,%r13), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*13(%rsp), %edx	# e += RCONST + W[n & 15]
 	addl	%edi, %edx		# e += (c ^ d ^ b)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 62
-	xorl	%r11d, %r14d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*6(%rsp), %r14d	# ^W[(n+8) & 15]
-	xorl	-32+4*0(%rsp), %r14d	# ^W[(n+2) & 15]
-	roll	%r14d		#
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	xorl	%ebp, %edi		# ^b
-	leal	-0x359D3E2A(%rcx,%r14), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*14(%rsp), %ecx	# e += RCONST + W[n & 15]
 	addl	%edi, %ecx		# e += (c ^ d ^ b)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 63
-	xorl	%r12d, %r15d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*7(%rsp), %r15d	# ^W[(n+8) & 15]
-	xorl	-32+4*1(%rsp), %r15d	# ^W[(n+2) & 15]
-	roll	%r15d		#
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	xorl	%edx, %edi		# ^b
-	leal	-0x359D3E2A(%rbx,%r15), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*15(%rsp), %ebx	# e += RCONST + W[n & 15]
 	addl	%edi, %ebx		# e += (c ^ d ^ b)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
+# PREP %xmm2 %xmm3 %xmm0 %xmm1 -64+16*2(%rsp)
+	movaps	%xmm1, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm0, %xmm2	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm2	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm2, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm2, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm2, %xmm2	# shift left by 1
+	psubd	%xmm4, %xmm2	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm2	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm2	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm2, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*2(%rsp)
 # 64
-	movl	%r13d, %esi	# W[(n+13) & 15]
-	xorl	%r8d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*2(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*0(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*0(%rsp)		# store to W[n & 15]
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	xorl	%ecx, %edi		# ^b
-	leal	-0x359D3E2A(%rax,%rsi), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*0(%rsp), %eax	# e += RCONST + W[n & 15]
 	addl	%edi, %eax		# e += (c ^ d ^ b)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 65
-	movl	%r14d, %esi	# W[(n+13) & 15]
-	xorl	%r9d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*3(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*1(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*1(%rsp)		# store to W[n & 15]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	xorl	%ebx, %edi		# ^b
-	leal	-0x359D3E2A(%rbp,%rsi), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*1(%rsp), %ebp	# e += RCONST + W[n & 15]
 	addl	%edi, %ebp		# e += (c ^ d ^ b)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 66
-	movl	%r15d, %esi	# W[(n+13) & 15]
-	xorl	%r10d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*4(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*2(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*2(%rsp)		# store to W[n & 15]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	xorl	%eax, %edi		# ^b
-	leal	-0x359D3E2A(%rdx,%rsi), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*2(%rsp), %edx	# e += RCONST + W[n & 15]
 	addl	%edi, %edx		# e += (c ^ d ^ b)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 67
-	movl	-32+4*0(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r11d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*5(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*3(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*3(%rsp)		# store to W[n & 15]
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	xorl	%ebp, %edi		# ^b
-	leal	-0x359D3E2A(%rcx,%rsi), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*3(%rsp), %ecx	# e += RCONST + W[n & 15]
 	addl	%edi, %ecx		# e += (c ^ d ^ b)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
+# PREP %xmm3 %xmm0 %xmm1 %xmm2 -64+16*3(%rsp)
+	movaps	%xmm2, %xmm4
+	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
+	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+	xorps	%xmm1, %xmm3	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
+	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
+	xorps	%xmm5, %xmm3	# ^
+	# W0 = unrotated (W[0]..W[3]), still needs W[3] fixup
+	movaps	%xmm3, %xmm5
+	xorps	%xmm4, %xmm4	# rol(W0,1):
+	pcmpgtd	%xmm3, %xmm4	# ffffffff for elements <0 (ones with msb bit 1)
+	paddd	%xmm3, %xmm3	# shift left by 1
+	psubd	%xmm4, %xmm3	# add 1 to those who had msb bit 1
+	# W0 = rotated (W[0]..W[3]), still needs W[3] fixup
+	pslldq	$12, %xmm5	# lshift by 12 bytes: T2 = (0,0,0,unrotW[0])
+	movaps	%xmm5, %xmm4
+	pslld	$2, %xmm5
+	psrld	$30, %xmm4
+#	xorps	%xmm4, %xmm5	# rol((0,0,0,unrotW[0]),2)
+	xorps	%xmm4, %xmm3	# same result, but does not depend on/does not modify T2
+	xorps	%xmm5, %xmm3	# W0 = rol(W[0]..W[3],1) ^ (0,0,0,rol(unrotW[0],2))
+	movaps	%xmm3, %xmm5
+	paddd	%xmm6, %xmm5
+	movups	%xmm5, -64+16*3(%rsp)
 # 68
-	movl	-32+4*1(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r12d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*6(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*4(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*4(%rsp)		# store to W[n & 15]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	xorl	%edx, %edi		# ^b
-	leal	-0x359D3E2A(%rbx,%rsi), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*4(%rsp), %ebx	# e += RCONST + W[n & 15]
 	addl	%edi, %ebx		# e += (c ^ d ^ b)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 69
-	movl	-32+4*2(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r13d, %esi		# ^W[(n+8) & 15]
-	xorl	-32+4*7(%rsp), %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*5(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*5(%rsp)		# store to W[n & 15]
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	xorl	%ecx, %edi		# ^b
-	leal	-0x359D3E2A(%rax,%rsi), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*5(%rsp), %eax	# e += RCONST + W[n & 15]
 	addl	%edi, %eax		# e += (c ^ d ^ b)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 70
-	movl	-32+4*3(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r14d, %esi		# ^W[(n+8) & 15]
-	xorl	%r8d, %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*6(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*6(%rsp)		# store to W[n & 15]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	xorl	%ebx, %edi		# ^b
-	leal	-0x359D3E2A(%rbp,%rsi), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*6(%rsp), %ebp	# e += RCONST + W[n & 15]
 	addl	%edi, %ebp		# e += (c ^ d ^ b)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 71
-	movl	-32+4*4(%rsp), %esi	# W[(n+13) & 15]
-	xorl	%r15d, %esi		# ^W[(n+8) & 15]
-	xorl	%r9d, %esi		# ^W[(n+2) & 15]
-	xorl	-32+4*7(%rsp), %esi		# ^W[n & 15]
-	roll	%esi			#
-	movl	%esi, -32+4*7(%rsp)		# store to W[n & 15]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	xorl	%eax, %edi		# ^b
-	leal	-0x359D3E2A(%rdx,%rsi), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*7(%rsp), %edx	# e += RCONST + W[n & 15]
 	addl	%edi, %edx		# e += (c ^ d ^ b)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 72
-	xorl	-32+4*5(%rsp), %r8d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*0(%rsp), %r8d	# ^W[(n+8) & 15]
-	xorl	%r10d, %r8d	# ^W[(n+2) & 15]
-	roll	%r8d		#
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	xorl	%ebp, %edi		# ^b
-	leal	-0x359D3E2A(%rcx,%r8), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*8(%rsp), %ecx	# e += RCONST + W[n & 15]
 	addl	%edi, %ecx		# e += (c ^ d ^ b)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 73
-	xorl	-32+4*6(%rsp), %r9d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*1(%rsp), %r9d	# ^W[(n+8) & 15]
-	xorl	%r11d, %r9d	# ^W[(n+2) & 15]
-	roll	%r9d		#
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	xorl	%edx, %edi		# ^b
-	leal	-0x359D3E2A(%rbx,%r9), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*9(%rsp), %ebx	# e += RCONST + W[n & 15]
 	addl	%edi, %ebx		# e += (c ^ d ^ b)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 74
-	xorl	-32+4*7(%rsp), %r10d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*2(%rsp), %r10d	# ^W[(n+8) & 15]
-	xorl	%r12d, %r10d	# ^W[(n+2) & 15]
-	roll	%r10d		#
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	xorl	%ecx, %edi		# ^b
-	leal	-0x359D3E2A(%rax,%r10), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*10(%rsp), %eax	# e += RCONST + W[n & 15]
 	addl	%edi, %eax		# e += (c ^ d ^ b)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 75
-	xorl	%r8d, %r11d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*3(%rsp), %r11d	# ^W[(n+8) & 15]
-	xorl	%r13d, %r11d	# ^W[(n+2) & 15]
-	roll	%r11d		#
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	xorl	%ebx, %edi		# ^b
-	leal	-0x359D3E2A(%rbp,%r11), %ebp # e += RCONST + W[n & 15]
+	addl	-64+4*11(%rsp), %ebp	# e += RCONST + W[n & 15]
 	addl	%edi, %ebp		# e += (c ^ d ^ b)
 	movl	%eax, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 76
-	xorl	%r9d, %r12d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*4(%rsp), %r12d	# ^W[(n+8) & 15]
-	xorl	%r14d, %r12d	# ^W[(n+2) & 15]
-	roll	%r12d		#
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	xorl	%eax, %edi		# ^b
-	leal	-0x359D3E2A(%rdx,%r12), %edx # e += RCONST + W[n & 15]
+	addl	-64+4*12(%rsp), %edx	# e += RCONST + W[n & 15]
 	addl	%edi, %edx		# e += (c ^ d ^ b)
 	movl	%ebp, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 77
-	xorl	%r10d, %r13d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*5(%rsp), %r13d	# ^W[(n+8) & 15]
-	xorl	%r15d, %r13d	# ^W[(n+2) & 15]
-	roll	%r13d		#
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	xorl	%ebp, %edi		# ^b
-	leal	-0x359D3E2A(%rcx,%r13), %ecx # e += RCONST + W[n & 15]
+	addl	-64+4*13(%rsp), %ecx	# e += RCONST + W[n & 15]
 	addl	%edi, %ecx		# e += (c ^ d ^ b)
 	movl	%edx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 78
-	xorl	%r11d, %r14d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*6(%rsp), %r14d	# ^W[(n+8) & 15]
-	xorl	-32+4*0(%rsp), %r14d	# ^W[(n+2) & 15]
-	roll	%r14d		#
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	xorl	%edx, %edi		# ^b
-	leal	-0x359D3E2A(%rbx,%r14), %ebx # e += RCONST + W[n & 15]
+	addl	-64+4*14(%rsp), %ebx	# e += RCONST + W[n & 15]
 	addl	%edi, %ebx		# e += (c ^ d ^ b)
 	movl	%ecx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 79
-	xorl	%r12d, %r15d	# W[n & 15] ^= W[(n+13) & 15]
-	xorl	-32+4*7(%rsp), %r15d	# ^W[(n+8) & 15]
-	xorl	-32+4*1(%rsp), %r15d	# ^W[(n+2) & 15]
-	roll	%r15d		#
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	xorl	%ecx, %edi		# ^b
-	leal	-0x359D3E2A(%rax,%r15), %eax # e += RCONST + W[n & 15]
+	addl	-64+4*15(%rsp), %eax	# e += RCONST + W[n & 15]
 	addl	%edi, %eax		# e += (c ^ d ^ b)
 	movl	%ebx, %esi		#
 	roll	$5, %esi		# rotl32(a,5)
@@ -1286,4 +1386,28 @@ sha1_process_block64:
 
 	ret
 	.size	sha1_process_block64, .-sha1_process_block64
+
+	.section	.rodata.cst16.sha1const, "aM", @progbits, 16
+	.align	16
+rconst0x5A827999:
+	.long	0x5A827999
+	.long	0x5A827999
+	.long	0x5A827999
+	.long	0x5A827999
+rconst0x6ED9EBA1:
+	.long	0x6ED9EBA1
+	.long	0x6ED9EBA1
+	.long	0x6ED9EBA1
+	.long	0x6ED9EBA1
+rconst0x8F1BBCDC:
+	.long	0x8F1BBCDC
+	.long	0x8F1BBCDC
+	.long	0x8F1BBCDC
+	.long	0x8F1BBCDC
+rconst0xCA62C1D6:
+	.long	0xCA62C1D6
+	.long	0xCA62C1D6
+	.long	0xCA62C1D6
+	.long	0xCA62C1D6
+
 #endif
