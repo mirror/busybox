@@ -20,7 +20,7 @@
 #define extr128_32 pextrd
 //#define extr128_32 extractps	# not shorter
 
-	.section	.text.sha1_process_block64_shaNI,"ax",@progbits
+	.section	.text.sha1_process_block64_shaNI, "ax", @progbits
 	.globl	sha1_process_block64_shaNI
 	.hidden	sha1_process_block64_shaNI
 	.type	sha1_process_block64_shaNI, @function
@@ -218,7 +218,7 @@ sha1_process_block64_shaNI:
 	.size	sha1_process_block64_shaNI, .-sha1_process_block64_shaNI
 
 .section	.rodata.cst16.PSHUFFLE_BYTE_FLIP_MASK, "aM", @progbits, 16
-.align 16
+.balign 16
 PSHUFFLE_BYTE_FLIP_MASK:
 	.octa 0x000102030405060708090a0b0c0d0e0f
 

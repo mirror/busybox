@@ -433,7 +433,7 @@ echo "
 	.size	sha1_process_block64, .-sha1_process_block64
 
 	.section	.rodata.cst16.sha1const, \"aM\", @progbits, 16
-	.align	16
+	.balign	16
 rconst0x5A827999:
 	.long	0x5A827999
 	.long	0x5A827999
