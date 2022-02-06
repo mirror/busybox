@@ -19,7 +19,7 @@ const uint8_t MAC_BCAST_ADDR[6] ALIGN2 = {
  * See RFC2132 for more options.
  * OPTION_REQ: these options are requested by udhcpc (unless -o).
  */
-const struct dhcp_optflag dhcp_optflags[] = {
+const struct dhcp_optflag dhcp_optflags[] ALIGN2 = {
 	/* flags                                    code */
 	{ OPTION_IP                   | OPTION_REQ, 0x01 }, /* DHCP_SUBNET        */
 	{ OPTION_S32                              , 0x02 }, /* DHCP_TIME_OFFSET   */

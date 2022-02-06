@@ -313,7 +313,7 @@ typedef long arith_t;
 /* ============ Shell options */
 
 /* If you add/change options hare, update --help text too */
-static const char *const optletters_optnames[] = {
+static const char *const optletters_optnames[] ALIGN_PTR = {
 	"e"   "errexit",
 	"f"   "noglob",
 /* bash has '-o ignoreeof', but no short synonym -I for it */

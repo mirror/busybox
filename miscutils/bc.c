@@ -6011,7 +6011,7 @@ static BC_STATUS zxc_program_assign(char inst)
 #endif
 
 	if (ib || sc || left->t == XC_RESULT_OBASE) {
-		static const char *const msg[] = {
+		static const char *const msg[] ALIGN_PTR = {
 			"bad ibase; must be [2,16]",                 //XC_RESULT_IBASE
 			"bad obase; must be [2,"BC_MAX_OBASE_STR"]", //XC_RESULT_OBASE
 			"bad scale; must be [0,"BC_MAX_SCALE_STR"]", //XC_RESULT_SCALE

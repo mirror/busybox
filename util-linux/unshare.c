@@ -120,7 +120,7 @@ enum {
 	NS_USR_POS, /* OPT_user, NS_USR_POS, and ns_list[] index must match! */
 	NS_COUNT,
 };
-static const struct namespace_descr ns_list[] = {
+static const struct namespace_descr ns_list[] ALIGN_INT = {
 	{ CLONE_NEWNS,   "mnt"  },
 	{ CLONE_NEWUTS,  "uts"  },
 	{ CLONE_NEWIPC,  "ipc"  },

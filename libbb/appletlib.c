@@ -651,7 +651,7 @@ static void check_suid(int applet_no)
 # if ENABLE_FEATURE_INSTALLER
 static const char usr_bin [] ALIGN1 = "/usr/bin/";
 static const char usr_sbin[] ALIGN1 = "/usr/sbin/";
-static const char *const install_dir[] = {
+static const char *const install_dir[] ALIGN_PTR = {
 	&usr_bin [8], /* "/" */
 	&usr_bin [4], /* "/bin/" */
 	&usr_sbin[4]  /* "/sbin/" */

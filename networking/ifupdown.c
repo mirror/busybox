@@ -532,7 +532,7 @@ static int FAST_FUNC v4tunnel_down(struct interface_defn_t * ifd, execfn * exec)
 }
 # endif
 
-static const struct method_t methods6[] = {
+static const struct method_t methods6[] ALIGN_PTR = {
 # if ENABLE_FEATURE_IFUPDOWN_IP
 	{ "v4tunnel" , v4tunnel_up     , v4tunnel_down   , },
 # endif
@@ -627,7 +627,7 @@ struct dhcp_client_t {
 	const char *stopcmd;
 };
 
-static const struct dhcp_client_t ext_dhcp_clients[] = {
+static const struct dhcp_client_t ext_dhcp_clients[] ALIGN_PTR = {
 	{ "dhcpcd",
 		"dhcpcd[[ -h %hostname%]][[ -i %vendor%]][[ -I %client%]][[ -l %leasetime%]] %iface%",
 		"dhcpcd -k %iface%",
@@ -774,7 +774,7 @@ static int FAST_FUNC wvdial_down(struct interface_defn_t *ifd, execfn *exec)
 			"-p /var/run/wvdial.%iface% -s 2", ifd, exec);
 }
 
-static const struct method_t methods[] = {
+static const struct method_t methods[] ALIGN_PTR = {
 	{ "manual"  , manual_up_down, manual_up_down, },
 	{ "wvdial"  , wvdial_up     , wvdial_down   , },
 	{ "ppp"     , ppp_up        , ppp_down      , },
@@ -797,7 +797,7 @@ static int FAST_FUNC link_up_down(struct interface_defn_t *ifd UNUSED_PARAM, exe
 	return 1;
 }
 
-static const struct method_t link_methods[] = {
+static const struct method_t link_methods[] ALIGN_PTR = {
 	{ "none", link_up_down, link_up_down }
 };
 

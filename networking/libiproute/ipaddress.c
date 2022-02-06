@@ -58,7 +58,7 @@ typedef struct filter_t filter_t;
 
 static void print_link_flags(unsigned flags, unsigned mdown)
 {
-	static const int flag_masks[] = {
+	static const int flag_masks[] ALIGN_INT = {
 		IFF_LOOPBACK, IFF_BROADCAST, IFF_POINTOPOINT,
 		IFF_MULTICAST, IFF_NOARP, IFF_UP, IFF_LOWER_UP };
 	static const char flag_labels[] ALIGN1 =

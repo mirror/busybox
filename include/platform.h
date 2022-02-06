@@ -346,6 +346,7 @@ typedef unsigned smalluint;
 # define ALIGN4
 #endif
 #define ALIGN8     __attribute__((aligned(8)))
+#define ALIGN_INT  __attribute__((aligned(sizeof(int))))
 #define ALIGN_PTR  __attribute__((aligned(sizeof(void*))))
 
 /*

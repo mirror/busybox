@@ -65,7 +65,7 @@
 
 /* "struct client_data_t client_data" is in bb_common_bufsiz1 */
 
-static const struct dhcp_optflag d6_optflags[] = {
+static const struct dhcp_optflag d6_optflags[] ALIGN2 = {
 #if ENABLE_FEATURE_UDHCPC6_RFC3646
 	{ OPTION_6RD | OPTION_LIST        | OPTION_REQ, D6_OPT_DNS_SERVERS },
 	{ OPTION_DNS_STRING | OPTION_LIST | OPTION_REQ, D6_OPT_DOMAIN_LIST },

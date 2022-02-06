@@ -71,7 +71,7 @@ static void bb_dump_addfile(dumper_t *dumper, char *name)
 	fclose(fp);
 }
 
-static const char *const add_strings[] = {
+static const char *const add_strings[] ALIGN_PTR = {
 	"\"%07.7_ax \"16/1 \"%03o \"\"\n\"",   /* b */
 	"\"%07.7_ax \"16/1 \"%3_c \"\"\n\"",   /* c */
 	"\"%07.7_ax \"8/2 \"  %05u \"\"\n\"",  /* d */

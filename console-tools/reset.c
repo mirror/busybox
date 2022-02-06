@@ -36,7 +36,7 @@ int stty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int reset_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int reset_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	static const char *const args[] = {
+	static const char *const args[] ALIGN_PTR = {
 		"stty", "sane", NULL
 	};
 

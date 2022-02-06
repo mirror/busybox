@@ -144,7 +144,7 @@ odoffset(dumper_t *dumper, int argc, char ***argvp)
 	}
 }
 
-static const char *const add_strings[] = {
+static const char *const add_strings[] ALIGN_PTR = {
 	"16/1 \"%3_u \" \"\\n\"",              /* a */
 	"8/2 \" %06o \" \"\\n\"",              /* B, o */
 	"16/1 \"%03o \" \"\\n\"",              /* b */
