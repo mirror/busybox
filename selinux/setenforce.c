@@ -26,7 +26,7 @@
 /* These strings are arranged so that odd ones
  * result in security_setenforce(1) being done,
  * the rest will do security_setenforce(0) */
-static const char *const setenforce_cmd[] = {
+static const char *const setenforce_cmd[] ALIGN_PTR = {
 	"0",
 	"1",
 	"permissive",

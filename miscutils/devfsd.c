@@ -928,7 +928,7 @@ static void action_compat(const struct devfsd_notify_struct *info, unsigned int 
 	unsigned int i;
 	char rewind_;
 	/* 1 to 5  "scsi/" , 6 to 9 "ide/host" */
-	static const char *const fmt[] = {
+	static const char *const fmt[] ALIGN_PTR = {
 		NULL ,
 		"sg/c%db%dt%du%d",		/* scsi/generic */
 		"sd/c%db%dt%du%d",		/* scsi/disc */
@@ -1468,7 +1468,7 @@ const char *get_old_name(const char *devname, unsigned int namelen,
 	const char *pty1;
 	const char *pty2;
 	/* 1 to 5  "scsi/" , 6 to 9 "ide/host", 10 sbp/, 11 vcc/, 12 pty/ */
-	static const char *const fmt[] = {
+	static const char *const fmt[] ALIGN_PTR = {
 		NULL ,
 		"sg%u",			/* scsi/generic */
 		NULL,			/* scsi/disc */

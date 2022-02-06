@@ -242,7 +242,7 @@ int depth;
 	depth--; \
 	return __res; \
 } while (0)
-static const char *const TOKSTR[] = {
+static const char *const TOKSTR[] ALIGN_PTR = {
 	"EOI",
 	"FILRD",
 	"FILWR",

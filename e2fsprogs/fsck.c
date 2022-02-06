@@ -190,7 +190,7 @@ struct globals {
  * Required for the uber-silly devfs /dev/ide/host1/bus2/target3/lun3
  * pathames.
  */
-static const char *const devfs_hier[] = {
+static const char *const devfs_hier[] ALIGN_PTR = {
 	"host", "bus", "target", "lun", NULL
 };
 #endif

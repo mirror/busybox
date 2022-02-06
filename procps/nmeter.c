@@ -70,7 +70,7 @@ typedef struct proc_file {
 	smallint last_gen;
 } proc_file;
 
-static const char *const proc_name[] = {
+static const char *const proc_name[] ALIGN_PTR = {
 	"stat",		// Must match the order of proc_file's!
 	"loadavg",
 	"net/dev",

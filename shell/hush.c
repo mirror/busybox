@@ -564,7 +564,7 @@ enum {
 #define NULL_O_STRING { NULL }
 
 #ifndef debug_printf_parse
-static const char *const assignment_flag[] = {
+static const char *const assignment_flag[] ALIGN_PTR = {
 	"MAYBE_ASSIGNMENT",
 	"DEFINITELY_ASSIGNMENT",
 	"NOT_ASSIGNMENT",
@@ -3682,7 +3682,7 @@ static void free_pipe_list(struct pipe *pi)
 #ifndef debug_print_tree
 static void debug_print_tree(struct pipe *pi, int lvl)
 {
-	static const char *const PIPE[] = {
+	static const char *const PIPE[] ALIGN_PTR = {
 		[PIPE_SEQ] = "SEQ",
 		[PIPE_AND] = "AND",
 		[PIPE_OR ] = "OR" ,
@@ -3717,7 +3717,7 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		[RES_XXXX ] = "XXXX" ,
 		[RES_SNTX ] = "SNTX" ,
 	};
-	static const char *const CMDTYPE[] = {
+	static const char *const CMDTYPE[] ALIGN_PTR = {
 		"{}",
 		"()",
 		"[noglob]",
@@ -7659,7 +7659,7 @@ static int generate_stream_from_string(const char *s, pid_t *pid_p)
 		if (is_prefixed_with(s, "trap")
 		 && skip_whitespace(s + 4)[0] == '\0'
 		) {
-			static const char *const argv[] = { NULL, NULL };
+			static const char *const argv[] ALIGN_PTR = { NULL, NULL };
 			builtin_trap((char**)argv);
 			fflush_all(); /* important */
 			_exit(0);
@@ -9826,7 +9826,7 @@ static int run_list(struct pipe *pi)
 				static const char encoded_dollar_at[] ALIGN1 = {
 					SPECIAL_VAR_SYMBOL, '@' | 0x80, SPECIAL_VAR_SYMBOL, '\0'
 				}; /* encoded representation of "$@" */
-				static const char *const encoded_dollar_at_argv[] = {
+				static const char *const encoded_dollar_at_argv[] ALIGN_PTR = {
 					encoded_dollar_at, NULL
 				}; /* argv list with one element: "$@" */
 				char **vals;

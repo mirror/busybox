@@ -1538,7 +1538,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO \
  || ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 # if !BB_MMU
-static const char *const cat_args[] = { "cat", NULL };
+static const char *const cat_args[] ALIGN_PTR = { "cat", NULL };
 # endif
 #endif
 
