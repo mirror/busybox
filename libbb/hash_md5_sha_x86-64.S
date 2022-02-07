@@ -180,8 +180,13 @@ sha1_process_block64:
 # PREP %xmm0 %xmm1 %xmm2 %xmm3 -64+16*0(%rsp)
 	movaps	%xmm3, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm0, %xmm5
+	shufps	$0x4e, %xmm1, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm2, %xmm0	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm0	# ^
@@ -252,8 +257,13 @@ sha1_process_block64:
 # PREP %xmm1 %xmm2 %xmm3 %xmm0 -64+16*1(%rsp)
 	movaps	%xmm0, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm1, %xmm5
+	shufps	$0x4e, %xmm2, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm3, %xmm1	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm1	# ^
@@ -323,8 +333,13 @@ sha1_process_block64:
 # PREP %xmm2 %xmm3 %xmm0 %xmm1 -64+16*2(%rsp)
 	movaps	%xmm1, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm2, %xmm5
+	shufps	$0x4e, %xmm3, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm0, %xmm2	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm2	# ^
@@ -392,8 +407,13 @@ sha1_process_block64:
 # PREP %xmm3 %xmm0 %xmm1 %xmm2 -64+16*3(%rsp)
 	movaps	%xmm2, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm3, %xmm5
+	shufps	$0x4e, %xmm0, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm1, %xmm3	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm3	# ^
@@ -457,8 +477,13 @@ sha1_process_block64:
 # PREP %xmm0 %xmm1 %xmm2 %xmm3 -64+16*0(%rsp)
 	movaps	%xmm3, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm0, %xmm5
+	shufps	$0x4e, %xmm1, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm2, %xmm0	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm0	# ^
@@ -522,8 +547,13 @@ sha1_process_block64:
 # PREP %xmm1 %xmm2 %xmm3 %xmm0 -64+16*1(%rsp)
 	movaps	%xmm0, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm1, %xmm5
+	shufps	$0x4e, %xmm2, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm3, %xmm1	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm1	# ^
@@ -588,8 +618,13 @@ sha1_process_block64:
 # PREP %xmm2 %xmm3 %xmm0 %xmm1 -64+16*2(%rsp)
 	movaps	%xmm1, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm2, %xmm5
+	shufps	$0x4e, %xmm3, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm0, %xmm2	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm2	# ^
@@ -653,8 +688,13 @@ sha1_process_block64:
 # PREP %xmm3 %xmm0 %xmm1 %xmm2 -64+16*3(%rsp)
 	movaps	%xmm2, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm3, %xmm5
+	shufps	$0x4e, %xmm0, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm1, %xmm3	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm3	# ^
@@ -718,8 +758,13 @@ sha1_process_block64:
 # PREP %xmm0 %xmm1 %xmm2 %xmm3 -64+16*0(%rsp)
 	movaps	%xmm3, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm0, %xmm5
+	shufps	$0x4e, %xmm1, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm2, %xmm0	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm0	# ^
@@ -795,8 +840,13 @@ sha1_process_block64:
 # PREP %xmm1 %xmm2 %xmm3 %xmm0 -64+16*1(%rsp)
 	movaps	%xmm0, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm1, %xmm5
+	shufps	$0x4e, %xmm2, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm3, %xmm1	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm1	# ^
@@ -872,8 +922,13 @@ sha1_process_block64:
 # PREP %xmm2 %xmm3 %xmm0 %xmm1 -64+16*2(%rsp)
 	movaps	%xmm1, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm2, %xmm5
+	shufps	$0x4e, %xmm3, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm0, %xmm2	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm2	# ^
@@ -950,8 +1005,13 @@ sha1_process_block64:
 # PREP %xmm3 %xmm0 %xmm1 %xmm2 -64+16*3(%rsp)
 	movaps	%xmm2, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm3, %xmm5
+	shufps	$0x4e, %xmm0, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm1, %xmm3	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm3	# ^
@@ -1027,8 +1087,13 @@ sha1_process_block64:
 # PREP %xmm0 %xmm1 %xmm2 %xmm3 -64+16*0(%rsp)
 	movaps	%xmm3, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm0, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm1, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm0, %xmm5
+	shufps	$0x4e, %xmm1, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm2, %xmm0	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm0	# ^
@@ -1104,8 +1169,13 @@ sha1_process_block64:
 # PREP %xmm1 %xmm2 %xmm3 %xmm0 -64+16*1(%rsp)
 	movaps	%xmm0, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm1, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm2, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm1, %xmm5
+	shufps	$0x4e, %xmm2, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm3, %xmm1	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm1	# ^
@@ -1169,8 +1239,13 @@ sha1_process_block64:
 # PREP %xmm2 %xmm3 %xmm0 %xmm1 -64+16*2(%rsp)
 	movaps	%xmm1, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm2, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm3, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm2, %xmm5
+	shufps	$0x4e, %xmm3, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm0, %xmm2	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm2	# ^
@@ -1234,8 +1309,13 @@ sha1_process_block64:
 # PREP %xmm3 %xmm0 %xmm1 %xmm2 -64+16*3(%rsp)
 	movaps	%xmm2, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
-	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	$0x4e, %xmm3, %xmm5	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq %xmm0, %xmm5	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	%xmm3, %xmm5
+	shufps	$0x4e, %xmm0, %xmm5	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 	xorps	%xmm1, %xmm3	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	%xmm4, %xmm5	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
 	xorps	%xmm5, %xmm3	# ^

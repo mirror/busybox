@@ -203,8 +203,13 @@ echo "# PREP $@
 	movaps	$xmmW12, $xmmT1
 	psrldq	\$4, $xmmT1	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
 
-	pshufd	\$0x4e, $xmmW0, $xmmT2	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
-	punpcklqdq $xmmW4, $xmmT2	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+#	pshufd	\$0x4e, $xmmW0, $xmmT2	# 01001110=2,3,0,1 shuffle, ([2],[3],x,x)
+#	punpcklqdq $xmmW4, $xmmT2	# T2 = W4[0..63]:T2[0..63] = ([2],[3],[4],[5])
+# same result as above, but shorter and faster:
+# pshufd/shufps are subtly different: pshufd takes all dwords from source operand,
+# shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one!
+	movaps	$xmmW0, $xmmT2
+	shufps	\$0x4e, $xmmW4, $xmmT2	# 01001110=(T2.dw[2], T2.dw[3], W4.dw[0], W4.dw[1]) = ([2],[3],[4],[5])
 
 	xorps	$xmmW8, $xmmW0	# ([8],[9],[10],[11]) ^ ([0],[1],[2],[3])
 	xorps	$xmmT1, $xmmT2	# ([13],[14],[15],0) ^ ([2],[3],[4],[5])
