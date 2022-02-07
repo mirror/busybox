@@ -981,6 +981,7 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
+	xfunc_error_retval = 2;
 	/* exactly 2 params; collect multiple -L <label>; -U N */
 	GETOPT32(argv, "^" "abdiL:*NqrsS:tTU:+wupBE" "\0" "=2"
 			LONGOPTS,
@@ -990,7 +991,6 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 		label[!!label[0]] = llist_pop(&L_arg);
 
 	/* Compat: "diff file name_which_doesnt_exist" exits with 2 */
-	xfunc_error_retval = 2;
 	for (i = 0; i < 2; i++) {
 		file[i] = argv[i];
 		if (LONE_DASH(file[i])) {
