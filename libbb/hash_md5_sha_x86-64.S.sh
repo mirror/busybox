@@ -34,6 +34,7 @@ exec >hash_md5_sha_x86-64.S
 xmmT1="%xmm4"
 xmmT2="%xmm5"
 xmmRCONST="%xmm6"
+xmmALLRCONST="%xmm7"
 T=`printf '\t'`
 
 # SSE instructions are longer than 4 bytes on average.
@@ -125,6 +126,7 @@ sha1_process_block64:
 # xmm0..xmm3: W[]
 # xmm4,xmm5: temps
 # xmm6: current round constant
+# xmm7: all round constants
 # -64(%rsp): area for passing RCONST + W[] from vector to integer units
 
 	movl	80(%rdi), %eax		# a = ctx->hash[0]
@@ -133,16 +135,17 @@ sha1_process_block64:
 	movl	92(%rdi), %edx		# d = ctx->hash[3]
 	movl	96(%rdi), %ebp		# e = ctx->hash[4]
 
-	movaps	rconst0x5A827999(%rip), $xmmRCONST
+	movaps	sha1const(%rip), $xmmALLRCONST
+	pshufd	\$0x00, $xmmALLRCONST, $xmmRCONST
 
 	# Load W[] to xmm registers, byteswapping on the fly.
 	#
 	# For iterations 0..15, we pass W[] in rsi,r8..r14
-	# for use in RD1A's instead of spilling them to stack.
+	# for use in RD1As instead of spilling them to stack.
 	# We lose parallelized addition of RCONST, but LEA
-	# can do two additions at once, so it's probably a wash.
+	# can do two additions at once, so it is probably a wash.
 	# (We use rsi instead of rN because this makes two
-	# LEAs in two first RD1A's shorter by one byte).
+	# LEAs in two first RD1As shorter by one byte).
 	movq	4*0(%rdi), %rsi
 	movq	4*2(%rdi), %r8
 	bswapq	%rsi
@@ -359,7 +362,7 @@ RD1A bx cx dx bp ax  4; RD1A ax bx cx dx bp  5; RD1A bp ax bx cx dx  6; RD1A dx 
 a=`PREP %xmm0 %xmm1 %xmm2 %xmm3 "-64+16*0(%rsp)"`
 b=`RD1A cx dx bp ax bx  8; RD1A bx cx dx bp ax  9; RD1A ax bx cx dx bp 10; RD1A bp ax bx cx dx 11;`
 INTERLEAVE "$a" "$b"
-a=`echo "	movaps	rconst0x6ED9EBA1(%rip), $xmmRCONST"
+a=`echo "	pshufd	\\$0x55, $xmmALLRCONST, $xmmRCONST"
    PREP %xmm1 %xmm2 %xmm3 %xmm0 "-64+16*1(%rsp)"`
 b=`RD1A dx bp ax bx cx 12; RD1A cx dx bp ax bx 13; RD1A bx cx dx bp ax 14; RD1A ax bx cx dx bp 15;`
 INTERLEAVE "$a" "$b"
@@ -378,7 +381,7 @@ INTERLEAVE "$a" "$b"
 a=`PREP %xmm1 %xmm2 %xmm3 %xmm0 "-64+16*1(%rsp)"`
 b=`RD2 cx dx bp ax bx 28; RD2 bx cx dx bp ax 29; RD2 ax bx cx dx bp 30; RD2 bp ax bx cx dx 31;`
 INTERLEAVE "$a" "$b"
-a=`echo "	movaps	rconst0x8F1BBCDC(%rip), $xmmRCONST"
+a=`echo "	pshufd	\\$0xaa, $xmmALLRCONST, $xmmRCONST"
    PREP %xmm2 %xmm3 %xmm0 %xmm1 "-64+16*2(%rsp)"`
 b=`RD2 dx bp ax bx cx 32; RD2 cx dx bp ax bx 33; RD2 bx cx dx bp ax 34; RD2 ax bx cx dx bp 35;`
 INTERLEAVE "$a" "$b"
@@ -397,7 +400,7 @@ INTERLEAVE "$a" "$b"
 a=`PREP %xmm2 %xmm3 %xmm0 %xmm1 "-64+16*2(%rsp)"`
 b=`RD3 cx dx bp ax bx 48; RD3 bx cx dx bp ax 49; RD3 ax bx cx dx bp 50; RD3 bp ax bx cx dx 51;`
 INTERLEAVE "$a" "$b"
-a=`echo "	movaps	rconst0xCA62C1D6(%rip), $xmmRCONST"
+a=`echo "	pshufd	\\$0xff, $xmmALLRCONST, $xmmRCONST"
    PREP %xmm3 %xmm0 %xmm1 %xmm2 "-64+16*3(%rsp)"`
 b=`RD3 dx bp ax bx cx 52; RD3 cx dx bp ax bx 53; RD3 bx cx dx bp ax 54; RD3 ax bx cx dx bp 55;`
 INTERLEAVE "$a" "$b"
@@ -439,25 +442,10 @@ echo "
 
 	.section	.rodata.cst16.sha1const, \"aM\", @progbits, 16
 	.balign	16
-rconst0x5A827999:
+sha1const:
 	.long	0x5A827999
-	.long	0x5A827999
-	.long	0x5A827999
-	.long	0x5A827999
-rconst0x6ED9EBA1:
 	.long	0x6ED9EBA1
-	.long	0x6ED9EBA1
-	.long	0x6ED9EBA1
-	.long	0x6ED9EBA1
-rconst0x8F1BBCDC:
 	.long	0x8F1BBCDC
-	.long	0x8F1BBCDC
-	.long	0x8F1BBCDC
-	.long	0x8F1BBCDC
-rconst0xCA62C1D6:
-	.long	0xCA62C1D6
-	.long	0xCA62C1D6
-	.long	0xCA62C1D6
 	.long	0xCA62C1D6
 
 #endif"

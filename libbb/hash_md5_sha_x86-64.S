@@ -24,6 +24,7 @@ sha1_process_block64:
 # xmm0..xmm3: W[]
 # xmm4,xmm5: temps
 # xmm6: current round constant
+# xmm7: all round constants
 # -64(%rsp): area for passing RCONST + W[] from vector to integer units
 
 	movl	80(%rdi), %eax		# a = ctx->hash[0]
@@ -32,16 +33,17 @@ sha1_process_block64:
 	movl	92(%rdi), %edx		# d = ctx->hash[3]
 	movl	96(%rdi), %ebp		# e = ctx->hash[4]
 
-	movaps	rconst0x5A827999(%rip), %xmm6
+	movaps	sha1const(%rip), %xmm7
+	pshufd	$0x00, %xmm7, %xmm6
 
 	# Load W[] to xmm registers, byteswapping on the fly.
 	#
 	# For iterations 0..15, we pass W[] in rsi,r8..r14
-	# for use in RD1A's instead of spilling them to stack.
+	# for use in RD1As instead of spilling them to stack.
 	# We lose parallelized addition of RCONST, but LEA
-	# can do two additions at once, so it's probably a wash.
+	# can do two additions at once, so it is probably a wash.
 	# (We use rsi instead of rN because this makes two
-	# LEAs in two first RD1A's shorter by one byte).
+	# LEAs in two first RD1As shorter by one byte).
 	movq	4*0(%rdi), %rsi
 	movq	4*2(%rdi), %r8
 	bswapq	%rsi
@@ -253,7 +255,7 @@ sha1_process_block64:
 	roll	$5, %edi		# rotl32(a,5)
 	addl	%edi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
-	movaps	rconst0x6ED9EBA1(%rip), %xmm6
+	pshufd	$0x55, %xmm7, %xmm6
 # PREP %xmm1 %xmm2 %xmm3 %xmm0 -64+16*1(%rsp)
 	movaps	%xmm0, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
@@ -614,7 +616,7 @@ sha1_process_block64:
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
-	movaps	rconst0x8F1BBCDC(%rip), %xmm6
+	pshufd	$0xaa, %xmm7, %xmm6
 # PREP %xmm2 %xmm3 %xmm0 %xmm1 -64+16*2(%rsp)
 	movaps	%xmm1, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
@@ -1001,7 +1003,7 @@ sha1_process_block64:
 	roll	$5, %esi		# rotl32(a,5)
 	addl	%esi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
-	movaps	rconst0xCA62C1D6(%rip), %xmm6
+	pshufd	$0xff, %xmm7, %xmm6
 # PREP %xmm3 %xmm0 %xmm1 %xmm2 -64+16*3(%rsp)
 	movaps	%xmm2, %xmm4
 	psrldq	$4, %xmm4	# rshift by 4 bytes: T1 = ([13],[14],[15],0)
@@ -1475,25 +1477,10 @@ sha1_process_block64:
 
 	.section	.rodata.cst16.sha1const, "aM", @progbits, 16
 	.balign	16
-rconst0x5A827999:
+sha1const:
 	.long	0x5A827999
-	.long	0x5A827999
-	.long	0x5A827999
-	.long	0x5A827999
-rconst0x6ED9EBA1:
 	.long	0x6ED9EBA1
-	.long	0x6ED9EBA1
-	.long	0x6ED9EBA1
-	.long	0x6ED9EBA1
-rconst0x8F1BBCDC:
 	.long	0x8F1BBCDC
-	.long	0x8F1BBCDC
-	.long	0x8F1BBCDC
-	.long	0x8F1BBCDC
-rconst0xCA62C1D6:
-	.long	0xCA62C1D6
-	.long	0xCA62C1D6
-	.long	0xCA62C1D6
 	.long	0xCA62C1D6
 
 #endif
