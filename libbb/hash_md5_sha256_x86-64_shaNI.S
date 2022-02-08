@@ -31,7 +31,8 @@
 #define MSGTMP1		%xmm4
 #define MSGTMP2		%xmm5
 #define MSGTMP3		%xmm6
-#define XMMTMP4		%xmm7
+
+#define XMMTMP		%xmm7
 
 #define ABEF_SAVE	%xmm9
 #define CDGH_SAVE	%xmm10
@@ -41,14 +42,14 @@ sha256_process_block64_shaNI:
 	movu128		80+0*16(%rdi), STATE0
 	movu128		80+1*16(%rdi), STATE1
 
-	shuf128_32	$0xB1, STATE0,  STATE0		/* CDAB */
-	shuf128_32	$0x1B, STATE1,  STATE1		/* EFGH */
-	mova128		STATE0, XMMTMP4
-	palignr		$8, STATE1,  STATE0		/* ABEF */
-	pblendw		$0xF0, XMMTMP4, STATE1		/* CDGH */
+	shuf128_32	$0xB1, STATE0, STATE0		/* CDAB */
+	shuf128_32	$0x1B, STATE1, STATE1		/* EFGH */
+	mova128		STATE0, XMMTMP
+	palignr		$8, STATE1, STATE0		/* ABEF */
+	pblendw		$0xF0, XMMTMP, STATE1		/* CDGH */
 
-/* XMMTMP4 holds flip mask from here... */
-	mova128		PSHUFFLE_BSWAP32_FLIP_MASK(%rip), XMMTMP4
+/* XMMTMP holds flip mask from here... */
+	mova128		PSHUFFLE_BSWAP32_FLIP_MASK(%rip), XMMTMP
 	leaq		K256+8*16(%rip), SHA256CONSTANTS
 
 	/* Save hash values for addition after rounds */
@@ -57,7 +58,7 @@ sha256_process_block64_shaNI:
 
 	/* Rounds 0-3 */
 	movu128		0*16(DATA_PTR), MSG
-	pshufb		XMMTMP4, MSG
+	pshufb		XMMTMP, MSG
 	mova128		MSG, MSGTMP0
 		paddd		0*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
@@ -66,7 +67,7 @@ sha256_process_block64_shaNI:
 
 	/* Rounds 4-7 */
 	movu128		1*16(DATA_PTR), MSG
-	pshufb		XMMTMP4, MSG
+	pshufb		XMMTMP, MSG
 	mova128		MSG, MSGTMP1
 		paddd		1*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
@@ -76,7 +77,7 @@ sha256_process_block64_shaNI:
 
 	/* Rounds 8-11 */
 	movu128		2*16(DATA_PTR), MSG
-	pshufb		XMMTMP4, MSG
+	pshufb		XMMTMP, MSG
 	mova128		MSG, MSGTMP2
 		paddd		2*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
@@ -86,14 +87,14 @@ sha256_process_block64_shaNI:
 
 	/* Rounds 12-15 */
 	movu128		3*16(DATA_PTR), MSG
-	pshufb		XMMTMP4, MSG
+	pshufb		XMMTMP, MSG
 /* ...to here */
 	mova128		MSG, MSGTMP3
 		paddd		3*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP3, XMMTMP4
-	palignr		$4, MSGTMP2, XMMTMP4
-	paddd		XMMTMP4, MSGTMP0
+	mova128		MSGTMP3, XMMTMP
+	palignr		$4, MSGTMP2, XMMTMP
+	paddd		XMMTMP, MSGTMP0
 	sha256msg2	MSGTMP3, MSGTMP0
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -103,9 +104,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP0, MSG
 		paddd		4*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP0, XMMTMP4
-	palignr		$4, MSGTMP3, XMMTMP4
-	paddd		XMMTMP4, MSGTMP1
+	mova128		MSGTMP0, XMMTMP
+	palignr		$4, MSGTMP3, XMMTMP
+	paddd		XMMTMP, MSGTMP1
 	sha256msg2	MSGTMP0, MSGTMP1
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -115,9 +116,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP1, MSG
 		paddd		5*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP1, XMMTMP4
-	palignr		$4, MSGTMP0, XMMTMP4
-	paddd		XMMTMP4, MSGTMP2
+	mova128		MSGTMP1, XMMTMP
+	palignr		$4, MSGTMP0, XMMTMP
+	paddd		XMMTMP, MSGTMP2
 	sha256msg2	MSGTMP1, MSGTMP2
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -127,9 +128,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP2, MSG
 		paddd		6*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP2, XMMTMP4
-	palignr		$4, MSGTMP1, XMMTMP4
-	paddd		XMMTMP4, MSGTMP3
+	mova128		MSGTMP2, XMMTMP
+	palignr		$4, MSGTMP1, XMMTMP
+	paddd		XMMTMP, MSGTMP3
 	sha256msg2	MSGTMP2, MSGTMP3
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -139,9 +140,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP3, MSG
 		paddd		7*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP3, XMMTMP4
-	palignr		$4, MSGTMP2, XMMTMP4
-	paddd		XMMTMP4, MSGTMP0
+	mova128		MSGTMP3, XMMTMP
+	palignr		$4, MSGTMP2, XMMTMP
+	paddd		XMMTMP, MSGTMP0
 	sha256msg2	MSGTMP3, MSGTMP0
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -151,9 +152,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP0, MSG
 		paddd		8*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP0, XMMTMP4
-	palignr		$4, MSGTMP3, XMMTMP4
-	paddd		XMMTMP4, MSGTMP1
+	mova128		MSGTMP0, XMMTMP
+	palignr		$4, MSGTMP3, XMMTMP
+	paddd		XMMTMP, MSGTMP1
 	sha256msg2	MSGTMP0, MSGTMP1
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -163,9 +164,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP1, MSG
 		paddd		9*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP1, XMMTMP4
-	palignr		$4, MSGTMP0, XMMTMP4
-	paddd		XMMTMP4, MSGTMP2
+	mova128		MSGTMP1, XMMTMP
+	palignr		$4, MSGTMP0, XMMTMP
+	paddd		XMMTMP, MSGTMP2
 	sha256msg2	MSGTMP1, MSGTMP2
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -175,9 +176,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP2, MSG
 		paddd		10*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP2, XMMTMP4
-	palignr		$4, MSGTMP1, XMMTMP4
-	paddd		XMMTMP4, MSGTMP3
+	mova128		MSGTMP2, XMMTMP
+	palignr		$4, MSGTMP1, XMMTMP
+	paddd		XMMTMP, MSGTMP3
 	sha256msg2	MSGTMP2, MSGTMP3
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -187,9 +188,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP3, MSG
 		paddd		11*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP3, XMMTMP4
-	palignr		$4, MSGTMP2, XMMTMP4
-	paddd		XMMTMP4, MSGTMP0
+	mova128		MSGTMP3, XMMTMP
+	palignr		$4, MSGTMP2, XMMTMP
+	paddd		XMMTMP, MSGTMP0
 	sha256msg2	MSGTMP3, MSGTMP0
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -199,9 +200,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP0, MSG
 		paddd		12*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP0, XMMTMP4
-	palignr		$4, MSGTMP3, XMMTMP4
-	paddd		XMMTMP4, MSGTMP1
+	mova128		MSGTMP0, XMMTMP
+	palignr		$4, MSGTMP3, XMMTMP
+	paddd		XMMTMP, MSGTMP1
 	sha256msg2	MSGTMP0, MSGTMP1
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -211,9 +212,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP1, MSG
 		paddd		13*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP1, XMMTMP4
-	palignr		$4, MSGTMP0, XMMTMP4
-	paddd		XMMTMP4, MSGTMP2
+	mova128		MSGTMP1, XMMTMP
+	palignr		$4, MSGTMP0, XMMTMP
+	paddd		XMMTMP, MSGTMP2
 	sha256msg2	MSGTMP1, MSGTMP2
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -222,9 +223,9 @@ sha256_process_block64_shaNI:
 	mova128		MSGTMP2, MSG
 		paddd		14*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	STATE0, STATE1
-	mova128		MSGTMP2, XMMTMP4
-	palignr		$4, MSGTMP1, XMMTMP4
-	paddd		XMMTMP4, MSGTMP3
+	mova128		MSGTMP2, XMMTMP
+	palignr		$4, MSGTMP1, XMMTMP
+	paddd		XMMTMP, MSGTMP3
 	sha256msg2	MSGTMP2, MSGTMP3
 		shuf128_32	$0x0E, MSG, MSG
 		sha256rnds2	STATE1, STATE0
@@ -241,11 +242,11 @@ sha256_process_block64_shaNI:
 	paddd		CDGH_SAVE, STATE1
 
 	/* Write hash values back in the correct order */
-	shuf128_32	$0x1B, STATE0,  STATE0		/* FEBA */
-	shuf128_32	$0xB1, STATE1,  STATE1		/* DCHG */
-	mova128		STATE0, XMMTMP4
-	pblendw		$0xF0, STATE1,  STATE0		/* DCBA */
-	palignr		$8, XMMTMP4, STATE1		/* HGFE */
+	shuf128_32	$0x1B, STATE0, STATE0		/* FEBA */
+	shuf128_32	$0xB1, STATE1, STATE1		/* DCHG */
+	mova128		STATE0, XMMTMP
+	pblendw		$0xF0, STATE1, STATE0		/* DCBA */
+	palignr		$8, XMMTMP, STATE1		/* HGFE */
 
 	movu128		STATE0, 80+0*16(%rdi)
 	movu128		STATE1, 80+1*16(%rdi)
