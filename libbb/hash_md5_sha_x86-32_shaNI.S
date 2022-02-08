@@ -35,11 +35,9 @@
 
 	.balign	8	# allow decoders to fetch at least 2 first insns
 sha1_process_block64_shaNI:
-	subl		$16, %esp
-
 	/* load initial hash values */
-	xor128		E0, E0
 	movu128		76(%eax), ABCD
+	xor128		E0, E0
 	pinsrd		$3, 76+4*4(%eax), E0	# load to uppermost 32-bit word
 	shuf128_32	$0x1B, ABCD, ABCD	# DCBA -> ABCD
 
@@ -56,7 +54,7 @@ sha1_process_block64_shaNI:
 
 	/* Save hash values for addition after rounds */
 	movu128		E0, %xmm7
-	movu128		ABCD, (%esp)
+	/*movu128	ABCD, %xmm8 - NOPE, 32bit has no xmm8 */
 
 	/* Rounds 0-3 */
 		paddd		MSG0, E0
@@ -208,7 +206,9 @@ sha1_process_block64_shaNI:
 
 	/* Add current hash values with previously saved */
 	sha1nexte	%xmm7, E0
-	movu128		(%esp), %xmm7
+	/*paddd		%xmm8, ABCD - 32-bit mode has no xmm8 */
+	movu128		76(%eax), %xmm7		# recreate original ABCD
+	shuf128_32	$0x1B, %xmm7, %xmm7	#  DCBA -> ABCD
 	paddd		%xmm7, ABCD
 
 	/* Write hash values back in the correct order */
@@ -216,7 +216,6 @@ sha1_process_block64_shaNI:
 	movu128		ABCD, 76(%eax)
 	extr128_32	$3, E0, 76+4*4(%eax)
 
-	addl		$16, %esp
 	ret
 	.size	sha1_process_block64_shaNI, .-sha1_process_block64_shaNI
 
