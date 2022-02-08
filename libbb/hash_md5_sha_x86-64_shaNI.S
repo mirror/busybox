@@ -36,9 +36,8 @@
 	.balign	8	# allow decoders to fetch at least 2 first insns
 sha1_process_block64_shaNI:
 	/* load initial hash values */
-
-	xor128		E0, E0
 	movu128		80(%rdi), ABCD
+	xor128		E0, E0
 	pinsrd		$3, 80+4*4(%rdi), E0	# load to uppermost 32-bit word
 	shuf128_32	$0x1B, ABCD, ABCD	# DCBA -> ABCD
 

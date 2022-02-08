@@ -53,8 +53,8 @@ sha1_process_block64_shaNI:
 	pshufb		%xmm7, MSG3
 
 	/* Save hash values for addition after rounds */
-	movu128		E0, %xmm7
-	/*movu128	ABCD, %xmm8 - NOPE, 32bit has no xmm8 */
+	mova128		E0, %xmm7
+	/*mova128	ABCD, %xmm8 - NOPE, 32bit has no xmm8 */
 
 	/* Rounds 0-3 */
 		paddd		MSG0, E0
@@ -207,12 +207,11 @@ sha1_process_block64_shaNI:
 	/* Add current hash values with previously saved */
 	sha1nexte	%xmm7, E0
 	/*paddd		%xmm8, ABCD - 32-bit mode has no xmm8 */
-	movu128		76(%eax), %xmm7		# recreate original ABCD
-	shuf128_32	$0x1B, %xmm7, %xmm7	#  DCBA -> ABCD
-	paddd		%xmm7, ABCD
+	movu128		76(%eax), %xmm7	# get original ABCD (not shuffled)...
 
 	/* Write hash values back in the correct order */
 	shuf128_32	$0x1B, ABCD, ABCD
+	paddd		%xmm7, ABCD	# ...add it to final ABCD
 	movu128		ABCD, 76(%eax)
 	extr128_32	$3, E0, 76+4*4(%eax)
 
