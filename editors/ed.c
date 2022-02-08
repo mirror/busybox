@@ -720,7 +720,7 @@ static void subCommand(const char *cmd, int num1, int num2)
 		if (deltaLen <= 0) {
 			memcpy(&lp->data[offset], newStr, newLen);
 			if (deltaLen) {
-				memcpy(&lp->data[offset + newLen],
+				memmove(&lp->data[offset + newLen],
 					&lp->data[offset + oldLen],
 					lp->len - offset - oldLen);
 
