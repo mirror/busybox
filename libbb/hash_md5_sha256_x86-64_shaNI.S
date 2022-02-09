@@ -37,16 +37,18 @@
 #define ABEF_SAVE	%xmm9
 #define CDGH_SAVE	%xmm10
 
+#define SHUF(a,b,c,d) $(a+(b<<2)+(c<<4)+(d<<6))
+
 	.balign	8	# allow decoders to fetch at least 2 first insns
 sha256_process_block64_shaNI:
-	movu128		80+0*16(%rdi), STATE0
-	movu128		80+1*16(%rdi), STATE1
 
-	shuf128_32	$0xB1, STATE0, STATE0		/* CDAB */
-	shuf128_32	$0x1B, STATE1, STATE1		/* EFGH */
+	movu128		80+0*16(%rdi), STATE1 /* DCBA (msb-to-lsb: 3,2,1,0) */
+	movu128		80+1*16(%rdi), STATE0 /* HGFE */
+/* shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one */
 	mova128		STATE0, XMMTMP
-	palignr		$8, STATE1, STATE0		/* ABEF */
-	pblendw		$0xF0, XMMTMP, STATE1		/* CDGH */
+	shufps		SHUF(1,0,1,0), STATE1, STATE0 /* ABEF */
+	shufps		SHUF(3,2,3,2), STATE1, XMMTMP /* CDGH */
+	mova128		XMMTMP, STATE1
 
 /* XMMTMP holds flip mask from here... */
 	mova128		PSHUFFLE_BSWAP32_FLIP_MASK(%rip), XMMTMP
@@ -242,14 +244,15 @@ sha256_process_block64_shaNI:
 	paddd		CDGH_SAVE, STATE1
 
 	/* Write hash values back in the correct order */
-	shuf128_32	$0x1B, STATE0, STATE0		/* FEBA */
-	shuf128_32	$0xB1, STATE1, STATE1		/* DCHG */
+	/* STATE0: ABEF (msb-to-lsb: 3,2,1,0) */
+	/* STATE1: CDGH */
 	mova128		STATE0, XMMTMP
-	pblendw		$0xF0, STATE1, STATE0		/* DCBA */
-	palignr		$8, XMMTMP, STATE1		/* HGFE */
+/* shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one */
+	shufps		SHUF(3,2,3,2), STATE1, STATE0 /* DCBA */
+	shufps		SHUF(1,0,1,0), STATE1, XMMTMP /* HGFE */
 
 	movu128		STATE0, 80+0*16(%rdi)
-	movu128		STATE1, 80+1*16(%rdi)
+	movu128		XMMTMP, 80+1*16(%rdi)
 
 	ret
 	.size	sha256_process_block64_shaNI, .-sha256_process_block64_shaNI
