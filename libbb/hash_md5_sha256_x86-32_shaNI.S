@@ -39,13 +39,12 @@
 	.balign	8	# allow decoders to fetch at least 2 first insns
 sha256_process_block64_shaNI:
 
-	movu128		76+0*16(%eax), STATE1 /* DCBA (msb-to-lsb: 3,2,1,0) */
-	movu128		76+1*16(%eax), STATE0 /* HGFE */
+	movu128		76+0*16(%eax), XMMTMP /* DCBA (msb-to-lsb: 3,2,1,0) */
+	movu128		76+1*16(%eax), STATE1 /* HGFE */
 /* shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one */
-	mova128		STATE0, XMMTMP
-	shufps		SHUF(1,0,1,0), STATE1, STATE0 /* ABEF */
-	shufps		SHUF(3,2,3,2), STATE1, XMMTMP /* CDGH */
-	mova128		XMMTMP, STATE1
+	mova128		STATE1, STATE0
+	shufps		SHUF(1,0,1,0), XMMTMP, STATE0 /* ABEF */
+	shufps		SHUF(3,2,3,2), XMMTMP, STATE1 /* CDGH */
 
 /* XMMTMP holds flip mask from here... */
 	mova128		PSHUFFLE_BSWAP32_FLIP_MASK, XMMTMP
