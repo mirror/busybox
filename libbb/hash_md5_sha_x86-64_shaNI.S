@@ -4,7 +4,7 @@
 // We use shorter insns, even though they are for "wrong"
 // data type (fp, not int).
 // For Intel, there is no penalty for doing it at all
-// (CPUs which do have such penalty do not support SHA1 insns).
+// (CPUs which do have such penalty do not support SHA insns).
 // For AMD, the penalty is one extra cycle
 // (allegedly: I failed to find measurable difference).
 

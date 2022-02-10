@@ -4,7 +4,7 @@
 // We use shorter insns, even though they are for "wrong"
 // data type (fp, not int).
 // For Intel, there is no penalty for doing it at all
-// (CPUs which do have such penalty do not support SHA1 insns).
+// (CPUs which do have such penalty do not support SHA insns).
 // For AMD, the penalty is one extra cycle
 // (allegedly: I failed to find measurable difference).
 
@@ -39,12 +39,13 @@
 	.balign	8	# allow decoders to fetch at least 2 first insns
 sha256_process_block64_shaNI:
 
-	movu128		76+0*16(%eax), XMMTMP /* DCBA (msb-to-lsb: 3,2,1,0) */
-	movu128		76+1*16(%eax), STATE1 /* HGFE */
+	movu128		76+0*16(%eax), XMMTMP /* ABCD (little-endian dword order) */
+	movu128		76+1*16(%eax), STATE1 /* EFGH */
 /* shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one */
 	mova128		STATE1, STATE0
-	shufps		SHUF(1,0,1,0), XMMTMP, STATE0 /* ABEF */
-	shufps		SHUF(3,2,3,2), XMMTMP, STATE1 /* CDGH */
+	/* ---		-------------- ABCD -- EFGH */
+	shufps		SHUF(1,0,1,0), XMMTMP, STATE0 /* FEBA */
+	shufps		SHUF(3,2,3,2), XMMTMP, STATE1 /* HGDC */
 
 /* XMMTMP holds flip mask from here... */
 	mova128		PSHUFFLE_BSWAP32_FLIP_MASK, XMMTMP
@@ -232,12 +233,11 @@ sha256_process_block64_shaNI:
 		sha256rnds2	STATE1, STATE0
 
 	/* Write hash values back in the correct order */
-	/* STATE0: ABEF (msb-to-lsb: 3,2,1,0) */
-	/* STATE1: CDGH */
 	mova128		STATE0, XMMTMP
 /* shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one */
-	shufps		SHUF(3,2,3,2), STATE1, STATE0 /* DCBA */
-	shufps		SHUF(1,0,1,0), STATE1, XMMTMP /* HGFE */
+	/* ---		-------------- HGDC -- FEBA */
+	shufps		SHUF(3,2,3,2), STATE1, STATE0 /* ABCD */
+	shufps		SHUF(1,0,1,0), STATE1, XMMTMP /* EFGH */
 	/* add current hash values to previous ones */
 	movu128		76+1*16(%eax), STATE1
 	paddd		XMMTMP, STATE1
