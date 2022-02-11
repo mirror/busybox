@@ -71,8 +71,8 @@ sha1_process_block64:
 	movq	4*10(%rdi), %r12
 	bswapq	%r11
 	bswapq	%r12
-	rolq	$32, %r11		# r11  = W[9]:W[8]
-	rolq	$32, %r12		# r12  = W[11]:W[10]
+	rolq	$32, %r11		# r11 = W[9]:W[8]
+	rolq	$32, %r12		# r12 = W[11]:W[10]
 	movq	%r11, %xmm2
 	movq	%r12, %xmm4
 	punpcklqdq %xmm4, %xmm2	# xmm2 = r12:r11 = (W[8],W[9],W[10],W[11])
@@ -81,8 +81,8 @@ sha1_process_block64:
 	movq	4*14(%rdi), %r14
 	bswapq	%r13
 	bswapq	%r14
-	rolq	$32, %r13		# r13  = W[13]:W[12]
-	rolq	$32, %r14		# r14  = W[15]:W[14]
+	rolq	$32, %r13		# r13 = W[13]:W[12]
+	rolq	$32, %r14		# r14 = W[15]:W[14]
 	movq	%r13, %xmm3
 	movq	%r14, %xmm4
 	punpcklqdq %xmm4, %xmm3	# xmm3 = r14:r13 = (W[12],W[13],W[14],W[15])
