@@ -129,65 +129,57 @@ sha1_process_block64:
 # xmm7: all round constants
 # -64(%rsp): area for passing RCONST + W[] from vector to integer units
 
+	movaps	sha1const(%rip), $xmmALLRCONST
+	movaps	bswap32_mask(%rip), $xmmT1
+	pshufd	\$0x00, $xmmALLRCONST, $xmmRCONST
+
+	# Load W[] to xmm0..3, byteswapping on the fly.
+	#
+	# For iterations 0..15, we pass RCONST+W[] in rsi,r8..r14
+	# for use in RD1As instead of spilling them to stack.
+	# (We use rsi instead of rN because this makes two
+	# ADDs in two first RD1As shorter by one byte).
+	movups	16*0(%rdi), %xmm0
+	pshufb	$xmmT1, %xmm0
+	movaps	%xmm0, $xmmT2
+	paddd	$xmmRCONST, $xmmT2
+	movq	$xmmT2, %rsi
+#	pextrq	\$1, $xmmT2, %r8	#SSE4.1 insn
+#	movhpd	$xmmT2, %r8		#can only move to mem, not to reg
+	shufps	\$0x0e, $xmmT2, $xmmT2
+	movq	$xmmT2, %r8
+
+	movups	16*1(%rdi), %xmm1
+	pshufb	$xmmT1, %xmm1
+	movaps	%xmm1, $xmmT2
+	paddd	$xmmRCONST, $xmmT2
+	movq	$xmmT2, %r9
+	shufps	\$0x0e, $xmmT2, $xmmT2
+	movq	$xmmT2, %r10
+
+	movups	16*2(%rdi), %xmm2
+	pshufb	$xmmT1, %xmm2
+	movaps	%xmm2, $xmmT2
+	paddd	$xmmRCONST, $xmmT2
+	movq	$xmmT2, %r11
+	shufps	\$0x0e, $xmmT2, $xmmT2
+	movq	$xmmT2, %r12
+
+	movups	16*3(%rdi), %xmm3
+	pshufb	$xmmT1, %xmm3
+	movaps	%xmm3, $xmmT2
+	paddd	$xmmRCONST, $xmmT2
+	movq	$xmmT2, %r13
+	shufps	\$0x0e, $xmmT2, $xmmT2
+	movq	$xmmT2, %r14
+
+	# MOVQs to GPRs (above) have somewhat high latency.
+	# Load hash[] while they are completing:
 	movl	80(%rdi), %eax		# a = ctx->hash[0]
 	movl	84(%rdi), %ebx		# b = ctx->hash[1]
 	movl	88(%rdi), %ecx		# c = ctx->hash[2]
 	movl	92(%rdi), %edx		# d = ctx->hash[3]
 	movl	96(%rdi), %ebp		# e = ctx->hash[4]
-
-	movaps	sha1const(%rip), $xmmALLRCONST
-	pshufd	\$0x00, $xmmALLRCONST, $xmmRCONST
-
-	# Load W[] to xmm registers, byteswapping on the fly.
-	#
-	# For iterations 0..15, we pass W[] in rsi,r8..r14
-	# for use in RD1As instead of spilling them to stack.
-	# We lose parallelized addition of RCONST, but LEA
-	# can do two additions at once, so it is probably a wash.
-	# (We use rsi instead of rN because this makes two
-	# LEAs in two first RD1As shorter by one byte).
-	movq	4*0(%rdi), %rsi
-	movq	4*2(%rdi), %r8
-	bswapq	%rsi
-	bswapq	%r8
-	rolq	\$32, %rsi		# rsi = W[1]:W[0]
-	rolq	\$32, %r8		# r8  = W[3]:W[2]
-	movq	%rsi, %xmm0
-	movq	%r8, $xmmT1
-	punpcklqdq $xmmT1, %xmm0	# xmm0 = r8:rsi = (W[0],W[1],W[2],W[3])
-#	movaps	%xmm0, $xmmT1		# add RCONST, spill to stack
-#	paddd	$xmmRCONST, $xmmT1
-#	movups	$xmmT1, -64+16*0(%rsp)
-
-	movq	4*4(%rdi), %r9
-	movq	4*6(%rdi), %r10
-	bswapq	%r9
-	bswapq	%r10
-	rolq	\$32, %r9		# r9  = W[5]:W[4]
-	rolq	\$32, %r10		# r10 = W[7]:W[6]
-	movq	%r9, %xmm1
-	movq	%r10, $xmmT1
-	punpcklqdq $xmmT1, %xmm1	# xmm1 = r10:r9 = (W[4],W[5],W[6],W[7])
-
-	movq	4*8(%rdi), %r11
-	movq	4*10(%rdi), %r12
-	bswapq	%r11
-	bswapq	%r12
-	rolq	\$32, %r11		# r11  = W[9]:W[8]
-	rolq	\$32, %r12		# r12  = W[11]:W[10]
-	movq	%r11, %xmm2
-	movq	%r12, $xmmT1
-	punpcklqdq $xmmT1, %xmm2	# xmm2 = r12:r11 = (W[8],W[9],W[10],W[11])
-
-	movq	4*12(%rdi), %r13
-	movq	4*14(%rdi), %r14
-	bswapq	%r13
-	bswapq	%r14
-	rolq	\$32, %r13		# r13  = W[13]:W[12]
-	rolq	\$32, %r14		# r14  = W[15]:W[14]
-	movq	%r13, %xmm3
-	movq	%r14, $xmmT1
-	punpcklqdq $xmmT1, %xmm3	# xmm3 = r14:r13 = (W[12],W[13],W[14],W[15])
 "
 
 PREP() {
@@ -266,15 +258,15 @@ local rN=$((7+n0/2))
 echo "
 # $n
 ";test $n0 = 0 && echo "
-	leal	$RCONST(%r$e,%rsi), %e$e # e += RCONST + W[n]
+	addl	%esi, %e$e		# e += RCONST + W[n]
 	shrq	\$32, %rsi
 ";test $n0 = 1 && echo "
-	leal	$RCONST(%r$e,%rsi), %e$e # e += RCONST + W[n]
+	addl	%esi, %e$e		# e += RCONST + W[n]
 ";test $n0 -ge 2 && test $((n0 & 1)) = 0 && echo "
-	leal	$RCONST(%r$e,%r$rN), %e$e # e += RCONST + W[n]
+	addl	%r${rN}d, %e$e		# e += RCONST + W[n]
 	shrq	\$32, %r$rN
 ";test $n0 -ge 2 && test $((n0 & 1)) = 1 && echo "
-	leal	$RCONST(%r$e,%r$rN), %e$e # e += RCONST + W[n]
+	addl	%r${rN}d, %e$e		# e += RCONST + W[n]
 ";echo "
 	movl	%e$c, %edi		# c
 	xorl	%e$d, %edi		# ^d
@@ -439,6 +431,11 @@ echo "
 
 	ret
 	.size	sha1_process_block64, .-sha1_process_block64
+
+	.section	.rodata.cst16.bswap32_mask, \"aM\", @progbits, 16
+	.balign	16
+bswap32_mask:
+	.octa	0x0c0d0e0f08090a0b0405060700010203
 
 	.section	.rodata.cst16.sha1const, \"aM\", @progbits, 16
 	.balign	16
