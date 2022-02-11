@@ -27,60 +27,68 @@ sha1_process_block64:
 # xmm7: all round constants
 # -64(%rsp): area for passing RCONST + W[] from vector to integer units
 
-	movaps	sha1const(%rip), %xmm7
-	movaps	bswap32_mask(%rip), %xmm4
-	pshufd	$0x00, %xmm7, %xmm6
-
-	# Load W[] to xmm0..3, byteswapping on the fly.
-	#
-	# For iterations 0..15, we pass RCONST+W[] in rsi,r8..r14
-	# for use in RD1As instead of spilling them to stack.
-	# (We use rsi instead of rN because this makes two
-	# ADDs in two first RD1As shorter by one byte).
-	movups	16*0(%rdi), %xmm0
-	pshufb	%xmm4, %xmm0
-	movaps	%xmm0, %xmm5
-	paddd	%xmm6, %xmm5
-	movq	%xmm5, %rsi
-#	pextrq	$1, %xmm5, %r8	#SSE4.1 insn
-#	movhpd	%xmm5, %r8		#can only move to mem, not to reg
-	shufps	$0x0e, %xmm5, %xmm5
-	movq	%xmm5, %r8
-
-	movups	16*1(%rdi), %xmm1
-	pshufb	%xmm4, %xmm1
-	movaps	%xmm1, %xmm5
-	paddd	%xmm6, %xmm5
-	movq	%xmm5, %r9
-	shufps	$0x0e, %xmm5, %xmm5
-	movq	%xmm5, %r10
-
-	movups	16*2(%rdi), %xmm2
-	pshufb	%xmm4, %xmm2
-	movaps	%xmm2, %xmm5
-	paddd	%xmm6, %xmm5
-	movq	%xmm5, %r11
-	shufps	$0x0e, %xmm5, %xmm5
-	movq	%xmm5, %r12
-
-	movups	16*3(%rdi), %xmm3
-	pshufb	%xmm4, %xmm3
-	movaps	%xmm3, %xmm5
-	paddd	%xmm6, %xmm5
-	movq	%xmm5, %r13
-	shufps	$0x0e, %xmm5, %xmm5
-	movq	%xmm5, %r14
-
-	# MOVQs to GPRs (above) have somewhat high latency.
-	# Load hash[] while they are completing:
 	movl	80(%rdi), %eax		# a = ctx->hash[0]
 	movl	84(%rdi), %ebx		# b = ctx->hash[1]
 	movl	88(%rdi), %ecx		# c = ctx->hash[2]
 	movl	92(%rdi), %edx		# d = ctx->hash[3]
 	movl	96(%rdi), %ebp		# e = ctx->hash[4]
 
+	movaps	sha1const(%rip), %xmm7
+	pshufd	$0x00, %xmm7, %xmm6
+
+	# Load W[] to xmm0..3, byteswapping on the fly.
+	#
+	# For iterations 0..15, we pass W[] in rsi,r8..r14
+	# for use in RD1As instead of spilling them to stack.
+	# We lose parallelized addition of RCONST, but LEA
+	# can do two additions at once, so it is probably a wash.
+	# (We use rsi instead of rN because this makes two
+	# LEAs in two first RD1As shorter by one byte).
+	movq	4*0(%rdi), %rsi
+	movq	4*2(%rdi), %r8
+	bswapq	%rsi
+	bswapq	%r8
+	rolq	$32, %rsi		# rsi = W[1]:W[0]
+	rolq	$32, %r8		# r8  = W[3]:W[2]
+	movq	%rsi, %xmm0
+	movq	%r8, %xmm4
+	punpcklqdq %xmm4, %xmm0	# xmm0 = r8:rsi = (W[0],W[1],W[2],W[3])
+#	movaps	%xmm0, %xmm4		# add RCONST, spill to stack
+#	paddd	%xmm6, %xmm4
+#	movups	%xmm4, -64+16*0(%rsp)
+
+	movq	4*4(%rdi), %r9
+	movq	4*6(%rdi), %r10
+	bswapq	%r9
+	bswapq	%r10
+	rolq	$32, %r9		# r9  = W[5]:W[4]
+	rolq	$32, %r10		# r10 = W[7]:W[6]
+	movq	%r9, %xmm1
+	movq	%r10, %xmm4
+	punpcklqdq %xmm4, %xmm1	# xmm1 = r10:r9 = (W[4],W[5],W[6],W[7])
+
+	movq	4*8(%rdi), %r11
+	movq	4*10(%rdi), %r12
+	bswapq	%r11
+	bswapq	%r12
+	rolq	$32, %r11		# r11  = W[9]:W[8]
+	rolq	$32, %r12		# r12  = W[11]:W[10]
+	movq	%r11, %xmm2
+	movq	%r12, %xmm4
+	punpcklqdq %xmm4, %xmm2	# xmm2 = r12:r11 = (W[8],W[9],W[10],W[11])
+
+	movq	4*12(%rdi), %r13
+	movq	4*14(%rdi), %r14
+	bswapq	%r13
+	bswapq	%r14
+	rolq	$32, %r13		# r13  = W[13]:W[12]
+	rolq	$32, %r14		# r14  = W[15]:W[14]
+	movq	%r13, %xmm3
+	movq	%r14, %xmm4
+	punpcklqdq %xmm4, %xmm3	# xmm3 = r14:r13 = (W[12],W[13],W[14],W[15])
+
 # 0
-	addl	%esi, %ebp		# e += RCONST + W[n]
+	leal	0x5A827999(%rbp,%rsi), %ebp # e += RCONST + W[n]
 	shrq	$32, %rsi
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
@@ -92,7 +100,7 @@ sha1_process_block64:
 	addl	%edi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 1
-	addl	%esi, %edx		# e += RCONST + W[n]
+	leal	0x5A827999(%rdx,%rsi), %edx # e += RCONST + W[n]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	andl	%eax, %edi		# &b
@@ -103,7 +111,7 @@ sha1_process_block64:
 	addl	%edi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 2
-	addl	%r8d, %ecx		# e += RCONST + W[n]
+	leal	0x5A827999(%rcx,%r8), %ecx # e += RCONST + W[n]
 	shrq	$32, %r8
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
@@ -115,7 +123,7 @@ sha1_process_block64:
 	addl	%edi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 3
-	addl	%r8d, %ebx		# e += RCONST + W[n]
+	leal	0x5A827999(%rbx,%r8), %ebx # e += RCONST + W[n]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	andl	%edx, %edi		# &b
@@ -126,7 +134,7 @@ sha1_process_block64:
 	addl	%edi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 4
-	addl	%r9d, %eax		# e += RCONST + W[n]
+	leal	0x5A827999(%rax,%r9), %eax # e += RCONST + W[n]
 	shrq	$32, %r9
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
@@ -138,7 +146,7 @@ sha1_process_block64:
 	addl	%edi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 5
-	addl	%r9d, %ebp		# e += RCONST + W[n]
+	leal	0x5A827999(%rbp,%r9), %ebp # e += RCONST + W[n]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
@@ -149,7 +157,7 @@ sha1_process_block64:
 	addl	%edi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 6
-	addl	%r10d, %edx		# e += RCONST + W[n]
+	leal	0x5A827999(%rdx,%r10), %edx # e += RCONST + W[n]
 	shrq	$32, %r10
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
@@ -161,7 +169,7 @@ sha1_process_block64:
 	addl	%edi, %edx		# e += rotl32(a,5)
 	rorl	$2, %eax		# b = rotl32(b,30)
 # 7
-	addl	%r10d, %ecx		# e += RCONST + W[n]
+	leal	0x5A827999(%rcx,%r10), %ecx # e += RCONST + W[n]
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
 	andl	%ebp, %edi		# &b
@@ -202,7 +210,7 @@ sha1_process_block64:
 	paddd	%xmm6, %xmm5
 	movups	%xmm5, -64+16*0(%rsp)
 # 8
-	addl	%r11d, %ebx		# e += RCONST + W[n]
+	leal	0x5A827999(%rbx,%r11), %ebx # e += RCONST + W[n]
 	shrq	$32, %r11
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
@@ -214,7 +222,7 @@ sha1_process_block64:
 	addl	%edi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 9
-	addl	%r11d, %eax		# e += RCONST + W[n]
+	leal	0x5A827999(%rax,%r11), %eax # e += RCONST + W[n]
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
 	andl	%ecx, %edi		# &b
@@ -225,7 +233,7 @@ sha1_process_block64:
 	addl	%edi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 10
-	addl	%r12d, %ebp		# e += RCONST + W[n]
+	leal	0x5A827999(%rbp,%r12), %ebp # e += RCONST + W[n]
 	shrq	$32, %r12
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
@@ -237,7 +245,7 @@ sha1_process_block64:
 	addl	%edi, %ebp		# e += rotl32(a,5)
 	rorl	$2, %ebx		# b = rotl32(b,30)
 # 11
-	addl	%r12d, %edx		# e += RCONST + W[n]
+	leal	0x5A827999(%rdx,%r12), %edx # e += RCONST + W[n]
 	movl	%ebx, %edi		# c
 	xorl	%ecx, %edi		# ^d
 	andl	%eax, %edi		# &b
@@ -279,7 +287,7 @@ sha1_process_block64:
 	paddd	%xmm6, %xmm5
 	movups	%xmm5, -64+16*1(%rsp)
 # 12
-	addl	%r13d, %ecx		# e += RCONST + W[n]
+	leal	0x5A827999(%rcx,%r13), %ecx # e += RCONST + W[n]
 	shrq	$32, %r13
 	movl	%eax, %edi		# c
 	xorl	%ebx, %edi		# ^d
@@ -291,7 +299,7 @@ sha1_process_block64:
 	addl	%edi, %ecx		# e += rotl32(a,5)
 	rorl	$2, %ebp		# b = rotl32(b,30)
 # 13
-	addl	%r13d, %ebx		# e += RCONST + W[n]
+	leal	0x5A827999(%rbx,%r13), %ebx # e += RCONST + W[n]
 	movl	%ebp, %edi		# c
 	xorl	%eax, %edi		# ^d
 	andl	%edx, %edi		# &b
@@ -302,7 +310,7 @@ sha1_process_block64:
 	addl	%edi, %ebx		# e += rotl32(a,5)
 	rorl	$2, %edx		# b = rotl32(b,30)
 # 14
-	addl	%r14d, %eax		# e += RCONST + W[n]
+	leal	0x5A827999(%rax,%r14), %eax # e += RCONST + W[n]
 	shrq	$32, %r14
 	movl	%edx, %edi		# c
 	xorl	%ebp, %edi		# ^d
@@ -314,7 +322,7 @@ sha1_process_block64:
 	addl	%edi, %eax		# e += rotl32(a,5)
 	rorl	$2, %ecx		# b = rotl32(b,30)
 # 15
-	addl	%r14d, %ebp		# e += RCONST + W[n]
+	leal	0x5A827999(%rbp,%r14), %ebp # e += RCONST + W[n]
 	movl	%ecx, %edi		# c
 	xorl	%edx, %edi		# ^d
 	andl	%ebx, %edi		# &b
@@ -1466,11 +1474,6 @@ sha1_process_block64:
 
 	ret
 	.size	sha1_process_block64, .-sha1_process_block64
-
-	.section	.rodata.cst16.bswap32_mask, "aM", @progbits, 16
-	.balign	16
-bswap32_mask:
-	.octa	0x0c0d0e0f08090a0b0405060700010203
 
 	.section	.rodata.cst16.sha1const, "aM", @progbits, 16
 	.balign	16

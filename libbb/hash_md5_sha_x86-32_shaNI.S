@@ -20,6 +20,11 @@
 #define extr128_32 pextrd
 //#define extr128_32 extractps	# not shorter
 
+// pshufb is a SSSE3 insn.
+// pinsrd, pextrd, extractps are SSE4.1 insns.
+// We do not check SSSE3/SSE4.1 in cpuid,
+// all SHA-capable CPUs support them as well.
+
 	.section	.text.sha1_process_block64_shaNI, "ax", @progbits
 	.globl	sha1_process_block64_shaNI
 	.hidden	sha1_process_block64_shaNI

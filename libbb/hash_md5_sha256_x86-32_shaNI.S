@@ -15,6 +15,10 @@
 //#define shuf128_32 pshufd
 #define shuf128_32 shufps
 
+// pshufb and palignr are SSSE3 insns.
+// We do not check SSSE3 in cpuid,
+// all SHA-capable CPUs support it as well.
+
 	.section	.text.sha256_process_block64_shaNI, "ax", @progbits
 	.globl	sha256_process_block64_shaNI
 	.hidden	sha256_process_block64_shaNI
