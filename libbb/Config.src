@@ -57,11 +57,12 @@ config SHA1_SMALL
 	range 0 3
 	help
 	Trade binary size versus speed for the sha1 algorithm.
+	With FEATURE_COPYBUF_KB=64:
 	                throughput MB/s   size of sha1_process_block64
 	value           486  x86-64       486   x86-64
-	0               367  375          3657  3502
-	1               224  229           654   732
-	2,3             200  195           358   380
+	0               440  485          3481  3502
+	1               265  265           641   696
+	2,3             220  210           342   364
 
 config SHA1_HWACCEL
 	bool "SHA1: Use hardware accelerated instructions if possible"
