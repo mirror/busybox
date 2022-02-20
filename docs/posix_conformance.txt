@@ -24,7 +24,7 @@ POSIX Tools not supported:
   gencat, getconf, iconv, join, link, locale, localedef, lp, m4,
   mailx, newgrp, nl, pathchk, pax, pr, qalter, qdel, qhold, qmove,
   qmsg, qrerun, qrls, qselect, qsig, qstat, qsub, tabs, talk, tput,
-  tsort, unlink, uucp, uustat, uux
+  unlink, uucp, uustat, uux
 
 POSIX Tools not supported (DEVELOPMENT):
   admin, cflow, ctags, cxref, delta, fort77, get, lex, make, nm, prs, rmdel,
