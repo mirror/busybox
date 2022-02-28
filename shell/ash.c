@@ -7081,6 +7081,10 @@ subevalvar(char *start, char *str, int strloc,
 				*repl = '\0';
 				break;
 			}
+			if ((unsigned char)*repl == CTLENDVAR) { /* ${v/pattern} (no trailing /, no repl) */
+				repl = NULL;
+				break;
+			}
 			/* Handle escaped slashes, e.g. "${v/\//_}" (they are CTLESC'ed by this point) */
 			if ((unsigned char)*repl == CTLESC && repl[1])
 				repl++;
