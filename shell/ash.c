@@ -6532,9 +6532,7 @@ exptilde(char *startp, int flag)
 		home = lookupvar("HOME");
 	} else {
 		pw = getpwnam(name);
-		if (pw == NULL)
-			goto lose;
-		home = pw->pw_dir;
+		home = pw ? pw->pw_dir : NULL;
 	}
 	*p = c;
 	if (!home)
