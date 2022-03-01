@@ -55,7 +55,6 @@
  * Not yet implemented:
  * -a/--all-tasks (affect all threads)
  *	needs to get TIDs from /proc/PID/task/ and use _them_ as "pid" in sched_setaffinity(pid)
- * -c/--cpu-list  (specify CPUs via "1,3,5-7")
  */
 
 #include <sched.h>
@@ -91,7 +90,7 @@ static char *from_mask(const ul *mask, unsigned sz_in_bytes)
 }
 #else
 #define TASKSET_PRINTF_MASK "%lx"
-static unsigned long long from_mask(ul *mask, unsigned sz_in_bytes UNUSED_PARAM)
+static unsigned long from_mask(ul *mask, unsigned sz_in_bytes UNUSED_PARAM)
 {
 	return *mask;
 }
