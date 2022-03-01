@@ -7191,7 +7191,13 @@ subevalvar(char *start, char *str, int strloc,
 			len = orig_len - pos;
 
 		if (!quotes) {
-			loc = mempcpy(startp, startp + pos, len);
+			/* want: loc = mempcpy(startp, startp + pos, len)
+			 * but it does not allow overlapping arguments */
+			loc = startp;
+			while (--len >= 0) {
+				*loc = loc[pos];
+				loc++;
+			}
 		} else {
 			for (vstr = startp; pos != 0; pos--) {
 				if ((unsigned char)*vstr == CTLESC)
