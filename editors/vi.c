@@ -380,7 +380,9 @@ struct globals {
 	char *last_search_pattern; // last pattern from a '/' or '?' search
 #endif
 #if ENABLE_FEATURE_VI_SETOPTS
-	int indentcol;		// column of recently autoindent, 0 or -1
+	int char_insert__indentcol;		// column of recent autoindent or 0
+	int newindent;		// autoindent value for 'O'/'cc' commands
+						// or -1 to use indent from previous line
 #endif
 	smallint cmd_error;
 
@@ -507,7 +509,8 @@ struct globals {
 #define ioq_start               (G.ioq_start          )
 #define dotcnt                  (G.dotcnt             )
 #define last_search_pattern     (G.last_search_pattern)
-#define indentcol               (G.indentcol          )
+#define char_insert__indentcol  (G.char_insert__indentcol)
+#define newindent               (G.newindent          )
 #define cmd_error               (G.cmd_error          )
 
 #define edit_file__cur_line     (G.edit_file__cur_line)
@@ -540,10 +543,11 @@ struct globals {
 
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
-	last_modified_count = -1; \
+	last_modified_count--; \
 	/* "" but has space for 2 chars: */ \
 	IF_FEATURE_VI_SEARCH(last_search_pattern = xzalloc(2);) \
 	tabstop = 8; \
+	IF_FEATURE_VI_SETOPTS(newindent--;) \
 } while (0)
 
 #if ENABLE_FEATURE_VI_CRASHME
@@ -2113,6 +2117,7 @@ static size_t indent_len(char *p)
 static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 {
 #if ENABLE_FEATURE_VI_SETOPTS
+# define indentcol char_insert__indentcol
 	size_t len;
 	int col, ntab, nspc;
 #endif
@@ -2141,7 +2146,8 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 #if ENABLE_FEATURE_VI_SETOPTS
 		if (autoindent) {
 			len = indent_len(bol);
-			if (len && get_column(bol + len) == indentcol && bol[len] == '\n') {
+			col = get_column(bol + len);
+			if (len && col == indentcol && bol[len] == '\n') {
 				// remove autoindent from otherwise empty line
 				text_hole_delete(bol, bol + len - 1, undo);
 				p = bol;
@@ -2210,26 +2216,30 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 			showmatching(p - 1);
 		}
 		if (autoindent && c == '\n') {	// auto indent the new line
-			// use indent of current/previous line
-			bol = indentcol < 0 ? p : prev_line(p);
-			len = indent_len(bol);
-			col = get_column(bol + len);
+			if (newindent < 0) {
+				// use indent of previous line
+				bol = prev_line(p);
+				len = indent_len(bol);
+				col = get_column(bol + len);
 
-			if (len && col == indentcol) {
-				// previous line was empty except for autoindent
-				// move the indent to the current line
-				memmove(bol + 1, bol, len);
-				*bol = '\n';
-				return p;
+				if (len && col == indentcol) {
+					// previous line was empty except for autoindent
+					// move the indent to the current line
+					memmove(bol + 1, bol, len);
+					*bol = '\n';
+					return p;
+				}
+			} else {
+				// for 'O'/'cc' commands add indent before newly inserted NL
+				if (p != end - 1)	// but not for 'cc' at EOF
+					p--;
+				col = newindent;
 			}
 
-			if (indentcol < 0)
-				p--;	// open above, indent before newly inserted NL
-
-			if (len) {
+			if (col) {
 				// only record indent if in insert/replace mode or for
-				// the 'o'/'O' commands, which are switched to insert
-				// mode early.
+				// the 'o'/'O'/'cc' commands, which are switched to
+				// insert mode early.
 				indentcol = cmd_mode != 0 ? col : 0;
 				if (expandtab) {
 					ntab = 0;
@@ -2252,6 +2262,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 	}
 #if ENABLE_FEATURE_VI_SETOPTS
 	indentcol = 0;
+# undef indentcol
 #endif
 	return p;
 }
@@ -4220,6 +4231,9 @@ static void do_cmd(int c)
 	case 'i':			// i- insert before current char
 	case KEYCODE_INSERT:	// Cursor Key Insert
  dc_i:
+#if ENABLE_FEATURE_VI_SETOPTS
+		newindent = -1;
+#endif
 		cmd_mode = 1;	// start inserting
 		undo_queue_commit();	// commit queue when cmd_mode changes
 		break;
@@ -4262,7 +4276,8 @@ static void do_cmd(int c)
 	case 'O':			// O- open an empty line above
 		dot_begin();
 #if ENABLE_FEATURE_VI_SETOPTS
-		indentcol = -1;
+		// special case: use indent of current line
+		newindent = get_column(dot + indent_len(dot));
 #endif
 		goto dc3;
 	case 'o':			// o- open an empty line below
@@ -4385,14 +4400,22 @@ static void do_cmd(int c)
 		if (buftype == WHOLE) {
 			save_dot = p;	// final cursor position is start of range
 			p = begin_line(p);
+#if ENABLE_FEATURE_VI_SETOPTS
+			if (c == 'c')	// special case: use indent of current line
+				newindent = get_column(p + indent_len(p));
+#endif
 			q = end_line(q);
 		}
 		dot = yank_delete(p, q, buftype, yf, ALLOW_UNDO);	// delete word
 		if (buftype == WHOLE) {
 			if (c == 'c') {
+#if ENABLE_FEATURE_VI_SETOPTS
+				cmd_mode = 1;	// switch to insert mode early
+#endif
 				dot = char_insert(dot, '\n', ALLOW_UNDO_CHAIN);
-				// on the last line of file don't move to prev line
-				if (dot != (end-1)) {
+				// on the last line of file don't move to prev line,
+				// handled in char_insert() if autoindent is enabled
+				if (dot != (end-1) && !autoindent) {
 					dot_prev();
 				}
 			} else if (c == 'd') {
