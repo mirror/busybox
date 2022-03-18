@@ -2227,7 +2227,10 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 				p--;	// open above, indent before newly inserted NL
 
 			if (len) {
-				indentcol = col;
+				// only record indent if in insert/replace mode or for
+				// the 'o'/'O' commands, which are switched to insert
+				// mode early.
+				indentcol = cmd_mode != 0 ? col : 0;
 				if (expandtab) {
 					ntab = 0;
 					nspc = col;
@@ -4265,6 +4268,9 @@ static void do_cmd(int c)
 	case 'o':			// o- open an empty line below
 		dot_end();
  dc3:
+#if ENABLE_FEATURE_VI_SETOPTS
+		cmd_mode = 1;	// switch to insert mode early
+#endif
 		dot = char_insert(dot, '\n', ALLOW_UNDO);
 		if (c == 'O' && !autoindent) {
 			// done in char_insert() for 'O'+autoindent
