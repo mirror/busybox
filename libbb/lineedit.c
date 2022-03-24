@@ -259,6 +259,16 @@ static const char *get_username_str(void)
 
 static NOINLINE const char *get_homedir_or_NULL(void)
 {
+	const char *home;
+
+# if ENABLE_SHELL_ASH || ENABLE_SHELL_HUSH
+	home = state->sh_get_var ? state->sh_get_var("HOME") : getenv("HOME");
+# else
+	home = getenv("HOME");
+# endif
+	if (home != NULL && home[0] != '\0')
+		return home;
+
 	if (!got_user_strings)
 		get_user_strings();
 	return home_pwd_buf;
@@ -861,7 +871,7 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 				continue;
 		}
 # endif
-# if EDITING_HAS_get_exe_name
+# if ENABLE_SHELL_ASH || ENABLE_SHELL_HUSH
 		if (state->get_exe_name) {
 			i = 0;
 			for (;;) {
