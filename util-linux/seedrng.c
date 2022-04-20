@@ -2,11 +2,26 @@
 /*
  * Copyright (C) 2022 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
  *
+ * SeedRNG is a simple program made for seeding the Linux kernel random number
+ * generator from seed files. It is is useful in light of the fact that the
+ * Linux kernel RNG cannot be initialized from shell scripts, and new seeds
+ * cannot be safely generated from boot time shell scripts either. It should
+ * be run once at init time and once at shutdown time. It can be run at other
+ * times on a timer as well. Whenever it is run, it writes existing seed files
+ * into the RNG pool, and then creates a new seed file. If the RNG is
+ * initialized at the time of creating a new seed file, then that new seed file
+ * is marked as "creditable", which means it can be used to initialize the RNG.
+ * Otherwise, it is marked as "non-creditable", in which case it is still used
+ * to seed the RNG's pool, but will not initialize the RNG. In order to ensure
+ * that entropy only ever stays the same or increases from one seed file to the
+ * next, old seed values are hashed together with new seed values when writing
+ * new seed files.
+ *
  * This is based on code from <https://git.zx2c4.com/seedrng/about/>.
  */
 
 //config:config SEEDRNG
-//config:	bool "seedrng (2.6 kb)"
+//config:	bool "seedrng (2.5 kb)"
 //config:	default y
 //config:	help
 //config:	Seed the kernel RNG from seed files, meant to be called
@@ -71,12 +86,14 @@ enum seedrng_lengths {
 static size_t determine_optimal_seed_len(void)
 {
 	char poolsize_str[11] = { 0 };
+	unsigned long poolsize;
 
 	if (open_read_close("/proc/sys/kernel/random/poolsize", poolsize_str, sizeof(poolsize_str) - 1) < 0) {
 		bb_perror_msg("unable to determine pool size, falling back to %u bits", MIN_SEED_LEN * 8);
 		return MIN_SEED_LEN;
 	}
-	return MAX(MIN((bb_strtoul(poolsize_str, NULL, 10) + 7) / 8, MAX_SEED_LEN), MIN_SEED_LEN);
+	poolsize = (bb_strtoul(poolsize_str, NULL, 10) + 7) / 8;
+	return MAX(MIN(poolsize, MAX_SEED_LEN), MIN_SEED_LEN);
 }
 
 static int read_new_seed(uint8_t *seed, size_t len, bool *is_creditable)
@@ -130,7 +147,8 @@ static int seed_rng(uint8_t *seed, size_t len, bool credit)
 	ret = ioctl(random_fd, RNDADDENTROPY, &req);
 	if (ret)
 		ret = -errno ? -errno : -EIO;
-	close(random_fd);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(random_fd);
 	errno = -ret;
 	return ret ? -1 : 0;
 }
@@ -171,7 +189,7 @@ static int seed_from_file_if_exists(const char *filename, bool credit, sha256_ct
 	if (ret < 0)
 		bb_simple_perror_msg("unable to seed");
 out:
-	if (dfd >= 0)
+	if (ENABLE_FEATURE_CLEAN_UP && dfd >= 0)
 		close(dfd);
 	errno = -ret;
 	return ret ? -1 : 0;
@@ -187,7 +205,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	size_t new_seed_len;
 	bool new_seed_creditable;
 	bool skip_credit = false;
-	struct timespec realtime = { 0 }, boottime = { 0 };
+	struct timespec timestamp = { 0 };
 	sha256_ctx_t hash;
 
 	int opt;
@@ -217,13 +235,6 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	if (getuid())
 		bb_simple_error_msg_and_die("this program requires root");
 
-	sha256_begin(&hash);
-	sha256_hash(&hash, seedrng_prefix, strlen(seedrng_prefix));
-	clock_gettime(CLOCK_REALTIME, &realtime);
-	clock_gettime(CLOCK_BOOTTIME, &boottime);
-	sha256_hash(&hash, &realtime, sizeof(realtime));
-	sha256_hash(&hash, &boottime, sizeof(boottime));
-
 	if (mkdir(seed_dir, 0700) < 0 && errno != EEXIST)
 		bb_simple_perror_msg_and_die("unable to create seed directory");
 
@@ -233,6 +244,13 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 		program_ret = 1;
 		goto out;
 	}
+
+	sha256_begin(&hash);
+	sha256_hash(&hash, seedrng_prefix, strlen(seedrng_prefix));
+	clock_gettime(CLOCK_REALTIME, &timestamp);
+	sha256_hash(&hash, &timestamp, sizeof(timestamp));
+	clock_gettime(CLOCK_BOOTTIME, &timestamp);
+	sha256_hash(&hash, &timestamp, sizeof(timestamp));
 
 	ret = seed_from_file_if_exists(non_creditable_seed, false, &hash);
 	if (ret < 0)
@@ -270,9 +288,9 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 		program_ret |= 1 << 6;
 	}
 out:
-	if (fd >= 0)
+	if (ENABLE_FEATURE_CLEAN_UP && fd >= 0)
 		close(fd);
-	if (lock >= 0)
+	if (ENABLE_FEATURE_CLEAN_UP && lock >= 0)
 		close(lock);
 	return program_ret;
 }
