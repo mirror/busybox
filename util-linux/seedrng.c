@@ -21,7 +21,7 @@
  */
 
 //config:config SEEDRNG
-//config:	bool "seedrng (2.1 kb)"
+//config:	bool "seedrng (2 kb)"
 //config:	default y
 //config:	help
 //config:	Seed the kernel RNG from seed files, meant to be called
@@ -173,8 +173,6 @@ static int seed_from_file_if_exists(const char *filename, int dfd, bool credit, 
 int seedrng_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
 int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 {
-	static const char seedrng_prefix[] = "SeedRNG v1 Old+New Prefix";
-	static const char seedrng_failure[] = "SeedRNG v1 No New Seed Failure";
 	char *seed_dir, *creditable_seed, *non_creditable_seed;
 	int ret, fd = -1, dfd = -1, program_ret = 0;
 	uint8_t new_seed[MAX_SEED_LEN];
@@ -218,7 +216,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	}
 
 	sha256_begin(&hash);
-	sha256_hash(&hash, seedrng_prefix, strlen(seedrng_prefix));
+	sha256_hash(&hash, "SeedRNG v1 Old+New Prefix", 25);
 	clock_gettime(CLOCK_REALTIME, &timestamp);
 	sha256_hash(&hash, &timestamp, sizeof(timestamp));
 	clock_gettime(CLOCK_BOOTTIME, &timestamp);
@@ -236,7 +234,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	if (ret < 0) {
 		bb_simple_perror_msg("unable to read new seed");
 		new_seed_len = SHA256_OUTSIZE;
-		strncpy((char *)new_seed, seedrng_failure, new_seed_len);
+		memset(new_seed, 0, SHA256_OUTSIZE);
 		program_ret |= 1 << 3;
 	}
 	sha256_hash(&hash, &new_seed_len, sizeof(new_seed_len));
