@@ -1217,10 +1217,11 @@ static char *get_input_line(const char *prompt)
 			break;		// this is end of input
 		if (isbackspace(c)) {
 			// user wants to erase prev char
-			write1("\b \b"); // erase char on screen
 			buf[--i] = '\0';
+			go_bottom_and_clear_to_eol();
 			if (i <= 0) // user backs up before b-o-l, exit
 				break;
+			write1(buf);
 		} else if (c > 0 && c < 256) { // exclude Unicode
 			// (TODO: need to handle Unicode)
 			buf[i] = c;
