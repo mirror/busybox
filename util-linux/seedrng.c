@@ -21,7 +21,7 @@
  */
 
 //config:config SEEDRNG
-//config:	bool "seedrng (2.5 kb)"
+//config:	bool "seedrng (2.4 kb)"
 //config:	default y
 //config:	help
 //config:	Seed the kernel RNG from seed files, meant to be called
@@ -75,8 +75,6 @@
 #define DEFAULT_LOCK_FILE PID_FILE_PATH "/seedrng.lock"
 #define CREDITABLE_SEED_NAME "seed.credit"
 #define NON_CREDITABLE_SEED_NAME "seed.no-credit"
-
-static char *seed_dir, *lock_file, *creditable_seed, *non_creditable_seed;
 
 enum seedrng_lengths {
 	MIN_SEED_LEN = SHA256_OUTSIZE,
@@ -153,18 +151,12 @@ static int seed_rng(uint8_t *seed, size_t len, bool credit)
 	return ret ? -1 : 0;
 }
 
-static int seed_from_file_if_exists(const char *filename, bool credit, sha256_ctx_t *hash)
+static int seed_from_file_if_exists(const char *filename, int dfd, bool credit, sha256_ctx_t *hash)
 {
 	uint8_t seed[MAX_SEED_LEN];
 	ssize_t seed_len;
-	int dfd = -1, ret = 0;
+	int ret = 0;
 
-	dfd = open(seed_dir, O_DIRECTORY | O_RDONLY);
-	if (dfd < 0) {
-		ret = -errno;
-		bb_simple_perror_msg("unable to open seed directory");
-		goto out;
-	}
 	seed_len = open_read_close(filename, seed, sizeof(seed));
 	if (seed_len < 0) {
 		if (errno != ENOENT) {
@@ -189,8 +181,6 @@ static int seed_from_file_if_exists(const char *filename, bool credit, sha256_ct
 	if (ret < 0)
 		bb_simple_perror_msg("unable to seed");
 out:
-	if (ENABLE_FEATURE_CLEAN_UP && dfd >= 0)
-		close(dfd);
 	errno = -ret;
 	return ret ? -1 : 0;
 }
@@ -200,7 +190,8 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 {
 	static const char seedrng_prefix[] = "SeedRNG v1 Old+New Prefix";
 	static const char seedrng_failure[] = "SeedRNG v1 No New Seed Failure";
-	int ret, fd = -1, lock, program_ret = 0;
+	char *seed_dir, *lock_file, *creditable_seed, *non_creditable_seed;
+	int ret, fd = -1, dfd = -1, lock, program_ret = 0;
 	uint8_t new_seed[MAX_SEED_LEN];
 	size_t new_seed_len;
 	bool new_seed_creditable;
@@ -245,6 +236,13 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 		goto out;
 	}
 
+	dfd = open(seed_dir, O_DIRECTORY | O_RDONLY);
+	if (dfd < 0) {
+		bb_simple_perror_msg("unable to open seed directory");
+		program_ret = 1;
+		goto out;
+	}
+
 	sha256_begin(&hash);
 	sha256_hash(&hash, seedrng_prefix, strlen(seedrng_prefix));
 	clock_gettime(CLOCK_REALTIME, &timestamp);
@@ -252,10 +250,10 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	clock_gettime(CLOCK_BOOTTIME, &timestamp);
 	sha256_hash(&hash, &timestamp, sizeof(timestamp));
 
-	ret = seed_from_file_if_exists(non_creditable_seed, false, &hash);
+	ret = seed_from_file_if_exists(non_creditable_seed, dfd, false, &hash);
 	if (ret < 0)
 		program_ret |= 1 << 1;
-	ret = seed_from_file_if_exists(creditable_seed, !skip_credit, &hash);
+	ret = seed_from_file_if_exists(creditable_seed, dfd, !skip_credit, &hash);
 	if (ret < 0)
 		program_ret |= 1 << 2;
 
@@ -290,6 +288,8 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 out:
 	if (ENABLE_FEATURE_CLEAN_UP && fd >= 0)
 		close(fd);
+	if (ENABLE_FEATURE_CLEAN_UP && dfd >= 0)
+		close(dfd);
 	if (ENABLE_FEATURE_CLEAN_UP && lock >= 0)
 		close(lock);
 	return program_ret;
