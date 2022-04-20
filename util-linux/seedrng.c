@@ -21,7 +21,7 @@
  */
 
 //config:config SEEDRNG
-//config:	bool "seedrng (2.4 kb)"
+//config:	bool "seedrng (2.1 kb)"
 //config:	default y
 //config:	help
 //config:	Seed the kernel RNG from seed files, meant to be called
@@ -33,12 +33,11 @@
 //kbuild:lib-$(CONFIG_SEEDRNG) += seedrng.o
 
 //usage:#define seedrng_trivial_usage
-//usage:	"[-d SEED_DIRECTORY] [-l LOCK_FILE] [-n]"
+//usage:	"[-d SEED_DIRECTORY] [-n]"
 //usage:#define seedrng_full_usage "\n\n"
 //usage:	"Seed the kernel RNG from seed files."
 //usage:	"\n"
 //usage:	"\n	-d, --seed-dir DIR	Use seed files from specified directory (default: /var/lib/seedrng)"
-//usage:	"\n	-l, --lock-file FILE	Use file as exclusive lock (default: /var/run/seedrng.lock)"
 //usage:	"\n	-n, --skip-credit	Skip crediting seeds, even if creditable"
 
 #include "libbb.h"
@@ -65,14 +64,7 @@
 #define GRND_INSECURE 0x0004 /* Apparently some headers don't ship with this yet. */
 #endif
 
-#if ENABLE_PID_FILE_PATH
-#define PID_FILE_PATH CONFIG_PID_FILE_PATH
-#else
-#define PID_FILE_PATH "/var/run"
-#endif
-
 #define DEFAULT_SEED_DIR "/var/lib/seedrng"
-#define DEFAULT_LOCK_FILE PID_FILE_PATH "/seedrng.lock"
 #define CREDITABLE_SEED_NAME "seed.credit"
 #define NON_CREDITABLE_SEED_NAME "seed.no-credit"
 
@@ -116,8 +108,6 @@ static int read_new_seed(uint8_t *seed, size_t len, bool *is_creditable)
 		return 0;
 	if (open_read_close("/dev/urandom", seed, len) == (ssize_t)len)
 		return 0;
-	if (!errno)
-		errno = EIO;
 	return -1;
 }
 
@@ -155,34 +145,29 @@ static int seed_from_file_if_exists(const char *filename, int dfd, bool credit, 
 {
 	uint8_t seed[MAX_SEED_LEN];
 	ssize_t seed_len;
-	int ret = 0;
 
 	seed_len = open_read_close(filename, seed, sizeof(seed));
 	if (seed_len < 0) {
-		if (errno != ENOENT) {
-			ret = -errno;
-			bb_simple_perror_msg("unable to read seed file");
-		}
-		goto out;
+		if (errno == ENOENT)
+			return 0;
+		bb_simple_perror_msg("unable to read seed file");
+		return -1;
 	}
 	if ((unlink(filename) < 0 || fsync(dfd) < 0) && seed_len) {
-		ret = -errno;
 		bb_simple_perror_msg("unable to remove seed after reading, so not seeding");
-		goto out;
-	}
-	if (!seed_len)
-		goto out;
+		return -1;
+	} else if (!seed_len)
+		return 0;
 
 	sha256_hash(hash, &seed_len, sizeof(seed_len));
 	sha256_hash(hash, seed, seed_len);
 
 	printf("Seeding %zd bits %s crediting\n", seed_len * 8, credit ? "and" : "without");
-	ret = seed_rng(seed, seed_len, credit);
-	if (ret < 0)
+	if (seed_rng(seed, seed_len, credit) < 0) {
 		bb_simple_perror_msg("unable to seed");
-out:
-	errno = -ret;
-	return ret ? -1 : 0;
+		return -1;
+	}
+	return 0;
 }
 
 int seedrng_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
@@ -190,8 +175,8 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 {
 	static const char seedrng_prefix[] = "SeedRNG v1 Old+New Prefix";
 	static const char seedrng_failure[] = "SeedRNG v1 No New Seed Failure";
-	char *seed_dir, *lock_file, *creditable_seed, *non_creditable_seed;
-	int ret, fd = -1, dfd = -1, lock, program_ret = 0;
+	char *seed_dir, *creditable_seed, *non_creditable_seed;
+	int ret, fd = -1, dfd = -1, program_ret = 0;
 	uint8_t new_seed[MAX_SEED_LEN];
 	size_t new_seed_len;
 	bool new_seed_creditable;
@@ -202,22 +187,18 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	int opt;
 	enum {
 		OPT_d = (1 << 0),
-		OPT_l = (1 << 1),
-		OPT_n = (1 << 2)
+		OPT_n = (1 << 1)
 	};
 #if ENABLE_LONG_OPTS
 	static const char longopts[] ALIGN1 =
 		"seed-dir\0"	Required_argument	"d"
-		"lock-file\0"	Required_argument	"l"
 		"skip-credit\0"	No_argument		"n"
 		;
 #endif
 
-	opt = getopt32long(argv, "d:l:n", longopts, &seed_dir, &lock_file);
+	opt = getopt32long(argv, "d:n", longopts, &seed_dir);
 	if (!(opt & OPT_d) || !seed_dir)
 		seed_dir = xstrdup(DEFAULT_SEED_DIR);
-	if (!(opt & OPT_l) || !lock_file)
-		lock_file = xstrdup(DEFAULT_LOCK_FILE);
 	skip_credit = opt & OPT_n;
 	creditable_seed = concat_path_file(seed_dir, CREDITABLE_SEED_NAME);
 	non_creditable_seed = concat_path_file(seed_dir, NON_CREDITABLE_SEED_NAME);
@@ -229,16 +210,9 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	if (mkdir(seed_dir, 0700) < 0 && errno != EEXIST)
 		bb_simple_perror_msg_and_die("unable to create seed directory");
 
-	lock = open(lock_file, O_WRONLY | O_CREAT, 0000);
-	if (lock < 0 || flock(lock, LOCK_EX) < 0) {
-		bb_simple_perror_msg("unable to open lock file");
-		program_ret = 1;
-		goto out;
-	}
-
 	dfd = open(seed_dir, O_DIRECTORY | O_RDONLY);
-	if (dfd < 0) {
-		bb_simple_perror_msg("unable to open seed directory");
+	if (dfd < 0 || flock(dfd, LOCK_EX) < 0) {
+		bb_simple_perror_msg("unable to open and lock seed directory");
 		program_ret = 1;
 		goto out;
 	}
@@ -271,26 +245,19 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 
 	printf("Saving %zu bits of %s seed for next boot\n", new_seed_len * 8, new_seed_creditable ? "creditable" : "non-creditable");
 	fd = open(non_creditable_seed, O_WRONLY | O_CREAT | O_TRUNC, 0400);
-	if (fd < 0) {
-		bb_simple_perror_msg("unable to open seed file for writing");
-		program_ret |= 1 << 4;
-		goto out;
-	}
-	if (write(fd, new_seed, new_seed_len) != (ssize_t)new_seed_len || fsync(fd) < 0) {
+	if (fd < 0 || full_write(fd, new_seed, new_seed_len) != (ssize_t)new_seed_len || fsync(fd) < 0) {
 		bb_simple_perror_msg("unable to write seed file");
-		program_ret |= 1 << 5;
+		program_ret |= 1 << 4;
 		goto out;
 	}
 	if (new_seed_creditable && rename(non_creditable_seed, creditable_seed) < 0) {
 		bb_simple_perror_msg("unable to make new seed creditable");
-		program_ret |= 1 << 6;
+		program_ret |= 1 << 5;
 	}
 out:
 	if (ENABLE_FEATURE_CLEAN_UP && fd >= 0)
 		close(fd);
 	if (ENABLE_FEATURE_CLEAN_UP && dfd >= 0)
 		close(dfd);
-	if (ENABLE_FEATURE_CLEAN_UP && lock >= 0)
-		close(lock);
 	return program_ret;
 }
