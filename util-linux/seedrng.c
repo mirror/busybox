@@ -79,7 +79,7 @@ static size_t determine_optimal_seed_len(void)
 	unsigned long poolsize;
 
 	if (open_read_close("/proc/sys/kernel/random/poolsize", poolsize_str, sizeof(poolsize_str) - 1) < 0) {
-		bb_perror_msg("unable to determine pool size, falling back to %u bits", MIN_SEED_LEN * 8);
+		bb_perror_msg("unable to determine pool size, assuming %u bits", MIN_SEED_LEN * 8);
 		return MIN_SEED_LEN;
 	}
 	poolsize = (bb_strtoul(poolsize_str, NULL, 10) + 7) / 8;
@@ -129,7 +129,7 @@ static int seed_rng(uint8_t *seed, size_t len, bool credit)
 	}
 	memcpy(req.buffer, seed, len);
 
-	random_fd = open("/dev/random", O_RDWR);
+	random_fd = open("/dev/random", O_RDONLY);
 	if (random_fd < 0)
 		return -1;
 	ret = ioctl(random_fd, RNDADDENTROPY, &req);
@@ -154,7 +154,7 @@ static int seed_from_file_if_exists(const char *filename, int dfd, bool credit, 
 		return -1;
 	}
 	if ((unlink(filename) < 0 || fsync(dfd) < 0) && seed_len) {
-		bb_simple_perror_msg("unable to remove seed after reading, so not seeding");
+		bb_simple_perror_msg("unable to remove seed, so not seeding");
 		return -1;
 	} else if (!seed_len)
 		return 0;
@@ -205,14 +205,14 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 
 	umask(0077);
 	if (getuid())
-		bb_simple_error_msg_and_die("this program requires root");
+		bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
 
 	if (mkdir(seed_dir, 0700) < 0 && errno != EEXIST)
 		bb_simple_perror_msg_and_die("unable to create seed directory");
 
 	dfd = open(seed_dir, O_DIRECTORY | O_RDONLY);
 	if (dfd < 0 || flock(dfd, LOCK_EX) < 0) {
-		bb_simple_perror_msg("unable to open and lock seed directory");
+		bb_simple_perror_msg("unable to lock seed directory");
 		program_ret = 1;
 		goto out;
 	}
