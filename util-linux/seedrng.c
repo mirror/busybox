@@ -44,21 +44,7 @@
 
 #include <linux/random.h>
 #include <sys/random.h>
-#include <sys/ioctl.h>
 #include <sys/file.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <endian.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #ifndef GRND_INSECURE
 #define GRND_INSECURE 0x0004 /* Apparently some headers don't ship with this yet. */
