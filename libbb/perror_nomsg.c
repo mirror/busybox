@@ -12,11 +12,11 @@
  * instead of including libbb.h */
 //#include "libbb.h"
 #include "platform.h"
-extern void bb_simple_perror_msg(const char *s) FAST_FUNC;
+extern void bb_perror_msg(const char *s, ...) FAST_FUNC;
 
 /* suppress gcc "no previous prototype" warning */
 void FAST_FUNC bb_perror_nomsg(void);
 void FAST_FUNC bb_perror_nomsg(void)
 {
-	bb_simple_perror_msg(0);
+	bb_perror_msg(0);
 }
