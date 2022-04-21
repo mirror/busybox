@@ -102,7 +102,7 @@ static int read_new_seed(uint8_t *seed, size_t len, bool *is_creditable)
 		};
 		if (random_fd.fd < 0)
 			return -1;
-		*is_creditable = safe_poll(&random_fd, 1, 0) == 1;
+		*is_creditable = poll(&random_fd, 1, 0) == 1;
 		close(random_fd.fd);
 	} else if (getrandom(seed, len, GRND_INSECURE) == (ssize_t)len)
 		return 0;
@@ -174,15 +174,13 @@ int seedrng_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
 int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 {
 	const char *seed_dir = DEFAULT_SEED_DIR, *creditable_seed, *non_creditable_seed;
-	int ret, fd = -1, dfd = -1, program_ret = 0;
+	int fd, dfd, program_ret = 0;
 	uint8_t new_seed[MAX_SEED_LEN];
 	size_t new_seed_len;
-	bool new_seed_creditable;
-	bool skip_credit = false;
+	bool new_seed_creditable, skip_credit = false;
 	struct timespec timestamp = { 0 };
 	sha256_ctx_t hash;
 
-	int opt;
 	enum {
 		OPT_d = (1 << 0),
 		OPT_n = (1 << 1)
@@ -194,8 +192,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 		;
 #endif
 
-	opt = getopt32long(argv, "d:n", longopts, &seed_dir);
-	skip_credit = opt & OPT_n;
+	skip_credit = getopt32long(argv, "d:n", longopts, &seed_dir) & OPT_n;
 	creditable_seed = concat_path_file(seed_dir, CREDITABLE_SEED_NAME);
 	non_creditable_seed = concat_path_file(seed_dir, NON_CREDITABLE_SEED_NAME);
 
@@ -207,11 +204,8 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 		bb_perror_msg_and_die("unable to %s seed directory", "create");
 
 	dfd = open(seed_dir, O_DIRECTORY | O_RDONLY);
-	if (dfd < 0 || flock(dfd, LOCK_EX) < 0) {
-		bb_perror_msg("unable to %s seed directory", "lock");
-		program_ret = 1;
-		goto out;
-	}
+	if (dfd < 0 || flock(dfd, LOCK_EX) < 0)
+		bb_perror_msg_and_die("unable to %s seed directory", "lock");
 
 	sha256_begin(&hash);
 	sha256_hash(&hash, "SeedRNG v1 Old+New Prefix", 25);
@@ -220,16 +214,14 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	clock_gettime(CLOCK_BOOTTIME, &timestamp);
 	sha256_hash(&hash, &timestamp, sizeof(timestamp));
 
-	ret = seed_from_file_if_exists(non_creditable_seed, dfd, false, &hash);
-	if (ret < 0)
-		program_ret |= 1 << 1;
-	ret = seed_from_file_if_exists(creditable_seed, dfd, !skip_credit, &hash);
-	if (ret < 0)
-		program_ret |= 1 << 2;
+	for (int i = 1; i < 3; ++i) {
+		if (seed_from_file_if_exists(i == 1 ? non_creditable_seed : creditable_seed,
+					     dfd, i == 1 ? false : !skip_credit, &hash) < 0)
+			program_ret |= 1 << i;
+	}
 
 	new_seed_len = determine_optimal_seed_len();
-	ret = read_new_seed(new_seed, new_seed_len, &new_seed_creditable);
-	if (ret < 0) {
+	if (read_new_seed(new_seed, new_seed_len, &new_seed_creditable) < 0) {
 		bb_perror_msg("unable to%s seed", " read new");
 		new_seed_len = SHA256_OUTSIZE;
 		memset(new_seed, 0, SHA256_OUTSIZE);
@@ -243,17 +235,11 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	fd = open(non_creditable_seed, O_WRONLY | O_CREAT | O_TRUNC, 0400);
 	if (fd < 0 || full_write(fd, new_seed, new_seed_len) != (ssize_t)new_seed_len || fsync(fd) < 0) {
 		bb_perror_msg("unable to%s seed", " write");
-		program_ret |= 1 << 4;
-		goto out;
+		return program_ret | (1 << 4);
 	}
 	if (new_seed_creditable && rename(non_creditable_seed, creditable_seed) < 0) {
 		bb_simple_perror_msg("unable to make new seed creditable");
-		program_ret |= 1 << 5;
+		return program_ret | (1 << 5);
 	}
-out:
-	if (ENABLE_FEATURE_CLEAN_UP && fd >= 0)
-		close(fd);
-	if (ENABLE_FEATURE_CLEAN_UP && dfd >= 0)
-		close(dfd);
 	return program_ret;
 }
