@@ -54,20 +54,23 @@
 #define CREDITABLE_SEED_NAME "seed.credit"
 #define NON_CREDITABLE_SEED_NAME "seed.no-credit"
 
-enum seedrng_lengths {
+enum {
 	MIN_SEED_LEN = SHA256_OUTSIZE,
 	MAX_SEED_LEN = 512
 };
 
 static size_t determine_optimal_seed_len(void)
 {
-	char poolsize_str[11] = { 0 };
-	unsigned long poolsize;
+	char poolsize_str[12];
+	unsigned poolsize;
+	int n;
 
-	if (open_read_close("/proc/sys/kernel/random/poolsize", poolsize_str, sizeof(poolsize_str) - 1) < 0) {
+	n = open_read_close("/proc/sys/kernel/random/poolsize", poolsize_str, sizeof(poolsize_str) - 1);
+	if (n < 0) {
 		bb_perror_msg("unable to determine pool size, assuming %u bits", MIN_SEED_LEN * 8);
 		return MIN_SEED_LEN;
 	}
+	poolsize_str[n] = '\0';
 	poolsize = (bb_strtoul(poolsize_str, NULL, 10) + 7) / 8;
 	return MAX(MIN(poolsize, MAX_SEED_LEN), MIN_SEED_LEN);
 }
@@ -159,7 +162,7 @@ static int seed_from_file_if_exists(const char *filename, int dfd, bool credit, 
 int seedrng_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
 int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 {
-	const char *seed_dir = DEFAULT_SEED_DIR, *creditable_seed, *non_creditable_seed;
+	const char *seed_dir, *creditable_seed, *non_creditable_seed;
 	int fd, dfd, program_ret = 0;
 	uint8_t new_seed[MAX_SEED_LEN];
 	size_t new_seed_len;
@@ -178,10 +181,8 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 		;
 #endif
 
+	seed_dir = DEFAULT_SEED_DIR;
 	skip_credit = getopt32long(argv, "d:n", longopts, &seed_dir) & OPT_n;
-	creditable_seed = concat_path_file(seed_dir, CREDITABLE_SEED_NAME);
-	non_creditable_seed = concat_path_file(seed_dir, NON_CREDITABLE_SEED_NAME);
-
 	umask(0077);
 	if (getuid())
 		bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
@@ -200,6 +201,8 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	clock_gettime(CLOCK_BOOTTIME, &timestamp);
 	sha256_hash(&hash, &timestamp, sizeof(timestamp));
 
+	creditable_seed = concat_path_file(seed_dir, CREDITABLE_SEED_NAME);
+	non_creditable_seed = concat_path_file(seed_dir, NON_CREDITABLE_SEED_NAME);
 	for (int i = 1; i < 3; ++i) {
 		if (seed_from_file_if_exists(i == 1 ? non_creditable_seed : creditable_seed,
 					     dfd, i == 1 ? false : !skip_credit, &hash) < 0)
