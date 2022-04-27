@@ -191,6 +191,9 @@ static char *parse_common(FILE *fp, struct passdb *db,
 	char *buf;
 
 	while ((buf = xmalloc_fgetline(fp)) != NULL) {
+		int n;
+		char *field;
+
 		/* Skip empty lines, comment lines */
 		if (buf[0] == '\0' || buf[0] == '#')
 			goto free_and_next;
@@ -204,7 +207,16 @@ static char *parse_common(FILE *fp, struct passdb *db,
 			/* no key specified: sequential read, return a record */
 			break;
 		}
-		if (strcmp(key, nth_string(buf, field_pos)) == 0) {
+		/* Can't use nth_string() here, it does not allow empty strings
+		 * ("\0\0" terminates the list), and a valid passwd entry
+		 * "user::UID:GID..." would be mishandled */
+		n = field_pos;
+		field = buf;
+		while (n) {
+			n--;
+			field += strlen(field) + 1;
+		}
+		if (strcmp(key, field) == 0) {
 			/* record found */
 			break;
 		}
