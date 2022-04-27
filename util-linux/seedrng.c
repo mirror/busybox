@@ -35,10 +35,10 @@
 //usage:#define seedrng_trivial_usage
 //usage:	"[-d SEED_DIRECTORY] [-n]"
 //usage:#define seedrng_full_usage "\n\n"
-//usage:	"Seed the kernel RNG from seed files."
+//usage:	"Seed the kernel RNG from seed files"
 //usage:	"\n"
-//usage:	"\n	-d, --seed-dir DIR	Use seed files from specified directory (default: /var/lib/seedrng)"
-//usage:	"\n	-n, --skip-credit	Skip crediting seeds, even if creditable"
+//usage:	"\n	-d DIR	Use seed files from DIR (default: /var/lib/seedrng)"
+//usage:	"\n	-n	Skip crediting seeds, even if creditable"
 
 #include "libbb.h"
 
