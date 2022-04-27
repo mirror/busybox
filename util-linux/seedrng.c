@@ -103,16 +103,16 @@ static int seed_rng(uint8_t *seed, size_t len, bool credit)
 		int entropy_count;
 		int buf_size;
 		uint8_t buffer[MAX_SEED_LEN];
-	} req = {
-		.entropy_count = credit ? len * 8 : 0,
-		.buf_size = len
-	};
+	} req;
 	int random_fd, ret;
 
 	if (len > sizeof(req.buffer)) {
 		errno = EFBIG;
 		return -1;
 	}
+
+	req.entropy_count = credit ? len * 8 : 0;
+	req.buf_size = len;
 	memcpy(req.buffer, seed, len);
 
 	random_fd = open("/dev/urandom", O_RDONLY);
@@ -164,7 +164,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	uint8_t new_seed[MAX_SEED_LEN];
 	size_t new_seed_len;
 	bool new_seed_creditable, skip_credit = false;
-	struct timespec timestamp = { 0 };
+	struct timespec timestamp;
 	sha256_ctx_t hash;
 
 	enum {
