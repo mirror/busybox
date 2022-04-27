@@ -67,7 +67,7 @@ static size_t determine_optimal_seed_len(void)
 
 	n = open_read_close("/proc/sys/kernel/random/poolsize", poolsize_str, sizeof(poolsize_str) - 1);
 	if (n < 0) {
-		bb_perror_msg("unable to determine pool size, assuming %u bits", MIN_SEED_LEN * 8);
+		bb_perror_msg("can't determine pool size, assuming %u bits", MIN_SEED_LEN * 8);
 		return MIN_SEED_LEN;
 	}
 	poolsize_str[n] = '\0';
@@ -139,11 +139,11 @@ static int seed_from_file_if_exists(const char *filename, int dfd, bool credit, 
 	if (seed_len < 0) {
 		if (errno == ENOENT)
 			return 0;
-		bb_perror_msg("unable to%s seed", " read");
+		bb_perror_msg("can't%s seed", " read");
 		return -1;
 	}
 	if ((unlink(filename) < 0 || fsync(dfd) < 0) && seed_len) {
-		bb_perror_msg("unable to%s seed", " remove");
+		bb_perror_msg("can't%s seed", " remove");
 		return -1;
 	} else if (!seed_len)
 		return 0;
@@ -151,9 +151,9 @@ static int seed_from_file_if_exists(const char *filename, int dfd, bool credit, 
 	sha256_hash(hash, &seed_len, sizeof(seed_len));
 	sha256_hash(hash, seed, seed_len);
 
-	printf("Seeding %zd bits %s crediting\n", seed_len * 8, credit ? "and" : "without");
+	printf("Seeding %u bits %s crediting\n", (unsigned)seed_len * 8, credit ? "and" : "without");
 	if (seed_rng(seed, seed_len, credit) < 0) {
-		bb_perror_msg("unable to%s seed", "");
+		bb_perror_msg("can't%s seed", "");
 		return -1;
 	}
 	return 0;
@@ -188,11 +188,11 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 		bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
 
 	if (mkdir(seed_dir, 0700) < 0 && errno != EEXIST)
-		bb_perror_msg_and_die("unable to %s seed directory", "create");
+		bb_perror_msg_and_die("can't %s seed directory", "create");
 
 	dfd = open(seed_dir, O_DIRECTORY | O_RDONLY);
 	if (dfd < 0 || flock(dfd, LOCK_EX) < 0)
-		bb_perror_msg_and_die("unable to %s seed directory", "lock");
+		bb_perror_msg_and_die("can't %s seed directory", "lock");
 
 	sha256_begin(&hash);
 	sha256_hash(&hash, "SeedRNG v1 Old+New Prefix", 25);
@@ -211,7 +211,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 
 	new_seed_len = determine_optimal_seed_len();
 	if (read_new_seed(new_seed, new_seed_len, &new_seed_creditable) < 0) {
-		bb_perror_msg("unable to%s seed", " read new");
+		bb_perror_msg("can't%s seed", " read new");
 		new_seed_len = SHA256_OUTSIZE;
 		memset(new_seed, 0, SHA256_OUTSIZE);
 		program_ret |= 1 << 3;
@@ -220,14 +220,14 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	sha256_hash(&hash, new_seed, new_seed_len);
 	sha256_end(&hash, new_seed + new_seed_len - SHA256_OUTSIZE);
 
-	printf("Saving %zu bits of %screditable seed for next boot\n", new_seed_len * 8, new_seed_creditable ? "" : "non-");
+	printf("Saving %u bits of %screditable seed for next boot\n", (unsigned)new_seed_len * 8, new_seed_creditable ? "" : "non-");
 	fd = open(non_creditable_seed, O_WRONLY | O_CREAT | O_TRUNC, 0400);
 	if (fd < 0 || full_write(fd, new_seed, new_seed_len) != (ssize_t)new_seed_len || fsync(fd) < 0) {
-		bb_perror_msg("unable to%s seed", " write");
+		bb_perror_msg("can't%s seed", " write");
 		return program_ret | (1 << 4);
 	}
 	if (new_seed_creditable && rename(non_creditable_seed, creditable_seed) < 0) {
-		bb_simple_perror_msg("unable to make new seed creditable");
+		bb_simple_perror_msg("can't make new seed creditable");
 		return program_ret | (1 << 5);
 	}
 	return program_ret;
