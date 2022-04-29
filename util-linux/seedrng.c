@@ -100,63 +100,43 @@ static int read_new_seed(uint8_t *seed, size_t len, bool *is_creditable)
 	return -1;
 }
 
-static int seed_rng(uint8_t *seed, size_t len, bool credit)
+static void seed_rng(uint8_t *seed, size_t len, bool credit)
 {
 	struct {
 		int entropy_count;
 		int buf_size;
 		uint8_t buffer[MAX_SEED_LEN];
 	} req;
-	int random_fd, ret;
-
-	if (len > sizeof(req.buffer)) {
-		errno = EFBIG;
-		return -1;
-	}
+	int random_fd;
 
 	req.entropy_count = credit ? len * 8 : 0;
 	req.buf_size = len;
 	memcpy(req.buffer, seed, len);
 
-	random_fd = open("/dev/urandom", O_RDONLY);
-	if (random_fd < 0)
-		return -1;
-	ret = ioctl(random_fd, RNDADDENTROPY, &req);
-	if (ret)
-		ret = -errno ? -errno : -EIO;
+	random_fd = xopen("/dev/urandom", O_RDONLY);
+	xioctl(random_fd, RNDADDENTROPY, &req);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(random_fd);
-	errno = -ret;
-	return ret ? -1 : 0;
 }
 
-static int seed_from_file_if_exists(const char *filename, int dfd, bool credit, sha256_ctx_t *hash)
+static void seed_from_file_if_exists(const char *filename, bool credit, sha256_ctx_t *hash)
 {
 	uint8_t seed[MAX_SEED_LEN];
 	ssize_t seed_len;
 
 	seed_len = open_read_close(filename, seed, sizeof(seed));
 	if (seed_len < 0) {
-		if (errno == ENOENT)
-			return 0;
-		bb_perror_msg("can't%s seed", " read");
-		return -1;
+		if (errno != ENOENT)
+			bb_perror_msg_and_die("can't%s seed", " read");
+		return;
 	}
-	if ((unlink(filename) < 0 || fsync(dfd) < 0) && seed_len) {
-		bb_perror_msg("can't%s seed", " remove");
-		return -1;
-	} else if (!seed_len)
-		return 0;
-
-	sha256_hash(hash, &seed_len, sizeof(seed_len));
-	sha256_hash(hash, seed, seed_len);
-
-	printf("Seeding %u bits %s crediting\n", (unsigned)seed_len * 8, credit ? "and" : "without");
-	if (seed_rng(seed, seed_len, credit) < 0) {
-		bb_perror_msg("can't%s seed", "");
-		return -1;
+	xunlink(filename);
+	if (seed_len != 0) {
+		sha256_hash(hash, &seed_len, sizeof(seed_len));
+		sha256_hash(hash, seed, seed_len);
+		printf("Seeding %u bits %s crediting\n", (unsigned)seed_len * 8, credit ? "and" : "without");
+		seed_rng(seed, seed_len, credit);
 	}
-	return 0;
 }
 
 int seedrng_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
@@ -202,11 +182,9 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	sha256_hash(&hash, &timestamp, sizeof(timestamp));
 
 	for (int i = 1; i < 3; ++i) {
-		if (seed_from_file_if_exists(i == 1 ? NON_CREDITABLE_SEED_NAME : CREDITABLE_SEED_NAME,
-					dfd,
+		seed_from_file_if_exists(i == 1 ? NON_CREDITABLE_SEED_NAME : CREDITABLE_SEED_NAME,
 					i == 1 ? false : !skip_credit,
-					&hash) < 0)
-			program_ret |= 1 << i;
+					&hash);
 	}
 
 	new_seed_len = determine_optimal_seed_len();
