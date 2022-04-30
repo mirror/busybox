@@ -128,7 +128,7 @@ static void seed_rng(uint8_t *seed, size_t len, bool credit)
 		close(random_fd);
 }
 
-static void seed_from_file_if_exists(const char *filename, bool credit, sha256_ctx_t *hash)
+static void seed_from_file_if_exists(const char *filename, int dfd, bool credit, sha256_ctx_t *hash)
 {
 	uint8_t seed[MAX_SEED_LEN];
 	ssize_t seed_len;
@@ -141,6 +141,16 @@ static void seed_from_file_if_exists(const char *filename, bool credit, sha256_c
 	}
 	xunlink(filename);
 	if (seed_len != 0) {
+		/* We are going to use this data to seed the RNG:
+		 * we believe it to genuinely containing entropy.
+		 * If this just-unlinked file survives
+		 * (e.g. if machine crashes _right now_)
+		 * and we reuse it after reboot, this assumption
+		 * would be violated. Fsync the directory to
+		 * make sure file is gone:
+		 */
+		fsync(dfd);
+
 		sha256_hash(hash, &seed_len, sizeof(seed_len));
 		sha256_hash(hash, seed, seed_len);
 		printf("Seeding %u bits %s crediting\n",
@@ -193,6 +203,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 
 	for (int i = 1; i < 3; ++i) {
 		seed_from_file_if_exists(i == 1 ? NON_CREDITABLE_SEED_NAME : CREDITABLE_SEED_NAME,
+					dfd,
 					i == 1 ? false : !skip_credit,
 					&hash);
 	}
