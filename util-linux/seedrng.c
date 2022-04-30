@@ -85,14 +85,14 @@ static bool read_new_seed(uint8_t *seed, size_t len)
 		return true;
 	}
 	if (ret < 0 && errno == ENOSYS) {
-		struct pollfd random_fd = {
-			.fd = xopen("/dev/random", O_RDONLY),
-			.events = POLLIN
-		};
+		int fd = xopen("/dev/random", O_RDONLY);
+		struct pollfd random_fd;
+		random_fd.fd = fd;
+		random_fd.events = POLLIN;
 		is_creditable = poll(&random_fd, 1, 0) == 1;
 //This is racy. is_creditable can be set to true here, but other process
 //can consume "good" random data from /dev/urandom before we do it below.
-		close(random_fd.fd);
+		close(fd);
 	} else {
 		if (getrandom(seed, len, GRND_INSECURE) == (ssize_t)len)
 			return false;
