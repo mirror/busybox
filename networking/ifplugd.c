@@ -28,6 +28,7 @@
 //usage:     "\n	-a		Don't up interface at each link probe"
 //usage:     "\n	-M		Monitor creation/destruction of interface"
 //usage:     "\n			(otherwise it must exist)"
+//usage:     "\n	-A		Don't up newly appeared interface"
 //usage:     "\n	-r PROG		Script to run"
 //usage:     "\n	-x ARG		Extra argument for script"
 //usage:     "\n	-I		Don't exit on nonzero exit code from script"
@@ -94,7 +95,7 @@ Netlink code then can be just dropped (1k or more?)
 #define IFPLUGD_ENV_CURRENT "IFPLUGD_CURRENT"
 
 enum {
-	FLAG_NO_AUTO			= 1 <<  0, // -a, Do not enable interface automatically
+	FLAG_NO_AUTO			= 1 <<  0, // -a, Don't up interface at each link probe
 	FLAG_NO_DAEMON			= 1 <<  1, // -n, Do not daemonize
 	FLAG_NO_SYSLOG			= 1 <<  2, // -s, Do not use syslog, use stderr instead
 	FLAG_IGNORE_FAIL		= 1 <<  3, // -f, Ignore detection failure, retry instead (failure is treated as DOWN)
@@ -111,14 +112,15 @@ enum {
 	FLAG_INITIAL_DOWN		= 1 << 14, // -l, Run "down" script on startup if no cable is detected
 	FLAG_EXTRA_ARG			= 1 << 15, // -x, Specify an extra argument for action script
 	FLAG_MONITOR			= 1 << 16, // -M, Use interface monitoring
+	FLAG_NO_UP_NEW_IFACE		= 1 << 17, // -A, Don't up newly appeared interface
 #if ENABLE_FEATURE_PIDFILE
-	FLAG_KILL			= 1 << 17, // -k, Kill a running daemon
+	FLAG_KILL			= 1 << 18, // -k, Kill a running daemon
 #endif
 };
 #if ENABLE_FEATURE_PIDFILE
-# define OPTION_STR "+ansfFi:r:It:+u:+d:+m:pqlx:Mk"
+# define OPTION_STR "+ansfFi:r:It:+u:+d:+m:pqlx:MAk"
 #else
-# define OPTION_STR "+ansfFi:r:It:+u:+d:+m:pqlx:M"
+# define OPTION_STR "+ansfFi:r:It:+u:+d:+m:pqlx:MA"
 #endif
 
 enum { // interface status
@@ -387,7 +389,7 @@ static void up_iface(void)
 
 static void maybe_up_new_iface(void)
 {
-	if (!(option_mask32 & FLAG_NO_AUTO))
+	if (!(option_mask32 & FLAG_NO_UP_NEW_IFACE))
 		up_iface();
 
 #if 0 /* bloat */
