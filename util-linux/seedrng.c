@@ -75,31 +75,38 @@ static size_t determine_optimal_seed_len(void)
 	return MAX(MIN(poolsize, MAX_SEED_LEN), MIN_SEED_LEN);
 }
 
-static int read_new_seed(uint8_t *seed, size_t len, bool *is_creditable)
+static bool read_new_seed(uint8_t *seed, size_t len)
 {
+	bool is_creditable;
 	ssize_t ret;
 
 	ret = getrandom(seed, len, GRND_NONBLOCK);
 	if (ret == (ssize_t)len) {
-		*is_creditable = true;
-		return 0;
+		return true;
 	}
 	if (ret < 0 && errno == ENOSYS) {
 		struct pollfd random_fd = {
 			.fd = xopen("/dev/random", O_RDONLY),
 			.events = POLLIN
 		};
-		*is_creditable = poll(&random_fd, 1, 0) == 1;
+		is_creditable = poll(&random_fd, 1, 0) == 1;
+//This is racy. is_creditable can be set to true here, but other process
+//can consume "good" random data from /dev/urandom before we do it below.
 		close(random_fd.fd);
 	} else {
-		*is_creditable = false;
 		if (getrandom(seed, len, GRND_INSECURE) == (ssize_t)len)
-			return 0;
+			return false;
+		is_creditable = false;
 	}
+
+	/* Either getrandom() is not implemented, or
+	 * getrandom(GRND_INSECURE) did not give us LEN bytes.
+	 * Fallback to reading /dev/urandom.
+	 */
 	errno = 0;
 	if (open_read_close("/dev/urandom", seed, len) != (ssize_t)len)
 		bb_perror_msg_and_die("can't read '%s'", "/dev/urandom");
-	return 0;
+	return is_creditable;
 }
 
 static void seed_rng(uint8_t *seed, size_t len, bool credit)
@@ -190,17 +197,13 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	}
 
 	new_seed_len = determine_optimal_seed_len();
-	if (read_new_seed(new_seed, new_seed_len, &new_seed_creditable) < 0) {
-		bb_perror_msg("can't%s seed", " read new");
-		new_seed_len = SHA256_OUTSIZE;
-		memset(new_seed, 0, SHA256_OUTSIZE);
-		program_ret |= 1 << 3;
-	}
+	new_seed_creditable = read_new_seed(new_seed, new_seed_len);
 	sha256_hash(&hash, &new_seed_len, sizeof(new_seed_len));
 	sha256_hash(&hash, new_seed, new_seed_len);
 	sha256_end(&hash, new_seed + new_seed_len - SHA256_OUTSIZE);
 
-	printf("Saving %u bits of %screditable seed for next boot\n", (unsigned)new_seed_len * 8, new_seed_creditable ? "" : "non-");
+	printf("Saving %u bits of %screditable seed for next boot\n",
+			(unsigned)new_seed_len * 8, new_seed_creditable ? "" : "non-");
 	fd = open(NON_CREDITABLE_SEED_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0400);
 	if (fd < 0 || full_write(fd, new_seed, new_seed_len) != (ssize_t)new_seed_len || fsync(fd) < 0) {
 		bb_perror_msg("can't%s seed", " write");
