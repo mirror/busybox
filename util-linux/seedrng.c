@@ -164,25 +164,27 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 {
 	const char *seed_dir;
 	int fd, dfd;
+	int i;
+	unsigned opts;
 	uint8_t new_seed[MAX_SEED_LEN];
 	size_t new_seed_len;
-	bool new_seed_creditable, skip_credit;
+	bool new_seed_creditable;
 	struct timespec timestamp;
 	sha256_ctx_t hash;
 
 	enum {
-		OPT_d = (1 << 0),
-		OPT_n = (1 << 1)
+		OPT_n = (1 << 0), /* must be 1 */
+		OPT_d = (1 << 1),
 	};
 #if ENABLE_LONG_OPTS
 	static const char longopts[] ALIGN1 =
-		"seed-dir\0"    Required_argument "d"
 		"skip-credit\0" No_argument       "n"
+		"seed-dir\0"    Required_argument "d"
 		;
 #endif
 
 	seed_dir = DEFAULT_SEED_DIR;
-	skip_credit = getopt32long(argv, "d:n", longopts, &seed_dir) & OPT_n;
+	opts = getopt32long(argv, "nd:", longopts, &seed_dir);
 	umask(0077);
 	if (getuid() != 0)
 		bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
@@ -209,10 +211,10 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	clock_gettime(CLOCK_BOOTTIME, &timestamp);
 	sha256_hash(&hash, &timestamp, sizeof(timestamp));
 
-	for (int i = 1; i < 3; ++i) {
-		seed_from_file_if_exists(i == 1 ? NON_CREDITABLE_SEED_NAME : CREDITABLE_SEED_NAME,
+	for (i = 0; i <= 1; i++) {
+		seed_from_file_if_exists(i == 0 ? NON_CREDITABLE_SEED_NAME : CREDITABLE_SEED_NAME,
 					dfd,
-					/* credit? */ i == 1 ? false : !skip_credit,
+					/* credit? */ (opts ^ OPT_n) & i, /* 0, then 1 unless -n */
 					&hash);
 	}
 
