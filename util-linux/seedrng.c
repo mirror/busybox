@@ -143,7 +143,8 @@ static void seed_from_file_if_exists(const char *filename, bool credit, sha256_c
 	if (seed_len != 0) {
 		sha256_hash(hash, &seed_len, sizeof(seed_len));
 		sha256_hash(hash, seed, seed_len);
-		printf("Seeding %u bits %s crediting\n", (unsigned)seed_len * 8, credit ? "and" : "without");
+		printf("Seeding %u bits %s crediting\n",
+				(unsigned)seed_len * 8, credit ? "and" : "without");
 		seed_rng(seed, seed_len, credit);
 	}
 }
@@ -152,7 +153,7 @@ int seedrng_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
 int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 {
 	const char *seed_dir;
-	int fd, dfd, program_ret = 0;
+	int fd, dfd;
 	uint8_t new_seed[MAX_SEED_LEN];
 	size_t new_seed_len;
 	bool new_seed_creditable, skip_credit = false;
@@ -178,8 +179,8 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 
 	if (mkdir(seed_dir, 0700) < 0 && errno != EEXIST)
 		bb_perror_msg_and_die("can't %s seed directory", "create");
-	dfd = open(seed_dir, O_DIRECTORY | O_RDONLY);
-	if (dfd < 0 || flock(dfd, LOCK_EX) < 0)
+	dfd = xopen(seed_dir, O_DIRECTORY | O_RDONLY);
+	if (flock(dfd, LOCK_EX) < 0)
 		bb_perror_msg_and_die("can't %s seed directory", "lock");
 	xfchdir(dfd);
 
@@ -204,14 +205,13 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 
 	printf("Saving %u bits of %screditable seed for next boot\n",
 			(unsigned)new_seed_len * 8, new_seed_creditable ? "" : "non-");
-	fd = open(NON_CREDITABLE_SEED_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0400);
-	if (fd < 0 || full_write(fd, new_seed, new_seed_len) != (ssize_t)new_seed_len || fsync(fd) < 0) {
+	fd = xopen3(NON_CREDITABLE_SEED_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0400);
+	xwrite(fd, new_seed, new_seed_len);
+	if (fsync(fd) < 0) {
 		bb_perror_msg("can't%s seed", " write");
-		return program_ret | (1 << 4);
+		return (1 << 4);
 	}
-	if (new_seed_creditable && rename(NON_CREDITABLE_SEED_NAME, CREDITABLE_SEED_NAME) < 0) {
-		bb_simple_perror_msg("can't make new seed creditable");
-		return program_ret | (1 << 5);
-	}
-	return program_ret;
+	if (new_seed_creditable)
+		xrename(NON_CREDITABLE_SEED_NAME, CREDITABLE_SEED_NAME);
+	return EXIT_SUCCESS;
 }
