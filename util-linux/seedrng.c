@@ -166,7 +166,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	int fd, dfd;
 	uint8_t new_seed[MAX_SEED_LEN];
 	size_t new_seed_len;
-	bool new_seed_creditable, skip_credit = false;
+	bool new_seed_creditable, skip_credit;
 	struct timespec timestamp;
 	sha256_ctx_t hash;
 
@@ -176,8 +176,8 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	};
 #if ENABLE_LONG_OPTS
 	static const char longopts[] ALIGN1 =
-		"seed-dir\0"	Required_argument	"d"
-		"skip-credit\0"	No_argument		"n"
+		"seed-dir\0"    Required_argument "d"
+		"skip-credit\0" No_argument       "n"
 		;
 #endif
 
