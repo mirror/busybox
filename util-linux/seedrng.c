@@ -136,7 +136,7 @@ static void seed_from_file_if_exists(const char *filename, bool credit, sha256_c
 	seed_len = open_read_close(filename, seed, sizeof(seed));
 	if (seed_len < 0) {
 		if (errno != ENOENT)
-			bb_perror_msg_and_die("can't%s seed", " read");
+			bb_perror_msg_and_die("can't read '%s'", filename);
 		return;
 	}
 	xunlink(filename);
@@ -178,10 +178,10 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 		bb_simple_error_msg_and_die(bb_msg_you_must_be_root);
 
 	if (mkdir(seed_dir, 0700) < 0 && errno != EEXIST)
-		bb_perror_msg_and_die("can't %s seed directory", "create");
+		bb_perror_msg_and_die("can't create directory '%s'", seed_dir);
 	dfd = xopen(seed_dir, O_DIRECTORY | O_RDONLY);
 	if (flock(dfd, LOCK_EX) < 0)
-		bb_perror_msg_and_die("can't %s seed directory", "lock");
+		bb_perror_msg_and_die("can't lock seed directory");
 	xfchdir(dfd);
 
 	sha256_begin(&hash);
