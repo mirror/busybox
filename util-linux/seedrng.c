@@ -190,9 +190,17 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	if (mkdir(seed_dir, 0700) < 0 && errno != EEXIST)
 		bb_perror_msg_and_die("can't create directory '%s'", seed_dir);
 	dfd = xopen(seed_dir, O_DIRECTORY | O_RDONLY);
-	if (flock(dfd, LOCK_EX) < 0)
-		bb_perror_msg_and_die("can't lock seed directory");
 	xfchdir(dfd);
+	/* Concurrent runs of this tool might feed the same data to RNG twice.
+	 * Avoid concurrent runs by taking a blocking lock on the directory.
+	 * Not checking for errors. Looking at manpage,
+	 * ENOLCK "The kernel ran out of memory for allocating lock records"
+	 * seems to be the only one which is likely - and if that happens,
+	 * machine is OOMing (much worse problem than inability to lock...).
+	 * Also, typically configured Linux machines do not fail GFP_KERNEL
+	 * allocations (they trigger memory reclaim instead).
+	 */
+	flock(dfd, LOCK_EX); /* would block while another copy runs */
 
 	sha256_begin(&hash);
 	sha256_hash(&hash, "SeedRNG v1 Old+New Prefix", 25);
@@ -204,7 +212,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	for (int i = 1; i < 3; ++i) {
 		seed_from_file_if_exists(i == 1 ? NON_CREDITABLE_SEED_NAME : CREDITABLE_SEED_NAME,
 					dfd,
-					i == 1 ? false : !skip_credit,
+					/* credit? */ i == 1 ? false : !skip_credit,
 					&hash);
 	}
 
@@ -218,11 +226,13 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 			(unsigned)new_seed_len * 8, new_seed_creditable ? "" : "non-");
 	fd = xopen3(NON_CREDITABLE_SEED_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0400);
 	xwrite(fd, new_seed, new_seed_len);
-	if (fsync(fd) < 0) {
-		bb_perror_msg("can't%s seed", " write");
-		return (1 << 4);
-	}
-	if (new_seed_creditable)
+	if (new_seed_creditable) {
+		/* More paranoia when we create a file which we believe contains
+		 * genuine entropy: make sure disk is not full, quota was't esceeded, etc:
+		 */
+		if (fsync(fd) < 0)
+			bb_perror_msg_and_die("can't write '%s'", NON_CREDITABLE_SEED_NAME);
 		xrename(NON_CREDITABLE_SEED_NAME, CREDITABLE_SEED_NAME);
+	}
 	return EXIT_SUCCESS;
 }
