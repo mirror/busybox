@@ -79,25 +79,27 @@ static int read_new_seed(uint8_t *seed, size_t len, bool *is_creditable)
 {
 	ssize_t ret;
 
-	*is_creditable = false;
 	ret = getrandom(seed, len, GRND_NONBLOCK);
 	if (ret == (ssize_t)len) {
 		*is_creditable = true;
 		return 0;
-	} else if (ret < 0 && errno == ENOSYS) {
+	}
+	if (ret < 0 && errno == ENOSYS) {
 		struct pollfd random_fd = {
-			.fd = open("/dev/random", O_RDONLY),
+			.fd = xopen("/dev/random", O_RDONLY),
 			.events = POLLIN
 		};
-		if (random_fd.fd < 0)
-			return -1;
 		*is_creditable = poll(&random_fd, 1, 0) == 1;
 		close(random_fd.fd);
-	} else if (getrandom(seed, len, GRND_INSECURE) == (ssize_t)len)
-		return 0;
-	if (open_read_close("/dev/urandom", seed, len) == (ssize_t)len)
-		return 0;
-	return -1;
+	} else {
+		*is_creditable = false;
+		if (getrandom(seed, len, GRND_INSECURE) == (ssize_t)len)
+			return 0;
+	}
+	errno = 0;
+	if (open_read_close("/dev/urandom", seed, len) != (ssize_t)len)
+		bb_perror_msg_and_die("can't read '%s'", "/dev/urandom");
+	return 0;
 }
 
 static void seed_rng(uint8_t *seed, size_t len, bool credit)
