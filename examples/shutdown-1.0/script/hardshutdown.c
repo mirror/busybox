@@ -102,7 +102,7 @@ enum action_t {
 	REBOOT
 };
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	struct timespec t = {0,0};
 	enum action_t action = SHUTDOWN;

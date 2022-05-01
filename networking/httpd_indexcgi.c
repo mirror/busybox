@@ -211,7 +211,7 @@ static void fmt_04u(/*char *dst,*/ unsigned n)
 	fmt_02u(n % 100);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	dir_list_t *dir_list;
 	dir_list_t *cdir;

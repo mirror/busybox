@@ -114,8 +114,8 @@ static char *xmalloc_read_stdin(void)
 	return xmalloc_reads(STDIN_FILENO, &max);
 }
 
-int lpd_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
-int lpd_main(int argc UNUSED_PARAM, char *argv[])
+int lpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int lpd_main(int argc UNUSED_PARAM, char **argv)
 {
 	int spooling = spooling; // for compiler
 	char *s, *queue;

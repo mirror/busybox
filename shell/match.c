@@ -95,7 +95,7 @@ char* FAST_FUNC scan_and_match(char *string, const char *pattern, unsigned flags
 }
 
 #ifdef STANDALONE
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	char *string;
 	char *op;

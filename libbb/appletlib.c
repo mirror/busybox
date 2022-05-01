@@ -762,7 +762,7 @@ get_script_content(unsigned n)
 //usage:#define busybox_trivial_usage NOUSAGE_STR
 //usage:#define busybox_full_usage ""
 //applet:IF_BUSYBOX(IF_FEATURE_SH_STANDALONE(IF_FEATURE_TAB_COMPLETION(APPLET(busybox, BB_DIR_BIN, BB_SUID_MAYBE))))
-int busybox_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
+int busybox_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 #  else
 #   define busybox_main(argc,argv) busybox_main(argv)
 static
