@@ -258,7 +258,6 @@ void lbb_prepare(const char *applet
 	/* Redundant for busybox (run_applet_and_exit covers that case)
 	 * but needed for "individual applet" mode */
 	if (argv[1]
-	 && !argv[2]
 	 && strcmp(argv[1], "--help") == 0
 	 && !is_prefixed_with(applet, "busybox")
 	) {
@@ -940,8 +939,8 @@ void FAST_FUNC show_usage_if_dash_dash_help(int applet_no, char **argv)
 	 && applet_no != APPLET_NO_echo
 #  endif
 	) {
-		if (argv[1] && !argv[2] && strcmp(argv[1], "--help") == 0) {
-			/* Make "foo --help" exit with 0: */
+		if (argv[1] && strcmp(argv[1], "--help") == 0) {
+			/* Make "foo --help [...]" exit with 0: */
 			xfunc_error_retval = 0;
 			bb_show_usage();
 		}
