@@ -151,7 +151,8 @@ static void seed_from_file_if_exists(const char *filename, int dfd, bool credit,
 		 */
 		fsync(dfd);
 
-		sha256_hash(hash, &seed_len, sizeof(seed_len));
+//Length is not random, and taking its address spills variable to stack
+//		sha256_hash(hash, &seed_len, sizeof(seed_len));
 		sha256_hash(hash, seed, seed_len);
 		printf("Seeding %u bits %s crediting\n",
 				(unsigned)seed_len * 8, credit ? "and" : "without");
@@ -220,7 +221,8 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 
 	new_seed_len = determine_optimal_seed_len();
 	new_seed_creditable = read_new_seed(new_seed, new_seed_len);
-	sha256_hash(&hash, &new_seed_len, sizeof(new_seed_len));
+//Length is not random, and taking its address spills variable to stack
+//	sha256_hash(&hash, &new_seed_len, sizeof(new_seed_len));
 	sha256_hash(&hash, new_seed, new_seed_len);
 	sha256_end(&hash, new_seed + new_seed_len - SHA256_OUTSIZE);
 
@@ -230,7 +232,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	xwrite(fd, new_seed, new_seed_len);
 	if (new_seed_creditable) {
 		/* More paranoia when we create a file which we believe contains
-		 * genuine entropy: make sure disk is not full, quota was't esceeded, etc:
+		 * genuine entropy: make sure disk is not full, quota was't exceeded, etc:
 		 */
 		if (fsync(fd) < 0)
 			bb_perror_msg_and_die("can't write '%s'", NON_CREDITABLE_SEED_NAME);
