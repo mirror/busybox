@@ -112,31 +112,16 @@ static bool read_new_seed(uint8_t *seed, size_t len)
 	return is_creditable;
 }
 
-static void seed_rng(uint8_t *seed, size_t len, bool credit)
+static void seed_from_file_if_exists(const char *filename, int dfd, bool credit, sha256_ctx_t *hash)
 {
 	struct {
 		int entropy_count;
 		int buf_size;
-		uint8_t buffer[MAX_SEED_LEN];
+		uint8_t buf[MAX_SEED_LEN];
 	} req;
-	int random_fd;
-
-	req.entropy_count = credit ? len * 8 : 0;
-	req.buf_size = len;
-	memcpy(req.buffer, seed, len);
-
-	random_fd = xopen("/dev/urandom", O_RDONLY);
-	xioctl(random_fd, RNDADDENTROPY, &req);
-	if (ENABLE_FEATURE_CLEAN_UP)
-		close(random_fd);
-}
-
-static void seed_from_file_if_exists(const char *filename, int dfd, bool credit, sha256_ctx_t *hash)
-{
-	uint8_t seed[MAX_SEED_LEN];
 	ssize_t seed_len;
 
-	seed_len = open_read_close(filename, seed, sizeof(seed));
+	seed_len = open_read_close(filename, req.buf, sizeof(req.buf));
 	if (seed_len < 0) {
 		if (errno != ENOENT)
 			bb_perror_msg_and_die("can't read '%s'", filename);
@@ -144,6 +129,8 @@ static void seed_from_file_if_exists(const char *filename, int dfd, bool credit,
 	}
 	xunlink(filename);
 	if (seed_len != 0) {
+		int fd;
+
 		/* We are going to use this data to seed the RNG:
 		 * we believe it to genuinely containing entropy.
 		 * If this just-unlinked file survives
@@ -156,10 +143,17 @@ static void seed_from_file_if_exists(const char *filename, int dfd, bool credit,
 
 //Length is not random, and taking its address spills variable to stack
 //		sha256_hash(hash, &seed_len, sizeof(seed_len));
-		sha256_hash(hash, seed, seed_len);
+		sha256_hash(hash, req.buf, seed_len);
+
+		req.buf_size = seed_len;
+		seed_len *= 8;
+		req.entropy_count = credit ? seed_len : 0;
 		printf("Seeding %u bits %s crediting\n",
-				(unsigned)seed_len * 8, credit ? "and" : "without");
-		seed_rng(seed, seed_len, credit);
+				(unsigned)seed_len, credit ? "and" : "without");
+		fd = xopen("/dev/urandom", O_RDONLY);
+		xioctl(fd, RNDADDENTROPY, &req);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			close(fd);
 	}
 }
 
