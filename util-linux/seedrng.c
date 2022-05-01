@@ -19,9 +19,8 @@
  *
  * This is based on code from <https://git.zx2c4.com/seedrng/about/>.
  */
-
 //config:config SEEDRNG
-//config:	bool "seedrng (2 kb)"
+//config:	bool "seedrng (1.3 kb)"
 //config:	default y
 //config:	help
 //config:	Seed the kernel RNG from seed files, meant to be called
@@ -33,12 +32,12 @@
 //kbuild:lib-$(CONFIG_SEEDRNG) += seedrng.o
 
 //usage:#define seedrng_trivial_usage
-//usage:	"[-d SEED_DIRECTORY] [-n]"
+//usage:	"[-d DIR] [-n]"
 //usage:#define seedrng_full_usage "\n\n"
 //usage:	"Seed the kernel RNG from seed files"
 //usage:	"\n"
-//usage:	"\n	-d DIR	Use seed files from DIR (default: /var/lib/seedrng)"
-//usage:	"\n	-n	Skip crediting seeds, even if creditable"
+//usage:	"\n	-d DIR	Use seed files in DIR (default: /var/lib/seedrng)"
+//usage:	"\n	-n	Do not credit randomness, even if creditable"
 
 #include "libbb.h"
 
@@ -50,8 +49,8 @@
 #define GRND_INSECURE 0x0004 /* Apparently some headers don't ship with this yet. */
 #endif
 
-#define DEFAULT_SEED_DIR "/var/lib/seedrng"
-#define CREDITABLE_SEED_NAME "seed.credit"
+#define DEFAULT_SEED_DIR         "/var/lib/seedrng"
+#define CREDITABLE_SEED_NAME     "seed.credit"
 #define NON_CREDITABLE_SEED_NAME "seed.no-credit"
 
 enum {
@@ -75,7 +74,7 @@ static size_t determine_optimal_seed_len(void)
 		return MIN_SEED_LEN;
 	}
 	poolsize_str[n] = '\0';
-	poolsize = (bb_strtoul(poolsize_str, NULL, 10) + 7) / 8;
+	poolsize = (bb_strtou(poolsize_str, NULL, 10) + 7) / 8;
 	return MAX(MIN(poolsize, MAX_SEED_LEN), MIN_SEED_LEN);
 }
 
@@ -164,8 +163,8 @@ static void seed_from_file_if_exists(const char *filename, int dfd, bool credit,
 	}
 }
 
-int seedrng_main(int argc, char *argv[]) MAIN_EXTERNALLY_VISIBLE;
-int seedrng_main(int argc UNUSED_PARAM, char *argv[])
+int seedrng_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int seedrng_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *seed_dir;
 	int fd, dfd;
@@ -236,7 +235,7 @@ int seedrng_main(int argc UNUSED_PARAM, char *argv[])
 	xwrite(fd, new_seed, new_seed_len);
 	if (new_seed_creditable) {
 		/* More paranoia when we create a file which we believe contains
-		 * genuine entropy: make sure disk is not full, quota was't exceeded, etc:
+		 * genuine entropy: make sure disk is not full, quota isn't exceeded, etc:
 		 */
 		if (fsync(fd) < 0)
 			bb_perror_msg_and_die("can't write '%s'", NON_CREDITABLE_SEED_NAME);
