@@ -56,7 +56,11 @@
 
 enum {
 	MIN_SEED_LEN = SHA256_OUTSIZE,
-	MAX_SEED_LEN = 512
+	/* kernels < 5.18 could return short reads from getrandom()
+	 * if signal is pending and length is > 256.
+	 * Let's limit our reads to 256 bytes.
+	 */
+	MAX_SEED_LEN = 256,
 };
 
 static size_t determine_optimal_seed_len(void)
