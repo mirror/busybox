@@ -134,12 +134,14 @@ static void seed_from_file_if_exists(const char *filename, int dfd, bool credit,
 		/* We are going to use this data to seed the RNG:
 		 * we believe it to genuinely containing entropy.
 		 * If this just-unlinked file survives
-		 * (e.g. if machine crashes _right now_)
+		 * (if machine crashes before deletion is recorded on disk)
 		 * and we reuse it after reboot, this assumption
-		 * would be violated. Fsync the directory to
-		 * make sure file is gone:
+		 * would be violated, and RNG may end up generating
+		 * the same data. fsync the directory
+		 * to make sure file is gone:
 		 */
-		fsync(dfd);
+		if (fsync(dfd) != 0)
+			bb_simple_perror_msg_and_die("I/O error");
 
 //Length is not random, and taking its address spills variable to stack
 //		sha256_hash(hash, &seed_len, sizeof(seed_len));
@@ -210,10 +212,11 @@ int seedrng_main(int argc UNUSED_PARAM, char **argv)
 	sha256_hash(&hash, &timestamp, sizeof(timestamp));
 
 	for (i = 0; i <= 1; i++) {
-		seed_from_file_if_exists(i == 0 ? NON_CREDITABLE_SEED_NAME : CREDITABLE_SEED_NAME,
-					dfd,
-					/* credit? */ (opts ^ OPT_n) & i, /* 0, then 1 unless -n */
-					&hash);
+		seed_from_file_if_exists(
+			i == 0 ? NON_CREDITABLE_SEED_NAME : CREDITABLE_SEED_NAME,
+			dfd,
+			/*credit?*/ (opts ^ OPT_n) & i, /* 0, then 1 unless -n */
+			&hash);
 	}
 
 	new_seed_len = determine_optimal_seed_len();
@@ -224,7 +227,7 @@ int seedrng_main(int argc UNUSED_PARAM, char **argv)
 	sha256_end(&hash, new_seed + new_seed_len - SHA256_OUTSIZE);
 
 	printf("Saving %u bits of %screditable seed for next boot\n",
-			(unsigned)new_seed_len * 8, new_seed_creditable ? "" : "non-");
+		(unsigned)new_seed_len * 8, new_seed_creditable ? "" : "non-");
 	fd = xopen3(NON_CREDITABLE_SEED_NAME, O_WRONLY | O_CREAT | O_TRUNC, 0400);
 	xwrite(fd, new_seed, new_seed_len);
 	if (new_seed_creditable) {
