@@ -1105,10 +1105,14 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	setsid();
 
 	/* Make sure environs is set to something sane */
-	putenv((char *) "HOME=/");
 	putenv((char *) bb_PATH_root_path);
 	putenv((char *) "SHELL=/bin/sh");
 	putenv((char *) "USER=root"); /* needed? why? */
+	/* Linux kernel sets HOME="/" when execing init,
+	 * and it can be overridden (but not unset?) on kernel's command line.
+	 * We used to set it to "/" here, but now we do not:
+	 */
+	//putenv((char *) "HOME=/");
 
 	if (argv[1])
 		xsetenv("RUNLEVEL", argv[1]);
