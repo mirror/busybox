@@ -169,7 +169,7 @@ int seedrng_main(int argc UNUSED_PARAM, char **argv)
 	uint8_t new_seed[MAX_SEED_LEN];
 	size_t new_seed_len;
 	bool new_seed_creditable;
-	struct timespec timestamp;
+	struct timespec timestamp[2];
 	sha256_ctx_t hash;
 
 	enum {
@@ -197,19 +197,19 @@ int seedrng_main(int argc UNUSED_PARAM, char **argv)
 	 * Avoid concurrent runs by taking a blocking lock on the directory.
 	 * Not checking for errors. Looking at manpage,
 	 * ENOLCK "The kernel ran out of memory for allocating lock records"
-	 * seems to be the only one which is likely - and if that happens,
+	 * seems to be the only one which is possible - and if that happens,
 	 * machine is OOMing (much worse problem than inability to lock...).
 	 * Also, typically configured Linux machines do not fail GFP_KERNEL
 	 * allocations (they trigger memory reclaim instead).
 	 */
-	flock(dfd, LOCK_EX); /* would block while another copy runs */
+	flock(dfd, LOCK_EX); /* blocks while another instance runs */
 
 	sha256_begin(&hash);
-	sha256_hash(&hash, "SeedRNG v1 Old+New Prefix", 25);
-	clock_gettime(CLOCK_REALTIME, &timestamp);
-	sha256_hash(&hash, &timestamp, sizeof(timestamp));
-	clock_gettime(CLOCK_BOOTTIME, &timestamp);
-	sha256_hash(&hash, &timestamp, sizeof(timestamp));
+//Hashing in a constant string doesn't add any entropy
+//	sha256_hash(&hash, "SeedRNG v1 Old+New Prefix", 25);
+	clock_gettime(CLOCK_REALTIME, &timestamp[0]);
+	clock_gettime(CLOCK_BOOTTIME, &timestamp[1]);
+	sha256_hash(&hash, timestamp, sizeof(timestamp));
 
 	for (i = 0; i <= 1; i++) {
 		seed_from_file_if_exists(
