@@ -690,7 +690,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	s = top + G_scroll_ofs;
 	while (--lines_rem >= 0) {
 		int n;
-		char *pp;
+		char *ppu;
 		char ppubuf[sizeof(int)*3 * 2 + 12];
 		char vsz_str_buf[8];
 		unsigned col;
@@ -703,37 +703,35 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 		smart_ulltoa5(s->vsz, vsz_str_buf, " mgtpezy");
 		/* PID PPID USER STAT VSZ %VSZ [%CPU] COMMAND */
 		n = sprintf(ppubuf, "%5u %5u %-8.8s", s->pid, s->ppid, get_cached_username(s->uid));
+		ppu = ppubuf;
 		if (n != 6+6+8) {
 			/* Format PID PPID USER part into 6+6+8 chars:
 			 * shrink PID/PPID if possible, then truncate USER
 			 */
-			char *p;
-			pp = ppubuf;
-			if (*pp == ' ') {
+			char *p, *pp;
+			if (*ppu == ' ') {
 				do {
-					pp++, n--;
+					ppu++, n--;
 					if (n == 6+6+8)
 						goto shortened;
-				} while (*pp == ' ');
-				overlapping_strcpy(ppubuf, pp); /* shrink PID */
+				} while (*ppu == ' ');
 			}
-			pp = p = skip_non_whitespace(ppubuf) + 1;
+			pp = p = skip_non_whitespace(ppu) + 1;
 			if (*p == ' ') {
 				do
 					p++, n--;
 				while (n != 6+6+8 && *p == ' ');
 				overlapping_strcpy(pp, p); /* shrink PPID */
 			}
-			ppubuf[6+6+8] = '\0'; /* truncate USER */
+			ppu[6+6+8] = '\0'; /* truncate USER */
 		}
-		pp = ppubuf;
  shortened:
 		col = snprintf(line_buf, scr_width,
 				"\n" "%s %s  %.5s" FMT
 				IF_FEATURE_TOP_SMP_PROCESS(" %3d")
 				IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(FMT)
 				" ",
-				pp,
+				ppu,
 				s->state, vsz_str_buf,
 				SHOW_STAT(pmem)
 				IF_FEATURE_TOP_SMP_PROCESS(, s->last_seen_on_cpu)
