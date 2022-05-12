@@ -879,8 +879,11 @@ static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
 		lines_rem = ntop - G_scroll_ofs;
 	while (--lines_rem >= 0) {
 		/* PID VSZ VSZRW RSS (SHR) DIRTY (SHR) COMMAND */
-		ulltoa6_and_space(s->pid     , &line_buf[0*6]);
+		int n = sprintf(line_buf, "%5u ", s->pid);
 		ulltoa6_and_space(s->vsz     , &line_buf[1*6]);
+		if (n > 7 || (n == 7 && line_buf[6] != ' '))
+			/* PID and VSZ are clumped together, truncate PID */
+			line_buf[5] = '.';
 		ulltoa6_and_space(s->vszrw   , &line_buf[2*6]);
 		ulltoa6_and_space(s->rss     , &line_buf[3*6]);
 		ulltoa6_and_space(s->rss_sh  , &line_buf[4*6]);
