@@ -38,11 +38,9 @@ file_ntpconf="$service.ntpconf"
 dir_ipconf="/var/run/service/fw"
 dir_ntpconf="/var/run/service/ntpd"
 
-exec >/dev/null
-#exec >>"$0.out"  #debug
+#exec >/dev/null
+#exec >"$0.out"  #debug
 exec 2>&1
-
-echo "`date`: Params: $*"
 
 if test x"$1" != x"bound" && test x"$1" != x"renew" ; then
 	# Reconfigure network with this interface disabled

@@ -1,5 +1,5 @@
 #!/bin/sh
-# executed when service is taken down ("sv d .")
+# executed when service is taken down ("svc -d .")
 
 service=${PWD##*/}
 file_ipconf="$service.ipconf"

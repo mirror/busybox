@@ -19,7 +19,7 @@
 #let cfg=cfg+1
 #if[$cfg]=...; ip[$cfg]=...; ipmask[$cfg]=.../...; gw[$cfg]=...; net[$cfg]=... dns[$cfg]=...
 
-exec >/dev/null
+#exec >/dev/null
 #exec >"$0.out"  # debug
 exec 2>&1
 
@@ -31,23 +31,31 @@ test "$ip" || exit 1
 if ! test "$mask"; then
 	case "$ip" in
 	10.*)
+		echo "mask assumed 8 for ip=$ip"
 		mask=8;;
-	192.168.*)
-		mask=16;;
 	#172.16-31.x.x
 	172.1[6789].*)
+		echo "mask assumed 12 for ip=$ip"
 		mask=12;;
 	172.2[0123456789].*)
+		echo "mask assumed 12 for ip=$ip"
 		mask=12;;
 	172.3[01].*)
+		echo "mask assumed 12 for ip=$ip"
 		mask=12;;
+	192.168.*)
+		echo "mask assumed 16 for ip=$ip"
+		mask=16;;
 	esac
 fi
 
 # some servers do not return router option.
 # assume DHCP server is the router.
 if ! test "$router"; then
-	test "$serverid" && router="$serverid"
+	if test "$serverid"; then
+		router="$serverid"
+		echo "No 'router' from the server, assuming 'serverid' is the router: $serverid"
+	fi
 fi
 
 {

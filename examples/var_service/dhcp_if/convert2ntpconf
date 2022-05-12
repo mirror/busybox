@@ -19,7 +19,7 @@
 #let cfg=cfg+1
 #ntpip[$cfg]=...
 
-exec >/dev/null
+#exec >/dev/null
 #exec >"$0.out"  # debug
 exec 2>&1
 
