@@ -4324,8 +4324,14 @@ static void do_cmd(int c)
 			goto dc_i;	// start inserting
 		break;
 	case 'Z':			// Z- if modified, {write}; exit
-		// ZZ means to save file (if necessary), then exit
 		c1 = get_one_char();
+		// ZQ means to exit without saving
+		if (c1 == 'Q') {
+			editing=0;
+			optind = cmdline_filecnt;
+			break;
+		}
+		// ZZ means to save file (if necessary), then exit
 		if (c1 != 'Z') {
 			indicate_error();
 			break;
