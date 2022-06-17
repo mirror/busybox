@@ -3128,6 +3128,9 @@ static var *evaluate(node *op, var *res)
 
 		case XC( OC_MOVE ):
 			debug_printf_eval("MOVE\n");
+			/* make sure that we never return a temp var */
+			if (L.v == TMPVAR0)
+				L.v = res;
 			/* if source is a temporary string, jusk relink it to dest */
 			if (R.v == TMPVAR1
 			 && !(R.v->type & VF_NUMBER)

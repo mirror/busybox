@@ -479,4 +479,10 @@ testing 'awk backslash+newline eaten with no trace' \
 	"Hello world\n" \
 	'' ''
 
+testing 'awk assign while test' \
+	"awk '\$1==\$1=\"foo\" {print \$1}'" \
+	"foo\n" \
+	"" \
+	"foo"
+
 exit $FAILCOUNT
