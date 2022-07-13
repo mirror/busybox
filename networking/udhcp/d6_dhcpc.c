@@ -295,6 +295,7 @@ static void option_to_env(const uint8_t *option, const uint8_t *option_end)
 			*new_env() = xasprintf("ipv6=%s", ipv6str);
 
 			move_from_unaligned32(v32, option + 4 + 16 + 4);
+			v32 = ntohl(v32);
 			*new_env() = xasprintf("lease=%u", (unsigned)v32);
 			break;
 
@@ -332,6 +333,7 @@ static void option_to_env(const uint8_t *option, const uint8_t *option_end)
  * +-+-+-+-+-+-+-+-+
  */
 			move_from_unaligned32(v32, option + 4 + 4);
+			v32 = ntohl(v32);
 			*new_env() = xasprintf("ipv6prefix_lease=%u", (unsigned)v32);
 
 			sprint_nip6(ipv6str, option + 4 + 4 + 4 + 1);
