@@ -357,9 +357,9 @@ static int compare_keys(const void *xarg, const void *yarg)
 			int dx;
 			char *xx, *yy;
 
-			xx = strptime(x, "%b", &thyme);
+			xx = strptime(skip_whitespace(x), "%b", &thyme);
 			dx = thyme.tm_mon;
-			yy = strptime(y, "%b", &thyme);
+			yy = strptime(skip_whitespace(y), "%b", &thyme);
 			if (!xx)
 				retval = (!yy) ? 0 : -1;
 			else if (!yy)
