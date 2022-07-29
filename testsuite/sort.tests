@@ -230,4 +230,14 @@ testing "sort -k2,2M" \
 3 March
 " ""
 
+testing "sort -s -u" \
+"sort -s -u -k 2 input" "\
+z a
+z b
+" "\
+z b
+a b
+z a
+a a" ""
+
 exit $FAILCOUNT
