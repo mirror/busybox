@@ -74,7 +74,7 @@
 //usage:     "\n	-c CNT		Send only CNT pings"
 //usage:     "\n	-s SIZE		Send SIZE data bytes in packets (default 56)"
 //usage:     "\n	-i SECS		Interval"
-//usage:     "\n	-A		Ping as soon as reply is recevied"
+//usage:     "\n	-A		Ping as soon as reply is received"
 //usage:     "\n	-t TTL		Set TTL"
 //usage:     "\n	-I IFACE/IP	Source interface or IP address"
 //usage:     "\n	-W SEC		Seconds to wait for the first response (default 10)"
@@ -91,7 +91,7 @@
 //usage:     "\n	-c CNT		Send only CNT pings"
 //usage:     "\n	-s SIZE		Send SIZE data bytes in packets (default 56)"
 //usage:     "\n	-i SECS		Interval"
-//usage:     "\n	-A		Ping as soon as reply is recevied"
+//usage:     "\n	-A		Ping as soon as reply is received"
 ///////:     "\n	-t TTL		Set TTL"
 ///////^^^^^ -t not tested for IPv6, might be not working
 //usage:     "\n	-I IFACE/IP	Source interface or IP address"
