@@ -7324,13 +7324,15 @@ subevalvar(char *start, char *str, int strloc,
 				if (idx >= end)
 					break;
 				STPUTC(*idx, expdest);
+				if (stackblock() != restart_detect)
+					goto restart;
 				if (quotes && (unsigned char)*idx == CTLESC) {
 					idx++;
 					len++;
 					STPUTC(*idx, expdest);
+					if (stackblock() != restart_detect)
+						goto restart;
 				}
-				if (stackblock() != restart_detect)
-					goto restart;
 				idx++;
 				len++;
 				rmesc++;
