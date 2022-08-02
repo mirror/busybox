@@ -1083,7 +1083,7 @@ static void change_listen_mode(int new_mode)
 		client_data.sockfd = -1;
 	}
 	if (new_mode == LISTEN_KERNEL)
-		client_data.sockfd = d6_listen_socket(/*INADDR_ANY,*/ CLIENT_PORT6, client_data.interface);
+		client_data.sockfd = d6_listen_socket(CLIENT_PORT6, client_data.interface);
 	else if (new_mode != LISTEN_NONE)
 		client_data.sockfd = d6_raw_socket(client_data.ifindex);
 	/* else LISTEN_NONE: client_data.sockfd stays closed */
