@@ -7357,6 +7357,13 @@ subevalvar(char *start, char *str, int strloc,
 				idx = loc;
 			}
 
+			/* The STPUTC invocations above may resize and move the
+			 * stack via realloc(3). Since repl is a pointer into the
+			 * stack, we need to reconstruct it relative to stackblock().
+			 */
+			if (slash_pos >= 0)
+				repl = (char *)stackblock() + strloc + slash_pos + 1;
+
 			//bb_error_msg("repl:'%s'", repl);
 			for (loc = (char*)repl; *loc; loc++) {
 				char *restart_detect = stackblock();
