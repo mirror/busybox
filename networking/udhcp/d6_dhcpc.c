@@ -844,7 +844,7 @@ static NOINLINE int send_d6_renew(struct in6_addr *server_ipv6, struct in6_addr 
 	uint8_t *opt_ptr;
 
 	/* Fill in: msg type, xid, ELAPSED_TIME */
-	opt_ptr = init_d6_packet(&packet, DHCPREQUEST);
+	opt_ptr = init_d6_packet(&packet, D6_MSG_RENEW);
 
 	/* server id */
 	opt_ptr = mempcpy(opt_ptr, client6_data.server_id, client6_data.server_id->len + 2+2);
@@ -1083,7 +1083,7 @@ static void change_listen_mode(int new_mode)
 		client_data.sockfd = -1;
 	}
 	if (new_mode == LISTEN_KERNEL)
-		client_data.sockfd = udhcp_listen_socket(/*INADDR_ANY,*/ CLIENT_PORT6, client_data.interface);
+		client_data.sockfd = d6_listen_socket(/*INADDR_ANY,*/ CLIENT_PORT6, client_data.interface);
 	else if (new_mode != LISTEN_NONE)
 		client_data.sockfd = d6_raw_socket(client_data.ifindex);
 	/* else LISTEN_NONE: client_data.sockfd stays closed */
@@ -1489,6 +1489,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 					if (opt & OPT_l)
 						send_d6_info_request();
 					else /* send a broadcast renew request */
+//TODO: send_d6_renew uses D6_MSG_RENEW message, should we use D6_MSG_REBIND here instead?
 						send_d6_renew(/*server_ipv6:*/ NULL, requested_ipv6);
 					timeout = discover_timeout;
 					packet_num++;
