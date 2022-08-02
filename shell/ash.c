@@ -7028,6 +7028,7 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 			msg = umsg;
 		}
 	}
+	ifsfree();
 	ash_msg_and_raise_error("%.*s: %s%s", (int)(end - var - 1), var, msg, tail);
 }
 
@@ -7453,6 +7454,7 @@ varvalue(char *name, int varflags, int flags, int quoted)
 		if (discard)
 			return -1;
 
+		ifsfree();
 		raise_error_syntax("bad substitution");
 	}
 
