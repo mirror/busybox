@@ -2892,6 +2892,8 @@ static char peek_inbuf(void)
 	) {
 		xc_read_line(&G.input_buffer, G.prs.lex_input_fp);
 		G.prs.lex_inbuf = G.input_buffer.v;
+		// lex_next_at may point to now-freed data, update it:
+		G.prs.lex_next_at = G.prs.lex_inbuf;
 		if (G.input_buffer.len <= 1) // on EOF, len is 1 (NUL byte)
 			G.prs.lex_input_fp = NULL;
 	}
