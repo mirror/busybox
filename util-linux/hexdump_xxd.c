@@ -76,12 +76,14 @@ static void reverse(unsigned opt, const char *filename)
 
 	fp = filename ? xfopen_for_read(filename) : stdin;
 
+ get_new_line:
 	while ((buf = xmalloc_fgetline(fp)) != NULL) {
 		char *p;
 
 		p = buf;
 		if (!(opt & OPT_p)) {
-			/* skip address */
+ skip_address:
+			p = skip_whitespace(p);
 			while (isxdigit(*p)) p++;
 			/* NB: for xxd -r, first hex portion is address even without colon */
 			/* If it's there, skip it: */
@@ -94,36 +96,45 @@ static void reverse(unsigned opt, const char *filename)
 		/* Process hex bytes optionally separated by whitespace */
 		for (;;) {
 			uint8_t val, c;
+			int badchar = 0;
  nibble1:
-			p = skip_whitespace(p);
-
+			if (opt & OPT_p)
+				p = skip_whitespace(p);
 			c = *p++;
 			if (isdigit(c))
 				val = c - '0';
 			else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
 				val = (c|0x20) - ('a' - 10);
 			else {
-				/* xxd V1.10 is inconsistent here.
+				/* xxd V1.10 allows one non-hexnum char:
 				 *  echo -e "31 !3 0a 0a" | xxd -r -p
 				 * is "10<a0>" (no <cr>) - "!" is ignored,
-				 * but
+				 * but stops for more than one:
 				 *  echo -e "31 !!343434\n30 0a" | xxd -r -p
 				 * is "10<cr>" - "!!" drops rest of the line.
-				 * We will ignore all invalid chars:
+				 * Note: this also covers whitespace chars:
+				 * xxxxxxxx: 3031 3233 3435 3637 3839 3a3b 3c3d 3e3f  0123456789:;<=>?
+				 *  detects this ^ - skips this one space
+				 * xxxxxxxx: 3031 3233 3435 3637 3839 3a3b 3c3d 3e3f  0123456789:;<=>?
+				 *                                     detects this ^^ - skips the rest
 				 */
-				if (c != '\0')
-					goto nibble1;
-				break;
+				if (c == '\0' || badchar)
+					break;
+				badchar++;
+				goto nibble1;
 			}
 			val <<= 4;
 
-			/* Works the same with xxd V1.10:
-			 *  echo "31 09 32 0a" | xxd -r -p
-			 *  echo "31 0 9 32 0a" | xxd -r -p
-			 * thus allow whitespace even within the byte:
-			 */
  nibble2:
-			p = skip_whitespace(p);
+			if (opt & OPT_p) {
+				/* Works the same with xxd V1.10:
+				 *  echo "31 09 32 0a" | xxd -r -p
+				 *  echo "31 0 9 32 0a" | xxd -r -p
+				 * thus allow whitespace (even multiple chars)
+				 * after byte's 1st char:
+				 */
+				p = skip_whitespace(p);
+			}
 
 			c = *p++;
 			if (isdigit(c))
@@ -132,7 +143,16 @@ static void reverse(unsigned opt, const char *filename)
 				val |= (c|0x20) - ('a' - 10);
 			else {
 				if (c != '\0') {
-					/* "...3<not_hex_char>..." ignores both chars */
+					/* "...3<not_hex_char>...": ignore "3",
+					 * skip everything up to next hexchar or newline:
+					 */
+					while (!isxdigit(*p)) {
+						if (*p == '\0') {
+							free(buf);
+							goto get_new_line;
+						}
+						p++;
+					}
 					goto nibble1;
 				}
 				/* Nibbles can join even through newline:
@@ -143,10 +163,12 @@ static void reverse(unsigned opt, const char *filename)
 				p = buf = xmalloc_fgetline(fp);
 				if (!buf)
 					break;
+				if (!(opt & OPT_p)) /* -p and !-p: different behavior */
+					goto skip_address;
 				goto nibble2;
 			}
 			putchar(val);
-		}
+		} /* for(;;) */
 		free(buf);
 	}
 	//fclose(fp);
