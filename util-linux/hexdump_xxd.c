@@ -55,6 +55,7 @@
 //usage:     "\n	-r		Reverse (with -p, assumes no offsets in input)"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "dump.h"
 
 /* This is a NOEXEC applet. Be very careful! */
@@ -69,10 +70,32 @@
 #define OPT_c (1 << 7)
 #define OPT_o (1 << 8)
 
-static void reverse(unsigned opt, const char *filename)
+#define fillbuf bb_common_bufsiz1
+
+static void write_zeros(off_t count)
+{
+	errno = 0;
+	do {
+		unsigned sz = count < COMMON_BUFSIZE ? (unsigned)count : COMMON_BUFSIZE;
+		if (fwrite(fillbuf, 1, sz, stdout) != sz)
+			bb_perror_msg_and_die("write error");
+		count -= sz;
+	} while (count != 0);
+}
+
+static void reverse(unsigned opt, const char *filename, char *opt_s)
 {
 	FILE *fp;
 	char *buf;
+	off_t cur, opt_s_ofs;
+
+	memset(fillbuf, 0, COMMON_BUFSIZE);
+	opt_s_ofs = cur = 0;
+	if (opt_s) {
+		opt_s_ofs = BB_STRTOOFF(opt_s, NULL, 0);
+		if (errno || opt_s_ofs < 0)
+			bb_error_msg_and_die("invalid number '%s'", opt_s);
+	}
 
 	fp = filename ? xfopen_for_read(filename) : stdin;
 
@@ -82,15 +105,31 @@ static void reverse(unsigned opt, const char *filename)
 
 		p = buf;
 		if (!(opt & OPT_p)) {
+			char *end;
+			off_t ofs;
  skip_address:
 			p = skip_whitespace(p);
-			while (isxdigit(*p)) p++;
+			ofs = BB_STRTOOFF(p, &end, 16);
+			if ((errno && errno != EINVAL)
+			 || ofs < 0
+			/* -s SEEK value should be added before seeking */
+			 || (ofs += opt_s_ofs) < 0
+			) {
+				bb_error_msg_and_die("invalid number '%s'", p);
+			}
+			if (ofs != cur) {
+				if (fseeko(stdout, ofs, SEEK_SET) != 0) {
+					if (ofs < cur)
+						bb_perror_msg_and_die("cannot seek");
+					write_zeros(ofs - cur);
+				}
+				cur = ofs;
+			}
+			p = end;
 			/* NB: for xxd -r, first hex portion is address even without colon */
-			/* If it's there, skip it: */
-			if (*p == ':') p++;
-
-//TODO: seek (or zero-pad if unseekable) to the address position
-//NOTE: -s SEEK value should be added to the address before seeking
+			/* But if colon is there, skip it: */
+			if (*p == ':')
+				p++;
 		}
 
 		/* Process hex bytes optionally separated by whitespace */
@@ -168,6 +207,7 @@ static void reverse(unsigned opt, const char *filename)
 				goto nibble2;
 			}
 			putchar(val);
+			cur++;
 		} /* for(;;) */
 		free(buf);
 	}
@@ -194,6 +234,8 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 	unsigned cols = 0;
 	unsigned opt;
 	int r;
+
+	setup_common_bufsiz();
 
 	dumper = alloc_dumper();
 
@@ -222,7 +264,7 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (opt & OPT_r) {
-		reverse(opt, argv[0]);
+		reverse(opt, argv[0], opt_s);
 	}
 
 	if (opt & OPT_o) {
