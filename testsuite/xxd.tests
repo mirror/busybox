@@ -40,10 +40,24 @@ testing 'xxd -p -r' \
 testing 'xxd -r skips leading whitespace and truncates at two spaces' \
 	'xxd -r' \
 	'0123456789:;<=>?@' \
-	'' \
-"\
+	'' "\
    00000000: 3031 3233 3435 3637 3839 3a3b 3c3d 3e3f  0123456789:;<=>?
 	00000010: 40                                       @
+"
+
+testing 'xxd -p -r skips one bad char, truncates at two bad chars' \
+	'xxd -p -r' \
+	'01' \
+	'' "\
+30 !31 !!32
+"
+
+testing 'xxd -p -r ignores the nibble with 2nd char bad' \
+	'xxd -p -r' \
+	'3C6' \
+	'' "\
+33 3!4 3!!5
+36
 "
 
 exit $FAILCOUNT
