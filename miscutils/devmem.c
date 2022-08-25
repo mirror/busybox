@@ -29,7 +29,6 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 {
 	void *map_base, *virt_addr;
 	uint64_t read_result;
-	uint64_t writeval = writeval; /* for compiler */
 	off_t target;
 	unsigned page_size, mapped_size, offset_in_page;
 	int fd;
@@ -64,9 +63,6 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 			width = strchrnul(bhwl, (argv[2][0] | 0x20)) - bhwl;
 			width = sizes[width];
 		}
-		/* VALUE */
-		if (argv[3])
-			writeval = bb_strtoull(argv[3], NULL, 0);
 	} else { /* argv[2] == NULL */
 		/* make argv[3] to be a valid thing to fetch */
 		argv--;
@@ -96,28 +92,46 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 	virt_addr = (char*)map_base + offset_in_page;
 
 	if (!argv[3]) {
-		switch (width) {
-		case 8:
-			read_result = *(volatile uint8_t*)virt_addr;
-			break;
-		case 16:
-			read_result = *(volatile uint16_t*)virt_addr;
-			break;
-		case 32:
-			read_result = *(volatile uint32_t*)virt_addr;
-			break;
-		case 64:
-			read_result = *(volatile uint64_t*)virt_addr;
-			break;
-		default:
-			bb_simple_error_msg_and_die("bad width");
+#ifdef __SIZEOF_INT128__
+		if (width == 128) {
+			unsigned __int128 rd =
+				*(volatile unsigned __int128 *)virt_addr;
+			printf("0x%016llX%016llX\n",
+				(unsigned long long)(uint64_t)(rd >> 64),
+				(unsigned long long)(uint64_t)rd
+			);
+		} else
+#endif
+		{
+			switch (width) {
+			case 8:
+				read_result = *(volatile uint8_t*)virt_addr;
+				break;
+			case 16:
+				read_result = *(volatile uint16_t*)virt_addr;
+				break;
+			case 32:
+				read_result = *(volatile uint32_t*)virt_addr;
+				break;
+			case 64:
+				read_result = *(volatile uint64_t*)virt_addr;
+				break;
+			default:
+				bb_simple_error_msg_and_die("bad width");
+			}
+//			printf("Value at address 0x%"OFF_FMT"X (%p): 0x%llX\n",
+//				target, virt_addr,
+//				(unsigned long long)read_result);
+			/* Zero-padded output shows the width of access just done */
+			printf("0x%0*llX\n", (width >> 2), (unsigned long long)read_result);
 		}
-//		printf("Value at address 0x%"OFF_FMT"X (%p): 0x%llX\n",
-//			target, virt_addr,
-//			(unsigned long long)read_result);
-		/* Zero-padded output shows the width of access just done */
-		printf("0x%0*llX\n", (width >> 2), (unsigned long long)read_result);
 	} else {
+		/* parse VALUE */
+#ifdef __SIZEOF_INT128__
+		unsigned __int128 writeval = strtoumax(argv[3], NULL, 0);
+#else
+		uint64_t writeval = bb_strtoull(argv[3], NULL, 0);
+#endif
 		switch (width) {
 		case 8:
 			*(volatile uint8_t*)virt_addr = writeval;
@@ -135,6 +149,12 @@ int devmem_main(int argc UNUSED_PARAM, char **argv)
 			*(volatile uint64_t*)virt_addr = writeval;
 //			read_result = *(volatile uint64_t*)virt_addr;
 			break;
+#ifdef __SIZEOF_INT128__
+		case 128:
+			*(volatile unsigned __int128 *)virt_addr = writeval;
+//			read_result = *(volatile uint64_t*)virt_addr;
+			break;
+#endif
 		default:
 			bb_simple_error_msg_and_die("bad width");
 		}
