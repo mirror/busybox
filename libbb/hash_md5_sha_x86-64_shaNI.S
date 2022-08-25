@@ -25,6 +25,9 @@
 // We do not check SSSE3/SSE4.1 in cpuid,
 // all SHA-capable CPUs support them as well.
 
+#ifdef __linux__
+	.section	.note.GNU-stack, "", @progbits
+#endif
 	.section	.text.sha1_process_block64_shaNI, "ax", @progbits
 	.globl	sha1_process_block64_shaNI
 	.hidden	sha1_process_block64_shaNI
