@@ -19,6 +19,7 @@
 
 #include "libbb.h"
 #include "common_bufsiz.h"
+#include "unicode.h"
 
 #define prefix_buf bb_common_bufsiz1
 
@@ -26,6 +27,17 @@ static void tree_print(unsigned count[2], const char* directory_name, char* pref
 {
 	struct dirent **entries;
 	int index, size;
+	const char *bar = "|   ";
+	const char *mid = "|-- ";
+	const char *end = "`-- ";
+
+#if ENABLE_UNICODE_SUPPORT
+	if (unicode_status == UNICODE_ON) {
+		bar = "│   ";
+		mid = "├── ";
+		end = "└── ";
+	}
+#endif
 
 	// read directory entries
 	size = scandir(directory_name, &entries, NULL, alphasort);
@@ -55,9 +67,9 @@ static void tree_print(unsigned count[2], const char* directory_name, char* pref
 			status = lstat(dirent->d_name, &statBuf);
 
 			if (index == size) {
-				strcpy(prefix_pos, "└── ");
+				strcpy(prefix_pos, end);
 			} else {
-				strcpy(prefix_pos, "├── ");
+				strcpy(prefix_pos, mid);
 			}
 			fputs_stdout(prefix_buf);
 
@@ -75,7 +87,7 @@ static void tree_print(unsigned count[2], const char* directory_name, char* pref
 				if (index == size) {
 					pos = stpcpy(prefix_pos, "    ");
 				} else {
-					pos = stpcpy(prefix_pos, "│   ");
+					pos = stpcpy(prefix_pos, bar);
 				}
 				tree_print(count, dirent->d_name, pos);
 				count[0]++;
@@ -103,6 +115,7 @@ int tree_main(int argc UNUSED_PARAM, char **argv)
 	unsigned count[2] = { 0, 0 };
 
 	setup_common_bufsiz();
+	init_unicode();
 
 	if (!argv[1])
 		*argv-- = (char*)".";
