@@ -33,7 +33,7 @@ static void tree_print(unsigned count[2], const char* directory_name, char* pref
 
 #if ENABLE_UNICODE_SUPPORT
 	if (unicode_status == UNICODE_ON) {
-		bar = "│   ";
+		bar = "│   ";
 		mid = "├── ";
 		end = "└── ";
 	}
