@@ -134,6 +134,11 @@
 //config:	default y
 //config:	depends on SHELL_ASH
 //config:
+//config:config ASH_SLEEP
+//config:	bool "sleep builtin"
+//config:	default y
+//config:	depends on SHELL_ASH
+//config:
 //config:config ASH_HELP
 //config:	bool "help builtin"
 //config:	default y
@@ -10155,6 +10160,9 @@ static int FAST_FUNC printfcmd(int argc, char **argv) { return printf_main(argc,
 #if ENABLE_ASH_TEST || BASH_TEST2
 static int FAST_FUNC testcmd(int argc, char **argv)   { return test_main(argc, argv); }
 #endif
+#if ENABLE_ASH_SLEEP
+static int FAST_FUNC sleepcmd(int argc, char **argv)  { return sleep_main(argc, argv); }
+#endif
 
 /* Keep these in proper order since it is searched via bsearch() */
 static const struct builtincmd builtintab[] = {
@@ -10217,6 +10225,9 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_SPEC_REG      "return"  , returncmd  },
 	{ BUILTIN_SPEC_REG      "set"     , setcmd     },
 	{ BUILTIN_SPEC_REG      "shift"   , shiftcmd   },
+#if ENABLE_ASH_SLEEP
+	{ BUILTIN_REGULAR       "sleep"   , sleepcmd   },
+#endif
 #if BASH_SOURCE
 	{ BUILTIN_SPEC_REG      "source"  , dotcmd     },
 #endif

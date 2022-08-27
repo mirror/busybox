@@ -76,6 +76,12 @@ void FAST_FUNC sleep_for_duration(duration_t duration)
 		ts.tv_sec = duration;
 		ts.tv_nsec = (duration - ts.tv_sec) * 1000000000;
 	}
+	/* NB: if ENABLE_ASH_SLEEP, we end up here if "sleep N"
+	 * is run in ash. ^C will still work, because ash's signal handler
+	 * does not return (it longjumps), the below loop
+	 * will not continue looping.
+	 * (This wouldn't work in hush)
+	 */
 	do {
 		errno = 0;
 		nanosleep(&ts, &ts);

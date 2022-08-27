@@ -37,6 +37,7 @@
 //applet:IF_SLEEP(APPLET(sleep, BB_DIR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_SLEEP) += sleep.o
+//kbuild:lib-$(CONFIG_ASH_SLEEP) += sleep.o
 
 /* BB_AUDIT SUSv3 compliant */
 /* BB_AUDIT GNU issues -- fancy version matches except args must be ints. */
