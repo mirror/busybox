@@ -938,6 +938,9 @@ void FAST_FUNC show_usage_if_dash_dash_help(int applet_no, char **argv)
 #  if defined APPLET_NO_echo
 	 && applet_no != APPLET_NO_echo
 #  endif
+#  if ENABLE_TEST1 || ENABLE_TEST2
+	 && argv[0][0] != '[' /* exclude [ --help ] and [[ --help ]] too */
+#  endif
 	) {
 		if (argv[1] && strcmp(argv[1], "--help") == 0) {
 			/* Make "foo --help [...]" exit with 0: */
