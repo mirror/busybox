@@ -515,7 +515,7 @@ static void FAST_FUNC collect_blk(blk_stat *s)
 		return;
 	}
 
-	for (i=0; i<2; i++) {
+	for (i = 0; i < 2; i++) {
 		ullong old = s->old[i];
 		if (data[i] < old) old = data[i];		//sanitize
 		s->old[i] = data[i];
@@ -597,7 +597,7 @@ static void FAST_FUNC collect_if(if_stat *s)
 		return;
 	}
 
-	for (i=0; i<4; i++) {
+	for (i = 0; i < 4; i++) {
 		ullong old = s->old[i];
 		if (data[i] < old) old = data[i];		//sanitize
 		s->old[i] = data[i];

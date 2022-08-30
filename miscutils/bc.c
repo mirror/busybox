@@ -3105,7 +3105,7 @@ static BC_STATUS zbc_lex_identifier(void)
 			continue;
  match:
 		// buf starts with keyword bc_lex_kws[i]
-		if (isalnum(buf[j]) || buf[j]=='_')
+		if (isalnum(buf[j]) || buf[j] == '_')
 			continue; // "ifz" does not match "if" keyword, "if." does
 		p->lex = BC_LEX_KEY_1st_keyword + i;
 		if (!keyword_is_POSIX(i)) {

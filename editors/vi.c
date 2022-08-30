@@ -4327,7 +4327,7 @@ static void do_cmd(int c)
 		c1 = get_one_char();
 		// ZQ means to exit without saving
 		if (c1 == 'Q') {
-			editing=0;
+			editing = 0;
 			optind = cmdline_filecnt;
 			break;
 		}

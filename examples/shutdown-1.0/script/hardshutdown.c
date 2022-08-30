@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 	if (ptr)
 		prog = ptr+1;
 
-	for (c=1; c < argc; c++) {
+	for (c = 1; c < argc; c++) {
 		if (argv[c][0] >= '0' && argv[c][0] <= '9') {
 			t.tv_sec = strtol(argv[c], NULL, 10);
 			continue;
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 			usage();
 			return 1;
 		}
-		for (i=1; argv[c][i]; i++) {
+		for (i = 1; argv[c][i]; i++) {
 			switch (argv[c][i]) {
 			case 'h':
 				action = HALT;

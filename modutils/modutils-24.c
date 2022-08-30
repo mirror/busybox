@@ -981,7 +981,7 @@ arch_apply_relocation(struct obj_file *f,
 						(loc[1] & 0xFFFF);
 
 			/* Add reloc offset */
-			temp1+=v;
+			temp1 += v;
 
 			/* Store back into code */
 			loc[0] = (loc[0] & 0xFFFF0000) | temp1 >> 16;

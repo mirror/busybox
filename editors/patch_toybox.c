@@ -79,7 +79,7 @@ void TOY_llist_free(void *list, void (*freeit)(void *data))
 		else free(pop);
 
 		// End doubly linked list too.
-		if (list==pop) break;
+		if (list == pop) break;
 	}
 }
 
@@ -137,11 +137,11 @@ char *get_rawline(int fd, long *plen, char end)
 	long len = 0;
 
 	for (;;) {
-		if (1>read(fd, &c, 1)) break;
+		if (1 > read(fd, &c, 1)) break;
 		if (!(len & 63)) buf=xrealloc(buf, len+65);
-		if ((buf[len++]=c) == end) break;
+		if ((buf[len++] = c) == end) break;
 	}
-	if (buf) buf[len]=0;
+	if (buf) buf[len] = 0;
 	if (plen) *plen = len;
 
 	return buf;
@@ -153,7 +153,7 @@ char *get_line(int fd)
 	long len;
 	char *buf = get_rawline(fd, &len, '\n');
 
-	if (buf && buf[--len]=='\n') buf[len]=0;
+	if (buf && buf[--len] == '\n') buf[len] = 0;
 
 	return buf;
 }
@@ -165,10 +165,10 @@ void xsendfile(int in, int out)
 	long len;
 	char buf[4096];
 
-	if (in<0) return;
+	if (in < 0) return;
 	for (;;) {
 		len = safe_read(in, buf, 4096);
-		if (len<1) break;
+		if (len < 1) break;
 		xwrite(out, buf, len);
 	}
 }
@@ -179,7 +179,7 @@ void replace_tempfile(int fdin, int fdout, char **tempname)
 {
 	char *temp = xstrdup(*tempname);
 
-	temp[strlen(temp)-6]=0;
+	temp[strlen(temp)-6] = 0;
 	if (fdin != -1) {
 		xsendfile(fdin, fdout);
 		xclose(fdin);
@@ -263,9 +263,9 @@ static void do_line(void *data)
 {
 	struct double_list *dlist = (struct double_list *)data;
 
-	if (TT.state>1 && *dlist->data != TT.state)
+	if (TT.state > 1 && *dlist->data != TT.state)
 		fdprintf(TT.state == 2 ? 2 : TT.fileout,
-			"%s\n", dlist->data+(TT.state>3 ? 1 : 0));
+			"%s\n", dlist->data + (TT.state > 3 ? 1 : 0));
 
 	if (PATCH_DEBUG) fdprintf(2, "DO %d: %s\n", TT.state, dlist->data);
 
@@ -314,7 +314,7 @@ static int apply_one_hunk(void)
 
 	// Match EOF if there aren't as many ending context lines as beginning
 	for (plist = TT.current_hunk; plist; plist = plist->next) {
-		if (plist->data[0]==' ') matcheof++;
+		if (plist->data[0] == ' ') matcheof++;
 		else matcheof = 0;
 		if (PATCH_DEBUG) fdprintf(2, "HUNK:%s\n", plist->data);
 	}
@@ -385,7 +385,7 @@ static int apply_one_hunk(void)
 
 				// If we've reached the end of the buffer without confirming a
 				// match, read more lines.
-				if (check==buf) {
+				if (check == buf) {
 					buf = 0;
 					break;
 				}
@@ -456,15 +456,15 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 
 		// Are we assembling a hunk?
 		if (state >= 2) {
-			if (*patchline==' ' || *patchline=='+' || *patchline=='-') {
+			if (*patchline == ' ' || *patchline == '+' || *patchline == '-') {
 				dlist_add(&TT.current_hunk, patchline);
 
 				if (*patchline != '+') TT.oldlen--;
 				if (*patchline != '-') TT.newlen--;
 
 				// Context line?
-				if (*patchline==' ' && state==2) TT.context++;
-				else state=3;
+				if (*patchline == ' ' && state == 2) TT.context++;
+				else state = 3;
 
 				// If we've consumed all expected hunk lines, apply the hunk.
 
@@ -491,9 +491,9 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 
 			// Trim date from end of filename (if any).  We don't care.
 			for (s = patchline+4; *s && *s!='\t'; s++)
-				if (*s=='\\' && s[1]) s++;
+				if (*s == '\\' && s[1]) s++;
 			i = atoi(s);
-			if (i>1900 && i<=1970)
+			if (i > 1900 && i <= 1970)
 				*name = xstrdup("/dev/null");
 			else {
 				*s = 0;
@@ -537,7 +537,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 				// handle -p path truncation.
 				for (i=0, s = name; *s;) {
 					if ((option_mask32 & FLAG_PATHLEN) && TT.prefix == i) break;
-					if (*(s++)=='/') {
+					if (*(s++) == '/') {
 						name = s;
 						i++;
 					}

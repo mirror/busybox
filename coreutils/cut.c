@@ -167,7 +167,7 @@ static void cut_file(FILE *file, const char *delim, const char *odelim,
 					if (!cl_pos && !dcount && !shoe) {
 						if (option_mask32 & CUT_OPT_SUPPRESS_FLGS)
 							goto next_line;
-					} else if (dcount<cut_lists[cl_pos].startpos)
+					} else if (dcount < cut_lists[cl_pos].startpos)
 						start = linelen;
 					end = linelen;
 				} else {

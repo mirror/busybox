@@ -1115,7 +1115,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count
 			if (package_edge->type == EDGE_PRE_DEPENDS
 			 || package_edge->type == EDGE_DEPENDS
 			) {
-				int result=1;
+				int result = 1;
 				status_num = 0;
 
 				/* If we are inside an alternative then check

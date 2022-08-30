@@ -214,7 +214,7 @@ static int prio_print_opt(struct rtattr *opt)
 		return 0;
 	parse_rtattr_nested_compat(tb, TCA_PRIO_MAX, opt, qopt, sizeof(*qopt));
 	printf("bands %u priomap ", qopt->bands);
-	for (i=0; i<=TC_PRIO_MAX; i++)
+	for (i = 0; i <= TC_PRIO_MAX; i++)
 		printf(" %d", qopt->priomap[i]);
 
 	if (tb[TCA_PRIO_MQ])
