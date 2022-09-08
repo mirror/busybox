@@ -1566,6 +1566,18 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 #endif
 		0x01,0x00, //not a cipher - comprtypes_len, comprtype
 	};
+	struct client_hello {
+		uint8_t type;
+		uint8_t len24_hi, len24_mid, len24_lo;
+		uint8_t proto_maj, proto_min;
+		uint8_t rand32[32];
+		uint8_t session_id_len;
+		/* uint8_t session_id[]; */
+		uint8_t cipherid_len16_hi, cipherid_len16_lo;
+		uint8_t cipherid[2 * (1 + NUM_CIPHERS)]; /* actually variable */
+		uint8_t comprtypes_len;
+		uint8_t comprtypes[1]; /* actually variable */
+	};
 	// https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
 	static const uint8_t extensions[] = {
 		// is.gd responds with "handshake failure" to our hello if there's no supported_groups
@@ -1606,28 +1618,6 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 			0x04,0x01, //sha256 + rsa - kojipkgs.fedoraproject.org wants this
 			0x04,0x02, //sha256 + dsa
 			0x04,0x03, //sha256 + ecdsa
-	};
-
-	struct client_hello {
-		uint8_t type;
-		uint8_t len24_hi, len24_mid, len24_lo;
-		uint8_t proto_maj, proto_min;
-		uint8_t rand32[32];
-		uint8_t session_id_len;
-		/* uint8_t session_id[]; */
-		uint8_t cipherid_len16_hi, cipherid_len16_lo;
-		uint8_t cipherid[2 * (1 + NUM_CIPHERS)]; /* actually variable */
-		uint8_t comprtypes_len;
-		uint8_t comprtypes[1]; /* actually variable */
-		/* Extensions (SNI shown):
-		 * hi,lo // len of all extensions
-		 *   00,00 // extension_type: "Server Name"
-		 *   00,0e // list len (there can be more than one SNI)
-		 *     00,0c // len of 1st Server Name Indication
-		 *       00    // name type: host_name
-		 *       00,09   // name len
-		 *       "localhost" // name
-		 */
 // GNU Wget 1.18 to cdn.kernel.org sends these extensions:
 // 0055
 //   0005 0005 0100000000 - status_request
