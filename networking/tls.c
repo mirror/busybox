@@ -948,11 +948,46 @@ static int tls_has_buffered_record(tls_state_t *tls)
 
 static const char *alert_text(int code)
 {
+	//10 unexpected_message
+	//20 bad_record_mac
+	//21 decryption_failed
+	//22 record_overflow
+	//30 decompression_failure
+	//40 handshake_failure
+	//41 no_certificate
+	//42 bad_certificate
+	//43 unsupported_certificate
+	//44 certificate_revoked
+	//45 certificate_expired
+	//46 certificate_unknown
+	//47 illegal_parameter
+	//48 unknown_ca
+	//49 access_denied
+	//50 decode_error
+	//51 decrypt_error
+	//52 too_many_cids_requested
+	//60 export_restriction
+	//70 protocol_version
+	//71 insufficient_security
+	//80 internal_error
+	//86 inappropriate_fallback
+	//90 user_canceled
+	//100 no_renegotiation
+	//109 missing_extension
+	//110 unsupported_extension
+	//111 certificate_unobtainable
+	//112 unrecognized_name
+	//113 bad_certificate_status_response
+	//114 bad_certificate_hash_value
+	//115 unknown_psk_identity
+	//116 certificate_required
+	//120 no_application_protocol
 	switch (code) {
 	case 20:  return "bad MAC";
 	case 50:  return "decode error";
-	case 51:  return "decrypt error";
 	case 40:  return "handshake failure";
+	case 51:  return "decrypt error";
+	case 80:  return "internal error";
 	case 112: return "unrecognized name";
 	}
 	return itoa(code);
@@ -1531,26 +1566,47 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 #endif
 		0x01,0x00, //not a cipher - comprtypes_len, comprtype
 	};
-	static const uint8_t supported_groups[] = {
+	// https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
+	static const uint8_t extensions[] = {
+		// is.gd responds with "handshake failure" to our hello if there's no supported_groups
 		0x00,0x0a, //extension_type: "supported_groups"
-		0x00,2 * (1 + ALLOW_CURVE_P256 + ALLOW_CURVE_X25519), //ext len
-		0x00,2 * (0 + ALLOW_CURVE_P256 + ALLOW_CURVE_X25519), //list len
+			0x00,2 * (1 + ALLOW_CURVE_P256 + ALLOW_CURVE_X25519), //ext len
+			0x00,2 * (0 + ALLOW_CURVE_P256 + ALLOW_CURVE_X25519), //list len
 #if ALLOW_CURVE_P256
-		0x00,0x17, //curve_secp256r1 (aka P256, aka prime256v1)
+			0x00,0x17, //curve_secp256r1 (aka P256, aka prime256v1)
 #endif
-		//0x00,0x18, //curve_secp384r1
-		//0x00,0x19, //curve_secp521r1
+			//0x00,0x18, //curve_secp384r1
+			//0x00,0x19, //curve_secp521r1
 #if ALLOW_CURVE_X25519
-		0x00,0x1d, //curve_x25519 (RFC 7748)
+			0x00,0x1d, //curve_x25519 (RFC 7748)
 #endif
-		//0x00,0x1e, //curve_x448 (RFC 7748)
+			//0x00,0x1e, //curve_x448 (RFC 7748)
+
+		//0x00,0x0b,0x00,0x04,0x03,0x00,0x01,0x02, //extension_type: "ec_point_formats"
+		//0x00,0x16,0x00,0x00, //extension_type: "encrpypt-then-mac"
+		//0x00,0x17,0x00,0x00, //extension_type: "extended_master"
+		//0x00,0x23,0x00,0x00, //extension_type: "session_ticket"
+
+		// kojipkgs.fedoraproject.org responds with alert code 80 ("internal error")
+		// to our hello without signature_algorithms.
+		// It is satisfied with just 0x04,0x01.
+		0x00,0x0d, //extension_type: "signature_algorithms" (RFC5246 section 7.4.1.4.1):
+#define SIGALGS (3 + 3 * ENABLE_FEATURE_TLS_SHA1)
+			0x00,2 * (1 + SIGALGS), //ext len
+			0x00,2 * (0 + SIGALGS), //list len
+			//Format: two bytes
+			// byte 1: 0:none,1:md5,2:sha1,3:sha224,4:sha256,5:sha384,6:sha512
+			// byte 2: 1:rsa,2:dsa,3:ecdsa
+			// (note that TLS 1.3 changes this, see RFC8446 section 4.2.3)
+#if ENABLE_FEATURE_TLS_SHA1
+			0x02,0x01, //sha1 + rsa
+			0x02,0x02, //sha1 + dsa
+			0x02,0x03, //sha1 + ecdsa
+#endif
+			0x04,0x01, //sha256 + rsa - kojipkgs.fedoraproject.org wants this
+			0x04,0x02, //sha256 + dsa
+			0x04,0x03, //sha256 + ecdsa
 	};
-	//static const uint8_t signature_algorithms[] = {
-	//	000d
-	//	0020
-	//	001e
-	//	0601 0602 0603 0501 0502 0503 0401 0402 0403 0301 0302 0303 0201 0202 0203
-	//};
 
 	struct client_hello {
 		uint8_t type;
@@ -1591,8 +1647,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 	int sni_len = sni ? strnlen(sni, 127 - 5) : 0;
 
 	ext_len = 0;
-	/* is.gd responds with "handshake failure" to our hello if there's no supported_groups element */
-	ext_len += sizeof(supported_groups);
+	ext_len += sizeof(extensions);
 	if (sni_len)
 		ext_len += 9 + sni_len;
 
@@ -1626,7 +1681,7 @@ static void send_client_hello_and_alloc_hsd(tls_state_t *tls, const char *sni)
 		ptr[8] = sni_len;         //name len
 		ptr = mempcpy(&ptr[9], sni, sni_len);
 	}
-	memcpy(ptr, supported_groups, sizeof(supported_groups));
+	memcpy(ptr, extensions, sizeof(extensions));
 
 	tls->hsd = xzalloc(sizeof(*tls->hsd));
 	/* HANDSHAKE HASH: ^^^ + len if need to save saved_client_hello */
