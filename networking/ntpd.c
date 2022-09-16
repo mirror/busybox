@@ -554,7 +554,7 @@ gettime1900d(void)
 static void
 d_to_tv(struct timeval *tv, double d)
 {
-	tv->tv_sec = (long)d;
+	tv->tv_sec = (time_t)d;
 	tv->tv_usec = (d - tv->tv_sec) * 1000000;
 }
 
@@ -565,6 +565,14 @@ lfp_to_d(l_fixedpt_t lfp)
 	lfp.int_partl = ntohl(lfp.int_partl);
 	lfp.fractionl = ntohl(lfp.fractionl);
 	ret = (double)lfp.int_partl + ((double)lfp.fractionl / UINT_MAX);
+	/*
+	 * Shift timestamps before 1970 to the second NTP era (2036-2106):
+	 * int_partl value of OFFSET_1900_1970 (2208988800) is interpreted as
+	 * the start of year 1970 and it is the minimal representable time,
+	 * all values form the sequence 2208988800..0xffffffff,0..2208988799.
+	 */
+	if (lfp.int_partl < OFFSET_1900_1970)
+		ret += (double)(1ULL << 32); /* because int_partl is 32-bit wide */
 	return ret;
 }
 static NOINLINE double
@@ -582,8 +590,8 @@ d_to_lfp(l_fixedpt_t *lfp, double d)
 {
 	uint32_t intl;
 	uint32_t frac;
-	intl = (uint32_t)d;
-	frac = (uint32_t)((d - intl) * UINT_MAX);
+	intl = (uint32_t)(time_t)d;
+	frac = (uint32_t)((d - (time_t)d) * UINT_MAX);
 	lfp->int_partl = htonl(intl);
 	lfp->fractionl = htonl(frac);
 }
