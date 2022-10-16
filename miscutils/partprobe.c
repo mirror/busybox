@@ -7,6 +7,7 @@
 //config:config PARTPROBE
 //config:	bool "partprobe (3.5 kb)"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Ask kernel to rescan partition table.
 

@@ -15,6 +15,7 @@
 //config:config ARP
 //config:	bool "arp (10 kb)"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Manipulate the system ARP cache.
 

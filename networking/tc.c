@@ -9,6 +9,7 @@
 //config:config TC
 //config:	bool "tc (8.3 kb)"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Show / manipulate traffic control settings
 //config:

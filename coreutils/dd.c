@@ -200,6 +200,7 @@ static void dd_output_status(int UNUSED_PARAM cur_signal)
 }
 
 #if ENABLE_FEATURE_DD_IBS_OBS
+# ifdef O_DIRECT
 static int clear_O_DIRECT(int fd)
 {
 	if (errno == EINVAL) {
@@ -211,6 +212,7 @@ static int clear_O_DIRECT(int fd)
 	}
 	return 0;
 }
+# endif
 #endif
 
 static ssize_t dd_read(void *ibuf, size_t ibs)
@@ -225,8 +227,10 @@ static ssize_t dd_read(void *ibuf, size_t ibs)
 #endif
 		n = safe_read(ifd, ibuf, ibs);
 #if ENABLE_FEATURE_DD_IBS_OBS
+# ifdef O_DIRECT
 	if (n < 0 && (G.flags & FLAG_IDIRECT) && clear_O_DIRECT(ifd))
 		goto read_again;
+# endif
 #endif
 	return n;
 }
@@ -239,8 +243,10 @@ static bool write_and_stats(const void *buf, size_t len, size_t obs,
  IF_FEATURE_DD_IBS_OBS(write_again:)
 	n = full_write(ofd, buf, len);
 #if ENABLE_FEATURE_DD_IBS_OBS
+# ifdef O_DIRECT
 	if (n < 0 && (G.flags & FLAG_ODIRECT) && clear_O_DIRECT(ofd))
 		goto write_again;
+# endif
 #endif
 
 #if ENABLE_FEATURE_DD_THIRD_STATUS_LINE
@@ -501,8 +507,13 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	if (infile) {
 		int iflag = O_RDONLY;
 #if ENABLE_FEATURE_DD_IBS_OBS
-		if (G.flags & FLAG_IDIRECT)
+		if (G.flags & FLAG_IDIRECT) {
+# ifdef O_DIRECT
 			iflag |= O_DIRECT;
+# else
+			bb_error_msg_and_die("O_DIRECT not supported on this platform");
+# endif
+		}
 #endif
 		xmove_fd(xopen(infile, iflag), ifd);
 	} else {
@@ -516,8 +527,13 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 		if (G.flags & FLAG_APPEND)
 			oflag |= O_APPEND;
 #if ENABLE_FEATURE_DD_IBS_OBS
-		if (G.flags & FLAG_ODIRECT)
+		if (G.flags & FLAG_ODIRECT) {
+# ifdef O_DIRECT
 			oflag |= O_DIRECT;
+# else
+			bb_error_msg_and_die("O_DIRECT not supported on this platform");
+# endif
+		}
 #endif
 		xmove_fd(xopen(outfile, oflag), ofd);
 

@@ -10,6 +10,7 @@
 //config:config FDISK
 //config:	bool "fdisk (37 kb)"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The fdisk utility is used to divide hard disks into one or more
 //config:	logical disks, which are generally called partitions. This utility

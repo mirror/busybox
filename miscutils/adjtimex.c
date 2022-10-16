@@ -13,6 +13,7 @@
 //config:config ADJTIMEX
 //config:	bool "adjtimex (4.7 kb)"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Adjtimex reads and optionally sets adjustment parameters for
 //config:	the Linux clock adjustment algorithm.

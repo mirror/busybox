@@ -10,6 +10,7 @@
 //config:config FINDFS
 //config:	bool "findfs (12 kb)"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	select VOLUMEID
 //config:	help
 //config:	Prints the name of a filesystem with given label or UUID.

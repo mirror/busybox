@@ -9,6 +9,7 @@
 //config:config UBIRENAME
 //config:	bool "ubirename (2.4 kb)"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Utility to rename UBI volumes
 

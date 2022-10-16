@@ -963,8 +963,10 @@ traceroute_init(int op, char **argv)
 	if (af == AF_INET) {
 		xmove_fd(xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP), rcvsock);
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
+# ifdef IP_PKTINFO
 		/* want recvmsg to report target local address (for -v) */
 		setsockopt_1(rcvsock, IPPROTO_IP, IP_PKTINFO);
+# endif
 #endif
 	}
 #if ENABLE_TRACEROUTE6

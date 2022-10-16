@@ -12,6 +12,7 @@
 //config:config LOADFONT
 //config:	bool "loadfont (5.2 kb)"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	This program loads a console font from standard input.
 //config:

@@ -10,6 +10,7 @@
 //config:config MKE2FS
 //config:	bool "mke2fs (10 kb)"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Utility to create EXT2 filesystems.
 //config:

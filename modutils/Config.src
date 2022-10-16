@@ -8,6 +8,7 @@ menu "Linux Module Utilities"
 config MODPROBE_SMALL
 	bool "Simplified modutils"
 	default y
+	select PLATFORM_LINUX
 	help
 	Build smaller (~1.5 kbytes), simplified module tools.
 
