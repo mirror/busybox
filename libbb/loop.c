@@ -218,8 +218,17 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 			}
 			/* failure, undo LOOP_SET_FD */
 			ioctl(lfd, LOOP_CLR_FD, 0); // actually, 0 param is unnecessary
+		} else {
+			/* device is not free (rc == 0), or error other than ENXIO */
+			if (rc == 0	/* device is not free? */
+			 && !*device	/* racing with other mount? */
+			 && try != dev	/* tried a _kernel-offered_ loopN? */
+			) {
+				free(try);
+				close(lfd);
+				goto get_free_loopN;
+			}
 		}
-		/* else: device is not free (rc == 0) or error other than ENXIO */
  close_and_try_next_loopN:
 		close(lfd);
  try_next_loopN:
