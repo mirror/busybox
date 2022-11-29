@@ -27,7 +27,6 @@
 //config:config IFCONFIG
 //config:	bool "ifconfig (12 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Ifconfig is used to configure the kernel-resident network interfaces.
 //config:

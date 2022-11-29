@@ -10,7 +10,6 @@
 //config:config FSTRIM
 //config:	bool "fstrim (4.4 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Discard unused blocks on a mounted filesystem.
 

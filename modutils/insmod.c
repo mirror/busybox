@@ -9,7 +9,6 @@
 //config:config INSMOD
 //config:	bool "insmod (22 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	insmod is used to load specified modules in the running kernel.
 

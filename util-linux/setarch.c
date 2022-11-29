@@ -9,7 +9,6 @@
 //config:config SETARCH
 //config:	bool "setarch (3.6 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The linux32 utility is used to create a 32bit environment for the
 //config:	specified program (usually a shell). It only makes sense to have
@@ -19,14 +18,12 @@
 //config:config LINUX32
 //config:	bool "linux32 (3.3 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Alias to "setarch linux32".
 //config:
 //config:config LINUX64
 //config:	bool "linux64 (3.3 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	Alias to "setarch linux64".
 

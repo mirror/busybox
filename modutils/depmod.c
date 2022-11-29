@@ -10,7 +10,6 @@
 //config:config DEPMOD
 //config:	bool "depmod (27 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	depmod generates modules.dep (and potentially modules.alias
 //config:	and modules.symbols) that contain dependency information

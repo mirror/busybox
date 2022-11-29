@@ -9,7 +9,6 @@
 //config:config UNSHARE
 //config:	bool "unshare (7.2 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	depends on !NOMMU
 //config:	select LONG_OPTS
 //config:	help

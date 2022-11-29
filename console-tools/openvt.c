@@ -10,7 +10,6 @@
 //config:config OPENVT
 //config:	bool "openvt (7.2 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	This program is used to start a command on an unused
 //config:	virtual terminal.

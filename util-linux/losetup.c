@@ -9,7 +9,6 @@
 //config:config LOSETUP
 //config:	bool "losetup (5.5 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	losetup is used to associate or detach a loop device with a regular
 //config:	file or block device, and to query the status of a loop device. This

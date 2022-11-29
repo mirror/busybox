@@ -19,7 +19,6 @@
 //config:config KLOGD
 //config:	bool "klogd (5.7 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	klogd is a utility which intercepts and logs all
 //config:	messages from the Linux kernel and sends the messages

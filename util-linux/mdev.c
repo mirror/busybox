@@ -10,7 +10,6 @@
 //config:config MDEV
 //config:	bool "mdev (17 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	mdev is a mini-udev implementation for dynamically creating device
 //config:	nodes in the /dev directory.

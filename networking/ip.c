@@ -11,7 +11,6 @@
 //config:config IP
 //config:	bool "ip (35 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	help
 //config:	The "ip" applet is a TCP/IP interface configuration and routing
 //config:	utility.
@@ -22,7 +21,6 @@
 //config:config IPADDR
 //config:	bool "ipaddr (14 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	select FEATURE_IP_ADDRESS
 //config:	help
 //config:	Short form of "ip addr"
@@ -30,7 +28,6 @@
 //config:config IPLINK
 //config:	bool "iplink (17 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	select FEATURE_IP_LINK
 //config:	help
 //config:	Short form of "ip link"
@@ -38,7 +35,6 @@
 //config:config IPROUTE
 //config:	bool "iproute (15 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	select FEATURE_IP_ROUTE
 //config:	help
 //config:	Short form of "ip route"
@@ -53,7 +49,6 @@
 //config:config IPRULE
 //config:	bool "iprule (10 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	select FEATURE_IP_RULE
 //config:	help
 //config:	Short form of "ip rule"
@@ -61,7 +56,6 @@
 //config:config IPNEIGH
 //config:	bool "ipneigh (8.3 kb)"
 //config:	default y
-//config:	select PLATFORM_LINUX
 //config:	select FEATURE_IP_NEIGH
 //config:	help
 //config:	Short form of "ip neigh"
