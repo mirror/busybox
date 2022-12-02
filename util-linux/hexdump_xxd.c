@@ -41,7 +41,7 @@
 //    -u          use upper case hex letters.
 
 //usage:#define xxd_trivial_usage
-//usage:       "[-pri] [-g N] [-c N] [-n LEN] [-s OFS] [-o OFS] [FILE]"
+//usage:       "[-pri] [-g N] [-c N] [-l LEN] [-s OFS] [-o OFS] [FILE]"
 //usage:#define xxd_full_usage "\n\n"
 //usage:       "Hex dump FILE (or stdin)\n"
 //usage:     "\n	-g N		Bytes per group"
