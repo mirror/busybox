@@ -96,6 +96,20 @@ int FAST_FUNC get_free_loop(void)
 	return loopdevno; /* can be -1 if error */
 }
 
+static int get_next_free_loop(char *dev, int id)
+{
+	int loopdevno;
+
+	loopdevno = get_free_loop();
+	if (loopdevno != -1) {
+		/* loopdevno is -2 (use id) or >= 0 (use id = loopdevno): */
+		if (loopdevno >= 0)
+			id = loopdevno;
+		sprintf(dev, LOOP_FORMAT, id);
+	}
+	return loopdevno;
+}
+
 /* Returns opened fd to the loop device, <0 on error.
  * *device is loop device to use, or if *device==NULL finds a loop device to
  * mount it on and sets *device to a strdup of that loop device name.
@@ -123,30 +137,27 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 
 	try = *device;
 	if (!try) {
- get_free_loopN:
-		i = get_free_loop();
-		if (i == -1) {
-			close(ffd);
-			return -1; /* no free loop devices */
-		}
-		if (i >= 0) {
-			try = xasprintf(LOOP_FORMAT, i);
-			goto open_lfd;
-		}
-		/* i == -2: no /dev/loop-control. Do an old-style search for a free device */
 		try = dev;
 	}
 
 	/* Find a loop device */
 	/* 0xfffff is a max possible minor number in Linux circa 2010 */
 	for (i = 0; i <= 0xfffff; i++) {
-		sprintf(dev, LOOP_FORMAT, i);
+		if (!*device) {
+			rc = get_next_free_loop(dev, i);
+			if (rc == -1)
+				break; /* no free loop devices (or other error in LOOP_CTL_GET_FREE) */
+			if (rc >= 0)
+				/* /dev/loop-control gave us the next free /dev/loopN */
+				goto open_lfd;
+			/* else: sequential /dev/loopN, needs to be tested/maybe_created */
+		}
 
 		IF_FEATURE_MOUNT_LOOP_CREATE(errno = 0;)
 		if (stat(try, &statbuf) != 0 || !S_ISBLK(statbuf.st_mode)) {
 			if (ENABLE_FEATURE_MOUNT_LOOP_CREATE
 			 && errno == ENOENT
-			 && try == dev
+			 && (!*device)
 			) {
 				/* Node doesn't exist, try to create it */
 				if (mknod(dev, S_IFBLK|0644, makedev(7, i)) == 0)
@@ -179,13 +190,10 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 			/* Associate free loop device with file */
 			if (ioctl(lfd, LOOP_SET_FD, ffd)) {
 				/* Ouch. Are we racing with other mount? */
-				if (!*device   /* yes */
-				 && try != dev /* tried a _kernel-offered_ loopN? */
-				) {
-					free(try);
+				if (!*device) {
 					close(lfd);
 //TODO: add "if (--failcount != 0) ..."?
-					goto get_free_loopN;
+					continue;
 				}
 				goto close_and_try_next_loopN;
 			}
@@ -209,8 +217,6 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 			}
 			if (rc == 0) {
 				/* SUCCESS! */
-				if (try != dev) /* tried a kernel-offered free loopN? */
-					*device = try; /* malloced */
 				if (!*device)   /* was looping in search of free "/dev/loopN"? */
 					*device = xstrdup(dev);
 				rc = lfd; /* return this */
@@ -218,16 +224,6 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 			}
 			/* failure, undo LOOP_SET_FD */
 			ioctl(lfd, LOOP_CLR_FD, 0); // actually, 0 param is unnecessary
-		} else {
-			/* device is not free (rc == 0), or error other than ENXIO */
-			if (rc == 0	/* device is not free? */
-			 && !*device	/* racing with other mount? */
-			 && try != dev	/* tried a _kernel-offered_ loopN? */
-			) {
-				free(try);
-				close(lfd);
-				goto get_free_loopN;
-			}
 		}
  close_and_try_next_loopN:
 		close(lfd);
