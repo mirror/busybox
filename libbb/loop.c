@@ -188,13 +188,9 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 		/* If device is free, try to claim it */
 		if (rc && errno == ENXIO) {
 			/* Associate free loop device with file */
-			if (ioctl(lfd, LOOP_SET_FD, ffd)) {
-				/* Ouch. Are we racing with other mount? */
-				if (!*device) {
-					close(lfd);
-//TODO: add "if (--failcount != 0) ..."?
-					continue;
-				}
+			rc = ioctl(lfd, LOOP_SET_FD, ffd);
+			if (rc != 0) {
+				/* Ouch... race: the device already has a fd */
 				goto close_and_try_next_loopN;
 			}
 			memset(&loopinfo, 0, sizeof(loopinfo));
