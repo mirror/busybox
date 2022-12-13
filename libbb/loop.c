@@ -147,10 +147,8 @@ static int set_loopdev_params(int lfd,
 		loopinfo.lo_offset = offset;
 		loopinfo.lo_sizelimit = sizelimit;
 		/*
-		 * Used by mount to set LO_FLAGS_AUTOCLEAR.
-		 * LO_FLAGS_READ_ONLY is not set because RO is controlled by open type of the file.
-		 * Note that closing LO_FLAGS_AUTOCLEARed lfd before mount
-		 * is wrong (would free the loop device!)
+		 * LO_FLAGS_READ_ONLY is not set because RO is controlled
+		 * by open type of the lfd.
 		 */
 		loopinfo.lo_flags = (flags & ~BB_LO_FLAGS_READ_ONLY);
 
@@ -266,6 +264,12 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 			/* SUCCESS! */
 			if (!*device)
 				*device = xstrdup(dev);
+			/* Note: mount asks for LO_FLAGS_AUTOCLEAR loopdev.
+			 * Closing LO_FLAGS_AUTOCLEARed lfd before mount
+			 * is wrong (would free the loop device!),
+			 * this is why we return without closing it.
+			 */
+			rc = lfd; /* return this */
 			break;
 		}
 		close(lfd);
