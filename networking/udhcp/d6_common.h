@@ -63,28 +63,45 @@ struct d6_option {
 
 #define D6_OPT_CLIENTID       1
 #define D6_OPT_SERVERID       2
+/* "Identity Association for Non-temporary Addresses",
+ * also known as a "network interface" in plain English */
 #define D6_OPT_IA_NA          3
-#define D6_OPT_IA_TA          4
+/* "Identity Association for the Temporary Addresses".
+ * Presumably this is a "network interface with only link-local addresses".
+ * Why would DHCPv6 server assign such addresses, I have no idea. */
+//#define D6_OPT_IA_TA          4
+/* "IA Address", an IPv6 address */
 #define D6_OPT_IAADDR         5
+/* Option "Option Request Option". From the owners of a doggy dog named Dog? */
 #define D6_OPT_ORO            6
-#define D6_OPT_PREFERENCE     7
+//#define D6_OPT_PREFERENCE     7
 #define D6_OPT_ELAPSED_TIME   8
-#define D6_OPT_RELAY_MSG      9
-#define D6_OPT_AUTH          11
-#define D6_OPT_UNICAST       12
+//#define D6_OPT_RELAY_MSG      9
+//#define D6_OPT_AUTH          11
+/* "The server sends this option to a client to indicate to the client
+ * that it is allowed to unicast messages to the server."
+ * Contains IPv6 address to send packets to. */
+//#define D6_OPT_UNICAST       12
+/* "A Status Code option may appear in the options field of a DHCP
+ * message and/or in the options field of another option." */
 #define D6_OPT_STATUS_CODE   13
-#define D6_OPT_RAPID_COMMIT  14
-#define D6_OPT_USER_CLASS    15
-#define D6_OPT_VENDOR_CLASS  16
-#define D6_OPT_VENDOR_OPTS   17
-#define D6_OPT_INTERFACE_ID  18
-#define D6_OPT_RECONF_MSG    19
-#define D6_OPT_RECONF_ACCEPT 20
+/* "A client MAY include this option in a Solicit message if the client
+ * is prepared to perform the Solicit-Reply message exchange..." */
+//#define D6_OPT_RAPID_COMMIT  14	/* zero-length option */
+//#define D6_OPT_USER_CLASS    15
+//#define D6_OPT_VENDOR_CLASS  16
+//#define D6_OPT_VENDOR_OPTS   17
+//#define D6_OPT_INTERFACE_ID  18
+//#define D6_OPT_RECONF_MSG    19
+//#define D6_OPT_RECONF_ACCEPT 20
 
 #define D6_OPT_DNS_SERVERS   23
 #define D6_OPT_DOMAIN_LIST   24
 
+/* RFC 3633 "Identity Association for Prefix Delegation".
+ * This option says that client wants to get an IPv6 prefix */
 #define D6_OPT_IA_PD         25
+/* Response from the server comes in this one */
 #define D6_OPT_IAPREFIX      26
 
 /* RFC 4704 "The DHCPv6 Client FQDN Option"

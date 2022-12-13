@@ -1617,6 +1617,16 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				prefix_timeout = 0;
 				option = d6_find_option(packet.d6_options, packet_end, D6_OPT_STATUS_CODE);
 				if (option && (option->data[0] | option->data[1]) != 0) {
+///FIXME:
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//    |       OPTION_STATUS_CODE      |         option-len            |
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//    |          status-code          |                               |
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+//    .                        status-message                         .
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// so why do we think it's NAK if data[0] is zero but data[1] is not? That's wrong...
+// we should also check that option->len is ok (i.e. not 0), right?
 					/* return to init state */
 					bb_info_msg("received DHCP NAK (%u)", option->data[4]);
 					d6_run_script(packet.d6_options,
