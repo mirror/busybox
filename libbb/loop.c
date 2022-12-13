@@ -71,7 +71,7 @@ int FAST_FUNC del_loop(const char *device)
 
 	fd = open(device, O_RDONLY);
 	if (fd < 0)
-		return 1;
+		return fd; /* -1 */
 	rc = ioctl(fd, LOOP_CLR_FD, 0);
 	close(fd);
 
