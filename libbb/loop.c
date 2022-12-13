@@ -110,26 +110,39 @@ static int get_next_free_loop(char *dev, int id)
 	return loopdevno;
 }
 
-static int set_loopdev_params(int ffd,
-		int lfd, const char *file,
+#if ENABLE_TRY_LOOP_CONFIGURE || ENABLE_LOOP_CONFIGURE
+# define LOOP_CONFIGURE 0x4C0A
+struct loop_config {
+	uint32_t fd;
+	uint32_t block_size;
+	struct loop_info64 info;
+	uint64_t __reserved[8];
+};
+#endif
+
+static int set_loopdev_params(int lfd,
+		int ffd, const char *file,
 		unsigned long long offset,
 		unsigned long long sizelimit,
 		unsigned flags)
 {
 	int rc;
+#if ENABLE_TRY_LOOP_CONFIGURE || ENABLE_LOOP_CONFIGURE
+	struct loop_config lconfig;
+# define loopinfo lconfig.info
+#else
 	bb_loop_info loopinfo;
+#endif
 
 	rc = ioctl(lfd, BB_LOOP_GET_STATUS, &loopinfo);
 
 	/* If device is free, try to claim it */
 	if (rc && errno == ENXIO) {
-		/* Associate free loop device with file */
-		rc = ioctl(lfd, LOOP_SET_FD, ffd);
-		if (rc != 0) {
-			/* Ouch... race: the device already has a fd */
-			return -1;
-		}
+#if ENABLE_TRY_LOOP_CONFIGURE || ENABLE_LOOP_CONFIGURE
+		memset(&lconfig, 0, sizeof(lconfig));
+#else
 		memset(&loopinfo, 0, sizeof(loopinfo));
+#endif
 		safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
 		loopinfo.lo_offset = offset;
 		loopinfo.lo_sizelimit = sizelimit;
@@ -140,6 +153,25 @@ static int set_loopdev_params(int ffd,
 		 * is wrong (would free the loop device!)
 		 */
 		loopinfo.lo_flags = (flags & ~BB_LO_FLAGS_READ_ONLY);
+
+#if ENABLE_TRY_LOOP_CONFIGURE || ENABLE_LOOP_CONFIGURE
+		lconfig.fd = ffd;
+		rc = ioctl(lfd, LOOP_CONFIGURE, &lconfig);
+		if (rc == 0)
+			return rc; /* SUCCESS! */
+# if ENABLE_TRY_LOOP_CONFIGURE
+		if (errno != EINVAL)
+			return rc; /* error other than old kernel */
+		/* Old kernel, fall through into old way to do it: */
+# endif
+#endif
+#if ENABLE_TRY_LOOP_CONFIGURE || ENABLE_NO_LOOP_CONFIGURE
+		/* Associate free loop device with file */
+		rc = ioctl(lfd, LOOP_SET_FD, ffd);
+		if (rc != 0) {
+			/* Ouch... race: the device already has a fd */
+			return rc;
+		}
 		rc = ioctl(lfd, BB_LOOP_SET_STATUS, &loopinfo);
 		if (rc != 0 && (loopinfo.lo_flags & BB_LO_FLAGS_AUTOCLEAR)) {
 			/* Old kernel, does not support LO_FLAGS_AUTOCLEAR? */
@@ -151,8 +183,10 @@ static int set_loopdev_params(int ffd,
 			return rc; /* SUCCESS! */
 		/* failure, undo LOOP_SET_FD */
 		ioctl(lfd, LOOP_CLR_FD, 0); // actually, 0 param is unnecessary
+#endif
 	}
 	return -1;
+#undef loopinfo
 }
 
 /* Returns opened fd to the loop device, <0 on error.
@@ -227,7 +261,7 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 			goto try_next_loopN;
 		}
 
-		rc = set_loopdev_params(ffd, lfd, file, offset, sizelimit, flags);
+		rc = set_loopdev_params(lfd, ffd, file, offset, sizelimit, flags);
 		if (rc == 0) {
 			/* SUCCESS! */
 			if (!*device)

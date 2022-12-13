@@ -369,3 +369,25 @@ config UNICODE_PRESERVE_BROKEN
 	For example, this means that entering 'l', 's', ' ', 0xff, [Enter]
 	at shell prompt will list file named 0xff (single char name
 	with char value 255), not file named '?'.
+
+choice
+	prompt "Use LOOP_CONFIGURE for losetup and loop mounts"
+	default TRY_LOOP_CONFIGURE
+	help
+	LOOP_CONFIGURE is added to Linux 5.8
+	https://lwn.net/Articles/820408/
+	This allows userspace to completely setup a loop device with a single
+	ioctl, removing the in-between state where the device can be partially
+	configured - eg the loop device has a backing file associated with it,
+	but is reading from the wrong offset.
+
+config LOOP_CONFIGURE
+	bool "use LOOP_CONFIGURE, needs kernel >= 5.8"
+
+config NO_LOOP_CONFIGURE
+	bool "use LOOP_SET_FD + LOOP_SET_STATUS"
+
+config TRY_LOOP_CONFIGURE
+	bool "try LOOP_CONFIGURE, fall back to LOOP_SET_FD + LOOP_SET_STATUS"
+
+endchoice
