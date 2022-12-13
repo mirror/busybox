@@ -104,12 +104,24 @@ mount -r -o loop -t ext2 z1/e2img z2       || { echo 'mount -r -o loop error'; e
 mount -o remount,ro z1                     || { echo 'mount -o remount,ro error'; exit 1; }
 )
 umount -d mount.dir/z2
-##losetup -d /dev/loop*
+##sleep 0.1
 umount -d mount.dir/z1
 rm -rf mount.dir
 echo DONE
 " \
 "DONE\n" "" ""
 
+# On 5.18.0, "umount -d mount.dir/z1" above fails.
+# (It would work with "sleep 0.1" - looks like z1/e2img
+# is momentarily keeping z1 mountpoint busy, even though
+# the "umount" which freed z1/e2img from being the base
+# of z2 mountpoint has returned).
+# Fixing the mess if it did fail:
+if test -d mount.dir/z1; then
+	ls -ld mount.dir/z1/* mount.dir/z1
+	sleep 1
+	umount -d mount.dir/z1
+	rmdir mount.dir/z1 mount.dir
+fi
 
 exit $FAILCOUNT
