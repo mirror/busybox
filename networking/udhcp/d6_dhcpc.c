@@ -1134,7 +1134,7 @@ static void client_background(void)
 //usage:#define udhcpc6_full_usage "\n"
 //usage:     "\n	-i IFACE	Interface to use (default "CONFIG_UDHCPC_DEFAULT_INTERFACE")"
 //usage:     "\n	-p FILE		Create pidfile"
-//usage:     "\n	-s PROG		Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
+//usage:     "\n	-s PROG		Run PROG at DHCP events (default "CONFIG_UDHCPC6_DEFAULT_SCRIPT")"
 //usage:     "\n	-B		Request broadcast replies"
 //usage:     "\n	-t N		Send up to N discover packets"
 //usage:     "\n	-T SEC		Pause between packets (default 3)"
@@ -1200,7 +1200,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_UDHCP_PORT(SERVER_PORT6 = 547;)
 	IF_FEATURE_UDHCP_PORT(CLIENT_PORT6 = 546;)
 	client_data.interface = CONFIG_UDHCPC_DEFAULT_INTERFACE;
-	client_data.script = CONFIG_UDHCPC_DEFAULT_SCRIPT;
+	client_data.script = CONFIG_UDHCPC6_DEFAULT_SCRIPT;
 	client_data.sockfd = -1;
 
 	/* Make sure fd 0,1,2 are open */

@@ -92,11 +92,16 @@ config FEATURE_UDHCPC_SANITIZEOPT
 config UDHCPC_DEFAULT_SCRIPT
 	string "Absolute path to config script"
 	default "/usr/share/udhcpc/default.script"
-	depends on UDHCPC || UDHCPC6
+	depends on UDHCPC
 	help
 	This script is called after udhcpc receives an answer. See
 	examples/udhcp for a working example. Normally it is safe
 	to leave this untouched.
+
+config UDHCPC6_DEFAULT_SCRIPT
+	string "Absolute path to config script for IPv6"
+	default "/usr/share/udhcpc/default6.script"
+	depends on UDHCPC6
 
 # udhcpc6 config is inserted here:
 INSERT
