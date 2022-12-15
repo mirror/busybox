@@ -80,12 +80,22 @@ int FAST_FUNC d6_send_raw_packet_from_client_data_ifindex(
 	dest_sll.sll_halen = 6;
 	memcpy(dest_sll.sll_addr, dest_arp, 6);
 
+//TODO: is bind() necessary? we sendto() to this destination, should work anyway
 	if (bind(fd, (struct sockaddr *)&dest_sll, sizeof(dest_sll)) < 0) {
 		msg = "bind(%s)";
 		goto ret_close;
 	}
 
 	packet.ip6.ip6_vfc = (6 << 4); /* 4 bits version, top 4 bits of tclass */
+// In case we have no IPv6 on our interface at all, we can try
+// to fill "all hosts" mcast address as source:
+//	/* FF02::1 is Link-local "All_Nodes" address */
+//	packet.ip6.ip6_dst.s6_addr[0] = 0xff;
+//	packet.ip6.ip6_dst.s6_addr[1] = 0x02;
+//	packet.ip6.ip6_dst.s6_addr[15] = 0x01;
+// Maybe some servers will be able to respond to us this way?
+// Users report that leaving ::0 address there makes servers try to reply to ::0,
+// which doesn't work.
 	if (src_ipv6)
 		packet.ip6.ip6_src = *src_ipv6; /* struct copy */
 	packet.ip6.ip6_dst = *dst_ipv6; /* struct copy */

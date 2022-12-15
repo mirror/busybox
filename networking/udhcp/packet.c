@@ -133,6 +133,7 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 	dest_sll.sll_halen = 6;
 	memcpy(dest_sll.sll_addr, dest_arp, 6);
 
+//TODO: is bind() necessary? we sendto() to this destination, should work anyway
 	if (bind(fd, (struct sockaddr *)&dest_sll, sizeof(dest_sll)) < 0) {
 		msg = "bind(%s)";
 		goto ret_close;
