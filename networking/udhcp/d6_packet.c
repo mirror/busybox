@@ -27,9 +27,8 @@ void FAST_FUNC d6_dump_packet(struct d6_packet *packet)
 }
 #endif
 
-int FAST_FUNC d6_recv_kernel_packet(struct in6_addr *peer_ipv6
-	UNUSED_PARAM
-	, struct d6_packet *packet, int fd)
+int FAST_FUNC d6_recv_kernel_packet(struct in6_addr *peer_ipv6 UNUSED_PARAM,
+		struct d6_packet *packet, int fd)
 {
 	int bytes;
 
