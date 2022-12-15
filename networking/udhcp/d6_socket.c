@@ -95,9 +95,6 @@ int FAST_FUNC d6_read_interface(
 		close(fd);
 	}
 
-	if (retval == 0)
-		return retval;
-
 	if (retval & (1<<0))
 		bb_error_msg("can't get %s", "MAC");
 	if (retval & (1<<1))
@@ -109,6 +106,7 @@ int FAST_FUNC d6_listen_socket(int port, const char *inf)
 {
 	int fd;
 	struct sockaddr_in6 addr;
+	char *colon;
 
 	log2("opening listen socket on *:%d %s", port, inf);
 	fd = xsocket(PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
@@ -117,9 +115,16 @@ int FAST_FUNC d6_listen_socket(int port, const char *inf)
 	if (setsockopt_broadcast(fd) == -1)
 		bb_simple_perror_msg_and_die("SO_BROADCAST");
 
-	/* NB: bug 1032 says this doesn't work on ethernet aliases (ethN:M) */
+	/* SO_BINDTODEVICE doesn't work on ethernet aliases (ethN:M) */
+	colon = strrchr(inf, ':');
+	if (colon)
+		*colon = '\0';
+
 	if (setsockopt_bindtodevice(fd, inf))
 		xfunc_die(); /* warning is already printed */
+
+	if (colon)
+		*colon = ':';
 
 	memset(&addr, 0, sizeof(addr));
 	addr.sin6_family = AF_INET6;
