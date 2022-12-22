@@ -111,6 +111,8 @@ struct globals {
 #endif
 	const char *eof_str;
 	int idx;
+	int fd_tty;
+	int fd_stdin;
 #if ENABLE_FEATURE_XARGS_SUPPORT_PARALLEL
 	int running_procs;
 	int max_procs;
@@ -140,6 +142,42 @@ struct globals {
 	IF_FEATURE_XARGS_SUPPORT_QUOTES(G.process_stdin__q = '\0';) \
 } while (0)
 
+/* Correct regardless of combination of CONFIG_xxx */
+enum {
+	OPTBIT_VERBOSE = 0,
+	OPTBIT_NO_EMPTY,
+	OPTBIT_UPTO_NUMBER,
+	OPTBIT_UPTO_SIZE,
+	OPTBIT_EOF_STRING,
+	OPTBIT_EOF_STRING1,
+	OPTBIT_STDIN_TTY,
+	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION(OPTBIT_INTERACTIVE,)
+	IF_FEATURE_XARGS_SUPPORT_TERMOPT(     OPTBIT_TERMINATE  ,)
+	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(   OPTBIT_ZEROTERM   ,)
+	IF_FEATURE_XARGS_SUPPORT_REPL_STR(    OPTBIT_REPLSTR    ,)
+	IF_FEATURE_XARGS_SUPPORT_REPL_STR(    OPTBIT_REPLSTR1   ,)
+
+	OPT_VERBOSE     = 1 << OPTBIT_VERBOSE    ,
+	OPT_NO_EMPTY    = 1 << OPTBIT_NO_EMPTY   ,
+	OPT_UPTO_NUMBER = 1 << OPTBIT_UPTO_NUMBER,
+	OPT_UPTO_SIZE   = 1 << OPTBIT_UPTO_SIZE  ,
+	OPT_EOF_STRING  = 1 << OPTBIT_EOF_STRING , /* GNU: -e[<param>] */
+	OPT_EOF_STRING1 = 1 << OPTBIT_EOF_STRING1, /* SUS: -E<param> */
+	OPT_STDIN_TTY   = 1 << OPTBIT_STDIN_TTY,
+	OPT_INTERACTIVE = IF_FEATURE_XARGS_SUPPORT_CONFIRMATION((1 << OPTBIT_INTERACTIVE)) + 0,
+	OPT_TERMINATE   = IF_FEATURE_XARGS_SUPPORT_TERMOPT(     (1 << OPTBIT_TERMINATE  )) + 0,
+	OPT_ZEROTERM    = IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(   (1 << OPTBIT_ZEROTERM   )) + 0,
+	OPT_REPLSTR     = IF_FEATURE_XARGS_SUPPORT_REPL_STR(    (1 << OPTBIT_REPLSTR    )) + 0,
+	OPT_REPLSTR1    = IF_FEATURE_XARGS_SUPPORT_REPL_STR(    (1 << OPTBIT_REPLSTR1   )) + 0,
+};
+#define OPTION_STR "+trn:s:e::E:o" \
+	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION("p") \
+	IF_FEATURE_XARGS_SUPPORT_TERMOPT(     "x") \
+	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(   "0") \
+	IF_FEATURE_XARGS_SUPPORT_REPL_STR(    "I:i::") \
+	IF_FEATURE_XARGS_SUPPORT_PARALLEL(    "P:+") \
+	IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(   "a:")
+
 
 /*
  * Returns 0 if xargs should continue (but may set G.xargs_exitcode to 123).
@@ -150,6 +188,9 @@ struct globals {
 static int xargs_exec(void)
 {
 	int status;
+
+	if (option_mask32 & OPT_STDIN_TTY)
+		xdup2(G.fd_tty, STDIN_FILENO);
 
 #if !ENABLE_FEATURE_XARGS_SUPPORT_PARALLEL
 	status = spawn_and_wait(G.args);
@@ -237,6 +278,8 @@ static int xargs_exec(void)
  ret:
 	if (status != 0)
 		G.xargs_exitcode = status;
+	if (option_mask32 & OPT_STDIN_TTY)
+		xdup2(G.fd_stdin, STDIN_FILENO);
 	return status;
 }
 
@@ -542,6 +585,7 @@ static int xargs_ask_confirmation(void)
 //usage:	IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(
 //usage:     "\n	-a FILE	Read from FILE instead of stdin"
 //usage:	)
+//usage:     "\n	-o	Reopen stdin as /dev/tty"
 //usage:     "\n	-r	Don't run command if input is empty"
 //usage:     "\n	-t	Print the command on stderr before execution"
 //usage:	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION(
@@ -562,40 +606,6 @@ static int xargs_ask_confirmation(void)
 //usage:#define xargs_example_usage
 //usage:       "$ ls | xargs gzip\n"
 //usage:       "$ find . -name '*.c' -print | xargs rm\n"
-
-/* Correct regardless of combination of CONFIG_xxx */
-enum {
-	OPTBIT_VERBOSE = 0,
-	OPTBIT_NO_EMPTY,
-	OPTBIT_UPTO_NUMBER,
-	OPTBIT_UPTO_SIZE,
-	OPTBIT_EOF_STRING,
-	OPTBIT_EOF_STRING1,
-	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION(OPTBIT_INTERACTIVE,)
-	IF_FEATURE_XARGS_SUPPORT_TERMOPT(     OPTBIT_TERMINATE  ,)
-	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(   OPTBIT_ZEROTERM   ,)
-	IF_FEATURE_XARGS_SUPPORT_REPL_STR(    OPTBIT_REPLSTR    ,)
-	IF_FEATURE_XARGS_SUPPORT_REPL_STR(    OPTBIT_REPLSTR1   ,)
-
-	OPT_VERBOSE     = 1 << OPTBIT_VERBOSE    ,
-	OPT_NO_EMPTY    = 1 << OPTBIT_NO_EMPTY   ,
-	OPT_UPTO_NUMBER = 1 << OPTBIT_UPTO_NUMBER,
-	OPT_UPTO_SIZE   = 1 << OPTBIT_UPTO_SIZE  ,
-	OPT_EOF_STRING  = 1 << OPTBIT_EOF_STRING , /* GNU: -e[<param>] */
-	OPT_EOF_STRING1 = 1 << OPTBIT_EOF_STRING1, /* SUS: -E<param> */
-	OPT_INTERACTIVE = IF_FEATURE_XARGS_SUPPORT_CONFIRMATION((1 << OPTBIT_INTERACTIVE)) + 0,
-	OPT_TERMINATE   = IF_FEATURE_XARGS_SUPPORT_TERMOPT(     (1 << OPTBIT_TERMINATE  )) + 0,
-	OPT_ZEROTERM    = IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(   (1 << OPTBIT_ZEROTERM   )) + 0,
-	OPT_REPLSTR     = IF_FEATURE_XARGS_SUPPORT_REPL_STR(    (1 << OPTBIT_REPLSTR    )) + 0,
-	OPT_REPLSTR1    = IF_FEATURE_XARGS_SUPPORT_REPL_STR(    (1 << OPTBIT_REPLSTR1   )) + 0,
-};
-#define OPTION_STR "+trn:s:e::E:" \
-	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION("p") \
-	IF_FEATURE_XARGS_SUPPORT_TERMOPT(     "x") \
-	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(   "0") \
-	IF_FEATURE_XARGS_SUPPORT_REPL_STR(    "I:i::") \
-	IF_FEATURE_XARGS_SUPPORT_PARALLEL(    "P:+") \
-	IF_FEATURE_XARGS_SUPPORT_ARGS_FILE(   "a:")
 
 int xargs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int xargs_main(int argc UNUSED_PARAM, char **argv)
@@ -724,6 +734,13 @@ int xargs_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		for (i = 0; argv[i]; i++)
 			store_param(argv[i]);
+	}
+
+	if (opt & OPT_STDIN_TTY) {
+		G.fd_tty = xopen(CURRENT_TTY, O_RDONLY);
+		close_on_exec_on(G.fd_tty);
+		G.fd_stdin = dup(STDIN_FILENO);
+		close_on_exec_on(G.fd_stdin);
 	}
 
 	initial_idx = G.idx;
