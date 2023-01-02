@@ -112,7 +112,7 @@ static int get_next_free_loop(char *dev, int id)
 
 #if ENABLE_TRY_LOOP_CONFIGURE || ENABLE_LOOP_CONFIGURE
 # define LOOP_CONFIGURE 0x4C0A
-struct loop_config {
+struct bb_loop_config {
 	uint32_t fd;
 	uint32_t block_size;
 	struct loop_info64 info;
@@ -128,7 +128,7 @@ static int set_loopdev_params(int lfd,
 {
 	int rc;
 #if ENABLE_TRY_LOOP_CONFIGURE || ENABLE_LOOP_CONFIGURE
-	struct loop_config lconfig;
+	struct bb_loop_config lconfig;
 # define loopinfo lconfig.info
 #else
 	bb_loop_info loopinfo;
