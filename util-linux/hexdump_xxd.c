@@ -229,7 +229,8 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 {
 	char buf[80];
 	dumper_t *dumper;
-	char *opt_l, *opt_s, *opt_o;
+	char *opt_l, *opt_o;
+	char *opt_s = NULL;
 	unsigned bytes = 2;
 	unsigned cols = 0;
 	unsigned opt;
