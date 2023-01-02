@@ -184,6 +184,9 @@ LDLIBS += $(if $(SELINUX_LIBS),$(SELINUX_LIBS:-l%=%),$(SELINUX_PC_MODULES:lib%=%
 endif
 
 ifeq ($(CONFIG_FEATURE_NSLOOKUP_BIG),y)
+ifneq (,$(findstring linux,$(shell $(CC) $(CFLAGS) -dumpmachine)))
+LDLIBS += resolv
+endif
 ifneq (,$(findstring gnu,$(shell $(CC) $(CFLAGS) -dumpmachine)))
 LDLIBS += resolv
 endif
