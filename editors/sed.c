@@ -99,7 +99,7 @@ enum {
 
 struct sed_FILE {
 	struct sed_FILE *next; /* Next (linked list, NULL terminated) */
-	const char *fname;
+	char *fname;
 	FILE *fp;
 };
 
@@ -188,9 +188,6 @@ static void sed_free_and_close_stuff(void)
 	while (sed_cmd) {
 		sed_cmd_t *sed_cmd_next = sed_cmd->next;
 
-		if (sed_cmd->sw_file)
-			fclose(sed_cmd->sw_file);
-
 		/* Used to free regexps, but now there is code
 		 * in get_address() which can reuse a regexp
 		 * for constructs as /regexp/cmd1;//cmd2
@@ -217,6 +214,18 @@ static void sed_free_and_close_stuff(void)
 
 	if (G.current_fp)
 		fclose(G.current_fp);
+
+	if (G.FILE_head) {
+		struct sed_FILE *cur = G.FILE_head;
+		do {
+			struct sed_FILE *p;
+			fclose(cur->fp);
+			free(cur->fname);
+			p = cur;
+			cur = cur->next;
+			free(p);
+		} while (cur);
+	}
 }
 #else
 void sed_free_and_close_stuff(void);
