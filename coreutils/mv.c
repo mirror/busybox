@@ -71,9 +71,9 @@ int mv_main(int argc, char **argv)
 			"no-target-directory\0" No_argument "T"
 			"target-directory\0" Required_argument "t"
 			IF_FEATURE_VERBOSE(
-			"verbose\0"     No_argument "v",
-			&last
+			"verbose\0"     No_argument "v"
 			)
+			, &last
 	);
 	argc -= optind;
 	argv += optind;
