@@ -10018,7 +10018,7 @@ mklocal(char *name, int flags)
 				setvareq(name, flags);
 			else
 				/* "local VAR" unsets VAR: */
-				setvar0(name, NULL);
+				unsetvar(name);
 		}
 	}
 	lvp->vp = vp;
