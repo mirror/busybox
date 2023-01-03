@@ -2460,10 +2460,15 @@ static int set_local_var(char *str, unsigned flags)
 	return retval;
 }
 
+static int set_local_var0(char *str)
+{
+	return set_local_var(str, 0);
+}
+
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
 	char *var = xasprintf("%s=%s", name, val);
-	set_local_var(var, /*flag:*/ 0);
+	set_local_var0(var);
 }
 
 /* Used at startup and after each cd */
@@ -6964,7 +6969,7 @@ static NOINLINE int expand_one_var(o_string *output, int n,
 							val = NULL;
 						} else {
 							char *new_var = xasprintf("%s=%s", var, val);
-							set_local_var(new_var, /*flag:*/ 0);
+							set_local_var0(new_var);
 						}
 					}
 				}
@@ -9373,7 +9378,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				}
 #endif
 				debug_printf_env("set shell var:'%s'->'%s'\n", *argv, p);
-				if (set_local_var(p, /*flag:*/ 0)) {
+				if (set_local_var0(p)) {
 					/* assignment to readonly var / putenv error? */
 					rcode = 1;
 				}
@@ -9856,7 +9861,7 @@ static int run_list(struct pipe *pi)
 			}
 			/* Insert next value from for_lcur */
 			/* note: *for_lcur already has quotes removed, $var expanded, etc */
-			set_local_var(xasprintf("%s=%s", pi->cmds[0].argv[0], *for_lcur++), /*flag:*/ 0);
+			set_local_var_from_halves(pi->cmds[0].argv[0], *for_lcur++);
 			continue;
 		}
 		if (rword == RES_IN) {
