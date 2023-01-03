@@ -78,7 +78,7 @@ static void write_zeros(off_t count)
 	do {
 		unsigned sz = count < COMMON_BUFSIZE ? (unsigned)count : COMMON_BUFSIZE;
 		if (fwrite(fillbuf, 1, sz, stdout) != sz)
-			bb_perror_msg_and_die("write error");
+			bb_simple_perror_msg_and_die("write error");
 		count -= sz;
 	} while (count != 0);
 }
@@ -120,7 +120,7 @@ static void reverse(unsigned opt, const char *filename, char *opt_s)
 			if (ofs != cur) {
 				if (fseeko(stdout, ofs, SEEK_SET) != 0) {
 					if (ofs < cur)
-						bb_perror_msg_and_die("cannot seek");
+						bb_simple_perror_msg_and_die("cannot seek");
 					write_zeros(ofs - cur);
 				}
 				cur = ofs;
