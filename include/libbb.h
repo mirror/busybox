@@ -1939,9 +1939,15 @@ typedef struct line_input_t {
 #  if ENABLE_SHELL_ASH || ENABLE_SHELL_HUSH
 	/* function to fetch additional application-specific names to match */
 	get_exe_name_t *get_exe_name;
+#  endif
+# endif
+# if (ENABLE_FEATURE_USERNAME_COMPLETION || ENABLE_FEATURE_EDITING_FANCY_PROMPT) \
+  && (ENABLE_SHELL_ASH || ENABLE_SHELL_HUSH)
 	/* function to fetch value of shell variable */
 	sh_get_var_t *sh_get_var;
-#  endif
+#  define EDITING_HAS_sh_get_var 1
+# else
+#  define EDITING_HAS_sh_get_var 0
 # endif
 # if MAX_HISTORY
 	int cnt_history;

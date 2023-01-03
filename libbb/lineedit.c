@@ -249,14 +249,6 @@ static void get_user_strings(void)
 	}
 }
 
-static const char *get_username_str(void)
-{
-	if (!got_user_strings)
-		get_user_strings();
-	return user_buf ? user_buf : "";
-	/* btw, bash uses "I have no name!" string if uid has no entry */
-}
-
 static NOINLINE const char *get_homedir_or_NULL(void)
 {
 	const char *home;
@@ -272,6 +264,16 @@ static NOINLINE const char *get_homedir_or_NULL(void)
 	if (!got_user_strings)
 		get_user_strings();
 	return home_pwd_buf;
+}
+#endif
+
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
+static const char *get_username_str(void)
+{
+	if (!got_user_strings)
+		get_user_strings();
+	return user_buf ? user_buf : "";
+	/* btw, bash uses "I have no name!" string if uid has no entry */
 }
 #endif
 
@@ -2035,13 +2037,13 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				case 'W': /* basename of cur dir */
 					if (!cwd_buf) {
 						const char *home;
-#if ENABLE_SHELL_ASH
+# if EDITING_HAS_sh_get_var
 						cwd_buf = state->sh_get_var
 							? xstrdup(state->sh_get_var("PWD"))
 							: xrealloc_getcwd_or_warn(NULL);
-#else
+# else
 						cwd_buf = xrealloc_getcwd_or_warn(NULL);
-#endif
+# endif
 						if (!cwd_buf)
 							cwd_buf = (char *)bb_msg_unknown;
 						else if ((home = get_homedir_or_NULL()) != NULL && home[0]) {
