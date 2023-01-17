@@ -564,7 +564,7 @@ lfp_to_d(l_fixedpt_t lfp)
 	double ret;
 	lfp.int_partl = ntohl(lfp.int_partl);
 	lfp.fractionl = ntohl(lfp.fractionl);
-	ret = (double)lfp.int_partl + ((double)lfp.fractionl / UINT_MAX);
+	ret = (double)lfp.int_partl + ((double)lfp.fractionl / (1ULL << 32));
 	/*
 	 * Shift timestamps before 1970 to the second NTP era (2036-2106):
 	 * int_partl value of OFFSET_1900_1970 (2208988800) is interpreted as
@@ -581,7 +581,7 @@ sfp_to_d(s_fixedpt_t sfp)
 	double ret;
 	sfp.int_parts = ntohs(sfp.int_parts);
 	sfp.fractions = ntohs(sfp.fractions);
-	ret = (double)sfp.int_parts + ((double)sfp.fractions / USHRT_MAX);
+	ret = (double)sfp.int_parts + ((double)sfp.fractions / (1 << 16));
 	return ret;
 }
 #if ENABLE_FEATURE_NTPD_SERVER
@@ -591,7 +591,7 @@ d_to_lfp(l_fixedpt_t *lfp, double d)
 	uint32_t intl;
 	uint32_t frac;
 	intl = (uint32_t)(time_t)d;
-	frac = (uint32_t)((d - (time_t)d) * UINT_MAX);
+	frac = (uint32_t)((d - (time_t)d) * 0xffffffff);
 	lfp->int_partl = htonl(intl);
 	lfp->fractionl = htonl(frac);
 }
@@ -601,7 +601,7 @@ d_to_sfp(s_fixedpt_t *sfp, double d)
 	uint16_t ints;
 	uint16_t frac;
 	ints = (uint16_t)d;
-	frac = (uint16_t)((d - ints) * USHRT_MAX);
+	frac = (uint16_t)((d - ints) * 0xffff);
 	sfp->int_parts = htons(ints);
 	sfp->fractions = htons(frac);
 }
