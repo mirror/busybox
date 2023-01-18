@@ -551,13 +551,6 @@ gettime1900d(void)
 	return G.cur_time;
 }
 
-static void
-d_to_tv(struct timeval *tv, double d)
-{
-	tv->tv_sec = (time_t)d;
-	tv->tv_usec = (d - tv->tv_sec) * 1000000;
-}
-
 static NOINLINE double
 lfp_to_d(l_fixedpt_t lfp)
 {
@@ -1044,8 +1037,17 @@ step_time(double offset)
 	time_t tval;
 
 	xgettimeofday(&tvc);
+	/* This code adds floating point value on the order of 1.0
+	 * to a value of ~4 billion (as of years 203x).
+	 * With 52-bit mantissa, "only" 20 bits of offset's precision
+	 * are used (0.01 attosecond), the rest is lost.
+	 * Some 200 billion years later, when tvc.tv_sec would have
+	 * 63 significant bits, the precision loss would be catastrophic,
+	 * a more complex code would be needed.
+	 */
 	dtime = tvc.tv_sec + (1.0e-6 * tvc.tv_usec) + offset;
-	d_to_tv(&tvn, dtime);
+	tvn.tv_sec = (time_t)dtime;
+	tvn.tv_usec = (dtime - tvn.tv_sec) * 1000000;
 	xsettimeofday(&tvn);
 
 	VERB2 {
