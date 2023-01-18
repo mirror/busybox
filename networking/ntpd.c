@@ -1040,7 +1040,7 @@ step_time(double offset)
 	/* This code adds floating point value on the order of 1.0
 	 * to a value of ~4 billion (as of years 203x).
 	 * With 52-bit mantissa, "only" 20 bits of offset's precision
-	 * are used (0.01 attosecond), the rest is lost.
+	 * are used (~1 microsecond), the rest is lost.
 	 * Some 200 billion years later, when tvc.tv_sec would have
 	 * 63 significant bits, the precision loss would be catastrophic,
 	 * a more complex code would be needed.
