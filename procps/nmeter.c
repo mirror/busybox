@@ -59,9 +59,9 @@
 
 typedef unsigned long long ullong;
 
-enum {  /* Preferably use powers of 2 */
+enum {
 	PROC_MIN_FILE_SIZE = 256,
-	PROC_MAX_FILE_SIZE = 16 * 1024,
+	PROC_MAX_FILE_SIZE = 64 * 1024, /* 16k was a bit too small for a 128-CPU machine */
 };
 
 typedef struct proc_file {
@@ -176,7 +176,10 @@ static void readfile_z(proc_file *pf, const char* fname)
 	close(fd);
 	if (rdsz > 0) {
 		if (rdsz == sz-1 && sz < PROC_MAX_FILE_SIZE) {
-			sz *= 2;
+			if (sz < 4 * 1024)
+				sz *= 2;
+			else
+				sz += 4 * 1024;
 			buf = xrealloc(buf, sz);
 			goto again;
 		}
