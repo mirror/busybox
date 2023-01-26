@@ -10821,7 +10821,8 @@ preadfd(void)
  again:
 		/* For shell, LI_INTERRUPTIBLE is set:
 		 * read_line_input will abort on either
-		 * getting EINTR in poll(), or if it sees bb_got_signal != 0
+		 * getting EINTR in poll() and bb_got_signal became != 0,
+		 * or if it sees bb_got_signal != 0
 		 * (IOW: if signal arrives before poll() is reached).
 		 * Interactive testcases:
 		 * (while kill -INT $$; do sleep 1; done) &

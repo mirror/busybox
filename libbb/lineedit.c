@@ -2180,7 +2180,8 @@ static int lineedit_read_key(char *read_key_buffer, int timeout)
 		 * "\xff\n",pause,"ls\n" invalid and thus won't lose "ls".
 		 *
 		 * If LI_INTERRUPTIBLE, return -1 if got EINTR in poll()
-		 * inside read_key, or if bb_got_signal != 0 (IOW: if signal
+		 * inside read_key and bb_got_signal became != 0,
+		 * or if bb_got_signal != 0 (IOW: if signal
 		 * arrived before poll() is reached).
 		 *
 		 * Note: read_key sets errno to 0 on success.
@@ -2197,14 +2198,16 @@ static int lineedit_read_key(char *read_key_buffer, int timeout)
 			IF_FEATURE_EDITING_WINCH(S.ok_to_redraw = 0;)
 			if (errno != EINTR)
 				break;
+			/* It was EINTR. Repeat read_key() unless... */
 			if (state->flags & LI_INTERRUPTIBLE) {
-				/* LI_INTERRUPTIBLE bails out on EINTR,
-				 * but nothing really guarantees that bb_got_signal
-				 * is nonzero. Follow the least surprise principle:
+				/* LI_INTERRUPTIBLE bails out on EINTR
+				 * if bb_got_signal became nonzero.
+				 * (It may stay zero: for example, our SIGWINCH
+				 * handler does not set it. This is used for signals
+				 * which should not interrupt line editing).
 				 */
-				if (bb_got_signal == 0)
-					bb_got_signal = 255;
-				goto ret;
+				if (bb_got_signal != 0)
+					goto ret; /* will return -1 */
 			}
 		}
 

@@ -1946,7 +1946,12 @@ static void record_pending_signo(int sig)
 {
 	sigaddset(&G.pending_set, sig);
 #if ENABLE_FEATURE_EDITING
-	bb_got_signal = sig; /* for read_line_input: "we got a signal" */
+	if (sig != SIGCHLD
+	 || (G_traps && G_traps[SIGCHLD] && G_traps[SIGCHLD][0])
+	 /* ^^^ if SIGCHLD, interrupt line reading only if it has a trap */
+	) {
+		bb_got_signal = sig; /* for read_line_input: "we got a signal" */
+	}
 #endif
 #if ENABLE_HUSH_FAST
 	if (sig == SIGCHLD) {
@@ -2669,7 +2674,8 @@ static int get_user_input(struct in_str *i)
 		} else {
 			/* For shell, LI_INTERRUPTIBLE is set:
 			 * read_line_input will abort on either
-			 * getting EINTR in poll(), or if it sees bb_got_signal != 0
+			 * getting EINTR in poll() and bb_got_signal became != 0,
+			 * or if it sees bb_got_signal != 0
 			 * (IOW: if signal arrives before poll() is reached).
 			 * Interactive testcases:
 			 * (while kill -INT $$; do sleep 1; done) &
