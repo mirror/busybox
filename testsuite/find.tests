@@ -28,6 +28,12 @@ testing "find -exec exitcode 2" \
 	"0\n" \
 	"" ""
 SKIP=
+optional FEATURE_FIND_EXEC_OK
+testing "find -ok" \
+	"cd find.tempdir && find testfile -ok true {} ';' 2>&1; echo \$?" \
+	"true testfile ?0\n" \
+	"" "y"
+SKIP=
 # Surprisingly, "-exec false ;" results in exitcode 0! "-exec false +" is different!!!
 optional FEATURE_FIND_EXEC
 testing "find -exec exitcode 3" \
