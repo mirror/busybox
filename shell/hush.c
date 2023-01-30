@@ -1831,7 +1831,10 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * SIGHUP (interactive):
  *    send SIGCONT to stopped jobs, send SIGHUP to all jobs and exit
 //HUP: we don't need to do this, kernel does this for us
-//HUP: ("orphaned process group" handling according to POSIX)
+//HUP: ("orphaned process group" handling according to POSIX).
+//HUP: We still have a SIGHUP handler, just to have tty pgrp restored
+//HUP: (otherwise e.g. Midnight Commander backgrounds when hush
+//HUP: started from it gets killed by SIGHUP).
  * SIGTTIN, SIGTTOU, SIGTSTP (if job control is on): ignore
  *    Note that ^Z is handled not by trapping SIGTSTP, but by seeing
  *    that all pipe members are stopped. Try this in bash:
@@ -1933,7 +1936,7 @@ enum {
 	SPECIAL_INTERACTIVE_SIGS = 0
 		| (1 << SIGTERM)
 		| (1 << SIGINT)
-//HUP		| (1 << SIGHUP)
+		| (1 << SIGHUP)
 		,
 	SPECIAL_JOBSTOP_SIGS = 0
 #if ENABLE_HUSH_JOB
@@ -2179,7 +2182,7 @@ static int check_and_run_traps(void)
 			last_sig = sig;
 			break;
 #if ENABLE_HUSH_JOB
-//HUP		case SIGHUP: {
+		case SIGHUP: {
 //HUP//TODO: why are we doing this? ash and dash don't do this,
 //HUP//they have no handler for SIGHUP at all,
 //HUP//they rely on kernel to send SIGHUP+SIGCONT to orphaned process groups
@@ -2194,8 +2197,8 @@ static int check_and_run_traps(void)
 //HUP				if (kill(- job->pgrp, SIGHUP) == 0)
 //HUP					kill(- job->pgrp, SIGCONT);
 //HUP			}
-//HUP			sigexit(SIGHUP);
-//HUP		}
+			sigexit(SIGHUP);
+		}
 #endif
 #if ENABLE_HUSH_FAST
 		case SIGCHLD:
