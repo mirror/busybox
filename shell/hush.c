@@ -1829,12 +1829,13 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * SIGQUIT: ignore
  * SIGTERM (interactive): ignore
  * SIGHUP (interactive):
- *    send SIGCONT to stopped jobs, send SIGHUP to all jobs and exit
-//HUP: we don't need to do this, kernel does this for us
-//HUP: ("orphaned process group" handling according to POSIX).
-//HUP: We still have a SIGHUP handler, just to have tty pgrp restored
-//HUP: (otherwise e.g. Midnight Commander backgrounds when hush
-//HUP: started from it gets killed by SIGHUP).
+ *    Send SIGCONT to stopped jobs, send SIGHUP to all jobs and exit.
+ *    Kernel would do this for us ("orphaned process group" handling
+ *    according to POSIX) if we are a session leader and thus our death
+ *    frees the controlling tty, but to be bash-compatible, we also do it
+ *    for every interactive shell's death by SIGHUP.
+ *    (Also, we need to restore tty pgrp, otherwise e.g. Midnight Commander
+ *    backgrounds when hush started from it gets killed by SIGHUP).
  * SIGTTIN, SIGTTOU, SIGTSTP (if job control is on): ignore
  *    Note that ^Z is handled not by trapping SIGTSTP, but by seeing
  *    that all pipe members are stopped. Try this in bash:
@@ -2183,20 +2184,27 @@ static int check_and_run_traps(void)
 			break;
 #if ENABLE_HUSH_JOB
 		case SIGHUP: {
-//HUP//TODO: why are we doing this? ash and dash don't do this,
-//HUP//they have no handler for SIGHUP at all,
-//HUP//they rely on kernel to send SIGHUP+SIGCONT to orphaned process groups
-//HUP			struct pipe *job;
-//HUP			debug_printf_exec("%s: sig:%d default SIGHUP handler\n", __func__, sig);
-//HUP			/* bash is observed to signal whole process groups,
-//HUP			 * not individual processes */
-//HUP			for (job = G.job_list; job; job = job->next) {
-//HUP				if (job->pgrp <= 0)
-//HUP					continue;
-//HUP				debug_printf_exec("HUPing pgrp %d\n", job->pgrp);
-//HUP				if (kill(- job->pgrp, SIGHUP) == 0)
-//HUP					kill(- job->pgrp, SIGCONT);
-//HUP			}
+			/* if (G_interactive_fd) - no need to check, the handler
+			 * is only installed if we *are* interactive */
+			{
+				/* bash compat: "Before exiting, an interactive
+				 * shell resends the SIGHUP to all jobs, running
+				 * or stopped.  Stopped jobs are sent SIGCONT
+				 * to ensure that they receive the SIGHUP."
+				 */
+				struct pipe *job;
+				debug_printf_exec("%s: sig:%d default SIGHUP handler\n", __func__, sig);
+				/* bash is observed to signal whole process groups,
+				 * not individual processes */
+				for (job = G.job_list; job; job = job->next) {
+					if (job->pgrp <= 0)
+						continue;
+					debug_printf_exec("HUPing pgrp %d\n", job->pgrp);
+					if (kill(- job->pgrp, SIGHUP) == 0)
+						kill(- job->pgrp, SIGCONT);
+				}
+			}
+			/* this restores tty pgrp, then kills us with SIGHUP */
 			sigexit(SIGHUP);
 		}
 #endif
