@@ -111,15 +111,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 				if (r->rtm_flags & RTM_F_CLONED) {
 					return 0;
 				}
-				if (G_filter.tb == RT_TABLE_LOCAL) {
-					if (r->rtm_type != RTN_LOCAL) {
-						return 0;
-					}
-				} else if (G_filter.tb == RT_TABLE_MAIN) {
-					if (r->rtm_type == RTN_LOCAL) {
-						return 0;
-					}
-				} else {
+				if (G_filter.tb != tid) {
 					return 0;
 				}
 			}
