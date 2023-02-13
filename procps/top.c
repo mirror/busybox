@@ -619,17 +619,15 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	unsigned busy_jifs;
 #endif
 
-	/* what info of the processes is shown */
-	printf(OPT_BATCH_MODE ? "%.*s" : ESC"[7m" "%.*s" ESC"[m", scr_width,
-		"  PID  PPID USER     STAT   VSZ %VSZ"
-		IF_FEATURE_TOP_SMP_PROCESS(" CPU")
-		IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(" %CPU")
-		" COMMAND");
-	lines_rem--;
-
 #if ENABLE_FEATURE_TOP_DECIMALS
 # define UPSCALE 1000
-# define CALC_STAT(name, val) div_t name = div((val), 10)
+typedef struct { unsigned quot, rem; } bb_div_t;
+/* Used to have "div_t name = div((val), 10)" here
+ * (IOW: intended to use libc-compatible way to divide and use
+ * both result and remainder, but musl does not inline div()...)
+ * Oh well. Modern compilers detect "N/d, N%d" idiom by themselves:
+ */
+# define CALC_STAT(name, val) bb_div_t name = { (val) / 10, (val) % 10 }
 # define SHOW_STAT(name) name.quot, '0'+name.rem
 # define FMT "%3u.%c"
 #else
@@ -638,6 +636,15 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 # define SHOW_STAT(name) name
 # define FMT "%4u%%"
 #endif
+
+	/* what info of the processes is shown */
+	printf(OPT_BATCH_MODE ? "%.*s" : ESC"[7m" "%.*s" ESC"[m", scr_width,
+		"  PID  PPID USER     STAT   VSZ %VSZ"
+		IF_FEATURE_TOP_SMP_PROCESS(" CPU")
+		IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(" %CPU")
+		" COMMAND");
+	lines_rem--;
+
 	/*
 	 * %VSZ = s->vsz/MemTotal
 	 */
