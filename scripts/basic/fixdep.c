@@ -338,6 +338,11 @@ void parse_dep_file(void *map, size_t len)
 			do p--; while (!isalnum((unsigned char)*p));
 			p++;
 		}
+		if (p < m) {
+			/* we've consumed the last filename of this list
+			   already.  */
+			break;
+		}
 		memcpy(s, m, p-m); s[p-m] = 0;
 		if (strrcmp(s, "include/autoconf.h") &&
 		    strrcmp(s, "arch/um/include/uml-config.h") &&
