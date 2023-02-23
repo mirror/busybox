@@ -559,6 +559,11 @@ int unzip_main(int argc, char **argv)
  *    204372                   1 file
  */
 
+//TODO: accept and ignore these?
+// -a	convert to text files with 't' label, -aa: all files
+// -b	do not convert to text - bbox: we don't convert anything
+// -D	skip restoration of timestamps for extracted items - bbox: we don't restore these (yet?)
+// -X	restore user:group ownership
 	opts = 0;
 	/* '-' makes getopt return 1 for non-options */
 	while ((i = getopt(argc, argv, "-d:lnotpqxjvK")) != -1) {
@@ -583,6 +588,7 @@ int unzip_main(int argc, char **argv)
 			xmove_fd(xopen("/dev/null", O_WRONLY), STDOUT_FILENO);
 			/*fallthrough*/
 
+// NB: -c extract files to stdout/screen (unlike -p, also prints .zip and file names to stdout)
 		case 'p': /* Extract files to stdout */
 			dst_fd = STDOUT_FILENO;
 			/*fallthrough*/
@@ -853,6 +859,7 @@ int unzip_main(int argc, char **argv)
 		unzip_skip(zip.fmt.extra_len);
 
 		/* Guard against "/abspath", "/../" and similar attacks */
+// NB: UnZip 6.00 has option -: to disable this
 		overlapping_strcpy(dst_fn, strip_unsafe_prefix(dst_fn));
 
 		/* Filter zip entries */
