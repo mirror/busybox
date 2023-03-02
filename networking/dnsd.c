@@ -358,7 +358,7 @@ RDATA   a variable length string of octets that describes the resource.
 
 4.1.4. Message compression
 
-In order to reduce the size of messages, domain names coan be compressed.
+In order to reduce the size of messages, domain names can be compressed.
 An entire domain name or a list of labels at the end of a domain name
 is replaced with a pointer to a prior occurrence of the same name.
 
