@@ -25,12 +25,14 @@
 //kbuild:lib-$(CONFIG_READLINK) += readlink.o
 
 //usage:#define readlink_trivial_usage
-//usage:	IF_FEATURE_READLINK_FOLLOW("[-fnv] ") "FILE"
+//usage:	IF_FEATURE_READLINK_FOLLOW("[-fnv] ")
+//usage:	IF_NOT_FEATURE_READLINK_FOLLOW("[-n] ")
+//usage:	"FILE"
 //usage:#define readlink_full_usage "\n\n"
-//usage:       "Display the value of a symlink"
-//usage:	IF_FEATURE_READLINK_FOLLOW( "\n"
-//usage:     "\n	-f	Canonicalize by following all symlinks"
+//usage:       "Display the value of a symlink" "\n"
 //usage:     "\n	-n	Don't add newline"
+//usage:	IF_FEATURE_READLINK_FOLLOW(
+//usage:     "\n	-f	Canonicalize by following all symlinks"
 //usage:     "\n	-v	Verbose"
 //usage:	)
 
@@ -67,25 +69,18 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *buf;
 	char *fname;
+	unsigned opt;
 
-	IF_FEATURE_READLINK_FOLLOW(
-		unsigned opt;
-		/* We need exactly one non-option argument.  */
-		opt = getopt32(argv, "^" "fnvsq" "\0" "=1");
-		fname = argv[optind];
-	)
-	IF_NOT_FEATURE_READLINK_FOLLOW(
-		const unsigned opt = 0;
-		if (argc != 2) bb_show_usage();
-		fname = argv[1];
-	)
+	opt = getopt32(argv, "^" "n" IF_FEATURE_READLINK_FOLLOW("fvsq")
+                       "\0" "=1");
+	fname = argv[optind];
 
 	/* compat: coreutils readlink reports errors silently via exit code */
 	if (!(opt & 4)) /* not -v */
 		logmode = LOGMODE_NONE;
 
 	/* NOFORK: only one alloc is allowed; must free */
-	if (opt & 1) { /* -f */
+	if (opt & 2) { /* -f */
 		buf = xmalloc_realpath_coreutils(fname);
 	} else {
 		buf = xmalloc_readlink_or_warn(fname);
@@ -93,7 +88,7 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 
 	if (!buf)
 		return EXIT_FAILURE;
-	printf((opt & 2) ? "%s" : "%s\n", buf);
+	printf((opt & 1) ? "%s" : "%s\n", buf);
 	free(buf);
 
 	fflush_stdout_and_exit_SUCCESS();
