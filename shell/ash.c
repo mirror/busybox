@@ -2087,7 +2087,7 @@ struct localvar {
 #define VNOFUNC         0x40    /* don't call the callback function */
 #define VNOSET          0x80    /* do not set variable - just readonly test */
 #define VNOSAVE         0x100   /* when text is on the heap before setvareq */
-#if ENABLE_ASH_RANDOM_SUPPORT
+#if ENABLE_ASH_RANDOM_SUPPORT || BASH_EPOCH_VARS
 # define VDYNAMIC       0x200   /* dynamic variable */
 #else
 # define VDYNAMIC       0
