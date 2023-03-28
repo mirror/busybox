@@ -2405,50 +2405,52 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			send_headers_and_exit(HTTP_FORBIDDEN);
 		}
 		cgi_type = CGI_NORMAL;
-	}
+	} /* why "else": do not check "cgi-bin/SCRIPT/something" for cases below: */
+	else
 #endif
-
-	if (urlp[-1] == '/') {
-		/* When index_page string is appended to <dir>/ URL, it overwrites
-		 * the query string. If we fall back to call /cgi-bin/index.cgi,
-		 * query string would be lost and not available to the CGI.
-		 * Work around it by making a deep copy.
-		 */
-		if (ENABLE_FEATURE_HTTPD_CGI)
-			g_query = xstrdup(g_query); /* ok for NULL too */
-		strcpy(urlp, index_page);
-	}
-	if (stat(tptr, &sb) == 0) {
-		/* If URL is a directory with no slash, set up
-		 * "HTTP/1.1 302 Found" "Location: /dir/" reply */
-		if (urlp[-1] != '/' && S_ISDIR(sb.st_mode)) {
-			found_moved_temporarily = urlcopy;
-		} else {
+	{
+		if (urlp[-1] == '/') {
+			/* When index_page string is appended to <dir>/ URL, it overwrites
+			 * the query string. If we fall back to call /cgi-bin/index.cgi,
+			 * query string would be lost and not available to the CGI.
+			 * Work around it by making a deep copy.
+			 */
+			if (ENABLE_FEATURE_HTTPD_CGI)
+				g_query = xstrdup(g_query); /* ok for NULL too */
+			strcpy(urlp, index_page);
+		}
+		if (stat(tptr, &sb) == 0) {
+			/* If URL is a directory with no slash, set up
+			 * "HTTP/1.1 302 Found" "Location: /dir/" reply */
+			if (urlp[-1] != '/' && S_ISDIR(sb.st_mode)) {
+				found_moved_temporarily = urlcopy;
+			} else {
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-			char *suffix = strrchr(tptr, '.');
-			if (suffix) {
-				Htaccess *cur;
-				for (cur = script_i; cur; cur = cur->next) {
-					if (strcmp(cur->before_colon + 1, suffix) == 0) {
-						cgi_type = CGI_INTERPRETER;
-						break;
+				char *suffix = strrchr(tptr, '.');
+				if (suffix) {
+					Htaccess *cur;
+					for (cur = script_i; cur; cur = cur->next) {
+						if (strcmp(cur->before_colon + 1, suffix) == 0) {
+							cgi_type = CGI_INTERPRETER;
+							break;
+						}
 					}
 				}
+#endif
+				file_size = sb.st_size;
+				last_mod = sb.st_mtime;
 			}
-#endif
-			file_size = sb.st_size;
-			last_mod = sb.st_mtime;
 		}
-	}
 #if ENABLE_FEATURE_HTTPD_CGI
-	else if (urlp[-1] == '/') {
-		/* It's a dir URL and there is no index.html */
-		/* Is there cgi-bin/index.cgi? */
-		if (access("/cgi-bin/index.cgi"+1, X_OK) != 0)
-			send_headers_and_exit(HTTP_NOT_FOUND); /* no */
-		cgi_type = CGI_INDEX;
-	}
+		else if (urlp[-1] == '/') {
+			/* It's a dir URL and there is no index.html */
+			/* Is there cgi-bin/index.cgi? */
+			if (access("/cgi-bin/index.cgi"+1, X_OK) != 0)
+				send_headers_and_exit(HTTP_NOT_FOUND); /* no */
+			cgi_type = CGI_INDEX;
+		}
 #endif
+	}
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH || ENABLE_FEATURE_HTTPD_CGI
 	/* check_user_passwd() would be confused by added .../index.html, truncate it */
