@@ -1178,7 +1178,7 @@ void FAST_FUNC sha1_begin(sha1_ctx_t *ctx)
 		if (!shaNI) {
 			unsigned eax = 7, ebx = ebx, ecx = 0, edx = edx;
 			cpuid(&eax, &ebx, &ecx, &edx);
-			shaNI = ((ebx >> 29) << 1) - 1;
+			shaNI = ((ebx >> 28) & 2) - 1; /* bit 29 -> 1 or -1 */
 		}
 		if (shaNI > 0)
 			ctx->process_block = sha1_process_block64_shaNI;
@@ -1232,7 +1232,7 @@ void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
 		if (!shaNI) {
 			unsigned eax = 7, ebx = ebx, ecx = 0, edx = edx;
 			cpuid(&eax, &ebx, &ecx, &edx);
-			shaNI = ((ebx >> 29) << 1) - 1;
+			shaNI = ((ebx >> 28) & 2) - 1; /* bit 29 -> 1 or -1 */
 		}
 		if (shaNI > 0)
 			ctx->process_block = sha256_process_block64_shaNI;
