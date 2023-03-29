@@ -23,6 +23,14 @@ static void cpuid(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *edx)
 	);
 }
 static smallint shaNI;
+static int get_shaNI(void)
+{
+	unsigned eax = 7, ebx = ebx, ecx = 0, edx = edx;
+	cpuid(&eax, &ebx, &ecx, &edx);
+	ebx = ((ebx >> 28) & 2) - 1; /* bit 29 -> 1 or -1 */
+	shaNI = (int)ebx;
+	return (int)ebx;
+}
 void FAST_FUNC sha1_process_block64_shaNI(sha1_ctx_t *ctx);
 void FAST_FUNC sha256_process_block64_shaNI(sha256_ctx_t *ctx);
 #  if defined(__i386__)
@@ -1175,12 +1183,10 @@ void FAST_FUNC sha1_begin(sha1_ctx_t *ctx)
 #if ENABLE_SHA1_HWACCEL
 # if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 	{
-		if (!shaNI) {
-			unsigned eax = 7, ebx = ebx, ecx = 0, edx = edx;
-			cpuid(&eax, &ebx, &ecx, &edx);
-			shaNI = ((ebx >> 28) & 2) - 1; /* bit 29 -> 1 or -1 */
-		}
-		if (shaNI > 0)
+		int ni = shaNI;
+		if (!ni)
+			ni = get_shaNI();
+		if (ni > 0)
 			ctx->process_block = sha1_process_block64_shaNI;
 	}
 # endif
@@ -1229,12 +1235,10 @@ void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
 #if ENABLE_SHA256_HWACCEL
 # if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 	{
-		if (!shaNI) {
-			unsigned eax = 7, ebx = ebx, ecx = 0, edx = edx;
-			cpuid(&eax, &ebx, &ecx, &edx);
-			shaNI = ((ebx >> 28) & 2) - 1; /* bit 29 -> 1 or -1 */
-		}
-		if (shaNI > 0)
+		int ni = shaNI;
+		if (!ni)
+			ni = get_shaNI();
+		if (ni > 0)
 			ctx->process_block = sha256_process_block64_shaNI;
 	}
 # endif
