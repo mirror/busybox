@@ -6,6 +6,18 @@ trap -- 'a' INT
 trap -- 'a' USR1
 trap -- 'a' USR2
 ___
+trap -- 'a' EXIT trap -- 'a' INT trap -- 'a' USR1 trap -- 'a' USR2
+___
+trap -- 'a' EXIT
+trap -- 'a' INT
+trap -- 'a' USR1
+trap -- 'a' USR2
+___
+trap -- 'a' EXIT
+trap -- 'a' INT
+trap -- 'a' USR1
+trap -- 'a' USR2
+___
 ___
 trap -- 'a' USR1
 trap -- 'a' USR2

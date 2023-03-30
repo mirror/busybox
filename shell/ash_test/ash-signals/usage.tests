@@ -10,6 +10,18 @@ trap "a" EXIT INT USR1 USR2
 echo ___
 trap
 
+# show them by command substitution
+echo ___
+echo $(trap)
+
+# show them by pipe
+echo ___
+trap | cat
+
+# show them by process substitution
+echo ___
+cat <(trap)
+
 # clear one
 echo ___
 trap 0 INT

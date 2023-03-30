@@ -5190,8 +5190,7 @@ forkchild(struct job *jp, union node *n, int mode)
 
 	closescript();
 
-	if (mode == FORK_NOJOB          /* is it `xxx` ? */
-	 && n && n->type == NCMD        /* is it single cmd? */
+	if (n && n->type == NCMD        /* is it single cmd? */
 	/* && n->ncmd.args->type == NARG - always true? */
 	 && n->ncmd.args && strcmp(n->ncmd.args->narg.text, "trap") == 0
 	 && n->ncmd.args->narg.next == NULL /* "trap" with no arguments */
@@ -5285,10 +5284,12 @@ forkchild(struct job *jp, union node *n, int mode)
 	) {
 		TRACE(("Job hack\n"));
 		/* "jobs": we do not want to clear job list for it,
-		 * instead we remove only _its_ own_ job from job list.
+		 * instead we remove only _its_ own_ job from job list
+		 * (if it has one).
 		 * This makes "jobs .... | cat" more useful.
 		 */
-		freejob(curjob);
+		if (jp)
+			freejob(curjob);
 		return;
 	}
 #endif
@@ -6607,9 +6608,9 @@ evalbackcmd(union node *n, struct backcmd *result
 
 	if (pipe(pip) < 0)
 		ash_msg_and_raise_perror("can't create pipe");
-	/* process substitution uses NULL job/node, like openhere() */
+	/* process substitution uses NULL job, like openhere() */
 	jp = (ctl == CTLBACKQ) ? makejob(/*n,*/ 1) : NULL;
-	if (forkshell(jp, (ctl == CTLBACKQ) ? n : NULL, FORK_NOJOB) == 0) {
+	if (forkshell(jp, n, FORK_NOJOB) == 0) {
 		/* child */
 		FORCE_INT_ON;
 		close(pip[ip]);
