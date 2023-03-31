@@ -2959,7 +2959,7 @@ cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	if (!*dest)
 		dest = ".";
 	path = bltinlookup("CDPATH");
-	while (p = path, (len = padvance(&path, dest)) >= 0) {
+	while (p = path, (len = padvance_magic(&path, dest, 0)) >= 0) {
 		c = *p;
 		p = stalloc(len);
 
