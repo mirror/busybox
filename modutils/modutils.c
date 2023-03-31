@@ -12,6 +12,9 @@
 #define init_module(mod, len, opts) syscall(__NR_init_module, mod, len, opts)
 #if defined(__NR_finit_module)
 # define finit_module(fd, uargs, flags) syscall(__NR_finit_module, fd, uargs, flags)
+# ifndef MODULE_INIT_COMPRESSED_FILE
+#  define MODULE_INIT_COMPRESSED_FILE 4
+# endif
 #endif
 #define delete_module(mod, flags) syscall(__NR_delete_module, mod, flags)
 
@@ -217,7 +220,14 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 	{
 		int fd = open(filename, O_RDONLY | O_CLOEXEC);
 		if (fd >= 0) {
-			rc = finit_module(fd, options, 0) != 0;
+			int flags = is_suffixed_with(filename, ".ko") ? 0 : MODULE_INIT_COMPRESSED_FILE;
+			for (;;) {
+				rc = finit_module(fd, options, flags);
+				if (rc == 0 || flags == 0)
+					break;
+				/* Loading non-.ko named uncompressed module? Not likely, but let's try it */
+				flags = 0;
+			}
 			close(fd);
 			if (rc == 0)
 				return rc;

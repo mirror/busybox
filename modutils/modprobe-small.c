@@ -33,6 +33,9 @@
 #define delete_module(mod, flags) syscall(__NR_delete_module, mod, flags)
 #ifdef __NR_finit_module
 # define finit_module(fd, uargs, flags) syscall(__NR_finit_module, fd, uargs, flags)
+# ifndef MODULE_INIT_COMPRESSED_FILE
+#  define MODULE_INIT_COMPRESSED_FILE 4
+# endif
 #endif
 /* linux/include/linux/module.h has limit of 64 chars on module names */
 #undef MODULE_NAME_LEN
@@ -272,7 +275,14 @@ static int load_module(const char *fname, const char *options)
 	{
 		int fd = open(fname, O_RDONLY | O_CLOEXEC);
 		if (fd >= 0) {
-			r = finit_module(fd, options, 0) != 0;
+			int flags = is_suffixed_with(fname, ".ko") ? 0 : MODULE_INIT_COMPRESSED_FILE;
+			for (;;) {
+				r = finit_module(fd, options, flags);
+				if (r == 0 || flags == 0)
+					break;
+				/* Loading non-.ko named uncompressed module? Not likely, but let's try it */
+				flags = 0;
+			}
 			close(fd);
 		}
 	}
