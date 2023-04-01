@@ -7468,6 +7468,9 @@ static void re_execute_shell(char ***to_free, const char *s,
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
 	}
+# if ENABLE_HUSH_LINENO_VAR
+	cnt += 2;
+# endif
 # if ENABLE_HUSH_FUNCTIONS
 	for (funcp = G.top_func; funcp; funcp = funcp->next)
 		cnt += 3;
@@ -7489,6 +7492,10 @@ static void re_execute_shell(char ***to_free, const char *s,
 			*pp++ = cur->varstr;
 		}
 	}
+# if ENABLE_HUSH_LINENO_VAR
+	*pp++ = (char *) "-L";
+	*pp++ = utoa(G.execute_lineno);
+# endif
 # if ENABLE_HUSH_FUNCTIONS
 	for (funcp = G.top_func; funcp; funcp = funcp->next) {
 		*pp++ = (char *) "-F";
@@ -10400,6 +10407,9 @@ int hush_main(int argc, char **argv)
 				"cexinsl"
 #if !BB_MMU
 				"$:R:V:"
+# if ENABLE_HUSH_LINENO_VAR
+				"L:"
+# endif
 # if ENABLE_HUSH_FUNCTIONS
 				"F:"
 # endif
@@ -10498,6 +10508,11 @@ int hush_main(int argc, char **argv)
 		case 'V':
 			set_local_var(xstrdup(optarg), opt == 'R' ? SETFLAG_MAKE_RO : 0);
 			break;
+# if ENABLE_HUSH_LINENO_VAR
+		case 'L':
+			G.parse_lineno = xatou(optarg);
+			break;
+# endif
 # if ENABLE_HUSH_FUNCTIONS
 		case 'F': {
 			struct function *funcp = new_function(optarg);
