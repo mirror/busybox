@@ -8729,8 +8729,6 @@ describe_command(char *command, const char *path, int describe_command_verbose)
 	const struct alias *ap;
 #endif
 
-	path = path ? path : pathval();
-
 	if (describe_command_verbose) {
 		out1str(command);
 	}
@@ -8755,6 +8753,7 @@ describe_command(char *command, const char *path, int describe_command_verbose)
 	}
 #endif
 	/* Brute force */
+	path = path ? path : pathval();
 	find_command(command, &entry, DO_ABS, path);
 
 	switch (entry.cmdtype) {
@@ -13624,7 +13623,7 @@ static char *
 find_dot_file(char *basename)
 {
 	char *fullname;
-	const char *path = pathval();
+	const char *path;
 	struct stat statb;
 	int len;
 
@@ -13632,6 +13631,7 @@ find_dot_file(char *basename)
 	if (strchr(basename, '/'))
 		return basename;
 
+	path = pathval();
 	while ((len = padvance(&path, basename)) >= 0) {
 		fullname = stackblock();
 		if ((!pathopt || *pathopt == 'f')
