@@ -11276,6 +11276,9 @@ static int FAST_FUNC builtin_local(char **argv)
 		bb_error_msg("%s: not in a function", argv[0]);
 		return EXIT_FAILURE; /* bash compat */
 	}
+//TODO? ash and bash support "local -" special form,
+//which saves/restores $- around function call (including async returns, such as ^C)
+//(IOW: it makes "set +/-..." effects local)
 	argv++;
 	/* Since all builtins run in a nested variable level,
 	 * need to use level - 1 here. Or else the variable will be removed at once
