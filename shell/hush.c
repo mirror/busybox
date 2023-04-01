@@ -10260,6 +10260,20 @@ int hush_main(int argc, char **argv)
 	INIT_G();
 	if (EXIT_SUCCESS != 0) /* if EXIT_SUCCESS == 0, it is already done */
 		G.last_exitcode = EXIT_SUCCESS;
+#if !BB_MMU
+	/* "Big heredoc" support via "sh -< STRING" invocation.
+	 * Check it first (do not bother to run the usual init code,
+	 * it is not needed for this case).
+	 */
+	if (argv[1]
+	 && argv[1][0] == '-' && argv[1][1] == '<' /*&& !argv[1][2]*/
+	 /*&& argv[2] && !argv[3] - we don't check some conditions */
+	) {
+		full_write1_str(argv[2]);
+		_exit(0);
+	}
+	G.argv0_for_re_execing = argv[0];
+#endif
 #if ENABLE_HUSH_TRAP
 # if ENABLE_HUSH_FUNCTIONS
 	G.return_exitcode = -1;
@@ -10269,9 +10283,6 @@ int hush_main(int argc, char **argv)
 
 #if ENABLE_HUSH_FAST
 	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
-#endif
-#if !BB_MMU
-	G.argv0_for_re_execing = argv[0];
 #endif
 
 	cached_getpid = getpid();   /* for tcsetpgrp() during init */
@@ -10388,7 +10399,7 @@ int hush_main(int argc, char **argv)
 		int opt = getopt(argc, argv, "+" /* stop at 1st non-option */
 				"cexinsl"
 #if !BB_MMU
-				"<:$:R:V:"
+				"$:R:V:"
 # if ENABLE_HUSH_FUNCTIONS
 				"F:"
 # endif
@@ -10438,9 +10449,6 @@ int hush_main(int argc, char **argv)
 			flags |= OPT_login;
 			break;
 #if !BB_MMU
-		case '<': /* "big heredoc" support */
-			full_write1_str(optarg);
-			_exit(0);
 		case '$': {
 			unsigned long long empty_trap_mask;
 
