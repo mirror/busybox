@@ -3962,7 +3962,6 @@ getjob(const char *name, int getctl)
 	unsigned num;
 	int c;
 	const char *p;
-	char *(*match)(const char *, const char *);
 
 	jp = curjob;
 	p = name;
@@ -4003,15 +4002,12 @@ getjob(const char *name, int getctl)
 		}
 	}
 
-	match = prefix;
-	if (*p == '?') {
-		match = strstr;
-		p++;
-	}
-
 	found = NULL;
 	while (jp) {
-		if (match(jp->ps[0].ps_cmd, p)) {
+		if (*p == '?'
+		 ? strstr(jp->ps[0].ps_cmd, p + 1)
+		 : prefix(jp->ps[0].ps_cmd, p)
+		) {
 			if (found)
 				goto err;
 			found = jp;
