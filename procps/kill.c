@@ -85,8 +85,8 @@
  * This brings some complications:
  *
  * + we can't use xfunc here
- * + we can't use applet_name
  * + we can't use bb_show_usage
+ * + applet_name can be the name of the shell
  * (doesn't apply for killall[5], still should be careful b/c NOFORK)
  *
  * kill %n gets translated into kill ' -<process group>' by shell (note space!)
