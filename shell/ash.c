@@ -1852,16 +1852,18 @@ _STPUTC(int c, char *p)
 /*
  * prefix -- see if pfx is a prefix of string.
  */
-static char *
+static ALWAYS_INLINE char *
 prefix(const char *string, const char *pfx)
 {
+	return is_prefixed_with(string, pfx);
+#if 0  /* dash implementation: */
 	while (*pfx) {
 		if (*pfx++ != *string++)
 			return NULL;
 	}
 	return (char *) string;
+#endif
 }
-
 /*
  * Check for a valid number.  This should be elsewhere.
  */
