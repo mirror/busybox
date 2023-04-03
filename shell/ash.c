@@ -2110,10 +2110,7 @@ change_lc_ctype(const char *value)
 }
 #endif
 #if ENABLE_ASH_MAIL
-static void chkmail(void);
 static void changemail(const char *var_value) FAST_FUNC;
-#else
-# define chkmail()  ((void)0)
 #endif
 static void changepath(const char *) FAST_FUNC;
 #if ENABLE_ASH_RANDOM_SUPPORT
@@ -11258,13 +11255,12 @@ setinputstring(char *string)
 #if ENABLE_ASH_MAIL
 
 /* Hash of mtimes of mailboxes */
+/* Cleared to 0 if MAIL or MAILPATH is changed */
 static unsigned mailtime_hash;
-/* Set if MAIL or MAILPATH is changed. */
-static smallint mail_var_path_changed;
 
 /*
  * Print appropriate message(s) if mail has arrived.
- * If mail_var_path_changed is set,
+ * If mailtime_hash is zero,
  * then the value of MAIL has changed,
  * so we just update the hash value.
  */
@@ -11303,20 +11299,23 @@ chkmail(void)
 		/* Very simplistic "hash": just a sum of all mtimes */
 		new_hash += (unsigned)statb.st_mtime;
 	}
-	if (!mail_var_path_changed && mailtime_hash != new_hash) {
+	if (mailtime_hash != new_hash) {
 		if (mailtime_hash != 0)
 			out2str("you have mail\n");
+		mailtime_hash = new_hash;
 	}
-	mailtime_hash = new_hash;
-	mail_var_path_changed = 0;
 	popstackmark(&smark);
 }
 
 static void FAST_FUNC
 changemail(const char *val UNUSED_PARAM)
 {
-	mail_var_path_changed = 1;
+	mailtime_hash = 0;
 }
+
+#else
+
+# define chkmail()  ((void)0)
 
 #endif /* ASH_MAIL */
 
