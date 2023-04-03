@@ -65,15 +65,28 @@ int sleep_main(int argc UNUSED_PARAM, char **argv)
 {
 	duration_t duration;
 
+	/* Note: sleep_main may be directly called from ash as a builtin.
+	 * This brings some complications:
+	 * + we can't use xfunc here
+	 * + we can't use bb_show_usage
+	 * + applet_name can be the name of the shell
+	 */
 	++argv;
-	if (!*argv)
+	if (!*argv) {
+		/* Without this, bare "sleep" in ash shows _ash_ --help */
+		if (ENABLE_ASH_SLEEP && applet_name[0] != 's') {
+			bb_simple_error_msg("sleep: missing operand");
+			return EXIT_FAILURE;
+		}
 		bb_show_usage();
+	}
 
 	/* GNU sleep accepts "inf", "INF", "infinity" and "INFINITY" */
 	if (strncasecmp(argv[0], "inf", 3) == 0)
 		for (;;)
 			sleep(INT_MAX);
 
+//FIXME: in ash, "sleep 123qwerty" as a builtin aborts the shell
 #if ENABLE_FEATURE_FANCY_SLEEP
 	duration = 0;
 	do {
