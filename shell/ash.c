@@ -11287,7 +11287,6 @@ chkmail(void)
 		if (!len)
 			break;
 		p = stackblock();
-			break;
 		if (*p == '\0')
 			continue;
 		for (q = p; *q; q++)
