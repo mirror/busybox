@@ -254,7 +254,7 @@ static NOINLINE const char *get_homedir_or_NULL(void)
 	const char *home;
 
 # if ENABLE_SHELL_ASH || ENABLE_SHELL_HUSH
-	home = state->sh_get_var ? state->sh_get_var("HOME") : getenv("HOME");
+	home = state && state->sh_get_var ? state->sh_get_var("HOME") : getenv("HOME");
 # else
 	home = getenv("HOME");
 # endif
@@ -2038,7 +2038,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 					if (!cwd_buf) {
 						const char *home;
 # if EDITING_HAS_sh_get_var
-						cwd_buf = state->sh_get_var
+						cwd_buf = state && state->sh_get_var
 							? xstrdup(state->sh_get_var("PWD"))
 							: xrealloc_getcwd_or_warn(NULL);
 # else
