@@ -11264,8 +11264,8 @@ static smallint mail_var_path_changed;
 /*
  * Print appropriate message(s) if mail has arrived.
  * If mail_var_path_changed is set,
- * then the value of MAIL has mail_var_path_changed,
- * so we just update the values.
+ * then the value of MAIL has changed,
+ * so we just update the hash value.
  */
 static void
 chkmail(void)
@@ -11284,7 +11284,7 @@ chkmail(void)
 		int len;
 
 		len = padvance_magic(&mpath, nullstr, 2);
-		if (!len)
+		if (len < 0)
 			break;
 		p = stackblock();
 		if (*p == '\0')
@@ -11305,8 +11305,8 @@ chkmail(void)
 	if (!mail_var_path_changed && mailtime_hash != new_hash) {
 		if (mailtime_hash != 0)
 			out2str("you have mail\n");
-		mailtime_hash = new_hash;
 	}
+	mailtime_hash = new_hash;
 	mail_var_path_changed = 0;
 	popstackmark(&smark);
 }
