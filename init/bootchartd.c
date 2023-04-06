@@ -435,8 +435,6 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 
 	/* parent */
 
-	USE_FOR_NOMMU(argv[0][0] &= 0x7f); /* undo fork_or_rexec() damage */
-
 	if (DO_SIGNAL_SYNC) {
 		/* Wait for logger child to set handlers, then unpause it.
 		 * Otherwise with short-lived PROG (e.g. "bootchartd start true")

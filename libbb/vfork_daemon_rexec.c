@@ -268,10 +268,12 @@ pid_t FAST_FUNC fork_or_rexec(char **argv)
 	/* fflush_all(); ? - so far all callers had no buffered output to flush */
 
 	pid = xvfork();
-	if (pid) /* parent */
-		return pid;
-	/* child - re-exec ourself */
-	re_exec(argv);
+	if (pid == 0) /* child - re-exec ourself */
+		re_exec(argv); /* NORETURN */
+
+	/* parent */
+	argv[0][0] &= 0x7f; /* undo re_rexec() damage */
+	return pid;
 }
 #endif
 

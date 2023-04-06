@@ -1319,7 +1319,7 @@ enum {
 # define bb_daemonize(flags)                bb_daemonize_or_rexec(flags, bogus)
 #else
   extern bool re_execed;
-  /* Note: re_exec() and fork_or_rexec() do argv[0][0] |= 0x80 on NOMMU!
+  /* Note: re_exec() sets argv[0][0] |= 0x80 on NOMMU!
    * _Parent_ needs to undo it if it doesn't want to have argv[0] mangled.
    */
   void re_exec(char **argv) NORETURN FAST_FUNC;
