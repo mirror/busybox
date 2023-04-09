@@ -967,6 +967,7 @@ endif # CONFIG_MODULES
 # Directories & files removed with 'make clean'
 CLEAN_DIRS  += $(MODVERDIR) _install 0_lib
 CLEAN_FILES +=	busybox busybox_unstripped* busybox.links \
+		busybox*.suid busybox*.nosuid \
                 System.map .kernelrelease \
                 .tmp_kallsyms* .tmp_version .tmp_busybox* .tmp_System.map
 
