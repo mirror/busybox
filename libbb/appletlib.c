@@ -918,7 +918,7 @@ int busybox_main(int argc UNUSED_PARAM, char **argv)
 # endif
 
 # if NUM_APPLETS > 0
-void FAST_FUNC show_usage_if_dash_dash_help(int applet_no, char **argv)
+void FAST_FUNC show_usage_if_dash_dash_help(int applet_no UNUSED_PARAM, char **argv)
 {
 	/* Special case. POSIX says "test --help"
 	 * should be no different from e.g. "test --foo".
