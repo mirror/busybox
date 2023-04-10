@@ -22,7 +22,7 @@
 //usage:#define seq_full_usage "\n\n"
 //usage:       "Print numbers from FIRST to LAST, in steps of INC.\n"
 //usage:       "FIRST, INC default to 1.\n"
-//usage:     "\n	-w	Pad to last with leading zeros"
+//usage:     "\n	-w	Pad with leading zeros"
 //usage:     "\n	-s SEP	String separator"
 
 #include "libbb.h"
@@ -41,6 +41,7 @@ int seq_main(int argc, char **argv)
 	unsigned width;
 	unsigned frac_part;
 	const char *sep, *opt_s = "\n";
+	char *saved;
 	unsigned opt;
 
 #if ENABLE_LOCALE_SUPPORT
@@ -49,7 +50,25 @@ int seq_main(int argc, char **argv)
 	setlocale(LC_NUMERIC, "C");
 #endif
 
-	opt = getopt32(argv, "+ws:", &opt_s);
+	/* Cater for negative arguments: if we see one, truncate argv[] on it */
+	n = 0;
+	for (;;) {
+		char c;
+		saved = argv[++n];
+		if (!saved)
+			break;
+		if (saved[0] != '-')
+			break;
+		c = saved[1];
+		if (c == '.' || (c >= '0' && c <= '9')) {
+			argv[n] = NULL;
+			break;
+		}
+	}
+	opt = getopt32(argv, "+ws:", &opt_s); /* "+": stop at first non-option */
+	/* Restore possibly truncated argv[] */
+	argv[n] = saved;
+
 	argc -= optind;
 	argv += optind;
 	first = increment = 1;

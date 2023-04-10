@@ -43,4 +43,7 @@ testing "seq count down by 3 with padding" "seq -w 8 -3 04" "08\n05\n" "" ""
 testing "seq count by .3 with padding 1" "seq -w 09 .3 11" "09.0\n09.3\n09.6\n09.9\n10.2\n10.5\n10.8\n" "" ""
 testing "seq count by .3 with padding 2" "seq -w 03 .3 0004" "0003.0\n0003.3\n0003.6\n0003.9\n" "" ""
 
+testing "seq from -4 count down by 2" "seq -4 -2 -8" "-4\n-6\n-8\n" "" ""
+testing "seq from -.0 count down by .25" "seq -.0 -.25 -.9" "-0.00\n-0.25\n-0.50\n-0.75\n" "" ""
+
 exit $FAILCOUNT
