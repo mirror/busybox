@@ -42,25 +42,31 @@
 #include "libbb.h"
 
 #include <linux/random.h>
-#include <sys/random.h>
 #include <sys/file.h>
 
 /* Fix up glibc <= 2.24 not having getrandom() */
 #if defined(__GLIBC__) && __GLIBC__ == 2 && __GLIBC_MINOR__ <= 24
 #include <sys/syscall.h>
-# define getrandom(...) bb_getrandom(__VA_ARGS__)
 static ssize_t getrandom(void *buffer, size_t length, unsigned flags)
 {
 # if defined(__NR_getrandom)
 	return syscall(__NR_getrandom, buffer, length, flags);
 # else
-	return ENOSYS;
+	errno = ENOSYS;
+	return -1;
 # endif
 }
+#else
+#include <sys/random.h>
+#endif
+
+/* Apparently some headers don't ship with this yet. */
+#ifndef GRND_NONBLOCK
+#define GRND_NONBLOCK 0x0001
 #endif
 
 #ifndef GRND_INSECURE
-#define GRND_INSECURE 0x0004 /* Apparently some headers don't ship with this yet. */
+#define GRND_INSECURE 0x0004
 #endif
 
 #define DEFAULT_SEED_DIR         "/var/lib/seedrng"
