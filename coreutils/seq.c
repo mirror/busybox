@@ -57,8 +57,12 @@ int seq_main(int argc, char **argv)
 		saved = argv[++n];
 		if (!saved)
 			break;
-		if (saved[0] != '-')
-			break;
+		if (saved[0] != '-') {
+			// break; // "seq -s : -1 1" won't be treated correctly
+			continue;
+		}
+// "seq -s -1 1 9" is not treated correctly, but such usage
+// (delimiter string which looks like negative number) is very unlikely
 		c = saved[1];
 		if (c == '.' || (c >= '0' && c <= '9')) {
 			argv[n] = NULL;

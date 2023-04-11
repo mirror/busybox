@@ -45,5 +45,6 @@ testing "seq count by .3 with padding 2" "seq -w 03 .3 0004" "0003.0\n0003.3\n00
 
 testing "seq from -4 count down by 2" "seq -4 -2 -8" "-4\n-6\n-8\n" "" ""
 testing "seq from -.0 count down by .25" "seq -.0 -.25 -.9" "-0.00\n-0.25\n-0.50\n-0.75\n" "" ""
+testing "seq -s : with negative start" "seq -s : -1 1" "-1:0:1\n" "" ""
 
 exit $FAILCOUNT
