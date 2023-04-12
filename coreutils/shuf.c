@@ -66,6 +66,12 @@ static void shuffle_lines(char **lines, unsigned numlines, unsigned outlines)
 	}
 }
 
+/* We can handle insanity like this:
+ * shuf -i 3333333333333333333333333333333333333333333333333333333333333123456789001-3333333333333333333333333333333333333333333333333333333333333123456789019
+ * but do we want to have +200 bytes of code (~40% code growth)?
+ */
+#define COMMON_PREFIX_HACK 0
+
 int shuf_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int shuf_main(int argc, char **argv)
 {
@@ -76,6 +82,11 @@ int shuf_main(int argc, char **argv)
 	unsigned numlines, outlines;
 	unsigned i;
 	char eol;
+#if COMMON_PREFIX_HACK
+	unsigned pfx_len = 0;
+	unsigned padding_width = padding_width;
+	const char *pfx = pfx;
+#endif
 
 	opts = getopt32(argv, "^"
 			OPT_STR
@@ -104,10 +115,46 @@ int shuf_main(int argc, char **argv)
 		if (!dash) {
 			bb_error_msg_and_die("bad range '%s'", opt_i_str);
 		}
-		*dash = '\0';
+		*dash++ = '\0';
+#if COMMON_PREFIX_HACK
+		{
+			const char *a = opt_i_str;
+			const char *b = dash;
+			/* Skip leading zeros (they may mask that common prefix does exist) */
+			while (*a == '0') a++;
+			while (*b == '0') b++;
+			/* Do we have a common prefix (long enough to bother)? */
+			padding_width = strlen(a);
+			if (padding_width > 5 && padding_width == strlen(b)) {
+				/* How long is it? */
+				pfx = a;
+				while (isdigit(*a) && *a == *b) {
+					a++;
+					b++;
+				}
+				if (*a == '\0') {
+					/* "123456-123456", and we 'ate' all of them */
+					/* prevent trying to xatoull("") */
+					a--;
+					b--;
+				}
+				pfx_len = a - opt_i_str; /* can end up being 0 */
+				padding_width -= pfx_len;
+				lo = xatoull(a);
+				hi = xatoull(b);
+			} else {
+				/* Undo leading zero 'eating' (think "0-9") */
+				a = opt_i_str;
+				b = dash;
+			}
+			lo = xatoull(a);
+			hi = xatoull(b);
+		}
+#else
 		lo = xatoull(opt_i_str);
-		hi = xatoull(dash + 1);
-		*dash = '-';
+		hi = xatoull(dash);
+#endif
+		dash[-1] = '-';
 		if (hi < lo)
 			bb_error_msg_and_die("bad range '%s'", opt_i_str);
 		hi -= lo;
@@ -165,9 +212,14 @@ int shuf_main(int argc, char **argv)
 		eol = '\0';
 
 	for (i = numlines - outlines; i < numlines; i++) {
-		if (opts & OPT_i)
-			printf("%llu%c", lo + (uintptr_t)lines[i], eol);
-		else
+		if (opts & OPT_i) {
+#if COMMON_PREFIX_HACK
+			if (pfx_len != 0)
+				printf("%.*s%0*llu%c", pfx_len, pfx, padding_width, lo + (uintptr_t)lines[i], eol);
+			else
+#endif
+				printf("%llu%c", lo + (uintptr_t)lines[i], eol);
+		} else
 			printf("%s%c", lines[i], eol);
 	}
 
