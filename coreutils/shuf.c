@@ -138,7 +138,7 @@ int shuf_main(int argc, char **argv)
 					a--;
 					b--;
 				}
-				pfx_len = a - opt_i_str; /* can end up being 0 */
+				pfx_len = a - pfx; /* can end up being 0 */
 				padding_width -= pfx_len;
 			} else {
 				/* Undo leading zero 'eating' (think "0-9") */
