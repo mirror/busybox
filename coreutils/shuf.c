@@ -67,7 +67,7 @@ static void shuffle_lines(char **lines, unsigned numlines, unsigned outlines)
 }
 
 /* We can handle insanity like this:
- * shuf -i 3333333333333333333333333333333333333333333333333333333333333123456789001-3333333333333333333333333333333333333333333333333333333333333123456789019
+ * shuf -i 333333333333333333333333333333001-333333333333333333333333333333019
  * but do we want to have +200 bytes of code (~40% code growth)?
  */
 #define COMMON_PREFIX_HACK 0
@@ -128,15 +128,11 @@ int shuf_main(int argc, char **argv)
 			if (padding_width > 5 && padding_width == strlen(b)) {
 				/* How long is it? */
 				pfx = a;
-				while (isdigit(*a) && *a == *b) {
+				while (isdigit(*a) && *a == *b
+				 && a[1] /* "111111-111111" case: avoid xatoull("") */
+				) {
 					a++;
 					b++;
-				}
-				if (*a == '\0') {
-					/* "123456-123456", and we 'ate' all of them */
-					/* prevent trying to xatoull("") */
-					a--;
-					b--;
 				}
 				pfx_len = a - pfx; /* can end up being 0 */
 				padding_width -= pfx_len;
