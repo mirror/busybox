@@ -11147,6 +11147,12 @@ static int FAST_FUNC builtin_umask(char **argv)
 #if ENABLE_HUSH_EXPORT || ENABLE_HUSH_TRAP
 static void print_escaped(const char *s)
 {
+//TODO? bash "set" does not quote variables which contain only alnums and "%+,-./:=@_~",
+// (but "export" quotes all variables, even with only these chars).
+// I think quoting strings with %+,=~ looks better
+// (example: "set" printing var== instead of var='=' looks strange)
+// IOW: do not quote "-./:@_": / is used in pathnames, : in PATH, -._ often in file names, @ in emails
+
 	if (*s == '\'')
 		goto squote;
 	do {
@@ -11401,8 +11407,17 @@ static int FAST_FUNC builtin_set(char **argv)
 
 	if (arg == NULL) {
 		struct variable *e;
-		for (e = G.top_var; e; e = e->next)
-			puts(e->varstr);
+		for (e = G.top_var; e; e = e->next) {
+			const char *s = e->varstr;
+			const char *p = strchr(s, '=');
+
+			if (!p) /* wtf? take next variable */
+				continue;
+			/* var= */
+			printf("%.*s", (int)(p - s) + 1, s);
+			print_escaped(p + 1);
+			putchar('\n');
+		}
 		return EXIT_SUCCESS;
 	}
 
