@@ -9732,7 +9732,7 @@ evalpipe(union node *n, int flags)
 
 /* setinteractive needs this forward reference */
 #if ENABLE_FEATURE_TAB_COMPLETION
-static const char *get_builtin_name(int i) FAST_FUNC;
+static const char *ash_command_name(int i) FAST_FUNC;
 #endif
 
 /*
@@ -9769,7 +9769,7 @@ setinteractive(int on)
 		if (!line_input_state) {
 			line_input_state = new_line_input_t(FOR_SHELL | WITH_PATH_LOOKUP);
 # if ENABLE_FEATURE_TAB_COMPLETION
-			line_input_state->get_exe_name = get_builtin_name;
+			line_input_state->get_exe_name = ash_command_name;
 # endif
 # if EDITING_HAS_sh_get_var
 			line_input_state->sh_get_var = lookupvar;
@@ -10284,9 +10284,33 @@ find_builtin(const char *name)
 
 #if ENABLE_FEATURE_TAB_COMPLETION
 static const char * FAST_FUNC
-get_builtin_name(int i)
+ash_command_name(int i)
 {
-	return /*i >= 0 &&*/ i < ARRAY_SIZE(builtintab) ? builtintab[i].name + 1 : NULL;
+	int n;
+
+	if (/*i >= 0 &&*/ i < ARRAY_SIZE(builtintab))
+		return builtintab[i].name + 1;
+	i -= ARRAY_SIZE(builtintab);
+
+	for (n = 0; n < CMDTABLESIZE; n++) {
+		struct tblentry *cmdp;
+		for (cmdp = cmdtable[n]; cmdp; cmdp = cmdp->next) {
+			if (cmdp->cmdtype == CMDFUNCTION && --i < 0)
+				return cmdp->cmdname;
+		}
+	}
+
+# if ENABLE_ASH_ALIAS
+	for (n = 0; n < ATABSIZE; n++) {
+		struct alias *ap;
+		for (ap = atab[n]; ap; ap = ap->next) {
+			if (--i < 0)
+				return ap->name;
+		}
+	}
+#endif
+
+	return NULL;
 }
 #endif
 
