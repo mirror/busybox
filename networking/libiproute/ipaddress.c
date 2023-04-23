@@ -44,7 +44,7 @@ struct filter_t {
 	int ifindex;
 	family_t family;
 	smallint showqueue;
-	smallint oneline;
+	/*smallint oneline; - redundant, global "oneline" flag is enough */
 	smallint up;
 	/* Misnomer. Does not mean "flushed something" */
 	/* More like "flush commands were constructed by print_addrinfo()" */
@@ -297,7 +297,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (n->nlmsg_type == RTM_DELADDR)
 		printf("Deleted ");
 
-	if (G_filter.oneline)
+	if (/*G_filter.*/ oneline)
 		printf("%u: %s", ifa->ifa_index, ll_index_to_name(ifa->ifa_index));
 	if (ifa->ifa_family == AF_INET)
 		printf("    inet ");
@@ -427,10 +427,10 @@ static int FAST_FUNC store_nlmsg(const struct sockaddr_nl *who, struct nlmsghdr 
 	return 0;
 }
 
-static void ipaddr_reset_filter(int _oneline)
+static void ipaddr_reset_filter(void /*int _oneline*/)
 {
 	memset(&G_filter, 0, sizeof(G_filter));
-	G_filter.oneline = _oneline;
+	/*G_filter.oneline = _oneline;*/
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
@@ -444,7 +444,7 @@ int FAST_FUNC ipaddr_list_or_flush(char **argv, int flush)
 	struct rtnl_handle rth;
 	char *filter_dev = NULL;
 
-	ipaddr_reset_filter(oneline);
+	ipaddr_reset_filter(/*oneline*/);
 	G_filter.showqueue = 1;
 
 	if (G_filter.family == AF_UNSPEC)
