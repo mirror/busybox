@@ -7589,6 +7589,14 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 				}
 				/* Force prompt */
 				inp->p = NULL;
+				/* Clear "peeked" EOF. Without this,
+				 *  $ { cmd }<Enter>
+				 *  > ^D
+				 *  hush: syntax error: unterminated {
+				 * exits interactive shell:
+				 */
+				if (inp->peek_buf[0] == EOF)
+					inp->peek_buf[0] = 0;
 				/* This stream isn't empty */
 				empty = 0;
 				continue;
