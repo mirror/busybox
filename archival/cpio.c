@@ -62,7 +62,7 @@
 //usage:       " [-ti"IF_FEATURE_CPIO_O("o")"]" IF_FEATURE_CPIO_P(" [-p DIR]")
 //usage:       " [EXTR_FILE]..."
 //usage:#define cpio_full_usage "\n\n"
-//usage:       "Extract (-i) or list (-t) files from a cpio archive"
+//usage:       "Extract (-i) or list (-t) files from a cpio archive on stdin"
 //usage:	IF_FEATURE_CPIO_O(", or"
 //usage:     "\ntake file list from stdin and create an archive (-o)"
 //usage:                IF_FEATURE_CPIO_P(" or copy files (-p)")
