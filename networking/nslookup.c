@@ -589,6 +589,7 @@ static int RESOLVFUNC res_mkquery(int op, const char *dname, int class, int type
 	if (l>253 || buflen<n || op>15u || class>255u || type>255u)
 		return -1;
 
+//TODO: why do we even have the q[] array? Use buf[] directly!
 	/* Construct query template - ID will be filled later */
 	memset(q, 0, n);
 	q[2] = op*8 + 1;
@@ -637,7 +638,12 @@ struct query {
 	unsigned qlen;
 //	unsigned latency;
 //	uint8_t rcode;
-	unsigned char query[512];
+	/* res_mkquery() balks on names > 253 chars.
+	 * The formed query is 253+18 chars at max.
+	 * Real hostnames are nowhere near that long anyway.
+	 * Use of power-of-2 size means smaller code.
+	 */
+	unsigned char query[512 - sizeof(int) - sizeof(char*)];
 //	unsigned char reply[512];
 };
 
