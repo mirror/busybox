@@ -1429,6 +1429,7 @@ static void syntax_error_unterm_str(unsigned lineno UNUSED_PARAM, const char *s)
 {
 	bb_error_msg("syntax error: unterminated %s", s);
 //? source4.tests fails: in bash, echo ${^} in script does not terminate the script
+// (but bash --posix, or if bash is run as "sh", does terminate in script, so maybe uncomment this?)
 //	die_if_script();
 }
 
