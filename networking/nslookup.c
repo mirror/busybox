@@ -34,15 +34,13 @@
 //usage:       "Name:       debian\n"
 //usage:       "Address:    127.0.0.1\n"
 
+#if !ENABLE_FEATURE_NSLOOKUP_BIG
+
 #include <resolv.h>
-#include <net/if.h>	/* for IFNAMSIZ */
 //#include <arpa/inet.h>
 //#include <netdb.h>
 #include "libbb.h"
 #include "common_bufsiz.h"
-
-
-#if !ENABLE_FEATURE_NSLOOKUP_BIG
 
 /*
  * Mini nslookup implementation for busybox
@@ -248,11 +246,384 @@ int nslookup_main(int argc, char **argv)
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "libbb.h"
+#include "common_bufsiz.h"
+
 #if 0
 # define dbg(...) fprintf(stderr, __VA_ARGS__)
 #else
 # define dbg(...) ((void)0)
 #endif
+
+/* Instead of using ancient libc DNS query support,
+ * we can carry our own, independent code.
+ * E.g. res_mkquery() loses
+ * three of its paramemters (they are unused!).
+ * Unfortunately, while it does eliminate
+ *	ns_get16
+ *	ns_get32
+ *	ns_name_uncompress
+ *	dn_skipname
+ *	ns_skiprr
+ *	ns_initparse
+ *	ns_parserr
+ * libc functions from a static binary, libc versions of
+ * dn_expand and res_mkquery are still linked in
+ * - they are used by getnameinfo(). Each is ~230 bytes of code.
+ * This makes USE_LIBC_RESOLV = 0 code _bigger_ (by about 27 bytes),
+ * despite inlining and constant propagation.
+ */
+#define USE_LIBC_RESOLV 1
+
+#if USE_LIBC_RESOLV
+
+#include <resolv.h>
+
+#else
+
+#define RESOLVFUNC	/*nothing*/
+#define BIGRESOLVFUNC	/*nothing*/
+#define TINYRESOLVFUNC	ALWAYS_INLINE
+
+/* This one is taken from musl 1.2.4 */
+
+#define NS_MAXDNAME	1025
+#define NS_INT32SZ	4
+#define NS_INT16SZ	2
+
+#define MAXDNAME	NS_MAXDNAME
+
+typedef enum __ns_opcode {
+	ns_o_query = 0,
+} ns_opcode;
+typedef enum __ns_class {
+	ns_c_in = 1,
+} ns_class;
+typedef enum __ns_sect {
+	ns_s_qd = 0,
+	ns_s_zn = 0,
+	ns_s_an = 1,
+	ns_s_pr = 1,
+	ns_s_ns = 2,
+	ns_s_ud = 2,
+	ns_s_ar = 3,
+	ns_s_max = 4
+} ns_sect;
+typedef enum __ns_type {
+	ns_t_a = 1,
+	ns_t_ns = 2,
+	ns_t_cname = 5,
+	ns_t_soa = 6,
+	ns_t_ptr = 12,
+	ns_t_mx = 15,
+	ns_t_txt = 16,
+	ns_t_aaaa = 28,
+	ns_t_srv = 33,
+	ns_t_any = 255,
+} ns_type;
+#define QUERY		ns_o_query
+#define T_A		ns_t_a
+#define T_PTR		ns_t_ptr
+#define	T_AAAA		ns_t_aaaa
+#define C_IN		ns_c_in
+
+typedef struct __ns_msg {
+	const unsigned char *_msg, *_eom;
+	uint16_t _id, _flags, _counts[ns_s_max];
+	const unsigned char *_sections[ns_s_max];
+	ns_sect _sect;
+	int _rrnum;
+	const unsigned char *_msg_ptr;
+} ns_msg;
+#define ns_msg_id(handle) ((handle)._id + 0)
+#define ns_msg_base(handle) ((handle)._msg + 0)
+#define ns_msg_end(handle) ((handle)._eom + 0)
+#define ns_msg_size(handle) ((handle)._eom - (handle)._msg)
+#define ns_msg_count(handle, section) ((handle)._counts[section] + 0)
+#define ns_msg_getflag(handle, flag) \
+	(((handle)._flags & _ns_flagdata[flag].mask) >> _ns_flagdata[flag].shift)
+
+typedef	struct __ns_rr {
+	char		name[NS_MAXDNAME];
+	uint16_t	type;
+	uint16_t	rr_class;
+	uint32_t	ttl;
+	uint16_t	rdlength;
+	const unsigned char *rdata;
+} ns_rr;
+#define ns_rr_name(rr)	(((rr).name[0] != '\0') ? (rr).name : ".")
+#define ns_rr_type(rr)	((ns_type)((rr).type + 0))
+#define ns_rr_class(rr)	((ns_class)((rr).rr_class + 0))
+#define ns_rr_ttl(rr)	((rr).ttl + 0)
+#define ns_rr_rdlen(rr)	((rr).rdlength + 0)
+#define ns_rr_rdata(rr)	((rr).rdata + 0)
+
+typedef struct {
+	unsigned	id :16;
+#if __BYTE_ORDER == __BIG_ENDIAN
+	unsigned	qr: 1;
+	unsigned	opcode: 4;
+	unsigned	aa: 1;
+	unsigned	tc: 1;
+	unsigned	rd: 1;
+	unsigned	ra: 1;
+	unsigned	unused :1;
+	unsigned	ad: 1;
+	unsigned	cd: 1;
+	unsigned	rcode :4;
+#else
+	unsigned	rd :1;
+	unsigned	tc :1;
+	unsigned	aa :1;
+	unsigned	opcode :4;
+	unsigned	qr :1;
+	unsigned	rcode :4;
+	unsigned	cd: 1;
+	unsigned	ad: 1;
+	unsigned	unused :1;
+	unsigned	ra :1;
+#endif
+	unsigned	qdcount :16;
+	unsigned	ancount :16;
+	unsigned	nscount :16;
+	unsigned	arcount :16;
+} HEADER;
+
+#define dn_ns_get16 bb_ns_get16
+static unsigned TINYRESOLVFUNC ns_get16(const unsigned char *cp)
+{
+	return cp[0]<<8 | cp[1];
+}
+#define ns_get32 bb_ns_get32
+static unsigned long TINYRESOLVFUNC ns_get32(const unsigned char *cp)
+{
+	return (unsigned)cp[0]<<24 | cp[1]<<16 | cp[2]<<8 | cp[3];
+}
+#define NS_GET16(s, cp) (void)((s) = ns_get16(((cp)+=2)-2))
+#define NS_GET32(l, cp) (void)((l) = ns_get32(((cp)+=4)-4))
+
+#define dn_expand bb_dn_expand
+static int BIGRESOLVFUNC dn_expand(const unsigned char *base, const unsigned char *end, const unsigned char *src, char *dest, int space)
+{
+	const unsigned char *p = src;
+	char *dend, *dbegin = dest;
+	int len = -1, i, j;
+	if (p==end || space <= 0) return -1;
+	dend = dest + (space > 254 ? 254 : space);
+	/* detect reference loop using an iteration counter */
+	for (i=0; i < end-base; i+=2) {
+		/* loop invariants: p<end, dest<dend */
+		if (*p & 0xc0) {
+			if (p+1==end) return -1;
+			j = ((p[0] & 0x3f) << 8) | p[1];
+			if (len < 0) len = p+2-src;
+			if (j >= end-base) return -1;
+			p = base+j;
+		} else if (*p) {
+			if (dest != dbegin) *dest++ = '.';
+			j = *p++;
+			if (j >= end-p || j >= dend-dest) return -1;
+			while (j--) *dest++ = *p++;
+		} else {
+			*dest = 0;
+			if (len < 0) len = p+1-src;
+			return len;
+		}
+	}
+	return -1;
+}
+
+#define ns_name_uncompress bb_ns_name_uncompress
+static int RESOLVFUNC ns_name_uncompress(const unsigned char *msg, const unsigned char *eom,
+                       const unsigned char *src, char *dst, size_t dstsiz)
+{
+	int r;
+	r = dn_expand(msg, eom, src, dst, dstsiz);
+	if (r < 0) errno = EMSGSIZE;
+	return r;
+}
+
+#define dn_skipname bb_dn_skipname
+static int RESOLVFUNC dn_skipname(const unsigned char *s, const unsigned char *end)
+{
+	const unsigned char *p = s;
+	while (p < end)
+		if (!*p) return p-s+1;
+		else if (*p>=192)
+			if (p+1<end) return p-s+2;
+			else break;
+		else
+			if (end-p<*p+1) break;
+			else p += *p + 1;
+	return -1;
+}
+#define ns_skiprr bb_ns_skiprr
+static int BIGRESOLVFUNC ns_skiprr(const unsigned char *ptr, const unsigned char *eom, ns_sect section, int count)
+{
+	const unsigned char *p = ptr;
+	int r;
+
+	while (count--) {
+		r = dn_skipname(p, eom);
+		if (r < 0) goto bad;
+		if (r + 2 * NS_INT16SZ > eom - p) goto bad;
+		p += r + 2 * NS_INT16SZ;
+		if (section != ns_s_qd) {
+			if (NS_INT32SZ + NS_INT16SZ > eom - p) goto bad;
+			p += NS_INT32SZ;
+			NS_GET16(r, p);
+			if (r > eom - p) goto bad;
+			p += r;
+		}
+	}
+	return p - ptr;
+bad:
+	errno = EMSGSIZE;
+	return -1;
+}
+
+#define ns_parserr bb_ns_parserr
+static int BIGRESOLVFUNC ns_parserr(ns_msg *handle, ns_sect section, int rrnum, ns_rr *rr)
+{
+	int r;
+
+	if (section < 0 || section >= ns_s_max) goto bad;
+	if (section != handle->_sect) {
+		handle->_sect = section;
+		handle->_rrnum = 0;
+		handle->_msg_ptr = handle->_sections[section];
+	}
+	if (rrnum == -1) rrnum = handle->_rrnum;
+	if (rrnum < 0 || rrnum >= handle->_counts[section]) goto bad;
+	if (rrnum < handle->_rrnum) {
+		handle->_rrnum = 0;
+		handle->_msg_ptr = handle->_sections[section];
+	}
+	if (rrnum > handle->_rrnum) {
+		r = ns_skiprr(handle->_msg_ptr, handle->_eom, section, rrnum - handle->_rrnum);
+		if (r < 0) return -1;
+		handle->_msg_ptr += r;
+		handle->_rrnum = rrnum;
+	}
+	r = ns_name_uncompress(handle->_msg, handle->_eom, handle->_msg_ptr, rr->name, NS_MAXDNAME);
+	if (r < 0) return -1;
+	handle->_msg_ptr += r;
+	if (2 * NS_INT16SZ > handle->_eom - handle->_msg_ptr) goto size;
+	NS_GET16(rr->type, handle->_msg_ptr);
+	NS_GET16(rr->rr_class, handle->_msg_ptr);
+	if (section != ns_s_qd) {
+		if (NS_INT32SZ + NS_INT16SZ > handle->_eom - handle->_msg_ptr) goto size;
+		NS_GET32(rr->ttl, handle->_msg_ptr);
+		NS_GET16(rr->rdlength, handle->_msg_ptr);
+		if (rr->rdlength > handle->_eom - handle->_msg_ptr) goto size;
+		rr->rdata = handle->_msg_ptr;
+		handle->_msg_ptr += rr->rdlength;
+	} else {
+		rr->ttl = 0;
+		rr->rdlength = 0;
+		rr->rdata = NULL;
+	}
+	handle->_rrnum++;
+	if (handle->_rrnum > handle->_counts[section]) {
+		handle->_sect = section + 1;
+		if (handle->_sect == ns_s_max) {
+			handle->_rrnum = -1;
+			handle->_msg_ptr = NULL;
+		} else {
+			handle->_rrnum = 0;
+		}
+	}
+	return 0;
+bad:
+	errno = ENODEV;
+	return -1;
+size:
+	errno = EMSGSIZE;
+	return -1;
+}
+
+#define ns_initparse bb_ns_initparse
+static int BIGRESOLVFUNC ns_initparse(const unsigned char *msg, int msglen, ns_msg *handle)
+{
+	int i, r;
+
+	handle->_msg = msg;
+	handle->_eom = msg + msglen;
+	if (msglen < (2 + ns_s_max) * NS_INT16SZ) goto bad;
+	NS_GET16(handle->_id, msg);
+	NS_GET16(handle->_flags, msg);
+	for (i = 0; i < ns_s_max; i++) NS_GET16(handle->_counts[i], msg);
+	for (i = 0; i < ns_s_max; i++) {
+		if (handle->_counts[i]) {
+			handle->_sections[i] = msg;
+			r = ns_skiprr(msg, handle->_eom, i, handle->_counts[i]);
+			if (r < 0) return -1;
+			msg += r;
+		} else {
+			handle->_sections[i] = NULL;
+		}
+	}
+	if (msg != handle->_eom) goto bad;
+	handle->_sect = ns_s_max;
+	handle->_rrnum = -1;
+	handle->_msg_ptr = NULL;
+	return 0;
+bad:
+	errno = EMSGSIZE;
+	return -1;
+}
+
+#define res_mkquery bb_res_mkquery
+static int RESOLVFUNC res_mkquery(int op, const char *dname, int class, int type,
+	const unsigned char *data UNUSED_PARAM, int datalen UNUSED_PARAM,
+	const unsigned char *newrr UNUSED_PARAM, unsigned char *buf, int buflen)
+{
+	int i, j;
+	unsigned char q[280];
+	size_t l = strnlen(dname, 255);
+	int n;
+
+	if (l && dname[l-1]=='.') l--;
+	if (l && dname[l-1]=='.') return -1;
+	n = 17+l+!!l;
+	if (l>253 || buflen<n || op>15u || class>255u || type>255u)
+		return -1;
+
+	/* Construct query template - ID will be filled later */
+	memset(q, 0, n);
+	q[2] = op*8 + 1;
+	q[3] = 32; /* AD */
+	q[5] = 1;
+	memcpy((char *)q+13, dname, l);
+	for (i=13; q[i]; i=j+1) {
+		for (j=i; q[j] && q[j] != '.'; j++);
+		if (j-i-1u > 62u) return -1;
+		q[i-1] = j-i;
+	}
+	q[i+1] = type;
+	q[i+3] = class;
+#if 0
+//For some machines (here: a TP-Link RE200 powered by a MediaTek MT7620A)
+//the monotonic clock has a coarse resolution (here: 20us) and it can happen
+//that the requests for A and AAAA share the same transaction ID.
+
+//In that case the mapping from received responses to the sent queries
+//doesn't work and name resolution fails because the AAAA reply
+//is dropped as a duplicate reply to the A query.
+	/* Make a reasonably unpredictable id */
+	unsigned id;
+	struct timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	id = ts.tv_nsec + ((uint32_t)(ts.tv_nsec) >> 16);
+	q[0] = id/256;
+	q[1] = id;
+#endif
+	memcpy(buf, q, n);
+	return n;
+}
+
+#endif /* !USE_LIBC_RESOLV */
+
 
 struct ns {
 	const char *name;
@@ -975,6 +1346,21 @@ int nslookup_main(int argc UNUSED_PARAM, char **argv)
 		for (c = 0; c < ARRAY_SIZE(qtypes); c++) {
 			if (types & (1 << c))
 				add_query_with_search(qtypes[c].type, argv[0]);
+		}
+	}
+
+	/* Ensure the Transaction IDs are unique.
+	 * See, for example, musl source of res_mkquery() where
+	 * it risks using current time (same value!) for ALL queries.
+	 */
+	{
+		struct timeval tv;
+		unsigned id;
+		xgettimeofday(&tv);
+		id = tv.tv_sec + tv.tv_usec;
+		for (rc = 0; rc < G.query_count; rc++) {
+			G.query[rc].query[0] = id >> 8;
+			G.query[rc].query[1] = id++;
 		}
 	}
 
