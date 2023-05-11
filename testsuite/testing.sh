@@ -56,11 +56,21 @@ optional()
 {
 	SKIP=
 	while test "$1"; do
+	    case $1 in
+	    "!"*)
+		case "${OPTIONFLAGS}" in
+			*:${1#!}:*) SKIP=1; return;;
+		esac
+		shift
+		;;
+	    *)
 		case "${OPTIONFLAGS}" in
 			*:$1:*) ;;
 			*) SKIP=1; return ;;
 		esac
 		shift
+		;;
+	    esac
 	done
 }
 

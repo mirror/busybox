@@ -6,6 +6,216 @@
 
 # testing "test name" "commands" "expected result" "file input" "stdin"
 
+input="$(printf '\001\002\003\nABC\xfe')"
+
+le=false
+{ printf '\0\1' | od -i | grep -q 256; } && le=true
+readonly le
+
+optional !DESKTOP
+testing "od -a (!DESKTOP)" \
+        "od -a" \
+"\
+0000000  soh stx etx  lf   A   B   C  fe                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+testing "od -B (!DESKTOP)" \
+        "od -B" \
+"\
+0000000   001001  005003  041101  177103                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -o (!DESKTOP little-endian)" \
+        "od -o" \
+"\
+0000000   001001  005003  041101  177103                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+testing "od -b (!DESKTOP)" \
+        "od -b" \
+"\
+0000000  001 002 003 012 101 102 103 376                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+testing "od -c (!DESKTOP)" \
+        "od -c" \
+"\
+0000000  001 002 003  \\\\n   A   B   C 376                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -d (!DESKTOP little-endian)" \
+        "od -d" \
+"\
+0000000    00513   02563   16961   65091                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -D (!DESKTOP little-endian)" \
+        "od -D" \
+"\
+0000000       0167969281      4265820737                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -e (!DESKTOP little-endian)" \
+        "od -e" \
+"\
+0000000            -1.61218556514036e+300                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -F (!DESKTOP little-endian)" \
+        "od -F" \
+"\
+0000000            -1.61218556514036e+300                                
+0000010
+" \
+	"" "$input"
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -f (!DESKTOP little-endian)" \
+        "od -f" \
+"\
+0000000    6.3077975e-33  -6.4885867e+37                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -H (!DESKTOP little-endian)" \
+        "od -H" \
+"\
+0000000         0a030201        fe434241                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -X (!DESKTOP little-endian)" \
+        "od -X" \
+"\
+0000000         0a030201        fe434241                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -h (!DESKTOP little-endian)" \
+        "od -h" \
+"\
+0000000     0201    0a03    4241    fe43                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -x (!DESKTOP little-endian)" \
+        "od -x" \
+"\
+0000000     0201    0a03    4241    fe43                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -I (!DESKTOP little-endian)" \
+        "od -I" \
+"\
+0000000        167969281       -29146559                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -L (!DESKTOP little-endian)" \
+        "od -L" \
+"\
+0000000        167969281       -29146559                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -i (!DESKTOP little-endian)" \
+        "od -i" \
+"\
+0000000      513    2563   16961    -445                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -O (!DESKTOP little-endian)" \
+        "od -O" \
+"\
+0000000      01200601001     37620641101                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
+optional !DESKTOP
+$le || SKIP=1
+testing "od -l (!DESKTOP little-endian)" \
+        "od -l" \
+"\
+0000000        167969281       -29146559                                
+0000010
+" \
+	"" "$input"
+SKIP=
+
 optional DESKTOP
 testing "od -b" \
 	"od -b" \
