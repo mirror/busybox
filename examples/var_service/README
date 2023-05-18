@@ -43,7 +43,7 @@ directory, running one child runsv process for the service in each
 subdirectory. A typical choice is to start an instance of runsvdir
 which supervises services in subdirectories of /var/service/.
 
-If /var/service/log/ exists, runsv will supervise two services,
+If /var/service/SERVICE_DIR/log/ exists, runsv will supervise two services,
 and will connect stdout of main service to the stdin of log service.
 This is primarily used for logging.
 
