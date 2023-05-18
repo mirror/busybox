@@ -7370,6 +7370,8 @@ subevalvar(char *start, char *str, int strloc,
 				char *restart_detect = stackblock();
 				if (quotes && *loc == '\\') {
 					STPUTC(CTLESC, expdest);
+					if (stackblock() != restart_detect)
+						goto restart;
 					len++;
 				}
 				STPUTC(*loc, expdest);
