@@ -187,6 +187,10 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 
 				++p2;
 				++p1;
+				if (*p1 == 'l') { /* %lld etc */
+					++p2;
+					++p1;
+				}
  DO_INT_CONV:
 				e = strchr(int_convs, *p1); /* "diouxX"? */
 				if (!e)
@@ -194,7 +198,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 				pr->flags = F_INT;
 				if (e > int_convs + 1) /* not d or i? */
 					pr->flags = F_UINT;
-				byte_count_str = "\004\002\001";
+				byte_count_str = "\010\004\002\001";
 				goto DO_BYTE_COUNT;
 			} else
 			if (strchr(int_convs, *p1)) { /* %d etc */
@@ -601,22 +605,32 @@ static NOINLINE void display(priv_dumper_t* dumper)
 							break;
 						}
 						case F_INT: {
-							int ival;
-							short sval;
+							union {
+								uint16_t val16;
+								uint32_t val32;
+								uint64_t val64;
+							} u;
+							int value = *bp;
 
 							switch (pr->bcnt) {
 							case 1:
-								printf(pr->fmt, (int) *bp);
 								break;
 							case 2:
-								memcpy(&sval, bp, sizeof(sval));
-								printf(pr->fmt, (int) sval);
+								memcpy(&u.val16, bp, 2);
+								value = u.val16;
 								break;
 							case 4:
-								memcpy(&ival, bp, sizeof(ival));
-								printf(pr->fmt, ival);
+								memcpy(&u.val32, bp, 4);
+								value = u.val32;
 								break;
+							case 8:
+								memcpy(&u.val64, bp, 8);
+//A hack. Users _must_ use %llX formats to not truncate high bits
+								printf(pr->fmt, (long long) u.val64);
+								goto skip;
 							}
+							printf(pr->fmt, value);
+ skip:
 							break;
 						}
 						case F_P:
