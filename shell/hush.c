@@ -1061,6 +1061,7 @@ static int builtin_export(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_READONLY
 static int builtin_readonly(char **argv) FAST_FUNC;
 #endif
+static int builtin_false(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_JOB
 static int builtin_fg_bg(char **argv) FAST_FUNC;
 static int builtin_jobs(char **argv) FAST_FUNC;
@@ -1161,6 +1162,7 @@ static const struct built_in_command bltins1[] ALIGN_PTR = {
 #if ENABLE_HUSH_EXPORT
 	BLTIN("export"   , builtin_export  , "Set environment variables"),
 #endif
+	BLTIN("false"    , builtin_false   , NULL),
 #if ENABLE_HUSH_JOB
 	BLTIN("fg"       , builtin_fg_bg   , "Bring job to foreground"),
 #endif
@@ -10829,6 +10831,11 @@ int hush_main(int argc, char **argv)
 static int FAST_FUNC builtin_true(char **argv UNUSED_PARAM)
 {
 	return 0;
+}
+
+static int FAST_FUNC builtin_false(char **argv UNUSED_PARAM)
+{
+	return 1;
 }
 
 #if ENABLE_HUSH_TEST || ENABLE_HUSH_ECHO || ENABLE_HUSH_PRINTF || ENABLE_HUSH_KILL
