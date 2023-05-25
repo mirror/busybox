@@ -38,8 +38,7 @@ testing "od -a (DESKTOP)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP  #DESKTOP: unrecognized option: B
-testing "od -B (!DESKTOP)" \
+testing "od -B" \
         "od -B | sed 's/ *$//'" \
 "\
 0000000 001001 005003 041101 177103
@@ -117,10 +116,10 @@ testing "od -F (!DESKTOP little-endian)" \
 0000010
 " \
 	"" "$input"
+SKIP=
 
-#optional !DESKTOP
 $le || SKIP=1
-testing "od -f (!DESKTOP little-endian)" \
+testing "od -f (little-endian)" \
         "od -f | sed 's/ *$//'" \
 "\
 0000000   6.3077975e-33  -6.4885867e+37

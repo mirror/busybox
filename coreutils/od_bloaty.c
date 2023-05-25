@@ -49,20 +49,21 @@ enum {
 	OPT_j = 1 << 9,
 	OPT_l = 1 << 10,
 	OPT_o = 1 << 11,
-	OPT_t = 1 << 12,
+	OPT_B = 1 << 12, /* undocumented synonym to -o */
+	OPT_t = 1 << 13,
 	/* When zero and two or more consecutive blocks are equal, format
 	   only the first block and output an asterisk alone on the following
 	   line to indicate that identical blocks have been elided: */
-	OPT_v = 1 << 13,
-	OPT_x = 1 << 14,
-	OPT_s = 1 << 15,
-	OPT_S = 1 << 16,
-	OPT_w = 1 << 17,
-	OPT_traditional = (1 << 18) * ENABLE_LONG_OPTS,
+	OPT_v = 1 << 14,
+	OPT_x = 1 << 15,
+	OPT_s = 1 << 16,
+	OPT_S = 1 << 17,
+	OPT_w = 1 << 18,
+	OPT_traditional = (1 << 19) * ENABLE_LONG_OPTS,
 };
 
 #define OD_GETOPT32() getopt32long(argv, \
-	"A:N:abcdfhij:lot:*vxsS:w:+:", od_longopts, \
+	"A:N:abcdfhij:loBt:*vxsS:w:+:", od_longopts, \
 	/* -w with optional param */ \
 	/* -S was -s and also had optional parameter */ \
 	/* but in coreutils 6.3 it was renamed and now has */ \
@@ -1239,22 +1240,22 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_N) {
 		max_bytes_to_format = xstrtooff_sfx(str_N, 0, bkm_suffixes);
 	}
+
 	if (opt & OPT_a) decode_format_string("a");
 	if (opt & OPT_b) decode_format_string("oC");
 	if (opt & OPT_c) decode_format_string("c");
 	if (opt & OPT_d) decode_format_string("u2");
 	if (opt & OPT_f) decode_format_string("fF");
-	if (opt & OPT_h) decode_format_string("x2");
+	if (opt & (OPT_h|OPT_x)) decode_format_string("x2");
 	if (opt & OPT_i) decode_format_string("dI");
 	if (opt & OPT_j) n_bytes_to_skip = xstrtooff_sfx(str_j, 0, bkm_suffixes);
 	/* This probably also depends on word width of the arch (what is "long"?) */
 	/* should be "d4" or "d8" depending on sizeof(long)? */
 	if (opt & OPT_l) decode_format_string("d8");
-	if (opt & OPT_o) decode_format_string("o2");
+	if (opt & (OPT_o|OPT_B)) decode_format_string("o2");
 	while (lst_t) {
 		decode_format_string(llist_pop(&lst_t));
 	}
-	if (opt & OPT_x) decode_format_string("x2");
 	if (opt & OPT_s) decode_format_string("d2");
 	if (opt & OPT_S) {
 		G.string_min = xstrtou_sfx(str_S, 0, bkm_suffixes);
