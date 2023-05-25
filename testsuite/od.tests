@@ -12,10 +12,10 @@ le=false
 { printf '\0\1' | od -s | grep -q 256; } && le=true
 readonly le
 
-# NB:
+# NB: for !DESKTOP,
 # sed 's/ *$//' truncates trailing spaces.
-# This needs to be fixed properly (not output them).
-# For now, the tests ignore them (does not require a match).
+# This needs to be fixed properly (by not outputting them).
+# For now, the tests ignore them (do not require a match).
 
 optional !DESKTOP
 testing "od -a (!DESKTOP)" \
@@ -26,8 +26,19 @@ testing "od -a (!DESKTOP)" \
 " \
 	"" "$input"
 SKIP=
+# ^^^ a bit incorrect handling of ctrl/high bytes.
+# vvv this output is correct.
+optional DESKTOP
+testing "od -a (DESKTOP)" \
+        "od -a" \
+"\
+0000000 soh stx etx  nl   A   B   C   ~
+0000010
+" \
+	"" "$input"
+SKIP=
 
-optional !DESKTOP
+optional !DESKTOP  #DESKTOP: unrecognized option: B
 testing "od -B (!DESKTOP)" \
         "od -B | sed 's/ *$//'" \
 "\
@@ -37,9 +48,8 @@ testing "od -B (!DESKTOP)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
 $le || SKIP=1
-testing "od -o (!DESKTOP little-endian)" \
+testing "od -o (little-endian)" \
         "od -o | sed 's/ *$//'" \
 "\
 0000000 001001 005003 041101 177103
@@ -48,8 +58,7 @@ testing "od -o (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
-testing "od -b (!DESKTOP)" \
+testing "od -b" \
         "od -b | sed 's/ *$//'" \
 "\
 0000000 001 002 003 012 101 102 103 376
@@ -58,8 +67,7 @@ testing "od -b (!DESKTOP)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
-testing "od -c (!DESKTOP)" \
+testing "od -c" \
         "od -c | sed 's/ *$//'" \
 "\
 0000000 001 002 003  \\\\n   A   B   C 376
@@ -68,9 +76,8 @@ testing "od -c (!DESKTOP)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
 $le || SKIP=1
-testing "od -d (!DESKTOP little-endian)" \
+testing "od -d (little-endian)" \
         "od -d | sed 's/ *$//'" \
 "\
 0000000   513  2563 16961 65091
@@ -79,7 +86,7 @@ testing "od -d (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
+optional !DESKTOP  #DESKTOP: unrecognized option: D
 $le || SKIP=1
 testing "od -D (!DESKTOP little-endian)" \
         "od -D | sed 's/ *$//'" \
@@ -90,7 +97,7 @@ testing "od -D (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
+optional !DESKTOP  #DESKTOP: unrecognized option: e
 $le || SKIP=1
 testing "od -e (!DESKTOP little-endian)" \
         "od -e | sed 's/ *$//'" \
@@ -101,7 +108,7 @@ testing "od -e (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
+optional !DESKTOP  #DESKTOP: unrecognized option: F
 $le || SKIP=1
 testing "od -F (!DESKTOP little-endian)" \
         "od -F | sed 's/ *$//'" \
@@ -111,7 +118,7 @@ testing "od -F (!DESKTOP little-endian)" \
 " \
 	"" "$input"
 
-optional !DESKTOP
+#optional !DESKTOP
 $le || SKIP=1
 testing "od -f (!DESKTOP little-endian)" \
         "od -f | sed 's/ *$//'" \
@@ -122,7 +129,7 @@ testing "od -f (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
+optional !DESKTOP  #DESKTOP: unrecognized option: H
 $le || SKIP=1
 testing "od -H (!DESKTOP little-endian)" \
         "od -H | sed 's/ *$//'" \
@@ -133,7 +140,7 @@ testing "od -H (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
+optional !DESKTOP  #DESKTOP: unrecognized option: X
 $le || SKIP=1
 testing "od -X (!DESKTOP little-endian)" \
         "od -X | sed 's/ *$//'" \
@@ -144,9 +151,8 @@ testing "od -X (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
 $le || SKIP=1
-testing "od -h (!DESKTOP little-endian)" \
+testing "od -h (little-endian)" \
         "od -h | sed 's/ *$//'" \
 "\
 0000000 0201 0a03 4241 fe43
@@ -155,9 +161,8 @@ testing "od -h (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
 $le || SKIP=1
-testing "od -x (!DESKTOP little-endian)" \
+testing "od -x (little-endian)" \
         "od -x | sed 's/ *$//'" \
 "\
 0000000 0201 0a03 4241 fe43
@@ -166,7 +171,7 @@ testing "od -x (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
+optional !DESKTOP  #DESKTOP: unrecognized option: I
 $le || SKIP=1
 testing "od -I (!DESKTOP little-endian)" \
         "od -I | sed 's/ *$//'" \
@@ -177,7 +182,7 @@ testing "od -I (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
+optional !DESKTOP  #DESKTOP: unrecognized option: L
 $le || SKIP=1
 testing "od -L (!DESKTOP little-endian)" \
         "od -L | sed 's/ *$//'" \
@@ -188,9 +193,8 @@ testing "od -L (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
 $le || SKIP=1
-testing "od -i (!DESKTOP little-endian)" \
+testing "od -i (little-endian)" \
         "od -i | sed 's/ *$//'" \
 "\
 0000000   167969281   -29146559
@@ -199,7 +203,7 @@ testing "od -i (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
+optional !DESKTOP  #DESKTOP: unrecognized option: O
 $le || SKIP=1
 testing "od -O (!DESKTOP little-endian)" \
         "od -O | sed 's/ *$//'" \
@@ -210,9 +214,9 @@ testing "od -O (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP
+# This probably also depends on word width of the arch (what is "long"?)
 $le || SKIP=1
-testing "od -l (!DESKTOP little-endian)" \
+testing "od -l (little-endian)" \
         "od -l | sed 's/ *$//'" \
 "\
 0000000  -125183517527965183

@@ -1245,9 +1245,11 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_d) decode_format_string("u2");
 	if (opt & OPT_f) decode_format_string("fF");
 	if (opt & OPT_h) decode_format_string("x2");
-	if (opt & OPT_i) decode_format_string("d2");
+	if (opt & OPT_i) decode_format_string("dI");
 	if (opt & OPT_j) n_bytes_to_skip = xstrtooff_sfx(str_j, 0, bkm_suffixes);
-	if (opt & OPT_l) decode_format_string("d4");
+	/* This probably also depends on word width of the arch (what is "long"?) */
+	/* should be "d4" or "d8" depending on sizeof(long)? */
+	if (opt & OPT_l) decode_format_string("d8");
 	if (opt & OPT_o) decode_format_string("o2");
 	while (lst_t) {
 		decode_format_string(llist_pop(&lst_t));

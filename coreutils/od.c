@@ -167,6 +167,8 @@ static const char *const add_strings[] ALIGN_PTR = {
 	"4/4 \"%15.7e \" \"\\n\"",             /* 7: f */
 	"4/4 \"%08x \" \"\\n\"",               /* 8: H, X */
 	"8/2 \"%04x \" \"\\n\"",               /* 9: h, x */
+	/* This probably also depends on word width of the arch (what is "long"?) */
+	/* should be "2/8" or "4/4" depending on sizeof(long)? */
 	"2/8 \"%20lld \" \"\\n\"",             /* 10: I, L, l */
 	"4/4 \"%11d \" \"\\n\"",               /* 11: i */
 	"4/4 \"%011o \" \"\\n\"",              /* 12: O */
