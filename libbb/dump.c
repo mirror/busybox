@@ -242,7 +242,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 					pr->flags = F_P;
 					*p1 = 'c';
 					goto DO_BYTE_COUNT_1;
-				case 'u':	/* %_p: chars, 'nul', 'esc' etc for nonprintable */
+				case 'u':	/* %_u: chars, 'nul', 'esc' etc for nonprintable */
 					pr->flags = F_U;
 					/* *p1 = 'c';   set in conv_u */
 					goto DO_BYTE_COUNT_1;
@@ -322,8 +322,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 			p2 = NULL;
 			for (p1 = pr->fmt; *p1; ++p1)
 				p2 = isspace(*p1) ? p1 : NULL;
-			if (p2)
-				pr->nospace = p2;
+			pr->nospace = p2;
 		}
 	}
 }
@@ -477,7 +476,7 @@ static void bpad(PR *pr)
 
 static const char conv_str[] ALIGN1 =
 	"\0"  "\\""0""\0"
-	"\007""\\""a""\0"  /* \a */
+	"\007""\\""a""\0"
 	"\b"  "\\""b""\0"
 	"\f"  "\\""f""\0"
 	"\n"  "\\""n""\0"
@@ -539,7 +538,6 @@ static void conv_u(PR *pr, unsigned char *p)
 static NOINLINE void display(priv_dumper_t* dumper)
 {
 	unsigned char *bp;
-	unsigned char savech = '\0';
 
 	while ((bp = get(dumper)) != NULL) {
 		FS *fs;
@@ -560,6 +558,8 @@ static NOINLINE void display(priv_dumper_t* dumper)
 					PR *pr;
 					for (pr = fu->nextpr; pr; dumper->pub.address += pr->bcnt,
 								bp += pr->bcnt, pr = pr->nextpr) {
+						unsigned char savech;
+
 						if (dumper->eaddress
 						 && dumper->pub.address >= dumper->eaddress
 						) {
@@ -568,9 +568,16 @@ static NOINLINE void display(priv_dumper_t* dumper)
 								fputs_stdout(dumper->pub.xxd_eofstring);
 								return;
 							}
+							if (dumper->pub.od_eofstring) {
+								/* od support: requested to not pad incomplete blocks */
+								/* ... but do print final offset */
+								fputs_stdout(dumper->pub.od_eofstring);
+								goto endfu;
+							}
 							if (!(pr->flags & (F_TEXT | F_BPAD)))
 								bpad(pr);
 						}
+						savech = '\0';
 						if (cnt == 1 && pr->nospace) {
 							savech = *pr->nospace;
 							*pr->nospace = '\0';
@@ -665,7 +672,7 @@ static NOINLINE void display(priv_dumper_t* dumper)
 							break;
 						}
 						}
-						if (cnt == 1 && pr->nospace) {
+						if (savech) {
 							*pr->nospace = savech;
 						}
 					}
@@ -673,7 +680,7 @@ static NOINLINE void display(priv_dumper_t* dumper)
 			}
 		}
 	}
-
+ endfu:
 	if (dumper->endfu) {
 		PR *pr;
 		/*

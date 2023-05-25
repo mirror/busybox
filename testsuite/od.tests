@@ -12,14 +12,9 @@ le=false
 { printf '\0\1' | od -s | grep -q 256; } && le=true
 readonly le
 
-# NB: for !DESKTOP,
-# sed 's/ *$//' truncates trailing spaces.
-# This needs to be fixed properly (by not outputting them).
-# For now, the tests ignore them (do not require a match).
-
 optional !DESKTOP
 testing "od -a (!DESKTOP)" \
-        "od -a | sed 's/ *$//'" \
+        "od -a" \
 "\
 0000000 soh stx etx  lf   A   B   C  fe
 0000010
@@ -39,7 +34,7 @@ testing "od -a (DESKTOP)" \
 SKIP=
 
 testing "od -B" \
-        "od -B | sed 's/ *$//'" \
+        "od -B" \
 "\
 0000000 001001 005003 041101 177103
 0000010
@@ -49,7 +44,7 @@ SKIP=
 
 $le || SKIP=1
 testing "od -o (little-endian)" \
-        "od -o | sed 's/ *$//'" \
+        "od -o" \
 "\
 0000000 001001 005003 041101 177103
 0000010
@@ -58,7 +53,7 @@ testing "od -o (little-endian)" \
 SKIP=
 
 testing "od -b" \
-        "od -b | sed 's/ *$//'" \
+        "od -b" \
 "\
 0000000 001 002 003 012 101 102 103 376
 0000010
@@ -67,7 +62,7 @@ testing "od -b" \
 SKIP=
 
 testing "od -c" \
-        "od -c | sed 's/ *$//'" \
+        "od -c" \
 "\
 0000000 001 002 003  \\\\n   A   B   C 376
 0000010
@@ -77,7 +72,7 @@ SKIP=
 
 $le || SKIP=1
 testing "od -d (little-endian)" \
-        "od -d | sed 's/ *$//'" \
+        "od -d" \
 "\
 0000000   513  2563 16961 65091
 0000010
@@ -88,7 +83,7 @@ SKIP=
 optional !DESKTOP  #DESKTOP: unrecognized option: D
 $le || SKIP=1
 testing "od -D (!DESKTOP little-endian)" \
-        "od -D | sed 's/ *$//'" \
+        "od -D" \
 "\
 0000000  167969281 4265820737
 0000010
@@ -99,7 +94,7 @@ SKIP=
 optional !DESKTOP  #DESKTOP: unrecognized option: e
 $le || SKIP=1
 testing "od -e (!DESKTOP little-endian)" \
-        "od -e | sed 's/ *$//'" \
+        "od -e" \
 "\
 0000000   -1.61218556514036e+300
 0000010
@@ -110,7 +105,7 @@ SKIP=
 optional !DESKTOP  #DESKTOP: unrecognized option: F
 $le || SKIP=1
 testing "od -F (!DESKTOP little-endian)" \
-        "od -F | sed 's/ *$//'" \
+        "od -F" \
 "\
 0000000   -1.61218556514036e+300
 0000010
@@ -120,7 +115,7 @@ SKIP=
 
 $le || SKIP=1
 testing "od -f (little-endian)" \
-        "od -f | sed 's/ *$//'" \
+        "od -f" \
 "\
 0000000   6.3077975e-33  -6.4885867e+37
 0000010
@@ -131,7 +126,7 @@ SKIP=
 optional !DESKTOP  #DESKTOP: unrecognized option: H
 $le || SKIP=1
 testing "od -H (!DESKTOP little-endian)" \
-        "od -H | sed 's/ *$//'" \
+        "od -H" \
 "\
 0000000 0a030201 fe434241
 0000010
@@ -142,7 +137,7 @@ SKIP=
 optional !DESKTOP  #DESKTOP: unrecognized option: X
 $le || SKIP=1
 testing "od -X (!DESKTOP little-endian)" \
-        "od -X | sed 's/ *$//'" \
+        "od -X" \
 "\
 0000000 0a030201 fe434241
 0000010
@@ -152,7 +147,7 @@ SKIP=
 
 $le || SKIP=1
 testing "od -h (little-endian)" \
-        "od -h | sed 's/ *$//'" \
+        "od -h" \
 "\
 0000000 0201 0a03 4241 fe43
 0000010
@@ -162,7 +157,7 @@ SKIP=
 
 $le || SKIP=1
 testing "od -x (little-endian)" \
-        "od -x | sed 's/ *$//'" \
+        "od -x" \
 "\
 0000000 0201 0a03 4241 fe43
 0000010
@@ -173,7 +168,7 @@ SKIP=
 optional !DESKTOP  #DESKTOP: unrecognized option: I
 $le || SKIP=1
 testing "od -I (!DESKTOP little-endian)" \
-        "od -I | sed 's/ *$//'" \
+        "od -I" \
 "\
 0000000  -125183517527965183
 0000010
@@ -184,7 +179,7 @@ SKIP=
 optional !DESKTOP  #DESKTOP: unrecognized option: L
 $le || SKIP=1
 testing "od -L (!DESKTOP little-endian)" \
-        "od -L | sed 's/ *$//'" \
+        "od -L" \
 "\
 0000000  -125183517527965183
 0000010
@@ -194,7 +189,7 @@ SKIP=
 
 $le || SKIP=1
 testing "od -i (little-endian)" \
-        "od -i | sed 's/ *$//'" \
+        "od -i" \
 "\
 0000000   167969281   -29146559
 0000010
@@ -205,7 +200,7 @@ SKIP=
 optional !DESKTOP  #DESKTOP: unrecognized option: O
 $le || SKIP=1
 testing "od -O (!DESKTOP little-endian)" \
-        "od -O | sed 's/ *$//'" \
+        "od -O" \
 "\
 0000000 01200601001 37620641101
 0000010
@@ -216,7 +211,7 @@ SKIP=
 # This probably also depends on word width of the arch (what is "long"?)
 $le || SKIP=1
 testing "od -l (little-endian)" \
-        "od -l | sed 's/ *$//'" \
+        "od -l" \
 "\
 0000000  -125183517527965183
 0000010

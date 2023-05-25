@@ -157,22 +157,22 @@ odoffset(dumper_t *dumper, int argc, char ***argvp)
 // The format is required and must be surrounded by " "s.
 // It is a printf-style format.
 static const char *const add_strings[] ALIGN_PTR = {
-	"16/1 \"%3_u \" \"\\n\"",              /* 0: a */
-	"8/2 \"%06o \" \"\\n\"",               /* 1: B (undocumented in od), o */
-	"16/1 \"%03o \" \"\\n\"",              /* 2: b */
-	"16/1 \"%3_c \" \"\\n\"",              /* 3: c */
-	"8/2 \"%5u \" \"\\n\"",                /* 4: d */
-	"4/4 \"%10u \" \"\\n\"",               /* 5: D */
-	"2/8 \"%24.14e \" \"\\n\"",            /* 6: e (undocumented in od), F */
-	"4/4 \"%15.7e \" \"\\n\"",             /* 7: f */
-	"4/4 \"%08x \" \"\\n\"",               /* 8: H, X */
-	"8/2 \"%04x \" \"\\n\"",               /* 9: h, x */
+	"16/1 \" %3_u\" \"\\n\"",              /* 0: a */
+	"8/2 \" %06o\" \"\\n\"",               /* 1: B (undocumented in od), o */
+	"16/1 \" %03o\" \"\\n\"",              /* 2: b */
+	"16/1 \" %3_c\" \"\\n\"",              /* 3: c */
+	"8/2 \" %5u\" \"\\n\"",                /* 4: d */
+	"4/4 \" %10u\" \"\\n\"",               /* 5: D */
+	"2/8 \" %24.14e\" \"\\n\"",            /* 6: e (undocumented in od), F */
+	"4/4 \" %15.7e\" \"\\n\"",             /* 7: f */
+	"4/4 \" %08x\" \"\\n\"",               /* 8: H, X */
+	"8/2 \" %04x\" \"\\n\"",               /* 9: h, x */
 	/* This probably also depends on word width of the arch (what is "long"?) */
 	/* should be "2/8" or "4/4" depending on sizeof(long)? */
-	"2/8 \"%20lld \" \"\\n\"",             /* 10: I, L, l */
-	"4/4 \"%11d \" \"\\n\"",               /* 11: i */
-	"4/4 \"%011o \" \"\\n\"",              /* 12: O */
-	"8/2 \"%6d \" \"\\n\"",                /* 13: s */
+	"2/8 \" %20lld\" \"\\n\"",             /* 10: I, L, l */
+	"4/4 \" %11d\" \"\\n\"",               /* 11: i */
+	"4/4 \" %011o\" \"\\n\"",              /* 12: O */
+	"8/2 \" %6d\" \"\\n\"",                /* 13: s */
 };
 
 static const char od_opts[] ALIGN1 = "aBbcDdeFfHhIiLlOoXxsv";
@@ -199,9 +199,9 @@ int od_main(int argc, char **argv)
 			if (first) {
 				first = 0;
 				bb_dump_add(dumper, "\"%07.7_Ao\n\"");
-				bb_dump_add(dumper, "\"%07.7_ao \"");
+				bb_dump_add(dumper, "\"%07.7_ao\"");
 			} else {
-				bb_dump_add(dumper, "\"        \"");
+				bb_dump_add(dumper, "\"       \"");
 			}
 			bb_dump_add(dumper, add_strings[(int)od_o2si[(p - od_opts)]]);
 		} else {  /* P, p, s, w, or other unhandled */
@@ -212,6 +212,7 @@ int od_main(int argc, char **argv)
 		bb_dump_add(dumper, "\"%07.7_Ao\n\"");
 		bb_dump_add(dumper, "\"%07.7_ao  \" 8/2 \"%06o \" \"\\n\"");
 	}
+	dumper->od_eofstring = "\n";
 
 	argc -= optind;
 	argv += optind;
