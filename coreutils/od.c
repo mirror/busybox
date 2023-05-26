@@ -22,7 +22,7 @@
 
 //usage:#if !ENABLE_DESKTOP
 //usage:#define od_trivial_usage
-//usage:       "[-abcdeFfhIiLloxsv] [FILE]"
+//usage:       "[-abcdeFfhiloxsv] [FILE]"
 // We also support -BDOHXIL, but they are not documented in coreutils 9.1
 // manpage/help, so don't show them either.
 //usage:#define od_full_usage "\n\n"
