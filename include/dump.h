@@ -33,8 +33,12 @@ typedef struct dumper_t {
 	int dump_length;                /* max bytes to read */
 	smallint dump_vflag;            /*enum dump_vflag_t*/
 	FS *fshead;
+#if ENABLE_XXD
 	const char *xxd_eofstring;
+#endif
+#if ENABLE_OD
 	const char *od_eofstring;
+#endif
 	off_t address;           /* address/offset in stream */
 	long long xxd_displayoff;
 } dumper_t;

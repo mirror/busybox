@@ -563,17 +563,21 @@ static NOINLINE void display(priv_dumper_t* dumper)
 						if (dumper->eaddress
 						 && dumper->pub.address >= dumper->eaddress
 						) {
+#if ENABLE_XXD
 							if (dumper->pub.xxd_eofstring) {
 								/* xxd support: requested to not pad incomplete blocks */
 								fputs_stdout(dumper->pub.xxd_eofstring);
 								return;
 							}
+#endif
+#if ENABLE_OD
 							if (dumper->pub.od_eofstring) {
 								/* od support: requested to not pad incomplete blocks */
 								/* ... but do print final offset */
 								fputs_stdout(dumper->pub.od_eofstring);
 								goto endfu;
 							}
+#endif
 							if (!(pr->flags & (F_TEXT | F_BPAD)))
 								bpad(pr);
 						}
@@ -637,7 +641,7 @@ static NOINLINE void display(priv_dumper_t* dumper)
 								goto skip;
 							}
 							printf(pr->fmt, value);
- skip:
+ IF_OD(skip:)
 							break;
 						}
 						case F_P:

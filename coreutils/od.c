@@ -223,7 +223,7 @@ int od_main(int argc, char **argv)
 
 	return bb_dump_dump(dumper, argv);
 }
-#endif /* ENABLE_DESKTOP */
+#endif /* !ENABLE_DESKTOP */
 
 /*-
  * Copyright (c) 1990 The Regents of the University of California.
