@@ -619,31 +619,31 @@ static NOINLINE void display(priv_dumper_t* dumper)
 						}
 						case F_INT: {
 							union {
-								uint16_t val16;
-								uint32_t val32;
-								uint64_t val64;
+								int16_t ival16;
+								int32_t ival32;
+								int64_t ival64;
 							} u;
-							int value = *bp;
+							int value = (signed char)*bp;
 
 							switch (pr->bcnt) {
 							case 1:
 								break;
 							case 2:
-								memcpy(&u.val16, bp, 2);
-								value = u.val16;
+								move_from_unaligned16(u.ival16, bp);
+								value = u.ival16;
 								break;
 							case 4:
-								memcpy(&u.val32, bp, 4);
-								value = u.val32;
+								move_from_unaligned32(u.ival32, bp);
+								value = u.ival32;
 								break;
 							case 8:
-								memcpy(&u.val64, bp, 8);
+								move_from_unaligned64(u.ival64, bp);
 //A hack. Users _must_ use %llX formats to not truncate high bits
-								printf(pr->fmt, (long long) u.val64);
+								printf(pr->fmt, (long long)u.ival64);
 								goto skip;
 							}
 							printf(pr->fmt, value);
- IF_OD(skip:)
+ skip:
 							break;
 						}
 						case F_P:
@@ -659,22 +659,19 @@ static NOINLINE void display(priv_dumper_t* dumper)
 							conv_u(pr, bp);
 							break;
 						case F_UINT: {
-							unsigned ival;
-							unsigned short sval;
-
+							unsigned value = (unsigned char)*bp;
 							switch (pr->bcnt) {
 							case 1:
-								printf(pr->fmt, (unsigned) *bp);
 								break;
 							case 2:
-								memcpy(&sval, bp, sizeof(sval));
-								printf(pr->fmt, (unsigned) sval);
+								move_from_unaligned16(value, bp);
 								break;
 							case 4:
-								memcpy(&ival, bp, sizeof(ival));
-								printf(pr->fmt, ival);
+								move_from_unaligned32(value, bp);
 								break;
+							/* case 8: no users yet */
 							}
+							printf(pr->fmt, value);
 							break;
 						}
 						}
@@ -686,7 +683,7 @@ static NOINLINE void display(priv_dumper_t* dumper)
 			}
 		}
 	}
- endfu:
+ IF_OD(endfu:)
 	if (dumper->endfu) {
 		PR *pr;
 		/*
