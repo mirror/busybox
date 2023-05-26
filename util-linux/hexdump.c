@@ -72,14 +72,20 @@ static void bb_dump_addfile(dumper_t *dumper, char *name)
 }
 
 static const char *const add_strings[] ALIGN_PTR = {
-	"\"%07_ax\"16/1 \" %03o\""   "\"\n\"", /* b */
-	"\"%07_ax\"16/1 \" %3_c\""   "\"\n\"", /* c */
-	"\"%07_ax\"8/2 \"   %05u\""  "\"\n\"", /* d */
-	"\"%07_ax\"8/2 \"  %06o\""   "\"\n\"", /* o */
-	"\"%07_ax\"8/2 \"    %04x\"" "\"\n\"", /* x */
+	"16/1 \" %03o"  , /* b */
+	"16/1 \" %3_c"  , /* c */
+	"8/2 \"   %05u" , /* d */
+	"8/2 \"  %06o"  , /* o */
+	"8/2 \"    %04x", /* x */
 };
 
-static const char add_first[] ALIGN1 = "\"%07_Ax\n\"";
+static void add_format(dumper_t *dumper, const char *fmt)
+{
+	char fmtbuf[sizeof("\"%07_ax\"" "%s\"" "\"\n\"") + 16];
+	sprintf(fmtbuf, "\"%%07_ax\"" "%s\"" "\"\n\"", fmt);
+	bb_dump_add(dumper, "\"%07_Ax\n\"");
+	bb_dump_add(dumper, fmtbuf);
+}
 
 static const char hexdump_opts[] ALIGN1 = "bcdoxCe:f:n:s:v";
 
@@ -104,8 +110,7 @@ int hexdump_main(int argc, char **argv)
 		if (!p)
 			bb_show_usage();
 		if ((p - hexdump_opts) < 5) {
-			bb_dump_add(dumper, add_first);
-			bb_dump_add(dumper, add_strings[(int)(p - hexdump_opts)]);
+			add_format(dumper, add_strings[(int)(p - hexdump_opts)]);
 		}
 		/* Save a little bit of space below by omitting the 'else's. */
 		if (ch == 'C') {
@@ -139,8 +144,7 @@ int hexdump_main(int argc, char **argv)
 	}
 
 	if (!dumper->fshead) {
-		bb_dump_add(dumper, add_first);
-		bb_dump_add(dumper, "\"%07_ax\"8/2 \" %04x\"\"\n\"");
+		add_format(dumper, "8/2 \" %04x");
 	}
 
 	argv += optind;
