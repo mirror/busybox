@@ -72,14 +72,14 @@ static void bb_dump_addfile(dumper_t *dumper, char *name)
 }
 
 static const char *const add_strings[] ALIGN_PTR = {
-	"\"%07.7_ax \"16/1 \"%03o \"\"\n\"",   /* b */
-	"\"%07.7_ax \"16/1 \"%3_c \"\"\n\"",   /* c */
-	"\"%07.7_ax \"8/2 \"  %05u \"\"\n\"",  /* d */
-	"\"%07.7_ax \"8/2 \" %06o \"\"\n\"",   /* o */
-	"\"%07.7_ax \"8/2 \"   %04x \"\"\n\"", /* x */
+	"\"%07_ax\"16/1 \" %03o\""   "\"\n\"", /* b */
+	"\"%07_ax\"16/1 \" %3_c\""   "\"\n\"", /* c */
+	"\"%07_ax\"8/2 \"   %05u\""  "\"\n\"", /* d */
+	"\"%07_ax\"8/2 \"  %06o\""   "\"\n\"", /* o */
+	"\"%07_ax\"8/2 \"    %04x\"" "\"\n\"", /* x */
 };
 
-static const char add_first[] ALIGN1 = "\"%07.7_Ax\n\"";
+static const char add_first[] ALIGN1 = "\"%07_Ax\n\"";
 
 static const char hexdump_opts[] ALIGN1 = "bcdoxCe:f:n:s:v";
 
@@ -110,9 +110,9 @@ int hexdump_main(int argc, char **argv)
 		/* Save a little bit of space below by omitting the 'else's. */
 		if (ch == 'C') {
  hd_applet:
-			bb_dump_add(dumper, "\"%08.8_Ax\n\""); // final address line after dump
-			//------------------- "address  "   8 * "xx "    "  "  8 * "xx "
-			bb_dump_add(dumper, "\"%08.8_ax  \"8/1 \"%02x \"\"  \"8/1 \"%02x \"");
+			bb_dump_add(dumper, "\"%08_Ax\n\""); // final address line after dump
+			//------------------- "address "   8 * " xx"  " "  8 * " xx"
+			bb_dump_add(dumper, "\"%08_ax \"8/1 \" %02x\"\" \"8/1 \" %02x\"");
 			//------------------- "  |ASCII...........|\n"
 			bb_dump_add(dumper, "\"  |\"16/1 \"%_p\"\"|\n\"");
 		}
@@ -140,7 +140,7 @@ int hexdump_main(int argc, char **argv)
 
 	if (!dumper->fshead) {
 		bb_dump_add(dumper, add_first);
-		bb_dump_add(dumper, "\"%07.7_ax \"8/2 \"%04x \"\"\n\"");
+		bb_dump_add(dumper, "\"%07_ax\"8/2 \" %04x\"\"\n\"");
 	}
 
 	argv += optind;

@@ -285,7 +285,7 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 			// output is "  0xXX, 0xXX, 0xXX...", add leading space
 			bb_dump_add(dumper, "\" \"");
 		} else
-			bb_dump_add(dumper, "\"%08.8_ax: \""); // "address: "
+			bb_dump_add(dumper, "\"%08_ax: \""); // "address: "
 	}
 
 	if (bytes < 1 || bytes >= cols) {
