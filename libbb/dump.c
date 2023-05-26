@@ -653,7 +653,7 @@ static NOINLINE void display(priv_dumper_t* dumper)
 							printf(pr->fmt, (char *) bp);
 							break;
 						case F_TEXT:
-							printf(pr->fmt);
+							fputs_stdout(pr->fmt);
 							break;
 						case F_U:
 							conv_u(pr, bp);
@@ -705,7 +705,7 @@ static NOINLINE void display(priv_dumper_t* dumper)
 				printf(pr->fmt, (unsigned long long) dumper->eaddress + dumper->pub.xxd_displayoff);
 				break;
 			case F_TEXT:
-				printf(pr->fmt);
+				fputs_stdout(pr->fmt);
 				break;
 			}
 		}
