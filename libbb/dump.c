@@ -516,10 +516,12 @@ static void conv_u(PR *pr, unsigned char *p)
 	static const char list[] ALIGN1 =
 		"nul\0soh\0stx\0etx\0eot\0enq\0ack\0bel\0"
 		"bs\0_ht\0_lf\0_vt\0_ff\0_cr\0_so\0_si\0_"
-		"dle\0dcl\0dc2\0dc3\0dc4\0nak\0syn\0etb\0"
+		"dle\0dc1\0dc2\0dc3\0dc4\0nak\0syn\0etb\0"
 		"can\0em\0_sub\0esc\0fs\0_gs\0_rs\0_us";
+	/* NB: bug: od uses %_u to implement -a,
+	 * but it should use "nl", not "lf", for char #10.
+	 */
 
-	/* od used nl, not lf */
 	if (*p <= 0x1f) {
 		*pr->cchar = 's';
 		printf(pr->fmt, list + (4 * (int)*p));

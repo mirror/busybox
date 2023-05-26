@@ -34,4 +34,20 @@ testing "hexdump thinks last full block can match" \
 	'' \
 	'\0\0\0\0\0\0\0\0\0\0\0\0'
 
+testing "hexdump e %3_u" \
+	"hexdump -e '16/1 \" %3_u\" \"\n\"'" \
+	"\
+ nul soh stx etx eot enq ack bel  bs  ht  lf  vt  ff  cr  so  si
+ dle dc1 dc2 dc3 dc4 nak syn etb can  em sub esc  fs  gs  rs  us
+   p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~ del
+  80  81  82  83  84  85  86  87  88  89  8a  8b  8c  8d  8e  8f
+  f0  f1  f2  f3  f4  f5  f6  f7  f8  f9  fa  fb  fc  fd  fe  ff
+" \
+	"" \
+"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"\
+"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"\
+"\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f"\
+"\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f"\
+"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"\
+
 exit $FAILCOUNT
