@@ -8,11 +8,11 @@
 
 input="$(printf '\001\002\003\nABC\xfe')"
 
-le=false
-{ printf '\0\1' | od -s | grep -q 256; } && le=true
-readonly le
+little_endian=false
+{ printf '\0\1' | od -s | grep -q 256; } && little_endian=true
+readonly little_endian
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od (little-endian)" \
         "od" \
 "\
@@ -70,7 +70,7 @@ testing "od -B" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -o (little-endian)" \
         "od -o" \
 "\
@@ -98,7 +98,7 @@ testing "od -c" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -d (little-endian)" \
         "od -d" \
 "\
@@ -108,7 +108,7 @@ testing "od -d (little-endian)" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -D (little-endian)" \
         "od -D" \
 "\
@@ -119,7 +119,7 @@ testing "od -D (little-endian)" \
 SKIP=
 
 optional !DESKTOP  #DESKTOP: unrecognized option: e
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -e (!DESKTOP little-endian)" \
         "od -e" \
 "\
@@ -130,7 +130,7 @@ testing "od -e (!DESKTOP little-endian)" \
 SKIP=
 
 optional !DESKTOP  #DESKTOP: unrecognized option: F
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -F (!DESKTOP little-endian)" \
         "od -F" \
 "\
@@ -140,7 +140,7 @@ testing "od -F (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -f (little-endian)" \
         "od -f" \
 "\
@@ -150,7 +150,7 @@ testing "od -f (little-endian)" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -H (little-endian)" \
         "od -H" \
 "\
@@ -160,7 +160,7 @@ testing "od -H (little-endian)" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -X (little-endian)" \
         "od -X" \
 "\
@@ -170,7 +170,7 @@ testing "od -X (little-endian)" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -h (little-endian)" \
         "od -h" \
 "\
@@ -180,7 +180,7 @@ testing "od -h (little-endian)" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -x (little-endian)" \
         "od -x" \
 "\
@@ -190,7 +190,7 @@ testing "od -x (little-endian)" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -i (little-endian)" \
         "od -i" \
 "\
@@ -200,7 +200,7 @@ testing "od -i (little-endian)" \
 	"" "$input"
 SKIP=
 
-$le || SKIP=1
+$little_endian || SKIP=1
 testing "od -O (little-endian)" \
         "od -O" \
 "\
@@ -210,8 +210,9 @@ testing "od -O (little-endian)" \
 	"" "$input"
 SKIP=
 
-# This probably also depends on word width of the arch (what is "long"?)
-$le || SKIP=1
+# 32-bit?
+printf '00000000' | od -l | grep -q '808464432 *808464432' && SKIP=1 #yes, skip
+$little_endian || SKIP=1
 testing "od -I (little-endian)" \
         "od -I" \
 "\

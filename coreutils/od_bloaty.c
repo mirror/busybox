@@ -1257,11 +1257,15 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_f) decode_format_string("fF");
 	if (opt & (OPT_h|OPT_x)) decode_format_string("x2");
 	if (opt & (OPT_H|OPT_X)) decode_format_string("xI");
+	/* -I,L,l: depend on word width of the arch (what is "long"?) */
+#if ULONG_MAX > 0xffffffff
 	if (opt & OPT_i) decode_format_string("dI");
+	if (opt & (OPT_I|OPT_l|OPT_L)) decode_format_string("dL");
+#else
+	/* 32-bit arch: -I,L,l are the same as -i */
+	if (opt & (OPT_i|OPT_I|OPT_l|OPT_L)) decode_format_string("dI");
+#endif
 	if (opt & OPT_j) n_bytes_to_skip = xstrtooff_sfx(str_j, 0, bkm_suffixes);
-	/* This probably also depends on word width of the arch (what is "long"?) */
-	/* should be "d4" or "d8" depending on sizeof(long)? */
-	if (opt & (OPT_I|OPT_l|OPT_L)) decode_format_string("d8");
 	if (opt & (OPT_o|OPT_B)) decode_format_string("o2");
 	if (opt & OPT_O) decode_format_string("oI");
 	while (lst_t) {

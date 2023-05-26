@@ -170,12 +170,17 @@ static const char *const add_strings[] ALIGN_PTR = {
 	"4/4 \" %15.7e\""  "\"\n\"",            /* 7: f */
 	"4/4 \" %08x\""    "\"\n\"",            /* 8: H, X */
 	"8/2 \" %04x\""    "\"\n\"",            /* 9: h, x */
-	/* This probably also depends on word width of the arch (what is "long"?) */
-	/* should be "2/8" or "4/4" depending on sizeof(long)? */
-	"2/8 \" %20lld\""  "\"\n\"",            /* 10: I, L, l */
-	"4/4 \" %11d\""    "\"\n\"",            /* 11: i */
-	"4/4 \" %011o\""   "\"\n\"",            /* 12: O */
-	"8/2 \" %6d\""     "\"\n\"",            /* 13: s */
+	"4/4 \" %11d\""    "\"\n\"",            /* 10: i */
+	"4/4 \" %011o\""   "\"\n\"",            /* 11: O */
+	"8/2 \" %6d\""     "\"\n\"",            /* 12: s */
+	/* -I,L,l: depend on word width of the arch (what is "long"?) */
+#if ULONG_MAX > 0xffffffff
+	"2/8 \" %20lld\""  "\"\n\"",            /* 13: I, L, l */
+#define L_ 13
+#else
+	/* 32-bit arch: -I,L,l are the same as -i */
+#define L_ 10
+#endif
 };
 
 static const char od_opts[] ALIGN1 = "aBbcDdeFfHhIiLlOoXxsv";
@@ -183,8 +188,8 @@ static const char od_opts[] ALIGN1 = "aBbcDdeFfHhIiLlOoXxsv";
 static const char od_o2si[] ALIGN1 = {
 	0, 1, 2, 3, 5,     /* aBbcD */
 	4, 6, 6, 7, 8,     /* deFfH */
-	9, 10, 11, 10, 10, /* hIiLl */
-	12, 1, 8, 9, 13    /* OoXxs */
+	9, L_, 10, L_, L_, /* hIiLl */
+	11, 1, 8, 9, 12    /* OoXxs */
 };
 
 int od_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
