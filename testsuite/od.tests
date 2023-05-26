@@ -12,6 +12,16 @@ le=false
 { printf '\0\1' | od -s | grep -q 256; } && le=true
 readonly le
 
+$le || SKIP=1
+testing "od (little-endian)" \
+        "od" \
+"\
+0000000 001001 005003 041101 177103
+0000010
+" \
+	"" "$input"
+SKIP=
+
 optional !DESKTOP
 testing "od -a (!DESKTOP)" \
         "od -a" \
