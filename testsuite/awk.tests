@@ -485,4 +485,59 @@ testing 'awk assign while test' \
 	"" \
 	"foo"
 
+# User-supplied bug (SEGV) example, was causing use-after-realloc
+testing 'awk assign while assign' \
+	"awk '\$5=\$\$5=\$0'; echo \$?" \
+	"\
+─ process timing ────────────────────────────────────┬─ ─ process timing ────────────────────────────────────┬─ overall results ────┐ results ────┐
+│ run time : │        run time : 0 days, 0 hrs, 0 min, 56 sec      │  cycles done : 0     │ days, 0 hrs, 0 min, 56 sec │ cycles done : 0 │
+│ last new find │   last new find : 0 days, 0 hrs, 0 min, 1 sec       │ corpus count : 208   │ 0 days, 0 hrs, 0 min, 1 sec │ corpus count : 208 │
+│last saved crash : │last saved crash : none seen yet                     │saved crashes : 0     │ seen yet │saved crashes : 0 │
+│ last saved hang │ last saved hang : none seen yet                     │  saved hangs : 0     │ none seen yet │ saved hangs : 0 │
+├─ cycle progress ─────────────────────┬─ ├─ cycle progress ─────────────────────┬─ map coverage┴──────────────────────┤ coverage┴──────────────────────┤
+│ now processing : │  now processing : 184.1 (88.5%)      │    map density : 0.30% / 0.52%      │ (88.5%) │ map density : 0.30% / 0.52% │                                                                                                                                                                          │  now processing : 184.1 (88.5%)      │    map density : 0.30% / 0.52%      │
+│ runs timed out │  runs timed out : 0 (0.00%)          │ count coverage : 2.18 bits/tuple    │ 0 (0.00%) │ count coverage : 2.18 bits/tuple │
+├─ stage progress ─────────────────────┼─ ├─ stage progress ─────────────────────┼─ findings in depth ─────────────────┤ in depth ─────────────────┤
+│ now trying : │  now trying : havoc                  │ favored items : 43 (20.67%)         │ │ favored items : 43 (20.67%) │
+│ stage execs : │ stage execs : 11.2k/131k (8.51%)     │  new edges on : 52 (25.00%)         │ (8.51%) │ new edges on │ stage execs : 11.2k/131k (8.51%)     │  new edges on : 52 (25.00%)         │ 52 (25.00%) │
+│ total execs : │ total execs : 179k                   │ total crashes : 0 (0 saved)         │ │ total crashes : 0 (0 saved) │                                                                                                                                                                      │ total execs : 179k                   │ total crashes : 0 (0 saved)         │
+│ exec speed : │  exec speed : 3143/sec               │  total tmouts : 0 (0 saved)         │ │ total tmouts : 0 (0 saved) │                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          │  exec speed : 3143/sec               │  total tmouts : 0 (0 saved)         │
+├─ fuzzing strategy yields ├─ fuzzing strategy yields ────────────┴─────────────┬─ item geometry ───────┤ item geometry ───────┤
+│ bit flips : │   bit flips : 11/648, 4/638, 5/618                 │    levels : 4         │ 4/638, 5/618 │ levels : │   bit flips : 11/648, 4/638, 5/618                 │    levels : 4         │ │
+│ byte flips : │  byte flips : 0/81, 0/71, 0/52                     │   pending : 199       │ 0/71, 0/52 │ pending : 199 │
+│ arithmetics : 11/4494, │ arithmetics : 11/4494, 0/1153, 0/0                 │  pend fav : 35        │ 0/0 │ pend fav : 35 │
+│  known ints : 1/448, 0/1986, 0/2288                │ own finds : 207       │ known ints : │  known ints : 1/448, 0/1986, 0/2288                │ own finds : 207       │ 0/1986, 0/2288 │ own finds : 207 │
+│ dictionary : 0/0, │  dictionary : 0/0, 0/0, 0/0, 0/0                   │  imported : 0         │ 0/0, 0/0 │ imported : 0 │
+│havoc/splice : 142/146k, 23/7616 │havoc/splice : 142/146k, 23/7616                    │ stability : 100.00%   │ stability : 100.00% │
+│py/custom/rq : unused, unused, │py/custom/rq : unused, unused, unused, unused       ├───────────────────────┘ unused ├───────────────────────┘
+│ trim/eff : 57.02%/26, │    trim/eff : 57.02%/26, 0.00%                     │          [cpu000:100%] │ [cpu000:100%]
+└────────────────────────────────────────────────────┘^C    └────────────────────────────────────────────────────┘^C
+0
+" \
+	"" \
+	"\
+─ process timing ────────────────────────────────────┬─ overall results ────┐
+│        run time : 0 days, 0 hrs, 0 min, 56 sec      │  cycles done : 0     │
+│   last new find : 0 days, 0 hrs, 0 min, 1 sec       │ corpus count : 208   │
+│last saved crash : none seen yet                     │saved crashes : 0     │
+│ last saved hang : none seen yet                     │  saved hangs : 0     │
+├─ cycle progress ─────────────────────┬─ map coverage┴──────────────────────┤
+│  now processing : 184.1 (88.5%)      │    map density : 0.30% / 0.52%      │
+│  runs timed out : 0 (0.00%)          │ count coverage : 2.18 bits/tuple    │
+├─ stage progress ─────────────────────┼─ findings in depth ─────────────────┤
+│  now trying : havoc                  │ favored items : 43 (20.67%)         │
+│ stage execs : 11.2k/131k (8.51%)     │  new edges on : 52 (25.00%)         │
+│ total execs : 179k                   │ total crashes : 0 (0 saved)         │
+│  exec speed : 3143/sec               │  total tmouts : 0 (0 saved)         │
+├─ fuzzing strategy yields ────────────┴─────────────┬─ item geometry ───────┤
+│   bit flips : 11/648, 4/638, 5/618                 │    levels : 4         │
+│  byte flips : 0/81, 0/71, 0/52                     │   pending : 199       │
+│ arithmetics : 11/4494, 0/1153, 0/0                 │  pend fav : 35        │
+│  known ints : 1/448, 0/1986, 0/2288                │ own finds : 207       │
+│  dictionary : 0/0, 0/0, 0/0, 0/0                   │  imported : 0         │
+│havoc/splice : 142/146k, 23/7616                    │ stability : 100.00%   │
+│py/custom/rq : unused, unused, unused, unused       ├───────────────────────┘
+│    trim/eff : 57.02%/26, 0.00%                     │          [cpu000:100%]
+└────────────────────────────────────────────────────┘^C"
+
 exit $FAILCOUNT
