@@ -90,9 +90,8 @@ testing "od -d (little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP  #DESKTOP: unrecognized option: D
 $le || SKIP=1
-testing "od -D (!DESKTOP little-endian)" \
+testing "od -D (little-endian)" \
         "od -D" \
 "\
 0000000  167969281 4265820737
@@ -133,9 +132,8 @@ testing "od -f (little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP  #DESKTOP: unrecognized option: H
 $le || SKIP=1
-testing "od -H (!DESKTOP little-endian)" \
+testing "od -H (little-endian)" \
         "od -H" \
 "\
 0000000 0a030201 fe434241
@@ -144,9 +142,8 @@ testing "od -H (!DESKTOP little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP  #DESKTOP: unrecognized option: X
 $le || SKIP=1
-testing "od -X (!DESKTOP little-endian)" \
+testing "od -X (little-endian)" \
         "od -X" \
 "\
 0000000 0a030201 fe434241
@@ -175,28 +172,6 @@ testing "od -x (little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP  #DESKTOP: unrecognized option: I
-$le || SKIP=1
-testing "od -I (!DESKTOP little-endian)" \
-        "od -I" \
-"\
-0000000  -125183517527965183
-0000010
-" \
-	"" "$input"
-SKIP=
-
-optional !DESKTOP  #DESKTOP: unrecognized option: L
-$le || SKIP=1
-testing "od -L (!DESKTOP little-endian)" \
-        "od -L" \
-"\
-0000000  -125183517527965183
-0000010
-" \
-	"" "$input"
-SKIP=
-
 $le || SKIP=1
 testing "od -i (little-endian)" \
         "od -i" \
@@ -207,9 +182,8 @@ testing "od -i (little-endian)" \
 	"" "$input"
 SKIP=
 
-optional !DESKTOP  #DESKTOP: unrecognized option: O
 $le || SKIP=1
-testing "od -O (!DESKTOP little-endian)" \
+testing "od -O (little-endian)" \
         "od -O" \
 "\
 0000000 01200601001 37620641101
@@ -220,6 +194,20 @@ SKIP=
 
 # This probably also depends on word width of the arch (what is "long"?)
 $le || SKIP=1
+testing "od -I (little-endian)" \
+        "od -I" \
+"\
+0000000  -125183517527965183
+0000010
+" \
+	"" "$input"
+testing "od -L (little-endian)" \
+        "od -L" \
+"\
+0000000  -125183517527965183
+0000010
+" \
+	"" "$input"
 testing "od -l (little-endian)" \
         "od -l" \
 "\

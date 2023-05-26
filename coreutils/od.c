@@ -22,7 +22,9 @@
 
 //usage:#if !ENABLE_DESKTOP
 //usage:#define od_trivial_usage
-//usage:       "[-aBbcDdeFfHhIiLlOoXxsv] [FILE]"
+//usage:       "[-abcdeFfhIiLloxsv] [FILE]"
+// We also support -BDOHXIL, but they are not documented in coreutils 9.1
+// manpage/help, so don't show them either.
 //usage:#define od_full_usage "\n\n"
 //usage:       "Print FILE (or stdin) unambiguously, as octal bytes by default"
 //usage:#endif
