@@ -546,7 +546,6 @@ struct globals {
 	chain beginseq, mainseq, endseq;
 	chain *seq;
 	node *break_ptr, *continue_ptr;
-	rstream *iF;
 	xhash *ahash;  /* argument names, used only while parsing function bodies */
 	xhash *fnhash; /* function names, used only in parsing stage */
 	xhash *vhash;  /* variables and arrays */
@@ -579,11 +578,12 @@ struct globals2 {
 
 	var *intvar[NUM_INTERNAL_VARS]; /* often used */
 
+	rstream iF;
+
 	/* former statics from various functions */
 	char *split_f0__fstrings;
 
-	rstream next_input_file__rsm;
-	smallint next_input_file__files_happen;
+	smallint next_input_file__input_file_seen;
 
 	smalluint exitcode;
 
@@ -618,7 +618,6 @@ struct globals2 {
 #define seq          (G1.seq         )
 #define break_ptr    (G1.break_ptr   )
 #define continue_ptr (G1.continue_ptr)
-#define iF           (G1.iF          )
 #define ahash        (G1.ahash       )
 #define fnhash       (G1.fnhash      )
 #define vhash        (G1.vhash       )
@@ -644,6 +643,7 @@ struct globals2 {
 #define t_string     (G.t_string    )
 #define t_lineno     (G.t_lineno    )
 #define intvar       (G.intvar      )
+#define iF           (G.iF          )
 #define fsplitter    (G.fsplitter   )
 #define rsplitter    (G.rsplitter   )
 #define g_buf        (G.g_buf       )
@@ -2799,7 +2799,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 
 /* if expr looks like "var=value", perform assignment and return 1,
  * otherwise return 0 */
-static int is_assignment(const char *expr)
+static int try_to_assign(const char *expr)
 {
 	char *exprc, *val;
 
@@ -2819,39 +2819,44 @@ static int is_assignment(const char *expr)
 }
 
 /* switch to next input file */
-static rstream *next_input_file(void)
+static int next_input_file(void)
 {
-#define rsm          (G.next_input_file__rsm)
-#define files_happen (G.next_input_file__files_happen)
+#define input_file_seen (G.next_input_file__input_file_seen)
+	const char *fname;
 
-	const char *fname, *ind;
-
-	if (rsm.F)
-		fclose(rsm.F);
-	rsm.F = NULL;
-	rsm.pos = rsm.adv = 0;
+	if (iF.F) {
+		fclose(iF.F);
+		iF.F = NULL;
+		iF.pos = iF.adv = 0;
+	}
 
 	for (;;) {
+		const char *ind;
+
 		if (getvar_i(intvar[ARGIND])+1 >= getvar_i(intvar[ARGC])) {
-			if (files_happen)
-				return NULL;
+			if (input_file_seen)
+				return FALSE;
 			fname = "-";
-			rsm.F = stdin;
+			iF.F = stdin;
 			break;
 		}
 		ind = getvar_s(incvar(intvar[ARGIND]));
 		fname = getvar_s(findvar(iamarray(intvar[ARGV]), ind));
-		if (fname && *fname && !is_assignment(fname)) {
-			rsm.F = xfopen_stdin(fname);
+		if (fname && *fname) {
+			/* "If a filename on the command line has the form
+			 * var=val it is treated as a variable assignment"
+			 */
+			if (try_to_assign(fname))
+				continue;
+			iF.F = xfopen_stdin(fname);
 			break;
 		}
 	}
 
-	files_happen = TRUE;
 	setvar_s(intvar[FILENAME], fname);
-	return &rsm;
-#undef rsm
-#undef files_happen
+	input_file_seen = TRUE;
+	return TRUE;
+#undef input_file_seen
 }
 
 /*
@@ -3231,12 +3236,12 @@ static var *evaluate(node *op, var *res)
 					}
 				}
 			} else {
-				if (!iF)
-					iF = next_input_file();
-				rsm = iF;
+				if (!iF.F)
+					next_input_file();
+				rsm = &iF;
 			}
 
-			if (!rsm || !rsm->F) {
+			if (!rsm->F) {
 				setvar_i(intvar[ERRNO], errno);
 				setvar_i(res, -1);
 				break;
@@ -3659,7 +3664,7 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 		setvar_s(intvar[FS], opt_F);
 	}
 	while (list_v) {
-		if (!is_assignment(llist_pop(&list_v)))
+		if (!try_to_assign(llist_pop(&list_v)))
 			bb_show_usage();
 	}
 
@@ -3718,15 +3723,14 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 		awk_exit();
 
 	/* input file could already be opened in BEGIN block */
-	if (!iF)
-		iF = next_input_file();
-
-	/* passing through input files */
-	while (iF) {
+	if (!iF.F)
+		goto next_file; /* no, it wasn't, go try opening */
+	/* Iterate over input files */
+	for (;;) {
 		nextfile = FALSE;
 		setvar_i(intvar[FNR], 0);
 
-		while ((i = awk_getline(iF, intvar[F0])) > 0) {
+		while ((i = awk_getline(&iF, intvar[F0])) > 0) {
 			nextrec = FALSE;
 			incvar(intvar[NR]);
 			incvar(intvar[FNR]);
@@ -3735,11 +3739,11 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 			if (nextfile)
 				break;
 		}
-
 		if (i < 0)
 			syntax_error(strerror(errno));
-
-		iF = next_input_file();
+ next_file:
+		if (!next_input_file())
+			break;
 	}
 
 	awk_exit();
