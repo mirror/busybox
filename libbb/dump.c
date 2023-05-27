@@ -590,7 +590,11 @@ static NOINLINE void display(priv_dumper_t* dumper)
 						}
 						switch (pr->flags) {
 						case F_ADDRESS:
-							printf(pr->fmt, (unsigned long long) dumper->pub.address + dumper->pub.xxd_displayoff);
+							printf(pr->fmt, (unsigned long long) dumper->pub.address
+#if ENABLE_XXD
+								+ dumper->pub.xxd_displayoff
+#endif
+							);
 							break;
 						case F_BPAD:
 							printf(pr->fmt, "");
@@ -699,7 +703,11 @@ static NOINLINE void display(priv_dumper_t* dumper)
 		for (pr = dumper->endfu->nextpr; pr; pr = pr->nextpr) {
 			switch (pr->flags) {
 			case F_ADDRESS:
-				printf(pr->fmt, (unsigned long long) dumper->eaddress + dumper->pub.xxd_displayoff);
+				printf(pr->fmt, (unsigned long long) dumper->eaddress
+#if ENABLE_XXD
+					+ dumper->pub.xxd_displayoff
+#endif
+				);
 				break;
 			case F_TEXT:
 				fputs_stdout(pr->fmt);

@@ -33,14 +33,14 @@ typedef struct dumper_t {
 	int dump_length;                /* max bytes to read */
 	smallint dump_vflag;            /*enum dump_vflag_t*/
 	FS *fshead;
-#if ENABLE_XXD
-	const char *xxd_eofstring;
-#endif
 #if ENABLE_OD
 	const char *od_eofstring;
 #endif
-	off_t address;           /* address/offset in stream */
+#if ENABLE_XXD
+	const char *xxd_eofstring;
 	long long xxd_displayoff;
+#endif
+	off_t address;           /* address/offset in stream */
 } dumper_t;
 
 dumper_t* alloc_dumper(void) FAST_FUNC;
