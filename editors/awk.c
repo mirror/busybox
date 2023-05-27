@@ -2049,13 +2049,17 @@ static int awk_split(const char *s, node *spl, char **slist)
 		}
 		return n;
 	}
-	/* space split */
+	/* space split: "In the special case that FS is a single space,
+	 * fields are separated by runs of spaces and/or tabs and/or newlines"
+	 */
 	while (*s) {
-		s = skip_whitespace(s);
+		/* s = skip_whitespace(s); -- WRONG (also skips \v \f \r) */
+		while (*s == ' ' || *s == '\t' || *s == '\n')
+			s++;
 		if (!*s)
 			break;
 		n++;
-		while (*s && !isspace(*s))
+		while (*s && !(*s == ' ' || *s == '\t' || *s == '\n'))
 			*s1++ = *s++;
 		*s1++ = '\0';
 	}
@@ -2304,7 +2308,6 @@ static int awk_getline(rstream *rsm, var *v)
 			setvar_i(intvar[ERRNO], errno);
 		}
 		b[p] = '\0';
-
 	} while (p > pp);
 
 	if (p == 0) {
@@ -3145,7 +3148,7 @@ static var *evaluate(node *op, var *res)
 			/* make sure that we never return a temp var */
 			if (L.v == TMPVAR0)
 				L.v = res;
-			/* if source is a temporary string, jusk relink it to dest */
+			/* if source is a temporary string, just relink it to dest */
 			if (R.v == TMPVAR1
 			 && !(R.v->type & VF_NUMBER)
 				/* Why check !NUMBER? if R.v is a number but has cached R.v->string,

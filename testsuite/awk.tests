@@ -540,4 +540,11 @@ testing 'awk assign while assign' \
 │    trim/eff : 57.02%/26, 0.00%                     │          [cpu000:100%]
 └────────────────────────────────────────────────────┘^C"
 
+# If field separator FS=' ' (default), fields are split only on
+# space or tab or linefeed, NOT other whitespace.
+testing 'awk does not split on CR (char 13)' \
+	"awk '{ \$1=\$0; print }'" \
+	'word1 word2 word3\r word2 word3\r\n' \
+	'' 'word1 word2 word3\r'
+
 exit $FAILCOUNT
