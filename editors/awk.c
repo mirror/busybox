@@ -2236,7 +2236,7 @@ static int awk_getline(rstream *rsm, var *v)
 {
 	char *b;
 	regmatch_t pmatch[1];
-	int size, a, p, pp = 0;
+	int a, p, pp = 0;
 	int fd, so, eo, r, rp;
 	char c, *m, *s;
 
@@ -2249,12 +2249,11 @@ static int awk_getline(rstream *rsm, var *v)
 	m = rsm->buffer;
 	a = rsm->adv;
 	p = rsm->pos;
-	size = rsm->size;
 	c = (char) rsplitter.n.info;
 	rp = 0;
 
 	if (!m)
-		m = qrealloc(m, 256, &size);
+		m = qrealloc(m, 256, &rsm->size);
 
 	do {
 		b = m + a;
@@ -2298,10 +2297,10 @@ static int awk_getline(rstream *rsm, var *v)
 			a = 0;
 		}
 
-		m = qrealloc(m, a+p+128, &size);
+		m = qrealloc(m, a+p+128, &rsm->size);
 		b = m + a;
 		pp = p;
-		p += safe_read(fd, b+p, size-p-1);
+		p += safe_read(fd, b+p, rsm->size - p - 1);
 		if (p < pp) {
 			p = 0;
 			r = 0;
@@ -2325,7 +2324,6 @@ static int awk_getline(rstream *rsm, var *v)
 	rsm->buffer = m;
 	rsm->adv = a + eo;
 	rsm->pos = p - eo;
-	rsm->size = size;
 
 	debug_printf_eval("returning from %s(): %d\n", __func__, r);
 
