@@ -583,6 +583,7 @@ struct globals2 {
 	/* former statics from various functions */
 	char *split_f0__fstrings;
 
+	unsigned next_input_file__argind;
 	smallint next_input_file__input_file_seen;
 
 	smalluint exitcode;
@@ -2820,6 +2821,7 @@ static int try_to_assign(const char *expr)
 static int next_input_file(void)
 {
 #define input_file_seen (G.next_input_file__input_file_seen)
+#define argind (G.next_input_file__argind)
 	const char *fname;
 
 	if (iF.F) {
@@ -2829,17 +2831,22 @@ static int next_input_file(void)
 	}
 
 	for (;;) {
-		const char *ind;
-
-		if (getvar_i(intvar[ARGIND])+1 >= getvar_i(intvar[ARGC])) {
+		/* GNU Awk 5.1.1 does not _read_ ARGIND (but does read ARGC).
+		 * It only sets ARGIND to 1, 2, 3... for every command-line filename
+		 * (VAR=VAL params cause a gap in numbering).
+		 * If there are none and stdin is used, then ARGIND is not modified:
+		 * if it is set by e.g. 'BEGIN { ARGIND="foo" }', that value will
+		 * still be there.
+		 */
+		argind++;
+		if (argind >= getvar_i(intvar[ARGC])) {
 			if (input_file_seen)
 				return FALSE;
 			fname = "-";
 			iF.F = stdin;
 			break;
 		}
-		ind = getvar_s(incvar(intvar[ARGIND]));
-		fname = getvar_s(findvar(iamarray(intvar[ARGV]), ind));
+		fname = getvar_s(findvar(iamarray(intvar[ARGV]), utoa(argind)));
 		if (fname && *fname) {
 			/* "If a filename on the command line has the form
 			 * var=val it is treated as a variable assignment"
@@ -2847,6 +2854,7 @@ static int next_input_file(void)
 			if (try_to_assign(fname))
 				continue;
 			iF.F = xfopen_stdin(fname);
+			setvar_i(intvar[ARGIND], argind);
 			break;
 		}
 	}
@@ -2854,6 +2862,7 @@ static int next_input_file(void)
 	setvar_s(intvar[FILENAME], fname);
 	input_file_seen = TRUE;
 	return TRUE;
+#undef argind
 #undef input_file_seen
 }
 
