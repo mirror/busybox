@@ -2242,9 +2242,9 @@ static int awk_getline(rstream *rsm, var *v)
 {
 	char *b;
 	regmatch_t pmatch[1];
-	int a, p, pp = 0;
-	int fd, so, eo, r, rp;
-	char c, *m, *s;
+	int p, pp;
+	int fd, so, eo, retval, rp;
+	char *m, *s;
 
 	debug_printf_eval("entered %s()\n", __func__);
 
@@ -2253,22 +2253,22 @@ static int awk_getline(rstream *rsm, var *v)
 	 */
 	fd = fileno(rsm->F);
 	m = rsm->buffer;
-	a = rsm->adv;
-	p = rsm->pos;
-	c = (char) rsplitter.n.info;
-	rp = 0;
-
 	if (!m)
 		m = qrealloc(m, 256, &rsm->size);
+	p = rsm->pos;
+	rp = 0;
+	pp = 0;
 
 	do {
-		b = m + a;
+		b = m + rsm->adv;
 		so = eo = p;
-		r = 1;
+		retval = 1;
 		if (p > 0) {
+			char c = (char) rsplitter.n.info;
 			if (rsplitter.n.info == TI_REGEXP) {
 				if (regexec(icase ? rsplitter.n.r.ire : rsplitter.n.l.re,
-							b, 1, pmatch, 0) == 0) {
+							b, 1, pmatch, 0) == 0
+				) {
 					so = pmatch[0].rm_so;
 					eo = pmatch[0].rm_eo;
 					if (b[eo] != '\0')
@@ -2297,43 +2297,44 @@ static int awk_getline(rstream *rsm, var *v)
 			}
 		}
 
-		if (a > 0) {
-			memmove(m, m+a, p+1);
+		if (rsm->adv > 0) {
+			memmove(m, m+rsm->adv, p+1);
 			b = m;
-			a = 0;
+			rsm->adv = 0;
 		}
 
-		m = qrealloc(m, a+p+128, &rsm->size);
-		b = m + a;
+		b = m = qrealloc(m, p+128, &rsm->size);
 		pp = p;
 		p += safe_read(fd, b+p, rsm->size - p - 1);
 		if (p < pp) {
 			p = 0;
-			r = 0;
+			retval = 0;
 			setvar_ERRNO();
 		}
 		b[p] = '\0';
 	} while (p > pp);
 
 	if (p == 0) {
-		r--;
+		retval--;
 	} else {
-		c = b[so]; b[so] = '\0';
+		char c = b[so];
+		b[so] = '\0';
 		setvar_s(v, b+rp);
 		v->type |= VF_USER;
 		b[so] = c;
-		c = b[eo]; b[eo] = '\0';
+		c = b[eo];
+		b[eo] = '\0';
 		setvar_s(intvar[RT], b+so);
 		b[eo] = c;
 	}
 
 	rsm->buffer = m;
-	rsm->adv = a + eo;
+	rsm->adv += eo;
 	rsm->pos = p - eo;
 
-	debug_printf_eval("returning from %s(): %d\n", __func__, r);
+	debug_printf_eval("returning from %s(): %d\n", __func__, retval);
 
-	return r;
+	return retval;
 }
 
 /* formatted output into an allocated buffer, return ptr to buffer */
