@@ -1006,6 +1006,11 @@ static var *setvar_i(var *v, double value)
 	return v;
 }
 
+static void setvar_ERRNO(void)
+{
+	setvar_i(intvar[ERRNO], errno);
+}
+
 static const char *getvar_s(var *v)
 {
 	/* if v is numeric and has no cached string, convert it to string */
@@ -2305,7 +2310,7 @@ static int awk_getline(rstream *rsm, var *v)
 		if (p < pp) {
 			p = 0;
 			r = 0;
-			setvar_i(intvar[ERRNO], errno);
+			setvar_ERRNO();
 		}
 		b[p] = '\0';
 	} while (p > pp);
@@ -3249,7 +3254,7 @@ static var *evaluate(node *op, var *res)
 			}
 
 			if (!rsm->F) {
-				setvar_i(intvar[ERRNO], errno);
+				setvar_ERRNO();
 				setvar_i(res, -1);
 				break;
 			}
@@ -3388,16 +3393,18 @@ static var *evaluate(node *op, var *res)
 					 */
 					if (rsm->F)
 						err = rsm->is_pipe ? pclose(rsm->F) : fclose(rsm->F);
-//TODO: fix this case:
-// $ awk 'BEGIN { print close(""); print ERRNO }'
-// -1
-// close of redirection that was never opened
-// (we print 0, 0)
 					free(rsm->buffer);
 					hash_remove(fdhash, L.s);
+				} else {
+					err = -1;
+					/* gawk 'BEGIN { print close(""); print ERRNO }'
+					 * -1
+					 * close of redirection that was never opened
+					 */
+					errno = ENOENT;
 				}
 				if (err)
-					setvar_i(intvar[ERRNO], errno);
+					setvar_ERRNO();
 				R_d = (double)err;
 				break;
 			}
