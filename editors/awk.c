@@ -979,6 +979,11 @@ static var *setvar_s(var *v, const char *value)
 	return setvar_p(v, (value && *value) ? xstrdup(value) : NULL);
 }
 
+static var *setvar_sn(var *v, const char *value, int len)
+{
+	return setvar_p(v, (value && *value && len > 0) ? xstrndup(value, len) : NULL);
+}
+
 /* same as setvar_s but sets USER flag */
 static var *setvar_u(var *v, const char *value)
 {
@@ -2317,15 +2322,9 @@ static int awk_getline(rstream *rsm, var *v)
 	if (p == 0) {
 		retval--;
 	} else {
-		char c = b[so];
-		b[so] = '\0';
-		setvar_s(v, b+rp);
+		setvar_sn(v, b+rp, so-rp);
 		v->type |= VF_USER;
-		b[so] = c;
-		c = b[eo];
-		b[eo] = '\0';
-		setvar_s(intvar[RT], b+so);
-		b[eo] = c;
+		setvar_sn(intvar[RT], b+so, eo-so);
 	}
 
 	rsm->buffer = m;
@@ -2677,8 +2676,6 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	}
 
 	case B_ss: {
-		char *s;
-
 		l = strlen(as[0]);
 		i = getvar_i(av[1]) - 1;
 		if (i > l)
@@ -2688,8 +2685,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		n = (nargs > 2) ? getvar_i(av[2]) : l-i;
 		if (n < 0)
 			n = 0;
-		s = xstrndup(as[0]+i, n);
-		setvar_p(res, s);
+		setvar_sn(res, as[0]+i, n);
 		break;
 	}
 
@@ -2766,8 +2762,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		i = strftime(g_buf, MAXVARFMT,
 			((nargs > 0) ? as[0] : "%a %b %d %H:%M:%S %Z %Y"),
 			localtime(&tt));
-		g_buf[i] = '\0';
-		setvar_s(res, g_buf);
+		setvar_sn(res, g_buf, i);
 		break;
 
 	case B_mt:
