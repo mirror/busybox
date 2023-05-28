@@ -47,8 +47,10 @@ typedef struct priv_dumper_t {
 static const char dot_flags_width_chars[] ALIGN1 = ".#-+ 0123456789";
 
 static const char size_conv_str[] ALIGN1 =
-"\x1\x4\x4\x4\x4\x4\x4\x8\x8\x8\x8\010cdiouxXeEfgG";
-
+"\x1\x4\x4\x4\x4\x4\x4\x8\x8\x8\x8\x8""cdiouxXeEfgG";
+/* c  d  i  o  u  x  X  e  E  f  g  G - bytes contain 'bcnt' for the type */
+#define SCS_OFS 12
+#define float_convs (size_conv_str + SCS_OFS + sizeof("cdiouxX")-1)
 static const char int_convs[] ALIGN1 = "diouxX";
 
 dumper_t* FAST_FUNC alloc_dumper(void)
@@ -88,7 +90,7 @@ static NOINLINE int bb_dump_size(FS *fs)
 				while (isdigit(*++fmt))
 					continue;
 			}
-			p = strchr(size_conv_str + 12, *fmt);
+			p = strchr(size_conv_str + SCS_OFS, *fmt);
 			if (!p) {
 				if (*fmt == 's') {
 					bcnt += prec;
@@ -100,7 +102,7 @@ static NOINLINE int bb_dump_size(FS *fs)
 					}
 				}
 			} else {
-				bcnt += p[-12];
+				bcnt += p[-SCS_OFS];
 			}
 		}
 		cur_size += bcnt * fu->reps;
@@ -204,7 +206,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 			if (strchr(int_convs, *p1)) { /* %d etc */
 				goto DO_INT_CONV;
 			} else
-			if (strchr("eEfgG", *p1)) { /* floating point */
+			if (strchr(float_convs, *p1)) { /* floating point */
 				pr->flags = F_DBL;
 				byte_count_str = "\010\004";
 				goto DO_BYTE_COUNT;
