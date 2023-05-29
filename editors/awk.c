@@ -2389,7 +2389,7 @@ static char *awk_printf(node *n, size_t *len)
 		while (1) {
 			if (isalpha(c))
 				break;
-			if (c == '*')
+			if (c == '*') /* gawk supports %*d and %*.*f, we don't... */
 				syntax_error("%*x formats are not supported");
 			c = *++f;
 			if (!c) { /* "....%...." and no letter found after % */
@@ -2422,12 +2422,18 @@ static char *awk_printf(node *n, size_t *len)
 				double d = getvar_i(arg);
 				if (strchr("diouxX", c)) {
 //TODO: make it wider here (%x -> %llx etc)?
+//Can even print the value into a temp string with %.0f,
+//then replace diouxX with s and print that string.
+//This will correctly print even very large numbers,
+//but some replacements are not equivalent:
+//%09d -> %09s: breaks zero-padding;
+//%+d -> %+s: won't prepend +; etc
 					s = xasprintf(s, (int)d);
 				} else if (strchr("eEfFgGaA", c)) {
 					s = xasprintf(s, d);
 				} else {
-//TODO: GNU Awk 5.0.1: printf "%W" prints "%W", does not error out
-					syntax_error(EMSG_INV_FMT);
+					/* gawk 5.1.1 printf("%W") prints "%W", does not error out */
+					s = xstrndup(s, f - s);
 				}
 			}
 			slen = strlen(s);
