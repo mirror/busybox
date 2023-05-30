@@ -547,4 +547,9 @@ testing 'awk does not split on CR (char 13)' \
 	'word1 word2 word3\r word2 word3\r\n' \
 	'' 'word1 word2 word3\r'
 
+testing "awk = has higher precedence than == (despite what gawk manpage claims)" \
+	"awk 'BEGIN { v=1; print 2==v; print 2==v=2; print v; print v=3==3; print v}'" \
+	'0\n1\n2\n1\n3\n' \
+	'' ''
+
 exit $FAILCOUNT
