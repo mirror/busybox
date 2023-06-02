@@ -552,4 +552,51 @@ testing "awk = has higher precedence than == (despite what gawk manpage claims)"
 	'0\n1\n2\n1\n3\n' \
 	'' ''
 
+sq="'"
+testing 'awk gensub backslashes \' \
+	'awk '$sq'BEGIN { s="\\"; print "s=" s; print gensub("a", s, "g", "a|a") }'$sq \
+	's=\\
+\\|\\
+' \
+	'' ''
+testing 'awk gensub backslashes \\' \
+	'awk '$sq'BEGIN { s="\\\\"; print "s=" s; print gensub("a", s, "g", "a|a") }'$sq \
+	's=\\\\
+\\|\\
+' \
+	'' ''
+# gawk 5.1.1 handles trailing unpaired \ inconsistently.
+# If replace string is single \, it is used verbatim,
+# but if it is \\\ (three slashes), gawk uses "\<NUL>" (!!!), not "\\" as you would expect.
+testing 'awk gensub backslashes \\\' \
+	'awk '$sq'BEGIN { s="\\\\\\"; print "s=" s; print gensub("a", s, "g", "a|a") }'$sq \
+	's=\\\\\\
+\\\\|\\\\
+' \
+	'' ''
+testing 'awk gensub backslashes \\\\' \
+	'awk '$sq'BEGIN { s="\\\\\\\\"; print "s=" s; print gensub("a", s, "g", "a|a") }'$sq \
+	's=\\\\\\\\
+\\\\|\\\\
+' \
+	'' ''
+testing 'awk gensub backslashes \&' \
+	'awk '$sq'BEGIN { s="\\&"; print "s=" s; print gensub("a", s, "g", "a|a") }'$sq \
+	's=\\&
+&|&
+' \
+	'' ''
+testing 'awk gensub backslashes \0' \
+	'awk '$sq'BEGIN { s="\\0"; print "s=" s; print gensub("a", s, "g", "a|a") }'$sq \
+	's=\\0
+a|a
+' \
+	'' ''
+testing 'awk gensub backslashes \\0' \
+	'awk '$sq'BEGIN { s="\\\\0"; print "s=" s; print gensub("a", s, "g", "a|a") }'$sq \
+	's=\\\\0
+\\0|\\0
+' \
+	'' ''
+
 exit $FAILCOUNT

@@ -2492,7 +2492,7 @@ static char *awk_printf(node *n, size_t *len)
  * store result into (dest), return number of substitutions.
  * If nm = 0, replace all matches.
  * If src or dst is NULL, use $0.
- * If subexp != 0, enable subexpression matching (\1-\9).
+ * If subexp != 0, enable subexpression matching (\0-\9).
  */
 static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int subexp)
 {
@@ -2520,35 +2520,32 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 		residx += eo;
 		if (++match_no >= nm) {
 			const char *s;
-			int nbs;
+			int bslash;
 
 			/* replace */
 			residx -= (eo - so);
-			nbs = 0;
+			bslash = 0;
 			for (s = repl; *s; s++) {
-				char c = resbuf[residx++] = *s;
-				if (c == '\\') {
-					nbs++;
-					continue;
+				char c = *s;
+				if (c == '\\' && s[1]) {
+					bslash ^= 1;
+					if (bslash)
+						continue;
 				}
-				if (c == '&' || (subexp && c >= '0' && c <= '9')) {
-					int j;
-					residx -= ((nbs + 3) >> 1);
-					j = 0;
+				if ((!bslash && c == '&')
+				 || (subexp && bslash && c >= '0' && c <= '9')
+				) {
+					int n, j = 0;
 					if (c != '&') {
 						j = c - '0';
-						nbs++;
 					}
-					if (nbs % 2) {
-						resbuf[residx++] = c;
-					} else {
-						int n = pmatch[j].rm_eo - pmatch[j].rm_so;
-						resbuf = qrealloc(resbuf, residx + replen + n, &resbufsize);
-						memcpy(resbuf + residx, sp + pmatch[j].rm_so, n);
-						residx += n;
-					}
-				}
-				nbs = 0;
+					n = pmatch[j].rm_eo - pmatch[j].rm_so;
+					resbuf = qrealloc(resbuf, residx + replen + n, &resbufsize);
+					memcpy(resbuf + residx, sp + pmatch[j].rm_so, n);
+					residx += n;
+				} else
+					resbuf[residx++] = c;
+				bslash = 0;
 			}
 		}
 
