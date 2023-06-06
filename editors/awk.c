@@ -2494,7 +2494,7 @@ static char *awk_printf(node *n, size_t *len)
  * If src or dst is NULL, use $0.
  * If subexp != 0, enable subexpression matching (\0-\9).
  */
-static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int subexp)
+static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest /*,int subexp*/)
 {
 	char *resbuf;
 	const char *sp;
@@ -2502,6 +2502,8 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 	int regexec_flags;
 	regmatch_t pmatch[10];
 	regex_t sreg, *regex;
+	/* True only if called to implement gensub(): */
+	int subexp = (src != dest);
 
 	resbuf = NULL;
 	residx = 0;
@@ -2549,7 +2551,6 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 			}
 		}
 
-		regexec_flags = REG_NOTBOL;
 		sp += eo;
 		if (match_no == nm)
 			break;
@@ -2570,6 +2571,7 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 			sp++;
 			residx++;
 		}
+		regexec_flags = REG_NOTBOL;
 	}
 
 	resbuf = qrealloc(resbuf, residx + strlen(sp), &resbufsize);
@@ -2798,16 +2800,16 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		res = do_match(an[1], as[0]);
 		break;
 
-	case B_ge:
-		awk_sub(an[0], as[1], getvar_i(av[2]), av[3], res, TRUE);
+	case B_ge: /* gensub(regex, repl, matchnum, string) */
+		awk_sub(an[0], as[1], /*matchnum:*/getvar_i(av[2]), /*src:*/av[3], /*dst:*/res/*, TRUE*/);
 		break;
 
-	case B_gs:
-		setvar_i(res, awk_sub(an[0], as[1], 0, av[2], av[2], FALSE));
+	case B_gs: /* gsub(regex, repl, string) */
+		setvar_i(res, awk_sub(an[0], as[1], /*matchnum:all*/0, /*src:*/av[2], /*dst:*/av[2]/*, FALSE*/));
 		break;
 
-	case B_su:
-		setvar_i(res, awk_sub(an[0], as[1], 1, av[2], av[2], FALSE));
+	case B_su: /* sub(regex, repl, string) */
+		setvar_i(res, awk_sub(an[0], as[1], /*matchnum:first*/1, /*src:*/av[2], /*dst:*/av[2]/*, FALSE*/));
 		break;
 	}
 
