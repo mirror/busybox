@@ -3609,8 +3609,6 @@ static var *evaluate(node *op, var *res)
 #undef sreg
 }
 
-/* -------- main & co. -------- */
-
 static int awk_exit(void)
 {
 	unsigned i;
@@ -3717,6 +3715,8 @@ int awk_main(int argc UNUSED_PARAM, char **argv)
 		g_progname = llist_pop(&list_f);
 		fd = xopen_stdin(g_progname);
 		s = xmalloc_read(fd, NULL); /* it's NUL-terminated */
+		if (!s)
+			bb_perror_msg_and_die("read error from '%s'", g_progname);
 		close(fd);
 		parse_program(s);
 		free(s);
