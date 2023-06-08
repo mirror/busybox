@@ -2504,17 +2504,46 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest /*,in
 	regex_t sreg, *regex;
 	/* True only if called to implement gensub(): */
 	int subexp = (src != dest);
-
+#if defined(REG_STARTEND)
+	const char *src_string;
+	size_t src_strlen;
+	regexec_flags = REG_STARTEND;
+#else
+	regexec_flags = 0;
+#endif
 	resbuf = NULL;
 	residx = 0;
 	match_no = 0;
-	regexec_flags = 0;
 	regex = as_regex(rn, &sreg);
 	sp = getvar_s(src ? src : intvar[F0]);
+#if defined(REG_STARTEND)
+	src_string = sp;
+	src_strlen = strlen(src_string);
+#endif
 	replen = strlen(repl);
-	while (regexec(regex, sp, 10, pmatch, regexec_flags) == 0) {
-		int so = pmatch[0].rm_so;
-		int eo = pmatch[0].rm_eo;
+	for (;;) {
+		int so, eo;
+
+#if defined(REG_STARTEND)
+// REG_STARTEND: "This flag is a BSD extension, not present in POSIX"
+		size_t start_ofs = sp - src_string;
+		pmatch[0].rm_so = start_ofs;
+		pmatch[0].rm_eo = src_strlen;
+		if (regexec(regex, src_string, 10, pmatch, regexec_flags) != 0)
+			break;
+		eo = pmatch[0].rm_eo - start_ofs;
+		so = pmatch[0].rm_so - start_ofs;
+#else
+// BUG:
+// gsub(/\<b*/,"") on "abc" matches empty string at "a...",
+// advances sp one char (see "Empty match" comment later) to "bc"
+// ... and erroneously matches "b" even though it is NOT at the word start.
+		enum { start_ofs = 0 };
+		if (regexec(regex, sp, 10, pmatch, regexec_flags) != 0)
+			break;
+		so = pmatch[0].rm_so;
+		eo = pmatch[0].rm_eo;
+#endif
 
 		//bb_error_msg("match %u: [%u,%u] '%s'%p", match_no+1, so, eo, sp,sp);
 		resbuf = qrealloc(resbuf, residx + eo + replen, &resbufsize);
@@ -2543,7 +2572,7 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest /*,in
 					}
 					n = pmatch[j].rm_eo - pmatch[j].rm_so;
 					resbuf = qrealloc(resbuf, residx + replen + n, &resbufsize);
-					memcpy(resbuf + residx, sp + pmatch[j].rm_so, n);
+					memcpy(resbuf + residx, sp + pmatch[j].rm_so - start_ofs, n);
 					residx += n;
 				} else
 					resbuf[residx++] = c;
@@ -2557,12 +2586,6 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest /*,in
 		if (eo == so) {
 			/* Empty match (e.g. "b*" will match anywhere).
 			 * Advance by one char. */
-//BUG (bug 1333):
-//gsub(/\<b*/,"") on "abc" will reach this point, advance to "bc"
-//... and will erroneously match "b" even though it is NOT at the word start.
-//we need REG_NOTBOW but it does not exist...
-//TODO: if EXTRA_COMPAT=y, use GNU matching and re_search,
-//it should be able to do it correctly.
 			/* Subtle: this is safe only because
 			 * qrealloc allocated at least one extra byte */
 			resbuf[residx] = *sp;
@@ -2571,7 +2594,7 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest /*,in
 			sp++;
 			residx++;
 		}
-		regexec_flags = REG_NOTBOL;
+		regexec_flags |= REG_NOTBOL;
 	}
 
 	resbuf = qrealloc(resbuf, residx + strlen(sp), &resbufsize);
