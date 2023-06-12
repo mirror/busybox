@@ -26,9 +26,6 @@ void FAST_FUNC bb_verror_msg(const char *s, va_list p, const char* strerr)
 	if (!logmode)
 		return;
 
-	if (!s) /* nomsg[_and_die] uses NULL fmt */
-		s = ""; /* some libc don't like printf(NULL) */
-
 	applet_len = strlen(applet_name) + 2; /* "applet: " */
 	strerr_len = strerr ? strlen(strerr) : 0;
 	msgeol_len = strlen(msg_eol);
@@ -115,9 +112,6 @@ void FAST_FUNC bb_verror_msg(const char *s, va_list p, const char* strerr)
 
 	if (!logmode)
 		return;
-
-	if (!s) /* nomsg[_and_die] uses NULL fmt */
-		s = ""; /* some libc don't like printf(NULL) */
 
 	/* Prevent "derefing type-punned ptr will break aliasing rules" */
 	used = vasprintf((char**)(void*)msgptr, s, p);
