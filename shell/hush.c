@@ -6398,7 +6398,7 @@ static NOINLINE int encode_then_append_var_plusminus(o_string *output, int n,
 		if (!dest.o_expflags) {
 			if (ch == EOF)
 				break;
-			if (!dquoted && strchr(G.ifs, ch)) {
+			if (!dquoted && !(output->o_expflags & EXP_FLAG_SINGLEWORD) && strchr(G.ifs, ch)) {
 				/* PREFIX${x:d${e}f ...} and we met space: expand "d${e}f" and start new word.
 				 * do not assume we are at the start of the word (PREFIX above).
 				 */
