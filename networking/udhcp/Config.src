@@ -10,6 +10,13 @@ config UDHCPD
 	udhcpd is a DHCP server geared primarily toward embedded systems,
 	while striving to be fully functional and RFC compliant.
 
+config FEATURE_UDHCPD_BOOTP
+	bool "Answer to BOOTP requests as well"
+	default y
+	depends on UDHCPD
+	help
+	Support old BOOTP protocol too.
+
 config FEATURE_UDHCPD_BASE_IP_ON_MAC
 	bool "Select IP address based on client MAC"
 	default n

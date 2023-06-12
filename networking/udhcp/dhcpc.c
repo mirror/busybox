@@ -971,7 +971,7 @@ static NOINLINE int d4_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	}
  skip_udp_sum_check:
 
-	if (packet.data.cookie != htonl(DHCP_MAGIC)) {
+	if (packet.data.cookie != htonl(RFC1048_MAGIC)) {
 		log1s("packet with bad magic, ignoring");
 		return -2;
 	}

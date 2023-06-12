@@ -20,8 +20,11 @@ extern const uint8_t MAC_BCAST_ADDR[6] ALIGN2; /* six all-ones */
 
 /*** DHCP packet ***/
 
+#define RFC1048_MAGIC           0x63825363
+/* RFC 1048 still uses BOOTP's small buffer (4 byte cookie + 60 the rest) */
+#define RFC1048_OPTIONS_BUFSIZE 60
+
 /* DHCP protocol. See RFC 2131 */
-#define DHCP_MAGIC              0x63825363
 #define DHCP_OPTIONS_BUFSIZE    308
 #define BOOTREQUEST             1
 #define BOOTREPLY               2
@@ -57,8 +60,10 @@ struct dhcp_packet {
 	 * such as 'unix' or 'gateway'; this means 'boot the named program
 	 * configured for my machine'"
 	 */
-	/* BOOTP fields end here, BOOTP says optional uint8_t vend[64] follows */
-	uint32_t cookie;      /* DHCP magic bytes: 99,130,83,99 decimal */
+	/* BOOTP fields end here, BOOTP says optional uint8_t vend[64] follows. */
+	/* RFC 1048 defined this cookie value and options 0-12 and 255. */
+	/* DHCP extended it and required option 255 (END) to be always present. */
+	uint32_t cookie;      /* RFC 1048 magic bytes: 99,130,83,99 decimal */
 	uint8_t options[DHCP_OPTIONS_BUFSIZE + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
 };
 #define DHCP_PKT_SNAME_LEN      64
@@ -200,6 +205,9 @@ struct dhcp_scan_state {
 #define SNAME_FIELD             2
 
 /* DHCP_MESSAGE_TYPE values */
+#if ENABLE_FEATURE_UDHCPD_BOOTP
+#define MSGTYPE_BOOTP           0 /* there was no TYPE option in client's packet, assuming BOOTP */
+#endif
 #define DHCPDISCOVER            1 /* client -> server */
 #define DHCPOFFER               2 /* client <- server */
 #define DHCPREQUEST             3 /* client -> server */

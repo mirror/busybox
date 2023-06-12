@@ -18,6 +18,8 @@ void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 	memset(packet, 0, sizeof(*packet));
 	packet->op = BOOTREQUEST; /* if client to a server */
 	switch (type) {
+	IF_FEATURE_UDHCPD_BOOTP(case MSGTYPE_BOOTP:)
+		/* reply to a BOOTP (not DHCP) client */
 	case DHCPOFFER:
 	case DHCPACK:
 	case DHCPNAK:
@@ -25,10 +27,11 @@ void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 	}
 	packet->htype = 1; /* ethernet */
 	packet->hlen = 6;
-	packet->cookie = htonl(DHCP_MAGIC);
+	packet->cookie = htonl(RFC1048_MAGIC);
 	if (DHCP_END != 0)
 		packet->options[0] = DHCP_END;
-	udhcp_add_simple_option(packet, DHCP_MESSAGE_TYPE, type);
+	IF_FEATURE_UDHCPD_BOOTP(if (type != MSGTYPE_BOOTP))
+		udhcp_add_simple_option(packet, DHCP_MESSAGE_TYPE, type);
 }
 #endif
 
@@ -90,7 +93,7 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 	}
 
 	if (bytes < offsetof(struct dhcp_packet, options)
-	 || packet->cookie != htonl(DHCP_MAGIC)
+	 || packet->cookie != htonl(RFC1048_MAGIC)
 	) {
 		bb_simple_info_msg("packet with bad magic, ignoring");
 		return -2;

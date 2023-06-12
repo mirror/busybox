@@ -252,6 +252,14 @@ uint8_t* FAST_FUNC udhcp_scan_options(struct dhcp_packet *packet, struct dhcp_sc
 	/* option bytes: [code][len][data1][data2]..[dataLEN] */
 	while (1) {
 		if (scan_state->rem <= 0) {
+			if (ENABLE_FEATURE_UDHCPD_BOOTP && scan_state->rem == 0) {
+				/* DHCP requires END option to be present.
+				 * We are here if packet fails this condition
+				 * (options[] are zero-padded to the end).
+				 * Assume BOOTP packet without further checks.
+				 */
+				break; /* return NULL */
+			}
  complain:
 			bb_simple_error_msg("bad packet, malformed option field");
 			return NULL;
@@ -278,7 +286,7 @@ uint8_t* FAST_FUNC udhcp_scan_options(struct dhcp_packet *packet, struct dhcp_sc
 				scan_state->rem = sizeof(packet->sname);
 				continue;
 			}
-			break;
+			break; /* return NULL */
 		}
 
 		if (scan_state->rem <= OPT_LEN) /* [len] byte exists? */

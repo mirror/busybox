@@ -649,7 +649,8 @@ static void init_packet(struct dhcp_packet *packet, struct dhcp_packet *oldpacke
 	packet->flags = oldpacket->flags;
 	packet->gateway_nip = oldpacket->gateway_nip;
 	packet->ciaddr = oldpacket->ciaddr;
-	udhcp_add_simple_option(packet, DHCP_SERVER_ID, server_data.server_nip);
+	IF_FEATURE_UDHCPD_BOOTP(if (type != MSGTYPE_BOOTP))
+		udhcp_add_simple_option(packet, DHCP_SERVER_ID, server_data.server_nip);
 }
 
 /* Fill options field, siaddr_nip, and sname and boot_file fields.
@@ -725,7 +726,12 @@ static uint32_t select_lease_time(struct dhcp_packet *packet)
 
 /* We got a DHCP DISCOVER. Send an OFFER. */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
+#if !ENABLE_FEATURE_UDHCPD_BOOTP
+#define send_offer(is_dhcp_client, ...) \
+	send_offer(__VA_ARGS__)
+#endif
+static NOINLINE void send_offer(void *is_dhcp_client,
+		struct dhcp_packet *oldpacket,
 		uint32_t static_lease_nip,
 		struct dyn_lease *lease,
 		uint32_t requested_nip,
@@ -734,7 +740,12 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 	struct dhcp_packet packet;
 	uint32_t lease_time_sec;
 
+#if ENABLE_FEATURE_UDHCPD_BOOTP
+	init_packet(&packet, oldpacket, is_dhcp_client ? DHCPOFFER : MSGTYPE_BOOTP);
+#else
+	enum { is_dhcp_client = 1 };
 	init_packet(&packet, oldpacket, DHCPOFFER);
+#endif
 
 	/* If it is a static lease, use its IP */
 	packet.yiaddr = static_lease_nip;
@@ -784,9 +795,16 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
 		}
 	}
 
-	lease_time_sec = select_lease_time(oldpacket);
-	udhcp_add_simple_option(&packet, DHCP_LEASE_TIME, htonl(lease_time_sec));
+	if (is_dhcp_client) {
+		lease_time_sec = select_lease_time(oldpacket);
+		udhcp_add_simple_option(&packet, DHCP_LEASE_TIME, htonl(lease_time_sec));
+	}
+/* TODO: pass "is_dhcp_client" to add_server_options(), avoid adding confusing options to BOOTP clients? */
 	add_server_options(&packet);
+	if (!is_dhcp_client && udhcp_end_option(packet.options) >= RFC1048_OPTIONS_BUFSIZE) {
+		bb_simple_error_msg("BOOTP reply too large, not sending");
+		return;
+	}
 
 	/* send_packet emits error message itself if it detects failure */
 	send_packet_verbose(&packet, "sending OFFER to %s");
@@ -1050,8 +1068,12 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 		msg_type = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
-		if (!msg_type || msg_type[0] < DHCP_MINTYPE || msg_type[0] > DHCP_MAXTYPE) {
-			bb_info_msg("no or bad message type option%s", ", ignoring packet");
+		if (
+			IF_FEATURE_UDHCPD_BOOTP( msg_type && )
+			IF_NOT_FEATURE_UDHCPD_BOOTP( !msg_type || )
+			(msg_type[0] < DHCP_MINTYPE || msg_type[0] > DHCP_MAXTYPE)
+		) {
+			bb_info_msg("bad message type option%s", ", ignoring packet");
 			continue;
 		}
 
@@ -1086,12 +1108,25 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			move_from_unaligned32(requested_nip, requested_ip_opt);
 		}
 
+#if ENABLE_FEATURE_UDHCPD_BOOTP
+		/* Handle old BOOTP clients */
+		if (!msg_type) {
+			log1("received %s", "BOOTP BOOTREQUEST");
+			if (!static_lease_nip) {
+				bb_info_msg("no static lease for BOOTP client%s", ", ignoring packet");
+				continue;
+			}
+			send_offer(msg_type, &packet, static_lease_nip, lease, requested_nip, arpping_ms);
+			continue;
+		}
+#endif
+
 		switch (msg_type[0]) {
 
 		case DHCPDISCOVER:
 			log1("received %s", "DISCOVER");
 
-			send_offer(&packet, static_lease_nip, lease, requested_nip, arpping_ms);
+			send_offer(msg_type, &packet, static_lease_nip, lease, requested_nip, arpping_ms);
 			break;
 
 		case DHCPREQUEST:
