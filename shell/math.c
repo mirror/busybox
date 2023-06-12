@@ -577,6 +577,28 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 # endif
 #endif
 
+//TODO: much better estimation than expr_len/2? Such as:
+//static unsigned estimate_nums_and_names(const char *expr)
+//{
+//	unsigned count = 0;
+//	while (*(expr = skip_whitespace(expr)) != '\0') {
+//		const char *p;
+//		if (isdigit(*expr)) {
+//			while (isdigit(*++expr))
+//				continue;
+//			count++;
+//			continue;
+//		}
+//		p = endofname(expr);
+//		if (p != expr) {
+//			expr = p;
+//			count++;
+//			continue;
+//		}
+//	}
+//	return count;
+//}
+
 static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr)
 {
@@ -584,10 +606,12 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 	const char *errmsg;
 	const char *start_expr = expr = skip_whitespace(expr);
 	unsigned expr_len = strlen(expr) + 2;
-	/* Stack of integers */
-	/* The proof that there can be no more than strlen(startbuf)/2+1
-	 * integers in any given correct or incorrect expression
-	 * is left as an exercise to the reader. */
+	/* Stack of integers/names */
+	/* There can be no more than strlen(startbuf)/2+1
+	 * integers/names in any given correct or incorrect expression.
+	 * (modulo "09v09v09v09v09v" case,
+	 * but we have code to detect that early)
+	 */
 	var_or_num_t *const numstack = alloca((expr_len / 2) * sizeof(numstack[0]));
 	var_or_num_t *numstackptr = numstack;
 	/* Stack of operator tokens */
@@ -652,6 +676,13 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			numstackptr->var = NULL;
 			errno = 0;
 			numstackptr->val = strto_arith_t(expr, (char**) &expr);
+			/* A number can't be followed by another number, or a variable name.
+			 * We'd catch this later anyway, but this would require numstack[]
+			 * to be twice as deep to handle strings where _every_ char is
+			 * a new number or name. Example: 09v09v09v09v09v09v09v09v09v
+			 */
+			if (isalnum(*expr) || *expr == '_')
+				goto err;
 //bb_error_msg("val:%lld", numstackptr->val);
 			if (errno)
 				numstackptr->val = 0; /* bash compat */
