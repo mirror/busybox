@@ -1055,6 +1055,14 @@ static int NOINLINE syslogd_init(char **argv)
 	G.hostname = safe_gethostname();
 	*strchrnul(G.hostname, '.') = '\0';
 
+	xmove_fd(create_socket(), STDIN_FILENO);
+
+	if (opts & OPT_circularlog)
+		ipcsyslog_init();
+
+	if (opts & OPT_kmsg)
+		kmsg_init();
+
 	if (!(opts & OPT_nofork)) {
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
@@ -1068,14 +1076,6 @@ static int NOINLINE syslogd_init(char **argv)
 	signal(SIGALRM, do_mark);
 	alarm(G.markInterval);
 #endif
-	xmove_fd(create_socket(), STDIN_FILENO);
-
-	if (opts & OPT_circularlog)
-		ipcsyslog_init();
-
-	if (opts & OPT_kmsg)
-		kmsg_init();
-
 	return opts;
 }
 
