@@ -1002,140 +1002,16 @@ static int try_to_resolve_remote(remoteHost_t *rh)
 }
 #endif
 
-static void do_syslogd(void) NORETURN;
-static void do_syslogd(void)
-{
-#if ENABLE_FEATURE_REMOTE_LOG
-	llist_t *item;
-#endif
-#if ENABLE_FEATURE_SYSLOGD_DUP
-	int last_sz = -1;
-	char *last_buf;
-	char *recvbuf = G.recvbuf;
-#else
-#define recvbuf (G.recvbuf)
-#endif
-
-	/* Set up signal handlers (so that they interrupt read()) */
-	signal_no_SA_RESTART_empty_mask(SIGTERM, record_signo);
-	signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
-	//signal_no_SA_RESTART_empty_mask(SIGQUIT, record_signo);
-	signal(SIGHUP, SIG_IGN);
-#ifdef SYSLOGD_MARK
-	signal(SIGALRM, do_mark);
-	alarm(G.markInterval);
-#endif
-	xmove_fd(create_socket(), STDIN_FILENO);
-
-	if (option_mask32 & OPT_circularlog)
-		ipcsyslog_init();
-
-	if (option_mask32 & OPT_kmsg)
-		kmsg_init();
-
-	timestamp_and_log_internal("syslogd started: BusyBox v" BB_VER);
-	write_pidfile_std_path_and_ext("syslogd");
-
-	while (!bb_got_signal) {
-		ssize_t sz;
-
-#if ENABLE_FEATURE_SYSLOGD_DUP
-		last_buf = recvbuf;
-		if (recvbuf == G.recvbuf)
-			recvbuf = G.recvbuf + MAX_READ;
-		else
-			recvbuf = G.recvbuf;
-#endif
- read_again:
-		sz = read(STDIN_FILENO, recvbuf, MAX_READ - 1);
-		if (sz < 0) {
-			if (!bb_got_signal)
-				bb_perror_msg("read from %s", _PATH_LOG);
-			break;
-		}
-
-		/* Drop trailing '\n' and NULs (typically there is one NUL) */
-		while (1) {
-			if (sz == 0)
-				goto read_again;
-			/* man 3 syslog says: "A trailing newline is added when needed".
-			 * However, neither glibc nor uclibc do this:
-			 * syslog(prio, "test")   sends "test\0" to /dev/log,
-			 * syslog(prio, "test\n") sends "test\n\0".
-			 * IOW: newline is passed verbatim!
-			 * I take it to mean that it's syslogd's job
-			 * to make those look identical in the log files. */
-			if (recvbuf[sz-1] != '\0' && recvbuf[sz-1] != '\n')
-				break;
-			sz--;
-		}
-#if ENABLE_FEATURE_SYSLOGD_DUP
-		if ((option_mask32 & OPT_dup) && (sz == last_sz))
-			if (memcmp(last_buf, recvbuf, sz) == 0)
-				continue;
-		last_sz = sz;
-#endif
-#if ENABLE_FEATURE_REMOTE_LOG
-		/* Stock syslogd sends it '\n'-terminated
-		 * over network, mimic that */
-		recvbuf[sz] = '\n';
-
-		/* We are not modifying log messages in any way before send */
-		/* Remote site cannot trust _us_ anyway and need to do validation again */
-		for (item = G.remoteHosts; item != NULL; item = item->link) {
-			remoteHost_t *rh = (remoteHost_t *)item->data;
-
-			if (rh->remoteFD == -1) {
-				rh->remoteFD = try_to_resolve_remote(rh);
-				if (rh->remoteFD == -1)
-					continue;
-			}
-
-			/* Send message to remote logger.
-			 * On some errors, close and set remoteFD to -1
-			 * so that DNS resolution is retried.
-			 */
-			if (sendto(rh->remoteFD, recvbuf, sz+1,
-					MSG_DONTWAIT | MSG_NOSIGNAL,
-					&(rh->remoteAddr->u.sa), rh->remoteAddr->len) == -1
-			) {
-				switch (errno) {
-				case ECONNRESET:
-				case ENOTCONN: /* paranoia */
-				case EPIPE:
-					close(rh->remoteFD);
-					rh->remoteFD = -1;
-					free(rh->remoteAddr);
-					rh->remoteAddr = NULL;
-				}
-			}
-		}
-#endif
-		if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog)) {
-			recvbuf[sz] = '\0'; /* ensure it *is* NUL terminated */
-			split_escape_and_log(recvbuf, sz);
-		}
-	} /* while (!bb_got_signal) */
-
-	timestamp_and_log_internal("syslogd exiting");
-	remove_pidfile_std_path_and_ext("syslogd");
-	ipcsyslog_cleanup();
-	if (option_mask32 & OPT_kmsg)
-		kmsg_cleanup();
-	kill_myself_with_sig(bb_got_signal);
-#undef recvbuf
-}
-
-int syslogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int syslogd_main(int argc UNUSED_PARAM, char **argv)
+/* By doing init in a separate function we decrease stack usage
+ * in main loop.
+ */
+static int NOINLINE syslogd_init(char **argv)
 {
 	int opts;
 	char OPTION_DECL;
 #if ENABLE_FEATURE_REMOTE_LOG
 	llist_t *remoteAddrList = NULL;
 #endif
-
-	INIT_G();
 
 	/* No non-option params */
 	opts = getopt32(argv, "^"OPTION_STR"\0""=0", OPTION_PARAM);
@@ -1183,8 +1059,138 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
 
-	do_syslogd();
-	/* return EXIT_SUCCESS; */
+	/* Set up signal handlers (so that they interrupt read()) */
+	signal_no_SA_RESTART_empty_mask(SIGTERM, record_signo);
+	signal_no_SA_RESTART_empty_mask(SIGINT, record_signo);
+	//signal_no_SA_RESTART_empty_mask(SIGQUIT, record_signo);
+	signal(SIGHUP, SIG_IGN);
+#ifdef SYSLOGD_MARK
+	signal(SIGALRM, do_mark);
+	alarm(G.markInterval);
+#endif
+	xmove_fd(create_socket(), STDIN_FILENO);
+
+	if (opts & OPT_circularlog)
+		ipcsyslog_init();
+
+	if (opts & OPT_kmsg)
+		kmsg_init();
+
+	return opts;
+}
+
+int syslogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int syslogd_main(int argc UNUSED_PARAM, char **argv)
+{
+	int opts;
+#if ENABLE_FEATURE_REMOTE_LOG
+	llist_t *item;
+#endif
+#if ENABLE_FEATURE_SYSLOGD_DUP
+	int last_sz = -1;
+	char *last_buf;
+	char *recvbuf;
+#else
+#define recvbuf (G.recvbuf)
+#endif
+
+	INIT_G();
+	opts = syslogd_init(argv);
+
+	timestamp_and_log_internal("syslogd started: BusyBox v" BB_VER);
+	write_pidfile_std_path_and_ext("syslogd");
+
+#if ENABLE_FEATURE_SYSLOGD_DUP
+	recvbuf = G.recvbuf;
+#endif
+	while (!bb_got_signal) {
+		ssize_t sz;
+
+#if ENABLE_FEATURE_SYSLOGD_DUP
+		last_buf = recvbuf;
+		if (recvbuf == G.recvbuf)
+			recvbuf = G.recvbuf + MAX_READ;
+		else
+			recvbuf = G.recvbuf;
+#endif
+ read_again:
+		sz = read(STDIN_FILENO, recvbuf, MAX_READ - 1);
+		if (sz < 0) {
+			if (!bb_got_signal)
+				bb_perror_msg("read from %s", _PATH_LOG);
+			break;
+		}
+
+		/* Drop trailing '\n' and NULs (typically there is one NUL) */
+		while (1) {
+			if (sz == 0)
+				goto read_again;
+			/* man 3 syslog says: "A trailing newline is added when needed".
+			 * However, neither glibc nor uclibc do this:
+			 * syslog(prio, "test")   sends "test\0" to /dev/log,
+			 * syslog(prio, "test\n") sends "test\n\0".
+			 * IOW: newline is passed verbatim!
+			 * I take it to mean that it's syslogd's job
+			 * to make those look identical in the log files. */
+			if (recvbuf[sz-1] != '\0' && recvbuf[sz-1] != '\n')
+				break;
+			sz--;
+		}
+#if ENABLE_FEATURE_SYSLOGD_DUP
+		if ((opts & OPT_dup) && (sz == last_sz))
+			if (memcmp(last_buf, recvbuf, sz) == 0)
+				continue;
+		last_sz = sz;
+#endif
+#if ENABLE_FEATURE_REMOTE_LOG
+		/* Stock syslogd sends it '\n'-terminated
+		 * over network, mimic that */
+		recvbuf[sz] = '\n';
+
+		/* We are not modifying log messages in any way before send */
+		/* Remote site cannot trust _us_ anyway and need to do validation again */
+		for (item = G.remoteHosts; item != NULL; item = item->link) {
+			remoteHost_t *rh = (remoteHost_t *)item->data;
+
+			if (rh->remoteFD == -1) {
+				rh->remoteFD = try_to_resolve_remote(rh);
+				if (rh->remoteFD == -1)
+					continue;
+			}
+
+			/* Send message to remote logger.
+			 * On some errors, close and set remoteFD to -1
+			 * so that DNS resolution is retried.
+			 */
+			if (sendto(rh->remoteFD, recvbuf, sz+1,
+					MSG_DONTWAIT | MSG_NOSIGNAL,
+					&(rh->remoteAddr->u.sa), rh->remoteAddr->len) == -1
+			) {
+				switch (errno) {
+				case ECONNRESET:
+				case ENOTCONN: /* paranoia */
+				case EPIPE:
+					close(rh->remoteFD);
+					rh->remoteFD = -1;
+					free(rh->remoteAddr);
+					rh->remoteAddr = NULL;
+				}
+			}
+		}
+#endif
+		if (!ENABLE_FEATURE_REMOTE_LOG || (opts & OPT_locallog)) {
+			recvbuf[sz] = '\0'; /* ensure it *is* NUL terminated */
+			split_escape_and_log(recvbuf, sz);
+		}
+	} /* while (!bb_got_signal) */
+
+	timestamp_and_log_internal("syslogd exiting");
+	remove_pidfile_std_path_and_ext("syslogd");
+	ipcsyslog_cleanup();
+	if (opts & OPT_kmsg)
+		kmsg_cleanup();
+	kill_myself_with_sig(bb_got_signal);
+#undef recvbuf
 }
 
 /* Clean up. Needed because we are included from syslogd_and_logger.c */
