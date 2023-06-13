@@ -236,14 +236,19 @@ typedef struct {
 	 * then '?' selects one of them based on its left side.
 	 */
 	arith_t second_val;
-	char second_val_present;
-	/* If NULL then it's just a number, else it's a named variable */
-	char *var;
+#define SECOND_VAL_VALID ((char*)(intptr_t)-1)
+	/* If NULL then it's just a number, if SECOND_VAL_VALID,
+	 * it's a result of "expr : expr", else it's a named variable.
+	 * (We use SECOND_VAL_VALID instead of a bit flag to keep
+	 * var_or_num_t smaller, we allocate a lot of them on stack).
+	 */
+	char *var_name;
 } var_or_num_t;
+
 
 typedef struct remembered_name {
 	struct remembered_name *next;
-	const char *var;
+	const char *var_name;
 } remembered_name;
 
 
@@ -253,17 +258,17 @@ evaluate_string(arith_state_t *math_state, const char *expr);
 static const char*
 arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 {
-	if (t->var) {
-		const char *p = math_state->lookupvar(t->var);
+	if (t->var_name && t->var_name != SECOND_VAL_VALID) {
+		const char *p = math_state->lookupvar(t->var_name);
 		if (p) {
 			remembered_name *cur;
-			remembered_name cur_save;
+			remembered_name remember;
 
 			/* did we already see this name?
 			 * testcase: a=b; b=a; echo $((a))
 			 */
 			for (cur = math_state->list_of_recursed_names; cur; cur = cur->next) {
-				if (strcmp(cur->var, t->var) == 0) {
+				if (strcmp(cur->var_name, t->var_name) == 0) {
 					/* Yes */
 					return "expression recursion loop detected";
 				}
@@ -271,9 +276,9 @@ arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 
 			/* push current var name */
 			cur = math_state->list_of_recursed_names;
-			cur_save.var = t->var;
-			cur_save.next = cur;
-			math_state->list_of_recursed_names = &cur_save;
+			remember.var_name = t->var_name;
+			remember.next = cur;
+			math_state->list_of_recursed_names = &remember;
 
 			/* recursively evaluate p as expression */
 			t->val = evaluate_string(math_state, p);
@@ -286,7 +291,7 @@ arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 		/* treat undefined var as 0 */
 		t->val = 0;
 	}
-	return 0;
+	return NULL;
 }
 
 /* "Applying" a token means performing it on the top elements on the integer
@@ -303,7 +308,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 
 	/* There is no operator that can work without arguments */
 	if (NUMPTR == numstack)
-		goto err;
+		goto syntax_err;
 
 	top_of_stack = NUMPTR - 1;
 
@@ -326,15 +331,15 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	else if (op != TOK_UPLUS) {
 		/* Binary operators */
 		arith_t right_side_val;
-		char bad_second_val;
+		int bad_second_val;
 
 		/* Binary operators need two arguments */
 		if (top_of_stack == numstack)
-			goto err;
+			goto syntax_err;
 		/* ...and they pop one */
 		NUMPTR = top_of_stack; /* this decrements NUMPTR */
 
-		bad_second_val = top_of_stack->second_val_present;
+		bad_second_val = (top_of_stack->var_name == SECOND_VAL_VALID);
 		if (op == TOK_CONDITIONAL) { /* ? operation */
 			/* Make next if (...) protect against
 			 * $((expr1 ? expr2)) - that is, missing ": expr" */
@@ -363,8 +368,10 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 				/* Protect against $((expr : expr)) */
 				return "malformed ?: operator";
 			}
-			top_of_stack->second_val_present = op;
+			top_of_stack->val = rez;
 			top_of_stack->second_val = right_side_val;
+			top_of_stack->var_name = SECOND_VAL_VALID;
+			return NULL;
 		}
 		else if (op == TOK_BOR || op == TOK_OR_ASSIGN)
 			rez |= right_side_val;
@@ -439,13 +446,13 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	if (is_assign_op(op)) {
 		char buf[sizeof(arith_t)*3 + 2];
 
-		if (top_of_stack->var == NULL) {
+		if (!top_of_stack->var_name || top_of_stack->var_name == SECOND_VAL_VALID) {
 			/* Hmm, 1=2 ? */
-			goto err;
+			goto syntax_err;
 		}
 		/* Save to shell variable */
 		sprintf(buf, ARITH_FMT, rez);
-		math_state->setvar(top_of_stack->var, buf);
+		math_state->setvar(top_of_stack->var_name, buf);
 		/* After saving, make previous value for v++ or v-- */
 		if (op == TOK_POST_INC)
 			rez--;
@@ -455,9 +462,9 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 
 	top_of_stack->val = rez;
 	/* Erase var name, it is just a number now */
-	top_of_stack->var = NULL;
+	top_of_stack->var_name = NULL;
 	return NULL;
- err:
+ syntax_err:
 	return "arithmetic syntax error";
 #undef NUMPTR
 }
@@ -660,12 +667,11 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		if (p != expr) {
 			/* Name */
 			size_t var_name_size = (p - expr) + 1;  /* +1 for NUL */
-			numstackptr->var = alloca(var_name_size);
-			safe_strncpy(numstackptr->var, expr, var_name_size);
+			numstackptr->var_name = alloca(var_name_size);
+			safe_strncpy(numstackptr->var_name, expr, var_name_size);
 //bb_error_msg("var:'%s'", numstackptr->var);
 			expr = p;
  num:
-			numstackptr->second_val_present = 0;
 			numstackptr++;
 			lasttok = TOK_NUM;
 			continue;
@@ -673,7 +679,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 
 		if (isdigit(*expr)) {
 			/* Number */
-			numstackptr->var = NULL;
+			numstackptr->var_name = NULL;
 			errno = 0;
 			numstackptr->val = strto_arith_t(expr, (char**) &expr);
 			/* A number can't be followed by another number, or a variable name.
@@ -702,7 +708,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		if ((expr[0] == '+' || expr[0] == '-')
 		 && (expr[1] == expr[0])
 		) {
-			if (numstackptr == numstack || !numstackptr[-1].var) { /* not a VAR++ */
+			if (numstackptr == numstack || !numstackptr[-1].var_name) { /* not a VAR++ */
 				char next = skip_whitespace(expr + 2)[0];
 				if (!(isalpha(next) || next == '_')) { /* not a ++VAR */
 					//bb_error_msg("special %c%c", expr[0], expr[0]);
@@ -795,14 +801,14 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 //bb_error_msg("op == TOK_RPAREN");
 					if (prev_op == TOK_LPAREN) {
 //bb_error_msg("prev_op == TOK_LPAREN");
-//bb_error_msg("  %p %p numstackptr[-1].var:'%s'", numstack, numstackptr-1, numstackptr[-1].var);
-						if (numstackptr[-1].var) {
+//bb_error_msg("  %p %p numstackptr[-1].var_name:'%s'", numstack, numstackptr-1, numstackptr[-1].var_name);
+						if (numstackptr[-1].var_name && numstackptr[-1].var_name != SECOND_VAL_VALID) {
 							/* Expression is (var), lookup now */
 							errmsg = arith_lookup_val(math_state, &numstackptr[-1]);
 							if (errmsg)
 								goto err_with_custom_msg;
 							/* Erase var name: (var) is just a number, for example, (var) = 1 is not valid */
-							numstackptr[-1].var = NULL;
+							numstackptr[-1].var_name = NULL;
 						}
 						/* Any operator directly after a
 						 * close paren should consider itself binary */
