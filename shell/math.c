@@ -116,6 +116,12 @@
 #include "libbb.h"
 #include "math.h"
 
+#if 1
+# define dbg(...) ((void)0)
+#else
+# define dbg(...) bb_error_msg(__VA_ARGS__)
+#endif
+
 typedef unsigned char operator;
 
 /* An operator's token id is a bit of a bitfield. The lower 5 bits are the
@@ -151,6 +157,17 @@ typedef unsigned char operator;
 #define fix_assignment_prec(prec) do { if (prec == 3) prec = 2; } while (0)
 
 /* Ternary conditional operator is right associative too */
+// FIXME:
+// bash documentation says that precedence order is:
+//  ...
+//  expr ? expr1 : expr2
+//  = *= /= %= += -= <<= >>= &= ^= |=
+//  exprA , exprB
+// but in practice, the rules for expr1 and expr2 are different:
+// assignments and commas in expr1 have higher precedence than ?:,
+// but in expr2 they haven't:
+// "v ? 1,2 : 3,4" is parsed as "(v ? (1,2) : 3),4"
+// "v ? a=2 : b=4" is parsed as "(v ? (a=1) : b)=4" (thus, this is a syntax error)
 #define TOK_CONDITIONAL         tok_decl(4,0)
 #define TOK_CONDITIONAL_SEP     tok_decl(4,1)
 
@@ -246,7 +263,7 @@ typedef struct {
 } var_or_num_t;
 
 #define VALID_NAME(name) ((name) && (name) != SECOND_VAL_VALID)
-#define NOT_NAME(name) (!(name) || (name) == SECOND_VAL_VALID)
+#define NOT_NAME(name)   (!(name) || (name) == SECOND_VAL_VALID)
 
 
 typedef struct remembered_name {
@@ -624,11 +641,12 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 	var_or_num_t *const numstack = alloca((expr_len / 2) * sizeof(numstack[0]));
 	var_or_num_t *numstackptr = numstack;
 	/* Stack of operator tokens */
-	operator *const stack = alloca(expr_len * sizeof(stack[0]));
-	operator *stackptr = stack;
+	operator *const opstack = alloca(expr_len * sizeof(opstack[0]));
+	operator *opstackptr = opstack;
 
 	/* Start with a left paren */
-	*stackptr++ = lasttok = TOK_LPAREN;
+	dbg("(%d) op:TOK_LPAREN", (int)(opstackptr - opstack));
+	*opstackptr++ = lasttok = TOK_LPAREN;
 	errmsg = NULL;
 
 	while (1) {
@@ -655,11 +673,11 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				 * and let the loop process it */
 				expr = ptr_to_rparen;
 //bb_error_msg("expr=')'");
-				continue;
+				goto tok_find;
 			}
 			/* At this point, we're done with the expression */
 			if (numstackptr != numstack + 1) {
-				/* ...but if there isn't, it's bad */
+				/* if there is not exactly one result, it's bad */
 				goto err;
 			}
 			goto ret;
@@ -671,9 +689,9 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			size_t var_name_size = (p - expr) + 1;  /* +1 for NUL */
 			numstackptr->var_name = alloca(var_name_size);
 			safe_strncpy(numstackptr->var_name, expr, var_name_size);
-//bb_error_msg("var:'%s'", numstackptr->var);
+			dbg("[%d] var:'%s'", (int)(numstackptr - numstack), numstackptr->var_name);
 			expr = p;
- num:
+ push_num:
 			numstackptr++;
 			lasttok = TOK_NUM;
 			continue;
@@ -684,6 +702,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			numstackptr->var_name = NULL;
 			errno = 0;
 			numstackptr->val = strto_arith_t(expr, (char**) &expr);
+			dbg("[%d] val:%lld", (int)(numstackptr - numstack), numstackptr->val);
 			/* A number can't be followed by another number, or a variable name.
 			 * We'd catch this later anyway, but this would require numstack[]
 			 * to be twice as deep to handle strings where _every_ char is
@@ -691,10 +710,9 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			 */
 			if (isalnum(*expr) || *expr == '_')
 				goto err;
-//bb_error_msg("val:%lld", numstackptr->val);
 			if (errno)
 				numstackptr->val = 0; /* bash compat */
-			goto num;
+			goto push_num;
 		}
 
 		/* Should be an operator */
@@ -715,14 +733,13 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				char next = skip_whitespace(expr + 2)[0];
 				if (!(isalpha(next) || next == '_')) {
 					/* not a ++VAR */
-					//bb_error_msg("special %c%c", expr[0], expr[0]);
 					op = (expr[0] == '+' ? TOK_ADD : TOK_SUB);
 					expr++;
 					goto tok_found1;
 				}
 			}
 		}
-
+ tok_find:
 		p = op_tokens;
 		while (1) {
 			/* Compare expr to current op_tokens[] element */
@@ -799,13 +816,10 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			/* The algorithm employed here is simple: while we don't
 			 * hit an open paren nor the bottom of the stack, pop
 			 * tokens and apply them */
-			while (stackptr != stack) {
-				operator prev_op = *--stackptr;
+			while (opstackptr != opstack) {
+				operator prev_op = *--opstackptr;
 				if (op == TOK_RPAREN) {
-//bb_error_msg("op == TOK_RPAREN");
 					if (prev_op == TOK_LPAREN) {
-//bb_error_msg("prev_op == TOK_LPAREN");
-//bb_error_msg("  %p %p numstackptr[-1].var_name:'%s'", numstack, numstackptr-1, numstackptr[-1].var_name);
 						if (VALID_NAME(numstackptr[-1].var_name)) {
 							/* Expression is (var), lookup now */
 							errmsg = arith_lookup_val(math_state, &numstackptr[-1]);
@@ -819,31 +833,38 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 						lasttok = TOK_NUM;
 						goto next;
 					}
-//bb_error_msg("prev_op != TOK_LPAREN");
+					/* Not (y), but ...x~y): fall through to evaluate x~y */
 				} else {
 					operator prev_prec = PREC(prev_op);
-//bb_error_msg("op != TOK_RPAREN");
 					fix_assignment_prec(prec);
 					fix_assignment_prec(prev_prec);
 					if (prev_prec < prec
 					 || (prev_prec == prec && is_right_associative(prec))
 					) {
-						stackptr++;
-						break;
+						/* ...x~y@: push @ on opstack */
+						opstackptr++; /* undo removal of ~ op */
+						goto push_op;
 					}
+					/* ...x~y@: evaluate x~y, replace it on stack with result. Then repeat */
 				}
-//bb_error_msg("arith_apply(prev_op:%02x)", prev_op);
+				dbg("arith_apply(prev_op:%02x, numstack:%d)", prev_op, (int)(numstackptr - numstack));
 				errmsg = arith_apply(math_state, prev_op, numstack, &numstackptr);
 				if (errmsg)
 					goto err_with_custom_msg;
-			}
-			if (op == TOK_RPAREN)
+dbg("    numstack:%d val:%lld %lld %p", (int)(numstackptr - numstack),
+	numstackptr[-1].val,
+	numstackptr[-1].var_name == SECOND_VAL_VALID ? numstackptr[-1].second_val : 0,
+	numstackptr[-1].var_name
+);
+			} /* while (opstack not empty) */
+			if (op == TOK_RPAREN) /* unpaired RPAREN? */
 				goto err;
 		}
-
-		/* Push this operator to the stack and remember it */
-//bb_error_msg("push op:%02x", op);
-		*stackptr++ = lasttok = op;
+		/* else: LPAREN or UNARY: push it on opstack */
+ push_op:
+		/* Push this operator to opstack */
+		dbg("(%d) op:%02x", (int)(opstackptr - opstack), op);
+		*opstackptr++ = lasttok = op;
  next: ;
 	} /* while (1) */
 
