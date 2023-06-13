@@ -435,10 +435,11 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 				c *= rez;
 			rez = c;
 		}
-		else if (right_side_val == 0)
-			return "divide by zero";
-		else if (op == TOK_DIV || op == TOK_DIV_ASSIGN
-		      || op == TOK_REM || op == TOK_REM_ASSIGN) {
+		else /*if (op == TOK_DIV || op == TOK_DIV_ASSIGN
+		      || op == TOK_REM || op == TOK_REM_ASSIGN) - always true */
+		{
+			if (right_side_val == 0)
+				return "divide by zero";
 			/*
 			 * bash 4.2.45 x86 64bit: SEGV on 'echo $((2**63 / -1))'
 			 *
@@ -456,9 +457,8 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 			}
 			if (op == TOK_DIV || op == TOK_DIV_ASSIGN)
 				rez /= right_side_val;
-			else {
+			else
 				rez %= right_side_val;
-			}
 		}
 	}
 
