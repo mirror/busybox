@@ -245,6 +245,9 @@ typedef struct {
 	char *var_name;
 } var_or_num_t;
 
+#define VALID_NAME(name) ((name) && (name) != SECOND_VAL_VALID)
+#define NOT_NAME(name) (!(name) || (name) == SECOND_VAL_VALID)
+
 
 typedef struct remembered_name {
 	struct remembered_name *next;
@@ -258,7 +261,7 @@ evaluate_string(arith_state_t *math_state, const char *expr);
 static const char*
 arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 {
-	if (t->var_name && t->var_name != SECOND_VAL_VALID) {
+	if (VALID_NAME(t->var_name)) {
 		const char *p = math_state->lookupvar(t->var_name);
 		if (p) {
 			remembered_name *cur;
@@ -275,16 +278,15 @@ arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 			}
 
 			/* push current var name */
-			cur = math_state->list_of_recursed_names;
 			remember.var_name = t->var_name;
-			remember.next = cur;
+			remember.next = math_state->list_of_recursed_names;
 			math_state->list_of_recursed_names = &remember;
 
 			/* recursively evaluate p as expression */
 			t->val = evaluate_string(math_state, p);
 
 			/* pop current var name */
-			math_state->list_of_recursed_names = cur;
+			math_state->list_of_recursed_names = remember.next;
 
 			return math_state->errmsg;
 		}
@@ -446,7 +448,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	if (is_assign_op(op)) {
 		char buf[sizeof(arith_t)*3 + 2];
 
-		if (!top_of_stack->var_name || top_of_stack->var_name == SECOND_VAL_VALID) {
+		if (NOT_NAME(top_of_stack->var_name)) {
 			/* Hmm, 1=2 ? */
 			goto syntax_err;
 		}
@@ -708,9 +710,11 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		if ((expr[0] == '+' || expr[0] == '-')
 		 && (expr[1] == expr[0])
 		) {
-			if (numstackptr == numstack || !numstackptr[-1].var_name) { /* not a VAR++ */
+			if (numstackptr == numstack || NOT_NAME(numstackptr[-1].var_name)) {
+				/* not a VAR++ */
 				char next = skip_whitespace(expr + 2)[0];
-				if (!(isalpha(next) || next == '_')) { /* not a ++VAR */
+				if (!(isalpha(next) || next == '_')) {
+					/* not a ++VAR */
 					//bb_error_msg("special %c%c", expr[0], expr[0]);
 					op = (expr[0] == '+' ? TOK_ADD : TOK_SUB);
 					expr++;
@@ -802,7 +806,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 					if (prev_op == TOK_LPAREN) {
 //bb_error_msg("prev_op == TOK_LPAREN");
 //bb_error_msg("  %p %p numstackptr[-1].var_name:'%s'", numstack, numstackptr-1, numstackptr[-1].var_name);
-						if (numstackptr[-1].var_name && numstackptr[-1].var_name != SECOND_VAL_VALID) {
+						if (VALID_NAME(numstackptr[-1].var_name)) {
 							/* Expression is (var), lookup now */
 							errmsg = arith_lookup_val(math_state, &numstackptr[-1]);
 							if (errmsg)
