@@ -340,7 +340,20 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	if (op == TOK_CONDITIONAL) /* Example: $((a ? b)) */
 		return "malformed ?: operator";
 
-	/* Resolve name to value, if needed */
+	if (PREC(op) < UNARYPREC) {
+		/* In binops a ~ b, variables are resolved left-to-right,
+		 * resolve top_of_stack[-1] _before_ resolving top_of_stack[0]
+		*/
+		if (top_of_stack == numstack) /* need two arguments */
+			goto syntax_err;
+		/* Unless it is =, resolve top_of_stack[-1] name to value */
+		if (op != TOK_ASSIGN) {
+			err = arith_lookup_val(math_state, top_of_stack - 1);
+			if (err)
+				return err;
+		}
+	}
+	/* Resolve top_of_stack[0] name to value */
 	err = arith_lookup_val(math_state, top_of_stack);
 	if (err)
 		return err;
@@ -360,19 +373,9 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 		/* Binary operators */
 		arith_t right_side_val;
 
-		/* Binary operators need two arguments */
-		if (top_of_stack == numstack)
-			goto syntax_err;
-		/* ...and they pop one */
+		/* Pop numstack */
 		NUMPTR = top_of_stack; /* this decrements NUMPTR */
 		top_of_stack--; /* now points to left side */
-
-		if (op != TOK_ASSIGN) {
-			/* Resolve left side value (unless the op is '=') */
-			err = arith_lookup_val(math_state, top_of_stack);
-			if (err)
-				return err;
-		}
 
 		right_side_val = rez;
 		rez = top_of_stack->val;
