@@ -246,24 +246,11 @@ is_right_associative(operator prec)
 
 typedef struct {
 	arith_t val;
-	/* We acquire second_val only when "expr1 : expr2" part
-	 * of ternary ?: op is evaluated.
-	 * We treat ?: as two binary ops: (expr ? (expr1 : expr2)).
-	 * ':' produces a new value which has two parts, val and second_val;
-	 * then '?' selects one of them based on its left side.
-	 */
-	arith_t second_val;
-#define SECOND_VAL_VALID ((char*)(intptr_t)-1)
-	/* If NULL then it's just a number, if SECOND_VAL_VALID,
-	 * it's a result of "expr : expr", else it's a named variable.
-	 * (We use SECOND_VAL_VALID instead of a bit flag to keep
-	 * var_or_num_t smaller, we allocate a lot of them on stack).
-	 */
 	char *var_name;
 } var_or_num_t;
 
-#define VALID_NAME(name) ((name) && (name) != SECOND_VAL_VALID)
-#define NOT_NAME(name)   (!(name) || (name) == SECOND_VAL_VALID)
+#define VALID_NAME(name) (name)
+#define NOT_NAME(name)   (!(name))
 
 
 typedef struct remembered_name {
@@ -854,11 +841,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				errmsg = arith_apply(math_state, prev_op, numstack, &numstackptr);
 				if (errmsg)
 					goto err_with_custom_msg;
-dbg("    numstack:%d val:%lld %lld %p", (int)(numstackptr - numstack),
-	numstackptr[-1].val,
-	numstackptr[-1].var_name == SECOND_VAL_VALID ? numstackptr[-1].second_val : 0,
-	numstackptr[-1].var_name
-);
+dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[-1].val, numstackptr[-1].var_name);
 				/* For ternary ?: we need to remove ? from opstack too, not just : */
 				if (prev_op == TOK_CONDITIONAL_SEP) {
 					// This is caught in arith_apply()
