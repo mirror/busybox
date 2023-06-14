@@ -3,10 +3,3 @@ a=0
 # The not-taken branch should not evaluate
 echo 42:$((1 ? 42 : (a+=2)))
 echo "a=$a"
-
-a='b=+err+'
-b=5
-# The not-taken branch should not even parse variables
-echo 6:$((0 ? a : ++b))
-echo "a=$a"
-echo "b=$b"

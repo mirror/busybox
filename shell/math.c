@@ -331,6 +331,28 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 
 	top_of_stack = NUMPTR - 1;
 
+	if (op == TOK_CONDITIONAL_SEP) {
+		/* "expr1 ? expr2 : expr3" operation */
+		var_or_num_t *expr1 = &top_of_stack[-2];
+		if (expr1 < numstack) {
+			return "malformed ?: operator";
+		}
+		err = arith_lookup_val(math_state, expr1);
+		if (err)
+			return err;
+		if (expr1->val != 0) /* select expr2 or expr3 */
+			top_of_stack--;
+		err = arith_lookup_val(math_state, top_of_stack);
+		if (err)
+			return err;
+		NUMPTR = expr1 + 1;
+		expr1->val = top_of_stack->val;
+		expr1->var_name = NULL;
+		return NULL;
+	}
+	if (op == TOK_CONDITIONAL) /* Example: $((a ? b)) */
+		return "malformed ?: operator";
+
 	/* Resolve name to value, if needed */
 	err = arith_lookup_val(math_state, top_of_stack);
 	if (err)
@@ -350,25 +372,12 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	else if (op != TOK_UPLUS) {
 		/* Binary operators */
 		arith_t right_side_val;
-		int bad_second_val;
 
 		/* Binary operators need two arguments */
 		if (top_of_stack == numstack)
 			goto syntax_err;
 		/* ...and they pop one */
 		NUMPTR = top_of_stack; /* this decrements NUMPTR */
-
-		bad_second_val = (top_of_stack->var_name == SECOND_VAL_VALID);
-		if (op == TOK_CONDITIONAL) { /* ? operation */
-			/* Make next if (...) protect against
-			 * $((expr1 ? expr2)) - that is, missing ": expr" */
-			bad_second_val = !bad_second_val;
-		}
-		if (bad_second_val) {
-			/* Protect against $((expr <not_?_op> expr1 : expr2)) */
-			return "malformed ?: operator";
-		}
-
 		top_of_stack--; /* now points to left side */
 
 		if (op != TOK_ASSIGN) {
@@ -380,19 +389,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 
 		right_side_val = rez;
 		rez = top_of_stack->val;
-		if (op == TOK_CONDITIONAL) /* ? operation */
-			rez = (rez ? right_side_val : top_of_stack[1].second_val);
-		else if (op == TOK_CONDITIONAL_SEP) { /* : operation */
-			if (top_of_stack == numstack) {
-				/* Protect against $((expr : expr)) */
-				return "malformed ?: operator";
-			}
-			top_of_stack->val = rez;
-			top_of_stack->second_val = right_side_val;
-			top_of_stack->var_name = SECOND_VAL_VALID;
-			return NULL;
-		}
-		else if (op == TOK_BOR || op == TOK_OR_ASSIGN)
+		if (op == TOK_BOR || op == TOK_OR_ASSIGN)
 			rez |= right_side_val;
 		else if (op == TOK_OR)
 			rez = right_side_val || rez;
@@ -833,7 +830,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 						lasttok = TOK_NUM;
 						goto next;
 					}
-					/* Not (y), but ...x~y): fall through to evaluate x~y */
+					/* Not (y), but ...x~y). Fall through to evaluate x~y */
 				} else {
 					operator prev_prec = PREC(prev_op);
 					fix_assignment_prec(prec);
@@ -841,11 +838,17 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 					if (prev_prec < prec
 					 || (prev_prec == prec && is_right_associative(prec))
 					) {
-						/* ...x~y@: push @ on opstack */
-						opstackptr++; /* undo removal of ~ op */
-						goto push_op;
+						/* Unless a?b?c:d:... and we are at the second : */
+						if (op != TOK_CONDITIONAL_SEP
+						 || prev_op != TOK_CONDITIONAL_SEP
+						) {
+							/* ...x~y@: push @ on opstack */
+							opstackptr++; /* undo removal of ~ op */
+							goto push_op;
+						}
+						/* else: a?b?c:d:. Evaluate b?c:d, replace it on stack with result. Then repeat */
 					}
-					/* ...x~y@: evaluate x~y, replace it on stack with result. Then repeat */
+					/* else: ...x~y@. Evaluate x~y, replace it on stack with result. Then repeat */
 				}
 				dbg("arith_apply(prev_op:%02x, numstack:%d)", prev_op, (int)(numstackptr - numstack));
 				errmsg = arith_apply(math_state, prev_op, numstack, &numstackptr);
@@ -856,6 +859,21 @@ dbg("    numstack:%d val:%lld %lld %p", (int)(numstackptr - numstack),
 	numstackptr[-1].var_name == SECOND_VAL_VALID ? numstackptr[-1].second_val : 0,
 	numstackptr[-1].var_name
 );
+				/* For ternary ?: we need to remove ? from opstack too, not just : */
+				if (prev_op == TOK_CONDITIONAL_SEP) {
+					// This is caught in arith_apply()
+					//if (opstackptr == opstack) {
+					//	/* Example: $((2:3)) */
+					//	errmsg = "where is your ? in ?:";
+					//	goto err_with_custom_msg;
+					//}
+					opstackptr--;
+					if (*opstackptr != TOK_CONDITIONAL) {
+						/* Example: $((1,2:3)) */
+						errmsg = "malformed ?: operator";
+						goto err_with_custom_msg;
+					}
+				}
 			} /* while (opstack not empty) */
 			if (op == TOK_RPAREN) /* unpaired RPAREN? */
 				goto err;
