@@ -321,9 +321,9 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	if (op == TOK_CONDITIONAL_SEP) {
 		/* "expr1 ? expr2 : expr3" operation */
 		var_or_num_t *expr1 = &top_of_stack[-2];
-		if (expr1 < numstack) {
+		NUMPTR = expr1 + 1;
+		if (expr1 < numstack) /* Example: $((2:3)) */
 			return "malformed ?: operator";
-		}
 		err = arith_lookup_val(math_state, expr1);
 		if (err)
 			return err;
@@ -332,7 +332,6 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 		err = arith_lookup_val(math_state, top_of_stack);
 		if (err)
 			return err;
-		NUMPTR = expr1 + 1;
 		expr1->val = top_of_stack->val;
 		expr1->var_name = NULL;
 		return NULL;
@@ -343,7 +342,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	if (PREC(op) < UNARYPREC) {
 		/* In binops a ~ b, variables are resolved left-to-right,
 		 * resolve top_of_stack[-1] _before_ resolving top_of_stack[0]
-		*/
+		 */
 		if (top_of_stack == numstack) /* need two arguments */
 			goto syntax_err;
 		/* Unless it is =, resolve top_of_stack[-1] name to value */
