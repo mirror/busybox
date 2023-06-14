@@ -47,6 +47,7 @@ do_test()
 	# $1 but with / replaced by # so that it can be used as filename part
 	noslash=`echo "$1" | sed 's:/:#:g'`
 	(
+	tret=0
 	cd "$1" || { echo "cannot cd $1!"; exit 1; }
 	for x in run-*; do
 		test -f "$x" || continue
@@ -69,13 +70,25 @@ do_test()
 		test -f "$name.right" || continue
 #		echo Running test: "$x"
 		echo -n "$1/$x:"
-		{
+		(
 			"$THIS_SH" "./$x" 2>&1 | \
-				grep -va "^ash: using fallback suid method$" >"$name.xx" 
+				grep -va "^ash: using fallback suid method$" >"$name.xx"
+			r=$?
+			# filter C library differences
+			sed -i \
+				-e "/: invalid option /s:'::g" \
+				"$name.xx"
+			test $r -eq 77 && rm -f "$TOPDIR/$noslash-$x.fail" && exit 77
 			diff -u "$name.xx" "$name.right" >"$TOPDIR/$noslash-$x.fail" \
 			&& rm -f "$name.xx" "$TOPDIR/$noslash-$x.fail"
-		} && echo " ok" || echo " fail"
+		)
+		case $? in
+			0)  echo " ok";;
+			77) echo " skip (feature disabled)";;
+			*)  echo " fail ($?)"; tret=1;;
+		esac
 	done
+	exit $tret
 	)
 }
 
@@ -103,4 +116,4 @@ else
 	done
 fi
 
-exit ${ret}
+exit $ret
