@@ -535,7 +535,7 @@ static int serial_ctl(int fd, int ops, struct serial_struct *serinfo)
 	bb_simple_perror_msg(err);
 	if (ops & CTL_NODIE)
 		goto nodie;
-	exit(EXIT_FAILURE);
+	exit_FAILURE();
 }
 
 static void print_flag(const char **prefix, const char *flag)

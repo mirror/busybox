@@ -65,7 +65,7 @@ static void gotsig(int sig UNUSED_PARAM)
 	 * therefore it is safe in signal handler */
 	bb_putchar_stderr('\n');
 	tcsetattr_tty_TCSANOW(&G.initial_settings);
-	_exit(EXIT_FAILURE);
+	_exit_FAILURE();
 }
 
 #define CONVERTED_TAB_SIZE 8

@@ -433,3 +433,13 @@ void FAST_FUNC _exit_SUCCESS(void)
 {
 	_exit(EXIT_SUCCESS);
 }
+
+void FAST_FUNC exit_FAILURE(void)
+{
+	exit(EXIT_FAILURE);
+}
+
+void FAST_FUNC _exit_FAILURE(void)
+{
+	_exit(EXIT_FAILURE);
+}

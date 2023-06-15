@@ -102,7 +102,7 @@ static void new_group(char *group, gid_t gid)
 	/* add entry to group */
 	p = xasprintf("x:%u:", (unsigned) gr.gr_gid);
 	if (update_passwd(bb_path_group_file, group, p, NULL) < 0)
-		exit(EXIT_FAILURE);
+		exit_FAILURE();
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(p);
 #if ENABLE_FEATURE_SHADOWPASSWDS

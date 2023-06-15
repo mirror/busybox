@@ -247,7 +247,7 @@ struct globals {
 static void noresp(int ign UNUSED_PARAM)
 {
 	printf("No response from %s\n", G.hostname);
-	exit(EXIT_FAILURE);
+	exit_FAILURE();
 }
 
 static void ping4(len_and_sockaddr *lsa)

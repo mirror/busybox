@@ -1449,7 +1449,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 				else
 					sep->se_builtin->bi_dgram_fn(ctrl, sep);
 				if (pid) /* we did fork */
-					_exit(EXIT_FAILURE);
+					_exit_FAILURE();
 				maybe_close(accepted_fd);
 				continue; /* -> check next fd in fd set */
 			}
@@ -1530,7 +1530,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 			/* eat packet in udp case */
 			if (sep->se_socktype != SOCK_STREAM)
 				recv(0, line, LINE_SIZE, MSG_DONTWAIT);
-			_exit(EXIT_FAILURE);
+			_exit_FAILURE();
 		} /* for (sep = servtab...) */
 	} /* for (;;) */
 }

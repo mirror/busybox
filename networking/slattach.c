@@ -80,7 +80,7 @@ static void restore_state_and_exit(int exitcode)
 
 	/* Restore line status */
 	if (tcsetattr_serial_or_warn(&G.saved_state))
-		exit(EXIT_FAILURE);
+		exit_FAILURE();
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(serial_fd);

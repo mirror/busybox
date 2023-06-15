@@ -800,7 +800,7 @@ void bb_show_usage(void)
 {
 	fprintf(stderr, "Usage: %s [-p] [-r] [-t] -[x] [-n max_arg] [-s max_chars]\n",
 		applet_name);
-	exit(EXIT_FAILURE);
+	exit_FAILURE();
 }
 
 int main(int argc, char **argv)

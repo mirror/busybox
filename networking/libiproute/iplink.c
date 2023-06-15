@@ -215,7 +215,7 @@ static void parse_address(char *dev, int hatype, int halen, char *lla, struct if
 	alen = hatype == 1/*ARPHRD_ETHER*/ ? 14/*ETH_HLEN*/ : 19/*INFINIBAND_HLEN*/;
 	alen = ll_addr_a2n((unsigned char *)(ifr->ifr_hwaddr.sa_data), alen, lla);
 	if (alen < 0)
-		exit(EXIT_FAILURE);
+		exit_FAILURE();
 	if (alen != halen) {
 		bb_error_msg_and_die("wrong address (%s) length: expected %d bytes", lla, halen);
 	}

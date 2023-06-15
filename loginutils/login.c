@@ -173,7 +173,7 @@ static void die_if_nologin(void)
 	fflush_all();
 	/* Users say that they do need this prior to exit: */
 	tcdrain(STDOUT_FILENO);
-	exit(EXIT_FAILURE);
+	exit_FAILURE();
 }
 #else
 # define die_if_nologin() ((void)0)
@@ -265,19 +265,19 @@ static void get_username_or_die(char *buf, int size_buf)
 	do {
 		c = getchar();
 		if (c == EOF)
-			exit(EXIT_FAILURE);
+			exit_FAILURE();
 		if (c == '\n') {
 			if (!--cntdown)
-				exit(EXIT_FAILURE);
+				exit_FAILURE();
 			goto prompt;
 		}
 	} while (isspace(c)); /* maybe isblank? */
 
 	*buf++ = c;
 	if (!fgets(buf, size_buf-2, stdin))
-		exit(EXIT_FAILURE);
+		exit_FAILURE();
 	if (!strchr(buf, '\n'))
-		exit(EXIT_FAILURE);
+		exit_FAILURE();
 	while ((unsigned char)*buf > ' ')
 		buf++;
 	*buf = '\0';

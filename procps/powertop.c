@@ -109,7 +109,7 @@ static void reset_term(void)
 static void sig_handler(int signo UNUSED_PARAM)
 {
 	reset_term();
-	_exit(EXIT_FAILURE);
+	_exit_FAILURE();
 }
 #endif
 

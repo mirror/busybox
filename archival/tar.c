@@ -621,7 +621,7 @@ static void NOINLINE vfork_compressor(int tar_fd, const char *gzip)
 		execlp(gzip, gzip, "-f", (char *)0);
 
 		vfork_exec_errno = errno;
-		_exit(EXIT_FAILURE);
+		_exit_FAILURE();
 	}
 
 	/* parent */

@@ -354,10 +354,10 @@ static const char bb_msg_variable_not_found[] ALIGN1 = "variable: %s not found";
 #define simple_info_logger(p, msg)
 #define msg_logger(p, fmt, args...)
 #define simple_msg_logger(p, msg)
-#define msg_logger_and_die(p, fmt, args...)           exit(EXIT_FAILURE)
-#define simple_msg_logger_and_die(p, msg)             exit(EXIT_FAILURE)
+#define msg_logger_and_die(p, fmt, args...)           exit_FAILURE()
+#define simple_msg_logger_and_die(p, msg)             exit_FAILURE()
 #define error_logger(p, fmt, args...)
-#define error_logger_and_die(p, fmt, args...)         exit(EXIT_FAILURE)
+#define error_logger_and_die(p, fmt, args...)         exit_FAILURE()
 #endif
 
 static void safe_memcpy(char *dest, const char *src, int len)

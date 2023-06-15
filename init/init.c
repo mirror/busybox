@@ -500,7 +500,7 @@ static pid_t run(const struct init_action *a)
 
 	/* Open the new terminal device */
 	if (!open_stdio_to_tty(a->terminal))
-		_exit(EXIT_FAILURE);
+		_exit_FAILURE();
 
 	/* NB: on NOMMU we can't wait for input in child, so
 	 * "askfirst" will work the same as "respawn". */

@@ -571,7 +571,7 @@ make_new_session(
 	BB_EXECVP(G.loginpath, (char **)login_argv);
 	/* _exit is safer with vfork, and we shouldn't send message
 	 * to remote clients anyway */
-	_exit(EXIT_FAILURE); /*bb_perror_msg_and_die("execv %s", G.loginpath);*/
+	_exit_FAILURE(); /*bb_perror_msg_and_die("execv %s", G.loginpath);*/
 }
 
 #if ENABLE_FEATURE_TELNETD_STANDALONE

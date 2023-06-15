@@ -746,11 +746,12 @@ xbsd_write_bootstrap(void)
 		return;
 
 	e = d + sizeof(struct xbsd_disklabel);
-	for (p = d; p < e; p++)
+	for (p = d; p < e; p++) {
 		if (*p) {
 			printf("Bootstrap overlaps with disk label!\n");
-			exit(EXIT_FAILURE);
+			exit_FAILURE();
 		}
+	}
 
 	memmove(d, &dl, sizeof(struct xbsd_disklabel));
 

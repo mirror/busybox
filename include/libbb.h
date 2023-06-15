@@ -1281,6 +1281,8 @@ void set_task_comm(const char *comm) FAST_FUNC;
 #endif
 void exit_SUCCESS(void) NORETURN FAST_FUNC;
 void _exit_SUCCESS(void) NORETURN FAST_FUNC;
+void exit_FAILURE(void) NORETURN FAST_FUNC;
+void _exit_FAILURE(void) NORETURN FAST_FUNC;
 
 /* Helpers for daemonization.
  *

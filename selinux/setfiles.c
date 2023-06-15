@@ -687,7 +687,7 @@ int setfiles_main(int argc UNUSED_PARAM, char **argv)
 			bb_simple_perror_msg_and_die(argv[0]);
 		}
 		if (nerr)
-			exit(EXIT_FAILURE);
+			exit_FAILURE();
 		argv++;
 	}
 
