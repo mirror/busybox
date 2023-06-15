@@ -518,7 +518,7 @@ static const char op_tokens[] ALIGN1 = {
 	'(',        0, TOK_LPAREN,
 	0
 };
-#define ptr_to_rparen (&op_tokens[sizeof(op_tokens)-7])
+#define END_POINTER (&op_tokens[sizeof(op_tokens)-1])
 
 #if ENABLE_FEATURE_SH_MATH_BASE
 static arith_t strto_arith_t(const char *nptr, char **endptr)
@@ -653,13 +653,13 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			 * are to be applied in order. At the end, there should be a final
 			 * result on the integer stack */
 
-			if (expr != ptr_to_rparen + 1) {
+			if (expr != END_POINTER) {
 				/* If we haven't done so already,
 				 * append a closing right paren
 				 * and let the loop process it */
-				expr = ptr_to_rparen;
-//bb_error_msg("expr=')'");
-				goto tok_find;
+				expr = END_POINTER;
+				op = TOK_RPAREN;
+				goto tok_found1;
 			}
 			/* At this point, we're done with the expression */
 			if (numstackptr != numstack + 1) {
@@ -725,7 +725,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				}
 			}
 		}
- tok_find:
+
 		p = op_tokens;
 		while (1) {
 			/* Compare expr to current op_tokens[] element */
@@ -792,7 +792,6 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		 * "applied" in this way.
 		 */
 		prec = PREC(op);
-//bb_error_msg("prec:%02x", prec);
 		if ((prec > 0 && prec < UNARYPREC) || prec == SPEC_PREC) {
 			/* not left paren or unary */
 			if (lasttok != TOK_NUM) {
