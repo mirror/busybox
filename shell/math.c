@@ -133,7 +133,10 @@ typedef unsigned char operator;
 #define tok_decl(prec,id)       (((id)<<5) | (prec))
 #define PREC(op)                ((op) & 0x1F)
 
+#define PREC_LPAREN             0
 #define TOK_LPAREN              tok_decl(0,0)
+/* Precedence value of RPAREN is used only to distinguish it from LPAREN */
+#define TOK_RPAREN              tok_decl(1,1)
 
 #define TOK_COMMA               tok_decl(1,0)
 
@@ -223,7 +226,6 @@ typedef unsigned char operator;
 #define SPEC_PREC               (UNARYPREC+4)
 
 #define TOK_NUM                 tok_decl(SPEC_PREC, 0)
-#define TOK_RPAREN              tok_decl(SPEC_PREC, 1)
 
 static int
 is_assign_op(operator op)
@@ -789,19 +791,32 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		 * stack until we find an operator with a lesser priority than the
 		 * one we have just extracted. If op is right-associative,
 		 * then stop "applying" on the equal priority too.
-		 * Left paren is given the lowest priority so it will never be
-		 * "applied" in this way.
+		 * Left paren will never be "applied" in this way.
 		 */
 		prec = PREC(op);
-		if ((prec > 0 && prec < UNARYPREC) || prec == SPEC_PREC) {
-			/* not left paren or unary */
+		if (prec != PREC_LPAREN && prec < UNARYPREC) {
+			/* binary, ternary or RPAREN */
 			if (lasttok != TOK_NUM) {
-				/* binary op must be preceded by a num */
+				/* must be preceded by a num */
 				goto err;
 			}
-			/* The algorithm employed here is simple: while we don't
-			 * hit an open paren nor the bottom of the stack, pop
-			 * tokens and apply them */
+			/* if op is RPAREN:
+			 *     while opstack is not empty:
+			 *         pop prev_op
+			 *         if prev_op is LPAREN (finished evaluating (EXPR)):
+			 *             goto N
+			 *         evaluate prev_op on top of numstack
+			 *     BUG (unpaired RPAREN)
+			 * else (op is not RPAREN):
+			 *     while opstack is not empty:
+			 *         pop prev_op
+			 *         if can't evaluate prev_op (it is lower precedence than op):
+			 *             push prev_op back
+			 *             goto P
+			 *         evaluate prev_op on top of numstack
+			 * P: push op
+			 * N: loop to parse the rest of string
+			 */
 			while (opstackptr != opstack) {
 				operator prev_op = *--opstackptr;
 				if (op == TOK_RPAREN) {
@@ -821,7 +836,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 					if (prev_prec < prec
 					 || (prev_prec == prec && is_right_associative(prec))
 					) {
-						/* ...x~y@: push @ on opstack */
+						/* ...x~y@. push @ on opstack */
 						opstackptr++; /* undo removal of ~ op */
 						goto push_op;
 					}
