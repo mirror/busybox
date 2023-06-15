@@ -157,17 +157,17 @@ typedef unsigned char operator;
 #define fix_assignment_prec(prec) do { if (prec == 3) prec = 2; } while (0)
 
 /* Ternary conditional operator is right associative too */
-// FIXME:
-// bash documentation says that precedence order is:
-//  ...
-//  expr ? expr1 : expr2
-//  = *= /= %= += -= <<= >>= &= ^= |=
-//  exprA , exprB
-// but in practice, the rules for expr1 and expr2 are different:
-// assignments and commas in expr1 have higher precedence than ?:,
-// but in expr2 they haven't:
-// "v ? 1,2 : 3,4" is parsed as "(v ? (1,2) : 3),4"
-// "v ? a=2 : b=4" is parsed as "(v ? (a=1) : b)=4" (thus, this is a syntax error)
+/*
+ * bash documentation says that precedence order is:
+ *  ...
+ *  expr ? expr1 : expr2
+ *  = *= /= %= += -= <<= >>= &= ^= |=
+ *  exprA , exprB
+ * What it omits is that expr1 is parsed as if parenthesized
+ * (this matches the rules of ?: in C language):
+ * "v ? 1,2 : 3,4" is parsed as "(v ? (1,2) : 3),4"
+ * "v ? a=2 : b=4" is parsed as "(v ? (a=1) : b)=4" (thus, this is a syntax error)
+ */
 #define TOK_CONDITIONAL         tok_decl(4,0)
 #define TOK_CONDITIONAL_SEP     tok_decl(4,1)
 
@@ -629,6 +629,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 	/* Stack of operator tokens */
 	operator *const opstack = alloca(expr_len * sizeof(opstack[0]));
 	operator *opstackptr = opstack;
+	operator insert_op = 0xff;
 
 	/* Start with a left paren */
 	dbg("(%d) op:TOK_LPAREN", (int)(opstackptr - opstack));
@@ -751,11 +752,24 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				goto err;
 			}
 		}
+		/* NB: expr now points past the operator */
  tok_found:
 		op = p[1]; /* fetch TOK_foo value */
- tok_found1:
-		/* NB: expr now points past the operator */
 
+		/* Special rule for "? EXPR :"
+		 * "EXPR in the middle of ? : is parsed as if parenthesized"
+		 * (this quirk originates in C grammar, I think).
+		 */
+		if (op == TOK_CONDITIONAL) {
+			insert_op = TOK_LPAREN;
+			dbg("insert_op=%02x", insert_op);
+		}
+		if (op == TOK_CONDITIONAL_SEP) {
+			insert_op = op;
+			op = TOK_RPAREN;
+			dbg("insert_op=%02x op=%02x", insert_op, op);
+		}
+ tok_found1:
 		/* post grammar: a++ reduce to num */
 		if (lasttok == TOK_POST_INC || lasttok == TOK_POST_DEC)
 			lasttok = TOK_NUM;
@@ -865,9 +879,15 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 		/* else: LPAREN or UNARY: push it on opstack */
  push_op:
 		/* Push this operator to opstack */
-		dbg("(%d) op:%02x", (int)(opstackptr - opstack), op);
+		dbg("(%d) op:%02x insert_op:%02x", (int)(opstackptr - opstack), op, insert_op);
 		*opstackptr++ = lasttok = op;
  next: ;
+		if (insert_op != 0xff) {
+			op = insert_op;
+			insert_op = 0xff;
+			dbg("inserting %02x", op);
+			goto tok_found1;
+		}
 	} /* while (1) */
 
  err:
