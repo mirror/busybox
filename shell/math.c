@@ -310,7 +310,6 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 
 	var_or_num_t *top_of_stack;
 	arith_t rez;
-	const char *err;
 
 	/* There is no operator that can work without arguments */
 	if (NUMPTR == numstack)
@@ -324,38 +323,14 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 		NUMPTR = expr1 + 1;
 		if (expr1 < numstack) /* Example: $((2:3)) */
 			return "malformed ?: operator";
-		err = arith_lookup_val(math_state, expr1);
-		if (err)
-			return err;
 		if (expr1->val != 0) /* select expr2 or expr3 */
 			top_of_stack--;
-		err = arith_lookup_val(math_state, top_of_stack);
-		if (err)
-			return err;
 		expr1->val = top_of_stack->val;
 		expr1->var_name = NULL;
 		return NULL;
 	}
 	if (op == TOK_CONDITIONAL) /* Example: $((a ? b)) */
 		return "malformed ?: operator";
-
-	if (PREC(op) < UNARYPREC) {
-		/* In binops a ~ b, variables are resolved left-to-right,
-		 * resolve top_of_stack[-1] _before_ resolving top_of_stack[0]
-		 */
-		if (top_of_stack == numstack) /* need two arguments */
-			goto syntax_err;
-		/* Unless it is =, resolve top_of_stack[-1] name to value */
-		if (op != TOK_ASSIGN) {
-			err = arith_lookup_val(math_state, top_of_stack - 1);
-			if (err)
-				return err;
-		}
-	}
-	/* Resolve top_of_stack[0] name to value */
-	err = arith_lookup_val(math_state, top_of_stack);
-	if (err)
-		return err;
 
 	rez = top_of_stack->val;
 	if (op == TOK_UMINUS)
@@ -371,6 +346,9 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	else if (op != TOK_UPLUS) {
 		/* Binary operators */
 		arith_t right_side_val;
+
+		if (top_of_stack == numstack) /* have two arguments? */
+			goto syntax_err; /* no */
 
 		/* Pop numstack */
 		NUMPTR = top_of_stack; /* this decrements NUMPTR */
@@ -677,7 +655,16 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			numstackptr->var_name = alloca(var_name_size);
 			safe_strncpy(numstackptr->var_name, expr, var_name_size);
 			dbg("[%d] var:'%s'", (int)(numstackptr - numstack), numstackptr->var_name);
-			expr = p;
+			expr = skip_whitespace(p);
+			/* If it is not followed by "=" operator... */
+			if (expr[0] != '=' /* not "=..." */
+			 || expr[1] == '=' /* or "==..." */
+			) {
+				/* Evaluate variable to value */
+				errmsg = arith_lookup_val(math_state, numstackptr);
+				if (errmsg)
+					goto err_with_custom_msg;
+			}
  push_num:
 			numstackptr++;
 			lasttok = TOK_NUM;
@@ -819,14 +806,8 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				operator prev_op = *--opstackptr;
 				if (op == TOK_RPAREN) {
 					if (prev_op == TOK_LPAREN) {
-						if (VALID_NAME(numstackptr[-1].var_name)) {
-							/* Expression is (var), lookup now */
-							errmsg = arith_lookup_val(math_state, &numstackptr[-1]);
-							if (errmsg)
-								goto err_with_custom_msg;
-							/* Erase var name: (var) is just a number, for example, (var) = 1 is not valid */
-							numstackptr[-1].var_name = NULL;
-						}
+						/* Erase var name: (var) is just a number, for example, (var) = 1 is not valid */
+						numstackptr[-1].var_name = NULL;
 						/* Any operator directly after a
 						 * close paren should consider itself binary */
 						lasttok = TOK_NUM;
