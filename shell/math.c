@@ -345,7 +345,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 		rez++;
 	else if (op == TOK_POST_DEC || op == TOK_PRE_DEC)
 		rez--;
-	else if (op != TOK_UPLUS) {
+	else /*if (op != TOK_UPLUS) - always true, we drop TOK_UPLUS earlier */ {
 		/* Binary operators */
 		arith_t right_side_val;
 
@@ -770,8 +770,10 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		if (lasttok != TOK_NUM) {
 			switch (op) {
 			case TOK_ADD:
-				op = TOK_UPLUS;
-				break;
+				//op = TOK_UPLUS;
+				//break;
+				/* Unary plus does nothing, do not even push it to opstack */
+				continue;
 			case TOK_SUB:
 				op = TOK_UMINUS;
 				break;
