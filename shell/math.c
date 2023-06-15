@@ -840,15 +840,9 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 					if (prev_prec < prec
 					 || (prev_prec == prec && is_right_associative(prec))
 					) {
-						/* Unless a?b?c:d:... and we are at the second : */
-						if (op != TOK_CONDITIONAL_SEP
-						 || prev_op != TOK_CONDITIONAL_SEP
-						) {
-							/* ...x~y@: push @ on opstack */
-							opstackptr++; /* undo removal of ~ op */
-							goto push_op;
-						}
-						/* else: a?b?c:d:. Evaluate b?c:d, replace it on stack with result. Then repeat */
+						/* ...x~y@: push @ on opstack */
+						opstackptr++; /* undo removal of ~ op */
+						goto push_op;
 					}
 					/* else: ...x~y@. Evaluate x~y, replace it on stack with result. Then repeat */
 				}
