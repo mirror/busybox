@@ -46,7 +46,6 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
 /* This is my infix parser/evaluator. It is optimized for size, intended
  * as a replacement for yacc-based parsers. However, it may well be faster
  * than a comparable parser written in yacc. The supported operators are
@@ -61,7 +60,6 @@
  * to the stack instead of adding them to a queue to end up with an
  * expression).
  */
-
 /*
  * Aug 24, 2001              Manuel Novoa III
  *
@@ -245,7 +243,6 @@ is_right_associative(operator prec)
 	|| prec == PREC(TOK_CONDITIONAL);
 }
 
-
 typedef struct {
 	arith_t val;
 	char *var_name;
@@ -254,12 +251,10 @@ typedef struct {
 #define VALID_NAME(name) (name)
 #define NOT_NAME(name)   (!(name))
 
-
 typedef struct remembered_name {
 	struct remembered_name *next;
 	const char *var_name;
 } remembered_name;
-
 
 static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr);
@@ -278,7 +273,7 @@ arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 			 */
 			for (cur = math_state->list_of_recursed_names; cur; cur = cur->next) {
 				if (strcmp(cur->var_name, t->var_name) == 0) {
-					/* Yes */
+					/* yes */
 					return "expression recursion loop detected";
 				}
 			}
@@ -500,7 +495,6 @@ static const char op_tokens[] ALIGN1 = {
 	'+',        0, TOK_ADD,
 	'-',        0, TOK_SUB,
 	'^',        0, TOK_BXOR,
-	/* uniq */
 	'~',        0, TOK_BNOT,
 	',',        0, TOK_COMMA,
 	'?',        0, TOK_CONDITIONAL,
@@ -869,14 +863,9 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				if (errmsg)
 					goto err_with_custom_msg;
 dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[-1].val, numstackptr[-1].var_name);
-				/* For ternary ?: we need to remove ? from opstack too, not just : */
 				if (prev_op == TOK_CONDITIONAL_SEP) {
-					// This is caught in arith_apply()
-					//if (opstackptr == opstack) {
-					//	/* Example: $((2:3)) */
-					//	errmsg = "where is your ? in ?:";
-					//	goto err_with_custom_msg;
-					//}
+					/* We just executed ":" */
+					/* Remove "?" from opstack too, not just ":" */
 					opstackptr--;
 					if (*opstackptr != TOK_CONDITIONAL) {
 						/* Example: $((1,2:3)) */
@@ -890,12 +879,14 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 					dbg("':' executed: evaluation_disabled=%llx (restored)", EVAL_DISABLED);
 				}
 			} /* while (opstack not empty) */
+
 			if (op == TOK_RPAREN) /* unpaired RPAREN? */
 				goto err;
  check_cond:
 			if (op == TOK_CONDITIONAL) {
-				/* We know the value of EXPR in "EXPR ? ..."
-				 * Should we stop evaluating now? */
+				/* We just now evaluated EXPR before "?".
+				 * Should we disable evaluation now?
+				 */
 				if (math_state->evaluation_disabled & TOP_BIT_ULL)
 					goto err; /* >63 levels of ?: nesting not supported */
 				math_state->evaluation_disabled <<= 1;
@@ -915,6 +906,7 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 			insert_op = 0xff;
 			dbg("inserting %02x", op);
 			if (op == TOK_CONDITIONAL_SEP) {
+				/* The next token is ":". Toggle "do not evaluate" bit */
 				math_state->evaluation_disabled ^= 1;
 				dbg("':' entered: evaluation_disabled=%llx (negated)", EVAL_DISABLED);
 			}
