@@ -889,9 +889,9 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 				 */
 				if (math_state->evaluation_disabled & TOP_BIT_ULL)
 					goto err; /* >63 levels of ?: nesting not supported */
-				math_state->evaluation_disabled <<= 1;
-				if (numstackptr[-1].val == 0)
-					math_state->evaluation_disabled |= 1;
+				math_state->evaluation_disabled =
+					(math_state->evaluation_disabled << 1)
+					| (numstackptr[-1].val == 0);
 				dbg("'?' entered: evaluation_disabled=%llx", EVAL_DISABLED);
 			}
 		} /* if */
