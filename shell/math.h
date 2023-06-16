@@ -73,13 +73,12 @@ typedef long arith_t;
 
 typedef const char* FAST_FUNC (*arith_var_lookup_t)(const char *name);
 typedef void        FAST_FUNC (*arith_var_set_t)(const char *name, const char *val);
-//typedef const char* FAST_FUNC (*arith_var_endofname_t)(const char *name);
 
 typedef struct arith_state_t {
 	const char           *errmsg;
 	arith_var_lookup_t    lookupvar;
 	arith_var_set_t       setvar;
-//	arith_var_endofname_t endofname;
+	uint64_t              evaluation_disabled;
 	void                 *list_of_recursed_names;
 } arith_state_t;
 

@@ -356,6 +356,11 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 		NUMPTR = top_of_stack; /* this decrements NUMPTR */
 		top_of_stack--; /* now points to left side */
 
+		if (math_state->evaluation_disabled) {
+			dbg("binary op %02x skipped", op);
+			goto ret_NULL;
+		}
+
 		right_side_val = rez;
 		rez = top_of_stack->val;
 		if (op == TOK_BOR || op == TOK_OR_ASSIGN)
@@ -428,6 +433,11 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 		}
 	}
 
+	if (math_state->evaluation_disabled) {
+		dbg("unary op %02x skipped", op);
+		goto ret_NULL;
+	}
+
 	if (is_assign_op(op)) {
 		char buf[sizeof(arith_t)*3 + 2];
 
@@ -446,6 +456,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	}
 
 	top_of_stack->val = rez;
+ ret_NULL:
 	/* Erase var name, it is just a number now */
 	top_of_stack->var_name = NULL;
 	return NULL;
@@ -594,8 +605,10 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr)
 {
+#define EVAL_DISABLED ((unsigned long long)math_state->evaluation_disabled)
+#define TOP_BIT_ULL ((unsigned long long)LLONG_MAX + 1)
 	operator lasttok;
-	const char *errmsg;
+	const char *errmsg = NULL;
 	const char *start_expr = expr = skip_whitespace(expr);
 	unsigned expr_len = strlen(expr) + 2;
 	/* Stack of integers/names */
@@ -614,7 +627,6 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 	/* Start with a left paren */
 	dbg("(%d) op:TOK_LPAREN", (int)(opstackptr - opstack));
 	*opstackptr++ = lasttok = TOK_LPAREN;
-	errmsg = NULL;
 
 	while (1) {
 		const char *p;
@@ -653,19 +665,26 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		p = endofname(expr);
 		if (p != expr) {
 			/* Name */
-			size_t var_name_size = (p - expr) + 1;  /* +1 for NUL */
-			numstackptr->var_name = alloca(var_name_size);
-			safe_strncpy(numstackptr->var_name, expr, var_name_size);
-			dbg("[%d] var:'%s'", (int)(numstackptr - numstack), numstackptr->var_name);
-			expr = skip_whitespace(p);
-			/* If it is not followed by "=" operator... */
-			if (expr[0] != '=' /* not "=..." */
-			 || expr[1] == '=' /* or "==..." */
-			) {
-				/* Evaluate variable to value */
-				errmsg = arith_lookup_val(math_state, numstackptr);
-				if (errmsg)
-					goto err_with_custom_msg;
+			if (!math_state->evaluation_disabled) {
+				size_t var_name_size = (p - expr) + 1;  /* +1 for NUL */
+				numstackptr->var_name = alloca(var_name_size);
+				safe_strncpy(numstackptr->var_name, expr, var_name_size);
+				dbg("[%d] var:'%s'", (int)(numstackptr - numstack), numstackptr->var_name);
+				expr = skip_whitespace(p);
+				/* If it is not followed by "=" operator... */
+				if (expr[0] != '=' /* not "=..." */
+				 || expr[1] == '=' /* or "==..." */
+				) {
+					/* Evaluate variable to value */
+					errmsg = arith_lookup_val(math_state, numstackptr);
+					if (errmsg)
+						goto err_with_custom_msg;
+				}
+			} else {
+				dbg("[%d] var:IGNORED", (int)(numstackptr - numstack));
+				numstackptr->var_name = NULL;
+				numstackptr->val = 0; //paranoia, probably not needed
+				expr = p;
 			}
  push_num:
 			numstackptr++;
@@ -814,10 +833,11 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			 *         pop prev_op
 			 *         if can't evaluate prev_op (it is lower precedence than op):
 			 *             push prev_op back
-			 *             goto P
+			 *             goto C
 			 *         evaluate prev_op on top of numstack
-			 * P: push op
-			 * N: loop to parse the rest of string
+			 *     C:if op is "?": check result, set disable flag if needed
+			 * push op
+			 * N:loop to parse the rest of string
 			 */
 			while (opstackptr != opstack) {
 				operator prev_op = *--opstackptr;
@@ -840,7 +860,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 					) {
 						/* ...x~y@. push @ on opstack */
 						opstackptr++; /* undo removal of ~ op */
-						goto push_op;
+						goto check_cond;
 					}
 					/* else: ...x~y@. Evaluate x~y, replace it on stack with result. Then repeat */
 				}
@@ -863,21 +883,41 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 						errmsg = "malformed ?: operator";
 						goto err_with_custom_msg;
 					}
+					/* Example: a=1?2:3,a. We just executed ":".
+					 * Prevent assignment from being still disabled.
+					 */
+					math_state->evaluation_disabled >>= 1;
+					dbg("':' executed: evaluation_disabled=%llx (restored)", EVAL_DISABLED);
 				}
 			} /* while (opstack not empty) */
 			if (op == TOK_RPAREN) /* unpaired RPAREN? */
 				goto err;
-		}
+ check_cond:
+			if (op == TOK_CONDITIONAL) {
+				/* We know the value of EXPR in "EXPR ? ..."
+				 * Should we stop evaluating now? */
+				if (math_state->evaluation_disabled & TOP_BIT_ULL)
+					goto err; /* >63 levels of ?: nesting not supported */
+				math_state->evaluation_disabled <<= 1;
+				if (numstackptr[-1].val == 0)
+					math_state->evaluation_disabled |= 1;
+				dbg("'?' entered: evaluation_disabled=%llx", EVAL_DISABLED);
+			}
+		} /* if */
 		/* else: LPAREN or UNARY: push it on opstack */
- push_op:
+
 		/* Push this operator to opstack */
 		dbg("(%d) op:%02x insert_op:%02x", (int)(opstackptr - opstack), op, insert_op);
 		*opstackptr++ = lasttok = op;
- next: ;
+ next:
 		if (insert_op != 0xff) {
 			op = insert_op;
 			insert_op = 0xff;
 			dbg("inserting %02x", op);
+			if (op == TOK_CONDITIONAL_SEP) {
+				math_state->evaluation_disabled ^= 1;
+				dbg("':' entered: evaluation_disabled=%llx (negated)", EVAL_DISABLED);
+			}
 			goto tok_found1;
 		}
 	} /* while (1) */
@@ -896,6 +936,7 @@ arith(arith_state_t *math_state, const char *expr)
 {
 	math_state->errmsg = NULL;
 	math_state->list_of_recursed_names = NULL;
+	math_state->evaluation_disabled = 0;
 	return evaluate_string(math_state, expr);
 }
 
