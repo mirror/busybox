@@ -57,7 +57,7 @@ shell_builtin_read(struct builtin_read_params *params)
 	argv = params->argv;
 	pp = argv;
 	while (*pp) {
-		if (endofname(*pp)[0] != '\0') {
+		if (!*pp[0] || endofname(*pp)[0] != '\0') {
 			/* Mimic bash message */
 			bb_error_msg("read: '%s': bad variable name", *pp);
 			return (const char *)(uintptr_t)1;
