@@ -245,7 +245,7 @@ is_right_associative(operator prec)
 
 typedef struct {
 	arith_t val;
-	char *var_name;
+	const char *var_name;
 } var_or_num_t;
 
 #define VALID_NAME(name) (name)
@@ -256,44 +256,58 @@ typedef struct remembered_name {
 	const char *var_name;
 } remembered_name;
 
+static ALWAYS_INLINE int isalnum_(int c)
+{
+	return (isalnum(c) || c == '_');
+}
+
 static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr);
 
 static const char*
 arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 {
-	if (VALID_NAME(t->var_name)) {
-		const char *p = math_state->lookupvar(t->var_name);
-		if (p) {
-			remembered_name *cur;
-			remembered_name remember;
+	const char *name = t->var_name;
+	char c;
+	const char *p;
+	char *e = (char*)endofname(name);
 
-			/* did we already see this name?
-			 * testcase: a=b; b=a; echo $((a))
-			 */
-			for (cur = math_state->list_of_recursed_names; cur; cur = cur->next) {
-				if (strcmp(cur->var_name, t->var_name) == 0) {
-					/* yes */
-					return "expression recursion loop detected";
-				}
+	c = *e;
+	*e = '\0';
+	p = math_state->lookupvar(name);
+	*e = c;
+	if (p) {
+		size_t len = e - name;
+		remembered_name *cur;
+		remembered_name remember;
+
+		/* did we already see this name?
+		 * testcase: a=b; b=a; echo $((a))
+		 */
+		for (cur = math_state->list_of_recursed_names; cur; cur = cur->next) {
+			if (strncmp(cur->var_name, name, len) == 0
+			 && !isalnum_(cur->var_name[len])
+			) {
+				/* yes */
+				return "expression recursion loop detected";
 			}
-
-			/* push current var name */
-			remember.var_name = t->var_name;
-			remember.next = math_state->list_of_recursed_names;
-			math_state->list_of_recursed_names = &remember;
-
-			/* recursively evaluate p as expression */
-			t->val = evaluate_string(math_state, p);
-
-			/* pop current var name */
-			math_state->list_of_recursed_names = remember.next;
-
-			return math_state->errmsg;
 		}
-		/* treat undefined var as 0 */
-		t->val = 0;
+
+		/* push current var name */
+		remember.var_name = name;
+		remember.next = math_state->list_of_recursed_names;
+		math_state->list_of_recursed_names = &remember;
+
+		/* recursively evaluate p as expression */
+		t->val = evaluate_string(math_state, p);
+
+		/* pop current var name */
+		math_state->list_of_recursed_names = remember.next;
+
+		return math_state->errmsg;
 	}
+	/* treat undefined var as 0 */
+	t->val = 0;
 	return NULL;
 }
 
@@ -447,7 +461,13 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 		}
 		/* Save to shell variable */
 		sprintf(buf, ARITH_FMT, rez);
-		math_state->setvar(top_of_stack->var_name, buf);
+		{
+			char *e = (char*)endofname(top_of_stack->var_name);
+			char c = *e;
+			*e = '\0';
+			math_state->setvar(top_of_stack->var_name, buf);
+			*e = c;
+		}
 		/* After saving, make previous value for v++ or v-- */
 		if (op == TOK_POST_INC)
 			rez--;
@@ -610,6 +630,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		 * (modulo "09v09v09v09v09v" case,
 		 * but we have code to detect that early)
 		 */
+		dbg("expr:'%s' expr_len:%u", expr, expr_len);
 		numstackptr = numstack = alloca((expr_len / 2) * sizeof(numstack[0]));
 		opstackptr = opstack = alloca(expr_len * sizeof(opstack[0]));
 	}
@@ -655,10 +676,8 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		if (p != expr) {
 			/* Name */
 			if (!math_state->evaluation_disabled) {
-				size_t var_name_size = (p - expr) + 1;  /* +1 for NUL */
-				numstackptr->var_name = alloca(var_name_size);
-				safe_strncpy(numstackptr->var_name, expr, var_name_size);
-				dbg("[%d] var:'%s'", (int)(numstackptr - numstack), numstackptr->var_name);
+				numstackptr->var_name = expr;
+				dbg("[%d] var:'%.*s'", (int)(numstackptr - numstack), (int)(p - expr), expr);
 				expr = skip_whitespace(p);
 				/* If it is not followed by "=" operator... */
 				if (expr[0] != '=' /* not "=..." */
