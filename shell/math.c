@@ -926,9 +926,9 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 arith_t FAST_FUNC
 arith(arith_state_t *math_state, const char *expr)
 {
+	math_state->evaluation_disabled = 0;
 	math_state->errmsg = NULL;
 	math_state->list_of_recursed_names = NULL;
-	math_state->evaluation_disabled = 0;
 	return evaluate_string(math_state, expr);
 }
 
