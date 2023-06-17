@@ -2506,7 +2506,7 @@ setvar(const char *name, const char *val, int flags)
 	p = mempcpy(nameeq, name, namelen);
 	if (val) {
 		*p++ = '=';
-		memcpy(p, val, vallen);
+		strcpy(p, val);
 	}
 	vp = setvareq(nameeq, flags | VNOSAVE);
 	INT_ON;
