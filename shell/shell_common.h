@@ -26,6 +26,8 @@ extern const char defifsvar[] ALIGN1; /* "IFS= \t\n" */
 
 extern const char defoptindvar[] ALIGN1; /* "OPTIND=1" */
 
+int FAST_FUNC varcmp(const char *p, const char *q);
+
 /* Builtins */
 
 struct builtin_read_params {

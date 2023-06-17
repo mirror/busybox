@@ -2260,30 +2260,6 @@ getoptsreset(const char *value)
 #endif
 
 /*
- * Compares two strings up to the first = or '\0'.  The first
- * string must be terminated by '='; the second may be terminated by
- * either '=' or '\0'.
- */
-static int
-varcmp(const char *p, const char *q)
-{
-	int c, d;
-
-	while ((c = *p) == (d = *q)) {
-		if (c == '\0' || c == '=')
-			goto out;
-		p++;
-		q++;
-	}
-	if (c == '=')
-		c = '\0';
-	if (d == '=')
-		d = '\0';
- out:
-	return c - d;
-}
-
-/*
  * Find the appropriate entry in the hash table from the name.
  */
 static struct var **

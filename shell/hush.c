@@ -2255,14 +2255,14 @@ static const char *get_cwd(int force)
 /*
  * Shell and environment variable support
  */
-static struct variable **get_ptr_to_local_var(const char *name, unsigned len)
+static struct variable **get_ptr_to_local_var(const char *name)
 {
 	struct variable **pp;
 	struct variable *cur;
 
 	pp = &G.top_var;
 	while ((cur = *pp) != NULL) {
-		if (strncmp(cur->varstr, name, len) == 0 && cur->varstr[len] == '=')
+		if (varcmp(cur->varstr, name) == 0)
 			return pp;
 		pp = &cur->next;
 	}
@@ -2272,21 +2272,20 @@ static struct variable **get_ptr_to_local_var(const char *name, unsigned len)
 static const char* FAST_FUNC get_local_var_value(const char *name)
 {
 	struct variable **vpp;
-	unsigned len = strlen(name);
 
 	if (G.expanded_assignments) {
 		char **cpp = G.expanded_assignments;
 		while (*cpp) {
 			char *cp = *cpp;
-			if (strncmp(cp, name, len) == 0 && cp[len] == '=')
-				return cp + len + 1;
+			if (varcmp(cp, name) == 0)
+				return strchr(cp, '=') + 1;
 			cpp++;
 		}
 	}
 
-	vpp = get_ptr_to_local_var(name, len);
+	vpp = get_ptr_to_local_var(name);
 	if (vpp)
-		return (*vpp)->varstr + len + 1;
+		return strchr((*vpp)->varstr, '=') + 1;
 
 	if (strcmp(name, "PPID") == 0)
 		return utoa(G.root_ppid);
@@ -2319,13 +2318,11 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 }
 
 #if ENABLE_HUSH_GETOPTS
-static void handle_changed_special_names(const char *name, unsigned name_len)
+static void handle_changed_special_names(const char *name)
 {
-	if (name_len == 6) {
-		if (strncmp(name, "OPTIND", 6) == 0) {
-			G.getopt_count = 0;
-			return;
-		}
+	if (varcmp(name, "OPTIND") == 0) {
+		G.getopt_count = 0;
+		return;
 	}
 }
 #else
@@ -2476,7 +2473,7 @@ static int set_local_var(char *str, unsigned flags)
 	}
 	free(free_me);
 
-	handle_changed_special_names(cur->varstr, name_len - 1);
+	handle_changed_special_names(cur->varstr);
 
 	return retval;
 }
@@ -2499,16 +2496,14 @@ static void set_pwd_var(unsigned flag)
 }
 
 #if ENABLE_HUSH_UNSET || ENABLE_HUSH_GETOPTS
-static int unset_local_var_len(const char *name, int name_len)
+static int unset_local_var(const char *name)
 {
 	struct variable *cur;
 	struct variable **cur_pp;
 
 	cur_pp = &G.top_var;
 	while ((cur = *cur_pp) != NULL) {
-		if (strncmp(cur->varstr, name, name_len) == 0
-		 && cur->varstr[name_len] == '='
-		) {
+		if (varcmp(cur->varstr, name) == 0) {
 			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
 				return EXIT_FAILURE;
@@ -2527,14 +2522,9 @@ static int unset_local_var_len(const char *name, int name_len)
 	}
 
 	/* Handle "unset LINENO" et al even if did not find the variable to unset */
-	handle_changed_special_names(name, name_len);
+	handle_changed_special_names(name);
 
 	return EXIT_SUCCESS;
-}
-
-static int unset_local_var(const char *name)
-{
-	return unset_local_var_len(name, strlen(name));
 }
 #endif
 
@@ -2581,7 +2571,7 @@ static void set_vars_and_save_old(char **strings)
 		eq = strchr(*s, '=');
 		if (HUSH_DEBUG && !eq)
 			bb_simple_error_msg_and_die("BUG in varexp4");
-		var_pp = get_ptr_to_local_var(*s, eq - *s);
+		var_pp = get_ptr_to_local_var(*s);
 		if (var_pp) {
 			var_p = *var_pp;
 			if (var_p->flg_read_only) {
@@ -11215,7 +11205,7 @@ static int helper_export_local(char **argv, unsigned flags)
 		if (*name_end == '\0') {
 			struct variable *var, **vpp;
 
-			vpp = get_ptr_to_local_var(name, name_end - name);
+			vpp = get_ptr_to_local_var(name);
 			var = vpp ? *vpp : NULL;
 
 			if (flags & SETFLAG_UNEXPORT) {
