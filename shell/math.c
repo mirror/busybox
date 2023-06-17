@@ -303,21 +303,21 @@ arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 static NOINLINE const char*
 arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_or_num_t **numstackptr)
 {
-#define NUMPTR (*numstackptr)
+#define NUMSTACKPTR (*numstackptr)
 
 	var_or_num_t *top_of_stack;
 	arith_t rez;
 
 	/* There is no operator that can work without arguments */
-	if (NUMPTR == numstack)
+	if (NUMSTACKPTR == numstack)
 		goto syntax_err;
 
-	top_of_stack = NUMPTR - 1;
+	top_of_stack = NUMSTACKPTR - 1;
 
 	if (op == TOK_CONDITIONAL_SEP) {
 		/* "expr1 ? expr2 : expr3" operation */
 		var_or_num_t *expr1 = &top_of_stack[-2];
-		NUMPTR = expr1 + 1;
+		NUMSTACKPTR = expr1 + 1;
 		if (expr1 < numstack) /* Example: $((2:3)) */
 			return "malformed ?: operator";
 		if (expr1->val != 0) /* select expr2 or expr3 */
@@ -348,12 +348,17 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 			goto syntax_err; /* no */
 
 		/* Pop numstack */
-		NUMPTR = top_of_stack; /* this decrements NUMPTR */
+		NUMSTACKPTR = top_of_stack; /* this decrements NUMSTACKPTR */
 		top_of_stack--; /* now points to left side */
 
 		if (math_state->evaluation_disabled) {
 			dbg("binary op %02x skipped", op);
 			goto ret_NULL;
+			/* bash 5.2.12 does not execute "2/0" in disabled
+			 * branches of ?: (and thus does not complain),
+			 * but complains about negative exp: "2**-1".
+			 * I don't think we need to emulate that.
+			 */
 		}
 
 		right_side_val = rez;
@@ -457,7 +462,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 	return NULL;
  syntax_err:
 	return "arithmetic syntax error";
-#undef NUMPTR
+#undef NUMSTACKPTR
 }
 
 /* longest must be first */
@@ -630,8 +635,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		if (*expr == '\0') {
 			if (expr == start_expr) {
 				/* Null expression */
-				numstack->val = 0;
-				goto ret;
+				return 0;
 			}
 
 			/* This is only reached after all tokens have been extracted from the
@@ -650,9 +654,9 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			/* At this point, we're done with the expression */
 			if (numstackptr != numstack + 1) {
 				/* if there is not exactly one result, it's bad */
-				goto err;
+				goto syntax_err;
 			}
-			goto ret;
+			return numstack->val;
 		}
 
 		p = endofname(expr);
@@ -697,7 +701,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			 * a new number or name. Example: 09v09v09v09v09v09v09v09v09v
 			 */
 			if (isalnum(*expr) || *expr == '_')
-				goto err;
+				goto syntax_err;
 			if (errno)
 				numstackptr->val = 0; /* bash compat */
 			goto push_num;
@@ -750,7 +754,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			if (*p == '\0') {
 				/* No next element, operator not found */
 				//math_state->syntax_error_at = expr;
-				goto err;
+				goto syntax_err;
 			}
 		}
 		/* NB: expr now points past the operator */
@@ -812,7 +816,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			/* binary, ternary or RPAREN */
 			if (lasttok != TOK_NUM) {
 				/* must be preceded by a num */
-				goto err;
+				goto syntax_err;
 			}
 			/* if op is RPAREN:
 			 *     while opstack is not empty:
@@ -883,7 +887,7 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 			} /* while (opstack not empty) */
 
 			if (op == TOK_RPAREN) /* unpaired RPAREN? */
-				goto err;
+				goto syntax_err;
  check_cond:
 			if (op == TOK_CONDITIONAL) {
 				/* We just now evaluated EXPR before "?".
@@ -914,20 +918,19 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 				} else if (ternary_level == math_state->evaluation_disabled) {
 					math_state->evaluation_disabled = 0;
 					dbg("':' entered: evaluation_disabled=CLEAR");
-				} /* else: ternary_level > nonzero evaluation_disabled: we are in nested ?:, in its disabled branch */
-					/* do nothing */
+				} /* else: ternary_level > evaluation_disabled && evaluation_disabled != 0 */
+					/* We are in nested "?:" while in outer "?:" disabled branch */
+					/* do_nothing */
 			}
 			goto tok_found1;
 		}
 	} /* while (1) */
 
- err:
+ syntax_err:
 	errmsg = "arithmetic syntax error";
  err_with_custom_msg:
-	numstack->val = -1;
- ret:
 	math_state->errmsg = errmsg;
-	return numstack->val;
+	return -1;
 }
 
 arith_t FAST_FUNC
