@@ -579,48 +579,40 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 # endif
 #endif
 
-//TODO: much better estimation than expr_len/2? Such as:
-//static unsigned estimate_nums_and_names(const char *expr)
-//{
-//	unsigned count = 0;
-//	while (*(expr = skip_whitespace(expr)) != '\0') {
-//		const char *p;
-//		if (isdigit(*expr)) {
-//			while (isdigit(*++expr))
-//				continue;
-//			count++;
-//			continue;
-//		}
-//		p = endofname(expr);
-//		if (p != expr) {
-//			expr = p;
-//			count++;
-//			continue;
-//		}
-//	}
-//	return count;
-//}
-
 static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr)
 {
-	operator lasttok;
-	const char *errmsg = NULL;
-	const char *start_expr = expr = skip_whitespace(expr);
-	unsigned expr_len = strlen(expr) + 2;
 	/* Stack of integers/names */
-	/* There can be no more than strlen(startbuf)/2+1
-	 * integers/names in any given correct or incorrect expression.
-	 * (modulo "09v09v09v09v09v" case,
-	 * but we have code to detect that early)
-	 */
-	var_or_num_t *const numstack = alloca((expr_len / 2) * sizeof(numstack[0]));
-	var_or_num_t *numstackptr = numstack;
+	var_or_num_t *numstack, *numstackptr;
 	/* Stack of operator tokens */
-	operator *const opstack = alloca(expr_len * sizeof(opstack[0]));
-	operator *opstackptr = opstack;
+	operator *opstack, *opstackptr;
+	operator lasttok;
 	operator insert_op = 0xff;
 	unsigned ternary_level = 0;
+	const char *errmsg;
+	const char *start_expr = expr = skip_whitespace(expr);
+
+	{
+		unsigned expr_len = strlen(expr) + 2;
+		/* If LOTS of whitespace, do not blow up the estimation */
+		const char *p = expr;
+		while (*p) {
+			/* in a run of whitespace, count only 1st char */
+			if (isspace(*p)) {
+				while (p++, isspace(*p))
+					expr_len--;
+			} else {
+				p++;
+			}
+		}
+		/* There can be no more than expr_len/2
+		 * integers/names in any given correct or incorrect expression.
+		 * (modulo "09v09v09v09v09v" case,
+		 * but we have code to detect that early)
+		 */
+		numstackptr = numstack = alloca((expr_len / 2) * sizeof(numstack[0]));
+		opstackptr = opstack = alloca(expr_len * sizeof(opstack[0]));
+	}
 
 	/* Start with a left paren */
 	dbg("(%d) op:TOK_LPAREN", (int)(opstackptr - opstack));
