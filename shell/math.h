@@ -57,7 +57,7 @@ typedef const char* FAST_FUNC (*arith_var_lookup_t)(const char *name);
 typedef void        FAST_FUNC (*arith_var_set_t)(const char *name, const char *val);
 
 typedef struct arith_state_t {
-	uint64_t              evaluation_disabled;
+	unsigned              evaluation_disabled;
 	const char           *errmsg;
 	void                 *list_of_recursed_names;
 	arith_var_lookup_t    lookupvar;

@@ -599,8 +599,6 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr)
 {
-#define EVAL_DISABLED ((unsigned long long)math_state->evaluation_disabled)
-#define TOP_BIT_ULL ((unsigned long long)LLONG_MAX + 1)
 	operator lasttok;
 	const char *errmsg = NULL;
 	const char *start_expr = expr = skip_whitespace(expr);
@@ -617,6 +615,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 	operator *const opstack = alloca(expr_len * sizeof(opstack[0]));
 	operator *opstackptr = opstack;
 	operator insert_op = 0xff;
+	unsigned ternary_level = 0;
 
 	/* Start with a left paren */
 	dbg("(%d) op:TOK_LPAREN", (int)(opstackptr - opstack));
@@ -875,8 +874,11 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 					/* Example: a=1?2:3,a. We just executed ":".
 					 * Prevent assignment from being still disabled.
 					 */
-					math_state->evaluation_disabled >>= 1;
-					dbg("':' executed: evaluation_disabled=%llx (restored)", EVAL_DISABLED);
+					if (ternary_level == math_state->evaluation_disabled) {
+						math_state->evaluation_disabled = 0;
+						dbg("':' executed: evaluation_disabled=CLEAR");
+					}
+					ternary_level--;
 				}
 			} /* while (opstack not empty) */
 
@@ -887,12 +889,11 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 				/* We just now evaluated EXPR before "?".
 				 * Should we disable evaluation now?
 				 */
-				if (math_state->evaluation_disabled & TOP_BIT_ULL)
-					goto err; /* >63 levels of ?: nesting not supported */
-				math_state->evaluation_disabled =
-					(math_state->evaluation_disabled << 1)
-					| (numstackptr[-1].val == 0);
-				dbg("'?' entered: evaluation_disabled=%llx", EVAL_DISABLED);
+				ternary_level++;
+				if (numstackptr[-1].val == 0 && !math_state->evaluation_disabled) {
+					math_state->evaluation_disabled = ternary_level;
+					dbg("'?' entered: evaluation_disabled=%u", math_state->evaluation_disabled);
+				}
 			}
 		} /* if */
 		/* else: LPAREN or UNARY: push it on opstack */
@@ -906,9 +907,15 @@ dbg("    numstack:%d val:%lld '%s'", (int)(numstackptr - numstack), numstackptr[
 			insert_op = 0xff;
 			dbg("inserting %02x", op);
 			if (op == TOK_CONDITIONAL_SEP) {
-				/* The next token is ":". Toggle "do not evaluate" bit */
-				math_state->evaluation_disabled ^= 1;
-				dbg("':' entered: evaluation_disabled=%llx (negated)", EVAL_DISABLED);
+				/* The next token is ":". Toggle "do not evaluate" state */
+				if (!math_state->evaluation_disabled) {
+					math_state->evaluation_disabled = ternary_level;
+					dbg("':' entered: evaluation_disabled=%u", math_state->evaluation_disabled);
+				} else if (ternary_level == math_state->evaluation_disabled) {
+					math_state->evaluation_disabled = 0;
+					dbg("':' entered: evaluation_disabled=CLEAR");
+				} /* else: ternary_level > nonzero evaluation_disabled: we are in nested ?:, in its disabled branch */
+					/* do nothing */
 			}
 			goto tok_found1;
 		}
