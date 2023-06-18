@@ -265,19 +265,18 @@ static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr);
 
 static arith_t
-arith_lookup_val(arith_state_t *math_state, const char *name)
+arith_lookup_val(arith_state_t *math_state, const char *name, char *endname)
 {
 	char c;
 	const char *p;
-	char *e = (char*)endofname(name);
 
-	c = *e;
-	*e = '\0';
+	c = *endname;
+	*endname = '\0';
 	p = math_state->lookupvar(name);
-	*e = c;
+	*endname = c;
 	if (p) {
 		arith_t val;
-		size_t len = e - name;
+		size_t len = endname - name;
 		remembered_name *cur;
 		remembered_name remember;
 
@@ -685,9 +684,10 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				 || expr[1] == '=' /* or "==..." */
 				) {
 					/* Evaluate variable to value */
-					numstackptr->val = arith_lookup_val(math_state, numstackptr->var_name);
+					arith_t val = arith_lookup_val(math_state, numstackptr->var_name, (char*)p);
 					if (math_state->errmsg)
-						return numstackptr->val; /* -1 */
+						return val; /* -1 */
+					numstackptr->val = val;
 				}
 			} else {
 				dbg("[%d] var:IGNORED", (int)(numstackptr - numstack));
