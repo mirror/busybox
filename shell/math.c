@@ -667,6 +667,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			/* At this point, we're done with the expression */
 			if (numstackptr != numstack + 1) {
 				/* if there is not exactly one result, it's bad */
+				/* Example: $((1 2)) */
 				goto syntax_err;
 			}
 			return numstack->val;
@@ -691,9 +692,10 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				}
 			} else {
 				dbg("[%d] var:IGNORED", (int)(numstackptr - numstack));
-				numstackptr->var_name = NULL;
-				numstackptr->val = 0; //paranoia, probably not needed
 				expr = p;
+				numstackptr->var_name = NULL;
+ push_num0:
+				numstackptr->val = 0;
 			}
  push_num:
 			numstackptr++;
@@ -717,8 +719,13 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			 */
 			if (isalnum(*expr) || *expr == '_')
 				goto syntax_err;
-			if (errno)
-				numstackptr->val = 0; /* bash compat */
+			if (errno) {
+// TODO: bash 5.2.15 does not catch ERANGE (some older version did?).
+// $((99999999999999999999)) is 7766279631452241919 (the 64-bit truncated value).
+// Our BASE# code does this as well: try $((10#99999999999999999999)),
+// but the "ordinary" code path with strtoull() does not do this.
+				goto push_num0; /* bash compat */
+			}
 			goto push_num;
 		}
 
