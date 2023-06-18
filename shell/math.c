@@ -363,7 +363,6 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 
 		/* Pop numstack */
 		NUMSTACKPTR = top_of_stack; /* this decrements NUMSTACKPTR */
-		top_of_stack--; /* now points to left side */
 
 		if (math_state->evaluation_disabled) {
 			dbg("binary op %02x skipped", op);
@@ -375,6 +374,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 			 */
 		}
 
+		top_of_stack--; /* now points to left side */
 		right_side_val = rez;
 		rez = top_of_stack->val;
 		if (op == TOK_BOR || op == TOK_OR_ASSIGN)
@@ -703,9 +703,12 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 
 		if (isdigit(*expr)) {
 			/* Number */
+			char *end;
 			numstackptr->var_name = NULL;
 			errno = 0;
-			numstackptr->val = strto_arith_t(expr, (char**) &expr);
+			end = (char*) expr; /* separate variable to go on stack */
+			numstackptr->val = strto_arith_t(expr, &end);
+			expr = end;
 			dbg("[%d] val:%lld", (int)(numstackptr - numstack), numstackptr->val);
 			/* A number can't be followed by another number, or a variable name.
 			 * We'd catch this later anyway, but this would require numstack[]
