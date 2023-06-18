@@ -264,10 +264,9 @@ static ALWAYS_INLINE int isalnum_(int c)
 static arith_t
 evaluate_string(arith_state_t *math_state, const char *expr);
 
-static const char*
-arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
+static arith_t
+arith_lookup_val(arith_state_t *math_state, const char *name)
 {
-	const char *name = t->var_name;
 	char c;
 	const char *p;
 	char *e = (char*)endofname(name);
@@ -277,6 +276,7 @@ arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 	p = math_state->lookupvar(name);
 	*e = c;
 	if (p) {
+		arith_t val;
 		size_t len = e - name;
 		remembered_name *cur;
 		remembered_name remember;
@@ -289,7 +289,8 @@ arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 			 && !isalnum_(cur->var_name[len])
 			) {
 				/* yes */
-				return "expression recursion loop detected";
+				math_state->errmsg = "expression recursion loop detected";
+				return -1;
 			}
 		}
 
@@ -299,16 +300,16 @@ arith_lookup_val(arith_state_t *math_state, var_or_num_t *t)
 		math_state->list_of_recursed_names = &remember;
 
 		/* recursively evaluate p as expression */
-		t->val = evaluate_string(math_state, p);
+		/* this sets math_state->errmsg on error */
+		val = evaluate_string(math_state, p);
 
 		/* pop current var name */
 		math_state->list_of_recursed_names = remember.next;
 
-		return math_state->errmsg;
+		return val;
 	}
 	/* treat undefined var as 0 */
-	t->val = 0;
-	return NULL;
+	return 0;
 }
 
 /* "Applying" a token means performing it on the top elements on the integer
@@ -684,9 +685,9 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				 || expr[1] == '=' /* or "==..." */
 				) {
 					/* Evaluate variable to value */
-					errmsg = arith_lookup_val(math_state, numstackptr);
-					if (errmsg)
-						goto err_with_custom_msg;
+					numstackptr->val = arith_lookup_val(math_state, numstackptr->var_name);
+					if (math_state->errmsg)
+						return numstackptr->val; /* -1 */
 				}
 			} else {
 				dbg("[%d] var:IGNORED", (int)(numstackptr - numstack));
