@@ -706,7 +706,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			char *end;
 			numstackptr->var_name = NULL;
 			errno = 0;
-			end = (char*) expr; /* separate variable to go on stack */
+			/* code is smaller compared to using &expr here: */
 			numstackptr->val = strto_arith_t(expr, &end);
 			expr = end;
 			dbg("[%d] val:%lld", (int)(numstackptr - numstack), numstackptr->val);
