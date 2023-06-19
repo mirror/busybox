@@ -114,7 +114,7 @@
 #include "libbb.h"
 #include "math.h"
 
-#if 1
+#if 0
 # define dbg(...) ((void)0)
 #else
 # define dbg(...) bb_error_msg(__VA_ARGS__)
@@ -631,6 +631,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		 * (IOW: more than one slot), but its second slot (LPAREN)
 		 * is popped off when ":" is reached.
 		 */
+		expr_len++; /* +1 for 1st LPAREN. See what $((1?)) pushes to opstack */
 		opstackptr = opstack = alloca(expr_len * sizeof(opstack[0]));
 		/* There can be no more than (expr_len/2 + 1)
 		 * integers/names in any given correct or incorrect expression.
