@@ -114,7 +114,7 @@
 #include "libbb.h"
 #include "math.h"
 
-#if 0
+#if 1
 # define dbg(...) ((void)0)
 #else
 # define dbg(...) bb_error_msg(__VA_ARGS__)
