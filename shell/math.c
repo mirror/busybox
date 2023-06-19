@@ -613,7 +613,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 	const char *start_expr = expr = skip_whitespace(expr);
 
 	{
-		unsigned expr_len = strlen(expr) + 2;
+		unsigned expr_len = strlen(expr);
 		/* If LOTS of whitespace, do not blow up the estimation */
 		const char *p = expr;
 		while (*p) {
@@ -625,14 +625,21 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				p++;
 			}
 		}
-		/* There can be no more than expr_len/2
+		dbg("expr:'%s' expr_len:%u", expr, expr_len);
+		/* expr_len deep opstack is needed. Think "------------7".
+		 * Only "?" operator temporarily needs two opstack slots
+		 * (IOW: more than one slot), but its second slot (LPAREN)
+		 * is popped off when ":" is reached.
+		 */
+		opstackptr = opstack = alloca(expr_len * sizeof(opstack[0]));
+		/* There can be no more than (expr_len/2 + 1)
 		 * integers/names in any given correct or incorrect expression.
-		 * (modulo "09v09v09v09v09v" case,
+		 * (modulo "09", "0v" cases where 2 chars are 2 ints/names,
 		 * but we have code to detect that early)
 		 */
-		dbg("expr:'%s' expr_len:%u", expr, expr_len);
-		numstackptr = numstack = alloca((expr_len / 2) * sizeof(numstack[0]));
-		opstackptr = opstack = alloca(expr_len * sizeof(opstack[0]));
+		expr_len = (expr_len / 2)
+			+ 1 /* "1+2" has two nums, 2 = len/2+1, NOT len/2 */;
+		numstackptr = numstack = alloca(expr_len * sizeof(numstack[0]));
 	}
 
 	/* Start with a left paren */
@@ -714,8 +721,9 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			dbg("[%d] val:%lld", (int)(numstackptr - numstack), numstackptr->val);
 			/* A number can't be followed by another number, or a variable name.
 			 * We'd catch this later anyway, but this would require numstack[]
-			 * to be twice as deep to handle strings where _every_ char is
-			 * a new number or name. Example: 09v09v09v09v09v09v09v09v09v
+			 * to be ~twice as deep to handle strings where _every_ char is
+			 * a new number or name.
+			 * Examples: "09" is two numbers, "0v" is number and name.
 			 */
 			if (isalnum(*expr) || *expr == '_')
 				goto syntax_err;
