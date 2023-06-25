@@ -531,29 +531,11 @@ static const char op_tokens[] ALIGN1 = {
 #define END_POINTER (&op_tokens[sizeof(op_tokens)-1])
 
 #if ENABLE_FEATURE_SH_MATH_BASE
-static arith_t strto_arith_t(const char *nptr, char **endptr)
+static arith_t parse_with_base(const char *nptr, char **endptr, unsigned base)
 {
-	unsigned base;
-	arith_t n;
+	arith_t n = 0;
+	const char *start = nptr;
 
-# if ENABLE_FEATURE_SH_MATH_64
-	n = strtoull(nptr, endptr, 0);
-# else
-	n = strtoul(nptr, endptr, 0);
-# endif
-	if (**endptr != '#'
-	 || (*nptr < '1' || *nptr > '9')
-	 || (n < 2 || n > 64)
-	) {
-		return n;
-	}
-
-	/* It's "N#nnnn" or "NN#nnnn" syntax, NN can't start with 0,
-	 * NN is in 2..64 range.
-	 */
-	base = (unsigned)n;
-	n = 0;
-	nptr = *endptr + 1;
 	for (;;) {
 		unsigned digit = (unsigned)*nptr - '0';
 		if (digit >= 10 /* not 0..9 */
@@ -582,14 +564,51 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 		n = n * base + digit;
 		nptr++;
 	}
-	/* Note: we do not set errno on bad chars, we just set a pointer
-	 * to the first invalid char. For example, this allows
-	 * "N#" (empty "nnnn" part): 64#+1 is a valid expression,
-	 * it means 64# + 1, whereas 64#~... is not, since ~ is not a valid
-	 * operator.
-	 */
 	*endptr = (char*)nptr;
+	/* "64#" and "64#+1" used to be valid expressions, but bash 5.2.15
+	 * no longer allow such, detect this:
+	 */
+// NB: bash allows $((0x)), this is probably a bug...
+	if (nptr == start)
+		*endptr = NULL; /* there weren't any digits, bad */
 	return n;
+}
+
+static arith_t strto_arith_t(const char *nptr, char **endptr)
+{
+/* NB: we do not use strtoull here to be bash-compatible:
+ * $((99999999999999999999)) is 7766279631452241919
+ * (the 64-bit truncated value).
+ */
+	unsigned base;
+
+	/* nptr[0] is '0'..'9' here */
+
+	base = nptr[0] - '0';
+	if (base == 0) { /* nptr[0] is '0' */
+		base = 8;
+		if ((nptr[1] | 0x20) == 'x') {
+			base = 16;
+			nptr += 2;
+		}
+// NB: bash allows $((0x)), this is probably a bug...
+		return parse_with_base(nptr, endptr, base);
+	}
+
+	if (nptr[1] == '#') {
+		if (base > 1)
+			return parse_with_base(nptr + 2, endptr, base);
+		/* else: bash says "invalid arithmetic base" */
+	}
+
+	if (isdigit(nptr[1]) && nptr[2] == '#') {
+		base = 10 * base + (nptr[1] - '0');
+		if (base >= 2 && base <= 64)
+			return parse_with_base(nptr + 3, endptr, base);
+		/* else: bash says "invalid arithmetic base" */
+	}
+
+	return parse_with_base(nptr, endptr, 10);
 }
 #else /* !ENABLE_FEATURE_SH_MATH_BASE */
 # if ENABLE_FEATURE_SH_MATH_64
@@ -702,7 +721,6 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				dbg("[%d] var:IGNORED", (int)(numstackptr - numstack));
 				expr = p;
 				numstackptr->var_name = NULL;
- push_num0:
 				numstackptr->val = 0;
 			}
  push_num:
@@ -715,11 +733,12 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			/* Number */
 			char *end;
 			numstackptr->var_name = NULL;
-			errno = 0;
 			/* code is smaller compared to using &expr here: */
 			numstackptr->val = strto_arith_t(expr, &end);
 			expr = end;
 			dbg("[%d] val:%lld", (int)(numstackptr - numstack), numstackptr->val);
+			if (!expr) /* example: $((10#)) */
+				goto syntax_err;
 			/* A number can't be followed by another number, or a variable name.
 			 * We'd catch this later anyway, but this would require numstack[]
 			 * to be ~twice as deep to handle strings where _every_ char is
@@ -728,13 +747,6 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			 */
 			if (isalnum(*expr) || *expr == '_')
 				goto syntax_err;
-			if (errno) {
-// TODO: bash 5.2.15 does not catch ERANGE (some older version did?).
-// $((99999999999999999999)) is 7766279631452241919 (the 64-bit truncated value).
-// Our BASE# code does this as well: try $((10#99999999999999999999)),
-// but the "ordinary" code path with strtoull() does not do this.
-				goto push_num0; /* bash compat */
-			}
 			goto push_num;
 		}
 

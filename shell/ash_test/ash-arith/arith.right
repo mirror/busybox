@@ -80,8 +80,9 @@ other bases
 62 62
 63 63
 missing number after base
-0 0
+./arith.tests: line 161: arithmetic syntax error
 ./arith.tests: line 162: arithmetic syntax error
+./arith.tests: line 163: arithmetic syntax error
 ./arith.tests: line 164: divide by zero
 ./arith.tests: let: line 165: arithmetic syntax error
 ./arith.tests: line 166: arithmetic syntax error

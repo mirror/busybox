@@ -82,7 +82,8 @@ other bases
 62 62
 63 63
 missing number after base
-0 0
+hush: arithmetic syntax error
+hush: arithmetic syntax error
 hush: arithmetic syntax error
 hush: divide by zero
 hush: can't execute 'let': No such file or directory

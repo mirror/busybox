@@ -159,12 +159,12 @@ echo 63 $(( 64#_ ))
 #ash# # weird bases (error)
 #ash# echo $(( 3425#56 ))
 
-echo missing number after base
-echo 0 $(( 2# ))
 
 # these should generate errors
+echo missing number after base
+(  echo $(( 2# ))          )
 (  echo $(( 7 = 43 ))      )
-#ash# echo $(( 2#44 ))
+(  echo $(( 2#44 ))        )
 (  echo $(( 44 / 0 ))      )
 (  let 'jv += $iv'         )
 (  echo $(( jv += \$iv ))  )
