@@ -856,9 +856,11 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		 */
 		prec = PREC(op);
 		if (prec != PREC_LPAREN && prec < UNARYPREC) {
-			/* binary, ternary or RPAREN */
+			/* Binary, ternary or RPAREN */
 			if (lasttok != TOK_VALUE) {
-				/* must be preceded by a num (example?) */
+				/* Must be preceded by a value.
+				 * $((2 2 + * 3)) would be accepted without this.
+				 */
 				goto syntax_err;
 			}
 			/* if op is RPAREN:
