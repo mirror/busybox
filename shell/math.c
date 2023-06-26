@@ -94,7 +94,6 @@
  *
  * Merge in Aaron's comments previously posted to the busybox list,
  * modified slightly to take account of my changes to the code.
- *
  */
 /*
  *  (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
@@ -212,18 +211,18 @@ typedef unsigned char operator;
 #define TOK_UPLUS               tok_decl(UNARYPREC+1,1)
 
 #define PREC_PRE                (UNARYPREC+2)
-
 #define TOK_PRE_INC             tok_decl(PREC_PRE, 0)
 #define TOK_PRE_DEC             tok_decl(PREC_PRE, 1)
 
 #define PREC_POST               (UNARYPREC+3)
-
 #define TOK_POST_INC            tok_decl(PREC_POST, 0)
 #define TOK_POST_DEC            tok_decl(PREC_POST, 1)
 
-#define SPEC_PREC               (UNARYPREC+4)
-
-#define TOK_NUM                 tok_decl(SPEC_PREC, 0)
+/* TOK_VALUE marks a number, name, name++/name--, or (EXPR):
+ * IOW: something which can be used as the left side of a binary op.
+ * Since it's never pushed to opstack, its precedence does not matter.
+ */
+#define TOK_VALUE               tok_decl(PREC_POST, 2)
 
 static int
 is_assign_op(operator op)
@@ -625,7 +624,9 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 	var_or_num_t *numstack, *numstackptr;
 	/* Stack of operator tokens */
 	operator *opstack, *opstackptr;
+	/* To detect whether we are after a "value": */
 	operator lasttok;
+	/* To insert implicit () in ?: ternary op: */
 	operator insert_op = 0xff;
 	unsigned ternary_level = 0;
 	const char *errmsg;
@@ -720,12 +721,12 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			} else {
 				dbg("[%d] var:IGNORED", (int)(numstackptr - numstack));
 				expr = p;
-				numstackptr->var_name = NULL;
-				numstackptr->val = 0;
+				numstackptr->var_name = NULL; /* not needed, paranoia */
+				numstackptr->val = 0; /* not needed, paranoia */
 			}
- push_num:
+ push_value:
 			numstackptr++;
-			lasttok = TOK_NUM;
+			lasttok = TOK_VALUE;
 			continue;
 		}
 
@@ -747,7 +748,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			 */
 			if (isalnum(*expr) || *expr == '_')
 				goto syntax_err;
-			goto push_num;
+			goto push_value;
 		}
 
 		/* Should be an operator */
@@ -818,15 +819,14 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			dbg("insert_op=%02x op=%02x", insert_op, op);
 		}
  tok_found1:
-		/* post grammar: a++ reduce to num */
-		if (lasttok == TOK_POST_INC || lasttok == TOK_POST_DEC)
-			lasttok = TOK_NUM;
+		/* NAME++ is a "value" (something suitable for a binop) */
+		if (PREC(lasttok) == PREC_POST)
+			lasttok = TOK_VALUE;
 
 		/* Plus and minus are binary (not unary) _only_ if the last
-		 * token was a number, or a right paren (which pretends to be
-		 * a number, since it evaluates to one). Think about it.
-		 * It makes sense. */
-		if (lasttok != TOK_NUM) {
+		 * token was a "value". Think about it. It makes sense.
+		 */
+		if (lasttok != TOK_VALUE) {
 			switch (op) {
 			case TOK_ADD:
 				//op = TOK_UPLUS;
@@ -857,8 +857,8 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		prec = PREC(op);
 		if (prec != PREC_LPAREN && prec < UNARYPREC) {
 			/* binary, ternary or RPAREN */
-			if (lasttok != TOK_NUM) {
-				/* must be preceded by a num */
+			if (lasttok != TOK_VALUE) {
+				/* must be preceded by a num (example?) */
 				goto syntax_err;
 			}
 			/* if op is RPAREN:
@@ -883,11 +883,12 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 				operator prev_op = *--opstackptr;
 				if (op == TOK_RPAREN) {
 					if (prev_op == TOK_LPAREN) {
-						/* Erase var name: (var) is just a number, for example, (var) = 1 is not valid */
+						/* Erase var name: for example, (VAR) = 1 is not valid */
 						numstackptr[-1].var_name = NULL;
-						/* Any operator directly after a
-						 * close paren should consider itself binary */
-						lasttok = TOK_NUM;
+						/* (EXPR) is a "value": next operator directly after
+						 * close paren should be considered binary
+						 */
+						lasttok = TOK_VALUE;
 						goto next;
 					}
 					/* Not (y), but ...x~y). Fall through to evaluate x~y */
