@@ -141,6 +141,7 @@ typedef unsigned char operator;
  * but there are 11 of them, which doesn't fit into 3 bits for unique id.
  * Abusing another precedence level:
  */
+#define PREC_ASSIGN1            2
 #define TOK_ASSIGN              tok_decl(2,0)
 #define TOK_AND_ASSIGN          tok_decl(2,1)
 #define TOK_OR_ASSIGN           tok_decl(2,2)
@@ -150,11 +151,12 @@ typedef unsigned char operator;
 #define TOK_LSHIFT_ASSIGN       tok_decl(2,6)
 #define TOK_RSHIFT_ASSIGN       tok_decl(2,7)
 
+#define PREC_ASSIGN2            3
 #define TOK_MUL_ASSIGN          tok_decl(3,0)
 #define TOK_DIV_ASSIGN          tok_decl(3,1)
 #define TOK_REM_ASSIGN          tok_decl(3,2)
 
-#define fix_assignment_prec(prec) do { if (prec == 3) prec = 2; } while (0)
+#define fix_assignment_prec(prec) do { prec -= (prec == 3); } while (0)
 
 /* Ternary conditional operator is right associative too */
 /*
@@ -211,25 +213,25 @@ typedef unsigned char operator;
 #define TOK_UPLUS               tok_decl(UNARYPREC+1,1)
 
 #define PREC_PRE                (UNARYPREC+2)
-#define TOK_PRE_INC             tok_decl(PREC_PRE, 0)
-#define TOK_PRE_DEC             tok_decl(PREC_PRE, 1)
+#define TOK_PRE_INC             tok_decl(PREC_PRE,0)
+#define TOK_PRE_DEC             tok_decl(PREC_PRE,1)
 
 #define PREC_POST               (UNARYPREC+3)
-#define TOK_POST_INC            tok_decl(PREC_POST, 0)
-#define TOK_POST_DEC            tok_decl(PREC_POST, 1)
+#define TOK_POST_INC            tok_decl(PREC_POST,0)
+#define TOK_POST_DEC            tok_decl(PREC_POST,1)
 
 /* TOK_VALUE marks a number, name, name++/name--, or (EXPR):
  * IOW: something which can be used as the left side of a binary op.
  * Since it's never pushed to opstack, its precedence does not matter.
  */
-#define TOK_VALUE               tok_decl(PREC_POST, 2)
+#define TOK_VALUE               tok_decl(PREC_POST,2)
 
 static int
 is_assign_op(operator op)
 {
 	operator prec = PREC(op);
-	fix_assignment_prec(prec);
-	return prec == PREC(TOK_ASSIGN)
+	return prec == PREC_ASSIGN1
+	|| prec == PREC_ASSIGN2
 	|| prec == PREC_PRE
 	|| prec == PREC_POST;
 }
