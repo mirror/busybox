@@ -313,8 +313,10 @@ arith_lookup_val(arith_state_t *math_state, const char *name, char *endname)
 }
 
 /* "Applying" a token means performing it on the top elements on the integer
- * stack. For an unary operator it will only change the top element, but a
- * binary operator will pop two arguments and push the result */
+ * stack. For an unary operator it will only change the top element,
+ * a binary operator will pop two arguments and push the result,
+ * the ternary ?: op will pop three arguments and push the result.
+ */
 static NOINLINE const char*
 arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_or_num_t **numstackptr)
 {
@@ -337,9 +339,9 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 			return "malformed ?: operator";
 		if (expr1->val != 0) /* select expr2 or expr3 */
 			top_of_stack--;
-		expr1->val = top_of_stack->val;
-		expr1->var_name = NULL;
-		return NULL;
+		rez = top_of_stack->val;
+		top_of_stack = expr1;
+		goto ret_rez;
 	}
 	if (op == TOK_CONDITIONAL) /* Example: $((a ? b)) */
 		return "malformed ?: operator";
@@ -469,13 +471,13 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 			math_state->setvar(top_of_stack->var_name, buf);
 			*e = c;
 		}
-		/* After saving, make previous value for v++ or v-- */
-		if (op == TOK_POST_INC)
-			rez--;
-		if (op == TOK_POST_DEC)
-			rez++;
+		/* VAR++ or VAR--? */
+		if (PREC(op) == PREC_POST) {
+			/* Do not store new value to stack (keep old value) */
+			goto ret_NULL;
+		}
 	}
-
+ ret_rez:
 	top_of_stack->val = rez;
  ret_NULL:
 	/* Erase var name, it is just a number now */
