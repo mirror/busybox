@@ -369,7 +369,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 
 		if (math_state->evaluation_disabled) {
 			dbg("binary op %02x skipped", op);
-			goto ret_NULL;
+			return NULL;
 			/* bash 5.2.12 does not execute "2/0" in disabled
 			 * branches of ?: (and thus does not complain),
 			 * but complains about negative exp: "2**-1".
@@ -452,7 +452,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 
 	if (math_state->evaluation_disabled) {
 		dbg("unary op %02x skipped", op);
-		goto ret_NULL;
+		return NULL;
 	}
 
 	if (is_assign_op(op)) {
@@ -598,15 +598,18 @@ static arith_t strto_arith_t(const char *nptr, char **endptr)
 		return parse_with_base(nptr, endptr, base);
 	}
 
+	/* base is 1..9 here */
+
 	if (nptr[1] == '#') {
 		if (base > 1)
 			return parse_with_base(nptr + 2, endptr, base);
-		/* else: bash says "invalid arithmetic base" */
+		/* else: "1#NN", bash says "invalid arithmetic base" */
 	}
 
 	if (isdigit(nptr[1]) && nptr[2] == '#') {
 		base = 10 * base + (nptr[1] - '0');
-		if (base >= 2 && base <= 64)
+		/* base is at least 10 here */
+		if (base <= 64)
 			return parse_with_base(nptr + 3, endptr, base);
 		/* else: bash says "invalid arithmetic base" */
 	}
