@@ -155,7 +155,7 @@ typedef unsigned char operator;
 #define PREC_ASSIGN2            3
 #define TOK_MUL_ASSIGN          tok_decl(3,0)
 /* "/" and "/=" ops have the same id bits */
-#define DIV_ID1                  1
+#define DIV_ID1                 1
 #define TOK_DIV_ASSIGN          tok_decl(3,DIV_ID1)
 #define TOK_REM_ASSIGN          tok_decl(3,2)
 
@@ -422,8 +422,19 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 			if (right_side_val < 0)
 				return "exponent less than 0";
 			c = 1;
-			while (--right_side_val >= 0)
+			while (right_side_val != 0) {
+				if ((right_side_val & 1) == 0) {
+					/* this if() block is not necessary for correctness,
+					 * but otherwise echo $((3**999999999999999999))
+					 * takes a VERY LONG time
+					 * (and it's not interruptible by ^C)
+					 */
+					rez *= rez;
+					right_side_val >>= 1;
+				}
 				c *= rez;
+				right_side_val--;
+			}
 			rez = c;
 		}
 		else /*if (op == TOK_DIV || op == TOK_DIV_ASSIGN
@@ -550,7 +561,7 @@ static arith_t parse_with_base(const char *nptr, char **endptr, unsigned base)
 			/* current char is one of :;<=>?@A..Z[\]^_`a..z */
 
 			/* in bases up to 36, case does not matter for a-z,
-			 * map A..Z and a..z to 10..35: */
+			 * map @A..Z and `a..z to 9..35: */
 			digit = (unsigned)(*nptr | 0x20) - ('a' - 10);
 			if (base > 36 && *nptr <= '_') {
 				/* base > 36: A-Z,@,_ are 36-61,62,63 */
