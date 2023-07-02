@@ -128,7 +128,8 @@ typedef unsigned char operator;
  * Consider * and /
  */
 #define tok_decl(prec,id)       (((id)<<5) | (prec))
-#define PREC(op)                ((op) & 0x1F)
+#define ID_SHIFT                5
+#define PREC(op)                ((op) & 0x1f)
 
 #define PREC_LPAREN             0
 #define TOK_LPAREN              tok_decl(0,0)
@@ -146,14 +147,16 @@ typedef unsigned char operator;
 #define TOK_AND_ASSIGN          tok_decl(2,1)
 #define TOK_OR_ASSIGN           tok_decl(2,2)
 #define TOK_XOR_ASSIGN          tok_decl(2,3)
-#define TOK_PLUS_ASSIGN         tok_decl(2,4)
-#define TOK_MINUS_ASSIGN        tok_decl(2,5)
+#define TOK_ADD_ASSIGN          tok_decl(2,4)
+#define TOK_SUB_ASSIGN          tok_decl(2,5)
 #define TOK_LSHIFT_ASSIGN       tok_decl(2,6)
 #define TOK_RSHIFT_ASSIGN       tok_decl(2,7)
 
 #define PREC_ASSIGN2            3
 #define TOK_MUL_ASSIGN          tok_decl(3,0)
-#define TOK_DIV_ASSIGN          tok_decl(3,1)
+/* "/" and "/=" ops have the same id bits */
+#define DIV_ID1                  1
+#define TOK_DIV_ASSIGN          tok_decl(3,DIV_ID1)
 #define TOK_REM_ASSIGN          tok_decl(3,2)
 
 #define fix_assignment_prec(prec) do { prec -= (prec == 3); } while (0)
@@ -198,7 +201,7 @@ typedef unsigned char operator;
 #define TOK_SUB                 tok_decl(13,1)
 
 #define TOK_MUL                 tok_decl(14,0)
-#define TOK_DIV                 tok_decl(14,1)
+#define TOK_DIV                 tok_decl(14,DIV_ID1)
 #define TOK_REM                 tok_decl(14,2)
 
 /* Exponent is right associative */
@@ -408,9 +411,9 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 			rez = (rez <= right_side_val);
 		else if (op == TOK_MUL || op == TOK_MUL_ASSIGN)
 			rez *= right_side_val;
-		else if (op == TOK_ADD || op == TOK_PLUS_ASSIGN)
+		else if (op == TOK_ADD || op == TOK_ADD_ASSIGN)
 			rez += right_side_val;
-		else if (op == TOK_SUB || op == TOK_MINUS_ASSIGN)
+		else if (op == TOK_SUB || op == TOK_SUB_ASSIGN)
 			rez -= right_side_val;
 		else if (op == TOK_ASSIGN || op == TOK_COMMA)
 			rez = right_side_val;
@@ -439,11 +442,11 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 			 * Make sure to at least not SEGV here:
 			 */
 			if (right_side_val == -1
-			 && rez << 1 == 0 /* MAX_NEGATIVE_INT or 0 */
+			 && (rez << 1) == 0 /* MAX_NEGATIVE_INT or 0 */
 			) {
 				right_side_val = 1;
 			}
-			if (op == TOK_DIV || op == TOK_DIV_ASSIGN)
+			if (op & (DIV_ID1 << ID_SHIFT)) /* DIV or DIV_ASSIGN? */
 				rez /= right_side_val;
 			else
 				rez %= right_side_val;
@@ -505,8 +508,8 @@ static const char op_tokens[] ALIGN1 = {
 	'*','=',    0, TOK_MUL_ASSIGN,
 	'/','=',    0, TOK_DIV_ASSIGN,
 	'%','=',    0, TOK_REM_ASSIGN,
-	'+','=',    0, TOK_PLUS_ASSIGN,
-	'-','=',    0, TOK_MINUS_ASSIGN,
+	'+','=',    0, TOK_ADD_ASSIGN,
+	'-','=',    0, TOK_SUB_ASSIGN,
 	'-','-',    0, TOK_POST_DEC,
 	'^','=',    0, TOK_XOR_ASSIGN,
 	'+','+',    0, TOK_POST_INC,
@@ -542,12 +545,15 @@ static arith_t parse_with_base(const char *nptr, char **endptr, unsigned base)
 	for (;;) {
 		unsigned digit = (unsigned)*nptr - '0';
 		if (digit >= 10 /* not 0..9 */
-		 && digit <= 'z' - '0' /* needed to reject e.g. $((64#~)) */
+		 && digit <= 'z' - '0' /* reject e.g. $((64#~)) */
 		) {
-			/* in bases up to 36, case does not matter for a-z */
+			/* current char is one of :;<=>?@A..Z[\]^_`a..z */
+
+			/* in bases up to 36, case does not matter for a-z,
+			 * map A..Z and a..z to 10..35: */
 			digit = (unsigned)(*nptr | 0x20) - ('a' - 10);
 			if (base > 36 && *nptr <= '_') {
-				/* otherwise, A-Z,@,_ are 36-61,62,63 */
+				/* base > 36: A-Z,@,_ are 36-61,62,63 */
 				if (*nptr == '_')
 					digit = 63;
 				else if (*nptr == '@')
@@ -558,8 +564,8 @@ static arith_t parse_with_base(const char *nptr, char **endptr, unsigned base)
 					break; /* error: one of [\]^ */
 			}
 			//bb_error_msg("ch:'%c'%d digit:%u", *nptr, *nptr, digit);
-			//if (digit < 10) - example where we need this?
-			//	break;
+			if (digit < 10) /* reject e.g. $((36#@)) */
+				break;
 		}
 		if (digit >= base)
 			break;
