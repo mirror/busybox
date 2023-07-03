@@ -11307,8 +11307,8 @@ static int FAST_FUNC builtin_export(char **argv)
 
 				if (!p) /* wtf? take next variable */
 					continue;
-				/* export var= */
-				printf("export %.*s", (int)(p - s) + 1, s);
+				/* "export VAR=" */
+				printf("%s %.*s", "export", (int)(p - s) + 1, s);
 				print_escaped(p + 1);
 				putchar('\n');
 # endif
@@ -11352,8 +11352,15 @@ static int FAST_FUNC builtin_readonly(char **argv)
 		struct variable *e;
 		for (e = G.top_var; e; e = e->next) {
 			if (e->flg_read_only) {
-//TODO: quote value: readonly VAR='VAL'
-				printf("readonly %s\n", e->varstr);
+				const char *s = e->varstr;
+				const char *p = strchr(s, '=');
+
+				if (!p) /* wtf? take next variable */
+					continue;
+				/* "readonly VAR=" */
+				printf("%s %.*s", "readonly", (int)(p - s) + 1, s);
+				print_escaped(p + 1);
+				putchar('\n');
 			}
 		}
 		return EXIT_SUCCESS;
