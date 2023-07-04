@@ -1,5 +1,5 @@
-readonly a=A
-readonly b=B
+readonly a='A'
+readonly b='B'
 Ok:0
 
 hush: a=A: readonly variable

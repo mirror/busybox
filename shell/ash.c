@@ -12123,18 +12123,19 @@ simplecmd(void)
 			if (args && app == &args->narg.next
 			 && !vars && !redir
 			) {
-				struct builtincmd *bcmd;
-				const char *name;
+//				struct builtincmd *bcmd;
+//				const char *name;
 
 				/* We have a function */
 				if (IF_BASH_FUNCTION(!function_flag &&) readtoken() != TRP)
 					raise_error_unexpected_syntax(TRP);
-				name = n->narg.text;
-				if (!goodname(name)
-				 || ((bcmd = find_builtin(name)) && IS_BUILTIN_SPECIAL(bcmd))
-				) {
-					raise_error_syntax("bad function name");
-				}
+//bash allows functions named "123", "..", "return"!
+//				name = n->narg.text;
+//				if (!goodname(name)
+//				 || ((bcmd = find_builtin(name)) && IS_BUILTIN_SPECIAL(bcmd))
+//				) {
+//					raise_error_syntax("bad function name");
+//				}
 				n->type = NDEFUN;
 				checkkwd = CHKNL | CHKKWD | CHKALIAS;
 				n->ndefun.text = n->narg.text;

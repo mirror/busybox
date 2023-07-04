@@ -4306,7 +4306,7 @@ static int done_word(struct parse_context *ctx)
 		 || endofname(command->argv[0])[0] != '\0'
 		) {
 			/* bash says just "not a valid identifier" */
-			syntax_error("bad variable name in for");
+			syntax_error("bad for loop variable");
 			return 1;
 		}
 		/* Force FOR to have just one word (variable name) */
@@ -4683,6 +4683,11 @@ static int parse_group(struct parse_context *ctx,
 			syntax_error_unexpected_ch(ch);
 			return -1;
 		}
+//bash allows functions named "123", "..", "return"!
+//		if (endofname(command->argv[0])[0] != '\0') {
+//			syntax_error("bad function name");
+//			return -1;
+//		}
 		nommu_addchr(&ctx->as_string, ch);
 		command->cmd_type = CMD_FUNCDEF;
 		goto skip;
