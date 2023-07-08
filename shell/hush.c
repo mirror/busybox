@@ -11173,7 +11173,7 @@ static int FAST_FUNC builtin_umask(char **argv)
 }
 #endif
 
-#if ENABLE_HUSH_EXPORT || ENABLE_HUSH_TRAP
+#if ENABLE_HUSH_EXPORT || ENABLE_HUSH_READONLY || ENABLE_HUSH_SET || ENABLE_HUSH_TRAP
 static void print_escaped(const char *s)
 {
 //TODO? bash "set" does not quote variables which contain only alnums and "%+,-./:=@_~",
