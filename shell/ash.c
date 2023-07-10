@@ -134,11 +134,23 @@
 //config:	default y
 //config:	depends on SHELL_ASH
 //config:
-//config:config ASH_SLEEP
-//config:	bool "sleep builtin"
-//config:	default y
-//config:	depends on SHELL_ASH
-//config:
+//
+////config:config ASH_SLEEP
+////config:	bool "sleep builtin"
+////config:	default y
+////config:	depends on SHELL_ASH
+////config:
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//Disabled for now. Has a few annoying problems:
+// * sleepcmd() -> sleep_main(), the parsing of bad arguments exits the shell.
+// * sleep_for_duration() in sleep_main() has to be interruptible for
+//   ^C traps to work, which may be a problem for other users
+//   of sleep_for_duration().
+// * BUT, if sleep_for_duration() is interruptible, then SIGCHLD interrupts it
+//   as well (try "/bin/sleep 1 & sleep 10").
+// * sleep_main() must not allocate anything as ^C in ash longjmp's.
+//   (currently, allocations are only on error paths, in message printing).
+//
 //config:config ASH_HELP
 //config:	bool "help builtin"
 //config:	default y

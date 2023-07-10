@@ -1513,6 +1513,8 @@ int hush_main(int argc, char** argv) IF_SHELL_HUSH(MAIN_EXTERNALLY_VISIBLE);
 /* If shell needs them, they exist even if not enabled as applets */
 int echo_main(int argc, char** argv) IF_ECHO(MAIN_EXTERNALLY_VISIBLE);
 int sleep_main(int argc, char **argv) IF_SLEEP(MAIN_EXTERNALLY_VISIBLE);
+/* See disabled "config ASH_SLEEP" in ash.c */
+#define ENABLE_ASH_SLEEP 0
 int printf_main(int argc, char **argv) IF_PRINTF(MAIN_EXTERNALLY_VISIBLE);
 int test_main(int argc, char **argv)
 #if ENABLE_TEST || ENABLE_TEST1 || ENABLE_TEST2
