@@ -424,7 +424,11 @@ struct globals_misc {
 
 	struct jmploc *exception_handler;
 
-	volatile int suppress_int; /* counter */
+	/*volatile*/ int suppress_int; /* counter */
+	/* ^^^^^^^ removed "volatile" since gcc would turn suppress_int++ into ridiculouls
+	 * 3-insn sequence otherwise.
+	 * We don't change suppress_int asyncronously (in a signal handler), but we do read it async.
+	 */
 	volatile /*sig_atomic_t*/ smallint pending_int; /* 1 = got SIGINT */
 	volatile /*sig_atomic_t*/ smallint got_sigchld; /* 1 = got SIGCHLD */
 	volatile /*sig_atomic_t*/ smallint pending_sig;	/* last pending signal */
@@ -717,7 +721,8 @@ int_on(void)
 {
 	barrier();
 	if (--suppress_int == 0 && pending_int)
-		raise_interrupt();
+		raise_interrupt(); /* does not return */
+	barrier();
 }
 #if DEBUG_INTONOFF
 # define INT_ON do { \
@@ -733,7 +738,8 @@ force_int_on(void)
 	barrier();
 	suppress_int = 0;
 	if (pending_int)
-		raise_interrupt();
+		raise_interrupt(); /* does not return */
+	barrier();
 }
 #define FORCE_INT_ON force_int_on()
 
@@ -743,7 +749,8 @@ force_int_on(void)
 	barrier(); \
 	suppress_int = (v); \
 	if (suppress_int == 0 && pending_int) \
-		raise_interrupt(); \
+		raise_interrupt(); /* does not return */ \
+	barrier(); \
 } while (0)
 
 
