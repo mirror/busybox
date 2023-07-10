@@ -425,9 +425,10 @@ struct globals_misc {
 	struct jmploc *exception_handler;
 
 	/*volatile*/ int suppress_int; /* counter */
-	/* ^^^^^^^ removed "volatile" since gcc would turn suppress_int++ into ridiculouls
-	 * 3-insn sequence otherwise.
-	 * We don't change suppress_int asyncronously (in a signal handler), but we do read it async.
+	/* ^^^^^^^ removed "volatile" since on x86, gcc turns suppress_int++
+	 * into ridiculous 3-insn sequence otherwise.
+	 * We don't change suppress_int asyncronously (in a signal handler),
+	 * but we do read it async.
 	 */
 	volatile /*sig_atomic_t*/ smallint pending_int; /* 1 = got SIGINT */
 	volatile /*sig_atomic_t*/ smallint got_sigchld; /* 1 = got SIGCHLD */
@@ -9438,7 +9439,7 @@ evaltree(union node *n, int flags)
 	}
 	if (flags & EV_EXIT) {
  exexit:
-		raise_exception(EXEND);
+		raise_exception(EXEND); /* does not return */
 	}
 
 	popstackmark(&smark);
@@ -10466,7 +10467,7 @@ evalcommand(union node *cmd, int flags)
 
 		/* We have a redirection error. */
 		if (spclbltin > 0)
-			raise_exception(EXERROR);
+			raise_exception(EXERROR); /* does not return */
 
 		goto out;
 	}
@@ -14571,7 +14572,7 @@ procargs(char **argv)
 		optlist[i] = 2;
 	if (options(&login_sh)) {
 		/* it already printed err message */
-		raise_exception(EXERROR);
+		raise_exception(EXERROR); /* does not return */
 	}
 	xargv = argptr;
 	xminusc = minusc;
