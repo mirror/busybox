@@ -8,13 +8,13 @@
  * TODO: add support for large (>4GB) MTD devices
  */
 //config:config NANDWRITE
-//config:	bool "nandwrite (4.8 kb)"
+//config:	bool "nandwrite (5 kb)"
 //config:	default y
 //config:	help
 //config:	Write to the specified MTD device, with bad blocks awareness
 //config:
 //config:config NANDDUMP
-//config:	bool "nanddump (5.2 kb)"
+//config:	bool "nanddump (5.4 kb)"
 //config:	default y
 //config:	help
 //config:	Dump the content of raw NAND chip

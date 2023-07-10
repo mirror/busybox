@@ -4,7 +4,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DEVMEM
-//config:	bool "devmem (2.5 kb)"
+//config:	bool "devmem (2.7 kb)"
 //config:	default y
 //config:	help
 //config:	devmem is a small program that reads and writes from physical

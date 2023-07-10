@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DEALLOCVT
-//config:	bool "deallocvt (1.9 kb)"
+//config:	bool "deallocvt (2.2 kb)"
 //config:	default y
 //config:	help
 //config:	This program deallocates unused virtual consoles.

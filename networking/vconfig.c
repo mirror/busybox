@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config VCONFIG
-//config:	bool "vconfig (2.3 kb)"
+//config:	bool "vconfig (2.6 kb)"
 //config:	default y
 //config:	help
 //config:	Creates, removes, and configures VLAN interfaces

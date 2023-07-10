@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SYNC
-//config:	bool "sync (3.8 kb)"
+//config:	bool "sync (4 kb)"
 //config:	default y
 //config:	help
 //config:	sync is used to flush filesystem buffers.
@@ -113,7 +113,7 @@ int sync_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FSYNC
-//config:	bool "fsync (3.6 kb)"
+//config:	bool "fsync (3.8 kb)"
 //config:	default y
 //config:	help
 //config:	fsync is used to flush file-related cached blocks to disk.

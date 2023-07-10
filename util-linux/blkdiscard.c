@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config BLKDISCARD
-//config:	bool "blkdiscard (4.3 kb)"
+//config:	bool "blkdiscard (4.6 kb)"
 //config:	default y
 //config:	help
 //config:	blkdiscard discards sectors on a given device.

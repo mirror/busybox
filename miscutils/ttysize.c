@@ -10,7 +10,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config TTYSIZE
-//config:	bool "ttysize (432 bytes)"
+//config:	bool "ttysize (718 bytes)"
 //config:	default y
 //config:	help
 //config:	A replacement for "stty size". Unlike stty, can report only width,

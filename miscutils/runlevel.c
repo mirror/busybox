@@ -12,7 +12,7 @@
  * initially busyboxified by Bernhard Reutner-Fischer
  */
 //config:config RUNLEVEL
-//config:	bool "runlevel (559 bytes)"
+//config:	bool "runlevel (837 bytes)"
 //config:	default y
 //config:	depends on FEATURE_UTMP
 //config:	help

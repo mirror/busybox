@@ -14,7 +14,7 @@
  * - busyboxed
  */
 //config:config SETSID
-//config:	bool "setsid (3.6 kb)"
+//config:	bool "setsid (3.8 kb)"
 //config:	default y
 //config:	help
 //config:	setsid runs a program in a new session

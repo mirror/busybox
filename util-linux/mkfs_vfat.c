@@ -8,13 +8,13 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config MKDOSFS
-//config:	bool "mkdosfs (7.2 kb)"
+//config:	bool "mkdosfs (7.6 kb)"
 //config:	default y
 //config:	help
 //config:	Utility to create FAT32 filesystems.
 //config:
 //config:config MKFS_VFAT
-//config:	bool "mkfs.vfat (7.2 kb)"
+//config:	bool "mkfs.vfat (7.6 kb)"
 //config:	default y
 //config:	help
 //config:	Alias to "mkdosfs".

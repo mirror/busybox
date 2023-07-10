@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config IPCRM
-//config:	bool "ipcrm (3.2 kb)"
+//config:	bool "ipcrm (3.5 kb)"
 //config:	default y
 //config:	help
 //config:	The ipcrm utility allows the removal of System V interprocess

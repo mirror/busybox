@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LSUSB
-//config:	bool "lsusb (4.2 kb)"
+//config:	bool "lsusb (4.4 kb)"
 //config:	default y
 //config:	help
 //config:	lsusb is a utility for displaying information about USB buses in the

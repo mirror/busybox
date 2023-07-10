@@ -12,7 +12,7 @@
  * Added FEATURE_UPTIME_UTMP_SUPPORT flag.
  */
 //config:config UPTIME
-//config:	bool "uptime (3.7 kb)"
+//config:	bool "uptime (4 kb)"
 //config:	default y
 //config:	help
 //config:	uptime gives a one line display of the current time, how long

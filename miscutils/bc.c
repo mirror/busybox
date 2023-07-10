@@ -14,7 +14,7 @@
 #define SANITY_CHECKS 1
 
 //config:config BC
-//config:	bool "bc (45 kb)"
+//config:	bool "bc (38 kb)"
 //config:	default y
 //config:	select FEATURE_DC_BIG
 //config:	help
@@ -38,7 +38,7 @@
 //config:	  5) "read()" accepts expressions, not only numeric literals.
 //config:
 //config:config DC
-//config:	bool "dc (36 kb)"
+//config:	bool "dc (29 kb)"
 //config:	default y
 //config:	help
 //config:	dc is a reverse-polish notation command-line calculator which

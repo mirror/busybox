@@ -15,7 +15,7 @@
  * This was originally written for blob and then adapted for busybox.
  */
 //config:config RX
-//config:	bool "rx (2.9 kb)"
+//config:	bool "rx (3.2 kb)"
 //config:	default y
 //config:	help
 //config:	Receive files using the Xmodem protocol.

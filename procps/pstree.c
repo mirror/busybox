@@ -10,7 +10,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config PSTREE
-//config:	bool "pstree (9.3 kb)"
+//config:	bool "pstree (9.4 kb)"
 //config:	default y
 //config:	help
 //config:	Display a tree of processes.

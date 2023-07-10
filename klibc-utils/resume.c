@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config RESUME
-//config:	bool "resume (3.2 kb)"
+//config:	bool "resume (3.6 kb)"
 //config:	default y
 //config:	help
 //config:	Resume from saved "suspend-to-disk" image

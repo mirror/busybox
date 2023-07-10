@@ -11,7 +11,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config ADJTIMEX
-//config:	bool "adjtimex (4.7 kb)"
+//config:	bool "adjtimex (4.9 kb)"
 //config:	default y
 //config:	help
 //config:	Adjtimex reads and optionally sets adjustment parameters for

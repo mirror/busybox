@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config HEXEDIT
-//config:	bool "hexedit (21 kb)"
+//config:	bool "hexedit (15 kb)"
 //config:	default y
 //config:	help
 //config:	Edit file in hexadecimal.

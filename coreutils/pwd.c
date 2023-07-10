@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config PWD
-//config:	bool "pwd (3.7 kb)"
+//config:	bool "pwd (4 kb)"
 //config:	default y
 //config:	help
 //config:	pwd is used to print the current directory.

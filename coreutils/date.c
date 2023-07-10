@@ -19,7 +19,7 @@
    much as possible, missed out a lot of bounds checking */
 
 //config:config DATE
-//config:	bool "date (7 kb)"
+//config:	bool "date (7.2 kb)"
 //config:	default y
 //config:	help
 //config:	date is used to set the system date or display the

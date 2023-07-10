@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LOSETUP
-//config:	bool "losetup (5.5 kb)"
+//config:	bool "losetup (6.2 kb)"
 //config:	default y
 //config:	help
 //config:	losetup is used to associate or detach a loop device with a regular

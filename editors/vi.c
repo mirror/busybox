@@ -18,7 +18,7 @@
 //	An "ex" line oriented mode- maybe using "cmdedit"
 
 //config:config VI
-//config:	bool "vi (23 kb)"
+//config:	bool "vi (26 kb)"
 //config:	default y
 //config:	help
 //config:	'vi' is a text editor. More specifically, it is the One True

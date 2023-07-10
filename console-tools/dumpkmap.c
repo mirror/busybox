@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DUMPKMAP
-//config:	bool "dumpkmap (1.6 kb)"
+//config:	bool "dumpkmap (1.9 kb)"
 //config:	default y
 //config:	help
 //config:	This program dumps the kernel's keyboard translation table to

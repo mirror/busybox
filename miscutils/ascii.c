@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config ASCII
-//config:	bool "ascii"
+//config:	bool "ascii (784 bytes)"
 //config:	default y
 //config:	help
 //config:	Print ascii table.

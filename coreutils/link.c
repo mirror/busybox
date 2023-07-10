@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config LINK
-//config:	bool "link (3.2 kb)"
+//config:	bool "link (3.5 kb)"
 //config:	default y
 //config:	help
 //config:	link creates hard links between files.

@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config PARTPROBE
-//config:	bool "partprobe (3.5 kb)"
+//config:	bool "partprobe (3.7 kb)"
 //config:	default y
 //config:	help
 //config:	Ask kernel to rescan partition table.

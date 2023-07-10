@@ -23,7 +23,7 @@
  * broken compatibility because the BusyBox policy doesn't allow them.
  */
 //config:config RUN_PARTS
-//config:	bool "run-parts (6.1 kb)"
+//config:	bool "run-parts (6.2 kb)"
 //config:	default y
 //config:	help
 //config:	run-parts is a utility designed to run all the scripts in a directory.

@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config PSCAN
-//config:	bool "pscan (6 kb)"
+//config:	bool "pscan (6.2 kb)"
 //config:	default y
 //config:	help
 //config:	Simple network port scanner.

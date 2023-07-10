@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config IPCS
-//config:	bool "ipcs (11 kb)"
+//config:	bool "ipcs (12 kb)"
 //config:	default y
 //config:	help
 //config:	The ipcs utility is used to provide information on the currently

@@ -91,7 +91,7 @@
  * in word = GLOB, quoting should be significant on char-by-char basis: a*cd"*"
  */
 //config:config HUSH
-//config:	bool "hush (68 kb)"
+//config:	bool "hush (70 kb)"
 //config:	default y
 //config:	select SHELL_HUSH
 //config:	help

@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LSPCI
-//config:	bool "lspci (6.3 kb)"
+//config:	bool "lspci (6.4 kb)"
 //config:	default y
 //config:	help
 //config:	lspci is a utility for displaying information about PCI buses in the

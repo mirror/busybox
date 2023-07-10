@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config RAIDAUTORUN
-//config:	bool "raidautorun (1.3 kb)"
+//config:	bool "raidautorun (1.6 kb)"
 //config:	default y
 //config:	help
 //config:	raidautorun tells the kernel md driver to

@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config NBDCLIENT
-//config:	bool "nbd-client (6 kb)"
+//config:	bool "nbd-client (6.3 kb)"
 //config:	default y
 //config:	help
 //config:	Network block device client

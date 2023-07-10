@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config NAMEIF
-//config:	bool "nameif (6.6 kb)"
+//config:	bool "nameif (6.9 kb)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help

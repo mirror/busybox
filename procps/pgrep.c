@@ -7,13 +7,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config PGREP
-//config:	bool "pgrep (6.5 kb)"
+//config:	bool "pgrep (6.8 kb)"
 //config:	default y
 //config:	help
 //config:	Look for processes by name.
 //config:
 //config:config PKILL
-//config:	bool "pkill (7.5 kb)"
+//config:	bool "pkill (7.8 kb)"
 //config:	default y
 //config:	help
 //config:	Send signals to processes by name.

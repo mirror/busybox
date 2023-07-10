@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SETSERIAL
-//config:	bool "setserial (6.9 kb)"
+//config:	bool "setserial (7.1 kb)"
 //config:	default y
 //config:	help
 //config:	Retrieve or set Linux serial port.

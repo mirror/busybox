@@ -28,7 +28,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 
 //config:config RUNSV
-//config:	bool "runsv (7.8 kb)"
+//config:	bool "runsv (8.2 kb)"
 //config:	default y
 //config:	help
 //config:	runsv starts and monitors a service and optionally an appendant log

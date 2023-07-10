@@ -8,7 +8,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config PWDX
-//config:	bool "pwdx (3.7 kb)"
+//config:	bool "pwdx (3.9 kb)"
 //config:	default y
 //config:	help
 //config:	Report current working directory of a process

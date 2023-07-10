@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config UNSHARE
-//config:	bool "unshare (7.2 kb)"
+//config:	bool "unshare (7.3 kb)"
 //config:	default y
 //config:	depends on !NOMMU
 //config:	select LONG_OPTS

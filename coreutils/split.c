@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SPLIT
-//config:	bool "split (5 kb)"
+//config:	bool "split (5.2 kb)"
 //config:	default y
 //config:	help
 //config:	Split a file into pieces.

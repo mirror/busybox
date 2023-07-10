@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FALLOCATE
-//config:	bool "fallocate (4.1 kb)"
+//config:	bool "fallocate (4.3 kb)"
 //config:	default y
 //config:	help
 //config:	Preallocate space for files.

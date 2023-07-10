@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FSFREEZE
-//config:	bool "fsfreeze (3.5 kb)"
+//config:	bool "fsfreeze (3.7 kb)"
 //config:	default y
 //config:	select LONG_OPTS
 //config:	help

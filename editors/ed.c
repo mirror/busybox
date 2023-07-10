@@ -7,7 +7,7 @@
  * The "ed" built-in command (much simplified)
  */
 //config:config ED
-//config:	bool "ed (21 kb)"
+//config:	bool "ed (16 kb)"
 //config:	default y
 //config:	help
 //config:	The original 1970's Unix text editor, from the days of teletypes.

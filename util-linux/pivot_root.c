@@ -9,7 +9,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config PIVOT_ROOT
-//config:	bool "pivot_root (1.1 kb)"
+//config:	bool "pivot_root (1.4 kb)"
 //config:	default y
 //config:	help
 //config:	The pivot_root utility swaps the mount points for the root filesystem

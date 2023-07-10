@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FDFORMAT
-//config:	bool "fdformat (4.4 kb)"
+//config:	bool "fdformat (4.7 kb)"
 //config:	default y
 //config:	help
 //config:	fdformat is used to low-level format a floppy disk.

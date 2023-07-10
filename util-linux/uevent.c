@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config UEVENT
-//config:	bool "uevent (3.1 kb)"
+//config:	bool "uevent (3.5 kb)"
 //config:	default y
 //config:	help
 //config:	uevent is a netlink listener for kernel uevent notifications

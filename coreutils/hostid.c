@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config HOSTID
-//config:	bool "hostid (286 bytes)"
+//config:	bool "hostid (566 bytes)"
 //config:	default y
 //config:	help
 //config:	hostid prints the numeric identifier (in hexadecimal) for

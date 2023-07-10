@@ -9,7 +9,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config PS
-//config:	bool "ps (11 kb)"
+//config:	bool "ps (12 kb)"
 //config:	default y
 //config:	help
 //config:	ps gives a snapshot of the current processes.

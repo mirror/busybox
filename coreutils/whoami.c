@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config WHOAMI
-//config:	bool "whoami (3.2 kb)"
+//config:	bool "whoami (3.5 kb)"
 //config:	default y
 //config:	help
 //config:	whoami is used to print the username of the current

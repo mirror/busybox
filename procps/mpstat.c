@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config MPSTAT
-//config:	bool "mpstat (9.8 kb)"
+//config:	bool "mpstat (10 kb)"
 //config:	default y
 //config:	help
 //config:	Per-processor statistics

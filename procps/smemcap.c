@@ -8,7 +8,7 @@
  herein by reference.
 */
 //config:config SMEMCAP
-//config:	bool "smemcap (2.5 kb)"
+//config:	bool "smemcap (3 kb)"
 //config:	default y
 //config:	help
 //config:	smemcap is a tool for capturing process data for smem,

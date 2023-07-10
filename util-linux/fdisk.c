@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FDISK
-//config:	bool "fdisk (37 kb)"
+//config:	bool "fdisk (31 kb)"
 //config:	default y
 //config:	help
 //config:	The fdisk utility is used to divide hard disks into one or more

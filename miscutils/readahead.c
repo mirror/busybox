@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config READAHEAD
-//config:	bool "readahead (1.5 kb)"
+//config:	bool "readahead (1.7 kb)"
 //config:	default y
 //config:	depends on LFS
 //config:	help

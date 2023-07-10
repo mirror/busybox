@@ -51,7 +51,7 @@
  * diff -u /tmp/std_find /tmp/bb_find && echo Identical
  */
 //config:config FIND
-//config:	bool "find (14 kb)"
+//config:	bool "find (16 kb)"
 //config:	default y
 //config:	help
 //config:	find is used to search your system to find specified files.

@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config MAKEMIME
-//config:	bool "makemime (5.4 kb)"
+//config:	bool "makemime (5.6 kb)"
 //config:	default y
 //config:	help
 //config:	Create MIME-formatted messages.

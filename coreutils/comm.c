@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config COMM
-//config:	bool "comm (4.2 kb)"
+//config:	bool "comm (4.4 kb)"
 //config:	default y
 //config:	help
 //config:	comm is used to compare two files line by line and return

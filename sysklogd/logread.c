@@ -9,7 +9,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LOGREAD
-//config:	bool "logread (4.8 kb)"
+//config:	bool "logread (5 kb)"
 //config:	default y
 //WRONG: it should be compilable without SYSLOG=y:
 //WRONG:	depends on FEATURE_IPC_SYSLOG

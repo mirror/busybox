@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config TTY
-//config:	bool "tty (3.6 kb)"
+//config:	bool "tty (3.9 kb)"
 //config:	default y
 //config:	help
 //config:	tty is used to print the name of the current terminal to

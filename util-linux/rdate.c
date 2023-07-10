@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config RDATE
-//config:	bool "rdate (5.6 kb)"
+//config:	bool "rdate (5.9 kb)"
 //config:	default y
 //config:	help
 //config:	The rdate utility allows you to synchronize the date and time of your

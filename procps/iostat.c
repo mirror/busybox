@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config IOSTAT
-//config:	bool "iostat (7.6 kb)"
+//config:	bool "iostat (8 kb)"
 //config:	default y
 //config:	help
 //config:	Report CPU and I/O statistics

@@ -8,7 +8,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config MICROCOM
-//config:	bool "microcom (5.7 kb)"
+//config:	bool "microcom (5.9 kb)"
 //config:	default y
 //config:	help
 //config:	The poor man's minicom utility for chatting with serial port devices.

@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LOGGER
-//config:	bool "logger (6.3 kb)"
+//config:	bool "logger (6.5 kb)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help

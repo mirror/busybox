@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LSSCSI
-//config:	bool "lsscsi (2.5 kb)"
+//config:	bool "lsscsi (2.9 kb)"
 //config:	default y
 //config:	help
 //config:	lsscsi is a utility for displaying information about SCSI buses in the

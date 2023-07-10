@@ -12,14 +12,14 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DOS2UNIX
-//config:	bool "dos2unix (5.2 kb)"
+//config:	bool "dos2unix (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	dos2unix is used to convert a text file from DOS format to
 //config:	UNIX format, and vice versa.
 //config:
 //config:config UNIX2DOS
-//config:	bool "unix2dos (5.2 kb)"
+//config:	bool "unix2dos (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	unix2dos is used to convert a text file from UNIX format to

@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LSMOD
-//config:	bool "lsmod (1.9 kb)"
+//config:	bool "lsmod (2.1 kb)"
 //config:	default y
 //config:	help
 //config:	lsmod is used to display a list of loaded modules.

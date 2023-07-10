@@ -12,7 +12,7 @@
  * http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
  */
 //config:config SORT
-//config:	bool "sort (7.7 kb)"
+//config:	bool "sort (8.1 kb)"
 //config:	default y
 //config:	help
 //config:	sort is used to sort lines of text in specified files.

@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config SHRED
-//config:	bool "shred (4.9 kb)"
+//config:	bool "shred (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	Overwrite a file to hide its contents, and optionally delete it

@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config KILL
-//config:	bool "kill (3.1 kb)"
+//config:	bool "kill (3.4 kb)"
 //config:	default y
 //config:	help
 //config:	The command kill sends the specified signal to the specified
@@ -16,7 +16,7 @@
 //config:	signal is sent.
 //config:
 //config:config KILLALL
-//config:	bool "killall (5.6 kb)"
+//config:	bool "killall (5.9 kb)"
 //config:	default y
 //config:	help
 //config:	killall sends a signal to all processes running any of the
@@ -24,7 +24,7 @@
 //config:	sent.
 //config:
 //config:config KILLALL5
-//config:	bool "killall5 (5.3 kb)"
+//config:	bool "killall5 (5.6 kb)"
 //config:	default y
 //config:	help
 //config:	The SystemV killall command. killall5 sends a signal

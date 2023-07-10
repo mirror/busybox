@@ -17,7 +17,7 @@
  * the first porting of oao' scdns to busybox also.
  */
 //config:config DNSD
-//config:	bool "dnsd (9.8 kb)"
+//config:	bool "dnsd (10 kb)"
 //config:	default y
 //config:	help
 //config:	Small and static DNS server daemon.

@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SCRIPTREPLAY
-//config:	bool "scriptreplay (2.4 kb)"
+//config:	bool "scriptreplay (2.6 kb)"
 //config:	default y
 //config:	help
 //config:	This program replays a typescript, using timing information

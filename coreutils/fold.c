@@ -11,7 +11,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FOLD
-//config:	bool "fold (4.6 kb)"
+//config:	bool "fold (4.8 kb)"
 //config:	default y
 //config:	help
 //config:	Wrap text to fit a specific width.

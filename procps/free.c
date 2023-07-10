@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FREE
-//config:	bool "free (3.1 kb)"
+//config:	bool "free (3.8 kb)"
 //config:	default y
 //config:	help
 //config:	free displays the total amount of free and used physical and swap

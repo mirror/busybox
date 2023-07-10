@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config SHOWKEY
-//config:	bool "showkey (4.7 kb)"
+//config:	bool "showkey (4.9 kb)"
 //config:	default y
 //config:	help
 //config:	Shows keys pressed.

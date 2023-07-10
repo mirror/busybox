@@ -11,7 +11,7 @@
  * Size reduction.
  */
 //config:config RM
-//config:	bool "rm (5.4 kb)"
+//config:	bool "rm (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	rm is used to remove files or directories.

@@ -21,7 +21,7 @@
  * [file] which file to patch
  */
 //config:config PATCH
-//config:	bool "patch (9.4 kb)"
+//config:	bool "patch (9.6 kb)"
 //config:	default y
 //config:	help
 //config:	Apply a unified diff formatted patch.

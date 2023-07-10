@@ -18,7 +18,7 @@
 //
 
 //config:config MOUNT
-//config:	bool "mount (23 kb)"
+//config:	bool "mount (24 kb)"
 //config:	default y
 //config:	help
 //config:	All files and filesystems in Unix are arranged into one big directory

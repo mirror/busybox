@@ -20,7 +20,7 @@
  *     "This program is in the Public Domain."
  */
 //config:config TEST
-//config:	bool "test (4.1 kb)"
+//config:	bool "test (4.4 kb)"
 //config:	default y
 //config:	help
 //config:	test is used to check file types and compare values,

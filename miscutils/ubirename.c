@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config UBIRENAME
-//config:	bool "ubirename (2.4 kb)"
+//config:	bool "ubirename (2.7 kb)"
 //config:	default y
 //config:	help
 //config:	Utility to rename UBI volumes

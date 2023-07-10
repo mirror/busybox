@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config MKSWAP
-//config:	bool "mkswap (6.3 kb)"
+//config:	bool "mkswap (6.6 kb)"
 //config:	default y
 //config:	help
 //config:	The mkswap utility is used to configure a file or disk partition as

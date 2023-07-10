@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CMP
-//config:	bool "cmp (4.9 kb)"
+//config:	bool "cmp (5.3 kb)"
 //config:	default y
 //config:	help
 //config:	cmp is used to compare two files and returns the result

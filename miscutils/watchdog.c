@@ -9,7 +9,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config WATCHDOG
-//config:	bool "watchdog (5.3 kb)"
+//config:	bool "watchdog (5.7 kb)"
 //config:	default y
 //config:	help
 //config:	The watchdog utility is used with hardware or software watchdog

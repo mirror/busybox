@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config UNIQ
-//config:	bool "uniq (4.9 kb)"
+//config:	bool "uniq (5.1 kb)"
 //config:	default y
 //config:	help
 //config:	uniq is used to remove duplicate lines from a sorted file.

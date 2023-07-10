@@ -9,14 +9,14 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config HEXDUMP
-//config:	bool "hexdump (8.6 kb)"
+//config:	bool "hexdump (8.7 kb)"
 //config:	default y
 //config:	help
 //config:	The hexdump utility is used to display binary data in a readable
 //config:	way that is comparable to the output from most hex editors.
 //config:
 //config:config HD
-//config:	bool "hd (7.8 kb)"
+//config:	bool "hd (8.3 kb)"
 //config:	default y
 //config:	help
 //config:	hd is an alias to hexdump -C.

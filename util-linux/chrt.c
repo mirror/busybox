@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CHRT
-//config:	bool "chrt (4.7 kb)"
+//config:	bool "chrt (5.1 kb)"
 //config:	default y
 //config:	help
 //config:	Manipulate real-time attributes of a process.

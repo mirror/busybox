@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config PRINTENV
-//config:	bool "printenv (1.3 kb)"
+//config:	bool "printenv (1.6 kb)"
 //config:	default y
 //config:	help
 //config:	printenv is used to print all or part of environment.

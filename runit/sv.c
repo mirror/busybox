@@ -154,7 +154,7 @@ Exit Codes
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 
 //config:config SV
-//config:	bool "sv (8.5 kb)"
+//config:	bool "sv (8.7 kb)"
 //config:	default y
 //config:	help
 //config:	sv reports the current status and controls the state of services
@@ -169,14 +169,14 @@ Exit Codes
 //config:	Defaults to "/var/service"
 //config:
 //config:config SVC
-//config:	bool "svc (8.4 kb)"
+//config:	bool "svc (8.7 kb)"
 //config:	default y
 //config:	help
 //config:	svc controls the state of services monitored by the runsv supervisor.
 //config:	It is compatible with daemontools command with the same name.
 //config:
 //config:config SVOK
-//config:	bool "svok (1.5 kb)"
+//config:	bool "svok (1.8 kb)"
 //config:	default y
 //config:	help
 //config:	svok checks whether runsv supervisor is running.

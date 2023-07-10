@@ -9,7 +9,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SETLOGCONS
-//config:	bool "setlogcons (1.8 kb)"
+//config:	bool "setlogcons (2 kb)"
 //config:	default y
 //config:	help
 //config:	This program redirects the output console of kernel messages.

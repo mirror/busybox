@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CLEAR
-//config:	bool "clear (tiny)"
+//config:	bool "clear (371 bytes)"
 //config:	default y
 //config:	help
 //config:	This program clears the terminal screen.

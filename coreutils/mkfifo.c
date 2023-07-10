@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config MKFIFO
-//config:	bool "mkfifo (3.8 kb)"
+//config:	bool "mkfifo (4 kb)"
 //config:	default y
 //config:	help
 //config:	mkfifo is used to create FIFOs (named pipes).

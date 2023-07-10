@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config WHICH
-//config:	bool "which (3.8 kb)"
+//config:	bool "which (4 kb)"
 //config:	default y
 //config:	help
 //config:	which is used to find programs in your PATH and

@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config TS
-//config:	bool "ts (450 bytes)"
+//config:	bool "ts (4.4 kb)"
 //config:	default y
 
 //applet:IF_TS(APPLET(ts, BB_DIR_USR_BIN, BB_SUID_DROP))

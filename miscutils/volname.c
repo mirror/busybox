@@ -28,7 +28,7 @@
  * Matthew Stoltenberg <d3matt@gmail.com>
  */
 //config:config VOLNAME
-//config:	bool "volname (1.6 kb)"
+//config:	bool "volname (1.9 kb)"
 //config:	default y
 //config:	help
 //config:	Prints a CD-ROM volume name.

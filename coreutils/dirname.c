@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DIRNAME
-//config:	bool "dirname (329 bytes)"
+//config:	bool "dirname (611 bytes)"
 //config:	default y
 //config:	help
 //config:	dirname is used to strip a non-directory suffix from

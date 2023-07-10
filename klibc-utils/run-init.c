@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config RUN_INIT
-//config:	bool "run-init (7.7 kb)"
+//config:	bool "run-init (8 kb)"
 //config:	default y
 //config:	help
 //config:	The run-init utility is used from initramfs to select a new

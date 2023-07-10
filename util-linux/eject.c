@@ -13,7 +13,7 @@
  * Most of the dirty work blatantly ripped off from cat.c =)
  */
 //config:config EJECT
-//config:	bool "eject (4 kb)"
+//config:	bool "eject (4.3 kb)"
 //config:	default y
 //config:	help
 //config:	Used to eject cdroms. (defaults to /dev/cdrom)

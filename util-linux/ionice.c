@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config IONICE
-//config:	bool "ionice (3.8 kb)"
+//config:	bool "ionice (4 kb)"
 //config:	default y
 //config:	help
 //config:	Set/set program io scheduling class and priority

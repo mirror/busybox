@@ -19,7 +19,7 @@
 //config:	trying to be portable, it's better to use "ip CMD" forms.
 //config:
 //config:config IPADDR
-//config:	bool "ipaddr (14 kb)"
+//config:	bool "ipaddr (15 kb)"
 //config:	default y
 //config:	select FEATURE_IP_ADDRESS
 //config:	help
@@ -40,7 +40,7 @@
 //config:	Short form of "ip route"
 //config:
 //config:config IPTUNNEL
-//config:	bool "iptunnel (9.6 kb)"
+//config:	bool "iptunnel (9.8 kb)"
 //config:	default y
 //config:	select FEATURE_IP_TUNNEL
 //config:	help
@@ -54,7 +54,7 @@
 //config:	Short form of "ip rule"
 //config:
 //config:config IPNEIGH
-//config:	bool "ipneigh (8.3 kb)"
+//config:	bool "ipneigh (8.6 kb)"
 //config:	default y
 //config:	select FEATURE_IP_NEIGH
 //config:	help

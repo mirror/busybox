@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SETCONSOLE
-//config:	bool "setconsole (3.6 kb)"
+//config:	bool "setconsole (3.8 kb)"
 //config:	default y
 //config:	help
 //config:	Redirect writes to /dev/console to another device,

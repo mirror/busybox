@@ -10,14 +10,14 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config CRYPTPW
-//config:	bool "cryptpw (14 kb)"
+//config:	bool "cryptpw (15 kb)"
 //config:	default y
 //config:	help
 //config:	Encrypts the given password with the crypt(3) libc function
 //config:	using the given salt.
 //config:
 //config:config MKPASSWD
-//config:	bool "mkpasswd (15 kb)"
+//config:	bool "mkpasswd (16 kb)"
 //config:	default y
 //config:	help
 //config:	Encrypts the given password with the crypt(3) libc function

@@ -13,7 +13,7 @@
  * http://www.uclibc.org/lists/busybox/2003-July/008813.html
  */
 //config:config TAC
-//config:	bool "tac (3.9 kb)"
+//config:	bool "tac (4.1 kb)"
 //config:	default y
 //config:	help
 //config:	tac is used to concatenate and print files in reverse.

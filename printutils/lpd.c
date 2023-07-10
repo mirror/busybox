@@ -70,7 +70,7 @@
  * mv -f ./"$DATAFILE" save/
  */
 //config:config LPD
-//config:	bool "lpd (5.5 kb)"
+//config:	bool "lpd (5.7 kb)"
 //config:	default y
 //config:	help
 //config:	lpd is a print spooling daemon.

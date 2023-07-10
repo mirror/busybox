@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config TRUNCATE
-//config:	bool "truncate (4.2 kb)"
+//config:	bool "truncate (4.4 kb)"
 //config:	default y
 //config:	help
 //config:	truncate truncates files to a given size. If a file does

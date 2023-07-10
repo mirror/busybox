@@ -23,7 +23,7 @@
  * That flag should not be needed on systems with adjtime support.
  */
 //config:config RTCWAKE
-//config:	bool "rtcwake (6.8 kb)"
+//config:	bool "rtcwake (7.5 kb)"
 //config:	default y
 //config:	help
 //config:	Enter a system sleep state until specified wakeup time.

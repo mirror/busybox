@@ -32,7 +32,7 @@
  * Paul Mundt <lethal@linux-sh.org>.
  */
 //config:config READPROFILE
-//config:	bool "readprofile (7.1 kb)"
+//config:	bool "readprofile (7.5 kb)"
 //config:	default y
 //config:	help
 //config:	This allows you to parse /proc/profile for basic profiling.

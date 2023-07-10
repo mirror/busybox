@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config CTTYHACK
-//config:	bool "cttyhack (2.4 kb)"
+//config:	bool "cttyhack (2.7 kb)"
 //config:	default y
 //config:	help
 //config:	One common problem reported on the mailing list is the "can't

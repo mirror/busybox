@@ -5,7 +5,7 @@
  * public domain -- David Leonard, 2022
  */
 //config:config TSORT
-//config:	bool "tsort (0.7 kb)"
+//config:	bool "tsort (2.6 kb)"
 //config:	default y
 //config:	help
 //config:	tsort performs a topological sort.

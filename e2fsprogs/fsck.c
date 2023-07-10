@@ -34,7 +34,7 @@
  * It doesn't guess filesystem types from on-disk format.
  */
 //config:config FSCK
-//config:	bool "fsck (7.4 kb)"
+//config:	bool "fsck (7.6 kb)"
 //config:	default y
 //config:	help
 //config:	fsck is used to check and optionally repair one or more filesystems.

@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config USLEEP
-//config:	bool "usleep (1.3 kb)"
+//config:	bool "usleep (1.6 kb)"
 //config:	default y
 //config:	help
 //config:	usleep is used to pause for a specified number of microseconds.

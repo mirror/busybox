@@ -4,37 +4,37 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config UBIATTACH
-//config:	bool "ubiattach (4.2 kb)"
+//config:	bool "ubiattach (4.5 kb)"
 //config:	default y
 //config:	help
 //config:	Attach MTD device to an UBI device.
 //config:
 //config:config UBIDETACH
-//config:	bool "ubidetach (4.1 kb)"
+//config:	bool "ubidetach (4.3 kb)"
 //config:	default y
 //config:	help
 //config:	Detach MTD device from an UBI device.
 //config:
 //config:config UBIMKVOL
-//config:	bool "ubimkvol (5.3 kb)"
+//config:	bool "ubimkvol (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	Create a UBI volume.
 //config:
 //config:config UBIRMVOL
-//config:	bool "ubirmvol (4.9 kb)"
+//config:	bool "ubirmvol (5.1 kb)"
 //config:	default y
 //config:	help
 //config:	Delete a UBI volume.
 //config:
 //config:config UBIRSVOL
-//config:	bool "ubirsvol (4.2 kb)"
+//config:	bool "ubirsvol (4.4 kb)"
 //config:	default y
 //config:	help
 //config:	Resize a UBI volume.
 //config:
 //config:config UBIUPDATEVOL
-//config:	bool "ubiupdatevol (5.2 kb)"
+//config:	bool "ubiupdatevol (5.6 kb)"
 //config:	default y
 //config:	help
 //config:	Update a UBI volume.

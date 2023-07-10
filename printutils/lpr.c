@@ -12,13 +12,13 @@
  * See RFC 1179 for protocol description.
  */
 //config:config LPR
-//config:	bool "lpr (9.9 kb)"
+//config:	bool "lpr (10 kb)"
 //config:	default y
 //config:	help
 //config:	lpr sends files (or standard input) to a print spooling daemon.
 //config:
 //config:config LPQ
-//config:	bool "lpq (9.9 kb)"
+//config:	bool "lpq (10 kb)"
 //config:	default y
 //config:	help
 //config:	lpq is a print spool queue examination and manipulation program.

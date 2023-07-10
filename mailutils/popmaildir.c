@@ -10,7 +10,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config POPMAILDIR
-//config:	bool "popmaildir (10 kb)"
+//config:	bool "popmaildir (11 kb)"
 //config:	default y
 //config:	help
 //config:	Simple yet powerful POP3 mail popper. Delivers content

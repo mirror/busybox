@@ -14,7 +14,7 @@
  * certainly be used.  Its naming is built over multicast DNS.
  */
 //config:config ZCIP
-//config:	bool "zcip (8.4 kb)"
+//config:	bool "zcip (8.7 kb)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help

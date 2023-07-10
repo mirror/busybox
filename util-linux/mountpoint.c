@@ -9,7 +9,7 @@
  * Based on sysvinit's mountpoint
  */
 //config:config MOUNTPOINT
-//config:	bool "mountpoint (4.9 kb)"
+//config:	bool "mountpoint (5.1 kb)"
 //config:	default y
 //config:	help
 //config:	mountpoint checks if the directory is a mountpoint.

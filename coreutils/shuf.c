@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SHUF
-//config:	bool "shuf (5.4 kb)"
+//config:	bool "shuf (6 kb)"
 //config:	default y
 //config:	help
 //config:	Generate random permutations

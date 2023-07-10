@@ -64,7 +64,7 @@
  *   filter.  That configuration consumes more power.
  */
 //config:config ETHER_WAKE
-//config:	bool "ether-wake (4.9 kb)"
+//config:	bool "ether-wake (5.2 kb)"
 //config:	default y
 //config:	help
 //config:	Send a magic packet to wake up sleeping machines.

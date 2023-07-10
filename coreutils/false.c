@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FALSE
-//config:	bool "false (tiny)"
+//config:	bool "false (314 bytes)"
 //config:	default y
 //config:	help
 //config:	false returns an exit code of FALSE (1).

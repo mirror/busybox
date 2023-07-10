@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config MODPROBE
-//config:	bool "modprobe (28 kb)"
+//config:	bool "modprobe (27 kb)"
 //config:	default y
 //config:	help
 //config:	Handle the loading of modules, and their dependencies on a high

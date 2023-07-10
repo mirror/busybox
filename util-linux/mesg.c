@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config MESG
-//config:	bool "mesg (1.4 kb)"
+//config:	bool "mesg (1.8 kb)"
 //config:	default y
 //config:	help
 //config:	Mesg controls access to your terminal by others. It is typically

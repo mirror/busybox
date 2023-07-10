@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config RESET
-//config:	bool "reset (345 bytes)"
+//config:	bool "reset (676 bytes)"
 //config:	default y
 //config:	help
 //config:	This program is used to reset the terminal screen, if it

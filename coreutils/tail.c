@@ -19,7 +19,7 @@
  * 7) lseek attempted when count==0 even if arg was +0 (from top)
  */
 //config:config TAIL
-//config:	bool "tail (6.8 kb)"
+//config:	bool "tail (7.2 kb)"
 //config:	default y
 //config:	help
 //config:	tail is used to print the last specified number of lines

@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config BEEP
-//config:	bool "beep (2.4 kb)"
+//config:	bool "beep (2.7 kb)"
 //config:	default y
 //config:	help
 //config:	The beep applets beeps in a given freq/Hz.

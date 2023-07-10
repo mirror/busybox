@@ -38,7 +38,7 @@
 /* 19990508 Busy Boxed! Dave Cinege */
 
 //config:config PRINTF
-//config:	bool "printf (3.8 kb)"
+//config:	bool "printf (4.1 kb)"
 //config:	default y
 //config:	help
 //config:	printf is used to format and print specified strings.

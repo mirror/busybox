@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config NSENTER
-//config:	bool "nsenter (6.5 kb)"
+//config:	bool "nsenter (6.8 kb)"
 //config:	default y
 //config:	help
 //config:	Run program with namespaces of other processes.

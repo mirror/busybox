@@ -8,7 +8,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config MDEV
-//config:	bool "mdev (17 kb)"
+//config:	bool "mdev (20 kb)"
 //config:	default y
 //config:	help
 //config:	mdev is a mini-udev implementation for dynamically creating device

@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config CAT
-//config:	bool "cat (5.6 kb)"
+//config:	bool "cat (5.8 kb)"
 //config:	default y
 //config:	help
 //config:	cat is used to concatenate files and print them to the standard

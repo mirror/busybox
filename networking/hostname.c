@@ -10,13 +10,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config HOSTNAME
-//config:	bool "hostname (5.5 kb)"
+//config:	bool "hostname (5.8 kb)"
 //config:	default y
 //config:	help
 //config:	Show or set the system's host name.
 //config:
 //config:config DNSDOMAINNAME
-//config:	bool "dnsdomainname (3.6 kb)"
+//config:	bool "dnsdomainname (3.8 kb)"
 //config:	default y
 //config:	help
 //config:	Alias to "hostname -d".

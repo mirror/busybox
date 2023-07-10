@@ -33,7 +33,7 @@
  * for which 'wc -c' should output '0'.
  */
 //config:config WC
-//config:	bool "wc (4.5 kb)"
+//config:	bool "wc (4.7 kb)"
 //config:	default y
 //config:	help
 //config:	wc is used to print the number of bytes, words, and lines,

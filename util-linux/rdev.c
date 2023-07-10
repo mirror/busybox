@@ -8,7 +8,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config RDEV
-//config:	bool "rdev (1.8 kb)"
+//config:	bool "rdev (2.1 kb)"
 //config:	default y
 //config:	help
 //config:	Print the device node associated with the filesystem mounted at '/'.

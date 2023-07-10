@@ -23,7 +23,7 @@
  * provided they all associate ((x op x) op x).
  */
 //config:config EXPR
-//config:	bool "expr (6.6 kb)"
+//config:	bool "expr (6.8 kb)"
 //config:	default y
 //config:	help
 //config:	expr is used to calculate numbers and print the result

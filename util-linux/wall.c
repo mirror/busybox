@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config WALL
-//config:	bool "wall (2.6 kb)"
+//config:	bool "wall (2.9 kb)"
 //config:	default y
 //config:	depends on FEATURE_UTMP
 //config:	help

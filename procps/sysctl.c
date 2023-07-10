@@ -11,7 +11,7 @@
  * v1.01.1 - busybox applet aware by <solar@gentoo.org>
  */
 //config:config BB_SYSCTL
-//config:	bool "sysctl (7.4 kb)"
+//config:	bool "sysctl (7.9 kb)"
 //config:	default y
 //config:	help
 //config:	Configure kernel parameters at runtime.

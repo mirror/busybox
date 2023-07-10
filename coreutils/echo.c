@@ -19,7 +19,7 @@
  *    The previous version did not allow 4-digit octals.
  */
 //config:config ECHO
-//config:	bool "echo (1.8 kb)"
+//config:	bool "echo (2 kb)"
 //config:	default y
 //config:	help
 //config:	echo prints a specified string to stdout.

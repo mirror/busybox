@@ -9,7 +9,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FDFLUSH
-//config:	bool "fdflush (1.3 kb)"
+//config:	bool "fdflush (1.6 kb)"
 //config:	default y
 //config:	help
 //config:	fdflush is only needed when changing media on slightly-broken
@@ -21,7 +21,7 @@
 //config:	leave this disabled.
 //config:
 //config:config FREERAMDISK
-//config:	bool "freeramdisk (1.3 kb)"
+//config:	bool "freeramdisk (1.6 kb)"
 //config:	default y
 //config:	help
 //config:	Linux allows you to create ramdisks. This utility allows you to

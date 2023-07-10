@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config HEAD
-//config:	bool "head (3.8 kb)"
+//config:	bool "head (4 kb)"
 //config:	default y
 //config:	help
 //config:	head is used to print the first specified number of lines

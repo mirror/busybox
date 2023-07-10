@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config FAKEIDENTD
-//config:	bool "fakeidentd (8.7 kb)"
+//config:	bool "fakeidentd (9 kb)"
 //config:	default y
 //config:	select FEATURE_SYSLOG
 //config:	help

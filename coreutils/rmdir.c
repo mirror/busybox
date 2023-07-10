@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config RMDIR
-//config:	bool "rmdir (3.5 kb)"
+//config:	bool "rmdir (3.8 kb)"
 //config:	default y
 //config:	help
 //config:	rmdir is used to remove empty directories.

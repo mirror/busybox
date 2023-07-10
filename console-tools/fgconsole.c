@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FGCONSOLE
-//config:	bool "fgconsole (1.5 kb)"
+//config:	bool "fgconsole (1.8 kb)"
 //config:	default y
 //config:	help
 //config:	This program prints active (foreground) console number.

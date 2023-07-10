@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config ACPID
-//config:	bool "acpid (9 kb)"
+//config:	bool "acpid (9.3 kb)"
 //config:	default y
 //config:	help
 //config:	acpid listens to ACPI events coming either in textual form from

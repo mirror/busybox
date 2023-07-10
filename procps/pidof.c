@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config PIDOF
-//config:	bool "pidof (6.3 kb)"
+//config:	bool "pidof (6.5 kb)"
 //config:	default y
 //config:	help
 //config:	Pidof finds the process id's (pids) of the named programs. It prints

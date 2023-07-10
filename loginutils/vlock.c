@@ -16,7 +16,7 @@
  * It now works with md5, sha1, etc passwords.
  */
 //config:config VLOCK
-//config:	bool "vlock (17 kb)"
+//config:	bool "vlock (18 kb)"
 //config:	default y
 //config:	help
 //config:	Build the "vlock" applet which allows you to lock (virtual) terminals.

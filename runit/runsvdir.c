@@ -28,7 +28,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 
 //config:config RUNSVDIR
-//config:	bool "runsvdir (6.3 kb)"
+//config:	bool "runsvdir (6.6 kb)"
 //config:	default y
 //config:	help
 //config:	runsvdir starts a runsv process for each subdirectory, or symlink to

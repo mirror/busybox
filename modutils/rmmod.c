@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config RMMOD
-//config:	bool "rmmod (3.3 kb)"
+//config:	bool "rmmod (3.5 kb)"
 //config:	default y
 //config:	help
 //config:	rmmod is used to unload specified modules from the kernel.

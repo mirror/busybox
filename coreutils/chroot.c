@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CHROOT
-//config:	bool "chroot (3.7 kb)"
+//config:	bool "chroot (4 kb)"
 //config:	default y
 //config:	help
 //config:	chroot is used to change the root directory and run a command.

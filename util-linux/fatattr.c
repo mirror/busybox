@@ -9,7 +9,7 @@
  * Public License
  */
 //config:config FATATTR
-//config:	bool "fatattr (1.9 kb)"
+//config:	bool "fatattr (2.2 kb)"
 //config:	default y
 //config:	help
 //config:	fatattr lists or changes the file attributes on a fat file system.

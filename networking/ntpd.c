@@ -41,7 +41,7 @@
  ***********************************************************************
  */
 //config:config NTPD
-//config:	bool "ntpd (22 kb)"
+//config:	bool "ntpd (23 kb)"
 //config:	default y
 //config:	help
 //config:	The NTP client/server daemon.

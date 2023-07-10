@@ -3,7 +3,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config MT
-//config:	bool "mt (2.5 kb)"
+//config:	bool "mt (2.7 kb)"
 //config:	default y
 //config:	help
 //config:	mt is used to control tape devices. You can use the mt utility

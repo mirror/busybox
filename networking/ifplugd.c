@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config IFPLUGD
-//config:	bool "ifplugd (10 kb)"
+//config:	bool "ifplugd (11 kb)"
 //config:	default y
 //config:	help
 //config:	Network interface plug detection daemon.

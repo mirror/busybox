@@ -20,7 +20,7 @@
 //config:	depends on !NOMMU
 //config:
 //config:config ASH
-//config:	bool "ash (78 kb)"
+//config:	bool "ash (80 kb)"
 //config:	default y
 //config:	depends on !NOMMU
 //config:	select SHELL_ASH

@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config BRCTL
-//config:	bool "brctl (4.7 kb)"
+//config:	bool "brctl (9.9 kb)"
 //config:	default y
 //config:	help
 //config:	Manage ethernet bridges.

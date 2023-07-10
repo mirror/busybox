@@ -15,7 +15,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config WHO
-//config:	bool "who (3.9 kb)"
+//config:	bool "who (5.6 kb)"
 //config:	default y
 //config:	depends on FEATURE_UTMP
 //config:	help
@@ -23,14 +23,14 @@
 //config:
 // procps-ng has this variation of "who":
 //config:config W
-//config:	bool "w (3.8 kb)"
+//config:	bool "w (5.5 kb)"
 //config:	default y
 //config:	depends on FEATURE_UTMP
 //config:	help
 //config:	Print users currently logged on.
 //config:
 //config:config USERS
-//config:	bool "users (3.4 kb)"
+//config:	bool "users (3.6 kb)"
 //config:	default y
 //config:	depends on FEATURE_UTMP
 //config:	help

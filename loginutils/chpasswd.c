@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CHPASSWD
-//config:	bool "chpasswd (18 kb)"
+//config:	bool "chpasswd (19 kb)"
 //config:	default y
 //config:	help
 //config:	Reads a file of user name and password pairs from standard input

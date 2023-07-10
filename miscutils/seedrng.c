@@ -20,7 +20,7 @@
  * This is based on code from <https://git.zx2c4.com/seedrng/about/>.
  */
 //config:config SEEDRNG
-//config:	bool "seedrng (1.3 kb)"
+//config:	bool "seedrng (9.1 kb)"
 //config:	default y
 //config:	help
 //config:	Seed the kernel RNG from seed files, meant to be called

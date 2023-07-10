@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config BLOCKDEV
-//config:	bool "blockdev (2.3 kb)"
+//config:	bool "blockdev (2.6 kb)"
 //config:	default y
 //config:	help
 //config:	Performs some ioctls with block devices.

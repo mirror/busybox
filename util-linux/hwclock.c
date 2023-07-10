@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config HWCLOCK
-//config:	bool "hwclock (5.8 kb)"
+//config:	bool "hwclock (5.9 kb)"
 //config:	default y
 //config:	help
 //config:	The hwclock utility is used to read and set the hardware clock

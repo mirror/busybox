@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config TREE
-//config:	bool "tree (0.6 kb)"
+//config:	bool "tree (2.5 kb)"
 //config:	default y
 //config:	help
 //config:	List files and directories in a tree structure.

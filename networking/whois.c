@@ -10,7 +10,7 @@
  * Add proxy support
  */
 //config:config WHOIS
-//config:	bool "whois (6.3 kb)"
+//config:	bool "whois (6.5 kb)"
 //config:	default y
 //config:	help
 //config:	whois is a client for the whois directory service

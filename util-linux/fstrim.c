@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FSTRIM
-//config:	bool "fstrim (4.4 kb)"
+//config:	bool "fstrim (4.6 kb)"
 //config:	default y
 //config:	help
 //config:	Discard unused blocks on a mounted filesystem.

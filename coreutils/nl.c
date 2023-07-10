@@ -5,7 +5,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config NL
-//config:	bool "nl (4.6 kb)"
+//config:	bool "nl (4.9 kb)"
 //config:	default y
 //config:	help
 //config:	nl is used to number lines of files.

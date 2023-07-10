@@ -7,11 +7,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CKSUM
-//config:	bool "cksum (4.1 kb)"
+//config:	bool "cksum (4.3 kb)"
 //config:	default y
 //config:
 //config:config CRC32
-//config:	bool "crc32 (4.1 kb)"
+//config:	bool "crc32 (4.2 kb)"
 //config:	default y
 
 //                APPLET_NOEXEC:name   main   location        suid_type     help

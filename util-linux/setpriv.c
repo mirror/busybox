@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config SETPRIV
-//config:	bool "setpriv (6.6 kb)"
+//config:	bool "setpriv (6.9 kb)"
 //config:	default y
 //config:	select LONG_OPTS
 //config:	help

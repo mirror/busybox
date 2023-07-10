@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config CHVT
-//config:	bool "chvt (2 kb)"
+//config:	bool "chvt (2.2 kb)"
 //config:	default y
 //config:	help
 //config:	This program is used to change to another terminal.

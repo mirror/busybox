@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config PASTE
-//config:	bool "paste (4.9 kb)"
+//config:	bool "paste (5.1 kb)"
 //config:	default y
 //config:	help
 //config:	paste is used to paste lines of different files together

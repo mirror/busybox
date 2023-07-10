@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config FINDFS
-//config:	bool "findfs (12 kb)"
+//config:	bool "findfs (11 kb)"
 //config:	default y
 //config:	select VOLUMEID
 //config:	help

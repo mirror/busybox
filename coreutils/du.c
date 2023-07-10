@@ -19,7 +19,7 @@
  * 4) Fixed busybox bug #1284 involving long overflow with human_readable.
  */
 //config:config DU
-//config:	bool "du (6.3 kb)"
+//config:	bool "du (6.5 kb)"
 //config:	default y
 //config:	help
 //config:	du is used to report the amount of disk space used

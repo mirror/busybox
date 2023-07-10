@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config MKNOD
-//config:	bool "mknod (4.5 kb)"
+//config:	bool "mknod (4.6 kb)"
 //config:	default y
 //config:	help
 //config:	mknod is used to create FIFOs or block/character special

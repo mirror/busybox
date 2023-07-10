@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config PIPE_PROGRESS
-//config:	bool "pipe_progress (275 bytes)"
+//config:	bool "pipe_progress (576 bytes)"
 //config:	default y
 //config:	help
 //config:	Display a dot to indicate pipe activity.

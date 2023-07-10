@@ -11,7 +11,7 @@
  * "end" line
  */
 //config:config UUDECODE
-//config:	bool "uudecode (5.8 kb)"
+//config:	bool "uudecode (5.9 kb)"
 //config:	default y
 //config:	help
 //config:	uudecode is used to decode a uuencoded file.
@@ -178,13 +178,13 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 //config:config BASE32
-//config:	bool "base32 (4.9 kb)"
+//config:	bool "base32 (5.5 kb)"
 //config:	default y
 //config:	help
 //config:	Base32 encode and decode
 
 //config:config BASE64
-//config:	bool "base64 (4.9 kb)"
+//config:	bool "base64 (5.3 kb)"
 //config:	default y
 //config:	help
 //config:	Base64 encode and decode

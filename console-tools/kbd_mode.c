@@ -9,7 +9,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config KBD_MODE
-//config:	bool "kbd_mode (4.1 kb)"
+//config:	bool "kbd_mode (4.3 kb)"
 //config:	default y
 //config:	help
 //config:	This program reports and sets keyboard mode.

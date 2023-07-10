@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config LOADKMAP
-//config:	bool "loadkmap (1.8 kb)"
+//config:	bool "loadkmap (2.1 kb)"
 //config:	default y
 //config:	help
 //config:	This program loads a keyboard translation table from

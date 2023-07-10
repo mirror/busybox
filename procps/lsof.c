@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config LSOF
-//config:	bool "lsof (3.4 kb)"
+//config:	bool "lsof (3.7 kb)"
 //config:	default y
 //config:	help
 //config:	Show open files in the format of:

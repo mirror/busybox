@@ -4,7 +4,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 //config:config SSL_CLIENT
-//config:	bool "ssl_client (25 kb)"
+//config:	bool "ssl_client (28 kb)"
 //config:	default y
 //config:	select TLS
 //config:	help

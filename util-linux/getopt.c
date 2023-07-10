@@ -29,7 +29,7 @@
  *  Replaced our_malloc with xmalloc and our_realloc with xrealloc
  */
 //config:config GETOPT
-//config:	bool "getopt (5.8 kb)"
+//config:	bool "getopt (6 kb)"
 //config:	default y
 //config:	help
 //config:	The getopt utility is used to break up (parse) options in command

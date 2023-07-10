@@ -8,7 +8,7 @@
  * for details.
  */
 //config:config PMAP
-//config:	bool "pmap (6 kb)"
+//config:	bool "pmap (6.2 kb)"
 //config:	default y
 //config:	help
 //config:	Display processes' memory mappings.

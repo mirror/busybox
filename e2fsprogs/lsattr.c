@@ -10,7 +10,7 @@
  * Public License
  */
 //config:config LSATTR
-//config:	bool "lsattr (5.5 kb)"
+//config:	bool "lsattr (5.7 kb)"
 //config:	default y
 //config:	help
 //config:	lsattr lists the file attributes on a second extended file system.

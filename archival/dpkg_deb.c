@@ -5,7 +5,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //config:config DPKG_DEB
-//config:	bool "dpkg-deb (30 kb)"
+//config:	bool "dpkg-deb (29 kb)"
 //config:	default y
 //config:	select FEATURE_SEAMLESS_GZ
 //config:	help

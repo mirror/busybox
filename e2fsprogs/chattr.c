@@ -10,7 +10,7 @@
  * Public License
  */
 //config:config CHATTR
-//config:	bool "chattr (3.8 kb)"
+//config:	bool "chattr (4.1 kb)"
 //config:	default y
 //config:	help
 //config:	chattr changes the file attributes on a second extended file system.
