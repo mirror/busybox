@@ -1632,7 +1632,7 @@ update_local_clock(peer_t *p)
 		if (adjtimex(&tmx) < 0)
 			bb_simple_perror_msg_and_die("adjtimex");
 		bb_error_msg("p adjtimex freq:%ld offset:%+ld status:0x%x tc:%ld",
-				tmx.freq, tmx.offset, tmx.status, tmx.constant);
+				(long)tmx.freq, (long)tmx.offset, tmx.status, (long)tmx.constant);
 	}
 
 	memset(&tmx, 0, sizeof(tmx));
@@ -1747,7 +1747,7 @@ update_local_clock(peer_t *p)
 	 * Not sure why. Perhaps it is normal.
 	 */
 	VERB4 bb_error_msg("adjtimex:%d freq:%ld offset:%+ld status:0x%x",
-				rc, tmx.freq, tmx.offset, tmx.status);
+				rc, (long)tmx.freq, (long)tmx.offset, tmx.status);
 	G.kernel_freq_drift = tmx.freq / 65536;
 	VERB2 bb_error_msg("update from:%s offset:%+f delay:%f jitter:%f clock drift:%+.3fppm tc:%d",
 			p->p_dotted,
