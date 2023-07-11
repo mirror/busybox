@@ -320,6 +320,70 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 		close(rtc);
 }
 
+static uint64_t resolve_rtc_param_alias(const char *alias)
+{
+	int n;
+
+	BUILD_BUG_ON(RTC_PARAM_FEATURES != 0
+		|| RTC_PARAM_CORRECTION != 1
+		|| RTC_PARAM_BACKUP_SWITCH_MODE != 2
+	);
+	n = index_in_strings(
+		"features"   "\0"
+		"correction" "\0"
+		"bsm"        "\0"
+		, alias);
+	if (n >= 0)
+		return n;
+	return xstrtoull(alias, 0);
+}
+
+static void get_rtc_param(const char **pp_rtcname, const char *rtc_param)
+{
+	int rtc;
+	struct rtc_param param;
+
+	param.param = resolve_rtc_param_alias(rtc_param);
+
+	rtc = rtc_xopen(pp_rtcname, O_RDONLY);
+
+	xioctl(rtc, RTC_PARAM_GET, &param);
+
+	printf("The RTC parameter 0x%llx is set to 0x%llx.\n",
+		(unsigned long long) param.param, (unsigned long long) param.uvalue);
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(rtc);
+}
+
+static void set_rtc_param(const char **pp_rtcname, char *rtc_param)
+{
+	int rtc;
+	struct rtc_param param;
+	char *eq;
+
+	/* handle param name */
+	eq = strchr(rtc_param, '=');
+	if (!eq)
+		bb_error_msg_and_die("expected <param>=<value>");
+	*eq = '\0';
+	param.param = resolve_rtc_param_alias(rtc_param);
+	*eq = '=';
+
+	/* handle param value */
+	param.uvalue = xstrtoull(eq + 1, 0);
+
+	rtc = rtc_xopen(pp_rtcname, O_WRONLY);
+
+	printf("The RTC parameter 0x%llx will be set to 0x%llx.\n",
+		(unsigned long long) param.param, (unsigned long long) param.uvalue);
+
+	xioctl(rtc, RTC_PARAM_SET, &param);
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(rtc);
+}
+
 // hwclock from util-linux 2.36.1
 // hwclock [function] [option...]
 //Functions:
@@ -346,10 +410,10 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 
 //usage:#define hwclock_trivial_usage
 //usage:	IF_LONG_OPTS(
-//usage:       "[-swul] [--systz] [-f DEV]"
+//usage:       "[-swul] [--systz] [--param-get PARAM] [--param-set PARAM=VAL] [-f DEV]"
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(
-//usage:       "[-swult] [-f DEV]"
+//usage:       "[-swult] [-g PARAM] [-p PARAM=VAL] [-f DEV]"
 //usage:	)
 //usage:#define hwclock_full_usage "\n\n"
 //usage:       "Show or set hardware clock (RTC)\n"
@@ -360,6 +424,8 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	--systz	Set in-kernel timezone, correct system time"
 //usage:     "\n		if RTC is kept in local time"
+//usage:     "\n	--param-get PARAM	Get RTC parameter"
+//usage:     "\n	--param-set PARAM=VAL	Set RTC parameter"
 //usage:	)
 //usage:     "\n	-f DEV	Use specified device (e.g. /dev/rtc2)"
 //usage:     "\n	-u	Assume RTC is kept in UTC"
@@ -375,11 +441,14 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 #define HWCLOCK_OPT_SYSTOHC     0x10
 #define HWCLOCK_OPT_SYSTZ       0x20
 #define HWCLOCK_OPT_RTCFILE     0x40
+#define HWCLOCK_OPT_PARAM_GET   0x80
+#define HWCLOCK_OPT_PARAM_SET   0x100
 
 int hwclock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hwclock_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *rtcname = NULL;
+	char *param;
 	unsigned opt;
 	int utc;
 #if ENABLE_LONG_OPTS
@@ -391,14 +460,18 @@ int hwclock_main(int argc UNUSED_PARAM, char **argv)
 		"systohc\0"   No_argument "w"
 		"systz\0"     No_argument "t" /* short opt is non-standard */
 		"rtc\0"       Required_argument "f"
+		"param-get\0" Required_argument "g"  /* short opt is non-standard */
+		"param-set\0" Required_argument "p"  /* short opt is non-standard */
 		;
 #endif
 	opt = getopt32long(argv,
-		"^""lurswtf:v" /* -v is accepted and ignored */
+		"^""lurswtf:g:p:v" /* -v is accepted and ignored */
 		"\0"
-		"r--wst:w--rst:s--wrt:t--rsw:l--u:u--l",
+		"r--wstgp:w--rstgp:s--wrtgp:t--rswgp:g--rswtp:p--rswtg:l--u:u--l",
 		hwclock_longopts,
-		&rtcname
+		&rtcname,
+		&param,
+		&param
 	);
 
 	/* If -u or -l wasn't given, check if we are using utc */
@@ -413,6 +486,10 @@ int hwclock_main(int argc UNUSED_PARAM, char **argv)
 		from_sys_clock(&rtcname, utc);
 	else if (opt & HWCLOCK_OPT_SYSTZ)
 		set_kernel_timezone_and_clock(utc, NULL);
+	else if (opt & HWCLOCK_OPT_PARAM_GET)
+		get_rtc_param(&rtcname, param);
+	else if (opt & HWCLOCK_OPT_PARAM_SET)
+		set_rtc_param(&rtcname, param);
 	else
 		/* default HWCLOCK_OPT_SHOW */
 		show_clock(&rtcname, utc);

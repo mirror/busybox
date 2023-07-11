@@ -46,6 +46,17 @@ struct linux_rtc_wkalrm {
 	struct linux_rtc_time time;  /* time the alarm is set to */
 };
 
+struct rtc_param {
+	uint64_t param;
+	union {
+		uint64_t uvalue;
+		int64_t svalue;
+		uint64_t ptr;
+	};
+	uint32_t index;
+	uint32_t __pad;
+};
+
 /*
  * ioctl calls that are permitted to the /dev/rtc interface, if
  * any of the RTC drivers are enabled.
@@ -71,11 +82,18 @@ struct linux_rtc_wkalrm {
 #define RTC_WKALM_SET   _IOW('p', 0x0f, struct linux_rtc_wkalrm)/* Set wakeup alarm*/
 #define RTC_WKALM_RD    _IOR('p', 0x10, struct linux_rtc_wkalrm)/* Get wakeup alarm*/
 
+#define RTC_PARAM_GET	_IOW('p', 0x13, struct rtc_param)  /* Get parameter */
+#define RTC_PARAM_SET	_IOW('p', 0x14, struct rtc_param)  /* Set parameter */
+
 /* interrupt flags */
 #define RTC_IRQF 0x80 /* any of the following is active */
 #define RTC_PF 0x40
 #define RTC_AF 0x20
 #define RTC_UF 0x10
+
+#define RTC_PARAM_FEATURES           0
+#define RTC_PARAM_CORRECTION         1
+#define RTC_PARAM_BACKUP_SWITCH_MODE 2
 
 POP_SAVED_FUNCTION_VISIBILITY
 
