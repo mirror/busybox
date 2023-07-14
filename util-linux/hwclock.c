@@ -9,6 +9,7 @@
 //config:config HWCLOCK
 //config:	bool "hwclock (5.9 kb)"
 //config:	default y
+//config:	select LONG_OPTS
 //config:	help
 //config:	The hwclock utility is used to read and set the hardware clock
 //config:	on a system. This is primarily used to set the current time on
@@ -409,89 +410,89 @@ static void set_rtc_param(const char **pp_rtcname, char *rtc_param)
 // -v, --verbose        display more details
 
 //usage:#define hwclock_trivial_usage
-//usage:	IF_LONG_OPTS(
-//usage:       "[-swul] [--systz] [--param-get PARAM] [--param-set PARAM=VAL] [-f DEV]"
-//usage:	)
-//usage:	IF_NOT_LONG_OPTS(
-//usage:       "[-swult] [-g PARAM] [-p PARAM=VAL] [-f DEV]"
-//usage:	)
+//usage:       "[-ul] [-f DEV] [-s|-w|--systz|--param-get PARAM|--param-set PARAM=VAL]"
 //usage:#define hwclock_full_usage "\n\n"
 //usage:       "Show or set hardware clock (RTC)\n"
+//usage:     "\n	-f DEV	Use this device (e.g. /dev/rtc2)"
+//usage:     "\n	-u	Assume RTC is kept in UTC"
+//usage:     "\n	-l	Assume RTC is kept in local time"
+//usage:     "\n		(if neither is given, read from "ADJTIME_PATH")"
 ///////:     "\n	-r	Show RTC time"
 ///////-r is default, don't bother showing it in help
 //usage:     "\n	-s	Set system time from RTC"
 //usage:     "\n	-w	Set RTC from system time"
-//usage:	IF_LONG_OPTS(
 //usage:     "\n	--systz	Set in-kernel timezone, correct system time"
 //usage:     "\n		if RTC is kept in local time"
 //usage:     "\n	--param-get PARAM	Get RTC parameter"
 //usage:     "\n	--param-set PARAM=VAL	Set RTC parameter"
-//usage:	)
-//usage:     "\n	-f DEV	Use specified device (e.g. /dev/rtc2)"
-//usage:     "\n	-u	Assume RTC is kept in UTC"
-//usage:     "\n	-l	Assume RTC is kept in local time"
-//usage:     "\n		(if neither is given, read from "ADJTIME_PATH")"
-
-//TODO: get rid of incompatible -t alias to --systz?
-
-#define HWCLOCK_OPT_LOCALTIME   0x01
-#define HWCLOCK_OPT_UTC         0x02
-#define HWCLOCK_OPT_SHOW        0x04
-#define HWCLOCK_OPT_HCTOSYS     0x08
-#define HWCLOCK_OPT_SYSTOHC     0x10
-#define HWCLOCK_OPT_SYSTZ       0x20
-#define HWCLOCK_OPT_RTCFILE     0x40
-#define HWCLOCK_OPT_PARAM_GET   0x80
-#define HWCLOCK_OPT_PARAM_SET   0x100
 
 int hwclock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hwclock_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *rtcname = NULL;
 	char *param;
-	unsigned opt;
+	unsigned opt, exclusive;
 	int utc;
-#if ENABLE_LONG_OPTS
+#define OPT_LOCALTIME   (1 << 0)
+#define OPT_UTC         (1 << 1)
+#define OPT_RTCFILE     (1 << 2)
+#define OPT_SHOW        (1 << 3)
+#define OPT_HCTOSYS     (1 << 4)
+#define OPT_SYSTOHC     (1 << 5)
+#define OPT_PARAM_GET   (1 << 6)
+#define OPT_PARAM_SET   (1 << 7)
+//#define OPT_VERBOSE   (1 << 8) UNUSED
+#define OPT_SYSTZ       (1 << 9)
 	static const char hwclock_longopts[] ALIGN1 =
 		"localtime\0" No_argument "l"
 		"utc\0"       No_argument "u"
+		"rtc\0"       Required_argument "f"
 		"show\0"      No_argument "r"
 		"hctosys\0"   No_argument "s"
 		"systohc\0"   No_argument "w"
-		"systz\0"     No_argument "t" /* short opt is non-standard */
-		"rtc\0"       Required_argument "f"
-		"param-get\0" Required_argument "g"  /* short opt is non-standard */
-		"param-set\0" Required_argument "p"  /* short opt is non-standard */
+		"param-get\0" Required_argument "\xfd" /* no short equivalent */
+		"param-set\0" Required_argument "\xfe" /* no short equivalent */
+		"systz\0"     No_argument "\xff" /* no short equivalent */
 		;
-#endif
 	opt = getopt32long(argv,
-		"^""lurswtf:g:p:v" /* -v is accepted and ignored */
+		"^""luf:rsw\xfd:\xfe:v" /* -v is accepted and ignored */
 		"\0"
-		"r--wstgp:w--rstgp:s--wrtgp:t--rswgp:g--rswtp:p--rswtg:l--u:u--l",
+		"l--u:u--l",
 		hwclock_longopts,
 		&rtcname,
 		&param,
 		&param
 	);
+#if 0 //DEBUG
+	bb_error_msg("opt:0x%x", opt);
+	if (opt & OPT_PARAM_GET) bb_error_msg("OPT_PARAM_GET %s", param);
+	if (opt & OPT_PARAM_SET) bb_error_msg("OPT_PARAM_SET %s", param);
+	if (opt & OPT_SYSTZ    ) bb_error_msg("OPT_SYSTZ");
+	return 0;
+#endif
+	/* All options apart from -luf are exclusive, enforce */
+	exclusive = opt >> 3;
+	if ((exclusive - 1) & exclusive) /* more than one bit set? */
+		bb_show_usage();
 
 	/* If -u or -l wasn't given, check if we are using utc */
-	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME))
-		utc = (opt & HWCLOCK_OPT_UTC);
+	if (opt & (OPT_UTC | OPT_LOCALTIME))
+		utc = (opt & OPT_UTC);
 	else
 		utc = rtc_adjtime_is_utc();
 
-	if (opt & HWCLOCK_OPT_HCTOSYS)
+	if (opt & OPT_HCTOSYS)
 		to_sys_clock(&rtcname, utc);
-	else if (opt & HWCLOCK_OPT_SYSTOHC)
+	else if (opt & OPT_SYSTOHC)
 		from_sys_clock(&rtcname, utc);
-	else if (opt & HWCLOCK_OPT_SYSTZ)
+	else if (opt & OPT_SYSTZ)
 		set_kernel_timezone_and_clock(utc, NULL);
-	else if (opt & HWCLOCK_OPT_PARAM_GET)
+	else if (opt & OPT_PARAM_GET)
 		get_rtc_param(&rtcname, param);
-	else if (opt & HWCLOCK_OPT_PARAM_SET)
+	else if (opt & OPT_PARAM_SET)
 		set_rtc_param(&rtcname, param);
 	else
-		/* default HWCLOCK_OPT_SHOW */
+		/* default OPT_SHOW */
 		show_clock(&rtcname, utc);
 
 	return 0;
