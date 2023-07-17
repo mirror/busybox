@@ -77,7 +77,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 {
 	int fd;
 	int opts;
-	smalluint status = EXIT_SUCCESS;
+	exitcode_t status = EXIT_SUCCESS;
 #if ENABLE_FEATURE_TOUCH_SUSV3
 	char *reference_file;
 	char *date_str;

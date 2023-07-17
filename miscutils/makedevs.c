@@ -181,7 +181,7 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 {
 	parser_t *parser;
 	char *line = (char *)"-";
-	int ret = EXIT_SUCCESS;
+	exitcode_t ret = EXIT_SUCCESS;
 
 	getopt32(argv, "^" "d:" "\0" "=1", &line);
 	argv += optind;

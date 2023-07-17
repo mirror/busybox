@@ -40,7 +40,8 @@
 int strings_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int strings_main(int argc UNUSED_PARAM, char **argv)
 {
-	int n, c, status = EXIT_SUCCESS;
+	int n, c;
+	exitcode_t status = EXIT_SUCCESS;
 	unsigned count;
 	off_t offset;
 	FILE *file;

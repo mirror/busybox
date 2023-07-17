@@ -1444,6 +1444,13 @@ void bb_verror_msg(const char *s, va_list p, const char *strerr) FAST_FUNC;
 void bb_die_memory_exhausted(void) NORETURN FAST_FUNC;
 void bb_logenv_override(void) FAST_FUNC;
 
+/* x86 benefits from narrow exit code variables
+ * (because it has no widening MOV imm8,word32 insn, has to use MOV imm32,w
+ * for "exitcode = EXIT_FAILURE" and similar. The downside is that sometimes
+*  gcc widens the variable to int in various ugly suboptimal ways).
+ */
+typedef smalluint exitcode_t;
+
 #if ENABLE_FEATURE_SYSLOG_INFO
 void bb_info_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
 void bb_simple_info_msg(const char *s) FAST_FUNC;

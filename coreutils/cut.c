@@ -311,7 +311,7 @@ int cut_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	{
-		int retval = EXIT_SUCCESS;
+		exitcode_t retval = EXIT_SUCCESS;
 
 		if (!*argv)
 			*--argv = (char *)"-";

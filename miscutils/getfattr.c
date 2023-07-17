@@ -77,7 +77,7 @@ int getfattr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int getfattr_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *name;
-	int status;
+	exitcode_t status;
 	int opt;
 	char *buf = NULL;
 	size_t bufsize = 0;

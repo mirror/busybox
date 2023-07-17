@@ -32,7 +32,7 @@ int setfattr_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *name;
 	const char *value = "";
-	int status;
+	exitcode_t status;
 	int opt;
 	enum {
 		OPT_h = (1 << 0),

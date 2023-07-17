@@ -97,7 +97,7 @@ int umount_main(int argc UNUSED_PARAM, char **argv)
 	struct mntent me;
 	FILE *fp;
 	char *fstype = NULL;
-	int status = EXIT_SUCCESS;
+	exitcode_t status = EXIT_SUCCESS;
 	unsigned opt;
 	struct mtab_list {
 		char *dir;

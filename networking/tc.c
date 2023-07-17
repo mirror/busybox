@@ -502,7 +502,7 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 	};
 	struct rtnl_handle rth;
 	struct tcmsg msg;
-	int ret, obj, cmd, arg;
+	int obj, cmd, arg;
 	char *dev = NULL;
 
 	INIT_G();
@@ -510,7 +510,6 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 	if (!*++argv)
 		bb_show_usage();
 	xrtnl_open(&rth);
-	ret = EXIT_SUCCESS;
 
 	obj = index_in_substrings(objects, *argv++);
 	if (obj < 0)
@@ -625,5 +624,5 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		rtnl_close(&rth);
 	}
-	return ret;
+	return EXIT_SUCCESS;
 }

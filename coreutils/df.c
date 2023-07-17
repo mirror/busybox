@@ -113,7 +113,7 @@ int df_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int df_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned long df_disp_hr = 1024;
-	int status = EXIT_SUCCESS;
+	exitcode_t status = EXIT_SUCCESS;
 	unsigned opt;
 	FILE *mount_table;
 	struct mntent *mount_entry;

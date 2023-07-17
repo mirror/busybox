@@ -538,7 +538,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		DIR *net;
 		struct dirent *ent;
 		int need_hdr = 1;
-		int exitcode = EXIT_SUCCESS;
+		exitcode_t exitcode = EXIT_SUCCESS;
 
 		if (*argv) {
 			/* "show BR1 BR2 BR3" */

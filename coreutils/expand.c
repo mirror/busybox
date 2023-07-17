@@ -192,7 +192,7 @@ int expand_main(int argc UNUSED_PARAM, char **argv)
 	FILE *file;
 	unsigned tab_size;
 	unsigned opt;
-	int exit_status = EXIT_SUCCESS;
+	exitcode_t exit_status = EXIT_SUCCESS;
 
 	init_unicode();
 

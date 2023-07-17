@@ -52,7 +52,7 @@
 int ln_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ln_main(int argc, char **argv)
 {
-	int status = EXIT_SUCCESS;
+	exitcode_t status = EXIT_SUCCESS;
 	int opts;
 	char *last;
 	char *src_name;

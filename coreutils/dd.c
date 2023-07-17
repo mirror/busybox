@@ -375,7 +375,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 		OP_oflag_direct,
 #endif
 	};
-	smallint exitcode = EXIT_FAILURE;
+	exitcode_t exitcode = EXIT_FAILURE;
 	int i;
 	size_t ibs = 512;
 	char *ibuf;
