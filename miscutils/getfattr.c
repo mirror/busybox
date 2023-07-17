@@ -31,6 +31,7 @@
 enum {
 	OPT_h = (1 << 0),
 	OPT_d = (1 << 1),
+	OPT_n = (1 << 2),
 };
 
 static int print_attr(const char *file, const char *name, char **buf, size_t *bufsize)
@@ -85,8 +86,9 @@ int getfattr_main(int argc UNUSED_PARAM, char **argv)
 
 	opt = getopt32(argv, "^"
 		"hdn:"
-		/* Min one arg; exactly one of -n or -d is required. */
-		"\0" "-1:d:n:n--d:d--n"
+		/* Min one arg; -d and -n are exclusive */
+		"\0" "-1:n--d:d--n"
+			//getfattr 2.5.1 does not enforce this: ":d:n" /* exactly one of -n or -d is required */
 		, &name
 	);
 	argv += optind;
@@ -94,8 +96,11 @@ int getfattr_main(int argc UNUSED_PARAM, char **argv)
 
 	do {
 		int r;
-		if (opt & OPT_d) {
+//getfattr 2.5.1 with no -n/-d defaults to -d
+		if (!(opt & OPT_n)) {
 			ssize_t len = list_attr(*argv, &list, &listsize);
+			if (len < 0)
+				goto err;
 			if (len > 0) {
 				char *key;
 				printf("# file: %s\n", *argv);
@@ -118,7 +123,7 @@ int getfattr_main(int argc UNUSED_PARAM, char **argv)
  err:
 				bb_simple_perror_msg(*argv);
 				status = EXIT_FAILURE;
-				// continue; maybe?
+				continue;
 			}
 			bb_putchar('\n');
 		}
