@@ -56,11 +56,11 @@ lib-y += login.o
 lib-y += make_directory.o
 lib-y += makedev.o
 lib-y += hash_md5_sha.o
-lib-y += hash_md5_sha_x86-64.o
-lib-y += hash_md5_sha_x86-64_shaNI.o
-lib-y += hash_md5_sha_x86-32_shaNI.o
-lib-y += hash_md5_sha256_x86-64_shaNI.o
-lib-y += hash_md5_sha256_x86-32_shaNI.o
+lib-y += hash_sha1_x86-64.o
+lib-y += hash_sha1_hwaccel_x86-64.o
+lib-y += hash_sha1_hwaccel_x86-32.o
+lib-y += hash_sha256_hwaccel_x86-64.o
+lib-y += hash_sha256_hwaccel_x86-32.o
 # Alternative (disabled) MD5 implementation
 #lib-y += hash_md5prime.o
 lib-y += messages.o
