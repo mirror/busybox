@@ -101,6 +101,10 @@ int tsort_main(int argc UNUSED_PARAM, char **argv)
 	ssize_t len;
 	struct node *a;
 	int cycles;
+	unsigned i;
+#if ENABLE_FEATURE_CLEAN_UP
+	unsigned max_len;
+#endif
 
 	INIT_G();
 
@@ -152,9 +156,11 @@ int tsort_main(int argc UNUSED_PARAM, char **argv)
 	 *   - if any nodes are left, they form cycles.
 	 */
 	cycles = 0;
+#if ENABLE_FEATURE_CLEAN_UP
+	max_len = G.nodes_len;
+#endif
 	while (G.nodes_len) {
 		struct node *n;
-		unsigned i;
 
 		/* Search for first node with no incoming edges */
 		for (i = 0; i < G.nodes_len; i++) {
@@ -173,16 +179,24 @@ int tsort_main(int argc UNUSED_PARAM, char **argv)
 		/* Remove the node (need no longer maintain sort) */
 		n = G.nodes[i];
 		G.nodes[i] = G.nodes[--G.nodes_len];
+#if ENABLE_FEATURE_CLEAN_UP
+		/* Keep reference to removed node so it can be freed */
+		G.nodes[G.nodes_len] = n;
+#endif
 
 		/* And remove its outgoing edges */
 		for (i = 0; i < n->out_count; i++)
 			n->out[i]->in_count--;
-		free(n->out);
 
 		puts(n->name);
-		free(n);
+	}
+#if ENABLE_FEATURE_CLEAN_UP
+	for (i = 0; i < max_len; i++) {
+		free(G.nodes[i]->out);
+		free(G.nodes[i]);
 	}
 	free(G.nodes);
+#endif
 
 	fflush_stdout_and_exit(cycles ? 1 : 0);
 }
