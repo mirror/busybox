@@ -180,6 +180,7 @@ void find_export_symbols(char * filename)
 		{
 			fprintf(stderr, "docproc: ");
 			perror(real_filename);
+			exit(1);
 		}
 		while (fgets(line, MAXLINESZ, fp)) {
 			unsigned char *p;
