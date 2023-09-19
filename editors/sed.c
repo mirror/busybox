@@ -1648,6 +1648,11 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			fchown(nonstdoutfd, statbuf.st_uid, statbuf.st_gid);
 
 			process_files();
+			fflush(G.nonstdout);
+			if (ferror(G.nonstdout)) {
+				xfunc_error_retval = 4;  /* It's what gnu sed exits with... */
+				bb_simple_error_msg_and_die(bb_msg_write_error);
+			}
 			fclose(G.nonstdout);
 			G.nonstdout = stdout;
 
