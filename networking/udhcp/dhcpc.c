@@ -966,7 +966,7 @@ static NOINLINE int d4_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	check = packet.udp.check;
 	packet.udp.check = 0;
 	if (check && check != inet_cksum(&packet, bytes)) {
-		log1s("packet with bad UDP checksum received, ignoring");
+		log1s("packet with bad UDP checksum, ignoring");
 		return -2;
 	}
  skip_udp_sum_check:
@@ -981,6 +981,7 @@ static NOINLINE int d4_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	udhcp_dump_packet(&packet.data);
 
 	bytes -= sizeof(packet.ip) + sizeof(packet.udp);
+	memset(dhcp_pkt, 0, sizeof(*dhcp_pkt));
 	memcpy(dhcp_pkt, &packet.data, bytes);
 	return bytes;
 }

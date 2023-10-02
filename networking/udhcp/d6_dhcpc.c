@@ -961,6 +961,7 @@ static NOINLINE int d6_recv_raw_packet(struct in6_addr *peer_ipv6, struct d6_pac
 	d6_dump_packet(&packet.data);
 
 	bytes -= sizeof(packet.ip6) + sizeof(packet.udp);
+	memset(d6_pkt, 0, sizeof(*d6_pkt));
 	memcpy(d6_pkt, &packet.data, bytes);
 	return bytes;
 }
