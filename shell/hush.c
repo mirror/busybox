@@ -10883,14 +10883,6 @@ static int FAST_FUNC builtin_history(char **argv UNUSED_PARAM)
 }
 #endif
 
-static char **skip_dash_dash(char **argv)
-{
-	argv++;
-	if (argv[0] && argv[0][0] == '-' && argv[0][1] == '-' && argv[0][2] == '\0')
-		argv++;
-	return argv;
-}
-
 static int FAST_FUNC builtin_cd(char **argv)
 {
 	const char *newdir;

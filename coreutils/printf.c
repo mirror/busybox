@@ -425,9 +425,9 @@ int printf_main(int argc UNUSED_PARAM, char **argv)
 	/* bash builtin errors out on "printf '-%s-\n' foo",
 	 * coreutils-6.9 works. Both work with "printf -- '-%s-\n' foo".
 	 * We will mimic coreutils. */
-	if (argv[1] && argv[1][0] == '-' && argv[1][1] == '-' && !argv[1][2])
-		argv++;
-	if (!argv[1]) {
+	argv = skip_dash_dash(argv);
+
+	if (!argv[0]) {
 		if ((ENABLE_ASH_PRINTF || ENABLE_HUSH_PRINTF)
 		 && applet_name[0] != 'p'
 		) {
@@ -437,8 +437,8 @@ int printf_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 	}
 
-	format = argv[1];
-	argv2 = argv + 2;
+	format = argv[0];
+	argv2 = argv + 1;
 
 	conv_err = 0;
 	do {

@@ -71,8 +71,8 @@ int sleep_main(int argc UNUSED_PARAM, char **argv)
 	 * + we can't use bb_show_usage
 	 * + applet_name can be the name of the shell
 	 */
-	++argv;
-	if (!*argv) {
+	argv = skip_dash_dash(argv);
+	if (!argv[0]) {
 		/* Without this, bare "sleep" in ash shows _ash_ --help */
 		/* (ash can be the "sh" applet as well, so check 2nd char) */
 		if (ENABLE_ASH_SLEEP && applet_name[1] != 'l') {
