@@ -956,9 +956,7 @@ static void do_mark(int sig)
 }
 #endif
 
-/* Don't inline: prevent struct sockaddr_un to take up space on stack
- * permanently */
-static NOINLINE int create_socket(void)
+static int create_socket(void)
 {
 	struct sockaddr_un sunx;
 	int sock_fd;
@@ -1008,6 +1006,7 @@ static int try_to_resolve_remote(remoteHost_t *rh)
 static int NOINLINE syslogd_init(char **argv)
 {
 	int opts;
+	int fd;
 	char OPTION_DECL;
 #if ENABLE_FEATURE_REMOTE_LOG
 	llist_t *remoteAddrList = NULL;
@@ -1055,7 +1054,7 @@ static int NOINLINE syslogd_init(char **argv)
 	G.hostname = safe_gethostname();
 	*strchrnul(G.hostname, '.') = '\0';
 
-	xmove_fd(create_socket(), STDIN_FILENO);
+	fd = create_socket();
 
 	if (opts & OPT_circularlog)
 		ipcsyslog_init();
@@ -1066,6 +1065,8 @@ static int NOINLINE syslogd_init(char **argv)
 	if (!(opts & OPT_nofork)) {
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
+
+	xmove_fd(fd, STDIN_FILENO);
 
 	/* Set up signal handlers (so that they interrupt read()) */
 	signal_no_SA_RESTART_empty_mask(SIGTERM, record_signo);
