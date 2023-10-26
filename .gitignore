@@ -13,6 +13,7 @@ Config.in
 # Never ignore these
 #
 !.gitignore
+!.github
 
 #
 # Normal output
@@ -20,6 +21,8 @@ Config.in
 /busybox
 /busybox_old
 /busybox_unstripped*
+/out
+/build
 
 #
 # Backups / patches
@@ -56,6 +59,9 @@ cscope.po.out
 #
 tags
 TAGS
+
+# IGLOO
+test.sh
 
 #
 # user-supplied scripts

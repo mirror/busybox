@@ -1,0 +1,55 @@
+name: Compile and Publish Console
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build 
+        run: |
+          docker run --rm -v $PWD:/app -w /app ghcr.io/panda-re/embedded-toolchains:latest /app/build.sh
+          tar -czvf busybox-latest.tar.gz build
+
+      - name: Save package
+        uses: actions/upload-artifact@v3
+        with:
+          name: busybox
+          path: build
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: release_${{ github.sha }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Release @${{ github.ref }}
+          draft: true
+          prerelease: false
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./busybox-latest.tar.gz
+          asset_name: busybox-latest.tar.gz
+          asset_content_type: application/gzip
+      - name: Publish release
+        uses: StuYarrow/publish-release@v1.1.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          id: ${{ steps.create_release.outputs.id }}
