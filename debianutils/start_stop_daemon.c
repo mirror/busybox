@@ -11,11 +11,12 @@
 /*
 This is how it is supposed to work:
 
-start-stop-daemon [OPTIONS] [--start|--stop] [[--] arguments...]
+start-stop-daemon [OPTIONS] [--start|--stop] [[--] ARGS...]
 
 One (only) of these must be given:
         -S,--start              Start
         -K,--stop               Stop
+        -T,--status             Check for the existence of a process, return exitcode (since version 1.16.1)
 
 Search for matching processes.
 If --stop is given, stop all matching processes (by sending a signal).
@@ -36,20 +37,41 @@ with /proc/$PID/exe or argv[0] (comm can't be matched, it never contains path)]
                                 Unlike -n, we match against the full path:
                                 "ntpd" != "./ntpd" != "/path/to/ntpd"
         -p,--pidfile PID_FILE   Look for processes with PID from this file
+        --ppid PPID             Look for processes with parent pid (since version 1.17.7)
 
 Options which are valid for --start only:
-        -x,--exec EXECUTABLE    Program to run (1st arg of execvp). Mandatory.
+        -x,--exec EXECUTABLE    Program to run (1st arg of execvp).
+                                If no -x, EXECUTABLE is taken from ARGS[0]
         -a,--startas NAME       argv[0] (defaults to EXECUTABLE)
         -b,--background         Put process into background
+        -O,--output FILE        Redirect stdout and stderr to FILE when forcing the
+                                daemon into the background (since version 1.20.6).  Only
+                                relevant when using --background.
+                            Probably O_CREAT|O_TRUNC? What if execv fails - where does error msg go? "Old" stderr? FILE? Nowhere?
         -N,--nicelevel N        Add N to process' nice level
         -c,--chuid USER[:[GRP]] Change to specified user [and group]
         -m,--make-pidfile       Write PID to the pidfile
                                 (both -m and -p must be given!)
+        -P,--procsched policy:priority
+                                This alters the process scheduler policy and priority of the
+                                process before starting it (since version 1.15.0).  The
+                                priority can be optionally specified by appending a :
+                                followed by the value. The default priority is 0. The
+                                currently supported policy values are other, fifo and rr.
+        -r,--chroot root        Change directory and chroot to root before starting the
+                                process. Please note that the pidfile is also written after
+                                the chroot.
+        -d,--chdir path         Change directory to path before starting the process. This is
+                                done after the chroot if the -r|--chroot option is set. When
+                                not specified, start-stop-daemon will change directory to the
+                                root directory before starting the process.
 
 Options which are valid for --stop only:
         -s,--signal SIG         Signal to send (default:TERM)
         -t,--test               Exit with status 0 if process is found
                                 (we don't actually start or stop daemons)
+        --remove-pidfile        Used when stopping a program that does not remove its own pid
+                                file (since version 1.17.19). Requires -p PIDFILE?
 
 Misc options:
         -o,--oknodo             Exit with status 0 if nothing is done
@@ -84,11 +106,11 @@ Misc options:
 //kbuild:lib-$(CONFIG_START_STOP_DAEMON) += start_stop_daemon.o
 
 //usage:#define start_stop_daemon_trivial_usage
-//usage:       "[OPTIONS] [-S|-K] ... [-- ARGS...]"
+//usage:       "-S|-K [OPTIONS] [-- ARGS...]"
 //usage:#define start_stop_daemon_full_usage "\n\n"
 //usage:       "Search for matching processes, and then\n"
-//usage:       "-K: stop all matching processes\n"
 //usage:       "-S: start a process unless a matching process is found\n"
+//usage:       "-K: stop all matching processes\n"
 //usage:     "\nProcess matching:"
 //usage:     "\n	-u USERNAME|UID	Match only this user's processes"
 //usage:     "\n	-n NAME		Match processes with NAME"
@@ -422,15 +444,19 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	opt = GETOPT32(argv, "^"
 		"KSbqtma:n:s:u:c:x:p:"
 		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:")
+			"\0"
+			"K:S:K--S:S--K"
 			/* -K or -S is required; they are mutually exclusive */
-			/* -p is required if -m is given */
-			/* -xpun (at least one) is required if -K is given */
+			":m?p"    /* -p is required if -m is given */
+			":K?xpun" /* -xpun (at least one) is required if -K is given */
+			/* (the above does not seem to be enforced by Debian, it does nothing
+			 * if no matching is specified with -K, and it ignores ARGS
+			 * - does not take ARGS[0] as program name to kill)
+			 */
 //			/* -xa (at least one) is required if -S is given */
 //WRONG: "start-stop-daemon -S -- sleep 5" is a valid invocation
-			/* -q turns off -v */
-			"\0"
-			"K:S:K--S:S--K:m?p:K?xpun"
-			IF_FEATURE_START_STOP_DAEMON_FANCY("q-v"),
+			IF_FEATURE_START_STOP_DAEMON_FANCY(":q-v") /* -q turns off -v */
+			,
 		LONGOPTS
 		&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile
 		IF_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
