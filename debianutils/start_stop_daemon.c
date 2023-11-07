@@ -18,9 +18,9 @@ One (only) of these must be given:
         -K,--stop               Stop
         -T,--status             Check for the existence of a process, return exitcode (since version 1.16.1)
                                 0 - program is running
-                                1 - program is not running and the pid file exists.
-                                3 - program is not running.
-                                4 - can't determine program status.
+                                1 - program is not running and the pid file exists
+                                3 - program is not running
+                                4 - can't determine program status
 
 Search for matching processes.
 If --stop is given, stop all matching processes (by sending a signal).
@@ -41,6 +41,7 @@ with /proc/$PID/exe or argv[0] (comm can't be matched, it never contains path)]
                                 Unlike -n, we match against the full path:
                                 "ntpd" != "./ntpd" != "/path/to/ntpd"
         -p,--pidfile PID_FILE   Look for processes with PID from this file
+        --pid PID               Look for process with this pid (since version 1.17.6)
         --ppid PPID             Look for processes with parent pid (since version 1.17.7)
 
 Options which are valid for --start only:
@@ -72,10 +73,10 @@ Options which are valid for --start only:
                                 root directory before starting the process.
                                 ^^^^ Seems to be false, no default "/" chdir is done.
         Tested -S with 1.21.22:
-        "start-stop-daemon -S -n pwd -a /bin/pwd" is the minimum needed to run pwd.
-        "start-stop-daemon -S -n pwd -x /bin/pwd" works too.
-        "start-stop-daemon -S -a /bin/pwd -x /bin/pwd" works too.
-        Earlier versions were less picky (which?)
+        "start-stop-daemon -S -x /bin/pwd" is the minimum needed to run pwd.
+        "start-stop-daemon -S -a /bin/pwd -n pwd" works too.
+        "start-stop-daemon -S -a /bin/pwd" does NOT work.
+        Earlier versions were less picky (which? Or is it only Gentoo's clone?)
 
 Options which are valid for --stop only:
         -s,--signal SIG         Signal to send (default:TERM)
@@ -110,6 +111,7 @@ Misc options:
 //config:	-o|--oknodo ignored since we exit with 0 anyway
 //config:	-v|--verbose
 //config:	-N|--nicelevel N
+//config:	-O|--output FILE
 
 //applet:IF_START_STOP_DAEMON(APPLET_ODDNAME(start-stop-daemon, start_stop_daemon, BB_DIR_SBIN, BB_SUID_DROP, start_stop_daemon))
 /* not NOEXEC: uses bb_common_bufsiz1 */
@@ -147,8 +149,9 @@ Misc options:
 //usage:	IF_FEATURE_START_STOP_DAEMON_FANCY(
 //usage:     "\n	-o		Exit with status 0 if nothing is done"
 //usage:     "\n	-v		Verbose"
-//usage:	)
 //usage:     "\n	-q		Quiet"
+//usage:     "\n	-O PILE		Append stdout and stderr to FILE"
+//usage:	)
 
 /* Override ENABLE_FEATURE_PIDFILE */
 #define WANT_PIDFILE 1
@@ -178,6 +181,7 @@ enum {
 	OPT_OKNODO     = (1 << 14) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -o
 	OPT_VERBOSE    = (1 << 15) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -v
 	OPT_NICELEVEL  = (1 << 16) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -N
+	OPT_OUTPUT     = (1 << 17) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -O
 };
 #define QUIET (option_mask32 & OPT_QUIET)
 #define TEST  (option_mask32 & OPT_TEST)
@@ -420,6 +424,7 @@ static const char start_stop_daemon_longopts[] ALIGN1 =
 	"oknodo\0"       No_argument       "o"
 	"verbose\0"      No_argument       "v"
 	"nicelevel\0"    Required_argument "N"
+	"output\0"       Required_argument "O"
 # endif
 	"startas\0"      Required_argument "a"
 	"name\0"         Required_argument "n"
@@ -452,32 +457,41 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 //	char *retry_arg = NULL;
 //	int retries = -1;
 	char *opt_N;
+	char *output;
 #endif
 
 	INIT_G();
 
 	opt = GETOPT32(argv, "^"
 		"KSbqtma:n:s:u:c:d:x:p:"
-		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:")
+		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:O:R:")
 			"\0"
 			"K:S:K--S:S--K"
 			/* -K or -S is required; they are mutually exclusive */
 			":m?p"    /* -p is required if -m is given */
 			":K?xpun" /* -xpun (at least one) is required if -K is given */
-			/* (the above does not seem to be enforced by Debian, it does nothing
+			/* (the above does not seem to be enforced by Gentoo, it does nothing
 			 * if no matching is specified with -K, and it ignores ARGS
 			 * - does not take ARGS[0] as program name to kill)
 			 */
-//			/* -xa (at least one) is required if -S is given */
-//WRONG: "start-stop-daemon -S -- sleep 5" is a valid invocation
+//			":S?xa"   /* -xa (at least one) is required if -S is given */
+//Gentoo clone: "start-stop-daemon -S -- sleep 5" is a valid invocation
 			IF_FEATURE_START_STOP_DAEMON_FANCY(":q-v") /* -q turns off -v */
 			,
 		LONGOPTS
 		&startas, &cmdname, &signame, &userspec, &chuid, &chdir, &execname, &pidfile
 		IF_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
+		IF_FEATURE_START_STOP_DAEMON_FANCY(,&output)
 		/* We accept and ignore -R <param> / --retry <param> */
 		IF_FEATURE_START_STOP_DAEMON_FANCY(,NULL)
 	);
+
+//-O requires --background and absolute pathname (tested with 1.21.22).
+//We don't bother requiring that (smaller code):
+//#if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
+//	if ((opt & OPT_OUTPUT) && !(opt & OPT_BACKGROUND))
+//		bb_show_usage();
+//#endif
 
 	if (opt & OPT_s) {
 		signal_nr = get_signum(signame);
@@ -604,6 +618,14 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_d) {
 		xchdir(chdir);
 	}
+#if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
+	if (opt & OPT_OUTPUT) {
+		int outfd = xopen(output, O_WRONLY | O_CREAT | O_APPEND);
+		xmove_fd(outfd, STDOUT_FILENO);
+		xdup2(STDOUT_FILENO, STDERR_FILENO);
+		/* on execv error, the message goes to -O file. This is intended */
+	}
+#endif
 	/* Try:
 	 * strace -oLOG start-stop-daemon -S -x /bin/usleep -a qwerty 500000
 	 * should exec "/bin/usleep", but argv[0] should be "qwerty":
