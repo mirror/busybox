@@ -17,6 +17,10 @@ One (only) of these must be given:
         -S,--start              Start
         -K,--stop               Stop
         -T,--status             Check for the existence of a process, return exitcode (since version 1.16.1)
+                                0 - program is running
+                                1 - program is not running and the pid file exists.
+                                3 - program is not running.
+                                4 - can't determine program status.
 
 Search for matching processes.
 If --stop is given, stop all matching processes (by sending a signal).
@@ -45,9 +49,10 @@ Options which are valid for --start only:
         -a,--startas NAME       argv[0] (defaults to EXECUTABLE)
         -b,--background         Put process into background
         -O,--output FILE        Redirect stdout and stderr to FILE when forcing the
-                                daemon into the background (since version 1.20.6).  Only
-                                relevant when using --background.
-                            Probably O_CREAT|O_TRUNC? What if execv fails - where does error msg go? "Old" stderr? FILE? Nowhere?
+                                daemon into the background (since version 1.20.6).
+                                Requires --background and absolute pathname (tested with 1.21.22).
+                                Uses O_CREAT|O_APPEND!
+                                If execv fails, error message goes to FILE.
         -N,--nicelevel N        Add N to process' nice level
         -c,--chuid USER[:[GRP]] Change to specified user [and group]
         -m,--make-pidfile       Write PID to the pidfile
@@ -66,6 +71,11 @@ Options which are valid for --start only:
                                 When not specified, start-stop-daemon will change directory to the
                                 root directory before starting the process.
                                 ^^^^ Seems to be false, no default "/" chdir is done.
+        Tested -S with 1.21.22:
+        "start-stop-daemon -S -n pwd -a /bin/pwd" is the minimum needed to run pwd.
+        "start-stop-daemon -S -n pwd -x /bin/pwd" works too.
+        "start-stop-daemon -S -a /bin/pwd -x /bin/pwd" works too.
+        Earlier versions were less picky (which?)
 
 Options which are valid for --stop only:
         -s,--signal SIG         Signal to send (default:TERM)
