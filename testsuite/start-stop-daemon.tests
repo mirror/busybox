@@ -11,6 +11,21 @@ testing "start-stop-daemon -x without -a" \
 	"0\n" \
 	"" ""
 
+testing "start-stop-daemon -x with -d on existing directory" \
+	'start-stop-daemon -S -d /tmp -x true 2>&1; echo $?' \
+	"0\n" \
+	"" ""
+
+testing "start-stop-daemon -x with -d on existing and check dir" \
+	'output=$(start-stop-daemon -S -d /tmp -x pwd); echo $output' \
+	"/tmp\n" \
+	"" ""
+
+testing "start-stop-daemon -x with --chdir on existing and check dir" \
+	'output=$(start-stop-daemon -S --chdir /tmp -x pwd); echo $output' \
+	"/tmp\n" \
+	"" ""
+
 testing "start-stop-daemon -a without -x" \
 	'start-stop-daemon -S -a false 2>&1; echo $?' \
 	"1\n" \
@@ -18,6 +33,11 @@ testing "start-stop-daemon -a without -x" \
 
 testing "start-stop-daemon without -x and -a" \
 	'start-stop-daemon -S false 2>&1; echo $?' \
+	"1\n" \
+	"" ""
+
+testing "start-stop-daemon -x with -d on non-existing directory" \
+	'start-stop-daemon -S -d /non-existent -x true > /dev/null 2>&1; echo $?' \
 	"1\n" \
 	"" ""
 

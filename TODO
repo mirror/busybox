@@ -222,8 +222,6 @@ Minor stuff:
 ---
   unify progress_meter. wget, flash_eraseall, pipe_progress, fbsplash, setfiles.
 ---
-  support start-stop-daemon -d <chdir-path>
----
 
 (TODO list after discussion 11.05.2009)
 

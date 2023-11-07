@@ -11,7 +11,7 @@
 /*
 This is how it is supposed to work:
 
-start-stop-daemon [OPTIONS] [--start|--stop] [[--] ARGS...]
+start-stop-daemon [OPTIONS] [--start|--stop] [[--] ARGS]
 
 One (only) of these must be given:
         -S,--start              Start
@@ -58,13 +58,14 @@ Options which are valid for --start only:
                                 priority can be optionally specified by appending a :
                                 followed by the value. The default priority is 0. The
                                 currently supported policy values are other, fifo and rr.
-        -r,--chroot root        Change directory and chroot to root before starting the
+        -r,--chroot DIR         Change directory and chroot to DIR before starting the
                                 process. Please note that the pidfile is also written after
                                 the chroot.
-        -d,--chdir path         Change directory to path before starting the process. This is
-                                done after the chroot if the -r|--chroot option is set. When
-                                not specified, start-stop-daemon will change directory to the
+        -d,--chdir DIR          Change directory to DIR before starting the process. This is
+                                done after the chroot if the -r|--chroot option is set.
+                                When not specified, start-stop-daemon will change directory to the
                                 root directory before starting the process.
+                                ^^^^ Seems to be false, no default "/" chdir is done.
 
 Options which are valid for --stop only:
         -s,--signal SIG         Signal to send (default:TERM)
@@ -106,7 +107,7 @@ Misc options:
 //kbuild:lib-$(CONFIG_START_STOP_DAEMON) += start_stop_daemon.o
 
 //usage:#define start_stop_daemon_trivial_usage
-//usage:       "-S|-K [OPTIONS] [-- ARGS...]"
+//usage:       "-S|-K [OPTIONS] [-- ARGS]"
 //usage:#define start_stop_daemon_full_usage "\n\n"
 //usage:       "Search for matching processes, and then\n"
 //usage:       "-S: start a process unless a matching process is found\n"
@@ -127,6 +128,7 @@ Misc options:
 //usage:     "\n	-N N		Change nice level"
 //usage:	)
 //usage:     "\n	-c USER[:[GRP]]	Change user/group"
+//usage:     "\n	-d DIR		Change to DIR"
 //usage:     "\n	-m		Write PID to pidfile specified by -p"
 //usage:     "\n-K only:"
 //usage:     "\n	-s SIG		Signal to send"
@@ -160,11 +162,12 @@ enum {
 	OPT_s          = (1 <<  8), // -s
 	OPT_u          = (1 <<  9), // -u
 	OPT_c          = (1 << 10), // -c
-	OPT_x          = (1 << 11), // -x
-	OPT_p          = (1 << 12), // -p
-	OPT_OKNODO     = (1 << 13) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -o
-	OPT_VERBOSE    = (1 << 14) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -v
-	OPT_NICELEVEL  = (1 << 15) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -N
+	OPT_d          = (1 << 11), // -d
+	OPT_x          = (1 << 12), // -x
+	OPT_p          = (1 << 13), // -p
+	OPT_OKNODO     = (1 << 14) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -o
+	OPT_VERBOSE    = (1 << 15) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -v
+	OPT_NICELEVEL  = (1 << 16) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -N
 };
 #define QUIET (option_mask32 & OPT_QUIET)
 #define TEST  (option_mask32 & OPT_TEST)
@@ -413,6 +416,7 @@ static const char start_stop_daemon_longopts[] ALIGN1 =
 	"signal\0"       Required_argument "s"
 	"user\0"         Required_argument "u"
 	"chuid\0"        Required_argument "c"
+	"chdir\0"        Required_argument "d"
 	"exec\0"         Required_argument "x"
 	"pidfile\0"      Required_argument "p"
 # if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
@@ -433,6 +437,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	char *signame;
 	char *startas = NULL;
 	char *chuid;
+	char *chdir;
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 //	char *retry_arg = NULL;
 //	int retries = -1;
@@ -442,7 +447,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	opt = GETOPT32(argv, "^"
-		"KSbqtma:n:s:u:c:x:p:"
+		"KSbqtma:n:s:u:c:d:x:p:"
 		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:")
 			"\0"
 			"K:S:K--S:S--K"
@@ -458,7 +463,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 			IF_FEATURE_START_STOP_DAEMON_FANCY(":q-v") /* -q turns off -v */
 			,
 		LONGOPTS
-		&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile
+		&startas, &cmdname, &signame, &userspec, &chuid, &chdir, &execname, &pidfile
 		IF_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
 		/* We accept and ignore -R <param> / --retry <param> */
 		IF_FEATURE_START_STOP_DAEMON_FANCY(,NULL)
@@ -585,6 +590,9 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 			xsetgid(ugid.gid);
 			setgroups(1, &ugid.gid);
 		}
+	}
+	if (opt & OPT_d) {
+		xchdir(chdir);
 	}
 	/* Try:
 	 * strace -oLOG start-stop-daemon -S -x /bin/usleep -a qwerty 500000
