@@ -150,7 +150,7 @@ Misc options:
 //usage:     "\n	-o		Exit with status 0 if nothing is done"
 //usage:     "\n	-v		Verbose"
 //usage:     "\n	-q		Quiet"
-//usage:     "\n	-O PILE		Append stdout and stderr to FILE"
+//usage:     "\n	-O FILE		Append stdout and stderr to FILE"
 //usage:	)
 
 /* Override ENABLE_FEATURE_PIDFILE */
