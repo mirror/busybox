@@ -71,7 +71,7 @@ Options which are valid for --start only:
                                 done after the chroot if the -r|--chroot option is set.
                                 When not specified, start-stop-daemon will change directory to the
                                 root directory before starting the process.
-                                ^^^^ Seems to be false, no default "/" chdir is done.
+                                ^^^^ Gentoo does not have the default chdir("/"). Debian does.
         Tested -S with 1.21.22:
         "start-stop-daemon -S -x /bin/pwd" is the minimum needed to run pwd.
         "start-stop-daemon -S -a /bin/pwd -n pwd" works too.
@@ -111,7 +111,6 @@ Misc options:
 //config:	-o|--oknodo ignored since we exit with 0 anyway
 //config:	-v|--verbose
 //config:	-N|--nicelevel N
-//config:	-O|--output FILE
 
 //applet:IF_START_STOP_DAEMON(APPLET_ODDNAME(start-stop-daemon, start_stop_daemon, BB_DIR_SBIN, BB_SUID_DROP, start_stop_daemon))
 /* not NOEXEC: uses bb_common_bufsiz1 */
@@ -136,6 +135,7 @@ Misc options:
 //usage:     "\n	-x EXECUTABLE	Program to run"
 //usage:     "\n	-a NAME		Zeroth argument"
 //usage:     "\n	-b		Background"
+//usage:     "\n	-O FILE		Append stdout and stderr to FILE"
 //usage:	IF_FEATURE_START_STOP_DAEMON_FANCY(
 //usage:     "\n	-N N		Change nice level"
 //usage:	)
@@ -150,7 +150,6 @@ Misc options:
 //usage:     "\n	-o		Exit with status 0 if nothing is done"
 //usage:     "\n	-v		Verbose"
 //usage:     "\n	-q		Quiet"
-//usage:     "\n	-O FILE		Append stdout and stderr to FILE"
 //usage:	)
 
 /* Override ENABLE_FEATURE_PIDFILE */
@@ -178,20 +177,20 @@ enum {
 	OPT_d          = (1 << 11), // -d
 	OPT_x          = (1 << 12), // -x
 	OPT_p          = (1 << 13), // -p
-	OPT_OKNODO     = (1 << 14) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -o
-	OPT_VERBOSE    = (1 << 15) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -v
-	OPT_NICELEVEL  = (1 << 16) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -N
-	OPT_OUTPUT     = (1 << 17) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -O
+	OPT_OUTPUT     = (1 << 14), // -O
+	OPT_OKNODO     = (1 << 15) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -o
+	OPT_VERBOSE    = (1 << 16) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -v
+	OPT_NICELEVEL  = (1 << 17) * ENABLE_FEATURE_START_STOP_DAEMON_FANCY, // -N
 };
 #define QUIET (option_mask32 & OPT_QUIET)
 #define TEST  (option_mask32 & OPT_TEST)
 
 struct globals {
 	struct pid_list *found_procs;
-	char *userspec;
-	char *cmdname;
-	char *execname;
-	char *pidfile;
+	const char *userspec;
+	const char *cmdname;
+	const char *execname;
+	const char *pidfile;
 	char *execname_cmpbuf;
 	unsigned execname_sizeof;
 	int user_id;
@@ -361,7 +360,7 @@ static void do_procinit(void)
 
 static int do_stop(void)
 {
-	char *what;
+	const char *what;
 	struct pid_list *p;
 	int killed = 0;
 
@@ -408,7 +407,7 @@ static int do_stop(void)
 	}
  ret:
 	if (ENABLE_FEATURE_CLEAN_UP)
-		free(what);
+		free((char *)what);
 	return killed;
 }
 
@@ -449,22 +448,22 @@ int start_stop_daemon_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
-	char *signame;
-	char *startas = NULL;
+	const char *signame;
+	const char *startas = NULL;
 	char *chuid;
-	char *chdir;
+	const char *chdir;
+	const char *output = NULL;
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
-//	char *retry_arg = NULL;
+//	const char *retry_arg = NULL;
 //	int retries = -1;
-	char *opt_N;
-	char *output;
+	const char *opt_N;
 #endif
 
 	INIT_G();
 
 	opt = GETOPT32(argv, "^"
-		"KSbqtma:n:s:u:c:d:x:p:"
-		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:O:R:")
+		"KSbqtma:n:s:u:c:d:x:p:O:"
+		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:")
 			"\0"
 			"K:S:K--S:S--K"
 			/* -K or -S is required; they are mutually exclusive */
@@ -479,9 +478,8 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 			IF_FEATURE_START_STOP_DAEMON_FANCY(":q-v") /* -q turns off -v */
 			,
 		LONGOPTS
-		&startas, &cmdname, &signame, &userspec, &chuid, &chdir, &execname, &pidfile
+		&startas, &cmdname, &signame, &userspec, &chuid, &chdir, &execname, &pidfile, &output
 		IF_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
-		IF_FEATURE_START_STOP_DAEMON_FANCY(,&output)
 		/* We accept and ignore -R <param> / --retry <param> */
 		IF_FEATURE_START_STOP_DAEMON_FANCY(,NULL)
 	);
@@ -519,7 +517,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		}
 		if (!startas) /* -a is not given: use -x EXECUTABLE or argv[0] */
 			startas = execname;
-		*--argv = startas;
+		*--argv = (char *)startas;
 	}
 	if (execname) {
 		G.execname_sizeof = strlen(execname) + 1;
@@ -578,8 +576,11 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		}
 		/* Child */
 		setsid(); /* detach from controlling tty */
-		/* Redirect stdio to /dev/null, close extra FDs */
-		bb_daemon_helper(DAEMON_DEVNULL_STDIO + DAEMON_CLOSE_EXTRA_FDS);
+		/* Redirect stdin to /dev/null, close extra FDs */
+		/* Testcase: "start-stop-daemon -Sb -d /does/not/exist usleep 1" should not eat error message */
+		bb_daemon_helper(DAEMON_DEVNULL_STDIN + DAEMON_CLOSE_EXTRA_FDS);
+		if (!output)
+			output = bb_dev_null; /* redirect output just before execv */
 		/* On Linux, session leader can acquire ctty
 		 * unknowingly, by opening a tty.
 		 * Prevent this: stop being a session leader.
@@ -618,14 +619,12 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_d) {
 		xchdir(chdir);
 	}
-#if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
-	if (opt & OPT_OUTPUT) {
+	if (output) {
 		int outfd = xopen(output, O_WRONLY | O_CREAT | O_APPEND);
 		xmove_fd(outfd, STDOUT_FILENO);
 		xdup2(STDOUT_FILENO, STDERR_FILENO);
 		/* on execv error, the message goes to -O file. This is intended */
 	}
-#endif
 	/* Try:
 	 * strace -oLOG start-stop-daemon -S -x /bin/usleep -a qwerty 500000
 	 * should exec "/bin/usleep", but argv[0] should be "qwerty":

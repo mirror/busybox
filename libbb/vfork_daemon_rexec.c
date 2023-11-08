@@ -296,9 +296,12 @@ void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 	}
 
 	if (flags & DAEMON_DEVNULL_STDIO) {
-		xdup2(fd, 0);
-		xdup2(fd, 1);
-		xdup2(fd, 2);
+		if (flags & DAEMON_DEVNULL_STDIN)
+			xdup2(fd, 0);
+		if (flags & DAEMON_DEVNULL_OUTERR) {
+			xdup2(fd, 1);
+			xdup2(fd, 2);
+		}
 	} else {
 		/* have 0,1,2 open at least to /dev/null */
 		while ((unsigned)fd < 2)
