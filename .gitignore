@@ -67,3 +67,6 @@ test.sh
 # user-supplied scripts
 #
 /embed
+
+# IGLOO fork testing
+test.sh
