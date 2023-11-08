@@ -419,11 +419,11 @@ static const char start_stop_daemon_longopts[] ALIGN1 =
 	"quiet\0"        No_argument       "q"
 	"test\0"         No_argument       "t"
 	"make-pidfile\0" No_argument       "m"
+	"output\0"       Required_argument "O"
 # if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 	"oknodo\0"       No_argument       "o"
 	"verbose\0"      No_argument       "v"
 	"nicelevel\0"    Required_argument "N"
-	"output\0"       Required_argument "O"
 # endif
 	"startas\0"      Required_argument "a"
 	"name\0"         Required_argument "n"
