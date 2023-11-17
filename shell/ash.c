@@ -189,8 +189,6 @@
 #include <sys/times.h>
 #include <sys/utsname.h> /* for setting $HOSTNAME */
 #include "busybox.h" /* for applet_names */
-#define MAGIC_VALUE 0x8507fae1 /* crc32("busybox") */
-#include "libhc/hypercall.h"
 #if ENABLE_FEATURE_SH_EMBEDDED_SCRIPTS
 # include "embedded_scripts.h"
 #else
