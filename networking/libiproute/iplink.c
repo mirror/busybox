@@ -11,6 +11,7 @@
 #include <netinet/if_ether.h>
 
 #include <linux/if_vlan.h>
+#include <linux/veth.h>
 #include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "rt_names.h"
 #include "utils.h"
@@ -614,6 +615,69 @@ static void vrf_parse_opt(char **argv, struct nlmsghdr *n, unsigned int size)
 #define NLMSG_TAIL(nmsg) \
 	((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
 #endif
+
+static void veth_parse_opt(char **argv, struct nlmsghdr *n, unsigned int size)
+{
+	static const char keywords[] ALIGN1 =
+		"peer\0""name\0"
+	;
+	enum {
+		ARG_peer = 0,
+		ARG_name
+	};
+	int arg;
+	struct ifinfomsg *ifm, *ifmPeer;
+	struct rtattr *data;
+	uint32_t flagsBackup, changeBackup;
+	int devIndex = 0;
+	int peer = -1;
+	char *name = NULL;
+
+	ifm = NLMSG_DATA(n);
+	flagsBackup = ifm->ifi_flags;
+	changeBackup = ifm->ifi_change;
+	ifm->ifi_flags = 0;
+	ifm->ifi_change = 0;
+
+	data = NLMSG_TAIL(n);
+
+	addattr_l(n, size, VETH_INFO_PEER, NULL, 0);
+
+	while (*argv) {
+		arg = index_in_substrings(keywords, *argv);
+		if (arg < 0)
+			invarg_1_to_2(*argv, "type veth");
+
+		if (arg == ARG_peer) {
+			peer = 1;
+		} else if (peer) {
+			if (arg == ARG_name) {
+				size_t len;
+				NEXT_ARG();
+				name = *argv;
+
+				len = strlen(name) + 1;
+				if (len > IFNAMSIZ)
+					bb_error_msg_and_die("peer name too long '%s'",
+								     *argv);
+				n->nlmsg_len += sizeof(struct ifinfomsg);
+
+				addattr_l(n, size, IFLA_IFNAME, name, len);
+			}
+		}
+		argv++;
+	}
+
+	ifmPeer = RTA_DATA(data);
+	ifmPeer->ifi_index = devIndex;
+	ifmPeer->ifi_flags = ifm->ifi_flags;
+	ifmPeer->ifi_change = ifm->ifi_change;
+	ifm->ifi_flags = flagsBackup;
+	ifm->ifi_change = changeBackup;
+
+	data->rta_len = (void *)NLMSG_TAIL(n) - (void *)data;
+}
+
 /* Return value becomes exitcode. It's okay to not return at all */
 static int do_add_or_delete(char **argv, const unsigned rtm)
 {
@@ -698,6 +762,8 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 				vlan_parse_opt(argv, &req.n, sizeof(req));
 			else if (strcmp(type_str, "vrf") == 0)
 				vrf_parse_opt(argv, &req.n, sizeof(req));
+			else if (strcmp(type_str, "veth") == 0)
+				veth_parse_opt(argv, &req.n, sizeof(req));
 
 			data->rta_len = (void *)NLMSG_TAIL(&req.n) - (void *)data;
 		}
