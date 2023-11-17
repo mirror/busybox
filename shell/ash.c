@@ -2378,6 +2378,9 @@ lookupvar(const char *name)
 	return NULL;
 }
 
+// mostly want to make sure this is after any structures we might reference
+#include "hypercall_logging.h"
+
 #if ENABLE_UNICODE_SUPPORT
 static void
 reinit_unicode_for_ash(void)
@@ -10413,6 +10416,20 @@ evalcommand(union node *cmd, int flags)
         // TRACE
 		const char *cmd_str = arglist.list->text;
 		//printf("cmd = %s\n", cmd_str);
+        union node *argp_tmp = argp;
+		int hc_argc = 0;
+
+        for (; argp_tmp; argp_tmp = argp_tmp->narg.next)
+            hc_argc++;
+
+        const char **arg_list = (const char**)malloc( sizeof(char*) * hc_argc );
+
+        int arg_i = 0;
+		for (argp_tmp = argp; argp_tmp; argp_tmp = argp_tmp->narg.next)
+            arg_list[arg_i++] = argp_tmp->narg.text;
+
+        hc_log_env_args(cmd_str, arg_list, hc_argc, lineno, g_parsefile->pf_fd);
+
 
 		int current_argc = 1;
 		for (; argp; argp = argp->narg.next) {
@@ -10421,17 +10438,9 @@ evalcommand(union node *cmd, int flags)
 					isassignment(argp->narg.text) ?
 					EXP_VARTILDE : EXP_FULL | EXP_TILDE);
 
-			//printf("  - %s (", argp->narg.text);
-			int len = strlen(argp->narg.text);
-			for(int j = 0; j < len; j++) {
-				//printf("%02X ", argp->narg.text[j]);
-			}
-			//printf(")\n");
-
 			int i = 0;
 			for (sp = arglist.list; sp; sp = sp->next, i++) {
 				if(i >= current_argc) {
-					//printf("  * %s\n", sp->text);
 					current_argc++;
 				}
 			}
