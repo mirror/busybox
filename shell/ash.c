@@ -191,7 +191,6 @@
 #include "busybox.h" /* for applet_names */
 #define MAGIC_VALUE 0x8507fae1 /* crc32("busybox") */
 #include "libhc/hypercall.h"
-#include "hypercall_logging.h"
 #if ENABLE_FEATURE_SH_EMBEDDED_SCRIPTS
 # include "embedded_scripts.h"
 #else
