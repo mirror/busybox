@@ -12,7 +12,14 @@ mkdir -p $OUTDIR /tmp/include/libhc/
 wget "https://raw.githubusercontent.com/panda-re/libhc/main/hypercall.h" -O /tmp/include/libhc/hypercall.h
 
 for i in "${!TARGETNAMELIST[@]}"; do
-    make ARCH=${TARGETNAMELIST[i]} CROSS_COMPILE=${TARGETPREFIXLIST[i]}- CFLAGS="${TARGETFLAGSLIST[i]} -I/tmp/include"
+    if [[ "${TARGETPREFIXLIST[i]}" == "mips64eb-linux-musl" ]]
+    then
+        SKIP_STRIP=y
+    else
+        SKIP_STRIP=n
+    fi
+
+    make ARCH=${TARGETNAMELIST[i]} CROSS_COMPILE=${TARGETPREFIXLIST[i]}- CFLAGS="${TARGETFLAGSLIST[i]} -I/tmp/include" SKIP_STRIP="${SKIP_STRIP}"
 
     # copy the unstripped version if the stripped version doesn't exist
     mv busybox $OUTDIR/busybox.${TARGETPREFIXLIST[i]} \
