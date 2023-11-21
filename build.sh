@@ -7,10 +7,6 @@ TARGETPREFIXLIST=(x86_64-linux-gnu mipseb-linux-musl mipsel-linux-musl arm-linux
 TARGETNAMELIST=(  x86_64           mips              mips              arm                aarch64            mips64              mips64             )
 TARGETFLAGSLIST=( ""               -mips32r3         -mips32r3         ""                 ""                 -mips64r2           -mips64r2)
 
-mkdir -p $OUTDIR /tmp/include/libhc/
-
-wget "https://raw.githubusercontent.com/panda-re/libhc/main/hypercall.h" -O /tmp/include/libhc/hypercall.h
-
 for i in "${!TARGETNAMELIST[@]}"; do
     if [[ "${TARGETPREFIXLIST[i]}" == "mips64eb-linux-musl" ]]
     then
@@ -19,7 +15,9 @@ for i in "${!TARGETNAMELIST[@]}"; do
         SKIP_STRIP=n
     fi
 
-    make ARCH=${TARGETNAMELIST[i]} CROSS_COMPILE=${TARGETPREFIXLIST[i]}- CFLAGS="${TARGETFLAGSLIST[i]} -I/tmp/include" SKIP_STRIP="${SKIP_STRIP}"
+    SKIP_STRIP=y
+
+    make ARCH=${TARGETNAMELIST[i]} CROSS_COMPILE=${TARGETPREFIXLIST[i]}- CFLAGS="${TARGETFLAGSLIST[i]}" SKIP_STRIP="${SKIP_STRIP}"
 
     # copy the unstripped version if the stripped version doesn't exist
     mv busybox $OUTDIR/busybox.${TARGETPREFIXLIST[i]} \
