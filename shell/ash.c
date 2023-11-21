@@ -9392,11 +9392,11 @@ evaltree(union node *n, int flags)
 		goto setstatus;
 	}
 	case NIF:
+		status = evaltree(n->nif.test, EV_TESTED);
 		if(n->nif.test->type == NCMD) {
             // TRACE
-			//printf("if lineno = %i\n", n->nif.test->ncmd.linno);
+			hc_log_if_cond(&n->nif.test->ncmd, status);
 		}
-		status = evaltree(n->nif.test, EV_TESTED);
 		if (evalskip)
 			break;
 		if (!status) {
