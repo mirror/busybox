@@ -713,7 +713,10 @@ typedef struct { unsigned quot, rem; } bb_div_t;
 		ppu = ppubuf;
 		if (n != 6+6+8) {
 			/* Format PID PPID USER part into 6+6+8 chars:
-			 * shrink PID/PPID if possible, then truncate USER
+			 * shrink PID/PPID if possible, then truncate USER.
+			 * Tested on Linux 5.18.0:
+			 * sysctl kernel.pid_max=4194304 is the maximum allowed,
+			 * so PID and PPID are 7 chars wide at most.
 			 */
 			char *p, *pp;
 			if (*ppu == ' ') {
@@ -857,10 +860,14 @@ static void display_topmem_header(int scr_width, int *lines_rem_p)
 	(*lines_rem_p) -= 3;
 }
 
-static void ulltoa6_and_space(unsigned long long ul, char buf[6])
+/* see http://en.wikipedia.org/wiki/Tera */
+static void ulltoa5_and_space(unsigned long long ul, char buf[6])
 {
-	/* see http://en.wikipedia.org/wiki/Tera */
 	smart_ulltoa5(ul, buf, " mgtpezy")[0] = ' ';
+}
+static void ulltoa4_and_space(unsigned long long ul, char buf[5])
+{
+	smart_ulltoa4(ul, buf, " mgtpezy")[0] = ' ';
 }
 
 static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
@@ -887,16 +894,24 @@ static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
 	while (--lines_rem >= 0) {
 		/* PID VSZ VSZRW RSS (SHR) DIRTY (SHR) COMMAND */
 		int n = sprintf(line_buf, "%5u ", s->pid);
-		ulltoa6_and_space(s->vsz     , &line_buf[1*6]);
-		if (n > 7 || (n == 7 && line_buf[6] != ' '))
-			/* PID and VSZ are clumped together, truncate PID */
-			line_buf[5] = '.';
-		ulltoa6_and_space(s->vszrw   , &line_buf[2*6]);
-		ulltoa6_and_space(s->rss     , &line_buf[3*6]);
-		ulltoa6_and_space(s->rss_sh  , &line_buf[4*6]);
-		ulltoa6_and_space(s->dirty   , &line_buf[5*6]);
-		ulltoa6_and_space(s->dirty_sh, &line_buf[6*6]);
-		ulltoa6_and_space(s->stack   , &line_buf[7*6]);
+		if (n > 7) {
+			/* PID is 7 chars long (up to 4194304) */
+			ulltoa4_and_space(s->vsz  , &line_buf[8]);
+			ulltoa4_and_space(s->vszrw, &line_buf[8+5]);
+			/* the next field (RSS) starts at 8+10 = 3*6 */
+		} else {
+			if (n == 7) /* PID is 6 chars long */
+				ulltoa4_and_space(s->vsz, &line_buf[7]);
+				/* the next field (VSZRW) starts at 7+5 = 2*6 */
+			else /* PID is 5 chars or less */
+				ulltoa5_and_space(s->vsz, &line_buf[6]);
+			ulltoa5_and_space(s->vszrw, &line_buf[2*6]);
+		}
+		ulltoa5_and_space(s->rss     , &line_buf[3*6]);
+		ulltoa5_and_space(s->rss_sh  , &line_buf[4*6]);
+		ulltoa5_and_space(s->dirty   , &line_buf[5*6]);
+		ulltoa5_and_space(s->dirty_sh, &line_buf[6*6]);
+		ulltoa5_and_space(s->stack   , &line_buf[7*6]);
 		line_buf[8*6] = '\0';
 		if (scr_width > (int)MIN_WIDTH) {
 			read_cmdline(&line_buf[8*6], scr_width - MIN_WIDTH, s->pid, s->comm);
