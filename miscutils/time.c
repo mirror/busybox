@@ -111,6 +111,7 @@ static void printargv(char *const *argv)
 	} while (*++argv);
 }
 
+#ifdef UNUSED
 /* Return the number of kilobytes corresponding to a number of pages PAGES.
    (Actually, we use it to convert pages*ticks into kilobytes*ticks.)
 
@@ -136,6 +137,7 @@ static unsigned long ptok(const unsigned pagesize, const unsigned long pages)
 	return tmp / 1024;      /* then smaller.  */
 }
 #undef pagesize
+#endif /* UNUSED */
 
 /* summarize: Report on the system use of a command.
 
@@ -250,9 +252,13 @@ static void summarize(const char *fmt, char **command, resource_t *resp)
 				printargv(command);
 				break;
 			case 'D':	/* Average unshared data size.  */
+				/* (linux kernel sets ru_idrss/isrss/ixrss to 0,
+				 * docs say the value is in kbytes, so ptok() is wrong) */
 				printf("%lu",
-					(ptok(pagesize, (UL) resp->ru.ru_idrss) +
-					 ptok(pagesize, (UL) resp->ru.ru_isrss)) / cpu_ticks);
+					(/*ptok(pagesize,*/ (UL) resp->ru.ru_idrss +
+						(UL) resp->ru.ru_isrss
+					) / cpu_ticks
+				);
 				break;
 			case 'E': {	/* Elapsed real (wall clock) time.  */
 				unsigned seconds = resp->elapsed_ms / 1000;
@@ -275,13 +281,17 @@ static void summarize(const char *fmt, char **command, resource_t *resp)
 				printf("%lu", resp->ru.ru_inblock);
 				break;
 			case 'K':	/* Average mem usage == data+stack+text.  */
+				/* (linux kernel sets ru_idrss/isrss/ixrss to 0,
+				 * docs say the value is in kbytes, so ptok() is wrong) */
 				printf("%lu",
-					(ptok(pagesize, (UL) resp->ru.ru_idrss) +
-					 ptok(pagesize, (UL) resp->ru.ru_isrss) +
-					 ptok(pagesize, (UL) resp->ru.ru_ixrss)) / cpu_ticks);
+					(/*ptok(pagesize,*/ (UL) resp->ru.ru_idrss +
+						(UL) resp->ru.ru_isrss +
+						(UL) resp->ru.ru_ixrss
+					) / cpu_ticks
+				);
 				break;
 			case 'M':	/* Maximum resident set size.  */
-				printf("%lu", ptok(pagesize, (UL) resp->ru.ru_maxrss));
+				printf("%lu", (UL) resp->ru.ru_maxrss);
 				break;
 			case 'O':	/* Outputs.  */
 				printf("%lu", resp->ru.ru_oublock);
@@ -334,7 +344,7 @@ static void summarize(const char *fmt, char **command, resource_t *resp)
 				printf("%lu", resp->ru.ru_nswap);
 				break;
 			case 'X':	/* Average shared text size.  */
-				printf("%lu", ptok(pagesize, (UL) resp->ru.ru_ixrss) / cpu_ticks);
+				printf("%lu", /*ptok(pagesize,*/ (UL) resp->ru.ru_ixrss / cpu_ticks);
 				break;
 			case 'Z':	/* Page size.  */
 				printf("%u", pagesize);
@@ -351,7 +361,7 @@ static void summarize(const char *fmt, char **command, resource_t *resp)
 				printf("%lu", resp->ru.ru_nsignals);
 				break;
 			case 'p':	/* Average stack segment.  */
-				printf("%lu", ptok(pagesize, (UL) resp->ru.ru_isrss) / cpu_ticks);
+				printf("%lu", /*ptok(pagesize,*/ (UL) resp->ru.ru_isrss / cpu_ticks);
 				break;
 			case 'r':	/* Incoming socket messages received.  */
 				printf("%lu", resp->ru.ru_msgrcv);
@@ -360,7 +370,7 @@ static void summarize(const char *fmt, char **command, resource_t *resp)
 				printf("%lu", resp->ru.ru_msgsnd);
 				break;
 			case 't':	/* Average resident set size.  */
-				printf("%lu", ptok(pagesize, (UL) resp->ru.ru_idrss) / cpu_ticks);
+				printf("%lu", /*ptok(pagesize,*/ (UL) resp->ru.ru_idrss / cpu_ticks);
 				break;
 			case 'w':	/* Voluntary context switches.  */
 				printf("%lu", resp->ru.ru_nvcsw);
