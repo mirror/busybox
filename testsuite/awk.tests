@@ -592,6 +592,13 @@ testing 'awk gensub backslashes \\0' \
 \\0|\\0
 ' '' ''
 
+# References to empty (not provided in the input) fields in first versus subsequent lines
+testing 'awk references to empty fields' \
+	'awk '$sq'$2 != 0'$sq \
+	'a
+b
+' '' 'a\nb\n'
+
 # The "b" in "abc" should not match <b* pattern.
 # Currently we use REG_STARTEND ("This flag is a BSD extension, not present in POSIX")
 # to implement the code to handle this correctly, but if your libc has no REG_STARTEND,

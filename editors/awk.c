@@ -555,8 +555,9 @@ struct globals {
 	//we are reusing ahash as fdhash, via define (see later)
 	const char *g_progname;
 	int g_lineno;
-	int nfields;
-	unsigned maxfields;
+	int num_fields;             /* number of existing $N's */
+	unsigned num_alloc_fields;  /* current size of Fields[] */
+	/* NB: Fields[0] corresponds to $1, not to $0 */
 	var *Fields;
 	char *g_pos;
 	char g_saved_ch;
@@ -631,8 +632,8 @@ struct globals2 {
 // for fdhash in execution stage.
 #define g_progname   (G1.g_progname  )
 #define g_lineno     (G1.g_lineno    )
-#define nfields      (G1.nfields     )
-#define maxfields    (G1.maxfields   )
+#define num_fields   (G1.num_fields  )
+#define num_alloc_fields (G1.num_alloc_fields)
 #define Fields       (G1.Fields      )
 #define g_pos        (G1.g_pos       )
 #define g_saved_ch   (G1.g_saved_ch  )
@@ -1966,30 +1967,30 @@ static void fsrealloc(int size)
 {
 	int i, newsize;
 
-	if ((unsigned)size >= maxfields) {
+	if ((unsigned)size >= num_alloc_fields) {
 		/* Sanity cap, easier than catering for over/underflows */
 		if ((unsigned)size > 0xffffff)
 			bb_die_memory_exhausted();
 
-		i = maxfields;
-		maxfields = size + 16;
+		i = num_alloc_fields;
+		num_alloc_fields = size + 16;
 
-		newsize = maxfields * sizeof(Fields[0]);
+		newsize = num_alloc_fields * sizeof(Fields[0]);
 		debug_printf_eval("fsrealloc: xrealloc(%p, %u)\n", Fields, newsize);
 		Fields = xrealloc(Fields, newsize);
 		debug_printf_eval("fsrealloc: Fields=%p..%p\n", Fields, (char*)Fields + newsize - 1);
 		/* ^^^ did Fields[] move? debug aid for L.v getting "upstaged" by R.v in evaluate() */
 
-		for (; i < maxfields; i++) {
-			Fields[i].type = VF_SPECIAL;
+		for (; i < num_alloc_fields; i++) {
+			Fields[i].type = VF_SPECIAL | VF_DIRTY;
 			Fields[i].string = NULL;
 		}
 	}
-	/* if size < nfields, clear extra field variables */
-	for (i = size; i < nfields; i++) {
+	/* if size < num_fields, clear extra field variables */
+	for (i = size; i < num_fields; i++) {
 		clrvar(Fields + i);
 	}
-	nfields = size;
+	num_fields = size;
 }
 
 static int regexec1_nonempty(const regex_t *preg, const char *s, regmatch_t pmatch[])
@@ -2126,7 +2127,7 @@ static void split_f0(void)
 	/* set NF manually to avoid side effects */
 	clrvar(intvar[NF]);
 	intvar[NF]->type = VF_NUMBER | VF_SPECIAL;
-	intvar[NF]->number = nfields;
+	intvar[NF]->number = num_fields;
 #undef fstrings
 }
 
@@ -2976,7 +2977,7 @@ static var *evaluate(node *op, var *res)
 				syntax_error(EMSG_TOO_FEW_ARGS);
 			L.v = evaluate(op1, TMPVAR0);
 			/* Does L.v point to $n variable? */
-			if ((size_t)(L.v - Fields) < maxfields) {
+			if ((size_t)(L.v - Fields) < num_alloc_fields) {
 				/* yes, remember where Fields[] is */
 				old_Fields_ptr = Fields;
 			}
@@ -3517,7 +3518,7 @@ static var *evaluate(node *op, var *res)
 				res = intvar[F0];
 			} else {
 				split_f0();
-				if (i > nfields)
+				if (i > num_fields)
 					fsrealloc(i);
 				res = &Fields[i - 1];
 			}
