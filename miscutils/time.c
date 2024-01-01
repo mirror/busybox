@@ -226,28 +226,19 @@ static void summarize(const char *fmt, char **command, resource_t *resp)
 		}
 
 		switch (*fmt) {
-#ifdef NOT_NEEDED
-		/* Handle literal char */
-		/* Usually we optimize for size, but there is a limit
-		 * for everything. With this we do a lot of 1-byte writes */
-		default:
-			bb_putchar(*fmt);
-			break;
-#endif
-
 		case '%':
 			switch (*++fmt) {
-#ifdef NOT_NEEDED_YET
-		/* Our format strings do not have these */
-		/* and we do not take format str from user */
 			default:
-				bb_putchar('%');
+				/* Unknown %<char> is printed as "?<char>" */
+				bb_putchar('?');
+				if (!*fmt) {
+					/* Trailing -f '...%' prints "...?" but NOT newline */
+					goto ret;
+				}
 				/*FALLTHROUGH*/
 			case '%':
-				if (!*fmt) goto ret;
 				bb_putchar(*fmt);
 				break;
-#endif
 			case 'C':	/* The command that got timed.  */
 				printargv(command);
 				break;
@@ -381,14 +372,21 @@ static void summarize(const char *fmt, char **command, resource_t *resp)
 			}
 			break;
 
-#ifdef NOT_NEEDED_YET
-		case '\\':		/* Format escape.  */
+		default: /* *fmt is '\': format escape */
 			switch (*++fmt) {
 			default:
+				/* Unknown \<char> is printed as "?\<char>" */
+				bb_putchar('?');
 				bb_putchar('\\');
+				if (!*fmt) {
+					/* Trailing -f '...\': GNU time 1.9 prints
+					 * "...?\COMMAND" (it's probably a bug).
+					 */
+					puts(command[0]);
+					goto ret;
+				}
 				/*FALLTHROUGH*/
 			case '\\':
-				if (!*fmt) goto ret;
 				bb_putchar(*fmt);
 				break;
 			case 't':
@@ -399,12 +397,11 @@ static void summarize(const char *fmt, char **command, resource_t *resp)
 				break;
 			}
 			break;
-#endif
 		}
 		++fmt;
 	}
- /* ret: */
 	bb_putchar('\n');
+ ret: ;
 }
 
 /* Run command CMD and return statistics on it.
@@ -438,7 +435,7 @@ int time_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int time_main(int argc UNUSED_PARAM, char **argv)
 {
 	resource_t res;
-	/* $TIME has lowest prio (-v,-p,-f FMT overrride it) */
+	/* $TIME has lowest prio (-v,-p,-f FMT override it) */
 	const char *output_format = getenv("TIME") ? : default_format;
 	char *output_filename;
 	int output_fd;
