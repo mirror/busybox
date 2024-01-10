@@ -83,7 +83,7 @@ int uptime_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		return EXIT_SUCCESS;
 	}
 
-	printf(" %02u:%02u:%02u up ",
+	printf("%02u:%02u:%02u up ",
 			current_time->tm_hour, current_time->tm_min, current_time->tm_sec
 	);
 	updays = (unsigned) info.uptime / (unsigned)(60*60*24);
