@@ -3006,7 +3006,7 @@ static var *evaluate(node *op, var *res)
 			if (old_Fields_ptr) {
 				//if (old_Fields_ptr != Fields)
 				//	debug_printf_eval("L.v moved\n");
-				L.v += Fields - old_Fields_ptr;
+				L.v = Fields + (L.v - old_Fields_ptr);
 			}
 			if (opinfo & OF_STR2) {
 				R.s = getvar_s(R.v);
