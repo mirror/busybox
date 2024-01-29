@@ -190,7 +190,7 @@ static void log5(const char *msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
-	crondlog(4, msg, va);
+	crondlog(5, msg, va);
 	va_end(va);
 }
 
