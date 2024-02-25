@@ -5497,6 +5497,15 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			o_free_and_set_NULL(&ctx.word);
 			done_pipe(&ctx, PIPE_SEQ);
+
+			/* Do we sit inside of any if's, loops or case's? */
+			if (HAS_KEYWORDS
+			IF_HAS_KEYWORDS(&& (ctx.ctx_res_w != RES_NONE || ctx.old_flag != 0))
+			) {
+				syntax_error_unterm_str("compound statement");
+				goto parse_error_exitcode1;
+			}
+
 			pi = ctx.list_head;
 			/* If we got nothing... */
 			/* (this makes bare "&" cmd a no-op.
@@ -5519,7 +5528,7 @@ static struct pipe *parse_stream(char **pstring,
 			//	*heredoc_cnt_ptr = heredoc_cnt;
 			debug_leave();
 			debug_printf_heredoc("parse_stream return heredoc_cnt:%d\n", heredoc_cnt);
-			debug_printf_parse("parse_stream return %p\n", pi);
+			debug_printf_parse("parse_stream return %p: EOF\n", pi);
 			return pi;
 		}
 
