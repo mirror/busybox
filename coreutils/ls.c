@@ -526,10 +526,10 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 #if ENABLE_FEATURE_LS_USERNAME
 		else {
 			if (opt & OPT_g) {
-				column += printf("%-8.8s ",
+				column += printf("%-8s ",
 					get_cached_groupname(dn->dn_gid));
 			} else {
-				column += printf("%-8.8s %-8.8s ",
+				column += printf("%-8s %-8s ",
 					get_cached_username(dn->dn_uid),
 					get_cached_groupname(dn->dn_gid));
 			}
