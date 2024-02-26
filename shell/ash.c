@@ -7073,6 +7073,11 @@ subevalvar(char *start, char *str, int strloc,
 				repl = NULL;
 				break;
 			}
+			/* Skip over quoted 'str'. Example: ${var/'/'} - second / is not a separator */
+			if ((unsigned char)*repl == CTLQUOTEMARK) {
+				while ((unsigned char)*++repl != CTLQUOTEMARK)
+					continue;
+			}
 			if (*repl == '/') {
 				*repl = '\0';
 				break;
