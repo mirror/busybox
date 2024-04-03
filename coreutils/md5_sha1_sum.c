@@ -320,7 +320,7 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 
 				hash_value = hash_file(in_buf, filename_ptr, sha3_width);
 
-				if (hash_value && (strcmp((char*)hash_value, line) == 0)) {
+				if (hash_value && (strcasecmp((char*)hash_value, line) == 0)) {
 					if (!(flags & FLAG_SILENT))
 						printf("%s: OK\n", filename_ptr);
 				} else {
