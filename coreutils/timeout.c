@@ -47,11 +47,16 @@
 
 #include "libbb.h"
 
-static NOINLINE int timeout_wait(int timeout, pid_t pid)
+static NOINLINE int timeout_wait(duration_t timeout, pid_t pid)
 {
 	/* Just sleep(HUGE_NUM); kill(parent) may kill wrong process! */
 	while (1) {
-		sleep1();
+#if ENABLE_FLOAT_DURATION
+		if (timeout < 1)
+			sleep_for_duration(timeout);
+		else
+#endif
+			sleep1();
 		if (--timeout <= 0)
 			break;
 		if (kill(pid, 0)) {
@@ -68,8 +73,8 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 	int signo;
 	int status;
 	int parent = 0;
-	int timeout;
-	int kill_timeout;
+	duration_t timeout;
+	duration_t kill_timeout;
 	pid_t pid;
 #if !BB_MMU
 	char *sv1, *sv2;
