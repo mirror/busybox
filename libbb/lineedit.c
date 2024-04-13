@@ -345,7 +345,7 @@ static unsigned save_string(char *dst, unsigned maxsize)
 		return i;
 	}
 }
-/* I thought just fputwc(c, stdout) would work. But no... */
+/* I thought just fputwc(c, stderr) would work. But no... */
 static void BB_PUTCHAR(wchar_t c)
 {
 	if (unicode_status == UNICODE_ON) {
@@ -354,11 +354,11 @@ static void BB_PUTCHAR(wchar_t c)
 		ssize_t len = wcrtomb(buf, c, &mbst);
 		if (len > 0) {
 			buf[len] = '\0';
-			fputs_stdout(buf);
+			fputs(buf, stderr);
 		}
 	} else {
 		/* In this case, c is always one byte */
-		putchar(c);
+		bb_putchar_stderr(c);
 	}
 }
 # if ENABLE_UNICODE_COMBINING_WCHARS || ENABLE_UNICODE_WIDE_WCHARS
@@ -404,7 +404,7 @@ static void save_string(char *dst, unsigned maxsize)
 	safe_strncpy(dst, command_ps, maxsize);
 }
 # endif
-# define BB_PUTCHAR(c) bb_putchar(c)
+# define BB_PUTCHAR(c) bb_putchar_stderr(c)
 /* Should never be called: */
 int adjust_width_and_validate_wc(unsigned *width_adj, int wc);
 #endif
@@ -463,7 +463,7 @@ static void put_cur_glyph_and_inc_cursor(void)
 		if (c == BB_NUL)
 			c = ' ';
 		BB_PUTCHAR(c);
-		bb_putchar('\b');
+		bb_putchar_stderr('\b');
 #endif
 		cmdedit_y++;
 		if (!ENABLE_UNICODE_WIDE_WCHARS || ofs_to_right == 0) {
@@ -489,12 +489,12 @@ static void goto_new_line(void)
 	put_till_end_and_adv_cursor();
 	/* "cursor == 0" is only if prompt is "" and user input is empty */
 	if (cursor == 0 || cmdedit_x != 0)
-		bb_putchar('\n');
+		bb_putchar_stderr('\n');
 }
 
 static void beep(void)
 {
-	bb_putchar('\007');
+	bb_putchar_stderr('\007');
 }
 
 /* Full or last/sole prompt line, reset edit cursor, calculate terminal cursor.
@@ -502,7 +502,10 @@ static void beep(void)
  */
 static void put_prompt_custom(bool is_full)
 {
-	fputs_stdout((is_full ? cmdedit_prompt : prompt_last_line));
+	/* https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
+	 * says that shells must write $PSn to stderr, not stdout.
+	 */
+	fputs((is_full ? cmdedit_prompt : prompt_last_line), stderr);
 	cursor = 0;
 	cmdedit_y = cmdedit_prmt_len / cmdedit_termw; /* new quasireal y */
 	cmdedit_x = cmdedit_prmt_len % cmdedit_termw;
@@ -539,15 +542,15 @@ static void input_backward(unsigned num)
 			/* This is longer by 5 bytes on x86.
 			 * Also gets miscompiled for ARM users
 			 * (busybox.net/bugs/view.php?id=2274).
-			 * printf(("\b\b\b\b" + 4) - num);
+			 * fprintf(("\b\b\b\b" + 4) - num, stderr);
 			 * return;
 			 */
 			do {
-				bb_putchar('\b');
+				bb_putchar_stderr('\b');
 			} while (--num);
 			return;
 		}
-		printf(ESC"[%uD", num);
+		fprintf(stderr, ESC"[%uD", num);
 		return;
 	}
 
@@ -572,7 +575,7 @@ static void input_backward(unsigned num)
 		 */
 		unsigned sv_cursor;
 		/* go to 1st column; go up to first line */
-		printf("\r" ESC"[%uA", cmdedit_y);
+		fprintf(stderr, "\r" ESC"[%uA", cmdedit_y);
 		cmdedit_y = 0;
 		sv_cursor = cursor;
 		put_prompt_last_line(); /* sets cursor to 0 */
@@ -587,12 +590,12 @@ static void input_backward(unsigned num)
 		cmdedit_x = (cmdedit_termw * cmdedit_y - num) % cmdedit_termw;
 		cmdedit_y -= lines_up;
 		/* go to 1st column; go up */
-		printf("\r" ESC"[%uA", lines_up);
+		fprintf(stderr, "\r" ESC"[%uA", lines_up);
 		/* go to correct column.
 		 * xterm, konsole, Linux VT interpret 0 as 1 below! wow.
 		 * need to *make sure* we skip it if cmdedit_x == 0 */
 		if (cmdedit_x)
-			printf(ESC"[%uC", cmdedit_x);
+			fprintf(stderr, ESC"[%uC", cmdedit_x);
 	}
 }
 
@@ -600,11 +603,11 @@ static void input_backward(unsigned num)
 static void draw_custom(int y, int back_cursor, bool is_full)
 {
 	if (y > 0) /* up y lines */
-		printf(ESC"[%uA", y);
-	bb_putchar('\r');
+		fprintf(stderr, ESC"[%uA", y);
+	bb_putchar_stderr('\r');
 	put_prompt_custom(is_full);
 	put_till_end_and_adv_cursor();
-	printf(SEQ_CLEAR_TILL_END_OF_SCREEN);
+	fputs(SEQ_CLEAR_TILL_END_OF_SCREEN, stderr);
 	input_backward(back_cursor);
 }
 
@@ -649,7 +652,7 @@ static void input_delete(int save)
 	command_len--;
 	put_till_end_and_adv_cursor();
 	/* Last char is still visible, erase it (and more) */
-	printf(SEQ_CLEAR_TILL_END_OF_SCREEN);
+	fputs(SEQ_CLEAR_TILL_END_OF_SCREEN, stderr);
 	input_backward(cursor - j);     /* back to old pos cursor */
 }
 
@@ -984,8 +987,8 @@ static void remove_chunk(int16_t *int_buf, int beg, int end)
 	if (dbg_bmp) {
 		int i;
 		for (i = 0; int_buf[i]; i++)
-			bb_putchar((unsigned char)int_buf[i]);
-		bb_putchar('\n');
+			bb_putchar_stderr((unsigned char)int_buf[i]);
+		bb_putchar_stderr('\n');
 	}
 }
 /* Caller ensures that match_buf points to a malloced buffer
@@ -1162,7 +1165,7 @@ static void showfiles(void)
 		int nc;
 
 		for (nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
-			printf("%s%-*s", matches[n],
+			fprintf(stderr, "%s%-*s", matches[n],
 				(int)(column_width - unicode_strwidth(matches[n])), ""
 			);
 		}
@@ -1460,7 +1463,7 @@ void FAST_FUNC show_history(const line_input_t *st)
 	if (!st)
 		return;
 	for (i = 0; i < st->cnt_history; i++)
-		printf("%4d %s\n", i, st->history[i]);
+		fprintf(stderr, "%4d %s\n", i, st->history[i]);
 }
 
 # if ENABLE_FEATURE_EDITING_SAVEHISTORY
@@ -1900,7 +1903,7 @@ static void ask_terminal(void)
 	pfd.events = POLLIN;
 	if (safe_poll(&pfd, 1, 0) == 0) {
 		S.sent_ESC_br6n = 1;
-		fputs_stdout(ESC"[6n");
+		fputs(ESC"[6n", stderr);
 		fflush_all(); /* make terminal see it ASAP! */
 	}
 }
@@ -2639,13 +2642,13 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 			/* Control-k -- clear to end of line */
 			command_ps[cursor] = BB_NUL;
 			command_len = cursor;
-			printf(SEQ_CLEAR_TILL_END_OF_SCREEN);
+			fputs(SEQ_CLEAR_TILL_END_OF_SCREEN, stderr);
 			break;
 		case CTRL('L'):
 		vi_case(CTRL('L')|VI_CMDMODE_BIT:)
 			/* Control-l -- clear screen */
 			/* cursor to top,left; clear to the end of screen */
-			printf(ESC"[H" ESC"[J");
+			fputs(ESC"[H" ESC"[J", stderr);
 			draw_full(command_len - cursor);
 			break;
 #if MAX_HISTORY > 0
@@ -2832,8 +2835,8 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 				beep();
 			} else {
 				command_ps[cursor] = ic;
-				bb_putchar(ic);
-				bb_putchar('\b');
+				bb_putchar_stderr(ic);
+				bb_putchar_stderr('\b');
 			}
 			break;
 		case '\x1b': /* ESC */
@@ -3027,7 +3030,10 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 #undef read_line_input
 int FAST_FUNC read_line_input(const char* prompt, char* command, int maxsize)
 {
-	fputs_stdout(prompt);
+	/* https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
+	 * says that shells must write $PSn to stderr, not stdout.
+	 */
+	fputs(prompt, stderr);
 	fflush_all();
 	if (!fgets(command, maxsize, stdin))
 		return -1;
