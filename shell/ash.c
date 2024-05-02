@@ -10934,11 +10934,6 @@ preadbuffer(void)
 	char *q;
 	int more;
 
-	if (unlikely(g_parsefile->strpush)) {
-		popstring();
-		return __pgetc();
-	}
-
 	if (g_parsefile->buf == NULL) {
 		pgetc_debug("preadbuffer PEOF1");
 		return PEOF;
@@ -11053,8 +11048,13 @@ static int __pgetc(void)
 
 	if (--g_parsefile->left_in_line >= 0)
 		c = (unsigned char)*g_parsefile->next_to_pgetc++;
-	else
+	else {
+		if (unlikely(g_parsefile->strpush)) {
+			popstring();
+			return __pgetc();
+		}
 		c = preadbuffer();
+	}
 
 	g_parsefile->lastc[1] = g_parsefile->lastc[0];
 	g_parsefile->lastc[0] = c;
