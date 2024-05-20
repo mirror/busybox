@@ -2981,19 +2981,14 @@ static var *evaluate(node *op, var *res)
 				/* yes, remember where Fields[] is */
 				old_Fields_ptr = Fields;
 			}
-			if (opinfo & OF_STR1) {
-				L.s = getvar_s(L.v);
-				debug_printf_eval("L.s:'%s'\n", L.s);
-			}
 			if (opinfo & OF_NUM1) {
 				L_d = getvar_i(L.v);
 				debug_printf_eval("L_d:%f\n", L_d);
 			}
 		}
-		/* NB: Must get string/numeric values of L (done above)
-		 * _before_ evaluate()'ing R.v: if both L and R are $NNNs,
-		 * and right one is large, then L.v points to Fields[NNN1],
-		 * second evaluate() reallocates and moves (!) Fields[],
+		/* NB: if both L and R are $NNNs, and right one is large,
+		 * then at this pint L.v points to Fields[NNN1], second
+		 * evaluate() below reallocates and moves (!) Fields[],
 		 * R.v points to Fields[NNN2] but L.v now points to freed mem!
 		 * (Seen trying to evaluate "$444 $44444")
 		 */
@@ -3011,6 +3006,16 @@ static var *evaluate(node *op, var *res)
 			if (opinfo & OF_STR2) {
 				R.s = getvar_s(R.v);
 				debug_printf_eval("R.s:'%s'\n", R.s);
+			}
+		}
+		/* Get L.s _after_ R.v is evaluated: it may have realloc'd L.v
+		 * so we must get the string after "old_Fields_ptr" correction
+		 * above. Testcase: x = (v = "abc", gsub("b", "X", v));
+		 */
+		if (opinfo & OF_RES1) {
+			if (opinfo & OF_STR1) {
+				L.s = getvar_s(L.v);
+				debug_printf_eval("L.s:'%s'\n", L.s);
 			}
 		}
 
