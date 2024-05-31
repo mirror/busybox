@@ -399,7 +399,7 @@ uint64_t bb_bswap_64(uint64_t x) FAST_FUNC;
 
 unsigned FAST_FUNC bb_popcnt_32(uint32_t m);
 #if ULONG_MAX > 0xffffffff
-unsigned FAST_FUNC bb_popcnt_long(unsigned_long m);
+unsigned FAST_FUNC bb_popcnt_long(unsigned long m);
 #else
 #define bb_popcnt_long(m) bb_popcnt_32(m)
 #endif
