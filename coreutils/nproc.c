@@ -56,13 +56,10 @@ int nproc_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		unsigned long *mask = get_malloc_cpu_affinity(0, &sz);
 		sz /= sizeof(long);
 		for (i = 0; i < sz; i++) {
-			unsigned long m = mask[i];
-			while (m) {
-				if (m & 1)
-					count++;
-				m >>= 1;
-			}
+			if (mask[i] != 0) /* most mask[i] are usually 0 */
+				count += bb_popcnt_long(mask[i]);
 		}
+		IF_FEATURE_CLEAN_UP(free(mask);)
 	}
 
 	IF_LONG_OPTS(count -= ignore;)

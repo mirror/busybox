@@ -306,7 +306,6 @@ static int count_netmask_bits(const char *dotted_quad)
 //	d = ~d; /* 11110000 -> 00001111 */
 
 	/* Shorter version */
-	int result;
 	struct in_addr ip;
 	unsigned d;
 
@@ -316,12 +315,7 @@ static int count_netmask_bits(const char *dotted_quad)
 	d = ~d; /* 11110000 -> 00001111 */
 	if (d & (d+1)) /* check that it is in 00001111 form */
 		return -1; /* no it is not */
-	result = 32;
-	while (d) {
-		d >>= 1;
-		result--;
-	}
-	return result;
+	return bb_popcnt_32(~d);
 }
 # endif
 

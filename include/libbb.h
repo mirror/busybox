@@ -397,6 +397,13 @@ extern int *BB_GLOBAL_CONST bb_errno;
 uint64_t bb_bswap_64(uint64_t x) FAST_FUNC;
 #endif
 
+unsigned FAST_FUNC bb_popcnt_32(uint32_t m);
+#if ULONG_MAX > 0xffffffff
+unsigned FAST_FUNC bb_popcnt_long(unsigned_long m);
+#else
+#define bb_popcnt_long(m) bb_popcnt_32(m)
+#endif
+
 unsigned long FAST_FUNC isqrt(unsigned long long N);
 
 unsigned long long monotonic_ns(void) FAST_FUNC;

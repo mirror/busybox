@@ -72,6 +72,7 @@ lib-y += perror_nomsg.o
 lib-y += perror_nomsg_and_die.o
 lib-y += pidfile.o
 lib-y += platform.o
+lib-y += popcnt.o
 lib-y += printable.o
 lib-y += printable_string.o
 lib-y += print_flags.o

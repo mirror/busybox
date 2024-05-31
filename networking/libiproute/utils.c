@@ -175,14 +175,13 @@ static void get_prefix_1(inet_prefix *dst, char *arg, int family)
 			if (netmask_pfx.family == AF_INET) {
 				/* fill in prefix length of dotted quad */
 				uint32_t mask = ntohl(netmask_pfx.data[0]);
-				uint32_t host = ~mask;
+				uint32_t inv = ~mask;
 
-				/* a valid netmask must be 2^n - 1 */
-				if (host & (host + 1))
-					goto bad;
+				/* a valid netmask must be 11..10..00 */
+				if (inv & (inv + 1))
+					goto bad; /* inv is not 00..01..11 */
 
-				for (plen = 0; mask; mask <<= 1)
-					++plen;
+				plen = bb_popcnt_32(mask);
 				if (plen > dst->bitlen)
 					goto bad;
 				/* dst->flags |= PREFIXLEN_SPECIFIED; */

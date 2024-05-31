@@ -71,25 +71,6 @@ static unsigned long get_netmask(unsigned long ipaddr)
 		return 0;
 }
 
-#if ENABLE_FEATURE_IPCALC_FANCY
-static int get_prefix(unsigned long netmask)
-{
-	unsigned long msk = 0x80000000;
-	int ret = 0;
-
-	netmask = htonl(netmask);
-	while (msk) {
-		if (netmask & msk)
-			ret++;
-		msk >>= 1;
-	}
-	return ret;
-}
-#else
-int get_prefix(unsigned long netmask);
-#endif
-
-
 #define NETMASK   0x01
 #define BROADCAST 0x02
 #define NETWORK   0x04
@@ -210,7 +191,7 @@ int ipcalc_main(int argc UNUSED_PARAM, char **argv)
 
 	if (ENABLE_FEATURE_IPCALC_FANCY) {
 		if (opt & NETPREFIX) {
-			printf("PREFIX=%i\n", get_prefix(netmask));
+			printf("PREFIX=%i\n", bb_popcnt_32(netmask));
 		}
 
 		if (opt & HOSTNAME) {
