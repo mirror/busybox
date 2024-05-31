@@ -2015,6 +2015,8 @@ int read_line_input(const char* prompt, char* command, int maxsize) FAST_FUNC;
 	read_line_input(prompt, command, maxsize)
 #endif
 
+unsigned long* FAST_FUNC get_malloc_cpu_affinity(int pid, unsigned *sz);
+
 #ifndef COMM_LEN
 # ifdef TASK_COMM_LEN
 enum { COMM_LEN = TASK_COMM_LEN };

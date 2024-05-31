@@ -56,7 +56,6 @@
  * -a/--all-tasks (affect all threads)
  *	needs to get TIDs from /proc/PID/task/ and use _them_ as "pid" in sched_setaffinity(pid)
  */
-
 #include <sched.h>
 #include "libbb.h"
 
@@ -95,27 +94,6 @@ static unsigned long from_mask(ul *mask, unsigned sz_in_bytes UNUSED_PARAM)
 	return *mask;
 }
 #endif
-
-static unsigned long *get_aff(int pid, unsigned *sz)
-{
-	int r;
-	unsigned long *mask = NULL;
-	unsigned sz_in_bytes = *sz;
-
-	for (;;) {
-		mask = xrealloc(mask, sz_in_bytes);
-		r = sched_getaffinity(pid, sz_in_bytes, (void*)mask);
-		if (r == 0)
-			break;
-		sz_in_bytes *= 2;
-		if (errno == EINVAL && (int)sz_in_bytes > 0)
-			continue;
-		bb_perror_msg_and_die("can't %cet pid %d's affinity", 'g', pid);
-	}
-	//bb_error_msg("get mask[0]:%lx sz_in_bytes:%d", mask[0], sz_in_bytes);
-	*sz = sz_in_bytes;
-	return mask;
-}
 
 #if ENABLE_FEATURE_TASKSET_CPULIST
 /*
@@ -222,7 +200,7 @@ static int process_pid_str(const char *pid_str, unsigned opts, char *aff)
 	mask_size_in_bytes = SZOF_UL;
 	current_new = "current";
  print_aff:
-	mask = get_aff(pid, &mask_size_in_bytes);
+	mask = get_malloc_cpu_affinity(pid, &mask_size_in_bytes);
 	if (opts & OPT_p) {
 #if ENABLE_FEATURE_TASKSET_CPULIST
 		if (opts & OPT_c) {
