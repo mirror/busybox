@@ -604,7 +604,7 @@ static NOINLINE int send_d6_info_request(void)
 	return d6_mcast_from_client_data_ifindex(&packet, opt_ptr);
 }
 
-/* Milticast a DHCPv6 Solicit packet to the network, with an optionally requested IP.
+/* Multicast a DHCPv6 Solicit packet to the network, with an optionally requested IP.
  *
  * RFC 3315 17.1.1. Creation of Solicit Messages
  *

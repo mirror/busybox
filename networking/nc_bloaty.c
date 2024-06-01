@@ -31,7 +31,7 @@
  * Much of author's comments are still retained in the code.
  *
  * Functionality removed (rationale):
- * - miltiple-port ranges, randomized port scanning (use nmap)
+ * - multiple-port ranges, randomized port scanning (use nmap)
  * - telnet support (use telnet)
  * - source routing
  * - multiple DNS checks
