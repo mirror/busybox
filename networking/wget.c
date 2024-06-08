@@ -1602,7 +1602,7 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 			bit = 1;
 			words = wget_user_headers;
 			while (*words) {
-				if (strstr(hdr, words) == hdr) {
+				if (strcasestr(hdr, words) == hdr) {
 					G.user_headers |= bit;
 					break;
 				}
