@@ -532,6 +532,7 @@ static const char vValues[] ALIGN1 =
 	"%.6g\0"    "%.6g\0"    " \0"       " \0"
 	"\n\0"      "\n\0"      "\0"        "\0"
 	"\034\0"    "\0"        "\377";
+#define str_percent_dot_6g vValues
 
 /* hash size may grow to these values */
 #define FIRST_PRIME 61
@@ -922,7 +923,7 @@ static double my_strtod_or_hexoct(char **pp)
 
 /* -------- working with variables (set/get/copy/etc) -------- */
 
-static void fmt_num(const char *format, double n)
+static const char *fmt_num(const char *format, double n)
 {
 	if (n == (long long)n) {
 		snprintf(g_buf, MAXVARFMT, "%lld", (long long)n);
@@ -939,6 +940,7 @@ static void fmt_num(const char *format, double n)
 			syntax_error(EMSG_INV_FMT);
 		}
 	}
+	return g_buf;
 }
 
 static xhash *iamarray(var *a)
@@ -1025,8 +1027,15 @@ static const char *getvar_s(var *v)
 {
 	/* if v is numeric and has no cached string, convert it to string */
 	if ((v->type & (VF_NUMBER | VF_CACHED)) == VF_NUMBER) {
-		fmt_num(getvar_s(intvar[CONVFMT]), v->number);
-		v->string = xstrdup(g_buf);
+		const char *convfmt = str_percent_dot_6g; /* "%.6g" */
+		/* Get CONVFMT, unless we already recursed on it:
+		 * someone might try to cause stack overflow by setting
+		 * CONVFMT=9 (a numeric, not string, value)
+		 */
+		if (v != intvar[CONVFMT])
+			convfmt = getvar_s(intvar[CONVFMT]);
+		/* Convert the value */
+		v->string = xstrdup(fmt_num(convfmt, v->number));
 		v->type |= VF_CACHED;
 	}
 	return (v->string == NULL) ? "" : v->string;
@@ -3097,9 +3106,8 @@ static var *evaluate(node *op, var *res)
 					for (;;) {
 						var *v = evaluate(nextarg(&op1), TMPVAR0);
 						if (v->type & VF_NUMBER) {
-							fmt_num(getvar_s(intvar[OFMT]),
-									getvar_i(v));
-							fputs(g_buf, F);
+							fputs(fmt_num(getvar_s(intvar[OFMT]), getvar_i(v)),
+								F);
 						} else {
 							fputs(getvar_s(v), F);
 						}
