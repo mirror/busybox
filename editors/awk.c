@@ -433,36 +433,47 @@ static const char tokenlist[] ALIGN1 =
 	;
 
 static const uint32_t tokeninfo[] ALIGN4 = {
-	0,
-	0,
+	0, /* ( */
+	0, /* ) */
 #define TI_REGEXP OC_REGEXP
-	TI_REGEXP,
+	TI_REGEXP, /* / */
+	/* >> > | */
 	xS|'a',                  xS|'w',                  xS|'|',
+	/* ++ -- */
 	OC_UNARY|xV|P(9)|'p',    OC_UNARY|xV|P(9)|'m',
 #define TI_PREINC (OC_UNARY|xV|P(9)|'P')
 #define TI_PREDEC (OC_UNARY|xV|P(9)|'M')
+	/* ++ -- $ */
 	TI_PREINC,               TI_PREDEC,               OC_FIELD|xV|P(5),
-	OC_COMPARE|VV|P(39)|5,   OC_MOVE|VV|P(38),        OC_REPLACE|NV|P(38)|'+', OC_REPLACE|NV|P(38)|'-',
-	OC_REPLACE|NV|P(38)|'*', OC_REPLACE|NV|P(38)|'/', OC_REPLACE|NV|P(38)|'%', OC_REPLACE|NV|P(38)|'&',
-	OC_BINARY|NV|P(29)|'+',  OC_BINARY|NV|P(29)|'-',  OC_REPLACE|NV|P(38)|'&', OC_BINARY|NV|P(15)|'&',
+	/* == = += -= */
+	OC_COMPARE|VV|P(39)|5,   OC_MOVE|VV|P(74),        OC_REPLACE|NV|P(74)|'+', OC_REPLACE|NV|P(74)|'-',
+	/* *= /= %= ^= (^ is exponentiation, NOT xor) */
+	OC_REPLACE|NV|P(74)|'*', OC_REPLACE|NV|P(74)|'/', OC_REPLACE|NV|P(74)|'%', OC_REPLACE|NV|P(74)|'&',
+	/* + - **= ** */
+	OC_BINARY|NV|P(29)|'+',  OC_BINARY|NV|P(29)|'-',  OC_REPLACE|NV|P(74)|'&', OC_BINARY|NV|P(15)|'&',
+	/* / % ^ * */
 	OC_BINARY|NV|P(25)|'/',  OC_BINARY|NV|P(25)|'%',  OC_BINARY|NV|P(15)|'&',  OC_BINARY|NV|P(25)|'*',
+	/* != >= <= > */
 	OC_COMPARE|VV|P(39)|4,   OC_COMPARE|VV|P(39)|3,   OC_COMPARE|VV|P(39)|0,   OC_COMPARE|VV|P(39)|1,
 #define TI_LESS     (OC_COMPARE|VV|P(39)|2)
+	/* < !~ ~ && */
 	TI_LESS,                 OC_MATCH|Sx|P(45)|'!',   OC_MATCH|Sx|P(45)|'~',   OC_LAND|Vx|P(55),
 #define TI_TERNARY  (OC_TERNARY|Vx|P(64)|'?')
 #define TI_COLON    (OC_COLON|xx|P(67)|':')
+	/* || ? : */
 	OC_LOR|Vx|P(59),         TI_TERNARY,              TI_COLON,
 #define TI_IN       (OC_IN|SV|P(49))
 	TI_IN,
 #define TI_COMMA    (OC_COMMA|SS|P(80))
 	TI_COMMA,
 #define TI_PGETLINE (OC_PGETLINE|SV|P(37))
-	TI_PGETLINE,
+	TI_PGETLINE, /* | */
+	/* + - ! */
 	OC_UNARY|xV|P(19)|'+',   OC_UNARY|xV|P(19)|'-',   OC_UNARY|xV|P(19)|'!',
 	0, /* ] */
-	0,
-	0,
-	0,
+	0, /* { */
+	0, /* } */
+	0, /* ; */
 	0, /* \n */
 	ST_IF,        ST_DO,        ST_FOR,      OC_BREAK,
 	OC_CONTINUE,  OC_DELETE|Rx, OC_PRINT,
@@ -510,6 +521,38 @@ static const uint32_t tokeninfo[] ALIGN4 = {
 #undef OC_B
 #undef OC_F
 };
+
+/* gawk 5.1.1 manpage says the precedence of comparisons and assignments are as follows:
+ *  ......
+ *  < > <= >= == !=
+ *  ~ !~
+ *  in
+ *  &&
+ *  ||
+ *  ?:
+ *  = += -= *= /= %= ^=
+ * But there are some abnormalities:
+ * awk 'BEGIN { print v=3==3,v }' - ok:
+ * 1 1
+ * awk 'BEGIN { print 3==v=3,v }' - wrong, (3==v)=3 is not a valid assignment:
+ * 1 3
+ * This also unexpectedly works: echo "foo" | awk '$1==$1="foo" {print $1}'
+ * More than one comparison op fails to parse:
+ * awk 'BEGIN { print 3==3==3 }' - syntax error (wrong, should work)
+ * awk 'BEGIN { print 3==3!=3 }' - syntax error (wrong, should work)
+ *
+ * The ternary a?b:c works as follows in gawk: "a" can't be assignment
+ * ("= has lower precedence than ?") but inside "b" or "c", assignment
+ * is higher precedence:
+ * awk 'BEGIN { u=v=w=1; print u=0?v=4:w=5; print u,v,w }'
+ * 5
+ * 5 1 5
+ * This differs from C and shell's "test" rules for ?: which have implicit ()
+ * around "b" in ?:, but not around "c" - they would barf on "w=5" above.
+ * gawk allows nesting of ?: - this works:
+ * u=0?v=4?5:6:w=7?8:9 means u=0?(v=4?5:6):(w=7?8:9)
+ * bbox is buggy here, requires parens: "u=0?(v=4):(w=5)"
+ */
 
 /* internal variable names and their initial values       */
 /* asterisk marks SPECIAL vars; $ is just no-named Field0 */
@@ -1409,7 +1452,7 @@ static node *parse_expr(uint32_t term_tc)
 				vn = vn->a.n;
 				if (!vn->a.n) syntax_error(EMSG_UNEXP_TOKEN);
 			}
-			if (t_info == TI_TERNARY)
+			if (t_info == TI_TERNARY) /* "?" operator */
 //TODO: why?
 				t_info += PRECEDENCE(6);
 			cn = vn->a.n->r.n = new_node(t_info);

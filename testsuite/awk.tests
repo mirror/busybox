@@ -5,6 +5,7 @@
 
 . ./testing.sh
 
+sq="'"
 # testing "description" "command" "result" "infile" "stdin"
 
 testing "awk -F case 0" "awk -F '[#]' '{ print NF }'" ""    "" ""
@@ -479,12 +480,6 @@ testing 'awk backslash+newline eaten with no trace' \
 	"Hello world\n" \
 	'' ''
 
-testing 'awk assign while test' \
-	"awk '\$1==\$1=\"foo\" {print \$1}'" \
-	"foo\n" \
-	"" \
-	"foo"
-
 # User-supplied bug (SEGV) example, was causing use-after-realloc
 testing 'awk assign while assign' \
 	"awk '\$5=\$\$5=\$0'; echo \$?" \
@@ -543,16 +538,30 @@ testing 'awk assign while assign' \
 # If field separator FS=' ' (default), fields are split only on
 # space or tab or linefeed, NOT other whitespace.
 testing 'awk does not split on CR (char 13)' \
-	"awk '{ \$1=\$0; print }'" \
+	'awk '$sq'{ $1=$0; print }'$sq \
 	'word1 word2 word3\r word2 word3\r\n' \
 	'' 'word1 word2 word3\r'
 
-testing "awk = has higher precedence than == (despite what gawk manpage claims)" \
-	"awk 'BEGIN { v=1; print 2==v; print 2==v=2; print v; print v=3==3; print v}'" \
-	'0\n1\n2\n1\n3\n' \
+# No, it seems a bug in gawk parser.
+#testing "awk = has higher precedence than == (despite what gawk manpage claims)" \
+#	"awk 'BEGIN { v=1; print 2==v; print 2==v=2; print v; print v=3==3; print v}'" \
+#	'0\n1\n2\n1\n3\n' \
+#	'' ''
+#
+#testing 'awk assign while test' \
+#	'awk '$sq'$1==$1="foo" {print $1}'$sq \
+#	"foo\n" \
+#	"" \
+#	"foo"
+
+testing "awk = and ?: precedence" \
+	'awk '$sq'BEGIN { a=0?"bug":"ok"; print a}'$sq \
+	'ok\n' \
 	'' ''
 
-sq="'"
+# TODO: gawk can do this: awk 'BEGIN { u=v=w=1; print u=0?v=4:w=5; print u,v,w}'
+# and even this: u=0?v=4?5:6:w=7?8:9
+
 testing 'awk gensub backslashes \' \
 	'awk '$sq'BEGIN { s="\\"; print "s=" s; print gensub("a", s, "g", "a|a") }'$sq \
 	's=\\
