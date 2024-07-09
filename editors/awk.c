@@ -180,11 +180,11 @@ typedef struct node_s {
 		var *v;
 		int aidx;
 		const char *new_progname;
+		/* if TI_REGEXP node, points to regex_t[2] array (case sensitive and insensitive) */
 		regex_t *re;
 	} l;
 	union {
 		struct node_s *n;
-		regex_t *ire;
 		func *f;
 	} r;
 	union {
@@ -1399,7 +1399,6 @@ static void mk_re_node(const char *s, node *n, regex_t *re)
 {
 	n->info = TI_REGEXP;
 	n->l.re = re;
-	n->r.ire = re + 1;
 	xregcomp(re, s, REG_EXTENDED);
 	xregcomp(re + 1, s, REG_EXTENDED | REG_ICASE);
 }
@@ -1412,13 +1411,13 @@ static node *parse_lrparen_list(void)
 	return parse_expr(TC_RPAREN);
 }
 
-/* parse expression terminated by given argument, return ptr
+/* Parse expression terminated by given token, return ptr
  * to built subtree. Terminator is eaten by parse_expr */
 static node *parse_expr(uint32_t term_tc)
 {
 	node sn;
 	node *cn = &sn;
-	node *glptr;
+	node *getline_node;
 	uint32_t tc, expected_tc;
 
 	debug_printf_parse("%s() term_tc(%x):", __func__, term_tc);
@@ -1426,19 +1425,19 @@ static node *parse_expr(uint32_t term_tc)
 	debug_printf_parse("\n");
 
 	sn.info = PRIMASK;
-	sn.r.n = sn.a.n = glptr = NULL;
+	sn.r.n = sn.a.n = getline_node = NULL;
 	expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP | term_tc;
 
 	while (!((tc = next_token(expected_tc)) & term_tc)) {
 		node *vn;
 
-		if (glptr && (t_info == TI_LESS)) {
-			/* input redirection (<) attached to glptr node */
+		if (getline_node && (t_info == TI_LESS)) {
+			/* Attach input redirection (<) to getline node */
 			debug_printf_parse("%s: input redir\n", __func__);
-			cn = glptr->l.n = new_node(OC_CONCAT | SS | PRECEDENCE(37));
-			cn->a.n = glptr;
+			cn = getline_node->l.n = new_node(OC_CONCAT | SS | PRECEDENCE(37));
+			cn->a.n = getline_node;
 			expected_tc = TS_OPERAND | TS_UOPPRE;
-			glptr = NULL;
+			getline_node = NULL;
 			continue;
 		}
 		if (tc & (TS_BINOP | TC_UOPPOST)) {
@@ -1485,19 +1484,21 @@ static node *parse_expr(uint32_t term_tc)
 
 				expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP;
 				if (t_info == TI_PGETLINE) {
-					/* it's a pipe */
+					/* it's a pipe token "|" */
 					next_token(TC_GETLINE);
 					/* give maximum priority to this pipe */
 					cn->info &= ~PRIMASK;
 					expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
 				}
 			} else {
+				/* It was an unary postfix operator */
 				cn->r.n = vn;
 				expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
 			}
 			vn->a.n = cn;
 			continue;
 		}
+		/* It wasn't a binary or unary_postfix operator */
 
 		debug_printf_parse("%s: other, t_info:%x\n", __func__, t_info);
 		/* for operands and prefix-unary operators, attach them
@@ -1572,7 +1573,7 @@ static node *parse_expr(uint32_t term_tc)
 
 		case TC_GETLINE:
 			debug_printf_parse("%s: TC_GETLINE\n", __func__);
-			glptr = cn;
+			getline_node = cn;
 			expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
 			break;
 
@@ -1944,15 +1945,14 @@ static void nvfree(var *v, int sz)
 
 static node *mk_splitter(const char *s, tsplitter *spl)
 {
-	regex_t *re, *ire;
+	regex_t *re;
 	node *n;
 
-	re = &spl->re[0];
-	ire = &spl->re[1];
+	re = spl->re;
 	n = &spl->n;
 	if (n->info == TI_REGEXP) {
 		regfree(re);
-		regfree(ire); // TODO: nuke ire, use re+1?
+		regfree(re + 1);
 	}
 	if (s[0] && s[1]) { /* strlen(s) > 1 */
 		mk_re_node(s, n, re);
@@ -1975,7 +1975,7 @@ static regex_t *as_regex(node *op, regex_t *preg)
 	const char *s;
 
 	if (op->info == TI_REGEXP) {
-		return icase ? op->r.ire : op->l.re;
+		return &op->l.re[icase];
 	}
 
 	//tmpvar = nvalloc(1);
@@ -2093,7 +2093,7 @@ static int awk_split(const char *s, node *spl, char **slist)
 			regmatch_t pmatch[1];
 
 			l = strcspn(s, c+2); /* len till next NUL or \n */
-			if (regexec1_nonempty(icase ? spl->r.ire : spl->l.re, s, pmatch) == 0
+			if (regexec1_nonempty(&spl->l.re[icase], s, pmatch) == 0
 			 && pmatch[0].rm_so <= l
 			) {
 				/* if (pmatch[0].rm_eo == 0) ... - impossible */
@@ -2348,7 +2348,7 @@ static int awk_getline(rstream *rsm, var *v)
 		if (p > 0) {
 			char c = (char) rsplitter.n.info;
 			if (rsplitter.n.info == TI_REGEXP) {
-				if (regexec(icase ? rsplitter.n.r.ire : rsplitter.n.l.re,
+				if (regexec(&rsplitter.n.l.re[icase],
 							b, 1, pmatch, 0) == 0
 				) {
 					so = pmatch[0].rm_so;
