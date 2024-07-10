@@ -307,13 +307,13 @@ static void debug_parse_print_tc(uint32_t n)
                    | TC_LENGTH)
 #define	TS_CONCAT_R (TS_OPERAND | TS_UOPPRE)
 
-#define	OF_RES1     0x010000
-#define	OF_RES2     0x020000
-#define	OF_STR1     0x040000
-#define	OF_STR2     0x080000
-#define	OF_NUM1     0x100000
-#define	OF_CHECKED  0x200000
-#define	OF_REQUIRED 0x400000
+#define	OF_RES1     0x010000    /* evaluate(left_node) */
+#define	OF_RES2     0x020000    /* evaluate(right_node) */
+#define	OF_STR1     0x040000    /* ...and use its string value */
+#define	OF_STR2     0x080000    /* ...and use its string value */
+#define	OF_NUM1     0x100000    /* ...and use its numeric value */
+#define	OF_REQUIRED 0x200000    /* left_node must not be NULL */
+#define	OF_CHECKED  0x400000    /* range pattern flip-flop bit */
 
 /* combined operator flags */
 #define	xx	0
@@ -331,17 +331,18 @@ static void debug_parse_print_tc(uint32_t n)
 #define	OPCLSMASK 0xFF00
 #define	OPNMASK   0x007F
 
-/* operator priority is a highest byte (even: r->l, odd: l->r grouping)
- * (for builtins it has different meaning)
+/* operator precedence is the highest byte (even: r->l, odd: l->r grouping)
+ * (for builtins the byte has a different meaning)
  */
 #undef P
 #undef PRIMASK
 #undef PRIMASK2
+#define PRIMASK   0x7F000000
+#define PRIMASK2  0x7E000000
 /* Smaller 'x' means _higher_ operator precedence */
 #define PRECEDENCE(x) (x << 24)
 #define P(x)      PRECEDENCE(x)
-#define PRIMASK   0x7F000000
-#define PRIMASK2  0x7E000000
+#define LOWEST_PRECEDENCE PRIMASK
 
 /* Operation classes */
 #define	SHIFT_TIL_THIS	0x0600
@@ -1424,7 +1425,7 @@ static node *parse_expr(uint32_t term_tc)
 	debug_parse_print_tc(term_tc);
 	debug_printf_parse("\n");
 
-	sn.info = PRIMASK;
+	sn.info = LOWEST_PRECEDENCE;
 	sn.r.n = sn.a.n = getline_node = NULL;
 	expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP | term_tc;
 
@@ -1443,7 +1444,7 @@ static node *parse_expr(uint32_t term_tc)
 		if (tc & (TS_BINOP | TC_UOPPOST)) {
 			debug_printf_parse("%s: TS_BINOP | TC_UOPPOST tc:%x\n", __func__, tc);
 			/* for binary and postfix-unary operators, jump back over
-			 * previous operators with higher priority */
+			 * previous operators with higher precedence */
 			vn = cn;
 			while (((t_info & PRIMASK) > (vn->a.n->info & PRIMASK2))
 			    || (t_info == vn->info && t_info == TI_COLON)
@@ -1451,7 +1452,7 @@ static node *parse_expr(uint32_t term_tc)
 				vn = vn->a.n;
 				if (!vn->a.n) syntax_error(EMSG_UNEXP_TOKEN);
 			}
-			if (t_info == TI_TERNARY) /* "?" operator */
+			if (t_info == TI_TERNARY) /* "?" token */
 //TODO: why?
 				t_info += PRECEDENCE(6);
 			cn = vn->a.n->r.n = new_node(t_info);
@@ -1483,11 +1484,10 @@ static node *parse_expr(uint32_t term_tc)
 				}
 
 				expected_tc = TS_OPERAND | TS_UOPPRE | TC_REGEXP;
-				if (t_info == TI_PGETLINE) {
-					/* it's a pipe token "|" */
-					next_token(TC_GETLINE);
-					/* give maximum priority to this pipe */
-					cn->info &= ~PRIMASK;
+				if (t_info == TI_PGETLINE) { /* "|" token */
+					next_token(TC_GETLINE); /* must be folowed by "getline" */
+					/* give maximum precedence to this pipe */
+					cn->info &= ~PRIMASK; /* sets PRECEDENCE(0) */
 					expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
 				}
 			} else {
@@ -1498,7 +1498,7 @@ static node *parse_expr(uint32_t term_tc)
 			vn->a.n = cn;
 			continue;
 		}
-		/* It wasn't a binary or unary_postfix operator */
+		/* It wasn't a binary or postfix-unary operator */
 
 		debug_printf_parse("%s: other, t_info:%x\n", __func__, t_info);
 		/* for operands and prefix-unary operators, attach them
@@ -1572,6 +1572,13 @@ static node *parse_expr(uint32_t term_tc)
 			break;
 
 		case TC_GETLINE:
+			/* "getline" is a function, not a statement.
+			 * Works in gawk:
+			 *  r = ["SHELL CMD" | ] getline [VAR] [<"FILE"]
+			 *  if (getline <"FILE" < 0) print "Can't read FILE"
+			 *  while ("SHELL CMD" | getline > 0) ...
+			 * Returns: 1 successful read, 0 EOF, -1 error (sets ERRNO)
+			 */
 			debug_printf_parse("%s: TC_GETLINE\n", __func__);
 			getline_node = cn;
 			expected_tc = TS_OPERAND | TS_UOPPRE | TS_BINOP | term_tc;
