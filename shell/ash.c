@@ -835,13 +835,13 @@ out2str(const char *p)
 #define CTLVAR       ((unsigned char)'\202')    /* variable defn */
 #define CTLENDVAR    ((unsigned char)'\203')
 #define CTLBACKQ     ((unsigned char)'\204')
-#define CTLARI       ((unsigned char)'\206')    /* arithmetic expression */
-#define CTLENDARI    ((unsigned char)'\207')
-#define CTLQUOTEMARK ((unsigned char)'\210')
+#define CTLARI       ((unsigned char)'\205')    /* arithmetic expression */
+#define CTLENDARI    ((unsigned char)'\206')
+#define CTLQUOTEMARK ((unsigned char)'\207')
 #define CTL_LAST CTLQUOTEMARK
 #if BASH_PROCESS_SUBST
-# define CTLTOPROC    ((unsigned char)'\211')
-# define CTLFROMPROC  ((unsigned char)'\212')
+# define CTLTOPROC    ((unsigned char)'\210')
+# define CTLFROMPROC  ((unsigned char)'\211')
 # undef CTL_LAST
 # define CTL_LAST CTLFROMPROC
 #endif
@@ -3246,17 +3246,17 @@ static const uint8_t syntax_index_table[] ALIGN1 = {
 	/* 130 CTLVAR       */ CCTL_CCTL_CCTL_CCTL,
 	/* 131 CTLENDVAR    */ CCTL_CCTL_CCTL_CCTL,
 	/* 132 CTLBACKQ     */ CCTL_CCTL_CCTL_CCTL,
-	/* 133 CTLQUOTE     */ CCTL_CCTL_CCTL_CCTL,
-	/* 134 CTLARI       */ CCTL_CCTL_CCTL_CCTL,
-	/* 135 CTLENDARI    */ CCTL_CCTL_CCTL_CCTL,
-	/* 136 CTLQUOTEMARK */ CCTL_CCTL_CCTL_CCTL,
+	/* 133 CTLARI       */ CCTL_CCTL_CCTL_CCTL,
+	/* 134 CTLENDARI    */ CCTL_CCTL_CCTL_CCTL,
+	/* 135 CTLQUOTEMARK */ CCTL_CCTL_CCTL_CCTL,
 #if BASH_PROCESS_SUBST
-	/* 137 CTLTOPROC    */ CCTL_CCTL_CCTL_CCTL,
-	/* 138 CTLFROMPROC  */ CCTL_CCTL_CCTL_CCTL,
+	/* 136 CTLTOPROC    */ CCTL_CCTL_CCTL_CCTL,
+	/* 137 CTLFROMPROC  */ CCTL_CCTL_CCTL_CCTL,
 #else
+	/* 136      */ CWORD_CWORD_CWORD_CWORD,
 	/* 137      */ CWORD_CWORD_CWORD_CWORD,
-	/* 138      */ CWORD_CWORD_CWORD_CWORD,
 #endif
+	/* 138      */ CWORD_CWORD_CWORD_CWORD,
 	/* 139      */ CWORD_CWORD_CWORD_CWORD,
 	/* 140      */ CWORD_CWORD_CWORD_CWORD,
 	/* 141      */ CWORD_CWORD_CWORD_CWORD,
