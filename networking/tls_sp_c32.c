@@ -425,26 +425,45 @@ static void sp_256_sub_8_p256_mod(sp_digit* r)
 #elif ALLOW_ASM && defined(__GNUC__) && defined(__x86_64__)
 static void sp_256_sub_8_p256_mod(sp_digit* r)
 {
+//p256_mod[3..0] = ffffffff00000001 0000000000000000 00000000ffffffff ffffffffffffffff
+# if 0
+	// gcc -Oz bug (?) https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115875
+	// uses buggy "push $-1; pop %rax" insns to load 00000000ffffffff
 	uint64_t reg;
 	uint64_t ooff;
-//p256_mod[3..0] = ffffffff00000001 0000000000000000 00000000ffffffff ffffffffffffffff
 	asm volatile (
-"\n		addq	$1, (%0)"	// adding 1 is the same as subtracting ffffffffffffffff
-"\n		cmc"			// only carry bit needs inverting
-"\n"
-"\n		sbbq	%1, 1*8(%0)"	// %1 holds 00000000ffffffff
-"\n"
+"\n		subq	$0xffffffffffffffff, (%0)"
+"\n		sbbq	%1, 1*8(%0)"
 "\n		sbbq	$0, 2*8(%0)"
-"\n"
 "\n		movq	3*8(%0), %2"
-"\n		sbbq	$0, %2"		// adding 00000000ffffffff (in %1)
-"\n		addq	%1, %2"		// is the same as subtracting ffffffff00000001
+"\n		sbbq	$0, %2"	// subtract carry
+"\n		addq	%1, %2" // adding 00000000ffffffff (in %1)
+"\n"		// is the same as subtracting ffffffff00000001
 "\n		movq	%2, 3*8(%0)"
 "\n"
 		: "=r" (r), "=r" (ooff), "=r" (reg)
-		: "0" (r), "1" (0x00000000ffffffff)
+		: "0" (r), "1" (0x00000000ffffffffUL) /* UL is important! */
 		: "memory"
 	);
+# else // let's do it by hand:
+	uint64_t reg;
+	uint64_t rax;
+	asm volatile (
+"\n		orl	$0xffffffff, %%eax" // %1 (rax) = 00000000ffffffff
+"\n		subq	$0xffffffffffffffff, (%0)"
+"\n		sbbq	%1, 1*8(%0)"
+"\n		sbbq	$0, 2*8(%0)"
+"\n		movq	3*8(%0), %2"
+"\n		sbbq	$0, %2"	// subtract carry
+"\n		addq	%1, %2" // adding 00000000ffffffff (in %1)
+"\n"		// is the same as subtracting ffffffff00000001
+"\n		movq	%2, 3*8(%0)"
+"\n"
+		: "=r" (r), "=&a" (rax), "=r" (reg)
+		: "0" (r)
+		: "memory"
+	);
+# endif
 }
 #else
 static void sp_256_sub_8_p256_mod(sp_digit* r)
