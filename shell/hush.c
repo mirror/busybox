@@ -1581,6 +1581,16 @@ static int dup_CLOEXEC(int fd, int avoid_fd)
 			goto repeat;
 		if (errno == EINTR)
 			goto repeat;
+		if (errno != EBADF) {
+			/* "echo >&9999" gets EINVAL trying to save fd 1 to above 9999.
+			 * We could try saving it _below_ 9999 instead (how?), but
+			 * this probably means that dup2(9999,1) to effectuate >&9999
+			 * would also not work: fd 9999 can't exist.
+			 * (This differs from "echo >&99" where saving works, but
+			 * subsequent dup2(99,1) fails if fd 99 is not open).
+			 */
+			bb_perror_msg("fcntl(%d,F_DUPFD,%d)", fd, avoid_fd + 1);
+		}
 	}
 	return newfd;
 }
@@ -7893,10 +7903,16 @@ static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 	if (sq) for (; sq[i].orig_fd >= 0; i++) {
 		/* If we collide with an already moved fd... */
 		if (fd == sq[i].moved_to) {
-			sq[i].moved_to = dup_CLOEXEC(sq[i].moved_to, avoid_fd);
-			debug_printf_redir("redirect_fd %d: already busy, moving to %d\n", fd, sq[i].moved_to);
-			if (sq[i].moved_to < 0) /* what? */
-				xfunc_die();
+			moved_to = dup_CLOEXEC(sq[i].moved_to, avoid_fd);
+			debug_printf_redir("redirect_fd %d: already busy, moving to %d\n", fd, moved_to);
+			if (moved_to < 0) {
+				/* "echo 2>/dev/tty 10>&9999" testcase:
+				 * We move fd 2 to 10, then discover we need to move fd 10
+				 * (and not hit 9999) and the latter fails.
+				 */
+				return NULL; /* fcntl failed */
+			}
+			sq[i].moved_to = moved_to;
 			return sq;
 		}
 		if (fd == sq[i].orig_fd) {
@@ -7910,7 +7926,7 @@ static struct squirrel *add_squirrel(struct squirrel *sq, int fd, int avoid_fd)
 	moved_to = dup_CLOEXEC(fd, avoid_fd);
 	debug_printf_redir("redirect_fd %d: previous fd is moved to %d (-1 if it was closed)\n", fd, moved_to);
 	if (moved_to < 0 && errno != EBADF)
-		xfunc_die();
+		return NULL; /* fcntl failed (not because fd is closed) */
 	return append_squirrel(sq, i, fd, moved_to);
 }
 
@@ -7943,6 +7959,8 @@ static struct squirrel *add_squirrel_closed(struct squirrel *sq, int fd)
  */
 static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 {
+	struct squirrel *new_squirrel;
+
 	if (avoid_fd < 9) /* the important case here is that it can be -1 */
 		avoid_fd = 9;
 
@@ -8006,7 +8024,10 @@ static int save_fd_on_redirect(int fd, int avoid_fd, struct squirrel **sqp)
 	}
 
 	/* Check whether it collides with any open fds (e.g. stdio), save fds as needed */
-	*sqp = add_squirrel(*sqp, fd, avoid_fd);
+	new_squirrel = add_squirrel(*sqp, fd, avoid_fd);
+	if (!new_squirrel)
+		return -1; /* redirect error */
+	*sqp = new_squirrel;
 	return 0; /* "we did not close fd" */
 }
 
@@ -8092,7 +8113,8 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 
 		if (redir->rd_type == REDIRECT_HEREDOC2) {
 			/* "rd_fd<<HERE" case */
-			save_fd_on_redirect(redir->rd_fd, /*avoid:*/ 0, sqp);
+			if (save_fd_on_redirect(redir->rd_fd, /*avoid:*/ 0, sqp) < 0)
+				return 1;
 			/* for REDIRECT_HEREDOC2, rd_filename holds _contents_
 			 * of the heredoc */
 			debug_printf_redir("set heredoc '%s'\n",
@@ -8151,6 +8173,8 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 		/* if "N>&-": close redir->rd_fd (newfd is REDIRFD_CLOSE) */
 
 		closed = save_fd_on_redirect(redir->rd_fd, /*avoid:*/ newfd, sqp);
+		if (closed < 0)
+			return 1; /* error */
 		if (newfd == REDIRFD_CLOSE) {
 			/* "N>&-" means "close me" */
 			if (!closed) {
@@ -8164,13 +8188,16 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 			 * and second redirect closes 3! Restore code then closes 3 again.
 			 */
 		} else {
-			/* if newfd is a script fd or saved fd, simulate EBADF */
+			/* if newfd is a script fd or saved fd, do not allow to use it */
 			if (internally_opened_fd(newfd, sqp && sqp != ERR_PTR ? *sqp : NULL)) {
-				//errno = EBADF;
-				//bb_perror_msg_and_die("can't duplicate file descriptor");
-				newfd = -1; /* same effect as code above */
+				bb_error_msg("fd#%d is not open", newfd);
+				return 1;
 			}
-			xdup2(newfd, redir->rd_fd);
+			if (dup2(newfd, redir->rd_fd) < 0) {
+				/* "echo >&99" testcase */
+				bb_perror_msg("dup2(%d,%d)", newfd, redir->rd_fd);
+				return 1;
+			}
 			if (redir->rd_dup == REDIRFD_TO_FILE)
 				/* "rd_fd > FILE" */
 				close(newfd);

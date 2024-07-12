@@ -1,2 +1,3 @@
 TEST
-hush: can't duplicate file descriptor: Bad file descriptor
+hush: dup2(9,1): Bad file descriptor
+Output to fd#9: 1

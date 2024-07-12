@@ -1,1 +1,2 @@
-hush: can't duplicate file descriptor: Bad file descriptor
+hush: fd#3 is not open
+OK

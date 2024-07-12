@@ -1,1 +1,2 @@
-hush: can't duplicate file descriptor: Bad file descriptor
+hush: dup2(10,1): Bad file descriptor
+OK

@@ -8,4 +8,3 @@ ls -1 fd/3
 exec 5>&-
 test -e fd/5 && echo BUG
 echo One:$?
-
