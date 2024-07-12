@@ -8077,8 +8077,11 @@ static int internally_opened_fd(int fd, struct squirrel *sq)
 	return 0;
 }
 
-/* squirrel != NULL means we squirrel away copies of stdin, stdout,
- * and stderr if they are redirected. */
+/* sqp != NULL means we squirrel away copies of stdin, stdout,
+ * and stderr if they are redirected.
+ * If redirection fails, return 1. This will make caller
+ * skip command execution and restore already created redirect fds.
+ */
 static int setup_redirects(struct command *prog, struct squirrel **sqp)
 {
 	struct redir_struct *redir;
@@ -8109,7 +8112,7 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 				 * "cmd > <file" (2nd redirect starts too early)
 				 */
 				syntax_error("invalid redirect");
-				continue;
+				return 1;
 			}
 			mode = redir_table[redir->rd_type].mode;
 			p = expand_string_to_string(redir->rd_filename,
@@ -8124,7 +8127,9 @@ static int setup_redirects(struct command *prog, struct squirrel **sqp)
 				 */
 				return 1;
 			}
-			if (newfd == redir->rd_fd && sqp) {
+			if (newfd == redir->rd_fd && sqp
+			 && sqp != ERR_PTR /* not a redirect in "exec" */
+			) {
 				/* open() gave us precisely the fd we wanted.
 				 * This means that this fd was not busy
 				 * (not opened to anywhere).
