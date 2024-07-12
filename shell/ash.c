@@ -5621,10 +5621,13 @@ dup2_or_raise(int from, int to)
 	newfd = (from != to) ? dup2(from, to) : to;
 	if (newfd < 0) {
 		/* Happens when source fd is not open: try "echo >&99" */
-		ash_msg_and_raise_perror("%d", from);
+		ash_msg_and_raise_perror("dup2(%d,%d)", from, to);
 	}
 	return newfd;
 }
+/* The only possible error return is EBADF (fd wasn't open).
+ * Transient errors retry, other errors raise exception.
+ */
 static int
 dup_CLOEXEC(int fd, int avoid_fd)
 {
@@ -5639,6 +5642,16 @@ dup_CLOEXEC(int fd, int avoid_fd)
 			goto repeat;
 		if (errno == EINTR)
 			goto repeat;
+		if (errno != EBADF) {
+			/* "echo >&9999" gets EINVAL trying to save fd 1 to above 9999.
+			 * We could try saving it _below_ 9999 instead (how?), but
+			 * this probably means that dup2(9999,1) to effectuate >&9999
+			 * would also not work: fd 9999 can't exist. Gracefully bail out.
+			 * (This differs from "echo >&99" where saving works, but
+			 * subsequent dup2(99,1) fails if fd 99 is not open).
+			 */
+			ash_msg_and_raise_perror("fcntl(%d,F_DUPFD,%d)", fd, avoid_fd + 1);
+		}
 	}
 	return newfd;
 }
@@ -5754,7 +5767,7 @@ save_fd_on_redirect(int fd, int avoid_fd, struct redirtab *sq)
 			new_fd = dup_CLOEXEC(fd, avoid_fd);
 			sq->two_fd[i].moved_to = new_fd;
 			TRACE(("redirect_fd %d: already busy, moving to %d\n", fd, new_fd));
-			if (new_fd < 0) /* what? */
+			if (new_fd < 0) /* EBADF? what? */
 				xfunc_die();
 			return 0; /* "we did not close fd" */
 		}
@@ -5769,8 +5782,7 @@ save_fd_on_redirect(int fd, int avoid_fd, struct redirtab *sq)
 	new_fd = dup_CLOEXEC(fd, avoid_fd);
 	TRACE(("redirect_fd %d: previous fd is moved to %d (-1 if it was closed)\n", fd, new_fd));
 	if (new_fd < 0) {
-		if (errno != EBADF)
-			xfunc_die();
+		/* EBADF (fd is not open) */
 		/* new_fd = CLOSED; - already is -1 */
 	}
 	sq->two_fd[i].moved_to = new_fd;
