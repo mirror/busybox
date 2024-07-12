@@ -15,18 +15,28 @@
 
 #if ENABLE_SHA1_HWACCEL || ENABLE_SHA256_HWACCEL
 # if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-static void cpuid(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *edx)
+static void cpuid_eax_ebx_ecx(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *edx)
 {
 	asm ("cpuid"
 		: "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
-		: "0"(*eax),  "1"(*ebx),  "2"(*ecx),  "3"(*edx)
+		: "0" (*eax), "1" (*ebx), "2" (*ecx)
 	);
 }
 static smallint shaNI;
-static int get_shaNI(void)
+static NOINLINE int get_shaNI(void)
 {
-	unsigned eax = 7, ebx = ebx, ecx = 0, edx = edx;
-	cpuid(&eax, &ebx, &ecx, &edx);
+	/* Get leaf 7 subleaf 0. Exists on all CPUs since Merom (2006).
+	 * "If a value entered for CPUID.EAX is higher than the maximum
+	 * input value for basic or extended function for that processor
+	 * then the data for the highest basic information leaf is returned".
+	 * This means that Pentiums 4 would return leaf 5 or 6 instead of 7,
+	 * which happen to have zero in EBX bit 29. Thus they should work too.
+	 */
+	unsigned eax = 7;
+	unsigned ecx = 0;
+	unsigned ebx = 0; /* should not be needed, paranoia */
+	unsigned edx;
+	cpuid_eax_ebx_ecx(&eax, &ebx, &ecx, &edx);
 	ebx = ((ebx >> 28) & 2) - 1; /* bit 29 -> 1 or -1 */
 	shaNI = (int)ebx;
 	return (int)ebx;
@@ -1300,7 +1310,14 @@ unsigned FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 	/* SHA stores total in BE, need to swap on LE arches: */
 	common64_end(ctx, /*swap_needed:*/ BB_LITTLE_ENDIAN);
 
-	hash_size = (ctx->process_block == sha1_process_block64) ? 5 : 8;
+	hash_size = 8;
+	if (ctx->process_block == sha1_process_block64
+#if ENABLE_SHA1_HWACCEL
+	 || ctx->process_block == sha1_process_block64_shaNI
+#endif
+	) {
+		hash_size = 5;
+	}
 	/* This way we do not impose alignment constraints on resbuf: */
 	if (BB_LITTLE_ENDIAN) {
 		unsigned i;
