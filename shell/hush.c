@@ -1575,7 +1575,7 @@ static int dup_CLOEXEC(int fd, int avoid_fd)
 	newfd = fcntl(fd, F_DUPFD_CLOEXEC, avoid_fd + 1);
 	if (newfd >= 0) {
 		if (F_DUPFD_CLOEXEC == F_DUPFD) /* if old libc (w/o F_DUPFD_CLOEXEC) */
-			fcntl(newfd, F_SETFD, FD_CLOEXEC);
+			close_on_exec_on(newfd);
 	} else { /* newfd < 0 */
 		if (errno == EBUSY)
 			goto repeat;
@@ -1601,7 +1601,7 @@ static int xdup_CLOEXEC_and_close(int fd, int avoid_fd)
 		xfunc_die();
 	}
 	if (F_DUPFD_CLOEXEC == F_DUPFD) /* if old libc (w/o F_DUPFD_CLOEXEC) */
-		fcntl(newfd, F_SETFD, FD_CLOEXEC);
+		close_on_exec_on(newfd);
 	close(fd);
 	return newfd;
 }
@@ -10710,7 +10710,7 @@ int hush_main(int argc, char **argv)
 		G_interactive_fd = dup_CLOEXEC(STDIN_FILENO, 254);
 		if (G_interactive_fd < 0) {
 			/* try to dup to any fd */
-			G_interactive_fd = dup(STDIN_FILENO);
+			G_interactive_fd = dup_CLOEXEC(STDIN_FILENO, -1);
 			if (G_interactive_fd < 0) {
 				/* give up */
 				G_interactive_fd = 0;
@@ -10720,8 +10720,6 @@ int hush_main(int argc, char **argv)
 	}
 	debug_printf("interactive_fd:%d\n", G_interactive_fd);
 	if (G_interactive_fd) {
-		close_on_exec_on(G_interactive_fd);
-
 		if (G_saved_tty_pgrp) {
 			/* If we were run as 'hush &', sleep until we are
 			 * in the foreground (tty pgrp == our pgrp).
@@ -10795,9 +10793,6 @@ int hush_main(int argc, char **argv)
 				/* give up */
 				G_interactive_fd = 0;
 		}
-	}
-	if (G_interactive_fd) {
-		close_on_exec_on(G_interactive_fd);
 	}
 	install_special_sighandlers();
 #else
