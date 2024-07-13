@@ -498,24 +498,11 @@ static NOINLINE int process_timer_stats(void)
 }
 
 #ifdef __i386__
-/*
- * Get information about CPU using CPUID opcode.
- */
-static void cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
-				unsigned int *edx)
+static void cpuid_eax_ecx_edx(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *edx)
 {
-	/* EAX value specifies what information to return */
-	asm (
-		"	cpuid\n"
-		: "=a"(*eax), /* Output */
-		  "=b"(*ebx),
-		  "=c"(*ecx),
-		  "=d"(*edx)
-		: "0"(*eax),  /* Input */
-		  "1"(*ebx),
-		  "2"(*ecx),
-		  "3"(*edx)
-		/* No clobbered registers */
+	asm ("cpuid"
+		: "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+		: "0" (*eax),             "2" (*ecx), "3" (*edx)
 	);
 }
 #endif
@@ -592,8 +579,8 @@ static NOINLINE void print_intel_cstates(void)
 		return;
 
 	eax = 5;
-	ebx = ecx = edx = 0;
-	cpuid(&eax, &ebx, &ecx, &edx);
+	ecx = edx = 0; /* paranoia, should not be needed */
+	cpuid_eax_ecx_edx(&eax, /*unused:*/&ebx, &ecx, &edx);
 	if (!edx || !(ecx & 1))
 		return;
 
