@@ -731,7 +731,11 @@ static llist_t *append_file_list_to_list(llist_t *list)
 				*cp = '\0';
 			llist_add_to_end(&newlist, line);
 		}
-		fclose(src_stream);
+		
+		if(src_stream != stdin)
+		{
+			fclose(src_stream);
+		}
 	}
 	return newlist;
 }
