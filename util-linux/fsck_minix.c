@@ -118,6 +118,7 @@
 
 #ifndef BLKGETSIZE
 #define BLKGETSIZE _IO(0x12,96)    /* return device size */
+#define COMPONENT_BUF_SIZE 256
 #endif
 
 struct BUG_bad_inode_size {
@@ -333,7 +334,11 @@ static void push_filename(const char *name)
 		int len;
 		char *p = name_component[name_depth];
 		*p++ = '/';
-		len = sprintf(p, "%.*s", namelen, name);
+		len = snprintf(p, COMPONENT_BUF_SIZE - 1, "%.*s", namelen, name);
+		if (len < 0 || len >= (COMPONENT_BUF_SIZE - 1)) {
+            		fprintf(stderr, "snprintf failed or output was truncated in push_filename()\n");
+            		return;
+        	}
 		name_component[name_depth + 1] = p + len;
 	}
 	name_depth++;
