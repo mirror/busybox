@@ -79,7 +79,7 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 			break;
 		}
 		pause_after_failed_login();
-		bb_simple_info_msg("Login incorrect");
+		bb_simple_error_msg("Login incorrect");
 	}
 
 	/* util-linux 2.36.1 compat: no message */
@@ -119,9 +119,12 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/*
-	 * Note: login does this (should we do it too?):
+	 * Note: login does this. util-linux's sulogin does NOT.
+	 * But it's rather unpleasant to have non-functioning ^C in a shell,
+	 * and surprisingly, there is no easy way to remove SIG_IGN from ^C
+	 * in the shell. So, we are doing it:
 	 */
-	/*signal(SIGINT, SIG_DFL);*/
+	signal(SIGINT, SIG_DFL);
 
 	/* Exec shell with no additional parameters. Never returns. */
 	exec_shell(shell, /* -p? then shell is login:*/(opts & 1), NULL);

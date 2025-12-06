@@ -11,7 +11,7 @@
 #define STR1(s) #s
 #define STR(s) STR1(s)
 
-#define NEED_SHA512 (ENABLE_SHA512SUM || ENABLE_USE_BB_CRYPT_SHA)
+#define NEED_SHA512 (ENABLE_SHA512SUM || ENABLE_SHA384SUM || ENABLE_USE_BB_CRYPT_SHA)
 
 #if ENABLE_SHA1_HWACCEL || ENABLE_SHA256_HWACCEL
 # if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
@@ -1032,7 +1032,7 @@ static const sha_K_int sha_K[] ALIGN8 = {
 	K(0x84c87814a1f0ab72ULL), K(0x8cc702081a6439ecULL),
 	K(0x90befffa23631e28ULL), K(0xa4506cebde82bde9ULL),
 	K(0xbef9a3f7b2c67915ULL), K(0xc67178f2e372532bULL),
-#if NEED_SHA512  /* [64]+ are used for sha512 only */
+#if NEED_SHA512  /* [64]+ are used for sha384 and sha512 only */
 	K(0xca273eceea26619cULL), K(0xd186b8c721c0c207ULL),
 	K(0xeada7dd6cde0eb1eULL), K(0xf57d4f7fee6ed178ULL),
 	K(0x06f067aa72176fbaULL), K(0x0a637dc5a2c898a6ULL),
@@ -1229,11 +1229,20 @@ static const uint32_t init512_lo[] ALIGN4 = {
 	0x137e2179,
 };
 #endif /* NEED_SHA512 */
-
-// Note: SHA-384 is identical to SHA-512, except that initial hash values are
-// 0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
-// 0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4,
-// and the output is constructed by omitting last two 64-bit words of it.
+#if ENABLE_SHA384SUM
+static const uint64_t init384[] ALIGN8 = {
+	0,
+	0,
+	0xcbbb9d5dc1059ed8,
+	0x629a292a367cd507,
+	0x9159015a3070dd17,
+	0x152fecd8f70e5939,
+	0x67332667ffc00b31,
+	0x8eb44a8768581511,
+	0xdb0c2e0d64f98fa7,
+	0x47b5481dbefa4fa4,
+};
+#endif
 
 /* Initialize structure containing state of computation.
    (FIPS 180-2:5.3.2)  */
@@ -1255,9 +1264,19 @@ void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
 #endif
 }
 
-#if NEED_SHA512
+#if ENABLE_SHA384SUM
 /* Initialize structure containing state of computation.
    (FIPS 180-2:5.3.3)  */
+void FAST_FUNC sha384_begin(sha512_ctx_t *ctx)
+{
+	memcpy(&ctx->total64, init384, sizeof(init384));
+	/*ctx->total64[0] = ctx->total64[1] = 0; - already done */
+}
+#endif
+
+#if NEED_SHA512
+/* Initialize structure containing state of computation.
+   (FIPS 180-2:5.3.4)  */
 void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 {
 	int i;
@@ -1313,7 +1332,9 @@ unsigned FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 	hash_size = 8;
 	if (ctx->process_block == sha1_process_block64
 #if ENABLE_SHA1_HWACCEL
+# if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 	 || ctx->process_block == sha1_process_block64_shaNI
+# endif
 #endif
 	) {
 		hash_size = 5;
@@ -1330,7 +1351,7 @@ unsigned FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 }
 
 #if NEED_SHA512
-unsigned FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
+static unsigned FAST_FUNC sha512384_end(sha512_ctx_t *ctx, void *resbuf, unsigned outsize)
 {
 	unsigned bufpos = ctx->total64[0] & 127;
 
@@ -1361,11 +1382,21 @@ unsigned FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 		for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i)
 			ctx->hash[i] = SWAP_BE64(ctx->hash[i]);
 	}
-	memcpy(resbuf, ctx->hash, sizeof(ctx->hash));
-	return sizeof(ctx->hash);
+	memcpy(resbuf, ctx->hash, outsize);
+	return outsize;
+}
+unsigned FAST_FUNC sha512_end(sha384_ctx_t *ctx, void *resbuf)
+{
+	return sha512384_end(ctx, resbuf, SHA512_OUTSIZE);
 }
 #endif /* NEED_SHA512 */
 
+#if ENABLE_SHA384SUM
+unsigned FAST_FUNC sha384_end(sha384_ctx_t *ctx, void *resbuf)
+{
+	return sha512384_end(ctx, resbuf, SHA384_OUTSIZE);
+}
+#endif
 
 /*
  * The Keccak sponge function, designed by Guido Bertoni, Joan Daemen,
@@ -1902,6 +1933,8 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len)
 
 unsigned FAST_FUNC sha3_end(sha3_ctx_t *ctx, void *resbuf)
 {
+	unsigned hash_len;
+
 	/* Padding */
 	uint8_t *buf = (uint8_t*)ctx->state;
 	/*
@@ -1924,6 +1957,7 @@ unsigned FAST_FUNC sha3_end(sha3_ctx_t *ctx, void *resbuf)
 	sha3_process_block72(ctx->state);
 
 	/* Output */
-	memcpy(resbuf, ctx->state, 64);
-	return 64;
+	hash_len = (1600/8 - ctx->input_block_bytes) / 2;
+	memcpy(resbuf, ctx->state, hash_len);
+	return hash_len;
 }

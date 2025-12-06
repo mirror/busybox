@@ -1,0 +1,7 @@
+# had a parser bug which incorrectly detected ";;"
+case w in
+a) true
+;
+b);;
+esac
+echo Should not be reached

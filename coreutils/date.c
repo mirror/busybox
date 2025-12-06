@@ -289,7 +289,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 
 		/* if setting time, set it */
 		if ((opt & OPT_SET) && clock_settime(CLOCK_REALTIME, &ts) < 0) {
-			bb_simple_perror_msg("can't set date");
+			bb_simple_perror_msg_and_die("can't set date");
 		}
 	}
 

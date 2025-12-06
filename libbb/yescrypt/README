@@ -1,0 +1,4 @@
+The yescrypt code in this directory is adapted from libxcrypt-4.4.38
+with minimal edits, hopefully making it easier to track
+backports by resetting the tree to the commit which created this file,
+then comparing changes in upstream libxcrypt to the tree.

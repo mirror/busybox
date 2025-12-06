@@ -51,6 +51,27 @@ struct ifla_vlan_flags {
 };
 #endif
 
+#if ENABLE_FEATURE_IP_LINK_CAN
+# ifndef CAN_CTRLMODE_ONE_SHOT
+#  define CAN_CTRLMODE_ONE_SHOT         0x08 /* One-Shot mode */
+# endif
+# ifndef CAN_CTRLMODE_BERR_REPORTING
+#  define CAN_CTRLMODE_BERR_REPORTING	0x10 /* Bus-error reporting */
+# endif
+# ifndef CAN_CTRLMODE_FD
+#  define CAN_CTRLMODE_FD               0x20 /* CAN FD mode */
+# endif
+# ifndef CAN_CTRLMODE_PRESUME_ACK
+#  define CAN_CTRLMODE_PRESUME_ACK      0x40 /* Ignore missing CAN ACKs */
+# endif
+# ifndef CAN_CTRLMODE_FD_NON_ISO
+#  define CAN_CTRLMODE_FD_NON_ISO       0x80 /* CAN FD in non-ISO mode */
+# endif
+# ifndef IFLA_CAN_TERMINATION
+#  define IFLA_CAN_TERMINATION          11
+# endif
+#endif
+
 /* taken from linux/sockios.h */
 #define SIOCSIFNAME  0x8923  /* set interface name */
 

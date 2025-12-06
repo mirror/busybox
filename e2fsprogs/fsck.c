@@ -423,13 +423,11 @@ static int wait_one(int flags)
 	/* if (G.noexecute) { already returned -1; } */
 
 	while (1) {
-		pid = waitpid(-1, &status, flags);
+		pid = safe_waitpid(-1, &status, flags);
 		kill_all_if_got_signal();
 		if (pid == 0) /* flags == WNOHANG and no children exited */
 			return -1;
 		if (pid < 0) {
-			if (errno == EINTR)
-				continue;
 			if (errno == ECHILD) { /* paranoia */
 				bb_simple_error_msg("wait: no more children");
 				return -1;

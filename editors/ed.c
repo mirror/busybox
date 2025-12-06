@@ -345,6 +345,8 @@ static int insertLine(int num, const char *data, int len)
 	lp->prev->next = newLp;
 	lp->prev = newLp;
 
+	if (num <= curNum)
+		curLine = curLine->prev;
 	lastNum++;
 	dirty = TRUE;
 	return setCurNum(num);

@@ -22,21 +22,93 @@ testing "cryptpw des zz" \
 #SKIP=
 
 optional USE_BB_CRYPT_SHA
-testing "cryptpw sha256" \
-	"cryptpw -m sha256 QWErty '123456789012345678901234567890'" \
-	'$5$1234567890123456$5DxfOCmU4vRhtzfsbdK.6wSGMwwVbac7ZkWwusb8Si7\n' "" ""
+# Note: mkpasswd-5.6.2 won't accept "-m sha256", wants "-m sha256crypt"
+testing 'cryptpw sha256' \
+	'cryptpw -m sha256 QWErty 1234567890123456' \
+	'$5$1234567890123456$5DxfOCmU4vRhtzfsbdK.6wSGMwwVbac7ZkWwusb8Si7\n' \
+	'' ''
+# mkpasswd-5.6.2 does not allow overlong salts, we truncate (at 16 chars for sha256)
+testing 'cryptpw sha256 overlong' \
+	'cryptpw -m sha256 QWErty 123456789012345678901234567890' \
+	'$5$1234567890123456$5DxfOCmU4vRhtzfsbdK.6wSGMwwVbac7ZkWwusb8Si7\n' \
+	'' ''
+testing 'cryptpw sha256 implicit' \
+	'cryptpw QWErty \$5\$1234567890123456' \
+	'$5$1234567890123456$5DxfOCmU4vRhtzfsbdK.6wSGMwwVbac7ZkWwusb8Si7\n' \
+	'' ''
+testing 'cryptpw sha256 rounds=99999' \
+	'cryptpw -m sha256 QWErty rounds=99999\$123456789012345678901234567890' \
+	'$5$rounds=99999$1234567890123456$aYellycJGZM6AKyVzaQsSrDBdTixubtMnM6J.MN0xM8\n' \
+	'' ''
+testing 'cryptpw sha256 rounds=99999 implicit' \
+	'cryptpw QWErty \$5\$rounds=99999\$123456789012345678901234567890' \
+	'$5$rounds=99999$1234567890123456$aYellycJGZM6AKyVzaQsSrDBdTixubtMnM6J.MN0xM8\n' \
+	'' ''
 
-testing "cryptpw sha256 rounds=99999" \
-	"cryptpw -m sha256 QWErty 'rounds=99999\$123456789012345678901234567890'" \
-	'$5$rounds=99999$1234567890123456$aYellycJGZM6AKyVzaQsSrDBdTixubtMnM6J.MN0xM8\n' "" ""
+testing 'cryptpw sha512' \
+	'cryptpw -m sha512 QWErty 123456789012345678901234567890' \
+	'$6$1234567890123456$KB7QqxFyqmJSWyQYcCuGeFukgz1bPQoipWZf7.9L7z3k8UNTXa6UikbKcUGDc2ANn7DOGmDaroxDgpK16w/RE0\n' \
+	'' ''
+testing 'cryptpw sha512crypt' \
+	'cryptpw -m sha512crypt QWErty 123456789012345678901234567890' \
+	'$6$1234567890123456$KB7QqxFyqmJSWyQYcCuGeFukgz1bPQoipWZf7.9L7z3k8UNTXa6UikbKcUGDc2ANn7DOGmDaroxDgpK16w/RE0\n' \
+	'' ''
+testing 'cryptpw sha512 rounds=99999' \
+	'cryptpw -m sha512 QWErty rounds=99999\$123456789012345678901234567890' \
+	'$6$rounds=99999$1234567890123456$BfF6gD6ZjUmwawH5QaAglYAxtU./yvsz0fcQ464l49aMI2DZW3j5ri28CrxK7riPWNpLuUpfaIdY751SBYKUH.\n' \
+	'' ''
+SKIP=
 
-testing "cryptpw sha512" \
-	"cryptpw -m sha512 QWErty '123456789012345678901234567890'" \
-	'$6$1234567890123456$KB7QqxFyqmJSWyQYcCuGeFukgz1bPQoipWZf7.9L7z3k8UNTXa6UikbKcUGDc2ANn7DOGmDaroxDgpK16w/RE0\n' "" ""
-
-testing "cryptpw sha512 rounds=99999" \
-	"cryptpw -m sha512 QWErty 'rounds=99999\$123456789012345678901234567890'" \
-	'$6$rounds=99999$1234567890123456$BfF6gD6ZjUmwawH5QaAglYAxtU./yvsz0fcQ464l49aMI2DZW3j5ri28CrxK7riPWNpLuUpfaIdY751SBYKUH.\n' "" ""
+optional USE_BB_CRYPT_YES
+testing 'cryptpw yescrypt' \
+	'cryptpw -m yescrypt qweRTY123@-+ j9T\$123456789012345678901234' \
+	'$y$j9T$123456789012345678901234$AKxw5OX/T4jD.v./IW.5tE/j7izNjw06fg3OvH1LsN9\n' \
+	'' ''
+testing 'cryptpw yescrypt with non-standard N=2048 instead of 4096 (j8T instead of j9T)' \
+	'cryptpw -m yescrypt qweRTY123@-+ j8T\$123456789012345678901234' \
+	'$y$j8T$123456789012345678901234$JQUUfopCxlfZNE8f.THJwbOkhy.XtB3GIjo9HUVioWB\n' \
+	'' ''
+# mkpasswd-5.6.2 allows short salts for yescrypt
+# ...but there is a catch. Not all of them.
+# The "partial" (not fitting in whole bytes) ascii64-encoded salt
+# is a special case. For example, "$zzz" would not even work in upstream.
+testing 'cryptpw yescrypt with empty salt' \
+	'cryptpw -m yescrypt qweRTY123@-+ j9T\$' \
+	'$y$j9T$$hpeksL94GXNRwnA00L3c8WFy0khFAUbCpBSak.N3Bp.\n' \
+	'' ''
+testing 'cryptpw yescrypt with 3-char salt' \
+	'cryptpw -m yescrypt qweRTY123@-+ j9T\$123' \
+	'$y$j9T$123$A34DMIGUbUIo3bjx66Wtk2IFoREMIw6d49it25KQh2D\n' \
+	'' ''
+# "." is not allowed in mkpasswd-5.6.2
+# ....................................
+# ".." is decoded into one zero byte (not two)
+testing 'cryptpw yescrypt with 2-char salt ".."' \
+	'cryptpw -m yescrypt qweRTY123@-+ j9T\$..' \
+	'$y$j9T$..$yVHeOayxOGg6cHL3.dg10u7T.qSgySfLN3uhSVSLNn/\n' \
+	'' ''
+# "..." is decoded into two zero bytes (not three, not one)
+testing 'cryptpw yescrypt with 3-char salt "..."' \
+	'cryptpw -m yescrypt qweRTY123@-+ j9T\$...' \
+	'$y$j9T$...$xHvJ5USZ7hFyXYbOijtEOMfZRS23cWIxu2eIBXRymA5\n' \
+	'' ''
+# "...." is decoded into three zero bytes (no surprises here)
+testing 'cryptpw yescrypt with 4-char salt "...."' \
+	'cryptpw -m yescrypt qweRTY123@-+ j9T\$....' \
+	'$y$j9T$....$wOnauYL2/NEtr6YQi9pi8AtV7L57sEbVOAnWJIcP9q2\n' \
+	'' ''
+# 84 chars = 21 4-char blocks which decode into 21*3 = 63 bytes.
+# The last byte of the maximum allowed salt size has to come from an incomplete
+# char block. E.g. "z/" encodes byte 0x7f. "z1" is 0xff.
+# Anything larger (e.g. "z2") is an error (it encodes 0x13f).
+testing 'cryptpw yescrypt with 86-char salt (max size)' \
+	'cryptpw -m yescrypt qweRTY123@-+ j9T\$123456789012345678901234567890123456789012345678901234567890123456789012345678901234z/' \
+	'$y$j9T$123456789012345678901234567890123456789012345678901234567890123456789012345678901234z/$Exxe8IoPXiddFsqj7iqCanRf8FyquAoB0/uceLmLjG.\n' \
+	'' ''
+testing 'cryptpw yescrypt implicit' \
+	'cryptpw qweRTY123@-+ \$y\$j9T\$123456789012345678901234' \
+	'$y$j9T$123456789012345678901234$AKxw5OX/T4jD.v./IW.5tE/j7izNjw06fg3OvH1LsN9\n' \
+	'' ''
 SKIP=
 
 exit $FAILCOUNT

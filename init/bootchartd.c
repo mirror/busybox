@@ -133,7 +133,7 @@ static void dump_file(FILE *fp, const char *filename)
 static int dump_procs(FILE *fp, int look_for_login_process)
 {
 	struct dirent *entry;
-	DIR *dir = opendir("/proc");
+	DIR *dir = xopendir("/proc");
 	int found_login_process = 0;
 
 	fputs(G.jiffy_line, fp);

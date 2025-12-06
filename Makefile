@@ -1,5 +1,5 @@
 VERSION = 1
-PATCHLEVEL = 37
+PATCHLEVEL = 38
 SUBLEVEL = 0
 EXTRAVERSION = .git
 NAME = Unnamed
@@ -476,6 +476,7 @@ libs-y		:= \
 		findutils/ \
 		init/ \
 		libbb/ \
+		libbb/yescrypt/ \
 		libpwdgrp/ \
 		loginutils/ \
 		mailutils/ \
@@ -612,8 +613,12 @@ quiet_cmd_busybox__ ?= LINK    $@
       "$(core-y)" \
       "$(libs-y)" \
       "$(LDLIBS)" \
-      "$(CONFIG_EXTRA_LDLIBS)" \
+      $(CONFIG_EXTRA_LDLIBS) \
       && $(srctree)/scripts/generate_BUFSIZ.sh --post include/common_bufsiz.h
+# ^^^ note: CONFIG_xyz strings already have double quotes: their value
+# is '"LIB LIB2"', therefore $(CONFIG_EXTRA_LDLIBS) above must NOT be written
+# as "$(CONFIG_EXTRA_LDLIBS)", it would be passed as ""LIB LIB2"",
+# and LIB2 would end up in $9, not $8 (and lost or misinterpreted).
 
 # Generate System.map
 quiet_cmd_sysmap = SYSMAP

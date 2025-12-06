@@ -1,3 +1,6 @@
+# If job control is disabled, skip the test
+test "`type jobs`" = "jobs is a shell builtin" || exit 77
+
 # In bash, "wait $!" extracts correct exitcode even if bg task has already exited
 # It prints 0, then 3:
 (sleep 0; exit 3) & sleep 1

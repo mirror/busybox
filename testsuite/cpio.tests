@@ -154,6 +154,29 @@ testing "cpio -R with extract" \
 " "" ""
 SKIP=
 
+# Create an archive containing a file with "../dont_write" filename.
+# See that it will not be allowed to unpack.
+# NB: GNU cpio 2.15 DOES NOT do such checks.
+optional FEATURE_PATH_TRAVERSAL_PROTECTION
+rm -rf cpio.testdir
+mkdir -p cpio.testdir/prepare/inner
+echo "file outside of destination was written" > cpio.testdir/prepare/dont_write
+echo "data" > cpio.testdir/prepare/inner/to_extract
+mkdir -p cpio.testdir/extract
+testing "cpio extract file outside of destination" "\
+(cd cpio.testdir/prepare/inner && echo -e '../dont_write\nto_extract' | cpio -o -H newc) | (cd cpio.testdir/extract && cpio -vi 2>&1)
+echo \$?
+ls cpio.testdir/dont_write 2>&1" \
+"\
+cpio: removing leading '../' from member names
+../dont_write
+to_extract
+1 blocks
+0
+ls: cpio.testdir/dont_write: No such file or directory
+" "" ""
+SKIP=
+
 # Clean up
 rm -rf cpio.testdir cpio.testdir2 2>/dev/null
 

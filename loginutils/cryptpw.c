@@ -84,8 +84,7 @@ to cryptpw. -a option (alias for -m) came from cryptpw.
 int cryptpw_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 {
-	/* Supports: cryptpw -m sha256 PASS 'rounds=999999999$SALT' */
-	char salt[MAX_PW_SALT_LEN + sizeof("rounds=999999999$")];
+	char salt[MAX_PW_SALT_LEN];
 	char *salt_ptr;
 	char *password;
 	const char *opt_m, *opt_S;
@@ -100,7 +99,7 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 	;
 #endif
 	fd = STDIN_FILENO;
-	opt_m = CONFIG_FEATURE_DEFAULT_PASSWD_ALGO;
+	opt_m = NULL;
 	opt_S = NULL;
 	/* at most two non-option arguments; -P NUM */
 	getopt32long(argv, "^" "sP:+S:m:a:" "\0" "?2",
@@ -114,10 +113,34 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[0] && !opt_S)
 		opt_S = argv[1];
 
-	salt_ptr = crypt_make_pw_salt(salt, opt_m);
-	if (opt_S)
-		/* put user's data after the "$N$" prefix */
-		safe_strncpy(salt_ptr, opt_S, sizeof(salt) - (sizeof("$N$")-1));
+	if (opt_S && !opt_S[0]) {
+		/* mkpasswd 5.6.2 compat: SALT of ""
+		 * is treated as not specified
+		 * (both forms: -S "" and argv[1] of "")
+		 */
+		opt_S = NULL;
+	}
+
+	if (opt_m) {
+		/* "cryptpw -m ALGO PASSWORD [SALT]" */
+		/* generate "$x$" algo prefix + random salt */
+		salt_ptr = crypt_make_pw_salt(salt, opt_m);
+		if (opt_S) {
+			/* "cryptpw -m ALGO PASSWORD SALT" */
+			/* put SALT data after the "$x$" prefix */
+			safe_strncpy(salt_ptr, opt_S, sizeof(salt) - (sizeof("$N$")-1));
+		}
+	} else {
+		if (!opt_S) {
+			/* "cryptpw PASSWORD" */
+			/* generate random salt with default algo */
+			crypt_make_pw_salt(salt, CONFIG_FEATURE_DEFAULT_PASSWD_ALGO);
+		} else {
+			/* "cryptpw PASSWORD '$x$SALT'" */
+			/* use given salt; algo will be detected by pw_encrypt() */
+			safe_strncpy(salt, opt_S, sizeof(salt));
+		}
+	}
 
 	xmove_fd(fd, STDIN_FILENO);
 

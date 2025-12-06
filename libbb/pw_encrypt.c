@@ -13,48 +13,11 @@
 #endif
 #include "libbb.h"
 
-/* static const uint8_t ascii64[] ALIGN1 =
- * "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
- */
-
-static int i64c(int i)
-{
-	i &= 0x3f;
-	if (i == 0)
-		return '.';
-	if (i == 1)
-		return '/';
-	if (i < 12)
-		return ('0' - 2 + i);
-	if (i < 38)
-		return ('A' - 12 + i);
-	return ('a' - 38 + i);
-}
-
-int FAST_FUNC crypt_make_salt(char *p, int cnt /*, int x */)
-{
-	/* was: x += ... */
-	unsigned x = getpid() + monotonic_us();
-	do {
-		/* x = (x*1664525 + 1013904223) % 2^32 generator is lame
-		 * (low-order bit is not "random", etc...),
-		 * but for our purposes it is good enough */
-		x = x*1664525 + 1013904223;
-		/* BTW, Park and Miller's "minimal standard generator" is
-		 * x = x*16807 % ((2^31)-1)
-		 * It has no problem with visibly alternating lowest bit
-		 * but is also weak in cryptographic sense + needs div,
-		 * which needs more code (and slower) on many CPUs */
-		*p++ = i64c(x >> 16);
-		*p++ = i64c(x >> 22);
-	} while (--cnt);
-	*p = '\0';
-	return x;
-}
+#include "pw_ascii64.c"
 
 char* FAST_FUNC crypt_make_pw_salt(char salt[MAX_PW_SALT_LEN], const char *algo)
 {
-	int len = 2/2;
+	int len = 2 / 2;
 	char *salt_ptr = salt;
 
 	/* Standard chpasswd uses uppercase algos ("MD5", not "md5").
@@ -67,28 +30,61 @@ char* FAST_FUNC crypt_make_pw_salt(char salt[MAX_PW_SALT_LEN], const char *algo)
 		*salt_ptr++ = '$';
 #if !ENABLE_USE_BB_CRYPT || ENABLE_USE_BB_CRYPT_SHA
 		if ((algo[0]|0x20) == 's') { /* sha */
-			salt[1] = '5' + (strcasecmp(algo, "sha512") == 0);
-			len = 16/2;
+			salt[1] = '5' + (strncasecmp(algo, "sha512", 6) == 0);
+			len = 16 / 2;
+		}
+#endif
+#if !ENABLE_USE_BB_CRYPT || ENABLE_USE_BB_CRYPT_YES
+		if ((algo[0]|0x20) == 'y') { /* yescrypt */
+			int rnd;
+			salt[1] = 'y';
+// The "j9T$" below is the default "yescrypt parameters" encoded by yescrypt_encode_params_r():
+//shadow-4.17.4/src/passwd.c
+//	salt = crypt_make_salt(NULL, NULL);
+//shadow-4.17.4/lib/salt.c
+//const char *crypt_make_salt(const char *meth, void *arg)
+//      if (streq(method, "YESCRYPT")) {
+//              MAGNUM(result, 'y');
+//              salt_len = YESCRYPT_SALT_SIZE; // 24
+//              rounds = YESCRYPT_get_salt_cost(arg);  // always Y_COST_DEFAULT == 5 for NULL arg
+//              YESCRYPT_salt_cost_to_buf(result, rounds); // always "j9T$"
+//      char *retval = crypt_gensalt(result, rounds, NULL, 0);
+//libxcrypt-4.4.38/lib/crypt-yescrypt.c
+//void gensalt_yescrypt_rn (unsigned long count,
+//                     const uint8_t *rbytes, size_t nrbytes,
+//                     uint8_t *output, size_t o_size)
+//  yescrypt_params_t params = {
+//    .flags = YESCRYPT_DEFAULTS,
+//    .p = 1,
+//  };
+//  if (count < 3) ... else
+//      params.r = 32;                  // N in 4KiB
+//      params.N = 1ULL << (count + 7); // 3 -> 1024, 4 -> 2048, ... 11 -> 262144
+//  yescrypt_encode_params_r(&params, rbytes, nrbytes, outbuf, o_size) // always "$y$j9T$<random>"
+			len = 22 / 2;
+			salt_ptr = stpcpy(salt_ptr, "j9T$");
+			/* append 2*len random chars */
+			rnd = crypt_make_rand64encoded(salt_ptr, len);
+			/* fix up last char: it must be in 0..3 range (encoded as one of "./01").
+			 * IOW: salt_ptr[20..21] encode 16th random byte, must not be > 0xff.
+			 * Without this, we can generate salts which are rejected
+			 * by implementations with more strict salt length check.
+			 */
+			salt_ptr[21] = i2a64(rnd & 3);
+			/* For "mkpasswd -m yescrypt PASS j9T$<salt>" use case,
+			 * "j9T$" is considered part of salt,
+			 * need to return pointer to 'j'. Without -4,
+			 * we'd end up using "j9T$j9T$<salt>" as salt.
+			 */
+			return salt_ptr - 4;
 		}
 #endif
 	}
-	crypt_make_salt(salt_ptr, len);
+	crypt_make_rand64encoded(salt_ptr, len); /* appends 2*len random chars */
 	return salt_ptr;
 }
 
 #if ENABLE_USE_BB_CRYPT
-
-static char*
-to64(char *s, unsigned v, int n)
-{
-	while (--n >= 0) {
-		/* *s++ = ascii64[v & 0x3f]; */
-		*s++ = i64c(v);
-		v >>= 6;
-	}
-	return s;
-}
-
 /*
  * DES and MD5 crypt implementations are taken from uclibc.
  * They were modified to not use static buffers.
@@ -98,6 +94,9 @@ to64(char *s, unsigned v, int n)
 #include "pw_encrypt_md5.c"
 #if ENABLE_USE_BB_CRYPT_SHA
 #include "pw_encrypt_sha.c"
+#endif
+#if ENABLE_USE_BB_CRYPT_YES
+#include "pw_encrypt_yes.c"
 #endif
 
 /* Other advanced crypt ids (TODO?): */
@@ -109,13 +108,17 @@ static struct des_ctx *des_ctx;
 /* my_crypt returns malloc'ed data */
 static char *my_crypt(const char *key, const char *salt)
 {
-	/* MD5 or SHA? */
+	/* "$x$...." string? */
 	if (salt[0] == '$' && salt[1] && salt[2] == '$') {
 		if (salt[1] == '1')
 			return md5_crypt(xzalloc(MD5_OUT_BUFSIZE), (unsigned char*)key, (unsigned char*)salt);
 #if ENABLE_USE_BB_CRYPT_SHA
 		if (salt[1] == '5' || salt[1] == '6')
 			return sha_crypt((char*)key, (char*)salt);
+#endif
+#if ENABLE_USE_BB_CRYPT_YES
+		if (salt[1] == 'y')
+			return yes_crypt(key, salt);
 #endif
 	}
 

@@ -47,7 +47,7 @@ static int FAST_FUNC fileAction(struct recursive_state *state UNUSED_PARAM,
 	int pci_class = 0, pci_vid = 0, pci_did = 0;
 	int pci_subsys_vid = 0, pci_subsys_did = 0;
 
-	char *uevent_filename = concat_path_file(fileName, "/uevent");
+	char *uevent_filename = concat_path_file(fileName, "uevent");
 	parser = config_open2(uevent_filename, fopen_for_read);
 	free(uevent_filename);
 

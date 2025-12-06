@@ -126,6 +126,8 @@
 //usage:     "\n	-F	Append indicator (one of */=@|) to names"
 //usage:	)
 //usage:     "\n	-l	Long format"
+////usage:     "\n	-g	Long format without group column"
+////TODO: support -G too ("suppress owner column", GNUism)
 //usage:     "\n	-i	List inode numbers"
 //usage:     "\n	-n	List numeric UIDs and GIDs instead of names"
 //usage:     "\n	-s	List allocated blocks"
@@ -159,6 +161,8 @@
 //usage:	IF_FEATURE_LS_WIDTH(
 //usage:     "\n	-w N	Format N columns wide"
 //usage:	)
+////usage:     "\n	-Q	Double-quote names"
+////usage:     "\n	-q	Replace unprintable chars with '?'"
 //usage:	IF_FEATURE_LS_COLOR(
 //usage:     "\n	--color[={always,never,auto}]"
 //usage:	)
@@ -196,27 +200,47 @@ SPLIT_SUBDIR    = 2,
 
 /* -Cadi1l  Std options, busybox always supports */
 /* -gnsxA   Std options, busybox always supports */
-/* -Q       GNU option, busybox always supports */
-/* -k       Std option, busybox always supports (by ignoring) */
-/*          It means "for -s, show sizes in kbytes" */
-/*          Seems to only affect "POSIXLY_CORRECT=1 ls -sk" */
-/*          since otherwise -s shows kbytes anyway */
+/* -Q       GNU option, busybox always supports:  */
+/*          -Q, --quote-name                     */
+/*          enclose entry names in double quotes */
 /* -LHRctur Std options, busybox optionally supports */
 /* -Fp      Std options, busybox optionally supports */
 /* -SXvhTw  GNU options, busybox optionally supports */
 /* -T WIDTH Ignored (we don't use tabs on output) */
 /* -Z       SELinux mandated option, busybox optionally supports */
+/* -q       Std option, busybox always supports: */
+/*      https://pubs.opengroup.org/onlinepubs/9699919799/utilities/ls.html: */
+/*      Force each instance of non-printable filename characters and        */
+/*      <tab> characters to be written as the <question-mark> ('?')         */
+/*      character. Implementations may provide this option by default       */
+/*      if the output is to a terminal device.                              */
+/* -k       Std option, busybox always supports (by ignoring) */
+/*          It means "for -s, show sizes in kbytes" */
+/*          Seems to only affect "POSIXLY_CORRECT=1 ls -sk" */
+/*          since otherwise -s shows kbytes anyway */
 #define ls_options \
-	"Cadi1lgnsxAk"       /* 12 opts, total 12 */ \
-	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 14 */ \
-	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 15 */ \
-	IF_SELINUX("Z")                  /* 1, 16 */ \
-	"Q"                              /* 1, 17 */ \
-	IF_FEATURE_LS_TIMESTAMPS("ctu")  /* 3, 20 */ \
-	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 24 */ \
-	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 26 */ \
-	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 27 */ \
-	IF_FEATURE_LS_WIDTH("T:w:")      /* 2, 29 */
+	"Cadi1lgnsxA"        /* 11 opts, total 11 */ \
+	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 13 */ \
+	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 14 */ \
+	IF_SELINUX("Z")                  /* 1, 15 */ \
+	"Q"                              /* 1, 16 */ \
+	IF_FEATURE_LS_TIMESTAMPS("ctu")  /* 3, 19 */ \
+	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 23 */ \
+	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 25 */ \
+	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 26 */ \
+	IF_FEATURE_LS_WIDTH("T:w:")      /* 2, 28 */ \
+	IF_LONG_OPTS("\xff")             /* 1, 29 */ \
+	IF_LONG_OPTS("\xfe")             /* 1, 30 */ \
+	IF_LONG_OPTS("\xfd::")           /* 1, 31 */ \
+	"qk"                             /* 2, 33 */
+
+#if ENABLE_LONG_OPTS
+static const char ls_longopts[] ALIGN1 =
+	"full-time\0" No_argument "\xff"
+	"group-directories-first\0" No_argument "\xfe"
+	IF_FEATURE_LS_COLOR("color\0" Optional_argument "\xfd")
+;
+#endif
 
 enum {
 	OPT_C = (1 << 0),
@@ -230,29 +254,31 @@ enum {
 	OPT_s = (1 << 8),
 	OPT_x = (1 << 9),
 	OPT_A = (1 << 10),
-	//OPT_k = (1 << 11),
 
-	OPTBIT_F = 12,
-	OPTBIT_p, /* 13 */
+	OPTBIT_F = 11,
+	OPTBIT_p, /* 12 */
 	OPTBIT_R = OPTBIT_F + 2 * ENABLE_FEATURE_LS_FILETYPES,
 	OPTBIT_Z = OPTBIT_R + 1 * ENABLE_FEATURE_LS_RECURSIVE,
 	OPTBIT_Q = OPTBIT_Z + 1 * ENABLE_SELINUX,
-	OPTBIT_c, /* 17 */
-	OPTBIT_t, /* 18 */
-	OPTBIT_u, /* 19 */
+	OPTBIT_c, /* 16 */
+	OPTBIT_t, /* 17 */
+	OPTBIT_u, /* 18 */
 	OPTBIT_S = OPTBIT_c + 3 * ENABLE_FEATURE_LS_TIMESTAMPS,
-	OPTBIT_X, /* 21 */
-	OPTBIT_r, /* 22 */
-	OPTBIT_v, /* 23 */
+	OPTBIT_X, /* 20 */
+	OPTBIT_r, /* 21 */
+	OPTBIT_v, /* 22 */
 	OPTBIT_L = OPTBIT_S + 4 * ENABLE_FEATURE_LS_SORTFILES,
-	OPTBIT_H, /* 25 */
+	OPTBIT_H, /* 24 */
 	OPTBIT_h = OPTBIT_L + 2 * ENABLE_FEATURE_LS_FOLLOWLINKS,
 	OPTBIT_T = OPTBIT_h + 1 * ENABLE_FEATURE_HUMAN_READABLE,
-	OPTBIT_w, /* 28 */
+	OPTBIT_w, /* 27 */
 	OPTBIT_full_time = OPTBIT_T + 2 * ENABLE_FEATURE_LS_WIDTH,
 	OPTBIT_dirs_first,
-	OPTBIT_color, /* 31 */
-	/* with long opts, we use all 32 bits */
+	OPTBIT_color, /* 30 */
+	OPTBIT_q = OPTBIT_color + 1, /* 31 */
+	OPTBIT_k = OPTBIT_q + 1, /* 32 */
+	/* with all options enabled, we use all 32 bits and even one extra bit! */
+	/* this works because -k is ignored, and getopt32 allows such "ignore" options past 31th bit */
 
 	OPT_F = (1 << OPTBIT_F) * ENABLE_FEATURE_LS_FILETYPES,
 	OPT_p = (1 << OPTBIT_p) * ENABLE_FEATURE_LS_FILETYPES,
@@ -274,6 +300,8 @@ enum {
 	OPT_full_time  = (1 << OPTBIT_full_time ) * ENABLE_LONG_OPTS,
 	OPT_dirs_first = (1 << OPTBIT_dirs_first) * ENABLE_LONG_OPTS,
 	OPT_color      = (1 << OPTBIT_color     ) * ENABLE_FEATURE_LS_COLOR,
+	OPT_q = (1 << OPTBIT_q),
+	//-k is ignored: OPT_k = (1 << OPTBIT_k),
 };
 
 /*
@@ -327,6 +355,7 @@ struct globals {
 #endif
 	smallint exit_code;
 	smallint show_dirname;
+	smallint tty_out;
 #if ENABLE_FEATURE_LS_WIDTH
 	unsigned terminal_width;
 # define G_terminal_width (G.terminal_width)
@@ -343,15 +372,20 @@ struct globals {
 	setup_common_bufsiz(); \
 	/* we have to zero it out because of NOEXEC */ \
 	memset(&G, 0, sizeof(G)); \
-	IF_FEATURE_LS_WIDTH(G_terminal_width = TERMINAL_WIDTH;) \
+	IF_FEATURE_LS_WIDTH(G_terminal_width = ~0U;) \
 	IF_FEATURE_LS_TIMESTAMPS(time(&G.current_time_t);) \
 } while (0)
 
 #define ESC "\033"
 
+static int G_isatty(void)
+{
+	if (!G.tty_out) /* not known yet? */
+		G.tty_out = isatty(STDOUT_FILENO) + 1;
+	return (G.tty_out == 2);
+}
 
 /*** Output code ***/
-
 
 /* FYI type values: 1:fifo 2:char 4:dir 6:blk 8:file 10:link 12:socket
  * (various wacky OSes: 13:Sun door 14:BSD whiteout 5:XENIX named file
@@ -415,28 +449,6 @@ static char append_char(mode_t mode)
 }
 #endif
 
-static unsigned calc_name_len(const char *name)
-{
-	unsigned len;
-	uni_stat_t uni_stat;
-
-	// TODO: quote tab as \t, etc, if -Q
-	name = printable_string2(&uni_stat, name);
-
-	if (!(option_mask32 & OPT_Q)) {
-		return uni_stat.unicode_width;
-	}
-
-	len = 2 + uni_stat.unicode_width;
-	while (*name) {
-		if (*name == '"' || *name == '\\') {
-			len++;
-		}
-		name++;
-	}
-	return len;
-}
-
 /* Return the number of used columns.
  * Note that only columnar output uses return value.
  * -l and -1 modes don't care.
@@ -444,27 +456,86 @@ static unsigned calc_name_len(const char *name)
  * ls -b (--escape) = octal escapes (although it doesn't look like working)
  * ls -N (--literal) = not escape at all
  */
+static unsigned calc_name_len(const char *name)
+{
+	unsigned len;
+	uni_stat_t uni_stat;
+
+	if (!(option_mask32 & (OPT_q|OPT_Q)))
+		return strlen(name);
+
+	if (!(option_mask32 & OPT_Q)) {
+		/* the most likely branch: "ls" to tty (it auto-enables -q behavior) */
+		printable_string2(&uni_stat, name);
+		return uni_stat.unicode_width;
+	}
+
+	len = 2 + strlen(name);
+	while (*name) {
+	        unsigned char ch = (unsigned char)*name;
+		if (ch < ' ' || ch > 0x7e) {
+			ch -= 7;
+			if (ch <= 6) {
+				/* quote chars 7..13 as \a,b,t,n,v,f,r */
+				goto two;
+			}
+			/* other chars <32 or >126 as \ooo octal */
+			len += 3;
+			goto next;
+		}
+		if (*name == '"' || *name == '\\') {
+ two:
+			len++;
+		}
+ next:
+		name++;
+	}
+	return len;
+}
 static unsigned print_name(const char *name)
 {
 	unsigned len;
 	uni_stat_t uni_stat;
 
-	// TODO: quote tab as \t, etc, if -Q
-	name = printable_string2(&uni_stat, name);
+	if (!(option_mask32 & (OPT_q|OPT_Q))) {
+		fputs_stdout(name);
+		return strlen(name);
+	}
 
 	if (!(option_mask32 & OPT_Q)) {
+		/* the most likely branch: "ls" to tty (it auto-enables -q behavior) */
+		name = printable_string2(&uni_stat, name);
 		fputs_stdout(name);
 		return uni_stat.unicode_width;
 	}
 
-	len = 2 + uni_stat.unicode_width;
+	len = 2 + strlen(name);
 	putchar('"');
 	while (*name) {
-		if (*name == '"' || *name == '\\') {
+	        unsigned char ch = (unsigned char)*name;
+		if (ch < ' ' || ch > 0x7e) {
 			putchar('\\');
+			ch -= 7;
+			if (ch <= 6) {
+				/* quote chars 7..13 as \a,b,t,n,v,f,r */
+				ch = c_escape_conv_str07[1 + 3 * ch];
+				goto two;
+			}
+			/* other chars <32 or >126 as \ooo octal */
+			ch = (unsigned char)*name;
+			putchar('0' + (ch>>6));
+			putchar('0' + ((ch>>3) & 7));
+			ch = '0' + (ch & 7);
+			len += 3;
+			goto put_ch;
+		}
+		if (ch == '"' || ch == '\\') {
+			putchar('\\');
+ two:
 			len++;
 		}
-		putchar(*name);
+ put_ch:
+		putchar(ch);
 		name++;
 	}
 	putchar('"');
@@ -646,7 +717,7 @@ static void display_files(struct dnode **dn, unsigned nfiles)
 	unsigned i, ncols, nrows, row, nc;
 	unsigned column;
 	unsigned nexttab;
-	unsigned column_width = 0; /* used only by coulmnal output */
+	unsigned column_width = 0; /* used only by columnar output */
 
 	if (option_mask32 & (OPT_l|OPT_1)) {
 		ncols = 1;
@@ -691,6 +762,11 @@ static void display_files(struct dnode **dn, unsigned nfiles)
 				}
 				nexttab = column + column_width;
 				column += display_single(dn[i]);
+			} else {
+				/* if -w999999999, ncols can be very large */
+				//bb_error_msg(" col:%u ncol:%u i:%i", nc, ncols, i); sleep1();
+				/* without "break", we loop millions of times here */
+				break;
 			}
 		}
 		putchar('\n');
@@ -1090,24 +1166,10 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	/* need to initialize since --color has _an optional_ argument */
 	const char *color_opt = color_str; /* "always" */
 #endif
-#if ENABLE_LONG_OPTS
-	static const char ls_longopts[] ALIGN1 =
-		"full-time\0" No_argument "\xff"
-		"group-directories-first\0" No_argument "\xfe"
-		IF_FEATURE_LS_COLOR("color\0" Optional_argument "\xfd")
-	;
-#endif
 
 	INIT_G();
 
 	init_unicode();
-
-#if ENABLE_FEATURE_LS_WIDTH
-	/* obtain the terminal width */
-	G_terminal_width = get_terminal_width(STDIN_FILENO);
-	/* go one less... */
-	G_terminal_width--;
-#endif
 
 	/* process options */
 	opt = getopt32long(argv, "^"
@@ -1144,6 +1206,29 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	exit(0);
 #endif
 
+	/* ftpd secret backdoor? */
+	if (ENABLE_FTPD && applet_name[0] == 'f') {
+		/* dirs first are much nicer */
+		opt = option_mask32 |= OPT_dirs_first;
+		/* don't show SEcontext */
+		IF_SELINUX(opt = option_mask32 &= ~OPT_Z;)
+		/* do not query stdout about size and tty-ness */
+		IF_FEATURE_LS_WIDTH(G_terminal_width = INT_MAX;)
+		G.tty_out = 1; /* not a tty */
+		goto skip_if_ftpd;
+	}
+
+#if ENABLE_FEATURE_LS_WIDTH
+	if ((int)G_terminal_width < 0) {
+		/* obtain the terminal width */
+		G_terminal_width = get_terminal_width(STDIN_FILENO);
+		/* go one less... */
+		G_terminal_width--;
+	}
+	if (G_terminal_width == 0) /* -w0 */
+		G_terminal_width = INT_MAX; /* "infinite" */
+#endif
+
 #if ENABLE_SELINUX
 	if (opt & OPT_Z) {
 		if (!is_selinux_enabled())
@@ -1157,7 +1242,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		char *p = getenv("LS_COLORS");
 		/* LS_COLORS is unset, or (not empty && not "none") ? */
 		if (!p || (p[0] && strcmp(p, "none") != 0)) {
-			if (isatty(STDOUT_FILENO)) {
+			if (G_isatty()) {
 				/* check isatty() last because it's expensive (syscall) */
 				G_show_color = 1;
 			}
@@ -1166,23 +1251,28 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_color) {
 		if (color_opt[0] == 'n')
 			G_show_color = 0;
-		else switch (index_in_substrings(color_str, color_opt)) {
-		case 3:
-		case 4:
-		case 5:
-			if (!is_TERM_dumb() && isatty(STDOUT_FILENO)) {
-		case 0:
-		case 1:
-		case 2:
-				G_show_color = 1;
+		else if (!G_show_color) {
+		/* if() is not needed, but avoids extra isatty() if G_show_color is already set */
+			/* Check --color=COLOR_OPT and maybe set show_color=1 */
+			switch (index_in_substrings(color_str, color_opt)) {
+			case 3: // auto
+			case 4: // tty
+			case 5: // if-tty
+				if (!is_TERM_dumb() && G_isatty()) {
+			case 0: // always
+			case 1: // yes
+			case 2: // force
+					G_show_color = 1;
+				}
 			}
 		}
 	}
 #endif
+ skip_if_ftpd:
 
 	/* sort out which command line options take precedence */
 	if (ENABLE_FEATURE_LS_RECURSIVE && (opt & OPT_d))
-		option_mask32 &= ~OPT_R;	/* no recurse if listing only dir */
+		opt = option_mask32 &= ~OPT_R;	/* no recurse if listing only dir */
 	if (!(opt & OPT_l)) { /* not -l? */
 		if (ENABLE_FEATURE_LS_TIMESTAMPS && ENABLE_FEATURE_LS_SORTFILES) {
 			/* when to sort by time? -t[cu] sorts by time even with -l */
@@ -1190,19 +1280,17 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 			/* without -l, bare -c or -u enable sort too */
 			/* (with -l, bare -c or -u just select which time to show) */
 			if (opt & (OPT_c|OPT_u)) {
-				option_mask32 |= OPT_t;
+				opt = option_mask32 |= OPT_t;
 			}
 		}
 	}
 
 	/* choose a display format if one was not already specified by an option */
-	if (!(option_mask32 & (OPT_l|OPT_1|OPT_x|OPT_C)))
-		option_mask32 |= (isatty(STDOUT_FILENO) ? OPT_C : OPT_1);
+	if (!(opt & (OPT_l|OPT_1|OPT_x|OPT_C)))
+		opt = option_mask32 |= (G_isatty() ? OPT_C : OPT_1);
 
-	if (ENABLE_FTPD && applet_name[0] == 'f') {
-		/* ftpd secret backdoor. dirs first are much nicer */
-		option_mask32 |= OPT_dirs_first;
-	}
+	if (!(opt & OPT_q) && G_isatty())
+		opt = option_mask32 |= OPT_q;
 
 	argv += optind;
 	if (!argv[0])

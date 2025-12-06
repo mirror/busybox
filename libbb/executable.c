@@ -21,14 +21,11 @@ int FAST_FUNC file_is_executable(const char *name)
 /* search (*PATHp) for an executable file;
  * return allocated string containing full path if found;
  *  PATHp points to the component after the one where it was found
- *  (or NULL),
+ *  (or NULL if found in last component),
  *  you may call find_executable again with this PATHp to continue
- *  (if it's not NULL).
- * return NULL otherwise; (PATHp is undefined)
- * in all cases (*PATHp) contents are temporarily modified
- * but are restored on return (s/:/NUL/ and back).
+ * return NULL otherwise (PATHp is undefined)
  */
-char* FAST_FUNC find_executable(const char *filename, char **PATHp)
+char* FAST_FUNC find_executable(const char *name, const char **PATHp)
 {
 	/* About empty components in $PATH:
 	 * http://pubs.opengroup.org/onlinepubs/009695399/basedefs/xbd_chap08.html
@@ -38,38 +35,45 @@ char* FAST_FUNC find_executable(const char *filename, char **PATHp)
 	 * initial colon preceding the rest of the list, or as a trailing colon
 	 * following the rest of the list.
 	 */
-	char *p, *n;
+	char *p = (char*) *PATHp;
 
-	p = *PATHp;
-	while (p) {
-		int ex;
+	if (!p)
+		return NULL;
+	while (1) {
+		const char *end = strchrnul(p, ':');
+		int sz = end - p;
 
-		n = strchr(p, ':');
-		if (n) *n = '\0';
-		p = concat_path_file(
-			p[0] ? p : ".", /* handle "::" case */
-			filename
-		);
-		ex = file_is_executable(p);
-		if (n) *n++ = ':';
-		if (ex) {
-			*PATHp = n;
+		if (sz != 0) {
+			p = xasprintf("%.*s/%s", sz, p, name);
+		} else {
+			/* We have xxx::yyy in $PATH,
+			 * it means "use current dir" */
+			p = xstrdup(name);
+// A bit of discrepancy wrt the path used if file is found here.
+// bash 5.2.15 "type" returns "./NAME".
+// GNU which v2.21 returns "/CUR/DIR/NAME".
+// With -a, both skip over all colons: xxx::::yyy is the same as xxx::yyy,
+// current dir is not tried the second time.
+		}
+		if (file_is_executable(p)) {
+			*PATHp = (*end ? end+1 : NULL);
 			return p;
 		}
 		free(p);
-		p = n;
-	} /* on loop exit p == NULL */
-	return p;
+		if (*end == '\0')
+			return NULL;
+		p = (char *) end + 1;
+	}
 }
 
 /* search $PATH for an executable file;
  * return 1 if found;
  * return 0 otherwise;
  */
-int FAST_FUNC executable_exists(const char *filename)
+int FAST_FUNC executable_exists(const char *name)
 {
-	char *path = getenv("PATH");
-	char *ret = find_executable(filename, &path);
+	const char *path = getenv("PATH");
+	char *ret = find_executable(name, &path);
 	free(ret);
 	return ret != NULL;
 }

@@ -67,30 +67,37 @@ int main(void)
 		}
 		if (col == 0) {
 			col = 6;
-			printf("\t");
 		} else {
 			printf(", ");
 		}
-		printf("%s", usage_array[i].aname);
+		if (usage_array[i].usage[0] != NOUSAGE_STR[0]) {
+			/*
+			 * If the applet usage string will be included in the final document
+			 * optimistically link to its header (which is just the applet name).
+			 */
+			printf("L<C<%1$s>|/\"%1$s\">", usage_array[i].aname);
+		} else {
+			/* Without a usage string, just output the applet name with no link. */
+			printf("C<%s>", usage_array[i].aname);
+		}
 		col += len2;
 	}
 	printf("\n\n");
 
 	printf("=head1 COMMAND DESCRIPTIONS\n\n");
-	printf("=over 4\n\n");
 
 	for (i = 0; i < num_messages; i++) {
 		if (usage_array[i].aname[0] >= 'a' && usage_array[i].aname[0] <= 'z'
 		 && usage_array[i].usage[0] != NOUSAGE_STR[0]
 		) {
-			printf("=item B<%s>\n\n", usage_array[i].aname);
+			/* This is the heading that will be linked from the command list. */
+			printf("=head2 %s\n\n", usage_array[i].aname);
 			if (usage_array[i].usage[0])
 				printf("%s %s\n\n", usage_array[i].aname, usage_array[i].usage);
 			else
 				printf("%s\n\n", usage_array[i].aname);
 		}
 	}
-	printf("=back\n\n");
 
 	return 0;
 }

@@ -14,7 +14,11 @@ const char* FAST_FUNC strip_unsafe_prefix(const char *str)
 			cp++;
 			continue;
 		}
-		if (is_prefixed_with(cp, "/../"+1)) {
+		/* We are called lots of times.
+		 * is_prefixed_with(cp, "../") is slower than open-coding it,
+		 * with minimal code growth (~few bytes).
+		 */
+		if (cp[0] == '.' && cp[1] == '.' && cp[2] == '/') {
 			cp += 3;
 			continue;
 		}

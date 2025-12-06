@@ -1,3 +1,6 @@
+# If job control is disabled, skip the test ("Hangup" not emitted)
+test "`type jobs`" = "jobs is a shell builtin" || exit 77
+
 $THIS_SH -c '
 (sleep 1; kill -HUP $$) &
 while true; do

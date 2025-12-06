@@ -113,8 +113,8 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 		fmt = fmt_differ;
 
 	if (ENABLE_DESKTOP) {
-		while (skip1) { getc(fp1); skip1--; }
-		while (skip2) { getc(fp2); skip2--; }
+		while (skip1) { if (getc(fp1) == EOF) break; skip1--; }
+		while (skip2) { if (getc(fp2) == EOF) break; skip2--; }
 	}
 	do {
 		if (max_count >= 0 && --max_count < 0)
@@ -146,7 +146,7 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 					line_pos = c1;	/* line_pos is unused in the -l case. */
 				}
 				fprintf(outfile, fmt, filename1, filename2, char_pos, line_pos, c2);
-				if (opt) {	/* This must be -l since not -s. */
+				if (opt & CMP_OPT_l) {
 					/* If we encountered an EOF,
 					 * the while check will catch it. */
 					continue;

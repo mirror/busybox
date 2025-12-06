@@ -127,15 +127,20 @@ int hexdump_main(int argc, char **argv)
 		if (ch == 'f') {
 			bb_dump_addfile(dumper, optarg);
 		} /* else */
-		if (ch == 'n') {
-			dumper->dump_length = xatoi_positive(optarg);
+		if (ch == 'n') { /* compat: -n accepts hex numbers too */
+			dumper->dump_length = xstrtou_range_sfx(
+				optarg,
+				/*base:*/ 0,
+				/*lo:*/ 0, /*hi:*/ INT_MAX,
+				kmg_i_suffixes
+			);
 		} /* else */
 		if (ch == 's') { /* compat: -s accepts hex numbers too */
 			dumper->dump_skip = xstrtoull_range_sfx(
 				optarg,
 				/*base:*/ 0,
 				/*lo:*/ 0, /*hi:*/ OFF_T_MAX,
-				bkm_suffixes
+				kmg_i_suffixes
 			);
 		} /* else */
 		if (ch == 'v') {

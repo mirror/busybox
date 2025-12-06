@@ -1,0 +1,35 @@
+cat <<<one
+cat <<<\_two
+cat <<<"\_three"
+cat <<<'\_four'
+cat <<<\\_two
+cat <<<"\\_three"
+cat <<<'\\_four'
+
+cat <<<$'two_newlines\n'
+
+cat <<</bin/c*
+
+cat <<<star_*
+cat <<<star_\*
+cat <<<"star_*"
+cat <<<"star_\*"
+cat <<<'star_*'
+cat <<<'star_\*'
+
+var=$'line1
+line2
+	line3'
+
+cat <<<$var
+
+cat <<<"$var"
+
+i=10
+until test $((--i)) = 0; do
+	cat <<<$((2**i))
+done
+
+a=qwerty
+cat <<<`echo v'-$a-\t-\\-\"-\x-\`-\--\z-\*-\?-'`
+cat <<<"`echo v'-$a-\t-\\-\"-\x-\`-\--\z-\*-\?-'`"

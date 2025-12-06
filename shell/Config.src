@@ -166,9 +166,10 @@ config FEATURE_SH_HISTFILESIZE
 	default y
 	depends on SHELL_ASH || SHELL_HUSH
 	help
-	This option makes busybox shells to use $HISTFILESIZE variable
-	to set shell history size. Note that its max value is capped
-	by "History size" setting in library tuning section.
+	This option makes busybox shells to use $HISTSIZE and
+	$HISTFILESIZE variables to set shell history size.
+	Note that its max value is capped by "History size" setting
+	in library tuning section.
 
 config FEATURE_SH_EMBEDDED_SCRIPTS
 	bool "Embed scripts in the binary"

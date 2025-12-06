@@ -575,29 +575,51 @@ static void send_packet_to_client(struct dhcp_packet *dhcp_pkt, int force_broadc
 	const uint8_t *chaddr;
 	uint32_t ciaddr;
 
-	// Was:
+	// Logic:
 	//if (force_broadcast) { /* broadcast */ }
 	//else if (dhcp_pkt->ciaddr) { /* unicast to dhcp_pkt->ciaddr */ }
+	// ^^^ dhcp_pkt->ciaddr comes from client's request packet.
+	// We expect such clients to have an UDP socket listening on that IP.
 	//else if (dhcp_pkt->flags & htons(BROADCAST_FLAG)) { /* broadcast */ }
 	//else { /* unicast to dhcp_pkt->yiaddr */ }
-	// But this is wrong: yiaddr is _our_ idea what client's IP is
-	// (for example, from lease file). Client may not know that,
-	// and may not have UDP socket listening on that IP!
-	// We should never unicast to dhcp_pkt->yiaddr!
-	// dhcp_pkt->ciaddr, OTOH, comes from client's request packet,
-	// and can be used.
+	// ^^^ The last case is confusing, but *should* work.
+	// It's a case where client have sent a DISCOVER
+	// and does not have a kernel UDP socket listening on the IP
+	// we are offering in yiaddr (it does not know the IP yet)!
+	// This *should* work because client *should* listen on a raw socket
+	// instead at this time (IOW: it should examine ALL IPv4 packets
+	// "by hand", not relying on kernel's UDP stack.)
 
-	if (force_broadcast
-	 || (dhcp_pkt->flags & htons(BROADCAST_FLAG))
-	 || dhcp_pkt->ciaddr == 0
+	chaddr = dhcp_pkt->chaddr;
+
+	if (dhcp_pkt->ciaddr == 0
+	 || force_broadcast /* sending DHCPNAK pkt? */
 	) {
-		log1s("broadcasting packet to client");
-		ciaddr = INADDR_BROADCAST;
-		chaddr = MAC_BCAST_ADDR;
+		if (dhcp_pkt->flags & htons(BROADCAST_FLAG)
+		 || force_broadcast /* sending DHCPNAK pkt? */
+		) {
+// RFC 2131:
+// If 'giaddr' is zero and 'ciaddr' is zero, and the broadcast bit is
+// set, then the server broadcasts DHCPOFFER and DHCPACK messages to
+// 0xffffffff. ...
+// In all cases, when 'giaddr' is zero, the server broadcasts any DHCPNAK
+// messages to 0xffffffff.
+			ciaddr = INADDR_BROADCAST;
+			chaddr = MAC_BCAST_ADDR;
+			log1s("broadcasting packet to client");
+		} else {
+// If the broadcast bit is not set and 'giaddr' is zero and
+// 'ciaddr' is zero, then the server unicasts DHCPOFFER and DHCPACK
+// messages to the client's hardware address and 'yiaddr' address.
+			ciaddr = dhcp_pkt->yiaddr;
+			log1("unicasting packet to client %ciaddr", 'y');
+		}
 	} else {
-		log1s("unicasting packet to client ciaddr");
+// If the 'giaddr'
+// field is zero and the 'ciaddr' field is nonzero, then the server
+// unicasts DHCPOFFER and DHCPACK messages to the address in 'ciaddr'.
 		ciaddr = dhcp_pkt->ciaddr;
-		chaddr = dhcp_pkt->chaddr;
+		log1("unicasting packet to client %ciaddr", 'c');
 	}
 
 	udhcp_send_raw_packet(dhcp_pkt,
@@ -624,6 +646,10 @@ static void send_packet_to_relay(struct dhcp_packet *dhcp_pkt)
 static void send_packet(struct dhcp_packet *dhcp_pkt, int force_broadcast)
 {
 	if (dhcp_pkt->gateway_nip)
+// RFC 2131:
+// If the 'giaddr' field in a DHCP message from a client is non-zero,
+// the server sends any return messages to the 'DHCP server' port on the
+// BOOTP relay agent whose address appears in 'giaddr'.
 		send_packet_to_relay(dhcp_pkt);
 	else
 		send_packet_to_client(dhcp_pkt, force_broadcast);

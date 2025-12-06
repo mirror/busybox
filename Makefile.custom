@@ -156,12 +156,12 @@ docs/busybox.pod: $(srctree)/docs/busybox_header.pod \
 docs/BusyBox.txt: docs/busybox.pod
 	$(disp_doc)
 	$(Q)-mkdir -p docs
-	$(Q)-pod2text $< > $@
+	$(Q)-pod2text --quotes=none $< > $@
 
 docs/busybox.1: docs/busybox.pod
 	$(disp_doc)
 	$(Q)-mkdir -p docs
-	$(Q)-pod2man --center=busybox --release="version $(KERNELVERSION)" $< > $@
+	$(Q)-pod2man --quotes=none --center=busybox --release="version $(KERNELVERSION)" $< > $@
 
 docs/BusyBox.html: docs/busybox.net/BusyBox.html
 	$(disp_doc)

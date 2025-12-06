@@ -117,10 +117,15 @@
 
 #include "libbb.h"
 
-#define ESC "\033"
+#define ESC     "\033"
+#define HOME    ESC"[H"
+#define CLREOS  ESC"[J"
+#define CLREOL  ESC"[K"
+#define REVERSE ESC"[7m"
+#define NORMAL  ESC"[m"
 
 typedef struct top_status_t {
-	unsigned long vsz;
+	unsigned long memsize;
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	unsigned long ticks;
 	unsigned pcpu; /* delta of ticks */
@@ -161,13 +166,16 @@ struct globals {
 	top_status_t *top;
 	int ntop;
 	smallint inverted;
+	smallint first_line_printed;
 #if ENABLE_FEATURE_TOPMEM
 	smallint sort_field;
 #endif
 #if ENABLE_FEATURE_TOP_SMP_CPU
 	smallint smp_cpu_info; /* one/many cpu info lines? */
 #endif
-	unsigned lines;  /* screen height */
+	int lines_remaining;
+	unsigned lines;     /* screen height */
+	unsigned scr_width; /* width, clamped <= LINE_BUF_SIZE-2 */
 #if ENABLE_FEATURE_TOP_INTERACTIVE
 	struct termios initial_settings;
 	int scroll_ofs;
@@ -212,7 +220,6 @@ struct globals {
 #define cpu_prev_jif     (G.cpu_prev_jif      )
 #define num_cpus         (G.num_cpus          )
 #define total_pcpu       (G.total_pcpu        )
-#define line_buf         (G.line_buf          )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	BUILD_BUG_ON(LINE_BUF_SIZE <= 80); \
@@ -241,8 +248,8 @@ static int pid_sort(top_status_t *P, top_status_t *Q)
 static int mem_sort(top_status_t *P, top_status_t *Q)
 {
 	/* We want to avoid unsigned->signed and truncation errors */
-	if (Q->vsz < P->vsz) return -1;
-	return Q->vsz != P->vsz; /* 0 if ==, 1 if > */
+	if (Q->memsize < P->memsize) return -1;
+	return Q->memsize != P->memsize; /* 0 if ==, 1 if > */
 }
 
 
@@ -283,9 +290,9 @@ static NOINLINE int read_cpu_jiffy(FILE *fp, jiffy_counts_t *p_jif)
 #endif
 	int ret;
 
-	if (!fgets(line_buf, LINE_BUF_SIZE, fp) || line_buf[0] != 'c' /* not "cpu" */)
+	if (!fgets(G.line_buf, LINE_BUF_SIZE, fp) || G.line_buf[0] != 'c' /* not "cpu" */)
 		return 0;
-	ret = sscanf(line_buf, fmt,
+	ret = sscanf(G.line_buf, fmt,
 			&p_jif->usr, &p_jif->nic, &p_jif->sys, &p_jif->idle,
 			&p_jif->iowait, &p_jif->irq, &p_jif->softirq,
 			&p_jif->steal);
@@ -362,7 +369,7 @@ static void do_stats(void)
 
 	get_jiffy_counts();
 	total_pcpu = 0;
-	/* total_vsz = 0; */
+	/* total_memsize = 0; */
 	new_hist = xmalloc(sizeof(new_hist[0]) * ntop);
 	/*
 	 * Make a pass through the data to get stats.
@@ -394,7 +401,7 @@ static void do_stats(void)
 			i = (i+1) % prev_hist_count;
 			/* hist_iterations++; */
 		} while (i != last_i);
-		/* total_vsz += cur->vsz; */
+		/* total_memsize += cur->memsize; */
 	}
 
 	/*
@@ -406,6 +413,39 @@ static void do_stats(void)
 }
 
 #endif /* FEATURE_TOP_CPU_USAGE_PERCENTAGE */
+
+static void print_line_buf(void)
+{
+	const char *fmt;
+
+	G.lines_remaining--;
+	fmt = OPT_BATCH_MODE ? "\n""%.*s" : "\n""%.*s"CLREOL;
+	if (!G.first_line_printed) {
+		G.first_line_printed = 1;
+		/* Go to top */
+		fmt = OPT_BATCH_MODE ? "%.*s" : HOME"%.*s"CLREOL;
+	}
+	printf(fmt, G.scr_width - 1, G.line_buf);
+}
+
+static void print_line_bold(void)
+{
+	G.lines_remaining--;
+//we never print first line in bold
+//	if (!G.first_line_printed) {
+//		printf(OPT_BATCH_MODE ? "%.*s" : HOME"%.*s"CLREOL, G.scr_width - 1, G.line_buf);
+//		G.first_line_printed = 1;
+//	} else {
+		printf(OPT_BATCH_MODE ? "\n""%.*s" : "\n"REVERSE"%.*s"NORMAL CLREOL, G.scr_width - 1, G.line_buf);
+//	}
+}
+
+static void print_end(void)
+{
+	fputs_stdout(OPT_BATCH_MODE ? "\n" : CLREOS"\r");
+	/* next print will be "first line" (will clear the screen) */
+	G.first_line_printed = 0;
+}
 
 #if ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS && ENABLE_FEATURE_TOP_DECIMALS
 /* formats 7 char string (8 with terminating NUL) */
@@ -433,7 +473,7 @@ static char *fmt_100percent_8(char pbuf[8], unsigned value, unsigned total)
 #endif
 
 #if ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS
-static void display_cpus(int scr_width, char *scrbuf, int *lines_rem_p)
+static void display_cpus(void)
 {
 	/*
 	 * xxx% = (cur_jif.xxx - prev_jif.xxx) / (cur_jif.total - prev_jif.total) * 100%
@@ -469,8 +509,8 @@ static void display_cpus(int scr_width, char *scrbuf, int *lines_rem_p)
 # else
 	/* Loop thru CPU(s) */
 	n_cpu_lines = smp_cpu_info ? num_cpus : 1;
-	if (n_cpu_lines > *lines_rem_p)
-		n_cpu_lines = *lines_rem_p;
+	if (n_cpu_lines > G.lines_remaining)
+		n_cpu_lines = G.lines_remaining;
 
 	for (i = 0; i < n_cpu_lines; i++) {
 		p_jif = &cpu_jif[i];
@@ -488,7 +528,7 @@ static void display_cpus(int scr_width, char *scrbuf, int *lines_rem_p)
 			CALC_STAT(softirq);
 			/*CALC_STAT(steal);*/
 
-			snprintf(scrbuf, scr_width,
+			sprintf(G.line_buf,
 				/* Barely fits in 79 chars when in "decimals" mode. */
 # if ENABLE_FEATURE_TOP_SMP_CPU
 				"CPU%s:"FMT"usr"FMT"sys"FMT"nic"FMT"idle"FMT"io"FMT"irq"FMT"sirq",
@@ -501,16 +541,15 @@ static void display_cpus(int scr_width, char *scrbuf, int *lines_rem_p)
 				/*, SHOW_STAT(steal) - what is this 'steal' thing? */
 				/* I doubt anyone wants to know it */
 			);
-			puts(scrbuf);
+			print_line_buf();
 		}
 	}
 # undef SHOW_STAT
 # undef CALC_STAT
 # undef FMT
-	*lines_rem_p -= i;
 }
 #else  /* !ENABLE_FEATURE_TOP_CPU_GLOBAL_PERCENTS */
-# define display_cpus(scr_width, scrbuf, lines_rem) ((void)0)
+# define display_cpus() ((void)0)
 #endif
 
 enum {
@@ -564,52 +603,55 @@ static void parse_meminfo(unsigned long meminfo[MI_MAX])
 	fclose(f);
 }
 
-static unsigned long display_header(int scr_width, int *lines_rem_p)
+static void cmdline_to_line_buf_and_print(unsigned offset, unsigned pid, const char *comm)
 {
-	char scrbuf[100]; /* [80] was a bit too low on 8Gb ram box */
+	int width = G.scr_width - offset;
+	if (width > 1) /* wider than to fit just the NUL? */
+		read_cmdline(G.line_buf + offset, width, pid, comm);
+//TODO: read_cmdline() sanitizes control chars, but not chars above 0x7e
+	print_line_buf();
+}
+
+static unsigned long display_header(void)
+{
 	char *buf;
 	unsigned long meminfo[MI_MAX];
 
 	parse_meminfo(meminfo);
 
 	/* Output memory info */
-	if (scr_width > (int)sizeof(scrbuf))
-		scr_width = sizeof(scrbuf);
-	snprintf(scrbuf, scr_width,
+	sprintf(G.line_buf,
 		"Mem: %luK used, %luK free, %luK shrd, %luK buff, %luK cached",
 		meminfo[MI_MEMTOTAL] - meminfo[MI_MEMFREE],
 		meminfo[MI_MEMFREE],
 		meminfo[MI_MEMSHARED] + meminfo[MI_SHMEM],
 		meminfo[MI_BUFFERS],
 		meminfo[MI_CACHED]);
-	/* Go to top & clear to the end of screen */
-	printf(OPT_BATCH_MODE ? "%s\n" : ESC"[H" ESC"[J" "%s\n", scrbuf);
-	(*lines_rem_p)--;
+	print_line_buf();
 
 	/* Display CPU time split as percentage of total time.
 	 * This displays either a cumulative line or one line per CPU.
 	 */
-	display_cpus(scr_width, scrbuf, lines_rem_p);
+	display_cpus();
 
 	/* Read load average as a string */
-	buf = stpcpy(scrbuf, "Load average: ");
-	open_read_close("loadavg", buf, sizeof(scrbuf) - sizeof("Load average: "));
-	scrbuf[scr_width - 1] = '\0';
+	buf = stpcpy(G.line_buf, "Load average: ");
+	open_read_close("loadavg", buf, sizeof(G.line_buf) - sizeof("Load average: "));
+	G.line_buf[sizeof(G.line_buf) - 1] = '\0'; /* paranoia */
 	strchrnul(buf, '\n')[0] = '\0';
-	puts(scrbuf);
-	(*lines_rem_p)--;
+	print_line_buf();
 
 	return meminfo[MI_MEMTOTAL];
 }
 
-static NOINLINE void display_process_list(int lines_rem, int scr_width)
+static NOINLINE void display_process_list(void)
 {
 	enum {
 		BITS_PER_INT = sizeof(int) * 8
 	};
 
 	top_status_t *s;
-	unsigned long total_memory = display_header(scr_width, &lines_rem); /* or use total_vsz? */
+	unsigned long total_memory = display_header();
 	/* xxx_shift and xxx_scale variables allow us to replace
 	 * expensive divides with multiply and shift */
 	unsigned pmem_shift, pmem_scale, pmem_half;
@@ -621,7 +663,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 
 #if ENABLE_FEATURE_TOP_DECIMALS
 # define UPSCALE 1000
-typedef struct { unsigned quot, rem; } bb_div_t;
+	typedef struct { unsigned quot, rem; } bb_div_t;
 /* Used to have "div_t name = div((val), 10)" here
  * (IOW: intended to use libc-compatible way to divide and use
  * both result and remainder, but musl does not inline div()...)
@@ -629,28 +671,34 @@ typedef struct { unsigned quot, rem; } bb_div_t;
  */
 # define CALC_STAT(name, val) bb_div_t name = { (val) / 10, (val) % 10 }
 # define SHOW_STAT(name) name.quot, '0'+name.rem
+# define SANITIZE(name)  if (name.quot > 99) name.quot = 99, name.rem = (unsigned char)('+' - '0')
 # define FMT "%3u.%c"
 #else
 # define UPSCALE 100
 # define CALC_STAT(name, val) unsigned name = (val)
+# define SANITIZE(name)  if (name > 99) name = 99
 # define SHOW_STAT(name) name
 # define FMT "%4u%%"
 #endif
 
-	/* what info of the processes is shown */
-	printf(OPT_BATCH_MODE ? "%.*s" : ESC"[7m" "%.*s" ESC"[m", scr_width,
-		"  PID  PPID USER     STAT   VSZ %VSZ"
+	strcpy(G.line_buf, "  PID  PPID USER     STAT   RSS %RSS"
 		IF_FEATURE_TOP_SMP_PROCESS(" CPU")
 		IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(" %CPU")
 		" COMMAND");
-	lines_rem--;
+	print_line_bold();
 
-	/*
-	 * %VSZ = s->vsz/MemTotal
+	/* %RSS = s->memsize / MemTotal * 100%
+	 * Calculate this with multiply and shift. Example:
+	 * shift = 12
+	 * scale = 100 * 0x1000 / total_memory
+	 * percent_mem = (size_mem * scale) >> shift
+	 *            ~= (size_mem >> shift) * scale
+	 *            ~= (size_mem >> shift) * 100 * (1 << shift) / total_memory
+	 *            ~= size_mem * 100 / total_memory
 	 */
 	pmem_shift = BITS_PER_INT-11;
 	pmem_scale = UPSCALE*(1U<<(BITS_PER_INT-11)) / total_memory;
-	/* s->vsz is in kb. we want (s->vsz * pmem_scale) to never overflow */
+	/* s->memsize is in kb. we want (s->memsize * pmem_scale) to never overflow */
 	while (pmem_scale >= 512) {
 		pmem_scale /= 4;
 		pmem_shift -= 2;
@@ -689,25 +737,29 @@ typedef struct { unsigned quot, rem; } bb_div_t;
 	pcpu_half = (1U << pcpu_shift) / (ENABLE_FEATURE_TOP_DECIMALS ? 20 : 2);
 	/* printf(" pmem_scale=%u pcpu_scale=%u ", pmem_scale, pcpu_scale); */
 #endif
+	if (G.lines_remaining > ntop - G_scroll_ofs)
+		G.lines_remaining = ntop - G_scroll_ofs;
 
 	/* Ok, all preliminary data is ready, go through the list */
-	scr_width += 2; /* account for leading '\n' and trailing NUL */
-	if (lines_rem > ntop - G_scroll_ofs)
-		lines_rem = ntop - G_scroll_ofs;
 	s = top + G_scroll_ofs;
-	while (--lines_rem >= 0) {
+	while (G.lines_remaining > 0) {
 		int n;
 		char *ppu;
 		char ppubuf[sizeof(int)*3 * 2 + 12];
-		char vsz_str_buf[8];
+		char memsize_str_buf[8];
 		unsigned col;
 
-		CALC_STAT(pmem, (s->vsz*pmem_scale + pmem_half) >> pmem_shift);
+		CALC_STAT(pmem, (s->memsize*pmem_scale + pmem_half) >> pmem_shift);
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		CALC_STAT(pcpu, (s->pcpu*pcpu_scale + pcpu_half) >> pcpu_shift);
 #endif
+		/* VSZ can be much larger than total memory
+		 * (seen values close to 2Tbyte), don't try to display
+		 * "uses 12345.6% of MemTotal" (won't fit the column)
+		 */
+		SANITIZE(pmem);
 
-		smart_ulltoa5(s->vsz, vsz_str_buf, " mgtpezy");
+		smart_ulltoa5(s->memsize, memsize_str_buf, " mgtpezy");
 		/* PID PPID USER STAT VSZ %VSZ [%CPU] COMMAND */
 		n = sprintf(ppubuf, "%5u %5u %-8.8s", s->pid, s->ppid, get_cached_username(s->uid));
 		ppu = ppubuf;
@@ -736,27 +788,23 @@ typedef struct { unsigned quot, rem; } bb_div_t;
 			ppu[6+6+8] = '\0'; /* truncate USER */
 		}
  shortened:
-		col = snprintf(line_buf, scr_width,
-				"\n" "%s %s  %.5s" FMT
+		col = sprintf(G.line_buf,
+				"%s %s  %.5s" FMT
 				IF_FEATURE_TOP_SMP_PROCESS(" %3d")
 				IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(FMT)
 				" ",
 				ppu,
-				s->state, vsz_str_buf,
+				s->state, memsize_str_buf,
 				SHOW_STAT(pmem)
 				IF_FEATURE_TOP_SMP_PROCESS(, s->last_seen_on_cpu)
 				IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(, SHOW_STAT(pcpu))
 		);
-		if ((int)(scr_width - col) > 1)
-			read_cmdline(line_buf + col, scr_width - col, s->pid, s->comm);
-		fputs_stdout(line_buf);
+		cmdline_to_line_buf_and_print(col, s->pid, s->comm);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
 			cur_jif.busy - prev_jif.busy, cur_jif.total - prev_jif.total); */
 		s++;
 	}
 	/* printf(" %d", hist_iterations); */
-	bb_putchar(OPT_BATCH_MODE ? '\n' : '\r');
-	fflush_all();
 }
 #undef UPSCALE
 #undef SHOW_STAT
@@ -828,36 +876,34 @@ static int topmem_sort(char *a, char *b)
 }
 
 /* display header info (meminfo / loadavg) */
-static void display_topmem_header(int scr_width, int *lines_rem_p)
+static void display_topmem_header(void)
 {
 	unsigned long meminfo[MI_MAX];
 
 	parse_meminfo(meminfo);
 
-	snprintf(line_buf, LINE_BUF_SIZE,
+	sprintf(G.line_buf,
 		"Mem total:%lu anon:%lu map:%lu free:%lu",
 		meminfo[MI_MEMTOTAL],
 		meminfo[MI_ANONPAGES],
 		meminfo[MI_MAPPED],
 		meminfo[MI_MEMFREE]);
-	printf(OPT_BATCH_MODE ? "%.*s\n" : ESC"[H" ESC"[J" "%.*s\n", scr_width, line_buf);
+	print_line_buf();
 
-	snprintf(line_buf, LINE_BUF_SIZE,
+	sprintf(G.line_buf,
 		" slab:%lu buf:%lu cache:%lu dirty:%lu write:%lu",
 		meminfo[MI_SLAB],
 		meminfo[MI_BUFFERS],
 		meminfo[MI_CACHED],
 		meminfo[MI_DIRTY],
 		meminfo[MI_WRITEBACK]);
-	printf("%.*s\n", scr_width, line_buf);
+	print_line_buf();
 
-	snprintf(line_buf, LINE_BUF_SIZE,
+	sprintf(G.line_buf,
 		"Swap total:%lu free:%lu", // TODO: % used?
 		meminfo[MI_SWAPTOTAL],
 		meminfo[MI_SWAPFREE]);
-	printf("%.*s\n", scr_width, line_buf);
-
-	(*lines_rem_p) -= 3;
+	print_line_buf();
 }
 
 /* see http://en.wikipedia.org/wiki/Tera */
@@ -870,75 +916,57 @@ static void ulltoa4_and_space(unsigned long long ul, char buf[5])
 	smart_ulltoa4(ul, buf, " mgtpezy")[0] = ' ';
 }
 
-static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
+static NOINLINE void display_topmem_process_list(void)
 {
-#define HDR_STR "  PID   VSZ VSZRW   RSS (SHR) DIRTY (SHR) STACK"
-#define MIN_WIDTH sizeof(HDR_STR)
 	const topmem_status_t *s = topmem + G_scroll_ofs;
 	char *cp, ch;
 
-	display_topmem_header(scr_width, &lines_rem);
+	display_topmem_header();
 
-	strcpy(line_buf, HDR_STR " COMMAND");
+	strcpy(G.line_buf, "  PID   VSZ VSZRW   RSS (SHR) DIRTY (SHR) STACK COMMAND");
 	/* Mark the ^FIELD^ we sort by */
-	cp = &line_buf[5 + sort_field * 6];
+	cp = &G.line_buf[5 + sort_field * 6];
 	ch = "^_"[inverted];
 	cp[6] = ch;
 	do *cp++ = ch; while (*cp == ' ');
+	print_line_bold();
 
-	printf(OPT_BATCH_MODE ? "%.*s" : ESC"[7m" "%.*s" ESC"[m", scr_width, line_buf);
-	lines_rem--;
-
-	if (lines_rem > ntop - G_scroll_ofs)
-		lines_rem = ntop - G_scroll_ofs;
-	while (--lines_rem >= 0) {
+	if (G.lines_remaining > ntop - G_scroll_ofs)
+		G.lines_remaining = ntop - G_scroll_ofs;
+	while (G.lines_remaining > 0) {
 		/* PID VSZ VSZRW RSS (SHR) DIRTY (SHR) COMMAND */
-		int n = sprintf(line_buf, "%5u ", s->pid);
+		int n = sprintf(G.line_buf, "%5u ", s->pid);
 		if (n > 7) {
 			/* PID is 7 chars long (up to 4194304) */
-			ulltoa4_and_space(s->vsz  , &line_buf[8]);
-			ulltoa4_and_space(s->vszrw, &line_buf[8+5]);
+			ulltoa4_and_space(s->vsz  , &G.line_buf[8]);
+			ulltoa4_and_space(s->vszrw, &G.line_buf[8+5]);
 			/* the next field (RSS) starts at 8+10 = 3*6 */
 		} else {
 			if (n == 7) /* PID is 6 chars long */
-				ulltoa4_and_space(s->vsz, &line_buf[7]);
+				ulltoa4_and_space(s->vsz, &G.line_buf[7]);
 				/* the next field (VSZRW) starts at 7+5 = 2*6 */
 			else /* PID is 5 chars or less */
-				ulltoa5_and_space(s->vsz, &line_buf[6]);
-			ulltoa5_and_space(s->vszrw, &line_buf[2*6]);
+				ulltoa5_and_space(s->vsz, &G.line_buf[6]);
+			ulltoa5_and_space(s->vszrw, &G.line_buf[2*6]);
 		}
-		ulltoa5_and_space(s->rss     , &line_buf[3*6]);
-		ulltoa5_and_space(s->rss_sh  , &line_buf[4*6]);
-		ulltoa5_and_space(s->dirty   , &line_buf[5*6]);
-		ulltoa5_and_space(s->dirty_sh, &line_buf[6*6]);
-		ulltoa5_and_space(s->stack   , &line_buf[7*6]);
-		line_buf[8*6] = '\0';
-		if (scr_width > (int)MIN_WIDTH) {
-			read_cmdline(&line_buf[8*6], scr_width - MIN_WIDTH, s->pid, s->comm);
-		}
-		printf("\n""%.*s", scr_width, line_buf);
+		ulltoa5_and_space(s->rss     , &G.line_buf[3*6]);
+		ulltoa5_and_space(s->rss_sh  , &G.line_buf[4*6]);
+		ulltoa5_and_space(s->dirty   , &G.line_buf[5*6]);
+		ulltoa5_and_space(s->dirty_sh, &G.line_buf[6*6]);
+		ulltoa5_and_space(s->stack   , &G.line_buf[7*6]);
+		G.line_buf[8*6] = '\0';
+		cmdline_to_line_buf_and_print(8*6, s->pid, s->comm);
 		s++;
 	}
-	bb_putchar(OPT_BATCH_MODE ? '\n' : '\r');
-	fflush_all();
-#undef HDR_STR
-#undef MIN_WIDTH
 }
 
-#else
-void display_topmem_process_list(int lines_rem, int scr_width);
-int topmem_sort(char *a, char *b);
-#endif /* TOPMEM */
-
-/*
- * end TOPMEM support
- */
+#endif /* end TOPMEM support */
 
 enum {
 	TOP_MASK = 0
 		| PSSCAN_PID
 		| PSSCAN_PPID
-		| PSSCAN_VSZ
+		| PSSCAN_RSS
 		| PSSCAN_STIME
 		| PSSCAN_UTIME
 		| PSSCAN_STATE
@@ -950,7 +978,7 @@ enum {
 		| PSSCAN_SMAPS
 		| PSSCAN_COMM,
 	EXIT_MASK = 0,
-	NO_RESCAN_MASK = (unsigned)-1,
+	ONLY_REDRAW = (unsigned)-1,
 };
 
 #if ENABLE_FEATURE_TOP_INTERACTIVE
@@ -963,15 +991,22 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 	}
 
 	while (1) {
-		int32_t c;
+		int32_t c, cc;
 
 		c = safe_read_key(STDIN_FILENO, G.kbd_input, interval * 1000);
-		if (c == -1 && errno != EAGAIN) {
-			/* error/EOF */
-			option_mask32 |= OPT_EOF;
+		if (c == -1) {
+			if (errno != EAGAIN)
+				/* error/EOF */
+				option_mask32 |= OPT_EOF;
+			/* else: timeout - rescan and refresh */
 			break;
 		}
 		interval = 0;
+		/* "continue" statements below return to do one additional
+		 * quick attempt to read a key. This prevents
+		 * long sequence of e.g. "nnnnnnnnnnnnnnnnnnnnnnnnnn"
+		 * to cause lots of rescans.
+		 */
 
 		if (c == initial_settings.c_cc[VINTR])
 			return EXIT_MASK;
@@ -1005,9 +1040,10 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 				G_scroll_ofs = ntop - 1;
 			if (G_scroll_ofs < 0)
 				G_scroll_ofs = 0;
-			return NO_RESCAN_MASK;
+			return ONLY_REDRAW;
 		}
 
+		cc = c;
 		c |= 0x20; /* lowercase */
 		if (c == 'q')
 			return EXIT_MASK;
@@ -1055,9 +1091,17 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 			continue;
 		}
 #  if ENABLE_FEATURE_TOPMEM
+		if (cc == 'S') {
+			if (--sort_field < 0)
+				sort_field = NUM_SORT_FIELD - 1;
+			if (--sort_field < 0)
+				sort_field = NUM_SORT_FIELD - 1;
+		}
 		if (c == 's') {
-			scan_mask = TOPMEM_MASK;
 			sort_field = (sort_field + 1) % NUM_SORT_FIELD;
+			if (scan_mask == TOPMEM_MASK)
+				return ONLY_REDRAW;
+			scan_mask = TOPMEM_MASK;
 			free(prev_hist);
 			prev_hist = NULL;
 			prev_hist_count = 0;
@@ -1066,7 +1110,7 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 #  endif
 		if (c == 'r') {
 			inverted ^= 1;
-			continue;
+			return ONLY_REDRAW;
 		}
 #  if ENABLE_FEATURE_TOP_SMP_CPU
 		/* procps-2.0.18 uses 'C', 3.2.7 uses '1' */
@@ -1088,8 +1132,8 @@ static unsigned handle_input(unsigned scan_mask, duration_t interval)
 		}
 #  endif
 # endif
-		break; /* unknown key -> force refresh */
-	}
+		/* Unknown key. Eat remaining buffered input (if any) */
+	} /* while (1) */
 
 	return scan_mask;
 }
@@ -1155,11 +1199,14 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 {
 	duration_t interval;
 	int iterations;
-	unsigned col;
+	unsigned opt;
 	char *str_interval, *str_iterations;
 	unsigned scan_mask = TOP_MASK;
 
 	INIT_G();
+
+//worth it?
+//	setvbuf(stdout, /*buf*/ NULL, _IOFBF, /*size*/ 0);
 
 	interval = 5; /* default update interval is 5 seconds */
 	iterations = 0; /* infinite */
@@ -1172,13 +1219,13 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 
 	/* all args are options; -n NUM */
 	make_all_argv_opts(argv); /* options can be specified w/o dash */
-	col = getopt32(argv, "d:n:bHm", &str_interval, &str_iterations);
+	opt = getopt32(argv, "d:n:bHm", &str_interval, &str_iterations);
 	/* NB: -m and -H are accepted even if not configured */
 #if ENABLE_FEATURE_TOPMEM
-	if (col & OPT_m) /* -m (busybox specific) */
+	if (opt & OPT_m) /* -m (busybox specific) */
 		scan_mask = TOPMEM_MASK;
 #endif
-	if (col & OPT_d) {
+	if (opt & OPT_d) {
 		/* work around for "-d 1" -> "-d -1" done by make_all_argv_opts() */
 		if (str_interval[0] == '-')
 			str_interval++;
@@ -1187,18 +1234,17 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 		if (interval > INT_MAX / 1000)
 			interval = INT_MAX / 1000;
 	}
-	if (col & OPT_n) {
+	if (opt & OPT_n) {
 		if (str_iterations[0] == '-')
 			str_iterations++;
 		iterations = xatou(str_iterations);
 	}
 #if ENABLE_FEATURE_SHOW_THREADS
-	if (col & OPT_H) {
+	if (opt & OPT_H) {
 		scan_mask |= PSSCAN_TASKS;
 	}
 #endif
 
-	/* change to /proc */
 	xchdir("/proc");
 
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
@@ -1226,23 +1272,22 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	while (scan_mask != EXIT_MASK) {
-		IF_FEATURE_TOP_INTERACTIVE(unsigned new_mask;)
+		IF_FEATURE_TOP_INTERACTIVE(unsigned new_mask = scan_mask;)
 		procps_status_t *p = NULL;
 
-		if (OPT_BATCH_MODE) {
-			G.lines = INT_MAX;
-			col = LINE_BUF_SIZE - 2; /* +2 bytes for '\n', NUL */
-		} else {
+		G.lines = INT_MAX;
+		G.scr_width = LINE_BUF_SIZE - 2; /* +2 bytes for '\n', NUL */
+		if (!OPT_BATCH_MODE) {
 			G.lines = 24; /* default */
-			col = 79;
+			G.scr_width = 80;
 			/* We output to stdout, we need size of stdout (not stdin)! */
-			get_terminal_width_height(STDOUT_FILENO, &col, &G.lines);
-			if (G.lines < 5 || col < 10) {
+			get_terminal_width_height(STDOUT_FILENO, &G.scr_width, &G.lines);
+			if (G.lines < 5 || G.scr_width < 10) {
 				sleep_for_duration(interval);
 				continue;
 			}
-			if (col > LINE_BUF_SIZE - 2)
-				col = LINE_BUF_SIZE - 2;
+			if (G.scr_width > LINE_BUF_SIZE - 2)
+				G.scr_width = LINE_BUF_SIZE - 2;
 		}
 
 		/* read process IDs & status for all the processes */
@@ -1255,7 +1300,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 				top = xrealloc_vector(top, 6, ntop++);
 				top[n].pid = p->pid;
 				top[n].ppid = p->ppid;
-				top[n].vsz = p->vsz;
+				top[n].memsize = p->rss;
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 				top[n].ticks = p->stime + p->utime;
 #endif
@@ -1268,20 +1313,20 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			}
 #if ENABLE_FEATURE_TOPMEM
 			else { /* TOPMEM */
-				if (!(p->smaps.mapped_ro | p->smaps.mapped_rw))
+				if (!(p->mapped_ro | p->mapped_rw))
 					continue; /* kernel threads are ignored */
 				n = ntop;
 				/* No bug here - top and topmem are the same */
 				top = xrealloc_vector(topmem, 6, ntop++);
 				strcpy(topmem[n].comm, p->comm);
 				topmem[n].pid      = p->pid;
-				topmem[n].vsz      = p->smaps.mapped_rw + p->smaps.mapped_ro;
-				topmem[n].vszrw    = p->smaps.mapped_rw;
-				topmem[n].rss_sh   = p->smaps.shared_clean + p->smaps.shared_dirty;
-				topmem[n].rss      = p->smaps.private_clean + p->smaps.private_dirty + topmem[n].rss_sh;
-				topmem[n].dirty    = p->smaps.private_dirty + p->smaps.shared_dirty;
-				topmem[n].dirty_sh = p->smaps.shared_dirty;
-				topmem[n].stack    = p->smaps.stack;
+				topmem[n].vsz      = p->mapped_rw + p->mapped_ro;
+				topmem[n].vszrw    = p->mapped_rw;
+				topmem[n].rss_sh   = p->shared_clean + p->shared_dirty;
+				topmem[n].rss      = p->private_clean + p->private_dirty + topmem[n].rss_sh;
+				topmem[n].dirty    = p->private_dirty + p->shared_dirty;
+				topmem[n].dirty_sh = p->shared_dirty;
+				topmem[n].stack    = p->stack;
 			}
 #endif
 		} /* end of "while we read /proc" */
@@ -1310,30 +1355,40 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			qsort(topmem, ntop, sizeof(topmem_status_t), (void*)topmem_sort);
 		}
 #endif
- IF_FEATURE_TOP_INTERACTIVE(display:)
+ IF_FEATURE_TOP_INTERACTIVE(redraw:)
+		G.lines_remaining = G.lines;
 		IF_FEATURE_TOPMEM(if (scan_mask != TOPMEM_MASK)) {
-			display_process_list(G.lines, col);
+			display_process_list();
 		}
 #if ENABLE_FEATURE_TOPMEM
 		else { /* TOPMEM */
-			display_topmem_process_list(G.lines, col);
+			display_topmem_process_list();
 		}
 #endif
+		print_end();
+		fflush_all();
 		if (iterations >= 0 && !--iterations)
 			break;
 #if !ENABLE_FEATURE_TOP_INTERACTIVE
 		clearmems();
 		sleep_for_duration(interval);
 #else
-		new_mask = handle_input(scan_mask, interval);
-		if (new_mask == NO_RESCAN_MASK)
-			goto display;
+		new_mask = handle_input(scan_mask,
+			/* After "redraw with no rescan", have one
+			 * key timeout shorter that normal
+			 * (IOW: rescan sooner):
+			 */
+			(new_mask == ONLY_REDRAW ? 1 : interval)
+		);
+		if (new_mask == ONLY_REDRAW)
+			goto redraw;
 		scan_mask = new_mask;
 		clearmems();
 #endif
 	} /* end of "while (not Q)" */
 
-	bb_putchar('\n');
+	if (!OPT_BATCH_MODE)
+		bb_putchar('\n');
 #if ENABLE_FEATURE_TOP_INTERACTIVE
 	reset_term();
 #endif

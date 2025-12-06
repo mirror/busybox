@@ -1,3 +1,5 @@
 # This must not be interpreted as an assignment
 a''=b true
 echo $?
+a'b'=c true
+echo $?

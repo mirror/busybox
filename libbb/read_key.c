@@ -11,7 +11,7 @@
 
 int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
 {
-	struct pollfd pfd;
+	struct pollfd pfd[1];
 	const char *seq;
 	int n;
 
@@ -112,8 +112,8 @@ int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
 		0
 	};
 
-	pfd.fd = fd;
-	pfd.events = POLLIN;
+	pfd->fd = fd;
+	pfd->events = POLLIN;
 
 	buffer++; /* saved chars counter is in buffer[-1] now */
 
@@ -121,12 +121,16 @@ int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
 	errno = 0;
 	n = (unsigned char)buffer[-1];
 	if (n == 0) {
-		/* If no data, wait for input.
-		 * If requested, wait TIMEOUT ms. TIMEOUT = -1 is useful
-		 * if fd can be in non-blocking mode.
-		 */
+		/* No data. Wait for input. */
+
+		/* timeout == -2 means "do not poll". Else: */
 		if (timeout >= -1) {
-			n = poll(&pfd, 1, timeout);
+			/* We must poll even if timeout == -1:
+			 * we want to be interrupted if signal arrives,
+			 * regardless of SA_RESTART-ness of that signal!
+			 */
+			/* test bb_got_signal, then poll(), atomically wrt signals */
+			n = check_got_signal_and_poll(pfd, timeout);
 			if (n < 0 && errno == EINTR)
 				return n;
 			if (n == 0) {
@@ -135,6 +139,7 @@ int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
 				return -1;
 			}
 		}
+
 		/* It is tempting to read more than one byte here,
 		 * but it breaks pasting. Example: at shell prompt,
 		 * user presses "c","a","t" and then pastes "\nline\n".
@@ -173,7 +178,7 @@ int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
 				 * so if we block for long it's not really an escape sequence.
 				 * Timeout is needed to reconnect escape sequences
 				 * split up by transmission over a serial console. */
-				if (safe_poll(&pfd, 1, 50) == 0) {
+				if (safe_poll(pfd, 1, 50) == 0) {
 					/* No more data!
 					 * Array is sorted from shortest to longest,
 					 * we can't match anything later in array -
@@ -222,7 +227,7 @@ int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
 	 * n = bytes read. Try to read more until we time out.
 	 */
 	while (n < KEYCODE_BUFFER_SIZE-1) { /* 1 for count byte at buffer[-1] */
-		if (safe_poll(&pfd, 1, 50) == 0) {
+		if (safe_poll(pfd, 1, 50) == 0) {
 			/* No more data! */
 			break;
 		}

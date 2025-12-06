@@ -1045,7 +1045,7 @@ static int NOINLINE syslogd_init(char **argv)
 #endif
 	/* If they have not specified remote logging, then log locally */
 	if (ENABLE_FEATURE_REMOTE_LOG && !(opts & OPT_remotelog)) // -R
-		option_mask32 |= OPT_locallog;
+		option_mask32 = (opts |= OPT_locallog);
 #if ENABLE_FEATURE_SYSLOGD_CFG
 	parse_syslogdcfg(opt_f);
 #endif

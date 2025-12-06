@@ -426,8 +426,7 @@ struct test_statics {
 	/* set only by check_operator(), either to bogus struct
 	 * or points to matching operator_t struct. Never NULL. */
 	const struct operator_t *last_operator;
-	gid_t *group_array;
-	int ngroups;
+	struct cached_groupinfo *groupinfo;
 #if BASH_TEST2
 	bool bash_test2;
 #endif
@@ -440,8 +439,7 @@ extern struct test_statics *BB_GLOBAL_CONST test_ptr_to_statics;
 #define S (*test_ptr_to_statics)
 #define args            (S.args         )
 #define last_operator   (S.last_operator)
-#define group_array     (S.group_array  )
-#define ngroups         (S.ngroups      )
+#define groupinfo       (S.groupinfo    )
 #define bash_test2      (S.bash_test2   )
 #define leaving         (S.leaving      )
 
@@ -449,7 +447,6 @@ extern struct test_statics *BB_GLOBAL_CONST test_ptr_to_statics;
 	XZALLOC_CONST_PTR(&test_ptr_to_statics, sizeof(S)); \
 } while (0)
 #define DEINIT_S() do { \
-	free(group_array); \
 	free(test_ptr_to_statics); \
 } while (0)
 
@@ -637,62 +634,52 @@ static int binop(void)
 	/*return 1; - NOTREACHED */
 }
 
-static void initialize_group_array(void)
-{
-	group_array = bb_getgroups(&ngroups, NULL);
-}
-
 /* Return non-zero if GID is one that we have in our groups list. */
-//XXX: FIXME: duplicate of existing libbb function?
-// see toplevel TODO file:
-// possible code duplication ingroup() and is_a_group_member()
 static int is_a_group_member(gid_t gid)
 {
-	int i;
-
 	/* Short-circuit if possible, maybe saving a call to getgroups(). */
-	if (gid == getgid() || gid == getegid())
+	if (gid == get_cached_egid(&groupinfo->egid))
 		return 1;
 
-	if (ngroups == 0)
-		initialize_group_array();
-
-	/* Search through the list looking for GID. */
-	for (i = 0; i < ngroups; i++)
-		if (gid == group_array[i])
-			return 1;
-
-	return 0;
+	return is_in_supplementary_groups(groupinfo, gid);
 }
 
-
-/* Do the same thing access(2) does, but use the effective uid and gid,
-   and don't make the mistake of telling root that any file is
-   executable. */
-static int test_eaccess(struct stat *st, int mode)
+/*
+ * Similar to what access(2) does, but uses the effective uid and gid.
+ * Doesn't make the mistake of telling root that any file is executable.
+ * Returns non-zero if the file is accessible.
+ */
+static int test_st_mode(struct stat *st, int mode)
 {
-	unsigned int euid = geteuid();
+	enum { ANY_IX = S_IXUSR | S_IXGRP | S_IXOTH };
+	unsigned euid;
 
+	if (mode == X_OK) {
+		/* Do we already know with no extra syscalls? */
+		//if (!S_ISREG(st->st_mode))
+		//	return 0; /* not a regular file */
+		// ^^^ bash 5.2.15 "test -x" does not check this!
+		if ((st->st_mode & ANY_IX) == 0)
+			return 0; /* no one can execute */
+		if ((st->st_mode & ANY_IX) == ANY_IX)
+			return 1; /* anyone can execute */
+	}
+
+	euid = get_cached_euid(&groupinfo->euid);
 	if (euid == 0) {
 		/* Root can read or write any file. */
 		if (mode != X_OK)
-			return 0;
+			return 1;
 
 		/* Root can execute any file that has any one of the execute
 		 * bits set. */
-		if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
-			return 0;
-	}
-
-	if (st->st_uid == euid)  /* owner */
+		mode = S_IXUSR | S_IXGRP | S_IXOTH;
+	} else if (st->st_uid == euid)  /* owner */
 		mode <<= 6;
 	else if (is_a_group_member(st->st_gid))
 		mode <<= 3;
 
-	if (st->st_mode & mode)
-		return 0;
-
-	return -1;
+	return st->st_mode & mode;
 }
 
 
@@ -722,7 +709,7 @@ static int filstat(char *nm, enum token mode)
 			i = W_OK;
 		if (mode == FILEX)
 			i = X_OK;
-		return test_eaccess(&s, i) == 0;
+		return test_st_mode(&s, i);
 	}
 	if (is_file_type(mode)) {
 		if (mode == FILREG)
@@ -760,7 +747,7 @@ static int filstat(char *nm, enum token mode)
 		return ((s.st_mode & i) != 0);
 	}
 	if (mode == FILGZ)
-		return s.st_size > 0L;
+		return s.st_size != 0L; /* shorter than "> 0" test */
 	if (mode == FILUID)
 		return s.st_uid == geteuid();
 	if (mode == FILGID)
@@ -891,7 +878,7 @@ static number_t primary(enum token n)
 }
 
 
-int test_main(int argc, char **argv)
+int FAST_FUNC test_main2(struct cached_groupinfo *pgroupinfo, int argc, char **argv)
 {
 	int res;
 	const char *arg0;
@@ -924,6 +911,7 @@ int test_main(int argc, char **argv)
 
 	/* We must do DEINIT_S() prior to returning */
 	INIT_S();
+	groupinfo = pgroupinfo;
 
 #if BASH_TEST2
 	bash_test2 = bt2;
@@ -1025,4 +1013,19 @@ int test_main(int argc, char **argv)
  ret:
 	DEINIT_S();
 	return res;
+}
+
+int test_main(int argc, char **argv)
+{
+	struct cached_groupinfo info;
+	int r;
+
+	info.euid = -1;
+	info.egid = -1;
+	info.ngroups = 0;
+	info.supplementary_array = NULL;
+	r = test_main2(&info, argc, argv);
+	free(info.supplementary_array);
+
+	return r;
 }

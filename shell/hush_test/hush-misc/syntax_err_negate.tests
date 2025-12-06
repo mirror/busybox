@@ -1,2 +1,3 @@
-echo bash 3.2 fails this
-! ! true
+# bash 3.2 fails this, 5.2.15 allows
+! ! true; echo 0:$?
+! ! ! true; echo 1:$?

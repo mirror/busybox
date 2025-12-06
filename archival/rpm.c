@@ -316,7 +316,7 @@ static void extract_cpio(int fd, const char *source_rpm)
 	archive_handle->src_fd = fd;
 	/*archive_handle->offset = 0; - init_handle() did it */
 
-	setup_unzip_on_fd(archive_handle->src_fd, /*fail_if_not_compressed:*/ 1);
+	setup_unzip_on_fd(archive_handle->src_fd, /*die_if_not_compressed:*/ 1);
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
 		continue;
 }
@@ -533,6 +533,7 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	//	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
 	//	signal(SIGCHLD, check_errors_in_children);
 
+	str = NULL;
 	if (ENABLE_FEATURE_SEAMLESS_LZMA
 	 && (str = rpm_getstr0(TAG_PAYLOADCOMPRESSOR)) != NULL
 	 && strcmp(str, "lzma") == 0
@@ -541,7 +542,11 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 		// set up decompressor without detection
 		setup_lzma_on_fd(rpm_fd);
 	} else {
-		setup_unzip_on_fd(rpm_fd, /*fail_if_not_compressed:*/ 1);
+		int signature_bytes = setup_unzip_on_fd(rpm_fd, /*die_if_not_compressed:*/ 0);
+		if (signature_bytes != 0) {
+			xlseek(rpm_fd, - signature_bytes, SEEK_CUR);
+			bb_error_msg("warning, unknown compression '%s'", str);
+		}
 	}
 
 	if (bb_copyfd_eof(rpm_fd, STDOUT_FILENO) < 0)

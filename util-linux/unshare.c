@@ -333,7 +333,14 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 	 * that'll become PID 1 in this new namespace.
 	 */
 	if (opts & OPT_fork) {
-		xvfork_parent_waits_and_exits();
+		pid_t pid = xvfork();
+		if (pid > 0) {
+			/* Parent */
+			int exit_status = wait_for_exitstatus(pid);
+			if (WIFSIGNALED(exit_status))
+				kill_myself_with_sig(WTERMSIG(exit_status));
+			return WEXITSTATUS(exit_status);
+		}
 		/* Child continues */
 	}
 

@@ -2951,6 +2951,10 @@ static void colon(char *buf)
 	else if (cmd[0] == '!') {	// run a cmd
 		int retcode;
 		// :!ls   run the <cmd>
+		if (GOT_ADDRESS) {
+			status_line_bold("Range not allowed");
+			goto ret;
+		}
 		exp = expand_args(buf + 1);
 		if (exp == NULL)
 			goto ret;

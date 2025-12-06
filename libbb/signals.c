@@ -24,13 +24,6 @@ int FAST_FUNC sigaction_set(int signum, const struct sigaction *act)
 	return sigaction(signum, act, NULL);
 }
 
-int FAST_FUNC sigprocmask_allsigs(int how)
-{
-	sigset_t set;
-	sigfillset(&set);
-	return sigprocmask(how, &set, NULL);
-}
-
 int FAST_FUNC sigprocmask2(int how, sigset_t *set)
 {
 	// Grr... gcc 8.1.1:
@@ -39,6 +32,25 @@ int FAST_FUNC sigprocmask2(int how, sigset_t *set)
 	sigset_t *oset FIX_ALIASING;
 	oset = set;
 	return sigprocmask(how, set, oset);
+}
+
+int FAST_FUNC sigprocmask_allsigs(int how)
+{
+	sigset_t set;
+	sigfillset(&set);
+	return sigprocmask2(how, &set);
+}
+
+int FAST_FUNC sigblockall(sigset_t *set)
+{
+#if 0 /* nope. set can be NULL */
+	sigfillset(set);
+	return sigprocmask2(SIG_SETMASK, set);
+#else
+	sigset_t mask;
+	sigfillset(&mask);
+	return sigprocmask(SIG_SETMASK, &mask, set);
+#endif
 }
 
 void FAST_FUNC bb_signals(int sigs, void (*f)(int))
@@ -82,7 +94,7 @@ void FAST_FUNC sig_block(int sig)
 	sigset_t ss;
 	sigemptyset(&ss);
 	sigaddset(&ss, sig);
-	sigprocmask(SIG_BLOCK, &ss, NULL);
+	sigprocmask2(SIG_BLOCK, &ss);
 }
 
 void FAST_FUNC sig_unblock(int sig)
@@ -90,7 +102,7 @@ void FAST_FUNC sig_unblock(int sig)
 	sigset_t ss;
 	sigemptyset(&ss);
 	sigaddset(&ss, sig);
-	sigprocmask(SIG_UNBLOCK, &ss, NULL);
+	sigprocmask2(SIG_UNBLOCK, &ss);
 }
 
 void FAST_FUNC wait_for_any_sig(void)

@@ -104,8 +104,8 @@
 //usage:#define telnetd_full_usage "\n\n"
 //usage:       "Handle incoming telnet connections"
 //usage:	IF_NOT_FEATURE_TELNETD_STANDALONE(" via inetd") "\n"
-//usage:     "\n	-l LOGIN	Exec LOGIN on connect"
-//usage:     "\n	-f ISSUE_FILE	Display ISSUE_FILE instead of /etc/issue"
+//usage:     "\n	-l LOGIN	Exec LOGIN on connect (default /bin/login)"
+//usage:     "\n	-f ISSUE_FILE	Display ISSUE_FILE instead of /etc/issue.net"
 //usage:     "\n	-K		Close connection as soon as login exits"
 //usage:     "\n			(normally wait until all programs close slave pty)"
 //usage:	IF_FEATURE_TELNETD_STANDALONE(

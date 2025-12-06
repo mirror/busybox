@@ -91,6 +91,17 @@ config USE_BB_CRYPT_SHA
 	With this option off, login will fail password check for any
 	user which has password encrypted with these algorithms.
 
+config USE_BB_CRYPT_YES
+	bool "Enable yescrypt functions"
+	default y
+	depends on USE_BB_CRYPT
+	help
+	Enable this if you have passwords starting with "$y$" or
+	in your /etc/passwd or /etc/shadow files. These passwords
+	are hashed using yescrypt algorithms.
+	With this option off, login will fail password check for any
+	user which has password encrypted with these algorithms.
+
 INSERT
 
 endmenu

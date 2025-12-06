@@ -1,0 +1,33 @@
+one
+_two
+\_three
+\_four
+\_two
+\_three
+\\_four
+two_newlines
+
+/bin/c*
+star_*
+star_*
+star_*
+star_\*
+star_*
+star_\*
+line1
+line2
+	line3
+line1
+line2
+	line3
+512
+256
+128
+64
+32
+16
+8
+4
+2
+v-$a-\t-\-\"-\x-`-\--\z-\*-\?-
+v-$a-\t-\-"-\x-`-\--\z-\*-\?-

@@ -17,9 +17,9 @@
 //kbuild:lib-$(CONFIG_CHRT) += chrt.o
 
 //usage:#define chrt_trivial_usage
-//usage:       "-m | -p [PRIO] PID | [-rfobi] PRIO PROG ARGS"
+//usage:       "-m | [-rfobi] { -p [PRIO] PID | PRIO PROG ARGS }"
 //usage:#define chrt_full_usage "\n\n"
-//usage:       "Change scheduling priority and class for a process\n"
+//usage:       "Change scheduling priority and class (default RR) for a process\n"
 //usage:     "\n	-m	Show min/max priorities"
 //usage:     "\n	-p	Operate on PID"
 //usage:     "\n	-r	Set SCHED_RR class"
@@ -133,7 +133,14 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 			pid_str = *argv;
 		}
 		/* else "-p PID", and *argv == NULL */
-		pid = xatoul_range(pid_str, 1, ((unsigned)(pid_t)ULONG_MAX) >> 1);
+		pid = xatoul_range(pid_str, 0, ((unsigned)(pid_t)ULONG_MAX) >> 1);
+
+		/* sched_{get,set}scheduler accept PID 0 to mean the calling process,
+		 * but this is needed to display the actual PID like util-linux's chrt
+		 */
+		if (pid == 0) {
+			pid = getpid();
+		}
 	} else {
 		priority = *argv++;
 		if (!*argv)

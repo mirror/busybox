@@ -1,0 +1,13 @@
+rm -f test.fifo
+mkfifo test.fifo
+
+(sleep 1; kill -chld $$) &
+(sleep 2; echo Hello >test.fifo) &
+
+# We get open("test.fifo") interrupted by SIGCHLD from the first subshell.
+# The shell MUST retry the open (no printing of error messages).
+# Then, the second subshell opens fifo for writing and open unblocks and succeeds.
+cat <test.fifo
+
+echo "Done:$?"
+rm -f test.fifo

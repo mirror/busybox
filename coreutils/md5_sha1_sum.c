@@ -23,6 +23,12 @@
 //config:	help
 //config:	Compute and check SHA256 message digest
 //config:
+//config:config SHA384SUM
+//config:	bool "sha384sum (7.3 kb)"
+//config:	default y
+//config:	help
+//config:	Compute and check SHA384 message digest
+//config:
 //config:config SHA512SUM
 //config:	bool "sha512sum (7.3 kb)"
 //config:	default y
@@ -35,13 +41,13 @@
 //config:	help
 //config:	Compute and check SHA3 message digest
 //config:
-//config:comment "Common options for md5sum, sha1sum, sha256sum, sha512sum, sha3sum"
-//config:	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA512SUM || SHA3SUM
+//config:comment "Common options for md5sum, sha1sum, sha256sum, ..., sha3sum"
+//config:	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA384SUM || SHA512SUM || SHA3SUM
 //config:
 //config:config FEATURE_MD5_SHA1_SUM_CHECK
 //config:	bool "Enable -c, -s and -w options"
 //config:	default y
-//config:	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA512SUM || SHA3SUM
+//config:	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA384SUM || SHA512SUM || SHA3SUM
 //config:	help
 //config:	Enabling the -c options allows files to be checked
 //config:	against pre-calculated hash values.
@@ -51,11 +57,13 @@
 //applet:IF_SHA1SUM(APPLET_NOEXEC(sha1sum, md5_sha1_sum, BB_DIR_USR_BIN, BB_SUID_DROP, sha1sum))
 //applet:IF_SHA3SUM(APPLET_NOEXEC(sha3sum, md5_sha1_sum, BB_DIR_USR_BIN, BB_SUID_DROP, sha3sum))
 //applet:IF_SHA256SUM(APPLET_NOEXEC(sha256sum, md5_sha1_sum, BB_DIR_USR_BIN, BB_SUID_DROP, sha256sum))
+//applet:IF_SHA384SUM(APPLET_NOEXEC(sha384sum, md5_sha1_sum, BB_DIR_USR_BIN, BB_SUID_DROP, sha384sum))
 //applet:IF_SHA512SUM(APPLET_NOEXEC(sha512sum, md5_sha1_sum, BB_DIR_USR_BIN, BB_SUID_DROP, sha512sum))
 
 //kbuild:lib-$(CONFIG_MD5SUM)    += md5_sha1_sum.o
 //kbuild:lib-$(CONFIG_SHA1SUM)   += md5_sha1_sum.o
 //kbuild:lib-$(CONFIG_SHA256SUM) += md5_sha1_sum.o
+//kbuild:lib-$(CONFIG_SHA384SUM) += md5_sha1_sum.o
 //kbuild:lib-$(CONFIG_SHA512SUM) += md5_sha1_sum.o
 //kbuild:lib-$(CONFIG_SHA3SUM)   += md5_sha1_sum.o
 
@@ -99,6 +107,16 @@
 //usage:     "\n	-w	Warn about improperly formatted checksum lines"
 //usage:	)
 //usage:
+//usage:#define sha384sum_trivial_usage
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK("[-c[sw]] ")"[FILE]..."
+//usage:#define sha384sum_full_usage "\n\n"
+//usage:       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA384 checksums"
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n"
+//usage:     "\n	-c	Check sums against list in FILEs"
+//usage:     "\n	-s	Don't output anything, status code shows success"
+//usage:     "\n	-w	Warn about improperly formatted checksum lines"
+//usage:	)
+//usage:
 //usage:#define sha512sum_trivial_usage
 //usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK("[-c[sw]] ")"[FILE]..."
 //usage:#define sha512sum_full_usage "\n\n"
@@ -130,11 +148,12 @@
 
 enum {
 	/* 4th letter of applet_name is... */
-	HASH_MD5 = 's', /* "md5>s<um" */
-	HASH_SHA1 = '1',
+	HASH_MD5    = 's', /* "md5>s<um" */
+	HASH_SHA1   = '1',
 	HASH_SHA256 = '2',
-	HASH_SHA3 = '3',
+	HASH_SHA3   = '3',
 	HASH_SHA512 = '5',
+	/* unfortunately, sha384sum has the same '3' as sha3 */
 };
 
 #define FLAG_SILENT  1
@@ -158,10 +177,11 @@ static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
 #endif
 static uint8_t *hash_file(unsigned char *in_buf, const char *filename, unsigned sha3_width)
 {
-	int src_fd, hash_len, count;
+	int src_fd, count;
 	union _ctx_ {
 		sha3_ctx_t sha3;
 		sha512_ctx_t sha512;
+		sha384_ctx_t sha384;
 		sha256_ctx_t sha256;
 		sha1_ctx_t sha1;
 		md5_ctx_t md5;
@@ -183,25 +203,31 @@ static uint8_t *hash_file(unsigned char *in_buf, const char *filename, unsigned 
 		md5_begin(&context.md5);
 		update = (void*)md5_hash;
 		final = (void*)md5_end;
-		hash_len = 16;
 	}
 	else if (ENABLE_SHA1SUM && hash_algo == HASH_SHA1) {
 		sha1_begin(&context.sha1);
 		update = (void*)sha1_hash;
 		final = (void*)sha1_end;
-		hash_len = 20;
 	}
 	else if (ENABLE_SHA256SUM && hash_algo == HASH_SHA256) {
 		sha256_begin(&context.sha256);
 		update = (void*)sha256_hash;
 		final = (void*)sha256_end;
-		hash_len = 32;
+	}
+	else if (ENABLE_SHA384SUM
+	 && (ENABLE_SHA3SUM
+		? (applet_name[4] == '8') /* check for "sha384", but do not match "sha3" */
+		: (hash_algo == '3') /* applet_name = "sha3sum" is not possible */
+		)
+	) {
+		sha384_begin(&context.sha384);
+		update = (void*)sha384_hash;
+		final = (void*)sha384_end;
 	}
 	else if (ENABLE_SHA512SUM && hash_algo == HASH_SHA512) {
 		sha512_begin(&context.sha512);
 		update = (void*)sha512_hash;
 		final = (void*)sha512_end;
-		hash_len = 64;
 	}
 #if ENABLE_SHA3SUM
 	else if (ENABLE_SHA3SUM && hash_algo == HASH_SHA3) {
@@ -219,9 +245,7 @@ static uint8_t *hash_file(unsigned char *in_buf, const char *filename, unsigned 
 		) {
 			bb_error_msg_and_die("bad -a%u", sha3_width);
 		}
-		sha3_width /= 4;
-		context.sha3.input_block_bytes = 1600/8 - sha3_width;
-		hash_len = sha3_width/2;
+		context.sha3.input_block_bytes = 1600/8 - sha3_width/4;
 	}
 #endif
 	else {
@@ -236,7 +260,7 @@ static uint8_t *hash_file(unsigned char *in_buf, const char *filename, unsigned 
 		if (count < 0)
 			bb_perror_msg("can't read '%s'", filename);
 		else /* count == 0 */ {
-			final(&context, in_buf);
+			unsigned hash_len = final(&context, in_buf);
 			hash_value = hash_bin_to_hex(in_buf, hash_len);
 		}
 	}
@@ -262,14 +286,14 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 		/* -b "binary", -t "text" are ignored (shaNNNsum compat) */
 		/* -s and -w require -c */
 #if ENABLE_SHA3SUM
-		if (applet_name[3] == HASH_SHA3)
+		if (applet_name[3] == HASH_SHA3 && (!ENABLE_SHA384SUM || applet_name[4] != '8'))
 			flags = getopt32(argv, "^" "scwbta:+" "\0" "s?c:w?c", &sha3_width);
 		else
 #endif
 			flags = getopt32(argv, "^" "scwbt" "\0" "s?c:w?c");
 	} else {
 #if ENABLE_SHA3SUM
-		if (applet_name[3] == HASH_SHA3)
+		if (applet_name[3] == HASH_SHA3 && (!ENABLE_SHA384SUM || applet_name[4] != '8'))
 			getopt32(argv, "a:+", &sha3_width);
 		else
 #endif

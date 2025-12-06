@@ -188,8 +188,6 @@
 #define TLS_MAX_OUTBUF          (1 << 14)
 
 enum {
-	SHA_INSIZE     = 64,
-
 	AES128_KEYSIZE = 16,
 	AES256_KEYSIZE = 32,
 
@@ -335,34 +333,6 @@ void FAST_FUNC tls_get_random(void *buf, unsigned len)
 		xfunc_die();
 }
 
-static void xorbuf3(void *dst, const void *src1, const void *src2, unsigned count)
-{
-	uint8_t *d = dst;
-	const uint8_t *s1 = src1;
-	const uint8_t* s2 = src2;
-	while (count--)
-		*d++ = *s1++ ^ *s2++;
-}
-
-void FAST_FUNC xorbuf(void *dst, const void *src, unsigned count)
-{
-	xorbuf3(dst, dst, src, count);
-}
-
-void FAST_FUNC xorbuf_aligned_AES_BLOCK_SIZE(void *dst, const void *src)
-{
-	unsigned long *d = dst;
-	const unsigned long *s = src;
-	d[0] ^= s[0];
-#if ULONG_MAX <= 0xffffffffffffffff
-	d[1] ^= s[1];
- #if ULONG_MAX == 0xffffffff
-	d[2] ^= s[2];
-	d[3] ^= s[3];
- #endif
-#endif
-}
-
 #if !TLS_DEBUG_HASH
 # define hash_handshake(tls, fmt, buffer, len) \
          hash_handshake(tls, buffer, len)
@@ -392,128 +362,6 @@ static void hash_handshake(tls_state_t *tls, const char *fmt, const void *buffer
 #else
 # define TLS_MAC_SIZE(tls) (tls)->MAC_size
 #endif
-
-// RFC 2104:
-// HMAC(key, text) based on a hash H (say, sha256) is:
-// ipad = [0x36 x INSIZE]
-// opad = [0x5c x INSIZE]
-// HMAC(key, text) = H((key XOR opad) + H((key XOR ipad) + text))
-//
-// H(key XOR opad) and H(key XOR ipad) can be precomputed
-// if we often need HMAC hmac with the same key.
-//
-// text is often given in disjoint pieces.
-typedef struct hmac_precomputed {
-	md5sha_ctx_t hashed_key_xor_ipad;
-	md5sha_ctx_t hashed_key_xor_opad;
-} hmac_precomputed_t;
-
-typedef void md5sha_begin_func(md5sha_ctx_t *ctx) FAST_FUNC;
-#if !ENABLE_FEATURE_TLS_SHA1
-#define hmac_begin(pre,key,key_size,begin) \
-	hmac_begin(pre,key,key_size)
-#define begin sha256_begin
-#endif
-static void hmac_begin(hmac_precomputed_t *pre, uint8_t *key, unsigned key_size, md5sha_begin_func *begin)
-{
-	uint8_t key_xor_ipad[SHA_INSIZE];
-	uint8_t key_xor_opad[SHA_INSIZE];
-//	uint8_t tempkey[SHA1_OUTSIZE < SHA256_OUTSIZE ? SHA256_OUTSIZE : SHA1_OUTSIZE];
-	unsigned i;
-
-	// "The authentication key can be of any length up to INSIZE, the
-	// block length of the hash function.  Applications that use keys longer
-	// than INSIZE bytes will first hash the key using H and then use the
-	// resultant OUTSIZE byte string as the actual key to HMAC."
-	if (key_size > SHA_INSIZE) {
-		bb_simple_error_msg_and_die("HMAC key>64"); //does not happen (yet?)
-//		md5sha_ctx_t ctx;
-//		begin(&ctx);
-//		md5sha_hash(&ctx, key, key_size);
-//		key_size = sha_end(&ctx, tempkey);
-//		//key = tempkey; - right? RIGHT? why does it work without this?
-//		// because SHA_INSIZE is 64, but hmac() is always called with
-//		// key_size = tls->MAC_size = SHA1/256_OUTSIZE (20 or 32),
-//		// and prf_hmac_sha256() -> hmac_sha256() key sizes are:
-//		// - RSA_PREMASTER_SIZE is 48
-//		// - CURVE25519_KEYSIZE is 32
-//		// - master_secret[] is 48
-	}
-
-	for (i = 0; i < key_size; i++) {
-		key_xor_ipad[i] = key[i] ^ 0x36;
-		key_xor_opad[i] = key[i] ^ 0x5c;
-	}
-	for (; i < SHA_INSIZE; i++) {
-		key_xor_ipad[i] = 0x36;
-		key_xor_opad[i] = 0x5c;
-	}
-
-	begin(&pre->hashed_key_xor_ipad);
-	begin(&pre->hashed_key_xor_opad);
-	md5sha_hash(&pre->hashed_key_xor_ipad, key_xor_ipad, SHA_INSIZE);
-	md5sha_hash(&pre->hashed_key_xor_opad, key_xor_opad, SHA_INSIZE);
-}
-#undef begin
-
-static unsigned hmac_sha_precomputed_v(
-		hmac_precomputed_t *pre,
-		uint8_t *out,
-		va_list va)
-{
-	uint8_t *text;
-	unsigned len;
-
-	/* pre->hashed_key_xor_ipad contains unclosed "H((key XOR ipad) +" state */
-	/* pre->hashed_key_xor_opad contains unclosed "H((key XOR opad) +" state */
-
-	/* calculate out = H((key XOR ipad) + text) */
-	while ((text = va_arg(va, uint8_t*)) != NULL) {
-		unsigned text_size = va_arg(va, unsigned);
-		md5sha_hash(&pre->hashed_key_xor_ipad, text, text_size);
-	}
-	len = sha_end(&pre->hashed_key_xor_ipad, out);
-
-	/* out = H((key XOR opad) + out) */
-	md5sha_hash(&pre->hashed_key_xor_opad, out, len);
-	return sha_end(&pre->hashed_key_xor_opad, out);
-}
-
-static unsigned hmac_sha_precomputed(hmac_precomputed_t *pre_init, uint8_t *out, ...)
-{
-	hmac_precomputed_t pre;
-	va_list va;
-	unsigned len;
-
-	va_start(va, out);
-	pre = *pre_init; /* struct copy */
-	len = hmac_sha_precomputed_v(&pre, out, va);
-	va_end(va);
-	return len;
-}
-
-#if !ENABLE_FEATURE_TLS_SHA1
-#define hmac(tls,out,key,key_size,...) \
-	hmac(out,key,key_size, __VA_ARGS__)
-#endif
-static unsigned hmac(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_size, ...)
-{
-	hmac_precomputed_t pre;
-	va_list va;
-	unsigned len;
-
-	va_start(va, key_size);
-
-	hmac_begin(&pre, key, key_size,
-			(ENABLE_FEATURE_TLS_SHA1 && tls->MAC_size == SHA1_OUTSIZE)
-				? sha1_begin
-				: sha256_begin
-	);
-	len = hmac_sha_precomputed_v(&pre, out, va);
-
-	va_end(va);
-	return len;
-}
 
 // RFC 5246:
 // 5.  HMAC and the Pseudorandom Function
@@ -559,7 +407,7 @@ static void prf_hmac_sha256(/*tls_state_t *tls,*/
 		const char *label,
 		uint8_t *seed, unsigned seed_size)
 {
-	hmac_precomputed_t pre;
+	hmac_ctx_t ctx;
 	uint8_t a[TLS_MAX_MAC_SIZE];
 	uint8_t *out_p = outbuf;
 	unsigned label_size = strlen(label);
@@ -569,26 +417,26 @@ static void prf_hmac_sha256(/*tls_state_t *tls,*/
 #define SEED   label, label_size, seed, seed_size
 #define A      a, MAC_size
 
-	hmac_begin(&pre, secret, secret_size, sha256_begin);
+	hmac_begin(&ctx, secret, secret_size, sha256_begin);
 
 	/* A(1) = HMAC_hash(secret, seed) */
-	hmac_sha_precomputed(&pre, a, SEED, NULL);
+	hmac_peek_hash(&ctx, a, SEED, NULL);
 
 	for (;;) {
 		/* HMAC_hash(secret, A(1) + seed) */
 		if (outbuf_size <= MAC_size) {
 			/* Last, possibly incomplete, block */
 			/* (use a[] as temp buffer) */
-			hmac_sha_precomputed(&pre, a, A, SEED, NULL);
+			hmac_peek_hash(&ctx, a, A, SEED, NULL);
 			memcpy(out_p, a, outbuf_size);
 			return;
 		}
 		/* Not last block. Store directly to result buffer */
-		hmac_sha_precomputed(&pre, out_p, A, SEED, NULL);
+		hmac_peek_hash(&ctx, out_p, A, SEED, NULL);
 		out_p += MAC_size;
 		outbuf_size -= MAC_size;
 		/* A(2) = HMAC_hash(secret, A(1)) */
-		hmac_sha_precomputed(&pre, a, A, NULL);
+		hmac_peek_hash(&ctx, a, A, NULL);
 	}
 #undef A
 #undef SECRET
@@ -655,6 +503,29 @@ static void *tls_get_zeroed_outbuf(tls_state_t *tls, int len)
 	return record;
 }
 
+/* Calculate the HMAC over the list of blocks */
+#if !ENABLE_FEATURE_TLS_SHA1
+#define hmac_blocks(tls,out,key,key_size,...) \
+	hmac_blocks(out,key,key_size, __VA_ARGS__)
+#endif
+static unsigned hmac_blocks(tls_state_t *tls, uint8_t *out, uint8_t *key, unsigned key_size, ...)
+{
+	hmac_ctx_t ctx;
+	va_list va;
+
+	hmac_begin(&ctx, key, key_size,
+			(ENABLE_FEATURE_TLS_SHA1 && tls->MAC_size == SHA1_OUTSIZE)
+				? sha1_begin
+				: sha256_begin
+	);
+
+	va_start(va, key_size);
+	hmac_hash_v(&ctx, va);
+	va_end(va);
+
+	return hmac_end(&ctx, out);
+}
+
 static void xwrite_encrypted_and_hmac_signed(tls_state_t *tls, unsigned size, unsigned type)
 {
 	uint8_t *buf = tls->outbuf + OUTBUF_PFX;
@@ -676,7 +547,7 @@ static void xwrite_encrypted_and_hmac_signed(tls_state_t *tls, unsigned size, un
 	xhdr->len16_lo = size & 0xff;
 
 	/* Calculate MAC signature */
-	hmac(tls, buf + size, /* result */
+	hmac_blocks(tls, buf + size, /* result */
 		tls->client_write_MAC_key, TLS_MAC_SIZE(tls),
 		&tls->write_seq64_be, sizeof(tls->write_seq64_be),
 		xhdr, RECHDR_LEN,
@@ -865,8 +736,13 @@ static void xwrite_encrypted_aesgcm(tls_state_t *tls, unsigned size, unsigned ty
 		cnt++;
 		COUNTER(nonce) = htonl(cnt); /* yes, first cnt here is 2 (!) */
 		aes_encrypt_one_block(&tls->aes_encrypt, nonce, scratch);
-		n = remaining > AES_BLOCK_SIZE ? AES_BLOCK_SIZE : remaining;
-		xorbuf(buf, scratch, n);
+		if (remaining >= AES_BLOCK_SIZE) {
+			n = AES_BLOCK_SIZE;
+			xorbuf_AES_BLOCK_SIZE(buf, scratch);
+		} else {
+			n = remaining;
+			xorbuf(buf, scratch, n);
+		}
 		buf += n;
 		remaining -= n;
 	}
@@ -1024,7 +900,7 @@ static void tls_aesgcm_decrypt(tls_state_t *tls, uint8_t *buf, int size)
 		COUNTER(nonce) = htonl(cnt); /* yes, first cnt here is 2 (!) */
 		aes_encrypt_one_block(&tls->aes_decrypt, nonce, scratch);
 		n = remaining > AES_BLOCK_SIZE ? AES_BLOCK_SIZE : remaining;
-		xorbuf3(buf, scratch, buf + 8, n);
+		xorbuf_3(buf, scratch, buf + 8, n);
 		buf += n;
 		remaining -= n;
 	}
@@ -1095,7 +971,10 @@ static int tls_xread_record(tls_state_t *tls, const char *expected)
 				tls->buffered_size = 0;
 				goto end;
 			}
-			bb_perror_msg_and_die("short read, have only %d", total);
+			/* Used to say "wget: short read, have only 186" here. More informative: */
+			if (total < RECHDR_LEN)
+				bb_perror_msg_and_die("%s header: got %d bytes", "truncated TLS record", total);
+			bb_perror_msg_and_die("%s: expected %d, got %d bytes", "truncated TLS record", target, total);
 		}
 		dump_raw_in("<< %s\n", tls->inbuf + total, sz);
 		total += sz;

@@ -157,7 +157,7 @@ int last_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			ut.ut_user, ut.ut_line, ut.ut_host, ctime(&t_tmp) + 4);
  next:
 		pos -= sizeof(ut);
-		if (pos <= 0)
+		if (pos < 0)
 			break; /* done. */
 		xlseek(file, pos, SEEK_SET);
 	}

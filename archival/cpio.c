@@ -350,6 +350,12 @@ static NOINLINE int cpio_o(void)
 			st.st_dev = st.st_rdev = 0;
 #endif
 
+		if (sizeof(st.st_size) > 4
+		 && st.st_size > (off_t)0xffffffff
+		) {
+			bb_error_msg_and_die("error: file '%s' is larger than 4GB", name);
+		}
+
 		bytes += printf("070701"
 				"%08X%08X%08X%08X%08X%08X%08X"
 				"%08X%08X%08X%08X" /* GNU cpio uses uppercase hex */
@@ -421,6 +427,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 #endif
 #endif
 		"owner\0"        Required_argument "R"
+		"file\0"         Required_argument "F"
 		"verbose\0"      No_argument       "v"
 		"null\0"         No_argument       "0"
 		"quiet\0"        No_argument       "\xff"

@@ -109,7 +109,7 @@ void FAST_FUNC free_procps_scan(procps_status_t* sp)
 }
 
 #if ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
-static unsigned long long fast_strtoull_16(char **endptr)
+unsigned long long FAST_FUNC fast_strtoull_16(char **endptr)
 {
 	unsigned char c;
 	char *str = *endptr;
@@ -130,7 +130,7 @@ static unsigned long long fast_strtoull_16(char **endptr)
 
 #if ENABLE_FEATURE_FAST_TOP || ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
 /* We cut a lot of corners here for speed */
-static unsigned long fast_strtoul_10(char **endptr)
+unsigned long FAST_FUNC fast_strtoul_10(char **endptr)
 {
 	unsigned char c;
 	char *str = *endptr;
@@ -143,6 +143,24 @@ static unsigned long fast_strtoul_10(char **endptr)
 	*endptr = str + 1; /* We skip trailing space! */
 	return n;
 }
+# if LONG_MAX < LLONG_MAX
+/* For VSZ, which can be very large */
+static unsigned long long fast_strtoull_10(char **endptr)
+{
+	unsigned char c;
+	char *str = *endptr;
+	unsigned long long n = *str - '0';
+
+	/* Need to stop on both ' ' and '\n' */
+	while ((c = *++str) > ' ')
+		n = n*10 + (c - '0');
+
+	*endptr = str + 1; /* We skip trailing space! */
+	return n;
+}
+# else
+#  define fast_strtoull_10(endptr) fast_strtoul_10(endptr)
+# endif
 
 # if ENABLE_FEATURE_FAST_TOP
 static long fast_strtol_10(char **endptr)
@@ -155,7 +173,7 @@ static long fast_strtol_10(char **endptr)
 }
 # endif
 
-static char *skip_fields(char *str, int count)
+char* FAST_FUNC skip_fields(char *str, int count)
 {
 	do {
 		while (*str++ != ' ')
@@ -166,35 +184,25 @@ static char *skip_fields(char *str, int count)
 }
 #endif
 
-#if ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
-static char* skip_whitespace_if_prefixed_with(char *buf, const char *prefix)
+#if ENABLE_FEATURE_TOPMEM
+static NOINLINE void procps_read_smaps(pid_t pid, procps_status_t *sp)
 {
-	char *tp = is_prefixed_with(buf, prefix);
-	if (tp) {
-		tp = skip_whitespace(tp);
-	}
-	return tp;
-}
+	// There is A LOT of /proc/PID/smaps data on a big system.
+	// Optimize this for speed, makes "top -m" faster.
+//TODO large speedup:
+//read /proc/PID/smaps_rollup (cumulative stats of all mappings, much faster)
+//and  /proc/PID/maps         to get mapped_ro and mapped_rw (IOW: VSZ,VSZRW)
 
-int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
-		void (*cb)(struct smaprec *, void *), void *data)
-{
 	FILE *file;
-	struct smaprec currec;
 	char filename[sizeof("/proc/%u/smaps") + sizeof(int)*3];
-	char buf[PROCPS_BUFSIZE];
-#if !ENABLE_PMAP
-	void (*cb)(struct smaprec *, void *) = NULL;
-	void *data = NULL;
-#endif
+	char buf[PROCPS_BUFSIZE] ALIGN4;
 
 	sprintf(filename, "/proc/%u/smaps", (int)pid);
 
 	file = fopen_for_read(filename);
 	if (!file)
-		return 1;
+		return;
 
-	memset(&currec, 0, sizeof(currec));
 	while (fgets(buf, PROCPS_BUFSIZE, file)) {
 		// Each mapping datum has this form:
 		// f7d29000-f7d39000 rw-s FILEOFS M:m INODE FILENAME
@@ -202,80 +210,60 @@ int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
 		// Rss:                 nnn kB
 		// .....
 
-		char *tp, *p;
-
+		char *tp;
+#define bytes4 *(uint32_t*)buf
+#define Priv   PACK32_BYTES('P','r','i','v')
+#define Shar   PACK32_BYTES('S','h','a','r')
 #define SCAN(S, X) \
-		if ((tp = skip_whitespace_if_prefixed_with(buf, S)) != NULL) { \
-			total->X += currec.X = fast_strtoul_10(&tp); \
-			continue;                                    \
+if (memcmp(buf+4, S, sizeof(S)-1) == 0) { \
+	tp = skip_whitespace(buf+4 + sizeof(S)-1); \
+	sp->X += fast_strtoul_10(&tp); \
+	continue; \
+}
+		if (bytes4 == Priv) {
+			SCAN("ate_Dirty:", private_dirty)
+			SCAN("ate_Clean:", private_clean)
 		}
-		if (cb) {
-			SCAN("Pss:"  , smap_pss     );
-			SCAN("Swap:" , smap_swap    );
+		if (bytes4 == Shar) {
+			SCAN("ed_Dirty:" , shared_dirty )
+			SCAN("ed_Clean:" , shared_clean )
 		}
-		SCAN("Private_Dirty:", private_dirty);
-		SCAN("Private_Clean:", private_clean);
-		SCAN("Shared_Dirty:" , shared_dirty );
-		SCAN("Shared_Clean:" , shared_clean );
+#undef bytes4
+#undef Priv
+#undef Shar
 #undef SCAN
 		tp = strchr(buf, '-');
 		if (tp) {
 			// We reached next mapping - the line of this form:
 			// f7d29000-f7d39000 rw-s FILEOFS M:m INODE FILENAME
 
-			if (cb) {
-				/* If we have a previous record, there's nothing more
-				 * for it, call the callback and clear currec
-				 */
-				if (currec.smap_size)
-					cb(&currec, data);
-				free(currec.smap_name);
-			}
-			memset(&currec, 0, sizeof(currec));
+			char *rwx;
+			unsigned long long sz;
 
 			*tp = ' ';
 			tp = buf;
-			currec.smap_start = fast_strtoull_16(&tp);
-			currec.smap_size = (fast_strtoull_16(&tp) - currec.smap_start) >> 10;
-
-			strncpy(currec.smap_mode, tp, sizeof(currec.smap_mode)-1);
-
+			sz = fast_strtoull_16(&tp); // start
+			sz = (fast_strtoull_16(&tp) - sz) >> 10; // end - start
+			// tp -> "rw-s" string
+			rwx = tp;
 			// skipping "rw-s FILEOFS M:m INODE "
 			tp = skip_whitespace(skip_fields(tp, 4));
-			// filter out /dev/something (something != zero)
-			if (!is_prefixed_with(tp, "/dev/") || strcmp(tp, "/dev/zero\n") == 0) {
-				if (currec.smap_mode[1] == 'w') {
-					currec.mapped_rw = currec.smap_size;
-					total->mapped_rw += currec.smap_size;
-				} else if (currec.smap_mode[1] == '-') {
-					currec.mapped_ro = currec.smap_size;
-					total->mapped_ro += currec.smap_size;
-				}
+			// if not a device memory mapped...
+			if (memcmp(tp, "/dev/", 5) != 0    // not "/dev/something"
+			 || strcmp(tp + 5, "zero\n") == 0  // or is "/dev/zero" (which isn't a device)
+			) {
+				if (rwx[1] == 'w')
+					sp->mapped_rw += sz;
+				else if (rwx[0] == 'r' || rwx[2] == 'x')
+					sp->mapped_ro += sz;
+				// else: seen "---p" mappings (mmap guard gaps?),
+				// do NOT account these as VSZ, they aren't really
 			}
-
 			if (strcmp(tp, "[stack]\n") == 0)
-				total->stack += currec.smap_size;
-			if (cb) {
-				p = skip_non_whitespace(tp);
-				if (p == tp) {
-					currec.smap_name = xstrdup("  [ anon ]");
-				} else {
-					*p = '\0';
-					currec.smap_name = xstrdup(tp);
-				}
-			}
-			total->smap_size += currec.smap_size;
+				sp->stack += sz;
 		}
 	}
 	fclose(file);
-
-	if (cb) {
-		if (currec.smap_size)
-			cb(&currec, data);
-		free(currec.smap_name);
-	}
-
-	return 0;
 }
 #endif
 
@@ -370,7 +358,8 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			char *cp, *comm1;
 			int tty;
 #if !ENABLE_FEATURE_FAST_TOP
-			unsigned long vsz, rss;
+			unsigned long long vsz;
+			unsigned long rss;
 #endif
 			/* see proc(5) for some details on this */
 			strcpy(filename_tail, "stat");
@@ -396,7 +385,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 				"%ld "                 /* nice */
 				"%*s %*s "             /* timeout, it_real_value */
 				"%lu "                 /* start_time */
-				"%lu "                 /* vsize */
+				"%llu "                /* vsize - can be very large */
 				"%lu "                 /* rss */
 # if ENABLE_FEATURE_TOP_SMP_PROCESS
 				"%*s %*s %*s %*s %*s %*s " /*rss_rlim, start_code, end_code, start_stack, kstk_esp, kstk_eip */
@@ -449,7 +438,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			cp = skip_fields(cp, 2); /* timeout, it_real_value */
 			sp->start_time = fast_strtoul_10(&cp);
 			/* vsz is in bytes and we want kb */
-			sp->vsz = fast_strtoul_10(&cp) >> 10;
+			sp->vsz = fast_strtoull_10(&cp) >> 10;
 			/* vsz is in bytes but rss is in *PAGES*! Can you believe that? */
 			sp->rss = fast_strtoul_10(&cp) << sp->shift_pages_to_kb;
 # if ENABLE_FEATURE_TOP_SMP_PROCESS
@@ -483,7 +472,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 
 #if ENABLE_FEATURE_TOPMEM
 		if (flags & PSSCAN_SMAPS)
-			procps_read_smaps(pid, &sp->smaps, NULL, NULL);
+			procps_read_smaps(pid, sp);
 #endif /* TOPMEM */
 #if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
 		if (flags & PSSCAN_RUIDGID) {
@@ -566,36 +555,45 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 	return sp;
 }
 
-void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
+int FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 {
 	int sz;
 	char filename[sizeof("/proc/%u/cmdline") + sizeof(int)*3];
 
 	sprintf(filename, "/proc/%u/cmdline", pid);
 	sz = open_read_close(filename, buf, col - 1);
+	if (sz < 0)
+		return sz;
 	if (sz > 0) {
-		const char *base;
+		const char *program_basename;
 		int comm_len;
 
 		buf[sz] = '\0';
 		while (--sz >= 0 && buf[sz] == '\0')
 			continue;
-		/* Prevent basename("process foo/bar") = "bar" */
-		strchrnul(buf, ' ')[0] = '\0';
-		base = bb_basename(buf); /* before we replace argv0's NUL with space */
+
+		/* Find "program" in "[-][/PATH/TO/]program" */
+		strchrnul(buf, ' ')[0] = '\0'; /* prevent basename("program foo/bar") = "bar" */
+		program_basename = bb_basename(buf[0] == '-' ? buf + 1 : buf);
+		/* ^^^ note: must do it *before* replacing argv0's NUL with space */
+
+		/* Prevent stuff like this:
+		 *  echo 'sleep 999; exit' >`printf '\ec'`; sh ?c
+		 * messing up top and ps output (or worse).
+		 * This also replaces NULs with spaces, converting
+		 * list of NUL-strings into one string.
+		 */
 		while (sz >= 0) {
 			if ((unsigned char)(buf[sz]) < ' ')
-				buf[sz] = ' ';
+				buf[sz] = (buf[sz] ? /*ctrl*/'?' : /*NUL*/' ');
 			sz--;
 		}
-		if (base[0] == '-') /* "-sh" (login shell)? */
-			base++;
 
 		/* If comm differs from argv0, prepend "{comm} ".
 		 * It allows to see thread names set by prctl(PR_SET_NAME).
 		 */
 		if (!comm)
-			return;
+			return 0;
 		comm_len = strlen(comm);
 		/* Why compare up to comm_len, not COMM_LEN-1?
 		 * Well, some processes rewrite argv, and use _spaces_ there
@@ -603,19 +601,20 @@ void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 		 * I prefer to still treat argv0 "process foo bar"
 		 * as 'equal' to comm "process".
 		 */
-		if (strncmp(base, comm, comm_len) != 0) {
+		if (strncmp(program_basename, comm, comm_len) != 0) {
 			comm_len += 3;
 			if (col > comm_len)
 				memmove(buf + comm_len, buf, col - comm_len);
 			snprintf(buf, col, "{%s}", comm);
 			if (col <= comm_len)
-				return;
+				return 0;
 			buf[comm_len - 1] = ' ';
 			buf[col - 1] = '\0';
 		}
 	} else {
 		snprintf(buf, col, "[%s]", comm ? comm : "?");
 	}
+	return 0;
 }
 
 /* from kernel:

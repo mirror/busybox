@@ -157,7 +157,7 @@ void FAST_FUNC fork_transformer(int fd, const char *transform_prog)
 /* Used by e.g. rpm which gives us a fd without filename,
  * thus we can't guess the format from filename's extension.
  */
-static transformer_state_t *setup_transformer_on_fd(int fd, int fail_if_not_compressed)
+static transformer_state_t *setup_transformer_on_fd(int fd, int die_if_not_compressed)
 {
 	transformer_state_t *xstate;
 
@@ -204,7 +204,7 @@ static transformer_state_t *setup_transformer_on_fd(int fd, int fail_if_not_comp
 	}
 
 	/* No known magic seen */
-	if (fail_if_not_compressed)
+	if (die_if_not_compressed)
 		bb_simple_error_msg_and_die("no gzip"
 			IF_FEATURE_SEAMLESS_BZ2("/bzip2")
 			IF_FEATURE_SEAMLESS_XZ("/xz")
@@ -240,13 +240,15 @@ static void fork_transformer_and_free(transformer_state_t *xstate)
 /* Used by e.g. rpm which gives us a fd without filename,
  * thus we can't guess the format from filename's extension.
  */
-int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
+int FAST_FUNC setup_unzip_on_fd(int fd, int die_if_not_compressed)
 {
-	transformer_state_t *xstate = setup_transformer_on_fd(fd, fail_if_not_compressed);
+	transformer_state_t *xstate = setup_transformer_on_fd(fd, die_if_not_compressed);
 
 	if (!xstate->xformer) {
+		/* Not compressed */
+		int retval = xstate->signature_skipped; /* never zero */
 		free(xstate);
-		return 1;
+		return retval;
 	}
 
 	fork_transformer_and_free(xstate);
@@ -264,7 +266,7 @@ void FAST_FUNC setup_lzma_on_fd(int fd)
 }
 #endif
 
-static transformer_state_t *open_transformer(const char *fname, int fail_if_not_compressed)
+static transformer_state_t *open_transformer(const char *fname, int die_if_not_compressed)
 {
 	transformer_state_t *xstate;
 	int fd;
@@ -284,18 +286,18 @@ static transformer_state_t *open_transformer(const char *fname, int fail_if_not_
 		}
 	}
 
-	xstate = setup_transformer_on_fd(fd, fail_if_not_compressed);
+	xstate = setup_transformer_on_fd(fd, die_if_not_compressed);
 
 	return xstate;
 }
 
-int FAST_FUNC open_zipped(const char *fname, int fail_if_not_compressed)
+int FAST_FUNC open_zipped(const char *fname, int die_if_not_compressed)
 {
 	int fd;
 	transformer_state_t *xstate;
 
-	xstate = open_transformer(fname, fail_if_not_compressed);
-	if (!xstate)
+	xstate = open_transformer(fname, die_if_not_compressed);
+	if (!xstate) /* open error */
 		return -1;
 
 	fd = xstate->src_fd;
@@ -326,7 +328,7 @@ void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_
 	transformer_state_t *xstate;
 	char *image;
 
-	xstate = open_transformer(fname, /*fail_if_not_compressed:*/ 0);
+	xstate = open_transformer(fname, /*die_if_not_compressed:*/ 0);
 	if (!xstate) /* file open error */
 		return NULL;
 
@@ -371,7 +373,7 @@ void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_
 	int fd;
 	char *image;
 
-	fd = open_zipped(fname, /*fail_if_not_compressed:*/ 0);
+	fd = open_zipped(fname, /*die_if_not_compressed:*/ 0);
 	if (fd < 0)
 		return NULL;
 

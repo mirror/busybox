@@ -215,15 +215,15 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 		if (!match) {
  again:
 			match = (regexec(&re_buffer, cmd, 1, re_match, 0) == 0);
+			if (match && OPT_ANCHOR) {
+				/* -x requires full string match */
+				match = (re_match[0].rm_so == 0 && cmd[re_match[0].rm_eo] == '\0');
+			}
 			if (!match && cmd != proc->comm) {
 				/* if argv[] did not match, try comm */
 				cmdlen = -1;
 				cmd = proc->comm;
 				goto again;
-			}
-			if (match && OPT_ANCHOR) {
-				/* -x requires full string match */
-				match = (re_match[0].rm_so == 0 && cmd[re_match[0].rm_eo] == '\0');
 			}
 		}
 

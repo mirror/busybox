@@ -302,24 +302,22 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 		printf("notify ");
 	}
 
-	if (r->rtm_family == AF_INET6) {
-		struct rta_cacheinfo *ci = NULL;
-		if (tb[RTA_CACHEINFO]) {
-			ci = RTA_DATA(tb[RTA_CACHEINFO]);
-		}
-		if ((r->rtm_flags & RTM_F_CLONED) || (ci && ci->rta_expires)) {
+	if (r->rtm_family == AF_INET || r->rtm_family == AF_INET6) {
+		if (r->rtm_family == AF_INET) {
 			if (r->rtm_flags & RTM_F_CLONED) {
 				printf("%c    cache ", _SL_);
+				/* upstream: print_cache_flags() prints more here */
 			}
+		}
+		if (tb[RTA_CACHEINFO]) {
+			struct rta_cacheinfo *ci = RTA_DATA(tb[RTA_CACHEINFO]);
 			if (ci->rta_expires) {
 				printf(" expires %dsec", ci->rta_expires / get_hz());
 			}
 			if (ci->rta_error != 0) {
 				printf(" error %d", ci->rta_error);
 			}
-		} else if (ci) {
-			if (ci->rta_error != 0)
-				printf(" error %d", ci->rta_error);
+			/* upstream: print_rta_cacheinfo() prints more here */
 		}
 	}
 	if (tb[RTA_IIF] && G_filter.iif == 0) {

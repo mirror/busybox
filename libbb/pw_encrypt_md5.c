@@ -149,9 +149,9 @@ md5_crypt(char result[MD5_OUT_BUFSIZE], const unsigned char *pw, const unsigned 
 	final[16] = final[5];
 	for (i = 0; i < 5; i++) {
 		unsigned l = (final[i] << 16) | (final[i+6] << 8) | final[i+12];
-		p = to64(p, l, 4);
+		p = num2str64_lsb_first(p, l, 4);
 	}
-	p = to64(p, final[11], 2);
+	p = num2str64_lsb_first(p, final[11], 2);
 	*p = '\0';
 
 	/* Don't leave anything around in vm they could use. */

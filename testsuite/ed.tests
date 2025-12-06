@@ -1,0 +1,21 @@
+#!/bin/sh
+
+. ./testing.sh
+
+# testing "test name" "command" "expected result" "file input" "stdin"
+
+testing "ed insert text before current line" \
+	"ed input" "8\n1\ntext\n2\n3\n4\n13\n" "1\n2\n3\n4\n" '2i
+text
+.
+,p
+w
+q
+'
+
+testing "ed read text before current line" \
+	"ed input" "8\n8\n1\n2\n1\n2\n3\n4\n3\n4\n16\n" "1\n2\n3\n4\n" '2r input
+,p
+w
+q
+'

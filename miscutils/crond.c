@@ -177,7 +177,7 @@ static void crondlog(unsigned level, const char *msg, va_list va)
 {
 	if (level >= G.log_level) {
 		/*
-		 * We are called only for info meesages.
+		 * We are called only for info messages.
 		 * Warnings/errors use plain bb_[p]error_msg's, which
 		 * need not touch syslog_level
 		 * (they are ok with LOG_ERR default).
@@ -989,7 +989,7 @@ static int check_completions(void)
 			if (line->cl_pid <= 0)
 				continue;
 
-			r = waitpid(line->cl_pid, NULL, WNOHANG);
+			r = safe_waitpid(line->cl_pid, NULL, WNOHANG);
 			if (r < 0 || r == line->cl_pid) {
 				process_finished_job(file->cf_username, line);
 				if (line->cl_pid == 0) {
@@ -1001,6 +1001,14 @@ static int check_completions(void)
 			/* else: r == 0: "process is still running" */
 			file->cf_has_running = 1;
 		}
+
+		/* Reap any other children we don't actively track.
+		 * Reportedly, some people run crond as init process!
+		 * Thus, we need to reap orphans, like init does.
+		 */
+		while (wait_any_nohang(NULL) > 0)
+			continue;
+
 //FIXME: if !file->cf_has_running && file->deleted: delete it!
 //otherwise deleted entries will stay forever, right?
 		num_still_running += file->cf_has_running;

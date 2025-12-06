@@ -1,2 +1,4 @@
 ./assignment2.tests: line 2: a=b: not found
 127
+./assignment2.tests: line 4: ab=c: not found
+127

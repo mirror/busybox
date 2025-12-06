@@ -1,10 +1,10 @@
-# bash 3.2 outputs:
+# bash 5.2 outputs:
 
-# ><
-{ echo -n 'te'; sleep 2; echo 'st'; }   | (read -t 1 reply; echo ">$reply<")
-# ><
-{               sleep 2; echo 'test'; } | (read -t 1 reply; echo ">$reply<")
-# >test<
-{ echo -n 'te'; sleep 1; echo 'st'; }   | (read -t 2 reply; echo ">$reply<")
-# >test<
-{               sleep 1; echo 'test'; } | (read -t 2 reply; echo ">$reply<")
+# >te:142<
+{ echo -n 'te'; sleep 2; echo 'st'; }   | (read -t 1 reply; echo ">$reply:$?<")
+# >:142<
+{               sleep 2; echo 'test'; } | (read -t 1 reply; echo ">$reply:$?<")
+# >test:0<
+{ echo -n 'te'; sleep 1; echo 'st'; }   | (read -t 2 reply; echo ">$reply:$?<")
+# >test:0<
+{               sleep 1; echo 'test'; } | (read -t 2 reply; echo ">$reply:$?<")

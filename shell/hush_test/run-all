@@ -67,9 +67,12 @@ do_test()
 #		echo Running test: "$x"
 		echo -n "$1/$x:"
 		(
-			"$THIS_SH" "./$x" 2>&1 | \
-				grep -va "^hush: using fallback suid method$" >"$name.xx"
+			"$THIS_SH" "./$x" >"$name.xx" 2>&1
 			r=$?
+			# filter !FEATURE_SUID_CONFIG_QUIET message
+			sed -i \
+				-e "/^hush: using fallback suid method$/d" \
+				"$name.xx"
 			# filter C library differences
 			sed -i \
 				-e "/: invalid option /s:'::g" \

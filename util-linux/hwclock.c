@@ -366,7 +366,7 @@ static void set_rtc_param(const char **pp_rtcname, char *rtc_param)
 	/* handle param name */
 	eq = strchr(rtc_param, '=');
 	if (!eq)
-		bb_error_msg_and_die("expected <param>=<value>");
+		bb_simple_error_msg_and_die("expected <param>=<value>");
 	*eq = '\0';
 	param.param = resolve_rtc_param_alias(rtc_param);
 	*eq = '=';

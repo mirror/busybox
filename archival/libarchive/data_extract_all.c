@@ -65,6 +65,14 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		} while (--n != 0);
 	}
 #endif
+#if ENABLE_FEATURE_PATH_TRAVERSAL_PROTECTION
+	/* Strip leading "/" and up to last "/../" path component */
+	dst_name = (char *)strip_unsafe_prefix(dst_name);
+#endif
+// ^^^ This may be a problem if some applets do need to extract absolute names.
+// (Probably will need to invent ARCHIVE_ALLOW_UNSAFE_NAME flag).
+// You might think that rpm needs it, but in my tests rpm's internal cpio
+// archive has names like "./usr/bin/FOO", not "/usr/bin/FOO".
 
 	if (archive_handle->ah_flags & ARCHIVE_CREATE_LEADING_DIRS) {
 		char *slash = strrchr(dst_name, '/');

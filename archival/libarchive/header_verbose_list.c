@@ -57,13 +57,13 @@ void FAST_FUNC header_verbose_list(const file_header_t *file_header)
 		ptm->tm_hour,
 		ptm->tm_min,
 		ptm->tm_sec,
-		file_header->name);
+		printable_string(file_header->name));
 
 #endif /* FEATURE_TAR_UNAME_GNAME */
 
 	/* NB: GNU tar shows "->" for symlinks and "link to" for hardlinks */
 	if (file_header->link_target) {
-		printf(" -> %s", file_header->link_target);
+		printf(" -> %s", printable_string(file_header->link_target));
 	}
 	bb_putchar('\n');
 }

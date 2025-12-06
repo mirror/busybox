@@ -1164,7 +1164,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		 * on e.g. tarball with 1st file named "BZh5".
 		 */
 		) {
-			tar_handle->src_fd = open_zipped(tar_filename, /*fail_if_not_compressed:*/ 0);
+			tar_handle->src_fd = open_zipped(tar_filename, /*die_if_not_compressed:*/ 0);
 			if (tar_handle->src_fd < 0)
 				bb_perror_msg_and_die("can't open '%s'", tar_filename);
 		} else {

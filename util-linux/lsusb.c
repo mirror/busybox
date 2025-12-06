@@ -50,7 +50,7 @@ static int FAST_FUNC fileAction(struct recursive_state *state UNUSED_PARAM,
 	char *tokens[4];
 	char *busnum = NULL, *devnum = NULL;
 	int product_vid = 0, product_did = 0;
-	char *uevent_filename = concat_path_file(fileName, "/uevent");
+	char *uevent_filename = concat_path_file(fileName, "uevent");
 
 	parser = config_open2(uevent_filename, fopen_for_read);
 	free(uevent_filename);

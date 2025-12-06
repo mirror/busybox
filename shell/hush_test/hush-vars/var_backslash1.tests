@@ -1,0 +1,48 @@
+a='\*bc'
+b='\'
+c='*'
+echo "a is '$a'"
+echo "b is '$b'"
+echo "c is '$c'"
+echo '${a##?*} removes everything:    '"|${a##?*}|"' - matches one char, then all'
+echo '${a##?"*"} removes \*:          '"|${a##?"*"}|"' - matches one char, then *'
+echo '${a##\*} removes nothing:       '"|${a##\*}|"' - first char is not *'
+echo '${a##\\*} removes everything:   '"|${a##\\*}|"' - matches \, then all'
+echo '${a##\\\*} removes \*:          '"|${a##\\\*}|"' - matches \, then *'
+echo '${a##?$c} removes everything:   '"|${a##?$c}|"' - matches one char, then all'
+echo '${a##?"$c"} removes \*:         '"|${a##?"$c"}|"' - matches one char, then *'
+echo '${a##\\$c} removes everything:  '"|${a##\\$c}|"' - matches \, then all'
+echo '${a##\\\$c} removes nothing:    '"|${a##\\\$c}|"' - matches \, but then second char is not $'
+echo '${a##\\"$c"} removes \*:        '"|${a##\\"$c"}|"' - matches \, then *'
+echo '${a##$b} removes \:             '"|${a##$b}|"' - matches \'
+echo '${a##"$b"} removes \:           '"|${a##"$b"}|"' - matches \'
+echo
+sq="'"
+echo 'Single quote tests:'
+echo '${a##?'$sq'*'$sq'} removes \*:          '"|${a##?'*'}|"' - matches one char, then *'
+echo '${a##'$sq'\'$sq'*} removes everything:  '"|${a##'\'*}|"' - matches \, then all'
+echo '${a##'$sq'\'$sq'\*} removes \*:         '"|${a##'\'\*}|"' - matches \, then *'
+echo '${a##'$sq'\*'$sq'} removes \*:          '"|${a##'\*'}|"' - matches \, then *'
+echo '${a##'$sq'\'$sq'$c} removes everything: '"|${a##'\'$c}|"' - matches \, then all'
+echo '${a##'$sq'\'$sq'\$c} removes nothing:   '"|${a##'\'\$c}|"' - matches \, but then second char is not $'
+echo '${a##'$sq'\'$sq'"$c"} removes \*:       '"|${a##'\'"$c"}|"' - matches \, then *'
+echo
+## In bash, this isn't working as expected
+#echo '${a##$b?} removes \*:           '"|${a##$b?}|"' - matches \, then one char'   # bash prints |\*bc|
+#echo '${a##$b*} removes everything:   '"|${a##$b*}|"' - matches \, then all'        # bash prints |\*bc|
+#echo '${a##$b$c} removes everything:  '"|${a##$b$c}|"' - matches \, then all'       # bash prints |\*bc|
+#echo '${a##$b"$c"} removes \*:        '"|${a##$b"$c"}|"' - matches \, then *'       # bash prints |\*bc|
+## the cause seems to be that $b emits backslash that "glues" onto next character if there is one:
+## a='\*bc'; b='\'; c='*'; echo "|${a##?$b*}|"  # bash prints |bc| - the $b* works as \* (matches literal *)
+## a='\*bc'; b='\'; c='*'; echo "|${a##\\$b*}|" # bash prints |bc|
+#echo
+echo '${a##"$b"?} removes \*:         '"|${a##"$b"?}|"' - matches \, then one char'
+echo '${a##"$b"*} removes everything: '"|${a##"$b"*}|"' - matches \, then all'
+echo '${a##"$b""?"} removes nothing:  '"|${a##"$b""?"}|"' - second char is not ?'  # bash prints |bc|
+echo '${a##"$b""*"} removes \*:       '"|${a##"$b""*"}|"' - matches \, then *'
+echo '${a##"$b"\*} removes \*:        '"|${a##"$b"\*}|"' - matches \, then *'
+echo '${a##"$b"$c} removes everything:'"|${a##"$b"$c}|"' - matches \, then all'
+echo '${a##"$b""$c"} removes \*:      '"|${a##"$b""$c"}|"' - matches \, then *'
+echo '${a##"$b?"} removes nothing:    '"|${a##"$b?"}|"' - second char is not ?'  # bash prints |bc|
+echo '${a##"$b*"} removes \*:         '"|${a##"$b*"}|"' - matches \, then *'     # bash prints ||
+echo '${a##"$b$c"} removes \*:        '"|${a##"$b$c"}|"' - matches \, then *'

@@ -153,13 +153,15 @@ int FAST_FUNC d6_send_kernel_packet_from_client_data_ifindex(
 	}
 	setsockopt_reuseaddr(fd);
 
-	memset(&sa, 0, sizeof(sa));
-	sa.sin6_family = AF_INET6;
-	sa.sin6_port = htons(source_port);
-	sa.sin6_addr = *src_ipv6; /* struct copy */
-	if (bind(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
-		msg = "bind(%s)";
-		goto ret_close;
+	if (src_ipv6) {
+		memset(&sa, 0, sizeof(sa));
+		sa.sin6_family = AF_INET6;
+		sa.sin6_port = htons(source_port);
+		sa.sin6_addr = *src_ipv6; /* struct copy */
+		if (bind(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
+			msg = "bind(%s)";
+			goto ret_close;
+		}
 	}
 
 	memset(&sa, 0, sizeof(sa));

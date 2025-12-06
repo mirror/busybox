@@ -19,7 +19,7 @@ test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
 && test x"$CONFIG_LAST_SUPPORTED_WCHAR" = x"767" \
 && test x"$CONFIG_FEATURE_LS_SORTFILES" = x"y" \
 && testing "ls unicode test with codepoints limited to 767" \
-"(cd ls.testdir && sh ../ls.mk_uni_tests) && ls -1 ls.testdir" \
+"(cd ls.testdir && sh ../ls.mk_uni_tests) && ls -1q ls.testdir" \
 '0001_1__Some_correct_UTF-8_text___________________________________________|
 0002_2__Boundary_condition_test_cases_____________________________________|
 0003_2.1__First_possible_sequence_of_a_certain_length_____________________|
@@ -138,7 +138,7 @@ test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
 && test x"$CONFIG_SUBST_WCHAR" = x"63" \
 && test x"$CONFIG_LAST_SUPPORTED_WCHAR" = x"0" \
 && testing "ls unicode test with unlimited codepoints" \
-"(cd ls.testdir && sh ../ls.mk_uni_tests) && ls -1 ls.testdir" \
+"(cd ls.testdir && sh ../ls.mk_uni_tests) && ls -1q ls.testdir" \
 '0001_1__Some_correct_UTF-8_text___________________________________________|
 0002_2__Boundary_condition_test_cases_____________________________________|
 0003_2.1__First_possible_sequence_of_a_certain_length_____________________|
@@ -260,6 +260,28 @@ test x"$CONFIG_FEATURE_LS_SORTFILES" = x"y" \
 && testing "ls symlink_to_dir" \
 "touch ls.testdir/A ls.testdir/B; ln -s ls.testdir ls.link; ls ls.link; ls -1 ls.link/; ls -1 ls.link; rm -f ls.link" \
 "A\nB\nA\nB\nA\nB\n" \
+"" ""
+
+rm -rf ls.testdir 2>/dev/null
+mkdir ls.testdir || exit 1
+touch "`printf "ls.testdir/\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f_\x7f\x80\xfe\xff_\x22_\x27_\x5c"`"
+
+sq="'"
+
+# testing "test name" "command" "expected result" "file input" "stdin"
+testing "ls -q" \
+'ls -q ls.testdir' \
+'???????????????????????????????_????_"_'$sq'_\\''\n' \
+"" ""
+
+testing "ls -Q" \
+'ls -Q ls.testdir' \
+'"\\001\\002\\003\\004\\005\\006\\a\\b\\t\\n\\v\\f\\r\\016\\017\\020\\021\\022\\023\\024\\025\\026\\027\\030\\031\\032\\033\\034\\035\\036\\037_\\177\\200\\376\\377_\\"_'$sq'_\\\\"\n' \
+"" ""
+
+testing "ls -qQ" \
+'ls -qQ ls.testdir' \
+'"\\001\\002\\003\\004\\005\\006\\a\\b\\t\\n\\v\\f\\r\\016\\017\\020\\021\\022\\023\\024\\025\\026\\027\\030\\031\\032\\033\\034\\035\\036\\037_\\177\\200\\376\\377_\\"_'$sq'_\\\\"\n' \
 "" ""
 
 # Clean up

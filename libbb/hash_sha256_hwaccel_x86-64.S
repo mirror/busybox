@@ -34,24 +34,24 @@
 #define MSG		%xmm0
 #define STATE0		%xmm1
 #define STATE1		%xmm2
-#define MSGTMP0		%xmm3
-#define MSGTMP1		%xmm4
-#define MSGTMP2		%xmm5
-#define MSGTMP3		%xmm6
+#define MSG0		%xmm3
+#define MSG1		%xmm4
+#define MSG2		%xmm5
+#define MSG3		%xmm6
 
 #define XMMTMP		%xmm7
 
 #define SAVE0		%xmm8
 #define SAVE1		%xmm9
 
-#define SHUF(a,b,c,d) $(a+(b<<2)+(c<<4)+(d<<6))
+#define SHUF(a,b,c,d) $((a)+((b)<<2)+((c)<<4)+((d)<<6))
 
 	.balign	8	# allow decoders to fetch at least 2 first insns
 sha256_process_block64_shaNI:
 
-	movu128		80+0*16(%rdi), XMMTMP /* ABCD (little-endian dword order) */
+	movu128		80+0*16(%rdi), XMMTMP /* ABCD (shown least-significant-dword-first) */
 	movu128		80+1*16(%rdi), STATE1 /* EFGH */
-/* shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one */
+/* shufps: dwords 0,1 of the result are selected from *2nd* operand, and dwords 2,3 from 1st operand */
 	mova128		STATE1, STATE0
 	/* ---		-------------- ABCD -- EFGH */
 	shufps		SHUF(1,0,1,0), XMMTMP, STATE0 /* FEBA */
@@ -65,185 +65,203 @@ sha256_process_block64_shaNI:
 	mova128		STATE0, SAVE0
 	mova128		STATE1, SAVE1
 
+// sha256rnds2 instruction uses only lower 64 bits of MSG.
+// The code below needs to move upper 64 bits to lower 64 bits
+// for the second sha256rnds2 invocation
+// (what remains in upper bits does not matter).
+// There are several ways to do it:
+// movhlps    MSG, MSG                // abcd -> cdcd (3 bytes of code)
+// shuf128_32 SHUF(2,3,n,n), MSG, MSG // abcd -> cdXX (4 bytes)
+// punpckhqdq MSG, MSG                // abcd -> cdcd (4 bytes)
+// unpckhpd   MSG, MSG                // abcd -> cdcd (4 bytes)
+// psrldq     $8, MSG                 // abcd -> cd00 (5 bytes)
+// palignr    $8, MSG, MSG            // abcd -> cdab (6 bytes, SSSE3 insn)
+#define MOVE_UPPER64_DOWN(reg) movhlps reg, reg
+//#define MOVE_UPPER64_DOWN(reg) shuf128_32 SHUF(2,3,0,0), reg, reg
+//#define MOVE_UPPER64_DOWN(reg) punpckhqdq reg, reg
+//#define MOVE_UPPER64_DOWN(reg) unpckhpd reg, reg
+//#define MOVE_UPPER64_DOWN(reg) psrldq $8, reg
+//#define MOVE_UPPER64_DOWN(reg) palignr $8, reg, reg
+
 	/* Rounds 0-3 */
 	movu128		0*16(DATA_PTR), MSG
 	pshufb		XMMTMP, MSG
-	mova128		MSG, MSGTMP0
+	mova128		MSG, MSG0
 		paddd		0*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-		shuf128_32	$0x0E, MSG, MSG
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
 
 	/* Rounds 4-7 */
 	movu128		1*16(DATA_PTR), MSG
 	pshufb		XMMTMP, MSG
-	mova128		MSG, MSGTMP1
+	mova128		MSG, MSG1
 		paddd		1*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-		shuf128_32	$0x0E, MSG, MSG
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP1, MSGTMP0
+	sha256msg1	MSG1, MSG0
 
 	/* Rounds 8-11 */
 	movu128		2*16(DATA_PTR), MSG
 	pshufb		XMMTMP, MSG
-	mova128		MSG, MSGTMP2
+	mova128		MSG, MSG2
 		paddd		2*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-		shuf128_32	$0x0E, MSG, MSG
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP2, MSGTMP1
+	sha256msg1	MSG2, MSG1
 
 	/* Rounds 12-15 */
 	movu128		3*16(DATA_PTR), MSG
 	pshufb		XMMTMP, MSG
 /* ...to here */
-	mova128		MSG, MSGTMP3
+	mova128		MSG, MSG3
 		paddd		3*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP3, XMMTMP
-	palignr		$4, MSGTMP2, XMMTMP
-	paddd		XMMTMP, MSGTMP0
-	sha256msg2	MSGTMP3, MSGTMP0
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG3, XMMTMP
+	palignr		$4, MSG2, XMMTMP
+	paddd		XMMTMP, MSG0
+	sha256msg2	MSG3, MSG0
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP3, MSGTMP2
+	sha256msg1	MSG3, MSG2
 
 	/* Rounds 16-19 */
-	mova128		MSGTMP0, MSG
+	mova128		MSG0, MSG
 		paddd		4*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP0, XMMTMP
-	palignr		$4, MSGTMP3, XMMTMP
-	paddd		XMMTMP, MSGTMP1
-	sha256msg2	MSGTMP0, MSGTMP1
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG0, XMMTMP
+	palignr		$4, MSG3, XMMTMP
+	paddd		XMMTMP, MSG1
+	sha256msg2	MSG0, MSG1
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP0, MSGTMP3
+	sha256msg1	MSG0, MSG3
 
 	/* Rounds 20-23 */
-	mova128		MSGTMP1, MSG
+	mova128		MSG1, MSG
 		paddd		5*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP1, XMMTMP
-	palignr		$4, MSGTMP0, XMMTMP
-	paddd		XMMTMP, MSGTMP2
-	sha256msg2	MSGTMP1, MSGTMP2
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG1, XMMTMP
+	palignr		$4, MSG0, XMMTMP
+	paddd		XMMTMP, MSG2
+	sha256msg2	MSG1, MSG2
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP1, MSGTMP0
+	sha256msg1	MSG1, MSG0
 
 	/* Rounds 24-27 */
-	mova128		MSGTMP2, MSG
+	mova128		MSG2, MSG
 		paddd		6*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP2, XMMTMP
-	palignr		$4, MSGTMP1, XMMTMP
-	paddd		XMMTMP, MSGTMP3
-	sha256msg2	MSGTMP2, MSGTMP3
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG2, XMMTMP
+	palignr		$4, MSG1, XMMTMP
+	paddd		XMMTMP, MSG3
+	sha256msg2	MSG2, MSG3
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP2, MSGTMP1
+	sha256msg1	MSG2, MSG1
 
 	/* Rounds 28-31 */
-	mova128		MSGTMP3, MSG
+	mova128		MSG3, MSG
 		paddd		7*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP3, XMMTMP
-	palignr		$4, MSGTMP2, XMMTMP
-	paddd		XMMTMP, MSGTMP0
-	sha256msg2	MSGTMP3, MSGTMP0
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG3, XMMTMP
+	palignr		$4, MSG2, XMMTMP
+	paddd		XMMTMP, MSG0
+	sha256msg2	MSG3, MSG0
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP3, MSGTMP2
+	sha256msg1	MSG3, MSG2
 
 	/* Rounds 32-35 */
-	mova128		MSGTMP0, MSG
+	mova128		MSG0, MSG
 		paddd		8*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP0, XMMTMP
-	palignr		$4, MSGTMP3, XMMTMP
-	paddd		XMMTMP, MSGTMP1
-	sha256msg2	MSGTMP0, MSGTMP1
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG0, XMMTMP
+	palignr		$4, MSG3, XMMTMP
+	paddd		XMMTMP, MSG1
+	sha256msg2	MSG0, MSG1
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP0, MSGTMP3
+	sha256msg1	MSG0, MSG3
 
 	/* Rounds 36-39 */
-	mova128		MSGTMP1, MSG
+	mova128		MSG1, MSG
 		paddd		9*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP1, XMMTMP
-	palignr		$4, MSGTMP0, XMMTMP
-	paddd		XMMTMP, MSGTMP2
-	sha256msg2	MSGTMP1, MSGTMP2
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG1, XMMTMP
+	palignr		$4, MSG0, XMMTMP
+	paddd		XMMTMP, MSG2
+	sha256msg2	MSG1, MSG2
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP1, MSGTMP0
+	sha256msg1	MSG1, MSG0
 
 	/* Rounds 40-43 */
-	mova128		MSGTMP2, MSG
+	mova128		MSG2, MSG
 		paddd		10*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP2, XMMTMP
-	palignr		$4, MSGTMP1, XMMTMP
-	paddd		XMMTMP, MSGTMP3
-	sha256msg2	MSGTMP2, MSGTMP3
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG2, XMMTMP
+	palignr		$4, MSG1, XMMTMP
+	paddd		XMMTMP, MSG3
+	sha256msg2	MSG2, MSG3
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP2, MSGTMP1
+	sha256msg1	MSG2, MSG1
 
 	/* Rounds 44-47 */
-	mova128		MSGTMP3, MSG
+	mova128		MSG3, MSG
 		paddd		11*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP3, XMMTMP
-	palignr		$4, MSGTMP2, XMMTMP
-	paddd		XMMTMP, MSGTMP0
-	sha256msg2	MSGTMP3, MSGTMP0
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG3, XMMTMP
+	palignr		$4, MSG2, XMMTMP
+	paddd		XMMTMP, MSG0
+	sha256msg2	MSG3, MSG0
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP3, MSGTMP2
+	sha256msg1	MSG3, MSG2
 
 	/* Rounds 48-51 */
-	mova128		MSGTMP0, MSG
+	mova128		MSG0, MSG
 		paddd		12*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP0, XMMTMP
-	palignr		$4, MSGTMP3, XMMTMP
-	paddd		XMMTMP, MSGTMP1
-	sha256msg2	MSGTMP0, MSGTMP1
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG0, XMMTMP
+	palignr		$4, MSG3, XMMTMP
+	paddd		XMMTMP, MSG1
+	sha256msg2	MSG0, MSG1
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
-	sha256msg1	MSGTMP0, MSGTMP3
+	sha256msg1	MSG0, MSG3
 
 	/* Rounds 52-55 */
-	mova128		MSGTMP1, MSG
+	mova128		MSG1, MSG
 		paddd		13*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP1, XMMTMP
-	palignr		$4, MSGTMP0, XMMTMP
-	paddd		XMMTMP, MSGTMP2
-	sha256msg2	MSGTMP1, MSGTMP2
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG1, XMMTMP
+	palignr		$4, MSG0, XMMTMP
+	paddd		XMMTMP, MSG2
+	sha256msg2	MSG1, MSG2
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
 
 	/* Rounds 56-59 */
-	mova128		MSGTMP2, MSG
+	mova128		MSG2, MSG
 		paddd		14*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-	mova128		MSGTMP2, XMMTMP
-	palignr		$4, MSGTMP1, XMMTMP
-	paddd		XMMTMP, MSGTMP3
-	sha256msg2	MSGTMP2, MSGTMP3
-		shuf128_32	$0x0E, MSG, MSG
+	mova128		MSG2, XMMTMP
+	palignr		$4, MSG1, XMMTMP
+	paddd		XMMTMP, MSG3
+	sha256msg2	MSG2, MSG3
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
 
 	/* Rounds 60-63 */
-	mova128		MSGTMP3, MSG
+	mova128		MSG3, MSG
 		paddd		15*16-8*16(SHA256CONSTANTS), MSG
 		sha256rnds2	MSG, STATE0, STATE1
-		shuf128_32	$0x0E, MSG, MSG
+		MOVE_UPPER64_DOWN(MSG)
 		sha256rnds2	MSG, STATE1, STATE0
 
 	/* Add current hash values with previously saved */
@@ -252,7 +270,7 @@ sha256_process_block64_shaNI:
 
 	/* Write hash values back in the correct order */
 	mova128		STATE0, XMMTMP
-/* shufps takes dwords 0,1 from *2nd* operand, and dwords 2,3 from 1st one */
+/* shufps: dwords 0,1 of the result are selected from *2nd* operand, and dwords 2,3 from 1st operand */
 	/* ---		-------------- HGDC -- FEBA */
 	shufps		SHUF(3,2,3,2), STATE1, STATE0 /* ABCD */
 	shufps		SHUF(1,0,1,0), STATE1, XMMTMP /* EFGH */

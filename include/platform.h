@@ -187,7 +187,7 @@
 #elif defined(BYTE_ORDER) && BYTE_ORDER == LITTLE_ENDIAN
 # define BB_BIG_ENDIAN 0
 # define BB_LITTLE_ENDIAN 1
-#elif defined(__386__)
+#elif defined(__i386__)
 # define BB_BIG_ENDIAN 0
 # define BB_LITTLE_ENDIAN 1
 #else
@@ -209,6 +209,8 @@
 # define SWAP_LE64(x) bb_bswap_64(x)
 # define IF_BIG_ENDIAN(...) __VA_ARGS__
 # define IF_LITTLE_ENDIAN(...)
+/* How do bytes a,b,c,d (sequential in memory) look if fetched into uint32_t? */
+# define PACK32_BYTES(a,b,c,d) (uint32_t)((d)+((c)<<8)+((b)<<16)+((a)<<24))
 #else
 # define SWAP_BE16(x) bswap_16(x)
 # define SWAP_BE32(x) bswap_32(x)
@@ -218,6 +220,7 @@
 # define SWAP_LE64(x) (x)
 # define IF_BIG_ENDIAN(...)
 # define IF_LITTLE_ENDIAN(...) __VA_ARGS__
+# define PACK32_BYTES(a,b,c,d) (uint32_t)((a)+((b)<<8)+((c)<<16)+((d)<<24))
 #endif
 
 

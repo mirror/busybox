@@ -31,7 +31,7 @@
 //kbuild:lib-$(CONFIG_EJECT) += eject.o
 
 //usage:#define eject_trivial_usage
-//usage:       "[-t] [-T] [DEVICE]"
+//usage:       IF_FEATURE_EJECT_SCSI("[-s] ") "[-t] [-T] [DEVICE]"
 //usage:#define eject_full_usage "\n\n"
 //usage:       "Eject DEVICE or default /dev/cdrom\n"
 //usage:	IF_FEATURE_EJECT_SCSI(

@@ -1,5 +1,8 @@
 # Non-empty traps should be reset in subshell
 
+# If job control is disabled, skip the test ("Terminated" text not emitted)
+test "`type jobs`" = "jobs is a shell builtin" || exit 77
+
 # HUP is special in interactive shells
 trap '' HUP
 # QUIT is always special

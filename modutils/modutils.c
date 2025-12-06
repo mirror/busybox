@@ -69,15 +69,6 @@ void FAST_FUNC moddb_free(module_db *db)
 	}
 }
 
-void FAST_FUNC replace(char *s, char what, char with)
-{
-	while (*s) {
-		if (what == *s)
-			*s = with;
-		++s;
-	}
-}
-
 int FAST_FUNC string_to_llist(char *string, llist_t **llist, const char *delim)
 {
 	char *tok;

@@ -336,6 +336,7 @@ setuidgid - noexec. spawner
 sha1sum - noexec. runner
 sha256sum - noexec. runner
 sha3sum - noexec. runner
+sha384sum - noexec. runner
 sha512sum - noexec. runner
 showkey - interactive, longterm
 shred - runner

@@ -2826,7 +2826,7 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 		salt[0] = '$';
 		salt[1] = '1';
 		salt[2] = '$';
-		crypt_make_salt(salt + 3, 4);
+		crypt_make_rand64encoded(salt + 3, 8 / 2); /* 8 chars */
 		puts(pw_encrypt(pass, salt, /*cleanup:*/ 0));
 		return 0;
 	}

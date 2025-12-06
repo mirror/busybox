@@ -696,6 +696,14 @@ pid_t FAST_FUNC xfork(void)
 }
 #endif
 
+#if 0
+/* DO NOT DO THIS. This can't be a function.
+ * It works on some arches (x86) but fails on others (ppc64le: SEGV).
+ * The reason is: the child returns from this function
+ * and likely pops up the stack in an arch-dependent way.
+ * When child eventually exits or execs, parent "reappear"
+ * in the now-unwound stack (!) and the behavior is undefined.
+ */
 void FAST_FUNC xvfork_parent_waits_and_exits(void)
 {
 	pid_t pid;
@@ -711,6 +719,7 @@ void FAST_FUNC xvfork_parent_waits_and_exits(void)
 	}
 	/* Child continues */
 }
+#endif
 
 // Useful when we do know that pid is valid, and we just want to wait
 // for it to exit. Not existing pid is fatal. waitpid() status is not returned.

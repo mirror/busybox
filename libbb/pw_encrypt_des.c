@@ -186,37 +186,7 @@ static const uint8_t pbox[32] ALIGN1 = {
 	 2,  8, 24, 14, 32, 27,  3,  9, 19, 13, 30,  6, 22, 11,  4, 25
 };
 
-static const uint32_t bits32[32] ALIGN4 = {
-	0x80000000, 0x40000000, 0x20000000, 0x10000000,
-	0x08000000, 0x04000000, 0x02000000, 0x01000000,
-	0x00800000, 0x00400000, 0x00200000, 0x00100000,
-	0x00080000, 0x00040000, 0x00020000, 0x00010000,
-	0x00008000, 0x00004000, 0x00002000, 0x00001000,
-	0x00000800, 0x00000400, 0x00000200, 0x00000100,
-	0x00000080, 0x00000040, 0x00000020, 0x00000010,
-	0x00000008, 0x00000004, 0x00000002, 0x00000001
-};
-
 static const uint8_t bits8[8] ALIGN1 = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-
-
-static int
-ascii_to_bin(char ch)
-{
-	if (ch > 'z')
-		return 0;
-	if (ch >= 'a')
-		return (ch - 'a' + 38);
-	if (ch > 'Z')
-		return 0;
-	if (ch >= 'A')
-		return (ch - 'A' + 12);
-	if (ch > '9')
-		return 0;
-	if (ch >= '.')
-		return (ch - '.');
-	return 0;
-}
 
 
 /* Static stuff that stays resident and doesn't change after
@@ -354,10 +324,17 @@ des_init(struct des_ctx *ctx, const struct const_des_ctx *cctx)
 	int i, j, b, k, inbit, obit;
 	uint32_t p;
 	const uint32_t *bits28, *bits24;
+	uint32_t bits32[32];
 
 	if (!ctx)
 		ctx = xmalloc(sizeof(*ctx));
 	const_ctx = cctx;
+
+	p = 0x80000000U;
+	for (i = 0; p; i++) {
+		bits32[i] = p;
+		p >>= 1;
+	}
 
 #if USE_REPETITIVE_SPEEDUP
 	old_rawkey0 = old_rawkey1 = 0;
@@ -694,21 +671,6 @@ do_des(struct des_ctx *ctx, /*uint32_t l_in, uint32_t r_in,*/ uint32_t *l_out, u
 
 #define DES_OUT_BUFSIZE 21
 
-static void
-to64_msb_first(char *s, unsigned v)
-{
-#if 0
-	*s++ = ascii64[(v >> 18) & 0x3f]; /* bits 23..18 */
-	*s++ = ascii64[(v >> 12) & 0x3f]; /* bits 17..12 */
-	*s++ = ascii64[(v >> 6) & 0x3f]; /* bits 11..6 */
-	*s   = ascii64[v & 0x3f]; /* bits 5..0 */
-#endif
-	*s++ = i64c(v >> 18); /* bits 23..18 */
-	*s++ = i64c(v >> 12); /* bits 17..12 */
-	*s++ = i64c(v >> 6); /* bits 11..6 */
-	*s   = i64c(v); /* bits 5..0 */
-}
-
 static char *
 NOINLINE
 des_crypt(struct des_ctx *ctx, char output[DES_OUT_BUFSIZE],
@@ -740,44 +702,28 @@ des_crypt(struct des_ctx *ctx, char output[DES_OUT_BUFSIZE],
 	 */
 	output[0] = salt_str[0];
 	output[1] = salt_str[1];
-	salt = (ascii_to_bin(salt_str[1]) << 6)
-	     |  ascii_to_bin(salt_str[0]);
+
+	salt = a2i64(salt_str[0]);
+	if (salt >= 64)
+		return NULL; /* bad salt char */
+	salt |= (a2i64(salt_str[1]) << 6);
+	if (salt >= (64 << 6))
+		return NULL; /* bad salt char */
 	setup_salt(ctx, salt); /* set ctx->saltbits for do_des() */
 
 	/* Do it. */
 	do_des(ctx, /*0, 0,*/ &r0, &r1, 25 /* count */);
 
 	/* Now encode the result. */
-#if 0
-{
-	uint32_t l = (r0 >> 8);
-	q = (uint8_t *)output + 2;
-	*q++ = ascii64[(l >> 18) & 0x3f]; /* bits 31..26 of r0 */
-	*q++ = ascii64[(l >> 12) & 0x3f]; /* bits 25..20 of r0 */
-	*q++ = ascii64[(l >> 6) & 0x3f]; /* bits 19..14 of r0 */
-	*q++ = ascii64[l & 0x3f]; /* bits 13..8 of r0 */
-	l = ((r0 << 16) | (r1 >> 16));
-	*q++ = ascii64[(l >> 18) & 0x3f]; /* bits 7..2 of r0 */
-	*q++ = ascii64[(l >> 12) & 0x3f]; /* bits 1..2 of r0 and 31..28 of r1 */
-	*q++ = ascii64[(l >> 6) & 0x3f]; /* bits 27..22 of r1 */
-	*q++ = ascii64[l & 0x3f]; /* bits 21..16 of r1 */
-	l = r1 << 2;
-	*q++ = ascii64[(l >> 12) & 0x3f]; /* bits 15..10 of r1 */
-	*q++ = ascii64[(l >> 6) & 0x3f]; /* bits 9..4 of r1 */
-	*q++ = ascii64[l & 0x3f]; /* bits 3..0 of r1 + 00 */
-	*q = 0;
-}
-#else
 	/* Each call takes low-order 24 bits and stores 4 chars */
 	/* bits 31..8 of r0 */
-	to64_msb_first(output + 2, (r0 >> 8));
+	num2str64_4chars_msb_first(output + 2, (r0 >> 8));
 	/* bits 7..0 of r0 and 31..16 of r1 */
-	to64_msb_first(output + 6, (r0 << 16) | (r1 >> 16));
+	num2str64_4chars_msb_first(output + 6, (r0 << 16) | (r1 >> 16));
 	/* bits 15..0 of r1 and two zero bits (plus extra zero byte) */
-	to64_msb_first(output + 10, (r1 << 8));
+	num2str64_4chars_msb_first(output + 10, (r1 << 8));
 	/* extra zero byte is encoded as '.', fixing it */
 	output[13] = '\0';
-#endif
 
 	return output;
 }

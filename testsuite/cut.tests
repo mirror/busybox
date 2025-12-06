@@ -23,15 +23,34 @@ the quick brown fox jumps over the lazy dog
 
 testing "cut -b a,a,a" "cut -b 3,3,3 input" "e\np\ne\n" "$abc" ""
 
-testing "cut -b overlaps" "cut -b 1-3,2-5,7-9,9-10 input" \
-  "one:to:th\nalphabeta\nthe qick \n" "$abc" ""
-testing "-b encapsulated" "cut -b 3-8,4-6 input" "e:two:\npha:be\ne quic\n" \
+testing "cut -b overlaps" \
+	"cut -b 1-3,2-5,7-9,9-10 input" \
+	"\
+one:to:th
+alphabeta
+the qick \n" \
+	"$abc" ""
+testing "-b encapsulated" \
+	"cut -b 3-8,4-6 input" \
+	"\
+e:two:
+pha:be
+e quic\n" \
+	"$abc" ""
+optional LONG_OPTS
+testing "cut -b --output-delimiter overlaps" \
+	"cut --output-delimiter='^' -b 1-3,2-5,7-9,9-10 input" \
+	"\
+one:t^o:th
+alpha^beta
+the q^ick \n" \
+	"$abc" ""
+SKIP=
+
+testing "cut high-low error" "cut -b 8-3 input 2>/dev/null || echo err" "err\n" \
   "$abc" ""
-# --output-delimiter not implemnted (yet?)
-#testing "cut -bO overlaps" \
-#  "cut --output-delimiter ' ' -b 1-3,2-5,7-9,9-10 input" \
-#  "one:t o:th\nalpha beta\nthe q ick \n" "$abc" ""
-testing "cut high-low error" "cut -b 8-3 abc.txt 2>/dev/null || echo err" "err\n" \
+
+testing "cut -b 2-1 error" "cut -b 2-1 input 2>/dev/null || echo err" "err\n" \
   "$abc" ""
 
 testing "cut -c a-b" "cut -c 4-10 input" ":two:th\nha:beta\n quick \n" "$abc" ""
@@ -65,10 +84,27 @@ testing "cut with -d -f( ) -s" "cut -d' ' -f3 -s input && echo yes" "yes\n" "$in
 testing "cut with -d -f(a) -s" "cut -da -f3 -s input" "n\nsium:Jim\n\ncion:Ed\n" "$input" ""
 testing "cut with -d -f(a) -s -n" "cut -da -f3 -s -n input" "n\nsium:Jim\n\ncion:Ed\n" "$input" ""
 
+input="\
+
+foo bar baz
+
+bing bong boop
+
+"
+testing "cut with -d -s omits blank lines" "cut -d' ' -f2 -s input" "bar\nbong\n" "$input" ""
+
 # substitute for awk
 optional FEATURE_CUT_REGEX
-testing "cut -DF" "cut -DF 2,7,5" \
-  "said and your\nare\nis demand. supply\nforecast :\nyou you better,\n\nEm: Took hate\n" "" \
+testing "cut -DF unordered" "cut -DF 2,7,5" \
+	"\
+said and your
+are
+is demand. supply
+forecast :
+you you better,
+
+Em: Took hate
+" "" \
 "Bother, said Pooh. It's your husband, and he has a gun.
 Cheerios are donut seeds.
 Talk is cheap because supply exceeds demand.
@@ -76,9 +112,92 @@ Weather forecast for tonight : dark.
 Apple: you can buy better, but you can't pay more.
 Subcalifragilisticexpialidocious.
 Auntie Em: Hate you, hate Kansas. Took the dog. Dorothy."
+
+# No delimiter found: print entire line regardless of -F RANGES
+testing "cut -F1" "cut -d: -F1" \
+	"the_only_field\n" "" \
+	"the_only_field\n"
+testing "cut -F2" "cut -d: -F2" \
+	"the_only_field\n" "" \
+	"the_only_field\n"
+# No delimiter found and -s: skip entire line
+testing "cut -sF1" "cut -d: -sF1" \
+	"" "" \
+	"the_only_field\n"
+#^^^ the above is probably mishandled by toybox, it prints the line
+testing "cut -sF2" "cut -d: -sF2" \
+	"" "" \
+	"the_only_field\n"
+# -D disables special handling of lines with no delimiters, the line is treated as the 1st field
+testing "cut -DF1" "cut -d: -DF1" \
+	"the_only_field\n" "" \
+	"the_only_field\n"
+testing "cut -DF2" "cut -d: -DF2" \
+	"\n" "" \
+	"the_only_field\n"
+
+optional FEATURE_CUT_REGEX LONG_OPTS
+testing "cut -F preserves intermediate delimiters" \
+	"cut --output-delimiter=: -F2,4-6,7" \
+	"2:4		5  6:7\n" \
+	"" "1 2  3  4\t\t5  6  7 8\n"
 SKIP=
 
-testing "cut empty field" "cut -d ':' -f 1-3" "a::b\n" "" "a::b\n"
-testing "cut empty field 2" "cut -d ':' -f 3-5" "b::c\n" "" "a::b::c:d\n"
+optional LONG_OPTS
+testing "cut -f does not preserve intermediate delimiters" \
+	"cut --output-delimiter=: -d' ' -f2,4-6,7" \
+	"2:4:5:6:7\n" \
+	"" "1 2 3 4 5 6 7 8\n"
+SKIP=
+
+testing "cut empty field" "cut -d ':' -f 1-3" \
+	"a::b\n" \
+	"" "a::b\n"
+testing "cut empty field 2" "cut -d ':' -f 3-5" \
+	"b::c\n" \
+	"" "a::b::c:d\n"
+testing "cut non-existing field" "cut -d ':' -f1,3" \
+	"1\n" \
+	"" "1:\n"
+
+# cut -d$'\n' has a special meaning: "select input lines".
+# I didn't find any documentation for this feature.
+testing "cut -dNEWLINE" \
+	"cut -d'
+' -f4,2,6-8" \
+	"2\n4\n6\n7\n" \
+	"" "1\n2\n3\n4\n5\n6\n7"
+
+optional LONG_OPTS
+testing "cut -dNEWLINE --output-delimiter" \
+	"cut -d'
+' --output-delimiter=@@ -f4,2,6-8" \
+	"2@@4@@6@@7\n" \
+	"" "1\n2\n3\n4\n5\n6\n7"
+
+testing "cut -dNEWLINE --output-delimiter 2" \
+	"cut -d'
+' --output-delimiter=@@ -f4,2,6-8" \
+	"2@@4@@6@@7\n" \
+	"" "1\n2\n3\n4\n5\n6\n7\n"
+
+testing "cut -dNEWLINE --output-delimiter EMPTY_INPUT" \
+	"cut -d'
+' --output-delimiter=@@ -f4,2,6-8" \
+	"" \
+	"" ""
+SKIP=
+
+# This seems to work as if delimiter is never found.
+# We test here that -d '' does *not* operate as if there was no -d
+# and delimiter has defaulted to TAB:
+testing "cut -d EMPTY" \
+	"cut -d '' -f2-" \
+	"1 2\t3 4 5\n" \
+	"" "1 2\t3 4 5\n"
+testing "cut -d EMPTY -s" \
+	"cut -d '' -f2- -s" \
+	"" \
+	"" "1 2\t3 4 5\n"
 
 exit $FAILCOUNT

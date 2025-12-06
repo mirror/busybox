@@ -155,6 +155,9 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 			, &opt_t
 			IF_FEATURE_DF_FANCY(, &chp)
 	);
+	/* -k overrides $POSIXLY_CORRECT: */
+	if (opt & OPT_KILO)
+		df_disp_hr = 1024;
 	if (opt & OPT_MEGA)
 		df_disp_hr = 1024*1024;
 
@@ -185,8 +188,8 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 	if (disp_units_hdr == NULL) {
 #if ENABLE_FEATURE_HUMAN_READABLE
 		disp_units_hdr = xasprintf("%s-blocks",
-			/* print df_disp_hr, show no fractionals,
-			 * use suffixes if OPT_POSIX is set in opt */
+			/* print df_disp_hr; show no fractionals;
+			 * if -P, unit=1 (print it in full, no KMG suffixes) */
 			make_human_readable_str(df_disp_hr, 0, !!(opt & OPT_POSIX))
 		);
 #else

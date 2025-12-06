@@ -55,7 +55,7 @@ const char* FAST_FUNC
 shell_builtin_read(struct builtin_read_params *params)
 {
 	struct pollfd pfd[1];
-#define fd (pfd[0].fd) /* -u FD */
+#define fd (pfd->fd) /* -u FD */
 	unsigned err;
 	unsigned end_ms; /* -t TIMEOUT */
 	int nchars; /* -n NUM */
@@ -142,7 +142,7 @@ shell_builtin_read(struct builtin_read_params *params)
 		 * bash seems to ignore -p PROMPT for this use case.
 		 */
 		int r;
-		pfd[0].events = POLLIN;
+		pfd->events = POLLIN;
 		r = poll(pfd, 1, /*timeout:*/ 0);
 		/* Return 0 only if poll returns 1 ("one fd ready"), else return 1: */
 		return (const char *)(uintptr_t)(r <= 0);
@@ -204,8 +204,8 @@ shell_builtin_read(struct builtin_read_params *params)
 			 * 32-bit unix time wrapped (year 2038+).
 			 */
 			if (timeout <= 0) { /* already late? */
-				retval = (const char *)(uintptr_t)1;
-				goto ret;
+				retval = (const char *)(uintptr_t)2;
+				break;
 			}
 		}
 
@@ -214,11 +214,16 @@ shell_builtin_read(struct builtin_read_params *params)
 		 * regardless of SA_RESTART-ness of that signal!
 		 */
 		errno = 0;
-		pfd[0].events = POLLIN;
-//TODO race with a signal arriving just before the poll!
-		if (poll(pfd, 1, timeout) <= 0) {
-			/* timed out, or EINTR */
+		pfd->events = POLLIN;
+
+		/* test bb_got_signal, then poll(), atomically wrt signals */
+		if (check_got_signal_and_poll(pfd, timeout) <= 0) {
+			/* timed out, or some error */
 			err = errno;
+			if (!err) { /* timed out */
+				retval = (const char *)(uintptr_t)2;
+				break;
+			}
 			retval = (const char *)(uintptr_t)1;
 			goto ret;
 		}

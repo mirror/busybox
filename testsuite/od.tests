@@ -61,13 +61,24 @@ testing "od -a (DESKTOP)" \
 "\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"
 SKIP=
 
-testing "od -B" \
+$little_endian || SKIP=1
+testing "od -B (little-endian)" \
         "od -B" \
 "\
 0000000 001001 005003 041101 177103
 0000010
 " \
 	"" "$input"
+SKIP=
+
+$little_endian && SKIP=1
+testing "od -B (big-endian)" \
+        "od -B" \
+"\
+0000000 000402 001412 040502 041776
+0000010
+" \
+       "" "$input"
 SKIP=
 
 $little_endian || SKIP=1

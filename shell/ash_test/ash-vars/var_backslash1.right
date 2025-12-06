@@ -1,0 +1,35 @@
+a is '\*bc'
+b is '\'
+c is '*'
+${a##?*} removes everything:    || - matches one char, then all
+${a##?"*"} removes \*:          |bc| - matches one char, then *
+${a##\*} removes nothing:       |\*bc| - first char is not *
+${a##\\*} removes everything:   || - matches \, then all
+${a##\\\*} removes \*:          |bc| - matches \, then *
+${a##?$c} removes everything:   || - matches one char, then all
+${a##?"$c"} removes \*:         |bc| - matches one char, then *
+${a##\\$c} removes everything:  || - matches \, then all
+${a##\\\$c} removes nothing:    |\*bc| - matches \, but then second char is not $
+${a##\\"$c"} removes \*:        |bc| - matches \, then *
+${a##$b} removes \:             |*bc| - matches \
+${a##"$b"} removes \:           |*bc| - matches \
+
+Single quote tests:
+${a##?'*'} removes \*:          |bc| - matches one char, then *
+${a##'\'*} removes everything:  || - matches \, then all
+${a##'\'\*} removes \*:         |bc| - matches \, then *
+${a##'\*'} removes \*:          |bc| - matches \, then *
+${a##'\'$c} removes everything: || - matches \, then all
+${a##'\'\$c} removes nothing:   |\*bc| - matches \, but then second char is not $
+${a##'\'"$c"} removes \*:       |bc| - matches \, then *
+
+${a##"$b"?} removes \*:         |bc| - matches \, then one char
+${a##"$b"*} removes everything: || - matches \, then all
+${a##"$b""?"} removes nothing:  |\*bc| - second char is not ?
+${a##"$b""*"} removes \*:       |bc| - matches \, then *
+${a##"$b"\*} removes \*:        |bc| - matches \, then *
+${a##"$b"$c} removes everything:|| - matches \, then all
+${a##"$b""$c"} removes \*:      |bc| - matches \, then *
+${a##"$b?"} removes nothing:    |\*bc| - second char is not ?
+${a##"$b*"} removes \*:         |bc| - matches \, then *
+${a##"$b$c"} removes \*:        |bc| - matches \, then *

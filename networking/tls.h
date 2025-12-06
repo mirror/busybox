@@ -82,10 +82,9 @@ typedef  int16_t  int16;
 
 void tls_get_random(void *buf, unsigned len) FAST_FUNC;
 
-void xorbuf(void* buf, const void* mask, unsigned count) FAST_FUNC;
-
 #define ALIGNED_long ALIGNED(sizeof(long))
-void xorbuf_aligned_AES_BLOCK_SIZE(void* buf, const void* mask) FAST_FUNC;
+#define xorbuf_aligned_AES_BLOCK_SIZE(dst,src) xorbuf16_aligned_long(dst,src)
+#define xorbuf_AES_BLOCK_SIZE(dst,src)         xorbuf16(dst,src)
 
 #define matrixCryptoGetPrngData(buf, len, userPtr) (tls_get_random(buf, len), PS_SUCCESS)
 

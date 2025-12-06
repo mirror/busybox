@@ -1,0 +1,8 @@
+if=if
+case if in
+if) echo "Keyword-like word may be in pattern";;
+fi) echo "Not reached";;
+# esac) echo "Not reached";; # not accepted by bash 5.2.15
+do) echo "Not reached"
+esac
+echo Ok:$?

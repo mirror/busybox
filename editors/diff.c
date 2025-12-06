@@ -741,7 +741,7 @@ static int diffreg(char *file[2])
 			fd = fd_tmp;
 			xlseek(fd, 0, SEEK_SET);
 		}
-		fp[i] = fdopen(fd, "r");
+		fp[i] = xfdopen_for_read(fd);
 	}
 
 	setup_common_bufsiz();

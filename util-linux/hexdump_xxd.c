@@ -40,13 +40,17 @@
 //    -s [+][-]seek  start at <seek> bytes abs. (or +: rel.) infile offset.
 //    -u          use upper case hex letters.
 
+//xxd V1.10 accepts and ignores ANY string after -p (including "").
+//Essentially, the syntax is as if -p has an optional parameter.
+//Therefore: -pc50 != -p -c50
+
 //usage:#define xxd_trivial_usage
-//usage:       "[-pri] [-g N] [-c N] [-l LEN] [-s OFS] [-o OFS] [FILE]"
+//usage:       "[-ri] [-ps] [-g N] [-c N] [-l LEN] [-s OFS] [-o OFS] [FILE]"
 //usage:#define xxd_full_usage "\n\n"
 //usage:       "Hex dump FILE (or stdin)\n"
-//usage:     "\n	-g N		Bytes per group"
-//usage:     "\n	-c N		Bytes per line"
-//usage:     "\n	-p		Show only hex bytes, assumes -c30"
+//usage:     "\n	-g N		Bytes per group (default 2)"
+//usage:     "\n	-c N		Bytes per line (default:16, -ps:30, -i:12)"
+//usage:     "\n	-ps		Show only hex bytes (no offset/spaces)"
 //usage:     "\n	-i		C include file style"
 // exactly the same help text lines in hexdump and xxd:
 //usage:     "\n	-l LENGTH	Show only first LENGTH bytes"
@@ -240,8 +244,8 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 
 	dumper = alloc_dumper();
 
-	opt = getopt32(argv, "^" "l:s:apirg:+c:+o:" "\0" "?1" /* 1 argument max */,
-			&opt_l, &opt_s, &bytes, &cols, &opt_o
+	opt = getopt32(argv, "^" "l:s:ap::irg:+c:+o:" "\0" "?1" /* 1 argument max */,
+			&opt_l, &opt_s, NULL, &bytes, &cols, &opt_o
 	);
 	argv += optind;
 
@@ -331,7 +335,8 @@ int xxd_main(int argc UNUSED_PARAM, char **argv)
 
 	if ((opt & OPT_i) && argv[0]) {
 		print_C_style(argv[0], "unsigned char %s");
-		printf("[] = {\n");
+		puts("[] = {");
+//TODO: if file does not exist, shouldn't print the above lines
 	}
 	r = bb_dump_dump(dumper, argv);
 	if (r == 0 && (opt & OPT_i) && argv[0]) {

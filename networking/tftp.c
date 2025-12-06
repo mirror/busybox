@@ -250,7 +250,7 @@ static int tftp_blksize_check(const char *blksize_str, int maxsize)
 		return -1;
 	}
 # if ENABLE_TFTP_DEBUG
-	bb_info_msg("using blksize %u", blksize);
+	bb_error_msg("using blksize %u", blksize);
 # endif
 	return blksize;
 }

@@ -143,7 +143,7 @@ static int run_pipe(char *man_filename, int man, int level)
 
  ordinary_manpage:
 	close(STDIN_FILENO);
-	open_zipped(man_filename, /*fail_if_not_compressed:*/ 0); /* guaranteed to use fd 0 (STDIN_FILENO) */
+	open_zipped(man_filename, /*die_if_not_compressed:*/ 0); /* guaranteed to use fd 0 (STDIN_FILENO) */
 	if (man) {
 		int w = get_terminal_width(-1);
 		if (w > 10)

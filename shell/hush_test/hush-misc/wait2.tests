@@ -1,3 +1,6 @@
+# If job control is disabled, skip the test
+test "`type jobs`" = "jobs is a shell builtin" || exit 77
+
 sleep 3 & sleep 2 & sleep 1
 wait $!
 echo $?
