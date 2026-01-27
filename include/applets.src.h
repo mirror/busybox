@@ -1,25 +1,29 @@
 /* vi: set sw=4 ts=4: */
 /*
- * applets.h - a listing of all busybox applets.
+ * applets.src.h — listing of all PiPlayInit applets.
  *
- * If you write a new applet, you need to add an entry to this list to make
- * busybox aware of it.
+ * If you write a new applet, you must add an entry to this list to make
+ * PiPlayInit aware of it.
+ *
+ * This file is a source template used to generate applet tables,
+ * prototypes, usage text, install links, and privilege metadata.
  */
 
 /*
-name  - applet name as it is typed on command line
-help  - applet name, converted to C (ether-wake: help = ether_wake)
-main  - corresponding <applet>_main to call (bzcat: main = bunzip2)
-l     - location to install link to: [/usr]/[s]bin
-s     - suid type:
-        BB_SUID_REQUIRE: will complain if busybox isn't suid
-        and is run by non-root (applet_main() will not be called at all)
-        BB_SUID_DROP: will drop suid prior to applet_main()
-        BB_SUID_MAYBE: neither of the above
-        (every instance of BB_SUID_REQUIRE and BB_SUID_MAYBE
-        needs to be justified in comment)
-        NB: please update FEATURE_SUID help text whenever you add/remove
-        BB_SUID_REQUIRE or BB_SUID_MAYBE applet.
+name  - applet name as invoked
+help  - applet name converted to C identifier form
+main  - corresponding <applet>_main entry point
+l     - install location (system-owned)
+s     - privilege policy:
+        PPI_SUID_REQUIRE: requires elevated privilege
+        PPI_SUID_DROP:    drops privileges before execution
+        PPI_SUID_MAYBE:   conditional privilege usage
+
+        All uses of PPI_SUID_REQUIRE and PPI_SUID_MAYBE
+        must be explicitly justified.
+
+        NOTE: update FEATURE_SUID help text when changing
+        any PPI_SUID_* usage.
 */
 
 #if defined(PROTOTYPES)
@@ -51,7 +55,7 @@ s     - suid type:
 # define APPLET_SCRIPTED(name,main,l,s,help) MAKE_USAGE(#name, help##_trivial_usage)
 
 #elif defined(MAKE_LINKS)
-# define APPLET(name,l,c)                    LINK l name
+# define APPLET(name,l,s)                    LINK l name
 # define APPLET_ODDNAME(name,main,l,s,help)  LINK l name
 # define APPLET_NOEXEC(name,main,l,s,help)   LINK l name
 # define APPLET_NOFORK(name,main,l,s,help)   LINK l name
@@ -72,7 +76,7 @@ s     - suid type:
 # define APPLET_SCRIPTED(name,main,l,s,help) SCRIPT name
 
 #else
-  static struct bb_applet applets[] = { /*    name, main, location, need_suid */
+  static struct bb_applet applets[] = { /* name, main, location, privilege */
 # define APPLET(name,l,s)                    { #name, #name, l, s },
 # define APPLET_ODDNAME(name,main,l,s,help)  { #name, #main, l, s },
 # define APPLET_NOEXEC(name,main,l,s,help)   { #name, #main, l, s, 1 },
@@ -81,8 +85,8 @@ s     - suid type:
 #endif
 
 #if ENABLE_INSTALL_NO_USR
-# define BB_DIR_USR_BIN BB_DIR_BIN
-# define BB_DIR_USR_SBIN BB_DIR_SBIN
+# define PPI_DIR_USR_BIN  PPI_DIR_BIN
+# define PPI_DIR_USR_SBIN PPI_DIR_SBIN
 #endif
 
 
