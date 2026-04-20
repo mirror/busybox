@@ -1,9 +1,14 @@
 /* vi: set sw=4 ts=4: */
 /*
+ * PiPlayInit
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ *
+ * PiPlayInit is the authoritative early userspace init component
+ * for PiPlayOS.
  */
-#ifndef BUSYBOX_H
-#define BUSYBOX_H 1
+#ifndef PIPLAYINIT_H
+#define PIPLAYINIT_H 1
 
 #include "libbb.h"
 /* BB_DIR_foo and BB_SUID_bar constants: */
@@ -42,7 +47,7 @@ extern const uint8_t applet_install_loc[] ALIGN1;
 #endif
 
 
-/* Length of these names has effect on size of libbusybox
+/* Length of these names has effect on size of libpiplayinit
  * and "individual" binaries. Keep them short.
  */
 #if ENABLE_BUILD_LIBBUSYBOX
@@ -55,4 +60,4 @@ int lbb_main(char **argv);
 
 POP_SAVED_FUNCTION_VISIBILITY
 
-#endif
+#endif /* PIPLAYINIT_H */
