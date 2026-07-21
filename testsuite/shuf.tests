@@ -1,0 +1,55 @@
+#!/bin/sh
+
+# Licensed under GPLv2, see file LICENSE in this source tree.
+
+. ./testing.sh
+
+# testing "test name" "commands" "expected result" "file input" "stdin"
+
+testing "shuf -i 1-10 prints each number once" \
+	"shuf -i 1-10 | sort -n" \
+	"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n" "" ""
+
+testing "shuf -i 1-10 -n 10 prints each number once" \
+	"shuf -i 1-10 -n 10 | sort -n" \
+	"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n" "" ""
+
+testing "shuf -i L-L prints the single number" \
+	"shuf -i 5-5" \
+	"5\n" "" ""
+
+testing "shuf -i with -n larger than range" \
+	"shuf -i 5-5 -n 99" \
+	"5\n" "" ""
+
+# Must not try to allocate an array for the whole range
+# (~17 gigabytes here): www.github.com/mirror/busybox/issues/109
+testing "shuf -i with huge range prints distinct numbers" \
+	"shuf -i 1-2222222222 -n 4 | sort -un | wc -l" \
+	"4\n" "" ""
+
+testing "shuf -i with huge range prints numbers within it" \
+	"shuf -i 2000000000-2222222222 -n 3 | awk '\$1 < 2000000000 || \$1 > 2222222222'" \
+	"" "" ""
+
+testing "shuf -i with huge range and -n 0 prints nothing" \
+	"shuf -i 1-2222222222 -n 0" \
+	"" "" ""
+
+testing "shuf -e prints all args" \
+	"shuf -e a b c | sort" \
+	"a\nb\nc\n" "" ""
+
+testing "shuf prints all stdin lines" \
+	"shuf | sort" \
+	"x\ny\nz\n" "" "x\ny\nz\n"
+
+testing "shuf -z ends lines with NUL" \
+	"shuf -z -i 7-7 | tr '\\0' N" \
+	"7N" "" ""
+
+testing "shuf rejects reversed range" \
+	"shuf -i 5-1 2>&1; echo \$?" \
+	"shuf: bad range '5-1'\n1\n" "" ""
+
+exit $FAILCOUNT
