@@ -37,6 +37,21 @@
 #define OPT_z		(1 << 4)
 #define OPT_STR		"ei:n:o:z"
 
+/* Returns a random number in [0, n) */
+static unsigned random_below(unsigned n)
+{
+	unsigned r = rand();
+	/* RAND_MAX can be as small as 32767 */
+	if (n > RAND_MAX)
+		r ^= rand() << 15;
+	return r % n;
+//TODO: the above method is seriously non-uniform when n is very large.
+//For example, with n of          0xf0000000,
+//values of (r % n) in [0, 0x0fffffff] range
+//are more likely: e.g. r=1 and r=0xf0000001 both map to 1,
+//whereas only one value, r=0xefffffff, maps to 0xefffffff.
+}
+
 /*
  * Use the Fisher-Yates shuffle algorithm on an array of lines.
  * If the required number of output lines is less than the total
@@ -44,20 +59,9 @@
  */
 static void shuffle_lines(char **lines, unsigned numlines, unsigned outlines)
 {
-	srand(monotonic_us());
-
 	while (outlines != 0) {
 		char *tmp;
-		unsigned r = rand();
-		/* RAND_MAX can be as small as 32767 */
-		if (numlines > RAND_MAX)
-			r ^= rand() << 15;
-		r %= numlines;
-//TODO: the above method is seriously non-uniform when numlines is very large.
-//For example, with numlines of   0xf0000000,
-//values of (r % numlines) in [0, 0x0fffffff] range
-//are more likely: e.g. r=1 and r=0xf0000001 both map to 1,
-//whereas only one value, r=0xefffffff, maps to 0xefffffff.
+		unsigned r = random_below(numlines);
 		numlines--;
 		tmp = lines[numlines];
 		lines[numlines] = lines[r];
@@ -161,10 +165,8 @@ int shuf_main(int argc, char **argv)
 		}
 
 		numlines = hi + 1;
-		lines = xmalloc((size_t)numlines * sizeof(lines[0]));
-		for (i = 0; i < numlines; i++) {
-			lines[i] = (char*)(uintptr_t)i;
-		}
+		/* lines[] is allocated below, when outlines is known */
+		lines = NULL;
 	} else {
 		/* default - read lines from stdin or the input file */
 		FILE *fp;
@@ -196,7 +198,41 @@ int shuf_main(int argc, char **argv)
 			outlines = numlines;
 	}
 
-	shuffle_lines(lines, numlines, outlines);
+	srand(monotonic_us());
+
+	if ((opts & OPT_i)
+	 && (unsigned long long)outlines * outlines / 2 < numlines
+	) {
+		/* Do not create a "virtual line" for each number in the range:
+		 * a large range with a small -n COUNT would use lots of memory
+		 * and time just to output a few numbers (and worse,
+		 * e.g. "shuf -i 1-2222222222 -n 1" would fail to allocate
+		 * ~17 gigabytes). Instead, pick COUNT distinct random numbers
+		 * from the range. Expected number of comparisons below
+		 * is less than outlines^2 / 2 < numlines - cheaper than
+		 * creating and shuffling the full array.
+		 */
+		lines = xmalloc((size_t)outlines * sizeof(lines[0]));
+		for (i = 0; i < outlines; i++) {
+			unsigned j;
+			uintptr_t v;
+ again:
+			v = random_below(numlines);
+			for (j = 0; j < i; j++)
+				if ((uintptr_t)lines[j] == v)
+					goto again; /* duplicate, pick another */
+			lines[i] = (char*)v;
+		}
+		numlines = outlines;
+	} else {
+		if (opts & OPT_i) {
+			lines = xmalloc((size_t)numlines * sizeof(lines[0]));
+			for (i = 0; i < numlines; i++) {
+				lines[i] = (char*)(uintptr_t)i;
+			}
+		}
+		shuffle_lines(lines, numlines, outlines);
+	}
 
 	if (opts & OPT_o)
 		xmove_fd(xopen(opt_o_str, O_WRONLY|O_CREAT|O_TRUNC), STDOUT_FILENO);
